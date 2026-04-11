@@ -1,0 +1,23 @@
+
+======================================================================
+  CRITICAL ABLATION: OUTER-PRODUCT EMBED + FLAT VECTOR OPS
+======================================================================
+  Same embedding as matrix thinker (u ⊗ v), then FLATTEN to 256-dim
+  Standard transformer layers on flat vectors
+  Params: 24,017,184 (embed=1,673,760 layers=9,477,120 head=12,878,592)
+  Time: 56.3 min on 8x H100
+
+  T= 1: BPB 3.219
+  T= 2: BPB 2.263
+  T= 4: BPB 1.495
+  T= 8: BPB 1.011
+
+  Thinking benefit: BPB 3.219 -> 1.011
+  vs Matrix d=16 v2:    BPB 1.906 at T=8
+  vs Matrix d=32 R2:    BPB 1.670 at T=8
+  vs LoopFormer FLOPs:  BPB 0.870 at T=8
+
+  INTERPRETATION:
+  If BPB ≈ matrix thinker → the win is the EMBEDDING, not the ops
+  If BPB >> matrix thinker → matrix OPERATIONS genuinely help
+======================================================================

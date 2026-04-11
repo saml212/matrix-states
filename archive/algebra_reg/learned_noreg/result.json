@@ -1,0 +1,17 @@
+{
+  "name": "learned_noreg",
+  "algebra_mode": "learned",
+  "use_algebra_reg": false,
+  "params": 1917953,
+  "text_bpc": 3.1364113875674655,
+  "image_bpc": 5.428663719709632,
+  "avg_squared_traces": [
+    0.12062130790824692,
+    0.12274289798612396,
+    0.1143407803028822,
+    0.12651945685502142
+  ],
+  "avg_commutativity": 0.07906037842622027,
+  "quaternion_distance": 8.118385340735468,
+  "elapsed_s": 1119.6703929901123
+}

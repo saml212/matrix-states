@@ -1,0 +1,40 @@
+# Phase 1 SCALED: More data, bigger batch, longer sequences
+# Same 10.8M model but better utilized
+# Run 3 proved segmentation helps — now push harder
+
+device: mps
+ssd_root: /Volumes/1TB_SSD/learned-representations
+results_dir: results/phase1_scaled
+data_size_mb: 100
+
+# Model (~10.8M params, same architecture)
+d_model: 640
+n_heads: 10
+n_layers: 6
+d_ff: 2560
+phm_n: 4
+dropout: 0.1
+max_len: 4096
+seg_layers: 1
+seg_d_model: 320
+target_compression: 4.0
+
+# Training — scaled up
+seq_len: 1024
+batch_size: 32
+n_epochs: 10
+lr: 3.0e-4
+weight_decay: 0.01
+warmup_steps: 500
+
+# Temperature
+tau_start: 1.5
+tau_end: 0.2
+
+# Losses
+var_weight: 0.01
+entropy_weight: 0.001
+
+# Logging
+log_interval: 50
+eval_interval: 200

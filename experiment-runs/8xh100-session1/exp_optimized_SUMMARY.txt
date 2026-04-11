@@ -1,0 +1,19 @@
+
+======================================================================
+  OPTIMIZED MATRIX THINKER — PHASE 1
+======================================================================
+  Optimizations: shared gate/value + low-rank r=8 + compile
+  Params: 5,090,424 (embed=3,347,520 think=131,608 head=1,611,296)
+  Time: 149.3 min on 8x H100
+  Data: 2,188,386,413 tokens | Steps: 3000
+
+  T= 1: PPL    231.0 | BPB 2.122
+  T= 2: PPL    134.3 | BPB 1.911
+  T= 4: PPL     93.5 | BPB 1.769
+  T= 8: PPL     82.3 | BPB 1.720
+
+  Thinking benefit: 148.7 PPL (64.4%)
+  T=1 BPB: 2.122 → T=8 BPB: 1.720
+
+  vs Round 2 baseline: PPL 72.4 / BPB 1.67 at T=8
+======================================================================

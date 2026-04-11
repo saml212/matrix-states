@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.DS_Store
+
+# Local Claude Code config and worktrees
+.claude/
+
+# Empty results placeholders (real results live on SSD)
+results/phase1/*.png
+results/phase1/*.json
+results/phase2/
+results/phase3/
+
+# Large training logs go on SSD, not in repo
+# Override this for specific files by force-adding (git add -f)
+experiment-runs/**/*.log
+*.log
+
+# Model checkpoints live on SSD
+*.pt
+*.bin
+*.safetensors

@@ -1,0 +1,17 @@
+{
+  "name": "quat_fixed",
+  "algebra_mode": "quaternion",
+  "use_algebra_reg": false,
+  "params": 1916417,
+  "text_bpc": 3.171585334800202,
+  "image_bpc": 5.69137150182536,
+  "avg_squared_traces": [
+    4.0,
+    -4.0,
+    -4.0,
+    -4.0
+  ],
+  "avg_commutativity": 4.0,
+  "quaternion_distance": 0.0,
+  "elapsed_s": 1047.1838920116425
+}

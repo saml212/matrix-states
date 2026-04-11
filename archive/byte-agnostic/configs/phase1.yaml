@@ -1,0 +1,40 @@
+# Phase 1 V3: Forced segmentation with learned boundary placement
+# 10M params, text only, M4 Mac Mini
+# Key change: top-K boundary selection eliminates collapse entirely
+
+device: mps
+ssd_root: /Volumes/1TB_SSD/learned-representations
+results_dir: results/phase1
+data_size_mb: 10
+
+# Model (~10.8M params)
+d_model: 640
+n_heads: 10
+n_layers: 6
+d_ff: 2560
+phm_n: 4
+dropout: 0.1
+max_len: 2048
+seg_layers: 1
+seg_d_model: 320
+target_compression: 4.0
+
+# Training
+seq_len: 512
+batch_size: 8
+n_epochs: 20
+lr: 3.0e-4
+weight_decay: 0.01
+warmup_steps: 200
+
+# Temperature
+tau_start: 1.5
+tau_end: 0.2
+
+# V3 losses
+var_weight: 0.01
+entropy_weight: 0.001
+
+# Logging
+log_interval: 25
+eval_interval: 100

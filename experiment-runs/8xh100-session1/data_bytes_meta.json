@@ -1,0 +1,10 @@
+{
+  "vocab_size": 256,
+  "tokenizer": "bytes",
+  "train_tokens": 539295549,
+  "val_tokens": 1144248,
+  "sources": [
+    "WikiText-103 bytes (539,295,549)",
+    "Python code bytes (0)"
+  ]
+}

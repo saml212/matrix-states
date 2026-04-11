@@ -1,0 +1,16 @@
+
+======================================================================
+  EXP G: BYTE-LEVEL MATRIX THINKER d=16
+======================================================================
+  vocab=256 (raw bytes), mat_dim=16 (16²=256=vocab)
+  Params: 218,276 (embed=139,264 [63%] think=74,148 [33%])
+  Time: 77.4 min on 8x H100
+
+  T= 1: BPB 3.828
+  T= 2: BPB 3.673
+  T= 4: BPB 3.587
+  T= 8: BPB 3.560
+
+  Thinking benefit: BPB 3.828 -> 3.560
+  NOTE: BPB is DIRECT for byte-level (no 3.7x conversion needed)
+======================================================================

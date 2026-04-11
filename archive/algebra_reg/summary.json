@@ -1,0 +1,70 @@
+{
+  "pathB_quat_init_reg": {
+    "name": "pathB_quat_init_reg",
+    "algebra_mode": "quaternion_init",
+    "use_algebra_reg": true,
+    "params": 1917953,
+    "text_bpc": 3.214475034011663,
+    "image_bpc": 5.664895061212059,
+    "avg_squared_traces": [
+      3.9912732740243277,
+      -3.9912090798219046,
+      -3.991029739379883,
+      -3.991238256295522
+    ],
+    "avg_commutativity": 3.9944678180747566,
+    "quaternion_distance": 0.01762582628326679,
+    "elapsed_s": 5546.793498039246
+  },
+  "quat_init_noreg": {
+    "name": "quat_init_noreg",
+    "algebra_mode": "quaternion_init",
+    "use_algebra_reg": false,
+    "params": 1917953,
+    "text_bpc": 3.272057233277643,
+    "image_bpc": 5.659626944129103,
+    "avg_squared_traces": [
+      3.675786554813385,
+      -3.675684263308843,
+      -3.669202506542206,
+      -3.647805521885554
+    ],
+    "avg_commutativity": 3.669956713914871,
+    "quaternion_distance": 0.6661553776691804,
+    "elapsed_s": 1121.5317556858063
+  },
+  "quat_fixed": {
+    "name": "quat_fixed",
+    "algebra_mode": "quaternion",
+    "use_algebra_reg": false,
+    "params": 1916417,
+    "text_bpc": 3.171585334800202,
+    "image_bpc": 5.69137150182536,
+    "avg_squared_traces": [
+      4.0,
+      -4.0,
+      -4.0,
+      -4.0
+    ],
+    "avg_commutativity": 4.0,
+    "quaternion_distance": 0.0,
+    "elapsed_s": 1047.1838920116425
+  },
+  "learned_noreg": {
+    "name": "learned_noreg",
+    "algebra_mode": "learned",
+    "use_algebra_reg": false,
+    "params": 1917953,
+    "text_bpc": 3.1364113875674655,
+    "image_bpc": 5.428663719709632,
+    "avg_squared_traces": [
+      0.12062130790824692,
+      0.12274289798612396,
+      0.1143407803028822,
+      0.12651945685502142
+    ],
+    "avg_commutativity": 0.07906037842622027,
+    "quaternion_distance": 8.118385340735468,
+    "elapsed_s": 1119.6703929901123
+  }
+}

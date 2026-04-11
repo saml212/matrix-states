@@ -1,0 +1,95 @@
+{
+  "experiment": "thought_interleave",
+  "params": 288841,
+  "config": {
+    "mat_dim": 16,
+    "n_layers": 24,
+    "n_heads": 4,
+    "insert_layer": 8,
+    "n_thoughts": 1,
+    "max_len": 4096,
+    "dropout": 0.1,
+    "batch_size_per_gpu": 128,
+    "seq_len": 512,
+    "max_steps": 3000,
+    "lr": 0.0003,
+    "warmup_steps": 300,
+    "weight_decay": 0.01,
+    "grad_clip": 1.0,
+    "eval_interval": 500,
+    "eval_batch_size": 128,
+    "log_interval": 50,
+    "data_dir": "/toy_story_slam/data_bytes",
+    "num_workers": 8,
+    "results_dir": "/toy_story_slam/results/thought_interleave"
+  },
+  "bpb": 3.537737919897213,
+  "no_thought_bpb": 3.718825757195013,
+  "ranks": {
+    "byte_rank": 5.015579448026769,
+    "thought_rank": 4.711434813106761
+  },
+  "training_curve": [
+    {
+      "step": 500,
+      "loss": 2.848254680633545,
+      "bpb": 4.038741247823012,
+      "ranks": {
+        "byte_rank": 4.509451641755946,
+        "thought_rank": 3.8558800641228173
+      },
+      "no_thought_bpb": 4.127842970544909
+    },
+    {
+      "step": 1000,
+      "loss": 2.540125608444214,
+      "bpb": 3.6164784972347475,
+      "ranks": {
+        "byte_rank": 4.7967469551984,
+        "thought_rank": 4.334666757022633
+      },
+      "no_thought_bpb": 3.7613191901036895
+    },
+    {
+      "step": 1500,
+      "loss": 2.4728939533233643,
+      "bpb": 3.5644517220234437,
+      "ranks": {
+        "byte_rank": 4.9040193838231705,
+        "thought_rank": 4.564233218922334
+      },
+      "no_thought_bpb": 3.731436152387118
+    },
+    {
+      "step": 2000,
+      "loss": 2.4637320041656494,
+      "bpb": 3.545271933533681,
+      "ranks": {
+        "byte_rank": 4.9524080332587745,
+        "thought_rank": 4.647530106937184
+      },
+      "no_thought_bpb": 3.721043139629214
+    },
+    {
+      "step": 2500,
+      "loss": 2.4622914791107178,
+      "bpb": 3.538789057626034,
+      "ranks": {
+        "byte_rank": 5.0093578170327575,
+        "thought_rank": 4.6902892729815315
+      },
+      "no_thought_bpb": 3.719713126973706
+    },
+    {
+      "step": 3000,
+      "loss": 2.468773365020752,
+      "bpb": 3.537737919897213,
+      "ranks": {
+        "byte_rank": 5.019295636345358,
+        "thought_rank": 4.70630620507633
+      },
+      "no_thought_bpb": 3.718825757195013
+    }
+  ],
+  "time_min": 41.178219163417815
+}

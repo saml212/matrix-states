@@ -1,0 +1,19 @@
+
+======================================================================
+  EXP F: MATRIX THINKER d=16
+======================================================================
+  mat_dim=16, 8 layers, r=4 low-rank, shared projections
+  Params: 2,511,688 (embed=1,673,760 think=33,048 head=804,880)
+  Time: 50.7 min on 8x H100
+  Data: 2,188,386,413 tokens | Steps: 3000
+
+  T= 1: BPB 2.236
+  T= 2: BPB 2.089
+  T= 4: BPB 1.977
+  T= 8: BPB 1.935
+
+  Thinking benefit: BPB 2.236 → 1.935
+  vs d=32 optimized: BPB 1.720 at T=8
+  vs d=32 Round 2:   BPB 1.670 at T=8
+  vs LoopFormer:     BPB 0.870 at T=8 (FLOPs-matched)
+======================================================================

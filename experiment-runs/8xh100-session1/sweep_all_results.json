@@ -1,0 +1,110 @@
+{
+  "name": "A_multiprobe_N1",
+  "params": 293192,
+  "bpb": 3.5351332527665225,
+  "no_thought_bpb": 3.5934775375083556,
+  "ranks": {
+    "byte_rank": 7.545302952037138,
+    "thought_rank": 6.038806999430937
+  },
+  "time_min": 41.52689941326777,
+  "config": {
+    "name": "A_multiprobe_N1",
+    "n_layers": 24,
+    "n_thoughts": 1,
+    "output_type": "multiprobe",
+    "insert_layer": 8,
+    "mat_dim": 16,
+    "n_heads": 4,
+    "batch_size": 128,
+    "max_steps": 3000,
+    "results_dir": "/toy_story_slam/results/sweep_A_multiprobe_N1"
+  }
+}{
+  "name": "B_zeroparam_N2",
+  "params": 289097,
+  "bpb": 3.5474158894925893,
+  "no_thought_bpb": 3.649903143330657,
+  "ranks": {
+    "byte_rank": 4.816550899954403,
+    "thought_rank": 5.016307718613568
+  },
+  "time_min": 44.040157723426816,
+  "config": {
+    "name": "B_zeroparam_N2",
+    "n_layers": 24,
+    "n_thoughts": 2,
+    "output_type": "zero_param",
+    "insert_layer": 8,
+    "mat_dim": 16,
+    "n_heads": 4,
+    "batch_size": 96,
+    "max_steps": 3000,
+    "results_dir": "/toy_story_slam/results/sweep_B_zeroparam_N2"
+  }
+}{
+  "name": "C_zeroparam_N4",
+  "params": 289609,
+  "bpb": 3.550107681010882,
+  "no_thought_bpb": 3.9691254629426664,
+  "ranks": {
+    "byte_rank": 5.15288434309118,
+    "thought_rank": 4.482351920183967
+  },
+  "time_min": 47.01883549292882,
+  "config": {
+    "name": "C_zeroparam_N4",
+    "n_layers": 24,
+    "n_thoughts": 4,
+    "output_type": "zero_param",
+    "insert_layer": 8,
+    "mat_dim": 16,
+    "n_heads": 4,
+    "batch_size": 64,
+    "max_steps": 3000,
+    "results_dir": "/toy_story_slam/results/sweep_C_zeroparam_N4"
+  }
+}{
+  "name": "D_scaled_N1",
+  "params": 437137,
+  "bpb": 3.5267085713311164,
+  "no_thought_bpb": 3.7218505273586286,
+  "ranks": {
+    "byte_rank": 5.296107712913962,
+    "thought_rank": 4.601692452150233
+  },
+  "time_min": 64.5156353632609,
+  "config": {
+    "name": "D_scaled_N1",
+    "n_layers": 48,
+    "n_thoughts": 1,
+    "output_type": "zero_param",
+    "insert_layer": 16,
+    "mat_dim": 16,
+    "n_heads": 4,
+    "batch_size": 96,
+    "max_steps": 3000,
+    "results_dir": "/toy_story_slam/results/sweep_D_scaled_N1"
+  }
+}{
+  "name": "E_scaled_baseline",
+  "params": 436369,
+  "bpb": 3.524174154054989,
+  "no_thought_bpb": 3.524174154054989,
+  "ranks": {
+    "byte_rank": 5.0436948607949645
+  },
+  "time_min": 53.570010733604434,
+  "config": {
+    "name": "E_scaled_baseline",
+    "n_layers": 48,
+    "n_thoughts": 0,
+    "output_type": "zero_param",
+    "insert_layer": 16,
+    "mat_dim": 16,
+    "n_heads": 4,
+    "batch_size": 128,
+    "max_steps": 3000,
+    "results_dir": "/toy_story_slam/results/sweep_E_scaled_baseline"
+  }
+}

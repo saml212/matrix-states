@@ -1,0 +1,18 @@
+
+======================================================================
+  EXP 3D: TRUE MATRIX PRODUCT ATTENTION d=16
+======================================================================
+  3D attention: score is 4x4 matrix per pair (rows couple with cols)
+  Params: 2,552,788 (think=74,148)
+  Time: 169.2 min on 8x H100
+
+  T= 1: BPB 2.540
+  T= 2: BPB 2.491
+  T= 4: BPB 2.464
+  T= 8: BPB 2.457
+
+  Thinking: BPB 2.540 -> 2.457
+  vs Frobenius d=16 v2: BPB 1.906 at T=8
+  vs d=32 Round 2:      BPB 1.670 at T=8
+  KEY QUESTION: does 3D attention beat Frobenius at d=16?
+======================================================================

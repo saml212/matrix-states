@@ -1,0 +1,88 @@
+{
+  "experiment": "no_thought_baseline",
+  "params": 288585,
+  "config": {
+    "mat_dim": 16,
+    "n_layers": 24,
+    "n_heads": 4,
+    "insert_layer": 8,
+    "n_thoughts": 1,
+    "max_len": 4096,
+    "dropout": 0.1,
+    "batch_size_per_gpu": 128,
+    "seq_len": 512,
+    "max_steps": 3000,
+    "lr": 0.0003,
+    "warmup_steps": 300,
+    "weight_decay": 0.01,
+    "grad_clip": 1.0,
+    "eval_interval": 500,
+    "eval_batch_size": 128,
+    "log_interval": 50,
+    "data_dir": "/toy_story_slam/data_bytes",
+    "num_workers": 8,
+    "results_dir": "/toy_story_slam/results/no_thought_baseline"
+  },
+  "bpb": 3.5352899390780848,
+  "no_thought_bpb": null,
+  "ranks": {
+    "byte_rank": 5.081370830535889
+  },
+  "training_curve": [
+    {
+      "step": 500,
+      "loss": 2.930950403213501,
+      "bpb": 4.159253113034876,
+      "ranks": {
+        "byte_rank": 4.505923663868623
+      },
+      "no_thought_bpb": 4.159253113034876
+    },
+    {
+      "step": 1000,
+      "loss": 2.549914836883545,
+      "bpb": 3.6282067832939515,
+      "ranks": {
+        "byte_rank": 4.862543302423814
+      },
+      "no_thought_bpb": 3.6282067832939515
+    },
+    {
+      "step": 1500,
+      "loss": 2.4787955284118652,
+      "bpb": 3.5686265502900056,
+      "ranks": {
+        "byte_rank": 5.029011473936193
+      },
+      "no_thought_bpb": 3.5686265502900056
+    },
+    {
+      "step": 2000,
+      "loss": 2.4676475524902344,
+      "bpb": 3.5483336496173528,
+      "ranks": {
+        "byte_rank": 5.0371573392082665
+      },
+      "no_thought_bpb": 3.5483336496173528
+    },
+    {
+      "step": 2500,
+      "loss": 2.4634451866149902,
+      "bpb": 3.536805207398452,
+      "ranks": {
+        "byte_rank": 5.072488925036262
+      },
+      "no_thought_bpb": 3.536805207398452
+    },
+    {
+      "step": 3000,
+      "loss": 2.4699931144714355,
+      "bpb": 3.5352899390780848,
+      "ranks": {
+        "byte_rank": 5.084994203904095
+      },
+      "no_thought_bpb": 3.5352899390780848
+    }
+  ],
+  "time_min": 27.281044499079385
+}

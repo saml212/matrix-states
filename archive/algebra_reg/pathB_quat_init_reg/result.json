@@ -1,0 +1,17 @@
+{
+  "name": "pathB_quat_init_reg",
+  "algebra_mode": "quaternion_init",
+  "use_algebra_reg": true,
+  "params": 1917953,
+  "text_bpc": 3.214475034011663,
+  "image_bpc": 5.664895061212059,
+  "avg_squared_traces": [
+    3.9912732740243277,
+    -3.9912090798219046,
+    -3.991029739379883,
+    -3.991238256295522
+  ],
+  "avg_commutativity": 3.9944678180747566,
+  "quaternion_distance": 0.01762582628326679,
+  "elapsed_s": 5546.793498039246
+}

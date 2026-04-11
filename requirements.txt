@@ -1,0 +1,6 @@
+torch>=2.11.0
+numpy>=2.0
+datasets>=4.0
+tqdm>=4.60
+pyyaml>=6.0
+matplotlib>=3.9

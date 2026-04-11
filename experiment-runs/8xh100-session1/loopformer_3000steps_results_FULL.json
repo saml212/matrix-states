@@ -1,0 +1,187 @@
+{
+  "experiment": "loopformer_baseline",
+  "params": 5330400,
+  "config": {
+    "n_embd": 96,
+    "n_head": 4,
+    "n_layer": 2,
+    "n_loops": 8,
+    "intermediate_dim": 240,
+    "max_len": 2048,
+    "dropout": 0.1,
+    "batch_size_per_gpu": 96,
+    "seq_len": 512,
+    "max_steps": 3000,
+    "lr": 0.0003,
+    "warmup_steps": 300,
+    "weight_decay": 0.01,
+    "grad_clip": 1.0,
+    "eval_interval": 500,
+    "eval_batch_size": 96,
+    "eval_loops": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "log_interval": 50,
+    "data_dir": "/toy_story_slam/data",
+    "fallback_data_dir": "/toy_story_slam/data_quick",
+    "results_dir": "/toy_story_slam/results/loopformer_baseline",
+    "num_workers": 8
+  },
+  "final_evals": {
+    "L1": {
+      "val_loss": 10.11,
+      "val_ppl": 24587.660736455156
+    },
+    "L2": {
+      "val_loss": 6.9275,
+      "val_ppl": 1019.940937306184
+    },
+    "L4": {
+      "val_loss": 4.379375,
+      "val_ppl": 79.7881502243241
+    },
+    "L8": {
+      "val_loss": 3.256875,
+      "val_ppl": 25.9682594015622
+    }
+  },
+  "training_curve": [
+    {
+      "step": 500,
+      "train_loss": 5.0643486976623535,
+      "evals": {
+        "L1": {
+          "val_loss": 8.403125,
+          "val_ppl": 4460.9855681161525
+        },
+        "L2": {
+          "val_loss": 6.64875,
+          "val_ppl": 771.8189486145061
+        },
+        "L4": {
+          "val_loss": 5.319375,
+          "val_ppl": 204.25618197713425
+        },
+        "L8": {
+          "val_loss": 5.055,
+          "val_ppl": 156.80453034416817
+        }
+      }
+    },
+    {
+      "step": 1000,
+      "train_loss": 3.6494882106781006,
+      "evals": {
+        "L1": {
+          "val_loss": 8.33625,
+          "val_ppl": 4172.413815666175
+        },
+        "L2": {
+          "val_loss": 6.029375,
+          "val_ppl": 415.45528866605105
+        },
+        "L4": {
+          "val_loss": 4.341875,
+          "val_ppl": 76.85150089633933
+        },
+        "L8": {
+          "val_loss": 3.93,
+          "val_ppl": 50.90697766920144
+        }
+      }
+    },
+    {
+      "step": 1500,
+      "train_loss": 3.538771867752075,
+      "evals": {
+        "L1": {
+          "val_loss": 9.1825,
+          "val_ppl": 9725.435996240463
+        },
+        "L2": {
+          "val_loss": 6.4375,
+          "val_ppl": 624.8427387029609
+        },
+        "L4": {
+          "val_loss": 4.2925,
+          "val_ppl": 73.14911288123164
+        },
+        "L8": {
+          "val_loss": 3.5359375,
+          "val_ppl": 34.327181366285636
+        }
+      }
+    },
+    {
+      "step": 2000,
+      "train_loss": 3.079127550125122,
+      "evals": {
+        "L1": {
+          "val_loss": 9.96125,
+          "val_ppl": 21189.265752472285
+        },
+        "L2": {
+          "val_loss": 6.796875,
+          "val_ppl": 895.045898320867
+        },
+        "L4": {
+          "val_loss": 4.34375,
+          "val_ppl": 76.99573263552006
+        },
+        "L8": {
+          "val_loss": 3.3521875,
+          "val_ppl": 28.565151618382775
+        }
+      }
+    },
+    {
+      "step": 2500,
+      "train_loss": 3.1643993854522705,
+      "evals": {
+        "L1": {
+          "val_loss": 10.09875,
+          "val_ppl": 24312.59967268233
+        },
+        "L2": {
+          "val_loss": 6.90875,
+          "val_ppl": 1000.9952159168969
+        },
+        "L4": {
+          "val_loss": 4.36875,
+          "val_ppl": 78.94488888705497
+        },
+        "L8": {
+          "val_loss": 3.2725,
+          "val_ppl": 26.377199983121464
+        }
+      }
+    },
+    {
+      "step": 3000,
+      "train_loss": 3.279103994369507,
+      "evals": {
+        "L1": {
+          "val_loss": 10.11,
+          "val_ppl": 24587.660736455156
+        },
+        "L2": {
+          "val_loss": 6.9275,
+          "val_ppl": 1019.940937306184
+        },
+        "L4": {
+          "val_loss": 4.379375,
+          "val_ppl": 79.7881502243241
+        },
+        "L8": {
+          "val_loss": 3.256875,
+          "val_ppl": 25.9682594015622
+        }
+      }
+    }
+  ],
+  "loop_benefit_pct": 99.89438499383937,
+  "time_min": 5.899801190694173
+}

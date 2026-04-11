@@ -1,0 +1,17 @@
+{
+  "name": "quat_init_noreg",
+  "algebra_mode": "quaternion_init",
+  "use_algebra_reg": false,
+  "params": 1917953,
+  "text_bpc": 3.272057233277643,
+  "image_bpc": 5.659626944129103,
+  "avg_squared_traces": [
+    3.675786554813385,
+    -3.675684263308843,
+    -3.669202506542206,
+    -3.647805521885554
+  ],
+  "avg_commutativity": 3.669956713914871,
+  "quaternion_distance": 0.6661553776691804,
+  "elapsed_s": 1121.5317556858063
+}
