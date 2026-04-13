@@ -1,6 +1,6 @@
 {
-  "ts": "2026-04-13T17:12:56+00:00",
-  "queue_remaining": 1,
+  "ts": "2026-04-13T17:22:56+00:00",
+  "queue_remaining": 5,
   "training_running": true,
   "gpu_busy": true,
   "gpu_util_pct": 100,
