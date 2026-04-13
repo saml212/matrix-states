@@ -1,0 +1,12 @@
+
+======================================================================
+  MATRIX-CODI RUN C (rank projection ablation)
+======================================================================
+  Checkpoint: /workspace/pebble/round3_gamma0/results/run2_gamma0_think_off/best_run_b_matrix.pt
+  k= 1: 72.60%
+  k= 2: 72.60%
+  k= 4: 72.80%
+  k= 8: 72.60%
+  k=16: 72.40%
+  Spearman r(rank, correct) = 0.0950
+======================================================================

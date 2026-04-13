@@ -284,6 +284,81 @@ After saving the report, also update `STATE.md` and `EXPERIMENT_LOG.md` in the l
 
 ---
 
+## POST-NEGATIVE QUEUE (added 2026-04-13 after Priority 1 returned Stack-decorative)
+
+Priority 1 (matrix-CODI rank dynamics) returned a negative result across 5 axes (rank-k ablation, vanilla SFT control, distillation ablation, thinker ablation, probe on Z). See EXPERIMENT_LOG.md Rounds 1-5 and KILL_LIST.md for details. The following experiments are the surviving research directions toward the larger goals of the program (generalizability, abstract reasoning at inference, matrix-produced inference, matrix-embedded contextualization). They do not try to rescue the matrix-CODI bottleneck framing — that's dead. They aim at different mechanisms and different scales.
+
+### Priority 1b: Round 6 — GPT-2 medium scale grid (in flight as of 2026-04-13)
+
+**Status:** Running on 1×H100. Vanilla SFT + matrix CODI on GPT-2 medium (354M), single seed, ProsQA. Addresses the "did you try at scale?" reviewer question for the workshop submission.
+
+**Expected completion:** ~3 hours from launch.
+
+### Priority 1c: Round 5 — Sample efficiency curve (auto-launches after Round 4)
+
+**Status:** Queued. Vanilla SFT vs matrix CODI at N ∈ {200, 500, 2000, 5000} on ProsQA. Addresses "did you try in low-data regimes?" reviewer question.
+
+**Expected completion:** ~2-3 hours total after launch.
+
+### Priority 1d: Reproduce Illusion of Superposition baseline (required before workshop)
+
+**Hypothesis:** Our vanilla SFT achieves 81.77% on ProsQA; Rizvi-Martel et al. (arXiv 2604.06374) report 96.6% for fine-tuned COCONUT-no-latents on the same task. Close the gap or explain it convincingly.
+
+**Design:** Read their hyperparameters from the paper, match them, run on 1×H100.
+
+**Status:** Required for workshop submission. Blocking.
+
+### Priority A1: Matrix-native from-scratch on a provably rank-K task (moonshot)
+
+**Hypothesis:** A small (~10M param) fully matrix-native transformer (matrix Q/K/V with true matrix composition, no flatten in the forward pass, matrix LM head that does not reduce to a linear-in-Z map) trained from scratch on a synthetic task whose minimum solving rank is k will develop functional rank and show a non-flat rank-k ablation curve at k ≤ d.
+
+**Task design (critical, hard):** Must construct a task where the ground truth requires tracking K independent quantities and the model cannot find a rank-1 shortcut. ProsQA failed here because the diamond DAG admits a rank-1 best-path solution. Candidate: multi-source path lookup — given k unrelated graphs and k start nodes embedded in one sequence, output the union of reachable terminals. Requires k orthogonal "current frontier" registers by construction.
+
+**Escape mechanism:** Lesson 4(b) + 4(d) from KILL_LIST. No flatten anywhere, and the task has no rank-1 shortcut.
+
+**Compute:** ~24 hours on 1×H100 (smoke test + k sweep × 6 + param-matched vector baseline at d²=256).
+
+**Risk:** Synthetic task design is where MNNS died. Needs full attack-agent waterfall on the task spec before any code is written.
+
+**Status:** Moonshot. Run only after workshop submission is out the door.
+
+### Priority A2: Iterative refinement depth sweep (Round 2 of "abstract reasoning at inference")
+
+**Hypothesis:** COCONUT-style continuous iteration on vanilla GPT-2 124M with iteration depth ∈ {6, 16, 64, 256} will show monotone accuracy gains on ProsQA up to a saturation point, providing evidence that inference-time compute via latent loops is the active mechanism — independent of representation structure.
+
+**Design:** Fork the CODI repo's iteration loop, disable matrix bottleneck, sweep iteration count. Report accuracy-per-FLOP.
+
+**Why this matters:** CODI (2502.21074) and COCONUT (2412.06769) both fix iteration count at 4-6. No published depth sweep exists beyond 8 iterations. Real gap in the literature.
+
+**Compute:** 4 depths × 3 seeds × 0.5-3h (depth-dependent) = ~30h on 1×H100.
+
+**Status:** Next candidate after workshop paper is out. Directly tests Goal 2 (abstract reasoning at inference).
+
+### Priority A3: Scale study with a bigger backbone on the negative result
+
+**Hypothesis:** Same matrix-CODI experiments on Pythia-410M or Llama-1B. If the decoration finding holds at larger scale, the TMLR submission becomes possible.
+
+**Compute:** 6-10h per run × 6 conditions = ~50h on 1×H100.
+
+**Status:** Required for TMLR submission, not workshop. Run during the workshop acceptance wait.
+
+### Priority A4: Nuclear-norm reward with depth-stratified test (revived P5 with amendments)
+
+**Hypothesis:** Adding `λ · ‖Z‖_* / ‖Z‖_F` (normalized to avoid scale explosion) as a reward in the matrix-CODI loss, sweeping λ, and measuring ProsQA accuracy stratified by reasoning depth, will reveal whether forced rank ever becomes functional.
+
+**Amendments from killed P5:**
+- Normalize nuclear norm by Frobenius norm (bounded, scale-invariant)
+- Fix save_Z=True in training path
+- fp32 SVD with ε-smoothing
+- Multi-seed with Bonferroni correction over depth bins
+- Pre-committed interpretation: flat accuracy across λ kills the rank-capacity hypothesis for good
+
+**Compute:** 5 λ values × 3 seeds × ~1.5h = ~22h.
+
+**Status:** Last-chance test before abandoning rank-as-capacity entirely.
+
+---
+
 ## DEFERRED QUEUE
 
 ### Priority 2: K-bigram Embedding Ablation
