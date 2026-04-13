@@ -1,10 +1,10 @@
 {
-  "ts": "2026-04-13T05:16:22+00:00",
+  "ts": "2026-04-13T05:26:22+00:00",
   "queue_remaining": 0,
   "training_running": false,
   "gpu_busy": true,
   "gpu_util_pct": 100,
-  "gpu_mem_mib": 55677
+  "gpu_mem_mib": 55817
 }
 ---
 /workspace/pebble/round4_sft_control/results/:
@@ -12,6 +12,7 @@ pure_sft_seed1337
 pure_sft_seed42
 pure_sft_seed7
 teacher_ce_seed1337
+teacher_ce_seed42
 
 /workspace/pebble/round5_sample_eff/results/:
 
