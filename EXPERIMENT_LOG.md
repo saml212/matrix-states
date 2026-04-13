@@ -1170,6 +1170,16 @@ Our Round 1 GSM8K-Aug Run A accuracy of 7.00% is also far below CODI's published
 
 ---
 
+### teacher_ce mode — degenerate ceiling (not a meaningful baseline)
+
+Added 2026-04-13 later. The `teacher_ce` mode in `run_vanilla_sft.py` includes the full chain-of-thought in the training prompt AND in the eval prompt, so the task is "given question + reasoning chain, emit the answer" — trivial copy-from-context. Seed 1337 hit **100.00%** best, 100.00% final, 97.5 min wall time. Seeds 42 and 7 are still running but expected to be similar.
+
+This condition does not test reasoning. It tests whether the model can copy the last entity from the CoT in its context. Reported here only to prevent confusion with `pure_sft` (which is the load-bearing baseline at 81.77% mean).
+
+Will not be reported as a separate baseline in the paper.
+
+---
+
 ## Round 5 Results Part 1 (2026-04-13): Linear probe interpretability on Z
 
 ### Setup
