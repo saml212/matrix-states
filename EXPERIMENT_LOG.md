@@ -1210,8 +1210,8 @@ Tests: does matrix-CODI provide better inductive bias for low-data ProsQA traini
 |---|------------------|------------------|--------------|-------------|
 | 200 | 60.94% | 53.12% | 0.8 min | 7.7 min |
 | 500 | 55.47% | 59.38% | 1.4 min | 11.1 min |
-| 2,000 | 67.19% | (running) | 4.4 min | — |
-| 5,000 | 78.91% | (queued) | 10.5 min | — |
+| 2,000 | 67.19% | 59.38% | 4.4 min | 28.0 min |
+| 5,000 | 78.91% | (running) | 10.5 min | — |
 | 17,886 | 81.77% (3 seeds) | 82.03% (Round 2) | 37–69 min | 108 min |
 
 ### Preliminary interpretation
