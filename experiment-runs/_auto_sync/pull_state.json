@@ -17,6 +17,7 @@ teacher_ce_seed7
 
 /workspace/pebble/round5_sample_eff/results/:
 matrix_N200
+matrix_N500
 vanilla_N200
 vanilla_N2000
 vanilla_N500
