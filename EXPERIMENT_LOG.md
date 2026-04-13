@@ -1240,6 +1240,16 @@ This is a clean, multi-dimensional negative result.
 
 ---
 
+## Infrastructure events (2026-04-13)
+
+### Round 7 Illusion failure → fix
+First Illusion run launched at 10:37:16 by master_queue. Failed at 10:37:33 (17 seconds) with `ModuleNotFoundError: No module named wandb`. The facebookresearch/coconut `run.py` imports wandb at module load. Fix: `pip install wandb` in the venv, set `WANDB_MODE=disabled` and `WANDB_DISABLED=true` in `illusion_repro.sh` to suppress login prompt. Re-queued at the top of `queue.txt`. Will execute after Round 8 depth sweep completes.
+
+### Round 8 depth sweep started
+Master queue advanced past the failed Round 7 to Round 8 at 10:38:17. Currently running n_latents=6 (the baseline) on vanilla CODI with ProsQA. 4 configs total (n=6, 16, 32, 64). Total expected wall time ~14-20 hours.
+
+---
+
 ### teacher_ce mode — degenerate ceiling (not a meaningful baseline)
 
 Added 2026-04-13 later. The `teacher_ce` mode in `run_vanilla_sft.py` includes the full chain-of-thought in the training prompt AND in the eval prompt, so the task is "given question + reasoning chain, emit the answer" — trivial copy-from-context. Seed 1337 hit **100.00%** best, 100.00% final, 97.5 min wall time. Seeds 42 and 7 are still running but expected to be similar.
