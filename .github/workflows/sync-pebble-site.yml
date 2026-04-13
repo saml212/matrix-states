@@ -1,0 +1,49 @@
+name: Sync pebble-ai-site to deploy repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pebble-ai-site/**'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout workspace (learned-representations)
+        uses: actions/checkout@v4
+
+      - name: Checkout deploy repo (pebble-ai-site)
+        uses: actions/checkout@v4
+        with:
+          repository: saml212/pebble-ai-site
+          token: ${{ secrets.PEBBLE_DEPLOY_TOKEN }}
+          path: deploy
+
+      - name: Sync workspace -> deploy
+        run: |
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='CNAME' \
+            --exclude='HANDOFF-PROMPT.md' \
+            --exclude='SAM-ACTION-LIST.md' \
+            --exclude='pitch-materials.md' \
+            --exclude='researcher-outreach-list.md' \
+            pebble-ai-site/ deploy/
+
+      - name: Commit and push to deploy repo
+        run: |
+          cd deploy
+          git config user.name "pebble-sync-bot"
+          git config user.email "sync-bot@pebbleml.com"
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to deploy"
+            exit 0
+          fi
+          git add -A
+          git commit -m "auto-sync: learned-representations@${{ github.sha }}
+
+          Triggered by push from ${{ github.actor }} on branch main.
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          git push
