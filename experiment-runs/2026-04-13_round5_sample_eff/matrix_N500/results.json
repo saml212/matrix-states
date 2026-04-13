@@ -1,0 +1,256 @@
+{
+  "train_matrix": {
+    "config": {
+      "base_model": "gpt2",
+      "n_latents": 6,
+      "alpha": 1.0,
+      "beta": 1.0,
+      "gamma": 1.0,
+      "lr": 0.0001,
+      "warmup_steps": 50,
+      "weight_decay": 0.01,
+      "betas": [
+        0.9,
+        0.98
+      ],
+      "grad_clip": 1.0,
+      "batch_size_per_gpu": 16,
+      "epochs": 25,
+      "max_q_len": 640,
+      "max_ans_len": 32,
+      "max_total_len": 768,
+      "mat_dim": 16,
+      "use_thinking_iter": true,
+      "eval_interval_epochs": 1,
+      "max_eval_batches": 8,
+      "eval_batch_size": 16,
+      "max_rank_samples": 50,
+      "log_interval": 50,
+      "results_dir": "/workspace/pebble/round5_sample_eff/results/matrix_N500",
+      "seed": 1337,
+      "final_eval_batches": 32,
+      "dataset": "prosqa",
+      "prosqa_train_path": "/workspace/pebble/round3_gamma0/data/prosqa_train.json",
+      "prosqa_val_path": "/workspace/pebble/round3_gamma0/data/prosqa_test.json",
+      "max_train_examples": 500
+    },
+    "best_accuracy": 0.59375,
+    "training_curve": [
+      {
+        "epoch": 1,
+        "step": 31,
+        "accuracy": 0.4921875,
+        "train_loss_avg50": 27.514655290111417
+      },
+      {
+        "epoch": 2,
+        "step": 62,
+        "accuracy": 0.40625,
+        "train_loss_avg50": 2.193173781633377
+      },
+      {
+        "epoch": 3,
+        "step": 93,
+        "accuracy": 0.4609375,
+        "train_loss_avg50": 0.43032832503318785
+      },
+      {
+        "epoch": 4,
+        "step": 124,
+        "accuracy": 0.46875,
+        "train_loss_avg50": 0.35840562224388123
+      },
+      {
+        "epoch": 5,
+        "step": 155,
+        "accuracy": 0.4140625,
+        "train_loss_avg50": 0.32156992733478545
+      },
+      {
+        "epoch": 6,
+        "step": 186,
+        "accuracy": 0.53125,
+        "train_loss_avg50": 0.31282386153936387
+      },
+      {
+        "epoch": 7,
+        "step": 217,
+        "accuracy": 0.4921875,
+        "train_loss_avg50": 0.290384601354599
+      },
+      {
+        "epoch": 8,
+        "step": 248,
+        "accuracy": 0.421875,
+        "train_loss_avg50": 0.2697241443395615
+      },
+      {
+        "epoch": 9,
+        "step": 279,
+        "accuracy": 0.4609375,
+        "train_loss_avg50": 0.2533161661028862
+      },
+      {
+        "epoch": 10,
+        "step": 310,
+        "accuracy": 0.4609375,
+        "train_loss_avg50": 0.2422321182489395
+      },
+      {
+        "epoch": 11,
+        "step": 341,
+        "accuracy": 0.5234375,
+        "train_loss_avg50": 0.2384905457496643
+      },
+      {
+        "epoch": 12,
+        "step": 372,
+        "accuracy": 0.515625,
+        "train_loss_avg50": 0.22699811816215515
+      },
+      {
+        "epoch": 13,
+        "step": 403,
+        "accuracy": 0.5,
+        "train_loss_avg50": 0.21347038954496383
+      },
+      {
+        "epoch": 14,
+        "step": 434,
+        "accuracy": 0.5234375,
+        "train_loss_avg50": 0.19703894585371018
+      },
+      {
+        "epoch": 15,
+        "step": 465,
+        "accuracy": 0.515625,
+        "train_loss_avg50": 0.18837562143802644
+      },
+      {
+        "epoch": 16,
+        "step": 496,
+        "accuracy": 0.546875,
+        "train_loss_avg50": 0.18623326897621154
+      },
+      {
+        "epoch": 17,
+        "step": 527,
+        "accuracy": 0.578125,
+        "train_loss_avg50": 0.17679419338703156
+      },
+      {
+        "epoch": 18,
+        "step": 558,
+        "accuracy": 0.59375,
+        "train_loss_avg50": 0.1728108498454094
+      },
+      {
+        "epoch": 19,
+        "step": 589,
+        "accuracy": 0.546875,
+        "train_loss_avg50": 0.16540483385324478
+      },
+      {
+        "epoch": 20,
+        "step": 620,
+        "accuracy": 0.5703125,
+        "train_loss_avg50": 0.16492212414741517
+      },
+      {
+        "epoch": 21,
+        "step": 651,
+        "accuracy": 0.5390625,
+        "train_loss_avg50": 0.16256900310516356
+      },
+      {
+        "epoch": 22,
+        "step": 682,
+        "accuracy": 0.546875,
+        "train_loss_avg50": 0.16127482831478118
+      },
+      {
+        "epoch": 23,
+        "step": 713,
+        "accuracy": 0.546875,
+        "train_loss_avg50": 0.16319556653499603
+      },
+      {
+        "epoch": 24,
+        "step": 744,
+        "accuracy": 0.5390625,
+        "train_loss_avg50": 0.16125949442386628
+      },
+      {
+        "epoch": 25,
+        "step": 775,
+        "accuracy": 0.546875,
+        "train_loss_avg50": 0.15898742258548737
+      }
+    ],
+    "z_rank_curve": [
+      {
+        "step": 50,
+        "mean_effective_rank": 12.520559310913086
+      },
+      {
+        "step": 100,
+        "mean_effective_rank": 12.375641345977783
+      },
+      {
+        "step": 150,
+        "mean_effective_rank": 12.174875100453695
+      },
+      {
+        "step": 200,
+        "mean_effective_rank": 12.4241836865743
+      },
+      {
+        "step": 250,
+        "mean_effective_rank": 12.647071520487467
+      },
+      {
+        "step": 300,
+        "mean_effective_rank": 12.6563351949056
+      },
+      {
+        "step": 350,
+        "mean_effective_rank": 12.655452887217203
+      },
+      {
+        "step": 400,
+        "mean_effective_rank": 12.461623350779215
+      },
+      {
+        "step": 450,
+        "mean_effective_rank": 12.75602356592814
+      },
+      {
+        "step": 500,
+        "mean_effective_rank": 12.013670762379965
+      },
+      {
+        "step": 550,
+        "mean_effective_rank": 12.586629549662272
+      },
+      {
+        "step": 600,
+        "mean_effective_rank": 12.596890131632486
+      },
+      {
+        "step": 650,
+        "mean_effective_rank": 12.657160758972168
+      },
+      {
+        "step": 700,
+        "mean_effective_rank": 12.695860862731934
+      },
+      {
+        "step": 750,
+        "mean_effective_rank": 12.645563443501791
+      }
+    ],
+    "wall_time_min": 11.113381695747375,
+    "world_size": 1,
+    "n_params": 124841763
+  }
+}

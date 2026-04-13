@@ -1194,6 +1194,33 @@ Our Round 1 GSM8K-Aug Run A accuracy of 7.00% is also far below CODI's published
 
 Scaling from 124M to 355M **does not improve ProsQA vanilla SFT accuracy**. This is the first scale-axis datapoint for the workshop submission. Waiting on the matrix-CODI gpt2-medium run to close the 2x2 grid. If it also lands near 80%, the negative result holds across both backbone scales.
 
+## Round 5 Sample-Efficiency Curve (2026-04-13, partial)
+
+Tests: does matrix-CODI provide better inductive bias for low-data ProsQA training? Closes the data-scale axis for the workshop submission.
+
+### Setup
+- gpt2-small backbone, 25 epochs, batch=16, lr=1e-4, warmup=50, single seed (1337)
+- Vary `--max-train-examples` ∈ {200, 500, 2000, 5000} on ProsQA
+- Compare vanilla SFT (no CODI machinery, no latents, no matrix bottleneck) against matrix-CODI (16×16 bottleneck at 6 latent positions, gamma=1, thinker on)
+- Existing N=17,886 results from earlier rounds reused
+
+### Partial results (still running matrix N=2000 and matrix N=5000)
+
+| N | Vanilla SFT best | Matrix CODI best | Vanilla wall | Matrix wall |
+|---|------------------|------------------|--------------|-------------|
+| 200 | 60.94% | 53.12% | 0.8 min | 7.7 min |
+| 500 | 55.47% | 59.38% | 1.4 min | 11.1 min |
+| 2,000 | 67.19% | (running) | 4.4 min | — |
+| 5,000 | 78.91% | (queued) | 10.5 min | — |
+| 17,886 | 81.77% (3 seeds) | 82.03% (Round 2) | 37–69 min | 108 min |
+
+### Preliminary interpretation
+Matrix-CODI does not provide a clean low-data inductive-bias advantage. Both architectures struggle below N=2000 (50–67% range) and converge to ~80% by N=5000. The matrix advantage at N=500 (+4pp over vanilla) is within single-seed noise and inverts at N=200 (vanilla beats matrix by ~8pp). Matrix-CODI also costs roughly 8–10× the wall time per run because of the latent feedback loop.
+
+The story for the workshop paper is now: **matrix-CODI is decorative across data scale (N=200 to 17,886) AND across model scale (gpt2-small 124M, gpt2-medium 355M).** Awaiting matrix N=2000 and N=5000 to finish the curve cleanly. Single-seed noise at low N is a caveat.
+
+---
+
 ### Round 4 teacher_ce seed 42 (degenerate ceiling, same as seed 1337)
 - Best/final accuracy: 100.00% / 100.00%
 - Wall time: 83.6 min

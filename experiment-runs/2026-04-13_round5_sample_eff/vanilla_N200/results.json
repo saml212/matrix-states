@@ -1,0 +1,156 @@
+{
+  "mode": "pure_sft",
+  "seed": 1337,
+  "best_accuracy": 0.609375,
+  "final_accuracy": 0.51,
+  "training_curve": [
+    {
+      "epoch": 1,
+      "step": 13,
+      "accuracy": 0.59375
+    },
+    {
+      "epoch": 2,
+      "step": 26,
+      "accuracy": 0.4921875
+    },
+    {
+      "epoch": 3,
+      "step": 39,
+      "accuracy": 0.5
+    },
+    {
+      "epoch": 4,
+      "step": 52,
+      "accuracy": 0.4921875
+    },
+    {
+      "epoch": 5,
+      "step": 65,
+      "accuracy": 0.515625
+    },
+    {
+      "epoch": 6,
+      "step": 78,
+      "accuracy": 0.484375
+    },
+    {
+      "epoch": 7,
+      "step": 91,
+      "accuracy": 0.609375
+    },
+    {
+      "epoch": 8,
+      "step": 104,
+      "accuracy": 0.578125
+    },
+    {
+      "epoch": 9,
+      "step": 117,
+      "accuracy": 0.5625
+    },
+    {
+      "epoch": 10,
+      "step": 130,
+      "accuracy": 0.5390625
+    },
+    {
+      "epoch": 11,
+      "step": 143,
+      "accuracy": 0.5625
+    },
+    {
+      "epoch": 12,
+      "step": 156,
+      "accuracy": 0.5625
+    },
+    {
+      "epoch": 13,
+      "step": 169,
+      "accuracy": 0.515625
+    },
+    {
+      "epoch": 14,
+      "step": 182,
+      "accuracy": 0.5078125
+    },
+    {
+      "epoch": 15,
+      "step": 195,
+      "accuracy": 0.5
+    },
+    {
+      "epoch": 16,
+      "step": 208,
+      "accuracy": 0.4921875
+    },
+    {
+      "epoch": 17,
+      "step": 221,
+      "accuracy": 0.5078125
+    },
+    {
+      "epoch": 18,
+      "step": 234,
+      "accuracy": 0.53125
+    },
+    {
+      "epoch": 19,
+      "step": 247,
+      "accuracy": 0.546875
+    },
+    {
+      "epoch": 20,
+      "step": 260,
+      "accuracy": 0.546875
+    },
+    {
+      "epoch": 21,
+      "step": 273,
+      "accuracy": 0.5390625
+    },
+    {
+      "epoch": 22,
+      "step": 286,
+      "accuracy": 0.5234375
+    },
+    {
+      "epoch": 23,
+      "step": 299,
+      "accuracy": 0.5234375
+    },
+    {
+      "epoch": 24,
+      "step": 312,
+      "accuracy": 0.5234375
+    },
+    {
+      "epoch": 25,
+      "step": 325,
+      "accuracy": 0.5234375
+    }
+  ],
+  "wall_time_min": 0.82013525168101,
+  "config": {
+    "base_model": "gpt2",
+    "lr": 0.0001,
+    "warmup_steps": 50,
+    "weight_decay": 0.01,
+    "betas": [
+      0.9,
+      0.98
+    ],
+    "grad_clip": 1.0,
+    "batch_size": 16,
+    "epochs": 25,
+    "max_q_len": 640,
+    "max_ans_len": 32,
+    "max_total_len": 768,
+    "eval_batch_size": 16,
+    "log_interval": 50,
+    "prosqa_train_path": "/workspace/pebble/round3_gamma0/data/prosqa_train.json",
+    "prosqa_val_path": "/workspace/pebble/round3_gamma0/data/prosqa_test.json",
+    "answer_prefix": " The answer is:",
+    "max_train_examples": 200
+  }
+}
