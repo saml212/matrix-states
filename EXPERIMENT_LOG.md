@@ -1170,6 +1170,37 @@ Our Round 1 GSM8K-Aug Run A accuracy of 7.00% is also far below CODI's published
 
 ---
 
+---
+
+## Round 6 Results Part 1 (2026-04-13): GPT-2 medium scale axis
+
+### Vanilla SFT on gpt2-medium (355M)
+- Best accuracy: **80.47%**
+- Final accuracy: 76.20%
+- Wall time: 179.9 min on 1×H100, batch 16, 25 epochs, single seed (1337)
+- ProsQA test set
+
+### Comparison across the scale axis so far
+
+| Run | Model | Best acc | Delta vs gpt2-small vanilla |
+|-----|-------|----------|-----|
+| gpt2-small vanilla SFT seed 1337 | 124M | 81.25% | — |
+| gpt2-small vanilla SFT seed 42 | 124M | 82.03% | — |
+| gpt2-small vanilla SFT seed 7 | 124M | 82.03% | — |
+| **gpt2-small vanilla SFT mean** | **124M** | **81.77%** | — |
+| gpt2-small matrix-CODI Round 2 | 124M | 82.03% | +0.26pp |
+| **gpt2-medium vanilla SFT seed 1337 (new)** | **355M** | **80.47%** | **−1.30pp** |
+| gpt2-medium matrix-CODI | 355M | (running) | — |
+
+Scaling from 124M to 355M **does not improve ProsQA vanilla SFT accuracy**. This is the first scale-axis datapoint for the workshop submission. Waiting on the matrix-CODI gpt2-medium run to close the 2x2 grid. If it also lands near 80%, the negative result holds across both backbone scales.
+
+### Round 4 teacher_ce seed 42 (degenerate ceiling, same as seed 1337)
+- Best/final accuracy: 100.00% / 100.00%
+- Wall time: 83.6 min
+- Ignored — copy-from-context task, not a meaningful baseline. Noting for completeness.
+
+---
+
 ### teacher_ce mode — degenerate ceiling (not a meaningful baseline)
 
 Added 2026-04-13 later. The `teacher_ce` mode in `run_vanilla_sft.py` includes the full chain-of-thought in the training prompt AND in the eval prompt, so the task is "given question + reasoning chain, emit the answer" — trivial copy-from-context. Seed 1337 hit **100.00%** best, 100.00% final, 97.5 min wall time. Seeds 42 and 7 are still running but expected to be similar.
