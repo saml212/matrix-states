@@ -1,10 +1,10 @@
 {
-  "ts": "2026-04-13T07:26:27+00:00",
-  "queue_remaining": 3,
+  "ts": "2026-04-13T07:31:27+00:00",
+  "queue_remaining": 4,
   "training_running": false,
-  "gpu_busy": true,
-  "gpu_util_pct": 99,
-  "gpu_mem_mib": 19537
+  "gpu_busy": false,
+  "gpu_util_pct": 0,
+  "gpu_mem_mib": 0
 }
 ---
 /workspace/pebble/round4_sft_control/results/:
@@ -16,6 +16,10 @@ teacher_ce_seed42
 teacher_ce_seed7
 
 /workspace/pebble/round5_sample_eff/results/:
+vanilla_N200
+vanilla_N2000
+vanilla_N500
+vanilla_N5000
 
 /workspace/pebble/round6_scale/results/:
 matrix_gpt2medium
