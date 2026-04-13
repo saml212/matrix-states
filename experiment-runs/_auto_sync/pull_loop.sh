@@ -4,7 +4,7 @@
 # script is relaunched from a bash background every ~100 min).
 REPO=/Users/samuellarson/Experiments/learned-representations
 POD_HOST=root@38.80.152.148
-POD_PORT=31895
+POD_PORT=31812
 KEY=$HOME/.ssh/id_ed25519
 LOG=$REPO/experiment-runs/_auto_sync/pull_loop.log
 STATE=$REPO/experiment-runs/_auto_sync/pull_state.json
