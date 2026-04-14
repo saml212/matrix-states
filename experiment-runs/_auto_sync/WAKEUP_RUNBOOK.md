@@ -22,23 +22,23 @@ Any directory on pod that has `SUMMARY.txt` but no corresponding local copy:
 ```
 # Round 4 teacher_ce seeds
 for seed in 1337 42 7; do
-  scp -i ~/.ssh/id_ed25519 -P 31812 root@38.80.152.148:/workspace/pebble/round4_sft_control/results/teacher_ce_seed${seed}/SUMMARY.txt \
+  scp -i ~/.ssh/id_ed25519 -P 31841 root@38.80.152.148:/workspace/pebble/round4_sft_control/results/teacher_ce_seed${seed}/SUMMARY.txt \
     /Users/samuellarson/Experiments/learned-representations/experiment-runs/2026-04-13_round4_vanilla_sft/teacher_ce_seed${seed}_SUMMARY.txt 2>/dev/null
 done
 
 # Round 5 sample-efficiency (when done)
 mkdir -p /Users/samuellarson/Experiments/learned-representations/experiment-runs/2026-04-13_round5_sample_eff
-scp -ri ~/.ssh/id_ed25519 -P 31812 root@38.80.152.148:/workspace/pebble/round5_sample_eff/results/ \
+scp -ri ~/.ssh/id_ed25519 -P 31841 root@38.80.152.148:/workspace/pebble/round5_sample_eff/results/ \
   /Users/samuellarson/Experiments/learned-representations/experiment-runs/2026-04-13_round5_sample_eff/ 2>/dev/null
 
 # Round 6 GPT-2 medium
 mkdir -p /Users/samuellarson/Experiments/learned-representations/experiment-runs/2026-04-13_round6_scale
-scp -ri ~/.ssh/id_ed25519 -P 31812 root@38.80.152.148:/workspace/pebble/round6_scale/results/ \
+scp -ri ~/.ssh/id_ed25519 -P 31841 root@38.80.152.148:/workspace/pebble/round6_scale/results/ \
   /Users/samuellarson/Experiments/learned-representations/experiment-runs/2026-04-13_round6_scale/ 2>/dev/null
 
 # Round 7 Illusion
 mkdir -p /Users/samuellarson/Experiments/learned-representations/experiment-runs/2026-04-13_round7_illusion
-scp -ri ~/.ssh/id_ed25519 -P 31812 root@38.80.152.148:/workspace/pebble/round7_illusion/ \
+scp -ri ~/.ssh/id_ed25519 -P 31841 root@38.80.152.148:/workspace/pebble/round7_illusion/ \
   /Users/samuellarson/Experiments/learned-representations/experiment-runs/2026-04-13_round7_illusion/ 2>/dev/null
 ```
 
@@ -53,7 +53,7 @@ Commit and push — the GitHub Actions workflow will auto-deploy any site change
 ## Step 4: Check queue state
 
 ```
-ssh -i ~/.ssh/id_ed25519 -p 31812 root@38.80.152.148 'cat /workspace/pebble/queue.txt; echo ---; cat /workspace/pebble/master_state.json'
+ssh -i ~/.ssh/id_ed25519 -p 31841 root@38.80.152.148 'cat /workspace/pebble/queue.txt; echo ---; cat /workspace/pebble/master_state.json'
 ```
 
 If `queue_remaining: 0` AND GPU is idle, that's a problem — nothing is running. Look at what just finished and what should come next. See "Queue priority" below.
@@ -64,7 +64,7 @@ If `queue_remaining: 0` AND GPU is idle, that's a problem — nothing is running
 echo "=== 1-HOUR POLL $(date -Iseconds) ==="
 sleep 3540
 echo "=== 1-HOUR POLL WAKING AT $(date -Iseconds) ==="
-ssh -o ConnectTimeout=10 -i ~/.ssh/id_ed25519 -p 31812 root@38.80.152.148 '
+ssh -o ConnectTimeout=10 -i ~/.ssh/id_ed25519 -p 31841 root@38.80.152.148 '
 cat /workspace/pebble/master_state.json 2>/dev/null
 echo "---r4-teacher-summaries---"
 for f in teacher_ce_seed1337 teacher_ce_seed42 teacher_ce_seed7; do
