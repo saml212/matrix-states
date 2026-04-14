@@ -1,10 +1,10 @@
 {
-  "ts": "2026-04-14T18:50:38+00:00",
+  "ts": "2026-04-14T19:00:39+00:00",
   "queue_remaining": 5,
   "training_running": true,
   "gpu_busy": true,
   "gpu_util_pct": 100,
-  "gpu_mem_mib": 60935
+  "gpu_mem_mib": 61195
 }
 ---
 /workspace/pebble/round4_sft_control/results/:
