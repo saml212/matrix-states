@@ -29,15 +29,18 @@ fi
 RESPONSE=$(curl -sS --max-time 8 \
   "$NTFY_SERVER/$NTFY_TOPIC/json?poll=1&since=$SINCE" 2>/dev/null)
 
-# Parse: each line is a JSON message. Filter out autopilot's own (tagged robot_face).
-LATEST_TS=$SINCE
+# Parse via python -c with response piped as stdin.
+# Cursor file passed as argv. Can't use heredoc here — heredoc hijacks stdin
+# even when a pipe is also present, so the response body never reaches python.
 echo "$RESPONSE" | python3 -c '
 import sys, json
+cursor_file = sys.argv[1]
 latest = 0
 user_msgs = []
 for line in sys.stdin:
     line = line.strip()
-    if not line: continue
+    if not line:
+        continue
     try:
         m = json.loads(line)
     except Exception:
@@ -45,18 +48,17 @@ for line in sys.stdin:
     if m.get("event") != "message":
         continue
     tags = m.get("tags", []) or []
-    # Skip autopilot-sent messages
+    ts = m.get("time", 0)
+    if ts > latest:
+        latest = ts
+    # Autopilot-sent messages advance the cursor but are not emitted
     if "robot_face" in tags:
-        latest = max(latest, m.get("time", 0))
         continue
     user_msgs.append(m)
-    latest = max(latest, m.get("time", 0))
 
-import os
-cursor_file = os.environ.get("CURSOR_FILE")
 if cursor_file and latest > 0:
     with open(cursor_file, "w") as f:
-        f.write(str(latest))
+        f.write(str(latest + 1))
 
 for m in user_msgs:
     print(json.dumps({
@@ -65,6 +67,6 @@ for m in user_msgs:
         "message": m.get("message", ""),
         "title": m.get("title", ""),
     }))
-' CURSOR_FILE="$CURSOR_FILE"
+' "$CURSOR_FILE"
 
 exit 0
