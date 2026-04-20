@@ -4,8 +4,19 @@ __pycache__/
 *.egg-info/
 .DS_Store
 
-# Local Claude Code config and worktrees
-.claude/
+# Claude Code — share harness (hooks, scripts, schema, seed) across machines,
+# gitignore everything else (runtime state, user-specific settings, worktrees).
+.claude/*
+!.claude/hooks/
+!.claude/hooks/**
+!.claude/scripts/
+!.claude/scripts/**
+!.claude/memory/
+.claude/memory/*
+!.claude/memory/schema.sql
+!.claude/memory/.gitkeep
+!.claude/settings.json
+# settings.local.json is per-user (permissions allowlist) — do not track
 
 # Empty results placeholders (real results live on SSD)
 results/phase1/*.png

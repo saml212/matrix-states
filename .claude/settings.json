@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/learn-capture.sh" }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/correction-detect.sh" },
+          { "type": "command", "command": "bash .claude/hooks/load-relevant-rules.sh" }
+        ]
+      }
+    ]
+  }
+}

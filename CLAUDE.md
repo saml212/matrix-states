@@ -10,7 +10,23 @@ Every cycle should make the next cycle better.
 **Audit:** Send a separate agent to review code before running. Check shapes, gradients, stability. The implementer does not review their own work.
 **Run:** Use the hardware. Parallel experiments when possible.
 **Assess:** Be honest. Negative results are data. Don't spin.
-**Codify:** Update STATE.md and EXPERIMENT_LOG.md. If you learned a lesson, write it down so the next agent doesn't repeat the mistake.
+**Codify:** Update STATE.md and EXPERIMENT_LOG.md. If you learned a lesson, also emit a `[LEARN]` block so it auto-saves to the learnings DB (see "Learnings DB" below).
+
+## Learnings DB
+
+A SQLite DB at `.claude/memory/workflow.db` persists durable rules, corrections, and gotchas across sessions. Relevant rules auto-inject at prompt time via the `load-relevant-rules.sh` hook.
+
+**When you learn something worth persisting, emit a `[LEARN]` block in your response:**
+
+```
+[LEARN] <category>: <one-line rule>
+Mistake: <what went wrong>
+Correction: <what the right approach is>
+```
+
+The `learn-capture.sh` Stop hook parses these automatically, dedupes by (category, rule), and inserts. `Mistake:` and `Correction:` are optional but recommended.
+
+See `AUTOPILOT_HANDOFF.md` for the full harness spec and phase plan.
 
 ## Repo Layout
 
