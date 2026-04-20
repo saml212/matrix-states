@@ -18,6 +18,50 @@ for the first time.
 | Notify script | `.claude/scripts/notify.sh` | Fire-and-forget ntfy.sh publisher with tier support |
 | Response poll | `.claude/scripts/ntfy_poll_responses.sh` | Cursor-based poll for user replies (filters autopilot posts by `robot_face` tag) |
 
+## Settings files
+
+- `.claude/settings.json` — **tracked**. Hooks config. Shared across machines.
+- `.claude/settings.local.json` — **gitignored**. Per-user permissions allowlist and plugin enables.
+
+Hooks must live in `settings.json`, not `settings.local.json`. In initial
+testing, hooks placed in `settings.local.json` did not fire (verified by
+absence of entries in `.claude/memory/hook.log` after multiple prompts).
+The fix was to split the config.
+
+## Quality notes (known issues, post-Phase-1a)
+
+Real bugs found and fixed while dogfooding after the initial commit —
+captured here so future agents know the shape of failures to watch for:
+
+1. **settings.local.json hooks do not load** — moved hooks to
+   `settings.json`. Fixed.
+2. **Bash ternary for nullable SQL** — `${VAR:+'$ESC'}${VAR:-NULL}`
+   expands both branches concatenated when VAR is set. Use explicit
+   if-else. Fixed in `notify.sh`.
+3. **FTS5 hyphen is NOT-operator** — `matrix-arch` in a MATCH query
+   parses as "matrix NOT arch", inverting results. Replace `-` with
+   space in query construction. Fixed in `load-relevant-rules.sh`.
+4. **Heredoc hijacks piped stdin** — `echo "$x" | python3 - "$arg" <<EOF ... EOF`
+   feeds heredoc to python, discarding the piped data. Use `python3 -c`
+   with inline-quoted source instead. Fixed in `ntfy_poll_responses.sh`.
+
+Still-open items (non-blocking for Phase 1a, worth fixing before Phase 3):
+
+- **No UNIQUE constraint** on `learnings(project, category, rule)`. Dedupe
+  is done via app-level check → TOCTOU race if two agents emit the same
+  `[LEARN]` simultaneously. Add a UNIQUE index + INSERT OR IGNORE.
+- **`learn-capture` only scans the last assistant entry** in the
+  transcript. If a turn has multiple assistant blocks (interrupted
+  generation, tool-heavy turns), earlier `[LEARN]` blocks are missed.
+- **`load-relevant-rules` has no BM25 threshold**. Returns top-5 by score
+  even when no rule is actually relevant — can inject noise into context.
+- **`hook.log` grows unbounded**. No rotation.
+- **`notify.sh` is silent on ntfy outage** — records empty `ntfy_id`, no
+  stderr signal. Acceptable for fire-and-forget, but callers that care
+  should check `notifications.ntfy_id IS NULL`.
+- **`seed_hard_rules.py` hardcodes `PROJECT = "learned-representations"`**.
+  Change if forking this harness.
+
 ## User setup (one-time)
 
 1. **Install ntfy Android app.** F-Droid build is preferred (no Firebase
