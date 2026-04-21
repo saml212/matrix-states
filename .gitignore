@@ -11,11 +11,14 @@ __pycache__/
 !.claude/hooks/**
 !.claude/scripts/
 !.claude/scripts/**
+!.claude/skills/
+!.claude/skills/**
 !.claude/memory/
 .claude/memory/*
 !.claude/memory/schema.sql
 !.claude/memory/.gitkeep
 !.claude/settings.json
+# .state/ is sentinel/runtime — not tracked
 # settings.local.json is per-user (permissions allowlist) — do not track
 
 # Empty results placeholders (real results live on SSD)

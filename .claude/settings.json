@@ -16,6 +16,20 @@
           { "type": "command", "command": "bash .claude/hooks/load-relevant-rules.sh" }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/doc-guard.sh" }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/pre-commit-gate.sh" }
+        ]
+      }
     ]
   }
 }

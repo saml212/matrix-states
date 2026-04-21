@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-04-09
+**Last updated:** 2026-04-20
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -182,55 +182,86 @@ A multi-agent research session (April 9, 2026) investigated 11 topics in paralle
 
 ---
 
-## The Narrowed Hypothesis (April 2026)
+## The Narrowed Hypothesis — STATUS (April 2026)
 
-After 26 experiments and the multi-agent research synthesis, the project has narrowed from a broad "matrices everywhere" thesis to a specific testable claim:
+After the matrix-CODI experiments (Rounds 1-9 + positive-control Round PC) the
+narrowed hypothesis has been tested and the relevant sub-claims have failed:
 
-**H1 (correlation):** In a continuous-reasoning language model with matrix-valued thoughts, the effective rank of a thought matrix at reasoning step `t` correlates monotonically with the number of distinct reasoning paths held in superposition at that step. For tasks with known frontier sizes, Spearman correlation `ρ > 0.3` at `p < 0.01`.
+- **H1 (correlation rank ↔ reasoning paths):** FAILED. Four flat rank-k curves
+  (Rounds 1, 2, 3, 6). 3-seed replication of flatten readout: accuracy tight
+  at 81.5 ± 1.2pp but Z_rank varies by 3× (seeds 42 → rank 4, 7 → rank 12, 1337
+  → rank 13). Rank is decoupled from accuracy.
+- **H2 (capacity bound):** Not meaningfully testable given H1 failure. Rank is
+  not being used, so there is no capacity bound to observe.
+- **H3 (causation via rank truncation):** FAILED. Rank-k truncation has no
+  effect on accuracy for k ≥ 1 in all tested configurations.
 
-**H2 (capacity bound):** Accuracy degrades when the number of required reasoning paths exceeds the matrix dimension `d`. A `d × d` matrix can correctly hold at most `d` linearly independent reasoning paths.
+The bolt-on matrix-CODI configuration does not use rank structure to encode
+reasoning. Mechanism: the flatten-then-project readout has a constant Jacobian
+in Z, so the gradient cannot distinguish rank-1 from full-rank Z during
+training. This has been verified with a positive control — a nonlinear-in-Z
+readout (bilinear+GELU) that breaks the constant-Jacobian property.
 
-**H3 (causation):** Forced low-rank projection of the thought matrix to rank `k < |frontier|` causes accuracy degradation in proportion to `|frontier| - k`. This rules out the alternative explanation that rank is a side effect rather than the mechanism.
+Positive-control result: **bilinear+GELU also produces a flat rank-k curve**
+(Spearman r = -0.13, p = 0.14). The failure is deeper than readout linearity
+alone; the CODI distillation objective itself produces rank-indifferent
+gradients regardless of how Z is consumed.
 
-If H1 + H2 + H3 hold: superposition is structurally measurable, not just phenomenological. The matrix-CODI experiment provides the first structural correlate of the superposition hypothesis from Reasoning by Superposition.
+**Publication status:** workshop paper being written for ICML MI Workshop 2026
+(deadline May 8) documenting the negative result + diagnosis + positive-control
+falsification test. Brief in `matrix-thinking/PAPER_WRITER_BRIEF.md`, consolidated
+results in `matrix-thinking/PAPER_RESULTS_SUMMARY.md`.
 
-If H1 fails: the Illusion of Superposition rebuttal wins. Either result is publishable.
+**What the failure does NOT imply:** the broader matrix-thinking thesis is NOT
+decided by these experiments. All experiments here bolt a matrix bottleneck
+onto a vector-pretrained model with a vector teacher signal (CODI distillation
+from a vector-output teacher). The failure modes are specific to this bolt-on
+setup. A matrix-native architecture trained end-to-end on a task that rewards
+rank-K structure has not been tested. That is Chapter 2.
 
 ---
 
-## Path Forward
+## Path Forward (April 2026, post matrix-CODI results)
 
-The avenues we want to try, in priority order. Engineering specs and full experiment designs live in [matrix-thinking/QUEUE.md](matrix-thinking/QUEUE.md).
+### Now — Workshop paper submission (May 8 deadline)
 
-### Now — Matrix-CODI rank dynamics experiment
+Write up the matrix-CODI negative result + readout-Jacobian diagnosis +
+positive-control falsification for ICML MI Workshop 2026. Dual output: website
+subpage (`pebble-ai-site/findings/`) + ICML LaTeX PDF. Brief lives in
+`matrix-thinking/PAPER_WRITER_BRIEF.md`. Target 8-page long paper, double-blind,
+non-archival (so main-conference resubmission later is allowed).
 
-Test whether matrix rank tracks reasoning capacity at GPT-2 scale on GSM8K. The cheapest, most falsifiable test of the structural-superposition hypothesis. Two days of code work, ~2 hours of compute on 8×H100. Falsifiable in a single training run. Adjudicates a real published dispute.
+### Next — Chapter 2: matrix-native-from-scratch on synthetic rank-K task
 
-### Next — Contextualized matrix embedding (k-bigram)
+Decide whether the broader matrix-thinking direction is alive. Build a small
+transformer with d×d matrix tokens throughout (no vector pretraining, no
+distillation, no bolt-on), trained end-to-end on a task whose optimal solution
+provably has rank K*. If rank-k truncation causes monotonic accuracy
+degradation when k < K*, matrix-thinking survives. If it's flat, matrix-thinking
+is dead.
 
-If matrix-CODI shows signal, test whether starting matrix tokens at higher rank changes the picture. The current rank-1 outer-product embedding is information-equivalent to storing two vectors; a k-bigram embedding (sum of 3 outer products encoding identity, left context, right context) gives the matrix meaningful starting structure. ~1 day of work.
+Task A (K parallel entity tracking) already scaffolded:
+`matrix-thinking/chapter2/synthetic_tasks.py` (generator + self-test passing).
 
-### Then — Byte-level JEPA with LeJEPA SIGReg
+Full design: `matrix-thinking/CHAPTER_2_DESIGN.md`. Falsifiable, ~50-100
+GPU-hours, decision criterion pre-specified.
 
-Bet 1 of the thesis: machine-native representations from raw bytes, no tokenizer, no language scaffolding. The recipe is mechanical translation of WavJEPA (raw audio waveforms → raw bytes, conv front-end → byte conv patcher) plus LeJEPA's SIGReg for collapse prevention. ~4-8 H100 hours.
+### Then — Chapter 3: matrix-native byte-level on real data
 
-### Then — Scale to 10M+ params on standard byte benchmarks
+Only if Chapter 2 survives. Byte-level input, matrix tokens throughout, multi-
+modal training with modality-switching. Design brainstorm in progress with
+architecture agent (see user's most recent conversation). Rough shape:
+ByT5/BLT-style byte input + CANINE-style local context + all-matrix
+transformer + MultiProbeHead readout to byte vocab.
 
-The rank result needs to land at meaningful scale to be publishable beyond a workshop. Standard benchmarks: enwik8, text8 with proper train/val/test splits. ~50 H100 hours.
+### Backup — Pivot direction
 
-### Then — Multi-domain byte training
-
-Cross-domain generalization. Mixed bytes from text + code + images + audio. Measure transfer coefficients per domain. Only meaningful at >10M params. ~100 H100 hours.
-
-### Eventually — Full HELM-style commitment
-
-Fully matrix-native architecture (matrix attention, matrix FFN, matrix normalization, no flatten anywhere). HELM showed this works at billion scale, but only with full architectural commitment. High cost. Justified only if the smaller experiments produce strong signal.
-
-### Backup paths
-
-- **Matrix-CoT2 on MNNS** (Minimum Non-Negative Subset Sum): synthetic task with exact ground-truth frontier sizes (`2^k` at depth `k`). Backup if GSM8K reasoning depth annotations are too coarse to see signal in matrix-CODI.
-- **Matrix-aware ContextLM**: ContextLM (arXiv 2510.20280) is a single-modality alternative to LLM-JEPA that needs no view construction. Cleaner template for adding matrix structure as an auxiliary objective if matrix-CODI doesn't pan out.
-- **Param-matched three-way embedding ablation**: was the previous top priority. Adjudicates "is the embedding advantage from structure or compression?" Still worth running.
+If Chapter 2 fails, matrix-thinking is dead. Candidate pivots (unordered):
+- Byte-level JEPA with LeJEPA SIGReg (Thread 1 of the original thesis, no
+  matrix commitment required)
+- Continuous-reasoning extensions without matrix structure (e.g. SIM-CoT-style
+  step-level supervision done properly)
+- Other mech-interp directions surfaced by the workshop paper reviews
 
 ---
 
@@ -251,9 +282,12 @@ Fully matrix-native architecture (matrix attention, matrix FFN, matrix normaliza
 - **STATE.md** (this file) — project dashboard, single source of truth
 - **EXPERIMENT_LOG.md** — chronological history of all 26 experiments with exact numbers
 - **references.md** — bibliography organized by topic
-- **CLAUDE.md** — workflow rules and hard rules learned from prior experiments
-- **GPU_GRANT_AGENT_PROMPT.md** — template for grant application agent
+- **CLAUDE.md** — workflow rules, hard rules learned from prior experiments, and the `[LEARN]` block convention for the learnings DB
+- **AUTOPILOT_HANDOFF.md** — agentic harness (hooks, skills, notification layer); setup + phase roadmap
+- **experiment-runs/_auto_sync/WORKFLOW_FOR_AGENTS.md** — how the autonomous pod monitor, wakeup poll, and pull loop operate (agent-facing runbook for continuous GPU utilization)
 - **matrix-thinking/QUEUE.md** — engineering queue for future experiments, including matrix-CODI full spec and embedding designs catalog
+- **matrix-thinking/KILL_LIST.md** — experiments killed by attack-agent review with recorded fatal flaws
+- **matrix-thinking/PAPER_WRITER_BRIEF.md**, **PAPER_RESULTS_SUMMARY.md**, **CHAPTER_2_DESIGN.md** — active paper + next-chapter workstreams
 - **matrix-thinking/H100_SETUP.md** — pod environment setup
 - **matrix-thinking/scripts/** — runnable training scripts
 - **matrix-thinking/src/** — model code
