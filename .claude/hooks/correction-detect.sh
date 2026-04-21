@@ -8,6 +8,7 @@ set +e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DB="$ROOT/memory/workflow.db"
 SQLITE=/usr/bin/sqlite3
+bash "$ROOT/scripts/rotate_hook_log.sh" 2>/dev/null
 echo "[$(date -Iseconds)] correction-detect: fired" >> "$ROOT/memory/hook.log"
 
 INPUT=$(cat)

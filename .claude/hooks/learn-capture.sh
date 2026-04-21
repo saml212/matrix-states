@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Stop hook: scan the assistant's last response in the transcript for [LEARN]
-# blocks and insert them into workflow.db's learnings table.
+# Stop hook: scan the assistant text for the most recent turn (from the last
+# user entry to the end of the transcript) for [LEARN] blocks and insert them
+# into workflow.db's learnings table.
 #
 # [LEARN] format (Claude is instructed to emit these in CLAUDE.md):
 #   [LEARN] <category>: <rule>
@@ -15,104 +16,123 @@ DB="$ROOT/memory/workflow.db"
 LOG="$ROOT/memory/hook.log"
 SQLITE=/usr/bin/sqlite3
 
-# Always log fire even if nothing captured, so we can confirm hook is loaded
+bash "$ROOT/scripts/rotate_hook_log.sh" 2>/dev/null
 echo "[$(date -Iseconds)] learn-capture: fired" >> "$LOG"
 
-# Read hook stdin JSON
 INPUT=$(cat)
 TRANSCRIPT=$(echo "$INPUT" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("transcript_path",""))' 2>/dev/null)
-[ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ] && exit 0
+[ -z "$TRANSCRIPT" ] && exit 0
+[ ! -f "$TRANSCRIPT" ] && exit 0
 
-PROJECT=$(basename "$ROOT" | sed 's/^\.//')  # 'learned-representations' when invoked
+PROJECT=$(basename "$(dirname "$ROOT")")
 
-# Extract last assistant text + insert any [LEARN] blocks
 python3 - "$TRANSCRIPT" "$DB" "$PROJECT" "$SQLITE" "$LOG" <<'PYEOF'
 import json, re, sys, subprocess, pathlib, datetime
 
-transcript, db, project, sqlite_bin, log = sys.argv[1:6]
+transcript_path, db, project, sqlite_bin, log_path = sys.argv[1:6]
 
-def log_msg(msg):
-    with open(log, 'a') as f:
+def log(msg):
+    with open(log_path, 'a') as f:
         f.write(f"[{datetime.datetime.now().isoformat()}] learn-capture: {msg}\n")
 
 try:
-    # Read transcript.jsonl, collect last assistant turn's text blocks
-    lines = pathlib.Path(transcript).read_text().strip().split('\n')
-    last_assistant_text = []
+    lines = pathlib.Path(transcript_path).read_text().splitlines()
+
+    # Walk back from end. Collect ALL assistant text blocks until we hit a
+    # user entry — that delimits "the current turn." Handles multi-block
+    # assistant turns (thinking + text + tool_use as separate entries).
+    last_turn_text = []
     for line in reversed(lines):
+        line = line.strip()
+        if not line:
+            continue
         try:
             entry = json.loads(line)
         except Exception:
             continue
-        if entry.get('type') == 'assistant' and entry.get('message', {}).get('content'):
-            for block in entry['message']['content']:
-                if block.get('type') == 'text':
-                    last_assistant_text.insert(0, block.get('text', ''))
-            # only walk back until we hit the last assistant turn
-            break
-    text = '\n'.join(last_assistant_text)
+        etype = entry.get('type')
+        if etype == 'user':
+            # Intra-turn tool_result messages are not the turn boundary —
+            # only a user entry carrying actual text (the prompt) delimits turns.
+            content = entry.get('message', {}).get('content', [])
+            if isinstance(content, str):
+                # String content = real user prompt
+                break
+            has_text = any(
+                isinstance(b, dict) and b.get('type') == 'text'
+                for b in (content or [])
+            )
+            if has_text:
+                break
+            # tool_result-only user entry: keep walking back through this turn
+            continue
+        if etype == 'assistant':
+            content = entry.get('message', {}).get('content', [])
+            # Collect text blocks only (ignore thinking, tool_use, tool_result)
+            for block in (content or []):
+                if isinstance(block, dict) and block.get('type') == 'text':
+                    last_turn_text.insert(0, block.get('text', ''))
+    text = '\n\n'.join(last_turn_text)
 
     if not text:
         sys.exit(0)
 
-    # Robust regex — matches [LEARN] category: rule, with optional Mistake/Correction
+    # Match [LEARN] <category>: <rule>, optional \nMistake: ..., optional \nCorrection: ...
+    # Anchor at end of body: next [LEARN] block, blank line, or end of input.
     pattern = re.compile(
         r'\[LEARN\]\s*([\w][\w\s\-/]*?)\s*:\s*(.+?)'
         r'(?:\n\s*Mistake:\s*(.+?))?'
         r'(?:\n\s*Correction:\s*(.+?))?'
         r'(?=\n\s*\[LEARN\]|\n\s*\n|\Z)',
-        re.DOTALL | re.IGNORECASE
+        re.DOTALL | re.IGNORECASE,
     )
     matches = pattern.findall(text)
     if not matches:
         sys.exit(0)
 
-    inserted = 0
+    def esc(s):
+        return s.replace("'", "''") if s is not None else None
+
+    inserted, duplicates = 0, 0
     for category, rule, mistake, correction in matches:
         category = category.strip()
-        rule = rule.strip().split('\n')[0].strip()  # first line only for rule
+        rule = rule.strip().split('\n')[0].strip()  # first line only
         mistake = (mistake or '').strip() or None
         correction = (correction or '').strip() or None
 
-        # Dedupe: skip if an identical (category, rule) already exists for this project
-        check = subprocess.run(
-            [sqlite_bin, db, '-cmd', '.timeout 2000',
-             f"SELECT id FROM learnings WHERE project = ? AND category = ? AND rule = ? LIMIT 1;"],
-            input=None, capture_output=True, text=True
-        )
-        # Easier: use parameterized query via python subprocess + .read
-        # Actually let's use sqlite3 -separator and -cmd
-        q = subprocess.run(
-            [sqlite_bin, db],
-            input=f"SELECT id FROM learnings WHERE project='{project.replace(chr(39),chr(39)+chr(39))}' AND category='{category.replace(chr(39),chr(39)+chr(39))}' AND rule='{rule.replace(chr(39),chr(39)+chr(39))}' LIMIT 1;",
-            capture_output=True, text=True
-        )
-        if q.stdout.strip():
-            log_msg(f"dup skip: [{category}] {rule[:60]}")
+        if not category or not rule:
             continue
 
-        # Insert via parameterized approach — write to a temp script
-        esc = lambda s: s.replace("'", "''") if s else None
-        fields = f"'{esc(project)}','{esc(category)}','{esc(rule)}'"
-        fields += f",'{esc(mistake)}'" if mistake else ",NULL"
-        fields += f",'{esc(correction)}'" if correction else ",NULL"
-        ins = subprocess.run(
-            [sqlite_bin, db],
-            input=f"PRAGMA trusted_schema=1;\nINSERT INTO learnings (project, category, rule, mistake, correction, source) VALUES ({fields},'claude');",
-            capture_output=True, text=True
+        e_proj = esc(project); e_cat = esc(category); e_rule = esc(rule)
+        e_mist = f"'{esc(mistake)}'" if mistake else 'NULL'
+        e_corr = f"'{esc(correction)}'" if correction else 'NULL'
+        sql = (
+            "PRAGMA trusted_schema=1;\n"
+            "INSERT OR IGNORE INTO learnings "
+            "(project, category, rule, mistake, correction, source) "
+            f"VALUES ('{e_proj}', '{e_cat}', '{e_rule}', {e_mist}, {e_corr}, 'claude');\n"
+            "SELECT changes();"
         )
-        if ins.returncode == 0:
+        result = subprocess.run([sqlite_bin, db], input=sql, capture_output=True, text=True)
+        if result.returncode != 0:
+            log(f"insert failed: {result.stderr.strip()}")
+            continue
+        changes = result.stdout.strip().splitlines()[-1] if result.stdout.strip() else '0'
+        if changes == '1':
             inserted += 1
-            log_msg(f"captured: [{category}] {rule[:80]}")
+            log(f"captured: [{category}] {rule[:80]}")
         else:
-            log_msg(f"insert failed: {ins.stderr.strip()}")
+            duplicates += 1
+            log(f"dup skip: [{category}] {rule[:60]}")
 
     if inserted:
-        log_msg(f"inserted {inserted} learning(s)")
-        print(f"[learn-capture] {inserted} new learning(s) captured", file=sys.stderr)
+        log(f"inserted {inserted} learning(s), {duplicates} duplicate(s) skipped")
+        print(f"[learn-capture] {inserted} new learning(s) captured"
+              + (f" ({duplicates} duplicate)" if duplicates else ""),
+              file=sys.stderr)
 
 except Exception as e:
-    log_msg(f"error: {e}")
+    log(f"error: {type(e).__name__}: {e}")
 
 sys.exit(0)
 PYEOF

@@ -20,6 +20,11 @@ CREATE INDEX IF NOT EXISTS idx_learnings_category  ON learnings(category);
 CREATE INDEX IF NOT EXISTS idx_learnings_project   ON learnings(project);
 CREATE INDEX IF NOT EXISTS idx_learnings_created   ON learnings(created_at);
 
+-- UNIQUE on (project, category, rule) — atomic dedupe via INSERT OR IGNORE.
+-- COALESCE(project, '') so rows with NULL project still participate.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_learnings_unique
+  ON learnings(COALESCE(project,''), category, rule);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS learnings_fts USING fts5(
   category, rule, mistake, correction,
   content=learnings, content_rowid=id,
