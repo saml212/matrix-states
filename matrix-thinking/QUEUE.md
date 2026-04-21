@@ -1,8 +1,73 @@
 # Experiment Queue
 
-**Last updated:** 2026-04-09
+**Last updated:** 2026-04-20
 
 This document is the engineering queue for future experiments. It contains the specs that an experimenter agent (or you) needs to actually run the experiments. Strategic narrative and project state live in [STATE.md](../STATE.md).
+
+---
+
+## PRIORITY 0 (PRE-SUBMISSION): Control A — fake-Z rank-k ablation on vanilla GPT-2 SFT
+
+**Status:** Specified. Must run before ICML MI Workshop 2026 paper submission (deadline 2026-05-08). Small — reuses existing vanilla SFT checkpoints (Round 4), ~1 GPU-hour.
+
+### One-sentence hypothesis
+
+On vanilla GPT-2 SFT for ProsQA (no matrix bottleneck, no CODI distillation), rank-k truncation of a fake-Z derived from the hidden state will also produce a flat accuracy curve — if and only if ProsQA itself is rank-1-solvable, which would mean the five matrix-CODI flat curves are non-evidence, not proof that CODI is rank-indifferent.
+
+### Why this experiment matters for the paper
+
+The paper's central mechanism claim is that the CODI distillation objective produces rank-indifferent gradients. §7 Discussion acknowledges "ProsQA might be rank-1-solvable" as the primary alternative explanation, and the rebuttal report (review/04_rebuttal_report.md, attacks A4 + A16) handles it by surfacing it in the paper. Control A converts that acknowledged caveat into either strong supporting evidence or a concrete result bound.
+
+- **If the vanilla-SFT fake-Z rank-k curve is also flat**: the rank-k ablation method has no discriminating power on ProsQA. All five matrix-CODI flat curves are task-determined, not objective-determined. Paper must pull back on the "CODI is rank-blind" framing and reposition as "on ProsQA, no tested architecture/objective produces rank-dependent behavior — which we interpret as the task being rank-1-solvable." Paper still submits; framing shifts.
+- **If the vanilla-SFT fake-Z rank-k curve bends**: the ablation method does discriminate when rank matters, and the matrix-CODI flat curves ARE informative about the objective. Paper's current framing is vindicated. Strong win.
+
+Either outcome ships a better paper. Not running it leaves the primary A-list attack open.
+
+### Protocol
+
+Reuse one of the existing vanilla SFT seed checkpoints (already produced in Round 4):
+- `experiment-runs/2026-04-13_round4_vanilla_sft/pure_sft_seed1337/` (or seed42/seed7)
+
+Construct a "fake-Z" from vanilla GPT-2's hidden state at the same latent-position conceit used in matrix-CODI:
+1. At answer position, take the 768-dim hidden state h.
+2. Reshape first 256 entries into a 16×16 matrix `fake_Z` (matches matrix-CODI's d=16).
+3. Apply the same rank-k truncation ablation used in matrix-CODI rank_projection_ablation: SVD, keep top k singular values, reconstruct, replace the corresponding dimensions in h.
+4. Forward through the rest of the model to get logits, compute accuracy.
+5. Sweep k ∈ {1, 2, 4, 8, 16}.
+
+### Success / falsification criteria (pre-registered)
+
+- Flat curve (Spearman |r| < 0.3 at k vs accuracy across the sweep, or range < 2pp): ablation method does not discriminate on ProsQA. Rewrite paper §3/§5 framing.
+- Bending curve (monotone accuracy decrease as k decreases, range > 5pp): ablation has discriminating power. Paper's objective-level claim holds.
+- Ambiguous (range 2-5pp, or non-monotone): run seed42 and seed7 replications. If all three are ambiguous, treat as flat (task-determined) by the stricter Round-2 lesson-6 pattern.
+
+### Compute estimate
+
+Single GPU-hour on H100. No training, just eval:
+- Load vanilla SFT checkpoint.
+- For each ProsQA eval example (≤ 200 for fast turnaround, full set if time allows): forward with the rank-k-ablated hidden, record accuracy.
+- 5 k values × 200 examples × ~1s/example = ~15 min. With seed replication, < 1 GPU-hour total.
+
+### Risks / failure modes to watch
+
+- **Fake-Z construction is artificial.** Ablating the first 256 dims of a 768-dim hidden state is not the same operation as ablating matrix-CODI's Z. Mitigation: also try "ablate all 768 dims reshaped to 16×48" or "ablate each rank-k of the full 768 via low-rank SVD" to test the claim at multiple fake-Z constructions; if all flat, the finding is robust.
+- **Seed variance.** Lesson 6 showed 3× rank spread across seeds at same accuracy. Run all three seeds (1337, 42, 7) before concluding.
+- **Position effect.** Answer-position hidden state may not encode reasoning the way Z does. This is actually part of what's being tested — the ablation either finds signal or doesn't, and either outcome is informative.
+
+### Deliverables for the paper
+
+- `rank_projection_ablation_vanilla_sft.json` per seed.
+- New paper subsection §5.X ("Control: does the ablation discriminate at all?") — 1-2 paragraphs + one figure (rank-k curve for vanilla SFT overlaid with matrix-CODI flat curve).
+- Updated §7 Discussion — strengthen or recontextualize depending on outcome.
+
+### Source of this experiment
+
+Surfaced by the `/deploy-team` post-run-analysis run
+`.team-runs/20260420-193321-post-run-analysis-2688/` on 2026-04-20. The
+contextualizer agent ("Control A — fake-Z GPT-2 SFT rank-k eval") and
+adversarial agent ("no null baseline for the rank-k ablation has ever
+been run on ProsQA") independently converged on this gap. Already
+acknowledged as caveat in paper §7, converting to evidence.
 
 ---
 

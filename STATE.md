@@ -231,6 +231,14 @@ subpage (`pebble-ai-site/findings/`) + ICML LaTeX PDF. Brief lives in
 `matrix-thinking/PAPER_WRITER_BRIEF.md`. Target 8-page long paper, double-blind,
 non-archival (so main-conference resubmission later is allowed).
 
+**Pre-submission must-run experiment:** Control A (fake-Z rank-k ablation on
+vanilla GPT-2 SFT for ProsQA). Converts the "ProsQA might be rank-1-solvable"
+caveat currently sitting in §7 Discussion into either supporting evidence or a
+concrete result bound. ~1 GPU-hour, reuses existing Round 4 vanilla SFT
+checkpoints. Full spec: [matrix-thinking/QUEUE.md §PRIORITY 0](matrix-thinking/QUEUE.md).
+Not running it leaves attack A16 (rank-1-solvable-task) open with no
+empirical rebuttal.
+
 ### Next — Chapter 2: matrix-native-from-scratch on synthetic rank-K task
 
 Decide whether the broader matrix-thinking direction is alive. Build a small
