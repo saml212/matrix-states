@@ -36,3 +36,4 @@ experiment-runs/**/*.log
 *.pt
 *.bin
 *.safetensors
+.team-runs/

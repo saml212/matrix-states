@@ -18,6 +18,25 @@ echo "$CMD" | grep -qE '(^|[;&|[:space:]])git[[:space:]]+commit([[:space:]]|$)' 
 
 echo "[$(date -Iseconds)] pre-commit-gate: fired" >> "$ROOT/memory/hook.log"
 
+# Scope: only enforce when the git command targets the repo that owns this
+# hook (learned-representations). The hook is registered via this repo's
+# settings.json but Claude Code fires it on every Bash tool call regardless
+# of cwd — so commits in other repos would be blocked by a sentinel they
+# don't know about. Skip unless we're in our own repo.
+CMD_CWD=$(echo "$INPUT" | python3 -c '
+import sys,json
+d=json.load(sys.stdin)
+print(d.get("cwd") or d.get("tool_input",{}).get("cwd",""))
+' 2>/dev/null)
+PROBE_CWD="${CMD_CWD:-$PWD}"
+OWN_REPO="$(cd "$ROOT/.." 2>/dev/null && pwd)"
+# Resolve target repo root from cwd of the command
+TARGET_REPO=$(cd "$PROBE_CWD" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
+if [ -n "$TARGET_REPO" ] && [ "$TARGET_REPO" != "$OWN_REPO" ]; then
+  echo "[$(date -Iseconds)] pre-commit-gate: skipped (repo=$TARGET_REPO != own=$OWN_REPO)" >> "$ROOT/memory/hook.log"
+  exit 0
+fi
+
 # Bypass via command-inline env var OR shell env
 if echo "$CMD" | grep -qE '(^|[;&|[:space:]])CLEAN_BYPASS=1\b' || [ "$CLEAN_BYPASS" = "1" ]; then
   echo "[pre-commit-gate] CLEAN_BYPASS=1 — allowing" >&2
