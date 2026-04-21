@@ -13,6 +13,9 @@ __pycache__/
 !.claude/scripts/**
 !.claude/skills/
 !.claude/skills/**
+# But still ignore pycache etc. inside the allowlisted subtree
+.claude/skills/**/__pycache__/
+.claude/skills/**/*.pyc
 !.claude/memory/
 .claude/memory/*
 !.claude/memory/schema.sql
