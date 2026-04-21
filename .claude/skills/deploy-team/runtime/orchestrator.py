@@ -131,8 +131,18 @@ def stage_context(run_dir: pathlib.Path, paths: list[str]) -> list[str]:
     ctx_dir = run_dir / "context"
     ctx_dir.mkdir(parents=True, exist_ok=True)
     staged: list[str] = []
+    repo_abs = REPO_ROOT.resolve()
     for p in paths:
-        src = REPO_ROOT / p
+        src = (REPO_ROOT / p).resolve()
+        # Reject context paths that escape the repo root. Defensive; the
+        # user normally passes repo-relative paths, but a malicious or
+        # careless `../../../etc/passwd` would otherwise leak arbitrary
+        # files into the run dir (and into agent context).
+        try:
+            src.relative_to(repo_abs)
+        except ValueError:
+            log(f"WARN: rejected context path outside repo: {p}")
+            continue
         if not src.exists():
             log(f"WARN: context file not found: {p}")
             continue
@@ -248,10 +258,27 @@ def spawn_agent(run: AgentRun, agent_dir: pathlib.Path, run_dir: pathlib.Path, m
                     result_text = event.get("result") or ""
                     if AGENT_DONE in result_text:
                         run.done_sentinel_seen = True
+                    # Claude CLI returns exit 0 even on API-level errors.
+                    # Surface is_error / api_error_status so the orchestrator
+                    # doesn't silently classify them as "didn't finish".
+                    if event.get("is_error") is True:
+                        api_status = event.get("api_error_status")
+                        snippet = result_text[:200] if result_text else "api error"
+                        run.error = f"api_error{'/'+str(api_status) if api_status else ''}: {snippet}"
         proc.wait(timeout=10)
         run.returncode = proc.returncode
         if killed_by_watchdog["flag"]:
             run.error = "timeout"
+        # Also accept AGENT_DONE written to the agent's output.md — some
+        # models interpret "end your response with X" as "write X at the
+        # end of the file you're producing" rather than emitting it in the
+        # streamed assistant text. Either location counts as done.
+        if not run.done_sentinel_seen and run.output_path.exists():
+            try:
+                if AGENT_DONE in run.output_path.read_text():
+                    run.done_sentinel_seen = True
+            except Exception:
+                pass
     except Exception as e:
         run.error = f"{type(e).__name__}: {e}"
         try:
@@ -273,10 +300,13 @@ def run_team(args: argparse.Namespace) -> int:
     init_run(run_dir, team, args.topic, staged_ctx, template_path)
 
     max_total_seconds = (args.max_minutes or team.max_total_minutes) * 60
-    # Cap per-agent budget so one hang doesn't consume the full window.
-    # In parallel mode still useful as a safety net; in sequential mode
-    # protects subsequent agents from a single stuck upstream agent.
-    per_agent_seconds = max(60, max_total_seconds // max(1, len(team.agents)) + 60)
+    team_deadline = time.time() + max_total_seconds
+    # Per-agent budget: in parallel mode each agent gets the full window;
+    # in sequential mode divide by N so the team can't exceed max_total_minutes.
+    if team.parallel:
+        per_agent_seconds = max_total_seconds
+    else:
+        per_agent_seconds = max(60, max_total_seconds // max(1, len(team.agents)))
 
     runs: list[AgentRun] = []
     for a in team.agents:
@@ -307,8 +337,21 @@ def run_team(args: argparse.Namespace) -> int:
             t.join()
     else:
         for run in runs:
-            log(f"  → {run.cfg.name} ({run.cfg.model}) starting")
-            spawn_agent(run, run_dir / "agents" / run.cfg.name, run_dir, per_agent_seconds)
+            # Global watchdog: if the team's total budget is already spent,
+            # skip remaining agents with a synthetic error rather than
+            # overrunning.
+            remaining = team_deadline - time.time()
+            if remaining <= 0:
+                run.error = "team budget exhausted before agent started"
+                run.started_at = time.time()
+                run.ended_at = run.started_at
+                log(f"  → {run.cfg.name} SKIPPED (team budget exhausted)")
+                continue
+            # Cap this agent's individual budget to whatever's left in the
+            # team budget, so the last agent can't outrun the group.
+            agent_budget = int(min(per_agent_seconds, remaining))
+            log(f"  → {run.cfg.name} ({run.cfg.model}) starting ({agent_budget}s budget)")
+            spawn_agent(run, run_dir / "agents" / run.cfg.name, run_dir, agent_budget)
 
     # Extract structured summary from each agent's output.md if present.
     # Agents are prompted to end with ```json {"key_findings": [...], ...} ```.
