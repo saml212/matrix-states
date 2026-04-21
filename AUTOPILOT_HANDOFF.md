@@ -45,22 +45,42 @@ captured here so future agents know the shape of failures to watch for:
    feeds heredoc to python, discarding the piped data. Use `python3 -c`
    with inline-quoted source instead. Fixed in `ntfy_poll_responses.sh`.
 
-Still-open items (non-blocking for Phase 1a, worth fixing before Phase 3):
+Round-3 improvements (commit 061bd03):
 
-- **No UNIQUE constraint** on `learnings(project, category, rule)`. Dedupe
-  is done via app-level check → TOCTOU race if two agents emit the same
-  `[LEARN]` simultaneously. Add a UNIQUE index + INSERT OR IGNORE.
-- **`learn-capture` only scans the last assistant entry** in the
-  transcript. If a turn has multiple assistant blocks (interrupted
-  generation, tool-heavy turns), earlier `[LEARN]` blocks are missed.
-- **`load-relevant-rules` has no BM25 threshold**. Returns top-5 by score
-  even when no rule is actually relevant — can inject noise into context.
-- **`hook.log` grows unbounded**. No rotation.
+- **UNIQUE index** on `learnings(COALESCE(project,''), category, rule)` +
+  `INSERT OR IGNORE` replaces the TOCTOU-racy app-level dedupe. Verified
+  with parallel-invocation test.
+- **`learn-capture` now scans all assistant blocks in the current turn**
+  back to the last text-carrying user entry (tool_result-only user
+  entries are treated as intra-turn, not boundaries).
+- **BM25 gate** at score < -4 in `load-relevant-rules` — top-5 only when
+  the best match is genuinely strong. Nonsense prompts return nothing.
+  (Note: `min(bm25(...))` doesn't work — aux function + aggregate combo
+  errors; use `ORDER BY bm25(...) LIMIT 1`.)
+- **Log rotation**: `scripts/rotate_hook_log.sh` invoked at top of each
+  hook. Rotates when file >100KB AND >2000 lines; keeps 500-line tail.
+- **Security verified**: shell-injection via prompt field (`$(cmd)`,
+  backticks, null bytes, ANSI escapes) all safely contained — JSON→
+  Python→sqlite3 data path never touches shell expansion. Malformed
+  hook stdin exits 0 cleanly.
+
+Still-open items (non-blocking, worth fixing before Phase 3):
+
 - **`notify.sh` is silent on ntfy outage** — records empty `ntfy_id`, no
   stderr signal. Acceptable for fire-and-forget, but callers that care
   should check `notifications.ntfy_id IS NULL`.
 - **`seed_hard_rules.py` hardcodes `PROJECT = "learned-representations"`**.
   Change if forking this harness.
+- **`[LEARN]` blocks inside markdown code fences with real categories
+  are still captured.** `[LEARN] <placeholder>: ...` using angle brackets
+  is naturally filtered (angle brackets fail the regex char class), but
+  `[LEARN] example-category: ...` inside a ``` fence WILL be captured.
+  Document the format using angle brackets for placeholders; don't emit
+  real-looking examples in the same turn as real learnings.
+- **No session-start hook.** `sessions` rows are only created when
+  `correction-detect` detects a correction. `prompts_count` is never
+  incremented. Not load-bearing for Phase 1a but would be needed for
+  real session analytics.
 
 ## User setup (one-time)
 
