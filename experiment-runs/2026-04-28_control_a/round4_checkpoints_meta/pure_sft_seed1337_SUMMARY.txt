@@ -1,0 +1,1 @@
+seed=1337 best=80.20% final=75.80% wall=106.4min

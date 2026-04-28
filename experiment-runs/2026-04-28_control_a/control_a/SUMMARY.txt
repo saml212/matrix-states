@@ -1,0 +1,40 @@
+
+========================================================================
+  CONTROL A v2 (propagating fake-Z rank-k on vanilla GPT-2 SFT, ProsQA)
+========================================================================
+  variant:         16x16
+  intervene_layer: 6  (of 12 GPT-2 blocks)
+  seeds:           [1337, 42, 7]
+  ks:              [1, 2, 4, 8, 16]
+  n_examples:      500
+  pooled r:        0.0718  p=nan
+  decision:        ambiguous
+  decision (1st):  flat
+  decision rule:   binomial-aware: ambiguous if range_pp < 2*binomial_se_pp(n, p_mean); else flat if |r|<0.3; bending if range_pp>5 and monotone; else ambiguous
+------------------------------------------------------------------------
+  pooled mean full-sequence accuracy by k:
+    k= 1: 78.93%  (n_seeds=3)
+    k= 2: 79.00%  (n_seeds=3)
+    k= 4: 78.87%  (n_seeds=3)
+    k= 8: 78.93%  (n_seeds=3)
+    k=16: 79.07%  (n_seeds=3)
+  pooled mean first-token accuracy by k:
+    k= 1: 0.00%
+    k= 2: 0.00%
+    k= 4: 0.00%
+    k= 8: 0.00%
+    k=16: 0.00%
+------------------------------------------------------------------------
+  unablated (k=None) per seed (sanity check vs Round 4 ~81.77%):
+    seed=1337: 80.00%
+    seed=42: 78.80%
+    seed=7: 78.00%
+  randomized-h (k=random) per seed (sensitivity floor):
+    seed=1337: 79.60%
+    seed=42: 79.20%
+    seed=7: 78.20%
+------------------------------------------------------------------------
+  seed=1337: r=0.3162  k=1:79.80%  k=2:80.20%  k=4:80.00%  k=8:80.20%  k=16:80.00%
+  seed=42: r=-0.1581  k=1:79.00%  k=2:78.80%  k=4:78.60%  k=8:78.60%  k=16:79.00%
+  seed=7: r=0.7071  k=1:78.00%  k=2:78.00%  k=4:78.00%  k=8:78.00%  k=16:78.20%
+========================================================================
