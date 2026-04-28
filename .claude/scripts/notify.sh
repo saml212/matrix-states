@@ -19,8 +19,13 @@
 # of notification problems (the "never idle" invariant).
 set +e
 
-NTFY_TOPIC="${NTFY_TOPIC:-sam-autopilot-c77a80627ff7e5bf}"
+NTFY_TOPIC="${NTFY_TOPIC:-}"
 NTFY_SERVER="${NTFY_SERVER:-https://ntfy.sh}"
+
+if [ -z "$NTFY_TOPIC" ]; then
+  echo "notify.sh: NTFY_TOPIC not set — skipping push. See docs/ntfy-setup.md." >&2
+  exit 0
+fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DB="$ROOT/memory/workflow.db"
 SQLITE=/usr/bin/sqlite3
@@ -54,24 +59,44 @@ NTFY_ID=$(echo "$RESPONSE" | python3 -c 'import sys,json
 try: print(json.loads(sys.stdin.read()).get("id",""))
 except: print("")' 2>/dev/null)
 
-# Record in DB (best-effort)
+# Record in DB — parameterized, so TITLE/BODY/NTFY_ID/CORR can't SQL-inject.
+# This matters because $NTFY_ID comes from the ntfy server response: a
+# compromised or malicious ntfy would otherwise have a DB write vector.
 if [ -f "$DB" ]; then
-  ESC_TITLE=$(echo "$TITLE" | sed "s/'/''/g")
-  ESC_BODY=$(echo "$BODY" | sed "s/'/''/g")
-  if [ -n "$CORR" ]; then
-    ESC_CORR=$(echo "$CORR" | sed "s/'/''/g")
-    CORR_SQL="'$ESC_CORR'"
-  else
-    CORR_SQL="NULL"
-  fi
-  "$SQLITE" "$DB" "PRAGMA trusted_schema=1; INSERT INTO notifications (tier, title, body, topic, ntfy_id, correlation) VALUES ($TIER, '$ESC_TITLE', '$ESC_BODY', '$NTFY_TOPIC', '$NTFY_ID', $CORR_SQL);" 2>/dev/null
+  TIER="$TIER" TITLE="$TITLE" BODY="$BODY" NTFY_TOPIC="$NTFY_TOPIC" \
+  NTFY_ID="$NTFY_ID" CORR="$CORR" DB="$DB" python3 <<'PYEOF' 2>/dev/null
+import os, sqlite3
+conn = sqlite3.connect(os.environ["DB"])
+conn.execute("PRAGMA trusted_schema=1")
+conn.execute(
+    "INSERT INTO notifications (tier, title, body, topic, ntfy_id, correlation) "
+    "VALUES (?, ?, ?, ?, ?, ?)",
+    (
+        int(os.environ["TIER"]),
+        os.environ["TITLE"],
+        os.environ["BODY"],
+        os.environ["NTFY_TOPIC"],
+        os.environ["NTFY_ID"] or None,
+        os.environ["CORR"] or None,
+    ),
+)
+conn.commit(); conn.close()
+PYEOF
 fi
 
-# Secondary channel: macOS notification (only works if Mac is awake & unlocked)
+# Secondary channel: macOS notification. We escape by passing values via
+# argv to osascript so AppleScript never sees bare interpolated text —
+# osascript's -e buffer would still interpolate, so we use stdin instead.
 if command -v osascript >/dev/null 2>&1; then
-  SAFE_TITLE=$(echo "$TITLE" | sed 's/"/\\"/g')
-  SAFE_BODY=$(echo "$BODY" | head -c 240 | sed 's/"/\\"/g')
-  osascript -e "display notification \"$SAFE_BODY\" with title \"$SAFE_TITLE\" subtitle \"autopilot · tier $TIER\"" 2>/dev/null &
+  TITLE="$TITLE" BODY="$BODY" TIER="$TIER" osascript <<'APPLESCRIPT' 2>/dev/null &
+on run
+  set theTitle to (system attribute "TITLE")
+  set theBody to (system attribute "BODY")
+  if length of theBody > 240 then set theBody to (text 1 thru 240 of theBody) & "…"
+  set theTier to (system attribute "TIER")
+  display notification theBody with title theTitle subtitle ("autopilot · tier " & theTier)
+end run
+APPLESCRIPT
 fi
 
 echo "notify: tier=$TIER title=\"$TITLE\" ntfy_id=$NTFY_ID" >&2

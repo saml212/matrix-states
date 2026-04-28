@@ -25,9 +25,25 @@ if echo "$PROMPT" | grep -qE -i \
   # Nudge to Claude
   echo "[correction-detect] User appears to be correcting you. If this is a durable rule, emit a [LEARN] block in your response so it's saved to the learnings DB." >&2
 
-  # Increment counter (best-effort)
+  # Increment counter via python3 + sqlite3 bindings (parameterized, so
+  # session_id/project are never shell- or SQL-interpolated).
   if [ -n "$SESSION_ID" ] && [ -f "$DB" ]; then
-    "$SQLITE" "$DB" "INSERT OR IGNORE INTO sessions (id, project) VALUES ('$SESSION_ID','learned-representations'); UPDATE sessions SET corrections_count = corrections_count + 1 WHERE id = '$SESSION_ID';" 2>/dev/null
+    PROJECT=$(basename "$(dirname "$ROOT")")
+    SESSION_ID="$SESSION_ID" PROJECT="$PROJECT" DB="$DB" python3 <<'PYEOF' 2>/dev/null
+import os, sqlite3
+db = os.environ["DB"]; sid = os.environ["SESSION_ID"]; proj = os.environ["PROJECT"]
+conn = sqlite3.connect(db)
+conn.execute("PRAGMA trusted_schema=1")
+conn.execute(
+    "INSERT OR IGNORE INTO sessions (id, project) VALUES (?, ?)",
+    (sid, proj),
+)
+conn.execute(
+    "UPDATE sessions SET corrections_count = corrections_count + 1 WHERE id = ?",
+    (sid,),
+)
+conn.commit(); conn.close()
+PYEOF
   fi
 fi
 

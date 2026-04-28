@@ -8,8 +8,12 @@
 # newer than the last successful poll. First call returns empty (primes cursor).
 set +e
 
-NTFY_TOPIC="${NTFY_TOPIC:-sam-autopilot-c77a80627ff7e5bf}"
+NTFY_TOPIC="${NTFY_TOPIC:-}"
 NTFY_SERVER="${NTFY_SERVER:-https://ntfy.sh}"
+
+if [ -z "$NTFY_TOPIC" ]; then
+  exit 0
+fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CURSOR_FILE="$ROOT/memory/ntfy_last_seen"
 DB="$ROOT/memory/workflow.db"

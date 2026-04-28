@@ -19,21 +19,25 @@ echo "$CMD" | grep -qE '(^|[;&|[:space:]])git[[:space:]]+commit([[:space:]]|$)' 
 echo "[$(date -Iseconds)] pre-commit-gate: fired" >> "$ROOT/memory/hook.log"
 
 # Scope: only enforce when the git command targets the repo that owns this
-# hook (learned-representations). The hook is registered via this repo's
-# settings.json but Claude Code fires it on every Bash tool call regardless
-# of cwd — so commits in other repos would be blocked by a sentinel they
-# don't know about. Skip unless we're in our own repo.
+# hook. The hook is registered via this repo's settings.json but Claude
+# Code fires it on every Bash tool call regardless of cwd — so commits in
+# other repos would be blocked by a sentinel they don't know about. Skip
+# unless we're in our own repo.
 CMD_CWD=$(echo "$INPUT" | python3 -c '
 import sys,json
 d=json.load(sys.stdin)
 print(d.get("cwd") or d.get("tool_input",{}).get("cwd",""))
 ' 2>/dev/null)
 PROBE_CWD="${CMD_CWD:-$PWD}"
-OWN_REPO="$(cd "$ROOT/.." 2>/dev/null && pwd)"
-# Resolve target repo root from cwd of the command
+OWN_REPO="$(cd "$ROOT/.." 2>/dev/null && pwd -P)"
+# Resolve target repo root from cwd of the command.
+# ONLY enforce when TARGET_REPO is our own repo. Empty (no git repo at
+# all) or a different repo both skip — previous logic was "enforce if
+# TARGET_REPO is empty OR matches own", which blocked commits run from
+# non-git directories (architecture audit F2).
 TARGET_REPO=$(cd "$PROBE_CWD" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
-if [ -n "$TARGET_REPO" ] && [ "$TARGET_REPO" != "$OWN_REPO" ]; then
-  echo "[$(date -Iseconds)] pre-commit-gate: skipped (repo=$TARGET_REPO != own=$OWN_REPO)" >> "$ROOT/memory/hook.log"
+if [ -z "$TARGET_REPO" ] || [ "$TARGET_REPO" != "$OWN_REPO" ]; then
+  echo "[$(date -Iseconds)] pre-commit-gate: skipped (repo=${TARGET_REPO:-<none>} != own=$OWN_REPO)" >> "$ROOT/memory/hook.log"
   exit 0
 fi
 
@@ -44,7 +48,7 @@ if echo "$CMD" | grep -qE '(^|[;&|[:space:]])CLEAN_BYPASS=1\b' || [ "$CLEAN_BYPA
   exit 0
 fi
 
-HASH=$(bash "$ROOT/scripts/compute_clean_hash.sh" 2>/dev/null)
+HASH=$(cd "$PROBE_CWD" 2>/dev/null && bash "$ROOT/scripts/compute_clean_hash.sh" 2>/dev/null)
 if [ -z "$HASH" ] || [ "$HASH" = "no-changes" ]; then
   exit 0
 fi

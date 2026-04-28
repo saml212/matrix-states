@@ -21,13 +21,26 @@ echo "[$(date -Iseconds)] learn-capture: fired" >> "$LOG"
 
 INPUT=$(cat)
 TRANSCRIPT=$(echo "$INPUT" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("transcript_path",""))' 2>/dev/null)
+SESSION_ID=$(echo "$INPUT" | python3 -c 'import sys,json
+try: print(json.load(sys.stdin).get("session_id",""))
+except: print("")' 2>/dev/null)
+
+# Tick wallclock + token budget counters (harmless no-ops if ceilings
+# aren't configured in budget.toml — keeps mechanisms wired regardless).
+if [ -n "$SESSION_ID" ]; then
+  CLAUDE_SESSION_ID="$SESSION_ID" python3 "$ROOT/scripts/budget.py" tick-wallclock >/dev/null 2>&1
+  if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; then
+    CLAUDE_SESSION_ID="$SESSION_ID" python3 "$ROOT/scripts/budget.py" tick-tokens --transcript "$TRANSCRIPT" >/dev/null 2>&1
+  fi
+fi
+
 [ -z "$TRANSCRIPT" ] && exit 0
 [ ! -f "$TRANSCRIPT" ] && exit 0
 
 PROJECT=$(basename "$(dirname "$ROOT")")
 
 python3 - "$TRANSCRIPT" "$DB" "$PROJECT" "$SQLITE" "$LOG" <<'PYEOF'
-import json, re, sys, subprocess, pathlib, datetime
+import json, re, sys, pathlib, datetime
 
 transcript_path, db, project, sqlite_bin, log_path = sys.argv[1:6]
 
@@ -77,8 +90,13 @@ try:
     if not text:
         sys.exit(0)
 
-    # Match [LEARN] <category>: <rule>, optional \nMistake: ..., optional \nCorrection: ...
+    # Match [LEARN] <category>: <rule>, optional \nMistake: …, optional \nCorrection: …
     # Anchor at end of body: next [LEARN] block, blank line, or end of input.
+    #
+    # Special category 'harness-upstream' is recognized: the agent uses
+    # [LEARN harness-upstream] to flag improvements that should flow back
+    # to the idastone repo via /propose-harness-change. It's stored like
+    # any other learning but can be filtered with category='harness-upstream'.
     pattern = re.compile(
         r'\[LEARN\]\s*([\w][\w\s\-/]*?)\s*:\s*(.+?)'
         r'(?:\n\s*Mistake:\s*(.+?))?'
@@ -90,40 +108,37 @@ try:
     if not matches:
         sys.exit(0)
 
-    def esc(s):
-        return s.replace("'", "''") if s is not None else None
-
+    # Use sqlite3 bindings (parameterized) — the assistant-generated text
+    # is not shell-escaped otherwise. Prevents SQL injection from any
+    # `[LEARN] cat: rule'; DROP TABLE learnings; --` adversarial content.
+    import sqlite3
+    conn = sqlite3.connect(db)
+    conn.execute("PRAGMA trusted_schema=1")
     inserted, duplicates = 0, 0
     for category, rule, mistake, correction in matches:
         category = category.strip()
-        rule = rule.strip().split('\n')[0].strip()  # first line only
+        rule = rule.strip().split('\n')[0].strip()
         mistake = (mistake or '').strip() or None
         correction = (correction or '').strip() or None
-
         if not category or not rule:
             continue
-
-        e_proj = esc(project); e_cat = esc(category); e_rule = esc(rule)
-        e_mist = f"'{esc(mistake)}'" if mistake else 'NULL'
-        e_corr = f"'{esc(correction)}'" if correction else 'NULL'
-        sql = (
-            "PRAGMA trusted_schema=1;\n"
-            "INSERT OR IGNORE INTO learnings "
-            "(project, category, rule, mistake, correction, source) "
-            f"VALUES ('{e_proj}', '{e_cat}', '{e_rule}', {e_mist}, {e_corr}, 'claude');\n"
-            "SELECT changes();"
-        )
-        result = subprocess.run([sqlite_bin, db], input=sql, capture_output=True, text=True)
-        if result.returncode != 0:
-            log(f"insert failed: {result.stderr.strip()}")
-            continue
-        changes = result.stdout.strip().splitlines()[-1] if result.stdout.strip() else '0'
-        if changes == '1':
-            inserted += 1
-            log(f"captured: [{category}] {rule[:80]}")
-        else:
-            duplicates += 1
-            log(f"dup skip: [{category}] {rule[:60]}")
+        try:
+            cur = conn.execute(
+                "INSERT OR IGNORE INTO learnings "
+                "(project, category, rule, mistake, correction, source) "
+                "VALUES (?, ?, ?, ?, ?, 'claude')",
+                (project, category, rule, mistake, correction),
+            )
+            if cur.rowcount == 1:
+                inserted += 1
+                log(f"captured: [{category}] {rule[:80]}")
+            else:
+                duplicates += 1
+                log(f"dup skip: [{category}] {rule[:60]}")
+        except sqlite3.Error as e:
+            log(f"insert failed: {e}")
+    conn.commit()
+    conn.close()
 
     if inserted:
         log(f"inserted {inserted} learning(s), {duplicates} duplicate(s) skipped")

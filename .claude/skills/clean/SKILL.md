@@ -5,10 +5,9 @@ description: Pre-commit anti-slop audit — checks staged/dirty files for code s
 
 # /clean — Pre-commit audit adapted for a research repo
 
-This repo is 70% prose and 30% code — scripts under `.claude/`,
-`matrix-thinking/scripts/`, `experiment-runs/`, and many `.md` docs that
-are read by humans AND future agents. Slop in either kind hurts. The
-audit covers both.
+Research repos are typically majority prose — scripts, experiment dirs,
+and many `.md` docs read by humans AND future agents. Slop in either
+kind hurts. The audit covers both.
 
 ## When to run
 
@@ -62,7 +61,7 @@ The hook honors this. Don't use it routinely.
 
 When this skill fires, the agent should:
 
-1. Run `bash .claude/skills/clean/audit.py --scope staged` (or `--scope dirty` if nothing is staged yet).
+1. Run `python3 .claude/skills/clean/audit.py --scope staged` (or `--scope dirty` if nothing is staged yet).
 2. Read the JSON report on stdout.
 3. For each blocker, fix the underlying issue (remove stray `console.log`, delete the new `.md` file, repair the broken link, etc.).
 4. For warnings, apply judgment — fix if obvious, leave for user if contested.

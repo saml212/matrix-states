@@ -1297,3 +1297,108 @@ Per-position: peak at Z[1] (0.693), monotone decay to Z[5] (0.633). The later la
 Binary target-vs-neg_target classification: all conditions at chance (0.50–0.56 AUC). Matrix Z cannot distinguish the correct answer from the incorrect candidate at above-chance rates.
 
 The probe result adds a third axis to the negative evidence. Round 1-3: rank-k projection curves flat (matrix rank is not functionally used). Round 4: vanilla SFT matches matrix-CODI (matrix architecture contributes nothing). Round 5 probe: matrix Z encodes less target info than raw GPT-2 hidden state (matrix bottleneck actively loses information).
+
+---
+
+## Round 6 Results Part 2 (2026-04-15): Matrix-CODI at gpt2-medium scale
+
+### Setup
+- Base model: gpt2-medium (355M params)
+- Matrix-CODI, γ=0, 6 latent positions, d=16, batch=4 (down from 8 after Round 6 part 1 OOM'd at 80 GB)
+- Dataset: ProsQA, 25 epochs, seed 1337
+- Wall time: 617.7 min on 1×H100
+
+### Result
+**Best ProsQA accuracy: 79.69%**
+
+Vanilla gpt2-medium SFT baseline (Round 6 part 1): 80.47%.
+Matrix-CODI at gpt2-medium underperforms vanilla-SFT-medium by 0.78pp. Same relative ordering as at gpt2-small (matrix 80.47 ≤ vanilla 81.77).
+
+### Interpretation
+Fourth flat training regime. The matrix bottleneck contributes nothing at this scale either. Z_rank during training stayed ~12.6–13.0, consistent with the flat rank curves from Rounds 1/2/3 at gpt2-small.
+
+---
+
+## Round 8 Results Part 1 (2026-04-14): Depth sweep n=6 (vanilla CODI)
+
+### Setup
+- Vanilla CODI (no matrix bottleneck), 6 latent refinement iterations
+- GPT-2 small, ProsQA, batch 16, 25 epochs, seed 1337
+- Wall time: 202.7 min on 1×H100
+
+### Result
+**Best ProsQA accuracy: 78.91%**
+
+This is BELOW vanilla SFT (81.77% mean from Round 4). Adding iterative latent refinement hurts slightly on ProsQA at this scale. The n=16/32/64 runs OOM'd at the default batch sizes and are re-queued at smaller batches.
+
+---
+
+## Round 9 Results (2026-04-14): GPT-2 large scale study — vanilla SFT
+
+### Setup
+- Vanilla SFT, pure_sft mode (no teacher forcing of CoT)
+- Base model: gpt2-large (774M params)
+- Dataset: ProsQA, seed 1337
+- Wall time: 144.5 min
+
+### Result
+**Best accuracy: 68.75%, Final: 65.00%**
+
+Vanilla SFT at gpt2-large underperforms both gpt2-small (81.77%) and gpt2-medium (80.47%) on ProsQA. Scale actively hurts on this dataset — probably a data-size / LR issue for the larger model. This shows that "matrix doesn't rescue at scale" has to be framed carefully in the paper: the vanilla baseline itself degrades at gpt2-large. Not a clean counterexample to scale-helps-everything; on ProsQA, scale hurts across the board.
+
+Matrix gpt2-large re-run queued (batch=2 after batch=4 OOM).
+
+---
+
+## Round PC Results (2026-04-15 to 2026-04-17): Positive-control readouts
+
+The paper-critical experiments. Five readout variants trained from the same Round 3 gamma=0 config (γ=0, ProsQA, gpt2-small, batch 16, 25 epochs, seed 1337), differing only in how Z is projected back to the hidden dim at each latent position. Rank-k ablation run on each checkpoint to produce the rank-k accuracy curve.
+
+### Readout variants
+
+1. **flatten** (baseline): `h_out = Linear(Z.flatten())`. Linear in Z. Jacobian constant.
+2. **bilinear**: `h_out = Linear(K bilinear probes u_k^T Z v_k)`. Reparametrization of flatten. Still linear in Z.
+3. **bilinear_gelu**: `h_out = Linear(GELU(K bilinear probes))`. Nonlinear in Z via GELU.
+4. **svd_aug**: `h_out = Linear(Z.flatten()) + MLP(σ(Z))` where σ(Z) are singular values. Explicit rank features.
+5. **quadratic**: `h_out = Linear(concat(Z Z.T, Z.T Z))`. Quadratic (second-moment) in Z.
+
+### Training results (best ProsQA accuracy)
+
+| Readout | Best acc | Wall time | Z_rank at end |
+|---------|----------|-----------|---------------|
+| flatten seed 1337 (from Round 3) | 80.47% | — | ~12.9 |
+| flatten seed 42 | 81.25% | 207.7 min | ~4 |
+| flatten seed 7 | 82.81% | 208.9 min | ~12 |
+| bilinear_gelu seed 1337 | 79.69% | 207.1 min | ~11 |
+| quadratic seed 1337 | 79.69% | 205.8 min | ~10 |
+| svd_aug seed 1337 | pending (training) | — | — |
+| bilinear seed 1337 | pending (training) | — | — |
+
+**3-seed flatten mean: 81.51% ± 1.2pp.** Accuracy is tight across seeds but Z_rank varies 3× (4, 12, 13). Rank is decoupled from what the loss rewards.
+
+### Rank-k projection ablation (the paper's key table)
+
+Computed by SVD-truncating Z to rank k at inference time, for each k ∈ {1, 2, 4, 8, 16}. Spearman correlation of accuracy vs k.
+
+| Readout | k=1 | k=2 | k=4 | k=8 | k=16 | Spearman r | p |
+|---------|-----|-----|-----|-----|------|-----------|---|
+| flatten (Round 3) | 79% | 79% | 79% | 79% | 79% | ~0 | flat |
+| **bilinear_gelu** | **78.91%** | **79.69%** | **79.69%** | **79.69%** | **79.69%** | **-0.13** | **0.14** |
+| svd_aug | pending | — | — | — | — | — | — |
+| quadratic | pending | — | — | — | — | — | — |
+| bilinear | pending | — | — | — | — | — | — |
+
+### Key finding (partial, bilinear_gelu)
+
+Even with nonlinearity-in-Z (GELU between bilinear probes and output), the rank-k curve is flat. Spearman r = -0.13, p = 0.14 — not significant. Rank-1 truncation gives 78.91% vs full-rank 79.69%, a ~0.8pp gap. The model routes around the nonlinearity.
+
+This result SHIFTS the paper's framing: the failure is not at the readout's linearity (as originally hypothesized) but deeper — the CODI distillation objective produces rank-indifferent gradients regardless of how Z is consumed downstream. The positive control falsifies the simple "nonlinear readout fixes it" hypothesis. Paper goes from "diagnosed + fixed" to "diagnosed + harder than it looks."
+
+### Relationship to Feb 2026 adjacent work
+
+- Nazari & Rusch (arXiv 2602.04852) and the State Rank Dynamics paper (arXiv 2602.02195) measure rank in **linear-attention fast-weight hidden states**. Descriptive claims.
+- Our work: measures rank in **latent thought matrices** (CoT-style reasoning tokens) and makes a **mechanism claim** (rank-blind Jacobian in flatten-then-project readout, falsifiable via nonlinear-in-Z positive controls).
+
+### Interpretation
+
+The bilinear_gelu rank-k curve is the paper's most important single result. It rescues the paper from the "you flattened it, of course rank doesn't matter" reviewer critique — because bilinear_gelu does NOT flatten, and the curve is still flat. The remaining positive controls (svd_aug, quadratic, bilinear) will either confirm this pattern (strengthening the "rank-blind gradient is fundamental" claim) or break it (giving us the "diagnosed + fixed" story).

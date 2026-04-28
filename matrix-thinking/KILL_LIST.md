@@ -101,3 +101,71 @@ Four flat curves across four orthogonal conditions: 2 tasks × 2 distillation re
 - **Bigger backbone** (GPT-2 medium/large or another small LM) — does the rank-blindness persist at scale?
 
 Any new proposal must (1) escape Lessons 1–3 above, (2) not duplicate any of the killed proposals or reproduce the same fatal flaw under a new name, and (3) state explicitly which of the "potential survivors" categories it falls under.
+
+## Lesson 5 — Readout nonlinearity ALONE does not break rank-blindness
+
+**Added 2026-04-17 after Round PC bilinear+GELU experiment.**
+
+The simple Jacobian argument (Lesson 1) predicts that breaking linearity of
+the readout in Z will make the gradient see rank. We tested this with a
+readout that is explicitly nonlinear in Z:
+
+```python
+# bilinear+GELU readout
+probes = einsum('ki,blik->blk', U, einsum('blij,kj->blik', Z, V))  # K bilinear probes
+h_out = Linear(GELU(probes))
+```
+
+K = d² = 256 probes, full expressiveness. Unambiguously nonlinear in Z via the
+GELU. The Jacobian is NOT constant.
+
+**Result:** flat rank-k curve anyway. 78.91% at k=1, 79.69% at k=2 through k=16.
+Spearman r = -0.13, p = 0.14 (not significant).
+
+**Why it doesn't work:** the model learns solutions where the bilinear probes
+that are active at the output lie along a rank-1 subspace of Z, so the
+effective information flow is rank-1 even when the architecture could support
+rank-256. The GELU doesn't force the model to USE higher rank; it only makes
+higher-rank paths available. The optimizer still prefers the lowest-rank
+solution that satisfies the loss.
+
+**Implication:** the failure is NOT in readout linearity per se. It is in the
+**CODI distillation objective** producing gradients that do not reward any
+particular rank of Z. Lesson 1 was a sufficient condition for rank-blindness
+but not a necessary one.
+
+**Positive controls to run before concluding matrix-thinking is dead:**
+- `svd_aug` readout (singular values explicitly fed through MLP) — queued
+- `quadratic` readout (ZZ^T and Z^TZ second moments) — banked 79.69%, rank-k
+  eval pending
+- `bilinear` without GELU (reparametrization control) — queued
+
+If ALL four positive controls produce flat curves, the failure is in the
+objective, not any readout variant. If any one produces a bending curve, we
+learn WHICH property of the readout breaks the rank-blindness.
+
+## Lesson 6 — Rank is decoupled from accuracy across seeds
+
+**Added 2026-04-17 after 3-seed flatten replication.**
+
+Three training runs of the SAME config (Round 3 gamma=0 flatten, ProsQA,
+gpt2-small, 25 epochs, batch 16) with seeds 1337, 42, 7:
+
+| Seed | Best acc | Final Z_rank |
+|------|----------|--------------|
+| 1337 | 80.47%   | ~13          |
+| 42   | 81.25%   | ~4           |
+| 7    | 82.81%   | ~12          |
+
+Accuracy: **81.51 ± 1.2pp** (tight).
+Rank: **4–13** (3× spread).
+
+The loss does not push toward any particular rank. Whatever rank Z converges
+to is essentially arbitrary, determined by initialization. This is direct
+evidence that the loss is rank-agnostic — stronger than the flat rank-k
+ablation curve, because it shows rank varies at the SAME loss value.
+
+Implication for Chapter 2: if end-to-end matrix-native training on a rank-K-
+aware task produces a similar seed-spread in rank with tight accuracy, the
+matrix-thinking direction is fully dead. If it shows rank concentrated at K*
+across seeds, matrix-thinking is alive.
