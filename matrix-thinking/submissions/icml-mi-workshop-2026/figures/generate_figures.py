@@ -268,6 +268,6 @@ if __name__ == "__main__":
     fig1_rank_curves()
     fig2_seed_decoupling()
     fig3_scale_sweep()
-    fig4_depth_sweep()
+    # fig4 (depth sweep) removed: only n=6 banked, deferred to camera-ready
     fig5_linear_probe()
     fig6_negative_control()
