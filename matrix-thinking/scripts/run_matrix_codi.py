@@ -91,6 +91,7 @@ CONFIG = {
     # Matrix bottleneck
     "mat_dim": 16,
     "use_thinking_iter": True,  # 1 iteration of (I+Delta) Z (I+Gamma)
+    "readout": "flatten",       # readout variant: flatten | bilinear | bilinear_gelu | svd_aug | quadratic
 
     # Eval
     "eval_interval_epochs": 1,
@@ -110,12 +111,17 @@ CONFIG = {
     # Eval cadence (Round 2: final full-test eval after training)
     "final_eval_batches": 32,
 
+    # Rank-aware training flags (all OFF by default; mirrored from argparse)
+    "rank_loss": "none",                  # {"none", "entropy", "nuclear"}
+    "rank_lambda": 0.0,                   # coefficient for rank loss; 0 = OFF
+    "force_rank_during_training": 0,      # 0 = OFF; k>0 truncates Z to rank k per step
+
     # Dataset selection
     "dataset": "gsm8k_aug",   # {"gsm8k_aug", "prosqa"}
 
     # ProsQA paths (used only when dataset == "prosqa")
-    "prosqa_train_path": "/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-04-11_round2_prosqa/data/prosqa_train.json",
-    "prosqa_val_path":   "/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-04-11_round2_prosqa/data/prosqa_test.json",
+    "prosqa_train_path": "/workspace/pebble/round3_gamma0/data/prosqa_train.json",
+    "prosqa_val_path":   "/workspace/pebble/round3_gamma0/data/prosqa_test.json",
     # Note: we use prosqa_test (500 examples) for eval rather than prosqa_valid (300).
     # Test set is larger and reduces variance on the accuracy signal. Valid set is
     # unused in this round; keep the path in Section A for completeness only.
@@ -219,14 +225,14 @@ class MatrixBottleneck(nn.Module):
     saved for rank analysis. All operations preserve the leading batch axis.
     """
 
-    def __init__(self, hidden_dim, mat_dim, use_thinking_iter=True):
+    def __init__(self, hidden_dim, mat_dim, use_thinking_iter=True, readout='flatten'):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.mat_dim = mat_dim
         self.use_thinking_iter = use_thinking_iter
+        self.readout = readout
 
         self.w_up = nn.Linear(hidden_dim, mat_dim * mat_dim, bias=True)
-        self.w_down = nn.Linear(mat_dim * mat_dim, hidden_dim, bias=True)
         # Fix CRITICAL-8: LayerNorm is the final step of the bottleneck forward.
         # We zero-init w_down.weight AND the LayerNorm affine so the bottleneck
         # starts as a true zero residual — cleanest possible "do nothing" init.
@@ -234,28 +240,64 @@ class MatrixBottleneck(nn.Module):
 
         nn.init.normal_(self.w_up.weight, std=0.02)
         nn.init.zeros_(self.w_up.bias)
-        # Fix CRITICAL-8: small-normal init for w_down keeps gradients flowing
-        # through the bottleneck (zero init kills all upstream grads via chain rule).
-        # out_norm's LayerNorm (standard init weight=1, bias=0) normalises the output.
-        nn.init.normal_(self.w_down.weight, std=0.02)
-        nn.init.zeros_(self.w_down.bias)
+
+        if readout == 'flatten':
+            self.w_down = nn.Linear(mat_dim * mat_dim, hidden_dim, bias=True)
+            # Fix CRITICAL-8: small-normal init for w_down keeps gradients flowing
+            # through the bottleneck (zero init kills all upstream grads via chain rule).
+            # out_norm's LayerNorm (standard init weight=1, bias=0) normalises the output.
+            nn.init.normal_(self.w_down.weight, std=0.02)
+            nn.init.zeros_(self.w_down.bias)
+        elif readout in ('bilinear', 'bilinear_gelu'):
+            K = mat_dim * mat_dim
+            self.U = nn.Parameter(torch.randn(K, mat_dim) * (1.0 / math.sqrt(mat_dim)))
+            self.V = nn.Parameter(torch.randn(K, mat_dim) * (1.0 / math.sqrt(mat_dim)))
+            self.out = nn.Linear(K, hidden_dim, bias=True)
+            nn.init.normal_(self.out.weight, std=0.02)
+            nn.init.zeros_(self.out.bias)
+        elif readout == 'svd_aug':
+            self.w_down = nn.Linear(mat_dim * mat_dim, hidden_dim, bias=True)
+            nn.init.normal_(self.w_down.weight, std=0.02)
+            nn.init.zeros_(self.w_down.bias)
+            self.sigma_proj = nn.Sequential(
+                nn.Linear(mat_dim, 4 * mat_dim),
+                nn.GELU(),
+                nn.Linear(4 * mat_dim, hidden_dim),
+            )
+            nn.init.normal_(self.sigma_proj[0].weight, std=0.02)
+            nn.init.zeros_(self.sigma_proj[0].bias)
+            nn.init.normal_(self.sigma_proj[2].weight, std=0.02)
+            nn.init.zeros_(self.sigma_proj[2].bias)
+        elif readout == 'quadratic':
+            self.w_down_quad = nn.Linear(2 * mat_dim * mat_dim, hidden_dim, bias=True)
+            nn.init.normal_(self.w_down_quad.weight, std=0.02)
+            nn.init.zeros_(self.w_down_quad.bias)
 
         if use_thinking_iter:
             self.thinker = MultiplicativeThinkingLayer(mat_dim, dropout=0.0)
         else:
             self.thinker = None
 
-    def forward(self, h, rank_project_k=None):
+    def forward(self, h, rank_project_k=None, force_rank_k=None):
         """Forward pass through the bottleneck.
+
+        Active readout: self.readout  (one of 'flatten', 'bilinear',
+        'bilinear_gelu', 'svd_aug', 'quadratic').
 
         Args:
             h: (B, D) last-token hidden state from the previous latent position
             rank_project_k: optional int; if set, truncate Z to rank k via SVD
-                            before the down-projection (used in Run C ablation)
+                            before the down-projection (used in Run C ablation,
+                            eval-only, no-grad context).
+            force_rank_k: optional int (from --force-rank-during-training); if
+                          set, truncate Z to rank k at every forward pass
+                          (training AND eval). Gradients propagate through the
+                          SVD via torch.linalg.svd's autograd support.
 
         Returns:
             h_out: (B, D) hidden state to feed back as the next input embedding
-            Z: (B, d, d) the matrix observable at this latent step
+            Z: (B, d, d) the matrix observable at this latent step (post any
+               truncation applied by force_rank_k or rank_project_k).
         """
         B = h.shape[0]
         d = self.mat_dim
@@ -265,14 +307,61 @@ class MatrixBottleneck(nn.Module):
         if self.thinker is not None:
             Z = self.thinker(Z)
 
+        # --force-rank-during-training: differentiable rank-k truncation applied
+        # at every latent position during training and eval.
+        #
+        # We use eigh(Z @ Z^T) instead of full SVD for two reasons:
+        # 1. Stability: SVD backward contains 1/(σ_i^2 - σ_j^2) terms that
+        #    blow up (NaN) when singular values coincide, which happens naturally
+        #    near convergence as the spectrum collapses toward rank k.
+        #    eigh backward has 1/(λ_i - λ_j) gaps (gap of eigenvalues of ZZ^T,
+        #    which are σ_i^2), mitigating the blow-up by a factor of (σ_i + σ_j).
+        # 2. Correctness: the top-k eigenvectors of ZZ^T span the same column
+        #    space as the rank-k truncation, so P_k Z = U_k U_k^T Z reproduces
+        #    the rank-k projection exactly.
+        # Autocast is disabled so no op inside silently re-casts back to bf16.
+        if force_rank_k is not None and force_rank_k > 0:
+            orig_dtype = Z.dtype
+            with torch.autocast(device_type=Z.device.type, enabled=False):
+                Zf = Z.float()
+                ZZt = Zf @ Zf.transpose(-1, -2)              # (B, d, d), symmetric PSD
+                eigvals, eigvecs = torch.linalg.eigh(ZZt)    # ascending order, stable backward
+                k_clamped = min(force_rank_k, eigvecs.shape[-1])
+                U_k = eigvecs[..., -k_clamped:]              # (B, d, k) — top-k eigenvectors
+                # Z_k = P_k Z where P_k = U_k U_k^T (orthogonal projector onto col-space)
+                Zf_trunc = U_k @ (U_k.transpose(-1, -2) @ Zf)  # (B, d, d)
+            Z = Zf_trunc.to(orig_dtype)
+
         Z_out = Z
         if rank_project_k is not None:
             # Fix SERIOUS-13: SVD done in fp32, outside autocast.
             with torch.autocast("cuda", enabled=False):
                 Z_out = truncate_to_rank(Z.float(), rank_project_k).to(Z.dtype)
 
-        flat_out = Z_out.reshape(B, d * d)        # (B, d*d)
-        h_out = self.w_down(flat_out)             # (B, D)
+        if self.readout == 'flatten':
+            flat_out = Z_out.reshape(B, d * d)        # (B, d*d)
+            h_out = self.w_down(flat_out)             # (B, D)
+        elif self.readout == 'bilinear':
+            MV = torch.einsum('bij,kj->bik', Z_out, self.V)    # (B, d, K)
+            probes = torch.einsum('ki,bik->bk', self.U, MV)    # (B, K)
+            h_out = self.out(probes)                            # (B, D)
+        elif self.readout == 'bilinear_gelu':
+            MV = torch.einsum('bij,kj->bik', Z_out, self.V)    # (B, d, K)
+            probes = torch.einsum('ki,bik->bk', self.U, MV)    # (B, K)
+            h_out = self.out(F.gelu(probes))                    # (B, D)
+        elif self.readout == 'svd_aug':
+            with torch.autocast("cuda", enabled=False):
+                sigma = torch.linalg.svdvals(Z_out.float()).to(Z_out.dtype)  # (B, d)
+            flat_out = Z_out.reshape(B, d * d)
+            h_out = self.w_down(flat_out) + self.sigma_proj(sigma)
+        elif self.readout == 'quadratic':
+            ZZt = torch.einsum('bij,bkj->bik', Z_out, Z_out)   # (B, d, d)
+            ZtZ = torch.einsum('bji,bjk->bik', Z_out, Z_out)   # (B, d, d)
+            quad = torch.cat([ZZt.reshape(B, d * d), ZtZ.reshape(B, d * d)], dim=-1)
+            h_out = self.w_down_quad(quad)                      # (B, D)
+        else:
+            raise ValueError(f"Unknown readout: {self.readout}")
+
         # Fix CRITICAL-8: final LayerNorm to normalise the bottleneck output.
         h_out = self.out_norm(h_out)
         # Fix C2: return Z_out (post-truncation, post-thinking) so rank logging
@@ -281,17 +370,86 @@ class MatrixBottleneck(nn.Module):
 
 
 def truncate_to_rank(Z, k):
-    """Truncate a batch of matrices to rank k via SVD. Used by Run C."""
-    # Z: (B, d, d). Work in float32 for SVD stability, return in original dtype.
+    """Truncate a batch of matrices to rank k via eigh of ZZ^T.
+
+    Used by Run C (eval-time rank projection) and --force-rank-during-training.
+
+    We use eigh(ZZ^T) instead of full SVD to avoid the 1/(σ_i^2 - σ_j^2) NaN
+    blow-up in SVD backward when singular values coincide (which occurs near
+    convergence as the spectrum collapses). eigh of a symmetric PSD matrix has a
+    stable backward (gradient involves 1/(λ_i - λ_j) with λ_i = σ_i^2, so the
+    gap is mitigated by the factor (σ_i + σ_j) relative to SVD's gap-of-squares).
+
+    The top-k eigenvectors of ZZ^T span the same column space as the rank-k
+    truncation of Z, so P_k Z = U_k U_k^T Z is equivalent to the rank-k best
+    approximation for the purposes of projecting Z's image.
+
+    Autocast is disabled to prevent silent mid-graph bf16 re-casts.
+
+    Args:
+        Z: (B, d, d) batch of matrices (float32 recommended; cast internally)
+        k: target rank (clamped to min(k, d))
+
+    Returns:
+        (B, d, d) rank-≤-k approximation in the same dtype as input Z.
+    """
     orig_dtype = Z.dtype
-    Zf = Z.float()
-    U, S, Vh = torch.linalg.svd(Zf, full_matrices=False)
-    k = min(k, S.shape[-1])
-    U_k = U[..., :, :k]
-    S_k = S[..., :k]
-    Vh_k = Vh[..., :k, :]
-    Zk = (U_k * S_k.unsqueeze(-2)) @ Vh_k
+    with torch.autocast(device_type=Z.device.type, enabled=False):
+        Zf = Z.float()
+        ZZt = Zf @ Zf.transpose(-1, -2)              # (B, d, d), symmetric PSD
+        eigvals, eigvecs = torch.linalg.eigh(ZZt)    # ascending order; stable backward
+        k = min(k, eigvecs.shape[-1])
+        U_k = eigvecs[..., -k:]                      # (B, d, k) — top-k eigenvectors
+        # Z_k = U_k (U_k^T Z) — orthogonal projection onto top-k column subspace
+        Zk = U_k @ (U_k.transpose(-1, -2) @ Zf)     # (B, d, d)
     return Zk.to(orig_dtype)
+
+
+def compute_rank_loss(Z_list, rank_loss_type):
+    """Auxiliary rank-maximisation loss over the n_latents matrix observables.
+
+    Args:
+        Z_list: list of (B, d, d) tensors, one per latent position (length n_latents).
+                Must NOT be detached — gradients must flow through Z back to w_up/thinker.
+        rank_loss_type: 'entropy' | 'nuclear'
+
+    Returns:
+        Scalar tensor (averaged over batch × positions) with requires_grad=True.
+
+    Notes on stability:
+        We use torch.linalg.svdvals (not full svd) because it is faster and its
+        backward is well-defined through eigendecomposition. Full svd backward can
+        be numerically unstable near repeated singular values; svdvals avoids
+        computing U/V and uses a safer gradient path.
+    """
+    assert rank_loss_type in ("entropy", "nuclear"), \
+        f"Unknown rank_loss_type: {rank_loss_type!r}"
+
+    loss_terms = []
+    for Z in Z_list:
+        # Z: (B, d, d). svdvals returns descending singular values.
+        # Cast to float32 and disable autocast so no op inside silently re-casts
+        # back to bf16 on CUDA (matches Fix SERIOUS-13 pattern used elsewhere).
+        with torch.autocast(device_type=Z.device.type, enabled=False):
+            sigma = torch.linalg.svdvals(Z.float())  # (B, d)
+
+        if rank_loss_type == "entropy":
+            # Normalise to a probability distribution, compute Shannon entropy.
+            # We MAXIMISE H, so minimise -H.
+            sigma_sum = sigma.sum(dim=-1, keepdim=True).clamp(min=1e-10)
+            p = sigma / sigma_sum                          # (B, d), sums to 1
+            p_safe = p.clamp(min=1e-10)
+            H = -(p_safe * torch.log(p_safe)).sum(dim=-1)  # (B,), higher = spread spectrum
+            # Minimising loss → maximising H
+            loss_terms.append(-H.mean())
+        else:  # nuclear
+            # Maximise nuclear norm (sum of singular values).
+            # Note: this primarily grows σ_1 and does NOT guarantee rank spreading.
+            nuc = sigma.sum(dim=-1)  # (B,)
+            loss_terms.append(-nuc.mean())
+
+    # Average over the n_latents positions.
+    return torch.stack(loss_terms).mean()
 
 
 def effective_rank(Z):
@@ -328,7 +486,7 @@ class CodiModel(nn.Module):
     """
 
     def __init__(self, base_model_name, n_latents, use_matrix_bottleneck,
-                 mat_dim, use_thinking_iter):
+                 mat_dim, use_thinking_iter, readout='flatten'):
         super().__init__()
         self.gpt2 = GPT2LMHeadModel.from_pretrained(base_model_name)
         self.gpt2.config.output_hidden_states = True
@@ -342,6 +500,7 @@ class CodiModel(nn.Module):
                 hidden_dim=self.hidden_dim,
                 mat_dim=mat_dim,
                 use_thinking_iter=use_thinking_iter,
+                readout=readout,
             )
             # CODI ablation note: a small 2-layer MLP + LayerNorm projection is
             # CODI-faithful for the vector path. The matrix bottleneck plays
@@ -408,7 +567,7 @@ class CodiModel(nn.Module):
     # This matches CODI's reference implementation.
     # ------------------------------------------------------------------
     def student_forward(self, q_ids, q_mask, tail_ids, tail_mask,
-                         save_Z=True, rank_project_k=None):
+                         save_Z=True, rank_project_k=None, force_rank_k=None):
         """Run the student latent pass.
 
         Args:
@@ -419,6 +578,10 @@ class CodiModel(nn.Module):
             save_Z: if True, record the matrix observables (matrix-CODI only)
             rank_project_k: optional int; forwarded to the matrix bottleneck
                             for Run C (ignored in vanilla mode).
+            force_rank_k: optional int; forwarded to the matrix bottleneck for
+                          --force-rank-during-training (training + eval). When
+                          set, Z is SVD-truncated to rank k at every step with
+                          gradients flowing through the truncation.
 
         Returns:
             dict with:
@@ -460,15 +623,25 @@ class CodiModel(nn.Module):
         running_mask = prefix_mask                              # (B, Lq+1)
 
         Z_list = [] if save_Z else None
+        # Z_list_grad: always populated during matrix-CODI training so compute_codi_loss
+        # can compute the auxiliary rank loss with gradients. Separate from Z_list so
+        # we don't accidentally break the detach-for-logging path.
+        Z_list_grad = [] if self.use_matrix_bottleneck else None
         latent_positions = []
 
         for t in range(self.n_latents):
             # Compute the next continuous "token" from the last hidden state.
             if self.use_matrix_bottleneck:
-                h_next, Z_t = self.bottleneck(last_hidden, rank_project_k=rank_project_k)
+                h_next, Z_t = self.bottleneck(
+                    last_hidden,
+                    rank_project_k=rank_project_k,
+                    force_rank_k=force_rank_k,
+                )
                 if save_Z:
                     # Fix SERIOUS-13: store in fp32 for rank analysis stability.
                     Z_list.append(Z_t.detach().float())
+                # Always keep a grad-attached reference for rank loss computation.
+                Z_list_grad.append(Z_t)
             else:
                 h_next = self.feedback_proj(last_hidden)
                 if save_Z:
@@ -513,7 +686,8 @@ class CodiModel(nn.Module):
             "logits": out_full.logits,                   # (B, Ltotal, V)
             "hidden_states": out_full.hidden_states,     # tuple of (B, Ltotal, D)
             "latent_positions": latent_positions,        # positions of z1..z6
-            "Z_list": Z_list,                            # list of (B, d, d) or None
+            "Z_list": Z_list,                            # list of (B, d, d) detached, or None
+            "Z_list_grad": Z_list_grad,                  # list of (B, d, d) with grad, or None
             "prefix_len_with_latents": running_embeds.shape[1],
         }
 
@@ -892,11 +1066,15 @@ def compute_codi_loss(model, batch, cfg, device, special_ids):
     """Compute the CODI joint loss.
 
     L = alpha * L_teacher + beta * L_student + gamma * L_KD
+        [+ rank_lambda * L_rank  when cfg['rank_loss'] != 'none']
 
     L_teacher: next-token CE over the teacher sequence (explicit CoT), answer tokens only.
     L_student: next-token CE over the student sequence, answer tokens only.
     L_KD:      L1 distance between teacher and student last-layer-across-all-layers
                hidden states at the ":" token, normalized per layer by teacher std.
+    L_rank:    auxiliary rank-maximisation loss (entropy or nuclear), averaged over
+               (batch × n_latent positions). Only active when cfg['rank_loss'] != 'none'
+               and cfg['rank_lambda'] > 0. Default OFF — does not affect baseline.
     """
     raw = model.module if isinstance(model, DDP) else model
 
@@ -937,13 +1115,26 @@ def compute_codi_loss(model, batch, cfg, device, special_ids):
     # from the differentiable pass but with .detach() on the colon slice.
     teacher_hiddens = [h.detach() for h in teacher_out.hidden_states]
 
+    # Determine whether we need Z tensors with gradients for the rank loss.
+    _rank_loss_type = cfg.get("rank_loss", "none")
+    _rank_lambda = cfg.get("rank_lambda", 0.0)
+    _need_rank_loss = (
+        _rank_loss_type != "none"
+        and _rank_lambda > 0.0
+        and raw.use_matrix_bottleneck
+    )
+    _force_rank_k = cfg.get("force_rank_during_training", 0) or None
+    if _force_rank_k == 0:
+        _force_rank_k = None
+
     # ----- Student pass -----
     student = raw.student_forward(
         q_ids=q_ids,
         q_mask=q_mask,
         tail_ids=tail_ids,
         tail_mask=tail_mask,
-        save_Z=False,   # training does not need Z; eval does
+        save_Z=False,        # training does not need Z for logging; eval does
+        force_rank_k=_force_rank_k,
     )
     student_logits = student["logits"]              # (B, Ls, V)
     student_hiddens = student["hidden_states"]      # tuple of (B, Ls, D)
@@ -995,10 +1186,23 @@ def compute_codi_loss(model, batch, cfg, device, special_ids):
     L_kd = torch.stack(kd_terms).mean()
 
     L_total = cfg["alpha"] * L_teacher + cfg["beta"] * L_student + cfg["gamma"] * L_kd
+
+    # ----- Auxiliary rank loss (OFF by default) -----
+    # When --rank-loss != none and --rank-lambda > 0, add an auxiliary term that
+    # pushes Z's singular spectrum toward higher effective rank.  The Z tensors
+    # retain gradients through the bottleneck back to w_up and thinker.
+    L_rank = torch.zeros(1, device=device, dtype=L_total.dtype)
+    if _need_rank_loss:
+        z_grad = student["Z_list_grad"]  # list of (B, d, d) with grad
+        if z_grad is not None and len(z_grad) > 0:
+            L_rank = compute_rank_loss(z_grad, _rank_loss_type)
+            L_total = L_total + _rank_lambda * L_rank
+
     return L_total, {
         "L_teacher": L_teacher.detach(),
         "L_student": L_student.detach(),
         "L_kd": L_kd.detach(),
+        "L_rank": L_rank.detach(),
     }
 
 
@@ -1008,7 +1212,7 @@ def compute_codi_loss(model, batch, cfg, device, special_ids):
 
 @torch.no_grad()
 def generate_answer(model, q_ids, q_mask, tokenizer, special_ids, cfg, device,
-                    rank_project_k=None, save_Z=True):
+                    rank_project_k=None, save_Z=True, force_rank_k=None):
     """Run one student pass up through the latents, then greedy-decode the answer.
 
     Fix C5: the n_latents feedback loop is executed ONCE to build the full prefix
@@ -1041,6 +1245,7 @@ def generate_answer(model, q_ids, q_mask, tokenizer, special_ids, cfg, device,
         tail_mask=tail_mask,
         save_Z=save_Z,
         rank_project_k=rank_project_k,
+        force_rank_k=force_rank_k,
     )
 
     # Collect intermediate logits for smoke-test NaN check (Fix 21).
@@ -1099,7 +1304,11 @@ def generate_answer(model, q_ids, q_mask, tokenizer, special_ids, cfg, device,
     ).last_hidden_state[:, -1, :]
     for t_seed in range(raw.n_latents):
         if raw.use_matrix_bottleneck:
-            h_s, _ = raw.bottleneck(last_h_seed, rank_project_k=rank_project_k)
+            h_s, _ = raw.bottleneck(
+                last_h_seed,
+                rank_project_k=rank_project_k,
+                force_rank_k=force_rank_k,
+            )
         else:
             h_s = raw.feedback_proj(last_h_seed)
         h_s = h_s.unsqueeze(1)
@@ -1195,12 +1404,14 @@ def prosqa_answer_match(pred_text, gold_text):
 
 @torch.no_grad()
 def evaluate_gsm8k(model, val_dataset, tokenizer, special_ids, cfg, device,
-                   rank_project_k=None, save_ranks=True, max_batches=None):
+                   rank_project_k=None, save_ranks=True, max_batches=None,
+                   force_rank_k=None):
     """Eval loop. Returns (accuracy, rank_records, sample_Z_records).
 
     rank_records: list of dicts, one per problem, with effective ranks.
     sample_Z_records: list of dicts holding raw Z matrices for up to
                       cfg["max_rank_samples"] held-out problems.
+    force_rank_k: forwarded to generate_answer for --force-rank-during-training eval.
     """
     raw = model.module if isinstance(model, DDP) else model
     raw.eval()
@@ -1224,6 +1435,7 @@ def evaluate_gsm8k(model, val_dataset, tokenizer, special_ids, cfg, device,
             pred_text, Z_stack = generate_answer(
                 model, q_ids, q_mask, tokenizer, special_ids, cfg, device,
                 rank_project_k=rank_project_k, save_Z=save_ranks,
+                force_rank_k=force_rank_k,
             )
 
         if cfg.get("dataset", "gsm8k_aug") == "prosqa":
@@ -1310,6 +1522,7 @@ def run_smoke_tests(cfg):
             use_matrix_bottleneck=use_matrix,
             mat_dim=cfg["mat_dim"],
             use_thinking_iter=cfg["use_thinking_iter"],
+            readout=cfg["readout"],
         ).to(device)
         model.add_special_tokens(tokenizer)
         model.train()
@@ -1353,6 +1566,7 @@ def run_smoke_tests(cfg):
         use_matrix_bottleneck=True,
         mat_dim=cfg["mat_dim"],
         use_thinking_iter=cfg["use_thinking_iter"],
+        readout=cfg["readout"],
     ).to(device)
     model.add_special_tokens(tokenizer)
     model.train()
@@ -1475,6 +1689,7 @@ def run_smoke_tests(cfg):
         use_matrix_bottleneck=True,
         mat_dim=cfg["mat_dim"],
         use_thinking_iter=cfg["use_thinking_iter"],
+        readout=cfg["readout"],
     ).to(device)
     model2.add_special_tokens(tokenizer)
     sd = torch.load(ckpt_path, map_location=device, weights_only=True)
@@ -1582,6 +1797,7 @@ def train_run(mode, cfg):
         use_matrix_bottleneck=use_matrix,
         mat_dim=cfg["mat_dim"],
         use_thinking_iter=cfg["use_thinking_iter"],
+        readout=cfg.get("readout", "flatten"),
     ).to(device)
     model.add_special_tokens(tokenizer)
     special_ids = model.special_token_ids
@@ -1716,11 +1932,14 @@ def train_run(mode, cfg):
                                     )
                     raw_m.train()
 
+                rank_loss_str = ""
+                if cfg.get("rank_loss", "none") != "none" and cfg.get("rank_lambda", 0.0) > 0:
+                    rank_loss_str = f" | step.rank_loss {parts['L_rank'].item():.4f}"
                 logger.log(
                     f"step {step:6d}/{total_steps} | loss_avg {avg_loss:.4f} | "
                     f"L_t {parts['L_teacher'].item():.3f} L_s {parts['L_student'].item():.3f} "
                     f"L_kd {parts['L_kd'].item():.3f} | gn {grad_norm:.2f} | "
-                    f"lr {scheduler.get_last_lr()[0]:.2e} | {elapsed:.0f}s{z_rank_str}"
+                    f"lr {scheduler.get_last_lr()[0]:.2e} | {elapsed:.0f}s{z_rank_str}{rank_loss_str}"
                 )
 
         # End of epoch: eval on rank 0 only.
@@ -1730,9 +1949,13 @@ def train_run(mode, cfg):
             try:
                 if is_main:
                     logger.log(f"--- Eval after epoch {epoch + 1} ---")
+                    _eval_force_rank_k = cfg.get("force_rank_during_training", 0) or None
+                    if _eval_force_rank_k == 0:
+                        _eval_force_rank_k = None
                     acc, rank_records, sample_Zs = evaluate_gsm8k(
                         model_ddp, val_ds, tokenizer, special_ids, cfg, device,
                         save_ranks=use_matrix,  # only matrix run has Z to rank
+                        force_rank_k=_eval_force_rank_k,
                     )
                     logger.log(f"  {cfg['dataset']} accuracy: {acc*100:.2f}%")
 
@@ -1887,6 +2110,7 @@ def eval_rank_projection(cfg, checkpoint_path):
         use_matrix_bottleneck=True,
         mat_dim=saved_cfg["mat_dim"],
         use_thinking_iter=saved_cfg.get("use_thinking_iter", True),
+        readout=saved_cfg.get("readout", "flatten"),
     )
     model.add_special_tokens(tokenizer)
     # Ensure the embedding table matches the checkpoint (after special tokens).
@@ -2148,6 +2372,70 @@ def main():
         choices=["gsm8k_aug", "prosqa"],
         help="Override CONFIG['dataset']. gsm8k_aug reproduces Round 1; prosqa runs Round 2.",
     )
+    parser.add_argument(
+        "--readout",
+        type=str,
+        default=None,
+        choices=["flatten", "bilinear", "bilinear_gelu", "svd_aug", "quadratic"],
+        help="Override CONFIG['readout']. flatten preserves existing behavior.",
+    )
+    parser.add_argument(
+        "--base-model",
+        type=str,
+        default=None,
+        help="Override CONFIG['base_model']. e.g. gpt2, gpt2-medium, gpt2-large.",
+    )
+    parser.add_argument(
+        "--n-latents",
+        type=int,
+        default=None,
+        help="Override CONFIG['n_latents'].",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Override CONFIG['seed'].",
+    )
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=None,
+        help="Override CONFIG['gamma'] (KD loss weight). gamma=0 disables KD.",
+    )
+    # ---- New rank-aware training flags (all OFF by default) ----
+    parser.add_argument(
+        "--rank-loss",
+        type=str,
+        default="none",
+        choices=["none", "entropy", "nuclear"],
+        help=(
+            "Auxiliary rank-maximisation loss on the matrix observables Z. "
+            "'entropy': maximises effective rank via singular-value entropy. "
+            "'nuclear': maximises nuclear norm (grows σ_1, not guaranteed to spread). "
+            "Default 'none' (OFF). Only active when --rank-lambda > 0."
+        ),
+    )
+    parser.add_argument(
+        "--rank-lambda",
+        type=float,
+        default=0.0,
+        help=(
+            "Coefficient for the auxiliary rank loss (--rank-loss). "
+            "Default 0.0 (OFF). Has no effect when --rank-loss none."
+        ),
+    )
+    parser.add_argument(
+        "--force-rank-during-training",
+        type=int,
+        default=0,
+        help=(
+            "When set to k > 0, replace Z with its rank-k eigh-based truncation at "
+            "EVERY latent position during training AND eval. Gradients propagate "
+            "through the truncation via torch.linalg.eigh autograd (stable at "
+            "coincident singular values). Default 0 (OFF). Must be >= 0."
+        ),
+    )
     args = parser.parse_args()
 
     cfg = copy.deepcopy(CONFIG)
@@ -2163,6 +2451,22 @@ def main():
         cfg["warmup_steps"] = args.warmup_steps
     if args.dataset is not None:
         cfg["dataset"] = args.dataset
+    if args.readout is not None:
+        cfg["readout"] = args.readout
+    if args.base_model is not None:
+        cfg["base_model"] = args.base_model
+    if args.n_latents is not None:
+        cfg["n_latents"] = args.n_latents
+    if args.seed is not None:
+        cfg["seed"] = args.seed
+    if args.gamma is not None:
+        cfg["gamma"] = args.gamma
+    # Always assign rank flags (defaults now explicit in argparse, matching CONFIG).
+    cfg["rank_loss"] = args.rank_loss
+    cfg["rank_lambda"] = args.rank_lambda
+    assert args.force_rank_during_training >= 0, \
+        f"--force-rank-during-training must be >= 0 (got {args.force_rank_during_training})"
+    cfg["force_rank_during_training"] = args.force_rank_during_training
 
     if args.smoke_test:
         try:
