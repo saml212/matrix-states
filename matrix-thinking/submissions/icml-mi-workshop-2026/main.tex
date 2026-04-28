@@ -1,0 +1,94 @@
+% Targets the ICML 2026 two-column format; swap in icml2026.sty before submitting (see BUILD.md).
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage[margin=0.85in]{geometry}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,square,sort&compress]{natbib}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+% theorem / proposition
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+
+% shortcut macros
+\newcommand{\vecop}{\operatorname{vec}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\anonymous}{Anonymous}
+\newcommand{\Z}{Z}
+
+\title{The Gradient Does Not See Rank:\\
+Rank-Indifference in Matrix-CODI on ProsQA}
+
+\author{\anonymous{} Authors\\
+\anonymous{} Institution\\
+\texttt{anonymous@example.com}}
+
+\date{}
+
+\begin{document}
+
+\twocolumn[
+\begin{@twocolumnfalse}
+\maketitle
+\begin{abstract}
+Continuous chain-of-thought models compress reasoning into latent
+tokens. Matrix-valued variants introduce a new structural observable ---
+the rank of the latent matrix $\Z$. If matrix latents carry parallel
+reasoning paths via superposition, rank should track them, and
+truncating $\Z$ to low rank should hurt accuracy on tasks whose
+solutions plausibly require multiple components. Across four training
+regimes of a matrix-CODI model (three on ProsQA, one on GSM8K-Aug at
+a below-threshold operating point that we flag), the rank-$k$
+projection ablation curve is flat to within 0.6 percentage points. A
+three-seed replication yields accuracy at $81.5 \pm 1.2$pp while the
+final effective rank of $\Z$ spans $\{4, 12, 13\}$; the loss does not
+reward any particular rank. To test whether rank-blindness arises from
+the flatten-then-project readout alone, four readout variants are
+constructed: a bilinear reparametrization, a bilinear-plus-GELU readout
+explicitly nonlinear in $\Z$, an SVD-augmented readout feeding singular
+values through an MLP, and a quadratic readout in $\Z\Z^\top$. All four
+rank-$k$ curves remain flat (Spearman $p$-values $0.63, 0.14, 0.82,
+0.46$). The readout Jacobian is not the sole culprit: even readouts
+nonlinear in $\Z$ do not produce rank-dependent curves, indicating the
+simple Jacobian-linearity mechanism is incomplete. We defer a refined
+mechanism (an effectively rank-1 active subspace of the trained
+readout's Jacobian, independent of its in-principle expressiveness) to
+future work. A linear probe on $\Z$ underperforms a raw pretrained
+hidden state at target prediction (AUC $0.673$ vs $0.846$). A negative
+control on vanilla GPT-2 SFT (no matrix bottleneck, no $\Z$, three
+seeds, $n\!=\!500$) reproduces a flat rank-$k$ curve under the same
+intervention paradigm with pooled-mean range $0.20$pp, and a
+random-$h$ sensitivity floor lands at the same accuracy --- the
+rank-$k$ ablation, by itself, conflates rank-blindness with
+position-irrelevance. Rank-$k$ ablation should not be used as a probe
+for superposition in CODI-trained matrix latents.
+\end{abstract}
+\vspace{0.6em}
+\end{@twocolumnfalse}
+]
+
+\input{sections/01_intro}
+\input{sections/02_background}
+\input{sections/03_rank_blind_readout}
+\input{sections/04_depth_scale}
+\input{sections/05_positive_control}
+\input{sections/06_related_work}
+\input{sections/07_discussion}
+\input{sections/08_conclusion}
+\input{sections/09_reproducibility}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}
