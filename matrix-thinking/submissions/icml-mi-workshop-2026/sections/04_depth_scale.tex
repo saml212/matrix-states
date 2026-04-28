@@ -1,0 +1,72 @@
+\section{Depth and Scale Do Not Rescue Matrix-CODI}
+\label{sec:depth-scale}
+
+The results in \S\ref{sec:flat} and \S\ref{sec:pc} may be specific to
+$d=16$, GPT-2 small, and six latent positions. We test two axes: depth
+(number of iterative latent refinement steps) and backbone scale.
+
+\subsection{Depth sweep}
+
+\paragraph{Depth sweep (preliminary).} At $n\!=\!6$ latent
+refinement steps, vanilla CODI reaches $78.91\%$ on ProsQA,
+$\sim\!2.9$pp below pure SFT. The $n\!\in\!\{16,32,64\}$
+configurations exceeded memory at the default batch sizes; re-runs at
+smaller batches are in progress. A single non-baseline data point is
+not a depth sweep; we report the $n\!=\!6$ number for completeness
+but do not draw a trend and defer the full depth sweep to the
+camera-ready.
+
+\subsection{Scale sweep}
+
+We trained vanilla SFT and matrix-CODI ($d=16$, six latent positions,
+$\gamma=0$) on ProsQA at three backbone sizes: GPT-2 small (124M),
+GPT-2 medium (355M), and GPT-2 large (774M). Matrix-CODI at GPT-2
+large exceeded memory at batches of 2 and 4; it is omitted from
+Fig.~\ref{fig:scale}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig3_scale_sweep.pdf}
+\caption{Scale sweep on ProsQA. Vanilla SFT degrades at GPT-2 large
+($68.75\%$) compared to GPT-2 small ($81.77\%$, three-seed mean) ---
+ProsQA ($17{,}886$ training examples) likely under-optimizes the
+larger backbone at default AdamW $\text{lr}=10^{-4}$. Matrix-CODI's
+best accuracy is below its matched vanilla SFT baseline at both tested
+scales; gaps are within three-seed standard deviation. GPT-2 large
+matrix-CODI is pending.}
+\label{fig:scale}
+\end{figure}
+
+Three observations from Fig.~\ref{fig:scale}:
+
+\begin{itemize}
+\setlength\itemsep{2pt}
+\item \textbf{Matrix-CODI does not exceed vanilla SFT at any tested
+      scale.} Gap is $-1.3$pp at GPT-2 small and $-0.78$pp at GPT-2
+      medium, both within the three-seed standard deviation of
+      $\pm 1.2$pp measured at GPT-2 small (\S\ref{sec:flat}). The
+      consistent sign across two scales is suggestive but not
+      conclusive. Matrix-CODI at GPT-2 large is pending.
+\item \textbf{Vanilla SFT itself degrades with scale on ProsQA.}
+      The ProsQA training set ($17{,}886$ examples) is small relative
+      to GPT-2 large's capacity; default AdamW at $\text{lr}=10^{-4}$
+      likely under-optimizes the larger backbone. This is a data-size
+      artefact of ProsQA, not a finding about superposition.
+\item \textbf{Matrix does not rescue the regression.} If matrix-CODI's
+      inductive bias were relevant at scale, we would expect it to
+      preserve or improve on its gpt2-small performance as capacity
+      grows. It does not.
+\end{itemize}
+
+This sweep establishes that matrix-CODI does not exceed a matched
+vanilla SFT baseline at the tested scales and training configurations.
+It does not rule out settings in which matrix bottlenecks help at
+larger scale under different training regimes.
+
+\paragraph{Sample efficiency.} A complementary sample-efficiency
+sweep (200, 500, 2000, 5000, $17{,}886$ training examples) found that
+matrix-CODI is \emph{strictly worse} than vanilla SFT at every $N$
+below $17{,}886$, with the gap growing as $N$ decreases (Matrix at
+$N=200$: $12.6\%$; vanilla at $N=200$: $26.0\%$). The matrix
+bottleneck is not a useful inductive bias at any data budget we
+tested. Full sample-efficiency table is in the appendix.

@@ -1,0 +1,30 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We reported four flat rank-$k$ curves across training regimes, a
+three-seed decoupling of accuracy from final effective rank, a
+linear probe that shows a matrix-CODI bottleneck encoding
+\emph{less} target-predictive information than the uncompressed
+pretrained hidden state, four positive-control readouts designed to
+falsify the hypothesis that readout linearity causes
+rank-blindness, and a negative control on vanilla GPT-2 SFT that
+demonstrates the rank-$k$ probe alone is uninformative on a model
+with no matrix bottleneck. Even readouts with non-constant Jacobians
+(bilinear-plus-GELU, SVD-augmented, quadratic) produce flat rank-$k$
+curves: the matrix-bottleneck training objective is rank-blind through
+the full chain rule, not only through the final projection. The
+model-level distinguisher between rank-blindness and probe-level
+position-irrelevance is the three-seed decoupling, where the same loss
+lands at materially different effective ranks across seeds.
+
+The result sits downstream of the empirical observation by
+\citet{rizvi2026illusion} that fine-tuned latent reasoners do not
+use their latents, and it sits parallel to the February 2026
+descriptive rank measurements of \citet{nazari2026rank} and
+\citet{anonymous2026staterank}. We contribute a falsifiable
+mechanism claim about the training objective, the positive-control
+test that adjudicates it, and a negative-control methodology for
+rank-style probes that future intervention studies should adopt.
+Rank-$k$ ablation should not be used as a probe for superposition in
+CODI-trained matrix latents; the probe does not measure what the name
+suggests it measures.

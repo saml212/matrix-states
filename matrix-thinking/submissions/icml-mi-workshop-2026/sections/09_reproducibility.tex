@@ -1,0 +1,50 @@
+\section*{Reproducibility}
+\label{sec:repro}
+
+All training, evaluation, and probe code is released anonymously at
+\url{https://anonymous.4open.science/r/matrix-codi-rank-blindness}.
+The release includes:
+
+\begin{itemize}
+\setlength\itemsep{2pt}
+\item \texttt{run\_matrix\_codi.py}: the matrix-CODI training
+      script. The \texttt{MatrixBottleneck} class implements the
+      $W_{\text{up}}\!\to\!\text{reshape}\!\to\!\text{thinker}\!\to\!\text{flatten}\!\to\!W_{\text{down}}$
+      pipeline. All five readouts in \S\ref{sec:pc} are selectable
+      via the \texttt{--readout} flag.
+\item \texttt{probe\_z.py}: the linear probe pipeline for
+      \S\ref{sec:flat}. Produces the AUC numbers in
+      Fig.~\ref{fig:probe}.
+\item \texttt{rank\_eval.py}: the rank-$k$ projection evaluator.
+      Given a checkpoint, it computes the accuracy-vs-$k$ curve and
+      the Spearman correlation between per-sample effective rank
+      and correctness.
+\item Raw rank-$k$ evaluation output files (JSON) for the four
+      positive-control readouts, matching Table~\ref{tab:pc} and
+      Fig.~\ref{fig:pc}.
+\item A human-readable experiment log with per-run hyperparameters,
+      rank trajectories, and wall-clock times.
+\end{itemize}
+
+Datasets: ProsQA \citep{hao2024coconut} from the
+\texttt{facebookresearch/coconut} release. GSM8K-Aug
+\citep{shen2025codi} from the CODI release.
+
+Backbone: pretrained GPT-2 small (124M), medium (355M), and large
+(774M) from the standard public checkpoints.
+
+Training hardware: a single NVIDIA H100 (80GB HBM3) per run. All
+reported numerical results in the main body trace to a specific
+checkpoint and evaluator run in the release.
+
+\paragraph{Headline numbers by source.} Table~\ref{tab:four-flat}
+rows R1--R3b from the matrix-CODI training script
+\texttt{run\_matrix\_codi.py} with seed $1337$;
+Fig.~\ref{fig:seed-decoupling} from the same script with seeds
+$\{1337,42,7\}$; Table~\ref{tab:pc} and Fig.~\ref{fig:pc} from
+\texttt{run\_matrix\_codi.py} with \texttt{--readout} in
+$\{$\texttt{flatten},\texttt{bilinear},\texttt{bilinear\_gelu},\texttt{svd\_aug},\texttt{quadratic}$\}$
+evaluated via \texttt{rank\_eval.py}; Fig.~\ref{fig:probe} from
+\texttt{probe\_z.py} on the Round 3 $\gamma=0$ checkpoint;
+Figs.~\ref{fig:depth} and~\ref{fig:scale} from the vanilla
+SFT and vanilla CODI scripts in the same release.

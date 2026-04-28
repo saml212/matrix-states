@@ -1,0 +1,80 @@
+\section{Background}
+\label{sec:background}
+
+\paragraph{CODI distillation.} CODI \citep{shen2025codi} trains a
+student to compress an explicit chain-of-thought into a fixed number
+of continuous latent positions by matching a hidden-state target
+from a teacher pass. The teacher pass consumes prompt $+$ CoT $+$
+answer and produces a reference hidden state at a designated
+colon-token position. The student pass consumes prompt $+\;n$ latent
+positions $+$ answer, where each latent position is produced by
+feeding the previous step's hidden state back as the next input
+embedding. A hidden-state L1 loss (the \emph{distillation} loss)
+aligns the student's state at the answer colon to the teacher's,
+and a standard next-token cross-entropy loss trains the answer
+prediction. The total loss is $\mathcal{L}=\gamma\mathcal{L}_{\text{kd}}+\mathcal{L}_{\text{ce}}$.
+
+\paragraph{Why matrix latents.} Vector representations are flat: a hidden
+state of dimension $D$ has $D$ scalar entries with no native notion of how
+many independent components it superposes. Matrix-valued representations
+have an additional structural observable: rank, the number of independent
+directions used. Matrix-valued working memory has a long lineage in
+neural networks --- fast-weight networks
+\citep{schmidhuber1992fast,schlag2021linear}, linear attention
+\citep{katharopoulos2020transformers}, the xLSTM family
+\citep{beck2024xlstm}, and the Mamba/SSM family \citep{gu2023mamba} all
+use matrix-shaped state --- and recent work measures the rank of these
+states as a diagnostic of how the model uses its memory
+\citep{nazari2026rank,anonymous2026staterank}. In all of those, the matrix
+lives \emph{inside} a layer (an attention head's accumulator, an SSM's
+recurrent state) and serves as recurrent memory. Matrix-CODI extends the
+lineage to a different placement: the matrix sits on the explicit
+chain-of-thought feedback path, where each latent reasoning position is a
+$d \times d$ matrix rather than a vector. The rank of that matrix is a
+candidate measure of how many reasoning paths the model holds in
+superposition at that step. The hypothesis we test is whether rank, so
+defined, behaves as that measure under CODI-style training.
+
+\paragraph{Matrix bottleneck.} We extend CODI with a
+\emph{matrix bottleneck} on the latent feedback path. Given the
+previous latent hidden state $h\in\R^{D}$ (here $D=768$ for GPT-2
+small):
+\begin{align*}
+\text{flat} &= W_{\text{up}}\,h,\qquad W_{\text{up}}\in\R^{d^2\times D}\\
+\Z &= \text{reshape}(\text{flat};\,d,d)\in\R^{d\times d}\\
+\Z &\leftarrow (I+\Delta(\Z))\,\Z\,(I+\Gamma(\Z)) \quad\text{(optional thinker)}\\
+h_{\text{out}} &= \text{LayerNorm}(\phi(\Z)),
+\end{align*}
+where $\phi:\R^{d\times d}\to\R^{D}$ is the \emph{readout}. The
+default readout is $\phi(\Z)=W_{\text{down}}\vecop(\Z)$, which we
+call the \emph{flatten-then-project} readout. $W_{\text{down}}\in
+\R^{D\times d^2}$. We use $d=16$ throughout.
+
+\paragraph{Rank-$k$ ablation.} At inference, compute the SVD
+$\Z=U\Sigma V^\top$ and replace $\Z$ by its rank-$k$ truncation
+$\Z_k = U_{:,\,:k}\,\Sigma_{:k,\,:k}\,V_{:,\,:k}^\top$ before the
+readout. If rank is functional, accuracy should drop as $k$ decreases
+to 1. If rank is vestigial, the curve is flat.
+
+\paragraph{Effective rank.} Because $\Z$ is a dense matrix of a
+trained model, its numerical rank is always $d$. We report the
+\emph{effective rank}
+$\exp\left(-\sum_i \tilde\sigma_i \log \tilde\sigma_i\right)$ with
+$\tilde\sigma_i=\sigma_i/\sum_j \sigma_j$, a smooth proxy used in the
+spectral analysis literature. The ablation itself uses the hard
+top-$k$ truncation.
+
+\paragraph{ProsQA.} ProsQA \citep{hao2024coconut} is a synthetic
+entailment task: a diamond-shaped directed acyclic graph of entities
+and a question \emph{which leaf entity has property $P$?}. Each
+problem has a unique positive answer and a single distractor. We use
+the training split from
+\texttt{facebookresearch/coconut}. The test set has 128 problems,
+matching the evaluation protocol in the original CODI release.
+
+\paragraph{Rank is not numerical rank.} Throughout, ``rank'' refers to
+\emph{effective rank} (for training-curve reporting) and \emph{hard
+SVD truncation rank} (for the rank-$k$ ablation). The dense-matrix
+numerical rank of $\Z$ is always $d$ and does not change during
+training; the question is whether the structural capacity offered by
+rank $>1$ is functionally used by the model.

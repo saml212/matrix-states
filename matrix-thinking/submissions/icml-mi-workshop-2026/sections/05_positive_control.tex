@@ -229,11 +229,27 @@ $r_s$: $+0.32, -0.16, +0.71$ ($n\!=\!500$ test problems each).}
 \end{table}
 
 The pooled-mean range across $k$ is $0.20$pp
-(Table~\ref{tab:pc-negctrl}). As a sensitivity floor, replacing $h$ at
-the same six positions with i.i.d.\ Gaussian noise matched in mean and
-standard deviation produces seed accuracies $\{79.6, 79.2, 78.2\}$pp
---- statistically indistinguishable from the unablated $\{80.0, 78.8,
-78.0\}$pp. The intervention paradigm is uninformative on this model.
+(Table~\ref{tab:pc-negctrl}; Fig.~\ref{fig:pc-negctrl} overlays the
+per-seed and pooled curves on the matrix-CODI flatten reference). As a
+sensitivity floor, replacing $h$ at the same six positions with i.i.d.\
+Gaussian noise matched in mean and standard deviation produces seed
+accuracies $\{79.6, 79.2, 78.2\}$pp --- statistically indistinguishable
+from the unablated $\{80.0, 78.8, 78.0\}$pp. The intervention paradigm
+is uninformative on this model.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig6_negative_control.pdf}
+\caption{Negative control: rank-$k$ ablation on vanilla GPT-2 SFT
+(no matrix bottleneck, no $\Z$). Each gray dotted line is one seed of
+the vanilla model; the heavy black line is the pooled mean across the
+three seeds. The matrix-CODI flatten curve from \S\ref{sec:flat} is
+overlaid in red as the reference. Both curves are flat to within a
+fraction of a percentage point. The probe alone does not distinguish
+between rank-blindness in matrix-CODI and position-irrelevance in a
+model with no $\Z$.}
+\label{fig:pc-negctrl}
+\end{figure}
 
 \paragraph{What this implies for the rank-$k$ probe.} The negative
 control demonstrates that a flat rank-$k$ curve is consistent with two
