@@ -1,118 +1,57 @@
 \section{Discussion and Limitations}
 \label{sec:discussion}
 
-\paragraph{Single task family.} All core experiments run on ProsQA
-\citep{hao2024coconut}. The GSM8K-Aug result in
-Table~\ref{tab:four-flat} is at a low-accuracy operating point
-($6\%$) where the model is barely learning the task; we do not
-interpret its flat rank-$k$ curve as strong evidence on its own.
-Cross-dataset replication on GSM8K at a higher-accuracy operating
-point is deferred to the camera-ready version.
+\paragraph{Single task, single architecture family.} All core
+experiments run on ProsQA \citep{hao2024coconut} on GPT-2
+$\{$small, medium, large$\}$. The GSM8K-Aug result in
+Table~\ref{tab:four-flat} is at a $6\%$ operating point where the
+model is barely learning the task; it is not strong evidence on
+its own. The structural argument
+(Proposition~\ref{prop:jac}) is stated in terms of the readout
+$\phi$ and is therefore architecture-agnostic, but the empirical
+evidence covers only this scale family. Cross-dataset replication
+on GSM8K at a higher-accuracy operating point is pending.
 
-\paragraph{Single architecture family.} Everything runs on GPT-2.
-The structural mechanism (Proposition~\ref{prop:jac}) is stated in
-terms of the readout $\phi$ and is therefore architecture-agnostic,
-but our empirical evidence covers only GPT-2 $\{$small, medium,
-large$\}$. A reader who wants the result to generalize should treat
-the current paper as evidence against rank-based superposition in
-\emph{decoder-only distillation-trained latent CoT at this scale
-family}, not as a universal claim about matrix-valued latents.
-
-\paragraph{Seed-dependent $\Z$ rank as a distinct finding.} The
-three-seed decoupling (Fig.~\ref{fig:seed-decoupling}) is a distinct
-finding: the same configuration, varying only the seed, produces
-models at effective ranks $\{4, 12, 13\}$ with accuracies
-$\{81.25, 82.81, 80.47\}$. Across three seeds, the final effective
-rank of $\Z$ spans a $3\!\times\!$ range ($4$, $12$, $13$) while
-accuracies cluster at $81.5\!\pm\!1.2$pp. Three seeds do not give
-statistical power to claim the rank distribution is flat or uniform;
-what we claim is narrower --- seeds at an otherwise-identical training
-configuration converge to materially different effective ranks, which
-is inconsistent with a strong loss-side preference for a specific rank.
-Implicit regularization from the optimizer (Adam + weight decay; see
-\S\ref{sec:related}) may still shape rank through channels outside
-$\mathcal{L}$. A camera-ready $n\!=\!10$ replication would let us
-report a distribution.
-
-\paragraph{Full singular spectra across seeds (appendix).} To
-substantiate that the effective-rank spread $\{4,12,13\}$ across
-seeds is not an entropy-measure artefact, the released rank\_eval
-files include the log-scale singular spectra of $\Z$ at the mid-latent
-position for each seed, averaged over the 128-problem test set. Hard
-rank at thresholds $\tau\in\{10^{-1},10^{-2}\}$ also spreads across
-seeds (deferred to camera-ready). The within-model
-dispersion of effective rank at $k=16$ in our released rank\_eval
-files is tight (standard deviation $0.04$--$0.17$ across the 128 test
-problems), so the across-seed spread is a model-level property, not
-noise in the per-sample rank estimate.
+\paragraph{Seed-dependent $\Z$ rank.} The three-seed decoupling
+(Fig.~\ref{fig:seed-decoupling}) is a separate finding: the same
+configuration, varying only the seed, produces models at effective
+ranks $\{4, 12, 13\}$ with accuracies $\{81.25, 82.81, 80.47\}$.
+Three seeds do not give statistical power to claim the rank
+distribution is flat or uniform; the narrower claim is that seeds
+at otherwise identical hyperparameters converge to materially
+different effective ranks, inconsistent with a strong loss-side
+preference for a specific rank. Implicit regularization from the
+optimizer (Adam $+$ weight decay; \S\ref{sec:related}) may still
+shape rank through channels outside $\mathcal{L}$. An $n\!=\!10$
+replication is pending.
 
 \paragraph{One seed per positive control.} The four
 positive-control variants in \S\ref{sec:pc} were each trained once
-(compute-bounded). The Spearman $p$-values are computed on
-$128$ test problems per checkpoint, which limits statistical power
-for small effects. A stronger version of this experiment would run
-three seeds per variant; we estimate $\sim\!42$ H100-hours
-($\sim\!\$80$ at standard spot prices) and commit to running it before
-the camera-ready. We do not expect this to change the qualitative
-picture --- the observed flat curves are flat by a margin that far
-exceeds seed variation in the three-seed flatten replication
-($\pm 1.2$pp) --- but it would narrow confidence intervals. We also
-commit to re-running the four positive-control rank-$k$ evaluations on
-the full $500$-problem ProsQA test set before the camera-ready, which
-raises our power to detect a rank-accuracy correlation of
-$|r_s|\!\geq\!0.15$ from $\sim\!40\%$ to $\sim\!80\%$ at
-$\alpha\!=\!0.05$.
-
-\paragraph{Hard vs effective rank.} We measure effective rank as
-$\exp(-\sum_i \tilde\sigma_i \log \tilde\sigma_i)$. The
-rank-$k$ ablation itself uses hard SVD truncation. An anonymous
-reviewer may ask what happens under alternative rank definitions.
-We do not expect the conclusion to change: the ablation result
-(truncating to the top-$k$ singular directions) is a direct test of
-whether the rest of $\Z$'s singular spectrum carries functional
-information, and it does not, regardless of how one summarizes
-$\Z$'s spectral content.
+(compute-bounded). Spearman $p$-values are computed on $128$ test
+problems per checkpoint, which limits power for small effects. A
+three-seed replication per variant ($\sim\!42$ H100-hours) and
+re-running the four positive-control rank-$k$ evaluations on the
+full $500$-problem ProsQA test set are both pending; the
+$500$-problem eval raises power to detect $|r_s|\!\geq\!0.15$ from
+$\sim\!40\%$ to $\sim\!80\%$ at $\alpha\!=\!0.05$.
 
 \paragraph{Alternative explanation: the task is rank-1-solvable.}
-ProsQA has a unique positive answer and a single distractor. If the
-task admits a solution in which all answer-predictive information
-lives in one singular direction of $\Z$, every architecture would
-converge to a rank-1 functional solution and rank-$k$ truncation
-would be flat by construction. Our data are consistent with this
-alternative. Three observations distinguish it from the loss-side
-``no rank reward'' reading: (i) the trained $\Z$ reaches effective
-rank $12$--$13$ at $\gamma\!=\!0$ even though the rank-1-solution
-fixed point is available --- the model builds capacity it does not
-functionally use; (ii) three seeds land at effective ranks
-$\{4,12,13\}$ rather than concentrating at rank $1$, which is
-inconsistent with a strong rank-1 attractor; (iii) the negative
-control in \S\ref{sec:pc-negctrl} shows that the rank-$k$ probe is
-\emph{not by itself} a clean test of rank-1-solvability: vanilla GPT-2
-SFT also produces a flat rank-$k$ curve and a random-$h$ sensitivity
-floor at the same accuracy, so the probe conflates rank-blindness
-with position-irrelevance. The matrix-CODI evidence in (i)--(ii) is
-\emph{model-level} (rank that exists but is unused, with seed-level
-spread), not probe-level; the negative control does not touch it. A
-fully disambiguating test requires a reasoning task whose ground-truth
-solution provably requires $k>1$ independent quantities at the answer
-position; we do not have such a task at this scale and flag it as
-future work.
+ProsQA has a unique positive answer and a single distractor. If
+all answer-predictive information lives in one singular direction
+of $\Z$, every architecture would converge to a rank-1 functional
+solution and rank-$k$ truncation would be flat. Our data are
+consistent with that. What sits awkwardly with the strong reading
+is that the trained $\Z$ reaches effective rank $12$--$13$ at
+$\gamma=0$ instead of collapsing to 1, and three seeds spread to
+$\{4,12,13\}$ rather than concentrating. The model builds rank it
+does not functionally use, and the rank it builds is
+seed-dependent. A reasoning task whose ground truth provably
+requires $k>1$ independent quantities at the answer position would
+disambiguate; we do not have one at this scale.
 
-\paragraph{Falsification criteria.} A result that would revise this
-conclusion would be: a positive-control readout (existing or new)
-that produces a rank-$k$ curve whose high-$k$ accuracy is materially
-higher than its low-$k$ accuracy, on ProsQA or a comparable
-structured reasoning task, trained under a matrix-bottleneck training
-objective. The four readouts in \S\ref{sec:pc} were designed to
-maximize the chance of seeing such a result. A sufficiently different
-training objective, explicitly rewarding rank, is a distinct
-direction we flag but do not address.
-
-\paragraph{Broader implication.} Negative results at the
-representation-structure level of latent reasoning are useful
-because they rule out architectural families cheaply. The
-structural argument in \S\ref{sec:flat} and the positive control in
-\S\ref{sec:pc} together close off readout-architecture fixes for
-matrix-CODI's rank-blindness. A designer who wants matrix latents to
-\emph{use} their rank as a functional observable should plan on
-changing the training objective, not the readout.
+A result that would revise our reading: a readout that bends the
+rank-$k$ curve on ProsQA (or a comparable structured task) under a
+matrix-bottleneck objective. The four readouts in \S\ref{sec:pc}
+were chosen to maximize the chance of seeing one. A different
+training objective that explicitly rewards rank is a separate
+direction we do not address.

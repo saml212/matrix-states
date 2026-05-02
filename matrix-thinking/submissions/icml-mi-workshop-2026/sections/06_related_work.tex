@@ -1,153 +1,101 @@
 \section{Related Work}
 \label{sec:related}
 
-\paragraph{Latent chain-of-thought.}
+\paragraph{Latent CoT and the Illusion of Superposition.}
 COCONUT \citep{hao2024coconut} replaces explicit rationales with
-continuous latent tokens. CODI \citep{shen2025codi} compresses an
-explicit CoT into latents via a self-distillation loss and matches
-explicit CoT accuracy on GSM8K at GPT-2 scale. The Matrix-CODI
-variant we study here inserts a $d\times d$ bottleneck on the
-latent feedback path; our results are specifically about that
-bottleneck and its readout.
-
-\paragraph{Illusion of Superposition.}
-\citet{rizvi2026illusion} show empirically that a fine-tuned
-COCONUT model reaches $96.6\%$ on ProsQA \emph{without} latent
-tokens, $99.0\%$ with them, and $85.3\%$ with explicit CoT. Their
-evidence is behavioral and interpretability-based (logit lens,
-entity-level probing). Our vanilla SFT baseline at GPT-2 small reaches $81.77\%$, roughly
-$15$pp below their reported $96.6\%$; we did not close this gap. The
+continuous latent tokens; CODI \citep{shen2025codi} compresses CoT
+into latents via self-distillation. \citet{rizvi2026illusion} report
+that a fine-tuned COCONUT reaches $96.6\%$ on ProsQA \emph{without}
+latents, $99.0\%$ with them, and $85.3\%$ with explicit CoT --- the
+latent machinery is not doing measurable work in their fine-tuned
+setting. Our vanilla SFT baseline at GPT-2 small reaches $81.77\%$,
+roughly $15$pp below their $96.6\%$; we did not close this gap. The
 qualitative phenomenon they report --- fine-tuned latent CoT models
-reaching comparable accuracy without their latents --- replicates at
-our operating point: matrix-CODI at $82.03\%$ vs.\ pure SFT at
+reaching comparable accuracy without their latents --- replicates
+at our operating point: matrix-CODI at $82.03\%$ vs.\ pure SFT at
 $81.77\%$ (gap $0.26$pp, within three-seed noise). Our contribution
-relative to that work is a mechanism at the architecture level that
-does not depend on matching their operating point: the
-matrix-bottleneck training objective does not reward rank of the matrix
-latent, and neither readout linearity nor readout nonlinearity changes
-this. A rank-$k$ ablation on Rizvi-Martel's released checkpoint (code
-at \url{github.com/michaelrizvi/coconut}) is a natural camera-ready
-experiment that would test whether the same rank-blindness holds at the
-$96.6\%$ ceiling.
+relative to that work is a structural argument about the training
+objective that does not depend on matching their accuracy: the
+matrix-bottleneck objective produces rank-indifferent gradients,
+and four readouts nonlinear in $\Z$ are unable to bend the
+rank-$k$ curve.
 
-\paragraph{SIM-CoT (ICLR 2026).}
+\paragraph{SIM-CoT.}
 \citet{shen2025simcot} diagnose latent CoT instability as
-insufficient step-level supervision and propose injecting
-per-step targets. Our diagnosis is different: the matrix-bottleneck training objective
-produces rank-indifferent gradients, and our four positive-control
-readouts adjudicate. If the SIM-CoT
-diagnosis were the complete story, fixing the readout's Jacobian
-would shift \emph{which} component of $\Z$ the gradient shapes; it
-would not eliminate rank-dependence entirely. Our finding that all
-four readouts (linear, nonlinear-via-GELU, SVD-augmented,
-quadratic) produce flat rank-$k$ curves is consistent with both
-mechanisms operating simultaneously. The two diagnoses are
-compatible and non-redundant.
+insufficient step-level supervision and propose injecting per-step
+targets. Our diagnosis is at a different layer (the matrix
+bottleneck's objective produces rank-indifferent gradients,
+adjudicated by four positive-control readouts). The two diagnoses
+are consistent with both mechanisms operating simultaneously.
 
 \paragraph{Reasoning by Superposition and CoT2.}
 \citet{zhu2025superposition} prove that a two-layer transformer
 with $D$ steps of continuous thought can solve directed graph
-reachability, with each continuous thought encoding a parallel BFS
-frontier. \citet{gozeten2025cot2} show similar parallel-exploration
-behavior under a GRPO-style training regime. Both are theoretical
-capacity results with small empirical demonstrations. We do not
-contradict them: capacity and what-gets-learned are distinct, and
-our result is specifically about what CODI distillation shapes, not
-about whether transformers can in principle encode superposition.
+reachability, with each thought encoding a parallel BFS frontier.
+\citet{gozeten2025cot2} show similar parallel-exploration behavior
+under a GRPO-style training regime. Both are theoretical capacity
+results with small empirical demonstrations. Capacity and
+what-gets-learned are distinct; our result is about what CODI
+distillation shapes, not whether transformers can in principle
+encode superposition.
 
 \paragraph{February 2026 rank measurements (direct adjacency).}
-Two February 2026 papers measure rank in trained transformer
-states:
-
 \citet{nazari2026rank} measure the effective rank of linear
 attention hidden states and propose post-training rank pruning of
-$K$ and $Q$ matrices. The \emph{object of study} is the
-\emph{fast-weight matrix} inside a linear attention layer (a $d
-\times d$ memory built inside the attention computation, not an
-explicit CoT token). Their \emph{claim type} is descriptive --- they
-observe rank structure, report a distribution, and prune.
-
-\citet{anonymous2026staterank} (``State Rank Dynamics in Linear
-Attention LLMs'') report a ``state-rank stratification'' phenomenon
-during pretraining: linear-attention heads bifurcate into
-persistently low-rank and persistently high-rank groups. Again the
-object is the fast-weight memory, and the claim is descriptive of
-what trained networks end up with.
-
-Our paper differs from both on two axes:
-(i) \emph{object of study} --- we measure rank in \emph{latent
-thought matrices}, the explicit per-position $\Z$ tokens on the
-feedback path of a matrix-CODI model, not a fast-weight memory
-inside an attention layer; (ii) \emph{claim type} --- we make a
-\emph{mechanism} claim about the training objective
-(Proposition~\ref{prop:jac}) and we \emph{test it by falsification}
-using four nonlinear-in-$\Z$ positive controls, which a descriptive
-paper cannot do. We are not the first to empirically measure rank
-in trained transformer states; those two papers do that for
-linear-attention fast-weight states. We are the first (to our
-knowledge) to diagnose rank-blindness as a property of the
-\emph{readout-plus-objective} and to falsifiably test that
-diagnosis with explicit nonlinear-in-$\Z$ readouts.
+$K$ and $Q$ matrices. \citet{anonymous2026staterank} report
+``state-rank stratification'' during pretraining: linear-attention
+heads bifurcate into persistently low-rank and high-rank groups.
+Both papers measure rank in the \emph{fast-weight memory} inside
+an attention layer (a $d \times d$ accumulator), and both make
+\emph{descriptive} claims about what trained networks end up with.
+The object of study here is different --- the explicit per-position
+matrix latents $\Z$ on the matrix-CODI feedback path, not a
+fast-weight memory inside attention --- and the claim is a
+mechanism claim about the training objective
+(Proposition~\ref{prop:jac}) that we test by constructing four
+nonlinear-in-$\Z$ positive controls.
 
 \paragraph{Dynamics within latent CoT.}
-\citet{anonymous2026dynamics} run multiple intervention protocols on
-latent CoT hidden states (zero, mean, step-wise mean, Gaussian noise)
-and an early-stop decoding that truncates latent computation after step
-$k$. Their early-stop decoding is a cousin of our rank-$k$ ablation on
-a different axis --- step depth vs.\ spectral truncation. They find
-step-wise causal structure, suggesting some latent positions carry
-necessary information. Our rank-$k$ null across configurations,
-combined with our linear-probe decay $\Z[1]\to\Z[5]$, is consistent
-with their picture (early positions carry the information) while adding
-a spectral-axis finding they do not measure.
+\citet{anonymous2026dynamics} run multiple intervention protocols
+on latent CoT hidden states (zero, mean, step-wise mean, Gaussian
+noise) and an early-stop decoding that truncates latent
+computation after step $k$. Their early-stop decoding is a cousin
+of our rank-$k$ ablation on a different axis --- step depth vs.\
+spectral truncation. Their step-wise causal structure is consistent
+with our linear-probe decay $\Z[1]\to\Z[5]$ (early positions carry
+information).
 
 \paragraph{Rank decay from depth.}
 \citet{dong2021attention} showed that pure attention loses rank
 doubly exponentially with depth. Their subject is the rank of
-\emph{activations in a stack of attention layers}. Ours is the rank
-of an \emph{explicit matrix latent} on a feedback path. The two
-phenomena are distinct: rank-blindness in our setting persists with a
-single bottleneck at each latent position, independently of stack
-depth.
+activations across a stack of attention layers; ours is the rank
+of an explicit matrix latent on a feedback path. The two phenomena
+are distinct.
 
-\paragraph{Implicit low-rank bias in matrix factorization.}
-Gradient descent on matrix-factorization losses has an established
-implicit bias toward low-rank solutions
+\paragraph{Implicit low-rank bias.}
+Gradient descent on matrix-factorization losses has an implicit
+bias toward low-rank solutions
 \citep{gunasekar2017implicit,arora2019implicit,razin2020implicit},
-and \citet{kobayashi2024weightdecay} show that weight decay in
-particular induces low-rank attention products via an equivalence
-with nuclear-norm regularization. These results concern the
-optimizer's bias through the parameter space; our
-Proposition~\ref{prop:jac} concerns the loss gradient through the
-readout, and the two are compatible. Our three-seed spread in
-effective rank of $\Z$ ($\{4,12,13\}$ under AdamW at weight decay
-$0.01$) is consistent with an implicit low-rank attractor plus
-seed-dependent convergence, and is inconsistent with strong low-rank
-collapse (which would predict all three seeds at the same low rank).
-A sharper treatment of which optimizer channel is shaping $\Z$'s
-effective rank is left to future work.
+and \citet{kobayashi2024weightdecay} show that weight decay
+specifically induces low-rank attention products via an
+equivalence with nuclear-norm regularization. These concern bias
+through the parameter space; Proposition~\ref{prop:jac} concerns
+the loss gradient through the readout. Our three-seed effective
+rank spread $\{4,12,13\}$ under AdamW at weight decay $0.01$ is
+consistent with an implicit low-rank attractor plus seed-dependent
+convergence, and inconsistent with strong low-rank collapse (which
+would predict all three seeds at the same low rank).
 
-\paragraph{Alternative substrates and methodological caveats for
-ablation-based interpretability.}
-\citet{wang2025latentvocab} propose that latent reasoning in LLMs
-is a superposition in the \emph{vocabulary column space}, not in
-the hidden-state basis --- a distinct substrate from the SVD
-directions of $\Z$ our rank-$k$ ablation probes. If the relevant
-superposition lives in the vocab-column subspace, rank-$k$
-truncation on $\Z$ is not the right observable; our negative result
-would not rule it out. \citet{fan2025rala} show that rank
-augmentation is architecturally achievable in \emph{linear
-attention} for vision via specific nonlinear interventions; our
-``no nonlinear readout helps'' finding is evidence about the
-readout-plus-objective family we tested and should not be read as
-a universal claim about the design space. \citet{li2024optimal}
-point out that zero/resample ablations --- of which our rank-$k$
-truncation is an instance --- substantially overestimate component
-importance relative to optimal ablation; that methodological
-caveat cuts in our favor (optimal ablation would make our curves
-flatter, not bumpier) but is the right citation for the probe we
-use. The negative control in \S\ref{sec:pc-negctrl} is the empirical
-counterpart to that critique applied to our own probe: running the
-rank-$k$ ablation on a model with no matrix bottleneck reproduces a
-flat curve, demonstrating directly that the probe alone does not
-isolate rank-blindness from position-irrelevance.
+\paragraph{Alternative substrates and probe critique.}
+\citet{wang2025latentvocab} argue that latent reasoning lives in
+the vocabulary column space, not in the SVD directions of the
+hidden state. If so, rank-$k$ truncation on $\Z$ is the wrong
+observable; our negative result does not rule that out.
+\citet{li2024optimal} show that zero/resample ablations (of which
+rank-$k$ truncation is an instance) overestimate component
+importance relative to optimal ablation; that cuts in our favor
+(optimal ablation would make the curves flatter, not bumpier) but
+is the right citation for the probe we use. The negative control
+in \S\ref{sec:pc-negctrl} is the empirical analog: running
+rank-$k$ on a model with no $\Z$ reproduces a flat curve, so the
+probe alone cannot isolate rank-blindness from position-irrelevance.

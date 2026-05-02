@@ -56,25 +56,18 @@ $\Z_k = U_{:,\,:k}\,\Sigma_{:k,\,:k}\,V_{:,\,:k}^\top$ before the
 readout. If rank is functional, accuracy should drop as $k$ decreases
 to 1. If rank is vestigial, the curve is flat.
 
-\paragraph{Effective rank.} Because $\Z$ is a dense matrix of a
-trained model, its numerical rank is always $d$. We report the
-\emph{effective rank}
+\paragraph{Effective rank.} The numerical rank of $\Z$ is always
+$d$ since it is a dense trained matrix. We report \emph{effective
+rank}
 $\exp\left(-\sum_i \tilde\sigma_i \log \tilde\sigma_i\right)$ with
-$\tilde\sigma_i=\sigma_i/\sum_j \sigma_j$, a smooth proxy used in the
-spectral analysis literature. The ablation itself uses the hard
-top-$k$ truncation.
+$\tilde\sigma_i=\sigma_i/\sum_j \sigma_j$ (a smooth spectral proxy)
+for training curves; the ablation itself uses hard top-$k$
+truncation. The question of interest is whether the structural
+capacity offered by rank $>1$ is functionally used.
 
 \paragraph{ProsQA.} ProsQA \citep{hao2024coconut} is a synthetic
-entailment task: a diamond-shaped directed acyclic graph of entities
-and a question \emph{which leaf entity has property $P$?}. Each
-problem has a unique positive answer and a single distractor. We use
-the training split from
-\texttt{facebookresearch/coconut}. The test set has 128 problems,
-matching the evaluation protocol in the original CODI release.
-
-\paragraph{Rank is not numerical rank.} Throughout, ``rank'' refers to
-\emph{effective rank} (for training-curve reporting) and \emph{hard
-SVD truncation rank} (for the rank-$k$ ablation). The dense-matrix
-numerical rank of $\Z$ is always $d$ and does not change during
-training; the question is whether the structural capacity offered by
-rank $>1$ is functionally used by the model.
+entailment task: a diamond-shaped directed acyclic graph of
+entities and a question \emph{which leaf entity has property $P$?}.
+Each problem has a unique positive answer and a single distractor.
+We use the training split from \texttt{facebookresearch/coconut};
+the test set has 128 problems, matching the original CODI release.

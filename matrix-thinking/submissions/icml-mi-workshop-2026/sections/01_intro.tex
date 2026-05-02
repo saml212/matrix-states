@@ -12,72 +12,40 @@ that these latents can hold multiple reasoning paths in
 \emph{superposition}, so continuous CoT could explore a search tree
 in parallel.
 
-Recent empirical work has pushed back. \citet{rizvi2026illusion}
-showed that a fine-tuned COCONUT model reaches 96.6\% on ProsQA
-\emph{without} feeding back any latent tokens, against 99.0\% with
-latents and 85.3\% for explicit CoT. In their fine-tuned setting,
-the latent machinery is not doing work. They named this the
-\emph{Illusion of Superposition}.
+\citet{rizvi2026illusion} pushed back: a fine-tuned COCONUT model
+reaches 96.6\% on ProsQA \emph{without} feeding back any latent
+tokens, against 99.0\% with latents and 85.3\% for explicit CoT. They
+named this the \emph{Illusion of Superposition}.
 
-Matrix-valued latents \citep[e.g.,][]{shen2025codi} sharpen the
-superposition hypothesis by introducing a single-sample structural
-observable: rank. A $d\times d$ thought $\Z$ has a computable rank
-via its SVD. If each singular direction encodes a separate reasoning
-path, truncating $\Z$ to rank $k$ at inference should degrade
-accuracy when the task needs more than $k$ paths. The rank-$k$
-ablation curve is the natural probe.
+Matrix-valued latents \citep[e.g.,][]{shen2025codi} make the
+measurement concrete: a $d\times d$ thought $\Z$ has a computable
+rank via its SVD. If each singular direction encodes a separate
+reasoning path, truncating $\Z$ to rank $k$ at inference should
+degrade accuracy when the task needs more than $k$ paths. The
+rank-$k$ ablation curve is the natural probe.
 
-\paragraph{Contributions.} We report four pieces of evidence that
-this probe is uninformative in practice and give a
-mechanism that explains why.
+We report five results on a matrix-CODI bottleneck (GPT-2 small,
+$d{=}16$, six latent positions, ProsQA):
 
-\begin{enumerate}
+\begin{itemize}
 \setlength\itemsep{2pt}
-\item \textbf{Three flat rank-$k$ curves} from the flatten-then-project
-      readout on ProsQA across two distillation weights
-      ($\gamma\!\in\!\{0,1\}$) and a multiplicative-thinker on/off
-      ablation (\S\ref{sec:flat}). Range across
-      $k\!\in\!\{1,2,4,8,16\}$ is $\leq 0.6$pp. A fourth flat curve
-      on GSM8K-Aug is reported at a below-threshold ($6\%$) operating
-      point and flagged as non-interpretable on its own.
-\item \textbf{Three-seed accuracy-rank decoupling} (\S\ref{sec:flat}).
-      Best ProsQA accuracy is $81.51\pm 1.2$pp while the final
-      effective rank of $\Z$ spans $\{4, 12, 13\}$. The loss does
-      not reward any particular rank.
-\item \textbf{Four nonlinear-in-$\Z$ positive-control readouts also
-      produce flat curves} (\S\ref{sec:pc}). A bilinear
-      reparametrization, a bilinear-plus-GELU readout, an
-      SVD-augmented readout feeding singular values through an MLP,
-      and a quadratic readout in $\Z\Z^\top$ all yield flat rank-$k$
-      curves (Spearman $p$-values $0.63, 0.14, 0.82, 0.46$).
-      Readout linearity is a sufficient but not necessary condition:
-      the matrix-bottleneck training objective itself produces
-      rank-indifferent gradients through the full chain rule.
-\item \textbf{A linear probe} on the matrix thought $\Z$ concatenated
-      across six positions (1536 features) reaches AUC $0.673$ at
-      predicting the ProsQA target class, below a raw pretrained
-      GPT-2 hidden state at 768 features (AUC $0.846$,
-      \S\ref{sec:flat}). The matrix bottleneck does not deliver
-      target-predictive information commensurate with its feature
-      dim.
-\item \textbf{A negative control on vanilla GPT-2 SFT}
-      (\S\ref{sec:pc-negctrl}). Running the rank-$k$ ablation on a
-      model with no matrix bottleneck and no $\Z$ produces a flat
-      curve at the same accuracy, and a random-$h$ sensitivity floor
-      lands at the same accuracy. The rank-$k$ probe alone conflates
-      rank-blindness with position-irrelevance; the matrix-CODI
-      claim rests on the model-level seed-decoupling result, not on
-      the probe's flat shape in isolation.
-\end{enumerate}
+\item Rank-$k$ ablation is flat at two distillation weights, with
+the multiplicative thinker on or off, and on GSM8K-Aug as well as
+ProsQA. Range across $k\!\in\!\{1,2,4,8,16\}$ is $\leq 0.6$pp.
+\item Three seeds at otherwise identical hyperparameters land at
+effective ranks $\{4, 12, 13\}$ and accuracies
+$81.51\!\pm\!1.2$pp.
+\item Four nonlinear-in-$\Z$ readouts (bilinear, bilinear+GELU,
+SVD-augmented, quadratic in $\Z\Z^\top$) also give flat curves;
+Spearman $p$ in $[0.14,\,0.82]$.
+\item A linear probe on $\Z$ (1536 features across six positions)
+reaches AUC $0.673$ on ProsQA target prediction; a pretrained
+GPT-2 hidden state at 768 features reaches $0.846$ on the same
+task.
+\item Rank-$k$ on vanilla GPT-2 SFT (no $\Z$, three seeds)
+reproduces a flat curve under the same intervention paradigm;
+pooled range $0.20$pp.
+\end{itemize}
 
-Two February 2026 papers measure rank in \emph{linear-attention
-fast-weight hidden states} \citep{nazari2026rank,anonymous2026staterank}
-and describe rank as a structural invariant of trained states. The
-contribution here is a \emph{mechanism} claim about the training
-objective, and the four positive-control readouts are designed to
-falsify that claim (\S\ref{sec:related}).
-
-Collectively, these results indicate that rank-$k$ ablation is not a
-valid measure of whether a matrix-valued latent holds multiple
-reasoning paths under a CODI-style objective, and that the observed
-rank of $\Z$ is, in our setting, vestigial.
+The seed-level rank spread is what distinguishes the rank-blindness
+reading from position-irrelevance.
