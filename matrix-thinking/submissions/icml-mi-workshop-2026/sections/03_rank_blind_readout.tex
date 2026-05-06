@@ -45,11 +45,12 @@ the negative control cannot reproduce by construction.
 \subsection{Why: the readout Jacobian is constant in $\Z$}
 
 The flatten-then-project readout is $\phi(\Z) = W_{\text{down}}
-\vecop(\Z)$. Its Jacobian with respect to $\Z$ is
+\vecop(\Z)$. Its Jacobian with respect to $\Z$ does not depend on
+$\Z$:
 \[
-\frac{\partial\phi(\Z)}{\partial\Z_{ij}} \;=\; W_{\text{down}}[:,\,ij],
+\frac{\partial\phi(\Z)}{\partial\Z_{ij}} \;=\; W_{\text{down}}[:,\,ij].
 \]
-which does not depend on $\Z$. The loss gradient
+The loss gradient
 $\partial\mathcal{L}/\partial\Z = (\partial\mathcal{L}/\partial\phi)\cdot
 (\partial\phi/\partial\Z)$ is therefore a vector contracted with a
 constant tensor. The contraction preserves the row-space of

@@ -1,8 +1,8 @@
 % Targets the ICML 2026 two-column format; swap in icml2026.sty before submitting (see BUILD.md).
 
-\documentclass[11pt,letterpaper]{article}
+\documentclass[10pt,twocolumn,letterpaper]{article}
 
-\usepackage[margin=1in]{geometry}
+\usepackage[margin=0.85in]{geometry}
 \usepackage{times}
 \usepackage{microtype}
 \usepackage[utf8]{inputenc}
@@ -16,6 +16,11 @@
 \usepackage[numbers,square,sort&compress]{natbib}
 \usepackage{caption}
 \captionsetup{font=small,labelfont=bf,skip=4pt}
+
+% layout: prevent single-line widows/orphans at page/column breaks
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
 
 % theorem / proposition
 \newtheorem{proposition}{Proposition}
@@ -37,6 +42,8 @@ Pebble Machine Learning\\
 
 \begin{document}
 
+\twocolumn[
+\begin{@twocolumnfalse}
 \maketitle
 \begin{abstract}
 Continuous chain-of-thought models compress reasoning into latent
@@ -67,6 +74,8 @@ rank-$k$ ablation alone conflates rank-blindness with
 position-irrelevance.
 \end{abstract}
 \vspace{0.6em}
+\end{@twocolumnfalse}
+]
 
 \input{sections/01_intro}
 \input{sections/02_background}
