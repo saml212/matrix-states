@@ -14,26 +14,15 @@ aligns the student's state at the answer colon to the teacher's,
 and a standard next-token cross-entropy loss trains the answer
 prediction. The total loss is $\mathcal{L}=\gamma\mathcal{L}_{\text{kd}}+\mathcal{L}_{\text{ce}}$.
 
-\paragraph{Why matrix latents.} Vector representations are flat: a hidden
-state of dimension $D$ has $D$ scalar entries with no native notion of how
-many independent components it superposes. Matrix-valued representations
-have an additional structural observable: rank, the number of independent
-directions used. Matrix-valued working memory has a long lineage in
-neural networks --- fast-weight networks
-\citep{schmidhuber1992fast,schlag2021linear}, linear attention
-\citep{katharopoulos2020transformers}, the xLSTM family
-\citep{beck2024xlstm}, and the Mamba/SSM family \citep{gu2023mamba} all
-use matrix-shaped state --- and recent work measures the rank of these
-states as a diagnostic of how the model uses its memory
-\citep{nazari2026rank,anonymous2026staterank}. In all of those, the matrix
-lives \emph{inside} a layer (an attention head's accumulator, an SSM's
-recurrent state) and serves as recurrent memory. Matrix-CODI extends the
-lineage to a different placement: the matrix sits on the explicit
-chain-of-thought feedback path, where each latent reasoning position is a
-$d \times d$ matrix rather than a vector. The rank of that matrix is a
-candidate measure of how many reasoning paths the model holds in
-superposition at that step. The hypothesis we test is whether rank, so
-defined, behaves as that measure under CODI-style training.
+\paragraph{Why matrix latents.} A vector of dimension $D$ has no
+single-sample notion of how many independent components it
+superposes; a $d\times d$ matrix has rank as a structural observable.
+Matrix-valued memory has a long lineage \emph{inside} attention and
+SSM layers (\S\ref{sec:related}). Matrix-CODI is different in
+placement: the matrix sits on the explicit chain-of-thought
+feedback path, one $d\times d$ thought per latent reasoning
+position. We test whether the rank of that matrix behaves as a
+per-step count of reasoning paths under CODI-style training.
 
 \paragraph{Matrix bottleneck.} We extend CODI with a
 \emph{matrix bottleneck} on the latent feedback path. Given the
@@ -51,23 +40,28 @@ call the \emph{flatten-then-project} readout. $W_{\text{down}}\in
 \R^{D\times d^2}$. We use $d=16$ throughout.
 
 \paragraph{Rank-$k$ ablation.} At inference, compute the SVD
-$\Z=U\Sigma V^\top$ and replace $\Z$ by its rank-$k$ truncation
-$\Z_k = U_{:,\,:k}\,\Sigma_{:k,\,:k}\,V_{:,\,:k}^\top$ before the
-readout. If rank is functional, accuracy should drop as $k$ decreases
-to 1. If rank is vestigial, the curve is flat.
+$\Z = U\Sigma V^\top$ and replace $\Z$ by its rank-$k$ truncation
+\[
+\Z_k \;=\; U_{:,\,:k}\,\Sigma_{:k,\,:k}\,V_{:,\,:k}^\top
+\]
+before the readout. If rank is functional, accuracy should drop
+as $k$ decreases to 1. If rank is vestigial, the curve is flat.
 
 \paragraph{Effective rank.} The numerical rank of $\Z$ is always
-$d$ since it is a dense trained matrix. We report \emph{effective
-rank}
-$\exp\left(-\sum_i \tilde\sigma_i \log \tilde\sigma_i\right)$ with
-$\tilde\sigma_i=\sigma_i/\sum_j \sigma_j$ (a smooth spectral proxy)
-for training curves; the ablation itself uses hard top-$k$
-truncation. The question of interest is whether the structural
-capacity offered by rank $>1$ is functionally used.
+$d$ since it is a dense trained matrix. For training curves we
+report \emph{effective rank}, a smooth spectral proxy:
+\[
+H_{\text{eff}}(\Z) \;=\; \exp\!\left(-\sum_i \tilde\sigma_i \log \tilde\sigma_i\right),
+\qquad
+\tilde\sigma_i \;=\; \sigma_i \,\Big/\, \sum_j \sigma_j.
+\]
+The ablation itself uses hard top-$k$ truncation. The question of
+interest is whether the structural capacity offered by rank $>1$
+is functionally used.
 
 \paragraph{ProsQA.} ProsQA \citep{hao2024coconut} is a synthetic
 entailment task: a diamond-shaped directed acyclic graph of
 entities and a question \emph{which leaf entity has property $P$?}.
 Each problem has a unique positive answer and a single distractor.
-We use the training split from \texttt{facebookresearch/coconut};
-the test set has 128 problems, matching the original CODI release.
+We use the training split from the original COCONUT release; the
+test set has 128 problems, matching the original CODI release.

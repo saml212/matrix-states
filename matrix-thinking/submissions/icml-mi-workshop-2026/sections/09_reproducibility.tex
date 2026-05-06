@@ -1,9 +1,9 @@
 \section*{Reproducibility}
 \label{sec:repro}
 
-All training, evaluation, and probe code is released at
-\url{https://github.com/saml212/learned-representations}. The
-release includes:
+All training, evaluation, and probe code is released anonymously
+at \url{https://anonymous.4open.science/r/matrix-codi-rank-blindness}.
+The release includes:
 
 \begin{itemize}
 \setlength\itemsep{2pt}
@@ -26,9 +26,8 @@ release includes:
       rank trajectories, and wall-clock times.
 \end{itemize}
 
-Datasets: ProsQA \citep{hao2024coconut} from the
-\texttt{facebookresearch/coconut} release. GSM8K-Aug
-\citep{shen2025codi} from the CODI release.
+Datasets: ProsQA \citep{hao2024coconut} and GSM8K-Aug
+\citep{shen2025codi}, both from the original releases.
 
 Backbone: pretrained GPT-2 small (124M), medium (355M), and large
 (774M) from the standard public checkpoints.
@@ -38,14 +37,13 @@ reported numerical results in the main body trace to a specific
 checkpoint and evaluator run in the release.
 
 \paragraph{Headline numbers by source.} Table~\ref{tab:four-flat}
-rows R1--R3b from the matrix-CODI training script
-\texttt{run\_matrix\_codi.py} with seed $1337$;
-Fig.~\ref{fig:seed-decoupling} from the same script with seeds
-$\{1337,42,7\}$; Table~\ref{tab:pc} and Fig.~\ref{fig:pc} from
-\texttt{run\_matrix\_codi.py} with \texttt{--readout} in
-$\{$\texttt{flatten},\texttt{bilinear},\texttt{bilinear\_gelu},\texttt{svd\_aug},\texttt{quadratic}$\}$
-evaluated via \texttt{rank\_eval.py}; Fig.~\ref{fig:probe} from
-\texttt{probe\_z.py} on the Round 3 $\gamma=0$ checkpoint;
-the depth result in \S\ref{sec:depth-scale} (preliminary, single data
-point) and Fig.~\ref{fig:scale} from the vanilla SFT and vanilla CODI
-scripts in the same release.
+rows R1--R3b come from \texttt{run\_matrix\_codi.py} at seed
+$1337$; Fig.~\ref{fig:seed-decoupling} from the same script at
+seeds $1337$, $42$, and $7$. Table~\ref{tab:pc} and
+Fig.~\ref{fig:pc} are from \texttt{run\_matrix\_codi.py} run once
+per readout (flatten, bilinear, bilinear+GELU, SVD-augmented,
+quadratic), evaluated via \texttt{rank\_eval.py}.
+Fig.~\ref{fig:probe} is from \texttt{probe\_z.py} on the Round~3
+$\gamma\!=\!0$ checkpoint. The preliminary depth result in
+\S\ref{sec:depth-scale} and Fig.~\ref{fig:scale} are from the
+vanilla SFT and vanilla CODI scripts in the same release.

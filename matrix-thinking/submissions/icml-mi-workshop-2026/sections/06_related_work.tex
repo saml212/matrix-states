@@ -2,23 +2,16 @@
 \label{sec:related}
 
 \paragraph{Latent CoT and the Illusion of Superposition.}
-COCONUT \citep{hao2024coconut} replaces explicit rationales with
-continuous latent tokens; CODI \citep{shen2025codi} compresses CoT
-into latents via self-distillation. \citet{rizvi2026illusion} report
-that a fine-tuned COCONUT reaches $96.6\%$ on ProsQA \emph{without}
-latents, $99.0\%$ with them, and $85.3\%$ with explicit CoT --- the
-latent machinery is not doing measurable work in their fine-tuned
-setting. Our vanilla SFT baseline at GPT-2 small reaches $81.77\%$,
-roughly $15$pp below their $96.6\%$; we did not close this gap. The
-qualitative phenomenon they report --- fine-tuned latent CoT models
-reaching comparable accuracy without their latents --- replicates
-at our operating point: matrix-CODI at $82.03\%$ vs.\ pure SFT at
-$81.77\%$ (gap $0.26$pp, within three-seed noise). Our contribution
-relative to that work is a structural argument about the training
-objective that does not depend on matching their accuracy: the
-matrix-bottleneck objective produces rank-indifferent gradients,
-and four readouts nonlinear in $\Z$ are unable to bend the
-rank-$k$ curve.
+\citet{rizvi2026illusion}'s fine-tuned COCONUT reaches $96.6\%$ on
+ProsQA \emph{without} latent feedback, against $99.0\%$ with it.
+Our vanilla SFT at GPT-2 small reaches $81.77\%$, roughly $15$pp
+below that; we did not close the gap. The qualitative phenomenon
+replicates at our operating point: matrix-CODI at $82.03\%$ vs.\
+pure SFT at $81.77\%$ ($0.26$pp, within three-seed noise). Our
+contribution relative to that work is a structural argument about
+the training objective: the matrix-bottleneck produces
+rank-indifferent gradients, and four nonlinear-in-$\Z$ readouts
+fail to bend the rank-$k$ curve.
 
 \paragraph{SIM-CoT.}
 \citet{shen2025simcot} diagnose latent CoT instability as
@@ -75,27 +68,19 @@ are distinct.
 \paragraph{Implicit low-rank bias.}
 Gradient descent on matrix-factorization losses has an implicit
 bias toward low-rank solutions
-\citep{gunasekar2017implicit,arora2019implicit,razin2020implicit},
-and \citet{kobayashi2024weightdecay} show that weight decay
-specifically induces low-rank attention products via an
-equivalence with nuclear-norm regularization. These concern bias
-through the parameter space; Proposition~\ref{prop:jac} concerns
-the loss gradient through the readout. Our three-seed effective
-rank spread $\{4,12,13\}$ under AdamW at weight decay $0.01$ is
-consistent with an implicit low-rank attractor plus seed-dependent
-convergence, and inconsistent with strong low-rank collapse (which
-would predict all three seeds at the same low rank).
+\citep{gunasekar2017implicit,arora2019implicit,razin2020implicit};
+\citet{kobayashi2024weightdecay} attribute this specifically to
+weight decay. These concern bias through the parameter space, not
+the readout. Our three-seed rank spread $\{4,12,13\}$ is consistent
+with a weak attractor and inconsistent with strong collapse, which
+would concentrate all seeds at the same low rank.
 
 \paragraph{Alternative substrates and probe critique.}
 \citet{wang2025latentvocab} argue that latent reasoning lives in
-the vocabulary column space, not in the SVD directions of the
-hidden state. If so, rank-$k$ truncation on $\Z$ is the wrong
-observable; our negative result does not rule that out.
-\citet{li2024optimal} show that zero/resample ablations (of which
-rank-$k$ truncation is an instance) overestimate component
-importance relative to optimal ablation; that cuts in our favor
-(optimal ablation would make the curves flatter, not bumpier) but
-is the right citation for the probe we use. The negative control
-in \S\ref{sec:pc-negctrl} is the empirical analog: running
-rank-$k$ on a model with no $\Z$ reproduces a flat curve, so the
-probe alone cannot isolate rank-blindness from position-irrelevance.
+the vocabulary column space, not in hidden-state SVD directions;
+if so, rank-$k$ truncation targets the wrong observable.
+\citet{li2024optimal} note that zero/resample ablations (rank-$k$
+truncation is one) overestimate component importance vs.\ optimal
+ablation --- which would only flatten our curves further. The
+negative control in \S\ref{sec:pc-negctrl} is the empirical
+counterpart.

@@ -44,18 +44,23 @@ the negative control cannot reproduce by construction.
 
 \subsection{Why: the readout Jacobian is constant in $\Z$}
 
-The flatten-then-project readout is $\phi(\Z) = W_{\text{down}}
-\vecop(\Z)$. Its Jacobian with respect to $\Z$ does not depend on
-$\Z$:
+The flatten-then-project readout is
+$\phi(\Z) = W_{\text{down}}\vecop(\Z)$. Its Jacobian with respect
+to $\Z$ does not depend on $\Z$:
 \[
 \frac{\partial\phi(\Z)}{\partial\Z_{ij}} \;=\; W_{\text{down}}[:,\,ij].
 \]
-The loss gradient
-$\partial\mathcal{L}/\partial\Z = (\partial\mathcal{L}/\partial\phi)\cdot
-(\partial\phi/\partial\Z)$ is therefore a vector contracted with a
-constant tensor. The contraction preserves the row-space of
-$W_{\text{down}}$ but carries no information about the singular
-structure of $\Z$.
+By the chain rule, the loss gradient through the readout is
+\[
+\frac{\partial\mathcal{L}}{\partial\Z}
+\;=\;
+\frac{\partial\mathcal{L}}{\partial\phi}
+\cdot
+\frac{\partial\phi}{\partial\Z},
+\]
+a vector contracted with a constant tensor. The contraction
+preserves the row-space of $W_{\text{down}}$ but carries no
+information about the singular structure of $\Z$.
 
 \begin{proposition}[Constant-Jacobian rank-blindness]
 \label{prop:jac}
@@ -105,10 +110,6 @@ seeds 1337 and 7 converge near rank $12$. The loss does not push
 $\Z$ toward any particular rank.}
 \label{fig:seed-decoupling}
 \end{figure}
-
-Three models at identical hyperparameters reach statistically
-indistinguishable accuracy at effective ranks spanning a $3\times$
-range.
 
 \subsection{Linear probe on $\Z$}
 
