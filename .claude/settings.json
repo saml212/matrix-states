@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/learn-capture.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/learn-capture.sh"
           }
         ]
       },
@@ -14,7 +14,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/deadend-capture.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/deadend-capture.sh"
           }
         ],
         "matcher": "*"
@@ -26,11 +26,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/correction-detect.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/correction-detect.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/load-relevant-rules.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/load-relevant-rules.sh"
           }
         ]
       },
@@ -38,15 +38,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/load-relevant-deadends.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/load-relevant-deadends.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/stuck-detector.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/stuck-detector.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/stage-inject.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/stage-inject.sh"
           }
         ],
         "matcher": "*"
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/doc-guard.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/doc-guard.sh"
           }
         ]
       },
@@ -67,7 +67,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-commit-gate.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-gate.sh"
           }
         ]
       },
@@ -75,11 +75,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-train-gate.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/pre-train-gate.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/budget-gate.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/budget-gate.sh"
           }
         ],
         "matcher": "Bash"
@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-report.sh"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/session-report.sh"
           }
         ]
       }
