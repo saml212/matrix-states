@@ -8,17 +8,16 @@ The release includes:
 \begin{itemize}
 \setlength\itemsep{2pt}
 \item \texttt{run\_matrix\_codi.py}: the matrix-CODI training
-      script. The \texttt{MatrixBottleneck} class implements the
+      and rank-$k$ evaluation script. The
+      \texttt{MatrixBottleneck} class implements the
       $W_{\text{up}}\!\to\!\text{reshape}\!\to\!\text{thinker}\!\to\!\text{flatten}\!\to\!W_{\text{down}}$
-      pipeline. All five readouts in \S\ref{sec:pc} are selectable
-      via the \texttt{--readout} flag.
+      pipeline; all five readouts in \S\ref{sec:pc} are selectable
+      via the \texttt{--readout} flag. The same script computes the
+      accuracy-vs-$k$ curve and per-sample Spearman correlation
+      between effective rank and correctness on a saved checkpoint.
 \item \texttt{probe\_z.py}: the linear probe pipeline for
       \S\ref{sec:flat}. Produces the AUC numbers in
       Fig.~\ref{fig:probe}.
-\item \texttt{rank\_eval.py}: the rank-$k$ projection evaluator.
-      Given a checkpoint, it computes the accuracy-vs-$k$ curve and
-      the Spearman correlation between per-sample effective rank
-      and correctness.
 \item Raw rank-$k$ evaluation output files (JSON) for the four
       positive-control readouts, matching Table~\ref{tab:pc} and
       Fig.~\ref{fig:pc}.
@@ -42,7 +41,7 @@ $1337$; Fig.~\ref{fig:seed-decoupling} from the same script at
 seeds $1337$, $42$, and $7$. Table~\ref{tab:pc} and
 Fig.~\ref{fig:pc} are from \texttt{run\_matrix\_codi.py} run once
 per readout (flatten, bilinear, bilinear+GELU, SVD-augmented,
-quadratic), evaluated via \texttt{rank\_eval.py}.
+quadratic), evaluated via the same script's rank-$k$ mode.
 Fig.~\ref{fig:probe} is from \texttt{probe\_z.py} on the Round~3
 $\gamma\!=\!0$ checkpoint. The preliminary depth result in
 \S\ref{sec:depth-scale} and Fig.~\ref{fig:scale} are from the
