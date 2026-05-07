@@ -46,50 +46,63 @@ the negative control cannot reproduce by construction.
 
 The flatten-then-project readout is
 $\phi(\Z) = W_{\text{down}}\vecop(\Z)$. Its Jacobian with respect
-to $\Z$ does not depend on $\Z$:
+to $\vecop(\Z)$ is the constant matrix $W_{\text{down}}$:
 \[
-\frac{\partial\phi(\Z)}{\partial\Z_{ij}} \;=\; W_{\text{down}}[:,\,ij].
+\frac{\partial\phi}{\partial\vecop(\Z)} \;=\; W_{\text{down}}.
 \]
-By the chain rule, the loss gradient through the readout is
+By the chain rule, the loss gradient is
 \[
-\frac{\partial\mathcal{L}}{\partial\Z}
+\frac{\partial\mathcal{L}}{\partial\vecop(\Z)}
 \;=\;
-\frac{\partial\mathcal{L}}{\partial\phi}
-\cdot
-\frac{\partial\phi}{\partial\Z},
+W_{\text{down}}^{\top}\,
+\frac{\partial\mathcal{L}}{\partial\phi}.
 \]
-a vector contracted with a constant tensor. The contraction
-preserves the row-space of $W_{\text{down}}$ but carries no
-information about the singular structure of $\Z$.
+The pullback factor $W_{\text{down}}^{\top}$ is independent of
+$\Z$. Any $\Z$-dependence of the gradient enters only through the
+upstream factor $\partial\mathcal{L}/\partial\phi$, which depends
+on $\Z$ only through the value $\phi(\Z)$ --- not through any
+explicit factor of $\Z$'s SVD basis.
 
-\begin{proposition}[Constant-Jacobian rank-blindness]
+\begin{proposition}[Linear readout has constant Jacobian]
 \label{prop:jac}
-Let $\phi:\R^{d\times d}\to\R^{D}$ be linear in $\Z$. Then for any
-loss $\mathcal{L}$ differentiable at $\phi(\Z)$, the gradient
-$\partial\mathcal{L}/\partial\Z$ is an affine function of
-$\partial\mathcal{L}/\partial\phi$ alone, with coefficients
-independent of $\Z$. The loss gradient through $\phi$ carries
-no term that depends on the SVD basis of $\Z$, so $\mathcal{L}$
-itself provides no gradient signal preferring one rank of $\Z$
-over another. This is local to $\mathcal{L}$; implicit bias from
-the optimizer (Adam $+$ weight decay) and upstream parameter
-regularization may still shape rank through channels outside
-$\mathcal{L}$ (\S\ref{sec:related}).
+Let $\phi:\R^{d\times d}\to\R^{D}$ be linear in $\Z$. The Jacobian
+$\partial\phi/\partial\vecop(\Z)$ is a constant matrix
+$W\in\R^{D\times d^2}$, and the loss gradient is
+$\partial\mathcal{L}/\partial\vecop(\Z) = W^{\top}\,\partial\mathcal{L}/\partial\phi$.
+The pullback factor $W^{\top}$ is independent of $\Z$. Any
+rank-dependence of $\partial\mathcal{L}/\partial\Z$ enters only
+through the upstream factor $\partial\mathcal{L}/\partial\phi$,
+which sees $\Z$ only through $\phi(\Z)$. The chain rule therefore
+introduces no term that couples directly to the SVD basis of
+$\Z$; the loss has no built-in rank reward. Implicit bias from the
+optimizer (Adam $+$ weight decay) and upstream regularization may
+still shape rank through channels outside $\mathcal{L}$
+(\S\ref{sec:related}).
 \end{proposition}
 
 \begin{proof}[Proof sketch]
-If $\phi(\Z)=W\vecop(\Z)$ with constant $W$, then
-$\partial\phi/\partial\Z_{ij}=W[:,ij]$ is a constant vector. By the
-chain rule, $\partial\mathcal{L}/\partial\Z_{ij}$ is the inner
-product of $W[:,ij]$ with $\partial\mathcal{L}/\partial\phi$, which
-is independent of $\Z$'s SVD. Any invariance of $\mathcal{L}$ under a
-change of $\Z$ that preserves the image $\phi(\Z)$ is therefore
-preserved by gradient descent. \qedhere
+Differentiating $\phi(\Z) = W\,\vecop(\Z)$ gives
+$\partial\phi/\partial\vecop(\Z) = W$, a constant matrix. The
+chain rule then yields
+$\partial\mathcal{L}/\partial\vecop(\Z) = W^{\top}\,\partial\mathcal{L}/\partial\phi$;
+the prefactor $W^{\top}$ does not depend on $\Z$. \qedhere
 \end{proof}
 
+\paragraph{Remark.} The proposition is a statement about the
+chain-rule pullback, not about the full $\Z$-dependence of the
+gradient. Different $\Z$'s produce different
+$\partial\mathcal{L}/\partial\phi$ and therefore different
+gradients. What is ruled out is an SVD-basis-dependent term in
+the chain rule itself. Whether the absence of an explicit rank
+preference yields rank-blind behavior in practice is an empirical
+question; \S\ref{sec:pc} tests it by replacing $\phi$ with
+non-linear functions, and the flat curves persist --- suggesting
+at least part of the explanation lies elsewhere.
+
 The four training conditions in Table~\ref{tab:four-flat} are
-consistent with this prediction. \S\ref{sec:pc} tests what happens
-when the sufficient condition is violated.
+consistent with the proposition's prediction for linear $\phi$.
+\S\ref{sec:pc} tests what happens when the linearity premise is
+violated.
 
 \subsection{Accuracy is decoupled from rank across seeds}
 
