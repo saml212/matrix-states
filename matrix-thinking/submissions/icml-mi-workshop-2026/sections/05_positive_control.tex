@@ -16,40 +16,37 @@ at $\gamma=0$ (no CODI L1-at-colon term), so the flat curves below
 are about the cross-entropy loss through the matrix bottleneck, not
 specifically the CODI distillation loss.
 
-\begin{description}
-\setlength\itemsep{3pt}
-\item[Bilinear.] $\phi(\Z) = W\,\operatorname{probes}(\Z)$ where
-      $\operatorname{probes}(\Z)_k = u_k^\top \Z v_k$ for $K=d^2$
-      learned probe pairs $(u_k,v_k)\in\R^d\times\R^d$. Each probe
-      is a Frobenius inner product $\langle u_k v_k^\top,
-      \Z\rangle_F$, linear in $\Z$. A reparametrization control: it
-      checks that the low-rank factoring of $W_{\text{down}}$ does
-      not change the curve.
-\item[Bilinear+GELU.] $\phi(\Z) = W\,\operatorname{GELU}(
-      \operatorname{probes}(\Z))$. The GELU gates each probe by a
-      scalar that depends on $\Z$, making $\phi$ nonlinear in $\Z$.
-      The Jacobian is not constant, but its column space in
-      $\R^{d\times d}$ is fixed (the span of the $u_k v_k^\top$);
-      only column magnitudes vary with $\Z$. A mild violation of
-      Proposition~\ref{prop:jac}; SVD-augmented (next) is a stronger
-      one.
-\item[SVD-augmented.] $\phi(\Z) = W_{\text{down}}\vecop(\Z) +
-      \operatorname{MLP}(\sigma(\Z))$, where $\sigma(\Z)\in\R^d$ is
-      the vector of singular values fed through two dense layers
-      with GELU. We compute $\sigma(\Z)$ via
-      \texttt{torch.linalg.svdvals}, whose backward is documented as
-      unconditionally numerically stable (in contrast to full
-      \texttt{torch.linalg.svd}, whose backward is unstable at
-      near-coincident singular values). This variant explicitly
-      exposes rank to the optimizer. SVD-augmented's best accuracy
-      ($78.12\%$) is below the flatten baseline ($80.47\%$), so the
-      optimizer is not zeroing the \texttt{sigma\_proj} branch and
-      falling back to flatten alone.
-\item[Quadratic.] $\phi(\Z) = W_{\text{down}}\vecop
-      \operatorname{concat}(\Z\Z^\top,\Z^\top\Z)$. Quadratic in $\Z$
-      and linear in the second-moment tensor. The gradient with
-      respect to $\Z$ depends on $\Z$ itself.
-\end{description}
+\paragraph{Bilinear.} $\phi(\Z) = W\,\operatorname{probes}(\Z)$
+where $\operatorname{probes}(\Z)_k = u_k^\top \Z v_k$ for $K=d^2$
+learned probe pairs $(u_k,v_k)\in\R^d\times\R^d$. Each probe is a
+Frobenius inner product $\langle u_k v_k^\top,\Z\rangle_F$, linear
+in $\Z$. A reparametrization control: it checks that the low-rank
+factoring of $W_{\text{down}}$ does not change the curve.
+
+\paragraph{Bilinear+GELU.} $\phi(\Z) = W\,\operatorname{GELU}(
+\operatorname{probes}(\Z))$. The GELU gates each probe by a scalar
+that depends on $\Z$, making $\phi$ nonlinear in $\Z$. The Jacobian
+is not constant, but its column space in $\R^{d\times d}$ is fixed
+(the span of the $u_k v_k^\top$); only column magnitudes vary with
+$\Z$. A mild violation of Proposition~\ref{prop:jac}; SVD-augmented
+(next) is a stronger one.
+
+\paragraph{SVD-augmented.} $\phi(\Z) = W_{\text{down}}\vecop(\Z) +
+\operatorname{MLP}(\sigma(\Z))$, where $\sigma(\Z)\in\R^d$ is the
+vector of singular values fed through two dense layers with GELU.
+We compute $\sigma(\Z)$ via \texttt{torch.linalg.svdvals}, whose
+backward is documented as unconditionally numerically stable (in
+contrast to full \texttt{torch.linalg.svd}, whose backward is
+unstable at near-coincident singular values). This variant
+explicitly exposes rank to the optimizer. SVD-augmented's best
+accuracy ($78.12\%$) is below the flatten baseline ($80.47\%$), so
+the optimizer is not zeroing the \texttt{sigma\_proj} branch and
+falling back to flatten alone.
+
+\paragraph{Quadratic.} $\phi(\Z) = W_{\text{down}}\vecop
+\operatorname{concat}(\Z\Z^\top,\Z^\top\Z)$. Quadratic in $\Z$ and
+linear in the second-moment tensor. The gradient with respect to
+$\Z$ depends on $\Z$ itself.
 
 \subsection{All four rank-$k$ curves are flat}
 

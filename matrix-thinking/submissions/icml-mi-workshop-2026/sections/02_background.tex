@@ -1,6 +1,8 @@
 \section{Background}
 \label{sec:background}
 
+\subsection{The matrix-CODI bottleneck}
+
 \paragraph{CODI distillation.} CODI \citep{shen2025codi} trains a
 student to compress an explicit chain-of-thought into a fixed number
 of continuous latent positions by matching a hidden-state target
@@ -38,6 +40,8 @@ where $\phi:\R^{d\times d}\to\R^{D}$ is the \emph{readout}. The
 default readout is $\phi(\Z)=W_{\text{down}}\vecop(\Z)$, which we
 call the \emph{flatten-then-project} readout. $W_{\text{down}}\in
 \R^{D\times d^2}$. We use $d=16$ throughout.
+
+\subsection{Probing rank}
 
 \paragraph{Rank-$k$ ablation.} At inference, compute the SVD
 $\Z = U\Sigma V^\top$ and replace $\Z$ by its rank-$k$ truncation
