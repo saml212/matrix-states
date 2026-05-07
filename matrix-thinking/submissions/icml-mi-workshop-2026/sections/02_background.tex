@@ -54,11 +54,10 @@ as $k$ decreases to 1. If rank is vestigial, the curve is flat.
 \paragraph{Effective rank.} The numerical rank of $\Z$ is always
 $d$ since it is a dense trained matrix. For training curves we
 report \emph{effective rank}, a smooth spectral proxy:
-\[
-H_{\text{eff}}(\Z) \;=\; \exp\!\left(-\sum_i \tilde\sigma_i \log \tilde\sigma_i\right),
-\qquad
-\tilde\sigma_i \;=\; \sigma_i \,\Big/\, \sum_j \sigma_j.
-\]
+\begin{align*}
+H_{\text{eff}}(\Z) &\;=\; \exp\!\left(-\sum_i \tilde\sigma_i \log \tilde\sigma_i\right),\\
+\tilde\sigma_i &\;=\; \sigma_i \big/ \textstyle\sum_j \sigma_j.
+\end{align*}
 The ablation itself uses hard top-$k$ truncation. The question of
 interest is whether the structural capacity offered by rank $>1$
 is functionally used.

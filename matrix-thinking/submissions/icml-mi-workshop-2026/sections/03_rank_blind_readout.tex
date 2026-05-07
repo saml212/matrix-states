@@ -9,9 +9,17 @@ multiplicative thinker. Each run produced a single rank-$k$ ablation
 curve.
 
 \begin{table}[t]
+\caption{Rank-$k$ projection ablation across four training
+conditions. $\Z$ rank is the mean effective rank of the $16\times16$
+matrix thought at eval time. $r_s$ is the Spearman rank correlation
+between per-sample effective rank and correctness. Range across
+$k\in\{1,2,4,8,16\}$ is $\leq 0.6$pp in every row. R1 (GSM8K-Aug)
+is at a $6\%$ operating point below the learning threshold and is
+not interpretable on its own.}
+\label{tab:four-flat}
 \centering
 \footnotesize
-\setlength{\tabcolsep}{3pt}
+\setlength{\tabcolsep}{2pt}
 \begin{tabular}{llcclccc}
 \toprule
 Run & Task & $\gamma$ & Thinker & $\Z$ rank & k{=}1 & k{=}16 & $r_s$ \\
@@ -22,14 +30,6 @@ R3a & ProsQA   & 0.0 & on  & 12.7 & 76.8\% & 76.6\% & $-0.105$ \\
 R3b & ProsQA   & 0.0 & off & 12.8 & 72.6\% & 72.4\% & $+0.095$ \\
 \bottomrule
 \end{tabular}
-\caption{Rank-$k$ projection ablation across four training
-conditions. $\Z$ rank is the mean effective rank of the $16\times16$
-matrix thought at eval time. $r_s$ is the Spearman rank correlation
-between per-sample effective rank and correctness. Range across
-$k\in\{1,2,4,8,16\}$ is $\leq 0.6$pp in every row. R1 (GSM8K-Aug)
-is at a $6\%$ operating point below the learning threshold and is
-not interpretable on its own.}
-\label{tab:four-flat}
 \end{table}
 
 Varying the task (arithmetic vs.\ logical), the distillation weight

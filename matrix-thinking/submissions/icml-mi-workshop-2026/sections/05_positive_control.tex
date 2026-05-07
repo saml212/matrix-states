@@ -69,6 +69,10 @@ $k$.}
 \end{figure}
 
 \begin{table}[t]
+\caption{Rank-$k$ ablation accuracies (\%) by readout on $128$
+ProsQA test problems. Spearman $r_s$ of per-sample effective rank
+against correctness; $p$ is two-sided. None significant.}
+\label{tab:pc}
 \centering
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -83,10 +87,6 @@ svd-aug       & 77.3 & 78.1 & 78.1 & 77.3 & 78.1 & $+0.02$ & $0.82$ \\
 quadratic     & 79.7 & 79.7 & 79.7 & 79.7 & 79.7 & $+0.07$ & $0.46$ \\
 \bottomrule
 \end{tabular}
-\caption{Rank-$k$ ablation accuracies (\%) by readout on $128$
-ProsQA test problems. Spearman $r_s$ of per-sample effective rank
-against correctness; $p$ is two-sided. None significant.}
-\label{tab:pc}
 \end{table}
 
 All four $p$-values are above $0.14$; the Quadratic readout is
@@ -136,6 +136,13 @@ the remaining transformer blocks. Decoding uses no KV cache, so the
 intervention re-fires at every step.
 
 \begin{table}[t]
+\caption{Negative control: rank-$k$ ablation on vanilla GPT-2 SFT
+(no matrix bottleneck, no $\Z$). Fake $\Z$ built from
+$h[:\!256]$ reshaped to $16\!\times\!16$ at the six analog-latent
+positions. Pooled-mean range across $k$ is $0.20$pp. Per-seed
+Spearman $r_s$: $+0.32, -0.16, +0.71$ ($n\!=\!500$ test problems
+each).}
+\label{tab:pc-negctrl}
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
@@ -150,13 +157,6 @@ $7$    & $78.00$ & $78.00$ & $78.00$ & $78.00$ & $78.20$ \\
 pooled & $78.93$ & $79.00$ & $78.87$ & $78.93$ & $79.07$ \\
 \bottomrule
 \end{tabular}
-\caption{Negative control: rank-$k$ ablation on vanilla GPT-2 SFT
-(no matrix bottleneck, no $\Z$). Fake $\Z$ built from
-$h[:\!256]$ reshaped to $16\!\times\!16$ at the six analog-latent
-positions. Pooled-mean range across $k$ is $0.20$pp. Per-seed
-Spearman $r_s$: $+0.32, -0.16, +0.71$ ($n\!=\!500$ test problems
-each).}
-\label{tab:pc-negctrl}
 \end{table}
 
 The pooled-mean range across $k$ is $0.20$pp
