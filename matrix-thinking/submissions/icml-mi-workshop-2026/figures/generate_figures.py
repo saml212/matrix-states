@@ -74,7 +74,8 @@ def fig1_rank_curves():
     ax.set_ylabel("ProsQA accuracy (%)")
     ax.set_ylim(75.0, 81.0)
     ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.6)
-    ax.legend(loc="lower right", frameon=False, ncol=1)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.18),
+              frameon=False, ncol=3)
 
     fig.tight_layout()
     out = os.path.join(HERE, "fig1_rank_curves.pdf")
