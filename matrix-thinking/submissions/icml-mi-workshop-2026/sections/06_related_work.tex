@@ -58,12 +58,15 @@ spectral truncation. Their step-wise causal structure is consistent
 with our linear-probe decay $\Z[1]\to\Z[5]$ (early positions carry
 information).
 
-\paragraph{Rank decay from depth.}
+\paragraph{Rank decay and token uniformity in stacked attention.}
 \citet{dong2021attention} showed that pure attention loses rank
-doubly exponentially with depth. Their subject is the rank of
-activations across a stack of attention layers; ours is the rank
-of an explicit matrix latent on a feedback path. The two phenomena
-are distinct.
+doubly exponentially with depth. \citet{yan2022uniformity}
+characterise the related token-uniformity phenomenon in
+BERT-family encoders via the singular-value distribution of layer
+outputs and propose a transformation that flattens the spectrum.
+Both lines measure rank in the activations of a stack of
+attention layers; ours measures the rank of an explicit matrix
+latent on a feedback path. The two objects of study are distinct.
 
 \paragraph{Implicit low-rank bias.}
 Gradient descent on matrix-factorization losses has an implicit
