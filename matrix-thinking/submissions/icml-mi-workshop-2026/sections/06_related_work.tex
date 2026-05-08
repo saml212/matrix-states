@@ -58,6 +58,19 @@ spectral truncation. Their step-wise causal structure is consistent
 with our linear-probe decay $\Z[1]\to\Z[5]$ (early positions carry
 information).
 
+\paragraph{Rank-trajectory probing in depth-recurrent latent CoT.}
+\citet{lu2025huginn} probe rank trajectories across recurrent
+blocks in Huginn-3.5B, a depth-recurrent transformer that reuses
+layers at inference. They find limited evidence of interpretable
+latent CoT via rank-trajectory analysis. Our setting differs in
+both model class (decoder-only GPT-2 with explicit per-position
+$\Z$, not depth-recurrent shared-weight blocks) and observable
+(rank-$k$ truncation of the trained $\Z$, not the rank trajectory
+across recurrent depth), but the two papers reach a kindred
+negative reading: rank-based probing of latent CoT does not, in
+either setting, straightforwardly reveal a multi-path
+superposition picture.
+
 \paragraph{Rank decay and token uniformity in stacked attention.}
 \citet{dong2021attention} showed that pure attention loses rank
 doubly exponentially with depth. \citet{yan2022uniformity}
