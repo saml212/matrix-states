@@ -27,7 +27,7 @@ Fig.~\ref{fig:scale}.
 \centering
 \includegraphics[width=\linewidth]{figures/fig3_scale_sweep.pdf}
 \caption{Scale sweep on ProsQA. Vanilla SFT degrades at GPT-2 large
-($68.75\%$) compared to GPT-2 small ($81.77\%$, three-seed mean) ---
+($68.75\%$) compared to GPT-2 small ($81.77\%$, three-seed mean).
 ProsQA ($17{,}886$ training examples) likely under-optimizes the
 larger backbone at default AdamW $\text{lr}=10^{-4}$. Matrix-CODI's
 best accuracy is below its matched vanilla SFT baseline at both tested
@@ -50,7 +50,7 @@ Three observations from Fig.~\ref{fig:scale}:
       The ProsQA training set ($17{,}886$ examples) is small relative
       to GPT-2 large's capacity; default AdamW at $\text{lr}=10^{-4}$
       likely under-optimizes the larger backbone. This is a data-size
-      artefact of ProsQA, not a finding about superposition.
+      artifact of ProsQA, not a finding about superposition.
 \item \textbf{Matrix does not rescue the regression.} If matrix-CODI's
       inductive bias were relevant at scale, we would expect it to
       preserve or improve on its gpt2-small performance as capacity

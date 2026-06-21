@@ -12,7 +12,7 @@ that these latents can hold multiple reasoning paths in
 \emph{superposition}, so continuous CoT could explore a search tree
 in parallel.
 
-\citet{rizvi2026illusion} pushed back: a fine-tuned COCONUT model
+\citet{rizvi2026illusion} challenged this: a fine-tuned COCONUT model
 reaches 96.6\% on ProsQA \emph{without} feeding back any latent
 tokens, against 99.0\% with latents and 85.3\% for explicit CoT. They
 named this the \emph{Illusion of Superposition}.
@@ -21,10 +21,18 @@ Matrix-valued latents \citep[e.g.,][]{shen2025codi} make the
 measurement concrete: a $d\times d$ thought $\Z$ has a computable
 rank via its SVD. If each singular direction encodes a separate
 reasoning path, truncating $\Z$ to rank $k$ at inference should
-degrade accuracy when the task needs more than $k$ paths. The
-rank-$k$ ablation curve is the natural probe. Put plainly: if
-rank reflects parallel reasoning paths, lowering it should hurt
-accuracy.
+degrade accuracy when the task needs more than $k$ paths, making
+the rank-$k$ ablation curve a natural probe.
+
+But rank counts parallel paths only under conditions the matrix
+parametrization does not guarantee: the stored features must align
+with the singular directions of $\Z=\mathrm{reshape}(W_{\text{up}}h)$,
+and the training objective must reward that alignment. Superposition,
+moreover, need not be orthogonal: features packed at small mutual
+angles need not raise the rank, so the number of superposed features
+need not equal the rank. We therefore test directly whether
+matrix-CODI training makes rank a functional readout of reasoning. It
+does not.
 
 \subsection{Contributions}
 
@@ -37,7 +45,7 @@ $d{=}16$, six latent positions, ProsQA):
 the multiplicative thinker on or off, and on GSM8K-Aug as well as
 ProsQA. Range across $k\!\in\!\{1,2,4,8,16\}$ is $\leq 0.6$pp.
 \item Three seeds at otherwise identical hyperparameters land at
-effective ranks $\{4, 12, 13\}$ and accuracies
+effective ranks $\{4, 12, 13\}$ and accuracy of
 $81.51\!\pm\!1.2$pp.
 \item Four nonlinear-in-$\Z$ readouts (bilinear, bilinear+GELU,
 SVD-augmented, quadratic in $\Z\Z^\top$) also give flat curves;
