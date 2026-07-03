@@ -1,0 +1,27 @@
+\section{Full Result Tables}
+\label{sec:appendix-tables}
+
+% Populate from raw JSONs at draft time -- do not hand-transcribe from
+% NARRATIVE.md a second time; regenerate directly from
+% experiment-runs/{2026-07-02_deltanet_waves,2026-07-03_deltanet_rd_waves,
+% 2026-07-04_lm_rd_wave2}/ via the extraction scripts named in
+% REPRODUCIBILITY.md \S1.1, so appendix numbers cannot silently drift
+% from the archived source of truth.
+
+\begin{itemize}
+  \item Table A1: full eval-truncation staircase, all 4 K, real data
+    (\texttt{DELTANET\_REALDATA\_DESIGN.md} \S17.4 fixed-grid $\cup$
+    K-local-window tables).
+  \item Table A2: full Wave F 18-cell table (key/value Gram deviation,
+    ID + held-out recovery, per arm $\times$ K) ---
+    \texttt{DELTANET\_RD\_EXACTNESS\_DESIGN.md} \S15.1.
+  \item Table A3: F-geo-3 Wave (K=16, K=32, + escalation cells once
+    resolved) --- \texttt{experiment-runs/2026-07-03\_deltanet\_rd\_
+    waves/exactness/wavegeo3/}.
+  \item Table A4: Wave 2 (Waves C+D) full 2$\times$2 train$\times$eval
+    corpus grid + token-class stratification ---
+    \texttt{DELTANET\_REALDATA\_DESIGN.md} \S19.3.
+  \item Table A5: compute accounting (GPU-hours per wave, all waves) ---
+    pulled from each wave's own measured \texttt{wall\_s} field, never
+    estimated; every wave in this program logs it directly.
+\end{itemize}

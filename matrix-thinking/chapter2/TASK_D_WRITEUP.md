@@ -1,10 +1,28 @@
 # Gradient Descent Recruits Matrix Rank When a Task Provably Requires It
 
+> **STATUS: CLOSED — CONFIRMED (2026-07-04 consolidation header; verdict
+> unchanged from the dated corrections below).** Task D confirms, at d=8 and
+> d=16, that gradient descent recruits effective rank ≈K when a task
+> provably requires rank(Z)≥K, and that this rank is causally necessary
+> (train-time `force_rank_k` staircase, sharp step at k≈K). This resolves
+> the open question left by the bolt-on matrix-CODI workshop paper — the
+> earlier rank-blindness was task-specific (ProsQA was rank-1-solvable), not
+> a property of the gradient. The d≥32 story is delegated to
+> `STAGE0_DESIGN.md` (also closed): the "trainability wall" there is
+> substantially a step-budget artifact, but the honest frontier is
+> **exactness**, which degrades with d and is not yet explained (named
+> Stage 0.5, open). **Known instrumentation caveat** (`archive/
+> chapter2-gauntlet/gauntlet/AUDIT_round3.md`, folded in here rather than
+> lost on archiving): the perpetual sweep's live progress metric,
+> `run_stage1`'s `m1_trends_up`, is a materially weaker, non-literal proxy
+> for the pre-registered M1 criterion — treat in-flight `m1_trends_up`
+> readings as a rough signal, not a substitute for the final aggregate.
+
 **Task D — Chapter 2 of the matrix-thinking program.**
 Status: **preliminary** (results snapshot at 991 completed runs; the perpetual sweep
 is still refilling). All numbers below are from
 `results/overnight_snapshots/AGGREGATE_latest.json`. Pre-registration:
-`TASK_D_PREREGISTRATION.md`. Full audit trail: `gauntlet/`.
+`TASK_D_PREREGISTRATION.md`. Full audit trail: `archive/chapter2-gauntlet/gauntlet/`.
 
 > **CORRECTION (2026-07-01, 1,234-run mega-replication):** a full replication
 > superseding the 991-run snapshot below found that §5.2's dismissal of the
@@ -213,7 +231,7 @@ workshop paper's Lesson that nonlinearity alone does not force rank use).
 
 ### 3.4 Single-`d×d`-state bottleneck (why rank has nowhere to hide)
 
-The design gauntlet (`gauntlet/ATTACK_task_shortcuts.md`) established that in any
+The design gauntlet (`archive/chapter2-gauntlet/gauntlet/ATTACK_task_shortcuts.md`) established that in any
 full-attention model, "hold `K` items" is satisfiable by attending to `K` positions at
 rank-1 each — the **position-decomposition** escape that killed our earlier
 matrix-CODI rank story (`rank_aware_v1`: a run at effective rank 13.2 was functionally
@@ -274,7 +292,7 @@ from rank-truncation backward rather than crashing; skipped-step counts are logg
 Design and code passed an adversarial gauntlet before any GPU run: a task-shortcut
 attack (which killed the original `K≈P` crossover design and produced Task D), a
 baseline/confound attack, and a novelty check, then **three rounds of code audit** +
-**two rounds of runner audit** (`gauntlet/AUDIT_*.md`), a runtime smoke gate on the
+**two rounds of runner audit** (`archive/chapter2-gauntlet/gauntlet/AUDIT_*.md`), a runtime smoke gate on the
 H100 (degenerate-spectrum backward, blank-out leak test, resolution pre-flight all
 pass), and the metric re-registration above. Pre-registration with decision criteria
 predates the runs.
@@ -483,7 +501,7 @@ the open question, addressed next.
 - **Code (torch + stdlib only, self-contained):** `task_d.py` (generator), `model_v4.py`
   (encoder + pinned unbind), `rank_utils.py` (eigh-stable rank), `run_task_d.py`
   (train/eval/smoke), `run_overnight.py` (perpetual 8×H100 orchestrator).
-- **Audit trail:** `matrix-thinking/chapter2/gauntlet/` (design gauntlet, 3× code audit,
+- **Audit trail:** `archive/chapter2-gauntlet/gauntlet/` (design gauntlet, 3× code audit,
   2× runner audit, novelty check).
 - **Results:** `results/overnight/AGGREGATE.json` + per-run JSONs; snapshot used here in
   `results/overnight_snapshots/`.

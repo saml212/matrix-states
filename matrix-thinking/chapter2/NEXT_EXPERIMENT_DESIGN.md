@@ -1,8 +1,17 @@
 # Task E Design Spec — Compositional Multi-Hop Relational Recall (Reasoning-Transfer)
 
+> **STATUS: CLOSED — Task E ran and its gate PASSED / CONFIRMED (2026-07-04
+> consolidation header). Results: `TASK_E_FINDINGS.md`; STATE.md "Chapter 2
+> — STATUS".** This is the design/pre-registration this project's naming
+> convention would otherwise call `TASK_E_DESIGN.md` — kept under its
+> original filename because ~10 living documents (STATE.md, EXPERIMENT_LOG.md,
+> TASK_E_FINDINGS.md, TASK_D_WRITEUP.md, STAGE0_DESIGN.md, both DeltaNet
+> design docs) cite it by this exact name; renaming would break every
+> inbound reference for no benefit.
+
 **Drafted 2026-07-01, before any build.** Status: ready for a build+audit pass, not
 yet locked/pre-registered (locking happens once the audit gauntlet has attacked
-this document the way `gauntlet/ATTACK_*.md` attacked Task D, and once the Stage-0
+this document the way `archive/chapter2-gauntlet/gauntlet/ATTACK_*.md` attacked Task D, and once the Stage-0
 trainability precursor below has actually run). Supersedes nothing — it is the
 `TASK_D_PREREGISTRATION.md` §8 sequencing item ("reasoning-transfer: does the
 mechanism survive on an actual reasoning task") made concrete, and it is the
@@ -113,11 +122,11 @@ simple paths and/or cycles). Two variants, both required:
 
 - **Primary variant — cyclic permutation.** `π` is a **single Hamiltonian
   K-cycle** over the K-subset (not a general random permutation — see
-  `gauntlet/AUDIT_task_e_validity.md` Finding B, folded in below). Every
+  `archive/chapter2-gauntlet/gauntlet/AUDIT_task_e_validity.md` Finding B, folded in below). Every
   entity in the subset has a well-defined successor for *any* h (chains never
   dead-end), so held-out-depth queries at arbitrarily large h are always
   valid by construction — this closes the MNNS/B-4 "frontier collapses at
-  unspecified depth" trap (`KILL_LIST.md` item 1; `gauntlet/ATTACK_task_shortcuts.md`
+  unspecified depth" trap (`KILL_LIST.md` item 1; `archive/chapter2-gauntlet/gauntlet/ATTACK_task_shortcuts.md`
   §B-4) outright: there is no ambiguity about whether a query is well-formed.
   **Audit correction (2026-07-01):** the first build sampled `π` as a
   *general* uniform random permutation, which typically decomposes into
@@ -228,7 +237,7 @@ knee). `{7,21}` is chosen so `h mod K` avoids `{0} ∪ (H_train mod K)` for
 every K in the (K=4-dropped) Stage-2 sweep grid `{8,12,16}` — the original
 `{8,10}` was self-defeating at K=8 specifically (`8 mod 8 = 0` ⇒ identity;
 `10 mod 8 = 2` ⇒ coincides with the training hop `h=2`), per
-`gauntlet/AUDIT_task_e_validity.md` Finding B.
+`archive/chapter2-gauntlet/gauntlet/AUDIT_task_e_validity.md` Finding B.
 
 > **ADDENDUM (2026-07-01, post-launch — a second, narrower residue collision
 > the periodicity fix above did not check).** The stated criterion (`h mod K`
@@ -285,7 +294,7 @@ ceiling (§3).
   across ≥5 seeds) AND (ii) degrades gracefully with hop distance from
   H_train (not a hard cliff at H_train+1) AND (iii) tracked against C7 so the
   gap-to-ideal is reported as a number, not asserted qualitatively.
-- **Stratification requirement (added 2026-07-01, `gauntlet/AUDIT_task_e_validity.md`
+- **Stratification requirement (added 2026-07-01, `archive/chapter2-gauntlet/gauntlet/AUDIT_task_e_validity.md`
   Finding B, fix item 3):** report every M3_E number alongside `effective_hop`
   — `h mod K` for the permutation variant (now a single K-cycle, so this is a
   single deterministic value per nominal `h`, not a per-query distribution to
@@ -372,7 +381,7 @@ force-rank-k extension. Must pass smoke before any training, per
 **Stage 2 — main compositional sweep (~80–120 GPU-h at d=16; +~50–75 GPU-h
 conditional on Stage 0 unlocking d=32/64).**
 - d=16 (guaranteed-trainable): K ∈ {8,12,16} — **K=4 dropped 2026-07-01**
-  (`gauntlet/AUDIT_task_e_validity.md` Finding B: even under the single-K-cycle
+  (`archive/chapter2-gauntlet/gauntlet/AUDIT_task_e_validity.md` Finding B: even under the single-K-cycle
   fix, K=4 leaves only residues `{0,1,2,3}` mod 4 available, i.e. every
   integer hop collides with either the identity or a training residue — no
   H_test/H_extra choice exists that isn't fully confounded at K=4; the code
@@ -493,7 +502,7 @@ audit gauntlet that comes next:
   blank-out test, mandatory smoke-gate item, verifies `pred(a,h)` is a pure
   function of `(Z, key_a, h)` via exactly h matmuls with no other pathway.**
 - **Not landed / addressed by design, not new fixes:** the master
-  rank-1-in-costume shortcut (`gauntlet/ATTACK_task_shortcuts.md` §0) is
+  rank-1-in-costume shortcut (`archive/chapter2-gauntlet/gauntlet/ATTACK_task_shortcuts.md` §0) is
   closed the same way Task D closes it — continuous pinned readout, no
   argmax, no unconstrained MLP on the primary arm (C_MLP is a deliberately
   separate, labeled shortcut-permitting control, not the headline model).
@@ -505,8 +514,8 @@ audit gauntlet that comes next:
   strictly more rank than recall (M4_E secondary) are genuinely unknown a
   priori — both directions are pre-registered as informative, per §6.
 
-**Post-build audit gauntlet (2026-07-01, `gauntlet/AUDIT_task_e_correctness.md` +
-`gauntlet/AUDIT_task_e_validity.md`), findings applied:**
+**Post-build audit gauntlet (2026-07-01, `archive/chapter2-gauntlet/gauntlet/AUDIT_task_e_correctness.md` +
+`archive/chapter2-gauntlet/gauntlet/AUDIT_task_e_validity.md`), findings applied:**
 - **FATAL (both audits):** `_assert_injective`'s rank threshold had a `-1`
   slack that could not detect a single-pair merge — the codebase's own
   negative unit test (`_test_injectivity_guard_detects_merge`) proved this by

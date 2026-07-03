@@ -1,10 +1,15 @@
 # Task D Pre-Registration — Chapter 2 Rank Gate
 
+> **STATUS: CLOSED — CONFIRMED (2026-07-04 consolidation header). Results:
+> `TASK_D_WRITEUP.md`.** This pre-registration is kept verbatim below,
+> unmodified, per scientific-integrity convention for locked pre-registered
+> designs — do not edit the body to match results after the fact.
+
 **Pre-registered 2026-07-01, before any training.** This document locks the
 hypotheses, design, controls, and decision criteria *in advance* so a result
 cannot be re-interpreted after the fact. It **supersedes the K≈P crossover
 design** in `CHAPTER_2_DESIGN.md`, which was killed by the 2026-07-01 design
-gauntlet (see `chapter2/gauntlet/`): a rank-1 matrix `Z=u⊗v₀` holds `d` items
+gauntlet (see `archive/chapter2-gauntlet/gauntlet/`): a rank-1 matrix `Z=u⊗v₀` holds `d` items
 via its free vector side, so rank was never the binding capacity constraint and
 the crossover would appear at K≈P·d, not K≈P — flat everywhere testable.
 
@@ -165,7 +170,7 @@ change, logged + re-registered).
 
 **Success metric (given the continuous readout, §2):** a binding is *recovered* if
 `cos(Z·key_j, v_j) > τ`. Report at **τ ∈ {0.9, 0.95, 0.99}**; the **knee test uses
-τ = 0.99** (primary). Round-1 audit finding (`gauntlet/AUDIT_validity.md`,
+τ = 0.99** (primary). Round-1 audit finding (`archive/chapter2-gauntlet/gauntlet/AUDIT_validity.md`,
 `AUDIT_adversarial.md`): with Gaussian near-orthogonal values a rank-(K−2) matrix
 clears τ=0.9 on all K bindings ~90% of the time — smearing the knee. Two fixes
 locked in: **(a) orthonormal keys+values** — the exact memory Σ vₖkₖᵀ then has a

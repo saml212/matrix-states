@@ -1469,6 +1469,60 @@ A follow-up empirical pass (`rank_aware_v1`, 2026-04-29) independently corrobora
 
 ---
 
+## 2026-07-01 → 2026-07-04 campaign — table of contents
+
+*(Added 2026-07-04 during a documentation consolidation pass. This file stays
+append-only — nothing below this header was altered — the index below just
+groups the campaign's entries by program thread so a reader doesn't have to
+scroll 1,600+ lines to find one. Full narrative synthesis of these five
+closed programs plus the exactness-mechanism follow-on: `STATE.md` "Chapter
+2 — STATUS".)*
+
+**Chapter 2 — Task D / Task E (bespoke synthetic causal rank + composition), CLOSED:**
+- Chapter 2 — Task D: Tensor-Product Key/Value Binding (2026-07-01)
+- Chapter 2.5 — Task E: Compositional Multi-Hop Relational Recall (launched 2026-07-01, running)
+- Task E 20K-step round — calibration finding (2026-07-01)
+- Task E 40K-step round — calibration finding (2026-07-02)
+- Task E Z-dump entity-subspace analysis — resolves M1_E rank-inflation complication (2026-07-02)
+- Task E K-wall resolution — 80K round (2026-07-02)
+- Task E — Z-dump subspace analysis extended to K=12/K=16 (2026-07-02)
+- Task E — K=16's stuck-seed completion wave (120K steps): 2/5 total, a boundary-case scaling observation not a fourth budget artifact (2026-07-02)
+
+**Stage 0 (d-frontier), CLOSED:**
+- Stage 0 — Wave −1/0 results: the d≥32 trainability wall is substantially a step-budget artifact (2026-07-02)
+- Stage 0 — Wave A + extended-budget arm: no intervention beats step budget; d=32 still short of the pass bar at 40K, d=64 still climbing at 60K (2026-07-02)
+- Stage 0 — exactness frontier: d=64 point, 150K steps (2026-07-02)
+- Stage 0 — d=48 interpolation wave complete; K=24 s1 flagged still-transitioning, not flat (2026-07-02)
+- Stage 0 — 100K-step probe: formal pass criterion FAILS at a converged plateau; Stage 0 closes (2026-07-03)
+
+**DeltaNet causal-rank (production-architecture causal rank), CLOSED:**
+- DeltaNet causal-rank — Waves −1 and 0: rank recruitment is exact (no inflation), unconstrained arm saturates at all 4 cells, F13 ratio gate exceeded (documented deviation) (2026-07-02)
+- DeltaNet causal-rank — B-probe train-time arm unreadable (fr31/fr32/fr33 collapse identically); causal necessity CONFIRMED via the pre-registered eval-time truncation staircase, razor cliff at k=31→32 (2026-07-02)
+- DeltaNet ReserveMH — multi-head generality CONFIRMED, no rank distribution: every head recruits full rank K=32 at H=2 and H=4 (2026-07-04 early)
+
+**Stage G (matrix-vs-vector gap mechanism), CLOSED:**
+- FLOPs-accounting audit of Runs 12-15 (2026-07-02)
+- Stage G — Wave −1/0 results: the byte-vocab BPB gap is not matrix-side undertraining; H_d FALSIFIED at Regime 2 (2026-07-02)
+- Stage G — Wave A/B screen results: the gap has a named mechanism — Kronecker-separable projection restriction (2026-07-02)
+
+**DeltaNet real-data (rank-K binding + composition on real tokenized text), CLOSED:**
+- DeltaNet real-data link — Waves −1/0: original round value-collapses 10/10 (caught clean, zero premise-valid), mini-audit finds a hop-index FATAL, rerun with fix + NCE loss is 10/10 collapse-free, first genuine rank-K binding on real tokenized text (2026-07-03)
+- DeltaNet real-data link — Wave A: a graded K-axis exactness frontier on real tokenized text, rank recruitment holds at every K, depth-decay signature reproduces (2026-07-03)
+- DeltaNet real-data link — Wave 1 closes: causal rank necessity CONFIRMED via eval-time truncation, staircase graded not razor-sharp (real-data-specific finding), Bprobe reproduces the train-time-forcing failure a third time (2026-07-03)
+- DeltaNet real-data — deeper-hop training probe LAUNCHED (2026-07-03, in flight)
+- DeltaNet real-data — deeper-hop training probe RESULT: hop supervision does not move the per-hop decay curve; depth-amplification signature reproduces; "train deeper" lever dead (2026-07-03)
+- DeltaNet real-data — deephop program CLOSED: decay curve is a function of K alone, invariant to hop supervision AND 2.5x budget; K=24 completes the axis (2026-07-03 overnight)
+- DeltaNet real-data -- Wave 2 (Waves C+D) results: reasoning text is more truncation-damage-sensitive at low k; layer-0 rank contracts (not grows) with training in both corpora (2026-07-04)
+
+**Exactness mechanism study (why real-text composition falls short of the synthetic razor cliff) — follow-on to the five closed programs, F-geo-3 fix wave IN FLIGHT:**
+- Exactness mechanism study — Wave 0/iii-β first results: measured-β reconstruction is near-EXACT (residual ~0.004); state-formation account essentially complete; geometry+β explain the h=1 frontier (2026-07-03 overnight)
+- Exactness mechanism study — Wave 1 ATTRIBUTION VERDICT: effective-key geometry is the whole story; i-strong pin achieves PERFECT K=32 composition (1.00/1.00/1.00); Wave F full track gate CLEARED (2026-07-04 early)
+- Exactness Wave F (soft arms) — bars NOT hit, honest negative with a sharp lesson: soft geometry pressure barely moves SGD's attractor (2026-07-04 early, 12/18 cells, remainder consistent)
+- K=48 rider — frontier extends past d/2: gram dev 4.25-4.41, h=1 halves to 0.41-0.44, composition gone (2026-07-04)
+- F-geo-3 WAVE VERDICT (2026-07-04): fix demonstration LANDED at K=16 — min-publishable bar HIT 3/3 admissible (h4 0.95-1.00 vs bar 0.8, baseline 0.42-0.47; h7 0.55-0.67 vs 0.07-0.10); K=32 transformed ~50x (h4 0.39-0.50 vs 0.009; ID h2 1.0 vs 0.26) but 0/3 admissible (56/20K fallback steps) — headline bar NOT claimed per pre-registration
+
+---
+
 ## Chapter 2 — Task D: Tensor-Product Key/Value Binding (2026-07-01)
 
 **Status: CONFIRMED at d=8, d=16.** First positive result for matrix-native rank in this project. Full spec + proof: `matrix-thinking/chapter2/TASK_D_PREREGISTRATION.md`. Full cited write-up: `matrix-thinking/chapter2/TASK_D_WRITEUP.md`. Audit trail: `matrix-thinking/chapter2/gauntlet/`.
@@ -3102,3 +3156,36 @@ was correctly REFUSED by its own dimensional guard (train+heldout identity
 vectors 96 > d_state=64) — the K=d/2 boundary rider stays fenced as
 designed. Archive: experiment-runs/2026-07-03_deltanet_rd_waves/exactness/
 k48rider/.
+
+## F-geo-3 WAVE VERDICT (2026-07-04): fix demonstration LANDED at K=16 — min-publishable bar HIT 3/3 admissible (h4 0.95-1.00 vs bar 0.8, baseline 0.42-0.47; h7 0.55-0.67 vs 0.07-0.10); K=32 transformed ~50x (h4 0.39-0.50 vs 0.009; ID h2 1.0 vs 0.26) but 0/3 admissible (56/20K fallback steps) — headline bar NOT claimed per pre-registration
+
+Gate passed pre-spend (predicted K16 h4=1.00 / K32 0.77 from measured drift
+0.94/0.90 — training stabilizes keys; the attack's cross-episode-drift risk
+resolved favorably). h=1 no-sacrifice satisfied (1.0 everywhere). h=21
+literal-depth still collapses (orthogonality fixes write interference, not
+iteration compounding). Follow-on launched (documented extension, original
+result stands): K=32 ×3 seeds at geo3_n_iter=20 — the audit-verified
+escalation targeting the exact admission-failure cause (NS fallback on
+0.28% of steps). Archive: experiment-runs/2026-07-03_deltanet_rd_waves/
+exactness/wavegeo3/. Full §14 results section to follow with the
+escalation cells.
+
+## Control A — belated catch-up entry for a 2026-04-28 run (logged 2026-07-04 during documentation consolidation; not a new experiment)
+
+This run happened during the workshop-paper era and was never logged here —
+found and reconciled during a documentation consolidation pass. Full history,
+timeline, and design-doc lineage: `matrix-thinking/CONTROL_A_HISTORY.md`.
+Control A tested whether ProsQA (the workshop paper's task) is rank-1-solvable
+by running a propagating fake-Z rank-k ablation on **vanilla vector** GPT-2 SFT
+checkpoints (no matrix bottleneck) — the null-baseline check for the paper's
+matrix-specific rank-blindness claim. Result (2026-04-28, `experiment-runs/
+2026-04-28_control_a/control_a/SUMMARY.txt`): pooled Spearman r=0.0718 across
+k∈{1,2,4,8,16}, pooled full-sequence accuracy flat at 78.87–79.07%, decision
+ruled **ambiguous** (not flat) because the randomized-h sensitivity-floor
+control (79.6/79.2/78.2% per seed) landed inside the same narrow band as both
+the real ablation and the unablated baseline (80.0/78.8/78.0%) — the
+instrument cannot distinguish "rank doesn't matter here" from "too
+low-powered to tell," so this does not independently confirm or rule out
+task-rank-1-solvability as a contributor to the paper's rank-blindness
+finding. Does not change the paper's published claim; documented here for
+completeness per the "log everything" hard rule.

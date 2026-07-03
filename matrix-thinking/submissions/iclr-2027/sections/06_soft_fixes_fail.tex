@@ -1,0 +1,57 @@
+\section{Soft Fixes Fail: The Attractor Is Robust}
+\label{sec:soft-fixes}
+
+% Full grounding: DELTANET_RD_EXACTNESS_DESIGN.md \S15 (18/18 cells);
+% EXPERIMENT_LOG.md "Exactness Wave F (soft arms)" 2026-07-04.
+
+\subsection{Two pre-registered interventions, one registered shot each}
+\begin{itemize}
+  \item F-geo-1: $L_{\mathrm{orth}}$ penalty, $\lambda \in \{0.1, 1.0\}$.
+  \item F-geo-2: population-level ZCA whitening.
+  \item Both ran to completion with NO further tuning (anti-Goodhart cap
+    honored) --- state explicitly so it doesn't read as ``we could have
+    tried harder.''
+\end{itemize}
+
+\subsection{Result: one attractor, three approach angles (Fig.~6)}
+\begin{itemize}
+  \item ALL land in the SAME narrow basin: gram dev $2.51$--$2.57$ at
+    $K{=}32$ vs.\ baseline $2.71$--$2.77$ (a 3--8\% cleanup), regardless of
+    mechanism (weak soft push / strong soft push / population-level
+    decorrelation) or $\lambda$ (10$\times$ change bought nothing --- the
+    penalty saturates).
+  \item Every pre-registered bar MISSED: headline ($K{=}32,h{=}4 \geq
+    0.5$) $\to$ measured $0.014$--$0.026$ ($\sim$20--25$\times$ below);
+    minimum publishable ($K{=}16,h{=}4 \geq 0.8$) $\to$ measured
+    $0.465$--$0.516$ ($\sim$1.6--1.7$\times$ above achieved).
+  \item $h{=}1$ no-sacrifice guard SATISFIED everywhere --- the
+    interventions do what they promise, just not enough of it.
+\end{itemize}
+
+\subsection{The proportionality reading: real, but geometrically shrinking}
+\begin{itemize}
+  \item Gram cleanup at $K{=}32$: 3--8\% real (every one of 9 seeds below
+    baseline band). Recovery gain shrinks at every hop: $h{=}2$: $+0.07$
+    to $+0.10$; $h{=}3$: $+0.04$ to $+0.05$; $h{=}4$: only $+0.005$ to
+    $+0.017$.
+  \item Exactly the shape the $\varepsilon^h$ compounding law
+    (\S\ref{sec:phenomenon}) predicts --- a modest, real reduction in
+    per-binding $\varepsilon$ produces a shrinking-in-reverse benefit as
+    $h$ grows.
+\end{itemize}
+
+\subsection{Honest conclusion (pre-registered negative branch, not a failed pilot)}
+\begin{itemize}
+  \item Verbatim framing to carry into the paper: ``a dominant mechanism
+    whose matching fix does NOT move the frontier is itself a publishable
+    finding.''
+  \item Demonstration-claim tier verdict: FALSE for all three arms, stated
+    plainly. Weaker true claim earned: a genuine, causal
+    (premise-conditional) but small write-geometry cleanup, recovery
+    moving proportionally in the predicted direction.
+  \item F-geo-1's key-Gram number is compromised as premise-evidence
+    (directly optimized by $L_{\mathrm{orth}}$) --- the verdict rests on
+    behavioral $\mathrm{rec@0.9}$ bars only for those two arms. F-geo-2
+    (ZCA) has no such carve-out and lands in the same basin anyway ---
+    itself evidence the carve-out isn't hiding a different outcome.
+\end{itemize}

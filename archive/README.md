@@ -12,6 +12,21 @@ This folder holds dead ends, superseded designs, and historical material from th
 
 ### Subfolders
 
+- **matrix-thinking-workshop-era/** (added 2026-07-04) — Design/audit/results
+  docs from the bolt-on matrix-CODI / ICML MI Workshop 2026 paper era
+  (accepted). Includes the six-document Control A lifecycle (consolidated
+  into `matrix-thinking/CONTROL_A_HISTORY.md`), the superseded original
+  Chapter 2 plan, and the pre-submission/paper-writing scratch. See its own
+  README for the file-by-file supersession map.
+- **chapter2-gauntlet/** (added 2026-07-04) — Task D/Task E design-gauntlet
+  attack/audit/research rounds (14 files) plus Task D's superseded findings
+  draft and deploy runbook. Both programs are CLOSED — CONFIRMED (see
+  `matrix-thinking/chapter2/TASK_D_WRITEUP.md`,
+  `matrix-thinking/chapter2/TASK_E_FINDINGS.md`). See its own README for
+  which findings were folded into living docs before archiving.
+- **team-output-2026-04-28/** (added 2026-07-04) — The planning gauntlet for
+  `rank_aware_v1`, superseded by that experiment's 2026-04-29 execution
+  (`experiment-runs/2026-04-29_rank_aware_v1/`). See its own README.
 - **byte-agnostic/** — The original Phase 1-2 work: PHM layers + learned byte segmentation. 7 experiments. Best result 2.34 BPC on multi-modal data with fixed-stride. Killed because (a) PHM converges to nilpotent rather than learning meaningful algebra, (b) the matrix-thinking thread is a stronger version of the same intuition with a clearer observable. See `ARCHIVE_NOTE_byte-agnostic.md`.
 
 - **algebra_ablation/** — PHM algebra ablation results. Tested whether quaternion-fixed structure beats learned PHM. Result: nilpotent (learned) wins on task performance even though it loses the algebraic structure.

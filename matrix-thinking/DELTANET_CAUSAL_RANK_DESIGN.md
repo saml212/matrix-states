@@ -1,5 +1,21 @@
 # DeltaNet Causal-Rank Design — Chapter 2 Extension to a Production Fast-Weight Architecture
 
+> **STATUS: CLOSED (one of STATE.md's five closed 2026-07-01→03 programs).**
+> Verdict: rank causal-necessity **CONFIRMED** on a production fast-weight
+> kernel (DeltaNet's `chunk_delta_rule`) with hand-built orthonormal keys.
+> Wave 0: the unconstrained arm saturates perfectly at every `(d,K)` cell
+> tested (entity-subspace rank = whole-matrix rank = K exactly, no
+> inflation — architectural, not a training accident). The train-time
+> force-rank B-probe arm was uninformative (fr31/32/33 collapsed
+> identically), so the pre-registered fallback — eval-time SVD-truncation
+> staircase — carried the causal claim instead: a **razor-sharp cliff at
+> k=31→32** matching the `(K−h)/K` theoretical prediction to within
+> 0.001–0.003. A follow-on Reserve wave (multi-head) confirmed the result
+> generalizes: every attention head independently recruits full rank K=32
+> at H∈{2,4} — SGD does not split the binding across heads. This result was
+> then extended to real tokenized text; see `DELTANET_REALDATA_DESIGN.md`
+> (also closed) for that leg.
+
 **Drafted 2026-07-01, before any code changes.** Status: design only, per
 instruction — no model/training code is written here. This is the natural
 third leg of the Chapter 2 "does the gradient see rank" lineage:

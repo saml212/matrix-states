@@ -1,5 +1,22 @@
 # Stage G Design — Where the Per-FLOP Signal Loss Occurs in Matrix-Token LMs
 
+> **STATUS: CLOSED (one of STATE.md's five closed 2026-07-01→03 programs).**
+> Verdict (§14.6, full mechanistic account §14.5): the matrix-vs-vector BPB
+> gap has a **named, dominant mechanism** — the Kronecker-separable
+> restriction forced by `RowThenColProjection`, not matrix-valued tokens
+> per se. Relaxing it to a dense rank-swept bottleneck recovers ~64-70% of
+> the gap at matched parameters (every seed ≥0.5 `recovered_frac`) while
+> using *fewer* FLOPs than what it replaces. Most of the apparent "beats a
+> vector baseline" inversion at higher rank is a capacity effect, not a
+> matrix-side win (a capacity-matched vector control beats it by 0.092 BPB).
+> The per-FLOP tax against a capacity-matched vector reference survives
+> everywhere measured (≈16.5×, down from the original 54.7× once corrected
+> for the never-actually-FLOPs-matched accounting bug this design also
+> caught, §10). H_e (task-representation-mismatch, §1) is a separate,
+> narrower gated hypothesis this document also defines; its Wave C gate is
+> now triggered per the verdict above (confirmed-but-narrow dominant site) —
+> see STATE.md "Chapter 2 — STATUS" for that thread's own status.
+
 **Drafted 2026-07-01, before any code changes.** Status: design only — no
 model/training code is written here. This document diagnoses a *different*
 honest negative than Stage 0 (`matrix-thinking/chapter2/STAGE0_DESIGN.md`):

@@ -41,6 +41,12 @@ The most recent work. A multi-agent session investigated 11 topics in parallel a
 - **waterfall-cheap-ops-april2026.md** — Full waterfall (brainstorm → research → attack → validation): speed doesn't fix the quality gap.
 - **cutting-edge-2025-2026.md** — Snapshot of recent ML research relevant to the project.
 
+### June-July 2026 research (Chapter 2 / tokenization + novelty checks)
+
+- **bytes-vs-tokens-matrix-native-june2026.md** — Adversarial literature check on holding the tokenizer standard (BPE) vs. byte-level input for the scaled matrix-native model. Verdict: hold BPE now, keep byte-level queued as a high-priority (not throwaway) follow-on — tokenization is not proven orthogonal to reasoning. Informs `STATE.md` "Then — Chapter 3."
+- **DEEP_RESEARCH_PROMPT_bytes-vs-tokens.md** — The external deep-research prompt used to cross-check the above note. Reference input, not a findings note; the external agent's output (if ever run) was not found saved to this repo under the filename this prompt specifies.
+- **task-d-novelty-july2026.md** — Novelty check for Task D's rank-aware KV-binding design against the closest prior art (Nichani, Lee & Bietti ICLR 2025). Verdict: novel, not scooped, but requires explicit positioning against three active lines of work. Informs `matrix-thinking/chapter2/TASK_D_PREREGISTRATION.md`.
+
 ### Older research (March 2026 and before)
 
 - **publishability-assessment.md** — Honest review of which findings are publishable and what's missing.

@@ -1,5 +1,26 @@
 # DeltaNet Real-Data Design — The Real-Data Link in the Causal-Rank Chain
 
+> **STATUS: CLOSED (one of STATE.md's five closed 2026-07-01→03 programs;
+> Wave 1 closing verdict §17.11, Wave 2 results §19).** Verdict: rank causal
+> necessity **CONFIRMED** at K∈{8,16,24,32} on real GPT-2-tokenized text via
+> eval-time truncation — a hard ceiling reached exactly at k=K, but graded
+> across a multi-rank window rather than the synthetic design's razor cliff
+> (trained keys are non-orthonormal on real text — the pre-registered
+> caveat, landing exactly as predicted). This is the project's first
+> demonstration of genuine, causally-verified rank-K relational binding in
+> a production architecture on real tokenized surface forms. **Wave 2**
+> (Waves C+D, closed 2026-07-04, §19): reasoning-dense text (OpenR1-Math) is
+> measurably more truncation-damage-sensitive than narrative text
+> (WikiText) at low k, converging to the same noise floor by k≈48 of
+> d_state=64; layer-0 effective rank *falls* (not rises) as training
+> proceeds in both corpora — opposite the "SGD recruits more rank as it
+> learns" intuition from the controlled causal-rank chain. Wave 2 closes
+> this program's record; no further waves are pre-registered beyond §7's
+> manifest Reserve row. The open follow-on question this program's results
+> motivated — *why* real-text composition falls short of the synthetic
+> razor cliff — is being pursued separately in `DELTANET_RD_EXACTNESS_DESIGN.md`
+> (living, not closed; see STATE.md "Chapter 2 — STATUS").
+
 **Drafted 2026-07-02, before any code changes.** Status: design only, per
 instruction — no model/training code is written here. This is the fourth leg
 of the Chapter 2 "does the gradient see rank" lineage, and the first one

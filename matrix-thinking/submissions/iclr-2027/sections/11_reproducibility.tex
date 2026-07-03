@@ -1,0 +1,25 @@
+\section{Reproducibility Statement}
+\label{sec:reproducibility}
+
+% Full plan: REPRODUCIBILITY.md (companion doc, this repo). Keep the
+% in-paper section compact: pointer + the artifact's headline property.
+
+\begin{itemize}
+  \item Code, result JSONs, and the full pre-registration/attack/audit
+    trail (including the dated revision history of every design decision
+    and the negative results run to completion under the pre-registered
+    anti-Goodhart cap) released as a single artifact --- see
+    \texttt{REPRODUCIBILITY.md} for the full release plan.
+  \item Anonymous link at submission: \texttt{anonymous.4open.science}
+    mirror, de-identified per the artifact's \S1.3. De-anonymized link at
+    camera-ready.
+  \item Every numerical claim in this paper has a matching entry in the
+    released \texttt{EXPERIMENT\_LOG.md} record and a traceable
+    pre-registration date/criterion (claim-tier appendix,
+    \S\ref{sec:appendix-tiers}).
+  \item Known caveats carried into the artifact, not hidden: kernel-path/
+    precision pinning, the F-geo-3 admission-stack comparability caveat,
+    small/uneven sample sizes in Wave 2's Q1/Q4 analyses, and the
+    seed-count asymmetry underlying the eval-truncation ceiling numbers
+    ($K{=}16$ $n{=}10$, $K{=}32$ $n{=}7$, $K{=}8/24$ $n{=}2$ each).
+\end{itemize}

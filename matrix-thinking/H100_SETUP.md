@@ -66,7 +66,14 @@ near 100% utilized, without losing work to a preemption/disconnect/crash:
    truncated write from a killed process), apply a **per-run timeout with GPU
    quarantine** (a wedged reap must not let a poisoned GPU get reused), and
    write a **guarded aggregate** (a single malformed record must not prevent
-   `SUMMARY.txt` from being written for everything else).
+   `SUMMARY.txt` from being written for everything else). **Residual gap
+   found on the Task D overnight round-2 re-audit (`chapter2/gauntlet/
+   AUDIT_overnight_r2.md`, not fully closed by the fixes above):**
+   `write_progress()` calls and the harvest loop's `lf.close()` are
+   themselves unguarded — an exception between opening and closing a
+   progress/log file can still corrupt or lose that file even with
+   exception-isolation and GPU quarantine in place elsewhere. Wrap file
+   writes/closes in their own `try/finally`, not just the launch/reap paths.
 4. **Pack multiple tiny runs per GPU** (`--per-gpu N`) to reach near-100%
    utilization when models are small (~1GB, <100% of one H100) — but know that
    at full packing this reflects contention, not N× more science/sec; the
@@ -76,8 +83,11 @@ near 100% utilized, without losing work to a preemption/disconnect/crash:
    the current one is 2-3 rounds deep into pure reruns.
 
 See `matrix-thinking/chapter2/run_overnight.py` (Task D) and
-`run_task_e_sweep.py` (Task E) for reference implementations of this pattern,
-and `matrix-thinking/chapter2/DEPLOY.md` for the exact deploy runbook.
+`run_task_e_sweep.py` (Task E) for reference implementations of this pattern.
+(`chapter2/DEPLOY.md`, the earlier deploy runbook this section was distilled
+from, is archived at `archive/chapter2-gauntlet/DEPLOY.md` as of 2026-07-04
+— its box-specific details, e.g. the `ubuntu` user, are stale; this section
+is the current source of truth.)
 
 ## Access (prior single-H100 pod, superseded — kept for reference)
 ```

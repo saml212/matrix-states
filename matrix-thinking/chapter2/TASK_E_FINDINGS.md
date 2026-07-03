@@ -1,5 +1,24 @@
 # Task E Findings — 40K-Step Calibration Round (Compositional Multi-Hop Relational Recall)
 
+> **STATUS: CLOSED — Task E gate PASSED / CONFIRMED (2026-07-04
+> consolidation header).** The rank-K matrix Task D showed is causally
+> necessary also **composes** correctly under repeated self-application
+> (`Zʰ`) at held-out hop-depths, at d=16: effective rank tracks K almost
+> exactly and recovery is exact (`recovered_frac@0.9`=1.00) at every tested
+> hop including h=21. This is the primary decision gate for Chapter 3
+> (real-data matrix-native on OpenR1-Math) — PASSED. Later rounds beyond
+> this 40K snapshot (an 80K K-wall resolution and a 120K K=16 completion
+> wave, both 2026-07-02, see `EXPERIMENT_LOG.md`) retracted the original
+> "K-wall" as a step-budget artifact and added one honest boundary-case
+> caveat: at K=16=d, only 2/5 seeds converge even at 120K steps — a genuine,
+> narrow negative, not a fourth budget artifact. M4_E (the force-rank
+> staircase) remains an honest instrumentation gap: it collapses under the
+> multi-hop objective and was never made measurable at this operating
+> point. Sections below are the original dated snapshot narrative
+> (superseded numbers are corrected inline where later rounds revised them,
+> per this project's mid-sweep-snapshot convention); it is kept rather than
+> rewritten so the reasoning trail stays intact.
+
 **Dated 2026-07-02 UTC. Status: INTERIM / mid-round.** n=24/33 planned runs
 complete on the Brev 8×H100 cluster (K=12 and K=16 unconstrained have 2-3
 stragglers each still running; one Tier-2 `C_MLP` run is still draining). All
@@ -294,7 +313,7 @@ follow-up to distinguish these, and has not been run.
   verbatim).
 - Orchestrator: `matrix-thinking/chapter2/run_task_e_sweep.py`, this round
   launched with `build_manifest(calibrate=True)` and `--steps 40000`.
-- Audit trail: `matrix-thinking/chapter2/gauntlet/AUDIT_task_e_correctness.md`,
+- Audit trail: `archive/chapter2-gauntlet/gauntlet/AUDIT_task_e_correctness.md`,
   `AUDIT_task_e_validity.md`.
 - This snapshot: per-run JSONs on the Brev 8×H100 cluster (n=24/33); no
   local aggregate file has been pulled yet for this round (unlike Task D's
