@@ -32,6 +32,14 @@ Table~\ref{tab:taskd-m1} is a 991-run mid-sweep snapshot; a subsequent
 cells (e.g.\ $d{=}16$: $K{=}8\to8.198$, $K{=}16\to15.083$, $K{=}24\to10.40$,
 $K{=}32\to9.46$) without changing the qualitative story, so we report the
 originally pre-registered table and note the replication for the record.
+% SOURCE (traced 2026-07-03, integrity audit): the 1,234-run mega-replication
+% is /home/nvidia/chapter2/results/overnight/AGGREGATE.json on the Brev
+% 8xH100 box "youthful-indigo-turkey" (n_runs=1234, n_failed=3). It was never
+% pulled into the local repo archive at the time of the prior audit, hence
+% "untraceable"; confirmed present and numerically exact against every
+% figure cited here (M1_effrank_vs_K_by_d["16"]: 8->8.1984, 16->15.0828,
+% 24->10.403, 32->9.4587). Archived copy committed at
+% matrix-thinking/chapter2/results/overnight_snapshots/AGGREGATE_1234.json.
 
 \subsection{M3 -- the causal force-rank step lands at $k\approx K$}
 \label{sec:taskd-m3}
@@ -71,6 +79,13 @@ transition zone to a ragged ramp rather than a single clean step
 noisier than a two-point table implies.}
 \label{tab:taskd-m3}
 \end{table}
+% SOURCE (traced 2026-07-03, integrity audit): the "1,234-run
+% mega-replication" fr=11/13/14 values above trace to
+% /home/nvidia/chapter2/results/overnight/AGGREGATE.json on the Brev 8xH100
+% box "youthful-indigo-turkey" (n_runs=1234, n_failed=3), archived locally at
+% matrix-thinking/chapter2/results/overnight_snapshots/AGGREGATE_1234.json.
+% M3_recovered_frac@0.9_vs_forcerank["d16_K12"]: fr11=0.7530, fr13=0.7881,
+% fr14=0.8489 -- exact match (rounded) to the caption text.
 
 The signature in Table~\ref{tab:taskd-m3} (plotted in
 Figure~\ref{fig:taskd-forcerank}) is the paper's central causal result:
@@ -98,12 +113,23 @@ in Table~\ref{tab:taskd-m3}'s caption. Regenerated directly from the
 re-typed from the table.}
 \label{fig:taskd-forcerank}
 \end{figure*}
+% SOURCE (traced 2026-07-03, integrity audit): the "1,234-run
+% mega-replication" referenced in this caption is the same run as above --
+% /home/nvidia/chapter2/results/overnight/AGGREGATE.json (n_runs=1234,
+% n_failed=3), archived locally at
+% matrix-thinking/chapter2/results/overnight_snapshots/AGGREGATE_1234.json.
 
 \paragraph{One cell needed a second look.} At $d{=}16,K{=}4$, the original
 8{,}000-step budget produced $\mathrm{recovered\_frac@0.9}=0.045$ even at
 \emph{full} rank (force-rank $16$, i.e.\ no constraint at all), with the
 entire force-rank sweep confined to $0.0008$--$0.134$ -- initially read as
 a genuine, seed-count-independent convergence ceiling specific to this
+% SOURCE (traced 2026-07-03): the 0.045 / 0.0008-0.134 figures are the
+% d16_K4 cell of the same 1,234-run mega-replication
+% (M3_recovered_frac@0.9_vs_forcerank["d16_K4"]: fr16=0.0452, min=0.0008 at
+% fr2, max=0.1338 at fr4) -- /home/nvidia/chapter2/results/overnight/
+% AGGREGATE.json; archived at
+% matrix-thinking/chapter2/results/overnight_snapshots/AGGREGATE_1234.json.
 cell. An opportunistic probe at $2.5\times$ budget (20{,}000 steps, 2
 seeds, unconstrained) instead reached $0.348$/$0.483$ -- a 3--10$\times$
 jump off the earlier ceiling, with effective rank showing an
