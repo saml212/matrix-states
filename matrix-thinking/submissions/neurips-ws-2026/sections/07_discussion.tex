@@ -1,0 +1,88 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Scope: synthetic tasks, $\leq$1M parameters.} Every experiment
+in this paper is small by contemporary standards: the largest model tested
+has $\approx183$K parameters ($d{=}64$), and every task is a synthetic
+associative-memory or composition grammar with no natural-language content.
+This project's own working practice treats results at this scale with
+caution for good reason -- at a few hundred thousand parameters on natural
+text, models barely learn unigram statistics, and no claim about
+reasoning, generalization, or abstract thought is licensed by such a
+model's behavior alone. That caution does not straightforwardly transfer
+here, and it is worth being explicit about why. A behavioral claim on real
+text (``this model reasons'') has no ground truth to check against except
+more behavior, so a small model's poor performance is genuinely
+uninformative about the mechanism in a larger model. The claims in
+\S\ref{sec:taskd}--\ref{sec:taske} are different in kind: $\rank(Z)\geq K$
+is a proven necessity for the exact solution at \emph{any} scale, so
+finding effective rank $\approx K$, a causal step at $k\approx K$, and an
+entity-subspace-restricted operator that is exactly the analytic target
+are not behavioral proxies for a mechanism -- they are direct measurements
+of a mechanism against a known, provable ground truth. What small scale
+does still cost us is generality: we do not know whether the same
+mechanism is recruited at 10M+ parameters, on real data, or under a
+training objective with no comparably clean ground truth to check against.
+That is precisely the transfer question \S\ref{sec:frontier}'s exactness
+frontier and this project's own sequencing treat as the next, separate
+step, gated on the results reported here -- not yet run.
+
+\paragraph{What this does not show.} Task D and Task E are deliberately
+abstract, chosen for provability rather than realism. They do not show
+that matrix-valued rank helps performance on a real reasoning benchmark,
+that the mechanism survives standard-scale pretraining, or that it competes
+with any production architecture on accuracy or throughput. \S\ref{sec:related}'s
+discussion of \citet{dziri2023faithfate} and \citet{wang2024grokked}
+applies directly here: a mechanism shown to compose exactly on a synthetic
+cycle with known structure is not evidence that the same mechanism
+generalizes compositionally on tasks without that structure.
+
+\paragraph{Concurrent, preliminary: DeltaNet.} A separate, still-running
+campaign asks whether the same causal-rank story holds on a production
+fast-weight architecture -- vanilla, single-Householder-per-token DeltaNet
+\citep{schlag2021linear}, whose delta rule $S_t=S_{t-1}(I-\beta_tk_tk_t^\top)
++\beta_tv_tk_t^\top$ only ever writes within $\mathrm{span}(\{k_j\})$ by
+construction. On the same Task-E-style composition grammar, the
+unconstrained arm reaches $\mathrm{recovered\_frac@0.9}=1.00$ at every
+tested hop (1--7, 21) at all four tested $(d,K)$ cells within
+$2.5\times$ tier-default step budget, with zero training instability -- a
+materially different outcome from the bespoke encoder used throughout this
+paper, which plateaus sub-exact at the same $(d,K)=(64,32)$ operating
+point after $150$K steps. Architecturally, entity-subspace rank equals
+whole-matrix rank exactly, with no inflation: the delta rule has no
+orthogonal complement for an optimizer to leave untouched, so
+\S\ref{sec:taske-subspace}'s subspace-restriction fix is unnecessary here
+by construction rather than by a fortunate optimization outcome. This is
+consistent with, and architecturally cleaner than, this paper's Task E
+result. It is \emph{not} yet a completed causal claim: the force-rank
+staircase that would show a $k{=}K{-}1$ collapse (this paper's central test
+in \S\ref{sec:taskd-m3} and \S\ref{sec:taske-depth}) is mid-campaign on
+DeltaNet -- a $k{=}K$ (provably sufficient) cell is climbing but has not
+reached ceiling within its tier budget, and the $k{=}K{-}1$ comparison has
+not run. We report this paragraph only to bound what is already visible in
+that campaign; the full DeltaNet result, including the causal staircase, is
+a separate paper.
+
+\paragraph{Falsification.} For the core causal claim
+(\S\ref{sec:taskd-m3}, \S\ref{sec:taske-depth}): a force-rank-$(K{-}1)$
+model reaching $\geq0.9\times$ ceiling accuracy at multiple $(d,K)$
+operating points would falsify it. This has not happened -- the one
+force-rank-$(K{-}1)$ Task E seed that converged at all showed exactly the
+predicted depth-decay signature (Table~\ref{tab:taske-depth}), not ceiling
+accuracy. For the exactness-frontier claim (\S\ref{sec:frontier}): a
+$d\geq32$ cell reaching the pre-registered $>0.7$ bar at any tested budget
+would revise it toward ``trainability, not exactness, is the limit''; this
+has not happened through 100K--150K steps with confirmed-flat trailing
+checkpoints. For the concurrent DeltaNet result: a completed Wave-B
+force-rank grid showing no accuracy step between $k{=}K{-}1$ and $k\geq K$
+even at extended budget would be the relevant negative there, distinct
+from -- and, per \S\ref{sec:frontier}'s pattern, requiring the same
+budget-extension discipline as -- every negative reported in this paper.
+
+\paragraph{A standing caution about our own negative results.} Three
+independent axes of this program each declared a cell dead at its first
+tested budget before a $2$--$2.5\times$ extension reversed the verdict
+(\S\ref{sec:frontier-pattern}). A reader evaluating any single ``wall''
+claim in this literature, including ones in our own earlier project
+documents that this paper's numbers supersede, should ask whether it was
+re-tested at extended budget before being treated as final.

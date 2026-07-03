@@ -102,3 +102,16 @@ docs/_internal/
 **/*.private.md
 NOTES_PRIVATE*
 # END idastone
+
+# Session/agent runtime dirs (not project content)
+.agents/
+.codex/
+# LaTeX build artifacts (PDFs themselves ARE committed)
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+matrix-thinking/submissions/**/*.log
+# No file >25MB belongs in git — big payloads live on the SSD archive

@@ -501,6 +501,54 @@ Treats tokens as particles with pairwise interactions.
 **Understanding Transformers for Time Series: Rank Structure** — Oct 2025
 - Paper: https://arxiv.org/abs/2510.03358
 
+### Added 2026-07-01 (Chapter 2 — Task D/E research + novelty passes)
+
+**Understanding Factual Recall in Transformers via Associative Memories** — Nichani, Lee & Bietti, ICLR 2025 Spotlight
+The single closest prior work to Task D. Defines the same linear associative memory `W = Σ u_f(x) e_x^T` and gives a rank-m construction storing ≈md associations — but as a hand-built EXISTENCE proof under DISCRETE ARGMAX decoding, not a measured/trained rank or a necessity bound for exact continuous recovery. This is the exact reason Task D pins its readout to exact continuous recovery (never argmax): under argmax, a rank-1 matrix can recover ≈d associations and the rank≥K necessity collapses.
+- Paper: https://arxiv.org/abs/2412.06538
+
+**The Key to State Reduction in Linear Attention: A Rank-based Perspective** — Nazari & Rusch, Feb 2026
+**State Rank Dynamics in Linear Attention LLMs** — Sun et al., Feb 2026
+Both measure effective rank of the linear-attention state matrix `S_t = Σ v_t k_t^T` (same metric Task D uses) and prove the UPPER bound `rank(S_t) ≤ t`, on pretrained LLMs over real text with uncontrolled t. Task D is the mirror image: controlled K, a LOWER bound (`rank(Z)≥K` for exact recovery), and a causal force-rank-k training ablation — neither paper has any of the three.
+- Papers: https://arxiv.org/abs/2602.04852, https://arxiv.org/abs/2602.02195
+
+**Linear Transformers Are Secretly Fast Weight Programmers** — Schlag, Irie & Schmidhuber, ICML 2021
+Origin of "linear-attention state as associative memory"; motivates why rank/capacity matters once writes exceed dimension. FWP lineage — Schlag is a Tier-1 outreach target for this project's papers.
+- Paper: https://arxiv.org/abs/2102.11174
+
+**Enhancing the Transformer with Explicit Relational Encoding for Math Problem Solving (TP-Transformer)** — Schlag et al., 2019/2020
+TPR-style binding for math reasoning — the direct ancestor of "matrix structure for reasoning" and the principled design for the eventual byte-window TPR ablation (see STATE.md's byte-vs-token decision).
+- Paper: https://arxiv.org/abs/1910.06611
+
+**RNNs Implicitly Implement Tensor Product Representations** — McCoy, Linzen, Dunbar & Smolensky, ICLR 2019
+- Paper: https://arxiv.org/abs/1812.08718
+
+**Unlocking State-Tracking in Linear RNNs via Negative Eigenvalues** — Grazzi et al., ICLR 2025
+**DeltaProduct**
+Composability/state-tracking is gated by eigenvalue SIGN AND PHASE, not rank magnitude alone — directly motivates Task E's C8 eigenstructure-fidelity metric (a rank-K matrix with the wrong eigenvalue structure can satisfy one-hop recall while failing composition).
+- Papers: https://arxiv.org/abs/2411.12537, https://arxiv.org/abs/2502.10297
+
+**Zoology: Measuring and Improving Recall in Efficient Language Models** — Arora et al., 2023/2024
+Standard synthetic associative-recall (MQAR) benchmark family Task D/E's grammar resembles; varies state dimension against fixed pair count, no rank spectra.
+- Paper: https://arxiv.org/abs/2312.04927
+
+**Grokked Transformers are Implicit Reasoners** — Wang et al., NeurIPS 2024
+**Faith and Fate: Limits of Transformers on Compositionality** — Dziri et al., 2023
+Standing counter-evidence/caution for any compositional-generalization claim (Task E): transformers can grok in-distribution composition yet fail to generalize to novel combinations, or reduce to linearized subgraph matching. Task E's claim is deliberately narrower — about the specific rank-K matrix state Task D showed is causally used, not about transformer compositionality in general.
+- Papers: https://arxiv.org/abs/2405.15071, https://arxiv.org/abs/2305.18654
+
+**Holographic Reduced Representations** — Plate, IEEE TNN 1995
+**Resonator Networks** — Frady, Kleyko & Sommer, Neural Computation 2020
+VSA/HRR capacity is SNR/bundling/codebook-factorization, a DIFFERENT notion from matrix rank — needed to correctly scope what "capacity" means in that tradition vs. Task D's exact-rank framing.
+- Papers: (Plate, pre-arXiv), https://arxiv.org/abs/1906.11684
+
+**Tokenization Counts** — Singh & Strouse, 2024
+**Efficient Numeracy via BitTokens** — Kreitner et al., 2026
+Number/token granularity causally changes arithmetic performance — the evidence that keeps byte-level input a high-priority (not "someday") follow-on ablation once matrix-native scales to real data, per STATE.md's Path Forward.
+- Papers: https://arxiv.org/abs/2402.14903, https://arxiv.org/abs/2510.06824
+
+Full annotated novelty/positioning passes: `research/task-d-novelty-july2026.md`, `research/bytes-vs-tokens-matrix-native-june2026.md`. Full related-work section with all Task D/E citations assembled: `matrix-thinking/chapter2/TASK_D_WRITEUP.md` §2.
+
 ---
 
 ## Multi-Modal / Domain-Agnostic

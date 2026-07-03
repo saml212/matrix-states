@@ -1,0 +1,122 @@
+\section{The Exactness Frontier, and When to Trust a ``Dead'' Cell}
+\label{sec:frontier}
+
+\S\ref{sec:taskd-frontier} left $d\geq32$ looking like a trainability wall.
+\emph{Stage 0} is a dedicated diagnostic campaign, pre-registered with a
+formal pass bar ($\mathrm{recovered\_frac@0.9}>0.7$ at $d{=}32$) and a
+weaker diagnostic-pass condition (a measured, falsifiable verdict on every
+named candidate mechanism, independent of whether the formal bar is met).
+
+\subsection{The three-budget-artifacts pattern}
+\label{sec:frontier-pattern}
+
+At $2.5\times$ Task D's original 8{,}000-step budget (20{,}000 steps), all
+6 baseline $d{=}32$ seeds ($K\in\{8,16\}$, 3 seeds each) transition:
+effective rank is flat near $1.0$ for 6{,}000--10{,}000 steps, then climbs
+sharply, in every seed, somewhere in a 6--16K window -- directly falsifying
+the reading that the original 8K-step snapshot was a converged state. A
+screen of four candidate interventions (LR warmup, orthogonal
+initialization, $\mu$P width scaling, self-attention among row-queries) at
+matched 16K-step budget found \emph{zero} that beat the unconstrained
+baseline; step budget alone, extended to 40{,}000 steps, then reached
+$\mathrm{recovered\_frac@0.9}=0.445$ in the best seed -- higher than any
+screened intervention achieved at any checkpoint.
+
+This is the third instance of the same signature in this program (loss
+flat near the trivial-solution value for most of a budget, then a sharp,
+seed-stochastic collapse, misread as a wall at the original budget):
+
+\begin{enumerate}
+\setlength\itemsep{1pt}
+\item Task E, $K{=}8$: $1/5$ seeds converged at 20K steps; $4/5$ at 40K
+      (\S\ref{sec:taske-headline}).
+\item Stage 0, $d\geq32$: the original 8K-step wall (rank $\approx1$,
+      recovery $\approx0$) reversed to 17/17 baseline seeds transitioning
+      reliably across Wave 0, an extended-budget arm, and a 100K-step
+      probe, onset 6--16K steps (this section).
+\item Task E, $K\in\{12,16\}$: $0/5$ and $0/5$ ``dead'' at 40K steps; $3/3$
+      and $2/3$ converged at 80K, onset 45--75K
+      (\S\ref{sec:taske-kwall}).
+\end{enumerate}
+
+\textbf{Rule: a cell should not be called dead without re-testing at
+2--2.5$\times$ its original budget.} This is a program-level methodological
+finding, not a per-experiment footnote, and we state the counter-caution
+with equal weight: \textbf{the rule is necessary, not sufficient.} Stage
+0's own $100$K-step probe ($10\times$ the original budget) at $d{=}32$
+produced trajectories that are visibly \emph{flat} in their final
+60{,}000+ steps -- $\mathrm{recovered\_frac@0.9}$ oscillating in fixed
+windows (e.g.\ $[0.596,0.632]$ for one $K{=}8$ seed across the final six
+2{,}000-step checkpoints) rather than climbing -- and the best result
+across the entire campaign, $0.6639$, still falls short of the
+pre-registered $>0.7$ bar. This is a genuine, budget-independent plateau:
+the formal CONFIRM criterion \emph{fails} at $d{=}32$ even though the
+diagnostic-pass condition succeeds (every named mechanism -- architectural
+cap, row-query collision, dead initialization, undertraining, late
+transition -- received a measured, falsifiable verdict rather than a
+shrug). Re-testing at extended budget is mandatory before declaring a cell
+dead; it is not a guarantee the cell will turn out alive.
+
+\subsection{Exactness degrades monotonically with $d$}
+\label{sec:frontier-table}
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lcccc}
+\toprule
+$d$ & $K{=}d/4$ & $n$ seeds & budget & $\overline{\cos}$ \\
+\midrule
+16 & 4  & Task D/E (\S3--4)     & 40--80K & $\approx1.00$ (exact) \\
+32 & 8  & 3                     & 100K & $0.877$--$0.915$ \\
+48 & 12 & 1                     & 100K & $0.7196$ \\
+64 & 16 & 1                     & 150K & $0.3882$ \\
+\bottomrule
+\end{tabular}
+\caption{The $K{=}d/4$ exactness frontier -- the cleanest slice: monotone,
+no overlap between adjacent $d$, and every cell's trajectory confirmed flat
+(oscillating within a fixed window over the trajectory's final quarter,
+not still climbing) at the budget shown before being read as converged.}
+\label{tab:frontier-d4}
+\end{table}
+
+Table~\ref{tab:frontier-d4} is the clean version of the frontier: fixing
+$K{=}d/4$ and scaling $d$ at fixed encoder width $h{=}64$, converged cosine
+recovery falls monotonically from essentially exact at $d{=}16$ to $0.39$
+at $d{=}64$, with every point confirmed converged (not truncated
+mid-transition) via flat trailing checkpoints. A parallel $K{=}d/2$ slice
+is directionally consistent but noisier and confounded (budget is not held
+fixed across $d$; the single $d{=}48,K{=}24$ seed nearest completion is a
+still-climbing floor, not yet a plateau, so it should not be read as a
+frontier reversal). Recovered-fraction, the exact-match metric, is
+qualitatively harsher than cosine: it is $0.0$ at every $d{=}64$ seed
+tested, against nonzero cosine everywhere.
+
+A second gradation compounds this one. At $d{=}32$, effective rank still
+tracks $K$ closely (91--97\% of target) even though exact recovery
+plateaus short of the bar -- rank recruitment and final-readout exactness
+are separable there. At $d\geq48$, rank recruitment itself becomes partial
+and the fraction shrinks with $K$ (e.g.\ at $d{=}64$: $K{=}16\to21\%$ of
+target, $K{=}32\to32$--$57\%$, with wider seed spread than $d{=}32$'s own
+$K{=}16$ baseline) -- a distinct phenomenon from the $d{=}32$ read, worth
+tracking as future scaling-law data rather than a characterized ceiling.
+
+\paragraph{This is not the same as the one proven architectural cap.} A
+separate, purely algebraic fact -- $\rank(Z)\leq h+1$ for the $h$-width
+row-reader encoder used throughout -- gives a hard ceiling of $65$ at
+$h{=}64$. This binds only at $d{=}128,K>65$ and is untouched by anything in
+this section; every $d\in\{32,48,64\}$ cell reported above sits well under
+its own architectural cap, so the empirical exactness frontier is a
+genuinely separate phenomenon from this proven bound, not a restatement of
+it.
+
+\paragraph{One unresolved non-monotonicity.} At $d{=}32$, exact-recovery
+performance is \emph{not} monotone in $K$ at fixed budget: $K{=}4$
+plateaus at $\mathrm{recovered\_frac@0.9}\approx0.148$ (100K steps, flat
+tail) despite healthy cosine ($0.830$, comparable to $K{=}8$'s
+$0.877$--$0.914$), while $K{=}8$ reaches $0.41$--$0.65$ and $K{=}16$ falls
+back to $0.248$ -- $K{=}8=d/4$ outperforms both neighbors in the tested
+grid. This survives a $5\times$ and then $10\times$ budget extension past
+the original 8K sweep, so it is a converged phenomenon, not an
+undertraining artifact, and it remains open and unexplained.

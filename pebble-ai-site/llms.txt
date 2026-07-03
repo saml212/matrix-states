@@ -1,0 +1,21 @@
+# pebble
+
+> pebble is an independent research lab investigating matrix-valued token representations, byte-level inputs, and measurable reasoning in language models. Findings are published as falsifiable research notes with code, eval data, and references. The research log is maintained by an autonomous agent under Sam Larson's supervision; all claims are verified against experiments run on real hardware.
+
+## Findings
+
+- [The gradient does not see rank](https://pebbleml.com/findings/matrix-codi-rank-blindness.html): A structural explanation for the Illusion of Superposition in latent chain-of-thought. Four flat rank-k curves across training conditions; three-seed accuracy-rank decoupling; four positive-control readouts nonlinear in Z all fail to bend the rank-k curve. ICML 2026 MI workshop submission.
+- [Matrix operations are 130× more parameter-efficient per layer](https://pebbleml.com/findings/parameter-efficiency.html): At d=16, a matrix transformer layer uses 130× fewer parameters than a standard vector attention layer at matched capacity.
+- [Output mechanism shapes rank trajectory in matrix-valued refinement](https://pebbleml.com/findings/output-head-dynamics.html): Bilinear probes see rank rise across 8 iterations; vector-collapse and 3D matrix-product runs see rank fall. Observational, single-seed.
+- [Rank enrichment is an emergent, novel phenomenon](https://pebbleml.com/findings/rank-enrichment.html): With a bilinear output head, the effective rank of matrix token representations rises during iterative refinement (5.02 → 6.12), counter to the prior literature's depth-collapse assumption.
+- [Outer-product matrix embeddings outperform flat vectors per parameter](https://pebbleml.com/findings/outer-product-embedding.html): At single-step processing, a matrix token from outer-product embedding beats a flat-vector baseline by 11× in perplexity at matched parameters.
+
+## Context
+
+- [A reading of the field](https://pebbleml.com/findings/literature-synthesis.html): Multi-agent literature synthesis across continuous reasoning, JEPA, structured representations, byte-level models, and the neuroscience of language.
+
+## About
+
+- [Pebble homepage](https://pebbleml.com): Research thesis, current experiments, roadmap, and dead ends.
+- Source repository: https://github.com/saml212/learned-representations
+- Contact: sam@pebbleml.com

@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-04-20
+**Last updated:** 2026-07-03
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -96,7 +96,7 @@ The CoT2 paper (arXiv 2505.23648) argues that parallelism in continuous-vector r
 
 ### Honest negative results
 
-- **Matrix operations lose at matched FLOPs.** LoopFormer FLOPs-matched: BPB 0.87 vs Matrix d=32: BPB 1.67. The quality gap is algorithmic, not a speed problem. Confirmed by the cheap-ops waterfall (22 ideas brainstormed, 5 validated, none close the gap).
+- **Matrix operations lose at matched FLOPs.** LoopFormer FLOPs-matched: BPB 0.87 vs Matrix d=32: BPB 1.67. The quality gap is algorithmic, not a speed problem. Confirmed by the cheap-ops waterfall (22 ideas brainstormed, 5 validated, none close the gap). **[CORRECTION 2026-07-02]** An independent FLOPs-accounting audit found this was never FLOPs-matched in either direction — LoopFormer's cited best (BPB 0.87) occurred at step 21,500 (not "~step 40K") and used only ~0.5-0.6× of Matrix Thinker's total compute, while Matrix Thinker was itself undertrained relative to its own budget. The converged, genuinely FLOPs-matched gap is unmeasured; this does not mean matrix ops secretly win, but the "2× at matched FLOPs" framing is not supported by the runs as executed. See EXPERIMENT_LOG.md, "FLOPs-accounting audit of Runs 12-15 (2026-07-02)." Stage G (`matrix-thinking/STAGE_G_DESIGN.md`) is designed to measure the matched-FLOPs gap properly. **[UPDATE 2026-07-02, Stage G Wave A/B]** Stage G's Wave 0-R2 gap baseline (byte vocab, d=32, matched 3,000-step budget) measured a genuine, properly matched-tokens gap (matrix 3.5552 vs vector 3.2511 BPB, G=0.3040) and separately FALSIFIED the undertraining hypothesis (H_d) at this regime — extended 3× budget widens the gap, it does not close it (`STAGE_G_DESIGN.md` §13). The follow-on Wave A/B component-swap screen (§14) then found the gap **has a named mechanism**: none of 5 training-setup/plumbing axes (init scale, embedding rank, iteration conditioning, depth structure, output-head tying) recover any of it (all ≤+0.006 `recovered_frac`), but relaxing the Kronecker-separable `RowThenColProjection` restriction on the attention/thinking projections to a dense rank-swept bottleneck recovers ~64% of G at matched params (3/3 seeds ≥0.5) — while using *fewer* FLOPs than what it replaces. A capacity-matched vector control shows most of the apparent "inversion" seen at higher rank is extra parameters, not the projection swap (vector wins by 0.115 BPB at matched capacity), and the per-FLOP tax survives everywhere measured (≈16.5× even at the cheapest matrix winner). See `STAGE_G_DESIGN.md` §14 for the full table.
 
 - **Thought interleaving does not beat adding layers.** Run 25 sweep at 288K params: thought config A scored BPB 3.535, no-thought config E (just more layers) scored BPB 3.524. The thoughts are dead weight at this scale.
 
@@ -116,7 +116,7 @@ The CoT2 paper (arXiv 2505.23648) argues that parallelism in continuous-vector r
 | Runs 8-9: First H100 | 2 | PonderNet collapsed; iterative refinement helps (9.8% benefit) |
 | Runs 10-11: 8×H100 Round 1 | 2 | Matrix T=1 wins 175× over vector T=1; vector T=8 wins on iteration |
 | Run 12: Round 2 (MultiProbeHead) | 1 | **Rank enrichment discovered: 5.02 → 6.12 — novel finding** |
-| Runs 13-14: LoopFormer comparison | 2 | We lose 2× at matched FLOPs |
+| Runs 13-14: LoopFormer comparison | 2 | We lose 2× at matched FLOPs — **[CORRECTION 2026-07-02] not actually matched; see "Honest negative results" above** |
 | Run 15: Optimized matrix thinker | 1 | Marginal speedup, marginal quality drop |
 | Runs 16-17: d=16 experiments | 2 | First byte-level matrix model, BPB 1.91 |
 | Run 18: Critical ablation (not param-matched) | 1 | Flat 24M vs Matrix 2.4M — unfair comparison |
@@ -219,52 +219,217 @@ from a vector-output teacher). The failure modes are specific to this bolt-on
 setup. A matrix-native architecture trained end-to-end on a task that rewards
 rank-K structure has not been tested. That is Chapter 2.
 
+**Workshop paper outcome:** *The Gradient Does Not See Rank* was submitted to
+ICML MI Workshop 2026 and **accepted**. Position-decomposition follow-up work
+(`rank_aware_v1`, 2026-04-29) independently reproduced the mechanism from a
+different angle: even on a constructed multi-target task, matrix-CODI composes
+via **position** (one rank-1 value per latent slot), not within-position
+spectral rank — forcing Z to rank-1 throughout training did not hurt accuracy.
+Consistent finding, two routes: bolt-on matrix-CODI never uses rank.
+
 ---
 
-## Path Forward (April 2026, post matrix-CODI results)
+## Chapter 2 — STATUS (2026-07-03): CONFIRMED through real data; five programs closed
 
-### Now — Workshop paper submission (May 8 deadline)
+Chapter 2 ran and gave the field's first positive result for matrix-native
+rank: **when a task provably requires `rank(Z) ≥ K`, gradient descent trained
+from scratch both develops effective rank ≈ K and makes rank causally
+necessary.** This resolves the open question left by the workshop paper — the
+earlier rank-blindness was **task-specific (ProsQA was rank-1-solvable), not a
+property of the gradient.**
 
-Write up the matrix-CODI negative result + readout-Jacobian diagnosis +
-positive-control falsification for ICML MI Workshop 2026. Dual output: website
-subpage (`pebble-ai-site/findings/`) + ICML LaTeX PDF. Brief lives in
-`matrix-thinking/PAPER_WRITER_BRIEF.md`. Target 8-page long paper, double-blind,
-non-archival (so main-conference resubmission later is allowed).
+**What got built and why the original Chapter 2 plan changed:** the original
+synthetic-task plan (Task A, K-parallel-entity-tracking with a single-entity
+query) was killed by a design-gauntlet attack *before any GPU ran*: in a
+full-attention model, "hold K items" is trivially satisfiable via K
+*positions* at rank-1 each (the same position-decomposition escape
+`rank_aware_v1` found empirically), and a rank-1 matrix `Z=u⊗v₀` is not
+low-capacity — its free vector side already holds `d` items. So the naive
+K≈P crossover prediction was mathematically wrong (the real threshold would
+have been K≈P·d, i.e. a flat curve everywhere testable). The gauntlet
+produced **Task D** instead: a from-scratch matrix-native transformer trained
+under a **hard single-Z bottleneck** on K key→value bindings, with a
+**provable** `rank(Z) ≥ K` lower bound for exact continuous recovery (proof:
+stacking K independent keys/values, `rank(V) = rank(Z·K_mat) ≤ rank(Z)`).
+Critical design decision: the readout must be the **pinned linear unbind**
+`Z·key`, scored by absolute cosine — **never argmax over a codebook** — because
+under argmax decoding a rank-1 matrix can recover ≈d bindings (Nichani, Lee &
+Bietti, ICLR 2025, arXiv:2412.06538), which would silently collapse the
+provable bound. Full spec, proof, and audit trail:
+`matrix-thinking/chapter2/TASK_D_PREREGISTRATION.md`.
 
-**Pre-submission must-run experiment:** Control A (fake-Z rank-k ablation on
-vanilla GPT-2 SFT for ProsQA). Converts the "ProsQA might be rank-1-solvable"
-caveat currently sitting in §7 Discussion into either supporting evidence or a
-concrete result bound. ~1 GPU-hour, reuses existing Round 4 vanilla SFT
-checkpoints. Full spec: [matrix-thinking/QUEUE.md §PRIORITY 0](matrix-thinking/QUEUE.md).
-Not running it leaves attack A16 (rank-1-solvable-task) open with no
-empirical rebuttal.
+**Results (d=8, d=16 — the confirmed regime):** effective rank tracks K almost
+exactly (d=16: K=1→2.4, 4→4.7, 8→8.2, 12→11.8, 16→15.1; Spearman ρ=1.0). The
+causal test (train-time `force_rank_k`, the primary test — not post-hoc
+truncation, which was uninformative in the CODI work) shows a sharp step at
+k≈K: at d=8,K=4, force-rank ≤3 gives 0.0 recovery, force-rank=4 gives 0.97.
+Full write-up with citations: `matrix-thinking/chapter2/TASK_D_WRITEUP.md`.
 
-### Next — Chapter 2: matrix-native-from-scratch on synthetic rank-K task
+**Honest limitation, corrected (2026-07-03) — the d≥32 "trainability
+frontier" was a step-budget artifact; the real frontier is exactness:**
+Stage 0 (`matrix-thinking/chapter2/STAGE0_DESIGN.md` §12-14, closed
+2026-07-03) ran a full diagnostic and found the original d≥32 wall
+(effective rank ≈1, recovery ≈0 at Task D's 8K-step budget) is
+substantially a step-budget artifact — every d=32 baseline seed tested
+(17/17 across Wave 0, an extended-budget arm, and a 100K-step probe)
+transitions reliably, onset 6-16K steps, and effective rank recruits to K
+once budget suffices (final eff. rank 3.7/7.3-7.8/14.6 at K=4/8/16 — Task
+D's M1 pattern holds at d=32). But even at 100K steps (10x Task D's
+original budget), with trajectories confirmed flat/plateaued rather than
+climbing, the formal pass bar (`recovered_frac@0.9 > 0.7`) still FAILS —
+best observed is 0.65 (K=8), a genuine converged plateau (cos 0.83-0.91),
+not undertraining. Contrast: d=16 reaches genuinely exact solutions
+(`recovered_frac@0.9` = 1.00 at every tested hop including h=21, Task E's
+40K round). So the honest frontier is not trainability (transitions are
+reliable) — it's exactness, and it degrades with `d`. *Why* the d≥32
+write plateaus sub-exact rather than reaching 1.0 is open, named Stage
+0.5, and is explicitly NOT answered by Stage 0. Full data and
+hypothesis-by-hypothesis verdicts: `STAGE0_DESIGN.md` §12-14.
 
-Decide whether the broader matrix-thinking direction is alive. Build a small
-transformer with d×d matrix tokens throughout (no vector pretraining, no
-distillation, no bolt-on), trained end-to-end on a task whose optimal solution
-provably has rank K*. If rank-k truncation causes monotonic accuracy
-degradation when k < K*, matrix-thinking survives. If it's flat, matrix-thinking
-is dead.
+**Chapter 2.5 — Task E (reasoning transfer, launched 2026-07-01, running on
+Brev 8×H100):** Task D is associative memory (one lookup, no composition) —
+the open question is whether the causally-necessary rank-K matrix *composes*
+correctly under repeated self-application (`Zʰ`) at hop-depths never seen in
+training, i.e. whether SGD's Z has genuine operator/eigenstructure, not just a
+rank-sufficient lookup table. Design + full attack trail:
+`matrix-thinking/chapter2/NEXT_EXPERIMENT_DESIGN.md`. Two build-time FATALs
+were caught and fixed by the audit gauntlet before any compute ran: (1) the
+injectivity check on the key→value mapping had a `-1` tolerance that couldn't
+detect a single merge — "K edges" silently stopped implying rank≥K (the same
+miscounting trap that killed MNNS); (2) the permutation-based hop-depth
+generator sampled a *general* random permutation rather than a single
+Hamiltonian K-cycle, so short cycles made "held-out" hop depths periodically
+collapse into in-distribution or trivial queries (measured: 100% collapse at
+K=4, the `H_extra=8` probe was 100% dead at K=8). Both fixed; re-audited clean;
+smoke-passed on the H100. Primary decision metric M3_E: held-out-hop recovery
+vs. the C_MLP shortcut floor vs. the analytic ideal-Z ceiling. CONFIRM = matrix
+thinking's compositional-reasoning premise survives its first reasoning test;
+FALSIFY = rank is causally necessary for recall but functionally inert for
+reasoning (still a clean, publishable negative).
 
-Task A (K parallel entity tracking) already scaffolded:
-`matrix-thinking/chapter2/synthetic_tasks.py` (generator + self-test passing).
+**Sequencing decided:** if Task E CONFIRMs → real-data reasoning transfer
+(matrix-native on OpenR1-Math, already tokenized on the H100 side) is next,
+sequenced *after* Task E specifically to avoid reintroducing every confound
+Task D was built to eliminate. If it FALSIFIES → publish as a companion
+negative to the workshop paper.
 
-Full design: `matrix-thinking/CHAPTER_2_DESIGN.md`. Falsifiable, ~50-100
-GPU-hours, decision criterion pre-specified.
+**Real-data link — Wave 1 CLOSED, CONFIRMED on all three legs (2026-07-03):**
+a parallel thread (`matrix-thinking/DELTANET_REALDATA_DESIGN.md`) asks the
+same rank-necessity question as Chapter 2, but on a production fast-weight
+kernel (DeltaNet's `chunk_delta_rule`) with real GPT-2-tokenized text
+instead of a bespoke encoder or constructed vector grammar. Its Wave 0
+originally value-collapsed 10/10 seeds (caught clean at zero premise-valid
+checkpoints, never reported as a finding); a mini-audit traced it to a
+hop-index gather bug, and the fix + a pre-registered anti-collapse NCE loss
+produced a rerun that is 10/10 collapse-free (K=16: rec@0.9 0.996–0.999,
+entity-subspace rank 15.6–15.7/16). Wave A then found a graded K-exactness
+frontier at fixed d_state=64 (K=8 near-exact through several held-out hops,
+K=16 partial, K=24/32 collapsed beyond h=1), rank recruited 94–99% of
+target at every K. **Causal close (2026-07-03, §17):** Bprobe's train-time
+force-rank arm reproduced the train-time-forcing-breaks-SGD failure a
+**third** time (fr16 at `k=K=16`, a provable no-op, collapsed 3/3 —
+entity-subspace rank 9.85–10.41 vs. the unconstrained arm's own 15.6–15.7),
+so the full Wave B grid was correctly judged moot and never launched
+(mirroring `DELTANET_CAUSAL_RANK_DESIGN.md`'s identical decision). The
+pre-registered fallback — eval-time SVD truncation of the archived
+`Z_dump` states (`--save-z` is on by default in this harness, so no
+retrain was needed) — closed the causal question instead: **CONFIRMED,
+rank causally load-bearing at K∈{8,16,24,32}** (a hard ceiling reached
+exactly at k=K, never before or after, at every cell) **but graded across
+a multi-rank window, not the synthetic design's razor cliff at
+k=K−1→K** — the pre-registered caveat (trained rank sits slightly under K;
+keys are non-orthonormal, unlike the synthetic construction) landing
+exactly as predicted, not a hedge that never fired. This is the project's
+first demonstration of genuine, causally-verified rank-K relational
+binding in a production architecture on real tokenized surface forms.
+Full arc, exact numbers, and the closing verdict:
+`matrix-thinking/DELTANET_REALDATA_DESIGN.md` §14–§17. Wave C (real-corpus
+LM pretrain, Wave 2) is now gated open per §7's manifest, not yet launched.
 
-### Then — Chapter 3: matrix-native byte-level on real data
+---
 
-Only if Chapter 2 survives. Byte-level input, matrix tokens throughout, multi-
-modal training with modality-switching. Design brainstorm in progress with
-architecture agent (see user's most recent conversation). Rough shape:
-ByT5/BLT-style byte input + CANINE-style local context + all-matrix
-transformer + MultiProbeHead readout to byte vocab.
+## Path Forward (updated 2026-07-03)
+
+### Now — Saturation campaign (2-month uptime-metered window)
+
+**The grant meters UPTIME, not utilization**: the box bills while RUNNING and
+cannot be stopped (`brev stop` unsupported on this instance type; only
+delete). The user confirmed 2026-07-03: hardware is granted for two months,
+use-it-or-lose-it. Effective budget ≈ 192 GPU-h/day × window ≈ 10,000+ GPU-h,
+not the 1.6k previously assumed. **Strategy: keep the box saturated with
+audited experiments for the whole window; idle time is the only true waste.**
+Discipline unchanged: no un-audited work launches just to fill GPUs — the
+pipeline (design → adversarial attack → build → independent audit → bounded
+waves) has enough parallel workstreams to stay ahead of the hardware.
+
+**Campaign ledger (2026-07-01 → 07-03): five programs designed, attacked,
+built, audited, run, and closed** — Task D/E (bespoke synthetic causal rank +
+composition), Stage 0 (d-frontier), DeltaNet synthetic (production
+architecture causal rank), Stage G (matrix-vs-vector gap mechanism named),
+DeltaNet real-data (rank-K binding + composition on real tokenized text,
+causal close via eval-truncation). ~580 GPU-h total. Full verdicts in
+EXPERIMENT_LOG.md (dated 2026-07-01..03) and the four design docs
+(`DELTANET_REALDATA_DESIGN.md`, `DELTANET_CAUSAL_RANK_DESIGN.md`,
+`STAGE_G_DESIGN.md`, `chapter2/STAGE0_DESIGN.md`). Workshop paper drafted at
+`matrix-thinking/submissions/neurips-ws-2026/` (awaiting user review: author
+block, venue, figures, title, appendix).
+
+**In flight (2026-07-03):**
+- Deeper-hop training probe (6 cells on box, `deltanet_rd` results/
+  `deltanet_rd_w0b/deephop/`): does training h∈{1..5} extend the real-data
+  exact-composition regime vs the h∈{1,2,3} Wave A frontier?
+- RD Wave 2 instrumented-LM builder (agent): DeltaNet LM on OpenR1-Math vs
+  WikiText, state-rank instrumentation + inference-time truncation damage.
+- K-exactness mechanism study designer (agent) → will write
+  `matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md`; needs adversarial attack
+  round before build.
+- Reserve (multi-head) + Stage-G H_e task-swap builder (agent).
+
+**Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
+adversarial design/attack teams and independent code audits on everything;
+max out ALL levers — data (more corpora beyond the 43.7M-token OpenR1 slice +
+WikiText already on box), memory (80GB/GPU is barely touched by probe-scale
+models; scale d_state/batch/model where the question warrants), compute
+(8×H100 continuous). Sonnet subs do the work; orchestrator stays top-level
+and verifies key claims itself.
+
+**Constructive-demonstration mandate (user directive 2026-07-03):** don't
+just map failures — demonstrate positive capability. Every attribution
+program carries a pre-registered FIX/demo wave as its deliverable (the
+exactness program's Wave F: once the mechanism is named, demonstrate the
+intervention that moves the K-frontier — headline target: K=32 held-out-hop
+recovery from ≈0.05 floor to ≥0.5). Findings docs and papers frame the
+demonstrated path forward, with failure maps as supporting evidence.
+
+### Then — Chapter 3: matrix-native on real data (Task E gate PASSED; scaled design pending the mechanism study)
+
+Byte-level input, matrix tokens throughout, multi-modal training. A dedicated
+research pass (`research/bytes-vs-tokens-matrix-native-june2026.md`, cross-
+checked by an external deep-research pass) settled a design question that was
+previously just an assumption: **hold the tokenizer standard (GPT-2/BPE) for
+the primary scaled matrix-native experiment; treat byte-level input as a
+separate, high-priority follow-on ablation, not bundled with the matrix
+change.** Reasoning: (1) bundling two unproven architectural changes (matrix
+representation + byte input) makes any result uninterpretable — this is the
+same discipline the byte-level LM field uses on itself (BLT holds architecture
+fixed and varies only the tokenizer); (2) byte-level models do not currently
+beat BPE on math/reasoning benchmarks at matched compute; (3) matrix-native-on-
+BPE is *already* a novel, unoccupied combination, so there's no novelty
+pressure to rush bytes in. The counter-evidence that keeps bytes a
+**high-priority**, not "someday," follow-on: 2025-2026 literature (Tokenization
+Counts, arXiv:2402.14903; BitTokens, arXiv:2510.06824) shows number/token
+granularity causally changes arithmetic reasoning, so tokenization is a held-
+fixed confound with an **open interaction**, not a proven-orthogonal one — do
+not claim it as inert in any write-up. When the byte ablation is designed, use
+a TPR-style outer-product byte-window embedding (Smolensky 1990; TP-Transformer,
+arXiv:1910.06611), not a naive tokenizer swap, since a structured byte-window
+construction is the principled way rank could plausibly interact with byte
+granularity.
 
 ### Backup — Pivot direction
 
-If Chapter 2 fails, matrix-thinking is dead. Candidate pivots (unordered):
+If Task E falsifies, publish that as the decisive result and reassess before
+committing further compute to matrix-thinking. Candidate pivots (unordered):
 - Byte-level JEPA with LeJEPA SIGReg (Thread 1 of the original thesis, no
   matrix commitment required)
 - Continuous-reasoning extensions without matrix structure (e.g. SIM-CoT-style
@@ -275,9 +440,23 @@ If Chapter 2 fails, matrix-thinking is dead. Candidate pivots (unordered):
 
 ## Hardware
 
-- All experiments run on 8×H100 80GB pods (cloud rental)
-- Volume at `/toy_story_slam/` (200GB persistent across pod restarts)
-- See [matrix-thinking/H100_SETUP.md](matrix-thinking/H100_SETUP.md) for environment details and lessons learned
+- **Brev 8×H100 80GB (active, 2026-07-01 onward)** — "nvidia-pebble /
+  youthful-indigo-turkey", GCP asia-southeast1-c, via an NVIDIA Brev
+  accelerator-lab grant. **[CORRECTED 2026-07-03]** The grant is a 2-month
+  uptime-metered hardware window, not a 1.6k GPU-h utilization budget; the
+  instance cannot be stopped (`brev stop` unsupported — delete only) and
+  bills while RUNNING, so the operative budget is ~192 GPU-h/day for the
+  window (~10k+ GPU-h) and the strategy is full saturation with audited
+  work. SSH via the Brev CLI alias
+  `youthful-indigo-turkey` (see `matrix-thinking/H100_SETUP.md`). Python
+  venv at `/home/nvidia/tdenv` (torch 2.12+cu13; the base image ships no
+  torch/conda). Task D used ~76 GPU-h (~5% of budget) for a complete,
+  decisive, written-up result — this experiment class is cheap; do not
+  over-provision compute before proving the code, per the audit discipline
+  below.
+- Prior/legacy: single H100 80GB HBM3 pods (cloud rental, `/toy_story_slam/`
+  volume) — used through the matrix-CODI workshop-paper era. Endpoint in
+  `matrix-thinking/H100_SETUP.md` is stale; superseded by the Brev cluster.
 - Local SSD at `/Volumes/1TB_SSD/learned-representations/` holds large data and checkpoints (not in repo)
   - `data/` — 2.3GB (WikiText-103, CIFAR-10)
   - `checkpoints/` — 219MB (model checkpoints from completed experiments)

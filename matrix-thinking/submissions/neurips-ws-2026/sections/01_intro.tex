@@ -1,0 +1,102 @@
+\section{Introduction}
+\label{sec:intro}
+
+Continuous chain-of-thought (CoT) models feed a latent vector back into the
+residual stream instead of decoding an explicit reasoning token
+\citep{hao2024coconut}. Matrix-valued variants of this idea introduce a
+structural observable that a vector latent does not have: the \emph{rank}
+of the latent matrix $\Z$. If $\Z$ carries multiple reasoning paths in
+superposition, rank should track how many paths are held, and truncating
+$\Z$ to rank $k$ should hurt accuracy once $k$ falls below what the task
+needs.
+
+Our companion paper, \emph{The Gradient Does Not See Rank}
+\citep{larson2026gradient}, tested this directly on a matrix-CODI model (a
+$d\times d$ bottleneck bolted onto a vector-pretrained GPT-2, trained by
+CODI-style distillation on ProsQA) and found the probe uninformative: the
+rank-$k$ truncation curve is flat to within $0.6$ percentage points across
+four training regimes and four readouts, including three explicitly
+nonlinear-in-$\Z$ readouts designed to rule out a constant-Jacobian
+artifact. Three training seeds reached accuracies of $81.5\pm1.2$pp while
+their final effective ranks spanned $\{4,12,13\}$ -- the loss rewarded no
+particular rank. That paper closed the readout-mechanism question but left
+one confound explicitly open (its \S7): ProsQA has a unique positive answer
+and a single distractor, so the flat curves are also consistent with the
+task being \emph{rank-1-solvable} -- in which case rank-blindness says
+nothing about the gradient's ability to use rank when a task actually
+requires it.
+
+This paper closes that confound and asks the question the negative result
+could not answer on its own:
+
+\begin{quote}
+\emph{When a task's exact solution provably requires $\rank(Z)\geq K$, does
+gradient descent, trained from scratch under a hard matrix bottleneck, (a)
+develop effective rank $\approx K$, and (b) make that rank causally
+necessary?}
+\end{quote}
+
+Answering this honestly requires removing every shortcut a model could use
+to appear rank-aware without actually needing rank: an argmax readout that
+tolerates interference (\S\ref{sec:setup}), a decoder that can read raw
+inputs instead of only the bottleneck (\S\ref{sec:setup}), and a fixed step
+budget that mistakes a slow transition for a wall (\S\ref{sec:frontier}).
+We built three experiments, each pre-registered with decision criteria
+before any GPU ran, that close these shortcuts in turn.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+\setlength\itemsep{2pt}
+\item \textbf{A provable $\rank(Z)\geq K$ lower bound with a readout
+      discipline that keeps it valid.} Exact recovery of $K$ independent
+      key$\to$value bindings from a linear memory needs rank $K$ -- a
+      classical fact \citep{kohonen1972correlation,anderson1972simple} --
+      but it holds only under \emph{exact continuous} recovery. Under
+      discrete argmax decoding, a rank-$m$ matrix recovers $\approx md$
+      associations \citep{nichani2025factual}, and the bound silently
+      collapses. \S\ref{sec:setup} pins the readout to the literal unbind
+      $\mathrm{pred}=Z\!\cdot\!\mathrm{key}_j$ scored by an absolute cosine
+      bar, and closes the position-decomposition escape (any full-attention
+      model can hold $K$ items at $K$ rank-1 positions) with a single-state
+      $P{=}1$ bottleneck verified by a gradient-based blank-out test.
+\item \textbf{Rank tracks $K$ and is causally necessary}
+      (\S\ref{sec:taskd}). At $d=16$, learned effective rank tracks $K$
+      almost exactly (Spearman $\rho=1.0$), and train-time force-rank
+      training shows a step at $k\approx K$: at $d=8,K=4$, force-rank
+      $\leq 3$ gives $0.0$ recovery and force-rank $4$ gives $0.97$.
+\item \textbf{Exact composition to depth $h=21$, and the invariant-subspace
+      mechanism that explains it} (\S\ref{sec:taske}). A rank-sufficient
+      trained operator composes exactly under 21-fold self-application; an
+      entity-subspace decomposition shows the operator restricted to the
+      $K$-dimensional key subspace is exactly a scaled $K$-cycle with
+      restricted rank exactly $K$, and the apparent whole-matrix
+      rank-inflation to $\approx d$ is a dynamically inert complement no
+      real query ever visits.
+\item \textbf{Depth as a spectral-exactness amplifier.} A rank-$(K{-}1)$
+      operator looks correct at shallow hops (cosine $\approx 0.94$,
+      comfortably above the $0.9$ recovery bar) and is exposed only by
+      21-fold composition (recovery collapses to $0.06$) -- a sharper rank
+      test than any single-hop tolerance, confirmed by predicting the
+      entire depth-decay curve from the operator's own eigenspectrum, no
+      raw keys needed.
+\item \textbf{The exactness frontier, and a methodological finding about
+      declaring cells dead} (\S\ref{sec:frontier}). Scaling $d$ at fixed
+      encoder width does not hit a trainability wall -- every tested seed
+      eventually transitions -- but converged exactness degrades
+      monotonically with $d$. Three independent axes of this program each
+      called a cell ``dead'' at a fixed budget before a
+      $2$--$2.5\times$ extension reversed the verdict; we name this the
+      \emph{three-budget-artifacts pattern} and give the counter-example
+      (a genuine, budget-independent plateau) that keeps the rule from
+      being a license to always re-test.
+\end{enumerate}
+
+\paragraph{Scope, stated up front.} Every experiment here is synthetic and
+$\leq$1M parameters -- deliberately small, chosen so that the ground-truth
+minimal solution is provable rather than assumed. \S\ref{sec:discussion}
+argues why that scope is still informative and what it does not show. We do
+not claim these results demonstrate that rank helps \emph{real} reasoning;
+that transfer step is explicitly future work. A brief, clearly-marked
+preliminary result on a production fast-weight architecture (DeltaNet) is
+reported only to bound what is already visible in a concurrent, unfinished
+campaign (\S\ref{sec:discussion}); it is not this paper's headline result.

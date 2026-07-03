@@ -1,6 +1,85 @@
 # H100 Environment
 
-## Access (current 8×H100 pod)
+## Access — Brev 8×H100 cluster (active, 2026-07-01 onward)
+
+Instance: "nvidia-pebble / youthful-indigo-turkey", 8×H100 80GB SXM, GCP
+asia-southeast1-c, via an NVIDIA Brev accelerator-lab grant (~1.6k GPU-hour
+budget — track usage; an experiment class like Task D used only ~76 GPU-h for
+a complete, decisive result, so don't over-provision compute up front).
+
+**Setup (one-time, per Mac):**
+```bash
+brew install brevdev/homebrew-brev/brev
+brev login        # browser auth; run interactively (prefix with ! in Claude Code)
+brev refresh       # writes ~/.brev/ssh_config, Included from ~/.ssh/config
+```
+This creates SSH host aliases (e.g. `youthful-indigo-turkey`,
+`youthful-indigo-turkey-host`) using `~/.brev/brev.pem` and a `cloudflared`
+tunnel — `ssh youthful-indigo-turkey` then works directly, non-interactively,
+from any shell (including Claude Code's Bash tool). No manual host/port/key
+needed once refreshed. `brev ls` lists workspaces + status (RUNNING/Building).
+
+**Environment on the box:** default user `nvidia`, home `/home/nvidia`. The
+base image ships **no torch, no conda** — only system Python 3.12 + Docker +
+NVIDIA drivers. `python3 -m venv` needs `python3.12-venv` installed first
+(passwordless `sudo apt-get install -y python3.12-venv`). Then:
+```bash
+python3 -m venv /home/nvidia/tdenv
+/home/nvidia/tdenv/bin/pip install -q --upgrade pip
+/home/nvidia/tdenv/bin/pip install -q torch numpy
+```
+Confirmed working: torch 2.12.1+cu130, CUDA available, 8 devices, compute
+capability (9,0) = H100/sm_90. 18T `/data` volume + 5.9T `/ephemeral` available
+in addition to the 193G root disk.
+
+**Storage layout used by the matrix-thinking chapter2 work:**
+`/home/nvidia/chapter2/` — code (scp'd from `matrix-thinking/chapter2/` in the
+repo) + `results/<experiment>/` for JSON outputs and logs.
+
+## Perpetual/unattended sweep pattern (learned 2026-07-01, don't skip)
+
+Running many short training jobs unattended across 8 GPUs while keeping them
+near 100% utilized, without losing work to a preemption/disconnect/crash:
+
+1. **Launch inside tmux, never a backgrounded SSH shell.** `cmd &` over SSH can
+   die on a control-master hiccup. Use
+   `tmux new-session -d -s <name> "<cmd>"`. Never `pkill -f <pattern>` where
+   the pattern could match your own SSH command string — it self-kills the
+   shell issuing the kill (manifests as a mysterious SSH exit 255). Use
+   `tmux kill-session -t <name>` or exact PIDs.
+2. **Wrap the orchestrator in a self-healing supervisor:**
+   ```bash
+   while [ ! -f results/<exp>/STOP ]; do
+     python run_<exp>_sweep.py --forever ... >> results/<exp>/orchestrator.log 2>&1
+     sleep 15   # then loop — auto-restarts on any crash
+   done
+   ```
+   Run the supervisor itself inside tmux. A local Claude Code session restart
+   kills local monitoring loops but NOT this on-box tmux+supervisor process —
+   verify the box survived (it should) rather than assuming lost work.
+3. **The orchestrator itself must smoke-gate first** (run `--smoke` on GPU 0,
+   abort the whole queue on failure — never train on unverified code), be
+   **exception-isolated per launch** (a transient OS error on one
+   `Popen()` must not kill the orchestrator process), use
+   **validity-checked resume** (a run counts done only if its output JSON
+   parses and has the expected keys — not just "file exists", which can be a
+   truncated write from a killed process), apply a **per-run timeout with GPU
+   quarantine** (a wedged reap must not let a poisoned GPU get reused), and
+   write a **guarded aggregate** (a single malformed record must not prevent
+   `SUMMARY.txt` from being written for everything else).
+4. **Pack multiple tiny runs per GPU** (`--per-gpu N`) to reach near-100%
+   utilization when models are small (~1GB, <100% of one H100) — but know that
+   at full packing this reflects contention, not N× more science/sec; the
+   genuinely compute-hungry tranche is one-job-per-GPU at a larger model/batch.
+5. **Perpetual refill** (new seed offset each round, same manifest) keeps the
+   queue from draining, but oversamples fast — plan the next experiment before
+   the current one is 2-3 rounds deep into pure reruns.
+
+See `matrix-thinking/chapter2/run_overnight.py` (Task D) and
+`run_task_e_sweep.py` (Task E) for reference implementations of this pattern,
+and `matrix-thinking/chapter2/DEPLOY.md` for the exact deploy runbook.
+
+## Access (prior single-H100 pod, superseded — kept for reference)
 ```
 ssh root@154.57.34.103 -p 44178 -i ~/.ssh/id_ed25519
 ```

@@ -1,0 +1,66 @@
+\section*{Reproducibility}
+\label{sec:repro}
+
+\if\anon1
+All training, evaluation, and analysis code is released anonymously at
+\url{https://anonymous.4open.science/r/matrix-thinking-chapter2}.
+\else
+All training, evaluation, and analysis code is released at
+\url{https://github.com/saml212/learned-representations} under
+\texttt{matrix-thinking/chapter2/}.
+\fi
+
+\paragraph{Code, by experiment.} Task D: \texttt{task\_d.py} (grammar
+generator), \texttt{model\_v4.py} (encoder + pinned unbind),
+\texttt{rank\_utils.py} (eigh-stable effective/stable rank),
+\texttt{run\_task\_d.py} (train/eval/smoke), \texttt{run\_overnight.py}
+(perpetual, resumable 8$\times$H100 orchestrator). Task E: \texttt{task\_e.py},
+\texttt{run\_task\_e.py}, \texttt{run\_task\_e\_sweep.py} (reuses Task D's
+encoder and rank utilities verbatim), \texttt{eigen\_utils.py}
+(eigenstructure-fidelity metric, C8), \texttt{analyze\_zdump.py} (numpy +
+stdlib only, no GPU required; regenerates every number in
+\S\ref{sec:taske-subspace}--\ref{sec:taske-kwall} from archived $Z$-dumps).
+Stage 0: \texttt{run\_stage0.py}, \texttt{run\_stage0\_sweep.py}.
+
+\paragraph{Pre-registrations.} \texttt{TASK\_D\_PREREGISTRATION.md}
+(hypothesis, proof, controls, decision criteria, logged before any
+training); \texttt{NEXT\_EXPERIMENT\_DESIGN.md} (Task E design and its
+$H_{\mathrm{extra}}$ residue-collision addendum); \texttt{STAGE0\_DESIGN.md}
+(the exactness-frontier diagnostic, formal and diagnostic pass criteria).
+Every pre-registered decision criterion and every deviation from it (e.g.\
+the $\tau{=}0.99\to0.9$ metric re-registration in \S\ref{sec:taskd-m3},
+logged before the sweep; Stage 0's Wave B skip in favor of the 100K probe,
+\S\ref{sec:frontier-pattern}) is documented inline in these files with a
+timestamp, not silently applied.
+
+\paragraph{Audit trail.} Design and code passed an adversarial gauntlet
+before any GPU run for each experiment: a task-shortcut attack (which
+killed an earlier crossover design and produced Task D; which caught the
+injectivity-tolerance and general-permutation bugs that would have silently
+broken Task E's held-out-hop claim before any compute ran), a novelty
+check, three rounds of code audit, and two rounds of runner audit
+(\texttt{gauntlet/}), plus a runtime smoke gate (degenerate-spectrum
+backward, blank-out leak test, resolution pre-flight).
+
+\paragraph{Hardware and compute.} Brev 8$\times$H100 80GB cluster, torch
+2.12/cu13. Task D: $\approx$56 GPU-h for the 991-run snapshot reported in
+\S\ref{sec:taskd}, plus a subsequent 1{,}234-run mega-replication. Task E:
+the 40K-step calibration round (33 runs), the 80K-step $K$-wall round (6
+runs, 14.5 GPU-h), and the 120K-step $K{=}16$ completion wave (3 runs).
+Stage 0: 27.66 GPU-h core (Wave $-1$/0/A, an extended-budget arm, and the
+100K probe, against a pre-registered 60 GPU-h budget), plus an 11.36 GPU-h
+post-closure exactness-frontier follow-on ($d{=}64$ and $d{=}48$ points).
+Cumulative project grant burn at time of writing: $\approx$320 of a 1{,}600
+GPU-h grant. The concurrent DeltaNet result in \S\ref{sec:discussion} is
+$\approx$10 GPU-h so far, Waves $-1$/0 only, explicitly partial.
+
+\paragraph{Data.} Raw per-run JSON results (dense training-step
+checkpoints, not just final values -- every trajectory-based claim in this
+paper, e.g.\ ``flat, not climbing'' vs.\ ``still climbing at cutoff,'' is
+verified from the full checkpoint array, not a summary rollup) are archived
+under \texttt{experiment-runs/}, in five dated subdirectories: \texttt{2026-07-02\_task\_e\_zdump},
+\texttt{2026-07-02\_task\_e\_80k\_kwall}, \texttt{2026-07-02\_task\_e\_120k\_k16},
+\texttt{2026-07-02\_stage0\_waves}, and \texttt{2026-07-02\_deltanet\_waves}.
+All numbers in
+this paper trace to a specific archived JSON, run tag, and seed; none are
+recomputed or estimated for this write-up.

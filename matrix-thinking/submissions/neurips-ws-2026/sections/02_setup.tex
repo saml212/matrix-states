@@ -1,0 +1,123 @@
+\section{Setup: A Provable Bound and the Readout Discipline That Keeps It Valid}
+\label{sec:setup}
+
+\subsection{The associative-memory task}
+\label{sec:setup-task}
+
+Each sample presents $K$ key$\to$value bindings, then queries one:
+\[
+\mathrm{BIND}\ k_1 v_1\ \ \cdots\ \ \mathrm{BIND}\ k_K v_K\ \ \mathrm{QUERY}\ k_j\ \to\ v_j.
+\]
+Keys and values are fresh per sample -- i.i.d.\ Gaussian, $L_2$-normalized
+(near-orthogonal), or exactly orthonormal via Haar-corrected QR sign
+correction \citep{mezzadri2007random} -- so no static-vocabulary shortcut
+exists and generalization can be evaluated on never-seen bindings. Bind
+order is shuffled; the queried index is uniform over the $K$ bindings. We
+call this \emph{Task D}.
+
+\subsection{The provable lower bound}
+\label{sec:setup-bound}
+
+Require exact recovery $Z\cdot k_j = v_j$ for all $j=1,\dots,K$, with
+$\{k_j\}$ and $\{v_j\}$ each linearly independent (generic for random
+vectors, $K\leq d$). Stacking keys as columns of $K_{\mathrm{mat}}\in
+\R^{d\times K}$ and values as $V_{\mathrm{mat}}$, exact recovery requires
+$Z\cdot K_{\mathrm{mat}} = V_{\mathrm{mat}}$, so
+\[
+\rank(V_{\mathrm{mat}}) = \rank(Z\cdot K_{\mathrm{mat}}) \leq \rank(Z),
+\]
+and since $\rank(V_{\mathrm{mat}})=K$,
+\begin{fact}[Rank necessity]
+\label{fact:bound}
+$\rank(Z)\geq K$.
+\end{fact}
+This rules out the rank-1 ``vector-in-a-costume'' shortcut $Z=u v_0^\top$
+by contradiction for any $K>1$: a rank-1 matrix cannot satisfy $K>1$
+independent exact constraints. The fact that exact recovery of $K$
+orthonormal key$\to$value pairs from a linear memory needs rank $K$ is
+classical \citep{kohonen1972correlation,anderson1972simple}; we do not
+claim it as novel. What is not classical, and what \S\ref{sec:taskd}--
+\ref{sec:taske} measure, is whether a \emph{trained, bottlenecked,
+matrix-native transformer spontaneously discovers} this rank under plain
+SGD, and whether that rank is causally load-bearing rather than incidental.
+
+\subsection{Why the readout must be exact, never argmax}
+\label{sec:setup-readout}
+
+Fact~\ref{fact:bound} holds only under \emph{exact continuous} recovery.
+\citet{nichani2025factual} formalize the same linear associative memory
+$W=\sum_x u_{f(x)}e_x^\top$ and, in a remark to their Theorem 1, give a
+hand-built \emph{existence} construction: if $W$ is restricted to rank $m$,
+random Gaussian mixing lets it store $\approx md$ associations under
+\emph{discrete argmax} decoding, which tolerates interference. Under that
+decoding rule a rank-1 matrix can recover $\approx d$ bindings, and
+Fact~\ref{fact:bound}'s necessity collapses. \citet{barnfield2026sharp}
+sharpen the same argmax-vs-listwise capacity picture with asymptotically
+exact thresholds for a \emph{static} (non-trained, non-recurrent) memory --
+useful as an analytic capacity reference, not as a substitute for measuring
+what a trained model does.
+
+This is the single most consequential design decision in this line of
+work, and the axis on which we differ from \citet{nichani2025factual}: we
+pin the decoder to the literal linear unbind, producing a
+\emph{continuous} vector,
+\[
+\mathrm{pred} = Z\cdot \mathrm{key}_j,
+\]
+scored by an \emph{absolute} criterion, $\cos(\mathrm{pred}, v_j) > \tau$
+-- never a $K$-way argmax among the sample's own values, and never a
+generic MLP (a generic MLP re-opens the shortcut: nonlinearity alone does
+not force rank use, the central negative-result mechanism in the companion
+paper). Had we scored by nearest-neighbor over a codebook instead, a rank-1
+$Z$ would have ``passed'' at every $K$ we test, and every result below
+would be a false negative for the rank hypothesis rather than a genuine
+measurement of it.
+
+\subsection{Closing the position-decomposition escape}
+\label{sec:setup-bottleneck}
+
+A hard bottleneck on the readout is not enough by itself. In any
+full-attention model, ``hold $K$ items'' is trivially satisfiable by
+attending to $K$ raw-input positions at rank-1 each -- the
+\emph{position-decomposition} escape that independently killed an earlier
+rank story in this program (\texttt{rank\_aware\_v1}: a run at measured
+effective rank $13.2$ was functionally rank-1, composing entirely via
+position rather than within-matrix spectral structure). We foreclose it
+architecturally: all information from the $K$ bindings funnels through a
+single $d\times d$ state $Z$ ($P{=}1$), and the decoder is a pure function
+of $(Z,\mathrm{query\ key})$ -- it never attends to the raw BIND tokens.
+This is enforced by an explicit attention mask, not assumed, and verified
+at runtime by a gradient-based \emph{blank-out test}: after the encoder
+writes $Z$, the raw-input key/value cache is corrupted and the decode path
+is confirmed bit-for-bit unchanged across the full decode sequence. A shape
+check on the mask is not sufficient evidence that a bottleneck holds --
+only an input-corruption test that the output is provably insensitive to
+the corrupted path is.
+
+\subsection{Architecture and controls}
+\label{sec:setup-arch}
+
+A \texttt{BindingEncoder} (a \texttt{norm\_first} Transformer encoder over
+the $K$ binding tokens, followed by $d$ learned row-reader latents that
+cross-attend to produce the $d$ rows of $Z$) maps the bindings to a single
+$Z\in\R^{d\times d}$ -- permutation-invariant in the bindings, able to
+express any rank up to $d$, and not hard-coding the closed-form solution
+$Z=\sum_j v_jk_j^\top$, so ``discovers rank $\approx K$'' is a genuine
+empirical question rather than an architectural given. Default width
+$h=64$, 3 layers, 1 refinement iteration; $\approx$171K parameters at
+$d=16$. Loss is $1-\cos(\mathrm{pred},\mathrm{target})$. Effective rank
+(the primary metric, entropy of the normalized singular-value spectrum) is
+computed via $\mathrm{eigh}(ZZ^\top)$ rather than full SVD for a
+numerically stable backward pass at degenerate spectra.
+
+The pre-registered controls (full list in the design documents,
+\S\ref{sec:repro}) include: (C1) train-time \texttt{force\_rank\_k} --
+SVD/eigh-projecting $Z$ to rank $k$ \emph{every training step}, the primary
+causal test, not post-hoc truncation, which was uninformative in the
+companion paper's CODI setting; (C3) $\geq 5$ seeds, with effective rank as
+the primary metric and stable rank secondary, pre-registered to avoid
+post-hoc metric shopping; (C4) chance-adjusted per-item recovery; and (C5)
+held-out generalization on never-seen keys/values. All hypotheses and
+decision criteria (CONFIRM/FALSIFY bands, e.g.\ Spearman
+$\rho(K,\effrank)\geq 0.8$ and $\effrank\in[0.7K,1.3K]$ for M1) were
+pre-registered before training.

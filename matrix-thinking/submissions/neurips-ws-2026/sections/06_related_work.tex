@@ -1,0 +1,98 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Factual recall via associative memory.}
+\citet{nichani2025factual} is the paper this work is in most danger of
+being read as a rank-flavored variant of, and \S\ref{sec:setup-readout}
+addresses it head-on: their rank-$m$ capacity result is a hand-built
+existence construction under interference-tolerant argmax decoding, not a
+measurement of the rank gradient descent discovers, a necessity bound for
+exact recovery, or a causal ablation; their transformer has full
+self-attention over raw tokens, with no hard single-state bottleneck.
+\citet{barnfield2026sharp} (with two shared authors) sharpen the
+argmax-vs-listwise capacity threshold for a \emph{static} rank-constrained
+memory with asymptotically exact constants -- a useful analytic reference
+point, not an object that is trained, composed, or causally ablated.
+
+\paragraph{Rank of trained fast-weight states.}
+\citet{nazari2026rank} and \citet{sun2026staterank} measure the same
+effective-rank metric on the linear-attention state $S_t=\sum_tv_tk_t^\top$
+and prove the \emph{upper} bound $\rank(S_t)\leq t$, in pretrained LLMs
+with uncontrolled write count on real text; neither has a necessity theorem
+or a training-time rank-$k$ ablation. This work is the mirror image:
+controlled $K$, a \emph{lower} bound, and a causal force-rank curve, in a
+from-scratch synthetic setting with provable ground truth.
+
+\paragraph{Eigenstructure and state-tracking.} Composability under
+repeated application is gated by eigenvalue sign and phase, not rank
+magnitude alone \citep{grazzi2025negative,siems2025deltaproduct}. This
+motivates the eigenstructure-fidelity view used throughout
+\S\ref{sec:taske}: a rank-$K$ matrix with the wrong eigenstructure can pass
+one-hop recall while failing composition, exactly the failure mode
+\S\ref{sec:taske-depth} isolates for force-rank $K{-}1$. We are careful not
+to conflate two different objects named ``rank'' in this lineage:
+DeltaProduct's rank is a property of the per-token \emph{transition
+matrix} $A_t=I-\beta_tk_tk_t^\top$ applied to the state, whereas the
+quantity measured throughout this paper is the \emph{state's own} rank,
+$\rank(Z)$ or $\rank(S_t)$ -- the capacity of what has been written so far.
+Conflating these is a natural point of reviewer confusion.
+
+\paragraph{Matrix-valued recurrent state and compositional transfer -- the
+closest prior art.} \citet{mishra2026m2rnn} report the closest existing
+result to \S\ref{sec:taske}: a matrix-valued recurrent state ($M^2$RNN)
+achieving near-perfect state-tracking generalization on $S_3$-permutation
+composition, trained at sequence length 128 and evaluated at 512 -- the
+same compose-beyond-the-training-horizon shape as this paper's Task E. Our
+delta, led with what their own results show: (i) their own comparison
+table has a plain vector-state GRU matching the matrix model on the same
+task, so their result does not by itself show matrix rank, or matrix
+structure at all, is load-bearing; (ii) their state-tracking theorem is
+representational (an existence/expressivity result), not a rank-necessity
+bound, and nothing in their setup measures what rank SGD's solution
+actually uses; (iii) they run no causal rank intervention -- no train-time
+rank forcing, no truncation ablation. \S\ref{sec:taske} is the mirror
+image on all three: a task where $\rank(Z)\geq K$ is provable under the
+pinned readout (\S\ref{sec:setup-bound}), a train-time causal force-rank
+arm (\S\ref{sec:taske-depth}), and a subspace-restricted verification that
+the rank actually recruited is exactly $K$ (\S\ref{sec:taske-subspace}).
+
+\paragraph{Theoretical capacity of continuous CoT.} \citet{zhu2025superposition}
+and \citet{gozeten2025cot2} give existence constructions for parallel
+reasoning in continuous latents, bounded by embedding dimension; both are
+capacity results with small empirical demonstrations, not measurements of
+what a trained objective actually recruits. \citet{rizvi2026illusion}
+push back empirically, showing a fine-tuned COCONUT model reaches high
+ProsQA accuracy without latent tokens at all -- the direct empirical
+motivation for our companion paper \citep{larson2026gradient} and,
+transitively, for this one: this paper does not adjudicate whether
+\emph{real} reasoning models superpose, but it does establish that a
+matrix latent \emph{can} be driven to functional, causally necessary rank
+$K$ under gradient training, on a task chosen so that ``functional'' is
+provable rather than inferred from accuracy alone.
+
+\paragraph{Standing caution on compositional generalization.}
+\citet{dziri2023faithfate} and \citet{wang2024grokked} are counter-evidence
+and caution for any compositional-generalization claim: transformers can
+grok in-distribution composition yet fail on novel combinations, or reduce
+to linearized subgraph matching that looks like genuine multi-step
+reasoning but is not. Our claim in \S\ref{sec:taske} is deliberately
+narrower than a general compositionality claim -- it is about the specific
+rank-$K$ matrix state Task D showed is causally necessary, verified by an
+exact eigenstructure decomposition against a known analytic target, not an
+inference from held-out accuracy alone.
+
+\paragraph{Binding-as-outer-product and VSA capacity.} $Z$ is literally a
+Tensor Product Representation \citep{smolensky1990tensor,mccoy2019tprs,
+schlag2019tptransformer}. The Vector Symbolic Architecture tradition
+\citep{plate1995hrr,frady2020resonator} studies a different capacity
+notion -- SNR and bundling/codebook factorization, not matrix rank -- which
+is why the exact-rank framing here is a distinct, cleaner question, and why
+the $K>d$ regime (not gated on in this paper) is expected to be lossy in
+the HRR sense rather than a rank-necessity failure. \citet{arora2023zoology}'s
+MQAR is the standard synthetic associative-recall family this paper's
+grammar resembles; it varies state dimension against a fixed pair count and
+reports end-task accuracy, not rank spectra. \citet{merrill2024illusion}
+bounds SSM state expressivity via communication complexity -- a
+size/complexity question, architecture- and decoding-agnostic, that cannot
+by construction isolate rank as the causal quantity the way a fixed-$d^2$,
+varying-rank ablation can.

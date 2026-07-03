@@ -1,0 +1,28 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+Our companion negative result left one question open: is a matrix latent's
+rank ignored by the gradient in general, or only when nothing rewards it?
+Closing every shortcut that could make a model look rank-aware without
+needing rank -- argmax decoding, position-decomposition, and a step budget
+too short to see a late transition -- the answer is that the gradient does
+see rank, when a task provably forces it. At $d\in\{8,16\}$, gradient
+descent trained from scratch recruits effective rank $\approx K$ and makes
+it causally necessary, with a step at $k\approx K$ sharp enough to be
+razor-clean at the smallest tested cell. That rank composes: a
+rank-sufficient trained operator self-applies exactly to depth 21, and an
+entity-subspace decomposition shows this is not a lucky lookup table but a
+genuine, restricted-rank-exactly-$K$ realization of the target permutation,
+with an invisible, unconstrained complement absorbing everything the loss
+never asked it to control. Depth itself is a sharper rank probe than any
+single-hop tolerance: a deliberately rank-starved operator's entire
+depth-decay curve is predictable from its own spectrum, no raw keys
+required. And what looked like a hard trainability wall at larger $d$ is
+substantially a step-budget artifact -- three independent axes of this
+program made the same mistake before a $2$--$2.5\times$ budget extension
+corrected it -- with a genuine, narrower frontier surviving underneath: not
+whether training moves, but how exactly it converges as $d$ grows. Every
+number here traces to a specific run, seed, and step count, and every
+claim above has a stated falsification condition. The transfer question --
+whether any of this helps reasoning on real data -- is not addressed here
+by design, and is the explicit next step this line of results gates.

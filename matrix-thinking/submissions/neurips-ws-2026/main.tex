@@ -1,0 +1,135 @@
+% Targets a NeurIPS 2026 workshop (interpretability track). Swap in the
+% official neurips_2026.sty before submission once the CFP publishes it;
+% until then this uses the same reusable two-column article scaffold as the
+% companion ICML MI Workshop 2026 paper (see ../icml-mi-workshop-2026/).
+%
+% Two builds from one source, same convention as the companion paper:
+%   pdflatex main.tex                       -> single-blind build (default; \anon=0)
+%   pdflatex "\def\anon{1}\input{main}"     -> anonymized build, only if the
+%                                               workshop CFP turns out to
+%                                               require double-blind review
+% The Makefile builds the single-blind (default) target.
+%
+% AUTHOR BLOCK IS A PLACEHOLDER -- see the \author{} command below. Needs a
+% PI decision: final author list/order, affiliation, and whether any
+% collaborator (e.g. a DeltaNet co-contributor) should be added given the
+% concurrent-work paragraph in the discussion.
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+% Anonymity flag: \anon=1 anonymizes; \anon=0 (default) shows the real author block.
+\providecommand{\anon}{0}
+
+\usepackage[margin=0.85in]{geometry}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,square,sort&compress]{natbib}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+% theorem-like environments
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+\newtheorem{fact}{Fact}
+
+% shortcut macros
+\newcommand{\vecop}{\operatorname{vec}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\anonymous}{Anonymous}
+\newcommand{\Z}{Z}
+\newcommand{\Zideal}{Z_{\mathrm{ideal}}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\effrank}{\operatorname{eff\text{-}rank}}
+\newcommand{\E}{\mathcal{E}}
+
+\title{When the Gradient Sees Rank: Provable Necessity, Causal Recruitment,\\
+and Exact Composition in Trained Matrix Memories}
+
+\if\anon1
+  \author{\anonymous{} Authors\\
+  \anonymous{} Institution\\
+  \texttt{anonymous@example.com}}
+\else
+  \author{Author Name(s) TBD$^{\dagger}$\\
+  Affiliation TBD\\
+  \texttt{email@TBD}}
+\fi
+
+\date{}
+
+\begin{document}
+
+\twocolumn[
+\begin{@twocolumnfalse}
+\maketitle
+\begin{abstract}
+A companion negative result showed that a matrix-valued latent bolted onto a
+vector-pretrained continuous-reasoning model never uses the rank of its
+state: truncating the latent to rank $k$ leaves ProsQA accuracy flat across
+four training regimes and four readouts. That result left open whether the
+gradient is rank-indifferent in general or whether the tested task simply
+admitted a rank-1 solution. We answer with three from-scratch,
+matrix-native experiments whose readout is pinned to \emph{exact continuous
+recovery} -- never argmax -- so that the rank-$m\!\to\!md$ argmax-capacity
+construction of \citet{nichani2025factual} cannot silently satisfy a rank
+bound the model never earned. (1) On an associative-memory task with a
+provable $\rank(Z)\geq K$ necessity and a single-matrix-state bottleneck
+that forecloses the position-decomposition escape (verified by a
+gradient-based blank-out test, not a shape check), gradient descent trained
+from scratch develops effective rank $\approx K$ (Spearman
+$\rho\!=\!1.0$ at $d\!=\!16$) and a causal force-rank step at $k\!\approx\!K$
+(razor-sharp at $d\!=\!8,K\!=\!4$: rank $\leq 3\Rightarrow 0.0$ recovery,
+rank $4\Rightarrow 0.97$). (2) On a compositional extension requiring the
+same operator to compose under repeated self-application $Z^h$, 4/5 seeds
+recover exactly (cosine $1.00$) to depth $h\!=\!21$. An entity-subspace
+decomposition resolves an apparent contradiction -- whole-matrix rank
+inflates to $\approx d$ -- by showing the operator \emph{restricted to the
+$K$-dimensional key subspace} is exactly a scaled cyclic permutation with
+restricted rank exactly $K$, while a full-rank, dynamically invisible
+complement absorbs every unconstrained degree of freedom. A deliberately
+rank-starved ($k\!=\!K\!-\!1$) operator predicts its own depth-decay curve
+from its spectrum alone to within $0.02$ at every hop -- iteration depth is
+a sharper spectral-exactness probe than any single-hop tolerance. (3)
+Scaling $d$ at fixed encoder width reveals a genuine \emph{exactness}
+frontier, not the trainability wall a first pass suggested: every tested
+seed eventually transitions (late, seed-stochastic), but converged
+recovery degrades monotonically with $d$ (cosine $\approx\!1.0$ at
+$d\!=\!16$; $0.72$ at $d\!=\!48,K\!=\!d/4$; $0.39$ at $d\!=\!64,K\!=\!d/4$).
+Three independent axes of this program each declared a cell ``dead'' at a
+fixed step budget before a 2--2.5$\times$ extension reversed the verdict --
+a methodological finding we name, quantify, and caveat (a genuine
+budget-independent plateau also occurs, and does not always resolve in a
+result's favor). All experiments are synthetic and $\leq$1M parameters; we
+report this scope plainly and state what would falsify each claim. A
+concurrent, preliminary result on a production fast-weight architecture
+(DeltaNet) shows perfect unconstrained-arm composition and exact,
+uninflated rank recruitment at 2.5$\times$ tier budget, with the causal
+force-rank staircase still in flight.
+\end{abstract}
+\vspace{0.6em}
+\end{@twocolumnfalse}
+]
+
+\input{sections/01_intro}
+\input{sections/02_setup}
+\input{sections/03_task_d}
+\input{sections/04_task_e}
+\input{sections/05_frontier}
+\input{sections/06_related_work}
+\input{sections/07_discussion}
+\input{sections/08_conclusion}
+\input{sections/09_reproducibility}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

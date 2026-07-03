@@ -1715,7 +1715,20 @@ def build_logger(results_dir, is_main):
 
     class Logger:
         def __init__(self, path):
+            self.path = path
             self.f = open(path, "a") if is_main else None
+
+        def _reopen(self):
+            try:
+                if self.f:
+                    try: self.f.close()
+                    except Exception: pass
+                self.f = open(self.path, "a")
+            except Exception as e:
+                # If reopen also fails, fall back to None — print() to stdout
+                # is still captured by the outer launcher's tee.
+                print(f"[Logger] reopen failed ({type(e).__name__}: {e}); using stdout only", flush=True)
+                self.f = None
 
         def log(self, msg):
             if not is_main:
@@ -1724,12 +1737,19 @@ def build_logger(results_dir, is_main):
             line = f"[{ts}] {msg}"
             print(line, flush=True)
             if self.f:
-                self.f.write(line + "\n")
-                self.f.flush()
+                try:
+                    self.f.write(line + "\n")
+                    self.f.flush()
+                except OSError as e:
+                    # Network-volume hiccups (ENXIO, EIO, ENOSPC etc.) on flush
+                    # have killed multi-hour training runs. Recover transparently.
+                    print(f"[Logger] write/flush OSError ({e.errno}: {e.strerror}); reopening", flush=True)
+                    self._reopen()
 
         def close(self):
             if self.f:
-                self.f.close()
+                try: self.f.close()
+                except Exception: pass
 
     return Logger(results_dir / "train.log")
 
@@ -2436,6 +2456,24 @@ def main():
             "coincident singular values). Default 0 (OFF). Must be >= 0."
         ),
     )
+    parser.add_argument(
+        "--prosqa-train-path",
+        type=str,
+        default=None,
+        help="Override CONFIG['prosqa_train_path']. Used to point at MULTI-2 etc.",
+    )
+    parser.add_argument(
+        "--prosqa-val-path",
+        type=str,
+        default=None,
+        help="Override CONFIG['prosqa_val_path']. Used to point at MULTI-2 etc.",
+    )
+    parser.add_argument(
+        "--weight-decay",
+        type=float,
+        default=None,
+        help="Override CONFIG['weight_decay']. Default 0.01; use 0.0 for the implicit-bias control arm.",
+    )
     args = parser.parse_args()
 
     cfg = copy.deepcopy(CONFIG)
@@ -2467,6 +2505,12 @@ def main():
     assert args.force_rank_during_training >= 0, \
         f"--force-rank-during-training must be >= 0 (got {args.force_rank_during_training})"
     cfg["force_rank_during_training"] = args.force_rank_during_training
+    if args.prosqa_train_path is not None:
+        cfg["prosqa_train_path"] = args.prosqa_train_path
+    if args.prosqa_val_path is not None:
+        cfg["prosqa_val_path"] = args.prosqa_val_path
+    if args.weight_decay is not None:
+        cfg["weight_decay"] = args.weight_decay
 
     if args.smoke_test:
         try:

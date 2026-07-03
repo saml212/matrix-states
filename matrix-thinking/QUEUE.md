@@ -1,8 +1,30 @@
 # Experiment Queue
 
-**Last updated:** 2026-04-20
+**Last updated:** 2026-04-20 (superseded — see banner below)
 
 This document is the engineering queue for future experiments. It contains the specs that an experimenter agent (or you) needs to actually run the experiments. Strategic narrative and project state live in [STATE.md](../STATE.md).
+
+---
+
+> **STATUS AS OF 2026-07-01 — everything below this banner is historical
+> (matrix-CODI / workshop-paper era, all items closed or superseded).**
+> The active queue moved to `matrix-thinking/chapter2/`:
+> - Control A (Priority 0 below): **done**, folded into the accepted workshop paper.
+> - Priority 1 (matrix-CODI rank dynamics): **done** — negative result (rank-blind),
+>   this is the paper's headline finding.
+> - Chapter 2 (Task D, tensor-product key/value binding): **done, CONFIRMED**
+>   at d=8,16. Spec: `matrix-thinking/chapter2/TASK_D_PREREGISTRATION.md`.
+>   Write-up: `matrix-thinking/chapter2/TASK_D_WRITEUP.md`.
+> - Chapter 2.5 (Task E, compositional reasoning transfer): **running now** on
+>   the Brev 8×H100 cluster. Spec: `matrix-thinking/chapter2/NEXT_EXPERIMENT_DESIGN.md`.
+> - Follow-on, not yet started: Stage 0 (d≥32 trainability precursor, blocks
+>   the large-matrix tranche of Task E); the real-data reasoning-transfer step
+>   (gated on Task E's result); byte-level input as an isolated follow-on
+>   ablation once matrix-native scales to real data (see STATE.md's Path
+>   Forward — tokenization must be held fixed, not bundled with the matrix
+>   change).
+>
+> See STATE.md's "Chapter 2 — STATUS" section for the full current narrative.
 
 ---
 

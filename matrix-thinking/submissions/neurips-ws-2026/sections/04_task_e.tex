@@ -1,0 +1,186 @@
+\section{Task E: Exact Composition and the Invariant-Subspace Mechanism}
+\label{sec:taske}
+
+Task D is a single lookup: no composition. The natural next question is
+whether the causally-necessary rank-$K$ matrix \emph{composes} correctly --
+whether $Z$ implements a genuine operator, not just a rank-sufficient
+lookup table. \emph{Task E} extends the grammar to a permutation-cycle
+variant: $K$ entities related by a single Hamiltonian $K$-cycle $\pi$, so
+that querying entity $i$ after $h$ relational hops means recovering
+$v_{\pi^h(i)}$ via $h$-fold self-application of the trained operator,
+$Z^h\cdot k_i$ -- no learned per-hop parameters. Training sees hops
+$H_{\mathrm{train}}=\{1,2,3\}$; evaluation adds held-out
+$H_{\mathrm{test}}=\{4,5,6\}$ and depth probes
+$H_{\mathrm{extra}}=\{7,21\}$, at $d=16$ with orthonormal keys.\footnote{A
+general random permutation decomposes into short disjoint cycles, so
+$\pi^h$ is periodic in the cycle length and ``held-out'' hops silently
+collapse into in-distribution or trivial queries via $h\bmod(\text{cycle
+length})$ -- a design-gauntlet finding (up to 100\% collapse measured at
+small $K$) that forced the single-Hamiltonian-cycle construction used
+here; see \S\ref{sec:repro}.}
+
+\subsection{Exact composition to depth 21}
+\label{sec:taske-headline}
+
+At $K{=}8$, unconstrained rank, $4$ of $5$ seeds reach
+$\mathrm{recovered\_frac@0.9}=1.00$ at \emph{every} tested hop --
+in-distribution ($h{=}1,2,3$), held-out ($h{=}4,5,6$), and both extra
+probes ($h{=}7,21$) -- with zero non-finite training steps. The fifth seed
+is a partial/still-transitioning outlier whose recovery decays with hop
+distance ($1.00\to0.16$ from $h{=}1$ to $h{=}7$), the same signature an
+earlier, budget-starved round showed for its one convergent seed --
+consistent with a seed still mid-transition, not a new failure mode.
+
+\subsection{The depth-amplification mechanism}
+\label{sec:taske-depth}
+
+A force-rank probe at $K{=}8$ separates two regimes cleanly. Force-rank
+$k\in\{8,9\}$ ($\geq K$, provably sufficient) is \emph{dead} in all 6 tested
+seeds -- stable rank collapses to $\approx1.0$--$1.15$, recovery is $0.00$
+at every hop, accompanied by numerical instability in the constrained
+eigh-backward pass, a distinct failure mode from Task D. Force-rank
+$k{=}7$ ($K{-}1$, provably insufficient) converges in one of three tested
+seeds, with a revealing signature: in-distribution recovery $1.00/0.99/0.99$
+($h{=}1$--$3$), held-out $0.97/0.95/0.92/0.88$ ($h{=}4$--$7$), and
+\textbf{$h{=}21 = 0.06$}.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{cccc}
+\toprule
+$h$ & predicted $\cos(h)$ & measured $\overline{\cos}$ & measured rec@0.9 \\
+\midrule
+1  & 0.9317 & 0.9303 & 0.996 \\
+3  & 0.9258 & 0.9259 & 0.986 \\
+5  & 0.9181 & 0.9212 & 0.947 \\
+7  & 0.9089 & 0.9163 & 0.881 \\
+21 & 0.7536 & 0.8206 & \textbf{0.060} \\
+\bottomrule
+\end{tabular}
+\caption{Force-rank $k{=}7$ ($K{-}1$) at $K{=}8$: the depth-decay curve,
+predicted purely from the trained operator's own eigenspectrum with no
+access to the raw key vectors (a synthetic-key construction exploiting
+that the true keys decompose into the ideal cycle's eigenbasis with equal
+$1/\sqrt K$ magnitude on every mode), against the measured curve. Full
+7-hop table in the repository; every point through $h{=}7$ matches to
+within $0.008$. The intuition: dropping one of $K{=}8$ eigenmodes leaves
+per-item cosine near $\sqrt{1-1/8}\approx0.94$ at shallow depth --
+comfortably above the $0.9$ bar -- but 21-fold self-application amplifies
+the deficiency past threshold.}
+\label{tab:taske-depth}
+\end{table}
+
+An entity-subspace eigenanalysis (\S\ref{sec:taske-subspace}) confirms this
+is not a heuristic but an exact spectral fact: \emph{exactly one} eigenmode
+of the trained operator has the maximum possible phase residual (genuinely
+absent, not merely mis-rotated) while the other 7 match the ideal cycle to
+residual $0.001$--$0.039$. Contrast this with the rank-sufficient result of
+\S\ref{sec:taske-headline}: seeds with restricted rank provably at $K$ hold
+cosine $1.00$ at $h{=}21$ with \emph{zero} decay. Same task, same $K$, same
+hop, two rank regimes -- one exact through depth 21, one exposed exactly
+there. \textbf{Iteration depth is a sharper spectral-exactness probe than
+any single-hop cosine tolerance}, and the recoverable-fraction metric is
+far more sensitive to depth than the mean cosine (Table~\ref{tab:taske-depth}:
+$\overline{\cos}$ falls only $0.93\to0.82$ from $h{=}7$ to $h{=}21$ while
+$\mathrm{rec@0.9}$ collapses $0.88\to0.06$), because the per-item
+phase-alignment distribution widens under repeated composition rather than
+merely shifting.
+
+\subsection{The invariant-subspace decomposition}
+\label{sec:taske-subspace}
+
+Whole-matrix effective rank of the converged $K{=}8$ solutions is
+$\approx14.7$--$15.6$ out of $d{=}16$ -- essentially full ambient
+dimension, not $\approx K$. Taken at face value this contradicts Task D's
+M1 pattern. It does not: the whole-matrix number is the wrong instrument.
+
+Recovering the $K$-dimensional entity subspace $\E$ from the analytic ideal
+cycle's own SVD (top-$K$ left singular vectors), we block-decompose the
+trained $Z$ in the $[\E,\E^\perp]$ basis: $A=U^\top ZU$ (the restricted
+operator), $B=U^\top ZV$ and $C=V^\top ZU$ (cross-subspace leakage), and
+$D=V^\top ZV$ (the complement). By induction, a query starting in $\E$
+stays entirely within $\E$ under repeated self-application -- $U^\top
+Z^hu=A^ha$ exactly, independent of $B$ and $D$ -- \emph{iff} $C\approx0$.
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccccc}
+\toprule
+seed & $\effrank(A)$ & resid.\ & $\|C\|$ & $\effrank(D)$ & $\rho(D)$ \\
+\midrule
+s1 (exact) & 8.000 & 0.7\% & 0.024 & 8.000 & 1.38 \\
+s2 (exact) & 7.999 & 1.9\% & 0.053 & 8.000 & 1.27 \\
+s3 (exact) & 7.999 & 1.5\% & 0.099 & 8.000 & 2.86 \\
+s4 (exact) & 7.999 & 2.4\% & 0.059 & 7.999 & 1.02 \\
+\bottomrule
+\end{tabular}
+\caption{Entity-subspace decomposition, $K{=}8$ converged seeds (means over
+4 eval examples). $\effrank(A)$ (max 8) is exact $K$-recruitment on the
+task-relevant subspace. Residual is the scale-corrected
+$\|A-c^*\Pi\|_F/\|c^*\Pi\|_F$ against the ideal cycle $\Pi$, after fitting
+the single isotropic scale $c^*$ that cosine similarity cannot see (raw,
+scale-naive residuals are $5$--$180\times$ larger and misleading). $\|C\|$
+(leakage into the complement) is $<2.5\%$ of $\|Z\|$ in every seed.
+$\effrank(D)$ (max 8) shows the complement is itself full-rank, and
+$\rho(D)\geq1$ shows it is non-contractive -- yet it never corrupts
+recovery, because no real query trajectory (which always starts in $\E$)
+ever visits it.}
+\label{tab:taske-subspace}
+\end{table}
+
+Table~\ref{tab:taske-subspace} answers the M1-transfer question cleanly:
+\textbf{restricted to the entity subspace, ``rank tracks $K$'' holds
+exactly} -- it was the whole-matrix measurement that was uninformative,
+not SGD's rank discipline. $D$'s effective rank ($\approx K$ out of its own
+$d{-}K$ dimensions) is exactly the missing piece of the whole-matrix
+inflation ($K$ in $A$ plus $d{-}K$ in $D$ $\approx d$). $D$ is neither
+task-structured nor i.i.d.\ noise -- its singular-value spectrum is nearly
+flat (condition number $1.01$--$1.75$, an order of magnitude flatter than a
+random Gaussian matrix of the same norm) -- consistent with it being
+whatever the encoder's untrained-in-this-direction output defaults to,
+rather than anything the loss shaped. Dead force-rank seeds fail this test
+completely: $\effrank(A)\approx1.00$ even restricted to the entity
+subspace, confirming the collapse is genuine, not an artifact of measuring
+the wrong matrix.
+
+\subsection{The $K$-wall was also a budget artifact, with one genuine
+boundary case}
+\label{sec:taske-kwall}
+
+At the same 40{,}000-step budget, $K\in\{12,16\}$ (unconstrained rank)
+appeared dead -- $0/5$ and $0/5$ seeds converged. Doubling the budget to
+80{,}000 steps reversed this: $K{=}12$ is $3/3$ exact (recovery $1.00$ at
+every hop through $h{=}21$ in 2 of 3 seeds, $0.9999$ in the third), and
+$K{=}16$ is $2/3$ converged (near-exact through $h{=}7$, with the
+depth-amplification signature of \S\ref{sec:taske-depth} appearing at
+$h{=}21$ in an \emph{unconstrained}-rank seed for the first time, not only
+in the deliberately rank-starved case). Onset windows are seed-dependent
+and grow with $K$: $\approx$12--40K steps at $K{=}8$;
+$\approx$45--75K at $K{=}12/16$.
+
+The subspace decomposition replicates the $K{=}8$ story at $K{=}12$
+(restricted rank $99.97$--$100.0\%$ of $K$, leakage $<2.1\%$ of $\|Z\|$) and
+at $K{=}16$'s two converged seeds ($99.76$--$99.9\%$), with one structural
+caveat: at $K{=}16{=}d$, the entity subspace \emph{is} the full ambient
+space, so $B,C,D$ are $0\times0$ by construction for any $Z$, trained or
+not -- ``leakage $\approx0$'' at $K{=}d$ is a tautology of the geometry,
+not a finding about what SGD learned, and should not be cited alongside the
+genuine low-leakage results at $K<d$.
+
+$K{=}16$'s remaining stuck seed is the one place a further budget extension
+did \emph{not} help: 3 seeds run to 120{,}000 steps (1.5$\times$ the 80K
+round) are all dead -- $\mathrm{mean\_cos}$ at noise level
+($-0.003$ to $0.066$) at every hop, effective rank $1.5$--$3.0$, no
+transition signature in the training loss at any point in the extended
+budget. Combined across both budgets, $K{=}16$'s tally is $2/5$ converged,
+$3/5$ dead -- the one cell in this document where the entity subspace is
+the entire ambient space, with no orthogonal complement providing slack for
+a marginal write to grow into before an exact solution is required. We
+flag this explicitly as a boundary-case scaling observation, distinct from
+\S\ref{sec:frontier}'s three-budget-artifacts pattern: unlike every other
+instance of that pattern, this specific extension rescued zero additional
+seeds.

@@ -1,0 +1,113 @@
+\section{Task D: Rank Tracks $K$, and Is Causally Necessary}
+\label{sec:taskd}
+
+\subsection{M1 -- learned effective rank tracks $K$}
+\label{sec:taskd-m1}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\begin{tabular}{lcccccccccc}
+\toprule
+$K$ & 1 & 2 & 3 & 4 & 6 & 8 & 10 & 12 & 14 & 16 \\
+\midrule
+$d{=}16$ & 2.42 & 3.01 & 3.92 & 4.74 & 6.40 & \textbf{8.20} & 9.89 & 11.78 & 13.47 & 15.09 \\
+$d{=}8$  & 1.65 & 3.44 & --   & 4.57 & --   & \textbf{7.83} & --    & --    & --    & --    \\
+\bottomrule
+\end{tabular}
+\caption{Learned effective rank of the unconstrained $Z$ vs.\ binding count
+$K$, mean over $\geq 5$ seeds. At $d{=}16$, effective rank tracks $K$
+almost exactly across the full tested range (Spearman $\rho=1.0$; the only
+departure from the pre-registered $[0.7K,1.3K]$ band is at $K{=}1,2$, where
+rank modestly exceeds $K$). At $d{=}8$, rank tracks $K$ up to the ceiling
+($K{=}8\to7.83\approx d$). For $K>d$ (not shown; $d{=}16$: $K{=}20\to11.1$,
+$K{=}24\to11.6$, $K{=}32\to8.6$) rank saturates and declines -- the
+expected lossy over-complete HRR regime.}
+\label{tab:taskd-m1}
+\end{table}
+
+Table~\ref{tab:taskd-m1} is a 991-run mid-sweep snapshot; a subsequent
+1{,}234-run mega-replication is directionally identical and refines several
+cells (e.g.\ $d{=}16$: $K{=}8\to8.198$, $K{=}16\to15.083$, $K{=}24\to10.40$,
+$K{=}32\to9.46$) without changing the qualitative story, so we report the
+originally pre-registered table and note the replication for the record.
+
+\subsection{M3 -- the causal force-rank step lands at $k\approx K$}
+\label{sec:taskd-m3}
+
+Effective rank tracking $K$ shows the model \emph{can} build rank-$K$
+capacity; it does not show that capacity is used. The primary causal test
+constrains $Z$ to rank $k$ throughout training (not post-hoc truncation)
+and measures $\mathrm{recovered\_frac@0.9}$ -- the fraction of the $K$
+bindings recovered above cosine threshold $0.9$ (re-registered down from
+the originally pre-registered $\tau{=}0.99$ once a calibration run showed
+the reliably-trainable model plateaus at unconstrained cosine $\approx
+0.936$, before any force-rank sweep ran).
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.3pt}
+\begin{tabular}{lccccccccc}
+\toprule
+fr $k\to$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 16 \\
+\midrule
+$d{=}8,K{=}4$   & 0.0 & 0.0 & 0.0 & \textbf{0.97} & 0.99 & 0.96 & -- & 0.98 & -- \\
+$d{=}16,K{=}8$  & 0.0 & 0.0 & -- & -- & -- & 0.34 & \textbf{0.91} & 0.76 & 0.99 \\
+$d{=}16,K{=}12$ & 0.0 & 0.0 & -- & -- & -- & -- & -- & -- & 0.9994 \\
+\bottomrule
+\end{tabular}
+\caption{$\mathrm{recovered\_frac@0.9}$ under train-time force-rank $k$.
+$d{=}8,K{=}4$ is razor-sharp: force-rank $\leq 3$ gives exactly $0.0$
+recovery, force-rank $4$ jumps to $0.97$. $d{=}16,K{=}8$ and $K{=}12$
+(intermediate $k$ omitted for space; full grid in the repository) show the
+same step near their respective $K$, with mild post-knee
+non-monotonicity attributable to seed noise and the $\approx0.936$
+precision ceiling. A 1{,}234-run mega-replication refines the $K{=}12$
+transition zone to a ragged ramp rather than a single clean step
+(intermediate points fr$=$11$\to$0.75, fr$=$13$\to$0.79, fr$=$14$\to$0.85)
+-- the qualitative knee near $k\approx K$ holds, but the transition is
+noisier than a two-point table implies.}
+\label{tab:taskd-m3}
+\end{table}
+
+The signature in Table~\ref{tab:taskd-m3} is the paper's central causal
+result: constraining rank below $K$ destroys recovery, with a step at
+$k\approx K$. Together with Table~\ref{tab:taskd-m1}, M1 and M3 confirm the
+pre-registered hypothesis at $d\in\{8,16\}$: SGD develops rank $\approx K$
+\emph{and} that rank is causally necessary. This directly resolves the
+question the companion paper left open -- the earlier rank-blindness was
+task-specific (ProsQA was rank-1-solvable), not a property of the gradient.
+
+\paragraph{One cell needed a second look.} At $d{=}16,K{=}4$, the original
+8{,}000-step budget produced $\mathrm{recovered\_frac@0.9}=0.045$ even at
+\emph{full} rank (force-rank $16$, i.e.\ no constraint at all), with the
+entire force-rank sweep confined to $0.0008$--$0.134$ -- initially read as
+a genuine, seed-count-independent convergence ceiling specific to this
+cell. An opportunistic probe at $2.5\times$ budget (20{,}000 steps, 2
+seeds, unconstrained) instead reached $0.348$/$0.483$ -- a 3--10$\times$
+jump off the earlier ceiling, with effective rank showing an
+overshoot-then-compress trajectory ($1.3\to7.8$ at step 4K, settling to
+$4.4$--$5.0$ by 20K). This was not a seed-sparsity artifact; it was a
+step-budget artifact, and it directly foreshadows the pattern
+\S\ref{sec:frontier} names and quantifies across the rest of this program.
+Whether $0.35$--$0.48$ is itself further budget-limited or a new,
+lower-than-$K{=}8/12$ ceiling for this specific cell is not resolved by
+this probe alone.
+
+\subsection{The trainability frontier at $d\geq32$ -- revised in \S\ref{sec:frontier}}
+\label{sec:taskd-frontier}
+
+At the same 8{,}000--10{,}000-step budget used above, $d\geq32$ appeared to
+fail outright: effective rank collapsed toward $\approx1$ for every $K$,
+and $\mathrm{recovered\_frac@0.9}$ was $0.0$ for every force-rank -- the
+unconstrained model never learned the write, so there was nothing for
+truncation to degrade. We initially read this as an
+optimization/architecture limitation (the same fixed $h{=}64$ encoder
+writing into a $Z$ with $16\times$ more entries at $d{=}128$ than $d{=}16$)
+and flagged it as the honest limitation motivating the next experiment. A
+dedicated follow-up (Stage 0, \S\ref{sec:frontier}) substantially revises
+this reading: most of what looked like a trainability wall at $d\geq32$ is
+a step-budget artifact, and the frontier that survives extended budget is
+about converged \emph{exactness}, not whether training moves at all.
