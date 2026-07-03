@@ -3280,3 +3280,13 @@ Archive: `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/
 wavegeo3/` (10 files, 15 MB, mirrored to
 `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/`).
 Full write-up: `matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md` §16.
+
+## F-geo-3 K=48 stretch (2026-07-04): fix transforms the past-d/2 regime — perfect orthogonalization (gram 0.000, n_iter=20), ID h1/h2 = 1.0/1.0 vs baseline 0.41/~0.007, h3 0.31-0.32 vs 0; held-out h4+ remains drift-limited (K=48 drift 0.80-0.82, deepest HIGH band) — outcome-F law consistent across the whole K-axis
+
+3/3 cells complete; admission False (cause to check — likely fallback count
+at the d_state ceiling; behavioral read unaffected). Archive: repo +
+SSD wavegeo3/. The K-frontier under the fix: K=16 near-ceiling through h=7;
+K=32 perfect ID + 45x held-out; K=48 perfect ID h1-2. In-distribution
+composition is now SOLVED at every K ≤ 0.75d; held-out depth is bounded by
+cross-episode key stability everywhere — one mechanism, one follow-on
+target (key anchoring).
