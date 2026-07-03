@@ -1,32 +1,86 @@
 {
   "design_ref": "SCALE_TRANSFER_DESIGN.md sec 5.6 Wave -1 (Track C calibration)",
-  "measured_at_utc": "2026-07-03T22:31:35Z",
+  "measured_at_utc": "2026-07-03T22:53:34Z",
   "cells": {
-    "calib_rung1_lm_openr1-mix_dm768_ds64_L12_s0": {
+    "calib_rung1_ptA_lm_openr1-mix_dm768_ds64_L12_s0": {
       "status": "complete",
-      "tag": "calib_rung1",
+      "tag": "calib_rung1_ptA",
       "d_model": 768,
       "d_state": 64,
       "n_layers": 12,
       "n_params": 97618176,
-      "steps_completed": 200,
-      "wall_s": 54.28417181968689,
-      "tokens_per_s_per_gpu": 60363.820431568674,
+      "steps_completed": 40,
+      "wall_s": 13.178068399429321,
+      "tokens_per_s_per_gpu": 49731.11234028657,
       "peak_memory_allocated_gb": 23.729161728,
       "peak_memory_reserved_gb": 26.323451904
     },
-    "calib_control_lm_openr1-mix_dm256_ds64_L2_s0": {
+    "calib_rung1_ptB_lm_openr1-mix_dm768_ds64_L12_s0": {
       "status": "complete",
-      "tag": "calib_control",
+      "tag": "calib_rung1_ptB",
+      "d_model": 768,
+      "d_state": 64,
+      "n_layers": 12,
+      "n_params": 97618176,
+      "steps_completed": 120,
+      "wall_s": 32.063706398010254,
+      "tokens_per_s_per_gpu": 61317.92674230597,
+      "peak_memory_allocated_gb": 23.729161728,
+      "peak_memory_reserved_gb": 26.323451904
+    },
+    "calib_control_ptA_lm_openr1-mix_dm256_ds64_L2_s0": {
+      "status": "complete",
+      "tag": "calib_control_ptA",
       "d_model": 256,
       "d_state": 64,
       "n_layers": 2,
       "n_params": 14048896,
-      "steps_completed": 200,
-      "wall_s": 11.00167202949524,
-      "tokens_per_s_per_gpu": 297845.6357556353,
+      "steps_completed": 100,
+      "wall_s": 6.006757736206055,
+      "tokens_per_s_per_gpu": 272759.4605862754,
       "peak_memory_allocated_gb": 15.49659392,
       "peak_memory_reserved_gb": 16.96595968
+    },
+    "calib_control_ptB_lm_openr1-mix_dm256_ds64_L2_s0": {
+      "status": "complete",
+      "tag": "calib_control_ptB",
+      "d_model": 256,
+      "d_state": 64,
+      "n_layers": 2,
+      "n_params": 14048896,
+      "steps_completed": 300,
+      "wall_s": 14.746833801269531,
+      "tokens_per_s_per_gpu": 333305.4448322906,
+      "peak_memory_allocated_gb": 15.49659392,
+      "peak_memory_reserved_gb": 16.96595968
+    }
+  },
+  "timing_constants": {
+    "rung1": {
+      "per_step_s": 0.23607047498226166,
+      "per_ckpt_s": 3.735249400138855,
+      "point_a": {
+        "steps": 40,
+        "wall_s": 13.178068399429321
+      },
+      "point_b": {
+        "steps": 120,
+        "wall_s": 32.063706398010254
+      },
+      "method": "two-point (trackC-audit finding #2): wall_s = per_step_s*steps + per_ckpt_s*1 (one checkpoint per point), solved from 2 single-checkpoint runs"
+    },
+    "control": {
+      "per_step_s": 0.04370038032531738,
+      "per_ckpt_s": 1.6367197036743164,
+      "point_a": {
+        "steps": 100,
+        "wall_s": 6.006757736206055
+      },
+      "point_b": {
+        "steps": 300,
+        "wall_s": 14.746833801269531
+      },
+      "method": "two-point (trackC-audit finding #2): wall_s = per_step_s*steps + per_ckpt_s*1 (one checkpoint per point), solved from 2 single-checkpoint runs"
     }
   }
 }
