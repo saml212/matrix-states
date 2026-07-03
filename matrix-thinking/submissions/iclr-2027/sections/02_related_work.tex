@@ -1,0 +1,71 @@
+\section{Related Work}
+\label{sec:related-work}
+
+% Full map with justification text: NARRATIVE.md \S5. Keep this section
+% LIGHT — sharper distinctions (esp. vs. M2RNN, DeltaProduct) are deferred
+% to forward-references from \S\ref{sec:mechanism}/\S\ref{sec:the-fix}
+% where they are actually load-bearing.
+
+\begin{itemize}
+  \item \textbf{Descriptive rank measurement (the primary foil).}
+    Nazari \& Rusch (arXiv:2602.04852); Sun et al. (arXiv:2602.02195).
+    Same effective-rank instrument, uncontrolled $K$, no necessity
+    theorem, no causal intervention. We are the mirror image: controlled
+    $K$, provable LOWER bound, causal (train-time + eval-time)
+    intervention, on the exact architecture family they measure.
+  \item \textbf{Nichani, Lee \& Bietti (arXiv:2412.06538, ICLR 2025
+    Spotlight).} Closest prior theoretical construction --- rank-$m$
+    existence proof under DISCRETE ARGMAX decoding (rank-1 recovers
+    $\approx d$ associations under argmax). Motivates why our readout is
+    pinned to exact-continuous cosine recovery, never argmax.
+  \item \textbf{Schlag, Irie \& Schmidhuber (arXiv:2102.11174, ICML 2021).}
+    Origin of ``linear-attention state as associative memory'' ---
+    fast-weight-programmer lineage.
+  \item \textbf{DeltaNet / Gated DeltaNet production lineage
+    (\texttt{fla-org} kernel used directly) and DeltaProduct
+    (arXiv:2502.10297).} DeltaProduct's ``rank'' is the PER-STEP
+    TRANSITION matrix $A_t = I - \beta_t k_t k_t^\top$ --- a DIFFERENT
+    object from the STATE's own rank $\mathrm{rank}(S_t)$ measured here.
+    State this distinction in one explicit sentence (flagged in the source
+    design doc as the single most likely reviewer confusion). Also:
+    Grazzi et al.\ (arXiv:2411.12537, negative-eigenvalue state tracking)
+    for the eigenvalue sign/phase framing relevant to the $h{=}21$
+    depth-amplification discussion.
+  \item \textbf{Barnfield et al.\ (arXiv:2605.05189).} Capacity thresholds
+    for STATIC rank-constrained associative memories (no recurrence, no
+    training dynamics). Our delta: the training-time force-rank ablation
+    on a time-varying, streamed state, plus held-out-hop composition.
+  \item \textbf{Based / Arora et al.\ (arXiv:2402.18668, Thm F.1) and
+    Zoology (arXiv:2312.04927).} Based bounds state SIZE
+    (decoding-agnostic); justify explicitly why RANK, not size, is the
+    binding resource under a pinned linear-unbind readout. Zoology: the
+    standard synthetic associative-recall (MQAR) benchmark family our
+    probe grammar resembles.
+  \item \textbf{M\textsuperscript{2}RNN (arXiv:2603.14360).} Closest
+    prior-art paper --- matrix-valued recurrent state, permutation-group
+    (S$_3$) composition trained at seq-len 128, evaluated near-perfectly
+    at 512. Their own comparison table has a plain vector-state GRU
+    matching the matrix model (rank not shown load-bearing); Thm 1 is
+    representational, not necessity; no causal rank intervention. Lead
+    with what their own results concede, then state the three-way mirror.
+    \textbf{VERIFY CITATION SPECIFICS before camera-ready} --- flagged in
+    source material as abstract-level-only verification so far.
+  \item \textbf{Superposition / distributed representation literature.}
+    Elhage et al.\ (Toy Models of Superposition) for the general framing;
+    contrast with our EXACT-recovery requirement (superposition results
+    typically assume favorable/sparse readout, which our provable bound
+    closes off). Plate 1995 (Holographic Reduced Representations), Frady,
+    Kleyko \& Sommer 2020 (Resonator Networks) --- VSA/HRR capacity
+    tradition, scope explicitly as a DIFFERENT notion of capacity
+    (SNR/bundling) from this paper's exact-rank framing.
+  \item \textbf{This project's own prior chapter (Task D/E,
+    \texttt{matrix-thinking/chapter2/}).} Not external work --- immediate
+    lineage. The from-scratch, bespoke-attention-encoder version of the
+    identical rank-recruitment result, including the depth-amplification
+    law imported directly (\texttt{TASK\_E\_FINDINGS.md} \S3) and the
+    earlier ProsQA/matrix-CODI negative result that motivated the
+    exact-continuous readout choice in the first place. State explicitly:
+    this paper TRANSFERS that result to a production architecture and, new
+    here, discovers and fixes the exactness gap the synthetic construction
+    never exposed.
+\end{itemize}

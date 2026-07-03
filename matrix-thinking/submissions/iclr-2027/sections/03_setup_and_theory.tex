@@ -1,0 +1,69 @@
+\section{Setup and Theory}
+\label{sec:setup}
+
+% Full grounding: DELTANET_CAUSAL_RANK_DESIGN.md \S1, \S2, \S4.1;
+% NARRATIVE.md \S3 "\S3 Setup and Theory"
+
+\subsection{Architecture}
+\begin{itemize}
+  \item Vanilla single-head ($H{=}1$), single-layer DeltaNet,
+    \texttt{chunk\_delta\_rule} (production \texttt{fla-org} kernel), the
+    standard delta rule $S_t = S_{t-1}(I - \beta_t k_t k_t^\top) + \beta_t
+    v_t k_t^\top$.
+  \item $H{=}1$/single-layer is a deliberate gate-simplicity choice
+    (closes the multi-head/multi-layer pigeonhole escape cleanly) --- NOT
+    evidence the phenomenon is $H{=}1$-specific. Forward-reference:
+    ReserveMH (6/6 cells, every head independently recruits full rank
+    $K{=}32$ at $H\in\{2,4\}$, no cross-head distribution) lifts the
+    $H{=}1$ qualifier on the SYNTHETIC task; not yet re-run on the
+    real-data exactness frontier (state as a limitation,
+    \S\ref{sec:discussion}).
+\end{itemize}
+
+\subsection{The provable bound}
+\begin{itemize}
+  \item Pinned linear-unbind readout: $\mathrm{pred} = S_T \cdot k_j$,
+    cosine-scored at $\tau{=}0.9$, \textbf{never argmax} (the
+    Nichani/Lee/Bietti-motivated design choice --- under argmax a rank-1
+    matrix recovers $\approx d$ associations, silently defeating any
+    necessity claim).
+  \item Exact recovery of $K$ independent bindings $\Rightarrow
+    \mathrm{rank}(S_T) \geq K$. Clean premise: learned $\beta_j \neq 0$
+    suffices (need not equal 1); cosine scoring is invariant to a positive
+    per-item scalar. State the proof sketch as a short proposition +
+    2--3 line derivation (full form: \texttt{DELTANET\_CAUSAL\_RANK\_
+    DESIGN.md} \S4.1).
+  \item Two escapes closed by construction: position-decomposition
+    (single $d\times d$ state, no $P{=}1$ slotting) and the
+    architecture-specific reincarnations (multi-head via $H{=}1$ primary
+    gate; multi-layer via readout-reads-only-final-layer).
+\end{itemize}
+
+\subsection{Method: the pre-registration discipline (light touch)}
+\begin{itemize}
+  \item One paragraph, paired with a CONCRETE example, not asserted in
+    the abstract: every claim below was pre-registered (hypothesis +
+    success bar stated before data), attacked by an independent reviewer
+    round, and --- for the constructive fix --- gated on a predicted
+    outcome from a committed simulator before any Wave 1 GPU spend.
+  \item \textbf{Concrete instance 1 (cite here, not just assert):} a
+    mini-audit caught a target-INDEX bug in the real-data grammar
+    (\texttt{forward()} gathered $\pi^{h+1}(a)$ instead of the queried
+    $\pi^h(a)$) that made the binding task unsatisfiable as originally
+    specced. The resulting ``$\mathrm{rec@0.9}{=}1.000$'' was a
+    value-collapse artifact (entity-subspace rank $\approx 1.0$, value
+    salvage $\approx 0.000$, 0/10 seeds premise-valid) --- caught by the
+    premise-gate instruments, never written up as a finding, fixed with a
+    pre-registered anti-collapse loss $L_{\mathrm{train}} = L_{\cos} +
+    \lambda_{\mathrm{nce}} \cdot L_{\mathrm{nce}}$ (in-episode InfoNCE,
+    $\lambda_{\mathrm{nce}}{=}1.0$, $T{=}0.1$, fixed not tuned) chosen
+    because collapse is a zero-gradient stationary point under the NCE
+    term.
+  \item \textbf{Two distinct ``primary $K$'' values, disambiguated once
+    here:} $K{=}16$ is the causal-necessity program's primary cell
+    (chosen because $K{=}32$ already showed a real, non-budget
+    sub-exactness plateau at $0.78$--$0.80$ recovery at the \S14.7 gate);
+    $K{=}32$ is the exactness-mechanism/fix program's headline cell
+    (chosen BECAUSE it is that anomaly, sitting at $K{=}d_{\mathrm{state}}
+    /2$). Both choices principled and pre-registered.
+\end{itemize}

@@ -1,0 +1,79 @@
+% ICLR 2027 main-track submission — SKELETON, round 1.
+% iclr2027.sty is not yet released (conference is in the future relative
+% to this draft); this file uses iclr2024_conference.sty as a structural
+% placeholder (same author-anonymization / two-column-less single-column
+% ICLR layout convention) — SWAP for the official iclr2027.sty the moment
+% the CFP style file is published, before any real compile is attempted.
+% Anonymous (double-blind) submission. Do not add author names/affiliations
+% until camera-ready.
+
+\documentclass{article}
+
+% Recommended typesetting / figure packages (load before the conference style)
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% PLACEHOLDER — replace with the real ICLR 2027 style file when released.
+% \usepackage{iclr2027_conference,times}
+\usepackage[preprint]{iclr2027_conference} % <-- placeholder filename
+
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Layout: prevent single-line widows/orphans at page/column breaks
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
+
+% Theorem environments
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+% Shortcut macros
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\recat}{\text{rec@0.9}}
+
+\title{Rank Is Recruited, Exactness Is Not: \\
+Diagnosing and Fixing a Write-Geometry Attractor \\
+in a Real-Data Fast-Weight Language Model}
+
+% \author{Anonymous Authors} % double-blind — do not fill in
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+% Draft lives in NARRATIVE.md \S1 — paste and trim to venue word limit
+% once ENDING A/B (\S8 below) is resolved. DO NOT hand-copy without
+% re-checking the bracketed K=32 admissibility sentence against the
+% latest EXPERIMENT_LOG.md entry.
+\input{sections/00_abstract_placeholder}
+\end{abstract}
+
+\input{sections/01_intro}
+\input{sections/02_related_work}
+\input{sections/03_setup_and_theory}
+\input{sections/04_phenomenon}
+\input{sections/05_mechanism}
+\input{sections/06_soft_fixes_fail}
+\input{sections/07_the_fix}
+\input{sections/08_results}
+\input{sections/09_discussion_limitations}
+\input{sections/10_conclusion}
+\input{sections/11_reproducibility}
+
+\bibliographystyle{iclr2027_conference}
+\bibliography{refs}
+
+\appendix
+\input{sections/A1_claim_tier_appendix}
+\input{sections/A2_full_tables_appendix}
+
+\end{document}

@@ -1,0 +1,44 @@
+\section{Claim-Tier Reference Table}
+\label{sec:appendix-tiers}
+
+% Reproduce NARRATIVE.md \S4 verbatim here as a table. This appendix
+% exists specifically so a reviewer can check every headline number
+% against its pre-registered tier in one place, rather than hunting
+% through the body text. Do not let this table drift from the body text
+% claims during drafting -- regenerate it LAST, after \S4-\S9 are prose.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{3.7cm}p{5.2cm}p{3.2cm}}
+\toprule
+Claim & Tier & Source \\
+\midrule
+Synthetic rank-$K$ necessity & CONFIRMED (causal) &
+  \texttt{CAUSAL\_RANK} \S12.8.5 \\
+Real-data rank-$K$ necessity (RD-1) & CONFIRMED, ``graded-not-razor''
+  mandatory & \texttt{REALDATA} \S17.9/\S17.11 \\
+Embedding-source interpolation & causal, premise-conditional; bundled
+  unless (i)-vs-(iv) named & \texttt{RD\_EXACTNESS} \S7 \\
+i-strong existence proof & diagnostic tie-breaker, NOT standalone causal
+  headline & \texttt{RD\_EXACTNESS} \S7 \\
+\S3 reconstruction, Test A & idealization-adequacy diagnostic only &
+  \texttt{RD\_EXACTNESS} \S7 \\
+\S3 reconstruction, Test B & structural, deterministic reproduction
+  (non-causal) & \texttt{RD\_EXACTNESS} \S7 \\
+Wave F soft-arm interventions & causal, premise-conditional; demo claim
+  FALSE & \texttt{RD\_EXACTNESS} \S15.7 \\
+F-geo-3 demo claim, K=16 & causal, premise-conditional; TRUE, 3/3
+  admissible & \texttt{RD\_EXACTNESS} \S14.10 \\
+F-geo-3 demo claim, K=32 & magnitude real; 0/3 admissible as of last
+  recorded entry -- \texttt{[[RESOLVE]]} & \texttt{EXPERIMENT\_LOG} 2026-07-04 \\
+F-geo-3 attribution claim & supported inference, never proven by demo
+  alone & \texttt{RD\_EXACTNESS} \S14.10 \\
+F-geo-3 seed-count comparability & UNVERIFIED & \texttt{RD\_EXACTNESS} \S14.10 \\
+Wave 2 (corpus generality) & descriptive+interventional (RD-2), NOT
+  premise-conditional causal & \texttt{REALDATA} \S6.3/\S19 \\
+\bottomrule
+\end{tabular}
+\caption{Claim-tier cheat sheet. Every row's wording is load-bearing ---
+copy the exact tier language into body text, do not paraphrase loosely.}
+\end{table}

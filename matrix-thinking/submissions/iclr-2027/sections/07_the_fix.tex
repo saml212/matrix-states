@@ -1,0 +1,63 @@
+\section{The Fix: Structural, Differentiable Orthogonalization (F-geo-3)}
+\label{sec:the-fix}
+
+% Full grounding: DELTANET_RD_EXACTNESS_DESIGN.md \S14 (esp. \S14.0, \S14.1,
+% \S14.6, \S14.10).
+
+\subsection{Motivation (the two facts, not engineering for its own sake)}
+\begin{itemize}
+  \item (1) The exact solution exists and composes perfectly (i-strong,
+    \S\ref{sec:mechanism}).
+  \item (2) SGD does not find it under any soft push tried
+    (\S\ref{sec:soft-fixes}).
+\end{itemize}
+
+\subsection{Design}
+\begin{itemize}
+  \item Cubic Newton-Schulz / Bj\"orck-Bowie iteration at the
+    $k_{\mathrm{eff}}$ site: $X_{t+1} = 1.5 X_t - 0.5 (X_t X_t^\top) X_t$,
+    converges quadratically to the nearest orthonormal-row matrix given
+    operator norm $\leq 1$ at $t{=}0$ (guaranteed by $\sqrt{K}$
+    pre-scaling given the existing unit-row-norm invariant).
+  \item REJECTED: Gram-Schmidt (order-dependent --- would reintroduce
+    exactly mechanism (g)'s write-history asymmetry one level up); QR
+    (order-dependent for the same underlying reason, AND backward-unstable
+    near collinear input --- the exact regime an undertrained embedding
+    table produces).
+  \item Chosen properties: order-equivariant (permuting input rows
+    permutes iterates identically --- no row privileged), differentiable
+    through ordinary matmuls (no LinAlg-specific backward formula).
+\end{itemize}
+
+\subsection{The gating discipline (concrete instance 2, per \S\ref{sec:setup})}
+\begin{itemize}
+  \item Two-round independent attack found a load-bearing failure mode
+    the design missed: cross-episode key-identity DRIFT ---
+    orthogonalizing correctly WITHIN an episode does not guarantee the
+    SAME key across episodes of the same entity.
+  \item Became a pre-registered Wave $-1$ gating diagnostic with its own
+    committed simulator (\texttt{geo3\_simulator.py}, importable,
+    CPU-smoke-tested) and launch-read rule.
+  \item Wave 1 GPU spend authorized ONLY after the simulator predicted the
+    $K{=}16$ bar would clear: predicted $K16\ h4{=}1.00$, $K32\ h4{=}0.77$
+    from measured drift $0.94/0.90$.
+  \item Framing rule for the actual prose: pair every process claim with
+    the SPECIFIC finding it caught (as above) --- never narrate ``we used
+    a rigorous review process'' in the abstract.
+\end{itemize}
+
+\subsection{The substitute admission-stack caveat (state VERBATIM, not paraphrased)}
+\begin{itemize}
+  \item F-geo-3 makes the standard key-Gram/alignment premise-validity
+    instruments TAUTOLOGICAL by construction (orthogonality $\equiv$
+    true, alignment $\equiv 1.0$).
+  \item Substitute, pre-registered BEFORE any F-geo-3 data existed: value-
+    side salvage tier + Newton-Schulz convergence WITHOUT eigh fallback +
+    finite loss + a task-performance floor ($\geq$50\% loss improvement
+    AND $h{=}1$ ID $\mathrm{rec@0.9} \geq 0.5$).
+  \item \textbf{Comparability is UNVERIFIED, stated plainly, every place a
+    geo3 seed count appears:} the two arms' admission stacks differ, what
+    each filters, and the realized pass rate under each must be named ---
+    a geo3 ``$\geq$2 clean seeds'' is NOT the same evidentiary event as a
+    learned-arm ``$\geq$2 clean seeds.''
+\end{itemize}

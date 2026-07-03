@@ -1,0 +1,56 @@
+\section{Mechanism: Causal Attribution via Embedding-Source Interpolation}
+\label{sec:mechanism}
+
+% Full grounding: DELTANET_RD_EXACTNESS_DESIGN.md \S3, \S4, \S7 (tiers);
+% EXPERIMENT_LOG.md "Wave 1 ATTRIBUTION VERDICT" 2026-07-04.
+
+\subsection{Design}
+\begin{itemize}
+  \item Hold grammar/model/loss FIXED, vary ONLY the embedding source
+    feeding $k_{\mathrm{eff}}$: learned (baseline, arm iii), frozen
+    orthonormal (i), frozen real GPT-2 span embeddings (ii), Gram-matched
+    frozen non-orthonormal control (iv).
+  \item Claim tier: ``causal, premise-conditional.'' Bundled-vs-geometry-
+    only distinction is load-bearing: frozen-vs-learned (i/ii/iv vs.\ iii)
+    bundles geometry AND trainable-param count; (i)-vs-(iv) is the
+    GEOMETRY-ONLY contrast (conditional on iv's re-verification gate).
+\end{itemize}
+
+\subsection{Result: every geometry converges to the same attractor (Fig.~4)}
+\begin{itemize}
+  \item Arms i/ii/iv ALL converge to the learned baseline's $k_{\mathrm{eff}}$
+    geometry: gram dev $2.71$--$2.92$ at $K{=}32$ vs.\ learned
+    $2.71$--$2.77$.
+  \item Raw embedding geometry is causally IRRELEVANT --- the trained
+    $W_k$/conv path maps every input geometry onto the SAME
+    non-orthonormal write-geometry basin.
+\end{itemize}
+
+\subsection{Complementary evidence: measured-$\beta$ reconstruction}
+\begin{itemize}
+  \item Closed-form crosstalk reconstruction, measured $\beta$: residual
+    $0.0038$ ($K{=}16$) / $0.0041$ ($K{=}32$) vs.\ $0.148/0.377$ under the
+    wrong-regime $\beta{=}1$ idealization.
+  \item ``Geometry $+\beta$'' is essentially the complete state-formation
+    account --- \textbf{at the weaker, non-causal explanatory tier}: Test
+    A (idealization adequacy) earns NO explanatory claim; Test B
+    (predicted-vs-measured frontier match, e.g.\ $K{=}32$: 0.726 predicted
+    vs.\ 0.789 measured) earns ``structural, deterministic reproduction,''
+    explicitly NOT a causal claim. State this tier distinction crisply ---
+    exactly the kind of blur a reviewer will probe.
+\end{itemize}
+
+\subsection{The existence proof: i-strong (Fig.~5)}
+\begin{itemize}
+  \item Non-trainable, hand-built, per-identity $k_{\mathrm{eff}}$ pin,
+    bypassing $W_k$/conv entirely.
+  \item Gram dev $0.000$; $\mathrm{rec@0.9} = 1.00/1.00/1.00$ at
+    $h{=}1/2/3$, $K{=}32$ --- matches the SYNTHETIC harness exactly.
+  \item Claim tier: ``diagnostic tie-breaker,'' NEVER a standalone causal
+    headline (two-variable by design: embedding source AND projection
+    bypass, bundled).
+  \item The paper's turning point: from ``here is a gap'' to ``here is
+    what would close it.'' The architecture and the delta rule's own
+    algebra CAN represent and use the perfect solution; ordinary training
+    does not find it.
+\end{itemize}
