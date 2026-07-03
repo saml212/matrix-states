@@ -232,7 +232,7 @@ Consistent finding, two routes: bolt-on matrix-CODI never uses rank.
 
 ---
 
-## Chapter 2 — STATUS (2026-07-04): CONFIRMED through real data; five programs closed, exactness-mechanism follow-on active
+## Chapter 2 — STATUS (2026-07-04): CONFIRMED through real data; six programs closed (exactness-mechanism study, Wave 0/1/F/geo3, now closed)
 
 Chapter 2 ran and gave the field's first positive result for matrix-native
 rank: **when a task provably requires `rank(Z) ≥ K`, gradient descent trained
@@ -384,21 +384,38 @@ structural attempt. **K=48 rider (CLOSED):** the frontier extends past
 d/2 (gram deviation keeps growing, composition gone by h≥2); the
 i-strong pin's own dimensional guard correctly refuses K=48 (train+
 held-out identity vectors exceed d_state=64), fencing that boundary as
-designed. **F-geo-3 (differentiable per-episode key orthogonalization,
-the trainable version of i-strong) — fix wave IN FLIGHT.** A first 6-cell
-Wave 1 batch (K∈{16,32}×3 seeds, `geo3_n_iter=12`, 20,000/20,000 steps
-each) landed 2026-07-04: **K=16 clears the pre-registered minimum-
-publishable bar on all 3 seeds** (h=4 recovery 0.95-1.00 vs. a bar of
-≥0.8, baseline was 0.42-0.47), but **K=32, despite a ~50× headline
-improvement (h=4 recovery 0.39-0.50 vs. baseline 0.009), fails the
-admissibility criterion on all 3 seeds** (a numerical eigh fallback
-triggered on a small fraction of steps) — so the K=32 headline bar is
-explicitly NOT claimed per this program's own pre-registration. Verdict
-recorded in `EXPERIMENT_LOG.md` ("F-geo-3 WAVE VERDICT", 2026-07-04). A
-follow-on escalation (K=32 ×3 seeds at `geo3_n_iter=20`, targeting the
-exact admission-failure cause) is in flight now — this is the "geo3 wave"
-currently running on the Brev cluster. Full §14 write-up with the
-escalation cells is still pending in the design doc itself.
+designed. **F-geo-3 (differentiable per-episode key orthogonalization, the
+trainable version of i-strong) — fix wave CLOSED, program CLOSED.** A
+first 6-cell Wave 1 batch (K∈{16,32}×3 seeds, `geo3_n_iter=12`,
+20,000/20,000 steps each) landed 2026-07-04: **K=16 clears the
+pre-registered minimum-publishable bar on all 3 seeds** (h=4 recovery
+0.95-1.00 vs. a bar of ≥0.8, baseline was 0.42-0.47), but **K=32,
+despite a ~50× headline improvement (h=4 recovery 0.39-0.50 vs.
+baseline 0.009), failed the admissibility criterion on all 3 seeds** (a
+numerical eigh fallback triggered on a small fraction of steps). The
+follow-on escalation (K=32 ×3 seeds at `geo3_n_iter=20`) closed the
+admissibility gap cleanly — **0/3 → 3/3 admissible, zero fallback steps
+at any seed — and the behavioral numbers did not move** (largest
+per-seed delta 0.0042), confirming the fallback steps never degraded
+training. **Final verdict: K=16 bar HIT 3/3 (h=4 0.98 mean vs. bar
+≥0.8); K=32 improves ~43-56× over baseline (mean ≈48×) but narrowly
+misses its ≥0.5 headline bar on the mean (0.4368)**, with the residual
+attributed to the pre-registered **outcome F** (stable-not-just-
+orthogonal geometry: measured cross-episode key drift 0.90-0.94, HIGH
+band, predicted and confirmed via the §14.6 gating diagnostic before
+the wave ran, not fit after the fact) — a named mechanism, not an
+unexplained shortfall. h=1 no-sacrifice holds at both K (K=32 h=1
+actually exceeds baseline by +0.21); h=21 literal-depth collapse is
+unchanged (orthogonalization fixes write interference, not iteration
+compounding). Full verdict in `EXPERIMENT_LOG.md` ("F-geo-3 WAVE
+VERDICT" + "F-geo-3 escalation VERDICT", both 2026-07-04) and the full
+per-cell write-up in `matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md`
+§16. **This closes the exactness-mechanism study (Wave 0/1/F/geo3) in
+its entirety** — the next step is a stability-targeted follow-on
+design (named as a direction in §14.8, not yet designed) or the
+already-gated Chapter 3 scale-up (see "Then" below), not a further
+iteration inside this design (no fix-fishing, per the anti-Goodhart
+rule this program held to throughout).
 
 ---
 
@@ -422,10 +439,12 @@ composition), Stage 0 (d-frontier), DeltaNet synthetic (production
 architecture causal rank), Stage G (matrix-vs-vector gap mechanism named),
 DeltaNet real-data (rank-K binding + composition on real tokenized text,
 causal close via eval-truncation, plus a closed Wave 2 real-corpus-LM
-follow-on). Two threads opened by those closures are still active — the
-exactness mechanism study (why real-text composition undershoots the
-synthetic razor cliff; Wave 0/1/F closed, F-geo-3 fix wave in flight, see
-above) and Stage G's gated H_e task-swap check (below). ~600+ GPU-h total
+follow-on). Two threads opened by those closures were active as of 2026-07-04
+early — the exactness mechanism study (why real-text composition
+undershoots the synthetic razor cliff) and Stage G's gated H_e
+task-swap check (below). **The exactness mechanism study is now fully
+CLOSED** (Wave 0/1/F/geo3, including the geo3 escalation, see above);
+Stage G's H_e check remains active. ~600+ GPU-h total
 across the campaign. Full verdicts in EXPERIMENT_LOG.md (dated
 2026-07-01..04, table of contents at the start of that date range) and the
 five design docs (`DELTANET_REALDATA_DESIGN.md`,
@@ -435,10 +454,6 @@ paper drafted at `matrix-thinking/submissions/neurips-ws-2026/` (awaiting
 user review: author block, venue, figures, title, appendix).
 
 **In flight (2026-07-04):**
-- **F-geo-3 escalation** (K=32 ×3 seeds at `geo3_n_iter=20`, targeting the
-  exact cause of Wave 1's admissibility failure): running now on the Brev
-  cluster. See the exactness-mechanism paragraph above for the Wave 1
-  numbers this escalation follows up on.
 - **Stage-G H_e (task-representation-mismatch) Wave C:** the gate is
   triggered per the design's own logic (§14.6's dominant-site verdict is
   "confirmed-but-narrow" — the per-FLOP tax survives even with the named
@@ -460,6 +475,13 @@ user review: author block, venue, figures, title, appendix).
   (both listed as in-flight as of 2026-07-03) are **now CLOSED** — see the
   DeltaNet real-data paragraphs above and `EXPERIMENT_LOG.md`'s
   "deephop program CLOSED" and "Wave 2 (Waves C+D) results" entries.
+- **F-geo-3 escalation (listed as in-flight as of 2026-07-04 early) is now
+  CLOSED**, and with it the entire exactness-mechanism study (Wave
+  0/1/F/geo3): K=32 admissibility fixed 0/3→3/3 with zero behavioral
+  change; K=16 bar HIT, K=32 bar narrowly missed and attributed to the
+  pre-registered outcome F. See the exactness-mechanism paragraph above,
+  `EXPERIMENT_LOG.md`'s "F-geo-3 escalation VERDICT" entry, and
+  `DELTANET_RD_EXACTNESS_DESIGN.md` §16.
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;
@@ -477,7 +499,7 @@ intervention that moves the K-frontier — headline target: K=32 held-out-hop
 recovery from ≈0.05 floor to ≥0.5). Findings docs and papers frame the
 demonstrated path forward, with failure maps as supporting evidence.
 
-### Then — Chapter 3: matrix-native on real data (Task E gate PASSED; scaled design pending the mechanism study)
+### Then — Chapter 3: matrix-native on real data (Task E gate PASSED; exactness-mechanism study now CLOSED — scale program not yet designed)
 
 Byte-level input, matrix tokens throughout, multi-modal training. A dedicated
 research pass (`research/bytes-vs-tokens-matrix-native-june2026.md`, cross-
@@ -569,7 +591,7 @@ scratch):**
   experiment (added 2026-07-04; supersedes 6 archived design/audit docs)
 - **matrix-thinking/H100_SETUP.md** — pod environment + the perpetual/unattended sweep pattern
 - **matrix-thinking/DELTANET_CAUSAL_RANK_DESIGN.md**, **DELTANET_REALDATA_DESIGN.md**, **STAGE_G_DESIGN.md**, **chapter2/STAGE0_DESIGN.md**, **chapter2/TASK_D_PREREGISTRATION.md**, **chapter2/TASK_D_WRITEUP.md**, **chapter2/NEXT_EXPERIMENT_DESIGN.md** (Task E design), **chapter2/TASK_E_FINDINGS.md** — the five closed 2026-07-01→03 programs; each carries a `STATUS: CLOSED` header
-- **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — living, NOT closed; the active exactness-mechanism follow-on (F-geo-3 in flight)
+- **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — CLOSED through §16 (Wave 0/1/F/geo3, including the geo3 escalation); the exactness-mechanism study's stability-targeted follow-on (§14.8) is named as a direction but not yet designed
 - **matrix-thinking/stageg/** — Stage G's H_e task-swap harness (built, calibration run, Wave C gated open — see "In flight" above)
 - **matrix-thinking/scripts/** — runnable training scripts
 - **matrix-thinking/src/**, **chapter2/*.py** — model code

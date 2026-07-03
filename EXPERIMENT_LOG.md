@@ -3189,3 +3189,94 @@ low-powered to tell," so this does not independently confirm or rule out
 task-rank-1-solvability as a contributor to the paper's rank-blindness
 finding. Does not change the paper's published claim; documented here for
 completeness per the "log everything" hard rule.
+
+## F-geo-3 escalation VERDICT — K=32 admissibility fixed (0/3 → 3/3), headline bar still narrowly missed, residual attributed to the pre-registered outcome F (cross-episode drift) (2026-07-04)
+
+Extends the "F-geo-3 WAVE VERDICT" entry above. The follow-on escalation
+(K=32 ×3 seeds at `geo3_n_iter=20`, targeting the exact admission-failure
+cause flagged in that entry — the Newton-Schulz eigh fallback triggering
+on 56/11/374 of 20,000 steps for seeds 0/1/2) is complete. Full
+per-cell tables, the pre-registered gate record, and every derivation
+below are written up in `matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md`
+§16.
+
+**Result: admissibility is fixed cleanly (0/3 → 3/3, zero fallback
+steps at any seed), and the behavioral numbers do not move** — K=32
+`n_iter=20` lands at `rec@0.9` h=4 = 0.4368 mean [0.3903–0.5045], within
+noise of the fallback-contaminated `n_iter=12` run it replaces (largest
+per-seed delta: 0.0042). This is a **~43–56× improvement over the 0.009
+learned-arm baseline** (mean ≈48×) but still **misses the pre-registered
+≥0.5 headline bar on the mean** (one seed, s0 at 0.5045, individually
+clears it). K=16 (`n_iter=12`, unchanged from the original wave) remains
+**3/3 admissible, bar HIT** (h=4 0.9767 mean [0.9525–0.9969] vs. bar
+≥0.8, baseline 0.419–0.465). h=1 no-sacrifice holds at both K (K=32
+h=1 = 1.0000, +0.21 over its own ≈0.79 baseline — not just within
+guard). h=21 literal-depth collapse is unchanged (K=16 ~0.007, K=32
+flat 0.0000) — orthogonalization fixes cross-item write interference,
+not iteration compounding, exactly as the original wave concluded.
+
+**Verdict vs. each pre-registered bar:**
+
+| Cell | Baseline | Bar | Measured (admissible seeds) | Verdict |
+|---|---|---|---|---|
+| K=16, h=4 | 0.419–0.465 | ≥0.8 | 0.9767 mean [0.9525–0.9969], 3/3 admissible | **HIT** |
+| K=32, h=4 | 0.009 | ≥0.5 | 0.4368 mean [0.3903–0.5045], 3/3 admissible (`n_iter=20`) | **NOT MET (narrow) — ~0.06 short on the mean** |
+| K=16 h=1 guard | ≈1.00 | within −0.02 | 1.0000 | SATISFIED |
+| K=32 h=1 guard | ≈0.79 | within −0.02 | 1.0000 | SATISFIED (+0.21) |
+
+**The gate record** (§14.6, measured before any Wave 1 spend): trained-
+checkpoint cross-episode key drift = 0.9416 (K=16) / 0.9037 (K=32),
+both in the pre-registered HIGH band (<0.95). The registered
+`geo3_simulator.launch_read` mean-mapping prediction was
+`rec@0.9` h=4 = 1.00 (K=16) / 0.77 (K=32); `launch=true`. K=16's
+prediction was accurate (measured 0.9767, error −0.02); K=32's
+overshot (measured 0.4368, error +0.34) but the true value still fell
+inside the launch-read's own registered `[p10, mean]` bracket
+(0.2227–0.7734) — a calibration note, not a retraction: the registered
+drift→simulator mapping tilts only the value representation by a
+single drift-cosine scalar and does not separately carry the
+value-Gram deviation that is itself 2.7× larger at K=32 than K=16 in
+the real trained model (5.9271 vs. 2.1948 mean) — a second, compounding
+degradation channel the single-parameter simulator does not model.
+
+**Outcome-F attribution (§14.8), not a fix failure:** all three
+discriminating signatures are present simultaneously — (1) `resid≈0`
+(key-Gram deviation ~3–8×10⁻⁷ at every seed, both K, forced by
+construction), (2) HIGH cross-episode drift (0.9037 at K=32, 0.9416 at
+K=16, both <0.95), (3) graded h-decay steeper at higher K (K=16 falls
+38.5% relative from h=4→h=7; K=32 falls 96.0%). Read: joint per-episode
+orthogonalization supplies orthogonality but not the *stable,
+entity-fixed* key identity across episodes that exact composition also
+needs — `W_v` cannot chase a moving key target. This is the named,
+pre-registered mechanism, not an unexplained shortfall; the K=32
+residual against its bar routes to a stability-targeted follow-on
+design (§14.8's own text: EMA-anchored or identity-registered
+orthogonalization, named as a direction, not designed here), not to
+another iteration inside this design (no fix-fishing, per the base
+design's standing anti-Goodhart rule).
+
+**The fallback-irrelevance observation:** the 56 + 11 + 374 fallback
+steps in the original `n_iter=12` wave (0.28% / 0.055% / 1.87% of
+steps; seed 2 also raised a checkpoint-level fallback flag) never
+measurably degraded training — every re-measured metric at
+`n_iter=20` (zero fallback) lands within seed-level noise of its
+`n_iter=12` counterpart. The admission failure was a premise-cleanliness
+problem (a run that leans on the non-differentiable eigh path is not
+clean evidence about the differentiable mechanism, §14.10 item 2), not
+a sign the mechanism itself was partially broken.
+
+**Substitute admission stack pass rates, stated per §14.10's own
+comparability requirement (never presented as interchangeable with the
+learned arm's gate):** geo3 K=16 3/3 (100%); geo3 K=32 0/3 (0%) at
+`n_iter=12` → 3/3 (100%) at `n_iter=20`; the learned (arm iii) K=32
+baseline's own historical pass rate under the standard finding-5 gate
+is ~1–2/7 (~14–29%) per the archived data. Comparability remains
+UNVERIFIED per §14.10 — these are differently-gated evidentiary events,
+not directly comparable pass rates.
+
+**Program status:** the exactness-mechanism study (Wave 0/1/F/geo3) is
+now **CLOSED** — see the updated `STATE.md` exactness-arc paragraph.
+Archive: `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/
+wavegeo3/` (10 files, 15 MB, mirrored to
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/`).
+Full write-up: `matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md` §16.

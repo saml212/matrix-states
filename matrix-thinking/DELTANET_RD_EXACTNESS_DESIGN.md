@@ -2789,3 +2789,302 @@ Extraction script: `extract_wavef.py` (dumps the raw per-run fields) +
 data in the same `waveF/` directory — run CPU-only on
 `youthful-indigo-turkey` against the box's live results dir, no GPU
 spend; the 18-cell table in §15.1 is their direct output.
+
+---
+
+## 16. F-geo-3 results (Wave geo3 + escalation): K=16 bar HIT 3/3; K=32 45x at full tier, bar narrowly missed, residual attributed to outcome F (cross-episode drift)
+
+**9/9 cells complete** — the original Wave 1 batch (`geo3_n_iter=12`:
+K=16 ×3 seeds, K=32 ×3 seeds) plus the audit-verified escalation
+(`geo3_n_iter=20`: K=32 ×3 seeds, same seed indices, same everything
+else), 20,000/20,000 steps each, zero skipped steps, zero timeouts,
+`d_model=256`, `d_state=64`, `n_params=12,899,841`. Verdict, stated
+first, per §14.8's pre-registered outcome table: **K=16 hits the
+minimum-publishable bar on 3/3 admissible seeds; K=32 improves ~43–56×
+over its learned-arm baseline (mean ≈48×, consistent with the ~45×
+figure in this section's own title) but falls short of its headline
+bar on the mean, with the residual gap attributed to pre-registered
+outcome F — stable-not-just-orthogonal geometry — not to a broken fix.**
+The escalation's own function was narrower than "hit the bar": it
+existed to remove the original wave's admissibility confound (the
+Newton-Schulz eigh fallback triggering on a small step fraction) so the
+K=32 number could be read as premise-clean evidence at all. It
+succeeds at exactly that — 0/3 → 3/3 admissible — and the underlying
+behavioral numbers do not move, which is itself the section's second
+finding (§16.5).
+
+### 16.1 Wave −1 gate record (pre-registered, before any Wave 1 spend)
+
+The §14.6 gating diagnostic (8 entities, 32 context resamples each,
+7,936 pooled pairs per cell, `probe_steps=5,000`) measured cross-episode
+orthogonalized-key drift before any Wave 1 seed ran, and the registered
+`geo3_simulator.launch_read` (§14.13 finding 1(b)) converted that drift
+into a pre-spend prediction at the gate cell (K=16, h=4, bar ≥0.8):
+
+| K | drift at init (mean / p10) | drift after 5K-step probe (mean / p10) | drift band (§14.5: HIGH <0.95, LOW ≥0.98) | predicted `rec@0.9` h=4, mean mapping | predicted `rec@0.9` h=4, p10 mapping |
+|---|---|---|---|---|---|
+| 16 (gate cell) | 0.4676 / 0.3084 | **0.9416** / 0.9186 | HIGH | **1.0000** | 0.9551 |
+| 32 (informational only) | 0.4350 / 0.2738 | **0.9037** / 0.8713 | HIGH | 0.7734 | 0.2227 |
+
+`gate_bar = 0.8` at K=16 h=4; `predicted_gate_value = 1.0000 ≥ 0.8` →
+**`launch = true`**. Training shrinks drift substantially at both K
+(0.47→0.94 at K=16, 0.44→0.90 at K=32) relative to the untrained-key
+baseline — the attack's cross-episode-drift risk resolved favorably
+enough to authorize spend — but both trained-checkpoint drift levels
+still land in the pre-registered **HIGH** band (<0.95), not the LOW
+band (≥0.98) that would put this wave in outcome D/E territory. That
+placement is exactly what materializes in §16.6.
+
+### 16.2 Full per-cell table — `geo3_n_iter=12` (original wave, 6 cells)
+
+**Write-time key/value geometry (trained, final checkpoint):**
+
+| K | key-Gram dev (all 3 seeds) | value-Gram dev, mean [range] |
+|---|---|---|
+| 16 | ~3×10⁻⁷ (2.97–3.28×10⁻⁷) — non-evidence, forced ≈0 by construction (§14.9 item 5, §14.10) | 2.1948 [1.6872–2.6686] |
+| 32 | ~7–8×10⁻⁷ (6.70–8.20×10⁻⁷) — non-evidence, same reason | 5.9274 [4.5512–6.7564] |
+
+**In-distribution recovery, `rec@0.9`, M2 (h=1,2,3), mean [range]:**
+
+| K | h=1 | h=2 | h=3 |
+|---|---|---|---|
+| 16 | 1.0000 [1.0000–1.0000] | 1.0000 [1.0000–1.0000] | 0.9990 [0.9971–1.0000] |
+| 32 | 1.0000 [1.0000–1.0000] | 0.9999 [0.9998–1.0000] | 0.9014 [0.8701–0.9479] |
+
+**Held-out recovery, `rec@0.9`, M3 (h=4,5,6,7,21), mean [range]:**
+
+| K | h=4 | h=5 | h=6 | h=7 | h=21 |
+|---|---|---|---|---|---|
+| 16 | 0.9767 [0.9525–0.9969] | 0.8967 [0.8402–0.9534] | 0.7626 [0.7006–0.8485] | 0.6007 [0.5497–0.6729] | 0.0074 [0.0048–0.0089] |
+| 32 | 0.4376 [0.3890–0.5040] | 0.1485 [0.1477–0.1493] | 0.0463 [0.0374–0.0538] | 0.0177 [0.0093–0.0261] | 0.0000 [0.0000–0.0000] |
+
+**Substitute admission stack, per seed (§14.10 items 1–4):**
+
+| K | seed | (1) value-salvage pass, ratio | (2) NS no-fallback | fallback steps / 20,000 (%) | checkpoint fallback seen | (3) finite loss | (4) task floor: %-improve / h1@0.9 | **admissible** |
+|---|---|---|---|---|---|---|---|---|
+| 16 | 0 | pass, 0.4547 | pass | 0 (0.00%) | no | pass | 99.52% / 1.0000 | **yes** |
+| 16 | 1 | pass, 0.3229 | pass | 0 (0.00%) | no | pass | 99.51% / 1.0000 | **yes** |
+| 16 | 2 | pass, 0.3821 | pass | 0 (0.00%) | no | pass | 99.47% / 1.0000 | **yes** |
+| 32 | 0 | pass, 0.2056 | **fail** | 56 (0.28%) | no | pass | 99.00% / 1.0000 | **no** |
+| 32 | 1 | pass, 0.1317 | **fail** | 11 (0.055%) | no | pass | 98.92% / 1.0000 | **no** |
+| 32 | 2 | pass, 0.1132 | **fail** | 374 (1.87%) | yes | pass | 98.79% / 1.0000 | **no** |
+
+K=16: **3/3 admissible**. K=32 (`n_iter=12`): **0/3 admissible** — every
+seed fails item 2 alone (items 1/3/4 pass universally); this is the
+admissibility failure the escalation targets.
+
+### 16.3 Full per-cell table — `geo3_n_iter=20` (escalation, K=32 ×3 seeds)
+
+**Write-time key/value geometry (trained, final checkpoint):**
+
+| K | key-Gram dev (all 3 seeds) | value-Gram dev, mean [range] |
+|---|---|---|
+| 32 | ~5×10⁻⁷ (5.14–5.45×10⁻⁷) — non-evidence, same reason as §16.2 | 5.9271 [4.5514–6.7556] |
+
+**In-distribution recovery, `rec@0.9`, M2 (h=1,2,3), mean [range]:**
+
+| K | h=1 | h=2 | h=3 |
+|---|---|---|---|
+| 32 | 1.0000 [1.0000–1.0000] | 0.9999 [0.9998–1.0000] | 0.9021 [0.8721–0.9477] |
+
+**Held-out recovery, `rec@0.9`, M3 (h=4,5,6,7,21), mean [range]:**
+
+| K | h=4 | h=5 | h=6 | h=7 | h=21 |
+|---|---|---|---|---|---|
+| 32 | 0.4368 [0.3903–0.5045] | 0.1480 [0.1450–0.1500] | 0.0462 [0.0373–0.0539] | 0.0171 [0.0092–0.0245] | 0.0000 [0.0000–0.0000] |
+
+**Substitute admission stack, per seed:**
+
+| K | seed | (1) value-salvage pass, ratio | (2) NS no-fallback | fallback steps / 20,000 (%) | checkpoint fallback seen | (3) finite loss | (4) task floor: %-improve / h1@0.9 | **admissible** |
+|---|---|---|---|---|---|---|---|---|
+| 32 | 0 | pass, 0.2056 | **pass** | 0 (0.00%) | no | pass | 99.00% / 1.0000 | **yes** |
+| 32 | 1 | pass, 0.1320 | **pass** | 0 (0.00%) | no | pass | 98.92% / 1.0000 | **yes** |
+| 32 | 2 | pass, 0.1133 | **pass** | 0 (0.00%) | no | pass | 98.79% / 1.0000 | **yes** |
+
+K=32 (`n_iter=20`): **3/3 admissible** — item 2 now clears at every
+seed with zero fallback steps triggered, items 1/3/4 unchanged (as
+expected — nothing about the admission floor changed, only the solver
+iteration budget did).
+
+### 16.4 Verdict vs. each pre-registered bar (§5.5)
+
+| Tier | Cell | Baseline (learned arm) | Bar | Measured (geo3, admissible seeds only) | Verdict |
+|---|---|---|---|---|---|
+| Minimum publishable | K=16, h=4 | 0.419–0.465 | `rec@0.9` **≥ 0.8** | 0.9767 mean, 0.9525–0.9969 range (3/3 admissible) | **HIT — 3/3, ~2.1× the bar on the low seed alone** |
+| Headline demo | K=32, h=4 | 0.009 | `rec@0.9` **≥ 0.5** | 0.4368 mean, 0.3903–0.5045 range (3/3 admissible, `n_iter=20`) | **NOT MET on the mean (0.4368 < 0.5, ~0.06 short) — narrow miss; the s0 seed individually clears the bar at 0.5045** |
+| Guard, K=16 h=1 | same arm's own h=1 | ≈1.00 (arm iii) | within −0.02 | 1.0000 | **SATISFIED** |
+| Guard, K=32 h=1 | same arm's own h=1 | ≈0.79 (arm iii) | within −0.02 | 1.0000 | **SATISFIED — exceeds baseline by +0.21, not merely within tolerance** |
+
+K=32's `n_iter=12` cell (0/3 admissible, §16.2) is excluded from this
+table per §14.10's own admission-gate discipline — a non-admissible
+seed does not enter a headline comparison regardless of what its raw
+number reads. Its behavioral numbers are reported in §16.2 for
+completeness and turn out to be nearly identical to the admissible
+`n_iter=20` numbers (§16.5) — the exclusion changes admissibility, not
+the measured effect.
+
+### 16.5 The fallback-irrelevance observation
+
+`n_iter=12` (0/3 admissible, fallback-contaminated) and `n_iter=20`
+(3/3 admissible, zero fallback) land within seed-level noise of each
+other at every hop, for every seed:
+
+| seed | fallback steps (n12) | h=4 (n12 → n20) | h=7 (n12 → n20) | value-Gram dev (n12 → n20) | task-floor %-improve (n12 → n20) |
+|---|---|---|---|---|---|
+| 0 | 56 | 0.5040 → 0.5045 (Δ+0.0005) | 0.0093 → 0.0092 (Δ−0.0001) | 4.5512 → 4.5514 | 99.00% → 99.00% |
+| 1 | 11 | 0.4199 → 0.4157 (Δ−0.0042) | 0.0179 → 0.0177 (Δ−0.0002) | 6.4746 → 6.4742 | 98.92% → 98.92% |
+| 2 | 374 | 0.3890 → 0.3903 (Δ+0.0013) | 0.0261 → 0.0245 (Δ−0.0016) | 6.7564 → 6.7556 | 98.79% → 98.79% |
+
+Every delta is at or below seed-level noise (largest single move is
+Δ0.0042 on a metric with a 0.39–0.50 range), even for seed 2, whose
+`n_iter=12` run leaned on the fallback solver for **1.87% of steps**
+(374/20,000) and had a checkpoint-level fallback flag raised — the
+single most fallback-contaminated run in the wave. **The 56 + 11 + 374
+fallback steps pooled across the original wave never measurably
+degraded training** — the admission failure at `n_iter=12` was a
+premise-cleanliness problem (a run that leaned on the non-differentiable
+solver path is not clean evidence about the *differentiable* mechanism,
+per §14.10 item 2's own rationale), not a sign the mechanism was
+partially broken. The escalation's entire value is closing that
+premise gap, not changing the number.
+
+### 16.6 Outcome-F attribution: stable-not-just-orthogonal geometry is the bottleneck
+
+§14.8's outcome F requires three co-occurring signatures, all present:
+
+1. **`resid ≈ 0`** — key-Gram deviation is ~3–8×10⁻⁷ at both K, every
+   seed (§16.2/§16.3) — orthogonalization is complete, by construction.
+2. **HIGH cross-episode drift** (mean pooled pairwise cos < 0.95 at the
+   trained checkpoint, §14.5's pinned band) — measured **0.9037** at
+   K=32 and **0.9416** at K=16 (§16.1), both below the 0.95 HIGH
+   threshold, both measured *before* the wave ran, not fit after the
+   fact.
+3. **Graded h-decay, steeper at higher K** — K=16 falls 0.9767→0.6007
+   from h=4 to h=7 (a 38.5% relative drop); K=32 falls 0.4376→0.0177
+   over the same span (a 96.0% relative drop) — the decay is
+   categorically steeper at the higher K, exactly the ordering §14.8's
+   outcome F predicts.
+
+All three hold simultaneously, so the verdict is clean per §14.8's own
+framing: **within-episode orthonormality is real but insufficient** —
+joint per-episode orthogonalization supplies orthogonality, not the
+*stable, entity-fixed* key identity across episodes that exact
+composition also requires, and `W_v` cannot chase a moving key target.
+The K=32 residual gap against its ≥0.5 bar is attributed to this named
+mechanism, not read as evidence the fix is broken. One subtlety worth
+flagging plainly: K=16's drift (0.9416) is *also* inside the HIGH band,
+yet K=16 still clears its own (lower, K-specific) bar with a wide
+margin — outcome F's mechanism is present at both K, but it only binds
+K=32 against its harder ≥0.5 bar. This is consistent with, not a
+counterexample to, the attribution: the same drift level produces a
+much smaller relative composition penalty at h=4 when K is smaller
+(fewer competing episode-conditional key directions to confuse).
+
+### 16.7 Simulator calibration note
+
+The registered `launch_read` mean-mapping prediction (§16.1) was
+accurate at the gate cell and imprecise off it:
+
+| K | predicted `rec@0.9` h=4, mean mapping | predicted `rec@0.9` h=4, p10 mapping | measured `rec@0.9` h=4 (admissible seeds) | prediction error (mean mapping) |
+|---|---|---|---|---|
+| 16 | 1.0000 | 0.9551 | 0.9767 | **−0.023** (essentially exact) |
+| 32 | 0.7734 | 0.2227 | 0.4368 | **+0.337** (overestimate, ~1.8× the measured value) |
+
+K=16's prediction is accurate to within the launch-read's own gate
+tolerance. K=32's mean-mapping prediction overshoots by a wide margin —
+but the measured value (0.4368) falls **inside** the registered
+`[p10, mean]` bracket the launch-read itself logged before the wave
+(0.2227–0.7734), so the tool was not wrong in kind, only imprecise in
+magnitude at the harder cell. Attribution: the registered drift→
+simulator mapping (§14.13 finding 1(b)) tilts *only* the value
+representation by a single scalar (the mean pooled pairwise drift
+cosine `c`) against otherwise-idealized keys (`gram_resid` pinned at
+`resid_tol=0.01`); it carries no separate term for the value-Gram
+deviation the real trained model actually exhibits, which is itself
+2.7× larger at K=32 than at K=16 (5.9274 vs. 2.1948 mean, §16.2/§16.3)
+— a real, K-dependent degradation channel the single-parameter tilt
+construction does not model. Two compounding effects (cross-episode key
+drift AND value-geometry deviation) are live at K=32; the registered
+simulator carries only the first, which is consistent with — not a
+retraction of — the outcome-F attribution: the drift mechanism is
+confirmed as real and dominant enough to correctly separate
+K16-clears from K32-misses pre-spend, but a single-scalar tilt is not a
+complete quantitative account of the K=32 residual specifically.
+
+### 16.8 h=1 no-sacrifice guard and h=21 literal-depth decay
+
+**h=1 guard:** K=16 measures 1.0000 at every seed against an arm-iii
+baseline of ≈1.00 — trivially within the −0.02 guard. K=32 measures
+1.0000 at every seed (both `n_iter` tiers) against an arm-iii baseline
+of ≈0.79 (§15.1) — not merely inside the guard but **+0.21 above
+baseline**, echoing i-strong's own h=1 result (§4.4) and confirming the
+fix does not trade single-hop binding away to reach for deeper
+composition.
+
+**h=21:** K=16 lands at 0.0074 mean [0.0048–0.0089]; K=32 is flat at
+0.0000 across all 6 runs (both tiers). Wave F's own h=21 column was
+0.0000 at every arm, both K (§15.1) — so K=16's small nonzero reading
+is a marginal move off that floor, K=32's is unchanged. Both remain
+effectively at the noise floor: **the h=21 literal-depth collapse is
+unchanged by this fix**, consistent with the original wave verdict
+(`EXPERIMENT_LOG.md`, "F-geo-3 WAVE VERDICT") — per-episode key
+orthogonalization repairs cross-item write interference (the h=4–7
+frontier), it does not touch the separate iteration-compounding failure
+mode that dominates at h=21.
+
+### 16.9 Claim-tier language (§7/§14.10) — substitute admission stack footnote
+
+Per §7's Wave F two-tier separation, inherited verbatim by F-geo-3
+(§14.10): **(1) "the fix moves the frontier"** — TRUE at K=16 (bar HIT,
+3/3 admissible); **partially true** at K=32 — a large, admissible,
+premise-clean shift (43–56× over the 0.009 baseline) that still misses
+the pre-registered ≥0.5 bar on the mean. **(2) "therefore the
+attribution was right"** — a supported inference, not proven by the
+demo alone: here it is corroborated independently, because the §14.6
+drift diagnostic that predicts the K=32 shortfall was measured *before*
+the wave ran (§16.1), and the measured checkpoint drift lands squarely
+in outcome F's pre-registered three-part signature (§16.6) rather than
+being a story assembled after seeing the miss.
+
+**Substitute admission stack, comparability restated per §14.10's own
+requirement** (never present a geo3 admissible-seed count as
+interchangeable with a learned-arm finding-5-clean-seed count without
+stating both gates' realized pass rates): geo3 K=16 realizes **3/3
+(100%)** admissible seeds under the §14.10 substitute stack; geo3 K=32
+realizes **0/3 (0%)** at `n_iter=12` and **3/3 (100%)** at
+`n_iter=20`. The standard finding-5 gate the learned (arm iii) K=32
+baseline is held to realizes only **~1–2/7 (~14–29%)** clean seeds
+per the archived data (§14.10). These are different evidentiary
+events measured by different criteria (value-salvage tier + NS
+convergence + finite loss + task floor, vs. alignment-clean + salvage
+tier) — comparability remains **UNVERIFIED**, exactly as §14.10
+pre-registered, and this section does not treat a 100% geo3 pass rate
+as a stronger or weaker claim than the learned arm's ~14–29%, only as
+a differently-gated one.
+
+**Non-evidence instruments, restated per §14.9 item 5:** the key-Gram
+deviation (~3–8×10⁻⁷ at every seed, every K, both tiers) and the
+per-item alignment instrument are architecturally forced to ≈0 and
+≈1.0 respectively under `geo3_active` — logged in §16.2/§16.3 for
+completeness, carrying **zero** evidentiary weight about whether the
+fix works. Every verdict in §16.4–§16.8 rests exclusively on the
+behavioral `rec@0.9` bars and the substitute admission stack, never on
+these two instruments.
+
+### 16.10 Archive
+
+`experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/` —
+10 files: the original 6 `geo3_n_iter=12` run JSONs
+(`wgeo3_rdx_K{16,32}_armgeo3_s{0,1,2}_geo3n12.json`) and
+`GEO3_DRIFT_DIAGNOSTIC.json` (archived at the original wave verdict,
+2026-07-04), plus the 3 new `geo3_n_iter=20` escalation run JSONs
+(`wgeo3_rdx_K32_armgeo3_s{0,1,2}_geo3n20.json`, archived with this
+entry) — 15 MB total, mirrored byte-for-byte to
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/`.
+Total wave compute: ~1.67 GPU-h across all 9 runs (~0.58 GPU-h for the
+3-seed escalation alone). Every number in §16.1–§16.8 is read directly
+from each run's final checkpoint (`M2_in_distribution`,
+`M3_held_out`, `geo3_admission` dicts) and `GEO3_DRIFT_DIAGNOSTIC.json`'s
+`launch_read` block — no aggregation script beyond direct field
+extraction was required for this wave's small cell count (contrast
+Wave F's 18-cell `extract_wavef.py`/`summarize_wavef.py`, §15.7).
