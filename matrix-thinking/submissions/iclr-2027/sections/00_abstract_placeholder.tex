@@ -1,0 +1,15 @@
+% Abstract placeholder — full draft in NARRATIVE.md \S1.
+% Trim to venue word limit (~250 words for ICLR) once ENDING A/B resolves.
+Rank recruitment and rank \emph{exactness} are different achievements: a
+fixed-state linear-attention model (DeltaNet) trained end-to-end on real
+tokenized language reliably recruits the provably-necessary rank at every
+tested capacity $K$, but the per-binding exactness of what it writes into
+that rank decays sharply with $K$ and compounds geometrically ($\sim
+\varepsilon^h$) under composition. We trace the decay to a single,
+measurable, structurally-robust cause --- a non-orthonormal write-time key
+attractor every input geometry converges to --- show two soft interventions
+cannot escape it, and demonstrate a differentiable structural fix that
+restores near-perfect compositional recall at the pre-registered
+minimum-publishable bar ($K{=}16$) and transforms (by $\sim$50$\times$) the
+harder $K{=}32$ regime \textbf{[ENDING A/B — resolve against
+\texttt{EXPERIMENT\_LOG.md} before final draft]}.

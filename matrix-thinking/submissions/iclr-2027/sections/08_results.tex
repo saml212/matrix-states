@@ -1,0 +1,56 @@
+\section{Results: The Fix Demonstration}
+\label{sec:results}
+
+% Full grounding: EXPERIMENT_LOG.md "F-geo-3 WAVE VERDICT" 2026-07-04.
+% *** THIS SECTION HAS THE ONE LOAD-BEARING OPEN NUMBER IN THE PAPER. ***
+% Resolve the K=32 n_iter=20 escalation before drafting final prose.
+
+\subsection{The pre-spend gate}
+\begin{itemize}
+  \item Predicted $K16\ h4{=}1.00$, $K32\ h4{=}0.77$ from measured
+    cross-episode drift ($0.94$ at $K{=}16$, $0.90$ at $K{=}32$) ---
+    training stabilizes keys relative to the untrained-probe reference,
+    resolving the attack's cross-episode-drift risk favorably enough to
+    authorize launch.
+\end{itemize}
+
+\subsection{K=16: minimum-publishable headline --- HIT (Fig.~7 left)}
+\begin{itemize}
+  \item 3/3 admissible seeds. $h{=}4$: $0.95$--$1.00$ vs.\ bar $\geq 0.8$,
+    vs.\ baseline $0.42$--$0.47$. $h{=}7$: $0.55$--$0.67$ vs.\ baseline
+    $0.07$--$0.10$. $h{=}1$ no-sacrifice: $1.0$ everywhere.
+\end{itemize}
+
+\subsection{K=32: transformed but not yet admitted (Fig.~7 right)}
+\begin{itemize}
+  \item $h{=}4$: $0.39$--$0.50$ vs.\ baseline $0.009$ ($\sim$50$\times$).
+    ID $h{=}2$: $1.0$ vs.\ baseline $0.26$. $h{=}3$: $0.87$--$0.95$ vs.\
+    baseline $0.05$.
+  \item \textbf{0/3 seeds pass the pre-registered substitute admission
+    stack} --- Newton-Schulz fell back to the eigh solver on
+    56/20{,}000 steps ($0.28\%$), disqualifying under item 2 of the
+    substitute criterion.
+  \item \texttt{[[RESOLVE BEFORE FINAL DRAFT]]} K=32 \texttt{n\_iter=20}
+    escalation ($\times$3 seeds, audit-verified, targeting the exact
+    admission-failure cause) was IN FLIGHT as of the last recorded entry.
+    \textbf{ENDING A} (clears admissibility): reframe this subsection as
+    ``the fix clears both pre-registered bars''; strengthen abstract/intro
+    accordingly --- this is a DIFFERENT, stronger paper, do not draft
+    final abstract sentence until resolved. \textbf{ENDING B} (stays
+    0/3 or partial): report as ``mechanism magnitude confirmed
+    ($\sim$50$\times$, an order of magnitude beyond the soft arms) but the
+    paper's own pre-registered admissibility bar is not cleared at
+    $K{=}32$'' --- still a strong, honest result, NOT reframed as failure;
+    $K{=}32{=}d/2$ independently flagged (\S\ref{sec:phenomenon}) as a
+    structural boundary, a legitimate scoping explanation not an excuse.
+\end{itemize}
+
+\subsection{What does NOT move: $h{=}21$}
+\begin{itemize}
+  \item Literal-depth composition STILL COLLAPSES under F-geo-3 ---
+    orthogonality fixes write-time interference between bindings, not the
+    separate iteration-compounding mechanism
+    (\S\ref{sec:phenomenon}'s depth-amplification law).
+  \item Name explicitly as the fix's own scope boundary, not a gap in the
+    evidence.
+\end{itemize}

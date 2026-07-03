@@ -1,0 +1,45 @@
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+% Full content: NARRATIVE.md \S6. State every item undiluted --- this is
+% the section a reviewer checks first for overclaiming.
+
+\begin{enumerate}
+  \item \textbf{Small scale.} $d_{\mathrm{model}}$ in the low hundreds,
+    $d_{\mathrm{state}}{=}64$, sub-1M--low-single-digit-M parameters. No
+    claim tested at a scale where the write-time attractor might behave
+    differently.
+  \item \textbf{Single architecture family.} Vanilla, single-head,
+    single-layer DeltaNet only. Gated DeltaNet (the actual Qwen3-Next
+    production config), DeltaProduct's multi-Householder generalization,
+    untested. $H{=}1$/single-layer was a deliberate gate-simplicity
+    decision, not evidence of $H{=}1$-specificity (ReserveMH's
+    generality result was run on the SYNTHETIC task only).
+  \item \textbf{$h{=}21$ literal-depth decay remains unexplained and
+    unfixed.} F-geo-3 demonstrably does not touch it --- a named,
+    scoped-out mechanism (iteration-compounding), not folded into ``the
+    fix works.''
+  \item \textbf{The $K{=}32$ admissibility caveat.} As of the last
+    recorded result, the pre-registered fix demonstration is fully
+    admissible only at $K{=}16$; $K{=}32$ is a large, real, but
+    not-yet-admitted magnitude shift. State the escalation status and the
+    exact missed criterion (56/20{,}000 NS-fallback steps), not a vague
+    ``still investigating.''
+  \item \textbf{The $K\approx d/2$ structural boundary is observed, not
+    explained.} The K=48 rider shows further breakdown and i-strong's own
+    dimensional guard correctly refusing to run there; no mechanism
+    account beyond dimension-counting is offered.
+  \item \textbf{Scale-transfer to a full pretrained LLM is unknown.}
+    Wave 2 establishes the truncation-damage phenomenon generalizes to
+    naturalistic LM pretraining at small scale (descriptive+
+    interventional tier only) --- does NOT establish whether the
+    write-geometry attractor persists, weakens, or strengthens at
+    production LLM scale. Explicit open question, not implied by
+    extrapolation.
+  \item \textbf{The admission-stack asymmetry is itself an evidentiary
+    limitation.} Because F-geo-3 makes the standard instruments
+    tautological, the substitute criterion's SELECTIVITY relative to the
+    standard stack is explicitly unverified --- state as a limitation on
+    how directly $K{=}16$'s ``3/3 admissible'' compares to any other arm's
+    ``$N$/3 admissible'' number.
+\end{enumerate}

@@ -1,0 +1,59 @@
+\section{Introduction}
+\label{sec:intro}
+
+% Full argument flow: NARRATIVE.md \S3 "\S1 Introduction"
+
+\begin{itemize}
+  \item \textbf{Open on the tension.} Descriptive rank-measurement papers
+    (Nazari \& Rusch, arXiv:2602.04852; Sun et al., arXiv:2602.02195, both
+    Feb 2026) show fast-weight state rank is bounded by sequence length in
+    pretrained LLMs, but never show SGD is \emph{forced} to use that rank,
+    nor that the resulting operator is \emph{exact}. We close both gaps in
+    one architecture family.
+  \item \textbf{Contribution 1 (synthetic, CONFIRMED tier).} A provable
+    $\mathrm{rank}(S_T) \geq K$ necessity result for exact-continuous
+    recovery in a production fast-weight layer (DeltaNet,
+    \texttt{chunk\_delta\_rule}), causally confirmed via a razor-cliff
+    eval-truncation staircase: $k{=}31{\to}32$ jumps
+    $0.9681{\to}1.0000$ at $h{=}1$, $0.3412{\to}1.0000$ at $h{=}21$
+    ($d{=}64, K{=}32$). No inflation: entity-subspace rank $=$ whole-matrix
+    rank $=K$ to four decimal places.
+  \item \textbf{Contribution 2 (real data, CONFIRMED, qualified).} The SAME
+    causal necessity result transfers to real GPT-2-tokenized language at
+    the identical $(d,K)$ operating point (RD-1) --- \textbf{always stated
+    with the ``graded, not razor'' qualifier}: ceiling reached exactly at
+    $k{=}K$ at every $K\in\{8,16,24,32\}$ tested, but the transition window
+    widens from 2--3 ranks ($K{=}8$) to 12--13 ranks ($K{=}32$), and the
+    ceiling itself falls with $K$ (1.000 $\to$ 0.795).
+  \item \textbf{Contribution 3 (the new phenomenon).} What the synthetic
+    result cannot see: per-binding exactness, not capacity, is what
+    degrades with $K$ on real data, compounding geometrically with
+    composition depth ($\sim\varepsilon^h$).
+  \item \textbf{Contribution 4 (mechanism).} A causal attribution to
+    write-time key geometry (ruling out value geometry, NCE-crowding,
+    kernel precision) via a controlled embedding-source intervention, plus
+    an existence proof (surgical orthonormal-key pin, ``i-strong'') that
+    the exact solution is architecturally reachable: $\mathrm{rec@0.9} =
+    1.00/1.00/1.00$ at $h{=}1/2/3$, $K{=}32$, vs.\ learned baseline
+    $0.78/0.26/0.05$.
+  \item \textbf{Contribution 5 (the fix, demonstrated not just diagnosed).}
+    Differentiable per-episode Newton-Schulz key orthogonalization,
+    launch-gated on a pre-registered drift simulator. Clears the $K{=}16$
+    minimum-publishable bar (3/3 admissible seeds, $h{=}4$: $0.42$--$0.47
+    \to 0.95$--$1.00$ vs.\ bar $\geq 0.8$); transforms $K{=}32$
+    $\sim$50$\times$ ($0.009 \to 0.39$--$0.50$) \textbf{[ENDING A/B]}.
+  \item \textbf{Contribution 6 (process, stated once, lightly).} Every
+    wave above was pre-registered, independently attacked, and --- for the
+    fix --- gated on a predicted outcome from a committed simulator before
+    any GPU spend. Offered as a template for trusting a negative result
+    (Wave F) enough to publish it, not as a self-congratulatory framing
+    device. Cite the two concrete bug catches (target-index gather bug,
+    \S\ref{sec:phenomenon}; cross-episode key drift, \S\ref{sec:the-fix})
+    as evidence, not the process in the abstract.
+  \item \textbf{What this paper is NOT.} Not a claim about production
+    Gated-DeltaNet at scale (H=1, single layer, sub-1M params here); not a
+    claim that natural-language reasoning \emph{requires} rank $K$ (Wave 2
+    is descriptive+interventional only); not a claim that the h=21
+    depth-decay mechanism is fixed by this paper's intervention (it is
+    not, stated explicitly in \S\ref{sec:results}).
+\end{itemize}

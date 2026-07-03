@@ -1,0 +1,92 @@
+\section{The Phenomenon: Rank Recruitment Is Reliable, Exactness Is Not}
+\label{sec:phenomenon}
+
+% Full numbers: NARRATIVE.md \S3 "\S4"; sources DELTANET_CAUSAL_RANK_DESIGN.md
+% \S12.3/\S12.4/\S12.8.3, DELTANET_REALDATA_DESIGN.md \S16-\S18,
+% TASK_E_FINDINGS.md \S3.
+
+\subsection{Synthetic baseline: the razor cliff}
+\begin{itemize}
+  \item Wave 0 (\texttt{DELTANET\_CAUSAL\_RANK\_DESIGN.md} \S12.3):
+    unconstrained arm saturates $\mathrm{rec@0.9}{=}1.0000$ at EVERY tested
+    $(d,K)$ cell, no late-transition regime.
+  \item No inflation (\S12.4): entity-subspace rank $=$ whole-matrix rank
+    $=K$ to 4 decimals (e.g.\ $31.9993$--$31.9994$ of $K{=}32$).
+  \item Eval-truncation staircase (\S12.8.3), $d{=}64,K{=}32$: ceiling
+    $k{\geq}32 \Rightarrow 1.0000$ at every $h$ incl.\ $h{=}21$; cliff
+    $k{=}31{\to}32$: $h{=}1$ $0.9681{\to}1.0000$, $h{=}21$
+    $0.3412{\to}1.0000$. Matches the $(K{-}h)/K$ bimodal per-mode-drop
+    theory to $0.001$--$0.003$ at every hop.
+\end{itemize}
+
+\subsection{Real-data transfer: the graded frontier (headline, Fig.~2)}
+\begin{itemize}
+  \item Same architecture, same delta rule, same provable bound,
+    transplanted to GPT-2-tokenized language.
+  \item $\mathrm{rec@0.9}$, ID $h{=}1/2/3$ (held-out $h{=}4$--$7$ in
+    parens): $K{=}8$: $1.000/0.999/0.978$ ($0.944/0.873/0.780/0.699$);
+    $K{=}16$: $0.997/0.90/0.68$ ($0.42$--$0.47/0.25$--$0.28/0.14$--$0.16/
+    0.07$--$0.10$); $K{=}24$: $0.94/0.58/0.27$
+    ($0.10/0.03/0.01/0.00$); $K{=}32$: $0.78/0.26/0.05$
+    ($0.009/0.001/0.000/0.000$).
+  \item Rank recruitment intact regardless (Fig.~3): entity-subspace rank
+    99\% ($K{=}8$), 98\% ($K{=}16$), 96--97\% ($K{=}24$), 94\% ($K{=}32$)
+    of target.
+  \item Eval-truncation staircase is causal (RD-1 CONFIRMED) but graded:
+    ceiling reached EXACTLY at $k{=}K$ at every $K$ --- but the ceiling
+    ITSELF falls with $K$: $1.000 \to 0.995 \to 0.938 \to 0.795$ at
+    $K{=}8/16/24/32$. Window below ceiling widens: 2--3 ranks ($K{=}8$)
+    $\to$ 12--13 ranks ($K{=}32$); steepest single-step jump shrinks
+    $+0.375 \to +0.066$.
+  \item \textbf{Mandatory qualifier, verbatim from source:} ``the
+    real-data transition is graded across a window several ranks wide,
+    not a single-step threshold ... If a future write-up quotes `razor
+    cliff at $k{=}K{-}1\to K$' for the real-data result, that is not what
+    was measured here.''
+\end{itemize}
+
+\subsection{The depth-amplification law}
+\begin{itemize}
+  \item Imported from \texttt{TASK\_E\_FINDINGS.md} \S3: raw
+    iteration/composition depth is a sharper exactness probe than
+    single-hop cosine tolerance. Rank-$(K{-}1)$ operator passes shallow
+    hops ($\sqrt{1{-}1/K}$ per-dropped-mode cosine) and only reveals
+    deficiency at depth.
+  \item Theoretical spine for ``graded at $h{=}1$'' $\to$ ``collapsed by
+    $h{=}4$'': an $\varepsilon^h$-shaped law, recurs 3 more times (Wave
+    F's proportionality reading \S\ref{sec:soft-fixes}; the K=48 rider
+    below; the fix's own $h{=}21$ residual failure
+    \S\ref{sec:results}).
+  \item Deephop program CLOSED (\texttt{DELTANET\_REALDATA\_DESIGN.md}
+    \S18.1): decay curve is a function of $K$ ALONE --- invariant to hop
+    supervision (training AT $h{=}4,5$ produces statistically
+    indistinguishable recovery from held-out extrapolation, e.g.\ $K{=}16$
+    $h{=}4$: $0.390$--$0.503$ trained-at vs.\ $0.419$--$0.465$
+    extrapolated) AND to 2.5$\times$ training budget (62.5K vs.\ 25K steps
+    moves nothing at any $K$).
+  \item $h{=}21$ caveat, cite every time it recurs: a DEPTH-DECAY PROBE
+    (raw iteration count), not an independent held-out-hop test --- $21
+    \bmod K$ collides with in-distribution residues at small $K$; read via
+    \texttt{effective\_hop}.
+\end{itemize}
+
+\subsection{K=48 rider: the frontier breaks past $K \approx d/2$}
+\begin{itemize}
+  \item Key-Gram deviation keeps growing ($2.7$ at $K{=}32 \to 4.3$ at
+    $K{=}48$); $h{=}1$ recovery halves ($0.41$--$0.44$); composition gone
+    by $h{\geq}2$ ($0.005$--$0.009$).
+  \item i-strong pin correctly REFUSED here by its own dimensional guard
+    (96 train+held-out identity vectors $> d_{\mathrm{state}}{=}64$).
+  \item Flag as the paper's ONE unresolved structural boundary
+    ($K\approx d/2$), not smoothed over --- see limitations.
+\end{itemize}
+
+\subsection{Connective tissue: where this whole research line started}
+\begin{itemize}
+  \item Wave 0's K=32 rerun plateaus at $\mathrm{rec@0.9}$ $0.78$--$0.80$
+    for the final 21{,}000 of 25{,}000 steps (flat, not climbing;
+    entity-subspace rank $29.9$--$30.2$ --- capacity NOT the issue even
+    then) while K=16 converges cleanly to $0.996$--$0.999$. This single
+    anomalous plateau motivated designating $K{=}32$ the
+    exactness-mechanism program's headline cell.
+\end{itemize}
