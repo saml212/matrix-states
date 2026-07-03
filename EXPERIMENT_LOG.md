@@ -3357,3 +3357,132 @@ per cell; cells where seeds disagreed in censoring status are reported as `mixed
 with no pooled ratio computed, rather than averaging incomparable left/right/exact
 statuses together — full per-seed breakdown lives in
 `track_a_sample_efficiency.json`'s `aggregated[].per_seed`.
+
+## SCALE-TRANSFER Track B (2026-07-04): geo3-in-LM built + smoke-clean; Wave −1 gate measured on all 6 archived Wave C checkpoints — HARD NO-LAUNCH (criterion (b) fails: non-selected positions carry too much unmasked write-mass)
+
+Executes `matrix-thinking/SCALE_TRANSFER_DESIGN.md` §4 build phase (no launch
+authorized this session; build + Wave −1 measurement only, per the task brief).
+Three files, `matrix-thinking/deltanet_rd/`: `lm_pretrain_rd.py` (MODIFIED —
+`_geo3_lm_select_and_orthogonalize`, the chunk-local beta-gated/naive-window
+gather→orthogonalize→scatter construction, reusing `model_rd.py`'s audited
+`geo3_orthogonalize_logged` verbatim; `--use-geo3-lm` + `--geo3-*` CLI flags,
+default path OFF and regression-checked bit-identical to a hand-rolled
+independent reference), `lm_geo3_wave_neg1_gate.py` (NEW — the §4.2 Wave −1
+measurement tool, non-invasive `b_proj` forward hooks, no model-code coupling
+needed), `run_lm_rd_geo3_sweep.py` (NEW — Wave 1/2/3 orchestrator, clones
+`run_lm_rd_sweep.py`'s pattern, hard-refuses to launch without a passing gate
+JSON). All three smoke-clean on-box (GPU 0, `youthful-indigo-turkey`), 10 new
+smoke items in `lm_pretrain_rd.py` alone (EOT-exclusion negative case incl. a
+degenerate insufficient-content-per-chunk case, on/off sensitivity control,
+Newton-Schulz convergence at LM shapes, naive-window vs beta-topk
+distinguishability). Local↔box byte-identical (md5-verified both directions).
+
+**Wave −1 gate result (real measurement, not smoke): `no_launch_redesign`.**
+Ran on all 6 archived Wave C checkpoints (openr1×3 seeds, wikitext×3 seeds,
+step 6103, `n_params=14,048,896`), pooled across both layers/both corpora/all
+seeds (12,288 chunk-episodes at K_sel=32, chunk_size=64, n_windows=64/corpus/
+checkpoint). Both registered criteria FAIL: (a) top-32 beta-mass concentration
+= **0.569** vs the ≥0.60 bar (close but under — beta is close to uniform
+across a chunk, Gini≈0.099, far from the concentrated distribution the
+beta-gated construction's premise needs); (b) mean beta at non-selected
+positions = **0.363** vs the ≤0.25 bar (clear fail) AND non-selected
+write-mass = **0.431** vs the ≤0.40 bar (fail, same boundary as (a) by
+construction — the two are exact complements over the same denominator, see
+below). Per the design's own registered routing (§4.2, outcome (iii)):
+criterion (b) failing is a HARD no-launch regardless of (a) — Track B's Wave 1
+(beta-gated OR naive-window) does not launch on this construction as
+specified. Confirmed the launcher (`run_lm_rd_geo3_sweep.py --wave 1`)
+actually refuses (exit 3) given this real gate JSON, not just a synthetic
+test case. Full JSON: `matrix-thinking/deltanet_rd/results/lm_rd_geo3/
+wave_neg1_gate.json`.
+
+**Read:** this is a genuine, informative negative at the measurement stage,
+before any GPU-hour was spent training — the premise behind porting F-geo-3
+to free text (that a small top-K subset of positions captures the bulk of a
+chunk's write-mass) does not hold on this harness's actual trained beta
+distribution. Per §4.2's own registered next step, the conditional follow-on
+is a hard-zero-beta-at-non-selected-positions variant, which itself requires
+its own attack pass before any build (a genuinely different, more invasive
+model — LM mode was deliberately built without hard beta masking).
+
+**Design-ambiguity found during build (flagged for audit, not silently
+resolved):** the gate script's own literal implementation of §4.2's "(b) ...
+and the complement of (a)" makes criterion (b)'s write-mass sub-check and
+criterion (a) exact complements over the same chunk-total denominator
+(0.60+0.40=1.00) — under that reading, outcome (ii) ("(a) fails, (b) passes"
+→ naive_window becomes primary) is measure-zero for any real beta
+distribution this tool can measure. The decision logic itself
+(`gate_verdict_from_bools`) is written and independently unit-tested to
+support all three outcomes regardless.
+
+[LEARN] measurement-design: A "criterion X is the complement of criterion Y"
+framing in a design doc can make an intended three-way decision branch
+mathematically unreachable if both are computed over the same denominator —
+check the algebra before building, not after the gate never fires the middle
+branch.
+Mistake: SCALE_TRANSFER_DESIGN.md §4.2 registers three routing outcomes (both
+pass / (a) fails+(b) passes / (b) fails) but also defines (b)'s write-mass
+sub-criterion as literally "the complement of (a)" at threshold pair 60%/40%
+(summing to 100%) — which makes the middle outcome mathematically
+unreachable, not just empirically rare.
+Correction: when a design doc frames one gate criterion as the complement of
+another at complementary thresholds, verify by hand whether the "impossible
+combination" branch this implies is actually intended as unreachable
+(disclosed, harmless) or was meant to be independently measurable (in which
+case the two criteria need different denominators/populations, not the same
+one) — flag it explicitly in the build rather than silently building code
+that can never take the branch.
+
+**Independent audit round (same day, post-build): NO FATALs, 1 MAJOR + 4
+MINOR + 2 NIT — all fixed, re-smoked clean, re-synced byte-identical.** The
+MAJOR (empirically reproduced by the auditor, onset at 6 coincident
+eigenvalues, persists in fp64): the geo3-in-LM degenerate-episode path
+(invalid zero-row selection slots, which the synthetic harness structurally
+never produces) fed `_polar_via_eigh` a Gram matrix with ≥6 coincident
+eps-eigenvalues → NaN gradients through eigh's backward. Fix (in
+`_geo3_lm_select_and_orthogonalize`): (1) the Newton–Schulz residual is
+corrected to the masked-identity target (each invalid zero row contributes
+exactly +1.0 to the raw residual's square — without the correction ANY
+degenerate episode spuriously dragged the whole batch into the eigh fallback
+on every call); (2) episodes containing invalid slots are DENIED the eigh
+fallback and keep their (always-finite-gradient) NS output, counted in a new
+`n_fallback_denied_degenerate` diag field, never silent. Regression test
+[8b] forces the fallback (resid_tol=0) on an episode with 8 invalid slots
+and asserts finite grads + an exercised denial — its own FIRST draft failed
+honestly on-box (random valid keys converge, the corrected residual clamps
+to exactly 0, and the denial branch went silently unexercised) and was fixed
+to use exact-duplicate valid keys, which provably cannot orthogonalize.
+Known residual risk, documented not closed: a FULLY-VALID episode with ≥~6
+exactly-duplicated selected keys (identical conv-context 4-grams, e.g.
+tabular text) can still NaN in the fallback — caught by train()'s existing
+isfinite skip-step guard and visible in every result JSON's skip_rate;
+flagged for Wave 1 monitoring. MINOR fixes: K=32 cells now launch at the
+§1.1-registered `n_iter=20` escalation (a uniform n_iter=12 constant would
+have replicated the non-admissible K=32 config — self-caught pre-audit);
+`is_done_B3` now checks `n_eval_windows` (stale-resume guard); the sweep
+cross-validates the gate JSON's chunk_size/k_sels/gate_k_sel against its
+own launch constants (negative-tested: wrong-config gate JSONs refused,
+exit 2); `lm_geo3_wave_neg1_gate` fails at CLI-parse time if `--k-sels`
+omits the registered gate cell, and frees model+ckpt+CUDA cache per
+checkpoint (Track C reuse safety); `lm_intervene_rd` validates
+ctx/cont-len chunk alignment for geo3-active checkpoints at load time;
+geo3+`num_heads>1` is hard-refused at construction (untested at scope — no
+registered cell covers it, and d_state=128/H=2 would otherwise pass every
+existing guard). The gate note's "measure-zero" wording is strengthened to
+"algebraically unreachable" per the auditor's own re-derivation. Gate
+measurement re-run post-fix: numbers identical (deterministic corpus-fixed
+seeding), verdict unchanged — `no_launch_redesign` stands.
+
+[LEARN] test-design: A forced-failure regression test must verify its
+failure PRECONDITION actually holds, not just force the code path — a
+"denial branch" test whose subject never wants the thing being denied
+passes vacuously.
+Mistake: smoke [8b]'s first draft gave the degenerate episode random valid
+keys; their block CONVERGED, the corrected residual clamped to exactly 0,
+the episode never demanded the fallback, and n_fallback_denied stayed 0 —
+the assert caught it only because the test asserted the denial COUNT, not
+just the absence of NaN.
+Correction: construct forced-failure fixtures from inputs that provably
+cannot succeed (here: exact-duplicate keys, which can never be
+orthogonalized), and assert the intermediate evidence that the failure
+actually occurred (the denial count), not only the final outcome.

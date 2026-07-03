@@ -88,7 +88,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # pod-safe impor
 from fla.modules import RMSNorm, ShortConvolution
 from fla.ops.delta_rule import chunk_delta_rule
 
-from model_rd import _MIN_KERNEL_T, _SAFE_D_STATE
+from model_rd import (_MIN_KERNEL_T, _SAFE_D_STATE, _polar_via_eigh,
+                       newton_schulz_orthogonalize)
 from rank_utils import effective_rank, stable_rank
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -115,6 +116,18 @@ EOT_TOKEN_ID = 50256   # GPT-2 <|endoftext|>
 # (AUDIT FIX-3: windows start at document starts, truncation logged).
 RANK_SAMPLE_FRACS = (0.25, 0.5, 0.75, 1.0)
 
+# ---------------------------------------------------------------------------
+# Track B / geo3-in-LM (SCALE_TRANSFER_DESIGN.md sec 4): per-chunk, beta-gated
+# (or naive-window) key orthogonalization. Off by default everywhere
+# (geo3_active=False) -- the default path is byte-identical to the
+# pre-Track-B code (regression-checked in smoke() item [6]).
+# ---------------------------------------------------------------------------
+
+GEO3_LM_SELECTION_MODES = ("beta_topk", "naive_window")
+GEO3_LM_CHUNK_SIZE_DEFAULT = 64   # sec 4.2 item 1: chunk_delta_rule's own sequence-tiling constant
+                                    # (d_state-INDEPENDENT -- MAJOR-3's correction; the binding rank
+                                    # constraint is k_sel <= head_dim, asserted separately below)
+
 
 def corpus_fixed_seed(corpus_name: str) -> int:
     """AUDIT FIX-1 (2026-07-03): the seed for EVERY held-out-window sampler
@@ -134,6 +147,222 @@ def window_digest(starts: torch.Tensor) -> int:
     runs' result JSONs (identical digests <=> identical window index sets),
     not merely asserted from code reading."""
     return zlib.crc32(starts.detach().cpu().to(torch.int64).numpy().tobytes())
+
+
+def gini_coefficient(x: torch.Tensor) -> torch.Tensor:
+    """Gini coefficient of a non-negative distribution along the LAST dim
+    (batched). Standard rank-based closed form on x sorted ASCENDING:
+    G = 2*sum(i*x_sorted_i) / (n*sum(x)) - (n+1)/n, i in [1,n]. G=0 for
+    perfect equality, G->(n-1)/n for one point holding all the mass (both
+    verified by hand in this function's own smoke case). x: (...,n), values
+    assumed >= 0 (beta -- a sigmoid output -- always satisfies this).
+    Degenerate (n<=1, or all-zero) inputs return 0 by convention (matches
+    the standard "no inequality to measure" edge-case handling), not NaN."""
+    n = x.shape[-1]
+    if n <= 1:
+        return torch.zeros(x.shape[:-1], device=x.device, dtype=x.dtype)
+    x_sorted, _ = torch.sort(x, dim=-1)
+    total = x_sorted.sum(dim=-1)
+    idx = torch.arange(1, n + 1, device=x.device, dtype=x.dtype)
+    weighted = (idx * x_sorted).sum(dim=-1)
+    safe_total = total.clamp(min=1e-12)
+    gini = (2.0 * weighted) / (n * safe_total) - (n + 1.0) / n
+    return torch.where(total > 1e-12, gini, torch.zeros_like(gini))
+
+
+def _geo3_lm_select_and_orthogonalize(k_raw: torch.Tensor, beta: torch.Tensor,
+                                       content_mask: torch.Tensor, chunk_size: int, k_sel: int,
+                                       n_iter: int, resid_tol: float, selection_mode: str):
+    """The Track B / geo3-in-LM chunk-local, (beta-gated OR naive-window)
+    top-K_sel construction (SCALE_TRANSFER_DESIGN.md sec 4.2/4.3). Reuses
+    model_rd.py's audited gather -> orthogonalize -> scatter pattern
+    (DeltaNetRDBlock.bind()'s geo3_active branch, model_rd.py:871-888) and
+    its orthogonalization machinery (newton_schulz_orthogonalize +
+    _polar_via_eigh, imported unmodified) -- what is NEW here is (a) the
+    selection-SET construction (per-chunk top-K_sel by beta magnitude, or a
+    positionally-fixed naive-window selection, in place of model_rd.py's
+    hand-specified item_pos, which has no free-text analog, sec 4.2), and
+    (b) the degenerate-episode handling around the fallback (masked-identity
+    residual + eigh-fallback denial for invalid-slot-bearing episodes --
+    AUDIT ROUND-2 MAJOR-1, see the inline comment at the call site below;
+    the earlier draft's direct geo3_orthogonalize_logged reuse was wrong for
+    exactly the degenerate case the synthetic harness never produces).
+
+    k_raw: (B,T,H,head_dim) -- PRE-kernel-normalization conv output (the
+      kernel applies its OWN internal L2-norm via use_qk_l2norm_in_kernel=
+      True; the F.normalize call inside this function is ONLY the
+      pre-scaling Newton-Schulz's own convergence proof requires --
+      model_rd.py's newton_schulz_orthogonalize docstring: "rows ALREADY
+      L2-normalized" -- NOT a substitute for the kernel's final internal
+      norm. This is this build's resolution of sec 4.3's flagged
+      plumbing-mismatch risk: selected AND non-selected positions both
+      still pass through the SAME final kernel-internal normalization
+      afterward -- there is no asymmetric double- or skipped-normalization
+      between them. Flagged for audit scrutiny: the kernel's own final
+      renorm CAN slightly perturb the joint Q@Q^T~=I_K guarantee Newton-
+      Schulz just built (a real, measured, sub-1e-2-scale effect per this
+      build's own smoke item [7], not assumed away).
+    beta: (B,T,H) the plain learned gate (post-sigmoid; monotonic, so
+      ranking is unaffected by using post- vs pre-sigmoid, but the
+      post-sigmoid value is also the interpretable "write mass" this
+      function's own diagnostics report).
+    content_mask: (B,T) bool, True = eligible for selection (sec 4.2 item 3:
+      "EOT and any padding positions are hard-excluded from selection").
+    chunk_size: window (sec 4.2 item 1: kernel-aligned tiling constant,
+      d_state-INDEPENDENT -- MAJOR-3's correction).
+    k_sel: positions orthogonalized per (chunk, head). MUST be
+      <= min(chunk_size, head_dim) -- head_dim (not d_state) is this
+      build's generalization of sec 4.2 item 1's "K_sel <= min(window,
+      d_state)" rule to the per-HEAD orthogonalization this function
+      performs (the two bounds coincide exactly whenever num_heads==1,
+      i.e. head_dim==d_state -- the ONLY configuration any cell in this
+      design's own manifest, sec 4.5, registers; num_heads>1 is supported
+      here for generality but carries NO Wave 1 cell coverage -- flagged
+      for audit scrutiny).
+    selection_mode: "beta_topk" (sec 4.2's primary construction: rank by
+      beta magnitude) or "naive_window" (sec 4.2/4.5's rejected-but-kept
+      comparison arm -- a beta-BLIND, purely positional selection. This
+      build's literal reading of "unconditional fixed-window
+      orthogonalization" at the SAME K_sel granularity sec 4.5's manifest
+      table runs it at: "the first K_sel content positions of each chunk,
+      by sequence index." OPEN INTERPRETIVE CALL, flagged for audit
+      scrutiny -- sec 4.2's own prose ("orthogonalize every token in a
+      window") is not perfectly literal at k_sel<chunk_size; sec 4.5's own
+      table is the more load-bearing source since it pins the K_sel grid).
+
+    Returns (k_out (B,T,H,head_dim), diag: dict). diag carries per-call
+    scalars (resid mean/max/min, fallback rate, valid-selection fraction)
+    PLUS the raw per-selected-slot tensors (_topk_idx, _valid_sel, _Q) a
+    caller needs to build the sec 4.4 drift diagnostic (token identity is
+    looked up by the CALLER, which owns token_ids; this function only ever
+    sees k_raw/beta/content_mask, never token_ids directly, keeping its
+    contract layout-agnostic)."""
+    B, T, H, d = k_raw.shape
+    assert T % chunk_size == 0, (
+        f"T={T} is not a multiple of chunk_size={chunk_size} -- geo3-in-LM's chunking requires an "
+        f"exact tiling (sec 4.2 item 1's kernel-aligned window); pad or choose a compatible "
+        f"seq_len/ctx_len/cont_len upstream.")
+    assert k_sel <= min(chunk_size, d), (
+        f"k_sel={k_sel} must be <= min(chunk_size={chunk_size}, head_dim={d}) -- head_dim is the "
+        f"actual Newton-Schulz orthogonalization dimension per head (sec 4.2 item 1's d_state bound "
+        f"generalizes to head_dim under per-head orthogonalization; the two coincide when "
+        f"num_heads==1).")
+    assert selection_mode in GEO3_LM_SELECTION_MODES, \
+        f"selection_mode={selection_mode!r} not in {GEO3_LM_SELECTION_MODES}"
+    n_chunks = T // chunk_size
+
+    k_c = k_raw.view(B, n_chunks, chunk_size, H, d)
+    beta_c = beta.view(B, n_chunks, chunk_size, H)
+    content_c = content_mask.view(B, n_chunks, chunk_size, 1).expand(B, n_chunks, chunk_size, H)
+
+    neg_inf = torch.finfo(beta_c.dtype).min
+    if selection_mode == "beta_topk":
+        priority = torch.where(content_c, beta_c, torch.full_like(beta_c, neg_inf))
+    else:  # naive_window: purely positional, beta-BLIND (this build's sensitivity-control target,
+           # sec 4.8 item 1 -- "tests whether the selection refinement matters at all")
+        pos_priority = torch.arange(chunk_size, 0, -1, device=k_raw.device, dtype=beta_c.dtype)
+        pos_priority = pos_priority.view(1, 1, chunk_size, 1).expand(B, n_chunks, chunk_size, H)
+        priority = torch.where(content_c, pos_priority, torch.full_like(pos_priority, neg_inf))
+
+    topk_val, topk_idx = torch.topk(priority, k_sel, dim=2)                # (B,n_chunks,k_sel,H)
+    valid_sel = topk_val > (neg_inf / 2)                                    # strictly-content slots only
+                                                                              # (excludes EOT/padding
+                                                                              # positions selected only
+                                                                              # because a chunk ran out
+                                                                              # of real content, sec 4.2
+                                                                              # item 3 -- degenerate but
+                                                                              # handled EXACTLY, not by
+                                                                              # a tolerance-slack shortcut)
+
+    idx_expand = topk_idx.unsqueeze(-1).expand(B, n_chunks, k_sel, H, d)
+    k_gathered_raw = torch.gather(k_c, 2, idx_expand)                      # (B,n_chunks,k_sel,H,d)
+
+    # -> (B,n_chunks,H,k_sel,d): fold H into the orthogonalization batch axis (per-head Newton-Schulz)
+    k_gathered_raw_p = k_gathered_raw.permute(0, 1, 3, 2, 4).contiguous()
+    valid_p = valid_sel.permute(0, 1, 3, 2).contiguous()                   # (B,n_chunks,H,k_sel)
+
+    flat_n = B * n_chunks * H
+    k_flat_raw = k_gathered_raw_p.reshape(flat_n, k_sel, d)
+    valid_flat = valid_p.reshape(flat_n, k_sel)
+
+    # Zero-safe: invalid (degenerate, insufficient-content-chunk) slots become an all-zero row
+    # BEFORE normalizing -- Newton-Schulz's pre-scaling proof (sigma_max(X_0)<=1, model_rd.py's own
+    # docstring) holds UNCHANGED with zero rows present (the Frobenius norm can only shrink), and
+    # F.normalize is zero-safe (0-row -> 0-row, model_rd.py's own convention).
+    k_flat_for_ns = torch.where(valid_flat.unsqueeze(-1), k_flat_raw, torch.zeros_like(k_flat_raw))
+    k_flat_norm = F.normalize(k_flat_for_ns, dim=-1)
+
+    # AUDIT ROUND-2 MAJOR-1 restructure (2026-07-04, independent audit): the earlier draft called
+    # model_rd.geo3_orthogonalize_logged here directly. Two problems, both specific to degenerate
+    # (invalid-slot-bearing) episodes that have NO analog in the synthetic harness:
+    #   (1) SPURIOUS FALLBACK: newton_schulz_orthogonalize's resid measures ||QQ^T - I_K||_F, and
+    #       every invalid ZERO row contributes exactly +1.0 to its square (its (i,i) diagonal entry:
+    #       0 vs 1; all its cross terms are 0 vs 0) -- so ANY degenerate episode in the batch had
+    #       resid >= 1 >> resid_tol and dragged the WHOLE batch into the eigh fallback every call.
+    #       Fixed by correcting the residual to the masked-identity target: resid_corrected^2 =
+    #       resid^2 - n_invalid (exact algebra, clamped at 0 for fp noise). fp32 PRECISION FLOOR,
+    #       measured via smoke [8b]'s own first (failed) draft: for a degenerate episode the
+    #       subtraction cannot resolve a valid-block residual below ~sqrt(n_invalid * fp32_eps)
+    #       (~1e-3 at n_invalid=8) -- it clamps to exactly 0. Conservative in the safe direction
+    #       (an under-measured residual can only SKIP a fallback the default resid_tol=1e-2 would
+    #       not have demanded anyway, since the floor sits below the tol).
+    #   (2) NaN GRADIENTS in the fallback: _polar_via_eigh on a Gram matrix with >=~6 coincident
+    #       (jittered-to-eps) zero eigenvalues from invalid rows produces NaN in eigh's backward
+    #       (1/(lambda_i - lambda_j) at repeated eigenvalues -- EMPIRICALLY reproduced by the audit,
+    #       onset at n_invalid=6, persists in fp64). Fixed by DENYING the eigh fallback to any
+    #       episode containing invalid rows: those episodes keep their Newton-Schulz output (whose
+    #       gradient is polynomial and always finite; its zero rows are exactly preserved). Denials
+    #       are counted in diag["n_fallback_denied_degenerate"] -- never silent.
+    # KNOWN RESIDUAL RISK (documented, not closed here): a FULLY-VALID episode whose selected keys
+    # contain >=~6 exactly-duplicated rows (identical conv-context 4-grams, e.g. heavily tabular/
+    # repetitive text) also yields coincident Gram eigenvalues in the fallback and can NaN the same
+    # way; train()'s isfinite-grad skip-step guard catches it (step skipped, counted in skip_rate),
+    # so it is observable in every result JSON rather than corrupting -- flagged for Wave 1
+    # monitoring, not assumed away.
+    Q, resid_raw = newton_schulz_orthogonalize(k_flat_norm, n_iter=n_iter)
+    with torch.no_grad():
+        n_invalid_per_ep = (~valid_flat).sum(dim=-1).to(resid_raw.dtype)          # (flat_n,)
+        resid = (resid_raw.pow(2) - n_invalid_per_ep).clamp(min=0.0).sqrt()        # masked-identity target
+    fully_valid = valid_flat.all(dim=-1)                                           # (flat_n,)
+    exceeds = resid > resid_tol
+    fallback_triggered = bool(exceeds.any())
+    n_fallback_denied = 0
+    if fallback_triggered:
+        n_fallback_denied = int((exceeds & ~fully_valid).sum().item())
+        if bool(fully_valid.all()):
+            # no degenerate episodes anywhere: EXACT model_rd whole-batch-retry semantics
+            Q = _polar_via_eigh(k_flat_norm)
+        else:
+            idx_fv = fully_valid.nonzero(as_tuple=True)[0]
+            if idx_fv.numel() > 0:
+                # whole-batch-among-eligible: every FULLY-VALID episode goes through eigh
+                # (matching model_rd's batch-granularity convention as closely as the
+                # degenerate-exclusion rule allows); index_copy is out-of-place + autograd-clean
+                Q = Q.index_copy(0, idx_fv, _polar_via_eigh(k_flat_norm.index_select(0, idx_fv)))
+
+    # Invalid slots: EXACT no-op -- scatter back the ORIGINAL raw (pre-normalize, pre-zero) value,
+    # NEVER Q (whose invalid-slot rows are provably exactly zero by Newton-Schulz's own recursion --
+    # scattering them would ZERO OUT a real EOT-token key that must stay untouched, sec 4.2 item 3).
+    scatter_src_flat = torch.where(valid_flat.unsqueeze(-1), Q, k_flat_raw)
+    scatter_src = scatter_src_flat.reshape(B, n_chunks, H, k_sel, d).permute(0, 1, 3, 2, 4).contiguous()
+
+    k_c_out = k_c.clone()
+    k_c_out.scatter_(2, idx_expand, scatter_src)
+    k_out = k_c_out.reshape(B, T, H, d)
+
+    diag = {
+        # resid_* report the CORRECTED (masked-identity-target) residual -- the decision quantity
+        "resid_mean": resid.mean().item(), "resid_max": resid.max().item(),
+        "resid_min": resid.min().item(),
+        "fallback_triggered": bool(fallback_triggered),
+        "n_fallback_denied_degenerate": n_fallback_denied,     # AUDIT ROUND-2 MAJOR-1: never silent
+        "frac_valid_selections": valid_flat.float().mean().item(),
+        "n_chunks": n_chunks, "k_sel": k_sel, "chunk_size": chunk_size, "selection_mode": selection_mode,
+        # raw tensors for the OPTIONAL caller-side drift diagnostic (sec 4.4) -- NOT reduced here,
+        # the caller (which owns token_ids) maps these back to token identity.
+        "_topk_idx": topk_idx, "_valid_sel": valid_sel, "_Q": Q.reshape(B, n_chunks, H, k_sel, d),
+    }
+    return k_out, diag
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +403,17 @@ class DeltaNetLMMixer(nn.Module):
     real token), so the kernel's own normalization is safe here (matches
     the stock layer's own default, qk_norm='l2')."""
 
-    def __init__(self, d_model: int, d_state: int, conv_size: int = 4, num_heads: int = 1):
+    def __init__(self, d_model: int, d_state: int, conv_size: int = 4, num_heads: int = 1,
+                 geo3_active: bool = False, geo3_k_sel: int = 16,
+                 geo3_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT, geo3_n_iter: int = 12,
+                 geo3_resid_tol: float = 1e-2, geo3_selection_mode: str = "beta_topk",
+                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
+        """geo3_* (SCALE_TRANSFER_DESIGN.md sec 4, Track B): OFF by default
+        (geo3_active=False) -- when off, none of this __init__'s new
+        parameters are read anywhere in forward(), and forward()'s default
+        code path is UNCHANGED line-for-line (smoke item [6] regression-
+        checks this). See _geo3_lm_select_and_orthogonalize's docstring for
+        the full parameter contract."""
         super().__init__()
         assert d_state % num_heads == 0, \
             f"d_state={d_state} must be divisible by num_heads={num_heads}"
@@ -185,10 +424,36 @@ class DeltaNetLMMixer(nn.Module):
             f"box's build (model_rd.py's _SAFE_D_STATE, F15-LM 2026-07-02: D<64 crashes "
             f"prepare_wy_repr_bwd's Triton autotuner). Re-measure before widening this set."
         )
+        if geo3_active:
+            assert geo3_selection_mode in GEO3_LM_SELECTION_MODES, \
+                f"geo3_selection_mode={geo3_selection_mode!r} not in {GEO3_LM_SELECTION_MODES}"
+            assert geo3_k_sel <= min(geo3_chunk_size, head_dim), (
+                f"geo3_k_sel={geo3_k_sel} must be <= min(geo3_chunk_size={geo3_chunk_size}, "
+                f"head_dim={head_dim}) -- sec 4.2 item 1's corrected binding constraint "
+                f"(head_dim generalizes the design's d_state bound to per-head orthogonalization)."
+            )
+            # AUDIT ROUND-2 recommendation: _geo3_lm_select_and_orthogonalize's H-folding math is
+            # H-general (audit-verified), but NO registered Track B cell (sec 4.5) covers
+            # num_heads>1 with geo3 active, and no automated test combines them -- hard-refuse the
+            # untested-at-scope combination rather than let it launch by accident at d_state=128
+            # (where head_dim=64 would pass _SAFE_D_STATE). Widen deliberately, with a real test,
+            # not by deleting this line.
+            assert num_heads == 1, (
+                f"geo3_active with num_heads={num_heads} is UNTESTED AT SCOPE (every registered "
+                f"Track B cell is num_heads=1) -- see this assert's comment before widening."
+            )
         self.d_model = d_model
         self.d_state = d_state
         self.num_heads = num_heads
         self.head_dim = head_dim
+        self.geo3_active = geo3_active
+        self.geo3_k_sel = geo3_k_sel
+        self.geo3_chunk_size = geo3_chunk_size
+        self.geo3_n_iter = geo3_n_iter
+        self.geo3_resid_tol = geo3_resid_tol
+        self.geo3_selection_mode = geo3_selection_mode
+        self.geo3_excluded_token_ids = tuple(geo3_excluded_token_ids)
+        self.geo3_last_diag: dict | None = None   # sec 14.4-style per-forward-call side channel
 
         self.q_proj = nn.Linear(d_model, d_state, bias=False)
         self.k_proj = nn.Linear(d_model, d_state, bias=False)
@@ -200,7 +465,8 @@ class DeltaNetLMMixer(nn.Module):
         self.o_norm = RMSNorm(head_dim, eps=1e-5)
         self.o_proj = nn.Linear(d_state, d_model, bias=False)
 
-    def forward(self, x: torch.Tensor, initial_state: torch.Tensor | None = None):
+    def forward(self, x: torch.Tensor, initial_state: torch.Tensor | None = None,
+                token_ids: torch.Tensor | None = None):
         """x: (B,T,d_model). initial_state: None, or (B,H,head_dim,head_dim) in fla's OWN
         native [K,V] layout -- NOT reconciled to model_rd.py's [V,K] design layout, and
         deliberately so: LM mode never calls apply_state_power / any external readout that
@@ -233,6 +499,25 @@ class DeltaNetLMMixer(nn.Module):
         k = k.reshape(B, T, self.num_heads, self.head_dim)
         v = v.reshape(B, T, self.num_heads, self.head_dim)
 
+        # Track B / geo3-in-LM (SCALE_TRANSFER_DESIGN.md sec 4.3's insertion point: "after
+        # k, _ = self.k_conv1d(...) and beta = torch.sigmoid(self.b_proj(x)), before the
+        # chunk_delta_rule(...) call"). OFF by default (geo3_active=False): this entire block
+        # does not execute, so the default path below is UNCHANGED (smoke item [6]).
+        if self.geo3_active:
+            assert token_ids is not None, (
+                "geo3_active=True requires token_ids (sec 4.2 item 3's EOT-exclusion mask) -- "
+                "the caller (DeltaNetLMBlock.forward / DeltaNetLM.forward) must thread token_ids "
+                "down to every mixer.forward() call."
+            )
+            assert token_ids.shape == (B, T), f"token_ids shape {tuple(token_ids.shape)} != (B,T)=({B},{T})"
+            content_mask = torch.ones(B, T, dtype=torch.bool, device=k.device)
+            for excluded_id in self.geo3_excluded_token_ids:
+                content_mask = content_mask & (token_ids != excluded_id)
+            k, geo3_diag = _geo3_lm_select_and_orthogonalize(
+                k, beta, content_mask, self.geo3_chunk_size, self.geo3_k_sel,
+                self.geo3_n_iter, self.geo3_resid_tol, self.geo3_selection_mode)
+            self.geo3_last_diag = geo3_diag
+
         # Kernel boundary: bf16 ONLY here (chunk_delta_rule categorically
         # rejects float32 -- section 4.3), mirroring model_rd.py's
         # kernel_state_design_layout discipline exactly.
@@ -253,15 +538,24 @@ class DeltaNetLMBlock(nn.Module):
     """Pre-norm mixing sublayer + pre-norm FFN sublayer, standard residual
     stacking."""
 
-    def __init__(self, d_model: int, d_state: int, conv_size: int = 4, num_heads: int = 1, ffn_mult: int = 4):
+    def __init__(self, d_model: int, d_state: int, conv_size: int = 4, num_heads: int = 1, ffn_mult: int = 4,
+                 geo3_active: bool = False, geo3_k_sel: int = 16,
+                 geo3_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT, geo3_n_iter: int = 12,
+                 geo3_resid_tol: float = 1e-2, geo3_selection_mode: str = "beta_topk",
+                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
         super().__init__()
         self.norm1 = RMSNorm(d_model, eps=1e-5)
-        self.mixer = DeltaNetLMMixer(d_model, d_state, conv_size=conv_size, num_heads=num_heads)
+        self.mixer = DeltaNetLMMixer(d_model, d_state, conv_size=conv_size, num_heads=num_heads,
+                                      geo3_active=geo3_active, geo3_k_sel=geo3_k_sel,
+                                      geo3_chunk_size=geo3_chunk_size, geo3_n_iter=geo3_n_iter,
+                                      geo3_resid_tol=geo3_resid_tol, geo3_selection_mode=geo3_selection_mode,
+                                      geo3_excluded_token_ids=geo3_excluded_token_ids)
         self.norm2 = RMSNorm(d_model, eps=1e-5)
         self.ffn = FFN(d_model, mult=ffn_mult)
 
-    def forward(self, x: torch.Tensor, initial_state: torch.Tensor | None = None):
-        o, final_state = self.mixer(self.norm1(x), initial_state=initial_state)
+    def forward(self, x: torch.Tensor, initial_state: torch.Tensor | None = None,
+                token_ids: torch.Tensor | None = None):
+        o, final_state = self.mixer(self.norm1(x), initial_state=initial_state, token_ids=token_ids)
         x = x + o
         x = x + self.ffn(self.norm2(x))
         return x, final_state
@@ -276,7 +570,16 @@ class DeltaNetLM(nn.Module):
     floor)."""
 
     def __init__(self, vocab_size: int, d_model: int = 256, d_state: int = 64, n_layers: int = 2,
-                 conv_size: int = 4, num_heads: int = 1, ffn_mult: int = 4):
+                 conv_size: int = 4, num_heads: int = 1, ffn_mult: int = 4,
+                 geo3_active: bool = False, geo3_k_sel: int = 16,
+                 geo3_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT, geo3_n_iter: int = 12,
+                 geo3_resid_tol: float = 1e-2, geo3_selection_mode: str = "beta_topk",
+                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
+        """geo3_* (SCALE_TRANSFER_DESIGN.md sec 4, Track B): threaded to EVERY
+        block/mixer uniformly (this build does not support a per-layer geo3
+        toggle -- out of sec 4's scope). OFF by default everywhere -- the
+        default (geo3_active=False) path is byte-identical to the
+        pre-Track-B code (smoke item [6])."""
         super().__init__()
         assert n_layers in (1, 2), \
             "probe-tier build supports 1-2 layers only (task brief) -- widen deliberately, not by accident"
@@ -287,6 +590,13 @@ class DeltaNetLM(nn.Module):
         self.conv_size = conv_size
         self.num_heads = num_heads
         self.ffn_mult = ffn_mult
+        self.geo3_active = geo3_active
+        self.geo3_k_sel = geo3_k_sel
+        self.geo3_chunk_size = geo3_chunk_size
+        self.geo3_n_iter = geo3_n_iter
+        self.geo3_resid_tol = geo3_resid_tol
+        self.geo3_selection_mode = geo3_selection_mode
+        self.geo3_excluded_token_ids = tuple(geo3_excluded_token_ids)
 
         self.embed = nn.Embedding(vocab_size, d_model)
         # AUDIT FIX-2 (2026-07-03): nn.Embedding's PyTorch default init is
@@ -296,7 +606,11 @@ class DeltaNetLM(nn.Module):
         # to std=0.02 gives 10.90). GPT-2's own convention: std=0.02.
         nn.init.normal_(self.embed.weight, mean=0.0, std=0.02)
         self.blocks = nn.ModuleList([
-            DeltaNetLMBlock(d_model, d_state, conv_size=conv_size, num_heads=num_heads, ffn_mult=ffn_mult)
+            DeltaNetLMBlock(d_model, d_state, conv_size=conv_size, num_heads=num_heads, ffn_mult=ffn_mult,
+                             geo3_active=geo3_active, geo3_k_sel=geo3_k_sel, geo3_chunk_size=geo3_chunk_size,
+                             geo3_n_iter=geo3_n_iter, geo3_resid_tol=geo3_resid_tol,
+                             geo3_selection_mode=geo3_selection_mode,
+                             geo3_excluded_token_ids=geo3_excluded_token_ids)
             for _ in range(n_layers)
         ])
         self.norm_f = RMSNorm(d_model, eps=1e-5)
@@ -304,7 +618,11 @@ class DeltaNetLM(nn.Module):
     def config(self) -> dict:
         return {"vocab_size": self.vocab_size, "d_model": self.d_model, "d_state": self.d_state,
                 "n_layers": self.n_layers, "conv_size": self.conv_size, "num_heads": self.num_heads,
-                "ffn_mult": self.ffn_mult}
+                "ffn_mult": self.ffn_mult,
+                "geo3_active": self.geo3_active, "geo3_k_sel": self.geo3_k_sel,
+                "geo3_chunk_size": self.geo3_chunk_size, "geo3_n_iter": self.geo3_n_iter,
+                "geo3_resid_tol": self.geo3_resid_tol, "geo3_selection_mode": self.geo3_selection_mode,
+                "geo3_excluded_token_ids": list(self.geo3_excluded_token_ids)}
 
     def forward(self, token_ids: torch.Tensor, initial_states: list | None = None,
                 return_states: bool = False):
@@ -312,7 +630,10 @@ class DeltaNetLM(nn.Module):
         mode training ever uses) or a list of length n_layers, each entry None or a
         (B,H,head_dim,head_dim) state (the intervention script's two-phase context/continuation
         use). Returns logits (B,T,vocab_size), and if return_states: also the list of each
-        layer's FINAL state for this call."""
+        layer's FINAL state for this call.
+
+        token_ids is now ALSO threaded down to every block/mixer (sec 4.2 item 3's EOT-exclusion
+        mask) -- a pure additive plumbing change: non-geo3 mixers never read it."""
         B, T = token_ids.shape
         x = self.embed(token_ids)
         if initial_states is None:
@@ -321,7 +642,7 @@ class DeltaNetLM(nn.Module):
             f"initial_states must have one entry per layer ({self.n_layers}), got {len(initial_states)}"
         final_states = []
         for blk, s0 in zip(self.blocks, initial_states):
-            x, s_final = blk(x, initial_state=s0)
+            x, s_final = blk(x, initial_state=s0, token_ids=token_ids)
             final_states.append(s_final)
         x = self.norm_f(x)
         logits = F.linear(x, self.embed.weight)                    # tied head, no bias
@@ -546,6 +867,105 @@ def summarize_rank_stats(records: list) -> dict:
 
 
 @torch.no_grad()
+def sample_geo3_diagnostics(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets: torch.Tensor,
+                             n_docs: int, seq_len: int, generator: torch.Generator) -> dict:
+    """SCALE_TRANSFER_DESIGN.md sec 4.4's two REQUIRED instrumentation items
+    for a geo3-active model, both computed from ONE shared forward pass over
+    n_docs document-aligned windows:
+
+    (a) key_gram_deviation: the Newton-Schulz post-orthogonalization
+        residual (model_rd.py's own Gram-deviation statistic, corrected to
+        the masked-identity target ``||Q Q^T - diag(valid)||_F`` -- see
+        _geo3_lm_select_and_orthogonalize's AUDIT ROUND-2 MAJOR-1 comment),
+        summarized per layer.
+    (b) a free-text drift diagnostic, ADAPTED from geo3_drift_diagnostic.py
+        (sec 14.6's pinned cross-episode-drift statistic). DOCUMENTED SCOPING
+        DEVIATION (sec 4.4's own words: "free text's chunk membership for
+        any given token is far less stable than a synthetic episode's fixed
+        K-cycle"): free text has no artificial K-cycle to resample
+        identically, so this harvests NATURALLY-RECURRING token ids across
+        the n_docs sampled documents' own selected (top-K_sel) positions and
+        reports pooled pairwise cosine similarity of each recurring token's
+        post-orthogonalization key direction across its distinct
+        occurrences -- mean + p10 of the pooled distribution, mirroring
+        geo3_simulator.pairwise_drift_stats' aggregation convention exactly,
+        but over OPPORTUNISTIC natural recurrence rather than a controlled
+        resample. Tokens that occur only once in the sample contribute
+        nothing (need >=2 occurrences for a pairwise comparison) -- reported
+        as n_recurring_tokens so a checkpoint with too little recurrence to
+        be informative is visible in the JSON, not silently averaged over
+        nothing.
+
+    Requires at least one geo3_active mixer; asserts this (calling it on a
+    non-geo3 model is a caller bug, not a legitimate empty-result case)."""
+    assert any(blk.mixer.geo3_active for blk in model.blocks), \
+        "sample_geo3_diagnostics requires at least one geo3_active mixer"
+    model.eval()
+    n = tokens.numel()
+    eligible = doc_offsets[doc_offsets + seq_len + 1 <= n]
+    assert eligible.numel() >= n_docs, \
+        f"only {eligible.numel()} eligible docs for n_docs={n_docs} at seq_len={seq_len}"
+    pick = torch.randint(0, eligible.numel(), (n_docs,), generator=generator, device=doc_offsets.device)
+    starts = eligible[pick]
+    offs = torch.arange(seq_len, device=tokens.device)
+    idx = starts.unsqueeze(1) + offs.unsqueeze(0)
+    batch = tokens[idx]                                              # (n_docs, seq_len)
+
+    _ = model(batch, return_states=False)
+
+    per_layer_gram = {}
+    token_key_pairs: list[tuple[int, torch.Tensor]] = []
+    for layer_idx, blk in enumerate(model.blocks):
+        diag = blk.mixer.geo3_last_diag
+        if diag is None:
+            continue
+        per_layer_gram[layer_idx] = {
+            "resid_mean": diag["resid_mean"], "resid_max": diag["resid_max"],
+            "resid_min": diag["resid_min"], "fallback_triggered": diag["fallback_triggered"],
+            "n_fallback_denied_degenerate": diag["n_fallback_denied_degenerate"],
+            "frac_valid_selections": diag["frac_valid_selections"],
+        }
+        topk_idx, valid_sel, Q = diag["_topk_idx"], diag["_valid_sel"], diag["_Q"]
+        # topk_idx/valid_sel: (n_docs,n_chunks,k_sel,H) in-CHUNK indices; Q: (n_docs,n_chunks,H,k_sel,d)
+        n_chunks, k_sel = diag["n_chunks"], diag["k_sel"]
+        H = Q.shape[2]
+        chunk_size = diag["chunk_size"]
+        batch_view = batch.view(n_docs, n_chunks, chunk_size)
+        for b in range(n_docs):
+            for c in range(n_chunks):
+                for h in range(H):
+                    for s in range(k_sel):
+                        if not bool(valid_sel[b, c, s, h]):
+                            continue
+                        tok = int(batch_view[b, c, topk_idx[b, c, s, h]].item())
+                        token_key_pairs.append((tok, Q[b, c, h, s, :].detach()))
+
+    by_token: dict[int, list[torch.Tensor]] = {}
+    for tok, vec in token_key_pairs:
+        by_token.setdefault(tok, []).append(vec)
+    pooled = []
+    n_recurring_tokens = 0
+    for tok, vecs in by_token.items():
+        if len(vecs) < 2:
+            continue
+        n_recurring_tokens += 1
+        rows = torch.stack(vecs, dim=0)
+        m = rows.shape[0]
+        pw = F.cosine_similarity(rows.unsqueeze(0), rows.unsqueeze(1), dim=-1)
+        pooled.append(pw[~torch.eye(m, dtype=torch.bool, device=rows.device)])
+    if pooled:
+        pooled_t = torch.cat(pooled)
+        drift = {"mean": pooled_t.mean().item(), "p10": torch.quantile(pooled_t, 0.10).item(),
+                 "n_recurring_tokens": n_recurring_tokens, "n_pooled_pairs": int(pooled_t.numel())}
+    else:
+        drift = {"n_recurring_tokens": 0, "n_pooled_pairs": 0,
+                 "note": "no token recurred >=2x in this sample -- drift statistic undefined"}
+    model.train()
+    return {"per_layer_gram_deviation": per_layer_gram, "drift": drift,
+            "n_docs": n_docs, "doc_start_digest": window_digest(starts)}
+
+
+@torch.no_grad()
 def eval_loss(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets: torch.Tensor, n_batches: int,
               batch_size: int, seq_len: int, generator: torch.Generator) -> tuple[float, dict]:
     """Cross-entropy val loss, capped batch size / batch count (house VRAM
@@ -627,6 +1047,14 @@ def _assemble_result(args, run_name, other_corpus, trajectory, checkpoints, n_pa
         "train_window_contamination": train_contamination or {},  # AUDIT FIX-3
         "tf32": set_and_log_tf32(),
         "n_params": n_params,
+        "geo3_lm": {
+            "active": getattr(args, "use_geo3_lm", False),
+            "k_sel": getattr(args, "geo3_k_sel", None),
+            "chunk_size": getattr(args, "geo3_chunk_size", None),
+            "n_iter": getattr(args, "geo3_n_iter", None),
+            "resid_tol": getattr(args, "geo3_resid_tol", None),
+            "selection_mode": getattr(args, "geo3_selection", None),
+        },
         "trajectory": trajectory, "checkpoints": checkpoints,
         "wall_s": time.time() - t0, "timed_out": timed_out,
     }
@@ -724,6 +1152,25 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
             rank_other, rank_sum_other = sample_state_rank_stats(
                 model, val_tokens_other, val_offs_other, args.rank_sample_docs, args.seq_len, rank_gen_other)
 
+            # Track B / geo3-in-LM (sec 4.4's required instrumentation): only computed when
+            # geo3 is active on this model -- a separate seeded generator (offset 40_000, never
+            # colliding with eval's 10_000 or rank's 20_000 offsets) so this diagnostic is
+            # deterministic/reproducible independent of what else was sampled this checkpoint.
+            geo3_diag = None
+            if any(blk.mixer.geo3_active for blk in model.blocks):
+                geo3_gen_same = torch.Generator(device=device).manual_seed(
+                    corpus_fixed_seed(args.corpus) + 40_000 + step)
+                geo3_gen_other = torch.Generator(device=device).manual_seed(
+                    corpus_fixed_seed(other_corpus) + 40_000 + step)
+                geo3_diag = {
+                    args.corpus: sample_geo3_diagnostics(
+                        model, val_tokens_same, val_offs_same, args.rank_sample_docs,
+                        args.seq_len, geo3_gen_same),
+                    other_corpus: sample_geo3_diagnostics(
+                        model, val_tokens_other, val_offs_other, args.rank_sample_docs,
+                        args.seq_len, geo3_gen_other),
+                }
+
             ckpt_path = None
             if ckpt_dir:
                 os.makedirs(ckpt_dir, exist_ok=True)
@@ -740,6 +1187,7 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
                                         other_corpus: summarize_rank_stats(rank_other)},
                 "rank_sampling": {args.corpus: rank_sum_same, other_corpus: rank_sum_other},
                 "rank_stats_raw": {args.corpus: rank_same, other_corpus: rank_other},
+                "geo3_diagnostics": geo3_diag,             # sec 4.4, only non-None when geo3-active
                 "checkpoint_path": ckpt_path,
             }
             checkpoints.append(res)
@@ -750,11 +1198,17 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
                                             train_windows_total, train_windows_crossing,
                                             train_tokens_cross_frac_sum))
             _dump(out_path, partial)
+            geo3_log = ""
+            if geo3_diag is not None:
+                gl0 = geo3_diag[args.corpus]["per_layer_gram_deviation"].get(0, {})
+                gdrift = geo3_diag[args.corpus]["drift"]
+                geo3_log = (f"  geo3_resid_L0[{args.corpus}]={gl0.get('resid_mean', float('nan')):.4f}  "
+                            f"geo3_drift_mean[{args.corpus}]={gdrift.get('mean', float('nan'))}")
             print(f"  [checkpoint step {step}] val_loss[{args.corpus}]={val_loss_same:.4f}  "
                   f"val_loss[{other_corpus}]={val_loss_other:.4f}  "
                   f"rank_L0_H0_f1.0[{args.corpus}]="
                   f"{res['rank_stats_summary'][args.corpus].get('L0_H0_f1.0', float('nan')):.3f}  "
-                  f"eval_digest[{args.corpus}]={eval_info_same['eval_window_digest']}", flush=True)
+                  f"eval_digest[{args.corpus}]={eval_info_same['eval_window_digest']}{geo3_log}", flush=True)
 
         if timeout_s is not None and time.time() - t0 > timeout_s:
             print(f"  internal timeout ({timeout_s}s) reached at step {step}; stopping early", flush=True)
@@ -913,6 +1367,52 @@ def smoke(device: str):
           f"train frac_tokens_cross_doc={result['train_window_contamination']['frac_tokens_cross_doc']:.3f}, "
           f"rank sampling frac_docs_contaminated[openr1]={ck['rank_sampling']['openr1']['frac_docs_contaminated']:.2f}")
 
+    print("\n[3c] geo3-ACTIVE mini end-to-end training loop (REUSES item [3]'s synthetic EOT corpus) "
+          "-- checkpoint-time instrumentation (sample_geo3_diagnostics, sec 4.4) must run inside the "
+          "REAL train() checkpoint block without crashing and produce a well-formed geo3_diagnostics "
+          "entry in the result JSON. Items [6]-[10] only exercise forward/backward in isolation; this "
+          "is the only smoke item that exercises the train()-loop wiring itself (the "
+          "`if any(blk.mixer.geo3_active ...): sample_geo3_diagnostics(...)` block).")
+    torch.manual_seed(1)
+    model3c = DeltaNetLM(V, d_model=64, d_state=64, n_layers=1, conv_size=4, geo3_active=True,
+                          geo3_k_sel=16, geo3_chunk_size=64, geo3_n_iter=12, geo3_resid_tol=1e-2,
+                          geo3_selection_mode="beta_topk").to(device)
+    args3c = Args()
+    args3c.corpus, args3c.seed = "openr1", 0
+    args3c.use_geo3_lm, args3c.geo3_k_sel = True, 16
+    args3c.geo3_chunk_size, args3c.geo3_n_iter = 64, 12
+    args3c.geo3_resid_tol, args3c.geo3_selection = 1e-2, "beta_topk"
+    args3c.d_model, args3c.d_state, args3c.n_layers = 64, 64, 1
+    args3c.conv_size, args3c.num_heads, args3c.ffn_mult = 4, 1, 4
+    args3c.seq_len, args3c.batch_size = seq_len_smoke, 4
+    args3c.lr, args3c.weight_decay, args3c.warmup_steps = 3e-4, 0.0, 2
+    args3c.eval_batches, args3c.eval_batch_size = 2, 4
+    args3c.rank_sample_docs = 3
+    args3c.steps, args3c.log_every, args3c.ckpt_every = 8, 4, 8
+
+    result3c = train(model3c, args3c, corpus_a, offs_a, (corpus_a, offs_a), (corpus_b, offs_b),
+                      "wikitext", device, "smoke_run_geo3", out_path=None, ckpt_dir=None)
+    assert result3c["steps_completed"] == 8 and result3c["complete"] is True
+    assert result3c["geo3_lm"]["active"] is True and result3c["geo3_lm"]["k_sel"] == 16
+    ck3c = result3c["checkpoints"][-1]
+    assert ck3c["geo3_diagnostics"] is not None, "geo3_diagnostics missing from checkpoint despite geo3_active=True"
+    for corpus_name in ("openr1", "wikitext"):
+        gd = ck3c["geo3_diagnostics"][corpus_name]
+        assert "per_layer_gram_deviation" in gd and "drift" in gd
+        assert 0 in gd["per_layer_gram_deviation"], "layer 0's gram deviation missing from the diagnostic"
+        resid_mean = gd["per_layer_gram_deviation"][0]["resid_mean"]
+        assert resid_mean == resid_mean and resid_mean >= 0.0, f"non-finite/negative resid_mean: {resid_mean}"
+        assert "n_recurring_tokens" in gd["drift"]
+    # also confirm the NON-geo3 corpus_b-derived checkpoint from item [3] above did NOT carry
+    # geo3_diagnostics (sensitivity control: the field is genuinely conditional, not always-on)
+    assert ck["geo3_diagnostics"] is None, \
+        "item [3]'s geo3_active=False run unexpectedly carries geo3_diagnostics -- the conditional is broken"
+    print(f"  8-step geo3-active mini run: complete={result3c['complete']}, "
+          f"geo3_lm.active={result3c['geo3_lm']['active']}, "
+          f"resid_mean(L0,openr1)={ck3c['geo3_diagnostics']['openr1']['per_layer_gram_deviation'][0]['resid_mean']:.4f}, "
+          f"drift[openr1].n_recurring_tokens={ck3c['geo3_diagnostics']['openr1']['drift']['n_recurring_tokens']}; "
+          f"item [3]'s geo3_active=False checkpoint correctly carries geo3_diagnostics=None")
+
     print("\n[3b] AUDIT FIX-1 regression: eval/rank window sets are IDENTICAL across two different "
           "training seeds (digest equality on every checkpoint's every corpus), and the TRAINING "
           "batch stream is NOT (sensitivity control -- the training seed axis must still exist)")
@@ -966,6 +1466,38 @@ def smoke(device: str):
     print(f"  round-trip: {ckpt_path} loaded into a fresh model, logits BIT-IDENTICAL "
           f"(max abs diff {(logits2 - logits3).abs().max().item():.2e})")
 
+    print("\n[4b] GEO3-ACTIVE checkpoint round-trip (the exact path lm_intervene_rd.py's Wave 3 "
+          "truncation grid depends on: DeltaNetLM(**ckpt['config']) must reconstruct a model with "
+          "geo3_active/k_sel/chunk_size/selection_mode etc. all correctly restored, not just the "
+          "geo3_active=False case item [4] above covers)")
+    model2b = DeltaNetLM(V, d_model=64, d_state=64, n_layers=1, conv_size=4, geo3_active=True,
+                          geo3_k_sel=16, geo3_chunk_size=64, geo3_n_iter=12, geo3_resid_tol=1e-2,
+                          geo3_selection_mode="naive_window").to(device)
+    result2b = train(model2b, args, corpus_a, offs_a, (corpus_a, offs_a), (corpus_b, offs_b),
+                      "wikitext", device, "smoke_ckpt_geo3", out_path=None, ckpt_dir=tmpdir)
+    ckpt_path_b = result2b["checkpoints"][-1]["checkpoint_path"]
+    loaded_b = torch.load(ckpt_path_b, map_location=device)
+    assert loaded_b["config"] == model2b.config()
+    assert loaded_b["config"]["geo3_active"] is True
+    assert loaded_b["config"]["geo3_k_sel"] == 16
+    assert loaded_b["config"]["geo3_selection_mode"] == "naive_window"
+    model3b = DeltaNetLM(**loaded_b["config"]).to(device)
+    assert model3b.blocks[0].mixer.geo3_active is True, \
+        "reconstructed model's mixer did not inherit geo3_active from the checkpoint's saved config"
+    model3b.load_state_dict(loaded_b["model_state_dict"])
+    model2b.eval()
+    model3b.eval()
+    tok_b = torch.randint(1, V, (2, 128), device=device)              # geo3 needs token_ids in forward
+    with torch.no_grad():
+        logits2b = model2b(tok_b)
+        logits3b = model3b(tok_b)
+    assert torch.equal(logits2b, logits3b), \
+        "GEO3-ACTIVE checkpoint round-trip mismatch: reloaded model differs -- Wave 3's truncation " \
+        "grid would silently score the WRONG (non-reconstructed) construction"
+    print(f"  geo3-active round-trip: {ckpt_path_b} loaded into a fresh model with geo3_active/k_sel/"
+          f"selection_mode restored from the saved config, logits BIT-IDENTICAL "
+          f"(max abs diff {(logits2b - logits3b).abs().max().item():.2e})")
+
     print("\n[5] boundary_stats sanity on a HAND-CONSTRUCTED case (pure arithmetic): known doc "
           "layout, known window placement, exact expected fractions")
     doc_offs = torch.tensor([0, 100, 250, 400], dtype=torch.int64, device=device)
@@ -978,6 +1510,257 @@ def smoke(device: str):
     assert abs(bs["frac_tokens_cross_doc"] - (0.0 + 0.6) / 2) < 1e-6, bs
     print(f"  hand case: frac_windows_crossing={bs['frac_windows_crossing']} (=0.5), "
           f"frac_tokens_cross_doc={bs['frac_tokens_cross_doc']:.3f} (=0.3) -- exact match")
+
+    # -------------------------------------------------------------------
+    # Track B / geo3-in-LM (SCALE_TRANSFER_DESIGN.md sec 4) smoke items,
+    # required by the build brief: [6] default-path bit-identity regression,
+    # [7] Newton-Schulz convergence at LM shapes, [8] EOT-exclusion
+    # correctness (including the negative/degenerate case, run to
+    # completion), [9] naive_window vs beta_topk selection-mode distinction,
+    # [10] geo3-active forward/backward/grad-finite + an on/off sensitivity
+    # control.
+    # -------------------------------------------------------------------
+
+    print("\n[6] DEFAULT-PATH REGRESSION (geo3_active=False must be BIT-IDENTICAL to a hand-rolled "
+          "INDEPENDENT reimplementation of the pre-Track-B forward computation -- proves inserting "
+          "the geo3 branch did not perturb the default path, not merely that geo3_active=False "
+          "skips executing it)")
+    torch.manual_seed(42)
+    V6 = 500
+    with torch.no_grad():
+        model6 = DeltaNetLM(V6, d_model=64, d_state=64, n_layers=1, conv_size=4, geo3_active=False).to(device)
+        assert model6.geo3_active is False and model6.blocks[0].mixer.geo3_active is False
+        x6 = torch.randint(0, V6, (3, _MIN_KERNEL_T), device=device)
+        logits6 = model6(x6)
+
+        mixer6 = model6.blocks[0].mixer
+        x_embed6 = model6.embed(x6)
+        a6 = model6.blocks[0].norm1(x_embed6)
+        B6, T6, _ = a6.shape
+        q_ref, _ = mixer6.q_conv1d(mixer6.q_proj(a6))
+        k_ref, _ = mixer6.k_conv1d(mixer6.k_proj(a6))
+        v_ref, _ = mixer6.v_conv1d(mixer6.v_proj(a6))
+        beta_ref = torch.sigmoid(mixer6.b_proj(a6))
+        q_ref = q_ref.reshape(B6, T6, mixer6.num_heads, mixer6.head_dim)
+        k_ref = k_ref.reshape(B6, T6, mixer6.num_heads, mixer6.head_dim)
+        v_ref = v_ref.reshape(B6, T6, mixer6.num_heads, mixer6.head_dim)
+        q_bf, k_bf, v_bf, beta_bf = (t.to(torch.bfloat16) for t in (q_ref, k_ref, v_ref, beta_ref))
+        o_ref, _ = chunk_delta_rule(q=q_bf, k=k_bf, v=v_bf, beta=beta_bf, initial_state=None,
+                                     output_final_state=True, use_qk_l2norm_in_kernel=True)
+        o_ref = o_ref.float()
+        o_ref = mixer6.o_norm(o_ref).reshape(B6, T6, mixer6.d_state)
+        o_ref = mixer6.o_proj(o_ref)
+        x_ref = x_embed6 + o_ref
+        x_ref = x_ref + model6.blocks[0].ffn(model6.blocks[0].norm2(x_ref))
+        x_ref = model6.norm_f(x_ref)
+        logits_ref = F.linear(x_ref, model6.embed.weight)
+    assert torch.equal(logits6, logits_ref), (
+        "DEFAULT-PATH REGRESSION FAILED: geo3_active=False forward diverges from the hand-rolled "
+        "pre-Track-B reference computation")
+    print(f"  geo3_active=False forward is BIT-IDENTICAL to the independent hand-rolled reference "
+          f"(max abs diff {(logits6 - logits_ref).abs().max().item():.2e})")
+
+    print("\n[7] Newton-Schulz convergence AT LM SHAPES (head_dim=64, K_sel in {16,32} -- Track B's "
+          "own registered d_state=64 config, sec 4.5) -- random unit-normalized keys, n_iter=12 "
+          "(K=16's registered value) and n_iter=20 (K=32's registered escalation, sec 1.1)")
+    torch.manual_seed(7)
+    for k_sel_t, n_iter_t in ((16, 12), (32, 12), (32, 20)):
+        A7 = F.normalize(torch.randn(5, k_sel_t, 64, device=device), dim=-1)
+        Q7, resid7 = newton_schulz_orthogonalize(A7, n_iter=n_iter_t)
+        assert torch.isfinite(Q7).all() and torch.isfinite(resid7).all()
+        print(f"  K_sel={k_sel_t} n_iter={n_iter_t}: resid mean={resid7.mean().item():.4f} "
+              f"max={resid7.max().item():.4f} (finite; sec 1.1's K=32/n_iter=12 fallback trigger "
+              f"rate is small -- 56-374/20000 steps -- so a single random draw usually still "
+              f"converges, informational only, not asserted)")
+
+    print("\n[8] EOT-EXCLUSION CORRECTNESS on a HAND-CONSTRUCTED chunk (sec 4.2 item 3): a "
+          "HIGH-beta EOT position must NEVER be selected, and (the degenerate case) a chunk with "
+          "FEWER real content positions than k_sel must leave every shortfall position's raw key "
+          "EXACTLY untouched -- not corrupted by a spurious Newton-Schulz zero-row output. A "
+          "negative-control case run to completion, per house rule.")
+    torch.manual_seed(8)
+    B8, chunk8, H8, d8 = 1, 8, 1, 8
+    k_raw8 = torch.randn(B8, chunk8, H8, d8, device=device)
+    beta8 = torch.rand(B8, chunk8, H8, device=device)
+    token_ids8 = torch.randint(1, 1000, (B8, chunk8), device=device)
+    EOT8 = 999
+    token_ids8[0, 0] = EOT8
+    beta8[0, 0, 0] = 10.0                                    # far above every other position's beta
+    content_mask8 = (token_ids8 != EOT8)
+    assert content_mask8[0, 0].item() is False and int(content_mask8.sum().item()) == chunk8 - 1
+
+    k_out8, diag8 = _geo3_lm_select_and_orthogonalize(k_raw8, beta8, content_mask8, chunk8, 6, 12,
+                                                        1e-2, "beta_topk")
+    assert torch.equal(k_out8[0, 0, 0], k_raw8[0, 0, 0]), \
+        "EOT position's key was MODIFIED despite the sec 4.2 item 3 hard-exclusion rule"
+    print(f"  positive control: EOT position (beta=10.0, would rank #1) key UNTOUCHED "
+          f"(max diff {(k_out8[0, 0, 0] - k_raw8[0, 0, 0]).abs().max().item():.2e})")
+
+    selected_content_changed = any(
+        bool(content_mask8[0, t]) and not torch.equal(k_out8[0, t, 0], k_raw8[0, t, 0])
+        for t in range(chunk8))
+    assert selected_content_changed, \
+        "sensitivity control FAILED: no content position's key changed at all -- item [8]'s no-op checks would be vacuous"
+    print("  sensitivity control: at least one SELECTED content position's key DID change (the "
+          "no-op checks above have teeth)")
+
+    token_ids8b = token_ids8.clone()
+    token_ids8b[0, 1] = EOT8
+    token_ids8b[0, 2] = EOT8                                  # now only 5 real content positions
+    content_mask8b = (token_ids8b != EOT8)
+    assert int(content_mask8b.sum().item()) == chunk8 - 3
+    k_out8b, diag8b = _geo3_lm_select_and_orthogonalize(k_raw8, beta8, content_mask8b, chunk8, 6, 12,
+                                                          1e-2, "beta_topk")               # k_sel=6 > 5 available
+    for eot_pos in (0, 1, 2):
+        assert torch.equal(k_out8b[0, eot_pos, 0], k_raw8[0, eot_pos, 0]), \
+            f"degenerate case: EOT position {eot_pos}'s key was MODIFIED (insufficient-content shortfall leaked)"
+    assert diag8b["frac_valid_selections"] < 1.0, \
+        "test construction bug: the degenerate (insufficient-content) case produced no invalid selection slot"
+    print(f"  degenerate case (5 content positions < k_sel=6): ALL 3 EOT positions' keys UNTOUCHED "
+          f"(frac_valid_selections={diag8b['frac_valid_selections']:.3f} < 1.0, confirming the "
+          f"shortfall was real, not vacuously avoided)")
+
+    print("\n[8b] AUDIT ROUND-2 MAJOR-1 REGRESSION (independent audit, 2026-07-04): a degenerate "
+          "episode with MANY (8 >= the audit's measured NaN onset of 6) invalid zero-row slots, "
+          "plus a FORCED eigh fallback (resid_tol=0.0 -- every episode's corrected residual "
+          "exceeds it), must produce (i) FINITE gradients everywhere (the pre-fix code NaN'd "
+          "through _polar_via_eigh's backward at >=6 coincident eps-eigenvalues -- empirically "
+          "reproduced by the audit, persists in fp64), (ii) an exact no-op on every invalid slot, "
+          "and (iii) a nonzero n_fallback_denied_degenerate count (the degenerate episode is "
+          "DENIED eigh and keeps its Newton-Schulz output) while the fully-valid episode DOES go "
+          "through eigh (fallback_triggered=True).")
+    torch.manual_seed(81)
+    B8c, chunk8c, H8c, d8c, k_sel8c = 2, 16, 1, 16, 10
+    k_raw8c_base = torch.randn(B8c, chunk8c, H8c, d8c, device=device)
+    # Episode 1's TWO valid keys are EXACT DUPLICATES: two identical rows can NEVER be
+    # orthogonalized (QQ^T's off-diagonal equals its diagonal for identical rows; the corrected
+    # residual is provably >= 1), so the degenerate episode GENUINELY fails NS and would demand
+    # the fallback -- exercising the denial branch for real. (A first draft of this test used
+    # random valid keys; the negative run caught that their block CONVERGES, corrected resid
+    # clamps to exactly 0.0, the episode never wants the fallback, and n_fallback_denied stays 0 --
+    # the denial branch was silently unexercised. Run the negative test to completion, per house
+    # rule; this is that lesson applied to the test itself.)
+    k_raw8c_base[1, 1] = k_raw8c_base[1, 0]
+    k_raw8c = k_raw8c_base.clone().requires_grad_(True)
+    beta8c = torch.rand(B8c, chunk8c, H8c, device=device)
+    content8c = torch.ones(B8c, chunk8c, dtype=torch.bool, device=device)
+    content8c[1, 2:] = False                    # episode 1: only 2 content positions -> 8 invalid slots
+    k_out8c, diag8c = _geo3_lm_select_and_orthogonalize(k_raw8c, beta8c, content8c, chunk8c,
+                                                          k_sel8c, 12, 0.0, "beta_topk")
+    assert diag8c["fallback_triggered"] is True, \
+        "test construction bug: resid_tol=0.0 failed to force the fallback -- [8b] would be vacuous"
+    assert diag8c["n_fallback_denied_degenerate"] >= 1, (
+        "the degenerate episode was NOT denied the eigh fallback -- the MAJOR-1 fix is not active "
+        f"(diag: {['%s=%s' % (k, v) for k, v in diag8c.items() if not k.startswith('_')]})")
+    loss8c = k_out8c.square().sum()
+    loss8c.backward()
+    assert k_raw8c.grad is not None and torch.isfinite(k_raw8c.grad).all(), \
+        "MAJOR-1 REGRESSION: NaN/Inf gradient through the forced-fallback degenerate-episode path"
+    with torch.no_grad():
+        for t in range(2, chunk8c):             # every excluded position in episode 1: exact no-op
+            assert torch.equal(k_out8c[1, t, 0], k_raw8c[1, t, 0]), \
+                f"degenerate episode's excluded position {t} was modified under forced fallback"
+        ep1_changed = any(not torch.equal(k_out8c[1, t, 0], k_raw8c[1, t, 0]) for t in range(2))
+    assert ep1_changed, \
+        "sensitivity control FAILED: the degenerate episode's VALID positions were untouched -- " \
+        "the denial branch would be vacuously passing"
+    print(f"  forced fallback (resid_tol=0.0): fallback_triggered={diag8c['fallback_triggered']}, "
+          f"n_fallback_denied_degenerate={diag8c['n_fallback_denied_degenerate']} (episode with 8 "
+          f"invalid slots kept its NS output), ALL grads FINITE "
+          f"(max |grad| {k_raw8c.grad.abs().max().item():.3e}), every excluded position an exact "
+          f"no-op, valid positions genuinely changed")
+
+    print("\n[8c] num_heads>1 + geo3_active is REFUSED at construction (untested-at-scope guard, "
+          "audit round-2 recommendation): d_state=128/num_heads=2 gives head_dim=64 which PASSES "
+          "_SAFE_D_STATE -- only the new scope guard stands between this and an accidental launch")
+    guard8c_raised = False
+    try:
+        DeltaNetLMMixer(d_model=64, d_state=128, num_heads=2, geo3_active=True)
+    except AssertionError as e:
+        guard8c_raised = True
+        assert "UNTESTED AT SCOPE" in str(e), f"wrong assert fired: {e}"
+    assert guard8c_raised, "num_heads=2 + geo3_active was NOT rejected"
+    guard8c_ok = DeltaNetLMMixer(d_model=64, d_state=128, num_heads=2, geo3_active=False)
+    assert guard8c_ok.geo3_active is False       # sensitivity: same config WITHOUT geo3 constructs fine
+    print("  num_heads=2 + geo3_active=True correctly REJECTED; same config with geo3_active=False "
+          "constructs fine (the guard is geo3-scoped, not a blanket num_heads restriction)")
+
+    print("\n[9] NAIVE-WINDOW selection mode (sec 4.5's ablation arm): must be BETA-BLIND -- "
+          "selection is IDENTICAL regardless of beta values (positive control) -- and DIFFERENT "
+          "from beta_topk when beta strongly favors the chunk's opposite end (sensitivity control "
+          "proving the two modes are not accidentally identical)")
+    torch.manual_seed(9)
+    B9, chunk9, H9, d9, k_sel9 = 2, 8, 1, 8, 4
+    k_raw9 = torch.randn(B9, chunk9, H9, d9, device=device)
+    content_mask9 = torch.ones(B9, chunk9, dtype=torch.bool, device=device)
+    beta9a = torch.rand(B9, chunk9, H9, device=device)
+    beta9b = torch.rand(B9, chunk9, H9, device=device)          # DIFFERENT beta draw
+    _, diag9a = _geo3_lm_select_and_orthogonalize(k_raw9, beta9a, content_mask9, chunk9, k_sel9, 12,
+                                                    1e-2, "naive_window")
+    _, diag9b = _geo3_lm_select_and_orthogonalize(k_raw9, beta9b, content_mask9, chunk9, k_sel9, 12,
+                                                    1e-2, "naive_window")
+    assert torch.equal(diag9a["_topk_idx"], diag9b["_topk_idx"]), \
+        "naive_window selection changed when ONLY beta changed -- it must be beta-BLIND by construction"
+    print("  positive control: naive_window's selected indices are IDENTICAL across two different "
+          "beta draws (beta-blind, as required)")
+
+    beta9_last = torch.zeros(B9, chunk9, H9, device=device)
+    beta9_last[:, -k_sel9:, :] = 10.0                            # last k_sel9 positions strongly favored
+    _, diag9c = _geo3_lm_select_and_orthogonalize(k_raw9, beta9_last, content_mask9, chunk9, k_sel9, 12,
+                                                    1e-2, "beta_topk")
+    naive_idx_set = set(diag9a["_topk_idx"][0, 0, :, 0].tolist())
+    betatopk_idx_set = set(diag9c["_topk_idx"][0, 0, :, 0].tolist())
+    assert naive_idx_set != betatopk_idx_set, (
+        "sensitivity control FAILED: naive_window and beta_topk selected the SAME positions even "
+        "though beta strongly favors the opposite end of the chunk -- item [9]'s positive control "
+        "would be vacuous")
+    print(f"  sensitivity control: naive_window selects {sorted(naive_idx_set)}, beta_topk (beta "
+          f"favoring the LAST {k_sel9} positions) selects {sorted(betatopk_idx_set)} -- DIFFERENT "
+          f"sets, as required")
+
+    print("\n[10] geo3-ACTIVE forward/backward/grad-finite at REAL LM shapes (T=128=2x64 chunks, "
+          "d_state=64/head_dim=64), BOTH selection modes x BOTH k_sel values -- plus an on/off "
+          "sensitivity control at IDENTICAL weights")
+    torch.manual_seed(10)
+    V10 = 500
+    for selection_mode10 in GEO3_LM_SELECTION_MODES:
+        for k_sel10 in (16, 32):
+            model10 = DeltaNetLM(V10, d_model=64, d_state=64, n_layers=2, conv_size=4,
+                                  geo3_active=True, geo3_k_sel=k_sel10, geo3_chunk_size=64,
+                                  geo3_n_iter=12, geo3_resid_tol=1e-2,
+                                  geo3_selection_mode=selection_mode10).to(device)
+            x10 = torch.randint(0, V10, (3, 128), device=device)
+            y10 = torch.randint(0, V10, (3, 128), device=device)
+            logits10 = model10(x10)
+            assert logits10.shape == (3, 128, V10) and torch.isfinite(logits10).all()
+            loss10 = F.cross_entropy(logits10.reshape(-1, V10), y10.reshape(-1))
+            loss10.backward()
+            n_none10 = [n for n, p in model10.named_parameters() if p.grad is None]
+            assert not n_none10, f"no grad for: {n_none10}"
+            for n, p in model10.named_parameters():
+                assert torch.isfinite(p.grad).all(), \
+                    f"non-finite grad at {n} (selection_mode={selection_mode10}, k_sel={k_sel10})"
+            assert model10.blocks[0].mixer.geo3_last_diag is not None
+            assert model10.blocks[1].mixer.geo3_last_diag is not None
+            print(f"  selection_mode={selection_mode10} k_sel={k_sel10}: forward {tuple(logits10.shape)}, "
+                  f"loss {loss10.item():.4f}, ALL grads finite, "
+                  f"resid_mean(L0)={model10.blocks[0].mixer.geo3_last_diag['resid_mean']:.4f}")
+
+    torch.manual_seed(11)
+    V10b = 300
+    model_off = DeltaNetLM(V10b, d_model=64, d_state=64, n_layers=1, conv_size=4, geo3_active=False).to(device)
+    model_on = DeltaNetLM(V10b, d_model=64, d_state=64, n_layers=1, conv_size=4, geo3_active=True,
+                           geo3_k_sel=16, geo3_chunk_size=64).to(device)
+    model_on.load_state_dict(model_off.state_dict())            # IDENTICAL weights
+    x10b = torch.randint(0, V10b, (2, 128), device=device)
+    with torch.no_grad():
+        logits_off = model_off(x10b)
+        logits_on = model_on(x10b)
+    assert not torch.equal(logits_off, logits_on), (
+        "sensitivity control FAILED: geo3_active=True produced IDENTICAL output to geo3_active=False "
+        "at identical weights/input -- the geo3 construction is not doing anything")
+    print(f"  sensitivity control: identical weights, geo3_active=True vs False -> DIFFERENT logits "
+          f"(mean abs diff {(logits_off - logits_on).abs().mean().item():.4f}) -- geo3 construction has teeth")
 
     print("\n" + "=" * 60 + "\n  ALL LM_PRETRAIN_RD SMOKE CHECKS PASSED\n" + "=" * 60)
 
@@ -1020,6 +1803,25 @@ def main():
                           "(the intervention script needs them); omit only for a throwaway/dry run.")
     ap.add_argument("--internal-timeout", type=float, default=None)
     ap.add_argument("--out", type=str, default=None)
+    ap.add_argument("--use-geo3-lm", action="store_true",
+                     help="SCALE_TRANSFER_DESIGN.md sec 4 (Track B): enable the geo3-in-LM "
+                          "beta-gated (or naive-window) per-chunk key orthogonalization. Default "
+                          "OFF -- the default path is byte-identical to the pre-Track-B code "
+                          "(smoke item [6]).")
+    ap.add_argument("--geo3-k-sel", type=int, default=16, choices=[16, 32],
+                     help="sec 4.2: positions orthogonalized per (chunk,head). The two values "
+                          "with F-geo-3 synthetic reference results (sec 1.1).")
+    ap.add_argument("--geo3-chunk-size", type=int, default=GEO3_LM_CHUNK_SIZE_DEFAULT,
+                     help="sec 4.2 item 1: kernel-aligned tiling window (chunk_delta_rule's own "
+                          "chunk_size, NOT d_state -- MAJOR-3's correction).")
+    ap.add_argument("--geo3-n-iter", type=int, default=12,
+                     help="Newton-Schulz iteration count (model_rd.py's own default; sec 1.1's "
+                          "K=32 escalation used n_iter=20 -- pass --geo3-n-iter 20 to replicate).")
+    ap.add_argument("--geo3-resid-tol", type=float, default=1e-2)
+    ap.add_argument("--geo3-selection", choices=list(GEO3_LM_SELECTION_MODES), default="beta_topk",
+                     help="sec 4.2/4.5: 'beta_topk' is the primary construction; 'naive_window' is "
+                          "the cheap comparison arm (Wave 2, sec 4.5) -- a beta-BLIND positional "
+                          "selection, same K_sel grid.")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -1038,6 +1840,17 @@ def main():
               "lm_intervene_rd.py will have nothing to load.", flush=True)
     assert args.seq_len >= _MIN_KERNEL_T, \
         f"--seq-len={args.seq_len} < _MIN_KERNEL_T={_MIN_KERNEL_T} (F15-LM measured floor)"
+    if args.use_geo3_lm:
+        assert args.seq_len % args.geo3_chunk_size == 0, (
+            f"--use-geo3-lm requires --seq-len ({args.seq_len}) to be a multiple of "
+            f"--geo3-chunk-size ({args.geo3_chunk_size}) -- sec 4.2 item 1's exact chunk tiling "
+            f"(validated at CLI-parse time, not left to fail deep inside the first forward pass)."
+        )
+        head_dim = args.d_state // args.num_heads
+        assert args.geo3_k_sel <= min(args.geo3_chunk_size, head_dim), (
+            f"--geo3-k-sel={args.geo3_k_sel} must be <= min(geo3_chunk_size={args.geo3_chunk_size}, "
+            f"head_dim={head_dim}={args.d_state}/{args.num_heads})."
+        )
 
     other_corpus = OTHER_CORPUS[args.corpus]
     train_tokens, val_same, meta_same, train_offs, val_offs_same = load_corpus(args.data_dir, args.corpus, device)
@@ -1049,11 +1862,17 @@ def main():
 
     model = DeltaNetLM(meta_same["vocab_size"], d_model=args.d_model, d_state=args.d_state,
                         n_layers=args.n_layers, conv_size=args.conv_size, num_heads=args.num_heads,
-                        ffn_mult=args.ffn_mult).to(device)
+                        ffn_mult=args.ffn_mult, geo3_active=args.use_geo3_lm,
+                        geo3_k_sel=args.geo3_k_sel, geo3_chunk_size=args.geo3_chunk_size,
+                        geo3_n_iter=args.geo3_n_iter, geo3_resid_tol=args.geo3_resid_tol,
+                        geo3_selection_mode=args.geo3_selection).to(device)
     n_params = sum(p.numel() for p in model.parameters())
-    run_name = f"lmC_{args.corpus}_dm{args.d_model}_ds{args.d_state}_L{args.n_layers}_s{args.seed}"
+    geo3_tag = f"_geo3{args.geo3_selection.replace('_', '')[:8]}k{args.geo3_k_sel}" if args.use_geo3_lm else ""
+    run_name = f"lmC_{args.corpus}_dm{args.d_model}_ds{args.d_state}_L{args.n_layers}_s{args.seed}{geo3_tag}"
     print(f"run_name={run_name}  d_model={args.d_model} d_state={args.d_state} n_layers={args.n_layers} "
           f"seq_len={args.seq_len} batch_size={args.batch_size} steps={args.steps} params={n_params} "
+          f"use_geo3_lm={args.use_geo3_lm} geo3_k_sel={args.geo3_k_sel if args.use_geo3_lm else '-'} "
+          f"geo3_selection={args.geo3_selection if args.use_geo3_lm else '-'} "
           f"device={device}", flush=True)
 
     result = train(model, args, train_tokens, train_offs, (val_same, val_offs_same),

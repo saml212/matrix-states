@@ -458,6 +458,18 @@ def main():
     model, ckpt = load_checkpoint(args.checkpoint, device)
     print(f"loaded checkpoint {args.checkpoint} (step={ckpt.get('step')}, corpus={ckpt.get('corpus')}, "
           f"config={ckpt.get('config')})  tf32={tf32_state}", flush=True)
+    # Track B audit round-2 MINOR-5 (2026-07-04): a geo3-active checkpoint (SCALE_TRANSFER_DESIGN.md
+    # sec 4 / lm_pretrain_rd.py --use-geo3-lm) requires BOTH legs to tile its chunk window exactly --
+    # fail clearly here at load time, not deep inside the mixer's own chunk-tiling assert. The
+    # Wave 3 defaults (384, 128) are multiples of 64 by COINCIDENCE, not by verified invariant;
+    # this check makes the invariant real. geo3-free checkpoints (all of Wave C/D) are unaffected.
+    if getattr(model, "geo3_active", False):
+        cs = model.geo3_chunk_size
+        assert args.ctx_len % cs == 0 and args.cont_len % cs == 0, (
+            f"geo3-active checkpoint (geo3_chunk_size={cs}): --ctx-len={args.ctx_len} and "
+            f"--cont-len={args.cont_len} must BOTH be multiples of {cs} (per-chunk episode "
+            f"construction requires an exact tiling)."
+        )
 
     corpora = sorted(CORPUS_DIRS)
     tokenizer = load_gpt2_tokenizer()
