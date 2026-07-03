@@ -104,10 +104,31 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # `eot_separated: true` meta field (asserted in load_corpus) and a
 # `{split}_doc_offsets.pt` int64 tensor of document START positions
 # alongside each token tensor. The original dirs are left untouched.
-CORPUS_DIRS = {"openr1": "reasoning_eot", "wikitext": "wikitext103_eot"}
-OTHER_CORPUS = {"openr1": "wikitext", "wikitext": "openr1"}
+CORPUS_DIRS = {
+    "openr1": "reasoning_eot", "wikitext": "wikitext103_eot",
+    # SCALE_TRANSFER_DESIGN.md sec 5.4/5.6 (Track C, MAJOR-5's required
+    # same-mix control cell + the rung-1 augmented-mix training corpora):
+    # domain-blended corpora built by build_mix_corpora_rd.py, NOT built by
+    # rebuild_lm_corpora_rd.py (that script owns the two ORIGINAL
+    # single-source corpora only). Dirs written under the same data-dir
+    # convention (meta.json + {split}.pt + {split}_doc_offsets.pt), so
+    # load_corpus's existing field/eot_separated/bit-layout checks apply
+    # unmodified to these too.
+    "openr1-mix": "reasoning_mix_eot", "wikitext-mix": "wikitext103_mix_eot",
+}
+OTHER_CORPUS = {
+    "openr1": "wikitext", "wikitext": "openr1",
+    # mix corpora pair with EACH OTHER (mirrors the original pairing exactly
+    # -- the cross-corpus eval axis stays reasoning-vs-narrative, now on the
+    # augmented-mix side of that same contrast).
+    "openr1-mix": "wikitext-mix", "wikitext-mix": "openr1-mix",
+}
 DEFAULT_DATA_DIR = "/data/deltanet_rd_data"
 EOT_TOKEN_ID = 50256   # GPT-2 <|endoftext|>
+# SCALE_TRANSFER_DESIGN.md sec 5.3: the ladder's deepest registered rung
+# (rung 3) is n_layers=22; this ceiling carries a small deliberate margin
+# above that, not a config-specific bound (sec 5.2's harness-change scope).
+_MAX_N_LAYERS = 24
 
 # Rank-stat sampling: fractional positions within a sampled document
 # (section 6, this build's brief: "whole-state effective/stable rank per
@@ -567,7 +588,22 @@ class DeltaNetLM(nn.Module):
     head"). d_model=256/d_state=64/n_layers in {1,2} is this build's
     probe-tier scale-down of section 4.1's Wave-2 table (~14M params at
     n_layers=2, ~13.5M at n_layers=1 -- both clear CLAUDE.md's 10M hard
-    floor)."""
+    floor).
+
+    SCALE_TRANSFER_DESIGN.md sec 5.2 (Track C build-time harness change):
+    n_layers is widened from the original {1,2} probe-tier ceiling to
+    1..._MAX_N_LAYERS so the scaling-ladder's rung configs (sec 5.3: rung 1
+    n_layers=12, rung 2 n_layers=16, rung 3 n_layers=22) can be built on
+    this SAME architecture-generic harness -- no positional embedding and
+    no other n_layers-dependent scaling exists anywhere in this class or
+    DeltaNetLMBlock/DeltaNetLMMixer (verified by direct code read at build
+    time: the stack is a plain pre-norm residual loop, checkpoint save/load
+    round-trips via model.config()'s own n_layers field, generalizing
+    automatically); widening the assert is therefore the FULL scope of
+    sec 5.2's required change, exercised by smoke() item [11] at rung 1's
+    real shapes (d_model=768/d_state=64/n_layers=12) before any GPU time is
+    spent on a real rung-1 run, per sec 5.2's own blocking-smoke-test
+    requirement."""
 
     def __init__(self, vocab_size: int, d_model: int = 256, d_state: int = 64, n_layers: int = 2,
                  conv_size: int = 4, num_heads: int = 1, ffn_mult: int = 4,
@@ -581,8 +617,12 @@ class DeltaNetLM(nn.Module):
         default (geo3_active=False) path is byte-identical to the
         pre-Track-B code (smoke item [6])."""
         super().__init__()
-        assert n_layers in (1, 2), \
-            "probe-tier build supports 1-2 layers only (task brief) -- widen deliberately, not by accident"
+        assert 1 <= n_layers <= _MAX_N_LAYERS, (
+            f"n_layers={n_layers} outside the registered range [1,{_MAX_N_LAYERS}] -- "
+            f"SCALE_TRANSFER_DESIGN.md sec 5.3's ladder tops out at rung 3's n_layers=22; "
+            f"_MAX_N_LAYERS carries a small deliberate headroom margin above that. Widen "
+            f"deliberately (and re-verify no n_layers-dependent assumption exists elsewhere, "
+            f"sec 5.2), not by accident.")
         self.vocab_size = vocab_size
         self.d_model = d_model
         self.d_state = d_state
@@ -1057,6 +1097,11 @@ def _assemble_result(args, run_name, other_corpus, trajectory, checkpoints, n_pa
         },
         "trajectory": trajectory, "checkpoints": checkpoints,
         "wall_s": time.time() - t0, "timed_out": timed_out,
+        # SCALE_TRANSFER_DESIGN.md sec 5.6 Wave -1 (Track C calibration): peak CUDA memory over
+        # this run (reset at train()'s own start, see the reset_peak_memory_stats() call above) --
+        # None on CPU (smoke's own CPU-less path never reaches here; defensive only).
+        "peak_memory_allocated_bytes": (torch.cuda.max_memory_allocated() if torch.cuda.is_available() else None),
+        "peak_memory_reserved_bytes": (torch.cuda.max_memory_reserved() if torch.cuda.is_available() else None),
     }
     if checkpoints:
         result["final_step"] = checkpoints[-1]["step"]
@@ -1083,6 +1128,12 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
     t0 = time.time()
     tf32_state = set_and_log_tf32()            # SET before any training math, logged in the result
     print(f"  tf32: {tf32_state}", flush=True)
+    # SCALE_TRANSFER_DESIGN.md sec 5.6 Wave -1 (Track C): "measure real tok/s + MEMORY before
+    # committing full budget" -- reset peak stats now (before the first training step) so
+    # peak_memory_*_bytes in the result JSON reflects THIS run only, not whatever a prior run in
+    # the same process left behind.
+    if device == "cuda":
+        torch.cuda.reset_peak_memory_stats()
     gen = torch.Generator(device=device).manual_seed(args.seed)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     model.train()
@@ -1356,6 +1407,9 @@ def smoke(device: str):
     assert "n_skipped_steps" in result and "skip_rate" in result             # Wave 1 parity item
     assert result["train_window_contamination"]["n_train_windows"] == 8 * 4  # FIX-3 accounting
     assert 0.0 <= result["train_window_contamination"]["frac_tokens_cross_doc"] <= 1.0
+    # sec 5.6 Wave -1 (Track C calibration): peak-memory fields present, finite, positive on CUDA
+    assert result["peak_memory_allocated_bytes"] is not None and result["peak_memory_allocated_bytes"] > 0
+    assert result["peak_memory_reserved_bytes"] >= result["peak_memory_allocated_bytes"]
     assert "eval_window_digest" in ck["eval_windows"]["openr1"]              # FIX-1 hook present
     assert "boundary" in ck["eval_windows"]["openr1"]
     assert "doc_start_digest" in ck["rank_sampling"]["openr1"]
@@ -1762,6 +1816,50 @@ def smoke(device: str):
     print(f"  sensitivity control: identical weights, geo3_active=True vs False -> DIFFERENT logits "
           f"(mean abs diff {(logits_off - logits_on).abs().mean().item():.4f}) -- geo3 construction has teeth")
 
+    print("\n[11] SCALE_TRANSFER_DESIGN.md sec 5.2's REQUIRED harness-change smoke test: "
+          "n_layers widened past the old {1,2} ceiling -- forward/backward/grad-finite at TRACK C "
+          "RUNG 1's real shapes (d_model=768, d_state=64, n_layers=12), plus rung 1's own "
+          "measured-param-count-vs-target check (sec 5.3/5.6: within 15% or the config needs "
+          "adjusting BEFORE any GPU time is spent on a real rung-1 run)")
+    torch.manual_seed(12)
+    # Rung-1 dims duplicated from lm_rd_rung_configs.RUNGS[1] (this codebase's pod-safe
+    # no-cross-script-import convention, restated in run_lm_rd_geo3_sweep.py's own docstring) --
+    # keep in sync deliberately if sec 5.3's table ever changes.
+    RUNG1_D_MODEL, RUNG1_N_LAYERS, RUNG1_D_STATE = 768, 12, 64
+    RUNG1_APPROX_PARAMS, RUNG1_TOLERANCE = 98_000_000, 0.15
+    V11 = 500   # tiny synthetic vocab for the forward/backward/grad check -- real vocab is a
+                # SEPARATE, forward-pass-free param-count-only check right below (mirrors item [1b])
+    model11 = DeltaNetLM(V11, d_model=RUNG1_D_MODEL, d_state=RUNG1_D_STATE, n_layers=RUNG1_N_LAYERS,
+                          conv_size=4).to(device)
+    x11 = torch.randint(0, V11, (2, _MIN_KERNEL_T), device=device)
+    y11 = torch.randint(0, V11, (2, _MIN_KERNEL_T), device=device)
+    logits11 = model11(x11)
+    assert logits11.shape == (2, _MIN_KERNEL_T, V11)
+    assert torch.isfinite(logits11).all(), "rung-1 shapes: non-finite logits"
+    loss11 = F.cross_entropy(logits11.reshape(-1, V11), y11.reshape(-1))
+    loss11.backward()
+    n_none11 = [n for n, p in model11.named_parameters() if p.grad is None]
+    assert not n_none11, f"rung-1 shapes: no grad for: {n_none11}"
+    for n, p in model11.named_parameters():
+        assert torch.isfinite(p.grad).all(), f"rung-1 shapes: non-finite grad at {n}"
+    print(f"  rung 1 shapes (d_model={RUNG1_D_MODEL}, d_state={RUNG1_D_STATE}, "
+          f"n_layers={RUNG1_N_LAYERS}): forward {tuple(logits11.shape)}, loss {loss11.item():.4f}, "
+          f"ALL grads finite")
+    del model11, x11, y11, logits11, loss11
+
+    with torch.no_grad():
+        model11b = DeltaNetLM(50257, d_model=RUNG1_D_MODEL, d_state=RUNG1_D_STATE,
+                               n_layers=RUNG1_N_LAYERS, conv_size=4)
+        n_params11b = sum(p.numel() for p in model11b.parameters())
+    rel_err11b = abs(n_params11b - RUNG1_APPROX_PARAMS) / RUNG1_APPROX_PARAMS
+    assert rel_err11b <= RUNG1_TOLERANCE, (
+        f"rung 1: measured {n_params11b:,} params is {rel_err11b*100:.1f}% off target "
+        f"{RUNG1_APPROX_PARAMS:,} (tolerance {RUNG1_TOLERANCE*100:.0f}%) -- sec 5.3's config table "
+        f"needs adjustment before any GPU time is spent on rung 1.")
+    print(f"  rung 1 real-vocab param count: {n_params11b:,} (target {RUNG1_APPROX_PARAMS:,}, "
+          f"{rel_err11b*100:.1f}% off, within {RUNG1_TOLERANCE*100:.0f}% tolerance)")
+    del model11b
+
     print("\n" + "=" * 60 + "\n  ALL LM_PRETRAIN_RD SMOKE CHECKS PASSED\n" + "=" * 60)
 
 
@@ -1779,7 +1877,11 @@ def main():
     ap.add_argument("--data-dir", default=DEFAULT_DATA_DIR)
     ap.add_argument("--d-model", type=int, default=256)
     ap.add_argument("--d-state", type=int, default=64, choices=[64, 128])
-    ap.add_argument("--n-layers", type=int, default=2, choices=[1, 2])
+    ap.add_argument("--n-layers", type=int, default=2,
+                     help=f"1..{_MAX_N_LAYERS} (SCALE_TRANSFER_DESIGN.md sec 5.2: widened from the "
+                          f"original probe-tier {{1,2}} ceiling for Track C's scaling ladder, sec "
+                          f"5.3). Range validated at parse time below, not via argparse choices= "
+                          f"(the ladder's rungs are not a small enumerable set).")
     ap.add_argument("--conv-size", type=int, default=4)
     ap.add_argument("--num-heads", type=int, default=1)
     ap.add_argument("--ffn-mult", type=int, default=4)
@@ -1833,6 +1935,10 @@ def main():
 
     assert device == "cuda", "lm_pretrain_rd requires CUDA for real training (chunk_delta_rule has no CPU path)"
     assert args.corpus is not None, "--corpus is required for a real (non-smoke) run"
+    assert 1 <= args.n_layers <= _MAX_N_LAYERS, (
+        f"--n-layers={args.n_layers} outside the registered range [1,{_MAX_N_LAYERS}] "
+        f"(SCALE_TRANSFER_DESIGN.md sec 5.3's ladder tops out at 22) -- validated at CLI-parse "
+        f"time, matching DeltaNetLM.__init__'s own assert (never rely on that one alone).")
     if args.ckpt_every > 2000:
         print(f"WARNING: --ckpt-every={args.ckpt_every} > 2000: violates section 8's build requirement.", flush=True)
     if args.ckpt_dir is None:
