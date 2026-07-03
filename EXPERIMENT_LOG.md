@@ -3290,3 +3290,70 @@ K=32 perfect ID + 45x held-out; K=48 perfect ID h1-2. In-distribution
 composition is now SOLVED at every K ≤ 0.75d; held-out depth is bounded by
 cross-episode key stability everywhere — one mechanism, one follow-on
 target (key anchoring).
+
+## SCALE-TRANSFER Track A (2026-07-03): steps-to-criterion analysis complete, zero GPU — headline reads as a ceiling/capacity effect, not a demonstrated speed effect; only 2/336 cells yield a genuine non-censored ratio (both modest, 1.4-1.5x)
+
+Executes `matrix-thinking/SCALE_TRANSFER_DESIGN.md` Rev 2 §3 in full — zero GPU,
+pure analysis of 23 archived checkpoint files from
+`experiment-runs/2026-07-03_deltanet_rd_waves/exactness/` (`w1_iiibeta_K{16,32}`,
+`wavegeo3/wgeo3_rdx_K{16,32,48}_armgeo3_*`, `wave1/w1_rdx_K32_armi-strong_*`,
+`k48_learned_*`), all `n_params=12,899,841` (verified by assertion). Script:
+`matrix-thinking/deltanet_rd/analyze_sample_efficiency.py`. Full output (336
+seed-resolved (arm×K×hop×threshold) cells) + headline tables:
+`experiment-runs/2026-07-04_track_a/{track_a_sample_efficiency.json,track_a_summary.md}`.
+Results appended to `SCALE_TRANSFER_DESIGN.md` §3.8.
+
+**The "100-steps-vs-0.23" teaser (§3.3) stays untraceable** — two independent grep
+passes over the whole repo found no passage combining those numbers, and the
+checkpoint grid doesn't even contain a step-100 sample (first checkpoint is step
+2,000). Everything below is NEW analysis addressing the same question, not
+verification of a prior claim.
+
+**Headline finding:** at the archived 2,000-step checkpoint resolution, only **2 of
+336** analyzed cells yield a genuine, non-censored steps-to-criterion ratio (both
+arms crossed the threshold at a measurable step) — both are secondary C19
+(held-out-template) controls at K=16: h=2 @ threshold 0.8 (baseline 13,321.7 vs
+geo3 8,709.9 steps, **1.53x**) and h=3 @ threshold 0.5 (baseline 12,831.1 vs geo3
+8,953.8, **1.43x**). Every headline (h=1/h=2/h=4) cell is instead either
+**resolution-bound** (both arms already at/above threshold by the first checkpoint,
+step <=2,000 — the grid can't see anything faster) or **ceiling-bound** (baseline's
+own asymptotic ceiling sits below the tested threshold, so it never crosses within
+the full 20,000-step run — there's no baseline crossing to race against; this
+happens at K=16 h=4 for ALL THREE thresholds since baseline's own ceiling,
+0.419-0.465 per the design doc's §1.1, sits below even 0.5). Where geo3's crossing
+step IS known against a right-censored baseline, the crude resolution-imposed lower
+bounds are 6.0-10.0x (never a measured ratio, always a floor). **Read: this archive
+cannot distinguish "geo3 also gets there faster" from "geo3 reaches a ceiling
+baseline structurally cannot" — the two genuinely measured ratios (1.4-1.5x) are
+modest, leaning the honest read toward the design's own pre-registered outcome (b):
+geo3 is primarily a capacity/ceiling fix here, not a demonstrated speed fix — with
+the caveat that this is an absence-of-evidence limit of the 2,000-step grid, not
+proof against a real early-training speed effect.**
+
+**Two-tier K=32 admissibility confirmed directly from each file's own
+`geo3_admission.admissible` field** (not inferred from the `n12`/`n20` filename):
+`geo3n20` 3/3 admissible at K=32 (PRIMARY, matches
+`DELTANET_RD_EXACTNESS_DESIGN.md` §16.3 exactly); `geo3n12` 0/3 admissible at K=32
+(NS fallback, descriptive-only). **Free bonus readout:** where measurable (h=4,
+threshold 0.5), the `n12` and `n20` trajectories cross within 90 steps of each
+other (16,448.8 vs 16,358.7) — extends §16.5's endpoint-only "behavioral numbers
+don't move" finding to the trajectory shape itself.
+
+**Two bonus, out-of-manifest cells** (dumps existed, included for context, never
+part of the pre-registered §3.5 headline): arm i-strong (K=32, `strong_pin=True`)
+saturates every headline hop by the first checkpoint in every seed — a much
+stronger baseline variant than iii-beta. K=48 (baseline + geo3, 3 seeds each) landed
+live in the archive during this analysis session (commit `fc3ded1`, "geo3: K=48
+stretch results," already logged above) — included as a bonus third K-point, not a
+manifest extension (three points still isn't enough for a K-trend claim, per §3.7
+item 3's own discipline); K=48 geo3 is non-admissible 0/3 for a **different reason**
+than K=32 n12's failure (`value_salvage_tier_pass=False`, not an NS fallback —
+`ns_converged_no_fallback=True` at K=48).
+
+**Caveats, restated with numbers behind them:** checkpoint resolution is 2,000
+steps; every `interpolated_step` is an explicitly-labeled linear estimate between
+bracketing checkpoints, never a finer measurement. n=2 (K=16 baseline) or n=3 seeds
+per cell; cells where seeds disagreed in censoring status are reported as `mixed`
+with no pooled ratio computed, rather than averaging incomparable left/right/exact
+statuses together — full per-seed breakdown lives in
+`track_a_sample_efficiency.json`'s `aggregated[].per_seed`.
