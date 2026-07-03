@@ -1,0 +1,18 @@
+{
+  "wave": "ReserveMH",
+  "n_failed": 0,
+  "n_runs": 6,
+  "n_partial_excluded": 0,
+  "by_cell": {
+    "d64_K32_frN_H2": {
+      "skip_rate": 0.0,
+      "final_recovered_frac_h1": 1.0,
+      "final_joint_entity_subspace_rank_sum_h1": 63.9994
+    },
+    "d64_K32_frN_H4": {
+      "skip_rate": 0.0,
+      "final_recovered_frac_h1": 1.0,
+      "final_joint_entity_subspace_rank_sum_h1": 127.9989
+    }
+  }
+}

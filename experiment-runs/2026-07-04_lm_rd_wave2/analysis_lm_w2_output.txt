@@ -1,0 +1,134 @@
+==========================================================================================
+LOADED Wave C: 6 runs
+==========================================================================================
+
+--- Q1: rank by corpus/layer, pooled across checkpoints+seeds ---
+(frac=1.0, window_within_doc filter as noted; d_state=64 is max rank)
+
+corpus=openr1    layer=0  n(within-doc)=  51/ 168  eff_rank(within-doc)= 40.62+/- 1.66  eff_rank(ALL windows)= 40.86  stable_rank(within-doc)=3.494+/-0.935  stable_rank(ALL)=3.494
+corpus=openr1    layer=1  n(within-doc)=  51/ 168  eff_rank(within-doc)= 35.75+/- 1.62  eff_rank(ALL windows)= 36.36  stable_rank(within-doc)=2.626+/-0.288  stable_rank(ALL)=2.640
+corpus=wikitext  layer=0  n(within-doc)= 168/ 168  eff_rank(within-doc)= 37.48+/- 2.44  eff_rank(ALL windows)= 37.48  stable_rank(within-doc)=3.941+/-1.075  stable_rank(ALL)=3.941
+corpus=wikitext  layer=1  n(within-doc)= 168/ 168  eff_rank(within-doc)= 34.85+/- 0.93  eff_rank(ALL windows)= 34.85  stable_rank(within-doc)=2.547+/-0.554  stable_rank(ALL)=2.547
+
+--- Q1b: contamination severity by corpus (fraction of frac=1.0 windows crossing doc boundary) ---
+corpus=openr1     n=168  frac_crossing=0.696
+corpus=wikitext   n=168  frac_crossing=0.000
+
+--- Q1/Q4: rank trajectory over training (frac=1.0, within-doc filter), pooled across seeds ---
+
+corpus=openr1 layer=0
+  step    n  eff_rank  stable_rank  val_loss(home)
+  1000    9     42.93        4.758          2.6926
+  2000    6     40.76        3.753          2.4597
+  3000    3     40.34        3.299          2.2203
+  4000   15     40.16        3.250          2.1816
+  5000    6     39.69        2.943          2.2071
+  6000    6     40.13        3.075          2.0815
+  6103    6     39.77        3.018          2.0668
+
+corpus=openr1 layer=1
+  step    n  eff_rank  stable_rank  val_loss(home)
+  1000    9     35.28        2.589          2.6926
+  2000    6     34.59        2.572          2.4597
+  3000    3     35.46        2.550          2.2203
+  4000   15     35.56        2.648          2.1816
+  5000    6     36.40        2.733          2.2071
+  6000    6     37.19        2.636          2.0815
+  6103    6     36.13        2.599          2.0668
+
+corpus=wikitext layer=0
+  step    n  eff_rank  stable_rank  val_loss(home)
+  1000   24     39.62        5.727          5.6197
+  2000   24     39.63        4.835          5.2111
+  3000   24     38.33        3.961          5.0306
+  4000   24     37.13        3.523          4.7871
+  5000   24     36.18        3.269          4.7538
+  6000   24     35.70        3.163          4.7267
+  6103   24     35.75        3.107          4.6881
+
+corpus=wikitext layer=1
+  step    n  eff_rank  stable_rank  val_loss(home)
+  1000   24     35.01        3.231          5.6197
+  2000   24     35.80        3.017          5.2111
+  3000   24     35.52        2.641          5.0306
+  4000   24     34.91        2.371          4.7871
+  5000   24     34.47        2.212          4.7538
+  6000   24     34.30        2.241          4.7267
+  6103   24     33.94        2.120          4.6881
+
+--- Q4: correlation of eff_rank trajectory with home val_loss trajectory (pearson, n=7 checkpoints) ---
+corpus=openr1    layer=0  corr(eff_rank, val_loss)=+0.918  (eff_rank range 39.69->42.93, val_loss range 2.693->2.067)
+corpus=openr1    layer=1  corr(eff_rank, val_loss)=-0.680  (eff_rank range 34.59->37.19, val_loss range 2.693->2.067)
+corpus=wikitext  layer=0  corr(eff_rank, val_loss)=+0.910  (eff_rank range 35.70->39.63, val_loss range 5.620->4.688)
+corpus=wikitext  layer=1  corr(eff_rank, val_loss)=+0.613  (eff_rank range 33.94->35.80, val_loss range 5.620->4.688)
+
+--- Q3: cross-corpus val loss, final checkpoint, mean +/- sd over 3 seeds ---
+train=openr1    eval=openr1    [HOME ]  val_loss=2.0668 +/- 0.0124   raw=[2.057, 2.063, 2.081]
+train=openr1    eval=wikitext  [CROSS]  val_loss=8.2944 +/- 0.0536   raw=[8.29, 8.243, 8.35]
+train=wikitext  eval=openr1    [CROSS]  val_loss=11.2216 +/- 0.1792   raw=[11.426, 11.145, 11.094]
+train=wikitext  eval=wikitext  [HOME ]  val_loss=4.6881 +/- 0.0070   raw=[4.682, 4.696, 4.687]
+
+==========================================================================================
+LOADED Wave D: 6 runs
+==========================================================================================
+
+--- Q2 HEADLINE: truncation damage vs k, HOME-corpus (train==eval), raw + frequency-balanced ---
+   k   openr1 raw   openr1 bal  wikitext raw  wikitext bal  raw diff(o-w)  bal diff(o-w)
+   8   0.1018+/-0.0046   0.1692+/-0.0440    0.0885+/-0.0067    0.0903+/-0.0398         0.0133         0.0788
+  16   0.0399+/-0.0035   0.0535+/-0.0379    0.0339+/-0.0026    0.0366+/-0.0169         0.0061         0.0169
+  24   0.0145+/-0.0039   0.0164+/-0.0131    0.0098+/-0.0008    0.0061+/-0.0129         0.0047         0.0103
+  32   0.0034+/-0.0024   0.0078+/-0.0245    0.0032+/-0.0019   -0.0083+/-0.0059         0.0002         0.0161
+  48  -0.0002+/-0.0002  -0.0038+/-0.0052    0.0007+/-0.0004   -0.0001+/-0.0017        -0.0009        -0.0037
+  64  -0.0000+/-0.0000   0.0001+/-0.0001    0.0000+/-0.0001    0.0001+/-0.0002        -0.0000        -0.0000
+
+--- Q2 full 2x2 (train_corpus x eval_corpus) damage vs k, raw_mean, mean over 3 seeds ---
+   k    tr=open/ev=open    tr=open/ev=wiki    tr=wiki/ev=open    tr=wiki/ev=wiki
+   8             0.1018             0.0555             0.0787             0.0885
+  16             0.0399             0.0238             0.0346             0.0339
+  24             0.0145             0.0084            -0.0025             0.0098
+  32             0.0034             0.0021            -0.0004             0.0032
+  48            -0.0002             0.0006             0.0010             0.0007
+  64            -0.0000            -0.0001            -0.0000             0.0000
+
+--- Q2 full 2x2, frequency-balanced_mean ---
+   k    tr=open/ev=open    tr=open/ev=wiki    tr=wiki/ev=open    tr=wiki/ev=wiki
+   8             0.1692            -0.0023             0.0879             0.0903
+  16             0.0535             0.0123             0.0427             0.0366
+  24             0.0164             0.0142             0.0001             0.0061
+  32             0.0078             0.0116             0.0044            -0.0083
+  48            -0.0038            -0.0008            -0.0018            -0.0001
+  64             0.0001            -0.0001             0.0002             0.0001
+
+--- Q2: k* (first k where |raw_mean| and |balanced_mean| both < 0.005 nats, home-corpus) ---
+corpus=openr1    k*=48 (d_state=64)
+corpus=wikitext  k*=48 (d_state=64)
+
+--- Q2: symbol vs word class damage, home-corpus, k=8 and k=16 (mean over 3 seeds, raw_mean per class) ---
+
+k=8
+  corpus=openr1    word=0.1267(n~1742)  symbol=0.0860(n~2129)  other=0.0572(n~225)
+  corpus=wikitext  word=0.0961(n~3262)  symbol=0.0617(n~751)  other=0.0280(n~83)
+
+k=16
+  corpus=openr1    word=0.0502(n~1742)  symbol=0.0353(n~2129)  other=0.0044(n~225)
+  corpus=wikitext  word=0.0339(n~3262)  symbol=0.0345(n~751)  other=0.0252(n~83)
+
+--- Q2: frequency-band damage, home-corpus, k=8 and k=16 (band idx 0..3, mean over 3 seeds) ---
+
+k=8
+  corpus=openr1    band0=+0.1005(n~4025)  band1=+0.1309(n~45)  band2=+0.2802(n~19)  band3=+0.1651(n~7)
+  corpus=wikitext  band0=+0.0853(n~3836)  band1=+0.1358(n~181)  band2=+0.1413(n~74)  band3=-0.0011(n~5)
+
+k=16
+  corpus=openr1    band0=+0.0399(n~4025)  band1=+0.0361(n~45)  band2=+0.0217(n~19)  band3=+0.1163(n~7)
+  corpus=wikitext  band0=+0.0342(n~3836)  band1=+0.0264(n~181)  band2=+0.0327(n~74)  band3=+0.0532(n~5)
+
+--- Wave D eval-window boundary contamination (scored continuation) ---
+corpus=openr1    seed=0  frac_windows_crossing=0.3125  frac_tokens_cross_doc=0.1667
+corpus=openr1    seed=1  frac_windows_crossing=0.3125  frac_tokens_cross_doc=0.1667
+corpus=openr1    seed=2  frac_windows_crossing=0.3125  frac_tokens_cross_doc=0.1667
+corpus=wikitext  seed=0  frac_windows_crossing=0.0625  frac_tokens_cross_doc=0.0409
+corpus=wikitext  seed=1  frac_windows_crossing=0.0625  frac_tokens_cross_doc=0.0409
+corpus=wikitext  seed=2  frac_windows_crossing=0.0625  frac_tokens_cross_doc=0.0409
+
+DONE

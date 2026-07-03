@@ -1,0 +1,20 @@
+DeltaNet causal-rank -- wave Bprobe
+==================================================
+{
+  "wave": "Bprobe",
+  "n_failed": 0,
+  "n_runs": 9,
+  "n_partial_excluded": 3,
+  "by_cell": {
+    "d64_K32_fr31": {
+      "skip_rate": 0.0002,
+      "final_recovered_frac_h1": 0.5159,
+      "final_entity_subspace_eff_rank_h1": 30.6475
+    },
+    "d64_K32_fr32": {
+      "skip_rate": 0.0001,
+      "final_recovered_frac_h1": 0.5312,
+      "final_entity_subspace_eff_rank_h1": 31.5409
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "train_vanilla": {
+    "config": {
+      "base_model": "gpt2",
+      "n_latents": 6,
+      "alpha": 1.0,
+      "beta": 1.0,
+      "gamma": 1.0,
+      "lr": 0.0001,
+      "warmup_steps": 100,
+      "weight_decay": 0.01,
+      "betas": [
+        0.9,
+        0.98
+      ],
+      "grad_clip": 1.0,
+      "batch_size_per_gpu": 32,
+      "epochs": 5,
+      "max_q_len": 256,
+      "max_ans_len": 32,
+      "max_total_len": 768,
+      "mat_dim": 16,
+      "use_thinking_iter": true,
+      "eval_interval_epochs": 1,
+      "max_eval_batches": 50,
+      "eval_batch_size": 16,
+      "max_rank_samples": 50,
+      "log_interval": 50,
+      "results_dir": "/toy_story_slam/pebble/results/run_a_vanilla",
+      "seed": 1337
+    },
+    "best_accuracy": 0.07,
+    "training_curve": [
+      {
+        "epoch": 1,
+        "step": 1506,
+        "accuracy": 0.03875,
+        "train_loss_avg50": 2.120035161972046
+      },
+      {
+        "epoch": 2,
+        "step": 3012,
+        "accuracy": 0.04875,
+        "train_loss_avg50": 1.8935437989234924
+      },
+      {
+        "epoch": 3,
+        "step": 4518,
+        "accuracy": 0.04875,
+        "train_loss_avg50": 1.7778478455543518
+      },
+      {
+        "epoch": 4,
+        "step": 6024,
+        "accuracy": 0.06375,
+        "train_loss_avg50": 1.7968338990211488
+      },
+      {
+        "epoch": 5,
+        "step": 7530,
+        "accuracy": 0.07,
+        "train_loss_avg50": 1.706247456073761
+      }
+    ],
+    "z_rank_curve": [],
+    "wall_time_min": 28.109802504380543,
+    "world_size": 8,
+    "n_params": 124443648
+  }
+}

@@ -1,0 +1,69 @@
+DeltaNet-RD Wave 2 (instrumented LM) -- wave C
+==================================================
+{
+  "wave": "C",
+  "n_manifest": 6,
+  "n_failed": 0,
+  "cells": {
+    "wC_lm_openr1_dm256_ds64_L2_s0": {
+      "corpus": "openr1",
+      "seed": 0,
+      "final_step": 6103,
+      "final_val_loss": {
+        "openr1": 2.0566962510347366,
+        "wikitext": 8.290030717849731
+      },
+      "wall_s": 273.8533866405487
+    },
+    "wC_lm_openr1_dm256_ds64_L2_s1": {
+      "corpus": "openr1",
+      "seed": 1,
+      "final_step": 6103,
+      "final_val_loss": {
+        "openr1": 2.0630757063627243,
+        "wikitext": 8.243061542510986
+      },
+      "wall_s": 277.5815329551697
+    },
+    "wC_lm_openr1_dm256_ds64_L2_s2": {
+      "corpus": "openr1",
+      "seed": 2,
+      "final_step": 6103,
+      "final_val_loss": {
+        "openr1": 2.080717548727989,
+        "wikitext": 8.349985837936401
+      },
+      "wall_s": 278.183958530426
+    },
+    "wC_lm_wikitext_dm256_ds64_L2_s0": {
+      "corpus": "wikitext",
+      "seed": 0,
+      "final_step": 6103,
+      "final_val_loss": {
+        "wikitext": 4.6817731857299805,
+        "openr1": 11.426440834999084
+      },
+      "wall_s": 277.755642414093
+    },
+    "wC_lm_wikitext_dm256_ds64_L2_s1": {
+      "corpus": "wikitext",
+      "seed": 1,
+      "final_step": 6103,
+      "final_val_loss": {
+        "wikitext": 4.695585370063782,
+        "openr1": 11.144550561904907
+      },
+      "wall_s": 277.2878394126892
+    },
+    "wC_lm_wikitext_dm256_ds64_L2_s2": {
+      "corpus": "wikitext",
+      "seed": 2,
+      "final_step": 6103,
+      "final_val_loss": {
+        "wikitext": 4.686872839927673,
+        "openr1": 11.093781113624573
+      },
+      "wall_s": 276.12597131729126
+    }
+  }
+}

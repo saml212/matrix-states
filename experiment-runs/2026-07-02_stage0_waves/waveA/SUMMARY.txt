@@ -1,0 +1,65 @@
+Stage 0 -- wave A
+==================================================
+{
+  "wave": "A",
+  "n_failed": 0,
+  "n_runs": 11,
+  "n_partial_excluded": 0,
+  "by_cell": {
+    "c1_warmup_d32_K16_h64_frN": {
+      "mean_cos": 0.0163,
+      "effective_rank_mean": 1.1029,
+      "recovered_frac@0.9": 0.0
+    },
+    "c1_warmup_d32_K8_h64_frN": {
+      "mean_cos": 0.0392,
+      "effective_rank_mean": 1.5315,
+      "recovered_frac@0.9": 0.0
+    },
+    "c2_orthogonal_d32_K16_h64_frN": {
+      "mean_cos": 0.6579,
+      "effective_rank_mean": 16.1026,
+      "recovered_frac@0.9": 0.0002
+    },
+    "c2_orthogonal_d32_K8_h64_frN": {
+      "mean_cos": 0.7131,
+      "effective_rank_mean": 11.1744,
+      "recovered_frac@0.9": 0.002
+    },
+    "c2_orthogonal_d64_K32_h64_frN": {
+      "mean_cos": 0.0225,
+      "effective_rank_mean": 2.3608,
+      "recovered_frac@0.9": 0.0
+    },
+    "c3_mup_d16_K8_h128_frN": {
+      "mean_cos": 0.9422,
+      "effective_rank_mean": 7.6272,
+      "recovered_frac@0.9": 0.9479
+    },
+    "c3_mup_d32_K16_h128_frN": {
+      "mean_cos": -0.0023,
+      "effective_rank_mean": 1.0011,
+      "recovered_frac@0.9": 0.0
+    },
+    "c3_mup_d32_K8_h128_frN": {
+      "mean_cos": 0.0035,
+      "effective_rank_mean": 1.0014,
+      "recovered_frac@0.9": 0.0
+    },
+    "c3_mup_d64_K32_h128_frN": {
+      "mean_cos": 0.0273,
+      "effective_rank_mean": 2.5359,
+      "recovered_frac@0.9": 0.0
+    },
+    "c4_selfattn_d32_K16_h64_frN": {
+      "mean_cos": 0.0001,
+      "effective_rank_mean": 1.0018,
+      "recovered_frac@0.9": 0.0
+    },
+    "c4_selfattn_d32_K8_h64_frN": {
+      "mean_cos": 0.0011,
+      "effective_rank_mean": 1.0016,
+      "recovered_frac@0.9": 0.0
+    }
+  }
+}

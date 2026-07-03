@@ -1,0 +1,86 @@
+{
+  "wave": "-1",
+  "n_failed": 0,
+  "n_runs": 8,
+  "n_partial_excluded": 2,
+  "by_cell": {
+    "K16_fr16": {
+      "arm": "causal_k_ge_K",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": null,
+      "headline_entity_subspace_eff_rank_h1": null,
+      "headline_key_gram_deviation_h1": null,
+      "headline_value_gram_deviation_h1": null,
+      "headline_C17_recovered_frac_h1": null,
+      "headline_C19_recovered_frac_h1": null,
+      "headline_steps": [],
+      "n_premise_valid": 0,
+      "n_premise_failed": 1
+    },
+    "K16_frN": {
+      "arm": "unconstrained",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": null,
+      "headline_entity_subspace_eff_rank_h1": null,
+      "headline_key_gram_deviation_h1": null,
+      "headline_value_gram_deviation_h1": null,
+      "headline_C17_recovered_frac_h1": null,
+      "headline_C19_recovered_frac_h1": null,
+      "headline_steps": [],
+      "n_premise_valid": 0,
+      "n_premise_failed": 1
+    },
+    "K32_fr32": {
+      "arm": "causal_k_ge_K",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": null,
+      "headline_entity_subspace_eff_rank_h1": null,
+      "headline_key_gram_deviation_h1": null,
+      "headline_value_gram_deviation_h1": null,
+      "headline_C17_recovered_frac_h1": null,
+      "headline_C19_recovered_frac_h1": null,
+      "headline_steps": [],
+      "n_premise_valid": 0,
+      "n_premise_failed": 1
+    },
+    "K32_frN": {
+      "arm": "unconstrained",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": null,
+      "headline_entity_subspace_eff_rank_h1": null,
+      "headline_key_gram_deviation_h1": null,
+      "headline_value_gram_deviation_h1": null,
+      "headline_C17_recovered_frac_h1": null,
+      "headline_C19_recovered_frac_h1": null,
+      "headline_steps": [],
+      "n_premise_valid": 0,
+      "n_premise_failed": 1
+    },
+    "K64_fr64": {
+      "arm": "causal_k_ge_K",
+      "skip_rate": 0.0706,
+      "headline_recovered_frac_h1": null,
+      "headline_entity_subspace_eff_rank_h1": null,
+      "headline_key_gram_deviation_h1": null,
+      "headline_value_gram_deviation_h1": null,
+      "headline_C17_recovered_frac_h1": null,
+      "headline_C19_recovered_frac_h1": null,
+      "headline_steps": [],
+      "n_premise_valid": 0,
+      "n_premise_failed": 1
+    },
+    "K64_frN": {
+      "arm": "unconstrained",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": null,
+      "headline_entity_subspace_eff_rank_h1": null,
+      "headline_key_gram_deviation_h1": null,
+      "headline_value_gram_deviation_h1": null,
+      "headline_C17_recovered_frac_h1": null,
+      "headline_C19_recovered_frac_h1": null,
+      "headline_steps": [],
+      "n_premise_valid": 0,
+      "n_premise_failed": 1
+    }
+  }
+}

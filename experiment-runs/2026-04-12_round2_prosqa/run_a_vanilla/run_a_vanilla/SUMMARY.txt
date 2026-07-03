@@ -1,0 +1,13 @@
+
+======================================================================
+  MATRIX-CODI RUN A (vanilla)
+======================================================================
+  Base model: gpt2
+  Use matrix bottleneck: False
+  Latents: 6, mat_dim: 16
+  Params: 124,443,648
+  Epochs: 25, global batch: 32
+  Wall time: 105.4 min on 2 GPUs
+
+  Best prosqa accuracy: 78.12%
+======================================================================

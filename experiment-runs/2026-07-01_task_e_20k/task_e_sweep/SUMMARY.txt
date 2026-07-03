@@ -1,0 +1,113 @@
+Task E — perpetual sweep
+==================================================
+{
+  "n_failed": 5,
+  "n_runs": 50,
+  "M1_effrank_vs_K": {
+    "8": 5.2717,
+    "12": 1.0051
+  },
+  "M3_recovered_frac@0.9_matrix_vs_ideal_vs_mlp": {
+    "K8": {
+      "eh4": {
+        "matrix": 0.1928,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh5": {
+        "matrix": 0.0921,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh6": {
+        "matrix": 0.1703,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh7": {
+        "matrix": 0.1548,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      }
+    },
+    "K12": {
+      "eh4": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh5": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh6": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh7": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh9": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      }
+    },
+    "K16": {
+      "eh4": {
+        "matrix": null,
+        "ideal": null,
+        "mlp_floor": 0.0
+      },
+      "eh5": {
+        "matrix": null,
+        "ideal": null,
+        "mlp_floor": 0.0
+      },
+      "eh6": {
+        "matrix": null,
+        "ideal": null,
+        "mlp_floor": 0.0
+      },
+      "eh7": {
+        "matrix": null,
+        "ideal": null,
+        "mlp_floor": 0.0
+      }
+    }
+  },
+  "M4_recovered_frac@0.9_vs_forcerank_K8": {
+    "2": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    },
+    "4": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    },
+    "6": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    },
+    "7": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    },
+    "8": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    },
+    "9": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    },
+    "10": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    }
+  }
+}

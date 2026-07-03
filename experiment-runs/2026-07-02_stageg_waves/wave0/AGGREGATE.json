@@ -1,0 +1,24 @@
+{
+  "wave": "0",
+  "n_failed": 0,
+  "n_runs": 10,
+  "n_partial_excluded": 0,
+  "by_cell": {
+    "matrix_baseline_steps3000": {
+      "final_bpb_T8": 3.5552,
+      "step0_entry_std": 1.0044
+    },
+    "matrix_baseline_steps9000": {
+      "final_bpb_T8": 3.4512,
+      "step0_entry_std": 1.009
+    },
+    "vector_baseline_steps3000": {
+      "final_bpb_T8": 3.2511,
+      "step0_entry_std": 0.0676
+    },
+    "vector_baseline_steps9000": {
+      "final_bpb_T8": 2.5904,
+      "step0_entry_std": 0.0676
+    }
+  }
+}

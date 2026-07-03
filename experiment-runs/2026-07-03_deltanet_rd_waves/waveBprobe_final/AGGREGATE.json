@@ -1,0 +1,21 @@
+{
+  "wave": "Bprobe",
+  "n_failed": 6,
+  "n_runs": 9,
+  "n_partial_excluded": 6,
+  "by_cell": {
+    "K16_fr16": {
+      "arm": "causal_k_ge_K",
+      "skip_rate": 0.0001,
+      "headline_recovered_frac_h1": null,
+      "headline_entity_subspace_eff_rank_h1": null,
+      "headline_key_gram_deviation_h1": null,
+      "headline_value_gram_deviation_h1": null,
+      "headline_C17_recovered_frac_h1": null,
+      "headline_C19_recovered_frac_h1": null,
+      "headline_steps": [],
+      "n_premise_valid": 0,
+      "n_premise_failed": 3
+    }
+  }
+}

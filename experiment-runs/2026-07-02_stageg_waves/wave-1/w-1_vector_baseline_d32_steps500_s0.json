@@ -1,0 +1,169 @@
+{
+  "family": "vector",
+  "variant": "baseline",
+  "mat_dim": 32,
+  "vocab_size": 256,
+  "n_iterations": 8,
+  "steps": 500,
+  "seed": 0,
+  "seq_len": 512,
+  "n_params": 300976,
+  "param_breakdown": {
+    "embed": 102400,
+    "think": 144416,
+    "head": 80,
+    "cond": 54080
+  },
+  "step0_entry_std": 0.06777127832174301,
+  "analytic_flops_per_token": {
+    "non_causal": 4140240.0,
+    "causal_exact": 2829520.0
+  },
+  "steps_completed": 500,
+  "complete": true,
+  "timed_out": false,
+  "trajectory": [
+    {
+      "step": 1,
+      "loss": 5.528601169586182,
+      "bpb": 7.976085490414907,
+      "grad_norm": 5.2309441566467285,
+      "lr": 5.999999999999999e-06,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 2.274495,
+        "attn_proj": 3.657041,
+        "thinking_mlp": 2.930317,
+        "output_head": 0.137985,
+        "cond": 0.457939
+      }
+    },
+    {
+      "step": 100,
+      "loss": 3.1748275756835938,
+      "bpb": 4.580307999116251,
+      "grad_norm": 0.8905588388442993,
+      "lr": 0.0002909538931178862,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.615192,
+        "attn_proj": 0.46684,
+        "thinking_mlp": 0.408908,
+        "output_head": 0.097971,
+        "cond": 0.141035
+      }
+    },
+    {
+      "step": 200,
+      "loss": 2.687908172607422,
+      "bpb": 3.8778317909856437,
+      "grad_norm": 0.3415346145629883,
+      "lr": 0.000225,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.194835,
+        "attn_proj": 0.184186,
+        "thinking_mlp": 0.197801,
+        "output_head": 0.044821,
+        "cond": 0.06022
+      }
+    },
+    {
+      "step": 300,
+      "loss": 2.5944018363952637,
+      "bpb": 3.7429306634406667,
+      "grad_norm": 0.3785592019557953,
+      "lr": 0.00012395277334996044,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.147949,
+        "attn_proj": 0.227425,
+        "thinking_mlp": 0.245516,
+        "output_head": 0.029669,
+        "cond": 0.092401
+      }
+    },
+    {
+      "step": 400,
+      "loss": 2.559999704360962,
+      "bpb": 3.6932988781587723,
+      "grad_norm": 0.20177237689495087,
+      "lr": 3.509333353215331e-05,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.090751,
+        "attn_proj": 0.106973,
+        "thinking_mlp": 0.137178,
+        "output_head": 0.021189,
+        "cond": 0.042026
+      }
+    },
+    {
+      "step": 500,
+      "loss": 2.5643577575683594,
+      "bpb": 3.699586219909015,
+      "grad_norm": 0.19800463318824768,
+      "lr": 0.0,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.084212,
+        "attn_proj": 0.108115,
+        "thinking_mlp": 0.135022,
+        "output_head": 0.019523,
+        "cond": 0.042584
+      }
+    }
+  ],
+  "checkpoints": [
+    {
+      "step": 500,
+      "evals": {
+        "T1": {
+          "val_loss": 3.321780004501343,
+          "val_bpb": 4.7923155394182055,
+          "ranks": []
+        },
+        "T2": {
+          "val_loss": 2.852374210357666,
+          "val_bpb": 4.115106128042578,
+          "ranks": []
+        },
+        "T4": {
+          "val_loss": 2.6271097564697268,
+          "val_bpb": 3.790118217529887,
+          "ranks": []
+        },
+        "T8": {
+          "val_loss": 2.556926898956299,
+          "val_bpb": 3.6888657570398484,
+          "ranks": []
+        }
+      },
+      "grad_norm_by_group_post_clip": {
+        "embed": 0.084212,
+        "attn_proj": 0.108115,
+        "thinking_mlp": 0.135022,
+        "output_head": 0.019523,
+        "cond": 0.042584
+      }
+    }
+  ],
+  "wall_s": 25.397499799728394,
+  "final_step": 500,
+  "final_evals": {
+    "T1": {
+      "val_loss": 3.321780004501343,
+      "val_bpb": 4.7923155394182055,
+      "ranks": []
+    },
+    "T2": {
+      "val_loss": 2.852374210357666,
+      "val_bpb": 4.115106128042578,
+      "ranks": []
+    },
+    "T4": {
+      "val_loss": 2.6271097564697268,
+      "val_bpb": 3.790118217529887,
+      "ranks": []
+    },
+    "T8": {
+      "val_loss": 2.556926898956299,
+      "val_bpb": 3.6888657570398484,
+      "ranks": []
+    }
+  }
+}

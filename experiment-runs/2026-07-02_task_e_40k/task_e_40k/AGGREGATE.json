@@ -1,0 +1,96 @@
+{
+  "n_failed": 0,
+  "n_runs": 33,
+  "M1_effrank_vs_K": {
+    "8": 15.7687,
+    "12": 2.4695,
+    "16": 1.2486
+  },
+  "M3_recovered_frac@0.9_matrix_vs_ideal_vs_mlp": {
+    "K8": {
+      "eh4": {
+        "matrix": 0.8856,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh5": {
+        "matrix": 0.8303,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh6": {
+        "matrix": 0.8414,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh7": {
+        "matrix": 0.8323,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      }
+    },
+    "K12": {
+      "eh4": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh5": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh6": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh7": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh9": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      }
+    },
+    "K16": {
+      "eh4": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh5": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh6": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      },
+      "eh7": {
+        "matrix": 0.0,
+        "ideal": 1.0,
+        "mlp_floor": 0.0
+      }
+    }
+  },
+  "M4_recovered_frac@0.9_vs_forcerank_K8": {
+    "7": {
+      "M2_in_distribution": 0.3302,
+      "M3_held_out": 0.2517
+    },
+    "8": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    },
+    "9": {
+      "M2_in_distribution": 0.0,
+      "M3_held_out": 0.0
+    }
+  }
+}

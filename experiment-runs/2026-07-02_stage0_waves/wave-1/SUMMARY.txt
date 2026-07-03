@@ -1,0 +1,24 @@
+Stage 0 -- wave -1
+==================================================
+{
+  "wave": "-1",
+  "n_failed": 0,
+  "n_runs": 3,
+  "by_cell": {
+    "baseline_d32_K8_h128_frN": {
+      "mean_cos": 0.0019,
+      "effective_rank_mean": 1.0026,
+      "recovered_frac@0.9": 0.0
+    },
+    "baseline_d32_K8_h64_frN": {
+      "mean_cos": 0.0258,
+      "effective_rank_mean": 1.5888,
+      "recovered_frac@0.9": 0.0
+    },
+    "baseline_d64_K32_h64_frN": {
+      "mean_cos": 0.0011,
+      "effective_rank_mean": 1.0305,
+      "recovered_frac@0.9": 0.0
+    }
+  }
+}

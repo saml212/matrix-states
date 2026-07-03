@@ -1,0 +1,32 @@
+{
+  "wave": "A",
+  "n_failed": 0,
+  "n_runs": 7,
+  "n_partial_excluded": 1,
+  "by_cell": {
+    "matrix_combined_hj_hg_hi_steps3000": {
+      "final_bpb_T8": 3.5671,
+      "step0_entry_std": 0.0205
+    },
+    "matrix_h_a_full_rank_steps3000": {
+      "final_bpb_T8": 3.5562,
+      "step0_entry_std": 1.0009
+    },
+    "matrix_h_f_tied_bilinear_steps3000": {
+      "final_bpb_T8": 3.6047,
+      "step0_entry_std": 1.009
+    },
+    "matrix_h_g_depth_matched_steps3000": {
+      "final_bpb_T8": 3.5704,
+      "step0_entry_std": 1.009
+    },
+    "matrix_h_i_iter_cond_steps3000": {
+      "final_bpb_T8": 3.5638,
+      "step0_entry_std": 1.009
+    },
+    "matrix_h_j_init_matched_steps3000": {
+      "final_bpb_T8": 3.556,
+      "step0_entry_std": 0.0205
+    }
+  }
+}

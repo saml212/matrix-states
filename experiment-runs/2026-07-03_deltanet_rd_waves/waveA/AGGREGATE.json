@@ -1,0 +1,75 @@
+{
+  "wave": "A",
+  "n_failed": 2,
+  "n_runs": 11,
+  "n_partial_excluded": 0,
+  "by_cell": {
+    "K16_frN": {
+      "arm": "unconstrained",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": 0.995,
+      "headline_entity_subspace_eff_rank_h1": 15.6885,
+      "headline_key_gram_deviation_h1": 1.2905,
+      "headline_value_gram_deviation_h1": 1.4401,
+      "headline_C17_recovered_frac_h1": 0.6056,
+      "headline_C19_recovered_frac_h1": 0.7673,
+      "headline_steps": [
+        4000,
+        6000,
+        4000,
+        20000,
+        20000
+      ],
+      "n_premise_valid": 5,
+      "n_premise_failed": 0
+    },
+    "K24_frN": {
+      "arm": "unconstrained",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": 0.9362,
+      "headline_entity_subspace_eff_rank_h1": 23.1534,
+      "headline_key_gram_deviation_h1": 1.9694,
+      "headline_value_gram_deviation_h1": 2.2784,
+      "headline_C17_recovered_frac_h1": 0.4373,
+      "headline_C19_recovered_frac_h1": 0.8397,
+      "headline_steps": [
+        8000,
+        20000
+      ],
+      "n_premise_valid": 2,
+      "n_premise_failed": 0
+    },
+    "K32_frN": {
+      "arm": "unconstrained",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": 0.7671,
+      "headline_entity_subspace_eff_rank_h1": 29.9663,
+      "headline_key_gram_deviation_h1": 2.774,
+      "headline_value_gram_deviation_h1": 3.1495,
+      "headline_C17_recovered_frac_h1": 0.2855,
+      "headline_C19_recovered_frac_h1": 0.5109,
+      "headline_steps": [
+        20000,
+        2000
+      ],
+      "n_premise_valid": 2,
+      "n_premise_failed": 0
+    },
+    "K8_frN": {
+      "arm": "unconstrained",
+      "skip_rate": 0.0,
+      "headline_recovered_frac_h1": 1.0,
+      "headline_entity_subspace_eff_rank_h1": 7.9462,
+      "headline_key_gram_deviation_h1": 0.6049,
+      "headline_value_gram_deviation_h1": 0.614,
+      "headline_C17_recovered_frac_h1": 0.8729,
+      "headline_C19_recovered_frac_h1": 1.0,
+      "headline_steps": [
+        20000,
+        20000
+      ],
+      "n_premise_valid": 2,
+      "n_premise_failed": 0
+    }
+  }
+}

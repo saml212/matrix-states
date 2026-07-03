@@ -1,0 +1,87 @@
+DeltaNet-RD Wave 2 (instrumented LM) -- wave D
+==================================================
+{
+  "wave": "D",
+  "n_manifest": 6,
+  "n_failed": 0,
+  "cells": {
+    "wD_lm_openr1_s0": {
+      "corpus": "openr1",
+      "checkpoint_step": 6103,
+      "k_grid": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64
+      ],
+      "wall_s": 6.034596681594849
+    },
+    "wD_lm_openr1_s1": {
+      "corpus": "openr1",
+      "checkpoint_step": 6103,
+      "k_grid": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64
+      ],
+      "wall_s": 6.085649728775024
+    },
+    "wD_lm_openr1_s2": {
+      "corpus": "openr1",
+      "checkpoint_step": 6103,
+      "k_grid": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64
+      ],
+      "wall_s": 5.938518762588501
+    },
+    "wD_lm_wikitext_s0": {
+      "corpus": "wikitext",
+      "checkpoint_step": 6103,
+      "k_grid": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64
+      ],
+      "wall_s": 5.912503242492676
+    },
+    "wD_lm_wikitext_s1": {
+      "corpus": "wikitext",
+      "checkpoint_step": 6103,
+      "k_grid": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64
+      ],
+      "wall_s": 6.329400539398193
+    },
+    "wD_lm_wikitext_s2": {
+      "corpus": "wikitext",
+      "checkpoint_step": 6103,
+      "k_grid": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64
+      ],
+      "wall_s": 6.364806413650513
+    }
+  }
+}

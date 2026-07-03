@@ -1,0 +1,86 @@
+{
+  "16": {
+    "K": 16,
+    "alpha": 1.0,
+    "final_rho": 0.24,
+    "converged": true,
+    "simulated": false,
+    "best_measured": 1.315506935119629,
+    "seed_rho0": 0.24,
+    "n_iterations": 1,
+    "trace": [
+      {
+        "iter": 0,
+        "K": 16,
+        "alpha": 1.0,
+        "rho": 0.24,
+        "bracket": [
+          0.19,
+          0.29
+        ],
+        "target_lo": 1.2572951316833496,
+        "target_hi": 1.3377736806869507,
+        "target_mid": 1.2975344061851501,
+        "result_path": "results/deltanet_rd_exactness/calib_iv_K16_it0.json",
+        "measured_key_gram_deviation": 1.315506935119629
+      }
+    ]
+  },
+  "32": {
+    "K": 32,
+    "alpha": 1.0,
+    "final_rho": 0.225,
+    "converged": false,
+    "simulated": false,
+    "best_measured": 2.924590826034546,
+    "seed_rho0": 0.25,
+    "n_iterations": 3,
+    "trace": [
+      {
+        "iter": 0,
+        "K": 32,
+        "alpha": 1.0,
+        "rho": 0.25,
+        "bracket": [
+          0.2,
+          0.3
+        ],
+        "target_lo": 2.6625936031341553,
+        "target_hi": 2.7820496559143066,
+        "target_mid": 2.722321629524231,
+        "result_path": "results/deltanet_rd_exactness/calib_iv_K32_it0.json",
+        "measured_key_gram_deviation": 2.983302593231201
+      },
+      {
+        "iter": 1,
+        "K": 32,
+        "alpha": 1.0,
+        "rho": 0.225,
+        "bracket": [
+          0.2,
+          0.25
+        ],
+        "target_lo": 2.6625936031341553,
+        "target_hi": 2.7820496559143066,
+        "target_mid": 2.722321629524231,
+        "result_path": "results/deltanet_rd_exactness/calib_iv_K32_it1.json",
+        "measured_key_gram_deviation": 2.924590826034546
+      },
+      {
+        "iter": 2,
+        "K": 32,
+        "alpha": 1.0,
+        "rho": 0.21250000000000002,
+        "bracket": [
+          0.2,
+          0.225
+        ],
+        "target_lo": 2.6625936031341553,
+        "target_hi": 2.7820496559143066,
+        "target_mid": 2.722321629524231,
+        "result_path": "results/deltanet_rd_exactness/calib_iv_K32_it2.json",
+        "measured_key_gram_deviation": 2.9923343658447266
+      }
+    ]
+  }
+}

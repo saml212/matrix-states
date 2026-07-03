@@ -1,0 +1,18 @@
+Stage G -- wave -1
+==================================================
+{
+  "wave": "-1",
+  "n_failed": 0,
+  "n_runs": 2,
+  "n_partial_excluded": 0,
+  "by_cell": {
+    "matrix_baseline_steps500": {
+      "final_bpb_T8": 3.8288,
+      "step0_entry_std": 1.009
+    },
+    "vector_baseline_steps500": {
+      "final_bpb_T8": 3.6889,
+      "step0_entry_std": 0.0678
+    }
+  }
+}

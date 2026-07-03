@@ -1,0 +1,118 @@
+{
+  "all_passed": true,
+  "items": {
+    "0_environment": {
+      "passed": true,
+      "fla_version": "0.5.1",
+      "torch_version": "2.12.1+cu130",
+      "cuda_available": true,
+      "device_name": "NVIDIA H100 80GB HBM3",
+      "measured_ShortConvolution_kernel_size_when_constructed_with_4": 4,
+      "DeltaNetRDTaskConfig_default_conv_size": 4
+    },
+    "1_tier0_gradcheck": {
+      "passed": true,
+      "T56_gradcheck_passed": true,
+      "T56_wall_s": 19.02,
+      "T112_gradcheck_passed": true,
+      "T112_wall_s": 80.59,
+      "T224_gradcheck_passed": true,
+      "T224_wall_s": 318.42,
+      "negative_test_detached_initial_state_correctly_failed": true,
+      "largest_T_verified": 224,
+      "gap_to_wave2_target_disclosed": "T=512 (Wave 2's real-corpus target) NOT tested here -- fp64 gradcheck cost scales with T; 224 is Wave 1's own K=32 BIND-phase length (the primary path this build phase targets). Re-run at larger T before Wave 2 begins."
+    },
+    "2_tier1_kernel_vs_reference": {
+      "passed": true,
+      "forward_o_rel_fro_err": 0.004155,
+      "forward_S_rel_fro_err": 0.003951,
+      "forward_ok_lt_2e-2": true,
+      "grad_k_rel_fro_err": 0.005352,
+      "grad_v_rel_fro_err": 0.003669,
+      "grad_beta_rel_fro_err": 0.00424,
+      "grad_ok_lt_5e-2": true,
+      "aliased_qk_grad_finite": true,
+      "aliased_qk_grad_matches_separate_q_plus_k_grad": true,
+      "negative_test_wrong_scale_correctly_detected_as_mismatch": true
+    },
+    "3_short_T_crash_sweep": {
+      "passed": true,
+      "documented_hazard": "raw T<64 backward crash reproduced at (T=56, d_state=16), round 1 of this checkpoint -- harness pads to >= 128 (state-neutral, verified below)",
+      "K8_Traw56_Tpadded128": {
+        "status": "OK",
+        "grads_finite": true
+      },
+      "K16_Traw112_Tpadded128": {
+        "status": "OK",
+        "grads_finite": true
+      },
+      "K32_Traw224_Tpadded224": {
+        "status": "OK",
+        "grads_finite": true
+      },
+      "K48_Traw336_Tpadded336": {
+        "status": "OK",
+        "grads_finite": true
+      },
+      "K64_Traw448_Tpadded448": {
+        "status": "OK",
+        "grads_finite": true
+      },
+      "padding_state_neutrality_max_abs_diff": 0.0,
+      "padding_state_neutral": true,
+      "head_dim_safety_matrix": {
+        "D16": {
+          "T128": "CRASH",
+          "T224": "CRASH"
+        },
+        "D32": {
+          "T128": "CRASH",
+          "T224": "CRASH"
+        },
+        "D64": {
+          "T128": "OK",
+          "T224": "OK"
+        },
+        "D128": {
+          "T128": "OK",
+          "T224": "OK"
+        }
+      },
+      "all_SAFE_D_STATE_dims_verified_safe": true
+    },
+    "4_round_trip": {
+      "passed": true,
+      "max_abs_diff": 0.0,
+      "tolerance": 0.05
+    },
+    "5_buffer_pinning_post_optimizer_step": {
+      "passed": true,
+      "with_pinning_max_abs_per_step": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "without_pinning_max_abs_per_step": [
+        0.009999996982514858,
+        0.020010970532894135,
+        0.030042465776205063,
+        0.03950247913599014,
+        0.04780316725373268,
+        0.05605354532599449,
+        0.06475550681352615,
+        0.07361964881420135
+      ],
+      "with_pinning_stays_exactly_zero": true,
+      "without_pinning_would_drift_negative_control": true
+    },
+    "6_grammar_and_model_self_tests": {
+      "passed": true,
+      "grammar_rd_and_model_rd_self_test": true
+    }
+  }
+}

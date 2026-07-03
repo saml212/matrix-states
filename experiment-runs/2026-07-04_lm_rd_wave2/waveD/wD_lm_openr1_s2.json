@@ -1,0 +1,434 @@
+{
+  "claim_tier": "descriptive+interventional (Wave 2 / RD-2, DELTANET_REALDATA_DESIGN.md section 6.3) -- NOT premise-conditional causal (that tier is Wave 1 / RD-1 only, section 5's C16 premise machinery). No Gram-deviation / salvage-ratio / alignment-cosine premise gating applies to this arm's metrics (section 14.7).",
+  "fallback_note": "MAJOR-5's pre-registered fallback (DELTANET_REALDATA_DESIGN.md section 6.1): the symbol-density-matched third-corpus arm was DEFERRED this build phase; these frequency-band / symbol-vs-word-stratified damage metrics are the pre-registered substitute, reported as the fallback it is -- NOT claimed equivalent to a genuine matched-corpus contrast.",
+  "checkpoint": "results/lm_rd/waveC/checkpoints/lmC_openr1_dm256_ds64_L2_s2_step6103.pt",
+  "checkpoint_step": 6103,
+  "checkpoint_train_corpus": "openr1",
+  "model_config": {
+    "vocab_size": 50257,
+    "d_model": 256,
+    "d_state": 64,
+    "n_layers": 2,
+    "conv_size": 4,
+    "num_heads": 1,
+    "ffn_mult": 4
+  },
+  "k_grid": [
+    8,
+    16,
+    24,
+    32,
+    48,
+    64
+  ],
+  "ctx_len": 384,
+  "cont_len": 128,
+  "n_eval_windows": 32,
+  "freq_bins": 4,
+  "trunc_impl": "eigh",
+  "window_seed_policy": "corpus_fixed (AUDIT FIX-1: crc32(corpus), --seed does NOT affect windows)",
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "damage_by_corpus_and_k": {
+    "openr1": {
+      "windows": {
+        "window_digest": 1090536595,
+        "window_seed_policy": "corpus_fixed (AUDIT FIX-1: crc32(corpus), independent of --seed)",
+        "boundary_full_window": {
+          "n_windows": 32,
+          "frac_windows_crossing": 0.71875,
+          "frac_tokens_cross_doc": 0.41825050115585327
+        },
+        "boundary_scored_continuation": {
+          "n_windows": 32,
+          "frac_windows_crossing": 0.3125,
+          "frac_tokens_cross_doc": 0.16666662693023682
+        }
+      },
+      "by_k": {
+        "8": {
+          "raw_mean": 0.10554207861423492,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.10405377298593521,
+            "1": 0.0878133699297905,
+            "2": 0.4326696991920471,
+            "3": 0.18736936151981354
+          },
+          "by_frequency_band_counts": {
+            "0": 4025,
+            "1": 45,
+            "2": 19,
+            "3": 7
+          },
+          "frequency_balanced_mean": 0.2029765509068966,
+          "by_symbol_word_class": {
+            "word": 0.10575607419013977,
+            "symbol": 0.11443263292312622,
+            "other": 0.01976083591580391
+          },
+          "by_symbol_word_class_counts": {
+            "word": 1742,
+            "symbol": 2129,
+            "other": 225
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 1.9091243743896484,
+          "truncated_mean_loss": 2.0146665573120117
+        },
+        "16": {
+          "raw_mean": 0.039732322096824646,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.040064167231321335,
+            "1": 0.002853833371773362,
+            "2": 0.05449896305799484,
+            "3": 0.04591764882206917
+          },
+          "by_frequency_band_counts": {
+            "0": 4025,
+            "1": 45,
+            "2": 19,
+            "3": 7
+          },
+          "frequency_balanced_mean": 0.03583365312078968,
+          "by_symbol_word_class": {
+            "word": 0.04199454188346863,
+            "symbol": 0.04499531537294388,
+            "other": -0.02758185938000679
+          },
+          "by_symbol_word_class_counts": {
+            "word": 1742,
+            "symbol": 2129,
+            "other": 225
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 1.9091243743896484,
+          "truncated_mean_loss": 1.9488567113876343
+        },
+        "24": {
+          "raw_mean": 0.010513268411159515,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.010685132816433907,
+            "1": 0.007623446173965931,
+            "2": -0.023544136434793472,
+            "3": 0.02271052822470665
+          },
+          "by_frequency_band_counts": {
+            "0": 4025,
+            "1": 45,
+            "2": 19,
+            "3": 7
+          },
+          "frequency_balanced_mean": 0.004368742695078254,
+          "by_symbol_word_class": {
+            "word": 0.01626814901828766,
+            "symbol": 0.00876013282686472,
+            "other": -0.017453724518418312
+          },
+          "by_symbol_word_class_counts": {
+            "word": 1742,
+            "symbol": 2129,
+            "other": 225
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 1.9091243743896484,
+          "truncated_mean_loss": 1.919637680053711
+        },
+        "32": {
+          "raw_mean": 0.000952958595007658,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.0011218034196645021,
+            "1": -0.0009786473819985986,
+            "2": -0.001524285296909511,
+            "3": -0.07699122279882431
+          },
+          "by_frequency_band_counts": {
+            "0": 4025,
+            "1": 45,
+            "2": 19,
+            "3": 7
+          },
+          "frequency_balanced_mean": -0.01959308801451698,
+          "by_symbol_word_class": {
+            "word": 0.0049229455180466175,
+            "symbol": -0.001563817379064858,
+            "other": -0.005969262681901455
+          },
+          "by_symbol_word_class_counts": {
+            "word": 1742,
+            "symbol": 2129,
+            "other": 225
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 1.9091243743896484,
+          "truncated_mean_loss": 1.9100773334503174
+        },
+        "48": {
+          "raw_mean": -0.00043896608985960484,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": -0.00046561306226067245,
+            "1": 0.00797890406101942,
+            "2": 0.003698110580444336,
+            "3": -0.050461091101169586
+          },
+          "by_frequency_band_counts": {
+            "0": 4025,
+            "1": 45,
+            "2": 19,
+            "3": 7
+          },
+          "frequency_balanced_mean": -0.009812422380491626,
+          "by_symbol_word_class": {
+            "word": 0.0012690938310697675,
+            "symbol": -0.0017374156741425395,
+            "other": -0.0013769272482022643
+          },
+          "by_symbol_word_class_counts": {
+            "word": 1742,
+            "symbol": 2129,
+            "other": 225
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 1.9091243743896484,
+          "truncated_mean_loss": 1.9086854457855225
+        },
+        "64": {
+          "raw_mean": -1.216681266669184e-05,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": -6.385804226738401e-06,
+            "1": -0.0004792253312189132,
+            "2": -0.0003133823920506984,
+            "3": 0.00048385350964963436
+          },
+          "by_frequency_band_counts": {
+            "0": 4025,
+            "1": 45,
+            "2": 19,
+            "3": 7
+          },
+          "frequency_balanced_mean": -7.878500446167891e-05,
+          "by_symbol_word_class": {
+            "word": -5.5816017265897244e-05,
+            "symbol": 1.4563096556230448e-05,
+            "other": 7.285061292350292e-05
+          },
+          "by_symbol_word_class_counts": {
+            "word": 1742,
+            "symbol": 2129,
+            "other": 225
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 1.9091243743896484,
+          "truncated_mean_loss": 1.9091123342514038
+        }
+      }
+    },
+    "wikitext": {
+      "windows": {
+        "window_digest": 1341920361,
+        "window_seed_policy": "corpus_fixed (AUDIT FIX-1: crc32(corpus), independent of --seed)",
+        "boundary_full_window": {
+          "n_windows": 32,
+          "frac_windows_crossing": 0.15625,
+          "frac_tokens_cross_doc": 0.0757797360420227
+        },
+        "boundary_scored_continuation": {
+          "n_windows": 32,
+          "frac_windows_crossing": 0.0625,
+          "frac_tokens_cross_doc": 0.040939927101135254
+        }
+      },
+      "by_k": {
+        "8": {
+          "raw_mean": 0.046660952270030975,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.055674243718385696,
+            "1": -0.07678627222776413,
+            "2": -0.11256828159093857,
+            "3": -0.04294948652386665
+          },
+          "by_frequency_band_counts": {
+            "0": 3836,
+            "1": 181,
+            "2": 74,
+            "3": 5
+          },
+          "frequency_balanced_mean": -0.044157449156045914,
+          "by_symbol_word_class": {
+            "word": 0.030855508521199226,
+            "symbol": 0.15360289812088013,
+            "other": -0.29979732632637024
+          },
+          "by_symbol_word_class_counts": {
+            "word": 3262,
+            "symbol": 751,
+            "other": 83
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 8.341875076293945,
+          "truncated_mean_loss": 8.388535499572754
+        },
+        "16": {
+          "raw_mean": 0.010091286152601242,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.016526300460100174,
+            "1": -0.09044280648231506,
+            "2": -0.08288096636533737,
+            "3": 0.08847083896398544
+          },
+          "by_frequency_band_counts": {
+            "0": 3836,
+            "1": 181,
+            "2": 74,
+            "3": 5
+          },
+          "frequency_balanced_mean": -0.017081658355891705,
+          "by_symbol_word_class": {
+            "word": 0.00816407985985279,
+            "symbol": 0.05012150853872299,
+            "other": -0.27636846899986267
+          },
+          "by_symbol_word_class_counts": {
+            "word": 3262,
+            "symbol": 751,
+            "other": 83
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 8.341875076293945,
+          "truncated_mean_loss": 8.35196590423584
+        },
+        "24": {
+          "raw_mean": 0.002212692052125931,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.00458719814196229,
+            "1": -0.03830576315522194,
+            "2": -0.023937534540891647,
+            "3": 0.03428249433636665
+          },
+          "by_frequency_band_counts": {
+            "0": 3836,
+            "1": 181,
+            "2": 74,
+            "3": 5
+          },
+          "frequency_balanced_mean": -0.005843401304446161,
+          "by_symbol_word_class": {
+            "word": 0.007022818084806204,
+            "symbol": 0.006256272085011005,
+            "other": -0.22341813147068024
+          },
+          "by_symbol_word_class_counts": {
+            "word": 3262,
+            "symbol": 751,
+            "other": 83
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 8.341875076293945,
+          "truncated_mean_loss": 8.344087600708008
+        },
+        "32": {
+          "raw_mean": -0.00026136008091270924,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.0005770291900262237,
+            "1": -0.014844270423054695,
+            "2": -0.010709594935178757,
+            "3": 0.039061736315488815
+          },
+          "by_frequency_band_counts": {
+            "0": 3836,
+            "1": 181,
+            "2": 74,
+            "3": 5
+          },
+          "frequency_balanced_mean": 0.0035212250368203968,
+          "by_symbol_word_class": {
+            "word": 0.003410104662179947,
+            "symbol": -0.0053880526684224606,
+            "other": -0.0981670469045639
+          },
+          "by_symbol_word_class_counts": {
+            "word": 3262,
+            "symbol": 751,
+            "other": 83
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 8.341875076293945,
+          "truncated_mean_loss": 8.34161376953125
+        },
+        "48": {
+          "raw_mean": 0.0006901953020133078,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": 0.0006855996907688677,
+            "1": -0.001488206209614873,
+            "2": 0.006773149594664574,
+            "3": -0.006953620817512274
+          },
+          "by_frequency_band_counts": {
+            "0": 3836,
+            "1": 181,
+            "2": 74,
+            "3": 5
+          },
+          "frequency_balanced_mean": -0.00024576943542342633,
+          "by_symbol_word_class": {
+            "word": 0.0005603954195976257,
+            "symbol": 0.0012802215060219169,
+            "other": 0.00045281503116711974
+          },
+          "by_symbol_word_class_counts": {
+            "word": 3262,
+            "symbol": 751,
+            "other": 83
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 8.341875076293945,
+          "truncated_mean_loss": 8.342565536499023
+        },
+        "64": {
+          "raw_mean": -2.8401664167176932e-05,
+          "n_tokens_scored": 4096,
+          "by_frequency_band": {
+            "0": -1.4528173778671771e-05,
+            "1": -0.0001980007073143497,
+            "2": -0.00032555090729147196,
+            "3": -0.0001348495570709929
+          },
+          "by_frequency_band_counts": {
+            "0": 3836,
+            "1": 181,
+            "2": 74,
+            "3": 5
+          },
+          "frequency_balanced_mean": -0.00016823233636387158,
+          "by_symbol_word_class": {
+            "word": -9.241807856597006e-05,
+            "symbol": 0.00022937303583603352,
+            "other": 0.000155125031596981
+          },
+          "by_symbol_word_class_counts": {
+            "word": 3262,
+            "symbol": 751,
+            "other": 83
+          },
+          "n_windows_skipped": 0,
+          "baseline_mean_loss": 8.341875076293945,
+          "truncated_mean_loss": 8.341846466064453
+        }
+      }
+    }
+  },
+  "wall_s": 5.938518762588501,
+  "complete": true
+}

@@ -1,0 +1,34 @@
+Stage 0 -- wave 0
+==================================================
+{
+  "wave": "0",
+  "n_failed": 0,
+  "n_runs": 12,
+  "by_cell": {
+    "baseline_d16_K4_h64_frN": {
+      "mean_cos": 0.8831,
+      "effective_rank_mean": 4.7124,
+      "recovered_frac@0.9": 0.4153
+    },
+    "baseline_d16_K8_h64_frN": {
+      "mean_cos": 0.9375,
+      "effective_rank_mean": 8.0992,
+      "recovered_frac@0.9": 1.0
+    },
+    "baseline_d32_K16_h64_frN": {
+      "mean_cos": 0.7026,
+      "effective_rank_mean": 15.5673,
+      "recovered_frac@0.9": 0.0059
+    },
+    "baseline_d32_K8_h64_frN": {
+      "mean_cos": 0.7756,
+      "effective_rank_mean": 9.3302,
+      "recovered_frac@0.9": 0.0516
+    },
+    "baseline_d64_K32_h64_frN": {
+      "mean_cos": 0.064,
+      "effective_rank_mean": 4.046,
+      "recovered_frac@0.9": 0.0
+    }
+  }
+}

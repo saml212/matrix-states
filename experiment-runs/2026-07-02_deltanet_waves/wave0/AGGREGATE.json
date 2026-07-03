@@ -1,0 +1,28 @@
+{
+  "wave": "0",
+  "n_failed": 0,
+  "n_runs": 11,
+  "n_partial_excluded": 1,
+  "by_cell": {
+    "d128_K32_frN": {
+      "skip_rate": 0.0,
+      "final_recovered_frac_h1": 1.0,
+      "final_entity_subspace_eff_rank_h1": 32.0
+    },
+    "d128_K64_frN": {
+      "skip_rate": 0.0,
+      "final_recovered_frac_h1": 1.0,
+      "final_entity_subspace_eff_rank_h1": 64.0
+    },
+    "d64_K16_frN": {
+      "skip_rate": 0.0,
+      "final_recovered_frac_h1": 1.0,
+      "final_entity_subspace_eff_rank_h1": 16.0
+    },
+    "d64_K32_frN": {
+      "skip_rate": 0.0,
+      "final_recovered_frac_h1": 1.0,
+      "final_entity_subspace_eff_rank_h1": 31.9999
+    }
+  }
+}

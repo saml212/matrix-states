@@ -1,0 +1,207 @@
+{
+  "family": "matrix",
+  "variant": "baseline",
+  "mat_dim": 32,
+  "vocab_size": 256,
+  "n_iterations": 8,
+  "steps": 500,
+  "seed": 0,
+  "seq_len": 512,
+  "n_params": 290328,
+  "param_breakdown": {
+    "embed": 81920,
+    "think": 197144,
+    "head": 11264,
+    "cond": 0
+  },
+  "step0_entry_std": 1.0089571475982666,
+  "analytic_flops_per_token": {
+    "non_causal": 226580480,
+    "causal_exact": 159471616.0
+  },
+  "steps_completed": 500,
+  "complete": true,
+  "timed_out": false,
+  "trajectory": [
+    {
+      "step": 1,
+      "loss": 5.715323448181152,
+      "bpb": 8.245468795767358,
+      "grad_norm": 3.1305313110351562,
+      "lr": 5.999999999999999e-06,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.470359,
+        "attn_proj": 2.088297,
+        "thinking_mlp": 1.907068,
+        "output_head": 1.257416,
+        "cond": 0.0
+      }
+    },
+    {
+      "step": 100,
+      "loss": 3.6371541023254395,
+      "bpb": 5.247304186373861,
+      "grad_norm": 1.4181461334228516,
+      "lr": 0.0002909538931178862,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.105014,
+        "attn_proj": 0.517653,
+        "thinking_mlp": 0.408144,
+        "output_head": 1.251225,
+        "cond": 0.0
+      }
+    },
+    {
+      "step": 200,
+      "loss": 2.841169834136963,
+      "bpb": 4.098941630032715,
+      "grad_norm": 0.3685245215892792,
+      "lr": 0.000225,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.027344,
+        "attn_proj": 0.135028,
+        "thinking_mlp": 0.194157,
+        "output_head": 0.281306,
+        "cond": 0.0
+      }
+    },
+    {
+      "step": 300,
+      "loss": 2.705819606781006,
+      "bpb": 3.9036725282430824,
+      "grad_norm": 0.3187999129295349,
+      "lr": 0.00012395277334996044,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.028466,
+        "attn_proj": 0.133626,
+        "thinking_mlp": 0.235144,
+        "output_head": 0.166357,
+        "cond": 0.0
+      }
+    },
+    {
+      "step": 400,
+      "loss": 2.65490984916687,
+      "bpb": 3.8302252734003095,
+      "grad_norm": 0.28824689984321594,
+      "lr": 3.509333353215331e-05,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.025389,
+        "attn_proj": 0.116622,
+        "thinking_mlp": 0.19163,
+        "output_head": 0.179217,
+        "cond": 0.0
+      }
+    },
+    {
+      "step": 500,
+      "loss": 2.6610608100891113,
+      "bpb": 3.8390992342195287,
+      "grad_norm": 0.26672831177711487,
+      "lr": 0.0,
+      "grad_norm_by_group_pre_clip": {
+        "embed": 0.028348,
+        "attn_proj": 0.115896,
+        "thinking_mlp": 0.171045,
+        "output_head": 0.16629,
+        "cond": 0.0
+      }
+    }
+  ],
+  "checkpoints": [
+    {
+      "step": 500,
+      "evals": {
+        "T1": {
+          "val_loss": 2.931961088180542,
+          "val_bpb": 4.229925721997477,
+          "ranks": [
+            3.7099
+          ]
+        },
+        "T2": {
+          "val_loss": 2.7609587287902833,
+          "val_bpb": 3.983221466124838,
+          "ranks": [
+            3.7399,
+            4.4552
+          ]
+        },
+        "T4": {
+          "val_loss": 2.670655679702759,
+          "val_bpb": 3.852941705029114,
+          "ranks": [
+            3.7437,
+            4.467,
+            4.8426,
+            5.0727
+          ]
+        },
+        "T8": {
+          "val_loss": 2.653945941925049,
+          "val_bpb": 3.828834649202657,
+          "ranks": [
+            3.7153,
+            4.4851,
+            4.834,
+            5.0692,
+            5.1938,
+            5.257,
+            5.3163,
+            5.3259
+          ]
+        }
+      },
+      "grad_norm_by_group_post_clip": {
+        "embed": 0.028348,
+        "attn_proj": 0.115896,
+        "thinking_mlp": 0.171045,
+        "output_head": 0.16629,
+        "cond": 0.0
+      }
+    }
+  ],
+  "wall_s": 1030.4256205558777,
+  "final_step": 500,
+  "final_evals": {
+    "T1": {
+      "val_loss": 2.931961088180542,
+      "val_bpb": 4.229925721997477,
+      "ranks": [
+        3.7099
+      ]
+    },
+    "T2": {
+      "val_loss": 2.7609587287902833,
+      "val_bpb": 3.983221466124838,
+      "ranks": [
+        3.7399,
+        4.4552
+      ]
+    },
+    "T4": {
+      "val_loss": 2.670655679702759,
+      "val_bpb": 3.852941705029114,
+      "ranks": [
+        3.7437,
+        4.467,
+        4.8426,
+        5.0727
+      ]
+    },
+    "T8": {
+      "val_loss": 2.653945941925049,
+      "val_bpb": 3.828834649202657,
+      "ranks": [
+        3.7153,
+        4.4851,
+        4.834,
+        5.0692,
+        5.1938,
+        5.257,
+        5.3163,
+        5.3259
+      ]
+    }
+  }
+}

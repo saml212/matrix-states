@@ -1,0 +1,13 @@
+
+======================================================================
+  MATRIX-CODI RUN A (vanilla)
+======================================================================
+  Base model: gpt2
+  Use matrix bottleneck: False
+  Latents: 6, mat_dim: 16
+  Params: 124,443,648
+  Epochs: 5, global batch: 256
+  Wall time: 28.1 min on 8 GPUs
+
+  Best GSM8K accuracy: 7.00%
+======================================================================
