@@ -72,6 +72,24 @@ the deficiency past threshold.}
 \label{tab:taske-depth}
 \end{table}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{fig_taske_depth.pdf}
+\caption{\textbf{[Primary, pre-registered -- Table~\ref{tab:taske-depth} in
+figure form, plus the rank-sufficient contrast from \S\ref{sec:taske-headline}.]}
+\emph{Left:} force-rank $k{=}7{=}K{-}1$ at $K{=}8$ -- the spectral
+prediction (no raw keys, \S\ref{sec:taske-depth}) against the measured
+curve, at every archived hop (not only the five in Table~\ref{tab:taske-depth}).
+\emph{Right:} the behavioral contrast that motivates using
+$\mathrm{recovered\_frac@0.9}$ over mean cosine as the primary metric --
+rank-sufficient seeds (mean of the 4/5 converged unconstrained-rank seeds)
+stay flat at $1.00$ through $h{=}21$, force-rank $K{-}1$ collapses, and the
+fifth (still-transitioning) unconstrained-rank seed shows the same
+decay signature, consistent with \S\ref{sec:taske-headline}'s reading that
+it is mid-transition rather than a new failure mode.}
+\label{fig:taske-depth}
+\end{figure*}
+
 An entity-subspace eigenanalysis (\S\ref{sec:taske-subspace}) confirms this
 is not a heuristic but an exact spectral fact: \emph{exactly one} eigenmode
 of the trained operator has the maximum possible phase residual (genuinely

@@ -72,13 +72,32 @@ noisier than a two-point table implies.}
 \label{tab:taskd-m3}
 \end{table}
 
-The signature in Table~\ref{tab:taskd-m3} is the paper's central causal
-result: constraining rank below $K$ destroys recovery, with a step at
-$k\approx K$. Together with Table~\ref{tab:taskd-m1}, M1 and M3 confirm the
+The signature in Table~\ref{tab:taskd-m3} (plotted in
+Figure~\ref{fig:taskd-forcerank}) is the paper's central causal result:
+constraining rank below $K$ destroys recovery, with a step at $k\approx K$.
+Together with Table~\ref{tab:taskd-m1}, M1 and M3 confirm the
 pre-registered hypothesis at $d\in\{8,16\}$: SGD develops rank $\approx K$
 \emph{and} that rank is causally necessary. This directly resolves the
 question the companion paper left open -- the earlier rank-blindness was
 task-specific (ProsQA was rank-1-solvable), not a property of the gradient.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{fig_taskd_forcerank.pdf}
+\caption{\textbf{[Primary, pre-registered causal result -- Table~\ref{tab:taskd-m3} in figure
+form.]} $\mathrm{recovered\_frac@0.9}$ under train-time force-rank $k$
+(control C1, \S\ref{sec:setup-arch}), for all three tested $(d,K)$ cells,
+showing the full archived grid (the table omits some intermediate $k$ for
+space). The step lands at $k\approx K$ (dashed line) in every cell; note the
+$d{=}8,K{=}4$ knee is razor-sharp while $d{=}16,K{=}12$ already shows a
+ragged, non-monotonic transition near $k\approx K$ in this
+(991-run-snapshot) data -- consistent with, though numerically distinct
+from, the separately-reported 1{,}234-run mega-replication's refined ramp
+in Table~\ref{tab:taskd-m3}'s caption. Regenerated directly from the
+991-run archived snapshot (\texttt{figures/make\_figures.py}), not
+re-typed from the table.}
+\label{fig:taskd-forcerank}
+\end{figure*}
 
 \paragraph{One cell needed a second look.} At $d{=}16,K{=}4$, the original
 8{,}000-step budget produced $\mathrm{recovered\_frac@0.9}=0.045$ even at
