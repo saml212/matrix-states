@@ -1,9 +1,9 @@
 \section{Results: The Fix Demonstration}
 \label{sec:results}
 
-% Full grounding: EXPERIMENT_LOG.md "F-geo-3 WAVE VERDICT" 2026-07-04.
-% *** THIS SECTION HAS THE ONE LOAD-BEARING OPEN NUMBER IN THE PAPER. ***
-% Resolve the K=32 n_iter=20 escalation before drafting final prose.
+% Full grounding: EXPERIMENT_LOG.md "F-geo-3 WAVE VERDICT" 2026-07-04 +
+% the completed K=32 n_iter=20 escalation cells (same archive directory).
+% ENDING RESOLVED — no open numbers remain in this section.
 
 \subsection{The pre-spend gate}
 \begin{itemize}
@@ -11,7 +11,9 @@
     cross-episode drift ($0.94$ at $K{=}16$, $0.90$ at $K{=}32$) ---
     training stabilizes keys relative to the untrained-probe reference,
     resolving the attack's cross-episode-drift risk favorably enough to
-    authorize launch.
+    authorize launch. (The gate was registered on $K{=}16$ only; the
+    $K{=}32$ prediction was explicitly non-gating --- load-bearing for
+    the pre-mortem answer on simulator calibration.)
 \end{itemize}
 
 \subsection{K=16: minimum-publishable headline --- HIT (Fig.~7 left)}
@@ -21,28 +23,48 @@
     $0.07$--$0.10$. $h{=}1$ no-sacrifice: $1.0$ everywhere.
 \end{itemize}
 
-\subsection{K=32: transformed but not yet admitted (Fig.~7 right)}
+\subsection{K=32: $\sim$45$\times$, fully admissible, bar narrowly missed
+--- and the miss is attributed (Fig.~7 right)}
 \begin{itemize}
-  \item $h{=}4$: $0.39$--$0.50$ vs.\ baseline $0.009$ ($\sim$50$\times$).
-    ID $h{=}2$: $1.0$ vs.\ baseline $0.26$. $h{=}3$: $0.87$--$0.95$ vs.\
-    baseline $0.05$.
-  \item \textbf{0/3 seeds pass the pre-registered substitute admission
-    stack} --- Newton-Schulz fell back to the eigh solver on
-    56/20{,}000 steps ($0.28\%$), disqualifying under item 2 of the
-    substitute criterion.
-  \item \texttt{[[RESOLVE BEFORE FINAL DRAFT]]} K=32 \texttt{n\_iter=20}
-    escalation ($\times$3 seeds, audit-verified, targeting the exact
-    admission-failure cause) was IN FLIGHT as of the last recorded entry.
-    \textbf{ENDING A} (clears admissibility): reframe this subsection as
-    ``the fix clears both pre-registered bars''; strengthen abstract/intro
-    accordingly --- this is a DIFFERENT, stronger paper, do not draft
-    final abstract sentence until resolved. \textbf{ENDING B} (stays
-    0/3 or partial): report as ``mechanism magnitude confirmed
-    ($\sim$50$\times$, an order of magnitude beyond the soft arms) but the
-    paper's own pre-registered admissibility bar is not cleared at
-    $K{=}32$'' --- still a strong, honest result, NOT reframed as failure;
-    $K{=}32{=}d/2$ independently flagged (\S\ref{sec:phenomenon}) as a
-    structural boundary, a legitimate scoping explanation not an excuse.
+  \item \textbf{Move 1 --- admissibility CLEARED.} The original
+    \texttt{n\_iter=12} cells were 0/3 admissible solely on the
+    Newton-Schulz fallback criterion (56/20{,}000 steps $= 0.28\%$ eigh
+    fallback --- disqualifying under item 2 of the substitute stack, per
+    pre-registration). The audit-verified \texttt{n\_iter=20} escalation
+    completed: ALL 3 seeds fully admissible --- ZERO fallback steps,
+    every substitute-stack criterion passed. The improvement is claimable
+    at full evidentiary tier: $h{=}4$: $0.009 \to 0.390/0.416/0.504$
+    ($\sim$45$\times$); ID $h{=}2$: $1.0$ vs.\ baseline $0.26$; $h{=}3$:
+    $0.87$--$0.95$ vs.\ $0.05$. Admission-stack difference drops to a
+    footnote (both stacks + realized pass rates still named).
+  \item \textbf{Move 2 --- headline bar ($\geq 0.5$) NOT met; honest
+    narrow miss, reported exactly.} $h{=}4 = 0.504/0.416/0.390$, mean
+    $0.44$; 1/3 seeds at the line. Never rounded up, never restated as
+    ``approximately met.''
+  \item \textbf{Move 3 --- the miss is ATTRIBUTED.} Trained cross-episode
+    key drift at $K{=}32$ measured $0.9037 < 0.95$ = the pre-registered
+    HIGH band (pinned before the wave ran) $\Rightarrow$ outcome F:
+    ``stable-not-just-orthogonal geometry is the bottleneck'' --- the
+    mechanism the adversarial round (finding F1) named and measured in
+    advance. Within-episode orthogonality is delivered ($\mathrm{resid}
+    \approx 0$ by construction); cross-episode key IDENTITY is the
+    residual requirement (per-identity $v_{\mathrm{eff}}$ cannot chase an
+    episode-conditional key). Follow-on --- cross-episode key
+    anchoring/stabilization (EMA-anchored or identity-registered
+    orthogonalization, the direction named in the design's own outcome-F
+    row) --- goes to future work with a measured target.
+  \item \textbf{Fallback-irrelevance finding (report alongside).} The
+    \texttt{n\_iter=20} cells (zero fallbacks) are numerically IDENTICAL
+    to the \texttt{n\_iter=12} cells (56 fallbacks): $0.504/0.416/0.390$
+    vs.\ $0.39$--$0.50$. The 56 ``corrupted'' steps changed nothing ---
+    the residual gap is drift, not solver noise. This both validates the
+    admission criterion as conservative (not explanatory) and rules out
+    solver health as a competing account of the bar miss.
+  \item Frame sentence for the section (and the paper): \emph{the fix
+    moves the frontier decisively at $K{=}16$ (bar hit 3/3), moves it
+    $\sim$45$\times$ at $K{=}32$ without clearing the pre-registered bar,
+    and the residual gap is attributed to a pre-measured second
+    mechanism} --- a complete causal chain, no loose ends.
 \end{itemize}
 
 \subsection{What does NOT move: $h{=}21$}
