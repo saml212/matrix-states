@@ -16,15 +16,56 @@ Language is a powerful cognitive tool. It encodes most of accumulated human know
 
 ## What We've Shown So Far
 
-26 experiments on 8×H100 pods. Findings:
+Two eras of findings. First, on a **bolt-on** matrix bottleneck grafted onto
+a vector-pretrained continuous-reasoning model (CODI-style): matrix
+representations gave a large per-parameter efficiency win at equal
+iterations, but were **rank-blind** — the training gradient never used
+matrix rank to encode reasoning structure. That negative result, with its
+mechanism diagnosed and a positive-control falsification test, was accepted
+at ICML MI Workshop 2026 ("The Gradient Does Not See Rank").
 
-- **Outer-product matrix embedding gives better per-parameter representations at T=1** — reproduced across every configuration tested
-- **Rank enrichment** is an emergent property of matrix tokens with bilinear output heads (effective rank 5.0 → 6.1 across iterations) — novel empirical finding
-- **The output head determines whether representations enrich or solidify** during iterative refinement — novel finding
-- **Matrix operations lose at matched FLOPs** to standard vector transformers — honest negative result that narrowed the project from "matrices everywhere" to "matrices where they provide a unique observable"
+Second, and more recent: a **matrix-native, trained-from-scratch** model
+(no bolt-on, no vector teacher) resolves the open question the workshop
+paper left behind. Five programs (2026-07-01 → 07-04) each designed,
+adversarially attacked, built, independently audited, run, and closed:
 
-Full project state: [STATE.md](STATE.md). Engineering queue: [matrix-thinking/QUEUE.md](matrix-thinking/QUEUE.md). Bibliography: [references.md](references.md). Experiment history: [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md).
+- **Gradient descent recruits provably-necessary matrix rank** when a task
+  is constructed so that no rank-1 shortcut exists — effective rank tracks
+  the required K almost exactly, and forcing rank below K causally breaks
+  recovery (a sharp step at k≈K, not a gradual slope).
+- That rank **composes**: the recruited K-rank matrix survives repeated
+  self-application to hold-out reasoning depths never seen in training.
+- The same rank-K binding, and its composition, was then confirmed on a
+  **production fast-weight architecture** (DeltaNet) — first on hand-built
+  synthetic keys (a razor-sharp exactness cliff), then on **real
+  GPT-2-tokenized text** (a graded exactness frontier, since the model's
+  own learned keys aren't perfectly orthonormal).
+- The project's oldest negative result — "matrix ops lose at matched
+  FLOPs" — now has a **named mechanism**: a specific projection-family
+  restriction, not matrix-valued tokens per se, accounts for most of the
+  per-FLOP gap.
 
-## Next Experiment
+An active follow-on studies *why* real-text composition falls short of the
+synthetic exactness cliff, with a first structural fix (differentiable
+per-episode key orthogonalization) already showing a large, partial
+recovery on the box.
 
-Matrix-CODI rank dynamics on GSM8K. Tests whether matrix rank correlates with reasoning depth in continuous-reasoning models. ~2 hours of compute on 8×H100, falsifiable in a single training run, publishable either way. Spec at [matrix-thinking/QUEUE.md](matrix-thinking/QUEUE.md).
+Full project state and the exact numbers behind every claim above:
+[STATE.md](STATE.md). Chronological experiment history:
+[EXPERIMENT_LOG.md](EXPERIMENT_LOG.md). Engineering queue:
+[matrix-thinking/QUEUE.md](matrix-thinking/QUEUE.md). Bibliography:
+[references.md](references.md).
+
+## Papers
+
+- **"The Gradient Does Not See Rank"** — ICML MI Workshop 2026, **accepted**.
+  `matrix-thinking/submissions/icml-mi-workshop-2026/`.
+- A second paper covering the matrix-native rank-recruitment results is in
+  draft. `matrix-thinking/submissions/neurips-ws-2026/`.
+
+## Now Running
+
+The exactness-mechanism follow-on above, on the Brev 8×H100 cluster, plus a
+gated check of whether the matrix-vs-vector per-FLOP gap's named mechanism
+generalizes to a composition-heavy language-modeling task. Current status
+and in-flight work: [STATE.md](STATE.md) "Path Forward."

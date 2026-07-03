@@ -1,5 +1,17 @@
 # Autopilot Build — Phase 1a Handoff
 
+> **STATUS NOTE (2026-07-04 consolidation pass):** Phase 2 (`/deploy-team`)
+> and Phase 3 (`/autopilot`) below are **shipped** — both exist as skills in
+> `.claude/skills/` (`deploy-team/`, `autopilot/`, plus `queue-refill/`,
+> `post-run-review/`, `propose-harness-change/`, `scheduled-notes/`, which
+> aren't named in the original Phase 2/3 sketch below but clearly belong to
+> the same build-out). **Phase 1b (Stone Claude Hub) status was not
+> verified** during this pass — it lives in a separate repo
+> (`/Users/samuellarson/Pebble/github/stone-app/`), out of scope for a
+> documentation consolidation of *this* repo. This file's phase sections
+> below are kept as the original build log/spec; treat the roadmap framing
+> ("next") as historical, not current.
+
 Phase 1a (notification transport + learnings DB + hooks) is complete. This
 doc is for the next agent session picking up at Phase 1b or running Phase 1a
 for the first time.

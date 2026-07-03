@@ -14,7 +14,7 @@ Every cycle should make the next cycle better.
 
 ## Learnings DB
 
-A SQLite DB at `.Codex/memory/workflow.db` persists durable rules, corrections, and gotchas across sessions. Relevant rules auto-inject at prompt time via the `load-relevant-rules.sh` hook.
+A SQLite DB at `.codex/memory/workflow.db` persists durable rules, corrections, and gotchas across sessions. Relevant rules auto-inject at prompt time via the `load-relevant-rules.sh` hook.
 
 **When you learn something worth persisting, emit a `[LEARN]` block in your response:**
 
@@ -28,30 +28,19 @@ The `learn-capture.sh` Stop hook parses these automatically, dedupes by (categor
 
 See `AUTOPILOT_HANDOFF.md` for the full harness spec and phase plan.
 
-## Repo Layout
-
-- `STATE.md` — Current project state, what's running, user context, dead ends
-- `ARCHITECTURE.md` — Full architecture spec with verified citations
-- `EXPERIMENT_LOG.md` — Every experiment and result
-- `references.md` — Paper references library
-- `matrix-thinking/` — Matrix-valued token representations (active)
-  - `ADAPTIVE_THINKING.md` — Certainty-driven mode switching design (next feature)
-  - `EXPERIMENTS.md` — Experiment queue and planning
-  - `H100_SETUP.md` — H100 environment, access, commands
-  - `h100_scripts/` — Training scripts
-  - `src/` — Model code (v1/v2, legacy)
-  - `research/` — Research agent outputs on matrix operations
-- `experiment-runs/` — Archived exact scripts from each experiment
-- `byte-agnostic/` — On hold, partially validated
-- `archive/` — Dead ends and superseded docs
-- `research/` — Literature surveys
-
 ## Hardware
 
 - **M4 Mac Mini 32GB** — Dev machine. 10 CPU cores, 12GB MPS GPU. Good for <15M params.
-- **H100 80GB HBM3** — Active. SSH in `matrix-thinking/H100_SETUP.md`.
+- **Brev 8×H100 80GB (active)** — "youthful-indigo-turkey" via the Brev CLI.
+  The grant is a 2-month **uptime-metered** hardware window (bills while
+  running, cannot be stopped — `brev stop` unsupported, delete only), not a
+  fixed GPU-hour utilization budget; operative budget ≈192 GPU-h/day for the
+  window (see STATE.md "Hardware" for the full correction, dated 2026-07-03).
+  SSH alias set up via `brev login && brev refresh` (writes
+  `~/.brev/ssh_config`, Included from `~/.ssh/config`). Details, venv setup, and
+  the perpetual-sweep orchestration pattern in `matrix-thinking/H100_SETUP.md`.
 - **M4 Ultra Mac Studio 256GB** — Available for 50-100M param experiments.
-- **8×H100 (cloud)** — Available for serious scale. Use after code is proven.
+- Prior single-H100 cloud pods — superseded by the Brev cluster above.
 
 ## Data
 
@@ -61,6 +50,16 @@ Code lives in this repo. Data and checkpoints live elsewhere.
   - `data/text.bin` — 100MB WikiText-103 raw UTF-8 bytes
   - `data/images.bin` — 154MB CIFAR-10 raw pixels
   - `checkpoints/` — Model checkpoints (don't commit)
+  - `experiment-runs/` — the FULL experiment archive, superset of the
+    repo-root `experiment-runs/` directory.
+- **experiment-runs/ hybrid archive policy (2026-07-04, corrected from the
+  briefly-tried symlink approach — see `experiment-runs/README.md`, the
+  source of truth):** the repo-root `experiment-runs/` is a real, committed
+  directory, size-capped — files ≤25MB are tracked in git (crash-proof via
+  GitHub); larger payloads (Z-dumps, checkpoints, >25MB JSONs) live ONLY on
+  the SSD path above. Write new archives to BOTH: small files here
+  (commit them), big files to the SSD path. If the SSD is unmounted, stop
+  and say so.
 - **H100:** `/root/data/reasoning/` — 43.7M tokens OpenR1-Math (GPT-2 tokenized)
 - **Do not store** large data files, checkpoints, or venv in the git repo
 
@@ -115,12 +114,76 @@ Only build what survives all four stages.
 - The 50K vocab logits tensor is the VRAM bottleneck, not the model activations.
 - Use the same dataset for ALL experiments in a comparison. Don't swap data between rounds.
 - `nn.MultiheadAttention` in PyTorch 2.4 requires explicit `attn_mask` OR `is_causal`, not both.
+- A low-rank matrix is NOT low-capacity. A rank-1 `Z = u⊗v₀` (v₀ fixed) stores
+  `d` independent items via its free vector side, recoverable by a linear read.
+  Rank is only the binding constraint when the readout requires EXACT recovery
+  of K independent key→value mappings through a matrix-vector product — not
+  when items can be packed as a vector-in-a-matrix-costume. Any "does the model
+  use rank K" experiment must close this shortcut by construction (provable
+  lower bound), not by assumption.
+- Readout must force EXACT CONTINUOUS recovery, never argmax/nearest-neighbor
+  over a codebook, when a rank≥K bound depends on it. Under argmax decoding a
+  rank-1 matrix can recover ≈d associations (Nichani, Lee & Bietti, ICLR 2025,
+  arXiv:2412.06538) — argmax silently breaks provable rank-necessity proofs.
+- In any full-attention model, "hold K items" is trivially satisfiable via K
+  *positions* at rank-1 each (position-decomposition). A single-state (P=1)
+  hard bottleneck — decoder reads ONLY the state, never raw inputs — is
+  required to make within-representation rank load-bearing. Verify the
+  bottleneck holds with a gradient-based blank-out test (corrupt raw inputs
+  post-encoding, confirm decode is unchanged), not a vacuous shape check.
+- Permutation-based hop-depth/compositional-generalization tasks need a SINGLE
+  full K-cycle, not a general random permutation. A general permutation
+  decomposes into short disjoint cycles, and `π^h` is periodic with the cycle
+  length — "held-out" hop depths silently collapse via `h mod cycle_length`
+  into in-distribution or trivial (identity) queries. Verified: 50-100% of
+  nominally held-out queries collapsed across K∈{4,8,12,16} before the fix.
+  Stratify results by effective distance (`h mod K`), not raw nominal hop.
+- Integer/structural correctness checks (injectivity, rank-equals-K, etc.) need
+  EXACT thresholds. A `-1` (or any) numerical-tolerance slack copied from a
+  floating-point context into a structural check silently defeats
+  single-instance violations. Always run the negative unit test that's
+  supposed to prove the check "has teeth" to completion — don't just write it.
+- A calibration run (one real training run at the target config) before a big
+  sweep is mandatory, not optional. It catches convergence ceilings (a small
+  reliable model may plateau below your target metric threshold — re-register
+  the metric/threshold rather than assume it) and confirms a "bigger model"
+  guess doesn't silently diverge before you commit a sweep's compute to it.
+- On a remote box, NEVER run `pkill -f <pattern>` where `<pattern>` could match
+  the SSH command string invoking the kill itself — it self-kills the shell
+  running it (manifests as SSH exit 255 with no visible error). Use tmux
+  session names (`tmux kill-session -t <name>`) or exact PIDs instead.
+- For unattended/overnight cluster runs: launch the long-running process inside
+  `tmux new-session -d -s <name> "<cmd>"`, not backgrounded shell (`cmd &`)
+  over SSH — the latter can die on session/control-master hiccups. Wrap it in a
+  self-healing supervisor loop (`while [ ! -f STOP ]; do <cmd>; sleep 15; done`)
+  so a crash auto-restarts; make the orchestrator itself resume-safe (skip
+  already-completed work by checking output validity, not just existence) so a
+  supervisor restart loses nothing. A local Claude Code session restart kills
+  local loops/monitoring but NOT an on-box tmux+supervisor process — this is
+  the intended failure isolation, verify the box survived before assuming
+  anything is lost.
+- Multiple independent adversarial audit rounds catch different bugs each
+  round — do not stop at one. On one experiment (Task E), round 1 caught 2
+  FATALs (a tolerance bug, a periodicity confound); the fix was itself audited
+  fresh (round 2) before trusting it clean. A self-audit by the same
+  implementer is not a substitute for an independent audit — it caught real
+  issues the self-audit missed.
+- Hold tokenization (or any second architectural axis) FIXED when testing a
+  primary hypothesis (e.g. matrix representation). Bundling two unproven
+  changes at once makes any result — positive or negative — uninterpretable.
+  Treat the second axis as a separate, explicitly-sequenced follow-on ablation.
 
 ## Research Direction
 
 **Matrix Thinking (active):** 32×32 matrix tokens, multiplicative composition,
 iterative refinement with shared thinking layers. Frobenius attention (flash-compatible).
-Novel architecture — verified against literature March 2026.
+Novel architecture — verified against literature March 2026. As of 2026-07-01:
+the bolt-on matrix-CODI variant is confirmed dead (rank-blind, workshop paper
+accepted on that negative result); the matrix-native-from-scratch variant
+(Chapter 2 / `matrix-thinking/chapter2/`) is confirmed alive at d=8,16 — SGD
+recruits provably-necessary rank when a task forces it. See STATE.md's
+"Chapter 2 — STATUS" section for the full current picture and the running
+Task E reasoning-transfer experiment.
 
 **Byte-Agnostic (on hold):** Raw byte input for domain-general processing.
 Partially validated. Combines with matrix thinking later.

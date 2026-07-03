@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-03
+**Last updated:** 2026-07-04
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -207,10 +207,13 @@ Positive-control result: **bilinear+GELU also produces a flat rank-k curve**
 alone; the CODI distillation objective itself produces rank-indifferent
 gradients regardless of how Z is consumed.
 
-**Publication status:** workshop paper being written for ICML MI Workshop 2026
+**Publication status:** workshop paper written for ICML MI Workshop 2026
 (deadline May 8) documenting the negative result + diagnosis + positive-control
-falsification test. Brief in `matrix-thinking/PAPER_WRITER_BRIEF.md`, consolidated
-results in `matrix-thinking/PAPER_RESULTS_SUMMARY.md`.
+falsification test — **submitted and accepted** (see "Workshop paper outcome"
+below and `matrix-thinking/submissions/icml-mi-workshop-2026/`). The
+now-superseded writing brief and results-consolidation scratch that fed the
+paper are archived at `archive/matrix-thinking-workshop-era/PAPER_WRITER_BRIEF.md`
+and `archive/matrix-thinking-workshop-era/PAPER_RESULTS_SUMMARY.md`.
 
 **What the failure does NOT imply:** the broader matrix-thinking thesis is NOT
 decided by these experiments. All experiments here bolt a matrix bottleneck
@@ -229,7 +232,7 @@ Consistent finding, two routes: bolt-on matrix-CODI never uses rank.
 
 ---
 
-## Chapter 2 — STATUS (2026-07-03): CONFIRMED through real data; five programs closed
+## Chapter 2 — STATUS (2026-07-04): CONFIRMED through real data; five programs closed, exactness-mechanism follow-on active
 
 Chapter 2 ran and gave the field's first positive result for matrix-native
 rank: **when a task provably requires `rank(Z) ≥ K`, gradient descent trained
@@ -343,12 +346,63 @@ exactly as predicted, not a hedge that never fired. This is the project's
 first demonstration of genuine, causally-verified rank-K relational
 binding in a production architecture on real tokenized surface forms.
 Full arc, exact numbers, and the closing verdict:
-`matrix-thinking/DELTANET_REALDATA_DESIGN.md` §14–§17. Wave C (real-corpus
-LM pretrain, Wave 2) is now gated open per §7's manifest, not yet launched.
+`matrix-thinking/DELTANET_REALDATA_DESIGN.md` §14–§17.
+
+**Wave 2 (Waves C+D, CLOSED 2026-07-04, §19):** real-corpus LM pretrain
+(OpenR1-Math vs. WikiText, d_state=64, seeds{0,1,2}) plus inference-time
+rank-truncation grid, 12/12 cells. Headline: reasoning-dense text
+(OpenR1-Math) is measurably more truncation-damage-sensitive than
+narrative text (WikiText) at low-to-moderate k (8/16/24), converging to
+the same noise floor by k≈48 of d_state=64 — consistent in direction
+across every cell tested, including a within-token-class check that
+partially rules out a symbol-density confound. Counter-intuitive finding:
+layer-0 effective rank *falls* (not rises) as training proceeds in BOTH
+corpora (Pearson r vs. val-loss trajectory: +0.92 openr1, +0.91 wikitext —
+both decreasing together), the opposite of the "SGD recruits more rank as
+it learns" intuition from the controlled causal-rank chain; read as a
+general LM training dynamic, not reasoning-specific, since it doesn't
+replicate cleanly at layer 1. Wave 2 closes the DeltaNet real-data
+program's record — no further waves are pre-registered beyond §7's
+manifest Reserve row.
+
+**Exactness mechanism study (living, NOT one of the five closed
+programs — the active follow-on) — why does real-text composition fall
+short of the synthetic razor cliff, and can the gap be closed?**
+`matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md`. Wave 0/1 (CLOSED
+2026-07-04): effective-key geometry is the whole attribution story — three
+independent arms (frozen orthonormal, GPT-2 span, gram-matched) all
+converge to the *same* non-orthonormal write-geometry attractor regardless
+of input geometry (raw embedding geometry is causally irrelevant), and a
+surgical orthonormal-key pin (i-strong) achieves **PERFECT K=32
+composition** (1.00/1.00/1.00 recovery at h=1/2/3) — proving the exact
+solution is architecturally reachable; SGD just doesn't find it under the
+current objective. Wave F (soft fix attempt, CLOSED 2026-07-04): an
+orthogonality penalty and ZCA whitening both move recovery in the right
+direction but land 20-25× short of the pre-registered bars (K=32 h=4:
+0.014-0.026 vs. bar ≥0.5) — an honest negative that motivated the next,
+structural attempt. **K=48 rider (CLOSED):** the frontier extends past
+d/2 (gram deviation keeps growing, composition gone by h≥2); the
+i-strong pin's own dimensional guard correctly refuses K=48 (train+
+held-out identity vectors exceed d_state=64), fencing that boundary as
+designed. **F-geo-3 (differentiable per-episode key orthogonalization,
+the trainable version of i-strong) — fix wave IN FLIGHT.** A first 6-cell
+Wave 1 batch (K∈{16,32}×3 seeds, `geo3_n_iter=12`, 20,000/20,000 steps
+each) landed 2026-07-04: **K=16 clears the pre-registered minimum-
+publishable bar on all 3 seeds** (h=4 recovery 0.95-1.00 vs. a bar of
+≥0.8, baseline was 0.42-0.47), but **K=32, despite a ~50× headline
+improvement (h=4 recovery 0.39-0.50 vs. baseline 0.009), fails the
+admissibility criterion on all 3 seeds** (a numerical eigh fallback
+triggered on a small fraction of steps) — so the K=32 headline bar is
+explicitly NOT claimed per this program's own pre-registration. Verdict
+recorded in `EXPERIMENT_LOG.md` ("F-geo-3 WAVE VERDICT", 2026-07-04). A
+follow-on escalation (K=32 ×3 seeds at `geo3_n_iter=20`, targeting the
+exact admission-failure cause) is in flight now — this is the "geo3 wave"
+currently running on the Brev cluster. Full §14 write-up with the
+escalation cells is still pending in the design doc itself.
 
 ---
 
-## Path Forward (updated 2026-07-03)
+## Path Forward (updated 2026-07-04)
 
 ### Now — Saturation campaign (2-month uptime-metered window)
 
@@ -362,28 +416,50 @@ Discipline unchanged: no un-audited work launches just to fill GPUs — the
 pipeline (design → adversarial attack → build → independent audit → bounded
 waves) has enough parallel workstreams to stay ahead of the hardware.
 
-**Campaign ledger (2026-07-01 → 07-03): five programs designed, attacked,
+**Campaign ledger (2026-07-01 → 07-04): five programs designed, attacked,
 built, audited, run, and closed** — Task D/E (bespoke synthetic causal rank +
 composition), Stage 0 (d-frontier), DeltaNet synthetic (production
 architecture causal rank), Stage G (matrix-vs-vector gap mechanism named),
 DeltaNet real-data (rank-K binding + composition on real tokenized text,
-causal close via eval-truncation). ~580 GPU-h total. Full verdicts in
-EXPERIMENT_LOG.md (dated 2026-07-01..03) and the four design docs
-(`DELTANET_REALDATA_DESIGN.md`, `DELTANET_CAUSAL_RANK_DESIGN.md`,
-`STAGE_G_DESIGN.md`, `chapter2/STAGE0_DESIGN.md`). Workshop paper drafted at
-`matrix-thinking/submissions/neurips-ws-2026/` (awaiting user review: author
-block, venue, figures, title, appendix).
+causal close via eval-truncation, plus a closed Wave 2 real-corpus-LM
+follow-on). Two threads opened by those closures are still active — the
+exactness mechanism study (why real-text composition undershoots the
+synthetic razor cliff; Wave 0/1/F closed, F-geo-3 fix wave in flight, see
+above) and Stage G's gated H_e task-swap check (below). ~600+ GPU-h total
+across the campaign. Full verdicts in EXPERIMENT_LOG.md (dated
+2026-07-01..04, table of contents at the start of that date range) and the
+five design docs (`DELTANET_REALDATA_DESIGN.md`,
+`DELTANET_CAUSAL_RANK_DESIGN.md`, `STAGE_G_DESIGN.md`,
+`chapter2/STAGE0_DESIGN.md`, `DELTANET_RD_EXACTNESS_DESIGN.md`). Workshop
+paper drafted at `matrix-thinking/submissions/neurips-ws-2026/` (awaiting
+user review: author block, venue, figures, title, appendix).
 
-**In flight (2026-07-03):**
-- Deeper-hop training probe (6 cells on box, `deltanet_rd` results/
-  `deltanet_rd_w0b/deephop/`): does training h∈{1..5} extend the real-data
-  exact-composition regime vs the h∈{1,2,3} Wave A frontier?
-- RD Wave 2 instrumented-LM builder (agent): DeltaNet LM on OpenR1-Math vs
-  WikiText, state-rank instrumentation + inference-time truncation damage.
-- K-exactness mechanism study designer (agent) → will write
-  `matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md`; needs adversarial attack
-  round before build.
-- Reserve (multi-head) + Stage-G H_e task-swap builder (agent).
+**In flight (2026-07-04):**
+- **F-geo-3 escalation** (K=32 ×3 seeds at `geo3_n_iter=20`, targeting the
+  exact cause of Wave 1's admissibility failure): running now on the Brev
+  cluster. See the exactness-mechanism paragraph above for the Wave 1
+  numbers this escalation follows up on.
+- **Stage-G H_e (task-representation-mismatch) Wave C:** the gate is
+  triggered per the design's own logic (§14.6's dominant-site verdict is
+  "confirmed-but-narrow" — the per-FLOP tax survives even with the named
+  mechanism fixed). A builder agent produced the full harness
+  (`matrix-thinking/stageg/`: `task_he.py`, `train_stageg.py`,
+  `run_stageg_he_sweep.py`, and supporting modules — all committed) and ran
+  a 20K-step calibration (`experiment-runs/2026-07-03_stageg_he/`,
+  committed): **neither the matrix nor the vector architecture learns
+  composition beyond h=1 on this composition-heavy corpus** — matrix h=1
+  accuracy 0.095 (barely above the 0.083 chance floor, notably *worse*
+  than vector's h=1=1.0), vector h=2/h=3 also near chance. This is
+  surprising and **not yet triaged** — bug vs. genuine finding is
+  undetermined; do not scale Wave C further until this is resolved.
+- **ReserveMH (DeltaNet multi-head causal-rank generality) — CLOSED, not
+  in flight**: every attention head independently recruits full rank K=32
+  at H∈{2,4}; the H=1 qualifier on the synthetic causal-rank claim is
+  lifted (`EXPERIMENT_LOG.md`, 2026-07-04 early).
+- The deeper-hop training probe and the RD Wave 2 instrumented-LM builder
+  (both listed as in-flight as of 2026-07-03) are **now CLOSED** — see the
+  DeltaNet real-data paragraphs above and `EXPERIMENT_LOG.md`'s
+  "deephop program CLOSED" and "Wave 2 (Waves C+D) results" entries.
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;
@@ -465,19 +541,43 @@ committing further compute to matrix-thinking. Candidate pivots (unordered):
 
 ## Documentation Map
 
+*(Refreshed 2026-07-04 during a documentation consolidation pass — see
+`consolidation-manifest.md` at repo root, temporary, for the full
+file-by-file move/merge record of that pass.)*
+
+**Root (this repo's top level, kept ≤8 files by design):**
 - **README.md** — public-facing 1-page summary
 - **STATE.md** (this file) — project dashboard, single source of truth
-- **EXPERIMENT_LOG.md** — chronological history of all 26 experiments with exact numbers
+- **EXPERIMENT_LOG.md** — chronological, append-only history of every
+  experiment with exact numbers; the 2026-07-01→04 campaign section has its
+  own table-of-contents header grouping entries by program thread
 - **references.md** — bibliography organized by topic
 - **CLAUDE.md** — workflow rules, hard rules learned from prior experiments, and the `[LEARN]` block convention for the learnings DB
+- **AGENTS.md** — the same content as CLAUDE.md, kept in sync, for the Codex CLI harness (`.codex/`)
 - **AUTOPILOT_HANDOFF.md** — agentic harness (hooks, skills, notification layer); setup + phase roadmap
-- **experiment-runs/_auto_sync/WORKFLOW_FOR_AGENTS.md** — how the autonomous pod monitor, wakeup poll, and pull loop operate (agent-facing runbook for continuous GPU utilization)
-- **matrix-thinking/QUEUE.md** — engineering queue for future experiments, including matrix-CODI full spec and embedding designs catalog
-- **matrix-thinking/KILL_LIST.md** — experiments killed by attack-agent review with recorded fatal flaws
-- **matrix-thinking/PAPER_WRITER_BRIEF.md**, **PAPER_RESULTS_SUMMARY.md**, **CHAPTER_2_DESIGN.md** — active paper + next-chapter workstreams
-- **matrix-thinking/H100_SETUP.md** — pod environment setup
+
+**matrix-thinking/ (living docs; closed-program docs carry a `STATUS:
+CLOSED` header with a one-paragraph verdict rather than being archived,
+since they're the primary source for a closed finding, not disposable
+scratch):**
+- **matrix-thinking/QUEUE.md** — engineering queue; trimmed to a banner +
+  pointer table (2026-07-04) — the ~570-line pre-2026-07 body moved to
+  `archive/matrix-thinking-workshop-era/QUEUE_historical.md`
+- **matrix-thinking/KILL_LIST.md** — experiments killed by attack-agent review with recorded fatal flaws; still actively cited by current Chapter 2 design docs
+- **matrix-thinking/CONTROL_A_HISTORY.md** — consolidated history + the
+  previously-undocumented 2026-04-28 result for the Control A null-baseline
+  experiment (added 2026-07-04; supersedes 6 archived design/audit docs)
+- **matrix-thinking/H100_SETUP.md** — pod environment + the perpetual/unattended sweep pattern
+- **matrix-thinking/DELTANET_CAUSAL_RANK_DESIGN.md**, **DELTANET_REALDATA_DESIGN.md**, **STAGE_G_DESIGN.md**, **chapter2/STAGE0_DESIGN.md**, **chapter2/TASK_D_PREREGISTRATION.md**, **chapter2/TASK_D_WRITEUP.md**, **chapter2/NEXT_EXPERIMENT_DESIGN.md** (Task E design), **chapter2/TASK_E_FINDINGS.md** — the five closed 2026-07-01→03 programs; each carries a `STATUS: CLOSED` header
+- **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — living, NOT closed; the active exactness-mechanism follow-on (F-geo-3 in flight)
+- **matrix-thinking/stageg/** — Stage G's H_e task-swap harness (built, calibration run, Wave C gated open — see "In flight" above)
 - **matrix-thinking/scripts/** — runnable training scripts
-- **matrix-thinking/src/** — model code
-- **research/** — individual research notes (see research/README.md for index)
-- **experiment-runs/** — completed runs with scripts and results
-- **archive/** — dead ends and historical material (see archive/README.md)
+- **matrix-thinking/src/**, **chapter2/*.py** — model code
+- **matrix-thinking/submissions/** — `icml-mi-workshop-2026/` (accepted; checklist and 5-round review are closed historical records) and `neurips-ws-2026/` (draft in progress, no figures yet)
+
+**Elsewhere:**
+- **experiment-runs/_auto_sync/WORKFLOW_FOR_AGENTS.md** — how the autonomous pod monitor, wakeup poll, and pull loop operate (agent-facing runbook for continuous GPU utilization)
+- **experiment-runs/README.md** — the hybrid archive policy (≤25MB tracked in git; full archive, including large payloads, on the SSD) — source of truth also mirrored in `CLAUDE.md`'s Data section
+- **research/** — individual research notes (see research/README.md for index; well-organized, no restructuring needed as of 2026-07-04)
+- **experiment-runs/** — completed runs with scripts and results, size-capped per the hybrid policy above
+- **archive/** — dead ends and historical material, including three folders added 2026-07-04 (`matrix-thinking-workshop-era/`, `chapter2-gauntlet/`, `team-output-2026-04-28/`) — see archive/README.md

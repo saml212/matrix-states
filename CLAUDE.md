@@ -49,8 +49,12 @@ See `AUTOPILOT_HANDOFF.md` for the full harness spec and phase plan.
 ## Hardware
 
 - **M4 Mac Mini 32GB** — Dev machine. 10 CPU cores, 12GB MPS GPU. Good for <15M params.
-- **Brev 8×H100 80GB (active)** — "youthful-indigo-turkey" via the Brev CLI, ~1.6k
-  GPU-hour grant. SSH alias set up via `brev login && brev refresh` (writes
+- **Brev 8×H100 80GB (active)** — "youthful-indigo-turkey" via the Brev CLI.
+  The grant is a 2-month **uptime-metered** hardware window (bills while
+  running, cannot be stopped — `brev stop` unsupported, delete only), not a
+  fixed GPU-hour utilization budget; operative budget ≈192 GPU-h/day for the
+  window (see STATE.md "Hardware" for the full correction, dated 2026-07-03).
+  SSH alias set up via `brev login && brev refresh` (writes
   `~/.brev/ssh_config`, Included from `~/.ssh/config`). Details, venv setup, and
   the perpetual-sweep orchestration pattern in `matrix-thinking/H100_SETUP.md`.
 - **M4 Ultra Mac Studio 256GB** — Available for 50-100M param experiments.
@@ -64,10 +68,16 @@ Code lives in this repo. Data and checkpoints live elsewhere.
   - `data/text.bin` — 100MB WikiText-103 raw UTF-8 bytes
   - `data/images.bin` — 154MB CIFAR-10 raw pixels
   - `checkpoints/` — Model checkpoints (don't commit)
-  - `experiment-runs/` — ALL experiment archives live here; the repo-root
-    `experiment-runs/` is a symlink to it (2026-07-03). Never archive to
-    the local disk — if a write through the symlink fails, the SSD is
-    unmounted; stop and tell the user.
+  - `experiment-runs/` — the FULL experiment archive, superset of the
+    repo-root `experiment-runs/` directory.
+- **experiment-runs/ hybrid archive policy (2026-07-04, corrected from the
+  briefly-tried symlink approach — see `experiment-runs/README.md`, the
+  source of truth):** the repo-root `experiment-runs/` is a real, committed
+  directory, size-capped — files ≤25MB are tracked in git (crash-proof via
+  GitHub); larger payloads (Z-dumps, checkpoints, >25MB JSONs) live ONLY on
+  the SSD path above. Write new archives to BOTH: small files here
+  (commit them), big files to the SSD path. If the SSD is unmounted, stop
+  and say so.
 - **H100:** `/root/data/reasoning/` — 43.7M tokens OpenR1-Math (GPT-2 tokenized)
 - **Do not store** large data files, checkpoints, or venv in the git repo
 

@@ -1,5 +1,18 @@
 # Stage 0 Design — Why the Matrix-Write Fails at d≥32, and What Fixes It
 
+> **STATUS: CLOSED (2026-07-03; one of STATE.md's five closed 2026-07-01→03
+> programs; decision at §14.5, full diagnostic §12-14).** The original
+> d≥32 "trainability wall" is substantially a **step-budget artifact**:
+> every d=32 baseline seed tested (17/17, across Wave 0, an extended-budget
+> arm, and a 100K-step probe) transitions reliably and effective rank
+> recruits to K once budget suffices. But even at 100K steps (10× Task D's
+> original budget), the formal pass bar (`recovered_frac@0.9 > 0.7`) still
+> **FAILS** at a genuine converged plateau (best observed 0.65 at K=8,
+> cos 0.83-0.91 — not undertraining). The honest frontier is therefore not
+> trainability (transitions are reliable) but **exactness**, which degrades
+> with `d`. *Why* the d≥32 write plateaus sub-exact rather than reaching
+> 1.0 is open, named **Stage 0.5**, and is explicitly NOT answered here.
+
 **Drafted 2026-07-01, before any code changes.** Status: design only, per
 instruction — no model/training code is written here. This is the bounded,
 gated precursor `NEXT_EXPERIMENT_DESIGN.md` §0/§8 already named ("Stage 0 —
