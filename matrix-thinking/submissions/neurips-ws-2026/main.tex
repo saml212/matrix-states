@@ -3,6 +3,11 @@
 % until then this uses the same reusable two-column article scaffold as the
 % companion ICML MI Workshop 2026 paper (see ../icml-mi-workshop-2026/).
 %
+% VENUE: not yet finalized -- see VENUE_DECISION.md in this directory for the
+% ranked candidate list (NeurIPS 2026 NeurReps/UniReps Extended Abstract
+% track is the leading candidate; CFPs not yet published as of this writing).
+% Final pick is a PI decision.
+%
 % Two builds from one source, same convention as the companion paper:
 %   pdflatex main.tex                       -> single-blind build (default; \anon=0)
 %   pdflatex "\def\anon{1}\input{main}"     -> anonymized build, only if the
@@ -14,6 +19,29 @@
 % PI decision: final author list/order, affiliation, and whether any
 % collaborator (e.g. a DeltaNet co-contributor) should be added given the
 % concurrent-work paragraph in the discussion.
+% CAMERA-READY TODO: fill in as
+%   \author{Sam Larson\\Pebble AI\\\texttt{pebbleml.com}}
+% once the venue/anonymity decision (VENUE_DECISION.md) is finalized and the
+% author block no longer needs to stay a placeholder. Left as TBD for now
+% deliberately -- do not fill this in without a PI sign-off, since some
+% candidate venues in VENUE_DECISION.md are double-blind.
+%
+% TITLE -- PI decision needed; three alternatives considered, current title
+% (used below) kept as the default:
+%   [DEFAULT, used below] "When the Gradient Sees Rank: Provable Necessity,
+%     Causal Recruitment, and Exact Composition in Trained Matrix Memories"
+%   (B) "Does Gradient Descent Use the Rank It Needs? Causal Evidence from
+%     Matrix-Native Associative Memory and Composition" -- leads with the
+%     question the companion paper (\citet{larson2026gradient}) left open;
+%     most legible to a reader of that paper first.
+%   (C) "From Rank-Blind to Rank-Necessary: Causal Recruitment and Exact
+%     Composition in Trained Matrix Memories" -- names the two-paper arc
+%     explicitly in the title; strongest hook, but presumes the reader
+%     already knows the companion paper's title/finding.
+%   (D) "Rank Recruitment Under a Hard Bottleneck: Provable Necessity and
+%     Causal Ablation in Matrix-Valued Associative Memories" -- leads with
+%     the architectural mechanism (the bottleneck) rather than the gradient
+%     framing; most neutral/searchable, least narrative.
 
 \documentclass[10pt,twocolumn,letterpaper]{article}
 
@@ -35,6 +63,7 @@
 \usepackage[numbers,square,sort&compress]{natbib}
 \usepackage{caption}
 \captionsetup{font=small,labelfont=bf,skip=4pt}
+\graphicspath{{figures/}}
 
 % theorem-like environments
 \newtheorem{proposition}{Proposition}
@@ -131,5 +160,7 @@ force-rank staircase still in flight.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
+
+\input{sections/10_appendix}
 
 \end{document}

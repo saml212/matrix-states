@@ -1,0 +1,137 @@
+\appendix
+\section{Pre-Registration and Adversarial Audit Protocol}
+\label{sec:appendix-methodology}
+
+Every honest-negative-result claim in \S\ref{sec:discussion} rests on a
+process claim as much as a numerical one: that a ``dead'' cell was actually
+tested hard enough to trust, and that a ``positive'' cell is not a
+shortcut in disguise. This appendix makes that process auditable rather
+than asserted, since it is the paper's main methodological differentiator
+from a result reported without it.
+
+\subsection{Pre-registration}
+\label{sec:appendix-prereg}
+
+Each of the three experiments (Task D, Task E, Stage 0) has its own
+pre-registration document -- \texttt{TASK\_D\_PREREGISTRATION.md},
+\texttt{NEXT\_EXPERIMENT\_DESIGN.md}, \texttt{STAGE0\_DESIGN.md} in the
+repository (\S\ref{sec:repro}) -- written and committed \emph{before} any
+GPU time was spent on that experiment. Each fixes the hypothesis, the
+architecture and controls, the primary metric, and CONFIRM/FALSIFY
+decision bands in advance. When a metric proved unable to resolve the
+intended signal, the change is logged inline with a timestamp in the same
+document rather than applied silently: the $\tau{=}0.99\to0.9$ knee-metric
+re-registration in \S\ref{sec:taskd-m3} happened \emph{before} the
+force-rank sweep launched, triggered by a calibration run showing the
+reliably-trainable model plateaus at unconstrained cosine
+$\approx0.936$ -- a ceiling that would have made $\tau{=}0.99$
+uninformative for every cell, discovered by deliberately checking the
+easiest case first rather than by post-hoc metric selection after seeing
+the sweep's results.
+
+\subsection{The adversarial gauntlet}
+\label{sec:appendix-gauntlet}
+
+Before any experiment's code ran on the cluster, design and code passed
+through four stages, each performed or reviewed by a fresh context that
+did not write the artifact under review -- this project's standing rule
+that an implementer does not audit their own work:
+
+\begin{enumerate}
+\setlength\itemsep{2pt}
+\item \textbf{Task/design attack.} A pass whose only job is to find a
+      shortcut that would make a positive result meaningless. This stage
+      killed the program's original design outright before any training
+      code was written: an early $K$-parallel-entity design (Task
+      A$'$) admitted the rank-1 ``vector-in-a-costume'' shortcut
+      $Z=uv_0^\top$ (\texttt{ATTACK\_task\_shortcuts.md}), and a
+      separate pass found the proposed crossover prediction was not
+      interpretable even if observed (\texttt{ATTACK\_baseline\_
+      confound.md}). Both forced the pivot to the provable-bound,
+      pinned-readout construction used throughout this paper
+      (\S\ref{sec:setup}). The same stage, applied to the Task E design,
+      is the source of the general-permutation periodicity finding in
+      \S\ref{sec:taske}'s footnote.
+\item \textbf{Novelty check.} A literature pass confirming the specific
+      claim -- not the general area -- had not already been shown; see
+      \S\ref{sec:setup-bound} and \S\ref{sec:related} for the resulting
+      scoping of what is and is not claimed as new.
+\item \textbf{Code audit}, typically 2--3 independent rounds per
+      experiment. For Task E, the first round
+      (\texttt{AUDIT\_task\_e\_correctness.md},
+      \texttt{AUDIT\_task\_e\_validity.md}) caught two FATAL-severity
+      bugs that would have silently invalidated the headline result: an
+      injectivity check on the key$\to$value mapping carried a
+      floating-point tolerance that could not detect a single merged
+      binding (defeating the $\rank(Z)\geq K$ guarantee for exactly the
+      instances it was supposed to catch), and a hop-depth generator that
+      sampled a general random permutation rather than a single
+      Hamiltonian $K$-cycle, so held-out hops silently collapsed into
+      in-distribution or trivial queries via $h\bmod(\text{cycle
+      length})$ (measured up to 100\% collapse at small $K$ before the
+      fix). Both fixes were independently re-audited fresh
+      (\texttt{AUDIT\_task\_e\_reaudit.md}) rather than trusted from a
+      self-check -- a second round that itself caught residual issues
+      the first fix's self-verification had missed, the concrete reason
+      this project's process treats one audit round as insufficient.
+\item \textbf{Runtime smoke gates}, required to pass immediately before
+      the first real training step: (i) the gradient-based blank-out
+      test (\S\ref{sec:setup-bottleneck}) -- corrupt the raw-input cache
+      after the encoder writes $Z$ and confirm the decode path is
+      bit-for-bit unchanged, the only evidence treated as sufficient that
+      the single-state bottleneck actually holds; (ii) a degenerate-
+      spectrum backward-pass check on the \texttt{eigh}-based
+      effective-rank computation, since eigendecomposition backward
+      passes are numerically unstable at repeated eigenvalues -- a
+      regime the orthonormal-key construction (which gives the exact
+      target memory a perfectly degenerate spectrum, all singular values
+      equal, \S\ref{sec:setup-task}) deliberately induces; (iii) a
+      resolution pre-flight confirming the exact closed-form memory
+      $Z=\sum_jv_jk_j^\top$ reproduces itself under the harness's own
+      scoring code before any learned model is trained against it.
+\end{enumerate}
+
+\subsection{The extended-budget rule is a discovered process artifact, not
+an assumption}
+\label{sec:appendix-budget}
+
+The rule stated and applied in \S\ref{sec:frontier-pattern} --
+re-test a cell at $2$--$2.5\times$ its original step budget before
+calling it dead -- was not decided in advance; it was extracted after the
+same false-negative pattern recurred three independent times across three
+different axes of this program (hyperparameter, task, and model-scale
+axes respectively; enumerated in \S\ref{sec:frontier-pattern}). We report
+the rule together with its counter-example (\S\ref{sec:frontier-pattern}'s
+$d{=}32$ genuine plateau, which extended budget does \emph{not} rescue)
+specifically so it is not mistaken for a license to keep re-testing
+indefinitely until a cell turns positive -- a form of the same optional-
+stopping error the pre-registration discipline in
+\S\ref{sec:appendix-prereg} is designed to prevent elsewhere in this
+program.
+
+\section{Supplementary Figure: An Eval-Time Truncation Staircase}
+\label{sec:appendix-supp-figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{fig_eval_trunc_staircase.pdf}
+\caption{\textbf{[Supplementary / illustrative -- not one of this paper's
+pre-registered claims and not behind any table in the main text.]} A
+different causal instrument from this paper's primary test
+(Figure~\ref{fig:taskd-forcerank}, which forces rank at \emph{train} time):
+here a single unconstrained-rank $d{=}64,K{=}32$ operator is trained once,
+then truncated to rank $k$ \emph{post hoc at eval time} via SVD, and
+re-scored at several hop depths. We include it only because it is a
+strikingly clean picture of the same underlying mechanism -- a knee at
+$k{=}K$ that sharpens with composition depth $h$ -- at an operating point an
+order of magnitude larger than Table~\ref{tab:taskd-m3}'s cells. It is
+\emph{not} evidence for this paper's causal claim on its own terms: Task D's
+own M2 eval-time-truncation probe was informative there only because M3's
+train-time force-rank result was pre-registered as primary
+(\S\ref{sec:setup-arch}); post-hoc truncation alone was the uninformative
+instrument in the companion paper's CODI setting (\S\ref{sec:intro}). Read
+this figure as a mechanism illustration, not as a fourth confirmed cell of
+Table~\ref{tab:frontier-d4} -- its $(d,K)=(64,32)$ operating point and step
+budget do not match any row of that table.}
+\label{fig:eval-trunc}
+\end{figure}

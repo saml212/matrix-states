@@ -81,8 +81,24 @@ not still climbing) at the budget shown before being read as converged.}
 \label{tab:frontier-d4}
 \end{table}
 
-Table~\ref{tab:frontier-d4} is the clean version of the frontier: fixing
-$K{=}d/4$ and scaling $d$ at fixed encoder width $h{=}64$, converged cosine
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{fig_frontier_exactness.pdf}
+\caption{\textbf{[Primary, pre-registered -- Table~\ref{tab:frontier-d4} in
+figure form.]} The $K{=}d/4$ exactness frontier at fixed encoder width
+$h{=}64$, both by cosine (\emph{left}) and by the harsher exact-match
+$\mathrm{recovered\_frac@0.9}$ (\emph{right}, with the pre-registered
+$>0.7$ formal pass bar). Individual seeds are shown where more than one
+was run ($d{=}32$); $d{=}48,64$ are single confirmed-flat seeds, per
+\S\ref{sec:frontier-table}. The $d{=}16$ reference line marks the earlier,
+exact regime (\S\ref{sec:taskd}--\ref{sec:taske}) for scale; it is not a
+new data point plotted here.}
+\label{fig:frontier}
+\end{figure*}
+
+Table~\ref{tab:frontier-d4} (Figure~\ref{fig:frontier}) is the clean version
+of the frontier: fixing $K{=}d/4$ and scaling $d$ at fixed encoder width
+$h{=}64$, converged cosine
 recovery falls monotonically from essentially exact at $d{=}16$ to $0.39$
 at $d{=}64$, with every point confirmed converged (not truncated
 mid-transition) via flat trailing checkpoints. A parallel $K{=}d/2$ slice
