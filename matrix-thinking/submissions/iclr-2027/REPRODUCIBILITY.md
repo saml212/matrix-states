@@ -124,12 +124,16 @@ supplementary color:
    itself named as an untested confound (mechanism (f),
    `DELTANET_RD_EXACTNESS_DESIGN.md` §2) that this paper does not fully
    resolve.
-2. **The F-geo-3 substitute admission-stack comparability caveat (§14.10)
-   travels into the released artifact, not just the paper text.** Any
-   downstream user re-running F-geo-3 and comparing its "N/3 admissible
-   seeds" against a different arm's admission count must be pointed at
-   the same UNVERIFIED-comparability caveat the paper itself carries —
-   the artifact README states this explicitly, not just the paper.
+2. **The F-geo-3 substitute admission-stack caveat (§14.10) travels into
+   the released artifact, not just the paper text.** The paper carries it
+   at footnote tier (the K=32 `n_iter=20` escalation cells passed every
+   substitute criterion including zero fallback steps, and the
+   fallback-irrelevance check showed the criterion was conservative, not
+   explanatory), but any downstream user re-running F-geo-3 and comparing
+   its "N/3 admissible seeds" against a different arm's admission count
+   must still be pointed at the two stacks' differing filters and
+   realized pass rates — the artifact README states this explicitly, not
+   just the paper.
 3. **Small, uneven per-checkpoint sample sizes in Wave 2's Q1/Q4
    analyses** (e.g. openr1 rank-probe n drops as low as 3 windows at one
    checkpoint, `DELTANET_REALDATA_DESIGN.md` §19.2) — released alongside
