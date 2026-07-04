@@ -290,9 +290,10 @@ EPOCH_CAP = 5
 # ['control']) + ~0.3 (supplementary calibration spend since the 33.1 baseline was set: rung-3's own
 # two-point cells, sec 5.6 amendment item 4, plus incidental smoke-gate GPU-seconds across this
 # session's several wave invocations -- not separately itemized, rounded up) = 163.22 GPU-h.
-# UPDATE THIS after any further real spend (including a real --wave 1ext launch, ~27 GPU-h projected
-# -- see wave1ext_manifest / gate_and_run_wave1ext -- NOT yet committed as of this constant's value).
-PROGRAM_SPENT_GPUH = 163.22
+# UPDATE THIS after any further real spend. 163.22 -> 190.22 (2026-07-04 ~08:00 UTC): +27.00 for the
+# real --wave 1ext launch on GPU 6 (LAUNCH-READY audit verdict, 6 runs x 67,547 steps at rung-1
+# timing constants -- committed spend the moment the wave started).
+PROGRAM_SPENT_GPUH = 190.22
 GPU_H_PROGRAM_CEILING = 300.0
 
 CALIBRATION_STEPS_DEFAULT = 200
