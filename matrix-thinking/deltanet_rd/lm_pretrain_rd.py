@@ -95,6 +95,7 @@ from hard_selectivity_rd import (
     hard_topk_beta_mask, apply_hard_select_ste, chunk_sparsemax_beta,
     soft_topk_comparator_beta, tau_schedule, random_topk_mask,
     renormalize_to_b_pinned, classify_budget_partial,
+    churn_rate, tv_distance_from_uniform, support_size,
     trackb_override_stamp_payload, trackb_assemble_gate_override_fields,
 )
 
@@ -130,6 +131,11 @@ CORPUS_DIRS = {
     # augmentation pulled in). Same meta.json/eot_separated contract --
     # load_corpus applies unmodified, no format change.
     "openr1-mix-ext": "reasoning_mix_eot_extended", "wikitext-mix-ext": "wikitext103_mix_eot_extended",
+    # TRACKB_REDESIGN.md sec 5.1 (Rev 3 NEW-7): the duplicate-key stress slice for the geo3-LM
+    # NaN-stability smoke -- built by wave_neg1_trackb.py --build-stress-slice (window-per-document,
+    # one EOT appended per window, same meta.json/eot_separated contract so load_corpus applies
+    # unmodified). Only the stability-smoke cell ever trains on it.
+    "openr1-stress": "reasoning_stress_eot",
 }
 OTHER_CORPUS = {
     "openr1": "wikitext", "wikitext": "openr1",
@@ -140,6 +146,9 @@ OTHER_CORPUS = {
     # extended mixes pair with EACH OTHER too (sec 5.6 amendment item 2) --
     # same reasoning-vs-narrative contrast, now on the extended-mix side.
     "openr1-mix-ext": "wikitext-mix-ext", "wikitext-mix-ext": "openr1-mix-ext",
+    # stress slice pairs with the plain wikitext val (one-directional: nothing trains on
+    # "wikitext" expecting the stress slice back -- the smoke only needs SOME cross-corpus val).
+    "openr1-stress": "wikitext",
 }
 DEFAULT_DATA_DIR = "/data/deltanet_rd_data"
 EOT_TOKEN_ID = 50256   # GPT-2 <|endoftext|>
@@ -441,6 +450,11 @@ def _geo3_lm_select_and_orthogonalize(k_raw: torch.Tensor, beta: torch.Tensor,
         # raw tensors for the OPTIONAL caller-side drift diagnostic (sec 4.4) -- NOT reduced here,
         # the caller (which owns token_ids) maps these back to token identity.
         "_topk_idx": topk_idx, "_valid_sel": valid_sel, "_Q": Q.reshape(B, n_chunks, H, k_sel, d),
+        # TRACKB_REDESIGN.md sec 5.1 (Rev 3 NEW-7)'s positive-control input: the RAW gathered
+        # selected rows, exposed so train()'s --nan-probe-counter path can count exact duplicates
+        # among the SELECTED set per forward call (wave_neg1_trackb.NanStabilityProbeCounter) --
+        # the caller-side check the smoke's >=25-calls/>=6-dup-rows floor is measured against.
+        "_k_selected_raw": k_flat_raw.detach(),
     }
     return k_out, diag
 
@@ -598,6 +612,14 @@ class DeltaNetLMMixer(nn.Module):
         self.hard_select_tau_anneal_frac = hard_select_tau_anneal_frac
         self.hard_select_excluded_token_ids = tuple(hard_select_excluded_token_ids)
         self.hard_select_last_diag: dict | None = None   # mirrors geo3_last_diag's side-channel convention
+        # AUDIT FIX (independent audit 2026-07-04, F2): read-only implicit-selection probe for the
+        # UNMASKED reference pilot (sec 4.3's churn Null A / TV-ceiling data source). When set (an
+        # int K_sel, via main()'s --trackb-selection-probe -- post-construction, never a
+        # constructor arg), forward()'s plain-sigmoid branch ADDITIONALLY computes the implicit
+        # top-K-by-beta selection on the DETACHED beta and stores it in hard_select_last_diag;
+        # beta itself and every downstream tensor are untouched (read-only by construction, the
+        # same discipline as sec 5.2's Cell-1 instrument).
+        self.selection_probe_k_sel: int | None = None
         self.d_model = d_model
         self.d_state = d_state
         self.num_heads = num_heads
@@ -667,21 +689,22 @@ class DeltaNetLMMixer(nn.Module):
 
         # Track B / geo3-in-LM (SCALE_TRANSFER_DESIGN.md sec 4.3's insertion point) AND the
         # hard-selectivity wave (TRACKB_REDESIGN.md Rev 3) share ONE content_mask -- computed
-        # whenever EITHER flag is active. When hard_select_active=False, excluded_ids reduces to
-        # EXACTLY geo3_excluded_token_ids (byte-identical to the pre-Track-B-hard-selectivity
-        # code, smoke item [6]'s own regression-check convention extended here).
+        # whenever EITHER flag (or the F2 read-only selection probe) is active. When
+        # hard_select_active=False and no probe, excluded_ids reduces to EXACTLY
+        # geo3_excluded_token_ids (byte-identical to the pre-Track-B-hard-selectivity code, smoke
+        # item [6]'s own regression-check convention extended here).
         content_mask = None
-        if self.geo3_active or self.hard_select_active:
+        if self.geo3_active or self.hard_select_active or self.selection_probe_k_sel is not None:
             assert token_ids is not None, (
-                "geo3_active and/or hard_select_active require token_ids (EOT-exclusion mask, "
-                "sec 4.2 item 3) -- the caller (DeltaNetLMBlock.forward / DeltaNetLM.forward) must "
-                "thread token_ids down to every mixer.forward() call."
+                "geo3_active / hard_select_active / selection_probe require token_ids "
+                "(EOT-exclusion mask, sec 4.2 item 3) -- the caller (DeltaNetLMBlock.forward / "
+                "DeltaNetLM.forward) must thread token_ids down to every mixer.forward() call."
             )
             assert token_ids.shape == (B, T), f"token_ids shape {tuple(token_ids.shape)} != (B,T)=({B},{T})"
             excluded_ids = set()
             if self.geo3_active:
                 excluded_ids |= set(self.geo3_excluded_token_ids)
-            if self.hard_select_active:
+            if self.hard_select_active or self.selection_probe_k_sel is not None:
                 excluded_ids |= set(self.hard_select_excluded_token_ids)
             content_mask = torch.ones(B, T, dtype=torch.bool, device=k.device)
             for excluded_id in excluded_ids:
@@ -736,12 +759,27 @@ class DeltaNetLMMixer(nn.Module):
                     beta, self.hard_select_chunk_size, self.hard_select_b_pinned)
                 sel_diag["shortfall"] = shortfall
                 sel_diag["budget_partial"] = classify_budget_partial(shortfall)
+            # AUDIT FIX (2026-07-04, F2): the post-mechanism beta itself is part of the diag
+            # side-channel -- entmax's support-size/TV diagnostics have no topk_idx to read and
+            # must derive selection from beta's own exact zeros (sample_hard_select_diagnostics).
+            sel_diag["_beta"] = beta.detach()
             self.hard_select_last_diag = sel_diag
 
             if self.geo3_active and mech != "entmax":
                 forced_topk_idx = topk_idx        # M6: single selection source
         else:
             beta = torch.sigmoid(self.b_proj(x))                       # (B,T,H), plain learned gate
+            if self.selection_probe_k_sel is not None:
+                # AUDIT FIX (2026-07-04, F2): the unmasked pilot's IMPLICIT top-K-by-beta
+                # selection, read-only on detached beta (sec 4.3 Null A / TV-ceiling source) --
+                # beta and every downstream tensor are untouched.
+                _, probe_idx, probe_valid = hard_topk_beta_mask(
+                    beta.detach(), content_mask, self.hard_select_chunk_size,
+                    self.selection_probe_k_sel)
+                self.hard_select_last_diag = {
+                    "mechanism": "implicit_probe", "topk_idx": probe_idx, "valid_sel": probe_valid,
+                    "_beta": beta.detach(),
+                }
 
         q = q.reshape(B, T, self.num_heads, self.head_dim)
         k = k.reshape(B, T, self.num_heads, self.head_dim)
@@ -1295,6 +1333,94 @@ def sample_geo3_diagnostics(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets
 
 
 @torch.no_grad()
+def sample_hard_select_diagnostics(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets: torch.Tensor,
+                                    n_docs: int, seq_len: int, generator: torch.Generator,
+                                    step: int, prev_selection: dict | None) -> tuple[dict, dict]:
+    """AUDIT FIX (independent audit 2026-07-04 -- F2): TRACKB_REDESIGN.md
+    sec 4.3's checkpoint-time selection diagnostics -- churn rate,
+    positional TV-from-uniform, support size -- computed on a FIXED probe
+    batch (the caller seeds `generator` from corpus_fixed_seed WITHOUT a
+    step offset, so the SAME document windows are probed at every log
+    point: sec 4.3's own "same batch every log point, so churn measures the
+    mechanism, not data variation"). Mirrors sample_geo3_diagnostics'
+    document-aligned sampling idiom exactly.
+
+    Requires at least one mixer with hard_select_active OR
+    selection_probe_k_sel set (the unmasked pilot's implicit-probe path);
+    asserts this. `step` is the CURRENT training step (threaded to
+    forward() -- the build-phase-note-(1) continuation contract for
+    step-dependent mechanisms). `prev_selection`: {layer_idx: cpu tensor
+    (B,n_chunks,H,k_sel)} from the PREVIOUS checkpoint's call (None at the
+    first checkpoint -- churn_vs_prev is then None, never fabricated).
+
+    Per-layer outputs: churn_vs_prev (None for entmax -- variable support
+    has no fixed-K set difference; sec 4.3 assigns the churn bar to
+    candidate 1 + candidate 4's hard-snap only), tv_from_uniform,
+    support_median, support_p10, mechanism. Invalid (content-starved)
+    slots are included in the churn set comparison as-is: with a FIXED
+    probe batch the content mask is identical at every log point, so their
+    contribution is stable across checkpoints -- a documented
+    approximation, not a silent one.
+
+    Returns (diag_dict_for_result_json, new_prev_selection)."""
+    probed = [blk.mixer for blk in model.blocks
+              if blk.mixer.hard_select_active or blk.mixer.selection_probe_k_sel is not None]
+    assert probed, ("sample_hard_select_diagnostics requires hard_select_active or "
+                    "selection_probe_k_sel on at least one mixer (caller bug)")
+    model.eval()
+    n = tokens.numel()
+    eligible = doc_offsets[doc_offsets + seq_len + 1 <= n]
+    assert eligible.numel() >= n_docs, \
+        f"only {eligible.numel()} eligible docs for n_docs={n_docs} at seq_len={seq_len}"
+    pick = torch.randint(0, eligible.numel(), (n_docs,), generator=generator, device=doc_offsets.device)
+    starts = eligible[pick]
+    offs = torch.arange(seq_len, device=tokens.device)
+    batch = tokens[starts.unsqueeze(1) + offs.unsqueeze(0)]          # (n_docs, seq_len)
+
+    _ = model(batch, return_states=False, step=step)
+
+    per_layer = {}
+    new_prev: dict = {}
+    for layer_idx, blk in enumerate(model.blocks):
+        diag = blk.mixer.hard_select_last_diag
+        if diag is None:
+            continue
+        chunk_size = blk.mixer.hard_select_chunk_size
+        if "topk_idx" in diag:
+            topk_idx, valid_sel = diag["topk_idx"], diag["valid_sel"]   # (B,n_chunks,k_sel,H)
+            k_sel = topk_idx.shape[2]
+            sel = topk_idx.permute(0, 1, 3, 2).contiguous()             # (B,n_chunks,H,k_sel)
+            churn = None
+            if prev_selection is not None and layer_idx in prev_selection:
+                churn = churn_rate(prev_selection[layer_idx].to(sel.device), sel, k_sel).mean().item()
+            new_prev[layer_idx] = sel.detach().cpu()
+            counts = torch.bincount(topk_idx[valid_sel].reshape(-1),
+                                     minlength=chunk_size).float()      # offset marginal, valid only
+            tv = tv_distance_from_uniform(counts)
+            support = valid_sel.sum(dim=2).float()                      # (B,n_chunks,H)
+        else:
+            # entmax: no fixed top-K set -- selection IS the support (beta's exact zeros)
+            beta_used = diag["_beta"]                                    # (B,T,H)
+            support = support_size(beta_used, chunk_size).float()
+            Bb, Tb, Hb = beta_used.shape
+            supp_c = (beta_used > 0).view(Bb, Tb // chunk_size, chunk_size, Hb)
+            counts = supp_c.sum(dim=(0, 1, 3)).float()
+            tv = tv_distance_from_uniform(counts)
+            churn = None
+        support_flat = support.reshape(-1)
+        per_layer[str(layer_idx)] = {
+            "churn_vs_prev": churn,
+            "tv_from_uniform": tv,
+            "support_median": support_flat.median().item(),
+            "support_p10": torch.quantile(support_flat, 0.10).item(),
+            "mechanism": diag.get("mechanism"),
+        }
+    model.train()
+    return ({"per_layer": per_layer, "n_docs": n_docs, "doc_start_digest": window_digest(starts)},
+            new_prev)
+
+
+@torch.no_grad()
 def eval_loss(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets: torch.Tensor, n_batches: int,
               batch_size: int, seq_len: int, generator: torch.Generator,
               step: int | None = None) -> tuple[float, dict]:
@@ -1366,7 +1492,8 @@ def set_and_log_tf32() -> dict:
 
 def _assemble_result(args, run_name, other_corpus, trajectory, checkpoints, n_params, t0,
                       timed_out, steps_completed, complete, n_skipped: int = 0,
-                      train_contamination: dict | None = None) -> dict:
+                      train_contamination: dict | None = None,
+                      nan_probe: dict | None = None) -> dict:
     result = {
         "run_name": run_name, "claim_tier": CLAIM_TIER,
         "corpus": args.corpus, "other_corpus": other_corpus, "seed": args.seed,
@@ -1401,6 +1528,10 @@ def _assemble_result(args, run_name, other_corpus, trajectory, checkpoints, n_pa
             "seed": getattr(args, "hard_select_seed", None),
             "tau_anneal_frac": getattr(args, "hard_select_tau_anneal_frac", None),
         },
+        # TRACKB sec 5.1 (Rev 3 NEW-7): the stability smoke's positive-control summary --
+        # non-None ONLY when --nan-probe-counter ran (a probative/NON-PROBATIVE verdict the
+        # smoke's pass bars are conditioned on).
+        "nan_probe_positive_control": nan_probe,
         "trajectory": trajectory, "checkpoints": checkpoints,
         "wall_s": time.time() - t0, "timed_out": timed_out,
         # SCALE_TRANSFER_DESIGN.md sec 5.6 Wave -1 (Track C calibration): peak CUDA memory over
@@ -1458,6 +1589,16 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
     timed_out = False
     steps_completed = 0
     n_skipped = 0                              # non-finite-grad skipped steps (Wave 1 parity)
+    hs_prev_selection: dict | None = None      # TRACKB sec 4.3 (F2): previous checkpoint's
+                                               # selected sets, per layer -- churn's own state
+    nan_probe_counter = None                   # TRACKB sec 5.1 (Rev 3 NEW-7) positive control
+    if getattr(args, "nan_probe_counter", False):
+        assert any(blk.mixer.geo3_active for blk in model.blocks), (
+            "--nan-probe-counter only means anything on a geo3-active run (it counts duplicates "
+            "among geo3's SELECTED rows) -- refusing a silently-inert flag")
+        from wave_neg1_trackb import NanStabilityProbeCounter   # lazy: avoids a circular import
+                                                                 # (wave_neg1_trackb imports THIS module)
+        nan_probe_counter = NanStabilityProbeCounter()
     # FIX-3: training-window contamination accounting (cheap searchsorted
     # per step) -- accumulated over ALL training steps, reported in the
     # result JSON so the Wave C/D analysis can condition on it
@@ -1487,6 +1628,18 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
             opt.step()
         else:
             n_skipped += 1
+
+        # TRACKB_REDESIGN.md sec 5.1 (Rev 3 NEW-7) positive control: per TRAINING forward call,
+        # count exact duplicates among the geo3-SELECTED raw key rows (the >=25-calls-with->=6-
+        # dup-rows floor the stability smoke's probativeness is measured against). Only when
+        # --nan-probe-counter is passed (the stability-smoke cell's own flag; per-call cost is a
+        # CPU byte-compare over the gathered rows, acceptable for a 2,000-step smoke, not free
+        # for a full run).
+        if nan_probe_counter is not None:
+            for blk in model.blocks:
+                gdiag = blk.mixer.geo3_last_diag
+                if gdiag is not None and "_k_selected_raw" in gdiag:
+                    nan_probe_counter.observe(gdiag["_k_selected_raw"])
 
         if step % args.log_every == 0 or step == 1:
             trajectory.append({"step": step, "loss": loss.item(), "lr": lr, "grad_finite": finite,
@@ -1543,6 +1696,23 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
                         args.seq_len, geo3_gen_other, step=step),
                 }
 
+            # AUDIT FIX (independent audit 2026-07-04, F2): TRACKB_REDESIGN.md sec 4.3's
+            # checkpoint-time selection diagnostics (churn/TV/support), computed on a FIXED probe
+            # batch: seeded from corpus_fixed_seed + 50_000 with NO step offset (unlike every
+            # other sampler in this block) -- sec 4.3's own registered requirement ("same batch
+            # every log point, so churn measures the mechanism, not data variation"). Offset
+            # 50_000 never collides with eval's 10_000, rank's 20_000, or geo3's 40_000 families.
+            # Runs when hard_select is active OR the --trackb-selection-probe implicit-probe is
+            # set (the unmasked reference pilot -- churn Null A's data source).
+            hard_select_diag = None
+            if any(blk.mixer.hard_select_active or blk.mixer.selection_probe_k_sel is not None
+                   for blk in model.blocks):
+                hs_gen = torch.Generator(device=device).manual_seed(
+                    corpus_fixed_seed(args.corpus) + 50_000)
+                hard_select_diag, hs_prev_selection = sample_hard_select_diagnostics(
+                    model, val_tokens_same, val_offs_same, args.rank_sample_docs, args.seq_len,
+                    hs_gen, step, hs_prev_selection)
+
             ckpt_path = None
             if ckpt_dir:
                 os.makedirs(ckpt_dir, exist_ok=True)
@@ -1560,6 +1730,8 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
                 "rank_sampling": {args.corpus: rank_sum_same, other_corpus: rank_sum_other},
                 "rank_stats_raw": {args.corpus: rank_same, other_corpus: rank_other},
                 "geo3_diagnostics": geo3_diag,             # sec 4.4, only non-None when geo3-active
+                "hard_select_diagnostics": hard_select_diag,   # TRACKB sec 4.3 (F2 audit fix), only
+                                                                # non-None when hard_select/probe active
                 "checkpoint_path": ckpt_path,
             }
             checkpoints.append(res)
@@ -1568,7 +1740,9 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
                                         complete=False, n_skipped=n_skipped,
                                         train_contamination=_train_contamination(
                                             train_windows_total, train_windows_crossing,
-                                            train_tokens_cross_frac_sum))
+                                            train_tokens_cross_frac_sum),
+                                        nan_probe=(nan_probe_counter.summary()
+                                                    if nan_probe_counter is not None else None))
             _dump(out_path, partial)
             geo3_log = ""
             if geo3_diag is not None:
@@ -1593,7 +1767,9 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
                              n_skipped=n_skipped,
                              train_contamination=_train_contamination(
                                  train_windows_total, train_windows_crossing,
-                                 train_tokens_cross_frac_sum))
+                                 train_tokens_cross_frac_sum),
+                             nan_probe=(nan_probe_counter.summary()
+                                         if nan_probe_counter is not None else None))
 
 
 def _train_contamination(total: int, crossing_weighted: float, tokens_cross_weighted: float) -> dict:
@@ -2327,6 +2503,46 @@ def smoke(device: str):
     assert guard15_raised, "entmax+geo3_active guard FAILED to reject the untested-at-scope combination"
     print("  entmax + geo3_active=True correctly REFUSED at construction")
 
+    print("\n[16] TRACKB re-probe path (auditor-prescribed, 2026-07-04): wave_neg1_trackb's "
+          "capture hooks on a REAL forward pass -- captured beta must equal a DIRECT "
+          "sigmoid(b_proj(norm1(embed(x)))) recomputation at layer 0, and "
+          "cell1_readout_from_captured must return finite, sane per-layer statistics")
+    import wave_neg1_trackb as _wn1   # lazy: wave_neg1_trackb imports THIS module at its top --
+                                       # a module-scope import back would be a real cycle
+    torch.manual_seed(23)
+    V16 = 500
+    model16 = DeltaNetLM(V16, d_model=64, d_state=64, n_layers=2, conv_size=4).to(device)
+    x16 = torch.randint(0, V16, (2, 128), device=device)
+    handles16, captured16 = _wn1.register_kbeta_capture_hooks(model16)
+    try:
+        with torch.no_grad():
+            _ = model16(x16)
+            # direct recomputation at layer 0 (deeper layers need the residual stream -- layer 0's
+            # pre-mixer input is exactly norm1(embed(x)), recomputable independently)
+            a16 = model16.blocks[0].norm1(model16.embed(x16))
+            beta_direct = torch.sigmoid(model16.blocks[0].mixer.b_proj(a16))
+        assert set(captured16.keys()) == {0, 1}, f"expected captures for layers 0/1, got {sorted(captured16)}"
+        for li in (0, 1):
+            assert "k_raw" in captured16[li] and "beta" in captured16[li], f"layer {li} capture incomplete"
+        assert torch.equal(captured16[0]["beta"], beta_direct), (
+            "hook-captured beta diverges from the direct sigmoid(b_proj(norm1(embed(x)))) "
+            "recomputation at layer 0 -- the capture path is NOT reading the real forward's beta")
+        readout16 = _wn1.cell1_readout_from_captured(
+            captured16, x16, chunk_size=64, k_sel=16, n_iter=12, resid_tol=1e-2,
+            excluded_token_ids=(EOT_TOKEN_ID,))
+        assert set(readout16.keys()) == {0, 1}
+        for li, r in readout16.items():
+            assert 0.0 <= r["resid_mean"] < 16.0, f"layer {li}: resid_mean {r['resid_mean']} out of range"
+            assert torch.isfinite(r["per_chunk_total_mass"]).all()
+            assert (r["support_size"] >= 0).all()
+        print(f"  captured beta == direct recomputation (bit-identical at layer 0); "
+              f"cell1 readout: resid_mean L0={readout16[0]['resid_mean']:.4f} "
+              f"L1={readout16[1]['resid_mean']:.4f}, all stats finite")
+    finally:
+        for h in handles16:
+            h.remove()
+    del model16, x16, captured16
+
     print("\n" + "=" * 60 + "\n  ALL LM_PRETRAIN_RD SMOKE CHECKS PASSED\n" + "=" * 60)
 
 
@@ -2423,6 +2639,19 @@ def main():
                           "claim_tier='descriptive' into this run's result JSON AT ASSEMBLY TIME "
                           "(_assemble_result). Omit for every non-override run -- gate_override "
                           "then writes False, never absent.")
+    ap.add_argument("--trackb-selection-probe", type=int, default=None, metavar="K_SEL",
+                     help="TRACKB_REDESIGN.md sec 4.3 (F2 audit fix): enable the READ-ONLY "
+                          "implicit top-K-by-beta selection probe on an otherwise-unmasked run "
+                          "(the reference pilot -- churn Null A / TV-ceiling / support-floor data "
+                          "source). Adds per-checkpoint hard_select_diagnostics without touching "
+                          "beta or the forward computation. Mutually exclusive with "
+                          "--hard-select-active (an active mechanism IS its own diagnostics "
+                          "source).")
+    ap.add_argument("--nan-probe-counter", action="store_true",
+                     help="TRACKB_REDESIGN.md sec 5.1 (Rev 3 NEW-7): count exact duplicates among "
+                          "geo3's SELECTED raw key rows per training forward call (the stability "
+                          "smoke's >=25-calls/>=6-dup-rows positive-control floor). geo3-active "
+                          "runs only; writes nan_probe_positive_control into the result JSON.")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -2455,6 +2684,21 @@ def main():
         assert args.geo3_k_sel <= min(args.geo3_chunk_size, head_dim), (
             f"--geo3-k-sel={args.geo3_k_sel} must be <= min(geo3_chunk_size={args.geo3_chunk_size}, "
             f"head_dim={head_dim}={args.d_state}/{args.num_heads})."
+        )
+    if args.trackb_selection_probe is not None:
+        assert not args.hard_select_active, (
+            "--trackb-selection-probe is for UNMASKED runs only (the reference pilot); a "
+            "hard_select_active run's own mechanism already produces hard_select_diagnostics -- "
+            "passing both would silently overwrite the mechanism's diag with the probe's."
+        )
+        assert 1 <= args.trackb_selection_probe <= args.hard_select_chunk_size, (
+            f"--trackb-selection-probe={args.trackb_selection_probe} must be in "
+            f"[1,{args.hard_select_chunk_size}]"
+        )
+        assert args.seq_len % args.hard_select_chunk_size == 0, (
+            f"--trackb-selection-probe requires --seq-len ({args.seq_len}) to be a multiple of "
+            f"--hard-select-chunk-size ({args.hard_select_chunk_size}) -- the probe tiles chunks "
+            f"exactly like a real mechanism would."
         )
     if args.hard_select_active:
         assert args.seq_len % args.hard_select_chunk_size == 0, (
@@ -2503,6 +2747,11 @@ def main():
                         hard_select_seed=args.hard_select_seed,
                         hard_select_tau_total_steps=hard_select_tau_total_steps,
                         hard_select_tau_anneal_frac=args.hard_select_tau_anneal_frac).to(device)
+    if args.trackb_selection_probe is not None:
+        # F2 audit fix: the read-only implicit-selection probe, set post-construction on every
+        # mixer (see DeltaNetLMMixer's selection_probe_k_sel comment).
+        for blk in model.blocks:
+            blk.mixer.selection_probe_k_sel = args.trackb_selection_probe
     n_params = sum(p.numel() for p in model.parameters())
     geo3_tag = f"_geo3{args.geo3_selection.replace('_', '')[:8]}k{args.geo3_k_sel}" if args.use_geo3_lm else ""
     hs_tag = f"_hs{args.hard_select_mechanism.replace('_', '')[:8]}k{args.hard_select_k_sel}" \

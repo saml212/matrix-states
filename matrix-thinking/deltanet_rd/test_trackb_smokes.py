@@ -13,6 +13,7 @@ items, loud prints, hard asserts, a final PASSED banner.
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -97,9 +98,27 @@ def smoke_sparsemax(verbose=True):
     beta2 = hs.chunk_sparsemax_beta(scores2, torch.ones(1, chunk_size, dtype=torch.bool), chunk_size)
     beta2.sum().backward()
     assert torch.isfinite(scores2.grad).all(), "tied-score sparsemax produced non-finite gradient"
+
+    # AUDIT FIX regression (independent audit 2026-07-04, M1): a FULLY-EXCLUDED chunk must produce
+    # EXACTLY zero beta everywhere in it -- pre-fix, sparsemax of the constant sentinel row was
+    # UNIFORM (1/chunk_size at every excluded position): real write mass exactly where the mask
+    # forbids it.
+    torch.manual_seed(3)
+    T2 = 2 * chunk_size
+    scores3 = torch.randn(1, T2, 1, requires_grad=True)
+    cm3 = torch.ones(1, T2, dtype=torch.bool)
+    cm3[0, :chunk_size] = False                     # chunk 0 fully excluded, chunk 1 fully content
+    beta3 = hs.chunk_sparsemax_beta(scores3, cm3, chunk_size)
+    assert (beta3[0, :chunk_size, 0] == 0).all(), (
+        "M1 REGRESSION: a fully-excluded chunk produced nonzero sparsemax mass (the pre-fix "
+        "uniform-over-sentinels behavior)")
+    assert beta3[0, chunk_size:, 0].sum().item() > 0.99, "the fully-content chunk should still sum to ~1"
+    beta3.sum().backward()
+    assert torch.isfinite(scores3.grad).all()
     if verbose:
         print(f"  [2] sparsemax: chunk sums <=1 (max {chunk_sums.max().item():.4f}), exact zeros at "
-              f"excluded positions, gradient finite (incl. the fully-tied-scores edge case)")
+              f"excluded positions, gradient finite (incl. tied-scores edge case), M1 "
+              f"fully-excluded-chunk case EXACTLY zero (not uniform)")
     return True
 
 
@@ -207,10 +226,34 @@ def smoke_b_pinned_renorm(verbose=True):
     renorm3, shortfall3 = hs.renormalize_to_b_pinned(beta_zero_chunk, chunk_size, b_pinned)
     assert torch.isfinite(renorm3).all() and torch.isfinite(shortfall3).all()
     assert torch.allclose(shortfall3[:, 0, :], torch.ones(B, H)), "zero-mass chunk must show shortfall=1.0"
+
+    # AUDIT FIX boundary test (2026-07-04, minor): torch.median takes the LOWER of the two middle
+    # values at even length (never the interpolated mean) -- the classify_budget_partial docstring
+    # now states this convention; this exercises the boundary in BOTH directions. Even-length input
+    # [0.05, 0.15]: interpolating median = 0.10 (NOT > 0.10 -> not partial via the median clause);
+    # torch's lower-of-two = 0.05 -> also not partial. Distinguishing case [0.11, 0.30]: lower-of-
+    # two = 0.11 > 0.10 -> PARTIAL under torch's convention (interpolated 0.205 would agree here,
+    # so also assert the case where the two conventions DISAGREE: [0.09, 0.12] -> torch median
+    # 0.09 (not partial via median), interpolated 0.105 (would be partial) -- the registered
+    # convention is torch's, and frac(>0.10)=0.5>0.25 catches it via the OTHER clause anyway,
+    # demonstrating the symmetric rule's two clauses are not redundant).
+    # tolerance 1e-6, not 1e-9: the inputs are float32 tensors (0.09 stores as 0.090000003...),
+    # and the check only needs to distinguish lower-of-two (0.09/0.05) from the interpolating
+    # convention (0.105/0.10) -- orders of magnitude above float32 eps.
+    c_even = hs.classify_budget_partial(torch.tensor([0.05, 0.15]))
+    assert abs(c_even["median_shortfall"] - 0.05) < 1e-6, (
+        f"even-length median must be the LOWER middle value (torch convention), got "
+        f"{c_even['median_shortfall']}")
+    c_disagree = hs.classify_budget_partial(torch.tensor([0.09, 0.12]))
+    assert abs(c_disagree["median_shortfall"] - 0.09) < 1e-6
+    assert c_disagree["budget_partial"] is True, (
+        "the frac clause (0.5 > 0.25) must catch what the lower-median convention misses -- the "
+        "two clauses are complementary, not redundant")
     if verbose:
         print(f"  [5] B_pinned renorm: clamp respected, shortfall symmetric rule fires correctly "
               f"(PARTIAL={cls['budget_partial']} at unreachable b_pinned, "
-              f"{cls2['budget_partial']} at reachable b_pinned), zero-mass-chunk edge case finite")
+              f"{cls2['budget_partial']} at reachable b_pinned), zero-mass-chunk edge case finite; "
+              f"even-length median = lower-of-two (torch convention) verified at the boundary")
     return True
 
 
@@ -439,10 +482,83 @@ def smoke_bands_pinned_trackb(verbose=True):
         assert bp.classify_support_degenerate(10.0, doc["support_band"]) is False   # within [floor,32]
         assert bp.classify_positionally_degenerate(0.9, doc["positional_concentration_ceiling"]) is True
 
+    # AUDIT FIX regression (2026-07-04, minor): the sec 4.3 derivations require EXACTLY the last
+    # 5 log points -- a 4-length (short pilot) or 6-length (un-sliced trajectory) list must REFUSE.
+    for bad in ([0.05, 0.06, 0.04, 0.05], [0.05] * 6):
+        raised_len = False
+        try:
+            bp.derive_churn_null_a(bad)
+        except AssertionError:
+            raised_len = True
+        assert raised_len, f"derive_churn_null_a accepted a len={len(bad)} list (must be exactly 5)"
+    raised_len = False
+    try:
+        bp.derive_pos_ceiling([0.01, 0.02])
+    except AssertionError:
+        raised_len = True
+    assert raised_len, "derive_pos_ceiling accepted a len=2 list (must be exactly 5)"
+
     if verbose:
         print("  [10] BANDS_PINNED-TrackB: writer/validate/assert round-trip correct, tamper "
               "detection fires, churn_ceiling_for_run's max-of-two-nulls picks the binding null "
-              "correctly in both directions")
+              "correctly in both directions; len!=5 derivation inputs REFUSED")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# [10b] The F2 reader: extract_selection_logpoint_lists on a synthetic
+# result JSON shaped exactly like train()'s own output (per-checkpoint
+# hard_select_diagnostics blocks with per_layer scalars).
+# ---------------------------------------------------------------------------
+
+def smoke_selection_logpoint_reader(verbose=True):
+    def ckpt(step, churn, tv, med, p10):
+        return {"step": step, "hard_select_diagnostics": {
+            "per_layer": {"0": {"churn_vs_prev": churn, "tv_from_uniform": tv,
+                                 "support_median": med, "support_p10": p10, "mechanism": "hard_ste"},
+                          "1": {"churn_vs_prev": (churn + 0.02) if churn is not None else None,
+                                 "tv_from_uniform": tv + 0.01,
+                                 "support_median": med, "support_p10": p10, "mechanism": "hard_ste"}},
+            "n_docs": 8, "doc_start_digest": 12345}}
+
+    # 7 checkpoints; the FIRST has churn=None (no previous selection) -> 6 churn values, 7 TV values
+    checkpoints = [ckpt(250, None, 0.010, 20.0, 12.0)]
+    churns = [0.30, 0.25, 0.20, 0.18, 0.15, 0.14]
+    for i, c in enumerate(churns):
+        checkpoints.append(ckpt(500 + 250 * i, c, 0.011 + 0.001 * i, 20.0, 12.0 - i * 0.5))
+    result = {"complete": True, "checkpoints": checkpoints}
+
+    lists = bp.extract_selection_logpoint_lists(result, last_n=5)
+    # per-layer mean: layer 1's churn is layer 0's + 0.02 -> mean = churn + 0.01
+    expected_churn = [round(c + 0.01, 10) for c in churns[-5:]]
+    assert all(abs(a - b) < 1e-9 for a, b in zip(lists["churn"], expected_churn)), \
+        f"churn slice/pooling wrong: {lists['churn']} vs {expected_churn}"
+    assert len(lists["tv"]) == 5
+    assert lists["support_p10_final"] == 12.0 - 5 * 0.5
+    assert lists["n_checkpoints"] == 7
+    # the extracted lists feed the len==5 derivations directly
+    bp.derive_churn_null_a(lists["churn"])
+    bp.derive_pos_ceiling(lists["tv"])
+
+    # too-short pilot (3 checkpoints -> 2 churn values) must REFUSE, never pad
+    short = {"complete": True, "checkpoints": checkpoints[:3]}
+    raised = False
+    try:
+        bp.extract_selection_logpoint_lists(short, last_n=5)
+    except AssertionError:
+        raised = True
+    assert raised, "a too-short pilot trajectory must refuse, never silently pad"
+
+    # a result with NO diagnostics blocks (non-pilot run) must refuse with the clear message
+    raised2 = False
+    try:
+        bp.extract_selection_logpoint_lists({"complete": True, "checkpoints": [{"step": 1}]})
+    except AssertionError:
+        raised2 = True
+    assert raised2
+    if verbose:
+        print("  [10b] extract_selection_logpoint_lists: last-5 slicing + mean-over-layers pooling "
+              "correct, feeds the len==5 derivations directly, refuses short/diagnostic-less runs")
     return True
 
 
@@ -471,6 +587,28 @@ def smoke_duplicate_key_stress_slice(verbose=True):
     chunk_no_dup = torch.randint(0, 50_000, (chunk_size,))
     n_dup_none = wn1.chunk_n_dup_max(chunk_no_dup.unsqueeze(0), chunk_size, gram_n=gram_n)
     assert n_dup_none.item() <= 2, f"expected near-zero duplication at vocab=50000, got {n_dup_none.item()}"
+
+    # AUDIT FIX regression (independent audit 2026-07-04, M2): the pre-fix SINGLE-int64 packing
+    # (4 x 17 = 68 bits > 63) silently wrapped, so grams (0,5,6,7) and (8192,5,6,7) collided
+    # (8192 * 2^51 = 2^64 == 0 mod 2^64) and read as duplicates. The two-word packing must keep
+    # them DISTINCT. Layout: place both grams non-overlapping in one chunk (a gram ends at
+    # position t reading tokens t-3..t): tokens[0:4]=(0,5,6,7), tokens[8:12]=(8192,5,6,7) --
+    # grams ending at t=3 and t=11; every other ending position mixes filler tokens and cannot
+    # duplicate either gram.
+    # filler tokens are all DISTINCT (90001..): a constant filler would itself create duplicate
+    # transitional grams like (5,6,7,filler) after BOTH blocks, confounding the collision check.
+    collide = torch.arange(90_001, 90_001 + chunk_size, dtype=torch.int64)
+    collide[0:4] = torch.tensor([0, 5, 6, 7])
+    collide[8:12] = torch.tensor([8192, 5, 6, 7])
+    n_dup_collide = wn1.chunk_n_dup_max(collide.unsqueeze(0), chunk_size, gram_n=gram_n)
+    assert n_dup_collide.item() == 1, (
+        f"M2 REGRESSION: grams (0,5,6,7) and (8192,5,6,7) read as duplicates "
+        f"(n_dup_max={n_dup_collide.item()}, expected 1) -- the int64 packing is wrapping again")
+    # and genuinely identical grams still count: repeat (8192,5,6,7) at a third site
+    collide2 = collide.clone()
+    collide2[12:16] = torch.tensor([8192, 5, 6, 7])
+    n_dup_real = wn1.chunk_n_dup_max(collide2.unsqueeze(0), chunk_size, gram_n=gram_n)
+    assert n_dup_real.item() == 2, f"two genuinely-identical grams must count 2, got {n_dup_real.item()}"
 
     # window selection: build a small corpus with ONE stress document, verify it gets selected.
     # select_duplicate_key_stress_windows requires >=seq_len+1 tokens after a doc start
@@ -546,17 +684,23 @@ def smoke_candidate3_periodic(verbose=True):
 
 
 # ---------------------------------------------------------------------------
-# [13] run_trackb_wave.py: manifest shapes, budget_guard/disk_space_check
-# gate behavior, dry-run preview runs without error.
+# [13] run_trackb_wave.py: manifest shapes, entmax pre-filter, wave-3
+# manifest, budget_guard/disk_space_check gate behavior, dry-run preview.
 # ---------------------------------------------------------------------------
 
 def smoke_run_trackb_wave_manifests(verbose=True):
     import run_trackb_wave as rtw
 
     m_neg1 = rtw.waveNeg1_manifest(steps=2000)
-    assert len(m_neg1) == 5, f"expected 5 Wave -1 mechanism probes, got {len(m_neg1)}"
+    assert len(m_neg1) == 7, (
+        f"expected 7 Wave -1 cells (5 mechanism probes + reference pilot + stability smoke), "
+        f"got {len(m_neg1)}")
     names = {r["name"] for r in m_neg1}
-    assert len(names) == 5, "Wave -1 probe names must be unique"
+    assert len(names) == 7, "Wave -1 cell names must be unique"
+    pilot = next(r for r in m_neg1 if r["cell"] == "reference_pilot")
+    assert pilot.get("selection_probe") == rtw.K_SEL, "the pilot must carry the F2 implicit probe"
+    stab = next(r for r in m_neg1 if r["cell"] == "stability_smoke")
+    assert stab["corpus"] == "openr1-stress" and stab.get("nan_probe_counter") is True
 
     factorial = rtw.full_factorial_manifest(steps=100, surviving_mechanisms=("hard_ste",))
     assert len(factorial["2"]) == len(rtw.CORPORA) * len(rtw.SEEDS)
@@ -567,6 +711,16 @@ def smoke_run_trackb_wave_manifests(verbose=True):
         assert spec.get("requires_override") is True
     for spec in factorial["4"]:
         assert spec["hard_select_k_sel"] == spec["geo3_k_sel"], "M6 composition rule violated in the manifest"
+
+    # AUDIT FIX (2026-07-04, F1 sub-item): the entmax pre-filter -- Cell 4 must drop entmax
+    # loudly (it cannot compose with geo3) while Cell 2 keeps it.
+    c4_mixed = rtw.cell4_manifest(100, surviving_mechanisms=("hard_ste", "entmax"))
+    assert all(s["hard_select_mechanism"] != "entmax" for s in c4_mixed), \
+        "entmax leaked into the Cell 4 manifest (would die inside every spawned subprocess)"
+    assert len(c4_mixed) == len(rtw.CORPORA) * len(rtw.SEEDS)   # hard_ste survives alone
+    c2_mixed = rtw.cell2_manifest(100, surviving_mechanisms=("hard_ste", "entmax"))
+    assert any(s["hard_select_mechanism"] == "entmax" for s in c2_mixed), \
+        "Cell 2 must KEEP entmax (the pre-filter is geo3-composition-specific, not a global cut)"
 
     # budget guard: a tiny projection under headroom passes; an enormous one refuses without override
     cum = rtw.budget_guard(0.001, "smoke-tiny", accept_override=False)
@@ -587,16 +741,122 @@ def smoke_run_trackb_wave_manifests(verbose=True):
     epoch = rtw.epoch_cap_check(corpus_n_tokens=10_000_000, steps=1000, batch_size=32, seq_len=512,
                                  epoch_cap=5)
     assert epoch["ok"] is True
+    epoch_bad = rtw.epoch_cap_check(corpus_n_tokens=1_000_000, steps=1000)
+    assert epoch_bad["ok"] is False, "16 epochs over a 1M-token corpus must breach the cap of 5"
 
     # dry-run preview must execute end-to-end with no exception (prints only, no launch)
     rtw.dry_run_preview(steps=2000, factorial_steps=100, surviving_mechanisms=("hard_ste",),
                         accept_budget_override=True)
 
     if verbose:
-        print(f"  [13] run_trackb_wave.py: manifests correctly shaped (5 Wave -1 probes; factorial "
-              f"cells {len(rtw.CORPORA)}x{len(rtw.SEEDS)} each; Cell 3 override-tagged; Cell 4's "
-              f"M6 k_sel match holds); budget_guard/disk_space_check/epoch_cap_check gate correctly; "
-              f"dry-run preview runs end-to-end")
+        print(f"  [13] run_trackb_wave.py: manifests correctly shaped (7 Wave -1 cells incl. "
+              f"probe-instrumented pilot + stress-corpus stability smoke; factorial cells "
+              f"{len(rtw.CORPORA)}x{len(rtw.SEEDS)} each; Cell 3 override-tagged; M6 k_sel match; "
+              f"entmax pre-filtered from Cell 4 but kept in Cell 2); budget/disk/epoch gates "
+              f"correct incl. the epoch-breach case; dry-run preview runs end-to-end")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# [13b] Dispatch-engine CPU checks (AUDIT FIX 2026-07-04, F1): is_done_trackb
+# validity-checked resume + build_cmd_trackb flag assembly + wave3_manifest
+# checkpoint threading -- everything short of an actual subprocess launch.
+# ---------------------------------------------------------------------------
+
+def smoke_dispatch_engine(verbose=True):
+    import run_trackb_wave as rtw
+
+    spec = {"wave": "1", "cell": "2", "corpus": "openr1", "seed": 1,
+            "hard_select_active": True, "hard_select_mechanism": "hard_ste",
+            "hard_select_k_sel": rtw.K_SEL, "geo3_active": False, "steps": 100,
+            "name": "smoke_cell2_openr1_s1"}
+    good = {"complete": True, "timed_out": False, "steps_completed": 100, "corpus": "openr1",
+            "seed": 1, "steps": 100, "gate_override": False,
+            "hard_select": {"active": True, "mechanism": "hard_ste", "k_sel": rtw.K_SEL},
+            "geo3_lm": {"active": False}}
+    with tempfile.TemporaryDirectory() as d:
+        p = os.path.join(d, f"{spec['name']}.json")
+        assert rtw.is_done_trackb(d, spec) is False          # no file yet
+        with open(p, "w") as f:
+            json.dump(good, f)
+        assert rtw.is_done_trackb(d, spec) is True           # valid result counts
+        # each identity-field mismatch must invalidate the resume
+        for corrupt in ({"complete": False}, {"steps_completed": 50}, {"seed": 2},
+                        {"hard_select": {"active": True, "mechanism": "random_topk", "k_sel": rtw.K_SEL}},
+                        {"geo3_lm": {"active": True, "k_sel": rtw.K_SEL, "n_iter": 20}}):
+            bad = {**good, **corrupt}
+            with open(p, "w") as f:
+                json.dump(bad, f)
+            assert rtw.is_done_trackb(d, spec) is False, f"stale/mismatched result counted done: {corrupt}"
+        # a pre-fix JSON lacking the always-present gate_override field must NOT count as done
+        no_stamp = {k: v for k, v in good.items() if k != "gate_override"}
+        with open(p, "w") as f:
+            json.dump(no_stamp, f)
+        assert rtw.is_done_trackb(d, spec) is False, "a gate_override-less (pre-M5-stamp) JSON counted done"
+
+    # build_cmd: cell-2 spec -> hard-select flags + b_pinned threaded, NO geo3 flags
+    cmd = rtw.build_cmd_trackb(spec, "/tmp/out", timeout=600, data_dir="/tmp/data", b_pinned=26.9)
+    s = " ".join(cmd)
+    assert "--hard-select-active" in s and "--hard-select-mechanism hard_ste" in s
+    assert "--hard-select-b-pinned 26.9" in s and "--use-geo3-lm" not in s
+    assert "--gate-override-reason" not in s
+
+    # cell-4 spec -> BOTH flag families, matched k_sel
+    spec4 = {"wave": "2", "cell": "4", "corpus": "openr1", "seed": 0, "hard_select_active": True,
+             "hard_select_mechanism": "hard_ste", "hard_select_k_sel": rtw.K_SEL,
+             "geo3_active": True, "geo3_k_sel": rtw.K_SEL, "geo3_n_iter": rtw.GEO3_N_ITER,
+             "steps": 100, "name": "smoke_cell4"}
+    s4 = " ".join(rtw.build_cmd_trackb(spec4, "/tmp/out", 600, "/tmp/data", b_pinned=26.9))
+    assert "--use-geo3-lm" in s4 and "--hard-select-active" in s4
+    assert f"--geo3-k-sel {rtw.K_SEL}" in s4 and f"--hard-select-k-sel {rtw.K_SEL}" in s4
+
+    # cell-3 spec + override stamp -> --gate-override-reason threaded; without stamp -> absent
+    spec3 = rtw.cell3_manifest(100)[0]
+    stamp = hs.trackb_override_stamp_payload()
+    s3 = " ".join(rtw.build_cmd_trackb(spec3, "/tmp/out", 600, "/tmp/data", override_stamp=stamp))
+    assert "--gate-override-reason" in s3 and "--hard-select-active" not in s3
+    s3_none = " ".join(rtw.build_cmd_trackb(spec3, "/tmp/out", 600, "/tmp/data"))
+    assert "--gate-override-reason" not in s3_none
+
+    # reference pilot -> --trackb-selection-probe; stability smoke -> --nan-probe-counter
+    m_neg1 = rtw.waveNeg1_manifest(steps=2000)
+    pilot = next(r for r in m_neg1 if r["cell"] == "reference_pilot")
+    s_pilot = " ".join(rtw.build_cmd_trackb(pilot, "/tmp/out", 600, "/tmp/data"))
+    assert f"--trackb-selection-probe {rtw.K_SEL}" in s_pilot and "--hard-select-active" not in s_pilot
+    stab = next(r for r in m_neg1 if r["cell"] == "stability_smoke")
+    s_stab = " ".join(rtw.build_cmd_trackb(stab, "/tmp/out", 600, "/tmp/data"))
+    assert "--nan-probe-counter" in s_stab and "--use-geo3-lm" in s_stab
+    assert "--corpus openr1-stress" in s_stab
+
+    # probe spec -> wave_neg1_trackb.py command
+    spec_p = {"wave": "cell1probe", "probe_checkpoint": "/ckpts/x.pt", "corpus": "openr1",
+              "steps": 0, "name": "smoke_probe"}
+    sp = " ".join(rtw.build_cmd_trackb(spec_p, "/tmp/out", 600, "/tmp/data"))
+    assert "wave_neg1_trackb.py" in sp and "--probe-checkpoint /ckpts/x.pt" in sp
+
+    # wave3_manifest: a completed source run threads its final checkpoint; a missing one -> None
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, "wave1"))
+        src = rtw.cell2_manifest(100)[0]
+        with open(os.path.join(d, "wave1", f"{src['name']}.json"), "w") as f:
+            json.dump({"complete": True, "final_checkpoint_path": "/ckpts/final.pt"}, f)
+        m3 = rtw.wave3_manifest(d, [src], [])
+        assert m3[0]["probe_checkpoint"] == "/ckpts/final.pt"
+        src2 = rtw.cell2_manifest(100)[1]
+        m3b = rtw.wave3_manifest(d, [src2], [])
+        assert m3b[0]["probe_checkpoint"] is None            # dropped (with SKIP) at dispatch time
+
+    # timeouts: geo3 spec must get the 3x per-step budget
+    t_geo3 = rtw.default_timeout_pretrain(spec4)
+    t_plain = rtw.default_timeout_pretrain(spec)
+    assert t_geo3 > t_plain
+
+    if verbose:
+        print("  [13b] dispatch engine: is_done_trackb validity checks have teeth (5 corruption "
+              "modes + missing gate_override all invalidate resume); build_cmd_trackb assembles "
+              "correct flags for cells 2/3/4, pilot (--trackb-selection-probe), stability smoke "
+              "(--nan-probe-counter, openr1-stress) and probes; wave3 checkpoint threading + "
+              "geo3-vs-plain timeout ordering correct")
     return True
 
 
@@ -616,9 +876,11 @@ _ALL_SMOKES = [
     smoke_m6_construction_asserts,
     smoke_override_stamping,
     smoke_bands_pinned_trackb,
+    smoke_selection_logpoint_reader,
     smoke_duplicate_key_stress_slice,
     smoke_candidate3_periodic,
     smoke_run_trackb_wave_manifests,
+    smoke_dispatch_engine,
 ]
 
 

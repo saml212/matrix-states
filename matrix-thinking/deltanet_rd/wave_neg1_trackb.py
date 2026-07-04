@@ -148,33 +148,54 @@ def chunk_n_dup_max(token_ids: torch.Tensor, chunk_size: int, gram_n: int = 4,
     token gram_n-gram (the gram ENDING at that position, matching
     k_conv1d's own causal ShortConvolution context -- key at position t is
     a function of tokens t-conv_size+1..t). token_ids: (B,T) int64.
-    vocab_bits=17 (2**17=131072 > GPT-2's 50,257 vocab) packs a gram_n-gram
-    into one int64 via a positional base-2**vocab_bits encoding (exact,
-    collision-free for any real GPT-2 token id -- NOT a hash, so no false-
-    duplicate risk). Positions before a full gram_n-length context (t <
-    gram_n-1 in the FULL sequence) are excluded from the comparison
-    (conservative: never manufactures a duplicate out of two different
-    zero-padded/short prefixes). Returns (B, n_chunks) int64."""
+
+    Gram packing (AUDIT FIX, independent audit 2026-07-04 -- M2): the first
+    build packed all gram_n tokens into ONE int64 word (positional
+    base-2**vocab_bits encoding), which at the default gram_n=4 x
+    vocab_bits=17 = 68 bits OVERFLOWS int64's 63 value bits -- torch int64
+    arithmetic wraps silently, so two DIFFERENT grams whose packed values
+    differ by a multiple of 2^64 read as duplicates (concretely: first-gram
+    tokens 0 vs 8192 with identical trailing tokens collide, 8192*2^51 =
+    2^64 == 0 mod 2^64 -- the regression test in test_trackb_smokes.py
+    constructs exactly this pair). Fixed by packing across TWO int64 words
+    (tokens split half-and-half: <=2x17=34 bits per word at gram_n=4,
+    always in range), compared jointly via torch.unique(dim=0) over
+    (word0, word1) rows -- exact and collision-free for any gram_n with
+    ceil(gram_n/2)*vocab_bits <= 62, asserted below rather than assumed.
+
+    Positions before a full gram_n-length context (t < gram_n-1 in the
+    FULL sequence) are excluded from the comparison (conservative: never
+    manufactures a duplicate out of two different zero-padded/short
+    prefixes). Returns (B, n_chunks) int64."""
     B, T = token_ids.shape
     assert T % chunk_size == 0, f"T={T} not a multiple of chunk_size={chunk_size}"
     assert (1 << vocab_bits) > int(token_ids.max().item()), (
         f"vocab_bits={vocab_bits} (base {1 << vocab_bits}) too small for max token id "
         f"{int(token_ids.max().item())} -- would silently corrupt the exact-gram packing")
+    half = (gram_n + 1) // 2
+    assert half * vocab_bits <= 62, (
+        f"gram_n={gram_n} x vocab_bits={vocab_bits}: {half} tokens/word x {vocab_bits} bits = "
+        f"{half * vocab_bits} bits > 62 -- the two-word packing would itself overflow; lower "
+        f"vocab_bits or widen the word count deliberately (M2's own failure mode, do not wrap).")
     n_chunks = T // chunk_size
     grams = token_ids.unfold(1, gram_n, 1).to(torch.int64)          # (B, T-gram_n+1, gram_n)
     base = 1 << vocab_bits
-    packed = torch.zeros(B, grams.shape[1], dtype=torch.int64)
-    for g in range(gram_n):
-        packed = packed * base + grams[:, :, g]
+    word0 = torch.zeros(B, grams.shape[1], dtype=torch.int64)
+    word1 = torch.zeros(B, grams.shape[1], dtype=torch.int64)
+    for g in range(half):
+        word0 = word0 * base + grams[:, :, g]
+    for g in range(half, gram_n):
+        word1 = word1 * base + grams[:, :, g]
+    packed = torch.stack([word0, word1], dim=-1)                     # (B, n_positions, 2)
     end_pos = torch.arange(gram_n - 1, gram_n - 1 + packed.shape[1])
     chunk_of = end_pos // chunk_size                                  # (n_positions,)
     n_dup_max = torch.zeros(B, n_chunks, dtype=torch.int64)
     for b in range(B):
         for c in range(n_chunks):
-            sel = packed[b, chunk_of == c]
+            sel = packed[b, chunk_of == c]                            # (n_in_chunk, 2)
             if sel.numel() == 0:
                 continue
-            _, counts = torch.unique(sel, return_counts=True)
+            _, counts = torch.unique(sel, dim=0, return_counts=True)
             n_dup_max[b, c] = int(counts.max().item())
     return n_dup_max
 
@@ -278,3 +299,201 @@ class NanStabilityProbeCounter:
                         "duplicated positions via the M6 forced_topk_idx argument, Rev 3's "
                         "registered fallback)"),
         }
+
+
+# ---------------------------------------------------------------------------
+# AUDIT FIX (independent audit 2026-07-04, F1's dispatch half): the stress-
+# slice MATERIALIZER -- turns select_duplicate_key_stress_windows' selected
+# windows into a real, load_corpus-compatible corpus directory, so the
+# stability smoke's build_cmd names an actual trainable corpus
+# ("openr1-stress" in lm_pretrain_rd.CORPUS_DIRS) instead of a manifest
+# annotation with nothing behind it. CPU-only, but requires the real source
+# corpus under --data-dir -- built this session, NOT run (box /data access
+# is a launch-time step).
+# ---------------------------------------------------------------------------
+
+def materialize_stress_slice_corpus(data_dir: str, out_subdir: str = "reasoning_stress_eot",
+                                     src_corpus: str = "openr1", seq_len: int = 512,
+                                     chunk_size: int = 64, n_dup_min: int = 8, gram_n: int = 4,
+                                     min_train_windows: int = 64, min_val_windows: int = 8) -> dict:
+    """Writes <data_dir>/<out_subdir>/ in load_corpus's exact format
+    (meta.json + {split}.pt + {split}_doc_offsets.pt): each selected stress
+    window becomes one 'document' (window tokens + one appended EOT --
+    load_corpus's own doc-boundary invariant requires the token before
+    every non-first doc start to be EOT; appending one EOT per window
+    preserves the window's own duplication content unchanged).
+
+    REGISTERED APPROXIMATION (stated, not silent): training windows are
+    sampled at RANDOM offsets over this slice corpus (get_batch), so chunk
+    boundaries during training do NOT always align with the doc-aligned
+    tiling the n_dup_max ranking used -- a duplicated span can straddle two
+    chunks and contribute fewer per-chunk duplicates than its nominal
+    n_dup_max. This is exactly why the smoke's PROBATIVENESS is measured by
+    the NanStabilityProbeCounter's realized floor (>=25 calls with >=6
+    duplicated SELECTED rows), never assumed from the slice's nominal
+    statistics -- if random tiling dilutes the regime below the floor, the
+    smoke declares NON-PROBATIVE and the M6 forced-selection fallback
+    fires (TRACKB_REDESIGN.md sec 5.1, Rev 3 NEW-7)."""
+    from lm_pretrain_rd import load_corpus, EOT_TOKEN_ID
+    train, val, meta, train_offs, val_offs = load_corpus(data_dir, src_corpus, "cpu")
+
+    def _build_split(tokens, offs, min_windows, split_name):
+        slice_info = select_duplicate_key_stress_windows(
+            tokens, offs, seq_len=seq_len, chunk_size=chunk_size, n_dup_min=n_dup_min,
+            gram_n=gram_n, corpus_name=src_corpus)
+        n_sel = slice_info["n_selected_windows"]
+        assert n_sel >= min_windows, (
+            f"{split_name}: only {n_sel} stress windows at n_dup_min={n_dup_min} (need >= "
+            f"{min_windows}) -- lower n_dup_min DELIBERATELY (it must stay >= the audit-measured "
+            f"~6 onset) or accept a smaller smoke, never silently pad with non-stress windows")
+        pieces, doc_offsets, cursor = [], [], 0
+        eot = torch.tensor([EOT_TOKEN_ID], dtype=tokens.dtype)
+        for start in slice_info["selected_starts"]:
+            doc_offsets.append(cursor)
+            w = tokens[start:start + seq_len]
+            pieces.append(w)
+            pieces.append(eot)
+            cursor += seq_len + 1
+        return torch.cat(pieces), torch.tensor(doc_offsets, dtype=torch.int64), slice_info
+
+    train_out, train_offs_out, train_info = _build_split(train, train_offs, min_train_windows, "train")
+    val_out, val_offs_out, val_info = _build_split(val, val_offs, min_val_windows, "val")
+
+    out_dir = os.path.join(data_dir, out_subdir)
+    os.makedirs(out_dir, exist_ok=True)
+    torch.save(train_out, os.path.join(out_dir, "train.pt"))
+    torch.save(val_out, os.path.join(out_dir, "val.pt"))
+    torch.save(train_offs_out, os.path.join(out_dir, "train_doc_offsets.pt"))
+    torch.save(val_offs_out, os.path.join(out_dir, "val_doc_offsets.pt"))
+    out_meta = {
+        "vocab_size": meta["vocab_size"], "tokenizer": meta["tokenizer"], "eot_separated": True,
+        "eot_token_id": EOT_TOKEN_ID,
+        "source": f"duplicate-key stress slice of {src_corpus} (TRACKB_REDESIGN.md sec 5.1, Rev 3 "
+                  f"NEW-7; wave_neg1_trackb.materialize_stress_slice_corpus)",
+        "slice_params": {"seq_len": seq_len, "chunk_size": chunk_size, "n_dup_min": n_dup_min,
+                          "gram_n": gram_n},
+        "train_tokens": int(train_out.numel()), "train_docs": int(train_offs_out.numel()),
+        "val_tokens": int(val_out.numel()), "val_docs": int(val_offs_out.numel()),
+        "train_slice_selection": {k: v for k, v in train_info.items() if k != "selected_starts"},
+        "val_slice_selection": {k: v for k, v in val_info.items() if k != "selected_starts"},
+    }
+    with open(os.path.join(out_dir, "meta.json"), "w") as f:
+        json.dump(out_meta, f, indent=2)
+    return out_meta
+
+
+# ---------------------------------------------------------------------------
+# AUDIT FIX (independent audit 2026-07-04, F1's Wave-3 half): the re-probe
+# CLI -- the real command run_trackb_wave.py's cell1probe/Wave-3 manifests
+# dispatch. Loads a checkpoint, registers the capture hooks, runs ONE
+# doc-aligned forward pass over the val split (corpus-fixed-seeded, FIX-1
+# convention), applies the sec 4.4 selected-key instrument read-only, and
+# writes a validity-checkable result JSON. GPU REQUIRED (chunk_delta_rule
+# has no CPU path) -- built this session, NOT run.
+# ---------------------------------------------------------------------------
+
+def run_checkpoint_probe(checkpoint_path: str, data_dir: str, corpus: str, n_docs: int,
+                          seq_len: int, chunk_size: int, k_sel: int, n_iter: int,
+                          resid_tol: float, out_path: str) -> dict:
+    from lm_pretrain_rd import DeltaNetLM, load_corpus, EOT_TOKEN_ID
+    assert torch.cuda.is_available(), "run_checkpoint_probe requires CUDA (chunk_delta_rule has no CPU path)"
+    device = "cuda"
+    ckpt = torch.load(checkpoint_path, map_location=device)
+    model = DeltaNetLM(**ckpt["config"]).to(device)
+    model.load_state_dict(ckpt["model_state_dict"])
+    model.eval()
+    ckpt_step = int(ckpt["step"])
+
+    _, val, meta, _, val_offs = load_corpus(data_dir, corpus, device)
+    gen = torch.Generator(device=device).manual_seed(corpus_fixed_seed(corpus) + 60_000)
+    n = val.numel()
+    eligible = val_offs[val_offs + seq_len + 1 <= n]
+    assert eligible.numel() >= n_docs, f"only {eligible.numel()} eligible val docs for n_docs={n_docs}"
+    pick = torch.randint(0, eligible.numel(), (n_docs,), generator=gen, device=val_offs.device)
+    starts = eligible[pick]
+    offs = torch.arange(seq_len, device=val.device)
+    batch = val[starts.unsqueeze(1) + offs.unsqueeze(0)]
+
+    handles, captured = register_kbeta_capture_hooks(model)
+    try:
+        with torch.no_grad():
+            # build-phase note (1), load-bearing: pass the CHECKPOINT'S OWN recorded step, so a
+            # hard_select_active model's step-dependent mechanism CONTINUES its training-time RNG
+            # stream (DeltaNetLMMixer.forward's own docstring contract).
+            _ = model(batch, step=ckpt_step)
+        per_layer = cell1_readout_from_captured(
+            captured, batch, chunk_size, k_sel, n_iter, resid_tol,
+            excluded_token_ids=(EOT_TOKEN_ID,))
+    finally:
+        for h in handles:
+            h.remove()
+
+    result = {"complete": True, "checkpoint": checkpoint_path, "checkpoint_step": ckpt_step,
+              "corpus": corpus, "n_docs": n_docs, "seq_len": seq_len, "chunk_size": chunk_size,
+              "k_sel": k_sel, "n_iter": n_iter, "resid_tol": resid_tol, "per_layer": {}}
+    for li, r in per_layer.items():
+        mass = r["per_chunk_total_mass"].reshape(-1).double()
+        supp = r["support_size"].reshape(-1).double()
+        result["per_layer"][str(li)] = {
+            "resid_mean": r["resid_mean"], "resid_max": r["resid_max"], "resid_min": r["resid_min"],
+            "frac_valid_selections": r["frac_valid_selections"],
+            "per_chunk_total_mass": {"mean": mass.mean().item(),
+                                      "std": mass.std(unbiased=True).item() if mass.numel() > 1 else 0.0,
+                                      "p10": torch.quantile(mass, 0.10).item(),
+                                      "p90": torch.quantile(mass, 0.90).item(),
+                                      "n": int(mass.numel())},
+            "support": {"median": supp.median().item(),
+                         "p10": torch.quantile(supp, 0.10).item()},
+        }
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    with open(out_path, "w") as f:
+        json.dump(result, f, indent=2)
+    return result
+
+
+def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    sub = ap.add_mutually_exclusive_group(required=True)
+    sub.add_argument("--probe-checkpoint", type=str, default=None,
+                      help="read-only sec 4.4 selected-key re-probe of ONE checkpoint (Cell 1's "
+                           "archived Wave C checkpoints / Wave 3's instrumentation pass). GPU "
+                           "required.")
+    sub.add_argument("--build-stress-slice", action="store_true",
+                      help="materialize the duplicate-key stress-slice corpus (Rev 3 NEW-7) under "
+                           "--data-dir/reasoning_stress_eot. CPU, needs the real source corpus.")
+    sub.add_argument("--mc-anchors", action="store_true",
+                      help="run the sec 5.3 MC anchor recomputation (CPU, free) and write --out.")
+    ap.add_argument("--data-dir", default="/data/deltanet_rd_data")
+    ap.add_argument("--corpus", default="openr1")
+    ap.add_argument("--n-docs", type=int, default=8)
+    ap.add_argument("--seq-len", type=int, default=512)
+    ap.add_argument("--chunk-size", type=int, default=64)
+    ap.add_argument("--k-sel", type=int, default=32)
+    ap.add_argument("--n-iter", type=int, default=20)
+    ap.add_argument("--resid-tol", type=float, default=1e-2)
+    ap.add_argument("--n-dup-min", type=int, default=8)
+    ap.add_argument("--mc-samples", type=int, default=500_000)
+    ap.add_argument("--out", type=str, default=None)
+    args = ap.parse_args()
+
+    if args.probe_checkpoint:
+        assert args.out, "--out is required for --probe-checkpoint"
+        result = run_checkpoint_probe(args.probe_checkpoint, args.data_dir, args.corpus,
+                                       args.n_docs, args.seq_len, args.chunk_size, args.k_sel,
+                                       args.n_iter, args.resid_tol, args.out)
+        print(json.dumps({k: v for k, v in result.items() if k != "per_layer"}, indent=2))
+        print(f"wrote {args.out}")
+    elif args.build_stress_slice:
+        out_meta = materialize_stress_slice_corpus(args.data_dir, src_corpus=args.corpus,
+                                                    seq_len=args.seq_len, chunk_size=args.chunk_size,
+                                                    n_dup_min=args.n_dup_min)
+        print(json.dumps(out_meta, indent=2))
+    else:
+        assert args.out, "--out is required for --mc-anchors"
+        result = run_mc_anchor_recomputation(args.out, K=args.k_sel, d=64, n_samples=args.mc_samples)
+        print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

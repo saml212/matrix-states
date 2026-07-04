@@ -60,19 +60,79 @@ def derive_churn_null_a(pilot_churn_last5_logpoints: list) -> dict:
     architecture reference pilot's implicit top-K_sel-by-beta churn at its
     last 5 log points (steps past init transients). `pilot_churn_last5_
     logpoints` is that list of scalar churn values (one per log point,
-    already pooled over chunk/head episodes by the caller)."""
-    assert len(pilot_churn_last5_logpoints) >= 2, (
-        "Null A needs >=2 log points to compute a sample std (Rev 3's own last-5-log-points "
-        "convention; a single point cannot estimate dispersion)")
+    already pooled over chunk/head episodes by the caller).
+
+    len==5 EXACTLY (AUDIT FIX, independent audit 2026-07-04): the spec
+    registers "its last 5 log points" -- a shorter list means the pilot did
+    not run/checkpoint long enough (or the extractor mis-sliced) and the
+    pin must REFUSE, not degrade to a noisier estimate; a longer list means
+    an un-sliced trajectory, silently widening the null past its
+    registration."""
+    assert len(pilot_churn_last5_logpoints) == 5, (
+        f"Null A requires EXACTLY the last 5 log points (sec 4.3's registered convention), got "
+        f"{len(pilot_churn_last5_logpoints)} -- use extract_selection_logpoint_lists on a pilot "
+        f"with enough checkpoints, never a hand-sliced or shorter list")
     return _mean_plus_2s(pilot_churn_last5_logpoints)
 
 
 def derive_pos_ceiling(pilot_tv_last5_logpoints: list) -> dict:
     """sec 4.3 (Rev 3 NEW-5): mean_ref + 2*s_ref over the unmasked
     reference pilot's own TV-from-uniform at its last 5 log points -- same
-    reference-null shape as churn Null A."""
-    assert len(pilot_tv_last5_logpoints) >= 2, "positional-concentration ceiling needs >=2 log points"
+    reference-null shape as churn Null A, same EXACTLY-5 requirement (see
+    derive_churn_null_a's audit-fix note)."""
+    assert len(pilot_tv_last5_logpoints) == 5, (
+        f"positional-concentration ceiling requires EXACTLY the last 5 log points, got "
+        f"{len(pilot_tv_last5_logpoints)} -- see derive_churn_null_a's len==5 note")
     return _mean_plus_2s(pilot_tv_last5_logpoints)
+
+
+def extract_selection_logpoint_lists(result: dict, last_n: int = 5) -> dict:
+    """AUDIT FIX (independent audit 2026-07-04 -- F2's reader half): turns a
+    COMPLETED lm_pretrain_rd.py result JSON (parsed dict) into exactly the
+    inputs derive_churn_null_a / derive_pos_ceiling / derive_support_floor
+    expect. Reads the per-checkpoint `hard_select_diagnostics` blocks
+    train() writes (lm_pretrain_rd.py's sample_hard_select_diagnostics --
+    present when the run was hard_select_active OR ran with
+    --trackb-selection-probe, the unmasked reference pilot's own
+    implicit-selection instrumentation).
+
+    Per-checkpoint scalars are pooled across layers by MEAN (sec 4.3
+    defines pooling over (chunk, head) episodes; layers are not addressed
+    there -- mean-over-layers is this build's own registered reading,
+    stated here rather than buried).
+
+    Returns {"churn": last_n values (the first checkpoint has no previous
+    selection -> contributes None, excluded before slicing), "tv": last_n
+    values, "support_median_final", "support_p10_final" (the sec 4.3
+    support-floor input), "n_checkpoints"}. Raises AssertionError (refuse,
+    never silently pad) if fewer than last_n usable values exist."""
+    checkpoints = result.get("checkpoints") or []
+    diags = [c["hard_select_diagnostics"] for c in checkpoints
+             if isinstance(c.get("hard_select_diagnostics"), dict)]
+    assert diags, (
+        "result JSON carries no hard_select_diagnostics blocks -- the run was neither "
+        "hard_select_active nor --trackb-selection-probe'd; not a valid pilot/gated run for the "
+        "sec 4.3 derivations")
+
+    def _layer_mean(d: dict, key: str):
+        vals = [layer[key] for layer in d["per_layer"].values() if layer.get(key) is not None]
+        return (sum(vals) / len(vals)) if vals else None
+
+    churn_series = [v for v in (_layer_mean(d, "churn_vs_prev") for d in diags) if v is not None]
+    tv_series = [v for v in (_layer_mean(d, "tv_from_uniform") for d in diags) if v is not None]
+    assert len(churn_series) >= last_n, (
+        f"only {len(churn_series)} churn log points available, need >= {last_n} (churn needs a "
+        f"previous selection, so the first checkpoint contributes none -- the pilot must "
+        f"checkpoint at least {last_n + 1} times)")
+    assert len(tv_series) >= last_n, f"only {len(tv_series)} TV log points, need >= {last_n}"
+    final = diags[-1]
+    return {
+        "churn": churn_series[-last_n:],
+        "tv": tv_series[-last_n:],
+        "support_median_final": _layer_mean(final, "support_median"),
+        "support_p10_final": _layer_mean(final, "support_p10"),
+        "n_checkpoints": len(diags),
+    }
 
 
 def derive_support_floor(p10_support_final: float) -> dict:

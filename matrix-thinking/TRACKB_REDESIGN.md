@@ -771,7 +771,10 @@ mistake it for a passing-gate primary run. Non-override runs write
 
 **Cells 3 and 4 are additionally gated on the Wave −1 geo3-LM stability smoke
 (Rev 2 — M8; SLICE RE-SPECIFIED FROM THE ACTUAL FAILURE MECHANISM, Rev 3 — NEW-7,
-orchestrator-pinned).** The code-documented NaN path (`lm_pretrain_rd.py:349–353`)
+orchestrator-pinned).** The code-documented NaN path (`lm_pretrain_rd.py:404–409`,
+the "KNOWN RESIDUAL RISK" comment — cited as `:349–353` before the 2026-07-04
+hard-selectivity build shifted line numbers; content unchanged, pointer-only
+update per that build's independent audit)
 requires **≥~6 exactly-duplicated rows among a chunk's β-SELECTED top-K keys** —
 not merely repetition somewhere in the window. Keys duplicate exactly when their
 conv contexts do: `k` at position `t` is a function of tokens `t−3..t` through
@@ -1293,7 +1296,9 @@ read directly, incl. `gate_k_sel: 32`); `DELTANET_RD_EXACTNESS_DESIGN.md` §14, 
 (the `BANDS_PINNED` writer/launcher-gate/readout-assertion machinery, read in full),
 §8.3/R4-1; `matrix-thinking/deltanet_rd/lm_pretrain_rd.py` (`:1–60`, `:206–398`,
 `:419–570`, incl. the `:349–353` NaN-risk comment and the `:301` `valid_sel`
-derivation); `matrix-thinking/deltanet_rd/run_lm_rd_geo3_sweep.py` (`:61–74`
+derivation — spans as of the pre-build file this design was written against; the
+2026-07-04 hard-selectivity build shifted the NaN-risk comment to `:404–409`, see
+§5.1's own updated citation); `matrix-thinking/deltanet_rd/run_lm_rd_geo3_sweep.py` (`:61–74`
 constants, `:84` `GEO3_N_ITER_BY_K_SEL`, `:94–104` the 3× placeholder, `:131–183`
 gate loading + `_refuse_if_no_launch`, `:598–600` the `main()` call sites);
 `STATE.md` "Hardware" section + the rung-2 launch entry. No GPU run, no box access,

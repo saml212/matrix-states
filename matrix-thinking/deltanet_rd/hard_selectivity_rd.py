@@ -57,10 +57,16 @@ import torch.nn.functional as F
 def derive_step_rng(seed: int, step: int, device: str = "cpu") -> torch.Generator:
     """Deterministic generator keyed to (seed, step) ONLY -- no other input
     (not batch index, not "is this a probe or training step") may perturb
-    it, or the continuation property below breaks. Combined via a wide odd
-    multiplier (avoids adjacent-step seed collisions a small multiplier
-    could produce) then reduced into torch.Generator.manual_seed's accepted
-    range.
+    it, or the continuation property below breaks. Keying: `seed*1_000_003 +
+    step`, reduced mod 2^31-1 into torch.Generator.manual_seed's range.
+    What this guarantees (AUDIT FIX, 2026-07-04 -- the previous docstring
+    overclaimed "avoids collisions"): for a FIXED seed, all steps within any
+    window of width < 2^31-1 (every real run: steps <= ~10^5) map to
+    DISTINCT generator seeds -- the property the per-step resampling
+    actually needs. Across DIFFERENT (seed, step) pairs, collisions are
+    possible in principle (the map is many-to-one mod 2^31-1); irrelevant
+    here because each run holds one seed and compares only its own steps,
+    but stated so nobody later relies on cross-seed uniqueness.
 
     Continuation contract (build-phase note (1), verified by
     test_trackb_smokes.py's continuation-equivalence smoke): calling this
@@ -219,6 +225,14 @@ def chunk_sparsemax_beta(scores: torch.Tensor, content_mask: torch.Tensor, chunk
         .permute(0, 1, 3, 2)
     s_masked = torch.where(content_c, s_c, torch.full_like(s_c, _SPARSEMAX_EXCLUDE_SENTINEL))
     p = sparsemax(s_masked)                                             # (B,n_chunks,H,chunk_size)
+    # AUDIT FIX (independent audit 2026-07-04, M1): a FULLY-EXCLUDED chunk (every position
+    # EOT/padding) hands sparsemax a constant row of sentinels, and the simplex projection of a
+    # constant vector is UNIFORM (1/chunk_size at every position) -- exactly the write mass at
+    # excluded positions the mask exists to forbid. Hard-zero excluded positions AFTER the
+    # projection: a no-op for mixed chunks (the sentinel already keeps excluded positions out of
+    # the support, smoke [2]) but forces the correct beta=0 for the all-excluded case. The
+    # multiply-by-constant-mask keeps sparsemax's analytic gradient exact on the support.
+    p = p * content_c.to(p.dtype)
     return p.permute(0, 1, 3, 2).reshape(B, T, H)
 
 
@@ -349,7 +363,15 @@ def classify_budget_partial(shortfall: torch.Tensor, median_thresh: float = 0.10
     BUDGET-PARTIAL iff median(shortfall_c) > median_thresh OR
     frac(shortfall_c > median_thresh) > frac_thresh. shortfall: any shape
     (pooled over chunks/heads/batch by the caller before calling this, or
-    passed with extra leading dims -- flattened here)."""
+    passed with extra leading dims -- flattened here).
+
+    Median convention (AUDIT FIX, 2026-07-04 -- stated, not left implicit):
+    torch.median returns the LOWER of the two middle values for an
+    even-length input (NOT their mean, numpy's convention) -- i.e., this
+    rule's median is conservative-toward-NOT-PARTIAL by at most one
+    order-statistic step at even n. Registered as the convention (the
+    boundary case is exercised by test_trackb_smokes.py's own even-length
+    smoke), never silently swapped for the interpolating definition."""
     flat = shortfall.reshape(-1)
     median_shortfall = flat.median().item()
     frac_exceeding = (flat > median_thresh).float().mean().item()
