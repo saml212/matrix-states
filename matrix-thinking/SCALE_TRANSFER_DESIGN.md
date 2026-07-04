@@ -740,6 +740,39 @@ formula above rather than citing this paragraph's rounding.)
 | **4 (fix-effect, gated on Track B)** | geo3-in-LM applied at rungs 1 and 3 only, 2 corpora × 1 seed each | 4 runs | ~15–35 | Fix-effect-vs-scale comparison recorded |
 | **Total** | | | **≈66–152 GPU-h** (central estimate ≈100–115) | Within the brief's ~100–200 GPU-h; **Wave −1's measured throughput is the actual pricing authority, not this table** |
 
+**AMENDMENT (Rev 2.1, 2026-07-04, registered BEFORE the Wave-2 launch; no Wave-2/3
+data existed at registration time):**
+
+1. **Rung-2 seeds 1→3 per corpus (2→6 runs).** Rationale: matches rung-1's
+   evidentiary tier (3 seeds) for the primary monotonic-trend readout; funded by
+   the uptime-metered grant (idle GPUs are the only true waste — see STATE.md
+   Hardware). Readout criteria, bars, and §5.7 claims are UNCHANGED — this is
+   strictly-more-evidence, decided before any rung-2 data existed. Measured
+   pricing: 0.836 s/step × 91,552 steps ≈ 21.6 h/run → ≈129 GPU-h for the wave
+   (cumulative ≈163 of the §7 300 GPU-h ceiling). Rung-3 stays 1 seed as
+   registered (its pricing is the open budget question; see item 4).
+2. **Waves ≥2 train on the EXTENDED mixes** (`reasoning_mix_eot_extended`
+   344.7M train tok / `wikitext103_mix_eot_extended` 418.1M train tok; val/test
+   byte-identical to the originals, md5-verified; licenses ODC-By re-verified at
+   build 2026-07-04). Reason: rung-2's 1.5B-token/run target exceeds the original
+   mixes' §5.4 5-epoch ceilings (975M / 1.34B) — the launcher's epoch-cap gate
+   fires correctly and this is its registered remedy (more augmentation, not more
+   epochs). Consequence: rung-1 (original mixes) vs rung-2/3 (extended mixes) is a
+   joint scale+data-mix comparison — §5.7's Rev-2 scoping already states every
+   rung-2/3 headline this way until controls isolate the axes.
+3. **New `mixcontrol` cells (registered with this amendment):** the Wave-C-scale
+   ~14M control architecture retrained on the EXTENDED mixes, 2 mixes × 3 seeds
+   (~0.5 GPU-h total at measured control pricing) — re-isolates the mix axis at
+   the small scale for the extended mixes, mirroring MAJOR-5's original control
+   logic. A rung-1 repeat on the extended mixes (2 × 3, ~30 GPU-h) is QUEUED as a
+   follow-up wave to fully de-confound the rung-1→rung-2 comparison; it runs when
+   GPUs free up, before any pure-scale attribution claim is made at rung 2.
+4. **Rung-3 calibration cells run now** (5/20-step two-point on one GPU, warm-up
+   pair discarded per the cold-Triton-cache guard) so rung-3's real pricing is
+   known before the go/no-go; if measured rung-3 cost pushes the program past the
+   §7 300 GPU-h ceiling, the decision escalates to the user per §8's cut order —
+   `--accept-budget-override` remains a human-only decision.
+
 ### 5.7 Success/failure criteria — both directions pre-registered as informative
 
 **"Persists" (falsification-of-dissolution) criterion, stated before any data exists:**

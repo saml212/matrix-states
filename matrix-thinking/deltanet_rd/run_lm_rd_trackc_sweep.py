@@ -2,12 +2,24 @@
 Track C / the scaling ladder (SCALE_TRANSFER_DESIGN.md sec 5). Original
 build covered rung 1 (~98M params) + the REQUIRED small-model same-mix
 control cell (sec 5.6 Wave 1, MAJOR-5) ONLY; Wave 1 has since completed
-and closed (sec 5.9). THIS BUILD (trackC-rung23-build) extends the
-launcher with REAL --wave 2 / --wave 3 paths for rung 2 (~392M) and rung 3
-(~1.31B), per lm_rd_rung_configs.py's RUNGS table -- rungs 2/3 are no
-longer registered-but-unbuilt; BUILD_SCOPE_RUNGS now covers all three
+and closed (sec 5.9). trackC-rung23-build extended the launcher with REAL
+--wave 2 / --wave 3 paths for rung 2 (~392M) and rung 3 (~1.31B), per
+lm_rd_rung_configs.py's RUNGS table -- rungs 2/3 are no longer
+registered-but-unbuilt; BUILD_SCOPE_RUNGS now covers all three
 (lm_rd_rung_configs.py), so every smoke gate call now verifies all three
 rungs' parameter counts, not just rung 1's.
+
+THIS BUILD (sec 5.6 AMENDMENT, Rev 2.1, 2026-07-04, registered before any
+Wave-2/3 data existed) makes three changes: (1) rung 2's seed count goes
+1->3 per corpus (2->6 runs, WAVE23_SEEDS_BY_RUNG) to match rung 1's
+evidentiary tier; rung 3 stays 1 seed as registered. (2) waves >=2 now
+train on the EXTENDED mixes (WAVE23_CORPORA), not the original MIX_CORPORA
+-- the epoch-cap remedy for rung 2's 1.5B-token/run budget exceeding the
+originals' <=5-epoch ceiling (sec 5.4); wave 1 / calibration / control
+paths are UNCHANGED, still MIX_CORPORA. (3) a new `--wave mixcontrol`
+re-isolates the mix axis at Wave-C scale for the extended mixes (CONTROL_CFG
+x WAVE23_CORPORA x 3 seeds, control-length steps) -- mirrors MAJOR-5's
+original control logic, applied to the new corpora.
 
 CLONE of run_lm_rd_geo3_sweep.py's / run_lm_rd_sweep.py's robustness
 pattern (smoke gate, exception-isolated launch, validity-checked resume,
@@ -45,27 +57,41 @@ Waves (in run order):
     launched any time; report its measured numbers.
   1 (rung 1 + control cell, FULL manifest): CLOSED -- already ran to
     completion (sec 5.9). Behavior UNCHANGED by this build.
-  2 (rung 2, FULL manifest -- 2 runs, 2 corpora x 1 seed, sec 5.6's table,
-    no control cell at this rung per MAJOR-5/sec 8) and
-  3 (rung 3, FULL manifest -- 2 runs, 2 corpora x 1 seed, sec 5.6's table):
-    built, smoke-gated, dry-run-previewable, and gated on: (a) an existing
-    calibration.json with populated `timing_constants` for the rung
-    (sec 9's hard rule), (b) --rung{2,3}-steps supplied explicitly (no
-    silent fallback to the placeholder), (c) a PASSING memory-headroom
-    readout at the real batch size, recomputed live from calibration.json's
-    own recorded peak-memory cells (not assumed), (d) a PASSING epoch-cap
-    check on BOTH mix corpora at the resulting per-run token budget (sec
-    5.4's <=5-physical-epoch discipline, read live from each mix's own
-    meta.json), and (e) a budget guard: PROGRAM_SPENT_GPUH (this file's own
-    maintained tracker) + this wave's projected GPU-h (computed from the
-    calibration's measured timing constants, PRINTED before any launch
-    decision) must not exceed the program's 300 GPU-h ceiling (sec 7)
-    without an explicit --accept-budget-override. ANY of (a)-(e) failing
-    refuses the launch with the design's own registered remedy, never a
-    silent proceed. THIS SESSION DOES NOT LAUNCH --wave 2 or --wave 3 for
-    real -- only rung 2's calibration cells are launched (see STATE.md /
-    the audit report for the measured numbers); the gates above are built
-    and exercised via --dry-run + the calibration run only.
+  2 (rung 2, FULL manifest -- 6 runs, 2 EXTENDED-mix corpora x 3 seeds per
+    the Rev 2.1 amendment item 1, no control cell at this rung per
+    MAJOR-5/sec 8) and
+  3 (rung 3, FULL manifest -- 2 runs, 2 EXTENDED-mix corpora x 1 seed,
+    unchanged from sec 5.6's table): built, smoke-gated, dry-run-previewable,
+    and gated on: (a) an existing calibration.json with populated
+    `timing_constants` for the rung (sec 9's hard rule), (b) --rung{2,3}-steps
+    supplied explicitly (no silent fallback to the placeholder), (c) a
+    PASSING memory-headroom readout at the real batch size, recomputed live
+    from calibration.json's own recorded peak-memory cells (not assumed),
+    (d) a PASSING epoch-cap check on BOTH extended-mix corpora (WAVE23_CORPORA,
+    amendment item 2) at the resulting per-run token budget (sec 5.4's
+    <=5-physical-epoch discipline, read live from each mix's own meta.json),
+    and (e) a budget guard: PROGRAM_SPENT_GPUH (this file's own maintained
+    tracker) + this wave's projected GPU-h (computed from the calibration's
+    measured timing constants and the ACTUAL manifest length -- never a
+    hardcoded run count -- PRINTED before any launch decision) must not
+    exceed the program's 300 GPU-h ceiling (sec 7) without an explicit
+    --accept-budget-override. ANY of (a)-(e) failing refuses the launch with
+    the design's own registered remedy, never a silent proceed. THIS SESSION
+    DOES NOT LAUNCH --wave 2 or --wave 3 for real -- only rung 2's
+    calibration cells are launched (see STATE.md / the audit report for the
+    measured numbers); the gates above are built and exercised via
+    --dry-run + the calibration run only.
+  mixcontrol (Rev 2.1 amendment item 3, NEW): CONTROL_CFG (Wave C's own
+    ~14M scale) retrained on WAVE23_CORPORA (the extended mixes) x 3 seeds =
+    6 cells, at the SAME control-length step budget as Wave 1's own
+    same-mix control cell (default_control_steps()) -- re-isolates the mix
+    axis at Wave-C scale for the extended mixes, mirroring MAJOR-5's
+    original control logic. Gated on the SAME (a)/(c)/(d)/(e) chain as
+    waves 2/3 (keyed to the 'control' calibration/timing cell, already
+    banked from Wave 1 -- no new calibration needed); the epoch-cap check
+    trivially passes at control-length steps but is NOT skipped. THIS
+    SESSION DOES NOT LAUNCH --wave mixcontrol for real -- --dry-run preview
+    only.
   4 (fix-effect / geo3-at-scale, sec 5.5 item 3): HARD REFUSED
     unconditionally by this file -- Track B's own Wave -1 gate returned
     `no_launch_redesign` (EXPERIMENT_LOG.md, "SCALE-TRANSFER Track B ...
@@ -93,6 +119,7 @@ Usage (GPU list is an example -- check nvidia-smi first, per house rule):
   python run_lm_rd_trackc_sweep.py --wave 1 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung1-steps N   # CLOSED, sec 5.9 -- shown for reference only
   python run_lm_rd_trackc_sweep.py --wave 2 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung2-steps N   # gated per the (a)-(e) chain above; NOT launched this session
   python run_lm_rd_trackc_sweep.py --wave 3 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung3-steps N   # gated per the (a)-(e) chain above; NOT launched this session
+  python run_lm_rd_trackc_sweep.py --wave mixcontrol --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0          # Rev 2.1 amendment item 3; gated per the (a)/(c)/(d)/(e) chain; NOT launched this session
   python run_lm_rd_trackc_sweep.py --wave 4                                                          # ALWAYS refused
 """
 from __future__ import annotations
@@ -124,8 +151,22 @@ RUNG3_CFG = RUNGS[3]
 CONTROL_CFG = {"d_model": 256, "d_state": 64, "n_layers": 2}   # Wave C's own scale (sec 5.6, MAJOR-5)
 
 MIX_CORPORA = ("openr1-mix", "wikitext-mix")      # sec 5.6 Wave 1: "openr1-mix, wikitext/finewebedu-mix"
+                                                   # -- wave 1 / calibration / control paths ONLY;
+                                                   # waves >=2 use WAVE23_CORPORA below (amendment item 2).
 SEEDS = (0, 1, 2)                                 # rung 1 / control (sec 5.6: "2 corpora x 3 seeds")
-WAVE23_SEEDS = (0,)                                # rung 2 / rung 3 (sec 5.6: "2 corpora x 1 seed", no control at these rungs)
+
+# sec 5.6 AMENDMENT (Rev 2.1, 2026-07-04) item 2: waves >=2 train on the EXTENDED mixes, NOT
+# MIX_CORPORA -- rung 2's 1.5B-token/run target exceeds the original mixes' <=5-epoch ceilings
+# (sec 5.4), and pulling more augmentation (not more epochs) is the registered remedy. A NEW
+# constant, not a redefinition of MIX_CORPORA, so wave 1 / calibration / control stay byte-identical.
+WAVE23_CORPORA = ("openr1-mix-ext", "wikitext-mix-ext")
+
+# sec 5.6 AMENDMENT (Rev 2.1) item 1: rung 2's seed count goes 1->3 per corpus (matches rung 1's
+# evidentiary tier for the primary monotonic-trend readout); rung 3 stays 1 seed as registered
+# (its pricing is the open budget question, item 4). Keyed by rung so every call site derives the
+# seed count (and therefore the manifest length / run count / projected GPU-h) from THIS dict,
+# never a hardcoded literal.
+WAVE23_SEEDS_BY_RUNG = {2: (0, 1, 2), 3: (0,)}
 SEQ_LEN = 512
 BATCH_SIZE = 32
 
@@ -164,7 +205,12 @@ RUNG3_TARGET_TOKENS_PLACEHOLDER = 3_000_000_000
 # cross-import of a torch/fla-importing module just to read a directory name -- this file's own
 # stated convention).
 # ---------------------------------------------------------------------------
-MIX_CORPUS_DIRS = {"openr1-mix": "reasoning_mix_eot", "wikitext-mix": "wikitext103_mix_eot"}
+MIX_CORPUS_DIRS = {
+    "openr1-mix": "reasoning_mix_eot", "wikitext-mix": "wikitext103_mix_eot",
+    # sec 5.6 amendment (Rev 2.1) item 2: waves >=2 (and mixcontrol) read their epoch-cap ceiling
+    # through these entries -- gate (d) resolves WAVE23_CORPORA's meta.json via this same mapping.
+    "openr1-mix-ext": "reasoning_mix_eot_extended", "wikitext-mix-ext": "wikitext103_mix_eot_extended",
+}
 EPOCH_CAP = 5
 
 # ---------------------------------------------------------------------------
@@ -686,13 +732,18 @@ def budget_guard(projected_gpu_h: float, label: str, accept_override: bool) -> f
 
 
 def wave23_manifest(rung: int, steps: int) -> list[dict]:
-    """sec 5.6's table: rung 2/3 are "2 corpora x 1 seed" ONLY -- no control cell at these rungs
-    (MAJOR-5's control is rung-1-specific; sec 8's cut order never asks for one at 2/3 either).
-    Shared by --dry-run's preview and the real --wave {2,3} launch (wave1_manifest's own
+    """sec 5.6 AMENDMENT (Rev 2.1) item 1: rung 2 is now "2 corpora x 3 seeds" (6 runs), rung 3
+    stays "2 corpora x 1 seed" as registered -- WAVE23_SEEDS_BY_RUNG[rung] selects the per-rung seed
+    set, so the manifest length (and every downstream run-count / GPU-h projection) derives from
+    this dict, never a hardcoded literal. No control cell at these rungs (MAJOR-5's control is
+    rung-1-specific; sec 8's cut order never asks for one at 2/3 either). Trains on WAVE23_CORPORA
+    (amendment item 2's EXTENDED mixes), NOT MIX_CORPORA -- wave 1 / calibration / control are
+    unaffected. Shared by --dry-run's preview and the real --wave {2,3} launch (wave1_manifest's own
     preview/launch-parity discipline, restated here)."""
     cfg = WAVE_RUNG_CFGS[rung]
     bs = BATCH_SIZE_BY_RUNG[rung]
-    return make_manifest(f"w{rung}_rung{rung}", cfg, MIX_CORPORA, WAVE23_SEEDS, steps, 1000, batch_size=bs)
+    return make_manifest(f"w{rung}_rung{rung}", cfg, WAVE23_CORPORA, WAVE23_SEEDS_BY_RUNG[rung], steps, 1000,
+                          batch_size=bs)
 
 
 def gate_and_run_wave23(rung: int, args) -> None:
@@ -758,9 +809,10 @@ def gate_and_run_wave23(rung: int, args) -> None:
 
     manifest = wave23_manifest(rung, steps)
 
-    # (d) epoch cap, BOTH mix corpora, at this rung's resulting per-run token budget.
+    # (d) epoch cap, BOTH EXTENDED mix corpora (amendment item 2 -- waves >=2 train on WAVE23_CORPORA,
+    # not MIX_CORPORA), at this rung's resulting per-run token budget.
     planned_tokens = steps * BATCH_SIZE_BY_RUNG[rung] * SEQ_LEN
-    epoch_reports = [epoch_cap_check(args.data_dir, c, planned_tokens) for c in MIX_CORPORA]
+    epoch_reports = [epoch_cap_check(args.data_dir, c, planned_tokens) for c in WAVE23_CORPORA]
     failing = [r for r in epoch_reports if not r["ok"]]
     if failing:
         print("=" * 70, file=sys.stderr)
@@ -793,10 +845,123 @@ def gate_and_run_wave23(rung: int, args) -> None:
         return default_timeout_pretrain(spec["steps"], spec["ckpt_every"],
                                          c["per_step_s"], c["per_ckpt_s"], margin=LAUNCH_TIMEOUT_MARGIN)
 
-    print(f"WAVE {rung} REAL LAUNCH: {len(manifest)} runs ({steps} steps x {len(MIX_CORPORA)} "
-          f"corpora x {len(WAVE23_SEEDS)} seed(s)). Timing constants from {calibration_json_path} "
+    # run count derived from the ACTUAL manifest length (len(manifest)) -- the "x corpora x seeds"
+    # breakdown below is descriptive only, itself read from WAVE23_CORPORA/WAVE23_SEEDS_BY_RUNG
+    # (amendment item 1's per-rung seed count), never a hardcoded literal.
+    print(f"WAVE {rung} REAL LAUNCH: {len(manifest)} runs ({steps} steps x {len(WAVE23_CORPORA)} "
+          f"corpora x {len(WAVE23_SEEDS_BY_RUNG[rung])} seed(s)). Timing constants from "
+          f"{calibration_json_path} "
           f"(margin {LAUNCH_TIMEOUT_MARGIN}x): {json.dumps(timing[timing_key], indent=2)}", flush=True)
     all_done = _run_wave(str(rung), manifest, out_dir, args, is_done_cell, build_cmd_cell, timeout_fn)
+    sys.exit(0 if all_done else 1)
+
+
+# ---------------------------------------------------------------------------
+# mixcontrol (sec 5.6 AMENDMENT, Rev 2.1, item 3, NEW): re-isolates the mix axis at Wave-C scale for
+# the EXTENDED mixes -- CONTROL_CFG retrained on WAVE23_CORPORA x 3 seeds, mirroring MAJOR-5's
+# original same-mix control logic (Wave 1's own w1_control cell, which used the ORIGINAL MIX_CORPORA
+# and stays unchanged). Reuses Wave 1's own control-length step budget (default_control_steps() /
+# --control-steps) -- "control-length steps" per the amendment, never a separate step count.
+# ---------------------------------------------------------------------------
+
+def mixcontrol_manifest(steps: int) -> list[dict]:
+    """sec 5.6 amendment (Rev 2.1) item 3: CONTROL_CFG x WAVE23_CORPORA x SEEDS (0,1,2) = 6 cells,
+    at the SAME control-length step budget as Wave 1's own same-mix control cell (this file's
+    default_control_steps() / --control-steps, CONTROL_TARGET_TOKENS convention -- unchanged).
+    Shared by --dry-run's preview and the real --wave mixcontrol launch (wave1_manifest's own
+    preview/launch-parity discipline, restated here)."""
+    return make_manifest("mixcontrol", CONTROL_CFG, WAVE23_CORPORA, SEEDS, steps, 1000)
+
+
+def gate_and_run_mixcontrol(args) -> None:
+    """The gate chain for a real --wave mixcontrol launch, mirroring gate_and_run_wave23's (a)/(c)/
+    (d)/(e) chain (module docstring's "LEARNED FROM WAVE 1'S OWN HISTORY" paragraph applies here
+    too -- a gate with nothing behind it is a no-op). (b)'s --rungN-steps analog does not apply:
+    this wave reuses Wave 1's own --control-steps flag/default (default_control_steps()), matching
+    the amendment's "control-length steps" wording exactly -- no new step-count flag is introduced.
+    Keyed to the 'control' calibration/timing cell (already banked in Wave 1's calibration.json --
+    no new calibration is required before this wave can gate open)."""
+    calibration_json_path = os.path.join(args.out_dir, "calibration.json")
+
+    # (a) calibration.json must exist and carry the control config's timing constants.
+    if not os.path.exists(calibration_json_path):
+        print(f"ERROR: {calibration_json_path} not found -- sec 9's own hard rule: 'No track's Wave "
+              f"1+ manifest is authorized to launch ... without first recording its Wave -1 measured "
+              f"numbers.' Run --wave calibration first.", file=sys.stderr)
+        sys.exit(2)
+    with open(calibration_json_path) as f:
+        calib = json.load(f)
+    timing = calib.get("timing_constants") or {}
+    if "control" not in timing:
+        print(f"ERROR: {calibration_json_path} has no timing_constants['control'] -- rerun "
+              f"--wave calibration (two-point method) so the control config's per_step_s/per_ckpt_s "
+              f"are populated before a real --wave mixcontrol launch.", file=sys.stderr)
+        sys.exit(2)
+
+    steps = args.control_steps or default_control_steps()
+
+    # (c) memory headroom, recomputed LIVE from calibration.json's own recorded peak-memory cells --
+    # reuses the SAME calib_control_ptA/ptB cells Wave 1's control gate used (memory is a function of
+    # batch/shape/architecture, not corpus content, gate_and_run_wave23's own assumption for rung 2/3
+    # restated here for the control architecture).
+    mem_reports = []
+    for pt in ("ptA", "ptB"):
+        cell_key = cell_name(f"calib_control_{pt}", "openr1-mix", 0, CONTROL_CFG)
+        cell = (calib.get("cells") or {}).get(cell_key)
+        if cell and cell.get("status") == "complete":
+            mem_reports.append(memory_headroom_report(
+                cell["peak_memory_allocated_gb"] * 1e9, cell["peak_memory_reserved_gb"] * 1e9, cell_key))
+    if not mem_reports:
+        print(f"ERROR: no COMPLETE calibration memory readouts found for the control config in "
+              f"{calibration_json_path} -- the memory-headroom check is a blocking Wave -1 item "
+              f"(module docstring's 'Batch sizing' paragraph), not optional. Run --wave calibration "
+              f"first.", file=sys.stderr)
+        sys.exit(2)
+    bad_mem = [r for r in mem_reports if not r["within_safe_headroom"]]
+    if bad_mem:
+        print(f"ERROR: memory-headroom check FAILED for mixcontrol: {bad_mem} -- BATCH_SIZE "
+              f"(currently {BATCH_SIZE}) must be lowered and the control config re-calibrated before "
+              f"a real launch.", file=sys.stderr)
+        sys.exit(2)
+    print(f"Memory headroom OK for mixcontrol (batch={BATCH_SIZE}): {mem_reports}", flush=True)
+
+    manifest = mixcontrol_manifest(steps)
+
+    # (d) epoch cap, BOTH extended mix corpora, at control's per-run token budget -- trivially
+    # passes at control-length steps (the whole point of reusing Wave 1's control budget: it's ~100M
+    # tokens against a >=1.7B-token extended-mix ceiling), but the gate STILL RUNS (amendment item 3:
+    # "still run the gate, don't skip it").
+    planned_tokens = steps * BATCH_SIZE * SEQ_LEN
+    epoch_reports = [epoch_cap_check(args.data_dir, c, planned_tokens) for c in WAVE23_CORPORA]
+    failing = [r for r in epoch_reports if not r["ok"]]
+    if failing:
+        print("=" * 70, file=sys.stderr)
+        print("EPOCH-CAP CHECK FAILED for mixcontrol (sec 5.4: '<=5-physical-epoch' discipline on "
+              "each mix's base corpus):", file=sys.stderr)
+        for r in failing:
+            print(f"  corpus={r['corpus']!r}: planned {r['planned_tokens']:,} tokens > ceiling "
+                  f"{r['epoch_cap_ceiling_tokens']:,} (= {r['epoch_cap']} x mix train_tokens "
+                  f"{r['mix_train_tokens']:,}, read live from {r['meta_path']})", file=sys.stderr)
+        print("=" * 70, file=sys.stderr)
+        sys.exit(6)
+    print(f"Epoch-cap check OK for mixcontrol: {epoch_reports}", flush=True)
+
+    # (e) program-wide GPU-h budget guard -- printed and gated BEFORE launch, per the task brief.
+    projected = projected_gpu_hours(manifest, timing["control"])
+    budget_guard(projected, "wave mixcontrol", args.accept_budget_override)
+
+    out_dir = os.path.join(args.out_dir, "mixcontrol")
+    os.makedirs(out_dir, exist_ok=True)
+
+    def timeout_fn(spec):
+        c = timing["control"]
+        return default_timeout_pretrain(spec["steps"], spec["ckpt_every"],
+                                         c["per_step_s"], c["per_ckpt_s"], margin=LAUNCH_TIMEOUT_MARGIN)
+
+    print(f"WAVE mixcontrol REAL LAUNCH: {len(manifest)} runs ({steps} steps x {len(WAVE23_CORPORA)} "
+          f"corpora x {len(SEEDS)} seeds). Timing constants from {calibration_json_path} "
+          f"(margin {LAUNCH_TIMEOUT_MARGIN}x): {json.dumps(timing['control'], indent=2)}", flush=True)
+    all_done = _run_wave("mixcontrol", manifest, out_dir, args, is_done_cell, build_cmd_cell, timeout_fn)
     sys.exit(0 if all_done else 1)
 
 
@@ -976,14 +1141,19 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out-dir", default=os.path.join(HERE, "results/lm_rd_trackc"))
     ap.add_argument("--data-dir", default="/data/deltanet_rd_data")
-    ap.add_argument("--wave", choices=["calibration", "1", "2", "3", "4"], default=None,
+    ap.add_argument("--wave", choices=["calibration", "1", "2", "3", "4", "mixcontrol"], default=None,
                      help="REQUIRED unless --dry-run. 'calibration' (Wave -1) MAY be launched any "
                           "time (cheap, <2 GPU-h per rung; --calib-rungs selects which); '1' is "
                           "CLOSED (sec 5.9 -- already ran to completion; behavior unchanged by this "
                           "build); '2'/'3' are gated on an existing calibration.json + "
                           "--rung{2,3}-steps + a passing memory-headroom/epoch-cap/budget-guard "
-                          "chain (trackC-rung23-build; see module docstring); '4' is ALWAYS refused "
-                          "(Track B's own NO-LAUNCH gates it out, sec 5.5 item 3).")
+                          "chain (trackC-rung23-build; rung 2 is now 3 seeds/corpus and rungs 2/3 "
+                          "train on the EXTENDED mixes, sec 5.6 amendment Rev 2.1; see module "
+                          "docstring); 'mixcontrol' (Rev 2.1 amendment item 3, NEW) retrains "
+                          "CONTROL_CFG on the extended mixes x 3 seeds, gated on the same (a)/(c)/"
+                          "(d)/(e) chain keyed to the already-banked 'control' calibration cell; "
+                          "'4' is ALWAYS refused (Track B's own NO-LAUNCH gates it out, sec 5.5 "
+                          "item 3).")
     ap.add_argument("--gpus", type=int, default=None, help="GPU COUNT. REQUIRED for a real launch, "
                                                               "NO DEFAULT -- check nvidia-smi first.")
     ap.add_argument("--gpu-offset", type=int, default=None, help="first physical GPU index. REQUIRED "
@@ -1005,7 +1175,9 @@ def main():
     ap.add_argument("--rung1-steps", type=int, default=None,
                      help="Wave 1 only: CLOSED (sec 5.9); retained for reference/reruns only.")
     ap.add_argument("--control-steps", type=int, default=None,
-                     help="Wave 1 only: default derived from CONTROL_TARGET_TOKENS (matches Wave C exactly).")
+                     help="Wave 1 AND mixcontrol: default derived from CONTROL_TARGET_TOKENS (matches "
+                          "Wave C exactly) -- mixcontrol reuses this same control-length budget "
+                          "(sec 5.6 amendment Rev 2.1 item 3), never a separate step count.")
     ap.add_argument("--rung2-steps", type=int, default=None,
                      help="Wave 2 only: REQUIRED for a real launch (no silent fallback to the "
                           "uncalibrated placeholder) -- derive from calibration.json's measured tok/s.")
@@ -1061,15 +1233,19 @@ def main():
             steps = steps_arg or placeholder_steps
             w_m = wave23_manifest(rung, steps)
             key = WAVE_TIMING_KEY[rung]
+            n_seeds = len(WAVE23_SEEDS_BY_RUNG[rung])
             wave_timing_status = (f"WIRED: {timing[key]}" if key in timing
                                    else f"NOT calibrated yet (run --wave calibration --calib-rungs {rung})")
+            # {len(w_m)} is the run count that matters (derived from the actual manifest, which is
+            # itself built from WAVE23_SEEDS_BY_RUNG[rung] -- amendment item 1 -- never a hardcoded
+            # literal); the "x corpora x seeds" text below is a descriptive breakdown of that count.
             print(f"\nwave {rung}: {len(w_m)} runs -- rung-{rung} {steps} steps"
                   f"{' (UNCALIBRATED PLACEHOLDER, pass --rung' + str(rung) + '-steps after calibration)' if not steps_arg else ''}"
-                  f" x {len(MIX_CORPORA)} corpora x {len(WAVE23_SEEDS)} seed(s), batch="
+                  f" x {len(WAVE23_CORPORA)} extended-mix corpora x {n_seeds} seed(s), batch="
                   f"{BATCH_SIZE_BY_RUNG[rung]} -- real launch requires (a) calibration.json's "
                   f"timing_constants[{key!r}], (b) --rung{rung}-steps, (c) a passing memory-headroom "
-                  f"readout, (d) a passing epoch-cap check on both mix corpora, (e) the sec-7 budget "
-                  f"guard (PROGRAM_SPENT_GPUH={PROGRAM_SPENT_GPUH} + projected <= "
+                  f"readout, (d) a passing epoch-cap check on both extended-mix corpora, (e) the sec-7 "
+                  f"budget guard (PROGRAM_SPENT_GPUH={PROGRAM_SPENT_GPUH} + projected <= "
                   f"{GPU_H_PROGRAM_CEILING} GPU-h, else --accept-budget-override). "
                   f"Timing wiring status: {wave_timing_status}")
             if key in timing:
@@ -1077,7 +1253,7 @@ def main():
                 print(f"  projected GPU-h at these steps: {projected:.2f} (cumulative with "
                       f"PROGRAM_SPENT_GPUH: {PROGRAM_SPENT_GPUH + projected:.2f} / "
                       f"{GPU_H_PROGRAM_CEILING:.0f})")
-            for corpus in MIX_CORPORA:
+            for corpus in WAVE23_CORPORA:
                 try:
                     rep = epoch_cap_check(args.data_dir, corpus, steps * BATCH_SIZE_BY_RUNG[rung] * SEQ_LEN)
                     print(f"  epoch-cap[{corpus}]: planned {rep['planned_tokens']:,} tokens vs. "
@@ -1086,6 +1262,34 @@ def main():
                 except FileNotFoundError:
                     print(f"  epoch-cap[{corpus}]: meta.json not found under --data-dir {args.data_dir!r} "
                           f"(preview only reachable on-box)")
+
+        # sec 5.6 amendment (Rev 2.1) item 3, NEW: --wave mixcontrol preview, same launch-parity
+        # discipline as waves 2/3 above -- reuses Wave 1's own control_steps (computed above) so the
+        # preview and a real launch (gate_and_run_mixcontrol) can never silently drift apart.
+        mixc_m = mixcontrol_manifest(control_steps)
+        mixc_timing_status = (f"WIRED: {timing['control']}" if "control" in timing
+                               else "NOT calibrated yet (run --wave calibration)")
+        print(f"\nwave mixcontrol: {len(mixc_m)} runs -- CONTROL_CFG {control_steps} steps (same "
+              f"control-length budget as Wave 1's own control cell) x {len(WAVE23_CORPORA)} "
+              f"extended-mix corpora x {len(SEEDS)} seeds -- real launch requires (a) "
+              f"calibration.json's timing_constants['control'] (already banked from Wave 1), (c) a "
+              f"passing memory-headroom readout, (d) a passing epoch-cap check on both extended-mix "
+              f"corpora (trivially passes at control-length steps, but not skipped), (e) the sec-7 "
+              f"budget guard. Timing wiring status: {mixc_timing_status}")
+        if "control" in timing:
+            mixc_projected = projected_gpu_hours(mixc_m, timing["control"])
+            print(f"  projected GPU-h at these steps: {mixc_projected:.2f} (cumulative with "
+                  f"PROGRAM_SPENT_GPUH: {PROGRAM_SPENT_GPUH + mixc_projected:.2f} / "
+                  f"{GPU_H_PROGRAM_CEILING:.0f})")
+        for corpus in WAVE23_CORPORA:
+            try:
+                rep = epoch_cap_check(args.data_dir, corpus, control_steps * BATCH_SIZE * SEQ_LEN)
+                print(f"  epoch-cap[{corpus}]: planned {rep['planned_tokens']:,} tokens vs. "
+                      f"ceiling {rep['epoch_cap_ceiling_tokens']:,} -- "
+                      f"{'OK' if rep['ok'] else 'WOULD REFUSE (pull more augmentation first)'}")
+            except FileNotFoundError:
+                print(f"  epoch-cap[{corpus}]: meta.json not found under --data-dir {args.data_dir!r} "
+                      f"(preview only reachable on-box)")
 
         trackb = _trackb_gate_status(args.trackb_gate_json)
         print(f"\nwave 4 (fix-effect / geo3-at-scale): ALWAYS REFUSED. Track B gate status: {trackb}")
@@ -1149,6 +1353,12 @@ def main():
         # FROM WAVE 1'S OWN HISTORY" paragraph: a gate with nothing behind it is a no-op).
         gate_and_run_wave23(int(args.wave), args)
         return  # gate_and_run_wave23 always sys.exit()s; return is unreachable but keeps main() honest
+
+    if args.wave == "mixcontrol":
+        # sec 5.6 amendment (Rev 2.1) item 3, NEW: same "verified by direct re-read" discipline as
+        # waves 2/3 above -- gate_and_run_mixcontrol always sys.exit()s.
+        gate_and_run_mixcontrol(args)
+        return  # unreachable; keeps main() honest, matching the wave-2/3 convention above
 
     # --wave 1 (trackC-audit finding #1: this used to be an unconditional `sys.exit(4)` after the
     # two checks below -- no manifest was ever built and no run was ever launchable, regardless of

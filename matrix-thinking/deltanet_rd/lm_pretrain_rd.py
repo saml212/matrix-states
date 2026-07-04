@@ -115,6 +115,15 @@ CORPUS_DIRS = {
     # load_corpus's existing field/eot_separated/bit-layout checks apply
     # unmodified to these too.
     "openr1-mix": "reasoning_mix_eot", "wikitext-mix": "wikitext103_mix_eot",
+    # SCALE_TRANSFER_DESIGN.md sec 5.6 AMENDMENT (Rev 2.1, 2026-07-04) item 2:
+    # waves >=2 train on these EXTENDED mixes (the epoch-cap remedy -- rung
+    # 2's 1.5B-token/run target exceeds the original mixes' <=5-epoch
+    # ceilings, sec 5.4). Built side-by-side with the originals by
+    # build_mix_corpora_rd.py --out-suffix _extended; val/test are
+    # BYTE-IDENTICAL to the originals (md5-verified), only train grew (more
+    # augmentation pulled in). Same meta.json/eot_separated contract --
+    # load_corpus applies unmodified, no format change.
+    "openr1-mix-ext": "reasoning_mix_eot_extended", "wikitext-mix-ext": "wikitext103_mix_eot_extended",
 }
 OTHER_CORPUS = {
     "openr1": "wikitext", "wikitext": "openr1",
@@ -122,6 +131,9 @@ OTHER_CORPUS = {
     # -- the cross-corpus eval axis stays reasoning-vs-narrative, now on the
     # augmented-mix side of that same contrast).
     "openr1-mix": "wikitext-mix", "wikitext-mix": "openr1-mix",
+    # extended mixes pair with EACH OTHER too (sec 5.6 amendment item 2) --
+    # same reasoning-vs-narrative contrast, now on the extended-mix side.
+    "openr1-mix-ext": "wikitext-mix-ext", "wikitext-mix-ext": "openr1-mix-ext",
 }
 DEFAULT_DATA_DIR = "/data/deltanet_rd_data"
 EOT_TOKEN_ID = 50256   # GPT-2 <|endoftext|>
