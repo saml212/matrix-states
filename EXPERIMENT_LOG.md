@@ -3486,3 +3486,17 @@ Correction: construct forced-failure fixtures from inputs that provably
 cannot succeed (here: exact-duplicate keys, which can never be
 orthogonalized), and assert the intermediate evidence that the failure
 actually occurred (the denial count), not only the final outcome.
+
+## Stage-G H_e 40K calibration VERDICT (2026-07-04): VECTOR learns full in-context composition (h1/h2/h3 = 1.0/1.0/1.0 chance-adjusted at 40K); MATRIX still cannot compose (1.0/0.027/0.013) — the inverse of the H_e hypothesis, forming a real matrix-vs-vector separation
+
+Both 40K calibration cells complete (matrix + vector baseline, seed 0,
+answer-loss-weight 5.0). The 20K budget was the binding constraint for the
+VECTOR arm only (flat at 20K, perfect at 40K — a genuine late transition);
+the matrix arm learned the h=1 lookup (20K→40K schedule effect) but shows
+zero composition through 40K. Pre-registered decision rule FIRES: signal
+cleared at 40K → full 6-cell manifest at 40K steps. Remaining 4 cells
+(matrix s1, h_b_factored_r4 s0+s1, vector s1) launching on GPU 7
+sequentially (~16h; GPUs 0-5 run Track C rung-1). The 80K HUMAN GATE
+question is superseded for the vector (composed at 40K); for the matrix arm
+the question becomes capability, not budget — the full manifest + h_b
+variant will inform. Archive: experiment-runs/2026-07-03_stageg_he/ + SSD.
