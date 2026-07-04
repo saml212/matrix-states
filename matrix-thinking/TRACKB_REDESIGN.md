@@ -1,5 +1,32 @@
 # TRACKB_REDESIGN — Hard-Selectivity geo3-in-LM: Forcing β's Missing Precondition Before Retesting Orthogonalization on Free Text
 
+> **Rev 3 — 2026-07-04, post-attack-round-2.** Round 2 (`TRACKB_REDESIGN_ATTACK_R2.md`,
+> fresh agent, against commit `f814b99`) returned **NEEDS-REV-3**: round 1's F1 is
+> fully CLOSED (the MC anchor math independently verified against the closed forms),
+> F2/M1/M7/M8 partially closed, and **8 new MAJORs + 2 MINORs, all in Rev 2's own
+> additions**. Every finding is addressed per the orchestrator's binding decisions;
+> the round-2 finding→change map is **§13** (§12, round 1's map, is frozen).
+> Load-bearing changes: **NEW-1** — the clamp-shortfall PARTIAL trigger is now
+> symmetric (one numeric rule, every masking cell, not candidate 2 alone); **NEW-2 /
+> NEW-3** — Cell 2R's random selection is registered as resampled per chunk instance
+> per step (killing the frozen-mask artifact inside the control itself), and its
+> decision rule is re-registered as seed-range non-overlap with an explicit
+> INCONCLUSIVE outcome and an honest low-power acknowledgment (α ≈ 0.10 per corpus
+> under the exchangeability null); **NEW-4** — the churn ceiling becomes the max of
+> TWO nulls (unmasked pilot + the gated run's own early window), calibration
+> limitation acknowledged; **NEW-5** — the positional-artifact check, which Rev 2
+> cited into a broken cross-reference with no spec behind it, is fully specified and
+> folded into `BANDS_PINNED-TrackB`; **NEW-6** — the comparator's anneal is pinned to
+> τ→0 by 10% of steps so it isolates the gradient estimator, not an annealing
+> curriculum; **NEW-7** — the NaN-smoke slice is re-specified from the code's actual
+> failure mechanism (duplicate keys among SELECTED positions) with a positive-control
+> requirement so the smoke cannot pass vacuously; **NEW-8** — the budget source's
+> internal ~26 GPU-h inconsistency, caught by this attack, was fixed upstream in
+> `SCALE_TRANSFER_DESIGN.md` (committed `13eb71c`); §6 quotes the corrected text —
+> headroom after rung-3 = 300 − 266.4 ≈ **33.6 GPU-h**. **§9 (claim tiers) and every
+> item round 2 marked CLOSED remain frozen.** This is intended as the final full
+> revision; remaining findings are bounded. **Design only, no GPU, no box access.**
+>
 > **Rev 2 — 2026-07-04, post-attack-round-1.** The independent adversarial review of
 > Rev 1 (`TRACKB_REDESIGN_ATTACK_R1.md`) returned **NEEDS-REV-2**: 2 FATAL, 8 MAJOR,
 > 3 MINOR. Every finding is addressed in this revision, per the orchestrator's binding
@@ -94,6 +121,9 @@
   §5.3's pinned reference band reuse by name.
 - `matrix-thinking/TRACKB_REDESIGN_ATTACK_R1.md` — attack round 1 on Rev 1 of this
   document (2 FATAL, 8 MAJOR, 3 MINOR); §12's response map addresses every finding.
+- `matrix-thinking/TRACKB_REDESIGN_ATTACK_R2.md` — attack round 2 on Rev 2 (fresh
+  agent; F1 verified CLOSED, 8 new MAJOR + 2 MINOR in Rev 2's own additions, plus
+  adjudications of §11's open questions); §13's response map addresses every finding.
 - `STATE.md` "Hardware" + `SCALE_TRANSFER_DESIGN.md` §5.6 Rev 2.1/2.2 amendments — the
   program-wide 300 GPU-h ceiling and its current consumption, restated with the
   arithmetic in §7 below.
@@ -198,12 +228,34 @@ rather than re-derived:
    clamping expected and logged. Applies to candidates 1 and 3, candidate 4's
    hard-snap phase, and the §5.1 comparator/control cells; candidate 2's
    sum-to-≤1 sparsemax output is rescaled by the same rule but **structurally cannot
-   always reach `B_pinned` under the clamp at small support** — its per-chunk clamp
-   shortfall is a required reported statistic, and if median shortfall exceeds 10% of
-   `B_pinned`, candidate 2's budget-match is declared PARTIAL in every readout that
-   compares it to a fully-matched cell. Note the residual honesty caveat: matched
-   *total* mass over fewer positions still means fewer, stronger writes — that
-   redistribution IS the selectivity axis under test, not a confound to remove.
+   always reach `B_pinned` under the clamp at small support**.
+
+   **The PARTIAL trigger is SYMMETRIC — one numeric rule, every masking cell
+   (REVISED, Rev 3 — NEW-1, orchestrator-pinned; Rev 2 gave candidate 2 a decision
+   rule and everyone else logging-only, reintroducing the "reporting is not a
+   control" pattern F2 was raised to kill).** Registered rule, identical for
+   candidates 1/2/3, candidate 4's hard-snap phase, the comparator, and Cells
+   2R/4R: per chunk, `shortfall_c = max(0, B_pinned − Σ clamped β) / B_pinned`; the
+   cell is declared **BUDGET-PARTIAL** in every readout that compares it to a
+   fully-matched cell if `median(shortfall_c) > 0.10` **or**
+   `frac(shortfall_c > 0.10) > 0.25`. The 0.10 chunk-level threshold is Rev 2's own
+   candidate-2 rule made universal; the 0.25 exceedance fraction is
+   proposed-conservative (same labeling convention as the §5.3 multipliers). Why
+   this cannot be pre-derived and must be measured: the attack's own arithmetic
+   (reproduced from the gate JSON: pre-renorm mean selected β ≈ 15.30/32 ≈ 0.478,
+   mean scale factor ≈ 0.84/0.478 ≈ 1.76×, leaving only ~16 pp of clamp headroom on
+   an *average* chunk) shows tail chunks will plausibly clamp for every masking
+   candidate, but `wave_neg1_gate.json` records only pooled means and one Gini —
+   no per-chunk dispersion — so no source can currently say how often. The Wave −1
+   Cell-1 re-measurement (§5.3) therefore additionally records the **per-chunk**
+   total-mass and selected-subset β distributions (same forward passes, zero extra
+   GPU) and `BANDS_PINNED-TrackB` carries the resulting predicted-shortfall
+   distribution as the record every cell's realized shortfall is later read
+   against. Residual honesty caveat, unchanged: matched *total* mass over fewer
+   positions still means fewer, stronger writes — that redistribution IS the
+   selectivity axis under test, not a confound to remove (concurred by attack round
+   2's own adjudication of §11 item 6: a mass-conservation identity, not a control
+   gap).
 
 ---
 
@@ -251,23 +303,38 @@ additive-off-by-default pattern exactly. `hard_select_active` and `geo3_active` 
 composition rule pinned in §5.1 (single selection source, `hard_select_k_sel ==
 geo3_k_sel`).
 
-**STE-bias isolation comparator (NEW, Rev 2 — M7; orchestrator decision: comparator
-cell chosen over claim-narrowing-only).** A temperature-annealed **soft-top-K
-comparator** runs alongside candidate 1 in Wave 1: same top-K selection, but instead
-of a hard mask + STE, non-selected β is multiplied by a decay factor `τ(t)` annealed
-`1→0` over training on a registered schedule (linear over the first 80% of steps,
-then exactly 0 — the endpoint forward pass is bit-equivalent to candidate 1's hard
-mask), with the same `B_pinned` renormalization applied at every `τ`. No gradient
-estimator is involved: non-selected positions retain an exact (shrinking) gradient
-path while `τ>0`. Decision rule, registered now: if candidate 1 misses its val-loss
-tolerance and the comparator does not, the miss is attributed to STE gradient bias;
-if both miss together, hard selectivity itself is implicated. Chosen over the
-alternative (pre-registering candidate-1 negatives as uninterpretable and promoting
-candidate 2 to co-primary) because the comparator costs ≈0.5 GPU-h (6 non-geo3 runs)
-against ample headroom, whereas the alternative would leave the redesign's PRIMARY
-candidate structurally unable to produce an interpretable negative — a bad trade at
-this budget. Interim discipline until the comparator reads out: every candidate-1
-result is labeled **"hard-masked-with-STE,"** never bare "hard selectivity."
+**STE-bias isolation comparator (Rev 2 — M7; SCHEDULE RE-PINNED, Rev 3 — NEW-6,
+orchestrator decision).** A temperature-annealed **soft-top-K comparator** runs
+alongside candidate 1 in Wave 1: same top-K selection, but instead of a hard mask +
+STE, non-selected β is multiplied by a decay factor `τ(t)` annealed `1→0` linearly
+over **the first 10% of steps, then exactly 0 for the remaining 90%** — with the same
+`B_pinned` renormalization applied at every `τ`. No gradient estimator is involved:
+non-selected positions retain an exact (shrinking) gradient path while `τ>0`. Rev 2's
+80%-of-steps anneal was itself a confound (attack NEW-6): a comparator that trains
+soft for most of the run and hardens only at the end is candidate 4's
+soft-warmup-curriculum idea in disguise, so its success over candidate 1 could not
+distinguish "STE was the problem" from "the curriculum was the fix." At the 10% pin,
+both arms are hard-masked (candidate 1 exactly; the comparator numerically —
+non-selected β multiplied by exact float `0.0`) for ≥90% of training, so the dominant
+difference between them is the gradient estimator at non-selected positions during
+that shared hard regime: STE's dense biased pass-through vs. the comparator's honest
+zero. **Registered residual confound, one sentence:** the first 10% of steps still
+differs between the arms (soft window vs. hard-from-init), so the attribution is
+"STE bias, up to an early-training-window difference," not an exact isolation. The
+τ=0-endpoint forward pass is bit-equivalent to candidate 1's mask (exact-zero float
+multiply) — a true but **non-load-bearing** claim: no registered check depends on
+bit-level equality, and if any future check ever does, it is registered now as a
+numeric bound (max-abs forward diff ≤ 1e-6 on a fixed probe batch) rather than
+bitwise identity. Decision rule, unchanged in shape: candidate 1 misses its val-loss
+tolerance and the comparator does not → attributed to STE gradient bias (with the
+one-sentence caveat above); both miss together → hard selectivity itself is
+implicated. Chosen over the alternative (pre-registering candidate-1 negatives as
+uninterpretable and promoting candidate 2 to co-primary) because the comparator costs
+≈0.5 GPU-h (6 non-geo3 runs) against ample headroom, whereas the alternative would
+leave the redesign's PRIMARY candidate structurally unable to produce an
+interpretable negative — a bad trade at this budget. Interim discipline until the
+comparator reads out: every candidate-1 result is labeled **"hard-masked-with-STE,"**
+never bare "hard selectivity."
 
 **Cost.** Cheapest of the four. No new orthogonalization, no new solver, no new
 autograd primitive (STE's backward is a single elementwise pass-through). Reuses
@@ -284,8 +351,11 @@ its own diagnostic (§4.1, §8 item 2), not conflated with ordinary training ins
 (iii) The mask converges to a **content-independent positional artifact** (e.g., always
 selects position 0 mod some period, regardless of token identity) — a fake positive on
 the gate metrics (Gini rises, non-selected write-mass falls) without buying the
-content-selectivity geo3's mechanism actually needs; checked directly by comparing the
-selected-set distribution across documents at matched intra-chunk offsets (§8 item 1).
+content-selectivity geo3's mechanism actually needs. This failure mode is the more
+dangerous sibling of churn (a frozen positional collapse shows near-ZERO churn and
+sails under the churn ceiling), and it now has a fully specified, pinned bar: §4.3's
+positional-concentration statistic (Rev 3 — NEW-5; Rev 2's citation here pointed at
+an unrelated passage and no spec existed behind it).
 
 ### 3.2 Candidate 2 — Entmax/sparsemax β (adaptively sparse, differentiable exact zeros)
 
@@ -509,18 +579,34 @@ launcher, with the blind mechanically verified.
   churn measures the mechanism, not data variation).
 - **Support size (candidate 2):** per (chunk, head), the count of strictly-positive β
   entries; summarized as the median and p10 over the same fixed probe batch.
+- **Positional concentration (candidates 1/2 + candidate 4's hard-snap phase — NEW,
+  Rev 3, NEW-5):** over the fixed probe batch, the marginal selection frequency of
+  each intra-chunk offset `o ∈ {0..63}` (`f_o` = fraction of (chunk, head) episodes
+  selecting offset `o`); the statistic is the **total-variation distance between the
+  normalized offset marginal `p_o = f_o / Σf` and uniform(1/64)**. Content-driven
+  selection across many documents keeps the offset marginal near-uniform; a
+  content-independent positional artifact concentrates it. Measured at the 50% and
+  final checkpoints of every gated run.
 
 **Derivation rules (registered now; numbers pinned at Wave −1 readout).**
-- **Churn ceiling:** `churn_ceiling_Ksel = mean_ref + 2·s_ref`, computed over the
-  **baseline reference pilot's** (an unmasked, Cell-1-architecture Wave −1 probe, same
-  2,000 steps, same logging) implicit top-K_sel-by-β churn at its last 5 log points
-  (steps 1,200–2,000, past init transients). Same `mean + 2·s` formula as §3.6's own
-  `engaged_K` derivation. Non-circular by construction: the reference is the soft β
-  ranking the mask is built FROM — if the hard mask churns materially more than the
-  soft ranking it thresholds, the mask itself is injecting instability. Wave-1
-  candidate-1 cells whose full-run churn (same statistic, checkpoint-resolution)
-  exceeds the pinned ceiling are flagged **selection-degenerate**: excluded from
-  Cell-4 inheritance, reported descriptively.
+- **Churn ceiling — the MAX of TWO nulls (REVISED, Rev 3 — NEW-4,
+  orchestrator-pinned).** Null A (retained from Rev 2): `mean_ref + 2·s_ref` over the
+  **unmasked, Cell-1-architecture reference pilot's** implicit top-K_sel-by-β churn
+  at its last 5 log points (steps 1,200–2,000, past init transients) — non-circular
+  (the reference is the soft ranking the mask thresholds), but measured on a
+  categorically different training regime. Null B (NEW): `mean + 2·s` over the
+  **gated run's own churn at the log points inside its first 10% of steps** (for a
+  6,103-step run: pairs at steps 200/400/600) — same mechanism, same regime, but an
+  early-training window that includes init transients. Registered ceiling for a
+  given run = **max(pinned Null A, that run's own Null B)**. Registered calibration
+  limitation, one sentence (orchestrator-required): both nulls are approximations —
+  Null A cannot see mask-specific dynamics (STE entrenchment could suppress churn,
+  legitimate selection-sharpening could raise it, in either direction), and Null B
+  overweights init transients — so the ceiling is a coarse degeneracy screen, not a
+  calibrated bound, and a breach routes to diagnosis, never to silent acceptance or
+  rejection. Wave-1 candidate-1 cells whose steady-state churn
+  (checkpoint-resolution, past the first 10%) exceeds the ceiling are flagged
+  **selection-degenerate**: excluded from Cell-4 inheritance, reported descriptively.
 - **Support band:** ceiling = `K_sel` **a priori** (structural — candidate 2 must
   reach at least the sparsity regime the matched-K_sel factorial requires; if its
   pilot median exceeds K_sel, the §3.2 registered single temperature escalation fires,
@@ -534,10 +620,26 @@ launcher, with the blind mechanically verified.
   KEY_ANCHORING pattern's exact shape: the pilot is the reference arm, the pinned
   numbers gate the later full-scale cells against drift from what the pilot
   established.
+- **Positional-concentration ceiling (NEW, Rev 3 — NEW-5):**
+  `pos_ceiling = mean_ref + 2·s_ref` over the unmasked reference pilot's own
+  TV-from-uniform at its last 5 log points — the same reference-null shape as churn
+  Null A, and the right null for the same reason: the baseline's β already has some
+  organic positional structure (conv-boundary effects), and the bar catches **excess**
+  concentration beyond it, not all structure. A gated run whose final-checkpoint TV
+  exceeds `pos_ceiling` is flagged **positionally degenerate**: excluded from Cell-4
+  inheritance, reported descriptively. Registered limitation, one sentence: a
+  TV-from-uniform statistic cannot distinguish "content-driven but positionally
+  biased" from "purely positional" — a run flagged here gets the finer document-
+  dependence diagnostic (selected-set overlap across documents at matched offsets)
+  as follow-up analysis, not as a registered bar. Together with churn this closes
+  both halves of the degenerate-selection risk: a frozen positional collapse shows
+  near-zero churn but maximal positional concentration; an unstable selector shows
+  the reverse — each bar catches the failure mode the other is blind to.
 
 **Mechanics, reused from §3.6 by name, all three parts:** (1) **the writer** — Wave
-−1's harness writes `BANDS_PINNED-TrackB.json` (pinned churn ceiling, support floor,
-`B_pinned` from §2 principle 4, the recomputed K_sel anchors from §5.3, per-pilot
+−1's harness writes `BANDS_PINNED-TrackB.json` (pinned churn Null A, support floor,
+positional-concentration ceiling, `B_pinned` + the per-chunk predicted-shortfall
+distribution from §2 principle 4, the recomputed K_sel anchors from §5.3, per-pilot
 input values, sha256 hashes of the pilot result JSONs, timestamp) only after every
 pilot validates as complete; (2) **the launcher gate** — Wave 1/2 cells REFUSE to
 launch unless the file exists, validates, and re-hashes clean; (3) **the readout
@@ -561,18 +663,48 @@ ingredient alone"** — mirroring the exactness program's own 2×2 logic exactly
 
 | | Continuous β (no hard selectivity) | Hard-selective β |
 |---|---|---|
-| **No geo3** | **Cell 1 (baseline)** — the archived Wave C checkpoints (already exist, `n_params=14,048,896`, `d_model=256, d_state=64, n_layers=2`), **re-measured at Wave −1 with the §5.2 unified instrument** (F1 — Track C's whole-chunk number is no longer this cell's citable value) | **Cell 2 (selectivity-only)** — the surviving candidate(s) from §4, `geo3_active=False`, β renormalized to `B_pinned` (§2 principle 4). **Cell 2R (budget-matched random control, REQUIRED — Rev 2, F2, orchestrator-pinned):** a β-blind, per-chunk *random* K_sel-subset selection (content positions only, corpus-seeded), renormalized to the same `B_pinned` — same count, same total mass, zero targeting information |
+| **No geo3** | **Cell 1 (baseline)** — the archived Wave C checkpoints (already exist, `n_params=14,048,896`, `d_model=256, d_state=64, n_layers=2`), **re-measured at Wave −1 with the §5.2 unified instrument** (F1 — Track C's whole-chunk number is no longer this cell's citable value) | **Cell 2 (selectivity-only)** — the surviving candidate(s) from §4, `geo3_active=False`, β renormalized to `B_pinned` (§2 principle 4). **Cell 2R (budget-matched random control, REQUIRED — Rev 2, F2; cadence PINNED, Rev 3 — NEW-2):** a β-blind *random* K_sel-subset selection, **resampled independently for every (chunk instance, training step)** from an RNG stream keyed to the run seed and step counter — never a fixed function of intra-chunk position — renormalized to the same `B_pinned`: same count, same total mass, zero targeting information |
 | **geo3 applied** | **Cell 3 (geo3-only, reference arm)** — Track B's **original, already-built** construction (`--use-geo3-lm`, `beta_topk`), the exact construction whose own Wave −1 gate returned `no_launch_redesign` | **Cell 4 (target)** — the surviving candidate + `geo3_active=True`, geo3 orthogonalizing the mask's own write set under the composition rule below |
 
-**Cell 2R's registered decision rule (a control needs a rule, not just existence):**
-if Cell 2R's improvement over Cell 1 matches Cell 2's within seed noise, the
-"selectivity" gain is attributable to **write concentration at matched budget**, not
-to β-informed targeting — every §5.3 readout's language must then downgrade from
-"β-informed selectivity" to "write concentration," and Cell 4's interaction claim
-inherits the same downgrade. A **Cell 4R** (random selection + geo3, budget-matched —
-the geo3-side targeting control) is registered as a RESERVE cell, run only if Cell 4
-clears the interaction bar, to test whether targeting matters once orthogonalization
-is present; priced in §6.1's wide case, cut-eligible.
+**Why per-step resampling is the registered cadence, and what the alternative would
+have been (Rev 3 — NEW-2):** a fixed random draw of "which K_sel-of-64 offsets"
+applied identically to every chunk would silently degenerate Cell 2R into a fixed
+positional schedule — structurally candidate 3's non-learned mask, and exactly the
+§3.1(iii) frozen-mask artifact the round-1 record already worries about — corrupting
+the one comparison (2 vs 2R) the F2 control exists to make. Per-instance resampling
+is the only cadence that delivers the cell's own stated property ("zero targeting
+information"). A **fixed-mask variant** (one frozen random offset draw for the whole
+run) is named as a separate, cut-eligible **diagnostic** cell — informative about the
+pure positional-structure effect, NEVER usable as the budget-matched control.
+
+**Cell 2R's registered decision rule (REVISED, Rev 3 — NEW-3, orchestrator-pinned;
+Rev 2's "matches within seed noise" had no operationalization and borrowed
+KEY_ANCHORING's n=3 headcount without its one-sample-vs-band power analysis).**
+Evaluated per corpus on the primary metric (§5.2's same-instrument Gram deviation),
+per-seed values, n=3 per arm:
+- Cell 2's seed range (min..max) and Cell 2R's seed range **disjoint, Cell 2
+  better** → β-informed targeting matters; "β-informed selectivity" language
+  licensed.
+- Ranges **disjoint, Cell 2R equal-or-better** → the gain is write concentration;
+  every §5.3 readout downgrades "β-informed selectivity" to "write concentration,"
+  and Cell 4's interaction claim inherits the downgrade.
+- Ranges **overlap → INCONCLUSIVE**: reported as such, **no downgrade and no
+  targeting claim** — readouts use the registered neutral phrasing "selective
+  writing (targeting-vs-concentration unresolved at n=3)."
+The headline verdict requires the same outcome in both corpora; a split is reported
+as INCONCLUSIVE overall. **Low-power acknowledgment, registered rather than
+implied:** under the exchangeability null, complete range separation at n=3-per-arm
+has probability 2/C(6,3) = **0.10 per corpus** — a lenient α, and the test's power
+against small real differences is poor; INCONCLUSIVE is the *expected* outcome for
+small effects and is an honest report, not a failure. This comparison is a crude
+screen, not a hypothesis test with a power target — the KEY_ANCHORING n=3 precedent
+was calibrated for a one-sample-vs-pinned-band read, not this two-sample contrast,
+and Rev 3 does not pretend otherwise.
+
+A **Cell 4R** (random selection + geo3, budget-matched — the geo3-side targeting
+control, same per-step resampling cadence as 2R) is registered as a RESERVE cell,
+run only if Cell 4 clears the interaction bar, to test whether targeting matters
+once orthogonalization is present; priced in §6.1's wide case, cut-eligible.
 
 **Cell 4 composition rule (PINNED, Rev 2 — M6, orchestrator decision).**
 `hard_select_k_sel == geo3_k_sel` is **REQUIRED** (constructor-asserted), and in Cell
@@ -590,7 +722,17 @@ budget spent on writes that contribute nothing to the state). Making the single
 source structural closes both cases by construction and makes §5.3's "interaction"
 unambiguous: Cell 4 tests *mask-selection + orthogonalization of exactly the masked
 write set* — selectivity supplies the target, geo3 supplies the geometry, neither
-re-decides the other's job.
+re-decides the other's job. **EOT/padding validity threading (NEW, Rev 3 —
+MINOR-2):** `_geo3_lm_select_and_orthogonalize`'s current validity mask
+(`valid_sel = topk_val > neg_inf/2`, `lm_pretrain_rd.py:301`) is derived from its own
+internal `topk` output and has nothing to compare against once the forced-selection
+argument bypasses that `topk` — under forcing, validity is instead derived by
+**gathering `content_mask` at the forced indices**, feeding the same downstream
+degenerate-episode machinery (zero-row handling, masked-identity residual,
+fallback denial) unchanged. Registered build smoke: a forced index pointing at an
+EOT position must come out invalid and take the existing no-op scatter path — the
+same negative-case discipline the function's own smoke [8] items already apply to
+the topk path.
 
 Cell 3 is included **only** as the pre-registered 2×2 reference arm the interaction
 test requires, not as a viable standalone candidate — it is already known (§1) to
@@ -619,21 +761,46 @@ working per-run-JSON convention), so no one reading a Cell-3 JSON in isolation c
 mistake it for a passing-gate primary run. Non-override runs write
 `gate_override: false` at assembly, so field absence is never ambiguous.
 
-**Cells 3 and 4 are additionally gated on the Wave −1 geo3-LM stability smoke (NEW,
-Rev 2 — M8):** §6.1's Wave −1 row includes a short (2,000-step) full-training run
-with `geo3_active=True` on the **tabular-risk corpus slice** — the top decile of
-openr1 windows ranked by repeated conv-context 4-gram fraction (the exact
-duplicate-key mechanism `lm_pretrain_rd.py:349–353` documents as a known, unresolved
-NaN risk: ≥~6 exactly-duplicated selected keys → coincident Gram eigenvalues in the
-eigh fallback), selected deterministically under the corpus-fixed-seed convention.
-Registered bars: zero non-finite losses at completion AND skip-rate (the
-isfinite-grad guard's own counter) ≤1%. Any NaN or skip-rate breach = a **registered
-stability finding**, recorded in the wave summary, and Cells 3/4 do not launch until
-a fix wave with its own independent audit addresses or bounds it — this is the
-first-ever multi-thousand-step LM-mode geo3 training anywhere in the project (all
-prior evidence is synthetic-harness training, forward-only LM probes, or short
-smokes), and the risk its own code comments flag "for Wave 1 monitoring" must be
-probed before, not during, the factorial's spend.
+**Cells 3 and 4 are additionally gated on the Wave −1 geo3-LM stability smoke
+(Rev 2 — M8; SLICE RE-SPECIFIED FROM THE ACTUAL FAILURE MECHANISM, Rev 3 — NEW-7,
+orchestrator-pinned).** The code-documented NaN path (`lm_pretrain_rd.py:349–353`)
+requires **≥~6 exactly-duplicated rows among a chunk's β-SELECTED top-K keys** —
+not merely repetition somewhere in the window. Keys duplicate exactly when their
+conv contexts do: `k` at position `t` is a function of tokens `t−3..t` through
+`k_conv1d` (`conv_size=4`), so at layer 0 (where upstream features are pure token
+functions), **identical token 4-grams within one chunk produce exactly identical
+key rows**. Rev 2's slice criterion (window-level 4-gram repetition fraction) was
+only a proxy: a window can rank high while its repeated spans never land among the
+positions the evolving learned β selects — a smoke on that slice could pass without
+ever exercising the failure regime (false reassurance on exactly the gate that
+protects Cells 3/4). The Rev 3 construction, from the mechanism itself:
+1. **Slice selection:** rank openr1 windows by `n_dup_max` = the largest count of
+   positions *within a single 64-token chunk* sharing one identical token 4-gram;
+   the stress slice = windows containing a chunk with `n_dup_max ≥ 8` (comfortably
+   past the audit-measured ≥~6 onset), selected deterministically under the
+   corpus-fixed-seed convention.
+2. **Positive-control requirement (the smoke must prove it reached the regime, per
+   the house forced-failure lesson — a passing smoke whose failure precondition
+   never held is vacuous):** the smoke logs, per forward call, the count of
+   exactly-duplicated rows **within the selected top-K set specifically** (a
+   caller-side check on the gathered rows via the diag's existing `_topk_idx`).
+   Registered floor: ≥25 forward calls during the smoke with ≥6 duplicated selected
+   rows. If the floor is met, the smoke's pass/fail bars apply; **if β never
+   selects the duplicated positions and the floor is missed, the smoke is declared
+   NON-PROBATIVE (not "passed")** and the registered fallback fires: re-run the
+   smoke with selection FORCED onto the duplicated positions via the M6
+   forced-selection argument (which Cell 4 needs built anyway), guaranteeing the
+   eigh-fallback/duplicate-Gram path is exercised.
+3. **Pass bars, unchanged from Rev 2:** zero non-finite losses at completion AND
+   skip-rate (the isfinite-grad guard's own counter) ≤1% — evaluated only on a
+   probative smoke.
+Any NaN or skip-rate breach = a **registered stability finding**, recorded in the
+wave summary, and Cells 3/4 do not launch until a fix wave with its own independent
+audit addresses or bounds it — this is the first-ever multi-thousand-step LM-mode
+geo3 training anywhere in the project (all prior evidence is synthetic-harness
+training, forward-only LM probes, or short smokes), and the risk its own code
+comments flag "for Wave 1 monitoring" must be probed before, not during, the
+factorial's spend.
 
 ### 5.2 Metrics — what "memory-fidelity/attractor metrics" means at LM scale
 
@@ -673,17 +840,28 @@ grammar has, so the readout is scoped honestly to:
 ### 5.3 Numeric bars (REWRITTEN, Rev 2 — F1: bars are now registered as derivation rules over same-instrument, same-K_sel quantities pinned at Wave −1, never over cross-instrument numbers)
 
 **K_sel is PINNED: `K_sel = 32`, single value, for the entire Wave 1 / 2×2 manifest
-(Rev 2 — N1).** Four reasons, in order: (i) the failed gate's own registered gate
-cell is K_sel=32 (`wave_neg1_gate.json`'s `gate_k_sel: 32`; the sweep's own
-config cross-validation asserts `gate_k_sel == max(K_SELS)`); (ii) K_sel=32 is where
-the original gate came closest to passing (0.569 vs 0.60) — the selectivity
-intervention is measured against the least-degenerate available baseline reference;
-(iii) K=32 is the F-geo-3 synthetic program's own primary-anomaly/headline cell
-(`DELTANET_RD_EXACTNESS_DESIGN.md` §16.4), so the synthetic-side interaction evidence
-this factorial mirrors is densest there; (iv) it halves the run count vs the {16,32}
-grid. K_sel=16 is a registered follow-on axis, not silently dropped. Consequence,
-inherited from the sweep's own registered constants: every geo3-active cell runs at
-`geo3_n_iter = 20` (`GEO3_N_ITER_BY_K_SEL = {16: 12, 32: 20}`,
+(Rev 2 — N1; reason (ii) restated honestly, Rev 3 — R2 MINOR-1).** Four reasons, in
+order: (i) the failed gate's own registered gate cell is K_sel=32
+(`wave_neg1_gate.json`'s `gate_k_sel: 32`; the sweep's own config cross-validation
+asserts `gate_k_sel == max(K_SELS)`); (ii) **two readings of the gate data exist and
+they point in opposite directions** — by *absolute proximity to the registered 0.60
+bar*, K=32 came closest (0.569 vs 0.60); by *relative excess over each K's own
+uniform floor*, K=16 has the stronger discriminative signal (30.9% vs a 25% floor =
++23.7% relative, against K=32's 56.9% vs 50% = +13.8% relative). Rev 2 stated only
+the first reading, which ties the K-choice to the same absolute bar that produced
+the failing verdict — a mildly circular flavor. The pin survives either reading
+because it never rested on "where is β's organic signal strongest": every masking
+candidate *replaces* β's organic concentration with a forced selection, so the
+relative-signal reading bears on the baseline's β, not on the intervention — the
+pin rests on comparability and reference density, i.e. reasons (i), (iii), (iv),
+which are untouched by the tension; (iii) K=32 is the F-geo-3 synthetic program's
+own primary-anomaly/headline cell (`DELTANET_RD_EXACTNESS_DESIGN.md` §16.4), so the
+synthetic-side interaction evidence this factorial mirrors is densest there; (iv) it
+halves the run count vs the {16,32} grid. **K_sel=16 is the FIRST registered
+follow-on axis** — upgraded from Rev 2's "not silently dropped" per the attack's own
+recommendation, precisely because the relative-signal reading favors it.
+Consequence, inherited from the sweep's own registered constants: every geo3-active
+cell runs at `geo3_n_iter = 20` (`GEO3_N_ITER_BY_K_SEL = {16: 12, 32: 20}`,
 `run_lm_rd_geo3_sweep.py:84` — the §1.1-registered escalation; a uniform n_iter=12
 would replicate the known-non-admissible K=32 config).
 
@@ -724,10 +902,12 @@ readout, no re-negotiation):**
   cell1 − cell3)`, every term the same instrument at K_sel=32 — Cell 4 must beat
   **both** single-ingredient cells by a margin at least 1.5× the better single
   ingredient's own gain over baseline, not merely beat Cell 1 alone. The 1.5×
-  multiplier: proposed, conservative-not-derived, as above. **Language downgrade
-  rule:** if Cell 2R matches Cell 2 within seed noise (§5.1's registered control
-  rule), every statement of this bar's outcome substitutes "write concentration" for
-  "β-informed selectivity."
+  multiplier: proposed, conservative-not-derived, as above. **Language rule
+  (REVISED, Rev 3 — NEW-3):** the wording of this bar's outcome follows §5.1's
+  three-way range-non-overlap verdict — "β-informed selectivity" only on a
+  disjoint-Cell-2-better read, "write concentration" on a disjoint-2R-equal-or-better
+  read, and the neutral "selective writing (targeting-vs-concentration unresolved at
+  n=3)" on the INCONCLUSIVE read.
 - **Val-loss tolerance:** selectivity-only cells (2, 2R) held to a **wider,
   explicitly more lenient** +5% relative bar (this design's own proposal — hard
   write-sparsity is a bigger architectural constraint than geo3's
@@ -742,18 +922,26 @@ readout, no re-negotiation):**
 ## 6. Budget
 
 **Arithmetic, stated explicitly per the task brief (QUOTES CORRECTED, Rev 2 — M4;
-every quoted string below is grep-verified verbatim in its named source this
-session).** `SCALE_TRANSFER_DESIGN.md`'s own 300 GPU-h program ceiling (§7) is
-registered as consumed as follows: rung-2's Rev 2.1 amendment registers, verbatim,
-"≈129 GPU-h for the wave (cumulative ≈163 of the §7 300 GPU-h ceiling)" (§5.6 item 1,
-lines 751–752); the finer-grained figures — 129.4 GPU-h, cumulative 162.5/300 —
-appear in **`STATE.md`'s rung-2 launch entry** (the bullet headed "SCALE-TRANSFER
-Track C Wave 2 (rung-2, 392M) LAUNCHED"), *not* in `SCALE_TRANSFER_DESIGN.md`, and
-Rev 1 of this document wrongly
-presented them inside quotation marks attributed to the design doc (acknowledged in
-§12). Rung-3's Rev 2.2 amendment, token-matched to rung-2 at 1.5B tokens/run, prices
-at ≈76.2 GPU-h for its 2-run wave — verbatim: "cumulative ≈266/300 — passes every
-gate" (§5.6, line 798). `300 − 266 = 34` GPU-h nominal remaining headroom.
+SOURCE RECONCILED UPSTREAM, Rev 3 — NEW-8; every quoted string below is
+grep-verified verbatim in its named source this session, post-fix).**
+`SCALE_TRANSFER_DESIGN.md`'s own 300 GPU-h program ceiling (§7) is registered as
+consumed as follows: rung-2's Rev 2.1 amendment registers, verbatim, "≈129 GPU-h for
+the wave (cumulative ≈163 of the §7 300 GPU-h ceiling)" (§5.6 item 1); the
+finer-grained figures — 129.4 GPU-h, cumulative 162.5/300 — appear in **`STATE.md`'s
+rung-2 launch entry** (the bullet headed "SCALE-TRANSFER Track C Wave 2 (rung-2,
+392M) LAUNCHED"), *not* in `SCALE_TRANSFER_DESIGN.md`, and Rev 1 of this document
+wrongly presented them inside quotation marks attributed to the design doc
+(acknowledged in §12). Rung-3's Rev 2.2 amendment, token-matched to rung-2 at 1.5B
+tokens/run, prices at ≈76.2 GPU-h for its 2-run wave. **Attack round 2 (NEW-8)
+caught an internal ~26 GPU-h inconsistency in that amendment's own paragraph** (its
+rejected-3B option's "≈316" cumulative implied a 163.5 base while its accepted
+option's ≈266 implied a 189.8 base — the stale figure predated the `--wave 1ext`
+≈27 GPU-h addition to the committed base); **the source has since been corrected
+upstream** (commit `13eb71c`), and now reads, verbatim: "cumulative ≈343 on the
+190.22 GPU-h committed base" for the rejected option and "cumulative ≈266/300 —
+passes every gate" for the accepted one — mutually consistent on the same 190.22
+base (190.22 + 152.5 ≈ 343; 190.22 + 76.2 ≈ 266.4). **Nominal remaining headroom
+after rung-3: 300 − 266.4 ≈ 33.6 GPU-h.**
 
 **This is a projection, not a harvested actual — flagged, per the task's own
 instruction.** Both the rung-2 129.4 GPU-h figure and the rung-3 76.2 GPU-h figure were
@@ -765,7 +953,7 @@ rung-3 *harvest* entry with realized (not projected) costs — a direct grep for
 launches anything, the current actual cumulative GPU-h spend across the whole
 SCALE-TRANSFER program must be re-read from the latest `STATE.md`/`EXPERIMENT_LOG.md`
 entries** — rung-2's harvest and rung-3's real run may have already landed with numbers
-that differ from the 266/300 figure cited here, in either direction (calibration
+that differ from the ≈266.4/300 figure cited here, in either direction (calibration
 surprises have already moved this program's own numbers once, per `SCALE_TRANSFER_DESIGN.md`
 §10 item 2's own warning that Track C is "the single largest and least-validated cost
 driver").
@@ -795,14 +983,18 @@ launches, per the calibration-first discipline the placeholder's own comment cit
 convention, e.g. `SCALE_TRANSFER_DESIGN.md`'s own "±2×" pre-calibration framing,
 §5.6): ≈13–20.6 GPU-h.** Adding the reserve Cell 4R (§5.1: 6 geo3-active runs ≈ 1.7
 GPU-h, run only if Cell 4 clears its bar) brings the absolute worst case to ≈22.3
-GPU-h — still **under the 25 GPU-h target**, though no longer by the comfortable
-margin Rev 1's under-priced table implied, and inside the ≈34 GPU-h nominal headroom
-only if that headroom figure survives its own §11-item-5 re-verification. The
-arithmetic above exists to make the margin explicit and auditable; Rev 1's version
-of this section failed that stated purpose twice (M2's 3× per-probe error, M3's
-omission of the geo3 pricing placeholder its own reading list's file registers) —
-both corrected here, with Wave −1's measured timing registered as the authority that
-supersedes every placeholder before Wave 2 spends.
+GPU-h — **under the 25 GPU-h target, and under the corrected ≈33.6 GPU-h nominal
+headroom with ≈11 GPU-h to spare at the worst case (Rev 3 — NEW-8). Margin stated
+honestly:** at a 10% rung-3 cost overrun (266.4 + 7.6 ≈ 274), the post-Track-B slack
+shrinks to ≈4 GPU-h at this worst case — thin, which is why the §11-item-5 rule
+stands: re-derive the actual cumulative from real harvest entries (not either
+projected figure) immediately before Wave 1 launches. The arithmetic above exists to
+make the margin explicit and auditable; Rev 1's version of this section failed that
+stated purpose twice (M2's 3× per-probe error, M3's omission of the geo3 pricing
+placeholder its own reading list's file registers), and Rev 2's inherited a
+since-fixed inconsistency in the source itself (NEW-8) — all corrected, with Wave
+−1's measured timing registered as the authority that supersedes every placeholder
+before Wave 2 spends.
 
 ---
 
@@ -813,7 +1005,7 @@ supersedes every placeholder before Wave 2 spends.
 | "Hard selectivity is achievable on this harness without destroying trainability" | Both candidate 1 AND its M7 soft-top-K comparator fail to converge to a reasonable floor (divergence/NaN-collapse under standard skip-step handling) — the comparator's presence makes this claim's negative attributable to selectivity itself, not to STE (Rev 2 — M7); candidate 1 failing *alone* falsifies only "hard-masked-with-STE is trainable" |
 | "The gate metrics, once forced, are a meaningful manipulation check" | For candidates 1/3: nothing — §4.1 already establishes these are construction-trivial; the manipulation check for these candidates is training-viability plus the §4.3 pinned churn bar, and no result on the gate metric itself can falsify or confirm anything |
 | "Candidate 1's selection is functional, not degenerate" | Full-run churn exceeds the §4.3 pinned ceiling (selection-set instability), or the §3.1(iii) positional-artifact check fires — either flags the cell selection-degenerate, excluded from Cell-4 inheritance (Rev 2 — M1) |
-| "Selectivity alone measurably improves memory-fidelity metrics" | Cell 2 does not clear Cell 1 by a margin distinguishable from seed noise — consistent with, not contradicting, KEY_ANCHORING's own "stability/selectivity alone buys little" finding (§2). **Attribution split (Rev 2 — F2):** Cell 2R matching Cell 2 within seed noise downgrades any Cell-2 gain from "β-informed selectivity" to "write concentration at matched budget" |
+| "Selectivity alone measurably improves memory-fidelity metrics" | Cell 2 does not clear Cell 1 by a margin distinguishable from seed noise — consistent with, not contradicting, KEY_ANCHORING's own "stability/selectivity alone buys little" finding (§2). **Attribution split (Rev 2 — F2; rule revised Rev 3 — NEW-3):** §5.1's three-way range-non-overlap verdict decides the language — disjoint-2R-equal-or-better downgrades to "write concentration"; overlap = INCONCLUSIVE, no downgrade and no targeting claim |
 | "Orthogonality + selectivity interact super-additively on free text, mirroring the synthetic-harness 2×2" | Cell 4 fails §5.3's interaction bar (`cell1−cell4 < 1.5×max(cell1−cell2, cell1−cell3)`, all terms same-instrument at K_sel=32) — the additive, non-interacting outcome is equally reportable and would mean the synthetic-harness interaction does not transfer to free-running real text at this scale |
 | "This redesign licenses a claim about pretrained/production delta-rule LMs" | Nothing in this design can establish this regardless of outcome — Track D's own Phase 1 non-attribution finding (§9 of this document) already forecloses it a priori for any from-scratch small-model result |
 
@@ -920,76 +1112,89 @@ before anything else in this redesign is worth running); the Wave −1 geo3-LM s
 smoke (Rev 2 — M8: it gates Cells 3/4 and costs ≈0.1 GPU-h); **Cell 2R** (Rev 2 — F2,
 orchestrator-pinned as required: it carries the factorial's budget-vs-targeting
 attribution, exactly the never-cut role `SCALE_TRANSFER_DESIGN.md` §8 assigns its own
-MAJOR-5 mix-control cell).
+MAJOR-5 mix-control cell); **Cell 3, at minimum one corpus × 3 seeds (PROMOTED, Rev
+3 — attack round 2's adjudication of §11 item 3, adopted):** the §5.3 interaction
+bar's `cell1 − cell3` term is not computable at all without a real Cell 3 — the
+archived gate JSON measured a different quantity (β-shape on a non-orthogonalized
+checkpoint, forward-only) and cannot substitute — and Cell 3 doubles as the first
+full-scale geo3-active LM training run the M8 stability gate exists to de-risk.
 
 **Cut, in this order, until back under whatever budget line is live at launch time:**
 
-1. Cell 4R (the reserve geo3-side targeting control, §5.1) — already conditional on
+1. The fixed-mask 2R diagnostic variant (§5.1 — NEW-2's named diagnostic, never the
+   control) — pure bonus information about positional structure; first to go.
+2. Cell 4R (the reserve geo3-side targeting control, §5.1) — already conditional on
    Cell 4 clearing its bar; cutting it costs nothing committed.
-2. Candidate 2 (entmax/sparsemax) — highest build risk (new autograd primitive, the
+3. Candidate 2 (entmax/sparsemax) — highest build risk (new autograd primitive, the
    §3.2 chunk-sum-budget structural change, the only candidate whose budget match can
    be PARTIAL by construction); cut first among candidates if squeezed.
-3. Candidate 4's soft phase — already predicted, on this project's own F-geo-1
+4. Candidate 4's soft phase — already predicted, on this project's own F-geo-1
    precedent, to underperform (§3.4); its only unique informative content (does soft
-   warm-up ease the subsequent hard phase) is a secondary readout, not a headline one.
-4. Candidate 3 — highest scope change (new preprocessing pipeline); cut before
+   warm-up ease the subsequent hard phase) is a secondary readout, not a headline one
+   (and NEW-6's re-pinned comparator no longer overlaps it — the comparator hardens
+   at 10% of steps precisely so it is NOT a curriculum arm).
+5. Candidate 3 — highest scope change (new preprocessing pipeline); cut before
    candidate 1's own manifest is trimmed, since candidate 1 is cheaper, more direct, and
-   answers the queued idea's own literal framing ("hard-zero-β") most closely.
-5. The M7 STE comparator — cutting it **automatically re-triggers M7's alternative
+   answers the queued idea's own literal framing ("hard-zero-β") most closely. If it
+   survives to Wave 2, its period `W` gets a cheap 2–3-point sensitivity check, not a
+   full attack pass (attack round 2's adjudication of §11 item 4, adopted).
+6. The M7 STE comparator — cutting it **automatically re-triggers M7's alternative
    branch** (registered here, not renegotiated later): every candidate-1 negative
    becomes uninterpretable w.r.t. STE-vs-architecture, candidate-1 claims stay
    permanently scoped to "hard-masked-with-STE," and candidate 2 is promoted to
    co-primary — the comparator is cheap (≈0.5 GPU-h) precisely so this branch never
    has to fire on budget grounds.
-6. The shared Cell-3 (geo3-only) reference arm's second corpus — drop to openr1 only if
-   squeezed; the interaction bar (§5.3) is directionally assessable from one corpus,
-   though the full claim needs both, mirroring `SCALE_TRANSFER_DESIGN.md` §8 item 5's
-   own precedent for a symmetric cut.
-7. Candidate 1's own naive-window-style ablation sensitivity check (if one is added
+7. The shared Cell-3 (geo3-only) reference arm's **second corpus** — drop to openr1
+   only if squeezed (the cell itself is never-cut, above); the interaction bar (§5.3)
+   is directionally assessable from one corpus, though the full claim needs both,
+   mirroring `SCALE_TRANSFER_DESIGN.md` §8 item 5's own precedent for a symmetric cut.
+8. Candidate 1's own naive-window-style ablation sensitivity check (if one is added
    later) before candidate 1's primary beta-topk arm itself — the primary arm carries
    the entire causal-adjacent claim and is never cut.
 
 ---
 
-## 11. Open questions (UPDATED, Rev 2 — for attack round 2 / the build phase)
+## 11. Open questions — status after attack round 2's adjudications (Rev 3)
 
-1. §5.3's bar *machinery* is now pinned (same instrument, same K_sel, Wave-−1-pinned
-   references — F1 closed), but the two hand-chosen multipliers survive as proposals:
-   the 0.5× headline factor and the 1.5× interaction factor are still
-   conservative-not-derived. Should either be derived from a simulator-style tool
-   analogous to `geo3_simulator.py` — and if such a tool is built, does it repeat
-   §16.7's shared-scalar mis-wiring risk (§8's sixth, process-level finding)?
-2. **(Narrowed by Rev 2 — M7.)** The STE-vs-selectivity confound now has a registered
-   separator (the temperature-annealed comparator). Still open: whether a
-   hard-concrete/L0-style relaxation (Louizos, Welling & Kingma 2018) would beat BOTH
-   at this scale — a third mechanism, not run here, named as a follow-on if candidate
-   1 and the comparator disagree in a way neither's failure mode explains.
-3. Is Cell 3 (the geo3-only reference arm) worth spending real GPU-h on at all, given
-   its own Wave −1 gate already measured its premise fails — or should its role in the
-   2×2 be filled by inference from the *existing* gate JSON's already-measured numbers,
-   saving the ≈1.7 GPU-h a fresh Cell-3 run now prices at (Rev 2 — M3's corrected
-   geo3-active rate: 6 runs × 0.28)? This redesign still assumes a fresh run is worth
-   it (a clean same-seed/same-manifest comparison point, and the only way to get
-   Cell 3's val-loss under the same training protocol) — the attack round should weigh
-   this explicitly, now against the honest 3×-priced cost rather than Rev 1's
-   under-priced one.
-4. Does candidate 3's fixed-period write schedule need its own attack pass on the period
-   choice itself (`W=chunk_size/K_sel` is asserted here, not derived) before any build,
-   mirroring the escalation discipline this project applies to every other free
-   hyperparameter?
-5. Is the ≈34 GPU-h headroom figure (§6) still accurate — has rung-2's harvest or
-   rung-3's actual run landed with numbers that differ materially from the 266/300
-   projection this document cites? This must be re-checked against the latest
-   `STATE.md`/`EXPERIMENT_LOG.md` before this redesign's own §6 budget is treated as
-   final, not merely noted as a caveat and then ignored. (Rev 2's own worst case,
-   ≈22.3 GPU-h, sits much closer to the ≤25 target than Rev 1's under-priced table
-   implied — this re-check is now load-bearing, not hygiene.)
-6. **(NEW, Rev 2.)** The §2 principle-4 renormalization pins total write mass to
-   `B_pinned` but changes the per-write magnitude distribution (fewer, stronger
-   writes; mean selected β ≈ 0.84 vs the baseline's ≈0.42 at twice the positions).
-   Is per-write magnitude a third axis that needs its own control, or is it
-   inseparable from "selectivity" by definition? Rev 2 takes the latter position
-   (§2 principle 4's closing caveat) — the attack round should test that framing.
+Round 2 explicitly adjudicated every Rev-2 open question (`TRACKB_REDESIGN_ATTACK_R2.md`
+Part 3 item 7); dispositions recorded here, remaining opens marked:
+
+1. **(RESOLVED — adjudicated NO.)** The 0.5×/1.5× multipliers stay
+   proposed-not-derived: a simulator-derivation tool would duplicate the §16.7
+   shared-scalar hazard for marginal calibration benefit at this Tier-2 budget scale.
+   Registered consequence: bar outcomes are treated as provisional until replicated.
+2. **(STILL OPEN, sharpened.)** The hard-concrete/L0 third mechanism stays a
+   conditional follow-on — but per the adjudication, NEW-6 weakened the comparator's
+   attribution power (even at the Rev-3 10% pin, an early-window difference
+   remains), so the promotion trigger is widened: it fires if candidate 1 and the
+   comparator disagree, OR if the comparator's verdict is contested at readout on
+   early-window grounds.
+3. **(RESOLVED — adjudicated YES, and stronger than Rev 2's framing.)** Cell 3 is
+   worth the ≈1.7 GPU-h and is now **never-cut at one corpus** (§10): the gate JSON
+   measured a different quantity and cannot supply the interaction bar's
+   `cell1 − cell3` term nor a protocol-matched val loss, and Cell 3 doubles as the
+   M8 stability gate's full-scale de-risk target.
+4. **(RESOLVED — adjudicated NO, disproportionate.)** Candidate 3's period `W` gets
+   a cheap 2–3-point sensitivity check, gated on the candidate surviving to Wave 2
+   (§10 item 5) — not a standalone attack pass.
+5. **(PARTIALLY RESOLVED — the source-inconsistency half is fixed upstream, NEW-8/
+   commit `13eb71c`; the harvest half stands.)** The corrected headroom is ≈33.6
+   GPU-h, but it remains a projection: no rung-2/rung-3 *harvest* entry exists in
+   `EXPERIMENT_LOG.md` (re-confirmed by round 2). The standing rule: re-derive the
+   actual cumulative from real harvest entries — never from either projected
+   figure — immediately before Wave 1 launches. With worst-case ≈22.3 GPU-h against
+   ≈33.6 (or ≈26 under a 10% rung-3 overrun), this re-check is load-bearing.
+6. **(RESOLVED — adjudicated CONCUR.)** Per-write magnitude is inseparable from
+   selectivity at fixed `B_pinned` and fixed `K_sel` (a mass-conservation identity,
+   not a control gap); Cell 2R already isolates the orthogonal targeted-vs-random
+   question. No further control cell.
+7. **(NEW, Rev 3 — for the build phase.)** The §4.3 positional-concentration bar
+   uses TV-from-uniform against an unmasked-pilot null; its registered limitation
+   (cannot distinguish content-driven-but-positionally-biased from purely
+   positional) routes flagged runs to a document-dependence follow-up analysis. Is
+   that follow-up's method (selected-set overlap across documents at matched
+   offsets) worth pre-specifying to a numeric rule too, or is analysis-tier freedom
+   acceptable for a non-gating diagnostic? Rev 3 takes the latter position.
 
 ---
 
@@ -1035,21 +1240,53 @@ changed in Rev 2.
 
 ---
 
+## 13. Rev 3 finding→change map (attack round 2, 2026-07-04)
+
+Independent adversarial review of Rev 2 (`TRACKB_REDESIGN_ATTACK_R2.md`, fresh agent,
+against commit `f814b99`): **NEEDS-REV-3** — round 1's F1 verified CLOSED (MC anchor
+math independently reproduced), 8 new MAJOR + 2 MINOR, all in Rev 2's own additions.
+Every finding addressed per the orchestrator's binding decisions. Items round 2
+marked CLOSED (R1's M2/M3/M4/M5/N2/N3, the override stamping, the BANDS_PINNED
+mechanics) are **frozen** — nothing in Rev 3 touches them.
+
+| Finding | Severity | What was wrong (in Rev 2's own additions) | Fix | Where |
+|---|---|---|---|---|
+| NEW-1 | MAJOR | Clamp-shortfall handling was asymmetric: candidate 2 got a numeric PARTIAL rule, candidates 1/3/4 got logging only — "reporting is not a control" reintroduced for a narrower cell set; the attack's own arithmetic (mean scale 1.76×, ~16 pp clamp headroom on an average chunk) shows the gap is live, and the gate JSON's pooled means cannot bound it | ONE symmetric rule, every masking cell (orchestrator-pinned): BUDGET-PARTIAL if `median(shortfall_c) > 0.10` or `frac(shortfall_c > 0.10) > 0.25`; per-chunk dispersion measured at Wave −1 (same forward passes, zero GPU) and pinned into `BANDS_PINNED-TrackB` | §2 principle 4 |
+| NEW-2 | MAJOR | Cell 2R's randomization cadence was unspecified — a fixed offset draw would degenerate the control into a positional schedule, corrupting the exact comparison it exists for | Cadence pinned (orchestrator decision): resampled per (chunk instance, training step), RNG keyed to run seed + step, never a fixed function of intra-chunk position; a fixed-mask variant registered as a separate cut-eligible DIAGNOSTIC, never the control | §5.1, §10 item 1 |
+| NEW-3 | MAJOR | "Matches within seed noise" had no operationalization; the n=3 headcount borrowed KEY_ANCHORING's convention without its (one-sample) power analysis, for a two-sample comparison needing more | Decision rule re-registered (orchestrator decision): per-corpus seed-range non-overlap, three-way verdict incl. an explicit INCONCLUSIVE (no downgrade, no claim, neutral registered phrasing); low power acknowledged numerically (range separation has α ≈ 0.10/corpus under exchangeability; a crude screen, not a powered test) | §5.1, §5.3, §7 |
+| NEW-4 | MAJOR | The churn ceiling's "non-circular" defense proved non-triviality, not calibration — an unmasked pilot cannot see mask-specific dynamics (STE entrenchment could suppress churn; legitimate sharpening could raise it) | Ceiling = max of TWO nulls (orchestrator decision): the unmasked-pilot null (kept) and a same-model null (the gated run's own first-10%-of-steps churn, mean+2s); one-sentence calibration limitation registered — a coarse degeneracy screen, breaches route to diagnosis | §4.3 |
+| NEW-5 | MAJOR | The positional-artifact check had no spec at all behind a broken citation ("§8 item 1" points to an unrelated passage) — and it guards the MORE dangerous degenerate case (frozen collapse = near-zero churn, invisible to the churn bar) | Fully specified (orchestrator decision): TV distance of the intra-chunk offset-selection marginal from uniform, fixed probe batch, 50%/final checkpoints, ceiling = unmasked-pilot `mean+2s`, folded into `BANDS_PINNED-TrackB`; flag = positionally degenerate, excluded from Cell-4 inheritance; the TV statistic's own limitation registered; citation fixed | §3.1(iii), §4.3 |
+| NEW-6 | MAJOR | The comparator's 80%-soft anneal was candidate 4's soft-warmup curriculum in disguise — its success could not distinguish "STE was the problem" from "the curriculum was the fix" | Anneal re-pinned (orchestrator decision): τ→0 by 10% of steps, both arms hard for ≥90% of training, isolating the gradient estimator; residual early-window confound registered in one sentence; bit-equivalence kept but explicitly non-load-bearing, with a numeric fallback bound (max-abs diff ≤1e-6) registered should any future check depend on it | §3.1, §10 item 4, §11 item 2 |
+| NEW-7 | MAJOR | The NaN-smoke slice was selected by a text-level proxy (window 4-gram repetition) that doesn't guarantee duplicated keys land among β-SELECTED positions — the smoke could pass without exercising the failure regime | Slice re-specified from the code's own mechanism (orchestrator decision): rank by within-chunk identical-4-gram count (`n_dup_max ≥ 8`, layer-0 conv-context duplication ⇒ identical key rows); positive-control floor (≥25 forward calls with ≥6 duplicated SELECTED rows, logged via `_topk_idx`) or the smoke is NON-PROBATIVE; registered fallback forces selection onto duplicated positions via the M6 argument | §5.1 |
+| NEW-8 | MAJOR | The budget source's own Rev 2.2 paragraph carried a ~26 GPU-h internal inconsistency (≈316 on a stale 163.5 base vs ≈266 on the 190.22 base); Rev 2 quoted it accurately but did not reconcile | Fixed UPSTREAM by the orchestrator (`SCALE_TRANSFER_DESIGN.md`, commit `13eb71c`: 316→343 on the 190.22 base, correction note names this attack); §6 re-quotes the corrected text; headroom = 300 − 266.4 ≈ 33.6 GPU-h; worst-case margin stated honestly incl. the 10%-overrun scenario (≈4 GPU-h slack) | §6, §6.1, §11 item 5 |
+| MINOR-1 | MINOR | K_sel=32 reason (ii) used only the absolute-proximity reading; the relative-excess-over-uniform reading inverts it (K=16: +23.7% rel. vs K=32: +13.8% rel.) — a mildly circular tie to the bar that produced the failing verdict | Both readings stated; why the pin survives either (it rests on comparability/reference density — reasons i/iii/iv — not on where β's organic signal is strongest, which the intervention replaces anyway); K_sel=16 upgraded to the FIRST registered follow-on axis | §5.3 |
+| MINOR-2 | MINOR | The forced-selection argument bypasses the internal `topk` that the EOT-validity mask (`valid_sel`, `:301`) is derived from — validity threading unspecified | Registered: validity under forcing = `content_mask` gathered at forced indices, feeding the existing degenerate-episode machinery unchanged; build smoke registered (forced EOT index → invalid → no-op scatter) | §5.1 |
+
+Adjudications of §11's open questions (Part 3 item 7 of the attack) are adopted and
+recorded in §11's rewritten status list; the two that changed the manifest are Cell
+3's promotion to never-cut (§10) and candidate 3's period getting a sensitivity
+check instead of an attack pass (§10 item 5).
+
+---
+
 ## Reproducibility pointers
 
-This design: `matrix-thinking/TRACKB_REDESIGN.md` (**Rev 2**, this file; Rev 1 at
-commit `52d834f`). Attack round 1: `matrix-thinking/TRACKB_REDESIGN_ATTACK_R1.md`
-(read in full this session). Grounding sources, all read in full or in the cited
-section this session: `SCALE_TRANSFER_DESIGN.md` §4 (+§2, §6.4, §6.8, §5.6 incl. the
-Rev 2.1/2.2 amendments at `:743–805`, §5.9, §7); `EXPERIMENT_LOG.md`'s "SCALE-TRANSFER
-Track B" entry and its two `[LEARN]` blocks;
+This design: `matrix-thinking/TRACKB_REDESIGN.md` (**Rev 3**, this file; Rev 1 at
+commit `52d834f`, Rev 2 at `f814b99`). Attack rounds:
+`matrix-thinking/TRACKB_REDESIGN_ATTACK_R1.md` and
+`matrix-thinking/TRACKB_REDESIGN_ATTACK_R2.md` (both read in full). Grounding
+sources, all read in full or in the cited section this session:
+`SCALE_TRANSFER_DESIGN.md` §4 (+§2, §6.4, §6.8, §5.6 incl. the Rev 2.1/2.2
+amendments — the latter as corrected at commit `13eb71c`, §5.9, §7);
+`EXPERIMENT_LOG.md`'s "SCALE-TRANSFER Track B" entry and its two `[LEARN]` blocks;
 `matrix-thinking/deltanet_rd/results/lm_rd_geo3/wave_neg1_gate.json` (raw numbers,
 read directly, incl. `gate_k_sel: 32`); `DELTANET_RD_EXACTNESS_DESIGN.md` §14, §16
 (incl. §16.7's dated correction); `KEY_ANCHORING_DESIGN.md` Rev 5 §1–§2.2, §3.6
 (the `BANDS_PINNED` writer/launcher-gate/readout-assertion machinery, read in full),
 §8.3/R4-1; `matrix-thinking/deltanet_rd/lm_pretrain_rd.py` (`:1–60`, `:206–398`,
-`:419–570`, incl. the `:349–353` NaN-risk comment); `matrix-thinking/deltanet_rd/
-run_lm_rd_geo3_sweep.py` (`:61–74` constants, `:84` `GEO3_N_ITER_BY_K_SEL`, `:94–104`
-the 3× placeholder, `:131–183` gate loading + `_refuse_if_no_launch`, `:598–600` the
-`main()` call sites); `STATE.md` "Hardware" section + the rung-2 launch entry. No GPU
-run, no box access, no push performed in producing this document.
+`:419–570`, incl. the `:349–353` NaN-risk comment and the `:301` `valid_sel`
+derivation); `matrix-thinking/deltanet_rd/run_lm_rd_geo3_sweep.py` (`:61–74`
+constants, `:84` `GEO3_N_ITER_BY_K_SEL`, `:94–104` the 3× placeholder, `:131–183`
+gate loading + `_refuse_if_no_launch`, `:598–600` the `main()` call sites);
+`STATE.md` "Hardware" section + the rung-2 launch entry. No GPU run, no box access,
+no push performed in producing this document.
