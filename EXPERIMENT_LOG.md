@@ -3668,3 +3668,144 @@ Correction: either archive checkpoints (not just JSON logs) for any cell a
 future probe might need, or register the comparison as "instrument TBD,
 contingent on checkpoint retention" rather than assuming the primary
 instrument will apply retroactively.
+
+## Stage-G H_e 40K MANIFEST VERDICT (2026-07-04): h_b_factored_r4 does NOT rescue matrix composition; the vector-composes/matrix-cannot inversion is seed-stable at hop-depth 3 — but NOT at hop-depth 2, an unresolved seed-dependent anomaly in the matrix baseline itself
+
+The pre-registered decision rule from the 40K calibration entry above FIRED
+(vector composed at 40K where 20K showed nothing) and the full 6-cell
+manifest (2 calib cells already run + 4 manifest cells: matrix baseline s1,
+matrix h_b_factored_r4 s0/s1, vector baseline s1) completed on GPU 7,
+sequential, no GPU contention with GPUs 0-6's concurrent waves. All 6 cells
+`complete=true`, `timed_out=false`, 40,000/40,000 steps; no NaN/Inf/grad
+blowups in any log. Total wall-clock 27.5 GPU-h (manifest's 4 cells alone:
+19.1 GPU-h), all on GPU 7 alone — well inside the accepted-scope budget.
+
+**Full results table** (K=12, chance=1/12=0.0833, answer_loss_weight=5.0,
+`chance_adjusted_acc = (acc - chance) / (1 - chance)`; H_train={1,2,3} so h1
+is a pure-copy LOOKUP metric (task_he.py's documented copy-leak, excluded
+from the composition headline), h2/h3 are IN-DISTRIBUTION composition
+(hop depths trained on, fresh graph every batch), h4/h5/h7 are HELD-OUT
+hop depths never trained on):
+
+| Cell | Seed | Params | Cap. ratio | BPB | h1 (lookup) | h2 (in-dist) | h3 (in-dist) | h4 (held) | h5 (held) | h7 (held-extra) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| matrix baseline | 0 (calib) | 290,328 | 1.00× | 1.2238 | 1.000 | 0.027 | 0.013 | −0.085 | −0.088 | 0.024 |
+| matrix baseline | 1 | 290,328 | 1.00× | 1.1170 | 1.000 | **1.000** | 0.019 | −0.091 | −0.087 | 0.013 |
+| matrix h_b_factored_r4 | 0 | 781,848 | 2.69× | 1.2263 | 1.000 | 0.065 | 0.018 | −0.091 | −0.044 | −0.065 |
+| matrix h_b_factored_r4 | 1 | 781,848 | 2.69× | 1.2014 | 1.000 | 0.188 | 0.015 | −0.051 | −0.002 | 0.007 |
+| vector baseline | 0 (calib) | 300,976 | 1.04× | 1.0343 | 1.000 | 1.000 | 1.000 | −0.004 | −0.008 | −0.009 |
+| vector baseline | 1 | 300,976 | 1.04× | 1.1155 | 1.000 | 0.904 | 0.661 | −0.065 | −0.042 | −0.048 |
+
+All values are `chance_adjusted_acc` at the final (40,000-step) checkpoint.
+
+**Verdict on h_b_factored_r4 — per the design's own pre-registered
+`recovered_frac` formula (§8), applied to the harness's registered
+composition field (`run_stageg_he_sweep.py::aggregate`'s
+`in_dist_chance_adjusted_excl_h1`, mean of h2+h3):**
+
+```
+recovered_frac(r4) = (comp(r4) - comp(matrix_baseline)) / (comp(vector_baseline) - comp(matrix_baseline))
+```
+
+- **On h3 alone (the seed-stable, uncontaminated component — see anomaly
+  below):** seed 0 = (0.018−0.013)/(1.000−0.013) = **+0.5%**; seed 1 =
+  (0.015−0.019)/(0.661−0.019) = **−0.6%**. Both indistinguishable from
+  zero/noise, an order of magnitude below the `≥0.5` (50%) dominant-site
+  bar. **Clean, decisive, reproduces at both seeds: NO RESCUE.**
+- **On the registered h2+h3 combined field:** seed 0 = (0.0415−0.0200)/
+  (1.000−0.0200) = **+2.2%** (agrees with h3-alone: no rescue). Seed 1 =
+  (0.1015−0.5095)/(0.7825−0.5095) = **−149%** — **uninterpretable**, because
+  the matrix-baseline "floor" this ratio is computed against is itself
+  contaminated by the h2 anomaly below (matrix baseline spuriously scores
+  1.000 at h2 in seed 1, an artifact of the baseline, not evidence r4 made
+  things worse).
+- **Conclusion (robust across both readings that are actually
+  interpretable): h_b_factored_r4 does NOT rescue matrix composition,**
+  despite running at 2.69× the baseline's parameters — the null result is
+  if anything strengthened, not weakened, by the extra capacity.
+
+**Seed-stability of the core H_e inversion (vector composes / matrix
+cannot):**
+- **At h=3: seed-stable, 4/4 matrix-family cells vs 2/2 vector cells.**
+  Every matrix-family cell (both baseline seeds, both h_b_factored_r4
+  seeds) sits at chance (chance_adjusted_acc 0.013–0.019) across the ENTIRE
+  40K-step trajectory (checked at all 20 logged checkpoints per cell, every
+  2,000 steps) — flat noise from step 2,000 to 40,000, no trend. Vector
+  seed 0 fully transitions and plateaus at 1.000 by step 26,000; vector
+  seed 1 is still climbing at the 40K cutoff (0.617→0.644→0.661 over the
+  last three checkpoints, monotonic, no plateau reached) but already clears
+  matrix by 30+ points of chance-adjusted accuracy. **The inversion's
+  DIRECTION is robust at both seeds; vector's h3 MAGNITUDE at seed 1 is a
+  right-censored, still-rising number — same "still-rising-at-cutoff, gap
+  would widen not close" pattern as this project's own H_d precedent
+  (Stage 0, `STAGE_G_DESIGN.md` §14) — so 0.661 is a lower bound on
+  seed 1's true asymptote, not a weaker final answer.**
+- **At h=2: NOT seed-stable — an unresolved anomaly, not yet triaged.**
+  Matrix baseline's h2 trajectory is flat noise (0.001–0.04) for the ENTIRE
+  40K steps at seed 0, but at seed 1 it undergoes a sharp, clean,
+  sigmoid-shaped phase transition between steps 18,000–22,000
+  (0.025→0.436→1.000) and then holds at 1.000 through 40,000 — full
+  composition at hop-depth 2, with NO analogous mechanism proposed by this
+  design. h_b_factored_r4 shows a different, partial pattern at h2 in both
+  seeds: still-rising, not plateaued, ending at 0.065 (seed 0, slow creep
+  from step ~26,000) and 0.188 (seed 1, steadier climb from ~step 26,000) —
+  suggestive of the *same* underlying phase transition on a slower/damped
+  schedule, but two seeds cannot distinguish "r4 delays the transition"
+  from "r4 and matrix-baseline's h2 transition are unrelated, noisy,
+  low-probability events." **Flagged, not resolved: any claim of the form
+  "matrix cannot compose at h=2" or "h_b_factored_r4 changes h=2
+  composition" is UNSUPPORTED pending more seeds** — only the h=3 reading
+  is currently trustworthy enough to carry the headline verdict.
+
+**Held-out hop generalization (h=4, h=5, h=7 — hops never seen in
+training): uniformly at or below chance for ALL 6 cells, matrix and vector
+alike** (chance_adjusted_acc range −0.091 to +0.024, i.e., noise around
+zero). This is a distinct, entirely negative axis from the in-distribution
+result above: at 40K steps, NEITHER architecture generalizes hop-composition
+beyond the trained hop range, even the vector arm that composes cleanly
+in-distribution. Not gated by this manifest's decision rule; reported as
+a plain negative for completeness (matches the design's own §9 attack #9
+scoping caveat: Wave C tests in-context composition capability, not
+extrapolation to unseen hop depths).
+
+**Anomalies / non-reproduction flags (compact, per the harvest brief):**
+1. Matrix baseline's h=2 seed-instability (above) — the single most
+   important open item; do not cite a matrix h=2 verdict either direction
+   until more seeds are run.
+2. No timeouts, no NaN/Inf, no crashes across all 6 cells (`timed_out`,
+   grad-norm, and log greps all clean) — the manifest itself traces
+   cleanly end to end.
+3. h_b_factored_r4's analytic FLOPs/token (44.1M) is LOWER than the matrix
+   baseline's (117.5M) at this task's config, consistent with
+   `STAGE_G_DESIGN.md` §14's finding that the rank-4 factored projection is
+   simultaneously cheaper and (there, on BPB) partially effective — here,
+   on composition_accuracy, it is cheaper but NOT effective.
+
+**Archive:** `experiment-runs/2026-07-05_stageg_he40k/` (6 result JSONs + 4
+manifest-cell logs + the exact `he40k_manifest.sh` launch script, all
+≤127KB, committed) + SSD mirror at
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-05_stageg_he40k/`.
+Full design context and the pre-registered `recovered_frac` bar:
+`matrix-thinking/STAGE_G_DESIGN.md` §8 (bar definitions) and new §15
+(Wave C results, this entry's detail). `STATE.md` updated — Stage-G H_e
+Wave C is CLOSED on its primary question (h_b_factored_r4 does not rescue;
+the h=3 inversion is seed-stable); the h=2 anomaly is named as a small,
+explicitly-scoped open thread, not a blocker to closing the wave.
+
+[LEARN] experiment-design: a composition metric that averages across hop
+depths (e.g. "in-distribution composition_accuracy, h≥2") can silently mix
+a stable, trustworthy component (h3: flat at chance for 4/4 matrix cells,
+zero variance across seeds) with an unstable, seed-dependent one (h2: a
+sharp phase transition in exactly 1 of 2 matrix-baseline seeds) into one
+number whose seed-to-seed swing (recovered_frac swinging from +2% to −149%
+here) looks like a real intervention effect but is actually a baseline
+artifact.
+Mistake: reading the registered combined h2+h3 metric literally at seed 1
+would have reported h_b_factored_r4 as making composition dramatically
+*worse* than the matrix baseline (recovered_frac ≈ −149%), when the real
+story is the matrix baseline itself spuriously spiked at h2 that seed.
+Correction: when a headline metric averages across sub-conditions, always
+also inspect the per-condition breakdown before trusting a swing in the
+aggregate — especially when only 2 seeds are available and one sub-condition
+plausibly represents a rare, threshold-triggered event (a phase transition)
+rather than a smooth, low-variance quantity.

@@ -444,7 +444,8 @@ early — the exactness mechanism study (why real-text composition
 undershoots the synthetic razor cliff) and Stage G's gated H_e
 task-swap check (below). **The exactness mechanism study is now fully
 CLOSED** (Wave 0/1/F/geo3, including the geo3 escalation, see above);
-Stage G's H_e check remains active. ~600+ GPU-h total
+**Stage G's H_e check is now also CLOSED** on its primary question (below;
+one small anomaly left open, not a blocker). ~600+ GPU-h total
 across the campaign. Full verdicts in EXPERIMENT_LOG.md (dated
 2026-07-01..04, table of contents at the start of that date range) and the
 five design docs (`DELTANET_REALDATA_DESIGN.md`,
@@ -453,20 +454,34 @@ five design docs (`DELTANET_REALDATA_DESIGN.md`,
 paper drafted at `matrix-thinking/submissions/neurips-ws-2026/` (awaiting
 user review: author block, venue, figures, title, appendix).
 
-**In flight (2026-07-04):**
-- **Stage-G H_e (task-representation-mismatch) Wave C:** the gate is
-  triggered per the design's own logic (§14.6's dominant-site verdict is
-  "confirmed-but-narrow" — the per-FLOP tax survives even with the named
-  mechanism fixed). A builder agent produced the full harness
-  (`matrix-thinking/stageg/`: `task_he.py`, `train_stageg.py`,
-  `run_stageg_he_sweep.py`, and supporting modules — all committed) and ran
-  a 20K-step calibration (`experiment-runs/2026-07-03_stageg_he/`,
-  committed): **neither the matrix nor the vector architecture learns
-  composition beyond h=1 on this composition-heavy corpus** — matrix h=1
-  accuracy 0.095 (barely above the 0.083 chance floor, notably *worse*
-  than vector's h=1=1.0), vector h=2/h=3 also near chance. This is
-  surprising and **not yet triaged** — bug vs. genuine finding is
-  undetermined; do not scale Wave C further until this is resolved.
+**Other closures (2026-07-04):**
+- **Stage-G H_e Wave C — CLOSED on its primary question.**
+20K showed neither arm composing (flagged then as not-yet-triaged); 40K
+calibration (seed 0) resolved that as a genuine late-transition budget
+effect, not a bug — vector fully composes at 40K (h1/h2/h3 chance-adjusted
+1.0/1.0/1.0) while matrix does not (1.0/0.027/0.013), firing the
+pre-registered decision rule for the full 6-cell manifest (4 more cells:
+matrix baseline s1, matrix `h_b_factored_r4` s0+s1 — the H_b Wave-B
+projection winner — vector baseline s1). All 6 cells complete, no
+timeouts/NaN/crashes, 27.5 GPU-h total on GPU 7 alone (no contention with
+GPUs 0-6's concurrent waves). **Verdict: `h_b_factored_r4` does NOT rescue
+matrix composition** (`recovered_frac` on the seed-stable h=3 metric: +0.5%
+seed 0, −0.6% seed 1 — both ≈0, an order of magnitude below the `≥0.5`
+dominant-site bar — despite running at 2.69× the baseline's params). **The
+vector-composes/matrix-cannot inversion is seed-stable at hop-depth 3**
+(4/4 matrix-family cells flat at chance across the full 40K trajectory;
+both vector seeds clear matrix by 30+ points, seed 1 still climbing at
+cutoff so 0.661 is a lower bound). **Held-out hop generalization (h=4/5/7)
+is at chance for ALL 6 cells, matrix and vector alike** — a separate,
+uniformly negative axis. **Open, unresolved anomaly (not a blocker):**
+matrix baseline's hop-depth-2 result is NOT seed-stable — seed 0 stays flat
+at chance through 40K, seed 1 undergoes a sharp, clean phase transition to
+full composition at steps 18K–22K with no proposed mechanism; any h=2-
+specific claim (either direction) is unsupported pending more seeds. Full
+table, verdict derivation, and the anomaly write-up:
+`EXPERIMENT_LOG.md`, "Stage-G H_e 40K MANIFEST VERDICT" (2026-07-04);
+design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
+`experiment-runs/2026-07-05_stageg_he40k/` + SSD mirror.
 - **ReserveMH (DeltaNet multi-head causal-rank generality) — CLOSED, not
   in flight**: every attention head independently recruits full rank K=32
   at H∈{2,4}; the H=1 qualifier on the synthetic causal-rank claim is
