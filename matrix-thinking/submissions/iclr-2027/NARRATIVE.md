@@ -1,22 +1,50 @@
 # ICLR 2027 Narrative Architecture — DeltaNet Rank Recruitment vs. Exactness
 
-**Status: DRAFT — round 2, ENDING RESOLVED. Grounded against
-`DELTANET_RD_EXACTNESS_DESIGN.md` (§1–8, §14, §15),
+**Status: DRAFT — round 3, ARC EXTENDED to the mechanism's two-ingredient
+attribution and to scale. Grounded against `DELTANET_RD_EXACTNESS_DESIGN.md`
+(§1–8, §14, §15, §16 incl. the §16.7 dated correction),
 `DELTANET_REALDATA_DESIGN.md` (§14–19), `DELTANET_CAUSAL_RANK_DESIGN.md`
-(§1, §2, §4, §12), and `EXPERIMENT_LOG.md` (2026-07-01 → 2026-07-04). Every
-number below is quoted from those sources, not recomputed or estimated.
-The formerly-open F-geo-3 K=32 `n_iter=20` escalation has COMPLETED: all 3
-seeds fully admissible (zero fallback steps — every substitute-stack
-criterion passed), h=4 `rec@0.9` = 0.504/0.416/0.390 (mean 0.44),
-numerically identical to the n_iter=12 cells. The ≥0.5 headline bar is
-narrowly MISSED (1/3 seeds at the line) and the miss is ATTRIBUTED to the
-pre-registered outcome F: trained cross-episode key drift measured 0.9037,
-inside the pre-registered HIGH band (<0.95) — the mechanism the adversarial
-round predicted and measured BEFORE the wave ran. The paper's frame is now:
-the fix moves the frontier decisively at K=16 (bar hit 3/3), moves it ~45×
-at K=32 without clearing the pre-registered bar, and the residual gap is
-attributed to a pre-measured second mechanism — a complete causal chain,
-no loose ends.**
+(§1, §2, §4, §12), `KEY_ANCHORING_DESIGN.md` (Rev 5, §1–§3),
+`SCALE_TRANSFER_DESIGN.md` (§2 claim tiers, §3.8, §4, §5.9, §6.8),
+`STATE.md`'s 2026-07-04 picture, and `EXPERIMENT_LOG.md` (2026-07-01 →
+2026-07-04, including the Track B/C/D and Stage-G H_e entries dated
+2026-07-04). Every number below is quoted from those sources — several
+re-verified directly against the archived run JSONs during this revision —
+not recomputed or estimated.
+
+Round-2 ending (still current, restated): the F-geo-3 K=32 `n_iter=20`
+escalation COMPLETED — all 3 seeds fully admissible (zero fallback steps),
+h=4 `rec@0.9` = 0.504/0.416/0.390 (mean 0.44), numerically identical to the
+n_iter=12 cells; the ≥0.5 headline bar narrowly MISSED (1/3 seeds at the
+line), attributed to pre-registered outcome F (trained cross-episode key
+drift 0.9037, inside the HIGH band <0.95).
+
+**New this round, absorbed from the last three days of verdicts:**
+(1) a 2×2 existence-proof design (`KEY_ANCHORING_DESIGN.md` §2.0, using two
+new frozen-embedding arms plus already-archived data) shows orthogonality
+and cross-episode stability are BOTH independently necessary and JOINTLY
+sufficient — neither alone moves composition off the ~0.01 baseline,
+together the pair saturates to 1.00; (2) a dated correction to the
+pre-spend simulator (§16.7) traces the recorded "K=32 overestimate" to an
+input-wiring bug (K=16's drift was silently reused for K=32's prediction)
+— corrected, the simulator is CONSERVATIVE at K=32, and the outcome-F
+attribution itself is unaffected because it never depended on the
+simulator; (3) a learned-anchoring mechanism designed to let SGD supply
+the missing stability ingredient itself has been designed, attacked across
+five revisions, built, and CPU/smoke-verified — GPU launch is pending box
+availability, not yet run; (4) the write-geometry attractor motivating
+this entire mechanism study demonstrably persists on a controlled
+14M→98M-parameter ladder, and a much larger version of the same signature
+is measurable in production fixed-state LMs (RWKV-7 1.5B, Falcon-Mamba-7B)
+— though a matched no-fixed-state negative control shows the same
+magnitude, so production-scale attribution is an honest open non-finding,
+not a confirmation. The paper's frame is unchanged at its core and
+strengthened at its edges: the fix moves the frontier decisively at K=16
+(bar hit 3/3), moves it ~45× at K=32 without clearing the pre-registered
+bar, the residual gap has a named, two-part necessary-and-sufficient
+mechanism (not just a single attribution), the follow-on that tests
+whether SGD can find that mechanism unassisted is live, and the phenomenon
+this all rests on is not a small-scale artifact.**
 
 ---
 
@@ -27,22 +55,45 @@ fixed-state linear-attention model (DeltaNet) trained end-to-end on real
 tokenized language reliably recruits the provably-necessary rank at every
 tested capacity K, but the per-binding exactness of what it writes into
 that rank decays sharply with K and compounds geometrically (~ε^h) under
-composition — a decay traceable to a single, measurable, and
-structurally-robust cause (a non-orthonormal write-time key attractor that
-every input geometry converges to), which soft loss-side or population-level
-pressure cannot escape but which a differentiable, per-episode structural
-orthogonalization mechanism can, restoring near-perfect compositional recall
-at the pre-registered minimum-publishable bar (K=16, 3/3 seeds) and
-improving the harder K=32 regime ~45× at full evidentiary admissibility —
-narrowly missing its pre-registered headline bar for a reason that was
-itself pre-registered and pre-measured (cross-episode key drift in the
-registered high band), isolating key *stability*, not within-episode
-orthogonality, as the named residual mechanism.**
+composition — a decay traceable to a non-orthonormal write-time key
+attractor that every input geometry converges to, and — once directly
+tested via a 2×2 existence-proof design cutting the archive along two
+independent geometric axes — shown to require TWO independently necessary
+and jointly sufficient ingredients (within-episode orthogonality and
+cross-episode key stability; neither alone moves held-out composition off
+a ~0.005–0.011 floor statistically indistinguishable from the fully-learned
+baseline's own 0.009, while the two together saturate to 1.00). A
+differentiable, per-episode structural orthogonalization mechanism
+supplies the first ingredient alone and already restores near-perfect
+compositional recall at the pre-registered minimum-publishable bar (K=16,
+3/3 seeds) and improves the harder K=32 regime ~45× at full evidentiary
+admissibility — narrowly missing its pre-registered headline bar for a
+reason now doubly confirmed as the missing second ingredient (trained
+cross-episode key drift, measured 0.90–0.94, inside the registered HIGH
+band at both K), with a follow-on mechanism designed to let SGD supply
+that second ingredient itself — attacked across five revisions, built, and
+smoke-verified — now gated on a GPU slot, its outcome an open, live
+question this narrative frames honestly rather than presupposes. The
+attractor this entire story is about is not a small-model curiosity: it
+persists, un-dissolved, on a controlled 14M→98M-parameter ladder (with a
+392M-parameter rung running and a 1.3B rung queued), and a substantially
+larger version of the same non-orthonormal write geometry is measurable in
+deployed production fixed-state language models (RWKV-7 1.5B,
+Falcon-Mamba-7B) — architectures marketed specifically for long-context,
+cache-free inference, where a compositionally-imprecise fixed state is a
+live deployment-reliability question, not only an academic one — though at
+present that production-scale signature cannot yet be distinguished from
+generic trained-LM key anisotropy (a matched no-fixed-state negative
+control shows the same magnitude), an honest non-attribution reported as
+such, not a confirmation dressed up as one.**
 
 Shorter version for the abstract's first line: *SGD reliably finds the rank
 a task requires; it does not reliably find the geometry that rank needs to
-compose exactly — and that gap has a cause, a demonstrated fix, and a named,
-pre-measured residual.*
+compose exactly — that gap has a cause with two necessary parts, a
+demonstrated fix for one of them, a named and pre-measured residual for the
+other, a live test of whether SGD can be made to find that second part
+unassisted, and evidence the underlying attractor is not a toy-scale
+artifact.*
 
 ---
 
@@ -89,18 +140,50 @@ pre-measured residual.*
 > band (<0.95), the exact "stable-not-just-orthogonal geometry" failure
 > mechanism an adversarial design round had named and measured before the
 > wave ran, isolating cross-episode key *stability* as the remaining
-> bottleneck and its stabilization as the direct follow-on. We report the
-> full pre-registration, attack, and gating trail as an artifact, and
-> discuss what remains unexplained: a separate iteration-depth decay
-> (h=21) that key orthogonalization does not touch, and an unresolved
-> K≈d/2 structural boundary.
+> bottleneck and its stabilization as the direct follow-on. Sixth, we
+> sharpen this attribution with a 2×2 existence-proof design cutting the
+> same archive along two independent geometric axes (orthogonal × stable):
+> neither ingredient alone moves held-out four-hop recovery off a
+> 0.005–0.011 floor statistically indistinguishable from the fully-learned
+> baseline (0.009), while a hand-built key that is both orthogonal and
+> stable saturates to 1.00 at h=4 *and* h=7 — the fix above supplies
+> exactly one of two necessary ingredients. We report a learned-anchoring
+> mechanism designed to let SGD supply the second (cross-episode
+> stability) itself — attacked across five revisions, built, and
+> smoke-verified — as an open, live test pending a GPU launch, not a
+> result, and we correct our own pre-registered simulator: an audit found
+> the recorded K=32 "overestimate" was an input-wiring bug (K=16's
+> measured drift was silently reused for K=32's prediction); corrected,
+> the simulator is conservative, not miscalibrated, at K=32, and the
+> outcome-F attribution above is unaffected because it never depended on
+> the simulator's point prediction. Seventh, we show the write-geometry
+> attractor motivating this entire study is not a small-model artifact: it
+> persists on a controlled 14M-to-98M-parameter scaling ladder (chunk-level
+> key-Gram deviation 21.9 → 27.8, both well above a random anchor of 7.9
+> and below full collapse at 63.5), and a substantially larger version of
+> the same non-orthonormal write geometry is measurable in production-scale
+> fixed-state language models (RWKV-7 1.5B, Falcon-Mamba-7B; 3–6× their own
+> random anchors) — but a matched no-fixed-state negative control (a
+> standard softmax-attention model) shows the same magnitude, so
+> production-scale attribution to the delta-rule write mechanism
+> specifically remains open, an honest non-finding reported as such. We
+> report the full pre-registration, attack, and gating trail as an
+> artifact, and discuss what remains unexplained: a separate iteration-depth
+> decay (h=21) that key orthogonalization does not touch, an unresolved
+> K≈d/2 structural boundary, whether learned anchoring closes the K=32
+> headline bar, and whether the production-scale signature is ever
+> attributable to fixed-state writes specifically.
 
-*(Word count target ~300; trim during actual drafting. No load-bearing
-placeholders remain — the K=32 ending is resolved and stated above.)*
+*(Word count target ~300–340; trim during actual drafting — the Sixth/
+Seventh additions are the least compressible content in this revision and
+are the first candidates to shorten, not cut, since both name genuinely
+open questions rather than resolved claims. No load-bearing placeholders
+remain for anything already decided; the two new open items above are
+explicitly flagged as open, not placeholders.)*
 
 ---
 
-## 2. Figure plan (6–8 figures, exact data sources)
+## 2. Figure plan (9 figures, exact data sources — Fig. 9 ADDED this round)
 
 **Fig. 1 — The synthetic-vs-real gap (motivating figure, goes in §1 Intro).**
 Two eval-truncation staircase curves (`rec@0.9` vs. truncation rank k) at
@@ -144,11 +227,44 @@ all clustering at 2.71–2.92 — versus the surgical pin (i-strong, 0.000).
 - Data: `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wave1/`
   (`EXPERIMENT_LOG.md` "Wave 1 ATTRIBUTION VERDICT," 2026-07-04).
 
-**Fig. 5 — The existence proof: perfect composition is architecturally
-reachable.** Grouped bar chart, `rec@0.9` at h=1/2/3, K=32: learned baseline
-(0.78/0.26/0.05) vs. i-strong surgical pin (1.00/1.00/1.00). This is the
-"the ceiling exists, SGD doesn't find it" figure.
-- Data: `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wave1/`.
+**Fig. 5 — The 2×2 existence proof: orthogonality and stability are each
+necessary, jointly sufficient.** REVISED this round from a 2-bar comparison
+into the full 2×2 the archive already supports (`KEY_ANCHORING_DESIGN.md`
+§2.0). A 2×2 grid, axes {orthogonal, not-orthogonal} × {stable
+(context-free), not-stable (episode-conditional)}, cells populated with
+`rec@0.9` at h=4 (and h=7 in the caption), K=32, all values re-verified
+directly against the archived per-seed JSONs this revision:
+  - **stable + orthogonal** (i-strong, hand-built context-free orthonormal
+    key, pool-restricted to 32 ≤ d_state — an existence-proof concession,
+    stated in the caption, not hidden): h=4 **1.0000**, h=7 **1.0000**, all
+    3 seeds.
+  - **stable + not-orthogonal** (frozen-embedding arms i/iv — a fixed input
+    table, but the trained `W_k` path still de-orthogonalizes it, §16
+    "Wave 1 ATTRIBUTION VERDICT"): h=4 **0.0075–0.0114** (arm i,
+    seed-0 0.0093) and **0.0049–0.0079** (arm iv, seed-0 0.0079), h=7
+    **≈0.0000** both arms, all seeds.
+  - **not-stable + orthogonal** (bare geo3, F-geo-3 alone): h=4 **0.44**
+    mean (0.39–0.50 admissible range, §16.4), h=7 **0.018** mean.
+  - **not-stable + not-orthogonal** (the fully-learned baseline, arm
+    iii-β): h=4 **0.009**, h=7 **≈0.0000**.
+  Read across the grid: neither axis alone clears the ~0.01 floor
+  (stable-alone ≈ baseline, confirming raw input geometry stays causally
+  irrelevant on this axis too); orthogonality alone recovers most of the
+  gap (44–56×) but plateaus at 0.44; adding stability is not a partial
+  improvement over that 0.44, it is a discontinuous jump to 1.00 — the
+  interaction, not either main effect, is the figure's point. Caption must
+  disclose the i-strong cell's pool restriction explicitly (§2.1 of
+  `KEY_ANCHORING_DESIGN.md`: this cell is a diagnostic tie-breaker proving
+  the mechanism exists, never a claim about what a full-pool trainable
+  anchor can reach — that ceiling is a separate, computed number, see the
+  "results still landing" section).
+- Data: `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wave1/`
+  (arms i, iv, iii-β — files `w1_rdx_K32_armi_s{0,1,2}.json`,
+  `w1_rdx_K32_armiv_s{0,1,2}_rho0p225.json`, `w1_rdx_K32_armiii-beta_s*.json`,
+  h=4/h=7 read directly from each file's final-checkpoint `M3_held_out`
+  block this revision), `experiment-runs/2026-07-03_deltanet_rd_waves/
+  exactness/wavegeo3/` (geo3-alone), and
+  `KEY_ANCHORING_DESIGN.md` §2.0's own extraction table.
 
 **Fig. 6 — Soft fixes fail, but proportionally, not randomly (the ε^h
 compounding law).** Line chart: recovery gain over baseline at h=2/3/4 for
@@ -171,7 +287,21 @@ pre-registered 0.95 HIGH-band threshold) so the figure itself carries the
 outcome-F attribution of the K=32 residual. The admission-stack difference
 drops to a footnote in the caption (all substitute criteria passed
 including zero fallbacks; both stacks and realized pass rates still named,
-per pre-registration).
+per pre-registration). **Corrected-simulator framing (this round, §16.7's
+dated correction):** do NOT caption this figure with the retracted "the
+simulator overestimated K=32" reading — that number (0.7734) was computed
+by feeding K=32's prediction K=16's own measured drift (a shared-scalar
+wiring bug in `geo3_drift_diagnostic.py`/`geo3_simulator.py`, GPU-verified
+on the box, `experiment-runs/2026-07-04_geo3_simulator_recheck/`). Fed its
+OWN drift (0.9037), the simulator predicts 0.06–0.09 — it is CONSERVATIVE
+at K=32, undershooting the measured 0.4368 rather than overshooting it. If
+the caption mentions the simulator at all, state it this way: the
+pre-registered launch gate correctly authorized the wave using K=16's
+prediction only (the gate's registered cell), the K=32 prediction was
+explicitly non-gating and informational, and the outcome-F attribution
+itself never rested on the simulator's point estimate — it rests on the
+three measured signatures in §16.6 (resid≈0, drift <0.95, graded steeper
+h-decay at higher K), all measured directly, none simulated.
 - Data: `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/`
   (`EXPERIMENT_LOG.md` "F-geo-3 WAVE VERDICT" 2026-07-04 + the completed
   n_iter=20 escalation cells in the same archive directory).
@@ -198,6 +328,43 @@ binding-rank sensitivity generalizes past the hand-built probe task to
 naturalistic LM pretraining.
 - Data: `experiment-runs/2026-07-04_lm_rd_wave2/{waveC,waveD}/`, analysis
   via `analysis_lm_w2.py` (`DELTANET_REALDATA_DESIGN.md` §19.3).
+
+**Fig. 9 (NEW this round, appendix / generality figure) — The attractor
+persists with scale, and a larger version of it exists at production
+scale, unattributed.** Two-panel figure. **Panel A (Track C rung-1
+harvest, `SCALE_TRANSFER_DESIGN.md` §5.9):** pooled chunk-level key-Gram
+deviation at two points on a controlled parameter ladder, same
+architecture family, same instrument, matched corpora mix: 14M-param
+control **21.93 ± 5.90** vs. 98M-param rung-1 **27.82 ± 12.87**, plotted
+against a K=64/d=64 random anchor (**7.94**) and full collapse
+(**63.50**) as reference lines — the deviation sits well above random and
+below collapse at both points and gets *slightly worse, not better*, from
+14M→98M (Tier 2, descriptive+interventional per `SCALE_TRANSFER_DESIGN.md`
+§2; explicitly a 2-point read, geometry-only, no compositional-recovery
+cross-check at this scale yet — caption must state this, not imply a
+3-rung trend). **Panel B (Track D Phase 1, `SCALE_TRANSFER_DESIGN.md`
+§6.8):** the same chunk=64 Gram-deviation statistic measured (Tier 3,
+measurement-only — no causal or interventional language) in three
+production-scale pretrained checkpoints: RWKV-7 1.5B (**43.5–44.0**),
+Falcon-Mamba-7B (**49.9–50.2**), and a no-fixed-state negative control,
+Qwen2.5-1.5B, ordinary softmax attention (**46.0–48.5**) — all three
+cluster together, RWKV-7 and the negative control statistically
+indistinguishable. Caption must carry the honest verdict, not the
+tempting misreading: the geometry Fig. 4/5 attribute to the delta-rule
+write mechanism is measurably present and larger at production scale, but
+because the no-fixed-state control matches it, the signature is dominated
+by generic trained-LM key anisotropy (massive activations, Sun et al.
+2024, arXiv:2402.17762) at this measurement tier, and is **NOT**
+attributable to the delta-rule family specifically without a sharper
+instrument (e.g. an outlier-robust/centered variant, reported alongside
+raw in the same source table) — an honest, registered non-finding, offered
+as motivation for why the small-scale causal chain (Fig. 4/5/7) matters,
+not as evidence the causal chain replicates at scale.
+- Data: Panel A — `experiment-runs/2026-07-04_trackc_rung1/`
+  (`SCALE_TRANSFER_DESIGN.md` §5.9; `EXPERIMENT_LOG.md` "SCALE-TRANSFER
+  Track C Wave 1 (rung-1) harvest," 2026-07-04). Panel B —
+  `experiment-runs/2026-07-04_track_d/` (`SCALE_TRANSFER_DESIGN.md` §6.8;
+  `EXPERIMENT_LOG.md` "SCALE-TRANSFER Track D Phase 1," 2026-07-04).
 
 ---
 
@@ -363,6 +530,28 @@ where they're load-bearing in §4/§5 body text via forward-reference.
   and the delta rule's own algebra CAN represent and use the perfect
   solution. Ordinary training does not find it. This is the paper's
   turning point: from "here is a gap" to "here is what would close it."
+- **NEW this round — the 2×2 sharpens "here is what would close it" into
+  "here are the two things that close it, and neither alone does"**
+  (`KEY_ANCHORING_DESIGN.md` §2.0, Fig. 5): reading the archive along both
+  the orthogonal/not-orthogonal axis AND a stable/not-stable
+  (context-free/episode-conditional) axis at once shows i-strong's perfect
+  recovery is not explained by orthogonality alone — two NEW arms that are
+  stable (fixed input table) but NOT orthogonal (the trained `W_k` path
+  still de-orthogonalizes them, exactly as arms i/ii/iv already showed)
+  land at h=4 **0.0075–0.0114** and **0.0049–0.0079**, statistically
+  indistinguishable from the fully-learned baseline's 0.009 — stability
+  without orthogonality buys nothing. Orthogonality alone (bare geo3, §7
+  below) buys most of the gap (0.44, a 44–56× jump) but plateaus well
+  short of 1.0. Only the conjunction saturates. This reframes the paper's
+  turning point from a single named cause to a two-part necessary-and-
+  sufficient mechanism, and directly motivates the anchoring follow-on
+  (§7 below, "results still landing" §9) as a test of whether the second
+  part is SGD-discoverable at all, not just hand-constructible. **Caveat
+  carried at every mention, not just here:** the "both together" cell in
+  this 2×2 is i-strong itself, which remains pool-restricted (32 ≤
+  d_state) — the 2×2 demonstrates the interaction is real, it does not by
+  itself set the ceiling a full-vocabulary trainable mechanism could
+  reach; that ceiling is a separately computed number (§9 below).
 
 ### §6 Soft Fixes Fail: The Attractor Is Robust
 - F-geo-1 (L_orth penalty, λ∈{0.1,1.0}) and F-geo-2 (ZCA whitening): both
@@ -421,12 +610,51 @@ where they're load-bearing in §4/§5 body text via forward-reference.
   The fallback-irrelevance finding (§8 below) additionally shows the one
   criterion that ever disqualified a seed was conservative, not
   explanatory.
+- **NEW this round — the direct follow-on to the outcome-F residual is
+  itself designed, attacked, and built** (`KEY_ANCHORING_DESIGN.md`), named
+  here rather than left as a future-work sentence: a trainable, per-entity
+  anchor table (frame-potential-minimized init, hitting the Welch-bound rms
+  coherence 0.0796 exactly) blended into the key BEFORE geo3's existing
+  Newton-Schulz pass — division of labor by construction (the anchor
+  supplies cross-episode stability only; per-episode orthogonality remains
+  geo3's job, matching the 2×2's own finding that the two ingredients are
+  separable). A computed ceiling, not a hope, bounds what this can achieve:
+  with the full 107-entity train pool in R^64, a globally-orthonormal
+  table is Welch-bound-impossible, and the best achievable post-NS
+  cross-episode drift at K=32 is **~0.9423** (frame-potential init) —
+  closing at most ~40% of the distance from the measured 0.9037 to the
+  0.95 LOW band, itself close to K=16's own bare-geo3 drift level (0.9416,
+  the level at which K=16 cleared its bar with a wide margin). The design
+  was attacked across five revisions (closing, in order: 3 FATALs on the
+  original Rev 1 construction, including a QR-orthonormal init that
+  crashes at n=107>d=64; 5 MAJORs on Rev 2's masked-blend/λ machinery,
+  including a 1-ULP renormalization non-no-op and a `torch.where`
+  gradient-poisoning footgun on held-out rows; a bounded verification round
+  closing every finding with an exact repro). The harness is built and
+  CPU/smoke-verified (9/9 Wave −1 smokes pass, including a NaN-injection
+  test proving the fixed gather/scatter form is gradient-safe where the
+  superseded form was not); GPU launch awaits a free box slot (all 8 GPUs
+  were saturated with other waves at build time) — reported honestly as
+  built-and-gated, not launched, in "results still landing" (§9).
 
 ### §8 Results: The Fix Demonstration
 - The pre-spend gate: predicted K16 h4=1.00, K32 h4=0.77 from measured
   cross-episode drift (0.94 K=16, 0.90 K=32) — training stabilizes keys
   relative to the untrained-probe reference, resolving the attack's
-  cross-episode-drift risk favorably enough to authorize the launch.
+  cross-episode-drift risk favorably enough to authorize the launch. The
+  gate's own registered cell was **K=16 only** (predicted 1.00, measured
+  0.9767 — accurate); K=32's 0.77 prediction was explicitly non-gating and
+  informational. **Dated correction (§16.7, this round):** that 0.77
+  figure was later found to be computed with K=16's drift silently reused
+  for K=32 (a shared-scalar wiring bug); K=32's own drift (0.9037) predicts
+  0.06–0.09 instead — the simulator is CONSERVATIVE at K=32, not
+  miscalibrated the direction originally reported. State this plainly
+  rather than let the retracted number stand uncorrected anywhere it is
+  quoted: the gate decision itself does not change (it never used the
+  K=32 number to authorize anything), and the outcome-F attribution below
+  does not change (it rests on measured drift + measured h=4, never on
+  the simulator) — only the now-retired "simulator overestimated K=32"
+  reading is withdrawn.
 - K=16 (minimum-publishable headline): HIT, 3/3 admissible seeds. h=4
   0.95–1.00 vs. bar ≥0.8, vs. baseline 0.42–0.47. h=7 0.55–0.67 vs.
   baseline 0.07–0.10. h=1 no-sacrifice: 1.0 everywhere.
@@ -484,14 +712,31 @@ the deliverable spec.)
 - Restate the thesis in the paper's own final voice: capacity and
   exactness are separable, measurable, and separately fixable properties
   of a fast-weight architecture's learned state — this paper is the first
-  to show the gap exists on real text, name its cause, and demonstrate
-  (not just diagnose) a mechanism-matched, pre-registered fix.
+  to show the gap exists on real text, name its cause (now sharpened to a
+  two-part necessary-and-sufficient mechanism, not a single attractor), and
+  demonstrate (not just diagnose) a mechanism-matched, pre-registered fix
+  for the first part.
 - Close the causal chain explicitly: bar hit at K=16 (3/3); ~45× at K=32
   at full admissibility with the narrow bar miss attributed to a
   pre-measured second mechanism (outcome F, drift 0.9037 in the
-  registered HIGH band); the named follow-on (cross-episode key
-  anchoring/stabilization) is future work with a measured target, not an
-  open mystery. No loose ends — every residual has a name and a number.
+  registered HIGH band), independently corroborated by the 2×2's own
+  existence-proof design (Fig. 5); the named follow-on (learned
+  cross-episode key anchoring) is designed, attacked, and built, its
+  launch outcome an explicitly open question, not assumed either way. No
+  loose ends on the mechanism — every residual has a name and a number,
+  even the ones still running.
+- **NEW closing note this round:** state plainly, without overreaching,
+  that the phenomenon this paper studies is not confined to the scale it
+  is studied at — a controlled 14M→98M ladder shows the same write
+  geometry, un-dissolved, and a substantially larger version of the same
+  signature is present in deployed production fixed-state models. The
+  paper does NOT claim the production-scale signature is caused by the
+  same mechanism (a matched negative control shows it is not yet
+  distinguishable from generic key anisotropy) — it claims only that the
+  question this paper's small-scale causal chain answers is a live one for
+  architectures already being deployed for long-context, cache-free
+  inference, which is why the mechanism-level answer given here matters
+  beyond the scale it was measured at.
 
 ### §11 Reproducibility
 Pointer to `REPRODUCIBILITY.md` (§4 below), kept in the paper as a compact
@@ -518,6 +763,12 @@ against before submission)
 | F-geo-3 attribution claim ("therefore the geometry attribution was right") | **supported inference**, never proven by the demo alone — keep separate from the demonstration claim in every mention | `RD_EXACTNESS` §14.10 |
 | F-geo-3 cross-arm seed-count comparability | pre-registered UNVERIFIED-comparability language now discharged to a **footnote**: escalation cells passed every substitute criterion including zero fallbacks; both stacks and realized pass rates still named wherever a geo3 seed count appears | `RD_EXACTNESS` §14.10 |
 | Wave 2 (Waves C+D, corpus generality) | verbatim: "**descriptive+interventional (RD-2, §6.3, §14.7) -- NOT premise-conditional causal**"; Q2's own conclusion further hedged as "**consistent with (not proof of)**" | `REALDATA` §6.3/§19, §19.3 |
+| **NEW — 2×2 existence-proof design (arms i/iv as "stable, not orthogonal" cell)** | **causal, premise-conditional**, same tier as the embedding-source interpolation arms it reuses; the "both together" cell (i-strong) keeps its existing **diagnostic tie-breaker** tier and its pool-restriction caveat (32≤d_state) — the 2×2 demonstrates the interaction, it does NOT set a full-pool ceiling | `KEY_ANCHORING_DESIGN.md` §2.0; per-seed values re-verified against `w1_rdx_K32_armi_s*.json`/`armiv_s*_rho0p225.json` this revision |
+| **NEW — §16.7 simulator correction** | **meta-claim about instrumentation, not about the mechanism**: the retracted "K=32 overestimate (0.7734)" reading is WITHDRAWN (input-wiring bug, K=16's drift fed to K=32's prediction); corrected, the simulator is **conservative** at K=32 (predicts 0.06–0.09 vs. measured 0.4368). The outcome-F attribution itself is **UNCHANGED** — it never depended on the simulator's point estimate, only on the three measured signatures (§16.6) | `RD_EXACTNESS` §16.7 (dated correction); `experiment-runs/2026-07-04_geo3_simulator_recheck/` |
+| **NEW — key-anchoring wave (learned cross-episode stability mechanism)** | **not yet a result — design + build only.** No claim-tier applies to an outcome that does not exist yet; the design itself (candidate selection, computed λ=1 ceiling ~0.9423, Welch-bound argument) is **derivation, not measurement** | `KEY_ANCHORING_DESIGN.md` Rev 5, §1–§2; build verified via CPU/smoke tests only, `experiment-runs/` GPU archive does not yet exist for this wave |
+| **NEW — Track C rung-1 attractor persistence (14M→98M)** | **Tier 2 — descriptive + interventional** (`SCALE_TRANSFER_DESIGN.md` §2's own convention); explicitly a 2-point read, geometry-only, no compositional cross-check; never state as a 3-rung trend | `SCALE_TRANSFER_DESIGN.md` §5.9; `EXPERIMENT_LOG.md` "Track C Wave 1 (rung-1) harvest," 2026-07-04 |
+| **NEW — Track D production-scale measurement** | **Tier 3 — measurement-only, no causal or interventional language.** Explicitly **NOT attributable** to the delta-rule write mechanism at this measurement tier (matched no-fixed-state negative control shows the same magnitude) | `SCALE_TRANSFER_DESIGN.md` §6.8; `EXPERIMENT_LOG.md` "Track D Phase 1," 2026-07-04 |
+| **NEW — Track B (geo3-in-LM) Wave −1 gate** | **registered hard no-launch**, not a soft "did not prioritize" — criterion (b) (excluded-position write-mass ≤0.40) measured 0.431, a clean fail on real archived checkpoints, before any training GPU-hour spent | `SCALE_TRANSFER_DESIGN.md` §4.2; `EXPERIMENT_LOG.md` "Track B... HARD NO-LAUNCH," 2026-07-04 |
 
 ---
 
@@ -614,6 +865,29 @@ against before submission)
    TRANSFERRING that from-scratch result to a production architecture
    family and, new to this paper, discovering and fixing the exactness gap
    the from-scratch chapter's synthetic construction never exposed.
+10. **NEW — this paper's own live follow-on and scale program, cited for
+    completeness, not as external related work.** (a) `KEY_ANCHORING_
+    DESIGN.md` is the direct continuation of §7/§8's outcome-F residual —
+    cite it as the paper's own designed-and-built (not yet run) next step,
+    never as a completed result. (b) `SCALE_TRANSFER_DESIGN.md`'s Track C
+    (14M→98M attractor persistence, Tier 2) and Track D (production-model
+    measurement, Tier 3, non-attributable) are this paper's own scale-
+    generality program, cited in the Limitations section (§6) rather than
+    the results body, since neither changes the small-scale causal chain's
+    tier — they extend its motivation, not its evidence base. (c) A
+    sibling result from a DIFFERENT architecture family in this same
+    project (`matrix-thinking/chapter2/`'s matrix-native model, Stage-G's
+    H_e task-swap calibration, `STATE.md` 2026-07-04) found the OPPOSITE
+    separation on a composition-heavy corpus at 40K steps — a vector
+    baseline composes in-context (h1/h2/h3 = 1.0/1.0/1.0) while the
+    from-scratch matrix architecture does not (1.0/0.027/0.013). This is
+    explicitly NOT a DeltaNet finding and must never be cited as if it
+    were — it concerns a structurally different (single-Z-bottleneck,
+    from-scratch) architecture and a different composition task; it is
+    noted here only because it is part of the same project's live
+    evidence about when structured/compositional state representations
+    do and do not compose, and a reviewer who has seen one might ask about
+    the other.
 
 ---
 
@@ -625,7 +899,15 @@ State every item below in the paper's own limitations section, undiluted:
    sub-1M–low-single-digit-M parameters. No claim here has been tested at
    a scale where these mechanisms might behave differently (e.g., where
    the write-time attractor might be easier or harder for SGD to escape
-   under a much larger, more overparameterized key-projection path).
+   under a much larger, more overparameterized key-projection path). **NEW
+   — partial evidence, not a resolution:** a controlled 14M→98M scaling
+   ladder (Tier 2, geometry-only, 2-point read, `SCALE_TRANSFER_DESIGN.md`
+   §5.9) finds the attractor does NOT dissolve with scale on this slice
+   (chunk-level key-Gram deviation 21.93→27.82, both far above a random
+   anchor of 7.94) — a 392M rung is running and a 1.3B rung is queued, but
+   this item's core claim (untested at production scale) stands until
+   those complete and a compositional-recovery cross-check, not just
+   geometry, exists at scale.
 2. **Single architecture family.** Everything is vanilla, single-head,
    single-layer DeltaNet with the standard delta rule. Gated variants
    (Gated DeltaNet, the actual production configuration in Qwen3-Next),
@@ -651,19 +933,44 @@ State every item below in the paper's own limitations section, undiluted:
    stabilization, e.g. EMA-anchored or identity-registered
    orthogonalization) as FUTURE WORK with a measured target — a named
    residual, not an open mystery, but still a limitation of what this
-   paper demonstrates.
+   paper demonstrates. **NEW — the follow-on is now designed and built,
+   not only named:** `KEY_ANCHORING_DESIGN.md`'s learned anchor-table
+   mechanism is attacked (5 revisions), built, and CPU/smoke-verified;
+   its own PRE-COMPUTED ceiling (Welch-bound-limited post-NS drift ~0.9423
+   at K=32, full 107-entity pool) means even a fully successful launch is
+   not guaranteed to clear the ≥0.5 bar with margin — state this ceiling
+   alongside the follow-on, not as an afterthought, so a successful launch
+   is not read as a foregone conclusion. GPU launch has not yet occurred
+   (§9, "results still landing").
 5. **The K≈d/2 structural boundary is observed, not explained.** The K=48
    rider shows the frontier breaking down further and i-strong's own
    dimensional guard correctly refusing to run there; no mechanism account
    is offered for why d/2 specifically, beyond dimension-counting
    (train+held-out identity pools both needing ≥K coverage).
-6. **Scale-transfer to a full pretrained LLM checkpoint is unknown.**
-   Wave 2 (Waves C+D) establishes the truncation-damage phenomenon
-   generalizes to naturalistic LM pretraining at small scale
-   (descriptive+interventional tier only), but does not establish whether
-   the write-geometry attractor this paper's mechanism story rests on
-   persists, weakens, or strengthens at production LLM scale — an explicit
-   open question, not implied to be answered by extrapolation.
+6. **Scale-transfer to a full pretrained LLM checkpoint is now PARTIALLY
+   measured, not wholly unknown — state the upgraded picture precisely,
+   not as a still-open unknown.** Wave 2 (Waves C+D) establishes the
+   truncation-damage phenomenon generalizes to naturalistic LM pretraining
+   at small scale (descriptive+interventional tier only). **NEW —
+   Track C/D (`SCALE_TRANSFER_DESIGN.md`, 2026-07-04) go further and
+   change what can honestly be said:** (a) on a controlled 14M→98M
+   parameter ladder, the write-geometry attractor does not dissolve
+   (Tier 2, 2-point geometry read, §5.9 — a genuine but narrow result,
+   not yet extended to compositional recovery at scale); (b) a much
+   larger version of the SAME non-orthonormal write-geometry signature is
+   measurable directly in production-scale pretrained fixed-state models
+   (RWKV-7 1.5B, Falcon-Mamba-7B; Tier 3, measurement-only, §6.8); (c) but
+   a matched no-fixed-state negative control (Qwen2.5-1.5B, ordinary
+   softmax attention) shows the SAME magnitude, so (b) is explicitly
+   **NOT** attributable to the delta-rule write mechanism specifically at
+   this measurement tier — a real, load-bearing non-finding, not a soft
+   hedge. Net honest statement for the paper: the phenomenon persists
+   where it can be controlled for (a), a phenomenologically similar
+   signature exists at production scale (b), but causal attribution at
+   production scale remains open and is confounded by generic trained-LM
+   key anisotropy (c) — do not round (b)+(c) up into "the mechanism
+   transfers to production scale," and do not round (a) down into "scale
+   transfer is untested," either.
 7. **The admission-stack asymmetry, now a footnote-level limitation.**
    Because F-geo-3 makes the standard premise-validity instruments
    tautological, a substitute pre-registered criterion applies to its
@@ -674,6 +981,26 @@ State every item below in the paper's own limitations section, undiluted:
    non-geo3 seed counts appear side by side, because the two stacks
    filter different failure modes and their relative selectivity was
    never empirically equated.
+8. **NEW — the 2×2's "stable" cells lean on existence-tier or bundled
+   arms, not yet a full-pool learned mechanism.** The 2×2 (Fig. 5) that
+   demonstrates orthogonality and stability are jointly necessary uses
+   i-strong (pool-restricted to 32≤d_state) for the "both together" cell
+   and frozen-embedding arms (which bundle fixed geometry with reduced
+   trainable parameter count relative to the learned baseline) for the
+   "stable, not orthogonal" cells. The interaction the 2×2 demonstrates is
+   real and reproducible from already-archived data, but it does not by
+   itself establish that a full-vocabulary, gradient-discovered anchor
+   mechanism can reach the same regime — that is precisely what the
+   (not-yet-launched) key-anchoring wave tests, and its own pre-computed
+   ceiling (~0.9423 post-NS drift at K=32, Welch-bound-limited) says even
+   success there would not reach i-strong's 1.00.
+9. **NEW — the key-anchoring follow-on has not launched.** Designed,
+   attacked across five revisions, built, and CPU/smoke-verified, but no
+   GPU run exists yet (all 8 GPUs were saturated with other waves at
+   build time). Every claim in this paper about "the residual mechanism"
+   rests on the outcome-F attribution (§8) and the 2×2 (§5), not on the
+   anchoring wave's results — the anchoring wave is future work in the
+   literal sense of not having run, not a diagnosed-but-unwritten result.
 
 ---
 
@@ -800,6 +1127,56 @@ State every item below in the paper's own limitations section, undiluted:
     alternative mechanisms (c)–(f) the design explicitly kept live until
     each was tested. We frame the six-step structure explicitly as the
     proof structure in §1's contribution list, not as a research diary.
+11. **NEW — "Your 2×2's 'stable' cell (i-strong) is a hand-built pin, not
+    a learned mechanism — so all you've shown is that a pin composes,
+    which nobody doubted. Doesn't the whole 2×2 argument rest on an
+    intervention you can't get SGD to do?"**
+    Answer: correct as far as it goes, and we say so explicitly (§6 item
+    8) — i-strong is a deliberate, disclosed, three-concession existence
+    proof (bypasses the learned path, closed pool, pool-restricted to
+    ≤d_state), never presented as a learned result. What the 2×2 actually
+    licenses is narrower and does not depend on i-strong being learnable:
+    it shows that stability WITHOUT orthogonality (two independent,
+    non-pin arms, frozen embeddings under the ordinary trained W_k path)
+    buys nothing (0.005–0.011, indistinguishable from baseline) — this
+    half of the 2×2 uses no pin at all. Combined with orthogonality-
+    without-stability (bare geo3, also no pin, plateauing at 0.44), the
+    INTERACTION claim (both ingredients necessary) is fully supported by
+    non-pin data; only the "and jointly SUFFICIENT" corner currently
+    requires the pin to demonstrate. That is exactly the gap the
+    key-anchoring wave is built to close — it will show, when it runs,
+    whether "jointly sufficient" survives without the pin. We do not
+    claim it does yet. The pre-mortem's own honest answer, stated plainly:
+    this review is answered fully by the anchoring wave's result EITHER
+    WAY it lands — a clear success extends the interaction claim to a
+    learned mechanism; a clean failure (mechanically engaged, bars
+    missed) still leaves the interaction claim intact and additionally
+    tells us the stability ingredient, though real, may not be
+    SGD-discoverable at this scale without hand construction, which is
+    itself worth knowing and reportable as such.
+12. **NEW — "You corrected your own simulator (§16.7) after finding a
+    bug that flipped your reported K=32 prediction from an overestimate
+    to an underestimate — doesn't that undermine every quantitative claim
+    in §8/§16, not just the simulator figure?"**
+    Answer: no, and the reason is mechanical, not rhetorical — trace what
+    the retracted number was actually used for. The 0.7734 figure was
+    NEVER used to authorize any spend (the launch gate's registered,
+    decision-bearing cell was K=16 only, predicted 1.00, measured 0.9767
+    — unaffected by this bug) and was never an input to the outcome-F
+    attribution (§16.6), which rests on three DIRECTLY MEASURED quantities
+    — trained cross-episode drift (0.9037, measured on the real
+    checkpoint), resid≈0 (measured, by construction), and the graded
+    h-decay shape (measured, steeper at K=32 than K=16) — none of which
+    the simulator touches. What the correction changes is exactly one
+    thing: a secondary, explicitly-labeled "informational, non-gating"
+    prediction, now corrected from "the simulator overshot K=32" to "the
+    simulator undershot K=32 (predicts 0.06–0.09 against a measured
+    0.44)" — if anything, this makes the fix's real-world performance
+    look BETTER relative to the (corrected) model's expectation, not
+    worse. We report the bug, the fix, and the corrected direction in
+    full (§8, §16.7) rather than quietly restate the number, because a
+    reviewer checking our arithmetic should find the correction before
+    they find the bug themselves.
 
 ---
 
@@ -826,7 +1203,85 @@ in "without self-congratulation." Concretely:
 
 ---
 
-## 9. Open items before this narrative can be finalized
+## 9. Results still landing (as of 2026-07-04) — NEW section this round
+
+Per the task brief: list every wave that is currently running or built-
+but-not-launched, with its pre-registered decision rule, so the narrative
+is submission-ready modulo these specific pending readouts. None of the
+items below are assumed to land any particular way; each has a decision
+rule that was fixed BEFORE this section was written, per the project's
+own pre-registration discipline.
+
+1. **Key-anchoring wave (`KEY_ANCHORING_DESIGN.md`, this paper's own
+   direct follow-on to the outcome-F residual, §7/§8).** Status: designed,
+   attacked across 5 revisions, built, CPU/smoke-verified (9/9 Wave −1
+   smokes pass); GPU launch pending a free box slot, not yet run. Manifest:
+   28 runs (6 reference bare-geo3 arms for seed-variance + probe-vs-final-
+   checkpoint calibration, 8+2 Wave −1 probes, 12 Wave 1 cells for the
+   primary anchor-table candidate). Decision rule (`KEY_ANCHORING_DESIGN.md`
+   §3.5): **Outcome A (CONFIRMED)** — pre-NS drift ≥0.95 AND h=4 ≥0.5 (3/3
+   admissible) AND learned λ in [0.2, 0.8] for ≥2/3 seeds AND per-entity
+   anchor-input-alignment engagement ≥90%; **Outcome A′ (pin
+   rediscovery)** — bars clear but λ lands >0.95 (SGD re-derives the
+   fixed-frame regime, existence-tier only); **Outcome B (informative
+   negative, re-attribution required)** — drift stabilizes but h=4 still
+   misses, splitting further into a coherence-floor-residual read (B1) or
+   a value-geometry re-attribution (B2); **Outcome C (mechanism not
+   engaged)** — drift or per-entity engagement never clears its own
+   mechanical threshold, uninformative about the hypothesis either way.
+   The wave's own computed ceiling (post-NS drift ~0.9423 at K=32,
+   Welch-bound-limited by the full 107-entity pool) means even Outcome A
+   is not guaranteed to look like i-strong's 1.00 — state this ceiling
+   alongside any eventual result.
+2. **SCALE-TRANSFER Track C rung-2 (392M params).** Status: LAUNCHED
+   2026-07-04 06:10 UTC on GPUs 0–5 (6 runs: 3 seeds × 2 extended-mix
+   corpora, ≈21.6 GPU-h/run, ≈129.4 GPU-h for this wave), harvest due
+   ≈04:00 UTC 2026-07-05. Decision rule (`SCALE_TRANSFER_DESIGN.md` §5.7):
+   attractor persistence read against the rung-1 band (control 21.93,
+   rung-1 27.82) — a rung-2 reading that continues climbing, plateaus, or
+   reverses are all pre-registered as informative; frontier-probe
+   transplant and fix-effect-at-scale stay explicitly out of scope for
+   this rung (gated behind Track B, which itself hard-no-launched, §9
+   below item 5).
+3. **SCALE-TRANSFER Track C wave-1ext (rung-1-on-extended-mix
+   de-confounder).** Status: LAUNCHED on GPU 6 solo, ≈27 GPU-h, 6 cells
+   sequential. Purpose: rung 1 was originally trained on the ORIGINAL
+   (non-extended) data mixes while rungs 2–3 use EXTENDED mixes (a
+   step-budget remedy, Rev 2.1 amendment) — this wave retrains rung-1's
+   exact architecture on the SAME extended mixes at rung-1's own closed
+   step count (67,547 steps, recovered from the archived rung-1 JSON, not
+   assumed), isolating the scale axis from the data-mix axis per
+   CLAUDE.md's hold-the-second-axis-fixed rule. Decision rule: does
+   rung-1-on-extended-mix's key-Gram deviation match rung-1-on-original-
+   mix (27.82) within noise, or does the mix change alone move the
+   number — this determines whether rung-1→rung-2's reported delta is a
+   clean scale effect or still a bundled scale+mix effect.
+4. **Stage-G H_e full 6-cell manifest (sibling architecture, cited per
+   §5 item 10c's explicit scoping — NOT a DeltaNet result).** Status: 2/6
+   cells complete (40K-step calibration: matrix h1/h2/h3 =
+   1.0/0.027/0.013, vector = 1.0/1.0/1.0 — the inverse of the design's own
+   H_e hypothesis, which expected the structured/matrix representation to
+   compose at least as well). Remaining 4 cells (matrix seed 1,
+   `h_b_factored_r4` seeds 0+1, vector seed 1) running on GPU 7, ≈16h.
+   Decision rule (pre-registered, fired already at the 2-cell stage per
+   `EXPERIMENT_LOG.md`'s "Stage-G H_e 40K calibration VERDICT"): signal
+   cleared at 40K steps → run the full manifest at 40K (not 80K); the
+   full manifest decides whether the matrix architecture's zero
+   composition is a seed artifact, universal across the factored-Householder
+   variant too, or specific to one configuration.
+5. **SCALE-TRANSFER Track B (geo3-in-LM) — CLOSED, not pending, listed
+   here for completeness since it is easy to mistake for still-running.**
+   Already returned a registered HARD NO-LAUNCH (`EXPERIMENT_LOG.md`,
+   2026-07-04): criterion (b), excluded-position write-mass ≤0.40,
+   measured 0.431 on all 6 archived Wave C checkpoints — a clean fail,
+   caught before any training GPU-hour was spent. No further Track B wave
+   is pending; the registered conditional follow-on (a hard-zero-β
+   variant) requires its own attack round before any build and is not
+   scheduled.
+
+---
+
+## 10. Open items before this narrative can be finalized
 
 1. **[RESOLVED]** The K=32 `n_iter=20` escalation completed: all 3 seeds
    fully admissible (zero fallback steps, every substitute-stack criterion
@@ -847,19 +1302,29 @@ in "without self-congratulation." Concretely:
 3. **Re-verify M²RNN (arXiv:2603.14360) citation specifics** before the
    camera-ready bibliography — flagged in the source design doc as
    abstract-level-only verification so far.
-3b. **[PROVENANCE — verify before prose] Sync the escalation artifacts.**
-   As of this revision, the K=32 `n_iter=20` escalation numbers (h=4 =
-   0.504/0.416/0.390; trained drift 0.9037; zero fallback steps; the
-   n_iter=12 numerical identity) are sourced from the program
-   coordinator's completion report — the escalation cell JSONs are NOT
-   yet present in `experiment-runs/2026-07-03_deltanet_rd_waves/
-   exactness/wavegeo3/` (only the `*_geo3n12.json` files are), and
-   `EXPERIMENT_LOG.md`'s F-geo-3 entry still ends at "escalation cells
-   running." Before any paper prose quotes these numbers: pull the
-   `*_geo3n20.json` cells into the archive, land the EXPERIMENT_LOG.md
-   completion entry, and verify each number against the archived JSONs
-   (house rule: every numerical claim needs a matching EXPERIMENT_LOG.md
-   row).
+3b. **[RESOLVED, this revision.]** The K=32 `n_iter=20` escalation JSONs
+   are now confirmed present and read directly:
+   `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/
+   wgeo3_rdx_K32_armgeo3_s{0,1,2}_geo3n20.json` all exist alongside the
+   `n_iter=12` files, and `EXPERIMENT_LOG.md`'s "F-geo-3 escalation
+   VERDICT" entry (2026-07-04) is landed, not "still running." Every
+   number this revision quotes from §16 was cross-checked against this
+   archive and/or `DELTANET_RD_EXACTNESS_DESIGN.md` §16 directly, per the
+   house provenance rule.
+3c. **[NEW, this revision — same provenance discipline applied to the new
+   material.]** The 2×2's arm-i/arm-iv per-seed h=4 values (0.0093, 0.0079
+   quoted at seed 0 in Fig. 5/§5/§0) were re-derived directly from
+   `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wave1/
+   w1_rdx_K32_armi_s0.json` and `..._armiv_s0_rho0p225.json`'s own
+   `checkpoints[-1].M3_held_out` blocks this session — these exact
+   per-seed figures are NOT independently stated in
+   `KEY_ANCHORING_DESIGN.md` §2.0 (which reports only the pooled range
+   0.0049–0.0114 across both arms), so if a future editor cannot
+   reproduce them from the JSONs above, flag it rather than assume a
+   transcription error. The Track C/D/B numbers in Fig. 9, §6, and §9
+   were all read directly from `EXPERIMENT_LOG.md`'s 2026-07-04 entries
+   and cross-checked against `SCALE_TRANSFER_DESIGN.md`'s cited
+   subsections; none required re-derivation from raw JSONs.
 4. **[RESOLVED]** Exact §14 R2-4 gate mechanism and loss confirmed: Wave 0
    originally value-collapsed 10/10 seeds (entity-subspace rank ≈1.0,
    value salvage ≈0.000) — traced by a mini-audit to a target-index bug
@@ -874,3 +1339,29 @@ in "without self-congratulation." Concretely:
    the paper's second full illustration (after the F-geo-3 cross-episode
    drift catch) of the gating discipline catching a load-bearing bug
    before it produced a spurious headline number.
+5. **[NEW, this revision — round-3 absorption status.]** This round
+   absorbed: the 2×2 existence-proof design and its per-seed numbers
+   (§0, §1, §5, Fig. 5), the §16.7 simulator correction (§1, §7, §8,
+   Fig. 7, pre-mortem #12), the key-anchoring wave's build-and-gate status
+   (§7, §6 items 4/8/9, §9 item 1), and the SCALE-TRANSFER Track B/C/D
+   results (§0, §1, §6 items 1/6, §9 items 2/3/5, Fig. 9, claim-tier
+   table). Stage-G H_e (§5 item 10c, §9 item 4) is included per the task
+   brief's explicit instruction, scoped honestly as a sibling-architecture
+   result, not a DeltaNet finding. **Nothing in this narrative currently
+   depends on a wave that has not yet reported a number** — every "still
+   landing" item (§9) is stated as pending with its own decision rule, not
+   presupposed in any earlier section's prose. The three weakest points
+   this revision itself introduces (a reviewer's most likely angle of
+   attack, flagged for whoever drafts the camera-ready): (i) the 2×2's
+   "jointly sufficient" corner still leans on the pool-restricted i-strong
+   pin, not a learned mechanism — pre-mortem #11 answers this but the
+   underlying dependency doesn't disappear until the anchoring wave lands;
+   (ii) Fig. 9's production-scale panel is an honest non-finding dressed
+   in figure form — it strengthens the paper's motivation, not its
+   evidence, and a careless read could conflate the two; (iii) the
+   thesis/abstract now carry more forward-looking, unresolved material
+   (anchoring wave, rung-2/3, Stage-G aside) than round 2's fully-closed
+   ending did — trim aggressively toward the resolved K=16/K=32/2×2 core
+   for the camera-ready abstract, and keep the pending items to the
+   "results still landing" section and limitations, not the headline
+   claims.
