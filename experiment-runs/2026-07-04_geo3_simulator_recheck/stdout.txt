@@ -1,0 +1,31 @@
+Invocation:
+  ssh youthful-indigo-turkey
+  cd /home/nvidia
+  DRY_RUN_BYPASS=1 CUDA_VISIBLE_DEVICES=6 /home/nvidia/tdenv/bin/python geo3_recheck.py
+
+GPU 6 pre-flight (nvidia-smi -i 6, before run): 0% util, 0MiB used, no processes -- confirmed idle.
+
+--- stdout ---
+cuda__K32_own_drift_0.9037 seed=0: h4_rec=0.0762 mean_cos_h4=0.8568 actual_gram_resid=0.009981 (0.45s)
+cuda__K32_own_drift_0.9037 seed=1: h4_rec=0.0605 mean_cos_h4=0.8557 actual_gram_resid=0.009989 (0.04s)
+cuda__K32_own_drift_0.9037 seed=2: h4_rec=0.0938 mean_cos_h4=0.8578 actual_gram_resid=0.009981 (0.04s)
+cuda__K32_as_recorded_using_K16_drift_0.9416 seed=0: h4_rec=0.7734 mean_cos_h4=0.9135 actual_gram_resid=0.009981 (0.04s)
+cuda__K32_as_recorded_using_K16_drift_0.9416 seed=1: h4_rec=0.7480 mean_cos_h4=0.9128 actual_gram_resid=0.009989 (0.04s)
+cuda__K32_as_recorded_using_K16_drift_0.9416 seed=2: h4_rec=0.7930 mean_cos_h4=0.9142 actual_gram_resid=0.009981 (0.04s)
+cuda__K16_control_own_drift_0.9416 seed=0: h4_rec=1.0000 mean_cos_h4=0.9573 actual_gram_resid=0.010013 (0.04s)
+cuda__K16_control_own_drift_0.9416 seed=1: h4_rec=0.9980 mean_cos_h4=0.9562 actual_gram_resid=0.010016 (0.03s)
+cuda__K16_control_own_drift_0.9416 seed=2: h4_rec=0.9980 mean_cos_h4=0.9566 actual_gram_resid=0.010031 (0.03s)
+cpu__K32_own_drift_0.9037 seed=0: h4_rec=0.0664 mean_cos_h4=0.8537 actual_gram_resid=0.010006 (0.43s)
+cpu__K32_own_drift_0.9037 seed=1: h4_rec=0.0723 mean_cos_h4=0.8570 actual_gram_resid=0.010028 (0.31s)
+cpu__K32_own_drift_0.9037 seed=2: h4_rec=0.0898 mean_cos_h4=0.8562 actual_gram_resid=0.009965 (0.33s)
+cpu__K32_as_recorded_using_K16_drift_0.9416 seed=0: h4_rec=0.7285 mean_cos_h4=0.9118 actual_gram_resid=0.010006 (0.29s)
+cpu__K32_as_recorded_using_K16_drift_0.9416 seed=1: h4_rec=0.7871 mean_cos_h4=0.9136 actual_gram_resid=0.010028 (0.26s)
+cpu__K32_as_recorded_using_K16_drift_0.9416 seed=2: h4_rec=0.7656 mean_cos_h4=0.9132 actual_gram_resid=0.009965 (0.27s)
+cpu__K16_control_own_drift_0.9416 seed=0: h4_rec=0.9980 mean_cos_h4=0.9546 actual_gram_resid=0.009981 (0.13s)
+cpu__K16_control_own_drift_0.9416 seed=1: h4_rec=0.9961 mean_cos_h4=0.9547 actual_gram_resid=0.010012 (0.12s)
+cpu__K16_control_own_drift_0.9416 seed=2: h4_rec=0.9941 mean_cos_h4=0.9558 actual_gram_resid=0.009981 (0.12s)
+
+wrote /home/nvidia/geo3_recheck_results.json
+
+Environment: cuda_available=true, cuda_device_name="NVIDIA H100 80GB HBM3",
+tf32_matmul (torch.backends.cuda.matmul.allow_tf32, this box's default) = False.

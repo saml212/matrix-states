@@ -1,0 +1,30 @@
+{
+  "task": "Settle KEY_ANCHORING_ATTACK_R2.md Priority Target 3: geo3 launch-read simulator K=32 gives 0.7734 in the recorded gate artifact but 0.0664 on independent CPU rerun -- is this a platform (CPU/GPU) artifact, nondeterminism, a bug, or an archive mismatch?",
+  "recorded_artifact": {
+    "path": "experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/GEO3_DRIFT_DIAGNOSTIC.json",
+    "produced_by": "matrix-thinking/deltanet_rd/geo3_drift_diagnostic.py main(), device=cuda (asserted)",
+    "launch_read.inputs": {"drift_mean": 0.9416046142578125, "drift_p10": 0.9185537695884705, "gram_resid": 0.01},
+    "note": "drift_mean/drift_p10 here are K=16's OWN measured drift (per_k['16']['after_probe']), NOT K=32's (0.9037153124809265 / 0.8713015913963318). geo3_drift_diagnostic.py's main() only extracts lr16 = per_k[16]['after_probe'] and calls g3sim.launch_read(drift_mean=lr16['mean'], drift_p10=lr16['p10'], ...) -- launch_read() then applies this SAME c to BOTH K=16 and K=32 inside its internal loop 'for K in (16, 32)'. K=32's own separately-measured drift (0.9037153) is logged elsewhere in the same JSON (per_k['32']['after_probe']) purely as a diagnostic number -- it is never fed into simulate_recovery for the K=32 prediction, despite DELTANET_RD_EXACTNESS_DESIGN.md sec 16.1's table visually pairing them in the same row.",
+    "recorded_K32_h4_mean_mapping": 0.7734375,
+    "recorded_K16_h4_mean_mapping": 1.0
+  },
+  "gpu_recheck_2026-07-04": {
+    "box": "youthful-indigo-turkey, GPU 6 only (CUDA_VISIBLE_DEVICES=6), venv /home/nvidia/tdenv/bin/python",
+    "K32_with_K32_own_drift_c=0.9037153": {"seeds_0_1_2": [0.076171875, 0.060546875, 0.09375], "device": "cuda"},
+    "K32_with_K16_drift_c=0.9416046_AS_LITERALLY_RECORDED": {"seeds_0_1_2": [0.7734375, 0.748046875, 0.79296875], "device": "cuda", "seed0_exact_match_to_archive": true},
+    "K16_control_c=0.9416046": {"seeds_0_1_2": [1.0, 0.998046875, 0.998046875], "device": "cuda"}
+  },
+  "cpu_recheck_2026-07-04": {
+    "K32_with_K32_own_drift_c=0.9037153": {"seeds_0_1_2": [0.0664, 0.0723, 0.0898], "device": "cpu", "matches_attacker_R2_report": true},
+    "K32_with_K16_drift_c=0.9416046": {"seeds_0_1_2": [0.7285, 0.7871, 0.7656], "device": "cpu"},
+    "K16_control_c=0.9416046": {"seeds_0_1_2": [0.998, 0.9961, 0.9941], "device": "cpu"}
+  },
+  "verdict": "ARCHIVE / TABLE MISMATCH, not a platform artifact and not simulator nondeterminism/bug. Feeding the SAME align_cos into simulate_recovery on GPU vs CPU lands both platforms in the same regime for each of the two candidate inputs (~0.06-0.09 for c=0.9037153; ~0.73-0.79 for c=0.9416046) -- cross-platform spread at fixed input is comparable to ordinary seed-to-seed noise (~0.03-0.05), nowhere near the ~0.71 gap between 0.7734 and 0.0664. That gap is fully explained by which INPUT was used: the recorded 0.7734 was computed with K=16's drift (0.9416046, GPU seed=0 reproduces it to 4 decimals: 0.7734375 == 0.7734375), while the attacker's CPU rerun at 'the recorded inputs' used K=32's own measured drift (0.9037153) read off the same design-doc table row -- a row that displays K=32's own drift measurement next to a prediction that was never actually computed from it. Root cause: geo3_drift_diagnostic.py's main() (L213-215) only ever extracts K=16's after_probe stats and passes them into g3sim.launch_read(), whose own internal loop (geo3_simulator.py L184-186) applies that single c across BOTH K=16 and K=32 predictions. K=32's own drift number is measured and logged but never wired into its own simulator call.",
+  "downstream_consequence": "DELTANET_RD_EXACTNESS_DESIGN.md sec 16.7's narrative ('the registered simulator OVERESTIMATES K=32 recovery, 0.7734 predicted vs 0.4368 measured, because it lacks a value-Gram term') is built on the mismatched number. If K=32's prediction is recomputed with its OWN measured drift (0.9037153) as sec 16.1's table implies it should be, the simulator predicts ~0.06-0.09, i.e. it UNDERESTIMATES the measured 0.4368 by a wide margin -- the opposite direction from the design's stated narrative. KEY_ANCHORING's sec 3.4/sec 6 inherit the over-estimate framing and the 'points toward value geometry' argument built on it. This does not touch the wave's actual pass/fail bars (those are measured directly from real checkpoints, not the simulator) but the sec 16.7/sec 6 narrative justification needs a correction, not just a caveat sentence.",
+  "files": {
+    "script_run": "geo3_recheck.py (this directory) -- exact code executed on the box",
+    "raw_results": "geo3_recheck_results.json (this directory) -- full per-seed output incl. mean_cos and actual_gram_resid",
+    "stdout": "stdout.txt (this directory)"
+  },
+  "not_done": "No design doc edited, no commit made, no push -- per task instructions, report only."
+}

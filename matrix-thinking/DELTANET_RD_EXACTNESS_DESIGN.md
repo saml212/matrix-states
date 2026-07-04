@@ -3011,6 +3011,39 @@ confirmed as real and dominant enough to correctly separate
 K16-clears from K32-misses pre-spend, but a single-scalar tilt is not a
 complete quantitative account of the K=32 residual specifically.
 
+**CORRECTION (2026-07-04, GPU re-measurement — supersedes the K=32 row and
+its attribution paragraph above).** The K=32 "0.7734 predicted" figure was
+computed with the WRONG drift input: `geo3_drift_diagnostic.py::main()`
+extracts only K=16's measured drift (`per_k[16]["after_probe"].mean` =
+0.9416) and `geo3_simulator.launch_read()` applies that single scalar `c`
+to BOTH K's in its `for K in (16, 32)` loop — K=32's own separately-measured
+drift (0.9037, logged in the same JSON) was never wired into K=32's
+prediction. Verified by direct re-run on the box (GPU 6, 3 seeds ×
+{GPU, CPU} × both `c` values; archive:
+`experiment-runs/2026-07-04_geo3_simulator_recheck/`): with c=0.9416 the
+simulator reproduces the recorded 0.7734 to the last digit (seed 0); with
+K=32's own c=0.9037 it predicts **0.06–0.09** — an UNDERESTIMATE of the
+measured 0.4368, the opposite direction from the paragraph above. GPU vs
+CPU agree everywhere (spread ≈ seed noise); no platform effect exists.
+Consequences: (1) the "+0.337 overestimate" row is an input-mismatch
+artifact, and the measured value falling inside the logged [p10, mean]
+bracket was partly luck, since that bracket was also computed from K=16's
+drift; (2) the correct statement is that the single-scalar mean-drift
+mapping, fed K=32's own drift, is strongly CONSERVATIVE at K=32 — the
+trained model recovers substantially more than the idealized-drift model
+predicts; the value-Gram-deviation channel invoked above is therefore not
+needed to explain an overshoot (there is none), though it remains a real,
+unmodeled channel; (3) outcome F's attribution (drift is the residual
+bottleneck) is UNAFFECTED — it rests on the measured drift statistic and
+the measured h4 miss, not on the simulator; (4) the K16-clears/K32-misses
+pre-spend separation claim for the gate stands empirically but must be
+restated: it separated the cells with a mis-wired input, so it cannot be
+cited as validation of the drift→recovery mapping at K=32. Any future gate
+must thread each K's own measured drift (the shared-`c` API is the bug;
+fix registered for the key-anchoring wave build). Found by attack round 2
+on `KEY_ANCHORING_DESIGN.md` (platform-sensitivity hypothesis) and pinned
+to the true cause by the archived GPU recheck.
+
 ### 16.8 h=1 no-sacrifice guard and h=21 literal-depth decay
 
 **h=1 guard:** K=16 measures 1.0000 at every seed against an arm-iii
