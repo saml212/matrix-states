@@ -427,3 +427,261 @@ newly-added machinery rather than newly-discovered problems with
 previously-audited material) this looks like genuine convergence, not a
 design in trouble — one more focused pass on §3.2/§3.6/§5 should plausibly
 clear a Rev 5 verification round.
+
+---
+
+## Round 4 (bounded) — 2026-07-04, verify pass on Rev 4 (commit `7349f97`)
+
+**Scope, per the orchestrator's bounded-verify brief:** (1) the five R3
+findings above and whether Rev 4's §8.3 response map closes each without a
+dodge; (2) any NEW flaw introduced by Rev 4's own additions (§3.2, §2.2,
+§3.6, §3.7, §3.3, smokes 4/5/8, §5 budget); (3) one judgment call — does the
+`--unblind-override` escape hatch's automatic descriptive-tier demotion
+actually block an overridden run's numbers from later being cited at
+evidentiary tier, with the demotion recorded **in the result JSONs
+themselves**, not just in prose. Design-only, no GPU, no box. Nothing R3
+marked CLOSED is reopened here.
+
+### Methodology note
+
+CPU-only. Built a fresh, throwaway `venv` (stdlib `venv`, Python 3.9.6 —
+`uv`'s installed release, 0.1.5, could not resolve the `torch` CPU wheel's
+metadata and was abandoned for this step only; `pip install torch
+--index-url https://download.pytorch.org/whl/cpu` → **torch 2.8.0 CPU**,
+matching the CPU torch major version R2/R3 used) in the scratch directory,
+isolated from the repo — no repo files modified, no design doc edited
+until this append. Two verification strategies: (1) **an executable,
+from-scratch reproduction** of §2.2's exact masked gather/scatter code
+block (transcribed verbatim, not paraphrased) plus the registered
+NaN-injection unit test (§5 smoke 4), actually run; (2) **direct reads of
+the actual repo source** (`run_deltanet_rd.py`, `run_deltanet_rd_exactness_sweep.py`,
+`geo3_drift_diagnostic.py`, `lm_pretrain_rd.py`) and **actual archived result
+JSONs** under `experiment-runs/2026-07-03_deltanet_rd_waves/exactness/` for
+every claim that is a fact about this repo's code or data, per this
+project's own standing "verify before claiming" rule.
+
+### Per-R3-finding verdicts
+
+**R3-1 (λ oscillation window ambiguity) — CLOSED.** §2.2/§3.2 register
+`LAMBDA_LOG_CADENCE_STEPS = 200` and `LAMBDA_WINDOW_LOG_POINTS = 5`,
+pin the window as "the last 5 logged points" (not raw steps), require a
+startup assertion (`assert log_every == LAMBDA_LOG_CADENCE_STEPS`), and
+Wave −1 smoke 5 is specified as a genuine negative control (deliberately
+mis-set cadence must fire the assertion). Confirmed against the actual
+harness default, not just the design's prose:
+`run_deltanet_rd.py::train()`'s own `log_every=200` default and its
+`--log-every` CLI default (line 920) both match the registered constant,
+so the assertion binds real production runs, not a hypothetical cadence.
+Checked for a false-positive-regression risk (the assertion firing on this
+same file's *other*, pre-existing self-tests that use `log_every=10/20/30/50`,
+lines 663–854): those calls never set `anchor_active=True` / learned-λ
+logging, so the new assertion — which lives inside the λ-trajectory
+logging path, not a blanket `train()` check — cannot fire on them; no
+regression. The design also states the 5-point window's power honestly (a
+gross-oscillation catch only, per R3's own ask). **One cosmetic-only
+observation, not a new finding:** "5 logged points" spans 4×200=800 steps
+between the first and last of the 5, not the stated "1,000 steps" (a true
+1,000-step span needs 6 points); this is the *same* loose "N points ≈
+N×200" shorthand R3's own recommendation used ("the trailing 10 logged
+points ≈ 2,000 steps" — also off by one interval), so it is inherited
+phrasing, not a Rev-4-introduced error, and the actual pinned, checkable
+rule ("the last 5 logged points") is unambiguous regardless of what its
+informal step-count label is called.
+
+**R3-2 (blinding protocol mechanized) — CLOSED, and the mechanism goes
+beyond the literal ask.** §3.6 registers three build requirements with
+named failure modes: (a) the writer never produces `BANDS_PINNED.json`
+until all 6 reference-arm JSONs validate complete; (b) anchor cells
+refuse to launch without a hash-validated `BANDS_PINNED.json` — critically,
+this **supersedes** Rev 3's "may train concurrently" allowance, so anchor
+arms structurally cannot exist yet while reference arms are still running,
+which closes the literal R3 complaint ("nothing prevents an operator
+seeing anchor progress via streaming logs pre-pin") by eliminating the
+premise — there is no anchor-arm process to tail logs from before the
+blind exists; (c) the readout asserts the pin timestamp strictly precedes
+the earliest anchor-arm start time, a mechanical broken-blind detector.
+sha256 hashing of the 6 reference JSONs, checked against a re-hash at
+launch time, blocks silent re-derivation. All three failure modes are
+loud-refusal, not silent-continue. **The one nuance this round found is
+not in this mechanical-gate machinery itself — see the Judgment Call
+below**, which is about the override escape hatch's demotion path
+specifically, a narrower question than "is the gate mechanical."
+
+**R3-3 (n=2 sample-std fragility) — CLOSED, exactly per the verifier's own
+recommendation.** §3.6 moves to 3 reference seeds/K (6 runs), recomputes
+`engaged_K = mean_ref + 2·s_ref` at df=2 (RSE ≈50%, down from n=2's ≈71%),
+recomputes the `UNRESOLVABLE` guard trigger at n=3, and adds a mandatory
+leave-one-out sensitivity report. Checked the one subtlety this could hide:
+the leave-one-out report itself drops to n=2 per fold, which is the same
+fragile regime R3 flagged — but the design correctly scopes this as
+**disclosure-only, no re-decision rule attached** ("the guard's verdict
+stands as computed"), so the n=2 fragility of the diagnostic doesn't
+re-contaminate the n=3 decision it's diagnosing. No new flaw.
+
+**R3-4 (torch.where backward NaN-poisoning) — CLOSED, independently
+reproduced end to end, including a contrast run proving the superseded
+form really was broken.** §2.2's Rev 4 code block replaces `torch.where`
+with a masked gather/scatter (`t_idx` from `anchor_trained_mask`; blend
+computed only at `t_idx`; `k_blend_raw = k_eff_raw.clone()` then
+scattered). Transcribed this construction verbatim into a 33-line CPU
+script, planted NaN in every held-out row of the anchor table `A`, ran
+forward+backward on a mixed-split batch:
+
+```python
+# /private/tmp/.../keyanchor_r4_verify/repro_gather_scatter_nan.py (run: torch 2.8.0 CPU)
+t_idx = is_trained_row.nonzero(as_tuple=True)
+sub_blend = F.normalize((1 - lam) * raw[t_idx] + lam * A[key_ids[t_idx]], dim=-1)
+k_blend_raw = raw.clone()
+k_blend_raw[t_idx] = sub_blend
+out = k_blend_raw.sum(); out.backward()
+```
+
+Result: **PASS on all three registered assertions** — `torch.isfinite(raw.grad).all()` → True;
+`torch.isfinite(A.grad).all()` → True; `A.grad[~trained_mask]` is
+**exactly** `0.0` (not just finite) at every held-out row (max-abs = 0.0);
+held-out rows of `k_blend_raw` are `torch.equal` (bit-exact) to
+`raw.detach()` at the same rows. As a control, re-ran the identical setup
+through the **superseded** Rev 3 `torch.where(is_trained_row, blended, raw)`
+form: `raw.grad` and `A.grad` both come back **non-finite**
+(`torch.isnan(A.grad).any()` → True) — confirming R3's finding-4 bug was
+real, not speculative, and that the Rev 4 fix is the actual mechanism that
+kills it, not a cosmetic rename. Smoke 4 as specified (§5 item 4) matches
+this reproduction's three assertions exactly, run on smoke 2's adversarial
+near-duplicate-key input as R3 required. **CLOSED, high confidence.**
+
+**R3-5 (input-alignment vs. behavioral engagement disclosure) — CLOSED,
+and the "no new forward passes" claim checks out against the actual eval
+code.** §3.7 renames the metric `anchor-input-alignment`, keeps it as the
+registered `engaged_frac` driver (correctly, per R3's own Judgment Call
+(b) affirmation), adds the disclosure sentence, and adds a non-load-bearing
+per-entity h=1 companion. Checked the "bookkeeping, not a new forward
+pass" claim against `run_deltanet_rd.py::evaluate_pool` (lines 168–239):
+the per-item recovery cosine (`cos_all`, built from
+`F.cosine_similarity(pred, targets, dim=-1)`) and each batch's own
+`b["key_ids"]` (used elsewhere in the same function, e.g. line 236) are
+both already produced by the existing forward pass and eval loop — tagging
+each cosine value with its row's entity id before pooling is a real code
+change (the current `cos_all.append(...reshape(-1))` does discard the
+per-row id today) but is exactly and only a bookkeeping/data-retention
+change, zero additional `model(...)` calls, zero additional GPU-compute.
+The design's phrasing ("no new forward passes... a bookkeeping change") is
+accurate, not a dodge. **CLOSED.**
+
+### Budget re-add: verified exactly, matches the orchestrator's cited figures
+
+Recomputed the §5 table's arithmetic independently:
+- Wave −1 (10 runs, 0.7–1.0) + reference arms (6, 5.0) + candidate (d)
+  (6, 1.5–1.7) + candidate (c) (6, 1.5–1.7) = **28 runs**, **8.7–9.4 GPU-h**
+  — both bounds match exactly (low: 0.7+5.0+1.5+1.5=8.7; high:
+  1.0+5.0+1.7+1.7=9.4) — **≤10 nominal, clears**.
+- +fixed-grid (≤3, 0.8) +seed contingency (≤2, 0.5–0.6) = **≤33 runs**,
+  **10.0–10.8** — matches exactly.
+- +candidate (b) (≤6, 1.7–2.0) = **≤39 runs**, **11.7–12.8** — matches
+  exactly — **≤15 reserve, clears**.
+- Reference-row cost check: Rev 3's own cited "3.3 GPU-h / 4 runs" →
+  0.825 GPU-h/run; ×6 runs = 4.95 ≈ **5.0** (design's figure); delta over
+  Rev 3's 4-run row = 5.0−3.3 = **1.7**, matching the "+1.6–1.7" claimed.
+- Program total: 34.9 (independently re-verified by R3 already, not
+  re-summed here since no new archive data changes it) + 11.7–12.8 =
+  46.6–47.7 ≈ the design's own "~48 GPU-h worst case," nowhere near the 80
+  GPU-h cap.
+
+**All arithmetic in the task brief's own figures (28 runs ~8.7–9.4 ≤10;
+all-conditionals ~11.7–12.8 ≤15; ~48 worst-case vs. 80 cap) is exact.**
+
+### Judgment call — `--unblind-override`'s descriptive-tier demotion: **NOT WATERTIGHT**
+
+The literal ask: verify there is no path by which an overridden run's
+numbers can later be cited at evidentiary tier, with the demotion recorded
+**in the result JSONs themselves**, not just in prose. §3.6's text (both
+failure modes 2 and 3) commits the demotion to being **"recorded in the
+wave summary"** — nowhere in §3.6, §3.7, §5, or §8.3 does the design commit
+to writing a tier/demotion field into each individual affected anchor-arm's
+own result JSON.
+
+This distinction is not academic — it is checkable against this exact
+codebase, and it fails on inspection:
+
+1. **This project already has, and uses, the correct pattern elsewhere** —
+   `matrix-thinking/deltanet_rd/lm_pretrain_rd.py` defines `CLAIM_TIER`
+   (line 1054) and writes it into **every individual run's own result
+   dict** inside `_assemble_result()` (line 1090: `"run_name": run_name,
+   "claim_tier": CLAIM_TIER, ...`), with the harness's own smoke test
+   asserting `result["claim_tier"] == CLAIM_TIER` (line 1420) and
+   confirmed present as a literal top-level JSON field in every archived
+   Track-C calibration result (e.g.
+   `matrix-thinking/deltanet_rd/results/lm_rd_trackc/calibration/calib_rung1_ptA_*.json`,
+   line 3). This is a real, working, in-house precedent for exactly the
+   "recorded in the result JSON itself" pattern the orchestrator is asking
+   for — and Rev 4 does not adopt it for the anchor-arm demotion.
+2. **The pattern Rev 4 explicitly says it mirrors instead is the wrong
+   one.** §3.6 states the new `--unblind-override` "mirrors
+   `--accept-gate-override`'s loudly-logged pattern." Read that existing
+   pattern at the source (`run_deltanet_rd_exactness_sweep.py::gate_geo3_drift`,
+   lines 212–231, and its call site at line 532): the override prints a
+   `WARNING` block to stderr and returns `{"gate_bypassed": True, ...}`,
+   which the caller only interleaves into a **launch-time print
+   statement** (`f"...gate={gate_result}"`, line 535) — it is never
+   threaded into any spawned run's own output. Confirmed empirically: a
+   real archived exactness-wave result JSON
+   (`experiment-runs/2026-07-03_deltanet_rd_waves/exactness/wavegeo3/...json`)
+   has **no** `gate_bypassed`, `claim_tier`, or any override/gate
+   provenance field among its top-level keys (checked programmatically —
+   `sorted(d.keys())` lists only task/training/eval fields). So the
+   specific pattern §3.6 chose to mirror has a demonstrated, empirical
+   track record in this exact harness family of leaving **zero trace in
+   individual result JSONs** — it is a launch-console artifact, and by
+   Rev 4's own text, the wave-level summary artifact, neither of which is
+   the file a future reader is likely to open.
+3. **This is not a hypothetical risk — it's this project's own
+   documented practice.** Every round of this very attack sequence
+   (R1–R3, and this round) verifies claims by directly reading individual
+   archived result JSONs (`grep`, `json.load`, field-by-field extraction)
+   — not by reading wave-level summary documents. A `BANDS_PINNED`
+   override event recorded only in "the wave summary" is exactly the kind
+   of fact this project's own standing audit methodology would miss if it
+   later re-examined an individual anchor-arm JSON in isolation (e.g., for
+   a paper's numbers table, a follow-on comparison, or a future audit round
+   using this same file-by-file methodology).
+
+**Verdict: the override/demotion pattern is accepted in principle (per the
+orchestrator's framing) but is NOT watertight as specified.** The fix is
+small and consistent with the project's own existing convention: have the
+`--unblind-override` path write (or patch) a `claim_tier` /
+`blind_status` field directly into every affected anchor-arm's own result
+JSON at write time (mirroring `lm_pretrain_rd.py`'s `_assemble_result`
+pattern), in addition to the wave summary — not instead of it. This is a
+one-field, no-new-machinery fix; it does not touch the mechanical gate
+itself (finding R3-2's fixes stand), only the audit trail of what happens
+when someone explicitly bypasses it.
+
+### No other new flaws found in Rev 4's own additions
+
+Beyond the judgment call above, no new FATAL or MAJOR was found in §3.2,
+§2.2, §3.6 (the mechanical gate itself), §3.7, §3.3, or smokes 4/5/8. The
+hypothesis and candidate ranking remain unthreatened, fifth consecutive
+round.
+
+### Verdict
+
+**NEEDS-REV-5.** All five R3 findings are substantively and correctly
+closed — R3-4 verified by an actual executable reproduction (including a
+contrast run proving the pre-fix form really was broken), R3-1/R3-3/R3-5
+verified against real harness defaults and archived data, R3-2's mechanical
+gate is real and, on inspection, stronger than the literal ask. The budget
+re-add is exact. But the one judgment call this round was specifically
+asked to adjudicate — whether the override's descriptive-tier demotion is
+watertight against later evidentiary-tier citation — is **not** met as
+written: the demotion is committed only to "the wave summary," never to
+the individual result JSONs, despite this project having a working,
+in-house precedent (`lm_pretrain_rd.py`'s `claim_tier` field) for doing
+exactly that, and despite the pattern §3.6 explicitly mirrors instead
+(`--accept-gate-override`) having a confirmed, empirical track record in
+this exact harness of leaving no trace in individual run JSONs.
+
+**One fix needed for Rev 5:** have `--unblind-override` write a
+tier/demotion field into every affected anchor-arm's own result JSON
+(mirroring `lm_pretrain_rd.py`'s established `claim_tier` convention), not
+only the wave summary. Nothing else blocks. This is a one-field, no-new-
+mechanism addition — not a redesign — and should clear on the next bounded
+pass.
