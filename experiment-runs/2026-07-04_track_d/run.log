@@ -1,0 +1,57 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/home/nvidia/tdenv/lib/python3.12/site-packages/fla/layers/rwkv7.py:148: UserWarning: According to Bo, you are using a potentially buggy FLA implementation of RWKV. If you plan to report any numbers based on this implementation, we strongly recommend cross-checking with the official repo: https://github.com/BlinkDL/RWKV-LM. Bo may disagree with results reported from this version.
+  warnings.warn(
+
+======================================================================
+MEASURING rwkv7 (RWKV/RWKV7-Goose-World3-1.5B-HF)
+======================================================================
+Loading weights:   0%|          | 0/795 [00:00<?, ?it/s]Loading weights: 100%|██████████| 795/795 [00:00<00:00, 8671.96it/s]
+[transformers] `use_return_dict` is deprecated! Use `return_dict` instead!
+[transformers] The fast path is not available because one of `(selective_state_update, selective_scan_fn, causal_conv1d_fn, causal_conv1d_update, mamba_inner_fn)` is None. Falling back to the sequential implementation of Mamba, as use_mambapy is set to False. The recommended way to enable the fast path is `pip install kernels`, which provides the FalconMamba kernels (loaded on demand). Alternatively, install mamba-ssm (https://github.com/state-spaces/mamba/#installation) and causal-conv1d (https://github.com/Dao-AILab/causal-conv1d). For the mamba.py backend, follow https://github.com/alxndrTL/mamba.py.
+  OK -- wall_s=2681.8
+
+======================================================================
+MEASURING falcon_mamba (tiiuae/falcon-mamba-7b)
+======================================================================
+Loading weights:   0%|          | 0/643 [00:00<?, ?it/s]Loading weights: 100%|██████████| 643/643 [00:00<00:00, 8396.99it/s]
+  OK -- wall_s=160.6
+
+======================================================================
+MEASURING qwen_control (Qwen/Qwen2.5-1.5B)
+======================================================================
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 8571.29it/s]
+  OK -- wall_s=263.9
+
+======================================================================
+TRACK D PROBE SUMMARY (models section elided, see --out for full detail):
+{
+  "design_ref": "SCALE_TRANSFER_DESIGN.md sec 6 (TRACK D, Phase 1, H-measure, Tier 3)",
+  "reference_band_14m_project": {
+    "source": "DELTANET_RD_EXACTNESS_DESIGN.md Wave 1 ATTRIBUTION VERDICT / SCALE_TRANSFER_DESIGN.md sec 1 (item 3); STATE.md 'Chapter 2 -- STATUS'",
+    "n_params": 12899841,
+    "K_range": "8-48",
+    "gram_deviation_range": [
+      0.6,
+      4.4
+    ],
+    "note": "this project's OWN from-scratch DeltaNet-LM, real text, K=8-48 episode sizes -- NOT directly numerically comparable to the pretrained models below (different d_state/head_dim, different corpora, different probe convention in places, see per-model caveats) but the qualitative reference point Track D's H-measure asks about."
+  },
+  "chunk_sizes": [
+    16,
+    64
+  ],
+  "n_windows": 16,
+  "seq_len": 512,
+  "corpora": [
+    "openr1",
+    "wikitext"
+  ],
+  "seed": 95000,
+  "measurement_convention_note": "Every write-key tensor is L2-normalized by THIS probe before Gram-deviation, uniformly across all three families, regardless of whether the model itself already normalizes it (idempotent where it does). Content mask excludes the tokenizer's own EOS id (or pad id fallback) at document-boundary positions, never silently averaged in."
+}
+  rwkv7: n_params=1527404544, n_layers=24, wall_s=2681.8
+  falcon_mamba: n_params=7272665088, n_layers=64, wall_s=160.6
+  qwen_control: n_params=1543714304, n_layers=28, wall_s=263.9
+======================================================================
+
+wrote results/lm_rd_trackd/attractor_probe_trackd.json

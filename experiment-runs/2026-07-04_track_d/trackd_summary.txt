@@ -1,0 +1,50 @@
+====================================================================================================
+TRACK D PHASE 1 SUMMARY — SCALE_TRANSFER_DESIGN.md sec 6 (TRACK D, Phase 1, H-measure, Tier 3)
+reference band (this project's own 14M DeltaNet-LM): [0.6, 4.4] over K 8-48
+config: chunk_sizes [16, 64] n_windows 16 seq_len 512 corpora ['openr1', 'wikitext']
+====================================================================================================
+
+### rwkv7
+  repo: RWKV/RWKV7-Goose-World3-1.5B-HF  role: PRIMARY (size-substituted, documented)
+  n_params: 1,527,404,544  n_layers: 24  wall_s: 2682
+  health_gate: nan=0 inf=0
+  [openr1] windows: repeat_fired=False dup_pairs=0
+    chunk= 16: RAW gd pooled= 10.982 layers[  8.26, 12.81] | CENTERED gd pooled=  5.562 layers[  5.14,  6.03] | eff_rank raw/cent= 9.22/11.80 | top_chan_ratio= 15.2x | n_episodes=393,216
+    chunk= 64: RAW gd pooled= 44.022 layers[ 34.28, 52.00] | CENTERED gd pooled= 21.139 layers[ 18.71, 23.64] | eff_rank raw/cent=24.13/33.73 | top_chan_ratio= 14.7x | n_episodes=98,304
+  [wikitext] windows: repeat_fired=False dup_pairs=0
+    chunk= 16: RAW gd pooled= 10.841 layers[  8.05, 13.26] | CENTERED gd pooled=  4.891 layers[  4.12,  5.39] | eff_rank raw/cent= 9.90/12.72 | top_chan_ratio= 15.4x | n_episodes=393,216
+    chunk= 64: RAW gd pooled= 43.458 layers[ 33.37, 53.83] | CENTERED gd pooled= 18.217 layers[ 15.74, 20.63] | eff_rank raw/cent=27.20/38.04 | top_chan_ratio= 15.0x | n_episodes=98,304
+
+### falcon_mamba
+  repo: tiiuae/falcon-mamba-7b  role: SECONDARY (true 7B scale)
+  n_params: 7,272,665,088  n_layers: 64  wall_s: 161
+  health_gate: nan=0 inf=0
+  [openr1] windows: repeat_fired=False dup_pairs=0
+    chunk= 16: RAW gd pooled= 12.631 layers[  5.46, 15.06] | CENTERED gd pooled=  7.263 layers[  4.99,  8.86] | eff_rank raw/cent= 6.20/ 9.38 | top_chan_ratio=  5.1x | n_episodes=32,768
+    chunk= 64: RAW gd pooled= 50.223 layers[ 19.81, 61.57] | CENTERED gd pooled= 28.303 layers[ 18.97, 35.85] | eff_rank raw/cent= 8.06/12.09 | top_chan_ratio=  4.8x | n_episodes=8,192
+  [wikitext] windows: repeat_fired=False dup_pairs=0
+    chunk= 16: RAW gd pooled= 12.473 layers[  4.99, 14.74] | CENTERED gd pooled=  7.112 layers[  4.74,  8.56] | eff_rank raw/cent= 6.38/ 9.46 | top_chan_ratio=  4.8x | n_episodes=32,768
+    chunk= 64: RAW gd pooled= 49.873 layers[ 17.92, 60.30] | CENTERED gd pooled= 27.529 layers[ 17.84, 34.26] | eff_rank raw/cent= 8.24/12.21 | top_chan_ratio=  4.6x | n_episodes=8,192
+
+### qwen_control
+  repo: Qwen/Qwen2.5-1.5B  role: REGISTERED NEGATIVE CONTROL (resolves sec 12 Q4)
+  n_params: 1,543,714,304  n_layers: 28  wall_s: 264
+  health_gate: nan=0 inf=0
+  [openr1] windows: repeat_fired=False dup_pairs=0
+    chunk= 16: RAW gd pooled= 12.318 layers[ 10.91, 15.46] | CENTERED gd pooled=  5.933 layers[  5.30,  6.34] | eff_rank raw/cent= 8.30/11.65 | top_chan_ratio= 21.3x | n_episodes=28,672
+    chunk= 64: RAW gd pooled= 48.529 layers[ 41.23, 63.37] | CENTERED gd pooled= 22.236 layers[ 19.91, 24.58] | eff_rank raw/cent=24.76/36.71 | top_chan_ratio= 21.3x | n_episodes=7,168
+  [wikitext] windows: repeat_fired=False dup_pairs=0
+    chunk= 16: RAW gd pooled= 11.683 layers[ 10.12, 15.42] | CENTERED gd pooled=  4.564 layers[  3.46,  5.30] | eff_rank raw/cent= 9.47/12.99 | top_chan_ratio= 21.2x | n_episodes=28,672
+    chunk= 64: RAW gd pooled= 46.025 layers[ 38.08, 63.20] | CENTERED gd pooled= 15.970 layers[ 12.49, 18.47] | eff_rank raw/cent=29.98/43.63 | top_chan_ratio= 21.3x | n_episodes=7,168
+
+
+=== PER-LAYER DETAIL (chunk_size=16, openr1, gram_deviation raw | centered) ===
+
+rwkv7:
+  L0:8.26|5.98  L1:9.48|5.26  L2:9.20|5.34  L3:10.21|5.50  L4:10.48|5.16  L5:10.65|5.42  L6:10.95|5.77  L7:10.79|5.41  L8:10.80|6.03  L9:11.02|5.90  L10:10.93|5.87  L11:10.92|5.99  L12:11.39|5.79  L13:11.40|5.74  L14:11.62|5.56  L15:12.56|5.43  L16:10.71|5.57  L17:11.08|5.32  L18:12.17|5.51  L19:11.20|5.82  L20:11.60|5.37  L21:11.59|5.14  L22:11.75|5.19  L23:12.81|5.40
+
+falcon_mamba:
+  L0:13.05|7.43  L1:13.87|8.21  L2:12.63|7.57  L3:10.89|5.61  L4:13.21|7.38  L5:12.57|8.36  L6:13.79|7.17  L7:14.15|7.74  L8:12.68|7.30  L9:13.68|8.01  L10:10.02|6.48  L11:14.11|4.99  L12:13.48|7.71  L13:12.40|8.32  L14:12.63|8.79  L15:13.34|8.04  L16:13.53|8.11  L17:5.46|5.84  L18:11.91|7.18  L19:12.10|6.89  L20:11.94|7.32  L21:6.52|6.85  L22:11.96|7.56  L23:12.42|8.41  L24:13.48|8.44  L25:12.44|8.05  L26:13.04|8.31  L27:10.82|8.42  L28:11.42|7.17  L29:12.61|7.11  L30:10.01|8.36  L31:13.31|7.21  L32:13.19|8.20  L33:12.53|6.80  L34:7.68|7.61  L35:13.10|8.86  L36:13.60|7.38  L37:12.01|6.64  L38:13.15|7.83  L39:12.70|7.59  L40:13.44|8.01  L41:12.21|8.05  L42:13.24|7.09  L43:13.62|8.27  L44:11.54|7.33  L45:13.74|6.90  L46:14.05|7.29  L47:11.97|6.12  L48:13.53|7.62  L49:13.66|6.48  L50:12.63|5.31  L51:13.65|6.60  L52:13.55|6.35  L53:13.87|6.77  L54:13.88|6.57  L55:12.99|6.02  L56:13.50|6.08  L57:13.64|6.42  L58:13.56|6.68  L59:13.58|6.62  L60:13.90|6.76  L61:11.73|5.77  L62:14.44|6.98  L63:15.06|7.54
+
+qwen_control:
+  L0:15.46|6.12  L1:14.31|5.95  L2:13.16|5.30  L3:12.90|5.62  L4:11.57|5.56  L5:11.43|5.71  L6:11.23|5.36  L7:13.94|6.20  L8:11.29|5.63  L9:12.18|5.96  L10:12.53|6.34  L11:12.56|6.31  L12:11.05|6.16  L13:12.05|6.11  L14:10.91|5.70  L15:13.74|6.21  L16:11.88|6.15  L17:12.30|6.15  L18:13.21|5.92  L19:12.13|6.18  L20:12.06|6.18  L21:12.27|5.95  L22:12.09|5.91  L23:11.29|5.74  L24:11.83|6.02  L25:11.76|5.61  L26:12.12|5.93  L27:11.65|6.14

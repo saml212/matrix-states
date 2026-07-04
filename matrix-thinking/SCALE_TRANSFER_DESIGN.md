@@ -933,6 +933,148 @@ RWKV-7 only, reported as such, not silently dropped.
    requirements for derivatives; any future graft-and-redistribution intent needs
    separate legal review regardless — flagged now, not at publication time.
 
+### 6.8 Phase 1 results (run 2026-07-04, GPU 6 only, ≈0.9 GPU-h — under the §6.5 estimate)
+
+**Instrument:** `matrix-thinking/deltanet_rd/lm_attractor_probe_trackd.py` (new).
+Non-invasive forward hooks on real `nn.Linear` submodules; no model code edited, no
+gradients anywhere; Tier 3 language throughout per §2. Smoke gate: 9 items including
+positive (orthonormal→0), negative (collapsed→√(K(K−1))), a centered-variant
+discriminating control, health-gate positive/negative controls, multi-head
+vectorization equivalence, and a duplicate-window regression test. Independent audit
+(same session, separate agent): NO FATALs; 2 MAJOR both fixed and regression-tested
+(duplicate-window visibility under the repeat fallback; per-head Python-loop SVD cost
+vectorized). Full output: `experiment-runs/2026-07-04_track_d/attractor_probe_trackd.json`
+(+ `trackd_summary.txt`, `run.log`, and the exact script copy, per house archive rule;
+mirrored to SSD).
+
+**Model picked — documented deviation from §6.2's literal primary.** §6.2 named RWKV-7
+**2.9B**-HF as primary. That exact checkpoint is **broken in this environment**
+(fla 0.5.1 + transformers 5.12.1): ~20/32 layers' token-shift parameters
+(`x_r/x_w/x_k/x_v/x_a/x_g`) load as MISSING (the checkpoint ships a fused `x_x` key
+that current `fla` does not consume), the "freshly initialized" replacements come up
+NaN/Inf (bf16: 133 NaN + 5 Inf params; fp32: 55 NaN), and logits are NaN in both
+dtypes. Confirmed **not** a systemic incompatibility: the 0.4B and 1.5B RWKV-7
+checkpoints load clean (zero NaN/Inf, finite logits) in the same environment — this is
+a stale conversion in that one HF repo. **Substitution: RWKV-7 1.5B
+(`RWKV/RWKV7-Goose-World3-1.5B-HF`) as the RWKV-7 point**, with Falcon-Mamba-7B
+(§6.2's secondary) supplying the true 7B-scale reading. A mandatory health gate
+(param-level NaN/Inf scan + forward-pass logits-finiteness check) is now built into
+the probe and refuses corrupted checkpoints — added because of this incident; it
+would otherwise have silently poisoned every number.
+
+**§12 Q4 resolved (minimal registered choice, recorded here):** negative control =
+**Qwen2.5-1.5B** (Apache-2.0, native `transformers`, standard GQA softmax attention —
+no fixed-size recurrent state of any kind), scale-matched to the actual RWKV-7 point
+measured. Probe point: pre-RoPE `k_proj` output (2 KV heads × head_dim 128).
+
+**State-update equations AS FOUND in the shipped code (not the papers):**
+
+- RWKV-7 (`fla/layers/rwkv7.py` → `chunk_rwkv7` → `chunk_dplr_delta_rule`):
+  `S_t = S_{t-1} @ (diag(w_t) + a_t⊗b_t) + v_t⊗k_t`, where `k = k_proj(xk)` is the
+  **raw, unnormalized** value-write key (further mixed by the `k_a` gate) and
+  `kk = L2norm_perhead(k * k_k)` is a **separately gated, L2-normalized** tensor
+  forming the erase/decay pair `a_t = −kk`, `b_t = kk·sigmoid(a_lora(xa))`. **Not
+  textbook DeltaNet**: write key and erase key are *different tensors*, and the decay
+  is a learned diagonal `diag(w_t)`, not identity. The probe measures **`kk`** (the
+  L2-normalized erase side — the convention match to our own probe), reconstructed
+  outside the model from the `k_proj` hook plus the model's own `k_k` parameter.
+- Falcon-Mamba (`transformers/models/falcon_mamba/modeling_falcon_mamba.py`):
+  `h_t[c] = exp(dt_t[c]·A[c])·h_{t−1}[c] + dt_t[c]·B_t·u_t[c]` per channel — a
+  diagonal-gated SSM with **no erase term** (not a delta rule; §6.2's caveat
+  confirmed at code level). Write vector `B_t = rms_forward(split(x_proj(x))[1])`,
+  dim **16** (`state_size`), shared across all channels; `rms_forward` is
+  Falcon-Mamba's own unlearned RMS-normalization of B/C (absent in vanilla Mamba).
+  The probe measures **`B_t`** post-`rms_forward`.
+
+**The massive-activation confound — found empirically before trusting any number.**
+Direct per-channel inspection of all three families found a dominant, largely
+input-agnostic outlier channel (3–35× the median channel magnitude; mean pairwise
+cosine 0.43–0.9998 across positions) — the known "massive activations" phenomenon
+(Sun et al. 2024, arXiv:2402.17762). It alone drives raw Gram-deviation most of the
+way to the collapse ceiling in **all three families, including the no-fixed-state
+negative control** — so the raw statistic cannot by itself answer H-measure. The
+probe therefore reports **both** conventions on every episode: `raw` (as registered,
+§6.3 item 3) and `centered` (per-episode per-channel mean subtraction — removes
+exactly the shared/constant component; smoke item [2b] proves it discriminates).
+
+**Reference anchors** (how to read a Gram-deviation number): for K i.i.d. random unit
+vectors in ℝ^d, E‖G−I‖_F ≈ √(K(K−1)/d); full collapse = √(K(K−1)). At K=16:
+random ≈ 1.94 (d=64), 3.87 (d=16), 1.37 (d=128); collapse = 15.49. Our own 14M band
+(0.6–4.4 over K=8–48, d_state=64) sits **at or below the random anchor** — the 14M
+attractor is "non-orthonormal but no worse than random."
+
+**Results (pooled across layers; per-layer detail in the archive JSON/summary).**
+n_windows=16/corpus (halved from the CLI default after a timing pilot — SVD cost, not
+forward cost, dominates; still 393K episodes per (RWKV-7, corpus, chunk=16) cell),
+seq_len=512, both corpora, chunk sizes 16 and 64, bf16 models, fp32 statistics:
+
+| Model | corpus | chunk | RAW gd (layer range) | CENTERED gd | random / collapse anchor |
+|---|---|---|---|---|---|
+| RWKV-7 1.5B (kk, d=64) | openr1 | 16 | **10.98** [8.3–12.8] | 5.56 | 1.94 / 15.49 |
+| | wikitext | 16 | **10.84** [8.1–13.3] | 4.89 | 1.94 / 15.49 |
+| | openr1 | 64 | 44.02 [34–52] | 21.14 | 7.94 / 63.50 |
+| | wikitext | 64 | 43.46 [33–54] | 18.22 | 7.94 / 63.50 |
+| Falcon-Mamba-7B (B_t, d=16) | openr1 | 16 | **12.63** [5.5–15.1] | 7.26 | 3.87 / 15.49 |
+| | wikitext | 16 | **12.47** [5.0–14.7] | 7.11 | 3.87 / 15.49 |
+| | openr1 | 64 | 50.22 [20–62] | 28.30 | 15.87 / 63.50 |
+| | wikitext | 64 | 49.87 [18–60] | 27.53 | 15.87 / 63.50 |
+| Qwen2.5-1.5B control (pre-RoPE k, d=128) | openr1 | 16 | **12.32** [10.9–15.5] | 5.93 | 1.37 / 15.49 |
+| | wikitext | 16 | **11.68** [10.1–15.4] | 4.56 | 1.37 / 15.49 |
+| | openr1 | 64 | 48.53 [41–63] | 22.24 | 5.61 / 63.50 |
+| | wikitext | 64 | 46.03 [38–63] | 15.97 | 5.61 / 63.50 |
+
+All health gates clean (0 NaN/Inf params, finite logits, 3/3 models); no window
+duplication (repeat fallback never fired, 0 duplicate pairs, all cells).
+
+**Reading (Tier 3, two findings, both registered-informative per §6.6):**
+
+1. **H-measure: a strongly non-orthonormal write-geometry signature EXISTS in
+   production fixed-state models — and it is far more extreme than our own 14M
+   attractor.** RWKV-7's per-chunk erase keys at K=16/d=64 (the cell directly
+   comparable to our own probe's geometry) sit at raw gd ≈ 10.8–11.0 — ≈5.6× the
+   random anchor and ≈70% of the way to full collapse, vs our 14M band (0.6–4.4)
+   which never exceeds random. Even after centering removes the shared
+   massive-activation direction, RWKV-7 remains ≈2.5–2.9× random. Rising modestly
+   with depth (L0 8.3 → L23 12.8, openr1). Falcon-Mamba's B_t is similarly aligned
+   (≈3.2× its random anchor at its capacity-matched chunk=16), with a handful of
+   notably-less-aligned outlier layers (L17: 5.5, L21: 6.5, L34: 7.7).
+2. **The registered negative control shows the SAME-magnitude signature** (raw ≈
+   11.7–12.3 at chunk=16 — ≈9× its d=128 random anchor; centered 4.6–5.9,
+   overlapping RWKV-7's centered range). **Therefore this measurement cannot
+   attribute the signature to the fixed-state/delta-rule write mechanism** — what it
+   measures at production scale is dominated by the generic representation
+   anisotropy of trained LMs (massive-activation channel + anisotropic key
+   distributions), which is present regardless of whether a fixed-size state exists.
+   Under §6.6's own framing this is exactly the calibration Q4 asked for, and it is
+   decision-bearing: the honest Tier-3 statement is "the geometry geo3 targets
+   (non-orthonormal write directions) is present and larger at 1.5–7B production
+   scale, but it is NOT identifiable as a delta-rule-family attractor with this
+   instrument — a discriminating instrument would need to control for generic key
+   anisotropy (matched-architecture softmax controls per layer, token-content dedup,
+   or write-path-specific interventions)."
+
+**Phase 2 (graft) go/no-go input:** finding 2 weakens the mechanistic premise for a
+geo3-style graft — the measured non-orthonormality at scale is not shown to be a
+delta-rule-specific pathology, and §6.4's bolt-on-lesson risk stands unmitigated.
+Nothing here authorizes Phase 2 (per §6.4 it needs its own attack round); this result
+is evidence AGAINST prioritizing it.
+
+**Caveats (probe-convention differences vs the 14M band, stated for any future
+comparison):** (i) our band was measured on K *distinct-entity* episodes; Track D
+chunks are arbitrary contiguous text — repeated tokens/subwords legitimately share
+key directions, biasing deviation upward; (ii) RWKV-7's `kk` is the erase-side key;
+the raw value-write key `k` is a different tensor, not measured separately; (iii)
+Falcon-Mamba's d=16 makes orthonormality impossible past K=16 by construction — its
+chunk=64 numbers are structurally inflated, the chunk=16 (capacity-matched) column is
+the fair one; (iv) the Qwen control is pre-RoPE — post-RoPE keys would differ;
+(v) `fla` prints its own "potentially buggy RWKV implementation" warning — the probe
+reads `k_proj`/`k_k` directly so kernel-level bugs would not corrupt these
+statistics, but the warning is on the record; (vi) §6.3 item 4's bootstrap
+power/variance check was NOT run — per-layer means rest on 1.1K–16K scored episodes
+per (layer, corpus, chunk) cell for the 24–64-layer models, large but not
+bootstrap-verified; (vii) centering removes exactly ONE shared direction per episode
+— higher-rank shared structure survives and still inflates `centered`.
+
 ---
 
 ## 7. Program-wide manifest — budget across all four tracks

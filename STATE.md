@@ -482,6 +482,20 @@ user review: author block, venue, figures, title, appendix).
   pre-registered outcome F. See the exactness-mechanism paragraph above,
   `EXPERIMENT_LOG.md`'s "F-geo-3 escalation VERDICT" entry, and
   `DELTANET_RD_EXACTNESS_DESIGN.md` §16.
+- **SCALE-TRANSFER Track D Phase 1 (pretrained-model measurement) — CLOSED
+  (2026-07-04, ≈0.9 GPU-h, GPU 6 only).** The write-geometry signature
+  exists in production fixed-state models (RWKV-7 1.5B — the design's 2.9B
+  pick is a broken HF conversion on this stack, documented substitution —
+  and Falcon-Mamba-7B) and is far MORE extreme than our 14M attractor
+  (RWKV-7 raw Gram dev ≈10.9 at K=16/d=64 vs our 0.6–4.4 band; ≈70% of the
+  collapse ceiling). BUT the registered no-fixed-state negative control
+  (Qwen2.5-1.5B, resolving `SCALE_TRANSFER_DESIGN.md` §12 Q4) shows the
+  same magnitude — the signature is dominated by generic trained-LM key
+  anisotropy (massive activations, Sun et al. 2024) and is NOT attributable
+  to the delta-rule write mechanism at this measurement tier. Phase 2
+  (graft) premise weakened; it stays unauthorized. Full table + caveats:
+  `SCALE_TRANSFER_DESIGN.md` §6.8; archive
+  `experiment-runs/2026-07-04_track_d/` + SSD.
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;

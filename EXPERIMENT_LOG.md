@@ -3500,3 +3500,82 @@ sequentially (~16h; GPUs 0-5 run Track C rung-1). The 80K HUMAN GATE
 question is superseded for the vector (composed at 40K); for the matrix arm
 the question becomes capability, not budget — the full manifest + h_b
 variant will inform. Archive: experiment-runs/2026-07-03_stageg_he/ + SSD.
+
+## SCALE-TRANSFER Track D Phase 1 (2026-07-04): the write-geometry signature EXISTS in production fixed-state models and is far MORE extreme than our 14M attractor — but the registered no-fixed-state negative control shows the SAME magnitude, so it is NOT attributable to the delta-rule write mechanism at this measurement tier
+
+Executes `SCALE_TRANSFER_DESIGN.md` §6 Phase 1 (H-measure, Tier 3,
+measurement only — no graft, no fine-tuning, no gradients; H-graft remains
+unauthorized). New instrument `matrix-thinking/deltanet_rd/
+lm_attractor_probe_trackd.py`: non-invasive forward hooks on real nn.Linear
+submodules, per-chunk Gram-deviation/effective-rank on L2-normalized write
+keys, 9-item smoke gate, independently audited (NO FATALs; 2 MAJOR fixed +
+regression-tested: duplicate-window visibility, per-head SVD loop
+vectorized). ≈0.9 GPU-h on GPU 6 only. Archive:
+`experiment-runs/2026-07-04_track_d/` (JSON + summary + log + exact script)
++ SSD mirror. Box: `results/lm_rd_trackd/` on youthful-indigo-turkey.
+
+**Models measured (3/3 health-gates clean):** RWKV-7 1.5B
+(`RWKV/RWKV7-Goose-World3-1.5B-HF`) — §6.2's literal 2.9B primary is BROKEN
+on this stack (fla 0.5.1/transformers 5.12.1: ~20/32 layers' x_r..x_g
+token-shift params MISSING from the checkpoint, replaced by NaN/Inf init,
+NaN logits both dtypes; 0.4B/1.5B load clean, so it's that repo's stale
+conversion, not the architecture) — documented size substitution, and the
+probe now carries a mandatory NaN/Inf health gate born from this incident.
+Falcon-Mamba-7B (true 7B, native transformers). Qwen2.5-1.5B as the §12 Q4
+negative control (standard GQA softmax attention, no fixed state — minimal
+registered choice, resolved this session).
+
+**Equations as-found (shipped code, not papers):** RWKV-7:
+S_t = S_{t-1}@(diag(w_t) + a_t⊗b_t) + v_t⊗k_t with SPLIT keys — raw k for
+the value write, separately-gated L2-normalized kk for erase/decay (NOT
+textbook DeltaNet; probe measures kk). Falcon-Mamba: diagonal-gated SSM,
+NO erase term, write vector B_t = rms_forward(...) of dim 16 (probe
+measures B_t; d=16 capacity caveat applies).
+
+**Headline numbers (chunk=16, pooled across layers; random anchor
+√(K(K−1)/d), collapse 15.49; our own 14M band 0.6–4.4 over K=8–48 sits
+AT/BELOW random):** RWKV-7 raw gd 10.84–10.98 (layers 8.1–13.3; ≈5.6×
+random, ≈70% of collapse), centered 4.89–5.56. Falcon-Mamba 12.47–12.63
+(≈3.2× its d=16 random anchor), centered 7.11–7.26. Qwen control
+11.68–12.32 (≈9× its d=128 random anchor), centered 4.56–5.93 —
+overlapping RWKV-7. A dominant massive-activation channel (Sun et al.
+2024, arXiv:2402.17762; 3–35× median channel, found empirically in ALL
+three families before any number was trusted) drives much of the raw
+statistic; the probe reports raw AND per-episode-centered variants
+everywhere.
+
+**Verdict (both §6.6 outcomes in one result):** (1) production-scale
+fixed-state models have write geometry FAR more non-orthonormal than our
+14M attractor — the geometry geo3 targets exists and is bigger at scale;
+(2) the negative control matches it, so the signature is dominated by
+generic trained-LM key anisotropy and CANNOT be attributed to the
+delta-rule family with this instrument. Phase 2 (graft) premise weakened —
+recorded as evidence against prioritizing it; it remains gated behind its
+own attack round regardless. Full table + 7 registered caveats:
+SCALE_TRANSFER_DESIGN.md §6.8.
+
+[LEARN] measurement-design: A pretrained-model geometry probe MUST carry a
+param-level NaN/Inf health gate plus a logits-finiteness check before any
+statistic is trusted — a major HF checkpoint (RWKV-7 2.9B-HF) silently
+loads with ~20/32 layers of NaN token-shift params on a current stack.
+Mistake: assumed a popular HF checkpoint + matching community library
+would load sanely; transformers' load report printed MISSING keys but
+nothing crashed, and only an explicit isnan scan caught that the
+"freshly initialized" replacements were NaN/Inf garbage.
+Correction: gate every third-party checkpoint on (a) zero NaN/Inf named
+params and (b) finite logits on a real batch, and treat a MISSING/
+UNEXPECTED key report on an identical-architecture load as a hard error,
+not a warning.
+
+[LEARN] measurement-design: Raw Gram-deviation on trained-LM keys is
+dominated by the generic massive-activation/anisotropy effect (Sun et al.
+2024) — any cross-architecture write-geometry comparison needs BOTH a
+no-fixed-state negative control AND an outlier-robust variant (per-episode
+centering at minimum) or it will "find" the attractor everywhere.
+Mistake: the design's registered instrument (raw Gram deviation, ported
+from our own harness) reads ~9x-above-random on a plain softmax
+transformer's keys — without the Q4 negative control this would have been
+reported as a positive delta-rule-family finding.
+Correction: run the negative control FIRST at pilot scale, inspect
+per-channel magnitude distributions before trusting a Gram statistic, and
+report centered/robust variants alongside the registered raw convention.
