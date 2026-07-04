@@ -38,99 +38,22 @@ import sys
 import time
 
 import torch
-import torch.nn.functional as F
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # pod-safe imports
 import geo3_simulator as g3sim
 import grammar_rd as grd
 from model_rd import DeltaNetRDBlock
 from run_deltanet_rd import train as train_geo3
-
-
-def sample_batch_fixed_entity(cfg, batch_size, fixed_entity_id, gen, pools, device):
-    """Mirrors grammar_rd.sample_batch_rd's construction, except entity slot
-    0 is PINNED to fixed_entity_id in EVERY row (so every row is one
-    "episode-context resample" of the SAME fixed entity) and only the other
-    K-1 slots are freshly, independently drawn without replacement from the
-    train pool minus the fixed entity -- sec 14.6's "fixing one entity's raw
-    key and resampling its K-1 episode-mates" construction, verbatim.
-
-    bind() only reads token_ids/beta_mask/item_pos (verified against
-    model_rd.py's own bind() signature -- key_ids is read too but ONLY on
-    the strong_pin_active branch, which is mutually exclusive with
-    geo3_active and therefore dead here) -- key_ids/succ/value_ids are still
-    built with FULL grammar fidelity (a real single K-cycle, real per-clause
-    VALUE tokens occupying the conv window that feeds item_pos) so the
-    measured raw key reflects a REALISTIC episode, not a stripped-down one.
-    """
-    B, K = batch_size, cfg.K
-    buf_len, clause_len, T_bind = cfg.buf_len, cfg.clause_len, cfg.T_bind
-    other_pool = pools.train_name_ids[pools.train_name_ids != fixed_entity_id].to(device)
-    assert other_pool.numel() >= K - 1, \
-        f"train pool minus the fixed entity ({other_pool.numel()}) < K-1={K - 1}"
-    scores = torch.rand(B, other_pool.numel(), generator=gen, device=device)
-    pool_idx = scores.argsort(dim=-1)[:, :K - 1]
-    other_entities = other_pool[pool_idx]                                    # (B,K-1), distinct per row
-    fixed_col = torch.full((B, 1), int(fixed_entity_id), dtype=torch.int64, device=device)
-    entity_ids = torch.cat([fixed_col, other_entities], dim=1)               # (B,K), slot 0 PINNED
-
-    succ = grd._permutation_graph(B, K, gen, device, dtype=torch.float32)    # single K-cycle (task-faithful)
-    key_ids = entity_ids
-    value_ids = torch.gather(entity_ids, 1, succ)
-
-    rel_pool = pools.rel_a_ids.to(device)
-    rel_idx = torch.randint(0, rel_pool.numel(), (B,), generator=gen, device=device)
-    rel_id = rel_pool[rel_idx]
-
-    token_ids = torch.full((B, T_bind), int(pools.buffer_id), dtype=torch.int64, device=device)
-    item_pos = (torch.arange(K, device=device) * clause_len + buf_len + 2).unsqueeze(0).expand(B, K).contiguous()
-    key_pos = item_pos - 2
-    rel_pos = item_pos - 1
-    period_pos = item_pos + 1
-    token_ids.scatter_(1, key_pos, key_ids)
-    token_ids.scatter_(1, rel_pos, rel_id.unsqueeze(1).expand(B, K))
-    token_ids.scatter_(1, item_pos, value_ids)
-    token_ids.scatter_(1, period_pos,
-                        torch.full((B, K), int(pools.period_id), dtype=torch.int64, device=device))
-    beta_mask = torch.zeros(B, T_bind, device=device, dtype=torch.float32)
-    beta_mask.scatter_(1, item_pos, torch.ones(B, K, device=device))
-    return {"token_ids": token_ids, "beta_mask": beta_mask, "item_pos": item_pos}
-
-
-@torch.no_grad()
-def measure_entity_rows(model, cfg, pools, fixed_entity_id, n_resamples, gen, device):
-    """One entity's n_resamples orthogonalized-key rows (one per independent
-    episode context) -- the raw material geo3_simulator.pairwise_drift_stats
-    (and this script's own pooled-aggregation, sec 14.6) consumes."""
-    model.eval()
-    b = sample_batch_fixed_entity(cfg, n_resamples, fixed_entity_id, gen, pools, device)
-    _, k_eff_items, _ = model.bind(b)
-    return k_eff_items[:, 0, :].detach()   # (n_resamples, d_state) -- slot 0 = the fixed entity
-
-
-def measure_drift(model, cfg, pools, n_entities, n_resamples, gen, device):
-    """sec 14.6's full pinned statistic: pairwise cosines pooled WITHIN
-    entity across resamples, then pooled ACROSS entities; report mean+p10
-    of that pooled distribution."""
-    entity_pool = pools.train_name_ids.to(device)
-    assert entity_pool.numel() >= n_entities
-    perm = torch.randperm(entity_pool.numel(), generator=gen, device=device)[:n_entities]
-    entities = entity_pool[perm]
-    per_entity_stats = []
-    all_off_diag = []
-    for eid in entities.tolist():
-        rows = measure_entity_rows(model, cfg, pools, eid, n_resamples, gen, device)
-        mean_c, p10_c = g3sim.pairwise_drift_stats(rows)
-        per_entity_stats.append({"entity_id": eid, "mean": mean_c, "p10": p10_c})
-        n = rows.shape[0]
-        pw = F.cosine_similarity(rows.unsqueeze(0), rows.unsqueeze(1), dim=-1)
-        all_off_diag.append(pw[~torch.eye(n, dtype=torch.bool, device=rows.device)])
-    pooled = torch.cat(all_off_diag)
-    return {
-        "mean": pooled.mean().item(), "p10": torch.quantile(pooled, 0.10).item(),
-        "n_entities": n_entities, "n_resamples": n_resamples,
-        "n_pooled_pairs": pooled.numel(), "per_entity": per_entity_stats,
-    }
+# KEY_ANCHORING_DESIGN.md sec 4 build note: sample_batch_fixed_entity /
+# measure_entity_rows / measure_drift MOVED to key_anchoring.py (a fla-free
+# shared module) so run_deltanet_rd.py's own optional per-checkpoint
+# reference-arm drift probe (sec 3.6) can import the SAME functions without
+# creating a circular import (this module already does `from
+# run_deltanet_rd import train as train_geo3` above -- run_deltanet_rd.py
+# importing back from THIS module would be a real cycle). Re-exported here
+# under their original names so nothing calling geo3_drift_diagnostic.<name>
+# breaks.
+from key_anchoring import measure_drift, measure_entity_rows, sample_batch_fixed_entity  # noqa: F401
 
 
 def run_one_k(K, tokenizer_pools, device, seed, n_entities, n_resamples, probe_steps, probe_batch_size):
@@ -146,8 +69,13 @@ def run_one_k(K, tokenizer_pools, device, seed, n_entities, n_resamples, probe_s
 
     gen_init = torch.Generator(device=device).manual_seed(seed + 1)
     t0 = time.time()
-    at_init = measure_drift(model, cfg, pools, n_entities, n_resamples, gen_init, device)
-    print(f"  K={K} AT INIT: mean={at_init['mean']:.4f} p10={at_init['p10']:.4f} "
+    # pre_ns_attr="geo3_last_k_eff_raw": bare geo3's own pre-NS side channel
+    # (model_rd.py), added under KEY_ANCHORING_DESIGN.md sec 3.1's item-5
+    # instrument-symmetry requirement -- measure_drift now ALSO reports the
+    # pre-NS pooled statistic alongside the pre-existing post-NS one.
+    at_init = measure_drift(model, cfg, pools, n_entities, n_resamples, gen_init, device,
+                              pre_ns_attr="geo3_last_k_eff_raw")
+    print(f"  K={K} AT INIT: post_ns mean={at_init['post_ns']['mean']:.4f} p10={at_init['post_ns']['p10']:.4f} "
           f"({at_init['n_pooled_pairs']} pooled pairs, {time.time() - t0:.1f}s)", flush=True)
 
     print(f"  K={K}: probe-training {probe_steps} steps (batch_size={probe_batch_size})...", flush=True)
@@ -163,9 +91,10 @@ def run_one_k(K, tokenizer_pools, device, seed, n_entities, n_resamples, probe_s
 
     gen_trained = torch.Generator(device=device).manual_seed(seed + 2)
     t2 = time.time()
-    after_probe = measure_drift(model, cfg, pools, n_entities, n_resamples, gen_trained, device)
-    print(f"  K={K} AFTER {probe_steps}-STEP PROBE: mean={after_probe['mean']:.4f} "
-          f"p10={after_probe['p10']:.4f} ({after_probe['n_pooled_pairs']} pooled pairs, "
+    after_probe = measure_drift(model, cfg, pools, n_entities, n_resamples, gen_trained, device,
+                                  pre_ns_attr="geo3_last_k_eff_raw")
+    print(f"  K={K} AFTER {probe_steps}-STEP PROBE: post_ns mean={after_probe['post_ns']['mean']:.4f} "
+          f"p10={after_probe['post_ns']['p10']:.4f} ({after_probe['n_pooled_pairs']} pooled pairs, "
           f"{time.time() - t2:.1f}s)", flush=True)
 
     return {
@@ -209,10 +138,22 @@ def main():
     # sec 14.6's registered launch read: gated on K=16's TRAINED-checkpoint mean/p10
     # (sec 14.5's pinned drift-band definition reads the TRAINED final checkpoint,
     # not the at-init measurement -- "does training shrink the drift" is the live question).
+    #
+    # KEY_ANCHORING_DESIGN.md sec 4 / sec 3.4 caveat box FIX (the shared-c
+    # bug, corrected in DELTANET_RD_EXACTNESS_DESIGN.md sec 16.7 from the
+    # coordinator's GPU re-measurement): the PRE-FIX code extracted ONLY
+    # K=16's `after_probe` drift and passed it as the SOLE (drift_mean,
+    # drift_p10) pair to launch_read, which then applied that ONE scalar to
+    # BOTH K in its internal loop -- so any recorded "K=32 prediction" was
+    # silently computed at K=16's own drift, never K=32's. THE FIX: build a
+    # per-K dict from EVERY measured K's own `after_probe` drift and pass
+    # that whole dict to the per-K-threaded launch_read (geo3_simulator.py)
+    # -- each K is now ALWAYS simulated at its OWN measured drift.
     assert 16 in per_k, "the sec 14.6 GATE requires K=16 to have been measured -- pass --k with 16 included"
-    lr16 = per_k[16]["after_probe"]
-    launch = g3sim.launch_read(drift_mean=lr16["mean"], drift_p10=lr16["p10"],
-                                gram_resid=1e-2, seed=args.seed, device=device)
+    drift_by_k = {K: {"mean": per_k[K]["after_probe"]["post_ns"]["mean"],
+                       "p10": per_k[K]["after_probe"]["post_ns"]["p10"]} for K in per_k}
+    launch = g3sim.launch_read(drift_by_k, gram_resid=1e-2, seed=args.seed, device=device)
+    lr16 = per_k[16]["after_probe"]["post_ns"]
 
     out = {
         "design_ref": "DELTANET_RD_EXACTNESS_DESIGN.md sec 14.6 Wave -1 gating diagnostic",
@@ -232,8 +173,9 @@ def main():
     print(f"  predicted K=16 h=4 rec@0.9 (mean mapping) = {launch['predicted_gate_value']:.4f}")
     print(f"  LAUNCH = {launch['launch']}")
     if 32 in per_k:
-        lr32 = per_k[32]["after_probe"]
-        print(f"  [non-gating] K=32 trained-checkpoint drift: mean={lr32['mean']:.4f} p10={lr32['p10']:.4f}, "
+        lr32 = per_k[32]["after_probe"]["post_ns"]
+        print(f"  [non-gating] K=32 trained-checkpoint drift (K=32's OWN measured drift, per-K-threaded "
+              f"-- sec 4's fix): mean={lr32['mean']:.4f} p10={lr32['p10']:.4f}, "
               f"predicted K=32 h=4 rec@0.9 (mean mapping) = {launch['mean'][32]['rec'][4]:.4f}")
     print(f"wrote {args.out}")
     print("=" * 70)

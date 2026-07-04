@@ -173,17 +173,30 @@ def pairwise_drift_stats(out_rows: torch.Tensor) -> tuple[float, float]:
     return off.mean().item(), torch.quantile(off, 0.10).item()
 
 
-def launch_read(drift_mean: float, drift_p10: float,
-                 gram_resid: float = 1e-2, seed: int = 0,
+def launch_read(drift_by_k: dict, gram_resid: float = 1e-2, seed: int = 0,
                  device: str | None = None) -> dict:
     """The pre-registered sec-14.6 launch read. GATE: predicted K=16 h=4
     rec@0.9 >= 0.8 under the MEAN drift mapping. The p10 (worst-case) run
-    and both K=32 predictions are reported alongside, non-gating."""
-    out = {"gate_cell": "K=16 h=4", "gate_bar": 0.8, "inputs": {
-        "drift_mean": drift_mean, "drift_p10": drift_p10, "gram_resid": gram_resid}}
-    for label, c in (("mean", drift_mean), ("p10", drift_p10)):
-        out[label] = {K: simulate_recovery(K, gram_resid, c, seed=seed, device=device)
-                      for K in (16, 32)}
+    and both K=32 predictions are reported alongside, non-gating.
+
+    KEY_ANCHORING_DESIGN.md sec 3.4 caveat box / sec 4 (the shared-c bug,
+    corrected in DELTANET_RD_EXACTNESS_DESIGN.md sec 16.7 from the
+    coordinator's GPU re-measurement, archive:
+    experiment-runs/2026-07-04_geo3_simulator_recheck/): the PRE-FIX
+    signature took a single scalar `(drift_mean, drift_p10)` applied to
+    EVERY K in the loop below -- so a caller that measured DIFFERENT drift
+    at K=16 vs K=32 (the realistic case) silently had K=32's own
+    measurement discarded in favor of K=16's. THIS signature takes a
+    per-K dict instead (`drift_by_k = {16: {"mean":.., "p10":..},
+    32: {"mean":.., "p10":..}, ...}`) so each K is ALWAYS simulated at its
+    OWN measured drift -- the bug is closed by construction, not by
+    caller discipline. See `_self_test_per_k_c_differs` below for the
+    registered regression test (K=16 and K=32 calls must receive
+    different `c` whenever the measured per-K drifts differ)."""
+    out = {"gate_cell": "K=16 h=4", "gate_bar": 0.8, "inputs": {"drift_by_k": drift_by_k, "gram_resid": gram_resid}}
+    for label in ("mean", "p10"):
+        out[label] = {K: simulate_recovery(K, gram_resid, drift_by_k[K][label], seed=seed, device=device)
+                      for K in drift_by_k}
     out["predicted_gate_value"] = out["mean"][16]["rec"][4]
     out["launch"] = bool(out["predicted_gate_value"] >= 0.8)
     return out
@@ -211,6 +224,51 @@ def make_adversarial_duplicates(B, K, d, gen, device, n_dup_pairs=3, eps=1e-5):
 
 
 # ---------------------------------------------------------------------------
+# KEY_ANCHORING_DESIGN.md sec 4 / sec 3.4 caveat box's registered regression
+# test: the per-K drift-threading unit test. Asserts K=16 and K=32 calls
+# receive DIFFERENT `c` values from a per_k dict when the measured drifts
+# differ -- the exact bug geo3_drift_diagnostic.py::main() + the pre-fix
+# launch_read had (K=16's drift silently applied to both K).
+# ---------------------------------------------------------------------------
+
+def _self_test_per_k_c_differs() -> None:
+    """CPU-only, no GPU needed (this module has no fla/chunk_delta_rule
+    dependency). Monkeypatches simulate_recovery to RECORD the `c`
+    (align_cos) it was called with per K, then asserts launch_read threads
+    DIFFERENT per-K drift into DIFFERENT per-K calls."""
+    import unittest.mock as mock
+
+    calls = []
+    real_simulate_recovery = simulate_recovery
+
+    def _spy(K, gram_resid, align_cos, **kwargs):
+        calls.append((K, align_cos))
+        return real_simulate_recovery(K, gram_resid, align_cos, **kwargs)
+
+    drift_by_k = {16: {"mean": 0.9416, "p10": 0.9243}, 32: {"mean": 0.9037, "p10": 0.8576}}
+    with mock.patch(__name__ + ".simulate_recovery", side_effect=_spy):
+        out = launch_read(drift_by_k, seed=0, device="cpu")
+
+    c_by_k_mean = {K: c for K, c in calls if K in (16, 32)}
+    mean_calls = [(K, c) for K, c in calls]
+    # every (K, "mean") call must have used K's OWN drift_by_k[K]["mean"], never the other K's
+    for K in (16, 32):
+        assert any(k == K and abs(c - drift_by_k[K]["mean"]) < 1e-9 for k, c in mean_calls), \
+            f"K={K}'s 'mean' simulate_recovery call never used its OWN drift_by_k[{K}]['mean']"
+    k16_cs = {c for k, c in mean_calls if k == 16}
+    k32_cs = {c for k, c in mean_calls if k == 32}
+    assert k16_cs != k32_cs, (
+        f"REGRESSION: K=16 and K=32 calls used the SAME c values ({k16_cs} vs {k32_cs}) despite "
+        f"differing measured per-K drift ({drift_by_k}) -- this is exactly the shared-c bug "
+        f"(sec 3.4 caveat box) reappearing.")
+    assert out["predicted_gate_value"] == out["mean"][16]["rec"][4]
+    print(f"  [geo3_simulator per-K threading] K=16 mean-mapping c values used: {sorted(k16_cs)}")
+    print(f"  [geo3_simulator per-K threading] K=32 mean-mapping c values used: {sorted(k32_cs)}")
+    print("  per-K drift threading OK -- K=16/K=32 calls received DIFFERENT c "
+          "for differing measured drift (the shared-c bug does NOT reproduce)")
+
+
+# ---------------------------------------------------------------------------
 # Provenance / regression main: reproduces the attack probe's own checks
 # ---------------------------------------------------------------------------
 
@@ -226,14 +284,18 @@ if __name__ == "__main__":
             print(f"  K={K} resid~{tr:<5} actual={r['actual_gram_resid']:.3f} "
                   f"rec@0.9 h1-4={[round(r['rec'][h], 3) for h in (1, 2, 3, 4)]}")
 
-    print("\n(C->launch_read) example: attack-measured drift at K=32-level (0.88/0.85):")
-    lr = launch_read(drift_mean=0.88, drift_p10=0.85, device=DEV)
+    print("\n(C->launch_read) example: attack-measured drift, K=16/K=32 DIFFERENT (0.9416/0.9037):")
+    lr = launch_read(drift_by_k={16: {"mean": 0.9416, "p10": 0.9243}, 32: {"mean": 0.9037, "p10": 0.8576}},
+                      device=DEV)
     print(f"  gate {lr['gate_cell']} >= {lr['gate_bar']}: predicted={lr['predicted_gate_value']:.3f} "
           f"launch={lr['launch']}")
     for label in ("mean", "p10"):
         for K in (16, 32):
             print(f"  [{label}] K={K}: rec h1-4="
                   f"{[round(lr[label][K]['rec'][h], 3) for h in (1, 2, 3, 4)]}")
+
+    print("\n(D) per-K drift-threading regression test (sec 4 / sec 3.4 caveat box):")
+    _self_test_per_k_c_differs()
 
     print("\n(A) Newton-Schulz convergence on near-collinear + adversarial inputs:")
     for K in (16, 32, 48):

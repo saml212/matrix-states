@@ -45,6 +45,7 @@ import torch.nn.functional as F
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # pod-safe imports
 import embed_arms
 import grammar_rd as grd
+import key_anchoring as ka
 import model_rd as mrd
 from grammar_rd import DeltaNetRDTaskConfig, EntityPools, sample_batch_rd, self_query_tokens
 from model_rd import (DeltaNetRDBlock, TruncationError, assert_rank_le, entity_subspace_rank,
@@ -88,6 +89,64 @@ C16_VALUE_SALVAGE_RATIO = 0.1
 # enforces it).
 NCE_LAMBDA = 1.0
 NCE_T = 0.1
+
+
+class AnchorEMA:
+    """KEY_ANCHORING_DESIGN.md sec 2.3/sec 2.4 -- candidate (c)'s stop-
+    gradient EMA anchor buffer (ALSO the substrate candidate (b), if ever
+    triggered, would reuse -- sec 2.3's own "same anchor as (b)" note).
+    Insertion site is run_deltanet_rd.py's loss composition ONLY (sec 2.4:
+    "no change to model_rd.py's bind()/readout() at all") -- this class is
+    deliberately NOT a model_rd.py nn.Module; it lives entirely in the
+    training loop, mirroring ZCAWhiten's own no-grad EMA discipline
+    (momentum 0.99, bias-corrected) but keyed PER-ENTITY (vocab-indexed)
+    rather than a single population statistic, since different entities
+    are updated at different frequencies across episodes -- bias
+    correction is therefore tracked with a PER-ROW update counter, not one
+    global step counter (a deliberate, documented adaptation of
+    ZCAWhiten's convention to a sparse, per-key update pattern)."""
+
+    def __init__(self, vocab_size_total: int, d_state: int, device, momentum: float = 0.99):
+        self.momentum = momentum
+        self.table = torch.zeros(vocab_size_total, d_state, device=device)
+        self.counts = torch.zeros(vocab_size_total, device=device)
+
+    @torch.no_grad()
+    def update(self, key_ids: torch.Tensor, k_eff_items: torch.Tensor) -> None:
+        """key_ids: (B,K) int64. k_eff_items: (B,K,d) -- the POST-NS
+        orthogonalized keys geo3 already produced this step (sec 2.3:
+        "after geo3's own NS pass produces k_eff_items for this episode").
+        stop-gradient by construction (torch.no_grad(), .detach())."""
+        flat_ids = key_ids.reshape(-1)
+        flat_vals = k_eff_items.reshape(-1, k_eff_items.shape[-1]).detach()
+        for eid in torch.unique(flat_ids).tolist():
+            rows = flat_vals[flat_ids == eid]
+            new_val = rows.mean(dim=0)
+            old_val = self.table[eid]
+            n = self.counts[eid].item()
+            blended = old_val * self.momentum + new_val * (1.0 - self.momentum) if n > 0 else new_val
+            self.table[eid] = blended
+            self.counts[eid] = n + 1
+
+    def bias_corrected(self, entity_id: int) -> torch.Tensor:
+        n = self.counts[entity_id].item()
+        if n == 0:
+            return self.table[entity_id]
+        bc = 1.0 - self.momentum ** n
+        return self.table[entity_id] / max(bc, 1e-8)
+
+    def loss_anchor(self, key_ids: torch.Tensor, k_eff_items: torch.Tensor) -> torch.Tensor:
+        """sec 2.4's L_anchor = sum_j (1 - cos(k_eff_items[j], stopgrad(A[key_ids[j]])));
+        mean over the batch (matching cosine_loss's own per-row-then-mean
+        convention). Rows with zero prior updates (a cold anchor) contribute
+        a well-defined but uninformative term (cos against an all-zero
+        row -> 0, i.e. maximal loss) -- acceptable since the EMA warms up
+        within the first few hundred steps for any entity that recurs at
+        all (K draws per episode over a 107-name pool)."""
+        B, K, d = k_eff_items.shape
+        anchor_rows = self.table[key_ids].detach()             # (B,K,d), stop-gradient by construction
+        cos = F.cosine_similarity(k_eff_items, anchor_rows, dim=-1)
+        return (1.0 - cos).mean()
 
 
 def cosine_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -308,7 +367,8 @@ def _dump(path, obj):
 
 def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_model, d_state,
                       trajectory, checkpoints, n_skipped, t0, timed_out, steps_completed, complete,
-                      exactness_config=None, geo3_admission=None):
+                      exactness_config=None, geo3_admission=None, anchor_lambda_summary=None,
+                      unblind_override_stamp=None):
     loss_config = {"objective": "L_cos + lambda*L_nce (section 14.4)",
                    "nce_lambda": NCE_LAMBDA, "nce_temperature": NCE_T,
                    "negatives": "in_episode_K_clauses", "stop_grad": False,
@@ -319,6 +379,8 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
     if ec.get("fnce_m") is not None:
         loss_config["negatives"] = f"fixed_m={ec['fnce_m']}_uniform_over_K-1_nontargets"   # F-nce, sec 5.5
         loss_config["fnce_m"] = ec["fnce_m"]
+    if ec.get("lambda_anchor", 0.0):
+        loss_config["lambda_anchor"] = ec["lambda_anchor"]    # KEY_ANCHORING sec 2.4, candidate (c)
     result = {
         "K": cfg.K, "conv_size": cfg.conv_size, "d_model": d_model, "d_state": d_state,
         "H_train": list(cfg.H_train), "H_test": list(cfg.H_test), "H_extra": list(cfg.H_extra),
@@ -355,6 +417,12 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
             "geo3_active": bool(ec.get("geo3_active", False)),
             "geo3_n_iter": ec.get("geo3_n_iter"),
             "geo3_resid_tol": ec.get("geo3_resid_tol"),
+            # KEY_ANCHORING_DESIGN.md sec 2.2/2.4: ALWAYS recorded (default off), same
+            # always-recorded-even-at-off discipline as every field above.
+            "anchor_active": bool(ec.get("anchor_active", False)),
+            "anchor_lambda_mode": ec.get("anchor_lambda_mode"),
+            "anchor_lambda_fixed": ec.get("anchor_lambda_fixed"),
+            "lambda_anchor": ec.get("lambda_anchor", 0.0),
         },
         "trajectory": trajectory, "checkpoints": checkpoints,
         "wall_s": time.time() - t0, "timed_out": timed_out,
@@ -367,6 +435,20 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
         # geo3_active -- sec 14.9 item 5/14.10). LOGGED FIELDS, never asserts -- the
         # sweep/analysis layer applies these as a read, not this script.
         result["geo3_admission"] = geo3_admission
+    if anchor_lambda_summary is not None:
+        # KEY_ANCHORING_DESIGN.md sec 3.2/sec 2.2's REQUIRED per-seed summary
+        # fields (final value / trailing-window mean / trailing-window range
+        # / band), computed from the SAME lambda values already logged into
+        # `trajectory` above -- a machine-readable field, not eyeballing.
+        result["anchor_lambda_summary"] = anchor_lambda_summary
+    # KEY_ANCHORING_DESIGN.md sec 3.6 Rev 5 (R4-1 fix): unblind_override is
+    # ALWAYS written (True or False) so its absence can never be read as
+    # evidence of a clean blind; claim_tier is written ONLY on the override
+    # path (the one tier verdict knowable at launch time regardless of
+    # anything the run later earns -- non-override tiers stay readout-time
+    # verdicts per the admission stack). Mirrors lm_pretrain_rd.py's own
+    # claim_tier / _assemble_result precedent (L1090, smoke-asserted L1420).
+    result.update(ka.assemble_claim_tier_fields(unblind_override_stamp))
     return result
 
 
@@ -446,12 +528,47 @@ def compute_geo3_admission(cfg, trajectory: list, checkpoints: list, n_geo3_fall
 
 def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, batch_size=128,
           lr=3e-4, seed=0, force_rank_k=None, log_every=200, ckpt_every=2000, out_path=None,
-          timeout_s=None, lambda_orth=0.0, fnce_m=None, exactness_config=None):
+          timeout_s=None, lambda_orth=0.0, fnce_m=None, exactness_config=None,
+          lambda_anchor: float = 0.0, unblind_override_at: float | None = None,
+          drift_probe_active: bool = False, drift_probe_n_entities: int = 8,
+          drift_probe_n_resamples: int = 32):
+    """lambda_anchor (KEY_ANCHORING_DESIGN.md sec 2.4, candidate (c)): soft
+    cross-episode drift regularizer weight, > 0 only for candidate (c)
+    cells (requires model.geo3_active; model.anchor_active stays False --
+    "no change to model_rd.py's bind()/readout() at all", sec 2.4). Model
+    behavior at inference is BYTE-IDENTICAL to bare geo3; only this
+    training-time loss term differs.
+
+    drift_probe_active (sec 3.6): the reference arms' own per-checkpoint
+    drift instrumentation ("identical config to the archived geo3 cells
+    PLUS the per-checkpoint drift diagnostic active") -- both post-NS and
+    pre-NS pooled drift, logged into each checkpoint's own `drift_probe`
+    field (`key_anchoring.reference_arm_result_valid`'s own expected
+    shape). Uses `key_anchoring.measure_drift` (fla-free, imported above as
+    `ka`) -- no circular import (this module is never imported BACK by
+    key_anchoring.py)."""
     t0 = time.time()
     gen = torch.Generator(device=device).manual_seed(seed)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     trunc_impl = getattr(model, "trunc_impl", "eigh")
     model.train()
+
+    if model.anchor_active and model.anchor_lambda_mode == "learned":
+        # sec 3.2/R3 finding 1's startup assertion: fires loudly on a
+        # mis-set cadence rather than silently resizing the lambda-band
+        # trailing window.
+        ka.assert_lambda_log_cadence(log_every)
+
+    if lambda_anchor:
+        assert model.geo3_active, \
+            "lambda_anchor > 0 (candidate (c)) requires model.geo3_active=True -- the regularizer " \
+            "targets the SAME k_eff_items geo3's own NS pass produces (sec 2.4)"
+        assert not model.anchor_active, \
+            "lambda_anchor > 0 (candidate (c)) and anchor_active (candidate (d)) are mutually " \
+            "exclusive interventions -- run them as separate cells, never combined (sec 2.4 vs 2.2)"
+        anchor_ema = AnchorEMA(model.vocab_size_total, model.d_state, device)
+    else:
+        anchor_ema = None
 
     trajectory, checkpoints = [], []
     n_skipped = 0
@@ -513,6 +630,17 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                 # gathers. TRAINING-loss-only (never touches eval scoring).
                 l_orth = orth_penalty(k_eff_items).mean()
                 loss = loss + lambda_orth * l_orth
+            l_anchor = None
+            if lambda_anchor and anchor_ema is not None:
+                # KEY_ANCHORING_DESIGN.md sec 2.4, candidate (c): soft
+                # cross-episode drift regularizer against the STOP-GRADIENT
+                # EMA anchor's CURRENT (pre-this-step) value -- update the
+                # EMA only AFTER the loss term reads it, so the regularizer
+                # targets a settled population value, not this step's own
+                # just-computed output.
+                l_anchor = anchor_ema.loss_anchor(b["key_ids"], k_eff_items)
+                loss = loss + lambda_anchor * l_anchor
+                anchor_ema.update(b["key_ids"], k_eff_items)
             opt.zero_grad()
             loss.backward()
         except TruncationError:
@@ -544,11 +672,21 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                           "skip_rate_so_far": n_skipped / step}
             if l_orth is not None:
                 traj_entry["loss_orth"] = l_orth.item()
+            if l_anchor is not None:
+                traj_entry["loss_anchor"] = l_anchor.item()
+            if model.anchor_active and model.anchor_lambda_mode == "learned":
+                # KEY_ANCHORING_DESIGN.md sec 2.2's REQUIRED logged field --
+                # the full trajectory, at the registered LAMBDA_LOG_CADENCE_STEPS
+                # cadence (asserted at this function's own startup, above).
+                traj_entry["lambda"] = float(model.anchor_lambda().item())
             trajectory.append(traj_entry)
             extra = f"  [skip_rate {n_skipped/step:.4%}]" if n_skipped else ""
             orth_str = f" orth {l_orth.item():.4f}" if l_orth is not None else ""
+            anchor_str = f" anchor {l_anchor.item():.4f}" if l_anchor is not None else ""
+            lambda_str = f" lambda {traj_entry['lambda']:.4f}" if "lambda" in traj_entry else ""
             print(f"  step {step:6d}  loss {loss.item():.4f} (cos {l_cos.item():.4f} "
-                  f"nce {l_nce.item():.4f}{orth_str})  eff_rank {er:.3f}{extra}", flush=True)
+                  f"nce {l_nce.item():.4f}{orth_str}{anchor_str}{lambda_str})  eff_rank {er:.3f}{extra}",
+                  flush=True)
 
         if step % ckpt_every == 0 or step == steps:
             with torch.no_grad():
@@ -582,13 +720,28 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
             res = {"step": step, "M2_in_distribution": m2, "M3_held_out": m3,
                    "C17_heldout_entities": c17, "C19_heldout_template": c19,
                    "fixedref_entity_subspace": fixedref}
+            if drift_probe_active:
+                # sec 3.6's reference-arm per-checkpoint drift instrumentation
+                # ("identical config to the archived geo3 cells PLUS the
+                # per-checkpoint drift diagnostic active"). pre_ns_attr picks
+                # the arm-appropriate side channel: candidate (d)'s blended
+                # pre-NS key, or bare geo3/(c)'s raw pre-NS key.
+                pre_ns_attr = ("anchor_last_k_blend_raw" if model.anchor_active
+                               else "geo3_last_k_eff_raw" if model.geo3_active else None)
+                drift_gen = torch.Generator(device=device).manual_seed(seed + 50_000 + step)
+                dp = ka.measure_drift(model, cfg, pools, drift_probe_n_entities,
+                                        drift_probe_n_resamples, drift_gen, device,
+                                        pre_ns_attr=pre_ns_attr)
+                res["drift_probe"] = {"post_ns": dp["post_ns"], "pre_ns": dp.get("pre_ns")}
             checkpoints.append(res)
             geo3_admission = (compute_geo3_admission(cfg, trajectory, checkpoints, n_geo3_fallback_train_steps)
                                if model.geo3_active else None)
             partial = _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report,
                                         d_model, d_state, trajectory, checkpoints, n_skipped, t0,
                                         timed_out=False, steps_completed=steps_completed, complete=False,
-                                        exactness_config=exactness_config, geo3_admission=geo3_admission)
+                                        exactness_config=exactness_config, geo3_admission=geo3_admission,
+                                        unblind_override_stamp=(ka.override_stamp_payload(unblind_override_at)
+                                                                 if unblind_override_at is not None else None))
             _dump(out_path, partial)
             primary_h1 = m2[cfg.H_train[0]]
             nan = float("nan")   # entries may be the all-batches-skipped variant (TruncationError)
@@ -607,10 +760,18 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
 
     geo3_admission_final = (compute_geo3_admission(cfg, trajectory, checkpoints, n_geo3_fallback_train_steps)
                              if model.geo3_active else None)
+    anchor_lambda_summary = None
+    if model.anchor_active and model.anchor_lambda_mode == "learned":
+        lambda_traj = [{"step": t["step"], "lambda": t["lambda"]} for t in trajectory if "lambda" in t]
+        if lambda_traj:
+            anchor_lambda_summary = ka.lambda_window_summary(lambda_traj)
+    unblind_stamp = ka.override_stamp_payload(unblind_override_at) if unblind_override_at is not None else None
     return _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_model, d_state,
                              trajectory, checkpoints, n_skipped, t0, timed_out, steps_completed,
                              complete=(not timed_out and steps_completed >= steps),
-                             exactness_config=exactness_config, geo3_admission=geo3_admission_final)
+                             exactness_config=exactness_config, geo3_admission=geo3_admission_final,
+                             anchor_lambda_summary=anchor_lambda_summary,
+                             unblind_override_stamp=unblind_stamp)
 
 
 # ---------------------------------------------------------------------------
@@ -973,6 +1134,43 @@ def main():
                      help="F-geo-3's per-episode Gram-residual fallback trigger (sec 14.4: "
                           "~100-300x tighter than the behavioral bars require, chosen by analogy "
                           "to i-strong's exactness). No effect when --use-geo3 is not given.")
+    # -- KEY_ANCHORING_DESIGN.md sec 2.2/2.4 extensions. ALL default to OFF
+    # (anchor_active=False, lambda_anchor=0.0) -- byte-identical default
+    # path, same discipline as every DELTANET_RD_EXACTNESS_DESIGN.md sec
+    # 4/5.5 extension above.
+    ap.add_argument("--anchor-active", action="store_true",
+                     help="KEY_ANCHORING sec 2.2, candidate (d), PRIMARY: trainable per-entity "
+                          "anchor table + masked gather/scatter blend, inserted PRE-Newton-Schulz "
+                          "at the existing geo3 site. REQUIRES --use-geo3. Mutually exclusive with "
+                          "--strong-pin (model_rd.py asserts this) and with --lambda-anchor "
+                          "(candidate (c) is a separate cell, sec 2.4).")
+    ap.add_argument("--anchor-lambda-mode", choices=["learned", "fixed"], default="learned",
+                     help="'learned' (default): single learned scalar, sigmoid(raw_param), init 0.5. "
+                          "'fixed': a pre-registered grid value (sec 2.2's fallback diagnostic, "
+                          "e.g. one of {0.3,0.6,0.9}) -- REQUIRES --anchor-lambda-fixed. No effect "
+                          "when --anchor-active is not given.")
+    ap.add_argument("--anchor-lambda-fixed", type=float, default=None,
+                     help="the fixed-grid lambda value when --anchor-lambda-mode=fixed.")
+    ap.add_argument("--lambda-anchor", type=float, default=0.0,
+                     help="KEY_ANCHORING sec 2.4, candidate (c): soft cross-episode drift "
+                          "regularizer weight (L_anchor added to the training loss only; model "
+                          "behavior at inference is byte-identical to bare geo3). REQUIRES "
+                          "--use-geo3. Mutually exclusive with --anchor-active. 0.0 (default) = OFF.")
+    ap.add_argument("--drift-probe", action="store_true",
+                     help="KEY_ANCHORING sec 3.6: activate the per-checkpoint drift-diagnostic "
+                          "probe (post-NS + pre-NS pooled cross-episode drift, logged into every "
+                          "checkpoint's own 'drift_probe' field) -- REQUIRED for the reference arms "
+                          "(sec 3.6's band-derivation input); harmless but unnecessary elsewhere.")
+    ap.add_argument("--drift-probe-n-entities", type=int, default=8,
+                     help="sec 14.6's pinned minimum (>=8) -- only increase, never decrease.")
+    ap.add_argument("--drift-probe-n-resamples", type=int, default=32,
+                     help="sec 14.6's pinned minimum (>=32) -- only increase, never decrease.")
+    ap.add_argument("--unblind-override-at", type=float, default=None,
+                     help="KEY_ANCHORING sec 3.6 Rev 5: threaded by the launcher's "
+                          "--unblind-override path (run_deltanet_rd_exactness_sweep.py) -- the "
+                          "override timestamp. When given, this run's OWN result JSON is stamped "
+                          "claim_tier='descriptive' + unblind_override=True + this timestamp at "
+                          "assembly time (never post-hoc). Never set this by hand for an ordinary run.")
     ap.add_argument("--out", type=str, default=None)
     args = ap.parse_args()
 
@@ -1034,6 +1232,21 @@ def main():
             "--use-geo3 and --strong-pin are MUTUALLY EXCLUSIVE (sec 14.2) -- model_rd.py's own " \
             "constructor assert would also catch this, checked here for a clearer CLI-level error"
 
+    if args.anchor_active:
+        assert args.use_geo3, \
+            "--anchor-active REQUIRES --use-geo3 (KEY_ANCHORING sec 2.2: anchoring is a " \
+            "modification to geo3's own write path)"
+        assert not args.lambda_anchor, \
+            "--anchor-active (candidate (d)) and --lambda-anchor (candidate (c)) are MUTUALLY " \
+            "EXCLUSIVE -- separate cells, sec 2.2 vs sec 2.4"
+        if args.anchor_lambda_mode == "fixed":
+            assert args.anchor_lambda_fixed is not None, \
+                "--anchor-lambda-mode=fixed requires --anchor-lambda-fixed"
+    if args.lambda_anchor:
+        assert args.use_geo3, \
+            "--lambda-anchor > 0 (candidate (c)) REQUIRES --use-geo3 (KEY_ANCHORING sec 2.4: the " \
+            "regularizer targets geo3's own k_eff_items)"
+
     cfg = DeltaNetRDTaskConfig(K=args.K, conv_size=args.conv_size, H_train=tuple(args.h_train),
                                 H_test=tuple(args.h_test), H_extra=tuple(args.h_extra))
     model = DeltaNetRDBlock(pools.vocab_size_total, d_model=args.d_model, d_state=args.d_state,
@@ -1042,7 +1255,11 @@ def main():
                              frozen_row_ids=frozen_row_ids, frozen_row_values=frozen_row_values,
                              strong_pin_ids=strong_pin_ids, strong_pin_values=strong_pin_values,
                              use_zca=args.use_zca, geo3_active=args.use_geo3,
-                             geo3_n_iter=args.geo3_n_iter, geo3_resid_tol=args.geo3_resid_tol).to(device)
+                             geo3_n_iter=args.geo3_n_iter, geo3_resid_tol=args.geo3_resid_tol,
+                             anchor_active=args.anchor_active, anchor_lambda_mode=args.anchor_lambda_mode,
+                             anchor_lambda_fixed=args.anchor_lambda_fixed,
+                             anchor_train_ids=(pools.train_name_ids if args.anchor_active else None)
+                             ).to(device)
     n_params = sum(p.numel() for p in model.parameters())
     print(f"K={args.K} conv_size={args.conv_size} T_bind={cfg.T_bind} d_model={args.d_model} "
           f"d_state={args.d_state} H_train={cfg.H_train} H_test={cfg.H_test} H_extra={cfg.H_extra} "
@@ -1050,6 +1267,9 @@ def main():
           f"embed_source={args.embed_source} strong_pin={args.strong_pin} "
           f"lambda_orth={args.lambda_orth} use_zca={args.use_zca} fnce_m={args.fnce_m} "
           f"use_geo3={args.use_geo3} geo3_n_iter={args.geo3_n_iter} geo3_resid_tol={args.geo3_resid_tol} "
+          f"anchor_active={args.anchor_active} anchor_lambda_mode={args.anchor_lambda_mode} "
+          f"anchor_lambda_fixed={args.anchor_lambda_fixed} lambda_anchor={args.lambda_anchor} "
+          f"drift_probe={args.drift_probe} "
           f"params={n_params} device={device}", flush=True)
 
     exactness_config = {
@@ -1061,12 +1281,19 @@ def main():
         "geo3_resid_tol": args.geo3_resid_tol if args.use_geo3 else None,
         "strong_pin": args.strong_pin, "lambda_orth": args.lambda_orth,
         "use_zca": args.use_zca, "fnce_m": args.fnce_m,
+        "anchor_active": args.anchor_active,
+        "anchor_lambda_mode": args.anchor_lambda_mode if args.anchor_active else None,
+        "anchor_lambda_fixed": args.anchor_lambda_fixed if args.anchor_active else None,
+        "lambda_anchor": args.lambda_anchor,
     }
     result = train(model, cfg, pools, pool_report, device, d_model=args.d_model, d_state=args.d_state,
                     steps=args.steps, batch_size=args.batch_size, lr=args.lr, seed=args.seed,
                     force_rank_k=args.force_rank_k, log_every=args.log_every, ckpt_every=args.ckpt_every,
                     out_path=args.out, timeout_s=args.internal_timeout, lambda_orth=args.lambda_orth,
-                    fnce_m=args.fnce_m, exactness_config=exactness_config)
+                    fnce_m=args.fnce_m, exactness_config=exactness_config,
+                    lambda_anchor=args.lambda_anchor, unblind_override_at=args.unblind_override_at,
+                    drift_probe_active=args.drift_probe, drift_probe_n_entities=args.drift_probe_n_entities,
+                    drift_probe_n_resamples=args.drift_probe_n_resamples)
     result["n_params"] = n_params
     if embed_meta:
         result["embed_meta"] = embed_meta

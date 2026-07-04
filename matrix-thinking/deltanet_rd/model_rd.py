@@ -87,6 +87,9 @@ from fla.ops.delta_rule import chunk_delta_rule
 
 from deltanet_core import apply_state_power
 from rank_utils import effective_rank, stable_rank, truncate_to_rank
+from key_anchoring import (ANCHOR_INIT_SEED, LAMBDA_LOG_CADENCE_STEPS, LAMBDA_WINDOW_LOG_POINTS,
+                            anchor_blend_gather_scatter, frame_potential_init,
+                            raw_table_conditioning)
 
 # chunk_delta_rule's BACKWARD crashes with a CUDA illegal memory access
 # (inside prepare_wy_repr_bwd_kernel's Triton autotuner) in two measured
@@ -610,13 +613,33 @@ class DeltaNetRDBlock(nn.Module):
                  strong_pin_ids: torch.Tensor | None = None,
                  strong_pin_values: torch.Tensor | None = None,
                  use_zca: bool = False, geo3_active: bool = False,
-                 geo3_n_iter: int = 12, geo3_resid_tol: float = 1e-2):
+                 geo3_n_iter: int = 12, geo3_resid_tol: float = 1e-2,
+                 anchor_active: bool = False, anchor_lambda_mode: str = "learned",
+                 anchor_lambda_fixed: float | None = None,
+                 anchor_train_ids: torch.Tensor | None = None,
+                 anchor_init_seed: int | None = None):
         """DELTANET_RD_EXACTNESS_DESIGN.md sec 4/4.4/5.5/14 extensions, ALL
         ADDITIVE and OFF BY DEFAULT (embed_source="learned",
         frozen_row_ids=None, strong_pin_ids=None, use_zca=False,
         geo3_active=False) -- run_deltanet_rd.py's default path is
         byte-identical to the pre-extension code when none of these are
         passed (regression-checked, see run_deltanet_rd.py's smoke).
+
+        anchor_active/anchor_lambda_mode/anchor_lambda_fixed/anchor_train_ids
+          (KEY_ANCHORING_DESIGN.md sec 2.2, candidate (d), PRIMARY): the
+          trainable per-entity anchor table + masked gather/scatter blend,
+          inserted PRE-Newton-Schulz at the existing geo3_active site (a
+          modification to geo3's OWN write path, never a replacement for
+          it -- asserted below: anchor_active implies geo3_active).
+          anchor_train_ids: (n_train,) int64 real vocab ids (typically
+          pools.train_name_ids) -- the ONLY rows the frame-potential init
+          populates and the ONLY rows anchor_trained_mask marks True (the
+          C17/M1 held-out bypass, sec 3.3: held-out rows carry NO anchor
+          arithmetic in either direction). anchor_lambda_mode="learned":
+          a single learned scalar nn.Parameter, sigmoid(raw_param), init
+          raw_param=0.0 -> lambda=0.5 (sec 2.2). "fixed": a non-trainable
+          scalar from the pre-registered grid {0.3,0.6,0.9} (sec 2.2's
+          fallback diagnostic), REQUIRES anchor_lambda_fixed.
 
         embed_source: informational only at this layer (recorded into the
           result JSON by run_deltanet_rd.py); the CALLER (embed_arms.py +
@@ -740,6 +763,87 @@ class DeltaNetRDBlock(nn.Module):
         # attributes off the model right after each bind() call instead).
         self.geo3_last_fallback_triggered: bool | None = None
         self.geo3_last_resid: torch.Tensor | None = None
+        # KEY_ANCHORING_DESIGN.md sec 3.1/sec 4's item-5 instrument symmetry:
+        # the PRE-Newton-Schulz raw gathered key, stashed EVERY time
+        # geo3_active fires (regardless of anchor_active) -- the evidentiary
+        # object for bare-geo3/candidate-(c) drift measurement
+        # (key_anchoring.measure_drift's pre_ns_attr="geo3_last_k_eff_raw"),
+        # a passive read-only side channel added under the SAME "side
+        # channel, not part of bind()'s return tuple" discipline as the two
+        # attributes just above -- purely additive, no behavior change.
+        self.geo3_last_k_eff_raw: torch.Tensor | None = None
+
+        # -- KEY_ANCHORING_DESIGN.md sec 2.2, candidate (d): trainable
+        # per-entity anchor table + masked gather/scatter blend --
+        assert not (anchor_active and self.strong_pin_active), \
+            "anchor_active and strong_pin_active are MUTUALLY EXCLUSIVE (sec 2.2, mirroring the " \
+            "geo3/strong_pin exclusivity above): both replace k_eff_items at write time"
+        assert not anchor_active or geo3_active, \
+            "anchor_active REQUIRES geo3_active (sec 2.2): anchoring is defined as a modification " \
+            "to geo3's own write path, not a replacement for it"
+        self.anchor_active = anchor_active
+        self.anchor_lambda_mode = anchor_lambda_mode
+        # sec 2.2/sec 3.1: the PRE-Newton-Schulz blended key, stashed EVERY
+        # bind() call while anchor_active -- item 5's evidentiary quantity
+        # for candidate (d) (key_anchoring.measure_drift's
+        # pre_ns_attr="anchor_last_k_blend_raw"). Same side-channel
+        # discipline as geo3_last_resid/geo3_last_k_eff_raw above.
+        self.anchor_last_k_blend_raw: torch.Tensor | None = None
+        if anchor_active:
+            assert anchor_lambda_mode in ("learned", "fixed"), \
+                f"anchor_lambda_mode must be 'learned' or 'fixed', got {anchor_lambda_mode!r}"
+            assert anchor_train_ids is not None and anchor_train_ids.numel() > 0, \
+                "anchor_active requires anchor_train_ids (the trained-entity vocab ids, e.g. " \
+                "pools.train_name_ids) -- the frame-potential init and anchor_trained_mask are " \
+                "both built over exactly this id set"
+            anchor_train_ids = anchor_train_ids.detach().cpu().to(dtype=torch.int64)
+            n_train = anchor_train_ids.numel()
+            assert n_train <= d_state * 4, \
+                f"sanity guard: {n_train} trained entities is implausibly large relative to " \
+                f"d_state={d_state} for the frame-potential init (expected ~107 at d_state=64, " \
+                f"sec 2.2) -- check anchor_train_ids before proceeding"
+            seed = anchor_init_seed if anchor_init_seed is not None else ANCHOR_INIT_SEED
+            init_table = frame_potential_init(n_train, d_state, seed=seed)   # (n_train, d_state)
+            cond = raw_table_conditioning(init_table)
+            assert cond["sigma_ratio_pass"] and cond["max_abs_cos_pass"], (
+                f"anchor init FAILED its own Gate-2 construction legs at model-build time "
+                f"(sigma_ratio={cond['sigma_ratio']:.4f}, max_abs_cos={cond['max_abs_cos']:.4f}) -- "
+                f"this should never happen for the registered frame-potential recipe; re-run "
+                f"gate2_construction_test.py before proceeding")
+            anchor_table_full = torch.zeros(vocab_size_total, d_state)
+            anchor_table_full[anchor_train_ids] = init_table
+            self.anchor_table = nn.Embedding(vocab_size_total, d_state)
+            with torch.no_grad():
+                self.anchor_table.weight.copy_(anchor_table_full)
+            trained_mask = torch.zeros(vocab_size_total, dtype=torch.bool)
+            trained_mask[anchor_train_ids] = True
+            self.register_buffer("anchor_trained_mask", trained_mask)
+            self.register_buffer("anchor_train_ids_buf", anchor_train_ids)
+            if anchor_lambda_mode == "learned":
+                # sigmoid(raw_param), init raw_param=0.0 -> lambda=0.5 (sec 2.2)
+                self.anchor_lambda_raw = nn.Parameter(torch.tensor(0.0))
+                self.anchor_lambda_fixed_value = None
+            else:
+                assert anchor_lambda_fixed is not None, \
+                    "anchor_lambda_mode='fixed' requires anchor_lambda_fixed (the pre-registered " \
+                    "grid value, e.g. one of {0.3, 0.6, 0.9}, sec 2.2)"
+                self.anchor_lambda_raw = None
+                self.register_buffer("anchor_lambda_fixed_value",
+                                       torch.tensor(float(anchor_lambda_fixed)))
+        else:
+            self.anchor_table = None
+            self.anchor_trained_mask = None
+            self.anchor_train_ids_buf = None
+            self.anchor_lambda_raw = None
+            self.anchor_lambda_fixed_value = None
+
+    def anchor_lambda(self) -> torch.Tensor:
+        """Current lambda value: sigmoid(raw_param) for learned mode, the
+        fixed grid value otherwise (sec 2.2). Only valid when anchor_active."""
+        assert self.anchor_active, "anchor_lambda() called but anchor_active is False"
+        if self.anchor_lambda_mode == "learned":
+            return torch.sigmoid(self.anchor_lambda_raw)
+        return self.anchor_lambda_fixed_value
 
     # -- shared feature path (embedding -> proj -> causal conv), no recurrence --
 
@@ -875,8 +979,27 @@ class DeltaNetRDBlock(nn.Module):
             # downstream of the model's OWN learned k_conv.
             k_norm_raw = F.normalize(k_conv, dim=-1)
             k_eff_raw = _gather_at(k_norm_raw, item_pos)     # (B,K,d) -- this episode's raw item keys
+            self.geo3_last_k_eff_raw = k_eff_raw.detach()    # sec 3.1 item-5 instrument symmetry (bare
+                                                               # geo3 / candidate (c)'s pre-NS evidentiary
+                                                               # object) -- side channel, always stashed
+                                                               # while geo3_active, independent of anchor_active
+            ns_input = k_eff_raw
+            if self.anchor_active:
+                # KEY_ANCHORING_DESIGN.md sec 2.2, candidate (d): masked
+                # gather/scatter blend, INSERTED PRE-NEWTON-SCHULZ -- the
+                # masked blend touches TRAINED-entity rows ONLY; held-out
+                # rows are a bit-exact clone (sec 3.3's C17 bypass). The
+                # downstream geo3_orthogonalize_logged call below is
+                # UNCHANGED (sec 2.2: "the same single Newton-Schulz pass
+                # geo3 already pays for -- no second orthogonalization").
+                key_ids = batch["key_ids"]
+                lam = self.anchor_lambda()
+                k_blend_raw = anchor_blend_gather_scatter(
+                    k_eff_raw, self.anchor_table.weight, self.anchor_trained_mask, key_ids, lam)
+                self.anchor_last_k_blend_raw = k_blend_raw.detach()   # sec 3.1 item-5 pre-NS side channel
+                ns_input = k_blend_raw
             k_eff_items, fallback_triggered, resid = geo3_orthogonalize_logged(
-                k_eff_raw, n_iter=self.geo3_n_iter, resid_tol=self.geo3_resid_tol)  # (B,K,d), Q Q^T ~= I_K
+                ns_input, n_iter=self.geo3_n_iter, resid_tol=self.geo3_resid_tol)  # (B,K,d), Q Q^T ~= I_K
             self.geo3_last_fallback_triggered = fallback_triggered           # sec 14.4 logging side channel
             self.geo3_last_resid = resid.detach()
             k_norm = k_norm_raw.clone()                      # non-write positions: the model's own raw
@@ -1697,6 +1820,94 @@ def _self_test() -> None:
     assert m_g3.W_beta.weight.grad is not None and m_g3.W_beta.weight.grad.abs().sum().item() > 0.0, \
         "W_beta received NO gradient under geo3_active -- beta should remain learned"
     print("    v_proj/W_beta confirmed nonzero-gradient (still learned) in the full forward+backward")
+
+    print("\n[model 17] KEY_ANCHORING_DESIGN.md sec 2.2/5, candidate (d) -- REAL bind()-level "
+          "smokes 2/3/4 (the GPU-required complement to smoke_key_anchoring.py's CPU-only "
+          "insertion-site tests): forward/backward through the ACTUAL chunk_delta_rule kernel "
+          "with anchor_active=True, held-out bypass bit-identity through a real mixed-split "
+          "batch, and the NaN-injection held-out-gradient-isolation test through the real bind() "
+          "path.")
+    torch.manual_seed(15)
+    m_anchor = DeltaNetRDBlock(pools.vocab_size_total, d_model=64, d_state=64, conv_size=cfg.conv_size,
+                                buffer_id=pools.buffer_id, geo3_active=True, geo3_n_iter=12,
+                                geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
+                                anchor_train_ids=pools.train_name_ids).to(DEV)
+    assert m_anchor.anchor_active and m_anchor.geo3_active
+
+    guard_raised_anchor = False
+    try:
+        DeltaNetRDBlock(pools.vocab_size_total, d_model=64, d_state=64, conv_size=cfg.conv_size,
+                         buffer_id=pools.buffer_id, geo3_active=False, anchor_active=True,
+                         anchor_train_ids=pools.train_name_ids)
+    except AssertionError:
+        guard_raised_anchor = True
+    assert guard_raised_anchor, "anchor_active without geo3_active did NOT raise -- sec 2.2's assert has no teeth"
+    print("  anchor_active-requires-geo3_active guard has teeth")
+
+    gen_anchor = torch.Generator(device=DEV).manual_seed(16)
+    b_anchor = grd.sample_batch_rd(cfg, 16, gen_anchor, hop_set=cfg.H_train, pools=pools, device=DEV)
+
+    print("  item 2: forward/backward through the REAL bind() (chunk_delta_rule kernel), "
+          "anchor_active=True -- finite loss, finite grad on EVERY parameter incl. anchor_table "
+          "and the lambda raw-param")
+    m_anchor.zero_grad()
+    pred_a, tgt_a, S_a, k_eff_a, v_eff_a = m_anchor(b_anchor)
+    loss_a = (1.0 - F.cosine_similarity(pred_a, tgt_a, dim=-1)).mean()
+    loss_a.backward()
+    assert torch.isfinite(loss_a).item()
+    for name, p in m_anchor.named_parameters():
+        assert p.grad is None or torch.isfinite(p.grad).all(), f"non-finite grad through real bind(): {name}"
+    assert m_anchor.anchor_table.weight.grad is not None and \
+        torch.isfinite(m_anchor.anchor_table.weight.grad).all()
+    assert m_anchor.anchor_lambda_raw.grad is not None and torch.isfinite(m_anchor.anchor_lambda_raw.grad).all()
+    print(f"    loss={loss_a.item():.4f} finite; ALL params incl. anchor_table/anchor_lambda_raw "
+          f"have finite grad through the REAL kernel call")
+
+    print("  item 3: held-out bypass bit-identity through a REAL bind() call -- an all-held-out "
+          "batch (heldout entity pool) must be bit-identical to the same weights with anchor "
+          "disabled")
+    m_plain_anchor = DeltaNetRDBlock(pools.vocab_size_total, d_model=64, d_state=64, conv_size=cfg.conv_size,
+                                       buffer_id=pools.buffer_id, geo3_active=True, geo3_n_iter=12,
+                                       geo3_resid_tol=1e-2, anchor_active=False).to(DEV)
+    m_plain_anchor.load_state_dict(m_anchor.state_dict(), strict=False)   # anchor_table/lambda absent on m_plain_anchor
+    gen_ho = torch.Generator(device=DEV).manual_seed(17)
+    b_heldout = grd.sample_batch_rd(cfg, 16, gen_ho, hop_set=cfg.H_train, pools=pools, device=DEV,
+                                      use_heldout_entities=True)
+    with torch.no_grad():
+        _, k_eff_anchor_ho, _ = m_anchor.bind(b_heldout)
+        _, k_eff_plain_ho, _ = m_plain_anchor.bind(b_heldout)
+    assert torch.equal(k_eff_anchor_ho, k_eff_plain_ho), \
+        "sec 3.3 VIOLATED: an all-held-out batch's k_eff_items differs anchor_active=True vs False " \
+        "through the REAL bind() call"
+    print("    all-held-out batch: k_eff_items BIT-IDENTICAL anchor_active True vs False "
+          "through the real kernel call")
+
+    print("  item 4: NaN-injected held-out anchor rows, mixed-split batch, THROUGH the real "
+          "bind() call -- finite grads, exact-zero held-out anchor grad, bit-equal held-out "
+          "output rows despite the planted NaNs")
+    torch.manual_seed(18)
+    m_anchor_nan = DeltaNetRDBlock(pools.vocab_size_total, d_model=64, d_state=64, conv_size=cfg.conv_size,
+                                     buffer_id=pools.buffer_id, geo3_active=True, geo3_n_iter=12,
+                                     geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
+                                     anchor_train_ids=pools.train_name_ids).to(DEV)
+    with torch.no_grad():
+        m_anchor_nan.anchor_table.weight[~m_anchor_nan.anchor_trained_mask] = float("nan")
+    gen_mixed = torch.Generator(device=DEV).manual_seed(19)
+    b_mixed = grd.sample_batch_rd(cfg, 16, gen_mixed, hop_set=cfg.H_train, pools=pools, device=DEV)
+    m_anchor_nan.zero_grad()
+    pred_n, tgt_n, S_n, k_eff_n, v_eff_n = m_anchor_nan(b_mixed)
+    (1.0 - F.cosine_similarity(pred_n, tgt_n, dim=-1)).mean().backward()
+    assert all(p.grad is None or torch.isfinite(p.grad).all() for p in m_anchor_nan.parameters()), \
+        "NaN-injected held-out anchor rows produced a non-finite gradient SOMEWHERE through the real bind()"
+    heldout_rows_mask = ~m_anchor_nan.anchor_trained_mask[b_mixed["key_ids"]]
+    assert (m_anchor_nan.anchor_table.weight.grad[~m_anchor_nan.anchor_trained_mask] == 0).all(), \
+        "anchor_table gradient at held-out rows is not EXACTLY zero through the real bind() call"
+    with torch.no_grad():
+        _, k_eff_ref_mixed, _ = m_plain_anchor.bind(b_mixed)   # pure-geo3 reference at the same weights
+    assert torch.equal(k_eff_n[heldout_rows_mask], k_eff_ref_mixed[heldout_rows_mask]), \
+        "held-out rows are NOT bit-equal to pure-geo3 despite the planted NaNs (real bind() call)"
+    print("    ALL grads finite; anchor_table grad EXACTLY zero at held-out rows; held-out "
+          "k_eff_items rows bit-equal to pure-geo3 -- confirmed through the REAL kernel call")
 
     print("\nmodel_rd self-test PASSED")
 
