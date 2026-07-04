@@ -787,6 +787,23 @@ data existed at registration time):**
    §7 300 GPU-h ceiling, the decision escalates to the user per §8's cut order —
    `--accept-budget-override` remains a human-only decision.
 
+**AMENDMENT (Rev 2.2, 2026-07-04, USER-SIGNED-OFF, registered BEFORE any rung-3
+training data exists):** rung-3 runs at **1.5B tokens/run, token-matched to
+rung-2**, superseding the table's pre-calibration "~3B tokens/run" scope. Basis:
+measured rung-3 pricing at batch 16 (per_step_s=0.7135, per_ckpt_s=35.94, banked
+2026-07-04 after the batch-32 OOM) prices 3B/run at ≈152.5 GPU-h — over the §7
+300 GPU-h ceiling (cumulative ≈316) — and 3B also exceeds both extended-mix
+5-epoch ceilings (1.72B/2.09B), so the epoch-cap gate refuses it regardless.
+At 1.5B/run: 183,105 steps at batch 16 × seq 512, ≈38.1 h/run, ≈76.2 GPU-h for
+the 2-run wave, cumulative ≈266/300 — passes every gate. Scientific upside of
+token-matching: the rung-2→rung-3 comparison holds tokens AND corpora fixed,
+isolating the pure scale axis (392M→1.31B). The user approved this option
+2026-07-04 (morning summary exchange). Readout criteria (§5.7) unchanged.
+Sequencing unchanged: rung-3 launches only after rung-2's §5.10 harvest reads
+out. Operational note: pre-create `/data/lm_rd_trackc_ckpts/wave3` + the
+`results/lm_rd_trackc/wave3/checkpoints` symlink before launch (checkpoint
+volume ≈2×184×5.3GB ≈ 1.95TB; /data has ~17TB free — gate (f) verifies live).
+
 ### 5.7 Success/failure criteria — both directions pre-registered as informative
 
 **"Persists" (falsification-of-dissolution) criterion, stated before any data exists:**
