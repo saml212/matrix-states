@@ -507,6 +507,22 @@ user review: author block, venue, figures, title, appendix).
   nats both corpora from mixing; whole-state rank flat). Full tables/caveats:
   `SCALE_TRANSFER_DESIGN.md` §5.9; archive
   `experiment-runs/2026-07-04_trackc_rung1/` + SSD.
+- **SCALE-TRANSFER Track C Wave 2 (rung-2, 392M) LAUNCHED 2026-07-04 06:10 UTC**
+  under the §5.6 Rev 2.1 amendment (pre-registered before launch: 3 seeds ×
+  2 EXTENDED mixes = 6 runs, ≈21.6 h/run, 129.4 GPU-h, cumulative 162.5/300;
+  bars unchanged). Extended mixes: `reasoning_mix_eot_extended` 344.7M /
+  `wikitext103_mix_eot_extended` 418.1M train tok (5-epoch ceilings 1.72B/2.09B
+  ≥ the 1.5B/run target; val/test byte-identical to originals). Box: tmux
+  `trackc2` (GPUs 0-5, supervisor loop, stop via `touch STOP_trackc2`), tmux
+  `trackc_g6` (GPU 6: rung-3 two-point calibration w/ cold-Triton retry, then
+  `--wave mixcontrol` 6×14M on ext mixes). Independent launch audit (fresh
+  agent) passed everything EXCEPT one FATAL it caught before launch: wave-2
+  checkpoints (~865GB) would have landed on the 94%-full root disk —
+  remediated by relocating all `results/lm_rd_trackc/*/checkpoints` to
+  `/data/lm_rd_trackc_ckpts/` with symlinks (root now 13% used). Harvest due
+  ~04:00 UTC 2026-07-05: attractor probe on 6×92 checkpoints vs rung-1 band +
+  mixcontrol mix-axis read. Launch artifacts:
+  `experiment-runs/2026-07-04_trackc_rung2/`.
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;
