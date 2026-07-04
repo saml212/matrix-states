@@ -1,5 +1,53 @@
 # KEY_ANCHORING_DESIGN — From "orthogonal but drifting" to "stable and orthogonal": a follow-on to F-geo-3
 
+> **Rev 3 — 2026-07-03, post-attack-round-2.** The round-2 adversarial
+> review (`matrix-thinking/KEY_ANCHORING_ATTACK_R2.md`) returned
+> **NEEDS-REV-3: all three R1 FATALs confirmed CLOSED** (the verifier
+> independently re-derived the frame-potential construction from scratch
+> and matched the λ=1 K=32 ceiling at 0.9424 vs. this doc's 0.9423,
+> seed-stable 0.940–0.942 across 4 seeds) — but it constructed **real
+> counterexamples for 5 new MAJORs**, all addressed in this revision
+> under binding orchestrator decisions; the finding→change map is
+> **§8.2**. The load-bearing changes: **λ-band assignment gains an
+> oscillation exclusion** (final value AND trailing-1,000-step mean in
+> the same band AND trailing-window range < 0.1 — the same medicine
+> candidate (b) already got at m4; §3.2); **items 6a/6b are promoted
+> INTO the launch gate and re-run at every admission checkpoint** —
+> closing R2's demonstrated blind spot (a moderately-collapsed table
+> sailed through both Rev 2 gates), with that table pinned as a seeded
+> REGRESSION CASE the amended gate demonstrably fails (run this session:
+> 6a=0.0762 FAIL, 6b=0.5371 FAIL, NS-only leg PASS — §4); the
+> **early-stop kill leg is now value-Gram-only at two consecutive
+> checkpoints** (h4 recorded but non-load-bearing — its 58% seed spread
+> vs. value-Gram's ~15% is disclosed inline; §3.4); the provisional
+> 0.92/0.96 "engaged" bands are **superseded by
+> reference-arm-derived bands** — the archive check confirmed R2's
+> finding (no per-seed drift data exists anywhere in the archives; the
+> 0.9037/0.9416 reference points were 5,000-step probe measurements,
+> never the true final checkpoint), so **2 bare-geo3 reference seeds per
+> K join the manifest (~3.3 GPU-h) and bands are pinned from their
+> measured final-checkpoint drift BEFORE any anchor arm is read out**
+> (ordering/blinding protocol, §3.6); a **per-entity anchor-alignment
+> readout** is pre-registered with pinned engagement bands (≥90%
+> headline / 50–90% partial / <50% not-recruited; §3.7); the R2
+> simulator discrepancy is **RESOLVED mid-revision by the coordinator's
+> GPU re-measurement — it was a BUG, not platform sensitivity**:
+> `geo3_drift_diagnostic.py::main()` extracts only K=16's measured
+> drift and `launch_read()` applies that one scalar to BOTH K, so the
+> recorded K=32 "prediction" (0.7734) was computed at K=16's drift
+> (0.9416), never at K=32's own (0.9037) — with correct per-K inputs
+> the mapping **underestimates** K=32 recovery (0.06–0.09 vs. measured
+> 0.4368), GPU==CPU everywhere, parent §16.7 now carries the dated
+> correction (archive:
+> `experiment-runs/2026-07-04_geo3_simulator_recheck/`); the §3.4
+> caveat box states the true cause, Gate 1 is unaffected (K=16 used its
+> own drift), and the per-K drift-threading API fix + unit test is
+> registered in THIS wave's build scope (§4); minors fixed (the 42.2%
+> arithmetic slip; the C17 bypass rebuilt as a genuinely bit-exact
+> select/where path after R2 measured 337/1000 rows differing at 1 ULP
+> under the old multiply-by-zero framing; the Wave −1 smoke suite
+> itemized, §5).
+
 > **Rev 2 — 2026-07-03, post-attack-round-1.** The independent adversarial
 > review of Rev 1 (`matrix-thinking/KEY_ANCHORING_ATTACK_R1.md`) returned
 > **NEEDS-REV-2: 3 FATAL (two code-verified), 3 MAJOR, 4 MINOR** — the
@@ -87,7 +135,11 @@ now-quantified 2×2 this implies.
   design's own attack surface (§7) leans on), §16 (F-geo-3 results — the
   K=16 hit / K=32 narrow miss / outcome-F attribution this design extends).
 - `matrix-thinking/KEY_ANCHORING_ATTACK_R1.md` — attack round 1 on Rev 1
-  of this document (3 FATAL / 3 MAJOR / 4 MINOR; response map §8).
+  of this document (3 FATAL / 3 MAJOR / 4 MINOR; response map §8.1).
+- `matrix-thinking/KEY_ANCHORING_ATTACK_R2.md` — attack round 2 on Rev 2
+  (R1 FATALs verified closed by independent from-scratch reproduction;
+  5 new MAJOR / 3 MINOR, several with constructed counterexamples;
+  response map §8.2).
 - `matrix-thinking/deltanet_rd/model_rd.py` — read in full; exact insertion
   sites cited by line number throughout §2.
 - `matrix-thinking/deltanet_rd/embed_arms.py` — `_qr_orthonormal_rows`'s
@@ -112,9 +164,13 @@ now-quantified 2×2 this implies.
   construction with its coherence/conditioning/λ=1-drift-ceiling
   measurements (§2.2), the M2 CPU-gate prototype (§4), the item-6
   negative control (§3.1), and geo3's own first-checkpoint trajectory
-  extraction for the M3 early-stop thresholds (§3.4). All are cited with
-  their exact numbers and method — none invented, all reproducible from
-  files already in this repo.
+  extraction for the M3 early-stop thresholds (§3.4); **and (Rev 3)**
+  the pinned moderate-collapse REGRESSION CASE run against the amended
+  Gate 2 (§4), the archive-extractability check for per-seed drift
+  (negative — decision branch for §3.6), geo3's step-4000 trajectory
+  extraction (§3.4), and the corrected band arithmetic (§3.1). All are
+  cited with their exact numbers and method — none invented, all
+  reproducible from files already in this repo.
 
 ---
 
@@ -229,12 +285,23 @@ orthogonality from geo3 — matching the verified 2×2 (§2.0), with no
 appeal to an impossible globally-orthonormal table.
 
 ```
-k_blend_raw[j] = normalize( (1 - λ_eff[j]) · k_eff_raw[j] + λ_eff[j] · A[key_ids[j]] )
-k_eff_items    = geo3_orthogonalize_logged(k_blend_raw, n_iter=..., resid_tol=...)   # UNCHANGED call
+blended      = normalize( (1 - λ) · k_eff_raw + λ · A[key_ids] )        # computed for all rows
+k_blend_raw  = torch.where(trained_mask[key_ids].unsqueeze(-1),          # held-out rows: the ORIGINAL
+                            blended, k_eff_raw)                           # tensor, NO arithmetic applied
+k_eff_items  = geo3_orthogonalize_logged(k_blend_raw, n_iter=..., resid_tol=...)   # UNCHANGED call
 ```
 
-`λ_eff[j] = λ · trained_mask[key_ids[j]]` — the per-entity mask is the M1
-held-out bypass (§3.3). `λ` is registered as a **single learned scalar**
+The `torch.where` select is the M1 held-out bypass (§3.3) — **REVISED at
+Rev 3 (R2 target 6)**: Rev 2's multiply-by-zero formulation
+(`λ_eff = λ·mask`, then re-normalize) claimed the held-out path was
+"exactly the same tensor," but R2 measured that re-normalizing an
+already-unit-norm fp32 vector is NOT a universal no-op (337/1000 rows
+differ by up to 5.96e-8 — 1 ULP — because ‖x‖ is rarely exactly 1.0
+after earlier rounding). The select path routes held-out rows through
+**zero arithmetic** — the original `k_eff_raw` values pass through
+untouched — so bit-identity is genuinely exact, and §3.3's smoke can
+legitimately use strict `torch.equal`. `λ` is registered as a
+**single learned scalar**
 (`sigmoid(raw_param)`, init 0.5), with a **fixed grid** `λ∈{0.3,0.6,0.9}`
 (no further tuning) as the pre-registered fallback diagnostic, run only
 if the learned-λ trajectory lands in an ambiguous band under §3.2.
@@ -321,10 +388,13 @@ and crashes at construction time** on the actual train pool
   the query-side `a_slot` gather from `k_eff_items` (lines 943–953)
   already reads whatever `bind()` produced, regardless of how it got
   there.
-- λ-trajectory logging (F3): `sigmoid(raw_param)` recorded into the
-  result JSON's trajectory records at every existing `log_every` step —
-  the full trajectory is a required field per run, not just the final
-  value (§3.2).
+- λ-trajectory logging (F3; oscillation stats added at Rev 3 per R2
+  MAJOR 5): `sigmoid(raw_param)` recorded into the result JSON's
+  trajectory records at every existing `log_every` step — the full
+  trajectory is a required field per run, and the final-window summary
+  (final value, trailing-1,000-step mean, trailing-1,000-step max−min
+  range) is written as its own result field so §3.2's oscillation
+  exclusion is machine-checkable, not eyeballed.
 
 **Param/FLOP cost.** `vocab_size_total × d_state ≈ 50,259 × 64 ≈ 3.22M` new
 trainable params (~13MB fp32, mirroring the `strong_pin_table` comment's
@@ -526,14 +596,27 @@ non-evidentiary (orchestrator resolution of F1).** The post-NS
 every measurement point — it is the quantity the parent design's §14.5
 bands and the outcome-F attribution were defined on, so continuity
 requires it — but it carries no admission weight in this design.
-Interpretation bands, pinned now from §2.2's computed ceilings (used
-ONLY for outcome disambiguation, §3.5): at K=32, **"mechanically
-engaged" = post-NS drift ≥ 0.92** (more than half the distance from
-geo3's 0.9037 toward the 0.9423 λ=1 ceiling); at K=16, **≥ 0.96**
-(geo3's 0.9416 toward the 0.9745 ceiling). Note the ceiling itself is
-below the parent design's 0.95 LOW band at K=32 — a fixed packing fact
-(§1 scope note), which is precisely why the band is defined relative to
-the computed ceiling rather than to the unreachable 0.95.
+
+**Interpretation bands — PROVISIONAL at Rev 3, superseded by §3.6's
+reference-derived bands before any anchor arm is read out (R2 MAJOR 2 +
+MINOR 1, orchestrator decision 4).** Rev 2 pinned "mechanically
+engaged" = post-NS drift ≥ 0.92 at K=32 / ≥ 0.96 at K=16, justifying
+0.92 as "more than half the distance" from geo3's 0.9037 toward the
+0.9423 ceiling — **that arithmetic was wrong** (gap 0.0386, halfway
+0.9230; 0.92 is **42.2%** of the distance — R2's correction, verified:
+the K=16 figure, 55.9%, was correct but the claim was only made where
+it was false). More importantly, R2 established that the 0.9037/0.9416
+reference points themselves are **single-seed, 5,000-step-probe
+measurements** (`geo3_drift_diagnostic.py` trains a fresh throwaway
+model; it never loads the real 20,000-step checkpoints), with **no
+seed-level variance data anywhere in the archives** — so no threshold
+hung off them can distinguish "engaged" from "baseline drifted up on a
+lucky seed." Resolution: the provisional 0.92/0.96 numbers stand ONLY
+until §3.6's reference arms complete; the operative bands are then
+**derived from measured baseline mean + spread at the true final
+checkpoint**, per the pre-registered formula and blinding protocol in
+§3.6. No anchor-arm outcome is ever read against the provisional
+numbers.
 
 ### 3.2 λ-trajectory bands (NEW, Rev 2 — attack F3, orchestrator-pinned)
 
@@ -548,26 +631,48 @@ the final 1,000 logged steps, per seed. Bands, pinned before any data:
 | **< 0.05** | **anchoring not recruited** | negative — triggers the Outcome-B value-geometry follow-on consideration (§6) |
 | (0.05, 0.2) or (0.8, 0.95) | **ambiguous** | no headline either way; the fixed-grid λ∈{0.3,0.6,0.9} diagnostic (§2.2) becomes the registered follow-up |
 
-Arm-level label: **≥2/3 seeds in a band** assigns that band; seeds
-spread across non-adjacent bands → ambiguous, no headline. The
-headline-eligibility requirement composes with §3.1: **Outcome A (§3.5)
-requires the interior band** — a bar-clearing run in the >0.95 band
-reports as Outcome A′ (pin rediscovery), never as the interaction
-headline.
+**Oscillation exclusion (NEW, Rev 3 — R2 MAJOR 5, orchestrator
+decision 1; the same medicine candidate (b)'s EMA already got at m4).**
+A mean can land in-band while the trajectory oscillates through it —
+Rev 2 logged the trajectory but excluded nothing. Per-seed band
+assignment now requires **all three** of: (i) the **final λ value**
+(last logged step) in the band; (ii) the **trailing-1,000-step mean λ̄**
+in the same band; (iii) the **trailing-1,000-step range**
+(max − min over the final 1,000 logged steps) **< 0.1**. A seed failing
+any of the three lands in the **ambiguous** band regardless of its
+mean — a pre-registered exclusion, not a logging note. The three
+summary statistics are written as machine-readable result fields
+(§2.2's logging bullet), so the exclusion is checkable without
+trajectory eyeballing.
+
+Arm-level label: **≥2/3 seeds in a band** (each seed banded under the
+three-part rule above) assigns that band; seeds spread across
+non-adjacent bands → ambiguous, no headline. The headline-eligibility
+requirement composes with §3.1: **Outcome A (§3.5) requires the
+interior band** — a bar-clearing run in the >0.95 band reports as
+Outcome A′ (pin rediscovery), never as the interaction headline.
 
 ### 3.3 C17 held-out entities (NEW, Rev 2 — attack M1, orchestrator-pinned)
 
 **Eval-time behavior, specified in the design, not left to the build:**
-held-out entities **bypass the blend** — `λ_eff = 0` wherever
-`key_ids ∉ pools.train_name_ids` (the `anchor_trained_mask` buffer,
-§2.2). C17 episodes are drawn entirely from the held-out pool, so under
-the bypass a C17 episode routes through `bind()` **identically to bare
-geo3** — C17 measures pure-geo3 behavior by construction. **Wave −1
-smoke:** on an all-held-out batch with `anchor_active=True`, `bind()`'s
-outputs must be **bit-identical** to the same weights with the anchor
-disabled (achievable exactly: at λ_eff=0 the blend is
-`normalize(1·k_eff_raw + 0) = k_eff_raw`, already unit-norm — the same
-tensor).
+held-out entities **bypass the blend** — the `torch.where` select on the
+`anchor_trained_mask` buffer routes held-out rows through **zero
+arithmetic** (§2.2, Rev 3 form). C17 episodes are drawn entirely from
+the held-out pool, so under the bypass a C17 episode routes through
+`bind()` **identically to bare geo3** — C17 measures pure-geo3 behavior
+by construction. **Wave −1 smoke (restated honestly at Rev 3 — R2
+target 6):** on an all-held-out batch with `anchor_active=True`,
+`bind()`'s outputs must be **bit-identical** (strict `torch.equal`) to
+the same weights with the anchor disabled. Rev 2's version of this
+claim rested on `normalize(1·k_eff_raw + 0·A) = k_eff_raw` being a
+floating-point no-op — R2 measured that it is not (**337/1000
+already-unit-norm fp32 rows differ by up to 5.96e-8 (1 ULP)** on
+re-normalization), which would have made a strict-equality smoke
+intermittently fail on correct code. The Rev 3 select/where path makes
+the bypass genuinely bit-exact — held-out rows are the original tensor
+values, never multiplied, added, or re-normalized — so strict equality
+is the *correct* assertion again, and a failure of this smoke now
+indicates a real routing bug, not ULP noise.
 
 **Reporting requirement:** `C17_heldout_entities` (already computed at
 every checkpoint, zero marginal cost) is a **required, reported
@@ -582,66 +687,243 @@ claim is "anchoring lifts K=32 composition **for entities with trained
 anchors**" — the generalization-to-new-entities question is a named
 follow-on, not a deliverable of this wave.
 
-### 3.4 First-checkpoint early-stop — 'value-geometry-bound' (NEW, Rev 2 — attack M3, orchestrator-pinned)
+### 3.4 Early-stop — 'value-geometry-bound' (Rev 2, attack M3; kill rule REVISED at Rev 3 — R2 target 5, orchestrator decision 3)
 
 A **budget guard, not a claim.** The harness logs checkpoints every
-2,000 steps; the rule fires at the **first** checkpoint (step 2,000),
-per arm, per K, using geo3's own archived same-step trajectories as the
-matched-stage reference (extracted this session from
-`wgeo3_rdx_K32_armgeo3_s{0,1,2}_geo3n20.json` and
-`wgeo3_rdx_K16_armgeo3_s{0,1,2}_geo3n12.json`):
+2,000 steps. Reference values, extracted from geo3's own archived
+trajectories (`wgeo3_rdx_K32_armgeo3_s{0,1,2}_geo3n20.json`,
+`wgeo3_rdx_K16_armgeo3_s{0,1,2}_geo3n12.json` — step-2000 values
+verified independently by R2 target 5, "exact match"):
 
-| K | geo3 step-2000 `value_gram_deviation_mean` (3 seeds) | geo3 step-2000 h=4 `rec@0.9` (3 seeds) | KILL the arm at step 2000 iff |
-|---|---|---|---|
-| 32 | 3.3937 / 3.8543 / 3.8991 (max **3.90**) | 0.1011 / 0.1321 / 0.0834 (min **0.0834**) | value-Gram dev > **3.90** AND h4 < **0.0834** |
-| 16 | 1.6596 / 1.6985 / 1.6701 (max **1.70**) | 0.7797 / 0.7123 / 0.7504 (min **0.7123**) | value-Gram dev > **1.70** AND h4 < **0.7123** |
+| K | geo3 `value_gram_deviation_mean`, step 2000 → step 4000 (3 seeds) | geo3 h=4 `rec@0.9`, step 2000 (3 seeds) |
+|---|---|---|
+| 32 | 3.3937→3.8777 / 3.8543→4.8545 / 3.8991→5.2612 | 0.1011 / 0.1321 / 0.0834 |
+| 16 | 1.6596→1.5092 / 1.6985→1.6324 / 1.6701→1.5695 | 0.7797 / 0.7123 / 0.7504 |
 
-Both conditions must hold (an AND, matching the orchestrator's spec):
-value geometry degrading past geo3's own realized same-step band *while*
-recovery underperforms geo3's own same-step trajectory. A killed arm
-logs outcome **'value-geometry-bound'**, its spend stops at ~10% of the
-run, and the §6 Outcome-B re-attribution machinery takes over. The
-comparison is deliberately step-to-step matched (the same-stage
-discipline attack M2 itself demanded), never early-checkpoint-to-final.
+**The Rev 3 kill rule (replaces Rev 2's single-checkpoint AND):**
+**KILL the arm iff `value_gram_deviation_mean` exceeds the threshold
+(K=32: > 3.90; K=16: > 1.70) at BOTH of the first two consecutive
+checkpoints (step 2,000 AND step 4,000).** Value-Gram is the sole
+load-bearing kill leg. **h4 at the same checkpoints stays recorded and
+reported but is explicitly NON-load-bearing** — the archived data
+itself shows why: at step 2000, K=32, h4 has a **58% relative seed
+spread** (0.0834–0.1321) across just 3 known-good geo3 seeds, while
+value-Gram spreads only ~15% (3.3937–3.8991) at the same checkpoint.
+Rev 2's AND rule conditioned the kill on the *noisier* leg, so an arm
+decisively past the value-Gram threshold would survive whenever h4
+wobbled above its floor by chance — exactly the false-continue R2
+demonstrated is realistic at the observed noise. The two-consecutive-
+checkpoint requirement replaces h4's confirmation role with a
+*persistence* check on the low-noise signal itself.
 
-### 3.5 Outcome frame at K=32 (REVISED, Rev 2)
+**Cost-asymmetry rationale, stated explicitly (R2's own ask):** a
+false-kill costs a mandatory headline cell (re-run ≈0.25–0.28 GPU-h +
+schedule delay + a manifest deviation to document); a false-continue
+costs at most the remaining ~90% of one run (≈0.22–0.25 GPU-h). The
+costs are comparable, so the rule is tuned for *signal quality* rather
+than either error direction: kill only on the low-noise leg, and only
+when it persists across two checkpoints.
+
+**Threshold asymmetry across K, disclosed:** at K=16, geo3's own
+value-Gram *falls* from step 2000 to 4000 (all seeds < 1.70 at step
+4000), so both legs of the K=16 rule are genuinely geo3-relative. At
+K=32, geo3's own value-Gram *rises* (2 of 3 seeds exceed 3.90 by step
+4000), so the step-4000 leg at the same 3.90 threshold is nearly
+automatic once the step-2000 leg fires — at K=32 the load-bearing
+comparison is the step-2000 read (which exceeds geo3's own same-step
+max), and the step-4000 leg functions as a transient-spike guard, not
+an independent geo3-relative test. Stated so the rule is read for what
+it is.
+
+A killed arm logs outcome **'value-geometry-bound'**, its spend stops
+at ~20% of the run, and the §6 Outcome-B re-attribution machinery takes
+over. The comparison is deliberately step-to-step matched (the
+same-stage discipline attack M2 itself demanded), never
+early-checkpoint-to-final.
+
+> **CAVEAT BOX (Rev 3 — R2 MAJOR 3, orchestrator decision 6; RESOLVED
+> mid-revision by the coordinator's GPU re-measurement): the §16.7
+> discrepancy was a BUG, not platform sensitivity.** Root cause,
+> confirmed on GPU and verifiable in the code as committed:
+> `geo3_drift_diagnostic.py::main()` extracts only **K=16's** measured
+> drift (`lr16 = per_k[16]["after_probe"]`) and
+> `geo3_simulator.launch_read()` applies that one scalar `c` to **both**
+> K in its loop — so the recorded "K=32 prediction 0.7734" (§16.1) was
+> actually `simulate_recovery(K=32, c=0.9416)`, computed at **K=16's**
+> drift; K=32's own measured drift (0.9037) was never wired in. With
+> c=0.9416 the 0.7734 reproduces to the last digit; with K=32's own
+> 0.9037 the prediction is **0.06–0.09** — a strong **underestimate** of
+> the measured 0.4368. **GPU==CPU everywhere**; R2's CPU numbers were
+> correct all along (this design's own steep-cliff sweep — c=0.9037 →
+> 0.066, c=0.9423 → 0.746 — is exactly why the wrong `c` produced such a
+> large phantom effect at K=32 and none at K=16). R2's TF32 hypothesis
+> is disconfirmed by the same measurement. The parent
+> `DELTANET_RD_EXACTNESS_DESIGN.md` §16.7 now carries the dated
+> correction (made from the GPU measurement, not CPU inference; archive:
+> `experiment-runs/2026-07-04_geo3_simulator_recheck/`). Consequences
+> here: (i) this section's **kill thresholds are unaffected** — they are
+> calibrated purely from geo3's archived training trajectories and never
+> touch `simulate_recovery` (R2 verified none of outcome-F's three legs
+> do either); (ii) **Gate 1 is unaffected** — K=16 used its own drift
+> and reproduces cleanly (§4); (iii) with correct per-K inputs the
+> registered mapping is **conservative at K=32** (underestimates
+> recovery ~5–7×: predicted 0.06–0.09 vs. geo3's measured 0.4368), so
+> any future K=32 simulator gate would be strict/pessimistic — see §4;
+> (iv) §6's Outcome-B2 value-geometry re-attribution now rests on the
+> simulator-independent evidence ONLY (the measured 1.3–1.8× elevated
+> value-Gram deviation and the intervention-broken key/value
+> correlation, §4) — the old "§16.7 overestimate" narrative is void, and
+> this design's own Rev 1 "~0.19 corrected-simulator ceiling" is
+> **retired as evidence** (the measured 0.4368 already exceeds it,
+> proving that correction over-pessimistic; §4).
+
+### 3.5 Outcome frame at K=32 (REVISED, Rev 2; engagement + derived-band hooks added Rev 3)
 
 - **Outcome A — CONFIRMED (headline).** Pre-NS drift ≥0.95 (item 5) AND
-  h4 ≥0.5, 3/3 admissible under items 1–6, AND final λ̄ in the interior
-  band [0.2, 0.8] (§3.2) for ≥2/3 seeds. KEY_ANCHORING as an
-  *interaction mechanism with the learned key path in the loop* is
-  confirmed.
-- **Outcome A′ — pin rediscovery (existence tier, NEW).** Bars clear but
-  λ̄ > 0.95: SGD re-derives the fixed-frame regime. Confirms
-  reachability-by-gradient-descent of a near-pin solution over the full
-  107 pool (itself one publishable sentence, given §2.2's ceiling
-  computation says even that regime tops out at post-NS drift ~0.9423);
-  does NOT support §1's interaction hypothesis as framed, and is never
-  written up as the headline.
+  h4 ≥0.5, 3/3 admissible under items 1–6, AND per-seed λ in the
+  interior band [0.2, 0.8] under §3.2's three-part rule (final value +
+  trailing mean + range < 0.1) for ≥2/3 seeds, AND per-entity
+  engagement ≥90% (§3.7). KEY_ANCHORING as an *interaction mechanism
+  with the learned key path in the loop* is confirmed.
+- **Outcome A″ — partial anchoring (NEW, Rev 3 — R2 MAJOR 4).** Bars
+  and λ band clear but per-entity engagement lands in [50%, 90%) —
+  reported as a named partial outcome ("anchoring lifts composition for
+  the engaged subset"), **no headline** (§3.7).
+- **Outcome A′ — pin rediscovery (existence tier).** Bars clear but λ
+  lands in the >0.95 band: SGD re-derives the fixed-frame regime.
+  Confirms reachability-by-gradient-descent of a near-pin solution over
+  the full 107 pool (itself one publishable sentence, given §2.2's
+  ceiling computation says even that regime tops out at post-NS drift
+  ~0.9423); does NOT support §1's interaction hypothesis as framed, and
+  is never written up as the headline.
 - **Outcome B — INFORMATIVE NEGATIVE, re-attribution required.** Item 5
   passes (pre-NS drift ≥0.95) but h4 stays <0.5. **Disambiguation step,
-  pre-registered (uses the non-evidentiary post-NS sanity bands, §3.1):**
-  (B1) if post-NS drift stayed **below 0.92** (not mechanically
-  engaged — the stabilized pre-NS input still produces subset-dependent
-  NS output at near-geo3 levels), the failure is attributed to the
-  **coherence-floor residual** (the F2 packing geometry: stabilizing the
-  input cannot stabilize the output past the ~0.9423 ceiling, and the
-  realized input→output stability transfer was worse than the ceiling
-  computation's idealized estimate) — the follow-on is pool restriction
-  or d_state escalation, NOT value geometry; (B2) if post-NS drift
-  **reached ≥0.92** (engaged, near-ceiling) and h4 still missed, the
-  outcome-F attribution is incomplete and the re-attribution goes to
-  **value geometry** (§6) — the direction §4's own pre-existing evidence
-  (geo3's 1.3–1.8× elevated value-Gram deviation; the corrected
-  simulator's ~0.19 ceiling estimate) already points.
+  pre-registered (uses the non-evidentiary post-NS sanity bands — Rev 3:
+  the §3.6 REFERENCE-DERIVED bands, never the provisional 0.92/0.96):**
+  (B1) if post-NS drift stayed **below the derived engaged threshold**
+  (not mechanically engaged — the stabilized pre-NS input still
+  produces subset-dependent NS output at baseline-indistinguishable
+  levels), the failure is attributed to the **coherence-floor residual**
+  (the F2 packing geometry: stabilizing the input cannot stabilize the
+  output past the ~0.9423 ceiling, and the realized input→output
+  stability transfer was worse than the ceiling computation's idealized
+  estimate) — the follow-on is pool restriction or d_state escalation,
+  NOT value geometry; (B2) if post-NS drift **cleared the derived
+  engaged threshold** and h4 still missed, the outcome-F attribution is
+  incomplete and the re-attribution goes to **value geometry** (§6) —
+  supported at Rev 3 by the simulator-independent evidence only
+  (geo3's 1.3–1.8× elevated value-Gram deviation; the
+  intervention-broken key/value correlation, §4), per §3.4's caveat
+  box: the §16.7 simulator-overestimate narrative is void (shared-c
+  bug, corrected in the parent doc from the coordinator's GPU
+  re-measurement), and the Rev 1 "~0.19 corrected-simulator ceiling"
+  is retired as evidence.
 - **Outcome C — mechanism not engaged.** Item 5 fails (pre-NS drift
-  <0.95) regardless of h4 — the intervention did not achieve its own
-  mechanical goal; not an admissible test of the hypothesis either way.
-  Routes to the fixed-grid λ diagnostic or a different candidate, not to
-  reinterpreting the drift-bottleneck theory.
+  <0.95) regardless of h4, **or (Rev 3, §3.7) per-entity engagement
+  <50% regardless of aggregate drift** — the intervention did not
+  achieve its own mechanical goal; not an admissible test of the
+  hypothesis either way. Routes to the fixed-grid λ diagnostic or a
+  different candidate, not to reinterpreting the drift-bottleneck
+  theory.
 - **Outcome D — reference only.** Candidate (a)'s archived
   pool-restricted result — the (multi-concession) ceiling, not a new
   data point this wave produces.
+
+### 3.6 Reference arms and the derived "engaged" bands (NEW, Rev 3 — R2 MAJOR 2, orchestrator decision 4)
+
+**The archive-extractability check, run first per the decision's own
+ordering (this session, CPU, free):** no per-checkpoint or per-seed
+drift field exists in any archived geo3 run JSON (checkpoint keys are
+`M2_in_distribution`/`M3_held_out`/`C17_heldout_entities`/
+`C19_heldout_template`/`fixedref_entity_subspace` only; a full-text
+scan of the JSONs for `drift`/`pairwise`/`resample` finds nothing), and
+`GEO3_DRIFT_DIAGNOSTIC.json` — the only drift measurement in the
+archive — records `sampling_spec.seed = 0`, single seed, 5,000-step
+probe. R2's finding is confirmed in full: **the 0.9037/0.9416 reference
+points are single-seed probe measurements, never measured on the
+actual, fully-trained, bar-clearing geo3 model, and no seed-variance
+data exists.** The free branch is closed; the reference arms are
+therefore required.
+
+**Reference arms (added to the wave manifest):** **2 fresh bare-geo3
+seeds × K∈{16,32} = 4 runs** (seeds 1 and 2; the existing seed-0 probe
+value is quoted as a sanity point only, never pooled into the
+derivation — it is a different training stage), 20,000 steps, identical
+config to the archived geo3 cells **plus the per-checkpoint drift
+diagnostic active** (both the post-NS §16.1 statistic and, for
+instrument symmetry with the anchor arms, the pre-NS raw-key drift;
+`measure_drift` machinery unchanged). Priced at **~3.3 GPU-h** (the
+drift diagnostic's ~2,560 bind() calls per checkpoint × 10 checkpoints
+make these materially more expensive than plain runs; the orchestrator's
+allocation is adopted as the ceiling). These arms close two gaps at
+once: seed variance, and the probe-vs-true-final-checkpoint gap —
+drift is finally measured on real 20,000-step geo3 models.
+
+**Band derivation, pre-registered before any reference data exists:**
+per K, over the ≥2 reference-arm **final-checkpoint** post-NS drift
+values: `engaged_K = mean_ref + 2·s_ref` (sample std; at n=2,
+`s_ref = |x₁−x₂|/√2` — the small n is conceded, and the range is
+reported alongside). **Degenerate-case guard:** if
+`engaged_K ≥ ceiling_K − 0.005` (ceilings: 0.9423 at K=32, 0.9745 at
+K=16, §2.2), the post-NS engagement read is declared **UNRESOLVABLE at
+that K** — baseline seed noise swallows the achievable window — and
+§3.5's B1/B2 disambiguation reports "indeterminate" at that K
+(mirroring the parent §14.5's indeterminate-band discipline), rather
+than leaning on a threshold the noise floor cannot support.
+
+**Ordering and blinding protocol, spelled out (the decision's own
+requirement):**
+1. The reference arms are **first in the manifest** and must COMPLETE
+   before any anchor-arm readout.
+2. The band derivation runs on their final checkpoints; its inputs
+   (per-seed drift values), formula, and outputs (`engaged_K` per K, or
+   UNRESOLVABLE) are recorded in the wave summary as a `BANDS_PINNED`
+   block **before any anchor-arm result JSON is opened or parsed**.
+3. Only then are anchor arms read out ("unblinded"). Anchor arms MAY
+   train concurrently on other GPUs — the blinding is at the analysis
+   step, not the scheduler — but no anchor number (h4, drift, λ,
+   engagement) is looked at, quoted, or summarized before the
+   `BANDS_PINNED` block exists.
+4. The provisional 0.92/0.96 numbers (§3.1) are **void** the moment the
+   derived bands exist; no anchor-arm outcome is ever read against
+   them.
+
+### 3.7 Per-entity engagement readout (NEW, Rev 3 — R2 MAJOR 4, orchestrator decision 5)
+
+R2 target 4(b) established that nothing in the training-eval pipeline
+has per-entity visibility: the headline `rec@0.9` and drift statistics
+are pooled over episodes drawn from the full 107-entity train pool, so
+a passing aggregate could mask a mechanism engaged for a subset of
+entities while the rest behave as bare geo3 — invisible to items 5 and
+6 alike (item 6 checks the table's geometry, not per-entity causal
+engagement). §3.3 already set the precedent at the train/held-out
+boundary; this section extends it **within** the train pool.
+
+- **Required logging:** per-entity anchor alignment
+  `a_e = mean over ≥8 independent episode resamples of
+  cos(pre-NS blended key of entity e, A[e])`, computed for **all 107
+  train entities** (the existing `measure_drift`/
+  `sample_batch_fixed_entity` machinery, swept over the full pool
+  instead of 8 sampled entities — eval-only, no training-path change),
+  logged at every admission checkpoint; the claim readout uses the
+  **final step**. For candidate (b), `a_e` reads the input to the final
+  NS call vs. the EMA row; for candidate (c), the raw gathered
+  `k_eff_raw` vs. the EMA row (no blend exists — the regularizer must
+  move the raw key itself).
+- **Partial-anchoring readout, pre-registered:** `engaged_frac` =
+  fraction of train entities with `a_e ≥ 0.9` at the final step.
+- **Bands (orchestrator-pinned):** **≥ 90%** engaged → headline-eligible
+  (a requirement of Outcome A, §3.5); **[50%, 90%)** → **partial
+  anchoring**, a named outcome (Outcome A″), reported in full, no
+  headline; **< 50%** → **not recruited, regardless of aggregate
+  drift** — routes to Outcome C even if item 5's pooled statistic
+  passes (a pooled drift number carried by a minority of
+  strongly-anchored entities is exactly the aggregate-masking scenario
+  this readout exists to catch).
+- The full per-entity vector (not just the fraction) is a required
+  result field, so the write-up can report *which* entities disengage
+  (e.g. frequency- or coherence-correlated patterns) rather than only
+  how many.
 
 ---
 
@@ -669,61 +951,115 @@ own bare K=16 drift (0.9416) already maps to a passing prediction, so
 Gate 1 cannot fail unless the anchor actively damages K=16 — it screens
 for harm, not for benefit, and says nothing about K=32.
 
-**Gate 2 (NEW, Rev 2 — attack M2, orchestrator-pinned): CPU-only
-pre-spend K=32 construction gate.** Before any Wave 1 spend, verify on
-CPU that the λ=1 anchor-blend construction achieves i-strong-level
-**per-episode** conditioning through the production NS path, over the
-actual pool geometry (32 drawn from 107 in R⁶⁴):
+**Gate 2 (Rev 2 — attack M2; AMENDED at Rev 3 — R2 target 1,
+orchestrator decision 2): CPU-only pre-spend K=32 construction gate,
+now including the table-conditioning legs.** R2 constructed the exact
+counterexample the Rev 2 gates were worried about: a **moderately
+collapsed** table (two shared directions, noise=0.30) that already
+fails items 6a/6b — yet sailed through **both** Rev 2 pre-spend gates
+(Gate 2's NS leg: 0/512 fallbacks; Gate 1: post-NS drift 0.9361 →
+predicted 0.9922 ≥ 0.8), because NS convergence and drift-based
+prediction are simply not collapse detectors. The amendment closes
+this at both ends:
 
-- **Procedure:** on the frozen registered anchor init (the
-  frame-potential table, §2.2), sample **≥512** random 32-subsets (and
-  16-subsets), run the production `newton_schulz` at the production
-  iteration tier (`n_iter=20` for K=32, 12 for K=16 — geo3's own
-  realized tiers, §16.3), and apply the §14.10-analog admission read:
-  **100% of subsets must converge to residual ≤ `resid_tol=1e-2` with
-  zero fallbacks** (item-2 semantics), with the pre-NS subset Gram-dev
-  band reported alongside. **If the construction cannot clear admission
-  on CPU, the wave does not launch.**
-- **Prototype result (this session, on a prototype seed of the init —
-  the gate re-runs at build time on the registered frozen table):**
-  **PASS** — zero fallbacks in 512/512 subsets at both K and both
-  n_iter tiers; max post-NS residual ~8×10⁻⁷; pre-NS subset Gram dev
-  2.508 mean / 2.661 max at K=32 (1.231/1.425 at K=16). The gate is
-  expected to pass at build time; it exists so that a bad registered
-  seed or a build-time construction bug cannot silently reach GPU spend.
-- **Adaptation from the orchestrator's phrasing, reported per
-  instruction:** the spec mentioned running this "on an archived geo3
-  K=32 checkpoint." Two facts make the checkpoint-free form above the
-  correct implementation: (i) at λ=1 the blend is
-  `normalize(A[key_ids])` — a pure function of the anchor table,
-  **checkpoint-independent by construction** — so no trained weights
-  enter the λ=1 computation at all; (ii) the local archive carries
-  result JSONs only, not model weight checkpoints
-  (`experiment-runs/.../wavegeo3/` contents verified — 10 JSONs, no
-  weight files), so a checkpoint-loading variant is not locally runnable
-  anyway. Nothing evidentiary is lost: interior-λ blends mix the anchor
-  subset with geo3's raw keys, and both endpoints' NS-convergence are
-  covered (anchors by this gate, raw keys by geo3's own completed wave);
-  intermediate blends are covered by Wave −1's standard smoke on
-  realistic probe keys.
+- **Procedure (amended):** on the frozen registered anchor init (the
+  frame-potential table, §2.2), the gate now has **three legs, all
+  CPU-cheap, all mandatory**: **(G2-a)** item 6a on the raw table —
+  `σ_64/σ_1 ≥ 0.1` (SVD of the 107×64 train block); **(G2-b)** item 6b —
+  `max_{i≠j}|cos| ≤ 0.5`; **(G2-c)** the NS leg — ≥512 random
+  32-subsets (and 16-subsets) through the production `newton_schulz` at
+  the production tier (`n_iter=20` for K=32, 12 for K=16, §16.3), 100%
+  converging to residual ≤ `resid_tol=1e-2` with zero fallbacks
+  (§14.10-item-2 semantics), pre-NS subset Gram-dev band reported.
+  **Any leg failing blocks the launch.** **And during training (R2
+  target 1(b) — Gate 2 alone can never see SGD-driven collapse): items
+  6a/6b are re-run at every admission checkpoint** on the
+  then-current table (a 107×64 SVD every 2,000 steps — negligible), so
+  a table that *degrades into* the moderate-collapse regime mid-run is
+  flagged at the next checkpoint, not discovered post-hoc at final
+  admission.
+- **Pinned REGRESSION CASE (run this session; the amended gate must
+  demonstrably fail it, and does).** Recipe, pinned for bit-level
+  reproducibility: two shared unit directions and row assignments drawn
+  at torch seed 42; 107 rows perturbed at noise σ=0.30, renormalized
+  (R2's own construction; R2's instance — a different seed — measured
+  σ_ratio=0.0989, max|cos|=0.5376). Measured on the pinned instance:
+  **G2-a: σ_64/σ_1 = 0.0762 → FAIL** (< 0.1); **G2-b: max|cos| =
+  0.5371 → FAIL** (> 0.5); **G2-c: 0/512 fallbacks at both K, max
+  resid ~7×10⁻⁷ → PASS — i.e. the old NS-only gate passes exactly as R2
+  demonstrated, and the amended gate FAILS the table on both new
+  legs.** Context points, same session: a severe collapse (σ=0.05)
+  fails harder (6a=0.0141, 6b=0.9333, NS still 0/512 — NS is blind at
+  every severity); the healthy frame-potential init **passes all three
+  legs** (6a=1.0000, 6b=0.2832, 0/512 fallbacks) — the gate
+  discriminates, it doesn't just reject; and a **localized** collapse
+  (10 of 107 rows onto one direction, σ=0.02, planted on the healthy
+  init) passes 6a (0.1787 — aggregate dilution, as R2 predicted) but
+  is caught by 6b (0.9830 — a max statistic is structurally immune to
+  dilution, R2 target 4(a)'s own reassuring finding, reproduced here
+  with the pinned recipe). This regression case (all four tables, the
+  seed, and the expected verdicts) ships with the build as a committed
+  CPU test.
+- **Residual gap, stated plainly (R2's ask):** Gate 1 remains a
+  harm-screen only (its collapse sensitivity starts around severe
+  collapse — R2 measured post-NS drift 0.8853 → predicted 0.6152 < 0.8
+  at σ=0.05 — but not before); the amended Gate 2 catches init-time
+  collapse; the per-checkpoint 6a/6b re-runs catch training-time
+  collapse at ≤2,000-step latency; and **items 5/6 at final admission
+  remain the evidentiary backstop** — the gates and checkpoint re-runs
+  bound the *cost* of a collapse (≈ one checkpoint interval of one arm,
+  ~0.03 GPU-h, vs. R2's estimate of one full wasted run under Rev 2),
+  they do not replace the admission stack.
+- **Adaptation from the orchestrator's Rev 2 phrasing, unchanged:** the
+  gate is checkpoint-free at init because at λ=1 the blend is
+  `normalize(A[key_ids])` — a pure function of the table — and the
+  local archive carries result JSONs only, no weight checkpoints.
+  Interior-λ blends are covered by Wave −1's standard smoke on
+  realistic probe keys; the Rev 3 checkpoint re-runs now also cover the
+  trained-table case R2 target 1(b) named.
 
-**A reproduction caveat on the simulator at K=32, surfaced this session
-and reported for completeness:** re-running the registered
-`simulate_recovery` on CPU at the recorded §16.1 inputs reproduces the
-K=16 prediction (0.998 vs the recorded 1.0000) but **not** the K=32
-prediction (0.0664 vs the recorded 0.7734, same c=0.9037, same
-`gram_resid=1e-2`, seed 0). The h=4 `rec@0.9` statistic at K=32 sits on
-a steep cliff in the drift cosine (measured this session on one
-CPU/seed: c=0.9037 → 0.066, c=0.9243 → 0.305, c=0.9423 → 0.746), so
-platform/RNG-stream differences move it enormously at K=32 while K=16
-sits on a plateau. This is one more independent reason K=32 simulator
-reads are **non-gating** here (Gate 2, a construction check with no
-simulator in the loop, is the K=32 go/no-go) — and a caution against
-ever citing a single-seed K=32 simulator number without its platform.
+**The K=32 simulator discrepancy — RESOLVED (Rev 3 supplement; the
+Rev 2 "platform sensitivity" reading is retracted).** Rev 2 reported
+that a CPU rerun of `simulate_recovery` reproduced the recorded K=16
+prediction but not the K=32 one (0.0664 vs. recorded 0.7734 "at the
+same c=0.9037") and attributed it to platform/RNG sensitivity; R2
+deepened the investigation (seed sweep, 8× batch, fp64 — all ~0.07–0.10)
+and hypothesized TF32. The coordinator's GPU re-measurement (archive:
+`experiment-runs/2026-07-04_geo3_simulator_recheck/`; parent §16.7 now
+carries the dated correction) found the true cause, a **shared-c bug**:
+`geo3_drift_diagnostic.py::main()` extracts only K=16's drift and
+`launch_read()` applies that one scalar to both K — the recorded 0.7734
+was computed at **c=0.9416 (K=16's drift)**, not at K=32's own 0.9037.
+With the correct per-K input the K=32 prediction is **0.06–0.09**, and
+**GPU==CPU everywhere** — this design's own cliff sweep (c=0.9037 →
+0.066, c=0.9423 → 0.746) already contained the explanation: the wrong
+`c` sat on the far side of the steep K=32 response cliff, while K=16's
+plateau made the same bug invisible there. Three consequences:
+- **Gate 1 is unaffected** — K=16's launch-read used K=16's own drift,
+  and its §16.7 validation (predicted 1.0000 vs. measured 0.9767)
+  stands.
+- **With correct inputs the mapping is CONSERVATIVE at K=32**: it
+  underestimates measured recovery ~5–7× (predicted 0.06–0.09 vs.
+  geo3's realized 0.4368). Any future K=32 simulator gate would
+  therefore be a **strict/pessimistic** gate — a PASS would be strong
+  go-evidence, but a FAIL would not distinguish "won't work" from "the
+  idealized β=1 mapping is simply too pessimistic at K=32" — sized
+  accordingly, K=32 simulator reads stay **non-gating** in this wave
+  (Gate 2, a construction check with no simulator in the loop, remains
+  the K=32 go/no-go).
+- **The per-K drift-threading API fix is registered in THIS wave's
+  build scope** (orchestrator decision, Rev 3 supplement):
+  `geo3_drift_diagnostic.py::main()` and the `launch_read` signature
+  move to a per-K drift dict (each K simulated at its OWN measured
+  mean/p10), with a **unit test asserting the K=16 and K=32 calls
+  receive different `c` values whenever the measured per-K drifts
+  differ**. `keyanchor_drift_diagnostic.py` (the clone) inherits the
+  fixed API by construction.
 
-**The Rev 1 value-Gram calibration investigation (retained in full — it
-now feeds §3.5's Outcome-B disambiguation and §3.4's early-stop).**
-§16.7 named the gap: the registered simulator tilts *only* the value
+**The Rev 1 value-Gram calibration investigation (retained — items 1
+and 3 still feed §3.5's Outcome-B2 evidence base; item 2's ceiling
+estimate is retired at Rev 3, see its inline note).**
+§16.7's original framing named the gap as: the registered simulator tilts *only* the value
 representation by the drift cosine against otherwise-idealized keys; it
 carries no term for the independently measured value-Gram deviation,
 which is **2.7× larger at K=32** (5.9274) than at K=16 (2.1948, §16.2/
@@ -744,9 +1080,17 @@ twice:
 2. **The shared-direction fix (BLOCK-1's own construction, transplanted)
    reaches the target but undershoots the measured outcome:** corrected
    K=32 predictions land at ~0.001 at the measured drift and only
-   **~0.19 even at a perfect (`c=1.0`) drift fix** — the true measured
-   value (0.4368) falls *between* the tilt-only overshoot and this
-   correction's undershoot.
+   **~0.19 even at a perfect (`c=1.0`) drift fix. (REFRAMED, Rev 3
+   supplement:** Rev 1 read the true value 0.4368 as falling "between
+   the tilt-only overshoot and this correction's undershoot" — the
+   "overshoot" side is now void (the 0.7734 was the shared-c bug's
+   artifact, §3.4 caveat box); at correct per-K inputs the tilt-only
+   mapping ALSO underestimates (0.06–0.09), so the measured 0.4368
+   **exceeds every correctly-computed idealized β=1 prediction**, the
+   whole CPU mapping family is conservative at K=32, and this item's
+   "~0.19 ceiling" is **retired as evidence** — it survives only as a
+   demonstration that the value-Gram-corrected mapping is
+   over-pessimistic, never as a bound on what the wave can achieve.)
 3. **Why it undershoots — a real, quantified fact:** across arm
    (iii-β)'s archived trajectories (50 checkpoint×seed points, K=16+32
    pooled), key-Gram and value-Gram deviation are almost perfectly
@@ -793,22 +1137,58 @@ own ×1.3–1.5 unmeasured-code-path convention
 |---|---|---|---|---|
 | Wave 0 (free) | i-strong re-analysis (§2.0); reachability/correlation checks (§4); **Rev 2: anchor-init construction + λ=1 ceiling + item-6 negative control + Gate-2 prototype (§2.2/§3.1/§4)** | 0 | **0** | All done on CPU across the two design sessions |
 | Gate 2 (blocking, CPU) | ≥512-subset NS admission check on the frozen registered init, K∈{16,32} | 0 | **0** | §4; prototype PASS this session |
-| Wave −1 (blocking smoke) | **8 short smoke probes** (anchor init/blend/backward, held-out-bypass bit-identity, λ-logging, item-5/6 instrument checks — NEG1_PROBE_STEPS-class) **+ 2 drift-diagnostic probe runs** (K∈{16,32}, 5,000 steps each) = **10 runs** (m3 fix: prose and column now agree) | 10 | ~0.7–1.0 | Mirrors geo3's own Wave −1 discipline (§14.6); Gate 1 launch-read reads the K=16 probe |
-| Wave 1 — candidate (d), PRIMARY, mandatory | K∈{16,32}×3 seeds×20,000 steps, learned λ | 6 | ~1.5–1.7 | Headline cells; §3.4 early-stop armed |
+| Wave −1 (blocking smoke) | **8 short smoke probes** (itemized below — NEG1_PROBE_STEPS-class) **+ 2 drift-diagnostic probe runs** (K∈{16,32}, 5,000 steps each) = **10 runs** | 10 | ~0.7–1.0 | Mirrors geo3's own Wave −1 discipline (§14.6); Gate 1 launch-read reads the K=16 probe |
+| **Reference arms (NEW, Rev 3 — §3.6, MANDATORY, first in manifest)** | bare-geo3, seeds {1,2} × K∈{16,32}, 20,000 steps, per-checkpoint drift diagnostic active | 4 | **~3.3** | Bands pinned from their final checkpoints BEFORE any anchor readout (§3.6 blinding protocol) |
+| Wave 1 — candidate (d), PRIMARY, mandatory | K∈{16,32}×3 seeds×20,000 steps, learned λ | 6 | ~1.5–1.7 | Headline cells; §3.4 early-stop armed; §3.7 per-entity logging active |
 | Wave 1 — candidate (c), ablation, always-run | K∈{16,32}×3 seeds, one `λ_anchor` (BLOCK-2 template) | 6 | ~1.5–1.7 | Comparison point (§2.4); early-stop armed |
 | Fixed-grid λ diagnostic (conditional) | λ∈{0.3,0.6,0.9}, K=32 only ×1 seed each, fired only on an ambiguous §3.2 band | ≤3 | ~0.8 | Registered follow-up, not tuning — grid fixed now |
 | Seed contingency (finding-5-style, one iteration) | +2 seeds, K=32 headline arm only | ≤2 | ~0.5–0.6 | Same add-seeds-not-steps discipline as §6/§14.10 |
-| **Baseline total (mandatory)** | | 22 | **~3.7–4.4** | |
-| **With both conditionals fired** | | ≤27 | **~5.0–5.8** | |
+| **Baseline total (mandatory, incl. reference arms)** | | 26 | **~7.0–7.7** | |
+| **With both conditionals fired** | | ≤31 | **~8.3–9.1** | |
 | Candidate (b), CONDITIONAL fallback | K∈{16,32}×3 seeds, only on (d)'s diagnosed anchor-collapse failure (§2.3, §6) | ≤6 | ~1.7–2.0 | Reserved, outside the baseline |
-| **All-conditionals-max** | | ≤33 | **~6.7–7.8** | |
+| **All-conditionals-max** | | ≤37 | **~10.0–11.1** | |
 
-**Fit.** Worst case ~7.8 GPU-h — under the orchestrator's ≤10 nominal /
-≤15 reserve wave ceiling with margin, and (combined with F-geo-3's
-realized ~1.67) nowhere near stressing the program's 80 GPU-h cap or
-Wave F's own 15/≤25 reserve (§5.5/§6 of the parent design). The §3.4
-early-stop can only reduce these figures (a killed arm stops at ~10% of
-its run cost).
+**Fit (Rev 3).** Mandatory baseline ~7.0–7.7 GPU-h ≤ the orchestrator's
+**≤10 nominal**; all-conditionals-max ~10.0–11.1 sits inside the **≤15
+reserve** band (the only item that pushes past 10 is candidate (b), the
+explicitly-reserved fallback). Combined with F-geo-3's realized ~1.67
+and the exactness program's measured cumulative spend (R2 target 6:
+**34.9 GPU-h** summed from all archived `wall_s` fields), the worst case
+projects to ~46 GPU-h program-total — nowhere near the 80 GPU-h cap.
+The §3.4 early-stop can only reduce these figures (a killed arm stops at
+~20% of its run cost).
+
+**Wave −1 smoke suite, itemized (Rev 3 — R2 m3: a countable list, not
+an asserted count, matching the parent §14.6's own discipline):**
+
+1. **Anchor init load + Gate-2 legs at init** — the frozen
+   frame-potential table loads with the registered seed; G2-a/b/c pass
+   on it; the §4 regression case (all four pinned tables) produces its
+   expected verdicts.
+2. **Blend forward/backward** — `bind()` with `anchor_active=True`:
+   finite loss, finite gradients on every parameter INCLUDING the
+   anchor table and the λ raw-param, at a realistic and an adversarial
+   (near-duplicate raw keys) input.
+3. **Held-out bypass bit-identity** — all-held-out batch: `bind()`
+   outputs strictly `torch.equal` to the anchor-disabled path (§3.3,
+   valid under the Rev 3 select/where construction).
+4. **Held-out zero-gradient** — mixed-split batch backward: anchor-table
+   gradient exactly zero at every held-out row (§7 item 1).
+5. **λ logging** — trajectory field present at every `log_every` step;
+   final-window summary fields (final value / trailing mean / trailing
+   range) present and consistent with the trajectory (§3.2).
+6. **Item-5 instrument** — the pre-NS side channel
+   (`anchor_last_k_blend_raw`) is populated, detached, correct shape,
+   and differs from post-NS `k_eff_items` on a generic batch (they are
+   different tensors by construction — assert it, don't assume it).
+7. **Item-6 checkpoint wiring** — 6a/6b computed at a live checkpoint
+   on the current table; the pinned collapsed table substituted in
+   place of the real one must FAIL both (negative control wired into
+   the harness, not just the design doc).
+8. **Per-entity engagement instrument (§3.7)** — the full-pool sweep
+   returns 107 values in [−1, 1]; on the healthy init at fixed λ=1 the
+   values are ≈1 by construction (the blend IS the anchor row);
+   per-checkpoint logging present.
 
 ---
 
@@ -817,7 +1197,7 @@ its run cost).
 | Candidate | Kills it |
 |---|---|
 | (a) i-strong (reference) | N/A — already succeeded within its pool-restricted, three-concession scope (§2.1); it sets an existence proof, not this wave's target |
-| (d) primary (learned-λ blend) | Final λ̄ in the <0.05 band for ≥2/3 seeds (anchoring not recruited, §3.2) **or** pre-NS drift <0.95 even at the fixed-grid λ=0.9 cell (item-5 fail — the blend cannot stabilize its own input, Outcome C) **or** anchor-table collapse (items 6a/6b fail — routes to candidate (b), the gradient-free anchor) **or** the §3.4 early-stop fires ('value-geometry-bound') |
+| (d) primary (learned-λ blend) | λ in the <0.05 band for ≥2/3 seeds under §3.2's three-part rule (anchoring not recruited) **or** persistent λ oscillation (trailing-window range ≥0.1 → ambiguous band, no headline, fixed-grid diagnostic fires — §3.2, Rev 3) **or** pre-NS drift <0.95 even at the fixed-grid λ=0.9 cell (item-5 fail — the blend cannot stabilize its own input, Outcome C) **or** per-entity engagement <50% regardless of aggregate drift (§3.7, Rev 3 — Outcome C) **or** anchor-table collapse (items 6a/6b fail at a checkpoint or at final admission — routes to candidate (b), the gradient-free anchor) **or** the §3.4 early-stop fires ('value-geometry-bound') |
 | (b) EMA fallback | Anchor never stabilizes under the pinned numeric criterion (trailing-1,000-step relative Frobenius change ≥1e-3 past step 10,000, §2.3) — measured, not adjectival; distinct from (d)'s failure modes by construction (no gradient into the anchor) |
 | (c) soft `L_anchor` | Saturates like F-geo-1/2 — pre-NS drift improvement small, gain shrinking geometrically per hop (`~ε^h`), the exact §15.3/§15.4 signature |
 
@@ -825,24 +1205,28 @@ its run cost).
 drift ≥0.95 (item 5) but h4 <0.5 everywhere (Outcome B) — what gets
 re-attributed, via §3.5's pre-registered disambiguation:**
 
-- **B1 (post-NS sanity <0.92 — not mechanically engaged):** the failure
-  re-attributes to the **coherence-floor residual** — the F2 packing
-  geometry means input stability does not purchase output stability
-  past the computed ~0.9423 ceiling, and the realized input→output
-  stability transfer was worse than the ceiling computation's idealized
-  version. Named follow-on: a **pool-restricted** anchor cell (≤64
-  train entities — deliberately trading the full-pool scope for
-  geometry, with the i-strong precedent as the limit case) or a
-  `d_state=128` rider (the parent design's own §9 K=d/2 boundary
-  question, where 107 < 128 would dissolve the packing obstruction
-  entirely). Not run inside this wave's budget.
-- **B2 (post-NS ≥0.92 — engaged, near-ceiling, still missing):** the
-  outcome-F attribution is incomplete — **value-side geometry is a
-  second, independently binding constraint** (mechanism (b) in the
-  parent design's §2 taxonomy), exactly the direction §4's pre-existing
-  evidence points (geo3's 1.3–1.8× elevated value-Gram; the corrected
-  simulator's ~0.19 ceiling; the intervention-broken key/value
-  correlation). Named follow-on: a **value-anchoring / joint key+value
+- **B1 (post-NS sanity below the §3.6-derived engaged threshold — not
+  mechanically engaged):** the failure re-attributes to the
+  **coherence-floor residual** — the F2 packing geometry means input
+  stability does not purchase output stability past the computed
+  ~0.9423 ceiling, and the realized input→output stability transfer was
+  worse than the ceiling computation's idealized version. Named
+  follow-on: a **pool-restricted** anchor cell (≤64 train entities —
+  deliberately trading the full-pool scope for geometry, with the
+  i-strong precedent as the limit case) or a `d_state=128` rider (the
+  parent design's own §9 K=d/2 boundary question, where 107 < 128 would
+  dissolve the packing obstruction entirely). Not run inside this
+  wave's budget.
+- **B2 (post-NS clears the derived engaged threshold — engaged,
+  near-ceiling, still missing):** the outcome-F attribution is
+  incomplete — **value-side geometry is a second, independently binding
+  constraint** (mechanism (b) in the parent design's §2 taxonomy),
+  supported by the **simulator-independent evidence only** (geo3's
+  1.3–1.8× elevated value-Gram; the intervention-broken key/value
+  correlation — Rev 3: the "§16.7 overestimate" narrative is void per
+  the shared-c bug correction, and the Rev 1 "~0.19
+  corrected-simulator ceiling" is retired as evidence, §3.4 caveat
+  box/§4). Named follow-on: a **value-anchoring / joint key+value
   stabilization** design — the value-side analog of this entire
   document — gated on B2 actually materializing, not commissioned
   pre-emptively.
@@ -862,16 +1246,22 @@ re-attributed, via §3.5's pre-registered disambiguation:**
    bit-identity check on an all-held-out batch.
 2. **Manipulation-check gaming — a collapsed or trivialized anchor could
    inflate the drift statistic without genuine, useful stability.**
-   **Closed by a three-part co-firing requirement, each part now
-   verified to have teeth (Rev 2, attack F1):** item 5 (pre-NS drift
-   ≥0.95) is trivially satisfiable at λ→1 and by a collapsed table
-   (measured: collapsed-table pre-NS drift ≡ 1.0000) — alone it proves
-   nothing; item 6 (raw-table `σ_64/σ_1 ≥0.1` AND max|cos| ≤0.5) catches
-   collapse directly (negative control: 0.0147 / 0.9263 — both FAIL on
-   the planted degenerate table, while the old post-NS check read a
-   blind 1.0000); the §3.2 λ bands cap the λ→1 route at existence tier
-   regardless of every other number. A headline requires all three
-   simultaneously; no single instrument is load-bearing alone.
+   **Closed by a three-part co-firing requirement, each part verified to
+   have teeth (Rev 2, attack F1) — and hardened at Rev 3 (R2 target 1,
+   decision 2):** item 5 (pre-NS drift ≥0.95) is trivially satisfiable
+   at λ→1 and by a collapsed table (measured: collapsed-table pre-NS
+   drift ≡ 1.0000) — alone it proves nothing; item 6 (raw-table
+   `σ_64/σ_1 ≥0.1` AND max|cos| ≤0.5) catches collapse directly
+   (negative controls: severe 0.0147/0.9263 and the pinned moderate
+   regression case 0.0762/0.5371, both FAIL, while the old post-NS
+   check reads a blind 1.0000 on both), **and now fires at three
+   times — inside the launch gate (G2-a/b), at every admission
+   checkpoint during training, and at final admission** — closing R2's
+   demonstrated moderate-collapse blind spot at bounded (~0.03 GPU-h)
+   worst-case latency; the §3.2 λ bands (with the Rev 3 oscillation
+   exclusion) cap the λ→1 route at existence tier regardless of every
+   other number. A headline requires all three simultaneously; no
+   single instrument is load-bearing alone.
 3. **Seed cherry-picking.** Inherited unchanged from the parent design's
    finding-5/§14.10 discipline: 3/3 admissible for the full tier,
    add-seeds-not-steps contingency (+2, one iteration), failing arms at
@@ -880,10 +1270,12 @@ re-attributed, via §3.5's pre-registered disambiguation:**
 4. **Simulator overfit — trusting a simulated prediction over the
    behavioral bar.** **Closed by:** no simulator number gates K=32
    (Gate 2 is a construction check with no simulator in the loop); the
-   K=32 platform-sensitivity finding (§4 — CPU rerun does not reproduce
-   the recorded K=32 prediction while K=16 reproduces cleanly) is
-   disclosed as an instrument limitation; §3's bars are read only
-   against measured `rec@0.9`.
+   K=32 discrepancy is RESOLVED at Rev 3 as the shared-c bug (§3.4
+   caveat box/§4 — the recorded 0.7734 was computed at K=16's drift;
+   with correct per-K inputs the mapping is conservative at K=32,
+   underestimating ~5–7×), the per-K threading fix + unit test is in
+   this wave's build scope, and §3's bars are read only against
+   measured `rec@0.9`.
 5. **K=16 regression masking.** **Closed by:** §3's numeric
    no-regression guard (K=16 h=4 within −0.02 of geo3's 0.9767) is a
    hard admissibility item at every headline comparison — a candidate
@@ -893,10 +1285,24 @@ re-attributed, via §3.5's pre-registered disambiguation:**
    `SCALE_TRANSFER_DESIGN.md`, and the orchestrator has pinned this
    wave's ceilings (≤10 nominal / ≤15 reserve under the program's 80
    cap, §5). Closed.
+7. **Aggregate masking — a passing pooled statistic carried by a
+   minority of strongly-anchored entities (NEW at Rev 3 — R2 target
+   4(b)'s constructed scenario).** **Closed by:** §3.7's per-entity
+   engagement readout — the full 107-entity alignment vector is a
+   required result field, `engaged_frac < 50%` routes to Outcome C
+   regardless of every aggregate number, and [50%, 90%) caps the claim
+   at the named partial outcome (A″), never the headline. The
+   companion *geometric* version of the same attack (a localized
+   anchor-row collapse hiding inside aggregate conditioning stats) is
+   independently caught by item 6b's max statistic (measured on the
+   pinned localized case: 6a passes at 0.1787, 6b fails at 0.9830 —
+   dilution-immune, R2 target 4(a)).
 
 ---
 
-## 8. Rev 2 — attack-round-1 responses (finding → change map)
+## 8. Revision history — finding → change maps
+
+### 8.1 Rev 2 — attack-round-1 responses
 
 The independent adversarial review of Rev 1
 (`KEY_ANCHORING_ATTACK_R1.md`, 2026-07-03) returned **NEEDS-REV-2: 3
@@ -919,15 +1325,53 @@ form), each with its reason stated where it is applied.
 | m3 | MINOR — Wave −1 prose (~6–8 probes) vs column (~8–10 + 2) mismatch; baseline sum drift | Pinned: **8 short smoke probes + 2 drift-diagnostic probe runs = 10 Wave −1 runs**; table recomputed — mandatory baseline 22 runs / ~3.7–4.4 GPU-h, all-conditionals ≤33 / ~6.7–7.8 GPU-h — internally consistent and within the orchestrator's ≤10/≤15 wave ceiling | §5 |
 | m4 | MINOR — candidate (b)'s EMA-circularity risk had no numeric threshold ("adjectives cannot gate a mechanism claim") | Numeric criterion pinned (ranking unchanged, per the finding's own or-clause): anchor **stabilized** iff trailing-1,000-step relative Frobenius change of the train-row block < **1e-3** by step **10,000** and sustained; otherwise 'still chasing' → descriptive tier only | §2.3, §6 |
 
+*(Rev 3 note on two §8.1 rows: the M2 row's closing "platform/RNG-
+sensitive" sentence and the M3 row's "~0.19 corrected-simulator
+ceiling" justification are superseded — see §8.2 rows R2-M3 and the
+§3.4 caveat box; the tables above are preserved as the historical
+record of what Rev 2 believed, per this project's revision-map
+convention.)*
+
+### 8.2 Rev 3 — attack-round-2 responses
+
+The round-2 adversarial review of Rev 2
+(`KEY_ANCHORING_ATTACK_R2.md`, 2026-07-03) returned **NEEDS-REV-3**:
+all three R1 FATALs verified CLOSED by independent from-scratch
+reproduction (the K=32 λ=1 ceiling matched at 0.9424 vs. 0.9423,
+seed-stable), plus **5 new MAJOR and 3 MINOR findings**, several
+demonstrated with constructed counterexamples. Disposition: **every
+finding accepted; contested points resolved by binding orchestrator
+decisions 1–7 and implemented as directed**; one finding (R2-M3, the
+simulator discrepancy) was **resolved mid-revision by the
+coordinator's own GPU re-measurement**, which disconfirmed both Rev
+2's platform-sensitivity reading and R2's TF32 hypothesis and found a
+shared-c bug instead — folded in per the supplementary instruction.
+
+| # | Finding (condensed) | Change made | Where |
+|---|---|---|---|
+| R2-M1 | MAJOR — constructed counterexample: a *moderately* collapsed table (σ_ratio≈0.099, max\|cos\|≈0.538 — already item-6-failing) sails through BOTH Rev 2 pre-spend gates (Gate 2 NS leg 0/512 fallbacks; Gate 1 predicted 0.9922 ≥ 0.8); Gate 2 also never sees the table after SGD starts updating it | Orchestrator decision 2: **items 6a/6b promoted INTO Gate 2** (three legs, all mandatory, any failure blocks launch) **and re-run at every admission checkpoint** during training (107×64 SVD per checkpoint, negligible cost, ≤2,000-step detection latency). **Pinned regression case run this session** (2 dirs, noise=0.30, torch seed 42): G2-a = 0.0762 FAIL, G2-b = 0.5371 FAIL, NS leg 0/512 PASS — the amended gate demonstrably fails the table the old gate passed; healthy init passes all three legs (1.0000/0.2832/0 fallbacks); severe (0.0141/0.9333) and localized (6a 0.1787 pass / 6b 0.9830 fail — max-statistic dilution-immunity, R2 target 4(a)) context cases pinned alongside; ships as a committed CPU test. Residual gap stated plainly: Gate 1 stays a harm-screen; items 5/6 at final admission remain the evidentiary backstop | §4 (Gate 2), §7 item 2, §5 (smoke 1/7) |
+| R2-M2 | MAJOR — the 0.9037/0.9416 "trained" reference drifts are single-seed, 5,000-step-probe measurements (`geo3_drift_diagnostic.py` trains a fresh throwaway model, never loads the real checkpoints); no seed-variance data exists anywhere; the "engaged vs. lucky seed" separation cannot be made | Orchestrator decision 4, first branch checked and CLOSED NEGATIVE this session (no drift/pairwise/resample field in any archived run JSON; the diagnostic records `seed=0` only) → second branch implemented: **4 reference arms** (bare-geo3, seeds {1,2} × K∈{16,32}, 20,000 steps, per-checkpoint drift active, ~3.3 GPU-h) join the manifest FIRST; **bands derived from measured final-checkpoint mean + spread** (`engaged_K = mean_ref + 2·s_ref`, degenerate-case guard vs. the computed ceiling → UNRESOLVABLE) and recorded in a `BANDS_PINNED` block **before any anchor-arm JSON is opened**; provisional 0.92/0.96 declared void on derivation; ordering/blinding protocol spelled out | §3.6 (new), §3.1, §3.5 (B1/B2), §5 |
+| R2-M3 | MAJOR — the §16.7 "simulator overestimates K=32 (0.7734) because of a missing value-Gram term" narrative rests on a GPU number R2's CPU reruns (fp32+fp64, seeds, 8× batch) consistently contradict | **RESOLVED mid-revision (orchestrator supplement): a BUG, not platform sensitivity** — `main()` extracts only K=16's drift and `launch_read()` applies that one scalar to both K; the 0.7734 was computed at c=0.9416 (K=16's drift), reproduces to the last digit; at K=32's own 0.9037 the prediction is 0.06–0.09 (an UNDERESTIMATE of 0.4368); GPU==CPU; R2's TF32 hypothesis disconfirmed. Parent §16.7 corrected by the coordinator from the GPU measurement (archive: `experiment-runs/2026-07-04_geo3_simulator_recheck/`) — NOT touched by this design. Here: §3.4 caveat box states the true cause; Gate 1 confirmed unaffected (K=16 used its own drift); with correct inputs the mapping is **conservative at K=32** (~5–7× underestimate), so any K=32 simulator gate would be strict/pessimistic — K=32 reads stay non-gating; **the per-K drift-threading API fix + different-c unit test is registered in THIS wave's build scope**; B2's evidence base reduced to simulator-independent measurements and the Rev 1 "~0.19 ceiling" retired as evidence | §3.4 (caveat box), §3.5 (B2), §4, §6 (B2), §7 item 4, Reproducibility (build list) |
+| R2-M4 | MAJOR — zero per-entity visibility in the training-eval pipeline: a passing pooled aggregate could mask a mechanism engaged for a subset of entities, invisible to items 5 and 6 alike | Orchestrator decision 5: **per-entity anchor-alignment logging required** (all 107 train entities, ≥8 resamples each, every admission checkpoint; full vector a required result field); **partial-anchoring readout pre-registered**: `engaged_frac` = fraction with `a_e ≥ 0.9` at final step; bands pinned — **≥90% headline-eligible** (a requirement of Outcome A), **[50%, 90%) = Outcome A″ "partial anchoring"** (named, reported, no headline), **<50% = not recruited regardless of aggregate drift** (routes to Outcome C) | §3.7 (new), §3.5 (A/A″/C), §6, §7 item 7, §5 (smoke 8) |
+| R2-M5 | MAJOR-leaning-MINOR — λ's claim-tier band gates on the final-1,000-step mean only; an oscillating trajectory whose mean lands in-band would be labeled "learned interior anchoring" (the same gap candidate (b)'s m4 fix closed for its EMA) | Orchestrator decision 1: per-seed band assignment now requires **final value in band AND trailing-1,000-step mean in the same band AND trailing-window range < 0.1**; any failure → ambiguous band, a pre-registered exclusion; the three summary statistics are machine-readable result fields | §3.2, §2.2 (logging bullet), §6 |
+| R2-m1 | MINOR — "more than half the distance" claim for the K=32 0.92 threshold is arithmetically wrong (42.2%, not >50%) | Corrected in text (gap 0.0386, halfway 0.9230, 0.92 = 42.2%; the K=16 figure, 55.9%, was correct but unclaimed) — and mooted in practice: the provisional bands are superseded by §3.6's derived bands per decision 4 | §3.1 |
+| R2-m2 | MINOR — the C17 bypass "bit-identical" claim is not universally exact: re-normalizing an already-unit-norm fp32 vector perturbs 337/1000 rows by up to 1 ULP; a strict-equality smoke would flake on correct code | Orchestrator decision 7, bit-exact branch chosen: the blend is rebuilt as a **`torch.where` select** — held-out rows pass through with ZERO arithmetic (no multiply-by-zero, no re-normalize), so strict `torch.equal` is again the correct assertion and a smoke failure now means a real routing bug; R2's ULP measurement quoted as the rationale | §2.2 (code block), §3.3, §5 (smoke 3) |
+| R2-m3 | MINOR — the Wave −1 smoke suite was prose, not an enumerable list (count of "8" asserted, unlike the parent §14.6's itemized discipline) | Itemized as a numbered 8-item list (init+gate legs / blend fwd-bwd / bypass bit-identity / held-out zero-grad / λ logging / item-5 instrument / item-6 checkpoint wiring incl. the in-harness negative control / per-entity instrument) | §5 |
+| R2-t5 | MINOR-to-MAJOR — the early-stop AND rule conditions the kill on its noisier leg (h4: 58% relative seed spread at step 2000 vs. value-Gram's ~15%), enabling the "wobbles above the floor" false-continue; the cost-asymmetry rationale was never stated | Orchestrator decision 3: **value-Gram is the sole load-bearing kill leg, required at TWO consecutive checkpoints (2,000 AND 4,000)**; h4 recorded and reported, explicitly non-load-bearing, the 58%-vs-15% spread disclosed inline; cost-asymmetry rationale stated; the K-asymmetry of the two-checkpoint rule disclosed (geo3's own K=32 value-Gram already exceeds 3.90 at step 4000 in 2/3 seeds — the second leg is a transient-spike guard there, a genuinely geo3-relative test at K=16) | §3.4 |
+
 ---
 
 ## Reproducibility pointers
 
-- This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 2**,
-  2026-07-03 — Rev 1 same day; attack-round-1 map is §8).
-- Attack round: `matrix-thinking/KEY_ANCHORING_ATTACK_R1.md`.
+- This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 3**,
+  2026-07-03 — Rev 1/Rev 2 same day; attack-round maps are §8.1/§8.2).
+- Attack rounds: `matrix-thinking/KEY_ANCHORING_ATTACK_R1.md`,
+  `matrix-thinking/KEY_ANCHORING_ATTACK_R2.md`.
 - Builds on (read, not modified): `matrix-thinking/DELTANET_RD_EXACTNESS_
-  DESIGN.md` §14–16.
+  DESIGN.md` §14–16 (§16.7 carries the coordinator's dated shared-c
+  correction, made from the GPU re-measurement archived at
+  `experiment-runs/2026-07-04_geo3_simulator_recheck/` — not from this
+  design).
 - Harness to extend (read in full, not modified):
   `matrix-thinking/deltanet_rd/{model_rd.py, embed_arms.py,
   run_deltanet_rd_exactness_sweep.py, geo3_simulator.py,
@@ -945,17 +1389,28 @@ form), each with its reason stated where it is applied.
   key/value-Gram correlation (§4). Rev 2: frame-potential init
   construction + coherence/conditioning/λ=1-ceiling measurements (§2.2),
   Gate-2 prototype (§4), item-6 negative control (§3.1), geo3
-  first-checkpoint trajectory extraction (§3.4) — every number quoted
-  with its construction, reproducible from repo files +
-  `geo3_simulator.py`'s own functions.
-- Next: verification round on this Rev 2 (confirm each §8 change closes
-  its finding — the parent design's own two-round discipline) → build
-  (the §2.2 `model_rd.py` diff incl. the pre-NS side channel and
-  `anchor_trained_mask`, the frozen frame-potential init with a
-  registered seed, `keyanchor_drift_diagnostic.py`, manifest/gate
-  additions to `run_deltanet_rd_exactness_sweep.py`, Gate 2 as a
-  committed script) → independent code audit → Gate 2 (CPU) → Wave −1
-  (smokes + probes; Gate 1 launch-read) → Wave 1 (candidates (d) and
-  (c), early-stop armed) → assess against §3.5's outcome frame →
-  candidate (b) / fixed-grid λ / follow-ons only per their registered
-  triggers.
+  first-checkpoint trajectory extraction (§3.4). Rev 3: the pinned
+  moderate/severe/localized collapse tables vs. the amended Gate 2
+  (§4), the archive-extractability check for per-seed drift (§3.6),
+  geo3 step-4000 trajectory extraction (§3.4), corrected band
+  arithmetic (§3.1) — every number quoted with its construction,
+  reproducible from repo files + `geo3_simulator.py`'s own functions.
+- Next: verification round on this Rev 3 (confirm each §8.2 change
+  closes its finding — the parent design's own multi-round discipline) →
+  build: the §2.2 `model_rd.py` diff (select/where blend, pre-NS side
+  channel, `anchor_trained_mask`, λ logging incl. final-window summary
+  fields), the frozen frame-potential init with a registered seed,
+  `keyanchor_drift_diagnostic.py` (pre-NS + post-NS + per-entity
+  sweep), **the per-K drift-threading fix to
+  `geo3_drift_diagnostic.py::main()` + `launch_read` (per-K `c` dict;
+  unit test: K=16/K=32 calls receive different `c` values whenever the
+  measured per-K drifts differ — Rev 3 supplement, in-scope for this
+  wave)**, manifest/gate additions to
+  `run_deltanet_rd_exactness_sweep.py` (reference arms FIRST +
+  `BANDS_PINNED` blinding, §3.6), the amended Gate 2 + pinned
+  regression case as a committed CPU test → independent code audit →
+  Gate 2 (CPU) → Wave −1 (smokes 1–8 + probes; Gate 1 launch-read) →
+  reference arms (§3.6, bands pinned) → Wave 1 (candidates (d) and (c),
+  early-stop armed, per-entity logging active) → assess against §3.5's
+  outcome frame → candidate (b) / fixed-grid λ / follow-ons only per
+  their registered triggers.
