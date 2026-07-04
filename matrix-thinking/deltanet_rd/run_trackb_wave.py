@@ -214,18 +214,25 @@ def refuse_or_override_cell3(verdict: str, gate_json_path: str, accept_override:
 _PROBE_MECHANISMS = ("hard_ste", "entmax", "soft_topk_comparator", "random_topk")
 
 
-def waveNeg1_manifest(steps: int = WAVE_NEG1_PROBE_STEPS) -> list[dict]:
-    """sec 6.1 Wave -1 (a): "5 probes x 2,000 steps" = the 4 hard-select
-    mechanisms (candidate 1/2/comparator/2R) + candidate 4's hard-snap
-    schedule (mechanically identical to candidate 1, sec 3.4) -- ALL
-    non-geo3, single corpus/seed (openr1, seed 0), PLUS the unmasked
-    reference pilot (sec 4.3's Null A/TV-ceiling source, instrumented via
+def waveNeg1_manifest(steps: int = WAVE_NEG1_PROBE_STEPS, stability_steps: int | None = None) -> list[dict]:
+    """sec 6.1 Wave -1 (a): the 4 hard-select mechanism probes (candidate
+    1/2/comparator/2R; the fifth, candidate 4's hard-snap probe, is CUT --
+    see the registered rationale inline below) -- ALL non-geo3, single
+    corpus/seed (openr1, seed 0), PLUS the unmasked reference pilot (sec
+    4.3's Null A/TV-ceiling source, instrumented via
     --trackb-selection-probe) and the M8/NEW-7 stability smoke
     (geo3-active, on the materialized "openr1-stress" slice corpus, with
-    --nan-probe-counter). SCRUTINY NOTE for the independent auditor: sec
-    6.1's table states "5 probes" without itemizing which 5; this
-    manifest's reading (4 mechanisms + candidate 4's snap schedule) is this
-    build's own registered interpretation, flagged for review."""
+    --nan-probe-counter).
+
+    stability_steps (AUDIT FIX round 2, 2026-07-04 -- FATAL-2): the
+    stability cell's OWN step count, derived from the STRESS corpus's real
+    size (stability_smoke_steps below) -- the tiny materialized slice
+    (~536K tokens at n_dup_min=8, measured live by the round-2 audit)
+    over-epochs 61x at the shared 2,000-step budget, and run_epoch_cap_gate
+    correctly refuses the whole wave. None (dry-run/planning, where the
+    stress meta.json may not exist locally) leaves the shared `steps` as a
+    PLACEHOLDER; main()'s neg1 path always derives the real value before
+    launching."""
     runs = []
     for mech in _PROBE_MECHANISMS:
         runs.append({
@@ -234,27 +241,71 @@ def waveNeg1_manifest(steps: int = WAVE_NEG1_PROBE_STEPS) -> list[dict]:
             "geo3_active": False, "steps": steps, "ckpt_every": WAVE_NEG1_CKPT_EVERY,
             "name": f"wBneg1_probe_{mech}_k{K_SEL}",
         })
-    runs.append({
-        "wave": "neg1", "cell": "probe_candidate4_hardsnap", "corpus": "openr1", "seed": 0,
-        "hard_select_active": True, "hard_select_mechanism": "hard_ste",   # snap schedule wraps hard_ste
-        "hard_select_k_sel": K_SEL, "geo3_active": False, "steps": steps,
-        "ckpt_every": WAVE_NEG1_CKPT_EVERY,
-        "name": f"wBneg1_probe_candidate4hardsnap_k{K_SEL}",
-    })
+    # CANDIDATE-4 PROBE CUT (AUDIT FIX round 2, 2026-07-04 -- MAJOR-1, registered decision):
+    # the round-1 manifest carried a fifth "candidate4_hardsnap" probe that was a byte-identical
+    # duplicate of probe_hard_ste (no snap-timing flag exists in build_cmd/train(); candidate 4's
+    # soft phase is unbuilt by registered scope decision, and its hard-snap phase is candidate 1's
+    # code verbatim per sec 3.4's own text) -- a duplicate probe carries zero information beyond
+    # probe_hard_ste, and candidate 4 is ranked last/ablation-only (sec 3.4, sec 10 item 4). CUT
+    # rather than wired: candidate 4's only unique readout (does soft warm-up ease the hard phase)
+    # requires the unbuilt soft phase, so a snap-schedule flag alone would still probe nothing new.
+    # Consequence: Wave -1 runs 4 mechanism probes, not sec 6.1's nominal "5" -- that count was
+    # already flagged (round-1 scrutiny note) as this build's own interpretation of an unitemized
+    # table row; the deviation is registered here, not silent.
     runs.append({
         "wave": "neg1", "cell": "reference_pilot", "corpus": "openr1", "seed": 0,
         "hard_select_active": False, "geo3_active": False, "steps": steps,
         "ckpt_every": WAVE_NEG1_CKPT_EVERY, "selection_probe": K_SEL,
         "name": "wBneg1_reference_pilot",
     })
+    stab_steps = stability_steps if stability_steps is not None else steps
     runs.append({
         "wave": "neg1", "cell": "stability_smoke", "corpus": "openr1-stress", "seed": 0,
         "hard_select_active": False, "geo3_active": True, "geo3_k_sel": K_SEL,
-        "geo3_n_iter": GEO3_N_ITER, "steps": steps, "ckpt_every": WAVE_NEG1_CKPT_EVERY,
+        "geo3_n_iter": GEO3_N_ITER, "steps": stab_steps,
+        "ckpt_every": min(WAVE_NEG1_CKPT_EVERY, stab_steps),
         "nan_probe_counter": True,
         "name": "wBneg1_stability_smoke",
     })
     return runs
+
+
+def stability_smoke_steps(data_dir: str, requested_steps: int) -> tuple[int, dict]:
+    """AUDIT FIX round 2 (2026-07-04, FATAL-2): the stability cell's step
+    count, epoch-capped against the MATERIALIZED stress corpus's own live
+    meta.json (never the shared Wave -1 budget): steps = min(requested,
+    floor(train_tokens * EPOCH_CAP / (BATCH_SIZE * SEQ_LEN))). At the
+    audit-measured ~536K-token slice this gives 163 steps (~5.0 epochs vs
+    61 epochs at the shared 2,000).
+
+    Probative-floor arithmetic (Rev 3 NEW-7's >=25-calls floor, stated per
+    the audit's own instruction): the NanStabilityProbeCounter observes
+    once per geo3-active mixer per training step = N_LAYERS x steps
+    observations (2 x 163 = 326 at the measured slice size) -- 13x the
+    25-call floor in OPPORTUNITY. Whether >=25 of those observations
+    actually present >=6 duplicated SELECTED rows is the empirical question
+    the counter exists to measure (every training window comes from the
+    100%-stress slice, but beta's selection and random window/chunk tiling
+    decide realized duplication) -- if the floor is missed the smoke is
+    NON-PROBATIVE and the registered M6 forced-selection fallback fires,
+    exactly as at any step count. The floor only becomes UNSATISFIABLE IN
+    PRINCIPLE below ceil(25 / N_LAYERS) = 13 steps; refuse below that
+    rather than run a smoke that cannot possibly be probative."""
+    n_tokens = read_corpus_train_tokens(data_dir, "openr1-stress")
+    cap_steps = int(n_tokens * EPOCH_CAP // (BATCH_SIZE * SEQ_LEN))
+    steps = min(requested_steps, max(1, cap_steps))
+    min_probative = -(-25 // N_LAYERS)   # ceil
+    if steps < min_probative:
+        print(f"ERROR: stress corpus ({n_tokens} tokens) epoch-caps the stability smoke at "
+              f"{steps} steps < {min_probative} (the >=25-observation floor / {N_LAYERS} layers) "
+              f"-- the smoke could never be probative. Enlarge the slice (lower n_dup_min "
+              f"DELIBERATELY, floor >= the ~6 onset) before launching.", file=sys.stderr)
+        sys.exit(9)
+    info = {"stress_train_tokens": n_tokens, "epoch_cap": EPOCH_CAP,
+            "cap_steps": cap_steps, "requested_steps": requested_steps, "steps": steps,
+            "epochs_at_steps": steps * BATCH_SIZE * SEQ_LEN / max(1, n_tokens),
+            "probe_observations": steps * N_LAYERS, "probative_floor_calls": 25}
+    return steps, info
 
 
 def cell1probe_manifest(cell1_checkpoints: list) -> list[dict]:
@@ -607,6 +658,16 @@ def run_smoke(log_dir, gpu):
                               env={**os.environ, "CUDA_VISIBLE_DEVICES": ""},
                               stdout=lf, stderr=subprocess.STDOUT, cwd=HERE)
     print(f"  smoke[trackb_cpu]: {'PASS' if rc == 0 else f'FAIL (rc={rc})'}", flush=True)
+    ok = ok and (rc == 0)
+    # AUDIT FIX round 2 (2026-07-04, MAJOR-2): waves cell1probe/3 dispatch wave_neg1_trackb.py --
+    # its own CLI/compute path gets smoked too (CPU-safe parts: argparse wiring, hook
+    # registration, the cell1 readout math on synthetic tensors; the CUDA-only residual --
+    # checkpoint loading + the model forward -- is documented in that smoke's own output).
+    with open(os.path.join(log_dir, "smoke_probe_tool.log"), "w") as lf:
+        rc = subprocess.call([sys.executable, PROBE_TOOL, "--smoke"],
+                              env={**os.environ, "CUDA_VISIBLE_DEVICES": ""},
+                              stdout=lf, stderr=subprocess.STDOUT, cwd=HERE)
+    print(f"  smoke[probe_tool]: {'PASS' if rc == 0 else f'FAIL (rc={rc})'}", flush=True)
     return ok and (rc == 0)
 
 
@@ -883,7 +944,11 @@ def assemble_bands_pinned(out_dir: str, mc_samples: int = 500_000) -> dict:
             sys.exit(4)
 
     pilot_lists = bp.extract_selection_logpoint_lists(pilot, last_n=5)
-    entmax_lists = bp.extract_selection_logpoint_lists(entmax, last_n=5)
+    # AUDIT FIX round 2 (2026-07-04, FATAL-1): the entmax probe NEVER carries churn (its
+    # diagnostics branch sets churn_vs_prev=None by design), and this call site only needs its
+    # SUPPORT numbers -- need_churn=False, or the reader's churn>=5 assertion fires for every
+    # possible real entmax probe and the bands file can never be written.
+    entmax_lists = bp.extract_selection_logpoint_lists(entmax, last_n=5, need_churn=False)
     churn_null_a = bp.derive_churn_null_a(pilot_lists["churn"])
     pos_ceiling = bp.derive_pos_ceiling(pilot_lists["tv"])
     support_floor = bp.derive_support_floor(entmax_lists["support_p10_final"])
@@ -938,10 +1003,12 @@ def dry_run_preview(steps: int, factorial_steps: int, surviving_mechanisms, acce
     print("=" * 70)
 
     h_neg1 = sum(spec_gpu_h(s) for s in m_neg1)
-    print(f"\nWave -1 ({len(m_neg1)} cells: 5 mechanism probes + reference pilot + geo3-active "
-          f"stability smoke, {steps} steps each) = {h_neg1:.3f} GPU-h; + cell1probe "
-          f"(6 archived checkpoints x {_GPU_H_PER_PROBE} = {6 * _GPU_H_PER_PROBE:.2f} GPU-h, "
-          f"forward-only) + MC anchor recomputation (CPU, free).")
+    print(f"\nWave -1 ({len(m_neg1)} cells: 4 mechanism probes + reference pilot + geo3-active "
+          f"stability smoke; probes/pilot at {steps} steps, the stability cell's steps shown here "
+          f"as a PLACEHOLDER -- at launch they are re-derived from the stress corpus's own live "
+          f"meta.json via stability_smoke_steps, FATAL-2's epoch-cap decoupling) = {h_neg1:.3f} "
+          f"GPU-h upper bound; + cell1probe (6 archived checkpoints x {_GPU_H_PER_PROBE} = "
+          f"{6 * _GPU_H_PER_PROBE:.2f} GPU-h, forward-only) + MC anchor recomputation (CPU, free).")
     for spec in m_neg1:
         print(f"  - {spec['name']}")
 
@@ -1028,7 +1095,8 @@ def main():
                           "target.")
     ap.add_argument("--ckpt-size-probe-dir", default=None,
                      help="directory holding an existing Wave-C-architecture checkpoint for the "
-                          "disk gate's measured size (fallback: <HERE>/results/lm_rd/checkpoints).")
+                          "disk gate's measured size (fallback: "
+                          "<HERE>/results/lm_rd/waveC/checkpoints, the archived Wave C tree).")
     ap.add_argument("--accept-budget-override", action="store_true")
     ap.add_argument("--timeout", type=float, default=None, help="override the per-run wall timeout (s)")
     ap.add_argument("--dry-run", action="store_true")
@@ -1067,8 +1135,18 @@ def main():
         try:
             size = find_ckpt_size_bytes(probe_dir)
         except FileNotFoundError:
-            fallback = os.path.join(HERE, "results", "lm_rd", "checkpoints")
-            size = find_ckpt_size_bytes(fallback)   # raises with remedy if this too is empty
+            # AUDIT FIX round 2 (2026-07-04, MINOR): the round-1 fallback pointed at
+            # results/lm_rd/checkpoints, which does not exist -- the archived Wave C tree is
+            # results/lm_rd/waveC/checkpoints (verified live on-box). And a still-missing
+            # checkpoint is a clean REFUSAL (the gate's own remedy printed, exit 8), never an
+            # uncaught FileNotFoundError traceback.
+            fallback = os.path.join(HERE, "results", "lm_rd", "waveC", "checkpoints")
+            try:
+                size = find_ckpt_size_bytes(fallback)
+            except FileNotFoundError as e:
+                print(f"ERROR: disk-space gate cannot find a measured checkpoint size: {e}",
+                      file=sys.stderr)
+                sys.exit(8)
         worst = max(train_specs, key=lambda s: s["steps"] // s.get("ckpt_every", CKPT_EVERY))
         projected = projected_ckpt_bytes(len(train_specs), worst["steps"],
                                           worst.get("ckpt_every", CKPT_EVERY), size)
@@ -1084,9 +1162,6 @@ def main():
             sys.exit(8)
 
     if args.wave == "neg1":
-        manifest = waveNeg1_manifest(steps)
-        out_dir = os.path.join(args.out_dir, "waveneg1")
-        os.makedirs(out_dir, exist_ok=True)
         assert run_eot_forced_selection_negative_smoke(), \
             "M6 EOT-forced-selection negative smoke FAILED -- refusing Wave -1 (forced selection is broken)"
         print("EOT-forced-selection negative smoke: PASS", flush=True)
@@ -1096,6 +1171,20 @@ def main():
                   f"trains on it. Run 'python wave_neg1_trackb.py --build-stress-slice --data-dir "
                   f"{args.data_dir}' first (CPU, reads the real openr1 corpus).", file=sys.stderr)
             sys.exit(9)
+        # AUDIT FIX round 2 (FATAL-2): the stability cell's steps are epoch-capped against the
+        # stress corpus's OWN live size, decoupled from the shared Wave -1 budget -- derived
+        # BEFORE the manifest is built, so run_epoch_cap_gate below passes by construction
+        # (kept anyway: belt-and-suspenders, it also covers the openr1 probe cells).
+        stab_steps, stab_info = stability_smoke_steps(args.data_dir, steps)
+        print(f"STABILITY-SMOKE STEPS (FATAL-2 derivation): {stab_info['steps']} steps "
+              f"(requested {stab_info['requested_steps']}, epoch-cap {stab_info['cap_steps']} at "
+              f"{stab_info['stress_train_tokens']} stress tokens -> "
+              f"{stab_info['epochs_at_steps']:.2f} epochs vs cap {stab_info['epoch_cap']}); "
+              f"positive-control opportunity = {stab_info['probe_observations']} observations vs "
+              f"the {stab_info['probative_floor_calls']}-call floor.", flush=True)
+        manifest = waveNeg1_manifest(steps, stability_steps=stab_steps)
+        out_dir = os.path.join(args.out_dir, "waveneg1")
+        os.makedirs(out_dir, exist_ok=True)
         run_epoch_cap_gate(manifest, args.data_dir, "wave neg1")
         budget_guard(sum(spec_gpu_h(s) for s in manifest), "wave neg1", args.accept_budget_override)
         _disk_gate(manifest, out_dir, "wave neg1")

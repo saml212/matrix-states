@@ -692,11 +692,18 @@ def smoke_run_trackb_wave_manifests(verbose=True):
     import run_trackb_wave as rtw
 
     m_neg1 = rtw.waveNeg1_manifest(steps=2000)
-    assert len(m_neg1) == 7, (
-        f"expected 7 Wave -1 cells (5 mechanism probes + reference pilot + stability smoke), "
-        f"got {len(m_neg1)}")
+    assert len(m_neg1) == 6, (
+        f"expected 6 Wave -1 cells (4 mechanism probes + reference pilot + stability smoke; "
+        f"the candidate-4 hard-snap probe is CUT per the round-2 MAJOR-1 registered decision -- "
+        f"it was a byte-identical duplicate of probe_hard_ste), got {len(m_neg1)}")
     names = {r["name"] for r in m_neg1}
-    assert len(names) == 7, "Wave -1 cell names must be unique"
+    assert len(names) == 6, "Wave -1 cell names must be unique"
+    assert not any("candidate4" in n for n in names), "the cut candidate-4 probe reappeared"
+    # FATAL-2: an explicit stability_steps overrides the shared budget for that ONE cell only
+    m_neg1_stab = rtw.waveNeg1_manifest(steps=2000, stability_steps=163)
+    stab_cell = next(r for r in m_neg1_stab if r["cell"] == "stability_smoke")
+    assert stab_cell["steps"] == 163 and stab_cell["ckpt_every"] <= 163
+    assert all(r["steps"] == 2000 for r in m_neg1_stab if r["cell"] != "stability_smoke")
     pilot = next(r for r in m_neg1 if r["cell"] == "reference_pilot")
     assert pilot.get("selection_probe") == rtw.K_SEL, "the pilot must carry the F2 implicit probe"
     stab = next(r for r in m_neg1 if r["cell"] == "stability_smoke")
@@ -749,8 +756,10 @@ def smoke_run_trackb_wave_manifests(verbose=True):
                         accept_budget_override=True)
 
     if verbose:
-        print(f"  [13] run_trackb_wave.py: manifests correctly shaped (7 Wave -1 cells incl. "
-              f"probe-instrumented pilot + stress-corpus stability smoke; factorial cells "
+        print(f"  [13] run_trackb_wave.py: manifests correctly shaped (6 Wave -1 cells -- 4 "
+              f"mechanism probes [candidate-4 duplicate CUT, round-2 MAJOR-1] + probe-instrumented "
+              f"pilot + stress-corpus stability smoke with per-cell FATAL-2 step override; "
+              f"factorial cells "
               f"{len(rtw.CORPORA)}x{len(rtw.SEEDS)} each; Cell 3 override-tagged; M6 k_sel match; "
               f"entmax pre-filtered from Cell 4 but kept in Cell 2); budget/disk/epoch gates "
               f"correct incl. the epoch-breach case; dry-run preview runs end-to-end")
@@ -861,6 +870,116 @@ def smoke_dispatch_engine(verbose=True):
 
 
 # ---------------------------------------------------------------------------
+# [17] FATAL-1 regression (audit round 2): assemble_bands_pinned end-to-end
+# on synthetic result JSONs whose entmax probe carries churn=None at EVERY
+# checkpoint (the only shape a real entmax probe can produce) -- pre-fix,
+# the reader's unconditional churn>=5 assertion made this structurally
+# impossible; the bands file must now be written and validate clean.
+# ---------------------------------------------------------------------------
+
+def _synthetic_diag_ckpt(step, churn, tv, med, p10, mechanism):
+    return {"step": step, "hard_select_diagnostics": {
+        "per_layer": {"0": {"churn_vs_prev": churn, "tv_from_uniform": tv,
+                             "support_median": med, "support_p10": p10, "mechanism": mechanism}},
+        "n_docs": 8, "doc_start_digest": 1}}
+
+
+def smoke_assemble_bands_pinned_entmax_regression(verbose=True):
+    import run_trackb_wave as rtw
+    with tempfile.TemporaryDirectory() as out_dir:
+        neg1 = os.path.join(out_dir, "waveneg1")
+        c1 = os.path.join(out_dir, "wavecell1probe")
+        os.makedirs(neg1)
+        os.makedirs(c1)
+
+        pilot_ckpts = [_synthetic_diag_ckpt(250, None, 0.010, 32.0, 32.0, "implicit_probe")]
+        for i in range(7):
+            pilot_ckpts.append(_synthetic_diag_ckpt(500 + 250 * i, 0.20 - 0.01 * i,
+                                                     0.011 + 0.001 * i, 32.0, 32.0, "implicit_probe"))
+        with open(os.path.join(neg1, "wBneg1_reference_pilot.json"), "w") as f:
+            json.dump({"complete": True, "checkpoints": pilot_ckpts}, f)
+
+        # the FATAL-1 shape: entmax churn is None at EVERY checkpoint, support/TV present
+        entmax_ckpts = [_synthetic_diag_ckpt(250 * (i + 1), None, 0.02 + 0.001 * i,
+                                              14.0 - 0.5 * i, 8.0 - 0.2 * i, "entmax")
+                        for i in range(8)]
+        with open(os.path.join(neg1, f"wBneg1_probe_entmax_k{rtw.K_SEL}.json"), "w") as f:
+            json.dump({"complete": True, "checkpoints": entmax_ckpts}, f)
+
+        with open(os.path.join(c1, "cell1probe_0_synthetic.json"), "w") as f:
+            json.dump({"complete": True, "per_layer": {
+                "0": {"resid_mean": 9.2, "per_chunk_total_mass": {"mean": 26.5}},
+                "1": {"resid_mean": 9.8, "per_chunk_total_mass": {"mean": 27.3}}}}, f)
+
+        doc = rtw.assemble_bands_pinned(out_dir, mc_samples=5_000)
+        assert os.path.exists(rtw.bands_pinned_out_path(out_dir)), "bands file was not written"
+        validated = bp.validate_bands_pinned_trackb(rtw.bands_pinned_out_path(out_dir))
+        assert validated is not None, "freshly-assembled bands file must validate (hash-clean)"
+        # the support floor came from the entmax probe's FINAL p10 (8.0 - 0.2*7 = 6.6)
+        assert abs(doc["support_band"]["p10_pilot"] - 6.6) < 1e-9
+        assert doc["support_band"]["floor"] == 6.6
+        assert doc["b_pinned"]["n_chunks_pooled"] == 2       # two layer means pooled
+        assert abs(doc["cell1_ref_32"]["mean"] - 9.5) < 1e-9
+    if verbose:
+        print("  [17] FATAL-1 regression: assemble_bands_pinned SUCCEEDS on a churn-less entmax "
+              "probe (the only shape a real one can have), bands file written + hash-validates, "
+              "support floor correctly read from the entmax final p10")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# [18] FATAL-2: stability_smoke_steps arithmetic against a synthetic stress
+# meta.json at the audit's live-measured 536K-token size.
+# ---------------------------------------------------------------------------
+
+def smoke_stability_steps_derivation(verbose=True):
+    import run_trackb_wave as rtw
+    from lm_pretrain_rd import CORPUS_DIRS
+    with tempfile.TemporaryDirectory() as data_dir:
+        stress = os.path.join(data_dir, CORPUS_DIRS["openr1-stress"])
+        os.makedirs(stress)
+        with open(os.path.join(stress, "meta.json"), "w") as f:
+            json.dump({"train_tokens": 536_000}, f)
+        steps, info = rtw.stability_smoke_steps(data_dir, requested_steps=2_000)
+        # floor(536000 * 5 / (32*512)) = floor(163.57) = 163
+        assert steps == 163, f"expected 163 epoch-capped steps at 536K tokens, got {steps}"
+        assert info["epochs_at_steps"] <= rtw.EPOCH_CAP + 1e-9
+        assert info["probe_observations"] == 163 * rtw.N_LAYERS == 326
+        assert info["probe_observations"] >= info["probative_floor_calls"]
+        # a large corpus leaves the requested budget untouched
+        with open(os.path.join(stress, "meta.json"), "w") as f:
+            json.dump({"train_tokens": 43_000_000}, f)
+        steps_big, _ = rtw.stability_smoke_steps(data_dir, requested_steps=2_000)
+        assert steps_big == 2_000
+        # a corpus too tiny for the smoke to EVER be probative refuses (exit 9)
+        with open(os.path.join(stress, "meta.json"), "w") as f:
+            json.dump({"train_tokens": 30_000}, f)   # cap = floor(150000/16384) = 9 < ceil(25/2)=13
+        exited = False
+        try:
+            rtw.stability_smoke_steps(data_dir, requested_steps=2_000)
+        except SystemExit as e:
+            exited = (e.code == 9)
+        assert exited, "an in-principle-unprobative slice must refuse (exit 9), not run vacuously"
+    if verbose:
+        print("  [18] stability_smoke_steps: 536K tokens -> 163 steps (5.0 epochs, 326 "
+              "positive-control observations vs 25 floor); big corpus keeps 2000; "
+              "unprobative-in-principle slice refuses")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# [19] MAJOR-2: the probe tool's own --smoke path (the function run_smoke()
+# invokes across the subprocess boundary) runs clean on CPU.
+# ---------------------------------------------------------------------------
+
+def smoke_probe_tool_cpu(verbose=True):
+    wn1.smoke_cpu()
+    if verbose:
+        print("  [19] wave_neg1_trackb.smoke_cpu (the --smoke CLI body run_smoke() dispatches): PASS")
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -881,6 +1000,9 @@ _ALL_SMOKES = [
     smoke_candidate3_periodic,
     smoke_run_trackb_wave_manifests,
     smoke_dispatch_engine,
+    smoke_assemble_bands_pinned_entmax_regression,
+    smoke_stability_steps_derivation,
+    smoke_probe_tool_cpu,
 ]
 
 

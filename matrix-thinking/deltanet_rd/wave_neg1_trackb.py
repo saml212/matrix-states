@@ -451,10 +451,73 @@ def run_checkpoint_probe(checkpoint_path: str, data_dir: str, corpus: str, n_doc
     return result
 
 
+def smoke_cpu() -> None:
+    """AUDIT FIX round 2 (2026-07-04, MAJOR-2): this file is the DISPATCH
+    TARGET for run_trackb_wave.py's cell1probe/Wave-3 waves, so its own CLI
+    entry gets a smoke run_smoke() invokes across the subprocess boundary
+    (`wave_neg1_trackb.py --smoke`, CPU). Exercises every CPU-safe piece of
+    the probe path against synthetic tensors:
+      - register_kbeta_capture_hooks on a real (CPU-constructed) DeltaNetLM
+        -- registration/teardown; the capture VALUES need a forward pass;
+      - cell1_readout_from_captured end-to-end on synthetic k_raw/beta
+        (pure torch incl. the Newton-Schulz orthogonalization -- the probe's
+        whole compute path minus the model forward);
+      - the stress-slice selection + positive-control counter machinery.
+    DOCUMENTED CUDA-ONLY RESIDUAL (not smokeable here): run_checkpoint_probe's
+    torch.load + model forward (chunk_delta_rule has no CPU path), and
+    materialize_stress_slice_corpus's real-corpus read (needs /data). Both
+    are exercised only by a real GPU-side wave; hook-vs-direct capture
+    equality is covered by lm_pretrain_rd.py's GPU smoke item [16]."""
+    from lm_pretrain_rd import DeltaNetLM, EOT_TOKEN_ID
+    print("wave_neg1_trackb --smoke (CPU-safe probe-path checks)")
+
+    torch.manual_seed(0)
+    model = DeltaNetLM(500, d_model=64, d_state=64, n_layers=2, conv_size=4)   # CPU construction OK
+    handles, captured = register_kbeta_capture_hooks(model)
+    assert len(handles) == 2 * 2, f"expected 2 hooks/layer x 2 layers, got {len(handles)}"
+    assert set(captured.keys()) == {0, 1}
+    for h in handles:
+        h.remove()
+    print("  [s1] capture hooks: register/teardown on 2 layers OK (values need a forward -- "
+          "GPU smoke item [16] covers equality)")
+
+    B, T, H, d, chunk_size, k_sel = 2, 128, 1, 64, 64, 16
+    synthetic = {
+        0: {"k_raw": torch.randn(B, T, d), "beta": torch.sigmoid(torch.randn(B, T, H))},
+        1: {"k_raw": torch.randn(B, T, d), "beta": torch.sigmoid(torch.randn(B, T, H))},
+    }
+    token_ids = torch.randint(0, 500, (B, T))
+    token_ids[0, -2:] = EOT_TOKEN_ID
+    readout = cell1_readout_from_captured(synthetic, token_ids, chunk_size, k_sel,
+                                           n_iter=12, resid_tol=1e-2,
+                                           excluded_token_ids=(EOT_TOKEN_ID,))
+    assert set(readout.keys()) == {0, 1}
+    for li, r in readout.items():
+        assert 0.0 <= r["resid_mean"] < 16.0
+        assert torch.isfinite(r["per_chunk_total_mass"]).all()
+    print(f"  [s2] cell1_readout_from_captured on synthetic tensors: resid_mean "
+          f"L0={readout[0]['resid_mean']:.4f} L1={readout[1]['resid_mean']:.4f}, all finite")
+
+    chunk = torch.randint(0, 5000, (16,))
+    chunk[0:11] = 100
+    assert chunk_n_dup_max(chunk.unsqueeze(0), 16).item() == 8
+    counter = NanStabilityProbeCounter(floor_n_calls=1, floor_n_dup=6)
+    rows = torch.randn(1, 32, 8)
+    rows[0, :7] = rows[0, 0:1]
+    counter.observe(rows)
+    assert counter.is_probative()
+    print("  [s3] stress-slice n_dup_max + positive-control counter OK")
+    print("wave_neg1_trackb --smoke: ALL CPU-SAFE CHECKS PASSED")
+
+
 def main():
     import argparse
     ap = argparse.ArgumentParser()
     sub = ap.add_mutually_exclusive_group(required=True)
+    sub.add_argument("--smoke", action="store_true",
+                      help="CPU-safe probe-path smoke (MAJOR-2): hook registration, synthetic "
+                           "cell1 readout, stress-slice machinery. Run by run_trackb_wave.py's "
+                           "own smoke gate before any wave that dispatches this tool.")
     sub.add_argument("--probe-checkpoint", type=str, default=None,
                       help="read-only sec 4.4 selected-key re-probe of ONE checkpoint (Cell 1's "
                            "archived Wave C checkpoints / Wave 3's instrumentation pass). GPU "
@@ -477,6 +540,9 @@ def main():
     ap.add_argument("--out", type=str, default=None)
     args = ap.parse_args()
 
+    if args.smoke:
+        smoke_cpu()
+        return
     if args.probe_checkpoint:
         assert args.out, "--out is required for --probe-checkpoint"
         result = run_checkpoint_probe(args.probe_checkpoint, args.data_dir, args.corpus,

@@ -86,7 +86,7 @@ def derive_pos_ceiling(pilot_tv_last5_logpoints: list) -> dict:
     return _mean_plus_2s(pilot_tv_last5_logpoints)
 
 
-def extract_selection_logpoint_lists(result: dict, last_n: int = 5) -> dict:
+def extract_selection_logpoint_lists(result: dict, last_n: int = 5, need_churn: bool = True) -> dict:
     """AUDIT FIX (independent audit 2026-07-04 -- F2's reader half): turns a
     COMPLETED lm_pretrain_rd.py result JSON (parsed dict) into exactly the
     inputs derive_churn_null_a / derive_pos_ceiling / derive_support_floor
@@ -95,6 +95,16 @@ def extract_selection_logpoint_lists(result: dict, last_n: int = 5) -> dict:
     present when the run was hard_select_active OR ran with
     --trackb-selection-probe, the unmasked reference pilot's own
     implicit-selection instrumentation).
+
+    need_churn (AUDIT FIX round 2, 2026-07-04 -- FATAL-1): the entmax
+    probe's diagnostics NEVER carry churn (sample_hard_select_diagnostics'
+    entmax branch sets churn_vs_prev=None by design -- variable support has
+    no fixed-K set difference; sec 4.3 assigns the churn bar to candidate
+    1/hard-snap only), so the round-1 unconditional churn>=last_n assertion
+    fired for EVERY possible real entmax probe and made the bands assembly
+    (which only needs the entmax probe's SUPPORT numbers) structurally
+    unable to run. Callers that only need support/TV pass need_churn=False;
+    the churn list is then returned as-is (possibly empty), unasserted.
 
     Per-checkpoint scalars are pooled across layers by MEAN (sec 4.3
     defines pooling over (chunk, head) episodes; layers are not addressed
@@ -120,14 +130,16 @@ def extract_selection_logpoint_lists(result: dict, last_n: int = 5) -> dict:
 
     churn_series = [v for v in (_layer_mean(d, "churn_vs_prev") for d in diags) if v is not None]
     tv_series = [v for v in (_layer_mean(d, "tv_from_uniform") for d in diags) if v is not None]
-    assert len(churn_series) >= last_n, (
-        f"only {len(churn_series)} churn log points available, need >= {last_n} (churn needs a "
-        f"previous selection, so the first checkpoint contributes none -- the pilot must "
-        f"checkpoint at least {last_n + 1} times)")
+    if need_churn:
+        assert len(churn_series) >= last_n, (
+            f"only {len(churn_series)} churn log points available, need >= {last_n} (churn needs "
+            f"a previous selection, so the first checkpoint contributes none -- the pilot must "
+            f"checkpoint at least {last_n + 1} times; for a churn-less entmax probe pass "
+            f"need_churn=False)")
     assert len(tv_series) >= last_n, f"only {len(tv_series)} TV log points, need >= {last_n}"
     final = diags[-1]
     return {
-        "churn": churn_series[-last_n:],
+        "churn": churn_series[-last_n:] if need_churn else churn_series,
         "tv": tv_series[-last_n:],
         "support_median_final": _layer_mean(final, "support_median"),
         "support_p10_final": _layer_mean(final, "support_p10"),
