@@ -91,6 +91,12 @@ from fla.ops.delta_rule import chunk_delta_rule
 from model_rd import (_MIN_KERNEL_T, _SAFE_D_STATE, _polar_via_eigh,
                        newton_schulz_orthogonalize)
 from rank_utils import effective_rank, stable_rank
+from hard_selectivity_rd import (
+    hard_topk_beta_mask, apply_hard_select_ste, chunk_sparsemax_beta,
+    soft_topk_comparator_beta, tau_schedule, random_topk_mask,
+    renormalize_to_b_pinned, classify_budget_partial,
+    trackb_override_stamp_payload, trackb_assemble_gate_override_fields,
+)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -161,6 +167,15 @@ GEO3_LM_CHUNK_SIZE_DEFAULT = 64   # sec 4.2 item 1: chunk_delta_rule's own seque
                                     # (d_state-INDEPENDENT -- MAJOR-3's correction; the binding rank
                                     # constraint is k_sel <= head_dim, asserted separately below)
 
+# ---------------------------------------------------------------------------
+# Track B hard-selectivity wave (TRACKB_REDESIGN.md Rev 3): candidates 1
+# (hard_ste), 2 (entmax/sparsemax), the M7 comparator (soft_topk_comparator),
+# and the Cell 2R/4R control (random_topk). OFF by default everywhere
+# (hard_select_active=False) -- the default path is byte-identical to the
+# pre-Track-B code (regression-checked alongside geo3's own smoke item [6]).
+# ---------------------------------------------------------------------------
+HARD_SELECT_MECHANISMS = ("hard_ste", "entmax", "soft_topk_comparator", "random_topk")
+
 
 def corpus_fixed_seed(corpus_name: str) -> int:
     """AUDIT FIX-1 (2026-07-03): the seed for EVERY held-out-window sampler
@@ -205,7 +220,8 @@ def gini_coefficient(x: torch.Tensor) -> torch.Tensor:
 
 def _geo3_lm_select_and_orthogonalize(k_raw: torch.Tensor, beta: torch.Tensor,
                                        content_mask: torch.Tensor, chunk_size: int, k_sel: int,
-                                       n_iter: int, resid_tol: float, selection_mode: str):
+                                       n_iter: int, resid_tol: float, selection_mode: str,
+                                       forced_topk_idx: torch.Tensor | None = None):
     """The Track B / geo3-in-LM chunk-local, (beta-gated OR naive-window)
     top-K_sel construction (SCALE_TRANSFER_DESIGN.md sec 4.2/4.3). Reuses
     model_rd.py's audited gather -> orthogonalize -> scatter pattern
@@ -269,7 +285,24 @@ def _geo3_lm_select_and_orthogonalize(k_raw: torch.Tensor, beta: torch.Tensor,
     caller needs to build the sec 4.4 drift diagnostic (token identity is
     looked up by the CALLER, which owns token_ids; this function only ever
     sees k_raw/beta/content_mask, never token_ids directly, keeping its
-    contract layout-agnostic)."""
+    contract layout-agnostic).
+
+    forced_topk_idx (TRACKB_REDESIGN.md Rev 2 -- M6, Cell 4's composition
+    rule): (B,n_chunks,k_sel,H) int64 in-chunk offsets, OPTIONAL. When
+    given, this function's OWN internal selection (both the beta_topk and
+    naive_window branches, and `selection_mode` itself) is SKIPPED entirely
+    -- the caller's own hard-selectivity mask supplies the selected set
+    (hard_selectivity_rd.py's hard_topk_beta_mask/random_topk_mask), and
+    this function performs ONLY its gather -> orthogonalize -> scatter role
+    on that forced set. Callers MUST ensure hard_select_k_sel == k_sel
+    themselves (M6's single-selection-source rule; this function only
+    shape-asserts the consequence, it does not know the caller's own
+    hard_select_k_sel). Validity (which forced slots are genuine content,
+    not EOT/padding) is NOT derived from an internal topk/priority
+    comparison -- there is none in this path -- it is derived by GATHERING
+    content_mask AT the forced indices (Rev 3 -- MINOR-2's registered fix),
+    feeding the SAME downstream degenerate-episode machinery (zero-row
+    handling / masked-identity residual / fallback denial) unchanged."""
     B, T, H, d = k_raw.shape
     assert T % chunk_size == 0, (
         f"T={T} is not a multiple of chunk_size={chunk_size} -- geo3-in-LM's chunking requires an "
@@ -288,24 +321,37 @@ def _geo3_lm_select_and_orthogonalize(k_raw: torch.Tensor, beta: torch.Tensor,
     beta_c = beta.view(B, n_chunks, chunk_size, H)
     content_c = content_mask.view(B, n_chunks, chunk_size, 1).expand(B, n_chunks, chunk_size, H)
 
-    neg_inf = torch.finfo(beta_c.dtype).min
-    if selection_mode == "beta_topk":
-        priority = torch.where(content_c, beta_c, torch.full_like(beta_c, neg_inf))
-    else:  # naive_window: purely positional, beta-BLIND (this build's sensitivity-control target,
-           # sec 4.8 item 1 -- "tests whether the selection refinement matters at all")
-        pos_priority = torch.arange(chunk_size, 0, -1, device=k_raw.device, dtype=beta_c.dtype)
-        pos_priority = pos_priority.view(1, 1, chunk_size, 1).expand(B, n_chunks, chunk_size, H)
-        priority = torch.where(content_c, pos_priority, torch.full_like(pos_priority, neg_inf))
+    if forced_topk_idx is not None:
+        # TRACKB_REDESIGN.md Rev 2 -- M6: geo3's OWN selection is REPLACED by the caller's
+        # hard-selectivity mask (single selection source). Validity is derived by GATHERING
+        # content_mask at the forced indices (Rev 3 -- MINOR-2), NOT from a priority/topk
+        # comparison (there is none here).
+        assert forced_topk_idx.shape == (B, n_chunks, k_sel, H), (
+            f"forced_topk_idx shape {tuple(forced_topk_idx.shape)} != expected "
+            f"(B,n_chunks,k_sel,H)=({B},{n_chunks},{k_sel},{H}) -- M6 requires "
+            f"hard_select_k_sel == geo3_k_sel; the caller must guarantee this BEFORE calling "
+            f"(this assert only catches the shape consequence, not the caller's own config).")
+        topk_idx = forced_topk_idx.to(torch.int64)
+        valid_sel = torch.gather(content_c, 2, topk_idx)                   # exact, EOT/padding excluded
+    else:
+        neg_inf = torch.finfo(beta_c.dtype).min
+        if selection_mode == "beta_topk":
+            priority = torch.where(content_c, beta_c, torch.full_like(beta_c, neg_inf))
+        else:  # naive_window: purely positional, beta-BLIND (this build's sensitivity-control target,
+               # sec 4.8 item 1 -- "tests whether the selection refinement matters at all")
+            pos_priority = torch.arange(chunk_size, 0, -1, device=k_raw.device, dtype=beta_c.dtype)
+            pos_priority = pos_priority.view(1, 1, chunk_size, 1).expand(B, n_chunks, chunk_size, H)
+            priority = torch.where(content_c, pos_priority, torch.full_like(pos_priority, neg_inf))
 
-    topk_val, topk_idx = torch.topk(priority, k_sel, dim=2)                # (B,n_chunks,k_sel,H)
-    valid_sel = topk_val > (neg_inf / 2)                                    # strictly-content slots only
-                                                                              # (excludes EOT/padding
-                                                                              # positions selected only
-                                                                              # because a chunk ran out
-                                                                              # of real content, sec 4.2
-                                                                              # item 3 -- degenerate but
-                                                                              # handled EXACTLY, not by
-                                                                              # a tolerance-slack shortcut)
+        topk_val, topk_idx = torch.topk(priority, k_sel, dim=2)                # (B,n_chunks,k_sel,H)
+        valid_sel = topk_val > (neg_inf / 2)                                    # strictly-content slots only
+                                                                                  # (excludes EOT/padding
+                                                                                  # positions selected only
+                                                                                  # because a chunk ran out
+                                                                                  # of real content, sec 4.2
+                                                                                  # item 3 -- degenerate but
+                                                                                  # handled EXACTLY, not by
+                                                                                  # a tolerance-slack shortcut)
 
     idx_expand = topk_idx.unsqueeze(-1).expand(B, n_chunks, k_sel, H, d)
     k_gathered_raw = torch.gather(k_c, 2, idx_expand)                      # (B,n_chunks,k_sel,H,d)
@@ -390,7 +436,8 @@ def _geo3_lm_select_and_orthogonalize(k_raw: torch.Tensor, beta: torch.Tensor,
         "fallback_triggered": bool(fallback_triggered),
         "n_fallback_denied_degenerate": n_fallback_denied,     # AUDIT ROUND-2 MAJOR-1: never silent
         "frac_valid_selections": valid_flat.float().mean().item(),
-        "n_chunks": n_chunks, "k_sel": k_sel, "chunk_size": chunk_size, "selection_mode": selection_mode,
+        "n_chunks": n_chunks, "k_sel": k_sel, "chunk_size": chunk_size,
+        "selection_mode": "forced" if forced_topk_idx is not None else selection_mode,
         # raw tensors for the OPTIONAL caller-side drift diagnostic (sec 4.4) -- NOT reduced here,
         # the caller (which owns token_ids) maps these back to token identity.
         "_topk_idx": topk_idx, "_valid_sel": valid_sel, "_Q": Q.reshape(B, n_chunks, H, k_sel, d),
@@ -440,13 +487,51 @@ class DeltaNetLMMixer(nn.Module):
                  geo3_active: bool = False, geo3_k_sel: int = 16,
                  geo3_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT, geo3_n_iter: int = 12,
                  geo3_resid_tol: float = 1e-2, geo3_selection_mode: str = "beta_topk",
-                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
+                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
+                 hard_select_active: bool = False, hard_select_mechanism: str = "hard_ste",
+                 hard_select_k_sel: int = 32, hard_select_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT,
+                 hard_select_b_pinned: float | None = None, hard_select_seed: int = 0,
+                 hard_select_tau_total_steps: int | None = None,
+                 hard_select_tau_anneal_frac: float = 0.10,
+                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
         """geo3_* (SCALE_TRANSFER_DESIGN.md sec 4, Track B): OFF by default
         (geo3_active=False) -- when off, none of this __init__'s new
         parameters are read anywhere in forward(), and forward()'s default
         code path is UNCHANGED line-for-line (smoke item [6] regression-
         checks this). See _geo3_lm_select_and_orthogonalize's docstring for
-        the full parameter contract."""
+        the full parameter contract.
+
+        hard_select_* (TRACKB_REDESIGN.md Rev 3 -- Track B's hard-
+        selectivity wave). OFF by default (hard_select_active=False) --
+        mirrors geo3_active's own additive-off-by-default pattern exactly:
+        when off, none of these parameters are read in forward() and the
+        default path (both flags False) is byte-identical to the
+        pre-Track-B code. When active, REPLACES the plain independent
+        sigmoid at the mixer's beta site with one of HARD_SELECT_MECHANISMS
+        (hard_selectivity_rd.py):
+          "hard_ste"              Candidate 1 (PRIMARY, sec 3.1): hard top-K
+                                   beta mask + straight-through gradient.
+          "entmax"                Candidate 2 (sec 3.2): chunk-normalized
+                                   sparsemax (only sparsemax is built; the
+                                   entmax bisection variant is a named,
+                                   unbuilt stretch per sec 3.2's own ranking).
+          "soft_topk_comparator"  M7 comparator (sec 3.1, Rev 3 NEW-6):
+                                   temperature-annealed soft top-K.
+          "random_topk"           Cell 2R/4R control (sec 5.1): beta-blind
+                                   random top-K, resampled per
+                                   (chunk instance, training step).
+        hard_select_active and geo3_active are INDEPENDENTLY toggleable
+        (sec 5's 2x2 factorial axis). Cell 4's composition rule (Rev 2 --
+        M6) fires automatically when BOTH are True and the mechanism
+        produces a fixed top-K SET ("hard_ste"/"random_topk"/
+        "soft_topk_comparator" all do, via hard_topk_beta_mask's own
+        topk_idx; "entmax" does not -- its support size is content/score-
+        dependent, so there is no single fixed-shape forced_topk_idx to
+        thread, and the combination is HARD-REFUSED below, mirroring
+        geo3_active's own num_heads==1 untested-at-scope discipline):
+        hard_select_k_sel MUST equal geo3_k_sel, and geo3's OWN
+        beta_topk/naive_window selection is REPLACED by the mask's own
+        selected set (a single selection source, never a double-selection)."""
         super().__init__()
         assert d_state % num_heads == 0, \
             f"d_state={d_state} must be divisible by num_heads={num_heads}"
@@ -475,6 +560,44 @@ class DeltaNetLMMixer(nn.Module):
                 f"geo3_active with num_heads={num_heads} is UNTESTED AT SCOPE (every registered "
                 f"Track B cell is num_heads=1) -- see this assert's comment before widening."
             )
+        if hard_select_active:
+            assert hard_select_mechanism in HARD_SELECT_MECHANISMS, (
+                f"hard_select_mechanism={hard_select_mechanism!r} not in {HARD_SELECT_MECHANISMS}")
+            assert 1 <= hard_select_k_sel <= hard_select_chunk_size, (
+                f"hard_select_k_sel={hard_select_k_sel} must be in [1,{hard_select_chunk_size}]")
+            if geo3_active:
+                # TRACKB_REDESIGN.md Rev 2 -- M6: Cell 4's composition rule. "entmax" has no fixed
+                # top-K set to force (variable support size) -- hard-refused, not silently mishandled.
+                assert hard_select_mechanism != "entmax", (
+                    "hard_select_mechanism='entmax' + geo3_active=True is NOT SUPPORTED: "
+                    "entmax/sparsemax's support size is content/score-dependent, so there is no "
+                    "single forced_topk_idx of fixed shape (k_sel,H) to thread into M6's composition "
+                    "rule. TRACKB_REDESIGN.md sec 5.1's Cell 4 is defined over 'the surviving "
+                    "candidate' -- if candidate 2 is ever the surviving mechanism, Cell 4's "
+                    "composition needs its own (unbuilt) variable-support forcing scheme. "
+                    "Untested-at-scope, hard-refused (mirrors geo3_active's own num_heads==1 "
+                    "discipline above)."
+                )
+                assert hard_select_k_sel == geo3_k_sel, (
+                    f"Cell 4 composition rule (M6): hard_select_k_sel={hard_select_k_sel} must "
+                    f"equal geo3_k_sel={geo3_k_sel} when both hard_select_active and geo3_active "
+                    f"are True (single selection source, TRACKB_REDESIGN.md sec 5.1)."
+                )
+                assert hard_select_chunk_size == geo3_chunk_size, (
+                    f"hard_select_chunk_size={hard_select_chunk_size} must equal "
+                    f"geo3_chunk_size={geo3_chunk_size} when composing with geo3 (M6) -- both "
+                    f"selections must tile the sequence identically."
+                )
+        self.hard_select_active = hard_select_active
+        self.hard_select_mechanism = hard_select_mechanism
+        self.hard_select_k_sel = hard_select_k_sel
+        self.hard_select_chunk_size = hard_select_chunk_size
+        self.hard_select_b_pinned = hard_select_b_pinned
+        self.hard_select_seed = hard_select_seed
+        self.hard_select_tau_total_steps = hard_select_tau_total_steps
+        self.hard_select_tau_anneal_frac = hard_select_tau_anneal_frac
+        self.hard_select_excluded_token_ids = tuple(hard_select_excluded_token_ids)
+        self.hard_select_last_diag: dict | None = None   # mirrors geo3_last_diag's side-channel convention
         self.d_model = d_model
         self.d_state = d_state
         self.num_heads = num_heads
@@ -499,7 +622,7 @@ class DeltaNetLMMixer(nn.Module):
         self.o_proj = nn.Linear(d_state, d_model, bias=False)
 
     def forward(self, x: torch.Tensor, initial_state: torch.Tensor | None = None,
-                token_ids: torch.Tensor | None = None):
+                token_ids: torch.Tensor | None = None, step: int | None = None):
         """x: (B,T,d_model). initial_state: None, or (B,H,head_dim,head_dim) in fla's OWN
         native [K,V] layout -- NOT reconciled to model_rd.py's [V,K] design layout, and
         deliberately so: LM mode never calls apply_state_power / any external readout that
@@ -516,7 +639,22 @@ class DeltaNetLMMixer(nn.Module):
         no state-neutral pad token to extend a too-short call with (unlike Wave 1's buffer-token
         trick) -- callers must choose seq_len/ctx_len/continuation_len >= _MIN_KERNEL_T directly
         (validated at CLI-parse time in this file's/lm_intervene_rd.py's main()); this assert is
-        a defensive backstop, not the primary enforcement point."""
+        a defensive backstop, not the primary enforcement point.
+
+        step (TRACKB_REDESIGN.md Rev 3, hard-selectivity wave): the current
+        TRAINING step (1-indexed, matches train()'s own loop counter,
+        lm_pretrain_rd.py's `for step in range(1, args.steps+1)`). REQUIRED
+        when hard_select_active with a step-dependent mechanism
+        ("random_topk"'s per-(chunk,step) RNG stream, "soft_topk_comparator"'s
+        tau(t) anneal). Build-phase note (1), load-bearing: an eval-time
+        forward-hook probe MUST pass the checkpoint's OWN recorded step here
+        -- never a separate probe-specific value, and never omitted in favor
+        of a default -- so the RNG stream CONTINUES exactly what a
+        training-time forward call at that step would have drawn, rather
+        than freezing a fresh draw per checkpoint (hard_selectivity_rd.py's
+        derive_step_rng docstring states the same contract from the callee
+        side; test_trackb_smokes.py's continuation-equivalence smoke
+        verifies it)."""
         B, T, _ = x.shape
         assert T >= _MIN_KERNEL_T, (
             f"sequence length {T} < _MIN_KERNEL_T={_MIN_KERNEL_T} -- chunk_delta_rule's backward "
@@ -526,7 +664,84 @@ class DeltaNetLMMixer(nn.Module):
         q, _ = self.q_conv1d(self.q_proj(x))
         k, _ = self.k_conv1d(self.k_proj(x))
         v, _ = self.v_conv1d(self.v_proj(x))
-        beta = torch.sigmoid(self.b_proj(x))                       # (B,T,H), plain learned gate
+
+        # Track B / geo3-in-LM (SCALE_TRANSFER_DESIGN.md sec 4.3's insertion point) AND the
+        # hard-selectivity wave (TRACKB_REDESIGN.md Rev 3) share ONE content_mask -- computed
+        # whenever EITHER flag is active. When hard_select_active=False, excluded_ids reduces to
+        # EXACTLY geo3_excluded_token_ids (byte-identical to the pre-Track-B-hard-selectivity
+        # code, smoke item [6]'s own regression-check convention extended here).
+        content_mask = None
+        if self.geo3_active or self.hard_select_active:
+            assert token_ids is not None, (
+                "geo3_active and/or hard_select_active require token_ids (EOT-exclusion mask, "
+                "sec 4.2 item 3) -- the caller (DeltaNetLMBlock.forward / DeltaNetLM.forward) must "
+                "thread token_ids down to every mixer.forward() call."
+            )
+            assert token_ids.shape == (B, T), f"token_ids shape {tuple(token_ids.shape)} != (B,T)=({B},{T})"
+            excluded_ids = set()
+            if self.geo3_active:
+                excluded_ids |= set(self.geo3_excluded_token_ids)
+            if self.hard_select_active:
+                excluded_ids |= set(self.hard_select_excluded_token_ids)
+            content_mask = torch.ones(B, T, dtype=torch.bool, device=k.device)
+            for excluded_id in excluded_ids:
+                content_mask = content_mask & (token_ids != excluded_id)
+
+        # Hard-selectivity mechanism (TRACKB_REDESIGN.md Rev 3). OFF by default
+        # (hard_select_active=False): this entire block does not execute, and `beta` falls through
+        # to the plain sigmoid `else` branch below, UNCHANGED (smoke item [6]'s regression-check
+        # convention extended to this new axis).
+        forced_topk_idx = None
+        if self.hard_select_active:
+            mech = self.hard_select_mechanism
+            if mech == "hard_ste":
+                beta_soft = torch.sigmoid(self.b_proj(x))
+                mask, topk_idx, valid_sel = hard_topk_beta_mask(
+                    beta_soft, content_mask, self.hard_select_chunk_size, self.hard_select_k_sel)
+                beta = apply_hard_select_ste(beta_soft, mask)
+                sel_diag = {"mechanism": mech, "topk_idx": topk_idx, "valid_sel": valid_sel}
+            elif mech == "entmax":
+                scores = self.b_proj(x)
+                beta = chunk_sparsemax_beta(scores, content_mask, self.hard_select_chunk_size)
+                sel_diag = {"mechanism": mech}
+            elif mech == "soft_topk_comparator":
+                assert self.hard_select_tau_total_steps is not None and step is not None, (
+                    "soft_topk_comparator requires BOTH hard_select_tau_total_steps (constructor) "
+                    "AND step (this forward() call's own arg, the tau(t) anneal's input) -- never "
+                    "silently defaulted (Rev 3 NEW-6's registered 10%-of-steps anneal pin)."
+                )
+                tau = tau_schedule(step, self.hard_select_tau_total_steps, self.hard_select_tau_anneal_frac)
+                beta_soft = torch.sigmoid(self.b_proj(x))
+                beta, mask, topk_idx, valid_sel = soft_topk_comparator_beta(
+                    beta_soft, content_mask, self.hard_select_chunk_size, self.hard_select_k_sel, tau)
+                sel_diag = {"mechanism": mech, "tau": tau, "topk_idx": topk_idx, "valid_sel": valid_sel}
+            else:
+                assert mech == "random_topk"
+                assert step is not None, (
+                    "random_topk (Cell 2R/4R) requires `step` (this forward() call's own arg) -- "
+                    "the per-(chunk,step) RNG stream's input (hard_selectivity_rd.derive_step_rng, "
+                    "Rev 3 NEW-2/NEW-3's registered per-instance-per-step cadence)."
+                )
+                beta_soft = torch.sigmoid(self.b_proj(x))
+                mask, topk_idx, valid_sel = random_topk_mask(
+                    (B, T, self.num_heads), content_mask, self.hard_select_chunk_size,
+                    self.hard_select_k_sel, self.hard_select_seed, step, device=x.device)
+                beta = beta_soft * mask
+                sel_diag = {"mechanism": mech, "topk_idx": topk_idx, "valid_sel": valid_sel}
+
+            if self.hard_select_b_pinned is not None:
+                # sec 2 principle 4 (Rev 3 NEW-1, symmetric): mandatory for EVERY masking mechanism,
+                # including candidate 2's structurally-partial case.
+                beta, shortfall = renormalize_to_b_pinned(
+                    beta, self.hard_select_chunk_size, self.hard_select_b_pinned)
+                sel_diag["shortfall"] = shortfall
+                sel_diag["budget_partial"] = classify_budget_partial(shortfall)
+            self.hard_select_last_diag = sel_diag
+
+            if self.geo3_active and mech != "entmax":
+                forced_topk_idx = topk_idx        # M6: single selection source
+        else:
+            beta = torch.sigmoid(self.b_proj(x))                       # (B,T,H), plain learned gate
 
         q = q.reshape(B, T, self.num_heads, self.head_dim)
         k = k.reshape(B, T, self.num_heads, self.head_dim)
@@ -537,18 +752,10 @@ class DeltaNetLMMixer(nn.Module):
         # chunk_delta_rule(...) call"). OFF by default (geo3_active=False): this entire block
         # does not execute, so the default path below is UNCHANGED (smoke item [6]).
         if self.geo3_active:
-            assert token_ids is not None, (
-                "geo3_active=True requires token_ids (sec 4.2 item 3's EOT-exclusion mask) -- "
-                "the caller (DeltaNetLMBlock.forward / DeltaNetLM.forward) must thread token_ids "
-                "down to every mixer.forward() call."
-            )
-            assert token_ids.shape == (B, T), f"token_ids shape {tuple(token_ids.shape)} != (B,T)=({B},{T})"
-            content_mask = torch.ones(B, T, dtype=torch.bool, device=k.device)
-            for excluded_id in self.geo3_excluded_token_ids:
-                content_mask = content_mask & (token_ids != excluded_id)
             k, geo3_diag = _geo3_lm_select_and_orthogonalize(
                 k, beta, content_mask, self.geo3_chunk_size, self.geo3_k_sel,
-                self.geo3_n_iter, self.geo3_resid_tol, self.geo3_selection_mode)
+                self.geo3_n_iter, self.geo3_resid_tol, self.geo3_selection_mode,
+                forced_topk_idx=forced_topk_idx)
             self.geo3_last_diag = geo3_diag
 
         # Kernel boundary: bf16 ONLY here (chunk_delta_rule categorically
@@ -575,20 +782,33 @@ class DeltaNetLMBlock(nn.Module):
                  geo3_active: bool = False, geo3_k_sel: int = 16,
                  geo3_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT, geo3_n_iter: int = 12,
                  geo3_resid_tol: float = 1e-2, geo3_selection_mode: str = "beta_topk",
-                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
+                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
+                 hard_select_active: bool = False, hard_select_mechanism: str = "hard_ste",
+                 hard_select_k_sel: int = 32, hard_select_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT,
+                 hard_select_b_pinned: float | None = None, hard_select_seed: int = 0,
+                 hard_select_tau_total_steps: int | None = None,
+                 hard_select_tau_anneal_frac: float = 0.10,
+                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
         super().__init__()
         self.norm1 = RMSNorm(d_model, eps=1e-5)
-        self.mixer = DeltaNetLMMixer(d_model, d_state, conv_size=conv_size, num_heads=num_heads,
-                                      geo3_active=geo3_active, geo3_k_sel=geo3_k_sel,
-                                      geo3_chunk_size=geo3_chunk_size, geo3_n_iter=geo3_n_iter,
-                                      geo3_resid_tol=geo3_resid_tol, geo3_selection_mode=geo3_selection_mode,
-                                      geo3_excluded_token_ids=geo3_excluded_token_ids)
+        self.mixer = DeltaNetLMMixer(
+            d_model, d_state, conv_size=conv_size, num_heads=num_heads,
+            geo3_active=geo3_active, geo3_k_sel=geo3_k_sel,
+            geo3_chunk_size=geo3_chunk_size, geo3_n_iter=geo3_n_iter,
+            geo3_resid_tol=geo3_resid_tol, geo3_selection_mode=geo3_selection_mode,
+            geo3_excluded_token_ids=geo3_excluded_token_ids,
+            hard_select_active=hard_select_active, hard_select_mechanism=hard_select_mechanism,
+            hard_select_k_sel=hard_select_k_sel, hard_select_chunk_size=hard_select_chunk_size,
+            hard_select_b_pinned=hard_select_b_pinned, hard_select_seed=hard_select_seed,
+            hard_select_tau_total_steps=hard_select_tau_total_steps,
+            hard_select_tau_anneal_frac=hard_select_tau_anneal_frac,
+            hard_select_excluded_token_ids=hard_select_excluded_token_ids)
         self.norm2 = RMSNorm(d_model, eps=1e-5)
         self.ffn = FFN(d_model, mult=ffn_mult)
 
     def forward(self, x: torch.Tensor, initial_state: torch.Tensor | None = None,
-                token_ids: torch.Tensor | None = None):
-        o, final_state = self.mixer(self.norm1(x), initial_state=initial_state, token_ids=token_ids)
+                token_ids: torch.Tensor | None = None, step: int | None = None):
+        o, final_state = self.mixer(self.norm1(x), initial_state=initial_state, token_ids=token_ids, step=step)
         x = x + o
         x = x + self.ffn(self.norm2(x))
         return x, final_state
@@ -624,12 +844,21 @@ class DeltaNetLM(nn.Module):
                  geo3_active: bool = False, geo3_k_sel: int = 16,
                  geo3_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT, geo3_n_iter: int = 12,
                  geo3_resid_tol: float = 1e-2, geo3_selection_mode: str = "beta_topk",
-                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
+                 geo3_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
+                 hard_select_active: bool = False, hard_select_mechanism: str = "hard_ste",
+                 hard_select_k_sel: int = 32, hard_select_chunk_size: int = GEO3_LM_CHUNK_SIZE_DEFAULT,
+                 hard_select_b_pinned: float | None = None, hard_select_seed: int = 0,
+                 hard_select_tau_total_steps: int | None = None,
+                 hard_select_tau_anneal_frac: float = 0.10,
+                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
         """geo3_* (SCALE_TRANSFER_DESIGN.md sec 4, Track B): threaded to EVERY
         block/mixer uniformly (this build does not support a per-layer geo3
         toggle -- out of sec 4's scope). OFF by default everywhere -- the
         default (geo3_active=False) path is byte-identical to the
-        pre-Track-B code (smoke item [6])."""
+        pre-Track-B code (smoke item [6]). hard_select_* (TRACKB_REDESIGN.md
+        Rev 3): same uniform-per-layer threading, same off-by-default
+        discipline -- see DeltaNetLMMixer.__init__'s own docstring for the
+        full mechanism contract."""
         super().__init__()
         assert 1 <= n_layers <= _MAX_N_LAYERS, (
             f"n_layers={n_layers} outside the registered range [1,{_MAX_N_LAYERS}] -- "
@@ -651,6 +880,15 @@ class DeltaNetLM(nn.Module):
         self.geo3_resid_tol = geo3_resid_tol
         self.geo3_selection_mode = geo3_selection_mode
         self.geo3_excluded_token_ids = tuple(geo3_excluded_token_ids)
+        self.hard_select_active = hard_select_active
+        self.hard_select_mechanism = hard_select_mechanism
+        self.hard_select_k_sel = hard_select_k_sel
+        self.hard_select_chunk_size = hard_select_chunk_size
+        self.hard_select_b_pinned = hard_select_b_pinned
+        self.hard_select_seed = hard_select_seed
+        self.hard_select_tau_total_steps = hard_select_tau_total_steps
+        self.hard_select_tau_anneal_frac = hard_select_tau_anneal_frac
+        self.hard_select_excluded_token_ids = tuple(hard_select_excluded_token_ids)
 
         self.embed = nn.Embedding(vocab_size, d_model)
         # AUDIT FIX-2 (2026-07-03): nn.Embedding's PyTorch default init is
@@ -660,11 +898,18 @@ class DeltaNetLM(nn.Module):
         # to std=0.02 gives 10.90). GPT-2's own convention: std=0.02.
         nn.init.normal_(self.embed.weight, mean=0.0, std=0.02)
         self.blocks = nn.ModuleList([
-            DeltaNetLMBlock(d_model, d_state, conv_size=conv_size, num_heads=num_heads, ffn_mult=ffn_mult,
-                             geo3_active=geo3_active, geo3_k_sel=geo3_k_sel, geo3_chunk_size=geo3_chunk_size,
-                             geo3_n_iter=geo3_n_iter, geo3_resid_tol=geo3_resid_tol,
-                             geo3_selection_mode=geo3_selection_mode,
-                             geo3_excluded_token_ids=geo3_excluded_token_ids)
+            DeltaNetLMBlock(
+                d_model, d_state, conv_size=conv_size, num_heads=num_heads, ffn_mult=ffn_mult,
+                geo3_active=geo3_active, geo3_k_sel=geo3_k_sel, geo3_chunk_size=geo3_chunk_size,
+                geo3_n_iter=geo3_n_iter, geo3_resid_tol=geo3_resid_tol,
+                geo3_selection_mode=geo3_selection_mode,
+                geo3_excluded_token_ids=geo3_excluded_token_ids,
+                hard_select_active=hard_select_active, hard_select_mechanism=hard_select_mechanism,
+                hard_select_k_sel=hard_select_k_sel, hard_select_chunk_size=hard_select_chunk_size,
+                hard_select_b_pinned=hard_select_b_pinned, hard_select_seed=hard_select_seed,
+                hard_select_tau_total_steps=hard_select_tau_total_steps,
+                hard_select_tau_anneal_frac=hard_select_tau_anneal_frac,
+                hard_select_excluded_token_ids=hard_select_excluded_token_ids)
             for _ in range(n_layers)
         ])
         self.norm_f = RMSNorm(d_model, eps=1e-5)
@@ -676,10 +921,19 @@ class DeltaNetLM(nn.Module):
                 "geo3_active": self.geo3_active, "geo3_k_sel": self.geo3_k_sel,
                 "geo3_chunk_size": self.geo3_chunk_size, "geo3_n_iter": self.geo3_n_iter,
                 "geo3_resid_tol": self.geo3_resid_tol, "geo3_selection_mode": self.geo3_selection_mode,
-                "geo3_excluded_token_ids": list(self.geo3_excluded_token_ids)}
+                "geo3_excluded_token_ids": list(self.geo3_excluded_token_ids),
+                "hard_select_active": self.hard_select_active,
+                "hard_select_mechanism": self.hard_select_mechanism,
+                "hard_select_k_sel": self.hard_select_k_sel,
+                "hard_select_chunk_size": self.hard_select_chunk_size,
+                "hard_select_b_pinned": self.hard_select_b_pinned,
+                "hard_select_seed": self.hard_select_seed,
+                "hard_select_tau_total_steps": self.hard_select_tau_total_steps,
+                "hard_select_tau_anneal_frac": self.hard_select_tau_anneal_frac,
+                "hard_select_excluded_token_ids": list(self.hard_select_excluded_token_ids)}
 
     def forward(self, token_ids: torch.Tensor, initial_states: list | None = None,
-                return_states: bool = False):
+                return_states: bool = False, step: int | None = None):
         """token_ids: (B,T) int64. initial_states: None (every layer starts fresh -- the ONLY
         mode training ever uses) or a list of length n_layers, each entry None or a
         (B,H,head_dim,head_dim) state (the intervention script's two-phase context/continuation
@@ -687,7 +941,12 @@ class DeltaNetLM(nn.Module):
         layer's FINAL state for this call.
 
         token_ids is now ALSO threaded down to every block/mixer (sec 4.2 item 3's EOT-exclusion
-        mask) -- a pure additive plumbing change: non-geo3 mixers never read it."""
+        mask) -- a pure additive plumbing change: non-geo3/non-hard-select mixers never read it.
+
+        step (TRACKB_REDESIGN.md Rev 3): threaded to every block/mixer uniformly -- see
+        DeltaNetLMMixer.forward's own docstring for the continuation contract eval-time probes
+        must honor. None is a valid value ONLY for mechanisms that do not read it (hard_select
+        inactive, or mechanism in {"hard_ste","entmax"})."""
         B, T = token_ids.shape
         x = self.embed(token_ids)
         if initial_states is None:
@@ -696,7 +955,7 @@ class DeltaNetLM(nn.Module):
             f"initial_states must have one entry per layer ({self.n_layers}), got {len(initial_states)}"
         final_states = []
         for blk, s0 in zip(self.blocks, initial_states):
-            x, s_final = blk(x, initial_state=s0, token_ids=token_ids)
+            x, s_final = blk(x, initial_state=s0, token_ids=token_ids, step=step)
             final_states.append(s_final)
         x = self.norm_f(x)
         logits = F.linear(x, self.embed.weight)                    # tied head, no bias
@@ -822,7 +1081,7 @@ def get_lr(step: int, max_lr: float, warmup_steps: int, total_steps: int, min_lr
 @torch.no_grad()
 def sample_state_rank_stats(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets: torch.Tensor,
                              n_docs: int, seq_len: int, generator: torch.Generator,
-                             fracs=RANK_SAMPLE_FRACS) -> tuple[list, dict]:
+                             fracs=RANK_SAMPLE_FRACS, step: int | None = None) -> tuple[list, dict]:
     """Descriptive whole-state rank instrumentation (this build's brief:
     "entity-subspace doesn't apply -- whole-state effective/stable rank per
     head over sampled positions, split by document").
@@ -881,7 +1140,12 @@ def sample_state_rank_stats(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets
         offs = torch.arange(L, device=tokens.device)
         idx = starts.unsqueeze(1) + offs.unsqueeze(0)          # (n_docs, L)
         batch = tokens[idx]
-        _, states = model(batch, return_states=True)
+        # TRACKB_REDESIGN.md Rev 3 build-phase note (1): `step` is threaded through so an
+        # eval-time forward-hook probe like this one CONTINUES the same (seed,step)-keyed RNG
+        # stream a hard_select_active "random_topk" mechanism uses at training time (see
+        # DeltaNetLMMixer.forward's own docstring) -- None is safe/inert whenever hard_select is
+        # inactive or uses a step-independent mechanism.
+        _, states = model(batch, return_states=True, step=step)
         for layer_idx, S in enumerate(states):                 # S: (n_docs, H, d, d)
             er = effective_rank(S)
             sr = stable_rank(S)
@@ -922,7 +1186,8 @@ def summarize_rank_stats(records: list) -> dict:
 
 @torch.no_grad()
 def sample_geo3_diagnostics(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets: torch.Tensor,
-                             n_docs: int, seq_len: int, generator: torch.Generator) -> dict:
+                             n_docs: int, seq_len: int, generator: torch.Generator,
+                             step: int | None = None) -> dict:
     """SCALE_TRANSFER_DESIGN.md sec 4.4's two REQUIRED instrumentation items
     for a geo3-active model, both computed from ONE shared forward pass over
     n_docs document-aligned windows:
@@ -951,7 +1216,17 @@ def sample_geo3_diagnostics(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets
         nothing.
 
     Requires at least one geo3_active mixer; asserts this (calling it on a
-    non-geo3 model is a caller bug, not a legitimate empty-result case)."""
+    non-geo3 model is a caller bug, not a legitimate empty-result case).
+
+    step (TRACKB_REDESIGN.md Rev 3 -- this is the designated sec 4.4
+    selected-key logger, the ONE instrument every Track B hard-selectivity
+    cell's Gram-deviation bar reads (sec 5.2's F1 fix); build-phase note
+    (1) requires this eval-time forward-hook probe to CONTINUE the same
+    (seed,step)-keyed RNG stream a hard_select_active "random_topk"
+    mechanism used at training time, never freeze a fresh draw per
+    checkpoint -- callers MUST pass the checkpoint's own recorded training
+    step here when probing a hard_select_active model with a step-dependent
+    mechanism)."""
     assert any(blk.mixer.geo3_active for blk in model.blocks), \
         "sample_geo3_diagnostics requires at least one geo3_active mixer"
     model.eval()
@@ -965,7 +1240,7 @@ def sample_geo3_diagnostics(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets
     idx = starts.unsqueeze(1) + offs.unsqueeze(0)
     batch = tokens[idx]                                              # (n_docs, seq_len)
 
-    _ = model(batch, return_states=False)
+    _ = model(batch, return_states=False, step=step)
 
     per_layer_gram = {}
     token_key_pairs: list[tuple[int, torch.Tensor]] = []
@@ -1021,7 +1296,8 @@ def sample_geo3_diagnostics(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets
 
 @torch.no_grad()
 def eval_loss(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets: torch.Tensor, n_batches: int,
-              batch_size: int, seq_len: int, generator: torch.Generator) -> tuple[float, dict]:
+              batch_size: int, seq_len: int, generator: torch.Generator,
+              step: int | None = None) -> tuple[float, dict]:
     """Cross-entropy val loss, capped batch size / batch count (house VRAM
     rule: eval batches capped independently of the train batch -- the 50K-
     vocab logits tensor is the VRAM bottleneck, not model activations).
@@ -1029,14 +1305,19 @@ def eval_loss(model: DeltaNetLM, tokens: torch.Tensor, doc_offsets: torch.Tensor
     AUDIT FIX-1: `generator` must be seeded from corpus_fixed_seed(...) so
     every training seed evaluates on the SAME windows. Returns
     (mean_loss, info) where info carries the FIX-1 verification digest of
-    the drawn window starts and the FIX-3 boundary-contamination stats."""
+    the drawn window starts and the FIX-3 boundary-contamination stats.
+
+    step (TRACKB_REDESIGN.md Rev 3, build-phase note (1)): threaded through
+    to model() so a hard_select_active model's step-dependent mechanism
+    continues its training-time RNG stream during eval, rather than
+    freezing a fresh draw -- inert when hard_select is inactive."""
     model.eval()
     total, count = 0.0, 0
     all_starts = []
     for _ in range(n_batches):
         x, y, starts = get_batch(tokens, batch_size, seq_len, generator, return_starts=True)
         all_starts.append(starts)
-        logits = model(x)
+        logits = model(x, step=step)
         loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), y.reshape(-1))
         total += loss.item()
         count += 1
@@ -1109,6 +1390,17 @@ def _assemble_result(args, run_name, other_corpus, trajectory, checkpoints, n_pa
             "resid_tol": getattr(args, "geo3_resid_tol", None),
             "selection_mode": getattr(args, "geo3_selection", None),
         },
+        # TRACKB_REDESIGN.md Rev 3: hard-selectivity mechanism config, mirroring geo3_lm's own
+        # always-present (even when inactive) block convention.
+        "hard_select": {
+            "active": getattr(args, "hard_select_active", False),
+            "mechanism": getattr(args, "hard_select_mechanism", None),
+            "k_sel": getattr(args, "hard_select_k_sel", None),
+            "chunk_size": getattr(args, "hard_select_chunk_size", None),
+            "b_pinned": getattr(args, "hard_select_b_pinned", None),
+            "seed": getattr(args, "hard_select_seed", None),
+            "tau_anneal_frac": getattr(args, "hard_select_tau_anneal_frac", None),
+        },
         "trajectory": trajectory, "checkpoints": checkpoints,
         "wall_s": time.time() - t0, "timed_out": timed_out,
         # SCALE_TRANSFER_DESIGN.md sec 5.6 Wave -1 (Track C calibration): peak CUDA memory over
@@ -1117,6 +1409,13 @@ def _assemble_result(args, run_name, other_corpus, trajectory, checkpoints, n_pa
         "peak_memory_allocated_bytes": (torch.cuda.max_memory_allocated() if torch.cuda.is_available() else None),
         "peak_memory_reserved_bytes": (torch.cuda.max_memory_reserved() if torch.cuda.is_available() else None),
     }
+    # TRACKB_REDESIGN.md Rev 2 -- M5 / sec 5.1: the Cell-3 override stamp, written AT ASSEMBLY
+    # TIME (never post-hoc) via a CLI-threaded --gate-override-reason. gate_override is ALWAYS
+    # present (True or False) so its absence can never be misread as "a clean, non-override run"
+    # (mirrors key_anchoring.py's assemble_claim_tier_fields / unblind_override precedent, R4-1).
+    gate_override_reason = getattr(args, "gate_override_reason", None)
+    stamp = trackb_override_stamp_payload(reason=gate_override_reason) if gate_override_reason else None
+    result.update(trackb_assemble_gate_override_fields(stamp))
     if checkpoints:
         result["final_step"] = checkpoints[-1]["step"]
         result["final_checkpoint_path"] = checkpoints[-1].get("checkpoint_path")
@@ -1178,7 +1477,7 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
         train_windows_crossing += bs_stats["frac_windows_crossing"] * bs_stats["n_windows"]
         train_tokens_cross_frac_sum += bs_stats["frac_tokens_cross_doc"] * bs_stats["n_windows"]
 
-        logits = model(x)
+        logits = model(x, step=step)
         loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), y.reshape(-1))
         opt.zero_grad()
         loss.backward()
@@ -1201,21 +1500,29 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
                 corpus_fixed_seed(args.corpus) + 10_000 + step)
             eval_gen_other = torch.Generator(device=device).manual_seed(
                 corpus_fixed_seed(other_corpus) + 10_000 + step)
+            # TRACKB_REDESIGN.md Rev 3 build-phase note (1): every eval-time forward-hook probe
+            # in this checkpoint block passes THIS SAME `step` (the training loop's own counter,
+            # not a separately-derived probe step) -- the mechanism that makes the continuation
+            # contract hold trivially: a hard_select_active model's random_topk/soft_topk_
+            # comparator mechanism draws IDENTICALLY here as it did in this iteration's own
+            # training forward call above.
             val_loss_same, eval_info_same = eval_loss(model, val_tokens_same, val_offs_same,
                                                        args.eval_batches, args.eval_batch_size,
-                                                       args.seq_len, eval_gen_same)
+                                                       args.seq_len, eval_gen_same, step=step)
             val_loss_other, eval_info_other = eval_loss(model, val_tokens_other, val_offs_other,
                                                          args.eval_batches, args.eval_batch_size,
-                                                         args.seq_len, eval_gen_other)
+                                                         args.seq_len, eval_gen_other, step=step)
 
             rank_gen_same = torch.Generator(device=device).manual_seed(
                 corpus_fixed_seed(args.corpus) + 20_000 + step)
             rank_gen_other = torch.Generator(device=device).manual_seed(
                 corpus_fixed_seed(other_corpus) + 20_000 + step)
             rank_same, rank_sum_same = sample_state_rank_stats(
-                model, val_tokens_same, val_offs_same, args.rank_sample_docs, args.seq_len, rank_gen_same)
+                model, val_tokens_same, val_offs_same, args.rank_sample_docs, args.seq_len, rank_gen_same,
+                step=step)
             rank_other, rank_sum_other = sample_state_rank_stats(
-                model, val_tokens_other, val_offs_other, args.rank_sample_docs, args.seq_len, rank_gen_other)
+                model, val_tokens_other, val_offs_other, args.rank_sample_docs, args.seq_len, rank_gen_other,
+                step=step)
 
             # Track B / geo3-in-LM (sec 4.4's required instrumentation): only computed when
             # geo3 is active on this model -- a separate seeded generator (offset 40_000, never
@@ -1230,10 +1537,10 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
                 geo3_diag = {
                     args.corpus: sample_geo3_diagnostics(
                         model, val_tokens_same, val_offs_same, args.rank_sample_docs,
-                        args.seq_len, geo3_gen_same),
+                        args.seq_len, geo3_gen_same, step=step),
                     other_corpus: sample_geo3_diagnostics(
                         model, val_tokens_other, val_offs_other, args.rank_sample_docs,
-                        args.seq_len, geo3_gen_other),
+                        args.seq_len, geo3_gen_other, step=step),
                 }
 
             ckpt_path = None
@@ -1956,6 +2263,70 @@ def smoke(device: str):
           f"{rel_err13b*100:.1f}% off, within {RUNG3_TOLERANCE*100:.0f}% tolerance)")
     del model13b
 
+    print("\n[14] TRACKB_REDESIGN.md Rev 3 hard-selectivity: forward/backward/grad-finite for EVERY "
+          "HARD_SELECT_MECHANISM, non-geo3 (mirrors item [1]'s shape/grad-finite discipline, one "
+          "mechanism at a time; NOTE this smoke item requires CUDA like the rest of this gate -- "
+          "the mechanism logic itself is ALSO covered CPU-side by test_trackb_smokes.py, which "
+          "exercises hard_selectivity_rd.py's functions directly without the kernel)")
+    torch.manual_seed(21)
+    V14 = 500
+    for mech in HARD_SELECT_MECHANISMS:
+        kwargs = dict(hard_select_active=True, hard_select_mechanism=mech, hard_select_k_sel=16,
+                      hard_select_chunk_size=64)
+        if mech == "soft_topk_comparator":
+            kwargs["hard_select_tau_total_steps"] = 100
+        model14 = DeltaNetLM(V14, d_model=64, d_state=64, n_layers=1, conv_size=4, **kwargs).to(device)
+        x14 = torch.randint(0, V14, (2, 128), device=device)
+        y14 = torch.randint(0, V14, (2, 128), device=device)
+        step14 = 50 if mech in ("soft_topk_comparator", "random_topk") else None
+        logits14 = model14(x14, step=step14)
+        assert logits14.shape == (2, 128, V14)
+        assert torch.isfinite(logits14).all(), f"mechanism={mech}: non-finite logits"
+        loss14 = F.cross_entropy(logits14.reshape(-1, V14), y14.reshape(-1))
+        loss14.backward()
+        for n, p in model14.named_parameters():
+            assert torch.isfinite(p.grad).all(), f"mechanism={mech}: non-finite grad at {n}"
+        print(f"  mechanism={mech}: forward {tuple(logits14.shape)}, loss {loss14.item():.4f}, ALL grads finite")
+        del model14, x14, y14, logits14, loss14
+
+    print("\n[15] TRACKB_REDESIGN.md Rev 2 M6: Cell 4 composition (hard_select_active=True + "
+          "geo3_active=True, hard_select_k_sel==geo3_k_sel) forward/backward/grad-finite, PLUS the "
+          "entmax+geo3 combination is HARD-REFUSED at construction (untested-at-scope, mirrors item "
+          "[8c]'s num_heads>1 guard)")
+    torch.manual_seed(22)
+    V15 = 500
+    model15 = DeltaNetLM(V15, d_model=64, d_state=64, n_layers=1, conv_size=4,
+                          geo3_active=True, geo3_k_sel=16, geo3_n_iter=12,
+                          hard_select_active=True, hard_select_mechanism="hard_ste",
+                          hard_select_k_sel=16, hard_select_chunk_size=64).to(device)
+    x15 = torch.randint(0, V15, (2, 128), device=device)
+    y15 = torch.randint(0, V15, (2, 128), device=device)
+    logits15 = model15(x15)
+    assert logits15.shape == (2, 128, V15)
+    assert torch.isfinite(logits15).all(), "Cell 4 composition: non-finite logits"
+    loss15 = F.cross_entropy(logits15.reshape(-1, V15), y15.reshape(-1))
+    loss15.backward()
+    for n, p in model15.named_parameters():
+        assert torch.isfinite(p.grad).all(), f"Cell 4 composition: non-finite grad at {n}"
+    diag15 = model15.blocks[0].mixer.geo3_last_diag
+    assert diag15["selection_mode"] == "forced", (
+        f"Cell 4 composition: geo3_last_diag['selection_mode']={diag15['selection_mode']!r}, "
+        f"expected 'forced' (M6: geo3's own selection must be REPLACED by the mask's)")
+    print(f"  Cell 4 composition: forward {tuple(logits15.shape)}, loss {loss15.item():.4f}, "
+          f"ALL grads finite, geo3 selection_mode={diag15['selection_mode']!r} (forced, as required)")
+    del model15, x15, y15, logits15, loss15
+
+    guard15_raised = False
+    try:
+        DeltaNetLM(V15, d_model=64, d_state=64, n_layers=1, conv_size=4,
+                   geo3_active=True, geo3_k_sel=16,
+                   hard_select_active=True, hard_select_mechanism="entmax",
+                   hard_select_k_sel=16, hard_select_chunk_size=64)
+    except AssertionError:
+        guard15_raised = True
+    assert guard15_raised, "entmax+geo3_active guard FAILED to reject the untested-at-scope combination"
+    print("  entmax + geo3_active=True correctly REFUSED at construction")
+
     print("\n" + "=" * 60 + "\n  ALL LM_PRETRAIN_RD SMOKE CHECKS PASSED\n" + "=" * 60)
 
 
@@ -2020,6 +2391,38 @@ def main():
                      help="sec 4.2/4.5: 'beta_topk' is the primary construction; 'naive_window' is "
                           "the cheap comparison arm (Wave 2, sec 4.5) -- a beta-BLIND positional "
                           "selection, same K_sel grid.")
+    ap.add_argument("--hard-select-active", action="store_true",
+                     help="TRACKB_REDESIGN.md Rev 3: enable a hard-selectivity beta mechanism "
+                          "(replaces the plain sigmoid). Default OFF -- byte-identical to the "
+                          "pre-hard-selectivity code (smoke items [6]/[14]).")
+    ap.add_argument("--hard-select-mechanism", choices=list(HARD_SELECT_MECHANISMS), default="hard_ste",
+                     help="'hard_ste'=candidate 1 (PRIMARY), 'entmax'=candidate 2 (sparsemax only), "
+                          "'soft_topk_comparator'=M7 comparator, 'random_topk'=Cell 2R/4R control.")
+    ap.add_argument("--hard-select-k-sel", type=int, default=32,
+                     help="sec 5.3: K_sel is PINNED at 32 for the Wave 1/2x2 manifest (K=16 is the "
+                          "first registered follow-on axis, not this default).")
+    ap.add_argument("--hard-select-chunk-size", type=int, default=GEO3_LM_CHUNK_SIZE_DEFAULT)
+    ap.add_argument("--hard-select-b-pinned", type=float, default=None,
+                     help="sec 2 principle 4: the Wave -1-pinned per-chunk total write mass "
+                          "(BANDS_PINNED-TrackB.json's own b_pinned field). Omit to skip renorm "
+                          "(Wave -1 probes only, BEFORE b_pinned is pinned) -- a real Wave 1 cell "
+                          "MUST pass this.")
+    ap.add_argument("--hard-select-seed", type=int, default=0,
+                     help="Cell 2R/4R random control's RNG seed (combined with the training step "
+                          "via hard_selectivity_rd.derive_step_rng) -- independent of --seed so the "
+                          "control's own randomness axis is explicit, not silently tied to the "
+                          "training-data seed.")
+    ap.add_argument("--hard-select-tau-anneal-frac", type=float, default=0.10,
+                     help="M7 comparator: tau anneals 1->0 over this fraction of --steps, Rev 3 "
+                          "NEW-6's registered 10%% pin.")
+    ap.add_argument("--gate-override-reason", type=str, default=None,
+                     help="TRACKB_REDESIGN.md sec 5.1 (Rev 2 M5): non-empty ONLY for the Cell-3 "
+                          "override-stamped reference-arm manifest, threaded by "
+                          "run_trackb_wave.py's own --accept-no-launch-reference-arm flag. Stamps "
+                          "gate_override=True/gate_override_reason/gate_override_at/"
+                          "claim_tier='descriptive' into this run's result JSON AT ASSEMBLY TIME "
+                          "(_assemble_result). Omit for every non-override run -- gate_override "
+                          "then writes False, never absent.")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -2053,6 +2456,29 @@ def main():
             f"--geo3-k-sel={args.geo3_k_sel} must be <= min(geo3_chunk_size={args.geo3_chunk_size}, "
             f"head_dim={head_dim}={args.d_state}/{args.num_heads})."
         )
+    if args.hard_select_active:
+        assert args.seq_len % args.hard_select_chunk_size == 0, (
+            f"--hard-select-active requires --seq-len ({args.seq_len}) to be a multiple of "
+            f"--hard-select-chunk-size ({args.hard_select_chunk_size})."
+        )
+        assert args.hard_select_k_sel <= args.hard_select_chunk_size, (
+            f"--hard-select-k-sel={args.hard_select_k_sel} must be <= "
+            f"--hard-select-chunk-size={args.hard_select_chunk_size}."
+        )
+        if args.use_geo3_lm:
+            assert args.hard_select_mechanism != "entmax", (
+                "--hard-select-mechanism=entmax + --use-geo3-lm is NOT SUPPORTED (M6's forced-"
+                "selection composition has no fixed-shape set to force under variable sparsemax "
+                "support) -- see DeltaNetLMMixer.__init__'s own assert for the full reasoning."
+            )
+            assert args.hard_select_k_sel == args.geo3_k_sel, (
+                f"Cell 4 composition rule (M6): --hard-select-k-sel={args.hard_select_k_sel} must "
+                f"equal --geo3-k-sel={args.geo3_k_sel}."
+            )
+            assert args.hard_select_chunk_size == args.geo3_chunk_size, (
+                f"--hard-select-chunk-size={args.hard_select_chunk_size} must equal "
+                f"--geo3-chunk-size={args.geo3_chunk_size} when composing with geo3 (M6)."
+            )
 
     other_corpus = OTHER_CORPUS[args.corpus]
     train_tokens, val_same, meta_same, train_offs, val_offs_same = load_corpus(args.data_dir, args.corpus, device)
@@ -2062,19 +2488,35 @@ def main():
           f"other_corpus={other_corpus} (val {val_other.numel():,} tok / {val_offs_other.numel():,} docs)",
           flush=True)
 
+    hard_select_tau_total_steps = args.steps if args.hard_select_mechanism == "soft_topk_comparator" else None
     model = DeltaNetLM(meta_same["vocab_size"], d_model=args.d_model, d_state=args.d_state,
                         n_layers=args.n_layers, conv_size=args.conv_size, num_heads=args.num_heads,
                         ffn_mult=args.ffn_mult, geo3_active=args.use_geo3_lm,
                         geo3_k_sel=args.geo3_k_sel, geo3_chunk_size=args.geo3_chunk_size,
                         geo3_n_iter=args.geo3_n_iter, geo3_resid_tol=args.geo3_resid_tol,
-                        geo3_selection_mode=args.geo3_selection).to(device)
+                        geo3_selection_mode=args.geo3_selection,
+                        hard_select_active=args.hard_select_active,
+                        hard_select_mechanism=args.hard_select_mechanism,
+                        hard_select_k_sel=args.hard_select_k_sel,
+                        hard_select_chunk_size=args.hard_select_chunk_size,
+                        hard_select_b_pinned=args.hard_select_b_pinned,
+                        hard_select_seed=args.hard_select_seed,
+                        hard_select_tau_total_steps=hard_select_tau_total_steps,
+                        hard_select_tau_anneal_frac=args.hard_select_tau_anneal_frac).to(device)
     n_params = sum(p.numel() for p in model.parameters())
     geo3_tag = f"_geo3{args.geo3_selection.replace('_', '')[:8]}k{args.geo3_k_sel}" if args.use_geo3_lm else ""
-    run_name = f"lmC_{args.corpus}_dm{args.d_model}_ds{args.d_state}_L{args.n_layers}_s{args.seed}{geo3_tag}"
+    hs_tag = f"_hs{args.hard_select_mechanism.replace('_', '')[:8]}k{args.hard_select_k_sel}" \
+        if args.hard_select_active else ""
+    run_name = (f"lmC_{args.corpus}_dm{args.d_model}_ds{args.d_state}_L{args.n_layers}_s{args.seed}"
+                f"{geo3_tag}{hs_tag}")
     print(f"run_name={run_name}  d_model={args.d_model} d_state={args.d_state} n_layers={args.n_layers} "
           f"seq_len={args.seq_len} batch_size={args.batch_size} steps={args.steps} params={n_params} "
           f"use_geo3_lm={args.use_geo3_lm} geo3_k_sel={args.geo3_k_sel if args.use_geo3_lm else '-'} "
           f"geo3_selection={args.geo3_selection if args.use_geo3_lm else '-'} "
+          f"hard_select_active={args.hard_select_active} "
+          f"hard_select_mechanism={args.hard_select_mechanism if args.hard_select_active else '-'} "
+          f"hard_select_k_sel={args.hard_select_k_sel if args.hard_select_active else '-'} "
+          f"hard_select_b_pinned={args.hard_select_b_pinned} "
           f"device={device}", flush=True)
 
     result = train(model, args, train_tokens, train_offs, (val_same, val_offs_same),
