@@ -99,12 +99,22 @@ class AnchorEMA:
     "no change to model_rd.py's bind()/readout() at all") -- this class is
     deliberately NOT a model_rd.py nn.Module; it lives entirely in the
     training loop, mirroring ZCAWhiten's own no-grad EMA discipline
-    (momentum 0.99, bias-corrected) but keyed PER-ENTITY (vocab-indexed)
-    rather than a single population statistic, since different entities
-    are updated at different frequencies across episodes -- bias
-    correction is therefore tracked with a PER-ROW update counter, not one
-    global step counter (a deliberate, documented adaptation of
-    ZCAWhiten's convention to a sparse, per-key update pattern)."""
+    (momentum 0.99) but keyed PER-ENTITY (vocab-indexed) rather than a
+    single population statistic, since different entities are updated at
+    different frequencies across episodes.
+
+    NO BIAS CORRECTION -- a deliberate, documented divergence from
+    ZCAWhiten's bias-corrected convention (2026-07-04 audit fix, MAJOR):
+    update() below uses a SET-ON-FIRST-OBSERVATION convention (a row's
+    first observed value is copied in directly, never blended against the
+    zero init), so there is no zero-init shrinkage for a bias correction
+    to undo. Applying the standard `x / (1 - momentum^n)` correction on
+    top of this convention would be numerically WRONG, not just redundant:
+    at n=1 it divides an already-unbiased value by (1 - 0.99) = 0.01, a
+    ~100x blow-up. The per-row `counts` buffer exists ONLY to drive the
+    set-vs-blend branch in update() (and as a logged diagnostic) -- do NOT
+    reintroduce a bias_corrected() accessor when building candidate (b)
+    on this substrate."""
 
     def __init__(self, vocab_size_total: int, d_state: int, device, momentum: float = 0.99):
         self.momentum = momentum
@@ -127,13 +137,6 @@ class AnchorEMA:
             blended = old_val * self.momentum + new_val * (1.0 - self.momentum) if n > 0 else new_val
             self.table[eid] = blended
             self.counts[eid] = n + 1
-
-    def bias_corrected(self, entity_id: int) -> torch.Tensor:
-        n = self.counts[entity_id].item()
-        if n == 0:
-            return self.table[entity_id]
-        bc = 1.0 - self.momentum ** n
-        return self.table[entity_id] / max(bc, 1e-8)
 
     def loss_anchor(self, key_ids: torch.Tensor, k_eff_items: torch.Tensor) -> torch.Tensor:
         """sec 2.4's L_anchor = sum_j (1 - cos(k_eff_items[j], stopgrad(A[key_ids[j]])));
@@ -425,6 +428,13 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
             "lambda_anchor": ec.get("lambda_anchor", 0.0),
         },
         "trajectory": trajectory, "checkpoints": checkpoints,
+        # KEY_ANCHORING_DESIGN.md sec 3.6 item (c) (2026-07-04 audit fix,
+        # MAJOR): the absolute epoch timestamp at run start -- the field
+        # key_anchoring.assert_blind_not_broken / readout_keyanchor.py
+        # consume to assert the BANDS_PINNED pin-timestamp strictly
+        # precedes every anchor-arm start. Written for EVERY run (not only
+        # anchor arms), same always-recorded discipline as wall_s.
+        "started_at": t0,
         "wall_s": time.time() - t0, "timed_out": timed_out,
     }
     if checkpoints:
@@ -733,6 +743,14 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                                         drift_probe_n_resamples, drift_gen, device,
                                         pre_ns_attr=pre_ns_attr)
                 res["drift_probe"] = {"post_ns": dp["post_ns"], "pre_ns": dp.get("pre_ns")}
+                # 2026-07-04 audit fix (MINOR): ka.measure_entity_rows sets
+                # model.eval() and never restores -- functionally inert THIS
+                # wave (no dropout/BN, ZCA off on every keyanchor cell) but
+                # it would silently leave candidate (b)'s future
+                # ZCA-composed cells training in eval mode from the first
+                # checkpoint on. Restore explicitly here, mirroring
+                # evaluate_pool()'s own model.train() restore convention.
+                model.train()
             checkpoints.append(res)
             geo3_admission = (compute_geo3_admission(cfg, trajectory, checkpoints, n_geo3_fallback_train_steps)
                                if model.geo3_active else None)

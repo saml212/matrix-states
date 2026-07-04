@@ -1,5 +1,9 @@
 """smoke_key_anchoring.py -- KEY_ANCHORING_DESIGN.md sec 5's registered
-Wave -1 smoke list (9 items), as a committed, CPU-runnable script.
+Wave -1 smoke list (9 items) PLUS item 10 (candidate (c)'s AnchorEMA --
+2026-07-04 audit fix; (c) is 6 of the 28 mandatory runs and previously had
+zero CPU coverage), as a committed, CPU-runnable script. Wired as a launch
+gate for every KEY_ANCHORING wave by run_deltanet_rd_exactness_sweep.py's
+main() (same audit fix) -- rc!=0 aborts the wave.
 
 SCOPE NOTE, flagged for audit scrutiny (this wave's own HARD CONSTRAINT is
 build + CPU-verify only -- no GPU, no training launch; this box's GPUs are
@@ -379,6 +383,38 @@ def smoke_9_override_stamping():
     _report("smoke 9: override-demotion stamping, both cases (in-JSON, write+reload)", ok)
 
 
+# ---------------------------------------------------------------------------
+# smoke 10: candidate (c)'s AnchorEMA (2026-07-04 audit fix -- (c) is 6 of
+# the 28 mandatory runs and previously had zero CPU coverage): update()
+# twice with synthetic key_ids, loss_anchor() finite, and the anchor table
+# receives NO gradient (a plain tensor, never an nn.Parameter -- sec 2.3's
+# stop-gradient / no-gradient-into-statistics discipline).
+# ---------------------------------------------------------------------------
+
+def smoke_10_anchor_ema():
+    from run_deltanet_rd import AnchorEMA
+    torch.manual_seed(6)
+    ema = AnchorEMA(vocab_size_total=50, d_state=8, device="cpu")
+    key_ids = torch.randint(0, 50, (2, 4))
+    k_eff = F.normalize(torch.randn(2, 4, 8), dim=-1).clone().requires_grad_(True)
+    ema.update(key_ids, k_eff)
+    ema.update(key_ids, k_eff)
+    loss = ema.loss_anchor(key_ids, k_eff)
+    loss.backward()
+    loss_finite = bool(torch.isfinite(loss).item())
+    k_grad_finite = k_eff.grad is not None and bool(torch.isfinite(k_eff.grad).all().item())
+    table_plain = not isinstance(ema.table, torch.nn.Parameter) and not ema.table.requires_grad
+    table_no_grad = getattr(ema.table, "grad", None) is None
+    counts_updated = bool((ema.counts[torch.unique(key_ids)] == 2).all().item())
+    no_bias_corrected = not hasattr(ema, "bias_corrected")   # the deleted landmine stays deleted
+    print(f"    loss={loss.item():.4f} finite={loss_finite} k_eff_grad_finite={k_grad_finite} "
+          f"table_plain_tensor_no_grad={table_plain and table_no_grad} "
+          f"counts_at_2_after_2_updates={counts_updated} bias_corrected_absent={no_bias_corrected}")
+    ok = (loss_finite and k_grad_finite and table_plain and table_no_grad
+          and counts_updated and no_bias_corrected)
+    _report("smoke 10: AnchorEMA (candidate (c)) -- finite loss, gradient-isolated table", ok)
+
+
 def main() -> int:
     print("=" * 70)
     print("KEY_ANCHORING_DESIGN.md sec 5 -- Wave -1 smoke suite (CPU-only)")
@@ -392,11 +428,12 @@ def main() -> int:
     smoke_7_item6_checkpoint_wiring()
     smoke_8_per_entity_alignment()
     smoke_9_override_stamping()
+    smoke_10_anchor_ema()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)
         return 1
-    print("SMOKE SUITE: ALL 9 ITEMS PASSED")
+    print("SMOKE SUITE: ALL 10 ITEMS PASSED")
     return 0
 
 

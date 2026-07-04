@@ -862,6 +862,30 @@ def main():
     log_dir = os.path.join(out_dir, "logs")
     os.makedirs(log_dir, exist_ok=True)
 
+    # KEY_ANCHORING_DESIGN.md sec 5's Wave -1 smoke suite + sec 4's Gate 2,
+    # wired as LAUNCH GATES (2026-07-04 audit fix, MAJOR: the committed CPU
+    # tests existed but nothing forced them to run before a launch). Every
+    # KEY_ANCHORING wave runs the 9-item smoke suite; the anchor-arm wave
+    # ('keyanchor' -- what Gate 2 exists to protect) additionally runs the
+    # Gate 2 construction check with its pinned regression quadruple. Both
+    # are CPU-only subprocesses; rc!=0 aborts with the same ABORTED.txt
+    # discipline as the pre-existing run_smoke gate below.
+    if args.wave in ("ref", "keyanchor-neg1", "keyanchor") and not args.skip_smoke:
+        rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
+        if rc != 0:
+            with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                f.write("smoke_key_anchoring.py FAILED (rc != 0); no training launched.\n")
+            print("ERROR: smoke_key_anchoring.py failed -- wave aborted.", file=sys.stderr)
+            sys.exit(1)
+        if args.wave == "keyanchor":
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("gate2_construction_test.py FAILED (rc != 0); no training launched.\n")
+                print("ERROR: gate2_construction_test.py failed -- keyanchor wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+
     if not args.skip_smoke and not run_smoke(log_dir, args.gpu_offset):
         with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
             f.write("smoke gate failed; no training launched.\n")
