@@ -601,9 +601,11 @@ class DeltaNetLM(nn.Module):
     round-trips via model.config()'s own n_layers field, generalizing
     automatically); widening the assert is therefore the FULL scope of
     sec 5.2's required change, exercised by smoke() item [11] at rung 1's
-    real shapes (d_model=768/d_state=64/n_layers=12) before any GPU time is
-    spent on a real rung-1 run, per sec 5.2's own blocking-smoke-test
-    requirement."""
+    real shapes (d_model=768/d_state=64/n_layers=12), item [12] at rung 2's
+    (d_model=1536/d_state=128/n_layers=16), and item [13] at rung 3's
+    (d_model=2560/d_state=128/n_layers=22) -- each run BEFORE any GPU time is
+    spent on that rung's real wave, per sec 5.2's own blocking-smoke-test
+    requirement (items [12]/[13] added by trackC-rung23-build)."""
 
     def __init__(self, vocab_size: int, d_model: int = 256, d_state: int = 64, n_layers: int = 2,
                  conv_size: int = 4, num_heads: int = 1, ffn_mult: int = 4,
@@ -1859,6 +1861,88 @@ def smoke(device: str):
     print(f"  rung 1 real-vocab param count: {n_params11b:,} (target {RUNG1_APPROX_PARAMS:,}, "
           f"{rel_err11b*100:.1f}% off, within {RUNG1_TOLERANCE*100:.0f}% tolerance)")
     del model11b
+
+    print("\n[12] SCALE_TRANSFER_DESIGN.md sec 5.3's TRACK C RUNG 2 real shapes (d_model=1536, "
+          "d_state=128, n_layers=16) -- forward/backward/grad-finite + measured-param-count-vs-"
+          "target check, SAME discipline as item [11]'s rung-1 check, run BEFORE any GPU time is "
+          "spent on a real rung-2 run (trackC-rung23-build)")
+    torch.manual_seed(13)
+    # Rung-2 dims duplicated from lm_rd_rung_configs.RUNGS[2] (this codebase's pod-safe
+    # no-cross-script-import convention) -- keep in sync deliberately if sec 5.3's table ever changes.
+    RUNG2_D_MODEL, RUNG2_N_LAYERS, RUNG2_D_STATE = 1536, 16, 128
+    RUNG2_APPROX_PARAMS, RUNG2_TOLERANCE = 392_000_000, 0.15
+    V12 = 500   # tiny synthetic vocab for the forward/backward/grad check -- real vocab is a
+                # SEPARATE, forward-pass-free param-count-only check right below (mirrors item [11])
+    model12 = DeltaNetLM(V12, d_model=RUNG2_D_MODEL, d_state=RUNG2_D_STATE, n_layers=RUNG2_N_LAYERS,
+                          conv_size=4).to(device)
+    x12 = torch.randint(0, V12, (2, _MIN_KERNEL_T), device=device)
+    y12 = torch.randint(0, V12, (2, _MIN_KERNEL_T), device=device)
+    logits12 = model12(x12)
+    assert logits12.shape == (2, _MIN_KERNEL_T, V12)
+    assert torch.isfinite(logits12).all(), "rung-2 shapes: non-finite logits"
+    loss12 = F.cross_entropy(logits12.reshape(-1, V12), y12.reshape(-1))
+    loss12.backward()
+    n_none12 = [n for n, p in model12.named_parameters() if p.grad is None]
+    assert not n_none12, f"rung-2 shapes: no grad for: {n_none12}"
+    for n, p in model12.named_parameters():
+        assert torch.isfinite(p.grad).all(), f"rung-2 shapes: non-finite grad at {n}"
+    print(f"  rung 2 shapes (d_model={RUNG2_D_MODEL}, d_state={RUNG2_D_STATE}, "
+          f"n_layers={RUNG2_N_LAYERS}): forward {tuple(logits12.shape)}, loss {loss12.item():.4f}, "
+          f"ALL grads finite")
+    del model12, x12, y12, logits12, loss12
+
+    with torch.no_grad():
+        model12b = DeltaNetLM(50257, d_model=RUNG2_D_MODEL, d_state=RUNG2_D_STATE,
+                               n_layers=RUNG2_N_LAYERS, conv_size=4)
+        n_params12b = sum(p.numel() for p in model12b.parameters())
+    rel_err12b = abs(n_params12b - RUNG2_APPROX_PARAMS) / RUNG2_APPROX_PARAMS
+    assert rel_err12b <= RUNG2_TOLERANCE, (
+        f"rung 2: measured {n_params12b:,} params is {rel_err12b*100:.1f}% off target "
+        f"{RUNG2_APPROX_PARAMS:,} (tolerance {RUNG2_TOLERANCE*100:.0f}%) -- sec 5.3's config table "
+        f"needs adjustment before any GPU time is spent on rung 2.")
+    print(f"  rung 2 real-vocab param count: {n_params12b:,} (target {RUNG2_APPROX_PARAMS:,}, "
+          f"{rel_err12b*100:.1f}% off, within {RUNG2_TOLERANCE*100:.0f}% tolerance)")
+    del model12b
+
+    print("\n[13] SCALE_TRANSFER_DESIGN.md sec 5.3's TRACK C RUNG 3 real shapes (d_model=2560, "
+          "d_state=128, n_layers=22) -- forward/backward/grad-finite + measured-param-count-vs-"
+          "target check, SAME discipline as item [11]'s rung-1 check, run BEFORE any GPU time is "
+          "spent on a real rung-3 run (trackC-rung23-build)")
+    torch.manual_seed(14)
+    # Rung-3 dims duplicated from lm_rd_rung_configs.RUNGS[3] (pod-safe convention, see item [12]).
+    RUNG3_D_MODEL, RUNG3_N_LAYERS, RUNG3_D_STATE = 2560, 22, 128
+    RUNG3_APPROX_PARAMS, RUNG3_TOLERANCE = 1_310_000_000, 0.15
+    V13 = 500
+    model13 = DeltaNetLM(V13, d_model=RUNG3_D_MODEL, d_state=RUNG3_D_STATE, n_layers=RUNG3_N_LAYERS,
+                          conv_size=4).to(device)
+    x13 = torch.randint(0, V13, (2, _MIN_KERNEL_T), device=device)
+    y13 = torch.randint(0, V13, (2, _MIN_KERNEL_T), device=device)
+    logits13 = model13(x13)
+    assert logits13.shape == (2, _MIN_KERNEL_T, V13)
+    assert torch.isfinite(logits13).all(), "rung-3 shapes: non-finite logits"
+    loss13 = F.cross_entropy(logits13.reshape(-1, V13), y13.reshape(-1))
+    loss13.backward()
+    n_none13 = [n for n, p in model13.named_parameters() if p.grad is None]
+    assert not n_none13, f"rung-3 shapes: no grad for: {n_none13}"
+    for n, p in model13.named_parameters():
+        assert torch.isfinite(p.grad).all(), f"rung-3 shapes: non-finite grad at {n}"
+    print(f"  rung 3 shapes (d_model={RUNG3_D_MODEL}, d_state={RUNG3_D_STATE}, "
+          f"n_layers={RUNG3_N_LAYERS}): forward {tuple(logits13.shape)}, loss {loss13.item():.4f}, "
+          f"ALL grads finite")
+    del model13, x13, y13, logits13, loss13
+
+    with torch.no_grad():
+        model13b = DeltaNetLM(50257, d_model=RUNG3_D_MODEL, d_state=RUNG3_D_STATE,
+                               n_layers=RUNG3_N_LAYERS, conv_size=4)
+        n_params13b = sum(p.numel() for p in model13b.parameters())
+    rel_err13b = abs(n_params13b - RUNG3_APPROX_PARAMS) / RUNG3_APPROX_PARAMS
+    assert rel_err13b <= RUNG3_TOLERANCE, (
+        f"rung 3: measured {n_params13b:,} params is {rel_err13b*100:.1f}% off target "
+        f"{RUNG3_APPROX_PARAMS:,} (tolerance {RUNG3_TOLERANCE*100:.0f}%) -- sec 5.3's config table "
+        f"needs adjustment before any GPU time is spent on rung 3.")
+    print(f"  rung 3 real-vocab param count: {n_params13b:,} (target {RUNG3_APPROX_PARAMS:,}, "
+          f"{rel_err13b*100:.1f}% off, within {RUNG3_TOLERANCE*100:.0f}% tolerance)")
+    del model13b
 
     print("\n" + "=" * 60 + "\n  ALL LM_PRETRAIN_RD SMOKE CHECKS PASSED\n" + "=" * 60)
 

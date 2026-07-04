@@ -214,7 +214,15 @@ def stream_augment_corpus(repo_id: str, config_name: str | None, target_tokens: 
 # Mix construction
 # ---------------------------------------------------------------------------
 
-def build_mix(corpus_key: str, data_dir: str, target_augment_tokens: int, tok) -> dict:
+def build_mix(corpus_key: str, data_dir: str, target_augment_tokens: int, tok,
+               out_suffix: str = "") -> dict:
+    """`out_suffix` (trackC-rung23-build): appended to the registered out_dir name, so an
+    EXTENDED/larger rebuild can land in a NEW side-by-side directory (e.g.
+    reasoning_mix_eot_extended) instead of overwriting the already-built mix that existing
+    experiments (rung-1 Wave 1, its calibration cells) trained on. Default "" is byte-identical
+    to the original behavior. Cutting a launcher over to an extended mix is a separate,
+    explicitly-consented config change -- this flag only makes the non-destructive build
+    possible, it never re-points anything by itself."""
     src = _AUGMENT_SOURCES[corpus_key]
     base_dir = os.path.join(data_dir, src["base_corpus_dir"])
     with open(os.path.join(base_dir, "meta.json")) as f:
@@ -277,7 +285,14 @@ def build_mix(corpus_key: str, data_dir: str, target_augment_tokens: int, tok) -
                  "corpus's own splits, unchanged",
         "rebuild": "SCALE_TRANSFER_DESIGN.md sec 5.4 (build_mix_corpora_rd.py)",
     }
-    write_corpus(os.path.join(data_dir, src["out_dir"]), splits, meta)
+    out_dir_name = src["out_dir"] + out_suffix
+    if out_suffix:
+        meta["out_suffix_note"] = (
+            f"built with --out-suffix {out_suffix!r} into {out_dir_name!r} -- a side-by-side "
+            f"EXTENDED build; the original {src['out_dir']!r} (and everything already trained on "
+            f"it) is untouched. Re-pointing a launcher/corpus map at this directory is a separate, "
+            f"explicitly-consented change.")
+    write_corpus(os.path.join(data_dir, out_dir_name), splits, meta)
     return meta
 
 
@@ -399,6 +414,11 @@ def main():
                           "loading/mixing entirely -- no --data-dir requirement) and reports "
                           "throughput. Use before committing to a full --target-augment-tokens "
                           "build (calibration-first discipline).")
+    ap.add_argument("--out-suffix", default="",
+                     help="append to each mix's out_dir name (e.g. '_extended') so a larger "
+                          "rebuild lands in a NEW side-by-side directory instead of overwriting "
+                          "the mix existing experiments trained on (trackC-rung23-build; see "
+                          "build_mix's docstring). Default '' = original in-place behavior.")
     args = ap.parse_args()
 
     if args.smoke:
@@ -423,7 +443,8 @@ def main():
     reports = {}
     for k in keys:
         print("=" * 70 + f"\n  MIX: {k}\n" + "=" * 70, flush=True)
-        reports[k] = build_mix(k, args.data_dir, args.target_augment_tokens, tok)
+        reports[k] = build_mix(k, args.data_dir, args.target_augment_tokens, tok,
+                                out_suffix=args.out_suffix)
 
     print("\nBUILD_MIX_CORPORA_RD COMPLETE.", flush=True)
 

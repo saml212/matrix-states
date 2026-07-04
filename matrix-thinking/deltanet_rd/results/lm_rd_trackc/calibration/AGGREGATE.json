@@ -1,71 +1,39 @@
 {
   "wave": "calibration",
-  "n_manifest": 4,
+  "n_manifest": 2,
   "n_failed": 0,
   "cells": {
-    "calib_rung1_ptA_lm_openr1-mix_dm768_ds64_L12_s0": {
-      "tag": "calib_rung1_ptA",
+    "calib_rung2_ptA_lm_openr1-mix_dm1536_ds128_L16_s0": {
+      "tag": "calib_rung2_ptA",
       "corpus": "openr1-mix",
       "seed": 0,
-      "d_model": 768,
-      "d_state": 64,
-      "n_layers": 12,
-      "n_params": 97618176,
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "final_step": 10,
+      "final_val_loss": {
+        "openr1-mix": 9.424191355705261,
+        "wikitext-mix": 10.341394782066345
+      },
+      "wall_s": 20.3199200630188,
+      "peak_memory_allocated_bytes": 39975821824
+    },
+    "calib_rung2_ptB_lm_openr1-mix_dm1536_ds128_L16_s0": {
+      "tag": "calib_rung2_ptB",
+      "corpus": "openr1-mix",
+      "seed": 0,
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
       "final_step": 40,
       "final_val_loss": {
-        "openr1-mix": 7.881084740161896,
-        "wikitext-mix": 9.191720128059387
+        "openr1-mix": 6.234616458415985,
+        "wikitext-mix": 8.675858497619629
       },
-      "wall_s": 13.178068399429321,
-      "peak_memory_allocated_bytes": 23729161728
-    },
-    "calib_rung1_ptB_lm_openr1-mix_dm768_ds64_L12_s0": {
-      "tag": "calib_rung1_ptB",
-      "corpus": "openr1-mix",
-      "seed": 0,
-      "d_model": 768,
-      "d_state": 64,
-      "n_layers": 12,
-      "n_params": 97618176,
-      "final_step": 120,
-      "final_val_loss": {
-        "openr1-mix": 5.1681559681892395,
-        "wikitext-mix": 8.544440746307373
-      },
-      "wall_s": 32.063706398010254,
-      "peak_memory_allocated_bytes": 23729161728
-    },
-    "calib_control_ptA_lm_openr1-mix_dm256_ds64_L2_s0": {
-      "tag": "calib_control_ptA",
-      "corpus": "openr1-mix",
-      "seed": 0,
-      "d_model": 256,
-      "d_state": 64,
-      "n_layers": 2,
-      "n_params": 14048896,
-      "final_step": 100,
-      "final_val_loss": {
-        "openr1-mix": 6.701675653457642,
-        "wikitext-mix": 8.68466830253601
-      },
-      "wall_s": 6.006757736206055,
-      "peak_memory_allocated_bytes": 15496593920
-    },
-    "calib_control_ptB_lm_openr1-mix_dm256_ds64_L2_s0": {
-      "tag": "calib_control_ptB",
-      "corpus": "openr1-mix",
-      "seed": 0,
-      "d_model": 256,
-      "d_state": 64,
-      "n_layers": 2,
-      "n_params": 14048896,
-      "final_step": 300,
-      "final_val_loss": {
-        "openr1-mix": 5.460810661315918,
-        "wikitext-mix": 8.364116668701172
-      },
-      "wall_s": 14.746833801269531,
-      "peak_memory_allocated_bytes": 15496593920
+      "wall_s": 45.39269280433655,
+      "peak_memory_allocated_bytes": 39975821824
     }
   }
 }

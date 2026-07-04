@@ -13,12 +13,20 @@ table." verify_param_count() below IS that verification (also duplicated,
 independently, as lm_pretrain_rd.py's own smoke() item [11] for rung 1 --
 the harness's smoke gate must not depend on this file importing cleanly).
 
-Verified on-box 2026-07-04 (rung 1 only -- rungs 2/3 are registered here for
-completeness, sec 5.2's harness change benefits the whole ladder, but are
-NOT part of this session's build/launch scope, which is rung 1 only per the
-task brief and Track C Wave 4's gate-out):
+Verified on-box 2026-07-04 (rung 1):
   rung 1 (d_model=768, n_layers=12, d_state=64): measured 97,618,176 params
   vs target 98,000,000 -- 0.4% off, well inside the 15% Wave -1 gate.
+
+trackC-rung23-build extends BUILD_SCOPE_RUNGS to (1, 2, 3): rungs 2/3's
+param counts are now verified by every smoke() call too (this file's own
+smoke() below, plus lm_pretrain_rd.py's smoke items [12]/[13], which
+ADDITIONALLY do a real forward/backward/grad-finite check at each rung's
+shapes -- this file's own verify_param_count() is CPU-only/no-kernel, so it
+cannot substitute for that GPU-side check). Rung 2/3's WAVE 2/3 real
+training launches remain separately gated (calibration + memory-headroom +
+epoch-cap + budget-guard, run_lm_rd_trackc_sweep.py) -- widening
+BUILD_SCOPE_RUNGS here only means their configs are verified/smoke-checked
+whenever ANY rung's smoke gate runs, not that a real launch is authorized.
 """
 from __future__ import annotations
 
@@ -43,11 +51,13 @@ PARAM_COUNT_TOLERANCE = 0.15
 
 VOCAB_SIZE = 50257  # GPT-2, shared tokenizer across every corpus (load_corpus's own assert)
 
-# This session's build/launch scope (task brief): rung 1 ONLY. Rungs 2/3
-# stay registered above (so a future session doesn't have to re-derive the
-# table) but any launcher/calibration tool in this build refuses them
-# explicitly rather than silently proceeding -- see run_lm_rd_trackc_sweep.py.
-BUILD_SCOPE_RUNGS = (1,)
+# trackC-rung23-build: widened from (1,) to (1, 2, 3) -- every rung's config is now verified
+# (param-count, CPU-only) by this file's own smoke(), and by lm_pretrain_rd.py's smoke items
+# [11]/[12]/[13] (which ALSO do a real GPU forward/backward/grad-finite check at each rung's real
+# shapes). This does NOT authorize a real rung-2/3 training launch -- that stays separately gated
+# in run_lm_rd_trackc_sweep.py (calibration.json + memory-headroom + epoch-cap + budget-guard, see
+# that file's module docstring).
+BUILD_SCOPE_RUNGS = (1, 2, 3)
 
 
 def formula_param_estimate(d_model: int, n_layers: int, d_state: int, vocab_size: int = VOCAB_SIZE) -> int:

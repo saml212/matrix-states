@@ -1,6 +1,6 @@
 {
   "design_ref": "SCALE_TRANSFER_DESIGN.md sec 5.6 Wave -1 (Track C calibration)",
-  "measured_at_utc": "2026-07-03T22:53:34Z",
+  "measured_at_utc": "2026-07-04T05:23:00Z",
   "cells": {
     "calib_rung1_ptA_lm_openr1-mix_dm768_ds64_L12_s0": {
       "status": "complete",
@@ -53,6 +53,38 @@
       "tokens_per_s_per_gpu": 333305.4448322906,
       "peak_memory_allocated_gb": 15.49659392,
       "peak_memory_reserved_gb": 16.96595968
+    },
+    "calib_rung2_ptA_lm_openr1-mix_dm1536_ds128_L16_s0": {
+      "status": "complete",
+      "tag": "calib_rung2_ptA",
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "steps_completed": 10,
+      "wall_s": 20.3199200630188,
+      "tokens_per_s_per_gpu": 8063.023845166611,
+      "peak_memory_allocated_gb": 39.975821824,
+      "peak_memory_reserved_gb": 43.889197056
+    },
+    "calib_rung2_ptB_lm_openr1-mix_dm1536_ds128_L16_s0": {
+      "status": "complete",
+      "tag": "calib_rung2_ptB",
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "steps_completed": 40,
+      "wall_s": 45.39269280433655,
+      "tokens_per_s_per_gpu": 14437.566037884204,
+      "peak_memory_allocated_gb": 39.975821824,
+      "peak_memory_reserved_gb": 43.889197056
+    },
+    "calib_rung3_ptA_lm_openr1-mix_dm2560_ds128_L22_s0": {
+      "status": "missing"
+    },
+    "calib_rung3_ptB_lm_openr1-mix_dm2560_ds128_L22_s0": {
+      "status": "missing"
     }
   },
   "timing_constants": {
@@ -79,6 +111,19 @@
       "point_b": {
         "steps": 300,
         "wall_s": 14.746833801269531
+      },
+      "method": "two-point (trackC-audit finding #2): wall_s = per_step_s*steps + per_ckpt_s*1 (one checkpoint per point), solved from 2 single-checkpoint runs"
+    },
+    "rung2": {
+      "per_step_s": 0.8357590913772583,
+      "per_ckpt_s": 11.962329149246216,
+      "point_a": {
+        "steps": 10,
+        "wall_s": 20.3199200630188
+      },
+      "point_b": {
+        "steps": 40,
+        "wall_s": 45.39269280433655
       },
       "method": "two-point (trackC-audit finding #2): wall_s = per_step_s*steps + per_ckpt_s*1 (one checkpoint per point), solved from 2 single-checkpoint runs"
     }

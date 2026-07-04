@@ -1,11 +1,13 @@
 """run_lm_rd_trackc_sweep.py -- bounded, human-gated wave orchestrator for
-Track C / the scaling ladder (SCALE_TRANSFER_DESIGN.md sec 5), THIS
-SESSION'S SCOPE ONLY: rung 1 (~98M params, sec 5.3/lm_rd_rung_configs.py)
-plus the REQUIRED small-model same-mix control cell (sec 5.6 Wave 1,
-MAJOR-5). Rungs 2/3 are registered in lm_rd_rung_configs.py for a future
-session but this launcher deliberately does not build manifests for them
-(BUILD_SCOPE_RUNGS enforces this at the config layer already; this file
-does not even try).
+Track C / the scaling ladder (SCALE_TRANSFER_DESIGN.md sec 5). Original
+build covered rung 1 (~98M params) + the REQUIRED small-model same-mix
+control cell (sec 5.6 Wave 1, MAJOR-5) ONLY; Wave 1 has since completed
+and closed (sec 5.9). THIS BUILD (trackC-rung23-build) extends the
+launcher with REAL --wave 2 / --wave 3 paths for rung 2 (~392M) and rung 3
+(~1.31B), per lm_rd_rung_configs.py's RUNGS table -- rungs 2/3 are no
+longer registered-but-unbuilt; BUILD_SCOPE_RUNGS now covers all three
+(lm_rd_rung_configs.py), so every smoke gate call now verifies all three
+rungs' parameter counts, not just rung 1's.
 
 CLONE of run_lm_rd_geo3_sweep.py's / run_lm_rd_sweep.py's robustness
 pattern (smoke gate, exception-isolated launch, validity-checked resume,
@@ -14,30 +16,56 @@ per-run timeout with GPU quarantine, guarded aggregate, REQUIRED
 import (this codebase's own pod-safety convention, restated in both of
 those files' own docstrings).
 
-Waves (task brief's build scope -- items (4)/(1)/(2) of the brief map onto
-these, in run order):
+LEARNED FROM WAVE 1'S OWN HISTORY (trackC-audit finding #1, restated here
+because it is exactly the mistake this build must not repeat): an earlier
+revision of this file gated --wave 1 with real-looking preconditions but
+contained NO manifest-build/launch code behind the gate at all -- an
+unconditional `sys.exit(4)` fired regardless of whether the gates were
+satisfied. Every wave below (2 and 3 included) is verified, by direct
+re-read of this file after editing, to have a REAL `_run_wave(...)` call
+reachable when its gates pass -- a gate with nothing behind it is a no-op
+disguised as a guardrail.
+
+Waves (in run order):
   calibration (Wave -1, sec 5.6's blocking calibration row): TWO-POINT real
     training runs (trackC-audit finding #2 -- CALIBRATION_TWO_POINT_STEPS,
-    two single-checkpoint runs per config at different step counts) at BOTH
-    the rung-1 config AND the control-cell config, on openr1-mix, seed 0
-    only -- measures REAL per_step_s/per_ckpt_s (solved from the two points,
-    not blended) + tok/s + peak memory (lm_pretrain_rd.py's own new
-    peak_memory_*_bytes fields) before ANY full-budget run is priced or
-    launched. Cheap (<2 GPU-h total) -- MAY be launched any time; report its
-    measured numbers.
-  1 (rung 1 + control cell, FULL manifest -- 6 rung-1 runs + 6 control
-    runs per sec 5.6's table): built, smoke-gated, dry-run-previewable, and
-    gated on the NORMAL chain ONLY (trackC-audit finding #1 -- the prior
-    unconditional `sys.exit(4)` task-brief guard is REMOVED; there was
-    previously no real-launch code path here at all, guard or not): an
-    existing calibration.json with populated `timing_constants` for BOTH
-    configs (sec 9's own hard rule: "No track's Wave 1+ manifest is
-    authorized to launch ... without first recording its Wave -1 measured
-    numbers"), AND --rung1-steps supplied explicitly (no silent fallback to
-    the uncalibrated placeholder). Per-run timeout is DERIVED from those
-    measured constants with a documented LAUNCH_TIMEOUT_MARGIN=1.6x margin
-    (house convention), not hand-guessed. A human/orchestrator satisfying
-    both gates can launch Wave 1 for real with this file as-is.
+    two single-checkpoint runs per config at different step counts), on
+    openr1-mix, seed 0 only -- measures REAL per_step_s/per_ckpt_s (solved
+    from the two points, not blended) + tok/s + peak memory
+    (lm_pretrain_rd.py's own peak_memory_*_bytes fields) before ANY
+    full-budget run is priced or launched. `--calib-rungs` selects WHICH
+    configs' two-point cells are included (default "1,control" --
+    UNCHANGED from the original build, so a bare `--wave calibration`
+    invocation with no new flags is a byte-for-byte behavioral no-op vs.
+    the pre-extension file -- rung 2/3 calibration requires the explicit
+    opt-in `--calib-rungs 2` / `--calib-rungs 3`, matching this codebase's
+    "no accidental launch, no silent defaults on new/larger cells"
+    convention). Already-complete cells resume-skip regardless of
+    inclusion (cheap to re-list). Cheap (<2 GPU-h total per rung) -- MAY be
+    launched any time; report its measured numbers.
+  1 (rung 1 + control cell, FULL manifest): CLOSED -- already ran to
+    completion (sec 5.9). Behavior UNCHANGED by this build.
+  2 (rung 2, FULL manifest -- 2 runs, 2 corpora x 1 seed, sec 5.6's table,
+    no control cell at this rung per MAJOR-5/sec 8) and
+  3 (rung 3, FULL manifest -- 2 runs, 2 corpora x 1 seed, sec 5.6's table):
+    built, smoke-gated, dry-run-previewable, and gated on: (a) an existing
+    calibration.json with populated `timing_constants` for the rung
+    (sec 9's hard rule), (b) --rung{2,3}-steps supplied explicitly (no
+    silent fallback to the placeholder), (c) a PASSING memory-headroom
+    readout at the real batch size, recomputed live from calibration.json's
+    own recorded peak-memory cells (not assumed), (d) a PASSING epoch-cap
+    check on BOTH mix corpora at the resulting per-run token budget (sec
+    5.4's <=5-physical-epoch discipline, read live from each mix's own
+    meta.json), and (e) a budget guard: PROGRAM_SPENT_GPUH (this file's own
+    maintained tracker) + this wave's projected GPU-h (computed from the
+    calibration's measured timing constants, PRINTED before any launch
+    decision) must not exceed the program's 300 GPU-h ceiling (sec 7)
+    without an explicit --accept-budget-override. ANY of (a)-(e) failing
+    refuses the launch with the design's own registered remedy, never a
+    silent proceed. THIS SESSION DOES NOT LAUNCH --wave 2 or --wave 3 for
+    real -- only rung 2's calibration cells are launched (see STATE.md /
+    the audit report for the measured numbers); the gates above are built
+    and exercised via --dry-run + the calibration run only.
   4 (fix-effect / geo3-at-scale, sec 5.5 item 3): HARD REFUSED
     unconditionally by this file -- Track B's own Wave -1 gate returned
     `no_launch_redesign` (EXPERIMENT_LOG.md, "SCALE-TRANSFER Track B ...
@@ -46,11 +74,26 @@ these, in run order):
     This is checked LIVE against Track B's own gate JSON (not just cited
     from memory) every time --wave 4 is invoked.
 
+Batch sizing (sec 5 is SILENT on rung-2/3 batch size -- an attack-yourself
+item for this build, not an oversight): the design registers SEQ_LEN=512
+throughout but never specifies a per-GPU batch for the larger rungs. The
+MINIMAL REGISTERED CHOICE, per this build's own brief, is to reuse rung-1/
+control's existing BATCH_SIZE=32 unchanged (BATCH_SIZE_BY_RUNG below) --
+this is verified, not assumed, by the memory-headroom check derived from
+each rung's own two-point calibration cells (run at that same real batch
+size) before any wave-2/3 launch is gated open. If a rung's headroom check
+ever fails, BATCH_SIZE_BY_RUNG's entry for that rung must be lowered and
+the change documented here and in that rung's calibration.json -- never
+silently.
+
 Usage (GPU list is an example -- check nvidia-smi first, per house rule):
   python run_lm_rd_trackc_sweep.py --dry-run
-  python run_lm_rd_trackc_sweep.py --wave calibration --out-dir results/lm_rd_trackc --gpus 2 --gpu-offset 0
-  python run_lm_rd_trackc_sweep.py --wave 1 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung1-steps N   # gated on calibration.json's timing_constants
-  python run_lm_rd_trackc_sweep.py --wave 4                                                          # ALWAYS refused this session
+  python run_lm_rd_trackc_sweep.py --wave calibration --out-dir results/lm_rd_trackc --gpus 2 --gpu-offset 0                       # rung 1 + control (unchanged default)
+  python run_lm_rd_trackc_sweep.py --wave calibration --calib-rungs 2 --out-dir results/lm_rd_trackc --gpus 1 --gpu-offset 0        # rung 2 two-point cells only
+  python run_lm_rd_trackc_sweep.py --wave 1 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung1-steps N   # CLOSED, sec 5.9 -- shown for reference only
+  python run_lm_rd_trackc_sweep.py --wave 2 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung2-steps N   # gated per the (a)-(e) chain above; NOT launched this session
+  python run_lm_rd_trackc_sweep.py --wave 3 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung3-steps N   # gated per the (a)-(e) chain above; NOT launched this session
+  python run_lm_rd_trackc_sweep.py --wave 4                                                          # ALWAYS refused
 """
 from __future__ import annotations
 
@@ -71,14 +114,27 @@ TRACKB_GATE_JSON_DEFAULT = os.path.join(HERE, "results", "lm_rd_geo3", "wave_neg
 sys.path.insert(0, HERE)  # pod-safe import of the config-layer module ONLY (not another sweep script)
 from lm_rd_rung_configs import RUNGS, VOCAB_SIZE, verify_param_count  # noqa: E402
 
-RUNG = 1                                          # this session's ONLY build/launch scope
+RUNG = 1                                          # Wave 1's already-closed rung (kept -- existing
+                                                   # call sites reference RUNG_CFG by this name);
+                                                   # rungs 2/3 are RUNG2_CFG/RUNG3_CFG below, both
+                                                   # now in build scope (trackC-rung23-build).
 RUNG_CFG = RUNGS[RUNG]
+RUNG2_CFG = RUNGS[2]
+RUNG3_CFG = RUNGS[3]
 CONTROL_CFG = {"d_model": 256, "d_state": 64, "n_layers": 2}   # Wave C's own scale (sec 5.6, MAJOR-5)
 
 MIX_CORPORA = ("openr1-mix", "wikitext-mix")      # sec 5.6 Wave 1: "openr1-mix, wikitext/finewebedu-mix"
-SEEDS = (0, 1, 2)
+SEEDS = (0, 1, 2)                                 # rung 1 / control (sec 5.6: "2 corpora x 3 seeds")
+WAVE23_SEEDS = (0,)                                # rung 2 / rung 3 (sec 5.6: "2 corpora x 1 seed", no control at these rungs)
 SEQ_LEN = 512
 BATCH_SIZE = 32
+
+# sec 5 is SILENT on rung-2/3 batch size (module docstring's "Batch sizing" paragraph). Minimal
+# registered choice: reuse BATCH_SIZE=32 for every rung unless a rung's own memory-headroom check
+# (derived from its two-point calibration cells, run at this same batch) fails -- then lower ONLY
+# that rung's entry here and document why. No entry has been lowered as of this build; see
+# calibration.json's rung-2 memory-headroom readout for the empirical basis.
+BATCH_SIZE_BY_RUNG = {1: BATCH_SIZE, 2: BATCH_SIZE, 3: BATCH_SIZE}
 
 # sec 5.6: "the Wave-C-scale ... architecture retrained on the SAME augmented mixes ... at Wave C's
 # measured ~4.6 min/run" -- the control cell REUSES Wave C's own exact token budget (this codebase's
@@ -92,6 +148,36 @@ CONTROL_TARGET_TOKENS = 100_000_000
 # requires --rung1-steps (an explicit, human-supplied value informed by calibration.json), which
 # main() enforces (no silent fallback to this placeholder once a real launch is attempted).
 RUNG1_TARGET_TOKENS_PLACEHOLDER = 100_000_000
+
+# Rung 2/3's own planning placeholders, sec 5.6's table ("~1.5B tokens/run" / "~3B tokens/run") --
+# same UNCALIBRATED-placeholder discipline as rung 1 above: --dry-run preview ONLY, never a silent
+# fallback for a real --wave 2/--wave 3 launch (--rung{2,3}-steps is REQUIRED there, enforced below).
+RUNG2_TARGET_TOKENS_PLACEHOLDER = 1_500_000_000
+RUNG3_TARGET_TOKENS_PLACEHOLDER = 3_000_000_000
+
+# ---------------------------------------------------------------------------
+# Epoch-cap discipline (sec 5.4: "cap any single source's repetition at <=5 physical epochs ...
+# the remainder is drawn from OpenWebMath/FineWeb-Edu") -- read LIVE from each mix corpus's own
+# meta.json (build_mix_corpora_rd.py already computes and records "mix_total_train_tokens" there;
+# recomputed here from that field rather than trusted-by-citation, since a rebuilt/re-augmented mix
+# would change it). DUPLICATED from lm_pretrain_rd.py's own CORPUS_DIRS mapping (pod-safe, no heavy
+# cross-import of a torch/fla-importing module just to read a directory name -- this file's own
+# stated convention).
+# ---------------------------------------------------------------------------
+MIX_CORPUS_DIRS = {"openr1-mix": "reasoning_mix_eot", "wikitext-mix": "wikitext103_mix_eot"}
+EPOCH_CAP = 5
+
+# ---------------------------------------------------------------------------
+# Program-wide GPU-h budget guard (sec 7's 300 GPU-h program ceiling). PROGRAM_SPENT_GPUH is a
+# MAINTAINED constant, NOT auto-computed from any log -- a human/orchestrator updates it as real
+# spend accrues across ALL FOUR tracks. As of this build: Track A ~0 (zero-GPU by design) + Track B
+# ~1 (Wave -1 calibration only; Track B's own gate returned HARD NO-LAUNCH past that, sec 11) +
+# Track C ~31 (rung-1 Wave 1's full manifest + control + the sec 5.9 attractor probe, already
+# banked/closed) + Track D ~1 (Phase 1 only, sec 6.8) + this build's rung-2 calibration (cold pair
+# 104s, discarded as invalid, + warm pair 66s + process overheads ~= 0.1 GPU-h measured, well under
+# the ~0.5 pre-estimate) ~= 33.1 GPU-h. UPDATE THIS after any further real spend.
+PROGRAM_SPENT_GPUH = 33.1
+GPU_H_PROGRAM_CEILING = 300.0
 
 CALIBRATION_STEPS_DEFAULT = 200
 CALIBRATION_CKPT_EVERY = 100                      # legacy single-point knobs -- retained for CLI
@@ -112,6 +198,28 @@ CALIBRATION_CKPT_EVERY = 100                      # legacy single-point knobs --
 _CALIBRATION_PER_STEP_S_GENEROUS = 0.25
 _CALIBRATION_PER_CKPT_S_GENEROUS = 60.0
 
+# trackC-rung23-build: rung1/control's 0.25s/60s generous ceiling above was fit (and validated
+# post-hoc) to a 98M-param model -- rung 2 (392M, ~4x rung1's approx_params) and rung 3 (1.31B,
+# ~13.4x) would very plausibly BREACH a flat 0.25s/step ceiling if compute-bound scaling holds
+# (this file's own FLOPs estimate puts rung 2 at ~5.3x, rung 3 at ~14.6x rung 1's per-token FLOPs,
+# CALIBRATION_TWO_POINT_STEPS' own comment) -- reusing the flat constant would risk the
+# CALIBRATION run itself being killed by its own --internal-timeout before finishing. Scaled here
+# by each rung's approx-param ratio (a param-count-proportional FLOPs proxy for this dense-matmul
+# architecture) x an EXTRA 2x safety margin on top of rung1's already-generous constant (this
+# scaling is itself unvalidated until a rung's calibration actually completes -- unlike rung1/
+# control's own post-hoc-checked numbers).
+_RUNG1_APPROX_PARAMS = RUNGS[1]["approx_params"]
+
+
+def _calibration_generous_timing(tag_base: str) -> tuple:
+    """Returns (per_step_s_generous, per_ckpt_s_generous) for sizing a calibration cell's OWN
+    --internal-timeout (never a real wave's timeout, which always uses MEASURED constants)."""
+    if tag_base in ("calib_rung1", "calib_control"):
+        return _CALIBRATION_PER_STEP_S_GENEROUS, _CALIBRATION_PER_CKPT_S_GENEROUS
+    cfg = CALIBRATION_RUNG_CFGS[tag_base]
+    ratio = cfg["approx_params"] / _RUNG1_APPROX_PARAMS
+    return _CALIBRATION_PER_STEP_S_GENEROUS * ratio * 2.0, _CALIBRATION_PER_CKPT_S_GENEROUS * ratio * 2.0
+
 # ---------------------------------------------------------------------------
 # Two-point timing calibration (trackC-audit finding #2). A SINGLE run of N steps with
 # ckpt_every=N (exactly one checkpoint, at the end) mixes per-step compute time with the one-time
@@ -131,7 +239,55 @@ _CALIBRATION_PER_CKPT_S_GENEROUS = 60.0
 CALIBRATION_TWO_POINT_STEPS = {
     "calib_rung1": (40, 120),
     "calib_control": (100, 300),
+    # trackC-rung23-build: rung 2/3 points chosen from the per-layer FLOPs ratio vs. rung 1
+    # (8*d_model^2*n_layers + 4*d_model*d_state*n_layers, sec 5.3's own formula) -- rung 2 is
+    # ~5.3x rung 1's per-token FLOPs, rung 3 ~14.6x -- so fewer steps are used per point to keep
+    # each point's wall time in the same seconds-to-tens-of-seconds band as rung 1's own points,
+    # not because the two-point METHOD changes. Unvalidated until run for real (unlike rung
+    # 1/control's cross-check against an original single-point run) -- report actual measured
+    # wall_s alongside these when the calibration is run, don't just cite this comment.
+    "calib_rung2": (10, 40),
+    "calib_rung3": (5, 20),
 }
+
+CALIBRATION_RUNG_CFGS = {
+    "calib_rung1": RUNG_CFG, "calib_control": CONTROL_CFG,
+    "calib_rung2": RUNG2_CFG, "calib_rung3": RUNG3_CFG,
+}
+
+# Per-tag calibration batch size -- mirrors BATCH_SIZE_BY_RUNG so each rung's calibration cells are
+# run at the SAME real batch size its wave would use (the whole point of the memory-headroom
+# check); the control cell has no separate BATCH_SIZE_BY_RUNG entry (it isn't a "rung"), so it uses
+# the global BATCH_SIZE directly, matching its original (pre-extension) behavior exactly.
+CALIBRATION_BATCH_SIZE = {
+    "calib_rung1": BATCH_SIZE_BY_RUNG[1], "calib_control": BATCH_SIZE,
+    "calib_rung2": BATCH_SIZE_BY_RUNG[2], "calib_rung3": BATCH_SIZE_BY_RUNG[3],
+}
+
+# UNCHANGED default (trackC-rung23-build): a bare `--wave calibration` with no `--calib-rungs`
+# behaves EXACTLY as the pre-extension file did -- rung 1 + control only. Rung 2/3 calibration is
+# opt-in ONLY (`--calib-rungs 2` / `--calib-rungs 3` / `--calib-rungs 1,control,2,3`), never launched
+# by a default invocation -- this codebase's own "no accidental launch of a new/larger cell"
+# convention (REQUIRED --gpus/--gpu-offset with no defaults, restated here for the same reason).
+CALIBRATION_TAGS_DEFAULT = ("calib_rung1", "calib_control")
+_CALIB_RUNG_ALIAS = {"1": "calib_rung1", "2": "calib_rung2", "3": "calib_rung3", "control": "calib_control"}
+
+
+def parse_calib_rungs(spec: str) -> tuple[str, ...]:
+    """Parses --calib-rungs' comma-separated token list (from {"1","2","3","control"}) into the
+    CALIBRATION_TWO_POINT_STEPS tag names calibration_manifest() expects. Raises SystemExit with a
+    clear message on an unknown token rather than silently ignoring it (a typo'd rung number should
+    never silently calibrate the WRONG thing)."""
+    tags = []
+    for tok in spec.split(","):
+        tok = tok.strip()
+        if tok not in _CALIB_RUNG_ALIAS:
+            print(f"ERROR: --calib-rungs token {tok!r} not recognized -- expected a comma list from "
+                  f"{sorted(_CALIB_RUNG_ALIAS)}.", file=sys.stderr)
+            sys.exit(1)
+        tags.append(_CALIB_RUNG_ALIAS[tok])
+    return tuple(tags)
+
 
 # House convention (CLAUDE.md-adjacent, restated in the task brief): a real launch's timeout is the
 # measured cost times this margin, not the raw measured cost.
@@ -144,6 +300,11 @@ def default_control_steps() -> int:
 
 def default_rung1_steps_placeholder() -> int:
     return max(1, RUNG1_TARGET_TOKENS_PLACEHOLDER // (BATCH_SIZE * SEQ_LEN))
+
+
+def default_rung23_steps_placeholder(rung: int) -> int:
+    target = {2: RUNG2_TARGET_TOKENS_PLACEHOLDER, 3: RUNG3_TARGET_TOKENS_PLACEHOLDER}[rung]
+    return max(1, target // (BATCH_SIZE_BY_RUNG[rung] * SEQ_LEN))
 
 
 # trackC-audit (this session, live-measured via `/usr/bin/time -v` on a real rung-1 10-step run):
@@ -228,14 +389,20 @@ def cell_name(tag: str, corpus: str, seed: int, cfg: dict) -> str:
     return f"{tag}_lm_{corpus}_dm{cfg['d_model']}_ds{cfg['d_state']}_L{cfg['n_layers']}_s{seed}"
 
 
-def make_manifest(tag: str, cfg: dict, corpora, seeds, steps: int, ckpt_every: int) -> list[dict]:
+def make_manifest(tag: str, cfg: dict, corpora, seeds, steps: int, ckpt_every: int,
+                   batch_size: int = None) -> list[dict]:
+    """`batch_size` defaults to the global BATCH_SIZE (rung-1/control's original, unchanged
+    behavior) -- trackC-rung23-build's callers for rung 2/3 pass BATCH_SIZE_BY_RUNG[rung] explicitly
+    (see module docstring's "Batch sizing" paragraph)."""
+    if batch_size is None:
+        batch_size = BATCH_SIZE
     runs = []
     for corpus in corpora:
         for seed in seeds:
             runs.append({
                 "tag": tag, "corpus": corpus, "seed": seed, "d_model": cfg["d_model"],
                 "d_state": cfg["d_state"], "n_layers": cfg["n_layers"], "seq_len": SEQ_LEN,
-                "batch_size": BATCH_SIZE, "steps": steps, "ckpt_every": ckpt_every,
+                "batch_size": batch_size, "steps": steps, "ckpt_every": ckpt_every,
                 "name": cell_name(tag, corpus, seed, cfg),
             })
     return runs
@@ -256,7 +423,14 @@ def is_done_cell(out_dir, spec) -> bool:
             return False
         if d.get("timed_out"):
             return False
-        required = ("corpus", "seed", "d_model", "d_state", "n_layers", "seq_len", "steps", "steps_completed")
+        # "batch_size" ADDED (trackC-rung23-build): cell_name()/is_done_cell's identity tuple never
+        # included batch_size, which was harmless while every rung shared one global BATCH_SIZE --
+        # now that BATCH_SIZE_BY_RUNG can differ per rung, a stale JSON from a PRIOR batch size would
+        # otherwise silently pass this check (same name, same d_model/d_state/n_layers/steps) and be
+        # trusted as "done" for a re-calibration at a NEW batch size. Zero behavior change for
+        # rung 1/control (their JSONs already carry batch_size=32=BATCH_SIZE, always matching).
+        required = ("corpus", "seed", "d_model", "d_state", "n_layers", "seq_len", "steps",
+                    "steps_completed", "batch_size")
         if not all(k in d for k in required):
             return False
         if d.get("steps_completed", 0) < spec["steps"]:
@@ -264,7 +438,7 @@ def is_done_cell(out_dir, spec) -> bool:
         if (d.get("corpus") != spec["corpus"] or d.get("seed") != spec["seed"]
                 or d.get("d_model") != spec["d_model"] or d.get("d_state") != spec["d_state"]
                 or d.get("n_layers") != spec["n_layers"] or d.get("seq_len") != spec["seq_len"]
-                or d.get("steps") != spec["steps"]):
+                or d.get("steps") != spec["steps"] or d.get("batch_size") != spec["batch_size"]):
             return False
         return True
     except Exception:
@@ -289,31 +463,43 @@ def build_cmd_cell(spec, out_dir, timeout, data_dir):
 # session (task brief: "MAY run if cheap (<2 GPU-h total)").
 # ---------------------------------------------------------------------------
 
-def calibration_manifest(steps: int = None, ckpt_every: int = None) -> list[dict]:
-    """Two-point manifest (trackC-audit finding #2): for each config (rung1, control), ONE run at
-    the SHORT step count and ONE at the LONG step count from CALIBRATION_TWO_POINT_STEPS, each
-    with ckpt_every == its own steps (exactly one checkpoint, at the very end) -- so each point's
-    wall_s is a clean single-checkpoint sample, not a multi-checkpoint blend. `steps`/`ckpt_every`
+def calibration_manifest(steps: int = None, ckpt_every: int = None,
+                          tags: tuple = CALIBRATION_TAGS_DEFAULT) -> list[dict]:
+    """Two-point manifest (trackC-audit finding #2): for each config named in `tags` (default:
+    rung1 + control ONLY, byte-identical to the pre-extension behavior -- trackC-rung23-build),
+    ONE run at the SHORT step count and ONE at the LONG step count from
+    CALIBRATION_TWO_POINT_STEPS, each with ckpt_every == its own steps (exactly one checkpoint, at
+    the very end) -- so each point's wall_s is a clean single-checkpoint sample, not a
+    multi-checkpoint blend. Each cell runs at CALIBRATION_BATCH_SIZE[tag] (matches the real batch
+    its wave would use -- the memory-headroom check's whole point). `steps`/`ckpt_every`
     parameters are accepted for CLI back-compat (--calibration-steps/--calibration-ckpt-every) but
     IGNORED here -- the two-point cells are fixed by CALIBRATION_TWO_POINT_STEPS, not by those
     flags (a mismatch would defeat the clean-solve property); main() prints a warning if a
     non-default value is passed."""
     runs = []
-    for tag_base, cfg in (("calib_rung1", RUNG_CFG), ("calib_control", CONTROL_CFG)):
+    for tag_base in tags:
+        cfg = CALIBRATION_RUNG_CFGS[tag_base]
+        bs = CALIBRATION_BATCH_SIZE[tag_base]
         short_steps, long_steps = CALIBRATION_TWO_POINT_STEPS[tag_base]
-        runs += make_manifest(f"{tag_base}_ptA", cfg, ("openr1-mix",), (0,), short_steps, short_steps)
-        runs += make_manifest(f"{tag_base}_ptB", cfg, ("openr1-mix",), (0,), long_steps, long_steps)
+        runs += make_manifest(f"{tag_base}_ptA", cfg, ("openr1-mix",), (0,), short_steps, short_steps,
+                               batch_size=bs)
+        runs += make_manifest(f"{tag_base}_ptB", cfg, ("openr1-mix",), (0,), long_steps, long_steps,
+                               batch_size=bs)
     return runs
 
 
 def derive_timing_constants(out_dir: str) -> dict:
-    """Two-point solve (trackC-audit finding #2): reads the ptA/ptB result JSONs for both rung1
-    and control cells and solves the 2x2 linear system (module docstring above) for clean
-    per_step_s/per_ckpt_s constants, per config. A config missing either point (or either point
-    incomplete) is simply omitted from the result -- the caller (Wave 1's real-launch gate) must
-    check for both keys before trusting the timeout it derives."""
+    """Two-point solve (trackC-audit finding #2): reads the ptA/ptB result JSONs for EVERY
+    registered config in CALIBRATION_RUNG_CFGS (rung1/control/rung2/rung3 -- not just whichever
+    `tags` a given calibration invocation actually launched) and solves the 2x2 linear system
+    (module docstring above) for clean per_step_s/per_ckpt_s constants, per config. A config
+    missing either point (or either point incomplete) is simply omitted from the result -- the
+    caller (a wave's real-launch gate) must check for its own key before trusting the timeout it
+    derives. Safe to widen unconditionally to all four configs: a config whose cells were never
+    launched just has no files on disk yet and is skipped, exactly as before this build for
+    rung2/rung3 (this is a strict superset of the pre-extension rung1/control-only loop)."""
     constants = {}
-    for tag_base, cfg in (("calib_rung1", RUNG_CFG), ("calib_control", CONTROL_CFG)):
+    for tag_base, cfg in CALIBRATION_RUNG_CFGS.items():
         short_steps, long_steps = CALIBRATION_TWO_POINT_STEPS[tag_base]
         pA = os.path.join(out_dir, f"{cell_name(f'{tag_base}_ptA', 'openr1-mix', 0, cfg)}.json")
         pB = os.path.join(out_dir, f"{cell_name(f'{tag_base}_ptB', 'openr1-mix', 0, cfg)}.json")
@@ -331,6 +517,22 @@ def derive_timing_constants(out_dir: str) -> dict:
             continue
         per_step_s = (wall_b - wall_a) / (steps_b - steps_a)
         per_ckpt_s = wall_a - per_step_s * steps_a
+        # VALIDITY GUARD (trackC-rung23-build, caught LIVE on rung 2's first calibration run):
+        # a non-positive per_step_s (or per_ckpt_s) is PHYSICALLY IMPOSSIBLE and means the
+        # two-point method's equal-fixed-overhead assumption broke -- observed cause: the SHORT
+        # point was the first-ever run at a new kernel shape (d_state=128) and paid one-time
+        # Triton compile (disk-cache miss, ~26s) that the LONG point (cache hit) didn't, making
+        # wall_A > wall_B (measured: ptA 10 steps 59.6s vs ptB 40 steps 44.0s -> solved
+        # per_step_s=-0.52). Recording that would silently poison every timeout/budget projection
+        # derived from it. Remedy: delete BOTH points' JSONs and re-run this config's calibration
+        # now that the kernel cache is warm (both fresh points then share the same fixed overhead).
+        if per_step_s <= 0 or per_ckpt_s <= 0:
+            print(f"WARNING: derive_timing_constants[{tag_base}]: solved per_step_s={per_step_s:.4f}"
+                  f"/per_ckpt_s={per_ckpt_s:.4f} is non-positive -- REJECTED, key omitted "
+                  f"(cold-kernel-cache asymmetry between the two points; see the comment at this "
+                  f"check). Delete both point JSONs and re-run --wave calibration for this config "
+                  f"with a warm cache.", file=sys.stderr)
+            continue
         constants[tag_base.replace("calib_", "")] = {
             "per_step_s": per_step_s, "per_ckpt_s": per_ckpt_s,
             "point_a": {"steps": steps_a, "wall_s": wall_a},
@@ -352,8 +554,17 @@ def wave1_manifest(rung1_steps: int, control_steps: int) -> list[dict]:
 def summarize_calibration(out_dir: str, manifest: list[dict]) -> dict:
     """Extracts measured tok/s (from wall_s / steps_completed*batch*seq) and peak memory from each
     calibration cell's own result JSON -- the task brief's explicit deliverable ("report their
-    measured numbers"). Written to calibration.json, which --wave 1's real-launch gate (sec 9)
-    checks for existence before pricing/launching the full manifest."""
+    measured numbers"). Written to calibration.json, which a wave's real-launch gate (sec 9) checks
+    for existence before pricing/launching the full manifest.
+
+    IMPORTANT (trackC-rung23-build): callers should pass the FULL cross-rung manifest here
+    (`calibration_manifest(tags=tuple(CALIBRATION_RUNG_CFGS))`), NOT just whatever subset this
+    particular `--wave calibration --calib-rungs ...` invocation actually launched -- summarizing
+    only the just-launched subset would silently DROP previously-recorded cells (e.g. a
+    `--calib-rungs 2`-only run would otherwise overwrite calibration.json's rung1/control entries
+    with nothing), clobbering a resume-safe, monotonically-growing record. `_run_wave` itself still
+    launches/tracks only the requested subset -- this function's `manifest` argument is purely
+    about what to SUMMARIZE from disk afterward."""
     cells = {}
     for spec in manifest:
         p = os.path.join(out_dir, f"{spec['name']}.json")
@@ -381,6 +592,212 @@ def summarize_calibration(out_dir: str, manifest: list[dict]) -> dict:
             # single-point wall_s above -- this is what Wave 1's real-launch timeout (finding #1)
             # is derived from, with LAUNCH_TIMEOUT_MARGIN applied on top.
             "timing_constants": derive_timing_constants(out_dir)}
+
+
+# ---------------------------------------------------------------------------
+# Wave 2 / Wave 3 (trackC-rung23-build): rung-2/3 FULL manifests, plus the three extra gates
+# sec 5's own text requires before any real launch at these rungs (memory headroom, epoch cap,
+# program budget) -- none of which existed for rung 1 (rung 1's own calibration didn't need a
+# memory-headroom gate because BATCH_SIZE_BY_RUNG was uniform and rung 1's own headroom was never
+# in question at 98M params/80GB; rung 1's epoch-cap arithmetic also happened to clear its mix's
+# ceiling, see this build's own audit note). Both are now load-bearing at rung 2/3's scale.
+# ---------------------------------------------------------------------------
+
+WAVE_RUNG_CFGS = {2: RUNG2_CFG, 3: RUNG3_CFG}
+WAVE_TIMING_KEY = {2: "rung2", 3: "rung3"}          # derive_timing_constants()' own key naming
+WAVE_CALIB_TAG = {2: "calib_rung2", 3: "calib_rung3"}
+
+# 80GB H100 nominal capacity, in bytes -- deliberately the SMALLER of the two plausible denominators
+# (nvidia-smi on this box reports 81,559 MiB =~ 85.5GB; using the vendor-nominal 80,000,000,000
+# bytes is the conservative choice, per this codebase's own "leave more headroom than the raw
+# number suggests" convention, CLAUDE.md's batch=96-not-112 lesson).
+H100_VRAM_BYTES = 80_000_000_000
+
+# House convention (CLAUDE.md: "batch=96 fits training but leaves room for eval; batch=112 fits
+# training but OOMs during eval"): reserve >=15% of the card for eval batches (smaller than train
+# batch but run on the SAME device, sequentially, right after training in this harness) and
+# allocator fragmentation -- a calibration cell that trains but has NO headroom for its own eval
+# step is not actually a passing memory check.
+MEMORY_HEADROOM_SAFE_FRACTION = 0.85
+
+
+def memory_headroom_report(peak_allocated_bytes: float, peak_reserved_bytes: float, label: str) -> dict:
+    frac_reserved = peak_reserved_bytes / H100_VRAM_BYTES
+    return {
+        "label": label,
+        "peak_allocated_gb": peak_allocated_bytes / 1e9,
+        "peak_reserved_gb": peak_reserved_bytes / 1e9,
+        "frac_of_80gb_reserved": frac_reserved,
+        "safe_fraction_threshold": MEMORY_HEADROOM_SAFE_FRACTION,
+        "within_safe_headroom": frac_reserved <= MEMORY_HEADROOM_SAFE_FRACTION,
+    }
+
+
+def epoch_cap_check(data_dir: str, corpus: str, planned_tokens: int, epoch_cap: int = EPOCH_CAP) -> dict:
+    """sec 5.4's discipline, made concrete by build_mix_corpora_rd.py's own meta.json
+    ("mix_total_train_tokens" / equivalently "train_tokens" at the mix's top level): a training
+    budget B sampled uniformly over a mix of size M repeats the WHOLE mix (base corpus included)
+    B/M times in expectation -- so the <=5-physical-epoch cap on the base corpus is exactly
+    B <= 5*M. Reads M live from the corpus's own meta.json (not cached/assumed) so a rebuilt,
+    bigger mix is picked up automatically without editing this launcher."""
+    meta_path = os.path.join(data_dir, MIX_CORPUS_DIRS[corpus], "meta.json")
+    with open(meta_path) as f:
+        meta = json.load(f)
+    m_tokens = meta["train_tokens"]
+    ceiling = epoch_cap * m_tokens
+    return {
+        "corpus": corpus, "meta_path": meta_path, "mix_train_tokens": m_tokens,
+        "epoch_cap": epoch_cap, "epoch_cap_ceiling_tokens": ceiling,
+        "planned_tokens": planned_tokens, "ok": planned_tokens <= ceiling,
+    }
+
+
+def projected_gpu_hours(manifest: list[dict], timing: dict) -> float:
+    """Sums (per_step_s*steps + per_ckpt_s*n_ckpts) over every cell in `manifest` using ONE
+    config's measured timing_constants (all cells in a rung-2/3 manifest share the same
+    d_model/d_state/n_layers/batch, so one timing dict covers the whole wave) -- the number the
+    budget guard prints and gates on BEFORE any launch decision, not a pre-calibration guess."""
+    total_s = 0.0
+    for spec in manifest:
+        n_ckpts = spec["steps"] // spec["ckpt_every"] + 1
+        total_s += timing["per_step_s"] * spec["steps"] + timing["per_ckpt_s"] * n_ckpts
+    return total_s / 3600.0
+
+
+def budget_guard(projected_gpu_h: float, label: str, accept_override: bool) -> float:
+    """sec 7's 300 GPU-h program ceiling, enforced live: PRINTS the projection (task brief's
+    explicit deliverable) before any launch, and REFUSES (exits non-zero) if PROGRAM_SPENT_GPUH +
+    projected would exceed the ceiling, unless --accept-budget-override is passed. The override is
+    a human decision (explicit CLI flag), never a default."""
+    cumulative = PROGRAM_SPENT_GPUH + projected_gpu_h
+    print(f"BUDGET GUARD ({label}): program-spent-so-far={PROGRAM_SPENT_GPUH:.1f} GPU-h "
+          f"(maintained constant, sec 7) + this-wave-projected={projected_gpu_h:.2f} GPU-h "
+          f"= cumulative {cumulative:.2f} GPU-h, ceiling {GPU_H_PROGRAM_CEILING:.0f} GPU-h.",
+          flush=True)
+    if cumulative > GPU_H_PROGRAM_CEILING and not accept_override:
+        print(f"ERROR: projected cumulative spend {cumulative:.2f} GPU-h EXCEEDS the "
+              f"{GPU_H_PROGRAM_CEILING:.0f} GPU-h program ceiling (sec 7) -- REFUSING to launch "
+              f"{label}. Pass --accept-budget-override to force past this guard (a human decision, "
+              f"never a default), or cut scope first (sec 8's cut order: Track D Phase 2, rung-3's "
+              f"fix-effect sub-wave, rung-2's frontier-probe reminder, Track B's naive-window arm, "
+              f"rung-3's second corpus, rung 2 wholesale -- in that order).", file=sys.stderr)
+        sys.exit(5)
+    return cumulative
+
+
+def wave23_manifest(rung: int, steps: int) -> list[dict]:
+    """sec 5.6's table: rung 2/3 are "2 corpora x 1 seed" ONLY -- no control cell at these rungs
+    (MAJOR-5's control is rung-1-specific; sec 8's cut order never asks for one at 2/3 either).
+    Shared by --dry-run's preview and the real --wave {2,3} launch (wave1_manifest's own
+    preview/launch-parity discipline, restated here)."""
+    cfg = WAVE_RUNG_CFGS[rung]
+    bs = BATCH_SIZE_BY_RUNG[rung]
+    return make_manifest(f"w{rung}_rung{rung}", cfg, MIX_CORPORA, WAVE23_SEEDS, steps, 1000, batch_size=bs)
+
+
+def gate_and_run_wave23(rung: int, args) -> None:
+    """The full (a)-(e) gate chain for a real --wave {2,3} launch (module docstring). Every check
+    below EXITS non-zero on failure with the design's own registered remedy -- there is no silent
+    proceed path. Mirrors --wave 1's calibration.json/--rungN-steps gate exactly for (a)/(b), then
+    ADDS (c) memory headroom, (d) epoch cap, (e) budget guard -- all three genuinely new
+    requirements at rung 2/3's scale (module docstring's top-of-file rationale)."""
+    calibration_json_path = os.path.join(args.out_dir, "calibration.json")
+    timing_key = WAVE_TIMING_KEY[rung]
+    steps = getattr(args, f"rung{rung}_steps")
+
+    # (a) calibration.json must exist and carry this rung's timing_constants.
+    if not os.path.exists(calibration_json_path):
+        print(f"ERROR: {calibration_json_path} not found -- sec 9's own hard rule: 'No track's Wave "
+              f"1+ manifest is authorized to launch ... without first recording its Wave -1 measured "
+              f"numbers.' Run --wave calibration --calib-rungs {rung} first.", file=sys.stderr)
+        sys.exit(2)
+    with open(calibration_json_path) as f:
+        calib = json.load(f)
+    timing = calib.get("timing_constants") or {}
+    if timing_key not in timing:
+        print(f"ERROR: {calibration_json_path} has no timing_constants[{timing_key!r}] -- rerun "
+              f"--wave calibration --calib-rungs {rung} (two-point method) so per_step_s/per_ckpt_s "
+              f"are populated before a real --wave {rung} launch.", file=sys.stderr)
+        sys.exit(2)
+
+    # (b) --rungN-steps must be supplied explicitly (no silent fallback to the placeholder).
+    if steps is None:
+        print(f"ERROR: --rung{rung}-steps is REQUIRED for a real --wave {rung} launch (no silent "
+              f"fallback to RUNG{rung}_TARGET_TOKENS_PLACEHOLDER) -- derive it from "
+              f"{calibration_json_path}'s measured tok/s and pass it explicitly.", file=sys.stderr)
+        sys.exit(2)
+
+    # (c) memory headroom, recomputed LIVE from calibration.json's own recorded peak-memory cells
+    # (never assumed from a prior session's cited number) -- both the short and long calibration
+    # points are checked (peak memory is a function of batch/shape, not step count, but checking
+    # both catches a fluke single-point misread).
+    cfg = WAVE_RUNG_CFGS[rung]
+    tag_base = WAVE_CALIB_TAG[rung]
+    mem_reports = []
+    for pt in ("ptA", "ptB"):
+        cell_key = cell_name(f"{tag_base}_{pt}", "openr1-mix", 0, cfg)
+        cell = (calib.get("cells") or {}).get(cell_key)
+        if cell and cell.get("status") == "complete":
+            mem_reports.append(memory_headroom_report(
+                cell["peak_memory_allocated_gb"] * 1e9, cell["peak_memory_reserved_gb"] * 1e9, cell_key))
+    if not mem_reports:
+        print(f"ERROR: no COMPLETE calibration memory readouts found for rung {rung} in "
+              f"{calibration_json_path} -- the memory-headroom check is a blocking Wave -1 item "
+              f"(module docstring's 'Batch sizing' paragraph), not optional. Run --wave calibration "
+              f"--calib-rungs {rung} first.", file=sys.stderr)
+        sys.exit(2)
+    bad_mem = [r for r in mem_reports if not r["within_safe_headroom"]]
+    if bad_mem:
+        print(f"ERROR: memory-headroom check FAILED for rung {rung}: {bad_mem} -- "
+              f"BATCH_SIZE_BY_RUNG[{rung}] (currently {BATCH_SIZE_BY_RUNG[rung]}) must be lowered "
+              f"and this rung re-calibrated before a real launch (module docstring's 'Batch sizing' "
+              f"paragraph's own remedy).", file=sys.stderr)
+        sys.exit(2)
+    print(f"Memory headroom OK for rung {rung} (batch={BATCH_SIZE_BY_RUNG[rung]}): {mem_reports}",
+          flush=True)
+
+    manifest = wave23_manifest(rung, steps)
+
+    # (d) epoch cap, BOTH mix corpora, at this rung's resulting per-run token budget.
+    planned_tokens = steps * BATCH_SIZE_BY_RUNG[rung] * SEQ_LEN
+    epoch_reports = [epoch_cap_check(args.data_dir, c, planned_tokens) for c in MIX_CORPORA]
+    failing = [r for r in epoch_reports if not r["ok"]]
+    if failing:
+        print("=" * 70, file=sys.stderr)
+        print(f"EPOCH-CAP CHECK FAILED for rung {rung} (sec 5.4: '<=5-physical-epoch' discipline "
+              f"on each mix's base corpus):", file=sys.stderr)
+        for r in failing:
+            print(f"  corpus={r['corpus']!r}: planned {r['planned_tokens']:,} tokens > ceiling "
+                  f"{r['epoch_cap_ceiling_tokens']:,} (= {r['epoch_cap']} x mix train_tokens "
+                  f"{r['mix_train_tokens']:,}, read live from {r['meta_path']})", file=sys.stderr)
+        print("REMEDY (sec 5.4's own registered rule, restated in build_mix_corpora_rd.py's meta.json "
+              "'epoch_cap_discipline' field): pull more augmentation BEFORE launching -- re-run "
+              "build_mix_corpora_rd.py with a larger --target-augment-tokens for the failing "
+              "corpus/corpora so mix_train_tokens * 5 >= this rung's planned per-run token budget, "
+              "then re-run --wave calibration --calib-rungs "
+              f"{rung} for this rung (a bigger mix may shift timing slightly) before retrying this "
+              "launch.", file=sys.stderr)
+        print("=" * 70, file=sys.stderr)
+        sys.exit(6)
+    print(f"Epoch-cap check OK for rung {rung}: {epoch_reports}", flush=True)
+
+    # (e) program-wide GPU-h budget guard -- printed and gated BEFORE launch, per the task brief.
+    projected = projected_gpu_hours(manifest, timing[timing_key])
+    budget_guard(projected, f"wave {rung}", args.accept_budget_override)
+
+    out_dir = os.path.join(args.out_dir, f"wave{rung}")
+    os.makedirs(out_dir, exist_ok=True)
+
+    def timeout_fn(spec):
+        c = timing[timing_key]
+        return default_timeout_pretrain(spec["steps"], spec["ckpt_every"],
+                                         c["per_step_s"], c["per_ckpt_s"], margin=LAUNCH_TIMEOUT_MARGIN)
+
+    print(f"WAVE {rung} REAL LAUNCH: {len(manifest)} runs ({steps} steps x {len(MIX_CORPORA)} "
+          f"corpora x {len(WAVE23_SEEDS)} seed(s)). Timing constants from {calibration_json_path} "
+          f"(margin {LAUNCH_TIMEOUT_MARGIN}x): {json.dumps(timing[timing_key], indent=2)}", flush=True)
+    all_done = _run_wave(str(rung), manifest, out_dir, args, is_done_cell, build_cmd_cell, timeout_fn)
+    sys.exit(0 if all_done else 1)
 
 
 # ---------------------------------------------------------------------------
@@ -443,7 +860,7 @@ def aggregate(out_dir, manifest, failed, wave):
         with open(os.path.join(out_dir, "AGGREGATE.json"), "w") as f:
             json.dump(report, f, indent=2)
         with open(os.path.join(out_dir, "SUMMARY.txt"), "w") as f:
-            f.write(f"DeltaNet-RD Track C (scaling ladder, rung {RUNG}) -- wave {wave}\n" + "=" * 50 + "\n")
+            f.write(f"DeltaNet-RD Track C (scaling ladder) -- wave {wave}\n" + "=" * 50 + "\n")
             f.write(json.dumps(report, indent=2) + "\n")
     except Exception:
         pass
@@ -462,7 +879,17 @@ def _run_wave(wave, manifest, out_dir, args, is_done_fn, build_cmd_fn, timeout_f
     slots = [g for _ in range(args.per_gpu) for g in physical_gpus]
     n_slots = len(slots)
     pending = [s for s in manifest if not is_done_fn(out_dir, s)]
-    print(f"wave={wave}  manifest={len(manifest)}  pending={len(pending)}  "
+    # trackC-rung23-build BUGFIX: cells that were ALREADY done before this invocation started (and
+    # so never entered `pending`) must still count toward `all_done` below -- pre-fix, re-invoking
+    # a wave whose entire manifest was already complete (pending=0, loop body never runs, done_ct
+    # stays 0) reported all_done=False, which this build's calibration-summary logic depends on
+    # (a false all_done=False would skip refreshing the root-level calibration.json even though
+    # every cell is genuinely complete). Caught live: re-running `--wave calibration` with the
+    # DEFAULT --calib-rungs (rung1+control, both already complete from Wave 1) reproduced exactly
+    # this false-negative on-box before this fix.
+    already_done_ct = len(manifest) - len(pending)
+    print(f"wave={wave}  manifest={len(manifest)}  pending={len(pending)} "
+          f"(already-done={already_done_ct})  "
           f"slots={n_slots} (gpus {physical_gpus} x {args.per_gpu} per-gpu)", flush=True)
 
     running, free, quarantined = {}, list(slots), []
@@ -536,7 +963,7 @@ def _run_wave(wave, manifest, out_dir, args, is_done_fn, build_cmd_fn, timeout_f
     finally:
         aggregate(out_dir, manifest, failed, wave)
 
-    all_done = (done_ct == len(manifest)) and not failed
+    all_done = (done_ct + already_done_ct == len(manifest)) and not failed
     if all_done:
         with open(os.path.join(out_dir, "ALL_DONE"), "w") as f:
             f.write(f"wave {wave} complete: {done_ct}/{len(manifest)} runs, 0 failed\n")
@@ -549,12 +976,14 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out-dir", default=os.path.join(HERE, "results/lm_rd_trackc"))
     ap.add_argument("--data-dir", default="/data/deltanet_rd_data")
-    ap.add_argument("--wave", choices=["calibration", "1", "4"], default=None,
+    ap.add_argument("--wave", choices=["calibration", "1", "2", "3", "4"], default=None,
                      help="REQUIRED unless --dry-run. 'calibration' (Wave -1) MAY be launched any "
-                          "time (cheap, <2 GPU-h); '1' is gated on an existing calibration.json + "
-                          "--rung1-steps (the NORMAL gate chain, trackC-audit finding #1 -- no "
-                          "longer additionally hard-refused); '4' is ALWAYS refused (Track B's own "
-                          "NO-LAUNCH gates it out, sec 5.5 item 3).")
+                          "time (cheap, <2 GPU-h per rung; --calib-rungs selects which); '1' is "
+                          "CLOSED (sec 5.9 -- already ran to completion; behavior unchanged by this "
+                          "build); '2'/'3' are gated on an existing calibration.json + "
+                          "--rung{2,3}-steps + a passing memory-headroom/epoch-cap/budget-guard "
+                          "chain (trackC-rung23-build; see module docstring); '4' is ALWAYS refused "
+                          "(Track B's own NO-LAUNCH gates it out, sec 5.5 item 3).")
     ap.add_argument("--gpus", type=int, default=None, help="GPU COUNT. REQUIRED for a real launch, "
                                                               "NO DEFAULT -- check nvidia-smi first.")
     ap.add_argument("--gpu-offset", type=int, default=None, help="first physical GPU index. REQUIRED "
@@ -567,11 +996,25 @@ def main():
                           "unrecognized argument; a non-default value prints a warning.")
     ap.add_argument("--calibration-ckpt-every", type=int, default=CALIBRATION_CKPT_EVERY,
                      help="LEGACY, ignored -- see --calibration-steps.")
+    ap.add_argument("--calib-rungs", default="1,control",
+                     help="comma list from {1,2,3,control}, selects which configs' two-point "
+                          "calibration cells --wave calibration includes. DEFAULT UNCHANGED from "
+                          "the pre-extension file (rung 1 + control only) -- rung 2/3 calibration "
+                          "is opt-in ONLY (e.g. --calib-rungs 2), never launched by a bare "
+                          "'--wave calibration' invocation (trackC-rung23-build).")
     ap.add_argument("--rung1-steps", type=int, default=None,
-                     help="Wave 1 only: REQUIRED for a real launch (no silent fallback to the "
-                          "uncalibrated placeholder) -- supply a value informed by calibration.json.")
+                     help="Wave 1 only: CLOSED (sec 5.9); retained for reference/reruns only.")
     ap.add_argument("--control-steps", type=int, default=None,
                      help="Wave 1 only: default derived from CONTROL_TARGET_TOKENS (matches Wave C exactly).")
+    ap.add_argument("--rung2-steps", type=int, default=None,
+                     help="Wave 2 only: REQUIRED for a real launch (no silent fallback to the "
+                          "uncalibrated placeholder) -- derive from calibration.json's measured tok/s.")
+    ap.add_argument("--rung3-steps", type=int, default=None,
+                     help="Wave 3 only: REQUIRED for a real launch (no silent fallback to the "
+                          "uncalibrated placeholder) -- derive from calibration.json's measured tok/s.")
+    ap.add_argument("--accept-budget-override", action="store_true",
+                     help="Force past the sec-7 300 GPU-h program budget guard for --wave 2/3 (a "
+                          "human decision -- there is no default override).")
     ap.add_argument("--trackb-gate-json", default=TRACKB_GATE_JSON_DEFAULT)
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
@@ -585,11 +1028,13 @@ def main():
               f"({CALIBRATION_TWO_POINT_STEPS}), trackC-audit finding #2.", file=sys.stderr)
 
     if args.dry_run:
-        calib_m = calibration_manifest()
+        calib_tags = parse_calib_rungs(args.calib_rungs)
+        calib_m = calibration_manifest(tags=calib_tags)
         rung1_steps = args.rung1_steps or default_rung1_steps_placeholder()
         control_steps = args.control_steps or default_control_steps()
         w1_m = wave1_manifest(rung1_steps, control_steps)
         calibration_json_path = os.path.join(args.out_dir, "calibration.json")
+        timing = {}
         timing_status = "no calibration.json found yet"
         if os.path.exists(calibration_json_path):
             with open(calibration_json_path) as f:
@@ -600,16 +1045,48 @@ def main():
         print(f"rung {RUNG} config: {RUNG_CFG} (verified 0.4% off target this session, see "
               f"lm_rd_rung_configs.py / lm_pretrain_rd.py smoke item [11])")
         print(f"control config: {CONTROL_CFG} (Wave C's own scale)")
-        print(f"\ncalibration (Wave -1): {len(calib_m)} runs (two-point per config: "
-              f"{CALIBRATION_TWO_POINT_STEPS}) -- MAY be launched any time (cheap, <2 GPU-h)")
-        print(f"\nwave 1: {len(w1_m)} runs -- rung-1 {rung1_steps} steps"
-              f"{' (UNCALIBRATED PLACEHOLDER, pass --rung1-steps after calibration)' if not args.rung1_steps else ''}"
-              f" x {len(MIX_CORPORA)} corpora x {len(SEEDS)} seeds, "
-              f"control {control_steps} steps (matches Wave C exactly) x {len(MIX_CORPORA)} x {len(SEEDS)} "
-              f"-- real launch requires an existing calibration.json with populated timing_constants "
-              f"for BOTH configs (sec 9's hard rule + trackC-audit finding #1); per-run timeout = "
-              f"(per_step_s*steps + n_ckpts*per_ckpt_s) * {LAUNCH_TIMEOUT_MARGIN} margin, from those "
-              f"constants. Wave-1 timeout wiring status: {timing_status}")
+        print(f"rung 2 config: {RUNG2_CFG}, rung 3 config: {RUNG3_CFG} (lm_rd_rung_configs.py / "
+              f"lm_pretrain_rd.py smoke items [12]/[13], BATCH_SIZE_BY_RUNG={BATCH_SIZE_BY_RUNG})")
+        calib_tag_steps = {t: CALIBRATION_TWO_POINT_STEPS[t] for t in calib_tags}
+        print(f"\ncalibration (Wave -1), --calib-rungs={args.calib_rungs!r}: {len(calib_m)} runs "
+              f"(two-point per selected config: {calib_tag_steps}) -- MAY be launched any "
+              f"time (cheap, <2 GPU-h per rung)")
+        print(f"\nwave 1: {len(w1_m)} runs -- CLOSED (sec 5.9) -- rung-1 {rung1_steps} steps x "
+              f"{len(MIX_CORPORA)} corpora x {len(SEEDS)} seeds, control {control_steps} steps x "
+              f"{len(MIX_CORPORA)} x {len(SEEDS)}. Wave-1 timeout wiring status: {timing_status}")
+
+        for rung in (2, 3):
+            placeholder_steps = default_rung23_steps_placeholder(rung)
+            steps_arg = getattr(args, f"rung{rung}_steps")
+            steps = steps_arg or placeholder_steps
+            w_m = wave23_manifest(rung, steps)
+            key = WAVE_TIMING_KEY[rung]
+            wave_timing_status = (f"WIRED: {timing[key]}" if key in timing
+                                   else f"NOT calibrated yet (run --wave calibration --calib-rungs {rung})")
+            print(f"\nwave {rung}: {len(w_m)} runs -- rung-{rung} {steps} steps"
+                  f"{' (UNCALIBRATED PLACEHOLDER, pass --rung' + str(rung) + '-steps after calibration)' if not steps_arg else ''}"
+                  f" x {len(MIX_CORPORA)} corpora x {len(WAVE23_SEEDS)} seed(s), batch="
+                  f"{BATCH_SIZE_BY_RUNG[rung]} -- real launch requires (a) calibration.json's "
+                  f"timing_constants[{key!r}], (b) --rung{rung}-steps, (c) a passing memory-headroom "
+                  f"readout, (d) a passing epoch-cap check on both mix corpora, (e) the sec-7 budget "
+                  f"guard (PROGRAM_SPENT_GPUH={PROGRAM_SPENT_GPUH} + projected <= "
+                  f"{GPU_H_PROGRAM_CEILING} GPU-h, else --accept-budget-override). "
+                  f"Timing wiring status: {wave_timing_status}")
+            if key in timing:
+                projected = projected_gpu_hours(w_m, timing[key])
+                print(f"  projected GPU-h at these steps: {projected:.2f} (cumulative with "
+                      f"PROGRAM_SPENT_GPUH: {PROGRAM_SPENT_GPUH + projected:.2f} / "
+                      f"{GPU_H_PROGRAM_CEILING:.0f})")
+            for corpus in MIX_CORPORA:
+                try:
+                    rep = epoch_cap_check(args.data_dir, corpus, steps * BATCH_SIZE_BY_RUNG[rung] * SEQ_LEN)
+                    print(f"  epoch-cap[{corpus}]: planned {rep['planned_tokens']:,} tokens vs. "
+                          f"ceiling {rep['epoch_cap_ceiling_tokens']:,} -- "
+                          f"{'OK' if rep['ok'] else 'WOULD REFUSE (pull more augmentation first)'}")
+                except FileNotFoundError:
+                    print(f"  epoch-cap[{corpus}]: meta.json not found under --data-dir {args.data_dir!r} "
+                          f"(preview only reachable on-box)")
+
         trackb = _trackb_gate_status(args.trackb_gate_json)
         print(f"\nwave 4 (fix-effect / geo3-at-scale): ALWAYS REFUSED. Track B gate status: {trackb}")
         if args.gpus is not None and args.gpu_offset is not None:
@@ -632,22 +1109,46 @@ def main():
         sys.exit(1)
 
     if args.wave == "calibration":
-        manifest = calibration_manifest()
+        calib_tags = parse_calib_rungs(args.calib_rungs)
+        manifest = calibration_manifest(tags=calib_tags)
         out_dir = os.path.join(args.out_dir, "calibration")
         os.makedirs(out_dir, exist_ok=True)
-        timeout_fn = lambda spec: default_timeout_pretrain(
-            spec["steps"], spec["ckpt_every"], _CALIBRATION_PER_STEP_S_GENEROUS, _CALIBRATION_PER_CKPT_S_GENEROUS)
+
+        def timeout_fn(spec):
+            tag_base = spec["tag"].rsplit("_pt", 1)[0]
+            per_step_gen, per_ckpt_gen = _calibration_generous_timing(tag_base)
+            return default_timeout_pretrain(spec["steps"], spec["ckpt_every"], per_step_gen, per_ckpt_gen)
+
         all_done = _run_wave("calibration", manifest, out_dir, args, is_done_cell, build_cmd_cell, timeout_fn)
-        calib_summary = summarize_calibration(out_dir, manifest)
+        # Summarize the FULL cross-rung universe of calibration cells found on disk (NOT just this
+        # invocation's `manifest` subset) -- a --calib-rungs-restricted run must never clobber
+        # previously-recorded cells for OTHER configs (summarize_calibration's own docstring).
+        full_manifest = calibration_manifest(tags=tuple(CALIBRATION_RUNG_CFGS))
+        calib_summary = summarize_calibration(out_dir, full_manifest)
         with open(os.path.join(out_dir, "calibration.json"), "w") as f:
             json.dump(calib_summary, f, indent=2)
         print("\nCALIBRATION SUMMARY:", json.dumps(calib_summary, indent=2))
         if all_done:
-            # also drop a copy at the wave-1 gate's expected lookup location (out-dir root) so
-            # --wave 1's real-launch check (sec 9) finds it without extra plumbing
+            # also drop a copy at the wave-1/2/3 gates' expected lookup location (out-dir root) so
+            # a real launch check (sec 9) finds it without extra plumbing. Written even when this
+            # invocation only targeted a SUBSET of configs (--calib-rungs) -- calib_summary itself
+            # is always the full cross-rung union (see full_manifest above), so this is safe.
             with open(os.path.join(args.out_dir, "calibration.json"), "w") as f:
                 json.dump(calib_summary, f, indent=2)
+        else:
+            print(f"NOTE: --wave calibration did not fully complete this invocation's requested "
+                  f"subset ({calib_tags}) -- the out-dir-root calibration.json was NOT overwritten "
+                  f"this run (whatever was there before, if anything, is unchanged). Re-run "
+                  f"--wave calibration --calib-rungs {args.calib_rungs} to retry the pending/failed "
+                  f"cells; already-complete cells resume-skip.", flush=True)
         return
+
+    if args.wave in ("2", "3"):
+        # trackC-rung23-build: REAL manifest-build + _run_wave call behind these gates -- verified
+        # by direct re-read of gate_and_run_wave23 after writing it (module docstring's "LEARNED
+        # FROM WAVE 1'S OWN HISTORY" paragraph: a gate with nothing behind it is a no-op).
+        gate_and_run_wave23(int(args.wave), args)
+        return  # gate_and_run_wave23 always sys.exit()s; return is unreachable but keeps main() honest
 
     # --wave 1 (trackC-audit finding #1: this used to be an unconditional `sys.exit(4)` after the
     # two checks below -- no manifest was ever built and no run was ever launchable, regardless of
@@ -655,7 +1156,7 @@ def main():
     # every other wave in this codebase is gated: calibration.json must exist AND carry real
     # timing_constants for BOTH configs (not just exist), AND --rung1-steps must be supplied. There
     # is no other special-case refusal here -- a human/orchestrator satisfying those two normal
-    # gates can launch for real.)
+    # gates can launch for real. CLOSED as of sec 5.9 -- kept working, unmodified, for reruns.)
     calibration_json_path = os.path.join(args.out_dir, "calibration.json")
     if not os.path.exists(calibration_json_path):
         print(f"ERROR: {calibration_json_path} not found -- sec 9's own hard rule: 'No track's Wave "
