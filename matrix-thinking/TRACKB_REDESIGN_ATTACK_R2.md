@@ -403,3 +403,181 @@ cumulative 162.5/300" present exactly as Rev 2 attributes it); `EXPERIMENT_LOG.m
 (grepped for `rung-2`/`rung-3`/`harvest` — confirmed no rung-2/rung-3 harvest entry
 exists yet, only the rung-1 harvest and, in `STATE.md`, the rung-2 launch entry). No GPU
 run, no box access, no push performed in producing this document.
+
+---
+
+## Round 3 (bounded) — 2026-07-04, fresh verifier against Rev 3 (commit `8ab089d`)
+
+**Scope, per dispatch.** Bounded verify pass only: (a) is each of this round's 10
+findings (NEW-1..8, MINOR-1..2) genuinely closed by Rev 3's *implementation*, not just
+its prose; (b) new flaws in Rev 3's own additions; (c) grep-verify every quoted string
+against its cited source; (d) the §13 adjudications (Cell 3 never-cut, per-write
+magnitude mass-conservation identity). Items this round or round 1 already marked
+CLOSED are **not reopened**. Design-only — no GPU, no box, no push; all checks below
+are CPU arithmetic/closed-form reproduction or direct file reads against the actual
+repo state this session.
+
+### Part A — Closure table (round-2 findings against Rev 3)
+
+| # | Verdict | Basis |
+|---|---|---|
+| NEW-1 | **CLOSED** | §2 principle 4's REVISED paragraph makes the PARTIAL trigger one rule (`median(shortfall_c) > 0.10` **or** `frac(shortfall_c > 0.10) > 0.25`) applied identically to candidates 1/2/3, candidate 4's hard-snap phase, the comparator, and Cells 2R/4R — the asymmetry (candidate 2 alone had teeth) is gone. The per-chunk dispersion measurement is folded into the existing zero-cost Wave −1 Cell-1 forward pass (§5.3) and pinned into `BANDS_PINNED-TrackB`, so the rule is enforceable, not aspirational. Re-checked the cited arithmetic independently: 32×0.3625=11.60; 11.60/0.4308=26.93≈26.9; pre-renorm mean selected β=(26.9−11.60)/32=15.30/32=0.478; scale factor 0.84/0.478=1.757≈1.76×; headroom 1−0.84=0.16 — all reproduce exactly as quoted. |
+| NEW-2 | **CLOSED** | §5.1 now states the cadence explicitly: "resampled independently for every (chunk instance, training step) from an RNG stream keyed to the run seed and step counter — never a fixed function of intra-chunk position," with the rejected fixed-offset-draw alternative renamed and demoted to a named, cut-eligible **diagnostic**, explicitly barred from ever substituting as the control. This closes the specific failure mode NEW-2 named (silent degeneration into a positional schedule) by construction. One residual, sub-MAJOR ambiguity noted below (new-flaw sweep). |
+| NEW-3 | **CLOSED** | §5.1 replaces the unoperationalized "matches within seed noise" with a concrete, evaluable three-way rule (disjoint-Cell-2-better / disjoint-2R-equal-or-better / overlap→INCONCLUSIVE), removes the false precedent-borrowing (no longer silently importing KEY_ANCHORING's one-sample power analysis for a two-sample comparison), and registers the low-power acknowledgment numerically. The α figure is independently re-derived below (Part C) and confirmed correct. |
+| NEW-4 | **CLOSED** | §4.3's churn ceiling is now `max(Null A, Null B)`: Null A retained (unmasked pilot, unchanged), Null B added (the gated run's own first-10%-of-steps churn, same mechanism/regime). This directly answers both of NEW-4's named mechanisms (STE entrenchment suppressing churn; legitimate sharpening raising it) by adding a same-run, same-mechanism reference, and the residual limitation (Null B overweights init transients; still a coarse screen, not a calibrated bound) is registered honestly rather than papered over. Not a full statistical calibration — the doc doesn't claim it is. |
+| NEW-5 | **CLOSED** | §4.3 gains a full "Positional concentration" subsection: TV-distance of the intra-chunk offset-selection marginal from uniform(1/64), measured on the fixed probe batch at 50%/final checkpoints, ceiling = unmasked-pilot `mean_ref+2·s_ref` (same null shape as churn Null A, for the same non-circularity reason), folded into `BANDS_PINNED-TrackB`. The broken cross-reference is fixed: §3.1(iii) now cites "§4.3's positional-concentration statistic" directly instead of the stale "§8 item 1." Grep-confirmed §8 item 1 no longer carries this citation burden (checked below). |
+| NEW-6 | **CLOSED** | The comparator's anneal is re-pinned to τ: 1→0 linear over the first 10% of steps, then exactly 0 for the remaining 90% — both arms hard for ≥90% of training, so the shared regime isolates the gradient estimator rather than an annealing curriculum. The residual (first-10% divergence between the arms) is registered in one sentence rather than hidden, and §11 item 2's promotion trigger for the hard-concrete/L0 follow-on is widened to account for it — a real, not cosmetic, response to the round's own critique. Bit-equivalence is kept but explicitly marked non-load-bearing with a numeric fallback bound, exactly matching the round's own disposition of that non-issue. |
+| NEW-7 | **CLOSED** | Slice selection is rebuilt from the code's actual mechanism (`n_dup_max` = largest within-chunk identical-4-gram count, threshold ≥8, "comfortably past" the code-documented ≥~6 onset at `lm_pretrain_rd.py:349–353` — verified, see Part D) rather than the text-level proxy NEW-7 attacked. The positive-control floor (≥25 forward calls with ≥6 duplicated rows **within the selected top-K set**, logged via `_topk_idx`) makes the smoke provably non-vacuous: if unmet, the smoke is declared NON-PROBATIVE (not silently "passed") and a forced-selection fallback (reusing the M6 argument) guarantees the regime is exercised. This directly answers "the smoke could pass without ever exercising the failure regime." |
+| NEW-8 | **CLOSED, verified independently at the source** | Confirmed via `git show 13eb71c -- matrix-thinking/SCALE_TRANSFER_DESIGN.md`: the correction is real, landed in the cited commit, and the diff is exactly what Rev 3 describes (316→343 on the 190.22 GPU-h base, with an explicit in-source note "caught by TRACKB_REDESIGN_ATTACK_R2.md"). Re-verified `190.22` itself is not invented for this fix: `git show c68a3a3` shows it as a real, pre-existing `PROGRAM_SPENT_GPUH` update (163.22→190.22, +27.00 for the real `--wave 1ext` launch) recorded hours before the Rev-3/source-fix commit — i.e., Rev 3 is citing an actual prior commit's number, not backfilling one to make the arithmetic close. 190.22+152.5≈343 and 190.22+76.2≈266.4 both check out exactly. Headroom 300−266.4=33.6 reproduces exactly. |
+| MINOR-1 | **CLOSED** | §5.3 now states both readings (absolute-proximity vs. relative-excess-over-uniform) explicitly, explains why the pin survives on reasons (i)/(iii)/(iv) rather than (ii), and upgrades K_sel=16 from "not silently dropped" to "the FIRST registered follow-on axis" — matches the round's own suggested fix almost verbatim. |
+| MINOR-2 | **CLOSED** | §5.1's Cell-4 composition-rule paragraph now specifies EOT/padding validity threading under forcing exactly as the round's own fix suggested: `content_mask` gathered at the forced indices (verified buildable — `content_mask`/`content_c` is already computed and available at `lm_pretrain_rd.py:289`, before the internal `topk` call the forced path bypasses), feeding the existing degenerate-episode machinery unchanged, plus a registered negative-case build smoke (forced EOT index → invalid → no-op scatter). |
+
+**All 10 round-2 findings are genuinely closed by real mechanism** — pinned numeric
+rules, registered derivation procedures, or upstream source fixes — not by wording
+alone. None of the closures merely relabels a disclosure as a control (the specific
+failure pattern this whole three-round history keeps hunting for); each adds an actual
+gate, formula, or fallback with teeth.
+
+### Part B — New-flaw sweep on Rev 3's own additions
+
+No new FATAL or MAJOR found. Two sub-MAJOR observations, both worth a one-line note
+for the build phase but neither blocking:
+
+1. **Cell 2R's RNG cadence is specified for training but not explicitly for
+   measurement-time re-invocation.** §5.1 pins resampling to "every (chunk instance,
+   **training** step)" keyed to "the run seed and step counter." The §5.2/§5.3
+   Gram-deviation instrument, however, is a separate forward-hook probe pass (§6.1
+   Wave 3: "forward-hook probes, no backward pass") run against checkpoints, not
+   necessarily inside the training loop's own step counter. If the eval-time probe
+   pass re-invokes Cell 2R's random-selection mechanism with a *fixed* or
+   *checkpoint-identical* seed/step value across repeated measurement passes (rather
+   than continuing to draw fresh per-episode randomness), the measured Gram deviation
+   would be computed over one frozen random subset per checkpoint — not literally the
+   "fixed positional schedule" failure NEW-2 named (the subset would still be content-
+   position-random, not periodic), but a milder version of the same concern: a single
+   arbitrarily-frozen random draw at measurement time adds sampling noise to Cell 2R's
+   own reported number that isn't present in Cell 2's (whose selection is a
+   deterministic function of the trained β at that checkpoint). This is very likely a
+   non-issue in practice — the natural implementation is to let the same RNG stream
+   that drives training continue into eval forward calls, which would already satisfy
+   NEW-2's intent — but the design text does not say so explicitly, and given this
+   document's own three-round history of exactly this class of cadence ambiguity
+   causing real MAJORs, it is worth one explicit sentence at build time: *"the eval-time
+   forward-hook probe draws its Cell 2R subset from the same continuing RNG stream as
+   training, never a fixed draw pinned to the checkpoint."* Rated sub-MAJOR, not MAJOR:
+   unlike NEW-2's original finding, no plausible reading of the current text
+   re-introduces a *positional* artifact, and the (unlikely) failure mode this would
+   produce is added noise, not a systematic bias in either cell's favor.
+2. **The "candidate 3" / "Cell 3" naming collision is a documentation-risk, not a
+   design flaw, once traced carefully.** §2 principle 4's REVISED paragraph says the
+   symmetric shortfall rule applies to "candidates 1/2/3" — on first read this could be
+   misread as including the 2×2 factorial's **Cell 3** (the geo3-only reference arm,
+   which is deliberately *not* renormalized, since it exists specifically to replicate
+   the original, uncontrolled construction whose gate already measured the 43.1%
+   non-selected write-mass). Traced against §3's own numbering, "candidate 3" here
+   unambiguously means §3.3's fixed periodic write-schedule *mechanism*, which is a
+   masking candidate and does need renormalization — the sentence is correct as
+   written. Confirmed no instance in the document where this collision produces an
+   actually wrong instruction (checked every "candidate 3" and "Cell 3" occurrence);
+   flagging only because a build-time skim risks misapplying renormalization to Cell 3.
+   Not required to fix before build; worth a one-line disambiguating footnote if this
+   document gets a Rev 4 for any other reason.
+
+Everything else scrutinized under the task's explicit call-outs (the §2 principle 4
+shortfall rule's numeric thresholds, the dual churn null's calibration honesty, the
+TV-distance positional check's specification completeness, the τ→0-by-10% comparator's
+residual-confound disclosure, the duplicate-key slice's mechanism grounding and
+positive-control floor, the corrected budget quotes) held up under independent
+re-derivation — see Parts A, C, D.
+
+### Part C — α-math check: n=3-vs-n=3 complete range separation under exchangeability
+
+Rev 3 claims (§5.1): *"under the exchangeability null, complete range separation at
+n=3-per-arm has probability 2/C(6,3) = 0.10 per corpus."* Independently re-derived
+from first principles, not taken on faith:
+
+Under the null that group membership carries no information (the two arms are
+exchangeable), condition on the 6 realized values and treat every assignment of 3-of-6
+to "arm A" (the remaining 3 to "arm B") as equally likely — `C(6,3) = 6!/(3!·3!) =
+720/36 = 20` equally likely assignments, assuming no ties. **Complete range
+separation** (every value in one arm strictly below every value in the other) occurs
+in exactly two of these 20 assignments: arm A gets the 3 smallest values (arm A
+entirely below arm B), or arm A gets the 3 largest values (arm A entirely above arm
+B) — there is exactly one assignment realizing each direction. So
+`P(complete separation) = 2/20 = 0.10`, exactly as claimed. This is the standard
+two-sample rank/Mann–Whitney extreme-statistic result for `n1=n2=3` (the `U=0` and
+`U=9` tail probabilities of the exact null distribution, each `1/C(6,3)`), independently
+reproducible by brute-force enumeration of all 20 assignments (verified by hand: only
+`{1,2,3}` and `{4,5,6}` as arm-A's rank-set give full separation among all
+`C(6,3)=20` 3-subsets of `{1..6}`). **The math is correct**, and the framing around it
+is honest: this is a coarse, low-power screen (correctly labeled as such), not a
+powered hypothesis test, and INCONCLUSIVE is registered as the *expected*, non-failure
+outcome for small true effects — which is the right characterization of a test whose
+own best-case Type-II error rate at small effect sizes is necessarily high at n=3.
+
+### Part D — Quote verification (this round's new/re-quoted strings)
+
+Every quoted string below was grepped against the live file this session (not taken
+from either Rev 3's or this round's own prose at face value, per the standing
+citation-integrity suspicion this document's own history established):
+
+| Quote (as it appears in Rev 3) | Cited source | Result |
+|---|---|---|
+| "≈129 GPU-h for the wave (cumulative ≈163 of the §7 300 GPU-h ceiling)" | `SCALE_TRANSFER_DESIGN.md` §5.6 item 1 | **VERIFIED**, byte-for-byte, `SCALE_TRANSFER_DESIGN.md:751–752` |
+| "cumulative ≈343 on the 190.22 GPU-h committed base" | `SCALE_TRANSFER_DESIGN.md` §5.6 (Rev 2.2, post-fix) | **VERIFIED**, `SCALE_TRANSFER_DESIGN.md:795` |
+| "cumulative ≈266/300 — passes every gate" | same | **VERIFIED**, `SCALE_TRANSFER_DESIGN.md:800` |
+| "registered BEFORE any rung-3 training data exists" | same, amendment header | **VERIFIED**, `SCALE_TRANSFER_DESIGN.md:790` |
+| "caught by TRACKB_REDESIGN_ATTACK_R2.md" (the correction note's own self-citation) | `SCALE_TRANSFER_DESIGN.md:797` | **VERIFIED** — present in the live source, confirming the upstream fix genuinely names this attack chain, not paraphrased |
+| `gate_verdict: "no_launch_redesign"` | `wave_neg1_gate.json` | **VERIFIED**, `deltanet_rd/results/lm_rd_geo3/wave_neg1_gate.json:53` (`"gate_verdict": "no_launch_redesign"`) |
+| "no_launch_redesign must be refused by the CALLER before this function is ever reached" | `run_lm_rd_geo3_sweep.py::selection_mode_for_verdict` | **VERIFIED**, `run_lm_rd_geo3_sweep.py:167–168` (frozen from round 2, re-checked this round, unchanged) |
+| `_refuse_if_no_launch` mechanics (`:172–183`, `sys.exit(3)`) called at `:600` after `load_gate_verdict` at `:598` | `run_lm_rd_geo3_sweep.py` | **VERIFIED** — read the function and `main()` directly this session; line numbers and control flow match exactly |
+| NaN mechanism description ("a FULLY-VALID episode whose selected keys contain >=~6 exactly-duplicated rows... flagged for Wave 1 monitoring, not assumed away") | `lm_pretrain_rd.py:349–353` | **VERIFIED**, read directly this session; the "~6" threshold and "flagged for Wave 1 monitoring" phrase are both present verbatim (line-wrapped across 353–354) |
+| `valid_sel = topk_val > (neg_inf / 2)` at `:301` | `lm_pretrain_rd.py` | **VERIFIED** present at that exact line (Rev 3's backtick rendering drops the parens/whitespace — a formatting simplification, not a misquote, consistent with round 2's own identical rendering of this line) |
+| `conv_size=4` / `k_conv1d` short-conv mechanism underlying NEW-7's "identical token 4-grams ⇒ identical key rows" claim | `lm_pretrain_rd.py` | **VERIFIED** — `k_conv1d = ShortConvolution(..., kernel_size=conv_size, ...)` with `conv_size: int = 4` confirmed at the constructor; the 4-gram/kernel-4 correspondence is accurate |
+| KEY_ANCHORING precedent characterization ("one-sample-vs-fixed-band," `engaged_K = mean_ref + 2·s_ref` at n=3, ~71%/~50% RSE) | `KEY_ANCHORING_DESIGN.md` §3.6 | **VERIFIED**, `KEY_ANCHORING_DESIGN.md:965–977` — confirms this is indeed a one-arm-vs-band derivation, supporting NEW-3's original critique that Rev 2 borrowed a headcount without its power justification |
+| `190.22` GPU-h committed-base figure, independently traced to its origin (not re-derived by Rev 3 or this attack chain) | `git show c68a3a3` (`run_lm_rd_trackc_sweep.py`) | **VERIFIED** — a real, dated, pre-existing commit (`163.22→190.22`, `+27.00` for the actual `--wave 1ext` launch), landed before the source-fix commit `13eb71c` |
+
+**No fabricated or misattributed quote found in Rev 3's own additions.** Every string
+presented in quotation marks (or backtick code-literal form) is grep-verifiable in its
+cited source, continuing the clean record round 2 established for Rev 2 — the citation
+discipline that Rev 1's fabricated quote (M4) originally violated has held for two
+consecutive revisions now.
+
+### Part E — §13 adjudications
+
+- **Cell 3 promoted to never-cut at one corpus.** Checked §10 and §11 item 3 together:
+  §10's never-cut list states "Cell 3, at minimum one corpus × 3 seeds," and cut-order
+  item 7 separately allows dropping Cell 3's **second** corpus under budget pressure
+  while explicitly noting "the cell itself is never-cut, above." These two statements
+  are consistent, not contradictory — the never-cut guarantee covers the minimum viable
+  Cell 3 (one corpus), and only the second-corpus enhancement is cut-eligible. Matches
+  the round's own adjudication text exactly ("promoting Cell 3 to never-cut alongside
+  Cell 2R, not leaving it as an open question").
+- **Per-write magnitude inseparability via mass-conservation.** Checked the identity
+  directly: total per-chunk write mass `M = count × mean` is an algebraic tautology: if
+  `count` (= `K_sel`, pinned) and `M` (= `B_pinned`, pinned) are both held fixed, then
+  `mean = M / count` is *determined*, not free — there is no way to vary per-write
+  magnitude independently of count at fixed total mass and fixed count. The identity
+  holds exactly; this is correctly not treated as a control gap, and Cell 2R (which
+  varies *which* positions are selected, not `count` or `M`) is the right orthogonal
+  cell for the question that remains open (targeted vs. random selection at matched
+  mass/count).
+
+---
+
+**Round 3 (bounded) verdict: CLEARED-FOR-BUILD.**
+
+- NEW-1..8, MINOR-1, MINOR-2 — all **CLOSED** by real mechanism (Part A); none reopened.
+- No new FATAL/MAJOR in Rev 3's own additions. Two sub-MAJOR notes for the build phase,
+  neither blocking: (1) Cell 2R's RNG cadence should be stated explicitly to also cover
+  eval-time forward-hook probe passes, not just the training loop; (2) the
+  "candidate 3"/"Cell 3" naming collision in §2 principle 4 is correct as written but
+  worth a disambiguating footnote if the document is touched again.
+- α ≈ 0.10 math independently re-derived and confirmed exact (`2/C(6,3) = 0.10`, Part C).
+- Every quoted string checked this round (budget quotes, code citations, the
+  KEY_ANCHORING precedent characterization, the 190.22 GPU-h base's own provenance)
+  is grep-verified against its live source — no fabrication, no misattribution
+  (Part D).
+- §13's two named adjudications both check out exactly as stated (Part E).
+
+No GPU run, no box access, no push performed in producing this section.
