@@ -173,9 +173,11 @@ BATCH_SIZE = 32
 # sec 5 is SILENT on rung-2/3 batch size (module docstring's "Batch sizing" paragraph). Minimal
 # registered choice: reuse BATCH_SIZE=32 for every rung unless a rung's own memory-headroom check
 # (derived from its two-point calibration cells, run at this same batch) fails -- then lower ONLY
-# that rung's entry here and document why. No entry has been lowered as of this build; see
-# calibration.json's rung-2 memory-headroom readout for the empirical basis.
-BATCH_SIZE_BY_RUNG = {1: BATCH_SIZE, 2: BATCH_SIZE, 3: BATCH_SIZE}
+# that rung's entry here and document why. Rung 3 lowered to 16 (2026-07-04): batch 32 OOMs in
+# backward at calibration (calib_rung3_ptA log: 76.26 GiB in use + 3.07 GiB alloc failed on
+# 79.18 GiB H100 -- 1.31B params carry ~24 GiB weights+AdamW state before activations). Timing
+# constants must be re-measured at batch 16; is_done_cell keys on batch_size so no stale reuse.
+BATCH_SIZE_BY_RUNG = {1: BATCH_SIZE, 2: BATCH_SIZE, 3: 16}
 
 # sec 5.6: "the Wave-C-scale ... architecture retrained on the SAME augmented mixes ... at Wave C's
 # measured ~4.6 min/run" -- the control cell REUSES Wave C's own exact token budget (this codebase's
