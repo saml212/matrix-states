@@ -793,6 +793,167 @@ compositional-recovery cross-check.
    scale+data-mix claim, not a scale claim** — the write-up language is registered
    now, not negotiated later.
 
+### 5.9 Wave 1 (rung-1) results — harvest run 2026-07-04, GPU 0, ≈0.08 GPU-h probe cost
+
+**Scope of this pass.** Training for all 12 Wave 1 cells (6× rung-1, `d_model=768,
+n_layers=12, d_state=64`, ≈97.6M params, 67,547 steps ≈1.108B tokens; 6× control,
+`d_model=256, n_layers=2, d_state=64`, 14,048,896 params, 6,103 steps ≈100M
+tokens — identical architecture and step budget to Wave C, MAJOR-5's required
+same-mix control) had already completed and checkpointed on-box before this pass;
+this session ran **only §5.5 item 1** (the write-geometry attractor probe,
+`lm_attractor_probe_rd.py`) plus a reading of the val-loss/rank-stats already
+logged by training. **§5.5 items 2 (frontier-probe transplant) and 3
+(fix-effect-at-scale) were NOT run** — item 3 stays gated (Track B's Wave −1
+returned a hard no-launch, §11); item 2 is a separate, larger build explicitly out
+of this session's scope per the probe script's own docstring. Any claim below is
+scoped to the **geometry leg only** of the three-part instrument set — this is
+not yet a full persistence verdict in the sense §5.7 defines it (that needs the
+compositional-recovery cross-check too, once item 2 validates).
+
+**Smoke gate re-verified on-box before scoring anything** (`lm_attractor_probe_rd.py
+--smoke`, all 6 items PASS, including the orthonormal/collapsed-key hand-computed
+controls and the EOT-exclusion check) — real measurement then run on GPU 0 only
+(GPUs 1–6 free throughout, GPU 7 left untouched, running Stage-G H_e per its own
+active wave).
+
+**1. Attractor persistence (geometry leg, rung 1 vs. the matched 14M control).**
+Pooled across both training corpora, all layers, `chunk_size=64` (= `d_state`,
+single head ⇒ one 64-key episode per chunk, matching Track B's own
+cross-track convention):
+
+| Cell | n params | n episodes scored | raw gram-dev (mean ± std) | eff. rank (key pop., /64) | stable rank |
+|---|---|---|---|---|---|
+| Control (14M, dm256/L2) | 14,048,896 | 12,288 | **21.93 ± 5.90** | 35.07 | 4.15 |
+| Rung 1 (98M, dm768/L12) | 97,618,176 | 73,728 | **27.82 ± 12.87** | 32.67 | 3.55 |
+| Random-unit-vector anchor (K=64, d=64) | — | — | 7.94 | — | — |
+| Full collapse anchor (K=64, d=64) | — | — | 63.50 | — | — |
+
+Both cells sit well above the random anchor and well below collapse. Going from
+14M→98M, the raw deviation gets slightly **worse**, not better: control is
+≈25% of the random→collapse span (≈35% of the collapse magnitude); rung 1 is
+≈36% of that span (≈44% of the collapse magnitude). **Reading: the write-geometry
+attractor does not dissolve going from 14M to 98M on this (still small, 2-point)
+part of the ladder — if anything it is marginally more pronounced at 98M.** This
+is the "persists" direction §5.7 pre-registers as the headline this track is named
+for, but it is a **2-point** read (14M, 98M), not the full 3-rung curve —
+rungs 2/3 are unbuilt this session (`lm_rd_rung_configs.py`'s own
+`BUILD_SCOPE_RUNGS=(1,)`), so "monotonic across 3 rungs" (§5.7's literal
+criterion) is not yet assessable. Tier 2 (§2): a descriptive geometry-under-scale
+statement, not a causal one.
+
+**Context against Track D's production-model numbers (§6.8), same instrument
+family, same `chunk=64` cell:** our from-scratch DeltaNet-RD models (21.9–27.8)
+sit clearly **above** the random anchor but clearly **below** RWKV-7 1.5B
+(43.5–44.0), Falcon-Mamba-7B (49.9–50.2), and the Qwen2.5 no-fixed-state control
+(46.0–48.5) at the same `chunk=64` cell. Read together with Track D's finding that
+the negative control matches the fixed-state models there, the honest picture is:
+our own models show a real, non-random, scale-persistent (thus far) non-orthonormal
+write geometry that is **weaker than** the generic large-pretrained-LM anisotropy
+floor Track D found — consistent with (not proof of) the geometry continuing to
+grow toward that floor with further scale, but this document does not claim that
+trend past rung 1.
+
+**Probe-convention caveat (explicitly requested, stated plainly).** Three
+"Gram-deviation" numbers exist in this document family and are **not**
+directly comparable without translation:
+1. This track's own number (above): **raw only** (no centered variant — this
+   probe, unlike Track D's, does not implement per-episode centering), on
+   **free-running real-text chunks** (`K` = 64 = the chunk size, i.e. up to 64
+   real, naturally-occurring content tokens per episode).
+2. The exactness-mechanism study's **14M band (0.6–4.4, K=8–48, `d_state=64`)**
+   cited in Track D §6.8: also raw (same `model_rd.py` `gram_deviation` function,
+   no centering there either), but on the **synthetic K-cycle grammar's own
+   constructed recovery episodes**, where `K` is the deliberately-chosen number
+   of bound entity keys in one hand-built episode, not a text window size. This
+   is why that band reads "at/below random" while this track's real-text numbers
+   read well above random — **the two `K`s measure structurally different
+   populations of keys** (constructed binding set vs. natural text window), not
+   a contradiction to be reconciled by scale.
+3. Track D's production-model numbers (§6.8): report **both** raw and centered,
+   because Track D found a massive-activation-driven dominant channel (Sun et
+   al. 2024) that inflates raw Gram deviation in all three families it measured,
+   including its own negative control.
+   **This track's probe was not extended to support a centered variant, so
+   whether the same confound inflates rung 1/control's raw numbers is
+   UNTESTED, not ruled out.** One concrete, suggestive (not confirmatory) signal
+   in the same direction: `stable_rank` (3.55–4.15, dominated by the single
+   largest singular value) sits far below `effective_rank` (32.7–35.1, an
+   entropy measure less sensitive to one outlier direction) at both cells —
+   the kind of gap a dominant/shared channel produces. Porting Track D's
+   centering convention into `lm_attractor_probe_rd.py` is a documented
+   follow-on, not done this session.
+
+**2. Data-mix axis (MAJOR-5 confound isolation) — honest limitation, not a
+clean result.** The design's intent was a same-instrument comparison: the 14M
+control trained on the augmented mixes (this session) vs. the archived Wave C
+14M cells trained on the clean, single-source corpora. **That comparison is not
+possible with the primary instrument**: Wave C's checkpoints are no longer on
+the box (confirmed absent by direct search — checkpoints are not part of Wave
+C's archive, only its JSON logs are, per house archive convention), and
+`lm_attractor_probe_rd.py` requires a checkpoint to hook. The closest
+apples-to-apples substitute is the **whole-recurrent-state effective-rank**
+statistic (`sample_state_rank_stats`, logged automatically during training in
+both Wave C's and Wave 1's own JSONs — a *different* instrument from the
+per-chunk key-population statistic above: it measures the accumulated `d_state
+× d_state` state matrix's rank at various fractions of a document, not the raw
+per-chunk write keys) plus val loss, both fully controlled (identical
+architecture, step budget, and eval protocol; only the training-corpus mix
+differs):
+
+| Cell (14M, dm256/L2, 6,103 steps) | val loss (self-corpus) | whole-state eff. rank (frac=1.0, mean/layer/seed) |
+|---|---|---|
+| Wave C, clean openr1 | 2.067 | 38.25 |
+| Wave 1 control, openr1-mix | 2.352 (+0.285) | 37.88 (−0.37) |
+| Wave C, clean wikitext | 4.688 | 34.85 |
+| Wave 1 control, wikitext-mix | 4.969 (+0.281) | 36.08 (+1.23) |
+
+**Reading:** the whole-state rank proxy shows no consistent, seed-noise-clearing
+shift from mixing (±0.4–1.2, inside the ≈1–4-point per-seed spread already
+observed within a single corpus) — a weak, proxy-only signal that domain mixing
+alone is not a dominant driver of the *whole-state* rank readout. Val loss tells
+a cleaner, consistent story: mixing costs **+0.28 nats on both corpora** at
+matched architecture/steps — a real, moderate, matched-effect-size degradation
+from the broadened/diluted distribution, not something attributable to seed
+noise. **Neither of these is the registered primary instrument (per-chunk
+key-Gram deviation)** — that comparison remains an open gap, to be closed only
+by re-running Wave C's own architecture-and-corpus cells fresh (cheap, <1 GPU-h
+at Wave C's own measured throughput) if a same-instrument mix-vs-clean reading
+is ever required. Until then, per §5.7's own registered scoping, any rung-2/3
+headline stays a **joint scale+data-mix claim**.
+
+**3. Val losses + rank stats, rung 1 vs. control (matched mix corpora, the
+comparison the task itself asks for).** Both on the same augmented mixes,
+`d_state=64` in common; rung 1 gets ≈11× more tokens (1.108B vs. 100M) and ≈7×
+more params, by design (§5.3/5.4's scaling-ladder budget, not a compute-matched
+ablation):
+
+| Cell | val loss, self-corpus (mean/3 seeds) | val loss, cross-corpus | whole-state eff. rank, self, frac=1.0 |
+|---|---|---|---|
+| Control, openr1-mix | 2.352 | 7.029 (wikitext-mix) | 37.88 |
+| Control, wikitext-mix | 4.969 | 7.649 (openr1-mix) | 36.08 |
+| Rung 1, openr1-mix | **1.340** | 5.385 (wikitext-mix) | 36.08 |
+| Rung 1, wikitext-mix | **3.092** | 4.908 (openr1-mix) | 32.00 |
+
+Self-corpus val loss drops sharply with scale (as expected — 7× params + 11×
+tokens); whole-state effective rank does **not** grow with scale (36.1→32.0 and
+37.9→36.1 self-corpus, i.e. flat-to-slightly-down going 14M→98M) — the accumulated
+state is not simply "using more of its available dimensions" as depth/width grow,
+consistent with (not proof of) the same non-dissolving-attractor picture item 1
+reports from the chunk-level instrument.
+
+**Cost.** Probe wall time: rung 1 pooled 219.3s, control pooled 54.9s (≈0.076
+GPU-h total, GPU 0 only) — training itself (already banked) ran ≈26.9 GPU-h
+(rung 1, 6× ≈4.48h) + ≈0.46 GPU-h (control), in line with the Wave −1
+calibration's measured per-step timing constants (rung 1: 0.236 s/step; control:
+0.0437 s/step), not the pre-calibration §5.6 table's placeholder range (that
+range was explicitly registered as superseded by Wave −1's own measurement).
+
+**Archive:** `experiment-runs/2026-07-04_trackc_rung1/` (probe output JSONs,
+run log, exact script copy, this subsection's source numbers) + SSD mirror.
+Full per-checkpoint/per-layer detail in the archived `rung1_pooled.json` /
+`control_pooled.json` (not reproduced here). `EXPERIMENT_LOG.md`, "SCALE-TRANSFER
+Track C Wave 1 (rung-1) harvest" entry.
+
 ---
 
 ## 6. TRACK D — Measurement-first probing of a pretrained fixed-state model (conditional graft NOT authorized by this document)

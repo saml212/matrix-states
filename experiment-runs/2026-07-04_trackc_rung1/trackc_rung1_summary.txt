@@ -1,0 +1,41 @@
+====================================================================================================
+TRACK C WAVE 1 (RUNG-1) HARVEST SUMMARY — SCALE_TRANSFER_DESIGN.md sec 5.9
+geometry leg only (sec 5.5 item 1); items 2/3 NOT run this session.
+random anchor / collapse ceiling at K=64,d=64 (chunk_size=d_state=64, single head): 7.937 / 63.498
+====================================================================================================
+
+### control (14M, dm256/ds64/L2, 6,103 steps ~100M tokens, 2 corpora x 3 seeds)
+  n_params: 14,048,896   wall_s(probe pooled): 54.9
+  pooled (both corpora, all layers): RAW gram_dev = 21.928 +/- 5.903 | eff_rank = 35.071 | stable_rank = 4.154
+  n_episodes scored: 12,288 (0 excluded below MIN_VALID_FOR_GRAM)
+  frac of random->collapse span: 0.252 | frac of collapse magnitude: 0.345
+
+### rung 1 (98M, dm768/ds64/L12, 67,547 steps ~1.108B tokens, 2 corpora x 3 seeds)
+  n_params: 97,618,176   wall_s(probe pooled): 219.3
+  pooled (both corpora, all layers): RAW gram_dev = 27.817 +/- 12.868 | eff_rank = 32.672 | stable_rank = 3.554
+  n_episodes scored: 73,728 (0 excluded below MIN_VALID_FOR_GRAM)
+  frac of random->collapse span: 0.358 | frac of collapse magnitude: 0.438
+
+### verdict (Tier 2, sec 2 -- descriptive, not causal)
+Attractor does NOT dissolve 14M->98M on this 2-point read; if anything
+slightly MORE pronounced at 98M ("persists" direction, sec 5.7). Only a
+2-point slice of the 3-rung ladder (rungs 2/3 unbuilt this session) -- NOT
+yet the full monotonicity read sec 5.7 defines. No centered variant (this
+probe is raw-only, unlike lm_attractor_probe_trackd.py) -- whether Track
+D's massive-activation confound also inflates these raw numbers is
+UNTESTED. stable_rank (3.55-4.15) far below effective_rank (32.7-35.1) at
+both cells is a suggestive (not confirmatory) signal in that direction.
+
+### data-mix axis (MAJOR-5) -- open gap
+Wave C's checkpoints are no longer on the box -- no same-instrument
+(gram-deviation) mix-vs-clean reading exists. Proxy comparison (whole-state
+effective rank + val loss, both logged at training time without needing
+checkpoints):
+  val loss (self-corpus), Wave C clean vs Wave 1 mix: openr1 2.067 -> 2.352
+  (openr1-mix, +0.285); wikitext 4.688 -> 4.969 (wikitext-mix, +0.281).
+  whole-state eff_rank (frac=1.0): openr1 38.25 -> 37.88 (-0.37); wikitext
+  34.85 -> 36.08 (+1.23) -- inside per-seed spread, no consistent shift.
+
+Full detail: rung1_pooled.json / control_pooled.json (per-checkpoint,
+per-corpus, per-layer). Design doc: SCALE_TRANSFER_DESIGN.md sec 5.9.
+EXPERIMENT_LOG.md: "SCALE-TRANSFER Track C Wave 1 (rung-1) harvest" entry.

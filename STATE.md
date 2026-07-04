@@ -496,6 +496,17 @@ user review: author block, venue, figures, title, appendix).
   (graft) premise weakened; it stays unauthorized. Full table + caveats:
   `SCALE_TRANSFER_DESIGN.md` §6.8; archive
   `experiment-runs/2026-07-04_track_d/` + SSD.
+- **SCALE-TRANSFER Track C Wave 1 (rung-1) harvest (2026-07-04, ≈0.08 GPU-h
+  probe, GPU 0 only) — geometry leg only, persists 14M→98M on this 2-point
+  read** (control 14M raw gram-dev 21.93 vs. rung-1 98M 27.82, both well
+  above the K=64/d=64 random anchor 7.94 and below collapse 63.50; gets
+  slightly worse, not better, with scale); frontier-probe transplant and
+  fix-effect-at-scale (§5.5 items 2/3) NOT run. Data-mix axis (MAJOR-5)
+  stays an open gap — Wave C's checkpoints are no longer on the box, so no
+  same-instrument mix-vs-clean reading exists yet (proxy: val loss +0.28
+  nats both corpora from mixing; whole-state rank flat). Full tables/caveats:
+  `SCALE_TRANSFER_DESIGN.md` §5.9; archive
+  `experiment-runs/2026-07-04_trackc_rung1/` + SSD.
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;

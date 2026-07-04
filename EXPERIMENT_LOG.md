@@ -3579,3 +3579,92 @@ reported as a positive delta-rule-family finding.
 Correction: run the negative control FIRST at pilot scale, inspect
 per-channel magnitude distributions before trusting a Gram statistic, and
 report centered/robust variants alongside the registered raw convention.
+
+## SCALE-TRANSFER Track C Wave 1 (rung-1) harvest (2026-07-04): write-geometry attractor persists 14M→98M on the geometry leg only (2-point read); data-mix axis stays an open gap (Wave C checkpoints not retained)
+
+Harvests `SCALE_TRANSFER_DESIGN.md` §5.5 item 1 on the 12 already-trained Wave
+1 cells (6× rung-1, `dm768/L12/ds64`, ≈97.6M params, 67,547 steps ≈1.108B
+tokens; 6× the MAJOR-5-required control, `dm256/L2/ds64`, 14,048,896 params,
+6,103 steps ≈100M tokens — both 2 corpora `{openr1-mix, wikitext-mix}` × 3
+seeds). Training was already banked; this pass ran only the write-geometry
+attractor probe (`lm_attractor_probe_rd.py`, smoke-reverified on-box, all 6
+items PASS) plus a read of val loss / whole-state rank stats already logged
+by training. GPU 0 only (GPUs 1–6 free throughout; GPU 7 left untouched,
+running Stage-G H_e). Probe cost ≈0.076 GPU-h (rung 1 pooled 219.3s, control
+pooled 54.9s); training itself (already banked) ran ≈27.4 GPU-h total, in
+line with the Wave −1 calibration's measured per-step constants.
+
+**Attractor persistence (geometry leg, §5.5 item 1 — items 2/3 NOT run this
+session, both explicitly out of scope):** pooled raw per-chunk key-Gram
+deviation (`chunk_size=64=d_state`, single head): control (14M) 21.93 ± 5.90
+(n=12,288 episodes), rung 1 (98M) 27.82 ± 12.87 (n=73,728). Random anchor at
+K=64/d=64 is 7.94, full collapse 63.50 — both cells sit well above random and
+below collapse, and the deviation gets **slightly worse, not better**, going
+14M→98M (≈25% vs. ≈36% of the random→collapse span). **Reading: the attractor
+does not dissolve on this 2-point slice of the ladder** — the "persists"
+direction §5.7 pre-registers as this track's headline — but rungs 2/3 are
+unbuilt this session, so the literal 3-rung monotonicity criterion is not yet
+assessable, and this is Tier 2 (§2), geometry-only (no compositional-recovery
+cross-check yet). Context: our own numbers (21.9–27.8) sit clearly above
+random but clearly below Track D's production-model floor at the same
+`chunk=64` cell (RWKV-7 1.5B 43.5–44.0, Falcon-Mamba-7B 49.9–50.2, Qwen2.5
+control 46.0–48.5, §6.8) — consistent with, not proof of, continued growth
+toward that floor at larger rungs.
+
+**Probe-convention caveat (flagged explicitly per this session's task):**
+this track's probe is raw-only (no centered variant, unlike Track D's), and
+its `K` is a real-text chunk-window population — structurally different from
+both the exactness-mechanism study's 14M synthetic-K-cycle band (0.6–4.4,
+K=8–48, also raw, but K = number of deliberately-bound entity keys in a
+constructed episode, not a text window) and Track D's raw/centered
+production-model numbers. None of these three "Gram deviation" readings are
+directly comparable without this translation. A suggestive (unconfirmed)
+signal that the same massive-activation confound Track D found may also be
+present here: `stable_rank` (3.55–4.15) sits far below `effective_rank`
+(32.7–35.1) at both cells — the gap a dominant/shared channel produces —
+but this probe was not extended to test it directly (documented follow-on,
+not built this session).
+
+**Data-mix axis (MAJOR-5 confound isolation) — an honest gap, not a clean
+result.** Wave C's archived checkpoints (the clean-corpus control) are no
+longer on the box (confirmed absent), so the primary instrument (per-chunk
+Gram deviation) cannot be run on them — a same-instrument mix-vs-clean
+comparison is not possible post-hoc. Substitute (both fully controlled,
+matched architecture/steps/eval-protocol, only the corpus-mix axis differs):
+whole-state effective rank (a *different* instrument — the accumulated
+`d_state × d_state` state's rank, not the per-chunk key population) shows no
+consistent shift from mixing (37.88 vs. 38.25 openr1(-mix); 36.08 vs. 34.85
+wikitext(-mix) — inside the ≈1–4-point per-seed spread). Val loss tells a
+cleaner story: mixing costs a consistent **+0.28 nats on both corpora**
+(2.067→2.352 openr1; 4.688→4.969 wikitext) at matched architecture/steps — a
+real, moderate, matched-effect-size cost from the broadened distribution.
+Neither is the registered primary instrument; until a same-instrument reading
+exists, every rung-2/3 headline stays scoped as a joint scale+data-mix claim
+per §5.7's own registered language.
+
+**Rung 1 vs. control, matched mix corpora (the direct scale comparison):**
+self-corpus val loss drops sharply with scale (2.352→1.340 openr1-mix;
+4.969→3.092 wikitext-mix — expected, 7× params + 11× tokens), but whole-state
+effective rank does **not** grow with scale (37.88→36.08 openr1-mix;
+36.08→32.00 wikitext-mix, self-eval) — the accumulated state is not simply
+using more of its available dimensions as depth/width grow, consistent with
+the same non-dissolving picture the chunk-level instrument reports.
+
+Full tables, per-layer detail pointers, and all caveats:
+`SCALE_TRANSFER_DESIGN.md` §5.9. Archive:
+`experiment-runs/2026-07-04_trackc_rung1/` (probe JSONs, run log, exact
+script) + SSD mirror. `STATE.md` updated.
+
+[LEARN] measurement-design: when a post-hoc probe is built AFTER the
+checkpoints it will eventually need to compare against, confirm those
+checkpoints still exist on-box BEFORE promising a same-instrument comparison
+in a design doc's success criteria.
+Mistake: `SCALE_TRANSFER_DESIGN.md` §5.6/§5.7 registered a same-instrument
+(per-chunk Gram-deviation) mix-vs-clean control comparison against Wave C,
+but Wave C's checkpoints had already been cleaned up off the box by the time
+`lm_attractor_probe_rd.py` existed to run on them — discovered only during
+the harvest, not anticipated at design time.
+Correction: either archive checkpoints (not just JSON logs) for any cell a
+future probe might need, or register the comparison as "instrument TBD,
+contingent on checkpoint retention" rather than assuming the primary
+instrument will apply retroactively.
