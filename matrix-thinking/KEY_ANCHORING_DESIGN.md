@@ -1,5 +1,24 @@
 # KEY_ANCHORING_DESIGN — From "orthogonal but drifting" to "stable and orthogonal": a follow-on to F-geo-3
 
+> **Rev 5 — 2026-07-04, post-bounded-verify-round-4. Single-field
+> revision.** Round 4 (appended to
+> `matrix-thinking/KEY_ANCHORING_ATTACK_R3.md`) confirmed **all five R3
+> items CLOSED** — including an executable reproduction of the §2.2
+> gather/scatter NaN fix with a contrast run proving the superseded
+> `torch.where` form really was gradient-poisoned — with **one blocker**:
+> §3.6's `--unblind-override` demotion was committed only to the wave
+> summary, while this repo's own audit methodology (and its own
+> `lm_pretrain_rd.py::_assemble_result` `claim_tier` precedent, L1090,
+> smoke-asserted at L1420) reads individual result JSONs. Rev 5 is
+> exactly the prescribed edit and nothing else: the override now stamps
+> **every affected anchor-arm's own result JSON at result-assembly
+> time** (`claim_tier: "descriptive"`, `unblind_override: true`,
+> `unblind_override_at`; non-override runs always carry
+> `unblind_override: false` so absence is never ambiguous — §3.6), with
+> a new in-process CPU smoke 9 asserting both cases land in the JSON
+> (§5; no new GPU probe run, Wave −1 counts and budget unchanged), and
+> response-map row §8.4.
+
 > **Rev 4 — 2026-07-04, post-verify-round-3. Expected FINAL revision
 > round.** Round 3 (`matrix-thinking/KEY_ANCHORING_ATTACK_R3.md`)
 > returned **NEEDS-REV-4: all 9 R2 findings confirmed closed** (the
@@ -996,10 +1015,37 @@ requirements, each with its failure mode:**
    reference arms; hash mismatch (a reference JSON changed after
    pinning) → refusal flagged as a pin-integrity error, never silently
    re-derived. An explicit `--unblind-override` exists (mirroring
-   `--accept-gate-override`'s loudly-logged pattern) but its use
-   **automatically demotes every anchor-arm readout in that wave to
-   descriptive tier**, recorded in the wave summary — the override
-   changes the claim tier, it never silently preserves it.
+   `--accept-gate-override`'s loudly-logged *refusal/override* pattern)
+   but its use **automatically demotes every anchor-arm readout in
+   that wave to descriptive tier** — the override changes the claim
+   tier, it never silently preserves it. **Where the demotion is
+   recorded (REVISED at Rev 5 — round-4 judgment call, orchestrator
+   prescription): in EVERY affected anchor-arm's own individual result
+   JSON, at result-assembly time, IN ADDITION TO the wave summary —
+   never the summary alone.** When the launcher is invoked with
+   `--unblind-override`, it threads the override stamp down to each
+   spawned anchor run, and the runner's result assembly writes three
+   top-level fields into that run's result JSON as it is produced (not
+   patched post-hoc): `claim_tier: "descriptive"`,
+   `unblind_override: true`, and `unblind_override_at: <the override
+   timestamp>`. This adopts this repo's own working precedent —
+   `lm_pretrain_rd.py::_assemble_result` (L1090) writes `claim_tier`
+   into every individual run's result dict, asserted by its own smoke
+   (L1420), and the field is confirmed present in every archived
+   Track-C result JSON — rather than the `--accept-gate-override`
+   pattern, whose track record in this exact harness family is
+   empirically zero trace in individual run JSONs (round 4 checked: no
+   `gate_bypassed`/`claim_tier` key in any archived exactness result;
+   a launch-console/wave-summary artifact is exactly the record this
+   project's own file-by-file audit methodology would miss). Runs
+   launched WITHOUT the override always carry
+   `unblind_override: false` (written at assembly, so the field's
+   absence can never be read as evidence of a clean blind — presence
+   is mandatory either way); `claim_tier: "descriptive"` is written
+   only on the override path, because the demotion is the one tier
+   verdict knowable at launch time regardless of anything the run
+   later earns (non-override tiers remain readout-time verdicts, per
+   the admission stack). §5 smoke 9 asserts both cases.
 3. **The readout assertion.** The readout/analysis script asserts
    `BANDS_PINNED.json`'s timestamp **strictly precedes the earliest
    anchor-arm start time** recorded in the anchor result JSONs (each
@@ -1354,6 +1400,23 @@ an asserted count, matching the parent §14.6's own discipline):**
    anchor row); per-checkpoint logging present; the h=1 behavioral
    companion field (Rev 4) present with 107 entries at the final
    checkpoint of the probe run.
+9. **Override-demotion stamping (NEW at Rev 5 — round-4 prescription;
+   CPU, in-process/dry-context — NOT a GPU probe run, so the "8 GPU
+   smoke probes + 2 drift probes = 10 Wave −1 runs" count and the §5
+   budget row are unchanged, same class as Gate 2's own CPU checks).**
+   Two asserts, mirroring `lm_pretrain_rd.py`'s own in-process
+   `claim_tier` smoke (L1420): (i) invoke the launcher gate with
+   `--unblind-override` in a dry context (no `BANDS_PINNED.json`
+   present, sandbox dir) and assert the override path returns the
+   stamp payload (timestamp included) that `build_cmd` threads into
+   the spawned run's flags; (ii) invoke the runner's result assembly
+   with and without the stamp, write each assembled result to a temp
+   JSON, re-load, and assert the fields land: override case →
+   `claim_tier == "descriptive"`, `unblind_override == true`,
+   `unblind_override_at` present; non-override case →
+   `unblind_override == false` present (never absent). A missing
+   field in either case is a smoke FAILURE — the audit trail is
+   load-bearing, not decorative (§3.6).
 
 ---
 
@@ -1562,15 +1625,34 @@ CLEARED-FOR-BUILD.
 | R3-4 | MINOR — `torch.where` evaluates BOTH branches: a non-finite value in the discarded blend branch for a held-out row (adversarial near-zero-vector regime) could poison gradients via 0×NaN even though the forward select is bit-clean; smoke 4 lacked smoke 2's adversarial qualifier | Orchestrator decision 4: blend construction moved to **masked gather/scatter** — arithmetic touches trained rows ONLY, held-out rows are a bit-exact `clone` with no graph edge in either direction (§3.3's strict-equality smoke stays valid); **registered NaN-injection unit test** folded into smoke 4: NaNs planted in every held-out anchor row, forward+backward on smoke 2's adversarial input, assert all gradients finite (`torch.isfinite` broadly, not only exact-zero), held-out gradient exactly zero, held-out outputs `torch.equal` to pure-geo3 | §2.2 (code block), §3.3, §5 (smoke 4) |
 | R3-5 | MINOR — §3.7's metric measures input-side alignment, not behavioral per-entity engagement; `M3_held_out` stays pooled, so "input pulled to anchor but NS mixing doesn't stabilize the written key" stays invisible; the correct-object choice (Judgment Call (b)) is affirmed but the scope limit was undisclosed | Orchestrator decision 5: metric **renamed anchor-input-alignment** (kept as the registered `engaged_frac` driver — R3 affirmed it is the correct object for R2's ask); **non-load-bearing behavioral companion added**: per-entity h=1 recovery restricted to eval episodes containing that entity (bookkeeping on existing eval scores, no new forward passes), reported alongside for all 107 entities, explicitly diagnostic-only; scope-limit disclosure added mirroring §3.3's precedent (input-side proxy; per-entity h=4 too sparse at this eval budget; a visible a_e-vs-h1 divergence reports as an open question, never adjudicated by a hidden rule) | §3.7, §3.5 (A/A″/C wording), §5 (smoke 8), §7 item 7 |
 
+### 8.4 Rev 5 — bounded-verify-round-4 response (single field)
+
+Round 4 (appended to `KEY_ANCHORING_ATTACK_R3.md`, 2026-07-04, on
+commit `7349f97`) confirmed all five R3 items CLOSED — R3-4 via an
+executable reproduction of the gather/scatter NaN test **plus a
+contrast run proving the superseded `torch.where` form produced
+non-finite gradients** (the fix is the mechanism, not a rename); R3-1
+verified against the harness's real `log_every=200` default with a
+no-regression check on the pre-existing self-tests; R3-2's mechanical
+gate judged "stronger than the literal ask"; the §5 budget re-derived
+exactly. **One blocker (NEEDS-REV-5), prescriptive fix, implemented as
+exactly one field and nothing else:**
+
+| # | Finding (condensed) | Change made | Where |
+|---|---|---|---|
+| R4-1 | BLOCKER — the `--unblind-override` demotion was recorded only in "the wave summary"; this repo's own audit methodology reads individual result JSONs file-by-file, its own `lm_pretrain_rd.py::_assemble_result` precedent (L1090, smoke-asserted L1420, field confirmed in every archived Track-C JSON) writes `claim_tier` into every run's own result, and the `--accept-gate-override` pattern §3.6 cited instead has an empirically-confirmed track record of leaving zero trace in individual run JSONs — an overridden run's numbers could later be cited at evidentiary tier by anyone reading the JSON in isolation | Per the orchestrator's prescription: **(1)** §3.6's launcher-gate item now registers that `--unblind-override` threads a stamp to every spawned anchor run, whose result assembly writes `claim_tier: "descriptive"` + `unblind_override: true` + `unblind_override_at: <timestamp>` into that run's own result JSON at assembly time, never post-hoc, in addition to the wave summary; non-override runs always write `unblind_override: false` so field absence is never ambiguous (`claim_tier` itself is written only on the override path — non-override tiers remain readout-time verdicts per the admission stack); **(2)** new §5 smoke 9 (CPU, in-process/dry-context, mirroring `lm_pretrain_rd.py`'s own L1420 claim-tier smoke — not a GPU probe, so the 10-run Wave −1 count and budget row are untouched): dry-context override launch returns the stamp payload, and result assembly with/without the stamp lands the correct fields in a written-and-reloaded JSON, missing field = smoke FAILURE; **(3)** this map row. Everything else frozen | §3.6 (launcher-gate item), §5 (smoke 9), header |
+
 ---
 
 ## Reproducibility pointers
 
-- This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 4**,
-  2026-07-04 — Rev 1–3 on 2026-07-03; round maps are §8.1/§8.2/§8.3).
+- This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 5**,
+  2026-07-04 — Rev 1–3 on 2026-07-03, Rev 4 same day; round maps are
+  §8.1/§8.2/§8.3/§8.4).
 - Attack/verify rounds: `matrix-thinking/KEY_ANCHORING_ATTACK_R1.md`,
   `matrix-thinking/KEY_ANCHORING_ATTACK_R2.md`,
-  `matrix-thinking/KEY_ANCHORING_ATTACK_R3.md`.
+  `matrix-thinking/KEY_ANCHORING_ATTACK_R3.md` (rounds 3 AND 4 — the
+  bounded round-4 verify pass is appended to the R3 file).
 - Builds on (read, not modified): `matrix-thinking/DELTANET_RD_EXACTNESS_
   DESIGN.md` §14–16 (§16.7 carries the coordinator's dated shared-c
   correction, made from the GPU re-measurement archived at
@@ -1599,9 +1681,9 @@ CLEARED-FOR-BUILD.
   geo3 step-4000 trajectory extraction (§3.4), corrected band
   arithmetic (§3.1) — every number quoted with its construction,
   reproducible from repo files + `geo3_simulator.py`'s own functions.
-- Next: **bounded final verify pass on the five §8.3 items only**
-  (per the orchestrator's Rev 4 instruction; if clean →
-  CLEARED-FOR-BUILD) → build: the §2.2 `model_rd.py` diff
+- Next: **coordinator verification of the §8.4 single-field edit
+  against the round-4 prescription** (if clean → CLEARED-FOR-BUILD) →
+  build: the §2.2 `model_rd.py` diff
   (masked-gather/scatter blend, pre-NS side channel,
   `anchor_trained_mask`, λ logging incl. the registered cadence
   constants + startup assertion and the last-5-point summary fields),
@@ -1615,8 +1697,10 @@ CLEARED-FOR-BUILD.
   to `run_deltanet_rd_exactness_sweep.py` (reference arms FIRST; the
   §3.6 mechanical blinding chain — `BANDS_PINNED.json` writer,
   launcher refusal gate with hash validation, readout timestamp
-  assertion), the amended Gate 2 + pinned regression case + the
-  NaN-injection unit test as committed CPU tests → independent code
+  assertion, and the Rev 5 override-demotion stamping through
+  `build_cmd` into result assembly), the amended Gate 2 + pinned
+  regression case + the NaN-injection unit test + smoke 9's
+  stamping test as committed CPU tests → independent code
   audit → Gate 2 (CPU) → Wave −1 (smokes 1–8 + probes; Gate 1
   launch-read) → reference arms (§3.6, bands pinned mechanically) →
   Wave 1 (candidates (d) and (c), early-stop armed, per-entity logging
