@@ -792,7 +792,9 @@ training data exists):** rung-3 runs at **1.5B tokens/run, token-matched to
 rung-2**, superseding the table's pre-calibration "~3B tokens/run" scope. Basis:
 measured rung-3 pricing at batch 16 (per_step_s=0.7135, per_ckpt_s=35.94, banked
 2026-07-04 after the batch-32 OOM) prices 3B/run at ≈152.5 GPU-h — over the §7
-300 GPU-h ceiling (cumulative ≈316) — and 3B also exceeds both extended-mix
+300 GPU-h ceiling (cumulative ≈343 on the 190.22 GPU-h committed base; an
+earlier ≈316 figure here was computed on the stale pre-wave-1ext base and is
+superseded — caught by TRACKB_REDESIGN_ATTACK_R2.md) — and 3B also exceeds both extended-mix
 5-epoch ceilings (1.72B/2.09B), so the epoch-cap gate refuses it regardless.
 At 1.5B/run: 183,105 steps at batch 16 × seq 512, ≈38.1 h/run, ≈76.2 GPU-h for
 the 2-run wave, cumulative ≈266/300 — passes every gate. Scientific upside of
