@@ -225,10 +225,18 @@ rather than re-derived:
    fields (non-selected mass at K_sel=32 = 32 × 0.3625 ≈ 11.60; total =
    11.60 / 0.4308 ≈ **26.9** of a 64-position chunk maximum), implies a mean selected
    β ≈ 0.84 at K_sel=32 — feasible under the ≤1.0 clamp on average, with tail-chunk
-   clamping expected and logged. Applies to candidates 1 and 3, candidate 4's
+   clamping expected and logged. Applies to candidates 1 and 3,^ candidate 4's
    hard-snap phase, and the §5.1 comparator/control cells; candidate 2's
    sum-to-≤1 sparsemax output is rescaled by the same rule but **structurally cannot
    always reach `B_pinned` under the clamp at small support**.
+
+   ^*Footnote (build-phase disambiguation): "candidate 3" throughout this principle is
+   §3.3's periodic (hand-specified, non-learned) write-schedule mechanism — a completely
+   different object from "**Cell 3**" (§5.1's geo3-only, no-hard-selectivity reference arm
+   in the 2×2 factorial). The shared numeral is coincidental (candidates are numbered 1–4
+   per §3; cells are lettered/numbered 1–4/2R/4R per §5.1's factorial table) and carries no
+   relationship between the two — every "candidate 3"/"Cell 3" pair below (here and at
+   §3.3, §4, §5.1, §7, §10, §11) should be read against this distinction.*
 
    **The PARTIAL trigger is SYMMETRIC — one numeric rule, every masking cell
    (REVISED, Rev 3 — NEW-1, orchestrator-pinned; Rev 2 gave candidate 2 a decision
