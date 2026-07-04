@@ -1,5 +1,36 @@
 # KEY_ANCHORING_DESIGN — From "orthogonal but drifting" to "stable and orthogonal": a follow-on to F-geo-3
 
+> **Rev 4 — 2026-07-04, post-verify-round-3. Expected FINAL revision
+> round.** Round 3 (`matrix-thinking/KEY_ANCHORING_ATTACK_R3.md`)
+> returned **NEEDS-REV-4: all 9 R2 findings confirmed closed** (the
+> Gate-2 regression quadruple, the early-stop archive table, and the
+> shared-c root cause each independently reproduced to 4 decimal places
+> or to the literal source line; the hypothesis and candidate ranking
+> unthreatened for the fourth straight round) — but **3 MAJOR + 2 MINOR
+> gaps inside Rev 3's own new machinery**. All five addressed under
+> binding orchestrator decisions; map in **§8.3**; everything else is
+> FROZEN per instruction. The changes: **the λ oscillation window is
+> pinned in LOG-POINT space** (last 5 logged points = 1,000 steps at
+> the registered 200-step cadence, harness-asserted at startup so a
+> cadence change fires an assertion instead of silently resizing the
+> window; §3.2); **the reference-arm blinding becomes a mechanical
+> harness gate, not a norm** — `BANDS_PINNED.json` written only after
+> all reference arms complete, anchor cells REFUSE to launch without a
+> validating file, and the readout script asserts the pin timestamp
+> precedes every anchor-arm start time (three registered build
+> requirements with failure modes; §3.6); **reference seeds n=2→3 per
+> K** (6 reference arms, +1.6–1.7 GPU-h; mandatory baseline ~8.7–9.4
+> GPU-h, still ≤10 nominal; band formula and UNRESOLVABLE guard
+> recomputed at n=3; §3.6/§5); **the blend construction moves from
+> `torch.where` to masked gather/scatter** — arithmetic touches
+> trained-entity rows ONLY, so no 0×NaN gradient-poisoning path exists
+> in either direction, with a registered NaN-injection unit test
+> (§2.2/§5 smoke 4); and **§3.7's metric is renamed
+> anchor-INPUT-alignment** (what it is), keeping it as the registered
+> `engaged_frac` driver while adding a non-load-bearing per-entity h=1
+> behavioral diagnostic so the headline never silently rests on an
+> input-side proxy (§3.7).
+
 > **Rev 3 — 2026-07-03, post-attack-round-2.** The round-2 adversarial
 > review (`matrix-thinking/KEY_ANCHORING_ATTACK_R2.md`) returned
 > **NEEDS-REV-3: all three R1 FATALs confirmed CLOSED** (the verifier
@@ -140,6 +171,10 @@ now-quantified 2×2 this implies.
   (R1 FATALs verified closed by independent from-scratch reproduction;
   5 new MAJOR / 3 MINOR, several with constructed counterexamples;
   response map §8.2).
+- `matrix-thinking/KEY_ANCHORING_ATTACK_R3.md` — verify round 3 on Rev 3
+  (all R2 findings confirmed closed, several to 4-decimal reproduction;
+  3 MAJOR / 2 MINOR, all inside Rev 3's own new machinery; response map
+  §8.3).
 - `matrix-thinking/deltanet_rd/model_rd.py` — read in full; exact insertion
   sites cited by line number throughout §2.
 - `matrix-thinking/deltanet_rd/embed_arms.py` — `_qr_orthonormal_rows`'s
@@ -285,22 +320,36 @@ orthogonality from geo3 — matching the verified 2×2 (§2.0), with no
 appeal to an impossible globally-orthonormal table.
 
 ```
-blended      = normalize( (1 - λ) · k_eff_raw + λ · A[key_ids] )        # computed for all rows
-k_blend_raw  = torch.where(trained_mask[key_ids].unsqueeze(-1),          # held-out rows: the ORIGINAL
-                            blended, k_eff_raw)                           # tensor, NO arithmetic applied
-k_eff_items  = geo3_orthogonalize_logged(k_blend_raw, n_iter=..., resid_tol=...)   # UNCHANGED call
+t_idx              = anchor_trained_mask[key_ids].nonzero(as_tuple=True)   # trained positions ONLY
+sub_blend          = normalize( (1 - λ) · k_eff_raw[t_idx] + λ · A[key_ids[t_idx]] )
+k_blend_raw        = k_eff_raw.clone()          # held-out rows: original values — no arithmetic,
+k_blend_raw[t_idx] = sub_blend                  #   and NO graph edge into any held-out anchor row
+k_eff_items        = geo3_orthogonalize_logged(k_blend_raw, n_iter=..., resid_tol=...)   # UNCHANGED call
 ```
 
-The `torch.where` select is the M1 held-out bypass (§3.3) — **REVISED at
-Rev 3 (R2 target 6)**: Rev 2's multiply-by-zero formulation
+The masked gather/scatter is the M1 held-out bypass (§3.3) — **REVISED
+at Rev 3 (R2 target 6), REVISED AGAIN at Rev 4 (R3 finding 4,
+orchestrator decision 4)**: Rev 2's multiply-by-zero formulation
 (`λ_eff = λ·mask`, then re-normalize) claimed the held-out path was
 "exactly the same tensor," but R2 measured that re-normalizing an
 already-unit-norm fp32 vector is NOT a universal no-op (337/1000 rows
-differ by up to 5.96e-8 — 1 ULP — because ‖x‖ is rarely exactly 1.0
-after earlier rounding). The select path routes held-out rows through
-**zero arithmetic** — the original `k_eff_raw` values pass through
-untouched — so bit-identity is genuinely exact, and §3.3's smoke can
-legitimately use strict `torch.equal`. `λ` is registered as a
+differ by up to 5.96e-8 — 1 ULP). Rev 3's `torch.where` select fixed the
+**forward** path (zero arithmetic on the chosen value) but left the
+standard backward footgun R3 named: `torch.where` evaluates BOTH
+branches, so a non-finite value arising anywhere in the *discarded*
+blend branch for a held-out row (e.g. a pathological near-zero vector
+through `normalize`, in the same adversarial regime the eigh fallback
+exists for) can poison gradients through the 0×NaN pattern even though
+the forward select is clean. The Rev 4 gather/scatter form computes the
+blend **only on trained-entity rows** — no op in the graph ever touches
+a held-out anchor row in either direction (forward OR backward), the
+held-out rows of `k_blend_raw` are a bit-exact `clone` of `k_eff_raw`
+(so §3.3's strict `torch.equal` smoke remains valid), and the anchor
+table's gradient is structurally zero at held-out rows rather than
+zero-by-cancellation. **Registered unit test (wired into §5 smoke 4):
+inject NaN into every held-out anchor row, run forward+backward on a
+mixed-split batch, assert all gradients finite and held-out outputs
+bit-equal to pure-geo3.** `λ` is registered as a
 **single learned scalar**
 (`sigmoid(raw_param)`, init 0.5), with a **fixed grid** `λ∈{0.3,0.6,0.9}`
 (no further tuning) as the pre-registered fallback diagnostic, run only
@@ -389,12 +438,20 @@ and crashes at construction time** on the actual train pool
   already reads whatever `bind()` produced, regardless of how it got
   there.
 - λ-trajectory logging (F3; oscillation stats added at Rev 3 per R2
-  MAJOR 5): `sigmoid(raw_param)` recorded into the result JSON's
-  trajectory records at every existing `log_every` step — the full
+  MAJOR 5; window pinned in LOG-POINT space at Rev 4 per R3 finding 1):
+  `sigmoid(raw_param)` recorded into the result JSON's trajectory
+  records at every logged step — the harness's confirmed cadence is
+  **200 steps** (verified by R3 against a real archived trajectory:
+  steps 1, 200, 400, …, 20000), registered as the constant
+  `LAMBDA_LOG_CADENCE_STEPS = 200` alongside
+  `LAMBDA_WINDOW_LOG_POINTS = 5`, **asserted at harness startup**
+  (`assert log_every == LAMBDA_LOG_CADENCE_STEPS`) so a cadence change
+  fires loudly instead of silently resizing the window. The full
   trajectory is a required field per run, and the final-window summary
-  (final value, trailing-1,000-step mean, trailing-1,000-step max−min
-  range) is written as its own result field so §3.2's oscillation
-  exclusion is machine-checkable, not eyeballed.
+  (final value; mean and max−min range over the **last 5 logged
+  points** = 1,000 steps at the registered cadence) is written as its
+  own result field so §3.2's oscillation exclusion is
+  machine-checkable, not eyeballed.
 
 **Param/FLOP cost.** `vocab_size_total × d_state ≈ 50,259 × 64 ≈ 3.22M` new
 trainable params (~13MB fp32, mirroring the `strong_pin_table` comment's
@@ -631,19 +688,37 @@ the final 1,000 logged steps, per seed. Bands, pinned before any data:
 | **< 0.05** | **anchoring not recruited** | negative — triggers the Outcome-B value-geometry follow-on consideration (§6) |
 | (0.05, 0.2) or (0.8, 0.95) | **ambiguous** | no headline either way; the fixed-grid λ∈{0.3,0.6,0.9} diagnostic (§2.2) becomes the registered follow-up |
 
-**Oscillation exclusion (NEW, Rev 3 — R2 MAJOR 5, orchestrator
-decision 1; the same medicine candidate (b)'s EMA already got at m4).**
+**Oscillation exclusion (Rev 3 — R2 MAJOR 5; window PINNED IN LOG-POINT
+SPACE at Rev 4 — R3 finding 1, orchestrator decision 1; the same
+medicine candidate (b)'s EMA already got at m4).**
 A mean can land in-band while the trajectory oscillates through it —
-Rev 2 logged the trajectory but excluded nothing. Per-seed band
-assignment now requires **all three** of: (i) the **final λ value**
-(last logged step) in the band; (ii) the **trailing-1,000-step mean λ̄**
-in the same band; (iii) the **trailing-1,000-step range**
-(max − min over the final 1,000 logged steps) **< 0.1**. A seed failing
-any of the three lands in the **ambiguous** band regardless of its
-mean — a pre-registered exclusion, not a logging note. The three
-summary statistics are written as machine-readable result fields
-(§2.2's logging bullet), so the exclusion is checkable without
-trajectory eyeballing.
+Rev 2 logged the trajectory but excluded nothing. Rev 3's fix wrote the
+window as "the trailing 1,000 steps," which R3 showed is ambiguous
+against the harness's real logging cadence (200 steps, verified from an
+archived trajectory — 101 points over a 20,000-step run): read as
+steps it holds 5–6 samples; read as "1,000 *logged* samples" it would
+silently consume the entire trajectory including early unsettled
+training. Rev 4 pins it: **the window is the LAST 5 LOGGED POINTS**
+(= 1,000 steps at the registered `LAMBDA_LOG_CADENCE_STEPS = 200`;
+constants and the startup assertion in §2.2's logging bullet — a
+cadence change fires the assertion rather than silently changing the
+window). Per-seed band assignment requires **all three** of: (i) the
+**final λ value** (last logged point) in the band; (ii) the **mean λ̄
+over the last 5 logged points** in the same band; (iii) the **range
+(max − min) over the last 5 logged points < 0.1**. A seed failing any
+of the three lands in the **ambiguous** band regardless of its mean —
+a pre-registered exclusion, not a logging note. The three summary
+statistics are machine-readable result fields (§2.2), so the exclusion
+is checkable without trajectory eyeballing. **Statistical power of a
+5-point window, stated honestly (R3's own ask):** this is a
+gross-oscillation catch — it detects swings ≥ 0.1 that persist at the
+200-step cadence; sub-cadence oscillation is unobservable at any
+window size this cadence supports, and a 5-point range is a coarse
+statistic by construction. That is the intended scope: the exclusion
+exists to stop a *visibly* unstable λ from being banded by its mean,
+not to certify fine-grained stability — and any seed it excludes lands
+in the ambiguous band, whose registered follow-up (the fixed-grid λ
+diagnostic, §2.2) does not depend on trajectory statistics at all.
 
 Arm-level label: **≥2/3 seeds in a band** (each seed banded under the
 three-part rule above) assigns that band; seeds spread across
@@ -655,9 +730,11 @@ Outcome A′ (pin rediscovery), never as the interaction headline.
 ### 3.3 C17 held-out entities (NEW, Rev 2 — attack M1, orchestrator-pinned)
 
 **Eval-time behavior, specified in the design, not left to the build:**
-held-out entities **bypass the blend** — the `torch.where` select on the
-`anchor_trained_mask` buffer routes held-out rows through **zero
-arithmetic** (§2.2, Rev 3 form). C17 episodes are drawn entirely from
+held-out entities **bypass the blend** — the masked gather/scatter on
+the `anchor_trained_mask` buffer routes held-out rows through **zero
+arithmetic in either direction** (§2.2, Rev 4 form — the Rev 3
+`torch.where` form was superseded per R3 finding 4's backward-path
+footgun). C17 episodes are drawn entirely from
 the held-out pool, so under the bypass a C17 episode routes through
 `bind()` **identically to bare geo3** — C17 measures pure-geo3 behavior
 by construction. **Wave −1 smoke (restated honestly at Rev 3 — R2
@@ -668,11 +745,12 @@ claim rested on `normalize(1·k_eff_raw + 0·A) = k_eff_raw` being a
 floating-point no-op — R2 measured that it is not (**337/1000
 already-unit-norm fp32 rows differ by up to 5.96e-8 (1 ULP)** on
 re-normalization), which would have made a strict-equality smoke
-intermittently fail on correct code. The Rev 3 select/where path makes
-the bypass genuinely bit-exact — held-out rows are the original tensor
-values, never multiplied, added, or re-normalized — so strict equality
-is the *correct* assertion again, and a failure of this smoke now
-indicates a real routing bug, not ULP noise.
+intermittently fail on correct code. The gather/scatter path (Rev 4
+form, §2.2) makes the bypass genuinely bit-exact — held-out rows are a
+`clone` of the original tensor values, never multiplied, added, or
+re-normalized — so strict equality is the *correct* assertion again,
+and a failure of this smoke now indicates a real routing bug, not ULP
+noise.
 
 **Reporting requirement:** `C17_heldout_entities` (already computed at
 every checkpoint, zero marginal cost) is a **required, reported
@@ -783,12 +861,13 @@ early-checkpoint-to-final.
   h4 ≥0.5, 3/3 admissible under items 1–6, AND per-seed λ in the
   interior band [0.2, 0.8] under §3.2's three-part rule (final value +
   trailing mean + range < 0.1) for ≥2/3 seeds, AND per-entity
-  engagement ≥90% (§3.7). KEY_ANCHORING as an *interaction mechanism
-  with the learned key path in the loop* is confirmed.
+  anchor-input-alignment engagement ≥90% (§3.7). KEY_ANCHORING as an
+  *interaction mechanism with the learned key path in the loop* is
+  confirmed.
 - **Outcome A″ — partial anchoring (NEW, Rev 3 — R2 MAJOR 4).** Bars
-  and λ band clear but per-entity engagement lands in [50%, 90%) —
-  reported as a named partial outcome ("anchoring lifts composition for
-  the engaged subset"), **no headline** (§3.7).
+  and λ band clear but per-entity anchor-input-alignment engagement
+  lands in [50%, 90%) — reported as a named partial outcome ("anchoring
+  lifts composition for the engaged subset"), **no headline** (§3.7).
 - **Outcome A′ — pin rediscovery (existence tier).** Bars clear but λ
   lands in the >0.95 band: SGD re-derives the fixed-frame regime.
   Confirms reachability-by-gradient-descent of a near-pin solution over
@@ -819,8 +898,9 @@ early-checkpoint-to-final.
   re-measurement), and the Rev 1 "~0.19 corrected-simulator ceiling"
   is retired as evidence.
 - **Outcome C — mechanism not engaged.** Item 5 fails (pre-NS drift
-  <0.95) regardless of h4, **or (Rev 3, §3.7) per-entity engagement
-  <50% regardless of aggregate drift** — the intervention did not
+  <0.95) regardless of h4, **or (Rev 3, §3.7) per-entity
+  anchor-input-alignment engagement <50% regardless of aggregate
+  drift** — the intervention did not
   achieve its own mechanical goal; not an admissible test of the
   hypothesis either way. Routes to the fixed-grid λ diagnostic or a
   different candidate, not to reinterpreting the drift-bottleneck
@@ -829,7 +909,7 @@ early-checkpoint-to-final.
   pool-restricted result — the (multi-concession) ceiling, not a new
   data point this wave produces.
 
-### 3.6 Reference arms and the derived "engaged" bands (NEW, Rev 3 — R2 MAJOR 2, orchestrator decision 4)
+### 3.6 Reference arms and the derived "engaged" bands (Rev 3 — R2 MAJOR 2; n=3 + mechanical blinding gate at Rev 4 — R3 findings 2/3, orchestrator decisions 2/3)
 
 **The archive-extractability check, run first per the decision's own
 ordering (this session, CPU, free):** no per-checkpoint or per-seed
@@ -845,50 +925,95 @@ actual, fully-trained, bar-clearing geo3 model, and no seed-variance
 data exists.** The free branch is closed; the reference arms are
 therefore required.
 
-**Reference arms (added to the wave manifest):** **2 fresh bare-geo3
-seeds × K∈{16,32} = 4 runs** (seeds 1 and 2; the existing seed-0 probe
-value is quoted as a sanity point only, never pooled into the
-derivation — it is a different training stage), 20,000 steps, identical
-config to the archived geo3 cells **plus the per-checkpoint drift
-diagnostic active** (both the post-NS §16.1 statistic and, for
-instrument symmetry with the anchor arms, the pre-NS raw-key drift;
-`measure_drift` machinery unchanged). Priced at **~3.3 GPU-h** (the
-drift diagnostic's ~2,560 bind() calls per checkpoint × 10 checkpoints
-make these materially more expensive than plain runs; the orchestrator's
-allocation is adopted as the ceiling). These arms close two gaps at
-once: seed variance, and the probe-vs-true-final-checkpoint gap —
-drift is finally measured on real 20,000-step geo3 models.
+**Reference arms (added to the wave manifest; n=2→3 at Rev 4 — R3
+finding 3 / Judgment Call (c), orchestrator decision 3):** **3 fresh
+bare-geo3 seeds × K∈{16,32} = 6 runs** (seeds 1, 2, 3 — matching the
+×3-seed convention every mandatory cell in §5 already uses; the
+existing seed-0 probe value is quoted as a sanity point only, never
+pooled into the derivation — it is a different training stage), 20,000
+steps, identical config to the archived geo3 cells **plus the
+per-checkpoint drift diagnostic active** (both the post-NS §16.1
+statistic and, for instrument symmetry with the anchor arms, the
+pre-NS raw-key drift; `measure_drift` machinery unchanged). Priced at
+**~5.0 GPU-h** (~0.83 GPU-h/run at the instrumented rate the Rev 3
+allocation implied — the drift diagnostic's ~2,560 bind() calls per
+checkpoint × 10 checkpoints make these materially more expensive than
+plain runs; the n=3 upgrade adds ~1.6–1.7 over Rev 3's 4-run row).
+These arms close two gaps at once: seed variance, and the
+probe-vs-true-final-checkpoint gap — drift is finally measured on real
+20,000-step geo3 models.
 
-**Band derivation, pre-registered before any reference data exists:**
-per K, over the ≥2 reference-arm **final-checkpoint** post-NS drift
-values: `engaged_K = mean_ref + 2·s_ref` (sample std; at n=2,
-`s_ref = |x₁−x₂|/√2` — the small n is conceded, and the range is
-reported alongside). **Degenerate-case guard:** if
-`engaged_K ≥ ceiling_K − 0.005` (ceilings: 0.9423 at K=32, 0.9745 at
-K=16, §2.2), the post-NS engagement read is declared **UNRESOLVABLE at
-that K** — baseline seed noise swallows the achievable window — and
-§3.5's B1/B2 disambiguation reports "indeterminate" at that K
-(mirroring the parent §14.5's indeterminate-band discipline), rather
-than leaning on a threshold the noise floor cannot support.
+**Band derivation, pre-registered before any reference data exists
+(recomputed at n=3 per decision 3):** per K, over the **3**
+reference-arm **final-checkpoint** post-NS drift values:
+`engaged_K = mean_ref + 2·s_ref` (sample std, n=3, df=2). Why n=3 and
+not Rev 3's n=2 (R3's power analysis, accepted): at n=2 the sampling
+distribution of *s* itself has a relative standard error of ≈ 1/√2 ≈
+71% — `engaged_K` would be dominated by which two seeds happened to be
+drawn (the same "engaged vs. lucky seed" problem R2-M2 was raised to
+fix, reappearing inside the fix); at n=3 (df=2) the RSE drops to ≈ 50%,
+and this project's archived data already shows ~13–15% relative
+seed-to-seed spread on adjacent statistics, making the n=2 estimator's
+failure modes realistic rather than hypothetical. Per-seed values and
+the range are always reported alongside the derived threshold.
+**Degenerate-case guard (trigger recomputed at n=3):** if
+`engaged_K = mean_ref + 2·s_ref (n=3) ≥ ceiling_K − 0.005` (ceilings:
+0.9423 at K=32, 0.9745 at K=16, §2.2), the post-NS engagement read is
+declared **UNRESOLVABLE at that K** — baseline seed noise swallows the
+achievable window — and §3.5's B1/B2 disambiguation reports
+"indeterminate" at that K (mirroring the parent §14.5's
+indeterminate-band discipline). Any UNRESOLVABLE declaration must be
+accompanied by the **leave-one-out sensitivity report** (the three
+`engaged_K` values computed dropping each seed in turn), so a trigger
+driven by a single outlier seed is visible as such rather than read as
+a structural floor-vs-ceiling collision — at n=3 this is
+disclosure-only (no re-decision rule hangs off it; the guard's verdict
+stands as computed).
 
-**Ordering and blinding protocol, spelled out (the decision's own
-requirement):**
-1. The reference arms are **first in the manifest** and must COMPLETE
-   before any anchor-arm readout.
-2. The band derivation runs on their final checkpoints; its inputs
-   (per-seed drift values), formula, and outputs (`engaged_K` per K, or
-   UNRESOLVABLE) are recorded in the wave summary as a `BANDS_PINNED`
-   block **before any anchor-arm result JSON is opened or parsed**.
-3. Only then are anchor arms read out ("unblinded"). Anchor arms MAY
-   train concurrently on other GPUs — the blinding is at the analysis
-   step, not the scheduler — but no anchor number (h4, drift, λ,
-   engagement) is looked at, quoted, or summarized before the
-   `BANDS_PINNED` block exists.
-4. The provisional 0.92/0.96 numbers (§3.1) are **void** the moment the
-   derived bands exist; no anchor-arm outcome is ever read against
-   them.
+**Blinding — a MECHANICAL HARNESS GATE, not a stated norm (REWRITTEN at
+Rev 4 — R3 finding 2, orchestrator decision 2). Three registered build
+requirements, each with its failure mode:**
+1. **The writer.** The wave harness writes `BANDS_PINNED.json` —
+   containing the derived bands (or UNRESOLVABLE verdicts) per K, the
+   per-seed drift inputs, the formula version, **sha256 hashes of all 6
+   reference-arm result JSONs**, and a timestamp — **only after every
+   reference arm's result JSON validates as complete**
+   (`complete == true`, `steps_completed == 20000`, drift fields
+   present; the same `is_done`-style validation the sweep harness
+   already applies). *Failure mode:* any reference arm incomplete,
+   timed out, or missing drift fields → the file is not written → gate
+   2 blocks every anchor cell; there is no partial-bands state.
+2. **The launcher gate.** Anchor-arm cells **REFUSE to launch** unless
+   `BANDS_PINNED.json` exists AND validates — the launcher re-hashes
+   the referenced reference-arm JSONs and checks they match the
+   recorded hashes, and parses the bands (the same
+   loud-refusal-with-explicit-override pattern as
+   `gate_geo3_drift`/the wave-2 gate chain). This supersedes Rev 3's
+   "anchor arms may train concurrently" allowance: **reference arms
+   complete first, bands pin, anchor arms launch after — sequencing is
+   enforced by the launcher, not by analyst discipline.** *Failure
+   modes:* missing file → refusal with the instruction to run the
+   reference arms; hash mismatch (a reference JSON changed after
+   pinning) → refusal flagged as a pin-integrity error, never silently
+   re-derived. An explicit `--unblind-override` exists (mirroring
+   `--accept-gate-override`'s loudly-logged pattern) but its use
+   **automatically demotes every anchor-arm readout in that wave to
+   descriptive tier**, recorded in the wave summary — the override
+   changes the claim tier, it never silently preserves it.
+3. **The readout assertion.** The readout/analysis script asserts
+   `BANDS_PINNED.json`'s timestamp **strictly precedes the earliest
+   anchor-arm start time** recorded in the anchor result JSONs (each
+   run JSON already carries its own timing fields; the build adds an
+   explicit `started_at` if absent). *Failure mode:* violation → the
+   readout aborts, the wave summary marks the blind as broken, and
+   every affected anchor readout reports at descriptive tier only —
+   the assertion makes a broken blind a *recorded, tier-demoting
+   event*, not a judgment call.
 
-### 3.7 Per-entity engagement readout (NEW, Rev 3 — R2 MAJOR 4, orchestrator decision 5)
+The provisional 0.92/0.96 numbers (§3.1) are **void** the moment the
+derived bands exist; no anchor-arm outcome is ever read against them.
+
+### 3.7 Per-entity anchor-INPUT-alignment readout (Rev 3 — R2 MAJOR 4; renamed + behavioral companion added at Rev 4 — R3 finding 5, orchestrator decision 5)
 
 R2 target 4(b) established that nothing in the training-eval pipeline
 has per-entity visibility: the headline `rec@0.9` and drift statistics
@@ -899,7 +1024,10 @@ entities while the rest behave as bare geo3 — invisible to items 5 and
 engagement). §3.3 already set the precedent at the train/held-out
 boundary; this section extends it **within** the train pool.
 
-- **Required logging:** per-entity anchor alignment
+- **Required logging: per-entity anchor-input-alignment** (the Rev 4
+  name — R3 confirmed the pre-NS blend is the correct object for R2's
+  literal ask, and the rename makes the metric say what it is: an
+  **input-side** quantity):
   `a_e = mean over ≥8 independent episode resamples of
   cos(pre-NS blended key of entity e, A[e])`, computed for **all 107
   train entities** (the existing `measure_drift`/
@@ -912,6 +1040,8 @@ boundary; this section extends it **within** the train pool.
   move the raw key itself).
 - **Partial-anchoring readout, pre-registered:** `engaged_frac` =
   fraction of train entities with `a_e ≥ 0.9` at the final step.
+  `engaged_frac` (input-alignment-based) remains the **registered
+  driver** of the bands below.
 - **Bands (orchestrator-pinned):** **≥ 90%** engaged → headline-eligible
   (a requirement of Outcome A, §3.5); **[50%, 90%)** → **partial
   anchoring**, a named outcome (Outcome A″), reported in full, no
@@ -920,10 +1050,29 @@ boundary; this section extends it **within** the train pool.
   passes (a pooled drift number carried by a minority of
   strongly-anchored entities is exactly the aggregate-masking scenario
   this readout exists to catch).
-- The full per-entity vector (not just the fraction) is a required
-  result field, so the write-up can report *which* entities disengage
-  (e.g. frequency- or coherence-correlated patterns) rather than only
-  how many.
+- **Behavioral companion diagnostic (NEW, Rev 4 — non-load-bearing,
+  disclosed as diagnostic-only):** per-entity **h=1 recovery**,
+  computed over eval episodes *containing that entity* (restricting the
+  already-computed per-item h=1 cosine scores by entity id — a
+  bookkeeping change to the existing eval, no new forward passes),
+  reported alongside `a_e` for all 107 entities at the final
+  checkpoint. **Scope limit, stated per §3.3's own precedent (R3
+  finding 5):** `a_e` is an input-side proxy — it measures whether the
+  entity's key is pulled toward its anchor at the blend stage, not
+  whether NS's cross-row mixing translates that into a stabilized
+  *written* key with better per-entity recovery; `M3_held_out` remains
+  pooled with no per-entity h=4 breakdown even after this fix. The
+  behavioral companion narrows that gap at h=1 only (per-entity h=4
+  restricted samples would be too sparse to read at this eval budget)
+  and carries **no admission or claim-tier weight** — it exists so a
+  headline never silently rests on the input-side proxy alone: a large,
+  visible divergence between the `a_e` vector and the per-entity h=1
+  vector is reported as an open question in the write-up, not
+  adjudicated by any pre-registered rule.
+- The full per-entity vectors (both `a_e` and the h=1 companion, not
+  just the fraction) are required result fields, so the write-up can
+  report *which* entities disengage (e.g. frequency- or
+  coherence-correlated patterns) rather than only how many.
 
 ---
 
@@ -1138,25 +1287,28 @@ own ×1.3–1.5 unmeasured-code-path convention
 | Wave 0 (free) | i-strong re-analysis (§2.0); reachability/correlation checks (§4); **Rev 2: anchor-init construction + λ=1 ceiling + item-6 negative control + Gate-2 prototype (§2.2/§3.1/§4)** | 0 | **0** | All done on CPU across the two design sessions |
 | Gate 2 (blocking, CPU) | ≥512-subset NS admission check on the frozen registered init, K∈{16,32} | 0 | **0** | §4; prototype PASS this session |
 | Wave −1 (blocking smoke) | **8 short smoke probes** (itemized below — NEG1_PROBE_STEPS-class) **+ 2 drift-diagnostic probe runs** (K∈{16,32}, 5,000 steps each) = **10 runs** | 10 | ~0.7–1.0 | Mirrors geo3's own Wave −1 discipline (§14.6); Gate 1 launch-read reads the K=16 probe |
-| **Reference arms (NEW, Rev 3 — §3.6, MANDATORY, first in manifest)** | bare-geo3, seeds {1,2} × K∈{16,32}, 20,000 steps, per-checkpoint drift diagnostic active | 4 | **~3.3** | Bands pinned from their final checkpoints BEFORE any anchor readout (§3.6 blinding protocol) |
+| **Reference arms (Rev 3 — §3.6, MANDATORY, first in manifest; n=2→3 at Rev 4 per decision 3)** | bare-geo3, seeds {1,2,3} × K∈{16,32}, 20,000 steps, per-checkpoint drift diagnostic active | 6 | **~5.0** | Bands pinned from their final checkpoints; anchor cells refuse to launch until `BANDS_PINNED.json` validates (§3.6 mechanical gate) |
 | Wave 1 — candidate (d), PRIMARY, mandatory | K∈{16,32}×3 seeds×20,000 steps, learned λ | 6 | ~1.5–1.7 | Headline cells; §3.4 early-stop armed; §3.7 per-entity logging active |
 | Wave 1 — candidate (c), ablation, always-run | K∈{16,32}×3 seeds, one `λ_anchor` (BLOCK-2 template) | 6 | ~1.5–1.7 | Comparison point (§2.4); early-stop armed |
 | Fixed-grid λ diagnostic (conditional) | λ∈{0.3,0.6,0.9}, K=32 only ×1 seed each, fired only on an ambiguous §3.2 band | ≤3 | ~0.8 | Registered follow-up, not tuning — grid fixed now |
 | Seed contingency (finding-5-style, one iteration) | +2 seeds, K=32 headline arm only | ≤2 | ~0.5–0.6 | Same add-seeds-not-steps discipline as §6/§14.10 |
-| **Baseline total (mandatory, incl. reference arms)** | | 26 | **~7.0–7.7** | |
-| **With both conditionals fired** | | ≤31 | **~8.3–9.1** | |
+| **Baseline total (mandatory, incl. reference arms)** | | 28 | **~8.7–9.4** | |
+| **With both conditionals fired** | | ≤33 | **~10.0–10.8** | |
 | Candidate (b), CONDITIONAL fallback | K∈{16,32}×3 seeds, only on (d)'s diagnosed anchor-collapse failure (§2.3, §6) | ≤6 | ~1.7–2.0 | Reserved, outside the baseline |
-| **All-conditionals-max** | | ≤37 | **~10.0–11.1** | |
+| **All-conditionals-max** | | ≤39 | **~11.7–12.8** | |
 
-**Fit (Rev 3).** Mandatory baseline ~7.0–7.7 GPU-h ≤ the orchestrator's
-**≤10 nominal**; all-conditionals-max ~10.0–11.1 sits inside the **≤15
-reserve** band (the only item that pushes past 10 is candidate (b), the
-explicitly-reserved fallback). Combined with F-geo-3's realized ~1.67
-and the exactness program's measured cumulative spend (R2 target 6:
-**34.9 GPU-h** summed from all archived `wall_s` fields), the worst case
-projects to ~46 GPU-h program-total — nowhere near the 80 GPU-h cap.
-The §3.4 early-stop can only reduce these figures (a killed arm stops at
-~20% of its run cost).
+**Fit (Rev 4).** Mandatory baseline ~8.7–9.4 GPU-h ≤ the orchestrator's
+**≤10 nominal** (the n=3 reference upgrade consumed most of the
+headroom, deliberately — R3's Judgment Call (c) priced it and both
+ceilings still clear); all-conditionals-max ~11.7–12.8 sits inside the
+**≤15 reserve** band (everything past 10 is conditional: the λ-grid,
+the seed contingency, and candidate (b), the explicitly-reserved
+fallback). Combined with F-geo-3's realized ~1.67 and the exactness
+program's measured cumulative spend (R2 target 6, re-verified by R3:
+**34.9 GPU-h** summed from all archived `wall_s` fields), the worst
+case projects to ~48 GPU-h program-total — nowhere near the 80 GPU-h
+cap. The §3.4 early-stop can only reduce these figures (a killed arm
+stops at ~20% of its run cost).
 
 **Wave −1 smoke suite, itemized (Rev 3 — R2 m3: a countable list, not
 an asserted count, matching the parent §14.6's own discipline):**
@@ -1171,12 +1323,23 @@ an asserted count, matching the parent §14.6's own discipline):**
    (near-duplicate raw keys) input.
 3. **Held-out bypass bit-identity** — all-held-out batch: `bind()`
    outputs strictly `torch.equal` to the anchor-disabled path (§3.3,
-   valid under the Rev 3 select/where construction).
-4. **Held-out zero-gradient** — mixed-split batch backward: anchor-table
-   gradient exactly zero at every held-out row (§7 item 1).
-5. **λ logging** — trajectory field present at every `log_every` step;
-   final-window summary fields (final value / trailing mean / trailing
-   range) present and consistent with the trajectory (§3.2).
+   valid under the Rev 4 gather/scatter construction).
+4. **Held-out gradient isolation (BROADENED at Rev 4 — R3 finding 4,
+   orchestrator decision 4)** — mixed-split batch backward, run on the
+   SAME adversarial near-duplicate input smoke 2 specifies (not only a
+   generic batch), **with NaN injected into every held-out anchor
+   row**: assert (i) `torch.isfinite` on ALL parameter gradients — not
+   only exact-zero at held-out rows; (ii) anchor-table gradient exactly
+   zero at every held-out row; (iii) held-out output rows strictly
+   `torch.equal` to pure-geo3 at identical weights despite the planted
+   NaNs — the registered unit test proving the gather/scatter
+   construction has no 0×NaN path in either direction (§2.2).
+5. **λ logging** — trajectory field present at every logged step; the
+   startup cadence assertion (`log_every == LAMBDA_LOG_CADENCE_STEPS =
+   200`, §3.2) fires on a deliberately mis-set cadence (negative
+   control); final-window summary fields (final value / last-5-point
+   mean / last-5-point range) present and consistent with the
+   trajectory (§3.2).
 6. **Item-5 instrument** — the pre-NS side channel
    (`anchor_last_k_blend_raw`) is populated, detached, correct shape,
    and differs from post-NS `k_eff_items` on a generic batch (they are
@@ -1185,10 +1348,12 @@ an asserted count, matching the parent §14.6's own discipline):**
    on the current table; the pinned collapsed table substituted in
    place of the real one must FAIL both (negative control wired into
    the harness, not just the design doc).
-8. **Per-entity engagement instrument (§3.7)** — the full-pool sweep
-   returns 107 values in [−1, 1]; on the healthy init at fixed λ=1 the
-   values are ≈1 by construction (the blend IS the anchor row);
-   per-checkpoint logging present.
+8. **Per-entity anchor-input-alignment instrument (§3.7)** — the
+   full-pool sweep returns 107 values in [−1, 1]; on the healthy init
+   at fixed λ=1 the values are ≈1 by construction (the blend IS the
+   anchor row); per-checkpoint logging present; the h=1 behavioral
+   companion field (Rev 4) present with 107 entries at the final
+   checkpoint of the probe run.
 
 ---
 
@@ -1288,7 +1453,9 @@ re-attributed, via §3.5's pre-registered disambiguation:**
 7. **Aggregate masking — a passing pooled statistic carried by a
    minority of strongly-anchored entities (NEW at Rev 3 — R2 target
    4(b)'s constructed scenario).** **Closed by:** §3.7's per-entity
-   engagement readout — the full 107-entity alignment vector is a
+   anchor-input-alignment readout (with its Rev 4 input-side-proxy
+   disclosure and h=1 behavioral companion) — the full 107-entity
+   alignment vector is a
    required result field, `engaged_frac < 50%` routes to Outcome C
    regardless of every aggregate number, and [50%, 90%) caps the claim
    at the named partial outcome (A″), never the headline. The
@@ -1359,14 +1526,51 @@ shared-c bug instead — folded in per the supplementary instruction.
 | R2-m3 | MINOR — the Wave −1 smoke suite was prose, not an enumerable list (count of "8" asserted, unlike the parent §14.6's itemized discipline) | Itemized as a numbered 8-item list (init+gate legs / blend fwd-bwd / bypass bit-identity / held-out zero-grad / λ logging / item-5 instrument / item-6 checkpoint wiring incl. the in-harness negative control / per-entity instrument) | §5 |
 | R2-t5 | MINOR-to-MAJOR — the early-stop AND rule conditions the kill on its noisier leg (h4: 58% relative seed spread at step 2000 vs. value-Gram's ~15%), enabling the "wobbles above the floor" false-continue; the cost-asymmetry rationale was never stated | Orchestrator decision 3: **value-Gram is the sole load-bearing kill leg, required at TWO consecutive checkpoints (2,000 AND 4,000)**; h4 recorded and reported, explicitly non-load-bearing, the 58%-vs-15% spread disclosed inline; cost-asymmetry rationale stated; the K-asymmetry of the two-checkpoint rule disclosed (geo3's own K=32 value-Gram already exceeds 3.90 at step 4000 in 2/3 seeds — the second leg is a transient-spike guard there, a genuinely geo3-relative test at K=16) | §3.4 |
 
+*(Rev 4 note on three §8.2 rows, mirroring §8.1's own convention: the
+R2-M2 row's "4 reference arms / seeds {1,2} / ~3.3 GPU-h" figures are
+superseded by §8.3 row R3-3 (6 arms, seeds {1,2,3}, ~5.0 GPU-h); the
+R2-M5 row's step-space window phrasing is superseded by §8.3 row R3-1
+(log-point space); the R2-m2 row's `torch.where` construction is
+superseded by §8.3 row R3-4 (masked gather/scatter). The tables above
+are preserved as the historical record of what Rev 3 registered.)*
+
+### 8.3 Rev 4 — verify-round-3 responses
+
+Round 3 (`KEY_ANCHORING_ATTACK_R3.md`, 2026-07-04) returned
+**NEEDS-REV-4**: all 9 R2 findings confirmed closed (the Gate-2
+regression quadruple reproduced to 4 decimal places from an
+independently-reconstructed recipe; all 12 early-stop archive numbers
+exact; the shared-c bug verified at the source-line level against the
+GPU recheck archive, including `tf32_matmul: false` directly falsifying
+R2's TF32 hypothesis; the budget re-derived exactly, 34.90 GPU-h
+program spend confirmed) — plus **3 MAJOR and 2 MINOR findings, all
+inside Rev 3's own new machinery**. Disposition: **all five accepted
+and implemented under binding orchestrator decisions 1–5; everything
+else frozen per the same instruction** (in particular, R3's optional
+K=32 single-checkpoint-kill efficiency suggestion — adjudicated
+"acceptable as disclosed, not required" by R3 itself — and the
+localized-case seed-pin provenance note — "not a new finding" per R3 —
+were both left as-is). This is the expected final revision round; a
+bounded verify pass on only these five items decides
+CLEARED-FOR-BUILD.
+
+| # | Finding (condensed) | Change made | Where |
+|---|---|---|---|
+| R3-1 | MAJOR — the λ oscillation window ("trailing 1,000 steps") is ambiguous against the harness's real 200-step log cadence (verified from an archived trajectory: 101 points/run): read as steps it holds 5–6 samples (low power, unacknowledged); read as "1,000 logged samples" it silently consumes the whole trajectory including early training — and it sits on the headline Outcome-A gate path | Orchestrator decision 1: window pinned in **LOG-POINT space** — the last **5 logged points** (= 1,000 steps at the registered cadence); `LAMBDA_LOG_CADENCE_STEPS = 200` and `LAMBDA_WINDOW_LOG_POINTS = 5` registered as constants; **harness asserts the cadence at startup** (a cadence change fires the assertion instead of silently resizing the window — negative-control smoke added); the 5-point window's power stated honestly (a gross-oscillation catch: swings ≥0.1 persisting at cadence; sub-cadence oscillation unobservable; excluded seeds land in the ambiguous band whose registered follow-up needs no trajectory statistics) | §3.2, §2.2 (logging bullet), §5 (smoke 5) |
+| R3-2 | MAJOR — the §3.6 blinding protocol was a stated norm, not a mechanical gate: nothing prevented an operator seeing anchor progress pre-pin, and nothing forced `BANDS_PINNED` to be computed by a process that cannot access anchor results | Orchestrator decision 2 — three registered build requirements with failure modes: **(a)** the harness writes `BANDS_PINNED.json` (derived bands + per-seed inputs + formula version + sha256 hashes of all reference-arm JSONs + timestamp) only after every reference arm validates complete (any incomplete arm → no file → everything blocked); **(b)** anchor cells **REFUSE to launch** without an existing, hash-validating `BANDS_PINNED.json` (gate_geo3_drift's loud-refusal pattern; `--unblind-override` exists but auto-demotes every anchor readout to descriptive tier) — supersedes Rev 3's "may train concurrently" allowance, sequencing now launcher-enforced; **(c)** the readout script asserts the pin timestamp strictly precedes the earliest anchor-arm start time (violation → readout aborts, blind recorded broken, descriptive tier only) | §3.6 (rewritten protocol), §5 (table note) |
+| R3-3 | MAJOR — the n=2 band formula is statistically fragile: at n=2 the sample std's own relative standard error is ≈71%, so `engaged_K` is dominated by which two seeds are drawn — the "engaged vs. lucky seed" problem reappearing inside the fix built for it; can both inflate B2 confidence and spuriously trip the UNRESOLVABLE guard | Orchestrator decision 3 (the verifier's own fix, adopted): **3 reference seeds per K** (6 reference arms, +1.6–1.7 GPU-h → reference row ~5.0; mandatory baseline ~8.7–9.4, still ≤10 nominal; all-max ~11.7–12.8, ≤15 reserve); formula recomputed at n=3 (`engaged_K = mean_ref + 2·s_ref`, df=2, s-RSE ≈50%); UNRESOLVABLE guard trigger recomputed on the n=3 statistic, now accompanied by a mandatory **leave-one-out sensitivity report** (disclosure-only) so an outlier-driven trigger is visible as such | §3.6, §5 (budget table + fit) |
+| R3-4 | MINOR — `torch.where` evaluates BOTH branches: a non-finite value in the discarded blend branch for a held-out row (adversarial near-zero-vector regime) could poison gradients via 0×NaN even though the forward select is bit-clean; smoke 4 lacked smoke 2's adversarial qualifier | Orchestrator decision 4: blend construction moved to **masked gather/scatter** — arithmetic touches trained rows ONLY, held-out rows are a bit-exact `clone` with no graph edge in either direction (§3.3's strict-equality smoke stays valid); **registered NaN-injection unit test** folded into smoke 4: NaNs planted in every held-out anchor row, forward+backward on smoke 2's adversarial input, assert all gradients finite (`torch.isfinite` broadly, not only exact-zero), held-out gradient exactly zero, held-out outputs `torch.equal` to pure-geo3 | §2.2 (code block), §3.3, §5 (smoke 4) |
+| R3-5 | MINOR — §3.7's metric measures input-side alignment, not behavioral per-entity engagement; `M3_held_out` stays pooled, so "input pulled to anchor but NS mixing doesn't stabilize the written key" stays invisible; the correct-object choice (Judgment Call (b)) is affirmed but the scope limit was undisclosed | Orchestrator decision 5: metric **renamed anchor-input-alignment** (kept as the registered `engaged_frac` driver — R3 affirmed it is the correct object for R2's ask); **non-load-bearing behavioral companion added**: per-entity h=1 recovery restricted to eval episodes containing that entity (bookkeeping on existing eval scores, no new forward passes), reported alongside for all 107 entities, explicitly diagnostic-only; scope-limit disclosure added mirroring §3.3's precedent (input-side proxy; per-entity h=4 too sparse at this eval budget; a visible a_e-vs-h1 divergence reports as an open question, never adjudicated by a hidden rule) | §3.7, §3.5 (A/A″/C wording), §5 (smoke 8), §7 item 7 |
+
 ---
 
 ## Reproducibility pointers
 
-- This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 3**,
-  2026-07-03 — Rev 1/Rev 2 same day; attack-round maps are §8.1/§8.2).
-- Attack rounds: `matrix-thinking/KEY_ANCHORING_ATTACK_R1.md`,
-  `matrix-thinking/KEY_ANCHORING_ATTACK_R2.md`.
+- This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 4**,
+  2026-07-04 — Rev 1–3 on 2026-07-03; round maps are §8.1/§8.2/§8.3).
+- Attack/verify rounds: `matrix-thinking/KEY_ANCHORING_ATTACK_R1.md`,
+  `matrix-thinking/KEY_ANCHORING_ATTACK_R2.md`,
+  `matrix-thinking/KEY_ANCHORING_ATTACK_R3.md`.
 - Builds on (read, not modified): `matrix-thinking/DELTANET_RD_EXACTNESS_
   DESIGN.md` §14–16 (§16.7 carries the coordinator's dated shared-c
   correction, made from the GPU re-measurement archived at
@@ -1395,22 +1599,26 @@ shared-c bug instead — folded in per the supplementary instruction.
   geo3 step-4000 trajectory extraction (§3.4), corrected band
   arithmetic (§3.1) — every number quoted with its construction,
   reproducible from repo files + `geo3_simulator.py`'s own functions.
-- Next: verification round on this Rev 3 (confirm each §8.2 change
-  closes its finding — the parent design's own multi-round discipline) →
-  build: the §2.2 `model_rd.py` diff (select/where blend, pre-NS side
-  channel, `anchor_trained_mask`, λ logging incl. final-window summary
-  fields), the frozen frame-potential init with a registered seed,
-  `keyanchor_drift_diagnostic.py` (pre-NS + post-NS + per-entity
-  sweep), **the per-K drift-threading fix to
-  `geo3_drift_diagnostic.py::main()` + `launch_read` (per-K `c` dict;
-  unit test: K=16/K=32 calls receive different `c` values whenever the
-  measured per-K drifts differ — Rev 3 supplement, in-scope for this
-  wave)**, manifest/gate additions to
-  `run_deltanet_rd_exactness_sweep.py` (reference arms FIRST +
-  `BANDS_PINNED` blinding, §3.6), the amended Gate 2 + pinned
-  regression case as a committed CPU test → independent code audit →
-  Gate 2 (CPU) → Wave −1 (smokes 1–8 + probes; Gate 1 launch-read) →
-  reference arms (§3.6, bands pinned) → Wave 1 (candidates (d) and (c),
-  early-stop armed, per-entity logging active) → assess against §3.5's
-  outcome frame → candidate (b) / fixed-grid λ / follow-ons only per
-  their registered triggers.
+- Next: **bounded final verify pass on the five §8.3 items only**
+  (per the orchestrator's Rev 4 instruction; if clean →
+  CLEARED-FOR-BUILD) → build: the §2.2 `model_rd.py` diff
+  (masked-gather/scatter blend, pre-NS side channel,
+  `anchor_trained_mask`, λ logging incl. the registered cadence
+  constants + startup assertion and the last-5-point summary fields),
+  the frozen frame-potential init with a registered seed,
+  `keyanchor_drift_diagnostic.py` (pre-NS + post-NS + full-pool
+  per-entity sweep + the h=1 behavioral companion), **the per-K
+  drift-threading fix to `geo3_drift_diagnostic.py::main()` +
+  `launch_read` (per-K `c` dict; unit test: K=16/K=32 calls receive
+  different `c` values whenever the measured per-K drifts differ —
+  Rev 3 supplement, in-scope for this wave)**, manifest/gate additions
+  to `run_deltanet_rd_exactness_sweep.py` (reference arms FIRST; the
+  §3.6 mechanical blinding chain — `BANDS_PINNED.json` writer,
+  launcher refusal gate with hash validation, readout timestamp
+  assertion), the amended Gate 2 + pinned regression case + the
+  NaN-injection unit test as committed CPU tests → independent code
+  audit → Gate 2 (CPU) → Wave −1 (smokes 1–8 + probes; Gate 1
+  launch-read) → reference arms (§3.6, bands pinned mechanically) →
+  Wave 1 (candidates (d) and (c), early-stop armed, per-entity logging
+  active) → assess against §3.5's outcome frame → candidate (b) /
+  fixed-grid λ / follow-ons only per their registered triggers.
