@@ -764,9 +764,23 @@ data existed at registration time):**
    ~14M control architecture retrained on the EXTENDED mixes, 2 mixes × 3 seeds
    (~0.5 GPU-h total at measured control pricing) — re-isolates the mix axis at
    the small scale for the extended mixes, mirroring MAJOR-5's original control
-   logic. A rung-1 repeat on the extended mixes (2 × 3, ~30 GPU-h) is QUEUED as a
-   follow-up wave to fully de-confound the rung-1→rung-2 comparison; it runs when
-   GPUs free up, before any pure-scale attribution claim is made at rung 2.
+   logic. **DONE (2026-07-04):** ran to completion on-box, measured 0.46 GPU-h
+   (matches the ~0.5 estimate). A rung-1 repeat on the extended mixes (2 × 3,
+   ~30 GPU-h) is QUEUED as a follow-up wave to fully de-confound the
+   rung-1→rung-2 comparison; it runs when GPUs free up, before any pure-scale
+   attribution claim is made at rung 2. **BUILT, GATED, NOT YET LAUNCHED
+   (2026-07-04):** `--wave 1ext` in `run_lm_rd_trackc_sweep.py` retrains the
+   exact rung-1 architecture on the extended mixes × 3 seeds (6 runs), hard-
+   requiring `--rung1-steps` to equal Wave 1's own closed rung-1 step count
+   (67,547, recovered from `results/lm_rd_trackc/wave1/w1_rung1_lm_openr1-mix_
+   dm768_ds64_L12_s0.json`'s own `"steps"` field — cross-checked against §5.9's
+   harvest text) — no other value is accepted, since holding steps fixed while
+   varying only the mix is this wave's entire reason to exist. Gated on the
+   already-banked rung-1 calibration/timing/memory cells (no new calibration
+   needed) plus the new disk-space gate below; projected cost ≈27.0 GPU-h at
+   the measured rung-1 timing constants (close to the ~30 GPU-h estimate
+   above). Dry-run-previewed and CPU-smoke-tested on-box; not launched this
+   session (GPUs 0–5 running wave 2, GPU 7 running Stage-G H_e, untouched).
 4. **Rung-3 calibration cells run now** (5/20-step two-point on one GPU, warm-up
    pair discarded per the cold-Triton-cache guard) so rung-3's real pricing is
    known before the go/no-go; if measured rung-3 cost pushes the program past the

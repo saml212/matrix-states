@@ -21,6 +21,29 @@ re-isolates the mix axis at Wave-C scale for the extended mixes (CONTROL_CFG
 x WAVE23_CORPORA x 3 seeds, control-length steps) -- mirrors MAJOR-5's
 original control logic, applied to the new corpora.
 
+THIS BUILD (sec 5.6 amendment Rev 2.1 item 3's queued follow-up wave,
+2026-07-04, registered "before any pure-scale attribution claim is made at
+rung 2") adds two things: (1) a new `--wave 1ext` -- RUNG_CFG (Wave 1's own
+rung-1 architecture, unchanged) retrained on WAVE23_CORPORA x 3 seeds = 6
+cells, at EXACTLY Wave 1's own closed rung-1 step count (WAVE1_RUNG1_STEPS,
+recovered from the closed archive, see that constant's own comment) --
+de-confounds the rung-1-vs-rung-2 comparison, which otherwise compares
+rung 1 (original mixes) against rung 2/3 (extended mixes) as a joint
+scale+data-mix result. `--rung1-steps` is not merely required here, it is
+VALIDATED to equal WAVE1_RUNG1_STEPS exactly (refused otherwise, no
+override flag) -- comparability, not a budget question. No control cell in
+this wave (the mixcontrol wave, already closed, already covers the
+control-at-extended-mixes leg; a second one would be redundant spend). (2)
+a NEW disk-space gate (2026-07-04 launch-audit FATAL: no wave's checkpoint
+volume had ever been checked against free disk space before a real launch)
+-- computes projected checkpoint bytes (n_runs x n_ckpts x a measured,
+architecture-matched checkpoint size read live from an existing file on
+disk) and refuses the launch unless free bytes on the RESOLVED
+(symlink-followed) checkpoint dir are >= 1.5x that. Wired into
+gate_and_run_wave23, gate_and_run_mixcontrol, AND the new
+gate_and_run_wave1ext via one shared helper (find_ckpt_size_bytes /
+projected_ckpt_bytes / disk_space_check) -- not three copies.
+
 CLONE of run_lm_rd_geo3_sweep.py's / run_lm_rd_sweep.py's robustness
 pattern (smoke gate, exception-isolated launch, validity-checked resume,
 per-run timeout with GPU quarantine, guarded aggregate, REQUIRED
@@ -57,6 +80,20 @@ Waves (in run order):
     launched any time; report its measured numbers.
   1 (rung 1 + control cell, FULL manifest): CLOSED -- already ran to
     completion (sec 5.9). Behavior UNCHANGED by this build.
+  1ext (sec 5.6 amendment Rev 2.1 item 3's queued follow-up wave, NEW THIS
+    BUILD): RUNG_CFG retrained on WAVE23_CORPORA x 3 seeds = 6 cells, at
+    EXACTLY wave-1's own closed rung-1 step count (WAVE1_RUNG1_STEPS) --
+    de-confounds the rung-1-vs-rung-2 comparison (rung 1 trained on the
+    ORIGINAL mixes, rung 2/3 on the EXTENDED mixes). Gated on: (a) an
+    existing calibration.json with rung-1's timing_constants (already
+    banked, Wave 1), (b) --rung1-steps supplied AND validated to equal
+    WAVE1_RUNG1_STEPS exactly (no override -- this is a comparability
+    requirement, not a budget guard), (c) a passing memory-headroom
+    readout from the calib_rung1 cells (already banked), (d) a passing
+    epoch-cap check on both extended-mix corpora at rung-1's token count
+    (trivially passes but still runs), (e) the sec-7 budget guard, and (f)
+    the NEW disk-space gate (below). THIS SESSION DOES NOT LAUNCH --wave
+    1ext for real -- --dry-run preview + on-box CPU smoke only.
   2 (rung 2, FULL manifest -- 6 runs, 2 EXTENDED-mix corpora x 3 seeds per
     the Rev 2.1 amendment item 1, no control cell at this rung per
     MAJOR-5/sec 8) and
@@ -70,28 +107,33 @@ Waves (in run order):
     (d) a PASSING epoch-cap check on BOTH extended-mix corpora (WAVE23_CORPORA,
     amendment item 2) at the resulting per-run token budget (sec 5.4's
     <=5-physical-epoch discipline, read live from each mix's own meta.json),
-    and (e) a budget guard: PROGRAM_SPENT_GPUH (this file's own maintained
+    (e) a budget guard: PROGRAM_SPENT_GPUH (this file's own maintained
     tracker) + this wave's projected GPU-h (computed from the calibration's
     measured timing constants and the ACTUAL manifest length -- never a
     hardcoded run count -- PRINTED before any launch decision) must not
     exceed the program's 300 GPU-h ceiling (sec 7) without an explicit
-    --accept-budget-override. ANY of (a)-(e) failing refuses the launch with
-    the design's own registered remedy, never a silent proceed. THIS SESSION
-    DOES NOT LAUNCH --wave 2 or --wave 3 for real -- only rung 2's
-    calibration cells are launched (see STATE.md / the audit report for the
-    measured numbers); the gates above are built and exercised via
-    --dry-run + the calibration run only.
-  mixcontrol (Rev 2.1 amendment item 3, NEW): CONTROL_CFG (Wave C's own
+    --accept-budget-override, and (f) the NEW disk-space gate (this build):
+    projected checkpoint bytes (n_runs x n_ckpts x a measured,
+    architecture-matched checkpoint size) vs. free bytes on the RESOLVED
+    checkpoint dir, required >= 1.5x. ANY of (a)-(f) failing refuses the
+    launch with the design's own registered remedy, never a silent proceed.
+    THIS SESSION DOES NOT LAUNCH --wave 2 or --wave 3 for real -- rung 2's
+    real wave-2 launch is already running on GPUs 0-5 as of this build
+    (started by a prior session/agent, untouched by this one); the gates
+    above are built and exercised via --dry-run + the calibration run only.
+  mixcontrol (Rev 2.1 amendment item 3): CONTROL_CFG (Wave C's own
     ~14M scale) retrained on WAVE23_CORPORA (the extended mixes) x 3 seeds =
     6 cells, at the SAME control-length step budget as Wave 1's own
     same-mix control cell (default_control_steps()) -- re-isolates the mix
     axis at Wave-C scale for the extended mixes, mirroring MAJOR-5's
     original control logic. Gated on the SAME (a)/(c)/(d)/(e) chain as
-    waves 2/3 (keyed to the 'control' calibration/timing cell, already
-    banked from Wave 1 -- no new calibration needed); the epoch-cap check
-    trivially passes at control-length steps but is NOT skipped. THIS
-    SESSION DOES NOT LAUNCH --wave mixcontrol for real -- --dry-run preview
-    only.
+    waves 2/3, PLUS the new (f) disk-space gate (this build) -- keyed to
+    the 'control' calibration/timing cell, already banked from Wave 1 (no
+    new calibration needed); the epoch-cap check trivially passes at
+    control-length steps but is NOT skipped. ALREADY RAN TO COMPLETION
+    (DONE, verified on-box this build session) -- behavior unchanged by
+    this build except for the new disk-space gate, which is additive (a
+    completed wave's own cells still resume-skip regardless).
   4 (fix-effect / geo3-at-scale, sec 5.5 item 3): HARD REFUSED
     unconditionally by this file -- Track B's own Wave -1 gate returned
     `no_launch_redesign` (EXPERIMENT_LOG.md, "SCALE-TRANSFER Track B ...
@@ -117,9 +159,10 @@ Usage (GPU list is an example -- check nvidia-smi first, per house rule):
   python run_lm_rd_trackc_sweep.py --wave calibration --out-dir results/lm_rd_trackc --gpus 2 --gpu-offset 0                       # rung 1 + control (unchanged default)
   python run_lm_rd_trackc_sweep.py --wave calibration --calib-rungs 2 --out-dir results/lm_rd_trackc --gpus 1 --gpu-offset 0        # rung 2 two-point cells only
   python run_lm_rd_trackc_sweep.py --wave 1 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung1-steps N   # CLOSED, sec 5.9 -- shown for reference only
-  python run_lm_rd_trackc_sweep.py --wave 2 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung2-steps N   # gated per the (a)-(e) chain above; NOT launched this session
-  python run_lm_rd_trackc_sweep.py --wave 3 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung3-steps N   # gated per the (a)-(e) chain above; NOT launched this session
-  python run_lm_rd_trackc_sweep.py --wave mixcontrol --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0          # Rev 2.1 amendment item 3; gated per the (a)/(c)/(d)/(e) chain; NOT launched this session
+  python run_lm_rd_trackc_sweep.py --wave 1ext --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung1-steps 67547   # rung-1-EXT repeat; --rung1-steps MUST equal WAVE1_RUNG1_STEPS; gated per (a)-(f); NOT launched this session
+  python run_lm_rd_trackc_sweep.py --wave 2 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung2-steps N   # gated per the (a)-(f) chain above; ALREADY LAUNCHED this session (GPUs 0-5)
+  python run_lm_rd_trackc_sweep.py --wave 3 --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0 --rung3-steps N   # gated per the (a)-(f) chain above; NOT launched this session
+  python run_lm_rd_trackc_sweep.py --wave mixcontrol --out-dir results/lm_rd_trackc --gpus 6 --gpu-offset 0          # Rev 2.1 amendment item 3; gated per the (a)/(c)/(d)/(e)/(f) chain; ALREADY RAN TO COMPLETION
   python run_lm_rd_trackc_sweep.py --wave 4                                                          # ALWAYS refused
 """
 from __future__ import annotations
@@ -198,6 +241,19 @@ RUNG1_TARGET_TOKENS_PLACEHOLDER = 100_000_000
 RUNG2_TARGET_TOKENS_PLACEHOLDER = 1_500_000_000
 RUNG3_TARGET_TOKENS_PLACEHOLDER = 3_000_000_000
 
+# --wave 1ext's own step count is NOT a placeholder -- it is Wave 1's OWN CLOSED rung-1 step count,
+# recovered live from the closed archive rather than guessed (verified on-box this build session):
+# results/lm_rd_trackc/wave1/w1_rung1_lm_openr1-mix_dm768_ds64_L12_s0.json -> "steps": 67547,
+# "steps_completed": 67547, "batch_size": 32 (matches BATCH_SIZE_BY_RUNG[1] below), cross-checked
+# against SCALE_TRANSFER_DESIGN.md sec 5.9's own harvest text ("67,547 steps ~1.108B tokens") and the
+# local archive experiment-runs/2026-07-04_trackc_rung1/trackc_rung1_summary.txt (same figure). --wave
+# 1ext's ENTIRE reason to exist (sec 5.6 amendment Rev 2.1 item 3) is a same-steps repeat on the
+# extended mixes to de-confound the rung-1-vs-rung-2 comparison -- a DIFFERENT step count would
+# silently reintroduce a second confound, so --rung1-steps is not just required for a real --wave
+# 1ext launch, it is VALIDATED to equal this constant exactly (gate_and_run_wave1ext), with no
+# --accept-budget-override-style escape hatch (this is a comparability requirement, not a cost guard).
+WAVE1_RUNG1_STEPS = 67547
+
 # ---------------------------------------------------------------------------
 # Epoch-cap discipline (sec 5.4: "cap any single source's repetition at <=5 physical epochs ...
 # the remainder is drawn from OpenWebMath/FineWeb-Edu") -- read LIVE from each mix corpus's own
@@ -218,13 +274,25 @@ EPOCH_CAP = 5
 # ---------------------------------------------------------------------------
 # Program-wide GPU-h budget guard (sec 7's 300 GPU-h program ceiling). PROGRAM_SPENT_GPUH is a
 # MAINTAINED constant, NOT auto-computed from any log -- a human/orchestrator updates it as real
-# spend accrues across ALL FOUR tracks. As of this build: Track A ~0 (zero-GPU by design) + Track B
-# ~1 (Wave -1 calibration only; Track B's own gate returned HARD NO-LAUNCH past that, sec 11) +
-# Track C ~31 (rung-1 Wave 1's full manifest + control + the sec 5.9 attractor probe, already
-# banked/closed) + Track D ~1 (Phase 1 only, sec 6.8) + this build's rung-2 calibration (cold pair
-# 104s, discarded as invalid, + warm pair 66s + process overheads ~= 0.1 GPU-h measured, well under
-# the ~0.5 pre-estimate) ~= 33.1 GPU-h. UPDATE THIS after any further real spend.
-PROGRAM_SPENT_GPUH = 33.1
+# spend accrues across ALL FOUR tracks. Prior baseline (trackC-rung23-build): Track A ~0 (zero-GPU by
+# design) + Track B ~1 (Wave -1 calibration only; Track B's own gate returned HARD NO-LAUNCH past
+# that, sec 11) + Track C ~31 (rung-1 Wave 1's full manifest + control + the sec 5.9 attractor probe,
+# already banked/closed) + Track D ~1 (Phase 1 only, sec 6.8) + that build's rung-2 calibration (cold
+# pair 104s, discarded as invalid, + warm pair 66s + process overheads ~= 0.1 GPU-h measured) ~= 33.1
+# GPU-h.
+#
+# THIS BUILD (2026-07-04): 33.1 (prior baseline above) + 129.36 (wave 2's real launch -- 6 runs x
+# 91,552 steps x batch 32, LAUNCHED on GPUs 0-5 this session by a prior agent; recomputed live this
+# session via projected_gpu_hours() against calibration.json's own timing_constants['rung2'] and
+# confirmed to match the running processes' actual --steps 91552 argument) + 0.46 (mixcontrol's real
+# launch -- 6 runs x 6,103 control-length steps, ALREADY RAN TO COMPLETION, verified via the on-box
+# checkpoint/result-JSON state this session; recomputed the same way against timing_constants
+# ['control']) + ~0.3 (supplementary calibration spend since the 33.1 baseline was set: rung-3's own
+# two-point cells, sec 5.6 amendment item 4, plus incidental smoke-gate GPU-seconds across this
+# session's several wave invocations -- not separately itemized, rounded up) = 163.22 GPU-h.
+# UPDATE THIS after any further real spend (including a real --wave 1ext launch, ~27 GPU-h projected
+# -- see wave1ext_manifest / gate_and_run_wave1ext -- NOT yet committed as of this constant's value).
+PROGRAM_SPENT_GPUH = 163.22
 GPU_H_PROGRAM_CEILING = 300.0
 
 CALIBRATION_STEPS_DEFAULT = 200
@@ -733,6 +801,66 @@ def budget_guard(projected_gpu_h: float, label: str, accept_override: bool) -> f
     return cumulative
 
 
+# ---------------------------------------------------------------------------
+# Disk-space gate (NEW GATE, 2026-07-04 launch-audit FATAL): no wave's checkpoint volume had ever
+# been checked against free disk space before a real launch -- a long wave could fill /data mid-run
+# with no advance warning, discovered only when a write fails partway through. ONE shared helper
+# (this codebase's own is_done_cell/make_manifest generalization convention, restated here) wired
+# into gate_and_run_wave23, gate_and_run_mixcontrol, AND gate_and_run_wave1ext -- not three copies.
+# ---------------------------------------------------------------------------
+
+DISK_SAFETY_FACTOR = 1.5   # free bytes on the resolved checkpoint dir must be >= this x projected bytes
+
+
+def find_ckpt_size_bytes(ckpt_dir: str, d_model: int, d_state: int, n_layers: int) -> int:
+    """Scans `ckpt_dir` (caller passes an ALREADY symlink-resolved path) for an EXISTING checkpoint
+    file whose name encodes this exact (d_model, d_state, n_layers) architecture --
+    lm_pretrain_rd.py's own checkpoint naming convention is
+    'lmC_<corpus>_dm{d_model}_ds{d_state}_L{n_layers}_s{seed}_step{n}.pt' (verified live against
+    /data/lm_rd_trackc_ckpts/wave1/ and .../calibration/ this build session -- a DIFFERENT naming
+    axis from this file's own 'w1_rung1'/'calib_rung2'-style JSON tags, which lm_pretrain_rd.py never
+    sees). Checkpoint size is corpus/seed/step-invariant (same param count + optimizer state every
+    time -- confirmed live: all 136 rung-1 checkpoint files in wave1/ agree to within ~500 bytes), so
+    any ONE matching file is a valid measurement. Raises FileNotFoundError with a clear remedy
+    (never silently fabricates a size) if no matching checkpoint exists yet."""
+    needle = f"_dm{d_model}_ds{d_state}_L{n_layers}_"
+    if os.path.isdir(ckpt_dir):
+        for fname in sorted(os.listdir(ckpt_dir)):
+            if needle in fname and fname.endswith(".pt"):
+                return os.path.getsize(os.path.join(ckpt_dir, fname))
+    raise FileNotFoundError(
+        f"no existing checkpoint matching architecture dm{d_model}/ds{d_state}/L{n_layers} found "
+        f"under {ckpt_dir!r} -- the disk-space gate needs a REAL measured checkpoint size (never an "
+        f"assumed one); run this config's calibration cell (or an actual wave) first.")
+
+
+def projected_ckpt_bytes(n_runs: int, steps: int, ckpt_every: int, ckpt_size_bytes: int) -> int:
+    """n_ckpts formula matches default_timeout_pretrain's own count (steps // ckpt_every + 1 -- one
+    checkpoint per ckpt_every plus the final one at `steps`) -- never a separately-guessed count."""
+    n_ckpts = steps // ckpt_every + 1
+    return n_runs * n_ckpts * ckpt_size_bytes
+
+
+def disk_space_check(ckpt_dir: str, projected_bytes: int, label: str,
+                      safety_factor: float = DISK_SAFETY_FACTOR) -> dict:
+    """Live free-space check on the RESOLVED (symlink-followed) checkpoint directory --
+    os.path.realpath so a symlinked /data mount (this codebase's own checkpoint-off-container-disk
+    convention, CLAUDE.md's HF-cache-symlink lesson) is what's actually measured, never the
+    container-disk mount the out-dir symlink happens to live under. shutil.disk_usage reads LIVE
+    free space (not cached), matching every other gate in this file's own live-not-assumed
+    discipline. `ckpt_dir` need not exist yet (a not-yet-created wave dir reports free_bytes=0 and
+    ok=False rather than raising -- refuse, don't crash)."""
+    import shutil
+    resolved = os.path.realpath(ckpt_dir)
+    free_bytes = shutil.disk_usage(resolved).free if os.path.exists(resolved) else 0
+    required_bytes = int(projected_bytes * safety_factor)
+    return {
+        "label": label, "resolved_ckpt_dir": resolved, "projected_ckpt_bytes": projected_bytes,
+        "safety_factor": safety_factor, "required_bytes": required_bytes, "free_bytes": free_bytes,
+        "ok": os.path.exists(resolved) and free_bytes >= required_bytes,
+    }
+
+
 def wave23_manifest(rung: int, steps: int) -> list[dict]:
     """sec 5.6 AMENDMENT (Rev 2.1) item 1: rung 2 is now "2 corpora x 3 seeds" (6 runs), rung 3
     stays "2 corpora x 1 seed" as registered -- WAVE23_SEEDS_BY_RUNG[rung] selects the per-rung seed
@@ -749,11 +877,12 @@ def wave23_manifest(rung: int, steps: int) -> list[dict]:
 
 
 def gate_and_run_wave23(rung: int, args) -> None:
-    """The full (a)-(e) gate chain for a real --wave {2,3} launch (module docstring). Every check
+    """The full (a)-(f) gate chain for a real --wave {2,3} launch (module docstring). Every check
     below EXITS non-zero on failure with the design's own registered remedy -- there is no silent
     proceed path. Mirrors --wave 1's calibration.json/--rungN-steps gate exactly for (a)/(b), then
-    ADDS (c) memory headroom, (d) epoch cap, (e) budget guard -- all three genuinely new
-    requirements at rung 2/3's scale (module docstring's top-of-file rationale)."""
+    ADDS (c) memory headroom, (d) epoch cap, (e) budget guard, and (f) the disk-space check (this
+    build, 2026-07-04 launch-audit FATAL) -- all four genuinely new requirements at rung 2/3's scale
+    (module docstring's top-of-file rationale)."""
     calibration_json_path = os.path.join(args.out_dir, "calibration.json")
     timing_key = WAVE_TIMING_KEY[rung]
     steps = getattr(args, f"rung{rung}_steps")
@@ -842,6 +971,26 @@ def gate_and_run_wave23(rung: int, args) -> None:
     out_dir = os.path.join(args.out_dir, f"wave{rung}")
     os.makedirs(out_dir, exist_ok=True)
 
+    # (f) disk-space check (NEW GATE, 2026-07-04 launch-audit FATAL -- module docstring): ckpt size
+    # measured from this rung's OWN calibration checkpoint (already on disk -- gate (a) guarantees
+    # calibration completed for this rung) against free bytes on the RESOLVED wave-{rung} ckpt dir.
+    calib_ckpt_dir = os.path.realpath(_ckpt_dir(os.path.join(args.out_dir, "calibration")))
+    try:
+        ckpt_size = find_ckpt_size_bytes(calib_ckpt_dir, cfg["d_model"], cfg["d_state"], cfg["n_layers"])
+    except FileNotFoundError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(7)
+    projected_bytes = projected_ckpt_bytes(len(manifest), manifest[0]["steps"], manifest[0]["ckpt_every"],
+                                            ckpt_size)
+    disk_report = disk_space_check(_ckpt_dir(out_dir), projected_bytes, f"wave {rung}")
+    print(f"Disk-space check for wave {rung}: {disk_report}", flush=True)
+    if not disk_report["ok"]:
+        print(f"ERROR: disk-space check FAILED for wave {rung} -- refusing to launch (need "
+              f"{disk_report['required_bytes']:,} bytes free at {DISK_SAFETY_FACTOR}x safety margin, "
+              f"have {disk_report['free_bytes']:,} under {disk_report['resolved_ckpt_dir']}). Free up "
+              f"space first.", file=sys.stderr)
+        sys.exit(7)
+
     def timeout_fn(spec):
         c = timing[timing_key]
         return default_timeout_pretrain(spec["steps"], spec["ckpt_every"],
@@ -877,12 +1026,13 @@ def mixcontrol_manifest(steps: int) -> list[dict]:
 
 def gate_and_run_mixcontrol(args) -> None:
     """The gate chain for a real --wave mixcontrol launch, mirroring gate_and_run_wave23's (a)/(c)/
-    (d)/(e) chain (module docstring's "LEARNED FROM WAVE 1'S OWN HISTORY" paragraph applies here
+    (d)/(e)/(f) chain (module docstring's "LEARNED FROM WAVE 1'S OWN HISTORY" paragraph applies here
     too -- a gate with nothing behind it is a no-op). (b)'s --rungN-steps analog does not apply:
     this wave reuses Wave 1's own --control-steps flag/default (default_control_steps()), matching
     the amendment's "control-length steps" wording exactly -- no new step-count flag is introduced.
     Keyed to the 'control' calibration/timing cell (already banked in Wave 1's calibration.json --
-    no new calibration is required before this wave can gate open)."""
+    no new calibration is required before this wave can gate open). (f) the disk-space check (this
+    build, 2026-07-04 launch-audit FATAL) is additive on top of the original (a)/(c)/(d)/(e) chain."""
     calibration_json_path = os.path.join(args.out_dir, "calibration.json")
 
     # (a) calibration.json must exist and carry the control config's timing constants.
@@ -955,6 +1105,30 @@ def gate_and_run_mixcontrol(args) -> None:
     out_dir = os.path.join(args.out_dir, "mixcontrol")
     os.makedirs(out_dir, exist_ok=True)
 
+    # (f) disk-space check (NEW GATE, 2026-07-04 launch-audit FATAL -- module docstring): ckpt size
+    # measured from the control config's OWN calibration checkpoint (already on disk -- gate (a)
+    # guarantees calibration completed for 'control') against free bytes on the RESOLVED mixcontrol
+    # ckpt dir. Additive even though mixcontrol has already completed this session -- a resume-only
+    # re-invocation still exercises this check (this codebase's own "don't skip the gate just because
+    # it will trivially pass" convention, restated for (d) above).
+    calib_ckpt_dir = os.path.realpath(_ckpt_dir(os.path.join(args.out_dir, "calibration")))
+    try:
+        ckpt_size = find_ckpt_size_bytes(calib_ckpt_dir, CONTROL_CFG["d_model"], CONTROL_CFG["d_state"],
+                                          CONTROL_CFG["n_layers"])
+    except FileNotFoundError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(7)
+    projected_bytes = projected_ckpt_bytes(len(manifest), manifest[0]["steps"], manifest[0]["ckpt_every"],
+                                            ckpt_size)
+    disk_report = disk_space_check(_ckpt_dir(out_dir), projected_bytes, "wave mixcontrol")
+    print(f"Disk-space check for mixcontrol: {disk_report}", flush=True)
+    if not disk_report["ok"]:
+        print(f"ERROR: disk-space check FAILED for mixcontrol -- refusing to launch (need "
+              f"{disk_report['required_bytes']:,} bytes free at {DISK_SAFETY_FACTOR}x safety margin, "
+              f"have {disk_report['free_bytes']:,} under {disk_report['resolved_ckpt_dir']}). Free up "
+              f"space first.", file=sys.stderr)
+        sys.exit(7)
+
     def timeout_fn(spec):
         c = timing["control"]
         return default_timeout_pretrain(spec["steps"], spec["ckpt_every"],
@@ -964,6 +1138,156 @@ def gate_and_run_mixcontrol(args) -> None:
           f"corpora x {len(SEEDS)} seeds). Timing constants from {calibration_json_path} "
           f"(margin {LAUNCH_TIMEOUT_MARGIN}x): {json.dumps(timing['control'], indent=2)}", flush=True)
     all_done = _run_wave("mixcontrol", manifest, out_dir, args, is_done_cell, build_cmd_cell, timeout_fn)
+    sys.exit(0 if all_done else 1)
+
+
+# ---------------------------------------------------------------------------
+# wave 1ext (SCALE_TRANSFER_DESIGN.md sec 5.6 amendment Rev 2.1 item 3, "A rung-1 repeat on the
+# extended mixes ... is QUEUED as a follow-up wave ... before any pure-scale attribution claim is
+# made at rung 2", NEW THIS BUILD): RUNG_CFG (Wave 1's own rung-1 architecture, UNCHANGED) retrained
+# on WAVE23_CORPORA (the extended mixes rung 2/3 train on) x 3 seeds = 6 cells, at EXACTLY Wave 1's
+# own closed rung-1 step count (WAVE1_RUNG1_STEPS) -- holding steps/batch/architecture/ckpt_every
+# fixed and varying ONLY the mix isolates the mix axis from the rung-1-vs-rung-2 comparison, exactly
+# the way MAJOR-5's original control isolated it at Wave-C scale. No control cell here -- the
+# mixcontrol wave (already closed, Rev 2.1 item 3's OTHER new wave) already covers the
+# control-at-extended-mixes leg; a second one here would be redundant spend.
+# ---------------------------------------------------------------------------
+
+def wave1ext_manifest(steps: int) -> list[dict]:
+    """Shared by --dry-run's preview and the real --wave 1ext launch (wave1_manifest's own
+    preview/launch-parity discipline, restated here). `steps` MUST equal WAVE1_RUNG1_STEPS for a
+    real launch (enforced in gate_and_run_wave1ext, not here -- this builder stays a pure function,
+    same pattern as wave23_manifest/mixcontrol_manifest, so the dry-run preview can show ANY value
+    without a gate function's side effects)."""
+    return make_manifest("w1ext_rung1", RUNG_CFG, WAVE23_CORPORA, SEEDS, steps, 1000)
+
+
+def gate_and_run_wave1ext(args) -> None:
+    """The full gate chain for a real --wave 1ext launch, mirroring gate_and_run_wave23's (a)-(f)
+    chain (module docstring's "LEARNED FROM WAVE 1'S OWN HISTORY" paragraph applies here too -- a
+    gate with nothing behind it is a no-op). Keyed to the ALREADY-BANKED 'rung1'/'calib_rung1'
+    calibration cells (Wave 1's own -- no new calibration needed). (b) is STRICTER than wave23's:
+    --rung1-steps is not just required, it must EQUAL WAVE1_RUNG1_STEPS exactly -- this wave's
+    entire reason to exist is holding steps fixed while varying the mix; a mismatched value would
+    silently reintroduce the very confound sec 5.6's amendment registers this wave to remove, so
+    there is NO --accept-budget-override-style escape hatch for this specific check."""
+    calibration_json_path = os.path.join(args.out_dir, "calibration.json")
+
+    # (a) calibration.json must exist and carry rung-1's timing constants (already banked, Wave 1).
+    if not os.path.exists(calibration_json_path):
+        print(f"ERROR: {calibration_json_path} not found -- sec 9's own hard rule: 'No track's Wave "
+              f"1+ manifest is authorized to launch ... without first recording its Wave -1 measured "
+              f"numbers.' Run --wave calibration first.", file=sys.stderr)
+        sys.exit(2)
+    with open(calibration_json_path) as f:
+        calib = json.load(f)
+    timing = calib.get("timing_constants") or {}
+    if "rung1" not in timing:
+        print(f"ERROR: {calibration_json_path} has no timing_constants['rung1'] -- rerun "
+              f"--wave calibration --calib-rungs 1 (two-point method) so rung-1's per_step_s/"
+              f"per_ckpt_s are populated before a real --wave 1ext launch.", file=sys.stderr)
+        sys.exit(2)
+
+    # (b) --rung1-steps is REQUIRED and must equal WAVE1_RUNG1_STEPS EXACTLY -- a comparability
+    # requirement, not a budget guard, so there is no override flag for this specific check.
+    if args.rung1_steps is None:
+        print(f"ERROR: --rung1-steps is REQUIRED for a real --wave 1ext launch and MUST equal "
+              f"{WAVE1_RUNG1_STEPS} (wave-1's own closed rung-1 step count, sec 5.9) -- pass "
+              f"--rung1-steps {WAVE1_RUNG1_STEPS} explicitly.", file=sys.stderr)
+        sys.exit(2)
+    if args.rung1_steps != WAVE1_RUNG1_STEPS:
+        print(f"ERROR: --rung1-steps={args.rung1_steps} does not equal wave-1's own rung-1 step "
+              f"count ({WAVE1_RUNG1_STEPS}, sec 5.9) -- --wave 1ext's ENTIRE purpose (sec 5.6 "
+              f"amendment item 3) is a same-steps repeat on the extended mixes so the rung-1-vs-"
+              f"rung-2 comparison holds data fixed; any other value defeats it. Pass --rung1-steps "
+              f"{WAVE1_RUNG1_STEPS} exactly -- there is no override for this check.", file=sys.stderr)
+        sys.exit(2)
+    steps = args.rung1_steps
+
+    # (c) memory headroom, recomputed LIVE from calibration.json's own recorded peak-memory cells for
+    # calib_rung1 -- same architecture as Wave 1's own rung-1 cells (only the corpus differs, and
+    # memory headroom is a function of batch/shape/architecture, not corpus content).
+    mem_reports = []
+    for pt in ("ptA", "ptB"):
+        cell_key = cell_name(f"calib_rung1_{pt}", "openr1-mix", 0, RUNG_CFG)
+        cell = (calib.get("cells") or {}).get(cell_key)
+        if cell and cell.get("status") == "complete":
+            mem_reports.append(memory_headroom_report(
+                cell["peak_memory_allocated_gb"] * 1e9, cell["peak_memory_reserved_gb"] * 1e9, cell_key))
+    if not mem_reports:
+        print(f"ERROR: no COMPLETE calibration memory readouts found for rung 1 in "
+              f"{calibration_json_path} -- the memory-headroom check is a blocking Wave -1 item "
+              f"(module docstring's 'Batch sizing' paragraph), not optional. Run --wave calibration "
+              f"--calib-rungs 1 first.", file=sys.stderr)
+        sys.exit(2)
+    bad_mem = [r for r in mem_reports if not r["within_safe_headroom"]]
+    if bad_mem:
+        print(f"ERROR: memory-headroom check FAILED for wave 1ext: {bad_mem} -- BATCH_SIZE_BY_RUNG[1] "
+              f"(currently {BATCH_SIZE_BY_RUNG[1]}) must be lowered and rung 1 re-calibrated before a "
+              f"real launch.", file=sys.stderr)
+        sys.exit(2)
+    print(f"Memory headroom OK for wave 1ext (batch={BATCH_SIZE_BY_RUNG[1]}): {mem_reports}", flush=True)
+
+    manifest = wave1ext_manifest(steps)
+
+    # (d) epoch cap, BOTH extended mix corpora, at rung-1's step count -- will trivially pass (rung-1's
+    # own token budget is far below the extended mixes' <=5-epoch ceiling, sized for rung 2's much
+    # larger 1.5B-token/run target), but the gate STILL RUNS (this codebase's "don't skip it" convention).
+    planned_tokens = steps * BATCH_SIZE_BY_RUNG[1] * SEQ_LEN
+    epoch_reports = [epoch_cap_check(args.data_dir, c, planned_tokens) for c in WAVE23_CORPORA]
+    failing = [r for r in epoch_reports if not r["ok"]]
+    if failing:
+        print("=" * 70, file=sys.stderr)
+        print("EPOCH-CAP CHECK FAILED for wave 1ext (sec 5.4: '<=5-physical-epoch' discipline on "
+              "each mix's base corpus):", file=sys.stderr)
+        for r in failing:
+            print(f"  corpus={r['corpus']!r}: planned {r['planned_tokens']:,} tokens > ceiling "
+                  f"{r['epoch_cap_ceiling_tokens']:,} (= {r['epoch_cap']} x mix train_tokens "
+                  f"{r['mix_train_tokens']:,}, read live from {r['meta_path']})", file=sys.stderr)
+        print("=" * 70, file=sys.stderr)
+        sys.exit(6)
+    print(f"Epoch-cap check OK for wave 1ext: {epoch_reports}", flush=True)
+
+    # (e) program-wide GPU-h budget guard -- printed and gated BEFORE launch, per the task brief.
+    projected = projected_gpu_hours(manifest, timing["rung1"])
+    budget_guard(projected, "wave 1ext", args.accept_budget_override)
+
+    out_dir = os.path.join(args.out_dir, "wave1ext")
+    os.makedirs(out_dir, exist_ok=True)
+
+    # (f) disk-space check (NEW GATE, 2026-07-04 launch-audit FATAL -- module docstring): ckpt size
+    # measured from an EXISTING wave-1 checkpoint file (SAME architecture as this wave, RUNG_CFG --
+    # only the corpus differs, and checkpoint size is corpus-invariant) against free bytes on the
+    # RESOLVED wave-1ext checkpoint dir (pre-created + symlinked to /data before this wave can gate
+    # open, module docstring / build brief item 3).
+    wave1_ckpt_dir = os.path.realpath(_ckpt_dir(os.path.join(args.out_dir, "wave1")))
+    try:
+        ckpt_size = find_ckpt_size_bytes(wave1_ckpt_dir, RUNG_CFG["d_model"], RUNG_CFG["d_state"],
+                                          RUNG_CFG["n_layers"])
+    except FileNotFoundError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(7)
+    projected_bytes = projected_ckpt_bytes(len(manifest), manifest[0]["steps"], manifest[0]["ckpt_every"],
+                                            ckpt_size)
+    disk_report = disk_space_check(_ckpt_dir(out_dir), projected_bytes, "wave 1ext")
+    print(f"Disk-space check for wave 1ext: {disk_report}", flush=True)
+    if not disk_report["ok"]:
+        print(f"ERROR: disk-space check FAILED for wave 1ext -- refusing to launch (need "
+              f"{disk_report['required_bytes']:,} bytes free at {DISK_SAFETY_FACTOR}x safety margin, "
+              f"have {disk_report['free_bytes']:,} under {disk_report['resolved_ckpt_dir']}). Free up "
+              f"space first, or verify /data/lm_rd_trackc_ckpts/wave1ext was pre-created and symlinked "
+              f"as results/lm_rd_trackc/wave1ext/checkpoints.", file=sys.stderr)
+        sys.exit(7)
+
+    def timeout_fn(spec):
+        c = timing["rung1"]
+        return default_timeout_pretrain(spec["steps"], spec["ckpt_every"],
+                                         c["per_step_s"], c["per_ckpt_s"], margin=LAUNCH_TIMEOUT_MARGIN)
+
+    print(f"WAVE 1ext REAL LAUNCH: {len(manifest)} runs ({steps} steps x {len(WAVE23_CORPORA)} "
+          f"corpora x {len(SEEDS)} seeds). Timing constants from {calibration_json_path} "
+          f"(margin {LAUNCH_TIMEOUT_MARGIN}x): {json.dumps(timing['rung1'], indent=2)}", flush=True)
+    all_done = _run_wave("1ext", manifest, out_dir, args, is_done_cell, build_cmd_cell, timeout_fn)
     sys.exit(0 if all_done else 1)
 
 
@@ -1143,19 +1467,27 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out-dir", default=os.path.join(HERE, "results/lm_rd_trackc"))
     ap.add_argument("--data-dir", default="/data/deltanet_rd_data")
-    ap.add_argument("--wave", choices=["calibration", "1", "2", "3", "4", "mixcontrol"], default=None,
+    ap.add_argument("--wave", choices=["calibration", "1", "1ext", "2", "3", "4", "mixcontrol"],
+                     default=None,
                      help="REQUIRED unless --dry-run. 'calibration' (Wave -1) MAY be launched any "
                           "time (cheap, <2 GPU-h per rung; --calib-rungs selects which); '1' is "
                           "CLOSED (sec 5.9 -- already ran to completion; behavior unchanged by this "
-                          "build); '2'/'3' are gated on an existing calibration.json + "
-                          "--rung{2,3}-steps + a passing memory-headroom/epoch-cap/budget-guard "
-                          "chain (trackC-rung23-build; rung 2 is now 3 seeds/corpus and rungs 2/3 "
-                          "train on the EXTENDED mixes, sec 5.6 amendment Rev 2.1; see module "
-                          "docstring); 'mixcontrol' (Rev 2.1 amendment item 3, NEW) retrains "
+                          "build); '1ext' (sec 5.6 amendment Rev 2.1 item 3's queued follow-up wave, "
+                          "NEW THIS BUILD) retrains RUNG_CFG on the extended mixes x 3 seeds at "
+                          "EXACTLY wave-1's own closed rung-1 step count (--rung1-steps is VALIDATED "
+                          "to equal WAVE1_RUNG1_STEPS, refused otherwise -- no override), gated on "
+                          "the (a)/(c)/(d)/(e)/(f) chain keyed to the already-banked 'rung1' "
+                          "calibration cell; '2'/'3' are gated on an existing calibration.json + "
+                          "--rung{2,3}-steps + a passing memory-headroom/epoch-cap/budget-guard/"
+                          "disk-space chain (trackC-rung23-build; rung 2 is now 3 seeds/corpus and "
+                          "rungs 2/3 train on the EXTENDED mixes, sec 5.6 amendment Rev 2.1; see "
+                          "module docstring); 'mixcontrol' (Rev 2.1 amendment item 3) retrains "
                           "CONTROL_CFG on the extended mixes x 3 seeds, gated on the same (a)/(c)/"
-                          "(d)/(e) chain keyed to the already-banked 'control' calibration cell; "
-                          "'4' is ALWAYS refused (Track B's own NO-LAUNCH gates it out, sec 5.5 "
-                          "item 3).")
+                          "(d)/(e)/(f) chain keyed to the already-banked 'control' calibration cell "
+                          "(ALREADY RAN TO COMPLETION); '4' is ALWAYS refused (Track B's own "
+                          "NO-LAUNCH gates it out, sec 5.5 item 3). '(f)' on '2'/'3'/'mixcontrol'/"
+                          "'1ext' is the NEW disk-space gate (this build, 2026-07-04 launch-audit "
+                          "FATAL).")
     ap.add_argument("--gpus", type=int, default=None, help="GPU COUNT. REQUIRED for a real launch, "
                                                               "NO DEFAULT -- check nvidia-smi first.")
     ap.add_argument("--gpu-offset", type=int, default=None, help="first physical GPU index. REQUIRED "
@@ -1229,6 +1561,57 @@ def main():
               f"{len(MIX_CORPORA)} corpora x {len(SEEDS)} seeds, control {control_steps} steps x "
               f"{len(MIX_CORPORA)} x {len(SEEDS)}. Wave-1 timeout wiring status: {timing_status}")
 
+        # sec 5.6 amendment (Rev 2.1) item 3's queued follow-up wave, NEW THIS BUILD: --wave 1ext
+        # preview, same launch-parity discipline as every wave above -- wave1ext_manifest is the
+        # SAME function gate_and_run_wave1ext calls for a real launch. Always previewed at
+        # WAVE1_RUNG1_STEPS (not a placeholder -- the whole point is that value is FIXED), with a
+        # note if --rung1-steps was passed and doesn't match (dry-run never sys.exit()s on this).
+        w1ext_m = wave1ext_manifest(WAVE1_RUNG1_STEPS)
+        rung1_timing_status = (f"WIRED: {timing['rung1']}" if "rung1" in timing
+                                else "NOT calibrated yet (run --wave calibration)")
+        rung1_mismatch_note = ""
+        if args.rung1_steps is not None and args.rung1_steps != WAVE1_RUNG1_STEPS:
+            rung1_mismatch_note = (f" NOTE: --rung1-steps={args.rung1_steps} was passed but a REAL "
+                                    f"--wave 1ext launch REQUIRES exactly {WAVE1_RUNG1_STEPS} "
+                                    f"(refused otherwise -- no override for this check).")
+        print(f"\nwave 1ext: {len(w1ext_m)} runs -- RUNG_CFG {WAVE1_RUNG1_STEPS} steps (MUST match "
+              f"wave-1's own closed rung-1 step count exactly, sec 5.9/sec 5.6 amendment item 3) x "
+              f"{len(WAVE23_CORPORA)} extended-mix corpora x {len(SEEDS)} seeds, batch="
+              f"{BATCH_SIZE_BY_RUNG[1]} -- real launch requires (a) calibration.json's "
+              f"timing_constants['rung1'] (already banked from Wave 1), (b) --rung1-steps=="
+              f"{WAVE1_RUNG1_STEPS} exactly (no override), (c) a passing memory-headroom readout "
+              f"(calib_rung1 cells, already banked), (d) a passing epoch-cap check on both "
+              f"extended-mix corpora (trivially passes at rung-1's token count, but not skipped), "
+              f"(e) the sec-7 budget guard, (f) the new disk-space check ({DISK_SAFETY_FACTOR}x "
+              f"projected checkpoint bytes free on the resolved checkpoint dir). Timing wiring "
+              f"status: {rung1_timing_status}.{rung1_mismatch_note}")
+        if "rung1" in timing:
+            w1ext_projected = projected_gpu_hours(w1ext_m, timing["rung1"])
+            print(f"  projected GPU-h at these steps: {w1ext_projected:.2f} (cumulative with "
+                  f"PROGRAM_SPENT_GPUH: {PROGRAM_SPENT_GPUH + w1ext_projected:.2f} / "
+                  f"{GPU_H_PROGRAM_CEILING:.0f})")
+        for corpus in WAVE23_CORPORA:
+            try:
+                rep = epoch_cap_check(args.data_dir, corpus,
+                                       WAVE1_RUNG1_STEPS * BATCH_SIZE_BY_RUNG[1] * SEQ_LEN)
+                print(f"  epoch-cap[{corpus}]: planned {rep['planned_tokens']:,} tokens vs. "
+                      f"ceiling {rep['epoch_cap_ceiling_tokens']:,} -- "
+                      f"{'OK' if rep['ok'] else 'WOULD REFUSE (pull more augmentation first)'}")
+            except FileNotFoundError:
+                print(f"  epoch-cap[{corpus}]: meta.json not found under --data-dir {args.data_dir!r} "
+                      f"(preview only reachable on-box)")
+        try:
+            wave1_ckpt_dir = os.path.realpath(_ckpt_dir(os.path.join(args.out_dir, "wave1")))
+            ckpt_size = find_ckpt_size_bytes(wave1_ckpt_dir, RUNG_CFG["d_model"], RUNG_CFG["d_state"],
+                                              RUNG_CFG["n_layers"])
+            projected_bytes = projected_ckpt_bytes(len(w1ext_m), w1ext_m[0]["steps"],
+                                                    w1ext_m[0]["ckpt_every"], ckpt_size)
+            wave1ext_ckpt_dir = os.path.join(args.out_dir, "wave1ext", "checkpoints")
+            disk_report = disk_space_check(wave1ext_ckpt_dir, projected_bytes, "wave 1ext")
+            print(f"  disk-space check preview: {disk_report}")
+        except FileNotFoundError as e:
+            print(f"  disk-space check preview: not reachable off-box ({e})")
+
         for rung in (2, 3):
             placeholder_steps = default_rung23_steps_placeholder(rung)
             steps_arg = getattr(args, f"rung{rung}_steps")
@@ -1248,8 +1631,9 @@ def main():
                   f"timing_constants[{key!r}], (b) --rung{rung}-steps, (c) a passing memory-headroom "
                   f"readout, (d) a passing epoch-cap check on both extended-mix corpora, (e) the sec-7 "
                   f"budget guard (PROGRAM_SPENT_GPUH={PROGRAM_SPENT_GPUH} + projected <= "
-                  f"{GPU_H_PROGRAM_CEILING} GPU-h, else --accept-budget-override). "
-                  f"Timing wiring status: {wave_timing_status}")
+                  f"{GPU_H_PROGRAM_CEILING} GPU-h, else --accept-budget-override), (f) the disk-space "
+                  f"check ({DISK_SAFETY_FACTOR}x projected checkpoint bytes free on the resolved "
+                  f"checkpoint dir). Timing wiring status: {wave_timing_status}")
             if key in timing:
                 projected = projected_gpu_hours(w_m, timing[key])
                 print(f"  projected GPU-h at these steps: {projected:.2f} (cumulative with "
@@ -1264,6 +1648,16 @@ def main():
                 except FileNotFoundError:
                     print(f"  epoch-cap[{corpus}]: meta.json not found under --data-dir {args.data_dir!r} "
                           f"(preview only reachable on-box)")
+            try:
+                calib_ckpt_dir = os.path.realpath(_ckpt_dir(os.path.join(args.out_dir, "calibration")))
+                cfg = WAVE_RUNG_CFGS[rung]
+                ckpt_size = find_ckpt_size_bytes(calib_ckpt_dir, cfg["d_model"], cfg["d_state"], cfg["n_layers"])
+                projected_bytes = projected_ckpt_bytes(len(w_m), w_m[0]["steps"], w_m[0]["ckpt_every"], ckpt_size)
+                disk_report = disk_space_check(os.path.join(args.out_dir, f"wave{rung}", "checkpoints"),
+                                                projected_bytes, f"wave {rung}")
+                print(f"  disk-space check preview: {disk_report}")
+            except FileNotFoundError as e:
+                print(f"  disk-space check preview: not reachable off-box ({e})")
 
         # sec 5.6 amendment (Rev 2.1) item 3, NEW: --wave mixcontrol preview, same launch-parity
         # discipline as waves 2/3 above -- reuses Wave 1's own control_steps (computed above) so the
@@ -1277,7 +1671,7 @@ def main():
               f"calibration.json's timing_constants['control'] (already banked from Wave 1), (c) a "
               f"passing memory-headroom readout, (d) a passing epoch-cap check on both extended-mix "
               f"corpora (trivially passes at control-length steps, but not skipped), (e) the sec-7 "
-              f"budget guard. Timing wiring status: {mixc_timing_status}")
+              f"budget guard, (f) the disk-space check. Timing wiring status: {mixc_timing_status}")
         if "control" in timing:
             mixc_projected = projected_gpu_hours(mixc_m, timing["control"])
             print(f"  projected GPU-h at these steps: {mixc_projected:.2f} (cumulative with "
@@ -1292,6 +1686,17 @@ def main():
             except FileNotFoundError:
                 print(f"  epoch-cap[{corpus}]: meta.json not found under --data-dir {args.data_dir!r} "
                       f"(preview only reachable on-box)")
+        try:
+            calib_ckpt_dir = os.path.realpath(_ckpt_dir(os.path.join(args.out_dir, "calibration")))
+            ckpt_size = find_ckpt_size_bytes(calib_ckpt_dir, CONTROL_CFG["d_model"], CONTROL_CFG["d_state"],
+                                              CONTROL_CFG["n_layers"])
+            projected_bytes = projected_ckpt_bytes(len(mixc_m), mixc_m[0]["steps"], mixc_m[0]["ckpt_every"],
+                                                    ckpt_size)
+            disk_report = disk_space_check(os.path.join(args.out_dir, "mixcontrol", "checkpoints"),
+                                            projected_bytes, "wave mixcontrol")
+            print(f"  disk-space check preview: {disk_report}")
+        except FileNotFoundError as e:
+            print(f"  disk-space check preview: not reachable off-box ({e})")
 
         trackb = _trackb_gate_status(args.trackb_gate_json)
         print(f"\nwave 4 (fix-effect / geo3-at-scale): ALWAYS REFUSED. Track B gate status: {trackb}")
@@ -1361,6 +1766,12 @@ def main():
         # waves 2/3 above -- gate_and_run_mixcontrol always sys.exit()s.
         gate_and_run_mixcontrol(args)
         return  # unreachable; keeps main() honest, matching the wave-2/3 convention above
+
+    if args.wave == "1ext":
+        # sec 5.6 amendment (Rev 2.1) item 3's queued follow-up wave, NEW THIS BUILD: same "verified
+        # by direct re-read" discipline as every wave above -- gate_and_run_wave1ext always sys.exit()s.
+        gate_and_run_wave1ext(args)
+        return  # unreachable; keeps main() honest, matching every other wave's convention above
 
     # --wave 1 (trackC-audit finding #1: this used to be an unconditional `sys.exit(4)` after the
     # two checks below -- no manifest was ever built and no run was ever launchable, regardless of
