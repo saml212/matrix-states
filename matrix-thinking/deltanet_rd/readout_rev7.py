@@ -44,6 +44,22 @@ Usage:
   python readout_rev7.py --out-dir results/deltanet_rd_exactness
       # reads <out-dir>/waveref/BANDS_PINNED.json + <out-dir>/wavekeyanchor-mech/*.json
       # + REV7_THRESHOLD_PINNED.json (repo-relative, not under --out-dir)
+
+  python readout_rev7.py --out-dir results/deltanet_rd_exactness --manifest keyanchor-k48
+      # KEY_ANCHORING_DESIGN.md sec 11 (Rev K48.1, 2026-07 K48+e build):
+      # reads <out-dir>/wavekeyanchor-k48-ref/BANDS_PINNED_K48.json (sec
+      # 11.1.1's own SEPARATE, non-gating-for-this-readout bands file --
+      # this script's OWN engagement test never depends on it, sec 10.3.3's
+      # zero-data-dependency property, unaffected by K) +
+      # <out-dir>/wavekeyanchor-k48/*.json (keyanchor_k48_manifest()'s own
+      # cells). The REV7_THRESHOLD_PINNED.json pin itself is K-independent
+      # (sec 11.1.1, verified) -- the SAME pin gates this readout at any K.
+
+  python readout_rev7.py --out-dir results/deltanet_rd_exactness --manifest keyanchor-e
+      # reads <out-dir>/wavekeyanchor-e/*.json (keyanchor_e_manifest()'s
+      # own 3 candidate-(e) cells) against the EXISTING K=16/32
+      # BANDS_PINNED.json (candidate (e) is K=32, sec 3.6 applies
+      # unchanged -- no K48-style separate bands file for this wave).
 """
 from __future__ import annotations
 
@@ -78,18 +94,48 @@ def main() -> int:
                      default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                            "results/deltanet_rd_exactness"),
                      help="the sweep's --out-dir; this script reads waveref/BANDS_PINNED.json "
-                          "and wavekeyanchor-mech/*.json under it.")
+                          "and wavekeyanchor-mech/*.json under it (or the --manifest-selected "
+                          "equivalents).")
+    ap.add_argument("--manifest", choices=["keyanchor-mech", "keyanchor-k48", "keyanchor-e"],
+                     default="keyanchor-mech",
+                     help="which wave's result JSONs to read (2026-07 K48+e build addition) -- "
+                          "'keyanchor-mech' (default, unchanged): wavekeyanchor-mech/*.json + "
+                          "waveref/BANDS_PINNED.json. 'keyanchor-k48' (sec 11): "
+                          "wavekeyanchor-k48/*.json + wavekeyanchor-k48-ref/BANDS_PINNED_K48.json "
+                          "(a SEPARATE, non-gating-for-this-script bands file, sec 11.1.1). "
+                          "'keyanchor-e' (sec 10.13): wavekeyanchor-e/*.json + waveref/"
+                          "BANDS_PINNED.json (reuses the EXISTING K=16/32 gate -- candidate (e) is "
+                          "K=32, sec 3.6 applies unchanged).")
     args = ap.parse_args()
 
-    from run_deltanet_rd_exactness_sweep import (keyanchor_ceiling_by_k, keyanchor_mech_manifest,
-                                                   out_path)
+    from run_deltanet_rd_exactness_sweep import (keyanchor_ceiling_by_k, keyanchor_k48_ceiling_by_k,
+                                                   keyanchor_mech_manifest, keyanchor_k48_manifest,
+                                                   keyanchor_e_manifest, out_path)
 
-    ref_dir = os.path.join(args.out_dir, "waveref")
-    mech_dir = os.path.join(args.out_dir, "wavekeyanchor-mech")
-    bp_path = os.path.join(ref_dir, "BANDS_PINNED.json")
+    # sec 11/sec 10.13 build addition: select the result directory,
+    # manifest function, and bands-file/ceiling-dict pair by --manifest --
+    # defaults reproduce the ORIGINAL hardcoded behavior exactly (never a
+    # behavior change for the existing 'keyanchor-mech' readout).
+    _MANIFEST_CONFIG = {
+        "keyanchor-mech": {"result_dir": "wavekeyanchor-mech", "bands_dir": "waveref",
+                             "bands_file": "BANDS_PINNED.json", "manifest_fn": keyanchor_mech_manifest,
+                             "ceiling_by_k": keyanchor_ceiling_by_k()},
+        "keyanchor-k48": {"result_dir": "wavekeyanchor-k48", "bands_dir": "wavekeyanchor-k48-ref",
+                            "bands_file": "BANDS_PINNED_K48.json", "manifest_fn": keyanchor_k48_manifest,
+                            "ceiling_by_k": keyanchor_k48_ceiling_by_k()},
+        "keyanchor-e": {"result_dir": "wavekeyanchor-e", "bands_dir": "waveref",
+                          "bands_file": "BANDS_PINNED.json", "manifest_fn": keyanchor_e_manifest,
+                          "ceiling_by_k": keyanchor_ceiling_by_k()},
+    }
+    sel = _MANIFEST_CONFIG[args.manifest]
+    keyanchor_mech_manifest = sel["manifest_fn"]   # shadowed for the unchanged code below
+    ref_dir = os.path.join(args.out_dir, sel["bands_dir"])
+    mech_dir = os.path.join(args.out_dir, sel["result_dir"])
+    bp_path = os.path.join(ref_dir, sel["bands_file"])
 
     print("=" * 70)
-    print("KEY_ANCHORING_DESIGN.md sec 10 (Rev 7.1) -- keyanchor-mech readout")
+    print(f"KEY_ANCHORING_DESIGN.md -- {args.manifest} readout "
+          f"(result_dir={sel['result_dir']}, bands_file={sel['bands_file']})")
     print("=" * 70)
 
     # -- leg (ii)/(iii): the Rev-7.1 pin, validated before any r_e number is read --
@@ -106,10 +152,11 @@ def main() -> int:
           f"r_min_partial={pin_derived['effect_size_floors']['r_min_partial_band']}  "
           f"r_min_headline={pin_derived['effect_size_floors']['r_min_headline_band']}")
 
-    # -- the EXISTING sec 3.6 BANDS_PINNED gate, reused (informational for
-    # this wave) -- now with the e633862-audit-F2 content re-derivation and
-    # the registered-ceiling cross-check.
-    bands_doc = ka.validate_bands_pinned(bp_path, ceiling_by_k=keyanchor_ceiling_by_k())
+    # -- the EXISTING sec 3.6 BANDS_PINNED gate (or its K=48-specific
+    # sibling, sec 11.1.1, per --manifest), reused (informational for this
+    # wave) -- now with the e633862-audit-F2 content re-derivation and the
+    # registered-ceiling cross-check.
+    bands_doc = ka.validate_bands_pinned(bp_path, ceiling_by_k=sel["ceiling_by_k"])
     if bands_doc is None:
         print(f"NOTE: {bp_path!r} missing, fails hash validation, or its stored bands do not "
               f"reproduce under live re-derivation (e633862 audit F2) -- sec 3.5 B1/B2 sanity "

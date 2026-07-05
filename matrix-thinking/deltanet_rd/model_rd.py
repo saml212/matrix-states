@@ -89,7 +89,7 @@ from deltanet_core import apply_state_power
 from rank_utils import effective_rank, stable_rank, truncate_to_rank
 from key_anchoring import (ANCHOR_INIT_SEED, LAMBDA_LOG_CADENCE_STEPS, LAMBDA_WINDOW_LOG_POINTS,
                             anchor_blend_gather_scatter, anchor_blend_gather_scatter_per_entity,
-                            frame_potential_init, raw_table_conditioning)
+                            frame_potential_init, random_unit_rows_init, raw_table_conditioning)
 
 # chunk_delta_rule's BACKWARD crashes with a CUDA illegal memory access
 # (inside prepare_wy_repr_bwd_kernel's Triton autotuner) in two measured
@@ -617,7 +617,9 @@ class DeltaNetRDBlock(nn.Module):
                  anchor_active: bool = False, anchor_lambda_mode: str = "learned",
                  anchor_lambda_fixed: float | None = None,
                  anchor_train_ids: torch.Tensor | None = None,
-                 anchor_init_seed: int | None = None):
+                 anchor_init_seed: int | None = None,
+                 anchor_table_frozen: bool = False,
+                 anchor_table_init_mode: str = "frame_potential"):
         """DELTANET_RD_EXACTNESS_DESIGN.md sec 4/4.4/5.5/14 extensions, ALL
         ADDITIVE and OFF BY DEFAULT (embed_source="learned",
         frozen_row_ids=None, strong_pin_ids=None, use_zca=False,
@@ -647,6 +649,28 @@ class DeltaNetRDBlock(nn.Module):
           key_anchoring.anchor_blend_gather_scatter_per_entity. anchor_
           lambda() is NOT valid in this mode (asserts); bind() dispatches
           to the per-entity blend function directly.
+
+        anchor_table_frozen/anchor_table_init_mode (KEY_ANCHORING_DESIGN.md
+          sec 10.13's registered candidate (e), "frozen-random-table
+          ablation"): anchor_table_frozen=True calls
+          self.anchor_table.weight.requires_grad_(False) immediately after
+          construction (the trained ROWS never receive a gradient; held-out
+          rows already never do, sec 3.3's C17 bypass, unaffected either
+          way) -- a minimal, one-line addition to the existing masked
+          gather/scatter/held-out-bypass path, no new mechanism.
+          anchor_table_init_mode selects which construction populates the
+          trained-row block: "frame_potential" (default, candidate (d)'s
+          own tight-frame-minimized init, UNCHANGED) or "random_unit_rows"
+          (candidate (e)'s own registered init -- key_anchoring.
+          random_unit_rows_init, frame_potential_init's own pre-optimization
+          starting point, i.e. seeded random unit rows with NO frame-
+          potential descent -- matching sec 10.13's own candidate-(e) name
+          and sec 10.13.4's motivating text, "a random, FROZEN anchor
+          table," rather than a trained-but-frozen tight frame). Orthogonal
+          to anchor_lambda_mode: candidate (e) is registered at
+          anchor_lambda_mode="fixed" (matched-lambda comparison), but
+          anchor_table_frozen composes with any anchor_lambda_mode in
+          principle (this class does not couple the two).
 
         embed_source: informational only at this layer (recorded into the
           result JSON by run_deltanet_rd.py); the CALLER (embed_arms.py +
@@ -810,19 +834,41 @@ class DeltaNetRDBlock(nn.Module):
                 f"sanity guard: {n_train} trained entities is implausibly large relative to " \
                 f"d_state={d_state} for the frame-potential init (expected ~107 at d_state=64, " \
                 f"sec 2.2) -- check anchor_train_ids before proceeding"
+            assert anchor_table_init_mode in ("frame_potential", "random_unit_rows"), \
+                f"anchor_table_init_mode must be 'frame_potential' or 'random_unit_rows', " \
+                f"got {anchor_table_init_mode!r}"
             seed = anchor_init_seed if anchor_init_seed is not None else ANCHOR_INIT_SEED
-            init_table = frame_potential_init(n_train, d_state, seed=seed)   # (n_train, d_state)
-            cond = raw_table_conditioning(init_table)
-            assert cond["sigma_ratio_pass"] and cond["max_abs_cos_pass"], (
-                f"anchor init FAILED its own Gate-2 construction legs at model-build time "
-                f"(sigma_ratio={cond['sigma_ratio']:.4f}, max_abs_cos={cond['max_abs_cos']:.4f}) -- "
-                f"this should never happen for the registered frame-potential recipe; re-run "
-                f"gate2_construction_test.py before proceeding")
+            if anchor_table_init_mode == "frame_potential":
+                init_table = frame_potential_init(n_train, d_state, seed=seed)   # (n_train, d_state)
+                cond = raw_table_conditioning(init_table)
+                assert cond["sigma_ratio_pass"] and cond["max_abs_cos_pass"], (
+                    f"anchor init FAILED its own Gate-2 construction legs at model-build time "
+                    f"(sigma_ratio={cond['sigma_ratio']:.4f}, max_abs_cos={cond['max_abs_cos']:.4f}) -- "
+                    f"this should never happen for the registered frame-potential recipe; re-run "
+                    f"gate2_construction_test.py before proceeding")
+            else:
+                # candidate (e), sec 10.13: NO frame-potential descent, NO Gate-2
+                # construction check -- the whole point of this arm is a table
+                # that carries no optimized geometric structure at all; gating
+                # it on Gate 2 (a check FOR the frame-potential property) would
+                # be a category error the same way sec 11.4.3 already flagged
+                # for i-strong-as-ceiling-validator.
+                init_table = random_unit_rows_init(n_train, d_state, seed=seed)
             anchor_table_full = torch.zeros(vocab_size_total, d_state)
             anchor_table_full[anchor_train_ids] = init_table
             self.anchor_table = nn.Embedding(vocab_size_total, d_state)
             with torch.no_grad():
                 self.anchor_table.weight.copy_(anchor_table_full)
+            self.anchor_table_frozen = bool(anchor_table_frozen)
+            self.anchor_table_init_mode = anchor_table_init_mode
+            if self.anchor_table_frozen:
+                # candidate (e)'s "frozen" half: the trained-row block never
+                # receives a gradient (held-out rows already never do, sec
+                # 3.3's C17 bypass -- this flag only changes the TRAINED rows'
+                # own status). Smoke-checked directly (no grad reaches
+                # anchor_table.weight after a real backward pass) rather than
+                # merely asserted here.
+                self.anchor_table.weight.requires_grad_(False)
             trained_mask = torch.zeros(vocab_size_total, dtype=torch.bool)
             trained_mask[anchor_train_ids] = True
             self.register_buffer("anchor_trained_mask", trained_mask)
@@ -863,6 +909,8 @@ class DeltaNetRDBlock(nn.Module):
             self.anchor_lambda_raw = None
             self.anchor_lambda_fixed_value = None
             self.anchor_lambda_table = None
+            self.anchor_table_frozen = False
+            self.anchor_table_init_mode = anchor_table_init_mode
 
     def anchor_lambda(self) -> torch.Tensor:
         """Current (scalar) lambda value: sigmoid(raw_param) for 'learned'

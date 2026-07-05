@@ -7,7 +7,12 @@ paragraph).
 Two things this script does, both mandatory:
   1. Runs Gate 2 (G2-a/G2-b/G2-c) on the REGISTERED anchor init (the frozen
      frame-potential table at ANCHOR_INIT_SEED) and asserts it PASSES all
-     three legs -- the actual go/no-go check a real launch would run.
+     three legs -- the actual go/no-go check a real launch would run. G2-c
+     now runs at ks=(16, 32, 48) (KEY_ANCHORING_DESIGN.md sec 11.3/sec
+     11.9 item 15, Rev K48.1's K=48 capacity-curve extension -- a one-line
+     dict/tuple extension, not new gate logic; key_anchoring.py's
+     GATE2_N_ITER_BY_K carries the matching {16:12, 32:20, 48:20}
+     production-tier n_iter).
   2. Runs the PINNED REGRESSION QUADRUPLE (moderate collapse, severe
      collapse, the healthy init, localized collapse) and asserts each
      produces its EXPECTED verdict -- the gate "has teeth" demonstration
@@ -67,7 +72,7 @@ def run() -> bool:
           f"(frame-potential, seed={ka.ANCHOR_INIT_SEED})")
     print("=" * 70)
     healthy = ka.frame_potential_init(107, 64, seed=ka.ANCHOR_INIT_SEED)
-    gate_healthy = ka.gate2_construction_check(healthy, ks=(16, 32), seed=0)
+    gate_healthy = ka.gate2_construction_check(healthy, ks=(16, 32, 48), seed=0)
     print(f"  G2-a sigma_ratio = {gate_healthy['g2a_sigma_ratio']:.4f} "
           f"(>= {ka.GATE2_SIGMA_RATIO_MIN}? {gate_healthy['g2a_pass']})")
     print(f"  G2-b max|cos|    = {gate_healthy['g2b_max_abs_cos']:.4f} "
@@ -99,7 +104,7 @@ def run() -> bool:
 
     # --- moderate collapse (noise_sigma=0.30, seed=42) -- must FAIL both 6a/6b, NS-only PASS ---
     moderate = ka.build_collapsed_table(noise_sigma=0.30, seed=42)
-    g_mod = ka.gate2_construction_check(moderate, ks=(16, 32), seed=0)
+    g_mod = ka.gate2_construction_check(moderate, ks=(16, 32, 48), seed=0)
     print(f"\n[moderate collapse, sigma=0.30, seed=42] G2-a={g_mod['g2a_sigma_ratio']:.4f} "
           f"G2-b={g_mod['g2b_max_abs_cos']:.4f} (expect {EXPECTED_MODERATE['sigma_ratio']:.4f}/"
           f"{EXPECTED_MODERATE['max_abs_cos']:.4f}, both FAIL)")
@@ -118,7 +123,7 @@ def run() -> bool:
 
     # --- severe collapse (noise_sigma=0.05, seed=42) -- must FAIL harder ---
     severe = ka.build_collapsed_table(noise_sigma=0.05, seed=42)
-    g_sev = ka.gate2_construction_check(severe, ks=(16, 32), seed=0)
+    g_sev = ka.gate2_construction_check(severe, ks=(16, 32, 48), seed=0)
     print(f"\n[severe collapse, sigma=0.05, seed=42] G2-a={g_sev['g2a_sigma_ratio']:.4f} "
           f"G2-b={g_sev['g2b_max_abs_cos']:.4f} (expect {EXPECTED_SEVERE['sigma_ratio']:.4f}/"
           f"{EXPECTED_SEVERE['max_abs_cos']:.4f}, both FAIL)")
@@ -145,7 +150,7 @@ def run() -> bool:
 
     # --- localized collapse (10/107 rows onto one direction, sigma=0.02, planted on the healthy init) ---
     loc = ka.build_localized_collapse_table(healthy, n_collapsed=10, sigma=0.02, seed=0)
-    g_loc = ka.gate2_construction_check(loc, ks=(16, 32), seed=0)
+    g_loc = ka.gate2_construction_check(loc, ks=(16, 32, 48), seed=0)
     print(f"\n[localized collapse, 10/107 rows, sigma=0.02] G2-a={g_loc['g2a_sigma_ratio']:.4f} "
           f"G2-b={g_loc['g2b_max_abs_cos']:.4f} (expect ~0.15-0.19 PASS / ~0.98-0.99 FAIL -- "
           f"design's own session number 0.1787/0.9830, no seed pinned for this case)")

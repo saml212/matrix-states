@@ -311,7 +311,7 @@ KEYANCHOR_LAMBDA_ANCHOR = 1.0
 BANDS_PINNED_PATH_DEFAULT = "BANDS_PINNED.json"   # relative to the keyanchor out_dir
 
 
-def reference_arms_manifest():
+def reference_arms_manifest(Ks=(16, 32), seeds=(1, 2, 3)):
     """sec 3.6: 3 fresh bare-geo3 seeds x K in {16,32} = 6 runs, 20,000
     steps, --drift-probe active (post-NS AND pre-NS pooled drift logged at
     EVERY checkpoint, key_anchoring.measure_drift). MUST run and validate-
@@ -319,15 +319,27 @@ def reference_arms_manifest():
     requirement (a)) and before any keyanchor cell launches (requirement
     (b)) -- enforced in main(), see gate_bands_pinned below. Seeds {1,2,3}
     (NOT {0,1,2}) -- seed 0 is the existing archived 5,000-step PROBE
-    measurement, a different training stage, never pooled with these."""
+    measurement, a different training stage, never pooled with these.
+
+    Ks/seeds (KEY_ANCHORING_DESIGN.md sec 11.0, Rev K48.1 build-scope item):
+    generalized from the original hardcoded `for K in (16, 32)` / `(1,2,3)`
+    loop so a K=48 reference-arm manifest can reuse the SAME function rather
+    than a hand-copied twin -- defaults are BYTE-IDENTICAL to the original
+    hardcoded form (sec 11.9 item 14's own registered smoke asserts this
+    directly, not merely by inspection). n_iter is read from key_anchoring.
+    GATE2_N_ITER_BY_K (the same {16:12, 32:20, 48:20} production-tier dict
+    Gate 2 uses) rather than the original inline `12 if K==16 else 20`
+    ternary, so the two never drift apart at a K neither expression
+    originally covered."""
     steps = KEYANCHOR_TIER_STEPS
     runs = []
-    for K in (16, 32):
-        n_iter = 12 if K == 16 else 20      # sec 16.3's own per-K NS tier, unchanged from bare geo3
-        for s in (1, 2, 3):
+    for K in Ks:
+        n_iter = ka.GATE2_N_ITER_BY_K[K]      # sec 16.3's own per-K NS tier, unchanged from bare geo3
+        for s in seeds:
             runs.append(_spec("ref", K, s, steps, "georef", geo3_active=True,
                                geo3_n_iter=n_iter, geo3_resid_tol=1e-2, drift_probe=True))
-    assert len(runs) == 6, f"reference-arm manifest drifted from its registered 6 runs: {len(runs)}"
+    if Ks == (16, 32) and seeds == (1, 2, 3):
+        assert len(runs) == 6, f"reference-arm manifest drifted from its registered 6 runs: {len(runs)}"
     return runs
 
 
@@ -365,7 +377,7 @@ def keyanchor_wave_neg1_manifest():
     return runs
 
 
-def keyanchor_wave1_manifest():
+def keyanchor_wave1_manifest(Ks=(16, 32)):
     """sec 5's mandatory Wave 1 cells: candidate (d) K in {16,32} x 3 seeds
     (learned lambda, the headline cells) + candidate (c) K in {16,32} x 3
     seeds (the always-run ablation comparison, sec 2.4) = 12 runs, 20,000
@@ -393,26 +405,40 @@ def keyanchor_wave1_manifest():
     old, gap-having results as satisfying the new, fixed spec. The
     keyanchor-confirm wave below is the CHEAPER, already-scoped way to
     close the gap on the specific cells whose h4 result is already
-    published (candidate (d), K=32) without re-running all 12."""
+    published (candidate (d), K=32) without re-running all 12.
+
+    Ks (KEY_ANCHORING_DESIGN.md sec 11.0, Rev K48.1 build-scope item):
+    generalized from the original hardcoded `for K in (16, 32)` loop
+    (BOTH occurrences below) -- default is BYTE-IDENTICAL to the original
+    (sec 11.9 item 14's registered smoke asserts this directly). K=48's own
+    candidate (d) cells are NOT built by calling this function with
+    Ks=(48,) (K=48 does not also run candidate (c), sec 11.1 -- only (d) is
+    mandatory there); this parameter exists so the function's OWN shape is
+    demonstrably K-generalizable per sec 11.0's build-scope text, and so a
+    future K48-plus-(c) wave (not currently registered) would not need a
+    second hand-copied twin. keyanchor_k48_manifest() below builds K=48's
+    own candidate-(d)-only cells directly, using _spec() the same way this
+    function does, not by calling this function with a partial K set."""
     steps = KEYANCHOR_TIER_STEPS
     runs = []
-    for K in (16, 32):
-        n_iter = 12 if K == 16 else 20
+    for K in Ks:
+        n_iter = ka.GATE2_N_ITER_BY_K[K]
         for s in range(3):
             runs.append(_spec("keyanchor", K, s, steps, "d", geo3_active=True, geo3_n_iter=n_iter,
                                geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
                                drift_probe=True))
-    for K in (16, 32):
-        n_iter = 12 if K == 16 else 20
+    for K in Ks:
+        n_iter = ka.GATE2_N_ITER_BY_K[K]
         for s in range(3):
             runs.append(_spec("keyanchor", K, s, steps, "c", geo3_active=True, geo3_n_iter=n_iter,
                                geo3_resid_tol=1e-2, lambda_anchor=KEYANCHOR_LAMBDA_ANCHOR,
                                drift_probe=True))
-    assert len(runs) == 12, f"keyanchor Wave 1 manifest drifted from its registered 12 runs: {len(runs)}"
+    if Ks == (16, 32):
+        assert len(runs) == 12, f"keyanchor Wave 1 manifest drifted from its registered 12 runs: {len(runs)}"
     return runs
 
 
-def keyanchor_confirm_manifest(include_k16_spot_check: bool = True):
+def keyanchor_confirm_manifest(include_k16_spot_check: bool = True, K: int = 32):
     """KEY_ANCHORING_DESIGN.md sec 9.5's required follow-up ("instrumentation
     debt, not a hypothesis question", 2026-07-06 keyanchor-confirm build):
     candidate (d) (learned-lambda anchor blend), K=32, seeds {0,1,2},
@@ -464,20 +490,34 @@ def keyanchor_confirm_manifest(include_k16_spot_check: bool = True):
     included by default since a 20,000-step K=16 cell (n_iter=12, the same
     tier bare geo3/reference arms already use) is not materially more
     expensive than a K=32 cell under this harness's own default_timeout
-    cost model."""
+    cost model.
+
+    K (KEY_ANCHORING_DESIGN.md sec 11.0, Rev K48.1 build-scope item):
+    generalized from the original hardcoded K=32 -- default is BYTE-
+    IDENTICAL to the original (sec 11.9 item 14's registered smoke asserts
+    this directly). This function is NOT called with K=48 by any registered
+    K48 wave (the K48 build's own candidate (d) cells use
+    keyanchor_k48_manifest(), a fresh confirmatory-not-original manifest --
+    'confirm' names a RE-run of an already-published K=32 result, which has
+    no K=48 analog); the parameter exists purely so this function's shape
+    is demonstrably K-generalizable per sec 11.0's own text, mirroring
+    reference_arms_manifest()/keyanchor_wave1_manifest()'s own
+    generalization above."""
     steps = KEYANCHOR_TIER_STEPS
+    n_iter = ka.GATE2_N_ITER_BY_K[K]
     runs = []
     for s in range(3):
-        runs.append(_spec("keyanchor-confirm", 32, s, steps, "d", geo3_active=True, geo3_n_iter=20,
+        runs.append(_spec("keyanchor-confirm", K, s, steps, "d", geo3_active=True, geo3_n_iter=n_iter,
                            geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
                            drift_probe=True))
     if include_k16_spot_check:
         runs.append(_spec("keyanchor-confirm", 16, 0, steps, "d", geo3_active=True, geo3_n_iter=12,
                            geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
                            drift_probe=True))
-    expected = 4 if include_k16_spot_check else 3
-    assert len(runs) == expected, \
-        f"keyanchor-confirm manifest drifted from its registered {expected} runs: {len(runs)}"
+    if K == 32:
+        expected = 4 if include_k16_spot_check else 3
+        assert len(runs) == expected, \
+            f"keyanchor-confirm manifest drifted from its registered {expected} runs: {len(runs)}"
     return runs
 
 
@@ -715,6 +755,394 @@ def keyanchor_ceiling_by_k() -> dict:
     return {16: 0.9745, 32: 0.9423}
 
 
+def keyanchor_k48_ceiling_by_k() -> dict:
+    """KEY_ANCHORING_DESIGN.md sec 11.4.2's computed lambda=1 post-NS drift
+    ceiling at K=48 (mean 0.8987, n_iter=20, frame-potential init, full-pool
+    mechanism -- NOT the i-strong pool-restricted 1.0000) -- a SEPARATE
+    dict from keyanchor_ceiling_by_k() above (sec 11.1.1: 'a NEW writer...
+    not a re-derivation of K=16/32's own BANDS_PINNED.json'), used only by
+    the K=48 bands writer/gate (BANDS_PINNED_K48.json)."""
+    return {48: 0.8987}
+
+
+# ---------------------------------------------------------------------------
+# KEY_ANCHORING_DESIGN.md sec 11 (Rev K48.1, CLEARED-FOR-BUILD per sec
+# 11.11's external verify) -- the K=48 capacity-curve extension wave.
+# Registered manifest name: 'keyanchor-k48' (sec 11.1's own naming-pinning
+# discipline, mirroring sec 10.5's precedent for 'keyanchor-mech').
+#
+# Arms (sec 11.1): (1) candidate (d), K=48, seeds {30,31,32} -- MANDATORY,
+# PRIMARY; (2) reference arms, bare geo3, K=48, seeds {1,2,3}, drift_probe
+# -- MANDATORY, first in manifest (K=48 has no BANDS_PINNED entry yet); (3)
+# candidate (d'), K=48, seeds {40,41,42} -- CONDITIONAL on Rev 7.1's own
+# K=32 verdict (orchestrator sign-off, NOT a mechanical gate -- sec 11.1
+# item 3's honest downgrade, Rev K48.1 finding C11); (4) Gate-1-style
+# pre-launch probe, candidate (d) arch only, K=48, 5,000 steps, seed 0 --
+# DISCLOSED, NON-GATING (sec 11.1 item 4); (5) fixed-lambda=1
+# ceiling-validation probe, seed 50 -- OPTIONAL, lowest cut priority (sec
+# 11.4.3).
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_K48_TIER_STEPS = KEYANCHOR_TIER_STEPS          # 20,000 -- continuity, sec 11.1
+KEYANCHOR_K48_GATE1_STEPS = 5000                          # sec 11.1 item 4
+KEYANCHOR_K48_NS_N_ITER = 20                              # sec 11.3: n_iter=20 at K=48, unchanged tier
+KEYANCHOR_K48_FIXED_LAMBDA1 = 1.0                         # sec 11.4.3's ceiling-validation point
+
+
+def keyanchor_k48_reference_manifest():
+    """sec 11.1 arm 2: bare geo3, K=48, seeds {1,2,3}, drift_probe=True --
+    the SAME reference_arms_manifest() function, generalized above, called
+    with Ks=(48,) so this is genuinely the one function every K's reference
+    arms go through (never a hand-copied twin), producing wave tag 'ref'
+    (out_dir 'waveref') filenames that are K=48-distinct by construction
+    (_spec's own f"K{K}" name bit) -- sec 11.9 item 16's own zero-collision
+    concern is about a DIFFERENT, pre-existing archive (wavegeo3's bare
+    K=48 rider, seeds 0/1/2, a different wave tag AND a different seed
+    range from THESE seeds {1,2,3}), not about this function's own output
+    colliding with itself."""
+    runs = reference_arms_manifest(Ks=(48,), seeds=(1, 2, 3))
+    assert len(runs) == 3, f"K=48 reference-arm manifest drifted from its registered 3 runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_k48_manifest():
+    """sec 11.1 arm 1 (MANDATORY, PRIMARY): candidate (d), K=48, seeds
+    {30,31,32}, 20,000 steps -- byte-identical architecture to Rev 7.1's own
+    candidate (d) (anchor_blend_gather_scatter, learned scalar lambda,
+    frame-potential init at ANCHOR_INIT_SEED -- verified K-independent,
+    sec 11.1.1) PLUS drift_probe=True (item 5) AND rev7_engagement=True
+    (the Rev-7.1 r_e/anchor-norm/BH-engagement logging, inherited wholesale
+    per sec 11.0 -- literally the same code path, not a re-derivation). No
+    K=16 spot check is registered for this arm (sec 11.1: K=16 already
+    saturates near h4~=1.0 under bare geo3, no headroom to see an
+    anchoring effect there)."""
+    steps = KEYANCHOR_K48_TIER_STEPS
+    runs = []
+    for s in (30, 31, 32):
+        runs.append(_spec("keyanchor-k48", 48, s, steps, "d", geo3_active=True,
+                           geo3_n_iter=KEYANCHOR_K48_NS_N_ITER, geo3_resid_tol=1e-2,
+                           anchor_active=True, anchor_lambda_mode="learned",
+                           drift_probe=True, rev7_engagement=True))
+    assert len(runs) == 3, f"keyanchor-k48 manifest drifted from its registered 3 runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_k48_dprime_manifest():
+    """sec 11.1 arm 3 (CONDITIONAL, cut-eligible): candidate (d'), K=48,
+    seeds {40,41,42} -- fires ONLY if Rev 7.1's own K=32 wave resolves to
+    Outcome A(d') or D' (sec 10.6's routing table) -- an ORCHESTRATOR
+    sign-off gated on Rev 7.1's own written verdict, honestly downgraded
+    from a mechanical gate at Rev K48.1 (attack finding
+    budget-schedule-auditor M3, sec 11.1 item 3/sec 11.10 C11: no script,
+    JSON field, or hash-lock currently makes this check-able by machine).
+    This function BUILDS the manifest (registered now, per sec 11.1's own
+    "registering them now... is what prevents them from becoming free
+    post-hoc additions later") but main()'s dispatch below requires an
+    explicit --accept-k48-dprime-orchestrator-signoff flag before this
+    manifest's cells are added to any real launch -- never auto-fired."""
+    steps = KEYANCHOR_K48_TIER_STEPS
+    runs = []
+    for s in (40, 41, 42):
+        runs.append(_spec("keyanchor-k48", 48, s, steps, "dprime", geo3_active=True,
+                           geo3_n_iter=KEYANCHOR_K48_NS_N_ITER, geo3_resid_tol=1e-2,
+                           anchor_active=True, anchor_lambda_mode="learned_per_entity",
+                           drift_probe=True, rev7_engagement=True))
+    assert len(runs) == 3, f"keyanchor-k48 (d') manifest drifted from its registered 3 runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_k48_gate1_manifest():
+    """sec 11.1 arm 4: Gate-1-style pre-launch probe, candidate (d) arch
+    only, K=48, 5,000 steps, seed 0 -- DISCLOSED, NON-GATING (mirrors Rev
+    7.1's own d' probe scope-carve-out; the simulator drift->recovery
+    mapping is non-gating at K=32 already, and K=48 is a harder packing
+    regime, so the same non-gating status is inherited, not re-derived).
+    Carries rev7_engagement=True (same audit-fold-in-1 precedent as
+    keyanchor_mech_gate1_manifest: exercise the checkpoint/r_e wiring on
+    the cheap probe first)."""
+    runs = [_spec("keyanchor-k48-gate1", 48, 0, KEYANCHOR_K48_GATE1_STEPS, "d", geo3_active=True,
+                   geo3_n_iter=KEYANCHOR_K48_NS_N_ITER, geo3_resid_tol=1e-2, anchor_active=True,
+                   anchor_lambda_mode="learned", drift_probe=True, rev7_engagement=True)]
+    assert len(runs) == 1, f"keyanchor-k48 Gate-1 probe manifest drifted from its registered 1 run: {len(runs)}"
+    return runs
+
+
+def keyanchor_k48_fixed_lambda1_manifest():
+    """sec 11.1 arm 5 / sec 11.4.3 (OPTIONAL, lowest cut priority): the
+    fixed-lambda=1 candidate-(d) ceiling-validation probe -- seed 50, 1 run,
+    20,000 steps, candidate (d)'s own architecture with
+    anchor_lambda_mode='fixed', anchor_lambda_fixed=1.0. REPLACES the
+    withdrawn asymmetric-pool i-strong arm (Rev K48.1, sec 11.4.3/sec
+    11.10 C4) -- measures the ACTUAL trained full-pool anchor mechanism at
+    its lambda->1 extreme, the same object sec 11.4.2's computation
+    approximates."""
+    runs = [_spec("keyanchor-k48", 48, 50, KEYANCHOR_K48_TIER_STEPS, "d-fixed-lam1", geo3_active=True,
+                   geo3_n_iter=KEYANCHOR_K48_NS_N_ITER, geo3_resid_tol=1e-2, anchor_active=True,
+                   anchor_lambda_mode="fixed", anchor_lambda_fixed=KEYANCHOR_K48_FIXED_LAMBDA1,
+                   drift_probe=True, rev7_engagement=True)]
+    assert len(runs) == 1, f"keyanchor-k48 fixed-lambda1 probe manifest drifted from its registered 1 run: {len(runs)}"
+    return runs
+
+
+def gate_keyanchor_k48_gate1_probe(gate1_json_path: str, accept_override: bool) -> dict:
+    """sec 11.1 item 4: reads the K=48 Gate-1-style probe's own result --
+    DISCLOSED, NON-GATING (mirrors gate_geo3_drift's read-and-report
+    pattern but NEVER sys.exit(1)s on a low read -- sec 11.1's own text:
+    'never a hard go/no-go'). Always returns a report dict; --wave
+    keyanchor-k48 proceeds regardless of this probe's own result (Gate 2,
+    the construction check, remains the sole go/no-go for this wave)."""
+    if accept_override or not os.path.exists(gate1_json_path):
+        print(f"NOTE: K=48 Gate-1-style probe not available at {gate1_json_path!r} (or "
+              f"--accept-override passed) -- this is DISCLOSED, NON-GATING context only (sec "
+              f"11.1 item 4); proceeding either way.", flush=True)
+        return {"gate_bypassed": True, "gate1_json_path": gate1_json_path}
+    with open(gate1_json_path) as f:
+        d = json.load(f)
+    try:
+        h4 = d["checkpoints"][-1]["M3_held_out"]["4"]["recovered_frac@0.9"]
+    except (KeyError, IndexError, TypeError) as e:
+        print(f"NOTE: {gate1_json_path!r} is missing an expected field ({e!r}) -- reported, "
+              f"non-gating (sec 11.1 item 4).", flush=True)
+        return {"gate_bypassed": False, "gate1_json_path": gate1_json_path, "h4": None}
+    print(f"K=48 Gate-1-style probe read: predicted h4 rec@0.9={h4:.4f} -- DISCLOSED, NON-GATING "
+          f"(sec 11.1 item 4; Gate 2 remains the sole go/no-go for this wave).", flush=True)
+    return {"gate_bypassed": False, "gate1_json_path": gate1_json_path, "h4": h4}
+
+
+def write_bands_pinned_k48_if_ready(out_dir: str) -> bool:
+    """sec 11.1.1 writer requirement 1: BANDS_PINNED_K48.json, scoped to the
+    3 K=48 reference arms only (NOT a re-derivation of K=16/32's own
+    BANDS_PINNED.json, sec 11.1.1's own text) -- reuses key_anchoring's
+    derive_engaged_bands/write_bands_pinned UNMODIFIED, called with
+    per_k_final_drift={48: [...]} and keyanchor_k48_ceiling_by_k()
+    (0.8987). Mirrors write_bands_pinned_if_ready's exact pattern above."""
+    manifest = keyanchor_k48_reference_manifest()
+    per_k_final_drift = {48: []}
+    ref_paths = {48: []}
+    all_valid = True
+    for spec in manifest:
+        p = out_path(out_dir, spec)
+        if not os.path.exists(p):
+            print(f"  NOT READY: {p} does not exist yet.", flush=True)
+            all_valid = False
+            continue
+        with open(p) as f:
+            result = json.load(f)
+        if not ka.reference_arm_result_valid(result, spec["steps"]):
+            print(f"  NOT READY: {p} exists but does not validate as complete "
+                  f"(complete/steps_completed/drift_probe fields).", flush=True)
+            all_valid = False
+            continue
+        per_k_final_drift[48].append(ka.reference_final_drift(result))
+        ref_paths[48].append(p)
+    if not all_valid:
+        print("BANDS_PINNED_K48.json NOT written -- not every K=48 reference arm validates complete yet.",
+              file=sys.stderr)
+        return False
+    bp_path = os.path.join(out_dir, "BANDS_PINNED_K48.json")
+    doc = ka.write_bands_pinned(bp_path, per_k_final_drift, keyanchor_k48_ceiling_by_k(), ref_paths)
+    print(f"BANDS_PINNED_K48.json written at {bp_path}:\n{json.dumps(doc['bands'], indent=2)}", flush=True)
+    return True
+
+
+def gate_bands_pinned_k48(out_dir: str, accept_override: bool, override_at: float | None) -> dict:
+    """sec 11.1.1 launcher-gate requirement 2: K=48 candidate (d)/(d') cells
+    REFUSE to launch unless BANDS_PINNED_K48.json exists AND validates --
+    the SAME hash-validate/content-re-derivation/degenerate-case-guard
+    machinery as gate_bands_pinned above, pointed at the K48-specific file
+    and ceiling dict, never a re-derivation of the K=16/32 gate."""
+    bp_path = os.path.join(out_dir, "BANDS_PINNED_K48.json")
+    if accept_override:
+        print("=" * 70 + "\nWARNING: --unblind-override -- the sec 11.1.1 K=48 BANDS_PINNED_K48 "
+              "blinding gate is being BYPASSED by an explicit human decision. EVERY keyanchor-k48 "
+              "anchor-arm run launched this session will have its OWN result JSON stamped "
+              "claim_tier='descriptive' + unblind_override=True.\n" + "=" * 70, flush=True)
+        return {"gate_bypassed": True, "bands_pinned_path": bp_path, "override_at": override_at}
+    doc = ka.validate_bands_pinned(bp_path, ceiling_by_k=keyanchor_k48_ceiling_by_k())
+    if doc is None:
+        print(f"ERROR: {bp_path!r} does not exist, fails hash validation, or its STORED bands "
+              f"dict does not reproduce under live re-derivation from the referenced K=48 "
+              f"reference-arm JSONs. Run the 3 K=48 reference arms to completion first "
+              f"(--wave keyanchor-k48-ref), then --wave keyanchor-k48-bands to pin, or pass "
+              f"--unblind-override for an explicit, documented, tier-demoting override.",
+              file=sys.stderr)
+        sys.exit(1)
+    for K, entry in doc["bands"].items():
+        if entry["unresolvable"]:
+            print(f"  NOTE: K={K} post-NS engagement bands are UNRESOLVABLE (engaged_K "
+                  f"{entry['engaged_k']:.4f} >= ceiling {entry['ceiling']:.4f} - 0.005) -- sec 11.1.1's "
+                  f"own degenerate-case guard; non-gating for h4 admission or the r_e/BH engagement "
+                  f"test (sec 11.1.1's own disclosure).", flush=True)
+    print(f"sec 11.1.1 K48 GATE PASSED: {bp_path} validates.", flush=True)
+    return {"gate_bypassed": False, "bands_pinned_path": bp_path, "bands": doc["bands"]}
+
+
+# sec 11.5's budget table, restated as constants (mirrors
+# KEYANCHOR_MECH_GPUH_PER_CELL's own bracket-not-point discipline). The
+# K=48/K=32 step-cost ratio (1.264x, sec 11.5) applied to the mech wave's
+# own realized bracket (0.18-0.77 GPU-h/cell, sec 10.7) -- NOT re-measured
+# here (no K=48 anchor-arm cell has ever run); this is the registered
+# PROVISIONAL bracket pending the pre-launch K=16-instrumented-vs-bare
+# overhead check sec 11.5 requires (budget-schedule-auditor M2/C10).
+KEYANCHOR_K48_STEP_COST_RATIO = 1.264            # sec 11.5: 0.2454/0.1942, K=48/K=32 uninstrumented
+KEYANCHOR_K48_GPUH_PER_CELL = (0.18 * KEYANCHOR_K48_STEP_COST_RATIO,
+                                0.77 * KEYANCHOR_K48_STEP_COST_RATIO)   # ~= (0.23, 0.97), sec 11.5
+KEYANCHOR_K48_GATE1_GPUH = (0.06, 0.24)           # sec 11.5: 5,000/20,000 x bracket
+KEYANCHOR_K48_GPUH_CEILING = 12.0                # sec 11.5's registered nominal ceiling
+KEYANCHOR_K48_PROGRAM_GPUH_CEILING = 80.0         # unchanged exactness-program cap
+
+# sec 10.13's registered candidate-(e) budget: ~1 GPU-h (3 cells at the
+# realized ~0.2-0.35 GPU-h/cell range this design has repeatedly observed).
+KEYANCHOR_E_GPUH_PER_CELL = (0.20, 0.35)
+KEYANCHOR_E_GPUH_CEILING = 1.5                    # sec 10.13's own "~1 GPU-h" estimate, +50% margin
+
+# ---------------------------------------------------------------------------
+# Program ledger reconciliation (KEY_ANCHORING_DESIGN.md sec 11.5, attack
+# finding budget-schedule-auditor M1/Rev-K48.1 C9; independently
+# re-verified sec 11.11 point 4). The design's own text disclosed a ~2-3
+# GPU-h untraced gap between the asserted "51.5/80" figure
+# (KEYANCHOR_MECH_GPUH_CEILING's own sibling constant,
+# KEYANCHOR_PROGRAM_SPENT_GPUH above) and what its own itemization could
+# reconstruct (~48.3-49.4). This task's own instruction: "FIRST trace the
+# anchoring ledger... itemize in a comment and set the spent constant
+# honestly." Itemized here from the SAME archived wall_s fields sec 11.5/
+# 11.11 already cite, PLUS the one leg both of those sections' own tables
+# omitted (the confirm-wave's K=16 seed-0 spot check, archived at
+# experiment-runs/2026-07-05_keyanchor_confirm/wavekeyanchor-confirm/
+# wkeyanchor-confirm_rdx_K16_armd_s0_geo3n12_anchor_learned_dprobe.json,
+# wall_s=654.09s) -- sec 11.5's own table lists only 3 of the confirm
+# wave's 4 realized legs (the K=32 s{0,1,2} triple), so a truly complete
+# reconciliation must include the 4th:
+#
+#   sec 5's own confirmed sum (all archived wall_s pre-Wave-1)     34.90
+#   + F-geo-3 realized (sec 5, sec 11.11 point 4)                  1.67
+#   + Wave 1 realized (sec 9 header: "18 mandatory cells,          10.98
+#     10.98 realized GPU-h")
+#   + confirm-wave, ALL 4 legs (not just the 3 sec 11.5's own
+#     table shows): K32 s0=748.4653s + s1=750.5084s + s2=724.3776s
+#     + K16 s0=654.0854s = 2877.437s / 3600                        0.7993
+#   + keyanchor-mech wave, realized (sec 10.13 header: "7           1.500
+#     mandatory cells 1.439 GPU-h + Gate-1 probe 0.061 GPU-h")
+#   ------------------------------------------------------------------
+#   RECONCILED TOTAL                                              49.8493
+#
+# This lands at ~49.85, matching this task's own expected range
+# ("~49.6-49.9+1.5 -> verify" -- the +1.5 mech-wave contribution is
+# already included in the 49.85 above, not additional to it). Replaces the
+# untraced 51.5 used by keyanchor_mech_budget_guard above (that constant
+# is LEFT UNCHANGED -- it already ran to completion at Rev 7.1's own
+# realized 1.500 GPU-h, sec 10.13, so retroactively editing its own guard
+# would not change any real launch decision now); this reconciled constant
+# is what keyanchor_k48_budget_guard and keyanchor_e_budget_guard below
+# actually use for THEIR OWN pre-launch checks, per sec 11.5's own
+# registered sequencing recommendation ("reconcile the 51.5 base figure
+# FIRST... before this wave's own mandatory cells launch").
+KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED = 49.8493
+
+
+def keyanchor_k48_budget_guard(accept_override: bool) -> float:
+    """Mirrors keyanchor_mech_budget_guard's exact pattern, using the
+    RECONCILED program-spent constant (see the ledger comment above) rather
+    than the untraced 51.5, per sec 11.5's own registered pre-launch
+    reconciliation requirement."""
+    cumulative = KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_K48_GPUH_CEILING
+    print(f"BUDGET GUARD (keyanchor-k48): program-spent-so-far(RECONCILED)="
+          f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} GPU-h + this-wave-registered-ceiling="
+          f"{KEYANCHOR_K48_GPUH_CEILING:.1f} GPU-h = cumulative {cumulative:.4f} GPU-h, program "
+          f"ceiling {KEYANCHOR_K48_PROGRAM_GPUH_CEILING:.0f} GPU-h (reserve "
+          f"{KEYANCHOR_K48_PROGRAM_GPUH_CEILING - cumulative:.4f} GPU-h).", flush=True)
+    if cumulative > KEYANCHOR_K48_PROGRAM_GPUH_CEILING and not accept_override:
+        print(f"ERROR: projected cumulative spend {cumulative:.4f} GPU-h EXCEEDS the "
+              f"{KEYANCHOR_K48_PROGRAM_GPUH_CEILING:.0f} GPU-h exactness-program ceiling -- REFUSING "
+              f"to launch keyanchor-k48. Pass --accept-budget-override to force past this guard.",
+              file=sys.stderr)
+        sys.exit(5)
+    return cumulative
+
+
+def keyanchor_e_budget_guard(accept_override: bool) -> float:
+    """Same pattern, candidate-(e)'s own ~1.5 GPU-h ceiling. Sequenced AFTER
+    keyanchor-k48 in program arithmetic (both draw from the SAME reconciled
+    base -- if both waves' cells are launched in the same session, the
+    SECOND wave to check this guard should pass its own already-spent
+    cells' realized wall_s as accept_override context, not silently
+    double-count against the pre-launch base; this build wires that
+    caller-side discipline into the chain script's own comments, not into
+    this function's signature, mirroring keyanchor_k48_budget_guard's own
+    scope)."""
+    cumulative = KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_E_GPUH_CEILING
+    print(f"BUDGET GUARD (keyanchor-e): program-spent-so-far(RECONCILED)="
+          f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} GPU-h + this-wave-registered-ceiling="
+          f"{KEYANCHOR_E_GPUH_CEILING:.1f} GPU-h = cumulative {cumulative:.4f} GPU-h, program "
+          f"ceiling {KEYANCHOR_K48_PROGRAM_GPUH_CEILING:.0f} GPU-h (reserve "
+          f"{KEYANCHOR_K48_PROGRAM_GPUH_CEILING - cumulative:.4f} GPU-h).", flush=True)
+    if cumulative > KEYANCHOR_K48_PROGRAM_GPUH_CEILING and not accept_override:
+        print(f"ERROR: projected cumulative spend {cumulative:.4f} GPU-h EXCEEDS the "
+              f"{KEYANCHOR_K48_PROGRAM_GPUH_CEILING:.0f} GPU-h exactness-program ceiling -- REFUSING "
+              f"to launch keyanchor-e. Pass --accept-budget-override to force past this guard.",
+              file=sys.stderr)
+        sys.exit(5)
+    return cumulative
+
+
+# ---------------------------------------------------------------------------
+# KEY_ANCHORING_DESIGN.md sec 10.13's registered candidate (e):
+# "frozen-random-table ablation" -- the decisive probe for the
+# construction-stabilization account (sec 10.13.4). K=32, anchor_lambda_
+# mode FIXED at the measured cross-cell mean lambda~=0.58 (matched to
+# candidate (d)'s own K=32 interior range, so the comparison is matched on
+# the one hyperparameter the account claims matters), anchor table
+# initialized via random_unit_rows_init (key_anchoring.py -- frame_
+# potential_init's own pre-optimization starting point, NOT the frame-
+# potential-minimized construction -- sec 10.13's own "frozen-RANDOM-table"
+# name) and NEVER trained (anchor_table_frozen=True). 3 seeds (sec 10.13:
+# "2-3 seeds").
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_E_LAMBDA_FIXED = 0.58    # sec 10.13: cross-cell mean of this wave's own measured lambda
+KEYANCHOR_E_TIER_STEPS = KEYANCHOR_TIER_STEPS   # 20,000 -- continuity, sec 10.13
+KEYANCHOR_E_NS_N_ITER = 20         # K=32 production tier, unchanged
+
+
+def keyanchor_e_manifest():
+    """sec 10.13's registered candidate (e): K=32, seeds {60,61,62} (a
+    fresh, never-before-used seed block -- this program's own escalating-
+    decade-block convention, sec 11.1's own text: 'new, never-before-used-
+    anywhere blocks are assigned per arm... so no seed integer's provenance
+    is ever ambiguous'), anchor_lambda_mode='fixed' at
+    KEYANCHOR_E_LAMBDA_FIXED (0.58), anchor_table_frozen=True,
+    anchor_table_init_mode='random_unit_rows', drift_probe=True AND
+    rev7_engagement=True (full Rev 7.1 instrumentation, per this task's own
+    'full Rev 7.1 instrumentation' requirement -- r_e/anchor-norm/BH
+    engagement logging, even though this arm's own success criterion (sec
+    10.13: h4 and pre-NS drift within ordinary seed noise of candidate
+    (d)'s own range) does not itself require the engagement test; logging
+    it costs nothing extra and keeps every anchor-arm cell in this build on
+    the same instrumentation floor)."""
+    steps = KEYANCHOR_E_TIER_STEPS
+    runs = []
+    for s in (60, 61, 62):
+        spec = _spec("keyanchor-e", 32, s, steps, "e", geo3_active=True,
+                     geo3_n_iter=KEYANCHOR_E_NS_N_ITER, geo3_resid_tol=1e-2,
+                     anchor_active=True, anchor_lambda_mode="fixed",
+                     anchor_lambda_fixed=KEYANCHOR_E_LAMBDA_FIXED,
+                     drift_probe=True, rev7_engagement=True)
+        # _spec() does not YET know about anchor_table_frozen/anchor_table_
+        # init_mode (those are a model_rd.py/run_deltanet_rd.py CLI
+        # addition, not part of _spec()'s own naming-relevant field set --
+        # see build_cmd_keyanchor_e below for how they reach the CLI).
+        # Recorded directly on the spec dict here so out_path()'s own
+        # f"{spec['name']}" naming can be extended distinctly (arm='e' plus
+        # the K/seed bits already makes this collision-free against every
+        # OTHER wave's own out_dir, sec 11.9 item 16's own directory-scoped
+        # discipline) and so is_done() can be extended to check them.
+        spec["anchor_table_frozen"] = True
+        spec["anchor_table_init_mode"] = "random_unit_rows"
+        runs.append(spec)
+    assert len(runs) == 3, f"keyanchor-e manifest drifted from its registered 3 runs: {len(runs)}"
+    return runs
+
+
 KEYANCHOR_DRIFT_DIAG_JSON_DEFAULT = os.path.join(
     HERE, "results/deltanet_rd_exactness/keyanchor_drift/wave_neg1_drift.json")
 
@@ -881,6 +1309,12 @@ KEYANCHOR_MECH_GATE1_JSON_DEFAULT = out_path(
     os.path.join(DEFAULT_OUT_DIR, "wavekeyanchor-mech-gate1"),
     keyanchor_mech_gate1_manifest()[0])
 
+# SAME e633862 audit F1 discipline, applied to the K=48 Gate-1-style probe
+# (sec 11.1 item 4) -- writer and reader cannot diverge.
+KEYANCHOR_K48_GATE1_JSON_DEFAULT = out_path(
+    os.path.join(DEFAULT_OUT_DIR, "wavekeyanchor-k48-gate1"),
+    keyanchor_k48_gate1_manifest()[0])
+
 
 def is_done(out_dir, spec):
     p = out_path(out_dir, spec)
@@ -947,6 +1381,18 @@ def is_done(out_dir, spec):
         # above (archived pre-Rev-7.1 result JSONs lack this key entirely).
         if bool(ec.get("rev7_engagement", False)) != bool(spec.get("rev7_engagement", False)):
             return False
+        # KEY_ANCHORING_DESIGN.md sec 10.13 (candidate (e), 2026-07 K48+e
+        # build): SAME missing-key-defaults-to-off discipline -- a
+        # candidate-(e) cell (anchor_table_frozen=True, init_mode=
+        # 'random_unit_rows') must NEVER resume-match an already-archived
+        # candidate-(d)-fixed cell that happens to share K/seed/lambda_fixed
+        # (e.g. wavekeyanchor-neg1's own armkeyanchor-d-fixed probes) --
+        # both fields are arm-identity-relevant, not filename-bit-only.
+        if bool(ec.get("anchor_table_frozen", False)) != bool(spec.get("anchor_table_frozen", False)):
+            return False
+        if ec.get("anchor_table_init_mode", "frame_potential") != \
+           spec.get("anchor_table_init_mode", "frame_potential"):
+            return False
         return True
     except Exception:
         return False
@@ -978,6 +1424,10 @@ def build_cmd(spec, out_dir, timeout, unblind_override_at: float | None = None,
         cmd += ["--anchor-active", "--anchor-lambda-mode", str(spec["anchor_lambda_mode"])]
         if spec["anchor_lambda_mode"] == "fixed":
             cmd += ["--anchor-lambda-fixed", str(spec["anchor_lambda_fixed"])]
+        if spec.get("anchor_table_frozen"):
+            cmd += ["--anchor-table-frozen"]
+        if spec.get("anchor_table_init_mode", "frame_potential") != "frame_potential":
+            cmd += ["--anchor-table-init-mode", str(spec["anchor_table_init_mode"])]
     if spec.get("lambda_anchor"):
         cmd += ["--lambda-anchor", str(spec["lambda_anchor"])]
     if spec.get("drift_probe"):
@@ -1088,7 +1538,10 @@ def main():
     ap.add_argument("--out-dir", default=DEFAULT_OUT_DIR)
     ap.add_argument("--wave", choices=["-1", "0", "1", "geo3", "ref", "keyanchor-neg1",
                                         "keyanchor-bands", "keyanchor", "keyanchor-confirm",
-                                        "keyanchor-mech-gate1", "keyanchor-mech"], default=None,
+                                        "keyanchor-mech-gate1", "keyanchor-mech",
+                                        "keyanchor-k48-ref", "keyanchor-k48-bands",
+                                        "keyanchor-k48-gate1", "keyanchor-k48",
+                                        "keyanchor-e"], default=None,
                      help="'geo3' launches F-geo-3's Wave-1-style cells (sec 14.7) -- GATED on "
                           "--geo3-drift-json (sec 14.6's launch-read result) unless "
                           "--accept-gate-override is passed. The sec 14.6 drift diagnostic ITSELF "
@@ -1108,7 +1561,21 @@ def main():
                           "the already-published h4 result at full evidentiary tier -- GATED on BOTH "
                           "gate_keyanchor_drift_diag (--keyanchor-drift-json, the FIXED "
                           "keyanchor_drift_diagnostic.py's Gate-1 read) AND the SAME sec 3.6 "
-                          "BANDS_PINNED gate 'keyanchor' uses (these are anchor-arm cells too).")
+                          "BANDS_PINNED gate 'keyanchor' uses (these are anchor-arm cells too). "
+                          "KEY_ANCHORING_DESIGN.md sec 11 (Rev K48.1) waves: 'keyanchor-k48-ref' "
+                          "launches the 3 mandatory K=48 reference arms; 'keyanchor-k48-bands' is a "
+                          "NO-GPU action writing BANDS_PINNED_K48.json (sec 11.1.1, separate from "
+                          "K=16/32's own BANDS_PINNED.json); 'keyanchor-k48-gate1' launches the "
+                          "DISCLOSED, NON-GATING 5,000-step probe (sec 11.1 item 4); 'keyanchor-k48' "
+                          "launches candidate (d)'s 3 mandatory cells (+ the OPTIONAL fixed-lambda=1 "
+                          "ceiling probe with --include-k48-fixed-lambda1, + candidate (d')'s "
+                          "CONDITIONAL cells with --include-k48-dprime AND "
+                          "--accept-k48-dprime-orchestrator-signoff) -- REFUSES to launch without a "
+                          "valid BANDS_PINNED_K48.json (sec 11.1.1) unless --unblind-override is "
+                          "passed. sec 10.13 wave: 'keyanchor-e' launches candidate (e)'s 3 mandatory "
+                          "frozen-random-table-ablation cells (K=32, fixed lambda=0.58) -- REUSES the "
+                          "EXISTING K=16/32 BANDS_PINNED.json gate (these are K=32 anchor-arm cells, "
+                          "sec 3.6 applies unchanged, no new K48-style bands file needed here).")
     ap.add_argument("--gpus", type=int, default=None,
                      help="GPU COUNT. REQUIRED for a real (wave -1/1) launch, NO DEFAULT ON "
                           "PURPOSE -- check nvidia-smi before every launch (GPUs 0-5,7 run other "
@@ -1182,12 +1649,36 @@ def main():
                           "GPU-h ceiling vs. the 80 GPU-h exactness-program cap) with an explicit, "
                           "loudly-logged human override.")
     ap.add_argument("--ckpt-base-dir", type=str, default=None,
-                     help="--wave keyanchor-mech / keyanchor-mech-gate1: base directory for the "
-                          "sec 10.10 checkpoint writer (one subdirectory per cell, named after the "
-                          "cell's own spec['name']). Per-wave defaults on the training box: "
-                          "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech (mech; pre-created "
-                          "by this build) and .../wavekeyanchor-mech-gate1 (gate1 scratch -- "
-                          "e633862 audit fold-in 1: the probe exercises the checkpoint writer too).")
+                     help="--wave keyanchor-mech / keyanchor-mech-gate1 / keyanchor-k48* / "
+                          "keyanchor-e: base directory for the sec 10.10 checkpoint writer (one "
+                          "subdirectory per cell, named after the cell's own spec['name']). Per-wave "
+                          "defaults on the training box: /data/deltanet_rd_keyanchor_ckpts/"
+                          "wavekeyanchor-mech (mech; pre-created by this build) and "
+                          ".../wavekeyanchor-mech-gate1 (gate1 scratch -- e633862 audit fold-in 1: "
+                          "the probe exercises the checkpoint writer too); "
+                          ".../wavekeyanchor-k48, .../wavekeyanchor-k48-gate1, .../wavekeyanchor-e "
+                          "(all pre-created by this build, see the chain scripts).")
+    ap.add_argument("--keyanchor-k48-gate1-json", type=str, default=KEYANCHOR_K48_GATE1_JSON_DEFAULT,
+                     help="--wave keyanchor-k48: path to the K=48 Gate-1-style probe's own result "
+                          "JSON (--wave keyanchor-k48-gate1's --out). DISCLOSED, NON-GATING (sec "
+                          "11.1 item 4) -- read and reported, never blocks the launch.")
+    ap.add_argument("--include-k48-fixed-lambda1", action="store_true",
+                     help="--wave keyanchor-k48: additionally launch the OPTIONAL, lowest-cut-"
+                          "priority fixed-lambda=1 ceiling-validation probe (sec 11.4.3, seed 50). "
+                          "Off by default (sec 11.5: first cut under budget/schedule pressure).")
+    ap.add_argument("--include-k48-dprime", action="store_true",
+                     help="--wave keyanchor-k48: additionally launch candidate (d')'s 3 CONDITIONAL "
+                          "cells (seeds {40,41,42}, sec 11.1 item 3). REQUIRES "
+                          "--accept-k48-dprime-orchestrator-signoff (this cell's own launch "
+                          "precondition is an orchestrator sign-off on Rev 7.1's own written K=32 "
+                          "verdict -- Outcome A(d') or D' -- NOT a mechanical gate; Rev K48.1's own "
+                          "honest downgrade, sec 11.1 item 3/sec 11.10 C11). Off by default.")
+    ap.add_argument("--accept-k48-dprime-orchestrator-signoff", action="store_true",
+                     help="--wave keyanchor-k48 --include-k48-dprime: the explicit, loudly-logged "
+                          "human confirmation that Rev 7.1's own K=32 wave has reached a written "
+                          "Outcome A(d') or D' verdict (sec 10.6's routing table) -- read this "
+                          "wave's own docs before passing; there is no script that checks this "
+                          "mechanically yet (sec 11.1 item 3's own registered build gap).")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -1295,6 +1786,80 @@ def main():
         assert len(km) == 7 and len(kg1) == 1, \
             f"keyanchor-mech run count drifted from the registered 7+1: {len(km)}+{len(kg1)}"
 
+        print("\n" + "=" * 70)
+        print("KEY_ANCHORING_DESIGN.md sec 11 (Rev K48.1, CLEARED-FOR-BUILD) -- "
+              "keyanchor-k48 wave preview (capacity-curve extension)")
+        print("=" * 70)
+        k48_ref = keyanchor_k48_reference_manifest()
+        k48_d = keyanchor_k48_manifest()
+        k48_g1 = keyanchor_k48_gate1_manifest()
+        k48_fix1 = keyanchor_k48_fixed_lambda1_manifest()
+        k48_dprime = keyanchor_k48_dprime_manifest()
+        lo_ref, hi_ref = KEYANCHOR_K48_GPUH_PER_CELL
+        lo_d, hi_d = KEYANCHOR_K48_GPUH_PER_CELL
+        lo_g1k, hi_g1k = KEYANCHOR_K48_GATE1_GPUH
+        lo_mand_k48 = lo_g1k + len(k48_ref) * lo_ref + len(k48_d) * lo_d
+        hi_mand_k48 = hi_g1k + len(k48_ref) * hi_ref + len(k48_d) * hi_d
+        lo_allcond_k48 = lo_mand_k48 + len(k48_fix1) * lo_ref + len(k48_dprime) * lo_ref
+        hi_allcond_k48 = hi_mand_k48 + len(k48_fix1) * hi_ref + len(k48_dprime) * hi_ref
+        print(f"  reference arms, K=48 (--wave keyanchor-k48-ref): {len(k48_ref)} runs | "
+              f"seeds {{1,2,3}} | ~{len(k48_ref) * lo_ref:.2f}-{len(k48_ref) * hi_ref:.2f} GPU-h")
+        print(f"  Gate-1-style probe, K=48, DISCLOSED NON-GATING: {len(k48_g1)} run | "
+              f"~{lo_g1k:.2f}-{hi_g1k:.2f} GPU-h")
+        print(f"  candidate (d), K=48, MANDATORY (--wave keyanchor-k48): {len(k48_d)} runs | "
+              f"seeds {{30,31,32}} | ~{len(k48_d) * lo_d:.2f}-{len(k48_d) * hi_d:.2f} GPU-h")
+        print(f"  MANDATORY TOTAL: {len(k48_ref) + len(k48_g1) + len(k48_d)} runs | "
+              f"~{lo_mand_k48:.2f}-{hi_mand_k48:.2f} GPU-h")
+        print(f"  candidate (d'), K=48, CONDITIONAL (--include-k48-dprime, orchestrator "
+              f"sign-off required, sec 11.1 item 3): {len(k48_dprime)} runs | "
+              f"~{len(k48_dprime) * lo_ref:.2f}-{len(k48_dprime) * hi_ref:.2f} GPU-h (not run by default)")
+        print(f"  fixed-lambda=1 ceiling probe, OPTIONAL (--include-k48-fixed-lambda1, sec 11.4.3): "
+              f"{len(k48_fix1)} run | ~{len(k48_fix1) * lo_ref:.2f}-{len(k48_fix1) * hi_ref:.2f} GPU-h "
+              f"(not run by default, first cut under budget pressure)")
+        print(f"  ALL-CONDITIONALS-MAX: {len(k48_ref) + len(k48_g1) + len(k48_d) + len(k48_fix1) + len(k48_dprime)} "
+              f"runs | ~{lo_allcond_k48:.2f}-{hi_allcond_k48:.2f} GPU-h")
+        print(f"  registered nominal ceiling: {KEYANCHOR_K48_GPUH_CEILING:.1f} GPU-h (sec 11.5) -> "
+              f"program cumulative (RECONCILED base, see the ledger comment above "
+              f"keyanchor_k48_budget_guard) {KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} + "
+              f"{KEYANCHOR_K48_GPUH_CEILING:.1f} = "
+              f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_K48_GPUH_CEILING:.4f} / "
+              f"{KEYANCHOR_K48_PROGRAM_GPUH_CEILING:.0f} GPU-h "
+              f"({'WITHIN' if KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_K48_GPUH_CEILING <= KEYANCHOR_K48_PROGRAM_GPUH_CEILING else 'EXCEEDS'} "
+              f"the exactness-program cap)")
+        assert len(k48_ref) == 3 and len(k48_d) == 3 and len(k48_g1) == 1 and len(k48_fix1) == 1 \
+            and len(k48_dprime) == 3, \
+            f"keyanchor-k48 run counts drifted from their registered 3+3+1+1+3: " \
+            f"{len(k48_ref)}+{len(k48_d)}+{len(k48_g1)}+{len(k48_fix1)}+{len(k48_dprime)}"
+
+        print("\n" + "=" * 70)
+        print("KEY_ANCHORING_DESIGN.md sec 10.13 -- keyanchor-e wave preview "
+              "(candidate (e), frozen-random-table ablation)")
+        print("=" * 70)
+        ke = keyanchor_e_manifest()
+        lo_e, hi_e = KEYANCHOR_E_GPUH_PER_CELL
+        print(f"  candidate (e), K=32, frozen random-unit-rows table, fixed lambda="
+              f"{KEYANCHOR_E_LAMBDA_FIXED}: {len(ke)} runs | seeds {{60,61,62}} | "
+              f"~{len(ke) * lo_e:.2f}-{len(ke) * hi_e:.2f} GPU-h")
+        print(f"  registered nominal ceiling: {KEYANCHOR_E_GPUH_CEILING:.1f} GPU-h (sec 10.13) -> "
+              f"program cumulative (RECONCILED base) {KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} + "
+              f"{KEYANCHOR_E_GPUH_CEILING:.1f} = "
+              f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_E_GPUH_CEILING:.4f} / "
+              f"{KEYANCHOR_K48_PROGRAM_GPUH_CEILING:.0f} GPU-h "
+              f"({'WITHIN' if KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_E_GPUH_CEILING <= KEYANCHOR_K48_PROGRAM_GPUH_CEILING else 'EXCEEDS'} "
+              f"the exactness-program cap)")
+        assert len(ke) == 3, f"keyanchor-e run count drifted from its registered 3: {len(ke)}"
+
+        print("\n" + "=" * 70)
+        print(f"COMBINED (both waves, all-conditionals-max, using the RECONCILED "
+              f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} base): "
+              f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} + {KEYANCHOR_K48_GPUH_CEILING:.1f} "
+              f"(k48 ceiling) + {KEYANCHOR_E_GPUH_CEILING:.1f} (e ceiling) = "
+              f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_K48_GPUH_CEILING + KEYANCHOR_E_GPUH_CEILING:.4f} "
+              f"/ {KEYANCHOR_K48_PROGRAM_GPUH_CEILING:.0f} GPU-h "
+              f"({'WITHIN' if KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_K48_GPUH_CEILING + KEYANCHOR_E_GPUH_CEILING <= KEYANCHOR_K48_PROGRAM_GPUH_CEILING else 'EXCEEDS'} "
+              f"the exactness-program cap)")
+        print("=" * 70)
+
         if args.gpus is not None and args.gpu_offset is not None:
             print(f"slots = {args.gpus} gpus x {args.per_gpu} per-gpu = {args.gpus * args.per_gpu} "
                   f"concurrent, on physical GPUs {list(range(args.gpu_offset, args.gpu_offset + args.gpus))}")
@@ -1317,6 +1882,16 @@ def main():
         # SIX validate complete.
         ref_out_dir = os.path.join(args.out_dir, "waveref")
         ok = write_bands_pinned_if_ready(ref_out_dir)
+        sys.exit(0 if ok else 1)
+
+    if args.wave == "keyanchor-k48-bands":
+        # sec 11.1.1 writer requirement 1: NO GPU, no manifest -- reads the
+        # 3 K=48 reference-arm result JSONs and writes BANDS_PINNED_K48.json
+        # iff ALL THREE validate complete. A SEPARATE file/gate from
+        # 'keyanchor-bands' above (K=16/32's own BANDS_PINNED.json is
+        # untouched).
+        ref_out_dir_k48 = os.path.join(args.out_dir, "wavekeyanchor-k48-ref")
+        ok = write_bands_pinned_k48_if_ready(ref_out_dir_k48)
         sys.exit(0 if ok else 1)
 
     if args.gpus is None or args.gpu_offset is None:
@@ -1458,6 +2033,98 @@ def main():
         print(f"wave keyanchor-mech manifest: {len(manifest)} runs (candidate (d) K=32 "
               f"seeds{{10,11,12}} + K=16 seed10; candidate (d') K=32 seeds{{20,21,22}}); "
               f"gate1={gate1_result} bands_gate={bands_gate}", flush=True)
+    elif args.wave == "keyanchor-k48-ref":
+        # sec 11.1 arm 2: bare geo3, K=48, seeds {1,2,3}, drift_probe=True --
+        # MANDATORY, first in manifest (no K=48 bands exist yet). NOT gated
+        # on anything itself (mirrors 'ref''s own precedent).
+        manifest = keyanchor_k48_reference_manifest()
+        print(f"wave keyanchor-k48-ref manifest: {len(manifest)} runs (bare-geo3, seeds {{1,2,3}}, "
+              f"K=48, --drift-probe active) -- sec 11.1.1: MUST complete + validate BEFORE "
+              f"'--wave keyanchor-k48-bands' can pin BANDS_PINNED_K48.json", flush=True)
+    elif args.wave == "keyanchor-k48-gate1":
+        # sec 11.1 item 4: DISCLOSED, NON-GATING pre-launch probe -- not
+        # gated on anything itself (it IS the thing --wave keyanchor-k48
+        # optionally reads, never a hard requirement).
+        ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-k48-gate1"
+        manifest = keyanchor_k48_gate1_manifest()
+        print(f"wave keyanchor-k48-gate1 manifest: {len(manifest)} run (candidate (d) architecture, "
+              f"K=48, {KEYANCHOR_K48_GATE1_STEPS} steps, rev7_engagement=True, DISCLOSED NON-GATING, "
+              f"ckpt_base_dir={ckpt_base_dir})", flush=True)
+    elif args.wave == "keyanchor-k48":
+        # sec 11.1's full K=48 gate chain: (1) BANDS_PINNED_K48 (sec
+        # 11.1.1, the K=48-specific reference-band gate -- NOT the K=16/32
+        # BANDS_PINNED.json); (2) the K=48 Gate-1-style probe read
+        # (DISCLOSED, NON-GATING -- reported, never blocks); (3) the
+        # RECONCILED budget guard (sec 11.5); (4) the disk gate (sec
+        # 10.10's checkpoint writer, reused). candidate (d') fires ONLY
+        # with BOTH --include-k48-dprime AND
+        # --accept-k48-dprime-orchestrator-signoff (sec 11.1 item 3's own
+        # honest downgrade -- an orchestrator sign-off, not a mechanical
+        # gate on Rev 7.1's own result JSONs, since no such script exists
+        # yet). The fixed-lambda=1 probe fires with --include-k48-fixed-
+        # lambda1 alone (no sign-off needed -- it is NOT conditioned on Rev
+        # 7.1's verdict, only a budget/priority choice, sec 11.4.3).
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        ref_out_dir_k48 = os.path.join(args.out_dir, "wavekeyanchor-k48-ref")
+        bands_gate_k48 = gate_bands_pinned_k48(ref_out_dir_k48, args.unblind_override, unblind_override_at)
+        gate1_result_k48 = gate_keyanchor_k48_gate1_probe(args.keyanchor_k48_gate1_json,
+                                                             accept_override=False)
+        keyanchor_k48_budget_guard(args.accept_budget_override)
+        manifest = keyanchor_k48_manifest()
+        if args.include_k48_fixed_lambda1:
+            manifest = manifest + keyanchor_k48_fixed_lambda1_manifest()
+        if args.include_k48_dprime:
+            if not args.accept_k48_dprime_orchestrator_signoff:
+                print("ERROR: --include-k48-dprime requires --accept-k48-dprime-orchestrator-signoff "
+                      "-- candidate (d')'s own launch precondition is an EXPLICIT orchestrator "
+                      "sign-off that Rev 7.1's own K=32 wave has reached a written Outcome A(d') or "
+                      "D' verdict (sec 10.6's routing table); no script checks this mechanically yet "
+                      "(sec 11.1 item 3/sec 11.10 finding C11's own honest downgrade). Read Rev 7.1's "
+                      "own readout_rev7.py output before passing this flag.", file=sys.stderr)
+                sys.exit(1)
+            print("=" * 70 + "\nORCHESTRATOR SIGN-OFF RECORDED: --include-k48-dprime "
+                  "--accept-k48-dprime-orchestrator-signoff -- candidate (d')'s 3 K=48 cells are "
+                  "being launched on the strength of a HUMAN decision that Rev 7.1's own K=32 "
+                  "verdict is A(d') or D', not a mechanical check (sec 11.1 item 3).\n" + "=" * 70,
+                  flush=True)
+            manifest = manifest + keyanchor_k48_dprime_manifest()
+        ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-k48"
+        disk_report = keyanchor_mech_disk_gate(ckpt_base_dir, manifest, label="keyanchor-k48")
+        if not disk_report["ok"] and not args.accept_budget_override:
+            print(f"ERROR: DISK GATE (keyanchor-k48) REFUSED -- {disk_report['required_bytes'] / 1e6:.1f} "
+                  f"MB required at {disk_report['resolved_ckpt_dir']!r}, "
+                  f"{disk_report['free_bytes'] / 1e9:.2f} GB free. Free up space or pass "
+                  f"--accept-budget-override.", file=sys.stderr)
+            sys.exit(1)
+        print(f"wave keyanchor-k48 manifest: {len(manifest)} runs (candidate (d) K=48 seeds"
+              f"{{30,31,32}}"
+              f"{' + fixed-lambda1 probe seed 50' if args.include_k48_fixed_lambda1 else ''}"
+              f"{' + candidate (d'') K=48 seeds{40,41,42}' if args.include_k48_dprime else ''}); "
+              f"bands_gate={bands_gate_k48} gate1_probe={gate1_result_k48}", flush=True)
+    elif args.wave == "keyanchor-e":
+        # sec 10.13's registered candidate (e): K=32, seeds {60,61,62},
+        # frozen random-unit-rows table, fixed lambda=0.58. REUSES the
+        # EXISTING K=16/32 BANDS_PINNED.json gate (these are K=32 anchor-arm
+        # cells, sec 3.6 applies unchanged -- no new bands file for this
+        # wave, unlike keyanchor-k48).
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        ref_out_dir = os.path.join(args.out_dir, "waveref")
+        bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
+        keyanchor_e_budget_guard(args.accept_budget_override)
+        manifest = keyanchor_e_manifest()
+        ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-e"
+        disk_report = keyanchor_mech_disk_gate(ckpt_base_dir, manifest, label="keyanchor-e")
+        if not disk_report["ok"] and not args.accept_budget_override:
+            print(f"ERROR: DISK GATE (keyanchor-e) REFUSED -- {disk_report['required_bytes'] / 1e6:.1f} "
+                  f"MB required at {disk_report['resolved_ckpt_dir']!r}, "
+                  f"{disk_report['free_bytes'] / 1e9:.2f} GB free. Free up space or pass "
+                  f"--accept-budget-override.", file=sys.stderr)
+            sys.exit(1)
+        print(f"wave keyanchor-e manifest: {len(manifest)} runs (candidate (e), K=32, frozen "
+              f"random-unit-rows table, fixed lambda={KEYANCHOR_E_LAMBDA_FIXED}, seeds {{60,61,62}}); "
+              f"bands_gate={bands_gate}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,
                                    args.calib_summary, args.accept_unconverged_rho)
@@ -1482,14 +2149,16 @@ def main():
     # regressions) -- ALL CPU-only subprocesses; rc!=0 aborts with the
     # same ABORTED.txt discipline as the pre-existing run_smoke gate below.
     if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1",
-                      "keyanchor-mech") and not args.skip_smoke:
+                      "keyanchor-mech", "keyanchor-k48-ref", "keyanchor-k48-gate1", "keyanchor-k48",
+                      "keyanchor-e") and not args.skip_smoke:
         rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
         if rc != 0:
             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                 f.write("smoke_key_anchoring.py FAILED (rc != 0); no training launched.\n")
             print("ERROR: smoke_key_anchoring.py failed -- wave aborted.", file=sys.stderr)
             sys.exit(1)
-        if args.wave in ("keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1", "keyanchor-mech"):
+        if args.wave in ("keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1", "keyanchor-mech",
+                          "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e"):
             rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
             if rc != 0:
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -1515,6 +2184,18 @@ def main():
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                     f.write("smoke_keyanchor_mech.py FAILED (rc != 0); no training launched.\n")
                 print(f"ERROR: smoke_keyanchor_mech.py failed -- {args.wave} wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+        if args.wave in ("keyanchor-k48-ref", "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e"):
+            # KEY_ANCHORING_DESIGN.md sec 11.9 / sec 10.13 -- the K48+e
+            # build's own smoke suite (fla-free; manifest-refactor
+            # non-regression, Gate-2 K48 leg, zero-collision incl. wavegeo3,
+            # candidate-(e) manifest shape, seed non-collision).
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_keyanchor_k48_e.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("smoke_keyanchor_k48_e.py FAILED (rc != 0); no training launched.\n")
+                print(f"ERROR: smoke_keyanchor_k48_e.py failed -- {args.wave} wave aborted.",
                       file=sys.stderr)
                 sys.exit(1)
 

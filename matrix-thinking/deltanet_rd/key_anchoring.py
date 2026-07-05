@@ -62,7 +62,12 @@ LAMBDA_WINDOW_LOG_POINTS = 5
 GATE2_SIGMA_RATIO_MIN = 0.1        # G2-a: sigma_64/sigma_1 >= 0.1 (raw table, train-row block)
 GATE2_MAX_COS_MAX = 0.5            # G2-b: max_{i!=j} |cos(A_i,A_j)| <= 0.5
 GATE2_RESID_TOL = 1e-2             # G2-c: NS admission tolerance (sec 14.10 item 2 semantics)
-GATE2_N_ITER_BY_K = {16: 12, 32: 20}   # production tier per K (sec 16.3's own n_iter escalation)
+GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20}   # production tier per K (sec 16.3's own n_iter
+                                                # escalation; 48 added per KEY_ANCHORING_DESIGN.md
+                                                # sec 11.3 -- "NS at n_iter=12 lands at resid 0.104
+                                                # > tol on realistic near-collinear probes; 20
+                                                # converges to ~1e-6" -- verified this build, see
+                                                # gate2_construction_test.py's ks=(16,32,48).
 GATE2_N_SUBSETS = 512
 
 # sec 2.2's anchor-init recipe (the frozen frame-potential construction).
@@ -113,6 +118,29 @@ def frame_potential_init(n: int, d: int, seed: int,
         gram = gram.masked_fill(eye_mask, 0.0)           # exclude i==j from the i!=j sum
         grad = 4.0 * (gram @ X)                          # sum_{j!=i} (x_i.x_j) x_j per row i
         X = F.normalize(X - lr * grad, dim=-1)
+    return X.float()
+
+
+def random_unit_rows_init(n: int, d: int, seed: int) -> torch.Tensor:
+    """KEY_ANCHORING_DESIGN.md sec 10.13's registered candidate (e) stub
+    ("frozen-random-table ablation") calls for a table that is BOTH never
+    trained AND not frame-potential-structured -- the stub's own name and
+    sec 10.13.4's motivating text ("a random, FROZEN anchor table... does
+    not require the anchor table to carry any entity-specific information
+    at all") describe an UNOPTIMIZED random draw, not frame_potential_init's
+    own tight-frame-minimized construction (a specific, non-random
+    geometric object). This is exactly frame_potential_init's own
+    pre-optimization starting point (n_steps=0): seeded random unit rows,
+    F.normalize(randn), same RNG convention (fp64 draw, fp32 return) so the
+    only difference between candidate (d)'s init and candidate (e)'s init
+    is whether the frame-potential descent loop ran at all -- never a
+    different distribution or dtype path. requires_grad handling (the
+    'frozen' half) is the CALLER's job (model_rd.py's
+    anchor_table_frozen flag), matching this module's own init-vs-training
+    separation of concerns (frame_potential_init also does not decide
+    trainability)."""
+    g = torch.Generator().manual_seed(seed)
+    X = F.normalize(torch.randn(n, d, generator=g, dtype=torch.float64), dim=-1)
     return X.float()
 
 

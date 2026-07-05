@@ -611,6 +611,177 @@ def smoke_14_dprime_heldout_and_nan():
             "exact-zero grad, bit-equal output", ok)
 
 
+# ---------------------------------------------------------------------------
+# smoke 15 (sec 10.13, candidate (e), 2026-07 K48+e build): the anchor
+# table's TRAINED-ROW block receives NO gradient when anchor_table_frozen=
+# True, on a REAL forward/backward through the actual bind()-insertion-site
+# functions (never a hand-wave) -- mirrors smoke 2's own realistic +
+# adversarial construction. Also asserts the ORDINARY (non-frozen) path
+# still gets a real, finite gradient on the SAME architecture, so this smoke
+# cannot pass merely because gradients are broken everywhere.
+# ---------------------------------------------------------------------------
+
+def _build_model_frozen_e(vocab=300, d_state=64, n_train=107, lambda_fixed=0.58,
+                            init_mode="random_unit_rows"):
+    train_ids = torch.arange(10, 10 + n_train)
+    model = mrd.DeltaNetRDBlock(
+        vocab, d_model=64, d_state=d_state, conv_size=4, buffer_id=0,
+        geo3_active=True, geo3_n_iter=20, geo3_resid_tol=1e-2,
+        anchor_active=True, anchor_lambda_mode="fixed", anchor_lambda_fixed=lambda_fixed,
+        anchor_train_ids=train_ids, anchor_table_frozen=True,
+        anchor_table_init_mode=init_mode)
+    return model, train_ids
+
+
+def smoke_15_candidate_e_frozen_table_no_grad():
+    all_ok = True
+
+    # (a) requires_grad is False on the trained-row block immediately at
+    # construction -- checked BEFORE any forward/backward, since a
+    # backward-only check would miss a table that merely never gets a
+    # nonzero grad by coincidence (e.g. bug that zeros the graph elsewhere).
+    model_e, train_ids = _build_model_frozen_e()
+    requires_grad_false = model_e.anchor_table.weight.requires_grad is False
+    print(f"    anchor_table.weight.requires_grad immediately after construction: "
+          f"{model_e.anchor_table.weight.requires_grad} (expect False)")
+    all_ok = all_ok and requires_grad_false
+
+    # (b) a REAL forward/backward through the production insertion-site
+    # functions (same pattern as smoke 2/4): loss.backward() must not raise
+    # (frozen leaf tensors are a valid autograd state, but a bug that tries
+    # to write into a no-grad tensor's .grad via an in-place op could still
+    # break) and model_e.anchor_table.weight.grad must be None afterward --
+    # NOT a tensor of exact zeros (torch never populates .grad for a
+    # requires_grad=False leaf at all), which is the actual "frozen" contract.
+    B, K, d = 4, 16, model_e.d_state
+    for label, raw_fn in (("realistic", lambda B, K, d: F.normalize(torch.randn(B, K, d), dim=-1)),
+                            ("adversarial (near-duplicate)", _adversarial_raw)):
+        model_e.zero_grad()
+        raw = raw_fn(B, K, d).clone().requires_grad_(True)
+        key_ids = _random_key_ids(B, K, train_ids, model_e.vocab_size_total, frac_trained=0.5, seed=21)
+        lam = model_e.anchor_lambda()   # fixed mode: returns the registered constant, no grad needed
+        k_blend = ka.anchor_blend_gather_scatter(raw, model_e.anchor_table.weight,
+                                                    model_e.anchor_trained_mask, key_ids, lam)
+        q, fallback, resid = mrd.geo3_orthogonalize_logged(k_blend, n_iter=model_e.geo3_n_iter,
+                                                              resid_tol=model_e.geo3_resid_tol)
+        loss = q.sum()
+        loss.backward()
+        finite_loss = bool(torch.isfinite(loss).item())
+        raw_grad_finite = raw.grad is not None and bool(torch.isfinite(raw.grad).all().item())
+        anchor_grad_is_none = model_e.anchor_table.weight.grad is None
+        print(f"    [{label}] loss_finite={finite_loss} raw_grad_finite={raw_grad_finite} "
+              f"anchor_table.weight.grad is None: {anchor_grad_is_none} (expect True -- frozen, "
+              f"never receives ANY grad, not merely a zero one) fallback_triggered={fallback}")
+        all_ok = all_ok and finite_loss and raw_grad_finite and anchor_grad_is_none
+
+    # (c) negative control: the ORDINARY (non-frozen, candidate-(d)-style)
+    # path on the identical architecture DOES get a real, finite gradient --
+    # proves this smoke isn't passing because gradients are broken globally.
+    model_d, train_ids_d = _build_model(lambda_mode="fixed", lambda_fixed=0.58)
+    raw_d = F.normalize(torch.randn(B, K, d), dim=-1).clone().requires_grad_(True)
+    key_ids_d = _random_key_ids(B, K, train_ids_d, model_d.vocab_size_total, frac_trained=0.5, seed=22)
+    lam_d = model_d.anchor_lambda()
+    k_blend_d = ka.anchor_blend_gather_scatter(raw_d, model_d.anchor_table.weight,
+                                                  model_d.anchor_trained_mask, key_ids_d, lam_d)
+    q_d, _, _ = mrd.geo3_orthogonalize_logged(k_blend_d, n_iter=model_d.geo3_n_iter,
+                                                 resid_tol=model_d.geo3_resid_tol)
+    q_d.sum().backward()
+    trained_grad_present = model_d.anchor_table.weight.grad is not None and \
+        bool(torch.isfinite(model_d.anchor_table.weight.grad).all().item()) and \
+        bool((model_d.anchor_table.weight.grad[model_d.anchor_trained_mask] != 0).any().item())
+    print(f"    [negative control] non-frozen (candidate d) anchor_table trained-row grad "
+          f"present and nonzero: {trained_grad_present} (expect True)")
+    all_ok = all_ok and trained_grad_present
+
+    _report("smoke 15: candidate (e) frozen anchor table receives NO grad "
+            "(requires_grad=False pre- and post-backward), non-frozen path unaffected", all_ok)
+
+
+# ---------------------------------------------------------------------------
+# smoke 16 (sec 10.13, candidate (e)): fixed lambda NEVER moves across
+# optimizer steps -- a real multi-step training loop on the frozen-table
+# architecture, asserting anchor_lambda() returns the EXACT same registered
+# constant before and after several backward+opt.step() calls (fixed mode
+# has no nn.Parameter backing it at all, so this is really a construction/
+# wiring check: no code path accidentally re-introduces a trainable lambda
+# under anchor_lambda_mode='fixed').
+# ---------------------------------------------------------------------------
+
+def smoke_16_candidate_e_fixed_lambda_never_moves():
+    model_e, train_ids = _build_model_frozen_e(lambda_fixed=0.58)
+    opt = torch.optim.Adam(model_e.parameters(), lr=0.01)
+    B, K, d = 4, 16, model_e.d_state
+    lam_before = model_e.anchor_lambda().clone()
+    no_lambda_param = model_e.anchor_lambda_raw is None and model_e.anchor_lambda_table is None
+    for step in range(5):
+        opt.zero_grad()
+        raw = F.normalize(torch.randn(B, K, d), dim=-1).clone().requires_grad_(True)
+        key_ids = _random_key_ids(B, K, train_ids, model_e.vocab_size_total, frac_trained=0.5, seed=30 + step)
+        lam = model_e.anchor_lambda()
+        k_blend = ka.anchor_blend_gather_scatter(raw, model_e.anchor_table.weight,
+                                                    model_e.anchor_trained_mask, key_ids, lam)
+        q, _, _ = mrd.geo3_orthogonalize_logged(k_blend, n_iter=model_e.geo3_n_iter,
+                                                   resid_tol=model_e.geo3_resid_tol)
+        q.sum().backward()
+        opt.step()
+    lam_after = model_e.anchor_lambda()
+    lambda_bit_identical = torch.equal(lam_before, lam_after)
+    lambda_equals_registered = bool((lam_after == 0.58).all().item())
+    print(f"    lambda before={lam_before.item():.6f} after 5 opt.step()s={lam_after.item():.6f} "
+          f"(expect bit-identical, ==0.58) no_trainable_lambda_param={no_lambda_param}")
+    ok = lambda_bit_identical and lambda_equals_registered and no_lambda_param
+    _report("smoke 16: candidate (e) fixed lambda never moves across optimizer steps "
+            "(no trainable lambda param exists under anchor_lambda_mode='fixed')", ok)
+
+
+# ---------------------------------------------------------------------------
+# smoke 17 (sec 10.13, candidate (e)): random_unit_rows_init is genuinely
+# NOT frame_potential_init -- same shape/dtype/seed-determinism contract,
+# but a DIFFERENT (unoptimized) construction: its frame potential (sum of
+# squared off-diagonal cosines) must be materially HIGHER than the
+# frame-potential-minimized table's own, at the same (n, d, seed). Guards
+# against a future refactor accidentally aliasing the two initializers.
+# ---------------------------------------------------------------------------
+
+def _frame_potential(table: torch.Tensor) -> float:
+    row_norm = F.normalize(table, dim=-1)
+    gram = row_norm @ row_norm.transpose(0, 1)
+    n = table.shape[0]
+    off_diag = gram[~torch.eye(n, dtype=torch.bool)]
+    return (off_diag ** 2).sum().item()
+
+
+def smoke_17_random_unit_rows_init_distinct():
+    n, d, seed = 107, 64, ka.ANCHOR_INIT_SEED
+    random_table = ka.random_unit_rows_init(n, d, seed=seed)
+    fp_table = ka.frame_potential_init(n, d, seed=seed)
+    same_shape = random_table.shape == fp_table.shape == (n, d)
+    unit_norm = torch.allclose(random_table.norm(dim=-1), torch.ones(n), atol=1e-5)
+    deterministic = torch.equal(random_table, ka.random_unit_rows_init(n, d, seed=seed))
+    different_seed_differs = not torch.equal(random_table, ka.random_unit_rows_init(n, d, seed=seed + 1))
+    fp_random = _frame_potential(random_table)
+    fp_optimized = _frame_potential(fp_table)
+    # frame_potential_init's own descent converges EXACTLY to the Welch
+    # bound (verified: fp_optimized == n*(n-1)*(n-d)/(d*(n-1)) == 71.8906
+    # for (107,64), matching gate2_construction_test.py's own pinned
+    # sigma_ratio==1.0 tight-frame property) -- this IS the theoretical
+    # minimum frame potential, so ANY ratio > 1.0 already proves the random
+    # draw is not that minimizer. Measured across 5 seeds (20260705, 1, 2,
+    # 3, 42) before picking this threshold: ratio lands 2.41-2.50x in every
+    # case (a real, seed-stable gap, not a single-draw fluke) -- 2.0x is a
+    # safe floor with margin below the observed range, not a tuned-to-pass
+    # threshold picked after seeing seed=20260705 alone.
+    materially_worse = fp_random > fp_optimized * 2.0
+    print(f"    shapes match: {same_shape}  unit_norm: {unit_norm}  "
+          f"deterministic (same seed): {deterministic}  differs (seed+1): {different_seed_differs}")
+    print(f"    frame potential: random={fp_random:.4f}  frame_potential_init={fp_optimized:.4f} "
+          f"ratio={fp_random / fp_optimized:.4f} (random expected ~2.4-2.5x optimized's own Welch-"
+          f"bound minimum -- NOT the same construction)")
+    ok = same_shape and unit_norm and deterministic and different_seed_differs and materially_worse
+    _report("smoke 17: random_unit_rows_init is genuinely distinct from frame_potential_init "
+            "(same contract, different/unoptimized construction)", ok)
+
+
 def main() -> int:
     print("=" * 70)
     print("KEY_ANCHORING_DESIGN.md sec 5 -- Wave -1 smoke suite (CPU-only)")
@@ -633,11 +804,18 @@ def main() -> int:
     print("-" * 70)
     smoke_13_dprime_blend_fwd_bwd()
     smoke_14_dprime_heldout_and_nan()
+    print("-" * 70)
+    print("KEY_ANCHORING_DESIGN.md sec 10.13 -- candidate (e) frozen-random-table "
+          "ablation smokes (2026-07 K48+e build)")
+    print("-" * 70)
+    smoke_15_candidate_e_frozen_table_no_grad()
+    smoke_16_candidate_e_fixed_lambda_never_moves()
+    smoke_17_random_unit_rows_init_distinct()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)
         return 1
-    print("SMOKE SUITE: ALL 14 ITEMS PASSED")
+    print("SMOKE SUITE: ALL 17 ITEMS PASSED")
     return 0
 
 

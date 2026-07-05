@@ -439,6 +439,14 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
             # KEY_ANCHORING_DESIGN.md sec 10 (Rev 7.1, 2026-07-06 keyanchor-
             # mech build): ALWAYS recorded (default off), same discipline.
             "rev7_engagement": bool(ec.get("rev7_engagement", False)),
+            # KEY_ANCHORING_DESIGN.md sec 10.13 (candidate (e), 2026-07 K48+e
+            # build): ALWAYS recorded (default off/frame_potential), same
+            # always-recorded-even-at-off discipline as every field above --
+            # is_done() cross-checks both so a candidate-(e) cell can never
+            # silently resume-match a candidate-(d) cell that happens to
+            # share every OTHER field.
+            "anchor_table_frozen": bool(ec.get("anchor_table_frozen", False)),
+            "anchor_table_init_mode": ec.get("anchor_table_init_mode", "frame_potential"),
         },
         "trajectory": trajectory, "checkpoints": checkpoints,
         # KEY_ANCHORING_DESIGN.md sec 3.6 item (c) (2026-07-04 audit fix,
@@ -1357,6 +1365,21 @@ def main():
                           "when --anchor-active is not given.")
     ap.add_argument("--anchor-lambda-fixed", type=float, default=None,
                      help="the fixed-grid lambda value when --anchor-lambda-mode=fixed.")
+    ap.add_argument("--anchor-table-frozen", action="store_true",
+                     help="KEY_ANCHORING_DESIGN.md sec 10.13, candidate (e) ('frozen-random-table "
+                          "ablation'): anchor_table.weight.requires_grad_(False) immediately after "
+                          "construction -- the trained-row block never receives a gradient (held-out "
+                          "rows already never do, sec 3.3). No effect when --anchor-active is not "
+                          "given. Composes with any --anchor-lambda-mode; the wave registers this "
+                          "with --anchor-lambda-mode=fixed (matched-lambda comparison to candidate (d)).")
+    ap.add_argument("--anchor-table-init-mode", choices=["frame_potential", "random_unit_rows"],
+                     default="frame_potential",
+                     help="'frame_potential' (default): candidate (d)'s own tight-frame-minimized "
+                          "init, unchanged. 'random_unit_rows' (KEY_ANCHORING_DESIGN.md sec 10.13, "
+                          "candidate (e)): seeded random unit rows with NO frame-potential descent "
+                          "(key_anchoring.random_unit_rows_init) -- matches sec 10.13's own "
+                          "'frozen-random-table' name and its motivating text, not a trained-but-"
+                          "frozen tight frame. No effect when --anchor-active is not given.")
     ap.add_argument("--lambda-anchor", type=float, default=0.0,
                      help="KEY_ANCHORING sec 2.4, candidate (c): soft cross-episode drift "
                           "regularizer weight (L_anchor added to the training loss only; model "
@@ -1462,6 +1485,10 @@ def main():
         if args.anchor_lambda_mode == "fixed":
             assert args.anchor_lambda_fixed is not None, \
                 "--anchor-lambda-mode=fixed requires --anchor-lambda-fixed"
+    if args.anchor_table_frozen or args.anchor_table_init_mode != "frame_potential":
+        assert args.anchor_active, \
+            "--anchor-table-frozen / --anchor-table-init-mode require --anchor-active " \
+            "(KEY_ANCHORING sec 10.13: candidate (e) is a modification of candidate (d)'s own path)"
     if args.rev7_engagement:
         assert args.anchor_active and args.drift_probe, \
             "--rev7-engagement REQUIRES --anchor-active and --drift-probe (KEY_ANCHORING sec 10.2/10.3)"
@@ -1481,7 +1508,9 @@ def main():
                              geo3_n_iter=args.geo3_n_iter, geo3_resid_tol=args.geo3_resid_tol,
                              anchor_active=args.anchor_active, anchor_lambda_mode=args.anchor_lambda_mode,
                              anchor_lambda_fixed=args.anchor_lambda_fixed,
-                             anchor_train_ids=(pools.train_name_ids if args.anchor_active else None)
+                             anchor_train_ids=(pools.train_name_ids if args.anchor_active else None),
+                             anchor_table_frozen=args.anchor_table_frozen,
+                             anchor_table_init_mode=args.anchor_table_init_mode,
                              ).to(device)
     n_params = sum(p.numel() for p in model.parameters())
     print(f"K={args.K} conv_size={args.conv_size} T_bind={cfg.T_bind} d_model={args.d_model} "
@@ -1493,6 +1522,8 @@ def main():
           f"anchor_active={args.anchor_active} anchor_lambda_mode={args.anchor_lambda_mode} "
           f"anchor_lambda_fixed={args.anchor_lambda_fixed} lambda_anchor={args.lambda_anchor} "
           f"drift_probe={args.drift_probe} "
+          f"anchor_table_frozen={args.anchor_table_frozen} "
+          f"anchor_table_init_mode={args.anchor_table_init_mode} "
           f"params={n_params} device={device}", flush=True)
 
     exactness_config = {
@@ -1510,6 +1541,8 @@ def main():
         "lambda_anchor": args.lambda_anchor,
         "drift_probe": args.drift_probe,
         "rev7_engagement": args.rev7_engagement,
+        "anchor_table_frozen": args.anchor_table_frozen if args.anchor_active else False,
+        "anchor_table_init_mode": args.anchor_table_init_mode if args.anchor_active else "frame_potential",
     }
     rev7_pin_derived = None
     if args.rev7_engagement:
