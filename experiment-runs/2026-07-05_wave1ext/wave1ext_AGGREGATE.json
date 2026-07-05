@@ -1,0 +1,103 @@
+{
+  "wave": "1ext",
+  "n_manifest": 6,
+  "n_failed": 0,
+  "cells": {
+    "w1ext_rung1_lm_openr1-mix-ext_dm768_ds64_L12_s0": {
+      "tag": "w1ext_rung1",
+      "corpus": "openr1-mix-ext",
+      "seed": 0,
+      "d_model": 768,
+      "d_state": 64,
+      "n_layers": 12,
+      "n_params": 97618176,
+      "final_step": 67547,
+      "final_val_loss": {
+        "openr1-mix-ext": 1.2974662631750107,
+        "wikitext-mix-ext": 5.163476884365082
+      },
+      "wall_s": 16175.138982057571,
+      "peak_memory_allocated_bytes": 24928503296
+    },
+    "w1ext_rung1_lm_openr1-mix-ext_dm768_ds64_L12_s1": {
+      "tag": "w1ext_rung1",
+      "corpus": "openr1-mix-ext",
+      "seed": 1,
+      "d_model": 768,
+      "d_state": 64,
+      "n_layers": 12,
+      "n_params": 97618176,
+      "final_step": 67547,
+      "final_val_loss": {
+        "openr1-mix-ext": 1.2885166853666306,
+        "wikitext-mix-ext": 5.177927911281586
+      },
+      "wall_s": 16094.602904558182,
+      "peak_memory_allocated_bytes": 24928503296
+    },
+    "w1ext_rung1_lm_openr1-mix-ext_dm768_ds64_L12_s2": {
+      "tag": "w1ext_rung1",
+      "corpus": "openr1-mix-ext",
+      "seed": 2,
+      "d_model": 768,
+      "d_state": 64,
+      "n_layers": 12,
+      "n_params": 97618176,
+      "final_step": 67547,
+      "final_val_loss": {
+        "openr1-mix-ext": 1.2834964394569397,
+        "wikitext-mix-ext": 5.2044636607170105
+      },
+      "wall_s": 16108.784336090088,
+      "peak_memory_allocated_bytes": 24928503296
+    },
+    "w1ext_rung1_lm_wikitext-mix-ext_dm768_ds64_L12_s0": {
+      "tag": "w1ext_rung1",
+      "corpus": "wikitext-mix-ext",
+      "seed": 0,
+      "d_model": 768,
+      "d_state": 64,
+      "n_layers": 12,
+      "n_params": 97618176,
+      "final_step": 67547,
+      "final_val_loss": {
+        "wikitext-mix-ext": 3.1953864991664886,
+        "openr1-mix-ext": 4.691184759140015
+      },
+      "wall_s": 16089.654441356659,
+      "peak_memory_allocated_bytes": 25515570176
+    },
+    "w1ext_rung1_lm_wikitext-mix-ext_dm768_ds64_L12_s1": {
+      "tag": "w1ext_rung1",
+      "corpus": "wikitext-mix-ext",
+      "seed": 1,
+      "d_model": 768,
+      "d_state": 64,
+      "n_layers": 12,
+      "n_params": 97618176,
+      "final_step": 67547,
+      "final_val_loss": {
+        "wikitext-mix-ext": 3.1886756122112274,
+        "openr1-mix-ext": 4.693470776081085
+      },
+      "wall_s": 16095.91365480423,
+      "peak_memory_allocated_bytes": 25515570176
+    },
+    "w1ext_rung1_lm_wikitext-mix-ext_dm768_ds64_L12_s2": {
+      "tag": "w1ext_rung1",
+      "corpus": "wikitext-mix-ext",
+      "seed": 2,
+      "d_model": 768,
+      "d_state": 64,
+      "n_layers": 12,
+      "n_params": 97618176,
+      "final_step": 67547,
+      "final_val_loss": {
+        "wikitext-mix-ext": 3.1820730566978455,
+        "openr1-mix-ext": 4.725242555141449
+      },
+      "wall_s": 16173.143311977386,
+      "peak_memory_allocated_bytes": 25515570176
+    }
+  }
+}

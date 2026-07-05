@@ -3998,6 +3998,76 @@ JSONs) + SSD mirror; 6×30MB rung-2 training JSONs SSD-only. Checkpoints
 stay on box (`/data/lm_rd_trackc_ckpts/{wave2,mixcontrol}`). `STATE.md`
 updated.
 
+## SCALE-TRANSFER Track C Wave 1ext harvest (2026-07-05): registered 98M mix-axis de-confounder — mix effect flat at both 14M and 98M (Δ −0.004 / −0.014 span, both within noise); rung-1→rung-2 attribution upgrades from joint scale+mix to PURE SCALE
+
+Harvests `SCALE_TRANSFER_DESIGN.md` §5.6 Rev 2.1 item 3's queued cell:
+6× wave-1ext (rung-1's exact architecture, `dm768/L12/ds64`, 97,618,176
+params — bit-identical to the §5.9 rung-1 cell — retrained on the
+EXTENDED mixes, 3 seeds × 2 corpora, hard-stopped at 67,547 steps,
+**exactly** wave-1's own closed rung-1 step count). Training already
+complete on-box before this pass: 26.87 GPU-h measured (GPU 6, banked),
+matching the §5.6 Rev 2.1 item 3 ≈27.0 GPU-h projection to within 0.5%;
+all 6 runs `complete=true`, `timed_out=false`, `skip_rate=0.0`. Probe on
+GPU 7 ONLY (verified idle first: 0% util, 0 MiB; GPUs 0–1 running rung-3,
+untouched), 1,493.1 s ≈ 0.415 GPU-h. Instrument bit-identical to the
+rung-1/rung-2 harvests' archived copy (md5 `3fb0f80028477d0b1cefe468c81b1da4`);
+smoke re-run on GPU 7, 6/6 PASS. Pooling method validated by reproducing
+the archived rung-1 (27.8168550, span 0.357799) and control (21.9278714,
+span 0.251807) numbers to 1e-6 before scoring wave-1ext's own numbers.
+
+**Cross-scale result (archived-4 eval-corpus subset, same convention as
+the §5.9/§5.10 harvests).** 98M wave-1ext (ext mix): raw gd 27.05 ± 12.76,
+span_frac **0.344** (n=73,728) vs. 98M rung-1 (orig mix, archived) 27.82
+± 12.87, span 0.358 — **Δ = −0.76 raw / −0.014 span, inside the per-run
+band** (per-run pooled range 24.13–30.39). Same direction and same order
+of magnitude as the 14M mixcontrol's own mix-axis Δ (−0.19 raw / −0.004
+span). **Extended mixes mildly reduce, never inflate, write-geometry
+deviation at both scales tested — and at both scales the shift sits
+inside seed/run noise.**
+
+**The mix axis is closed at 98M.** This directly answers §5.10's open
+question: the rung-1 (orig mix, span 0.358) → rung-2 (ext mix, span
+0.389) climb is not a mix artifact — it is scale-driven. A fully
+same-(extended-)mix 3-point ladder now exists as direct confirmation:
+**14M mixcontrol (ext) 0.248 → 98M wave-1ext (ext) 0.344 → 392M rung-2
+(ext) 0.389** — monotonically increasing on a single held-fixed
+corpus-mix axis, the cleanest "persists/worsens" read obtained in this
+program to date. Because the 98M mix effect is mildly negative, the
+naive orig→ext rung-1→rung-2 delta (+0.031 span) if anything
+*understates* the pure-scale climb (matched-mix increments: +0.096 then
++0.045 span) — **correcting for mix strengthens, not weakens, the scale
+attribution.**
+
+**Trajectory (wave-1ext, seed 0, both corpora, 8 points):** 29.15 (step
+1k) → 27.51 (11k) → … → 27.31 (67,547); span 0.382 → 0.349. Fast early
+drop then a flat, slightly-declining plateau >3× above the random anchor
+— no dissolution within budget, same qualitative shape as rung-1/rung-2.
+
+**Val losses (mean/3 seeds, self/cross):** wave-1ext openr1-mix-ext 1.290
+/ 5.182, wikitext-mix-ext 3.189 / 4.703 (vs. rung-1 orig-mix reference
+1.340/5.385 and 3.092/4.908) — a scale-dependent, directionally SPLIT
+val-loss effect (ext mix improves openr1-side self loss, worsens
+wikitext-side, improves both cross-losses) unlike the uniformly-worse
+14M mixcontrol reading; flagged as an open, unexplained secondary-
+instrument finding, immaterial to the geometry-based mix-axis verdict.
+
+Scoping unchanged from §5.9/§5.10: geometry leg only (frontier-probe
+transplant unbuilt), raw-only probe (Track D's massive-activation
+confound UNTESTED on our models — stable_rank 3.5–4.2 ≪ effective_rank
+27–40 at every cell remains the suggestive signal). §5.7's literal
+3-rung criterion still awaits rung-3 (launched on GPUs 0–1 this session,
+unrelated to this GPU-7-only wave). Flags: `openr1-stress` reads high
+again (28.36), no archived reference, excluded from cross-scale rows;
+trajectory seed-0-only by design.
+
+Full tables/verdict: `SCALE_TRANSFER_DESIGN.md` §5.10 Addendum. Archive:
+`experiment-runs/2026-07-05_wave1ext/` (probe JSONs incl. 8 trajectory
+points, corpus-matched recomputes, exact scripts, run log, compact
+training-run extraction, summary) + SSD mirror; all files ≤196KB, fully
+git-tracked (raw per-run training JSONs, ~16.7MB each, not archived,
+matching the rung-1 harvest's own precedent). Checkpoints stay on box
+(`/data/lm_rd_trackc_ckpts/wave1ext/`). `STATE.md` updated.
+
 ## KEY-ANCHORING WAVE VERDICT (2026-07-05): K=32 h=4 clears the 0.5 bar 3/3 seeds (mean 0.613 vs. fresh-reference 0.410), λ interior 6/6 — but items 5/6/`engaged_frac` were never measured on the admitted runs, so the mechanistic claim stays DESCRIPTIVE, not confirmed
 
 Full spec: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §3.5 (outcome map),

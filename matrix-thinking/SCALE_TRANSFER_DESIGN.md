@@ -1152,6 +1152,121 @@ training JSONs are SSD-only per archive policy
 box (`/data/lm_rd_trackc_ckpts/{wave2,mixcontrol}`). `EXPERIMENT_LOG.md`:
 "SCALE-TRANSFER Track C Wave 2 (rung-2) + mixcontrol harvest" entry.
 
+### 5.10 Addendum (harvest 2026-07-05, GPU 7 only, ≈0.415 GPU-h probe cost) — Wave 1ext: the registered 98M mix-axis de-confounder
+
+**Scope.** Training for wave-1ext (6 cells: rung-1's exact architecture,
+`d_model=768, n_layers=12, d_state=64`, 97,618,176 params — bit-identical
+to the §5.9 rung-1 cell — retrained on the EXTENDED mixes, 3 seeds × 2
+corpora, hard-required to stop at 67,547 steps, **exactly** wave-1's own
+closed rung-1 step count) had already completed and checkpointed on-box
+before this pass (26.87 GPU-h measured, GPU 6, banked before this
+session — matches the §5.6 Rev 2.1 item 3 ≈27.0 GPU-h projection to
+within 0.5%). This session ran §5.5 item 1 only (the write-geometry
+probe) on the 6 final checkpoints plus an 8-point trajectory (seed 0,
+both corpora, step spacing matched to the rung-2 harvest's 10,000-step
+cadence). GPU 7 verified idle before starting (0% util, 0 MiB); GPUs 0–1
+were running rung-3, untouched throughout.
+
+**Instrument identity + validation.** `lm_attractor_probe_rd.py` bit-identical
+(md5 `3fb0f80028477d0b1cefe468c81b1da4`) to the §5.9/§5.10 archived copies;
+smoke gate re-run on GPU 7, 6/6 PASS. Per this addendum's own registered
+requirement, the archived-4 corpus-matched pooling method was validated
+*before* scoring wave-1ext: reproducing the archived rung-1 (27.8168550,
+span 0.357799) and control (21.9278714, span 0.251807) pooled numbers
+from their own archived JSONs to 1e-6, using the same `analyze_probe_wave2.py`
+n-weighted recombination the rung-2 harvest used. All 6 training runs
+`complete=true`, `timed_out=false`, `skip_rate=0.0`; probe: 0 excluded
+episodes, no crashes.
+
+**1. Final-checkpoint gram deviation (archived-4 eval-corpus subset, same
+convention as §5.9/§5.10):**
+
+| Cell | n params | raw gd (mean ± std) | span_frac | eff rank | stable rank | n episodes |
+|---|---|---|---|---|---|---|
+| 14M control, orig mixes (§5.9) | 14,048,896 | 21.93 ± 5.90 | 0.252 | 35.07 | 4.15 | 12,288 |
+| 14M mixcontrol, ext mixes (§5.10) | 14,048,896 | 21.74 ± 5.80 | 0.248 | 34.77 | 4.12 | 12,288 |
+| 98M rung-1, orig mixes (§5.9) | 97,618,176 | 27.82 ± 12.87 | 0.358 | 32.67 | 3.55 | 73,728 |
+| **98M wave-1ext, ext mixes (new)** | 97,618,176 | **27.05 ± 12.76** | **0.344** | 32.99 | 3.62 | 73,728 |
+| 392M rung-2, ext mixes (§5.10) | 391,869,440 | 28.10 ± 14.33 | 0.389 | 39.46 | 3.63 | 98,304 |
+
+(All-7-pooled, as-written: 27.24 ± 12.74, n=129,024, span 0.347.)
+Per-run archived-4 pooled: openr1-mix-ext {24.24, 25.46, 24.13},
+wikitext-mix-ext {30.39, 28.83, 29.29} — a ≈6-point per-run band, the
+scale against which the ±0.76 shift below must be read.
+
+**2. Mix axis at 98M (closing the §5.10 open gap).** Orig-mix rung-1
+(27.82, span 0.358) vs. ext-mix wave-1ext (27.05, span 0.344): **Δ = −0.76
+raw / −0.014 span, inside the per-run band above** — same direction and
+same order of magnitude as the 14M mixcontrol's Δ (−0.19 raw / −0.004
+span, §5.10 item 3). **Extended mixes mildly reduce (never inflate)
+write-geometry deviation at both scales tested, and at both scales the
+shift sits inside seed/run noise.** Val loss is more scale-sensitive than
+at 14M: ext-mix self loss improves on openr1 (1.290 vs. 1.340, −0.050)
+but worsens on wikitext (3.189 vs. 3.092, +0.097); both cross-corpus
+losses improve (−0.20 both directions) — a genuine scale-dependent
+secondary-instrument split, not seen in the uniformly-worse 14M
+mixcontrol reading, but not the registered primary (geometry) instrument
+and does not change the verdict below.
+
+**3. Trajectory (wave-1ext, seed 0, both corpora, 8 points, archived-4
+subset).** Raw gd: 29.15 (step 1k) → 27.51 (11k) → 27.54 (21k) → 27.57
+(31k) → 27.44 (41k) → 27.40 (51k) → 27.36 (61k) → 27.31 (67,547);
+span_frac 0.382 → 0.352 → … → 0.349. Fast early drop, then a flat,
+slightly-declining plateau with a small non-monotonic wobble at
+21k–31k (probe/seed noise — the rung-2 trajectory shows the same kind
+of minor 11k→21k uptick) — the attractor does not dissolve within the
+67,547-step budget, plateauing >3× above the random anchor (7.94).
+
+**4. Verdict — mix axis at 98M, and what it does to the rung-1→rung-2
+pure-scale attribution.** The mix axis is flat at 98M, matching 14M:
+Δ −0.014 span (98M) vs. Δ −0.004 span (14M), both inside noise, both the
+same (mildly negative) sign. **This closes the §5.10 residual scale×mix
+interaction** — the rung-1 (orig mix, span 0.358) → rung-2 (ext mix, span
+0.389) climb is not an artifact of the mix switch; it is attributable to
+scale. Moreover, a fully same-(extended-)mix 3-point ladder now exists
+and closes the confound directly rather than by isolation-plus-inference:
+
+**14M mixcontrol (ext) 0.248 → 98M wave-1ext (ext) 0.344 → 392M rung-2
+(ext) 0.389** — monotonically increasing on a single, held-fixed
+corpus-mix axis, the cleanest version of §5.7's "persists/worsens"
+reading obtained in this program to date. Because the 98M mix effect is
+mildly *negative*, the naive orig→ext rung-1→rung-2 delta (+0.031 span)
+if anything *understates* the pure-scale climb: the matched-mix ladder's
+own increments (+0.096 then +0.045 span) are each individually larger.
+**Correcting for mix strengthens, not weakens, the scale attribution.**
+
+Per §5.7's registered criteria this remains geometry-leg-only (§5.5 item
+2 unbuilt) and raw-only (Track D's massive-activation confound stays
+UNTESTED on our own models — stable_rank 3.5–4.2 ≪ effective_rank 27–40
+at every cell in this family remains the suggestive, unconfirmed
+signal); the literal 3-rung criterion (98M/392M/1.3B) still awaits
+rung-3's own harvest (rung-3 is launched on GPUs 0–1 as of this session,
+unrelated to this GPU-7-only wave). **With this addendum, the
+rung-1→rung-2 headline upgrades from a joint scale+data-mix claim
+(§5.10) to a pure-scale claim** — the mix×scale interaction flagged
+there is closed.
+
+**Anomalies:** `openr1-stress` again reads high (28.36, vs. 24.31 on the
+rung-2 mixcontrol) — no archived reference at any scale, excluded from
+cross-scale rows by the archived-4 subsetting, consistent with
+precedent. Trajectory is seed-0-only by design. The val-loss mix effect
+at 98M is directionally split across corpora, unlike the uniformly-worse
+14M reading — flagged as unexplained but immaterial to the geometry
+verdict.
+
+**Cost.** Probe: 1,493.1 s wall ≈ **0.415 GPU-h**, GPU 7 only (final
+pooled 407.9s for 6 checkpoints; 8 trajectory points ≈135s each).
+Training (banked before this pass): 26.87 GPU-h.
+
+**Archive:** `experiment-runs/2026-07-05_wave1ext/` (probe JSONs incl. 8
+trajectory points, corpus-matched recomputes, exact scripts, run log,
+compact training-run extraction, summary) + SSD mirror; all files
+≤196KB, fully git-tracked (the 6 raw per-run training JSONs, ~16.7MB
+each, are not archived to the repo, matching the §5.9 rung-1 harvest's
+own precedent — checkpoints stay on box,
+`/data/lm_rd_trackc_ckpts/wave1ext/`). `EXPERIMENT_LOG.md`: "SCALE-TRANSFER
+Track C Wave 1ext harvest" entry.
+
 ---
 
 ## 6. TRACK D — Measurement-first probing of a pretrained fixed-state model (conditional graft NOT authorized by this document)

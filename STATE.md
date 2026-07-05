@@ -616,6 +616,32 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   `SCALE_TRANSFER_DESIGN.md` §5.10; archive
   `experiment-runs/2026-07-05_trackc_rung2/` + SSD (30MB training JSONs
   SSD-only). Launch artifacts: `experiment-runs/2026-07-04_trackc_rung2/`.
+- **SCALE-TRANSFER Track C Wave 1ext HARVESTED 2026-07-05 (probe ≈0.415
+  GPU-h, GPU 7 only) — the registered 98M mix-axis de-confounder closes
+  clean.** Rung-1's exact architecture (98M, `dm768/L12/ds64`) retrained
+  on the extended mixes, 3 seeds × 2 corpora, hard-stopped at wave-1's
+  own 67,547 steps (26.87 GPU-h training, banked). Mix-axis Δ at 98M:
+  −0.014 span (27.82→27.05 raw, orig→ext) — same sign/magnitude as the
+  14M mixcontrol's Δ −0.004 span, both inside seed noise. **The mix axis
+  is flat at both scales tested**, closing §5.10's residual scale×mix
+  interaction: the rung-1→rung-2 span-frac climb (0.358→0.389) is
+  scale-driven, not mix-driven. A same-extended-mix 3-point ladder now
+  exists directly: 0.248 (14M) → 0.344 (98M) → 0.389 (392M), monotonic
+  on a held-fixed mix axis — the cleanest persistence read to date;
+  correcting for the (mildly negative) mix effect *strengthens* the
+  scale attribution (matched-mix increments +0.096/+0.045 > the naive
+  +0.031). Rung-1→rung-2 headline upgrades from joint scale+mix to pure
+  scale. Trajectory (8 pts, seed 0): fast drop 29.15→27.51 by 11k, then
+  flat plateau ≈27.3–27.6 (>3× random anchor) through 67,547 — no
+  dissolution. Val-loss mix effect at 98M is directionally split across
+  corpora (unlike uniformly-worse 14M reading) — flagged, immaterial to
+  the geometry verdict. Geometry leg only; raw-only probe; §5.7's
+  literal 3-rung criterion still awaits rung-3 (launched GPUs 0–1, this
+  session, unrelated wave). Full tables: `SCALE_TRANSFER_DESIGN.md` §5.10
+  Addendum; archive `experiment-runs/2026-07-05_wave1ext/` + SSD (all
+  files ≤196KB, fully git-tracked; raw per-run training JSONs not
+  archived, per rung-1 precedent). Checkpoints stay on box
+  (`/data/lm_rd_trackc_ckpts/wave1ext/`).
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;
