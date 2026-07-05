@@ -696,3 +696,231 @@ four MAJOR gaps in the new machinery remain. Required before any GPU is spent:
 
 None of the above requires new GPU spend — all are CPU-only design/code fixes,
 consistent with this project's own "audit before running" discipline.
+
+---
+
+## 16. Rev 7.1 bounded verify — 2026-07-05 (fresh verifier, no prior context)
+
+**Scope:** bounded re-check of `KEY_ANCHORING_DESIGN.md` §10 Rev 7.1 (commit
+`e740a12`) against this file's own §15 requirements. Design-only, CPU-only,
+no GPU spend. Independent from the Rev 7.1 author: none of the numbers below
+reuse the repo's own derivation script as the check — a fresh quadrature-based
+implementation and a fresh Monte Carlo (different seed) were built from
+scratch for this pass. Full scripts and JSON outputs are throwaway (CPU
+scratch, not part of the repo).
+
+### 16.1 F1 — artifact existence and data-independence (FATAL → verify)
+
+**Closed, and closed harder than a existence check requires.**
+
+- `git show e740a12 --stat`: 3 files changed (`KEY_ANCHORING_DESIGN.md`,
+  `matrix-thinking/deltanet_rd/rev7_threshold_derive.py`,
+  `matrix-thinking/deltanet_rd/REV7_THRESHOLD_PINNED.json`), matching the
+  commit message exactly. `git show e740a12:<path>` succeeds for both new
+  files. `git diff e740a12 -- <both files>` against the current working tree
+  is empty — the committed artifacts are what's on disk now.
+- Ran `rev7_threshold_derive.py` three ways: (a) from the repo root, (b) in a
+  **freshly created, otherwise-empty sandbox directory containing only a
+  copy of the script** (no repo, no wave JSON, no other file of any kind),
+  (c) read the committed `REV7_THRESHOLD_PINNED.json` directly. All three
+  `derived` blocks compare **equal by direct dict equality** in Python (not
+  eyeballed) — the data-independence claim is demonstrated by reproduction,
+  not merely asserted. The emitted `script_sha256` (`a746dec7...bc738`) is
+  identical across all three and matches `shasum -a 256` of the actual
+  committed file — the hash chain is intact end to end.
+- One environment note, not a design flaw: this repo's local
+  `pre-train-gate.sh` hook intercepts any `python3 *.py` invocation and
+  requires a dry-run sentinel or `DRY_RUN_BYPASS=1`. Used the documented
+  bypass (`DRY_RUN_BYPASS=1`) since this is a zero-GPU, zero-torch, pure-math
+  CPU script, not a training launch — noted here only so the reproduction
+  steps above are exactly repeatable by a future reader.
+
+**F1: CLOSED.**
+
+### 16.2 The math — independent re-derivation
+
+Deliberately used a **different numerical method** than both the repo script
+and the original attack round (both use a Lentz continued-fraction
+incomplete beta): direct Gauss/Simpson quadrature of the marginal cosine
+density `f(r) = (1-r²)^{(d-3)/2} / (2^{d-2}·B(a,a))` in `r`-space, normalized
+via `lgamma`, bisected for the critical `r`. Results:
+
+| quantity | this pass (quadrature) | pin (`REV7_THRESHOLD_PINNED.json`) | match |
+|---|---|---|---|
+| `r_crit_exact_beta` (Bonferroni, tail `4.6729e-4`) | **0.400909** | 0.400909 | exact |
+| `p_exact` at r=0.125/0.25/0.35/0.4009/0.581 | 0.160568 / 0.0222966 / 0.00213136 / 0.00046742 / 1.94611e-07 | identical, row for row | exact |
+| `r_at_bh_median_rank` (k=54/107) | 0.243667 | 0.243667 | exact |
+| BY factor `Σ_{i=1}^{107} 1/i` | 5.254710 (cross-checked against the asymptotic `ln(107)+γ+1/(2·107)=5.254717`) | 5.25471 | exact |
+| BH step-up threshold, k=1 / k=54 / k=107 | 0.00046728972 / 0.02523364486 / 0.05 | same (spot-checked against the pinned 107-vector) | exact |
+| `r_min_partial = 2·σ_chance` | `2 × 1/√64 = 0.25` | 0.25 | exact |
+
+`r_min_headline=0.35` provenance traced directly to `KEY_ANCHORING_DESIGN.md`
+§9.7.2 (lines 2174–2175): the four cited back-solved medians
+(K32 s0/s1/s2 = 0.350/0.326/0.359, K16 s0 = 0.371) are genuinely present in
+that table, not fabricated or rounded in the retelling. Median-of-medians of
+`{0.326, 0.350, 0.359, 0.371}` = `(0.350+0.359)/2 = 0.3545`, rounded **down**
+to the 0.05 grid = **0.35** — arithmetic checks out exactly as claimed.
+
+§10.3.5's "prior-like data" simulation was re-run independently (own
+from-scratch BH implementation, seed `12345`, 500 draws): triangular
+reconstruction → mean `engaged_frac_v3` **0.886** (range 0.785–0.972, mean
+median `r_e` 0.343); uniform → **0.733** (range 0.598–0.879, mean median
+`r_e` 0.339). This reproduces both the Rev 7.1 text's own claim
+(0.888/0.735) and the original attack round's (0.889/0.732) within ordinary
+Monte Carlo noise — the disclosure is real, not cherry-picked or fabricated.
+
+**THE MATH: CLOSED**, independently, to 6 decimals on the load-bearing
+constant and exactly on every spot-check.
+
+### 16.3 M1 — hash-lock triple (writer/gate/readout)
+
+`§10.3.3` specifies all three legs with named failure modes: (1) writer —
+verified to exist and match; (2) launcher gate — refuses unless the pin
+exists+parses, the script's sha256 matches the pin's recorded hash, **and** a
+live `derive()` re-run reproduces the `derived` block byte-identically
+(exactly the "gate must include a live re-run, not just a hash check"
+requirement); (3) readout — loads BH/Bonferroni/BY constants and the
+effect-size floors **from the pin file**, never recomputes inline, and
+asserts the pin's script hash still matches the committed script and the
+pin's timestamp precedes the earliest anchor-arm start. All three failure
+modes are named (refusal + descriptive-tier demotion, not silent fallback).
+
+Status note, not a flaw: this is a design specification — the launcher and
+readout scripts that will *enforce* this gate are not yet written (correctly
+so; that's Wave −1/build-phase work, out of scope for a design-only verify
+pass). The specification itself is complete and matches the §3.6/§10.10
+precedent.
+
+**M1: CLOSED** at the design-specification level.
+
+### 16.4 M2 — same-code-path mean-of-cosines
+
+`§10.3.2` now defines `C[i,j]` identically to `r_e`'s own construction (mean
+over `n_resamples` of per-resample cosines, same function, swept over all
+107 columns) — the "one matmul" shortcut is explicitly dropped, and
+`C[e,e]=r_e` is now a code-level identity, not an assertion. Cost arithmetic
+checked: `107×107×32 = 366,368 ≈ 3.7e5`, matches the stated figure exactly.
+
+Smoke item 4 is rebuilt with registered resample jitter and asserts (i) the
+diagonal is bit-identical to `r_e`'s own function output and (ii) the
+off-diagonal matches a **hand-computed mean-of-cosines** reference. This is a
+genuinely discriminating test: with nonzero jitter, mean-of-cosines and
+cosine-of-mean provably diverge (Jensen's gap), so a cosine-of-mean
+implementation **cannot** pass — the earlier "trivial zero-jitter toy could
+pass either implementation" gap is closed.
+
+One cosmetic nit, not a real finding: the jitter magnitude is specified only
+qualitatively ("large enough that mean-of-cosines and cosine-of-mean differ
+by ≫ float tolerance") rather than as a pinned literal, which is a small
+inconsistency with this document's otherwise-strict "every constant is a
+pinned literal" discipline. It doesn't weaken the smoke's discriminating
+power (any nonzero jitter suffices), so this is not blocking.
+
+**M2: CLOSED.**
+
+### 16.5 M3 — per-entity percentile + hub rule (new finding: MINOR)
+
+The per-entity empirical percentile (`p_emp_e = (1 + #{j≠e: C[e,j]≥r_e}) /
+107`) and the pooled empirical fallback (`p_e = (1+#{...})/11,343`) both use
+the textbook-correct permutation-test convention (`(b+1)/(n+1)`, with
+`n=106` and `n=11,342` null draws respectively) — resolution floors
+`1/107≈0.0093` and `1/11,343≈8.8e-5` as stated, not off-by-one.
+
+**Hub-detection rule, tested directly:** `m_e > pooled_mean + 2·s_rowmeans`
+was simulated against the attack round's own constructed scenario (5/107
+hub entities at row-mean 0.35, 102 normal entities at row-mean SD ≈0.012).
+Result: **pooled_mean=0.017, s_rowmeans=0.075, threshold=0.167 — the hub
+(0.35) is correctly flagged.** The fix genuinely defeats the specific
+scenario the attack round built.
+
+**New finding this pass:** `mean + 2·SD` is a non-robust (low
+breakdown-point) statistic. Sweeping the hub-entity **count** (holding the
+hub effect size fixed at 0.35) shows the rule's own threshold rises with the
+contaminated fraction and **crosses over into masking somewhere around
+20–25 hub entities out of 107** (own simulation: flagged at n_hub=20
+[threshold 0.339 < 0.35], no longer flagged at n_hub=25 [threshold 0.379 >
+0.35], fully masked by n_hub=30–40 [threshold 0.41–0.47]) — i.e., a larger
+(but not exotic) minority of similarly-elevated entities would inflate
+`s_rowmeans` enough to hide themselves entirely. This matches the classical
+statistics point the checklist raised: `mean+kSD` has no formal
+breakdown-point guarantee, while `median + k·MAD` (breakdown point 50%)
+would not have this failure mode. It is bounded in practice here (cosines are
+capped in `[-1,1]`, so the masking threshold can't be pushed to infinity the
+way an unbounded-outlier argument would predict), and nothing in the current
+evidence suggests contamination anywhere near 20–25/107 is plausible for
+this specific mechanism — but the design doesn't test or disclose this
+larger-fraction regime, only the small-fraction one the attack round
+happened to construct.
+
+**Adjudication: MINOR, not blocking.** Recommend (non-blocking, for whoever
+implements this in the build phase): either disclose the breakdown-point
+property in the write-up, or swap the hub-detection dispersion estimate
+specifically to `median + 2·MAD` (leaving `r_min_partial = 2·σ_chance`
+untouched — that one is a fixed theoretical constant, not an empirical
+dispersion estimate, and is not subject to this masking mechanism at all).
+
+**M3: mostly CLOSED** (specific attack scenario genuinely defeated); one new
+MINOR disclosed above.
+
+### 16.6 M4 — band coherence, no unrouted gap
+
+Proved algebraically that the three registered bands are a **total,
+mutually exclusive partition**: `C` (`rate<50% OR median<0.25`) is the exact
+logical negation of `A″`'s criterion (`rate≥50% AND median≥0.25`), and `A`
+is a strict subset of `A″` (both `A` legs are stricter than both `A″` legs).
+So every `(rate, median)` combination is either `C` or satisfies `A″`
+(promoted to `A` if it additionally clears the stricter bar) — no
+combination is unrouted.
+
+Checked the checklist's own example directly: **rate=95%, median=0.30** →
+fails `A` (median<0.35), passes `A″` (rate≥50% and median≥0.25), fails `C`
+(neither condition holds) → routes cleanly to `A″`. This is exactly the
+shape of §10.3.5's own pre-registered expectation (detection brushing/
+exceeding 90% while median sits ≈0.34, landing `A″` not `A`) — the routing
+table and the disclosed expectation are mutually consistent, not just
+individually coherent.
+
+**M4: CLOSED.**
+
+### 16.7 Disclosure and fresh-eyes sweep
+
+The §10.3.5 prior-expectation statement is present, honest, and independently
+reproduced (§16.2 above: 0.886/0.733 vs. the doc's claimed 0.888/0.735 vs.
+the original attack's 0.889/0.732 — all within Monte Carlo noise of each
+other). "A″ brushing A, held below A by the magnitude floor" is an accurate
+characterization of the actual numbers, not spin.
+
+Fresh-eyes sweep of Rev 7.1's own additions found: the M3 breakdown-point
+gap (§16.5, MINOR); the M2 jitter-not-pinned cosmetic nit (§16.4, not
+blocking); confirmed the FATAL's original false-tense language ("is written
+and committed as part of this draft") no longer appears anywhere in the
+document (`grep` returns nothing); confirmed the re-bracketed budget
+arithmetic in §10.7 is internally consistent (mandatory `1.29–5.51 ≈
+1.3–5.5`; all-conditionals `2.01–8.59 ≈ 2.0–8.6`; `51.5+12=63.5`,
+`80-63.5=16.5` reserve — all arithmetic checks out). No other structural,
+mathematical, or verify-before-claiming issues found.
+
+### 16.8 Verdict
+
+**CLEARED-FOR-BUILD.**
+
+- F1 (FATAL): CLOSED — artifacts exist, are committed, and the
+  data-independence claim is demonstrated by reproduction in a truly empty
+  sandbox, not merely asserted.
+- M1: CLOSED — full writer/gate/readout triple specified with named failure
+  modes, matching §3.6/§10.10.
+- M2: CLOSED — same-code-path identity, smoke rebuilt with real
+  discriminating power.
+- M3: CLOSED for the constructed scenario, with one new **MINOR** (hub-rule
+  breakdown point at ~20–25/107 contamination, undisclosed) — non-blocking,
+  recommended for the build-phase write-up.
+- M4: CLOSED — bands are a coherent, total, mutually exclusive partition;
+  no unrouted combination exists.
+- Disclosure (§10.3.5): CLOSED — honest, independently reproduced.
+
+**r_crit reproduction (independent quadrature method, this pass): 0.400909**
+— matches the pin and the original attack round's 0.4009 exactly to 6
+decimals.
+
+No FATAL or MAJOR survives. One new MINOR (§16.5) is recorded for the build
+phase. Nothing here requires another design revision before GPU spend.
