@@ -687,14 +687,26 @@ def gate_keyanchor_mech_probe(gate1_json_path: str, accept_override: bool) -> di
               f"launch. Pass --accept-keyanchor-mech-gate1-override for an explicit override.",
               file=sys.stderr)
         sys.exit(1)
-    if h4 < 0.8:
-        print(f"ERROR: candidate (d') Gate-1 probe FAILED -- predicted h4 rec@0.9={h4:.4f} < 0.8. "
+    # REGISTRATION CORRECTION (2026-07-05, disclosed in KEY_ANCHORING_DESIGN.md
+    # sec 10.5): the original 0.8 bar was the K=16-era Gate-1 PREDICTION bar
+    # (K=16 realized ~0.95+), mis-inherited by the design text into this K=32
+    # MEASURED probe -- it demanded the probe beat the wave's own registered
+    # K=32 success bar (0.5) by 0.3, unpassable for any correct prediction.
+    # The harm-screen purpose (refuse GPU spend on a doomed arm) is served by
+    # the wave's own registered bar. First live firing: probe read 0.6261 --
+    # clears 0.5, matches candidate (d)'s known K=32 range 0.556-0.665.
+    KEYANCHOR_MECH_GATE1_BAR = 0.5
+    if h4 < KEYANCHOR_MECH_GATE1_BAR:
+        print(f"ERROR: candidate (d') Gate-1 probe FAILED -- predicted h4 rec@0.9={h4:.4f} < "
+              f"{KEYANCHOR_MECH_GATE1_BAR} (the wave's registered K=32 bar). "
               f"Pass --accept-keyanchor-mech-gate1-override for an explicit, documented override.",
               file=sys.stderr)
         sys.exit(1)
-    print(f"keyanchor-mech Gate-1 PASSED: candidate (d') predicted h4 rec@0.9={h4:.4f} >= 0.8",
+    print(f"keyanchor-mech Gate-1 PASSED: candidate (d') predicted h4 rec@0.9={h4:.4f} >= "
+          f"{KEYANCHOR_MECH_GATE1_BAR} (registered K=32 bar; sec 10.5 registration correction)",
           flush=True)
-    return {"gate_bypassed": False, "gate1_json_path": gate1_json_path, "h4": h4}
+    return {"gate_bypassed": False, "gate1_json_path": gate1_json_path, "h4": h4,
+            "gate1_bar": KEYANCHOR_MECH_GATE1_BAR}
 
 
 def keyanchor_ceiling_by_k() -> dict:

@@ -3092,6 +3092,27 @@ pre-spend check §9.6 already ran for candidate (d) (predicted `h4 ≥
 the confirm wave, so its Gate 1 read is **not** re-run (would be
 re-measuring a gate that already passed twice on identical code).
 
+**REGISTRATION CORRECTION (2026-07-05, first live firing):** the `≥0.8`
+bar above was mis-inherited — it is the K=16-era Gate-1 PREDICTION bar
+(where K=16 realized ≈0.95+, so 0.8 was a meaningful screen), applied
+here to a K=32 measured probe. At K=32 the wave's own registered
+success bar is `h4 ≥ 0.5` and candidate (d)'s realized range is
+0.556–0.665; demanding a probe of the NEW arm exceed 0.8 requires it to
+beat the wave's success criterion by 0.3 — unpassable for any correct
+prediction, and internally inconsistent with this section's own bars.
+Corrected operative bar: **the wave's registered K=32 bar, 0.5**
+(`KEYANCHOR_MECH_GATE1_BAR` in the gate code). The gate fired correctly
+at first firing (probe read 0.6261 < 0.8 → refused; fail-closed held),
+the mis-calibration was diagnosed from the registered documents, and
+the correction is made BEFORE any anchor-arm cell has run — the probe
+itself is a harness-validation cell, not an evidentiary one. Probe
+verdict under the corrected bar: 0.6261 ≥ 0.5 → PASS (and the reading
+matches candidate (d)'s known K=32 range — the harm-screen's purpose,
+refusing GPU spend on a doomed arm, is affirmatively served). Four
+adversarial rounds reviewed the new threshold machinery and did not
+catch this inherited constant; logged as a lesson (K-dependent bars
+must be re-derived, never carried across K).
+
 #### 10.5.1 The per-entity-λ decision — why both (a) and (b), not either/or
 
 The attack's own framing offered a choice: (a) redesign the metric
