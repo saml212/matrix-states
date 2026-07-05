@@ -1,0 +1,103 @@
+{
+  "wave": "mixcontrol",
+  "n_manifest": 6,
+  "n_failed": 0,
+  "cells": {
+    "mixcontrol_lm_openr1-mix-ext_dm256_ds64_L2_s0": {
+      "tag": "mixcontrol",
+      "corpus": "openr1-mix-ext",
+      "seed": 0,
+      "d_model": 256,
+      "d_state": 64,
+      "n_layers": 2,
+      "n_params": 14048896,
+      "final_step": 6103,
+      "final_val_loss": {
+        "openr1-mix-ext": 2.46102511882782,
+        "wikitext-mix-ext": 6.9751890897750854
+      },
+      "wall_s": 278.24901032447815,
+      "peak_memory_allocated_bytes": 16694392320
+    },
+    "mixcontrol_lm_openr1-mix-ext_dm256_ds64_L2_s1": {
+      "tag": "mixcontrol",
+      "corpus": "openr1-mix-ext",
+      "seed": 1,
+      "d_model": 256,
+      "d_state": 64,
+      "n_layers": 2,
+      "n_params": 14048896,
+      "final_step": 6103,
+      "final_val_loss": {
+        "openr1-mix-ext": 2.379907548427582,
+        "wikitext-mix-ext": 6.876399338245392
+      },
+      "wall_s": 277.7851359844208,
+      "peak_memory_allocated_bytes": 16694392320
+    },
+    "mixcontrol_lm_openr1-mix-ext_dm256_ds64_L2_s2": {
+      "tag": "mixcontrol",
+      "corpus": "openr1-mix-ext",
+      "seed": 2,
+      "d_model": 256,
+      "d_state": 64,
+      "n_layers": 2,
+      "n_params": 14048896,
+      "final_step": 6103,
+      "final_val_loss": {
+        "openr1-mix-ext": 2.407932370901108,
+        "wikitext-mix-ext": 6.913304507732391
+      },
+      "wall_s": 273.9585978984833,
+      "peak_memory_allocated_bytes": 16694392320
+    },
+    "mixcontrol_lm_wikitext-mix-ext_dm256_ds64_L2_s0": {
+      "tag": "mixcontrol",
+      "corpus": "wikitext-mix-ext",
+      "seed": 0,
+      "d_model": 256,
+      "d_state": 64,
+      "n_layers": 2,
+      "n_params": 14048896,
+      "final_step": 6103,
+      "final_val_loss": {
+        "wikitext-mix-ext": 5.061983585357666,
+        "openr1-mix-ext": 7.494112730026245
+      },
+      "wall_s": 273.9669682979584,
+      "peak_memory_allocated_bytes": 17281459200
+    },
+    "mixcontrol_lm_wikitext-mix-ext_dm256_ds64_L2_s1": {
+      "tag": "mixcontrol",
+      "corpus": "wikitext-mix-ext",
+      "seed": 1,
+      "d_model": 256,
+      "d_state": 64,
+      "n_layers": 2,
+      "n_params": 14048896,
+      "final_step": 6103,
+      "final_val_loss": {
+        "wikitext-mix-ext": 5.014501214027405,
+        "openr1-mix-ext": 7.399690687656403
+      },
+      "wall_s": 274.41775035858154,
+      "peak_memory_allocated_bytes": 17281459200
+    },
+    "mixcontrol_lm_wikitext-mix-ext_dm256_ds64_L2_s2": {
+      "tag": "mixcontrol",
+      "corpus": "wikitext-mix-ext",
+      "seed": 2,
+      "d_model": 256,
+      "d_state": 64,
+      "n_layers": 2,
+      "n_params": 14048896,
+      "final_step": 6103,
+      "final_val_loss": {
+        "wikitext-mix-ext": 5.017850458621979,
+        "openr1-mix-ext": 7.443242073059082
+      },
+      "wall_s": 273.0492877960205,
+      "peak_memory_allocated_bytes": 17281459200
+    }
+  }
+}

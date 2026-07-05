@@ -1,0 +1,106 @@
+====================================================================================================
+TRACK C WAVE 2 (RUNG-2, 392M) + MIXCONTROL HARVEST SUMMARY — SCALE_TRANSFER_DESIGN.md sec 5.10
+geometry leg only (sec 5.5 item 1); items 2/3 NOT run this session.
+Instrument: lm_attractor_probe_rd.py, md5 3fb0f80028477d0b1cefe468c81b1da4 — BIT-IDENTICAL to the
+rung-1 harvest's archived copy (experiment-runs/2026-07-04_trackc_rung1/). Smoke re-run on GPU 7
+before scoring: all 6 items PASS. GPU 7 only (GPUs 0-5 key-anchoring wave, GPU 6 wave-1ext).
+Probe cost: 3733.3 s wall = 1.04 GPU-h (incl. 129.8 s timing pilot).
+====================================================================================================
+
+ANCHORS (E||G-I||_F, K=64 chunk window; sec 5.9/6.8 convention):
+  d=64  (rung-1 + both 14M cells, d_state=64, 1 head):  random 7.937  / collapse 63.498
+  d=128 (rung-2, d_state=128, 1 head):                  random 5.612  / collapse 63.498
+  NOTE: raw gd is NOT comparable across d without anchors; use frac of random->collapse span.
+
+CORPUS-MATCHING NOTE: the box now has 7 eval corpora (adds openr1-mix-ext / wikitext-mix-ext /
+openr1-stress since the rung-1 harvest, which pooled over 4). The probe's own top-level "pooled"
+block therefore pools 7 corpora; cross-rung rows below are RECOMPUTED on the archived-4 subset
+{openr1, openr1-mix, wikitext, wikitext-mix} (exact n-weighted pooling; validated by reproducing
+the archived rung-1/control pooled numbers to 1e-6 from their per-cell detail). analyze_probe_wave2.py
++ probe_analysis.json in this archive hold all subsets (archived-4 / ext-2 / all-7 / per-corpus).
+
+### FINAL-CHECKPOINT GRAM DEVIATION (pooled both/all corpora, all layers, chunk=64)
+
+Cross-scale table (archived-4 eval-corpus subset, matched to the rung-1 harvest):
+  cell                     n_params      raw gd (mean+/-std)   span_frac  eff_rank  stable_rank  n_episodes
+  14M control  (orig mix)  14,048,896    21.93 +/- 5.90        0.252      35.07     4.15         12,288   [archived 2026-07-04]
+  14M mixcontrol (ext mix) 14,048,896    21.74 +/- 5.80        0.248      34.77     4.12         12,288   [this harvest]
+  98M rung-1   (orig mix)  97,618,176    27.82 +/- 12.87       0.358      32.67     3.55         73,728   [archived 2026-07-04]
+  392M rung-2  (ext mix)   391,869,440   28.10 +/- 14.33       0.389      39.46     3.63         98,304   [this harvest]
+
+  All-7-corpora pooled (as-written by the probe): rung-2 28.22 +/- 14.24 (n=172,032, span 0.391);
+  mixcontrol 22.12 +/- 5.99 (n=21,504, span 0.255). 0 episodes excluded below MIN_VALID in any cell.
+
+Per-run final checkpoint (all-7 pooled), rung-2 @ step 91,552:
+  openr1-mix-ext  s0 29.09  s1 25.30  s2 29.40
+  wikitext-mix-ext s0 28.65  s1 28.34  s2 28.57
+Per-run final checkpoint (all-7 pooled), mixcontrol @ step 6,103:
+  openr1-mix-ext  s0 20.06  s1 22.36  s2 20.51
+  wikitext-mix-ext s0 25.83  s1 22.86  s2 21.12
+
+### TRAJECTORY OVER TRAINING (rung-2, seed 0 both corpora, 11 points, all-7 pooled)
+  step:      1000   11000  21000  31000  41000  51000  61000  71000  81000  91000  91552
+  raw gd:    31.61  29.76  29.79  29.66  29.69  29.46  29.35  29.14  28.94  28.91  28.87
+  span_frac: .449   .417   .418   .416   .416   .412   .410   .407   .403   .403   .402
+Shape: fast early drop (1k->11k), then slow near-monotonic decline that PLATEAUS ~5x above the
+random anchor — training drifts marginally toward orthonormality but is nowhere near dissolving
+the attractor within the 1.5B-token budget. Same shape on the train-matched ext-2 subset.
+
+### MIXCONTROL READ (Rev 2.1 item 3 — the mix axis at 14M, same instrument)
+  14M orig-mix control (archived): raw gd 21.93 +/- 5.90 (span 0.252)
+  14M ext-mix mixcontrol (new):    raw gd 21.74 +/- 5.80 (span 0.248)  [archived-4 subset]
+  Delta = -0.19 raw / -0.004 span — inside per-seed spread (per-run pooled range 20.1-25.8).
+  The extended-mix data does NOT move the 14M write geometry on the primary instrument.
+  Val loss DOES move: ext mixes cost +0.064 / +0.063 nats over orig mixes at 14M (2.4163 vs
+  2.352 openr1-side; 5.0314 vs 4.969 wikitext-side) — mix dilutes loss, not geometry.
+  Caveat: this isolates the mix axis AT 14M ONLY; the mix x scale interaction at 98M closes when
+  wave-1ext (rung-1 on ext mixes, running on GPU 6 at harvest time) reads out.
+
+### VAL LOSSES (final checkpoint, mean/3 seeds; per-run values in training_run_summaries.json)
+  cell            trained-on          self-corpus   cross-corpus     whole-state eff_rank f1.0 (self, /d_state)
+  rung-2 392M     openr1-mix-ext      1.1347        5.0842 (wik)     62.49/128 = 0.488
+  rung-2 392M     wikitext-mix-ext    2.8466        4.6292 (opr1)    58.66/128 = 0.458
+  mixctl 14M      openr1-mix-ext      2.4163        6.9216 (wik)     37.47/64  = 0.586
+  mixctl 14M      wikitext-mix-ext    5.0314        7.4457 (opr1)    36.17/64  = 0.565
+  [ref] rung-1 98M openr1-mix         1.340         5.385            36.08/64  = 0.564
+  [ref] rung-1 98M wikitext-mix       3.092         4.908            32.00/64  = 0.500
+Whole-state eff-rank FRACTION of d_state falls with scale (0.57-0.59 -> 0.50-0.56 -> 0.46-0.49):
+the accumulated state uses proportionally less of its dimensions as the model grows.
+
+### VERDICT (sec 5.7 registered criteria ONLY; Tier 2, descriptive)
+Key-Gram deviation does NOT shrink with scale — normalized span_frac WORSENS monotonically on
+the 3-point read now available: 0.252 (14M) -> 0.358 (98M) -> 0.389 (392M). Distance above the
+random anchor grows 13.99 -> 19.88 -> 22.49 raw units. This is the "persists (or worsens)"
+direction sec 5.7 pre-registers as the track's headline. Scoping: (a) geometry leg only — the
+frontier-probe transplant (sec 5.5 item 2) has not run, so this is not yet the full sec 5.7
+persistence verdict; (b) sec 5.7's literal 3-RUNG criterion (98M/392M/1.3B) still awaits rung-3;
+(c) rung-1 (orig mixes) vs rung-2 (ext mixes) is formally a joint scale+data-mix comparison —
+BUT the mixcontrol cleanly isolates the mix axis at 14M (geometry unmoved, delta -0.19 within
+seed noise), which supports scale, not data mix, as the driver of the 98M->392M increase;
+the 98M-scale mix isolation (wave-1ext) is running and will close the residual confound.
+No centered-variant probe exists here (Track D's massive-activation caveat still UNTESTED on
+our own models); stable_rank (3.6-4.1) << effective_rank (33-39) at every cell remains the
+suggestive-but-unconfirmed signal of a shared dominant channel.
+
+### RUN HEALTH / ANOMALIES
+All 12 training runs complete=true, timed_out=false, skip_rate=0.0, grad_finite at every logged
+step; rung-2 measured n_params 391,869,440 (0.03% off 392M target); peak mem 41.8/45.7 GB alloc/
+reserved (batch 32, seq 512). Probe: 0 NaN/Inf, 0 excluded episodes, no crashes, no reruns needed.
+Flags: (1) openr1-stress eval corpus reads high on the 14M mixcontrol (24.31 vs 21.7-22.6 others)
+— new corpus, no archived reference, excluded from cross-rung rows by the archived-4 subsetting;
+(2) trajectory is seed-0-only (2 of 6 runs) by design — shape check, not a seed-level claim.
+
+### COST LEDGER
+  wave-2 training (banked before this harvest): 128.3 GPU-h measured (6 x ~21.4 h) — vs the
+    Rev 2.1 amendment's ~129 GPU-h projection.
+  mixcontrol training (banked 2026-07-04): 0.5 GPU-h.
+  this harvest's probe: 1.04 GPU-h (GPU 7 only).
+
+Full detail: rung2_final_pooled.json / mixcontrol_final_pooled.json (per-checkpoint, per-corpus,
+per-layer), rung2_traj_step*.json (11 trajectory points), probe_analysis.json / traj_analysis.json
+(corpus-matched subset recomputes), training_run_summaries.json (val losses/rank/memory extract),
+mixcontrol_lm_*.json (full 14M training logs; the 6 x 30MB rung-2 training JSONs are SSD-only per
+archive policy: /Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-05_trackc_rung2/
+wave2_training_jsons/). Checkpoints stay on box (/data/lm_rd_trackc_ckpts/{wave2,mixcontrol}).
+Design doc: SCALE_TRANSFER_DESIGN.md sec 5.10. EXPERIMENT_LOG.md: "SCALE-TRANSFER Track C Wave 2
+(rung-2) + mixcontrol harvest" entry.

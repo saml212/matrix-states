@@ -1,0 +1,103 @@
+{
+  "wave": "2",
+  "n_manifest": 6,
+  "n_failed": 0,
+  "cells": {
+    "w2_rung2_lm_openr1-mix-ext_dm1536_ds128_L16_s0": {
+      "tag": "w2_rung2",
+      "corpus": "openr1-mix-ext",
+      "seed": 0,
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "final_step": 91552,
+      "final_val_loss": {
+        "openr1-mix-ext": 1.1312367767095566,
+        "wikitext-mix-ext": 5.110977828502655
+      },
+      "wall_s": 77170.42737150192,
+      "peak_memory_allocated_bytes": 41173122560
+    },
+    "w2_rung2_lm_openr1-mix-ext_dm1536_ds128_L16_s1": {
+      "tag": "w2_rung2",
+      "corpus": "openr1-mix-ext",
+      "seed": 1,
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "final_step": 91552,
+      "final_val_loss": {
+        "openr1-mix-ext": 1.1366907954216003,
+        "wikitext-mix-ext": 5.0751718282699585
+      },
+      "wall_s": 76957.97183251381,
+      "peak_memory_allocated_bytes": 41173122560
+    },
+    "w2_rung2_lm_openr1-mix-ext_dm1536_ds128_L16_s2": {
+      "tag": "w2_rung2",
+      "corpus": "openr1-mix-ext",
+      "seed": 2,
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "final_step": 91552,
+      "final_val_loss": {
+        "openr1-mix-ext": 1.1360320150852203,
+        "wikitext-mix-ext": 5.066566169261932
+      },
+      "wall_s": 76772.93942546844,
+      "peak_memory_allocated_bytes": 41173122560
+    },
+    "w2_rung2_lm_wikitext-mix-ext_dm1536_ds128_L16_s0": {
+      "tag": "w2_rung2",
+      "corpus": "wikitext-mix-ext",
+      "seed": 0,
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "final_step": 91552,
+      "final_val_loss": {
+        "wikitext-mix-ext": 2.8478260934352875,
+        "openr1-mix-ext": 4.573777556419373
+      },
+      "wall_s": 76934.79884457588,
+      "peak_memory_allocated_bytes": 41760687104
+    },
+    "w2_rung2_lm_wikitext-mix-ext_dm1536_ds128_L16_s1": {
+      "tag": "w2_rung2",
+      "corpus": "wikitext-mix-ext",
+      "seed": 1,
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "final_step": 91552,
+      "final_val_loss": {
+        "wikitext-mix-ext": 2.8397773802280426,
+        "openr1-mix-ext": 4.675342321395874
+      },
+      "wall_s": 76935.58757281303,
+      "peak_memory_allocated_bytes": 41760687104
+    },
+    "w2_rung2_lm_wikitext-mix-ext_dm1536_ds128_L16_s2": {
+      "tag": "w2_rung2",
+      "corpus": "wikitext-mix-ext",
+      "seed": 2,
+      "d_model": 1536,
+      "d_state": 128,
+      "n_layers": 16,
+      "n_params": 391869440,
+      "final_step": 91552,
+      "final_val_loss": {
+        "wikitext-mix-ext": 2.852082282304764,
+        "openr1-mix-ext": 4.638338327407837
+      },
+      "wall_s": 76931.94753670692,
+      "peak_memory_allocated_bytes": 41760687104
+    }
+  }
+}

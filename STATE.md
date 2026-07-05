@@ -546,22 +546,24 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   nats both corpora from mixing; whole-state rank flat). Full tables/caveats:
   `SCALE_TRANSFER_DESIGN.md` §5.9; archive
   `experiment-runs/2026-07-04_trackc_rung1/` + SSD.
-- **SCALE-TRANSFER Track C Wave 2 (rung-2, 392M) LAUNCHED 2026-07-04 06:10 UTC**
-  under the §5.6 Rev 2.1 amendment (pre-registered before launch: 3 seeds ×
-  2 EXTENDED mixes = 6 runs, ≈21.6 h/run, 129.4 GPU-h, cumulative 162.5/300;
-  bars unchanged). Extended mixes: `reasoning_mix_eot_extended` 344.7M /
-  `wikitext103_mix_eot_extended` 418.1M train tok (5-epoch ceilings 1.72B/2.09B
-  ≥ the 1.5B/run target; val/test byte-identical to originals). Box: tmux
-  `trackc2` (GPUs 0-5, supervisor loop, stop via `touch STOP_trackc2`), tmux
-  `trackc_g6` (GPU 6: rung-3 two-point calibration w/ cold-Triton retry, then
-  `--wave mixcontrol` 6×14M on ext mixes). Independent launch audit (fresh
-  agent) passed everything EXCEPT one FATAL it caught before launch: wave-2
-  checkpoints (~865GB) would have landed on the 94%-full root disk —
-  remediated by relocating all `results/lm_rd_trackc/*/checkpoints` to
-  `/data/lm_rd_trackc_ckpts/` with symlinks (root now 13% used). Harvest due
-  ~04:00 UTC 2026-07-05: attractor probe on 6×92 checkpoints vs rung-1 band +
-  mixcontrol mix-axis read. Launch artifacts:
-  `experiment-runs/2026-07-04_trackc_rung2/`.
+- **SCALE-TRANSFER Track C Wave 2 (rung-2, 392M) + mixcontrol HARVESTED
+  2026-07-05 (probe ≈1.04 GPU-h, GPU 7 only) — attractor WORSENS
+  monotonically on the 3-point read 14M→98M→392M.** All 6 rung-2 runs
+  (391.87M params, 91,552 steps ≈1.5B tok/run, ext mixes, 128.3 GPU-h
+  measured) + 6 mixcontrol runs completed clean (0 skips/NaN/timeouts).
+  Anchor-normalized gram-dev span-frac: 0.252 (14M) → 0.358 (98M) → **0.389
+  (392M)** (raw 21.93 → 27.82 → 28.10 on the corpus-matched archived-4
+  subset; rung-2 anchors 5.61/63.50 at K=64,d=128). Trajectory (11 ckpts,
+  seed 0): fast drop 31.6→29.8 by step 11k, then plateaus ≈5× above random
+  — no dissolution within budget. **Mixcontrol closes §5.9's mix-axis gap
+  at 14M: ext-mix geometry 21.74 vs orig-mix 21.93 (Δ −0.19, seed noise) —
+  mixes move val loss (+0.06 nats), not geometry**, supporting scale as the
+  rung-1→rung-2 driver (98M interaction closes with wave-1ext, GPU 6).
+  Geometry leg only; raw-only probe; rung-3 now un-gated per Rev 2.2
+  (launches at 1.5B tok/run token-matched to rung-2). Full tables:
+  `SCALE_TRANSFER_DESIGN.md` §5.10; archive
+  `experiment-runs/2026-07-05_trackc_rung2/` + SSD (30MB training JSONs
+  SSD-only). Launch artifacts: `experiment-runs/2026-07-04_trackc_rung2/`.
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;
