@@ -2083,6 +2083,24 @@ no GPU spend in that commit). Full narrative:
 
 ### 9.7 Rev 6 DRAFT — λ-scaled engagement threshold re-derivation (2026-07-05/06)
 
+**CLOSED 2026-07-05 — RE-SCORE REJECTED BY THE ATTACK ROUND
+(`KEYANCHOR_REV6_ATTACK.md`); OUTCOME C STANDS.** Three findings killed it:
+(1) the z that preserves the never-challenged flat-0.9 bar's stringency at the
+realized λ is ≈3.76–4.03 — BOTH menu options {2,3} are relaxations, so any
+outcome-changing pick is threshold-shopping by construction; (2) the "blind
+z-pick" procedure was self-defeating — this section's own tables publish each
+z's outcome; (3) the unverified `‖anchor‖=1` assumption admits a plausible
+alternative (`m≈1.34`, ordinary Adam drift for an unconstrained embedding)
+under which the observed a_e median is a chance-level scale artifact. The
+attack also surfaced the structural point that a single global-scalar λ cannot
+differentially engage entities, so §3.7's bimodality frame was never a test
+candidate (d) could fail informatively. Consequence: the mechanism-engagement
+question requires a FRESH pre-registered wave (per-entity instrumentation
+incl. anchor-row norms, and an engagement metric derived for interior λ before
+any data exists) — it cannot be settled by re-scoring this wave's data. The
+behavioral h4 result (§9.6) is unaffected: real, reproducible, descriptive
+tier. Section retained below as the historical record of the attempt.
+
 **Status: DRAFT. Pending its own attack round (per this project's own
 repeated finding — see the Hard Rules entry on multi-round adversarial
 audit — that a single self-review is not a substitute). Executes §9.6's
