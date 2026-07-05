@@ -34,8 +34,10 @@ unchanged.
 """
 from __future__ import annotations
 
+import bisect
 import hashlib
 import json
+import math
 import os
 import time
 
@@ -43,6 +45,8 @@ import torch
 import torch.nn.functional as F
 
 from geo3_simulator import newton_schulz as _geo3sim_newton_schulz
+import rev7_threshold_derive as r7d   # KEY_ANCHORING_DESIGN.md sec 10.3.3 -- pure Python, fla-free,
+                                       # no scipy/torch (own docstring); safe at module scope here.
 
 # ---------------------------------------------------------------------------
 # sec 2.2 / sec 3.2's registered constants (Rev 4 -- R3 finding 1; Rev 5
@@ -715,3 +719,540 @@ def measure_h1_behavioral_companion(model, cfg, pools, gen, device, n_batches=4,
             for eid in row_entities:
                 per_entity_cos.setdefault(eid, []).append(row_cos)
     return {eid: sum(vals) / len(vals) for eid, vals in per_entity_cos.items()}
+
+
+# =============================================================================
+# KEY_ANCHORING_DESIGN.md sec 10 (Rev 7.1) -- mechanism-tier confirmation wave
+# machinery. Everything below is NEW (2026-07-06 keyanchor-mech build):
+#   - sec 10.3.3's pin triple (writer already exists as rev7_threshold_
+#     derive.py/REV7_THRESHOLD_PINNED.json, committed at e740a12; this adds
+#     the LAUNCHER-GATE and READOUT legs).
+#   - sec 10.2/10.3's r_e + null-pool (C matrix) measurement, computed on the
+#     PRE-BLEND raw key (model.geo3_last_k_eff_raw), never backed out
+#     through the lambda-dependent blend -- and the SAME mean-of-cosines
+#     code path for both r_e and the null pool (M2's fix), so C[e,e]==r_e[e]
+#     is an in-memory identity, not an assertion.
+#   - sec 10.3.2's pooled null check, per-entity empirical percentile, and
+#     the hub-detection diagnostic -- AMENDED to median+2*MAD (see
+#     HUB_MAD_K's own docstring; KEYANCHOR_REV7_ATTACK.md sec 16.5).
+#   - sec 10.3.1's BH-FDR (primary)/Bonferroni/BY engagement test, ALL
+#     constants loaded from REV7_THRESHOLD_PINNED.json, never recomputed
+#     inline (sec 10.3.3 leg (iii)'s own discipline).
+#   - sec 10.3.4's joint (detection-rate AND effect-size) band assignment.
+#   - sec 10.5.1's candidate (d') per-entity lambda blend, interior-band-
+#     fraction, Spearman rank check, and the formalized Hartigan's dip test.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# sec 10.3.3: the pin triple's launcher-gate (ii) and readout (iii) legs.
+# The writer (i) already exists (rev7_threshold_derive.py, committed at
+# e740a12) -- these two functions are the mechanical enforcement Rev 7.1's
+# text specifies but the Rev-7.1-bounded-verify round (KEYANCHOR_REV7_ATTACK
+# .md sec 16.3) correctly flagged as "not yet written -- Wave -1/build-phase
+# work". Mirrors validate_bands_pinned/assert_blind_not_broken's own
+# contract exactly (sec 3.6), applied to the SEPARATE, zero-data-dependency
+# REV7_THRESHOLD_PINNED.json artifact.
+# ---------------------------------------------------------------------------
+
+def validate_rev7_pin(pin_path: str | None = None, script_path: str | None = None) -> dict | None:
+    """sec 10.3.3 leg (ii), the launcher gate: anchor-arm cells (candidate
+    (d) AND (d')) REFUSE to launch unless (i) REV7_THRESHOLD_PINNED.json
+    exists and parses, (ii) sha256(rev7_threshold_derive.py) in the working
+    tree matches the hash recorded INSIDE the pin, AND (iii) a LIVE re-run
+    of derive() (using the pin's own recorded inputs) reproduces the pin's
+    `derived` block byte-identically -- a hash match alone would not catch
+    an environment-dependent numeric drift in a pure-Python implementation;
+    this live re-run is the entire point of leg (ii)'s third clause (sec
+    10.3.3, matching KEYANCHOR_REV7_ATTACK.md sec 16.3's own "gate must
+    include a live re-run, not just a hash check" requirement).
+
+    Returns the parsed pin dict on success, None on ANY validation failure
+    (missing file, script-hash mismatch, or a derive()-mismatch) -- callers
+    are responsible for the loud refusal message, exactly
+    validate_bands_pinned's own contract."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    pin_path = pin_path or os.path.join(here, "REV7_THRESHOLD_PINNED.json")
+    script_path = script_path or os.path.join(here, "rev7_threshold_derive.py")
+    if not os.path.exists(pin_path) or not os.path.exists(script_path):
+        return None
+    try:
+        with open(pin_path) as f:
+            pin = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    recorded_hash = pin.get("provenance", {}).get("script_sha256")
+    if recorded_hash is None or sha256_of_file(script_path) != recorded_hash:
+        return None
+    try:
+        inputs = pin["derived"]["inputs"]
+        live_derived = r7d.derive(n_entities=inputs["n_entities"], d_state=inputs["d_state"],
+                                    alpha=inputs["alpha"])
+    except (KeyError, TypeError):
+        return None
+    if live_derived != pin["derived"]:
+        return None
+    return pin
+
+
+def assert_rev7_pin_not_broken(pin_doc: dict, anchor_started_ats: list) -> None:
+    """sec 10.3.3 leg (iii), the readout assertion: the pin's own
+    provenance timestamp must STRICTLY PRECEDE the earliest anchor-arm
+    start. REV7_THRESHOLD_PINNED.json's provenance block (already
+    committed at e740a12, attack-round-verified byte-identical) carries
+    only an ISO-8601 string (`generated_at`), no raw epoch field --
+    parsed here rather than adding a new field to an already-committed,
+    hash-chained artifact (which would require regenerating and
+    re-committing it, re-opening a question the bounded verify already
+    closed). Raises AssertionError (the readout aborts, every affected
+    anchor readout demotes to descriptive tier) on violation -- same
+    failure-mode class as assert_blind_not_broken (sec 3.6)."""
+    assert anchor_started_ats, "no anchor-arm start times given -- nothing to check the pin against"
+    ts_str = pin_doc["provenance"]["generated_at"]
+    import datetime
+    pinned_at = datetime.datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=datetime.timezone.utc).timestamp()
+    earliest_anchor_start = min(anchor_started_ats)
+    assert pinned_at < earliest_anchor_start, (
+        f"REV7 PIN BROKEN: REV7_THRESHOLD_PINNED.json provenance.generated_at={ts_str} "
+        f"({pinned_at:.0f}) does NOT strictly precede the earliest anchor-arm "
+        f"start_at={earliest_anchor_start:.0f} -- sec 10.3.3 leg (iii)'s mechanical readout "
+        f"assertion. Every affected anchor readout must report at DESCRIPTIVE TIER ONLY.")
+
+
+# ---------------------------------------------------------------------------
+# sec 10.2/10.3.2: r_e (measured directly, pre-blend) + the null-pool matrix
+# C[i,j], computed via the IDENTICAL mean-of-cosines code path (M2's fix) --
+# C[e,e] is bit-identical to r_e[e] by CONSTRUCTION (same tensor, same
+# formula), not merely asserted equal.
+# ---------------------------------------------------------------------------
+
+def compute_C_matrix(raw_keys: torch.Tensor, anchor_rows: torch.Tensor) -> torch.Tensor:
+    """raw_keys: (n, R, d) -- n entities' own R per-resample PRE-BLEND raw
+    keys (model.geo3_last_k_eff_raw[:,0,:], sec 10.1.1's non-degenerate
+    construction). anchor_rows: (n, d) -- the SAME n entities' anchor rows,
+    in the SAME order. Returns C (n,n): C[i,j] = mean over the R resamples
+    of cos(raw_keys[i,r,:], anchor_rows[j,:]) -- MEAN-OF-COSINES (per-
+    resample cosine, then averaged), never cosine-of-mean (attack-R7
+    finding 4 / the sec 9.7.10 item-5 Jensen's-gap recurrence). C's
+    diagonal (i==j, same entity ordering on both axes) is therefore
+    EXACTLY r_e as sec 10.2 defines it -- an identity, not an assertion."""
+    raw_norm = F.normalize(raw_keys, dim=-1)                 # (n,R,d)
+    anchor_norm = F.normalize(anchor_rows, dim=-1)           # (n,d)
+    per_resample = torch.einsum('nrd,md->nmr', raw_norm, anchor_norm)   # (n,m,R) -- [i,j,r]
+    return per_resample.mean(dim=-1)                          # (n,n) mean-of-cosines over resamples
+
+
+def pooled_null_check(off_diag: torch.Tensor, mean_tol: float = 0.03125,
+                        sd_range: tuple[float, float] = (0.100, 0.156)) -> dict:
+    """sec 10.3.2's pooled decision rule: compare the null-pool's empirical
+    (mean, SD) against the analytic null's (0, sigma_chance=0.125). Both
+    tolerances are pre-committed, round, symmetric constants (0.25*sigma
+    and +/-25% of sigma) -- NOT tuned after seeing a number. `pass=True`
+    confirms the exact-Beta test (sec 10.3.1) as primary; `pass=False`
+    switches the primary result to the empirical permutation p-value
+    (sec 10.3.2), a decision this function reports but never makes for
+    the caller (mechanical, symmetric, exercised both ways by smoke 7)."""
+    mean_v = off_diag.mean().item()
+    sd_v = off_diag.std(unbiased=True).item()
+    mean_ok = abs(mean_v) <= mean_tol
+    sd_ok = sd_range[0] <= sd_v <= sd_range[1]
+    return {"mean": mean_v, "sd": sd_v, "mean_tol": mean_tol, "sd_range": list(sd_range),
+            "mean_ok": mean_ok, "sd_ok": sd_ok, "pass": bool(mean_ok and sd_ok),
+            "n_pairs": off_diag.numel()}
+
+
+def per_entity_empirical_percentile(C: torch.Tensor) -> torch.Tensor:
+    """sec 10.3.2's per-entity null-validation layer (attack-R7 finding 5):
+    each entity's own r_e=C[e,e] ranked within ITS OWN row of n-1
+    mismatched-pair cosines: p_emp_e = (1 + #{j!=e: C[e,j] >= r_e}) / n.
+    Resolution floor 1/n (n=107 -> ~0.0093) -- a validation layer, never a
+    replacement primary (BH on the exact-Beta p-values, sec 10.3.1, stays
+    primary regardless of this layer's readings)."""
+    n = C.shape[0]
+    r_e = C.diag()
+    ge = (C >= r_e.unsqueeze(1)).sum(dim=1).to(torch.float64) - 1.0   # exclude the i==j entry itself
+    return ((1.0 + ge) / n).to(torch.float64)
+
+
+# sec 10.3.2 item 2, AMENDED at the Rev 7.1 bounded verify
+# (KEYANCHOR_REV7_ATTACK.md sec 16.5, MINOR, folded in before build per the
+# coordinator's clearance): mean+2*SD has NO formal breakdown-point
+# guarantee and is provably masked by a contaminated fraction around
+# 20-25/107 (the attack round's own hub-COUNT sweep, holding effect size
+# fixed at 0.35: flagged at n_hub=20 [threshold 0.339<0.35], no longer
+# flagged at n_hub=25 [threshold 0.379>0.35]). median+2*MAD (breakdown
+# point 50%) does not share this failure mode while still correctly
+# flagging the ORIGINAL constructed 5/107-hub scenario the rule was built
+# to catch (re-verified sec 16.5). r_min_partial=2*sigma_chance (sec
+# 10.3.4) is UNCHANGED -- a fixed theoretical constant on the null scale,
+# never an empirical dispersion estimate, and not subject to this masking
+# mechanism at all.
+HUB_MAD_K = 2.0
+
+
+def median_mad(x: torch.Tensor) -> tuple[float, float]:
+    """Median and UNSCALED median absolute deviation: MAD = median(|x -
+    median(x)|) -- the textbook definition, no 1.4826 normal-consistency
+    rescaling (this is used as a robust DISPERSION ESTIMATE for a
+    threshold comparison, not as a sigma estimator, so no rescaling
+    convention is imposed)."""
+    med = x.median().item()
+    mad = (x - med).abs().median().item()
+    return med, mad
+
+
+def hub_detection_median_mad(row_means: torch.Tensor, k: float = HUB_MAD_K) -> dict:
+    """sec 10.3.2 item 2 (AMENDED, see HUB_MAD_K docstring): any entity with
+    m_e > median(row_means) + k*MAD(row_means) is flagged as a hub.
+    row_means: (n,) -- each entity's own mismatched-row mean m_e =
+    mean_{j!=e}(C[e,j]). Returns the threshold + a (n,) bool mask; the
+    caller maps the mask back onto entity ids (this function is pure
+    tensor math, entity-id-agnostic, mirroring compute_C_matrix)."""
+    med, mad = median_mad(row_means)
+    threshold = med + k * mad
+    flagged_mask = row_means > threshold
+    return {"median": med, "mad": mad, "k": k, "threshold": threshold, "flagged_mask": flagged_mask}
+
+
+def bh_step_up_decision(p_values: dict, thresholds: list) -> dict:
+    """Generic Benjamini-Hochberg (or Benjamini-Yekutieli, given pre-scaled
+    thresholds) step-up decision: sort p ascending, find the LARGEST k
+    with p_(k) <= thresholds[k-1] (1-indexed rank k, thresholds a
+    length-n ascending list); declare ranks 1..k 'engaged'. `thresholds`
+    is loaded FROM the pin (sec 10.3.1's BH `step_up_thresholds`, or the
+    caller's own BY-rescaled list) -- never recomputed with a different
+    formula at this call site."""
+    items = sorted(p_values.items(), key=lambda kv: kv[1])
+    n = len(items)
+    assert len(thresholds) == n, f"thresholds length {len(thresholds)} != n_tests {n}"
+    k_max = 0
+    for k in range(1, n + 1):
+        if items[k - 1][1] <= thresholds[k - 1]:
+            k_max = k
+    engaged_ids = {eid for eid, _ in items[:k_max]}
+    engaged = {eid: (eid in engaged_ids) for eid, _ in items}
+    return {"k_discoveries": k_max, "n_tests": n, "engaged": engaged,
+            "sorted_p": [[eid, p] for eid, p in items]}
+
+
+def band_v3_assign(discovery_rate: float, median_r_e: float, pin_derived: dict) -> str:
+    """sec 10.3.4's joint (detection-rate AND effect-size) band assignment,
+    both floors read FROM the pin (never a literal re-typed here). Proved
+    (KEYANCHOR_REV7_ATTACK.md sec 16.6) a total, mutually exclusive
+    partition: C is the exact negation of A_partial's own criterion, and A
+    is a strict subset of A_partial -- every (rate, median) combination
+    routes somewhere, none is unrouted."""
+    floors = pin_derived["effect_size_floors"]
+    r_partial, r_headline = floors["r_min_partial_band"], floors["r_min_headline_band"]
+    if discovery_rate >= 0.90 and median_r_e >= r_headline:
+        return "A"
+    if discovery_rate >= 0.50 and median_r_e >= r_partial:
+        return "A_partial"
+    return "C"
+
+
+@torch.no_grad()
+def measure_r_e_and_null_pool(model, cfg, pools, n_resamples, gen, device, pin_derived: dict) -> dict:
+    """sec 10.2/10.3's full per-entity engagement measurement -- the
+    primary registered driver for `engaged_frac_v3`. Uses the SAME
+    sample_batch_fixed_entity + model.bind() construction as
+    measure_full_pool_alignment, but reads `model.geo3_last_k_eff_raw`
+    (the PRE-BLEND raw key, sec 10.1.1's non-degenerate object) instead of
+    `model.anchor_last_k_blend_raw` -- r_e is measured upstream of the
+    lambda-dependent blend entirely, per sec 10.2's own redesign.
+
+    pin_derived: the `derived` block of a `validate_rev7_pin(...)` result
+    (loaded ONCE by the caller, never re-validated per call)."""
+    assert model.anchor_active and model.geo3_active, \
+        "measure_r_e_and_null_pool requires anchor_active=True and geo3_active=True"
+    model.eval()
+    entity_ids = pools.train_name_ids.tolist()
+    n = len(entity_ids)
+    d = model.d_state
+    raw_keys = torch.empty(n, n_resamples, d, device=device)
+    for i, eid in enumerate(entity_ids):
+        b = sample_batch_fixed_entity(cfg, n_resamples, eid, gen, pools, device)
+        model.bind(b)
+        raw_keys[i] = model.geo3_last_k_eff_raw[:, 0, :].detach()
+    idx_t = torch.tensor(entity_ids, device=device, dtype=torch.int64)
+    anchor_rows = model.anchor_table.weight[idx_t].detach()          # (n,d)
+    anchor_row_norms = anchor_rows.norm(dim=-1)                       # (n,) sec 10.2.1
+
+    C = compute_C_matrix(raw_keys, anchor_rows)                       # (n,n)
+    r_e = C.diag().clone()
+    eye = torch.eye(n, dtype=torch.bool, device=C.device)
+    off_diag_all = C[~eye]
+    pooled = pooled_null_check(off_diag_all)
+
+    row_means = (C.sum(dim=1) - C.diag()) / (n - 1)                   # m_e, excluding the diagonal
+    hub = hub_detection_median_mad(row_means)
+    hub_flagged = {eid: bool(hub["flagged_mask"][i].item()) for i, eid in enumerate(entity_ids)}
+
+    p_emp_vec = per_entity_empirical_percentile(C)
+    p_emp = {eid: p_emp_vec[i].item() for i, eid in enumerate(entity_ids)}
+
+    d_state = pin_derived["inputs"]["d_state"]
+    use_empirical = not pooled["pass"]
+    p_values = {}
+    if use_empirical:
+        n_pool = off_diag_all.numel()
+        for i, eid in enumerate(entity_ids):
+            cnt = (off_diag_all >= r_e[i]).sum().item()
+            p_values[eid] = (1.0 + cnt) / (n_pool + 1.0)
+    else:
+        for i, eid in enumerate(entity_ids):
+            p_values[eid] = r7d.p_one_sided_exact(r_e[i].item(), d_state)
+
+    bh_thresholds = pin_derived["primary_bh"]["step_up_thresholds"]
+    bh = bh_step_up_decision(p_values, bh_thresholds)
+    by_q = pin_derived["by_crosscheck"]["by_effective_q"]
+    by_thresholds = [(k / n) * by_q for k in range(1, n + 1)]
+    by = bh_step_up_decision(p_values, by_thresholds)
+    r_crit = pin_derived["bonferroni_crosscheck"]["r_crit_exact_beta"]
+    bonferroni = {eid: bool(r_e[i].item() >= r_crit) for i, eid in enumerate(entity_ids)}
+
+    engaged = bh["engaged"]
+    n_engaged_all = sum(1 for v in engaged.values() if v)
+    rate_with_hubs = n_engaged_all / n
+    non_hub_ids = [eid for eid in entity_ids if not hub_flagged[eid]]
+    n_engaged_ex = sum(1 for eid in non_hub_ids if engaged[eid])
+    rate_without_hubs = (n_engaged_ex / len(non_hub_ids)) if non_hub_ids else float("nan")
+
+    median_r_e = r_e.median().item()
+    band_with = band_v3_assign(rate_with_hubs, median_r_e, pin_derived)
+    band_without = band_v3_assign(rate_without_hubs, median_r_e, pin_derived)
+
+    return {
+        "r_e": {eid: r_e[i].item() for i, eid in enumerate(entity_ids)},
+        "anchor_row_norms": {
+            "per_entity": {eid: anchor_row_norms[i].item() for i, eid in enumerate(entity_ids)},
+            "mean": anchor_row_norms.mean().item(), "min": anchor_row_norms.min().item(),
+            "max": anchor_row_norms.max().item()},
+        "pooled_null_check": pooled,
+        "hub_detection": {"median_rowmeans": hub["median"], "mad_rowmeans": hub["mad"],
+                            "k": hub["k"], "threshold": hub["threshold"],
+                            "flagged": hub_flagged, "n_flagged": sum(hub_flagged.values())},
+        "per_entity_empirical_percentile": p_emp,
+        "primary_branch": "empirical_permutation" if use_empirical else "exact_beta",
+        "p_values": p_values,
+        "bh": {"k_discoveries": bh["k_discoveries"], "engaged": bh["engaged"]},
+        "by": {"k_discoveries": by["k_discoveries"], "engaged": by["engaged"]},
+        "bonferroni": bonferroni,
+        "engaged_frac_v3_with_hubs": rate_with_hubs,
+        "engaged_frac_v3_without_hubs": rate_without_hubs,
+        "median_r_e": median_r_e,
+        "band_with_hubs": band_with, "band_without_hubs": band_without,
+        "band": band_without,   # sec 10.3.2: assigned from the EXCLUDING-hubs figure on divergence
+        "n_entities": n, "n_resamples": n_resamples,
+    }
+
+
+# ---------------------------------------------------------------------------
+# sec 10.5.1: candidate (d') -- per-entity learned lambda. Blend function
+# (the ONE architectural extension model_rd.py's bind() needs), interior-
+# band-fraction, Spearman rank check, and the formalized Hartigan's dip
+# test.
+# ---------------------------------------------------------------------------
+
+def anchor_blend_gather_scatter_per_entity(k_eff_raw: torch.Tensor, anchor_weight: torch.Tensor,
+                                              anchor_trained_mask: torch.Tensor, key_ids: torch.Tensor,
+                                              anchor_lambda_weight: torch.Tensor) -> torch.Tensor:
+    """sec 10.5.1, candidate (d'): the IDENTICAL masked gather/scatter/
+    held-out-bypass shape as anchor_blend_gather_scatter, with the single
+    scalar lambda replaced by a PER-ENTITY value gathered from
+    anchor_lambda_weight (the anchor_lambda_table nn.Embedding's own
+    (vocab,1) .weight) instead. sigmoid is applied HERE (init raw=0 ->
+    lambda_e=0.5 for every entity, matching candidate (d)'s own starting
+    point exactly, sec 10.5.1's own registered init discipline)."""
+    trained_here = anchor_trained_mask[key_ids]
+    t_idx = trained_here.nonzero(as_tuple=True)
+    lam_e = torch.sigmoid(anchor_lambda_weight[key_ids[t_idx]].squeeze(-1))   # (len(t_idx),), NOT a scalar
+    sub_blend = F.normalize(
+        (1.0 - lam_e[:, None]) * k_eff_raw[t_idx] + lam_e[:, None] * anchor_weight[key_ids[t_idx]], dim=-1)
+    k_blend_raw = k_eff_raw.clone()
+    k_blend_raw[t_idx] = sub_blend
+    return k_blend_raw
+
+
+def interior_band_fraction_per_entity(per_entity_trajectory: dict,
+                                        window_points: int = LAMBDA_WINDOW_LOG_POINTS) -> dict:
+    """sec 10.5.1's per-entity extension of classify_lambda_band /
+    lambda_window_summary (sec 3.2): per_entity_trajectory is
+    {entity_id: [v0, v1, ...]} (one value per LOGGED cadence point, in
+    step order, one list per trained entity). Applies the SAME
+    three-part (final + trailing-mean + trailing-range<0.1) band rule
+    PER ENTITY and reports the fraction landing 'interior' -- mirroring
+    engaged_frac's own fraction framing."""
+    bands = {}
+    for eid, vals in per_entity_trajectory.items():
+        window = vals[-window_points:]
+        final_value = vals[-1]
+        trailing_mean = sum(window) / len(window)
+        trailing_range = max(window) - min(window)
+        bands[eid] = classify_lambda_band(final_value, trailing_mean, trailing_range)
+    n = len(bands)
+    interior_frac = (sum(1 for b in bands.values() if b == "interior") / n) if n else float("nan")
+    return {"per_entity_band": bands, "interior_frac": interior_frac, "n_entities": n}
+
+
+def spearman_rank_corr(x: dict, y: dict) -> dict:
+    """Two-sided Spearman rank correlation over the shared entity-id keys
+    of x and y (e.g. sec 10.5.1's final lambda_e vs final r_e check) --
+    pure torch/Python, no scipy. Ties broken by argsort order (a disclosed
+    simplification vs. textbook average-rank tie handling -- immaterial
+    here since r_e/lambda_e are continuous floats, exact ties are
+    measure-zero). Significance via the standard Fisher z-transform large-
+    n normal approximation (z = atanh(rho)*sqrt(n-3), two-sided p from
+    the normal CDF via math.erf) -- standard practice for Spearman at
+    n>10, no scipy/table lookup needed. A SINGLE test per seed (sec
+    10.5.1: no BH correction -- one test, not 107)."""
+    keys = sorted(set(x.keys()) & set(y.keys()))
+    n = len(keys)
+    assert n >= 4, f"Spearman requires >=4 paired observations, got {n}"
+    xs = torch.tensor([x[k] for k in keys], dtype=torch.float64)
+    ys = torch.tensor([y[k] for k in keys], dtype=torch.float64)
+    rx = xs.argsort().argsort().to(torch.float64)
+    ry = ys.argsort().argsort().to(torch.float64)
+    rx = rx - rx.mean()
+    ry = ry - ry.mean()
+    denom = (rx.norm() * ry.norm()).item()
+    rho = (rx @ ry).item() / denom if denom > 0 else 0.0
+    rho = max(-1.0, min(1.0, rho))
+    if n > 3 and abs(rho) < 1.0:
+        z = math.atanh(rho) * math.sqrt(n - 3)
+        p_value = 2.0 * (1.0 - 0.5 * (1.0 + math.erf(abs(z) / math.sqrt(2.0))))
+    else:
+        z, p_value = float("nan"), (0.0 if abs(rho) >= 1.0 else float("nan"))
+    return {"rho": rho, "n": n, "z": z, "p_value": p_value, "significant_at_0.05": bool(p_value < 0.05)}
+
+
+# -- Hartigan's dip statistic (Hartigan & Hartigan, 1985), formalizing the
+# Rev-6 informal max-gap check (KEYANCHOR_REV7_ATTACK.md sec 9.7.10 item 5's
+# own suggestion). Implementation note (a disclosed simplification, NOT a
+# bit-exact port of the reference Fortran/C `dip.f`): for every candidate
+# modal-split index, the greatest convex minorant (GCM) of the ECDF
+# restricted to the left segment and the least concave majorant (LCM) of
+# the right segment are computed via the standard monotone-chain convex-
+# hull algorithm (GCM = lower hull, LCM = upper hull of the (x_i, F_i)
+# point set) -- mathematically the same GCM/LCM objects the reference
+# algorithm tracks incrementally, reformulated as an O(n^2 log n) "try
+# every split" search rather than an O(n) incremental scan. At n<=107
+# (this design's own entity-pool size) this is trivially fast (well under
+# a second per call) -- efficiency was never the constraint; the
+# correctness of a from-scratch reimplementation was, and a convex-hull
+# construction is far less bug-prone than a hand-ported incremental scan.
+# Validated (sec 10.9 item 11) against a known-unimodal and a known-
+# bimodal synthetic sample BEFORE it ever touches real r_e/lambda_e data.
+def _cross(o: tuple, a: tuple, b: tuple) -> float:
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+
+def _lower_convex_hull(pts: list) -> list:
+    """Monotone-chain lower convex hull (points pre-sorted by x)."""
+    hull: list = []
+    for p in pts:
+        while len(hull) >= 2 and _cross(hull[-2], hull[-1], p) <= 0:
+            hull.pop()
+        hull.append(p)
+    return hull
+
+
+def _upper_convex_hull(pts: list) -> list:
+    """Monotone-chain upper convex hull (points pre-sorted by x)."""
+    hull: list = []
+    for p in pts:
+        while len(hull) >= 2 and _cross(hull[-2], hull[-1], p) >= 0:
+            hull.pop()
+        hull.append(p)
+    return hull
+
+
+def _hull_interp(hull: list, x: float) -> float:
+    """Piecewise-linear interpolation of a (sorted-by-x) convex hull at x,
+    via bisect (O(log hull size))."""
+    hull_xs = [p[0] for p in hull]
+    if x <= hull_xs[0]:
+        return hull[0][1]
+    if x >= hull_xs[-1]:
+        return hull[-1][1]
+    j = bisect.bisect_right(hull_xs, x) - 1
+    j = max(0, min(j, len(hull) - 2))
+    x0, y0 = hull[j]
+    x1, y1 = hull[j + 1]
+    if x1 == x0:
+        return y1
+    t = (x - x0) / (x1 - x0)
+    return y0 + t * (y1 - y0)
+
+
+def hartigan_dip_statistic(x) -> float:
+    """The sup-norm distance from the empirical CDF to the CLOSEST
+    unimodal distribution function (one whose CDF is convex up to a mode,
+    concave after), minimized over the choice of modal split point --
+    Hartigan & Hartigan's (1985) dip statistic. See the module-level
+    comment above for the implementation note."""
+    xs = sorted(float(v) for v in x)
+    n = len(xs)
+    if n < 4:
+        return 0.0
+    Fv = [(i + 1) / n for i in range(n)]
+    pts = list(zip(xs, Fv))
+    best_dip = float("inf")
+    for j in range(1, n):
+        left = pts[:j + 1]
+        right = pts[j:]
+        if len(left) < 2 or len(right) < 2:
+            continue
+        gcm = _lower_convex_hull(left)
+        lcm = _upper_convex_hull(right)
+        dev_left = max(abs(Fv[i] - _hull_interp(gcm, xs[i])) for i in range(0, j + 1))
+        dev_right = max(abs(Fv[i] - _hull_interp(lcm, xs[i])) for i in range(j, n))
+        best_dip = min(best_dip, max(dev_left, dev_right))
+    return 0.0 if best_dip == float("inf") else best_dip
+
+
+def gate_checkpoint_round_trip(ckpt_paths: list) -> dict:
+    """sec 10.10 item 2, the readout-time GATE: the wave cannot be marked
+    KEYANCHOR_MECH_CHAIN_DONE until every cell's checkpoint file (a) exists
+    and (b) round-trip-loads (torch.load succeeds, the expected keys are
+    present, and every tensor is finite) -- refusal, not a silent skip,
+    matching sec 3.6's own pattern for BANDS_PINNED. Extends smoke item
+    12's synthetic round-trip check to REAL run output."""
+    REQUIRED_KEYS = ("step", "anchor_train_ids", "anchor_table_trained_rows")
+    bad = []
+    for p in ckpt_paths:
+        if not os.path.exists(p):
+            bad.append((p, "missing"))
+            continue
+        try:
+            payload = torch.load(p, weights_only=True)
+        except Exception as e:
+            bad.append((p, f"load_failed: {e!r}"))
+            continue
+        missing_keys = [k for k in REQUIRED_KEYS if k not in payload]
+        if missing_keys:
+            bad.append((p, f"missing_keys: {missing_keys}"))
+            continue
+        non_finite = [k for k, v in payload.items()
+                      if torch.is_tensor(v) and v.is_floating_point() and not torch.isfinite(v).all()]
+        if non_finite:
+            bad.append((p, f"non_finite_tensors: {non_finite}"))
+    return {"n_checked": len(ckpt_paths), "n_bad": len(bad), "bad": bad, "pass": len(bad) == 0}
+
+
+def hartigan_dip_test(x, n_boot: int = 500, seed: int = 0, alpha: float = 0.05) -> dict:
+    """sec 10.5.1's formalized Hartigan's dip test (replacing Rev 6's
+    informal max-gap check). p-value via Monte Carlo bootstrap against the
+    Uniform(0,1) null at the SAME sample size (the standard dip-test
+    calibration distribution, Hartigan & Hartigan 1985 -- uniform is the
+    'least-favorable' unimodal case for this statistic). Run on BOTH the
+    lambda_e distribution (candidate (d') only) and the r_e distribution
+    (both (d) and (d')), alpha=0.05 pre-registered."""
+    n = len(x)
+    observed = hartigan_dip_statistic(x)
+    g = torch.Generator().manual_seed(seed)
+    boot_dips = [hartigan_dip_statistic(torch.rand(n, generator=g).tolist()) for _ in range(n_boot)]
+    boot_t = torch.tensor(boot_dips)
+    p_value = ((boot_t >= observed).sum().item() + 1.0) / (n_boot + 1.0)
+    return {"dip_statistic": observed, "n": n, "n_boot": n_boot, "p_value": p_value,
+            "significant_at_alpha": bool(p_value < alpha), "alpha": alpha}

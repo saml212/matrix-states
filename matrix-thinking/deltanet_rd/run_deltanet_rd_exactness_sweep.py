@@ -90,15 +90,19 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
           strong_pin=False, lambda_orth=0.0, use_zca=False, fnce_m=None, force_rank_k=None,
           geo3_active=False, geo3_n_iter=12, geo3_resid_tol=1e-2,
           anchor_active=False, anchor_lambda_mode="learned", anchor_lambda_fixed=None,
-          lambda_anchor=0.0, drift_probe=False):
+          lambda_anchor=0.0, drift_probe=False, rev7_engagement=False):
     """Variant-carrying run spec (sec 5's naming requirement) -- the `arm`
     tag alone would NOT be resume-safe if two arms shared identical other
     fields, so the name also encodes the fields that actually vary the
     trained artifact (embed_source, gram_rho, strong_pin, lambda_orth,
     use_zca, fnce_m, geo3_active/geo3_n_iter, and now KEY_ANCHORING_DESIGN.md's
     anchor_active/anchor_lambda_mode/anchor_lambda_fixed/lambda_anchor/
-    drift_probe); is_done() below re-derives the SAME identity from the
-    result JSON's own exactness_config, never trusting the filename alone."""
+    drift_probe/rev7_engagement); is_done() below re-derives the SAME
+    identity from the result JSON's own exactness_config, never trusting
+    the filename alone. anchor_lambda_mode also accepts
+    'learned_per_entity' (KEY_ANCHORING_DESIGN.md sec 10.5.1, candidate
+    (d')) -- the SAME name-bit path as 'learned'/'fixed', no special-casing
+    needed since the string itself already varies the filename."""
     bits = [f"w{wave}_rdx", f"K{K}", f"arm{arm}", f"s{seed}"]
     if embed_source == "frozen_gram_matched" and gram_rho is not None:
         bits.append(f"rho{gram_rho:.3f}".replace(".", "p"))
@@ -121,6 +125,8 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
         bits.append(f"lanc{lambda_anchor}".replace(".", "p"))
     if drift_probe:
         bits.append("dprobe")
+    if rev7_engagement:
+        bits.append("rev7")
     name = "_".join(bits)
     return {"wave": str(wave), "K": K, "seed": seed, "steps": steps, "force_rank_k": force_rank_k,
             "arm": arm, "embed_source": embed_source, "gram_alpha": gram_alpha, "gram_rho": gram_rho,
@@ -131,6 +137,7 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
             "anchor_lambda_mode": anchor_lambda_mode if anchor_active else None,
             "anchor_lambda_fixed": anchor_lambda_fixed if anchor_active else None,
             "lambda_anchor": lambda_anchor, "drift_probe": drift_probe,
+            "rev7_engagement": rev7_engagement,
             "name": name}
 
 
@@ -474,6 +481,208 @@ def keyanchor_confirm_manifest(include_k16_spot_check: bool = True):
     return runs
 
 
+KEYANCHOR_MECH_GATE1_STEPS = 5000   # sec 10.5's Gate-1-style pre-launch probe, candidate (d') only
+
+
+def keyanchor_mech_gate1_manifest():
+    """sec 10.5's Gate-1-style pre-launch probe for the NEW architecture
+    only (candidate (d'), K=32, 5,000 steps, 1 run) -- the same fixed-
+    diagnostic pre-spend check the confirm wave already ran for candidate
+    (d) (predicted h4>=0.8 bar); candidate (d)'s own architecture is
+    UNCHANGED from Wave 1/the confirm wave, so its own Gate 1 read is NOT
+    re-run here (sec 10.5's own text: "would be re-measuring a gate that
+    already passed twice on identical code"). A SEPARATE, sequential
+    prerequisite to `--wave keyanchor-mech` (gated by
+    gate_keyanchor_mech_probe below), mirroring keyanchor_confirm's own
+    gate_keyanchor_drift_diag precedent -- NOT folded into the 8-cell
+    manifest keyanchor_mech_manifest() returns."""
+    runs = [_spec("keyanchor-mech-gate1", 32, 900, KEYANCHOR_MECH_GATE1_STEPS, "dprime",
+                   geo3_active=True, geo3_n_iter=20, geo3_resid_tol=1e-2, anchor_active=True,
+                   anchor_lambda_mode="learned_per_entity", drift_probe=True)]
+    assert len(runs) == 1, f"keyanchor-mech Gate-1 probe manifest drifted from its registered 1 run: {len(runs)}"
+    return runs
+
+
+def keyanchor_mech_manifest():
+    """KEY_ANCHORING_DESIGN.md sec 10.5's Rev-7.1 mechanism-tier
+    confirmation wave -- 7 cells (candidate (d): 4, candidate (d'): 3), ALL
+    with drift_probe=True AND rev7_engagement=True (the r_e + null-pool
+    BH-FDR measurement, sec 10.2/10.3, is the entire point of this wave).
+    The SEPARATE Gate-1 probe (keyanchor_mech_gate1_manifest(), its own
+    'keyanchor-mech-gate1' wave) is the 8th cell in sec 10.7's "8
+    mandatory" budget-table count -- never folded into THIS manifest,
+    mirroring keyanchor_confirm's own gate_keyanchor_drift_diag precedent
+    of keeping a pre-launch probe as a separate sequential prerequisite:
+
+    - candidate (d), K=32, seeds {10,11,12} -- fresh seeds (sec 10.5's own
+      text: reusing 0/1/2 a third time "does not add a fresh statistical
+      sample", sec 9.6's disclosure).
+    - candidate (d), K=16, seed 10 -- 1 supplementary spot-check (sec 3.5's
+      own K=32-primary scope note; not separately outcome-lettered).
+    - candidate (d'), K=32, seeds {20,21,22} -- the NEW per-entity-lambda
+      arm (sec 10.5.1), 'dprime' per sec 10.5's registered manifest string.
+      K=16 is NOT run for (d') -- it already saturates h4~=1.0 at baseline,
+      no headroom to distinguish a mechanism effect there (sec 10.5)."""
+    steps = KEYANCHOR_TIER_STEPS
+    runs = []
+    for K, n_iter, s in ((32, 20, 10), (32, 20, 11), (32, 20, 12), (16, 12, 10)):
+        runs.append(_spec("keyanchor-mech", K, s, steps, "d", geo3_active=True, geo3_n_iter=n_iter,
+                           geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
+                           drift_probe=True, rev7_engagement=True))
+    for s in (20, 21, 22):
+        runs.append(_spec("keyanchor-mech", 32, s, steps, "dprime", geo3_active=True, geo3_n_iter=20,
+                           geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned_per_entity",
+                           drift_probe=True, rev7_engagement=True))
+    assert len(runs) == 7, f"keyanchor-mech manifest drifted from its registered 7 runs: {len(runs)}"
+    return runs
+
+
+# sec 10.7's realized per-cell bracket (2026-07-06 build report task
+# brief): 0.18-0.77 GPU-h/cell, replacing the point-estimate anchor every
+# earlier wave used (attack-R7 finding 12 -- shared-GPU contention
+# variance, not workload, is the dominant cost driver, so a bracket over
+# the FULL observed range is the correct correction, not a x1.3-1.5 margin).
+KEYANCHOR_MECH_GPUH_PER_CELL = (0.18, 0.77)
+KEYANCHOR_MECH_GATE1_GPUH = (0.03, 0.12)          # sec 10.7: "realized comparable probe: 0.030"
+# sec 10.7's own registered nominal ceiling for this wave (headroom above
+# even the all-conditionals bracket top ~8.6) -- the number budget_guard
+# below actually gates on, not a bracket edge.
+KEYANCHOR_MECH_GPUH_CEILING = 12.0
+# sec 10.7's program arithmetic: anchoring program spend so far, LIVE
+# constant (task brief: "~51.5"; STATE.md's own ~51/80 figure, consistent).
+# NOT auto-derived from archived JSONs here (no single source-of-truth
+# ledger file exists yet for this program) -- a documented, human-updated
+# constant, exactly the same class of thing PROGRAM_SPENT_GPUH is in
+# run_lm_rd_trackc_sweep.py/run_trackb_wave.py (this module's own docstring
+# precedent for "live-imported" ledgers, cloned as a literal here since no
+# other module in THIS design's own program tracks it).
+KEYANCHOR_PROGRAM_SPENT_GPUH = 51.5
+KEYANCHOR_PROGRAM_GPUH_CEILING = 80.0   # DELTANET_RD_EXACTNESS_DESIGN.md / KEY_ANCHORING_DESIGN.md sec 5
+
+
+def keyanchor_mech_budget_guard(accept_override: bool) -> float:
+    """CLONED pattern from run_trackb_wave.py::budget_guard (:469-484) /
+    run_lm_rd_trackc_sweep.py's own original -- gates this wave's
+    REGISTERED ceiling (12 GPU-h, sec 10.7) against the exactness
+    program's 80 GPU-h cap with the live-spent constant above. Uses the
+    registered ceiling, not a bracket midpoint/top, matching sec 10.7's
+    own "brings the worst case to <=63.5/80" arithmetic exactly."""
+    cumulative = KEYANCHOR_PROGRAM_SPENT_GPUH + KEYANCHOR_MECH_GPUH_CEILING
+    print(f"BUDGET GUARD (keyanchor-mech): program-spent-so-far={KEYANCHOR_PROGRAM_SPENT_GPUH:.1f} GPU-h + "
+          f"this-wave-registered-ceiling={KEYANCHOR_MECH_GPUH_CEILING:.1f} GPU-h = cumulative "
+          f"{cumulative:.1f} GPU-h, program ceiling {KEYANCHOR_PROGRAM_GPUH_CEILING:.0f} GPU-h "
+          f"(reserve {KEYANCHOR_PROGRAM_GPUH_CEILING - cumulative:.1f} GPU-h).", flush=True)
+    if cumulative > KEYANCHOR_PROGRAM_GPUH_CEILING and not accept_override:
+        print(f"ERROR: projected cumulative spend {cumulative:.1f} GPU-h EXCEEDS the "
+              f"{KEYANCHOR_PROGRAM_GPUH_CEILING:.0f} GPU-h exactness-program ceiling -- REFUSING to "
+              f"launch keyanchor-mech. Pass --accept-budget-override to force past this guard.",
+              file=sys.stderr)
+        sys.exit(5)
+    return cumulative
+
+
+# KEY_ANCHORING_DESIGN.md sec 10.10's checkpoint writer sizing: the
+# anchor_table's TRAINED-ROW block is EXACTLY n_train*d_state*4 bytes
+# (fp32) regardless of K (K is the per-episode binding count, not
+# d_state) -- a CLOSED-FORM size, not a measured-checkpoint-probe fallback
+# (run_trackb_wave.py's find_ckpt_size_bytes precedent needed a probe
+# because Wave C's full-model checkpoint size depended on architecture
+# params with no simple closed form; this design's checkpoint is a single
+# small dense tensor with an exact formula, so no probe file is needed or
+# useful here).
+KEYANCHOR_MECH_N_TRAIN = 107
+KEYANCHOR_MECH_D_STATE = 64
+KEYANCHOR_MECH_CKPT_EVERY = 2000
+
+
+def keyanchor_mech_projected_ckpt_bytes(manifest: list) -> int:
+    """Per cell: anchor_table_trained_rows (107*64*4=27,392 B) +
+    anchor_train_ids (107*8 B int64) + (candidate (d'): +107*4 B lambda
+    table; candidate (d): +4 B scalar) + torch.save/pickle framing
+    overhead (~2KB budgeted flat, generous) -- times the number of
+    checkpoints per cell (steps // ckpt_every + 1, the SAME formula
+    run_trackb_wave.py's projected_ckpt_bytes uses) times the cell count."""
+    per_row_block = KEYANCHOR_MECH_N_TRAIN * KEYANCHOR_MECH_D_STATE * 4
+    ids_block = KEYANCHOR_MECH_N_TRAIN * 8
+    framing_overhead = 2048
+    total = 0
+    for spec in manifest:
+        extra = (KEYANCHOR_MECH_N_TRAIN * 4) if spec["anchor_lambda_mode"] == "learned_per_entity" else 4
+        per_ckpt_bytes = per_row_block + ids_block + extra + framing_overhead
+        n_ckpts = spec["steps"] // KEYANCHOR_MECH_CKPT_EVERY + 1
+        total += n_ckpts * per_ckpt_bytes
+    return total
+
+
+def keyanchor_mech_disk_gate(ckpt_base_dir: str, manifest: list, label: str = "keyanchor-mech") -> dict:
+    """DISK GATE, house gate-(f) pattern (run_trackb_wave.py::disk_space_check
+    /run_lm_rd_trackc_sweep.py's own original) -- projected bytes computed
+    analytically (see keyanchor_mech_projected_ckpt_bytes) rather than via
+    a measured-checkpoint-probe file (no prior checkpoint of this exact
+    format exists yet; the size has a closed form, so a probe would add
+    fragility for zero benefit here)."""
+    import shutil
+    os.makedirs(ckpt_base_dir, exist_ok=True)
+    resolved = os.path.realpath(ckpt_base_dir)
+    free_bytes = shutil.disk_usage(resolved).free if os.path.exists(resolved) else 0
+    projected = keyanchor_mech_projected_ckpt_bytes(manifest)
+    safety_factor = 1.5
+    required = int(projected * safety_factor)
+    report = {"label": label, "resolved_ckpt_dir": resolved, "projected_ckpt_bytes": projected,
+              "safety_factor": safety_factor, "required_bytes": required, "free_bytes": free_bytes,
+              "ok": os.path.exists(resolved) and free_bytes >= required}
+    print(f"DISK GATE ({label}): projected {report['projected_ckpt_bytes'] / 1e6:.3f} MB x "
+          f"{safety_factor} = {required / 1e6:.3f} MB required, {free_bytes / 1e9:.2f} GB free -> "
+          f"{'OK' if report['ok'] else 'REFUSED'}", flush=True)
+    return report
+
+
+KEYANCHOR_MECH_GATE1_JSON_DEFAULT = os.path.join(
+    HERE, "results/deltanet_rd_exactness/keyanchor_mech_gate1/gate1_probe.json")
+
+
+def gate_keyanchor_mech_probe(gate1_json_path: str, accept_override: bool) -> dict:
+    """sec 10.5's Gate-1-style pre-launch probe check for candidate (d')
+    ONLY -- mirrors gate_keyanchor_drift_diag's exact pattern (CPU-only
+    file-read gate; the probe itself is a separate, sequential GPU driver,
+    `--wave keyanchor-mech-gate1`). Reads the probe's own h4 recovery
+    reading and requires it clear the SAME predicted h4>=0.8 bar the
+    confirm wave's Gate 1 already used for candidate (d)."""
+    if accept_override:
+        print("=" * 70 + "\nWARNING: --accept-keyanchor-mech-gate1-override -- the candidate (d') "
+              "Gate-1 pre-launch probe read is being BYPASSED by an explicit human decision. This "
+              "is recorded here; it does NOT mean the probe passed.\n" + "=" * 70, flush=True)
+        return {"gate_bypassed": True, "gate1_json_path": gate1_json_path}
+    if not os.path.exists(gate1_json_path):
+        print(f"ERROR: --wave keyanchor-mech requires a completed candidate (d') Gate-1 probe "
+              f"first -- {gate1_json_path!r} does not exist. Run:\n"
+              f"  python run_deltanet_rd_exactness_sweep.py --wave keyanchor-mech-gate1 "
+              f"--gpus 1 --gpu-offset <free GPU>\n"
+              f"or pass --accept-keyanchor-mech-gate1-override for an explicit, documented override.",
+              file=sys.stderr)
+        sys.exit(1)
+    with open(gate1_json_path) as f:
+        d = json.load(f)
+    try:
+        # h=4 is in H_test (default [4,5,6]), evaluated into "M3_held_out"
+        # (M2_in_distribution only covers H_train=[1,2,3]) -- JSON object
+        # keys are always strings after the round-trip, hence "4" not 4.
+        h4 = d["checkpoints"][-1]["M3_held_out"]["4"]["recovered_frac@0.9"]
+    except (KeyError, IndexError, TypeError) as e:
+        print(f"ERROR: {gate1_json_path!r} is missing an expected field ({e!r}) -- refusing to "
+              f"launch. Pass --accept-keyanchor-mech-gate1-override for an explicit override.",
+              file=sys.stderr)
+        sys.exit(1)
+    if h4 < 0.8:
+        print(f"ERROR: candidate (d') Gate-1 probe FAILED -- predicted h4 rec@0.9={h4:.4f} < 0.8. "
+              f"Pass --accept-keyanchor-mech-gate1-override for an explicit, documented override.",
+              file=sys.stderr)
+        sys.exit(1)
+    print(f"keyanchor-mech Gate-1 PASSED: candidate (d') predicted h4 rec@0.9={h4:.4f} >= 0.8",
+          flush=True)
+    return {"gate_bypassed": False, "gate1_json_path": gate1_json_path, "h4": h4}
+
+
 def keyanchor_ceiling_by_k() -> dict:
     """sec 2.2's computed lambda=1 post-NS drift ceilings (frame-potential
     init) -- the band-derivation guard's `ceiling_by_k` input."""
@@ -683,12 +892,18 @@ def is_done(out_dir, spec):
         # pre-fix result JSONs lack this key entirely).
         if bool(ec.get("drift_probe", False)) != bool(spec.get("drift_probe", False)):
             return False
+        # KEY_ANCHORING_DESIGN.md sec 10 (Rev 7.1, 2026-07-06 keyanchor-mech
+        # build): SAME missing-key-defaults-to-off discipline as every field
+        # above (archived pre-Rev-7.1 result JSONs lack this key entirely).
+        if bool(ec.get("rev7_engagement", False)) != bool(spec.get("rev7_engagement", False)):
+            return False
         return True
     except Exception:
         return False
 
 
-def build_cmd(spec, out_dir, timeout, unblind_override_at: float | None = None):
+def build_cmd(spec, out_dir, timeout, unblind_override_at: float | None = None,
+              ckpt_base_dir: str | None = None):
     cmd = [sys.executable, RUN, "--K", str(spec["K"]), "--steps", str(spec["steps"]),
            "--seed", str(spec["seed"]), "--internal-timeout", str(max(1, timeout - 30)),
            "--out", out_path(out_dir, spec)]
@@ -717,6 +932,12 @@ def build_cmd(spec, out_dir, timeout, unblind_override_at: float | None = None):
         cmd += ["--lambda-anchor", str(spec["lambda_anchor"])]
     if spec.get("drift_probe"):
         cmd += ["--drift-probe"]
+    if spec.get("rev7_engagement"):
+        cmd += ["--rev7-engagement"]
+    if ckpt_base_dir is not None and spec.get("anchor_active"):
+        # KEY_ANCHORING_DESIGN.md sec 10.10: one checkpoint subdirectory per
+        # cell, under the wave's own checkpoint base dir.
+        cmd += ["--ckpt-dir", os.path.join(ckpt_base_dir, spec["name"])]
     if unblind_override_at is not None and (spec.get("anchor_active") or spec.get("lambda_anchor")):
         # sec 3.6 Rev 5 (R4-1 fix): the override stamp is threaded down to
         # EVERY spawned anchor-arm run so its OWN result JSON carries the
@@ -816,7 +1037,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", default=os.path.join(HERE, "results/deltanet_rd_exactness"))
     ap.add_argument("--wave", choices=["-1", "0", "1", "geo3", "ref", "keyanchor-neg1",
-                                        "keyanchor-bands", "keyanchor", "keyanchor-confirm"], default=None,
+                                        "keyanchor-bands", "keyanchor", "keyanchor-confirm",
+                                        "keyanchor-mech-gate1", "keyanchor-mech"], default=None,
                      help="'geo3' launches F-geo-3's Wave-1-style cells (sec 14.7) -- GATED on "
                           "--geo3-drift-json (sec 14.6's launch-read result) unless "
                           "--accept-gate-override is passed. The sec 14.6 drift diagnostic ITSELF "
@@ -896,6 +1118,24 @@ def main():
                      help="--wave keyanchor-confirm: bypass the pre-launch keyanchor_drift_diagnostic.py "
                           "Gate-1 read with an explicit, loudly-logged human override -- same override "
                           "class as --accept-gate-override/--accept-unconverged-rho/--unblind-override.")
+    ap.add_argument("--keyanchor-mech-gate1-json", type=str, default=KEYANCHOR_MECH_GATE1_JSON_DEFAULT,
+                     help="--wave keyanchor-mech: path to the candidate (d') Gate-1 probe's own "
+                          "result JSON (--wave keyanchor-mech-gate1's --out) -- REQUIRED clean read "
+                          "(predicted h4 rec@0.9 >= 0.8) before any keyanchor-mech cell dispatches, "
+                          "unless --accept-keyanchor-mech-gate1-override is passed.")
+    ap.add_argument("--accept-keyanchor-mech-gate1-override", action="store_true",
+                     help="--wave keyanchor-mech: bypass the candidate (d') Gate-1 pre-launch probe "
+                          "read with an explicit, loudly-logged human override -- same override class "
+                          "as --accept-gate-override/--accept-unconverged-rho/--unblind-override.")
+    ap.add_argument("--accept-budget-override", action="store_true",
+                     help="--wave keyanchor-mech: bypass the sec 10.7 budget guard (registered 12 "
+                          "GPU-h ceiling vs. the 80 GPU-h exactness-program cap) with an explicit, "
+                          "loudly-logged human override.")
+    ap.add_argument("--ckpt-base-dir", type=str, default=None,
+                     help="--wave keyanchor-mech: base directory for the sec 10.10 checkpoint writer "
+                          "(one subdirectory per cell, named after the cell's own spec['name']). "
+                          "Default: /data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech on the "
+                          "training box (pre-created by this build; see the build report).")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -977,6 +1217,32 @@ def main():
               f"{' + K=16 s0 spot check' if len(kc) == 4 else ''}): {len(kc)} runs | "
               f"~{gpuh_kc:.2f} GPU-h (pre-drift-probe-overhead estimate; see scrutiny list)")
 
+        print("\n" + "=" * 70)
+        print("KEY_ANCHORING_DESIGN.md sec 10 (Rev 7.1) -- keyanchor-mech wave preview "
+              "(mechanism-tier confirmation, r_e + null-pool BH-FDR engagement)")
+        print("=" * 70)
+        kg1 = keyanchor_mech_gate1_manifest()
+        km = keyanchor_mech_manifest()
+        from collections import Counter as _Counter
+        lo_g1, hi_g1 = KEYANCHOR_MECH_GATE1_GPUH
+        lo_cell, hi_cell = KEYANCHOR_MECH_GPUH_PER_CELL
+        lo_mand, hi_mand = lo_g1 + len(km) * lo_cell, hi_g1 + len(km) * hi_cell
+        print(f"  Gate-1 probe (candidate (d'), K=32, {KEYANCHOR_MECH_GATE1_STEPS} steps): "
+              f"{len(kg1)} run | ~{lo_g1:.2f}-{hi_g1:.2f} GPU-h")
+        print(f"  mandatory cells: {len(km)} runs | by arm {_Counter(s['arm'] for s in km)} | "
+              f"by K {_Counter(s['K'] for s in km)} | ~{lo_cell:.2f}-{hi_cell:.2f} GPU-h/cell "
+              f"(realized bracket, sec 10.7)")
+        print(f"  MANDATORY TOTAL: {len(kg1) + len(km)} runs | ~{lo_mand:.2f}-{hi_mand:.2f} GPU-h")
+        print(f"  registered nominal ceiling: {KEYANCHOR_MECH_GPUH_CEILING:.1f} GPU-h (sec 10.7) -> "
+              f"program cumulative {KEYANCHOR_PROGRAM_SPENT_GPUH:.1f} + "
+              f"{KEYANCHOR_MECH_GPUH_CEILING:.1f} = "
+              f"{KEYANCHOR_PROGRAM_SPENT_GPUH + KEYANCHOR_MECH_GPUH_CEILING:.1f} / "
+              f"{KEYANCHOR_PROGRAM_GPUH_CEILING:.0f} GPU-h "
+              f"({'WITHIN' if KEYANCHOR_PROGRAM_SPENT_GPUH + KEYANCHOR_MECH_GPUH_CEILING <= KEYANCHOR_PROGRAM_GPUH_CEILING else 'EXCEEDS'} "
+              f"the exactness-program cap)")
+        assert len(km) == 7 and len(kg1) == 1, \
+            f"keyanchor-mech run count drifted from the registered 7+1: {len(km)}+{len(kg1)}"
+
         if args.gpus is not None and args.gpu_offset is not None:
             print(f"slots = {args.gpus} gpus x {args.per_gpu} per-gpu = {args.gpus * args.per_gpu} "
                   f"concurrent, on physical GPUs {list(range(args.gpu_offset, args.gpu_offset + args.gpus))}")
@@ -1008,6 +1274,7 @@ def main():
         sys.exit(1)
 
     unblind_override_at = None
+    ckpt_base_dir = None
     if args.wave == "-1":
         manifest = wave_neg1_manifest()
     elif args.wave == "geo3":
@@ -1059,6 +1326,76 @@ def main():
         print(f"wave keyanchor-confirm manifest: {len(manifest)} runs (candidate (d), K=32 "
               f"seeds {{0,1,2}} + K=16 seed-0 spot check, drift_probe=True); "
               f"diag_gate={diag_gate} bands_gate={bands_gate}", flush=True)
+    elif args.wave == "keyanchor-mech-gate1":
+        # sec 10.5's Gate-1-style pre-launch probe, candidate (d') only --
+        # a single 5,000-step cell, NOT gated on anything itself (it IS the
+        # gate `--wave keyanchor-mech` below reads). Still requires the
+        # Rev-7.1 pin (rev7_engagement=True is threaded so its own result
+        # JSON is instrumented identically to the real cells, sec 10.3.3
+        # leg (ii)'s per-run defense-in-depth applies here too).
+        manifest = keyanchor_mech_gate1_manifest()
+        print(f"wave keyanchor-mech-gate1 manifest: {len(manifest)} run (candidate (d') Gate-1 "
+              f"probe, K=32, {KEYANCHOR_MECH_GATE1_STEPS} steps)", flush=True)
+    elif args.wave == "keyanchor-mech":
+        # KEY_ANCHORING_DESIGN.md sec 10 (Rev 7.1) -- the FULL gate chain,
+        # in order: (1) the Rev-7.1 pin triple (sec 10.3.3 leg (ii): exists
+        # + script-hash match + live derive()-reproduction); (2) candidate
+        # (d')'s own Gate-1 probe read; (3) sec 3.6's BANDS_PINNED
+        # reference-arm reuse-or-refuse gate (UNCHANGED reference-arm data,
+        # sec 10.5: "not load-bearing for this wave's primary question" but
+        # still the same mechanical gate every anchor-arm wave uses); (4)
+        # the budget guard (sec 10.7's registered 12 GPU-h ceiling vs. the
+        # 80 GPU-h exactness-program cap); (5) the disk gate (sec 10.10's
+        # checkpoint writer, house gate-(f) pattern).
+        #
+        # Override path (sec 10.3.3 point 2: "an explicit override exists
+        # and automatically demotes every affected readout to descriptive
+        # tier ... verbatim the sec 3.6/Rev-5 override-demotion machinery,
+        # reused not reinvented") -- REUSES the existing --unblind-override
+        # flag (never a second override flag): since the pin is a free,
+        # deterministic, zero-data-dependency artifact, the only reason to
+        # ever bypass this specific leg is the SAME class of explicit,
+        # documented human decision --unblind-override already represents
+        # for BANDS_PINNED; both legs share one flag and one stamping path
+        # (ka.assemble_claim_tier_fields, applied uniformly downstream in
+        # run_deltanet_rd.py regardless of which upstream gate triggered it).
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        pin_doc = ka.validate_rev7_pin()
+        if pin_doc is None and not args.unblind_override:
+            print("ERROR: --wave keyanchor-mech requires a VALID REV7_THRESHOLD_PINNED.json (sec "
+                  "10.3.3): missing, script-hash mismatch, or a live derive() re-run does not "
+                  "reproduce the pin's own derived block byte-identically. Regenerate with "
+                  "`python rev7_threshold_derive.py` and re-commit, or pass --unblind-override for "
+                  "an explicit, documented, tier-demoting override.", file=sys.stderr)
+            sys.exit(1)
+        elif pin_doc is None:
+            print("=" * 70 + "\nWARNING: --unblind-override -- the sec 10.3.3 Rev-7.1 pin-triple "
+                  "gate is being BYPASSED by an explicit human decision (the pin is missing or "
+                  "fails validation). EVERY keyanchor-mech run launched this session will have its "
+                  "OWN result JSON stamped claim_tier='descriptive' + unblind_override=True.\n"
+                  + "=" * 70, flush=True)
+        else:
+            print(f"sec 10.3.3 PIN GATE PASSED: REV7_THRESHOLD_PINNED.json validates "
+                  f"(script_sha256={pin_doc['provenance']['script_sha256'][:12]}..., "
+                  f"generated_at={pin_doc['provenance']['generated_at']}).", flush=True)
+        gate1_result = gate_keyanchor_mech_probe(args.keyanchor_mech_gate1_json,
+                                                   args.accept_keyanchor_mech_gate1_override)
+        ref_out_dir = os.path.join(args.out_dir, "waveref")
+        bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
+        keyanchor_mech_budget_guard(args.accept_budget_override)
+        ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech"
+        manifest = keyanchor_mech_manifest()
+        disk_report = keyanchor_mech_disk_gate(ckpt_base_dir, manifest)
+        if not disk_report["ok"] and not args.accept_budget_override:
+            print(f"ERROR: DISK GATE (keyanchor-mech) REFUSED -- {disk_report['required_bytes'] / 1e6:.1f} "
+                  f"MB required at {disk_report['resolved_ckpt_dir']!r}, "
+                  f"{disk_report['free_bytes'] / 1e9:.2f} GB free. Free up space or pass "
+                  f"--accept-budget-override.", file=sys.stderr)
+            sys.exit(1)
+        print(f"wave keyanchor-mech manifest: {len(manifest)} runs (candidate (d) K=32 "
+              f"seeds{{10,11,12}} + K=16 seed10; candidate (d') K=32 seeds{{20,21,22}}); "
+              f"gate1={gate1_result} bands_gate={bands_gate}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,
                                    args.calib_summary, args.accept_unconverged_rho)
@@ -1082,14 +1419,15 @@ def main():
     # drift_probe wiring + is_done non-collision + the log_every/pipefail
     # regressions) -- ALL CPU-only subprocesses; rc!=0 aborts with the
     # same ABORTED.txt discipline as the pre-existing run_smoke gate below.
-    if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm") and not args.skip_smoke:
+    if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1",
+                      "keyanchor-mech") and not args.skip_smoke:
         rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
         if rc != 0:
             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                 f.write("smoke_key_anchoring.py FAILED (rc != 0); no training launched.\n")
             print("ERROR: smoke_key_anchoring.py failed -- wave aborted.", file=sys.stderr)
             sys.exit(1)
-        if args.wave in ("keyanchor", "keyanchor-confirm"):
+        if args.wave in ("keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1", "keyanchor-mech"):
             rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
             if rc != 0:
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -1103,6 +1441,18 @@ def main():
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                     f.write("smoke_keyanchor_confirm.py FAILED (rc != 0); no training launched.\n")
                 print("ERROR: smoke_keyanchor_confirm.py failed -- keyanchor-confirm wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+        if args.wave in ("keyanchor-mech-gate1", "keyanchor-mech"):
+            # KEY_ANCHORING_DESIGN.md sec 10.9 -- the mechanism-tier wave's
+            # own 13-item smoke suite (fla-free; run_deltanet_rd_exactness_
+            # sweep.py + key_anchoring.py only, same discipline as
+            # smoke_keyanchor_confirm.py).
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_keyanchor_mech.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("smoke_keyanchor_mech.py FAILED (rc != 0); no training launched.\n")
+                print(f"ERROR: smoke_keyanchor_mech.py failed -- {args.wave} wave aborted.",
                       file=sys.stderr)
                 sys.exit(1)
 
@@ -1135,7 +1485,8 @@ def main():
                     lf = open(os.path.join(log_dir, f"{spec['name']}.log"), "w")
                     env = {**os.environ, "CUDA_VISIBLE_DEVICES": str(gpu)}
                     proc = subprocess.Popen(build_cmd(spec, out_dir, timeout,
-                                                       unblind_override_at=unblind_override_at),
+                                                       unblind_override_at=unblind_override_at,
+                                                       ckpt_base_dir=ckpt_base_dir),
                                              env=env, stdout=lf, stderr=subprocess.STDOUT, cwd=HERE)
                     running[uid] = (proc, spec, lf, time.time(), gpu, timeout)
                     uid += 1

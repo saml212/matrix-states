@@ -371,7 +371,7 @@ def _dump(path, obj):
 def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_model, d_state,
                       trajectory, checkpoints, n_skipped, t0, timed_out, steps_completed, complete,
                       exactness_config=None, geo3_admission=None, anchor_lambda_summary=None,
-                      unblind_override_stamp=None):
+                      anchor_lambda_e_summary=None, ckpt_written=None, unblind_override_stamp=None):
     loss_config = {"objective": "L_cos + lambda*L_nce (section 14.4)",
                    "nce_lambda": NCE_LAMBDA, "nce_temperature": NCE_T,
                    "negatives": "in_episode_K_clauses", "stop_grad": False,
@@ -436,6 +436,9 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
             # is_done() relied on filename encoding alone (the `_dprobe`
             # name bit) for drift_probe-driven distinctness.
             "drift_probe": bool(ec.get("drift_probe", False)),
+            # KEY_ANCHORING_DESIGN.md sec 10 (Rev 7.1, 2026-07-06 keyanchor-
+            # mech build): ALWAYS recorded (default off), same discipline.
+            "rev7_engagement": bool(ec.get("rev7_engagement", False)),
         },
         "trajectory": trajectory, "checkpoints": checkpoints,
         # KEY_ANCHORING_DESIGN.md sec 3.6 item (c) (2026-07-04 audit fix,
@@ -461,6 +464,18 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
         # / band), computed from the SAME lambda values already logged into
         # `trajectory` above -- a machine-readable field, not eyeballing.
         result["anchor_lambda_summary"] = anchor_lambda_summary
+    if anchor_lambda_e_summary is not None:
+        # KEY_ANCHORING_DESIGN.md sec 10.5.1, candidate (d'): the per-entity
+        # interior-band-fraction summary (extends anchor_lambda_summary's
+        # own discipline to a 107-entity table instead of one scalar).
+        result["anchor_lambda_e_summary"] = anchor_lambda_e_summary
+    if ckpt_written:
+        # KEY_ANCHORING_DESIGN.md sec 10.10 item 1: the list of checkpoint
+        # files this run actually wrote -- the readout-time gate (sec 10.10
+        # item 2) reads THIS field, never re-globs the checkpoint directory,
+        # so a partial/crashed run's incomplete checkpoint set is visible
+        # from the result JSON alone.
+        result["ckpt_written"] = ckpt_written
     # KEY_ANCHORING_DESIGN.md sec 3.6 Rev 5 (R4-1 fix): unblind_override is
     # ALWAYS written (True or False) so its absence can never be read as
     # evidence of a clean blind; claim_tier is written ONLY on the override
@@ -551,7 +566,8 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
           timeout_s=None, lambda_orth=0.0, fnce_m=None, exactness_config=None,
           lambda_anchor: float = 0.0, unblind_override_at: float | None = None,
           drift_probe_active: bool = False, drift_probe_n_entities: int = 8,
-          drift_probe_n_resamples: int = 32):
+          drift_probe_n_resamples: int = 32, rev7_pin_derived: dict | None = None,
+          ckpt_dir: str | None = None):
     """lambda_anchor (KEY_ANCHORING_DESIGN.md sec 2.4, candidate (c)): soft
     cross-episode drift regularizer weight, > 0 only for candidate (c)
     cells (requires model.geo3_active; model.anchor_active stays False --
@@ -566,18 +582,50 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
     field (`key_anchoring.reference_arm_result_valid`'s own expected
     shape). Uses `key_anchoring.measure_drift` (fla-free, imported above as
     `ka`) -- no circular import (this module is never imported BACK by
-    key_anchoring.py)."""
+    key_anchoring.py).
+
+    rev7_pin_derived (KEY_ANCHORING_DESIGN.md sec 10, Rev 7.1): the
+    ALREADY-VALIDATED `derived` block of REV7_THRESHOLD_PINNED.json (the
+    caller -- main(), via `--rev7-engagement` -- validates the pin ONCE
+    with `ka.validate_rev7_pin()` and threads the block down here; train()
+    itself never re-validates or re-derives). When given (and
+    drift_probe_active and model.anchor_active), the FINAL checkpoint
+    additionally computes sec 10.2/10.3's r_e + null-pool engagement
+    measurement (`ka.measure_r_e_and_null_pool`) -- independent of, and in
+    ADDITION to, the existing sec 3.7 `per_entity_alignment` (a_e) below
+    (a_e is demoted to secondary/diagnostic per sec 10.2; r_e is the new
+    registered driver of `engaged_frac_v3`). None (default) reproduces the
+    pre-Rev-7.1 behavior exactly -- byte-identical for every existing wave.
+
+    ckpt_dir (sec 10.10's checkpoint writer): when given (and
+    model.anchor_active), the anchor table's TRAINED-ROW block (+ the
+    per-entity lambda table's trained-row block for candidate (d'), or the
+    scalar anchor_lambda_raw for candidate (d)) is torch.save'd to
+    `<ckpt_dir>/step<N>.pt` at every eval checkpoint AND the final step --
+    a mechanical, unconditional writer (sec 10.10 item 1), never a stated
+    intention. None (default) = no checkpoint writing, byte-identical to
+    every existing wave."""
     t0 = time.time()
     gen = torch.Generator(device=device).manual_seed(seed)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     trunc_impl = getattr(model, "trunc_impl", "eigh")
     model.train()
 
-    if model.anchor_active and model.anchor_lambda_mode == "learned":
+    if model.anchor_active and model.anchor_lambda_mode in ("learned", "learned_per_entity"):
         # sec 3.2/R3 finding 1's startup assertion: fires loudly on a
         # mis-set cadence rather than silently resizing the lambda-band
-        # trailing window.
+        # trailing window. Applies to candidate (d') too (sec 10.5.1) --
+        # the per-entity trajectory uses the SAME registered cadence.
         ka.assert_lambda_log_cadence(log_every)
+
+    if rev7_pin_derived is not None:
+        assert model.anchor_active and drift_probe_active, \
+            "rev7_pin_derived requires anchor_active=True and drift_probe_active=True (sec 10.2/10.3 " \
+            "engagement measurement is defined only for anchor-arm cells with the drift probe active)"
+
+    ckpt_written = []
+    if ckpt_dir is not None:
+        os.makedirs(ckpt_dir, exist_ok=True)
 
     if lambda_anchor:
         assert model.geo3_active, \
@@ -591,6 +639,11 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
         anchor_ema = None
 
     trajectory, checkpoints = [], []
+    # sec 10.5.1, candidate (d'): the per-entity lambda_e trajectory, kept
+    # SEPARATE from the scalar `trajectory` list above (candidate (d)'s
+    # schema stays byte-identical) -- one {"step":.., "lambda_e": {eid: v}}
+    # dict per LOGGED cadence point, same LAMBDA_LOG_CADENCE_STEPS cadence.
+    lambda_e_trajectory = []
     n_skipped = 0
     timed_out = False
     steps_completed = 0
@@ -699,6 +752,18 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                 # the full trajectory, at the registered LAMBDA_LOG_CADENCE_STEPS
                 # cadence (asserted at this function's own startup, above).
                 traj_entry["lambda"] = float(model.anchor_lambda().item())
+            elif model.anchor_active and model.anchor_lambda_mode == "learned_per_entity":
+                # sec 10.5.1, candidate (d'): the per-entity analogue --
+                # logged into the SEPARATE lambda_e_trajectory list (not
+                # traj_entry/trajectory) since it is a 107-entity dict, not
+                # a scalar. Same cadence, same startup assertion.
+                with torch.no_grad():
+                    lam_e_now = torch.sigmoid(
+                        model.anchor_lambda_table.weight[model.anchor_train_ids_buf].squeeze(-1))
+                lambda_e_trajectory.append({
+                    "step": step,
+                    "lambda_e": {eid: v for eid, v in
+                                 zip(model.anchor_train_ids_buf.tolist(), lam_e_now.tolist())}})
             trajectory.append(traj_entry)
             extra = f"  [skip_rate {n_skipped/step:.4%}]" if n_skipped else ""
             orth_str = f" orth {l_orth.item():.4f}" if l_orth is not None else ""
@@ -765,6 +830,17 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                     # 3.7's alignment sweep below.
                     res["item6_table_conditioning"] = ka.raw_table_conditioning(
                         model.anchor_table.weight[model.anchor_train_ids_buf].detach())
+                    # sec 10.2.1: anchor-row norms, EVERY checkpoint (not
+                    # final-only) -- free (the parameter is already in
+                    # memory), and a norm-drift trajectory the project has
+                    # never previously measured.
+                    with torch.no_grad():
+                        row_norms = model.anchor_table.weight[model.anchor_train_ids_buf].norm(dim=-1)
+                    res["anchor_row_norms"] = {
+                        "per_entity": {eid: v for eid, v in
+                                       zip(model.anchor_train_ids_buf.tolist(), row_norms.tolist())},
+                        "mean": row_norms.mean().item(), "min": row_norms.min().item(),
+                        "max": row_norms.max().item()}
                     if step == steps:
                         # sec 3.7's per-entity anchor-INPUT-alignment sweep
                         # (engaged_frac) + the h=1 behavioral companion --
@@ -787,6 +863,36 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                         h1_gen = torch.Generator(device=device).manual_seed(seed + 70_000 + step)
                         res["per_entity_h1_companion"] = ka.measure_h1_behavioral_companion(
                             model, cfg, pools, h1_gen, device)
+                        if rev7_pin_derived is not None:
+                            # KEY_ANCHORING_DESIGN.md sec 10.2/10.3 (Rev 7.1):
+                            # r_e measured DIRECTLY on the PRE-BLEND raw key
+                            # (never backed out through the lambda-dependent
+                            # blend, sec 10.2's own redesign) + the null-pool
+                            # C matrix (same mean-of-cosines code path, M2's
+                            # fix) + BH-FDR engagement, all constants loaded
+                            # from the pin (never recomputed inline here).
+                            r7_gen = torch.Generator(device=device).manual_seed(seed + 80_000 + step)
+                            res["r_e_engagement"] = ka.measure_r_e_and_null_pool(
+                                model, cfg, pools, drift_probe_n_resamples, r7_gen, device,
+                                rev7_pin_derived)
+                            if model.anchor_lambda_mode == "learned_per_entity" and lambda_e_trajectory:
+                                # sec 10.5.1's Spearman + Hartigan checks --
+                                # final lambda_e vs final r_e, both keyed by
+                                # entity id (the SAME 107 trained ids on
+                                # both sides).
+                                final_lambda_e = lambda_e_trajectory[-1]["lambda_e"]
+                                final_r_e = res["r_e_engagement"]["r_e"]
+                                res["lambda_e_vs_r_e_spearman"] = ka.spearman_rank_corr(
+                                    final_lambda_e, final_r_e)
+                                res["lambda_e_dip_test"] = ka.hartigan_dip_test(
+                                    list(final_lambda_e.values()), seed=seed + 1)
+                                res["r_e_dip_test"] = ka.hartigan_dip_test(
+                                    list(final_r_e.values()), seed=seed + 2)
+                            elif model.anchor_lambda_mode != "learned_per_entity":
+                                # sec 10.5.1: the r_e dip test also runs for
+                                # candidate (d) (both (d) and (d') get it).
+                                res["r_e_dip_test"] = ka.hartigan_dip_test(
+                                    list(res["r_e_engagement"]["r_e"].values()), seed=seed + 2)
                 # 2026-07-04 audit fix (MINOR): ka.measure_entity_rows sets
                 # model.eval() and never restores -- functionally inert THIS
                 # wave (no dropout/BN, ZCA off on every keyanchor cell) but
@@ -798,12 +904,35 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                 # -- both also flip to eval() internally and never restore.)
                 model.train()
             checkpoints.append(res)
+            if ckpt_dir is not None and model.anchor_active:
+                # sec 10.10 item 1 (the checkpoint WRITER): the anchor
+                # table's TRAINED-ROW block ONLY (held-out/other rows are
+                # architecturally zero and never trained, sec 2.2 -- saving
+                # them would be dead weight, not a fidelity loss; this
+                # matches the design's own "27KB negligible" sizing, which
+                # is exactly n_train*d_state*4 bytes = 107*64*4 = 27,392 B
+                # for the (107,64) block, NOT the full (vocab,64) table).
+                ckpt_payload = {
+                    "step": step,
+                    "anchor_train_ids": model.anchor_train_ids_buf.detach().cpu(),
+                    "anchor_table_trained_rows":
+                        model.anchor_table.weight[model.anchor_train_ids_buf].detach().cpu(),
+                }
+                if model.anchor_lambda_mode == "learned":
+                    ckpt_payload["anchor_lambda_raw"] = model.anchor_lambda_raw.detach().cpu()
+                elif model.anchor_lambda_mode == "learned_per_entity":
+                    ckpt_payload["anchor_lambda_table_trained_rows"] = (
+                        model.anchor_lambda_table.weight[model.anchor_train_ids_buf].detach().cpu())
+                ckpt_path = os.path.join(ckpt_dir, f"step{step}.pt")
+                torch.save(ckpt_payload, ckpt_path)
+                ckpt_written.append(ckpt_path)
             geo3_admission = (compute_geo3_admission(cfg, trajectory, checkpoints, n_geo3_fallback_train_steps)
                                if model.geo3_active else None)
             partial = _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report,
                                         d_model, d_state, trajectory, checkpoints, n_skipped, t0,
                                         timed_out=False, steps_completed=steps_completed, complete=False,
                                         exactness_config=exactness_config, geo3_admission=geo3_admission,
+                                        ckpt_written=ckpt_written,
                                         unblind_override_stamp=(ka.override_stamp_payload(unblind_override_at)
                                                                  if unblind_override_at is not None else None))
             _dump(out_path, partial)
@@ -829,13 +958,23 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
         lambda_traj = [{"step": t["step"], "lambda": t["lambda"]} for t in trajectory if "lambda" in t]
         if lambda_traj:
             anchor_lambda_summary = ka.lambda_window_summary(lambda_traj)
+    anchor_lambda_e_summary = None
+    if model.anchor_active and model.anchor_lambda_mode == "learned_per_entity" and lambda_e_trajectory:
+        # sec 10.5.1: the per-entity interior-band-fraction, extending sec
+        # 3.2's 3-part rule per entity instead of to one shared scalar.
+        per_entity_series: dict = {}
+        for pt in lambda_e_trajectory:
+            for eid, v in pt["lambda_e"].items():
+                per_entity_series.setdefault(eid, []).append(v)
+        anchor_lambda_e_summary = ka.interior_band_fraction_per_entity(per_entity_series)
     unblind_stamp = ka.override_stamp_payload(unblind_override_at) if unblind_override_at is not None else None
     return _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_model, d_state,
                              trajectory, checkpoints, n_skipped, t0, timed_out, steps_completed,
                              complete=(not timed_out and steps_completed >= steps),
                              exactness_config=exactness_config, geo3_admission=geo3_admission_final,
                              anchor_lambda_summary=anchor_lambda_summary,
-                             unblind_override_stamp=unblind_stamp)
+                             anchor_lambda_e_summary=anchor_lambda_e_summary,
+                             ckpt_written=ckpt_written, unblind_override_stamp=unblind_stamp)
 
 
 # ---------------------------------------------------------------------------
@@ -1208,10 +1347,13 @@ def main():
                           "at the existing geo3 site. REQUIRES --use-geo3. Mutually exclusive with "
                           "--strong-pin (model_rd.py asserts this) and with --lambda-anchor "
                           "(candidate (c) is a separate cell, sec 2.4).")
-    ap.add_argument("--anchor-lambda-mode", choices=["learned", "fixed"], default="learned",
+    ap.add_argument("--anchor-lambda-mode", choices=["learned", "fixed", "learned_per_entity"],
+                     default="learned",
                      help="'learned' (default): single learned scalar, sigmoid(raw_param), init 0.5. "
                           "'fixed': a pre-registered grid value (sec 2.2's fallback diagnostic, "
-                          "e.g. one of {0.3,0.6,0.9}) -- REQUIRES --anchor-lambda-fixed. No effect "
+                          "e.g. one of {0.3,0.6,0.9}) -- REQUIRES --anchor-lambda-fixed. "
+                          "'learned_per_entity' (KEY_ANCHORING sec 10.5.1, candidate (d')): a "
+                          "per-entity table, same sigmoid/init-0.5 convention. No effect "
                           "when --anchor-active is not given.")
     ap.add_argument("--anchor-lambda-fixed", type=float, default=None,
                      help="the fixed-grid lambda value when --anchor-lambda-mode=fixed.")
@@ -1235,6 +1377,20 @@ def main():
                           "override timestamp. When given, this run's OWN result JSON is stamped "
                           "claim_tier='descriptive' + unblind_override=True + this timestamp at "
                           "assembly time (never post-hoc). Never set this by hand for an ordinary run.")
+    ap.add_argument("--rev7-engagement", action="store_true",
+                     help="KEY_ANCHORING sec 10 (Rev 7.1): activate the r_e + null-pool BH-FDR "
+                          "engagement measurement at the final checkpoint (ka.measure_r_e_and_null_pool). "
+                          "REQUIRES --anchor-active and --drift-probe. Validates "
+                          "REV7_THRESHOLD_PINNED.json via ka.validate_rev7_pin() at startup -- "
+                          "REFUSES (loud error, no training) if the pin is missing, hash-mismatched, "
+                          "or fails its own live re-derivation (sec 10.3.3's per-run defense-in-depth "
+                          "copy of the sweep-level launcher gate).")
+    ap.add_argument("--ckpt-dir", type=str, default=None,
+                     help="KEY_ANCHORING sec 10.10: directory to write the anchor table's "
+                          "TRAINED-ROW checkpoint (+ the per-entity lambda table for candidate (d'), "
+                          "or the scalar anchor_lambda_raw for candidate (d)) at every eval checkpoint "
+                          "AND the final step. No effect when --anchor-active is not given. None "
+                          "(default) = no checkpoint writing.")
     ap.add_argument("--out", type=str, default=None)
     args = ap.parse_args()
 
@@ -1306,6 +1462,9 @@ def main():
         if args.anchor_lambda_mode == "fixed":
             assert args.anchor_lambda_fixed is not None, \
                 "--anchor-lambda-mode=fixed requires --anchor-lambda-fixed"
+    if args.rev7_engagement:
+        assert args.anchor_active and args.drift_probe, \
+            "--rev7-engagement REQUIRES --anchor-active and --drift-probe (KEY_ANCHORING sec 10.2/10.3)"
     if args.lambda_anchor:
         assert args.use_geo3, \
             "--lambda-anchor > 0 (candidate (c)) REQUIRES --use-geo3 (KEY_ANCHORING sec 2.4: the " \
@@ -1350,7 +1509,22 @@ def main():
         "anchor_lambda_fixed": args.anchor_lambda_fixed if args.anchor_active else None,
         "lambda_anchor": args.lambda_anchor,
         "drift_probe": args.drift_probe,
+        "rev7_engagement": args.rev7_engagement,
     }
+    rev7_pin_derived = None
+    if args.rev7_engagement:
+        # sec 10.3.3 leg (ii), per-run defense-in-depth copy of the sweep-
+        # level launcher gate: REFUSE before any training happens if the
+        # pin is missing, hash-mismatched, or fails its own live
+        # re-derivation.
+        pin_doc = ka.validate_rev7_pin()
+        assert pin_doc is not None, (
+            "--rev7-engagement requires a VALID REV7_THRESHOLD_PINNED.json (sec 10.3.3): the pin "
+            "is missing, its recorded script_sha256 does not match the working tree's "
+            "rev7_threshold_derive.py, or a live derive() re-run does not reproduce the pin's own "
+            "derived block byte-identically. Regenerate with `python rev7_threshold_derive.py` and "
+            "re-commit before launching any Rev-7 anchor-arm cell.")
+        rev7_pin_derived = pin_doc["derived"]
     result = train(model, cfg, pools, pool_report, device, d_model=args.d_model, d_state=args.d_state,
                     steps=args.steps, batch_size=args.batch_size, lr=args.lr, seed=args.seed,
                     force_rank_k=args.force_rank_k, log_every=args.log_every, ckpt_every=args.ckpt_every,
@@ -1358,7 +1532,8 @@ def main():
                     fnce_m=args.fnce_m, exactness_config=exactness_config,
                     lambda_anchor=args.lambda_anchor, unblind_override_at=args.unblind_override_at,
                     drift_probe_active=args.drift_probe, drift_probe_n_entities=args.drift_probe_n_entities,
-                    drift_probe_n_resamples=args.drift_probe_n_resamples)
+                    drift_probe_n_resamples=args.drift_probe_n_resamples,
+                    rev7_pin_derived=rev7_pin_derived, ckpt_dir=args.ckpt_dir)
     result["n_params"] = n_params
     if embed_meta:
         result["embed_meta"] = embed_meta

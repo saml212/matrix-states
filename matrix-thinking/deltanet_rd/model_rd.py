@@ -88,8 +88,8 @@ from fla.ops.delta_rule import chunk_delta_rule
 from deltanet_core import apply_state_power
 from rank_utils import effective_rank, stable_rank, truncate_to_rank
 from key_anchoring import (ANCHOR_INIT_SEED, LAMBDA_LOG_CADENCE_STEPS, LAMBDA_WINDOW_LOG_POINTS,
-                            anchor_blend_gather_scatter, frame_potential_init,
-                            raw_table_conditioning)
+                            anchor_blend_gather_scatter, anchor_blend_gather_scatter_per_entity,
+                            frame_potential_init, raw_table_conditioning)
 
 # chunk_delta_rule's BACKWARD crashes with a CUDA illegal memory access
 # (inside prepare_wy_repr_bwd_kernel's Triton autotuner) in two measured
@@ -640,6 +640,13 @@ class DeltaNetRDBlock(nn.Module):
           raw_param=0.0 -> lambda=0.5 (sec 2.2). "fixed": a non-trainable
           scalar from the pre-registered grid {0.3,0.6,0.9} (sec 2.2's
           fallback diagnostic), REQUIRES anchor_lambda_fixed.
+          "learned_per_entity" (KEY_ANCHORING_DESIGN.md sec 10.5.1,
+          candidate (d')): a per-entity nn.Embedding(vocab_size_total, 1)
+          replacing the single scalar -- SAME sigmoid/init-0.5 convention,
+          gathered per t_idx entity inside
+          key_anchoring.anchor_blend_gather_scatter_per_entity. anchor_
+          lambda() is NOT valid in this mode (asserts); bind() dispatches
+          to the per-entity blend function directly.
 
         embed_source: informational only at this layer (recorded into the
           result JSON by run_deltanet_rd.py); the CALLER (embed_arms.py +
@@ -790,8 +797,9 @@ class DeltaNetRDBlock(nn.Module):
         # discipline as geo3_last_resid/geo3_last_k_eff_raw above.
         self.anchor_last_k_blend_raw: torch.Tensor | None = None
         if anchor_active:
-            assert anchor_lambda_mode in ("learned", "fixed"), \
-                f"anchor_lambda_mode must be 'learned' or 'fixed', got {anchor_lambda_mode!r}"
+            assert anchor_lambda_mode in ("learned", "fixed", "learned_per_entity"), \
+                f"anchor_lambda_mode must be 'learned', 'fixed', or 'learned_per_entity', " \
+                f"got {anchor_lambda_mode!r}"
             assert anchor_train_ids is not None and anchor_train_ids.numel() > 0, \
                 "anchor_active requires anchor_train_ids (the trained-entity vocab ids, e.g. " \
                 "pools.train_name_ids) -- the frame-potential init and anchor_trained_mask are " \
@@ -823,11 +831,29 @@ class DeltaNetRDBlock(nn.Module):
                 # sigmoid(raw_param), init raw_param=0.0 -> lambda=0.5 (sec 2.2)
                 self.anchor_lambda_raw = nn.Parameter(torch.tensor(0.0))
                 self.anchor_lambda_fixed_value = None
+                self.anchor_lambda_table = None
+            elif anchor_lambda_mode == "learned_per_entity":
+                # KEY_ANCHORING_DESIGN.md sec 10.5.1, candidate (d'): a
+                # per-entity table replacing the single scalar
+                # anchor_lambda_raw -- SAME sigmoid(raw)->[0,1] parameterization,
+                # SAME init (raw=0 -> lambda_e=0.5 for every entity, so any
+                # divergence in the final lambda_e distribution is attributable
+                # to training, not a different starting condition). Dense over
+                # the whole vocab (mirrors anchor_table's own dense-but-masked
+                # convention) -- held-out rows are never read in either
+                # direction by the t_idx-gathered blend (key_anchoring.
+                # anchor_blend_gather_scatter_per_entity), same M1 bypass.
+                self.anchor_lambda_raw = None
+                self.anchor_lambda_fixed_value = None
+                self.anchor_lambda_table = nn.Embedding(vocab_size_total, 1)
+                with torch.no_grad():
+                    self.anchor_lambda_table.weight.zero_()
             else:
                 assert anchor_lambda_fixed is not None, \
                     "anchor_lambda_mode='fixed' requires anchor_lambda_fixed (the pre-registered " \
                     "grid value, e.g. one of {0.3, 0.6, 0.9}, sec 2.2)"
                 self.anchor_lambda_raw = None
+                self.anchor_lambda_table = None
                 self.register_buffer("anchor_lambda_fixed_value",
                                        torch.tensor(float(anchor_lambda_fixed)))
         else:
@@ -836,11 +862,19 @@ class DeltaNetRDBlock(nn.Module):
             self.anchor_train_ids_buf = None
             self.anchor_lambda_raw = None
             self.anchor_lambda_fixed_value = None
+            self.anchor_lambda_table = None
 
     def anchor_lambda(self) -> torch.Tensor:
-        """Current lambda value: sigmoid(raw_param) for learned mode, the
-        fixed grid value otherwise (sec 2.2). Only valid when anchor_active."""
+        """Current (scalar) lambda value: sigmoid(raw_param) for 'learned'
+        mode, the fixed grid value for 'fixed' mode (sec 2.2). NOT valid
+        for 'learned_per_entity' (candidate (d'), sec 10.5.1) -- there is
+        no single scalar; bind()'s anchor branch calls
+        key_anchoring.anchor_blend_gather_scatter_per_entity directly with
+        self.anchor_lambda_table.weight instead."""
         assert self.anchor_active, "anchor_lambda() called but anchor_active is False"
+        assert self.anchor_lambda_mode != "learned_per_entity", \
+            "anchor_lambda() has no single scalar value under anchor_lambda_mode='learned_per_entity' " \
+            "(candidate (d'), sec 10.5.1) -- use anchor_lambda_table.weight directly"
         if self.anchor_lambda_mode == "learned":
             return torch.sigmoid(self.anchor_lambda_raw)
         return self.anchor_lambda_fixed_value
@@ -993,9 +1027,20 @@ class DeltaNetRDBlock(nn.Module):
                 # UNCHANGED (sec 2.2: "the same single Newton-Schulz pass
                 # geo3 already pays for -- no second orthogonalization").
                 key_ids = batch["key_ids"]
-                lam = self.anchor_lambda()
-                k_blend_raw = anchor_blend_gather_scatter(
-                    k_eff_raw, self.anchor_table.weight, self.anchor_trained_mask, key_ids, lam)
+                if self.anchor_lambda_mode == "learned_per_entity":
+                    # KEY_ANCHORING_DESIGN.md sec 10.5.1, candidate (d'): the
+                    # ONLY architectural difference from candidate (d) below --
+                    # a per-entity lambda_e gathered inside the blend function
+                    # itself, replacing the single scalar. Same masked
+                    # gather/scatter/held-out-bypass pattern, same insertion
+                    # site, same downstream Newton-Schulz call.
+                    k_blend_raw = anchor_blend_gather_scatter_per_entity(
+                        k_eff_raw, self.anchor_table.weight, self.anchor_trained_mask, key_ids,
+                        self.anchor_lambda_table.weight)
+                else:
+                    lam = self.anchor_lambda()
+                    k_blend_raw = anchor_blend_gather_scatter(
+                        k_eff_raw, self.anchor_table.weight, self.anchor_trained_mask, key_ids, lam)
                 self.anchor_last_k_blend_raw = k_blend_raw.detach()   # sec 3.1 item-5 pre-NS side channel
                 ns_input = k_blend_raw
             k_eff_items, fallback_triggered, resid = geo3_orthogonalize_logged(

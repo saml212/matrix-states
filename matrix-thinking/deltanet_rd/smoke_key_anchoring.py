@@ -479,6 +479,138 @@ def smoke_12_train_checkpoint_item6_sec37_wiring():
     _report("smoke 12: run_deltanet_rd.py train() item-6/sec-3.7 checkpoint wiring (static source check)", ok)
 
 
+def _build_model_dprime(vocab=300, d_state=64, n_train=107):
+    """sec 10.5.1, candidate (d'): the SAME _build_model construction, with
+    anchor_lambda_mode='learned_per_entity'."""
+    train_ids = torch.arange(10, 10 + n_train)
+    model = mrd.DeltaNetRDBlock(
+        vocab, d_model=64, d_state=d_state, conv_size=4, buffer_id=0,
+        geo3_active=True, geo3_n_iter=12, geo3_resid_tol=1e-2,
+        anchor_active=True, anchor_lambda_mode="learned_per_entity",
+        anchor_train_ids=train_ids)
+    return model, train_ids
+
+
+# ---------------------------------------------------------------------------
+# smoke 13 (sec 10.9 item 8): candidate (d') forward/backward -- finite loss,
+# finite grad on EVERY parameter INCLUDING anchor_lambda_table, at a
+# realistic AND an adversarial (near-duplicate) input, PLUS a direct check
+# that lambda_e actually VARIES per entity under a synthetic gradient (the
+# structural-capacity question sec 10.5.1 exists to test). Same GPU-free
+# insertion-site testing methodology as smoke 2 (anchor_blend_gather_
+# scatter_per_entity + geo3_orthogonalize_logged called directly, both
+# pure-torch, no fla kernel/CUDA touched -- only `import model_rd` above
+# requires fla to be INSTALLABLE, not a GPU to be PRESENT).
+# ---------------------------------------------------------------------------
+
+def smoke_13_dprime_blend_fwd_bwd():
+    model, train_ids = _build_model_dprime()
+    all_ok = True
+    for label, raw_fn in (("realistic", lambda B, K, d: F.normalize(torch.randn(B, K, d), dim=-1)),
+                            ("adversarial (near-duplicate)", _adversarial_raw)):
+        model.zero_grad()
+        B, K, d = 4, 16, model.d_state
+        raw = raw_fn(B, K, d).clone().requires_grad_(True)
+        key_ids = _random_key_ids(B, K, train_ids, model.vocab_size_total, frac_trained=0.7, seed=11)
+        k_blend = ka.anchor_blend_gather_scatter_per_entity(
+            raw, model.anchor_table.weight, model.anchor_trained_mask, key_ids,
+            model.anchor_lambda_table.weight)
+        q, fallback, resid = mrd.geo3_orthogonalize_logged(k_blend, n_iter=model.geo3_n_iter,
+                                                              resid_tol=model.geo3_resid_tol)
+        loss = q.sum()
+        loss.backward()
+        finite_loss = bool(torch.isfinite(loss).item())
+        raw_grad_finite = raw.grad is not None and bool(torch.isfinite(raw.grad).all().item())
+        all_param_grad_finite = all(
+            p.grad is None or bool(torch.isfinite(p.grad).all().item()) for p in model.parameters())
+        anchor_grad_present = model.anchor_table.weight.grad is not None and \
+            bool(torch.isfinite(model.anchor_table.weight.grad).all().item())
+        lambda_e_grad_present = model.anchor_lambda_table.weight.grad is not None and \
+            bool(torch.isfinite(model.anchor_lambda_table.weight.grad).all().item())
+        this_ok = (finite_loss and raw_grad_finite and all_param_grad_finite and anchor_grad_present
+                   and lambda_e_grad_present)
+        print(f"    [{label}] loss_finite={finite_loss} raw_grad_finite={raw_grad_finite} "
+              f"anchor_table_grad_finite={anchor_grad_present} "
+              f"lambda_e_table_grad_finite={lambda_e_grad_present} fallback_triggered={fallback}")
+        all_ok = all_ok and this_ok
+
+    # Structural-capacity check: lambda_e must actually be ABLE to vary per
+    # entity (not collapse to an effectively-scalar table by construction) --
+    # apply one synthetic gradient step with a per-entity-varying target loss
+    # and assert the trained rows' sigmoid(lambda_e) values are NOT all
+    # identical afterward.
+    model2, train_ids2 = _build_model_dprime()
+    opt = torch.optim.SGD([model2.anchor_lambda_table.weight], lr=10.0)
+    target = torch.linspace(0.1, 0.9, train_ids2.numel())
+    for _ in range(5):
+        opt.zero_grad()
+        lam_e = torch.sigmoid(model2.anchor_lambda_table.weight[train_ids2].squeeze(-1))
+        loss = ((lam_e - target) ** 2).sum()
+        loss.backward()
+        opt.step()
+    final_lam_e = torch.sigmoid(model2.anchor_lambda_table.weight[train_ids2].squeeze(-1)).detach()
+    varies_per_entity = bool((final_lam_e.std() > 0.05).item())
+    print(f"    lambda_e varies per entity under a synthetic gradient: std={final_lam_e.std().item():.4f} "
+          f"(expect > 0.05, target range was [0.1,0.9])")
+    all_ok = all_ok and varies_per_entity
+    _report("smoke 13: candidate (d') blend forward/backward (realistic + adversarial, all grads "
+            "finite) + lambda_e structural-capacity check (varies per entity under gradient)", all_ok)
+
+
+# ---------------------------------------------------------------------------
+# smoke 14 (sec 10.9 item 9): candidate (d') held-out bypass + NaN-injection
+# isolation -- re-run fresh for the NEW architecture, not assumed inherited
+# from smoke 3/4: all-held-out batch bit-identity to bare geo3, PLUS NaN
+# planted in every held-out anchor_lambda_table row, assert finite gradients
+# everywhere and exact-zero gradient at held-out rows.
+# ---------------------------------------------------------------------------
+
+def smoke_14_dprime_heldout_and_nan():
+    # (a) held-out bypass bit-identity.
+    model, train_ids = _build_model_dprime()
+    B, K, d = 4, 16, model.d_state
+    raw = F.normalize(torch.randn(B, K, d), dim=-1)
+    key_ids = torch.randint(0, 10, (B, K), dtype=torch.int64)   # ALL held-out (ids 0..9)
+    k_blend = ka.anchor_blend_gather_scatter_per_entity(
+        raw, model.anchor_table.weight, model.anchor_trained_mask, key_ids,
+        model.anchor_lambda_table.weight)
+    bit_identical = torch.equal(k_blend, raw)
+    _report("smoke 14a: candidate (d') all-held-out batch bit-identical to anchor-disabled path",
+            bit_identical)
+
+    # (b) NaN-injection isolation -- planted in BOTH anchor_table AND
+    # anchor_lambda_table's held-out rows (candidate (d') has two tables now).
+    model2, train_ids2 = _build_model_dprime()
+    with torch.no_grad():
+        model2.anchor_table.weight[~model2.anchor_trained_mask] = float("nan")
+        model2.anchor_lambda_table.weight[~model2.anchor_trained_mask] = float("nan")
+    raw2 = _adversarial_raw(B, K, d, seed=12).clone().requires_grad_(True)
+    key_ids2 = _random_key_ids(B, K, train_ids2, model2.vocab_size_total, frac_trained=0.5, seed=13)
+    trained_here2 = model2.anchor_trained_mask[key_ids2]
+
+    k_blend2 = ka.anchor_blend_gather_scatter_per_entity(
+        raw2, model2.anchor_table.weight, model2.anchor_trained_mask, key_ids2,
+        model2.anchor_lambda_table.weight)
+    loss = k_blend2.sum()
+    loss.backward()
+
+    all_grads_finite = all(
+        p.grad is None or bool(torch.isfinite(p.grad).all().item()) for p in model2.parameters())
+    raw_grad_finite = raw2.grad is not None and bool(torch.isfinite(raw2.grad).all().item())
+    anchor_grad_zero = bool((model2.anchor_table.weight.grad[~model2.anchor_trained_mask] == 0).all().item())
+    lambda_e_grad_zero = bool(
+        (model2.anchor_lambda_table.weight.grad[~model2.anchor_trained_mask] == 0).all().item())
+    heldout_output_bit_equal = torch.equal(k_blend2[~trained_here2], raw2.detach()[~trained_here2])
+    print(f"    all_grads_finite={all_grads_finite} raw_grad_finite={raw_grad_finite} "
+          f"anchor_table_grad_heldout_exact_zero={anchor_grad_zero} "
+          f"lambda_e_table_grad_heldout_exact_zero={lambda_e_grad_zero} "
+          f"heldout_output_bit_equal_despite_NaN={heldout_output_bit_equal}")
+    ok = (all_grads_finite and raw_grad_finite and anchor_grad_zero and lambda_e_grad_zero
+          and heldout_output_bit_equal)
+    _report("smoke 14b: candidate (d') NaN-injected held-out rows (both tables) -- finite grads, "
+            "exact-zero grad, bit-equal output", ok)
+
+
 def main() -> int:
     print("=" * 70)
     print("KEY_ANCHORING_DESIGN.md sec 5 -- Wave -1 smoke suite (CPU-only)")
@@ -495,11 +627,17 @@ def main() -> int:
     smoke_10_anchor_ema()
     smoke_11_drift_diag_exit_code_regression()
     smoke_12_train_checkpoint_item6_sec37_wiring()
+    print("-" * 70)
+    print("KEY_ANCHORING_DESIGN.md sec 10.9 items 8/9 -- candidate (d') smokes (2026-07-06 "
+          "keyanchor-mech build)")
+    print("-" * 70)
+    smoke_13_dprime_blend_fwd_bwd()
+    smoke_14_dprime_heldout_and_nan()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)
         return 1
-    print("SMOKE SUITE: ALL 12 ITEMS PASSED")
+    print("SMOKE SUITE: ALL 14 ITEMS PASSED")
     return 0
 
 
