@@ -2081,6 +2081,392 @@ no GPU spend in that commit). Full narrative:
 `EXPERIMENT_LOG.md`, "KEY-ANCHORING CONFIRMATORY WAVE VERDICT"
 (2026-07-05). `STATE.md` updated.
 
+### 9.7 Rev 6 DRAFT — λ-scaled engagement threshold re-derivation (2026-07-05/06)
+
+**Status: DRAFT. Pending its own attack round (per this project's own
+repeated finding — see the Hard Rules entry on multi-round adversarial
+audit — that a single self-review is not a substitute). Executes §9.6's
+registered stub verbatim (both its listed options, unified below into
+one derivation). No Outcome assignment above (§9.5, §9.6) is changed by
+this section. No retroactive rescoring is authorized until the attack
+round clears this derivation AND the open items in §9.7.5 (the
+unverified anchor-norm assumption) and §9.7.6 (the z-choice) resolve.**
+
+#### 9.7.1 The problem, restated precisely
+
+§9.6's post-hoc observation showed `a_e ≥ 0.9` (§3.7) is not a
+λ-independent statement: at the SGD-preferred interior λ (≈0.57–0.58,
+all four confirm-wave legs), the blend formula requires the entity's
+raw key to independently reach `r = cos(k_eff_raw, anchor) ≳ 0.48–0.50`
+to cross 0.9 — but at λ→1 the SAME "0.9" number is trivially satisfied
+by every entity regardless of `r` (§9.6: "the formula collapses to
+`cos ≡ 1` regardless of r"). A flat numeric bar whose implied
+`r`-space stringency swings from "demanding" (`r≈0.9` at λ→0) to
+"vacuous" (`r`=anything at λ→1) is not measuring the same thing across
+different λ regimes, candidates, or K values — it is measuring
+"however much `r` this run's own λ happens to require," which is not a
+portable definition of "engaged." **The fix is not to find a
+different flat number; it is to define engagement in `r`-space (which
+does not degenerate with λ) and re-express it in `a_e`-space, per-run,
+using that run's own already-logged λ — so the criterion means the
+same thing at every λ, not just at whichever λ this project happened
+to measure.**
+
+#### 9.7.2 Forward derivation (pure algebra, from the registered formula)
+
+Blend formula, verbatim, `key_anchoring.py` L263–269:
+
+```python
+trained_here = anchor_trained_mask[key_ids]
+t_idx = trained_here.nonzero(as_tuple=True)
+sub_blend = F.normalize(
+    (1.0 - lam) * k_eff_raw[t_idx] + lam * anchor_weight[key_ids[t_idx]], dim=-1)
+```
+
+`k_eff_raw` is gathered from `k_norm_raw = F.normalize(k_conv, dim=-1)`
+(`model_rd.py` L980) — **unit norm, confirmed by reading the line, not
+assumed.** Let `k` = the raw key (unit vector), `â` = the anchor row's
+unit *direction*, `r = cos(k, â)`, `λ` = the run's current blend
+weight. **Assuming `‖anchor_weight[e]‖ = 1`** (flagged and tested for
+in §9.7.5 below — this is the one load-bearing assumption in this
+derivation), the pre-normalize blend is `v = (1-λ)k + λâ`, and:
+
+```
+v·â = (1-λ)r + λ
+‖v‖² = (1-λ)² + λ² + 2λ(1-λ)r
+a_e(λ, r) ≡ cos(v, â) = [(1-λ)r + λ] / sqrt[(1-λ)² + λ² + 2λ(1-λ)r]
+```
+
+(`F.normalize` inside `sub_blend` doesn't change this — cosine is
+scale-invariant, so `cos(normalize(v), â) = cos(v, â)` identically;
+the code's `measure_full_pool_alignment`, `key_anchoring.py` L673–695,
+also calls `F.cosine_similarity` directly, which internally
+renormalizes `blended` regardless.)
+
+**Sanity checks (closed-form, matches §9.6's own back-of-envelope
+exactly):**
+- `a_e(1, r) ≡ 1` for all `r` — the λ→1 degeneracy §9.6 already flagged.
+- `a_e(0, r) = r` — the λ→0 limit recovers the raw cosine directly.
+- Solving `a_e(λ=0.57, r) = 0.9` for `r` gives `r ≈ 0.483` — matches
+  §9.6's `r ≳ 0.48` to 3 decimal places (verified by direct
+  quadratic solve in `r`, not re-typing the approximation: `α²r² +
+  2αλ(1-a_e²)r + [λ²(1-a_e²) - a_e²α²] = 0`, `α = 1-λ`).
+- Inverting the *observed* per-entity `a_e` values back to `r` at each
+  cell's own logged `λ_final` reproduces §9.6's `r ≈ 0.33–0.35` median
+  claim: K=32 s0/s1/s2 median `r_e` = 0.350 / 0.326 / 0.359, K=16 s0 =
+  0.371 (computed CPU-only from the archived JSONs, script below).
+
+**Numeric verification, all 4 confirm-wave cells** (`checkpoints[-1]`,
+step 20000, `experiment-runs/2026-07-05_keyanchor_confirm/wavekeyanchor-confirm/*.json`;
+`d_state = 64` for all 4 — read from each JSON, not assumed):
+
+| cell | λ_final (own, logged) | null floor `a_e(λ,0)` | crossover `r` @ `a_e`=0.9 | old `engaged_frac` (flat 0.9) |
+|---|---|---|---|---|
+| K=32 s0 | 0.5751 | 0.8042 | 0.4696 | 0.1308 |
+| K=32 s1 | 0.5682 | 0.7961 | 0.4873 | 0.0374 |
+| K=32 s2 | 0.5703 | 0.7986 | 0.4820 | 0.0467 |
+| K=16 s0 | 0.5615 | 0.7881 | 0.5036 | 0.1121 |
+
+Note the null floor itself: at every measured λ, an entity whose raw
+key contributes **zero** alignment (`r=0`) already reads `a_e ≈
+0.79–0.80` — only ~0.10–0.11 below the old flat bar. This is the
+mathematical fact the compression language in §9.6 was pointing at:
+the entire discriminative *range* available to `a_e` between "zero
+raw-key contribution" and "old bar" is compressed into a band roughly
+0.10 wide, at this λ.
+
+#### 9.7.3 Why a flat `a_e` floor isn't enough — the chance-level re-derivation
+
+`a_e(λ, 0)` is the value produced by an entity whose raw key is
+**exactly orthogonal** to its anchor. But "orthogonal" is not the same
+statistical object as "not engaged" — with `k` and `â` both unit
+vectors in `R^{d_state}`, two vectors that have never interacted at
+all (independent, uncorrelated directions — i.e., the null hypothesis
+"this entity's key never moved toward its anchor") have `r = cos(k,
+â)` distributed with **mean 0 and variance exactly `1/d_state`** (an
+exact algebraic fact for a uniformly-random direction against any
+fixed reference direction in `R^d` — not an asymptotic approximation:
+by symmetry, the `d` squared components of a random unit vector each
+have expectation `1/d`, and the cosine against a fixed axis is one
+such component). For `d_state = 64` (this run family, confirmed from
+each JSON's own `d_state` field): `σ_chance = 1/√64 = 0.125` exactly.
+
+This gives a **λ-independent, portable engagement criterion in
+`r`-space**: an entity's raw key is *detectably* pulled toward its
+anchor — the actual claim §1/§3.7 exists to test — only if its `r`
+sits meaningfully above this chance band, i.e. `r ≥ z·σ_chance =
+z/√d_state` for a registered `z`. Re-expressed in `a_e`-space via
+§9.7.2's own formula, per run, at that run's own logged `λ_final`:
+
+```
+engaged(e)  ⟺  a_e(e) ≥ a_e(λ_final, z/√d_state)     [λ-SCALED THRESHOLD]
+```
+
+This is exactly the `a_e ≥ a_e_expected(λ, r=0) + margin` form §9.6's
+stub sketched, with the margin **not** a free constant fit to any run's
+data — it is `a_e(λ, z/√d_state) − a_e(λ, 0)`, a closed-form function
+of `λ` (already logged, per-run) and `d_state` (a registered
+architectural constant, fixed since before Wave 1 ran) and `z` (see
+§9.7.6 — the one remaining registered choice, deliberately NOT
+resolved by this draft). The a_e(λ,0) floor and the z/√d margin are
+thus **both** derived purely from (i) the unchanged, already-committed
+blend formula and (ii) numbers that exist independent of how any
+K=32 cell's engagement happens to score.
+
+**Full table, `z ∈ {1, 2, 3}` (all three reported; none singled out as
+"the" answer by this draft — see §9.7.6):**
+
+| cell | λ_final | thresh z=1 (`r`≥0.125) | thresh z=2 (`r`≥0.25) | thresh z=3 (`r`≥0.375) | new `engaged_frac` z=2 | new `engaged_frac` z=3 | old `engaged_frac` |
+|---|---|---|---|---|---|---|---|
+| K=32 s0 | 0.5751 | 0.8303 | 0.8560 | 0.8812 | **0.7664** | 0.4112 | 0.1308 |
+| K=32 s1 | 0.5682 | 0.8236 | 0.8505 | 0.8768 | **0.8224** | 0.2617 | 0.0374 |
+| K=32 s2 | 0.5703 | 0.8257 | 0.8522 | 0.8782 | **0.8318** | 0.4393 | 0.0467 |
+| K=16 s0 | 0.5615 | 0.8169 | 0.8451 | 0.8725 | **0.8879** | 0.4393 | 0.1121 |
+
+At `z=1` every cell reads 97–99% engaged (non-discriminative — 1σ
+above a symmetric null still contains most of the null mass one-sided,
+so this bracket is disclosed but not a serious candidate). At `z=2`
+all four cells land in **[50%, 90%)** — the §3.5 Outcome A″ band. At
+`z=3` all four cells stay **<50%** (26.2–44.0%) — Outcome C stands
+unchanged. **The registered z choice is the single remaining degree of
+freedom that determines whether this re-derivation changes anything at
+all**, which is exactly why §9.7.6 pre-commits to a menu rather than a
+pick.
+
+#### 9.7.4 Secondary check: does the `r`-space distribution show the bimodality §3.7 was built to detect?
+
+Inverting each cell's 107 `a_e` values to `r_e` (per §9.7.2's formula,
+at that cell's own λ) gives a substantially *wider* spread than `a_e`
+itself (e.g. K=32 s0: `r_e` ∈ [0.095, 0.581] vs. `a_e` ∈ [0.824,
+0.922] — confirming numerically that the blend arithmetic compresses
+the `r`-space range by roughly 4–5× at this λ). A coarse 10-bin
+histogram and max-gap check on the sorted `r_e` values (not a formal
+dip-test — disclosed as informal, a candidate for a proper Hartigan's
+dip statistic in the attack round if more rigor is wanted) shows **no
+gap** consistent with two separated clusters in any of the 4 cells —
+each is single-peaked, roughly bell-shaped, largest gaps at the
+distribution's edges (expected for a unimodal sample, not a signature
+of a bimodal split). **This means the aggregate-masking scenario §3.7
+was designed to catch — a strongly-engaged minority hiding inside a
+disengaged majority — is not what these numbers show, even in the
+less-compressed `r`-space.** The picture instead reads as *uniform
+partial engagement*: every entity's raw key moved moderately toward
+its anchor (median `r_e` ≈ 0.33–0.37), none moved decisively, and none
+stayed at exactly chance level. This is a real, disclosed, alternative
+mechanistic story to have on record regardless of which `z` the attack
+round eventually pins.
+
+#### 9.7.5 Open item — the unverified unit-anchor-norm assumption
+
+§9.7.2's derivation assumes `‖anchor_weight[e]‖ = 1` at read time.
+`anchor_table` is initialized at unit norm (`frame_potential_init`,
+`key_anchoring.py` L230, `F.normalize(...)`) but is a **plain
+`nn.Embedding`** (`model_rd.py` L815) with no renormalization step
+found anywhere in `model_rd.py` or `key_anchoring.py` (checked by
+grep, not assumed) — its row norms are free to drift under 20,000
+steps of unconstrained gradient descent. **This was checked, not
+assumed: no checkpoint file exists anywhere to verify the actual norm.**
+The local SSD mirror
+(`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-05_keyanchor_confirm/`)
+contains only JSONs/logs, no `.pt`. A read-only remote check
+(`ssh youthful-indigo-turkey`, this session) found
+`/data/deltanet_rd_keyanchor_ckpts/{wavekeyanchor,wavekeyanchor-neg1,waveref}/`
+— all three **empty directories**, and **no** corresponding
+`.../keyanchor-confirm/` checkpoint directory exists at all. No raw
+`anchor_table.weight` tensor is recoverable from any archived
+artifact, for any wave. **This derivation's numeric threshold values
+(§9.7.3's table) are therefore conditional on an assumption that
+cannot currently be checked** — flagged here rather than silently
+carried forward. Two ways to close this, priced for the attack round
+or a future wave, not this draft: (a) cheapest — add one scalar
+(`anchor_table.weight[train_ids].norm(dim=-1).mean()`, and ideally the
+per-row vector) to the existing per-checkpoint result-assembly path
+(`key_anchoring.py`/`model_rd.py`'s existing checkpoint writer — no new
+forward pass, reads a parameter already in memory) in any *future*
+confirm-style wave; (b) if norms turn out to deviate materially from
+1, the general (non-unit-norm) formula is a two-line extension of
+§9.7.2 (`v = (1-λ)k + λmâ`, `m = ‖anchor_weight[e]‖`) — the derivation
+*approach* survives, only the numeric constants would move.
+
+#### 9.7.6 The z choice — registered menu, orchestrator decision required
+
+`z` is the one genuinely open parameter in this derivation. `z=2` ("2σ
+above chance," the most common textbook convention for "detectably
+non-null") and `z=3` (the stricter convention this project's own
+rigor culture — see the Hard Rules on multi-round adversarial audit,
+exact structural thresholds, and provable rank bounds — would favor)
+bracket materially different verdicts (§9.7.3: A″-band at z=2, Outcome
+C at z=3, for all 4 cells). **This draft does not pick between them.**
+Per this design's own established pattern for exactly this kind of
+judgment call (§3.6's n=2→n=3 orchestrator decision, §3.4's kill-rule
+target, §3.6's Judgment Call (c)), the choice is registered as an
+**orchestrator decision at the attack round**, made by inspecting
+*only* the derivation and the z=1/2/3 menu above — **never** by first
+computing all three against the K=32 cells and then arguing backward
+for whichever one was picked. The order this draft followed (and the
+attack round must too, to stay clean): fix the formula and the
+`d_state`-derived floor first (§9.7.2), fix the candidate z menu from
+a standard, external convention second (§9.7.3, before recomputing
+per-cell numbers), THEN compute what each implies (the table) — never
+the reverse.
+
+#### 9.7.7 Pre-registered re-score procedure
+
+**Scope — which runs get rescored:** checked directly against the
+archive, not assumed. **Only the 4 confirm-wave cells**
+(`experiment-runs/2026-07-05_keyanchor_confirm/wavekeyanchor-confirm/
+wkeyanchor-confirm_rdx_{K32_armd_s0,K32_armd_s1,K32_armd_s2,K16_armd_s0}
+_geo3n{20,20,20,12}_anchor_learned_dprobe.json`) carry a
+`per_entity_alignment` key at all. **All 12 Wave-1 cells** — both
+`experiment-runs/2026-07-05_keyanchor_wave/{wavekeyanchor,
+wavekeyanchor-neg1}/*.json` and the earlier `w-1_rdx_*.json` files (6 +
+6 = 12 checked, field-by-field, this session) — **lack
+`per_entity_alignment` entirely** (confirmed by direct key inspection
+of every file's final checkpoint, not inferred). Re-scoring Wave-1
+would require a fresh instrumented rerun (the per-entity sweep did not
+exist until the confirm-wave build, `5963616`/`03edb29`), which is a
+GPU-spend decision out of scope for this design-only draft — not
+something this section authorizes.
+
+**Exact computation, per confirm-wave cell, once `z` is pinned
+(§9.7.6):**
+1. Read `λ_final = anchor_lambda_summary.final_value` (already logged,
+   this run's own value — never re-measured, never chosen to fit).
+2. Compute `thresh = a_e(λ_final, z/√64)` per §9.7.2's closed form.
+3. `new_engaged_frac = mean(1{a_e[e] ≥ thresh} for e in the 107 train
+   entities)`, reading `checkpoints[-1].per_entity_alignment.a_e`
+   directly — no resampling, no new forward passes.
+4. Route through the **unchanged** §3.5/§3.7 band edges (≥90% / [50%,
+   90%) / <50%) — only the per-entity criterion changes, not the
+   banding logic, the outcome letters, or any other admission item.
+
+**Anti-post-hoc protections (the whole point of this section):**
+- The formula (§9.7.2) is pure algebra from code already committed in
+  `5963616`, predating this draft and any awareness of how the
+  confirm-wave engagement numbers would land.
+- `d_state=64` is a registered architectural constant, fixed since
+  before Wave 1, not chosen for this derivation.
+- `λ_final` per cell is an already-logged, already-fixed number from a
+  run that predates this draft — not remeasured, not selected.
+- The `z` menu (§9.7.6) is fixed to standard external conventions
+  (2σ/3σ) and explicitly NOT resolved to a single value by this draft
+  — deferred to an orchestrator decision made by inspecting the
+  derivation, not the per-cell payoff table.
+- §9.7.5's open item (unverified anchor-norm assumption) is disclosed,
+  not hidden, and is a precondition on treating any numeric threshold
+  value as final.
+- No Outcome letter anywhere in §9.5/§9.6 changes as a result of this
+  section. The re-score executes only after (a) the attack round pins
+  `z`, and (b) §9.7.5 is either closed or explicitly waived with
+  reasoning recorded.
+
+#### 9.7.8 What each re-score outcome means
+
+**Under z=2 (computed here as a non-binding preview — the registered
+re-score happens only after the attack round, per §9.7.7):** all four
+cells land in `new_engaged_frac ∈ [50%, 90%)` (76.6% / 82.2% / 83.2% /
+88.8%) — the §3.5 **Outcome A″ ("partial anchoring — anchoring lifts
+composition for the engaged subset"), reported in full, no headline**.
+But Outcome A″ inherits the same "bars clear" requirement as Outcome
+A, and §9.6's own table already shows **K=32 seed 1 fails item 6a**
+(`σ_64/σ_1 = 0.0706 < 0.1`) — independent of engagement, this caps any
+upgrade at **2/3 seeds**, not 3/3. **So even under the more permissive
+z=2 preview, the ceiling this wave could reach is Outcome A″ at a 2/3
+(not 3/3) seed tier — never Outcome A (the headline tier requires
+`engaged_frac ≥ 90%`, and no cell reaches it even at z=2's most
+generous reading: K=16's 88.8% is the closest and still short).** The
+K=16 spot check is not separately outcome-lettered under §3.5's own
+K=32 scope note (unchanged by this draft) — it remains supplementary
+replication context, now additionally showing the same A″-band pattern
+under z=2.
+
+**Under z=3 (also a non-binding preview):** all four cells stay
+`<50%` (26.2–44.0%) — **Outcome C stands, unchanged from §9.6.** The
+mechanism story then rests on §9.7.4's disclosed finding: the failure
+mode is not "a masked disengaged majority" (no bimodal split found even
+in `r`-space) but "uniform, moderate, incomplete engagement across the
+whole pool" — a different open question (is the anchor pull
+under-powered at this λ for structural reasons, a capacity limit, or
+simply a training-length/learning-rate issue not yet explored) worth
+its own follow-on, not a re-interpretation of the drift-bottleneck
+theory the parent design's Outcome C routing already refuses to grant.
+
+**Either way, the h4 behavioral result's own tier (DESCRIPTIVE,
+behavioral — §9.6) is untouched by this section**: nothing here
+revisits items 1–5 or the h4 bar itself, only §3.7's engagement
+criterion.
+
+#### 9.7.9 Budget
+
+**~0 GPU-h.** This entire section is a re-read of 4 already-local,
+already-committed JSONs (`experiment-runs/2026-07-05_keyanchor_confirm/
+wavekeyanchor-confirm/*.json`) plus pure CPU arithmetic (closed-form
+algebra and one quadratic solve per entity; the full 4-cell, 107-
+entity-each verification ran in well under a second). The one
+read-only network call this draft made was an `ssh` `find`/`ls` to the
+Brev box to check for checkpoint files (§9.7.5) — no training, no box
+writes, no GPU touched. If the attack round wants §9.7.5 closed with
+real data, the cheapest path (one scalar added to an existing
+checkpoint-write call, no new forward pass) is priced at effectively
+zero incremental GPU-h on top of any *future* wave that was going to
+run anyway — but no such wave is scheduled or requested by this draft.
+Rescoring the 12 Wave-1 cells (if ever wanted) is explicitly **out of
+scope and unpriced here** — it would need a fresh full 20,000-step
+instrumented rerun per cell, priced the same as any other §5-budget
+line item, and is not requested or authorized by this section.
+
+#### 9.7.10 Attack surface — 5 pre-answered
+
+1. **"You moved the bar until it passed" (post-hoc threshold-shopping —
+   the headline risk).** Answer: the formula is pure algebra from code
+   committed in `5963616`, before this draft existed; `d_state=64` and
+   each cell's `λ_final` are fixed, pre-existing numbers untouched by
+   this section; the `z` menu is pinned to standard external
+   conventions and explicitly left unresolved (§9.7.6) rather than
+   collapsed to whichever value looks best — and even the more
+   permissive registered candidate (z=2) only reaches a **non-headline**
+   partial outcome (A″, capped at 2/3 seeds by an unrelated item-6a
+   miss), never the headline Outcome A. A threshold actually shopped
+   to rescue a null result would aim for the strongest available
+   positive; this one tops out well short of that even at its most
+   generous reading.
+2. **"Isn't picking `z=2` (or any single z) exactly the same sin as
+   picking `a_e≥0.9`?"** Answer: no single z is picked by this draft
+   (§9.7.6) — both standard brackets (2σ, 3σ) are reported with equal
+   prominence, their diverging implications disclosed plainly, and the
+   final choice is explicitly deferred to an orchestrator decision at
+   the attack round, following the same judgment-call pattern this
+   design already uses elsewhere (§3.4, §3.6). The *menu* is
+   constrained to widely-recognized conventions, not an open range.
+3. **The unverified `‖anchor_weight‖=1` assumption (§9.7.5).** Answer:
+   disclosed, not hidden — checked this session (SSD mirror + a
+   read-only remote `find`) and confirmed no checkpoint artifact
+   exists anywhere to verify it; the numeric thresholds in §9.7.3 are
+   explicitly conditional on it, with a two-line extension path if it
+   turns out false, and a near-zero-cost logging addition specified
+   for any future wave that would close the gap.
+4. **Circularity — the K=16 spot check is one of the same 4 scored
+   cells, not an independent calibration source.** Answer: correct,
+   and this draft does **not** use K=16 to derive any constant in the
+   formula (`z`, `d_state`, and the algebraic form are all independent
+   of any cell's data) — K=16 is used only as a **replication check**
+   (does the same registered rule produce a consistent pattern on an
+   independent K), never as the source of a fitted number. No margin
+   constant in this derivation is fit to K=16 or K=32 data.
+5. **Jensen's-gap bias in the `r`-inversion.** `a_e[e]` is already a
+   mean over ≥8 (32 at K=32, per `n_resamples`) independent episode
+   resamples, each with a potentially different raw key draw for that
+   entity (`measure_full_pool_alignment`, `key_anchoring.py` L688–693:
+   the per-resample cosines are averaged, not the raw keys). Inverting
+   the *mean* `a_e` through the nonlinear `a_e(λ,r)` map does not
+   exactly recover `mean_i(r_i)` (the map is not affine) — the
+   recovered `r_e` in §9.7.4 is an **effective** summary, disclosed as
+   such, not an exact per-resample average. This does not affect
+   §9.7.3's `engaged_frac` computation (which thresholds the logged
+   `a_e` values directly, never the inverted `r_e`) — it only
+   qualifies §9.7.4's secondary bimodality read, which is already
+   labeled informal.
+
 ---
 
 ## Reproducibility pointers
