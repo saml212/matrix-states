@@ -1,9 +1,20 @@
 #!/bin/bash
-# KEY_ANCHORING_DESIGN.md sec 10.13's registered candidate (e)
-# ("frozen-random-table ablation") chain (2026-07 K48+e build). NOT RUN by
-# the build session -- build + CPU-verify only, no GPU work performed here
-# (see the build report). The orchestrator runs this once a free GPU set is
-# confirmed (check nvidia-smi FIRST, per house rule).
+# KEY_ANCHORING_DESIGN.md sec 10.13's registered candidate (e) chain,
+# BOTH ARMS (2026-07 K48+e build; e-fp arm added per the final-audit
+# prescription). NOT RUN by the build session -- build + CPU-verify only,
+# no GPU work performed here (see the build report). The orchestrator runs
+# this once a free GPU set is confirmed (check nvidia-smi FIRST, per house
+# rule).
+#
+# The wave's 6 cells (one --wave keyanchor-e dispatch launches both arms):
+#   arm 'e'    -- frozen RANDOM-unit-rows table, seeds {60,61,62}: does
+#                 mere episode-constancy of ANY fixed table deliver
+#                 candidate (d)'s gains? (the construction-stabilization
+#                 account's strongest form)
+#   arm 'e-fp' -- frozen FRAME-POTENTIAL table (the sec 10.13 stub's
+#                 literal init text), seeds {70,71,72}: does the table's
+#                 optimized bulk geometry matter beyond constancy, even
+#                 with zero training?
 #
 # INDEPENDENT of keyanchor_k48_chain.sh -- candidate (e) is K=32, reuses the
 # EXISTING K=16/32 BANDS_PINNED.json (sec 3.6, already pinned by an earlier
@@ -16,8 +27,9 @@
 # disjoint --gpu-offset/--gpus (or KEYANCHOR_E_GPU_OFFSET/KEYANCHOR_E_GPUS
 # env vars) to the two scripts if run at the same time.
 #
-# Cost: ~1 GPU-h (3 cells, sec 10.13's own estimate; this build's own
-# registered ceiling is 1.5 GPU-h, keyanchor_e_budget_guard).
+# Cost: 6 cells x 0.20-0.35 GPU-h/cell = ~1.2-2.1 GPU-h; this build's own
+# registered ceiling is 2.5 GPU-h (keyanchor_e_budget_guard; combined
+# program worst case with the K48 wave ~64.35/80, verified WITHIN cap).
 set -euo pipefail
 
 cd /home/nvidia/chapter2/deltanet_rd
@@ -46,10 +58,12 @@ $PY smoke_key_anchoring.py 2>&1 | tee logs/30_smoke_key_anchoring_e.log
 $PY smoke_keyanchor_k48_e.py 2>&1 | tee logs/31_smoke_keyanchor_k48_e_for_e.log
 $PY gate2_construction_test.py 2>&1 | tee logs/32_gate2_construction_test_e.log
 
-# candidate (e): K=32, seeds {60,61,62}, frozen random-unit-rows table,
-# fixed lambda=0.58. REUSES the existing K=16/32 BANDS_PINNED.json gate
-# (--wave ref must have already completed and been pinned by an earlier
-# wave -- this script does not launch --wave ref/keyanchor-bands itself).
+# candidate (e), BOTH arms in one dispatch (6 cells, K=32, fixed
+# lambda=0.58): arm 'e' (frozen random-unit-rows, seeds 60-62) + arm
+# 'e-fp' (frozen frame-potential, seeds 70-72). REUSES the existing
+# K=16/32 BANDS_PINNED.json gate (--wave ref must have already completed
+# and been pinned by an earlier wave -- this script does not launch
+# --wave ref/keyanchor-bands itself).
 $PY run_deltanet_rd_exactness_sweep.py --wave keyanchor-e \
     --gpus "$KEYANCHOR_E_GPUS" --gpu-offset "$KEYANCHOR_E_GPU_OFFSET" --per-gpu 1 \
     --out-dir results/deltanet_rd_exactness \

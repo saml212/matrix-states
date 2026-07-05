@@ -991,10 +991,15 @@ KEYANCHOR_K48_GATE1_GPUH = (0.06, 0.24)           # sec 11.5: 5,000/20,000 x bra
 KEYANCHOR_K48_GPUH_CEILING = 12.0                # sec 11.5's registered nominal ceiling
 KEYANCHOR_K48_PROGRAM_GPUH_CEILING = 80.0         # unchanged exactness-program cap
 
-# sec 10.13's registered candidate-(e) budget: ~1 GPU-h (3 cells at the
-# realized ~0.2-0.35 GPU-h/cell range this design has repeatedly observed).
+# sec 10.13's registered candidate-(e) budget: ~1 GPU-h for the original
+# 3-cell random arm (realized ~0.2-0.35 GPU-h/cell). The wave now carries
+# SIX cells (audit prescription: the 'e' random arm, seeds 60-62, PLUS the
+# 'e-fp' frozen-frame-potential arm per the stub's literal text, seeds
+# 70-72) -- bracket 6 x (0.20-0.35) = 1.2-2.1 GPU-h; ceiling raised
+# accordingly (bracket top +~20% margin). Combined program worst case with
+# the K48 wave: 49.8493 + 12.0 + 2.5 = 64.35/80 -- verified WITHIN cap.
 KEYANCHOR_E_GPUH_PER_CELL = (0.20, 0.35)
-KEYANCHOR_E_GPUH_CEILING = 1.5                    # sec 10.13's own "~1 GPU-h" estimate, +50% margin
+KEYANCHOR_E_GPUH_CEILING = 2.5
 
 # ---------------------------------------------------------------------------
 # Program ledger reconciliation (KEY_ANCHORING_DESIGN.md sec 11.5, attack
@@ -1140,6 +1145,58 @@ def keyanchor_e_manifest():
         spec["anchor_table_init_mode"] = "random_unit_rows"
         runs.append(spec)
     assert len(runs) == 3, f"keyanchor-e manifest drifted from its registered 3 runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_e_fp_manifest():
+    """The 'e-fp' arm (2026-07 K48+e build, audit prescription): sec
+    10.13's stub, read LITERALLY -- anchor table 'initialized once via the
+    existing frame_potential_init and then never trained'. The 'e' arm
+    above (random_unit_rows, per the stub's own "frozen-RANDOM-table" name
+    and sec 10.13.4's motivating text) and THIS arm test two different,
+    both-valuable hypotheses:
+      - 'e' (random): does mere episode-constancy of ANY fixed table
+        deliver candidate (d)'s gains? (the construction-stabilization
+        account's strongest form)
+      - 'e-fp' (frozen frame-potential): does the table's OPTIMIZED bulk
+        geometry (tight-frame conditioning) matter beyond constancy, even
+        with zero training? (isolates init geometry from learnedness)
+    If e-fp matches (d) but e-random collapses, bulk geometry (not
+    learning) is the carrier; if both match (d), constancy alone suffices;
+    if both collapse toward geo3-alone, the LEARNED table matters beyond
+    both construction properties. K=32, seeds {70,71,72} (a fresh block --
+    seeds 60-62 stay registered as the 'e' random arm, never reused here),
+    same fixed lambda=0.58, same full Rev-7.1 instrumentation. Arm tag
+    'e-fp' makes every filename distinct from the 'e' arm's by
+    construction (checked by the collision smoke, not assumed)."""
+    steps = KEYANCHOR_E_TIER_STEPS
+    runs = []
+    for s in (70, 71, 72):
+        spec = _spec("keyanchor-e", 32, s, steps, "e-fp", geo3_active=True,
+                     geo3_n_iter=KEYANCHOR_E_NS_N_ITER, geo3_resid_tol=1e-2,
+                     anchor_active=True, anchor_lambda_mode="fixed",
+                     anchor_lambda_fixed=KEYANCHOR_E_LAMBDA_FIXED,
+                     drift_probe=True, rev7_engagement=True)
+        spec["anchor_table_frozen"] = True
+        spec["anchor_table_init_mode"] = "frame_potential"   # the default mode, set EXPLICITLY --
+                                                              # is_done()'s identity check reads it either way
+        runs.append(spec)
+    assert len(runs) == 3, f"keyanchor-e-fp manifest drifted from its registered 3 runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_e_wave_manifest():
+    """--wave keyanchor-e launches BOTH candidate-(e) arms (6 cells total):
+    the 'e' random-unit-rows arm (seeds 60-62) AND the 'e-fp' frozen
+    frame-potential arm (seeds 70-72) -- one wave dispatch, since both
+    share identical gates (the SAME K=32 BANDS_PINNED gate, budget guard,
+    disk gate) and one out_dir (wavekeyanchor-e; arm tags 'e'/'e-fp' keep
+    every filename distinct). This is the single function main()'s
+    dispatch, the dry-run preview, and readout_rev7.py's --manifest
+    keyanchor-e ALL read, so no two of them can disagree about what the
+    wave contains."""
+    runs = keyanchor_e_manifest() + keyanchor_e_fp_manifest()
+    assert len(runs) == 6, f"keyanchor-e wave manifest drifted from its registered 6 runs: {len(runs)}"
     return runs
 
 
@@ -1572,10 +1629,13 @@ def main():
                           "CONDITIONAL cells with --include-k48-dprime AND "
                           "--accept-k48-dprime-orchestrator-signoff) -- REFUSES to launch without a "
                           "valid BANDS_PINNED_K48.json (sec 11.1.1) unless --unblind-override is "
-                          "passed. sec 10.13 wave: 'keyanchor-e' launches candidate (e)'s 3 mandatory "
-                          "frozen-random-table-ablation cells (K=32, fixed lambda=0.58) -- REUSES the "
-                          "EXISTING K=16/32 BANDS_PINNED.json gate (these are K=32 anchor-arm cells, "
-                          "sec 3.6 applies unchanged, no new K48-style bands file needed here).")
+                          "passed. sec 10.13 wave: 'keyanchor-e' launches BOTH candidate-(e) arms "
+                          "(6 cells, K=32, fixed lambda=0.58): the 'e' frozen-RANDOM-unit-rows arm "
+                          "(seeds 60-62, per the stub's own name/motivation) AND the 'e-fp' frozen "
+                          "frame-potential arm (seeds 70-72, per the stub's literal init text -- "
+                          "audit prescription) -- REUSES the EXISTING K=16/32 BANDS_PINNED.json gate "
+                          "(these are K=32 anchor-arm cells, sec 3.6 applies unchanged, no new "
+                          "K48-style bands file needed here).")
     ap.add_argument("--gpus", type=int, default=None,
                      help="GPU COUNT. REQUIRED for a real (wave -1/1) launch, NO DEFAULT ON "
                           "PURPOSE -- check nvidia-smi before every launch (GPUs 0-5,7 run other "
@@ -1833,21 +1893,29 @@ def main():
 
         print("\n" + "=" * 70)
         print("KEY_ANCHORING_DESIGN.md sec 10.13 -- keyanchor-e wave preview "
-              "(candidate (e), frozen-random-table ablation)")
+              "(candidate (e), frozen-table ablation, BOTH arms)")
         print("=" * 70)
         ke = keyanchor_e_manifest()
+        ke_fp = keyanchor_e_fp_manifest()
+        ke_all = keyanchor_e_wave_manifest()
         lo_e, hi_e = KEYANCHOR_E_GPUH_PER_CELL
-        print(f"  candidate (e), K=32, frozen random-unit-rows table, fixed lambda="
-              f"{KEYANCHOR_E_LAMBDA_FIXED}: {len(ke)} runs | seeds {{60,61,62}} | "
-              f"~{len(ke) * lo_e:.2f}-{len(ke) * hi_e:.2f} GPU-h")
-        print(f"  registered nominal ceiling: {KEYANCHOR_E_GPUH_CEILING:.1f} GPU-h (sec 10.13) -> "
+        print(f"  arm 'e' (frozen RANDOM-unit-rows table, the stub's name/motivation): {len(ke)} runs "
+              f"| K=32 seeds {{60,61,62}} | ~{len(ke) * lo_e:.2f}-{len(ke) * hi_e:.2f} GPU-h")
+        print(f"  arm 'e-fp' (frozen FRAME-POTENTIAL table, the stub's literal init text -- audit "
+              f"prescription): {len(ke_fp)} runs | K=32 seeds {{70,71,72}} | "
+              f"~{len(ke_fp) * lo_e:.2f}-{len(ke_fp) * hi_e:.2f} GPU-h")
+        print(f"  WAVE TOTAL (--wave keyanchor-e launches both): {len(ke_all)} runs | fixed lambda="
+              f"{KEYANCHOR_E_LAMBDA_FIXED} | ~{len(ke_all) * lo_e:.2f}-{len(ke_all) * hi_e:.2f} GPU-h")
+        print(f"  registered nominal ceiling: {KEYANCHOR_E_GPUH_CEILING:.1f} GPU-h (sec 10.13's ~1 "
+              f"GPU-h was for the 3-cell arm; 6 cells bracket 1.2-2.1, ceiling = top +~20%) -> "
               f"program cumulative (RECONCILED base) {KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} + "
               f"{KEYANCHOR_E_GPUH_CEILING:.1f} = "
               f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_E_GPUH_CEILING:.4f} / "
               f"{KEYANCHOR_K48_PROGRAM_GPUH_CEILING:.0f} GPU-h "
               f"({'WITHIN' if KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED + KEYANCHOR_E_GPUH_CEILING <= KEYANCHOR_K48_PROGRAM_GPUH_CEILING else 'EXCEEDS'} "
               f"the exactness-program cap)")
-        assert len(ke) == 3, f"keyanchor-e run count drifted from its registered 3: {len(ke)}"
+        assert len(ke) == 3 and len(ke_fp) == 3 and len(ke_all) == 6, \
+            f"keyanchor-e run counts drifted from their registered 3+3=6: {len(ke)}+{len(ke_fp)}"
 
         print("\n" + "=" * 70)
         print(f"COMBINED (both waves, all-conditionals-max, using the RECONCILED "
@@ -2103,17 +2171,20 @@ def main():
               f"{' + candidate (d'') K=48 seeds{40,41,42}' if args.include_k48_dprime else ''}); "
               f"bands_gate={bands_gate_k48} gate1_probe={gate1_result_k48}", flush=True)
     elif args.wave == "keyanchor-e":
-        # sec 10.13's registered candidate (e): K=32, seeds {60,61,62},
-        # frozen random-unit-rows table, fixed lambda=0.58. REUSES the
-        # EXISTING K=16/32 BANDS_PINNED.json gate (these are K=32 anchor-arm
-        # cells, sec 3.6 applies unchanged -- no new bands file for this
-        # wave, unlike keyanchor-k48).
+        # sec 10.13's registered candidate (e), BOTH arms (audit
+        # prescription, 2026-07 K48+e build): the 'e' random-unit-rows arm
+        # (K=32, seeds {60,61,62}) AND the 'e-fp' frozen-frame-potential
+        # arm per the stub's literal text (K=32, seeds {70,71,72}), both
+        # with fixed lambda=0.58 and a frozen (requires_grad=False) table.
+        # REUSES the EXISTING K=16/32 BANDS_PINNED.json gate (these are
+        # K=32 anchor-arm cells, sec 3.6 applies unchanged -- no new bands
+        # file for this wave, unlike keyanchor-k48).
         if args.unblind_override:
             unblind_override_at = time.time()
         ref_out_dir = os.path.join(args.out_dir, "waveref")
         bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
         keyanchor_e_budget_guard(args.accept_budget_override)
-        manifest = keyanchor_e_manifest()
+        manifest = keyanchor_e_wave_manifest()
         ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-e"
         disk_report = keyanchor_mech_disk_gate(ckpt_base_dir, manifest, label="keyanchor-e")
         if not disk_report["ok"] and not args.accept_budget_override:
@@ -2122,8 +2193,9 @@ def main():
                   f"{disk_report['free_bytes'] / 1e9:.2f} GB free. Free up space or pass "
                   f"--accept-budget-override.", file=sys.stderr)
             sys.exit(1)
-        print(f"wave keyanchor-e manifest: {len(manifest)} runs (candidate (e), K=32, frozen "
-              f"random-unit-rows table, fixed lambda={KEYANCHOR_E_LAMBDA_FIXED}, seeds {{60,61,62}}); "
+        print(f"wave keyanchor-e manifest: {len(manifest)} runs (candidate (e), K=32, BOTH arms: "
+              f"'e' frozen random-unit-rows seeds {{60,61,62}} + 'e-fp' frozen frame-potential "
+              f"seeds {{70,71,72}}, fixed lambda={KEYANCHOR_E_LAMBDA_FIXED}); "
               f"bands_gate={bands_gate}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,

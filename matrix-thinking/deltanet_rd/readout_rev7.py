@@ -56,10 +56,14 @@ Usage:
       # (sec 11.1.1, verified) -- the SAME pin gates this readout at any K.
 
   python readout_rev7.py --out-dir results/deltanet_rd_exactness --manifest keyanchor-e
-      # reads <out-dir>/wavekeyanchor-e/*.json (keyanchor_e_manifest()'s
-      # own 3 candidate-(e) cells) against the EXISTING K=16/32
-      # BANDS_PINNED.json (candidate (e) is K=32, sec 3.6 applies
-      # unchanged -- no K48-style separate bands file for this wave).
+      # reads <out-dir>/wavekeyanchor-e/*.json (keyanchor_e_wave_manifest()'s
+      # own 6 candidate-(e) cells -- BOTH arms: 'e' frozen-random seeds
+      # 60-62 AND 'e-fp' frozen-frame-potential seeds 70-72, audit
+      # prescription) against the EXISTING K=16/32 BANDS_PINNED.json
+      # (candidate (e) is K=32, sec 3.6 applies unchanged -- no K48-style
+      # separate bands file for this wave). The per-arm aggregation below
+      # keys on spec['arm'] ('e' vs 'e-fp'), so the two arms are never
+      # pooled into one band verdict.
 """
 from __future__ import annotations
 
@@ -110,7 +114,7 @@ def main() -> int:
 
     from run_deltanet_rd_exactness_sweep import (keyanchor_ceiling_by_k, keyanchor_k48_ceiling_by_k,
                                                    keyanchor_mech_manifest, keyanchor_k48_manifest,
-                                                   keyanchor_e_manifest, out_path)
+                                                   keyanchor_e_wave_manifest, out_path)
 
     # sec 11/sec 10.13 build addition: select the result directory,
     # manifest function, and bands-file/ceiling-dict pair by --manifest --
@@ -124,7 +128,7 @@ def main() -> int:
                             "bands_file": "BANDS_PINNED_K48.json", "manifest_fn": keyanchor_k48_manifest,
                             "ceiling_by_k": keyanchor_k48_ceiling_by_k()},
         "keyanchor-e": {"result_dir": "wavekeyanchor-e", "bands_dir": "waveref",
-                          "bands_file": "BANDS_PINNED.json", "manifest_fn": keyanchor_e_manifest,
+                          "bands_file": "BANDS_PINNED.json", "manifest_fn": keyanchor_e_wave_manifest,
                           "ceiling_by_k": keyanchor_ceiling_by_k()},
     }
     sel = _MANIFEST_CONFIG[args.manifest]

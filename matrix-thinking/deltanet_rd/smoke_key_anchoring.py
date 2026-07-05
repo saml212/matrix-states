@@ -693,8 +693,34 @@ def smoke_15_candidate_e_frozen_table_no_grad():
           f"present and nonzero: {trained_grad_present} (expect True)")
     all_ok = all_ok and trained_grad_present
 
+    # (d) the 'e-fp' arm's exact model path (audit prescription): frozen
+    # table + FRAME-POTENTIAL init (the sec 10.13 stub's literal init
+    # text) -- same requires_grad_(False) contract as the random-init path
+    # above, verified on ITS OWN construction rather than assumed to carry
+    # over from (a)/(b)'s random_unit_rows case.
+    model_efp, train_ids_efp = _build_model_frozen_e(init_mode="frame_potential")
+    efp_requires_grad_false = model_efp.anchor_table.weight.requires_grad is False
+    raw_efp = F.normalize(torch.randn(B, K, d), dim=-1).clone().requires_grad_(True)
+    key_ids_efp = _random_key_ids(B, K, train_ids_efp, model_efp.vocab_size_total,
+                                    frac_trained=0.5, seed=23)
+    k_blend_efp = ka.anchor_blend_gather_scatter(raw_efp, model_efp.anchor_table.weight,
+                                                    model_efp.anchor_trained_mask, key_ids_efp,
+                                                    model_efp.anchor_lambda())
+    q_efp, _, _ = mrd.geo3_orthogonalize_logged(k_blend_efp, n_iter=model_efp.geo3_n_iter,
+                                                   resid_tol=model_efp.geo3_resid_tol)
+    q_efp.sum().backward()
+    efp_grad_is_none = model_efp.anchor_table.weight.grad is None
+    efp_raw_grad_finite = raw_efp.grad is not None and bool(torch.isfinite(raw_efp.grad).all().item())
+    efp_init_mode_recorded = model_efp.anchor_table_init_mode == "frame_potential"
+    print(f"    [e-fp arm: frozen + frame_potential init] requires_grad=False: "
+          f"{efp_requires_grad_false}  grad is None post-backward: {efp_grad_is_none}  "
+          f"raw_grad_finite: {efp_raw_grad_finite}  init_mode recorded: {efp_init_mode_recorded}")
+    all_ok = all_ok and efp_requires_grad_false and efp_grad_is_none and efp_raw_grad_finite \
+        and efp_init_mode_recorded
+
     _report("smoke 15: candidate (e) frozen anchor table receives NO grad "
-            "(requires_grad=False pre- and post-backward), non-frozen path unaffected", all_ok)
+            "(requires_grad=False pre- and post-backward, BOTH init modes: random_unit_rows "
+            "and the e-fp arm's frame_potential), non-frozen path unaffected", all_ok)
 
 
 # ---------------------------------------------------------------------------

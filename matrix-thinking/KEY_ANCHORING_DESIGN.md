@@ -3754,6 +3754,25 @@ init (the closest existing cell, `wavekeyanchor-neg1`'s
 probe would be the first direct test and is not retroactively answerable
 from any existing JSON.
 
+**Registration amendment (2026-07 K48+e build, pre-launch/pre-data, per
+the build's final-audit prescription):** this stub as written carries an
+internal tension — its NAME ("frozen-**random**-table") and §10.13.4's
+motivating text describe an unoptimized random table, while its init
+sentence above literally says `frame_potential_init` — so the wave is
+registered with **BOTH arms** (6 cells total, one `--wave keyanchor-e`
+dispatch): arm **'e'** (seeds {60,61,62}, frozen **random unit rows** —
+`frame_potential_init`'s own pre-optimization starting point) answers
+whether mere episode-constancy of *any* fixed table delivers candidate
+(d)'s gains (the construction-stabilization account's strongest form),
+and arm **'e-fp'** (seeds {70,71,72}, frozen **`frame_potential_init`**
+table, this stub's literal init text) answers whether the table's
+*optimized bulk geometry* matters beyond constancy even with zero
+training — jointly: e-fp≈(d) with e-random collapsing ⇒ bulk geometry is
+the carrier; both≈(d) ⇒ constancy alone suffices; both collapsing toward
+geo3-alone ⇒ the *learned* table matters beyond both construction
+properties. Same fixed λ=0.58, same instrumentation, cost 6 × 0.20–0.35 ≈
+1.2–2.1 GPU-h (registered ceiling 2.5).
+
 #### 10.13.5 Claim tier — §10.6/§3.5 applied literally
 
 **The §1 key-anchoring entity-alignment mechanism hypothesis: Outcome C,

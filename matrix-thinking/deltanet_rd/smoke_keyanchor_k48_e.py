@@ -205,6 +205,7 @@ def smoke_16_zero_collision_incl_wavegeo3():
     k48_fix1 = rdx.keyanchor_k48_fixed_lambda1_manifest()
     k48_dprime = rdx.keyanchor_k48_dprime_manifest()
     ke = rdx.keyanchor_e_manifest()
+    ke_fp = rdx.keyanchor_e_fp_manifest()
 
     # every PRIOR wave's manifest this program has ever registered,
     # INCLUDING wavegeo3 (sec 11.9 item 16's own correction -- omitted from
@@ -231,6 +232,7 @@ def smoke_16_zero_collision_incl_wavegeo3():
         "wavekeyanchor-k48": k48_d, "wavekeyanchor-k48-ref": k48_ref,
         "wavekeyanchor-k48-gate1": k48_g1, "wavekeyanchor-k48 (fixed-lambda1)": k48_fix1,
         "wavekeyanchor-k48 (dprime)": k48_dprime, "wavekeyanchor-e": ke,
+        "wavekeyanchor-e (e-fp)": ke_fp,
     }
 
     ok = True
@@ -248,6 +250,18 @@ def smoke_16_zero_collision_incl_wavegeo3():
             ok = ok and disjoint
         print(f"    {new_label}: {len(new_manifest)} cells, unique_within={unique_within}, "
               f"disjoint from all {len(prior_manifests)} prior waves (shared root)=True")
+
+    # The 'e' and 'e-fp' arms REALLY DO share one out_dir (both launch
+    # under --wave keyanchor-e -> wavekeyanchor-e), so THIS pairwise check
+    # is load-bearing, not belt-and-suspenders: their filenames must be
+    # disjoint within the same directory (arm bit 'e' vs 'e-fp' + disjoint
+    # seed blocks 60-62 vs 70-72 guarantee it -- verified here, not assumed).
+    e_paths = {rdx.out_path(fake_root, s) for s in ke}
+    e_fp_paths = {rdx.out_path(fake_root, s) for s in ke_fp}
+    e_arms_disjoint = e_paths.isdisjoint(e_fp_paths)
+    print(f"    'e' vs 'e-fp' (SHARED wavekeyanchor-e out_dir -- load-bearing check): "
+          f"disjoint={e_arms_disjoint}")
+    ok = ok and e_arms_disjoint
 
     # (b) real out_dir separation: each --wave value gets its OWN
     # subdirectory (main()'s own f"wave{args.wave}" convention), so even
@@ -304,6 +318,48 @@ def smoke_candidate_e_manifest_shape():
           and right_drift_probe and right_rev7)
     _report("smoke: candidate (e) manifest shape (3 cells, K=32, seeds {60,61,62}, frozen "
             "random-unit-rows table, fixed lambda=0.58, full Rev-7.1 instrumentation)", ok)
+
+
+# ---------------------------------------------------------------------------
+# candidate (e-fp) manifest shape (audit prescription): 3 cells, K=32,
+# seeds {70,71,72}, arm 'e-fp', anchor_table_frozen=True,
+# anchor_table_init_mode='frame_potential' (the stub's LITERAL init text),
+# same fixed lambda=0.58, full Rev-7.1 instrumentation; and the combined
+# wave manifest is exactly e + e-fp = 6 cells.
+# ---------------------------------------------------------------------------
+
+def smoke_candidate_e_fp_manifest_shape():
+    ke_fp = rdx.keyanchor_e_fp_manifest()
+    right_count = len(ke_fp) == 3
+    right_K = all(s["K"] == 32 for s in ke_fp)
+    right_seeds = sorted(s["seed"] for s in ke_fp) == [70, 71, 72]
+    right_arm = all(s["arm"] == "e-fp" for s in ke_fp)
+    right_frozen = all(s.get("anchor_table_frozen") is True for s in ke_fp)
+    right_init_mode = all(s.get("anchor_table_init_mode") == "frame_potential" for s in ke_fp)
+    right_lambda_mode = all(s["anchor_lambda_mode"] == "fixed" for s in ke_fp)
+    right_lambda_value = all(s["anchor_lambda_fixed"] == rdx.KEYANCHOR_E_LAMBDA_FIXED for s in ke_fp)
+    right_drift_probe = all(s["drift_probe"] is True for s in ke_fp)
+    right_rev7 = all(s["rev7_engagement"] is True for s in ke_fp)
+    print(f"    count={len(ke_fp)} Ks={sorted(set(s['K'] for s in ke_fp))} "
+          f"seeds={sorted(s['seed'] for s in ke_fp)} arms={sorted(set(s['arm'] for s in ke_fp))}")
+    print(f"    anchor_table_frozen all True: {right_frozen}  "
+          f"anchor_table_init_mode all 'frame_potential': {right_init_mode}")
+    print(f"    anchor_lambda_mode all 'fixed': {right_lambda_mode}  "
+          f"anchor_lambda_fixed all {rdx.KEYANCHOR_E_LAMBDA_FIXED}: {right_lambda_value}")
+    print(f"    drift_probe all True: {right_drift_probe}  rev7_engagement all True: {right_rev7}")
+    ok = (right_count and right_K and right_seeds and right_arm and right_frozen
+          and right_init_mode and right_lambda_mode and right_lambda_value
+          and right_drift_probe and right_rev7)
+    _report("smoke: candidate (e-fp) manifest shape (3 cells, K=32, seeds {70,71,72}, FROZEN "
+            "frame-potential table per the literal sec 10.13 stub, fixed lambda=0.58, full "
+            "Rev-7.1 instrumentation)", ok)
+
+    # the combined wave manifest: exactly e + e-fp, 6 cells, in that order.
+    ke_all = rdx.keyanchor_e_wave_manifest()
+    combined_ok = (len(ke_all) == 6
+                   and ke_all == rdx.keyanchor_e_manifest() + rdx.keyanchor_e_fp_manifest())
+    print(f"    keyanchor_e_wave_manifest(): {len(ke_all)} cells, == e + e-fp exactly: {combined_ok}")
+    _report("smoke: keyanchor-e wave manifest is exactly both arms (e + e-fp, 6 cells)", combined_ok)
 
 
 # ---------------------------------------------------------------------------
@@ -384,6 +440,7 @@ def smoke_seed_non_collision():
         (48, "d k48 fixed-lambda1"): set(s["seed"] for s in rdx.keyanchor_k48_fixed_lambda1_manifest()),  # {50}
         (48, "d k48 gate1"): set(s["seed"] for s in rdx.keyanchor_k48_gate1_manifest()),  # {0}
         (32, "e"): set(s["seed"] for s in rdx.keyanchor_e_manifest()),                # {60,61,62}
+        (32, "e-fp"): set(s["seed"] for s in rdx.keyanchor_e_fp_manifest()),          # {70,71,72}
     }
     expected_new = {
         (48, "d k48"): {30, 31, 32},
@@ -391,6 +448,7 @@ def smoke_seed_non_collision():
         (48, "d k48 fixed-lambda1"): {50},
         (48, "d k48 gate1"): {0},
         (32, "e"): {60, 61, 62},
+        (32, "e-fp"): {70, 71, 72},
     }
     ok = True
     for key, seeds in new_blocks.items():
@@ -399,18 +457,27 @@ def smoke_seed_non_collision():
         print(f"    {key}: seeds={sorted(seeds)} (expect {sorted(expected)}) match={matches}")
         ok = ok and matches
 
-    # Cross-check: within K=32, the new candidate (e) seed block {60,61,62}
-    # must not overlap ANY prior K=32 anchor-arm seed block (it's a fresh,
-    # never-before-used-anywhere block per sec 11.1's own convention).
-    e_seeds = new_blocks[(32, "e")]
-    for (K, label), seeds in prior_blocks.items():
-        if K != 32:
-            continue
-        overlap = e_seeds & seeds
-        no_overlap = len(overlap) == 0
-        print(f"    candidate (e) {sorted(e_seeds)} vs prior K=32 block '{label}' {sorted(seeds)}: "
-              f"overlap={sorted(overlap)} (expect none)")
-        ok = ok and no_overlap
+    # Cross-check: within K=32, BOTH new candidate-(e)-family seed blocks
+    # ({60,61,62} random and {70,71,72} frame-potential -- the audit's own
+    # 'do not reuse 60-62' prescription) must not overlap ANY prior K=32
+    # anchor-arm seed block (each is a fresh, never-before-used-anywhere
+    # block per sec 11.1's own convention), NOR each other.
+    for new_label in ("e", "e-fp"):
+        new_seeds = new_blocks[(32, new_label)]
+        for (K, label), seeds in prior_blocks.items():
+            if K != 32:
+                continue
+            overlap = new_seeds & seeds
+            no_overlap = len(overlap) == 0
+            print(f"    candidate ({new_label}) {sorted(new_seeds)} vs prior K=32 block '{label}' "
+                  f"{sorted(seeds)}: overlap={sorted(overlap)} (expect none)")
+            ok = ok and no_overlap
+    e_vs_efp_overlap = new_blocks[(32, "e")] & new_blocks[(32, "e-fp")]
+    e_vs_efp_disjoint = len(e_vs_efp_overlap) == 0
+    print(f"    candidate (e) {sorted(new_blocks[(32, 'e')])} vs candidate (e-fp) "
+          f"{sorted(new_blocks[(32, 'e-fp')])}: overlap={sorted(e_vs_efp_overlap)} (expect none -- "
+          f"the audit's own 'seeds 60-62 stay registered as the e random arm' prescription)")
+    ok = ok and e_vs_efp_disjoint
 
     # Within K=48, the new blocks (d/{30,31,32}, dprime/{40,41,42},
     # fixed-lambda1/{50}, gate1/{0}) must be pairwise disjoint from each
@@ -429,19 +496,20 @@ def smoke_seed_non_collision():
             ok = ok and no_overlap
 
     _report("smoke: seed non-collision -- every new seed block (K48 d/d'/fixed-lambda1/gate1, "
-            "candidate (e)) is exactly its registered set and disjoint from every prior/sibling "
-            "block", ok)
+            "candidate (e) both arms) is exactly its registered set and disjoint from every "
+            "prior/sibling block", ok)
 
 
 def main() -> int:
     print("=" * 70)
     print("smoke_keyanchor_k48_e.py -- KEY_ANCHORING_DESIGN.md sec 11.9 (K=48) + "
-          "sec 10.13 (candidate e) Wave -1 smoke suite (fla-free)")
+          "sec 10.13 (candidate e, both arms) Wave -1 smoke suite (fla-free)")
     print("=" * 70)
     smoke_14_manifest_refactor_non_regression()
     smoke_15_gate2_k48_leg()
     smoke_16_zero_collision_incl_wavegeo3()
     smoke_candidate_e_manifest_shape()
+    smoke_candidate_e_fp_manifest_shape()
     smoke_k48_manifest_shapes()
     smoke_seed_non_collision()
     print("=" * 70)
