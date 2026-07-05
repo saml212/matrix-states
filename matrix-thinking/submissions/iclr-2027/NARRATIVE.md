@@ -1,50 +1,79 @@
 # ICLR 2027 Narrative Architecture — DeltaNet Rank Recruitment vs. Exactness
 
-**Status: DRAFT — round 3, ARC EXTENDED to the mechanism's two-ingredient
-attribution and to scale. Grounded against `DELTANET_RD_EXACTNESS_DESIGN.md`
+**Status: DRAFT — round 4, ARC EXTENDED to absorb the key-anchoring wave's
+actual (not hypothetical) outcome, the pure-scale upgrade of the
+scale-transfer ladder, Track B's completed measurement waves, and Stage-G
+H_e's full-manifest closure. Grounded against `DELTANET_RD_EXACTNESS_DESIGN.md`
 (§1–8, §14, §15, §16 incl. the §16.7 dated correction),
 `DELTANET_REALDATA_DESIGN.md` (§14–19), `DELTANET_CAUSAL_RANK_DESIGN.md`
-(§1, §2, §4, §12), `KEY_ANCHORING_DESIGN.md` (Rev 5, §1–§3),
-`SCALE_TRANSFER_DESIGN.md` (§2 claim tiers, §3.8, §4, §5.9, §6.8),
-`STATE.md`'s 2026-07-04 picture, and `EXPERIMENT_LOG.md` (2026-07-01 →
-2026-07-04, including the Track B/C/D and Stage-G H_e entries dated
-2026-07-04). Every number below is quoted from those sources — several
-re-verified directly against the archived run JSONs during this revision —
-not recomputed or estimated.
+(§1, §2, §4, §12), `KEY_ANCHORING_DESIGN.md` (§1–§3, §9/§9.6/§9.7 — including
+the §9.7 CLOSED annotation), `KEYANCHOR_REV6_ATTACK.md` (the independent
+attack round that rejected §9.7's re-score attempt), `SCALE_TRANSFER_DESIGN.md`
+(§2 claim tiers, §3.8, §4, §5.9, §5.10 + Addendum, §6.8), `TRACKB_REDESIGN.md`
+§14 (the 2026-07-05 measurement-wave readout), `STAGE_G_DESIGN.md` §15
+(Wave C's closing results table), `STATE.md`'s 2026-07-05 picture, and
+`EXPERIMENT_LOG.md` (2026-07-01 → 2026-07-05, including both key-anchoring
+verdict entries, the Track B measurement-wave entry, and the Track C
+rung-2/wave-1ext harvest entries, all dated 2026-07-05). Every number below
+is quoted from those sources — several re-verified directly against the
+archived run JSONs during this revision — not recomputed or estimated.
 
-Round-2 ending (still current, restated): the F-geo-3 K=32 `n_iter=20`
-escalation COMPLETED — all 3 seeds fully admissible (zero fallback steps),
-h=4 `rec@0.9` = 0.504/0.416/0.390 (mean 0.44), numerically identical to the
-n_iter=12 cells; the ≥0.5 headline bar narrowly MISSED (1/3 seeds at the
-line), attributed to pre-registered outcome F (trained cross-episode key
-drift 0.9037, inside the HIGH band <0.95).
+Round-3 ending (restated): a 2×2 existence-proof design showed orthogonality
+and cross-episode key stability are each independently necessary and jointly
+sufficient for exact composition (neither alone moves recovery off a
+~0.01 floor, together they saturate to 1.00); a dated correction retracted a
+simulator bug without touching the outcome-F attribution; a learned
+per-entity anchor-table mechanism, designed to let SGD supply the missing
+stability ingredient itself, was built and smoke-verified but **not yet
+launched** — its outcome was an explicitly open question, framed as such
+rather than presupposed. The write-geometry attractor was shown to persist
+on a 2-point 14M→98M ladder (joint scale+mix scoping at the time), and a
+larger version of the same signature was measured, unattributed, in
+production fixed-state LMs.
 
-**New this round, absorbed from the last three days of verdicts:**
-(1) a 2×2 existence-proof design (`KEY_ANCHORING_DESIGN.md` §2.0, using two
-new frozen-embedding arms plus already-archived data) shows orthogonality
-and cross-episode stability are BOTH independently necessary and JOINTLY
-sufficient — neither alone moves composition off the ~0.01 baseline,
-together the pair saturates to 1.00; (2) a dated correction to the
-pre-spend simulator (§16.7) traces the recorded "K=32 overestimate" to an
-input-wiring bug (K=16's drift was silently reused for K=32's prediction)
-— corrected, the simulator is CONSERVATIVE at K=32, and the outcome-F
-attribution itself is unaffected because it never depended on the
-simulator; (3) a learned-anchoring mechanism designed to let SGD supply
-the missing stability ingredient itself has been designed, attacked across
-five revisions, built, and CPU/smoke-verified — GPU launch is pending box
-availability, not yet run; (4) the write-geometry attractor motivating
-this entire mechanism study demonstrably persists on a controlled
-14M→98M-parameter ladder, and a much larger version of the same signature
-is measurable in production fixed-state LMs (RWKV-7 1.5B, Falcon-Mamba-7B)
-— though a matched no-fixed-state negative control shows the same
-magnitude, so production-scale attribution is an honest open non-finding,
-not a confirmation. The paper's frame is unchanged at its core and
-strengthened at its edges: the fix moves the frontier decisively at K=16
-(bar hit 3/3), moves it ~45× at K=32 without clearing the pre-registered
-bar, the residual gap has a named, two-part necessary-and-sufficient
-mechanism (not just a single attribution), the follow-on that tests
-whether SGD can find that mechanism unassisted is live, and the phenomenon
-this all rests on is not a small-scale artifact.**
+**New this round, absorbed from the 2026-07-05 cascade — the anchoring wave
+actually ran, twice, and the scale/Track-B/Stage-G threads closed out:**
+(1) the learned-anchoring mechanism launched and produced a real,
+seed-stable, twice-reproduced behavioral gain — K=32 held-out four-hop
+recovery lifts from a freshly-measured 0.4105 baseline to 0.556–0.665 (3/3
+seeds clearing the ≥0.5 bar, in both the original wave and an independent
+confirmatory wave), with the learned blend weight λ settling at an interior
+value (≈0.55–0.58) in 6/6 runs and the aggregate pre-NS drift channel
+clearing its own bar decisively (0.991–0.9999) — **but** the wave's own
+per-entity engagement instrument, read on the real training runs for the
+first time in the confirmatory wave, shows fewer than 14% of entities
+individually cross the engagement threshold in every leg, which the
+design's own pre-registered override clause routes to **Outcome C**
+("mechanism not engaged... not an admissible test of the hypothesis either
+way"), not Outcome A. A same-day rescue attempt — re-deriving the
+engagement threshold to scale with λ — was itself attacked by an
+independent round and **rejected**: the bar-preserving z sits at 3.76–4.03,
+outside the offered menu {2,3}, and a plausible, unverified anchor-norm
+value (m≈1.34) would make the entire signal indistinguishable from chance.
+Outcome C stands; the h=4 behavioral gain stays at **DESCRIPTIVE tier**,
+real and reproducible, but not yet licensing a mechanistic claim. (2) The
+scale-transfer ladder closed its residual mix-axis confound at both tested
+scales (Δ −0.004 span at 14M, Δ −0.014 span at 98M, both inside seed noise)
+and now reports a clean, single-mix, 3-point monotone climb (0.248 → 0.344
+→ 0.389 at 14M/98M/392M) — the persistence/worsening finding upgrades from
+round 3's joint scale+mix scoping to a **pure-scale** claim; a
+1.31B-parameter fourth rung is running, harvest expected imminently. (3)
+Track B (geo3-in-LM on free-running text) is now **double-barred**: beyond
+the original β-uniformity no-launch, a duplicate-key numerical-stability
+smoke measured a 63× overshoot of its skip-rate bar with a probative
+positive control, and the registered hard-selectivity main-effects readout
+that did complete lands **INCONCLUSIVE** (a split verdict across corpora,
+per the design's own combined rule). (4) Stage-G's H_e task-swap manifest
+completed all 6 cells: the Kronecker-separable-projection winner does
+**not** rescue matrix composition (recovered_frac ≈0% at both seeds), the
+vector-composes/matrix-cannot inversion is seed-stable at hop-depth 3, and
+a seed-dependent phase-transition anomaly at hop-depth 2 is left open,
+untriaged. The paper's core frame is unchanged and its honesty discipline
+is demonstrated, not just claimed: an adversarial gauntlet caught its own
+attempted rescue of a null mechanistic result before it could contaminate
+the record — the anchoring wave's behavioral gain is real, its proposed
+mechanism is not (yet) shown, and the process that drew that line is itself
+evidence for the paper's methodological framing.**
 
 ---
 
@@ -63,21 +92,52 @@ and jointly sufficient ingredients (within-episode orthogonality and
 cross-episode key stability; neither alone moves held-out composition off
 a ~0.005–0.011 floor statistically indistinguishable from the fully-learned
 baseline's own 0.009, while the two together saturate to 1.00). A
-differentiable, per-episode structural orthogonalization mechanism
-supplies the first ingredient alone and already restores near-perfect
-compositional recall at the pre-registered minimum-publishable bar (K=16,
-3/3 seeds) and improves the harder K=32 regime ~45× at full evidentiary
-admissibility — narrowly missing its pre-registered headline bar for a
-reason now doubly confirmed as the missing second ingredient (trained
-cross-episode key drift, measured 0.90–0.94, inside the registered HIGH
-band at both K), with a follow-on mechanism designed to let SGD supply
-that second ingredient itself — attacked across five revisions, built, and
-smoke-verified — now gated on a GPU slot, its outcome an open, live
-question this narrative frames honestly rather than presupposes. The
-attractor this entire story is about is not a small-model curiosity: it
-persists, un-dissolved, on a controlled 14M→98M-parameter ladder (with a
-392M-parameter rung running and a 1.3B rung queued), and a substantially
-larger version of the same non-orthonormal write geometry is measurable in
+differentiable, per-episode structural orthogonalization mechanism supplies
+the first ingredient alone and already restores near-perfect compositional
+recall at the pre-registered minimum-publishable bar (K=16, 3/3 seeds) and
+improves the harder K=32 regime ~45× at full evidentiary admissibility —
+narrowly missing its pre-registered headline bar for a reason attributed to
+the missing second ingredient (trained cross-episode key drift, measured
+0.90–0.94, inside the registered HIGH band at both K). **A follow-on
+mechanism designed to let SGD supply that second ingredient itself has now
+launched — twice — and its result sharpens rather than resolves the story:
+learned per-entity anchoring lifts K=32 held-out four-hop recovery from a
+freshly-measured 0.4105 baseline to 0.556–0.665 (3/3 seeds clearing the
+≥0.5 bar, reproduced deterministically across both waves at the same seed
+integers — not independent replication, and we say so), with the learned
+blend weight settling at an interior value (λ≈0.55–0.58) in 6/6 runs and
+the aggregate pre-NS drift channel clearing its own bar decisively
+(0.991–0.9999). But the wave's own per-entity engagement instrument — built
+specifically to catch a pooled statistic masking a disengaged majority —
+reads under 14% engagement in every measured leg, which the design's own
+pre-registered override clause routes to Outcome C ("mechanism not
+engaged"), not the hoped-for Outcome A: the behavioral gain is real and
+reproducible, but this wave's own instrumentation does not license
+attributing it to majority-entity cross-episode key stabilization. A
+same-day attempt to rescue the result by re-deriving the engagement
+threshold was itself put through an independent attack round and
+rejected — the threshold that would preserve the original bar's stringency
+(z≈3.76–4.03) sits outside the two options the rescue attempt offered, and
+an unverified, entirely plausible anchor-embedding-norm value would make
+the whole signal indistinguishable from chance. The behavioral h=4 gain
+therefore stands at DESCRIPTIVE tier: a real, reproducible, twice-
+replicated (same-seed) effect whose mechanism remains an open question for
+a fresh, pre-registered instrumentation wave, not this one.** The attractor
+this entire story is about is not a small-model curiosity: on a controlled
+parameter ladder, closing its own residual data-mix confound at both tested
+scales (Δ −0.004 span at 14M, Δ −0.014 span at 98M, both within seed
+noise), the write-geometry deviation now climbs monotonically on a single,
+held-fixed-mix axis — 0.248 (14M) → 0.344 (98M) → 0.389 (392M) — upgrading
+the persistence/worsening finding from a joint scale+mix claim to a
+**pure-scale** one; a fourth, 1.31B-parameter rung is running as of this
+writing. Beyond DeltaNet itself, a companion measurement program installing
+the same fix mechanism inside a free-running-text LM (Track B) found it
+**doubly barred** from that setting — a duplicate-key numerical-instability
+smoke overshot its bar by 63× with a probative positive control, on top of
+the original β-uniformity gate refusal — while the (mechanism-free)
+hard-selectivity question it could still measure returned an
+**INCONCLUSIVE** split verdict across corpora. And a substantially larger
+version of the same non-orthonormal write geometry is measurable in
 deployed production fixed-state language models (RWKV-7 1.5B,
 Falcon-Mamba-7B) — architectures marketed specifically for long-context,
 cache-free inference, where a compositionally-imprecise fixed state is a
@@ -92,8 +152,10 @@ a task requires; it does not reliably find the geometry that rank needs to
 compose exactly — that gap has a cause with two necessary parts, a
 demonstrated fix for one of them, a named and pre-measured residual for the
 other, a live test of whether SGD can be made to find that second part
-unassisted, and evidence the underlying attractor is not a toy-scale
-artifact.*
+unassisted (now run twice, producing a real behavioral gain whose proposed
+mechanism an independent attack round shows is not yet demonstrated), and
+evidence the underlying attractor is not a toy-scale artifact — now a
+pure-scale finding across three ladder rungs with a fourth in flight.*
 
 ---
 
@@ -147,43 +209,72 @@ artifact.*
 > 0.005–0.011 floor statistically indistinguishable from the fully-learned
 > baseline (0.009), while a hand-built key that is both orthogonal and
 > stable saturates to 1.00 at h=4 *and* h=7 — the fix above supplies
-> exactly one of two necessary ingredients. We report a learned-anchoring
-> mechanism designed to let SGD supply the second (cross-episode
-> stability) itself — attacked across five revisions, built, and
-> smoke-verified — as an open, live test pending a GPU launch, not a
-> result, and we correct our own pre-registered simulator: an audit found
-> the recorded K=32 "overestimate" was an input-wiring bug (K=16's
-> measured drift was silently reused for K=32's prediction); corrected,
-> the simulator is conservative, not miscalibrated, at K=32, and the
-> outcome-F attribution above is unaffected because it never depended on
-> the simulator's point prediction. Seventh, we show the write-geometry
-> attractor motivating this entire study is not a small-model artifact: it
-> persists on a controlled 14M-to-98M-parameter scaling ladder (chunk-level
-> key-Gram deviation 21.9 → 27.8, both well above a random anchor of 7.9
-> and below full collapse at 63.5), and a substantially larger version of
-> the same non-orthonormal write geometry is measurable in production-scale
-> fixed-state language models (RWKV-7 1.5B, Falcon-Mamba-7B; 3–6× their own
-> random anchors) — but a matched no-fixed-state negative control (a
-> standard softmax-attention model) shows the same magnitude, so
-> production-scale attribution to the delta-rule write mechanism
-> specifically remains open, an honest non-finding reported as such. We
-> report the full pre-registration, attack, and gating trail as an
-> artifact, and discuss what remains unexplained: a separate iteration-depth
-> decay (h=21) that key orthogonalization does not touch, an unresolved
-> K≈d/2 structural boundary, whether learned anchoring closes the K=32
-> headline bar, and whether the production-scale signature is ever
+> exactly one of two necessary ingredients. We correct our own
+> pre-registered simulator: an audit found the recorded K=32 "overestimate"
+> was an input-wiring bug (K=16's measured drift was silently reused for
+> K=32's prediction); corrected, the simulator is conservative, not
+> miscalibrated, at K=32, and the outcome-F attribution above is unaffected
+> because it never depended on the simulator's point prediction. Seventh,
+> we show the write-geometry attractor motivating this entire study is not
+> a small-model artifact and, once a residual data-mix confound is closed
+> at both tested scales (Δ −0.004 span at 14M, Δ −0.014 span at 98M, both
+> within noise), worsens monotonically on a clean, single-mix, three-point
+> ladder (span-fraction 0.248 → 0.344 → 0.389 at 14M/98M/392M) — a
+> **pure-scale** finding, with a fourth (1.31B) rung running as this is
+> written; a substantially larger version of the same non-orthonormal write
+> geometry is separately measurable in production-scale fixed-state
+> language models (RWKV-7 1.5B, Falcon-Mamba-7B; 3–6× their own random
+> anchors), though a matched no-fixed-state negative control shows the same
+> magnitude, so production-scale attribution to the delta-rule write
+> mechanism specifically remains open, an honest non-finding reported as
+> such. Eighth, we report the outcome of the learned-anchoring follow-on
+> above, now launched twice: learned per-entity anchoring lifts K=32
+> held-out four-hop recovery from the freshly-measured 0.4105 baseline to
+> 0.556–0.665 (3/3 seeds clearing the ≥0.5 bar in both an initial wave and
+> an independent confirmatory wave that reused the same seed integers — a
+> reproduction, not independent replication, reported as such), with the
+> learned blend weight landing interior in 6/6 runs and the aggregate drift
+> channel clearing its own bar decisively. But a per-entity engagement
+> instrument, built specifically to catch a pooled statistic masking a
+> disengaged majority, reads under 14% engagement in every measured leg,
+> which our own pre-registered decision rule routes to a null verdict on
+> the mechanism itself, not the aggregate behavior — and a same-day attempt
+> to rescue the result via a re-derived, λ-scaled engagement threshold was
+> independently attacked and rejected (the bar-preserving threshold sits
+> outside the values the rescue considered, and an unverified but plausible
+> anchor-embedding-norm value would render the entire signal
+> indistinguishable from chance). We report the behavioral gain honestly at
+> descriptive tier and the mechanism question as open, rather than let a
+> real effect's size stand in for evidence about its cause. Ninth, a
+> companion attempt to install the demonstrated fix mechanism inside a
+> free-running-text LM is blocked before any interaction claim can even be
+> tested: a duplicate-key numerical-stability smoke overshoots its bar by
+> 63× with a probative positive control, compounding an earlier gate
+> refusal on the same setting; the selectivity-only question that setting
+> could still measure, with the fix mechanism inactive, returns an
+> inconclusive split verdict across two corpora. We report the full
+> pre-registration, attack, and gating trail as an artifact, and discuss
+> what remains unexplained: a separate iteration-depth decay (h=21) that
+> key orthogonalization does not touch, an unresolved K≈d/2 structural
+> boundary, whether a differently-instrumented anchoring wave can establish
+> cross-episode key stability as the anchoring mechanism's actual channel,
+> whether the fix mechanism can be safely installed in a free-running-text
+> setting at all, and whether the production-scale signature is ever
 > attributable to fixed-state writes specifically.
 
-*(Word count target ~300–340; trim during actual drafting — the Sixth/
-Seventh additions are the least compressible content in this revision and
-are the first candidates to shorten, not cut, since both name genuinely
-open questions rather than resolved claims. No load-bearing placeholders
-remain for anything already decided; the two new open items above are
-explicitly flagged as open, not placeholders.)*
+*(Word count target ~300–340 for the actual submission; this draft runs
+well over that and is not yet trimmed — Eighth/Ninth are this round's
+newest material and, together with the Sixth/Seventh scale content, are
+the first candidates to compress for camera-ready, not because they are
+less true but because the abstract's headline claims (capacity vs.
+exactness, the K=16/K=32 fix demonstration) should not be crowded out by
+follow-on material that is honestly still partial. No load-bearing
+placeholders remain for anything already decided; every open item above is
+explicitly flagged as open, not a placeholder.)*
 
 ---
 
-## 2. Figure plan (9 figures, exact data sources — Fig. 9 ADDED this round)
+## 2. Figure plan (10 figures, exact data sources — Fig. 10 ADDED this round)
 
 **Fig. 1 — The synthetic-vs-real gap (motivating figure, goes in §1 Intro).**
 Two eval-truncation staircase curves (`rec@0.9` vs. truncation rank k) at
@@ -329,29 +420,31 @@ naturalistic LM pretraining.
 - Data: `experiment-runs/2026-07-04_lm_rd_wave2/{waveC,waveD}/`, analysis
   via `analysis_lm_w2.py` (`DELTANET_REALDATA_DESIGN.md` §19.3).
 
-**Fig. 9 (NEW this round, appendix / generality figure) — The attractor
-persists with scale, and a larger version of it exists at production
-scale, unattributed.** Two-panel figure. **Panel A (Track C rung-1
-harvest, `SCALE_TRANSFER_DESIGN.md` §5.9):** pooled chunk-level key-Gram
-deviation at two points on a controlled parameter ladder, same
-architecture family, same instrument, matched corpora mix: 14M-param
-control **21.93 ± 5.90** vs. 98M-param rung-1 **27.82 ± 12.87**, plotted
-against a K=64/d=64 random anchor (**7.94**) and full collapse
-(**63.50**) as reference lines — the deviation sits well above random and
-below collapse at both points and gets *slightly worse, not better*, from
-14M→98M (Tier 2, descriptive+interventional per `SCALE_TRANSFER_DESIGN.md`
-§2; explicitly a 2-point read, geometry-only, no compositional-recovery
-cross-check at this scale yet — caption must state this, not imply a
-3-rung trend). **Panel B (Track D Phase 1, `SCALE_TRANSFER_DESIGN.md`
-§6.8):** the same chunk=64 Gram-deviation statistic measured (Tier 3,
+**Fig. 9 (appendix / generality figure) — The attractor persists with
+scale, and a larger version of it exists at production scale,
+unattributed.** Two-panel figure. **Panel A (Track C pure-scale ladder,
+`SCALE_TRANSFER_DESIGN.md` §5.9/§5.10 + Addendum):** pooled chunk-level
+key-Gram deviation, now a clean 3-point, single-(extended)-mix ladder after
+closing the residual mix-axis confound at both tested scales (Δ −0.004
+span at 14M, Δ −0.014 span at 98M — both within seed noise): 14M
+(mixcontrol) span-fraction **0.248**, 98M (wave-1ext) span-fraction
+**0.344**, 392M (rung-2) span-fraction **0.389**, monotonically increasing,
+plotted against each rung's own random/collapse anchors. A fourth,
+1.31B-parameter rung (rung-3, token-matched to rung-2 at 1.5B tokens/run)
+is running as this is written; harvest is expected imminently and is NOT
+included in this figure or its numbers. Caption must state this is now a
+**pure-scale** claim (the mix axis is closed, not merely uncontrolled) but
+still geometry-leg-only — no compositional-recovery cross-check exists at
+any rung. **Panel B (Track D Phase 1, `SCALE_TRANSFER_DESIGN.md` §6.8):**
+the same chunk=64 Gram-deviation statistic measured (Tier 3,
 measurement-only — no causal or interventional language) in three
 production-scale pretrained checkpoints: RWKV-7 1.5B (**43.5–44.0**),
 Falcon-Mamba-7B (**49.9–50.2**), and a no-fixed-state negative control,
 Qwen2.5-1.5B, ordinary softmax attention (**46.0–48.5**) — all three
 cluster together, RWKV-7 and the negative control statistically
-indistinguishable. Caption must carry the honest verdict, not the
-tempting misreading: the geometry Fig. 4/5 attribute to the delta-rule
-write mechanism is measurably present and larger at production scale, but
+indistinguishable. Caption must carry the honest verdict, not the tempting
+misreading: the geometry Fig. 4/5 attribute to the delta-rule write
+mechanism is measurably present and larger at production scale, but
 because the no-fixed-state control matches it, the signature is dominated
 by generic trained-LM key anisotropy (massive activations, Sun et al.
 2024, arXiv:2402.17762) at this measurement tier, and is **NOT**
@@ -360,11 +453,42 @@ instrument (e.g. an outlier-robust/centered variant, reported alongside
 raw in the same source table) — an honest, registered non-finding, offered
 as motivation for why the small-scale causal chain (Fig. 4/5/7) matters,
 not as evidence the causal chain replicates at scale.
-- Data: Panel A — `experiment-runs/2026-07-04_trackc_rung1/`
-  (`SCALE_TRANSFER_DESIGN.md` §5.9; `EXPERIMENT_LOG.md` "SCALE-TRANSFER
-  Track C Wave 1 (rung-1) harvest," 2026-07-04). Panel B —
+- Data: Panel A — `experiment-runs/2026-07-04_trackc_rung1/`,
+  `experiment-runs/2026-07-05_trackc_rung2/`,
+  `experiment-runs/2026-07-05_wave1ext/` (`SCALE_TRANSFER_DESIGN.md`
+  §5.9/§5.10/Addendum; `EXPERIMENT_LOG.md`'s "Track C Wave 1 (rung-1)
+  harvest" 2026-07-04, "Track C Wave 2 (rung-2) + mixcontrol harvest" and
+  "Track C Wave 1ext harvest," both 2026-07-05). Panel B —
   `experiment-runs/2026-07-04_track_d/` (`SCALE_TRANSFER_DESIGN.md` §6.8;
   `EXPERIMENT_LOG.md` "SCALE-TRANSFER Track D Phase 1," 2026-07-04).
+
+**Fig. 10 (NEW this round, main-text or appendix — placement TBD by whether
+the camera-ready keeps the anchoring wave in Results or Limitations) — The
+anchoring wave: a real behavioral gain, an unconfirmed mechanism.**
+Two-panel figure. **Panel A:** grouped bar chart, K=32 h=4 `rec@0.9`, fresh
+bare-geo3 reference (**0.4105**) vs. candidate-(d) learned anchoring, both
+waves' per-seed values (initial wave: 0.559/0.615/0.665; confirmatory wave,
+same seed integers: 0.665/0.616/0.556), with the ≥0.5 bar drawn as a
+reference line. Caption must state explicitly that the two waves are a
+same-seed reproduction check (GPU nondeterminism at a fixed seed), not 6
+independently-drawn seeds. **Panel B:** per-leg `engaged_frac` bar chart
+(confirmatory wave, 4 legs: 13.08%/3.74%/4.67% at K=32 seeds 0/1/2, 11.21%
+at K=16 seed 0) against the <50% / [50,90%) / ≥90% bands that route to
+Outcome C / B / A respectively — every leg lands in the <50% band despite
+item 5 (pre-NS drift, 0.991–0.9999) and h=4 both clearing their own bars in
+the same legs. Caption must state the literal assigned outcome (**C**, not
+A) per the design's own §3.7 override clause, and that a same-day rescue
+attempt (a λ-scaled re-derivation of the engagement bar, `KEY_ANCHORING_
+DESIGN.md` §9.7) was independently attacked and **rejected**
+(`KEYANCHOR_REV6_ATTACK.md`: bar-preserving z≈3.76–4.03 sits outside the
+offered {2,3} menu; an unverified anchor-norm value m≈1.34 would make the
+entire per-entity signal chance-level) — Outcome C stands, and no rescoring
+of this figure's Panel B is authorized.
+- Data: `experiment-runs/2026-07-05_keyanchor_wave/wavekeyanchor/` (initial
+  wave) + `experiment-runs/2026-07-05_keyanchor_confirm/
+  wavekeyanchor-confirm/` (confirmatory wave); derivation and attack:
+  `KEY_ANCHORING_DESIGN.md` §9/§9.6/§9.7 (§9.7 CLOSED annotation);
+  `KEYANCHOR_REV6_ATTACK.md`.
 
 ---
 
@@ -403,7 +527,19 @@ not as evidence the causal chain replicates at scale.
      independent reviewer, and gated on a predicted outcome before any GPU
      time was spent — released as an artifact (§ Reproducibility) because
      the negative results (Wave F) are exactly as load-bearing to the
-     story as the positive ones.
+     story as the positive ones, and, new to this paper, so is a null
+     mechanistic result caught by an attack round after a promising
+     behavioral number was already in hand (the key-anchoring wave, §9).
+  7. A live demonstration that this process has teeth, not just a
+     description of it: a follow-on mechanism (learned cross-episode key
+     anchoring) produces a real, twice-reproduced behavioral gain (K=32
+     held-out four-hop recovery 0.41→0.56–0.665) whose proposed causal
+     mechanism a pre-registered per-entity instrument shows is NOT engaged
+     (<14% of entities individually cross the bar in every measured leg) —
+     and a same-day attempt to rescue that null result via a re-derived
+     threshold is itself independently attacked and rejected. We report
+     the behavioral gain at descriptive tier and the mechanism as an open
+     question, not resolved by post-hoc rescoring.
 
 ### §2 Related Work
 See §5 below (full map). Placed early per ICLR convention; light touch,
@@ -544,7 +680,7 @@ where they're load-bearing in §4/§5 body text via forward-reference.
   below) buys most of the gap (0.44, a 44–56× jump) but plateaus well
   short of 1.0. Only the conjunction saturates. This reframes the paper's
   turning point from a single named cause to a two-part necessary-and-
-  sufficient mechanism, and directly motivates the anchoring follow-on
+  sufficient mechanism, and directly motivated the anchoring follow-on
   (§7 below, "results still landing" §9) as a test of whether the second
   part is SGD-discoverable at all, not just hand-constructible. **Caveat
   carried at every mention, not just here:** the "both together" cell in
@@ -552,6 +688,27 @@ where they're load-bearing in §4/§5 body text via forward-reference.
   d_state) — the 2×2 demonstrates the interaction is real, it does not by
   itself set the ceiling a full-vocabulary trainable mechanism could
   reach; that ceiling is a separately computed number (§9 below).
+- **Update (round 4) — the anchoring follow-on has since launched, twice,
+  and its own instrumentation does not settle the SGD-discoverability
+  question either way.** The aggregate/pooled pre-NS drift channel does
+  stabilize (item 5 clears its own ≥0.95 bar decisively, 0.991–0.9999,
+  every leg), and K=32 h=4 recovery clears its ≥0.5 bar 3/3 seeds in both
+  waves (0.556–0.665 vs. a freshly-measured 0.4105 baseline) — but the
+  wave's own per-entity engagement instrument (§3.7), read on the actual
+  training runs for the first time in the confirmatory wave, shows under
+  14% engagement in every leg, which the design's pre-registered override
+  clause routes to Outcome C ("mechanism not engaged"), not Outcome A. A
+  same-day attempt to rescue that reading via a λ-scaled re-derivation of
+  the engagement threshold was independently attacked and rejected
+  (`KEYANCHOR_REV6_ATTACK.md`: the bar-preserving z sits outside the menu
+  offered; an unverified but plausible anchor-norm value would make the
+  signal chance-level). State this plainly: the 2×2's "jointly sufficient"
+  corner is demonstrated only by the hand-built i-strong pin so far; the
+  one attempt to reach it via a learned mechanism produced a real
+  behavioral effect that this wave's own instrumentation cannot attribute
+  to the hypothesized channel — neither a confirmation nor a refutation of
+  the 2×2's interaction claim, which stands on its own non-pin evidence
+  regardless of this wave's outcome (§9, Fig. 10).
 
 ### §6 Soft Fixes Fail: The Attractor Is Robust
 - F-geo-1 (L_orth penalty, λ∈{0.1,1.0}) and F-geo-2 (ZCA whitening): both
@@ -610,32 +767,50 @@ where they're load-bearing in §4/§5 body text via forward-reference.
   The fallback-irrelevance finding (§8 below) additionally shows the one
   criterion that ever disqualified a seed was conservative, not
   explanatory.
-- **NEW this round — the direct follow-on to the outcome-F residual is
-  itself designed, attacked, and built** (`KEY_ANCHORING_DESIGN.md`), named
-  here rather than left as a future-work sentence: a trainable, per-entity
-  anchor table (frame-potential-minimized init, hitting the Welch-bound rms
-  coherence 0.0796 exactly) blended into the key BEFORE geo3's existing
-  Newton-Schulz pass — division of labor by construction (the anchor
-  supplies cross-episode stability only; per-episode orthogonality remains
-  geo3's job, matching the 2×2's own finding that the two ingredients are
-  separable). A computed ceiling, not a hope, bounds what this can achieve:
-  with the full 107-entity train pool in R^64, a globally-orthonormal
-  table is Welch-bound-impossible, and the best achievable post-NS
-  cross-episode drift at K=32 is **~0.9423** (frame-potential init) —
-  closing at most ~40% of the distance from the measured 0.9037 to the
-  0.95 LOW band, itself close to K=16's own bare-geo3 drift level (0.9416,
-  the level at which K=16 cleared its bar with a wide margin). The design
-  was attacked across five revisions (closing, in order: 3 FATALs on the
-  original Rev 1 construction, including a QR-orthonormal init that
-  crashes at n=107>d=64; 5 MAJORs on Rev 2's masked-blend/λ machinery,
-  including a 1-ULP renormalization non-no-op and a `torch.where`
-  gradient-poisoning footgun on held-out rows; a bounded verification round
-  closing every finding with an exact repro). The harness is built and
-  CPU/smoke-verified (9/9 Wave −1 smokes pass, including a NaN-injection
-  test proving the fixed gather/scatter form is gradient-safe where the
-  superseded form was not); GPU launch awaits a free box slot (all 8 GPUs
-  were saturated with other waves at build time) — reported honestly as
-  built-and-gated, not launched, in "results still landing" (§9).
+- **The direct follow-on to the outcome-F residual was designed, attacked,
+  and built** (`KEY_ANCHORING_DESIGN.md`), named here rather than left as a
+  future-work sentence: a trainable, per-entity anchor table
+  (frame-potential-minimized init, hitting the Welch-bound rms coherence
+  0.0796 exactly) blended into the key BEFORE geo3's existing Newton-Schulz
+  pass — division of labor by construction (the anchor supplies
+  cross-episode stability only; per-episode orthogonality remains geo3's
+  job, matching the 2×2's own finding that the two ingredients are
+  separable). A computed ceiling, not a hope, bounds what this can
+  achieve: with the full 107-entity train pool in R^64, a
+  globally-orthonormal table is Welch-bound-impossible, and the best
+  achievable post-NS cross-episode drift at K=32 is **~0.9423**
+  (frame-potential init) — closing at most ~40% of the distance from the
+  measured 0.9037 to the 0.95 LOW band. The design was attacked across
+  five revisions (closing 3 FATALs on the original Rev 1 construction, 5
+  MAJORs on Rev 2's masked-blend/λ machinery, and a bounded verification
+  round); the harness is built and CPU/smoke-verified (9/9 Wave −1 smokes
+  pass, including a NaN-injection test proving the fixed gather/scatter
+  form is gradient-safe where the superseded form was not).
+- **Round-4 update — the wave has since launched twice, and the outcome is
+  a real behavioral gain with an unconfirmed mechanism, reported in full
+  (§9 below), not the "designed but not yet run" status this section
+  previously carried.** K=32 h=4 recovery clears the ≥0.5 bar 3/3 seeds in
+  both an initial wave and an independent confirmatory wave (0.556–0.665
+  vs. a freshly-measured 0.4105 baseline; the two waves reuse the same
+  seed integers, a reproduction check, not independent replication), with
+  the learned blend weight λ landing interior (≈0.55–0.58) in 6/6 runs and
+  the aggregate pre-NS drift channel clearing its own bar decisively
+  (0.991–0.9999). But the confirmatory wave's per-entity engagement
+  instrument (§3.7) — the one built specifically to catch a pooled
+  statistic masking a disengaged majority — reads under 14% engagement in
+  every leg, which the design's own pre-registered override clause routes
+  to Outcome C ("mechanism not engaged"), not the Outcome A this section's
+  prior draft anticipated as one live possibility. A same-day rescue
+  attempt (re-deriving the engagement threshold to scale with λ) was
+  independently attacked and rejected (`KEYANCHOR_REV6_ATTACK.md`): the
+  bar-preserving threshold (z≈3.76–4.03) sits outside the two options the
+  rescue offered, and an unverified, plausible anchor-norm value (m≈1.34)
+  would make the entire per-entity signal indistinguishable from chance.
+  Outcome C stands, unchanged by the rescue attempt. The K=32 h=4
+  behavioral gain is real and reported at DESCRIPTIVE tier; whether it is
+  caused by cross-episode key stabilization specifically remains open,
+  pending a fresh, differently-instrumented, pre-registered wave — not
+  settled by this one, in either direction.
 
 ### §8 Results: The Fix Demonstration
 - The pre-spend gate: predicted K16 h4=1.00, K32 h4=0.77 from measured
@@ -720,23 +895,35 @@ the deliverable spec.)
   at full admissibility with the narrow bar miss attributed to a
   pre-measured second mechanism (outcome F, drift 0.9037 in the
   registered HIGH band), independently corroborated by the 2×2's own
-  existence-proof design (Fig. 5); the named follow-on (learned
-  cross-episode key anchoring) is designed, attacked, and built, its
-  launch outcome an explicitly open question, not assumed either way. No
-  loose ends on the mechanism — every residual has a name and a number,
-  even the ones still running.
+  existence-proof design (Fig. 5). The named follow-on (learned
+  cross-episode key anchoring) has since launched, twice: it produces a
+  real, twice-reproduced K=32 h=4 behavioral gain (0.4105 → 0.556–0.665,
+  3/3 seeds both waves) but its own per-entity instrumentation resolves
+  the mechanism question to Outcome C ("not engaged"), not a confirmation
+  — and a same-day attempt to rescue that null via a re-derived engagement
+  threshold was independently attacked and rejected. No loose ends on the
+  mechanism, even here — the behavioral result and the mechanism result
+  are reported as the two separate things they are, neither one
+  substituting for the other.
 - **NEW closing note this round:** state plainly, without overreaching,
   that the phenomenon this paper studies is not confined to the scale it
-  is studied at — a controlled 14M→98M ladder shows the same write
-  geometry, un-dissolved, and a substantially larger version of the same
-  signature is present in deployed production fixed-state models. The
-  paper does NOT claim the production-scale signature is caused by the
-  same mechanism (a matched negative control shows it is not yet
-  distinguishable from generic key anisotropy) — it claims only that the
-  question this paper's small-scale causal chain answers is a live one for
-  architectures already being deployed for long-context, cache-free
-  inference, which is why the mechanism-level answer given here matters
-  beyond the scale it was measured at.
+  is studied at — a controlled 14M→98M→392M ladder, now on a single
+  held-fixed data mix after closing the residual mix confound at both
+  smaller scales, shows the write-geometry deviation climbing
+  monotonically (span-fraction 0.248→0.344→0.389), a **pure-scale**
+  finding with a 1.31B-parameter fourth rung running as this is written;
+  and a substantially larger version of the same signature is present in
+  deployed production fixed-state models. The paper does NOT claim the
+  production-scale signature is caused by the same mechanism (a matched
+  negative control shows it is not yet distinguishable from generic key
+  anisotropy) — it claims only that the question this paper's small-scale
+  causal chain answers is a live one for architectures already being
+  deployed for long-context, cache-free inference. A companion attempt to
+  install the demonstrated fix mechanism itself inside a free-running-text
+  setting (Track B) is, independently, blocked twice — before any
+  interaction claim could even be tested — on numerical-stability grounds;
+  named honestly as a current boundary of where the fix demonstrated in
+  §7/§8 has been shown to apply, not smoothed over as a solved problem.
 
 ### §11 Reproducibility
 Pointer to `REPRODUCIBILITY.md` (§4 below), kept in the paper as a compact
@@ -765,10 +952,16 @@ against before submission)
 | Wave 2 (Waves C+D, corpus generality) | verbatim: "**descriptive+interventional (RD-2, §6.3, §14.7) -- NOT premise-conditional causal**"; Q2's own conclusion further hedged as "**consistent with (not proof of)**" | `REALDATA` §6.3/§19, §19.3 |
 | **NEW — 2×2 existence-proof design (arms i/iv as "stable, not orthogonal" cell)** | **causal, premise-conditional**, same tier as the embedding-source interpolation arms it reuses; the "both together" cell (i-strong) keeps its existing **diagnostic tie-breaker** tier and its pool-restriction caveat (32≤d_state) — the 2×2 demonstrates the interaction, it does NOT set a full-pool ceiling | `KEY_ANCHORING_DESIGN.md` §2.0; per-seed values re-verified against `w1_rdx_K32_armi_s*.json`/`armiv_s*_rho0p225.json` this revision |
 | **NEW — §16.7 simulator correction** | **meta-claim about instrumentation, not about the mechanism**: the retracted "K=32 overestimate (0.7734)" reading is WITHDRAWN (input-wiring bug, K=16's drift fed to K=32's prediction); corrected, the simulator is **conservative** at K=32 (predicts 0.06–0.09 vs. measured 0.4368). The outcome-F attribution itself is **UNCHANGED** — it never depended on the simulator's point estimate, only on the three measured signatures (§16.6) | `RD_EXACTNESS` §16.7 (dated correction); `experiment-runs/2026-07-04_geo3_simulator_recheck/` |
-| **NEW — key-anchoring wave (learned cross-episode stability mechanism)** | **not yet a result — design + build only.** No claim-tier applies to an outcome that does not exist yet; the design itself (candidate selection, computed λ=1 ceiling ~0.9423, Welch-bound argument) is **derivation, not measurement** | `KEY_ANCHORING_DESIGN.md` Rev 5, §1–§2; build verified via CPU/smoke tests only, `experiment-runs/` GPU archive does not yet exist for this wave |
+| **[SUPERSEDED, round 4 — see the three rows below] key-anchoring wave (learned cross-episode stability mechanism)** | round 3's status here ("not yet a result — design + build only") is stale: the wave has since launched twice. Do not cite this row; cite the three key-anchoring rows below instead | `KEY_ANCHORING_DESIGN.md` §9/§9.6/§9.7 |
 | **NEW — Track C rung-1 attractor persistence (14M→98M)** | **Tier 2 — descriptive + interventional** (`SCALE_TRANSFER_DESIGN.md` §2's own convention); explicitly a 2-point read, geometry-only, no compositional cross-check; never state as a 3-rung trend | `SCALE_TRANSFER_DESIGN.md` §5.9; `EXPERIMENT_LOG.md` "Track C Wave 1 (rung-1) harvest," 2026-07-04 |
 | **NEW — Track D production-scale measurement** | **Tier 3 — measurement-only, no causal or interventional language.** Explicitly **NOT attributable** to the delta-rule write mechanism at this measurement tier (matched no-fixed-state negative control shows the same magnitude) | `SCALE_TRANSFER_DESIGN.md` §6.8; `EXPERIMENT_LOG.md` "Track D Phase 1," 2026-07-04 |
 | **NEW — Track B (geo3-in-LM) Wave −1 gate** | **registered hard no-launch**, not a soft "did not prioritize" — criterion (b) (excluded-position write-mass ≤0.40) measured 0.431, a clean fail on real archived checkpoints, before any training GPU-hour spent | `SCALE_TRANSFER_DESIGN.md` §4.2; `EXPERIMENT_LOG.md` "Track B... HARD NO-LAUNCH," 2026-07-04 |
+| **NEW — Key-anchoring wave, behavioral result (K=32 h=4, learned-λ blend, both waves)** | **DESCRIPTIVE tier** — real, reproducible, admissible under items 1–4 in both the initial and confirmatory wave (0.556–0.665 vs. a freshly-measured 0.4105 baseline, 3/3 seeds both waves); NOT evidentiary/confirmed for the underlying stability-mechanism hypothesis | `KEY_ANCHORING_DESIGN.md` §9.4/§9.6; `experiment-runs/2026-07-05_keyanchor_wave/`, `experiment-runs/2026-07-05_keyanchor_confirm/` |
+| **NEW — Key-anchoring wave, mechanism hypothesis (§1 interaction claim)** | **Outcome C — not admissible as a test in either direction.** Per-entity `engaged_frac` <14% in every leg overrides an otherwise Outcome-A-shaped profile (item 5, h4, λ all clear their own bars), per the design's own §3.7 override clause | `KEY_ANCHORING_DESIGN.md` §9.6 |
+| **NEW — Rev-6 λ-scaled engagement-threshold re-derivation** | **REJECTED by an independent attack round; CLOSED.** Not a claim-bearing result — a rescue attempt that did not survive review (bar-preserving z≈3.76–4.03 outside the offered {2,3} menu; unverified anchor-norm confound m≈1.34). Outcome C stands unchanged | `KEY_ANCHORING_DESIGN.md` §9.7 (CLOSED annotation); `KEYANCHOR_REV6_ATTACK.md` |
+| **NEW — Track C pure-scale attractor persistence (14M→98M→392M, matched mix)** | **Tier 2 — descriptive + interventional**, upgraded from a joint scale+mix claim (round 3) to a **pure-scale** claim now that the mix axis is closed at both 14M and 98M (Δ −0.004 / −0.014 span, both within noise); still geometry-leg-only, 3 points with a 4th (1.31B) rung running | `SCALE_TRANSFER_DESIGN.md` §5.10 + Addendum; `EXPERIMENT_LOG.md` "Track C Wave 2 (rung-2) + mixcontrol harvest" and "Track C Wave 1ext harvest," both 2026-07-05 |
+| **NEW — Track B (geo3-in-LM) measurement waves** | **Registered stability finding — numerically unstable under duplicate-key stress at production scale (skip_rate 0.632 vs. ≤0.01 bar, probative positive control) — a second independent barrier**, on top of the original β-uniformity no-launch; the selectivity main effects that DID complete are **INCONCLUSIVE** (split verdict across corpora, per the registered combined rule) | `TRACKB_REDESIGN.md` §14; `EXPERIMENT_LOG.md` "SCALE-TRANSFER Track B measurement waves," 2026-07-05 |
+| **NEW — Stage-G H_e full manifest (sibling architecture — NOT a DeltaNet finding)** | Closed: `h_b_factored_r4` does **not** rescue matrix composition (recovered_frac ≈0% at both seeds, despite 2.69× the baseline's params); vector-composes/matrix-cannot inversion **seed-stable at h=3**; a hop-depth-2 phase-transition anomaly (one seed only) left **open, untriaged** | `STAGE_G_DESIGN.md` §15; `EXPERIMENT_LOG.md` "Stage-G H_e 40K MANIFEST VERDICT," 2026-07-04 |
 
 ---
 
@@ -865,29 +1058,52 @@ against before submission)
    TRANSFERRING that from-scratch result to a production architecture
    family and, new to this paper, discovering and fixing the exactness gap
    the from-scratch chapter's synthetic construction never exposed.
-10. **NEW — this paper's own live follow-on and scale program, cited for
+10. **this paper's own live follow-on and scale program, cited for
     completeness, not as external related work.** (a) `KEY_ANCHORING_
     DESIGN.md` is the direct continuation of §7/§8's outcome-F residual —
-    cite it as the paper's own designed-and-built (not yet run) next step,
-    never as a completed result. (b) `SCALE_TRANSFER_DESIGN.md`'s Track C
-    (14M→98M attractor persistence, Tier 2) and Track D (production-model
-    measurement, Tier 3, non-attributable) are this paper's own scale-
-    generality program, cited in the Limitations section (§6) rather than
-    the results body, since neither changes the small-scale causal chain's
-    tier — they extend its motivation, not its evidence base. (c) A
-    sibling result from a DIFFERENT architecture family in this same
-    project (`matrix-thinking/chapter2/`'s matrix-native model, Stage-G's
-    H_e task-swap calibration, `STATE.md` 2026-07-04) found the OPPOSITE
-    separation on a composition-heavy corpus at 40K steps — a vector
-    baseline composes in-context (h1/h2/h3 = 1.0/1.0/1.0) while the
-    from-scratch matrix architecture does not (1.0/0.027/0.013). This is
-    explicitly NOT a DeltaNet finding and must never be cited as if it
-    were — it concerns a structurally different (single-Z-bottleneck,
-    from-scratch) architecture and a different composition task; it is
-    noted here only because it is part of the same project's live
-    evidence about when structured/compositional state representations
-    do and do not compose, and a reviewer who has seen one might ask about
-    the other.
+    now designed, built, and RUN twice. Cite its actual outcome: a real,
+    twice-reproduced K=32 h=4 behavioral gain (0.4105→0.556–0.665, 3/3
+    seeds both waves) at DESCRIPTIVE tier, with the mechanism-engagement
+    hypothesis itself resolving to **Outcome C** (not confirmed) per the
+    design's own §3.7 override clause; a same-day rescue attempt (a
+    λ-scaled engagement-threshold re-derivation) was independently attacked
+    and rejected (§9.7, CLOSED). Never round the behavioral gain up into a
+    confirmed mechanism, and never let the Outcome-C null read as a
+    failure of the fix demonstrated in §7/§8, which is a separate,
+    already-evidenced claim resting on outcome F and the 2×2, not on this
+    wave. (b) `SCALE_TRANSFER_DESIGN.md`'s Track C (now a **pure-scale**
+    14M→98M→392M attractor-persistence ladder, Tier 2, after closing the
+    mix-axis confound at both tested scales; a 1.31B rung running) and
+    Track D (production-model measurement, Tier 3, non-attributable) are
+    this paper's own scale-generality program, cited in the Limitations
+    section (§6) rather than the results body, since neither changes the
+    small-scale causal chain's tier — they extend its motivation, not its
+    evidence base. Track B — installing the SAME fix mechanism inside a
+    free-running-text LM — is a third scale-generality axis specifically
+    for the fix itself (not just the attractor): it is double-barred
+    before any interaction claim can be tested (a duplicate-key
+    numerical-stability smoke, 63× over its bar, on top of the original
+    β-uniformity no-launch), and its own selectivity-only readout (fix
+    mechanism inactive) is INCONCLUSIVE — cited in Limitations for the
+    same reason as (b), not as a positive result. (c) A sibling result
+    from a DIFFERENT architecture family in this same project
+    (`matrix-thinking/chapter2/`'s matrix-native model, Stage-G's H_e
+    task-swap manifest, now CLOSED at all 6 cells, `STATE.md` 2026-07-05)
+    found the OPPOSITE separation on a composition-heavy corpus at 40K
+    steps and it holds under the full manifest: a vector baseline composes
+    in-context (h1/h2/h3 = 1.0/1.0/1.0) while the from-scratch matrix
+    architecture does not (1.0/0.027/0.013), and the Kronecker-separable
+    projection fix that recovers most of Stage G's per-FLOP quality gap
+    does NOT rescue this compositional gap (recovered_frac ≈0% at both
+    seeds, despite 2.69× the baseline's params) — the inversion is
+    seed-stable at hop-depth 3, with an unexplained, seed-dependent
+    phase-transition anomaly at hop-depth 2 left open. This is explicitly
+    NOT a DeltaNet finding and must never be cited as if it were — it
+    concerns a structurally different (single-Z-bottleneck, from-scratch)
+    architecture and a different composition task; it is noted here only
+    because it is part of the same project's live evidence about when
+    structured/compositional state representations do and do not compose,
+    and a reviewer who has seen one might ask about the other.
 
 ---
 
@@ -899,15 +1115,18 @@ State every item below in the paper's own limitations section, undiluted:
    sub-1M–low-single-digit-M parameters. No claim here has been tested at
    a scale where these mechanisms might behave differently (e.g., where
    the write-time attractor might be easier or harder for SGD to escape
-   under a much larger, more overparameterized key-projection path). **NEW
-   — partial evidence, not a resolution:** a controlled 14M→98M scaling
-   ladder (Tier 2, geometry-only, 2-point read, `SCALE_TRANSFER_DESIGN.md`
-   §5.9) finds the attractor does NOT dissolve with scale on this slice
-   (chunk-level key-Gram deviation 21.93→27.82, both far above a random
-   anchor of 7.94) — a 392M rung is running and a 1.3B rung is queued, but
-   this item's core claim (untested at production scale) stands until
-   those complete and a compositional-recovery cross-check, not just
-   geometry, exists at scale.
+   under a much larger, more overparameterized key-projection path).
+   **Updated (round 4) — partial evidence, not a resolution:** a controlled
+   14M→98M→392M scaling ladder (Tier 2, geometry-only, now a clean 3-point
+   read on a single held-fixed corpus mix after closing the mix-axis
+   confound at both 14M and 98M, `SCALE_TRANSFER_DESIGN.md`
+   §5.9/§5.10/Addendum) finds the attractor does NOT dissolve with scale —
+   it WORSENS monotonically (span-fraction 0.248→0.344→0.389), now a
+   **pure-scale** claim, not a joint scale+mix one. A fourth,
+   1.31B-parameter rung is running as this is written, but this item's
+   core claim (untested at production scale) stands until that rung
+   reports and a compositional-recovery cross-check, not just geometry,
+   exists at scale.
 2. **Single architecture family.** Everything is vanilla, single-head,
    single-layer DeltaNet with the standard delta rule. Gated variants
    (Gated DeltaNet, the actual production configuration in Qwen3-Next),
@@ -922,55 +1141,74 @@ State every item below in the paper's own limitations section, undiluted:
    F-geo-3 demonstrably does not touch it. This is presented as a named,
    scoped-out mechanism (iteration-compounding, distinct from write-time
    interference), not folded into the "the fix works" narrative.
-4. **The K=32 headline bar is not met.** The fix demonstration is fully
-   admissible at BOTH K (K=16 3/3; K=32 3/3 on the n_iter=20 escalation,
-   zero fallback steps), but the pre-registered ≥0.5 headline bar at K=32
-   is narrowly missed: h=4 = 0.504/0.416/0.390, mean 0.44, 1/3 seeds at
-   the line. State the miss exactly; state the attribution (outcome F,
-   trained drift 0.9037 in the pre-registered HIGH band — cross-episode
-   key stability, not within-episode orthogonality, is the residual
-   bottleneck); and state the follow-on (cross-episode key anchoring/
-   stabilization, e.g. EMA-anchored or identity-registered
-   orthogonalization) as FUTURE WORK with a measured target — a named
-   residual, not an open mystery, but still a limitation of what this
-   paper demonstrates. **NEW — the follow-on is now designed and built,
-   not only named:** `KEY_ANCHORING_DESIGN.md`'s learned anchor-table
-   mechanism is attacked (5 revisions), built, and CPU/smoke-verified;
-   its own PRE-COMPUTED ceiling (Welch-bound-limited post-NS drift ~0.9423
-   at K=32, full 107-entity pool) means even a fully successful launch is
-   not guaranteed to clear the ≥0.5 bar with margin — state this ceiling
-   alongside the follow-on, not as an afterthought, so a successful launch
-   is not read as a foregone conclusion. GPU launch has not yet occurred
-   (§9, "results still landing").
+4. **The K=32 headline bar is not met, and its named follow-on has since
+   run twice with a genuinely mixed result.** The fix demonstration is
+   fully admissible at BOTH K (K=16 3/3; K=32 3/3 on the n_iter=20
+   escalation, zero fallback steps), but the pre-registered ≥0.5 headline
+   bar at K=32 is narrowly missed: h=4 = 0.504/0.416/0.390, mean 0.44, 1/3
+   seeds at the line. The miss is attributed to outcome F (trained drift
+   0.9037 in the pre-registered HIGH band — cross-episode key stability,
+   not within-episode orthogonality, is the residual bottleneck).
+   **`KEY_ANCHORING_DESIGN.md`'s learned anchor-table follow-on, designed
+   to close that residual, has since launched twice.** It lifts K=32 h=4
+   recovery from a freshly-measured 0.4105 baseline to 0.556–0.665 (3/3
+   seeds over ≥0.5 in both waves, reproduced at the same seed integers —
+   not independent replication), with λ landing interior in 6/6 runs and
+   the aggregate pre-NS drift clearing its own bar decisively. But the
+   wave's own per-entity engagement instrument reads under 14% engagement
+   in every leg, routing to Outcome C ("mechanism not engaged") per the
+   design's own pre-registered override clause — a same-day re-derived
+   threshold that would have rescued the reading was independently
+   attacked and rejected (bar-preserving z outside the offered menu; an
+   unverified, plausible anchor-norm value would make the whole signal
+   chance-level). State plainly: the behavioral K=32 h=4 gain is a real,
+   descriptive-tier finding; whether it is caused by cross-episode key
+   stabilization specifically is an open question for a fresh,
+   differently-instrumented, pre-registered wave — not settled by this
+   one, in either direction, and still a limitation of what this paper
+   demonstrates about the K=32 residual.
 5. **The K≈d/2 structural boundary is observed, not explained.** The K=48
    rider shows the frontier breaking down further and i-strong's own
    dimensional guard correctly refusing to run there; no mechanism account
    is offered for why d/2 specifically, beyond dimension-counting
    (train+held-out identity pools both needing ≥K coverage).
-6. **Scale-transfer to a full pretrained LLM checkpoint is now PARTIALLY
-   measured, not wholly unknown — state the upgraded picture precisely,
-   not as a still-open unknown.** Wave 2 (Waves C+D) establishes the
+6. **Scale-transfer to a full pretrained LLM checkpoint is now
+   PARTIALLY measured, and the fix mechanism's transfer to free-running
+   text is now separately tested and blocked — state both precisely, not
+   as a still-open unknown.** Wave 2 (Waves C+D) establishes the
    truncation-damage phenomenon generalizes to naturalistic LM pretraining
-   at small scale (descriptive+interventional tier only). **NEW —
-   Track C/D (`SCALE_TRANSFER_DESIGN.md`, 2026-07-04) go further and
-   change what can honestly be said:** (a) on a controlled 14M→98M
-   parameter ladder, the write-geometry attractor does not dissolve
-   (Tier 2, 2-point geometry read, §5.9 — a genuine but narrow result,
-   not yet extended to compositional recovery at scale); (b) a much
-   larger version of the SAME non-orthonormal write-geometry signature is
+   at small scale (descriptive+interventional tier only). Track C/D
+   (`SCALE_TRANSFER_DESIGN.md`) go further: (a) on a controlled
+   14M→98M→392M parameter ladder, now on a single held-fixed data mix
+   after closing the mix-axis confound at both 14M and 98M, the
+   write-geometry attractor does not dissolve — it WORSENS monotonically
+   (Tier 2, geometry read, span-fraction 0.248→0.344→0.389), a
+   **pure-scale** finding, not yet extended to compositional recovery at
+   scale, with a 1.31B-parameter fourth rung running; (b) a much larger
+   version of the SAME non-orthonormal write-geometry signature is
    measurable directly in production-scale pretrained fixed-state models
    (RWKV-7 1.5B, Falcon-Mamba-7B; Tier 3, measurement-only, §6.8); (c) but
    a matched no-fixed-state negative control (Qwen2.5-1.5B, ordinary
    softmax attention) shows the SAME magnitude, so (b) is explicitly
    **NOT** attributable to the delta-rule write mechanism specifically at
    this measurement tier — a real, load-bearing non-finding, not a soft
-   hedge. Net honest statement for the paper: the phenomenon persists
-   where it can be controlled for (a), a phenomenologically similar
-   signature exists at production scale (b), but causal attribution at
-   production scale remains open and is confounded by generic trained-LM
-   key anisotropy (c) — do not round (b)+(c) up into "the mechanism
-   transfers to production scale," and do not round (a) down into "scale
-   transfer is untested," either.
+   hedge; and (d) a companion attempt to install the SAME fix mechanism
+   (per-episode orthogonalization) inside a free-running-text LM (Track B)
+   is blocked before any interaction claim can be tested: a duplicate-key
+   numerical-stability smoke overshoots its bar by 63× with a probative
+   positive control, compounding the original β-uniformity gate refusal —
+   the fix demonstrated in §7/§8 has, so far, no evidenced path to a
+   free-running-text setting on this architecture family, and the
+   selectivity-only question Track B could still measure (fix mechanism
+   inactive) returns an INCONCLUSIVE split verdict across corpora, not a
+   positive finding to fall back on. Net honest statement for the paper:
+   the phenomenon persists where it can be controlled for and now scales
+   purely with parameter count (a), a phenomenologically similar signature
+   exists at production scale (b) but causal attribution there remains
+   open and confounded (c), and the fix itself has not yet been shown to
+   transfer to a free-running-text setting at all (d) — do not round any
+   of (a)-(d) up into a stronger claim than stated, and do not round (a)
+   down into "scale transfer is untested," either.
 7. **The admission-stack asymmetry, now a footnote-level limitation.**
    Because F-geo-3 makes the standard premise-validity instruments
    tautological, a substitute pre-registered criterion applies to its
@@ -981,26 +1219,43 @@ State every item below in the paper's own limitations section, undiluted:
    non-geo3 seed counts appear side by side, because the two stacks
    filter different failure modes and their relative selectivity was
    never empirically equated.
-8. **NEW — the 2×2's "stable" cells lean on existence-tier or bundled
-   arms, not yet a full-pool learned mechanism.** The 2×2 (Fig. 5) that
-   demonstrates orthogonality and stability are jointly necessary uses
-   i-strong (pool-restricted to 32≤d_state) for the "both together" cell
-   and frozen-embedding arms (which bundle fixed geometry with reduced
-   trainable parameter count relative to the learned baseline) for the
-   "stable, not orthogonal" cells. The interaction the 2×2 demonstrates is
-   real and reproducible from already-archived data, but it does not by
-   itself establish that a full-vocabulary, gradient-discovered anchor
-   mechanism can reach the same regime — that is precisely what the
-   (not-yet-launched) key-anchoring wave tests, and its own pre-computed
-   ceiling (~0.9423 post-NS drift at K=32, Welch-bound-limited) says even
-   success there would not reach i-strong's 1.00.
-9. **NEW — the key-anchoring follow-on has not launched.** Designed,
-   attacked across five revisions, built, and CPU/smoke-verified, but no
-   GPU run exists yet (all 8 GPUs were saturated with other waves at
-   build time). Every claim in this paper about "the residual mechanism"
-   rests on the outcome-F attribution (§8) and the 2×2 (§5), not on the
-   anchoring wave's results — the anchoring wave is future work in the
-   literal sense of not having run, not a diagnosed-but-unwritten result.
+8. **The 2×2's "stable" cells lean on existence-tier or bundled arms, not
+   yet a full-pool learned mechanism — this is no longer a purely
+   forward-looking gap; it now has an honestly mixed answer.** The 2×2
+   (Fig. 5) that demonstrates orthogonality and stability are jointly
+   necessary uses i-strong (pool-restricted to 32≤d_state) for the "both
+   together" cell and frozen-embedding arms (which bundle fixed geometry
+   with reduced trainable parameter count relative to the learned
+   baseline) for the "stable, not orthogonal" cells. The interaction the
+   2×2 demonstrates is real and reproducible from already-archived data.
+   The key-anchoring wave was built specifically to test whether a
+   full-vocabulary, gradient-discovered anchor mechanism can reach the
+   "jointly sufficient" regime, and it has now run — twice. Its result
+   does not resolve this item cleanly either way: the wave produces a
+   real K=32 h=4 behavioral gain (0.4105→0.556–0.665) consistent with SOME
+   stabilizing effect, but its own per-entity mechanism instrument reads
+   Outcome C ("not engaged," <14% engagement per leg) under the design's
+   own pre-registered rule, and a same-day attempt to rescue that reading
+   via a re-derived threshold was independently attacked and rejected. So:
+   the 2×2's "jointly sufficient" corner still rests on the hand-built
+   i-strong pin for a positive demonstration; the one attempt so far to
+   reach it via a learned mechanism produced a real behavioral effect
+   whose attribution to the hypothesized channel is specifically NOT
+   supported by its own instrumentation — a genuinely inconclusive middle
+   ground, not a success and not a clean failure, and the paper should say
+   exactly this rather than round it either direction.
+9. **The key-anchoring follow-on has launched, twice, and its outcome IS
+   now part of this paper's evidence base — with the honest caveat that it
+   answers less than hoped.** Every claim in §7/§8 about "the residual
+   mechanism" (outcome F, the 2×2) still rests on the outcome-F
+   attribution and the 2×2, not on the anchoring wave's numbers, for the
+   causal MECHANISM claim — the anchoring wave's own instrumentation could
+   not confirm that channel (Outcome C). What the anchoring wave DOES
+   contribute to this paper: a real, reproducible K=32 h=4 behavioral
+   improvement (descriptive tier), and a demonstrated instance of this
+   project's own gating discipline catching an attempted post-hoc rescue
+   of a null result (the Rev-6 attack) before it entered the record.
+   Report both facts, not just the more flattering one.
 
 ---
 
@@ -1127,33 +1382,33 @@ State every item below in the paper's own limitations section, undiluted:
     alternative mechanisms (c)–(f) the design explicitly kept live until
     each was tested. We frame the six-step structure explicitly as the
     proof structure in §1's contribution list, not as a research diary.
-11. **NEW — "Your 2×2's 'stable' cell (i-strong) is a hand-built pin, not
+11. **"Your 2×2's 'stable' cell (i-strong) is a hand-built pin, not
     a learned mechanism — so all you've shown is that a pin composes,
     which nobody doubted. Doesn't the whole 2×2 argument rest on an
-    intervention you can't get SGD to do?"**
-    Answer: correct as far as it goes, and we say so explicitly (§6 item
-    8) — i-strong is a deliberate, disclosed, three-concession existence
-    proof (bypasses the learned path, closed pool, pool-restricted to
-    ≤d_state), never presented as a learned result. What the 2×2 actually
-    licenses is narrower and does not depend on i-strong being learnable:
-    it shows that stability WITHOUT orthogonality (two independent,
-    non-pin arms, frozen embeddings under the ordinary trained W_k path)
-    buys nothing (0.005–0.011, indistinguishable from baseline) — this
-    half of the 2×2 uses no pin at all. Combined with orthogonality-
-    without-stability (bare geo3, also no pin, plateauing at 0.44), the
-    INTERACTION claim (both ingredients necessary) is fully supported by
-    non-pin data; only the "and jointly SUFFICIENT" corner currently
-    requires the pin to demonstrate. That is exactly the gap the
-    key-anchoring wave is built to close — it will show, when it runs,
-    whether "jointly sufficient" survives without the pin. We do not
-    claim it does yet. The pre-mortem's own honest answer, stated plainly:
-    this review is answered fully by the anchoring wave's result EITHER
-    WAY it lands — a clear success extends the interaction claim to a
-    learned mechanism; a clean failure (mechanically engaged, bars
-    missed) still leaves the interaction claim intact and additionally
-    tells us the stability ingredient, though real, may not be
-    SGD-discoverable at this scale without hand construction, which is
-    itself worth knowing and reportable as such.
+    intervention you can't get SGD to do? And didn't your own follow-on
+    test this and land on a null?"**
+    Answer, updated to the wave's actual outcome. i-strong is a
+    deliberate, disclosed, three-concession existence proof (bypasses the
+    learned path, closed pool, pool-restricted to ≤d_state), never
+    presented as a learned result (§6 item 8). What the 2×2 actually
+    licenses — that stability WITHOUT orthogonality buys nothing (two
+    non-pin arms, 0.005–0.011, indistinguishable from baseline) and
+    orthogonality WITHOUT stability buys most-but-not-all of the gap (bare
+    geo3, 0.44) — is fully supported by non-pin data; only the "and
+    jointly SUFFICIENT" corner needed the pin. The key-anchoring wave was
+    built to test whether a learned mechanism can reach that corner, and
+    it has now run twice. Its result is neither the clean success nor the
+    clean failure this pre-mortem originally anticipated: h=4 clears its
+    bar decisively (3/3 seeds, both waves) and the aggregate drift channel
+    stabilizes — but the wave's OWN per-entity instrument, purpose-built
+    to catch exactly this failure mode (a pooled statistic masking a
+    disengaged majority), shows fewer than 14% of entities individually
+    engage, which the design's pre-registered override clause correctly
+    routes to Outcome C, not Outcome A. We report this as what it is: a
+    real behavioral effect whose mechanism is not (yet) established — not
+    a confirmation and not a refutation of the 2×2's interaction claim,
+    which stands on its own non-pin evidence regardless of this wave's
+    outcome.
 12. **NEW — "You corrected your own simulator (§16.7) after finding a
     bug that flipped your reported K=32 prediction from an overestimate
     to an underestimate — doesn't that undermine every quantitative claim
@@ -1177,6 +1432,50 @@ State every item below in the paper's own limitations section, undiluted:
     full (§8, §16.7) rather than quietly restate the number, because a
     reviewer checking our arithmetic should find the correction before
     they find the bug themselves.
+13. **"You wrote a whole subsection trying to re-derive the very metric
+    that killed your mechanism claim — isn't that the textbook shape of a
+    researcher moving the goalposts until their result passes?"**
+    Answer: we show the attempt AND its rejection, in full, rather than
+    quietly picking a favorable threshold. An independent attack round
+    (`KEYANCHOR_REV6_ATTACK.md`) found the "blind" z-pick procedure was
+    already unblinded by the same document's own tables, computed the
+    threshold that would actually preserve the original bar's stringency
+    (z≈3.76–4.03) and showed it sits outside both offered menu options
+    (both of which are relaxations), and flagged an unverified anchor-norm
+    assumption that could make the entire signal a chance-level artifact.
+    The re-derivation is retained in the design doc, marked CLOSED, as the
+    historical record of the attempt — not deleted, not quietly abandoned.
+    Outcome C stands. If anything, we offer this episode as the paper's
+    sharpest illustration of the gating discipline working against the
+    authors' own incentive to report a positive mechanism.
+14. **"Your two key-anchoring waves are described as reproducing each
+    other — but don't you admit they used the same seeds? Isn't that just
+    running the same experiment twice and calling it confirmation?"**
+    Answer: yes, and we say so explicitly rather than let "two waves"
+    imply six independent data points. The confirmatory wave reused the
+    initial wave's exact seed integers (0/1/2 at K=32, 0 at K=16), trained
+    fully from scratch (not resumed); its h=4 and λ values land within
+    0.0001–0.001 of the initial wave's own recorded numbers per seed (one
+    cell bit-identical), consistent with ordinary GPU run-to-run
+    nondeterminism at a fixed seed, not a fresh statistical sample. We
+    report this as a reproduction/verification check (confirming the
+    behavioral numbers are not a fluke of one specific training run) and
+    explicitly do NOT count it as doubling the seed-robustness evidence
+    for h=4, which still rests on the initial wave's own 3-seed spread.
+15. **"Track B's numerical-instability finding sounds like an engineering
+    bug, not a scientific result — why does a skip-rate overshoot belong in
+    a paper about rank exactness?"**
+    Answer: because it is pre-registered, itself, as a gate on a
+    scientific question (can this project's fix mechanism be safely
+    installed in a free-running-text setting at all), and a positive
+    control confirms it is not a spurious harness artifact (196/326 probe
+    calls independently show ≥6 duplicated top-K selections, up to full
+    32/32 duplication) — the duplicate-key regime this fix mechanism
+    cannot tolerate is a real property of free-running text (repeated
+    entities/tokens), not a coding mistake. We report it as a genuine, if
+    unglamorous, boundary condition on where the demonstrated fix
+    mechanism currently applies, the same epistemic status as the K≈d/2
+    structural boundary (limitation 5).
 
 ---
 
@@ -1200,84 +1499,121 @@ in "without self-congratulation." Concretely:
   prevents all errors, or is itself novel as a general ML methodology —
   it is offered as "here is what let us trust a negative result enough to
   publish it," nothing more.
+- **A second concrete instance, this round:** an attempted post-hoc rescue
+  of the key-anchoring wave's null mechanism result (a λ-scaled
+  engagement-threshold re-derivation) was itself put through an
+  independent attack round and rejected before it could be reported as a
+  positive finding — cite this alongside the F-geo-3 cross-episode-drift
+  catch (§3) as the paper's second illustration of the gating discipline
+  catching a specific, load-bearing error, this time inside the authors'
+  own analysis rather than a training run.
 
 ---
 
-## 9. Results still landing (as of 2026-07-04) — NEW section this round
+## 9. Results still landing (as of 2026-07-05) — updated this round
 
-Per the task brief: list every wave that is currently running or built-
-but-not-launched, with its pre-registered decision rule, so the narrative
-is submission-ready modulo these specific pending readouts. None of the
-items below are assumed to land any particular way; each has a decision
-rule that was fixed BEFORE this section was written, per the project's
-own pre-registration discipline.
+Per the task brief: list every wave that is currently running or
+built-but-not-launched, with its pre-registered decision rule, so the
+narrative is submission-ready modulo these specific pending readouts. Most
+of round 3's "still landing" items have since reported (below); what
+remains open is genuinely open, not presupposed.
 
-1. **Key-anchoring wave (`KEY_ANCHORING_DESIGN.md`, this paper's own
-   direct follow-on to the outcome-F residual, §7/§8).** Status: designed,
-   attacked across 5 revisions, built, CPU/smoke-verified (9/9 Wave −1
-   smokes pass); GPU launch pending a free box slot, not yet run. Manifest:
-   28 runs (6 reference bare-geo3 arms for seed-variance + probe-vs-final-
-   checkpoint calibration, 8+2 Wave −1 probes, 12 Wave 1 cells for the
-   primary anchor-table candidate). Decision rule (`KEY_ANCHORING_DESIGN.md`
-   §3.5): **Outcome A (CONFIRMED)** — pre-NS drift ≥0.95 AND h=4 ≥0.5 (3/3
-   admissible) AND learned λ in [0.2, 0.8] for ≥2/3 seeds AND per-entity
-   anchor-input-alignment engagement ≥90%; **Outcome A′ (pin
-   rediscovery)** — bars clear but λ lands >0.95 (SGD re-derives the
-   fixed-frame regime, existence-tier only); **Outcome B (informative
-   negative, re-attribution required)** — drift stabilizes but h=4 still
-   misses, splitting further into a coherence-floor-residual read (B1) or
-   a value-geometry re-attribution (B2); **Outcome C (mechanism not
-   engaged)** — drift or per-entity engagement never clears its own
-   mechanical threshold, uninformative about the hypothesis either way.
-   The wave's own computed ceiling (post-NS drift ~0.9423 at K=32,
-   Welch-bound-limited by the full 107-entity pool) means even Outcome A
-   is not guaranteed to look like i-strong's 1.00 — state this ceiling
-   alongside any eventual result.
-2. **SCALE-TRANSFER Track C rung-2 (392M params).** Status: LAUNCHED
-   2026-07-04 06:10 UTC on GPUs 0–5 (6 runs: 3 seeds × 2 extended-mix
-   corpora, ≈21.6 GPU-h/run, ≈129.4 GPU-h for this wave), harvest due
-   ≈04:00 UTC 2026-07-05. Decision rule (`SCALE_TRANSFER_DESIGN.md` §5.7):
-   attractor persistence read against the rung-1 band (control 21.93,
-   rung-1 27.82) — a rung-2 reading that continues climbing, plateaus, or
-   reverses are all pre-registered as informative; frontier-probe
-   transplant and fix-effect-at-scale stay explicitly out of scope for
-   this rung (gated behind Track B, which itself hard-no-launched, §9
-   below item 5).
-3. **SCALE-TRANSFER Track C wave-1ext (rung-1-on-extended-mix
-   de-confounder).** Status: LAUNCHED on GPU 6 solo, ≈27 GPU-h, 6 cells
-   sequential. Purpose: rung 1 was originally trained on the ORIGINAL
-   (non-extended) data mixes while rungs 2–3 use EXTENDED mixes (a
-   step-budget remedy, Rev 2.1 amendment) — this wave retrains rung-1's
-   exact architecture on the SAME extended mixes at rung-1's own closed
-   step count (67,547 steps, recovered from the archived rung-1 JSON, not
-   assumed), isolating the scale axis from the data-mix axis per
-   CLAUDE.md's hold-the-second-axis-fixed rule. Decision rule: does
-   rung-1-on-extended-mix's key-Gram deviation match rung-1-on-original-
-   mix (27.82) within noise, or does the mix change alone move the
-   number — this determines whether rung-1→rung-2's reported delta is a
-   clean scale effect or still a bundled scale+mix effect.
-4. **Stage-G H_e full 6-cell manifest (sibling architecture, cited per
-   §5 item 10c's explicit scoping — NOT a DeltaNet result).** Status: 2/6
-   cells complete (40K-step calibration: matrix h1/h2/h3 =
-   1.0/0.027/0.013, vector = 1.0/1.0/1.0 — the inverse of the design's own
-   H_e hypothesis, which expected the structured/matrix representation to
-   compose at least as well). Remaining 4 cells (matrix seed 1,
-   `h_b_factored_r4` seeds 0+1, vector seed 1) running on GPU 7, ≈16h.
-   Decision rule (pre-registered, fired already at the 2-cell stage per
-   `EXPERIMENT_LOG.md`'s "Stage-G H_e 40K calibration VERDICT"): signal
-   cleared at 40K steps → run the full manifest at 40K (not 80K); the
-   full manifest decides whether the matrix architecture's zero
-   composition is a seed artifact, universal across the factored-Householder
-   variant too, or specific to one configuration.
-5. **SCALE-TRANSFER Track B (geo3-in-LM) — CLOSED, not pending, listed
-   here for completeness since it is easy to mistake for still-running.**
-   Already returned a registered HARD NO-LAUNCH (`EXPERIMENT_LOG.md`,
-   2026-07-04): criterion (b), excluded-position write-mass ≤0.40,
-   measured 0.431 on all 6 archived Wave C checkpoints — a clean fail,
-   caught before any training GPU-hour was spent. No further Track B wave
-   is pending; the registered conditional follow-on (a hard-zero-β
-   variant) requires its own attack round before any build and is not
-   scheduled.
+1. **Key-anchoring wave (`KEY_ANCHORING_DESIGN.md`) — RUN TWICE, CLOSED on
+   the behavioral question, OPEN on the mechanism question.** No longer
+   "designed, not yet run" (round 3's status) — the initial wave (18
+   mandatory 20,000-step cells, 10.98 GPU-h) and an independent
+   confirmatory wave (4 cells with `--drift-probe` wired directly into the
+   real training loop) both completed. **Behavioral result (closed,
+   DESCRIPTIVE tier):** K=32 h=4 `rec@0.9` clears the ≥0.5 bar 3/3 seeds in
+   both waves (0.559/0.615/0.665 initial; 0.665/0.616/0.556 confirmatory —
+   same seed integers, a reproduction check, not independent replication),
+   a +0.20 absolute lift over the freshly-measured 0.4105 bare-geo3
+   reference; λ lands interior (≈0.55–0.58) in 6/6 runs; item 5 (pre-NS
+   drift) clears its own ≥0.95 bar decisively (0.991–0.9999) in every leg.
+   **Mechanism result (closed, Outcome C):** the confirmatory wave's
+   per-entity engagement instrument (§3.7) reads under 14% engagement in
+   every leg (13.08%/3.74%/4.67% at K=32, 11.21% at K=16), which the
+   design's own pre-registered override clause routes to Outcome C
+   ("mechanism not engaged... not an admissible test of the hypothesis
+   either way"), not the Outcome A the behavioral numbers alone would
+   suggest. **Rescue attempt — CLOSED, rejected:** a same-day λ-scaled
+   re-derivation of the engagement threshold (§9.7) was put through an
+   independent attack round (`KEYANCHOR_REV6_ATTACK.md`) and rejected: the
+   bar-preserving z (≈3.76–4.03) sits outside the offered {2,3} menu, the
+   "blind" z-pick procedure was already unblinded by the draft's own
+   tables, and an unverified but plausible anchor-embedding-norm value
+   (m≈1.34) would make the entire per-entity signal indistinguishable from
+   chance. Outcome C stands. **What is genuinely still pending, a
+   DECISION not a running wave:** a fresh, pre-registered instrumentation
+   wave — logging anchor-row norms directly and deriving an engagement
+   metric for interior λ before any new data exists, attacked before it
+   runs, per this project's own repeated finding that a single
+   self-review is not a substitute for independent adversarial review — is
+   the only path to a confirmed mechanism claim; it is not yet scheduled.
+   The user-facing choice is between that fresh mechanism wave (~10 GPU-h
+   estimated), a K=48 extension of the existing fix, or another direction
+   entirely; this narrative takes no position on which, per the pending
+   decision recorded in `STATE.md`.
+2. **SCALE-TRANSFER Track C rung-2 (392M) and wave-1ext (98M-on-extended-
+   mix) — both HARVESTED and CLOSED (2026-07-05), no longer running.**
+   Rung-2 (6 runs, 391.87M params, 91,552 steps, 128.3 GPU-h) and
+   mixcontrol (6 runs, 14M params, 0.46 GPU-h) both completed; wave-1ext (6
+   runs, 97.6M params, 67,547 steps, 26.87 GPU-h) also completed. Together
+   they closed the residual mix-axis confound at both 14M and 98M (Δ
+   −0.004 / −0.014 span, both inside seed noise) and yielded a clean,
+   single-(extended)-mix, 3-point ladder: span-fraction 0.248 (14M) →
+   0.344 (98M) → 0.389 (392M), monotonically increasing — upgrading the
+   persistence/worsening finding from round 3's joint scale+mix scoping to
+   a **pure-scale** claim. Geometry-leg-only; no compositional-recovery
+   cross-check exists at any rung.
+3. **SCALE-TRANSFER Track C rung-3 (1.31B params) — RUNNING, the new
+   "still landing" item.** Launched on GPUs 0–1 (token-matched to rung-2
+   at 1.5B tokens/run, per the user-signed-off Rev 2.2 amendment), harvest
+   expected imminently. Decision rule unchanged from §5.7: a fourth-rung
+   reading that continues climbing, plateaus, or reverses the span-fraction
+   trend are all pre-registered as informative — this is the literal
+   completion of §5.7's 3-rung criterion (98M/392M/1.3B), now extended by
+   one more rung than originally specified since rung-1 (98M, original
+   mix) needed a same-mix twin (wave-1ext) to be comparable.
+4. **Stage-G H_e full 6-cell manifest (sibling architecture — NOT a
+   DeltaNet result) — CLOSED, all 6 cells complete (2026-07-04), no
+   longer 2/6.** Matrix baseline (seeds 0,1), matrix `h_b_factored_r4`
+   (seeds 0,1), and vector baseline (seeds 0,1) all completed 40,000/40,000
+   steps, 27.5 GPU-h total. Verdict: `h_b_factored_r4` does NOT rescue
+   matrix composition (h=3 recovered_frac +0.5%/−0.6% at the two seeds,
+   both ≈0, far below the ≥0.5 dominant-site bar, despite running at 2.69×
+   the baseline's params). The vector-composes/matrix-cannot inversion is
+   **seed-stable at hop-depth 3** (4/4 matrix-family cells flat at chance
+   the entire 40K trajectory; both vector seeds clear matrix by 30+
+   points). **Open, untriaged anomaly:** hop-depth 2 is NOT seed-stable in
+   the matrix baseline — seed 0 stays flat at chance through 40K, seed 1
+   undergoes a sharp, clean phase transition to full composition at steps
+   18,000–22,000 with no proposed mechanism; 2 seeds cannot distinguish
+   "the same transition, delayed by the factored projection" from "an
+   unrelated low-probability event," and no h=2-specific claim is
+   supported either direction. Cited here only per §5 item 10c's explicit
+   scoping — never as a DeltaNet finding.
+5. **SCALE-TRANSFER Track B (geo3-in-LM) — CLOSED, with a completed
+   measurement-wave readout (2026-07-05) superseding round 3's
+   hard-no-launch-only status.** Beyond the original β-uniformity
+   no-launch (Gini 0.099, `EXPERIMENT_LOG.md` 2026-07-04), a redesigned
+   Wave −1 stability smoke measured `skip_rate=0.6319` against a `≤0.01`
+   bar with a probative positive control (196/326 calls showing ≥6
+   duplicated selected rows, max 32/32) — a **second independent barrier**
+   that refused Cells 3/4 and Wave 2 (the geo3-active factorial) before
+   any further training GPU-hour was spent; the interaction/headline bars
+   this design targets are UNCOMPUTABLE, not merely unevaluated. The
+   selectivity main-effects readout that COULD still run (Cells 1/2/2R/
+   comparator, fix mechanism inactive) completed 18 cells and reads
+   **INCONCLUSIVE**: val-loss tolerance fails on openr1 for all three
+   arms (hard selectivity itself implicated, since the comparator fails
+   alongside the primary candidate) and passes on wikitext for all three;
+   same-instrument Gram deviation shows a real targeting-vs-random
+   separation on openr1 but an indistinguishable-from-random one on
+   wikitext — a split verdict the design's own combined rule reads as
+   INCONCLUSIVE overall. No further Track B wave is pending; a hard-zero-β
+   variant remains a registered but unscheduled conditional follow-on
+   requiring its own attack round.
 
 ---
 
@@ -1365,3 +1701,46 @@ own pre-registration discipline.
    for the camera-ready abstract, and keep the pending items to the
    "results still landing" section and limitations, not the headline
    claims.
+
+6. **[NEW, this revision — round-4 absorption status.]** This round
+   absorbed: the key-anchoring wave's actual outcome across two waves
+   (behavioral DESCRIPTIVE-tier gain, mechanism Outcome C) and the
+   independent rejection of its same-day rescue attempt (§0, §1, §3
+   §5/§7 updates, §4 claim-tier rows, §6 items 4/8/9, §7 pre-mortem #11
+   rewrite + new items 13/14, §9 item 1, Fig. 10); the Track C pure-scale
+   upgrade (mix-axis confound closed at both 14M and 98M, 3-point ladder
+   0.248→0.344→0.389, rung-3 running) (§0, §1, §6 items 1/6, §9 items
+   2/3, Fig. 9 Panel A, claim-tier table); Track B's completed measurement
+   waves (double barrier + INCONCLUSIVE selectivity) (§0, §1, §6 item 6,
+   §9 item 5, pre-mortem #15, claim-tier table); and Stage-G H_e's
+   full-manifest closure (§5 item 10c, §9 item 4, claim-tier table). As
+   in round 3, **nothing in this narrative currently depends on a wave
+   that has not yet reported a number** — the one genuinely open item is
+   a DECISION (which fresh wave to run next on the mechanism question),
+   not a pending measurement, and it is stated as such in §9 item 1.
+   **Updating round 3's self-flagged weaknesses, honestly, not by
+   assumption:** (i) the "2×2's jointly-sufficient corner is a pin, not a
+   learned mechanism" weakness is no longer purely forward-looking — the
+   anchoring wave ran and landed on a genuinely mixed answer, not the
+   clean resolution round 3 hoped for. The honest framing is not
+   "unresolved until the wave lands" (it landed) but "resolved to an
+   inconclusive middle": the 2×2's positive "jointly sufficient" corner
+   still rests on i-strong; the one learned-mechanism attempt produced a
+   real behavioral effect that its own instrumentation could not attribute
+   to the hypothesized channel, and an attempted rescue of that null was
+   independently rejected. This is now a load-bearing part of the paper's
+   own honesty argument (§8), not merely an unresolved dependency. (ii)
+   Fig. 9's production-scale non-finding is unchanged in kind, and its
+   Panel A now rests on a stronger, pure-scale 3-point ladder rather than
+   a 2-point joint scale+mix read — if anything this strengthens Panel A
+   without changing Panel B's honest non-attribution. (iii) the
+   thesis/abstract's forward-looking material has partially resolved
+   (the anchoring wave landed; the scale claim is now pure, not joint) but
+   a new pending item took its place: the fresh mechanism-engagement wave
+   (not yet scheduled — a decision, not a running experiment) and rung-3
+   (running, harvest imminent). The trim instruction from round 3 stands,
+   updated: for camera-ready, trim toward the resolved K=16/K=32/2×2/
+   pure-scale core, keep the anchoring wave's mixed result as a clearly
+   separated descriptive-tier result (not folded into the headline causal
+   claims), and keep rung-3 and the mechanism-wave decision confined to
+   "results still landing," not the abstract's opening sentences.
