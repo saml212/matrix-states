@@ -2487,6 +2487,631 @@ line item, and is not requested or authorized by this section.
 
 ---
 
+## 10. Rev 7 DRAFT — Mechanism-tier confirmation wave (2026-07-06, design-only)
+
+**Status: DRAFT. Pending its own attack round before any GPU is spent —
+per this project's own repeated finding (multi-round adversarial audit
+catches different bugs each round) and the direct precedent one section
+up: §9.7 (Rev 6) went from derivation straight to a self-adjudicated
+"non-binding preview" and was rejected by the attack round specifically
+for that reason (`KEYANCHOR_REV6_ATTACK.md` §2). This section does not
+repeat that mistake — see §10.10 item 1. No run in this section may
+launch until a fresh attack round clears this draft, exactly as §9.7
+itself required and did not receive before its own tables were written.
+Zero GPU-h spent producing this section (design + one CPU code-read
+verification, §10.1.1). No Outcome assignment in §9.5/§9.6/§9.7 is
+touched, revisited, or rescored by anything below.**
+
+### 10.1 What this wave is answering, and why Rev 6 couldn't
+
+`KEYANCHOR_REV6_ATTACK.md` killed the Rev 6 rescore attempt on three
+grounds plus one deeper structural point, and this wave is built as a
+direct, one-to-one response to all four — not a second attempt at the
+same derivation with nicer numbers:
+
+1. **Blind-pick was already broken by its own document** (attack §2):
+   §9.7.3/§9.7.8 published every candidate z's outcome in the same
+   file that told the attack round to pick blind. **Fix (§10.3):** the
+   engagement threshold this wave uses has **no menu and no choice
+   left for anyone to make** — it is a closed-form function of
+   `n_train=107` and `d_state=64` (both registered since before Wave 1)
+   and a conventional `α=0.05`, computable today, with zero dependency
+   on any anchor-arm result. It is derived and hash-locked (§10.3.3)
+   *before this draft's own attack round runs*, not merely before
+   anchor-arm data exists — a strictly earlier blind than §3.6's own
+   reference-arm gate requires.
+2. **The offered z-menu excluded the bar-preserving value and both
+   options were relaxations** (attack §3): there is no menu in this
+   wave to exclude anything from — see (1).
+3. **The unverified `‖anchor‖=1` assumption could make the entire
+   signal a chance-level scale artifact** (attack §4, `m≈1.34`
+   plausible): **fix (§10.2):** the primary engagement statistic
+   (`r_e`) is measured via `F.cosine_similarity`, which renormalizes
+   both operands internally — the anchor row's norm cancels out of the
+   computation by construction, not by assumption. Anchor-row norms
+   are additionally logged directly, every checkpoint, every run
+   (§10.2.1), so the question is closed either way, not carried forward
+   a third time.
+4. **The deepest point (attack §5): a single global-scalar `λ` has no
+   structural capacity to differentially engage entities — the only
+   source of per-entity variation in the old metric was pre-existing,
+   incidental key/anchor correlation, not anything the mechanism
+   controls.** A metric fix alone (items 1–3) cannot address this — it
+   can only measure candidate (d) more honestly, not give it a
+   capability it structurally lacks. **Fix (§10.5):** a genuinely new
+   arm, candidate (d′), replaces the single scalar with a per-entity
+   table `λ_e`, so the question "does anything about this class of
+   mechanism ever differentially engage entities" has an arm that can
+   actually answer it either way.
+
+**The top pre-registered objection this draft expects — "this is
+attempt #3 at the same claim, what makes it admissible where Rev 6
+wasn't" — is answered by the four points above taken together, not by
+any one of them alone: everything load-bearing here is derived before
+any of this wave's data exists (§10.3.3's hash-lock has *zero* data
+dependency, stronger than Rev 6's reference-arm-gated blind); the old
+confirm-wave's four JSONs are never reopened or rescored (they lack the
+`r_e`/anchor-norm fields entirely — re-scoring them is not merely
+undesirable, it is not physically possible from data that does not
+exist, §10.4); and the metric is redesigned for the regime the
+mechanism actually operates in (interior λ, §9.6's own finding) instead
+of re-deriving yet another number in `a_e`-space that still has to pass
+back through a λ-dependent blend formula.**
+
+#### 10.1.1 Verification this section relied on (code-read, this session, CPU only)
+
+Before designing the null model below, the anchor-table construction
+was re-read directly (`model_rd.py` L805–817), not assumed from the
+docstring or from §2.2's own summary:
+
+```python
+anchor_table_full = torch.zeros(vocab_size_total, d_state)
+anchor_table_full[anchor_train_ids] = init_table   # frame-potential-inited, 107 rows only
+self.anchor_table = nn.Embedding(vocab_size_total, d_state)
+```
+
+**This is a load-bearing correction to a design idea this draft
+initially considered and discarded before writing §10.3**: anchor rows
+for entities OUTSIDE the 107-name train pool (every held-out entity,
+every non-name vocab token) are initialized to the **exact zero
+vector**, not a random unit direction. A held-out entity's own cosine
+to its own (never-trained, never-touched-by-gradient — confirmed by
+the existing NaN-injection smoke, §2.2/§5 smoke 4) anchor row is
+therefore **degenerate**: `F.cosine_similarity` against an exact-zero
+vector returns exactly `0.0` (its internal `eps`-clamped denominator
+makes this well-defined, not `NaN` — verified this session, one-line
+CPU check, not assumed from the PyTorch docs), for every held-out
+entity, always, regardless of the held-out entity's own raw key. Using
+"held-out entity vs. its own anchor row" as an empirical null sample
+(an idea this draft considered first) would therefore silently measure
+a constant, not a distribution — a real near-miss, caught by reading
+the actual init code rather than trusting the docstring, which is
+exactly the failure mode the project's "verify before claiming" rule
+exists to catch. **§10.3's actual design uses a different, non-degenerate
+empirical reference (mismatched real anchor rows, never an entity's own
+zero-valued held-out row) for exactly this reason.**
+
+### 10.2 Metric redesign — `r_e` measured directly, never backed out through the blend
+
+**Old design (§3.7, unchanged; Rev 6, rejected):** log `a_e` (post-blend,
+λ-dependent), then either threshold it flat (§3.7 original) or invert it
+through the nonlinear `a_e(λ,r)` formula to recover `r_e` (Rev 6) —
+both routes depend on `λ` and on the `‖anchor‖=1` assumption, and the
+inversion route additionally has a disclosed Jensen's-gap issue
+(§9.7.10 item 5).
+
+**New design (this wave): log `r_e` directly, upstream of the blend,
+per entity, per resample:**
+
+```
+r_e = mean over n_resamples of  cos( k_eff_raw[e] (pre-blend, this resample), anchor_table.weight[e] )
+```
+
+computed via `F.cosine_similarity` exactly as
+`measure_full_pool_alignment` already does for `a_e`
+(`key_anchoring.py` L690) — same function, same resampling machinery,
+**pointed at the pre-blend tensor instead of the post-blend one**. This
+is a one-line change to an already-audited eval-only code path, not new
+arithmetic. Two direct consequences:
+
+1. **`r_e` does not depend on `λ` at all** — it is measured before the
+   blend touches anything, so there is no λ-degeneracy to correct for
+   (the entire problem §9.6/§9.7 existed to fix is structurally absent
+   from this metric, not patched around).
+2. **`r_e` does not depend on `‖anchor_table.weight[e]‖`** —
+   `F.cosine_similarity` normalizes both its arguments internally
+   (confirmed by reading `torch.nn.functional.cosine_similarity`'s
+   own normalization step, not assumed), so an anchor row at norm 1.34
+   (the attack's plausible value) or any other norm produces the
+   **identical** `r_e` as a unit-norm row would. The attack's finding 3
+   is closed by construction for this metric, not merely disclosed.
+
+`a_e` (post-blend) is **still logged too** — it remains a required
+result field for backward comparability with §3.7/§9.6/§9.7's own
+tables — but it is demoted to a secondary, diagnostic quantity;
+`r_e` is the new registered driver of `engaged_frac`.
+
+#### 10.2.1 Anchor-row norm instrumentation (closes attack finding 3/4 as a disclosed diagnostic, no longer load-bearing)
+
+Even though `r_e` no longer depends on anchor-row norm, the norm itself
+is still logged — both because it is now genuinely free (the parameter
+is already in memory at every checkpoint write, §9.7.5(a)'s own
+costing) and because a large, unexplained norm drift is independently
+interesting training-dynamics information the project has never
+actually measured:
+
+```
+anchor_row_norms = anchor_table.weight[anchor_train_ids].norm(dim=-1)   # (107,) vector
+```
+
+logged as **both** the full 107-vector and its mean/min/max, at
+**every** admission checkpoint (not final-only — cheap, and it lets the
+write-up show a norm-drift trajectory the way λ already has one). This
+closes attack finding 3/4 (the `m≈1.34` scenario) empirically and
+permanently: whatever the true anchor-row norms turn out to be, they
+are now on the record, for the first time in this design's history.
+
+### 10.3 The engagement test — derived before any of this wave's data exists
+
+**Null hypothesis, per trained entity `e`:** `k_eff_raw[e]`'s direction
+carries no anchoring-mechanism-attributable pull toward
+`anchor_table.weight[e]`'s direction — i.e., `r_e` is no different from
+the cosine between `e`'s raw key and **some anchor row it was never
+trained to align with**.
+
+#### 10.3.1 Primary test — closed-form null, zero data dependency
+
+For a direction drawn independently of a fixed reference axis in
+`R^{d_state}`, `d_state=64`, the exact null distribution of the cosine
+is `(1+r)/2 ~ Beta((d_state-1)/2, (d_state-1)/2) = Beta(31.5, 31.5)`
+(a standard closed-form fact, not an asymptotic approximation — the
+`Var(r) = 1/d_state` identity §9.7.3 already used and the attack round
+did **not** fault is the second moment of this same exact
+distribution). At `d_state=64` this is close to, but not exactly,
+Gaussian — and the test needs to resolve a Bonferroni-level tail
+(`α/107 ≈ 0.00047`), where the Gaussian approximation's own error is
+largest. **This wave uses the exact Beta CDF for the p-value, not the
+Gaussian z-approximation** (`scipy.stats.beta.cdf`; the familiar
+`z = r·√64` framing is retained only as a disclosed, secondary,
+intuition-level cross-check, never as the number a threshold is pinned
+to) — the kind of "use the exact structural threshold, not a
+tolerance/approximation copied from elsewhere" discipline this
+project's own Hard Rules already require for integer/structural
+checks, applied here to a continuous one.
+
+Per-entity one-sided p-value (directional: the hypothesis is "moved
+*toward*," not "moved"):
+`p_e = 1 - Beta_CDF( (1+r_e)/2 ; 31.5, 31.5 )`.
+
+**Multiple-comparisons correction — pre-registered, no menu:**
+Benjamini–Hochberg step-up at `q=0.05` across the **107** simultaneous
+per-entity tests (sort `p_(1) ≤ ... ≤ p_(107)`; find the largest `k`
+with `p_(k) ≤ (k/107)·0.05`; declare entities `1..k` "engaged"). BH is
+the pre-registered **primary** procedure (standard for this class of
+many-simultaneous-test problem, adaptive to effect size); the
+**Bonferroni family-wise cross-check** (`z_crit = Φ⁻¹(1-0.05/107) ≈
+3.305` one-sided, i.e. `r ≥ 3.305/8 ≈ 0.413` under the Gaussian
+approximation) is **always reported alongside**, never substituted in
+post-hoc. Both numbers are fully computable **today**, from `n=107`
+and `d_state=64` (registered since before Wave 1) and a generic
+`α=q=0.05` (not tuned to this problem in any way) — there is nothing
+left for a reader, an attack round, or an orchestrator to choose once
+this wave's data exists, closing attack finding 1 and 2 completely
+rather than replacing a 3-item menu with a 1-item one.
+
+#### 10.3.2 Secondary validation — an empirical, in-run null (never a substitute, a disclosed consistency check)
+
+The exact-Beta null in §10.3.1 assumes raw keys behave like
+independent random directions relative to a non-corresponding anchor.
+This is checkable **directly, from data this wave produces, at zero
+extra training cost**, rather than left as an assumption a fourth time.
+
+**Construction — mismatched anchor pairs, not an entity's own held-out
+row (§10.1.1 explains why the latter is degenerate):** at the final
+checkpoint, compute the full `107 × 107` cosine matrix
+`C[i,j] = cos(mean-resample raw key of trained entity i, anchor_table.weight[j])`
+— one `matmul` on already-available, already-normalized tensors, no
+new forward pass. The **diagonal** `C[e,e]` reproduces `r_e` (§10.2);
+the **off-diagonal**, `107×106 = 11,342` entries `C[i,j], i≠j`, is a
+large empirical sample of "a real, trained raw key's cosine against a
+real, trained anchor it was never pushed toward" — the actual null
+hypothesis, measured on the real (possibly non-uniform,
+non-idealized) raw-key geometry rather than an idealized random
+direction. **Optionally widened, same cost class:** held-out entities'
+raw keys (real, non-degenerate — only their *own* anchor row is zero,
+per §10.1.1) against every trained anchor row adds ≈`106×107 ≈ 11,342`
+more valid null pairs, since a held-out key is guaranteed
+(mechanically, via the M1 bypass's zero-gradient property, §2.2) never
+to have been pulled toward any anchor, trained or not.
+
+**Decision rule — pre-registered, mechanical, both branches specified
+now:** compare the off-diagonal pool's empirical `(mean, SD)` against
+the analytic null's `(0, 0.125)`. If `|mean_off-diag| ≤ 0.03125`
+(`≤ 0.25·σ_chance`) **and** `SD_off-diag ∈ [0.100, 0.156]` (`±25%` of
+`0.125`) — both round, symmetric, pre-committed tolerances, not tuned
+after seeing the number — the exact-Beta test (§10.3.1) is confirmed
+and **remains the reported primary result**. If either tolerance is
+violated, that mismatch is disclosed as a finding in its own right (the
+real raw-key/anchor geometry deviates from the idealized model), **and
+the primary result switches to the empirical permutation p-value**,
+`p_e = (1 + #{(i,j): i≠j, C[i,j] ≥ r_e}) / 11,343` (a standard,
+provably-conservative rank-based p-value), through the **same** BH
+step-up at `q=0.05` — never re-litigated as a fresh judgment call at
+that point, because the switch rule is registered here, before any
+number exists. (Resolution note: at ≈11,342 samples this empirical test
+comfortably resolves p-values below the Bonferroni tail `4.7e-4`
+[floor ≈`1/11,343 ≈ 8.8e-5`], unlike a ~107-sample held-out-own-row
+scheme, which would have floored around `1/108` and been underpowered
+in exactly the regime this test needs resolution — a second, independent
+reason the mismatched-pair construction was chosen over the discarded
+held-out-own-row idea in §10.1.1.)
+
+`engaged_frac_v3(arm, seed) = (# entities declared "engaged" by
+whichever branch is primary) / 107`, routed through the **UNCHANGED**
+§3.5/§3.7 band edges: `≥90%` / `[50%,90%)` / `<50%`.
+
+#### 10.3.3 The hash-lock — strictly stronger than §3.6's own blind
+
+Unlike `BANDS_PINNED.json` (§3.6), which requires 6 completed
+reference-arm runs before it can be written, **every number in
+§10.3.1's primary procedure requires zero data of any kind** — only
+`n_train=107` and `d_state=64` (both fixed since before Wave 1) and the
+generic constant `α=q=0.05`. **This draft's own attack round is
+therefore instructed to run the derivation script itself
+(`rev7_threshold_derive.py`, CPU, <1s) and confirm its output before
+reading anything else in this section** — the mechanical proof (smoke
+item 5, §10.9) that the script's output is identical whether it is run
+in a fresh sandbox with no wave data present or handed an arbitrary
+anchor-arm JSON path it is required to ignore. The output
+(`REV7_THRESHOLD_PINNED.json`: BH q, Bonferroni z_crit, both derived
+constants, a sha256 of the script itself, a timestamp) is written and
+committed **as part of this draft**, not deferred to Wave −1 — there is
+no reason to wait, since nothing in it can change once written.
+
+### 10.4 Scope — which runs this wave produces, which it does not touch
+
+**New data only.** This wave trains fresh cells with the new
+instrumentation (§10.2/§10.3) wired directly into the training loop
+(matching the confirm wave's own upgrade from a separate probe model to
+in-loop instrumentation, §9.6). **The 4 confirm-wave JSONs
+(`experiment-runs/2026-07-05_keyanchor_confirm/.../wkeyanchor-confirm_*.json`)
+and the 12 original Wave-1 JSONs are never reopened, re-read for new
+fields, or rescored** — none of them logged `r_e`, the pairwise cosine
+matrix, or per-row anchor norms, so rescoring them under §10.3 is not a
+policy choice this draft declines to make, it is data that was never
+collected and cannot be recovered from an archived scalar (`a_e`)
+that already discarded the information §10.3 needs. §9.5's UNASSIGNABLE
+verdict, §9.6's Outcome C, and §9.7/`KEYANCHOR_REV6_ATTACK.md`'s
+rejection all stand, untouched, as the historical record.
+
+### 10.5 Arms
+
+**Candidate (d) re-run — global scalar λ, full new instrumentation,
+NEW seeds (not a reproduction of 0/1/2 a third time — §9.6's own
+disclosure flagged that reusing seed integers does not add a fresh
+statistical sample):**
+- K=32, seeds `{10, 11, 12}` — 3 runs, 20,000 steps each.
+- K=16, seed `10` — 1 spot-check run (supplementary, per §3.5's own
+  K=32 scope note — not separately outcome-lettered, matching §9.6's
+  precedent).
+
+**Candidate (d′) — per-entity learned λ (NEW arm, §10.5.1):**
+- K=32, seeds `{20, 21, 22}` — 3 runs, 20,000 steps each. K=16 is
+  **not** run for this arm (K=16 already saturates `h4≈1.0` at
+  baseline — no headroom left to distinguish a mechanism effect there;
+  K=32 is the only regime where this design has ever shown daylight
+  between candidates, §9.4).
+
+**Reference arms — reuse `BANDS_PINNED.json` if its mechanical
+validation still passes (§3.6's own launcher re-hash, unchanged,
+exactly as §9.6 already did with zero new reference-arm spend):**
+`BANDS_PINNED.json`'s post-NS-drift bands are **not load-bearing for
+this wave's primary question** (§10.3's engagement test does not
+consult them at all — it is derived independently of any reference-arm
+data) — they only feed the same non-gating §3.5 B1/B2 sanity context
+§9.6 already reported. **Contingency, registered now, only if the
+mechanical hash-check fails** (e.g., a reference JSON was moved,
+truncated, or the harness schema changed): launch exactly **2** fresh
+reference arms, **1 new seed per K** (seed 4), and fold them into the
+existing 3-seed set per K (`n=4`, `df=3`, tighter RSE than the
+registered n=3 formula per the same argument §3.6 already used for
+n=2→n=3) — never a full 6-arm re-derivation from scratch, since 3 valid
+reference seeds per K already exist and are not invalidated by this
+wave's own metric change.
+
+**Gate-1-style pre-launch probe for the new architecture only:**
+candidate (d′), K=32, 5,000 steps, 1 run — the same fixed-diagnostic
+pre-spend check §9.6 already ran for candidate (d) (predicted `h4 ≥
+0.8` bar); candidate (d)'s own architecture is unchanged from Wave 1/
+the confirm wave, so its Gate 1 read is **not** re-run (would be
+re-measuring a gate that already passed twice on identical code).
+
+#### 10.5.1 The per-entity-λ decision — why both (a) and (b), not either/or
+
+The attack's own framing offered a choice: (a) redesign the metric
+around what CAN vary under a global λ (`r_e`, done — §10.2/§10.3), or
+(b) add a per-entity `λ_e` variant so differential engagement is
+structurally possible. **This draft does both, and they are not
+redundant:**
+
+- (a) alone fixes how honestly candidate (d)'s *existing* mechanism is
+  measured — it removes the anchor-norm assumption, the λ-dependence,
+  and the menu-laundering risk. But per the attack's own §5, under a
+  **single global scalar** λ, `r_e`'s only source of per-entity
+  variation is **pre-existing, incidental correlation between two
+  independently-trained free parameters** (the raw-key subspace and
+  the anchor row) — the intervention itself cannot differentially
+  pull one entity harder than another. A clean measurement of that
+  quantity is real progress (it answers "is candidate (d)'s r_e
+  distribution distinguishable from chance" honestly, for the first
+  time) but it **cannot** answer whether §3.7's bimodal
+  recruited-vs-not framing is even a coherent target for this class of
+  mechanism — it structurally never could differentiate, engaged
+  metric or not.
+- (b) is the only way to test that question directly: give the
+  mechanism **genuine per-entity capacity** and see what SGD does with
+  it. Two outcomes are both informative and neither is assumed: real
+  differential engagement (a positive, structural finding beyond
+  anything Rev 6 could produce even in its best case), or convergence
+  to a near-uniform `λ_e` despite full freedom (a **stronger** null
+  than anything (a) alone could show — it rules out "parameter sharing
+  artifact" as the explanation for uniform low engagement, closing the
+  attack's deepest point definitively in either direction).
+
+**Marginal cost of (b): 3 more K=32 runs (~1.0–1.1 GPU-h, §10.7) —
+cheap relative to the diagnostic value, and it is kept as a clearly
+separate, independently-labeled arm** (§10.6) so nothing about
+candidate (d)'s own re-run result depends on what (d′) shows, or vice
+versa.
+
+**Architecture — a minimal, audited extension, not a new mechanism:**
+
+```python
+# Replaces self.anchor_lambda_raw (a single nn.Parameter) with a per-entity table,
+# same masked gather/scatter/held-out-bypass pattern as anchor_table itself (sec 2.2):
+self.anchor_lambda_table = nn.Embedding(vocab_size_total, 1)     # init raw=0.0 -> lambda_e=0.5 for all e
+lam_e = torch.sigmoid(self.anchor_lambda_table(key_ids[t_idx]).squeeze(-1))   # (len(t_idx),), NOT a scalar
+sub_blend = F.normalize((1.0 - lam_e[:, None]) * k_eff_raw[t_idx] + lam_e[:, None] * anchor_weight[key_ids[t_idx]], dim=-1)
+```
+
+Held-out rows: **identical bypass to §2.2** — the masked gather/scatter
+never reads `anchor_lambda_table` for a held-out row in either
+direction, so the existing NaN-injection unit test (§2.2/§5 smoke 4)
+extends verbatim (re-run fresh for this architecture, not assumed to
+still pass, §10.9 item 9). Init matches candidate (d)'s own
+`λ=0.5` starting point exactly, so any divergence in the final `λ_e`
+distribution is attributable to training, not to a different starting
+condition. Param cost: **+107 scalars** (four vocab-length-embedding
+rows' worth of memory, ×1 column instead of ×64 — negligible,
+`<1KB`), functionally free next to the existing 3.22M-param anchor
+table.
+
+**New checks, registered now:**
+- **Per-entity `λ_e` interior-band fraction** — extends §3.2's 3-part
+  rule (final value + last-5-point mean + range `<0.1`) **per entity**
+  instead of to one shared scalar; reports the fraction of the 107
+  entities landing in the `[0.2,0.8]` interior band, mirroring
+  `engaged_frac`'s own fraction framing.
+- **Spearman rank correlation, final `λ_e` vs. final `r_e`, across the
+  107 entities** — two-sided, `α=0.05`, a **single** test (no BH
+  correction needed — one test per seed, not 107) asking whether the
+  per-entity blend weight tracks per-entity raw-key/anchor alignment in
+  either direction (more anchor reliance for poorly-aligned entities,
+  or less — sign not pre-specified, either is informative).
+- **Hartigan's dip test, formalized** (the attack's §9.7.10 item 5
+  explicitly flagged Rev 6's max-gap check as "informal... a candidate
+  for a proper Hartigan's dip statistic if more rigor is wanted") — run
+  on both the `λ_e` distribution (candidate (d′) only, where bimodality
+  is structurally possible) and the `r_e` distribution (both (d) and
+  (d′)), `α=0.05` pre-registered, implementation validated against a
+  known-bimodal and a known-unimodal synthetic sample **before** it
+  touches real data (§10.9 item 11).
+
+### 10.6 Outcome map — routing stated exactly
+
+**Seed-aggregation rule, registered now (a real gap the original §3.7
+left unstated, since all 4 confirm-wave legs happened to agree
+unanimously and this never had to be resolved — closed here before it
+can become a second post-hoc judgment call):** an arm's engagement
+band is the band that **≥2/3 of its K=32 seeds** land in; Outcome A
+itself still requires literal **3/3** per §3.5's own unchanged text
+(items 1–6 + λ-interior + `engaged_frac_v3 ≥90%`, all 3/3) — the 2/3
+rule governs Outcome A″ and Outcome C assignment only, matching the
+convention §3.2 already uses for λ-band labeling.
+
+**Candidate (d) re-run — new seeds, new instrumentation, same
+mechanism as §9.6:**
+
+| `engaged_frac_v3` (≥2/3 seeds) | Item 5 / item 6 / λ-interior / h4 (3/3, unchanged bars) | Routed Outcome |
+|---|---|---|
+| ≥90% (3/3 required) | all pass, 3/3 | **A** — full mechanistic confirmation, headline |
+| [50%,90%) | pass | **A″** — partial anchoring, named, no headline |
+| <50% | pass | **C** — mechanism not engaged (reconfirms §9.6, now immune to the anchor-norm/λ-degeneracy objections that forced Rev 6's rejection) |
+| any band | items 1–6 fail (3/3) | **C** regardless of `engaged_frac_v3` (unchanged §3.5 rule) |
+
+**Candidate (d′) — per-entity λ, its own independent routing, never
+merged into (d)'s own Outcome:**
+
+| `engaged_frac_v3(d′)` vs. `engaged_frac_v3(d)` | Dip test / Spearman (≥2/3 seeds significant) | Routed finding |
+|---|---|---|
+| higher band than (d) | and/or significant | **A(d′)** — per-entity capacity is used; differential engagement demonstrated (new, positive, structural finding) |
+| same band as (d) | not significant | **C′** — structural null: even given genuine per-entity freedom, SGD does not differentiate (a stronger, capacity-controlled negative than (a) alone could produce) |
+| any other combination | mixed | **Inconclusive/mixed** — reported in full with both pieces of evidence, no forced binary call (mirrors §3.6's own UNRESOLVABLE discipline) |
+
+### 10.7 Budget
+
+| Item | Cells | New training runs | Est. GPU-h |
+|---|---|---|---|
+| Wave −1 CPU smoke suite (12 items, §10.9) + `REV7_THRESHOLD_PINNED` derivation | — | 0 | **0** |
+| Gate-1 probe, candidate (d′) only, K=32, 5,000 steps | 1 | 1 | ~0.12 |
+| Candidate (d) re-run, K=32, seeds {10,11,12}, full instrumentation | 3 | 3 | ~1.05 |
+| Candidate (d) K=16 spot check, seed 10 | 1 | 1 | ~0.25 |
+| Candidate (d′), per-entity λ, K=32, seeds {20,21,22} | 3 | 3 | ~1.05 |
+| **Mandatory baseline** | | **8** | **~2.5** |
+| Reference re-pin contingency (only if `BANDS_PINNED` hash-check fails), 1 seed × K∈{16,32} | ≤2 | ≤2 | ~1.7 |
+| Seed contingency (either arm lands in an ambiguous [50,90%) band, +2 seeds, one iteration) | ≤2 | ≤2 | ~0.6 |
+| **All-conditionals-max** | | **≤12** | **~4.8** |
+
+Widened by the harness's own ×1.3–1.5 unmeasured-code-path convention
+(`_PER_STEP_S_ANCHOR`, §5): baseline ≈3.3–3.75, all-conditionals-max
+≈6.2–7.2. **Registered nominal ceiling for this wave: ≤12 GPU-h** —
+generous headroom above the ~6.2–7.2 realistic worst case, reserved for
+an uninstrumented crash/re-run, matching this design's own established
+practice of costing a wave above its point estimate (§5).
+
+**Program arithmetic (states the number, doesn't hide it):** anchoring
+program spend so far ≈**51.5/80 GPU-h** against
+`DELTANET_RD_EXACTNESS_DESIGN.md`'s own 80 GPU-h cap
+(`KEY_ANCHORING_DESIGN.md` §5; consistent with `STATE.md`'s own ≈51/80
+figure). This wave's registered ceiling (≤12) brings the worst case to
+**≤63.5/80**, leaving **≥16.5 GPU-h reserve** under the exactness
+program's cap — comfortable room for either of the other two
+DECISION-PENDING options (`STATE.md`: a K=48 F-geo-3 extension, or a
+different direction) without threatening the 80 GPU-h ceiling, and no
+call on the separate `SCALE_TRANSFER_DESIGN.md` 300 GPU-h program,
+which this wave does not touch.
+
+### 10.8 Falsification map
+
+| Result | What it means |
+|---|---|
+| Candidate (d) `engaged_frac_v3` ≥90%, 3/3 seeds, items 1–6/λ/h4 all pass | **Outcome A** — the key-anchoring interaction hypothesis (§1) is confirmed for the first time at full mechanistic tier; the behavioral h4 gain is attributable to majority-entity key stabilization |
+| Candidate (d) `engaged_frac_v3` in [50,90%), ≥2/3 seeds | **Outcome A″** — partial anchoring, real but incomplete; follow-on is understanding *why* engagement is partial (capacity, LR, training length — §9.7.8's own open question, now answerable with real per-entity data instead of an inverted proxy) |
+| Candidate (d) `engaged_frac_v3` <50%, ≥2/3 seeds | **Outcome C reconfirmed** — this time immune to the three specific objections that sank Rev 6 (no menu, no anchor-norm assumption, no λ-degeneracy) — a genuinely stronger negative than §9.6's own, not a repeat of it |
+| Candidate (d′) shows real differential engagement (band shift and/or significant dip-test/Spearman) | **Outcome A(d′)** — the per-entity-capacity hypothesis is correct: global λ was the limiting factor, not the anchoring idea itself; motivates a full-scale per-entity-λ wave as the new PRIMARY candidate |
+| Candidate (d′) converges to near-uniform `λ_e`, no significant differentiation | **Outcome C′** — the uniform/incomplete engagement pattern is structural, not a parameter-sharing artifact; closes attack finding 5 in the negative direction, with real evidence rather than an inference |
+| `REV7_THRESHOLD_PINNED.json`'s hash-lock smoke (§10.9 item 5) fails — the derivation script's output changes when handed a data path it should ignore | **Design-invalidating** — the blind this section is built around is broken before any run launches; this section itself would need to be attacked and revised again, not the anchor-arm data |
+| Anchor-row norms (§10.2.1) drift far from 1 in either direction | Disclosed diagnostic only — does **not** invalidate `r_e`/`engaged_frac_v3` (norm-invariant by construction), but is itself a reportable training-dynamics finding never previously measured |
+
+### 10.9 Wave −1 smoke suite (all CPU, all free, itemized per §5's own
+countable-list discipline)
+
+1. **`r_e` norm-invariance positive control** — synthetic anchor rows
+   scaled by `{1, 5, 0.1}`; assert logged `r_e` is bit-identical across
+   all three (proves the norm-invariance claim in the actual code path,
+   not just in algebra).
+2. **Anchor-row norm logging correctness** — construct a table with a
+   known non-unit-norm row; assert the logged norm matches to float
+   precision.
+3. **Held-out-row zero-init verification** — read
+   `anchor_table_full` at non-train rows post-construction, assert
+   exactly `torch.zeros`; assert `F.cosine_similarity` against an
+   exact-zero row returns exactly `0.0`, never `NaN` (verifies §10.1.1's
+   finding, doesn't just cite it).
+4. **Mismatched-pair null-pool construction** — a tiny synthetic
+   5-entity example with known geometry; assert the pairwise-cosine
+   matrix's diagonal/off-diagonal split matches hand-computed values.
+5. **`REV7_THRESHOLD_PINNED` zero-data-dependency proof** — run
+   `rev7_threshold_derive.py` twice: once in a fresh sandbox with no
+   wave JSON present, once handed an arbitrary/adversarial anchor-arm
+   JSON path it must ignore; assert byte-identical output both times.
+6. **BH-FDR step-up correctness** — run on a synthetic p-value vector
+   with a hand-verified BH cutoff; assert the implementation matches.
+7. **Exact-Beta-vs-empirical decision-rule, both branches exercised** —
+   feed a synthetic null sample deliberately outside the registered
+   `(mean, SD)` tolerance (assert fallback to the empirical branch) and
+   one inside it (assert the analytic branch is used) — proves the
+   registered rule is reachable both ways, not assumed.
+8. **Candidate (d′) forward/backward** — finite loss and finite
+   gradients on every parameter including `anchor_lambda_table`, at a
+   realistic and an adversarial (near-duplicate raw keys) input
+   (mirrors existing smoke 2, new architecture).
+9. **Candidate (d′) held-out bypass + NaN-injection isolation** —
+   re-run fresh, not assumed inherited: all-held-out batch bit-identity
+   to bare geo3, plus NaN planted in every held-out `anchor_lambda_table`
+   row, assert finite gradients everywhere and exact-zero gradient at
+   held-out rows (mirrors existing smokes 3/4).
+10. **Per-entity `λ_e` interior-band-fraction computation** — synthetic
+    107-entity trajectory set with a known interior/non-interior split;
+    assert the computed fraction matches by hand-count.
+11. **Hartigan's dip-test positive control** — a known-bimodal and a
+    known-unimodal synthetic sample; assert correct discrimination at
+    the registered `α=0.05` before trusting it on real `r_e`/`λ_e` data.
+12. **Checkpoint save/reload round-trip** (see §10.10 for why this is
+    now mechanical, not aspirational) — train a tiny stub a few steps,
+    save `anchor_table` (+ `anchor_lambda_table` for (d′)) state dicts,
+    reload, assert exact tensor equality; wave-closure gate refuses to
+    mark the wave complete without every cell's checkpoint passing this
+    check.
+
+### 10.10 Checkpoints — mandatory, mechanical, closes the "no checkpoint exists anywhere" gap for good
+
+Both prior waves left **zero** checkpoints anywhere (SSD, box, or
+git) — the attack round's `m≈1.34` scenario was unverifiable "not
+because closing it was expensive, but because nobody wrote the file."
+This wave fixes that as a **mechanical harness gate, matching §3.6's
+own precedent, not a stated intention a third artifact could silently
+skip**:
+
+1. **The writer.** Every cell in this wave writes, at minimum,
+   `anchor_table.state_dict()` (and, for candidate (d′),
+   `anchor_lambda_table.state_dict()`) to a checkpoint file at the
+   final step (27KB negligible; also at every admission checkpoint for
+   the anchor-row-norm/λ_e trajectory, still negligible) — to
+   `/root/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech/<cell_name>/`
+   on the training box, pulled to
+   `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-06_keyanchor_mechanism/checkpoints/`
+   **immediately after each run completes**, not deferred to end-of-wave.
+2. **The gate.** The wave cannot be marked `KEYANCHOR_MECH_CHAIN_DONE`
+   (the confirm wave's own completion-marker convention) until a
+   readout-time assertion confirms every cell's checkpoint file exists
+   **and** round-trip-loads (smoke item 12, extended to real run
+   output) — refusal, not a silent skip, exactly the §3.6 pattern.
+3. **The readout.** Any future audit of this wave's anchor-row norms or
+   `λ_e` values reads the checkpoint directly — no future attack round
+   should ever again have to report "no checkpoint exists anywhere" for
+   this design.
+
+### 10.11 Attack surface — 5 pre-answered
+
+1. **"This is attempt #3 at the same claim (Wave 1 → confirm wave →
+   Rev 6 → this) — what makes it admissible where Rev 6 wasn't?"**
+   Answer: everything load-bearing is derived **before** any of this
+   wave's data exists, with a stronger (zero-data-dependency, not
+   merely reference-arm-gated) blind than §3.6 itself requires
+   (§10.3.3); the prior waves' JSONs are never reopened or rescored —
+   this wave's claim rests entirely on fresh data collected under the
+   new instrumentation (§10.4); and the metric is built for the regime
+   the mechanism actually operates in (interior λ, no back-solve
+   through a degenerate blend formula, no anchor-norm assumption) —
+   not a fourth re-derivation of a number in the same compressed
+   `a_e`-space that caused the problem in the first place.
+2. **"You still get to pick BH vs. Bonferroni, or the empirical-vs-analytic
+   fallback rule — isn't that the same laundering risk as z=2 vs. z=3?"**
+   No: BH is registered as the single primary procedure with Bonferroni
+   as an always-reported (never substituted) cross-check — there is no
+   post-hoc choice between them. The empirical/analytic fallback rule
+   is a **mechanical, symmetric, pre-registered tolerance check**
+   (§10.3.2) exercised in both directions by a dedicated smoke (item
+   7) before any real data is read — the rule, not a reader, decides
+   which branch is primary, and the decision criterion itself needs no
+   anchor-arm data to evaluate.
+3. **"Candidate (d′) is a whole new architecture — doesn't that risk
+   new bugs rather than resolving the old question?"** Acknowledged
+   and mitigated three ways: it is a one-line indexing change to the
+   exact same masked gather/scatter/held-out-bypass code path already
+   audited for the scalar-λ case (§2.2), not a new mechanism; it is
+   kept as a separate, independently-labeled arm (§10.6) whose result
+   never touches candidate (d)'s own; and it gets its own full smoke
+   suite (items 8–11) before any GPU spend, per this project's own
+   audit-before-run rule.
+4. **"Why trust checkpoint-saving this time when it was skipped
+   twice?"** It is now a mechanical writer/gate/readout triple
+   (§10.10), the same enforced-refusal class as `BANDS_PINNED`'s own
+   blind gate (§3.6) — not a stated intention, which is exactly the
+   class of thing that was skipped twice before.
+5. **"Does closing this wave quietly rescore the confirm wave's
+   Outcome C or Rev 6's rejection after the fact?"** No — both stand,
+   untouched, as historical record (§10.4). This wave produces its own
+   fresh data and its own fresh Outcome assignment (§10.6/§10.8); if it
+   also lands `engaged_frac_v3 <50%`, that **confirms** (does not
+   merely repeat) Outcome C under a metric immune to the specific
+   objections that forced Rev 6's rejection — a null that survives a
+   harder, better-instrumented test is stronger evidence, not a
+   redundant re-check, and it is reported as such either way.
+
+---
+
 ## Reproducibility pointers
 
 - This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 5**,
