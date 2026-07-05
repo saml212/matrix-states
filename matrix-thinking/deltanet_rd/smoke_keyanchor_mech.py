@@ -392,9 +392,11 @@ def smoke_12_checkpoint_round_trip():
     }
     ok = True
     with tempfile.TemporaryDirectory() as tmp:
+        good_paths = []
         for label, payload in (("candidate (d)", payload_d), ("candidate (d')", payload_dprime)):
             path = os.path.join(tmp, f"{label}.pt")
             torch.save(payload, path)
+            good_paths.append(path)
             reloaded = torch.load(path, weights_only=True)
             this_ok = all(
                 torch.equal(payload[k], reloaded[k]) if torch.is_tensor(payload[k])
@@ -402,8 +404,43 @@ def smoke_12_checkpoint_round_trip():
                 for k in payload)
             print(f"    {label}: round-trip exact-equal={this_ok} (keys: {sorted(payload.keys())})")
             ok = ok and this_ok
-    _report("smoke 12: checkpoint save/reload round-trip -- exact tensor equality (both candidate "
-            "(d) and (d') payload schemas)", ok)
+
+        # The gate itself (ka.gate_checkpoint_round_trip) must PASS both
+        # well-formed payloads...
+        gate_good = ka.gate_checkpoint_round_trip(good_paths)
+        print(f"    gate on well-formed payloads: pass={gate_good['pass']} (expect True)")
+        ok = ok and gate_good["pass"]
+
+        # ...and REFUSE a shape impostor (e633862 audit fold-in 2): a
+        # payload identical in keys/finiteness but with d_state=32 rows --
+        # 107x32 instead of 107x64. Before the shape leg was added, this
+        # impostor passed the gate silently.
+        impostor = {
+            "step": 2000,
+            "anchor_train_ids": torch.arange(10, 10 + n_train),
+            "anchor_table_trained_rows": torch.randn(n_train, 32),   # WRONG d_state
+            "anchor_lambda_raw": torch.tensor(0.3),
+        }
+        imp_path = os.path.join(tmp, "impostor_107x32.pt")
+        torch.save(impostor, imp_path)
+        gate_imp = ka.gate_checkpoint_round_trip([imp_path])
+        imp_refused = not gate_imp["pass"] and any("shape_mismatch" in reason
+                                                     for _, reason in gate_imp["bad"])
+        print(f"    gate on 107x32 impostor: refused={imp_refused} "
+              f"(bad={gate_imp['bad']}; expect a shape_mismatch refusal)")
+        ok = ok and imp_refused
+
+        # Wrong-shaped lambda table ((n,) instead of (n,1)) must refuse too.
+        impostor2 = dict(payload_dprime)
+        impostor2["anchor_lambda_table_trained_rows"] = torch.randn(n_train)   # (n,), not (n,1)
+        imp2_path = os.path.join(tmp, "impostor_lambda_flat.pt")
+        torch.save(impostor2, imp2_path)
+        gate_imp2 = ka.gate_checkpoint_round_trip([imp2_path])
+        imp2_refused = not gate_imp2["pass"]
+        print(f"    gate on (n,)-shaped lambda-table impostor: refused={imp2_refused} (expect True)")
+        ok = ok and imp2_refused
+    _report("smoke 12: checkpoint save/reload round-trip + gate shape checks (well-formed passes; "
+            "107x32 and flat-lambda impostors refused)", ok)
 
 
 # ---------------------------------------------------------------------------
@@ -453,10 +490,113 @@ def smoke_13_zero_collision_manifest():
             "waves, is_done() False pre-launch", ok)
 
 
+# ---------------------------------------------------------------------------
+# audit smoke F1 (e633862 audit FATAL 1): the Gate-1 probe's WRITER path and
+# the gate's READER default must be the SAME executed string -- computed
+# equality through the real functions (out_path + the manifest's own spec +
+# main()'s f"wave{wave}" convention at the argparse-default --out-dir),
+# never a code-read. Before the fix, the reader default was a hand-typed
+# sibling path (keyanchor_mech_gate1/gate1_probe.json) that no writer ever
+# wrote to -- the chain could not complete as committed.
+# ---------------------------------------------------------------------------
+
+def smoke_f1_gate1_writer_reader_path_seam():
+    spec = rdx.keyanchor_mech_gate1_manifest()[0]
+    # Reconstruct the writer path EXACTLY as main() computes it for
+    # --wave keyanchor-mech-gate1 at the argparse default --out-dir:
+    # out_dir = os.path.join(args.out_dir, f"wave{args.wave}").
+    writer_path = rdx.out_path(os.path.join(rdx.DEFAULT_OUT_DIR, "wavekeyanchor-mech-gate1"), spec)
+    reader_default = rdx.KEYANCHOR_MECH_GATE1_JSON_DEFAULT
+    equal = writer_path == reader_default
+    print(f"    writer path (executed): {writer_path}")
+    print(f"    reader default:         {reader_default}")
+    print(f"    EQUAL: {equal}")
+    # The probe spec must also carry the full Rev-7.1 instrumentation
+    # (audit fold-in 1 -- previously only claimed in a comment).
+    rev7_on = spec["rev7_engagement"] is True and spec["drift_probe"] is True
+    print(f"    gate1 spec rev7_engagement+drift_probe both True: {rev7_on}")
+    _report("smoke F1: Gate-1 writer path == reader default (executed equality) + probe spec "
+            "carries rev7_engagement", equal and rev7_on)
+
+
+# ---------------------------------------------------------------------------
+# audit smoke F2 (e633862 audit FATAL 2): validate_bands_pinned must REFUSE
+# a pin whose STORED bands dict was tampered even when every referenced
+# reference JSON still hash-matches (the pre-fix validator only re-hashed
+# the reference files, so engaged_k/per_seed edits inside the pin itself
+# passed silently). Fully self-contained: builds synthetic reference JSONs
+# + a legit pin in a tempdir, then tampers it three ways.
+# ---------------------------------------------------------------------------
+
+def smoke_f2_bands_pinned_content_tamper():
+    import json
+
+    def _write_pin(tmp):
+        drifts = [0.87, 0.88, 0.86]
+        ref_paths = {32: []}
+        for i, v in enumerate(drifts):
+            p = os.path.join(tmp, f"ref32_s{i}.json")
+            with open(p, "w") as f:
+                json.dump({"complete": True, "steps_completed": 20000,
+                           "checkpoints": [{"drift_probe": {"post_ns": {"mean": v},
+                                                              "pre_ns": {"mean": v}}}]}, f)
+            ref_paths[32].append(p)
+        bp = os.path.join(tmp, "BANDS_PINNED.json")
+        ka.write_bands_pinned(bp, {32: drifts}, {32: 0.9423}, ref_paths)
+        return bp
+
+    def _tamper(bp, mutate):
+        with open(bp) as f:
+            doc = json.load(f)
+        mutate(doc)
+        with open(bp, "w") as f:
+            json.dump(doc, f)
+
+    ok = True
+    with tempfile.TemporaryDirectory() as tmp:
+        bp = _write_pin(tmp)
+        legit_passes = ka.validate_bands_pinned(bp) is not None
+        print(f"    untampered synthetic pin validates: {legit_passes} (expect True)")
+        ok = ok and legit_passes
+
+        # (a) tampered engaged_k -- the audit's own reproduction case.
+        _tamper(bp, lambda d: d["bands"]["32"].__setitem__("engaged_k", 0.123456))
+        engaged_k_refused = ka.validate_bands_pinned(bp) is None
+        print(f"    tampered engaged_k REFUSED: {engaged_k_refused} (expect True; passed "
+              f"silently before the F2 fix)")
+        ok = ok and engaged_k_refused
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bp = _write_pin(tmp)
+        # (b) tampered per_seed input inside the pin.
+        _tamper(bp, lambda d: d["bands"]["32"]["per_seed"].__setitem__(0, 0.5))
+        per_seed_refused = ka.validate_bands_pinned(bp) is None
+        print(f"    tampered per_seed REFUSED: {per_seed_refused} (expect True)")
+        ok = ok and per_seed_refused
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bp = _write_pin(tmp)
+        # (c) tampered ceiling: self-consistent under re-derivation (the
+        # re-derivation READS the stored ceiling), so it needs the caller-
+        # provided registered-ceiling cross-check to catch -- exactly why
+        # gate_bands_pinned now passes ceiling_by_k.
+        _tamper(bp, lambda d: (d["bands"]["32"].__setitem__("ceiling", 0.5),
+                                d["bands"]["32"].__setitem__("unresolvable", True)))
+        without_ceilings = ka.validate_bands_pinned(bp) is not None
+        with_ceilings = ka.validate_bands_pinned(bp, ceiling_by_k={32: 0.9423}) is None
+        print(f"    tampered ceiling: passes WITHOUT registered ceilings={without_ceilings} "
+              f"(disclosed limitation), REFUSED WITH them={with_ceilings} (expect True, True)")
+        ok = ok and without_ceilings and with_ceilings
+
+    _report("smoke F2: BANDS_PINNED stored-content tamper refusal (engaged_k, per_seed; ceiling "
+            "via the registered-ceiling cross-check)", ok)
+
+
 def main() -> int:
     print("=" * 70)
     print("smoke_keyanchor_mech.py -- KEY_ANCHORING_DESIGN.md sec 10.9 Wave -1 smoke suite "
-          "(items 1-7,10-13; items 8-9 are in smoke_key_anchoring.py's smoke_13/14, fla-required)")
+          "(items 1-7,10-13; items 8-9 are in smoke_key_anchoring.py's smoke_13/14, fla-required) "
+          "+ e633862 audit-regression smokes F1/F2")
     print("=" * 70)
     smoke_1_r_e_norm_invariance()
     smoke_2_anchor_row_norm_logging()
@@ -469,6 +609,8 @@ def main() -> int:
     smoke_11_dip_test_positive_control()
     smoke_12_checkpoint_round_trip()
     smoke_13_zero_collision_manifest()
+    smoke_f1_gate1_writer_reader_path_seam()
+    smoke_f2_bands_pinned_content_tamper()
     print("=" * 70)
     if FAILURES:
         print(f"FAILED: {FAILURES}", file=sys.stderr)

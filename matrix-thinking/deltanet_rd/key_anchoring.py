@@ -397,6 +397,17 @@ def reference_arm_result_valid(result: dict, expected_steps: int) -> bool:
             and "pre_ns" in drift and "mean" in drift["pre_ns"])
 
 
+def reference_final_drift(result: dict) -> float:
+    """The ONE extraction both the BANDS_PINNED writer (run_deltanet_rd_
+    exactness_sweep.write_bands_pinned_if_ready) and the validate-time
+    re-derivation below use: a reference arm's final-checkpoint post-NS
+    pooled drift mean (sec 3.6's band-derivation input). One definition --
+    a writer/reader extraction seam here would let validate re-derive a
+    DIFFERENT statistic than the one that was pinned (the e633862-audit F1
+    failure mode, applied to field extraction instead of file paths)."""
+    return result["checkpoints"][-1]["drift_probe"]["post_ns"]["mean"]
+
+
 def derive_engaged_bands(per_k_final_drift: dict, ceiling_by_k: dict) -> dict:
     """sec 3.6's band derivation (n=3 per K, Rev 4 -- R3 finding 3):
     engaged_K = mean_ref + 2*s_ref (sample std, n=3, df=2) over the 3
@@ -459,16 +470,33 @@ def write_bands_pinned(path: str, per_k_final_drift: dict, ceiling_by_k: dict,
     return doc
 
 
-def validate_bands_pinned(path: str) -> dict | None:
+def validate_bands_pinned(path: str, ceiling_by_k: dict | None = None) -> dict | None:
     """sec 3.6 launcher-gate requirement (b): anchor cells REFUSE to launch
     unless this file exists AND re-hashing every referenced reference-arm
     JSON matches the recorded hash (a changed reference JSON post-pin is a
-    pin-integrity error, never silently re-derived). Returns the parsed
-    doc on success, None on any validation failure (missing file, missing
-    field, or a hash mismatch) -- callers are responsible for the loud
-    refusal message; this function never raises for an ordinary "not
-    ready yet" state, only for a genuinely malformed file (a bug, not a
-    sequencing issue)."""
+    pin-integrity error, never silently re-derived) AND -- e633862 audit
+    F2 fix, the REV7-pin M1 live-re-derivation pattern applied here -- the
+    STORED bands dict is value-identical to a fresh derive_engaged_bands()
+    re-run over those same (hash-validated) reference JSONs. Before this
+    fix, only the reference files were hash-checked: a tampered engaged_k
+    /per_seed/unresolvable INSIDE the pin itself passed silently, making
+    the 'tamper-evident' claim false for the pin's own load-bearing
+    contents.
+
+    ceiling_by_k (optional): the registered {K: ceiling} constants (e.g.
+    run_deltanet_rd_exactness_sweep.keyanchor_ceiling_by_k()). When given,
+    the stored per-K ceilings must equal them exactly -- closing the one
+    field the content re-derivation alone cannot pin (the re-derivation
+    reads the stored ceiling as its input, so a tampered ceiling would
+    otherwise re-derive self-consistently). Optional so readout-only
+    callers without the sweep module still get the full content check.
+
+    Returns the parsed doc on success, None on any validation failure
+    (missing file, missing field, hash mismatch, bands-content mismatch,
+    or ceiling mismatch) -- callers are responsible for the loud refusal
+    message; this function never raises for an ordinary "not ready yet"
+    state, only for a genuinely malformed file (a bug, not a sequencing
+    issue)."""
     if not os.path.exists(path):
         return None
     with open(path) as f:
@@ -479,6 +507,34 @@ def validate_bands_pinned(path: str) -> dict | None:
             if not os.path.exists(p):
                 return None
             if sha256_of_file(p) != expected:
+                return None
+    # -- F2: content re-derivation. Rebuild per-K final drifts from the
+    # hash-validated reference JSONs (same reference_final_drift extraction
+    # the writer used), re-run derive_engaged_bands with the STORED
+    # ceilings, and require value-identity with the stored bands dict
+    # (json round-trip normalizes container types; floats serialize
+    # losslessly, and the recomputation is the same deterministic float64
+    # arithmetic on the same inputs, so equality is exact, not approximate).
+    try:
+        per_k_final_drift = {}
+        stored_ceilings = {}
+        for K, paths in doc["reference_result_paths"].items():
+            vals = []
+            for p in paths:
+                with open(p) as f:
+                    vals.append(reference_final_drift(json.load(f)))
+            per_k_final_drift[K] = vals
+            stored_ceilings[K] = doc["bands"][K]["ceiling"]
+        rederived = derive_engaged_bands(per_k_final_drift, stored_ceilings)
+        rederived_norm = json.loads(json.dumps({str(K): v for K, v in rederived.items()}))
+        if rederived_norm != doc["bands"]:
+            return None
+    except (KeyError, IndexError, TypeError, AssertionError):
+        return None
+    if ceiling_by_k is not None:
+        for K, expected in ceiling_by_k.items():
+            entry = doc["bands"].get(str(K))
+            if entry is None or entry.get("ceiling") != expected:
                 return None
     return doc
 
@@ -1098,14 +1154,27 @@ def interior_band_fraction_per_entity(per_entity_trajectory: dict,
 def spearman_rank_corr(x: dict, y: dict) -> dict:
     """Two-sided Spearman rank correlation over the shared entity-id keys
     of x and y (e.g. sec 10.5.1's final lambda_e vs final r_e check) --
-    pure torch/Python, no scipy. Ties broken by argsort order (a disclosed
-    simplification vs. textbook average-rank tie handling -- immaterial
-    here since r_e/lambda_e are continuous floats, exact ties are
-    measure-zero). Significance via the standard Fisher z-transform large-
-    n normal approximation (z = atanh(rho)*sqrt(n-3), two-sided p from
-    the normal CDF via math.erf) -- standard practice for Spearman at
-    n>10, no scipy/table lookup needed. A SINGLE test per seed (sec
-    10.5.1: no BH correction -- one test, not 107)."""
+    pure torch/Python, no scipy.
+
+    Tie handling (e633862 audit fold-in 3 -- the earlier docstring claimed
+    ties are "measure-zero", which is FALSE for the data this actually
+    runs on: fp32 quantization plus training dynamics can produce exact
+    duplicates, e.g. multiple entities pinned at an identical lambda_e or
+    saturated at sigmoid's numeric limits): ties are broken by argsort
+    order (each of a tied group gets a distinct consecutive integer rank
+    in input order), NOT the textbook average-rank convention. Direction
+    of the deviation: input-order tie-breaking injects rank noise that is
+    uncorrelated with the other variable, which attenuates |rho| toward 0
+    relative to average-rank Spearman -- i.e. it biases AGAINST declaring
+    significance, the conservative direction for this test's role in the
+    sec 10.6 routing table (a significant Spearman upgrades candidate
+    (d')'s finding; ties can only make that harder to earn, never easier).
+
+    Significance via the standard Fisher z-transform large-n normal
+    approximation (z = atanh(rho)*sqrt(n-3), two-sided p from the normal
+    CDF via math.erf) -- standard practice for Spearman at n>10, no
+    scipy/table lookup needed. A SINGLE test per seed (sec 10.5.1: no BH
+    correction -- one test, not 107)."""
     keys = sorted(set(x.keys()) & set(y.keys()))
     n = len(keys)
     assert n >= 4, f"Spearman requires >=4 paired observations, got {n}"
@@ -1211,13 +1280,18 @@ def hartigan_dip_statistic(x) -> float:
     return 0.0 if best_dip == float("inf") else best_dip
 
 
-def gate_checkpoint_round_trip(ckpt_paths: list) -> dict:
+def gate_checkpoint_round_trip(ckpt_paths: list, expected_d_state: int = 64) -> dict:
     """sec 10.10 item 2, the readout-time GATE: the wave cannot be marked
-    KEYANCHOR_MECH_CHAIN_DONE until every cell's checkpoint file (a) exists
-    and (b) round-trip-loads (torch.load succeeds, the expected keys are
-    present, and every tensor is finite) -- refusal, not a silent skip,
-    matching sec 3.6's own pattern for BANDS_PINNED. Extends smoke item
-    12's synthetic round-trip check to REAL run output."""
+    KEYANCHOR_MECH_CHAIN_DONE until every cell's checkpoint file (a) exists,
+    (b) round-trip-loads (torch.load succeeds, the expected keys are
+    present, every tensor is finite), and (c) -- e633862 audit fold-in 2 --
+    every tensor has the EXPECTED SHAPE: anchor_table_trained_rows must be
+    (n, expected_d_state) with n == anchor_train_ids.numel() (a 107x32
+    impostor is a structurally wrong artifact, not a tolerable variant);
+    anchor_lambda_table_trained_rows, when present, must be (n, 1);
+    anchor_lambda_raw, when present, must be a single scalar. Refusal, not
+    a silent skip, matching sec 3.6's own pattern for BANDS_PINNED.
+    Extends smoke item 12's synthetic round-trip check to REAL run output."""
     REQUIRED_KEYS = ("step", "anchor_train_ids", "anchor_table_trained_rows")
     bad = []
     for p in ckpt_paths:
@@ -1237,6 +1311,21 @@ def gate_checkpoint_round_trip(ckpt_paths: list) -> dict:
                       if torch.is_tensor(v) and v.is_floating_point() and not torch.isfinite(v).all()]
         if non_finite:
             bad.append((p, f"non_finite_tensors: {non_finite}"))
+            continue
+        n = payload["anchor_train_ids"].numel()
+        rows = payload["anchor_table_trained_rows"]
+        if tuple(rows.shape) != (n, expected_d_state):
+            bad.append((p, f"shape_mismatch: anchor_table_trained_rows {tuple(rows.shape)} != "
+                            f"({n}, {expected_d_state})"))
+            continue
+        lam_rows = payload.get("anchor_lambda_table_trained_rows")
+        if lam_rows is not None and tuple(lam_rows.shape) != (n, 1):
+            bad.append((p, f"shape_mismatch: anchor_lambda_table_trained_rows "
+                            f"{tuple(lam_rows.shape)} != ({n}, 1)"))
+            continue
+        lam_raw = payload.get("anchor_lambda_raw")
+        if lam_raw is not None and lam_raw.numel() != 1:
+            bad.append((p, f"shape_mismatch: anchor_lambda_raw numel {lam_raw.numel()} != 1"))
     return {"n_checked": len(ckpt_paths), "n_bad": len(bad), "bad": bad, "pass": len(bad) == 0}
 
 

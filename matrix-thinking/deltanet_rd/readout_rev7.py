@@ -81,7 +81,8 @@ def main() -> int:
                           "and wavekeyanchor-mech/*.json under it.")
     args = ap.parse_args()
 
-    from run_deltanet_rd_exactness_sweep import keyanchor_mech_manifest, out_path
+    from run_deltanet_rd_exactness_sweep import (keyanchor_ceiling_by_k, keyanchor_mech_manifest,
+                                                   out_path)
 
     ref_dir = os.path.join(args.out_dir, "waveref")
     mech_dir = os.path.join(args.out_dir, "wavekeyanchor-mech")
@@ -105,13 +106,16 @@ def main() -> int:
           f"r_min_partial={pin_derived['effect_size_floors']['r_min_partial_band']}  "
           f"r_min_headline={pin_derived['effect_size_floors']['r_min_headline_band']}")
 
-    # -- the EXISTING sec 3.6 BANDS_PINNED gate, reused unchanged (informational for this wave) --
-    bands_doc = ka.validate_bands_pinned(bp_path)
+    # -- the EXISTING sec 3.6 BANDS_PINNED gate, reused (informational for
+    # this wave) -- now with the e633862-audit-F2 content re-derivation and
+    # the registered-ceiling cross-check.
+    bands_doc = ka.validate_bands_pinned(bp_path, ceiling_by_k=keyanchor_ceiling_by_k())
     if bands_doc is None:
-        print(f"NOTE: {bp_path!r} missing or fails hash validation -- sec 3.5 B1/B2 sanity context "
-              f"(non-gating for THIS wave's primary question, sec 10.5) will be unavailable, but "
-              f"the Rev-7.1 r_e/engagement readout below is UNAFFECTED (sec 10.3's engagement test "
-              f"does not consult BANDS_PINNED at all).")
+        print(f"NOTE: {bp_path!r} missing, fails hash validation, or its stored bands do not "
+              f"reproduce under live re-derivation (e633862 audit F2) -- sec 3.5 B1/B2 sanity "
+              f"context (non-gating for THIS wave's primary question, sec 10.5) will be "
+              f"unavailable, but the Rev-7.1 r_e/engagement readout below is UNAFFECTED (sec 10.3's "
+              f"engagement test does not consult BANDS_PINNED at all).")
     else:
         print(f"BANDS_PINNED.json validated (pinned_at={bands_doc['pinned_at_iso']}) -- reused, "
               f"non-gating context only.")

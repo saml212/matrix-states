@@ -494,11 +494,19 @@ def keyanchor_mech_gate1_manifest():
     already passed twice on identical code"). A SEPARATE, sequential
     prerequisite to `--wave keyanchor-mech` (gated by
     gate_keyanchor_mech_probe below), mirroring keyanchor_confirm's own
-    gate_keyanchor_drift_diag precedent -- NOT folded into the 8-cell
-    manifest keyanchor_mech_manifest() returns."""
+    gate_keyanchor_drift_diag precedent -- NOT folded into the 7-cell
+    manifest keyanchor_mech_manifest() returns.
+
+    rev7_engagement=True (e633862 audit fold-in 1): the probe carries the
+    FULL Rev-7.1 instrumentation (r_e engagement at the final checkpoint,
+    the sec 10.10 checkpoint writer via the ckpt-base-dir main() threads
+    for this wave, per-entity lambda_e trajectory) so this build's
+    never-yet-executed train() checkpoint-block wiring gets its first
+    real GPU exercise HERE, on the cheap 5,000-step probe, before any
+    20,000-step mandatory cell spends on it."""
     runs = [_spec("keyanchor-mech-gate1", 32, 900, KEYANCHOR_MECH_GATE1_STEPS, "dprime",
                    geo3_active=True, geo3_n_iter=20, geo3_resid_tol=1e-2, anchor_active=True,
-                   anchor_lambda_mode="learned_per_entity", drift_probe=True)]
+                   anchor_lambda_mode="learned_per_entity", drift_probe=True, rev7_engagement=True)]
     assert len(runs) == 1, f"keyanchor-mech Gate-1 probe manifest drifted from its registered 1 run: {len(runs)}"
     return runs
 
@@ -637,8 +645,14 @@ def keyanchor_mech_disk_gate(ckpt_base_dir: str, manifest: list, label: str = "k
     return report
 
 
-KEYANCHOR_MECH_GATE1_JSON_DEFAULT = os.path.join(
-    HERE, "results/deltanet_rd_exactness/keyanchor_mech_gate1/gate1_probe.json")
+# KEYANCHOR_MECH_GATE1_JSON_DEFAULT (the reader's default for
+# gate_keyanchor_mech_probe below) is DERIVED from the writer's own
+# out_path()/manifest functions, never hand-typed -- defined AFTER
+# out_path()'s own definition below (e633862 audit F1: the original
+# hand-typed sibling path here silently diverged from where the probe's
+# result actually lands, so the chain could never complete as committed;
+# a reader default must be computed FROM the same function the writer
+# uses, so the two can never diverge).
 
 
 def gate_keyanchor_mech_probe(gate1_json_path: str, accept_override: bool) -> dict:
@@ -763,11 +777,16 @@ def gate_bands_pinned(out_dir: str, accept_override: bool, override_at: float | 
               "+ unblind_override=True (Rev 5 R4-1) -- this is recorded per-run, not just here.\n"
               + "=" * 70, flush=True)
         return {"gate_bypassed": True, "bands_pinned_path": bp_path, "override_at": override_at}
-    doc = ka.validate_bands_pinned(bp_path)
+    # e633862 audit F2: pass the registered ceilings so validate can also
+    # pin the one field its content re-derivation reads as input.
+    doc = ka.validate_bands_pinned(bp_path, ceiling_by_k=keyanchor_ceiling_by_k())
     if doc is None:
-        print(f"ERROR: {bp_path!r} does not exist or fails hash validation. Run the 6 reference "
-              f"arms to completion first (--wave ref), then --wave keyanchor-bands to pin, or pass "
-              f"--unblind-override for an explicit, documented, tier-demoting override.",
+        print(f"ERROR: {bp_path!r} does not exist, fails hash validation, or its STORED bands "
+              f"dict does not reproduce under live re-derivation from the referenced reference-arm "
+              f"JSONs (e633862 audit F2 -- tampered/corrupted pin contents are a pin-integrity "
+              f"error, never silently trusted). Run the 6 reference arms to completion first "
+              f"(--wave ref), then --wave keyanchor-bands to pin, or pass --unblind-override for "
+              f"an explicit, documented, tier-demoting override.",
               file=sys.stderr)
         sys.exit(1)
     for K, entry in doc["bands"].items():
@@ -776,7 +795,7 @@ def gate_bands_pinned(out_dir: str, accept_override: bool, override_at: float | 
                   f"{entry['engaged_k']:.4f} >= ceiling {entry['ceiling']:.4f} - 0.005) -- see the "
                   f"leave-one-out sensitivity report in {bp_path}.", flush=True)
     print(f"sec 3.6 GATE PASSED: {bp_path} validates (hashes match every referenced reference-arm "
-          f"result JSON).", flush=True)
+          f"result JSON; stored bands reproduce under live re-derivation).", flush=True)
     return {"gate_bypassed": False, "bands_pinned_path": bp_path, "bands": doc["bands"]}
 
 
@@ -804,8 +823,9 @@ def write_bands_pinned_if_ready(out_dir: str) -> bool:
                   f"(complete/steps_completed/drift_probe fields).", flush=True)
             all_valid = False
             continue
-        final_drift = result["checkpoints"][-1]["drift_probe"]["post_ns"]["mean"]
-        per_k_final_drift[spec["K"]].append(final_drift)
+        # e633862 audit F2: the SAME extraction validate_bands_pinned's
+        # content re-derivation uses -- one definition, never a twin.
+        per_k_final_drift[spec["K"]].append(ka.reference_final_drift(result))
         ref_paths[spec["K"]].append(p)
     if not all_valid:
         print("BANDS_PINNED.json NOT written -- not every reference arm validates complete yet.",
@@ -830,6 +850,24 @@ MANIFEST_FNS = {"-1": wave_neg1_manifest}
 
 def out_path(out_dir, spec):
     return os.path.join(out_dir, f"{spec['name']}.json")
+
+
+# The argparse --out-dir default, hoisted to a module constant so the
+# Gate-1 reader default below is derived from the SAME root the writer
+# resolves against (e633862 audit F1).
+DEFAULT_OUT_DIR = os.path.join(HERE, "results/deltanet_rd_exactness")
+
+# e633862 audit F1 fix: the Gate-1 probe reader's default is COMPUTED from
+# the writer's own functions -- out_path() + the manifest's own single spec
+# + main()'s own f"wave{args.wave}" subdirectory convention at the argparse
+# default --out-dir -- never a hand-typed sibling path. Writer and reader
+# cannot diverge: any change to the manifest spec (name bits), out_path(),
+# or the default out-dir moves BOTH ends together. smoke_keyanchor_mech.py
+# asserts the executed equality (writer path == this constant); the CLI
+# override (--keyanchor-mech-gate1-json) remains for non-default out-dirs.
+KEYANCHOR_MECH_GATE1_JSON_DEFAULT = out_path(
+    os.path.join(DEFAULT_OUT_DIR, "wavekeyanchor-mech-gate1"),
+    keyanchor_mech_gate1_manifest()[0])
 
 
 def is_done(out_dir, spec):
@@ -1035,7 +1073,7 @@ def gate_gram_rho(gram_rho_16: float | None, gram_rho_32: float | None,
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out-dir", default=os.path.join(HERE, "results/deltanet_rd_exactness"))
+    ap.add_argument("--out-dir", default=DEFAULT_OUT_DIR)
     ap.add_argument("--wave", choices=["-1", "0", "1", "geo3", "ref", "keyanchor-neg1",
                                         "keyanchor-bands", "keyanchor", "keyanchor-confirm",
                                         "keyanchor-mech-gate1", "keyanchor-mech"], default=None,
@@ -1132,10 +1170,12 @@ def main():
                           "GPU-h ceiling vs. the 80 GPU-h exactness-program cap) with an explicit, "
                           "loudly-logged human override.")
     ap.add_argument("--ckpt-base-dir", type=str, default=None,
-                     help="--wave keyanchor-mech: base directory for the sec 10.10 checkpoint writer "
-                          "(one subdirectory per cell, named after the cell's own spec['name']). "
-                          "Default: /data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech on the "
-                          "training box (pre-created by this build; see the build report).")
+                     help="--wave keyanchor-mech / keyanchor-mech-gate1: base directory for the "
+                          "sec 10.10 checkpoint writer (one subdirectory per cell, named after the "
+                          "cell's own spec['name']). Per-wave defaults on the training box: "
+                          "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech (mech; pre-created "
+                          "by this build) and .../wavekeyanchor-mech-gate1 (gate1 scratch -- "
+                          "e633862 audit fold-in 1: the probe exercises the checkpoint writer too).")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -1329,13 +1369,23 @@ def main():
     elif args.wave == "keyanchor-mech-gate1":
         # sec 10.5's Gate-1-style pre-launch probe, candidate (d') only --
         # a single 5,000-step cell, NOT gated on anything itself (it IS the
-        # gate `--wave keyanchor-mech` below reads). Still requires the
-        # Rev-7.1 pin (rev7_engagement=True is threaded so its own result
-        # JSON is instrumented identically to the real cells, sec 10.3.3
-        # leg (ii)'s per-run defense-in-depth applies here too).
+        # gate `--wave keyanchor-mech` below reads). rev7_engagement=True
+        # is set in the manifest spec itself (keyanchor_mech_gate1_manifest;
+        # e633862 audit fold-in 1 -- this comment previously CLAIMED the
+        # threading while the manifest contradicted it) and build_cmd
+        # threads it as --rev7-engagement, so run_deltanet_rd.py validates
+        # the Rev-7.1 pin at startup (sec 10.3.3 leg (ii)'s per-run
+        # defense-in-depth) and the probe's result JSON is instrumented
+        # identically to the real cells. A scratch ckpt-base-dir is
+        # threaded too (same audit fold-in) so the sec 10.10 checkpoint
+        # writer -- like the rest of the never-yet-executed train()
+        # checkpoint-block wiring -- gets its first real GPU exercise on
+        # this cheap probe, not on a 20,000-step mandatory cell.
+        ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech-gate1"
         manifest = keyanchor_mech_gate1_manifest()
         print(f"wave keyanchor-mech-gate1 manifest: {len(manifest)} run (candidate (d') Gate-1 "
-              f"probe, K=32, {KEYANCHOR_MECH_GATE1_STEPS} steps)", flush=True)
+              f"probe, K=32, {KEYANCHOR_MECH_GATE1_STEPS} steps, rev7_engagement=True, "
+              f"ckpt_base_dir={ckpt_base_dir})", flush=True)
     elif args.wave == "keyanchor-mech":
         # KEY_ANCHORING_DESIGN.md sec 10 (Rev 7.1) -- the FULL gate chain,
         # in order: (1) the Rev-7.1 pin triple (sec 10.3.3 leg (ii): exists
