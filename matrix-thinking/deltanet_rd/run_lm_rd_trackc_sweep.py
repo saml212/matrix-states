@@ -292,8 +292,10 @@ EPOCH_CAP = 5
 # session's several wave invocations -- not separately itemized, rounded up) = 163.22 GPU-h.
 # UPDATE THIS after any further real spend. 163.22 -> 190.22 (2026-07-04 ~08:00 UTC): +27.00 for the
 # real --wave 1ext launch on GPU 6 (LAUNCH-READY audit verdict, 6 runs x 67,547 steps at rung-1
-# timing constants -- committed spend the moment the wave started).
-PROGRAM_SPENT_GPUH = 190.22
+# timing constants -- committed spend the moment the wave started). 190.22 -> 266.47 (2026-07-05
+# ~05:05 UTC): +76.25 for the real --wave 3 launch on GPUs 0-1 (Rev 2.2 signed-off config, 2 runs
+# x 183,105 steps at the banked batch-16 rung-3 constants; budget guard printed 266.47/300 at launch).
+PROGRAM_SPENT_GPUH = 266.47
 GPU_H_PROGRAM_CEILING = 300.0
 
 CALIBRATION_STEPS_DEFAULT = 200
