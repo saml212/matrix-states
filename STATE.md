@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-05
+**Last updated:** 2026-07-06
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -503,22 +503,51 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   below for full derivations, tables, and attack trails).**
 
   **CLOSED:**
-  - *KEY-ANCHORING wave* (`KEY_ANCHORING_DESIGN.md` §9/§9.6/§9.7). Two
-    waves ran (initial 10.98 GPU-h + a confirmatory wave with
-    `--drift-probe` wired into the real training loop). Behavioral: K=32
-    h=4 `rec@0.9` 0.4105 (fresh reference) → 0.556–0.665, 3/3 seeds ≥0.5
-    bar in both waves (same seed integers — a reproduction check, not
-    independent replication); λ interior 0.55–0.58 in 6/6 runs; pre-NS
-    drift 0.991–0.9999, clears its own bar decisively — DESCRIPTIVE tier.
-    Mechanism: per-entity `engaged_frac` <14% in every leg (11–13%) →
-    literal **Outcome C** ("mechanism not engaged"), not Outcome A, per
-    the design's own §3.7 override clause. A same-day Rev-6
-    λ-scaled-threshold rescue attempt was independently attacked and
-    **REJECTED** (`KEYANCHOR_REV6_ATTACK.md`: bar-preserving z≈3.76–4.03
-    sits outside the offered {2,3} menu; an unverified anchor-norm value
-    m≈1.34 would make the signal chance-level) — Outcome C stands, CLOSED.
-    Archive: `experiment-runs/2026-07-05_keyanchor_wave/` +
-    `experiment-runs/2026-07-05_keyanchor_confirm/` + SSD mirrors.
+  - *KEY-ANCHORING campaign, full history through the mechanism-tier
+    verdict* (`KEY_ANCHORING_DESIGN.md` §9/§9.6/§9.7/§10/§10.13;
+    `KEYANCHOR_REV6_ATTACK.md`, `KEYANCHOR_REV7_ATTACK.md`). Three waves
+    plus a rejected rescore attempt, ≈53.0/80 GPU-h against the exactness
+    program's own cap:
+    - Wave 1 + confirmatory wave (10.98 + ~0 new GPU-h): K=32 h=4
+      `rec@0.9` 0.4105 (fresh reference) → 0.556–0.665, 3/3 seeds ≥0.5
+      bar, same seed integers both waves (reproduction, not independent
+      replication); λ interior 0.55–0.58, 6/6; per-entity `engaged_frac`
+      <14% every leg → literal **Outcome C**.
+    - Rev 6 λ-scaled-threshold rescore: independently attacked and
+      **REJECTED** (`KEYANCHOR_REV6_ATTACK.md`: bar-preserving z≈3.76–4.03
+      sits outside the offered {2,3} menu; unverified anchor-norm
+      m≈1.34 would make the signal chance-level).
+    - **Mechanism-tier wave (2026-07-06, `KEY_ANCHORING_DESIGN.md`
+      §10/§10.13, 1.50 GPU-h realized), the campaign's flagship
+      readout.** Fresh instrumentation (`r_e` measured directly,
+      pre-blend, norm-invariant by construction; hash-locked BH-FDR test,
+      zero data dependency, `REV7_THRESHOLD_PINNED.json` verified
+      byte-identical in a fresh empty sandbox this session) + a new
+      per-entity-λ arm (d′). **Behavioral: independently replicated** —
+      6 genuinely fresh seeds (not integer reuse), 2 architecture
+      variants, K=32 h4 0.6141–0.7141, all ≥0.5 bar; K=16 s10 = 0.9998;
+      items 1–6/λ-interior clean 3/3 at K=32 (d) (an improvement on the
+      confirm wave's 2/3). **Mechanism: Outcome C reconfirmed, 3/3 seeds,
+      both arms** — engaged_frac_v3 3.7–41.1% at K=32, median `r_e`
+      0.15–0.23 (below the 0.25 partial floor), immune to every Rev-6
+      objection (anchor norms measured directly at 1.06–1.16 mean/cell,
+      not assumed unit; no λ-degeneracy; no menu; an effect-size floor
+      blocks power-manufactured engagement). Candidate (d′) converges to
+      the **same** band as (d) → **Inconclusive/mixed** per its own
+      routing table (partial 2/3 Spearman significance, no dip-test
+      split). The registered §10.3.5 prior expectation (A″ brushing A,
+      back-solved r≈0.33–0.35) **failed** — fresh measured median r_e
+      ≈0.2 — diagnosed as the back-solve's unit-anchor-norm assumption
+      and Jensen's-gap bias both being quantitatively, not just
+      theoretically, wrong. **Synthesis: the anchor blend stabilizes by
+      construction** (the λ·anchor term is episode-constant, so
+      cross-episode stability arrives architecturally, not via entity
+      alignment) — a new descriptive/interpretive account, registered
+      with a ~1 GPU-h falsification probe (**candidate (e): frozen
+      random-table ablation** at matched λ≈0.58). Archive:
+      `experiment-runs/2026-07-05_keyanchor_wave/` +
+      `experiment-runs/2026-07-05_keyanchor_confirm/` +
+      `experiment-runs/2026-07-06_keyanchor_mech/` + SSD mirrors.
   - *SCALE-TRANSFER Track C — pure-scale attractor ladder*
     (`SCALE_TRANSFER_DESIGN.md` §5.9/§5.10/Addendum). The mix-axis
     confound is closed at both tested scales (14M mixcontrol Δ−0.004
@@ -557,15 +586,17 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
     Completes §5.7's literal 3-rung criterion (98M/392M/1.3B).
 
   **DECISION-PENDING (user call):**
-  - The key-anchoring mechanism-engagement question (Outcome C) is
-    unresolved and not self-resolving from existing data. Options on the
-    table: (a) a fresh, pre-registered instrumentation wave — log
-    anchor-row norms directly, derive a λ-independent engagement metric
-    before any new data exists, attack it before running — est. ~10
-    GPU-h; (b) a K=48 extension of the existing F-geo-3 fix; (c) another
-    direction. No wave is scheduled pending this call. Anchoring program
-    spend so far: ≈51/80 GPU-h against the exactness program's own 80
-    GPU-h cap (`KEY_ANCHORING_DESIGN.md` §5).
+  - The key-anchoring mechanism-engagement question is now CLOSED
+    (Outcome C, mechanism-tier, both arms — see the CLOSED bullet above)
+    — this is no longer the open decision. What remains open: (a)
+    **candidate (e)**, the registered frozen-random-anchor-table
+    falsification probe for the construction-stabilization account
+    (~1 GPU-h, 2–3 K=32 seeds, matched λ≈0.58 — see
+    `KEY_ANCHORING_DESIGN.md` §10.13.4); (b) a K=48 extension of the
+    existing F-geo-3 fix; (c) another direction. No wave is scheduled
+    pending this call. Anchoring program spend so far: ≈53.0/80 GPU-h
+    against the exactness program's own 80 GPU-h cap
+    (`KEY_ANCHORING_DESIGN.md` §5/§10.7), leaving ≈27 GPU-h reserve.
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;

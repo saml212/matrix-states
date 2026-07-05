@@ -4317,3 +4317,147 @@ Correction: before repeating a claim that N runs constitute independent replicat
 [LEARN] outcome-map discipline: a pre-registered outcome map's override/exception clause (here, sec 3.7's "engaged_frac <50% routes to Outcome C regardless of aggregate drift") can flip the assigned outcome even when every OTHER individual bar in the map clears decisively — read the full map text for override clauses before pattern-matching to "looks like Outcome A."
 Mistake: none this session (caught during the literal outcome-assignment read, not after a wrong call) — flagged as a durable rule because the surface pattern here (item 5 PASS, h4 PASS, λ interior 4/4) is exactly what Outcome A/A' looks like at first glance, and only sec 3.7's own explicit override text (added at a later design revision than sec 3.5 itself) redirects it to Outcome C.
 Correction: when a design has had multiple revisions adding new gating clauses to an existing outcome map, re-read the LATEST version of every section the map cites (not just the outcome-map section itself) before assigning an outcome — a later-added override elsewhere in the doc can supersede what the map's own primary table appears to say.
+
+## KEY-ANCHORING MECHANISM-TIER WAVE VERDICT (2026-07-06): behavioral h4 gain independently replicated (6 fresh seeds, 2 architectures, 0.61-0.71 at K=32) — entity-alignment mechanism measured-and-rejected a second time (Outcome C, 3/3 seeds, both arms), now immune to every Rev-6 objection; construction-stabilization account registered with a ~1 GPU-h falsification probe
+
+Full spec: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §10 (Rev 7.1 design)
++ new §10.13 (this wave's verdict, added this session). Box:
+`youthful-indigo-turkey`, `/home/nvidia/chapter2/deltanet_rd/`. CPU-only
+verdict pass; GPUs 0-1 running rung-3 throughout (untouched, verified via
+`nvidia-smi`). Read every one of the 8 archived JSONs (7 wave cells +
+Gate-1 probe) directly, field-by-field, and re-ran `readout_rev7.py`
+fresh on the box for this verdict — nothing below is taken from the
+orchestrator's own summary or the launch console without an independent
+JSON-level check.
+
+**What ran.** `wavekeyanchor-mech` (7 cells: candidate (d) K=32 seeds
+{10,11,12} + K=16 seed 10, candidate (d′) K=32 seeds {20,21,22}) +
+`wavekeyanchor-mech-gate1` (1 pre-launch probe, (d′), K=32, 5000 steps).
+All `complete: true`, `steps_completed` matches spec, zero timeouts, both
+`ALL_DONE` markers present. Realized cost **1.500 GPU-h total** (1.439
+mandatory cells + 0.061 probe) — no contingency cells triggered
+(`BANDS_PINNED.json` hash-check passed clean, no reference re-pin
+needed).
+
+**Blind integrity, mechanically verified, both legs.** `REV7_THRESHOLD_
+PINNED.json`: script hash `a746dec7...bc738` matches the working-tree
+script; re-ran `rev7_threshold_derive.py` in a **fresh, empty sandbox**
+(no repo, no wave data) — the `derived` block matches the committed pin
+by direct dict equality. Pin `generated_at` (2026-07-05T17:40:49Z)
+precedes the earliest anchor-arm start by ≈3.1 hours — REV7 PIN BLIND
+INTACT, 7 runs checked. All 8 JSONs: `unblind_override: false`, no
+`claim_tier` key. **Checkpoint gate: 70/70 files present** (7 cells × 10
+admission checkpoints), independently confirmed by listing
+`/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech/` directly — the
+first time in this design's 3-wave history a checkpoint has existed
+anywhere for this mechanism.
+
+**Per-cell numbers (verified from the raw JSONs, not the readout console
+alone):**
+
+| K | arm | seed | h4 `rec@0.9` | item 5 (drift) | item 6a/6b | λ (band) | `engaged_frac_v3` | median `r_e` | band | n_hub |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 16 | d | 10 | 0.9998 | 0.9999 PASS | PASS/PASS | 0.5830 interior | 0.738 | 0.2934 | **A_partial** | 8 |
+| 32 | d | 10 | 0.6741 | 1.0000 PASS | PASS/PASS | 0.6044 interior | 0.271 | 0.2225 | **C** | 9 |
+| 32 | d | 11 | 0.7125 | 1.0000 PASS | PASS/PASS | 0.5825 interior | 0.411 | 0.2292 | **C** | 3 |
+| 32 | d | 12 | 0.6141 | 1.0000 PASS | PASS/PASS | 0.5787 interior | 0.271 | 0.1949 | **C** | 11 |
+| 32 | d′ | 20 | 0.7021 | 1.0000 PASS | PASS/PASS | λ_e 100% interior | 0.075 | 0.1517 | **C** | 5 |
+| 32 | d′ | 21 | 0.6661 | 1.0000 PASS | PASS/PASS | λ_e 100% interior | 0.243 | 0.1896 | **C** | 7 |
+| 32 | d′ | 22 | 0.7141 | 1.0000 PASS | PASS/PASS | λ_e 100% interior | 0.037 | 0.1462 | **C** | 1 |
+
+Items 1-4 clean 7/7. Item 6 (both legs) passes **3/3** at K=32 for arm
+(d) this wave (an improvement on the confirm wave's 2/3 — no seed here
+repeats that seed-1 σ-ratio miss). Pooled null-check passes tolerance in
+all 7 cells — exact-Beta is the primary branch everywhere, the empirical
+fallback is never invoked. Anchor-row norms (§10.2.1, the m≈1.34 confound
+question, now measured): per-cell mean **1.062-1.159** (grand mean 1.105,
+per-entity envelope 0.717-1.266) — the plausible chance-scale-artifact
+value the Rev-6 attack floated is not realized, though this is now moot
+for `r_e` (norm-invariant by construction). Candidate (d′): `λ_e`
+interior fraction 100% (107/107) at all 3 seeds; dip test on `λ_e` and on
+`r_e` never significant at any seed/cell (uniform partial engagement, not
+a masked bimodal split — confirms §9.7.4's earlier informal read with a
+formal statistic); Spearman(λ_e, r_e) significant 2/3 seeds, sign
+negative (weaker raw-key alignment → more anchor reliance, the intuitive
+compensating direction) — a real but partial, non-band-changing signal.
+
+**Routing (§10.6, applied literally).** Candidate (d), K=32: `engaged_
+frac_v3` 0.271/0.411/0.271, median `r_e` 0.2225/0.2292/0.1949 — **all
+three seeds fail the 0.25 magnitude floor** → **Outcome C, 3/3**. K=16
+(supplementary, not separately lettered): engaged_frac_v3 0.738, median
+`r_e` 0.2934 → **A_partial** (clears both A″ legs, misses the 0.35
+headline floor). Candidate (d′), K=32: engaged_frac_v3 0.075/0.243/0.037,
+median `r_e` 0.1517/0.1896/0.1462 — **all three seeds also land C**, same
+band as (d) every seed, with partial-not-unanimous (2/3) Spearman
+significance → per §10.6's own table, **Inconclusive/mixed** (not a
+clean C′, not A(d′)).
+
+**The registered prior expectation (§10.3.5) FAILED.** §10.3.5
+registered, before this wave's data existed, that prior-like data would
+land A″-brushing-A on the detection leg (back-solved median `r ≈
+0.33-0.35` from the confirm wave's `a_e`). The fresh, direct measurement
+(median `r_e` 0.1462-0.2934, 0.1462-0.2292 at K=32) is substantially
+weaker than predicted. Diagnosis: the back-solve inverted `a_e` through
+the blend formula assuming unit anchor-row norms (now measured at
+1.06-1.16, not 1.0) and ignored the disclosed Jensen's-gap bias from
+inverting a mean through a nonlinear map (§9.7.10 item 5) — exactly the
+two bias classes the attack rounds flagged and never fully closed before
+Rev 7.1. Both push the same direction; the fresh direct measurement
+supersedes the back-solved prior expectation, disclosed as a failed
+prediction, not explained away.
+
+**Synthesis.** The entity-alignment mechanism (§1's hypothesis, tested by
+§10.3's engagement criterion) is **measured-and-rejected at K=32** — a
+strictly stronger negative than the confirm wave's own Outcome C, immune
+to every specific objection (unit-anchor-norm assumption, λ-degeneracy,
+menu-laundering, power-manufactured engagement) that forced Rev 6's
+rejection, and now additionally tested under genuine per-entity capacity
+(candidate d′), which converges to the **same** band as the global-scalar
+arm — closing the "parameter-sharing artifact" explanation in the
+negative, with real evidence rather than an inference. The parsimonious
+account: **the anchor blend stabilizes by construction, not by entity
+alignment** — the λ·anchor term is episode-constant, so cross-episode
+stability arrives architecturally from the blend's arithmetic at a
+large-enough λ, regardless of whether the raw key ever aligns with its
+anchor; raw keys sit near chance-adjacent (median `r_e` 0.15-0.29, well
+short of what the design's own headline floor requires), and SGD keeps λ
+interior because the raw-key term still carries episode-specific
+expressivity while the anchor term carries free, alignment-independent
+stability. This also explains (d′)'s null cleanly: per-entity freedom has
+nothing to differentially recruit if alignment isn't the channel, so
+SGD's partial (2/3) Spearman use of that freedom reads as second-order
+optimization over the SAME non-alignment channel, not evidence of a new
+one. **Falsification, registered:** candidate (e) — a frozen, never-trained,
+random anchor table at matched λ (≈0.58) — should deliver similar h4/drift
+gains to candidate (d) if this account is right; a materially worse
+result would falsify it. Estimated cost ~1 GPU-h (2-3 K=32 seeds); no
+existing archived cell answers this (the closest, `wavekeyanchor-neg1`'s
+`armkeyanchor-d-fixed`, fixes λ but still trains the anchor table).
+
+**Claim tiers.** Mechanism (entity-alignment hypothesis): **Outcome C**,
+confirmed at mechanism-tier rigor — not A, not A″, not Inconclusive.
+Candidate (d′)'s own question: **Inconclusive/mixed**, reported in full.
+Behavioral h4/λ/stability result: upgraded to **independent-replication
+strength** — 6 genuinely fresh seeds (not integer reuse, unlike the
+confirm wave) across 2 architecture variants, all clearing their bars, on
+top of the prior 3 waves' own seed sets (9 total seed-runs across 3
+seed sets and 3 waves). The construction-stabilization account is a new,
+descriptive/interpretive hypothesis — consistent with the evidence and
+falsifiable cheaply, but not itself confirmed until candidate (e) runs.
+No spin: the mechanism-as-framed question's registered outcome is C.
+
+Archive: `experiment-runs/2026-07-06_keyanchor_mech/` (7 wave-cell JSONs
++ Gate-1 probe JSON + chain/smoke logs + `readout_rev7.py` output,
+size-capped ≤25MB rule applied — see the archive's own note on any file
+routed to the SSD-only path) + SSD mirror at the same relative path
+under `/Volumes/1TB_SSD/learned-representations/`. Checkpoints (70
+files, `.pt`, negligible size each) pulled to the SSD mirror's
+`checkpoints/` subdirectory. Code (`rev7_threshold_derive.py`,
+`REV7_THRESHOLD_PINNED.json`, `readout_rev7.py`) already committed on
+the box side; this session's commit covers the design-doc verdict
+(§10.13), this log entry, and the archived results. Full tables:
+`matrix-thinking/KEY_ANCHORING_DESIGN.md` §10.13. `STATE.md` updated.
+
+[LEARN] mechanism-tier verification: a registered prior expectation built by back-solving a metric through a nonlinear formula (here, r_e back-solved from a_e through the blend formula) can fail even when the formula and inputs are individually correct, if the back-solve's own disclosed assumptions (unit anchor-row norm, mean-through-nonlinear-map bias) are quantitatively wrong, not just theoretically imperfect — direct measurement of the same quantity, once instrumented, is the only way to know how much those disclosed caveats actually cost.
+Mistake: none this session — the registered §10.3.5 prior expectation was honestly disclosed as a back-solved estimate with named caveats (§9.7.5 anchor-norm, §9.7.10 item 5 Jensen's-gap) before this wave's data existed; flagged as a durable rule because the fresh measurement (anchor norms 1.06-1.16, not 1.0; median r_e ~0.2, not ~0.34) shows those caveats were not small print, they were the dominant source of the prediction error.
+Correction: when a design registers a prior expectation via back-solving through a formula with disclosed-but-unquantified assumptions, treat the eventual direct measurement of those assumptions (once cheaply available) as a required part of the verdict write-up, not an optional aside — the gap between back-solved and directly-measured values is itself evidence about which caveat dominated, and belongs in the record.

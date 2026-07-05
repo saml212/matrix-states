@@ -3482,6 +3482,316 @@ against the archived JSONs' actual fields).
 
 ---
 
+### 10.13 Mechanism-tier wave VERDICT (2026-07-06) — measured, not projected
+
+**Ran to completion.** 7/7 mandatory cells + the candidate-(d′) Gate-1
+probe, all `complete: true`, `steps_completed: 20000` (probe: 5000), zero
+timeouts, zero failed-then-recovered. `ALL_DONE` present for both
+`wavekeyanchor-mech` and `wavekeyanchor-mech-gate1`. Realized cost: **1.500
+GPU-h** total (7 mandatory cells 1.439 GPU-h + Gate-1 probe 0.061 GPU-h) —
+well inside the §10.7 mandatory-baseline bracket (1.3–5.5) and a small
+fraction of the ≤12 GPU-h ceiling; no contingency cells were needed
+(`BANDS_PINNED.json` hash-validated clean, no reference re-pin; no seed
+contingency triggered). This verdict pass re-ran `readout_rev7.py` fresh
+(CPU-only, `youthful-indigo-turkey`, GPUs 0–1 untouched/running rung-3
+throughout) and independently re-extracted every number below directly
+from the 8 archived JSONs — nothing here is taken from the launch console
+or from the orchestrator's own summary without a JSON-level check.
+
+**Blind integrity, mechanically checked, both legs.** `REV7_THRESHOLD_PINNED.json`:
+script hash `a746dec7...bc738` matches the working-tree script exactly; a
+fresh `derive()` re-run in a **new, empty sandbox** (no repo, no wave
+data) reproduces the pinned `derived` block by direct dict equality, not
+eyeballing. Pin `generated_at` (2026-07-05T17:40:49Z, epoch
+1783273249) strictly precedes the earliest anchor-arm `started_at`
+(1783284449, seed-12 K=32) by **≈3.1 hours** — REV7 PIN BLIND INTACT, 7
+runs checked. `BANDS_PINNED.json` (the existing §3.6 gate, reused
+non-gating) independently re-validated clean. All 8 JSONs (7 wave cells +
+gate1 probe): `unblind_override: false`, no `claim_tier` key anywhere —
+no tier-demoting event fired. **Checkpoint gate (§10.10): 70 files checked
+(7 cells × 10 admission checkpoints), 0 bad** — independently confirmed by
+listing `/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-mech/` directly
+on the box (7 cell subdirectories, 70 `.pt` files total) — the first time
+in this design's three-wave history a checkpoint has existed anywhere for
+this mechanism, closing `KEYANCHOR_REV6_ATTACK.md`'s "no checkpoint exists
+anywhere" gap for good.
+
+#### 10.13.1 Per-cell table (every number re-verified against the raw JSON, not the readout console alone)
+
+| K | arm | seed | h4 `rec@0.9` (bar ≥0.5, K=16: no-regression) | item 5 pre-NS drift (bar ≥0.95) | item 6a σ-ratio (bar ≥0.1) | item 6b max\|cos\| (bar ≤0.5) | λ (final / band) | `engaged_frac_v3` w/hubs | median `r_e` | band (w/hubs = wo/hubs here) | n_hub_flagged | primary branch |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 16 | d | 10 | **0.9998** (no-regression, clean) | 0.9999 PASS | 0.2503 PASS | 0.3532 PASS | 0.5830 interior | 0.7383 | 0.2934 | **A_partial** | 8 | exact_beta |
+| 32 | d | 10 | **0.6741** PASS | 1.0000 PASS | 0.1603 PASS | 0.3723 PASS | 0.6044 interior | 0.2710 | 0.2225 | **C** | 9 | exact_beta |
+| 32 | d | 11 | **0.7125** PASS | 1.0000 PASS | 0.1208 PASS | 0.3505 PASS | 0.5825 interior | 0.4112 | 0.2292 | **C** | 3 | exact_beta |
+| 32 | d | 12 | **0.6141** PASS | 1.0000 PASS | 0.1731 PASS | 0.3813 PASS | 0.5787 interior | 0.2710 | 0.1949 | **C** | 11 | exact_beta |
+| 32 | d′ | 20 | **0.7021** PASS | 1.0000 PASS | 0.2193 PASS | 0.3775 PASS | λ_e: 100% interior | 0.0748 | 0.1517 | **C** | 5 | exact_beta |
+| 32 | d′ | 21 | **0.6661** PASS | 1.0000 PASS | 0.1799 PASS | 0.3821 PASS | λ_e: 100% interior | 0.2430 | 0.1896 | **C** | 7 | exact_beta |
+| 32 | d′ | 22 | **0.7141** PASS | 1.0000 PASS | 0.2319 PASS | 0.3843 PASS | λ_e: 100% interior | 0.0374 | 0.1462 | **C** | 1 | exact_beta |
+
+Items 1–4 (`admissible`, `ns_converged_no_fallback`, `finite_loss_no_divergence`,
+`task_performance_floor_pass`, `h1_recovered_frac_at_0.9_final: 1.0`) are
+`true`/clean for all 7 cells — full admissibility, 7/7. Item 6 (6a AND 6b)
+passes **3/3** at K=32 for arm (d) this wave (unlike the confirm wave's
+2/3 — seed 11's own σ-ratio, 0.1208, clears the 0.1 bar this time; no
+seed here repeats the confirm wave's seed-1 miss, consistent with fresh
+seeds drawing a different σ-ratio realization, not a fix to the
+underlying quantity). Pooled null-check (§10.3.2) passes its
+`(mean, SD)` tolerance for all 7 cells (`mean_ok=true, sd_ok=true`,
+11,342 pairs each) — the exact-Beta branch is primary everywhere, the
+empirical-permutation fallback is never invoked.
+
+**Anchor-row norms (§10.2.1) — the m≈1.34 confound, now measured, not
+assumed:** per-cell mean row norm ranges **1.062–1.159** across all 7
+cells (grand mean of per-cell means 1.105; per-entity min/max envelope
+0.717–1.266, one low outlier at d′ seed 20's minimum, 0.7175). The
+plausible chance-level-scale-artifact value the Rev-6 attack round
+floated (m≈1.34) is **not realized** — measured norms sit well below it —
+but this is now a moot question for `r_e` specifically, which is
+norm-invariant by construction (`F.cosine_similarity`); the norm
+instrumentation closes the question as a disclosed diagnostic, not a
+load-bearing one.
+
+**Candidate (d′) per-entity λ — genuine freedom, used, but not toward
+differentiation.** `λ_e` interior-band fraction is **100% (107/107)** at
+all 3 seeds — every entity's individually-learned blend weight lands in
+`[0.2, 0.8]`, matching candidate (d)'s own global-λ band. Hartigan's dip
+test on `λ_e`: **not significant at any seed** (p = 0.184 / 0.930 /
+0.848) — no bimodal split in blend weights. Dip test on `r_e`: **not
+significant at any of the 7 cells** (p ranges 0.475–0.938) — confirms
+§9.7.4's earlier informal finding with a formal statistic: uniform
+partial engagement, not a masked bimodal split, at both K and in both
+arms. **Spearman(λ_e, r_e), per seed: significant 2/3** (s20 ρ=−0.413,
+p=7.5e-6; s21 ρ=−0.282, p=0.0031; s22 ρ=−0.123, p=0.205, not
+significant) — where significant, the sign is **negative**: entities
+whose raw key aligns *less* with its anchor get pulled *harder* (higher
+`λ_e`) by the mechanism, the intuitive compensating direction, not the
+reinforcing one. This is a real, if partial (2/3, not 3/3), signal that
+the per-entity mechanism is doing *something* non-degenerate with its
+freedom — but it does not lift engagement into a higher band at any
+seed, and `λ_e`'s own dip test never finds the bimodal split that would
+indicate a genuine engaged/disengaged entity split forming.
+
+#### 10.13.2 Arm-level routing (§10.6 tables, applied literally)
+
+**Candidate (d), K=32 (the wave's primary cell — §10.5's registered
+scope):** `engaged_frac_v3` with-hubs = 0.271 / 0.411 / 0.271, median
+`r_e` = 0.2225 / 0.2292 / 0.1949 — **all three seeds land band C**
+(median `r_e` < 0.25 in all three; the rate leg is moot once the
+magnitude leg fails, per §10.3.4's joint-AND criterion). 3/3, not merely
+≥2/3. Items 1–6 pass 3/3 (this wave, unlike the confirm wave). λ interior
+3/3. **Routed Outcome: C — "mechanism not engaged... reconfirms §9.6, now
+immune to the anchor-norm/λ-degeneracy objections that forced Rev 6's
+rejection AND to the power-manufactured-engagement objection, via the
+effect-size floor."** K=16 (supplementary, not separately
+outcome-lettered per §3.5's own K=32 scope note): `engaged_frac_v3` =
+0.738, median `r_e` = 0.2934 → **A_partial** — clears the rate leg (≥50%)
+and the magnitude leg (≥0.25) but not the headline magnitude floor
+(0.35) — consistent with K=16 having no discriminating headroom at
+h4≈1.0 (§10.5's own reason for not running K=16 for (d′)) and with
+`r_e` itself simply being higher at the easier K.
+
+**Candidate (d′), K=32 (independent routing, §10.6):** `engaged_frac_v3`
+with-hubs = 0.075 / 0.243 / 0.037, median `r_e` = 0.1517 / 0.1896 /
+0.1462 — **all three seeds land band C**, same as (d), and at a
+*lower* median `r_e` and lower detection rate than (d)'s own K=32 cells
+in every seed-for-seed comparison (band is identical — C vs. C — so
+per §10.6's own table this is **not** "higher band than (d)"). Dip-test/
+Spearman: significant in 2/3 seeds (Spearman only; the dip test is never
+significant for either `λ_e` or `r_e`, any seed). Per §10.6's table this
+combination (same band as (d), *some* but not unanimous significance) is
+not a clean fit to either the "same band, not significant → C′" row or
+the "higher band, and/or significant → A(d′)" row — it is the
+**Inconclusive/mixed** catch-all, reported in full per the routing
+table's own no-forced-binary-call discipline. **Read plainly: (d′) does
+not demonstrate differential engagement strong enough to move the band,
+but it is also not a clean structural null — the partial Spearman signal
+is real and is not nothing.**
+
+#### 10.13.3 The registered prior expectation (§10.3.5) — FAILED, and why
+
+§10.3.5 registered, before this wave's data existed: prior-like data
+(reconstructed from the confirm wave's back-solved `r_e ∈ [0.095, 0.581]`,
+median ≈0.350) would land the *detection* leg mid-to-high A″ brushing the
+90% A edge, and the *magnitude* leg at median `r_e` ≈0.34 — A″ overall,
+not A, but a materially stronger read than what this wave actually
+measured. **The fresh, direct measurement: median `r_e` 0.1462–0.2934
+across all 7 cells (0.1462–0.2292 at K=32), engaged_frac_v3 3.7%–41.1% at
+K=32** — the registered expectation is **not met**; the fresh wave reads
+substantially weaker on both legs than the prior-wave-consistent
+reconstruction predicted.
+
+**Diagnosis, as instructed:** the registered expectation was built by
+*back-solving* `r_e` through the nonlinear `a_e(λ, r)` blend formula
+(§9.7.2) from the confirm wave's *post-blend* `a_e` values, at each cell's
+own logged λ — not from a direct measurement (`r_e` did not exist as a
+directly-logged quantity until this wave's instrumentation). That
+back-solve carries exactly the two bias classes this design's own attack
+rounds flagged and never fully closed before Rev 7.1: (i) it assumed
+`‖anchor_weight[e]‖ = 1` (§9.7.5's own disclosed open item) — this wave's
+direct measurement shows per-cell mean anchor-row norms of 1.06–1.16, not
+1.0, so the back-solve's implicit unit-norm assumption was measurably
+wrong, in the direction that would make the back-solved `r` an
+overestimate relative to the true norm-invariant `r_e` (a larger blend
+term relative to the raw-key term, at a fixed observed `a_e`, is
+consistent with a smaller true `r` than the unit-norm inversion implies);
+and (ii) inverting a *mean* `a_e` through a nonlinear map does not recover
+the *mean* of the per-resample `r` values (§9.7.10 item 5's own disclosed
+Jensen's-gap caveat) — the back-solved "effective" `r_e` is a biased
+summary of the true per-resample distribution, not an unbiased estimate
+of it, and the direction of that bias was never bounded, only disclosed
+as a caveat. Both mechanisms push the same way: the back-solved
+`r ≈ 0.33–0.35` was always a construction built to survive exactly the
+objections that killed Rev 6, and its failure to predict this wave's
+directly-measured, assumption-free `r_e` is the clearest evidence yet
+that those two objections were not merely theoretical — they were
+quantitatively load-bearing. **The fresh direct measurement supersedes
+the back-solved prior expectation; this is disclosed as a failed
+prediction, not explained away.**
+
+#### 10.13.4 Synthesis — measured-and-rejected mechanism, decisively positive behavior and stability
+
+**The entity-alignment mechanism framing, as posed by §1 and tested by
+§10.3's engagement criterion, is measured-and-rejected at K=32 — literal
+Outcome C, both arms, 3/3 seeds each, on the wave's own pre-registered,
+attack-hardened, hash-locked test.** This is not a repeat of the confirm
+wave's C: it is a **strictly stronger** null, immune to every specific
+objection (`‖anchor‖=1`, λ-degeneracy, menu-laundering, power-manufactured
+engagement via raw statistical precision) that forced Rev 6's rejection,
+and it is now additionally tested under genuine per-entity capacity
+(candidate d′) — which converges to the **same** band as the global-scalar
+arm, closing the "parameter-sharing artifact" explanation in the
+negative, with real per-entity evidence rather than an inference.
+
+**Behavior and stability, independently, are decisively positive and now
+at independent-replication strength.** K=32 h4 `rec@0.9`: candidate (d)
+fresh seeds {10,11,12} = 0.6741/0.7125/0.6141; candidate (d′) fresh seeds
+{20,21,22} = 0.7021/0.6661/0.7141 — **6 of 6 fresh seeds clear the ≥0.5
+bar**, at a materially different seed set (not seed-integer reuse, unlike
+the confirm wave's own explicitly-disclosed same-seed limitation, §9.6)
+and a **third independent architecture variant** (per-entity λ, not a
+re-run of the same global-scalar mechanism). Combined with K=16 s10 =
+0.9998 (no-regression, clean) and the pre-existing 3 waves' own seed sets
+(Wave-1's 0/1/2, the confirm wave's same-seed reproduction, and now
+10/11/12 and 20/21/22), the behavioral h4 gain has been observed **9
+times total across 3 distinct seed sets and 3 waves** — this wave's
+specific contribution is the **first genuinely fresh 6-seed sample**,
+upgrading the behavioral claim from "reproduced at the same seed
+integers" (confirm wave) to **independent replication** in the ordinary
+statistical sense (new, never-before-drawn seeds, same result). Item 5
+(pre-NS drift) clears its 0.95 bar by 0.05–0.05 margin in all 7 cells,
+and item 6 (both legs) clears 3/3 at K=32 for arm (d) this wave (an
+improvement on the confirm wave's 2/3).
+
+**The parsimonious mechanistic account, given both results together: THE
+ANCHOR BLEND STABILIZES BY CONSTRUCTION, NOT BY ENTITY ALIGNMENT.** The
+blend `sub_blend = normalize((1−λ)·k_raw + λ·anchor)` mixes an
+**episode-constant** term (`anchor_table.weight[e]`, fixed across every
+resample of entity `e` within a run) with an **episode-varying** term
+(`k_eff_raw[e]`, the actual source of cross-episode drift this design
+exists to fix). At an SGD-preferred interior λ ≈0.55–0.60 (measured, this
+wave, all 7 cells — consistent with every prior wave's own λ range), the
+blended key's cross-episode variance is mechanically damped by a factor
+related to `(1−λ)²` regardless of whether `k_raw` ever moves toward
+`anchor` in direction — **stability arrives from the blend's arithmetic
+structure, not from the raw key learning to align with a fixed target.**
+This reframes the 2×2 (behavior × mechanism) that has been open since
+§9.5: the "missing ingredient" for cross-episode stability was never
+entity-level alignment (`r_e` large) — it was the mere **presence** of an
+episode-constant additive term in the blend, at a large-enough λ, which
+the raw-key term cannot disrupt no matter how weakly it aligns. This also
+explains candidate (d′)'s null result without needing any auxiliary
+story: if alignment isn't the channel, giving each entity its own λ_e
+changes *how much* stability each entity's blend gets, not *whether*
+alignment is the source of that stability — so per-entity freedom has
+nothing to differentially recruit, and SGD's mild, partial,
+non-band-changing use of that freedom (the 2/3 Spearman signal) is
+exactly the residual noise this account predicts: some entities'
+raw keys are cheaper to leave alone (already closer to chance-orthogonal
+to their anchor, hence a slightly higher λ_e is "free" stability with
+little raw-key value lost) while others' raw keys carry more real
+signal worth preserving (slightly lower λ_e) — a second-order
+optimization over the SAME non-alignment-based stability channel, not
+evidence of an alignment-based one.
+
+**What this account predicts, and what would falsify it (the decisive
+next probe):** if stability is purely a property of blending in *any*
+episode-constant term at the right λ, then **a random, FROZEN anchor
+table** (never trained, `anchor_lambda_mode` still learned or fixed at a
+matched λ) should deliver **similar h4/pre-NS-drift gains** to candidate
+(d)'s own learned table — because the mechanism this account proposes
+does not require the anchor table to carry any entity-specific
+information at all, only to be *present and constant across resamples*.
+If a frozen-random table matches (d)'s gains at matched λ, the
+construction-stabilization account is confirmed and the "learned" part of
+candidate (d)'s anchor table is doing no additional mechanistic work
+beyond providing *a* fixed point. If a frozen-random table performs
+**worse** than candidate (d) by a wide margin, the account is
+**falsified** — some property of the *learned* table beyond mere
+constancy (plausibly bulk pool geometry, not per-entity alignment) would
+need a different explanation.
+
+**Registered next-probe stub — candidate (e): frozen-random-table
+ablation.** K=32, `anchor_lambda_mode` **fixed** at λ ≈0.58 (the
+cross-cell mean of this wave's own measured λ, so the comparison is
+matched on the one hyperparameter this account claims matters), anchor
+table **initialized once via the existing `frame_potential_init` and then
+never trained** (`anchor_table.weight.requires_grad_(False)` or
+equivalent — a minimal, one-line addition to the existing masked
+gather/scatter/held-out-bypass path, not a new mechanism), 2–3 seeds.
+Success criterion for the construction-stabilization account: h4 and
+pre-NS drift within ordinary seed noise of candidate (d)'s own K=32
+range (h4 0.61–0.71, pre-NS drift ≈1.00). Estimated cost: **~1 GPU-h**
+(3 cells at the realized ≈0.2–0.35 GPU-h/cell range this design has
+repeatedly observed, §10.7/§11's own budget precedent) — cheap relative
+to the diagnostic value, and it does not require attacking or revising
+any machinery already hash-locked in this section (no new metric, no new
+threshold, no new smoke suite beyond a forward/backward check on the
+frozen-parameter path). **Has the archived data already spoken to
+this?** No — no wave in this design's history has ever run
+`anchor_lambda_mode` fixed with the anchor table simultaneously frozen at
+init (the closest existing cell, `wavekeyanchor-neg1`'s
+`armkeyanchor-d-fixed`, fixes λ but still trains the anchor table); this
+probe would be the first direct test and is not retroactively answerable
+from any existing JSON.
+
+#### 10.13.5 Claim tier — §10.6/§3.5 applied literally
+
+**The §1 key-anchoring entity-alignment mechanism hypothesis: Outcome C,
+confirmed at the mechanism-tier bar this wave was built to provide** — a
+genuinely stronger, assumption-free, power-floor-protected negative than
+the confirm wave's own C, and immune to every specific objection that
+forced Rev 6's rejection. Candidate (d′)'s independent per-entity-capacity
+question routes to **Inconclusive/mixed** per §10.6's own table (same
+band as (d), partial-not-unanimous Spearman significance) — not a clean
+C′, but also not A(d′); reported as such, no forced call.
+
+**The h4/λ/stability behavioral result: upgraded to independent-replication
+strength.** Per §10.6's own tier discipline (this section routes claim
+tiers, not just Outcome letters) and §3.5's admission stack: 6 fresh
+seeds (2 architecture variants) + 1 K=16 spot check all clear their own
+pre-registered bars; items 1–6 and λ-interior are clean at every K=32
+(d) cell this wave (3/3, an improvement on the confirm wave's 2/3); the
+behavioral claim now rests on **9 total seed-runs across 3 independently-drawn
+seed sets and 3 waves**, of which this wave supplies the first 6 that are
+genuinely fresh draws, not integer reuse. This licenses describing the
+h4 gain as **independently replicated**, not merely reproduced — a
+meaningfully stronger evidentiary statement than either prior wave could
+make, while the *mechanistic attribution* for that gain remains the
+construction-stabilization account above: **descriptive/interpretive**,
+consistent with real evidence (the account correctly predicts d′'s null
+result and is falsifiable at ~1 GPU-h) but not itself confirmed —
+confirmation is exactly what candidate (e) is registered to test.
+
+**No spin, stated plainly:** the registered outcome for the
+mechanism-as-framed question (§1's entity-alignment hypothesis, tested by
+§10.3's engagement criterion) is **C**. It is not A, not A″, not
+Inconclusive. Behavioral and stability gains are real and now
+independently replicated; the *reason* those gains occur is not entity
+alignment, and this wave's own hash-locked, pre-registered machinery is
+what makes that a measured conclusion rather than an inference.
+
+---
+
 ## 11. Rev K48.1 — Capacity-curve extension (K/d ∈ {0.25, 0.5, 0.75} at
 d_state=64) [Rev K48.1 — the attack-response revision; DRAFT, pending a
 fresh verify round before CLEARED-FOR-BUILD; zero GPU spent producing
