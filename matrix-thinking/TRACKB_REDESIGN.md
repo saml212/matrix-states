@@ -1280,6 +1280,227 @@ check instead of an attack pass (§10 item 5).
 
 ---
 
+## 14. Results — measurement waves readout (2026-07-05)
+
+Executed on `youthful-indigo-turkey`, GPU 7 only (GPUs 0–6 held by concurrent
+Track C waves throughout). Actual measured cost: Wave −1 ≈0.14 GPU-h + Wave 1
+≈1.41 GPU-h (wall-clock sum of the 18 runs' own `wall_s`, matching the
+launcher's own pre-launch projection of 1.39 GPU-h almost exactly) + Wave
+cell1probe/Wave 3 forward-only (~minutes, not separately logged) ≈ **1.5–2
+GPU-h total** — far under the §6.1 central estimate (≈8 GPU-h) because Wave 2
+(the geo3-active factorial) never launched (below). All source JSONs
+sha256-verified against `BANDS_PINNED-TrackB.json`'s own pinned hashes before
+this table was built (all 8 match exactly). Archive:
+`experiment-runs/2026-07-05_trackb_wave/` (+ SSD mirror, byte-identical,
+`diff -rq` verified).
+
+### 14.1 The stability finding stands — Cells 3/4 and Wave 2 never launched
+
+Restating §5.1's gate exactly as measured: the M8 stability smoke
+(`results/trackb/waveneg1/wBneg1_stability_smoke.json`) ran 163 of its
+requested 2,000 steps (stopped by the harness's own skip-rate accounting, not
+a crash) with **`n_skipped_steps=103`, `skip_rate=0.6319018404907976`** — 63×
+over the ≤1% bar. The positive control is unambiguous and reproduced directly
+from the raw JSON, not the task brief: `nan_probe_positive_control` shows
+`n_calls_total=326`, `n_calls_meeting_floor=196` (the ≥6-duplicated-selected-row
+floor), `floor_n_calls=25`, `probative: true`, `max_dup_per_call` reaching
+**32/32** (fully-duplicated top-K sets) repeatedly. The smoke is unambiguously
+probative, not a vacuous pass. `logs/tb_05_wave2.log` (verbatim): *"ERROR:
+stability smoke ... does not clear the sec 5.1 gate: skip_rate
+0.6319018404907976 > 0.01. Cells 3/4 REFUSED until a fix wave (with its own
+independent audit) addresses or bounds this."* No override was attempted or
+needed since Cell 3's own override path (`gate_override`) is orthogonal to
+this refusal (it overrides the *original geo3-in-LM gate*, not the *stability*
+gate) — confirmed by grep: zero `gate_override: true` records exist anywhere
+in Waves −1/1/3 (every run, 24 total, carries `gate_override: false`
+explicitly — no field-absence ambiguity, no stamping violation).
+
+**Consequence for the factorial, stated per this document's own scope rule
+(§5.1): Cells 3 and 4 do not exist. The `cell1 − cell3` and `cell1 − cell4`
+terms in the interaction bar (§5.3) and the Cell-4 headline bar are
+UNCOMPUTABLE, not merely unevaluated.** `logs/tb_06_wave3.log` confirms the
+downstream effect mechanically: of Wave 3's 30-item manifest, the 12 items
+depending on Cell 3/4 checkpoints were each individually SKIPPED
+(`"source run '...' has no completed checkpoint yet"`), `wave3/ALL_DONE` was
+correctly withheld ("NOT written (wave incomplete)") — this is the harness
+behaving correctly given no Cell 3/4 checkpoints exist, not a bug. **This
+readout is scoped to selectivity MAIN EFFECTS (Cells 1, 2, 2R, comparator)
+plus the stability finding. No interaction claim, no headline-bar claim, and
+no claim about geo3-in-LM's stability under any future fix is made here.**
+
+### 14.2 Wave 1 manifest — what actually ran (and what didn't)
+
+Wave 1's real manifest was **18 cells**, not a candidate-1/2 factorial: Cell 2
+(hard top-K + STE, `--surviving-mechanisms` at the launcher's own script
+default `["hard_ste"]`) × 2 corpora × 3 seeds (6), the M7 soft-top-K
+comparator × 2 corpora × 3 seeds (6), and Cell 2R (budget-matched random
+control, per-step resampled) × 2 corpora × 3 seeds (6). **Candidate 2
+(entmax/sparsemax) was probed at Wave −1 only** (`wBneg1_probe_entmax_k32.json`)
+and never promoted into Wave 1 — traced to `run_trackb_wave.py`'s own
+`--surviving-mechanisms` CLI default (`["hard_ste"]`, `:1078`), not a
+documented on-box decision note beyond that default and §10's own
+cut-order item 3 ("candidate 2 ... cut first among candidates if squeezed").
+Flagged as a traceability gap: no log or doc on the box states the rationale
+beyond the launcher's default value. All 18 Wave 1 cells completed
+(`skip_rate=0.0`, `grad_finite=True` throughout, 6,103/6,103 steps,
+`gate_override=false`); the comparator's config confirms `tau_anneal_frac:
+0.1` on every run (NEW-6's 10%-of-steps pin), and the build-time smoke `[3]`
+(`test_trackb_smokes.py`, part of the `smoke[trackb_cpu]: PASS` gate in
+`logs/tb_04_wave1.log`) independently verifies the schedule shape (τ=1 at
+step 1, exactly 0 at/after the 10% mark, τ=0 endpoint matches candidate 1's
+forward value to ≤1e-6) before launch.
+
+### 14.3 Val-loss tolerance bar (§5.3: +5% relative, Cell 1's own val loss at matched corpus)
+
+Cell 1's own val loss (from the 6 archived Wave C checkpoints,
+`results/lm_rd/waveC/wC_lm_*.json`): openr1 mean **2.0668** (2.0567/2.0631/
+2.0807 across seeds), wikitext mean **4.6881** (4.6818/4.6956/4.6869).
+
+| Cell | Corpus | Seed vals | Mean | vs Cell 1 | +5% bar | Verdict |
+|---|---|---|---|---|---|---|
+| Cell 2 (hard_ste) | openr1 | 2.2559 / 2.2528 / 2.2527 | 2.2538 | **+9.05%** | 2.1702 | **FAIL** |
+| Cell 2 (hard_ste) | wikitext | 4.8387 / 4.8265 / 4.8338 | 4.8330 | +3.09% | 4.9225 | pass |
+| Cell 2R (random) | openr1 | 2.2326 / 2.2461 / 2.2379 | 2.2389 | **+8.32%** | 2.1702 | **FAIL** |
+| Cell 2R (random) | wikitext | 4.8411 / 4.8459 / 4.8401 | 4.8424 | +3.29% | 4.9225 | pass |
+| Comparator | openr1 | 2.1810 / 2.1833 / 2.2093 | 2.1912 | **+6.02%** | 2.1702 | **FAIL** |
+| Comparator | wikitext | 4.8118 / 4.8095 / 4.8082 | 4.8099 | +2.60% | 4.9225 | pass |
+
+**All three selectivity arms fail the +5% val-loss bar on openr1, all three
+pass comfortably on wikitext.** Per §3.1's registered M7 attribution rule
+("candidate 1 misses and the comparator does not → STE bias; both miss
+together → hard selectivity itself is implicated"): on openr1 **both miss
+together** (candidate 1 +9.05%, comparator +6.02%) → the openr1 regression is
+attributed to hard selectivity itself, not an STE-specific artifact. Cell 2R
+(zero targeting information, same budget renormalization) regresses by a
+similar magnitude (+8.32%) to candidate 1 — consistent with a write-budget/
+concentration cost shared by every masking mechanism on this corpus, not a
+targeting-specific one. §11 item 2's widened promotion trigger for the
+hard-concrete/L0 third mechanism ("fires if candidate 1 and the comparator
+disagree") does **not** fire here (they agree — both fail on openr1, both
+pass on wikitext).
+
+### 14.4 Same-instrument Gram deviation (§5.2, K_sel=32) and the Cell-2-vs-2R decision
+
+Reference quantities pinned at Wave −1 (`BANDS_PINNED-TrackB.json`,
+`pinned_at=2026-07-04T23:36:15Z`, strictly before every Wave-1 start time):
+`anchor_random_32 = 3.9350` (MC, 500K samples; closed-form 3.9370, agrees to
+3 d.p.), `anchor_collapse_32 = 31.4960` (closed-form 31.4960, exact),
+`cell1_ref_32 = 0.5301 ± 0.5544` (n=12 readings, 6 checkpoints × 2 layers,
+pooled — **not** per-corpus; per-corpus pooled means below). `b_pinned =
+27.5717`. Per-corpus, per-seed values (mean of the 2 per-layer readings —
+matching `cell1_ref_32`'s own flat-pool convention, "n=3 per arm" per §5.1):
+
+| Cell | Corpus | Per-seed pooled Gram dev | Range |
+|---|---|---|---|
+| Cell 1 (baseline) | openr1 | 0.5525 / 0.5579 / 0.5546 | [0.5525, 0.5579] |
+| Cell 1 (baseline) | wikitext | 0.5131 / 0.4872 / 0.5157 | [0.4872, 0.5157] |
+| Cell 2 (hard_ste) | openr1 | 0.5255 / 0.5159 / 0.5530 | [0.5159, 0.5530] |
+| Cell 2 (hard_ste) | wikitext | 0.1325 / 0.1125 / 0.1015 | [0.1015, 0.1325] |
+| Cell 2R (random) | openr1 | 0.6306 / 0.6184 / 0.5954 | [0.5954, 0.6306] |
+| Cell 2R (random) | wikitext | 0.1273 / 0.1247 / 0.0991 | [0.0991, 0.1273] |
+| Comparator | openr1 | 0.6326 / 0.6214 / 0.6042 | [0.6042, 0.6326] |
+| Comparator | wikitext | 0.1134 / 0.1152 / 0.1113 | [0.1113, 0.1152] |
+
+**Anomaly, reported not resolved:** at K_sel=32, Cell 1's own baseline
+(0.53) sits far *below* `anchor_random_32` (3.94) — the reverse ordering
+from Track C's non-citable K=64 numbers (cell1 21.93 sits *above* random
+7.94). This is exactly the instrument-non-comparability §5.2/F1 already
+warns of (Gram deviation at different K is "not the same statistic"); it is
+additional, unplanned confirmation that banning cross-K citations was the
+right call, not a new problem for this redesign's own bars (which never
+compare across K).
+
+**Cell 2 vs Cell 1 (§7's "selectivity alone" falsification item):** openr1
+ranges [0.5159,0.5530] vs [0.5525,0.5579] — **marginally overlapping** (Cell
+2's max 0.5530 sits just under Cell 1's min 0.5525), not a clear win. Wikitext
+ranges [0.1015,0.1325] vs [0.4872,0.5157] — **disjoint, Cell 2 far lower**
+(≈4.4× reduction).
+
+**Cell 2 vs Cell 2R, the registered three-way decision (§5.1), per corpus:**
+
+- **openr1: DISJOINT, Cell 2 better** (range [0.5159,0.5530] vs
+  [0.5954,0.6306], no overlap) → by the registered rule, "β-informed
+  targeting matters" is the licensed reading for this corpus alone.
+- **wikitext: OVERLAP** (Cell 2 [0.1015,0.1325] vs Cell 2R [0.0991,0.1273],
+  substantial overlap) → **INCONCLUSIVE** — "selective writing
+  (targeting-vs-concentration unresolved at n=3)," no downgrade, no
+  targeting claim, per NEW-3's registered neutral phrasing.
+
+**Headline verdict (§5.1: "requires the same outcome in both corpora; a
+split is reported as INCONCLUSIVE overall"): a split occurred (openr1 says
+targeting matters, wikitext says inconclusive) → overall verdict is
+INCONCLUSIVE.** Read plainly: the large wikitext improvement over Cell 1 is
+not distinguishable from a budget-matched random control (write
+concentration, not targeting); the openr1 result does show a targeting-vs-
+random separation, but Cell 2 itself barely separates from Cell 1 on that
+same corpus. No corpus supports an unqualified "β-informed selectivity
+helps" claim.
+
+### 14.5 Bands audit (churn / positional-concentration / support), `BANDS_PINNED-TrackB.json`
+
+Ceilings: churn 0.1307, positional-concentration (TV) 0.0583, support
+∈[14.5, 32]. Applied only where registered (churn/TV bars apply to candidate
+1 = Cell 2 + Cell 4's hard-snap phase, never to Cell 2R which is
+per-step-resampled by design and expected to churn near-maximally):
+
+- **Cell 2 (hard_ste) churn:** max 0.0596 (openr1 s0 L1) across all 12
+  (corpus×seed×layer) readings — well under the 0.1307 ceiling throughout.
+  Not selection-degenerate.
+- **Cell 2 (hard_ste) positional concentration (TV): one breach.** openr1
+  seed 0, layer 1: **TV = 0.05957 > ceiling 0.05834** (a ≈2% exceedance).
+  All other 11 readings clear the ceiling (max elsewhere 0.0541). Per §4.3
+  this single (corpus, seed, layer) instance would be flagged
+  **positionally degenerate** and excluded from Cell-4 inheritance — moot
+  since Cell 4 never ran, but recorded as the one band breach in the dataset.
+- **Cell 2R churn** (0.496–0.507 across all runs) is far above the ceiling
+  by construction (per-step resampling) — this is expected and the ceiling
+  is not registered against this cell; not a flag.
+- **Comparator** churn (max 0.0317) and TV (max 0.0576) both clear their
+  respective bands; support = 32 (median and p10) for every cell in Wave 1
+  (Cell 2, Cell 2R, comparator all force exactly K_sel=32 by construction —
+  only entmax's Wave −1 probe showed sub-32 support, median 18–20).
+
+**BUDGET-PARTIAL stamps: zero present, and the field is not computable from
+the archived artifacts — a real gap, not "no cell hit the threshold."**
+`hard_selectivity_rd.py`'s `renormalize_to_b_pinned`/`classify_budget_partial`
+(unit-tested clean, `test_trackb_smokes.py` item `[5]`, positive AND negative
+cases both verified) is correctly wired into the forward pass
+(`lm_pretrain_rd.py:757-761`, `sel_diag["shortfall"]`/`sel_diag["budget_partial"]`
+computed every step) — but `self.hard_select_last_diag` is overwritten every
+forward call, and the checkpoint-time sampler that builds the persisted
+`hard_select_diagnostics`/`hard_select_final_diag` dict
+(`sample_hard_select_diagnostics`, `:1336-1420`) never reads or forwards the
+`shortfall`/`budget_partial` keys into its output. No cell's result JSON
+carries a shortfall statistic or a BUDGET-PARTIAL flag; whether any cell
+would classify PARTIAL under the registered rule (`median(shortfall_c)>0.10`
+or `frac(shortfall_c>0.10)>0.25`) cannot be determined from the archived
+data. Flagged for a future fix (surface `shortfall`/`budget_partial` in
+`sample_hard_select_diagnostics`'s per-layer output), not silently assumed
+clean.
+
+### 14.6 Scope-limited summary
+
+- **Stability finding (registered, §5.1): geo3-in-LM is numerically unstable
+  under duplicate-key stress at production training scale** —
+  `skip_rate=0.6319` vs the `≤0.01` bar, probative positive control
+  (196/326 calls ≥6 duplicated selected rows, max 32/32). This is the
+  **second independent barrier** to geo3-in-LM (after the original
+  β-uniformity no-launch, Gini 0.099). Cells 3/4 and Wave 2 never launched;
+  the interaction/headline bars are uncomputable, not merely unevaluated.
+- **Selectivity main effects (Cells 1/2/2R/comparator only):** val-loss
+  tolerance fails on openr1 for all three arms (hard selectivity itself
+  implicated, not an STE artifact, since the comparator fails alongside
+  candidate 1); passes on wikitext for all three. Same-instrument Gram
+  deviation: openr1 shows a real Cell-2-vs-2R separation (targeting
+  matters) but only a marginal Cell-2-vs-Cell-1 gap; wikitext shows a large
+  Cell-2-vs-Cell-1 gap that is indistinguishable from the random control
+  (write concentration, not targeting). **Combined headline verdict:
+  INCONCLUSIVE** (split outcome across corpora, per the registered rule).
+- No claim is made here about pretrained/production delta-rule LMs (§9,
+  unchanged) or about any Cell-3/Cell-4 interaction (uncomputable, §14.1).
+
+---
+
 ## Reproducibility pointers
 
 This design: `matrix-thinking/TRACKB_REDESIGN.md` (**Rev 3**, this file; Rev 1 at

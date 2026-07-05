@@ -1,0 +1,153 @@
+Track B hard-selectivity -- wave 3
+==================================================
+{
+  "wave": "3",
+  "n_manifest": 30,
+  "n_failed": 0,
+  "cells": {
+    "wB3_probe_wB1_cell2_hard_ste_openr1_s0_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s0_hshardstek32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.0405452251434326,
+        "1": 0.010546218603849411
+      }
+    },
+    "wB3_probe_wB1_cell2_hard_ste_openr1_s1_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s1_hshardstek32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.0246812105178833,
+        "1": 0.007184948306530714
+      }
+    },
+    "wB3_probe_wB1_cell2_hard_ste_openr1_s2_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s2_hshardstek32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.093523621559143,
+        "1": 0.012480908073484898
+      }
+    },
+    "wB3_probe_wB1_cell2_hard_ste_wikitext_s0_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s0_hshardstek32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.2649904489517212,
+        "1": 5.364546495911782e-07
+      }
+    },
+    "wB3_probe_wB1_cell2_hard_ste_wikitext_s1_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s1_hshardstek32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.224939227104187,
+        "1": 5.36957429631002e-07
+      }
+    },
+    "wB3_probe_wB1_cell2_hard_ste_wikitext_s2_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s2_hshardstek32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.20187820494174957,
+        "1": 0.001040549366734922
+      }
+    },
+    "wB3_probe_wB1_cell2R_openr1_s0_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s0_hsrandomtok32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.2605433464050293,
+        "1": 0.0006315099890343845
+      }
+    },
+    "wB3_probe_wB1_cell2R_openr1_s1_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s1_hsrandomtok32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.2329132556915283,
+        "1": 0.0039048362523317337
+      }
+    },
+    "wB3_probe_wB1_cell2R_openr1_s2_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s2_hsrandomtok32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.1890637874603271,
+        "1": 0.0017818139167502522
+      }
+    },
+    "wB3_probe_wB1_cell2R_wikitext_s0_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s0_hsrandomtok32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.25463783740997314,
+        "1": 5.461316163746233e-07
+      }
+    },
+    "wB3_probe_wB1_cell2R_wikitext_s1_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s1_hsrandomtok32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.24944821000099182,
+        "1": 5.502475914909155e-07
+      }
+    },
+    "wB3_probe_wB1_cell2R_wikitext_s2_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s2_hsrandomtok32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.19823627173900604,
+        "1": 5.378454943638644e-07
+      }
+    },
+    "wB3_probe_wB1_comparator_openr1_s0_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s0_hssofttopkk32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.25514817237854,
+        "1": 0.01009210105985403
+      }
+    },
+    "wB3_probe_wB1_comparator_openr1_s1_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s1_hssofttopkk32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.229645013809204,
+        "1": 0.013165213167667389
+      }
+    },
+    "wB3_probe_wB1_comparator_openr1_s2_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s2_hssofttopkk32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 1.199598789215088,
+        "1": 0.008859945461153984
+      }
+    },
+    "wB3_probe_wB1_comparator_wikitext_s0_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s0_hssofttopkk32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.2267797738313675,
+        "1": 5.409703476288996e-07
+      }
+    },
+    "wB3_probe_wB1_comparator_wikitext_s1_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s1_hssofttopkk32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.23033525049686432,
+        "1": 5.436696710603428e-07
+      }
+    },
+    "wB3_probe_wB1_comparator_wikitext_s2_k32": {
+      "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s2_hssofttopkk32_step6103.pt",
+      "checkpoint_step": 6103,
+      "per_layer_resid_mean": {
+        "0": 0.2226215898990631,
+        "1": 5.437568120214564e-07
+      }
+    }
+  }
+}

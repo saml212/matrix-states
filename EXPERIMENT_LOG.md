@@ -3809,3 +3809,127 @@ also inspect the per-condition breakdown before trusting a swing in the
 aggregate — especially when only 2 seeds are available and one sub-condition
 plausibly represents a rare, threshold-triggered event (a phase transition)
 rather than a smooth, low-variance quantity.
+
+## SCALE-TRANSFER Track B measurement waves (2026-07-05): geo3-in-LM DOUBLE-BARRED (registered stability finding, skip_rate 0.632 >> 0.01 bar, probative); selectivity main effects read as INCONCLUSIVE (split verdict across corpora, per the registered range-overlap rule)
+
+Readout of `matrix-thinking/TRACKB_REDESIGN.md` Rev 3's measurement waves
+(Wave −1 mechanism probes + stability smoke, the Cell-1 same-instrument
+re-probe of the 6 archived Wave C checkpoints, Wave 1's 18-cell selectivity
+manifest, Wave 3's 18 completed / 12 correctly-dropped instrumentation
+probes). No GPU launched this session — box already ran everything; this is
+aggregation + verdicts against the pre-registered bars only, per the design's
+own §5/§4.4/§2-principle-4 rules. Full numbers, per-cell table, and every
+bar computation: `TRACKB_REDESIGN.md` §14 (new section, this session). Real
+measured cost ≈1.5–2 GPU-h (Wave 1's 18 runs sum to 1.41 GPU-h wall-clock,
+matching the launcher's own 1.39 GPU-h pre-launch projection almost exactly)
+— far under the §6.1 ≈8 GPU-h central estimate because Wave 2 (the
+geo3-active factorial) never launched, below.
+
+**The registered stability finding stands, verified directly from the raw
+JSON (not re-derived): `wBneg1_stability_smoke.json` shows
+`skip_rate=0.6319018404907976` (103/163 steps skipped) against the `≤0.01`
+bar, with a PROBATIVE positive control** (`nan_probe_positive_control`:
+326 forward calls total, 196 meeting the ≥6-duplicated-selected-row floor,
+`max_dup_per_call` reaching 32/32 repeatedly) — the smoke genuinely
+exercised the failure regime, this is not a vacuous pass. `logs/tb_05_wave2.log`
+confirms the launcher refused Cells 3/4 mechanically: *"ERROR: stability
+smoke ... does not clear the sec 5.1 gate: skip_rate 0.6319... > 0.01. Cells
+3/4 REFUSED."* This is the **second independent barrier** to geo3-in-LM
+after the original β-uniformity no-launch (Gini 0.099, this doc's prior
+entry). `logs/tb_06_wave3.log` confirms the downstream effect: 12 of Wave
+3's 30-item manifest (every Cell-3/4-dependent probe) were individually
+SKIPPED ("no completed checkpoint yet"); `wave3/ALL_DONE` was correctly
+withheld. **Consequence: the interaction bar's `cell1−cell3`/`cell1−cell4`
+terms and the Cell-4 headline bar are UNCOMPUTABLE, not merely unevaluated
+— this readout is scoped to selectivity main effects (Cells 1/2/2R/comparator)
+only, no interaction claim.**
+
+**Selectivity main effects, per the same-instrument K_sel=32 Gram-deviation
+instrument and the registered val-loss tolerance bar:**
+
+| Cell | Corpus | val loss (mean, 3 seeds) | vs Cell1 (+5% bar) | Gram-dev range (3 seeds, pooled/layer) | vs Cell1 range |
+|---|---|---|---|---|---|
+| Cell 1 (baseline) | openr1 | 2.0668 | — | [0.5525, 0.5579] | — |
+| Cell 1 (baseline) | wikitext | 4.6881 | — | [0.4872, 0.5157] | — |
+| Cell 2 (hard_ste) | openr1 | 2.2538 | **FAIL +9.05%** | [0.5159, 0.5530] | marginal overlap |
+| Cell 2 (hard_ste) | wikitext | 4.8330 | pass +3.09% | [0.1015, 0.1325] | disjoint, ≈4.4× lower |
+| Cell 2R (random ctrl) | openr1 | 2.2389 | **FAIL +8.32%** | [0.5954, 0.6306] | — |
+| Cell 2R (random ctrl) | wikitext | 4.8424 | pass +3.29% | [0.0991, 0.1273] | — |
+| Comparator (soft-top-K) | openr1 | 2.1912 | **FAIL +6.02%** | [0.6042, 0.6326] | — |
+| Comparator (soft-top-K) | wikitext | 4.8099 | pass +2.60% | [0.1113, 0.1152] | — |
+
+Val-loss: all three selectivity arms **fail** the +5% bar on openr1, all
+**pass** comfortably on wikitext. Per the registered M7 attribution rule,
+candidate 1 and its soft-top-K comparator **fail together** on openr1 →
+attributed to hard selectivity itself, not an STE-specific gradient
+artifact (a "disagreement" would have implicated STE specifically; it did
+not occur). Gram deviation, registered Cell-2-vs-Cell-2R three-way rule per
+corpus: **openr1 — DISJOINT, Cell 2 better** ([0.5159,0.5530] vs
+[0.5954,0.6306]) → targeting reading licensed for that corpus alone; **wikitext
+— OVERLAP** ([0.1015,0.1325] vs [0.0991,0.1273]) → INCONCLUSIVE, no
+downgrade, no targeting claim (registered neutral phrasing). **Headline
+verdict per the design's own rule ("requires the same outcome in both
+corpora; a split is reported as INCONCLUSIVE overall"): INCONCLUSIVE.** The
+large wikitext Cell-2-vs-Cell-1 gap (≈4.4× lower Gram deviation) is not
+distinguishable from a zero-information random control — write
+concentration, not β-informed targeting, is the better-supported reading
+there; openr1 shows real targeting-vs-random separation but only a marginal
+Cell-2-vs-Cell-1 gap on that same corpus. No corpus supports an unqualified
+"selectivity helps" claim alone.
+
+**Bands audit (`BANDS_PINNED-TrackB.json`: churn ceiling 0.1307, positional
+TV ceiling 0.0583, support ∈[14.5,32]):** Cell 2's churn clears the ceiling
+throughout (max 0.0596 vs 0.1307); **one positional-concentration breach**
+(Cell 2, openr1 seed 0, layer 1: TV=0.05957 vs ceiling 0.05834, ≈2% over —
+would flag "positionally degenerate," moot since Cell 4 never ran). Cell 2R's
+high churn (0.496–0.507) is expected by construction (per-step resampling)
+and not bound by this ceiling. Support = 32 (median/p10) for every Wave-1
+cell. `gate_override` audited clean across all 24 Wave −1/1 runs — every one
+carries `gate_override: false` explicitly, zero stamping violations, and (as
+expected) zero `gate_override: true` records exist anywhere since Cell 3
+never ran.
+
+**BUDGET-PARTIAL stamps: none present anywhere, and the field turns out to be
+uncomputable from the archived data — a real reporting gap, not a clean
+result.** `hard_selectivity_rd.py`'s shortfall/BUDGET-PARTIAL classifier is
+correctly implemented and unit-tested (`test_trackb_smokes.py` item [5],
+positive+negative cases both pass) and correctly invoked every forward call
+(`lm_pretrain_rd.py:757-761`) — but the checkpoint-time diagnostic sampler
+(`sample_hard_select_diagnostics`, which builds the ONLY per-run diagnostic
+dict that reaches the result JSON) never reads or forwards the
+`shortfall`/`budget_partial` keys. No cell's JSON records a shortfall value;
+whether any cell would classify BUDGET-PARTIAL under the registered rule
+cannot be determined post hoc. Filed as a fix item, not assumed clean.
+
+**Also traced, not previously documented:** Wave 1's 18-cell manifest covers
+only candidate 1 (hard_ste) + its comparator + Cell 2R — candidate 2
+(entmax/sparsemax) was probed at Wave −1 only and never promoted, traced to
+`run_trackb_wave.py`'s own `--surviving-mechanisms` CLI default
+(`["hard_ste"]`), consistent with but not explicitly cross-referenced to
+§10's registered cut-order (candidate 2 "cut first ... if squeezed").
+
+**Archive:** `experiment-runs/2026-07-05_trackb_wave/` (results/trackb's full
+JSON+txt tree, `logs/tb_00`–`tb_06`, `scripts/` incl. `trackb_prefix.sh`
+pulled from the box) + SSD mirror at
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-05_trackb_wave/`
+(`diff -rq` verified byte-identical). Checkpoints (~8.8GB across Wave −1/1)
+stay box-only, not archived either location — out of scope for this readout.
+
+[LEARN] instrumentation: a diagnostic value computed correctly and
+unit-tested clean at the function level can still never reach a result JSON
+if the checkpoint-time sampler that builds the persisted dict doesn't
+forward it — "the code is right" and "the artifact records it" are
+separate claims, and only the second one lets a later readout apply a
+registered bar.
+Mistake: Track B's §2 principle-4 BUDGET-PARTIAL rule is mandatory and
+`hard_selectivity_rd.py`'s `classify_budget_partial` is correctly built and
+tested, but `lm_pretrain_rd.py`'s `sample_hard_select_diagnostics` (the
+function whose output actually gets serialized into every result JSON)
+never reads the `shortfall`/`budget_partial` keys off the per-step
+`sel_diag` — so a registered, unit-tested-correct mandatory control has zero
+computable readout in every Wave-1 result to date.
+Correction: when a registered per-chunk/per-step diagnostic must reach a
+readout, verify not just that the computing function is correct but that
+the SPECIFIC function serializing results to disk actually forwards that
+field — a build-time smoke that unit-tests the classifier in isolation does
+not catch a serialization-layer drop.

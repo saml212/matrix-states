@@ -497,6 +497,30 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   pre-registered outcome F. See the exactness-mechanism paragraph above,
   `EXPERIMENT_LOG.md`'s "F-geo-3 escalation VERDICT" entry, and
   `DELTANET_RD_EXACTNESS_DESIGN.md` §16.
+- **SCALE-TRANSFER Track B — measurement waves complete, geo3-in-LM
+  DOUBLE-BARRED, selectivity main effects read (2026-07-05, ≈1.5–2 GPU-h
+  actual, GPU 7 only).** `TRACKB_REDESIGN.md` Rev 3's Wave −1 stability
+  smoke measured `skip_rate=0.6319` (103/163 steps) against the `≤0.01`
+  bar with a PROBATIVE positive control (196/326 calls ≥6 duplicated
+  selected rows, max 32/32) — a **second independent barrier** to
+  geo3-in-LM after the original β-uniformity no-launch (Gini 0.099). Cells
+  3/4 and Wave 2 REFUSED; the interaction/headline bars are UNCOMPUTABLE,
+  not merely unevaluated. Readout scoped to selectivity main effects only
+  (Cells 1/2/2R/comparator, Wave 1's real 18-cell manifest — candidate 2/
+  entmax never promoted past Wave −1, traced to the launcher's own
+  `--surviving-mechanisms` default): val-loss +5% bar FAILS on openr1 for
+  all three arms (candidate 1 and its STE comparator fail together →
+  hard selectivity implicated, not an STE artifact) and PASSES on
+  wikitext for all three; same-instrument Gram-deviation shows openr1
+  Cell-2-vs-2R disjoint (targeting matters) but wikitext overlapping
+  (INCONCLUSIVE, write-concentration not targeting) — **combined headline
+  verdict INCONCLUSIVE** per the registered same-outcome-both-corpora rule.
+  One positional-concentration band breach (Cell 2, openr1 s0 L1, ≈2% over);
+  BUDGET-PARTIAL stamping is uncomputable from the archived data (a real
+  instrumentation gap, filed not assumed clean — see the [LEARN] block).
+  Full table/verdicts: `EXPERIMENT_LOG.md` "SCALE-TRANSFER Track B
+  measurement waves" entry; `TRACKB_REDESIGN.md` §14. Archive:
+  `experiment-runs/2026-07-05_trackb_wave/` + SSD mirror.
 - **SCALE-TRANSFER Track D Phase 1 (pretrained-model measurement) — CLOSED
   (2026-07-04, ≈0.9 GPU-h, GPU 6 only).** The write-geometry signature
   exists in production fixed-state models (RWKV-7 1.5B — the design's 2.9B

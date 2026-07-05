@@ -1,0 +1,69 @@
+{
+  "formula_version": "TRACKB_REDESIGN.md sec 4.3/5.3 Rev 3",
+  "k_sel": 32,
+  "churn_null_a": {
+    "mean": 0.068994140625,
+    "s": 0.03084714623085527,
+    "n": 5,
+    "ceiling": 0.13068843308671055
+  },
+  "positional_concentration_ceiling": {
+    "mean": 0.05380859375,
+    "s": 0.0022680125317370296,
+    "n": 5,
+    "ceiling": 0.05834461881347406
+  },
+  "support_band": {
+    "p10_pilot": 14.5,
+    "floor": 14.5,
+    "ceiling_a_priori": 32
+  },
+  "b_pinned": {
+    "b_pinned": 27.5716970761617,
+    "std": 2.258565713374808,
+    "p10": 23.848886489868164,
+    "p90": 29.738019371032713,
+    "n_chunks_pooled": 12
+  },
+  "mc_anchors": {
+    "K": 32,
+    "d": 64,
+    "n_samples": 500000,
+    "seed": 0,
+    "anchor_random": 3.9349541664123535,
+    "anchor_random_std": 0.12195410579442978,
+    "anchor_random_closed_form": 3.9370039370059056,
+    "anchor_random_mc_minus_closed": -0.002049770593552047,
+    "anchor_collapse": 31.49603149604724,
+    "anchor_collapse_closed_form": 31.496031496047245,
+    "anchor_collapse_mc_minus_closed": -3.552713678800501e-15
+  },
+  "cell1_ref_32": {
+    "mean": 0.530149008562726,
+    "std": 0.5544092078541691,
+    "n_layer_readings": 12,
+    "n_checkpoints": 6
+  },
+  "pilot_result_paths": [
+    "results/trackb/waveneg1/wBneg1_reference_pilot.json",
+    "results/trackb/waveneg1/wBneg1_probe_entmax_k32.json",
+    "results/trackb/wavecell1probe/cell1probe_0_lmC_openr1_dm256_ds64_L2_s0_step6103.json",
+    "results/trackb/wavecell1probe/cell1probe_1_lmC_openr1_dm256_ds64_L2_s1_step6103.json",
+    "results/trackb/wavecell1probe/cell1probe_2_lmC_openr1_dm256_ds64_L2_s2_step6103.json",
+    "results/trackb/wavecell1probe/cell1probe_3_lmC_wikitext_dm256_ds64_L2_s0_step6103.json",
+    "results/trackb/wavecell1probe/cell1probe_4_lmC_wikitext_dm256_ds64_L2_s1_step6103.json",
+    "results/trackb/wavecell1probe/cell1probe_5_lmC_wikitext_dm256_ds64_L2_s2_step6103.json"
+  ],
+  "pilot_result_sha256": {
+    "results/trackb/waveneg1/wBneg1_reference_pilot.json": "15703c8cf0a6c08a731cca04fc7714b8204747520c136019caf69e66611590ff",
+    "results/trackb/waveneg1/wBneg1_probe_entmax_k32.json": "fc79eaddbeba908dd2595df24921e89c2803e5ba1bcbb1e40724a2e3f69e727d",
+    "results/trackb/wavecell1probe/cell1probe_0_lmC_openr1_dm256_ds64_L2_s0_step6103.json": "cd08fbfce4b4627c589d6348398f43c1743f2baa758105094ca601b3a48e1f07",
+    "results/trackb/wavecell1probe/cell1probe_1_lmC_openr1_dm256_ds64_L2_s1_step6103.json": "5e710ada80c7c6ff2a2625c18b7655d13b99784293184f89060c2d7fb92d52c4",
+    "results/trackb/wavecell1probe/cell1probe_2_lmC_openr1_dm256_ds64_L2_s2_step6103.json": "6a262bb37c0684de6d33b0b879476674f76a85667abbd98b3857f1acfb29e582",
+    "results/trackb/wavecell1probe/cell1probe_3_lmC_wikitext_dm256_ds64_L2_s0_step6103.json": "e6b72353487dfdafbcb60466787702124cf7299a0587d686c1fada49d8148441",
+    "results/trackb/wavecell1probe/cell1probe_4_lmC_wikitext_dm256_ds64_L2_s1_step6103.json": "8340871b544cf2a9b46d8e74093932e82ed0dcee545124099b85dd28224a3442",
+    "results/trackb/wavecell1probe/cell1probe_5_lmC_wikitext_dm256_ds64_L2_s2_step6103.json": "3cef651ca87bba1bcae9dc1a8aeb090dbb7f8e8f327b12f85478216f89032001"
+  },
+  "pinned_at": 1783208175.4568212,
+  "pinned_at_iso": "2026-07-04T23:36:15Z"
+}

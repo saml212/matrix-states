@@ -1,0 +1,48 @@
+{
+  "complete": true,
+  "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s2_hshardstek32_step6103.pt",
+  "checkpoint_step": 6103,
+  "corpus": "wikitext",
+  "n_docs": 32,
+  "seq_len": 512,
+  "chunk_size": 64,
+  "k_sel": 32,
+  "n_iter": 20,
+  "resid_tol": 0.01,
+  "per_layer": {
+    "0": {
+      "resid_mean": 0.20187820494174957,
+      "resid_max": 2.0,
+      "resid_min": 4.028751163787092e-07,
+      "frac_valid_selections": 1.0,
+      "per_chunk_total_mass": {
+        "mean": 63.85376988351345,
+        "std": 0.3147818277548426,
+        "p10": 63.874399185180664,
+        "p90": 63.95033836364746,
+        "n": 256
+      },
+      "support": {
+        "median": 64.0,
+        "p10": 64.0
+      }
+    },
+    "1": {
+      "resid_mean": 0.001040549366734922,
+      "resid_max": 0.26624298095703125,
+      "resid_min": 4.04650648988536e-07,
+      "frac_valid_selections": 1.0,
+      "per_chunk_total_mass": {
+        "mean": 63.99881307780743,
+        "std": 0.0007990616018426433,
+        "p10": 63.998023986816406,
+        "p90": 63.999446868896484,
+        "n": 256
+      },
+      "support": {
+        "median": 64.0,
+        "p10": 64.0
+      }
+    }
+  }
+}

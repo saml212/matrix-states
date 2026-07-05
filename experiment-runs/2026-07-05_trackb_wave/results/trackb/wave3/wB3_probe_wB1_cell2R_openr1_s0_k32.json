@@ -1,0 +1,48 @@
+{
+  "complete": true,
+  "checkpoint": "results/trackb/wave1/checkpoints/lmC_openr1_dm256_ds64_L2_s0_hsrandomtok32_step6103.pt",
+  "checkpoint_step": 6103,
+  "corpus": "openr1",
+  "n_docs": 32,
+  "seq_len": 512,
+  "chunk_size": 64,
+  "k_sel": 32,
+  "n_iter": 20,
+  "resid_tol": 0.01,
+  "per_layer": {
+    "0": {
+      "resid_mean": 1.2605433464050293,
+      "resid_max": 4.242640495300293,
+      "resid_min": 4.274110381174978e-07,
+      "frac_valid_selections": 1.0,
+      "per_chunk_total_mass": {
+        "mean": 33.00021129101515,
+        "std": 4.977461570321767,
+        "p10": 26.07206153869629,
+        "p90": 39.46100616455078,
+        "n": 256
+      },
+      "support": {
+        "median": 64.0,
+        "p10": 64.0
+      }
+    },
+    "1": {
+      "resid_mean": 0.0006315099890343845,
+      "resid_max": 0.16152283549308777,
+      "resid_min": 4.243605076226231e-07,
+      "frac_valid_selections": 1.0,
+      "per_chunk_total_mass": {
+        "mean": 13.876604530960321,
+        "std": 1.9670074785508793,
+        "p10": 10.889386177062988,
+        "p90": 16.15304470062256,
+        "n": 256
+      },
+      "support": {
+        "median": 64.0,
+        "p10": 64.0
+      }
+    }
+  }
+}

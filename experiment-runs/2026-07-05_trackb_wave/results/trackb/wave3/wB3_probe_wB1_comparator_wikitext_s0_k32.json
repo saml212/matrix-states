@@ -1,0 +1,48 @@
+{
+  "complete": true,
+  "checkpoint": "results/trackb/wave1/checkpoints/lmC_wikitext_dm256_ds64_L2_s0_hssofttopkk32_step6103.pt",
+  "checkpoint_step": 6103,
+  "corpus": "wikitext",
+  "n_docs": 32,
+  "seq_len": 512,
+  "chunk_size": 64,
+  "k_sel": 32,
+  "n_iter": 20,
+  "resid_tol": 0.01,
+  "per_layer": {
+    "0": {
+      "resid_mean": 0.2267797738313675,
+      "resid_max": 2.2360680103302,
+      "resid_min": 4.135783910896862e-07,
+      "frac_valid_selections": 1.0,
+      "per_chunk_total_mass": {
+        "mean": 35.61794435977936,
+        "std": 1.6099655995801567,
+        "p10": 33.588340759277344,
+        "p90": 37.46224594116211,
+        "n": 256
+      },
+      "support": {
+        "median": 64.0,
+        "p10": 64.0
+      }
+    },
+    "1": {
+      "resid_mean": 5.409703476288996e-07,
+      "resid_max": 7.853564056858886e-07,
+      "resid_min": 4.1996275967903784e-07,
+      "frac_valid_selections": 1.0,
+      "per_chunk_total_mass": {
+        "mean": 9.755972912535071,
+        "std": 1.144997177588091,
+        "p10": 8.267658233642578,
+        "p90": 11.314067363739014,
+        "n": 256
+      },
+      "support": {
+        "median": 64.0,
+        "p10": 64.0
+      }
+    }
+  }
+}
