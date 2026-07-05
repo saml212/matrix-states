@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+set -e
+cd /home/nvidia/chapter2/deltanet_rd
+export CUDA_VISIBLE_DEVICES=4
+mkdir -p results/lm_rd_trackc/trajectory_probes/wave1 results/lm_rd_trackc/trajectory_probes/wave1ext results/lm_rd_trackc/trajectory_probes/wave2 results/lm_rd_trackc/trajectory_probes/mixcontrol
+echo "=== GPU4: wave1ext openr1-mix-ext_s0 (35 ckpts) ==="
+/home/nvidia/tdenv/bin/python3 lm_attractor_probe_rd.py \
+  --checkpoints \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step1000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step3000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step5000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step7000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step9000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step11000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step13000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step15000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step17000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step19000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step21000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step23000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step25000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step27000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step29000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step31000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step33000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step35000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step37000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step39000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step41000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step43000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step45000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step47000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step49000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step51000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step53000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step55000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step57000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step59000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step61000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step63000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step65000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step67000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s0_step67547.pt \
+  --out results/lm_rd_trackc/trajectory_probes/wave1ext/openr1-mix-ext_s0.json
+echo "=== GPU4: wave1ext openr1-mix-ext_s0 DONE ==="
+echo "=== GPU4: wave1ext openr1-mix-ext_s1 (35 ckpts) ==="
+/home/nvidia/tdenv/bin/python3 lm_attractor_probe_rd.py \
+  --checkpoints \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step1000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step3000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step5000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step7000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step9000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step11000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step13000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step15000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step17000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step19000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step21000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step23000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step25000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step27000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step29000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step31000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step33000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step35000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step37000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step39000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step41000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step43000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step45000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step47000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step49000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step51000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step53000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step55000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step57000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step59000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step61000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step63000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step65000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step67000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step67547.pt \
+  --out results/lm_rd_trackc/trajectory_probes/wave1ext/openr1-mix-ext_s1.json
+echo "=== GPU4: wave1ext openr1-mix-ext_s1 DONE ==="
+echo "=== GPU4: wave1ext openr1-mix-ext_s2 (35 ckpts) ==="
+/home/nvidia/tdenv/bin/python3 lm_attractor_probe_rd.py \
+  --checkpoints \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step1000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step3000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step5000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step7000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step9000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step11000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step13000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step15000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step17000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step19000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step21000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step23000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step25000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step27000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step29000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step31000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step33000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step35000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step37000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step39000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step41000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step43000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step45000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step47000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step49000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step51000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step53000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step55000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step57000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step59000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step61000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step63000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step65000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step67000.pt \
+    /data/lm_rd_trackc_ckpts/wave1ext/lmC_openr1-mix-ext_dm768_ds64_L12_s2_step67547.pt \
+  --out results/lm_rd_trackc/trajectory_probes/wave1ext/openr1-mix-ext_s2.json
+echo "=== GPU4: wave1ext openr1-mix-ext_s2 DONE ==="
+echo ALL_DONE_GPU4

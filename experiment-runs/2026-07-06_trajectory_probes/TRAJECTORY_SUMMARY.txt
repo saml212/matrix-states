@@ -1,0 +1,90 @@
+====================================================================================================
+TRACK C DENSE ATTRACTOR-GEOMETRY TRAJECTORIES — PURE INSTRUMENT RE-RUN (figure data, NO new claims)
+For NARRATIVE.md Fig 9 Panel A (ICLR scale-ladder figure): per-seed trajectory curves over the
+archived Track C checkpoints. The prior harvests sampled trajectories at seed 0 only, 8-11 points;
+this re-run produces per-(cell, seed, checkpoint) series at dense granularity for ALL 6 runs of
+each of the 4 cells. Nothing here changes any verdict — same instrument, same checkpoints, same
+pooling conventions as the archived harvests.
+Instrument: lm_attractor_probe_rd.py, md5 3fb0f80028477d0b1cefe468c81b1da4 — BIT-IDENTICAL to the
+archived copies (2026-07-04_trackc_rung1, 2026-07-05_trackc_rung2, 2026-07-05_wave1ext). Smoke
+re-run on GPU 2 before scoring: all 6 items PASS.
+GPUs 2-7 ONLY (verified idle: 0% util / 0 MiB before launch; GPUs 0-1 rung-3 training, untouched).
+One tmux session per GPU (traj_gpu2..7), one probe call per run (all that run's checkpoints in a
+single --checkpoints list). All 24 calls EXIT_CODE=0; 0 crashes, 0 reruns, 0 NaN/Inf.
+====================================================================================================
+
+### PROBE COST (measured, sum of per-call wall_s; parallel across 6 GPUs, ~2h wall-clock)
+  wave1      (98M  orig-mix, 6 runs x 35 ckpts = 210):  14041 s = 3.90 GPU-h
+  wave1ext   (98M  ext-mix,  6 runs x 35 ckpts = 210):  14206 s = 3.95 GPU-h
+  wave2      (392M ext-mix,  6 runs x 13 ckpts =  78):   9647 s = 2.68 GPU-h
+  mixcontrol (14M  ext-mix,  6 runs x  7 ckpts =  42):    758 s = 0.21 GPU-h
+  timing pilots (3 single-ckpt calls, GPUs 2-3):          219 s = 0.06 GPU-h
+  TOTAL: 10.80 GPU-h (cap was 12; per-ckpt pilot timings 68.5s @98M / 132.2s @392M / 18.0s @14M)
+
+### CHECKPOINT COVERAGE (subsampling rule)
+Rule: every 2nd checkpoint BY INDEX in each run's sorted step list, PLUS the exact final step
+always force-included; wave2 every 8th (its 92-ckpt runs at 132s/ckpt are the cost driver);
+mixcontrol every checkpoint (only 7). Grids per run:
+  wave1 / wave1ext: steps 1000,3000,5000,...,67000 + 67547  -> 35 of 68 ckpts per run
+  wave2:            steps 1000,9000,17000,...,89000 + 91552 -> 13 of 92 ckpts per run
+  mixcontrol:       steps 1000..6000 + 6103                 ->  7 of  7 ckpts per run
+All 540 planned checkpoints verified present on box before launch (0 missing). 540 scored
+(210+210+78+42), covering all 24 runs (4 cells x 2 corpora x 3 seeds). The archived seed-0
+trajectories had 8-11 points on 2 of 6 runs per cell; this gives 7-35 points on 6 of 6.
+Calibration cells: NOT probed — single-seed, mixed-config, no archived reference, not in Fig 9
+Panel A's ladder (registered cells only).
+
+### VALIDATION (reproduce archived reference numbers BEFORE mass production — all PASS)
+1. Pooling-convention reproduction (pure JSON re-analysis via the archived analyze_probe_wave2.py,
+   archived-4 eval subset {openr1, openr1-mix, wikitext, wikitext-mix}, exact n-weighted pooling):
+     rung-1     27.8168550365501  (archived: 27.8168550365501)   EXACT
+     control    21.92787140607834 (archived: 21.92787140607834)  EXACT
+     rung-2     28.103400483727455 (archived: 28.103400483727455) EXACT
+     mixcontrol 21.739220420519512 (archived: 21.739220420519512) EXACT
+2. Per-run FINALS, new dense probes vs archived harvests (check_finals_vs_archived.py):
+   66/66 comparisons EXACT to <=1e-6 on the archived-4 columns (gram-dev mean + span_frac,
+   all 24 runs) — the instrument is deterministic given (corpus, fixed sampling seed).
+3. Archived seed-0 TRAJECTORY points overlapping the new grid (check_trajectories_vs_archived.py):
+   24/24 EXACT to <=1e-6 (wave1ext: all 8 archived steps x 2 runs; wave2: 4 overlapping steps
+   {1000,41000,81000,91552} x 2 runs).
+
+### MISMATCHES vs ARCHIVED (report, not papered over)
+ONE diagnosed non-mismatch: the first run of the finals check flagged wave1's "all7" pooled column
+(5 diffs up to 0.24 raw). Cause: wave1's archived harvest (2026-07-04) ran when the box carried
+only the 4 original eval corpora, so its as-written pool IS the archived-4 pool; the new probe
+pools today's 7. Corpus-SET difference, not an instrument difference — the registered archived-4
+convention (what every cross-scale row in every harvest uses) is EXACT on the same runs. The check
+script now skips that one non-like-for-like column with an inline comment documenting this.
+NO other mismatches: zero red flags across finals + trajectory overlap.
+
+### FIGURE-READY OUTPUT
+trajectories_tidy.json / trajectories_tidy.csv — 540 rows, one per (family, corpus, seed, step):
+  family, checkpoint_path, corpus_trained_on, seed, step, n_params, d_model/d_state/n_layers,
+  K, d_head, anchor_random, anchor_collapse,
+  archived4_{gram_deviation_mean,std, span_frac, effective_rank_mean, stable_rank_mean, n_scored},
+  all7_{gram_deviation_mean, span_frac, n_scored}
+Use archived4_span_frac for Fig 9 Panel A (the cross-scale convention; anchors differ across
+d_state — 64 vs 128 — so raw gd is NOT comparable across rungs, span_frac is).
+Pooled trajectory endpoints (6-run n-weighted, archived-4), matching the archived finals exactly:
+  cell        step-1000 span_frac -> final span_frac (final == archived harvest value)
+  mixcontrol  0.3026 -> 0.2484   (14M,  ext mix)
+  wave1       0.3954 -> 0.3578   (98M,  orig mix)
+  wave1ext    0.3726 -> 0.3441   (98M,  ext mix)
+  wave2       0.4596 -> 0.3885   (392M, ext mix)
+Same qualitative shape at every scale and for every seed: fast early drop, then a plateau far
+above the random anchor — consistent with (and now per-seed evidence for) the archived harvests'
+seed-0 shape reads. No new claims made here.
+
+### ARCHIVE CONTENTS (this directory; every file <=1.2MB, all git-tracked; SSD mirror identical)
+lm_attractor_probe_rd.py (md5-verified instrument copy), trajectory_plan.json (full subsampling
+plan incl. per-run checkpoint lists), gen_drivers.py + drivers/driver_gpu{2..7}.sh (exact launch
+scripts), logs/traj_gpu{2..7}_run.log (full run logs), wave1/ wave1ext/ wave2/ mixcontrol/ (24
+per-run probe JSONs, per-checkpoint per-corpus per-layer detail), build_tidy.py (tidy-table
+builder, reuses analyze_probe_wave2.py's exact pooling arithmetic), analyze_probe_wave2.py
+(archived pooling tool, unmodified, for the validation reproduction), reference_finals_archived.
+{json,csv} (per-run finals rebuilt from the archived harvest JSONs), check_finals_vs_archived.py +
+check_trajectories_vs_archived.py (validation scripts, both exit 0), trajectories_tidy.{json,csv}
+(the figure-ready output), TRAJECTORY_SUMMARY.txt (this file).
+On-box copies: /home/nvidia/chapter2/deltanet_rd/results/lm_rd_trackc/trajectory_probes/.
+Checkpoints unchanged at /data/lm_rd_trackc_ckpts/ (read-only use).
+SSD mirror: /Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-06_trajectory_probes/.
