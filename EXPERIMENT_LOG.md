@@ -3997,3 +3997,122 @@ corpus-matched recomputes, exact scripts, run log, mixcontrol training
 JSONs) + SSD mirror; 6×30MB rung-2 training JSONs SSD-only. Checkpoints
 stay on box (`/data/lm_rd_trackc_ckpts/{wave2,mixcontrol}`). `STATE.md`
 updated.
+
+## KEY-ANCHORING WAVE VERDICT (2026-07-05): K=32 h=4 clears the 0.5 bar 3/3 seeds (mean 0.613 vs. fresh-reference 0.410), λ interior 6/6 — but items 5/6/`engaged_frac` were never measured on the admitted runs, so the mechanistic claim stays DESCRIPTIVE, not confirmed
+
+Full spec: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §3.5 (outcome map),
+new §9 (this wave's results, added this session). Box:
+`youthful-indigo-turkey`, `/home/nvidia/chapter2/deltanet_rd/`. CPU-only
+verdict pass (no GPU touched; GPUs 0/1 running rung-3, GPU 6 running
+wave-1ext throughout).
+
+**What ran.** 18 mandatory 20,000-step cells: 6 fresh bare-geo3 reference
+arms (seeds {1,2,3}×K∈{16,32}, `--drift-probe` active), 6 candidate-(d)
+cells (learned-λ anchor blend, seeds {0,1,2}×K∈{16,32}), 6 candidate-(c)
+cells (soft `L_anchor` regularizer ablation, same seeds/K) — plus 8 short
+GPU probes, the CPU smoke suite (10/10 PASS), and Gate 2 (PASS on the
+frozen frame-potential anchor init: σ-ratio 1.0000, max\|cos\| 0.2842,
+zero NS fallbacks over 512 subsets at both K; the full pinned regression
+quadruple reproduced to 4 decimals). 10.98 realized GPU-h for the 18
+mandatory cells. `BANDS_PINNED.json` written and hash-validated;
+`readout_keyanchor.py` (re-run this session) confirms BLIND INTACT (pin
+`2026-07-04T22:49:31Z` precedes every anchor-arm start, 12 runs checked)
+and zero `unblind_override` runs.
+
+**λ: interior at both K, 6/6 seeds** (K=16: 0.545/0.558/0.561; K=32:
+0.568/0.570/0.575 — all with trailing-5-point ranges <0.001, nowhere near
+the 0.1 oscillation-exclusion bar). SGD settles on a tight, seed-stable,
+genuinely-mid-range blend weight — neither ignoring the anchor (<0.05)
+nor rediscovering the fixed pin (>0.95).
+
+**The headline number: candidate (d) K=32 h=4 `rec@0.9` = 0.559 / 0.615 /
+0.665 (mean 0.613) — 3/3 seeds clear the ≥0.5 bar**, a +0.20 absolute /
++49% relative lift over this wave's own freshly-reproduced bare-geo3
+reference (0.391/0.418/0.423, mean 0.4105 — consistent with the prior
+archived pin-free figure, 0.4368, within seed noise) and +0.176 over that
+archived number directly. K=16 (no-regression guard, bar ≥0.9567): both
+candidates clear it and *improve* on the fresh reference (0.9716) —
+(d) 0.9997, (c) 0.9987. h=1 guard and the admissibility stack (zero NS
+fallbacks, finite loss, task-performance floor) are clean 3/3 at both K
+for all three arms — full evidentiary tier on everything NOT gated behind
+the missing instrumentation below. **Candidate (c) (the ablation) does
+NOT reliably clear the bar** (2/3 seeds, mean 0.4806, indistinguishable
+from the fresh reference given overlapping seed ranges) — matching the
+pre-registered falsification prediction that a loss-side-only regularizer
+would saturate like F-geo-1's `L_orth` did.
+
+**The gap that blocks a confirmed verdict.** `keyanchor_wave1_manifest()`
+never threads `drift_probe=True` into the candidate-(d)/(c) `_spec()`
+calls (only `reference_arms_manifest()` does) — confirmed by direct
+inspection: none of the 12 Wave-1 result JSONs contains a `drift_probe`
+key anywhere. This means **item 5 (pre-NS blend drift, the manipulation
+check), item 6 at final admission (raw anchor-table conditioning), and
+§3.7's per-entity `engaged_frac` were never measured on the actual
+admitted 20,000-step runs** — despite the manifest's own docstring
+claiming "per-entity/lambda logging is active by construction" (true only
+for λ). The one tool that would have supplied these numbers on a fresh
+probe model AND Gate 1's pre-spend launch-read,
+`keyanchor_drift_diagnostic.py`, **crashed on its first invocation**
+(`logs/04_drift_diag.log`): its own `log_every = probe_steps // 5 = 1000`
+default fails the harness's own `assert_lambda_log_cadence`
+(`LAMBDA_LOG_CADENCE_STEPS = 200`, a fix from this SAME design's Rev 4)
+— a self-inconsistency inside the wave's own tooling. No
+`results/deltanet_rd_exactness/keyanchor_drift/` output exists, and the
+CPU smoke-8 console output for this session explicitly flags the
+real-episode `engaged_frac` sweep as an unfinished "scrutiny item." The
+`keyanchor_chain.sh` header claims `&&`-gated failure-stops-the-chain
+semantics, yet `waveref`/`wavekeyanchor` both completed hours after this
+crash — the chain was resumed by hand past the failed stage, not by the
+script as written, so **Gate 1's pre-registered pre-spend check
+(predicted K=16 h=4 ≥ 0.8) was silently never computed before the wave
+launched**, and the missing item 5/6/`engaged_frac` were never caught or
+flagged as blocking before the 20,000-step training spend.
+
+**Verdict: per §3.5's outcome map, UNASSIGNABLE — not A, A′, A″, B, or
+C.** The behavioral profile (bars clear 3/3, λ interior 6/6, no
+regression, no early-stop kill anywhere) is exactly what Outcome A's
+other three legs would produce, but item 5 and `engaged_frac` are simply
+missing, not failing — per this design's own §6 rule ("h4 clearing 0.5
+without item 5 clearing does NOT count as a confirmed test of the
+hypothesis"), the honest tier is **DESCRIPTIVE for the mechanistic claim,
+not confirmed**, while the raw h=4/λ numbers themselves are reported at
+full evidentiary tier (real, reproducible, admissible, non-trivial
+margin). A secondary, disclosed bonus finding: candidate (d)'s **final
+value-Gram deviation is roughly HALF the fresh reference's own** (K=32:
+3.85 vs. 6.69 mean; K=16: 1.24 vs. 2.32 mean) — below even the
+"frozen-arm range" the design's own §4 diagnostic named as a
+value-geometry-relief signal, which raises the live possibility that part
+of h4's gain is flowing through relieved value geometry rather than (or
+in addition to) cross-episode key stability — exactly the ambiguity item
+5 exists to resolve, and exactly why its absence is not a formality.
+C17 (held-out entities) confirms the anchor-bypass mask works as designed
+(h=1 `rec@0.9` = 1.0000 identically across reference/d/c at K=32, zero
+leakage). No arm tripped the value-Gram early-stop kill rule at any
+checkpoint.
+
+**Required follow-up (cheap, no new 20k-step training):** fix
+`keyanchor_drift_diagnostic.py`'s `log_every` default and re-run the 2
+sequential K=16/K=32 probes (recovers Gate 1's verdict after the fact +
+item 5 + `engaged_frac` + the h=1 behavioral companion on a probe model);
+for a stronger claim tier, add `--drift-probe` to a short confirmatory
+re-run of one admitted candidate-(d) K=32 seed's exact config, reading
+item 5/6/`engaged_frac` directly off the real architecture/data path that
+produced the h4 numbers above. This is instrumentation debt, not a
+hypothesis question — the behavioral signal is strong enough to be worth
+the (cheap) close-out.
+
+Archive: `experiment-runs/2026-07-05_keyanchor_wave/` (all 18 mandatory-cell
+result JSONs + `BANDS_PINNED.json` + the 8 chain-stage logs +
+`keyanchor_chain.sh`/`keyanchor_drift_diagnostic.py`/`readout_keyanchor.py`/
+`key_anchoring.py` + this session's fresh readout output; ~41MB, all
+files ≤2MB individually, committed) + SSD mirror at the same relative
+path. Full tables + build-gap narrative:
+`matrix-thinking/KEY_ANCHORING_DESIGN.md` §9. `STATE.md` updated.
+
+[LEARN] harness-instrumentation: a manifest-builder's docstring claiming a diagnostic is "active by construction" is not evidence it runs — verify the actual `_spec()`/flag-threading call sites, not the comment above them.
+Mistake: `keyanchor_wave1_manifest()`'s docstring asserted "both candidates' per-entity/lambda logging is active by construction," but `drift_probe=True` (which gates item-5/item-6/`engaged_frac` logging in `run_deltanet_rd.py`'s checkpoint loop) was never passed to any of its 12 `_spec()` calls — only `reference_arms_manifest()` threads it. The gap survived Gate 2, the CPU smoke suite, and 10.98 GPU-h of training before a dedicated verdict pass caught it by direct JSON inspection.
+Correction: when a pre-registered outcome map depends on a per-checkpoint instrumentation flag, grep the exact manifest-building function's `_spec(...)` call sites for that flag (not its docstring) before launching, and independently confirm the flag's effect lands in at least one produced result JSON via a tiny smoke run — a CPU smoke that only unit-tests the underlying instrument in isolation (as this wave's smoke 6/7/8 did) does not catch the manifest failing to wire it into the real launched cells.
+
+[LEARN] harness-gating: an `&&`-gated shell chain that crashes mid-sequence and is later hand-resumed past the failure silently defeats every gate downstream of the crash — the chain's own log trail must be checked for gaps, not just its final sentinel file.
+Mistake: `keyanchor_chain.sh` crashed at its `keyanchor_drift_diagnostic.py` stage (a `log_every` self-inconsistency with the harness's own registered logging-cadence assertion) — a stage whose job was partly to compute Gate 1's pre-spend launch-read. The chain's downstream stages (reference arms, bands-pinned, the 12-cell keyanchor wave) still completed and left a `KEYANCHOR_CHAIN_DONE` sentinel, masking that Gate 1 was never actually evaluated before 10.98 GPU-h was spent.
+Correction: for any `&&`-chained sequential launcher, verify every intermediate stage's log for a clean, non-crashed completion (not just the final sentinel file's existence) before trusting that all pre-registered gates fired — a completed final sentinel is necessary but not sufficient evidence that every upstream gate ran.

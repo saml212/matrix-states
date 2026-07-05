@@ -497,6 +497,32 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   pre-registered outcome F. See the exactness-mechanism paragraph above,
   `EXPERIMENT_LOG.md`'s "F-geo-3 escalation VERDICT" entry, and
   `DELTANET_RD_EXACTNESS_DESIGN.md` §16.
+- **KEY-ANCHORING wave (the outcome-F follow-on) — RUN, verdict DESCRIPTIVE,
+  not yet the confirmed headline (2026-07-05, 10.98 GPU-h, `youthful-indigo-
+  turkey`).** This supersedes the earlier "outcome F follow-on... not yet
+  designed" note — it is now designed (`KEY_ANCHORING_DESIGN.md`, Rev 5,
+  5 attack/verify rounds), built, and run. **Behavioral result is strong:**
+  candidate (d) (learned-λ anchor blend) K=32 h=4 `rec@0.9` clears the ≥0.5
+  bar in 3/3 seeds (0.559/0.615/0.665, mean 0.613 vs. this wave's own
+  fresh-reference 0.4105 — a +0.20 absolute lift), λ lands interior (not
+  pin-rediscovery, not unrecruited) in 6/6 seeds at both K, K=16 has no
+  regression, and value-Gram deviation drops to roughly half the reference's
+  own (a disclosed bonus finding). **But the wave cannot be assigned its
+  pre-registered Outcome A/A′/A″/B/C** (`KEY_ANCHORING_DESIGN.md` §3.5):
+  `keyanchor_wave1_manifest()` never wired `--drift-probe` into the admitted
+  candidate-(d)/(c) cells (only the reference arms got it), so item 5
+  (pre-NS blend drift), item 6 at final admission (table conditioning), and
+  §3.7's `engaged_frac` were never measured on the actual trained runs —
+  and the standalone tool that would have supplied them
+  (`keyanchor_drift_diagnostic.py`) crashed on its first invocation (a
+  `log_every` self-inconsistency with the harness's own registered logging
+  cadence) and was never re-run, silently also skipping Gate 1's pre-spend
+  check. Verdict: **DESCRIPTIVE tier for the mechanistic claim, pending a
+  cheap instrumentation-only follow-up** — not a hypothesis failure, a
+  build gap caught by an independent verdict pass. Full tables + gap
+  narrative: `EXPERIMENT_LOG.md`'s "KEY-ANCHORING WAVE VERDICT" entry (this
+  date) and `KEY_ANCHORING_DESIGN.md` §9. Archive:
+  `experiment-runs/2026-07-05_keyanchor_wave/` + SSD mirror.
 - **SCALE-TRANSFER Track B — measurement waves complete, geo3-in-LM
   DOUBLE-BARRED, selectivity main effects read (2026-07-05, ≈1.5–2 GPU-h
   actual, GPU 7 only).** `TRACKB_REDESIGN.md` Rev 3's Wave −1 stability
@@ -673,7 +699,8 @@ scratch):**
   experiment (added 2026-07-04; supersedes 6 archived design/audit docs)
 - **matrix-thinking/H100_SETUP.md** — pod environment + the perpetual/unattended sweep pattern
 - **matrix-thinking/DELTANET_CAUSAL_RANK_DESIGN.md**, **DELTANET_REALDATA_DESIGN.md**, **STAGE_G_DESIGN.md**, **chapter2/STAGE0_DESIGN.md**, **chapter2/TASK_D_PREREGISTRATION.md**, **chapter2/TASK_D_WRITEUP.md**, **chapter2/NEXT_EXPERIMENT_DESIGN.md** (Task E design), **chapter2/TASK_E_FINDINGS.md** — the five closed 2026-07-01→03 programs; each carries a `STATUS: CLOSED` header
-- **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — CLOSED through §16 (Wave 0/1/F/geo3, including the geo3 escalation); the exactness-mechanism study's stability-targeted follow-on (§14.8) is named as a direction but not yet designed
+- **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — CLOSED through §16 (Wave 0/1/F/geo3, including the geo3 escalation); the stability-targeted follow-on (§14.8) is now `KEY_ANCHORING_DESIGN.md` (below), run
+- **matrix-thinking/KEY_ANCHORING_DESIGN.md** — Rev 5, RUN 2026-07-05 (§9): candidate (d) clears K=32 h=4 ≥0.5 in 3/3 seeds with λ interior 6/6, but items 5/6/`engaged_frac` were never logged for the admitted runs (a manifest wiring gap, not a hypothesis failure) — verdict DESCRIPTIVE pending a cheap re-instrumented follow-up, see STATE.md's key-anchoring bullet above and `EXPERIMENT_LOG.md`
 - **matrix-thinking/stageg/** — Stage G's H_e task-swap harness (built, calibration run, Wave C gated open — see "In flight" above)
 - **matrix-thinking/scripts/** — runnable training scripts
 - **matrix-thinking/src/**, **chapter2/*.py** — model code

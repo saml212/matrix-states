@@ -1644,6 +1644,225 @@ exactly one field and nothing else:**
 
 ---
 
+## 9. Wave results (2026-07-05) — VERDICT
+
+**The wave ran to completion.** 6 reference arms (bare geo3, fresh seeds
+{1,2,3}×K∈{16,32}, `--drift-probe` active) + 6 candidate-(d) cells
+(learned-λ blend, seeds {0,1,2}×K∈{16,32}) + 6 candidate-(c) cells (soft
+`L_anchor`, same seeds/K) all completed 20,000/20,000 steps, `complete:
+true`, zero timeouts — 18 mandatory cells, 10.98 realized GPU-h (vs. the
+§5 estimate of ~8.7–9.4 for this subset), plus 8 short GPU probes, the
+CPU smoke suite (10/10 items PASS, including the Rev-5 override-demotion
+smoke), and Gate 2 (PASS: G2-a σ-ratio 1.0000, G2-b max\|cos\| 0.2842,
+G2-c zero fallbacks at both K over 512 subsets; the full pinned
+regression quadruple reproduced its expected verdicts to 4 decimals).
+`BANDS_PINNED.json` was written and validates; the readout script
+(`readout_keyanchor.py`, re-run this session, CPU-only) confirms **BLIND
+INTACT** — the pin (`2026-07-04T22:49:31Z`) strictly precedes the
+earliest anchor-arm start, 12 runs checked — and **no run carries
+`unblind_override: true`** (the override path was never invoked).
+
+### 9.1 λ verdicts (sec 3.2) — all six candidate-(d) seeds land INTERIOR
+
+| K | seed | λ final | λ mean (last 5 logged pts) | range | band |
+|---|---|---|---|---|---|
+| 16 | 0 | 0.5615 | 0.5615 | 0.0002 | interior |
+| 16 | 1 | 0.5448 | 0.5446 | 0.0007 | interior |
+| 16 | 2 | 0.5582 | 0.5586 | 0.0008 | interior |
+| 32 | 0 | 0.5751 | 0.5746 | 0.0009 | interior |
+| 32 | 1 | 0.5682 | 0.5676 | 0.0010 | interior |
+| 32 | 2 | 0.5701 | 0.5697 | 0.0008 | interior |
+
+Arm-level label (≥2/3 rule): **interior at both K, 3/3 seeds each** —
+headline-eligible band, not pin-rediscovery, not ambiguous. The
+oscillation guard passes trivially (ranges 0.0002–0.0010, two orders of
+magnitude under the 0.1 exclusion bar) — SGD settles on a tight,
+seed-stable ≈0.55–0.58 blend weight at both K, not 0 (not-recruited) and
+not >0.95 (pin rediscovery). Candidate (c) has no λ (fixed
+`lambda_anchor=1.0`, a loss-side weight, not a blend fraction).
+
+### 9.2 `BANDS_PINNED.json` — derived engaged thresholds (sec 3.6, n=3)
+
+| K | mean_ref | s_ref | engaged_K | ceiling | UNRESOLVABLE? |
+|---|---|---|---|---|---|
+| 16 | 0.9289 | 0.0076 | 0.9440 | 0.9745 | No |
+| 32 | 0.8746 | 0.0059 | 0.8864 | 0.9423 | No |
+
+Both K resolvable (engaged_K sits comfortably below its ceiling minus
+0.005); leave-one-out sensitivity is tight (K=16: 0.9364–0.9502; K=32:
+0.8795–0.8884) — no single reference seed drives the threshold.
+
+### 9.3 THE GAP — items 5, 6 (final admission), and sec 3.7's `engaged_frac` were never measured on the admitted Wave-1 cells
+
+This is the load-bearing finding of this verdict, surfaced by direct
+inspection of the result JSONs and the harness source, not assumed:
+
+- **`keyanchor_wave1_manifest()` (`run_deltanet_rd_exactness_sweep.py`
+  L361–380) never passes `drift_probe=True`** to `_spec(...)` for
+  candidate (d) or (c) — only `reference_arms_manifest()` (L307–324)
+  does. Confirmed by direct JSON inspection: none of the 12 Wave-1
+  result JSONs contains a `drift_probe` key anywhere (checked by
+  recursive string search), so **item 5's pre-NS blend drift
+  (`anchor_last_k_blend_raw`) was never logged**, and no per-checkpoint
+  item-6 table conditioning or sec 3.7 per-entity alignment sweep exists
+  either — the only place those computations are wired into the running
+  code is (a) Gate 2's one-time INIT-only check (`gate2_construction_test.py`,
+  which only ever sees the frozen table, never the trained one) and (b)
+  `keyanchor_drift_diagnostic.py`, a standalone GPU driver that trains
+  its own **separate, fresh 5,000-step probe model** — never the real
+  20,000-step admitted arms. The `keyanchor_wave1_manifest()` docstring's
+  own claim ("both candidates' per-entity/lambda logging is active by
+  construction") is **only true for λ; false for per-entity/drift
+  logging** — a real discrepancy between the design's requirement
+  (§2.2/§3.1/§4/§3.7: item 5 + item 6 checkpoint re-runs + `engaged_frac`
+  are all specified as "at every admission checkpoint") and what the
+  build actually wired into the training loop.
+- **The one artifact that was supposed to supply this (and Gate 1's
+  pre-spend launch-read) crashed on its first invocation and was never
+  fixed or re-run.** `logs/04_drift_diag.log`: `keyanchor_drift_diagnostic.py
+  --k 16 32` measured the K=16 at-init drift (0.7466 pre-training — not
+  informative alone) then crashed immediately when starting the 5,000-step
+  probe train: `probe_steps // 5 = 1000` was passed as `log_every`, which
+  fails the harness's own `assert_lambda_log_cadence` (registered
+  `LAMBDA_LOG_CADENCE_STEPS = 200`, the Rev-4/R3-1 fix from this SAME
+  design) — a self-inconsistency inside the wave's own tooling, not an
+  external cause. `results/deltanet_rd_exactness/keyanchor_drift/` does
+  not exist; no `wave_neg1_drift.json` was ever produced. The
+  `keyanchor_chain.sh` header states "any failure stops the chain and
+  surfaces" (`&&`-gated), yet `waveref`/`wavekeyanchor` both completed
+  hours later — the chain was continued past this failure by hand
+  (or via separate direct invocations of the later `--wave ref` /
+  `--wave keyanchor-bands` / `--wave keyanchor` stages), not by the
+  script as written. Net effect: **Gate 1's pre-registered pre-spend
+  gate (predicted K=16 h=4 ≥ 0.8) was silently never computed**, and the
+  smoke-8 console output for this same session says so explicitly:
+  *"the full through-real-episodes sweep + h=1 behavioral companion
+  (keyanchor_drift_diagnostic.py) require model.bind()/CUDA — out of
+  this CPU-only smoke's scope; run on GPU as a follow-up (scrutiny
+  item)."* That follow-up was never done.
+
+**Consequence for §3.5's outcome map: Outcome A/A″/A′/B/C cannot be
+mechanically assigned.** Every branch of the map is keyed on item 5
+and/or `engaged_frac`, neither of which exists for the actual admitted
+runs — this is not a "fails the bar" result (which would route to
+Outcome B or C), it is a **missing measurement**, and per this design's
+own §6 rule ("a run that clears h4 ≥ 0.5 without clearing pre-NS drift
+≥ 0.95 does NOT count as a test of this design's hypothesis... the
+write-up must say so, not claim confirmation"), the honest reporting
+tier is **descriptive, pending re-measurement** — not because anything
+failed, but because the mechanistic proof the outcome map requires was
+never produced by the code that ran.
+
+### 9.4 What IS traceable from the JSONs — the behavioral result
+
+Despite the gap above, every quantity NOT gated behind `drift_probe` is
+fully present, 3/3 admissible, zero fallbacks, at both K, for all three
+arms (reference/d/c):
+
+**`rec@0.9` at final checkpoint (`M3_held_out`), mean [min, max] over 3 seeds:**
+
+| Arm | K | h=4 | h=5 | h=7 |
+|---|---|---|---|---|
+| reference (fresh bare geo3) | 16 | 0.9716 [0.9525, 0.9812] | 0.8852 [0.8420, 0.9158] | 0.5776 [0.5475, 0.6049] |
+| reference (fresh bare geo3) | 32 | **0.4105** [0.3906, 0.4233] | 0.1478 [0.1469, 0.1485] | 0.0217 [0.0181, 0.0258] |
+| candidate (c), soft `L_anchor` | 16 | 0.9987 [0.9985, 0.9988] | 0.9723 [0.9640, 0.9803] | 0.7344 [0.7017, 0.7642] |
+| candidate (c), soft `L_anchor` | 32 | 0.4806 [0.3994, 0.5241] | 0.1336 [0.1121, 0.1484] | 0.0068 [0.0064, 0.0073] |
+| **candidate (d), learned-λ blend** | 16 | 0.9997 [0.9995, 1.0000] | 0.9901 [0.9886, 0.9918] | 0.8404 [0.8351, 0.8506] |
+| **candidate (d), learned-λ blend** | **32** | **0.6132 [0.5590, 0.6647]** | 0.2061 [0.1823, 0.2314] | 0.0120 [0.0112, 0.0126] |
+
+**K=32 headline: candidate (d) clears the ≥0.5 bar in 3/3 seeds** (0.559,
+0.615, 0.665 — all comfortably above bar), a **+0.20 absolute / +49%
+relative** lift over the freshly-reproduced reference mean (0.4105) and
++0.176 over the prior archived pin-free admissible-tier figure (0.4368,
+§16.4) — the fresh reference arms reproduce that old number within seed
+noise (0.3906–0.4233 vs. 0.4368, consistent). **Candidate (c) does
+NOT reliably clear the bar** (2/3 seeds pass, mean 0.4806 — indistinguishable
+from the reference mean given the overlapping seed ranges, s1=0.3994
+actually below the fresh reference's own s1), matching the pre-registered
+falsification prediction (§2.4/§6: "saturates like F-geo-1/2").
+
+**K=16 no-regression guard (bar: within −0.02 of 0.9767):** both
+candidates clear it easily and in fact *improve* on the fresh reference
+(0.9716) — (d) 0.9997, (c) 0.9987. **h=1 guard**: `h1_recovered_frac_at_0.9_final
+= 1.0000` for every one of the 18 cells (`geo3_admission`). **Admissibility
+stack (items 1–4):** `admissible: true`, `ns_converged_no_fallback: true`,
+`n_geo3_fallback_train_steps: 0`, `finite_loss_no_divergence: true`,
+`task_performance_floor_pass: true` for all 18 cells — full evidentiary
+tier, 3/3 clean seeds, zero fallbacks, both K, both candidates, and the
+reference arms.
+
+**Early-stop / value-Gram kill rule (sec 3.4) — never triggered, and a
+disclosed bonus finding.** `value_gram_deviation_mean` at steps
+2000/4000 never exceeds the kill thresholds (K=32: >3.90 at BOTH
+checkpoints; K=16: >1.70 at BOTH) for any of the 12 Wave-1 cells — the
+closest approach is candidate (c) K=32 s1 (3.60→4.27, but the step-2000
+leg alone is under threshold, so the AND-both-checkpoints rule never
+fires). More strikingly, **candidate (d)'s FINAL (step-20000) value-Gram
+deviation is roughly HALF the fresh reference's own**: K=32 mean 3.85
+(3.33–4.48) vs. reference 6.69 (6.47–6.85); K=16 mean 1.24 (1.234–1.239)
+vs. reference 2.32 (2.05–2.67) — well below even the "frozen-arm range"
+(3.2–3.6 / 1.35–1.67) the design's own §4 diagnostic named as the
+target for a value-geometry-relief bonus. This is exactly the
+"mechanistic bonus, free" §4 pre-registered watching for — but it also
+means **part of h4's gain may be flowing through relieved value
+geometry rather than (or in addition to) the cross-episode key
+stability the hypothesis is about**, which is precisely why item 5's
+absence (§9.3) is not a formality: it is the one measurement that would
+distinguish "the key-stability channel moved" from "the anchor
+parameters relieved value strain by some other route."
+
+**C17 held-out-entity diagnostic (sec 3.3) — pure-geo3 by construction, confirmed.**
+h=1 `rec@0.9` = 1.0000 identically across reference, candidate (d), and
+candidate (c) at K=32 (h=2/h=3 sit near chance for all three arms alike,
+~0.0–0.024) — the `anchor_trained_mask` bypass is behaving exactly as
+designed: held-out entities see bare-geo3 treatment with no leakage from
+the anchor mechanism, matching the pre-registered scope limit (no
+held-out-entity generalization claim).
+
+### 9.5 Outcome assignment
+
+**Per §3.5's map literally: UNASSIGNABLE — not A, not A′, not A″, not B,
+not C.** The behavioral profile (bars clear 3/3, λ interior 6/6, no
+regression, no kill, admissible) is the pattern Outcome A's *other* three
+legs would produce — but item 5 and `engaged_frac` were never measured on
+the admitted runs, and per this design's own transparency rule that
+gap cannot be papered over with an inference from adjacent evidence (the
+bare-geo3 reference arms' OWN pre-NS raw-key drift, logged incidentally,
+is already 0.994–0.998 — suggestively high, but measuring a different
+tensor than candidate (d)'s blended pre-NS key, and not a substitute for
+it).
+
+**Working claim tier for this wave: DESCRIPTIVE (behavioral) for the
+h=4/λ result, NOT YET admissible as a confirmed test of the key-anchoring
+interaction hypothesis.** The h=4/λ numbers are real, reproducible,
+admissible, and via a large, seed-stable, non-trivial-λ margin — they are
+worth reporting and worth the (cheap) follow-up below — but §6's own rule
+is explicit that a bar-clearing h4 without a cleared item 5 does not
+license a confirmation claim.
+
+**Required follow-up before this wave can be closed at full evidentiary
+tier (cheap, no new 20k-step training needed):** (1) fix
+`keyanchor_drift_diagnostic.py`'s `log_every` default (`probe_steps // 5`
+→ must be registered as a multiple of `LAMBDA_LOG_CADENCE_STEPS`, or the
+call should pass `log_every=200` explicitly) and re-run the 2 sequential
+K=16/K=32 probes — this recovers Gate 1's verdict (after the fact, for
+the record) AND supplies item 5 + `engaged_frac` + the h=1 behavioral
+companion on a probe model; (2) for a stronger claim tier than a
+probe-model proxy, add `--drift-probe` to a short (~2,000–4,000-step)
+confirmatory re-run of one admitted candidate-(d) K=32 seed's exact
+config, reading item 5/6/`engaged_frac` directly off training-in-progress
+checkpoints of the actual architecture/data path that produced the h4
+numbers above. Neither requires new hyperparameter search or a new
+design revision — this is instrumentation debt, not a hypothesis
+question.
+
+Archive: `experiment-runs/2026-07-05_keyanchor_wave/` (repo, size-capped)
++ SSD mirror at the same relative path under
+`/Volumes/1TB_SSD/learned-representations/`. Full verdict + build-gap
+narrative: `EXPERIMENT_LOG.md`, "KEY-ANCHORING WAVE VERDICT" (2026-07-05).
+
+---
+
 ## Reproducibility pointers
 
 - This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 5**,

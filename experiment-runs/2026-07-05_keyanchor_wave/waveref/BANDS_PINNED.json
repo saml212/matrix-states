@@ -1,0 +1,65 @@
+{
+  "formula_version": "sec 3.6 Rev4 (n=3, engaged_K = mean_ref + 2*s_ref, df=2)",
+  "bands": {
+    "16": {
+      "mean_ref": 0.928859810034434,
+      "s_ref": 0.007587262773495415,
+      "engaged_k": 0.9440343355814248,
+      "ceiling": 0.9745,
+      "unresolvable": false,
+      "per_seed": [
+        0.9211404323577881,
+        0.9291313290596008,
+        0.9363076686859131
+      ],
+      "leave_one_out_engaged_k": [
+        0.9428683757004832,
+        0.9501737618408028,
+        0.9364367151999204
+      ]
+    },
+    "32": {
+      "mean_ref": 0.8745504220326742,
+      "s_ref": 0.0059384767004196926,
+      "engaged_k": 0.8864273754335136,
+      "ceiling": 0.9423,
+      "unresolvable": false,
+      "per_seed": [
+        0.8785027265548706,
+        0.8774271011352539,
+        0.867721438407898
+      ],
+      "leave_one_out_engaged_k": [
+        0.8863001496324218,
+        0.8883591263986853,
+        0.8794860779015174
+      ]
+    }
+  },
+  "reference_result_paths": {
+    "16": [
+      "results/deltanet_rd_exactness/waveref/wref_rdx_K16_armgeoref_s1_geo3n12_dprobe.json",
+      "results/deltanet_rd_exactness/waveref/wref_rdx_K16_armgeoref_s2_geo3n12_dprobe.json",
+      "results/deltanet_rd_exactness/waveref/wref_rdx_K16_armgeoref_s3_geo3n12_dprobe.json"
+    ],
+    "32": [
+      "results/deltanet_rd_exactness/waveref/wref_rdx_K32_armgeoref_s1_geo3n20_dprobe.json",
+      "results/deltanet_rd_exactness/waveref/wref_rdx_K32_armgeoref_s2_geo3n20_dprobe.json",
+      "results/deltanet_rd_exactness/waveref/wref_rdx_K32_armgeoref_s3_geo3n20_dprobe.json"
+    ]
+  },
+  "reference_result_sha256": {
+    "16": [
+      "697b1d46fd2552248c15f4d922cb60b73fe982fb2ab605f58be31c7bc857b9fe",
+      "f34cb3e6042c1ea3d16b6f58032b85965e9d0842bccdf297c60a24a51c63c498",
+      "1da5b994a49b0fd621d996d99c946cbf3ce5649305cff0b4626e290dfd829ff7"
+    ],
+    "32": [
+      "14a9bd41fd53df0969785f75b50bd55fc2594147bd93d8223883611bc2fecc3a",
+      "8d316bf4a001f70c435febacc67de8ccee6b62e9e33ea3c947a82a212caf8ff9",
+      "b2e85e6785f249bed6486564e588f3b1ad1b7675789b4c4bc1e26211413381fc"
+    ]
+  },
+  "pinned_at": 1783205371.9721253,
+  "pinned_at_iso": "2026-07-04T22:49:31Z"
+}
