@@ -643,3 +643,75 @@ def measure_drift(model, cfg, pools, n_entities, n_resamples, gen, device,
         pooled_pre = torch.cat(all_off_diag_pre)
         out["pre_ns"] = {"mean": pooled_pre.mean().item(), "p10": torch.quantile(pooled_pre, 0.10).item()}
     return out
+
+
+# ---------------------------------------------------------------------------
+# sec 3.7's full-pool per-entity anchor-INPUT-alignment sweep + h=1
+# behavioral companion. MOVED HERE (2026-07-06, keyanchor-confirm build) from
+# keyanchor_drift_diagnostic.py, where they were previously the ONLY place
+# either computation was wired into ANY running code (KEY_ANCHORING_DESIGN.md
+# sec 9.3's documented gap: the mandatory Wave-1 training cells never called
+# either function, since keyanchor_wave1_manifest() never threaded
+# drift_probe=True into their specs). Moving them here lets BOTH
+# keyanchor_drift_diagnostic.py's standalone probe driver AND
+# run_deltanet_rd.py's own --drift-probe checkpoint block (train(), the
+# actual 20,000-step admitted arms) call the SAME function -- one
+# definition, never a hand-copied twin (this project's standing
+# no-silent-duplication discipline, the same reasoning key_anchoring.py's own
+# docstring gives for sample_batch_fixed_entity above).
+#
+# Both functions need model_rd.DeltaNetRDBlock / grammar_rd's batch sampler --
+# imported LOCALLY inside each function body (never at this module's top
+# level), so key_anchoring.py's own module-level import stays fla-free
+# (model_rd.py imports fla at module scope; importing it only INSIDE these
+# two functions means merely importing key_anchoring.py never requires fla --
+# only CALLING these two functions does, exactly the same constraint
+# sample_batch_fixed_entity's own local `import grammar_rd as grd` respects).
+# ---------------------------------------------------------------------------
+
+@torch.no_grad()
+def measure_full_pool_alignment(model, cfg, pools, n_resamples, gen, device):
+    """sec 3.7's per-entity anchor-INPUT-alignment sweep, full pool (ALL
+    train entities, not a random n_entities sample): a_e = mean over
+    >= n_resamples independent episode resamples of cos(pre-NS blended key
+    of entity e, A[e]). Uses the SAME sample_batch_fixed_entity construction
+    as measure_drift (sec 14.6's sampling machinery) -- eval-only, no
+    training-path change. `engaged_frac` = fraction of entities with
+    a_e >= 0.9 (sec 3.7's registered band driver)."""
+    assert model.anchor_active, "measure_full_pool_alignment requires anchor_active=True"
+    model.eval()
+    entity_ids = pools.train_name_ids.tolist()
+    a_e = {}
+    for eid in entity_ids:
+        b = sample_batch_fixed_entity(cfg, n_resamples, eid, gen, pools, device)
+        _, k_eff_items, _ = model.bind(b)
+        blended = model.anchor_last_k_blend_raw[:, 0, :]              # (n_resamples, d_state)
+        anchor_row = model.anchor_table.weight[eid].unsqueeze(0).expand_as(blended)
+        cos = F.cosine_similarity(blended, anchor_row, dim=-1)
+        a_e[eid] = cos.mean().item()
+    engaged_frac = sum(1 for v in a_e.values() if v >= 0.9) / len(a_e)
+    return {"a_e": a_e, "engaged_frac": engaged_frac, "n_resamples": n_resamples}
+
+
+@torch.no_grad()
+def measure_h1_behavioral_companion(model, cfg, pools, gen, device, n_batches=4, batch_size=64):
+    """sec 3.7 Rev4's non-load-bearing behavioral companion: per-entity h=1
+    recovery, restricted to eval episodes CONTAINING that entity --
+    bookkeeping on the existing eval (tagging each per-item cosine with its
+    row's own key_ids before pooling), NO new forward passes beyond a
+    standard h=1 eval sweep this diagnostic already needs to run once."""
+    import grammar_rd as grd_local
+
+    model.eval()
+    per_entity_cos: dict[int, list[float]] = {}
+    for _ in range(n_batches):
+        b = grd_local.sample_batch_rd(cfg, batch_size, gen, hop_set=(1,), pools=pools, device=device)
+        pred, targets, S_T, k_eff_items, v_eff_items = model(b, force_rank_k=None)
+        cos = F.cosine_similarity(pred, targets, dim=-1)         # (B,Q)
+        key_ids = b["key_ids"]                                    # (B,K) -- entities present THIS episode
+        for row in range(cos.shape[0]):
+            row_entities = set(key_ids[row].tolist())
+            row_cos = cos[row].mean().item()                      # this row's own h=1 recovery
+            for eid in row_entities:
+                per_entity_cos.setdefault(eid, []).append(row_cos)
+    return {eid: sum(vals) / len(vals) for eid, vals in per_entity_cos.items()}

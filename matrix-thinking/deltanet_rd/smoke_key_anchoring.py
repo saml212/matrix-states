@@ -415,6 +415,70 @@ def smoke_10_anchor_ema():
     _report("smoke 10: AnchorEMA (candidate (c)) -- finite loss, gradient-isolated table", ok)
 
 
+# ---------------------------------------------------------------------------
+# smoke 11: keyanchor_drift_diagnostic.py's exit-code regression (sec 9.3
+# item 2, the swallowed-failure bug -- DYNAMIC companion to
+# smoke_keyanchor_confirm.py's fla-free static source check). Requires fla
+# (this whole module already does, via `import model_rd as mrd` above) --
+# runs wherever THIS file already runs (box tdenv).
+# ---------------------------------------------------------------------------
+
+def smoke_11_drift_diag_exit_code_regression():
+    """keyanchor_drift_diagnostic.main() is a thin wrapper around _run()
+    that turns ANY exception into sys.exit(1) (2026-07-06 fix -- see that
+    module's docstring, item 2). Monkeypatches _run to raise, calls the
+    REAL main(), and asserts SystemExit(1) -- never a silent return or
+    zero exit, closing the sec 9.3 verdict's documented "crashed AND
+    exited 0 anyway" gap defensively at this file's own level (the actual
+    root cause was keyanchor_chain.sh's tee/pipefail bug -- see
+    smoke_keyanchor_confirm.py's smoke B -- but this guarantees the
+    diagnostic itself is ALSO never the one silently swallowing a
+    failure)."""
+    import keyanchor_drift_diagnostic as kd
+
+    orig_run = kd._run
+    kd._run = lambda: (_ for _ in ()).throw(RuntimeError("smoke-injected failure"))
+    try:
+        raised, code = None, None
+        try:
+            kd.main()
+        except SystemExit as e:
+            raised, code = True, e.code
+        except Exception as e:
+            raised, code = "wrong_exception_type", repr(e)
+    finally:
+        kd._run = orig_run
+
+    print(f"    main() with a raising _run(): raised SystemExit={raised} code={code} (expect True, 1)")
+    ok = raised is True and code == 1
+    _report("smoke 11: keyanchor_drift_diagnostic.main() exit-code regression "
+            "(any _run() exception -> SystemExit(1), never swallowed)", ok)
+
+
+# ---------------------------------------------------------------------------
+# smoke 12: run_deltanet_rd.py's train() checkpoint block wires item 6
+# (table conditioning) + sec 3.7 (per-entity alignment/h1 companion) --
+# STATIC source check (dynamic end-to-end coverage needs a REAL
+# bind()/train() call, CUDA-only, same carve-out as smoke 8's own note).
+# ---------------------------------------------------------------------------
+
+def smoke_12_train_checkpoint_item6_sec37_wiring():
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "run_deltanet_rd.py")) as f:
+        src = f.read()
+    has_item6_call = "ka.raw_table_conditioning(" in src and "item6_table_conditioning" in src
+    has_alignment_call = "ka.measure_full_pool_alignment(" in src and "per_entity_alignment" in src
+    has_h1_call = "ka.measure_h1_behavioral_companion(" in src and "per_entity_h1_companion" in src
+    gated_on_anchor_active = "if model.anchor_active:" in src
+    gated_on_final_step = "if step == steps:" in src
+    print(f"    item6 call present: {has_item6_call}")
+    print(f"    sec 3.7 alignment call present: {has_alignment_call}, h1 companion call present: {has_h1_call}")
+    print(f"    gated on model.anchor_active: {gated_on_anchor_active}, gated on final step: {gated_on_final_step}")
+    ok = (has_item6_call and has_alignment_call and has_h1_call
+          and gated_on_anchor_active and gated_on_final_step)
+    _report("smoke 12: run_deltanet_rd.py train() item-6/sec-3.7 checkpoint wiring (static source check)", ok)
+
+
 def main() -> int:
     print("=" * 70)
     print("KEY_ANCHORING_DESIGN.md sec 5 -- Wave -1 smoke suite (CPU-only)")
@@ -429,11 +493,13 @@ def main() -> int:
     smoke_8_per_entity_alignment()
     smoke_9_override_stamping()
     smoke_10_anchor_ema()
+    smoke_11_drift_diag_exit_code_regression()
+    smoke_12_train_checkpoint_item6_sec37_wiring()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)
         return 1
-    print("SMOKE SUITE: ALL 10 ITEMS PASSED")
+    print("SMOKE SUITE: ALL 12 ITEMS PASSED")
     return 0
 
 

@@ -364,22 +364,113 @@ def keyanchor_wave1_manifest():
     seeds (the always-run ablation comparison, sec 2.4) = 12 runs, 20,000
     steps each. §3.4's early-stop is a run_deltanet_rd.py-internal concern
     (not yet wired into THIS harness's polling loop -- see the build
-    report's scrutiny list) -- both candidates' per-entity/lambda logging
-    is active by construction (anchor_active/lambda_anchor threaded via
-    build_cmd)."""
+    report's scrutiny list).
+
+    drift_probe=True (2026-07-06 keyanchor-confirm build, FIX): sec 9.3's
+    documented gap -- this function's own docstring PREVIOUSLY claimed
+    "both candidates' per-entity/lambda logging is active by construction"
+    but never actually threaded drift_probe=True into either loop below
+    (only reference_arms_manifest() did) -- so item 5 (pre-NS blend
+    drift), item 6 (table conditioning at admission), and sec 3.7's
+    engaged_frac were NEVER measured on the 12 admitted Wave-1 result
+    JSONs (KEY_ANCHORING_DESIGN.md sec 9.3/9.5's verdict). Fixed here so
+    FUTURE invocations of this manifest are correctly instrumented --
+    run_deltanet_rd.py's train() now computes item 5/6/sec-3.7 whenever
+    drift_probe_active and model.anchor_active (see train()'s checkpoint
+    block). Threading drift_probe=True also changes every cell's own
+    filename (_spec's own "_dprobe" naming bit) relative to the ALREADY-
+    ARCHIVED (uninstrumented) Wave-1 result JSONs -- intentional: a future
+    '--wave keyanchor' launch will NOT resume from those 12 old files (they
+    are under-instrumented relative to this fixed spec) and will re-run
+    all 12 cells from scratch (~3.4 GPU-h) rather than silently treating
+    old, gap-having results as satisfying the new, fixed spec. The
+    keyanchor-confirm wave below is the CHEAPER, already-scoped way to
+    close the gap on the specific cells whose h4 result is already
+    published (candidate (d), K=32) without re-running all 12."""
     steps = KEYANCHOR_TIER_STEPS
     runs = []
     for K in (16, 32):
         n_iter = 12 if K == 16 else 20
         for s in range(3):
             runs.append(_spec("keyanchor", K, s, steps, "d", geo3_active=True, geo3_n_iter=n_iter,
-                               geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned"))
+                               geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
+                               drift_probe=True))
     for K in (16, 32):
         n_iter = 12 if K == 16 else 20
         for s in range(3):
             runs.append(_spec("keyanchor", K, s, steps, "c", geo3_active=True, geo3_n_iter=n_iter,
-                               geo3_resid_tol=1e-2, lambda_anchor=KEYANCHOR_LAMBDA_ANCHOR))
+                               geo3_resid_tol=1e-2, lambda_anchor=KEYANCHOR_LAMBDA_ANCHOR,
+                               drift_probe=True))
     assert len(runs) == 12, f"keyanchor Wave 1 manifest drifted from its registered 12 runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_confirm_manifest(include_k16_spot_check: bool = True):
+    """KEY_ANCHORING_DESIGN.md sec 9.5's required follow-up ("instrumentation
+    debt, not a hypothesis question", 2026-07-06 keyanchor-confirm build):
+    candidate (d) (learned-lambda anchor blend), K=32, seeds {0,1,2},
+    drift_probe=True -- the SAME config as the original (bugged)
+    keyanchor_wave1_manifest() candidate-(d) K=32 cells (20,000 steps,
+    geo3_n_iter=20, same blinding gate) except drift_probe is now threaded
+    through, so item 5 (pre-NS blend drift), item 6 (table conditioning,
+    every checkpoint), and sec 3.7's engaged_frac + h=1 behavioral
+    companion (final checkpoint) land in THESE runs' own result JSONs --
+    resolving sec 9.3/9.5's UNASSIGNABLE gap for the h4 result that is
+    already published (mean 0.613, 3/3 seeds clearing the >=0.5 bar), at
+    the SAME seed identity {0,1,2} the original cells used, WITHOUT a new
+    20,000-step training decision.
+
+    Priced (task-directed estimate): ~3 x 0.28 = ~0.84 GPU-h for the
+    mandatory K=32 cells (sec 5's own per-cell anchor for a 20,000-step
+    candidate-(d) run) -- NOTE this anchor predates drift_probe=True's own
+    per-checkpoint overhead (item 5's 8-entity sweep + item 6's cheap SVD
+    at every checkpoint + sec 3.7's ONE 107-entity sweep at the final
+    checkpoint only, a disclosed scoping choice -- see train()'s checkpoint
+    block); reference_arms_manifest()'s OWN realized-vs-priced gap
+    (~0.83 GPU-h/run priced, drift_probe=True, item-5-only) is the closest
+    comparable data point, so the REAL cost of these cells (which add
+    item-6 + the once-per-run sec-3.7 sweep on top) may run somewhat above
+    the 0.28 anchor -- flagged as a build-report scrutiny item, not
+    silently assumed away.
+
+    A DELIBERATE, SEPARATE wave from 'keyanchor' (NOT folded into the
+    28-run mandatory baseline in --dry-run's preview above) -- these are a
+    confirmatory RE-run of already-completed cells' own seed identity, not
+    new mandatory-baseline cells. wave='keyanchor-confirm' (distinct from
+    the original 'keyanchor' wave tag used by keyanchor_wave1_manifest)
+    combined with drift_probe=True's own '_dprobe' filename bit (_spec)
+    guarantees NO is_done()/out_path() collision with the original 12
+    Wave-1 result JSONs even though K/seed/arm are otherwise identical --
+    verified by smoke_keyanchor_confirm.py's manifest-wiring check, this
+    build (never relying on the filename bit alone: is_done() also now
+    cross-checks the drift_probe field itself, per this build's
+    run_deltanet_rd.py exactness_config fix).
+
+    Same sec 3.6 blinding gate as 'keyanchor' applies (these ARE anchor-arm
+    cells) -- enforced in main(), see gate_bands_pinned. ADDITIONALLY
+    gated (task-directed, this build) on gate_keyanchor_drift_diag(): the
+    FIXED keyanchor_drift_diagnostic.py must have produced a clean Gate-1
+    read before any cell here dispatches.
+
+    include_k16_spot_check (default True): +1 K=16 seed-0 cell, a cheap
+    cross-K sanity check -- task-registered as OPTIONAL ("if cheap");
+    included by default since a 20,000-step K=16 cell (n_iter=12, the same
+    tier bare geo3/reference arms already use) is not materially more
+    expensive than a K=32 cell under this harness's own default_timeout
+    cost model."""
+    steps = KEYANCHOR_TIER_STEPS
+    runs = []
+    for s in range(3):
+        runs.append(_spec("keyanchor-confirm", 32, s, steps, "d", geo3_active=True, geo3_n_iter=20,
+                           geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
+                           drift_probe=True))
+    if include_k16_spot_check:
+        runs.append(_spec("keyanchor-confirm", 16, 0, steps, "d", geo3_active=True, geo3_n_iter=12,
+                           geo3_resid_tol=1e-2, anchor_active=True, anchor_lambda_mode="learned",
+                           drift_probe=True))
+    expected = 4 if include_k16_spot_check else 3
+    assert len(runs) == expected, \
+        f"keyanchor-confirm manifest drifted from its registered {expected} runs: {len(runs)}"
     return runs
 
 
@@ -387,6 +478,63 @@ def keyanchor_ceiling_by_k() -> dict:
     """sec 2.2's computed lambda=1 post-NS drift ceilings (frame-potential
     init) -- the band-derivation guard's `ceiling_by_k` input."""
     return {16: 0.9745, 32: 0.9423}
+
+
+KEYANCHOR_DRIFT_DIAG_JSON_DEFAULT = os.path.join(
+    HERE, "results/deltanet_rd_exactness/keyanchor_drift/wave_neg1_drift.json")
+
+
+def gate_keyanchor_drift_diag(drift_json_path: str, accept_override: bool) -> dict:
+    """--wave keyanchor-confirm's PRE-LAUNCH gate (task-directed, 2026-07-06
+    build): the FIXED keyanchor_drift_diagnostic.py (this same build's
+    log_every fix -- see that module's docstring) must have produced a
+    JSON whose Gate-1 launch_read reads clean BEFORE any keyanchor-confirm
+    cell dispatches. Mirrors gate_geo3_drift's existing pattern exactly --
+    this is a CPU-only file-read gate (no GPU work here); the diagnostic
+    ITSELF still requires CUDA and is run separately (same "separate
+    sequential driver" precedent as calibrate_arm_iv.py/
+    geo3_drift_diagnostic.py, per this module's own docstring).
+    --accept-keyanchor-diag-override is an explicit, loudly-logged human
+    override (same override class as --accept-gate-override/
+    --accept-unconverged-rho/--unblind-override above) -- never a silent
+    default."""
+    if accept_override:
+        print("=" * 70 + "\nWARNING: --accept-keyanchor-diag-override -- the pre-launch "
+              "keyanchor_drift_diagnostic.py Gate-1 read is being BYPASSED by an explicit human "
+              "decision. This is recorded here; it does NOT mean the diagnostic passed.\n"
+              + "=" * 70, flush=True)
+        return {"gate_bypassed": True, "drift_json_path": drift_json_path}
+    if not os.path.exists(drift_json_path):
+        print(f"ERROR: --wave keyanchor-confirm requires a clean keyanchor_drift_diagnostic.py "
+              f"run first (its Gate-1 read) -- {drift_json_path!r} does not exist. Run (on GPU, "
+              f"using the FIXED script -- sec 9.3/9.5's own required follow-up):\n"
+              f"  python keyanchor_drift_diagnostic.py --k 16 32 --out {drift_json_path}\n"
+              f"or pass --accept-keyanchor-diag-override for an explicit, documented override.",
+              file=sys.stderr)
+        sys.exit(1)
+    with open(drift_json_path) as f:
+        d = json.load(f)
+    try:
+        launch = d["launch_read"]["launch"]
+        gate_value = d["launch_read"]["predicted_gate_value"]
+        gate_cell = d["launch_read"]["gate_cell"]
+        k16_mean = d["per_k"]["16"]["after_probe"]["post_ns"]["mean"]
+    except (KeyError, TypeError, json.JSONDecodeError) as e:
+        print(f"ERROR: --keyanchor-drift-json {drift_json_path!r} is missing an expected field "
+              f"({e!r}) -- this does not look like a real (FIXED) keyanchor_drift_diagnostic.py "
+              f"output. Refusing to launch; pass --accept-keyanchor-diag-override for an explicit "
+              f"override.", file=sys.stderr)
+        sys.exit(1)
+    if not launch:
+        print(f"ERROR: keyanchor_drift_diagnostic.py's Gate-1 read FAILED -- {gate_cell} predicted "
+              f"rec@0.9={gate_value:.4f} < 0.8 (K=16 trained-checkpoint drift mean={k16_mean:.4f}). "
+              f"Pass --accept-keyanchor-diag-override for an explicit, documented override.",
+              file=sys.stderr)
+        sys.exit(1)
+    print(f"keyanchor_drift_diagnostic.py Gate-1 PASSED: {gate_cell} predicted rec@0.9="
+          f"{gate_value:.4f} >= 0.8 (K=16 drift mean={k16_mean:.4f})", flush=True)
+    return {"gate_bypassed": False, "drift_json_path": drift_json_path,
+            "gate_cell": gate_cell, "predicted_gate_value": gate_value}
 
 
 def gate_bands_pinned(out_dir: str, accept_override: bool, override_at: float | None) -> dict:
@@ -525,6 +673,16 @@ def is_done(out_dir, spec):
                 return False
         if ec.get("lambda_anchor", 0.0) != spec.get("lambda_anchor", 0.0):
             return False
+        # 2026-07-06 keyanchor-confirm build fix: drift_probe was already
+        # named in _spec()'s own docstring as one of the fields "is_done()
+        # ... re-derives ... from the result JSON's own exactness_config,
+        # never trusting the filename alone" -- but was never actually
+        # checked here (run_deltanet_rd.py also never wrote it into
+        # exactness_config until this same build). Same missing-key-
+        # defaults-to-off discipline as every field above (archived
+        # pre-fix result JSONs lack this key entirely).
+        if bool(ec.get("drift_probe", False)) != bool(spec.get("drift_probe", False)):
+            return False
         return True
     except Exception:
         return False
@@ -658,7 +816,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", default=os.path.join(HERE, "results/deltanet_rd_exactness"))
     ap.add_argument("--wave", choices=["-1", "0", "1", "geo3", "ref", "keyanchor-neg1",
-                                        "keyanchor-bands", "keyanchor"], default=None,
+                                        "keyanchor-bands", "keyanchor", "keyanchor-confirm"], default=None,
                      help="'geo3' launches F-geo-3's Wave-1-style cells (sec 14.7) -- GATED on "
                           "--geo3-drift-json (sec 14.6's launch-read result) unless "
                           "--accept-gate-override is passed. The sec 14.6 drift diagnostic ITSELF "
@@ -672,7 +830,13 @@ def main():
                           "'keyanchor-neg1' launches the 8 short GPU probes; 'keyanchor' launches "
                           "the 12 mandatory Wave-1 cells (candidates (d)+(c)) -- REFUSES to launch "
                           "without a valid BANDS_PINNED.json (sec 3.6 requirement (b)) unless "
-                          "--unblind-override is passed.")
+                          "--unblind-override is passed. 'keyanchor-confirm' (sec 9.5's required "
+                          "follow-up, 2026-07-06) launches candidate (d)'s K=32 seeds {0,1,2} "
+                          "(+ an optional K=16 seed-0 spot check) WITH drift_probe=True, re-instrumenting "
+                          "the already-published h4 result at full evidentiary tier -- GATED on BOTH "
+                          "gate_keyanchor_drift_diag (--keyanchor-drift-json, the FIXED "
+                          "keyanchor_drift_diagnostic.py's Gate-1 read) AND the SAME sec 3.6 "
+                          "BANDS_PINNED gate 'keyanchor' uses (these are anchor-arm cells too).")
     ap.add_argument("--gpus", type=int, default=None,
                      help="GPU COUNT. REQUIRED for a real (wave -1/1) launch, NO DEFAULT ON "
                           "PURPOSE -- check nvidia-smi before every launch (GPUs 0-5,7 run other "
@@ -717,12 +881,21 @@ def main():
                           "K=16/32 cells complete without tripping sec 14.8 outcome D -- a human "
                           "assessment, not automated here; this flag is an explicit opt-in.")
     ap.add_argument("--unblind-override", action="store_true",
-                     help="--wave keyanchor: KEY_ANCHORING_DESIGN.md sec 3.6's explicit, "
-                          "loudly-logged human override of the BANDS_PINNED mechanical blinding "
-                          "gate. EVERY keyanchor run launched under this flag has its OWN result "
-                          "JSON stamped claim_tier='descriptive' + unblind_override=True + a "
-                          "timestamp at assembly time (Rev 5 R4-1 fix) -- never only this launch "
-                          "console or a wave-summary artifact.")
+                     help="--wave keyanchor/keyanchor-confirm: KEY_ANCHORING_DESIGN.md sec 3.6's "
+                          "explicit, loudly-logged human override of the BANDS_PINNED mechanical "
+                          "blinding gate. EVERY keyanchor/keyanchor-confirm run launched under this "
+                          "flag has its OWN result JSON stamped claim_tier='descriptive' + "
+                          "unblind_override=True + a timestamp at assembly time (Rev 5 R4-1 fix) -- "
+                          "never only this launch console or a wave-summary artifact.")
+    ap.add_argument("--keyanchor-drift-json", type=str, default=KEYANCHOR_DRIFT_DIAG_JSON_DEFAULT,
+                     help="--wave keyanchor-confirm: path to the FIXED keyanchor_drift_diagnostic.py's "
+                          "output JSON (this build's log_every fix, sec 9.3) -- REQUIRED clean Gate-1 "
+                          "read before any keyanchor-confirm cell dispatches, unless "
+                          "--accept-keyanchor-diag-override is passed.")
+    ap.add_argument("--accept-keyanchor-diag-override", action="store_true",
+                     help="--wave keyanchor-confirm: bypass the pre-launch keyanchor_drift_diagnostic.py "
+                          "Gate-1 read with an explicit, loudly-logged human override -- same override "
+                          "class as --accept-gate-override/--accept-unconverged-rho/--unblind-override.")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -785,6 +958,24 @@ def main():
               f"({'WITHIN' if 34.9 + gpuh_baseline <= 80 else 'EXCEEDS'} the 80 GPU-h cap)")
         assert n_manifest + n_sequential == 28, \
             f"KEY_ANCHORING mandatory-baseline run count drifted from the registered 28: {n_manifest + n_sequential}"
+
+        print("\n" + "=" * 70)
+        print("KEY_ANCHORING_DESIGN.md sec 9.5 -- keyanchor-confirm wave preview "
+              "(confirmatory RE-run, NOT part of the 28-run mandatory baseline above)")
+        print("=" * 70)
+        kc = keyanchor_confirm_manifest()
+        # task-directed anchor: ~0.28 GPU-h/cell (sec 5's own per-cell figure
+        # for a 20,000-step candidate-(d) run) -- NOT yet adjusted for
+        # drift_probe=True's own per-checkpoint overhead (item 5 + item 6 +
+        # the once-per-run sec-3.7 sweep); reference_arms_manifest()'s own
+        # realized-vs-priced gap (~0.83 GPU-h/run, item-5-only) is the
+        # closest comparable data point -- flagged, not silently assumed
+        # away (see keyanchor_confirm_manifest's own docstring + the build
+        # report's scrutiny list).
+        gpuh_kc = len(kc) * 0.28
+        print(f"  keyanchor-confirm (candidate d, K=32 seeds{{0,1,2}}"
+              f"{' + K=16 s0 spot check' if len(kc) == 4 else ''}): {len(kc)} runs | "
+              f"~{gpuh_kc:.2f} GPU-h (pre-drift-probe-overhead estimate; see scrutiny list)")
 
         if args.gpus is not None and args.gpu_offset is not None:
             print(f"slots = {args.gpus} gpus x {args.per_gpu} per-gpu = {args.gpus * args.per_gpu} "
@@ -850,6 +1041,24 @@ def main():
         manifest = keyanchor_wave1_manifest()
         print(f"wave keyanchor manifest: {len(manifest)} runs (candidates (d)+(c), K in {{16,32}} "
               f"x3 seeds each); gate={gate_result}", flush=True)
+    elif args.wave == "keyanchor-confirm":
+        # sec 9.5's required follow-up + this build's task-directed re-run.
+        # TWO gates apply, in order: (1) the pre-launch CPU-only gate on
+        # the FIXED keyanchor_drift_diagnostic.py's own Gate-1 read (no GPU
+        # work here -- only reading its already-produced JSON, mirroring
+        # gate_geo3_drift's pattern); (2) sec 3.6's BANDS_PINNED mechanical
+        # blinding gate -- these ARE anchor-arm cells, identical to
+        # 'keyanchor', so gate (b) applies unchanged.
+        diag_gate = gate_keyanchor_drift_diag(args.keyanchor_drift_json,
+                                                args.accept_keyanchor_diag_override)
+        ref_out_dir = os.path.join(args.out_dir, "waveref")
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
+        manifest = keyanchor_confirm_manifest()
+        print(f"wave keyanchor-confirm manifest: {len(manifest)} runs (candidate (d), K=32 "
+              f"seeds {{0,1,2}} + K=16 seed-0 spot check, drift_probe=True); "
+              f"diag_gate={diag_gate} bands_gate={bands_gate}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,
                                    args.calib_summary, args.accept_unconverged_rho)
@@ -865,24 +1074,35 @@ def main():
     # KEY_ANCHORING_DESIGN.md sec 5's Wave -1 smoke suite + sec 4's Gate 2,
     # wired as LAUNCH GATES (2026-07-04 audit fix, MAJOR: the committed CPU
     # tests existed but nothing forced them to run before a launch). Every
-    # KEY_ANCHORING wave runs the 9-item smoke suite; the anchor-arm wave
-    # ('keyanchor' -- what Gate 2 exists to protect) additionally runs the
-    # Gate 2 construction check with its pinned regression quadruple. Both
-    # are CPU-only subprocesses; rc!=0 aborts with the same ABORTED.txt
-    # discipline as the pre-existing run_smoke gate below.
-    if args.wave in ("ref", "keyanchor-neg1", "keyanchor") and not args.skip_smoke:
+    # KEY_ANCHORING wave runs the 9(+)-item smoke suite; anchor-arm waves
+    # ('keyanchor'/'keyanchor-confirm' -- what Gate 2 exists to protect)
+    # additionally run the Gate 2 construction check with its pinned
+    # regression quadruple, AND (2026-07-06 build) the fla-free
+    # smoke_keyanchor_confirm.py manifest/regression suite (deliverable 4:
+    # drift_probe wiring + is_done non-collision + the log_every/pipefail
+    # regressions) -- ALL CPU-only subprocesses; rc!=0 aborts with the
+    # same ABORTED.txt discipline as the pre-existing run_smoke gate below.
+    if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm") and not args.skip_smoke:
         rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
         if rc != 0:
             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                 f.write("smoke_key_anchoring.py FAILED (rc != 0); no training launched.\n")
             print("ERROR: smoke_key_anchoring.py failed -- wave aborted.", file=sys.stderr)
             sys.exit(1)
-        if args.wave == "keyanchor":
+        if args.wave in ("keyanchor", "keyanchor-confirm"):
             rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
             if rc != 0:
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                     f.write("gate2_construction_test.py FAILED (rc != 0); no training launched.\n")
-                print("ERROR: gate2_construction_test.py failed -- keyanchor wave aborted.",
+                print(f"ERROR: gate2_construction_test.py failed -- {args.wave} wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+        if args.wave == "keyanchor-confirm":
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_keyanchor_confirm.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("smoke_keyanchor_confirm.py FAILED (rc != 0); no training launched.\n")
+                print("ERROR: smoke_keyanchor_confirm.py failed -- keyanchor-confirm wave aborted.",
                       file=sys.stderr)
                 sys.exit(1)
 

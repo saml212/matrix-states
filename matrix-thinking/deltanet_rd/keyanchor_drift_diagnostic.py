@@ -28,6 +28,43 @@ wave's CPU-only build constraint. Built here so it is ready to run the
 moment a GPU frees up; smoke_key_anchoring.py covers everything CPU-testable
 about the underlying mechanism in the meantime.
 
+2026-07-06 keyanchor-confirm build -- TWO fixes to this script, both
+diagnosed from its own documented crash (KEY_ANCHORING_DESIGN.md sec 9.3;
+the exact traceback is archived at
+experiment-runs/2026-07-05_keyanchor_wave/logs/04_drift_diag.log):
+
+1. THE CRASH ITSELF (log_every, this file's own bug): `run_one_k` used to
+   call `train_geo3(..., log_every=max(1, probe_steps // 5), ...)` --
+   1000 at the default probe_steps=5000 -- which fails
+   run_deltanet_rd.py::train()'s own `ka.assert_lambda_log_cadence(log_every)`
+   startup assertion (key_anchoring.py L279-292, registered
+   LAMBDA_LOG_CADENCE_STEPS=200) the FIRST time this script ever ran.
+   Fixed: log_every is now PROBE_LOG_EVERY (== ka.LAMBDA_LOG_CADENCE_STEPS
+   unconditionally), never a probe_steps-derived fraction. See
+   smoke_keyanchor_confirm.py for the regression check (proves the fixed
+   value passes the assertion the retired formula reproducibly fails).
+2. THE SWALLOWED-FAILURE BUG (NOT in this file -- diagnosed and recorded
+   here for the reader's benefit): the crash above should have stopped
+   `keyanchor_chain.sh`'s `&&`-gated chain ("any failure stops the chain
+   and surfaces", per that script's own header) -- it did not, because
+   EVERY stage in that script pipes through `tee`
+   (`cmd 2>&1 | tee logs/X.log && next`) WITHOUT `set -o pipefail`. Bash's
+   default pipeline exit status is the LAST command's (`tee`, which
+   succeeds as long as it can write the log file) -- so this script's own
+   real, non-zero exit code was silently discarded before `&&` ever saw
+   it, and `waveref`/`wavekeyanchor` both ran anyway (by hand, per sec
+   9.3's account). The historical archived chain
+   (experiment-runs/2026-07-05_keyanchor_wave/scripts/keyanchor_chain.sh)
+   is left untouched as a faithful record of what actually ran; this
+   wave's own forward-looking chain,
+   keyanchor_confirm_chain.sh, is written WITH `set -euo pipefail` from
+   the start. Defensively (belt-and-suspenders, since a bare uncaught
+   Python exception already exits 1 today), `main()` below is now a thin
+   wrapper around `_run()` that guarantees ANY exception --> `sys.exit(1)`,
+   never a silent/implicit success path, with its own regression test in
+   smoke_key_anchoring.py (fla-required, runs on box) and a static-source
+   companion in smoke_keyanchor_confirm.py (fla-free, runs anywhere).
+
 Usage (single GPU per process, matching this harness's own convention):
   python keyanchor_drift_diagnostic.py --k 16 32 \\
       --out results/deltanet_rd_exactness/keyanchor_drift/wave_neg1_drift.json
@@ -39,6 +76,7 @@ import json
 import os
 import sys
 import time
+import traceback
 
 import torch
 import torch.nn.functional as F
@@ -48,56 +86,15 @@ import geo3_simulator as g3sim
 import grammar_rd as grd
 from model_rd import DeltaNetRDBlock
 from run_deltanet_rd import train as train_geo3
-from key_anchoring import measure_drift, sample_batch_fixed_entity  # noqa: F401 (re-export parity)
+from key_anchoring import (LAMBDA_LOG_CADENCE_STEPS, measure_drift, measure_full_pool_alignment,
+                             measure_h1_behavioral_companion, sample_batch_fixed_entity)  # noqa: F401 (re-export parity)
 
-
-@torch.no_grad()
-def measure_full_pool_alignment(model, cfg, pools, n_resamples, gen, device):
-    """sec 3.7's per-entity anchor-INPUT-alignment sweep, full pool (ALL
-    107 train entities, not the 8-entity drift-diagnostic sample):
-    a_e = mean over >= n_resamples independent episode resamples of
-    cos(pre-NS blended key of entity e, A[e]). Uses the SAME
-    sample_batch_fixed_entity construction as the drift diagnostic (sec
-    14.6's sampling machinery), swept over the full train pool instead of a
-    random 8-entity sample -- eval-only, no training-path change."""
-    assert model.anchor_active, "measure_full_pool_alignment requires anchor_active=True"
-    model.eval()
-    entity_ids = pools.train_name_ids.tolist()
-    a_e = {}
-    for eid in entity_ids:
-        b = sample_batch_fixed_entity(cfg, n_resamples, eid, gen, pools, device)
-        _, k_eff_items, _ = model.bind(b)
-        blended = model.anchor_last_k_blend_raw[:, 0, :]              # (n_resamples, d_state)
-        anchor_row = model.anchor_table.weight[eid].unsqueeze(0).expand_as(blended)
-        cos = F.cosine_similarity(blended, anchor_row, dim=-1)
-        a_e[eid] = cos.mean().item()
-    engaged_frac = sum(1 for v in a_e.values() if v >= 0.9) / len(a_e)
-    return {"a_e": a_e, "engaged_frac": engaged_frac, "n_resamples": n_resamples}
-
-
-@torch.no_grad()
-def measure_h1_behavioral_companion(model, cfg, pools, gen, device, n_batches=4, batch_size=64):
-    """sec 3.7 Rev4's non-load-bearing behavioral companion: per-entity h=1
-    recovery, restricted to eval episodes CONTAINING that entity --
-    bookkeeping on the existing eval (tagging each per-item cosine with its
-    row's own key_ids before pooling), NO new forward passes beyond a
-    standard h=1 eval sweep this diagnostic already needs to run once."""
-    from grammar_rd import sample_batch_rd
-    from model_rd import target_clause_index
-
-    model.eval()
-    per_entity_cos: dict[int, list[float]] = {}
-    for _ in range(n_batches):
-        b = sample_batch_rd(cfg, batch_size, gen, hop_set=(1,), pools=pools, device=device)
-        pred, targets, S_T, k_eff_items, v_eff_items = model(b, force_rank_k=None)
-        cos = F.cosine_similarity(pred, targets, dim=-1)         # (B,Q)
-        key_ids = b["key_ids"]                                    # (B,K) -- entities present THIS episode
-        for row in range(cos.shape[0]):
-            row_entities = set(key_ids[row].tolist())
-            row_cos = cos[row].mean().item()                      # this row's own h=1 recovery
-            for eid in row_entities:
-                per_entity_cos.setdefault(eid, []).append(row_cos)
-    return {eid: sum(vals) / len(vals) for eid, vals in per_entity_cos.items()}
+# sec 9.3's fix (item 1 above): the probe-train's log_every MUST equal the
+# registered cadence whenever anchor_lambda_mode=='learned' -- never a
+# probe_steps-derived fraction (the retired `max(1, probe_steps // 5)`
+# formula, == 1000 at the default below, crashed on first invocation).
+DEFAULT_PROBE_STEPS = 5000
+PROBE_LOG_EVERY = LAMBDA_LOG_CADENCE_STEPS
 
 
 def run_one_k(K, tokenizer_pools, device, seed, n_entities, n_resamples, probe_steps, probe_batch_size,
@@ -127,7 +124,7 @@ def run_one_k(K, tokenizer_pools, device, seed, n_entities, n_resamples, probe_s
     t1 = time.time()
     probe_result = train_geo3(model, cfg, pools, pool_report, device, d_model=256, d_state=64,
                                steps=probe_steps, batch_size=probe_batch_size, lr=3e-4, seed=seed,
-                               log_every=max(1, probe_steps // 5), ckpt_every=probe_steps + 1,
+                               log_every=PROBE_LOG_EVERY, ckpt_every=probe_steps + 1,
                                exactness_config={"geo3_active": True, "geo3_n_iter": 12,
                                                   "geo3_resid_tol": 1e-2, "anchor_active": True,
                                                   "anchor_lambda_mode": anchor_lambda_mode,
@@ -170,12 +167,19 @@ def run_one_k(K, tokenizer_pools, device, seed, n_entities, n_resamples, probe_s
     }
 
 
-def main():
+def _run():
+    """The diagnostic's real body (moved out of `main()`, 2026-07-06): every
+    failure path here is either an `assert` (AssertionError, uncaught -->
+    non-zero exit already) or propagates an underlying exception -- `main()`
+    below wraps THIS function in a catch-all so NO exception, of any kind,
+    from any line in this script, can ever result in a zero exit code. See
+    this module's docstring, item 2, for why that guarantee matters here
+    even though a bare uncaught exception already exits non-zero today."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--k", type=int, nargs="+", default=[16, 32])
     ap.add_argument("--n-entities", type=int, default=8)
     ap.add_argument("--n-resamples", type=int, default=32)
-    ap.add_argument("--probe-steps", type=int, default=5000)
+    ap.add_argument("--probe-steps", type=int, default=DEFAULT_PROBE_STEPS)
     ap.add_argument("--probe-batch-size", type=int, default=64)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", type=str, required=True)
@@ -235,6 +239,25 @@ def main():
                   f"lambda_final={per_k[K]['anchor_lambda_final']:.4f}")
     print(f"wrote {args.out}")
     print("=" * 70)
+
+
+def main():
+    """Thin, defensive wrapper (sec 9.3's swallowed-failure-bug fix, item 2
+    of this module's docstring): ANY exception out of `_run()` --
+    AssertionError, a CUDA OOM, a malformed-JSON write, anything -- is
+    caught, its traceback printed, and turned into an explicit
+    `sys.exit(1)`. `SystemExit` itself (e.g. argparse's own --help exit, or
+    a future explicit sys.exit call inside `_run()`) is re-raised
+    unchanged, never reinterpreted. See smoke_key_anchoring.py's own
+    regression test (monkeypatches `_run` to raise, asserts SystemExit(1))
+    and smoke_keyanchor_confirm.py's fla-free static-source companion."""
+    try:
+        _run()
+    except SystemExit:
+        raise
+    except Exception:
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

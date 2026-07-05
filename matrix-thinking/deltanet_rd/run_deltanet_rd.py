@@ -426,6 +426,16 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
             "anchor_lambda_mode": ec.get("anchor_lambda_mode"),
             "anchor_lambda_fixed": ec.get("anchor_lambda_fixed"),
             "lambda_anchor": ec.get("lambda_anchor", 0.0),
+            # KEY_ANCHORING_DESIGN.md sec 3.6 (2026-07-06 keyanchor-confirm
+            # build): ALWAYS recorded (default off), same always-recorded-
+            # even-at-off discipline as every field above. Closes a real
+            # gap: _spec()'s own docstring (run_deltanet_rd_exactness_
+            # sweep.py) already claimed drift_probe is "re-derived from the
+            # result JSON's own exactness_config" for is_done()'s identity
+            # check, but this field was never actually written here --
+            # is_done() relied on filename encoding alone (the `_dprobe`
+            # name bit) for drift_probe-driven distinctness.
+            "drift_probe": bool(ec.get("drift_probe", False)),
         },
         "trajectory": trajectory, "checkpoints": checkpoints,
         # KEY_ANCHORING_DESIGN.md sec 3.6 item (c) (2026-07-04 audit fix,
@@ -743,6 +753,40 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                                         drift_probe_n_resamples, drift_gen, device,
                                         pre_ns_attr=pre_ns_attr)
                 res["drift_probe"] = {"post_ns": dp["post_ns"], "pre_ns": dp.get("pre_ns")}
+                if model.anchor_active:
+                    # KEY_ANCHORING_DESIGN.md sec 3.1 item 6 (2026-07-06
+                    # keyanchor-confirm build -- closes sec 9.3's documented
+                    # gap: item 6 was previously computed ONLY at Gate 2's
+                    # one-time INIT check, never re-run on the TRAINED table
+                    # as sec 3.1/sec 4 require "at every admission
+                    # checkpoint"). Cheap: pure SVD/cosine on the anchor
+                    # table's (n_train, d_state) train-row block, NO forward
+                    # passes -- computed at EVERY checkpoint, unlike sec
+                    # 3.7's alignment sweep below.
+                    res["item6_table_conditioning"] = ka.raw_table_conditioning(
+                        model.anchor_table.weight[model.anchor_train_ids_buf].detach())
+                    if step == steps:
+                        # sec 3.7's per-entity anchor-INPUT-alignment sweep
+                        # (engaged_frac) + the h=1 behavioral companion --
+                        # the OTHER half of sec 9.3's gap (previously wired
+                        # ONLY into keyanchor_drift_diagnostic.py's separate
+                        # 5,000-step probe model, never the real trained
+                        # arms). FULL 107-entity pool, ~13x more bind() calls
+                        # than the 8-entity item-5 sweep above -- a
+                        # DISCLOSED scoping decision (build-report scrutiny
+                        # item) to run this ONLY at the FINAL checkpoint,
+                        # not every one, keeping the keyanchor-confirm
+                        # wave's cost near its priced ~0.28 GPU-h/cell;
+                        # sec 3.7's own text says "the claim readout uses
+                        # the final step" for a_e, so the headline-relevant
+                        # value is unaffected by this scoping choice.
+                        align_gen = torch.Generator(device=device).manual_seed(seed + 60_000 + step)
+                        alignment = ka.measure_full_pool_alignment(
+                            model, cfg, pools, drift_probe_n_resamples, align_gen, device)
+                        res["per_entity_alignment"] = alignment
+                        h1_gen = torch.Generator(device=device).manual_seed(seed + 70_000 + step)
+                        res["per_entity_h1_companion"] = ka.measure_h1_behavioral_companion(
+                            model, cfg, pools, h1_gen, device)
                 # 2026-07-04 audit fix (MINOR): ka.measure_entity_rows sets
                 # model.eval() and never restores -- functionally inert THIS
                 # wave (no dropout/BN, ZCA off on every keyanchor cell) but
@@ -750,6 +794,8 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                 # ZCA-composed cells training in eval mode from the first
                 # checkpoint on. Restore explicitly here, mirroring
                 # evaluate_pool()'s own model.train() restore convention.
+                # (Covers the sec 3.7 alignment/h1-companion calls above too
+                # -- both also flip to eval() internally and never restore.)
                 model.train()
             checkpoints.append(res)
             geo3_admission = (compute_geo3_admission(cfg, trajectory, checkpoints, n_geo3_fallback_train_steps)
@@ -1303,6 +1349,7 @@ def main():
         "anchor_lambda_mode": args.anchor_lambda_mode if args.anchor_active else None,
         "anchor_lambda_fixed": args.anchor_lambda_fixed if args.anchor_active else None,
         "lambda_anchor": args.lambda_anchor,
+        "drift_probe": args.drift_probe,
     }
     result = train(model, cfg, pools, pool_report, device, d_model=args.d_model, d_state=args.d_state,
                     steps=args.steps, batch_size=args.batch_size, lr=args.lr, seed=args.seed,
