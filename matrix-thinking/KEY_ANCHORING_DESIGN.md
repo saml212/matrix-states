@@ -3449,6 +3449,702 @@ against the archived JSONs' actual fields).
 
 ---
 
+## 11. Rev K48 — Capacity-curve extension (K/d ∈ {0.25, 0.5, 0.75} at
+d_state=64) [DRAFT — pending its own attack round; zero GPU spent
+producing this section; design + CPU code-read/derivation work only,
+identical discipline to §10's own Rev-7.1 header]
+
+**Status.** This section turns the single K=32 point result (§9/§9.6,
+Outcome C at behavioral-descriptive tier; §10's Rev 7.1 mechanism-tier
+re-test still DRAFT, pending its own bounded verify round before any
+GPU is spent) into a three-point **recovery-vs-memory-load curve**:
+K/d_state = 0.25 (K=16, already run), 0.50 (K=32, already run), 0.75
+(K=48, this section). User has signed off on the capacity-curve
+program; this design still goes through the full attack gauntlet
+before build/launch, per this project's own standing multi-round
+adversarial-audit rule. **This wave inherits Rev 7.1's instrumentation
+wholesale, not as a citation but as literally the same code path**:
+direct `r_e` measurement upstream of the blend (§10.2), anchor-row-norm
+logging every checkpoint (§10.2.1), the exact-Beta/BH/BY engagement
+test with its effect-size floors (§10.3, §10.3.4), the hash-locked
+`REV7_THRESHOLD_PINNED.json` writer/gate/readout triple (§10.3.3), and
+the mandatory checkpoint-saving writer/gate/readout triple (§10.10).
+None of this is re-derived below except where K=48 genuinely changes a
+number (the bar, the NS/conditioning legs, the budget bracket) — where
+it does not change (the entity pool, the engagement-test constants),
+that is verified explicitly, not assumed.
+
+### 11.0 Relationship to Rev 7.1 — what depends on it, what does not
+
+This wave's **mandatory** cells (reference arms, the Gate-1-style
+probe, candidate (d)) do **not** depend on Rev 7.1 reaching a verdict —
+they inherit its instrumentation as **code**, which already exists and
+is committed (`key_anchoring.py`, `rev7_threshold_derive.py`,
+`REV7_THRESHOLD_PINNED.json`), independent of whether Rev 7.1's own
+K=32 wave has been run, attacked, or verdict-assigned yet. Only
+candidate (d′) (§11.1) is conditioned on Rev 7.1's own outcome, and
+that dependency is stated as a mechanical launch precondition, not a
+judgment call (§11.1's own trigger rule).
+
+**A design virtue worth stating plainly, not just claiming:** the K=32
+program needed four revisions (Wave 1 → confirm wave → Rev 6 → Rev 7.1)
+to arrive at mechanism-tier instrumentation, because Wave 1 launched
+without it (§9.3's documented gap — `keyanchor_wave1_manifest()` never
+threaded `drift_probe=True`, and no per-entity/`r_e` field existed at
+all until the mech-wave build). **K=48's candidate (d) launches with
+the full Rev-7.1-era instrumentation from its very first cell** — it
+cannot repeat §9.3's specific mistake, because the code it calls
+already has `r_e`, anchor-norm logging, and the BH engagement test
+wired into `run_deltanet_rd.py`'s training loop, not bolted on after
+the fact. This is verified, not asserted: `run_deltanet_rd_exactness_
+sweep.py`'s existing manifest functions (`reference_arms_manifest`,
+`keyanchor_wave1_manifest`, `keyanchor_confirm_manifest`) all hardcode
+`for K in (16, 32)` (grepped directly, this session — lines 217, 318,
+339, 343, 392) and contain **no K=48 branch anywhere**; `geo3_wave1_
+manifest(include_k48=True)` is the only existing K=48-aware manifest
+function in the harness, and it predates the anchor mechanism entirely
+(bare geo3 only). **Build scope, registered now:** this wave requires
+a new `keyanchor_k48_manifest()` (mirroring `geo3_wave1_manifest`'s own
+`include_k48` opt-in pattern, generalizing `reference_arms_manifest`/
+`keyanchor_wave1_manifest`/`keyanchor_confirm_manifest`'s hardcoded `K
+in (16,32)` loops to accept an explicit `K` argument) — a build task,
+not a design gap; flagged here so the attack round can check the
+generalization doesn't silently change K=16/32 behavior (a registered
+Wave −1 smoke, §11.9 item 14, asserts byte-identical manifests for
+K=16/32 before and after the refactor).
+
+### 11.1 Arms
+
+**Registered manifest name:** `keyanchor-k48` (mirrors §10.5's Rev-7.1
+naming-pinning discipline — attack-R7 finding 11). **Seed convention:**
+continues the escalating-decade-block pattern this program has used at
+every new wave (Wave 1 candidate d/c: 0–2; reference arms: 1–3;
+Rev-7.1 candidate-d re-run: 10–12; Rev-7.1 candidate-d′: 20–22) — new,
+never-before-used-anywhere blocks are assigned per arm below so no
+seed integer's provenance is ever ambiguous across K, even though K
+alone already guarantees no filename collision (`is_done()`/`out_path()`
+key on K).
+
+1. **Candidate (d), learned-λ, full Rev-7.1 mechanism-tier
+   instrumentation, K=48 — MANDATORY, PRIMARY.** Seeds **{30, 31, 32}**,
+   3 runs, 20,000 steps each. Architecture: byte-identical to Rev 7.1's
+   candidate (d) (`anchor_blend_gather_scatter`, single learned scalar
+   λ, frame-potential anchor table init at `ANCHOR_INIT_SEED=20260705`
+   — same table, same seed, verified below to be K-independent) **plus**
+   `--drift-probe` (item 5's pre-NS blend drift) **and** the Rev-7.1
+   `r_e`/anchor-row-norm/BH-engagement logging wired directly into the
+   training loop from run 1 (§11.0). No K=16 spot check is registered
+   for this arm — K=16 already saturates near h4≈1.0 under bare geo3
+   (§9.4's own reference: 0.9716), leaving no headroom to see an
+   anchoring effect there, the same reasoning Rev 7.1 gave for skipping
+   K=16 on candidate (d′) (§10.5).
+
+2. **Reference arms — bare geo3, K=48, full per-checkpoint drift
+   diagnostic — MANDATORY, first in manifest (bands don't exist at
+   K=48, so this K needs its own writer/gate/readout triple).** Seeds
+   **{1, 2, 3}** (reusing the §3.6 reference-arm seed convention at a
+   genuinely new K — not a repeat of any prior (K, seed) cell), 3 runs,
+   20,000 steps each, `drift_probe=True` from step 1 (mirrors §3.6's
+   own reference-arm spec exactly: post-NS **and** pre-NS pooled
+   pairwise-cosine drift, `measure_drift`'s existing machinery,
+   unmodified). **Full writer/gate/readout triple, specified below
+   (§11.1.1)** since — unlike Rev 7.1's mech wave, which reused K=16/32's
+   existing `BANDS_PINNED.json` — no post-NS engagement band exists at
+   K=48 in any form.
+
+3. **Candidate (d′), per-entity λ_e, K=48 — CONDITIONAL, cut-eligible.**
+   Seeds **{40, 41, 42}**, 3 runs, 20,000 steps each, IF AND ONLY IF
+   Rev 7.1's own K=32 wave resolves to **Outcome A(d′)** (real
+   differential engagement demonstrated) **or Outcome D′** (per-entity
+   capacity used, and used badly — §10.6's routing table) — i.e., IF
+   Rev 7.1's own data shows a per-entity λ_e table does *something*
+   structurally different from a global scalar at K=32, in either
+   direction. **Does NOT fire on Outcome C′** (near-uniform λ_e, no
+   significant differentiation — the structural null): if K=32's own
+   per-entity mechanism shows no capacity effect, there is no
+   registered reason to expect K=48 — a strictly harder packing regime
+   (§11.4) — to behave differently, and the cell is cut, not run
+   speculatively. This is a **mechanical launch precondition**, not a
+   judgment call: the launcher checks Rev 7.1's own result JSONs /
+   readout verdict field before permitting this cell's manifest entry
+   to build (mirrors §3.6/§10.3.3's own refuse-to-launch-without-a-
+   validated-precondition pattern). Architecture: byte-identical to
+   Rev 7.1's own (d′) (`anchor_lambda_table`, one-line indexing change
+   over the scalar case, §10.5.1) at K=48.
+
+4. **Gate-1-style pre-launch probe — candidate (d) architecture only,
+   K=48, 5,000 steps, 1 run, seed 0 — DISCLOSED, NON-GATING.** Mirrors
+   Rev 7.1's own d′ probe (§10.5) and inherits its own scope carve-out:
+   the simulator drift→recovery mapping (`geo3_simulator.py::launch_
+   read`) is **already established as non-gating at K=32** (§4's own
+   "conservative at K=32... K=32 reads stay non-gating" ruling,
+   underestimating measured recovery 5–7×) — K=48 is a *harder* packing
+   regime than K=32 (§11.4), so the same non-gating status is inherited,
+   not re-derived: this probe is run and reported (an early wall-clock/
+   loss-sanity check, cheap at 5,000 steps) but **never** a hard go/
+   no-go. **Gate 2 (the construction check, §11.3) remains the sole
+   go/no-go for this wave**, exactly as it already is at K=32.
+
+5. **Asymmetric-pool pin ceiling arm — OPTIONAL, LOWEST PRIORITY,
+   cut-eligible first if budget is tight.** Seed **0**, 1 run, 20,000
+   steps. See §11.4.3 for why this exists, what it costs, and why it is
+   registered as optional rather than mandatory (the free, already-
+   computed λ=1 anchor-blend ceiling, §11.4.2, already answers the
+   "hard question" the task requires — this arm would only add a
+   second, independently-*measured* (not computed) ceiling point, at a
+   real, disclosed, compounded-confound cost).
+
+**Seed contingency (inherited unchanged, §6/§14.10's add-seeds-not-
+steps discipline):** if candidate (d) or (d′)'s λ-band assignment lands
+ambiguous at 2/3 (not 3/3) seeds, +2 seeds, one iteration — reserved
+block **{33, 34}** for candidate (d), **{43, 44}** for candidate (d′).
+
+#### 11.1.1 K=48 reference-band writer/gate/readout triple (new — bands don't exist at this K)
+
+Mirrors §3.6 (Rev 4) exactly, scoped to the 3 K=48 reference arms only
+(not a re-derivation of K=16/32's own `BANDS_PINNED.json`, which is
+untouched):
+
+1. **The writer.** The harness writes `BANDS_PINNED_K48.json` —
+   containing the derived `engaged_48` threshold (or an UNRESOLVABLE
+   verdict), the 3 per-seed final-checkpoint post-NS drift inputs, the
+   formula version string (`"sec 3.6 Rev4 (n=3, engaged_K = mean_ref +
+   2*s_ref, df=2)"` — the **same, unmodified** `derive_engaged_bands`/
+   `write_bands_pinned` functions in `key_anchoring.py`, called with
+   `per_k_final_drift={48: [...]}` and `ceiling_by_k={48: 0.8987}` —
+   §11.4.2's computed ceiling), sha256 hashes of all 3 reference-arm
+   result JSONs, and a timestamp — **only after** all 3 K=48 reference
+   arms validate complete (`reference_arm_result_valid`, unmodified,
+   §3.6's own validator).
+2. **The launcher gate.** Candidate (d) and (d′) cells at K=48 **refuse
+   to launch** unless `BANDS_PINNED_K48.json` exists and re-hash-
+   validates (`validate_bands_pinned`, unmodified) — the same loud-
+   refusal pattern, the same `--unblind-override` demotion-stamping
+   fallback (§3.6 Rev 5's fields written into every affected K=48
+   anchor-arm's own result JSON at assembly time, verbatim, not
+   reinvented).
+3. **The readout assertion.** `assert_blind_not_broken` (unmodified)
+   checks `BANDS_PINNED_K48.json`'s timestamp strictly precedes the
+   earliest K=48 anchor-arm start time.
+
+**Degenerate-case guard, pre-stated (not presumed):** `engaged_48 =
+mean_ref + 2·s_ref` (n=3, df=2) is declared UNRESOLVABLE at K=48 iff it
+lands `≥ ceiling_48 − 0.005 = 0.8937` (§11.4.2). A rough, low-fidelity
+**prior expectation** exists for context only (`DELTANET_RD_EXACTNESS_
+DESIGN.md` line 2253–2254: a single-entity, 200-resample attack-round
+probe measured K=48 drift 0.80–0.82 — coarser than the 8-entity/32-
+resample protocol these reference arms use, and explicitly super-seded
+by them the same way the old 0.9037/0.9416 single-seed K=32/16 numbers
+were superseded once real reference arms ran, §3.6). If the fresh
+K=48 reference arms land anywhere near that coarse prior (≈0.80–0.85),
+the gap to `ceiling_48` (0.8987) is comparable in absolute size to
+K=32's own resolved gap (0.9423−0.9037=0.0386 vs. K=48's plausible
+≈0.05–0.09) — likely resolvable, but this is a **disclosed
+expectation, not a presumed result**; the guard is evaluated
+mechanically on the real 3-seed data, exactly as §3.6 already requires.
+Post-NS engagement bands remain **non-gating sanity context only**
+(§3.5 B1/B2 disambiguation), never load-bearing for this wave's own h4
+bar (§11.2) or for the Rev-7.1-inherited `r_e`/BH engagement test
+(§11.0), which needs no reference-arm data at all (§10.3.3's own
+zero-data-dependency property, unaffected by K).
+
+**REV7_THRESHOLD_PINNED.json is K-independent — verified, not assumed
+(the task's own explicit check).** `rev7_threshold_derive.py`'s
+`derive()` (read this session, `matrix-thinking/deltanet_rd/rev7_
+threshold_derive.py` lines 48–50) takes exactly three free inputs:
+`N_ENTITIES = 107`, `D_STATE = 64`, `ALPHA = 0.05` — **`K` (the
+per-episode entity draw count) does not appear anywhere in the file**.
+`N_ENTITIES=107` is the **train-pool vocabulary size**, not a
+per-episode draw count — confirmed independently this session by
+`grammar_rd.py::build_entity_pools()` (lines 194–253): the pool is
+built once from 213 verified names via a **fixed `heldout_frac=0.5`
+split** (`n_train_names=107`, `n_heldout_names=106`), with **no
+reference to `K` anywhere in the function** — `K` is consumed only
+downstream, as an assertion that the pool is *large enough* to draw K
+names from (`run_deltanet_rd.py`'s own `pool_report["n_train_names"] <
+args.K` guard). Empirically cross-checked against two archived result
+JSONs at different K (`wgeo3_rdx_K48_armgeo3_s0_geo3n20.json` and
+`wgeo3_rdx_K32_armgeo3_s0_geo3n20.json`): **byte-identical
+`pool_report`** in both (`n_train_names: 107, n_heldout_names: 106`
+verbatim). **Consequence: `REV7_THRESHOLD_PINNED.json` — the exact-Beta
+Bonferroni critical value (r≥0.4009), the BH/BY constants, the
+`σ_chance=0.125` null scale, and the A/A″ effect-size floors
+(0.35/0.25)** — applies UNCHANGED at K=48. No new pin, no new hash-lock,
+no new derivation. The **launcher gate** (§10.3.3, item 2) is reused
+verbatim for K=48 candidate (d)/(d′) cells: same script, same recorded
+hash, same `derive()` re-run check. This closes the task's explicit
+ask cleanly: the entity pool really is K-independent, and the
+consequence for the pin is not merely "probably fine" but a verified
+zero-change fact.
+
+### 11.2 Bars — derivation (no free choice left at readout)
+
+**h4 bar at K=48 — the relative-gain derivation, restated exactly, not
+a fresh judgment call.** The K=16 (≥0.8) and K=32 (≥0.5) bars in
+`DELTANET_RD_EXACTNESS_DESIGN.md` §5.5 were pre-registered constants,
+not the output of a stated formula — chosen (per that document's own
+Welch-bound-defended language, line 1487) to sit "meaningfully above
+baseline, achievable in principle." **This wave cannot inherit that
+judgment-call method directly (there is no equivalent prior "what
+looks achievable" intuition for K=48, and inventing one now would be
+exactly the free choice the task rules out) — so it instead reuses the
+one number this program's own K=32 wave already published and can
+transplant mechanically: the realized relative gain candidate (d)
+delivered over its own fresh bare-geo3 reference, at the one K where
+the mechanism has ever shown daylight.**
+
+From already-published, already-fixed numbers (§9.4's own table, fixed
+before this section existed):
+- K=32 fresh reference (bare geo3, 3 seeds, Rev 7.1 mech-wave):
+  h4 `rec@0.9` mean = **0.4105**.
+- K=32 candidate (d) (same wave): h4 `rec@0.9` mean = **0.6132**.
+- Relative-gain factor: `g = 0.6132 / 0.4105 = 1.4938...` (this **is**
+  the design's own already-published "+49% relative lift," §9.4 —
+  re-derived here to full precision, not re-typed from the rounded
+  prose).
+
+Applied to K=48's own baseline — the **only** available K=48 reference
+point, the archived geo3-alone K=48 arm (3 seeds, `wgeo3_rdx_K48_
+armgeo3_s{0,1,2}_geo3n20.json`, held-out h4 = 0.011963/0.019165/
+0.017944, mean **0.016357**; disclosed honestly: this baseline is
+itself **non-admissible** — `value_salvage_tier_pass: false` at all 3
+seeds, item 1 of the substitute admission stack, §16.9 — retained here
+only as the best-available anchor point for the bar's *derivation*,
+exactly the same epistemic status §10.3.4's own `R_MIN_HEADLINE`
+literal already accepts for a prior wave's published summary):
+
+```
+bar_K48 = baseline_K48 x g = 0.016357 x 1.49378 = 0.024440
+```
+
+**Registered bar: h4 `rec@0.9` ≥ 0.0244 at K=48** (the exact computed
+value — no grid-rounding applied, since no established rounding-grid
+convention exists at this metric's scale, and rounding would itself be
+a free choice this derivation is built to avoid). **Achievability
+sanity-check, stated plainly, not hidden:** this bar embeds the
+*identical* relative-improvement magnitude candidate (d) already
+demonstrated once, at the one K/d ratio (0.5) where this mechanism has
+ever shown any daylight — it is exactly as hard, in relative terms, as
+the bar the K=32 wave already cleared, and no harder or easier by
+construction. Its small **absolute** size is an honest, direct
+consequence of K=48's own near-total baseline collapse (0.0164), not
+an artificially softened target.
+
+**Guard (inherited, unchanged convention): h=1, within −0.02 of geo3-
+alone K=48's own h=1 baseline.** geo3-alone K=48 h1 = 1.0000 (mean, all
+3 seeds, `M2_in_distribution`) → **guard: h=1 ≥ 0.98.**
+
+**K=16/K=32-style no-regression cross-checks are NOT required at K=48**
+(each K is a separately-trained model — the task's own scoping, and
+consistent with this program's existing practice: K=16's own bar was
+never checked against K=32's result either). **Curve-reporting rule,
+registered now:** the eventual paper/write-up figure reports **all
+three K points (16, 32, 48)** on one plot (x-axis K/d_state ∈
+{0.25, 0.50, 0.75}, y-axis h4 `rec@0.9`), each point **individually
+labeled with its own bar and its own claim tier** (K=16: minimum-
+publishable, HIT, admissible/confirmed; K=32: headline-demo,
+descriptive-behavioral per Outcome C — or Outcome A/A″ if Rev 7.1
+clears differently before this wave's own write-up; K=48: this bar,
+tier TBD by this wave's own result) — **never pooled, averaged, or
+presented as a single aggregate statistic across K.** If K=48's own
+geo3-alone baseline (item 2 below) also fails the value-salvage floor
+on fresh reference-arm seeds (a real, disclosed possibility, §11.6's
+falsification map), the curve's K=48 point is reported with that
+caveat attached, not silently smoothed over.
+
+### 11.3 NS settings at K=48
+
+**n_iter=20** (the production tier already established for K=48 by
+`run_deltanet_rd_exactness_sweep.py::geo3_wave1_manifest`'s own
+`--include-k48` comment: "NS at n_iter=12 lands at resid 0.104 > tol on
+realistic near-collinear probes; 20 converges to ~1e-6"), unchanged
+from the archived geo3-alone K=48 riders. **Zero-fallback requirement
+stands, doubly confirmed this session:**
+
+- **Real trained-run evidence (already archived, re-read this
+  session):** all 3 archived geo3-alone K=48 runs (`geo3n20`, 20,000
+  steps each) report `ns_converged_no_fallback: true`,
+  `n_geo3_fallback_train_steps: 0`, `checkpoint_fallback_seen: false` —
+  **0 fallback steps across 60,000 real training steps** (3 seeds ×
+  20,000), at production tier, on real (not synthetic) episode-
+  conditional keys. This is the single most reassuring fact this
+  section can report: the K=48 rider's own non-admissibility is
+  entirely a **value-salvage-ratio** failure (item 1, §11.2's own
+  disclosure), never an NS-convergence failure (item 2) — the two are
+  independent legs of the same admission stack, and only one is broken
+  at K=48.
+- **Fresh CPU construction-gate check, this session, on the SAME
+  registered frame-potential anchor init the anchor-blend mechanism
+  will actually use** (`key_anchoring.py::frame_potential_init(107, 64,
+  seed=ANCHOR_INIT_SEED=20260705)` — the identical table, identical
+  seed, already gating K=16/32; **not** a new table, so this check is
+  additive to Gate 2, never a parallel or divergent construction):
+  the amended three-leg Gate 2 (§4) is run at K=48 exactly as it
+  already runs at K=16/32 (`gate2_construction_check`, extending
+  `GATE2_N_ITER_BY_K` from `{16: 12, 32: 20}` to `{16: 12, 32: 20, 48:
+  20}` — a one-line dict extension, not new gate logic):
+
+  | Leg | K=48 result | Bar | Verdict |
+  |---|---|---|---|
+  | G2-a (`σ_64/σ_1`, raw table) | **0.999999642** | ≥0.1 | **PASS** (same table as K=16/32 — this leg is K-independent by construction, verified identical to 4 decimal places against the design's own cited 1.0000) |
+  | G2-b (`max\|cos\|`, raw table) | **0.284151** | ≤0.5 | **PASS** (K-independent, same table, matches the design's own cited 0.2842) |
+  | G2-c (NS admission, 512 random 48-subsets, `n_iter=20`) | **0/512 fallbacks, max resid 1.02e-6** | 0 fallbacks | **PASS**, with wide margin (K=16: max resid 5.7e-7 on this run; K=32: 6.9e-7 — K=48's own margin is the same order of magnitude, not degraded) |
+  | G2-c at `n_iter=12` (context, not the production tier) | 0/512 fallbacks, max resid 1.5e-3 | — | Also passes on THIS table (the frame-potential anchor table's own subsets are better-conditioned than the "realistic near-collinear" *episode* keys the `n_iter=12→20` escalation was originally about, §16.3 — no contradiction: production tier stays 20, matching geo3-alone's own established K=48 setting, since the actual `bind()` NS call orthogonalizes the *blended* key (part raw episode key, part anchor row), not a pure anchor-table subset) |
+
+  **All three legs PASS at K=48**, run this session, CPU-only, on the
+  registered init, using the unmodified `gate2_ns_leg`/`raw_table_
+  conditioning`/`gate2_construction_check` functions in `key_
+  anchoring.py` (no new code, a one-line manifest extension only).
+  **Build requirement, registered:** `gate2_construction_test.py`
+  (the committed CPU test) extends its `ks=(16, 32)` argument to
+  `(16, 32, 48)` — a one-line change, asserted by a new Wave −1 smoke
+  (§11.9 item 15) that the K=48 leg is present and passing before any
+  GPU launch, mirroring the existing test's own "ships with the build"
+  discipline.
+
+- **Episode-level pre-NS subset Gram-deviation, K=48, for context
+  (mirrors §2.2's own "episode conditioning" report — 512 sampled
+  48-subsets of the 107 anchor rows):** mean **3.781**, max **3.901**
+  (compare K=32: mean 2.505 / max 2.676; K=16: mean 1.227 / max 1.425,
+  all measured on the identical table, identical sampling protocol,
+  this session — scaling monotonically with K, as expected, and
+  consistent with the design's own already-published K=16/32 numbers
+  to within simulation noise from a different random draw). **Episode-
+  level conditioning is achievable at K=48**: NS converges cleanly
+  despite the larger pre-correction deviation — Newton-Schulz's own
+  job is exactly to close this gap, and it does, at the same
+  production tier already used for geo3-alone's own K=48 riders.
+
+### 11.4 The hard question — computed ceiling at K=48
+
+**Pre-answered, per the task's own instruction, before any of this
+wave's GPU data exists.**
+
+#### 11.4.1 Why i-strong cannot exist at K=48 (confirmed, not assumed)
+
+Candidate (a) (i-strong, the context-free per-entity pin, §2.1) is
+**structurally infeasible at K=48 with the standard pool split.**
+`embed_arms.py::restrict_pools_for_strong_pin` restricts BOTH the
+train and held-out pools to exactly `K` entities each (the 32+32=64
+restriction at K=32, saturating `d_state=64` exactly — the *only*
+reason zero cross-episode drift is geometrically possible for i-strong
+at all, §2.1's own three-concession disclosure). At K=48 the
+symmetric analog needs `48+48=96 > d_state=64` — the QR-orthonormal
+construction's own `assert n <= d` (`embed_arms.py::_qr_orthonormal_
+rows`, L81) refuses by construction. **This is not a hypothetical: it
+already happened.** The archived K=48 rider commit (`EXPERIMENT_LOG.md`,
+"K=48 rider — frontier extends past d/2," 2026-07-04) states directly:
+"The i-strong pin at K=48 was correctly REFUSED by its own dimensional
+guard (train+heldout identity vectors 96 > d_state=64) — the K=d/2
+boundary rider stays fenced as designed." No archived i-strong K=48
+data exists anywhere (confirmed by exhaustive `grep`/`find` across
+`experiment-runs/` this session) **because it cannot exist**, not
+because nobody ran it.
+
+#### 11.4.2 The substitute ceiling — computed this session, zero GPU cost
+
+Exactly as §2.2 already established for K=16/32 (retracting the
+original "λ→1 ⇒ i-strong" equivalence and replacing it with a computed
+ceiling, precisely BECAUSE i-strong's pool-restriction confound makes
+its 1.0000 non-representative of the full-pool mechanism), this wave
+computes the **λ=1 post-NS drift ceiling** at K=48 via the identical
+method: fix one anchor row (8 sampled train entities), resample its
+K−1 co-drawn rows from the other 106, run the full row set through
+production-tier Newton-Schulz (`n_iter=20`), measure the fixed entity's
+pooled pairwise cosine across 32 independent resamples — **on the
+same registered frame-potential table, same construction, no pool
+restriction, no bypassed learned-key path** (i-strong's own two
+disclosed confounds do not apply to this ceiling — it is measured on
+the *actual* full-pool mechanism candidate (d) will use, at λ=1).
+**Method verified this session** by reproducing K=16/32's own already-
+published numbers before trusting the new K=48 figure:
+
+| K | n_iter | This session's reproduction | Design's own published value (§2.2) |
+|---|---|---|---|
+| 16 | 12 | mean 0.9744 / p10 0.9642 | 0.9745 / 0.9640 |
+| 32 | 20 | mean 0.9412 / p10 0.9228 | 0.9423 / 0.9243 |
+| **48** | **20** | **mean 0.8987 / p10 0.8712** | **(none exists — new)** |
+
+(K=16/32 reproductions differ from the design's own cited values only
+in the 3rd–4th decimal, consistent with a different random draw of the
+8 fixed entities/32 resamples — not a methodology discrepancy; this is
+the same validation-before-trust discipline this project's Hard Rules
+require.)
+
+**The hard question, answered honestly: at K/d=0.75, even PERFECT
+orthogonalization+stability (λ=1, the theoretical best case) tops out
+at post-NS drift ≈0.8987 — BELOW bare geo3's own already-measured,
+UN-anchored trained drift at the easier K=32 point (0.9037, §16.1).**
+This is a materially worse packing regime than K=32's own gap to its
+ceiling (K=32: baseline 0.9037 → ceiling 0.9423, a gap of 0.0386;
+K=48's own internal gap — baseline still to be measured by this wave's
+own reference arms, §11.1.1, but the coarse prior of 0.80–0.82 implies
+a gap of roughly 0.08–0.10 to its own 0.8987 ceiling, a comparable-to-
+larger absolute window, but starting and ending at a materially lower
+*absolute* drift level than K=32 ever operates at). **Three concrete
+consequences, stated as falsifiable interpretations, not hedges:**
+
+1. **A positive h4 result at K=48 cannot be attributed to "the anchor
+   pushed post-NS drift into K=32-quality territory"** — the ceiling
+   itself forbids that reading; K=48's best-case stabilized state is
+   still worse-conditioned than K=32's own untreated baseline. If
+   candidate (d) clears its bar (§11.2) at K=48, the mechanism must be
+   operating through a **different or additional channel** — most
+   plausibly the same "free" value-geometry relief Rev 7.1's own
+   confirm-wave already measured as a disclosed bonus at K=32 (§9.4:
+   candidate (d)'s final value-Gram deviation ran roughly HALF the
+   fresh reference's own, at both prior K) — this is a **pre-registered
+   candidate explanation**, checked directly off the same `value_gram_
+   deviation_mean` field this wave already logs at every checkpoint,
+   not an ad hoc rescue invented after seeing a K=48 result.
+2. **A miss at K=48 is not, by itself, evidence the anchoring mechanism
+   is "wrong"** — it may simply mean K=48 sits past the point where
+   post-NS drift-space stabilization has enough packing headroom left
+   to matter, a structurally different failure mode than Outcome C at
+   K=32 (mechanism not engaged) or Outcome B (engaged but insufficient,
+   §3.5). The falsification map (§11.6) keeps these distinguishable.
+3. **This ceiling is itself a data point for the curve** — plotted
+   alongside the three h4 points (§11.2's curve-reporting rule), a
+   monotonically-declining λ=1 ceiling (0.9745 → 0.9423 → 0.8987 across
+   K/d = 0.25/0.50/0.75) is, on its own, a clean, already-computed,
+   zero-cost quantitative characterization of how fast the full-pool
+   packing problem hardens with load — independent of whether any
+   trainable candidate ever reaches it.
+
+#### 11.4.3 The optional asymmetric-pool pin arm — priced, scoped, and deliberately not made mandatory
+
+Per the task's own instruction ("if none exists, add 1–2 pin arms to
+the wave as ceiling-measurement"), an asymmetric-pool i-strong variant
+is registered as **optional, cut-eligible, lowest priority** (arm 5,
+§11.1): shrink the train pool to exactly 48 (matching K) and the
+held-out pool to 16 (`48+16=64=d_state`, exactly saturating the QR
+construction's own bound — the tightest asymmetric split that still
+fits). **Why this is not made mandatory:** it would compound i-strong's
+*existing* two disclosed confounds (bypasses the learned key path
+entirely; closed pool, no generalization, §2.1) with a **third,
+new** one — a held-out pool of 16 (vs. the already-used 32 at K=32) is
+a much weaker base for any C17 generalization read, and the train pool
+itself (48, matching K exactly) means every episode draws the *entire*
+train pool every time, a degenerate sampling regime with no analog at
+K=16/32 (where the train pool, 32, still equalled K in the *original*
+i-strong construction too — so this is not a new degeneracy relative
+to i-strong's own precedent, but it is a reminder that this ceiling
+measurement was never meant to generalize past its own closed pool,
+§2.1's own scope limit, restated). Given that §11.4.2's computed
+ceiling already answers the task's "hard question" at zero cost, on
+the actual full-pool mechanism, with no new confound — this arm adds
+at most a second, independently-*measured* confirmation point, priced
+at 1 run (~0.23–0.97 GPU-h, §11.5) — registered as genuinely optional,
+first cut if budget or schedule pressure appears, and never load-
+bearing for any Outcome assignment in §11.6.
+
+### 11.5 Budget
+
+**Per-cell cost basis — scaled from realized `wall_s`, per Rev 7.1's
+own revised (bracket-not-point) costing discipline (§10.7), extended
+by the K=32→K=48 step-cost ratio extracted from the archive this
+session, not assumed:**
+
+| K | Arm | Realized `wall_s` (3 seeds) | Mean GPU-h/cell |
+|---|---|---|---|
+| 16 | geo3 (uninstrumented) | 621.3 / 622.1 / 613.3 | 0.1719 |
+| 32 | geo3 (uninstrumented) | 701.3 / 711.7 / 683.9 | 0.1942 |
+| 48 | geo3 (uninstrumented) | 895.7 / 871.7 / 883.4 | 0.2454 |
+| 32 | candidate (d), drift-probe instrumented (confirm-wave) | 748.5 / 750.5 / 724.4 | 0.2059 |
+
+**K=48/K=32 step-cost ratio (uninstrumented, the cleanest apples-to-
+apples pair): 0.2454 / 0.1942 = 1.264×.** Instrumentation overhead at
+K=32 (drift-probe vs. bare) is only ≈+6% (0.2059/0.1942) — confirming
+Rev 7.1's own finding that instrumentation cost is now small relative
+to the ≈4× scheduler-contention variance (0.18–0.77 GPU-h/cell) that
+dominates realized cost. **K=48-adjusted per-cell bracket: 0.18–0.77 ×
+1.264 ≈ 0.23–0.97 GPU-h/cell** (applied uniformly to every K=48 training
+cell below, mandatory or conditional — the same bracket-not-point
+discipline, since the dominant cost driver is contention, not
+workload, and there is no reason to expect that to change at K=48).
+
+| Item | Cells | Runs | Est. GPU-h (bracket) |
+|---|---|---|---|
+| Wave −1 CPU smoke suite (inherited + K=48 additions, §11.9) + Gate 2 K=48 leg (already run, this session) | — | 0 | **0** |
+| Gate-1-style pre-launch probe, candidate (d), K=48, 5,000 steps | 1 | 1 | 0.06–0.24 (5,000/20,000 × bracket) |
+| Reference arms, bare geo3 + drift-diagnostic, K=48, seeds {1,2,3} | 3 | 3 | 0.69–2.91 |
+| Candidate (d), learned-λ, full mechanism instrumentation, K=48, seeds {30,31,32} | 3 | 3 | 0.69–2.91 |
+| **Mandatory baseline** | | **7** | **~1.44–6.06** |
+| Candidate (d′), CONDITIONAL on Rev 7.1's own K=32 verdict (A(d′) or D′), seeds {40,41,42} | ≤3 | ≤3 | ≤0.69–2.91 |
+| Seed contingency (either primary arm lands ambiguous, +2 seeds, one iteration) | ≤2 | ≤2 | ≤0.46–1.94 |
+| Asymmetric-pool pin ceiling arm, OPTIONAL, lowest cut priority | ≤1 | ≤1 | ≤0.23–0.97 |
+| **All-conditionals-max** | | **≤13** | **~2.6–11.9** |
+
+**Registered nominal ceiling for this wave: ≤12 GPU-h** — the all-
+conditionals-max bracket top (≈11.9) sits just inside it; if realized
+cost tracks the bracket's own upper edge across every conditional
+firing simultaneously, the pin arm (lowest priority, §11.4.3) is cut
+first, restoring headroom (≈11.9 − 0.97 ≈ 10.9).
+
+**Program arithmetic — states the number, doesn't hide it (the task's
+own explicit ask).** Anchoring program spend so far: **≈51.5/80 GPU-h**
+(`KEY_ANCHORING_DESIGN.md` §5, `STATE.md`'s own ≈51/80 figure). Rev
+7.1's own registered ceiling for its (still-DRAFT, not-yet-run) K=32
+mechanism-tier wave: **≤12 GPU-h**. This wave's own registered ceiling:
+**≤12 GPU-h**. **Worst case, both waves at their full nominal
+ceilings: 51.5 + 12 + 12 = 75.5/80, leaving 4.5 GPU-h reserve** under
+the exactness program's own 80 GPU-h cap — comfortable in principle,
+**but tight enough that it is flagged as a real scheduling risk, not
+waved through**: this program's own realized spend has previously
+exceeded its own point-estimates in both directions (Wave 1 realized
+10.98 GPU-h vs. an estimated 8.7–9.4; the confirm-wave and Rev-7.1
+mech-wave brackets were revised upward specifically because per-cell
+contention variance is large and not fully predictable ahead of time,
+§10.7). **Registered sequencing recommendation (not a hard gate, since
+both waves' mandatory cells are otherwise independent, §11.0): run Rev
+7.1's own mech-wave to completion first, confirm its REALIZED (not
+estimated) spend, and re-check the arithmetic above before this wave's
+own mandatory cells launch** — if Rev 7.1 comes in over its own ≤12
+ceiling, this wave's own ≤12 nominal may need to shrink (cut the
+conditional/optional rows first, in the priority order already stated:
+pin arm → seed contingency → candidate (d′)) to keep the combined
+worst case under 80. This does not touch the separate, uninvolved
+`SCALE_TRANSFER_DESIGN.md` 300 GPU-h program.
+
+### 11.6 Falsification map + 5 pre-answered attacks
+
+| Result | What it means |
+|---|---|
+| Candidate (d) at K=48 clears h4 ≥0.0244 (3/3 seeds), items 1–4 of the substitute admission stack pass, h=1 guard holds | **Behavioral positive at K=48** — the curve's third point lands above its own derived bar; per §11.4.2's ceiling analysis, this CANNOT be attributed to post-NS drift-space stabilization alone (the ceiling forbids it) — the write-up must check the value-Gram-relief channel (§11.4.2 point 1) before claiming any mechanism, exactly as Rev 7.1's own r_e/BH engagement test (inherited wholesale, §11.0) would need to pass before any *mechanistic* (not merely behavioral) claim is made |
+| Candidate (d) clears h4 but the K=48 reference arms (fresh, §11.1.1) ALSO fail the value-salvage-ratio floor at 3/3 seeds (replicating the archived rider's own non-admissible finding) | **The whole K=48 point is non-admissible by the SAME item-1 gate that already governs every other K** — reported at descriptive tier only, exactly the epistemic status the archived K=48 rider already carries; not a new failure mode, a confirmed old one |
+| Candidate (d) misses h4 <0.0244 | **Informative negative, distinguishable from Outcome C at K=32 (mechanism not engaged) by the ceiling context (§11.4.2):** check whether pre-NS/post-NS drift (item 5, inherited) cleared its own bar before concluding anything about the mechanism itself — a miss with item 5 passing cleanly says "the packing ceiling was reached and wasn't enough," a genuinely different, and arguably more informative, finding than a miss with item 5 also failing (mechanism simply didn't engage, as at K=32) |
+| Reference-arm engagement bands land UNRESOLVABLE at K=48 (`engaged_48 ≥ 0.8937`) | Post-NS sanity bands report indeterminate at this K (§3.5's own indeterminate-band discipline) — does **not** block h4 admission or the `r_e`/BH engagement test (both are independent of this guard, §11.1.1) |
+| Candidate (d′) fires (Rev 7.1 resolved A(d′) or D′) and shows the SAME pattern at K=48 (differential engagement, or destabilization) | Confirms the per-entity-capacity finding generalizes across the K-axis, not just at K=32 — a materially stronger structural claim than either K alone |
+| Candidate (d′) fires but shows a DIFFERENT pattern at K=48 (e.g., differential engagement at K=32 but uniform/near-uniform at K=48, or vice versa) | Reported in full as a K-dependent capacity-utilization finding — neither outcome is assumed; both are informative and neither collapses into the other's routing table (§10.6's own A(d′)/C′/D′/Inconclusive rows, applied per-K, never pooled) |
+| `REV7_THRESHOLD_PINNED.json`'s integrity chain fails at K=48 (script-hash mismatch, `derive()` re-run mismatch, or timestamp-precedes-launch violation) | **Design-invalidating for this wave's mechanism-tier claim specifically** — exactly Rev 7.1's own §10.8 row, inherited verbatim; the behavioral h4 result is unaffected (item 5/BH engagement gates the *mechanistic* claim only) |
+
+**Five pre-answered attacks:**
+
+1. **"The h4 bar (≥0.0244) is so small it's nearly meaningless — any
+   noise could clear it."** Answer (§11.2): the bar is not chosen for
+   absolute size — it transplants the *identical* relative-gain factor
+   (1.494×) candidate (d) already demonstrated once, at the one K
+   where this mechanism has ever shown daylight, onto K=48's own
+   collapsed baseline. Its smallness in absolute terms is a direct,
+   disclosed consequence of how far K=48's baseline has already fallen
+   (0.0164), not a softened target. A single-seed noise excursion
+   clearing 0.0244 would need to be a >49% relative jump over a
+   near-floor baseline across 3/3 seeds — checkable directly against
+   the reference arms' own seed spread once they exist, and reported
+   as a caveat if the margin turns out to be within reference-arm noise.
+2. **"You're building a K=48 wave on top of an unresolved K=32
+   mechanism question (Rev 7.1 still DRAFT) — isn't that premature?"**
+   Answer (§11.0): the mandatory cells here (reference arms, Gate-1
+   probe, candidate d) do not depend on Rev 7.1's verdict at all — they
+   inherit its **code**, not its **conclusion**. Only candidate (d′) is
+   conditioned on Rev 7.1's own outcome, and that dependency is a
+   mechanical launch precondition (checked against Rev 7.1's own result
+   JSONs), never a judgment call made in this wave's own favor.
+3. **"The archived K=48 baseline (0.0164) that the bar is built on is
+   itself non-admissible (fails the value-salvage floor) — isn't the
+   whole derivation built on sand?"** Answer (§11.2, §11.6's own
+   falsification-map row): disclosed, not hidden — the derivation uses
+   it only as the best-available anchor point (the identical epistemic
+   status `R_MIN_HEADLINE`'s own prior-wave-summary provenance already
+   has, §10.3.4). This wave's own fresh reference arms independently
+   re-measure whether K=48 geo3-alone *also* fails value-salvage at
+   fresh seeds — if it does (plausible, since all 3 archived seeds
+   clustered tightly at 0.071–0.094 against a 0.1 floor, suggesting an
+   architectural rather than seed-noise effect), the entire K=48 point
+   may be non-admissible by the same gate that already governs every
+   other K, and this is registered as an explicit, expected-possible
+   outcome (§11.6's own falsification-map row), not discovered
+   post-hoc.
+4. **"The computed λ=1 ceiling (0.8987) is BELOW K=32's own untreated
+   baseline (0.9037) — doesn't this mean the whole wave is known to be
+   pointless before any GPU is spent?"** Answer (§11.4.2): no — it
+   means a positive result, if one occurs, cannot be attributed to
+   post-NS drift-space stabilization reaching "K=32-quality" territory,
+   and must instead be attributed to a different, pre-registered
+   channel (the value-Gram-relief bonus Rev 7.1's own confirm-wave
+   already measured at K=32, checkable directly off an already-logged
+   field). The wave is not pointless; its POSSIBLE positive outcomes
+   are pre-narrowed to a smaller, more falsifiable set of honest
+   explanations, which is the entire purpose of stating the hard
+   question before the data exists.
+5. **"Why register a per-entity λ_e arm (d′) and an optional pin-ceiling
+   arm at all, if both are conditional/optional and might never run?"**
+   Answer (§11.1, §11.4.3): registering them now — with their exact
+   trigger conditions, seeds, and costs pinned before any data exists —
+   is what prevents them from becoming free post-hoc additions later
+   (exactly the same discipline `R_MIN_HEADLINE`'s "fixed before any
+   Rev-7 data exists" provenance and §3.6's pre-registered band formula
+   already rely on). A conditional arm that is never triggered costs
+   nothing (§11.5's budget table prices it at its own line, separate
+   from the mandatory baseline) and is reported as "not triggered,
+   per its own pre-registered condition" — not silently omitted.
+
+### 11.7 What this wave does not re-open
+
+Exactly per §10.4's own precedent: this wave never reopens or rescores
+any of the 12 Wave-1 JSONs, the 4 confirm-wave JSONs, or (once it
+exists) Rev 7.1's own mech-wave JSONs — none of them carry K=48 data,
+and this wave's own K=48 cells are new data, read fresh, on their own
+terms. §9.5/§9.6/§9.7/§10's Outcome assignments at K=32 stand,
+untouched, as historical record; this section's own K=48 Outcome
+assignment (once run) is independent and separately reported on the
+capacity-curve figure (§11.2's curve-reporting rule), never blended
+into a single cross-K verdict.
+
+### 11.8 Instrumentation inheritance — restated as a checklist (nothing new, verified present)
+
+Per the task's explicit "inherits wholesale" instruction, checked
+against `key_anchoring.py`/`rev7_threshold_derive.py` this session, not
+assumed:
+
+- Direct `r_e` measurement, pre-blend (`measure_full_pool_alignment`'s
+  pre-NS-pointed sibling, §10.2) — same function, same resampling
+  machinery, applies unchanged at any K (it operates per-entity, over
+  the fixed 107-entity pool, never over K).
+- Anchor-row-norm logging, full 107-vector + mean/min/max, every
+  admission checkpoint (§10.2.1) — K-independent (reads
+  `anchor_table.weight[anchor_train_ids]`, a fixed-size parameter slice
+  regardless of K).
+- Exact-Beta/BH/BY engagement test via the unmodified `REV7_THRESHOLD_
+  PINNED.json` (§11.1.1's own verification: K-independent, confirmed).
+- Hash-locked writer/gate/readout triple for the engagement-test pin
+  (§10.3.3) — reused verbatim, zero new artifact.
+- Checkpoint-saving writer/gate/readout triple (§10.10) — reused
+  verbatim; K=48 checkpoints write to `/root/data/deltanet_rd_
+  keyanchor_ckpts/wavekeyanchor-k48/<cell_name>/`, pulled to
+  `/Volumes/1TB_SSD/learned-representations/experiment-runs/
+  2026-07-0X_keyanchor_k48/checkpoints/` immediately after each run,
+  gated by the same round-trip-load smoke before the wave can be marked
+  complete.
+- Per-entity `λ_e` interior-band fraction, Spearman rank correlation
+  (`λ_e` vs. `r_e`), and the formalized Hartigan's dip test (§10.5.1) —
+  apply unchanged to candidate (d′) at K=48, IF and when that arm fires.
+
+### 11.9 Wave −1 smoke suite — inherited items + K=48-specific additions
+
+Items 1–13 of §10.9 are inherited **unchanged** (they are architecture-
+level checks — norm invariance, held-out zero-init, the mismatched-pair
+null construction, BH/BY correctness, the empirical fallback rule, (d′)
+forward/backward and bypass, the dip-test positive control, checkpoint
+round-trip, zero-collision manifest assertion — none of them are
+K-specific). Two new items, K=48-specific:
+
+14. **Manifest-refactor non-regression** (§11.0's own build-scope
+    flag) — build `reference_arms_manifest()`/`keyanchor_wave1_
+    manifest()`/`keyanchor_confirm_manifest()`'s generalized,
+    K-parameterized forms; assert the K=16/K=32 manifests they produce
+    are **byte-identical** (every `_spec(...)` field) to the pre-
+    refactor hardcoded versions, before trusting the new K=48 branch.
+15. **Gate 2's K=48 leg wired into the committed test** —
+    `gate2_construction_test.py`'s `ks` argument extended to
+    `(16, 32, 48)`; assert the K=48 leg reports PASS on the registered
+    init (reproducing this session's own 0/512-fallback,
+    σ_ratio≈1.0/max\|cos\|≈0.284 result) before any GPU launch.
+
+---
+
+---
+
 ## Reproducibility pointers
 
 - This design: `matrix-thinking/KEY_ANCHORING_DESIGN.md` (**Rev 5**,
