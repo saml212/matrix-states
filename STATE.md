@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-04
+**Last updated:** 2026-07-05
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -497,151 +497,75 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   pre-registered outcome F. See the exactness-mechanism paragraph above,
   `EXPERIMENT_LOG.md`'s "F-geo-3 escalation VERDICT" entry, and
   `DELTANET_RD_EXACTNESS_DESIGN.md` §16.
-- **KEY-ANCHORING wave (the outcome-F follow-on) — RUN, verdict DESCRIPTIVE,
-  not yet the confirmed headline (2026-07-05, 10.98 GPU-h, `youthful-indigo-
-  turkey`).** This supersedes the earlier "outcome F follow-on... not yet
-  designed" note — it is now designed (`KEY_ANCHORING_DESIGN.md`, Rev 5,
-  5 attack/verify rounds), built, and run. **Behavioral result is strong:**
-  candidate (d) (learned-λ anchor blend) K=32 h=4 `rec@0.9` clears the ≥0.5
-  bar in 3/3 seeds (0.559/0.615/0.665, mean 0.613 vs. this wave's own
-  fresh-reference 0.4105 — a +0.20 absolute lift), λ lands interior (not
-  pin-rediscovery, not unrecruited) in 6/6 seeds at both K, K=16 has no
-  regression, and value-Gram deviation drops to roughly half the reference's
-  own (a disclosed bonus finding). **But the wave cannot be assigned its
-  pre-registered Outcome A/A′/A″/B/C** (`KEY_ANCHORING_DESIGN.md` §3.5):
-  `keyanchor_wave1_manifest()` never wired `--drift-probe` into the admitted
-  candidate-(d)/(c) cells (only the reference arms got it), so item 5
-  (pre-NS blend drift), item 6 at final admission (table conditioning), and
-  §3.7's `engaged_frac` were never measured on the actual trained runs —
-  and the standalone tool that would have supplied them
-  (`keyanchor_drift_diagnostic.py`) crashed on its first invocation (a
-  `log_every` self-inconsistency with the harness's own registered logging
-  cadence) and was never re-run, silently also skipping Gate 1's pre-spend
-  check. Verdict: **DESCRIPTIVE tier for the mechanistic claim, pending a
-  cheap instrumentation-only follow-up** — not a hypothesis failure, a
-  build gap caught by an independent verdict pass. Full tables + gap
-  narrative: `EXPERIMENT_LOG.md`'s "KEY-ANCHORING WAVE VERDICT" entry (this
-  date) and `KEY_ANCHORING_DESIGN.md` §9. Archive:
-  `experiment-runs/2026-07-05_keyanchor_wave/` + SSD mirror.
-  **CONFIRMATORY WAVE RUN (2026-07-05, same day) — gap closed, literal
-  outcome is C, not A.** `--wave keyanchor-confirm` re-ran candidate (d)
-  K=32 seeds {0,1,2} + a K=16 spot check with `drift_probe=True` wired
-  into the real 20,000-step training loop (fixes committed in `5963616`).
-  Item 5 (pre-NS drift) and h4 both clear their own bars decisively (3/3,
-  plus K=16) and λ is interior 4/4 — but §3.7's per-entity `engaged_frac`
-  (the metric built specifically to catch a pooled statistic masking a
-  disengaged majority) reads **under 14% in every leg** (13.08/3.74/4.67%
-  at K=32, 11.21% at K=16), and §3.7's own text routes any `engaged_frac
-  <50%` to **Outcome C ("mechanism not engaged... not an admissible test
-  of the hypothesis either way") regardless of aggregate drift**. Seed 1
-  also independently fails item 6a (2/3, not 3/3, admissible under the
-  full items-1–6 stack at K=32). **Tier: the §1 interaction hypothesis is
-  now measured-and-not-admissible (was: unmeasured/UNASSIGNABLE); the h4
-  behavioral result stays DESCRIPTIVE**, unchanged in kind, changed in
-  reason (a measured mechanistic null under a real behavioral positive,
-  not a missing measurement). Verification note: the confirm cells reuse
-  Wave-1's own seed integers (not 3 new independent seeds) — h4/λ land
-  within 0.0001–0.001 of Wave-1's own per-seed numbers (GPU nondeterminism
-  at a fixed seed, not fresh replication; do not double-count as 6
-  independent seeds). A `Rev 6` λ-scaled `engaged_frac` threshold
-  re-derivation is registered as a stub (not scheduled, no retroactive
-  rescoring authorized — needs its own attack round first). Full tables:
-  `EXPERIMENT_LOG.md`'s "KEY-ANCHORING CONFIRMATORY WAVE VERDICT" entry
-  and `KEY_ANCHORING_DESIGN.md` §9.6. Archive:
-  `experiment-runs/2026-07-05_keyanchor_confirm/` + SSD mirror.
-- **SCALE-TRANSFER Track B — measurement waves complete, geo3-in-LM
-  DOUBLE-BARRED, selectivity main effects read (2026-07-05, ≈1.5–2 GPU-h
-  actual, GPU 7 only).** `TRACKB_REDESIGN.md` Rev 3's Wave −1 stability
-  smoke measured `skip_rate=0.6319` (103/163 steps) against the `≤0.01`
-  bar with a PROBATIVE positive control (196/326 calls ≥6 duplicated
-  selected rows, max 32/32) — a **second independent barrier** to
-  geo3-in-LM after the original β-uniformity no-launch (Gini 0.099). Cells
-  3/4 and Wave 2 REFUSED; the interaction/headline bars are UNCOMPUTABLE,
-  not merely unevaluated. Readout scoped to selectivity main effects only
-  (Cells 1/2/2R/comparator, Wave 1's real 18-cell manifest — candidate 2/
-  entmax never promoted past Wave −1, traced to the launcher's own
-  `--surviving-mechanisms` default): val-loss +5% bar FAILS on openr1 for
-  all three arms (candidate 1 and its STE comparator fail together →
-  hard selectivity implicated, not an STE artifact) and PASSES on
-  wikitext for all three; same-instrument Gram-deviation shows openr1
-  Cell-2-vs-2R disjoint (targeting matters) but wikitext overlapping
-  (INCONCLUSIVE, write-concentration not targeting) — **combined headline
-  verdict INCONCLUSIVE** per the registered same-outcome-both-corpora rule.
-  One positional-concentration band breach (Cell 2, openr1 s0 L1, ≈2% over);
-  BUDGET-PARTIAL stamping is uncomputable from the archived data (a real
-  instrumentation gap, filed not assumed clean — see the [LEARN] block).
-  Full table/verdicts: `EXPERIMENT_LOG.md` "SCALE-TRANSFER Track B
-  measurement waves" entry; `TRACKB_REDESIGN.md` §14. Archive:
-  `experiment-runs/2026-07-05_trackb_wave/` + SSD mirror.
-- **SCALE-TRANSFER Track D Phase 1 (pretrained-model measurement) — CLOSED
-  (2026-07-04, ≈0.9 GPU-h, GPU 6 only).** The write-geometry signature
-  exists in production fixed-state models (RWKV-7 1.5B — the design's 2.9B
-  pick is a broken HF conversion on this stack, documented substitution —
-  and Falcon-Mamba-7B) and is far MORE extreme than our 14M attractor
-  (RWKV-7 raw Gram dev ≈10.9 at K=16/d=64 vs our 0.6–4.4 band; ≈70% of the
-  collapse ceiling). BUT the registered no-fixed-state negative control
-  (Qwen2.5-1.5B, resolving `SCALE_TRANSFER_DESIGN.md` §12 Q4) shows the
-  same magnitude — the signature is dominated by generic trained-LM key
-  anisotropy (massive activations, Sun et al. 2024) and is NOT attributable
-  to the delta-rule write mechanism at this measurement tier. Phase 2
-  (graft) premise weakened; it stays unauthorized. Full table + caveats:
-  `SCALE_TRANSFER_DESIGN.md` §6.8; archive
-  `experiment-runs/2026-07-04_track_d/` + SSD.
-- **SCALE-TRANSFER Track C Wave 1 (rung-1) harvest (2026-07-04, ≈0.08 GPU-h
-  probe, GPU 0 only) — geometry leg only, persists 14M→98M on this 2-point
-  read** (control 14M raw gram-dev 21.93 vs. rung-1 98M 27.82, both well
-  above the K=64/d=64 random anchor 7.94 and below collapse 63.50; gets
-  slightly worse, not better, with scale); frontier-probe transplant and
-  fix-effect-at-scale (§5.5 items 2/3) NOT run. Data-mix axis (MAJOR-5)
-  stays an open gap — Wave C's checkpoints are no longer on the box, so no
-  same-instrument mix-vs-clean reading exists yet (proxy: val loss +0.28
-  nats both corpora from mixing; whole-state rank flat). Full tables/caveats:
-  `SCALE_TRANSFER_DESIGN.md` §5.9; archive
-  `experiment-runs/2026-07-04_trackc_rung1/` + SSD.
-- **SCALE-TRANSFER Track C Wave 2 (rung-2, 392M) + mixcontrol HARVESTED
-  2026-07-05 (probe ≈1.04 GPU-h, GPU 7 only) — attractor WORSENS
-  monotonically on the 3-point read 14M→98M→392M.** All 6 rung-2 runs
-  (391.87M params, 91,552 steps ≈1.5B tok/run, ext mixes, 128.3 GPU-h
-  measured) + 6 mixcontrol runs completed clean (0 skips/NaN/timeouts).
-  Anchor-normalized gram-dev span-frac: 0.252 (14M) → 0.358 (98M) → **0.389
-  (392M)** (raw 21.93 → 27.82 → 28.10 on the corpus-matched archived-4
-  subset; rung-2 anchors 5.61/63.50 at K=64,d=128). Trajectory (11 ckpts,
-  seed 0): fast drop 31.6→29.8 by step 11k, then plateaus ≈5× above random
-  — no dissolution within budget. **Mixcontrol closes §5.9's mix-axis gap
-  at 14M: ext-mix geometry 21.74 vs orig-mix 21.93 (Δ −0.19, seed noise) —
-  mixes move val loss (+0.06 nats), not geometry**, supporting scale as the
-  rung-1→rung-2 driver (98M interaction closes with wave-1ext, GPU 6).
-  Geometry leg only; raw-only probe; rung-3 now un-gated per Rev 2.2
-  (launches at 1.5B tok/run token-matched to rung-2). Full tables:
-  `SCALE_TRANSFER_DESIGN.md` §5.10; archive
-  `experiment-runs/2026-07-05_trackc_rung2/` + SSD (30MB training JSONs
-  SSD-only). Launch artifacts: `experiment-runs/2026-07-04_trackc_rung2/`.
-- **SCALE-TRANSFER Track C Wave 1ext HARVESTED 2026-07-05 (probe ≈0.415
-  GPU-h, GPU 7 only) — the registered 98M mix-axis de-confounder closes
-  clean.** Rung-1's exact architecture (98M, `dm768/L12/ds64`) retrained
-  on the extended mixes, 3 seeds × 2 corpora, hard-stopped at wave-1's
-  own 67,547 steps (26.87 GPU-h training, banked). Mix-axis Δ at 98M:
-  −0.014 span (27.82→27.05 raw, orig→ext) — same sign/magnitude as the
-  14M mixcontrol's Δ −0.004 span, both inside seed noise. **The mix axis
-  is flat at both scales tested**, closing §5.10's residual scale×mix
-  interaction: the rung-1→rung-2 span-frac climb (0.358→0.389) is
-  scale-driven, not mix-driven. A same-extended-mix 3-point ladder now
-  exists directly: 0.248 (14M) → 0.344 (98M) → 0.389 (392M), monotonic
-  on a held-fixed mix axis — the cleanest persistence read to date;
-  correcting for the (mildly negative) mix effect *strengthens* the
-  scale attribution (matched-mix increments +0.096/+0.045 > the naive
-  +0.031). Rung-1→rung-2 headline upgrades from joint scale+mix to pure
-  scale. Trajectory (8 pts, seed 0): fast drop 29.15→27.51 by 11k, then
-  flat plateau ≈27.3–27.6 (>3× random anchor) through 67,547 — no
-  dissolution. Val-loss mix effect at 98M is directionally split across
-  corpora (unlike uniformly-worse 14M reading) — flagged, immaterial to
-  the geometry verdict. Geometry leg only; raw-only probe; §5.7's
-  literal 3-rung criterion still awaits rung-3 (launched GPUs 0–1, this
-  session, unrelated wave). Full tables: `SCALE_TRANSFER_DESIGN.md` §5.10
-  Addendum; archive `experiment-runs/2026-07-05_wave1ext/` + SSD (all
-  files ≤196KB, fully git-tracked; raw per-run training JSONs not
-  archived, per rung-1 precedent). Checkpoints stay on box
-  (`/data/lm_rd_trackc_ckpts/wave1ext/`).
+- **SCALE-TRANSFER / KEY-ANCHORING — compact current picture (consolidated
+  2026-07-05; supersedes the separate per-wave narrative bullets this entry
+  replaces — see `EXPERIMENT_LOG.md`'s dated entries and the design docs
+  below for full derivations, tables, and attack trails).**
+
+  **CLOSED:**
+  - *KEY-ANCHORING wave* (`KEY_ANCHORING_DESIGN.md` §9/§9.6/§9.7). Two
+    waves ran (initial 10.98 GPU-h + a confirmatory wave with
+    `--drift-probe` wired into the real training loop). Behavioral: K=32
+    h=4 `rec@0.9` 0.4105 (fresh reference) → 0.556–0.665, 3/3 seeds ≥0.5
+    bar in both waves (same seed integers — a reproduction check, not
+    independent replication); λ interior 0.55–0.58 in 6/6 runs; pre-NS
+    drift 0.991–0.9999, clears its own bar decisively — DESCRIPTIVE tier.
+    Mechanism: per-entity `engaged_frac` <14% in every leg (11–13%) →
+    literal **Outcome C** ("mechanism not engaged"), not Outcome A, per
+    the design's own §3.7 override clause. A same-day Rev-6
+    λ-scaled-threshold rescue attempt was independently attacked and
+    **REJECTED** (`KEYANCHOR_REV6_ATTACK.md`: bar-preserving z≈3.76–4.03
+    sits outside the offered {2,3} menu; an unverified anchor-norm value
+    m≈1.34 would make the signal chance-level) — Outcome C stands, CLOSED.
+    Archive: `experiment-runs/2026-07-05_keyanchor_wave/` +
+    `experiment-runs/2026-07-05_keyanchor_confirm/` + SSD mirrors.
+  - *SCALE-TRANSFER Track C — pure-scale attractor ladder*
+    (`SCALE_TRANSFER_DESIGN.md` §5.9/§5.10/Addendum). The mix-axis
+    confound is closed at both tested scales (14M mixcontrol Δ−0.004
+    span vs. control; 98M wave-1ext Δ−0.014 span vs. rung-1, both inside
+    seed noise), yielding a clean, single-(extended)-mix, 3-point
+    monotone ladder: span-fraction 0.248 (14M) → 0.344 (98M) → 0.389
+    (392M, rung-2) — upgraded from a joint scale+mix claim to a
+    **pure-scale** claim. Geometry-leg-only; no compositional-recovery
+    cross-check at any rung. Archive: `experiment-runs/2026-07-04_trackc_rung1/`,
+    `experiment-runs/2026-07-05_trackc_rung2/`,
+    `experiment-runs/2026-07-05_wave1ext/` + SSD.
+  - *SCALE-TRANSFER Track D Phase 1* (`SCALE_TRANSFER_DESIGN.md` §6.8).
+    The write-geometry signature is measurable, and larger, in production
+    fixed-state models (RWKV-7 1.5B, Falcon-Mamba-7B) but a matched
+    no-fixed-state negative control (Qwen2.5-1.5B) shows the same
+    magnitude — **NOT attributable** to the delta-rule write mechanism
+    specifically at this measurement tier. Archive:
+    `experiment-runs/2026-07-04_track_d/` + SSD.
+  - *SCALE-TRANSFER Track B* (`TRACKB_REDESIGN.md` §14) —
+    **double-barred**: the original β-uniformity no-launch (write-mass
+    0.431 vs. ≤0.40 bar) plus a duplicate-key stability smoke
+    (`skip_rate=0.6319` vs. ≤0.01 bar, PROBATIVE positive control,
+    196/326 calls ≥6-duplicated, max 32/32) refused Cells 3/4 and Wave 2
+    before further spend. The selectivity main effects that did run
+    (fix mechanism inactive) are **INCONCLUSIVE** (val-loss fails on
+    openr1 for all 3 arms, passes on wikitext; Gram deviation splits
+    disjoint-on-openr1 vs. overlapping-on-wikitext — a registered
+    split-verdict rule). Archive: `experiment-runs/2026-07-05_trackb_wave/` + SSD.
+
+  **RUNNING:**
+  - *SCALE-TRANSFER Track C rung-3* (1.31B params, token-matched to
+    rung-2 at 1.5B tok/run per the user-signed-off Rev 2.2 amendment).
+    Launched on GPUs 0–1, tmux session `trackc3`. `ALL_DONE` expected
+    ≈19:00 UTC 2026-07-06. Program budget: cumulative ≈266.47/300 GPU-h
+    against `SCALE_TRANSFER_DESIGN.md` §7's ceiling — passes every gate.
+    Completes §5.7's literal 3-rung criterion (98M/392M/1.3B).
+
+  **DECISION-PENDING (user call):**
+  - The key-anchoring mechanism-engagement question (Outcome C) is
+    unresolved and not self-resolving from existing data. Options on the
+    table: (a) a fresh, pre-registered instrumentation wave — log
+    anchor-row norms directly, derive a λ-independent engagement metric
+    before any new data exists, attack it before running — est. ~10
+    GPU-h; (b) a K=48 extension of the existing F-geo-3 fix; (c) another
+    direction. No wave is scheduled pending this call. Anchoring program
+    spend so far: ≈51/80 GPU-h against the exactness program's own 80
+    GPU-h cap (`KEY_ANCHORING_DESIGN.md` §5).
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;
@@ -752,7 +676,7 @@ scratch):**
 - **matrix-thinking/H100_SETUP.md** — pod environment + the perpetual/unattended sweep pattern
 - **matrix-thinking/DELTANET_CAUSAL_RANK_DESIGN.md**, **DELTANET_REALDATA_DESIGN.md**, **STAGE_G_DESIGN.md**, **chapter2/STAGE0_DESIGN.md**, **chapter2/TASK_D_PREREGISTRATION.md**, **chapter2/TASK_D_WRITEUP.md**, **chapter2/NEXT_EXPERIMENT_DESIGN.md** (Task E design), **chapter2/TASK_E_FINDINGS.md** — the five closed 2026-07-01→03 programs; each carries a `STATUS: CLOSED` header
 - **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — CLOSED through §16 (Wave 0/1/F/geo3, including the geo3 escalation); the stability-targeted follow-on (§14.8) is now `KEY_ANCHORING_DESIGN.md` (below), run
-- **matrix-thinking/KEY_ANCHORING_DESIGN.md** — Rev 5, RUN 2026-07-05 (§9), CONFIRMATORY WAVE RUN same day (§9.6): candidate (d) clears K=32 h=4 ≥0.5 in 3/3 seeds with λ interior 6/6; the confirm wave closed §9.3's item-5/6/`engaged_frac` measurement gap and the literal §3.5 outcome is **C** ("mechanism not engaged"), not A — `engaged_frac` reads <14% in every leg despite item 5/h4/λ all clearing their own bars, per §3.7's own override clause. h4 stays DESCRIPTIVE tier (real, reproducible behavioral result; now a measured mechanistic null underneath it, not a missing measurement) — see STATE.md's key-anchoring bullet above and `EXPERIMENT_LOG.md`'s "KEY-ANCHORING CONFIRMATORY WAVE VERDICT" entry
+- **matrix-thinking/KEY_ANCHORING_DESIGN.md** — RUN 2026-07-05 (§9), CONFIRMATORY WAVE RUN same day (§9.6): candidate (d) clears K=32 h=4 ≥0.5 in 3/3 seeds with λ interior 6/6; the confirm wave closed §9.3's item-5/6/`engaged_frac` measurement gap and the literal §3.5 outcome is **C** ("mechanism not engaged"), not A — `engaged_frac` reads <14% in every leg despite item 5/h4/λ all clearing their own bars, per §3.7's own override clause. h4 stays DESCRIPTIVE tier (real, reproducible behavioral result; now a measured mechanistic null underneath it, not a missing measurement). A same-day §9.7 Rev-6 rescue attempt (λ-scaled `engaged_frac` re-derivation) was independently attacked and CLOSED/REJECTED (`KEYANCHOR_REV6_ATTACK.md`) — Outcome C stands; a fresh, differently-instrumented wave is DECISION-PENDING, not scheduled — see STATE.md's key-anchoring bullet above and `EXPERIMENT_LOG.md`'s "KEY-ANCHORING CONFIRMATORY WAVE VERDICT" entry
 - **matrix-thinking/stageg/** — Stage G's H_e task-swap harness (built, calibration run, Wave C gated open — see "In flight" above)
 - **matrix-thinking/scripts/** — runnable training scripts
 - **matrix-thinking/src/**, **chapter2/*.py** — model code
@@ -764,3 +688,4 @@ scratch):**
 - **research/** — individual research notes (see research/README.md for index; well-organized, no restructuring needed as of 2026-07-04)
 - **experiment-runs/** — completed runs with scripts and results, size-capped per the hybrid policy above
 - **archive/** — dead ends and historical material, including three folders added 2026-07-04 (`matrix-thinking-workshop-era/`, `chapter2-gauntlet/`, `team-output-2026-04-28/`) — see archive/README.md
+
