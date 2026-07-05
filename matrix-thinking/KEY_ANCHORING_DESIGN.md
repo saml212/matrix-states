@@ -4458,6 +4458,258 @@ errors) before CLEARED-FOR-BUILD — not self-certified by the same
 session that made the fixes. No GPU has been spent at any point in
 this section's drafting or revision.
 
+### 11.11 External verify round (2026-07-06) — fresh independent reviewer, no code changed
+
+**Scope discipline, stated up front:** this is a *design*-only bounded
+verify round — no GPU spent, no code edited (read-only against
+`key_anchoring.py`, `embed_arms.py`, `run_deltanet_rd.py`,
+`run_deltanet_rd_exactness_sweep.py`, `grammar_rd.py`,
+`rev7_threshold_derive.py`, `gate2_construction_test.py`,
+`geo3_simulator.py`), independent of, and with no access to, the
+internal 4-agent Rev K48.1 attack team's own working notes — only this
+document's committed text and the repo's committed/archived state.
+Every computed number below was reproduced from a **fresh CPU-only
+venv** built in this session (`torch`+`numpy` installed clean, no
+inherited state), not copied from the design's own prose. **Verdict:
+CLEARED-FOR-BUILD.** No new FATAL or MAJOR found in the substance of
+§11.2/§11.4; two fresh, genuinely new MINOR findings surfaced (both
+citation/process, not math or mechanism) plus one worthwhile
+evidentiary addition; both are addressed below, neither blocks build.
+
+**1. THE BAR — reproduced, both readings, pin confirmed clean.**
+Recomputed from the raw archived JSONs (not the doc's rounded prose):
+K=32 fresh reference mean h4 `rec@0.9` (Wave 1, `waveref` seeds 1/2/3)
+= **0.410482**; candidate (d) mean (Wave 1, `wavekeyanchor` seeds 0/1/2)
+= **0.613180**; K=48 baseline mean (`wavegeo3` seeds 0/1/2) =
+**0.016357**. Multiplicative bar = `0.016357 × (0.613180/0.410482)` =
+**0.024435** — matches the design's own stated 0.024434 to the digit
+that matters (tiny residual from which rounded intermediates were
+carried). Additive-reading recompute = `0.016357 + (0.613180 −
+0.410482)` = **0.219055** — matches the design's own disclosed
+rejected-alternative value (0.219) essentially exactly; ratio
+additive/multiplicative ≈ **8.97×**, consistent with the doc's own "≈9×"
+framing. **The pin is genuinely single-valued at readout**: the
+document states the multiplicative reading as the registered bar, gives
+the bounded-metric argument for rejecting the additive reading (a
+demand for a >13× absolute move at a baseline 25× below the calibrating
+K=32 point, with no K=32-side analog), and discloses the rejected
+number rather than hiding it. No residual free choice found. **On
+meaningfulness (the task's own explicit sanity-judgment ask):** 0.0244
+is a small absolute number, but it embeds the identical *relative* lift
+(1.494×) already demonstrated once at K=32 — clearing it requires a
+>49% relative jump over a near-floor baseline, 3/3 seeds, which is not
+a low bar in relative terms merely because the baseline collapsed in
+absolute terms. This reasoning is sound and adequately pre-registered
+(§11.2's own "achievability sanity-check" paragraph, §11.6 pre-answered
+attack 1). **Admissibility trap, checked against fresh archive data the
+design itself doesn't cite for this purpose:** the design correctly
+routes the "candidate (d) clears h4 but K=48 reference arms also fail
+value-salvage" scenario to a disclosed, non-silent descriptive-tier
+outcome (§11.6 row 2) — this is the right structural answer. Worth
+adding as **quantitative support, not previously surfaced in §11**:
+Wave 1's own archived K=32 JSONs show candidate (d)'s
+`value_salvage_ratio_final` running **0.208–0.250** (mean ≈0.230)
+against the fresh K=32 reference's **0.112–0.132** (mean ≈0.119) — i.e.
+candidate (d) very roughly **doubles** the value-salvage ratio over
+bare geo3 at K=32, comfortably clearing the 0.1 floor on both arms. If
+a comparable relative lift transfers to K=48 (whose bare-geo3 baseline
+already sits at 0.071–0.094, tantalizingly close to the 0.1 floor), a
+~2× multiplier would plausibly clear admissibility — but K=48 is a
+harder packing regime (§11.4.2's own ceiling analysis) and this
+transfer is not guaranteed, only suggestively supported by an adjacent
+K. Recommend citing this Wave-1 value-salvage comparison explicitly in
+the write-up as the one piece of existing evidence bearing on whether
+K=48's own admissibility trap is likely to bind — not a new gate, just
+a disclosure the design currently omits despite having the data
+on-hand.
+
+**2. THE CEILING — reproduced at K=16/32/48, method validated.**
+Independently re-implemented the λ=1 ceiling protocol from its prose
+description (fix one of 8 sampled anchor rows, resample K−1 co-drawn
+rows from the other 106, run full-pool production-tier Newton-Schulz,
+measure the fixed row's pooled pairwise cosine across 32 resamples) —
+built from scratch against `key_anchoring.py::frame_potential_init` and
+`geo3_simulator.py::newton_schulz`, not copied from any existing
+ceiling-computation script. Results (fresh random draw, same table,
+same seed `ANCHOR_INIT_SEED=20260705`): **K=16 n_iter=12: mean 0.9743 /
+p10 0.9647** (design: 0.9745/0.9640); **K=32 n_iter=20: mean 0.9409 /
+p10 0.9232** (design: 0.9423/0.9243); **K=48 n_iter=20: mean 0.8974 /
+p10 0.8710** (design's own session: 0.8987/0.8712). All three land
+within the same 3rd–4th-decimal noise band the design itself discloses
+for a different random draw — the ceiling number is reproducible, not
+fabricated, and the "below K=32's own untreated baseline" reading
+(0.897 < 0.904) holds under independent reproduction. **i-strong
+infeasibility mechanism — verified at file:line, with a correction to
+the design's own citations (see finding EV-1 below):** confirmed
+`embed_arms.py::build_i_strong_pool` (L254) hardcodes `n_per_side: int
+= 32` with two independent QR draws (`seed`, `seed+1`) and no
+cross-block Gram check, matching the design's mechanism claim exactly;
+confirmed the real guard is `run_deltanet_rd.py`'s `assert args.K <=
+32` — found at **L1438-1439** in the current repo (not L1282 as the
+design's own §11.4.1 cites; see EV-1). The two `build_i_strong_pool`
+call sites are at **L1167 and L1440** (not L1028/L1284 as cited). The
+substantive mechanism claim is correct; only the line numbers are
+stale. The optional λ=1-probe replacement (§11.4.3) is well-reasoned:
+i-strong bypasses the learned key path entirely, so no i-strong-family
+arm — symmetric or asymmetric — could have validated §11.4.2's
+number anyway; a trained λ=1 candidate-(d) probe is the right
+substitute, correctly scoped as optional/confirmatory, not load-bearing.
+
+**3. GATE-2 AT K=48 — reproduced exactly, fresh venv, this session.**
+Loaded `frame_potential_init(107, 64, seed=20260705)` fresh and ran
+`raw_table_conditioning` + `gate2_ns_leg` directly (bypassing
+`gate2_construction_check`, which currently `KeyError`s on `ks=(...,
+48)` since `GATE2_N_ITER_BY_K` is still `{16: 12, 32: 20}` in the
+committed code — confirming the design's own "one-line dict extension,
+not yet built" framing is accurate, not aspirational-as-if-already-done).
+Results: **G2-a σ-ratio = 0.9999996423721313** (design: 0.999999642,
+exact match — the init is fully deterministic under `manual_seed`, so
+this is a bit-level reproduction, not independent-noise agreement);
+**G2-b max|cos| = 0.2841511368751526** (design: 0.284151, exact match);
+**G2-c, K=48, n_iter=20, 512 subsets, seed offset `0+48=48`** (matching
+`gate2_construction_check`'s own `seed=seed+K` convention): **0/512
+fallbacks, max resid = 1.019e-6** (design: 1.02e-6 — matches almost to
+the digit); **n_iter=12 context check: 0/512 fallbacks, max resid =
+1.54e-3** (design: 1.5e-3, matches). Episode-level pre-NS Gram
+deviation, independently resampled: K=16 mean 1.234/max 1.434, K=32
+mean 2.509/max 2.673, K=48 mean 3.783/max 3.901 — design's own cited
+values (1.227/1.425, 2.505/2.676, 3.781/3.901) match to within the
+disclosed different-random-draw noise. **All three Gate-2 legs
+independently confirmed PASS at K=48**, on the registered init, no
+code changes required to reproduce.
+
+**4. BUDGET — the ~3 GPU-h gap is real and still open; arithmetic
+re-verified.** Traced §5's own text directly: §5 states "the worst case
+projects to **~48 GPU-h program-total**" (line 1355) as an explicit
+**pre-Wave-1 worst-case projection**, and separately states "**34.9
+GPU-h** summed from all archived `wall_s` fields" (line 1354) — §5
+never contains the string "51" anywhere. `STATE.md` (line 567) and
+§10.7/§11.5 (lines 3250, 4197) all cite "≈51/80" or "≈51.5/80" as if
+sourced from §5, but it is not there. Reconstructing the itemized sum
+myself: §5's confirmed 34.90 + F-geo-3's realized 1.67 = 36.57; + Wave
+1's realized 10.98 (§9 header, independently confirmed against the
+"18 mandatory cells... 10.98 realized GPU-h" text) = 47.55; + the
+confirm-wave's own `wall_s` (three of its four legs sum to 748.47 +
+750.51 + 724.38 = 2223.36s ≈ 0.618 GPU-h, independently pulled and
+computed this session from the raw JSONs, slightly under the design's
+own "≈0.8–0.85" estimate for this partial leg-set) ≈ **48.1–48.4** —
+confirms the design's own disclosed reconstruction (≈48.3–49.4) and the
+**~3.1–3.4 GPU-h gap** against the asserted 51.5 remains genuinely
+untraced, not resolved by this verify round either (it is correctly
+flagged in §11.5/§11.10 C9 as a required pre-launch action, not
+silently deferred — appropriately so; I could not independently locate
+the missing ~3 GPU-h anywhere in the archive tree, either, in a
+targeted search). Program arithmetic recomputed: `51.5 (asserted,
+unreconciled) + 12 (this wave's ceiling) + 12 (Rev 7.1's ceiling) =
+75.5/80`, leaving 4.5 GPU-h reserve — arithmetic checks out given the
+stated (not yet reconciled) base. **K=32→48 cost-scaling validated**:
+recomputed `0.2454/0.1942 = 1.2636` (design: 1.264×) directly from the
+cited `wall_s` triples; the K=32 instrumentation-overhead check
+(`0.2059/0.1942 = 1.060`, design's "+6%") also reproduces exactly.
+**This remains an open, correctly-disclosed item, not a newly resolved
+one** — recommend performing the registered pre-launch reconciliation
+(re-summing `wall_s` program-wide) before this wave's mandatory cells
+launch, exactly as §11.5 already requires.
+
+**5. K-INDEPENDENCE of REV7_THRESHOLD_PINNED.json — confirmed.** Read
+`rev7_threshold_derive.py` lines 48–50 directly: `N_ENTITIES = 107`,
+`D_STATE = 64`, `ALPHA = 0.05` are the only three free inputs, and `K`
+does not appear anywhere else in the file (confirmed by full-file
+grep, zero hits on a bare `\bK\b` token). Read `grammar_rd.py::
+build_entity_pools` (lines 194–253) directly: `heldout_frac: float =
+0.5` is a fixed default, the 107/106 split is computed once from a
+shuffled 213-name list with no reference to any per-episode draw count,
+and no parameter named `K` (or resembling it) appears in the function
+signature or body. The design's claim is accurate as stated: the pool
+construction is genuinely blind to K, so the pin's constants really do
+carry over unchanged.
+
+**6. RESPONSE-MAP INTEGRITY — 4 of 14 findings spot-checked, all
+confirmed genuinely fixed at their cited locations** (not merely
+claimed in the map): **C4** (asymmetric-pool arm withdrawn, replaced by
+the fixed-λ=1 probe) — confirmed at §11.4.3 and §11.1 arm 5, both
+containing the "REPLACED at Rev K48.1" / "withdrawn" language cited.
+**C7** (hub-detection/per-entity-null layer added to the §11.8
+checklist) — confirmed present, with the `mean+2SD`-vs-`median+2MAD`
+open item explicitly disclosed. **C11** (candidate (d′)'s launch
+precondition honestly downgraded from "mechanical gate" to
+"orchestrator sign-off") — confirmed the exact downgraded phrase
+appears at §11.0 and §11.1 item 3, matching the map's "Where" column.
+**c2** (all-conditionals-max lower bound corrected 2.6→2.8) — confirmed
+the table now reads "~2.8–11.9" with the arithmetic shown (1.44+0.69+
+0.46+0.23=2.82). All four check out; no evidence of a stale or
+unfulfilled map entry in this sample.
+
+**7. Fresh-eyes findings (new this round):**
+
+- **EV-1 (MINOR, new).** §11.4.1's own file:line citations for the
+  i-strong guard are themselves stale in the *current* repo state — the
+  same class of bug Rev K48.1's own C5 finding already corrected
+  elsewhere in this document (§11.0), but §11.4.1's citations were
+  apparently never re-checked against the live file at Rev K48.1, and
+  have since drifted further. Cited: `run_deltanet_rd.py` L1028, L1282,
+  L1284. Actual (this session, `grep -n`): `build_i_strong_pool` call
+  sites at **L1167** and **L1440**; the `assert args.K <= 32` line at
+  **L1438-1439**. The substantive mechanism/text described is correct
+  (verified independently above) — only the absolute line numbers are
+  wrong. **Root cause, worth naming plainly:** line-number citations
+  in this document are captured by hand at draft time and never
+  re-verified by any mechanical check (e.g. a grep-based CI smoke) at
+  either drafting or attack-response time, so they silently rot as the
+  cited files are edited for unrelated reasons — this is a structural,
+  recurring failure mode (this is the *second* citation-drift bug found
+  in the same section, after C5's own three wrong citations), not a
+  one-off. Recommend, as a cheap process fix: either (a) drop absolute
+  line numbers from prose entirely in favor of function/pattern names
+  (`grep`-able, drift-proof), or (b) add a committed smoke test that
+  greps the cited line numbers against the cited exact substrings and
+  fails loudly on drift. Non-blocking for build (the mechanism itself
+  is independently re-verified correct in this same round), but flagged
+  because it will keep recurring and keep costing an attack-round
+  finding each time otherwise.
+- **EV-2 (MINOR, new, related to EV-1).** The same +7-line uniform
+  offset was found across every one of §11.0's own "corrected" citations
+  into `run_deltanet_rd_exactness_sweep.py` (`reference_arms_manifest`
+  cited at def-line 307, actually 314; its `for K in (16, 32)` cited at
+  318, actually 325; `keyanchor_wave1_manifest` cited at 361, actually
+  368, its two loops cited at 392/398, actually 399/405;
+  `keyanchor_confirm_manifest` cited at 408, actually 415). The
+  uniformity of the +7 offset (six-for-six) indicates a single
+  whole-file insertion above these functions after the citations were
+  captured, not scattered errors — but it means C5's own "corrected"
+  citations are, in the live repo today, wrong again, by a consistent
+  amount. Functionally harmless (the higher-level conclusion — no K=48
+  branch exists in any of the three functions — was independently
+  re-verified by this round via direct `grep`, and stands), but
+  reinforces EV-1's root-cause point: these numbers do not survive
+  contact with an actively-edited file, and no mechanism catches it.
+  Recommend folding into the same fix as EV-1 (name-based citation or a
+  drift-detecting smoke), not a separate one.
+- **Everything else swept and clean:** `gate2_construction_test.py`
+  confirmed still hardcoded to `ks=(16, 32)` at all 4 call sites (matches
+  the design's "not yet built" framing); `out_path()`/`is_done()`
+  confirmed to key on `spec['name']` within a caller-supplied `out_dir`
+  rather than a global dynamic scan, so item 13's "zero-collision" smoke
+  genuinely is a hardcoded per-wave-directory enumeration that omits
+  `wavegeo3` — C13/item-16's diagnosis and fix are both correct as
+  written, independently confirmed by reading `out_path`/`is_done`
+  directly (`run_deltanet_rd_exactness_sweep.py` L831-836). h=1 guard
+  independently reproduced from the raw K=48 JSONs: 1.0000/1.0000/1.0000
+  across all 3 seeds (guard: ≥0.98, cleared with large margin). No
+  further FATAL/MAJOR surfaced.
+
+**Verdict: CLEARED-FOR-BUILD.** Every load-bearing number in §11.2/§11.4
+was independently reproduced from a fresh CPU venv this session and
+matches the design's own claims (bar, both readings; λ=1 ceiling at
+K=16/32/48; all three Gate-2 legs at K=48; K-independence of the
+Rev-7.1 pin; the ~3 GPU-h budget gap, confirmed still open and correctly
+disclosed, not resolved). Response-map integrity holds on the 4-item
+sample checked. The two new findings (EV-1, EV-2) are MINOR, process-only
+(stale line-number citations, not math/mechanism errors), and do not
+block build; folding them into a single "citations rot, stop hand-
+tracking them" fix is recommended but not gating. No FATAL or MAJOR
+survives this round.
+
 ---
 
 ## Reproducibility pointers
