@@ -4116,3 +4116,134 @@ Correction: when a pre-registered outcome map depends on a per-checkpoint instru
 [LEARN] harness-gating: an `&&`-gated shell chain that crashes mid-sequence and is later hand-resumed past the failure silently defeats every gate downstream of the crash — the chain's own log trail must be checked for gaps, not just its final sentinel file.
 Mistake: `keyanchor_chain.sh` crashed at its `keyanchor_drift_diagnostic.py` stage (a `log_every` self-inconsistency with the harness's own registered logging-cadence assertion) — a stage whose job was partly to compute Gate 1's pre-spend launch-read. The chain's downstream stages (reference arms, bands-pinned, the 12-cell keyanchor wave) still completed and left a `KEYANCHOR_CHAIN_DONE` sentinel, masking that Gate 1 was never actually evaluated before 10.98 GPU-h was spent.
 Correction: for any `&&`-chained sequential launcher, verify every intermediate stage's log for a clean, non-crashed completion (not just the final sentinel file's existence) before trusting that all pre-registered gates fired — a completed final sentinel is necessary but not sufficient evidence that every upstream gate ran.
+
+## KEY-ANCHORING CONFIRMATORY WAVE VERDICT (2026-07-05): sec 9.3's UNASSIGNABLE gap is closed — literal outcome is Outcome C ("mechanism not engaged"), not Outcome A; the h4 behavioral result stays DESCRIPTIVE, now for a different (measured, not missing) reason
+
+Full spec: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §3.5 (outcome map),
+§3.7 (per-entity engagement readout), new §9.6 (this wave's results,
+added this session). Box: `youthful-indigo-turkey`,
+`/home/nvidia/chapter2/deltanet_rd/`. CPU-only verdict pass (GPUs 0-1
+running rung-3, GPU 6 running wave-1ext throughout — untouched).
+
+**What ran.** Commit `5963616` (prior session) fixed both root causes
+behind §9.5's UNASSIGNABLE verdict — `keyanchor_drift_diagnostic.py`'s
+`log_every` crash, and `keyanchor_wave1_manifest()` never threading
+`drift_probe=True` into the admitted candidate cells — and added `--wave
+keyanchor-confirm`: candidate (d), K=32 seeds {0,1,2} + a K=16 seed-0
+spot check, all at the full 20,000 steps with `drift_probe=True` wired
+directly into the training loop. This session pulled all 4 result JSONs
+off the box and read every relevant field directly (not the launch
+console) to check the orchestrator's own summary numbers before writing
+this verdict.
+
+**Pre-launch gates, both closed.** The fixed drift-diagnostic probe
+(Gate 1): `predicted_gate_value: 1.0 ≥ 0.8` → PASS — recovers, after the
+fact, the pre-spend check that silently never ran in Wave-1. The
+launcher's mechanical §3.6 gate re-validated (hash match) the **original
+wave's own** `BANDS_PINNED.json` — no new reference arms were needed;
+`engaged_K` stays 0.9440 (K=16) / 0.8864 (K=32) from Wave-1's pin. All 4
+JSONs: `unblind_override: false`, no `claim_tier` key — clean blind, no
+override.
+
+**Per-leg numbers (verified from each JSON's final checkpoint, step
+20000):**
+
+| K | seed | item 5 pre-NS drift (bar ≥0.95) | item 6a σ-ratio (bar ≥0.1) | item 6b max\|cos\| (bar ≤0.5) | `engaged_frac` (bands ≥90%/[50,90%)/<50%) | h4 `rec@0.9` (bar ≥0.5) | λ final (band) |
+|---|---|---|---|---|---|---|---|
+| 32 | 0 | 0.9912 PASS | 0.1072 PASS | 0.3815 PASS | **0.1308 — <50%** | 0.6654 PASS | 0.5751 interior |
+| 32 | 1 | 0.9918 PASS | 0.0706 **FAIL** | 0.3899 PASS | **0.0374 — <50%** | 0.6160 PASS | 0.5682 interior |
+| 32 | 2 | 0.99998 PASS | 0.1464 PASS | 0.4081 PASS | **0.0467 — <50%** | 0.5556 PASS | 0.5703 interior |
+| 16 | 0 (spot check) | 0.99996 PASS | 0.2671 PASS | 0.3668 PASS | **0.1121 — <50%** | 0.9995 (no-regression) | 0.5615 interior |
+
+Items 1–4 (admissible, zero fallbacks, finite loss, performance floor)
+are clean 4/4. The `a_e` per-entity distribution (all 107 train
+entities, `n_resamples=32`) is uniform-high and narrow at every leg —
+min/median/max e.g. K=32 s0 [0.824, 0.876, 0.922] — not bimodal; the
+per-entity h=1 behavioral companion reads exactly 1.0000 for all 107
+entities at all 4 legs (the aggregate-masking scenario §3.7 exists to
+catch is invisible in behavioral h=1 recovery, only visible in the
+input-side `a_e` metric).
+
+**Literal outcome per §3.5 (titled "Outcome frame at K=32" — K=16's leg
+is supplementary context, not separately outcome-lettered): Outcome C —
+"mechanism not engaged... not an admissible test of the hypothesis
+either way."** Item 5 and h4 both clear their own bars decisively, and λ
+lands interior 4/4 — the profile Outcome A's *other* three legs would
+need — but §3.7's `engaged_frac` reads under 50% (in fact under 14%) in
+every one of the 4 legs, and §3.7's own text is explicit that this
+"routes to Outcome C even if item 5's pooled statistic passes." This is
+unanimous, 3/3 K=32 seeds. Independently, seed 1 also fails item 6a
+(σ-ratio 0.0706 < 0.1), so only 2/3 K=32 seeds are admissible under the
+full items-1–6 stack Outcome A itself requires — a second, independent
+reason Outcome A could not be reached even setting the engagement
+failure aside.
+
+**Claim tier.** UNASSIGNABLE is resolved — this was a missing
+measurement, not a failure, and it is no longer missing.
+- **§1's key-anchoring interaction hypothesis: not admissible as a test
+  in either direction**, per Outcome C. The aggregate/pooled pre-NS
+  drift channel genuinely stabilizes (a real, newly-measured result),
+  but the per-entity readout built specifically to catch a pooled
+  statistic masking a disengaged majority shows fewer than 14% of
+  entities individually reach the 0.9 alignment bar in every leg. The
+  behavioral gain cannot be attributed, on this wave's own
+  instrumentation, to a majority-entity key-stabilization mechanism.
+- **The h4 behavioral result** (candidate (d), K=32, `rec@0.9`
+  ≈0.41→≈0.61): unchanged in kind from Wave-1's descriptive tier —
+  real, reproducible, admissible under items 1–4 — but changed in
+  *reason*: Wave-1 was descriptive because the mechanism evidence was
+  never collected; this wave collected it, and it says "not this
+  mechanism" rather than "unknown." Working tier: **DESCRIPTIVE
+  (behavioral)** — a real aggregate positive with a now-measured
+  mechanistic null underneath it.
+
+**Verification correction — same seeds, not new independent seeds.**
+Direct cross-check against Wave-1's own archived JSONs
+(`experiment-runs/2026-07-05_keyanchor_wave/wavekeyanchor/`) shows the
+confirm-wave cells reuse Wave-1's own seed integers (0/1/2 at K=32, 0 at
+K=16), trained fresh from scratch (not resumed) — h4 and λ_final land
+within 0.0001–0.001 of Wave-1's own recorded values per matching seed
+(K=16 s0's h4 is bit-identical, 0.99951171875 both times), consistent
+with GPU run-to-run floating-point nondeterminism at a fixed seed, not
+three newly-drawn seeds and not a copied file (numbers are close but not
+bitwise identical). This wave's h4 numbers should not be read as adding
+a second independent 3-seed sample to the seed-robustness claim — that
+evidence already existed in Wave-1's own spread. The evidentiary
+contribution here is the item-5/6/`engaged_frac` measurement itself.
+
+**Disclosed, non-evidentiary post-hoc observation, motivating a
+registered-but-unscheduled Rev 6 (no retroactive rescoring
+authorized).** The registered blend formula
+(`key_anchoring.py` `anchor_blend_gather_scatter`, L265-266:
+`normalize((1-λ)·k_raw + λ·anchor)`) implies, at the SGD-preferred
+interior λ≈0.57, an entity needs `r = cos(k_raw, anchor) ≳ 0.48` before
+the post-blend `a_e` crosses 0.9; the observed median `a_e≈0.87`
+back-solves to `r≈0.33-0.35` (algebraic inference, not a new
+measurement — `r` itself was not logged). As λ→1 the formula collapses
+to `a_e≡1` regardless of `r` — the same triviality class as the Rev-2
+λ=1 drift-ceiling fix — meaning the flat `a_e≥0.9` bar is close to only
+cleanly satisfiable in the uninteresting pin-rediscovery regime. This
+motivates (does not execute) a Rev 6 λ-scaled threshold re-derivation,
+which per this project's own repeated finding needs its own independent
+attack round before anything is re-scored against it.
+
+**Disclosures.** No per-checkpoint `engaged_frac` trajectory exists —
+confirmed directly: `per_entity_alignment`/`per_entity_h1_companion`
+appear only on the step-20000 checkpoint in all 4 JSONs (item 5/6 DO
+appear at all 10 checkpoints) — a final-checkpoint-only scoping of the
+full-pool sweep specifically, auditor-adjudicated at build time.
+
+Archive: `experiment-runs/2026-07-05_keyanchor_confirm/` (4 result
+JSONs, chain/smoke logs, the fixed Gate-1 probe JSON, `keyanchor_confirm_
+chain.sh`, `smoke_keyanchor_confirm.py`; ~6.9MB, all files ≤2MB,
+committed) + SSD mirror at the same relative path. Code already
+committed in `5963616` (build-only). Full tables:
+`matrix-thinking/KEY_ANCHORING_DESIGN.md` §9.6. `STATE.md` updated.
+
+[LEARN] verification-discipline: when an orchestrator's summary says "N independent seeds/waves replicate a result," diff the actual per-seed values against the prior wave's own recorded numbers before repeating the "independent replication" framing — near-identical (not bitwise-identical) numbers at the same seed integer indicate GPU nondeterminism on a re-run of the same draw, not a fresh statistical sample.
+Mistake: the confirm-wave task brief characterized the 4 new runs as "fresh runs (seeds re-randomized inits)... the h4 replication across 6 total runs (two independent waves) strengthens the behavioral claim." Direct diff against Wave-1's own JSONs showed the confirm wave reused Wave-1's exact seed integers (0/1/2, 0) and produced h4/λ values within 0.0001-0.001 of Wave-1's own recorded numbers per seed (one K=16 h4 value bit-identical) — not a new independently-drawn 3-seed sample.
+Correction: before repeating a claim that N runs constitute independent replication, check the seed field and diff the metric values against any prior run sharing that seed integer; near-identical-but-not-bitwise-identical values at a shared seed are GPU nondeterminism on the same draw, and should be reported as a reproduction/verification check, not counted as additional independent-seed statistical power.
+
+[LEARN] outcome-map discipline: a pre-registered outcome map's override/exception clause (here, sec 3.7's "engaged_frac <50% routes to Outcome C regardless of aggregate drift") can flip the assigned outcome even when every OTHER individual bar in the map clears decisively — read the full map text for override clauses before pattern-matching to "looks like Outcome A."
+Mistake: none this session (caught during the literal outcome-assignment read, not after a wrong call) — flagged as a durable rule because the surface pattern here (item 5 PASS, h4 PASS, λ interior 4/4) is exactly what Outcome A/A' looks like at first glance, and only sec 3.7's own explicit override text (added at a later design revision than sec 3.5 itself) redirects it to Outcome C.
+Correction: when a design has had multiple revisions adding new gating clauses to an existing outcome map, re-read the LATEST version of every section the map cites (not just the outcome-map section itself) before assigning an outcome — a later-added override elsewhere in the doc can supersede what the map's own primary table appears to say.

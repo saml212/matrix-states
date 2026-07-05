@@ -1861,6 +1861,226 @@ Archive: `experiment-runs/2026-07-05_keyanchor_wave/` (repo, size-capped)
 `/Volumes/1TB_SSD/learned-representations/`. Full verdict + build-gap
 narrative: `EXPERIMENT_LOG.md`, "KEY-ANCHORING WAVE VERDICT" (2026-07-05).
 
+### 9.6 Confirmatory wave (2026-07-05) — closes sec 9.3's gap: literal outcome is **C**
+
+Commit `5963616` (same session as this addendum) fixed both root causes
+§9.3 identified — `keyanchor_drift_diagnostic.py`'s `log_every` crash and
+`keyanchor_wave1_manifest()`'s missing `drift_probe=True` threading — and
+added `--wave keyanchor-confirm`: **candidate (d), K=32 seeds {0,1,2} + a
+K=16 seed-0 spot check, all with `drift_probe=True` wired directly into
+the real 20,000-step training loop** (not a separate probe model — a
+stronger design than §9.5 follow-up (2)'s suggested 2,000–4,000-step
+probe re-run; follow-up (1)'s fixed-diagnostic probe also ran as this
+wave's pre-launch Gate-1 read, see below). All 4 result JSONs
+(`experiment-runs/2026-07-05_keyanchor_confirm/wavekeyanchor-confirm/*.json`)
+were pulled from the box and inspected directly, field-by-field, for this
+addendum — every number below is read from the JSON, not taken from the
+launch console. `KEYANCHOR_CONFIRM_CHAIN_DONE` present; wave log: "4
+succeeded this session, 0 failed, 0 still pending."
+
+**Pre-launch gates (both closed).** The fixed
+`keyanchor_drift_diagnostic.py` probe (Gate 1, §4) now completes:
+`predicted_gate_value: 1.0 ≥ 0.8` bar → PASS (`launch: true`) — recovers,
+after the fact, the pre-spend check §9.3 found had silently never run.
+The launcher's mechanical §3.6 gate re-hashed and validated the
+**original wave's own** `waveref/BANDS_PINNED.json` (no new reference
+arms were run — the derived bands from §9.2, `engaged_K = 0.9440` at
+K=16 / `0.8864` at K=32, are reused as-is): `"sec 3.6 GATE PASSED:
+...validates (hashes match every referenced reference-arm result
+JSON)."` All 4 result JSONs carry `unblind_override: false` and no
+`claim_tier` key (the override path was not invoked — consistent with a
+clean, non-demoted blind).
+
+**Per-leg table, verified from `checkpoints[-1]` (final, step 20000) in
+each JSON:**
+
+| K | seed | pre-NS drift, item 5 (bar ≥0.95, §3.1) | post-NS drift (sanity; K's `engaged_K` band, §3.6) | item 6a σ₆₄/σ₁ (bar ≥0.1) | item 6b max\|cos\| (bar ≤0.5) | §3.7 `engaged_frac` (a_e≥0.9 frac, bands ≥90%/[50,90%)/<50%) | h4 `rec@0.9`, M3 (bar ≥0.5) | λ final (band) |
+|---|---|---|---|---|---|---|---|---|
+| 32 | 0 | 0.9912 **PASS** | 0.9188 (≥0.8864 ✓, non-gating) | 0.1072 **PASS** | 0.3815 **PASS** | **0.1308 (13.08%) — <50%** | 0.6654 **PASS** | 0.5751 (interior) |
+| 32 | 1 | 0.9918 **PASS** | 0.9130 (≥0.8864 ✓, non-gating) | 0.0706 **FAIL** | 0.3899 PASS | **0.0374 (3.74%) — <50%** | 0.6160 **PASS** | 0.5682 (interior) |
+| 32 | 2 | 0.99998 **PASS** | 0.9189 (≥0.8864 ✓, non-gating) | 0.1464 **PASS** | 0.4081 **PASS** | **0.0467 (4.67%) — <50%** | 0.5556 **PASS** | 0.5703 (interior) |
+| 16 | 0 (spot check — see scope note below) | 0.99996 **PASS** | 0.9732 (≥0.9440 ✓, non-gating) | 0.2671 **PASS** | 0.3668 **PASS** | **0.1121 (11.21%) — <50%** | 0.9995 (no-regression clean) | 0.5615 (interior) |
+
+Items 1–4 (admissible, `ns_converged_no_fallback`, `finite_loss_no_divergence`,
+`task_performance_floor_pass`) are `true` for all 4 legs;
+`n_geo3_fallback_train_steps: 0` and `h1_recovered_frac_at_0.9_final: 1.0`
+for all 4. **Note on the threshold being compared against item 5:** item
+5's own registered bar is the fixed `≥0.95` of §3.1 — all four legs clear
+it by a 0.04–0.05 margin regardless of K. The `0.8864`/`0.9440` figures
+in the table are the §3.6 **post-NS** `engaged_K` bands (reused,
+unchanged, from the original wave's pin), reported here only as
+non-gating sanity context (they gate Outcome B1/B2's disambiguation,
+which never triggers — h4 already clears its own bar in every leg).
+
+**§3.7 per-entity alignment distribution** (all 107 train entities,
+`n_resamples=32` each, min/median/max of `a_e`): K=32 s0
+[0.824, 0.876, 0.922]; s1 [0.787, 0.867, 0.923]; s2 [0.788, 0.875,
+0.912]; K=16 s0 [0.809, 0.872, 0.919] — **uniform-high and narrow**, not
+bimodal (no visible split between an "engaged" cluster near 1.0 and a
+"disengaged" cluster near 0). The per-entity h=1 behavioral companion
+(§3.7's non-load-bearing diagnostic) is **exactly 1.0000 for all 107
+entities, all 4 legs** — the aggregate-masking scenario §3.7 was built to
+catch is not visible in behavioral h=1 recovery, only in the input-side
+`a_e` metric.
+
+**Outcome routing, applying §3.5 literally (the section is titled
+"Outcome frame at K=32" — K=16's spot-check leg is reported as
+supplementary no-regression/gap-closing context, per its role in §9.4,
+and is not itself assigned a separate Outcome letter):**
+
+1. Item 5 passes decisively, 3/3 (and at the K=16 spot check).
+2. h4 passes decisively, 3/3 (and K=16's no-regression bar).
+3. λ lands interior, 3/3 (and at K=16) — matches §9.1's own table almost
+   exactly (see seed-identity note below).
+4. Item 6 (AND of 6a+6b) passes only **2/3** at K=32 — seed 1 fails 6a
+   (`0.0706 < 0.1`). Outcome A's own text requires "3/3 admissible under
+   items 1–6"; K=32 does not clear that bar even setting aside point 5.
+5. **§3.7's `engaged_frac` lands in the `<50%` band in all 4 legs**
+   (13.08%/3.74%/4.67% at K=32; 11.21% at K=16) — and §3.7's own text is
+   explicit that this **"routes to Outcome C even if item 5's pooled
+   statistic passes."**
+
+**Literal assigned outcome: Outcome C — "mechanism not engaged... not an
+admissible test of the hypothesis either way. Routes to the fixed-grid λ
+diagnostic or a different candidate, not to reinterpreting the
+drift-bottleneck theory."** This is unanimous, 3/3 K=32 seeds, and the
+K=16 spot check shows the identical pattern. Point 5 alone is
+sufficient and overriding per §3.7's own text; point 4 (seed 1's item-6a
+miss, 2/3 not 3/3) is an independent, additional reason Outcome A could
+not have been reached even absent the engagement failure.
+
+**Claim tier.** This addendum **resolves** §9.5's UNASSIGNABLE verdict —
+the gap was a missing measurement, not a failure, and it is no longer
+missing. Two separate claims, two separate tiers:
+- **The §1 key-anchoring interaction hypothesis:** per Outcome C, **not
+  admissible as a test in either direction** — this wave neither
+  confirms nor disconfirms it. The aggregate pre-NS drift channel
+  genuinely stabilizes (item 5, §9.6's own new evidence) but §3.7's
+  per-entity readout — built specifically to catch a pooled statistic
+  masking a disengaged majority — shows that stabilization reaching
+  ≥0.9 individual alignment for fewer than 14% of entities in every
+  measured leg. The behavioral gain cannot, on this wave's own
+  instrumentation, be attributed to a majority-entity key-stabilization
+  mechanism.
+- **The h4 behavioral result** (candidate (d), K=32, `rec@0.9`
+  ≈0.41→≈0.61): remains real, reproducible, and admissible under items
+  1–4 (4/4 legs clean) — unchanged in *kind* from §9.5's own descriptive
+  tier, but changed in *reason*: §9.5 was descriptive because item 5 and
+  `engaged_frac` were never measured; this wave measured them, and they
+  say "not the proposed mechanism" rather than "unknown." Working tier:
+  **DESCRIPTIVE (behavioral)** — a real aggregate/behavioral positive
+  with a now-measured mechanistic null underneath it, not a promotion to
+  evidentiary/confirmed.
+
+**Verification note — seed identity, not new independent seeds.** The
+confirm-wave cells reuse the **same seed integers** as Wave-1's admitted
+cells (0/1/2 at K=32, 0 at K=16), trained fully independently from
+scratch (not resumed from any Wave-1 checkpoint — `steps_completed:
+20000` on a fresh run each). Cross-checked directly against
+Wave-1's own archived JSONs
+(`experiment-runs/2026-07-05_keyanchor_wave/wavekeyanchor/`): K=32 s0 h4
+0.66467→0.66541 and λ_final 0.575117→0.575055; s1 h4 0.61591→0.61603 and
+λ_final 0.568165→0.568153; s2 h4 0.55896→0.55560 and λ_final
+0.570139→0.570261; K=16 s0 h4 **bit-identical**
+(0.99951171875→0.99951171875) and λ_final 0.561516→0.561459. These are
+within 0.0001–0.001 of Wave-1's own recorded values per matching seed —
+consistent with GPU run-to-run floating-point nondeterminism at a fixed
+seed (not a copied file: the numbers are close but not bitwise
+identical, and do differ), **not** three newly and independently drawn
+seeds. **Correction to the working framing carried into this addendum's
+brief:** the confirm wave's h4 numbers should not be read as adding a
+second independent 3-seed sample's worth of statistical power to the
+h4 seed-robustness claim — that evidence already existed in Wave-1's own
+3-seed spread. This wave's evidentiary contribution is specifically the
+item-5/item-6/`engaged_frac` measurement on training dynamics that are
+functionally the admitted cells, not a fresh replication sample.
+
+**Supporting trajectory observation (descriptive, non-gating).** Reading
+`checkpoints[0..9]` for K=32 s0: pre-NS drift is already `0.9589` at
+step 2000 (h4 only `0.3641` there) and reaches `0.9836` by step 4000
+(h4 `0.6343`, already near its final value) — the pooled pre-NS channel
+saturates near its ceiling early and stays roughly flat for the
+remaining 16,000 steps while h4 continues to move. This pattern (present
+in all 4 legs) is itself a small piece of supporting color for why the
+per-entity `engaged_frac` check was necessary in the first place: a
+pooled statistic that saturates early and stays flat is exactly the kind
+of signal that could mask a minority-only engagement, which is what the
+per-entity numbers above show actually happened.
+
+**Disclosures.**
+- No per-checkpoint `engaged_frac`/`per_entity_alignment` **trajectory**
+  exists — confirmed directly: `per_entity_alignment` and
+  `per_entity_h1_companion` keys are present only on the step-20000
+  checkpoint dict in all 4 JSONs (absent at steps 2000–18000), while
+  item 5 (`drift_probe`) and item 6 (`item6_table_conditioning`) ARE
+  present at every one of the 10 checkpoints. This is a final-checkpoint-only
+  scoping of the full-pool per-entity sweep specifically (auditor-adjudicated
+  at build time, consistent with §3.7's "the claim readout uses the final
+  step" — but §3.7's own text also says "logged at every admission
+  checkpoint," which the per-entity sweep does not do; item 5/6 do).
+- The confirm cells are fresh full 20,000-step runs, not re-probes of the
+  originals in the sense of resuming a checkpoint — but see the
+  seed-identity note above for what "fresh" does and does not mean here.
+  The h4 pattern (0.665/0.616/0.556 here vs. 0.665/0.615/0.559 in Wave-1)
+  is a same-seed reproduction check, not a second independent-seed
+  replication; say so plainly rather than imply 6 independently-drawn
+  data points.
+
+**Disclosed post-hoc observation — non-evidentiary, does NOT re-score
+anything above.** The `a_e` distribution's uniform-high, narrow shape
+(median ≈0.87, min ≈0.79–0.82 across the four legs) is arithmetically
+consistent with the registered blend formula
+(`key_anchoring.py` L265–266: `sub_blend = normalize((1-λ)·k_raw +
+λ·anchor)`, cosine measured against `anchor`). At the SGD-preferred
+λ≈0.57–0.58 (§9.1/§9.6's own tables, seed-stable, interior — not a
+degenerate λ→1 pin-rediscovery), and letting `r = cos(k_raw, anchor)`
+(NOT itself logged this wave — this is an algebraic back-solve from the
+observed `a_e` values and the known λ, not a new measurement):
+`cos(blend, anchor) = [(1-λ)r + λ] / sqrt((1-λ)² + λ² + 2λ(1-λ)r)`.
+Solving for the `r` needed to cross `a_e ≥ 0.9` at λ=0.57 gives
+`r ≳ 0.48`; the observed median `a_e ≈ 0.87` back-solves to `r ≈ 0.33–0.35`
+— short of the crossover. As λ→1 the formula collapses to `cos ≡ 1`
+regardless of `r` (the same class of triviality as the Rev-2 λ=1
+drift-ceiling correction, §3.1) — meaning the registered `a_e ≥ 0.9`
+bar is close to only cleanly satisfiable in the λ→1 (pin-rediscovery,
+Outcome A′, explicitly "not interesting") regime, and an SGD-preferred
+*interior* λ structurally caps `a_e` below 0.9 for any entity whose raw
+key hasn't independently reached moderately high alignment with its
+anchor on its own. **This motivates, but does not itself execute,** a
+Rev 6 threshold re-derivation (below); it is disclosed here strictly as
+context for why `engaged_frac` reads low even with h4 and item 5 both
+strong, not as a justification for re-scoring this wave's Outcome-C
+assignment.
+
+**Rev 6 (REGISTERED STUB — NOT SPECIFIED, NOT SCHEDULED, NO RETROACTIVE
+RESCORING AUTHORIZED).** The current §3.7 bar (`a_e ≥ 0.9`, flat,
+λ-independent) conflates two different things: whether an entity's raw
+key has moved toward its anchor at all (the mechanism's actual claim),
+and whether the run's current scalar λ happens to be close enough to 1
+that blend arithmetic alone pushes the post-blend cosine over 0.9
+regardless of the first. A future revision should either (i) measure
+`r = cos(k_eff_raw, anchor)` directly, upstream of the blend, so the
+metric no longer depends on λ, or (ii) rescale the 0.9 bar per-run by
+the closed-form ceiling at that run's own measured λ (the crossover
+surface sketched above). Per this project's own repeated finding that
+independent adversarial audit rounds catch different bugs each time,
+**any such revision requires its own attack round before any existing or
+future wave's numbers are re-scored against it** — this stub registers
+the need, it does not adjudicate it, and no wave's Outcome assignment
+above is changed by it.
+
+Archive: `experiment-runs/2026-07-05_keyanchor_confirm/` (4 result
+JSONs, chain logs, the fixed-diagnostic Gate-1 probe JSON/log,
+`keyanchor_confirm_chain.sh`, `smoke_keyanchor_confirm.py`; ~6.9MB, all
+files ≤2MB, committed) + SSD mirror at the same relative path under
+`/Volumes/1TB_SSD/learned-representations/`. The code that produced
+these results (`key_anchoring.py`, `run_deltanet_rd_exactness_sweep.py`,
+`run_deltanet_rd.py`, `keyanchor_drift_diagnostic.py`,
+`smoke_key_anchoring.py`) was already committed in `5963616` (build-only,
+no GPU spend in that commit). Full narrative:
+`EXPERIMENT_LOG.md`, "KEY-ANCHORING CONFIRMATORY WAVE VERDICT"
+(2026-07-05). `STATE.md` updated.
+
 ---
 
 ## Reproducibility pointers

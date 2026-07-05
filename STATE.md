@@ -523,6 +523,32 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   narrative: `EXPERIMENT_LOG.md`'s "KEY-ANCHORING WAVE VERDICT" entry (this
   date) and `KEY_ANCHORING_DESIGN.md` §9. Archive:
   `experiment-runs/2026-07-05_keyanchor_wave/` + SSD mirror.
+  **CONFIRMATORY WAVE RUN (2026-07-05, same day) — gap closed, literal
+  outcome is C, not A.** `--wave keyanchor-confirm` re-ran candidate (d)
+  K=32 seeds {0,1,2} + a K=16 spot check with `drift_probe=True` wired
+  into the real 20,000-step training loop (fixes committed in `5963616`).
+  Item 5 (pre-NS drift) and h4 both clear their own bars decisively (3/3,
+  plus K=16) and λ is interior 4/4 — but §3.7's per-entity `engaged_frac`
+  (the metric built specifically to catch a pooled statistic masking a
+  disengaged majority) reads **under 14% in every leg** (13.08/3.74/4.67%
+  at K=32, 11.21% at K=16), and §3.7's own text routes any `engaged_frac
+  <50%` to **Outcome C ("mechanism not engaged... not an admissible test
+  of the hypothesis either way") regardless of aggregate drift**. Seed 1
+  also independently fails item 6a (2/3, not 3/3, admissible under the
+  full items-1–6 stack at K=32). **Tier: the §1 interaction hypothesis is
+  now measured-and-not-admissible (was: unmeasured/UNASSIGNABLE); the h4
+  behavioral result stays DESCRIPTIVE**, unchanged in kind, changed in
+  reason (a measured mechanistic null under a real behavioral positive,
+  not a missing measurement). Verification note: the confirm cells reuse
+  Wave-1's own seed integers (not 3 new independent seeds) — h4/λ land
+  within 0.0001–0.001 of Wave-1's own per-seed numbers (GPU nondeterminism
+  at a fixed seed, not fresh replication; do not double-count as 6
+  independent seeds). A `Rev 6` λ-scaled `engaged_frac` threshold
+  re-derivation is registered as a stub (not scheduled, no retroactive
+  rescoring authorized — needs its own attack round first). Full tables:
+  `EXPERIMENT_LOG.md`'s "KEY-ANCHORING CONFIRMATORY WAVE VERDICT" entry
+  and `KEY_ANCHORING_DESIGN.md` §9.6. Archive:
+  `experiment-runs/2026-07-05_keyanchor_confirm/` + SSD mirror.
 - **SCALE-TRANSFER Track B — measurement waves complete, geo3-in-LM
   DOUBLE-BARRED, selectivity main effects read (2026-07-05, ≈1.5–2 GPU-h
   actual, GPU 7 only).** `TRACKB_REDESIGN.md` Rev 3's Wave −1 stability
@@ -700,7 +726,7 @@ scratch):**
 - **matrix-thinking/H100_SETUP.md** — pod environment + the perpetual/unattended sweep pattern
 - **matrix-thinking/DELTANET_CAUSAL_RANK_DESIGN.md**, **DELTANET_REALDATA_DESIGN.md**, **STAGE_G_DESIGN.md**, **chapter2/STAGE0_DESIGN.md**, **chapter2/TASK_D_PREREGISTRATION.md**, **chapter2/TASK_D_WRITEUP.md**, **chapter2/NEXT_EXPERIMENT_DESIGN.md** (Task E design), **chapter2/TASK_E_FINDINGS.md** — the five closed 2026-07-01→03 programs; each carries a `STATUS: CLOSED` header
 - **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — CLOSED through §16 (Wave 0/1/F/geo3, including the geo3 escalation); the stability-targeted follow-on (§14.8) is now `KEY_ANCHORING_DESIGN.md` (below), run
-- **matrix-thinking/KEY_ANCHORING_DESIGN.md** — Rev 5, RUN 2026-07-05 (§9): candidate (d) clears K=32 h=4 ≥0.5 in 3/3 seeds with λ interior 6/6, but items 5/6/`engaged_frac` were never logged for the admitted runs (a manifest wiring gap, not a hypothesis failure) — verdict DESCRIPTIVE pending a cheap re-instrumented follow-up, see STATE.md's key-anchoring bullet above and `EXPERIMENT_LOG.md`
+- **matrix-thinking/KEY_ANCHORING_DESIGN.md** — Rev 5, RUN 2026-07-05 (§9), CONFIRMATORY WAVE RUN same day (§9.6): candidate (d) clears K=32 h=4 ≥0.5 in 3/3 seeds with λ interior 6/6; the confirm wave closed §9.3's item-5/6/`engaged_frac` measurement gap and the literal §3.5 outcome is **C** ("mechanism not engaged"), not A — `engaged_frac` reads <14% in every leg despite item 5/h4/λ all clearing their own bars, per §3.7's own override clause. h4 stays DESCRIPTIVE tier (real, reproducible behavioral result; now a measured mechanistic null underneath it, not a missing measurement) — see STATE.md's key-anchoring bullet above and `EXPERIMENT_LOG.md`'s "KEY-ANCHORING CONFIRMATORY WAVE VERDICT" entry
 - **matrix-thinking/stageg/** — Stage G's H_e task-swap harness (built, calibration run, Wave C gated open — see "In flight" above)
 - **matrix-thinking/scripts/** — runnable training scripts
 - **matrix-thinking/src/**, **chapter2/*.py** — model code
