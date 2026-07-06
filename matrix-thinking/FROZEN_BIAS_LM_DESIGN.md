@@ -1551,7 +1551,11 @@ family at any tested effect size. λ=0.3 is a materially better-powered
 grid point under family A alone (MDE=0.177, ≈1.6× more sensitive than
 0.58) — but this improvement is NOT large enough to change the §7.1-real
 verdict, since even λ=0.3's own tested deltas at this sim's own effect
-sizes do not approach the REAL per-corpus thresholds (0.044–0.086) either;
+sizes do not approach the REAL per-corpus thresholds (0.0546/0.1064, the
+§7.1-real.1 pinned t-corrected values; this sentence originally cited the
+since-rejected raw-std 0.044–0.086 figures — corrected at round-5
+verification, and the conclusion is unchanged under the pinned, stricter
+formula) either;
 the λ-grid was not re-run against the real floor this round (disclosed
 scope limitation, below). **Decision: λ=0.58 is KEPT as the primary,
 registered value, not re-registered to 0.3.** Justification: (1) 0.58 is
