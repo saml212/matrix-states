@@ -4,22 +4,58 @@
 \begin{itemize}
   \item Restate the thesis in the paper's own final voice: capacity and
     exactness are separable, measurable, and separately fixable
-    properties of a fast-weight architecture's learned state.
-  \item This paper is the first to show the gap exists on real text, name
-    its cause (a robust, non-orthonormal write-time key attractor every
-    input geometry converges to), and demonstrate --- not just diagnose
-    --- a mechanism-matched, pre-registered fix.
+    properties of a fast-weight architecture's learned state --- this
+    paper is the first to show the gap exists on real text, name its
+    cause (a two-part necessary-and-sufficient mechanism: within-episode
+    orthogonality and cross-episode key stability), demonstrate a
+    mechanism-matched fix for the first part, and fully characterize a
+    completed attempt at the second part: a real fix whose actual
+    mechanism differs from its hypothesized one, confirmed by ablation,
+    with its working regime measured and bounded.
   \item Close the causal chain explicitly: bar hit at $K{=}16$ (3/3);
-    $\sim$45$\times$ at $K{=}32$ at full admissibility, with the narrow
-    bar miss attributed to a pre-measured second mechanism (outcome F,
-    drift $0.9037$ in the registered HIGH band); the named follow-on
-    (cross-episode key anchoring/stabilization) is future work with a
-    measured target, not an open mystery.
-  \item Close on the honest scope: one architecture family, small scale,
-    the $K{=}32$ headline bar honestly missed (narrowly, with a named
-    cause), and one mechanism ($h{=}21$ depth-compounding) left
-    explicitly for future work.
+    $\sim$45$\times$ at $K{=}32$ at full admissibility with the narrow
+    bar miss attributed to outcome F; independently corroborated by the
+    2$\times$2. \textbf{The named follow-on (learned cross-episode key
+    anchoring) ran to completion across four waves, not future work:} a
+    real, independently-replicated $K{=}32$ $h{=}4$ gain
+    ($0.41 \to 0.61$--$0.71$) whose hypothesized entity-alignment
+    mechanism is rejected (Outcome C, confirmed twice, immune to a
+    rejected rescue attempt), whose actual mechanism is confirmed by
+    ablation (a frozen random table matches or beats the learned one ---
+    constancy, not alignment, is the active ingredient), and whose
+    operating regime is now measured (works at $K/d{\leq}0.5$, fails at
+    $K/d{=}0.75$, both explanatory channels active-but-insufficient at
+    the miss, a cliff not a smooth decline). No loose ends on the
+    mechanism --- the behavioral result, the rejected hypothesis, the
+    confirmed explanation, and the capacity boundary are reported as the
+    four separate things they are.
+  \item \textbf{Closing note on scale.} The phenomenon this paper studies
+    is not confined to the scale it is studied at: a controlled
+    14M$\to$98M$\to$392M ladder, on a single held-fixed data mix, shows
+    the write-geometry deviation climbing monotonically
+    (span-fraction $0.248 \to 0.344 \to 0.389$), a \textbf{pure-scale}
+    finding, with a 1.31B-parameter fourth rung
+    \todo{[PENDING RUNG-3] state the rung-3 reading and whether it
+    continues the trend, plateaus, or reverses --- update this sentence
+    together with Fig.~9 Panel A the moment it lands; see NARRATIVE.md
+    \S9 item 3 and \S10 item 6(iv).} A substantially larger version of the
+    same signature is present in deployed production fixed-state models,
+    not yet attributable to the same mechanism. A companion attempt to
+    install the demonstrated fix mechanism itself inside a
+    free-running-text setting (Track B) is, independently, blocked twice
+    on numerical-stability grounds --- named honestly as a current
+    boundary, not smoothed over.
+  \item Close on the honest scope: one architecture family, small scale
+    for the core causal chapters (partially addressed by the pure-scale
+    ladder above), the $K{=}32$ headline bar honestly missed (narrowly,
+    with a named cause), one mechanism ($h{=}21$ depth-compounding) left
+    explicitly unfixed, and the anchoring follow-on's own fix bounded to
+    $K/d{\leq}0.5$ rather than open-ended.
   \item DO NOT end on a generalization claim beyond what \S\ref{sec:discussion}
     licenses --- the closing paragraph is the highest-risk overclaiming
-    surface in the whole paper.
+    surface in the whole paper. In particular, do not let the anchoring
+    arc's resolution read as bigger than it is: it closes one named
+    residual (cross-episode key stability) with a simpler-than-expected
+    mechanism, it does not extend the fix past $K/d{=}0.5$, and it does
+    not touch $h{=}21$ or full-scale transfer.
 \end{itemize}

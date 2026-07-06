@@ -50,9 +50,9 @@
     \approx 0$ by construction); cross-episode key IDENTITY is the
     residual requirement (per-identity $v_{\mathrm{eff}}$ cannot chase an
     episode-conditional key). Follow-on --- cross-episode key
-    anchoring/stabilization (EMA-anchored or identity-registered
-    orthogonalization, the direction named in the design's own outcome-F
-    row) --- goes to future work with a measured target.
+    anchoring/stabilization (the direction named in the design's own
+    outcome-F row) --- \textbf{has since run to completion across four
+    waves; see the dedicated sub-section below, not future work.}
   \item \textbf{Fallback-irrelevance finding (report alongside).} The
     \texttt{n\_iter=20} cells (zero fallbacks) are numerically IDENTICAL
     to the \texttt{n\_iter=12} cells (56 fallbacks): $0.504/0.416/0.390$
@@ -75,4 +75,48 @@
     (\S\ref{sec:phenomenon}'s depth-amplification law).
   \item Name explicitly as the fix's own scope boundary, not a gap in the
     evidence.
+\end{itemize}
+
+\subsection{The key-anchoring program's results (completed, Fig.~10,
+Fig.~11) --- not a forward-reference}
+\begin{itemize}
+  \item This sub-section reports, in order, the four things the
+    outcome-F follow-on program (\S\ref{sec:the-fix}) established. It
+    closes what an earlier stage of this project left as its single most
+    open thread; see \S\ref{sec:the-fix} for the full arc and gating
+    history and Fig.~10/Fig.~11 for the figures.
+  \item \textbf{(1) The behavioral gain, independently replicated.} $K{=}32$
+    $h{=}4$ recovery lifts from a freshly-measured baseline $0.4105$ to
+    $0.61$--$0.71$ across 9 seed-runs, 3 distinct seed sets, 2 architecture
+    variants (global-$\lambda$ candidate (d), per-entity-$\lambda$
+    candidate (d$'$)) --- upgraded from ``reproduced'' to ``independently
+    replicated'' because 6 of the 9 runs used genuinely fresh seeds never
+    drawn anywhere in this program before.
+  \item \textbf{(2) The mechanism rejection (Outcome C), confirmed twice.}
+    A per-entity engagement instrument reads $<$14--41\% engagement at
+    every $K{=}32$ leg, both architecture variants, immune to the specific
+    objections (anchor-norm assumption, $\lambda$-degeneracy,
+    power-manufactured engagement) that forced a rescue attempt's own
+    rejection.
+  \item \textbf{(3) The confirmed explanation (constancy suffices, by
+    ablation).} A frozen, never-trained anchor table (random or
+    frame-potential init) at the same blend weight matches or exceeds the
+    learned table's own gain ($0.67$--$0.76$ vs.\ $0.61$--$0.71$); a
+    negative-median $r_e$ reading in the pure-random arm confirms the
+    engagement instrument correctly reports ``nothing to align to.'' This
+    is CONFIRMED-BY-ABLATION: a falsifiable prediction was registered
+    before the confirming data existed, and it held.
+  \item \textbf{(4) The measured capacity boundary.} Extending the
+    identical design to $K{=}48$ ($K/d{=}0.75$): fully admissible (3/3),
+    both named explanatory channels (drift-space closure $\sim$81\% of the
+    gap; value-Gram relief $0.626\times$ the reference) measurably active,
+    bar still missed 0/3 seeds (mean $0.0215$ vs.\ $0.024434$). The
+    capacity curve completes as a cliff ($\sim$1.00 $\to$ $\sim$0.65 $\to$
+    $\sim$0.02 at $K/d{=}0.25/0.5/0.75$), not a smooth decline, while the
+    theoretical ceiling declines only gently over the same range.
+  \item State plainly, as the paper's own honesty discipline requires: the
+    behavioral gain is real and its cause is now known (constancy,
+    confirmed by ablation); the originally-hypothesized entity-alignment
+    mechanism is rejected; and the fix's regime is bounded at
+    $K/d{\leq}0.5$. No unexplained residual remains on this thread.
 \end{itemize}

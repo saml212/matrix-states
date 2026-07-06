@@ -70,15 +70,36 @@
     \texttt{effective\_hop}.
 \end{itemize}
 
-\subsection{K=48 rider: the frontier breaks past $K \approx d/2$}
+\subsection{K=48 rider: the frontier breaks past $K \approx d/2$ --- now a
+measured cliff, not an open question (\S\ref{sec:the-fix}, \S\ref{sec:results},
+Fig.~11)}
 \begin{itemize}
   \item Key-Gram deviation keeps growing ($2.7$ at $K{=}32 \to 4.3$ at
     $K{=}48$); $h{=}1$ recovery halves ($0.41$--$0.44$); composition gone
-    by $h{\geq}2$ ($0.005$--$0.009$).
+    by $h{\geq}2$ ($0.005$--$0.009$) \textbf{on the unfixed baseline}.
   \item i-strong pin correctly REFUSED here by its own dimensional guard
     (96 train+held-out identity vectors $> d_{\mathrm{state}}{=}64$).
-  \item Flag as the paper's ONE unresolved structural boundary
-    ($K\approx d/2$), not smoothed over --- see limitations.
+  \item \textbf{Updated status: this is no longer only an observed
+    breakdown of the unfixed baseline --- the fix's own operating regime
+    was extended to this cell and completed as a measured cliff
+    (\S\ref{sec:the-fix}).} At $K{=}48$ ($K/d{=}0.75$), F-geo-3 plus the
+    key-anchoring follow-on is fully admissible (3/3 seeds) but misses its
+    own pre-registered bar 0/3 seeds (mean $0.0215$ vs.\ bar $0.024434$),
+    with both of the design's own explanatory channels (drift-space
+    closure, $\sim$81\% of the gap; value-Gram relief, $0.626\times$ the
+    reference) measurably active yet insufficient. The three-point curve
+    ($\sim$1.00 at $K{=}16 \to \sim$0.65 at $K{=}32 \to \sim$0.02 at
+    $K{=}48$) is a cliff between half and three-quarter capacity, while the
+    theoretical $\lambda{=}1$ ceiling declines only gently over the same
+    range ($0.97 \to 0.94 \to 0.90$) --- the shortfall is a real,
+    structural saturation, not a measurement artifact. Binding survives
+    everywhere ($h{=}1$ guard $1.0000$, every cell, every $K$); composition
+    is what collapses.
+  \item What remains genuinely open (see limitations): \emph{why} the
+    break is so sharp between $K/d{=}0.5$ and $K/d{=}0.75$ when the
+    ceiling itself declines gently --- the design's own named, untested
+    candidate is value-crowding (more entities packed into the same fixed
+    value dimensionality), which would require a fresh design to test.
 \end{itemize}
 
 \subsection{Connective tissue: where this whole research line started}

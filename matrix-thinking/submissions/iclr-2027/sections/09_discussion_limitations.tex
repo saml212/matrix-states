@@ -6,9 +6,20 @@
 
 \begin{enumerate}
   \item \textbf{Small scale.} $d_{\mathrm{model}}$ in the low hundreds,
-    $d_{\mathrm{state}}{=}64$, sub-1M--low-single-digit-M parameters. No
-    claim tested at a scale where the write-time attractor might behave
-    differently.
+    $d_{\mathrm{state}}{=}64$, sub-1M--low-single-digit-M parameters (the
+    core causal chapters). \textbf{Partial evidence, not a resolution:} a
+    controlled 14M$\to$98M$\to$392M scaling ladder (Tier 2,
+    geometry-only, a clean 3-point read on a single held-fixed corpus mix,
+    Fig.~9 Panel A) finds the write-geometry attractor does NOT dissolve
+    with scale --- it WORSENS monotonically (span-fraction
+    $0.248 \to 0.344 \to 0.389$), a \textbf{pure-scale} claim. A fourth,
+    1.31B-parameter rung was running as this draft was prepared
+    \todo{[PENDING RUNG-3] insert the 1.31B span-fraction reading and its
+    position relative to the 3-point trend the moment Track C rung-3
+    reports; update Fig.~9 Panel A's fourth point and this sentence
+    together --- see NARRATIVE.md \S9 item 3.}; this item's core claim
+    (untested at production scale for compositional recovery, not just
+    geometry) stands regardless of that reading.
   \item \textbf{Single architecture family.} Vanilla, single-head,
     single-layer DeltaNet only. Gated DeltaNet (the actual Qwen3-Next
     production config), DeltaProduct's multi-Householder generalization,
@@ -19,29 +30,81 @@
     unfixed.} F-geo-3 demonstrably does not touch it --- a named,
     scoped-out mechanism (iteration-compounding), not folded into ``the
     fix works.''
-  \item \textbf{The $K{=}32$ headline bar is not met.} The fix is fully
-    admissible at BOTH $K$ ($K{=}16$ 3/3; $K{=}32$ 3/3 on the
-    \texttt{n\_iter=20} escalation, zero fallback steps), but the
-    pre-registered $\geq 0.5$ headline bar at $K{=}32$ is narrowly
-    missed: $h{=}4 = 0.504/0.416/0.390$, mean $0.44$, 1/3 seeds at the
-    line. State the miss exactly; state the attribution (outcome F,
-    trained drift $0.9037$ in the pre-registered HIGH band ---
-    cross-episode key STABILITY, not within-episode orthogonality, is
-    the residual bottleneck); and state the follow-on (cross-episode key
-    anchoring/stabilization) as FUTURE WORK with a measured target --- a
-    named residual, not an open mystery, but still a limitation of what
-    this paper demonstrates.
-  \item \textbf{The $K\approx d/2$ structural boundary is observed, not
-    explained.} The K=48 rider shows further breakdown and i-strong's own
-    dimensional guard correctly refusing to run there; no mechanism
-    account beyond dimension-counting is offered.
-  \item \textbf{Scale-transfer to a full pretrained LLM is unknown.}
-    Wave 2 establishes the truncation-damage phenomenon generalizes to
-    naturalistic LM pretraining at small scale (descriptive+
-    interventional tier only) --- does NOT establish whether the
-    write-geometry attractor persists, weakens, or strengthens at
-    production LLM scale. Explicit open question, not implied by
-    extrapolation.
+  \item \textbf{The $K{=}32$ headline bar is not met, and its named
+    follow-on has now run to completion with a fully resolved, if more
+    complex than hoped, result.} The fix is fully admissible at BOTH $K$
+    ($K{=}16$ 3/3; $K{=}32$ 3/3 on the \texttt{n\_iter=20} escalation,
+    zero fallback steps), but the pre-registered $\geq 0.5$ headline bar
+    at $K{=}32$ is narrowly missed: $h{=}4 = 0.504/0.416/0.390$, mean
+    $0.44$, 1/3 seeds at the line. The miss is attributed to outcome F
+    (trained cross-episode key drift $0.9037$ in the pre-registered HIGH
+    band). \textbf{The learned anchor-table follow-on designed to close
+    that residual (\S\ref{sec:the-fix}) has now run to completion across
+    four waves,} not future work: it lifts $K{=}32$ $h{=}4$ recovery from
+    a freshly-measured $0.4105$ baseline to $0.61$--$0.71$ (independently
+    replicated, 9 seed-runs across 3 seed sets, 2 architecture variants);
+    its own per-entity engagement instrument reads under 14--41\%
+    engagement at every leg, confirming Outcome C (``mechanism not
+    engaged'') at increasing rigor across two waves, immune to a rejected
+    rescue attempt. \textbf{The actual explanation was then found and
+    confirmed by ablation:} a frozen, never-trained anchor table (random
+    or frame-potential init) at the same blend weight matches or exceeds
+    the learned table's own gain --- constancy in the blend arithmetic,
+    not entity-specific learned content, is the active ingredient; SGD's
+    only demonstrated role is tuning the blend weight. \textbf{The fix's
+    operating regime is now measured, not open-ended:} a capacity-curve
+    extension to $K{=}48$ ($K/d{=}0.75$) shows the identical fix fully
+    admissible, both of its own named explanatory channels measurably
+    active, and the bar still missed 0/3 seeds --- the curve is a cliff
+    ($\sim$1.00 $\to$ $\sim$0.65 $\to$ $\sim$0.02), not a smooth decline.
+    State plainly: the behavioral $K{=}32$ $h{=}4$ gain is real and its
+    cause is now known (constancy, confirmed by ablation); the
+    entity-alignment hypothesis originally proposed for it is rejected;
+    and the fix's regime is bounded at $K/d{\leq}0.5$. This item, open at
+    an earlier stage of this project, is now closed.
+  \item \textbf{The $K\approx d/2$ structural boundary is now a measured
+    cliff, not merely observed.} The completed capacity-curve extension
+    (item 4 above) turns this into a fully measured three-point curve
+    with both of the design's own candidate explanatory channels checked
+    directly and found active-but-insufficient at $K{=}48$ --- the open
+    question is no longer ``does it break past $d/2$'' (yes, measured)
+    but ``why does the break happen so sharply, between $K/d{=}0.5$ and
+    $K/d{=}0.75$, when the theoretical ceiling itself declines only
+    gently over the same range.'' The design's own named, not-yet-tested
+    candidate for this is value-crowding (more entities packed into the
+    same fixed value dimensionality reducing per-entity value-recovery
+    headroom independent of key-side conditioning), which would require a
+    fresh design to test.
+  \item \textbf{Scale-transfer to a full pretrained LLM checkpoint is now
+    PARTIALLY measured, and the fix mechanism's transfer to free-running
+    text is separately tested and blocked.} Wave 2 establishes the
+    truncation-damage phenomenon generalizes to naturalistic LM
+    pretraining at small scale (descriptive+interventional tier only).
+    Beyond that: (a) on a controlled 14M$\to$98M$\to$392M parameter
+    ladder, on a single held-fixed data mix, the write-geometry attractor
+    does not dissolve --- it WORSENS monotonically, a \textbf{pure-scale}
+    finding (Fig.~9 Panel A), not yet extended to compositional recovery
+    at scale, with a 1.31B-parameter fourth rung
+    \todo{[PENDING RUNG-3] state whether it continued climbing,
+    plateaued, or reversed once it reports.}; (b) a much larger version
+    of the SAME non-orthonormal write-geometry signature is measurable
+    directly in production-scale pretrained fixed-state models (RWKV-7
+    1.5B, Falcon-Mamba-7B; Fig.~9 Panel B); (c) but a matched
+    no-fixed-state negative control (Qwen2.5-1.5B) shows the SAME
+    magnitude, so (b) is explicitly NOT attributable to the delta-rule
+    write mechanism specifically at this measurement tier; and (d) a
+    companion attempt to install the SAME fix mechanism inside a
+    free-running-text LM (Track B) is blocked before any interaction
+    claim can be tested --- a duplicate-key numerical-stability smoke
+    overshoots its bar by 63$\times$ with a probative positive control,
+    compounding the original $\beta$-uniformity gate refusal; the
+    selectivity-only readout that DID complete is INCONCLUSIVE (a split
+    verdict across corpora). Net honest statement: the phenomenon
+    persists where it can be controlled for and now scales purely with
+    parameter count (a), a phenomenologically similar signature exists at
+    production scale (b) but causal attribution there remains open and
+    confounded (c), and the fix itself has not yet been shown to transfer
+    to a free-running-text setting at all (d).
   \item \textbf{The admission-stack asymmetry, now footnote-level.}
     Because F-geo-3 makes the standard instruments tautological, a
     substitute pre-registered criterion applies to its seeds. With every
@@ -51,4 +114,43 @@
     wherever geo3 and non-geo3 seed counts appear side by side, because
     the two stacks filter different failure modes and their relative
     selectivity was never empirically equated.
+  \item \textbf{The 2$\times$2's ``stable'' cells lean on existence-tier
+    or bundled arms --- no longer an open dependency, a closed, mixed
+    answer.} The 2$\times$2 (Fig.~5) that demonstrates orthogonality and
+    stability are jointly necessary uses i-strong (pool-restricted to
+    $32{\leq}d_{\mathrm{state}}$) for the ``both together'' cell and
+    frozen-embedding arms for the ``stable, not orthogonal'' cells. The
+    key-anchoring program (\S\ref{sec:the-fix}) was built specifically to
+    test whether a full-vocabulary, gradient-discovered anchor mechanism
+    can reach the ``jointly sufficient'' regime, and it has run to
+    completion across four waves with a final, closed answer: the wave
+    produces a real $K{=}32$ $h{=}4$ behavioral gain
+    ($0.4105 \to 0.61$--$0.71$) but NOT via the hypothesized
+    entity-alignment channel (Outcome C, confirmed twice); the gain's
+    actual cause is confirmed by ablation to be constancy in the blend
+    arithmetic, not learned content; and this alternate mechanism's own
+    regime is bounded (works at $K/d{\leq}0.5$, fails at $K/d{=}0.75$).
+    So: the 2$\times$2's ``jointly sufficient'' corner still rests on the
+    hand-built i-strong pin for a \emph{causal} demonstration at $K{=}32$;
+    the \emph{practical}, SGD-adjacent route tested to reach that corner
+    does not use the hypothesized mechanism, works via a simpler
+    (constancy-only) route instead, and that alternate route's own
+    working regime is now known. A closed, three-part answer, stated as
+    such.
+  \item \textbf{The key-anchoring program is now fully complete, and its
+    complete arc is part of this paper's evidence base.} Every claim
+    above about ``the residual mechanism'' (outcome F, the 2$\times$2)
+    still rests on the outcome-F attribution and the 2$\times$2, not on
+    the anchoring program's numbers, for the causal MECHANISM claim about
+    why F-geo-3 misses its $K{=}32$ bar. What the anchoring program
+    contributes, now completely: a real, independently-replicated
+    $K{=}32$ $h{=}4$ behavioral improvement; a rejected entity-alignment
+    hypothesis (Outcome C, confirmed twice); a confirmed alternate
+    explanation (constancy suffices, by ablation); a measured capacity
+    boundary ($K/d{\leq}0.5$ works, $K/d{=}0.75$ does not); and a
+    demonstrated instance of this project's own gating discipline both
+    catching an attempted post-hoc rescue of a null result AND
+    pre-registering and then confirming a falsifiable account of a
+    surprising positive result. Report all of this, not just the
+    flattering parts.
 \end{enumerate}

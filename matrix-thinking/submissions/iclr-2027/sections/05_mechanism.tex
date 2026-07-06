@@ -54,3 +54,73 @@
     algebra CAN represent and use the perfect solution; ordinary training
     does not find it.
 \end{itemize}
+
+\subsection{The 2$\times$2 existence proof: orthogonality and stability are
+each necessary, jointly sufficient (Fig.~5)}
+\begin{itemize}
+  \item A 2$\times$2 grid cutting the same archive along two independent
+    geometric axes (orthogonal $\times$ stable), $K{=}32$: stable+orthogonal
+    (i-strong, pool-restricted to $32{\leq}d_{\mathrm{state}}$) $h{=}4$
+    $1.0000$, $h{=}7$ $1.0000$; stable+not-orthogonal (frozen-embedding arms
+    i/iv) $h{=}4$ $0.0075$--$0.0114$, $h{=}7$ ${\approx}0.0000$;
+    not-stable+orthogonal (bare geo3 alone) $h{=}4$ $0.44$ mean, $h{=}7$
+    $0.018$ mean; not-stable+not-orthogonal (fully-learned baseline)
+    $h{=}4$ $0.009$, $h{=}7$ ${\approx}0.0000$.
+  \item Neither axis alone clears the $\sim$0.01 floor; orthogonality alone
+    recovers most of the gap ($44$--$56\times$) but plateaus at $0.44$;
+    adding stability is not a partial improvement over that $0.44$, it is a
+    discontinuous jump to $1.00$ --- the INTERACTION, not either main
+    effect, is the figure's point.
+\end{itemize}
+
+\subsection{Closing this section: whether SGD can reach the ``jointly
+sufficient'' corner itself --- the key-anchoring program's complete arc
+(\S\ref{sec:the-fix}, \S\ref{sec:results}, Fig.~10, Fig.~11)}
+\begin{itemize}
+  \item The 2$\times$2's ``jointly sufficient'' corner was, until this
+    program ran, demonstrated only by the hand-built i-strong pin. The
+    natural question --- can a LEARNED mechanism reach that corner via
+    SGD? --- was tested to completion across four waves, and the answer is
+    now final: \textbf{no, not via the hypothesized channel, but the
+    program found something arguably more interesting.}
+  \item \textbf{The behavioral gain is real and independently replicated.}
+    A learned, per-entity cross-episode key anchor lifts $K{=}32$ $h{=}4$
+    held-out recovery from a freshly-measured baseline $0.4105$ to
+    $0.61$--$0.71$ (9 seed-runs across 3 distinct seed sets, 2 architecture
+    variants).
+  \item \textbf{The hypothesized entity-alignment mechanism is REJECTED
+    (Outcome C).} A purpose-built per-entity engagement instrument
+    (\texttt{engaged\_frac\_v3}, median $r_e$) shows fewer than
+    $14$--$41\%$ of entities individually engage at every measured leg,
+    confirmed across two independent mechanism-tier waves at increasing
+    evidentiary rigor (unit-anchor-norm measured directly, a formal
+    dip-test ruling out masked bimodality, an effect-size floor ruling out
+    power-manufactured engagement), immune to a specific rescue attempt
+    (a $\lambda$-scaled threshold re-derivation) that was itself
+    independently attacked and rejected.
+  \item \textbf{The actual explanation was found and CONFIRMED BY
+    ABLATION.} A frozen, never-trained anchor table (random init or
+    frame-potential init, both tested) at the same blend weight matches or
+    exceeds the learned table's own gain ($0.67$--$0.76$ vs.\
+    $0.61$--$0.71$), with a negative-median $r_e$ reading in the
+    random-init arm confirming the instrument correctly reports ``nothing
+    to align to.'' Constancy in the blend arithmetic --- not learned
+    entity-specific content --- is the active ingredient; SGD's only
+    demonstrated contribution is tuning the blend weight.
+  \item \textbf{This fix's own regime is now bounded, not open-ended.}
+    Extending the identical design to $K{=}48$ ($K/d{=}0.75$) shows both
+    named explanatory channels measurably active yet the fix still misses
+    its own bar 0/3 seeds --- the capacity curve completes as a cliff
+    ($\sim$1.00 $\to$ $\sim$0.65 $\to$ $\sim$0.02 at
+    $K/d{=}0.25/0.5/0.75$), not a smooth decline, while the theoretical
+    ceiling itself declines only gently over the same range.
+  \item \textbf{State this precisely, not as a substitution:} the 2$\times$2's
+    ``jointly sufficient'' corner still rests on the hand-built i-strong
+    pin for a \emph{causal} demonstration at $K{=}32$; the \emph{practical},
+    SGD-adjacent route tested to reach that corner does not use the
+    hypothesized mechanism at all, works via a simpler (constancy-only)
+    route instead, and that alternate route's own working regime is now
+    known (holds at $K/d{\leq}0.5$, fails at $K/d{=}0.75$). Both facts
+    belong in the paper, clearly separated, neither substituting for the
+    other.
+\end{itemize}
