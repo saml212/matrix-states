@@ -297,9 +297,15 @@ def smoke_8_d128_threshold_pin():
 def smoke_9_read_wall_s_only():
     import glob
 
-    candidates = glob.glob(os.path.join(HERE, "..", "..", "experiment-runs",
-                                          "2026-07-06_keyanchor_cliff", "results", "**", "*.json"),
-                            recursive=True)
+    # Two roots: the local-repo archive (dev box) and the raw results dir
+    # (training box, where experiment-runs/ does not exist -- first box run
+    # failed here). Same cell JSONs either way; first valid hit wins.
+    candidates = (glob.glob(os.path.join(HERE, "..", "..", "experiment-runs",
+                                           "2026-07-06_keyanchor_cliff", "results", "**", "*.json"),
+                             recursive=True)
+                  + glob.glob(os.path.join(HERE, "results", "deltanet_rd_exactness",
+                                             "wavekeyanchor-cliff", "**", "*.json"),
+                               recursive=True))
     real_path, real_doc = None, None
     for c in candidates:
         try:
