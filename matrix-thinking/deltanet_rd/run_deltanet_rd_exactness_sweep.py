@@ -90,7 +90,7 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
           strong_pin=False, lambda_orth=0.0, use_zca=False, fnce_m=None, force_rank_k=None,
           geo3_active=False, geo3_n_iter=12, geo3_resid_tol=1e-2,
           anchor_active=False, anchor_lambda_mode="learned", anchor_lambda_fixed=None,
-          lambda_anchor=0.0, drift_probe=False, rev7_engagement=False):
+          lambda_anchor=0.0, drift_probe=False, rev7_engagement=False, d_state=64):
     """Variant-carrying run spec (sec 5's naming requirement) -- the `arm`
     tag alone would NOT be resume-safe if two arms shared identical other
     fields, so the name also encodes the fields that actually vary the
@@ -102,7 +102,19 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
     the filename alone. anchor_lambda_mode also accepts
     'learned_per_entity' (KEY_ANCHORING_DESIGN.md sec 10.5.1, candidate
     (d')) -- the SAME name-bit path as 'learned'/'fixed', no special-casing
-    needed since the string itself already varies the filename."""
+    needed since the string itself already varies the filename.
+
+    d_state (KEY_ANCHORING_DESIGN.md sec 13.3 item 2, cliff-universality-
+    across-d_state build): NEW parameter, default 64 -- BYTE-IDENTICAL to
+    every existing caller (none of which pass this arg), verified by the
+    d=64 regression smoke (sec 13.3 item 6). Only emits a name bit when
+    d_state != 64 (the historical, unnamed default every prior wave's own
+    filename convention assumed) so no existing archived filename changes
+    shape. Threaded into the returned dict's own config block (never only
+    into the name) so fit_cliff_curve.py's generalized reader (sec 13.3
+    item 4/8) can tell a d=128 cell apart from a d=64 cell at the SAME K
+    from the result JSON's own exactness_config, not just the directory it
+    happens to sit in."""
     bits = [f"w{wave}_rdx", f"K{K}", f"arm{arm}", f"s{seed}"]
     if embed_source == "frozen_gram_matched" and gram_rho is not None:
         bits.append(f"rho{gram_rho:.3f}".replace(".", "p"))
@@ -127,6 +139,8 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
         bits.append("dprobe")
     if rev7_engagement:
         bits.append("rev7")
+    if d_state != 64:
+        bits.append(f"d{d_state}")
     name = "_".join(bits)
     return {"wave": str(wave), "K": K, "seed": seed, "steps": steps, "force_rank_k": force_rank_k,
             "arm": arm, "embed_source": embed_source, "gram_alpha": gram_alpha, "gram_rho": gram_rho,
@@ -137,7 +151,7 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
             "anchor_lambda_mode": anchor_lambda_mode if anchor_active else None,
             "anchor_lambda_fixed": anchor_lambda_fixed if anchor_active else None,
             "lambda_anchor": lambda_anchor, "drift_probe": drift_probe,
-            "rev7_engagement": rev7_engagement,
+            "rev7_engagement": rev7_engagement, "d_state": d_state,
             "name": name}
 
 
@@ -1781,6 +1795,366 @@ def write_bands_pinned_if_ready(out_dir: str) -> bool:
     return True
 
 
+# =============================================================================
+# KEY_ANCHORING_DESIGN.md sec 13 (Rev 13.2, DESIGN-CLEARED-FOR-BUILD) --
+# cliff universality across d_state. d_state=128 ONLY (d=32 is BLOCKED at
+# the kernel level, sec 13.1 -- model_rd.py's own _SAFE_D_STATE=(64,128)
+# hard assert; not this build's problem to fix). K in {68,76,84,92},
+# byte-identical K/d ratios to the d=64 cliff wave's own K in {34,38,42,46}
+# (sec 13.2: 68/128=34/64=0.53125, etc, verified to machine precision).
+#
+# Reference arms are CUT (sec 13.2 item 2 note / sec 13.8, same disclosed
+# cut as keyanchor-cliff's own sec 12.2 item 2) -- candidate (d) only, no
+# 'georef' arm at d=128. Gate-1-style probes (1/K, optional, lowest cut
+# priority) mirror keyanchor_cliff_gate1_manifest's own precedent.
+#
+# CALIBRATION-FIRST (sec 13.5, mandatory house rule): unlike keyanchor-cliff
+# (which reused an ALREADY-MEASURED d=64 K48 bracket), this wave has NO
+# prior same-d measurement at all -- the entire cost bracket (sec 13.4,
+# [1.84,7.76] GPU-h/cell pessimistic vs ~0.44 GPU-h/cell optimistic) rests
+# on an UNMEASURED d-scaling factor. One calibration cell (K=68, seed 530,
+# the first of its own registered block) must run to completion BEFORE any
+# other d=128 cell launches; the mechanical decision table (sec 13.6) then
+# routes the realized rate to PROCEED FULL / OPTION B / OPTION C / ESCALATE.
+# --stage encodes this: --stage calibration launches ONLY the K=68/seed=530
+# cell; --stage full requires the calibration cell to already be done AND
+# reads its own realized wall_s (via read_wall_s_only, sec 13.5's blinding
+# rule) to pick a branch off the table IN CODE, never a human's subjective
+# read of the prose Options A/B/C.
+# =============================================================================
+
+KEYANCHOR_DSTATE_D = 128                                   # sec 13.2's single new d point
+KEYANCHOR_DSTATE_TIER_STEPS = KEYANCHOR_CLIFF_TIER_STEPS   # 20,000 -- sec 13.2's pinned step count (attack F4)
+KEYANCHOR_DSTATE_GATE1_STEPS = KEYANCHOR_CLIFF_GATE1_STEPS  # 5,000 -- continuity, sec 13.3 item 7
+KEYANCHOR_DSTATE_KS = (68, 76, 84, 92)                     # sec 13.2's K-grid, K/d matched to sec 12.2's own
+
+# sec 13.2's registered seed blocks, candidate (d) only (mandatory manifest)
+# -- a FRESH block, never used by any prior wave in this program (verified
+# by grep against every *.py file in this directory: zero collisions with
+# 530-534/630-634/730-734/830-834 found, 2026-07-06 build session). K=68's
+# seed 530 (the FIRST of its own block) doubles as sec 13.5's calibration
+# cell -- not a separate reserved integer, the same seed both roles use.
+KEYANCHOR_DSTATE_SEEDS_BY_K = {68: (530, 531, 532), 76: (630, 631, 632),
+                               84: (730, 731, 732), 92: (830, 831, 832)}
+KEYANCHOR_DSTATE_CALIBRATION_K = 68
+KEYANCHOR_DSTATE_CALIBRATION_SEED = 530   # sec 13.5: "the cheapest of the four proposed K's... seed 530"
+
+# sec 13.2's optional Gate-1-style probe seeds, one per K -- conditional,
+# lowest cut priority (mirrors keyanchor_cliff's own KEYANCHOR_CLIFF_GATE1_SEED_BY_K).
+KEYANCHOR_DSTATE_GATE1_SEED_BY_K = {68: 535, 76: 635, 84: 735, 92: 835}
+
+# sec 13.2's seed-contingency reserved blocks (+2 seeds per K, fires only on
+# an ambiguous band assignment) -- RESERVED integers only, never a callable
+# manifest function in this build (same never-fire-until-an-orchestrator-
+# decision discipline as KEYANCHOR_CLIFF_CONTINGENCY_SEEDS_BY_K).
+KEYANCHOR_DSTATE_CONTINGENCY_SEEDS_BY_K = {68: (533, 534), 76: (633, 634),
+                                            84: (733, 734), 92: (833, 834)}
+
+
+def keyanchor_dstate_manifest(d_state: int = KEYANCHOR_DSTATE_D, Ks=KEYANCHOR_DSTATE_KS):
+    """sec 13.2's MANDATORY, PRIMARY arm at d_state=128: candidate (d) only,
+    K in {68,76,84,92}, 3 seeds each (12 cells total) -- reference arms are
+    CUT (sec 13.2 item 2 note), same disclosed cut as keyanchor_cliff_
+    manifest. Reuses keyanchor_k48_manifest(K, seeds) directly (the SAME
+    generalized function every K's candidate-(d) cells go through, sec
+    12.2.1's own precedent) but ALSO threads d_state=128 into every
+    returned spec's own d_state field (sec 13.3 item 2) -- keyanchor_k48_
+    manifest itself has no d_state parameter (it calls _spec() without one,
+    so it always gets _spec's own default of 64), so this function
+    post-processes the returned dicts rather than modifying that shared
+    K48/cliff-only function, keeping keyanchor_k48_manifest's own d=64
+    byte-identity guarantee (sec 13.3 item 6) intact for every existing
+    caller."""
+    runs = []
+    for K in Ks:
+        for spec in keyanchor_k48_manifest(K=K, seeds=KEYANCHOR_DSTATE_SEEDS_BY_K[K]):
+            runs.append(_spec(
+                spec["wave"], spec["K"], spec["seed"], spec["steps"], spec["arm"],
+                embed_source=spec["embed_source"], gram_alpha=spec["gram_alpha"],
+                gram_rho=spec["gram_rho"], strong_pin=spec["strong_pin"],
+                lambda_orth=spec["lambda_orth"], use_zca=spec["use_zca"], fnce_m=spec["fnce_m"],
+                force_rank_k=spec["force_rank_k"], geo3_active=spec["geo3_active"],
+                geo3_n_iter=spec["geo3_n_iter"] or 12, geo3_resid_tol=spec["geo3_resid_tol"] or 1e-2,
+                anchor_active=spec["anchor_active"], anchor_lambda_mode=spec["anchor_lambda_mode"] or "learned",
+                anchor_lambda_fixed=spec["anchor_lambda_fixed"], lambda_anchor=spec["lambda_anchor"],
+                drift_probe=spec["drift_probe"], rev7_engagement=spec["rev7_engagement"],
+                d_state=d_state))
+    assert len(runs) == len(Ks) * 3, \
+        f"keyanchor-dstate manifest drifted from its registered {len(Ks) * 3} runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_dstate_gate1_manifest(d_state: int = KEYANCHOR_DSTATE_D, Ks=KEYANCHOR_DSTATE_KS):
+    """sec 13.2.1: OPTIONAL, lowest-cut-priority Gate-1-style probes, one
+    per K (4 total by default), 5,000 steps, seeds {535,635,735,835} --
+    same re-spec-with-d_state pattern as keyanchor_dstate_manifest above."""
+    runs = []
+    for K in Ks:
+        for spec in keyanchor_k48_gate1_manifest(K=K, seed=KEYANCHOR_DSTATE_GATE1_SEED_BY_K[K]):
+            runs.append(_spec(
+                spec["wave"], spec["K"], spec["seed"], spec["steps"], spec["arm"],
+                embed_source=spec["embed_source"], gram_alpha=spec["gram_alpha"],
+                gram_rho=spec["gram_rho"], strong_pin=spec["strong_pin"],
+                lambda_orth=spec["lambda_orth"], use_zca=spec["use_zca"], fnce_m=spec["fnce_m"],
+                force_rank_k=spec["force_rank_k"], geo3_active=spec["geo3_active"],
+                geo3_n_iter=spec["geo3_n_iter"] or 12, geo3_resid_tol=spec["geo3_resid_tol"] or 1e-2,
+                anchor_active=spec["anchor_active"], anchor_lambda_mode=spec["anchor_lambda_mode"] or "learned",
+                anchor_lambda_fixed=spec["anchor_lambda_fixed"], lambda_anchor=spec["lambda_anchor"],
+                drift_probe=spec["drift_probe"], rev7_engagement=spec["rev7_engagement"],
+                d_state=d_state))
+    assert len(runs) == len(Ks), \
+        f"keyanchor-dstate Gate-1 probe manifest drifted from its registered {len(Ks)} runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_dstate_calibration_manifest(d_state: int = KEYANCHOR_DSTATE_D):
+    """sec 13.5's single calibration cell: K=68 (the cheapest of the four),
+    seed 530 (the first of that K's own registered block) -- the ONE cell
+    that must run to completion, alone, before any other d=128 cell
+    launches. Exactly the K=68/seed=530 cell keyanchor_dstate_manifest's
+    own K=68 entry would produce -- filtered out of that function's full
+    12-cell list rather than hand-duplicated, so the two can never
+    silently diverge in config."""
+    full = keyanchor_dstate_manifest(d_state=d_state, Ks=(KEYANCHOR_DSTATE_CALIBRATION_K,))
+    runs = [s for s in full if s["seed"] == KEYANCHOR_DSTATE_CALIBRATION_SEED]
+    assert len(runs) == 1, \
+        f"calibration manifest drifted -- expected exactly 1 cell (K={KEYANCHOR_DSTATE_CALIBRATION_K}, " \
+        f"seed={KEYANCHOR_DSTATE_CALIBRATION_SEED}), got {len(runs)}"
+    return runs
+
+
+# sec 13.4's pre-calibration cost bracket (d=128 vs d=64, K/d matched):
+# [1.84, 7.76] GPU-h/cell pessimistic (4x recurrence-dominant scaling x 2x
+# contention contingency), ~0.44 GPU-h/cell optimistic (1.264x K-only-style
+# scaling x 2x contingency) -- BOTH disclosed as ESTIMATES, not measurements
+# (sec 13.4: "no prior wave in this program ever varied d_state"). The
+# calibration cell (sec 13.5) REPLACES this bracket with a REALIZED rate
+# before any decision is made off it -- these constants exist only to seed
+# the pre-calibration preview (--dry-run) and the mechanical decision
+# table's own headroom arithmetic (sec 13.6), never to gate a launch
+# directly (KEYANCHOR_DSTATE_GPUH_CEILING below is NOT used as a go/no-go
+# guard the way keyanchor_cliff_budget_guard's ceiling is -- sec 13.5/13.6's
+# calibration-first discipline supersedes a static pre-priced ceiling here).
+KEYANCHOR_DSTATE_GPUH_PER_CELL_PESSIMISTIC = (1.84, 7.76)   # sec 13.4's own bracket
+KEYANCHOR_DSTATE_GPUH_PER_CELL_OPTIMISTIC = 0.2616 * 1.264 * 2.0   # sec 13.4's own "realized-rate estimate" line
+KEYANCHOR_DSTATE_MANDATORY_CELLS = 12
+
+# sec 13.5 item 4 / sec 13.6's own registered headroom figure -- the
+# exactness-program reserve AFTER keyanchor-cliff's own realized spend
+# (KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH=59.01, KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING=80.0,
+# reserve=20.99) -- read directly off those already-defined constants above
+# (never re-typed as a bare literal) so the two figures cannot silently
+# drift apart if the cliff wave's own realized-spend constant is ever
+# updated again.
+KEYANCHOR_DSTATE_HEADROOM_GPUH = KEYANCHOR_CLIFF_RESERVE_GPUH   # 20.99
+
+# sec 13.6's MECHANICAL DECISION TABLE, in code (not read subjectively from
+# prose) -- thresholds are EXACT (H/12, H/9, H/6 at H=20.99), per this
+# project's "exact thresholds, no slack" hard rule. Registered here as
+# literal-per-branch constants (not re-derived at call time from a mutable
+# H) so the pinned 1.7492/2.3322/3.4983 GPU-h/cell figures the design text
+# itself states can be asserted to match exactly, the same discipline
+# KEYANCHOR_CLIFF_ABORT_WALL_S's own doc-pinned-literal treatment uses.
+KEYANCHOR_DSTATE_DECISION_THRESHOLDS = {
+    "proceed_full": 20.99 / 12,   # 1.7492 -- 12 cells (all 4 K's x 3 seeds)
+    "option_b": 20.99 / 9,        # 2.3322 -- 9 cells (3 K's x 3 seeds, drop one interior K)
+    "option_c": 20.99 / 6,        # 3.4983 -- 6 cells (2 K's x 3 seeds, K=76/84)
+}
+# sec 13.6's own K-grid choice per branch (Option B drops K=84 per the
+# design's own text: "keep {68, 76, 92}, drop 84"; Option C keeps the two
+# most-informative interior points, K=76/K=84, per the design's own
+# "mirroring sec 12.2.3's own Stage-1 choice of K=38/K=42").
+KEYANCHOR_DSTATE_OPTION_B_KS = (68, 76, 92)
+KEYANCHOR_DSTATE_OPTION_C_KS = (76, 84)
+
+
+def keyanchor_dstate_decision_branch(realized_rate_gpuh: float) -> dict:
+    """sec 13.6's mechanical decision table, applied literally: the
+    calibration cell's own REALIZED GPU-h/cell rate `r` (sec 13.5 item 3's
+    re-pricing, blinded per sec 13.5's F9 rule to wall_s only -- the CALLER
+    is responsible for computing `r` via read_wall_s_only, never this
+    function reading h4) determines the branch mechanically, off the exact
+    thresholds registered above -- never a subjective read of the prose
+    Options A/B/C (sec 13.7.1 Q3's own attack question: this function IS
+    the fix, the table is the thing that fires, not a paragraph beneath
+    it)."""
+    t = KEYANCHOR_DSTATE_DECISION_THRESHOLDS
+    if realized_rate_gpuh <= t["proceed_full"]:
+        branch = "PROCEED_FULL"
+        ks = KEYANCHOR_DSTATE_KS
+    elif realized_rate_gpuh <= t["option_b"]:
+        branch = "OPTION_B"
+        ks = KEYANCHOR_DSTATE_OPTION_B_KS
+    elif realized_rate_gpuh <= t["option_c"]:
+        branch = "OPTION_C"
+        ks = KEYANCHOR_DSTATE_OPTION_C_KS
+    else:
+        branch = "ESCALATE"
+        ks = ()
+    n_cells = len(ks) * 3
+    ceiling_amendment_gpuh = max(0.0, KEYANCHOR_DSTATE_MANDATORY_CELLS * realized_rate_gpuh
+                                  - KEYANCHOR_DSTATE_HEADROOM_GPUH)
+    return {
+        "realized_rate_gpuh": realized_rate_gpuh, "branch": branch, "ks": ks, "n_cells": n_cells,
+        "thresholds": dict(t), "headroom_gpuh": KEYANCHOR_DSTATE_HEADROOM_GPUH,
+        "ceiling_amendment_gpuh": ceiling_amendment_gpuh if branch == "ESCALATE" else None,
+    }
+
+
+def read_wall_s_only(path: str) -> float:
+    """sec 13.5's F9 blinding-rule build task (round-2 verify finding 4):
+    a dedicated helper that parses a cell's result JSON and returns ONLY
+    `wall_s`, discarding everything else -- in particular, never printing
+    or returning any `M3_held_out` content (the h4 field the calibration
+    scope decision must NOT be contaminated by, per sec 13.5's own
+    disclosure that the existing stage-gate pattern loads the entire cell
+    JSON, M3_held_out included, before extracting wall_s). This function's
+    OWN return value is a single float -- there is no path by which a
+    caller of THIS function can accidentally read h4 through it, unlike
+    the existing keyanchor_cliff_stage_gate pattern which loads the whole
+    dict first. The calibration re-pricing step (sec 13.5 item 3) MUST use
+    this helper, never `json.load` directly on the calibration cell's own
+    result path."""
+    with open(path) as f:
+        d = json.load(f)
+    return float(d["wall_s"])
+
+
+# sec 13.2.2/13.6.1's per-cell abort rule: derived from sec 13.4's own
+# bracket (mirrors keyanchor_cliff's KEYANCHOR_CLIFF_ABORT_WALL_S 1.5x-of-
+# bracket-upper-edge construction exactly, sec 13.6.1's own text: "mirrors
+# sec 12.2.3's mechanics... restated in full"). Unlike keyanchor-cliff
+# (whose bracket was itself measured, K48-calibrated), THIS wave's
+# pre-calibration bracket upper edge (7.76 GPU-h/cell, sec 13.4) is itself
+# an ESTIMATE -- so this trigger is explicitly the PRE-calibration one;
+# sec 13.6.1 item 1 requires re-deriving the CURRENT bracket (off the
+# calibration cell's own realized rate) before evaluating any cell AFTER
+# the calibration cell, not reusing this pre-calibration constant forever.
+# 1.5 x 7.76 GPU-h x 3600 = 41,904.0s exactly.
+KEYANCHOR_DSTATE_ABORT_WALL_S_PRECALIBRATION = 1.5 * KEYANCHOR_DSTATE_GPUH_PER_CELL_PESSIMISTIC[1] * 3600.0
+
+
+def keyanchor_dstate_check_abort(spec: dict, wall_s: float, bracket_upper_gpuh: float) -> None:
+    """sec 13.6.1's mechanical abort rule (ANY completed cell, not merely
+    the first): if a completed cell's own realized wall_s >= 1.5x the
+    CURRENT best-estimate bracket's own upper edge (re-derived from the
+    calibration cell per sec 13.5 item 3, NOT the pre-calibration sec 13.4
+    estimate -- the caller passes bracket_upper_gpuh explicitly so this
+    function never silently falls back to the pre-calibration constant
+    once a real calibration rate exists), halt all remaining launches by
+    raising -- main()'s own dispatch loop catches this (same
+    KeyanchorCliffAbort-class pattern) and stops launching new keyanchor-
+    dstate cells, rather than proceeding on the assumption an outlier cell
+    was a one-off."""
+    trigger_wall_s = 1.5 * bracket_upper_gpuh * 3600.0
+    if wall_s >= trigger_wall_s:
+        raise KeyanchorDstateAbort(
+            f"sec 13.6.1 ABORT: cell {spec['name']!r} (K={spec['K']}, d_state={spec['d_state']}) "
+            f"realized wall_s={wall_s:.1f}s >= {trigger_wall_s:.1f}s (1.5x the current "
+            f"{bracket_upper_gpuh:.4f} GPU-h/cell bracket upper edge). Halting all remaining "
+            f"keyanchor-dstate launches -- diagnose per sec 13.6.1 item 1: (a) the d-scaling "
+            f"estimate itself was wrong in the pessimistic direction (re-price and re-check "
+            f"headroom, do not treat as a fluke), or (b) GPU contention with a concurrent program "
+            f"on shared GPUs, before resuming.")
+
+
+class KeyanchorDstateAbort(RuntimeError):
+    """sec 13.6.1's mechanical, in-code hard-halt signal -- raised by
+    keyanchor_dstate_check_abort, caught by main()'s dispatch loop for the
+    keyanchor-dstate wave only. Mirrors KeyanchorCliffAbort's own distinct-
+    exception-type discipline (never a bare RuntimeError) so the dispatch
+    loop's generic except-and-CRASHED.txt handler can distinguish a
+    deliberate, expected halt from an actual orchestrator crash."""
+
+
+KEYANCHOR_DSTATE_STAGE_SENTINEL_NAME = "CALIBRATION_DONE"
+
+
+def keyanchor_dstate_stage_gate(out_dir: str, stage: str, accept_override: bool) -> dict:
+    """sec 13.5/13.6's staged, calibration-first launch gate -- restated in
+    full (not merely 'mirrors keyanchor_cliff_stage_gate', since this
+    wave's own staging logic is genuinely different: keyanchor-cliff gates
+    Stage 2 on Stage 1's own realized RATE sitting within an ALREADY-
+    measured bracket; this wave's 'full' stage gates on the SINGLE
+    calibration cell's realized rate DECIDING WHICH BRANCH of sec 13.6's
+    table to launch, since no bracket was measured before this wave at
+    all).
+
+    --stage calibration: no gate (the calibration cell IS the first thing
+    that runs).
+
+    --stage full: REQUIRES the calibration cell (K=68, seed=530) to exist
+    and validate complete in out_dir; reads ONLY its wall_s (via
+    read_wall_s_only, sec 13.5's F9 blinding rule -- h4 is never touched by
+    this function); computes the realized rate `r = wall_s / 3600.0`
+    (single-cell rate, sec 13.5 item 1's own disclosed K-and-d-conflation
+    caveat, not fixable within this wave's own budget); routes through
+    keyanchor_dstate_decision_branch(r); on PROCEED_FULL/OPTION_B/OPTION_C,
+    writes the CALIBRATION_DONE sentinel (recording the branch actually
+    chosen) and returns the branch's own K-grid for main() to build the
+    remaining manifest from; on ESCALATE, refuses (sys.exit) with the
+    ceiling-amendment figure printed, per sec 13.6's own PI-DECISION
+    framing (this wave does not unilaterally descope below Option C)."""
+    calib_spec = keyanchor_dstate_calibration_manifest()[0]
+    calib_path = out_path(out_dir, calib_spec)
+    if accept_override:
+        print("=" * 70 + "\nWARNING: --accept-dstate-stage-override -- sec 13.5/13.6's "
+              "calibration-first mechanical gate is being BYPASSED by an explicit human decision. "
+              "This is recorded here; it does NOT mean calibration ran or the decision table was "
+              "consulted. No CALIBRATION_DONE sentinel is written on this path.\n" + "=" * 70,
+              flush=True)
+        return {"gate_bypassed": True, "stage": stage, "sentinel_written": False}
+    if stage == "calibration":
+        return {"gate_bypassed": False, "not_applicable": True, "stage": stage, "sentinel_written": False}
+    assert stage == "full", f"unknown stage {stage!r} -- must be 'calibration' or 'full'"
+    # Independent-verifier-style poke (mirrors keyanchor_cliff_stage_gate's
+    # own poke A): a stale sentinel from an earlier (possibly since-
+    # invalidated) gate evaluation must not survive a re-check.
+    stale = os.path.join(out_dir, KEYANCHOR_DSTATE_STAGE_SENTINEL_NAME)
+    if os.path.exists(stale):
+        os.remove(stale)
+        print(f"stage gate: removed pre-existing {KEYANCHOR_DSTATE_STAGE_SENTINEL_NAME} "
+              f"(re-derived below; a stale pass certificate must not survive a re-check)", flush=True)
+    if not is_done(out_dir, calib_spec):
+        print(f"ERROR: --stage full REFUSED -- the calibration cell (K={calib_spec['K']}, "
+              f"seed={calib_spec['seed']}, d_state={calib_spec['d_state']}) is not yet complete in "
+              f"{out_dir!r}. Run --stage calibration first, or pass "
+              f"--accept-dstate-stage-override for an explicit, documented human override.",
+              file=sys.stderr)
+        sys.exit(1)
+    wall_s = read_wall_s_only(calib_path)   # sec 13.5 F9: wall_s ONLY, h4 never read here
+    realized_rate_gpuh = wall_s / 3600.0
+    decision = keyanchor_dstate_decision_branch(realized_rate_gpuh)
+    print(f"sec 13.5 CALIBRATION READ (blinded to wall_s only, per F9): cell="
+          f"{calib_spec['name']!r} wall_s={wall_s:.1f}s -> realized_rate={realized_rate_gpuh:.4f} "
+          f"GPU-h/cell", flush=True)
+    print(f"sec 13.6 MECHANICAL DECISION TABLE: r={realized_rate_gpuh:.4f} -> branch="
+          f"{decision['branch']} ks={decision['ks']} n_cells={decision['n_cells']} "
+          f"(thresholds: proceed_full<={decision['thresholds']['proceed_full']:.4f}, "
+          f"option_b<={decision['thresholds']['option_b']:.4f}, "
+          f"option_c<={decision['thresholds']['option_c']:.4f})", flush=True)
+    if decision["branch"] == "ESCALATE":
+        print(f"ERROR: --stage full REFUSED -- sec 13.6 MECHANICAL DECISION TABLE routes to "
+              f"ESCALATE (r={realized_rate_gpuh:.4f} > {decision['thresholds']['option_c']:.4f}). "
+              f"Per sec 13.6's own PI-DECISION framing, this wave does NOT unilaterally descope "
+              f"below Option C (6 cells). Ceiling-amendment figure (extra GPU-h a PI would need to "
+              f"approve to run the FULL 12-cell grid at this realized rate): "
+              f"12*{realized_rate_gpuh:.4f} - {KEYANCHOR_DSTATE_HEADROOM_GPUH:.2f} = "
+              f"{decision['ceiling_amendment_gpuh']:.2f} GPU-h. Escalate to a PI decision (sec "
+              f"13.6 items 1/2/3), or pass --accept-dstate-stage-override for an explicit, "
+              f"documented human override.", file=sys.stderr)
+        sys.exit(1)
+    sentinel_path = os.path.join(out_dir, KEYANCHOR_DSTATE_STAGE_SENTINEL_NAME)
+    payload = {"calibration_wall_s": wall_s, "realized_rate_gpuh": realized_rate_gpuh,
+               "decision": decision, "timestamp": time.time()}
+    os.makedirs(out_dir, exist_ok=True)
+    with open(sentinel_path, "w") as f:
+        f.write(json.dumps(payload, sort_keys=True) + "\n")
+    print(f"sec 13.6: wrote {sentinel_path!r} (branch={decision['branch']}).", flush=True)
+    return {"gate_bypassed": False, "stage": stage, "sentinel_written": True,
+            "sentinel_path": sentinel_path, "decision": decision}
+
+
 MANIFEST_FNS = {"-1": wave_neg1_manifest}
 
 
@@ -1897,6 +2271,27 @@ def is_done(out_dir, spec):
         if ec.get("anchor_table_init_mode", "frame_potential") != \
            spec.get("anchor_table_init_mode", "frame_potential"):
             return False
+        # KEY_ANCHORING_DESIGN.md sec 13.3 items 2/6 (cliff-universality-
+        # across-d_state build): d_state is NOT part of exactness_config
+        # (run_deltanet_rd.py's _assemble_result never put it there -- it
+        # writes d_state at the RESULT's own TOP LEVEL, `d.get("d_state")`,
+        # unconditionally, since args.d_state already defaults to 64 for
+        # every pre-existing call; verified by direct read of
+        # _assemble_result's own result dict, "d_state": d_state at the top
+        # level, separate from the nested "exactness_config" block). Reading
+        # it off `d` (the top-level parsed JSON), not `ec`, is therefore the
+        # correct mirror of where the audited training pipeline actually
+        # writes it -- reading it off `ec` would silently always compare
+        # None (missing) vs spec's own d_state, never actually distinguish
+        # a d=128 archive from a d=64 one. SAME missing-key-defaults-to-64
+        # discipline as every field above: archived pre-Rev-13 result JSONs
+        # from a build that ALSO lacks this key would default to 64 on
+        # both sides, but in practice this key has existed on every result
+        # JSON since before this design (main()'s own pre-existing
+        # `--d-state` CLI flag, sec 13 header finding), so this is a
+        # defensive default, not an expected miss.
+        if d.get("d_state", 64) != spec.get("d_state", 64):
+            return False
         return True
     except Exception:
         return False
@@ -1938,6 +2333,17 @@ def build_cmd(spec, out_dir, timeout, unblind_override_at: float | None = None,
         cmd += ["--drift-probe"]
     if spec.get("rev7_engagement"):
         cmd += ["--rev7-engagement"]
+    if spec.get("d_state", 64) != 64:
+        # KEY_ANCHORING_DESIGN.md sec 13.2/13.3 item 1: run_deltanet_rd.py's
+        # own main() ALREADY registers --d-state (choices=[64,128], default
+        # 64), threaded unmodified through build_entity_pools/
+        # DeltaNetRDBlock/train() -- this is the ONLY new flag this build
+        # adds to build_cmd, and only fires when a spec deliberately
+        # requests d_state != 64 (every existing d=64 caller's own emitted
+        # command line is therefore byte-identical to before this change,
+        # since the CLI's own default already matches what was previously
+        # never passed at all).
+        cmd += ["--d-state", str(spec["d_state"])]
     if ckpt_base_dir is not None and spec.get("anchor_active"):
         # KEY_ANCHORING_DESIGN.md sec 10.10: one checkpoint subdirectory per
         # cell, under the wave's own checkpoint base dir.
@@ -2045,7 +2451,7 @@ def main():
                                         "keyanchor-mech-gate1", "keyanchor-mech",
                                         "keyanchor-k48-ref", "keyanchor-k48-bands",
                                         "keyanchor-k48-gate1", "keyanchor-k48",
-                                        "keyanchor-e", "keyanchor-cliff"], default=None,
+                                        "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate"], default=None,
                      help="'geo3' launches F-geo-3's Wave-1-style cells (sec 14.7) -- GATED on "
                           "--geo3-drift-json (sec 14.6's launch-read result) unless "
                           "--accept-gate-override is passed. The sec 14.6 drift diagnostic ITSELF "
@@ -2092,7 +2498,23 @@ def main():
                           "unless every Stage-1 K has a completed cell within the K48-calibrated "
                           "bracket (sec 12.2.3's staged-launch gate, --accept-stage-override "
                           "bypasses). --include-cliff-gate1 additionally launches the OPTIONAL "
-                          "per-K Gate-1-style probes for the K's in the requested stage.")
+                          "per-K Gate-1-style probes for the K's in the requested stage. "
+                          "KEY_ANCHORING_DESIGN.md sec 13 (Rev 13.2, DESIGN-CLEARED-FOR-BUILD) wave: "
+                          "'keyanchor-dstate' launches candidate (d) at d_state=128, K in "
+                          "{68,76,84,92} (K/d matched to the d=64 cliff wave's own {34,38,42,46}) -- "
+                          "reference arms CUT (sec 13.2 item 2 note, same disclosed cut as "
+                          "keyanchor-cliff). REQUIRES --dstate-stage calibration or --dstate-stage "
+                          "full: 'calibration' launches ONLY K=68/seed=530 (sec 13.5's single "
+                          "load-bearing calibration cell -- the entire d=128 cost bracket is "
+                          "UNMEASURED before this cell runs); 'full' reads that cell's OWN realized "
+                          "wall_s (read_wall_s_only, sec 13.5's h4-blinding rule) and routes through "
+                          "sec 13.6's MECHANICAL DECISION TABLE (PROCEED_FULL/OPTION_B/OPTION_C/"
+                          "ESCALATE, exact thresholds 1.7492/2.3322/3.4983 GPU-h/cell) to pick the "
+                          "K-grid for the remaining cells -- MECHANICALLY REFUSES (ESCALATE branch) "
+                          "rather than unilaterally descoping below Option C's 6 cells; "
+                          "--accept-dstate-stage-override bypasses. --include-dstate-gate1 "
+                          "additionally launches the OPTIONAL per-K Gate-1-style probes for "
+                          "whichever K-grid the branch selects.")
     ap.add_argument("--gpus", type=int, default=None,
                      help="GPU COUNT. REQUIRED for a real (wave -1/1) launch, NO DEFAULT ON "
                           "PURPOSE -- check nvidia-smi before every launch (GPUs 0-5,7 run other "
@@ -2212,6 +2634,26 @@ def main():
                           "priority Gate-1-style probes (sec 12.2 item 3) for the K's in the "
                           "requested --stage. Off by default (sec 12.2.3: first cut under budget "
                           "pressure).")
+    ap.add_argument("--dstate-stage", type=str, choices=["calibration", "full"], default=None,
+                     help="--wave keyanchor-dstate: REQUIRED. 'calibration' launches ONLY the "
+                          "K=68/seed=530 cell (sec 13.5's single load-bearing calibration cell -- "
+                          "must run to completion before 'full' can proceed). 'full' reads that "
+                          "cell's realized wall_s and routes through sec 13.6's mechanical decision "
+                          "table to determine the K-grid for the remaining cells; MECHANICALLY "
+                          "REFUSES (sys.exit) on an ESCALATE read unless "
+                          "--accept-dstate-stage-override is passed.")
+    ap.add_argument("--accept-dstate-stage-override", action="store_true",
+                     help="--wave keyanchor-dstate --dstate-stage full: bypass sec 13.5/13.6's "
+                          "calibration-first mechanical gate (missing calibration cell OR an "
+                          "ESCALATE decision-table read) with an explicit, loudly-logged human "
+                          "override -- same override class as --accept-gate-override/"
+                          "--unblind-override/--accept-stage-override.")
+    ap.add_argument("--include-dstate-gate1", action="store_true",
+                     help="--wave keyanchor-dstate: additionally launch the OPTIONAL, lowest-cut-"
+                          "priority Gate-1-style probes (sec 13.2.1) for whichever K-grid the "
+                          "decision-table branch selects. Off by default (sec 13.6: first cut under "
+                          "budget pressure, same discipline as keyanchor-cliff's own "
+                          "--include-cliff-gate1).")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -2430,6 +2872,38 @@ def main():
             f"stage1={stage1_ks} stage2={stage2_ks}"
 
         print("\n" + "=" * 70)
+        print("KEY_ANCHORING_DESIGN.md sec 13 (Rev 13.2, DESIGN-CLEARED-FOR-BUILD) -- "
+              "keyanchor-dstate wave preview (cliff universality across d_state)")
+        print("=" * 70)
+        kd_mand = keyanchor_dstate_manifest()
+        kd_g1 = keyanchor_dstate_gate1_manifest()
+        kd_calib = keyanchor_dstate_calibration_manifest()
+        lo_d_opt, hi_d_pess = KEYANCHOR_DSTATE_GPUH_PER_CELL_OPTIMISTIC, KEYANCHOR_DSTATE_GPUH_PER_CELL_PESSIMISTIC[1]
+        print(f"  candidate (d), d_state={KEYANCHOR_DSTATE_D}, MANDATORY, PRIMARY, K in "
+              f"{KEYANCHOR_DSTATE_KS}: {len(kd_mand)} runs | 3 seeds each | "
+              f"~{len(kd_mand) * lo_d_opt:.2f}-{len(kd_mand) * hi_d_pess:.2f} GPU-h "
+              f"(UNMEASURED bracket, sec 13.4 -- calibration-first, see below)")
+        print(f"  sec 13.5 CALIBRATION (mandatory, first, alone): {len(kd_calib)} run | "
+              f"K={KEYANCHOR_DSTATE_CALIBRATION_K} seed={KEYANCHOR_DSTATE_CALIBRATION_SEED}")
+        print(f"  Gate-1-style probes, OPTIONAL, 1 per K: {len(kd_g1)} runs | not run by default "
+              f"(--include-dstate-gate1)")
+        print(f"  seed contingency, CONDITIONAL, +2 seeds per K (reserved blocks "
+              f"{KEYANCHOR_DSTATE_CONTINGENCY_SEEDS_BY_K}): not a manifest function in this build")
+        print(f"  sec 13.6 MECHANICAL DECISION TABLE (headroom H={KEYANCHOR_DSTATE_HEADROOM_GPUH:.2f} "
+              f"GPU-h): r<={KEYANCHOR_DSTATE_DECISION_THRESHOLDS['proceed_full']:.4f} -> PROCEED_FULL "
+              f"(12 cells); r<={KEYANCHOR_DSTATE_DECISION_THRESHOLDS['option_b']:.4f} -> OPTION_B "
+              f"(9 cells, K={KEYANCHOR_DSTATE_OPTION_B_KS}); "
+              f"r<={KEYANCHOR_DSTATE_DECISION_THRESHOLDS['option_c']:.4f} -> OPTION_C "
+              f"(6 cells, K={KEYANCHOR_DSTATE_OPTION_C_KS}); else -> ESCALATE")
+        assert len(kd_mand) == 12 and len(kd_g1) == 4 and len(kd_calib) == 1, \
+            f"keyanchor-dstate run counts drifted from their registered 12+4+1: " \
+            f"{len(kd_mand)}+{len(kd_g1)}+{len(kd_calib)}"
+        assert sorted(set(s["K"] for s in kd_mand)) == sorted(KEYANCHOR_DSTATE_KS), \
+            f"keyanchor-dstate mandatory manifest K's drifted: {sorted(set(s['K'] for s in kd_mand))}"
+        assert all(s["d_state"] == KEYANCHOR_DSTATE_D for s in kd_mand), \
+            "keyanchor-dstate mandatory manifest has a cell not at d_state=128"
+
+        print("\n" + "=" * 70)
         print(f"COMBINED (both waves, all-conditionals-max, using the RECONCILED "
               f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} base): "
               f"{KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED:.4f} + {KEYANCHOR_K48_GPUH_CEILING:.1f} "
@@ -2482,6 +2956,14 @@ def main():
 
     unblind_override_at = None
     ckpt_base_dir = None
+    # sec 13.6.1's abort rule needs the CURRENT (re-priced) bracket upper
+    # edge, not the pre-calibration sec 13.4 estimate -- set from the
+    # calibration cell's own realized rate once --dstate-stage full's own
+    # decision-table read exists (below); stays at the pre-calibration
+    # constant only for the --dstate-stage calibration cell itself (the
+    # cell whose OWN completion is what re-prices the bracket in the first
+    # place, so no re-priced bracket can exist yet when it completes).
+    dstate_abort_bracket_upper_gpuh = KEYANCHOR_DSTATE_GPUH_PER_CELL_PESSIMISTIC[1]
     if args.wave == "-1":
         manifest = wave_neg1_manifest()
     elif args.wave == "geo3":
@@ -2745,6 +3227,64 @@ def main():
               f"K={stage_ks}, 3 seeds each"
               f"{' + Gate-1 probes' if args.include_cliff_gate1 else ''}); "
               f"bands_gate={bands_gate} stage_gate={stage_gate_report}", flush=True)
+    elif args.wave == "keyanchor-dstate":
+        # sec 13's cliff-universality-across-d_state wave. REQUIRES
+        # --dstate-stage (sec 13.5's calibration-first discipline -- unlike
+        # keyanchor-cliff, there is NO prior same-d measurement to calibrate
+        # against at all, so 'calibration' must run and complete before
+        # 'full' can even determine which K-grid to launch). Same
+        # BANDS_PINNED reuse as keyanchor-cliff (candidate (d)'s own
+        # architecture/frame-potential init is UNCHANGED by d_state alone --
+        # d_state is threaded through the model's own d_state constructor
+        # arg, not a different anchor mechanism).
+        if args.dstate_stage is None:
+            print("ERROR: --wave keyanchor-dstate requires --dstate-stage calibration or "
+                  "--dstate-stage full (sec 13.5's calibration-first discipline -- the K=68/seed=530 "
+                  "cell must run and complete before 'full' can determine the K-grid).",
+                  file=sys.stderr)
+            sys.exit(1)
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        ref_out_dir = os.path.join(args.out_dir, "waveref")
+        bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
+        dstate_out_dir = os.path.join(args.out_dir, "wavekeyanchor-dstate")
+        stage_gate_report = keyanchor_dstate_stage_gate(dstate_out_dir, args.dstate_stage,
+                                                          args.accept_dstate_stage_override)
+        if args.dstate_stage == "calibration":
+            manifest = keyanchor_dstate_calibration_manifest()
+            print(f"wave keyanchor-dstate manifest: {len(manifest)} run (sec 13.5's SINGLE "
+                  f"calibration cell, K={KEYANCHOR_DSTATE_CALIBRATION_K}, "
+                  f"seed={KEYANCHOR_DSTATE_CALIBRATION_SEED}, d_state={KEYANCHOR_DSTATE_D}); "
+                  f"bands_gate={bands_gate}", flush=True)
+        else:
+            if stage_gate_report.get("gate_bypassed"):
+                print("WARNING: --dstate-stage full proceeding under --accept-dstate-stage-override "
+                      "with NO decision-table read (gate bypassed) -- launching the FULL registered "
+                      "K-grid as a documented, explicit fallback (no branch to route from).",
+                      flush=True)
+                stage_ks = KEYANCHOR_DSTATE_KS
+            else:
+                stage_ks = tuple(stage_gate_report["decision"]["ks"])
+                # sec 13.6.1 item 1: re-price the abort bracket off the
+                # calibration cell's OWN realized rate (never the
+                # pre-calibration sec 13.4 estimate) once a real decision
+                # exists to derive it from.
+                dstate_abort_bracket_upper_gpuh = stage_gate_report["decision"]["realized_rate_gpuh"]
+            manifest = keyanchor_dstate_manifest(Ks=stage_ks)
+            if args.include_dstate_gate1:
+                manifest = manifest + keyanchor_dstate_gate1_manifest(Ks=stage_ks)
+            ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-dstate"
+            disk_report = keyanchor_mech_disk_gate(ckpt_base_dir, manifest, label="keyanchor-dstate")
+            if not disk_report["ok"] and not args.accept_budget_override:
+                print(f"ERROR: DISK GATE (keyanchor-dstate) REFUSED -- "
+                      f"{disk_report['required_bytes'] / 1e6:.1f} MB required at "
+                      f"{disk_report['resolved_ckpt_dir']!r}, {disk_report['free_bytes'] / 1e9:.2f} GB "
+                      f"free. Free up space or pass --accept-budget-override.", file=sys.stderr)
+                sys.exit(1)
+            print(f"wave keyanchor-dstate manifest: {len(manifest)} runs (candidate (d), "
+                  f"d_state={KEYANCHOR_DSTATE_D}, K={stage_ks}, 3 seeds each"
+                  f"{' + Gate-1 probes' if args.include_dstate_gate1 else ''}); "
+                  f"bands_gate={bands_gate} stage_gate={stage_gate_report}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,
                                    args.calib_summary, args.accept_unconverged_rho)
@@ -2770,7 +3310,7 @@ def main():
     # same ABORTED.txt discipline as the pre-existing run_smoke gate below.
     if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1",
                       "keyanchor-mech", "keyanchor-k48-ref", "keyanchor-k48-gate1", "keyanchor-k48",
-                      "keyanchor-e", "keyanchor-cliff") and not args.skip_smoke:
+                      "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate") and not args.skip_smoke:
         rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
         if rc != 0:
             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -2778,7 +3318,8 @@ def main():
             print("ERROR: smoke_key_anchoring.py failed -- wave aborted.", file=sys.stderr)
             sys.exit(1)
         if args.wave in ("keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1", "keyanchor-mech",
-                          "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e", "keyanchor-cliff"):
+                          "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e", "keyanchor-cliff",
+                          "keyanchor-dstate"):
             rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
             if rc != 0:
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -2827,6 +3368,18 @@ def main():
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                     f.write("smoke_keyanchor_cliff.py FAILED (rc != 0); no training launched.\n")
                 print(f"ERROR: smoke_keyanchor_cliff.py failed -- {args.wave} wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+        if args.wave == "keyanchor-dstate":
+            # KEY_ANCHORING_DESIGN.md sec 13.3/13.9's own smoke suite
+            # (fla-free; d_state parameterization non-regression at d=64
+            # defaults, manifest shape at d=128, zero-collision, calibration/
+            # decision-table mechanics, read_wall_s_only's h4-blindness).
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_keyanchor_dstate.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("smoke_keyanchor_dstate.py FAILED (rc != 0); no training launched.\n")
+                print(f"ERROR: smoke_keyanchor_dstate.py failed -- {args.wave} wave aborted.",
                       file=sys.stderr)
                 sys.exit(1)
 
@@ -2914,6 +3467,21 @@ def main():
                                 pending.clear()
                                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                                     f.write(str(abort_exc) + "\n")
+                    # sec 13.6.1's mechanical, in-code abort rule -- keyanchor-
+                    # dstate ONLY. Reads THIS cell's own realized wall_s via
+                    # read_wall_s_only (sec 13.5's F9 blinding discipline
+                    # applies here too: the abort check never needs h4,
+                    # so there is no reason to load M3_held_out into scope
+                    # at all, not even incidentally).
+                    if args.wave == "keyanchor-dstate":
+                        wall_s = read_wall_s_only(out_path(out_dir, spec))
+                        try:
+                            keyanchor_dstate_check_abort(spec, wall_s, dstate_abort_bracket_upper_gpuh)
+                        except KeyanchorDstateAbort as abort_exc:
+                            print(f"  {abort_exc}", flush=True)
+                            pending.clear()
+                            with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                                f.write(str(abort_exc) + "\n")
                 else:
                     failed.append((spec["name"], rc))
             write_progress(out_dir, done_ct, len(failed), len(running), args.wave)

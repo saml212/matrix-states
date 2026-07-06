@@ -63,7 +63,8 @@ GATE2_SIGMA_RATIO_MIN = 0.1        # G2-a: sigma_64/sigma_1 >= 0.1 (raw table, t
 GATE2_MAX_COS_MAX = 0.5            # G2-b: max_{i!=j} |cos(A_i,A_j)| <= 0.5
 GATE2_RESID_TOL = 1e-2             # G2-c: NS admission tolerance (sec 14.10 item 2 semantics)
 GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20,
-                     34: 20, 38: 20, 42: 20, 46: 20}   # production tier per K (sec 16.3's own
+                     34: 20, 38: 20, 42: 20, 46: 20,
+                     68: 20, 76: 20, 84: 20, 92: 20}   # production tier per K (sec 16.3's own
                                                 # n_iter escalation; 48 added per KEY_ANCHORING_
                                                 # DESIGN.md sec 11.3 -- "NS at n_iter=12 lands at
                                                 # resid 0.104 > tol on realistic near-collinear
@@ -78,6 +79,29 @@ GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20,
                                                 # new K's (rel_change 20->24 == 0.000000 at every
                                                 # K, well under the 0.5% tolerance) -- n_iter=20 is
                                                 # verified sufficient, not merely assumed.
+                                                # 68/76/84/92 (d_state=128) added per sec 13.2/13.3
+                                                # item 5 (Rev 13.2): d=128 is a GENUINELY UNTESTED
+                                                # d, not a by-analogy extension -- keyanchor_dstate_
+                                                # niter_check.py measured rel_change 20->24 ==
+                                                # 0.000000 at ALL FOUR new K's (2026-07 build
+                                                # session), same as the d=64 K's above. n_iter=20 is
+                                                # therefore verified sufficient at d=128 too, though
+                                                # the underlying geometry differs sharply from d=64:
+                                                # at d=128 the pooled post-NS pairwise cosine is
+                                                # EXACTLY 1.000000 (mean AND p10) at every n_iter in
+                                                # {12,16,20,24} tested, not merely n_iter-invariant
+                                                # like the d=64 entries (which converge to a
+                                                # near-but-not-exactly-1 constant, e.g. 0.9344 at
+                                                # K=34) -- because n_entities=107 < d_state=128, the
+                                                # Welch coherence floor sqrt((n-d)/(d(n-1))) is
+                                                # NEGATIVE (degenerate/zero), i.e. a 107-row table CAN
+                                                # be made EXACTLY mutually orthogonal in a 128-dim
+                                                # space, so any K<=107 subset is already exactly
+                                                # orthonormal pre-NS and NS converges trivially at
+                                                # any n_iter -- a genuine geometric regime change
+                                                # from d=64 (where n_entities=107 > d_state=64 forces
+                                                # a nonzero coherence floor), not a bug or a
+                                                # coincidence.
 GATE2_N_SUBSETS = 512
 
 # sec 2.2's anchor-init recipe (the frozen frame-potential construction).
@@ -936,16 +960,31 @@ def compute_C_matrix(raw_keys: torch.Tensor, anchor_rows: torch.Tensor) -> torch
     return per_resample.mean(dim=-1)                          # (n,n) mean-of-cosines over resamples
 
 
-def pooled_null_check(off_diag: torch.Tensor, mean_tol: float = 0.03125,
-                        sd_range: tuple[float, float] = (0.100, 0.156)) -> dict:
+def pooled_null_check(off_diag: torch.Tensor, mean_tol: float | None = None,
+                        sd_range: tuple[float, float] | None = None,
+                        d_state: int = 64) -> dict:
     """sec 10.3.2's pooled decision rule: compare the null-pool's empirical
-    (mean, SD) against the analytic null's (0, sigma_chance=0.125). Both
-    tolerances are pre-committed, round, symmetric constants (0.25*sigma
-    and +/-25% of sigma) -- NOT tuned after seeing a number. `pass=True`
-    confirms the exact-Beta test (sec 10.3.1) as primary; `pass=False`
-    switches the primary result to the empirical permutation p-value
-    (sec 10.3.2), a decision this function reports but never makes for
-    the caller (mechanical, symmetric, exercised both ways by smoke 7)."""
+    (mean, SD) against the analytic null's (0, sigma_chance=1/sqrt(d_state)).
+    Both tolerances derive from the SAME pre-committed, round, symmetric
+    formulas (0.25*sigma and +/-~25% of sigma) -- NOT tuned after seeing a
+    number. sec 13 build-audit Finding 4 (2026-07-06): the tolerances were
+    previously HARDCODED at d=64's sigma=0.125 (mean_tol=0.03125,
+    sd_range=(0.100, 0.156)); at d=128 sigma=0.0884 sits BELOW the stale
+    0.100 floor, so every d=128 null pool would spuriously fail sd_ok and
+    silently switch engagement classification to the empirical fallback.
+    Now derived from d_state with the d=64 defaults reproduced EXACTLY at
+    d_state=64 (0.25*0.125=0.03125; the sd band keeps the original
+    registered endpoints' ratios 0.8*sigma and 1.248*sigma, giving the
+    identical (0.100, 0.156) at d=64). Explicit mean_tol/sd_range args
+    still override (smoke fixtures use this). `pass=True` confirms the
+    exact-Beta test (sec 10.3.1) as primary; `pass=False` switches the
+    primary result to the empirical permutation p-value (sec 10.3.2), a
+    decision this function reports but never makes for the caller."""
+    sigma = 1.0 / math.sqrt(d_state)
+    if mean_tol is None:
+        mean_tol = 0.25 * sigma
+    if sd_range is None:
+        sd_range = (0.8 * sigma, 1.248 * sigma)
     mean_v = off_diag.mean().item()
     sd_v = off_diag.std(unbiased=True).item()
     mean_ok = abs(mean_v) <= mean_tol
@@ -1076,7 +1115,11 @@ def measure_r_e_and_null_pool(model, cfg, pools, n_resamples, gen, device, pin_d
     r_e = C.diag().clone()
     eye = torch.eye(n, dtype=torch.bool, device=C.device)
     off_diag_all = C[~eye]
-    pooled = pooled_null_check(off_diag_all)
+    # sec 13 build-audit Finding 4: derive the tolerance band from the pin's
+    # own d_state (falls back to the anchor table's width -- both resolve to
+    # 64 for every pre-sec-13 caller, preserving prior behavior exactly).
+    _d_state = int((pin_derived.get("inputs") or {}).get("d_state") or anchor_rows.shape[-1])
+    pooled = pooled_null_check(off_diag_all, d_state=_d_state)
 
     row_means = (C.sum(dim=1) - C.diag()) / (n - 1)                   # m_e, excluding the diagonal
     hub = hub_detection_median_mad(row_means)

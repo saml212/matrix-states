@@ -186,7 +186,8 @@ POINT_SETS = {
 SEED_COUNTS = [3, 4, 5]
 
 
-def simulate_once(rng, new_ks, n_seeds_new, truth, include_anchors=True, noise_sd_multiplier=1.0):
+def simulate_once(rng, new_ks, n_seeds_new, truth, include_anchors=True, noise_sd_multiplier=1.0,
+                   d_state=D_STATE):
     """One synthetic replicate: draw noisy per-seed h4 at each K (archived
     K=32/K=48 anchors at their OWN archived seed count of 3, using their
     OWN measured relative noise; new K's at n_seeds_new seeds using the
@@ -199,7 +200,18 @@ def simulate_once(rng, new_ks, n_seeds_new, truth, include_anchors=True, noise_s
     so the whole noise MODEL shifts together rather than only the
     un-measured K's -- a check of whether the pooled 9.35% point estimate
     is doing silent work, not a claim that the archived anchors themselves
-    are mis-measured."""
+    are mis-measured.
+
+    d_state (sec 13.3 item 8, Rev 13.2, cliff-universality-across-d_state
+    build): the d used to convert new_ks into K/d ratios. Default 64
+    (byte-identical to the pre-generalization behavior). include_anchors is
+    ALREADY the mechanism for an anchor-free simulation (this function's
+    pre-existing parameter, unused by any caller before this build) -- the
+    d=128 registered power sim (sec 13.3 item 8's own required pre-launch
+    task) calls this with include_anchors=False, d_state=128, since NO
+    archived K=16/32/48-equivalent flanking point exists at d=128 (sec
+    13.2's own disclosure: 'the d=128 fit is a pure 4-point curve... with
+    NO flanking anchors on either side of the transition')."""
     xs, ys = [], []
 
     if include_anchors:
@@ -214,7 +226,7 @@ def simulate_once(rng, new_ks, n_seeds_new, truth, include_anchors=True, noise_s
             xs.append(ANCHOR_X[k]); ys.append(float(seeds.mean()))
 
     for k in new_ks:
-        x = k / D_STATE
+        x = k / d_state
         true_mean = sigmoid(x, truth["L"], truth["x0"], truth["w"])
         seeds = rng.normal(true_mean, POOLED_REL_SD * noise_sd_multiplier * max(true_mean, 1e-6), size=n_seeds_new)
         seeds = np.clip(seeds, 0.0, 1.0)
@@ -235,17 +247,23 @@ def simulate_once(rng, new_ks, n_seeds_new, truth, include_anchors=True, noise_s
         return None
 
 
-def bootstrap_ci_width(rng, new_ks, n_seeds_new, truth, n_trials, ci=0.95, noise_sd_multiplier=1.0):
+def bootstrap_ci_width(rng, new_ks, n_seeds_new, truth, n_trials, ci=0.95, noise_sd_multiplier=1.0,
+                        include_anchors=True, d_state=D_STATE):
     """Seed-level parametric bootstrap (finding 1a's registered method):
     repeat the noisy-draw-and-fit procedure n_trials times, report the
     (ci*100)% interval width of the resulting x0 distribution, plus the
     fraction of trials where the fit degenerated (did not converge /
     hit a bound) -- itself a required disclosure (finding 1a: "what
-    counts as a degenerate fit" must be pre-registered)."""
+    counts as a degenerate fit" must be pre-registered).
+
+    include_anchors/d_state (sec 13.3 item 8, Rev 13.2): threaded straight
+    through to simulate_once -- default include_anchors=True, d_state=64
+    reproduces the pre-generalization behavior byte-identically."""
     x0s = []
     n_degenerate = 0
     for _ in range(n_trials):
-        fit = simulate_once(rng, new_ks, n_seeds_new, truth, noise_sd_multiplier=noise_sd_multiplier)
+        fit = simulate_once(rng, new_ks, n_seeds_new, truth, include_anchors=include_anchors,
+                             noise_sd_multiplier=noise_sd_multiplier, d_state=d_state)
         if fit is None:
             n_degenerate += 1
             continue
@@ -374,6 +392,64 @@ def main():
     pessimistic_corner = [r for r in noise_sensitivity
                            if r["truth"] == "gradual_w15" and r["noise_sd_multiplier"] == 1.15]
 
+    # ---------------------------------------------------------------------
+    # KEY_ANCHORING_DESIGN.md sec 13.3 item 8 (Rev 13.2, cliff-universality-
+    # across-d_state build) -- the REGISTERED, MANDATORY pre-launch d=128
+    # anchor-free power sim. Unlike every sweep above (which is anchored --
+    # K=16 fixed + K=32/K=48 archived, at d=64), the d=128 fit has NO
+    # flanking anchor on either side of the transition (sec 13.2's own
+    # disclosure) -- so both the FULL 4-point grid (K=68,76,84,92) and the
+    # sec 13.6 Option-C 2-point grid (K=76,84) are simulated with
+    # include_anchors=False, d_state=128, using the SAME pooled 9.35%
+    # relative-noise estimate this file already measured off the d=64
+    # archives (sec 13.3 item 8's own registered instruction: "with the
+    # d=64-measured noise (pooled 9.35%, multiplier sweep)" -- no d=128
+    # noise measurement exists yet, so the d=64 estimate is reused AS THE
+    # BEST AVAILABLE PROXY, disclosed as such, not silently assumed
+    # identical). Swept across the SAME noise-multiplier bracket
+    # (NOISE_SD_MULTIPLIERS) and the SAME TRUTH_GRID as the d=64 sweeps
+    # above, so the two are directly comparable.
+    # ---------------------------------------------------------------------
+    D_STATE_128 = 128
+    DSTATE_FULL_4PT_KS = [68, 76, 84, 92]     # sec 13.2's full K-grid
+    DSTATE_OPTION_C_2PT_KS = [76, 84]         # sec 13.6 Option C's own registered 2-point choice
+    DSTATE_SEED_COUNTS = [3]                  # sec 13.2's registered seed count (3/K), not swept here
+    dstate_results = []
+    for point_set_name, ks in (("dstate_full_4pt_68_76_84_92", DSTATE_FULL_4PT_KS),
+                                ("dstate_optionC_2pt_76_84", DSTATE_OPTION_C_2PT_KS)):
+        for n_seeds in DSTATE_SEED_COUNTS:
+            for mult in NOISE_SD_MULTIPLIERS:
+                for truth in TRUTH_GRID:
+                    r = bootstrap_ci_width(rng, ks, n_seeds, truth, args.n_trials,
+                                            noise_sd_multiplier=mult, include_anchors=False,
+                                            d_state=D_STATE_128)
+                    dstate_results.append({
+                        "point_set": point_set_name, "ks": ks, "n_seeds_new": n_seeds,
+                        "d_state": D_STATE_128, "anchored": False,
+                        "truth": truth["name"], "true_x0": truth["x0"], "true_w": truth["w"],
+                        "noise_sd_multiplier": mult,
+                        "mandatory_cells": len(ks) * n_seeds,
+                        **r,
+                    })
+    # Summary at the REGISTERED noise multiplier (1.0) only, for the direct
+    # "is Option C viable" read sec 13.6 needs -- averaged/maxed across the
+    # full truth grid, same discipline as summary_by_point_set above.
+    dstate_summary = {}
+    for point_set_name, ks in (("dstate_full_4pt_68_76_84_92", DSTATE_FULL_4PT_KS),
+                                ("dstate_optionC_2pt_76_84", DSTATE_OPTION_C_2PT_KS)):
+        widths = [r["ci_width"] for r in dstate_results
+                  if r["point_set"] == point_set_name and r["noise_sd_multiplier"] == 1.0
+                  and r["ci_width"] is not None]
+        degenerate_fracs = [r["degenerate_frac"] for r in dstate_results
+                             if r["point_set"] == point_set_name and r["noise_sd_multiplier"] == 1.0]
+        dstate_summary[point_set_name] = {
+            "n_ks": len(ks), "ks": ks,
+            "mean_ci_width_across_truths": float(np.mean(widths)) if widths else None,
+            "max_ci_width_across_truths": float(np.max(widths)) if widths else None,
+            "max_degenerate_frac_across_truths": float(np.max(degenerate_fracs)) if degenerate_fracs else None,
+            "any_degenerate_frac_exceeds_10pct": bool(any(d > 0.10 for d in degenerate_fracs)),
+        }
+
     out = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "script": "sim_cliff_power.py",
@@ -397,6 +473,24 @@ def main():
         "noise_sensitivity_registered_config": noise_sensitivity,
         "boundary_truth_report_registered_config": boundary_report,
         "pessimistic_corner_registered_config": pessimistic_corner,
+        # sec 13.3 item 8 (Rev 13.2): the d=128 anchor-free power sim --
+        # full 4-point grid (K=68,76,84,92) AND the sec 13.6 Option-C
+        # 2-point grid (K=76,84), both include_anchors=False, d_state=128,
+        # reusing this file's own d=64-measured pooled relative noise
+        # (POOLED_REL_SD) as the best available proxy (no d=128 noise
+        # measurement exists).
+        "dstate_d128_anchor_free": {
+            "d_state": D_STATE_128,
+            "point_sets": {"dstate_full_4pt_68_76_84_92": DSTATE_FULL_4PT_KS,
+                            "dstate_optionC_2pt_76_84": DSTATE_OPTION_C_2PT_KS},
+            "seed_counts_swept": DSTATE_SEED_COUNTS,
+            "noise_proxy_disclosure": "reuses this file's own d=64-measured POOLED_REL_SD "
+                                       f"({POOLED_REL_SD:.4f}), swept by NOISE_SD_MULTIPLIERS -- no "
+                                       "d=128 noise measurement exists yet; this is the best "
+                                       "available proxy, disclosed, not assumed identical.",
+            "results_full_grid": dstate_results,
+            "summary_by_point_set": dstate_summary,
+        },
         "wall_s": time.time() - t0,
     }
 
@@ -422,6 +516,17 @@ def main():
     print("Pessimistic noise corner (gradual_w15 truth, multiplier=1.15):")
     for r in pessimistic_corner:
         print(f"  ci_width={r['ci_width']} degenerate_frac={r['degenerate_frac']:.4f}")
+
+    print()
+    print("sec 13.3 item 8 (Rev 13.2): d=128 ANCHOR-FREE power sim (K/d matched to sec 12.2, "
+          "d=64-measured noise reused as proxy) -- registered noise multiplier=1.0 summary:")
+    for point_set_name, s in dstate_summary.items():
+        print(f"  {point_set_name:32s} n_ks={s['n_ks']} ks={s['ks']} "
+              f"mean_ci_width={s['mean_ci_width_across_truths']} "
+              f"max_ci_width={s['max_ci_width_across_truths']} "
+              f"max_degenerate_frac={s['max_degenerate_frac_across_truths']} "
+              f"({'EXCEEDS' if s['any_degenerate_frac_exceeds_10pct'] else 'within'} the 10% bar "
+              f"at some truth)")
 
 
 if __name__ == "__main__":

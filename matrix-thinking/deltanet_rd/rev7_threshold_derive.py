@@ -287,9 +287,28 @@ def main() -> None:
     default_out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                "REV7_THRESHOLD_PINNED.json")
     ap.add_argument("--out", default=default_out)
+    # KEY_ANCHORING_DESIGN.md sec 13.2 (Rev 13.2, round-2 verify finding 6,
+    # REQUIRED): this script had NO --d-state CLI flag at all before this
+    # build -- main() called derive() with zero arguments, silently
+    # resolving to the module default D_STATE=64 regardless of --out's own
+    # filename. The registered d=128 pin command (sec 13.2:
+    # `rev7_threshold_derive.py --d-state 128 --out
+    # REV7_THRESHOLD_PINNED_D128.json`) would therefore have written
+    # d=64-derived content into a file NAMED "_D128" -- exactly the
+    # silent-mismatch failure the design's own byte-identical/byte-
+    # different smoke discipline exists to catch. This flag is the fix;
+    # `derive()` itself already accepted d_state as a free argument before
+    # this build (verified, sec 13.2's own citation of
+    # key_anchoring.validate_rev7_pin's programmatic derive(d_state=...)
+    # call) -- only the CLI plumbing was missing.
+    ap.add_argument("--d-state", type=int, default=D_STATE,
+                     help="sec 13.2: the d_state derive() computes its Beta-shape/sigma_chance/"
+                          "r_min_partial fields at. Default 64 (this script's own historical "
+                          "module constant, D_STATE) -- BYTE-IDENTICAL to every pre-existing "
+                          "zero-arg call site when this flag is omitted.")
     args = ap.parse_args()
 
-    derived = derive()
+    derived = derive(d_state=args.d_state)
     with open(os.path.abspath(__file__), "rb") as f:
         script_sha = hashlib.sha256(f.read()).hexdigest()
 

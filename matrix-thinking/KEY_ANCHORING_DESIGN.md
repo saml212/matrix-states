@@ -7607,13 +7607,22 @@ estimate, which does not exist yet either, §13.7 R1).
 points, mirroring §12.2.3's own Stage-1 choice of K=38/K=42 at d=64: here
 K=76, K=84, at K/d=0.59375/0.65625), 3 seeds each.** 6 mandatory cells.
 Pessimistic: 6 × 7.76 = 46.6 GPU-h — still does not fit. Optimistic:
-6 × 0.2616 × 1.264 × 2 ≈ 3.97 GPU-h — fits comfortably. **This sacrifices
-the ability to characterize `w` (width) as precisely (2 interior points
-give less width information than 4 spread points, per the same logic
-§12.4a's point-set table already established for d=64) but preserves the
-core CONFIRM-UNIVERSAL/CONFIRM-SHIFTED comparison on `x0` reasonably
-well** since x0 is primarily constrained by points straddling the
-transition, which 2 well-chosen interior points still do.
+6 × 0.2616 × 1.264 × 2 ≈ 3.97 GPU-h — fits comfortably. **CORRECTED BY THE EXECUTED BUILD-STAGE POWER SIM (Rev 13.3, 2026-07-06;
+supersedes this option's original prose):** the registered d=128
+anchor-free simulation (sim_cliff_power.py, 500-trial grid; structural
+result, not sampling noise) found the 2-point anchor-free fit is
+**100% DEGENERATE at every simulated truth** — two points cannot
+constrain a 3-parameter sigmoid with no flanking anchors, so Option C's
+CI(x0) would be UNREPORTABLE, not merely "weaker" as originally
+speculated here. (The d=64 Stage-1 precedent this option mirrored had
+archived K16/K32/K48 anchors; d=128 has none.) **Option C is therefore
+DEAD as a fit-bearing scope**: if the §13.6 mechanical decision table's
+realized-rate branch routes below the 9-cell threshold, the honest
+choices are Option-C-as-descriptive-only (report the 2 K-points' h4
+values with no x0 fit — a data contribution, not a universality verdict)
+or escalation via the ceiling amendment. The full 4-point grid remains
+informative (executed sim: CI(x0) width 0.017–0.19 across truth widths,
+degenerate ≤0.2%).
 
 **None of A/B/C fit the PESSIMISTIC (2×-contingency) bracket under the
 4×-recurrence-dominant cost hypothesis — only the OPTIMISTIC realized-rate
@@ -8002,3 +8011,35 @@ entry:
 §13.3 task list incl. the two tasks added by this entry, then an
 independent build audit, then the K=68 calibration cell under the
 §13.6 mechanical decision table).
+
+### 13.9.2 REVISION LOG — Rev 13.3 (2026-07-06), build-stage findings folded in
+
+- **Canonical seed blocks registered** (chosen at build, zero-collision
+  verified by full-repo grep): K=68 {530,531,532}, K=76 {630,631,632},
+  K=84 {730,731,732}, K=92 {830,831,832}; contingency {533,534}/{633,
+  634}/{733,734}/{833,834}; Gate-1 probes {535,635,735,835}. Calibration
+  cell = K=68 seed 530.
+- **Option C corrected to DEAD-as-fit-bearing** (§13.6): the executed
+  d=128 anchor-free power sim found the 2-point fit 100% degenerate at
+  every truth — descriptive-only or escalate. The 4-point grid is
+  informative (CI(x0) 0.017–0.19, degenerate ≤0.2%).
+- **First real Gate-2 data at d=128: ALL LEGS PASS** (G2-a 1.000000,
+  G2-b max|cos| = 0.000000 — the 107-entity table is EXACTLY orthogonal
+  at d=128 since n_entities < d_state; G2-c 0/512 fallbacks, residuals
+  ≤1.44e-06 at all four K's). DISCLOSED COMPARISON AXIS: the d=64 curve
+  was measured with a non-orthogonal table (max|cos| 0.284, coherence
+  floor binds at 107 > 64) while d=128's table is exact — this is a
+  CONSEQUENCE of d (more room), inherent to what "varying d" means here,
+  not an independently-varied axis; but any x0 shift must be interpreted
+  with this construction-regime change in view, and the independent
+  build audit + any verdict section must carry this disclosure.
+- **n_iter at d=128:** converged at every K and every n_iter ∈ {12..24}
+  (exact-orthogonality makes NS a no-op); n_iter=20 registered for
+  consistency.
+- **d=128 threshold pin executed:** sigma_chance=0.08838834764831843
+  (=1/√128 exact), r_min_partial=0.176777, derived block byte-DIFFERENT
+  from the d=64 pin. REV7_THRESHOLD_PINNED_D128.json committed alongside.
+- **is_done() field note:** the d_state identity cross-check reads the
+  result JSON's TOP-LEVEL d_state field (where _assemble_result writes
+  it), not exactness_config — the design's item 2 left the field
+  unspecified; recorded here as the implemented convention.

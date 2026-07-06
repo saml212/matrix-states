@@ -273,9 +273,13 @@ def smoke_6_zero_collision():
 
 
 def smoke_7_gate2_n_iter_by_k_extended():
-    expected = {16: 12, 32: 20, 48: 20, 34: 20, 38: 20, 42: 20, 46: 20}
-    ok = ka.GATE2_N_ITER_BY_K == expected
-    print(f"    GATE2_N_ITER_BY_K={ka.GATE2_N_ITER_BY_K} (expect {expected})")
+    # Subset check, not exact-dict equality: later waves legitimately extend
+    # this dict (sec 13 added {68,76,84,92} and broke the original exact
+    # assertion -- build-audit Finding 1). THIS wave's requirement is only
+    # that its own keys are present with the registered tier.
+    required = {16: 12, 32: 20, 48: 20, 34: 20, 38: 20, 42: 20, 46: 20}
+    ok = all(ka.GATE2_N_ITER_BY_K.get(k) == v for k, v in required.items())
+    print(f"    GATE2_N_ITER_BY_K={ka.GATE2_N_ITER_BY_K} (require superset of {required})")
     _report("smoke 7: GATE2_N_ITER_BY_K extended with {34:20, 38:20, 42:20, 46:20} (sec 12.2.1)", ok)
 
 
