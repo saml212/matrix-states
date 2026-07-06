@@ -91,6 +91,10 @@ from fla.ops.delta_rule import chunk_delta_rule
 from model_rd import (_MIN_KERNEL_T, _SAFE_D_STATE, _polar_via_eigh,
                        newton_schulz_orthogonalize)
 from rank_utils import effective_rank, stable_rank
+from key_anchoring import random_unit_rows_init, ANCHOR_INIT_SEED    # FROZEN_BIAS_LM_DESIGN.md sec 2:
+                                                                       # candidate (e)'s own frozen-random
+                                                                       # table construction, reused
+                                                                       # unmodified (never reimplemented).
 from hard_selectivity_rd import (
     hard_topk_beta_mask, apply_hard_select_ste, chunk_sparsemax_beta,
     soft_topk_comparator_beta, tau_schedule, random_topk_mask,
@@ -163,6 +167,85 @@ _MAX_N_LAYERS = 24
 # sample_state_rank_stats's docstring for the document-alignment behavior
 # (AUDIT FIX-3: windows start at document starts, truncation logged).
 RANK_SAMPLE_FRACS = (0.25, 0.5, 0.75, 1.0)
+
+# ---------------------------------------------------------------------------
+# FROZEN_BIAS_LM_DESIGN.md sec 2/sec 5: a NEW, minimal hook, independent of
+# geo3_active/hard_select_active/model_rd.py's anchor_active (that path's own
+# "anchor_active REQUIRES geo3_active" assert, model_rd.py ~line 812, is
+# LEFT UNTOUCHED -- this is a genuinely separate code path in a different
+# model class, not a reuse or a weakening of that testbed's own guard).
+#
+#   k_biased = normalize((1 - lambda) * k_raw + lambda * B[token_id])   [Arm 2, "per_token"]
+#   k_biased = normalize((1 - lambda) * k_raw + lambda * b_global)      [Arm 2', "global"]
+#
+# applied to EVERY token position, densely, no selection/gather-scatter, no
+# Newton-Schulz -- sec 2's own "this construction never calls Newton-Schulz
+# and never gathers a subset by beta magnitude" claim, mirrored here by
+# construction (no geo3_last_diag-style subset machinery exists in this
+# block at all). Inserted at the sec-2-registered point: AFTER
+# k_conv1d(k_proj(x)) (the raw post-conv key -- the SAME tensor
+# lm_attractor_probe_rd.py's capture_raw_keys hooks non-invasively, so that
+# probe continues to observe the PRE-bias key unmodified, matching sec
+# 4.a-i's "no blend present" co-primary requirement by construction), BEFORE
+# the kernel-boundary bf16 cast / chunk_delta_rule call.
+FROZEN_BIAS_ARM_MODES = ("off", "per_token", "global")
+FROZEN_BIAS_LAMBDA_PRIMARY = 0.58   # sec 5, Arm 2's registered fixed value (sec 10.13.4's cross-cell mean)
+
+
+def build_frozen_bias_table(vocab_size: int, d_state: int, seed: int = ANCHOR_INIT_SEED) -> torch.Tensor:
+    """sec 2/sec 5, Arm 2's table: `key_anchoring.random_unit_rows_init(n=vocab_size, d=d_state,
+    seed=ANCHOR_INIT_SEED)` -- candidate (e)'s own frozen-random construction (seeded random unit
+    rows, NO frame-potential optimization), extended from the ~107-row trained-entity table to the
+    FULL GPT-2 vocabulary (every token gets a frozen random unit-row bias, not just a closed
+    entity set). Reused unmodified, not reimplemented -- the ONE call site both Arm 2's live
+    training-mode blend and Arm 1'/1'''s eval-only retrofit blend must construct this table from
+    (sec 8.0b's own "same B buffer instance" requirement -- callers are responsible for passing
+    the SAME in-memory tensor to both code paths when byte-identity matters, e.g. a cached
+    checkpoint attribute, not two independent calls to this function)."""
+    return random_unit_rows_init(vocab_size, d_state, seed)
+
+
+def frozen_bias_global_vector(table: torch.Tensor) -> torch.Tensor:
+    """sec 5, Arm 2''s own construction: `b_global = normalize(mean_i B[i])` -- the SAME frozen
+    table's row-mean, re-normalized to a unit vector. Derived ONCE from `table` (never trained,
+    never re-derived from a different table instance) -- callers needing byte-identical Arm-2'
+    live/retrofit comparisons must derive this from the SAME `table` object both code paths share
+    (mirrors build_frozen_bias_table's own same-buffer discipline)."""
+    return F.normalize(table.mean(dim=0), dim=-1)
+
+
+def apply_frozen_bias_blend(k_raw: torch.Tensor, token_ids: torch.Tensor, arm_mode: str,
+                             table: torch.Tensor | None, global_vec: torch.Tensor | None,
+                             lam: float) -> torch.Tensor:
+    """THE hook's own arithmetic, sec 2's registered formula, shared by BOTH the live training-mode
+    call site (DeltaNetLMMixer.forward, below) and every eval-only retrofit call site (Arm 1'/1'',
+    lm_attractor_probe_rd.py-style tooling) -- ONE function, never two hand-copied twins, so
+    sec 8.0b's code-path-equality claim ("Arm 2's live blend and Arm 1''s retrofit blend are
+    byte-identical arithmetic") is true by construction (same Python function object), not merely
+    by convention.
+
+    k_raw: (B,T,d_state) post-conv, pre-kernel-boundary key (this program's own insertion point,
+    sec 2 -- NOT the same tensor model_rd.py's anchor path touches). token_ids: (B,T) int64, only
+    read when arm_mode=="per_token". arm_mode: one of FROZEN_BIAS_ARM_MODES ("off" returns k_raw
+    UNCHANGED -- byte-identical to the pre-hook code path, mirroring geo3_active/hard_select_
+    active's own off-by-default regression discipline). lam: python float or 0-dim tensor in
+    [0,1]."""
+    if arm_mode == "off":
+        return k_raw
+    if arm_mode == "per_token":
+        assert table is not None, "arm_mode='per_token' requires `table` (the frozen (vocab,d) buffer)"
+        assert token_ids is not None, "arm_mode='per_token' requires token_ids (B,T) to index `table`"
+        assert token_ids.shape == k_raw.shape[:2], (
+            f"token_ids shape {tuple(token_ids.shape)} != k_raw's (B,T)={tuple(k_raw.shape[:2])}")
+        bias = table[token_ids]                              # (B,T,d_state), per-token lookup
+    elif arm_mode == "global":
+        assert global_vec is not None, "arm_mode='global' requires `global_vec` (the derived (d,) vector)"
+        bias = global_vec.view(1, 1, -1)                     # broadcasts to (B,T,d_state)
+    else:
+        raise ValueError(f"arm_mode={arm_mode!r} not in {FROZEN_BIAS_ARM_MODES}")
+    mixed = (1.0 - lam) * k_raw + lam * bias
+    return F.normalize(mixed, dim=-1)
+
 
 # ---------------------------------------------------------------------------
 # Track B / geo3-in-LM (SCALE_TRANSFER_DESIGN.md sec 4): per-chunk, beta-gated
@@ -507,7 +590,9 @@ class DeltaNetLMMixer(nn.Module):
                  hard_select_b_pinned: float | None = None, hard_select_seed: int = 0,
                  hard_select_tau_total_steps: int | None = None,
                  hard_select_tau_anneal_frac: float = 0.10,
-                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
+                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
+                 frozen_bias_arm: str = "off", frozen_bias_lambda: float = FROZEN_BIAS_LAMBDA_PRIMARY,
+                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED):
         """geo3_* (SCALE_TRANSFER_DESIGN.md sec 4, Track B): OFF by default
         (geo3_active=False) -- when off, none of this __init__'s new
         parameters are read anywhere in forward(), and forward()'s default
@@ -545,7 +630,31 @@ class DeltaNetLMMixer(nn.Module):
         geo3_active's own num_heads==1 untested-at-scope discipline):
         hard_select_k_sel MUST equal geo3_k_sel, and geo3's OWN
         beta_topk/naive_window selection is REPLACED by the mask's own
-        selected set (a single selection source, never a double-selection)."""
+        selected set (a single selection source, never a double-selection).
+
+        frozen_bias_* (FROZEN_BIAS_LM_DESIGN.md sec 2/sec 5): a THIRD,
+        INDEPENDENT axis from geo3_active/hard_select_active -- freely
+        composable with either (or neither), never asserted mutually
+        exclusive, since the hook touches only the post-conv key BEFORE
+        geo3/hard-select's own chunk-tiled selection logic runs (this
+        program's own registered scope never exercises that composition,
+        but nothing here forbids it). OFF by default (frozen_bias_arm="off")
+        -- when off, forward()'s code path is BYTE-IDENTICAL to the
+        pre-frozen-bias code (smoke-regression-checked, mirroring geo3/
+        hard-select's own off-by-default convention). frozen_bias_arm:
+        "off" | "per_token" (Arm 2) | "global" (Arm 2'). frozen_bias_lambda:
+        the FIXED python float blend weight (sec 5: 0.58 primary, {0.3,0.8}
+        mini-sweep brackets) -- NOT an nn.Parameter in this program's
+        primary arms (Arm 3's optional learned-lambda variant is NOT built
+        this wave, per the design's own cut-first-if-tight registration).
+        frozen_bias_vocab_size: REQUIRED when frozen_bias_arm != "off" (the
+        frozen table's row count -- must equal the model's own vocab_size;
+        threaded explicitly rather than inferred, so a caller cannot
+        silently build a wrong-sized table). frozen_bias_seed: ANCHOR_INIT_
+        SEED by default (sec 5's registered construction seed) -- exposed
+        so Arm 1'/1'' eval-only retrofits and the Wave -1 code-path-equality
+        smoke can force the SAME seed a checkpoint's own training-time table
+        used, never silently redrawing a different table."""
         super().__init__()
         assert d_state % num_heads == 0, \
             f"d_state={d_state} must be divisible by num_heads={num_heads}"
@@ -602,6 +711,13 @@ class DeltaNetLMMixer(nn.Module):
                     f"geo3_chunk_size={geo3_chunk_size} when composing with geo3 (M6) -- both "
                     f"selections must tile the sequence identically."
                 )
+        assert frozen_bias_arm in FROZEN_BIAS_ARM_MODES, (
+            f"frozen_bias_arm={frozen_bias_arm!r} must be one of {FROZEN_BIAS_ARM_MODES}")
+        if frozen_bias_arm != "off":
+            assert frozen_bias_vocab_size is not None, (
+                "frozen_bias_arm != 'off' requires frozen_bias_vocab_size (the frozen table's row "
+                "count) -- never silently inferred, so a caller cannot build a wrong-sized table.")
+            assert 0.0 <= frozen_bias_lambda <= 1.0, f"frozen_bias_lambda={frozen_bias_lambda} outside [0,1]"
         self.hard_select_active = hard_select_active
         self.hard_select_mechanism = hard_select_mechanism
         self.hard_select_k_sel = hard_select_k_sel
@@ -612,6 +728,41 @@ class DeltaNetLMMixer(nn.Module):
         self.hard_select_tau_anneal_frac = hard_select_tau_anneal_frac
         self.hard_select_excluded_token_ids = tuple(hard_select_excluded_token_ids)
         self.hard_select_last_diag: dict | None = None   # mirrors geo3_last_diag's side-channel convention
+
+        # FROZEN_BIAS_LM_DESIGN.md sec 2/sec 5: the frozen (never-trained) bias table/vector.
+        # requires_grad_(False) + registered as a BUFFER (not a Parameter) -- never appears in
+        # model.parameters(), never receives a gradient, never enters AdamW's optimizer state
+        # (sec 5.1's param-matching convention: "match on TRAINABLE parameter count"). Constructed
+        # ONCE at __init__ time from frozen_bias_seed -- every layer of a multi-layer model gets
+        # its OWN table instance (sec 5 does not register any cross-layer table sharing; each
+        # mixer is independently seeded from the SAME frozen_bias_seed, so per-layer tables are
+        # IDENTICAL in content across layers of one model -- deliberate, matches how geo3_active's
+        # own per-layer independent config threading already works in this codebase).
+        self.frozen_bias_arm = frozen_bias_arm
+        self.frozen_bias_lambda = float(frozen_bias_lambda)
+        self.frozen_bias_vocab_size = frozen_bias_vocab_size
+        self.frozen_bias_seed = frozen_bias_seed
+        self.last_k_biased: torch.Tensor | None = None    # sec 8.0's post-blend side channel --
+                                                            # stashed EVERY forward() call while
+                                                            # frozen_bias_arm != "off", mirroring
+                                                            # anchor_last_k_blend_raw's own convention.
+        if frozen_bias_arm == "per_token":
+            table = build_frozen_bias_table(frozen_bias_vocab_size, d_state, seed=frozen_bias_seed)
+            self.register_buffer("frozen_bias_table", table)
+            self.frozen_bias_table.requires_grad_(False)
+            self.frozen_bias_global_vec = None
+        elif frozen_bias_arm == "global":
+            table = build_frozen_bias_table(frozen_bias_vocab_size, d_state, seed=frozen_bias_seed)
+            global_vec = frozen_bias_global_vector(table)
+            # sec 5.1: Arm 2' never materializes the full (vocab,d) table as a live buffer -- only
+            # the one derived (d,) vector -- a smaller footprint than Arm 2 despite sharing the
+            # same source construction.
+            self.register_buffer("frozen_bias_global_vec", global_vec)
+            self.frozen_bias_global_vec.requires_grad_(False)
+            self.frozen_bias_table = None
+        else:
+            self.frozen_bias_table = None
+            self.frozen_bias_global_vec = None
         # AUDIT FIX (independent audit 2026-07-04, F2): read-only implicit-selection probe for the
         # UNMASKED reference pilot (sec 4.3's churn Null A / TV-ceiling data source). When set (an
         # int K_sel, via main()'s --trackb-selection-probe -- post-construction, never a
@@ -686,6 +837,34 @@ class DeltaNetLMMixer(nn.Module):
         q, _ = self.q_conv1d(self.q_proj(x))
         k, _ = self.k_conv1d(self.k_proj(x))
         v, _ = self.v_conv1d(self.v_proj(x))
+
+        # FROZEN_BIAS_LM_DESIGN.md sec 2's registered insertion point: "applied directly to every
+        # token's key in DeltaNetLMMixer.forward, where B is a frozen ... table ... applied to
+        # every token position". Deliberately BEFORE the (B,T,H,head_dim) reshape below (unlike
+        # geo3_active's own insertion point, which needs the per-head axis for its Newton-Schulz
+        # solve) -- this hook's own table is (vocab_size, d_state)-shaped (sec 2/sec 5, ONE lookup
+        # per token, not per head), so blending here, on the (B,T,d_state) tensor lm_attractor_
+        # probe_rd.py's capture_raw_keys ALSO hooks (k_conv1d's own output), is the natural site:
+        # that probe's existing hook therefore continues to observe the PRE-bias key completely
+        # unmodified regardless of frozen_bias_arm (sec 4.a-i's co-primary requirement, satisfied
+        # by construction, not by a special-case skip). OFF by default (frozen_bias_arm="off"):
+        # this entire block reduces to apply_frozen_bias_blend's own no-op branch, byte-identical
+        # to the pre-frozen-bias code path (mirrors geo3_active/hard_select_active's own
+        # off-by-default regression discipline, smoke item [6]-style).
+        if self.frozen_bias_arm != "off":
+            k = apply_frozen_bias_blend(
+                k, token_ids, self.frozen_bias_arm, self.frozen_bias_table,
+                self.frozen_bias_global_vec, self.frozen_bias_lambda)
+            # sec 8.0's side-channel: the ACTUAL post-blend key this forward call fed onward, for
+            # the Wave -1 probe-observed-keys-vs-model-internal assertion. `.clone()`, not merely
+            # `.detach()` -- `k` is reshaped (a VIEW, sharing storage) two lines below and is about
+            # to be cast to bf16 for the kernel boundary; a detached-but-storage-sharing reference
+            # here would risk this diagnostic snapshot reflecting whatever a LATER in-place op
+            # (present or future) does to that shared storage, rather than the value at THIS
+            # exact point in the forward pass -- caught live, this build session (smoke_frozen_
+            # bias_wave_neg1.py's own smoke A/B reproducibly showed a 1-ULP divergence between
+            # this side channel and an independently-recomputed blend before this fix).
+            self.last_k_biased = k.detach().clone()
 
         # Track B / geo3-in-LM (SCALE_TRANSFER_DESIGN.md sec 4.3's insertion point) AND the
         # hard-selectivity wave (TRACKB_REDESIGN.md Rev 3) share ONE content_mask -- computed
@@ -826,7 +1005,9 @@ class DeltaNetLMBlock(nn.Module):
                  hard_select_b_pinned: float | None = None, hard_select_seed: int = 0,
                  hard_select_tau_total_steps: int | None = None,
                  hard_select_tau_anneal_frac: float = 0.10,
-                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
+                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
+                 frozen_bias_arm: str = "off", frozen_bias_lambda: float = FROZEN_BIAS_LAMBDA_PRIMARY,
+                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED):
         super().__init__()
         self.norm1 = RMSNorm(d_model, eps=1e-5)
         self.mixer = DeltaNetLMMixer(
@@ -840,7 +1021,9 @@ class DeltaNetLMBlock(nn.Module):
             hard_select_b_pinned=hard_select_b_pinned, hard_select_seed=hard_select_seed,
             hard_select_tau_total_steps=hard_select_tau_total_steps,
             hard_select_tau_anneal_frac=hard_select_tau_anneal_frac,
-            hard_select_excluded_token_ids=hard_select_excluded_token_ids)
+            hard_select_excluded_token_ids=hard_select_excluded_token_ids,
+            frozen_bias_arm=frozen_bias_arm, frozen_bias_lambda=frozen_bias_lambda,
+            frozen_bias_vocab_size=frozen_bias_vocab_size, frozen_bias_seed=frozen_bias_seed)
         self.norm2 = RMSNorm(d_model, eps=1e-5)
         self.ffn = FFN(d_model, mult=ffn_mult)
 
@@ -888,7 +1071,9 @@ class DeltaNetLM(nn.Module):
                  hard_select_b_pinned: float | None = None, hard_select_seed: int = 0,
                  hard_select_tau_total_steps: int | None = None,
                  hard_select_tau_anneal_frac: float = 0.10,
-                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,)):
+                 hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
+                 frozen_bias_arm: str = "off", frozen_bias_lambda: float = FROZEN_BIAS_LAMBDA_PRIMARY,
+                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED):
         """geo3_* (SCALE_TRANSFER_DESIGN.md sec 4, Track B): threaded to EVERY
         block/mixer uniformly (this build does not support a per-layer geo3
         toggle -- out of sec 4's scope). OFF by default everywhere -- the
@@ -896,8 +1081,19 @@ class DeltaNetLM(nn.Module):
         pre-Track-B code (smoke item [6]). hard_select_* (TRACKB_REDESIGN.md
         Rev 3): same uniform-per-layer threading, same off-by-default
         discipline -- see DeltaNetLMMixer.__init__'s own docstring for the
-        full mechanism contract."""
+        full mechanism contract.
+
+        frozen_bias_* (FROZEN_BIAS_LM_DESIGN.md sec 2/sec 5): same uniform
+        per-layer threading, same off-by-default discipline. frozen_bias_
+        vocab_size defaults to THIS model's own `vocab_size` when None (the
+        overwhelmingly common case -- the frozen table's row count almost
+        always matches the model's own vocabulary); passing a different
+        value is supported (never silently overridden) for the rare case a
+        caller deliberately wants a mismatched table, but no registered arm
+        in this program's manifest ever does that."""
         super().__init__()
+        if frozen_bias_arm != "off" and frozen_bias_vocab_size is None:
+            frozen_bias_vocab_size = vocab_size
         assert 1 <= n_layers <= _MAX_N_LAYERS, (
             f"n_layers={n_layers} outside the registered range [1,{_MAX_N_LAYERS}] -- "
             f"SCALE_TRANSFER_DESIGN.md sec 5.3's ladder tops out at rung 3's n_layers=22; "
@@ -927,6 +1123,10 @@ class DeltaNetLM(nn.Module):
         self.hard_select_tau_total_steps = hard_select_tau_total_steps
         self.hard_select_tau_anneal_frac = hard_select_tau_anneal_frac
         self.hard_select_excluded_token_ids = tuple(hard_select_excluded_token_ids)
+        self.frozen_bias_arm = frozen_bias_arm
+        self.frozen_bias_lambda = float(frozen_bias_lambda)
+        self.frozen_bias_vocab_size = frozen_bias_vocab_size
+        self.frozen_bias_seed = frozen_bias_seed
 
         self.embed = nn.Embedding(vocab_size, d_model)
         # AUDIT FIX-2 (2026-07-03): nn.Embedding's PyTorch default init is
@@ -947,7 +1147,9 @@ class DeltaNetLM(nn.Module):
                 hard_select_b_pinned=hard_select_b_pinned, hard_select_seed=hard_select_seed,
                 hard_select_tau_total_steps=hard_select_tau_total_steps,
                 hard_select_tau_anneal_frac=hard_select_tau_anneal_frac,
-                hard_select_excluded_token_ids=hard_select_excluded_token_ids)
+                hard_select_excluded_token_ids=hard_select_excluded_token_ids,
+                frozen_bias_arm=frozen_bias_arm, frozen_bias_lambda=frozen_bias_lambda,
+                frozen_bias_vocab_size=frozen_bias_vocab_size, frozen_bias_seed=frozen_bias_seed)
             for _ in range(n_layers)
         ])
         self.norm_f = RMSNorm(d_model, eps=1e-5)
@@ -968,7 +1170,10 @@ class DeltaNetLM(nn.Module):
                 "hard_select_seed": self.hard_select_seed,
                 "hard_select_tau_total_steps": self.hard_select_tau_total_steps,
                 "hard_select_tau_anneal_frac": self.hard_select_tau_anneal_frac,
-                "hard_select_excluded_token_ids": list(self.hard_select_excluded_token_ids)}
+                "hard_select_excluded_token_ids": list(self.hard_select_excluded_token_ids),
+                "frozen_bias_arm": self.frozen_bias_arm, "frozen_bias_lambda": self.frozen_bias_lambda,
+                "frozen_bias_vocab_size": self.frozen_bias_vocab_size,
+                "frozen_bias_seed": self.frozen_bias_seed}
 
     def forward(self, token_ids: torch.Tensor, initial_states: list | None = None,
                 return_states: bool = False, step: int | None = None):
@@ -1532,6 +1737,14 @@ def _assemble_result(args, run_name, other_corpus, trajectory, checkpoints, n_pa
         # non-None ONLY when --nan-probe-counter ran (a probative/NON-PROBATIVE verdict the
         # smoke's pass bars are conditioned on).
         "nan_probe_positive_control": nan_probe,
+        # FROZEN_BIAS_LM_DESIGN.md sec 2/sec 5: always-present block (mirrors geo3_lm/hard_select's
+        # own always-present-even-when-inactive convention) -- "off" (Arm 1) carries the same
+        # fields as an active arm so downstream analysis never has to special-case a missing key.
+        "frozen_bias": {
+            "arm": getattr(args, "frozen_bias_arm", "off"),
+            "lambda": getattr(args, "frozen_bias_lambda", None),
+            "seed": getattr(args, "frozen_bias_seed", None),
+        },
         "trajectory": trajectory, "checkpoints": checkpoints,
         "wall_s": time.time() - t0, "timed_out": timed_out,
         # SCALE_TRANSFER_DESIGN.md sec 5.6 Wave -1 (Track C calibration): peak CUDA memory over
@@ -2543,6 +2756,62 @@ def smoke(device: str):
             h.remove()
     del model16, x16, captured16
 
+    print("\n[17] FROZEN_BIAS_LM_DESIGN.md sec 2/sec 5/standing-rule (\"smoke test... BOTH training "
+          "batch size and eval batch size\"): forward/backward/grad-finite for EVERY frozen_bias_arm "
+          "(off/per_token/global) at LM shapes, both a TRAIN-sized and an EVAL-sized batch, PLUS the "
+          "off-path byte-identity regression check (mirrors item [6]'s geo3_active convention)")
+    torch.manual_seed(29)
+    V17 = 500
+    T17 = 128
+    train_bs17, eval_bs17 = 8, 4   # deliberately DIFFERENT batch sizes -- "eval can OOM even if
+                                    # training fits" -- both must pass independently, not just the
+                                    # larger of the two.
+    for arm in FROZEN_BIAS_ARM_MODES:
+        for bs_label, bs17 in (("train", train_bs17), ("eval", eval_bs17)):
+            m17 = DeltaNetLM(V17, d_model=64, d_state=64, n_layers=2, conv_size=4,
+                              frozen_bias_arm=arm, frozen_bias_lambda=0.58,
+                              frozen_bias_vocab_size=V17, frozen_bias_seed=777).to(device)
+            x17 = torch.randint(0, V17, (bs17, T17), device=device)
+            logits17 = m17(x17)
+            assert torch.isfinite(logits17).all(), f"arm={arm} bs={bs_label}: non-finite logits"
+            loss17 = F.cross_entropy(logits17.reshape(-1, V17), x17.reshape(-1))
+            loss17.backward()
+            grads_finite17 = all(p.grad is None or torch.isfinite(p.grad).all() for p in m17.parameters())
+            assert grads_finite17, f"arm={arm} bs={bs_label}: non-finite gradient somewhere"
+            if arm == "off":
+                assert m17.blocks[0].mixer.frozen_bias_table is None
+                assert m17.blocks[0].mixer.frozen_bias_global_vec is None
+                assert m17.blocks[0].mixer.last_k_biased is None, (
+                    "arm='off' must never populate the post-blend side channel")
+            else:
+                assert m17.blocks[0].mixer.last_k_biased is not None, (
+                    f"arm={arm}: last_k_biased side channel not populated")
+                # No new TRAINABLE parameter anywhere (sec 5.1's param-matching convention: the
+                # frozen table/vector is a buffer, never a Parameter).
+                trainable_names = {n for n, p in m17.named_parameters()}
+                assert not any("frozen_bias" in n for n in trainable_names), (
+                    f"arm={arm}: a frozen_bias_* tensor leaked into model.parameters() -- "
+                    f"sec 5.1 requires zero new TRAINABLE parameters")
+            print(f"  arm={arm:>9s} bs={bs_label:>5s}: logits finite, grads finite"
+                  f"{', last_k_biased populated' if arm != 'off' else ', no side channel (off)'}")
+            del m17, x17, logits17, loss17
+
+    # Off-path byte-identity regression: frozen_bias_arm='off' forward must be BIT-IDENTICAL to a
+    # model built WITHOUT any frozen_bias_* kwargs at all (the pre-frozen-bias default).
+    torch.manual_seed(31)
+    m17a = DeltaNetLM(V17, d_model=64, d_state=64, n_layers=1, conv_size=4).to(device)
+    torch.manual_seed(31)
+    m17b = DeltaNetLM(V17, d_model=64, d_state=64, n_layers=1, conv_size=4, frozen_bias_arm="off").to(device)
+    x17c = torch.randint(0, V17, (4, T17), device=device)
+    with torch.no_grad():
+        out_a = m17a(x17c)
+        out_b = m17b(x17c)
+    assert torch.equal(out_a, out_b), (
+        "frozen_bias_arm='off' (explicit) diverges from the pre-frozen-bias default construction -- "
+        "the off-path regression (sec 2's own 'byte-identical to the pre-hook code' requirement) is BROKEN")
+    print("  frozen_bias_arm='off' (explicit) BIT-IDENTICAL to the pre-frozen-bias default construction")
+    del m17a, m17b, x17c, out_a, out_b
+
     print("\n" + "=" * 60 + "\n  ALL LM_PRETRAIN_RD SMOKE CHECKS PASSED\n" + "=" * 60)
 
 
@@ -2652,6 +2921,17 @@ def main():
                           "geo3's SELECTED raw key rows per training forward call (the stability "
                           "smoke's >=25-calls/>=6-dup-rows positive-control floor). geo3-active "
                           "runs only; writes nan_probe_positive_control into the result JSON.")
+    ap.add_argument("--frozen-bias-arm", choices=list(FROZEN_BIAS_ARM_MODES), default="off",
+                     help="FROZEN_BIAS_LM_DESIGN.md sec 2/sec 5: 'off' (Arm 1, default -- byte-"
+                          "identical to the pre-frozen-bias code path), 'per_token' (Arm 2: frozen "
+                          "(vocab,d_state) table, per-token lookup), 'global' (Arm 2': the SAME "
+                          "table's derived global mean vector, no per-token lookup).")
+    ap.add_argument("--frozen-bias-lambda", type=float, default=FROZEN_BIAS_LAMBDA_PRIMARY,
+                     help="sec 5's fixed blend weight -- 0.58 primary, {0.3,0.8} mini-sweep brackets.")
+    ap.add_argument("--frozen-bias-seed", type=int, default=ANCHOR_INIT_SEED,
+                     help="sec 5's registered construction seed for random_unit_rows_init -- override "
+                          "ONLY for an eval-only retrofit that must reuse a SPECIFIC checkpoint's own "
+                          "table seed (never for a real training launch, which uses the default).")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -2746,7 +3026,9 @@ def main():
                         hard_select_b_pinned=args.hard_select_b_pinned,
                         hard_select_seed=args.hard_select_seed,
                         hard_select_tau_total_steps=hard_select_tau_total_steps,
-                        hard_select_tau_anneal_frac=args.hard_select_tau_anneal_frac).to(device)
+                        hard_select_tau_anneal_frac=args.hard_select_tau_anneal_frac,
+                        frozen_bias_arm=args.frozen_bias_arm, frozen_bias_lambda=args.frozen_bias_lambda,
+                        frozen_bias_seed=args.frozen_bias_seed).to(device)
     if args.trackb_selection_probe is not None:
         # F2 audit fix: the read-only implicit-selection probe, set post-construction on every
         # mixer (see DeltaNetLMMixer's selection_probe_k_sel comment).
