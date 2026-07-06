@@ -1550,13 +1550,24 @@ def main():
         # level launcher gate: REFUSE before any training happens if the
         # pin is missing, hash-mismatched, or fails its own live
         # re-derivation.
-        pin_doc = ka.validate_rev7_pin()
+        # sec 13: the pin is PER-d_state -- a d=128 cell must validate (and
+        # thread downstream) the D128 pin, never the d=64 default. First
+        # d=128 calibration launch failed here: the default pin's script
+        # hash was stale AND its d=64 inputs would have silently supplied
+        # wrong thresholds to a d=128 run.
+        _here = os.path.dirname(os.path.abspath(__file__))
+        _pin_name = ("REV7_THRESHOLD_PINNED.json" if args.d_state == 64
+                     else f"REV7_THRESHOLD_PINNED_D{args.d_state}.json")
+        pin_doc = ka.validate_rev7_pin(pin_path=os.path.join(_here, _pin_name))
         assert pin_doc is not None, (
-            "--rev7-engagement requires a VALID REV7_THRESHOLD_PINNED.json (sec 10.3.3): the pin "
+            f"--rev7-engagement requires a VALID {_pin_name} (sec 10.3.3): the pin "
             "is missing, its recorded script_sha256 does not match the working tree's "
             "rev7_threshold_derive.py, or a live derive() re-run does not reproduce the pin's own "
-            "derived block byte-identically. Regenerate with `python rev7_threshold_derive.py` and "
-            "re-commit before launching any Rev-7 anchor-arm cell.")
+            "derived block byte-identically. Regenerate with `python rev7_threshold_derive.py "
+            "[--d-state N]` and re-commit before launching any Rev-7 anchor-arm cell.")
+        assert int(pin_doc["derived"]["inputs"]["d_state"]) == int(args.d_state), (
+            f"pin/run d_state mismatch: pin={pin_doc['derived']['inputs']['d_state']} "
+            f"run={args.d_state} -- wrong pin file for this cell")
         rev7_pin_derived = pin_doc["derived"]
     result = train(model, cfg, pools, pool_report, device, d_model=args.d_model, d_state=args.d_state,
                     steps=args.steps, batch_size=args.batch_size, lr=args.lr, seed=args.seed,

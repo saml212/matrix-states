@@ -195,8 +195,8 @@
   },
   "provenance": {
     "script": "rev7_threshold_derive.py",
-    "script_sha256": "a746dec773e8dee42729064c0ddd4f80eea5115e2615773d6a65a911a40bc738",
-    "generated_at": "2026-07-05T17:40:49Z",
+    "script_sha256": "2e3aaa2e64b27a71fa396bcaca3898d1999d745ccc76508e395b4e783bd302db",
+    "generated_at": "2026-07-06T16:40:04Z",
     "data_dependency": "NONE \u2014 derive() is a pure function of {n_entities, d_state, alpha}; the only file this script ever reads is its own source, for this hash"
   }
 }
