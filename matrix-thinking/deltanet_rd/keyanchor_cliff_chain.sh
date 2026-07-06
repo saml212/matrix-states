@@ -87,13 +87,14 @@ $PY run_deltanet_rd_exactness_sweep.py --wave keyanchor-cliff --stage 2 \
     2>&1 | tee logs/37_wave_keyanchor_cliff_stage2.log
 
 # Real-data fit (sec 12.4) -- reads the now-complete 12-cell manifest plus
-# the archived K=32/K=48 candidate-(d) 3-seed arrays. Paths below match this
-# wave's own citations (sec 12.1's archive-path correction); update if the
-# archive location differs on the actual training box.
+# the archived K=32/K=48 candidate-(d) 3-seed arrays. Paths below are the
+# BOX-LOCAL raw result dirs (verified present on youthful-indigo-turkey
+# 2026-07-06; the local-repo mirror of the same JSONs lives under
+# experiment-runs/2026-07-0{6,7}_keyanchor_{mech,k48}/).
 $PY fit_cliff_curve.py \
     --cliff-out-dir results/deltanet_rd_exactness/wavekeyanchor-cliff \
-    --k32-dir experiment-runs/2026-07-06_keyanchor_mech/wavekeyanchor-mech \
-    --k48-dir experiment-runs/2026-07-07_keyanchor_k48/wavekeyanchor-k48 \
+    --k32-dir results/deltanet_rd_exactness/wavekeyanchor-mech \
+    --k48-dir results/deltanet_rd_exactness/wavekeyanchor-k48 \
     --n-trials 4000 --out fit_cliff_curve_results.json \
     2>&1 | tee logs/38_fit_cliff_curve.log
 
