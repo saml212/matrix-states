@@ -633,6 +633,28 @@ def _build_model_frozen_e(vocab=300, d_state=64, n_train=107, lambda_fixed=0.58,
     return model, train_ids
 
 
+def _build_model_frozen_dosed(vocab=300, d_state=128, n_train=107, lambda_fixed=0.58,
+                                dose_target=0.284, subspace_rank=4,
+                                subspace_seed=ka.ANCHOR_INIT_SEED):
+    """KEY_ANCHORING_DESIGN.md sec 14.1b item 2/item 6: builds a REAL dosed
+    table via key_anchoring.build_dose_table/calibrate_dose (the same
+    function every dosed cell in the coherence dose-response wave uses),
+    then constructs a DeltaNetRDBlock via the NEW anchor_table_override
+    constructor path with anchor_table_init_mode='dosed' + anchor_table_
+    frozen=True (sec 14.0's F1 fix requires every dosed cell frozen)."""
+    train_ids = torch.arange(10, 10 + n_train)
+    healthy = ka.frame_potential_init(n_train, d_state, seed=ka.ANCHOR_INIT_SEED)
+    cal = ka.calibrate_dose(healthy, dose_target, subspace_rank, subspace_seed)
+    dosed_table = ka.build_dose_table(healthy, cal["t"], subspace_rank, subspace_seed)
+    model = mrd.DeltaNetRDBlock(
+        vocab, d_model=64, d_state=d_state, conv_size=4, buffer_id=0,
+        geo3_active=True, geo3_n_iter=20, geo3_resid_tol=1e-2,
+        anchor_active=True, anchor_lambda_mode="fixed", anchor_lambda_fixed=lambda_fixed,
+        anchor_train_ids=train_ids, anchor_table_frozen=True,
+        anchor_table_init_mode="dosed", anchor_table_override=dosed_table)
+    return model, train_ids, cal["achieved"]
+
+
 def smoke_15_candidate_e_frozen_table_no_grad():
     all_ok = True
 
@@ -718,9 +740,68 @@ def smoke_15_candidate_e_frozen_table_no_grad():
     all_ok = all_ok and efp_requires_grad_false and efp_grad_is_none and efp_raw_grad_finite \
         and efp_init_mode_recorded
 
+    # (e) KEY_ANCHORING_DESIGN.md sec 14.1b item 6 (Rev 14.3, coherence
+    # dose-response wave, LAUNCH-BLOCKING per that section's own acceptance
+    # criterion): the NEW anchor_table_override path, frozen -- construct a
+    # REAL dosed table via key_anchoring.build_dose_table/calibrate_dose
+    # (the exact function every dosed cell in the wave calls), hand it to
+    # DeltaNetRDBlock via anchor_table_init_mode='dosed' +
+    # anchor_table_override + anchor_table_frozen=True (sec 14.0's F1 fix
+    # requires every dosed cell frozen), and assert BOTH (a) no grad
+    # reaches anchor_table.weight after a real forward+backward, exactly
+    # the (a)/(b) contract above, AND (b) the LIVE table's own max|cos|
+    # (key_anchoring.raw_table_conditioning on the trained-row block) is
+    # UNCHANGED (to floating-point tolerance) from its construction-time
+    # achieved value -- sec 14.3's frozen-constancy assertion, promoted
+    # here to a launch-blocking pre-launch smoke rather than a per-
+    # checkpoint runtime-only check (this is the exact gap sec 14.1b item 6
+    # registers: a missed requires_grad_(False) call, or an optimizer
+    # param-group that includes the anchor table despite the flag, must be
+    # caught HERE, before any dosed cell launches, not deep into a
+    # 20,000-step run).
+    model_dosed, train_ids_dosed, achieved_at_construction = _build_model_frozen_dosed()
+    dosed_requires_grad_false = model_dosed.anchor_table.weight.requires_grad is False
+    dosed_init_mode_recorded = model_dosed.anchor_table_init_mode == "dosed"
+    cond_at_construction = ka.raw_table_conditioning(
+        model_dosed.anchor_table.weight[model_dosed.anchor_trained_mask].detach())
+    max_cos_matches_calibration = abs(cond_at_construction["max_abs_cos"] - achieved_at_construction) < 1e-5
+    # NOTE: uses model_dosed.d_state (128, sec 14.2's fixed d_state for the
+    # dose-response wave), NOT the outer scope's d (64, model_e's own
+    # d_state) -- a real mismatch caught by actually EXECUTING this smoke
+    # (not merely writing it): anchor_blend_gather_scatter's broadcast
+    # against anchor_weight (128-dim rows) crashes on a 64-dim raw tensor.
+    raw_dosed = F.normalize(torch.randn(B, K, model_dosed.d_state), dim=-1).clone().requires_grad_(True)
+    key_ids_dosed = _random_key_ids(B, K, train_ids_dosed, model_dosed.vocab_size_total,
+                                      frac_trained=0.5, seed=24)
+    k_blend_dosed = ka.anchor_blend_gather_scatter(raw_dosed, model_dosed.anchor_table.weight,
+                                                      model_dosed.anchor_trained_mask, key_ids_dosed,
+                                                      model_dosed.anchor_lambda())
+    q_dosed, _, _ = mrd.geo3_orthogonalize_logged(k_blend_dosed, n_iter=model_dosed.geo3_n_iter,
+                                                     resid_tol=model_dosed.geo3_resid_tol)
+    q_dosed.sum().backward()
+    dosed_grad_is_none = model_dosed.anchor_table.weight.grad is None
+    dosed_raw_grad_finite = raw_dosed.grad is not None and bool(torch.isfinite(raw_dosed.grad).all().item())
+    cond_post_backward = ka.raw_table_conditioning(
+        model_dosed.anchor_table.weight[model_dosed.anchor_trained_mask].detach())
+    max_cos_unchanged_post_backward = abs(
+        cond_post_backward["max_abs_cos"] - cond_at_construction["max_abs_cos"]) < 1e-5
+    print(f"    [dosed override arm: frozen + anchor_table_override, target dose=0.284, rank4] "
+          f"requires_grad=False: {dosed_requires_grad_false}  grad is None post-backward: "
+          f"{dosed_grad_is_none}  raw_grad_finite: {dosed_raw_grad_finite}  "
+          f"init_mode recorded 'dosed': {dosed_init_mode_recorded}  "
+          f"construction-time max|cos|={cond_at_construction['max_abs_cos']:.6f} matches "
+          f"calibrate_dose's own achieved={achieved_at_construction:.6f}: {max_cos_matches_calibration}  "
+          f"max|cos| unchanged post-backward "
+          f"({cond_at_construction['max_abs_cos']:.6f} -> {cond_post_backward['max_abs_cos']:.6f}): "
+          f"{max_cos_unchanged_post_backward}")
+    all_ok = all_ok and dosed_requires_grad_false and dosed_grad_is_none and dosed_raw_grad_finite \
+        and dosed_init_mode_recorded and max_cos_matches_calibration and max_cos_unchanged_post_backward
+
     _report("smoke 15: candidate (e) frozen anchor table receives NO grad "
-            "(requires_grad=False pre- and post-backward, BOTH init modes: random_unit_rows "
-            "and the e-fp arm's frame_potential), non-frozen path unaffected", all_ok)
+            "(requires_grad=False pre- and post-backward, THREE init modes: random_unit_rows, "
+            "the e-fp arm's frame_potential, and (sec 14.1b item 2/item 6, Rev 14.3) the NEW "
+            "anchor_table_override 'dosed' path with its frozen-constancy assertion), non-frozen "
+            "path unaffected", all_ok)
 
 
 # ---------------------------------------------------------------------------

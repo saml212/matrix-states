@@ -9026,7 +9026,7 @@ seeds, PER STRUCTURE, plus ONE shared calibration cell:**
 |---|---|---|---|---|---|---|---|---|
 | Primary A: rank-4 | 68 | 0.130, 0.284, 0.40 | 3 each | rank4 | **9** | 0.6410 | 5.769 | 11.538 |
 | Co-primary B: diffuse | 68 | 0.130, 0.284, 0.40 | 3 each | diffuse | **9** | 0.6410 | 5.769 | 11.538 |
-| Calibration (mandatory, shared across both structures, §14.4b) | 68 | 0.284, rank4 structure (highest-information dose, calibration-first — see §14.4b for why rank4 is the calibration structure) | 1 | rank4 | **1** | 0.6410 | 0.641 | 1.282 |
+| Calibration (mandatory, shared across both structures, §14.4b) | 68 | 0.40, rank4 structure (the HIGHEST dose per §14.4b's own repeated reasoning — this row previously read 0.284, an unreconciled contradiction dating to Rev 14.1's origin, caught at build audit; the build follows the prose and this row now matches it) | 1 | rank4 | **1** | 0.6410 | 0.641 | 1.282 |
 | **Total, both structures + shared calibration** | | | | | **19** | | **12.179** | **24.358** |
 | Conditional extension: K=84, both structures, same 3 doses, 3 seeds each (§14.4c activation rule, BOTH structures trigger, or cross-structure-disagreement trigger fires) | 84 | 0.130, 0.284, 0.40 | 3 each | both | 18 | 0.6410 | 11.538 | 23.076 |
 | **NEW at Rev 14.3 (round-3 Q3 fix): Conditional extension: K=84, ONE structure only** (§14.4c's mechanical rule now restricts the trigger to same-structure evidence — if only rank-4 OR only diffuse independently trips condition 1, K=84 activates for THAT structure alone) | 84 | 0.130, 0.284, 0.40 | 3 each | one (rank4 XOR diffuse) | **9** | 0.6410 | **5.769** | **11.538** |

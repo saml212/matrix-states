@@ -447,6 +447,17 @@ def _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report, d_
             # share every OTHER field.
             "anchor_table_frozen": bool(ec.get("anchor_table_frozen", False)),
             "anchor_table_init_mode": ec.get("anchor_table_init_mode", "frame_potential"),
+            # KEY_ANCHORING_DESIGN.md sec 14.1b item 5 (Rev 14.3, coherence
+            # dose-response wave): ALWAYS recorded (default None), same
+            # always-recorded-even-at-off discipline as every field above --
+            # run_deltanet_rd_exactness_sweep.py's is_done() cross-checks
+            # dose_target/dose_structure/subspace_seed against these exact
+            # keys (never the top level, unlike d_state -- see is_done()'s
+            # own comment on the two fields' different write sites).
+            "dose_target": ec.get("dose_target"),
+            "dose_structure": ec.get("dose_structure"),
+            "subspace_seed": ec.get("subspace_seed"),
+            "achieved_max_cos": ec.get("achieved_max_cos"),
         },
         "trajectory": trajectory, "checkpoints": checkpoints,
         # KEY_ANCHORING_DESIGN.md sec 3.6 item (c) (2026-07-04 audit fix,
@@ -1372,14 +1383,36 @@ def main():
                           "rows already never do, sec 3.3). No effect when --anchor-active is not "
                           "given. Composes with any --anchor-lambda-mode; the wave registers this "
                           "with --anchor-lambda-mode=fixed (matched-lambda comparison to candidate (d)).")
-    ap.add_argument("--anchor-table-init-mode", choices=["frame_potential", "random_unit_rows"],
+    ap.add_argument("--anchor-table-init-mode", choices=["frame_potential", "random_unit_rows", "dosed"],
                      default="frame_potential",
                      help="'frame_potential' (default): candidate (d)'s own tight-frame-minimized "
                           "init, unchanged. 'random_unit_rows' (KEY_ANCHORING_DESIGN.md sec 10.13, "
                           "candidate (e)): seeded random unit rows with NO frame-potential descent "
                           "(key_anchoring.random_unit_rows_init) -- matches sec 10.13's own "
                           "'frozen-random-table' name and its motivating text, not a trained-but-"
-                          "frozen tight frame. No effect when --anchor-active is not given.")
+                          "frozen tight frame. 'dosed' (KEY_ANCHORING_DESIGN.md sec 14.1b item 2, "
+                          "the coherence dose-response wave): the trained-row block is built here, "
+                          "at CLI level, via key_anchoring.build_dose_table/calibrate_dose and "
+                          "handed to the model constructor via anchor_table_override -- REQUIRES "
+                          "--anchor-dose-target and --anchor-dose-structure. No effect when "
+                          "--anchor-active is not given.")
+    ap.add_argument("--anchor-dose-target", type=float, default=None,
+                     help="KEY_ANCHORING_DESIGN.md sec 14.1b item 3, coherence dose-response wave: "
+                          "the target max|cos| (e.g. 0.130/0.284/0.40) key_anchoring.calibrate_dose "
+                          "calibrates 't' against. REQUIRED when --anchor-table-init-mode=dosed.")
+    ap.add_argument("--anchor-dose-structure", choices=["rank4", "diffuse"], default=None,
+                     help="KEY_ANCHORING_DESIGN.md sec 14.1's Rev-14.3 dose-dial structures: "
+                          "'rank4' -> subspace_rank=4 (concentrated); 'diffuse' -> subspace_rank="
+                          "key_anchoring.DIFFUSE_SUBSPACE_RANK (48 -- the maximum scanned rank "
+                          "whose ceiling still clears 0.42; subspace_rank=d_state is a "
+                          "mathematically degenerate no-op dial and is NEVER used here, sec 14.1's "
+                          "boxed correction). REQUIRED when --anchor-table-init-mode=dosed.")
+    ap.add_argument("--anchor-subspace-seed", type=int, default=None,
+                     help="KEY_ANCHORING_DESIGN.md sec 14.3: the RNG seed the dose dial's random "
+                          "subspace is drawn from. Defaults to key_anchoring.ANCHOR_INIT_SEED "
+                          "(20260705) when --anchor-table-init-mode=dosed and this flag is omitted "
+                          "-- the registered subspace seed for the mandatory dose grid (one fixed "
+                          "subspace per structure across all doses, sec 14.3).")
     ap.add_argument("--lambda-anchor", type=float, default=0.0,
                      help="KEY_ANCHORING sec 2.4, candidate (c): soft cross-episode drift "
                           "regularizer weight (L_anchor added to the training loss only; model "
@@ -1489,6 +1522,20 @@ def main():
         assert args.anchor_active, \
             "--anchor-table-frozen / --anchor-table-init-mode require --anchor-active " \
             "(KEY_ANCHORING sec 10.13: candidate (e) is a modification of candidate (d)'s own path)"
+    if args.anchor_table_init_mode == "dosed":
+        # KEY_ANCHORING_DESIGN.md sec 14.0's F1 fix: every dosed cell in
+        # this wave is FROZEN by construction (the whole point is a
+        # coherence dose HELD CONSTANT across training, not one SGD is
+        # free to drift away from) -- refuse rather than silently allow a
+        # dosed-but-trainable cell that would reintroduce the exact drift
+        # confound sec 14.0 exists to close.
+        assert args.anchor_table_frozen, \
+            "--anchor-table-init-mode=dosed REQUIRES --anchor-table-frozen (KEY_ANCHORING_DESIGN.md " \
+            "sec 14.0's F1 fix: every dosed cell must be frozen, closing the drift confound by " \
+            "construction)"
+        assert args.anchor_dose_target is not None and args.anchor_dose_structure is not None, \
+            "--anchor-table-init-mode=dosed requires BOTH --anchor-dose-target and " \
+            "--anchor-dose-structure (KEY_ANCHORING_DESIGN.md sec 14.1b item 3)"
     if args.rev7_engagement:
         assert args.anchor_active and args.drift_probe, \
             "--rev7-engagement REQUIRES --anchor-active and --drift-probe (KEY_ANCHORING sec 10.2/10.3)"
@@ -1499,6 +1546,50 @@ def main():
 
     cfg = DeltaNetRDTaskConfig(K=args.K, conv_size=args.conv_size, H_train=tuple(args.h_train),
                                 H_test=tuple(args.h_test), H_extra=tuple(args.h_extra))
+
+    anchor_table_override = None
+    achieved_max_cos = None
+    dose_subspace_seed = None
+    if args.anchor_table_init_mode == "dosed":
+        # KEY_ANCHORING_DESIGN.md sec 14.1b item 2/item 3: build the dosed
+        # table HERE (CLI level, CPU, one-time) via the SAME key_anchoring.
+        # build_dose_table/calibrate_dose functions every other dosed cell
+        # in this wave calls -- never a hand-copied twin. n_train is
+        # pools.train_name_ids.numel() (matches the frame_potential/
+        # random_unit_rows branches' own n_train derivation inside
+        # model_rd.py's constructor).
+        dose_subspace_seed = (args.anchor_subspace_seed if args.anchor_subspace_seed is not None
+                               else ka.ANCHOR_INIT_SEED)
+        subspace_rank = 4 if args.anchor_dose_structure == "rank4" else ka.DIFFUSE_SUBSPACE_RANK
+        n_train = pools.train_name_ids.numel()
+        healthy_table = ka.frame_potential_init(n_train, args.d_state, seed=ka.ANCHOR_INIT_SEED)
+        cal = ka.calibrate_dose(healthy_table, args.anchor_dose_target, subspace_rank, dose_subspace_seed)
+        anchor_table_override = ka.build_dose_table(healthy_table, cal["t"], subspace_rank,
+                                                       dose_subspace_seed)
+        achieved_max_cos = cal["achieved"]
+        # sec 14.3's Gate-2-re-semantics dose-verification assertion, run
+        # at CELL START (not deferred to a later checkpoint read) --
+        # "achieved vs target +/-10%" per Gate-2-as-dose-verification. No
+        # assertion needed at the 0.000 control (never routed through this
+        # branch at all -- dose_target=0.0 would divide by zero below, and
+        # the 0.000 control cells reuse sec 13.10's own already-measured,
+        # non-dosed cells per sec 14.2's dose grid, never this CLI path).
+        assert args.anchor_dose_target > 0.0, \
+            "--anchor-table-init-mode=dosed with --anchor-dose-target=0.0 is a construction error " \
+            "(sec 14.2: the 0.000 control reuses sec 13.10's own already-measured cells, never this " \
+            "dosed-construction path)"
+        rel_err = abs(achieved_max_cos - args.anchor_dose_target) / args.anchor_dose_target
+        assert rel_err <= 0.10, (
+            f"DOSE VERIFICATION FAILED (sec 14.3): target={args.anchor_dose_target}, "
+            f"achieved={achieved_max_cos:.6f}, rel_err={rel_err:.4f} > 0.10 -- this is a "
+            f"CONSTRUCTION BUG (calibrate_dose failed to converge within tolerance), not a "
+            f"training dynamic; refusing to launch this cell.")
+        print(f"sec 14.3 DOSE-VERIFY PASSED: structure={args.anchor_dose_structure} "
+              f"subspace_rank={subspace_rank} subspace_seed={dose_subspace_seed} "
+              f"target={args.anchor_dose_target} achieved={achieved_max_cos:.6f} "
+              f"rel_err={rel_err:.4f} (<=0.10) t={cal['t']:.5f} converged={cal['converged']}",
+              flush=True)
+
     model = DeltaNetRDBlock(pools.vocab_size_total, d_model=args.d_model, d_state=args.d_state,
                              conv_size=cfg.conv_size, buffer_id=pools.buffer_id,
                              trunc_impl=args.trunc_impl, embed_source=args.embed_source,
@@ -1511,6 +1602,7 @@ def main():
                              anchor_train_ids=(pools.train_name_ids if args.anchor_active else None),
                              anchor_table_frozen=args.anchor_table_frozen,
                              anchor_table_init_mode=args.anchor_table_init_mode,
+                             anchor_table_override=anchor_table_override,
                              ).to(device)
     n_params = sum(p.numel() for p in model.parameters())
     print(f"K={args.K} conv_size={args.conv_size} T_bind={cfg.T_bind} d_model={args.d_model} "
@@ -1524,6 +1616,9 @@ def main():
           f"drift_probe={args.drift_probe} "
           f"anchor_table_frozen={args.anchor_table_frozen} "
           f"anchor_table_init_mode={args.anchor_table_init_mode} "
+          f"anchor_dose_target={args.anchor_dose_target} "
+          f"anchor_dose_structure={args.anchor_dose_structure} "
+          f"anchor_subspace_seed={dose_subspace_seed} "
           f"params={n_params} device={device}", flush=True)
 
     exactness_config = {
@@ -1543,6 +1638,21 @@ def main():
         "rev7_engagement": args.rev7_engagement,
         "anchor_table_frozen": args.anchor_table_frozen if args.anchor_active else False,
         "anchor_table_init_mode": args.anchor_table_init_mode if args.anchor_active else "frame_potential",
+        # KEY_ANCHORING_DESIGN.md sec 14.1b item 5 (Rev 14.3, coherence
+        # dose-response wave): ALWAYS recorded (default None), same
+        # always-recorded-even-at-off discipline as every field above --
+        # is_done() (run_deltanet_rd_exactness_sweep.py) cross-checks all
+        # three identity fields so a dosed cell can never silently
+        # resume-match a different dose sharing the same K/seed.
+        # achieved_max_cos is the ACTUAL measured value at construction
+        # time (from calibrate_dose's own return, not re-derived) so the
+        # per-checkpoint item6_table_conditioning.max_abs_cos trajectory
+        # (sec 14.0b's read rule) can be cross-checked against the
+        # construction-time target directly from the archived JSON.
+        "dose_target": args.anchor_dose_target if args.anchor_table_init_mode == "dosed" else None,
+        "dose_structure": args.anchor_dose_structure if args.anchor_table_init_mode == "dosed" else None,
+        "subspace_seed": dose_subspace_seed if args.anchor_table_init_mode == "dosed" else None,
+        "achieved_max_cos": achieved_max_cos if args.anchor_table_init_mode == "dosed" else None,
     }
     rev7_pin_derived = None
     if args.rev7_engagement:

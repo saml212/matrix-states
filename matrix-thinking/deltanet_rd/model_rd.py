@@ -619,7 +619,8 @@ class DeltaNetRDBlock(nn.Module):
                  anchor_train_ids: torch.Tensor | None = None,
                  anchor_init_seed: int | None = None,
                  anchor_table_frozen: bool = False,
-                 anchor_table_init_mode: str = "frame_potential"):
+                 anchor_table_init_mode: str = "frame_potential",
+                 anchor_table_override: torch.Tensor | None = None):
         """DELTANET_RD_EXACTNESS_DESIGN.md sec 4/4.4/5.5/14 extensions, ALL
         ADDITIVE and OFF BY DEFAULT (embed_source="learned",
         frozen_row_ids=None, strong_pin_ids=None, use_zca=False,
@@ -660,17 +661,39 @@ class DeltaNetRDBlock(nn.Module):
           gather/scatter/held-out-bypass path, no new mechanism.
           anchor_table_init_mode selects which construction populates the
           trained-row block: "frame_potential" (default, candidate (d)'s
-          own tight-frame-minimized init, UNCHANGED) or "random_unit_rows"
+          own tight-frame-minimized init, UNCHANGED), "random_unit_rows"
           (candidate (e)'s own registered init -- key_anchoring.
           random_unit_rows_init, frame_potential_init's own pre-optimization
           starting point, i.e. seeded random unit rows with NO frame-
           potential descent -- matching sec 10.13's own candidate-(e) name
           and sec 10.13.4's motivating text, "a random, FROZEN anchor
-          table," rather than a trained-but-frozen tight frame). Orthogonal
-          to anchor_lambda_mode: candidate (e) is registered at
+          table," rather than a trained-but-frozen tight frame), or "dosed"
+          (KEY_ANCHORING_DESIGN.md sec 14.1b item 2, the coherence
+          dose-response wave: the trained-row block is NOT constructed
+          internally at all -- it is copied verbatim from
+          anchor_table_override, the caller's own pre-built
+          key_anchoring.build_dose_table output). Orthogonal to
+          anchor_lambda_mode: candidate (e) is registered at
           anchor_lambda_mode="fixed" (matched-lambda comparison), but
           anchor_table_frozen composes with any anchor_lambda_mode in
           principle (this class does not couple the two).
+        anchor_table_override (KEY_ANCHORING_DESIGN.md sec 14.1b item 2):
+          a pre-built (n_train, d_state) tensor -- REQUIRED when
+          anchor_table_init_mode=="dosed", ignored otherwise. Copied
+          directly into the trained-row block of self.anchor_table.weight,
+          bypassing frame_potential_init/random_unit_rows_init and their
+          own Gate-2 construction check entirely (the override's own
+          construction-time Gate-2/dose-verification legs are the CALLER's
+          responsibility -- key_anchoring.build_dose_table's own dose-
+          verify assertion, sec 14.3 -- since this override is by design NOT
+          a frame-potential-optimized table and gating it on Gate 2 would be
+          the same category error sec 10.13 already disclosed for candidate
+          (e)'s random_unit_rows_init). Composes with anchor_table_frozen
+          exactly like every other init mode (the SAME requires_grad_(False)
+          call below, applied uniformly regardless of which branch populated
+          the table) -- sec 14.0's F1 fix REQUIRES anchor_table_frozen=True
+          on every dosed cell, but this constructor does not itself enforce
+          that pairing (the caller, run_deltanet_rd.py, does).
 
         embed_source: informational only at this layer (recorded into the
           result JSON by run_deltanet_rd.py); the CALLER (embed_arms.py +
@@ -834,8 +857,8 @@ class DeltaNetRDBlock(nn.Module):
                 f"sanity guard: {n_train} trained entities is implausibly large relative to " \
                 f"d_state={d_state} for the frame-potential init (expected ~107 at d_state=64, " \
                 f"sec 2.2) -- check anchor_train_ids before proceeding"
-            assert anchor_table_init_mode in ("frame_potential", "random_unit_rows"), \
-                f"anchor_table_init_mode must be 'frame_potential' or 'random_unit_rows', " \
+            assert anchor_table_init_mode in ("frame_potential", "random_unit_rows", "dosed"), \
+                f"anchor_table_init_mode must be 'frame_potential', 'random_unit_rows', or 'dosed', " \
                 f"got {anchor_table_init_mode!r}"
             seed = anchor_init_seed if anchor_init_seed is not None else ANCHOR_INIT_SEED
             if anchor_table_init_mode == "frame_potential":
@@ -846,7 +869,7 @@ class DeltaNetRDBlock(nn.Module):
                     f"(sigma_ratio={cond['sigma_ratio']:.4f}, max_abs_cos={cond['max_abs_cos']:.4f}) -- "
                     f"this should never happen for the registered frame-potential recipe; re-run "
                     f"gate2_construction_test.py before proceeding")
-            else:
+            elif anchor_table_init_mode == "random_unit_rows":
                 # candidate (e), sec 10.13: NO frame-potential descent, NO Gate-2
                 # construction check -- the whole point of this arm is a table
                 # that carries no optimized geometric structure at all; gating
@@ -854,6 +877,25 @@ class DeltaNetRDBlock(nn.Module):
                 # be a category error the same way sec 11.4.3 already flagged
                 # for i-strong-as-ceiling-validator.
                 init_table = random_unit_rows_init(n_train, d_state, seed=seed)
+            else:
+                # "dosed" (KEY_ANCHORING_DESIGN.md sec 14.1b item 2, the
+                # coherence dose-response wave): the trained-row block is
+                # handed in verbatim, already dose-calibrated by the CALLER
+                # (key_anchoring.build_dose_table). NO internal construction,
+                # NO Gate-2 construction check here -- same category-error
+                # reasoning as the random_unit_rows branch above (this table
+                # is deliberately NOT frame-potential-optimized at doses > 0;
+                # the caller's own dose-verification assertion, sec 14.3, is
+                # the correct check for THIS construction, not Gate 2's
+                # frame-potential-property check).
+                assert anchor_table_override is not None, (
+                    "anchor_table_init_mode=='dosed' requires anchor_table_override (sec 14.1b "
+                    "item 2) -- a pre-built (n_train, d_state) tensor from key_anchoring."
+                    "build_dose_table; got None")
+                assert anchor_table_override.shape == (n_train, d_state), (
+                    f"anchor_table_override shape {tuple(anchor_table_override.shape)} != "
+                    f"expected (n_train={n_train}, d_state={d_state})")
+                init_table = anchor_table_override.detach().clone().to(dtype=torch.float32)
             anchor_table_full = torch.zeros(vocab_size_total, d_state)
             anchor_table_full[anchor_train_ids] = init_table
             self.anchor_table = nn.Embedding(vocab_size_total, d_state)

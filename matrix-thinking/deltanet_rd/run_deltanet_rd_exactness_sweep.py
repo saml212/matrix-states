@@ -90,7 +90,8 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
           strong_pin=False, lambda_orth=0.0, use_zca=False, fnce_m=None, force_rank_k=None,
           geo3_active=False, geo3_n_iter=12, geo3_resid_tol=1e-2,
           anchor_active=False, anchor_lambda_mode="learned", anchor_lambda_fixed=None,
-          lambda_anchor=0.0, drift_probe=False, rev7_engagement=False, d_state=64):
+          lambda_anchor=0.0, drift_probe=False, rev7_engagement=False, d_state=64,
+          dose_target=None, dose_structure=None, subspace_seed=None):
     """Variant-carrying run spec (sec 5's naming requirement) -- the `arm`
     tag alone would NOT be resume-safe if two arms shared identical other
     fields, so the name also encodes the fields that actually vary the
@@ -114,7 +115,36 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
     into the name) so fit_cliff_curve.py's generalized reader (sec 13.3
     item 4/8) can tell a d=128 cell apart from a d=64 cell at the SAME K
     from the result JSON's own exactness_config, not just the directory it
-    happens to sit in."""
+    happens to sit in.
+
+    dose_target/dose_structure/subspace_seed (KEY_ANCHORING_DESIGN.md sec
+    14.1b item 3, coherence dose-response wave): NEW parameters, all
+    default None -- BYTE-IDENTICAL to every existing caller (none of which
+    pass these). dose_target is the float target max|cos| (e.g. 0.130/
+    0.284/0.40); dose_structure is 'rank4' or 'diffuse' (sec 14.1's Rev-14.3
+    structures -- never 'full-rank'/subspace_rank=d_state, the degenerate
+    choice that design revision found and replaced); subspace_seed is the
+    int RNG seed the dial's random subspace was drawn from (registered
+    default ANCHOR_INIT_SEED for the mandatory grid, sec 14.3, but threaded
+    explicitly here rather than defaulted inside _spec() so a future
+    subspace-seed sensitivity sweep, sec 14.8, is a pure caller-side
+    change). All three are threaded into BOTH the filename bits (this is
+    the FIX for the sec 14.1b item 3/item 4 collision this design's own F2
+    finding named: three dosed cells sharing K/seed but differing ONLY in
+    dose_target previously produced the SAME filename and the SAME
+    exactness_config, since neither carried any dose-identity field at
+    all) AND the returned identity dict, so is_done() (below) can
+    cross-check dose identity against the result JSON's own
+    exactness_config, never trusting the filename alone -- the same
+    discipline every other arm-identity field in this function already
+    follows. Name bits use dose130/dose284/dose400 (the task brief's own
+    suggested naming, sec 14.1b item 3) rounded to 3 decimal digits of the
+    target's own thousandths place (e.g. 0.130 -> 'dose130'), NOT the
+    achieved value (which is construction-time-measured, not a priori
+    known to the spec builder) -- collision-safety therefore rests on
+    dose_target (the pre-registered grid value), matching how every other
+    identity field in this function is the REQUESTED config, not a
+    post-hoc measurement."""
     bits = [f"w{wave}_rdx", f"K{K}", f"arm{arm}", f"s{seed}"]
     if embed_source == "frozen_gram_matched" and gram_rho is not None:
         bits.append(f"rho{gram_rho:.3f}".replace(".", "p"))
@@ -141,6 +171,12 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
         bits.append("rev7")
     if d_state != 64:
         bits.append(f"d{d_state}")
+    if dose_target is not None:
+        bits.append(f"dose{round(dose_target * 1000):03d}")
+    if dose_structure is not None:
+        bits.append(dose_structure)
+    if subspace_seed is not None:
+        bits.append(f"sseed{subspace_seed}")
     name = "_".join(bits)
     return {"wave": str(wave), "K": K, "seed": seed, "steps": steps, "force_rank_k": force_rank_k,
             "arm": arm, "embed_source": embed_source, "gram_alpha": gram_alpha, "gram_rho": gram_rho,
@@ -152,6 +188,8 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
             "anchor_lambda_fixed": anchor_lambda_fixed if anchor_active else None,
             "lambda_anchor": lambda_anchor, "drift_probe": drift_probe,
             "rev7_engagement": rev7_engagement, "d_state": d_state,
+            "dose_target": dose_target, "dose_structure": dose_structure,
+            "subspace_seed": subspace_seed,
             "name": name}
 
 
@@ -2185,6 +2223,261 @@ def keyanchor_dstate_stage_gate(out_dir: str, stage: str, accept_override: bool)
             "sentinel_path": sentinel_path, "decision": decision}
 
 
+# =============================================================================
+# KEY_ANCHORING_DESIGN.md sec 14 (Rev 14.3, DESIGN-CLEARED-FOR-BUILD) --
+# the coherence dose-response wave. d_state=128, n_entities=107, K=68 FIXED
+# (sec 14.2) -- holds the EXACT geometry sec 13.10 measured flat h4=1.0 at,
+# injecting a CONTROLLED, FROZEN coherence dose into the anchor table's own
+# row geometry (sec 14.1's build_dose_table/calibrate_dose, ported to
+# key_anchoring.py above) and sweeping the dose. TWO co-primary structures
+# (rank4, diffuse=subspace_rank 48) at THREE nonzero doses (0.130/0.284/
+# 0.40), 3 seeds each, PLUS the 0.000 control (REUSED from sec 13.10's own
+# already-measured, non-dosed cells -- ZERO new GPU-h, structure-invariant
+# at t=0) and ONE shared calibration cell (sec 14.4b: K=68, rank4, the
+# HIGHEST dose ~0.40 -- "the single most informative cell... the ALREADY-
+# VALIDATED construction from Rev 14.1"; NOTE the sec 14.4 budget TABLE's
+# own single cell lists "0.284" for this row, an internal inconsistency
+# with sec 14.4b's own three-times-repeated "HIGHEST dose (~0.40)" prose --
+# this build follows the prose (0.40), per its more detailed and repeated
+# registration of the reasoning ("super-d64... to give the EXONERATE
+# outcome real teeth"); flagged for the design doc's own next revision,
+# not silently resolved either way).
+#
+# Option-1 staging (sec 14.4's own registered mechanical default absent a
+# PI response): Stage 1 = calibration cell (alone) -> read_wall_s_only
+# (sec 14.4b's blinding rule, inherited from sec 13.5's F9 fix) -> the
+# remaining 9 rank-4 cells (3 doses x 3 seeds). Stage 2 (diffuse, 9 cells)
+# is NOT auto-launched -- it requires an explicit PI decision per sec
+# 14.4's own abort/decision table (documented as the PI-ask path below,
+# --stage dose-diffuse REQUIRES an explicit env override, never a default).
+# =============================================================================
+
+KEYANCHOR_DOSE_D_STATE = 128                                # sec 14.2's fixed d_state
+KEYANCHOR_DOSE_K = 68                                       # sec 14.2's fixed K
+KEYANCHOR_DOSE_TIER_STEPS = KEYANCHOR_DSTATE_TIER_STEPS     # 20,000 -- continuity, sec 14.2
+KEYANCHOR_DOSE_TARGETS = (0.130, 0.284, 0.40)                # sec 14.1/14.2's registered dose grid
+KEYANCHOR_DOSE_RANK4 = 4                                     # sec 14.1's concentrated structure
+KEYANCHOR_DOSE_DIFFUSE_RANK = ka.DIFFUSE_SUBSPACE_RANK       # 48 -- sec 14.1's Rev-14.3 diffuse rank
+KEYANCHOR_DOSE_SUBSPACE_SEED = ka.ANCHOR_INIT_SEED           # 20260705 -- sec 14.3's registered single
+                                                              # subspace seed per structure, both structures
+
+# sec 14.4's registered fresh seed block -- verified by direct grep against
+# every *.py file in this directory (this build session): zero collisions
+# with 930-949 found anywhere in the codebase (the {930-932}-style pattern
+# the build task itself names). Structure: rank4 gets 930s (one decade per
+# dose: 930-932 @ 0.130, 933-935 @ 0.284, 936-938 @ 0.40); diffuse gets
+# 940s (940-942 @ 0.130, 943-945 @ 0.284, 946-948 @ 0.40); the calibration
+# cell gets its OWN seed (939, distinct from every dosed-grid seed above --
+# sec 14.4b registers it as "ONE shared calibration cell", counted
+# separately from the 9 rank-4 cells in sec 14.4's own budget table, not
+# one of the 9's own three seeds at the highest dose).
+KEYANCHOR_DOSE_SEEDS_BY_STRUCTURE_DOSE = {
+    ("rank4", 0.130): (930, 931, 932), ("rank4", 0.284): (933, 934, 935), ("rank4", 0.40): (936, 937, 938),
+    ("diffuse", 0.130): (940, 941, 942), ("diffuse", 0.284): (943, 944, 945), ("diffuse", 0.40): (946, 947, 948),
+}
+KEYANCHOR_DOSE_CALIBRATION_SEED = 939
+KEYANCHOR_DOSE_CALIBRATION_DOSE = 0.40    # sec 14.4b's prose (see the module-note above re: the
+                                            # sec 14.4 table's own "0.284" inconsistency)
+KEYANCHOR_DOSE_CALIBRATION_STRUCTURE = "rank4"
+
+
+def _keyanchor_dose_spec(dose_target: float, dose_structure: str, seed: int,
+                          d_state: int = KEYANCHOR_DOSE_D_STATE) -> dict:
+    """One dosed cell -- candidate (d) architecture, FROZEN table (sec
+    14.0's F1 fix: every dosed cell in this wave is frozen, never
+    exceptions), anchor_table_init_mode='dosed' (sec 14.1b item 2),
+    drift_probe=True + rev7_engagement=True (sec 14.0b's read rule needs
+    item6_table_conditioning.max_abs_cos at every checkpoint, which rides
+    on drift_probe_active; rev7_engagement inherited wholesale per this
+    program's own precedent for every K48-derived candidate-(d) cell).
+
+    anchor_table_frozen/anchor_table_init_mode are patched onto the spec
+    dict directly AFTER _spec() returns -- _spec() itself does not carry
+    these two fields as named parameters (they are a model_rd.py/
+    run_deltanet_rd.py CLI addition, not part of _spec()'s own naming-
+    relevant field set), exactly the SAME pattern keyanchor_e_wave_
+    manifest already established for candidate (e)'s own frozen cells
+    (see that function's own comment) -- is_done() (below) reads both off
+    the spec dict via spec.get(...), so this is required for the
+    identity check to work at all, not merely cosmetic."""
+    n_iter = ka.GATE2_N_ITER_BY_K[KEYANCHOR_DOSE_K]
+    spec = _spec("keyanchor-dose", KEYANCHOR_DOSE_K, seed, KEYANCHOR_DOSE_TIER_STEPS, "d",
+                 geo3_active=True, geo3_n_iter=n_iter, geo3_resid_tol=1e-2,
+                 anchor_active=True, anchor_lambda_mode="learned", drift_probe=True,
+                 rev7_engagement=True, d_state=d_state,
+                 dose_target=dose_target, dose_structure=dose_structure,
+                 subspace_seed=KEYANCHOR_DOSE_SUBSPACE_SEED)
+    spec["anchor_table_frozen"] = True
+    spec["anchor_table_init_mode"] = "dosed"
+    return spec
+
+
+def keyanchor_dose_calibration_manifest() -> list:
+    """sec 14.4b's single, mandatory, FIRST-to-run calibration cell: K=68,
+    rank4, dose=0.40 (the module-note above states the doc's own table/
+    prose disagreement and this build's resolution), seed=939 (a
+    dedicated seed, distinct from every dosed-grid cell, per sec 14.4's
+    own "ONE shared calibration cell" -- a 4th, separately-counted cell,
+    not one of the 9 rank-4 grid cells' own 3 seeds at the highest
+    dose)."""
+    runs = [_keyanchor_dose_spec(KEYANCHOR_DOSE_CALIBRATION_DOSE, KEYANCHOR_DOSE_CALIBRATION_STRUCTURE,
+                                   KEYANCHOR_DOSE_CALIBRATION_SEED)]
+    assert len(runs) == 1, f"keyanchor-dose calibration manifest drifted: {len(runs)}"
+    return runs
+
+
+def keyanchor_dose_manifest(structure: str, doses=KEYANCHOR_DOSE_TARGETS) -> list:
+    """sec 14.4's 9-cell-per-structure primary/co-primary manifest: K=68,
+    3 doses x 3 seeds, ONE structure at a time ('rank4' or 'diffuse') --
+    the caller (main()'s dispatch) requests each structure's own manifest
+    separately per Option-1's staged launch (rank4 first, diffuse only on
+    an explicit PI/env-override decision)."""
+    assert structure in ("rank4", "diffuse"), f"structure must be 'rank4' or 'diffuse', got {structure!r}"
+    runs = []
+    for dose in doses:
+        for seed in KEYANCHOR_DOSE_SEEDS_BY_STRUCTURE_DOSE[(structure, dose)]:
+            runs.append(_keyanchor_dose_spec(dose, structure, seed))
+    assert len(runs) == len(doses) * 3, \
+        f"keyanchor-dose manifest ({structure}) drifted from its registered {len(doses) * 3} runs: {len(runs)}"
+    return runs
+
+
+KEYANCHOR_DOSE_K84_DOSE_MANIFEST_KS = (84,)   # sec 14.4c's conditional K=84 extension --
+                                                # STAGE-GATED per sec 14.4's Option-1 disclosure
+                                                # (defined here, NOT auto-launched by any --wave
+                                                # dispatch below -- registering the identity now
+                                                # is what prevents it from becoming a free post-hoc
+                                                # addition later, mirroring keyanchor_k48_dprime_
+                                                # manifest's own conditional-gate precedent).
+
+
+def keyanchor_dose_k84_manifest(structure: str, doses=KEYANCHOR_DOSE_TARGETS) -> list:
+    """sec 14.4c's MECHANICAL K=84 activation rule -- registered here as a
+    BUILD ARTIFACT (the manifest-building function this design's own
+    conditional extension needs once its own numeric trigger fires), but
+    NOT wired into any --wave dispatch below: sec 14.4c's own activation
+    rule (adjacent-dose-gap / non-adjacent-dose-gap test, OR cross-
+    structure disagreement) can only be evaluated AFTER K=68's own 4-point
+    dose-response data exists -- an orchestrator decision this build
+    session cannot make (no GPU work has run). Same
+    registered-but-stage-gated discipline as KEYANCHOR_DOSE_K84_DOSE_
+    MANIFEST_KS above."""
+    assert structure in ("rank4", "diffuse"), f"structure must be 'rank4' or 'diffuse', got {structure!r}"
+    runs = []
+    for K in KEYANCHOR_DOSE_K84_DOSE_MANIFEST_KS:
+        for dose in doses:
+            for seed in KEYANCHOR_DOSE_SEEDS_BY_STRUCTURE_DOSE[(structure, dose)]:
+                runs.append(_keyanchor_dose_spec(dose, structure, seed, d_state=KEYANCHOR_DOSE_D_STATE)
+                             | {"K": K})   # placeholder identity only -- see docstring: never launched
+    assert len(runs) == len(KEYANCHOR_DOSE_K84_DOSE_MANIFEST_KS) * len(doses) * 3, \
+        f"keyanchor-dose K=84 conditional manifest ({structure}) drifted: {len(runs)}"
+    return runs
+
+
+# sec 14.4's registered budget table (19 cells total: 9 rank4 + 9 diffuse +
+# 1 calibration) -- Option-1 staging fits Stage 1 (10 cells: the
+# calibration cell + the 9 rank4 grid cells) within the FULL 13.68 GPU-h
+# wave ceiling at BOTH 1x and 2x contingency (6.410/12.820 GPU-h), per sec
+# 14.4's own arithmetic, reproduced here as literal constants (never
+# re-derived from a mutable base) matching this project's "exact
+# thresholds" house rule.
+KEYANCHOR_DOSE_GPUH_PER_CELL = 0.6410190   # sec 14.4's cost basis -- K=68/d=128/n=107/seed=530's
+                                             # own realized wall_s=2307.6685s, unchanged (dosed,
+                                             # frozen cells cost the SAME per sec 14.4's own argument:
+                                             # only row CONTENT differs, not per-step cost)
+KEYANCHOR_DOSE_CONTINGENCY_MULTIPLIER = 2.0
+KEYANCHOR_DOSE_STAGE1_CELLS = 10             # calibration (1) + rank4 grid (9)
+KEYANCHOR_DOSE_STAGE2_CELLS = 9              # diffuse grid (9) -- PI-gated, sec 14.4 Option 1
+KEYANCHOR_DOSE_TOTAL_CELLS = KEYANCHOR_DOSE_STAGE1_CELLS + KEYANCHOR_DOSE_STAGE2_CELLS   # 19
+
+# sec 14.4's own registered ceiling: H=13.68 GPU-h (66.32/80 realized,
+# STATE.md's own budget line) -- the KEY_ANCHORING program's SUB-LEDGER,
+# not the Brev grant's real hardware ceiling (sec 14.4's own F6
+# disclosure). Read directly off the already-defined program-spent/ceiling
+# constants above (never re-typed as a bare literal), same discipline
+# KEYANCHOR_DSTATE_HEADROOM_GPUH's own comment already explains for this
+# wave's own predecessor.
+KEYANCHOR_DOSE_HEADROOM_GPUH = KEYANCHOR_CLIFF_RESERVE_GPUH   # 13.68 at this wave's own registration time
+
+
+def keyanchor_dose_budget_guard(accept_override: bool) -> dict:
+    """sec 14.4's mechanical arithmetic, applied literally: Stage 1 (10
+    cells) fits the FULL wave ceiling at BOTH 1x and 2x -- launches with
+    ZERO PI decision required. Stage 2 (9 diffuse cells) is priced
+    separately (per sec 14.4 Option 1's own "price it at the point it is
+    actually needed" argument) -- this function reports BOTH stages'
+    arithmetic and the cumulative-vs-ceiling comparison at 2x (the
+    worst-case, pessimistic-bracket multiplier this project's own house
+    rule prices against before committing), but does NOT itself refuse a
+    Stage-1-only launch (Stage 1 fits unconditionally); it DOES refuse
+    Stage 2 (the PI-gated diffuse launch) unless accept_override is
+    passed, since Stage 2's own 2x cost (11.538 GPU-h) alone already
+    exceeds the 13.68 GPU-h ceiling once Stage 1's own realized/estimated
+    spend is included (sec 14.4's own "the cumulative cost is the same 19
+    cells either way" honest disclosure)."""
+    stage1_gpuh_1x = KEYANCHOR_DOSE_STAGE1_CELLS * KEYANCHOR_DOSE_GPUH_PER_CELL
+    stage1_gpuh_2x = stage1_gpuh_1x * KEYANCHOR_DOSE_CONTINGENCY_MULTIPLIER
+    stage2_gpuh_1x = KEYANCHOR_DOSE_STAGE2_CELLS * KEYANCHOR_DOSE_GPUH_PER_CELL
+    stage2_gpuh_2x = stage2_gpuh_1x * KEYANCHOR_DOSE_CONTINGENCY_MULTIPLIER
+    cumulative_1x = stage1_gpuh_1x + stage2_gpuh_1x
+    cumulative_2x = stage1_gpuh_2x + stage2_gpuh_2x
+    report = {
+        "stage1_cells": KEYANCHOR_DOSE_STAGE1_CELLS, "stage1_gpuh_1x": stage1_gpuh_1x,
+        "stage1_gpuh_2x": stage1_gpuh_2x, "stage1_fits_2x": stage1_gpuh_2x <= KEYANCHOR_DOSE_HEADROOM_GPUH,
+        "stage2_cells": KEYANCHOR_DOSE_STAGE2_CELLS, "stage2_gpuh_1x": stage2_gpuh_1x,
+        "stage2_gpuh_2x": stage2_gpuh_2x,
+        "cumulative_gpuh_1x": cumulative_1x, "cumulative_gpuh_2x": cumulative_2x,
+        "cumulative_fits_2x": cumulative_2x <= KEYANCHOR_DOSE_HEADROOM_GPUH,
+        "headroom_gpuh": KEYANCHOR_DOSE_HEADROOM_GPUH,
+        "ceiling_amendment_gpuh_2x": max(0.0, cumulative_2x - KEYANCHOR_DOSE_HEADROOM_GPUH),
+    }
+    print(f"BUDGET GUARD (keyanchor-dose, sec 14.4): Stage 1 ({report['stage1_cells']} cells) = "
+          f"{stage1_gpuh_1x:.4f}/{stage1_gpuh_2x:.4f} GPU-h (1x/2x) -- FITS full ceiling "
+          f"{KEYANCHOR_DOSE_HEADROOM_GPUH:.2f} GPU-h at both multipliers: {report['stage1_fits_2x']}. "
+          f"Stage 2 ({report['stage2_cells']} cells, diffuse, PI-gated) = "
+          f"{stage2_gpuh_1x:.4f}/{stage2_gpuh_2x:.4f} GPU-h (1x/2x). Cumulative (both stages) = "
+          f"{cumulative_1x:.4f}/{cumulative_2x:.4f} GPU-h -- fits ceiling at 2x: "
+          f"{report['cumulative_fits_2x']} (amendment if not: {report['ceiling_amendment_gpuh_2x']:.4f} "
+          f"GPU-h).", flush=True)
+    if not report["cumulative_fits_2x"] and not accept_override:
+        print(f"NOTE (keyanchor-dose): per sec 14.4 Option 1, Stage 1 launches regardless (it fits "
+              f"the ceiling alone) -- this guard's cumulative-over-ceiling finding gates STAGE 2 "
+              f"(diffuse) only, matching sec 14.4's own registered PI-decision framing. Stage 2 "
+              f"requires --accept-dose-stage2-pi-signoff (an explicit, documented human decision, "
+              f"per sec 14.4 Option 1's abort/decision table) OR a KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 "
+              f"env override.", flush=True)
+    return report
+
+
+KEYANCHOR_DOSE_STAGE1_SENTINEL_NAME = "KEYANCHOR_DOSE_CALIBRATION_DONE"
+
+
+def keyanchor_dose_is_calibration_dose_verified(out_dir: str) -> dict | None:
+    """sec 14.3's dose-verification assertion is ALREADY enforced at cell
+    start by run_deltanet_rd.py itself (main()'s own assert, ±10% rel_err)
+    -- a cell that failed dose-verification never completes at all (the
+    assert raises before training starts, so no result JSON with
+    complete=true would exist). This helper re-reads the completed
+    calibration cell's own exactness_config.achieved_max_cos against its
+    dose_target as a SECOND, orchestrator-level confirmation (defense in
+    depth, mirroring sec 10.3.3 leg (ii)'s own "gate must include a live
+    re-run, not just trust the upstream check" discipline) before Stage 1
+    proceeds to the remaining 9 rank-4 cells."""
+    calib_spec = keyanchor_dose_calibration_manifest()[0]
+    p = out_path(out_dir, calib_spec)
+    if not is_done(out_dir, calib_spec):
+        return None
+    with open(p) as f:
+        d = json.load(f)
+    ec = d.get("exactness_config", {})
+    achieved = ec.get("achieved_max_cos")
+    target = ec.get("dose_target")
+    if achieved is None or target is None:
+        return None
+    rel_err = abs(achieved - target) / target
+    return {"achieved": achieved, "target": target, "rel_err": rel_err, "verified": rel_err <= 0.10}
+
+
 MANIFEST_FNS = {"-1": wave_neg1_manifest}
 
 
@@ -2322,6 +2615,29 @@ def is_done(out_dir, spec):
         # defensive default, not an expected miss.
         if d.get("d_state", 64) != spec.get("d_state", 64):
             return False
+        # KEY_ANCHORING_DESIGN.md sec 14.1b item 4 (Rev 14.3, coherence
+        # dose-response wave, the F2-closing fix): SAME missing-key-
+        # defaults-to-off/None discipline as every field above. Before
+        # this fix, THREE dosed cells sharing K/seed/arm/frozen/init_mode
+        # but differing ONLY in dose_target (e.g. 0.130 vs. 0.284 vs.
+        # 0.400) collided -- neither _spec() nor is_done() carried ANY
+        # dose-identity field, so all three would spuriously read
+        # is_done()==True against whichever ONE of them happened to be
+        # archived first (sec 14.1b item 4's own registered negative unit
+        # test, smoke_keyanchor_dose.py, demonstrates this exact collision
+        # was real before this fix and is closed by it). Read from `ec`
+        # (exactness_config), matching where run_deltanet_rd.py's
+        # _assemble_result writes dose_target/dose_structure/subspace_seed
+        # (sec 14.1b item 5) -- NOT the top level, unlike d_state (which
+        # _assemble_result writes at the top level; the two fields are
+        # written by different, independently-added code paths, see that
+        # function's own docstring note).
+        if ec.get("dose_target") != spec.get("dose_target"):
+            return False
+        if ec.get("dose_structure") != spec.get("dose_structure"):
+            return False
+        if ec.get("subspace_seed") != spec.get("subspace_seed"):
+            return False
         return True
     except Exception:
         return False
@@ -2357,6 +2673,15 @@ def build_cmd(spec, out_dir, timeout, unblind_override_at: float | None = None,
             cmd += ["--anchor-table-frozen"]
         if spec.get("anchor_table_init_mode", "frame_potential") != "frame_potential":
             cmd += ["--anchor-table-init-mode", str(spec["anchor_table_init_mode"])]
+        if spec.get("anchor_table_init_mode") == "dosed":
+            # KEY_ANCHORING_DESIGN.md sec 14.1b item 3: thread the dose
+            # identity down to run_deltanet_rd.py's own --anchor-dose-*
+            # flags -- REQUIRED (main()'s own assert) whenever
+            # anchor_table_init_mode=='dosed'.
+            cmd += ["--anchor-dose-target", str(spec["dose_target"]),
+                    "--anchor-dose-structure", str(spec["dose_structure"])]
+            if spec.get("subspace_seed") is not None:
+                cmd += ["--anchor-subspace-seed", str(spec["subspace_seed"])]
     if spec.get("lambda_anchor"):
         cmd += ["--lambda-anchor", str(spec["lambda_anchor"])]
     if spec.get("drift_probe"):
@@ -2481,7 +2806,8 @@ def main():
                                         "keyanchor-mech-gate1", "keyanchor-mech",
                                         "keyanchor-k48-ref", "keyanchor-k48-bands",
                                         "keyanchor-k48-gate1", "keyanchor-k48",
-                                        "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate"], default=None,
+                                        "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate",
+                                        "keyanchor-dose"], default=None,
                      help="'geo3' launches F-geo-3's Wave-1-style cells (sec 14.7) -- GATED on "
                           "--geo3-drift-json (sec 14.6's launch-read result) unless "
                           "--accept-gate-override is passed. The sec 14.6 drift diagnostic ITSELF "
@@ -2544,7 +2870,26 @@ def main():
                           "rather than unilaterally descoping below Option C's 6 cells; "
                           "--accept-dstate-stage-override bypasses. --include-dstate-gate1 "
                           "additionally launches the OPTIONAL per-K Gate-1-style probes for "
-                          "whichever K-grid the branch selects.")
+                          "whichever K-grid the branch selects. "
+                          "KEY_ANCHORING_DESIGN.md sec 14 (Rev 14.3, DESIGN-CLEARED-FOR-BUILD) wave: "
+                          "'keyanchor-dose' launches the coherence dose-response wave (K=68, "
+                          "d_state=128 FIXED, FROZEN dosed tables via the new anchor_table_override "
+                          "path) -- REQUIRES --dose-stage calibration|rank4|diffuse: 'calibration' "
+                          "launches ONLY the single K=68/dose=0.40/rank4/seed=939 calibration cell "
+                          "(sec 14.4b, MUST complete before 'rank4' proceeds); 'rank4' launches the "
+                          "9 mandatory rank-4 grid cells (3 doses x 3 seeds) -- MECHANICALLY REFUSES "
+                          "unless the calibration cell is complete AND re-verifies its own dose "
+                          "(achieved vs. target, +/-10%) as a second, orchestrator-level check; "
+                          "'diffuse' launches the 9 co-primary diffuse grid cells -- PI-GATED (sec "
+                          "14.4 Option 1): REQUIRES --accept-dose-stage2-pi-signoff OR the "
+                          "KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 env override, since Stage 2's own "
+                          "cumulative 2x cost exceeds this wave's 13.68 GPU-h sub-ledger ceiling "
+                          "(sec 14.4's own disclosed PI-decision point). K=84's conditional "
+                          "extension (sec 14.4c) is NOT dispatchable from this wave choice -- its "
+                          "own numeric activation rule requires K=68's real dose-response data, "
+                          "which does not exist at build time (registered as a manifest-building "
+                          "function only, keyanchor_dose_k84_manifest, per the module's own "
+                          "docstring).")
     ap.add_argument("--gpus", type=int, default=None,
                      help="GPU COUNT. REQUIRED for a real (wave -1/1) launch, NO DEFAULT ON "
                           "PURPOSE -- check nvidia-smi before every launch (GPUs 0-5,7 run other "
@@ -2684,6 +3029,35 @@ def main():
                           "decision-table branch selects. Off by default (sec 13.6: first cut under "
                           "budget pressure, same discipline as keyanchor-cliff's own "
                           "--include-cliff-gate1).")
+    ap.add_argument("--dose-stage", type=str, choices=["calibration", "rank4", "diffuse"], default=None,
+                     help="--wave keyanchor-dose: REQUIRED. 'calibration' launches ONLY the single "
+                          "K=68/dose=0.40/rank4/seed=939 calibration cell (sec 14.4b -- must run to "
+                          "completion, alone, before 'rank4' proceeds). 'rank4' launches the 9 "
+                          "mandatory rank-4 grid cells (3 doses x 3 seeds) -- MECHANICALLY REFUSES "
+                          "(sys.exit) unless the calibration cell is complete AND its own dose "
+                          "re-verifies (achieved vs target, +/-10%, a second orchestrator-level "
+                          "check on top of run_deltanet_rd.py's own construction-time assert) unless "
+                          "--accept-dose-stage-override is passed. 'diffuse' launches the 9 "
+                          "co-primary diffuse grid cells -- PI-GATED (sec 14.4 Option 1): REFUSES "
+                          "unless --accept-dose-stage2-pi-signoff is passed OR "
+                          "KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 is set in the environment (Stage 2's "
+                          "own cumulative cost exceeds this wave's 13.68 GPU-h sub-ledger ceiling at "
+                          "2x contingency, sec 14.4's own disclosed PI-decision point -- this is NOT "
+                          "the same override as --accept-dose-stage-override, which only bypasses "
+                          "the calibration-completeness/dose-reverification gate, not the budget "
+                          "PI-decision).")
+    ap.add_argument("--accept-dose-stage-override", action="store_true",
+                     help="--wave keyanchor-dose --dose-stage rank4|diffuse: bypass sec 14.4b's "
+                          "calibration-first mechanical gate (missing calibration cell OR a failed "
+                          "dose-reverification) with an explicit, loudly-logged human override -- "
+                          "same override class as --accept-dstate-stage-override.")
+    ap.add_argument("--accept-dose-stage2-pi-signoff", action="store_true",
+                     help="--wave keyanchor-dose --dose-stage diffuse: the explicit PI decision sec "
+                          "14.4 Option 1 registers as required before Stage 2 (the diffuse co-primary "
+                          "arm) launches, since its own cumulative 2x cost exceeds the 13.68 GPU-h "
+                          "wave ceiling. KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 in the environment is an "
+                          "equivalent, non-CLI way to record the same decision (e.g. from a chain "
+                          "script that has already captured the PI's sign-off elsewhere).")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -2932,6 +3306,51 @@ def main():
             f"keyanchor-dstate mandatory manifest K's drifted: {sorted(set(s['K'] for s in kd_mand))}"
         assert all(s["d_state"] == KEYANCHOR_DSTATE_D for s in kd_mand), \
             "keyanchor-dstate mandatory manifest has a cell not at d_state=128"
+
+        print("\n" + "=" * 70)
+        print("KEY_ANCHORING_DESIGN.md sec 14 (Rev 14.3, DESIGN-CLEARED-FOR-BUILD) -- "
+              "keyanchor-dose wave preview (coherence dose-response)")
+        print("=" * 70)
+        kdose_calib = keyanchor_dose_calibration_manifest()
+        kdose_rank4 = keyanchor_dose_manifest("rank4")
+        kdose_diffuse = keyanchor_dose_manifest("diffuse")
+        dose_budget = keyanchor_dose_budget_guard(accept_override=True)   # preview only, never gates
+        print(f"  sec 14.4b CALIBRATION (mandatory, first, alone): {len(kdose_calib)} run | "
+              f"K={KEYANCHOR_DOSE_K} dose={KEYANCHOR_DOSE_CALIBRATION_DOSE} "
+              f"structure={KEYANCHOR_DOSE_CALIBRATION_STRUCTURE} seed={KEYANCHOR_DOSE_CALIBRATION_SEED} "
+              f"(NOTE: sec 14.4's own budget table lists dose=0.284 for this row, disagreeing with "
+              f"sec 14.4b's own thrice-repeated 'HIGHEST dose (~0.40)' prose -- this build follows "
+              f"the prose; flagged for the design doc's own next revision)")
+        print(f"  Stage 1, Primary A (rank4), MANDATORY: {len(kdose_rank4)} runs | doses "
+              f"{KEYANCHOR_DOSE_TARGETS} | 3 seeds each | ~{dose_budget['stage1_gpuh_1x'] - KEYANCHOR_DOSE_GPUH_PER_CELL:.4f} GPU-h "
+              f"(9 grid cells only, excluding the calibration cell counted above)")
+        print(f"  Stage 2, Co-primary B (diffuse, subspace_rank={KEYANCHOR_DOSE_DIFFUSE_RANK}), "
+              f"PI-GATED (sec 14.4 Option 1, --dose-stage diffuse, requires "
+              f"--accept-dose-stage2-pi-signoff): {len(kdose_diffuse)} runs | doses "
+              f"{KEYANCHOR_DOSE_TARGETS} | 3 seeds each")
+        print(f"  0.000 control: REUSED verbatim from sec 13.10's own already-measured cells -- "
+              f"ZERO new GPU-h, structure-invariant at t=0, not part of either manifest above")
+        print(f"  Stage 1 (calibration + rank4, {KEYANCHOR_DOSE_STAGE1_CELLS} cells): "
+              f"{dose_budget['stage1_gpuh_1x']:.4f}/{dose_budget['stage1_gpuh_2x']:.4f} GPU-h (1x/2x) "
+              f"-- fits full {KEYANCHOR_DOSE_HEADROOM_GPUH:.2f} GPU-h ceiling at 2x: "
+              f"{dose_budget['stage1_fits_2x']}")
+        print(f"  Stage 2 (diffuse, {KEYANCHOR_DOSE_STAGE2_CELLS} cells): "
+              f"{dose_budget['stage2_gpuh_1x']:.4f}/{dose_budget['stage2_gpuh_2x']:.4f} GPU-h (1x/2x)")
+        print(f"  Cumulative (both stages, {KEYANCHOR_DOSE_TOTAL_CELLS} cells): "
+              f"{dose_budget['cumulative_gpuh_1x']:.4f}/{dose_budget['cumulative_gpuh_2x']:.4f} GPU-h -- "
+              f"fits ceiling at 2x: {dose_budget['cumulative_fits_2x']} (amendment if not: "
+              f"{dose_budget['ceiling_amendment_gpuh_2x']:.4f} GPU-h) -- Option 1's own registered "
+              f"mechanical default: Stage 1 launches with ZERO PI decision (fits alone); Stage 2 "
+              f"requires the explicit PI sign-off")
+        print(f"  sec 14.4c K=84 conditional extension: NOT dispatchable from this preview (requires "
+              f"K=68's own real dose-response data; registered as keyanchor_dose_k84_manifest, "
+              f"stage-gated, per that function's own docstring)")
+        assert len(kdose_calib) == 1 and len(kdose_rank4) == 9 and len(kdose_diffuse) == 9, \
+            f"keyanchor-dose run counts drifted from their registered 1+9+9: " \
+            f"{len(kdose_calib)}+{len(kdose_rank4)}+{len(kdose_diffuse)}"
+        assert all(s["d_state"] == KEYANCHOR_DOSE_D_STATE and s["K"] == KEYANCHOR_DOSE_K
+                   for s in kdose_calib + kdose_rank4 + kdose_diffuse), \
+            "keyanchor-dose manifest has a cell not at K=68/d_state=128"
 
         print("\n" + "=" * 70)
         print(f"COMBINED (both waves, all-conditionals-max, using the RECONCILED "
@@ -3315,6 +3734,89 @@ def main():
                   f"d_state={KEYANCHOR_DSTATE_D}, K={stage_ks}, 3 seeds each"
                   f"{' + Gate-1 probes' if args.include_dstate_gate1 else ''}); "
                   f"bands_gate={bands_gate} stage_gate={stage_gate_report}", flush=True)
+    elif args.wave == "keyanchor-dose":
+        # sec 14's coherence dose-response wave. REQUIRES --dose-stage
+        # (sec 14.4b's calibration-first discipline, mirroring
+        # keyanchor-dstate's own pattern): 'calibration' launches ONLY the
+        # single K=68/dose=0.40/rank4/seed=939 cell; 'rank4' requires that
+        # cell complete + re-verified, then launches the 9 mandatory
+        # rank-4 grid cells; 'diffuse' (Stage 2, sec 14.4 Option 1) is
+        # PI-gated -- REQUIRES --accept-dose-stage2-pi-signoff or
+        # KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1, never launched by default.
+        if args.dose_stage is None:
+            print("ERROR: --wave keyanchor-dose requires --dose-stage calibration, rank4, or diffuse "
+                  "(sec 14.4b's calibration-first discipline -- the K=68/dose=0.40/rank4/seed=939 "
+                  "cell must run and complete before 'rank4' proceeds; 'diffuse' is separately "
+                  "PI-gated, sec 14.4 Option 1).", file=sys.stderr)
+            sys.exit(1)
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        ref_out_dir = os.path.join(args.out_dir, "waveref")
+        bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
+        dose_out_dir = os.path.join(args.out_dir, "wavekeyanchor-dose")
+        budget_report = keyanchor_dose_budget_guard(args.accept_budget_override)
+        if args.dose_stage == "calibration":
+            manifest = keyanchor_dose_calibration_manifest()
+            print(f"wave keyanchor-dose manifest: {len(manifest)} run (sec 14.4b's SINGLE "
+                  f"calibration cell, K={KEYANCHOR_DOSE_K}, dose={KEYANCHOR_DOSE_CALIBRATION_DOSE}, "
+                  f"structure={KEYANCHOR_DOSE_CALIBRATION_STRUCTURE}, "
+                  f"seed={KEYANCHOR_DOSE_CALIBRATION_SEED}, d_state={KEYANCHOR_DOSE_D_STATE}); "
+                  f"bands_gate={bands_gate} budget={budget_report}", flush=True)
+        elif args.dose_stage == "rank4":
+            if not args.accept_dose_stage_override:
+                verify = keyanchor_dose_is_calibration_dose_verified(dose_out_dir)
+                if verify is None:
+                    print(f"ERROR: --dose-stage rank4 REFUSED -- the calibration cell (K="
+                          f"{KEYANCHOR_DOSE_K}, dose={KEYANCHOR_DOSE_CALIBRATION_DOSE}, "
+                          f"structure={KEYANCHOR_DOSE_CALIBRATION_STRUCTURE}, "
+                          f"seed={KEYANCHOR_DOSE_CALIBRATION_SEED}) is not yet complete (or its "
+                          f"result JSON is missing dose fields) in {dose_out_dir!r}. Run "
+                          f"--dose-stage calibration first, or pass --accept-dose-stage-override for "
+                          f"an explicit, documented human override.", file=sys.stderr)
+                    sys.exit(1)
+                if not verify["verified"]:
+                    print(f"ERROR: --dose-stage rank4 REFUSED -- the calibration cell's own dose "
+                          f"re-verification FAILED (target={verify['target']}, "
+                          f"achieved={verify['achieved']:.6f}, rel_err={verify['rel_err']:.4f} > 0.10) "
+                          f"-- this should never happen given run_deltanet_rd.py's own construction-"
+                          f"time assert already enforces this; a mismatch here indicates the result "
+                          f"JSON was tampered with or corrupted post-hoc. Pass "
+                          f"--accept-dose-stage-override for an explicit, documented human override.",
+                          file=sys.stderr)
+                    sys.exit(1)
+                print(f"sec 14.4b CALIBRATION RE-VERIFIED: target={verify['target']} "
+                      f"achieved={verify['achieved']:.6f} rel_err={verify['rel_err']:.4f} (<=0.10)",
+                      flush=True)
+            else:
+                print("WARNING: --dose-stage rank4 proceeding under --accept-dose-stage-override -- "
+                      "the calibration-completeness/dose-reverification gate is BYPASSED by an "
+                      "explicit human decision.", flush=True)
+            manifest = keyanchor_dose_manifest("rank4")
+            print(f"wave keyanchor-dose manifest: {len(manifest)} runs (candidate (d), rank4, "
+                  f"K={KEYANCHOR_DOSE_K}, d_state={KEYANCHOR_DOSE_D_STATE}, doses="
+                  f"{KEYANCHOR_DOSE_TARGETS}, 3 seeds each); bands_gate={bands_gate} "
+                  f"budget={budget_report}", flush=True)
+        else:   # "diffuse" -- Stage 2, PI-gated per sec 14.4 Option 1
+            pi_signoff = (args.accept_dose_stage2_pi_signoff
+                          or os.environ.get("KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF") == "1")
+            if not pi_signoff:
+                print(f"ERROR: --dose-stage diffuse REFUSED -- sec 14.4 Option 1's own PI-decision "
+                      f"point: Stage 2 (9 diffuse cells) is not auto-launched, since the cumulative "
+                      f"(both-stages) 2x cost ({budget_report['cumulative_gpuh_2x']:.4f} GPU-h) "
+                      f"exceeds this wave's {KEYANCHOR_DOSE_HEADROOM_GPUH:.2f} GPU-h sub-ledger "
+                      f"ceiling by {budget_report['ceiling_amendment_gpuh_2x']:.4f} GPU-h. Pass "
+                      f"--accept-dose-stage2-pi-signoff for an explicit, documented human decision, "
+                      f"or set KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 in the environment.",
+                      file=sys.stderr)
+                sys.exit(1)
+            print("WARNING: --dose-stage diffuse proceeding under an explicit PI sign-off (sec 14.4 "
+                  "Option 1) -- Stage 2's own cumulative cost exceeds the wave's sub-ledger ceiling; "
+                  "this decision is recorded here, not silently waved through.", flush=True)
+            manifest = keyanchor_dose_manifest("diffuse")
+            print(f"wave keyanchor-dose manifest: {len(manifest)} runs (candidate (d), diffuse "
+                  f"(subspace_rank={KEYANCHOR_DOSE_DIFFUSE_RANK}), K={KEYANCHOR_DOSE_K}, "
+                  f"d_state={KEYANCHOR_DOSE_D_STATE}, doses={KEYANCHOR_DOSE_TARGETS}, 3 seeds each); "
+                  f"bands_gate={bands_gate} budget={budget_report}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,
                                    args.calib_summary, args.accept_unconverged_rho)
@@ -3340,7 +3842,8 @@ def main():
     # same ABORTED.txt discipline as the pre-existing run_smoke gate below.
     if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1",
                       "keyanchor-mech", "keyanchor-k48-ref", "keyanchor-k48-gate1", "keyanchor-k48",
-                      "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate") and not args.skip_smoke:
+                      "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate",
+                      "keyanchor-dose") and not args.skip_smoke:
         rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
         if rc != 0:
             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -3349,7 +3852,7 @@ def main():
             sys.exit(1)
         if args.wave in ("keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1", "keyanchor-mech",
                           "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e", "keyanchor-cliff",
-                          "keyanchor-dstate"):
+                          "keyanchor-dstate", "keyanchor-dose"):
             rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
             if rc != 0:
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -3410,6 +3913,18 @@ def main():
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                     f.write("smoke_keyanchor_dstate.py FAILED (rc != 0); no training launched.\n")
                 print(f"ERROR: smoke_keyanchor_dstate.py failed -- {args.wave} wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+        if args.wave == "keyanchor-dose":
+            # KEY_ANCHORING_DESIGN.md sec 14's own smoke suite (fla-free;
+            # dose-dial-matches-reference-JSON, manifest shape/seed
+            # collision, is_done() dose-identity negative test, budget/
+            # staging gates, dose-verify assertion).
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_keyanchor_dose.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("smoke_keyanchor_dose.py FAILED (rc != 0); no training launched.\n")
+                print(f"ERROR: smoke_keyanchor_dose.py failed -- {args.wave} wave aborted.",
                       file=sys.stderr)
                 sys.exit(1)
 

@@ -298,6 +298,98 @@ def build_localized_collapse_table(healthy_table: torch.Tensor, n_collapsed: int
 
 
 # ---------------------------------------------------------------------------
+# KEY_ANCHORING_DESIGN.md sec 14.1/14.1b item 1 (Rev 14.3) -- the coherence
+# dose dial. PORTED VERBATIM from `dose_dial_verify.py` (the committed,
+# CPU-verified Rev-14.3 reference implementation that found and fixed the
+# subspace_rank=d_state degeneracy, sec 14.1's own boxed correction) --
+# same function bodies, same bisection contract, same monotonicity
+# assumption. `smoke_keyanchor_dose.py`'s dose-dial-matches-reference-JSON
+# smoke re-derives every t/achieved pair in dose_dial_verify_results.json's
+# own `calibration` block from THESE functions (not a hand-copied twin) and
+# asserts agreement to 1e-4, per sec 14.1b item 1's acceptance criterion.
+#
+# DIFFUSE_SUBSPACE_RANK=48 (sec 14.1's Rev-14.3 fix): the MAXIMUM scanned
+# rank whose achieved-dose ceiling (at t=1) still clears the 0.42 target --
+# subspace_rank=d_state (128) is a mathematically degenerate no-op dial
+# (QR of a square Gaussian gives a full orthogonal Q, so the projector is
+# the identity and the blend collapses to a no-op at every t, sec 14.1's
+# `degeneracy_proof`); this is NOT used anywhere in this design.
+# ---------------------------------------------------------------------------
+
+DIFFUSE_SUBSPACE_RANK = 48   # sec 14.1's Rev-14.3 chosen diffuse rank (ceiling 0.422673 >= 0.42 target)
+
+
+def build_dose_table(healthy_table: torch.Tensor, t: float, subspace_rank: int,
+                      subspace_seed: int) -> torch.Tensor:
+    """sec 14.1's dose dial: blend EVERY row of healthy_table toward a
+    shared low-rank random subspace at strength t in [0,1], renormalize.
+    t=0 -> healthy_table unchanged (rows already unit-norm, renormalize is
+    a no-op). t=1 -> every row replaced by its unit-normalized projection
+    onto the subspace (near-maximal coherence, bounded by subspace_rank).
+
+    subspace_rank=4 -> CONCENTRATED (rank-4) injection (this wave's primary
+    structure). subspace_rank=DIFFUSE_SUBSPACE_RANK (48) -> the DIFFUSE
+    injection (Rev 14.3's co-primary arm): every row still blends toward a
+    fixed random rotation-subspace of itself, spreading the blend across
+    more directions than rank-4 concentrates it into. subspace_rank=d_state
+    is DEGENERATE (see module note above) -- never pass it here.
+
+    fp64 throughout (matching frame_potential_init's own numerical-
+    stability convention); cast to fp32 on return (the table's actual
+    storage dtype)."""
+    n, d = healthy_table.shape
+    g = torch.Generator().manual_seed(subspace_seed)
+    Q, _ = torch.linalg.qr(torch.randn(d, subspace_rank, generator=g, dtype=torch.float64))
+    proj = healthy_table.double() @ Q @ Q.transpose(0, 1)
+    proj_unit = F.normalize(proj, dim=-1)
+    blended = (1.0 - t) * healthy_table.double() + t * proj_unit
+    return F.normalize(blended, dim=-1).float()
+
+
+def achieved_dose(healthy_table: torch.Tensor, t: float, subspace_rank: int,
+                   subspace_seed: int) -> float:
+    """The achieved max|cos| (raw_table_conditioning's own statistic) of
+    build_dose_table's output at a given (t, subspace_rank, subspace_seed)
+    -- the quantity calibrate_dose bisects against."""
+    dosed = build_dose_table(healthy_table, t, subspace_rank, subspace_seed)
+    return raw_table_conditioning(dosed)["max_abs_cos"]
+
+
+def calibrate_dose(healthy_table: torch.Tensor, target_dose: float, subspace_rank: int,
+                    subspace_seed: int, tol: float = 1e-4, max_iter: int = 80) -> dict:
+    """Bisection on t in [0,1] against achieved max|cos| (sec 14.1b item 1).
+    Returns {"t", "achieved", "n_iters", "converged", "ceiling_at_t1"}. If
+    the achieved dose at t=1 (the dial's own maximum reach) is still below
+    target_dose, calibration cannot converge -- reported explicitly
+    (converged=False, ceiling_at_t1=dose at t=1), never silently clamped or
+    fudged. Relies on achieved_dose(t) being monotone non-decreasing in t
+    for a fixed subspace (more blend toward a fixed direction set cannot
+    reduce coherence) -- standard bisection applies."""
+    lo, hi = 0.0, 1.0
+    dose_lo = achieved_dose(healthy_table, lo, subspace_rank, subspace_seed)
+    dose_hi = achieved_dose(healthy_table, hi, subspace_rank, subspace_seed)
+    if dose_hi < target_dose - tol:
+        return {"t": 1.0, "achieved": dose_hi, "n_iters": 0, "converged": False,
+                "ceiling_at_t1": dose_hi}
+    n_iters = 0
+    t = hi
+    achieved = dose_hi
+    for i in range(max_iter):
+        n_iters = i + 1
+        t = 0.5 * (lo + hi)
+        achieved = achieved_dose(healthy_table, t, subspace_rank, subspace_seed)
+        if abs(achieved - target_dose) <= tol:
+            break
+        if achieved < target_dose:
+            lo = t
+        else:
+            hi = t
+    converged = abs(achieved - target_dose) <= tol
+    return {"t": t, "achieved": achieved, "n_iters": n_iters, "converged": converged,
+            "ceiling_at_t1": dose_hi}
+
+
+# ---------------------------------------------------------------------------
 # sec 2.2's Rev-4 masked gather/scatter anchor blend -- THE function bind()
 # calls at its geo3 insertion site (model_rd.py imports this directly).
 # ---------------------------------------------------------------------------
