@@ -4728,3 +4728,83 @@ the 25MB cap) + SSD mirror at the same relative path under
 `/Volumes/1TB_SSD/learned-representations/`. Full verdict, per-cell
 wall_s table, and curve-shape reading:
 `matrix-thinking/KEY_ANCHORING_DESIGN.md` §12.9. `STATE.md` updated.
+
+---
+
+## FROZEN-BIAS LM RUNG-1 WAVE VERDICT (2026-07-06): FOURTH OUTCOME, "sim-training divergence" — primary CI excludes zero in BOTH corpora but is POSITIVE, opposite every sim's predicted direction; descriptive tier only
+
+All 20 rung-1 mandatory training cells (`FROZEN_BIAS_LM_DESIGN.md` §5/§6.1
+manifest: 18 core cells + 2 λ-mini-sweep cells) plus the full measurement
+pipeline (46 retrofit re-evals, `BANDS_PINNED-FrozenBias.json`,
+`PHASE_D_FULL_REPORT.json`, cosine diagnostic) completed on
+`youthful-indigo-turkey` GPU 2.
+
+**PRIMARY** (Arm2 − Arm1′, post-blend `span_frac`, pinned t(2,.975) CI):
+openr1 **+0.1955** [0.0937, 0.2973], wikitext **+0.2273** [0.0926,
+0.3621] — excludes zero both corpora, **positive** (every sim family
+predicted negative/stabilizing). **CO-PRIMARY** (pre-blend `k_raw`):
+openr1 **+0.1097** [0.0491, 0.1704], wikitext **+0.1345** [0.0070,
+0.2621] — same direction, confirming training-mediated (rules out the
+post-blend-only-win suspicious pattern). **CONTROL** (Arm2′ − Arm1″,
+global-vector bias): openr1 **−0.3319** [−0.6362, −0.0276], wikitext
+**−0.2308** [−0.2838, −0.1777] — negative, opposite sign from the
+per-token primary; §7.1a licensing (Arm2 more negative than Arm2′) FAILS.
+Cosine diagnostic: trained `k_raw`-vs-anchor cosines ~0 in every arm,
+before and after training — rules out key-anchor alignment as mechanism.
+Val-loss gate PASSES both arms, both corpora (no capability cost).
+λ-sweep (n=1): +0.038/+0.219/+0.290 at λ=0.3/0.58/0.8, monotone
+increasing, no sign flip.
+
+**Classification: FOURTH OUTCOME, §1.3 "sim-training divergence"** —
+not a CONFIRM (sign wrong relative to every sim's mechanism prediction)
+and not a REFUTE (co-primary is not null; it moved cleanly, same
+direction as primary), exactly the outcome §1.3 pre-registered for a
+real-vs-sim λ-gradient/sign violation. **DESCRIPTIVE TIER ONLY**: the
+blind-pin (`BANDS_PINNED-FrozenBias.json`) was written AFTER all 20
+training cells had already completed (`pinned_at_iso:
+2026-07-06T14:27:24Z`), so it correctly fixed Arm1′/Arm1″'s reference
+quantities but forfeits the broader pre-registration guarantee — a
+process lesson for future waves: pin BEFORE the training launch, not
+after training completes and before the fit runs.
+
+**The single most striking finding:** per-token and global-vector frozen
+key biases, trained identically at the same λ on the same corpora,
+produce opposite-signed, both-CI-excluding-zero, both training-mediated
+effects on the same observable — per-token destabilizes `span_frac`
+upward, global-vector stabilizes it downward. No sim family in this
+design predicted a sign split; both were predicted to stabilize.
+
+**What this does NOT show:** no capacity/mechanism claim (cosine rules
+out one candidate mechanism, does not supply another); `span_frac` has no
+established behavioral correlate in an LM (§4.a's standing disclosure,
+unchanged); no rung-2 license (remains PARKED). **Honest scientific
+value:** the testbed's constancy-suffices gain does NOT straightforwardly
+transplant via a dense per-token frozen key bias at 14M-parameter LM
+scale, stated plainly — but the wave surfaced a precisely-measured,
+controlled, genuinely surprising training-mediated geometry effect (the
+destabilize-vs-stabilize control contrast) worth a follow-up mechanism
+study, a discovery-shaped negative-plus-surprise rather than the hoped-for
+transplant confirmation.
+
+**Realized cost:** training 20/20 cells summed from `wall_s` = 18175.744s
+= **5.0488 GPU-h**; + ≈1.6 GPU-h retrofit/measurement eval + ≈0.25 GPU-h
+calibration prior = **≈6.90 GPU-h realized**, against the program's own
+135 GPU-h ceiling (~14.2 GPU-h committed at 2x contingency, rung-1 only).
+GPU 2 now idle (frozen-bias program complete; no cell in flight).
+
+Verification: independently recomputed the openr1 primary delta from
+raw per-seed `fitinput_arm2_post_blend.json`/`fitinput_arm1prime_post_
+blend.json` values using the pinned formula — matched
+`PHASE_D_FULL_REPORT.json` to full float precision
+(mean_delta=0.1955009366341799, CI=[0.0936538066504167,
+0.2973480666179431]).
+
+Archive: `experiment-runs/2026-07-06_frozen_bias_rung1/` (20 training
+result JSONs + 46 retrofit JSONs + `BANDS_PINNED-FrozenBias.json` +
+`PHASE_D_FULL_REPORT.json` + estimation/fitinput/cosine JSONs +
+calibration.json + the 3 measurement driver scripts +
+numbered/per-cell logs, ~18MB, all files well under the 25MB cap) + SSD
+mirror at the same relative path under
+`/Volumes/1TB_SSD/learned-representations/`. Full verdict:
+`matrix-thinking/FROZEN_BIAS_LM_DESIGN.md` (VERDICT section, appended).
+`STATE.md` updated.

@@ -92,12 +92,20 @@ MINI_SWEEP_SEED = 0
 # sec 8.5.1's rung-1-only budget: 20 mandatory training runs, 2x contingency,
 # ~11.20 GPU-h mandatory / ~14.22 GPU-h incl. optional Arm 3. PROGRAM_SPENT_GPUH
 # is a MAINTAINED constant (mirrors run_lm_rd_trackc_sweep.py's own convention) --
-# a human/orchestrator updates it as real spend accrues. Starts at 0.0: this
-# program has not yet spent any real GPU-h (CPU-only build session, no launch).
-PROGRAM_SPENT_GPUH = 0.0
+# a human/orchestrator updates it as real spend accrues.
+# UPDATED 2026-07-06 (rung-1 harvest): all 20/20 training cells complete +
+# full measurement pipeline run. Realized = training (sum of wall_s across
+# all 20 frozenbias_lm_*.json cells, 18175.744s = 5.0488 GPU-h) + ~1.6 GPU-h
+# retrofit/measurement eval (46 retrofit passes + cosine diagnostic + fit) +
+# ~0.25 GPU-h calibration-run prior (rung1 single-cell calibration + smoke
+# suite) = 6.8988 GPU-h. See FROZEN_BIAS_LM_DESIGN.md VERDICT section and
+# EXPERIMENT_LOG.md (2026-07-06 entry) for the full recomputation and
+# verification against experiment-runs/2026-07-06_frozen_bias_rung1/.
+PROGRAM_SPENT_GPUH = 6.8988
 GPU_H_PROGRAM_CEILING = 135.0   # sec 8.1's ceiling (unchanged across rounds -- a headroom cap,
                                  # NOT a target; rung-1-only committed spend is ~11.20-14.22 GPU-h,
-                                 # sec 8.5.1, well inside this ceiling).
+                                 # sec 8.5.1, well inside this ceiling; realized 6.8988 GPU-h,
+                                 # ~50% of the committed estimate, well inside).
 
 # House convention (CLAUDE.md / run_lm_rd_trackc_sweep.py's own LAUNCH_TIMEOUT_MARGIN): a real
 # launch's timeout is the measured cost times this margin, never the raw measured cost.

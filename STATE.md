@@ -49,17 +49,29 @@ This document is the project dashboard. Anyone returning to the project (you, a 
      (≈13.6% used, abort never fired — all cells 900-986s, bracket edge
      3503.8s). Anchoring ledger now 59.01/80. Full verdict:
      `matrix-thinking/KEY_ANCHORING_DESIGN.md` §12.9. **GPUs 2-3 now idle.**
-  2. **Frozen-bias LM demo, RUNG-1-ONLY** (FROZEN_BIAS_LM_DESIGN.md — 4
-     attack rounds + r5 pin, estimation-mode primary: Arm2 vs Arm1′
-     post-hoc-blend control, pinned t(2,.975) CI thresholds 0.0546/0.1064,
-     ~11.2-14.2 GPU-h at 2×; rung-2 PARKED behind fresh review). Build
-     stage next; calibration gated on cliff STAGE1_RATES_OK (§8.2a).
+  2. **Frozen-bias LM demo, RUNG-1 — COMPLETE 2026-07-06.** All 20/20
+     training cells + full measurement pipeline done. **FOURTH OUTCOME
+     (§1.3 "sim-training divergence"):** primary (Arm2−Arm1′ post-blend
+     span_frac) excludes zero BOTH corpora but is **positive**
+     (openr1 +0.1955 [0.0937,0.2973], wikitext +0.2273 [0.0926,0.3621]) —
+     opposite every sim's predicted direction; co-primary agrees in sign
+     (training-mediated, confirmed); control (global-vector bias) is
+     **negative** (openr1 −0.3319, wikitext −0.2308) — a striking
+     destabilize-vs-stabilize sign split no sim predicted. Cosine
+     diagnostic rules out key-anchor alignment; val-loss gate clean.
+     DESCRIPTIVE TIER ONLY — blind-pin was written post-training (process
+     lesson: pin before launch next time). Not a transplant confirm; a
+     real, controlled, surprising geometry effect instead. Realized
+     **≈6.90 GPU-h** (5.05 training + 1.6 eval + 0.25 calibration), well
+     under the ~14.2 GPU-h committed estimate. Full verdict:
+     `matrix-thinking/FROZEN_BIAS_LM_DESIGN.md` (VERDICT section).
+     **GPU 2 now idle.** Rung-2 remains PARKED.
 - **Budgets:** scale 266.47/300 GPU-h committed at launch-time constants
   (rung-3 actual ≈334/300 DISCLOSED, see top block); anchoring 55.83/80 +
   cliff realized 3.18 = **59.01/80** (cliff wave complete, see item 1
   above — the 23.36 figure was the pre-run pessimistic ceiling, not the
-  realized cost); frozen-bias LM program own ceiling 135 (rung-1 scope
-  ~14 GPU-h committed).
+  realized cost); frozen-bias LM program own ceiling 135, realized
+  **6.8988/135** (rung-1 complete, see item 2 above).
 - **User decisions pending:** see `matrix-thinking/submissions/PAPER_SPRINT_PLAN.md`
   §PI-decisions (venue NeurReps/UniReps EA ~Jul 11 CFP; title keep-default;
   author block + co-contributor question; parallel workshop-cut + ICLR

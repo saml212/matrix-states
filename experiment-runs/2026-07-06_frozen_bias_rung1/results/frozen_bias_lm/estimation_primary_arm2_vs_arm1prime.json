@@ -1,0 +1,98 @@
+{
+  "design_ref": "FROZEN_BIAS_LM_DESIGN.md sec 7.1-real.1 (pinned CI, ESTIMATION mode)",
+  "post_blend_primary": {
+    "openr1-mix-ext": {
+      "corpus": "openr1-mix-ext",
+      "per_seed_deltas": [
+        0.2188207966723069,
+        0.2195171013475603,
+        0.14816491188267247
+      ],
+      "n": 3,
+      "mean_delta": 0.1955009366341799,
+      "s": 0.040995678302800244,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.10184712998376319,
+      "ci_lower": 0.0936538066504167,
+      "ci_upper": 0.2973480666179431,
+      "excludes_zero": true,
+      "mechanism_direction": "negative",
+      "confirm_direction_consistent": false,
+      "prelaunch_reference_threshold": 0.0546
+    },
+    "wikitext-mix-ext": {
+      "corpus": "wikitext-mix-ext",
+      "per_seed_deltas": [
+        0.21617358074671228,
+        0.17953168114288878,
+        0.28627879326756633
+      ],
+      "n": 3,
+      "mean_delta": 0.22732801838572247,
+      "s": 0.0542406913306011,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.13475222191846423,
+      "ci_lower": 0.09257579646725825,
+      "ci_upper": 0.36208024030418673,
+      "excludes_zero": true,
+      "mechanism_direction": "negative",
+      "confirm_direction_consistent": false,
+      "prelaunch_reference_threshold": 0.1064
+    }
+  },
+  "pre_blend_co_primary": {
+    "openr1-mix-ext": {
+      "corpus": "openr1-mix-ext",
+      "per_seed_deltas": [
+        0.1251744733950234,
+        0.12244088558312183,
+        0.08160589866566997
+      ],
+      "n": 3,
+      "mean_delta": 0.10974041921460508,
+      "s": 0.024403515330176977,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.06062658555215376,
+      "ci_lower": 0.04911383366245132,
+      "ci_upper": 0.17036700476675884,
+      "excludes_zero": true,
+      "mechanism_direction": "negative",
+      "confirm_direction_consistent": false,
+      "prelaunch_reference_threshold": 0.0546
+    },
+    "wikitext-mix-ext": {
+      "corpus": "wikitext-mix-ext",
+      "per_seed_deltas": [
+        0.11401319855383141,
+        0.09664315481620181,
+        0.19297702206893644
+      ],
+      "n": 3,
+      "mean_delta": 0.13454445847965654,
+      "s": 0.0513439672266686,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.12755577954809463,
+      "ci_lower": 0.006988678931561909,
+      "ci_upper": 0.2621002380277512,
+      "excludes_zero": true,
+      "mechanism_direction": "negative",
+      "confirm_direction_consistent": false,
+      "prelaunch_reference_threshold": 0.1064
+    }
+  },
+  "headline": {
+    "per_corpus": {
+      "openr1-mix-ext": {
+        "post_blend_confirm": false,
+        "pre_blend_confirm": false,
+        "both_confirm": false
+      },
+      "wikitext-mix-ext": {
+        "post_blend_confirm": false,
+        "pre_blend_confirm": false,
+        "both_confirm": false
+      }
+    },
+    "verdict": "ESTIMATION (no corpus clears both instruments) -- see sec 1.0's plain-language outcome"
+  }
+}

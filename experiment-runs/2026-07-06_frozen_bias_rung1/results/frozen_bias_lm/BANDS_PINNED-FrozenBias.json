@@ -1,0 +1,223 @@
+{
+  "formula_version": "FROZEN_BIAS_LM_DESIGN.md sec 7.1-real.1 (pinned, ROUND-5 fix 1): two-sided mean_delta +/- t(n-1,0.975)*s/sqrt(n), n=3, t(2,0.975)=4.303, for the span_frac bands below; sec 7.2 (UNCHANGED, one-sided): mean_ref + 2*s_ref for the val-loss tolerance -- a DELIBERATELY DIFFERENT statistical object, not unified with the pinned formula (sec 7.2's own ROUND-5 disclosure).",
+  "arm1_val_loss_tolerance": {
+    "openr1-mix-ext": {
+      "mean": 2.116417646408081,
+      "s": 0.038563796534434674,
+      "n": 3,
+      "k": 2.0,
+      "tolerance_abs": 0.07712759306886935,
+      "pass_ceiling": 2.1935452394769506,
+      "per_seed": [
+        2.151915267109871,
+        2.0753856748342514,
+        2.121951997280121
+      ]
+    },
+    "wikitext-mix-ext": {
+      "mean": 4.352022290229797,
+      "s": 0.01539441852827187,
+      "n": 3,
+      "k": 2.0,
+      "tolerance_abs": 0.03078883705654374,
+      "pass_ceiling": 4.382811127286341,
+      "per_seed": [
+        4.369795143604279,
+        4.343422889709473,
+        4.342848837375641
+      ]
+    }
+  },
+  "arm1prime_span_frac_bands": {
+    "openr1-mix-ext": {
+      "mean": 0.12374143906797712,
+      "s": 0.03123405234713567,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.07759594964674855,
+      "ci_lower": 0.046145489421228564,
+      "ci_upper": 0.20133738871472567,
+      "per_seed": [
+        0.09594127200950384,
+        0.15753948881651225,
+        0.11774355637791525
+      ]
+    },
+    "wikitext-mix-ext": {
+      "mean": 0.118353286053324,
+      "s": 0.020926416482362178,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.051988296030411704,
+      "ci_lower": 0.0663649900229123,
+      "ci_upper": 0.1703415820837357,
+      "per_seed": [
+        0.13802588778999475,
+        0.12066838273737054,
+        0.09636558763260669
+      ]
+    }
+  },
+  "arm1double_span_frac_bands": {
+    "openr1-mix-ext": {
+      "mean": 0.5930009472709424,
+      "s": 0.09387973861887909,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.23322902163825385,
+      "ci_lower": 0.35977192563268856,
+      "ci_upper": 0.8262299689091963,
+      "per_seed": [
+        0.7014012004783031,
+        0.5394672676524853,
+        0.5381343736820386
+      ]
+    },
+    "wikitext-mix-ext": {
+      "mean": 0.5482100409937042,
+      "s": 0.019076651101362765,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.047392853217961786,
+      "ci_lower": 0.5008171877757424,
+      "ci_upper": 0.595602894211666,
+      "per_seed": [
+        0.5287168514473404,
+        0.5668409077249744,
+        0.5490723638087979
+      ]
+    }
+  },
+  "arm1_kraw_span_frac_bands": {
+    "openr1-mix-ext": {
+      "mean": 0.22060648255063472,
+      "s": 0.03971833939812538,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.09867378813790204,
+      "ci_lower": 0.12193269441273269,
+      "ci_upper": 0.31928027068853676,
+      "per_seed": [
+        0.20035239536330052,
+        0.266368837966995,
+        0.19509821432160862
+      ]
+    },
+    "wikitext-mix-ext": {
+      "mean": 0.22125821667777393,
+      "s": 0.02621518684116325,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.06512739030782715,
+      "ci_lower": 0.1561308263699468,
+      "ci_upper": 0.28638560698560106,
+      "per_seed": [
+        0.24996023072930917,
+        0.21523678426036444,
+        0.1985776350436482
+      ]
+    }
+  },
+  "result_paths": {
+    "arm1": {
+      "openr1-mix-ext": [
+        "results/frozen_bias_lm/frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0.json",
+        "results/frozen_bias_lm/frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s1.json",
+        "results/frozen_bias_lm/frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/frozen_bias_lm/frozenbias_lm_off_lam0p00_wikitext-mix-ext_dm256_ds64_L2_s0.json",
+        "results/frozen_bias_lm/frozenbias_lm_off_lam0p00_wikitext-mix-ext_dm256_ds64_L2_s1.json",
+        "results/frozen_bias_lm/frozenbias_lm_off_lam0p00_wikitext-mix-ext_dm256_ds64_L2_s2.json"
+      ]
+    },
+    "arm1prime": {
+      "openr1-mix-ext": [
+        "results/frozen_bias_lm/retrofit_arm1prime_arm1_openr1_s0.json",
+        "results/frozen_bias_lm/retrofit_arm1prime_arm1_openr1_s1.json",
+        "results/frozen_bias_lm/retrofit_arm1prime_arm1_openr1_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/frozen_bias_lm/retrofit_arm1prime_arm1_wikitext_s0.json",
+        "results/frozen_bias_lm/retrofit_arm1prime_arm1_wikitext_s1.json",
+        "results/frozen_bias_lm/retrofit_arm1prime_arm1_wikitext_s2.json"
+      ]
+    },
+    "arm1double": {
+      "openr1-mix-ext": [
+        "results/frozen_bias_lm/retrofit_arm1double_arm1_openr1_s0.json",
+        "results/frozen_bias_lm/retrofit_arm1double_arm1_openr1_s1.json",
+        "results/frozen_bias_lm/retrofit_arm1double_arm1_openr1_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/frozen_bias_lm/retrofit_arm1double_arm1_wikitext_s0.json",
+        "results/frozen_bias_lm/retrofit_arm1double_arm1_wikitext_s1.json",
+        "results/frozen_bias_lm/retrofit_arm1double_arm1_wikitext_s2.json"
+      ]
+    },
+    "arm1_kraw": {
+      "openr1-mix-ext": [
+        "results/frozen_bias_lm/retrofit_kraw_arm1_openr1_s0.json",
+        "results/frozen_bias_lm/retrofit_kraw_arm1_openr1_s1.json",
+        "results/frozen_bias_lm/retrofit_kraw_arm1_openr1_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/frozen_bias_lm/retrofit_kraw_arm1_wikitext_s0.json",
+        "results/frozen_bias_lm/retrofit_kraw_arm1_wikitext_s1.json",
+        "results/frozen_bias_lm/retrofit_kraw_arm1_wikitext_s2.json"
+      ]
+    }
+  },
+  "result_sha256": {
+    "arm1": {
+      "openr1-mix-ext": [
+        "f51951edc6d1fb5154f1a3bb9736b2e21398d89bf9103fbc4e8dbd94c2e2147b",
+        "653caf66b94832970eb4e5877983099b5b0ea61f07d53771e5b5b64e60ead21a",
+        "70038aebd7b259c9da9e061a508baa0470cfcd32d3096857dbd437cd17ae5013"
+      ],
+      "wikitext-mix-ext": [
+        "1526713f99e63c1cf038233c1ed0c45fc86efa6d83238cfc94d55edc6e45dded",
+        "336920412be0ce2a22fdcf80e9ddd6c6d4b4bae6d8b98e8522a4e861f89a4b35",
+        "386b1c982d7455b46981e5bc21742da96dd214f41cc146aca07250b6dc9f106f"
+      ]
+    },
+    "arm1prime": {
+      "openr1-mix-ext": [
+        "ca6b63dd692000d83a4b337eda0f05e400a6e2587c8f9b5ed055ba87d6b8939c",
+        "2f694634ada10aaa8ad5bcdf2e06985e32e188d5baf88c26fee1358797b926c0",
+        "ada4dc29046e586f8b5b58538936b46976ead18981293c7e987398c4c3bb6009"
+      ],
+      "wikitext-mix-ext": [
+        "4bdc83279fd296b8ff220940f3ac2432ae608bb420c2ef1f1ffb9fd623de5161",
+        "ad14b8e57b8901714fa726a63af05fc5be07ab49c54be01b0bd4ee646a735557",
+        "b0facb3468e619a96972fc728a193107aef45fc1d7a16ab5d9537033f2b9b841"
+      ]
+    },
+    "arm1double": {
+      "openr1-mix-ext": [
+        "fcffabd73eed5316aca5d726fc4fdc7c4d275255cd7b78d76aa1df12466613c5",
+        "6768d621909d8235c6ae046d782f1e78c253aa27a25f8d6967e8aa4092196045",
+        "0eabb9ee688c5e1842eb142c1b7bd341a8a0e8171c89839e9b4d1ba114ffe42a"
+      ],
+      "wikitext-mix-ext": [
+        "573df50c7cfaec1642a91ceec4126538e71dabeaadf01c27efc33832393592d6",
+        "b59c2cb45862ace4be60375a05df5c813e51076d45a2652e8f121ecb234ea2df",
+        "8c57ad21090ffa0469ee4f78fd5ad1374b84c6fe3f7b199c93e416131f043c11"
+      ]
+    },
+    "arm1_kraw": {
+      "openr1-mix-ext": [
+        "1ef6fdf2d67389664efeacdbc701478f4098a0102bd96f821b867e479cf7d593",
+        "60981a3f5bfc91e22426fa628ab16db7fec72a41abedd5e3f439ed433e3c4470",
+        "0b0498550baab8d2e3ba0dcf51a1e1b79dc5ece6daf8b49e05bc3e14cb4e17ea"
+      ],
+      "wikitext-mix-ext": [
+        "fa3e007a1957625708c22c4426aa6bb5cd6bbf7f155c9bc005524988c1c73003",
+        "20bb08950f4725f5f96750d6c49f1b81cb3563ac2985232c3100ea24d72166a5",
+        "5f3a046ee58c88f19ef2e82021ebf24db940e0f19cd19c70a103791633167485"
+      ]
+    }
+  },
+  "pinned_at": 1783348044.8068254,
+  "pinned_at_iso": "2026-07-06T14:27:24Z"
+}

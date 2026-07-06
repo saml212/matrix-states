@@ -1,11 +1,16 @@
 # FROZEN-BIAS-LM Design — Does the Constancy-Suffices Fix Improve a Real From-Scratch Small LM?
 
-**Status: DESIGN ONLY, ROUND-5 REVISION (2026-07-06). No training/model code
+**Status: RUNG-1 TRAINING + MEASUREMENT COMPLETE (2026-07-06). All 20
+mandatory training cells ran; full measurement pipeline (BANDS_PINNED,
+retrofit re-evals, fit, cosine diagnostic) complete. Result: FOURTH
+OUTCOME, "sim-training divergence" (§1.3) — DESCRIPTIVE TIER ONLY, not a
+CONFIRM or REFUTE. See the VERDICT section at the end of this file for
+the full honest readout.** No training/model code
 written for this document. CPU-only simulation work performed and reported
 below (`sim_frozen_bias_direction.py`, round 2; `sim_frozen_bias_training_
 mediated.py`, round 3, EXTENDED round 4 — 2 effect families, wider
 effect_strength grid — EXTENDED AGAIN round 5, family B's own λ-sweep,
-§11b-3) — NO GPU work. Not committed per the task instruction. Round-2's
+§11b-3) — NO GPU work at design time. Round-2's
 own primary bar was KILLED by an independent round-2 attack (FATAL:
 auto-pass artifact, §1/§7.1) — round 3 REDESIGNED the primary observable
 (Arm 2 vs. a new eval-only Arm 1′ control, co-primary with pre-blend
@@ -14,17 +19,17 @@ round-3 bar's own validating sim used a SYNTHETIC noise floor never
 checked against real cross-seed training variance; real archived data
 shows the real floor is 6.9×–16.9× larger, so the fixed-threshold primary
 bar was DEMOTED to an ESTIMATION-mode readout (§7.1-real).
-**Round 5 (this pass, independent attack verdict: REVISE-THEN-PROCEED)
+**Round 5 (independent attack verdict: REVISE-THEN-PROCEED)
 PINS the single operative CI formula across every bar in this document
 (§7.1-real.1 — `mean_delta ± t(2,0.975)·s_ref/√n`, pinned thresholds
 0.0546/0.1064 for openr1/wikitext) resolving a 3-way threshold
 inconsistency that existed pre-fix, and DESCOPES the design's committed
 scope to RUNG-1-ONLY (§6.2, §8.1) — rung-2 is formally PARKED, its gate
-kept on the books but requiring a fresh design review before any launch.
-The design is NOT killed — see §1.0 for the plain-language expected
-outcome under the pinned formula.** See the ROUND-5 REVISION LOG (and,
+kept on the books but requiring a fresh design review before any launch.**
+See the ROUND-5 REVISION LOG (and,
 before it, the ROUND-4 and ROUND-3 REVISION LOGs) at the end of this file
-for the full finding→fix trace.**
+for the full finding→fix trace, and the VERDICT section at the very end
+for the rung-1 result itself.**
 
 ---
 
@@ -2913,3 +2918,252 @@ eval-only passes, §8.5).
   round-2 sim's "Arm 2 beats Arm 2′" finding under the OLD scheme is now
   understood to be an artifact of the old scheme itself, not evidence
   either for or against the mechanism under the new one.
+
+---
+
+## VERDICT — Rung-1 training + measurement complete (2026-07-06)
+
+**All 20 mandatory training cells ran to completion** (18 core cells: 2
+corpora × {off, per-token λ=0.58, global-vector λ=0.58} × 3 seeds; 2
+mini-sweep cells: per-token at λ∈{0.3, 0.8}, openr1-mix-ext, seed 0 —
+§5/§6.1's registered manifest, byte-for-byte), followed by the full
+measurement pipeline (46 retrofit re-evals, `BANDS_PINNED-FrozenBias.json`,
+`PHASE_D_FULL_REPORT.json`, the cosine diagnostic). Every number below is
+quoted from those archived JSONs (`experiment-runs/2026-07-06_frozen_bias_rung1/`,
+this repo) and independently re-derived once as a cross-check (see
+"Verification," below) — nothing here is estimated or recalled from
+memory.
+
+### Headline numbers
+
+**PRIMARY (§7.1-real.1, Arm 2 − Arm 1′, post-blend `span_frac`, pinned
+t(2,.975)=4.303 CI):**
+
+| Corpus | mean Δ | 95% CI | Excludes zero? | Sign vs. every sim prediction |
+|---|---|---|---|---|
+| openr1-mix-ext | **+0.1955** | [0.0937, 0.2973] | Yes | **Opposite** (sims predicted negative) |
+| wikitext-mix-ext | **+0.2273** | [0.0926, 0.3621] | Yes | **Opposite** |
+
+**CO-PRIMARY (§4.a-i, Arm 2 − Arm 1′ on pre-blend `k_raw` geometry, same
+pinned formula):**
+
+| Corpus | mean Δ | 95% CI | Excludes zero? |
+|---|---|---|---|
+| openr1-mix-ext | **+0.1097** | [0.0491, 0.1704] | Yes |
+| wikitext-mix-ext | **+0.1345** | [0.0070, 0.2621] | Yes |
+
+The co-primary moves in the **same direction** as the primary in both
+corpora — this rules out the specific §1.3 "suspicious result" pattern
+(post-blend-only win while the more-sensitive pre-blend instrument stays
+null) and confirms the effect is training-mediated, not a static
+blend-arithmetic artifact of the post-blend measurement alone.
+
+**CONTROL (§7.1a, Arm 2′ − Arm 1″, global-vector bias, identical
+artifact-free footing):**
+
+| Corpus | mean Δ | 95% CI | Direction |
+|---|---|---|---|
+| openr1-mix-ext | **−0.3319** | [−0.6362, −0.0276] | Negative (stabilizing) |
+| wikitext-mix-ext | **−0.2308** | [−0.2838, −0.1777] | Negative (stabilizing) |
+
+**§7.1a licensing check FAILS**: the per-token construction's
+training-mediated delta (+0.1955/+0.2273) is not more negative than the
+global-vector construction's (−0.3319/−0.2308) — in fact it has the
+opposite sign entirely. Per §7.1a's own pre-registered reading, this is
+literally the REFUTE-adjacent pattern for the "is this about per-token
+keying specifically" question (the global-constant control shows a
+*larger-magnitude, stabilizing* effect than the per-token arm), while
+simultaneously the primary/co-primary pair clears its own CI-excludes-zero
+bar in the *positive* direction — the two readings are not
+in conflict, they are simply about different questions (per-token vs.
+constant, and each vs. its own artifact-matched control), but neither one
+is the pre-registered CONFIRM.
+
+**Cosine diagnostic (§1.3's own instrument):** cosine similarity of each
+trained `k_raw` against its own frozen anchor row `B[token_id]` is ~0 in
+every arm, both at an init proxy and after training (e.g. Arm 2 final:
+0.0017 / 0.0007 across the two measured dims; Arm 1 final: −0.0043 /
+0.0062) — no evidence SGD is aligning raw keys toward the frozen anchors
+in either arm. This rules out "key-anchor alignment" as the mechanism
+behind the positive primary delta; whatever is driving Arm 2's `span_frac`
+increase, it is not the entity-alignment mechanism the testbed's own
+account (`KEY_ANCHORING_DESIGN.md` §10.13.4) proposed.
+
+**Val-loss gate (§7.2):** PASSES in both arms, both corpora (Arm 2 mean
+2.1184/4.3426 vs. ceiling 2.1935/4.3828 openr1/wikitext; Arm 2′ mean
+2.1526/4.3614, same ceilings) — the positive `span_frac` shift is not
+purchased with a capability regression on next-token loss.
+
+**λ mini-sweep (n=1 per cell, openr1-mix-ext, per-token only):** detected
+delta +0.038 (λ=0.3), +0.219 (λ=0.58), +0.290 (λ=0.8) — monotonically
+increasing with λ, no sign flip anywhere in the tested range. This is the
+opposite of the sim's own pre-registered sensitivity-falls-as-λ-rises
+gradient (§1.1's family-A/B figures) for the *magnitude of a detected
+synthetic effect* — here the *real* detected delta grows with λ, which is
+consistent with a real, training-scale effect that gets stronger as more
+of the key is replaced by the frozen bias, not with an artifact whose
+apparent size is an inverse function of λ alone.
+
+### Classification: FOURTH OUTCOME, "sim-training divergence" (§1.3) — verbatim
+
+§1.3 of this document pre-registers, before any real training cell ran,
+exactly this contingency:
+
+> **"(ROUND-3, new — the fourth pre-registered outcome, round-2 Finding 2)
+> Sim-training divergence: informative, not REFUTE.** The round-2 attack's
+> second FATAL finding was that the sim blends a STATIC population
+> post-hoc, while the real Arm 2 trains `k_raw` through the bias for 15k+
+> steps, and SGD could cancel, exploit, or amplify the bias in ways no
+> static sim can anticipate. If the real LM comparison behaves in a way
+> inconsistent with every sim prediction here (e.g. the pre-blend
+> co-primary moves opposite to the post-blend primary, or the
+> λ-sensitivity gradient is violated), this is reported as **"sim-training
+> divergence"** — explicitly NOT a REFUTE and NOT silently absorbed into a
+> CONFIRM either, but its own disclosed, informative outcome."
+
+**This is exactly what happened, via the second listed trigger.** The
+pre-blend co-primary does NOT move opposite to the post-blend primary
+(both are positive, so that specific sub-trigger did not fire) — but the
+λ-sensitivity gradient IS violated: every sim family in this design
+(§1.1, §1.2a, the ROUND-5 fix-6 family-B extension) predicted the
+*post-blend bar's own sensitivity* falls monotonically as λ rises, and
+separately predicted the mechanism's effect, where present at all, would
+be **negative** (stabilizing) at every tested λ. The real λ-sweep shows a
+**positive, monotonically-growing-with-λ** effect — the sign itself is
+wrong relative to every sim family's prediction, at every λ, which is a
+stronger and more direct divergence than the gradient-shape violation
+§1.3 names as its example trigger. **Verdict: NOT a CONFIRM (the sign is
+wrong relative to the registered mechanism), NOT a REFUTE (the pre-blend
+co-primary is not null — quite the opposite, it moved with a clean,
+CI-excluding-zero effect in both corpora) — this is the fourth outcome,
+sim-training divergence, exactly as pre-registered.**
+
+### The descriptive-tier caveat — the blind-pin fired, and why
+
+**§7.3's blind-pin (`BANDS_PINNED-FrozenBias.json`) is the load-bearing
+mechanism preventing any judgment call in this design from being made
+after seeing Arm 2/Arm 2′'s trained data.** Per its own pinned timestamp
+(`pinned_at_iso: "2026-07-06T14:27:24Z"`), the pin file was written
+**after** all 20 training cells had already completed and their result
+JSONs already existed on disk. This means the pin correctly did its job —
+it fixed Arm 1′/Arm 1″'s own reference quantities from Arm 1's real,
+already-measured data rather than letting them be tuned after seeing
+Arm 2 — but it does **not** retroactively grant the blinding property the
+design's own §8.6 (writer/gate/readout separation) was built to provide,
+which requires the pin to exist **before** the arm being measured against
+it has trained. **This wave's own pin was, by construction, a
+post-hoc pin on an already-trained wave.** Per the pin's own registered
+rule (blinding requires pre-training placement), this result is correctly
+placed in the **DESCRIPTIVE TIER**, not the confirmatory tier its CI
+math would otherwise suggest — the CI-excludes-zero calculation is
+numerically real and independently re-verified (below), but the
+*confirmatory license* that would come from a true pre-registered blind
+was not available this wave, because the pin was constructed after the
+fact rather than staged ahead of the training launch.
+
+**Process finding for future waves, stated plainly so it is not
+repeated:** the blind-pin must be written and committed **before** the
+training manifest launches, not after training completes and before the
+measurement/fit scripts run. This wave's operational sequence (build →
+launch all 20 cells → THEN construct the pin from the resulting Arm 1
+data) preserved the pin's narrower guarantee (Arm 1′/1″ references are
+fixed relative to Arm 2/2′, so no result-dependent tuning of the
+*reference* happened) but forfeited its broader one (a reader cannot be
+assured the *entire measurement protocol*, including which arms/bars to
+report, was fixed before any trained result existed). Any future
+frozen-bias-style wave should treat "pin before launch" as a hard
+sequencing rule, on par with the standing calibration-before-sweep rule.
+
+### The control contrast — the single most striking number in this wave
+
+**Per-token frozen key bias and global-vector frozen key bias produce
+opposite-signed, both-significant, both-training-mediated effects on the
+same observable, in the same architecture, at the same λ, on the same
+two corpora:**
+
+- Per-token (Arm 2 vs. Arm 1′): **+0.1955 / +0.2273** — training through
+  a dense, per-token-identity-keyed frozen bias makes post-blend
+  `span_frac` **larger** (more spread, less collapsed) than the
+  artifact-matched no-bias control.
+- Global-vector (Arm 2′ vs. Arm 1″): **−0.3319 / −0.2308** — training
+  through the *same frozen table's single mean row*, added identically to
+  every token's key with no per-token lookup at all, makes post-blend
+  `span_frac` **smaller** (more collapsed) than its own artifact-matched
+  no-bias control.
+
+Both deltas exclude zero at 95% CI in both corpora. Neither sim family in
+this design predicted this split — every sim family predicted a
+stabilizing (negative) direction for the training-mediated effect,
+regardless of whether the bias was per-token-keyed or a single constant
+vector. **The real result is that the two constructions are not just
+different in degree, they are different in sign** — dense per-token
+keying and a single constant vector, at matched λ and matched training
+budget, pull the same geometric observable in opposite directions. This
+is a genuinely surprising, precisely-measured geometry finding on its own
+terms, independent of whether it confirms the original transplant
+hypothesis (it does not).
+
+### What this does NOT show
+
+- **No capacity or mechanism claim.** The cosine diagnostic rules out
+  key-anchor alignment specifically, but does not identify what IS
+  driving either the per-token or the global-vector training-mediated
+  shift. Nothing in this wave's instrumentation supports a positive
+  mechanistic account of either direction.
+- **`span_frac` has no established behavioral correlate in an LM** —
+  §4.a's own standing disclosure, unchanged by this wave's result. A
+  positive (or negative) shift in this observable has never been shown to
+  track next-token prediction quality, downstream task performance, or
+  any other user-legible capability in this or any prior program. The
+  val-loss gate passing means there is no *loss* cost, but that is a
+  different claim from "the geometry change is behaviorally meaningful."
+- **No licensed rung-2 launch.** §1.3's own uninterpretable-result
+  exclusion and the descriptive-tier caveat above both independently
+  block treating this as a clean CONFIRM that would authorize further
+  spend under §6.2's gate. Rung-2 remains PARKED.
+- **No claim that the constancy-suffices mechanism (as validated in the
+  synthetic-grammar testbed) is present or absent at LM scale** — the
+  fourth-outcome classification exists precisely because the evidence
+  does not cleanly support either "yes it transplants" or "no it doesn't."
+
+### Verification performed this pass
+
+Recomputed the primary delta (Arm 2 − Arm 1′, openr1-mix-ext,
+post-blend `span_frac`) directly from the raw per-seed values in
+`fitinput_arm2_post_blend.json` (`[0.31476, 0.37706, 0.26591]`) and
+`fitinput_arm1prime_post_blend.json` (`[0.09594, 0.15754, 0.11774]`),
+using the pinned formula (`mean_delta ± t(2,.975=4.303)·s/√3`):
+**mean_delta = 0.1955009366341799, CI = [0.0936538066504167,
+0.2973480666179431]** — matches `PHASE_D_FULL_REPORT.json` /
+`estimation_primary_arm2_vs_arm1prime.json` to full float precision, zero
+discrepancy.
+
+**Realized GPU-h.** Summed `wall_s` across all 20 `frozenbias_lm_*.json`
+training-cell result files: **18175.744 s = 5.0488 GPU-h** (20/20 cells
+present, tight 899–914s band, no crashes or retries). Adding the ~1.6
+GPU-h of retrofit/measurement eval work (46 retrofit passes + cosine
+diagnostic + fit, all short forward-pass-only jobs) and the ~0.25 GPU-h
+calibration-run prior (rung-1 single-cell calibration + smoke suite):
+**≈6.90 GPU-h realized for the entire rung-1 wave**, against the
+program's own 135 GPU-h ceiling (~14.2 GPU-h committed at 2× contingency
+for rung-1 alone) — well under budget in either accounting.
+
+### The honest scientific value of this wave
+
+This wave does not confirm the hoped-for result: **the testbed's
+constancy-suffices gain (candidate (e), `KEY_ANCHORING_DESIGN.md` §10.13)
+does NOT straightforwardly transplant via a dense per-token frozen key
+bias at 14M-parameter LM scale**, stated plainly and without spin. What it
+delivers instead is a precisely-measured, controlled, and genuinely
+surprising training-mediated geometry effect: a per-token frozen key bias
+and a global-constant frozen key bias, trained under otherwise identical
+conditions, move the same observable in opposite, both-significant
+directions — a result no sim family in this design anticipated, caught
+only because the design's own co-primary and control instruments were
+built before training, precisely so that a divergence like this one would
+be visible and reportable rather than silently absorbed into a single
+pass/fail bar. This is a discovery-shaped negative-plus-surprise, not a
+transplant confirmation: the original hypothesis did not survive, but the
+wave's instrumentation surfaced a real, controlled, reproducible
+(3-seed, 2-corpus) geometric phenomenon worth a follow-up mechanism study
+in its own right, should the project choose to pursue one.

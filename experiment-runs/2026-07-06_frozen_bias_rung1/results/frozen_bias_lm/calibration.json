@@ -1,0 +1,12 @@
+{
+  "timing_constants": {
+    "rung1": {
+      "per_step_s": 0.04564370819330216,
+      "per_ckpt_s": 0.0,
+      "method": "single-cell blended (wall_s/steps, ckpt cost folded in; per_ckpt_s pinned 0.0 -- timeout margin covers it)",
+      "source_cell": "lmC_openr1-mix-ext_dm256_ds64_L2_s0",
+      "wall_s": 912.8741638660431,
+      "steps": 20000
+    }
+  }
+}

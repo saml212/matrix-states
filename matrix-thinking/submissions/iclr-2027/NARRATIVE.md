@@ -1,8 +1,11 @@
 # ICLR 2027 Narrative Architecture — DeltaNet Rank Recruitment vs. Exactness
 
-**Status: DRAFT — round 6, capacity cliff LOCATED (a measurement upgrade on
-top of round 5's ARC COMPLETE key-anchoring program).** This
-round absorbs the anchoring program's actual, final outcome — not the
+**Status: DRAFT — round 7 adds a small, distinct side-chapter (frozen-bias
+LM transplant test, rung-1 complete, honestly closed as a
+discovery-shaped negative-plus-surprise, not a confirm — see round 7,
+below); round 6, capacity cliff LOCATED (a measurement upgrade on
+top of round 5's ARC COMPLETE key-anchoring program), is otherwise
+unchanged.** Round 6 absorbs the anchoring program's actual, final outcome — not the
 Outcome-C mechanism null round 4 left as the ending, but the two waves that
 ran *after* it: candidate (e)'s frozen-random-table ablation
 (CONFIRMED-BY-ABLATION: constancy suffices) and the K=48 capacity-curve
@@ -133,6 +136,113 @@ figures/make_fig_cliff.py`), which supersedes Fig. 11's 3-point plot as the
 paper's capacity-law headline (Fig. 11 itself is unchanged and can move to
 the appendix as a simpler 3-point predecessor view, or be dropped, a
 camera-ready layout call, not resolved here).
+
+**Round 7 (2026-07-06) — the frozen-bias LM transplant test: a separate,
+smaller side-chapter, honestly closed as a discovery-shaped
+negative-plus-surprise, not the hoped-for confirm.** This round absorbs
+`FROZEN_BIAS_LM_DESIGN.md`'s completed rung-1 wave — a distinct program
+from the key-anchoring arc above (its own design doc, own 135 GPU-h
+ceiling, own GPU allocation), testing whether the key-anchoring program's
+own "constancy suffices" finding (candidate (e), round 5 above: a frozen,
+never-trained anchor table matches the learned one) transplants from the
+~107-entity synthetic-grammar testbed to a real from-scratch 14M-parameter
+DeltaNet LM via a dense per-token frozen key bias blended into `k_raw` at
+training time. **Included here because it shares this paper's exact
+architecture and instrumentation lineage** (Wave C's own 14M
+`d_model=256/d_state=64/n_layers=2` config, the same `span_frac`
+key-Gram-deviation observable from `SCALE_TRANSFER_DESIGN.md` §5.10) and
+because its own five-round design gauntlet — 2 independent adversarial
+KILLs before any GPU was touched — is itself a methods contribution worth
+recording alongside the paper's other examples of the same discipline
+(§8's `KEYANCHOR_REV6/7_ATTACK.md` gauntlets, above).
+
+**The design gauntlet, briefly:** round 2's own primary bar (Arm 2's
+post-blend `span_frac` vs. never-blended Arm 1) was KILLED as an AUTO-PASS
+ARTIFACT — dense blending toward 50,257 near-orthogonal rows pins the
+measured population's `span_frac` to a narrow band regardless of baseline
+structure, an artifact the design's own crossover-scan caught before any
+training cell launched. Round 3 redesigned the primary around
+artifact-matched controls (Arm 1′/Arm 1″: Arm 1's own checkpoint, blended
+ONLY at eval time) so any surviving difference is training-mediated by
+construction — **this auto-pass-artifact-and-redesign story is itself a
+methods point**: an observable that looks clean under a naive
+before/after comparison can be dominated by the measurement arithmetic
+itself, and the fix (comparing against an identically-blended, untrained
+control) generalizes to any "did training change this geometry" question
+built on a fixed post-hoc transform. Round 4's own second independent
+KILL found the redesigned bar's validating simulation used a synthetic
+noise floor never checked against real cross-seed training variance —
+real archived data showed the true floor was 6.9×–16.9× larger, forcing
+an **estimation-mode pivot**: the design demoted its own primary from a
+fixed-threshold pass/fail bar to a pinned-CI point estimate
+(`mean_delta ± t(2,.975)·s/√n`, thresholds derived from the program's own
+real noise floors, not an assumed one). Round 5 pinned this single CI
+formula across every bar in the document and descoped the program to
+rung-1-only, with rung-2 formally parked behind a fresh review.
+
+**The rung-1 result itself (all 20 mandatory cells + full measurement
+pipeline complete, verified independently against the raw per-seed
+`fitinput_*.json` arrays to full float precision):** the **primary**
+(Arm 2 − Arm 1′, post-blend `span_frac`) excludes zero in BOTH corpora —
+openr1-mix-ext **+0.1955** [0.0937, 0.2973], wikitext-mix-ext **+0.2273**
+[0.0926, 0.3621] — but is **positive**, the opposite direction from every
+sim family's prediction (all predicted a stabilizing, negative effect).
+The **co-primary** (pre-blend `k_raw` geometry) moves the same direction
+(openr1 +0.1097 [0.0491, 0.1704], wikitext +0.1345 [0.0070, 0.2621]),
+ruling out the specific "post-blend-only win" suspicious pattern the
+design pre-registered a flag for, and confirming the effect is
+training-mediated rather than a static blend-arithmetic artifact. This is
+exactly `FROZEN_BIAS_LM_DESIGN.md` §1.3's own pre-registered **FOURTH
+OUTCOME, "sim-training divergence"** — explicitly neither a CONFIRM (the
+sign is wrong relative to the registered mechanism) nor a REFUTE (the
+more-sensitive co-primary instrument is not null; it moved cleanly, same
+direction as the primary) — reported as its own disclosed, informative
+category rather than forced into either bucket.
+
+**The single most striking number in this chapter is the control
+contrast.** The same frozen table's per-token-keyed construction and its
+global-mean-vector construction, trained identically at matched λ=0.58 on
+the same two corpora, move the same observable in **opposite,
+both-CI-excluding-zero directions**: per-token training-mediated delta
++0.1955/+0.2273 (destabilizing — the observable spreads out) versus
+global-vector training-mediated delta **−0.3319/−0.2308** (stabilizing —
+the observable collapses), per §7.1a's mandatory licensing comparison.
+Neither sim family in the design anticipated a sign split; both predicted
+a uniformly stabilizing direction regardless of per-token keying. The
+cosine diagnostic the design pre-registered specifically for this
+divergence outcome (trained `k_raw` vs. its own frozen anchor row,
+before/after training) reads ~0 in every arm, ruling out key-anchor
+alignment as the mechanism behind either direction — leaving the sign
+split itself unexplained, an open mechanism question for a future,
+separate wave.
+
+**Honest framing, stated as plainly in this narrative as in the design
+doc's own verdict section:** this is a discovery-shaped
+negative-plus-surprise, not the hoped-for transplant confirm. The
+testbed's own constancy-suffices gain does **not** straightforwardly
+transplant via a dense per-token frozen key bias at 14M-parameter LM
+scale. What the wave delivers instead is a precisely-measured, controlled,
+genuinely unpredicted training-mediated geometry effect (the
+destabilize-vs-stabilize split above), caught only because the co-primary
+and control instruments were built into the design before any training
+cell ran. The result sits at **descriptive tier only, not confirmatory** —
+the blind-pin (`BANDS_PINNED-FrozenBias.json`) was, by its own timestamp,
+written after all 20 training cells had already completed, so while it
+correctly fixed the Arm 1′/Arm 1″ reference quantities against
+after-the-fact tuning, it forfeits the full pre-registration guarantee a
+before-launch pin would have carried — a process lesson the design's own
+verdict section names explicitly for future waves (pin before the
+training launch, not just before the fit). Realized cost: **≈6.90 GPU-h**
+(5.05 training + 1.6 measurement eval + 0.25 calibration), against a
+~14.2 GPU-h committed estimate at 2× contingency, itself a small fraction
+of this paper's own much larger anchoring-program and scale-program
+budgets. No figure or claim from this chapter is proposed for the main
+paper's own headline results — it is recorded here as a disclosed,
+adjacent side-finding sharing the same architecture and instrumentation
+lineage, not as a load-bearing result for §0/§1's own thesis. Full
+verdict: `FROZEN_BIAS_LM_DESIGN.md` (VERDICT section, appended
+2026-07-06); archive: `experiment-runs/2026-07-06_frozen_bias_rung1/`
+(+ SSD mirror).
 
 ---
 
