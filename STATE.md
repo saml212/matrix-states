@@ -42,14 +42,13 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 - **GPUs 2-7 (UPDATED 2026-07-06 ~10:30 UTC):** two NEW gauntlet-cleared
   programs queued/launching, both user-signed-off ("Both, in parallel" +
   standing full-autonomy directive, same date):
-  1. **Capacity-cliff localization wave** (KEY_ANCHORING_DESIGN.md §12,
-     Rev 12.3 — 3 attack rounds + build audit + independent additions
-     verify, ADDITIONS-VERIFIED): K∈{34,38,42,46}, 3 seeds, candidate-(d)
-     only, 12 cells staged (K38/K42 first on GPUs 2-3, then K34/K46 gated
-     on in-bracket rates + STAGE1_RATES_OK sentinel). Budget 23.36 GPU-h
-     ceiling at 2× contingency inside anchoring headroom (55.83+23.36 =
-     79.19/80). Abort: ANY cell wall_s ≥5238.0s halts launches. Deliverable:
-     cliff location x0 ± bootstrap CI (parameter estimation, no binary bar).
+  1. **Capacity-cliff localization wave — COMPLETE 2026-07-06.** All 12
+     cells (K∈{34,38,42,46}, 3 seeds, candidate-(d) only) finished; sigmoid
+     fit: **x0=0.5455 (95% CI [0.5385,0.5513]), w=0.0597, 0/4000
+     degenerate.** Realized 3.1803 GPU-h vs the 23.3587 GPU-h ceiling
+     (≈13.6% used, abort never fired — all cells 900-986s, bracket edge
+     3503.8s). Anchoring ledger now 59.01/80. Full verdict:
+     `matrix-thinking/KEY_ANCHORING_DESIGN.md` §12.9. **GPUs 2-3 now idle.**
   2. **Frozen-bias LM demo, RUNG-1-ONLY** (FROZEN_BIAS_LM_DESIGN.md — 4
      attack rounds + r5 pin, estimation-mode primary: Arm2 vs Arm1′
      post-hoc-blend control, pinned t(2,.975) CI thresholds 0.0546/0.1064,
@@ -57,8 +56,10 @@ This document is the project dashboard. Anyone returning to the project (you, a 
      stage next; calibration gated on cliff STAGE1_RATES_OK (§8.2a).
 - **Budgets:** scale 266.47/300 GPU-h committed at launch-time constants
   (rung-3 actual ≈334/300 DISCLOSED, see top block); anchoring 55.83/80 +
-  cliff 23.36 = 79.19/80; frozen-bias LM program own ceiling 135 (rung-1
-  scope ~14 GPU-h committed).
+  cliff realized 3.18 = **59.01/80** (cliff wave complete, see item 1
+  above — the 23.36 figure was the pre-run pessimistic ceiling, not the
+  realized cost); frozen-bias LM program own ceiling 135 (rung-1 scope
+  ~14 GPU-h committed).
 - **User decisions pending:** see `matrix-thinking/submissions/PAPER_SPRINT_PLAN.md`
   §PI-decisions (venue NeurReps/UniReps EA ~Jul 11 CFP; title keep-default;
   author block + co-contributor question; parallel workshop-cut + ICLR

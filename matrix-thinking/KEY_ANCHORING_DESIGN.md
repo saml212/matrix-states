@@ -6787,3 +6787,124 @@ already-spent GPU-h without improving the ceiling math.
 only on the two REQUIRED code additions above (R3-4/R3-5) landing with
 executed smoke coverage and an independent verification of those
 additions.** No GPU spent in any drafting/revision/verification pass.
+
+### 12.9 Cliff-localization wave VERDICT (2026-07-06) — measured, not projected
+
+**Headline (harvest-verified against `fit_cliff_curve_results.json` and
+independently recomputed from the 12 raw cell JSONs, not merely copied
+from the fit script's own printout):**
+
+**`x0 = 0.5455`** (95% seed-level parametric bootstrap CI **[0.5385,
+0.5513]**, width **0.0127**, 4,000 trials, **0 degenerate fits**),
+**`w = 0.0597`** (CI **[0.0557, 0.0642]**), `L = 1.003`, `RSS =
+0.00135`.
+
+**Degenerate-fit disclosure (§12.4 item 3's own rule):** 0/4000 = 0.0%
+degenerate — trivially satisfies the "report explicitly if the REAL
+degenerate fraction exceeds 10%" rule; no caveat required, stated here
+for the record rather than silently omitted.
+
+**Full 6-point curve** (`h4 = recovered_frac@0.9` at the final
+checkpoint's `M3_held_out['4']`, mean of 3 seeds per K where archived;
+K=16 is the fixed pre-existing anchor with no per-seed archive at this
+citation depth):
+
+| K | K/d_state | Label | h4 (mean) |
+|---|---|---|---|
+| 16 | 0.25 | K16 (anchor) | 1.000 |
+| 32 | 0.50 | K32 (archived) | 0.6669 |
+| 34 | 0.53125 | K34 (this wave) | 0.5676 |
+| 38 | 0.59375 | K38 (this wave) | 0.3316 |
+| 42 | 0.65625 | K42 (this wave) | 0.1177 |
+| 46 | 0.71875 | K46 (this wave) | 0.0434 |
+| 48 | 0.75 | K48 (archived) | 0.0215 |
+
+**Per-cell wall_s** (all 12 mandatory candidate-(d) cells, 1 GPU each;
+bracket upper edge 3503.808s, hard-abort trigger 5238.0s per §12.2.3/
+§12.8.2):
+
+| K | seed | wall_s | % of 3503.8s bracket | % of 5238s abort trigger |
+|---|---|---|---|---|
+| 34 | 130 | 932.3s | 26.6% | 17.8% |
+| 34 | 131 | 923.2s | 26.3% | 17.6% |
+| 34 | 132 | 900.0s | 25.7% | 17.2% |
+| 38 | 230 | 972.6s | 27.8% | 18.6% |
+| 38 | 231 | 979.6s | 28.0% | 18.7% |
+| 38 | 232 | 969.0s | 27.7% | 18.5% |
+| 42 | 330 | 980.9s | 28.0% | 18.7% |
+| 42 | 331 | 954.0s | 27.2% | 18.2% |
+| 42 | 332 | 963.7s | 27.5% | 18.4% |
+| 46 | 430 | 985.6s | 28.1% | 18.8% |
+| 46 | 431 | 956.0s | 27.3% | 18.3% |
+| 46 | 432 | 932.3s | 26.6% | 17.8% |
+
+All 12 cells landed in a tight 900.0–985.6s band, far inside the 3503.8s
+bracket (max 28.1% of it) — the per-cell abort rule (≥1.5× bracket
+upper edge, §12.2.3) never fired, on any cell, at either stage.
+
+**Realized GPU-h vs the registered ceiling.** Stage 1 (K38+K42, 6 cells)
+summed to 1.6166 GPU-h (matches `STAGE1_RATES_OK` exactly — this is the
+live sentinel's own computed figure, not a re-derivation). Stage 2
+(K34+K46, 6 cells) summed to 1.5637 GPU-h. **Total realized, all 12
+mandatory cells: 3.1803 GPU-h.** Calibration/smoke overhead
+(`sim_cliff_power.py`, niter-check, threshold-derive, both smoke suites,
+Gate-2 construction test) is CPU-only fixture/unit-test work with no
+measurable GPU wall-clock (verified by inspecting each log — none report
+a step-timed training loop) — honestly estimated at **~0 GPU-h
+additional**, not merely omitted from the count. Against the live
+budget guard's own registered ceiling of **23.3587 GPU-h** (mandatory-
+only, bracket-pessimistic 2×, `keyanchor_cliff_supervisor.log`'s BUDGET
+GUARD line — the design doc's §12.5 hand-rounded table cites 23.28 for
+the same quantity; the live guard's unrounded 23.35872 is authoritative
+per §12.8.2's own build-audit disclosure), the wave used **≈13.6% of its
+own worst-case ceiling** — the pessimistic 2× contention multiplier
+(applied because of the concurrent frozen-bias-LM program sharing GPUs
+2–7, §12.5) never materialized; realized cost tracked close to the
+bracket's LOW end, consistent with every prior wave in this program's
+history (§11.5, §11.12).
+
+**Curve-shape reading against §12.4b's registered deliverable.** The
+deliverable was `x0 = A ± B`, `w ≤ C`, with no ambiguous outcome by
+construction (§12.4). The realized CI(x0) width, **0.0127, is ≈19.6× (5.1%
+of) the (0.5, 0.75) sub-bracket's own 0.25 span** — comfortably inside
+even the pre-registered simulation's best-case expectation (§12.4a's
+0.0247 at the registered 3-seed/K config, sharp-truth end), let alone the
+0.25 honesty-bar threshold §12.4b checked before any real data existed.
+**Deliverable achieved.** The measured `x0 ≈ 0.5455` sits just ABOVE
+K/d=0.53125 (K=34) — the cliff's midpoint lands between K=34 and K=38 at
+d=64, closer to K=34 (Δ=+0.0142 in K/d, ≈+0.9 in raw K) than to K=38
+(Δ=−0.0483 in K/d, ≈−3.1 in raw K). `w ≈ 0.0597` means the logistic's
+characteristic width (x0±w) spans K/d ≈ [0.486, 0.605], i.e. **K ≈
+31–39 at d=64** — the transition is not a hard step at a single integer
+K, it has real (if narrow) width.
+
+**Interpretation vs. the prior 3-point bracket.** Before this wave, the
+cliff's location was known only to within the (0.5, 0.75) interval
+spanned by the two archived anchors K=32/K=48 — a 0.25-wide K/d bracket
+(≈16 raw K at d=64). This wave's 95% CI on `x0` is 0.0127 wide (±0.0064)
+— **the localization narrowed from a 0.25-wide interval to a ±0.006-wide
+one**, roughly a 20× tightening, without needing to resolve the
+sigmoid-vs-linear shape question at all (that question was retracted at
+Rev 12.1 as underpowered at 6 points, §12.4 — this wave never
+re-attempted it and reports none).
+
+**What this does NOT show.**
+- **No mechanism claim.** The fit characterizes WHERE the h4 transition
+  is centered and how wide it is; it says nothing about WHY the
+  transition occurs at this K/d ratio specifically (round-3's own R3-1
+  disposition, §12.8.2: further localization waves without an attached
+  mechanism test require fresh justification — this wave is exactly
+  such a localization wave, not a mechanism test).
+- **Candidate-(d) arm only.** The bare-geo3 reference arm was cut from
+  this wave's mandatory scope (§12.2 item 2, disclosed tradeoff at
+  design time, not discovered post-hoc) — reference-arm admissibility
+  context (whether bare geo3's own value-salvage floor fails gradually
+  or abruptly across K=34→46, as it was found failing 3/3 at K=48,
+  §11.12) is **unavailable by design** for these four intermediate K's.
+  This wave cannot independently confirm or bound that question; it was
+  judged an acceptable, cheap-to-backfill-later cut against this wave's
+  already-tight budget, not an oversight discovered at harvest.
+- **No per-K HIT/MISS bar.** Unlike K=16/32/48, no admissibility bar was
+  registered for K=34/38/42/46 individually (§12.4, unchanged ruling from
+  Rev 12.0) — the continuous h4 values feed the fit directly; there is no
+  binary pass/fail claim being made at any of the four new K's.

@@ -4661,3 +4661,70 @@ Correction: when a design pre-registers a falsification test with a stated pass/
 [LEARN] instrumentation-field verification: a field that appears "unpopulated" or "missing" under an initially-guessed JSON path (e.g. a top-level scalar) may actually exist nested under a per-leg or per-checkpoint structure (e.g. `checkpoints[-1]['M3_held_out']['<leg>']['<field>']`) mirroring the structure of a metric already known to be logged correctly (here, h4 itself) — before writing "this field is not instrumented" into a permanent verdict document, grep the full nested structure of the raw JSON (not just the top-level and one or two guessed dict paths), especially when a sibling metric at the exact same nesting depth (h4) is already confirmed present.
 Mistake: this session's own first pass at the K=48 value-Gram-relief check searched only `geo3_admission` and the final checkpoint's top-level keys, concluded the field "does not appear," and nearly shipped that claim into §11.12 before a follow-up nested-key grep (mirroring the h4 lookup path already used successfully earlier in the same session) found it populated at every M2/M3/C17/C19 leg.
 Correction: when checking whether a metric is logged in one of this design's result JSONs, replicate the exact lookup pattern already used successfully for a same-tier sibling metric (here, h4's own `checkpoints[-1]['M3_held_out'][leg]['recovered_frac@0.9']` path) rather than guessing a flatter top-level path, and only conclude "not instrumented" after a full recursive key search comes back empty.
+
+## KEY-ANCHORING CAPACITY-CLIFF LOCALIZATION WAVE VERDICT (2026-07-06): sigmoid fit pins the K/d cliff midpoint to x0=0.5455 (CI [0.5385,0.5513], width 0.0127) — a ~20x tightening of the prior 0.25-wide (K=32,K=48) bracket
+
+Localized the capacity cliff found in the K=16/32/48 curve (§11.12:
+~1.00 -> ~0.65 -> ~0.02) by running 4 new interior K's — 34, 38, 42, 46
+(K/d_state = 0.53125/0.59375/0.65625/0.71875), 3 seeds each, candidate
+(d) only (bare-geo3 reference arm cut from scope, §12.2 item 2,
+disclosed tradeoff) — and fitting `h4(x) = L/(1+exp((x-x0)/w))` to the
+resulting 6-point curve (K=16/32/34/38/42/46/48 minus the cut point =
+7 points total incl. both archived endpoints), 4,000-trial seed-level
+parametric bootstrap CI.
+
+**Headline (verified against `fit_cliff_curve_results.json` and
+independently recomputed from all 12 raw cell JSONs — recomputed means
+matched the fit JSON's `curve_points.h4` to full float precision):**
+`x0 = 0.5455` (95% CI [0.5385, 0.5513], width 0.0127), `w = 0.0597` (CI
+[0.0557, 0.0642]), `L = 1.003`, `RSS = 0.00135`, **0/4000 degenerate
+bootstrap fits** (trivially satisfies the >10% disclosure rule).
+
+**7-point curve (K/d -> h4):** 0.25 -> 1.000 (K16) | 0.50 -> 0.6669
+(K32) | 0.53125 -> 0.5676 (K34) | 0.59375 -> 0.3316 (K38) | 0.65625 ->
+0.1177 (K42) | 0.71875 -> 0.0434 (K46) | 0.75 -> 0.0215 (K48).
+
+**Curve-shape reading:** measured `x0 ≈ 0.5455` sits just ABOVE
+K/d=0.53125 (K=34) — the midpoint lands between K=34 and K=38 at d=64,
+closer to K=34. `w ≈ 0.0597` implies the transition's characteristic
+width spans K/d ≈ [0.486, 0.605], i.e. roughly K ≈ 31-39 at d=64 — a
+narrow but nonzero-width transition, not a single-integer hard step.
+CI(x0) width (0.0127) is ≈5.1% of the (0.5, 0.75) sub-bracket's own 0.25
+span — the pre-registered honesty-bar deliverable (§12.4b: CI width
+must beat 0.25 to justify the wave) is cleared with wide margin, and the
+localization itself narrows from the prior 0.25-wide bracket to a
+±0.006-wide one, a ~20x tightening.
+
+**Realized cost vs ceiling — the pessimistic 2x margin never
+materialized.** All 12 cells landed in a tight 900.0-985.6s band (max
+28.1% of the 3503.8s bracket upper edge; abort trigger 5238.0s never
+approached, let alone fired). Realized GPU-h: Stage 1 (K38+K42) 1.6166
+GPU-h (matches `STAGE1_RATES_OK` exactly) + Stage 2 (K34+K46) 1.5637
+GPU-h = **3.1803 GPU-h total** across all 12 mandatory cells.
+Calibration/smoke overhead (power-sim, niter-check, threshold-derive,
+both smoke suites, Gate-2 construction test) is CPU-only fixture work,
+honestly ~0 GPU-h additional. Against the live budget guard's own
+registered ceiling of **23.3587 GPU-h** (mandatory-only,
+bracket-pessimistic 2x), the wave used **≈13.6%** of its own worst-case
+budget.
+
+**What this does NOT show:** no mechanism claim (WHERE the cliff sits,
+not WHY); candidate-(d) arm only, so reference-arm admissibility context
+at the 4 new K's is unavailable by design (§12.2 item 2's disclosed
+cut); no per-K HIT/MISS bar was registered for K=34/38/42/46
+individually (unchanged ruling from Rev 12.0, §12.4).
+
+**Anchoring program ledger update:** running total was 55.83/80 GPU-h.
+This wave adds 3.1803 GPU-h realized, bringing the running total to
+**≈59.01/80 GPU-h**, leaving ≈20.99 GPU-h reserve under the exactness
+program's own 80 GPU-h cap. GPUs 2-7 are now idle (cliff wave complete;
+no other cell currently in flight on this allocation per this wave).
+
+Archive: `experiment-runs/2026-07-06_keyanchor_cliff/` (12 cell result
+JSONs + `fit_cliff_curve_results.json` + `STAGE1_RATES_OK`/`ALL_DONE` +
+chain/fit scripts, byte-compared clean against the box's live copies,
+zero drift + full numbered pipeline logs, ~24MB, all files well under
+the 25MB cap) + SSD mirror at the same relative path under
+`/Volumes/1TB_SSD/learned-representations/`. Full verdict, per-cell
+wall_s table, and curve-shape reading:
+`matrix-thinking/KEY_ANCHORING_DESIGN.md` §12.9. `STATE.md` updated.

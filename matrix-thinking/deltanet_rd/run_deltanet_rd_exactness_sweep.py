@@ -1369,9 +1369,21 @@ KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING = 11.68   # 23.35872 / 2, rounded to the doc
 # already reports, so this constant is read off STATE.md's own line 654-655
 # citation ("Program formally complete at ≈55.83/80 GPU-h") rather than
 # re-itemized a third time in this file.
-KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH = 55.83
+#
+# 2026-07-06 UPDATE (post-harvest, keyanchor-cliff wave complete): this
+# wave's own realized cost -- 3.1803 GPU-h, summed directly off all 12
+# mandatory cells' own `wall_s` fields (Stage 1 K38+K42 = 1.6166 GPU-h,
+# matches STAGE1_RATES_OK exactly; Stage 2 K34+K46 = 1.5637 GPU-h;
+# calibration/smoke overhead is CPU-only fixture work, ~0 GPU-h, verified
+# by inspecting every pipeline log for a step-timed training loop and
+# finding none) -- is added to the prior 55.83 base, giving 59.0103,
+# rounded to 59.01. Full arithmetic, per-cell wall_s table, and the
+# realized-vs-23.3587-GPU-h-ceiling comparison:
+# `matrix-thinking/KEY_ANCHORING_DESIGN.md` sec 12.9;
+# `experiment-runs/2026-07-06_keyanchor_cliff/README.md`.
+KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH = 59.01  # was 55.83 before this wave; +3.1803 GPU-h realized, 2026-07-06
 KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING = 80.0
-KEYANCHOR_CLIFF_RESERVE_GPUH = KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING - KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH  # 24.17
+KEYANCHOR_CLIFF_RESERVE_GPUH = KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING - KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH  # 20.99
 
 # sec 12.2.3's mid-run abort/budget guard, restated in full (NOT merely
 # "mirrors sec 11.5" by reference -- sec 12.2.3's own text): after ANY
@@ -1399,8 +1411,10 @@ KEYANCHOR_CLIFF_ABORT_WALL_S = 5238.0   # sec 12.2.3's own pinned literal, see c
 def keyanchor_cliff_budget_guard(accept_override: bool) -> float:
     """Mirrors keyanchor_k48_budget_guard's exact pattern, using this wave's
     OWN registered ceiling (sec 12.5) against the sec-12-header reconciled
-    program-spent figure (55.83), not the earlier keyanchor-k48-era 49.8493
-    base (see the comment above KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH)."""
+    program-spent figure -- 55.83 at launch time (pre-wave), updated to
+    59.01 post-harvest (2026-07-06) to fold in this wave's own realized
+    3.1803 GPU-h -- not the earlier keyanchor-k48-era 49.8493 base (see the
+    comment above KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH)."""
     cumulative = KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH + KEYANCHOR_CLIFF_GPUH_CEILING
     print(f"BUDGET GUARD (keyanchor-cliff): program-spent-so-far={KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH:.4f} "
           f"GPU-h + this-wave-registered-ceiling(mandatory-only, bracket-pessimistic, 2x)="
