@@ -12,7 +12,17 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 - **RUNNING:** Track C rung-3 (2×1.31B, tmux `trackc3` on box GPUs 0-1,
   survives any local session loss). Sentinel:
-  `results/lm_rd_trackc/wave3/ALL_DONE`, ETA ~19:00 UTC 2026-07-06.
+  `results/lm_rd_trackc/wave3/ALL_DONE`. **ETA CORRECTED 2026-07-06 ~07:35
+  UTC: ≈05:00 UTC 2026-07-08** (measured 1.416 s/step from live logs —
+  step 67,500 in 95,553 s — vs the banked 0.7135 s/step calibration; the
+  original ~19:00 UTC Jul 6 ETA was wrong by ~34 h). Budget implication:
+  rung-3 actual ≈144 GPU-h vs 76.25 booked → program lands ≈334/300 vs
+  §7's ceiling, DISCLOSED not silently absorbed; run continues because
+  the grant is uptime-metered (no incremental dollar cost) and GPUs 0-1
+  have no competing queued work. Update PROGRAM_SPENT_GPUH with final
+  actuals at harvest. Root cause of the 2× gap unknown (calibration cell
+  ran solo; suspect dataloader/CPU contention between the two concurrent
+  runs) — note in EXPERIMENT_LOG at harvest.
   Stop only via `touch STOP_trackc3` on the box; never pkill.
 - **ON THAT SENTINEL, the remaining queue (in order):**
   1. Harvest: attractor probe on the 2 final checkpoints + trajectory
@@ -676,8 +686,11 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   - *SCALE-TRANSFER Track C rung-3* (1.31B params, token-matched to
     rung-2 at 1.5B tok/run per the user-signed-off Rev 2.2 amendment).
     Launched on GPUs 0–1, tmux session `trackc3`. `ALL_DONE` expected
-    ≈19:00 UTC 2026-07-06. Program budget: cumulative ≈266.47/300 GPU-h
-    against `SCALE_TRANSFER_DESIGN.md` §7's ceiling — passes every gate.
+    ≈05:00 UTC 2026-07-08 (corrected 2026-07-06 from ~19:00 UTC Jul 6:
+    measured 1.416 s/step is 2× the banked calibration — see the SESSION
+    HANDOFF block at top for the full dated correction and the disclosed
+    ≈334/300 GPU-h budget overrun). At-launch guard printed 266.47/300
+    using the banked constants, in good faith at the time.
     Completes §5.7's literal 3-rung criterion (98M/392M/1.3B).
 
   **DECISION-PENDING (user call):**
