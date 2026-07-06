@@ -448,6 +448,40 @@ def _run_manifest(label: str, manifest: list[dict], out_dir: str, args) -> bool:
 # Gate + launch for --wave rung1
 # ---------------------------------------------------------------------------
 
+def write_calibration_json(out_dir: str, calib_spec: dict) -> str | None:
+    """Derives timing_constants['rung1'] from the calibration cell's OWN completed result JSON
+    and writes calibration.json -- the file gate_and_run_rung1's remaining-19 branch reads.
+    Discovered missing at first real launch (2026-07-06): calibration.json was READ in three
+    places but WRITTEN nowhere (the writer/reader-seam failure class, 4th occurrence -- see the
+    F1 mech-wave [LEARN]). Single-cell derivation: per_step_s = wall_s/steps is a BLENDED
+    constant (checkpoint cost folded into the per-step figure, per_ckpt_s=0.0, disclosed here) --
+    acceptable for timeout/budget sizing, which applies a margin factor anyway; NOT comparable to
+    the two-point method's clean constants. Self-healing: safe to call from either invocation;
+    returns the path on success, None if the calibration result isn't complete yet."""
+    calib_path = os.path.join(out_dir, f"{calib_spec['name']}.json")
+    if not os.path.exists(calib_path):
+        return None
+    with open(calib_path) as f:
+        res = json.load(f)
+    if not res.get("complete"):
+        return None
+    per_step_s = res["wall_s"] / res["steps"]
+    payload = {
+        "timing_constants": {"rung1": {
+            "per_step_s": per_step_s, "per_ckpt_s": 0.0,
+            "method": ("single-cell blended (wall_s/steps, ckpt cost folded in; per_ckpt_s "
+                        "pinned 0.0 -- timeout margin covers it)"),
+            "source_cell": res.get("run_name"), "wall_s": res["wall_s"], "steps": res["steps"],
+        }},
+    }
+    out_path_ = os.path.join(out_dir, "calibration.json")
+    with open(out_path_, "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"wrote {out_path_}: per_step_s={per_step_s:.5f} (single-cell blended, from "
+          f"{res.get('run_name')})", flush=True)
+    return out_path_
+
+
 def gate_and_run_rung1(args) -> None:
     calibration_json_path = os.path.join(args.out_dir, "calibration.json")
     steps = args.rung1_steps
@@ -467,6 +501,11 @@ def gate_and_run_rung1(args) -> None:
         manifest = [calibration_cell(steps, args.ckpt_every)]
         label = "rung1_calibration"
     else:
+        # Self-healing (writer/reader-seam fix, 2026-07-06): if the calibration CELL completed
+        # but calibration.json was never derived (the writer didn't exist at first launch),
+        # derive it now before the existence check below.
+        if not os.path.exists(calibration_json_path):
+            write_calibration_json(args.out_dir, calibration_cell(steps, args.ckpt_every))
         if not os.path.exists(calibration_json_path) and not args.skip_calibration_check:
             print(f"ERROR: {calibration_json_path} not found and the calibration cell's own result "
                   f"JSON was not found either -- sec 6.3's non-negotiable rule: 'one full Arm-2 "
@@ -542,6 +581,10 @@ def gate_and_run_rung1(args) -> None:
           f"per_step_s={per_step_s} per_ckpt_s={per_ckpt_s} (margin {LAUNCH_TIMEOUT_MARGIN}x).",
           flush=True)
     all_done = _run_manifest(label, manifest, args.out_dir, args)
+    if all_done and args.calibration_only:
+        # Derive calibration.json the moment the calibration cell completes (the remaining-19
+        # branch reads it -- same-invocation write closes the writer/reader seam at the source).
+        write_calibration_json(args.out_dir, manifest[0])
     sys.exit(0 if all_done else 1)
 
 
