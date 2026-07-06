@@ -1,0 +1,38 @@
+{
+  "formula_version": "sec 3.6 Rev4 (n=3, engaged_K = mean_ref + 2*s_ref, df=2)",
+  "bands": {
+    "48": {
+      "mean_ref": 0.8381849328676859,
+      "s_ref": 0.016384341656343265,
+      "engaged_k": 0.8709536161803725,
+      "ceiling": 0.8987,
+      "unresolvable": false,
+      "per_seed": [
+        0.8268003463745117,
+        0.8307913541793823,
+        0.8569630980491638
+      ],
+      "leave_one_out_engaged_k": [
+        0.880889661245873,
+        0.8845382947086226,
+        0.8344399876421319
+      ]
+    }
+  },
+  "reference_result_paths": {
+    "48": [
+      "results/deltanet_rd_exactness/wavekeyanchor-k48-ref/wref_rdx_K48_armgeoref_s1_geo3n20_dprobe.json",
+      "results/deltanet_rd_exactness/wavekeyanchor-k48-ref/wref_rdx_K48_armgeoref_s2_geo3n20_dprobe.json",
+      "results/deltanet_rd_exactness/wavekeyanchor-k48-ref/wref_rdx_K48_armgeoref_s3_geo3n20_dprobe.json"
+    ]
+  },
+  "reference_result_sha256": {
+    "48": [
+      "f5cd81709489fc20dfba47ddf455d949cccf11ca241990127254153ec7b44a85",
+      "54dfd93b638ef754ccd5dbf6da8f809d54b23d24bb6018f52aba0df7a75720b5",
+      "0c60b5c63f82b6465ef2d75460ad8d43cfc58d9d752e4e3b56ed401b92823565"
+    ]
+  },
+  "pinned_at": 1783294546.0232878,
+  "pinned_at_iso": "2026-07-05T23:35:46Z"
+}

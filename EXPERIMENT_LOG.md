@@ -4461,3 +4461,203 @@ the box side; this session's commit covers the design-doc verdict
 [LEARN] mechanism-tier verification: a registered prior expectation built by back-solving a metric through a nonlinear formula (here, r_e back-solved from a_e through the blend formula) can fail even when the formula and inputs are individually correct, if the back-solve's own disclosed assumptions (unit anchor-row norm, mean-through-nonlinear-map bias) are quantitatively wrong, not just theoretically imperfect — direct measurement of the same quantity, once instrumented, is the only way to know how much those disclosed caveats actually cost.
 Mistake: none this session — the registered §10.3.5 prior expectation was honestly disclosed as a back-solved estimate with named caveats (§9.7.5 anchor-norm, §9.7.10 item 5 Jensen's-gap) before this wave's data existed; flagged as a durable rule because the fresh measurement (anchor norms 1.06-1.16, not 1.0; median r_e ~0.2, not ~0.34) shows those caveats were not small print, they were the dominant source of the prediction error.
 Correction: when a design registers a prior expectation via back-solving through a formula with disclosed-but-unquantified assumptions, treat the eventual direct measurement of those assumptions (once cheaply available) as a required part of the verdict write-up, not an optional aside — the gap between back-solved and directly-measured values is itself evidence about which caveat dominated, and belongs in the record.
+
+## KEY-ANCHORING CANDIDATE (e) VERDICT (2026-07-07): CONFIRMED-BY-ABLATION — a frozen, never-trained anchor table (random OR frame-potential init) matches/exceeds learned candidate (d)'s own h4 gain; the construction-stabilization account is no longer descriptive, it is the confirmed explanation
+
+Full spec: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §10.13.4 (registration)
++ new §10.14 (this verdict, added this session). Box:
+`youthful-indigo-turkey`, `/home/nvidia/chapter2/deltanet_rd/`. CPU-only
+verdict pass; GPUs 0-1 confirmed busy on an unrelated Track-C rung-3 run
+throughout (90%/100% util via `nvidia-smi`), untouched. Re-ran
+`readout_rev7.py --manifest keyanchor-e` fresh and independently
+extracted every number below from the 6 archived JSONs directly.
+
+**What ran.** `wavekeyanchor-e`, 6 cells: arm **e** (seeds 60/61/62,
+anchor table frozen at `random_unit_rows` init, never trained) and arm
+**e-fp** (seeds 70/71/72, frozen at `frame_potential_init`, never
+trained) — both at fixed λ=0.58 (the mechanism-tier wave's own measured
+cross-cell mean). All 6 `complete: true`, `steps_completed: 20000`, zero
+timeouts, `ALL_DONE` present ("6/6 runs done, 0 failed-then-recovered").
+A stale `ABORTED.txt` from an earlier failed smoke-test attempt
+(22:20 UTC) predates `ALL_DONE` (23:40 UTC) by over an hour — a fixed
+and re-launched attempt, not a live anomaly. Realized cost: **1.231
+GPU-h** (6 cells, 726-750s each) against the ≤2.5 GPU-h ceiling.
+`REV7_THRESHOLD_PINNED.json` blind intact (6/6 runs checked); checkpoint
+gate 60/60 files, 0 bad.
+
+**Per-cell h4 `rec@0.9`:** arm e (frozen random) = 0.6663 / 0.7619 /
+0.7540 (mean 0.7274); arm e-fp (frozen frame-potential) = 0.7603 /
+0.7123 / 0.7512 (mean 0.7413). Compare candidate (d)'s own K=32 mean
+this program has measured, mechanism-tier wave: 0.6669 (0.6741/0.7125/
+0.6141). **Both frozen arms match or slightly exceed (d) — no seed of
+either frozen arm falls below (d)'s own minimum (0.6141).** Items 1-4
+clean 6/6, h=1 guard 1.0 everywhere, value-salvage ratio clears 0.1 at
+all 6 cells (0.238-0.351).
+
+**Routing per the registered joint outcome map (§10.13.4): "both≈(d) ⇒
+constancy alone suffices."** Neither arm collapsed relative to (d) or
+to each other — bulk geometry (frame-potential structure) is not the
+carrier (arm e, pure random init, performs the same as arm e-fp).
+**CONSTANCY ALONE SUFFICES** — the cleanest cell in the registered map,
+not an edge case.
+
+**The r_e negative control passes with the strongest null reading in
+this design's history.** Arm e (frozen random, mechanically cannot
+align to anything meaningful) shows median r_e = **-0.2431 / -0.1345 /
+-0.2098** — negative, not merely near-zero — and `engaged_frac_v3 =
+0.000` at all three seeds (0/107 entities pass BH-FDR engagement). This
+is the instrument correctly reporting "no alignment, none possible"
+when the anchor is pure noise. Arm e-fp's r_e is small/mixed-sign
+(0.056/-0.030/0.019, engaged_frac 0.000/0.009/0.000) — a small residual
+from frame-potential's own non-random structure, still frozen, still
+nowhere near engagement. Both arms land band C, same as (d)'s own K=32
+band from the mechanism-tier wave.
+
+**Full implication chain, stated explicitly:**
+1. The construction-stabilization account (§10.13.4) is **CONFIRMED BY
+   ABLATION** — its own pre-registered falsification test ("both arms
+   match/exceed (d)") passed.
+2. This **supersedes the "learned anchoring" framing** — the table's
+   learned content contributes nothing measurable; a table that never
+   learns anything does the same job.
+3. **The deployable fix is a frozen random key-bias at moderate blend
+   weight** — no training loop, no gradient path, no optimizer state
+   for the anchor table is required.
+4. **SGD's role reduces to, at most, tuning λ** — and even that residual
+   role is not demonstrated necessary by this data (λ was fixed at
+   0.58, the mechanism-tier wave's own measured value; a poorly-chosen
+   fixed λ was not tested).
+5. **The 2x2 stability ingredient is satisfiable by construction** — the
+   episode-constant additive term does not need to be derived from
+   data at all; pure noise, held constant, suffices.
+
+**Honesty on "exceeding":** both frozen-arm means (0.7274, 0.7413)
+nominally exceed (d)'s mean (0.6669), but with 3 seeds/arm this is not
+a significance claim — ranges overlap substantially (d: 0.61-0.71;
+e/e-fp: 0.67-0.76). The finding that matters is the absence of
+collapse, not the direction of an unresolvable small mean difference.
+
+**Claim tier.** The entity-alignment mechanism hypothesis (§1) remains
+**Outcome C**, unchanged (this wave does not re-open that verdict). The
+construction-stabilization *account* moves from
+descriptive/interpretive (§10.13.5) to **confirmed-by-ablation** — a
+falsifiable, pre-registered prediction was made and held on fresh data
+under the hash-locked instrumentation stack.
+
+Archive: `experiment-runs/2026-07-07_keyanchor_e/` (6 result JSONs +
+chain/smoke logs + `readout_rev7.py`/`rev7_threshold_derive.py`/
+`REV7_THRESHOLD_PINNED.json` + the fresh readout console output,
+~11MB, all files well under the 25MB cap) + SSD mirror at the same
+relative path under `/Volumes/1TB_SSD/learned-representations/`. Full
+tables: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §10.14. `STATE.md`
+updated.
+
+## KEY-ANCHORING K=48 CAPACITY-CURVE VERDICT (2026-07-07): bar missed 0/3 seeds — the capacity curve completes as a cliff (~1.00 at K=16 -> ~0.65 at K=32 -> ~0.02 at K=48), not a smooth decline; binding survives (h=1 guard 1.0 everywhere), composition collapses
+
+Full spec: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §11 (Rev K48.1
+design, CLEARED-FOR-BUILD at §11.11) + new §11.12 (this verdict, added
+this session). Box: `youthful-indigo-turkey`,
+`/home/nvidia/chapter2/deltanet_rd/`. CPU-only verdict pass; GPUs 0-1
+untouched throughout. Re-ran `readout_rev7.py --manifest keyanchor-k48`
+fresh and independently extracted every number below from the 7
+archived JSONs plus `BANDS_PINNED_K48.json` directly.
+
+**What ran.** `wavekeyanchor-k48` (candidate (d), learned λ, K=48,
+seeds 30/31/32, full mechanism instrumentation) + `wavekeyanchor-k48-ref`
+(fresh bare-geo3 reference, K=48, seeds 1/2/3) + `wavekeyanchor-k48-gate1`
+(pre-launch probe, seed 0, 5000 steps). All 7 `complete: true`, all
+three `ALL_DONE`. No conditional cells fired: (d') never launched (its
+own precondition depends on Rev 7.1's separate verdict, not triggered
+here), no seed contingency, the optional fixed-lambda=1 ceiling probe
+not run — the wave stayed inside its mandatory baseline throughout.
+Realized cost: **1.597 GPU-h** total (0.785 candidate-d + 0.736
+reference + 0.076 Gate-1 probe) against the <=12 GPU-h ceiling — no
+budget pressure, the mechanical per-cell cutoff (§11.5) never invoked.
+`REV7_THRESHOLD_PINNED.json` blind intact; `BANDS_PINNED_K48.json`
+independently re-validated (`mean_ref=0.838185, s_ref=0.016384,
+engaged_k=0.870954, ceiling=0.8987, unresolvable=false` — confirmed
+`0.870954 < 0.8987-0.005=0.8937`, so resolvable, matching the stored
+`unresolvable: false` field). Checkpoint gate 30/30, 0 bad.
+
+**h4 `rec@0.9`:** candidate (d) = 0.02295 / 0.02287 / 0.01872 (mean
+0.02151); fresh reference = 0.01892 / 0.01750 / 0.01359 (mean 0.01667,
+reproduces the archived 0.0164 baseline the bar itself was derived
+from). **Registered bar (§11.2): h4 >= 0.024434. Candidate (d) MISSES
+0/3 seeds** — every individual seed falls below the bar, by margins of
+0.0015/0.0016/0.0057; not a mean-only near-miss masking a mixed
+per-seed picture.
+
+**Admissibility — a cleaner split than either falsification-map row
+anticipated.** Candidate (d) is fully admissible 3/3 (items 1-4 clean,
+value-salvage ratio 0.105-0.115, comfortably clearing the 0.1 floor) —
+but the fresh K=48 reference arms fail the value-salvage floor 3/3
+(0.071-0.087), reproducing the archived rider's own non-admissible
+finding as a fresh, independently-drawn result. Realized value-salvage
+lift, (d)/reference = 0.1092/0.0768 ~= 1.42x — smaller than the
+~1.93x extrapolated from the K=32 relation (§11.11's own pre-answered
+attack 3) but still enough to cross the 0.1 floor the bare baseline
+itself cannot cross.
+
+**Routing per §11.6, literally: informative negative, packing-ceiling-
+limited.** Item 5 (pre-NS drift) passes cleanly at all 3 seeds
+(0.99999+, margin >0.05 over the 0.95 bar) — ruling out "mechanism
+didn't engage" (the K=32 Outcome-C explanation) in favor of "ceiling
+reached, wasn't enough." Candidate (d)'s post-NS drift mean (0.8870)
+sits just below the independently-reproduced lambda=1 ceiling (0.8987)
+and well above the fresh reference's own (0.8382) — closing ~81% of
+the gap between baseline and ceiling, real measurable work, still
+insufficient to cross the h4 bar. **Value-Gram-relief channel checked
+directly** (a field that initially appeared unpopulated at the
+top-level scalar path but does exist nested per-leg under
+`M3_held_out`): candidate (d)'s value-Gram deviation at the h4 leg runs
+4.644/5.353/5.872 (mean 5.289) against the reference's 8.916/8.889/
+7.557 (mean 8.454) — ratio 0.626, a real relief bonus in the same
+direction as K=32's own (there, roughly 0.5x), just not enough in
+combination with the capped drift-space channel to cross the bar. Both
+of the design's own two pre-registered explanatory channels are
+measurably active, neither is dormant — the miss is not attributable
+to either channel failing to engage.
+
+**The capacity curve completes as a cliff, not a smooth decline.**
+K=16 (~1.00, saturated, HIT its own no-regression check) -> K=32
+(0.61-0.71 across 3 waves' seeds, HIT its 0.5 bar) -> K=48 (0.0215,
+MISS its 0.024434 bar). The independently-reproduced lambda=1 ceiling
+declines far more gently over the same three points: 0.9745 -> 0.9423
+-> 0.8987. **Binding survives, composition collapses**: h=1
+in-distribution guard is 1.0000 at every cell in this design's history
+at every K; what collapses at K=48 is held-out compositional recovery
+specifically (h4, the M3 held-out legs), not raw retrieval.
+
+**No spin.** The anchoring gain does not transplant to K/d=0.75. This
+is reported as a completed 3-point curve (16 HIT / 32 HIT / 48 MISS),
+never pooled or averaged across K, per §11.2's own curve-reporting rule
+— and per §11.6's own falsification-map discipline, registered as
+informative (bounds the fix's regime, sharpens the open theory
+question of what specifically binds at 0.75 — value-crowding is the
+design's own named, not-yet-tested candidate) rather than merely
+negative.
+
+Archive: `experiment-runs/2026-07-07_keyanchor_k48/` (7 result JSONs
+across 3 sub-waves + `BANDS_PINNED_K48.json` + chain/smoke logs +
+`readout_rev7.py`/`rev7_threshold_derive.py`/`REV7_THRESHOLD_PINNED.json`
++ the fresh readout console output, ~14MB, all files well under the
+25MB cap) + SSD mirror at the same relative path under
+`/Volumes/1TB_SSD/learned-representations/`. Full tables:
+`matrix-thinking/KEY_ANCHORING_DESIGN.md` §11.12. `STATE.md` updated.
+
+**Anchoring program ledger update:** running total was ~53.0/80 GPU-h
+(STATE.md, includes the mechanism-tier wave). This session adds
+candidate (e) (1.231 GPU-h) + K=48 (1.597 GPU-h) = **2.828 GPU-h
+combined**, bringing the running total to **~55.83/80 GPU-h**, leaving
+~24.17 GPU-h reserve under the exactness program's own 80 GPU-h cap.
+Both waves' realized costs came in well inside their own registered
+ceilings (e: 1.231/2.5; K48: 1.597/12) — no contingency or conditional
+cells fired in either wave.
+
+[LEARN] falsifiable-account discipline: when a mechanistic account (here, "the anchor blend stabilizes by construction, not by entity alignment") is registered with an explicit, pre-stated falsification test BEFORE the confirming data exists (candidate (e), §10.13.4), and the test's predicted outcome is then measured, the account's claim tier can legitimately move from descriptive/interpretive to confirmed-by-ablation — this is a stronger and different evidentiary move than merely reporting consistent-but-unconfirmed behavior, and the write-up should say so explicitly rather than treating a passed falsification test as just more supporting color.
+Mistake: none this session — flagged as a durable rule because it is easy to under-claim (report candidate (e)'s result as "another data point consistent with the account," which undersells that a pre-registered, falsifiable prediction was specifically tested and held) or over-claim (treat "confirmed-by-ablation" as if it also validated the primary Outcome-C mechanism question, which it does not — the two are independent claims tracked separately in this design's own tier system).
+Correction: when a design pre-registers a falsification test with a stated pass/fail prediction for a secondary explanatory account, and the test later runs, explicitly name the tier transition (descriptive -> confirmed-by-ablation, or descriptive -> falsified) in the verdict write-up, and keep it visibly separate from any primary hypothesis' own claim tier so the two are never conflated in a later summary.
+
+[LEARN] instrumentation-field verification: a field that appears "unpopulated" or "missing" under an initially-guessed JSON path (e.g. a top-level scalar) may actually exist nested under a per-leg or per-checkpoint structure (e.g. `checkpoints[-1]['M3_held_out']['<leg>']['<field>']`) mirroring the structure of a metric already known to be logged correctly (here, h4 itself) — before writing "this field is not instrumented" into a permanent verdict document, grep the full nested structure of the raw JSON (not just the top-level and one or two guessed dict paths), especially when a sibling metric at the exact same nesting depth (h4) is already confirmed present.
+Mistake: this session's own first pass at the K=48 value-Gram-relief check searched only `geo3_admission` and the final checkpoint's top-level keys, concluded the field "does not appear," and nearly shipped that claim into §11.12 before a follow-up nested-key grep (mirroring the h4 lookup path already used successfully earlier in the same session) found it populated at every M2/M3/C17/C19 leg.
+Correction: when checking whether a metric is logged in one of this design's result JSONs, replicate the exact lookup pattern already used successfully for a same-tier sibling metric (here, h4's own `checkpoints[-1]['M3_held_out'][leg]['recovered_frac@0.9']` path) rather than guessing a flatter top-level path, and only conclude "not instrumented" after a full recursive key search comes back empty.

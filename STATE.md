@@ -503,11 +503,12 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
   below for full derivations, tables, and attack trails).**
 
   **CLOSED:**
-  - *KEY-ANCHORING campaign, full history through the mechanism-tier
-    verdict* (`KEY_ANCHORING_DESIGN.md` §9/§9.6/§9.7/§10/§10.13;
-    `KEYANCHOR_REV6_ATTACK.md`, `KEYANCHOR_REV7_ATTACK.md`). Three waves
-    plus a rejected rescore attempt, ≈53.0/80 GPU-h against the exactness
-    program's own cap:
+  - *KEY-ANCHORING campaign — PROGRAM COMPLETE (2026-07-07 final
+    verdicts)* (`KEY_ANCHORING_DESIGN.md` §9/§9.6/§9.7/§10/§10.13/§10.14/
+    §11/§11.12; `KEYANCHOR_REV6_ATTACK.md`, `KEYANCHOR_REV7_ATTACK.md`).
+    Five waves plus a rejected rescore attempt, **≈55.83/80 GPU-h**
+    against the exactness program's own cap (≈24.17 GPU-h reserve
+    remaining, untouched):
     - Wave 1 + confirmatory wave (10.98 + ~0 new GPU-h): K=32 h=4
       `rec@0.9` 0.4105 (fresh reference) → 0.556–0.665, 3/3 seeds ≥0.5
       bar, same seed integers both waves (reproduction, not independent
@@ -517,37 +518,90 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
       **REJECTED** (`KEYANCHOR_REV6_ATTACK.md`: bar-preserving z≈3.76–4.03
       sits outside the offered {2,3} menu; unverified anchor-norm
       m≈1.34 would make the signal chance-level).
-    - **Mechanism-tier wave (2026-07-06, `KEY_ANCHORING_DESIGN.md`
-      §10/§10.13, 1.50 GPU-h realized), the campaign's flagship
-      readout.** Fresh instrumentation (`r_e` measured directly,
-      pre-blend, norm-invariant by construction; hash-locked BH-FDR test,
-      zero data dependency, `REV7_THRESHOLD_PINNED.json` verified
-      byte-identical in a fresh empty sandbox this session) + a new
-      per-entity-λ arm (d′). **Behavioral: independently replicated** —
-      6 genuinely fresh seeds (not integer reuse), 2 architecture
-      variants, K=32 h4 0.6141–0.7141, all ≥0.5 bar; K=16 s10 = 0.9998;
-      items 1–6/λ-interior clean 3/3 at K=32 (d) (an improvement on the
-      confirm wave's 2/3). **Mechanism: Outcome C reconfirmed, 3/3 seeds,
-      both arms** — engaged_frac_v3 3.7–41.1% at K=32, median `r_e`
-      0.15–0.23 (below the 0.25 partial floor), immune to every Rev-6
-      objection (anchor norms measured directly at 1.06–1.16 mean/cell,
-      not assumed unit; no λ-degeneracy; no menu; an effect-size floor
-      blocks power-manufactured engagement). Candidate (d′) converges to
-      the **same** band as (d) → **Inconclusive/mixed** per its own
-      routing table (partial 2/3 Spearman significance, no dip-test
-      split). The registered §10.3.5 prior expectation (A″ brushing A,
-      back-solved r≈0.33–0.35) **failed** — fresh measured median r_e
-      ≈0.2 — diagnosed as the back-solve's unit-anchor-norm assumption
-      and Jensen's-gap bias both being quantitatively, not just
-      theoretically, wrong. **Synthesis: the anchor blend stabilizes by
-      construction** (the λ·anchor term is episode-constant, so
-      cross-episode stability arrives architecturally, not via entity
-      alignment) — a new descriptive/interpretive account, registered
-      with a ~1 GPU-h falsification probe (**candidate (e): frozen
-      random-table ablation** at matched λ≈0.58). Archive:
-      `experiment-runs/2026-07-05_keyanchor_wave/` +
+    - Mechanism-tier wave (2026-07-06, `KEY_ANCHORING_DESIGN.md`
+      §10/§10.13, 1.50 GPU-h realized). Fresh instrumentation (`r_e`
+      measured directly, pre-blend, norm-invariant by construction;
+      hash-locked BH-FDR test; `REV7_THRESHOLD_PINNED.json` verified
+      byte-identical in a fresh empty sandbox) + a new per-entity-λ arm
+      (d′). **Behavioral: independently replicated** — 6 genuinely
+      fresh seeds, 2 architecture variants, K=32 h4 0.6141–0.7141, all
+      ≥0.5 bar; K=16 s10 = 0.9998. **Mechanism: Outcome C reconfirmed,
+      3/3 seeds, both arms** — engaged_frac_v3 3.7–41.1% at K=32, median
+      `r_e` 0.15–0.23 (below the 0.25 partial floor), immune to every
+      Rev-6 objection. Candidate (d′) → **Inconclusive/mixed**.
+      **Synthesis: the anchor blend stabilizes by construction** (the
+      λ·anchor term is episode-constant) — registered with a ~1 GPU-h
+      falsification probe (candidate (e)).
+    - **Candidate (e) verdict (2026-07-07, §10.14, 1.231 GPU-h
+      realized) — CONFIRMED BY ABLATION.** Both registered arms ran:
+      **e** (frozen `random_unit_rows`, never trained, seeds 60/61/62,
+      h4 0.6663/0.7619/0.7540, mean 0.7274) and **e-fp** (frozen
+      `frame_potential_init`, never trained, seeds 70/71/72, h4
+      0.7603/0.7123/0.7512, mean 0.7413) — both at fixed λ=0.58. **Both
+      arms match/slightly exceed candidate (d)'s own learned-table K=32
+      mean (0.6669)** — no seed of either frozen arm falls below (d)'s
+      own minimum. Per the registered joint outcome map, this routes to
+      **"constancy alone suffices"** — bulk geometry is not the
+      carrier (arm e, pure random init, performs the same as e-fp).
+      **r_e negative control passes at the strongest null in this
+      design's history**: arm e's median r_e is **negative**
+      (−0.2431/−0.1345/−0.2098, engaged_frac_v3 = 0.000 all 3 seeds) —
+      the instrument correctly reports no alignment when the anchor is
+      pure noise with nothing to align to. **Full implication chain**:
+      this supersedes the "learned anchoring" framing entirely — the
+      deployable fix is a frozen random key-bias at matched λ; SGD's
+      role reduces to (at most) tuning λ; the 2×2's stability
+      ingredient is satisfiable by construction (the episode-constant
+      term need not be derived from data). The primary entity-alignment
+      hypothesis (§1) stays **Outcome C**, unchanged; the
+      construction-stabilization *account* moves from
+      descriptive/interpretive to **confirmed-by-ablation**.
+    - **K=48 capacity-curve verdict (2026-07-07, §11.12, 1.597 GPU-h
+      realized) — bar MISSED 0/3.** Candidate (d), K=48, learned λ:
+      h4 0.02295/0.02287/0.01872 (mean 0.0215) vs. the registered bar
+      ≥0.024434 (transplanted 1.494× relative-gain factor from K=32
+      onto K=48's own collapsed baseline) — every seed misses, margins
+      0.0015–0.0057. Fresh reference (bare geo3): h4 mean 0.0167
+      (reproduces the archived 0.0164). Candidate (d) is **fully
+      admissible 3/3** (value-salvage 0.105–0.115, clears the 0.1
+      floor) while the fresh reference **fails value-salvage 3/3**
+      (0.071–0.087) — a cleaner split than the falsification map's two
+      adjacent rows anticipated. Item 5 (pre-NS drift) passes cleanly
+      (0.99999+) → routes to **"packing ceiling reached, wasn't
+      enough,"** not "mechanism didn't engage": post-NS drift (mean
+      0.8870) closes ≈81% of the gap between the fresh reference
+      (0.8382) and the independently-reproduced λ=1 ceiling (0.8987);
+      value-Gram-relief is also present (0.626× the reference's
+      deviation at the h4 leg) — both of the design's own pre-registered
+      explanatory channels are measurably active, neither dormant, yet
+      still insufficient to cross the bar. **The capacity curve
+      completes as a cliff, not a smooth decline: ~1.00 (K=16) → ~0.65
+      (K=32) → ~0.02 (K=48)**, while the λ=1 ceiling declines gently
+      (0.9745 → 0.9423 → 0.8987) over the same three points. **Binding
+      survives (h=1 guard 1.0000 at every cell, every K, this design's
+      entire history), composition collapses.** Reported as an
+      informative negative per §11.6's own discipline — bounds the
+      fix's regime (K/d ≤0.5, not 0.75) and sharpens the open theory
+      question (value-crowding, the design's own named candidate) —
+      never pooled or averaged across K.
+    - Archive: `experiment-runs/2026-07-05_keyanchor_wave/` +
       `experiment-runs/2026-07-05_keyanchor_confirm/` +
-      `experiment-runs/2026-07-06_keyanchor_mech/` + SSD mirrors.
+      `experiment-runs/2026-07-06_keyanchor_mech/` +
+      `experiment-runs/2026-07-07_keyanchor_e/` +
+      `experiment-runs/2026-07-07_keyanchor_k48/` + SSD mirrors.
+    - **Full story, one paragraph:** key-anchoring behaviorally works at
+      K/d≤0.5 (independently replicated, 9+ seed-runs across waves), but
+      not because the anchor table learns anything — a frozen random
+      table at the right blend weight does the same job
+      (confirmed-by-ablation), so the mechanism is "constancy in the
+      key-blend arithmetic," not "learned entity alignment" (Outcome C
+      throughout). That mechanism does not transplant to K/d=0.75: the
+      capacity curve is a cliff, not a gradual decline, and the two
+      pre-registered explanatory channels (drift-space stabilization,
+      value-Gram relief) are both measurably active at K=48 yet
+      insufficient — pointing at value-crowding as the next open
+      question, not yet tested. Program formally complete at
+      ≈55.83/80 GPU-h; no further waves scheduled.
   - *SCALE-TRANSFER Track C — pure-scale attractor ladder*
     (`SCALE_TRANSFER_DESIGN.md` §5.9/§5.10/Addendum). The mix-axis
     confound is closed at both tested scales (14M mixcontrol Δ−0.004
@@ -586,17 +640,14 @@ design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
     Completes §5.7's literal 3-rung criterion (98M/392M/1.3B).
 
   **DECISION-PENDING (user call):**
-  - The key-anchoring mechanism-engagement question is now CLOSED
-    (Outcome C, mechanism-tier, both arms — see the CLOSED bullet above)
-    — this is no longer the open decision. What remains open: (a)
-    **candidate (e)**, the registered frozen-random-anchor-table
-    falsification probe for the construction-stabilization account
-    (~1 GPU-h, 2–3 K=32 seeds, matched λ≈0.58 — see
-    `KEY_ANCHORING_DESIGN.md` §10.13.4); (b) a K=48 extension of the
-    existing F-geo-3 fix; (c) another direction. No wave is scheduled
-    pending this call. Anchoring program spend so far: ≈53.0/80 GPU-h
-    against the exactness program's own 80 GPU-h cap
-    (`KEY_ANCHORING_DESIGN.md` §5/§10.7), leaving ≈27 GPU-h reserve.
+  - The key-anchoring program is now fully CLOSED end to end (mechanism
+    question, candidate (e) falsification probe, and the K=48
+    capacity-curve extension all resolved — see the CLOSED bullet
+    above). No open decision remains on this campaign; no wave is
+    scheduled. Next direction on this thread, if any, is a fresh
+    brainstorm/research/attack/validate waterfall (e.g. investigating
+    value-crowding at K/d=0.75, per §11.12's own named-not-yet-tested
+    candidate), not a continuation of the existing design.
 
 **Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
 adversarial design/attack teams and independent code audits on everything;
@@ -707,7 +758,7 @@ scratch):**
 - **matrix-thinking/H100_SETUP.md** — pod environment + the perpetual/unattended sweep pattern
 - **matrix-thinking/DELTANET_CAUSAL_RANK_DESIGN.md**, **DELTANET_REALDATA_DESIGN.md**, **STAGE_G_DESIGN.md**, **chapter2/STAGE0_DESIGN.md**, **chapter2/TASK_D_PREREGISTRATION.md**, **chapter2/TASK_D_WRITEUP.md**, **chapter2/NEXT_EXPERIMENT_DESIGN.md** (Task E design), **chapter2/TASK_E_FINDINGS.md** — the five closed 2026-07-01→03 programs; each carries a `STATUS: CLOSED` header
 - **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — CLOSED through §16 (Wave 0/1/F/geo3, including the geo3 escalation); the stability-targeted follow-on (§14.8) is now `KEY_ANCHORING_DESIGN.md` (below), run
-- **matrix-thinking/KEY_ANCHORING_DESIGN.md** — RUN 2026-07-05 (§9), CONFIRMATORY WAVE RUN same day (§9.6): candidate (d) clears K=32 h=4 ≥0.5 in 3/3 seeds with λ interior 6/6; the confirm wave closed §9.3's item-5/6/`engaged_frac` measurement gap and the literal §3.5 outcome is **C** ("mechanism not engaged"), not A — `engaged_frac` reads <14% in every leg despite item 5/h4/λ all clearing their own bars, per §3.7's own override clause. h4 stays DESCRIPTIVE tier (real, reproducible behavioral result; now a measured mechanistic null underneath it, not a missing measurement). A same-day §9.7 Rev-6 rescue attempt (λ-scaled `engaged_frac` re-derivation) was independently attacked and CLOSED/REJECTED (`KEYANCHOR_REV6_ATTACK.md`) — Outcome C stands; a fresh, differently-instrumented wave is DECISION-PENDING, not scheduled — see STATE.md's key-anchoring bullet above and `EXPERIMENT_LOG.md`'s "KEY-ANCHORING CONFIRMATORY WAVE VERDICT" entry
+- **matrix-thinking/KEY_ANCHORING_DESIGN.md** — **PROGRAM COMPLETE (2026-07-07)**, §10.14 + §11.12 are the final verdicts. Full arc: Wave 1 + confirm wave (§9/§9.6) → Rev 6 rescore REJECTED (`KEYANCHOR_REV6_ATTACK.md`) → mechanism-tier wave (§10/§10.13, Outcome C reconfirmed both arms, construction-stabilization account registered) → candidate (e) falsification probe (§10.14, CONFIRMED BY ABLATION — a frozen, never-trained anchor table matches/exceeds the learned one) → K=48 capacity-curve extension (§11/§11.12, bar missed 0/3, capacity cliff K/d 0.5→0.75). Literal §3.5 outcome for the entity-alignment hypothesis is **C** throughout, never revisited; the *mechanistic account* for the real, reproducible behavioral gain moved from descriptive to confirmed-by-ablation. See STATE.md's key-anchoring bullet above and `EXPERIMENT_LOG.md`'s dated verdict entries (mechanism-tier, candidate-(e), K=48-capacity-curve)
 - **matrix-thinking/stageg/** — Stage G's H_e task-swap harness (built, calibration run, Wave C gated open — see "In flight" above)
 - **matrix-thinking/scripts/** — runnable training scripts
 - **matrix-thinking/src/**, **chapter2/*.py** — model code
