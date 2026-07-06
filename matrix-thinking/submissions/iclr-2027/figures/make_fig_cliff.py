@@ -253,7 +253,7 @@ def main():
     ax.set_xlim(0.20, 0.80)
     ax.set_ylim(-0.05, 1.10)
     ax.set_xlabel(r"capacity ratio $K/d_{\mathrm{state}}$")
-    ax.set_ylabel(r"recovered\_frac@0.9 ($h{=}4$)")
+    ax.set_ylabel("recovered_frac@0.9 ($h{=}4$)")
     ax.set_title(
         "The capacity cliff, located: a measured transition point,\n"
         rf"not a bracket ($d_{{\mathrm{{state}}}}{{=}}64$, candidate (d))",
