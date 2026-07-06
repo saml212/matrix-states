@@ -130,14 +130,19 @@ TINY_VOCAB, TINY_D_MODEL, TINY_D_STATE, TINY_N_LAYERS = 200, 32, 64, 1
 # invocation to catch a regression).
 # ---------------------------------------------------------------------------
 
+# Real fla (H100 box) requires cuda tensors for its Triton kernels; the stub (dev box) is
+# cpu-only. Same auto-selection as smoke_frozen_bias_wave_neg1.DEVICE.
+DEVICE = "cuda" if (not _STUB_INSTALLED and torch.cuda.is_available()) else "cpu"
+
+
 def smoke_1_forward_backward_grad_finite_all_arms():
     ok = True
     for arm in FROZEN_BIAS_ARM_MODES:
         torch.manual_seed(101)
         m = DeltaNetLM(TINY_VOCAB, d_model=TINY_D_MODEL, d_state=TINY_D_STATE, n_layers=TINY_N_LAYERS,
                        conv_size=4, frozen_bias_arm=arm, frozen_bias_lambda=0.58,
-                       frozen_bias_vocab_size=TINY_VOCAB, frozen_bias_seed=42)
-        x = torch.randint(0, TINY_VOCAB, (4, 128))
+                       frozen_bias_vocab_size=TINY_VOCAB, frozen_bias_seed=42).to(DEVICE)
+        x = torch.randint(0, TINY_VOCAB, (4, 128), device=DEVICE)
         logits = m(x)
         finite_fwd = torch.isfinite(logits).all().item()
         loss = F.cross_entropy(logits.reshape(-1, TINY_VOCAB), x.reshape(-1))

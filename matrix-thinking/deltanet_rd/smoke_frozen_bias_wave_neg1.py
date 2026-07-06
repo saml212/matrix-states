@@ -182,12 +182,20 @@ TINY_D_MODEL, TINY_D_STATE, TINY_N_LAYERS, TINY_CONV_SIZE = 32, 64, 1, 4
 TINY_VOCAB = 200
 
 
+# Device resolution: with the REAL fla installed (H100 box), its Triton kernels REQUIRE cuda
+# tensors ("Pointer argument cannot be accessed from Triton" on cpu — hit live at first box
+# launch, 2026-07-06); with the stub (dev box, no fla), cpu is the only option. Auto-select so
+# the SAME script gives the real-kernel verification on the box (the build audit's required
+# box-strict re-check) and the stub verification on dev, no flag needed.
+DEVICE = "cuda" if (not _STUB_INSTALLED and torch.cuda.is_available()) else "cpu"
+
+
 def _build_tiny_model(frozen_bias_arm: str, lam: float = 0.58, seed: int = 555) -> DeltaNetLM:
     torch.manual_seed(seed)
     return DeltaNetLM(TINY_VOCAB, d_model=TINY_D_MODEL, d_state=TINY_D_STATE, n_layers=TINY_N_LAYERS,
                        conv_size=TINY_CONV_SIZE, frozen_bias_arm=frozen_bias_arm,
                        frozen_bias_lambda=lam, frozen_bias_vocab_size=TINY_VOCAB,
-                       frozen_bias_seed=20260705)
+                       frozen_bias_seed=20260705).to(DEVICE)
 
 
 # DISCLOSED, INVESTIGATED CPU-STUB-ENVIRONMENT ARTIFACT (this build session): comparing a tensor
@@ -246,9 +254,9 @@ def smoke_a_probe_observed_vs_model_internal():
     model = _build_tiny_model("per_token", lam=0.58)
     model.eval()
     torch.manual_seed(7)
-    x = torch.randint(0, TINY_VOCAB, (3, 128))
+    x = torch.randint(0, TINY_VOCAB, (3, 128), device=DEVICE)
 
-    keys_by_layer, _ = capture_raw_keys(model, [x], "cpu")
+    keys_by_layer, _ = capture_raw_keys(model, [x], DEVICE)
     probe_captured = keys_by_layer[0]
 
     with torch.no_grad():
@@ -296,7 +304,7 @@ def smoke_b_code_path_equality():
 
     model = _build_tiny_model("per_token", lam=0.58, seed=888)
     torch.manual_seed(13)
-    x = torch.randint(0, TINY_VOCAB, (2, 128))
+    x = torch.randint(0, TINY_VOCAB, (2, 128), device=DEVICE)
 
     # Mode-state check (sec 8.0b item 5): confirm no dropout anywhere in this mixer (train/eval
     # mode divergence via dropout would invalidate the "no stochastic divergence possible" premise)
@@ -316,7 +324,7 @@ def smoke_b_code_path_equality():
     # code path, frozen_bias_retrofit_eval_rd.py's own call convention), reusing the SAME in-memory
     # frozen_bias_table object (sec 8.0b item 4: "same B buffer instance, explicitly").
     model.eval()
-    keys_by_layer, token_ids_cat = capture_raw_keys(model, [x], "cpu")
+    keys_by_layer, token_ids_cat = capture_raw_keys(model, [x], DEVICE)
     k_raw_captured = keys_by_layer[0]
     pass_b = apply_frozen_bias_blend(
         k_raw_captured, token_ids_cat, "per_token", model.blocks[0].mixer.frozen_bias_table, None,
@@ -332,14 +340,15 @@ def smoke_b_code_path_equality():
 
 
 def main() -> int:
-    print(f"fla stub installed (real fla absent): {_STUB_INSTALLED}")
+    print(f"fla stub installed (real fla absent): {_STUB_INSTALLED}; device: {DEVICE}")
     ok_a = smoke_a_probe_observed_vs_model_internal()
     ok_b = smoke_b_code_path_equality()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)
         return 1
-    print("SMOKE SUITE: ALL ITEMS PASSED (sec 8.0 + sec 8.0b both CLOSED, executed on CPU)")
+    print(f"SMOKE SUITE: ALL ITEMS PASSED (sec 8.0 + sec 8.0b both CLOSED, executed on {DEVICE}"
+          f"{', REAL kernels' if not _STUB_INSTALLED else ', fla stub'})")
     return 0
 
 
