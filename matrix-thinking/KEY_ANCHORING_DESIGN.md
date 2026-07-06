@@ -6908,3 +6908,1097 @@ re-attempted it and reports none).
   registered for K=34/38/42/46 individually (§12.4, unchanged ruling from
   Rev 12.0) — the continuous h4 values feed the fit directly; there is no
   binary pass/fail claim being made at any of the four new K's.
+
+
+## 13. Cliff universality across d_state (design-only; DRAFT, pending its
+own attack round — zero GPU spent producing this section)
+
+**Headline finding up front, before anything else in this section: the
+task's own proposed d=32 arm is BLOCKED at the kernel level, not merely
+costly.** `model_rd.py`'s own `_SAFE_D_STATE = (64, 128)` (line 118) and
+the hard `assert d_state in _SAFE_D_STATE` at `DeltaNetRDBlock.__init__`
+(lines 712–716) exist because d=32 was **measured to crash**
+`chunk_delta_rule`'s backward (`prepare_wy_repr_bwd_kernel`'s Triton
+autotuner, CUDA illegal memory access) "at T=128 AND 224" — every
+sequence length this harness's tasks actually use (`_MIN_KERNEL_T = 128`,
+line 117; `f15_lm_checkpoint.py` line 31 repeats the same measurement).
+This is not a cost or statistical-power concern, and not something a
+bigger contingency multiplier or a smaller K range fixes — it is a
+**hard runtime crash in the fla dependency**, measured 2026-07-02, before
+any anchoring wave existed. Re-measuring d=32 (line 716's own "re-measure
+before widening this set") is out of scope for a design section: it would
+mean debugging a third-party Triton kernel's backward pass, a
+substantially different (and substantially riskier) undertaking than
+this program's every prior wave. **Section 13.1 below reframes the
+bracket accordingly: this design proposes d∈{128} only, single-sided
+above d=64, not the symmetric d∈{32,128} bracket the task brief
+requested.** The d=32 option is registered as a separate, explicitly
+out-of-scope future item (§13.8), not silently dropped.
+
+**Second load-bearing finding, CORRECTED at Rev 13.1 (2026-07-06,
+attack-round-1 finding F1 — the original text below overstated the
+`run_deltanet_rd.py` build-scope item; see §13's REVISION LOG for the
+full fix map):** `run_deltanet_rd.py`'s CLI/`main()` training path is
+**already `d_state`-parameterized** — `main()`'s own argparse registers
+`--d-state` with `choices=[64, 128]` (line 1267), and that value threads
+through unmodified to every construction/training call `main()` itself
+makes (`build_entity_pools`/`build_i_strong_pool` at line ~1464,
+`DeltaNetRDBlock(...)` at line 1502, `train(...)` at line 1561, all
+receiving `d_state=args.d_state`, not a literal). **The 12+ hardcoded
+`d_state=64` sites this section originally cited (lines 1032/1034/1052/
+1055/1085/1087/1103/1105/1143/1146/1155/1158/1166/1169/1175/1177/1180/
+1186/1188/1198) are ALL inside `smoke(device)` (defined at line 994,
+ending before `main()` begins at line 1261) — a fixed-config regression
+smoke that exercises every OTHER arm (i/ii/iv/i-strong/geo1/geo2/zca/
+fnce/geo3/etc.) at its own historically-pinned d=64 configuration. These
+sites correctly stay pinned at 64: `smoke()`'s entire job is confirming
+those other arms' existing behavior is unperturbed, exactly the
+regression guarantee §13.3 item 6 below requires — parameterizing them
+would defeat the smoke's own purpose, not extend this wave's reach.**
+The true new-work surface is narrower than originally framed:
+`run_deltanet_rd_exactness_sweep.py`'s own `_spec()` (the single function
+every manifest in this design threads through) has **no `d_state`
+parameter at all** — its signature only carries `wave, K, seed, steps,
+arm, ...` (verified, full read of the function). `rev7_threshold_
+derive.py`'s `derive()` is the one exception: it already takes `d_state`
+as a free argument (§12.3 already established this for the K-only
+re-derivation; the same generality trivially extends to a new d value).
+`sim_cliff_power.py`/`fit_cliff_curve.py` import `D_STATE = 64` as a
+**module-level constant** (`sim_cliff_power.py` line 81;
+`fit_cliff_curve.py` line 54's `from sim_cliff_power import ...
+D_STATE`), used to convert every K into K/d — this must become a
+parameter, not a constant, for this wave's fit to run at any d≠64.
+`key_anchoring.py`'s `GATE2_N_ITER_BY_K` dict (line 65) also needs its
+keyspace extended (§13.2 item 3, §13.3 item 3). **Consequence, RESTATED
+smaller than the pre-fix framing: the actual new build surface is
+`run_deltanet_rd_exactness_sweep.py::_spec()`'s signature, the manifest
+builder, `GATE2_N_ITER_BY_K`'s keys, and the power-sim/fit script's
+`D_STATE` constant — the training harness's own CLI/`main()` path
+requires ZERO new work, it already supports d=128 end to end.** Full
+build-task list in §13.3.
+
+### 13.0 Hypothesis and pre-registered outcomes
+
+**One-sentence hypothesis:** the h4 capacity-cliff location `x0` (in
+K/d_state units) measured at d=64 (`x0=0.5455`, 95% CI [0.5385, 0.5513],
+§12.9) is a **universal property of the write mechanism** (constant
+across d_state, expressed purely as a K/d ratio) rather than a
+**finite-size effect** (drifting with d_state in raw scale terms, e.g.
+because the entity pool's 107-name ceiling, the fixed Newton-Schulz
+`n_iter` tier, or the anchor table's own frame-potential geometry behave
+differently at a different d).
+
+**Pre-registered outcomes, exact numeric criteria, stated before any
+d=128 cell runs (mirrors §12.0's own "CI is always reportable by
+construction" discipline — there is no third "ambiguous" bucket left
+undefined):**
+
+1. **CONFIRM-UNIVERSAL:** the d=128 curve's own fitted `x0` 95% bootstrap
+   CI (identical procedure to §12.4, run on d=128's own K-grid, §13.2)
+   **overlaps** the d=64 CI `[0.5385, 0.5513]` (i.e. the two intervals
+   share at least one point on the K/d axis).
+2. **CONFIRM-SHIFTED:** the d=128 CI is **disjoint** from
+   `[0.5385, 0.5513]`, **and** (if a third d point exists in the future,
+   §13.8) the direction of the shift is consistent with a stated
+   finite-size mechanism (not merely "different," but different in a
+   direction this section commits to interpreting before seeing data —
+   see the two candidate mechanisms below). With only two d points
+   (64 and 128) in this wave's own registered scope, "direction
+   consistency" cannot itself be confirmed from two points alone (a line
+   has a direction by construction) — this wave can determine SHIFTED
+   vs. UNIVERSAL, but the finite-size MECHANISM behind a shift (were one
+   found) is explicitly a follow-on question, not something this design
+   resolves (§13.8).
+3. **Degenerate/inconclusive case, stated explicitly (not left implicit,
+   per §12.4's own precedent):** if the d=128 bootstrap's degenerate
+   fraction exceeds 10% (§12.4 item 3's definition, reused verbatim), the
+   CI is reported with that caveat attached, and the CONFIRM-UNIVERSAL/
+   CONFIRM-SHIFTED call is made on the (possibly wider, disclosed)
+   remaining CI — never silently dropped or re-run past the pre-registered
+   procedure.
+
+**Unfalsifiability disclosure, registered at Rev 13.1 (attack F8), stated
+before any data exists:** with only two d-points (64 and 128) in this
+wave's own scope, CONFIRM-UNIVERSAL/CONFIRM-SHIFTED as defined above
+tests only whether x0-in-K/d-units is CONSTANT vs. NOT-CONSTANT across
+the two measured points — it structurally **cannot distinguish** "x0 is
+a universal function of K/d specifically" from "x0 is a universal
+function of ANY monotone rescaling that happens to agree with K/d at
+exactly these two (K,d) pairs" (e.g. K/d, K/√d, (K/d)^1.1, or any other
+monotone-in-d normalization fit through the same two points — two points
+determine a huge family of curves, not a unique normalization). This is
+the same structural limit item 2 above already names for shift
+DIRECTION/mechanism ("a line has a direction by construction"), restated
+here for the normalization CHOICE itself: two d-points can confirm
+UNIVERSAL-OR-SHIFTED under the K/d hypothesis specifically, but cannot
+rule out that some OTHER normalization would also read as "universal"
+across the same two points. **A third d-point is required to
+distinguish K/d from a competing monotone rescaling — deferred to §13.8,
+not resolved by this wave.**
+
+**Candidate finite-size mechanisms (stated now, for later interpretation
+only — not tested directly by this wave, which measures WHERE the cliff
+is, not WHY, exactly as §12.9's own "no mechanism claim" scope note
+applies unchanged here):**
+- **Entity-pool saturation:** `N_ENTITIES=107` (fixed, §13.1) is a much
+  smaller fraction of "room to pack K entities" at d=128 (K up to 92,
+  §13.2) than at d=64 (K up to 46) — if the cliff is fundamentally about
+  entity-pool geometry rather than d_state capacity per se, x0 could
+  shift.
+- **Newton-Schulz convergence at larger d:** the orthogonalization
+  iteration's own convergence behavior is d-dependent in ways never
+  measured above d=64 (§13.3's Wave −1 n_iter-sufficiency check is the
+  mechanical way this gets checked, not assumed).
+
+### 13.1 d=32 infeasibility — full verification, not assumption
+
+**Feasibility checked against every constraint this design's own house
+discipline requires (mirrors §12.2.1/§12.2.2's "verify, don't assume by
+analogy" pattern) — d=32 fails at the FIRST (architectural) gate, before
+any of the later (task-construction) gates are even reached:**
+
+1. **Architectural gate — FAILS.** `model_rd.py` line 712:
+   `assert d_state in _SAFE_D_STATE` where `_SAFE_D_STATE = (64, 128)`
+   (line 118). d=32 raises `AssertionError` at `DeltaNetRDBlock.__init__`
+   time, unconditionally, for any K. This is not a soft warning or a
+   slow-path fallback — model construction itself refuses. **This alone
+   is sufficient to drop d=32 from this wave's scope; the remaining
+   checks below are reported for completeness (the task brief asked for
+   them explicitly) but are moot given gate 1's failure.**
+2. **Entity-pool gate — would PASS (reported for completeness only).**
+   `grammar_rd.py::build_entity_pools`'s `N_ENTITIES` is fixed at 107
+   (verified §12.3, unchanged by d), independent of `d_state` — the
+   function signature (`heldout_frac: float = 0.5, seed: int = 0`) takes
+   no d argument at all, and the entity pool is built purely from GPT-2
+   BPE tokenization of a fixed name list, with zero reference to
+   `d_state` anywhere in `grammar_rd.py` (grepped this session — no
+   `d_state` symbol appears in the file). The task brief's proposed
+   K∈{17,19,21,23} at d=32 (K/d = 0.531/0.594/0.656/0.719) would all sit
+   comfortably under the 107-train-pool ceiling (in fact under the
+   ≈53-heldout-pool ceiling too, `heldout_frac=0.5` → ~53 heldout names,
+   well above K=23). **Pool feasibility was never the blocker — the
+   kernel assertion is.**
+3. **`GATE2_N_ITER_BY_K` gate — would need extension regardless (moot).**
+   K∈{17,19,21,23} do not exist as keys in
+   `GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20, 34: 20, 38: 20, 42: 20,
+   46: 20}` (`key_anchoring.py` line 65) — a `KeyError` at
+   `gate2_ns_leg`/`keyanchor_k48_manifest`'s own `n_iter =
+   ka.GATE2_N_ITER_BY_K[K]` lookup, same mechanical failure mode §12.2.1
+   registered for K=34/38/42/46 before that wave ran. Would require the
+   same by-analogy-then-verify treatment §12.2.2 applied — moot given
+   gate 1.
+
+**Conclusion: d=32 is dropped from this wave's build scope entirely.**
+The task brief's specific d=32 K-grid (K∈{17,19,21,23}) is preserved
+here, verified feasible on every OTHER axis, so that a future wave that
+re-measures/fixes the kernel crash (§13.8, out of scope here) does not
+have to re-derive it.
+
+### 13.2 Design — d=128 only, K bracketing the same K/d window
+
+**d_state=128 (the one new point this wave adds), K chosen to span the
+SAME K/d window the d=64 curve resolved (§12.9's own six points span
+K/d ∈ [0.25, 0.75], with the wave-added resolution concentrated in
+[0.53, 0.72]).** Per the task brief's own proposed K∈{68,76,84,92} at
+d=128: K/d = 0.53125, 0.59375, 0.65625, 0.71875 — **byte-identical K/d
+ratios to the d=64 wave's own K∈{34,38,42,46}** (verified by direct
+division this session: 68/128=0.53125=34/64, 76/128=0.59375=38/64,
+84/128=0.65625=42/64, 92/128=0.71875=46/64 — an exact 2× scaling of K
+alongside the 2× scaling of d, so the K/d ratios match to machine
+precision, not merely "close"). This is the correct design choice for a
+universality test specifically: it isolates d as the only varying axis
+by holding K/d fixed exactly, rather than approximately.
+
+**Feasibility of K∈{68,76,84,92} at d=128, checked against the same three
+gates as §13.1:**
+
+1. **Architectural gate — PASSES.** d=128 ∈ `_SAFE_D_STATE` exactly
+   (line 118); no re-engineering of the kernel path required.
+2. **Entity-pool gate — FAILS for K=68/76/84/92 as originally proposed,
+   requires a scope decision.** `N_ENTITIES=107` is the TRAIN pool size;
+   the HELD-OUT pool (`heldout_frac=0.5`) is only ≈53 names
+   (`n_heldout = round(len(names_shuffled) * 0.5)`, `grammar_rd.py` line
+   224, off a base of 213 verified names → heldout ≈107, train ≈106 —
+   **corrected figure, verified this session**: `build_entity_pools`'s
+   own docstring, line 197, states "213 verified names... a 50/50 split
+   (~106/107)" — so BOTH pools sit at ~106-107, not the ~53 the task
+   brief's own framing assumed). **Re-verified directly: with a ~106/107
+   split of 213 names, K=92 (the largest proposed K at d=128) fits
+   comfortably under BOTH pools with margin (~14-15 names to spare on
+   whichever pool is smaller) — the task brief's own "verify integer
+   feasibility vs the entity pool" instruction is answered: K=92 PASSES.**
+   No held-out-pool-specific undercoverage exists at K≤92 — the §12.9-era
+   concern (`heldout_frac=0.5` was chosen precisely so "BOTH the train
+   AND held-out pool... comfortably above 64 with margin," per
+   `build_entity_pools`'s own docstring at line 201, written to cover
+   K=64 specifically) already covers K=92 with less margin than K=64 had,
+   but still positive margin (107 - 92 = 15 names spare on a same-size
+   pool). **This item is a PASS, not a moot point — worth stating plainly
+   since it is the one gate the task brief flagged that actually needed
+   arithmetic, not just a lookup.**
+3. **`GATE2_N_ITER_BY_K` gate — requires the same build extension as
+   §12.2.1, plus a genuinely new (not by-analogy) n_iter question.**
+   K∈{68,76,84,92} do not exist as keys. **Required build task:**
+   extend `GATE2_N_ITER_BY_K` with `{68: 20, 76: 20, 84: 20, 92: 20}` —
+   BUT the analogy this time is weaker than §12.2.1's own K-only
+   extension: every existing key (16/32/48/34/38/42/46) was measured at
+   d=64; there is no existing measurement of Newton-Schulz convergence at
+   d=128 at ANY K. **This is not "by analogy to K=32/48," it is by
+   analogy to a completely untested d — the Wave −1 n_iter-sufficiency
+   check (§13.3) is therefore load-bearing here in a way it was only a
+   formality for in §12.2.1** (that check found zero change in the
+   ceiling 20→24 at d=64; there is no prior basis to expect the same at
+   d=128, since orthogonalizing larger matrices could plausibly need more
+   OR fewer iterations to reach the same residual tolerance — untested,
+   not assumed either direction).
+
+**d threshold re-derivation, mandatory and NOT a reuse of the d=64 pin
+(the task brief's own explicit instruction) — exact command:**
+
+```
+python matrix-thinking/deltanet_rd/rev7_threshold_derive.py \
+    --d-state 128 \
+    --out matrix-thinking/deltanet_rd/REV7_THRESHOLD_PINNED_D128.json
+```
+
+**BUILD TASK (round-2 verify finding 6, REQUIRED):** `rev7_threshold_
+derive.py`'s `main()` currently has NO `--d-state` CLI flag — it calls
+`derive()` with zero arguments, resolving to the module default
+`D_STATE=64`. The command as previously written would have SILENTLY
+written d=64-derived content into a file named `_D128` — the exact
+failure §13.2's byte-identical warning describes, as the script's
+current guaranteed behavior. The build must (a) add the `--d-state`
+flag (plumbed to `derive(d_state=...)`, already correctly parameterized
+— verified via `key_anchoring.validate_rev7_pin`'s own programmatic
+`derive(d_state=...)` call), and (b) the pin smoke must assert the
+d=128 `derived` block is byte-DIFFERENT from the d=64 pin's
+(sigma_chance 0.0884 vs 0.125 alone guarantees this when correct).
+
+**This is genuinely different from §12.3's re-run, not a copy-paste
+formality.** §12.3 re-ran `rev7_threshold_derive.py` at UNCHANGED
+`D_STATE=64` (a provenance-hygiene exercise, byte-identical output
+expected and verified). Here, `derive()`'s `d_state` INPUT actually
+changes (64→128), and `derive()`'s own math is d-dependent throughout:
+`sigma_chance = 1/sqrt(d_state)` (0.125 at d=64 → **0.0884 at d=128**,
+verified by direct computation this session: `1/math.sqrt(128) =
+0.08839...`), the Beta shape parameter `a=(d_state-1)/2` (31.5 at d=64 →
+**63.5 at d=128**), and `r_min_partial = 2·sigma_chance` (0.25 at d=64 →
+**0.1768 at d=128**). **`r_min_headline` (0.35) does NOT re-derive — it
+is a REGISTERED LITERAL (`R_MIN_HEADLINE_REGISTERED`, `rev7_threshold_
+derive.py` line 61), not a function of `d_state` — its own provenance
+comment states it is fixed from a prior wave's cross-leg median-of-
+medians, independent of d. This wave's pin will carry `r_min_headline =
+0.35` unchanged, `r_min_partial = 0.1768` (changed), and a different
+`r_crit_exact_beta`/BH threshold table (both functions of d and
+`n_entities=107`, unchanged n_entities).** **Required pre-launch check,
+mechanical (parallel to §12.3's byte-diff, but this time the PASS
+condition is the opposite):** confirm the new pin's `derived.inputs.
+d_state == 128` and that `r_min_partial` and the Beta-shape-dependent
+fields differ from `REV7_THRESHOLD_PINNED.json`'s d=64 values while
+`r_min_headline` matches exactly — a byte-identical `derived` block here
+would be a FATAL sign the `--out` argument silently failed to route to a
+fresh `d_state=128` call.
+
+**Seeds: 3 per K, candidate (d) only (12 mandatory cells), same
+escalating-block convention (§11.1/§12.2's own precedent), a fresh block
+never used by any prior wave:** K=68 {530,531,532}; K=76 {630,631,632};
+K=84 {730,731,732}; K=92 {830,831,832}. Seed contingency (+2 per K if
+ambiguous, inherited convention): {533,534} / {633,634} / {733,734} /
+{833,834}. Optional Gate-1 probes (1 per K, lowest cut priority,
+inherited §12.2 item 3 reasoning): seeds 535/635/735/835.
+
+**Step count, pinned at Rev 13.1 (attack F4): `steps=20000`, the SAME
+value the d=64 cliff wave's own cells used.** Verified directly against
+the archived cell JSONs this session (`experiment-runs/2026-07-06_
+keyanchor_cliff/results/deltanet_rd_exactness/wavekeyanchor-cliff/*.json`
+— every one of the 12 K=34/38/42/46 cells reports `"steps": 20000`). The
+d=128 manifest uses this same `steps=20000`, not a d-scaled step count.
+**Pre-registered confound, disclosed now rather than discovered at
+harvest:** holding `steps` fixed across a 2× `d_state` change means the
+two curves are compared at the SAME NUMBER OF OPTIMIZER UPDATES, not at
+matched optimization PROGRESS — a d=128 model has 4× the recurrence
+FLOPs per step (§13.4) and a larger parameter count in the anchor
+table/key-projection paths, so if convergence speed (in steps, not
+wall-clock) differs by d_state, the d=128 cells could land at a
+different point on their own training curve than the d=64 cells did at
+the same step count. This is the same-steps-different-optimization-
+progress confound, registered here as a known limitation of this design
+(not fixable without either a convergence-based stopping rule — out of
+scope, a bigger design change — or an unaffordable step-count sweep at
+d=128) rather than silently assumed away.
+
+**No reference (bare geo3) arm — same disclosed cut as §12.2 item 2, same
+justification (this wave's fit reads candidate-(d) h4 values only).**
+No d′/fixed-λ=1 probe (same §12.2 item 4 reasoning: the "hard question"
+is already answered at d=64, and re-deriving the ceiling analytically per
+d, §13.2.1 below, is the cheap substitute).
+
+#### 13.2.1 The λ=1 ceiling at d=128 — computed, zero GPU cost, before any run
+
+Per §11.4.2/§12.2.2's own method (fix one sampled anchor row, resample
+K−1 co-drawn rows from the other 106/105, full-pool production-tier
+Newton-Schulz, pooled pairwise cosine, same registered frame-potential
+table/seed): **required pre-launch action, NOT yet performed in this
+drafting session (flagged, not assumed):** compute this ceiling at
+K=68/76/84/92, d=128, before Gate 2 is trusted. **No monotone-sequence
+expectation is stated here as confidently as §12.2.2 stated one for
+K=34–46 at fixed d=64** — every prior ceiling point (0.9745/0.9423/0.8987)
+varies K at FIXED d=64; this is the first point at a DIFFERENT d, and
+whether the ceiling's own K/d-normalized behavior transfers across d is
+exactly this wave's own open question, not a settled input. **Stated
+expectation, disclosed as weaker than §12.2.2's own analogous claim:** if
+x0 truly is universal in K/d units, the ceiling curve as a function of
+K/d should also approximately match the d=64 curve's own shape — but
+this is a plausibility argument, not a proven consequence of the
+hypothesis (the ceiling measures a different quantity, geometric packing
+capacity, than h4 measures, task-behavioral recovery) — no numeric
+prediction is pinned here.
+
+### 13.3 Build tasks — more extensive than §12's K-only extension
+
+**Required, verified against the actual code this session (not assumed
+by analogy to §12.2.1):**
+
+1. **CORRECTED at Rev 13.1 (attack F1) — `run_deltanet_rd.py` needs NO new
+   `d_state` CLI/config parameter; it already has one.** `main()`'s
+   argparse already registers `--d-state` (`choices=[64, 128]`, line
+   1267) and threads it, unmodified, through `build_entity_pools`/
+   `build_i_strong_pool` (~line 1464), `DeltaNetRDBlock(...)` (line 1502),
+   and `train(...)` (line 1561) — the exact call path every d=128
+   candidate-(d) cell in this wave will use. **The 12+ hardcoded
+   `d_state=64` call sites this item originally targeted (lines 1032-1198)
+   are exclusively inside `smoke(device)` (lines 994-1261, ending before
+   `main()` begins) — a fixed-config regression smoke exercising every
+   OTHER arm at its own historically-pinned d=64. These sites are
+   correctly out of scope: they must NOT be parameterized, since
+   `smoke()`'s entire purpose is confirming those other arms' behavior is
+   unperturbed at their pinned config** (verified by direct read of both
+   functions' boundaries this session). **No build task lands here** —
+   this item is retained only to record that the check was made, not
+   skipped.
+2. **`run_deltanet_rd_exactness_sweep.py`: add a `d_state` parameter to
+   `_spec()`** (currently absent entirely), threaded into the result
+   JSON's own config block (mirroring how `K`/`geo3_n_iter`/etc. already
+   flow through) so `is_done()`/result-JSON provenance can distinguish a
+   d=128 cell from a d=64 cell with the same K — **necessary because
+   K=68/76/84/92 do not collide with any existing K, so filename
+   collision is not actually a risk here (unlike a same-K different-d
+   case, which does not arise in this design), but the result JSON's OWN
+   `d_state` field is still required for `fit_cliff_curve.py`'s
+   generalized reader (item 4) to know which d a given K belongs to.**
+3. **`key_anchoring.py`: extend `GATE2_N_ITER_BY_K`** with
+   `{68: 20, 76: 20, 84: 20, 92: 20}` (§13.2 item 3) — pending the
+   n_iter-sufficiency check below (item 5), not assumed at n_iter=20 by
+   default.
+4. **`fit_cliff_curve.py` / `sim_cliff_power.py`: parameterize `D_STATE`**
+   (currently a bare module-level constant in both files) so the fit can
+   be re-run at d=128 without editing source — e.g. a `--d-state` CLI
+   flag threaded into `load_k_mean_h4`'s glob pattern (unaffected — K
+   alone still disambiguates within one d) and into the `xs.append(K /
+   D_STATE)` line (`fit_cliff_curve.py` line 172, `sim_cliff_power.py`'s
+   own analogous line). **Required negative/regression smoke:** assert
+   the parameterized script reproduces §12.9's own published d=64 numbers
+   (`x0=0.5455`, `w=0.0597`) to full float precision when re-run with
+   `--d-state 64` against the existing archive — mirrors §12.2.1's own
+   "byte-identical at K=48 defaults" discipline, applied to the d
+   parameterization instead.
+5. **NEW Wave −1 item (this wave's own, not inherited): Newton-Schulz
+   `n_iter`-sufficiency check at d=128,** run at
+   `n_iter ∈ {12, 16, 20, 24}` for each of K=68/76/84/92, confirming
+   convergence (<0.5% relative change 20→24) — same method as §12.2.2's
+   own registered item but genuinely untested at this d, not a formality
+   (§13.2 item 3's own disclosure).
+5a. **NEW mandatory Wave-1 smoke, registered at Rev 13.1 (attack F3a) —
+   `gate2_construction_check` MUST be invoked with `ks=` EXPLICITLY set to
+   THIS wave's own K-grid, `(68, 76, 84, 92)`, at `d_state=128`, before
+   any d=128 cell launches.** `gate2_construction_check`'s own signature
+   default (`ks=(16, 32)`, `key_anchoring.py` line 213) and every existing
+   call site in this codebase (`gate2_construction_test.py` lines 75/107/
+   126/153, `smoke_keyanchor_k48_e.py` line 160) pass `ks=(16, 32, 48)` —
+   **neither the default nor any existing call ever covers this wave's
+   K's.** Silently reusing either is a real footgun: it would report
+   "Gate 2 PASS" while never having run the K-dependent NS-convergence
+   leg (G2-c) at the K's this wave actually launches, which is exactly
+   the gap the retroactive check below (item 5b/§13's REVISION LOG)
+   found for the ALREADY-PUBLISHED §12.9 wave. **Required, assert-
+   guarded:** the Wave-1 smoke script must explicitly pass
+   `ks=(68, 76, 84, 92)` (never the default, never a copy-pasted stale
+   tuple from a prior wave) and must assert the call's own `ks` argument
+   equals this wave's registered K-grid before trusting the result —
+   a defensive assertion, not merely a code-review convention, since this
+   exact silent-default failure mode has now been found once already in
+   this design's own history (§13's REVISION LOG entry below).
+5b. **RETROACTIVE CHECK on the ALREADY-PUBLISHED §12.9 wave — EXECUTED
+   this session, CPU-only, result reported in full in §13's REVISION LOG
+   below (attack F3b).** Every existing `gate2_construction_check` call
+   site passes `ks=(16, 32, 48)` — the §12.9 cliff wave's own K-grid,
+   K∈{34,38,42,46}, was NEVER run through Gate 2's K-dependent NS-
+   convergence leg (G2-c) at its own K's, despite Gate 2 being described
+   as the launch gate for every candidate-(d) cell. This gap predates
+   this §13 draft (it was live at §12.9's own publication) and is fixed
+   retroactively here, not deferred to Wave 1 — see the REVISION LOG for
+   the executed command, reconstructed table, and result.
+6. **Regression smoke, NEW, scope corrected at Rev 13.1:** `run_deltanet_
+   rd.py`'s `main()` path needs no regression check for THIS change (it
+   already defaults `--d-state` to 64 and was already exercised at 64 by
+   every prior wave — nothing about it changes here). The genuine
+   regression surface is `_spec()` (item 2) and the manifest layer: once
+   `_spec()` gains a `d_state` parameter, assert every EXISTING manifest
+   call (all d=64 arms, all K=16/32/48/34/38/42/46 manifests) produces
+   byte-identical specs when the new parameter defaults to 64 — the
+   mechanical guarantee that adding d=128 support to `_spec()` does not
+   silently perturb any already-published result's filename/config
+   provenance.
+7. **Manifest builder:** `keyanchor_d128_manifest(K, seeds)`, built by
+   the SAME generalization pattern `keyanchor_k48_manifest(K, seeds)`
+   already established (§12.2.1) — but now also threading `d_state=128`
+   through `_spec()` (item 2) rather than only `K`. Chain script
+   `keyanchor_d128_chain.sh`, env vars `KEYANCHOR_D128_GPUS`/
+   `KEYANCHOR_D128_GPU_OFFSET`, mirroring §12.5/§12.6's naming
+   conventions.
+8. **NEW at Rev 13.1 (attack F5) — `fit_cliff_curve.py`'s hardcoded d=64
+   point set must be generalized, not just its `D_STATE` constant (item
+   4 above).** Verified this session: `CLIFF_KS = (34, 38, 42, 46)` (line
+   62) is itself a bare module-level constant, and the fit's own point
+   list is built from THREE hardcoded anchor lines, not a generic loop —
+   `xs = [ANCHOR_X16, 32.0 / D_STATE, 48.0 / D_STATE] + [K / D_STATE for
+   K in CLIFF_KS]` (line 247, plus the matching bootstrap-resample lines
+   164-168 that hardcode `k32_seeds`/`k48_seeds` draws). At d=128 there is
+   no archived K=16-equivalent, K=32-equivalent, or K=48-equivalent
+   flanking point — **the d=128 fit is a pure 4-point curve (K=68/76/84/
+   92 only), with NO flanking anchors on either side of the transition**,
+   unlike the d=64 fit's 6-point curve (3 archived anchors + 4 new
+   points, §12.9). **Required build task:** parameterize `CLIFF_KS` (or
+   accept an equivalent `--k-grid` list) and make the anchor-point block
+   (lines 164-168, 247-248) conditional on whether flanking archives
+   exist for the given `d_state` — at d=128 it must degrade gracefully to
+   a bare 4-point (or, under §13.6 Option C, 2-point) fit with zero
+   anchors, not silently reuse the d=64 anchor values or crash on a
+   missing `k32_seeds`/`k48_seeds` lookup. **Required pre-launch item,
+   mandatory, NOT yet performed in this drafting session:** run a
+   `sim_cliff_power.py`-style CPU power simulation for the ANCHOR-FREE
+   4-point case (and, since §13.6 registers Option C as a live descope
+   path, the anchor-free 2-point case too) BEFORE relying on either point
+   set's CI(x0) as informative. §13.6's Option C currently asserts "2
+   well-chosen interior points still [constrain x0] reasonably well"
+   without having run this simulation — that assertion is not yet
+   evidence, and Wave 1 must not launch on Option C's scope until the
+   simulation exists and clears the same ≥10%-degenerate-fraction / CI-
+   width discipline §12.4 item 3 and §12.4a already established for the
+   anchored 6-point/repick_4pt d=64 case.
+
+**This build list is materially larger than §12's** (which reused
+`keyanchor_k48_manifest(K, seeds)` unchanged, adding zero new parameters
+to `_spec()`) — flagged explicitly per this section's own header finding,
+not smoothed into a one-line "generalize the manifest" statement the way
+§12.2.1 could afford to. **Note on scope, Rev 13.1:** item 1's correction
+(F1) shrinks the `run_deltanet_rd.py` portion of this list to zero new
+work; item 8's addition (F5) grows the `fit_cliff_curve.py` portion
+beyond the original `D_STATE`-only framing — the net build list is
+still materially larger than §12's, but the specific items composing it
+have shifted.
+
+### 13.4 Cost estimate — derived from the code's own scaling, not asserted
+
+**No prior wave in this program ever varied d_state, so there is no
+direct measurement to anchor a d-scaling factor the way §12.2's own
+K-scaling factor (1.264× over 1.5× K) was anchored to a real K=32→48
+pair.** This estimate is therefore a first-principles derivation from
+the architecture's own component costs, DISCLOSED as an estimate with a
+wide contingency, not a calibrated point figure.
+
+**Cost components, by scaling in d (holding K/d and T fixed, per this
+wave's own matched-ratio design, §13.2):**
+
+- **k_proj/v_proj (`nn.Linear(d_model, d_state)`), conv1d
+  (`ShortConvolution(hidden_size=d_state, ...)`):** linear in d (O(d)
+  FLOPs/params per token at fixed d_model). d_model is NOT changed by
+  this wave (unchanged from every prior arm, `d_model=64` throughout) —
+  only `d_state` (the recurrent head dimension) doubles.
+- **The DeltaNet recurrence itself (`chunk_delta_rule`, state shape
+  `[N, H, K, V]` with K=V=d_state here):** the per-chunk delta-rule
+  update is the classical O(T·d_state²) cost (the state is a d×d matrix;
+  each chunk's update involves d×d matrix products) — **quadratic in
+  d_state.** This is the architecture's OWN dominant per-token cost that
+  §12.5 (quoting §11.5) explicitly called "the fixed per-token model
+  FLOPs at d_state=64" against which the K-dependent Newton-Schulz/
+  gather-scatter terms were "sub-dominant" — i.e. §12.5's own framing
+  already identifies this term as dominant, this section is naming which
+  term it is and how it scales in d specifically (not previously stated
+  because d was never varied).
+- **Newton-Schulz orthogonalization — CORRECTED at Rev 13.1 (attack F2):
+  the per-iteration cost is O(K²·d_state), NOT O(K·d_state²).** The
+  original text here mis-attributed the FLOPs shape. Verified directly
+  against `model_rd.py::newton_schulz_orthogonalize` (lines 380-388):
+  each of the `n_iter` iterations computes `G = X @ X.transpose(-1,-2)`
+  where `X` is `(B,K,d_state)`, i.e. `(B,K,d_state) @ (B,d_state,K) →
+  (B,K,K)` — cost `O(B·K²·d_state)`, not `O(B·K·d_state²)` — followed by
+  `G @ X`, `(B,K,K) @ (B,K,d_state) → (B,K,d_state)`, also `O(B·K²·
+  d_state)`. Both matmuls in the loop body are quadratic in K and LINEAR
+  in `d_state`, the reverse of the pre-fix claim. **Consequence for THIS
+  wave's matched-K/d design (K scaled alongside d, §13.2):** substituting
+  K=c·d_state into the CORRECTED form gives `(c·d_state)²·d_state =
+  c²·d_state³` — still `O(d_state³)`, the SAME asymptotic order the
+  (wrong) `O(K·d_state²)` form also gave under the same substitution
+  (`c·d_state·d_state² = c·d_state³`). **The final 4×/8× cost bracket
+  below survives this correction by coincidence of this wave's own
+  matched-K/d design, not because the original attribution was right** —
+  any FUTURE probe that varies d at FIXED K (an off-ratio design, e.g.
+  the same-K/different-d calibration cell §13.7 Q5 and §13.8 register as
+  a deferred candidate) would see the two forms diverge sharply: the
+  corrected O(K²·d) form is CHEAP at fixed K (linear in d, no extra
+  factor from K), while the original wrong O(K·d²) form would have
+  predicted a much steeper, incorrect d²-driven cost growth for that
+  case. **Flag for any future off-ratio d-scaling work: use the corrected
+  O(K²·d_state) form; the wrong form was never load-bearing for THIS
+  wave's own bracket, but would be silently wrong for a fixed-K probe.**
+
+**Point estimate, d=128 vs d=64, holding K/d fixed:** the dominant
+recurrence term scales as d² → **4×** at d=128 vs d=64. The
+Newton-Schulz term (this wave's matched-K/d design, CORRECTED form
+`O(K²·d_state)` per the fix above) scales as `c²·d_state³` → **8×**
+under this wave's own K=c·d substitution — the same 8× the pre-fix
+(wrong) attribution also produced, by the coincidence explained above,
+not because the original derivation was correct. §12.5's own measured
+evidence (K=48/K=32 ratio 1.264× over 1.5× K, "sub-linear in K, not
+super-linear," attributed to the NS/gather-scatter terms being
+SUB-DOMINANT to the fixed per-token cost) suggests the recurrence term's
+4× dominates in practice, not the NS term's nominal 8× — **the realized
+ratio is expected closer to 4× than 8×, but this is a plausibility
+argument from a K-only measurement extrapolated to a d-scaling regime
+that has never been measured, not a verified fact.**
+
+**Bracket, with 2× contingency per the task's own instruction (on top of,
+not instead of, the estimation uncertainty above):** base per-cell rate
+at d=64 is the K48-calibrated bracket `[0.23, 0.97]` GPU-h/cell (§12.5).
+Applying a 4× scaling factor for the point estimate, with the
+contingency's own 2× layered on top of THAT (since the d-scaling factor
+itself is unmeasured, unlike §12.5's K-scaling factor which was measured
+directly): **d=128 per-cell bracket = [0.23×4, 0.97×4] × 2 = [1.84, 7.76]
+GPU-h/cell.** This is a wide bracket, disclosed as such — the honest
+alternative to a false-precision single number.
+
+**Full cost table:**
+
+| Item | d | K values | Cells | GPU-h/cell bracket | Bracket total (2×, already folded in) |
+|---|---|---|---|---|---|
+| Mandatory: candidate (d), 3 seeds/K | 128 | 68,76,84,92 | 12 | [1.84, 7.76] | **[22.08, 93.12]** |
+| Optional: Gate-1 probes, 1/K | 128 | 68,76,84,92 | 4 | [0.48, 1.92]* | [1.92, 7.68] |
+| Seed contingency, +2/K worst case | 128 | 68,76,84,92 | ≤8 | [1.84, 7.76] | [14.72, 62.08] |
+
+*Gate-1 probes are 5,000/20,000 steps × the mandatory bracket, same
+ratio as §12.5's own Gate-1 pricing, scaled by the same 4×/2× factors.
+
+**This does NOT fit the 20.99 GPU-h headroom at the pessimistic bracket
+tail — not even close (93.12 GPU-h mandatory-only pessimistic vs. 20.99
+available, a ~4.4× overshoot).** Even the OPTIMISTIC end of the mandatory
+bracket alone (22.08 GPU-h) exceeds headroom. **This is the load-bearing
+number this section must not smooth over:** the d=128 arm, priced with
+the same discipline every other wave in this program has used
+(K48-calibrated realized rate as the base, 2× contention contingency,
+now ALSO carrying a 4×-from-first-principles d-scaling factor since no
+real d=128 measurement exists), does not fit under the current 80 GPU-h
+program ceiling's remaining headroom.
+
+**Realized-rate estimate (optimistic, not the go/no-go number, exactly
+as §12.5's own realized-rate line was never the ceiling check):** if the
+d-scaling factor is closer to 1.264× (the K-only ratio, i.e. if d_state
+turns out to be cheaper than the O(d²) recurrence argument suggests, an
+optimistic case not established here) rather than 4×, and realized cost
+tracks the LOW end as it has in every prior wave (§11.5/§11.12/§12.9's
+own precedent, 13.6% of ceiling used at the K=34-46 wave): 12 × 0.2616 ×
+1.264 × 2 ≈ 7.94 GPU-h mandatory-only — this WOULD fit, with ≈13 GPU-h to
+spare. **The entire launch decision hinges on which of these two
+d-scaling regimes is real, and this design does NOT have a measurement to
+distinguish them** — this is exactly what a calibration cell (§13.5) is
+for, and exactly why one is mandatory before any manifest, not optional.
+
+### 13.5 Calibration — one cell per new d before its manifest (mandatory, house rule)
+
+**One d=128 cell, candidate (d), K=68 (the cheapest of the four proposed
+K's, smallest absolute K), seed 530 (the first of that K's own registered
+block, §13.2), run to completion BEFORE any other d=128 cell launches.**
+This is the load-bearing check this design most needs, because (per
+§13.4) the entire cost bracket rests on an unmeasured d-scaling
+assumption, not a measured one like every prior wave's K-scaling
+calibration. **Required actions on this single cell's result:**
+
+1. Record realized `wall_s`, compute the realized d=128/d=64 per-cell
+   cost ratio directly (`wall_s(K=68,d=128) / wall_s(K=34,d=64)` — note
+   K=68 is 2× K=34, so this ratio conflates the K-scaling and d-scaling
+   effects; a cleaner isolation would need a same-K, different-d pair,
+   which does not exist in this design since K/d is held fixed — DISCLOSED
+   limitation, not fixable without adding an off-ratio calibration cell
+   this wave's own budget does not afford, §13.8).
+
+**Calibration blinding rule, registered at Rev 13.1 (attack F9):** the
+scope decision below (items 2-4, and any escalation to §13.6) is made
+reading **ONLY `wall_s`** from this K=68 calibration cell's result JSON.
+The cell's own `h4` (`M3_held_out['4']` in its final checkpoint) is
+**quarantined** — not read, not reported, not allowed to influence the
+re-pricing or the STOP/proceed call — until the FULL manifest (all 12
+mandatory cells) has been generated and launched under whatever scope
+§13.6 lands on. This mirrors the general discipline that a cost/scope
+decision must not be contaminated by a peek at the scientific outcome
+of the very cell used to make it (an single early h4 read, however
+tempting, could bias which K-grid/seed-count option gets chosen next,
+exactly the kind of undisclosed researcher degree of freedom this
+program's own house rules exist to close). CORRECTED (round-2 verify
+finding 4): this rule is PROCEDURAL, not — as previously claimed —
+"mechanically enforceable" as-is: the existing tooling pattern
+(`run_deltanet_rd_exactness_sweep.py`'s stage gate, line ~1517) loads
+the ENTIRE cell JSON, including `M3_held_out`, into scope before
+extracting `wall_s`, so nothing structural prevents an incidental h4
+read. The build must add a dedicated `read_wall_s_only(path)` helper
+(parses the JSON, returns `wall_s`, discards the rest without printing
+or returning any `M3_held_out` content) and the calibration re-pricing
+step must use it — registered as a §13.3 build task; until that helper
+exists and is used, this rule stands as a documented procedural
+discipline only.
+2. Compare the realized ratio against BOTH the 4× (recurrence-dominant)
+   and 1.264× (NS-term-comparable) hypotheses from §13.4 — this single
+   data point cannot cleanly distinguish "d² dominates" from "d³ costs
+   are somehow suppressed the same way K-only costs were," but it DOES
+   immediately rule out a scaling regime an order of magnitude off from
+   both (e.g. if realized ratio is 15×, something is badly wrong with the
+   estimate, not just imprecise).
+3. **Re-price the FULL §13.4 budget table using this cell's own realized
+   rate before generating the remaining 11 mandatory cells' manifest** —
+   mirrors §12.2.3's "trust realized over estimated" discipline, applied
+   here at wave-launch time rather than mid-run (since this wave, unlike
+   §12's, has no prior same-d measurement to calibrate against at all
+   before its own first cell).
+4. **If the re-priced mandatory-only bracket still exceeds headroom
+   (20.99 GPU-h) at this point — STOP, do not launch the remaining
+   manifest, escalate to §13.6's PI-DECISION path** rather than
+   descoping unilaterally.
+
+### 13.6 Fitting to headroom — options, arithmetic shown, PI-DECISION flagged
+
+**§13.4's arithmetic shows the design as proposed (4 K's × 3 seeds at
+d=128, matching the full d=64 K-grid resolution) does not fit even under
+the optimistic realized-rate estimate with any comfortable margin, and
+badly fails the pessimistic 2× bracket.** Per the task's own instruction,
+descope options are shown with arithmetic, not asserted:
+
+**Option A — 2 seeds instead of 3 (33% cell-count cut).** 8 mandatory
+cells instead of 12. Pessimistic bracket: 8 × 7.76 = 62.1 GPU-h — still
+does not fit. Optimistic realized-rate: 8 × 0.2616 × 1.264 × 2 ≈ 5.3
+GPU-h — fits, but seed-level bootstrap CI (§12.4's own method, reused
+here) is measurably weaker at n=2 than n=3 (§12.4a's own power-sim table
+showed the 3→5 seed gain; 2 seeds is BELOW this design's own established
+floor, and no power-sim has been run to check whether 2 seeds keeps the
+degenerate-fit fraction under the same discipline §12.4 item 3 requires
+— **NOT registered as a serious option without first re-running
+`sim_cliff_power.py`'s own machinery at n_seeds=2 to check the CI is
+still informative**, an additional CPU-only pre-registration task, not
+performed in this drafting session).
+
+**Option B — 3 K points instead of 4 (drop one interior point, e.g. keep
+{68, 76, 92}, drop 84).** 9 mandatory cells. Pessimistic: 9 × 7.76 = 69.8
+GPU-h — still does not fit. Optimistic: 9 × 0.2616 × 1.264 × 2 ≈ 5.96
+GPU-h — fits. Loses the same kind of resolving power §12.4a's own
+point-set analysis quantified for the d=64 wave (fewer points → wider
+expected CI(x0)) — NOT re-quantified here for d=128 specifically (would
+require re-running `sim_cliff_power.py` with a d=128-appropriate noise
+estimate, which does not exist yet either, §13.7 R1).
+
+**Option C — d=128 at 2 K points only (the two most informative interior
+points, mirroring §12.2.3's own Stage-1 choice of K=38/K=42 at d=64: here
+K=76, K=84, at K/d=0.59375/0.65625), 3 seeds each.** 6 mandatory cells.
+Pessimistic: 6 × 7.76 = 46.6 GPU-h — still does not fit. Optimistic:
+6 × 0.2616 × 1.264 × 2 ≈ 3.97 GPU-h — fits comfortably. **This sacrifices
+the ability to characterize `w` (width) as precisely (2 interior points
+give less width information than 4 spread points, per the same logic
+§12.4a's point-set table already established for d=64) but preserves the
+core CONFIRM-UNIVERSAL/CONFIRM-SHIFTED comparison on `x0` reasonably
+well** since x0 is primarily constrained by points straddling the
+transition, which 2 well-chosen interior points still do.
+
+**None of A/B/C fit the PESSIMISTIC (2×-contingency) bracket under the
+4×-recurrence-dominant cost hypothesis — only the OPTIMISTIC realized-rate
+estimate (which assumes the cheaper 1.264×-style scaling, unverified)
+fits any of them.** This is the same shape of risk §12.5 itself flagged
+for the d=64 wave (mandatory-only barely fit the pessimistic tail there,
+with only 0.89 GPU-h margin) — but WORSE here, because this wave lacks
+even the "realized cost has always tracked low in this program's
+history" empirical base the K-only waves could lean on for a d-scaling
+claim specifically (no d has ever varied before).
+
+**PI-DECISION, flagged explicitly per the task's own instruction (the
+program ceiling 80 GPU-h was itself pre-registered, per this section's
+own header framing following §12's precedent):** this wave cannot
+respons­ibly self-authorize proceeding past the calibration cell (§13.5)
+without one of:
+1. **Accept Option C (6 cells, 2 K points) AND accept the pessimistic
+   bracket [1.84,7.76]/cell as unaffordable-if-realized**, i.e. proceed
+   on the optimistic estimate with an explicit, disclosed risk that a
+   mid-run abort (§13.6.1) may fire and truncate the wave to fewer than 6
+   cells if the calibration/early cells show the pessimistic rate
+   materializing — same "genuinely cut-eligible, not decorative"
+   discipline as §12.2.3.
+2. **A ceiling amendment** (raising the 80 GPU-h anchoring-program cap,
+   or drawing this wave's budget from a different program's reserve) —
+   this is the PI's call, not this design's, exactly as §12's own header
+   deferred the program-reopening decision upward rather than
+   self-authorizing.
+3. **Defer this wave entirely** until the frozen-bias LM program (sharing
+   GPUs 2–7) completes or its own concurrent footprint is better
+   characterized, reducing the contention-driven half of the 2×
+   multiplier's justification (though NOT the d-scaling half, which is
+   independent of contention).
+
+**MECHANICAL DECISION TABLE, registered at Rev 13.1 (attack F10) — the
+scope call after the calibration cell (§13.5) is made off this table, a
+literal threshold-and-lookup on the calibration cell's own realized
+GPU-h/cell rate `r` (per §13.5 item 3's re-pricing, blinded per §13.5's
+new F9 rule to `wall_s` only), NOT off the prose options above read
+qualitatively. Headroom `H = 20.99` GPU-h (§13.5 item 4's own registered
+figure) is held fixed; the only free input is `r`.**
+
+| Condition on realized rate `r` (GPU-h/cell) | Cells affordable at `H=20.99` | Decision |
+|---|---|---|
+| `r ≤ 20.99 / 12 = 1.7492` | 12 (full mandatory grid, all 4 K's × 3 seeds) | **PROCEED FULL** — launch all 12 remaining cells, no descope |
+| `1.7492 < r ≤ 20.99 / 9 = 2.3322` | 9 | **OPTION B** — 3 K points × 3 seeds (drop one interior K, e.g. 84), per §13.6 Option B's own registered point-set choice |
+| `2.3322 < r ≤ 20.99 / 6 = 3.4983` | 6 | **OPTION C** — 2 K points × 3 seeds (K=76, 84), per §13.6 Option C's own registered point-set choice, subject to F5's mandatory anchor-free 2-point power-sim clearing first |
+| `r > 3.4983` | <6, does not clear even Option C | **ESCALATE to PI-DECISION items 2/3 above** — do not unilaterally descope below 6 cells (Option C is this design's own floor for a still-interpretable x0 comparison, §13.6's own text); the **ceiling-amendment formula**, the literal extra GPU-h needed to run the FULL 12-cell grid at the realized rate, is `12·r − 20.99` |
+
+**Worked arithmetic (the table's own derivation, shown not asserted):**
+`H/12 = 20.99/12 = 1.74917`, `H/9 = 20.99/9 = 2.33222`, `H/6 = 20.99/6 =
+3.49833` (each rounded to 4 places above). These are simple divisions of
+the fixed headroom by the candidate cell count — e.g. the boundary
+between PROCEED FULL and OPTION B is exactly the rate at which 12 cells
+first exceed headroom (`12 × 1.7492 ≈ 20.99`), not a judgment call.
+**Example escalation case:** if the calibration cell realizes `r = 5.0`
+GPU-h/cell (inside §13.4's disclosed pessimistic bracket `[1.84, 7.76]`),
+this table routes to ESCALATE (`5.0 > 3.4983`), and the ceiling-amendment
+figure a PI would need to approve to run the FULL grid is `12×5.0 −
+20.99 = 39.01` additional GPU-h. **This table supersedes reading the
+prose Options A/B/C above as a menu to choose from subjectively — the
+realized `r` alone determines which branch fires, mechanically, with
+Option A (2 seeds) never appearing as a table branch since §13.6's own
+text already disqualifies it pending its own unrun power-sim (same
+"not registered as a serious option" ruling as above, unchanged by this
+table).**
+
+**This design's own recommendation (non-binding pre-calibration guess
+ONLY, explicitly subordinate to the mechanical decision table above once
+real data exists — clarified at Rev 13.1 so the two do not conflict):
+proceed to §13.5's single calibration cell first (this part is
+unconditional — the cell is cheap under either hypothesis, see below),
+then let the table's own realized-`r` branch — not this paragraph —
+decide the post-calibration scope.** This recommendation predates having
+any real `r`; once the calibration cell reports, the table's branch
+(PROCEED FULL / OPTION B / OPTION C / ESCALATE) is what governs, even if
+it disagrees with the "Option C" guess named here. The calibration cell
+itself is cheap under EITHER cost hypothesis (§13.4's
+own optimistic floor for a single cell is ≈0.44 GPU-h at 1.264×/2×;
+pessimistic ≈7.76 GPU-h for one cell — even the single worst-case cell
+fits comfortably inside the 20.99 GPU-h headroom on its own), so nothing
+is lost by running it before this PI-DECISION is resolved.
+
+#### 13.6.1 Mid-run abort/budget guard — restated for this wave's own risk profile
+
+**Mirrors §12.2.3's mechanics (broadened-trigger, any-completed-cell
+version, not the superseded first-cell-only version) — restated in full
+per that section's own stated reason for not merely citing §11.5 by
+reference (this wave's own risk driver, an UNMEASURED d-scaling factor,
+is not identical in cause to either §11.5's historical overshoot rate or
+§12.2.3's shared-GPU contention, even though the mechanical shape is
+identical):**
+
+1. **After the calibration cell (§13.5) and after ANY subsequently
+   completed cell,** compare realized `wall_s` against the CURRENT
+   best-estimate bracket (re-derived from the calibration cell per §13.5
+   item 3, not the pre-calibration §13.4 estimate). **If any cell's
+   realized `wall_s` ≥ 1.5× the current bracket's own upper edge — halt
+   all remaining launches, diagnose before continuing** (leading
+   suspects, in order: (a) the d-scaling estimate itself was wrong in the
+   pessimistic direction, i.e. this IS the expected rate, not an outlier
+   — re-price and re-check headroom, do not treat as a fluke; (b) GPU
+   contention with the concurrent frozen-bias LM program, same check as
+   §12.2.3 item 2).
+2. **Running-projection cut rule, same priority order as §12.2.3:** (1)
+   seed contingency → (2) optional Gate-1 probes → (3) halt-and-report if
+   even mandatory-only cells project to overshoot the PI-approved ceiling
+   (§13.6's chosen option).
+
+### 13.7 ATTACK-ROUND QUESTIONS (5 weakest points, for the first attack pass — DISPOSITIONED, see §13's REVISION LOG)
+
+1. **Is d=32 truly out of scope, or is there a cheaper workaround this
+   section dismissed too quickly?** §13.1 treats the `_SAFE_D_STATE`
+   kernel crash as an unconditional blocker, but the crash was measured
+   against `chunk_delta_rule`'s CHUNKED kernel path specifically; the
+   stock `fla.layers.delta_net.DeltaNet`'s own `fused_recurrent`
+   fallback (mentioned in `model_rd.py`'s own comment, lines 105-107) is
+   noted as self-protecting only at `q_len<=64` — but this harness's
+   tasks were never measured at short T specifically to see whether a
+   SHORT-sequence, `fused_recurrent`-routed d=32 variant might sidestep
+   the crash entirely (at the cost of a different, possibly also-untested
+   architectural path). An attacker should check whether this is a real,
+   cheap alternative this section dismissed without investigating, or
+   whether short-T tasks are unusable for this design's own grammar
+   (clause-buffer spacing, `_MIN_KERNEL_T=128`) for an unrelated reason
+   that would make the question moot.
+2. **Is the entity pool (213 names, ~106/107 split) actually adequate at
+   K=92, or does §13.2's "15 names of margin" undersell a REAL risk this
+   design is treating as comfortable?** K=92 leaves only ~15 spare
+   entities in whichever pool is smaller — §12's own precedent (K=48 at
+   107-pool, ~59 spare) had roughly 4× the margin K=92 has here. An
+   attacker should check whether 15-entity margin materially changes the
+   probability of a same-episode collision, sampling degeneracy, or any
+   other pool-exhaustion failure mode this design has not modeled
+   (the existing code's "without replacement" guarantee, §grammar_rd.py's
+   injectivity-by-construction property, likely makes this a non-issue,
+   but the design does not show that check explicitly for K=92 the way
+   it should).
+3. **Does changing d change task DIFFICULTY independently of K/d — the
+   confound the task brief itself named?** The h1 in-distribution sanity
+   guard (§12.4 item 6, "h=1 ≥ 0.98 per K") must be checked at d=128 as
+   independently as it was at every d=64 K — if h1 degrades even
+   slightly at d=128 (e.g. because the frame-potential anchor table's own
+   `max|cos|` behaves differently at n=107,d=128 than at n=107,d=64, an
+   UNMEASURED quantity this design never computed), any x0 comparison
+   between d=64 and d=128 would be comparing two different effective
+   tasks, not the same task at two capacities. **This section does not
+   pre-compute the frame-potential table's own G2-a/G2-b conditioning
+   numbers at d=128** (unlike §12, which reused an ALREADY-VERIFIED
+   d=64 table) — this is a real, unaddressed gap: Gate 2's construction
+   check (`gate2_construction_check`) must be run fresh at d=128 before
+   trusting ANY cell, and its own numbers (sigma_ratio, max_abs_cos)
+   compared against the d=64 table's own registered values
+   (§9.2/§11.3-era figures) to see if the tight-frame geometry itself
+   changes character at higher d — not merely re-run as a formality.
+   **Relationship, stated explicitly at Rev 13.1 (attack F4):** Gate 2
+   and h1 check different things and neither substitutes for the other.
+   Gate 2 (G2-a/b/c) is a **geometric precondition** on the anchor table
+   ITSELF — conditioning/orthogonality properties that hold (or fail)
+   before any training step runs, independent of the task. h1 is a
+   **behavioral consequence**, measured only after training, of whatever
+   the model actually does with that geometry on the in-distribution
+   task. A table can clear Gate 2 (well-conditioned, as this session's
+   retroactive check confirms it does, §13's REVISION LOG) and STILL
+   produce a degraded h1 if training-dynamics factors unrelated to the
+   raw table's conditioning intervene — so h1 must be checked
+   independently at d=128 even though Gate 2 already passed there; Gate
+   2 passing is necessary evidence the table itself isn't the problem,
+   not sufficient evidence the downstream task is unaffected. **Cross-
+   reference the `ks=` footgun (§13.3 item 5a):** any fresh Gate-2 run
+   for this comparison must explicitly pass `ks=(68,76,84,92)` — the
+   same silent-default risk (`ks=(16,32)` or a stale `(16,32,48)` tuple)
+   applies here as it did for the retroactive §12.9 check.
+4. **Is the threshold re-derivation (§13.2's `REV7_THRESHOLD_PINNED_D128.
+   json`) correct, or does a subtle d-dependence hide somewhere `derive()`
+   doesn't expect?** §13.2 asserts `r_min_headline` (0.35) stays fixed
+   while everything else re-derives — this is correct BY THE FUNCTION'S
+   OWN CODE (a registered literal, not computed from d_state), but an
+   attacker should ask whether continuing to use a d=64-derived
+   HEADLINE floor at d=128 is itself defensible, or whether the
+   REGISTRATION (not the derivation) needs revisiting now that d is
+   actually varying for the first time — the literal's own provenance
+   comment (`rev7_threshold_derive.py` lines 62-67) was written when
+   d=64 was the only d this design ever expected to see, and its
+   cross-leg median-of-medians came entirely from d=64 waves.
+5. **Does the calibration-cell strategy (§13.5) actually resolve the cost
+   uncertainty, given it conflates K-scaling and d-scaling in a single
+   measurement?** §13.5 item 1 explicitly discloses that K=68 vs K=34 is
+   a 2×-K-AND-2×-d change simultaneously (since K/d is held fixed by
+   design) — a single realized `wall_s` cannot cleanly attribute the
+   observed ratio to "d² dominates" vs. "some other combined scaling,"
+   meaning the calibration cell's own re-pricing (§13.5 item 3) could be
+   confidently wrong in either direction while still LOOKING like a
+   clean calibration. An attacker should check whether a same-K,
+   different-d probe (e.g. K=34 at BOTH d=64 and d=128, off the matched
+   K/d ratio, purely for cost calibration, never for the h4 fit itself)
+   should be added as a cheap (~1-2 extra cells) disambiguating
+   measurement before trusting the re-priced budget in §13.5/§13.6.
+
+#### 13.7.1 ATTACK-ROUND-2 QUESTIONS (post-Rev-13.1 fix map, short — per this project's own "independent audit rounds catch different bugs each round" discipline)
+
+1. **Does the retroactive Gate-2 check (§13's REVISION LOG) actually
+   reconstruct the SAME table the §12.9 wave trained with, or merely A
+   table with the same construction recipe?** This revision reconstructed
+   the anchor table from `frame_potential_init(107, 64, seed=ANCHOR_INIT_
+   SEED)` and asserts (via the reproduced `max_abs_cos≈0.28415` matching
+   the design's own cited seed-selection figure) that this is the exact
+   launch-time table. An attacker should verify there is no OTHER source
+   of nondeterminism between construction and the actual training run
+   (e.g. a subsequent in-place mutation, a different torch/CUDA RNG
+   backend at train time vs. this CPU-only reconstruction, or a dtype
+   cast order difference) that could make the reconstructed table subtly
+   different from what candidate (d)'s 12 cells actually trained against.
+2. **Is the Newton-Schulz cost correction (F2) complete, or does the
+   corrected `O(K²·d_state)` form miss a THIRD scaling regime the
+   original two-hypothesis (4×/8×) framing still doesn't cover?** The fix
+   only re-derives the NS term's own attribution; it does not re-examine
+   whether `chunk_delta_rule`'s OWN cost model (the "dominant" d²
+   recurrence term) has a similarly mis-attributed FLOPs shape that
+   happens to also coincide at matched K/d — an attacker should verify
+   the recurrence term's O(d²) claim against the actual kernel the same
+   way F2 forced for Newton-Schulz, rather than accepting it unchecked
+   because it wasn't flagged this round.
+3. **Does the mechanical decision table (F10) actually bind, or can the
+   "non-binding recommendation" text immediately below it (proceed to
+   Option C) be read as silently overriding the table's own ESCALATE
+   branch if the calibration cell lands above `r=3.4983`?** The table and
+   the pre-existing recommendation paragraph now coexist in the same
+   subsection; an attacker should check whether the design clearly
+   subordinates the recommendation to the table's mechanical output, or
+   whether an implementer could still choose Option C even when the
+   table says ESCALATE.
+4. **Is the calibration blinding rule (F9) actually enforceable given how
+   the wave's own tooling reads result JSONs?** The rule assumes an
+   implementer can mechanically read `wall_s` while not reading `M3_
+   held_out` — verify no existing helper (e.g. a single "load and print
+   summary" utility already used by prior waves) dumps the whole JSON at
+   once in a way that makes the h4 quarantine unenforceable in practice,
+   not just in principle.
+5. **Does the anchor-free power-sim requirement (F5) block Option C from
+   ever being reachable in practice given the wave's own budget
+   constraints?** F5 registers a mandatory CPU power-sim before Option
+   C's 2-point scope can be trusted, but does not estimate how much
+   CPU-time that sim itself costs or whether it could become a
+   bottleneck ahead of the calibration cell — an attacker should check
+   whether this creates a sequencing deadlock (need the sim before
+   Option C is credible; may need Option C's cheapness to justify running
+   the sim at all under time pressure).
+
+### 13.8 What this wave explicitly defers (not silently dropped)
+
+- **d=32, or any re-engineering of `chunk_delta_rule`'s backward path to
+  make d=32 safe** (§13.1/§13.7 Q1) — a separate, harder engineering
+  task, out of scope here.
+- **A third d point** (e.g. d=256, or a d between 64 and 128) that would
+  let a SHIFTED verdict's own direction/mechanism be characterized
+  (§13.0's own disclosure that 2 points alone can determine
+  universal-vs-shifted but not diagnose WHY a shift occurs), **and**
+  (registered at Rev 13.1, attack F8) that would let the K/d
+  normalization ITSELF be distinguished from a competing monotone
+  rescaling that happens to agree with K/d at exactly the two (K,d)
+  pairs this wave measures — two points cannot separate these, only a
+  third, off-line point can.
+- **A same-K, off-ratio d-calibration cell** to cleanly separate K-scaling
+  from d-scaling cost effects (§13.7 Q5) — registered as a candidate
+  cheap addition, not built into this wave's own manifest.
+- **Reference-arm (bare geo3) admissibility at d=128** — same disclosed
+  cut as §12.2 item 2, for the same reason (this wave's fit does not need
+  it, and it is not free).
+
+### 13.9 REVISION LOG — Rev 13.1 (2026-07-06), attack-round-1 → fix map
+
+**Independent adversarial round-1 review verdict: REVISE-THEN-PROCEED.**
+All ten findings (F1-F5, F8-F10 requiring fixes; F6/F7 not flagged as
+requiring changes this round) are addressed in place below or at their
+own cited location; nothing contested or deferred. CPU-only work only —
+the retroactive Gate-2 check (item 3) ran on a local throwaway `uv venv`
+(torch 2.8.0 CPU build, `torch.cuda.is_available()==False` confirmed at
+run time), zero GPU-h spent at any point in this revision, matching this
+section's own header discipline ("design-only... zero GPU spent").
+
+| # | Finding (condensed) | Severity | Fix | Landed where |
+|---|---|---|---|---|
+| F1 | §13 header + §13.3 item 1 overstated the build scope: `run_deltanet_rd.py`'s CLI/`main()` path is ALREADY `d_state`-parameterized (`--d-state choices=[64,128]`, line 1267, threaded to model+train); the 12+ hardcoded `d_state=64` sites are inside `smoke()` only and correctly stay pinned there | MAJOR | Rewrote the header finding and §13.3 item 1 to state the corrected, smaller scope: zero new work needed in `run_deltanet_rd.py`'s training path; the true new-work surface is `_spec()` (no `d_state` param at all, verified), the manifest builder, `GATE2_N_ITER_BY_K`'s keys, and `fit_cliff_curve.py`/`sim_cliff_power.py`'s `D_STATE` constants. Item 6 (regression smoke) also corrected to stop asserting a `run_deltanet_rd.py` regression check that isn't needed | §13 header (2nd load-bearing finding), §13.3 items 1 and 6 |
+| F2 | §13.4: Newton-Schulz per-iteration cost stated as O(K·d²); actual cost is O(K²·d) (`G = X @ X.transpose(-1,-2)`, `(B,K,d)@(B,d,K)→(B,K,K)`, verified against `model_rd.py::newton_schulz_orthogonalize` lines 380-388) | MAJOR | Corrected the attribution to O(K²·d_state) with the exact matmul shapes cited. Noted the final 4×/8× cost bracket is UNCHANGED and survives by coincidence of this wave's own matched-K/d design (both the wrong and corrected forms reduce to O(d_state³) when K=c·d_state is substituted). Flagged explicitly that any FUTURE off-ratio (fixed-K, varied-d) probe must use the corrected form, since the two forms diverge sharply off-ratio (corrected form is cheap/linear-in-d at fixed K; the wrong form would have falsely predicted steep d²-driven growth) | §13.4 (Newton-Schulz cost-component bullet + point-estimate paragraph) |
+| F3a | No mandatory Wave-1 smoke registered requiring `gate2_construction_check` to be invoked with `ks=` explicitly set to this wave's own K-grid (68,76,84,92) at d=128 — the function's own default (`ks=(16,32)`) and every existing call site (`ks=(16,32,48)`) both silently miss this wave's K's | MAJOR (part a) | Added §13.3 item 5a: a new mandatory, assert-guarded Wave-1 smoke requiring the K-dependent NS-convergence leg to run at `ks=(68,76,84,92)` explicitly, with an assertion that the call's own `ks` argument matches this wave's registered K-grid (never the default, never a stale tuple) | §13.3 item 5a |
+| F3b | RETROACTIVE GAP: the published §12.9 wave (d=64, K∈{34,38,42,46}) never ran Gate-2's K-dependent NS-convergence leg (G2-c) at its own K's — every existing call site passes `ks=(16,32,48)`, the default is `ks=(16,32)`, neither covers 34/38/42/46 | MAJOR (part b) | **EXECUTED THIS SESSION, CPU-only, no GPU.** Reconstructed the exact anchor table the §12.9 wave trained against (`key_anchoring.frame_potential_init(107, 64, seed=ANCHOR_INIT_SEED=20260705)`, the same construction call `gate2_construction_test.py`'s own "healthy init" leg makes) and ran `gate2_construction_check(table, ks=(34,38,42,46), seed=0)`. **RESULT: PASS on all three legs.** G2-a `sigma_ratio=1.000000` (≥0.1 ✓), G2-b `max\|cos\|=0.284151` (≤0.5 ✓, matches the design's own cited seed-selection figure 0.28415 to 5 decimals, confirming correct table reconstruction), G2-c at every K∈{34,38,42,46}: 0/512 fallbacks, max residual ≤1.003e-06 (≪ the 1e-2 tolerance) at all four K's. **Verdict: retroactively verified, gap closed, no result change to §12.9's published `x0=0.5455` / CI `[0.5385,0.5513]`.** Full executed output reproduced verbatim below | §13.3 item 5b; executed output block below |
+| F4 (relationship + step-count) | Two MINOR items: (a) no sentence relating Gate-2 (geometric precondition) to h1 (behavioral consequence); no cross-ref to the `ks=` footgun; (b) no pinned step-count decision for the d=128 manifest | MINOR | (a) Added an explicit relationship paragraph to §13.7 Q3 clarifying Gate-2-pass is necessary-but-not-sufficient evidence for h1, plus a cross-reference to the F3a `ks=` footgun. (b) Verified `steps=20000` directly against all 12 archived d=64 cliff-wave cell JSONs (`experiment-runs/2026-07-06_keyanchor_cliff/results/.../*.json`); pinned §13.2's seed-block paragraph to the same `steps=20000`, with the same-steps-different-optimization-progress confound pre-registered explicitly (d=128 has 4× recurrence FLOPs/step; convergence-in-steps may differ by d_state) | §13.7 Q3 (relationship + cross-ref), §13.2 (step-count pin + confound disclosure) |
+| F5 | §13.3's build list omitted `fit_cliff_curve.py`'s `CLIFF_KS=(34,38,42,46)` constant and the hardcoded K32/K48 anchor-point lines (164-168, 247-248); no disclosure that the d=128 fit has NO archived flanking anchors (pure 4-point curve); Option C's 2-point viability asserted, not simulated | MINOR | Added §13.3 item 8: registers the `CLIFF_KS`/anchor-line generalization as a required build task, discloses the d=128 fit is anchor-free (unlike d=64's 6-point curve), and registers a MANDATORY pre-launch `sim_cliff_power.py`-style power simulation for both the anchor-free 4-point AND Option C's 2-point cases, required before either point set's CI(x0) can be trusted | §13.3 item 8 |
+| F8 | No disclosure that 2 d-points cannot distinguish "x0 universal in K/d" from any other monotone rescaling agreeing with K/d at exactly these 2 points; third d-point deferral not connected to this specific limitation | MINOR | Added an explicit unfalsifiability disclosure to §13.0 (after outcome 3), and cross-referenced it from §13.8's "third d point" deferred-item bullet | §13.0 (new disclosure paragraph), §13.8 (bullet update) |
+| F9 | No calibration blinding rule: nothing prevented reading the K=68 calibration cell's `h4` alongside its `wall_s`, risking the scope decision being contaminated by a peek at the scientific outcome | MINOR | Added an explicit blinding rule to §13.5: only `wall_s` is read from the calibration cell before the scope decision; `h4` (`M3_held_out['4']`) is quarantined until the full manifest is generated, with the mechanical enforceability of the rule verified (the two fields are separate top-level/nested JSON fields, checked against a real archived cell) | §13.5 (new blinding-rule paragraph, inserted after item 1) |
+| F10 | §13.6's descope options (A/B/C) were prose-only, read subjectively; no mechanical decision table keyed on the calibration cell's realized GPU-h/cell | MINOR | Added a literal decision table to §13.6: `r ≤ 20.99/12=1.7492` → PROCEED FULL, `≤20.99/9=2.3322` → OPTION B, `≤20.99/6=3.4983` → OPTION C, else → ESCALATE with ceiling-amendment formula `12·r−20.99` shown, plus a worked arithmetic example (`r=5.0` → escalate, amendment=`39.01` GPU-h). Also clarified the pre-existing non-binding "recommendation" paragraph is explicitly SUBORDINATE to this table once real calibration data exists, closing a conflict the table's addition would otherwise have created | §13.6 (new decision table + worked example; recommendation paragraph reworded) |
+
+**Retroactive Gate-2 check — executed output, verbatim (F3b):**
+
+```
+==============================================================================
+RETROACTIVE GATE-2 CHECK -- cliff wave's own K-grid (34,38,42,46), d=64
+torch: 2.8.0 cuda_available: False
+==============================================================================
+
+ANCHOR_INIT_SEED = 20260705
+GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20, 34: 20, 38: 20, 42: 20, 46: 20}
+
+Reconstructed anchor table shape: (107, 64)  dtype: torch.float32
+
+------------------------------------------------------------------------------
+G2-a sigma_ratio = 1.000000  (>= 0.1? True)
+G2-b max|cos|    = 0.284151  (<= 0.5? True)
+------------------------------------------------------------------------------
+G2-c K= 34: n_iter=20 n_subsets= 512 n_fallback=0/512 max_resid=7.221e-07  pass=True
+G2-c K= 38: n_iter=20 n_subsets= 512 n_fallback=0/512 max_resid=8.897e-07  pass=True
+G2-c K= 42: n_iter=20 n_subsets= 512 n_fallback=0/512 max_resid=9.376e-07  pass=True
+G2-c K= 46: n_iter=20 n_subsets= 512 n_fallback=0/512 max_resid=1.003e-06  pass=True
+------------------------------------------------------------------------------
+
+OVERALL GATE 2 (34,38,42,46): PASS
+==============================================================================
+
+Reference (already-covered at launch, re-run here for comparison only):
+G2-c K= 16: n_iter=12 n_fallback=0/512 max_resid=5.663e-07  pass=True
+G2-c K= 32: n_iter=20 n_fallback=0/512 max_resid=6.858e-07  pass=True
+G2-c K= 48: n_iter=20 n_fallback=0/512 max_resid=1.019e-06  pass=True
+
+Done.
+```
+
+**Addendum to §12.9 (the published cliff-wave verdict), dated
+2026-07-06:** the K-dependent NS-convergence leg (G2-c) of Gate 2, never
+previously run at this wave's own K∈{34,38,42,46}, has now been executed
+retroactively (above). **Result: PASS on all legs at all four K's, zero
+fallbacks, max residual ≤1.003e-06 — retroactively verified, gap closed,
+no change to §12.9's published `x0=0.5455` (CI [0.5385,0.5513])
+or any other reported figure.** This addendum closes attack-round-1
+finding F3b; §12.9's own text is otherwise unchanged.
+
+**Cross-references corrected as a consequence of the above:** none
+required renaming this round (no path/env-var/seed-block renames — all
+ten fixes are internal to §13's own text plus the retroactive addendum
+to §12.9; no new artifact names introduced, since the retroactive check
+used the existing, already-committed `key_anchoring.py` functions
+unmodified).
+
+**Status after this response: Rev 13.1, still DRAFT.** Every finding
+from round 1 (F1-F5, F8-F10) is addressed in place, per the round-1
+verdict (REVISE-THEN-PROCEED). Per this project's own standing rule that
+independent adversarial audit rounds catch different bugs each round,
+this revision needs its own fresh (round-2) attack pass (§13.7.1
+registers the round-2 starting questions, expected to be short) before
+CLEARED-FOR-BUILD — not self-certified by the same session that made
+these fixes. No GPU has been spent at any point in this section's
+drafting or revision, including the retroactive Gate-2 check (§13.3 item
+5b), which ran CPU-only in a throwaway local `uv venv`
+(`torch.cuda.is_available()==False` confirmed at run time), zero GPU-h
+charged against any program's ceiling.
+
+### 13.9.1 REVISION LOG — Rev 13.2 (2026-07-06), round-2 verify → fix map
+
+The round-2 bounded verifier (fresh eyes) re-executed the retroactive
+Gate-2 check independently (byte-identical output confirmed, digit for
+digit — the §12.9 gap-closure stands), verified fix landings F1/F2/F4/
+F10 against code and archived data, empirically refuted the power-sim
+"deadlock" concern (measured ≈3.28s/cell, ≈5.25 min for a 96-cell grid,
+CPU), and returned REVISE-AGAIN on two new findings, both fixed in this
+entry:
+
+- **Finding 6 (MAJOR):** `rev7_threshold_derive.py` has no `--d-state`
+  CLI flag — §13.2's registered pin command would have silently produced
+  a d=64 pin named `_D128`. Fixed: command corrected to include
+  `--d-state 128`, and a REQUIRED build task registered in §13.2 (add
+  the flag + a byte-DIFFERENT-vs-d=64-pin smoke assertion).
+- **Finding 4 (MAJOR):** §13.5's blinding rule was claimed "mechanically
+  enforceable" but the existing stage-gate tooling loads the full cell
+  JSON (including `M3_held_out`) before extracting `wall_s`. Fixed:
+  claim corrected to PROCEDURAL, with a registered build task for a
+  `read_wall_s_only()` helper the calibration re-pricing must use.
+- **Round-2 Q2 (recurrence-term O(d²) at the kernel level):**
+  re-registered as a STANDING DISCLOSED LIMITATION — `fla`'s
+  `chunk_delta_rule` is a third-party Triton kernel not inspectable
+  CPU-side; its d-scaling is asserted from architectural convention and
+  will be measured, not derived, by the K=68 calibration cell. Not
+  closeable pre-launch; the calibration-first strategy is the mitigation.
+
+**Status after this entry: §13 Rev 13.2 — DESIGN-CLEARED-FOR-BUILD**
+(both round-2 REVISE-AGAIN items fixed in place; the build gate is the
+§13.3 task list incl. the two tasks added by this entry, then an
+independent build audit, then the K=68 calibration cell under the
+§13.6 mechanical decision table).
