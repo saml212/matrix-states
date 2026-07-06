@@ -174,6 +174,7 @@ data already on disk, and exactly which files feed them.
 | 9 Panel B | Production-scale measurement (Track D) | `experiment-runs/2026-07-04_track_d/` | Ready |
 | 10 | Anchoring wave's complete arc (3-panel: behavioral gain, Outcome-C engagement scatter, constancy-suffices resolution) | Panel A: `experiment-runs/2026-07-05_keyanchor_wave/`, `2026-07-05_keyanchor_confirm/`, `2026-07-06_keyanchor_mech/`. Panel B: `2026-07-06_keyanchor_mech/` (same archive, `engaged_frac_v3`/`r_e` fields). Panel C: `experiment-runs/2026-07-07_keyanchor_e/` | **Ready — all data now archived** (this is new since round 4; previously blocked on the mechanism-tier and candidate-(e) waves, both now complete) |
 | 11 | Capacity curve (NEW — the program's headline figure) | K=16/32: `experiment-runs/2026-07-06_keyanchor_mech/`. K=48: `experiment-runs/2026-07-07_keyanchor_k48/` (candidate-(d) cells, fresh reference arms, and `BANDS_PINNED_K48.json` for the λ=1 ceiling values) | **Ready — all data now archived**, this is the newest figure in the whole plan |
+| fig:cliff | Capacity cliff, located (NEW, round 6 — supersedes Fig. 11 as the headline) | fig:cliff ← `experiment-runs/2026-07-06_keyanchor_cliff/` (4 new K's + `fit_cliff_curve_results.json`), plus the K=32/K=48 archived anchors already listed above | Ready — built and rendered this round (`iclr-2027/figures/make_fig_cliff.py`) |
 
 **Bottom line: 10 of 11 ICLR figures are fully ready to generate right now
 from already-archived data.** The sole blocker is Fig. 9 Panel A's fourth

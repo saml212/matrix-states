@@ -1,6 +1,7 @@
 # ICLR 2027 Narrative Architecture — DeltaNet Rank Recruitment vs. Exactness
 
-**Status: DRAFT — round 5, ARC COMPLETE for the key-anchoring program.** This
+**Status: DRAFT — round 6, capacity cliff LOCATED (a measurement upgrade on
+top of round 5's ARC COMPLETE key-anchoring program).** This
 round absorbs the anchoring program's actual, final outcome — not the
 Outcome-C mechanism null round 4 left as the ending, but the two waves that
 ran *after* it: candidate (e)'s frozen-random-table ablation
@@ -91,6 +92,47 @@ boundary of where the fix works."
 Only one program-relevant readout remains outstanding: **Track C rung-3**
 (1.31B params), launched on GPUs 0–1, `ALL_DONE` expected imminently. This
 is the sole "still landing" item in the whole arc (§9).
+
+**Round 6 (2026-07-06) — the capacity cliff is now LOCATED, not just
+bracketed.** Round 5 closed the key-anchoring program's mechanism arc and
+left the capacity curve as three points (K/d=0.25/0.5/0.75) with a cliff
+known only to lie somewhere in the 0.25-wide `(0.5, 0.75)` interval between
+the K=32 and K=48 anchors. This round's arc, start to finish: a
+power-analysis simulation (`sim_cliff_power.py`) first showed that the
+original binary sigmoid-vs-linear shape test was underpowered at 6 points
+(P(ambiguous) 87–96% across plausible cliff widths) and was retracted in
+favor of a parameter-estimation deliverable (`x0 = A ± B`, `w ≤ C`); the
+localization wave itself then ran 4 new K's — **34, 38, 42, 46**
+(K/d = 0.53125/0.59375/0.65625/0.71875) — at 3 seeds each (12 candidate-(d)
+cells, 3.18 realized GPU-h against a 23.36 GPU-h worst-case ceiling), giving
+a 7-point curve alongside the 3 archived anchors (K=16/32/48). A sigmoid
+`h4(x) = L / (1 + exp((x − x0)/w))` fit to all 7 points by
+`scipy.optimize.curve_fit`, with a 4,000-trial seed-level parametric
+bootstrap CI, lands the transition at **`x0 = 0.5455`** (95% CI
+**[0.5385, 0.5513]**, width **0.0127**, 0/4000 degenerate fits) and
+**`w = 0.0597`** (CI [0.0557, 0.0642]) — the cliff's midpoint sits just
+above K=34 (K/d=0.53125), and its characteristic width spans roughly
+K≈31–39 at d=64. This narrows the localization from a 0.25-wide bracket to
+a ±0.0064-wide point estimate, a ≈20× tightening, without needing to
+resolve the sigmoid-vs-linear shape question the retracted test chased
+(KEY_ANCHORING_DESIGN.md §12.4/§12.9). This strengthens the paper's
+capacity-law section by converting a qualitative "somewhere between half
+and three-quarter capacity" observation into a quantitative, CI-bounded
+parameter — the kind of number a reviewer can check a mechanistic theory
+against, not just a described trend. **Honest scope, stated plainly:** this
+result covers the candidate-(d) arm only (the bare-geo3 reference arm was
+cut from this wave's scope as a disclosed budget tradeoff, so
+reference-arm behavior across K=34→46 remains unmeasured); it makes no
+mechanism claim (it locates WHERE and HOW WIDE the transition is, not WHY
+it occurs at this specific K/d ratio — value-crowding remains the design's
+named-but-untested candidate explanation); and it is measured at a single
+`d_state=64` — whether `x0 ≈ 0.55` (in K/d terms) holds at other `d` is the
+program's own registered open question, not something this wave attempted.
+New headline figure: `fig_cliff` (`matrix-thinking/submissions/iclr-2027/
+figures/make_fig_cliff.py`), which supersedes Fig. 11's 3-point plot as the
+paper's capacity-law headline (Fig. 11 itself is unchanged and can move to
+the appendix as a simpler 3-point predecessor view, or be dropped, a
+camera-ready layout call, not resolved here).
 
 ---
 
@@ -501,6 +543,31 @@ tight.
   `experiment-runs/2026-07-07_keyanchor_k48/` (K=48, both candidate-(d) and
   fresh reference arms, plus `BANDS_PINNED_K48.json` for the ceiling
   values). Derivation: `KEY_ANCHORING_DESIGN.md` §11.4.2/§11.11/§11.12.
+
+**Fig. cliff (NEW, round 6 — supersedes Fig. 11 as the capacity-law
+headline) — The capacity cliff, located.** Single-panel figure, x-axis
+K/d_state (bottom) with a twin top axis in raw K at d_state=64: the
+7-point curve — 3 archived anchors (K16/32/48, grey squares) plus 4 new
+points this wave measured (K34/38/42/46, orange circles) — with per-seed
+scatter shown around each point's mean, the fitted sigmoid
+`h4(x) = L/(1+exp((x−x0)/w))` overlaid as a smooth curve, and a shaded
+vertical band marking the 95% bootstrap CI on `x0`
+(**[0.5385, 0.5513]**, centered on the fitted **`x0=0.5455`**,
+`w=0.0597`). Distinguishes visually, by marker and color, the 3 archived
+anchor points from the 4 new localization points, so a reader can see at a
+glance which points pre-existed this wave and which are new. This is the
+figure a reviewer checks the "candidate-(d) capacity cliff sits at
+K/d≈0.55, width≈0.06" claim against directly — it replaces Fig. 11's
+3-point line chart as the paper's capacity-law headline (Fig. 11's
+simpler 2-line, ceiling-vs-measured framing can move to the appendix as a
+predecessor view, or be cut, a camera-ready layout call).
+- Data: `experiment-runs/2026-07-06_keyanchor_cliff/` (4 new K's, per-seed
+  cell JSONs + `fit_cliff_curve_results.json` for the sigmoid fit and
+  bootstrap CI), `experiment-runs/2026-07-06_keyanchor_mech/` (K=32
+  archived anchor, seeds {10,11,12}), `experiment-runs/2026-07-07_
+  keyanchor_k48/` (K=48 archived anchor, seeds {30,31,32}). Derivation:
+  `KEY_ANCHORING_DESIGN.md` §12.4/§12.9. Script:
+  `matrix-thinking/submissions/iclr-2027/figures/make_fig_cliff.py`.
 
 ---
 

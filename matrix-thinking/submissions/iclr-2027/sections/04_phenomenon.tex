@@ -100,7 +100,41 @@ Fig.~11)}
     ceiling itself declines gently --- the design's own named, untested
     candidate is value-crowding (more entities packed into the same fixed
     value dimensionality), which would require a fresh design to test.
+  \item \textbf{The cliff is now LOCATED, not merely bracketed
+    (Fig.~\ref{fig:cliff}).} A dedicated localization wave measured 4 new
+    $K$'s --- $34, 38, 42, 46$ ($K/d{=}0.53125/0.59375/0.65625/0.71875$),
+    3 seeds each --- alongside the 3 archived anchors, and fit a sigmoid
+    $h_4(x) {=} L/(1{+}\exp((x{-}x_0)/w))$ to the resulting 7-point curve
+    with a 4,000-trial seed-level parametric bootstrap CI. The transition
+    lands at $x_0{=}0.5455$ (95\% CI $[0.5385, 0.5513]$, width $0.0127$,
+    0/4000 degenerate fits), $w{=}0.0597$ (CI $[0.0557, 0.0642]$) ---
+    narrowing the cliff's location from the prior 0.25-wide $(0.5, 0.75)$
+    bracket to a $\pm0.0064$-wide point estimate, a $\approx$20$\times$
+    tightening, without needing to resolve the sigmoid-vs-linear shape
+    question (retracted as underpowered at 6 points before any new data was
+    collected). \textbf{Scope, stated precisely:} candidate-(d) arm only
+    (no fresh reference arm at the 4 new $K$'s, a disclosed budget
+    tradeoff); no mechanism claim (this locates \emph{where} and \emph{how
+    wide} the transition is, not \emph{why} it occurs at this $K/d$ ratio);
+    measured at a single $d_{\mathrm{state}}{=}64$ --- universality of
+    $x_0{\approx}0.55$ across $d$ is the program's own registered open
+    question.
 \end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/fig_cliff.pdf}
+  \caption{The capacity cliff, located. Candidate (d)'s held-out
+  four-hop recovery ($\mathrm{rec@0.9}$, $h{=}4$) against capacity ratio
+  $K/d_{\mathrm{state}}$ at $d_{\mathrm{state}}{=}64$ (twin top axis: raw
+  $K$). Grey squares are the 3 archived anchors ($K{=}16/32/48$); orange
+  circles are the 4 new points this wave measured ($K{=}34/38/42/46$);
+  per-seed values are shown as scatter around each point's mean. The blue
+  curve is the fitted sigmoid $h_4(x){=}L/(1{+}\exp((x{-}x_0)/w))$; the
+  shaded band marks the 95\% bootstrap CI on $x_0$
+  ($[0.5385, 0.5513]$, centered on $x_0{=}0.5455$, $w{=}0.0597$).}
+  \label{fig:cliff}
+\end{figure}
 
 \subsection{Connective tissue: where this whole research line started}
 \begin{itemize}
