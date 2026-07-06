@@ -6,6 +6,47 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## SESSION HANDOFF (2026-07-06 ~07:15 UTC — pre-compaction snapshot)
+
+**One experiment still running; everything else complete and pushed (main = c3b888b).**
+
+- **RUNNING:** Track C rung-3 (2×1.31B, tmux `trackc3` on box GPUs 0-1,
+  survives any local session loss). Sentinel:
+  `results/lm_rd_trackc/wave3/ALL_DONE`, ETA ~19:00 UTC 2026-07-06.
+  Stop only via `touch STOP_trackc3` on the box; never pkill.
+- **ON THAT SENTINEL, the remaining queue (in order):**
+  1. Harvest: attractor probe on the 2 final checkpoints + trajectory
+     (`/data/lm_rd_trackc_ckpts/wave3/`), SAME instrument, corpus-matched
+     archived-4 pooling (validate against archived refs to 1e-6 first —
+     see the rung-2 harvest [LEARN] in EXPERIMENT_LOG). Probe on 1 GPU.
+     Write SCALE_TRANSFER_DESIGN.md §5.11 + EXPERIMENT_LOG + archive
+     `experiment-runs/2026-07-06_trackc_rung3/` (repo ≤25MB + SSD mirror).
+     This adds the 4th point to the pure-scale ladder 0.248→0.344→0.389
+     and COMPLETES the scale program.
+  2. Final addendum pass: fold rung-3 into
+     `submissions/iclr-2027/NARRATIVE.md` (round 5); rerun
+     `submissions/iclr-2027/figures/make_figures_v2.py` (Fig 9
+     auto-ingests the new point); resolve the 3 `[PENDING RUNG-3]` todos
+     in sections/; add the 3 missing intro contribution bullets +
+     related-work anchoring citation (flagged in the sprint plan).
+- **GPUs 2-7:** legitimately idle — the registered experimental queue is
+  EMPTY (anchoring program COMPLETE: constancy-suffices ablation §10.14,
+  capacity cliff §11.12 in KEY_ANCHORING_DESIGN.md). Do not launch
+  un-gauntleted work to fill them.
+- **Budgets:** scale 266.47/300 GPU-h committed (rung-3 is the last
+  spend); anchoring 55.83/80.
+- **User decisions pending:** see `matrix-thinking/submissions/PAPER_SPRINT_PLAN.md`
+  §PI-decisions (venue NeurReps/UniReps EA ~Jul 11 CFP; title keep-default;
+  author block + co-contributor question; parallel workshop-cut + ICLR
+  drafting; next-program candidates: frozen-bias fix in from-scratch small
+  LM / capacity-cliff theory / submission execution).
+- Housekeeping: `git prune` pending (gc.log warning); two orphan local
+  dashboard PIDs (82723/82725) left for the user's call.
+
+*(Delete this handoff block once the rung-3 harvest + addendum land.)*
+
+---
+
 ## The Thesis
 
 Language is a powerful cognitive tool. It encodes most of accumulated human knowledge, and any useful model has to interpret it and communicate in it. It developed under specific constraints — embodied, serial, social communication at ~50 bit/s — and machines operate under different constraints. We investigate whether using language as the cognitive medium for machines is an artificial constraint that limits abstract reasoning.
