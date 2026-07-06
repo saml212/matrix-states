@@ -66,12 +66,34 @@ This document is the project dashboard. Anyone returning to the project (you, a 
      under the ~14.2 GPU-h committed estimate. Full verdict:
      `matrix-thinking/FROZEN_BIAS_LM_DESIGN.md` (VERDICT section).
      **GPU 2 now idle.** Rung-2 remains PARKED.
+  3. **Cliff-universality-across-d_state wave (d=128) — COMPLETE
+     2026-07-06.** All 12 cells (K∈{68,76,84,92}, K/d matched to item 1's
+     window, 3 seeds, candidate-(d) only) finished. **HEADLINE: NO CLIFF
+     IN THE MEASURED WINDOW at d=128** — `h4=1.0` at all 4 K's, all 12
+     cells/seeds (verified against the raw JSONs, not just the fit's own
+     printout), vs. d=64's located `x0=0.5455` [0.5385,0.5513] in the
+     SAME K/d window (item 1) — CIs not merely disjoint, the transition
+     left the window (CONFIRM-SHIFTED, strong form, §13.0). Sigmoid fit
+     correctly reports degenerate (bootstrap `degenerate_frac=1.0`, CI
+     null) per the §12.4 disclosure rule — the point estimate
+     (x0=0.898) is extrapolation garbage, NOT a located cliff. Disclosed
+     comparison axis: the 107-entity anchor table is EXACTLY orthogonal
+     at d=128 (n<d, Gate-2 `max|cos|=0.000000`) vs. non-orthogonal at
+     d=64 (n>d, `max|cos|=0.284`) — leading candidate account is the
+     cliff tracks table coherence, not raw K/d capacity, but this wave
+     alone cannot isolate that confound (pre-registered follow-on: vary
+     `n_entities` independent of `d_state`, not designed yet). Realized
+     **7.3130 GPU-h** vs the 20.99 GPU-h calibration-derived headroom
+     (34.8% used). Full verdict: `matrix-thinking/KEY_ANCHORING_DESIGN.md`
+     §13.10. **GPUs 2-7 now idle.**
 - **Budgets:** scale 266.47/300 GPU-h committed at launch-time constants
   (rung-3 actual ≈334/300 DISCLOSED, see top block); anchoring 55.83/80 +
-  cliff realized 3.18 = **59.01/80** (cliff wave complete, see item 1
-  above — the 23.36 figure was the pre-run pessimistic ceiling, not the
-  realized cost); frozen-bias LM program own ceiling 135, realized
-  **6.8988/135** (rung-1 complete, see item 2 above).
+  cliff realized 3.18 + dstate realized 7.31 = **66.32/80** (both cliff
+  and dstate waves complete, see items 1 and 3 above — the 23.36 figure
+  was the pre-run pessimistic ceiling for item 1 only, not the realized
+  cost, and item 3 had no separate static ceiling by design, sec 13.5/13.6
+  — reserve now 13.68/80); frozen-bias LM program own ceiling 135,
+  realized **6.8988/135** (rung-1 complete, see item 2 above).
 - **User decisions pending:** see `matrix-thinking/submissions/PAPER_SPRINT_PLAN.md`
   §PI-decisions (venue NeurReps/UniReps EA ~Jul 11 CFP; title keep-default;
   author block + co-contributor question; parallel workshop-cut + ICLR

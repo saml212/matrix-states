@@ -4808,3 +4808,58 @@ mirror at the same relative path under
 `/Volumes/1TB_SSD/learned-representations/`. Full verdict:
 `matrix-thinking/FROZEN_BIAS_LM_DESIGN.md` (VERDICT section, appended).
 `STATE.md` updated.
+
+---
+
+## KEY-ANCHORING d_state=128 CLIFF-UNIVERSALITY WAVE VERDICT (2026-07-06): NO CLIFF IN THE MEASURED WINDOW at d=128 — h4=1.0 at all 4 K's (68/76/84/92, K/d 0.53125-0.71875), vs. d=64's located x0=0.5455; the same 107-entity table is EXACTLY orthogonal at d=128 (n<d, max|cos|=0.000000) vs. non-orthogonal at d=64 (max|cos|=0.284, n>d)
+
+Tests whether the K/d capacity cliff located at d=64 (x0=0.5455, 95% CI
+[0.5385, 0.5513], §12.9) is universal in K/d or a finite-size effect.
+Re-ran the identical K/d window (0.53125/0.59375/0.65625/0.71875) at
+d_state=128 using the equivalent K's (68/76/84/92), 3 seeds each, 12
+mandatory cells, candidate (d) only, on `youthful-indigo-turkey`.
+
+**Result: `h4 = 1.0` at all 4 K's, all 12 cells, all seeds — no cliff
+anywhere in the window.** Per §13.0's outcome semantics this is
+**CONFIRM-SHIFTED, strong form**: the cliff exits the window entirely
+(not merely a shifted midpoint). The sigmoid fit on this flat-at-ceiling
+data is degenerate BY CONSTRUCTION (bootstrap `degenerate_frac=1.0`, CI
+null) — the §12.4-registered disclosure rule fires correctly; the point
+estimate (x0=0.898, w=0.011) is extrapolation garbage and is NOT quoted
+as a located cliff.
+
+**Verification (gates the headline):** (a) per-cell h4 recomputed
+directly from all 12 raw JSONs: exactly 1.0 everywhere. (b)
+Instrument-saturation ruled out — hop-21 in the same JSONs shows real
+graded variation (0.9900–1.0), `effective_rank_whole_mean` tracks K
+almost exactly (not floored), losses scale gently with K (0.0030→0.0040).
+(c) Training real: `steps=20000`, `complete=true` all 12 cells, wall
+times 2122–2308s/cell. (d) Realized GPU-h: **7.3130** (sum of all 12
+`wall_s`), against the calibration-derived headroom of **20.99** GPU-h
+(34.8% used); calibration rate 0.6410 GPU-h/cell correctly routed
+`PROCEED_FULL`.
+
+**Disclosed comparison axis (leading candidate account, not confirmed):**
+Gate-2's fresh d=128 construction check measured `max|cos|=0.000000`
+(the 107-entity anchor table is exactly orthogonal since n<d), vs. the
+d=64 table's regression-verified `max|cos|=0.2842` (n>d, Welch bound
+forces coherence). The cliff may track TABLE COHERENCE (anchor overlap
+under n>d), not raw K/d state capacity — but this wave alone cannot
+isolate that from d's other simultaneous effects (state size,
+optimization). Pre-registered follow-on (not designed here): vary
+`n_entities` independently of `d_state` (e.g. n=200 at d=128 restores
+n>d coherence) — does the cliff reappear?
+
+Realized cost this wave: 7.3130 GPU-h. Cumulative exactness-program
+spend updated 59.01 → **66.32** / 80 GPU-h ceiling (reserve now 13.68
+GPU-h), `run_deltanet_rd_exactness_sweep.py`'s comment-block convention.
+GPUs 2-7 now idle (dstate wave complete; no cell in flight).
+
+Archive: `experiment-runs/2026-07-06_keyanchor_dstate/` (12 cell result
+JSONs + `fit_cliff_curve_d128_results.json` +
+`REV7_THRESHOLD_PINNED_D128.json` + niter-check results + 5 exact
+scripts, byte-verified zero-drift against the repo's committed copies +
+numbered/per-cell/chain-run logs, ~82MB, all files ≤25MB) + SSD mirror at
+the same relative path under `/Volumes/1TB_SSD/learned-representations/`.
+Full verdict: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §13.10.
+`STATE.md` updated.

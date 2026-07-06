@@ -1,0 +1,215 @@
+{
+  "generated_at": "2026-07-06T17:18:34.760708+00:00",
+  "script": "keyanchor_dstate_niter_check.py",
+  "purpose": "KEY_ANCHORING_DESIGN.md sec 13.2/13.3 item 5 -- zero-GPU n_iter-sufficiency check at d_state=128 (genuinely untested d, not by-analogy) for GATE2_N_ITER_BY_K's K=68/76/84/92 entries",
+  "method": "sec 11.4.2's own method (reused verbatim from keyanchor_cliff_niter_check.py): fix 1 of 8 sampled train-pool anchor rows, resample K-1 co-drawn rows from the other 106, full production-tier Newton-Schulz, pooled (mean, p10) fixed-row post-NS pairwise cosine across 8*32=256 draws",
+  "n_iter_grid": [
+    12,
+    16,
+    20,
+    24
+  ],
+  "candidate_ks": [
+    68,
+    76,
+    84,
+    92
+  ],
+  "n_entities": 107,
+  "d_state": 128,
+  "n_fixed_anchors": 8,
+  "n_resamples": 32,
+  "convergence_tolerance_rel": 0.005,
+  "per_k": {
+    "68": {
+      "by_n_iter": {
+        "12": {
+          "K": 68,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "16": {
+          "K": 68,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 0.9999999403953552
+        },
+        "20": {
+          "K": 68,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "24": {
+          "K": 68,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 1.0,
+        "mean_at_24": 1.0,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "76": {
+      "by_n_iter": {
+        "12": {
+          "K": 76,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "16": {
+          "K": 76,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "20": {
+          "K": 76,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "24": {
+          "K": 76,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 1.0,
+        "mean_at_24": 1.0,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "84": {
+      "by_n_iter": {
+        "12": {
+          "K": 84,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "16": {
+          "K": 84,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "20": {
+          "K": 84,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "24": {
+          "K": 84,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 1.0,
+        "mean_at_24": 1.0,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "92": {
+      "by_n_iter": {
+        "12": {
+          "K": 92,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "16": {
+          "K": 92,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "20": {
+          "K": 92,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        },
+        "24": {
+          "K": 92,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 1.0,
+          "p10": 1.0
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 1.0,
+        "mean_at_24": 1.0,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    }
+  },
+  "all_ks_converged": true,
+  "wall_s": 17.028823137283325
+}

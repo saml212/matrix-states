@@ -1395,9 +1395,22 @@ KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING = 11.68   # 23.35872 / 2, rounded to the doc
 # realized-vs-23.3587-GPU-h-ceiling comparison:
 # `matrix-thinking/KEY_ANCHORING_DESIGN.md` sec 12.9;
 # `experiment-runs/2026-07-06_keyanchor_cliff/README.md`.
-KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH = 59.01  # was 55.83 before this wave; +3.1803 GPU-h realized, 2026-07-06
+#
+# 2026-07-06 UPDATE #2 (post-harvest, keyanchor-dstate wave complete): the
+# d_state=128 universality wave's own realized cost -- 7.3130 GPU-h, summed
+# directly off all 12 mandatory cells' own `wall_s` fields (26326.74s total,
+# 1 GPU/cell; calibration cell K=68/seed=530 is cell 1 of these 12, already
+# included, not additive) -- is added to the 59.01 base above, giving
+# 59.01 + 7.3130 = 66.3230, rounded to 66.32. Result: h4=1.0 at all four K's
+# (68/76/84/92) -- NO CLIFF anywhere in this wave's measured window at
+# d=128 (contrast the d=64 cliff this same K/d window located, sec 12.9).
+# Full arithmetic, per-cell wall_s table, verification (a)-(d), and the
+# disclosed table-coherence comparison axis:
+# `matrix-thinking/KEY_ANCHORING_DESIGN.md` sec 13.10;
+# `experiment-runs/2026-07-06_keyanchor_dstate/README.md`.
+KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH = 66.32  # was 59.01 before keyanchor-dstate; +7.3130 GPU-h realized, 2026-07-06
 KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING = 80.0
-KEYANCHOR_CLIFF_RESERVE_GPUH = KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING - KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH  # 20.99
+KEYANCHOR_CLIFF_RESERVE_GPUH = KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING - KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH  # 13.68
 
 # sec 12.2.3's mid-run abort/budget guard, restated in full (NOT merely
 # "mirrors sec 11.5" by reference -- sec 12.2.3's own text): after ANY
@@ -1940,21 +1953,38 @@ KEYANCHOR_DSTATE_GPUH_PER_CELL_OPTIMISTIC = 0.2616 * 1.264 * 2.0   # sec 13.4's 
 KEYANCHOR_DSTATE_MANDATORY_CELLS = 12
 
 # sec 13.5 item 4 / sec 13.6's own registered headroom figure -- the
-# exactness-program reserve AFTER keyanchor-cliff's own realized spend
-# (KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH=59.01, KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING=80.0,
-# reserve=20.99) -- read directly off those already-defined constants above
-# (never re-typed as a bare literal) so the two figures cannot silently
-# drift apart if the cliff wave's own realized-spend constant is ever
-# updated again.
-KEYANCHOR_DSTATE_HEADROOM_GPUH = KEYANCHOR_CLIFF_RESERVE_GPUH   # 20.99
+# exactness-program reserve AFTER keyanchor-cliff's own realized spend, AS
+# IT STOOD AT THIS WAVE'S OWN LAUNCH TIME (KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH
+# was 59.01, KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING=80.0, reserve=20.99) --
+# read directly off those already-defined constants above (never re-typed
+# as a bare literal) so the two figures could not silently drift apart
+# while this wave was still in flight.
+#
+# POST-HARVEST NOTE (2026-07-06, keyanchor-dstate wave complete): the two
+# constants immediately above this comment block have SINCE been updated
+# again (KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH: 59.01 -> 66.32, folding in
+# THIS wave's own +7.3130 GPU-h realized spend), so
+# KEYANCHOR_DSTATE_HEADROOM_GPUH now literally evaluates to 13.68, not
+# 20.99. The `20.99` this wave's own decision table (immediately below)
+# and its per-cell thresholds were governed by is PINNED, deliberately NOT
+# re-derived from the now-updated constant above -- those are the exact
+# historical values that fired PROCEED_FULL during this wave's real launch
+# (realized_rate=0.6410 GPU-h/cell, see CALIBRATION_DONE) and must not be
+# silently rewritten after the fact. A FUTURE wave computing its own fresh
+# headroom must read KEYANCHOR_DSTATE_HEADROOM_GPUH's current value (or
+# KEYANCHOR_CLIFF_RESERVE_GPUH directly) at ITS OWN launch time, not reuse
+# the 20.99 literal pinned below.
+KEYANCHOR_DSTATE_HEADROOM_GPUH = KEYANCHOR_CLIFF_RESERVE_GPUH   # 20.99 at this wave's own launch time; now 13.68
 
 # sec 13.6's MECHANICAL DECISION TABLE, in code (not read subjectively from
-# prose) -- thresholds are EXACT (H/12, H/9, H/6 at H=20.99), per this
-# project's "exact thresholds, no slack" hard rule. Registered here as
-# literal-per-branch constants (not re-derived at call time from a mutable
-# H) so the pinned 1.7492/2.3322/3.4983 GPU-h/cell figures the design text
-# itself states can be asserted to match exactly, the same discipline
-# KEYANCHOR_CLIFF_ABORT_WALL_S's own doc-pinned-literal treatment uses.
+# prose) -- thresholds are EXACT (H/12, H/9, H/6 at H=20.99, THIS WAVE'S
+# OWN launch-time headroom -- pinned historical value, see the post-harvest
+# note above), per this project's "exact thresholds, no slack" hard rule.
+# Registered here as literal-per-branch constants (not re-derived at call
+# time from a mutable H) so the pinned 1.7492/2.3322/3.4983 GPU-h/cell
+# figures the design text itself states can be asserted to match exactly,
+# the same discipline KEYANCHOR_CLIFF_ABORT_WALL_S's own doc-pinned-literal
+# treatment uses.
 KEYANCHOR_DSTATE_DECISION_THRESHOLDS = {
     "proceed_full": 20.99 / 12,   # 1.7492 -- 12 cells (all 4 K's x 3 seeds)
     "option_b": 20.99 / 9,        # 2.3322 -- 9 cells (3 K's x 3 seeds, drop one interior K)

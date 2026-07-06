@@ -8043,3 +8043,193 @@ independent build audit, then the K=68 calibration cell under the
   result JSON's TOP-LEVEL d_state field (where _assemble_result writes
   it), not exactness_config — the design's item 2 left the field
   unspecified; recorded here as the implemented convention.
+
+### 13.10 Cliff-universality wave VERDICT (2026-07-06) — measured, not projected
+
+**Headline (harvest-verified against `fit_cliff_curve_d128_results.json`
+and independently recomputed from all 12 raw cell JSONs, not merely
+copied from the fit script's own printout):**
+
+**`h4 = 1.0` at ALL FOUR K values (K=68/76/84/92, K/d_state =
+0.53125/0.59375/0.65625/0.71875), all 3 seeds each, 12/12 cells — NO
+CLIFF ANYWHERE IN THE MEASURED WINDOW at d_state=128.** This is the exact
+same K/d window that collapsed **0.667 → 0.022** at d=64 (§12.9's K=32→K=48
+endpoints). Per §13.0's registered outcome semantics this is
+**CONFIRM-SHIFTED, strong form**: not merely a shifted `x0` — the cliff
+exits the window entirely. At d=128, capacity extends past K/d=0.71875,
+i.e. at least 92 of the 107 trainable entities recover perfectly through
+held-out 4-hop composition, in the exact band where d=64 had already
+collapsed to near-zero.
+
+**Comparison to the located d=64 transition** (§12.9, cited verbatim, CIs
+not merely disjoint — the transition left the window entirely):
+
+| d_state | x0 (95% CI) | w (95% CI) | Degenerate frac | Curve shape in this window |
+|---|---|---|---|---|
+| 64 | 0.5455 [0.5385, 0.5513] | 0.0597 [0.0557, 0.0642] | 0/4000 (0.0%) | Located sigmoid, cliff mid-window |
+| 128 | **not locatable** (fit degenerate) | **not locatable** | 4000/4000 (100.0%) | Flat at ceiling, h4=1.0 across the entire window |
+
+**Degenerate-fit disclosure (§12.4 item 3's own rule, correctly applied
+here — not skipped because the result is a null result):**
+`fit_cliff_curve_d128_results.json`'s `bootstrap_ci.degenerate_frac =
+1.0`, `ci_x0 = null`, `ci_w = null`, with the disclosure block explicitly
+firing (`"exceeds_10pct": true`, `"rule": "sec 12.4 item 3: if the REAL
+degenerate fraction exceeds 10%, report explicitly as a reliability
+caveat on the CI, not a silently-excluded footnote"`). This is the fit
+correctly REFUSING to localize a transition that is not present in the
+window — flat-at-ceiling data has no sigmoid to find. The point estimate
+in the same file (`sigmoid_fit.x0 = 0.898108`, `sigmoid_fit.w =
+0.010710`, `rss = 2.48e-15`) is an unconstrained least-squares fit
+extrapolating a transition past the edge of the measured K-grid on
+numerically-flat data; it is **NOT a located cliff** and must never be
+quoted as one — it is discarded as extrapolation garbage, exactly per
+the pre-registered disclosure rule.
+
+**Mandatory verification performed at harvest (gates the headline above
+— see also `experiment-runs/2026-07-06_keyanchor_dstate/README.md` for
+the full tables):**
+
+(a) **Per-K h4 recomputed directly from the 12 raw cell JSONs**
+(`checkpoints[-1]["M3_held_out"]["4"]["recovered_frac@0.9"]`): **exactly
+1.0 at every one of the 12 cells, all 4 K's, all 3 seeds** — no seed
+anywhere below 1.0. Matches `fit_cliff_curve_d128_results.json`'s
+`curve_points.h4 = [1.0, 1.0, 1.0, 1.0]` to full precision.
+
+(b) **Instrument-saturation spot-check — the ceiling is credible, not a
+broken readout.** Hop depth 21 (`M3_held_out["21"]`, the
+far-extrapolation hop graded in the same JSONs) is NOT uniformly 1.0:
+`recovered_frac@0.9` ranges 0.9900–1.0 across the 12 cells (e.g. K=84
+seed 732: 0.9900; K=68 seed 532: 0.9980), and `recovered_frac@0.99` at
+h=21 drops as low as 0.8630. `mean_cos` at h=21 (~0.994) is visibly below
+h=4's (~0.9998), and `pred_norm_mean` scales with hop depth as expected
+(h4≈3.46 → h21≈469). `effective_rank_whole_mean` tracks each K almost
+exactly (K68→67.82, K76→75.8, K84→83.6, K92→91.7) — the state is using
+essentially its full permitted rank, not saturating against d_state=128
+itself. Training losses are non-trivial and scale gently with K
+(0.0030 at K=68 → 0.0040 at K=92), not floored at machine epsilon.
+Conclusion: **h4=1.0 is a real, graded ceiling for THIS quantity at THIS
+hop depth, not a globally-saturated instrument.**
+
+(c) **Training reality confirmed.** All 12 cells: `steps_completed =
+20000`, `complete = true`, `timed_out = false`. Wall times ran
+2121.8–2307.7s/cell (~35.4–38.5 min, NOT the placeholder 3600s used only
+inside the smoke suite's synthetic decision-table unit tests — those are
+disclosed-fake `/tmp` fixtures, never real training data). Final losses
+at step 20000: 0.0030 (K=68) / 0.0033 (K=76) / 0.0037 (K=84) / 0.0040
+(K=92), all finite, all scaling gently with K as expected — no
+divergence, no early-exit artifact.
+
+(d) **Realized GPU-h summed from source.** All 12 cells' own `wall_s`
+fields sum to **26326.74s = 7.3130 GPU-h** (1 GPU/cell, `--per-gpu 1`,
+GPUs 2–7). Pre-flight overhead (`keyanchor_dstate_niter_check.py`
+d=128 n_iter-sufficiency check, `rev7_threshold_derive.py --d-state 128`,
+both smoke suites) is CPU-only/negligible (niter-check `wall_s=17.0s`,
+threshold-derive sub-second, `fit_cliff_curve.py`'s own run
+`wall_s=15.43s`) — honestly estimated at ~0 GPU-h additional, not merely
+omitted. **Realized wave total: 7.3130 GPU-h against the
+calibration-derived headroom of 20.99 GPU-h** (`CALIBRATION_DONE`'s
+`decision.headroom_gpuh`) — **34.8% of approved headroom used**. The
+calibration cell's realized rate (`0.6410 GPU-h/cell`) landed well under
+all three escalation thresholds (`proceed_full≤1.7492`,
+`option_b≤2.3322`, `option_c≤3.4983`), correctly routing to
+`PROCEED_FULL` (12 cells, no descope) — the mechanical decision table
+fired correctly.
+
+**THE DISCLOSED COMPARISON AXIS (front and center, not a footnote):** the
+d=128 anchor table (107 entities, d_state=128, n < d) is **EXACTLY
+orthogonal** — Gate-2's fresh construction check at d=128 measured
+`max|cos| = 0.000000` (`sigma_ratio=0.999999`, all four K's 0/512 NS
+fallbacks, residuals ≤1.49e-06; §13.9.2's build-stage note). The d=64
+table (107 entities, d_state=64, n > d) **cannot** be exactly orthogonal
+— the Welch bound forces coherence, and the regression-verified
+measurement on that table is `max|cos| = 0.2842` (matches the
+originally-cited seed-selection figure to 4 decimals, `keyanchor_dstate_
+chain_run{1,2,3}.log`, `GATE 2 REGRESSION QUADRUPLE` block, grep-
+verifiable). **The leading candidate account is that the d=64 cliff
+tracks TABLE COHERENCE (anchor overlap forced by n > d), not raw K/d
+state capacity per se** — at d=128 the coherence floor is removed
+entirely (n < d), and the cliff removed with it, in the same K/d window.
+
+**This is a HYPOTHESIS the wave cannot confirm alone.** A single-axis
+change (d: 64→128) simultaneously changes state size, optimization
+dynamics (more/less anchor-lambda mixing, `eff_rank` scale, gradient
+geometry through a bigger Newton-Schulz block), AND table coherence —
+three confounded variables move together whenever d changes, and this
+wave's design (§13.0, §13.7) never held coherence fixed while varying
+raw state capacity. The account above is **consistent with** the data,
+not **isolated by** it.
+
+**Pre-registered follow-on (registered here, NOT designed here):** vary
+`n_entities` independently of `d_state` — e.g. n=200 entities at
+d_state=128 restores n > d (coherence floor binds again, by the same
+Welch-bound logic that forced max|cos|=0.2842 at n=107,d=64). If the
+cliff REAPPEARS in the same K/d window under n=200,d=128, that is strong
+evidence for the coherence account over a raw-capacity account (since
+d_state and K/d stay unchanged, only n_entities/coherence moves). If the
+cliff does NOT reappear, the raw-capacity account (or some other d-linked
+mechanism) survives instead. This is registered as the natural next wave;
+its own cost/config/smoke-suite design is explicitly deferred, mirroring
+this wave's own §13.8 discipline of not pre-designing follow-ons inside a
+verdict section.
+
+**What this does NOT show.**
+- **No claim the cliff IS coherence-driven** — only that the data are
+  **consistent with** that account, alongside the confound disclosure
+  above. A raw K/d-capacity account that also happens to improve with d
+  (independent of coherence) is not ruled out by this wave alone.
+- **No mechanism claim beyond the disclosed comparison axis** — this
+  wave measures WHERE (in K/d, at two d's) the transition sits, not a
+  controlled test of WHY, exactly as §12.9's "no mechanism claim" scope
+  note applies unchanged here.
+- **`engaged_frac_v3` note:** this quantity is valid at d=128 only via
+  the `empirical_permutation` primary branch — the pooled-null
+  Gaussian-approximation check (`r_e_engagement.pooled_null_check`) fails
+  its own internal `pass` flag at d=128 in the archived cells inspected
+  (`mean_ok=False`, `sd_ok=False`), consistent with a near-zero/negative
+  pooled mean under an exactly-orthogonal table (no coherence-driven bias
+  left to detect against). This is a diagnostic-only field, disclosed per
+  §10.3.2's own precedent (pooled checks can be blind/unreliable in
+  regimes the BH/permutation primary branch handles correctly) — it does
+  **not** invalidate `engaged_frac_v3` or `median_r_e`, which are read
+  from the `bh`/`by`/`bonferroni`/`per_entity_empirical_percentile`
+  fields, not from `pooled_null_check`.
+- **Two d-points, one direction.** As pre-registered at §13.0 before any
+  data existed, two d-points (64, 128) can determine CONFIRM-SHIFTED vs.
+  CONFIRM-UNIVERSAL but cannot by themselves establish a causal
+  finite-size MECHANISM (a line has a direction by construction) — the
+  coherence account above is the leading candidate, not a confirmed
+  mechanism, precisely for this reason.
+
+**Realized GPU-h vs. headroom, restated for the record:** 7.3130 GPU-h
+realized against 20.99 GPU-h calibration-derived headroom (34.8% used),
+zero cells timed out, zero cells failed, `ALL_DONE` written cleanly on
+the third chain-launch attempt (see process notes below).
+
+**Process notes — three launch-seam items across the 3 chain-run
+attempts (`keyanchor_dstate_chain_run{1,2,3}.log`), recorded as they
+occurred, not smoothed over:**
+1. **Smoke-9 path.** Run 1's smoke suite reported `smoke 9: read_wall_s_
+   only h4-blindness (sec 13.5 F9)] FAIL -- no real archived cell JSON
+   found to test against` — expected/self-healing, not a code defect:
+   smoke 9 needs a real prior cell JSON to exercise the blinding helper
+   against, and none existed yet on the first attempt. By run 2 (after
+   the calibration cell existed), smoke 9 passed cleanly (`EXECUTED
+   against a real archived cell JSON, returns wall_s only, no
+   M3_held_out content anywhere in its output`), and stayed passing
+   through run 3.
+2. **Pin sha regeneration.** `rev7_threshold_derive.py --d-state 128`
+   was (re-)run to produce `REV7_THRESHOLD_PINNED_D128.json`;
+   `script_sha256 = 2e3aaa2e64b27a71fa396bcaca3898d1999d745ccc76508e395b4e783bd302db`
+   recorded in the launch log, confirming the derivation is a pure
+   function of its own source with no silent data dependency
+   (`"data_dependency": "NONE"` in the pin artifact itself).
+3. **Per-d pin selection.** The chain script writes/reads a distinctly-
+   named `_D128` pin file, kept separate from the d=64
+   `REV7_THRESHOLD_PINNED.json` — smoke 8 verifies the two pins are
+   byte-DIFFERENT, with `sigma_chance == 1/sqrt(128)` exactly in the
+   d=128 pin, while `r_min_headline_band` stays fixed at 0.35 in both
+   (a cross-d invariant, not re-derived per d).
+
+Full archive: `experiment-runs/2026-07-06_keyanchor_dstate/` (repo,
+≤25MB/file) and its SSD mirror
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-06_keyanchor_dstate/`.

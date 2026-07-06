@@ -244,6 +244,74 @@ verdict: `FROZEN_BIAS_LM_DESIGN.md` (VERDICT section, appended
 2026-07-06); archive: `experiment-runs/2026-07-06_frozen_bias_rung1/`
 (+ SSD mirror).
 
+**Round 8 (2026-07-06) — the universality test's answer: the capacity
+cliff is dimension-dependent, and it is GONE by `d_state=128` in the same
+window Round 6 located it in.** Round 6 pinned the cliff's location at
+`d_state=64` to `x0=0.5455` (95% CI [0.5385, 0.5513]) but left open
+whether that transition is a universal property of the ratio `K/d_state`
+or a finite-size effect specific to `d=64` (`KEY_ANCHORING_DESIGN.md`
+§13.0's own pre-registered CONFIRM-UNIVERSAL / CONFIRM-SHIFTED /
+degenerate outcome triad, stated before any `d=128` cell ran). This
+round's wave re-ran the identical K/d window
+(0.53125/0.59375/0.65625/0.71875) at `d_state=128` using the equivalent
+K's — **68, 76, 84, 92** — at 3 seeds each (12 candidate-(d) cells, 7.31
+realized GPU-h against a 20.99 GPU-h calibration-derived headroom).
+**Result: `h4 = 1.0` at all four K's, all 12 cells, all seeds — no cliff
+anywhere in the measured window.** Per §13.0's own pre-registered
+semantics this is **CONFIRM-SHIFTED in its strong form**: not merely a
+shifted `x0`, but the transition exiting the window entirely. The sigmoid
+fit on this flat-at-ceiling data reports itself degenerate by
+construction (bootstrap `degenerate_frac=1.0`, CI null) — the design's
+own §12.4 disclosure rule fires correctly, and the resulting point
+estimate (`x0≈0.898`) is discarded as extrapolation garbage rather than
+quoted as a located transition, exactly as pre-registered for this case.
+
+**The disclosed comparison axis, front and center rather than a
+footnote:** Gate-2's fresh construction check at `d=128` measured the
+107-entity anchor table as **exactly orthogonal** (`max|cos|=0.000000`,
+since `n_entities=107 < d_state=128`), while the same-sized table at
+`d=64` is **necessarily non-orthogonal** (`max|cos|=0.2842`, Welch-bound
+forced, since `107 > 64`). The leading candidate account is that the
+d=64 cliff tracks **table coherence** (anchor-row overlap forced by
+`n > d`) rather than raw K/d state capacity per se — but this wave alone
+cannot isolate that from d's other simultaneous effects (state size,
+optimization dynamics), a limitation the design's own verdict section
+states explicitly. The natural next wave — vary `n_entities` independent
+of `d_state` (e.g. `n=200` at `d=128` restores the `n>d` coherence
+regime; does the cliff reappear in the same K/d window?) — is registered
+as a candidate follow-on, not designed or launched by this round.
+
+**What this upgrades in the paper's own figure plan.** `fig:cliff`
+(`make_fig_cliff.py`) is extended from a single-panel figure into a
+two-panel one: the left panel is Round 6's unchanged located-cliff plot
+at `d=64`; a new right panel, style-matched (same palette, fonts, spine
+conventions), plots the same K/d axis at `d=128` — a flat line at
+`h4=1.0` across all four measured points, with the degenerate-fit
+disclosure stated directly in the panel (no spurious sigmoid curve is
+ever drawn on data with no locatable transition). The figure's story
+upgrades from "a located wall" to **"a located wall that DISSOLVES with
+dimension"** — regenerated and verified this round (both panels'
+underlying numbers assert-checked against their respective archived
+JSONs at render time, per the script's own no-fabricated-numbers
+discipline).
+
+**Honest scope, stated as plainly as Round 6's own disclosure.** This is
+a HYPOTHESIS the wave is consistent with, not one it confirms alone — a
+single-axis change in `d_state` moves state size, optimization geometry,
+and table coherence together, and this wave's design never held
+coherence fixed while varying raw capacity. No mechanism claim is made
+beyond the disclosed comparison axis itself. The `engaged_frac_v3`
+diagnostic is read from its `empirical_permutation`/BH primary branch at
+`d=128` (valid); the pooled-null Gaussian-approximation companion check
+fails its own internal pass flag in this regime (an expected,
+disclosed-only consequence of a near-zero pooled mean under an
+exactly-orthogonal table, not a defect that invalidates the primary
+reading). Realized cost: **7.3130 GPU-h**, 34.8% of the wave's own
+calibration-derived headroom; cumulative key-anchoring program spend
+59.01 → **66.32**/80 GPU-h. Full verdict: `KEY_ANCHORING_DESIGN.md`
+§13.10; archive: `experiment-runs/2026-07-06_keyanchor_dstate/`
+(+ SSD mirror).
+
 ---
 
 ## 0. The one-sentence thesis
@@ -654,29 +722,42 @@ tight.
   fresh reference arms, plus `BANDS_PINNED_K48.json` for the ceiling
   values). Derivation: `KEY_ANCHORING_DESIGN.md` §11.4.2/§11.11/§11.12.
 
-**Fig. cliff (NEW, round 6 — supersedes Fig. 11 as the capacity-law
-headline) — The capacity cliff, located.** Single-panel figure, x-axis
-K/d_state (bottom) with a twin top axis in raw K at d_state=64: the
-7-point curve — 3 archived anchors (K16/32/48, grey squares) plus 4 new
-points this wave measured (K34/38/42/46, orange circles) — with per-seed
-scatter shown around each point's mean, the fitted sigmoid
+**Fig. cliff (round 6, EXTENDED round 8 to two panels — supersedes Fig. 11
+as the capacity-law headline) — The capacity cliff, located, then shown
+dimension-dependent.** Two-panel figure, both panels sharing the x-axis
+convention K/d_state (bottom) with a twin top axis in raw K at each
+panel's own d_state. **Left panel (round 6, unchanged):** the 7-point
+curve at `d_state=64` — 3 archived anchors (K16/32/48, grey squares) plus
+4 new points that wave measured (K34/38/42/46, orange circles) — with
+per-seed scatter around each point's mean, the fitted sigmoid
 `h4(x) = L/(1+exp((x−x0)/w))` overlaid as a smooth curve, and a shaded
 vertical band marking the 95% bootstrap CI on `x0`
 (**[0.5385, 0.5513]**, centered on the fitted **`x0=0.5455`**,
-`w=0.0597`). Distinguishes visually, by marker and color, the 3 archived
-anchor points from the 4 new localization points, so a reader can see at a
-glance which points pre-existed this wave and which are new. This is the
-figure a reviewer checks the "candidate-(d) capacity cliff sits at
-K/d≈0.55, width≈0.06" claim against directly — it replaces Fig. 11's
+`w=0.0597`). **Right panel (NEW, round 8):** the SAME K/d window at
+`d_state=128` (K68/76/84/92, green circles) — a flat line at `h4=1.0`
+across all four measured points, no sigmoid curve drawn (the fit is
+degenerate by construction on flat-at-ceiling data), with the
+degenerate-fit disclosure stated directly in the panel as a text
+annotation rather than a caption footnote. Together the two panels make
+the paper's dimension-dependence claim checkable at a glance: the same
+K/d window that shows a cliff at `d=64` shows none at `d=128`. This is
+the figure a reviewer checks both the "candidate-(d) capacity cliff sits
+at K/d≈0.55, width≈0.06 at d=64" claim AND the "the cliff dissolves by
+d=128 in this window" claim against directly — it replaces Fig. 11's
 3-point line chart as the paper's capacity-law headline (Fig. 11's
 simpler 2-line, ceiling-vs-measured framing can move to the appendix as a
 predecessor view, or be cut, a camera-ready layout call).
-- Data: `experiment-runs/2026-07-06_keyanchor_cliff/` (4 new K's, per-seed
-  cell JSONs + `fit_cliff_curve_results.json` for the sigmoid fit and
-  bootstrap CI), `experiment-runs/2026-07-06_keyanchor_mech/` (K=32
-  archived anchor, seeds {10,11,12}), `experiment-runs/2026-07-07_
-  keyanchor_k48/` (K=48 archived anchor, seeds {30,31,32}). Derivation:
-  `KEY_ANCHORING_DESIGN.md` §12.4/§12.9. Script:
+- Data, left panel: `experiment-runs/2026-07-06_keyanchor_cliff/` (4 new
+  K's, per-seed cell JSONs + `fit_cliff_curve_results.json` for the
+  sigmoid fit and bootstrap CI), `experiment-runs/2026-07-06_keyanchor_
+  mech/` (K=32 archived anchor, seeds {10,11,12}), `experiment-runs/
+  2026-07-07_keyanchor_k48/` (K=48 archived anchor, seeds {30,31,32}).
+  Derivation: `KEY_ANCHORING_DESIGN.md` §12.4/§12.9.
+- Data, right panel: `experiment-runs/2026-07-06_keyanchor_dstate/` (4
+  K's at d=128, per-seed cell JSONs + `fit_cliff_curve_d128_results.json`
+  for the degenerate-fit disclosure). Derivation:
+  `KEY_ANCHORING_DESIGN.md` §13.0/§13.10.
+- Script (both panels, style-matched, rendered and verified round 8):
   `matrix-thinking/submissions/iclr-2027/figures/make_fig_cliff.py`.
 
 ---

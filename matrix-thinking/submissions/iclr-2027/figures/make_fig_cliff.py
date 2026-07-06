@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
-"""Fig. cliff: the located capacity-cliff transition (candidate (d), d_state=64).
+"""Fig. cliff: the located capacity-cliff transition (candidate (d)),
+now a TWO-PANEL figure -- left: d_state=64 (the located cliff, unchanged
+from the 2026-07-06 localization wave); right: d_state=128 (the SAME K/d
+window, 2026-07-06 cliff-universality wave) -- the cliff DISSOLVES with
+dimension: h4=1.0 flat across the entire measured window, no transition
+to locate.
 
 Standalone companion to `make_figures_v2.py` (style-matched, same conventions
 -- fonts, colorblind-safe palette, savefig helper, "no fabricated numbers"
-discipline) for the 2026-07-06 cliff-localization wave. Kept as its own
-script rather than folded into `make_figures_v2.py`'s REQUIRED_PATHS list
-because it reads a different archive tree
-(`experiment-runs/2026-07-06_keyanchor_cliff/`) and is a strict *addition* to
-the existing 11-figure set (fig11_capacity_curve.py's 3-point plot is
-untouched) -- this figure supersedes fig11 as the headline capacity-law
-figure once the paper is edited to cite it (NARRATIVE.md round 6, PAPER_
-SPRINT_PLAN.md fig:cliff row).
+discipline). Kept as its own script rather than folded into
+`make_figures_v2.py`'s REQUIRED_PATHS list because it reads different
+archive trees (`experiment-runs/2026-07-06_keyanchor_cliff/` for the left
+panel, `experiment-runs/2026-07-06_keyanchor_dstate/` for the right panel)
+and is a strict *addition* to the existing 11-figure set
+(fig11_capacity_curve.py's 3-point plot is untouched) -- this figure
+supersedes fig11 as the headline capacity-law figure once the paper is
+edited to cite it (NARRATIVE.md round 6/8, PAPER_SPRINT_PLAN.md fig:cliff
+row).
 
 Run from anywhere with a venv containing numpy/scipy/matplotlib:
     /path/to/figvenv/bin/python matrix-thinking/submissions/iclr-2027/figures/make_fig_cliff.py
 
-Data provenance (every number traced to an archived file, never hand-typed):
+Data provenance, LEFT PANEL (d_state=64, every number traced to an
+archived file, never hand-typed):
   - 4 NEW points (K=34/38/42/46): per-seed h4 read directly from
     `experiment-runs/2026-07-06_keyanchor_cliff/results/deltanet_rd_exactness/
     wavekeyanchor-cliff/wkeyanchor-k48_rdx_K{K}_armd_s*_geo3n20_anchor_
@@ -40,6 +47,22 @@ Data provenance (every number traced to an archived file, never hand-typed):
     verified against KEY_ANCHORING_DESIGN.md sec 12.9 before writing this
     script: x0=0.5455 (CI [0.5385,0.5513]), w=0.0597 (CI [0.0557,0.0642]),
     L=1.003.
+
+Data provenance, RIGHT PANEL (d_state=128, 2026-07-06 cliff-universality
+wave, same K/d window as the left panel, K=68/76/84/92):
+  - 4 points, each with its own per-seed array, per-seed h4 read directly
+    from `experiment-runs/2026-07-06_keyanchor_dstate/results/
+    wavekeyanchor-dstate/wkeyanchor-k48_rdx_K{K}_armd_s*_geo3n20_anchor_
+    learned_dprobe_rev7_d128.json`, same field convention as the left panel.
+  - No archived flanking anchors at d=128 (anchor-free 4-point fit, per
+    KEY_ANCHORING_DESIGN.md sec 13.3 item 8 / sec 13.9 finding F5).
+  - Fit result (degenerate by construction on flat-at-ceiling data --
+    plotted honestly as "no locatable transition", never as a spurious
+    sigmoid curve): `experiment-runs/2026-07-06_keyanchor_dstate/
+    fit_cliff_curve_d128_results.json` (`bootstrap_ci.degenerate_frac`
+    == 1.0). Numbers verified against KEY_ANCHORING_DESIGN.md sec 13.10
+    before writing this script: h4 = [1.0, 1.0, 1.0, 1.0] at K/d =
+    [0.53125, 0.59375, 0.65625, 0.71875].
 
 Where NARRATIVE.md/KEY_ANCHORING_DESIGN.md quote a number, it is used ONLY
 as a post-hoc sanity check (assertions below) -- never as a value fed
@@ -75,7 +98,12 @@ CLIFF_CELLS_DIR = os.path.join(
 KEYANCHOR_MECH_DIR = os.path.join(EXPRUNS, "2026-07-06_keyanchor_mech", "wavekeyanchor-mech")
 KEYANCHOR_K48_DIR = os.path.join(EXPRUNS, "2026-07-07_keyanchor_k48", "wavekeyanchor-k48")
 
-REQUIRED_PATHS = [CLIFF_RESULTS, CLIFF_CELLS_DIR, KEYANCHOR_MECH_DIR, KEYANCHOR_K48_DIR]
+DSTATE_DIR = os.path.join(EXPRUNS, "2026-07-06_keyanchor_dstate")
+DSTATE_RESULTS = os.path.join(DSTATE_DIR, "fit_cliff_curve_d128_results.json")
+DSTATE_CELLS_DIR = os.path.join(DSTATE_DIR, "results", "wavekeyanchor-dstate")
+
+REQUIRED_PATHS = [CLIFF_RESULTS, CLIFF_CELLS_DIR, KEYANCHOR_MECH_DIR, KEYANCHOR_K48_DIR,
+                  DSTATE_RESULTS, DSTATE_CELLS_DIR]
 for p in REQUIRED_PATHS:
     if not os.path.exists(p):
         raise FileNotFoundError(
@@ -83,7 +111,8 @@ for p in REQUIRED_PATHS:
             "only plots real archived runs -- it does not fabricate data."
         )
 
-D_STATE = 64  # this wave's fixed d_state (KEY_ANCHORING_DESIGN.md sec 12.2/12.9)
+D_STATE = 64        # left panel's fixed d_state (KEY_ANCHORING_DESIGN.md sec 12.2/12.9)
+D_STATE_R = 128      # right panel's fixed d_state (KEY_ANCHORING_DESIGN.md sec 13.2/13.10)
 
 # ---------------------------------------------------------------------------
 # Colorblind-safe palette (Okabe & Ito, 2008) -- identical to make_figures_v2.py
@@ -148,7 +177,9 @@ def sigmoid(x, L, x0, w):
     return L / (1.0 + np.exp((x - x0) / w))
 
 
-def main():
+def build_left_panel_data():
+    """d_state=64: the located cliff. Unchanged from the 2026-07-06
+    localization wave's own script logic."""
     fit = jload(CLIFF_RESULTS)
 
     # --- 3 archived anchor points, each with its own per-seed array ---
@@ -215,65 +246,151 @@ def main():
     assert abs(w - 0.0597) < 1e-3, w
     assert abs(x0_lo - 0.5385) < 1e-3 and abs(x0_hi - 0.5513) < 1e-3, (x0_lo, x0_hi)
 
+    return points, xs_kd, means, (L, x0, w, x0_lo, x0_hi)
+
+
+def build_right_panel_data():
+    """d_state=128: the SAME K/d window (2026-07-06 cliff-universality
+    wave). No cliff to fit -- the sigmoid is degenerate by construction on
+    flat-at-ceiling data, per KEY_ANCHORING_DESIGN.md sec 13.10's disclosure.
+    Only h4=1.0 across all 4 K's is plotted as a located result; the
+    degenerate point estimate is never drawn as if it were a real curve."""
+    fit = jload(DSTATE_RESULTS)
+
+    new_Ks = [68, 76, 84, 92]
+    new_h4 = {}
+    for K in new_Ks:
+        vals = h4_vals(
+            DSTATE_CELLS_DIR,
+            f"wkeyanchor-k48_rdx_K{K}_armd_s*_geo3n20_anchor_learned_dprobe_rev7_d128.json")
+        assert len(vals) == 3, f"expected 3 seeds at K={K}, got {len(vals)}"
+        new_h4[K] = vals
+
+    points = [(K, new_h4[K], f"K{K} (this wave)", False) for K in new_Ks]
+    xs_kd = [K / D_STATE_R for K, _, _, _ in points]
+    means = [float(np.mean(vals)) for _, vals, _, _ in points]
+
+    # Sanity-check against fit_cliff_curve_d128_results.json's own curve_points
+    # -- post-hoc verification only, never fed directly to the plot.
+    fit_x = fit["curve_points"]["x"]
+    fit_h4 = fit["curve_points"]["h4"]
+    fit_by_x = dict(zip(fit_x, fit_h4))
+    for x, m in zip(xs_kd, means):
+        assert abs(x - fit_x[fit_x.index(min(fit_x, key=lambda v: abs(v - x)))]) < 1e-6
+        assert abs(m - fit_by_x[min(fit_by_x, key=lambda v: abs(v - x))]) < 1e-3, (x, m)
+    assert all(abs(m - 1.0) < 1e-6 for m in means), means
+    degenerate_frac = fit["bootstrap_ci"]["degenerate_frac"]
+    assert degenerate_frac == 1.0, degenerate_frac
+
+    return points, xs_kd, means, degenerate_frac
+
+
+def main():
+    left_points, left_xs, left_means, (L, x0, w, x0_lo, x0_hi) = build_left_panel_data()
+    right_points, right_xs, right_means, degenerate_frac = build_right_panel_data()
+
     xs_smooth = np.linspace(0.20, 0.80, 400)
     ys_smooth = sigmoid(xs_smooth, L, x0, w)
 
     # ---------------------------------------------------------------------
-    # Plot
+    # Plot -- two panels, side by side, shared y-axis and x-axis convention
+    # (K/d_state), style-matched to the original single-panel figure.
     # ---------------------------------------------------------------------
-    fig, ax = plt.subplots(1, 1, figsize=(5.4, 3.8))
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(10.2, 3.8), sharey=True)
 
-    # x0 CI band (shaded vertical strip)
-    ax.axvspan(x0_lo, x0_hi, color=C_PURPLE, alpha=0.18, zorder=1,
-               label=f"95% CI on $x_0$ [{x0_lo:.4f}, {x0_hi:.4f}]")
-    ax.axvline(x0, color=C_PURPLE, linestyle="--", linewidth=1.2, zorder=2,
-               label=f"fitted $x_0{{=}}{x0:.4f}$")
+    # ---- LEFT PANEL: d_state=64, the located cliff (unchanged content) ----
+    axL.axvspan(x0_lo, x0_hi, color=C_PURPLE, alpha=0.18, zorder=1,
+                label=f"95% CI on $x_0$ [{x0_lo:.4f}, {x0_hi:.4f}]")
+    axL.axvline(x0, color=C_PURPLE, linestyle="--", linewidth=1.2, zorder=2,
+                label=f"fitted $x_0{{=}}{x0:.4f}$")
+    axL.plot(xs_smooth, ys_smooth, color=C_BLUE, linewidth=1.6, zorder=3,
+             label=rf"sigmoid fit ($w{{=}}{w:.4f}$)")
 
-    # fitted sigmoid curve
-    ax.plot(xs_smooth, ys_smooth, color=C_BLUE, linewidth=1.6, zorder=3,
-            label=rf"sigmoid fit ($w{{=}}{w:.4f}$)")
-
-    # per-seed scatter + per-K means, archived anchors vs. this-wave points
-    # visually distinguished by marker/color.
-    for x, (K, vals, label, is_anchor), mean_v in zip(xs_kd, points, means):
+    for x, (K, vals, label, is_anchor), mean_v in zip(left_xs, left_points, left_means):
         color = C_GREY if is_anchor else C_VERMILLION
         marker = "s" if is_anchor else "o"
         if len(vals) > 1:
-            ax.scatter([x] * len(vals), vals, color=color, s=20, zorder=4,
-                       edgecolor=C_BLACK, linewidth=0.4, marker=marker, alpha=0.85)
-        ax.scatter([x], [mean_v], color=color, s=64, zorder=5, marker=marker,
-                   edgecolor=C_BLACK, linewidth=0.8)
+            axL.scatter([x] * len(vals), vals, color=color, s=20, zorder=4,
+                        edgecolor=C_BLACK, linewidth=0.4, marker=marker, alpha=0.85)
+        axL.scatter([x], [mean_v], color=color, s=64, zorder=5, marker=marker,
+                    edgecolor=C_BLACK, linewidth=0.8)
 
-    # legend proxies for archived-anchor vs. this-wave marker distinction
-    ax.scatter([], [], color=C_GREY, s=50, marker="s", edgecolor=C_BLACK,
-               linewidth=0.8, label="archived anchors (K16/32/48)")
-    ax.scatter([], [], color=C_VERMILLION, s=50, marker="o", edgecolor=C_BLACK,
-               linewidth=0.8, label="this wave (K34/38/42/46)")
+    axL.scatter([], [], color=C_GREY, s=50, marker="s", edgecolor=C_BLACK,
+                linewidth=0.8, label="archived anchors (K16/32/48)")
+    axL.scatter([], [], color=C_VERMILLION, s=50, marker="o", edgecolor=C_BLACK,
+                linewidth=0.8, label="this wave (K34/38/42/46)")
 
-    ax.set_xlim(0.20, 0.80)
-    ax.set_ylim(-0.05, 1.10)
-    ax.set_xlabel(r"capacity ratio $K/d_{\mathrm{state}}$")
-    ax.set_ylabel("recovered_frac@0.9 ($h{=}4$)")
-    ax.set_title(
-        "The capacity cliff, located: a measured transition point,\n"
-        rf"not a bracket ($d_{{\mathrm{{state}}}}{{=}}64$, candidate (d))",
-        fontsize=8.5)
+    axL.set_xlim(0.20, 0.80)
+    axL.set_ylim(-0.05, 1.10)
+    axL.set_xlabel(r"capacity ratio $K/d_{\mathrm{state}}$")
+    axL.set_ylabel("recovered_frac@0.9 ($h{=}4$)")
+    axL.set_title(rf"$d_{{\mathrm{{state}}}}{{=}}64$: cliff located at $x_0{{=}}{x0:.4f}$",
+                  fontsize=8.5)
 
-    # twin top axis in raw K at d=64
-    ax_top = ax.twiny()
-    ax_top.set_xlim(ax.get_xlim())
-    k_ticks_kd = [0.25, 0.375, 0.5, 0.625, 0.75]
-    ax_top.set_xticks(k_ticks_kd)
-    ax_top.set_xticklabels([str(int(round(v * D_STATE))) for v in k_ticks_kd])
-    ax_top.set_xlabel(r"$K$ (at $d_{\mathrm{state}}{=}64$)", fontsize=8)
-    ax_top.tick_params(labelsize=7.5)
+    axL_top = axL.twiny()
+    axL_top.set_xlim(axL.get_xlim())
+    k_ticks_kd_L = [0.25, 0.375, 0.5, 0.625, 0.75]
+    axL_top.set_xticks(k_ticks_kd_L)
+    axL_top.set_xticklabels([str(int(round(v * D_STATE))) for v in k_ticks_kd_L])
+    axL_top.set_xlabel(r"$K$ (at $d_{\mathrm{state}}{=}64$)", fontsize=8)
+    axL_top.tick_params(labelsize=7.5)
 
-    ax.legend(loc="upper right", frameon=True, framealpha=0.9, edgecolor="none",
-              fontsize=6.3)
+    axL.legend(loc="upper right", frameon=True, framealpha=0.9, edgecolor="none",
+               fontsize=6.3)
+
+    # ---- RIGHT PANEL: d_state=128, SAME K/d window, cliff DISSOLVES ----
+    axR.axhspan(0.995, 1.005, color=C_GREEN, alpha=0.15, zorder=1,
+                label="h4=1.0 (all 4 K's, 12/12 cells)")
+
+    for x, (K, vals, label, is_anchor), mean_v in zip(right_xs, right_points, right_means):
+        axR.scatter([x] * len(vals), vals, color=C_GREEN, s=20, zorder=4,
+                    edgecolor=C_BLACK, linewidth=0.4, marker="o", alpha=0.85)
+        axR.scatter([x], [mean_v], color=C_GREEN, s=64, zorder=5, marker="o",
+                    edgecolor=C_BLACK, linewidth=0.8)
+
+    axR.scatter([], [], color=C_GREEN, s=50, marker="o", edgecolor=C_BLACK,
+                linewidth=0.8, label="this wave (K68/76/84/92)")
+
+    # Note the degenerate fit honestly: no sigmoid curve is drawn (there is
+    # no transition in this window to fit); a text annotation states the
+    # disclosure explicitly rather than silently omitting it.
+    axR.text(0.5, 0.5,
+              f"sigmoid fit: DEGENERATE\n(bootstrap degenerate_frac"
+              f"$={degenerate_frac:.1f}$)\nno transition in this window",
+              transform=axR.transAxes, ha="center", va="center", fontsize=7,
+              color=C_GREY, style="italic",
+              bbox=dict(boxstyle="round", facecolor="white", edgecolor=C_GREY, alpha=0.7))
+
+    axR.set_xlim(0.20, 0.80)
+    axR.set_ylim(-0.05, 1.10)
+    axR.set_xlabel(r"capacity ratio $K/d_{\mathrm{state}}$")
+    axR.set_title(rf"$d_{{\mathrm{{state}}}}{{=}}128$: SAME window, NO cliff"
+                  "\n(h4=1.0 flat -- transition left the window)",
+                  fontsize=8.5)
+
+    axR_top = axR.twiny()
+    axR_top.set_xlim(axR.get_xlim())
+    # Show this panel's own actually-measured K's at d=128, at the same
+    # K/d tick positions as the left panel's twin axis for visual alignment.
+    k_ticks_kd_R = [K / D_STATE_R for K in (68, 76, 84, 92)]
+    axR_top.set_xticks(k_ticks_kd_R)
+    axR_top.set_xticklabels([str(K) for K in (68, 76, 84, 92)])
+    axR_top.set_xlabel(r"$K$ (at $d_{\mathrm{state}}{=}128$)", fontsize=8)
+    axR_top.tick_params(labelsize=7.5)
+
+    axR.legend(loc="lower left", frameon=True, framealpha=0.9, edgecolor="none",
+               fontsize=6.3)
+
+    fig.suptitle(
+        "The capacity cliff is dimension-dependent: located at "
+        r"$d_{\mathrm{state}}{=}64$, dissolved by $d_{\mathrm{state}}{=}128$"
+        " (same $K/d$ window, candidate (d))",
+        fontsize=9.5, y=1.02)
     fig.tight_layout()
     savefig(fig, "fig_cliff")
 
 
 if __name__ == "__main__":
     main()
-    print("fig_cliff regenerated from archived JSONs.")
+    print("fig_cliff regenerated from archived JSONs (two panels: d=64 located cliff, "
+          "d=128 dissolved cliff).")
