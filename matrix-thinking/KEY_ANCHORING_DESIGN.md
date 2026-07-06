@@ -3871,7 +3871,12 @@ wave, fresh seeds: **0.6669** (0.6741/0.7125/0.6141, §10.13.1). Both
 frozen arms land **at or above** that range: e-fp (0.7413 mean) and e
 (0.7274 mean) both exceed (d)'s own mean, and every individual e/e-fp
 seed (0.6663–0.7619) falls inside or above (d)'s own seed-to-seed spread
-(0.6141–0.7141) — **no seed of either frozen arm falls below (d)'s own
+(0.6141–0.7125, the range of (d)'s own 3 fresh seeds {0.6741, 0.7125,
+0.6141}) — corrected at Rev 14.3; the prior text here read "0.6141–0.7141,"
+conflating (d)'s own max (0.7125) with candidate (d′)'s max (0.7141, a
+DIFFERENT arm — candidate (d′)'s own fresh seeds {20,21,22} =
+0.7021/0.6661/0.7141, §10.13.4) —
+**no seed of either frozen arm falls below (d)'s own
 minimum.** Per §10.13.4's registered joint outcome map:
 
 > "e-fp≈(d) with e-random collapsing ⇒ bulk geometry is the carrier; both≈(d) ⇒ constancy alone suffices; both collapsing toward geo3-alone ⇒ the *learned* table matters beyond both construction properties."
@@ -3886,7 +3891,8 @@ perform indistinguishably from (or slightly better than) the fully
 structure) is not the carrier — if it were, arm e would have collapsed
 relative to e-fp, and it did not (e's mean is actually marginally lower
 than e-fp's, 0.7274 vs. 0.7413, but well within the same range candidate
-(d)'s own 3 seeds span, 0.6141–0.7141 — not a separating gap).
+(d)'s own 3 seeds span, 0.6141–0.7125 (corrected at Rev 14.3, see
+§10.14.2's own correction note above — not a separating gap).
 
 **The r_e negative control — verified, and it has teeth.** This wave
 doubles as a built-in negative control for the `r_e` instrument itself:
@@ -8233,3 +8239,1291 @@ occurred, not smoothed over:**
 Full archive: `experiment-runs/2026-07-06_keyanchor_dstate/` (repo,
 ≤25MB/file) and its SSD mirror
 `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-06_keyanchor_dstate/`.
+
+## 14. Table coherence vs. raw K/d capacity — Rev 14.2 (RE-RESTRUCTURED
+around FROZEN dosed tables + a diffuse co-primary arm, after round-2 attack
+found the Rev 14.1 learned-table design FATAL-as-specified; design-only;
+DRAFT, pending its own round-3 attack — zero GPU spent producing this
+section)
+
+**This wave exists because of one sentence in §13.10:** at d=64 (n_entities
+=107 > d_state=64, table forced non-orthogonal by the Welch bound, measured
+`max|cos|=0.2842`) the h4 cliff sits at `x0=0.5455` in the same K/d window
+where, at d=128 (n_entities=107 < d_state=128, table measured EXACTLY
+orthogonal AT INIT, `max|cos|=0.000000`), h4=1.0 flat at every K tested —
+**the cliff did not shift, it vanished.** §13.10's own text names two live
+accounts and states plainly it "cannot confirm alone" which is true, because
+d=64→128 moved three things at once (state size, optimization dynamics,
+table coherence). This wave holds `d_state=128`, `n_entities=107`, and the
+K-grid **fixed at the exact geometry that measured h4=1.0 with an
+at-init-orthogonal table (§13.10)**, and injects CONTROLLED COHERENCE
+directly into the anchor table's own geometry, sweeping the injected dose.
+
+**REV 14.2 STRUCTURAL CHANGE, stated up front — the round-2 attack's own
+verdict was KILL-AS-SPECIFIED, REVISE-THEN-PROCEED via 5 scoped fixes, all
+applied below:**
+
+1. **[F1 FATAL, fixed] The Rev 14.1 design's "0.000/0.130/0.284/0.40" dose
+   labels were never actually HELD at those values during training** — the
+   learned anchor table drifts from its exact-orthogonal (or exact-dosed)
+   init toward `max|cos|≈0.13–0.20` by step 2000 and plateaus there for the
+   REST of the 20,000-step run, **CPU-verified this session directly from
+   the archived §13.10 JSONs** (below). A dose-response design whose doses
+   are not held constant across training is not measuring dose-response at
+   all — it is measuring "whatever coherence SGD happens to drift the
+   table to," which the §13.10 archive shows converges to roughly the SAME
+   0.13–0.20 band **regardless of the nominal starting dose**, since even
+   the exact-zero-init cells drift there. **Fix: every primary-arm table in
+   this wave is now FROZEN at construction (`anchor_table_frozen=True`,
+   §14.1 below) — the dose is pinned exactly for all 20,000 steps, closing
+   the drift confound outright, not by re-measuring drift more carefully
+   but by making drift structurally impossible.** This is licensed directly
+   by §10.14's own CONFIRMED-BY-ABLATION verdict (candidate (e)/(e-fp),
+   2026-07-07): a frozen, never-trained anchor table (arm e: `mean=0.7274`,
+   range 0.6663–0.7619; arm e-fp: `mean=0.7413`, range 0.7123–0.7603)
+   matches or exceeds the fully learned table (candidate (d): `mean=0.6669`,
+   range 0.6141–0.7125, corrected at Rev 14.3 — §10.14.2's own text
+   previously read 0.7141, conflating (d)'s own max with candidate (d′)'s)
+   at K=32 — "constancy alone suffices," the table's
+   *learned content* contributes nothing measurable (§10.14.3 item 2).
+   Freezing the table is therefore NOT a semantics-breaking change to what
+   this program's own anchor mechanism is claimed to do; it is the
+   already-validated deployable form of it.
+2. **[F2 FATAL, fixed] Build gaps that would silently break the wave even
+   if launched** — registered as explicit, acceptance-criteria-bearing
+   build tasks (§14.1b), not asserted as already done. Verified this
+   session by direct code read: `model_rd.py`'s `anchor_table_init_mode`
+   currently `assert`s only `("frame_potential", "random_unit_rows")`
+   (line 837–839) — there is NO path today to hand the model a
+   pre-built, externally-dosed table, and `_spec()`
+   (`run_deltanet_rd_exactness_sweep.py` lines 89–155) carries no
+   dose/subspace-seed/achieved-coherence field in either the filename bits
+   or the returned identity dict, and `is_done()` (lines 2227–2325) checks
+   `anchor_table_frozen`/`anchor_table_init_mode` for resume-identity but
+   nothing dose-specific — meaning **three different dosed cells at the
+   same K/seed would silently collide and resume-match each other**,
+   a guaranteed false-positive "already done" the moment two dose points
+   share a K/seed pair. Fully specified below (§14.1b).
+3. **[M1, fixed] Diffuse/full-rank injection promoted to CO-PRIMARY**, not
+   deferred — §14.1's own Rev 14.1 disclosure already named the rank-4
+   vs. diffuse structural mismatch as its "largest remaining
+   construction-difference axis" and the round-2 attack's own top
+   question; a design that calls its own headline result "the strongest
+   possible EXONERATE" while only testing ONE of two structurally distinct
+   coherence kinds is internally contradictory. Fixed by adding a
+   diffuse (`subspace_rank=48`, the maximum-achievable-diffuseness rank
+   per Rev 14.3's rank scan — NOT `subspace_rank=d_state`, which Rev 14.3
+   found degenerate, §14.1) injection arm, same dose targets,
+   same K=68, 3 seeds, run alongside the rank-4 arm as co-primary — the
+   EXONERATE/CONFIRM language is now explicitly conditioned on BOTH
+   structures (§14.0).
+4. **[M2, fixed] The numeric h4 prediction table softened** to a labeled
+   illustrative expectation, not a claimed quantitative bar — the
+   CONFIRM/EXONERATE call keys off monotone-decline-vs-flat, never a
+   propagated-CI numeric target (§14.2b).
+5. **[M3, fixed] A mechanical K=84 activation rule** — a numeric trigger
+   (adjacent-dose gap vs. non-adjacent-dose gap), not a post-hoc
+   "ambiguous enough" judgment call (§14.4c).
+
+**Why this is a stronger design than raising n (the demoted §14.7
+approach), unchanged from Rev 14.1:** the original n=149 design changed TWO
+things at once relative to the §13.10 baseline — coherence (via the Welch
+floor) AND the number of distinct entities the model must represent through
+the same `d_state=128` recurrent state (§14.7's own retained confound
+disclosure, below). The dose-response design changes ONLY the anchor
+table's own row geometry, and — as of Rev 14.2 — holds that geometry FIXED
+for the entire run rather than letting it drift.
+
+### 14.0 Hypothesis and pre-registered outcomes (Rev 14.2: frozen dose,
+co-primary structures)
+
+**One-sentence hypothesis:** the d=64 cliff (and its disappearance at
+d=128) tracks **anchor-table coherence** (`max|cos|` among the table's
+rows, held CONSTANT across training), not raw K/d state capacity — so
+injecting controlled, non-zero, FROZEN coherence directly into the
+ALREADY-MEASURED n=107/d=128 table (holding `d_state`, `n_entities`, and
+the K-grid fixed at exactly the values that measured flat h4=1.0 in
+§13.10) and sweeping the injected dose should reintroduce a cliff at
+higher doses, tracking the dose monotonically, if coherence is a real
+driver — versus staying flat at h4=1.0 regardless of dose if it is not.
+**Tested under BOTH a rank-4 (concentrated) and a diffuse
+(`subspace_rank=48` — REVISED at Rev 14.3; "full-rank"/`subspace_rank=
+d_state` was found mathematically degenerate, a no-op dial at any blend
+strength, and is NOT used anywhere in this design, §14.1) injection
+structure, co-primary, since a result under only one structure
+cannot distinguish "coherence-as-scalar drives the cliff" from
+"coherence-of-this-particular-structural-kind drives the cliff."**
+
+**Pre-registered outcomes, stated before any dosed cell runs:**
+
+1. **DOSE-RESPONSE CONFIRMED (supports coherence account, strong form):**
+   h4 declines monotonically (or with only within-seed-noise-sized
+   non-monotonicity) as the injected dose rises across the four registered
+   points (0.000 → ~0.130 → ~0.284 → ~0.40), at K=68, **in BOTH the rank-4
+   and the diffuse arm**, with the decline exceeding the seed-to-seed
+   spread measured at each dose. This is the CONFIRM branch.
+2. **PARTIAL / THRESHOLD-LIKE RESPONSE (supports coherence account, weaker
+   form, still informative):** h4 stays at 1.0 for the lower dose(s) and
+   drops only at the highest dose(s) tested, in one or both structures — a
+   real effect, but not graded across the whole registered range. Still
+   routes to CONFIRM (dose matters), qualified as threshold-like.
+3. **STRUCTURE-DEPENDENT RESPONSE (new at Rev 14.2, not available under
+   the single-structure Rev 14.1 design):** one structure (e.g. rank-4)
+   shows a monotone or threshold decline while the other (diffuse) stays
+   flat at h4=1.0 across all doses, or vice versa. This is its OWN
+   reportable outcome, not folded into CONFIRM or EXONERATE — it means
+   coherence-as-a-scalar (`max|cos|`) is NOT sufficient on its own;
+   structural KIND matters. This outcome directly answers round-2 attack
+   question 1 (§14.10 of Rev 14.1) and is why M1 promotes diffuse to
+   co-primary rather than a deferred follow-on.
+4. **NO-DOSE-RESPONSE (exonerates coherence, or at least both
+   operationalizations of it tested here):** h4 stays at 1.0 across ALL
+   FOUR doses (including the highest, ~0.40 — a dose ABOVE d=64's own
+   realized coherence, §14.1's own arithmetic), at K=68, **in BOTH
+   structures**, despite Gate-2 G2-b verifying the doses were actually
+   achieved AND held (nonzero, within ±10% of target, AND confirmed
+   constant at every recorded checkpoint per the frozen-table assertion,
+   §14.1). This is the strongest possible EXONERATE result this design can
+   produce — stronger than Rev 14.1's own single-structure EXONERATE,
+   since it now also rules out "the injection was the wrong KIND of
+   coherence" as an escape hatch. **A EXONERATE call requires BOTH
+   structures to be flat — a single-structure flat result routes to
+   outcome 3 (structure-dependent), not EXONERATE**, correcting the Rev
+   14.1 text's internal contradiction the round-2 attack flagged.
+5. **Degenerate/inconclusive case, stated explicitly (§12.4 item 3's rule,
+   reused verbatim):** if a formal dose-response fit is attempted (a BONUS
+   deliverable, not primary) and its bootstrap degenerate fraction exceeds
+   10%, the CI is reported with that caveat; the CONFIRM/EXONERATE/
+   STRUCTURE-DEPENDENT call is never blocked by it.
+
+**What CAN be stated quantitatively now (unchanged from Rev 14.1, frame-
+potential minimizers do not land ON the Welch floor):** CPU-verified this
+session (`frame_potential_init`, `ANCHOR_INIT_SEED`, 5-seed sweep):
+
+| (n, d) | Welch floor | realized max\|cos\| (mean, 5 seeds) | ratio (realized/floor) |
+|---|---|---|---|
+| 107, 64 | 0.079614 | 0.305 (range 0.278–0.326) | ≈3.8× |
+| 149, 128 | 0.033295 | 0.119 (range 0.113–0.125) | ≈3.6× |
+| 200, 128 | 0.053166 | 0.216 (range 0.200–0.224) | ≈4.1× |
+
+At the registered `ANCHOR_INIT_SEED=20260705` construction seed: 107/64 →
+0.284151, 149/128 → 0.120882, 200/128 → 0.221877 — all typical draws. **The
+n=149 dose (0.121–0.130) is ≈2.2× BELOW d=64's own realized coherence
+(0.278–0.326), not the ~8.5× gap a naive floor-to-floor comparison would
+suggest.** This is why the dose grid includes a d=64-MATCHED point
+(~0.284) as its own headline comparison.
+
+### 14.0b MEASURED THIS SESSION — final-checkpoint coherence, both
+archives (the F1 fix's own evidentiary basis, CPU-pulled directly from the
+archived JSONs, not projected)
+
+**d=128, §13.10's "exactly-orthogonal" zero-dose cells — `item6_table_
+conditioning.max_abs_cos`, step 2000 vs. step 20000 (final), all 12
+archived cells, `experiment-runs/2026-07-06_keyanchor_dstate/results/
+wavekeyanchor-dstate/*.json`:**
+
+| K | seed | step 2000 | step 20000 (final) |
+|---|---|---|---|
+| 68 | 530 | 0.1722 | 0.1850 |
+| 68 | 531 | 0.1832 | 0.1270 |
+| 68 | 532 | 0.1918 | 0.1384 |
+| 76 | 630 | 0.1561 | 0.1717 |
+| 76 | 631 | 0.1496 | 0.1621 |
+| 76 | 632 | 0.1596 | 0.1992 |
+| 84 | 730 | 0.1368 | 0.1452 |
+| 84 | 731 | 0.1474 | 0.1604 |
+| 84 | 732 | 0.1740 | 0.2023 |
+| 92 | 830 | 0.1371 | 0.1946 |
+| 92 | 831 | 0.1811 | 0.1615 |
+| 92 | 832 | 0.1291 | 0.1637 |
+
+**Per-K means, final checkpoint:** K=68 → **0.1501** (range 0.1270–0.1850);
+K=76 → **0.1777** (range 0.1621–0.1992); K=84 → **0.1693** (range
+0.1452–0.2023); K=92 → **0.1733** (range 0.1615–0.1946). **h4 at final
+checkpoint is exactly 1.0 for all 12 cells, no exception** (re-pulled this
+session from `M3_held_out["4"].recovered_frac@0.9`, cross-checked against
+§13.10's own already-published `curve_points.h4 = [1.0, 1.0, 1.0, 1.0]`).
+
+**The scientific nugget this drift measurement surfaces, stated plainly:**
+these cells sat at final-checkpoint coherence **≈0.13–0.20 WITH h4=1.0
+exactly** — i.e., a table with non-trivial, non-zero coherence in almost
+exactly the range Rev 14.1's own "~0.130 (n149-equivalent)" dose point
+targets **produced no cliff at all** under the learned (drifting)
+construction. This is already a low-dose null datum, honestly reported as
+"learned-control, drifted" — it is suggestive that ~0.13–0.20 coherence,
+by itself, under the ORIGINAL (non-frozen) training dynamics, is
+insufficient to reproduce d=64's cliff. It is NOT dispositive for the
+FROZEN-table primary arms below, because (a) it confounds coherence with
+"coherence arrived at via drift, not held from step 0," which is exactly
+the ambiguity Rev 14.2 exists to remove, and (b) it says nothing about
+whether the same ~0.13–0.20 band, held frozen and exact for the full run,
+behaves differently. It is registered here as a reference point, not as an
+answer.
+
+**d=64 cliff archive — final-checkpoint coherence, per K, `experiment-runs/
+2026-07-06_keyanchor_cliff/results/deltanet_rd_exactness/
+wavekeyanchor-cliff/*.json` (init/step-2000 vs. final, all 12 cells):**
+
+| K | seed | step 2000 | step 20000 (final) |
+|---|---|---|---|
+| 34 | 130 | 0.3625 | 0.4244 |
+| 34 | 131 | 0.3809 | 0.3734 |
+| 34 | 132 | 0.3447 | 0.3558 |
+| 38 | 230 | 0.3404 | 0.3944 |
+| 38 | 231 | 0.3268 | 0.3533 |
+| 38 | 232 | 0.3370 | 0.3894 |
+| 42 | 330 | 0.3978 | 0.3735 |
+| 42 | 331 | 0.3683 | 0.3899 |
+| 42 | 332 | 0.3487 | 0.3733 |
+| 46 | 430 | 0.3182 | 0.3363 |
+| 46 | 431 | 0.3089 | 0.3968 |
+| 46 | 432 | 0.3741 | 0.3863 |
+
+**Per-K means, final checkpoint, WITH h4 (`M3_held_out["4"].recovered_
+frac@0.9`, re-pulled this session, cross-validated exactly against §12.9's
+own already-published 6-point curve — K34=0.5676, K42=0.1177 match to 4
+decimal places). NOTE the "range" columns below are RANGE-OF-3-SEEDS
+WITHIN EACH K ROW, not a range across K's — labeled explicitly at Rev
+14.3 (MINOR fix) to prevent conflating the two different "range" senses
+this section uses:**
+
+| K | K/d | mean coh (final, 3 seeds) | range-of-seeds (this K) | mean h4 (final, 3 seeds) | range-of-seeds (this K) |
+|---|---|---|---|---|---|
+| 34 | 0.53125 | **0.3845** | 0.3558–0.4244 | **0.5676** | 0.5068–0.6019 |
+| 38 | 0.59375 | **0.3790** | 0.3533–0.3944 | **0.3316** | 0.3219–0.3399 |
+| 42 | 0.65625 | **0.3789** | 0.3733–0.3899 | **0.1177** | 0.1095–0.1227 |
+| 46 | 0.71875 | **0.3731** | 0.3363–0.3968 | **0.0434** | 0.0428–0.0441 |
+
+**A SECOND, DIFFERENT range is used in this section's own prose below —
+labeled explicitly at Rev 14.3 (MINOR fix) to distinguish it from the
+per-K seed ranges in the table just above:** the FOUR per-K MEANS
+themselves (0.3845, 0.3790, 0.3789, 0.3731) span **0.3731–0.3845** — this
+is a RANGE-OF-K-MEANS, a narrower and different quantity than any single
+K's own range-of-seeds (e.g. K=34 alone spans 0.3558–0.4244 across its 3
+seeds, a wider band than the cross-K mean range). **Re-axis, as required
+by the round-2 attack:** d=64's own tables also drift AWAY from their
+0.284 init, landing at a RANGE-OF-K-MEANS of **0.373–0.385** by the final
+checkpoint (i.e. the range-of-K-means quantity just defined, NOT a
+range-of-seeds — the widest single-K seed range, K=34's 0.3558–0.4244,
+is wider still) — meaningfully ABOVE the 0.284 "d64-matched" dose point Rev
+14.1 registered as its own headline comparison target. **The honest dose
+axis is therefore TRAINED-EFFECTIVE coherence, and the d=64 reference
+points now carry their MEASURED FINAL range-of-K-means (≈0.373–0.385), not
+their init value (0.284), when this wave's own frozen ~0.284 arm is compared
+against "what d=64 actually ended up at."** This does not change the
+dose-grid's construction (the frozen tables are still pinned at their
+calibrated targets, including the 0.284 point, by design) — it changes
+what the 0.284 frozen arm should be read AS a comparator FOR: it is now
+better understood as sitting slightly BELOW d=64's own realized
+(post-drift) coherence, not exactly matched to it, and the ~0.40
+super-d64 point remains the only frozen dose that unambiguously exceeds
+d=64's own final-checkpoint band at every K tested.
+
+**Pre-registered read rule (new at Rev 14.2, closing the F1 gap for
+good):** every new cell in this wave — frozen or not, rank-4 or diffuse —
+records `item6_table_conditioning.max_abs_cos` at EVERY checkpoint
+(free instrumentation, already computed by the existing Gate-2 machinery,
+no new build cost). For the FROZEN primary arms, the read rule is: **if
+any checkpoint's `max_abs_cos` deviates from the cell's own target dose by
+more than the ±10% Gate-2 tolerance (§14.3), this is a CONSTRUCTION BUG,
+not a training dynamic — assert it, do not silently average over it.** A
+frozen table's `max|cos|` must be IDENTICAL (to floating-point
+reproducibility) at every checkpoint, since no gradient ever reaches it;
+any drift observed in a nominally-frozen cell means `anchor_table_frozen`
+failed to actually stop the gradient (a build regression, catchable by
+the exact same "did the frozen table's weight.requires_grad end up False,
+and did a real backward pass leave it unchanged" smoke test §10.14 already
+used for candidate (e)). If the comparison axis is compromised for any
+other reason (e.g. a dose target not achieved within tolerance at
+construction time), that is likewise stated plainly, not smoothed over.
+
+### 14.1 The injection mechanism — a coherence dose dial, built and
+CPU-verified this session (rank-4 AND diffuse variants) — REVISED Rev 14.3
+(round-3 verify FATAL: the diffuse dial as specified at `subspace_rank=
+d_state` is mathematically degenerate; see the boxed correction immediately
+below the mechanism, and §14.9's Rev 14.3 log entry for the full finding)
+
+**Mechanism, generalizing `key_anchoring.py`'s own
+`build_localized_collapse_table` (lines 279–297, read in full this
+session):** that function's own primitive — replant `n_collapsed` of a
+healthy table's rows onto ONE shared unit direction with small noise,
+renormalize — is a BINARY (in/out) collapse applied to a SUBSET of rows.
+Generalizing it to a continuous dose dial requires two changes, both
+applied uniformly to EVERY row, both verified against the existing
+function's own conventions:
+
+```python
+def build_dose_table(healthy_table, t, subspace_rank=4, subspace_seed=0):
+    """Blend EVERY row of healthy_table toward a shared low-rank random
+    subspace at strength t in [0,1], renormalize. t=0 -> healthy_table
+    unchanged (rows already unit-norm, renormalize is a no-op). t=1 ->
+    every row replaced by its unit-normalized projection onto the
+    subspace (near-maximal coherence, bounded by subspace_rank).
+
+    subspace_rank=4 -> CONCENTRATED (rank-4) injection, this wave's
+    original arm.
+    subspace_rank<d_state, chosen as diffuse-as-achievable (Rev 14.3;
+    SEE THE BOXED CORRECTION BELOW — subspace_rank=d_state is a
+    DEGENERATE choice, not the diffuse arm's actual construction) -> the
+    DIFFUSE injection, Rev 14.2's co-primary arm intent: every row still
+    blends toward a fixed random rotation-subspace of itself, spreading
+    the blend across more directions than rank-4 concentrates it into,
+    without inventing a second injection primitive from scratch."""
+    n, d = healthy_table.shape
+    g = torch.Generator().manual_seed(subspace_seed)
+    Q, _ = torch.linalg.qr(torch.randn(d, subspace_rank, generator=g, dtype=torch.float64))
+    proj = healthy_table.double() @ Q @ Q.transpose(0, 1)
+    proj_unit = F.normalize(proj, dim=-1)
+    blended = (1.0 - t) * healthy_table.double() + t * proj_unit
+    return F.normalize(blended, dim=-1).float()
+```
+
+`t` is bisected (CPU, ~60–80 iterations max) against `raw_table_conditioning`'s
+own `max_abs_cos` statistic to hit a target dose, separately per structure
+(rank-4 vs. diffuse) since the two projections reach a given `max|cos|` at
+different `t` values. This is a NEW function (`build_dose_table`/
+`calibrate_dose`), to live alongside `build_localized_collapse_table` in
+`key_anchoring.py` as a sibling construction (that function is unchanged);
+it is NOT yet committed there (§14.1b item 1 remains a registered build
+task) — the numbers below come from `matrix-thinking/deltanet_rd/
+dose_dial_verify.py`, a standalone CPU-only script that reimplements this
+exact spec against the real `frame_potential_init(107, 128, seed=
+ANCHOR_INIT_SEED)` table and writes every measured number to
+`matrix-thinking/deltanet_rd/dose_dial_verify_results.json` — both files
+committed alongside this revision so every number below is re-derivable,
+not asserted.
+
+---
+
+**FATAL, found at round-3 verify, fixed here (Rev 14.3) — the diffuse dial
+as specified (`subspace_rank=d_state=128`) is mathematically degenerate,
+not diffuse:** `Q, _ = torch.linalg.qr(torch.randn(d, subspace_rank, ...))`
+at `subspace_rank=d` draws a SQUARE `(d, d)` Gaussian. QR of a square
+matrix with linearly-independent columns (true almost surely for a
+continuous random draw) yields a FULL, genuinely orthogonal `Q` — i.e.
+`Q @ Q.T == I_d` exactly (to float64 rounding: measured max deviation
+`9.992e-16`, `dose_dial_verify.py`'s `degeneracy_proof` block). Substituting
+into the mechanism: `proj = healthy_table @ Q @ Q.T = healthy_table @ I =
+healthy_table`, and since `healthy_table`'s rows are already unit-norm,
+`proj_unit = F.normalize(proj) = healthy_table` too. The blend collapses to
+`blended = (1-t)*healthy_table + t*healthy_table = healthy_table` for
+EVERY `t` — the dial does nothing, at any dose, regardless of `t`.
+**CPU-measured this session (`dose_dial_verify.py`, `degeneracy_proof`
+block): achieved `max|cos|` at `t=1`, `subspace_rank=128`, is exactly
+`0.000000` — identical to the base table's own `0.000000`, not the
+Rev 14.2 doc's claimed `0.130084`/`0.284077`/`0.400012`.** Those three
+numbers, and the "stable to <0.0004 across 5 subspace seeds," and the
+`[1.701 .. 1.673]` Gram spectrum attributed to the diffuse arm, were never
+producible by the stated mechanism at `subspace_rank=d_state` — no run of
+this code, at that rank, can produce a nonzero dose. **This is a
+fabrication, not a rounding error or a stale number; §14.9's Rev 14.3 log
+entry states this plainly.**
+
+**Root cause, mechanically:** the projector `Q @ Q^T` onto a rank-`r`
+random subspace of `R^d` has rank exactly `r`. At `r=d` the "subspace" IS
+the whole space, so the projector is the identity and every vector is
+already inside it — there is no complement to blend away from. Diffuseness
+(spreading coherence across many directions) and full-rank-ness
+(`r=d`, an identity projector) are NOT the same axis; the dial's
+diffuseness lives in choosing `r` as large as possible while still `< d`,
+not at `r=d` itself. **A CEILING falls out of this directly and is
+monotonically DECREASING in `r`:** the maximum achievable dose (at `t=1`)
+shrinks as `r` grows, because a larger-rank random subspace, while still a
+proper subset of `R^d`, is on average CLOSER (in the relevant projection
+sense, for isotropic random `Q`) to preserving an already-near-orthogonal
+table's own geometry, precisely because it has more room to "contain" the
+table's spread without concentrating it. Verified by direct scan, not
+assumed (below).
+
+**Rank scan (registered fix procedure, `dose_dial_verify.py`'s
+`rank_scan_table`, CPU-measured on the real `frame_potential_init(107, 128,
+seed=ANCHOR_INIT_SEED)` table, achieved-dose ceiling = `max|cos|` at
+`t=1`, the dial's maximum reach):**
+
+| `subspace_rank` | achieved-dose ceiling (`t=1`) | meets ≥0.42 ceiling target? |
+|---|---|---|
+| 8 | 0.926858 | yes |
+| 16 | 0.845404 | yes |
+| 32 | 0.553003 | yes |
+| **48** | **0.422673** | **yes** |
+| 64 | 0.339866 | no |
+| 96 | 0.212935 | no |
+| 128 | 0.000000 | no |
+
+(Additional informational points confirming the monotone-decreasing
+pattern continues smoothly toward `r=d`, NOT part of the mandatory
+scan grid used to select `chosen_rank` below, but — per an independent
+verifier's own flagged gap, closed the same session — now ALSO computed
+and recorded in `dose_dial_verify_results.json`'s own
+`rank_scan_informational` field, not merely asserted from an ad hoc
+re-run: `r=107 → 0.160765`, `r=120 → 0.109585`.)
+
+**Chosen diffuse rank: `subspace_rank=48`** — the MAXIMUM scanned rank
+whose ceiling is ≥0.42 (the registered selection rule: "as diffuse as
+achievable while still reaching the 0.40 dose," §14.1b's own task brief),
+ceiling `0.422673`. `subspace_rank=64` is excluded (ceiling `0.339866` <
+0.40, cannot reach the top dose point at all). This replaces every prior
+reference in this design to `subspace_rank=d_state`/`subspace_rank=128`
+for the diffuse arm.
+
+---
+
+**CPU-verified this session, rank-4 (`subspace_rank=4`), on the actual
+`frame_potential_init(107, 128, seed=ANCHOR_INIT_SEED)` table, 5 subspace
+seeds each (`dose_dial_verify.py`'s `calibration["rank4"]` block; monotonicity
+of achieved-dose-in-`t` confirmed at both structures before bisecting,
+`monotonicity_check`):**
+
+| Target dose | Calibrated `t` (seed range) | Achieved `max\|cos\|` (mean) | 5-subspace-seed spread |
+|---|---|---|---|
+| 0.000 (control) | 0.0 (exact) | 0.000000 | n/a — §13.10's own cells, reused |
+| ~0.130 | 0.15454–0.18091 | 0.130031 | 0.129952–0.130096 (spread 0.000144) |
+| ~0.284 (d64-matched, per-init) | 0.28076–0.31152 | 0.283993 | 0.283926–0.284025 (spread 0.000099) |
+| ~0.40 (super-d64) | 0.36096–0.38904 | 0.399992 | 0.399945–0.400054 (spread 0.000109) |
+
+**CPU-verified this session, diffuse (`subspace_rank=48`, REVISED — the
+maximum rank clearing the 0.42-ceiling target, replacing the Rev 14.2 text's
+degenerate `subspace_rank=128`), same base table, 5 subspace seeds
+(`dose_dial_verify.py`'s `calibration["diffuse_rank48"]` block):**
+
+| Target dose | Calibrated `t` (seed range) | Achieved `max\|cos\|` (mean) | 5-subspace-seed spread |
+|---|---|---|---|
+| 0.000 (control) | 0.0 (exact) | 0.000000 | n/a — reused, structure-invariant at t=0 |
+| ~0.130 | 0.19727–0.23828 (larger `t` than rank-4's — expected, a rank-48 subspace spreads the same blend strength thinner) | 0.130039 | 0.129944–0.130076 (spread 0.000132) |
+| ~0.284 | 0.39502–0.50342 | 0.283984 | 0.283925–0.284057 (spread 0.000132) |
+| ~0.40 | 0.55493–0.83301 (approaching the rank-48 ceiling of 0.4227 — the highest-`t` calibrations in the whole grid, as expected near a dial's own reach limit) | 0.399976 | 0.399933–0.400020 (spread 0.000087) |
+
+**Both dials are stable to <0.0002 across 5 subspace seeds at every
+non-zero dose — confirmed a reliable pair of dials, not a lucky draw
+either time, and this holds under the corrected rank-48 diffuse
+construction exactly as it held (by assertion, never executed) under the
+fabricated rank-128 one.** All targets land within the required ±10%
+Gate-2 tolerance (in fact within ±0.05% at the registered seed, both
+structures) — INCLUDING the ~0.40 point for the diffuse arm, which sits
+close to its rank-48 ceiling (0.4227) but is still comfortably
+achievable, not marginal.
+
+**Gram-spectrum check confirming the two arms actually differ in KIND, not
+just in name (CPU-measured this session, `dose_dial_verify.py`'s
+`gram_spectrum_comparison` block, top-8 singular values, matched
+dose=0.284, registered subspace seed):**
+
+```
+injected (rank=4,        dose=0.284): [2.796, 2.767, 2.665, 2.568, 0.908, 0.903, 0.901, 0.898]
+injected (diffuse, r=48, dose=0.284): [1.560, 1.542, 1.530, 1.515, 1.509, 1.499, 1.493, 1.487]
+organic  (d=64, same seed):           [1.293, 1.293, 1.293, 1.293, 1.293, 1.293, 1.293, 1.293]
+```
+
+(These are the raw table's own top-8 singular values, not the fabricated
+Rev 14.2 numbers — both the rank-4 and diffuse spectra shift under the
+corrected construction, and the rank-4 figures also change slightly from
+Rev 14.2's text because the same `dose_dial_verify.py` recomputation is
+now the single source for both rows, not a hand-transcribed pair.)
+
+**Honest verdict on structural kind (`dose_dial_verify.py`'s `verdict`
+block — spectrum SPREAD, i.e. `max(top8) - min(top8)`, as the flatness
+statistic):** rank-4 spread = **1.898**; diffuse (rank-48) spread =
+**0.073**; organic d=64 spread = **0.000** (exactly flat, as expected for
+a frame-potential tight frame). The diffuse arm's spread is **≈26×
+smaller** than rank-4's — a real, large, structural difference, not a
+cosmetic one (`diffuse_meaningfully_flatter_than_rank4: true` in the
+committed JSON). **But it is not free of a residual gap to organic d=64:**
+diffuse (rank-48) sits **0.073 spread-units above** organic d=64's exactly-
+flat spectrum — closer to flat than rank-4 by a wide margin, but still a
+measurable step short of d=64's own tight-frame flatness, for the same
+reason disclosed in Rev 14.2 (a QR-rotation blend at fixed rank is not a
+frame-potential descent, so it does not itself minimize the frame
+potential of the blended result). **Downgrading the co-primary's
+discriminating claim accordingly, as instructed:** the rank-48 diffuse arm
+IS a materially better structural analog to d=64's organic coherence than
+rank-4 (26× flatter spread) — this part of the round-2 attack's top
+question (§14.10 item 1 of Rev 14.1) is genuinely closed. It is NOT a
+close-to-exact structural match to d=64's own tight-frame geometry, and no
+claim in this design should read as though it were; "co-primary,
+structurally distinct from rank-4" is the correct, supportable framing,
+not "co-primary, diffuse-like-d=64."
+
+### 14.1b Build tasks — registered explicitly, with acceptance criteria
+(the F2 fix; NOT built by this revision — build tasks for a future session)
+
+**None of the following exists in the codebase today; this section
+registers what must be built before ANY dosed cell can launch. Verified by
+direct code read this session (paths and line numbers cited are exact, not
+approximate).**
+
+1. **`build_dose_table(healthy_table, t, subspace_rank, subspace_seed)`
+   and `calibrate_dose(healthy_table, target_dose, subspace_rank,
+   subspace_seed, tol=1e-4)` committed to `key_anchoring.py`**, matching
+   the §14.1 spec above exactly (rank-4 concentrated mode AND
+   `subspace_rank=48` diffuse mode — NOT `subspace_rank=d_state`, the
+   degenerate choice Rev 14.3 found and replaced, §14.1) and reproducing
+   the CPU-verified calibration numbers in §14.1 to at least 4 significant
+   figures when re-run (`matrix-thinking/deltanet_rd/dose_dial_verify.py`
+   is the Rev-14.3 reference implementation these numbers are pulled
+   from — the eventual `key_anchoring.py` commit should match it exactly).
+   **Acceptance:** a committed unit test that re-derives every `t`/`achieved max|cos|` pair
+   in both §14.1 tables above from a fresh call, asserting agreement
+   within 1e-4.
+2. **`model_rd.py`'s `anchor_table_init_mode` extended with a THIRD mode**
+   (e.g. `"dosed"`) that accepts a pre-built table tensor (the output of
+   `build_dose_table`) rather than constructing one internally — today's
+   constructor (lines 837–839) hard-`assert`s only `("frame_potential",
+   "random_unit_rows")` and has no parameter through which an externally
+   dosed table can be injected at all. **Acceptance:** a new constructor
+   keyword (e.g. `anchor_table_override: torch.Tensor | None = None`)
+   that, when provided, skips the internal `frame_potential_init`/
+   `random_unit_rows_init` branch entirely and copies the override tensor
+   into `self.anchor_table.weight` under the same `anchor_table_frozen`
+   gating already proven correct for candidate (e)/(e-fp) (§10.14) — i.e.
+   `anchor_table_frozen=True` + a provided dosed table must compose
+   cleanly, verified by the SAME "no grad reaches `anchor_table.weight`
+   after a real backward pass" smoke test §10.14 already ran, re-run
+   against the override path specifically (this is the exact gap the
+   task brief flagged — "check model_rd.py supports frozen with a
+   provided table or register the gap" — confirmed here: it does NOT,
+   today; this is new, required work).
+3. **`_spec()` (`run_deltanet_rd_exactness_sweep.py` lines 89–155)
+   extended with dose-carrying identity fields** — at minimum
+   `dose_target` (float), `dose_structure` (`"rank4"` or `"diffuse"`),
+   and `subspace_seed` (int, default `ANCHOR_INIT_SEED` per the mandatory
+   grid, §14.3), threaded into BOTH the filename bits (e.g.
+   `dose130`/`dose284`/`dose400` alongside a `rank4`/`diffuse` bit — the
+   task brief's own suggested naming) AND the returned identity dict.
+   **Acceptance:** three cells sharing the same K/seed but different
+   `dose_target` (e.g. 0.130 vs. 0.284 vs. 0.400 at K=68, seed=530)
+   produce three DIFFERENT filenames and three DIFFERENT
+   `exactness_config` blocks.
+4. **`is_done()` (lines 2227–2325) extended to check the new dose fields**
+   against the result JSON's own `exactness_config`, same
+   missing-key-defaults-to-off discipline as every existing field there.
+   **Acceptance (the exact collision this fix closes, demonstrated as a
+   negative unit test, not merely asserted fixed):** construct two specs
+   identical in every field EXCEPT `dose_target` (e.g. 0.130 vs. 0.284,
+   same K/seed/arm/frozen/init_mode), point both at an archived result
+   JSON built under ONE of the two doses, and assert `is_done()` returns
+   `True` for the matching spec and `False` for the mismatched one. Before
+   this fix, BOTH would spuriously return `True` (guaranteed collision —
+   demonstrated by direct code read this session: neither `_spec()` nor
+   `is_done()` has ANY field today that would distinguish two dosed cells
+   sharing a K/seed pair, since `anchor_lambda_mode`/`anchor_lambda_fixed`
+   are the only anchor-identity fields either function currently carries,
+   and both are held fixed across this wave's own dose grid). This is the
+   single most safety-critical build item in this wave — a silent
+   collision here would make the manifest under-run without any error,
+   producing a 9-or-19-cell "complete" wave that actually only ran 3-6
+   distinct cells, each one resume-matched against the wrong dose.
+5. **`exactness_config`'s writer (`run_deltanet_rd.py`, the
+   `_assemble_result`-style block, ~line 448–449 per this session's grep)
+   extended to record `dose_target`, `dose_structure`, `subspace_seed`,
+   and `achieved_max_cos` (the actual measured value at construction
+   time)** alongside the existing `anchor_table_frozen`/
+   `anchor_table_init_mode` fields, so `is_done()` (task 4) has something
+   real to read, and so the per-checkpoint `item6_table_conditioning.
+   max_abs_cos` recording (§14.0b's read rule) can be cross-checked
+   against the construction-time target directly from the archived JSON
+   without re-deriving it.
+6. **NEW at Rev 14.3 (round-3 Q1) — a BLOCKING pre-launch smoke test for
+   the frozen-constancy assertion**, promoted from a per-checkpoint runtime
+   check (§14.3, which could in principle fire late into a 20,000-step
+   run rather than blocking the launch itself) to a mandatory gate that
+   runs BEFORE any dosed cell is allowed to start. **Mechanism:** extend
+   `smoke_key_anchoring.py`'s existing `smoke_15_candidate_e_frozen_table_
+   no_grad` precedent (which already asserts `anchor_table.weight.grad is
+   None` after a real backward pass for the `frozen`+`random_unit_rows`/
+   `frame_potential` init paths) to ALSO cover the new
+   `anchor_table_override` path (§14.1b item 2): construct a frozen dosed
+   cell via `anchor_table_override` + `anchor_table_frozen=True`, run one
+   real forward+backward pass, and assert BOTH (a)
+   `model.anchor_table.weight.grad is None`, exactly as the existing
+   precedent checks, AND (b) `raw_table_conditioning(model.anchor_table.
+   weight[trained_mask])["max_abs_cos"]` is unchanged (to floating-point
+   tolerance) from its construction-time value. **Acceptance criterion:**
+   this smoke test is executed, and passes, BEFORE any dosed cell in this
+   wave's manifest launches — a launch-blocking precondition, not merely a
+   per-checkpoint assertion that could pass vacuously if `anchor_table_
+   override` is implemented in a way that lets some gradient reach the
+   table (e.g. a missed `requires_grad_(False)` call, or an optimizer
+   param-group that includes the anchor table despite the flag) and only
+   surfaces the bug deep into a run.
+
+**None of these six is a large build** (each is a small, scoped extension
+of an existing function with an existing pattern to copy — the frozen-
+table gating precedent from candidate (e), the missing-key-defaults-to-off
+precedent every other `is_done()` field already uses) — but all six are
+REQUIRED before this wave's first cell can launch (item 6, new at Rev
+14.3, is specifically a LAUNCH-BLOCKING precondition, not merely a
+recommended check), and are registered here
+as build tasks for a subsequent session, not claimed complete by this
+design-only revision.
+
+### 14.2 Config — n=107, d=128, K=68 FIXED, coherence dose swept, rank-4 +
+diffuse structures co-primary, tables FROZEN
+
+**`d_state=128`, `n_entities=107`, and the anchor table's own base
+construction (`frame_potential_init(107, 128, seed=ANCHOR_INIT_SEED)`) are
+UNCHANGED from §13.10.** The manipulated axes are now TWO: `t` in
+`build_dose_table` (equivalently, the resulting `max|cos|`), AND
+`subspace_rank` (4 = concentrated, 48 = diffuse — REVISED at Rev 14.3;
+`subspace_rank=d_state`=128 was found degenerate and is no longer used
+anywhere in this design, §14.1) — applied to
+the SAME base table before it is handed to the model constructor's new
+`anchor_table_override` path (§14.1b item 2), with `anchor_table_frozen=
+True` on every dosed cell (§14.0's F1 fix).
+
+**Dose grid (pre-registered, unchanged targets from Rev 14.1, now applied
+to BOTH structures):**
+
+- **0.000 (control).** Already measured — §13.10's own 12 cells, reused
+  verbatim, ZERO new GPU-h. Structure-invariant at t=0 (no injection to
+  distinguish). Shared by both arms.
+- **~0.130 (the demoted n=149 secondary's own equivalent dose).**
+- **~0.284 (d64-matched-at-INIT dose — the wave's own headline comparison
+  point, re-labeled per §14.0b's re-axis: d=64's own FINAL-checkpoint
+  coherence lands at 0.373–0.385, so this frozen point is a hair below
+  d=64's realized post-drift band, not an exact final-state match — the
+  frozen table has no drift to compare against in the first place, which
+  is the entire point of freezing it).**
+- **~0.40 (super-d64 dose).** Above d=64's own realized band at EITHER
+  init (0.278–0.326, range-of-construction-seeds) or final-checkpoint
+  range-of-K-means (0.373–0.385, §14.0b — corrected at Rev 14.3 from an
+  unreconciled "0.363–0.397" that matched neither the range-of-K-means nor
+  the widest single-K range-of-seeds, K=34's 0.3558–0.4244), included
+  to give the EXONERATE outcome real teeth.
+
+**K choice — FIXED AT K=68 ONLY as the mandatory primary** (a further
+reduction from Rev 14.1's own K∈{68,84}, driven by the co-primary
+structure doubling the cell count at fixed budget, §14.4):
+
+- **K=68 (K/d=0.53125).** d=64-analog (K=34 in that wave's own grid): h4
+  (mean, 3 seeds) = **0.5676** (§12.9/§14.0b, cross-validated this session
+  to 4 decimal places). The steepest-slope region of d=64's own curve —
+  the single most informative K for a graded response.
+- **K=84 is NOT part of the Rev 14.2 mandatory grid** — registered as a
+  conditional extension with a MECHANICAL (not judgment-call) activation
+  rule, §14.4c.
+
+### 14.2b Illustrative expectation table (SOFTENED from Rev 14.1's
+numeric prediction table, the M2 fix)
+
+**Rev 14.1 stated a quantitative "≈0.5676 ± 0.05–0.08" h4 prediction,
+derived by propagating the §12.9 sigmoid fit's own 95% CI on `x0`/`w`
+through the logistic shape at K/d=0.53125. The round-2 attack's own
+question 3 (Rev 14.1 §14.10) correctly flagged this as overstating this
+design's actual predictive precision** — that CI was fitted across a
+6-point K-SWEEP at d=64's own organic (diffuse, non-frozen, drifting)
+table; propagating it to predict a FROZEN, possibly rank-4-structured
+table's h4 at a specific dose is a materially weaker inference than a
+numeric ± band communicates. **Fix: the table below is relabeled an
+ILLUSTRATIVE EXPECTATION, not a quantitative prediction with error bars.**
+The only pre-registered CLAIM is the directional, qualitative one stated
+in prose beneath it.
+
+| Dose (`max\|cos\|`) | K=68, rank-4 — illustrative expectation | K=68, diffuse — illustrative expectation | Raw-capacity-account expectation (both structures) |
+|---|---|---|---|
+| 0.000 (control) | 1.000 (MEASURED, §13.10) | 1.000 (MEASURED, §13.10) | 1.000 |
+| ~0.130 | somewhere between 1.000 and 0.5676, plausibly closer to 1.000 | same qualitative shape | 1.000 (unchanged — no dose effect predicted) |
+| ~0.284 (d64-matched-at-init) | measurably below 1.000 if coherence is the mechanism, direction only — no numeric target | same qualitative shape | 1.000 (unchanged) |
+| ~0.40 (super-d64) | at or below the ~0.284 point's own reading | same qualitative shape | 1.000 (unchanged) |
+
+**The single pre-registered, directional claim this table exists to
+support:** *if coherence is the mechanism, h4 at K=68 should be
+measurably below 1.0 at the d64-matched-at-init dose (~0.284), in at
+least one structure.* CONFIRM/EXONERATE/STRUCTURE-DEPENDENT (§14.0) key
+off the monotone-decline-vs-flat qualitative READ across the four doses,
+compared identically across both structures — never off whether an
+observed h4 lands inside any derived numeric band, since no such band is
+claimed with adequate justification (the honest alternative the round-2
+attack itself suggested, adopted here in full: "no quantitative h4
+prediction, only a qualitative decline-or-flat expectation," mirroring
+§14.0's own original honesty register for the n=149 design before Rev
+14.1's restructure).
+
+### 14.3 Gate-2 re-semantics — dose-verification AND frozen-constancy
+verification, not orthogonality-check
+
+**G2-b (`max_abs_cos <= 0.5`) still passes at every registered dose (0.000
+through 0.40, all comfortably under 0.5) — its ROLE is now TWO checks, not
+one:**
+
+```
+achieved_max_cos = raw_table_conditioning(dosed_table)["max_abs_cos"]
+assert abs(achieved_max_cos - target_dose) / target_dose <= 0.10, (
+    f"dose verification FAILED: target={target_dose}, achieved={achieved_max_cos}")
+```
+
+(No assertion needed at the 0.000 control.) CPU-verified this session:
+all non-zero doses land within ±0.15% of target at the registered seed,
+in BOTH structures.
+
+**NEW at Rev 14.2 — the frozen-constancy assertion (closing F1 for
+good, per §14.0b's read rule):** at EVERY recorded checkpoint (not just
+construction time), re-compute `max_abs_cos` on the LIVE
+`anchor_table.weight` tensor and assert it is IDENTICAL to the
+construction-time achieved value to floating-point tolerance:
+
+```
+live_max_cos = raw_table_conditioning(model.anchor_table.weight[trained_mask])["max_abs_cos"]
+assert abs(live_max_cos - achieved_max_cos_at_construction) <= 1e-5, (
+    f"FROZEN TABLE DRIFTED: construction={achieved_max_cos_at_construction}, "
+    f"checkpoint={live_max_cos} at step={step} -- anchor_table_frozen did not "
+    f"actually stop the gradient; this is a build regression, not training noise")
+```
+
+This is the exact instrumentation §14.0b's read rule requires, made
+mechanical rather than left as a post-hoc read.
+
+**G2-a (`sigma_ratio >= 0.1`) and G2-c (0 NS fallbacks) remain unchanged
+legs, re-run on each dosed table** — no new build work needed (existing
+`GATE2_N_ITER_BY_K` entries for K=68 at d=128 already cover this K; the
+dosed table's rows are still unit-norm inputs to the same Newton-Schulz
+iteration).
+
+**Seeding and provenance, pinned:** `(base_seed=ANCHOR_INIT_SEED,
+dose_structure ∈ {rank4, diffuse}, subspace_rank, subspace_seed, t,
+achieved_max_cos)` all written into the result JSON's provenance block
+(§14.1b item 5). **Registered: `subspace_seed = ANCHOR_INIT_SEED`
+(20260705) for the mandatory grid, both structures** (one fixed subspace
+per structure across all doses, avoiding a combinatorial subspace-seed
+sweep this wave does not need) — a subspace-seed sensitivity check on
+TRAINING outcomes remains a cheap, deferred follow-on (§14.8), since
+§14.1's own 5-subspace-seed sweep already showed the ACHIEVED dose is
+stable regardless of subspace seed in both structures (spread <0.0004).
+
+**Threshold pin unchanged:** `REV7_THRESHOLD_PINNED_D128.json` (n=107,
+d=128) applies AS-IS to every cell in this wave (the pin depends on
+`n_entities`/`d_state` only, verified by direct read of
+`rev7_threshold_derive.py`'s `derive()` signature, no table-geometry
+argument). No new threshold-derivation build task exists for this wave.
+
+### 14.4 Cells and budget — rank-4 + diffuse co-primary, 19 cells, fits
+1× headroom but NOT 2×, flagged as a PI-decision per house discipline
+
+**Cost basis, unchanged, verified against the archived cell JSON:** K=68/
+d=128/n=107/seed=530's own `wall_s=2307.6685s = 0.6410190... GPU-h`
+(`experiment-runs/2026-07-06_keyanchor_dstate/results/
+wavekeyanchor-dstate/wkeyanchor-k48_rdx_K68_armd_s530_geo3n20_
+anchor_learned_dprobe_rev7_d128.json`). Dosed, frozen cells should cost the
+SAME — `vocab_size_total`, K, d_state, n_entities, and step count are all
+unchanged; only the anchor table's row CONTENT (and, for frozen cells,
+whether a gradient reaches it at all — REMOVING a gradient path, if
+anything, should not make a cell slower) differs. The one-time, CPU-only
+dose calibration is negligible summed across all cells, both structures.
+
+**Registered ceiling: `H = 13.68` GPU-h** (66.32/80 realized, `STATE.md`'s
+own budget line). **Note on scale, unchanged from Rev 14.1:** this 80
+GPU-h figure is the KEY_ANCHORING program's own SUB-LEDGER, not the Brev
+grant's real hardware ceiling (≈192 GPU-h/day uptime-metered window,
+`STATE.md`'s "Hardware" section, corrected 2026-07-03) — every ESCALATE-
+branch ask below is small in REAL hardware terms even where it looks
+tight against the 80 GPU-h sub-ledger; the sub-ledger discipline is kept
+anyway, stated plainly so a reviewer does not mistake it for the box's
+actual limit.
+
+**Cells — 1 K (K=68) × 3 doses (excluding the reused 0.000 control) × 3
+seeds, PER STRUCTURE, plus ONE shared calibration cell:**
+
+| Item | K | Doses | Seeds | Structure | Cells | GPU-h/cell | Bracket total (1×) | Bracket total (2×) |
+|---|---|---|---|---|---|---|---|---|
+| Primary A: rank-4 | 68 | 0.130, 0.284, 0.40 | 3 each | rank4 | **9** | 0.6410 | 5.769 | 11.538 |
+| Co-primary B: diffuse | 68 | 0.130, 0.284, 0.40 | 3 each | diffuse | **9** | 0.6410 | 5.769 | 11.538 |
+| Calibration (mandatory, shared across both structures, §14.4b) | 68 | 0.284, rank4 structure (highest-information dose, calibration-first — see §14.4b for why rank4 is the calibration structure) | 1 | rank4 | **1** | 0.6410 | 0.641 | 1.282 |
+| **Total, both structures + shared calibration** | | | | | **19** | | **12.179** | **24.358** |
+| Conditional extension: K=84, both structures, same 3 doses, 3 seeds each (§14.4c activation rule, BOTH structures trigger, or cross-structure-disagreement trigger fires) | 84 | 0.130, 0.284, 0.40 | 3 each | both | 18 | 0.6410 | 11.538 | 23.076 |
+| **NEW at Rev 14.3 (round-3 Q3 fix): Conditional extension: K=84, ONE structure only** (§14.4c's mechanical rule now restricts the trigger to same-structure evidence — if only rank-4 OR only diffuse independently trips condition 1, K=84 activates for THAT structure alone) | 84 | 0.130, 0.284, 0.40 | 3 each | one (rank4 XOR diffuse) | **9** | 0.6410 | **5.769** | **11.538** |
+
+**Arithmetic at 1× and 2× contingency (attack finding 2's own required
+discipline, re-derived at the co-primary cell count):**
+
+- **Both structures + shared calibration (19 cells total):** 19 × 0.6410
+  = **12.179 GPU-h at 1×**, **24.358 GPU-h at 2×** — **FITS at 1×**
+  (margin 1.501 GPU-h) **but EXCEEDS headroom at 2×** (over by **10.678
+  GPU-h**, i.e. 24.358 − 13.68).
+
+**Mechanical decision, per the house descope discipline (§13.6's own
+established pattern):** since the co-primary (rank-4 + diffuse) design
+overshoots headroom at the 2× (worst-case, pessimistic-bracket)
+contingency multiplier — the multiplier this design's own house rule
+prices against BEFORE committing to a launch scope — this is registered
+as an explicit **PI-DECISION, not self-amended**, per two mutually
+exclusive options, stated with their exact numbers:
+
+- **Option 1 — mechanical priority order, mandatory-first / stage-gated:**
+  launch rank-4 (9 cells + 1 calibration = 10, **6.410/12.820 GPU-h at
+  1×/2×, FITS at both multipliers**) FIRST, as the registered primary
+  structure (mirroring Rev 14.1's own single-structure design exactly).
+  Only after rank-4 completes and its own manifest is read, launch diffuse
+  (9 cells, **5.769/11.538 GPU-h at 1×/2×**) as a SECOND stage — at that
+  point the realized rate `r` from stage 1 re-prices stage 2's own
+  affordability before committing (same calibration-first, blinded-until-
+  manifest discipline as §14.4b, applied a second time at the stage
+  boundary). **Honest arithmetic, stated plainly rather than papered
+  over:** staging does NOT, by itself, shrink the total 2× exposure — the
+  cumulative cost is the same 19 cells either way (10 + 9), so a rolling
+  ceiling that sums both stages still hits **24.358 GPU-h at 2×**,
+  exceeding `H=13.68` by the same 10.678 GPU-h regardless of staging.
+  **What staging actually buys is a DECISION POINT, not a budget
+  reduction:** stage 1 alone (10 cells, 6.410/12.820 GPU-h at 1×/2×) fits
+  the FULL ceiling on its own at both multipliers, so it can launch with
+  zero PI involvement. Stage 2 (diffuse, 9 cells) is what actually
+  requires the PI-decision below — it is priced and requested only AFTER
+  stage 1's real cost is known (closing the "2× is worst-case, price
+  before committing" house rule at the point it is actually being spent,
+  rather than pre-committing to both stages' worst case at once). **Per-
+  stage abort/decision table:** if stage 1 (rank-4) alone reads CONFIRM or
+  a clean EXONERATE at the top dose, and the reviewer judges a
+  single-structure result sufficient for THAT call (accepting the caveat
+  that "structure-dependent" (outcome 3) cannot be ruled out without stage
+  2), stage 2 MAY be deferred rather than mandatory — this mirrors
+  §14.4's own K=84 conditional-extension gating logic, applied to the
+  structure axis instead of the K axis. If stage 1 is ambiguous or the
+  reviewer wants the co-primary result regardless, stage 2 proceeds under
+  the SAME PI-decision as Option 2 below (its own incremental 2× cost,
+  11.538 GPU-h, is smaller than Option 2's simultaneous-launch ask because
+  it is priced on its own 9 cells, not bundled with stage 1's).
+- **Option 2 — flag the shortfall as a PI-DECISION and request the exact
+  number:** the co-primary (both-structures-at-once) design, run as a
+  single manifest, requires **10.678 GPU-h of headroom beyond the 13.68
+  GPU-h 2×-contingency ceiling** to launch as ONE stage rather than two.
+  Per §14.4's own F6 disclosure (the 80 GPU-h figure is a program
+  sub-ledger, not the Brev grant's real ≈192 GPU-h/day hardware ceiling),
+  this ask is small in real hardware terms — but per this design's own
+  standing rule, **no ask is trivially waved through and no self-
+  amendment of the ceiling is made here.** This is queued for an explicit
+  user check-in: does the co-primary result matter enough, as a single
+  simultaneous manifest (rather than staged per Option 1), to justify a
+  +10.678 GPU-h ceiling amendment against the 13.68 GPU-h sub-ledger?
+
+**Registered mechanical default absent a PI response: Option 1
+(staged rank-4-then-diffuse)** — it launches stage 1 (rank-4) IMMEDIATELY
+with zero ceiling decision required (fits `H=13.68` alone at both 1× and
+2×), and defers the ceiling ask (if triggered) to stage 2's own smaller,
+separately-priced increment (11.538 GPU-h at 2×) rather than requiring the
+full simultaneous-launch ask (10.678 GPU-h over ceiling, Option 2) up
+front. It achieves the identical eventual scientific result (both
+structures tested, co-primary in the sense that neither is demoted to
+"deferred, maybe never run") while pushing the ceiling decision to the
+point it is actually needed rather than the point the manifest is first
+drafted. The distinction from Rev 14.1's demotion of diffuse to a deferred
+follow-on (§14.8 there) is that under Option 1, diffuse is NOT contingent
+on rank-4's result being ambiguous — it is contingent only on rank-4's
+own realized cost and the PI's stage-2 decision, and (per the abort/
+decision table above) launches regardless of what rank-4 FINDS
+scientifically, closing the round-2 attack's own M1 finding (co-primary,
+not deferred-on-ambiguity) even under the staged/mechanical-default path.
+
+#### 14.4b Calibration-first (mandatory house rule, unchanged mechanism,
+now shared across both structures)
+
+**The single most informative cell — K=68, the HIGHEST dose (~0.40,
+super-d64), RANK-4 structure — runs FIRST**, before either structure's
+remaining cells' manifest is generated. Rank-4 (not diffuse) is the
+calibration structure because it is the ALREADY-VALIDATED construction
+from Rev 14.1 (this exact cell type, at this exact dose, was the Rev
+14.1 calibration cell too) — reusing it as the shared calibration cell
+avoids spending a SECOND calibration cell on the diffuse structure, since
+the cost-parity argument (§14.4) applies identically to both structures
+by construction (same K/d_state/n_entities/steps profile; only row
+CONTENT differs, and content does not change per-step cost). If the
+rank-4 calibration cell's realized cost matches (`wall_s` within noise of
+2307.67s), this licenses treating the diffuse structure's own cost as
+identical WITHOUT a second calibration run — stated explicitly as an
+assumption, not silently assumed.
+
+**Calibration blinding rule, inherited verbatim (§13.5's F9 fix):**
+`read_wall_s_only(path)` reads ONLY `wall_s` from this cell before any
+scope decision; `h4` stays quarantined until the full manifest (per
+stage, under Option 1) exists.
+
+#### 14.4c Mechanical K=84 activation rule (the M3 fix — a numeric
+trigger, not a post-hoc judgment call)
+
+**Rev 14.1's own gating language** ("launched only if... the K=68 result
+alone is ambiguous enough... that a second K materially changes the
+CONFIRM/EXONERATE call's confidence") **was a post-hoc judgment call, not
+a mechanical rule — the round-2 attack's own question 2 correctly flagged
+this as under-specified.** Fix: K=84 (per §14.4's table; 18 cells if both
+structures trigger, or 9 cells if only one does — see the Rev 14.3 MIXED-
+case addendum immediately below the two conditions for exactly which
+scope applies) activates
+IFF, at K=68, EITHER of the following numeric conditions holds, computed
+directly from the 4-point dose grid's own h4 means (0.000/0.130/0.284/
+0.40), per structure:
+
+1. **Adjacent-dose-gap / non-adjacent-dose-gap test:** the LARGEST
+   adjacent-dose h4 gap (i.e. `max(|h4(0.000)-h4(0.130)|,
+   |h4(0.130)-h4(0.284)|, |h4(0.284)-h4(0.40)|)`) is SMALLER than 0.10,
+   WHILE the total range across all four doses (`max(h4) - min(h4)`) is
+   LARGER than 0.20 — the numeric signature of a "sharp single-step
+   threshold hiding between two of the four tested points, not resolved
+   by this grid's own resolution" (the exact ambiguity a threshold-like
+   outcome-2 result could hide, per Rev 14.1's original prose, now made
+   numeric). **OR**
+2. **Cross-structure disagreement at the same dose:** at ANY of the three
+   non-zero doses, `|h4_rank4(dose) - h4_diffuse(dose)| > 0.15` — a
+   large enough structure-dependent gap (outcome 3, §14.0) that a second
+   K is needed to tell whether the gap is a real structural effect or a
+   single-K anomaly at K=68 specifically.
+
+**If NEITHER condition holds** (i.e. the dose-response is either cleanly
+graded/monotone with no large gaps, or cleanly flat across all four doses
+in both structures), **K=84 is NOT activated** — a clean K=68 CONFIRM,
+EXONERATE, or STRUCTURE-DEPENDENT call is treated as sufficient on its
+own, per Rev 14.1's own original (retained) reasoning that a second K is
+for resolving AMBIGUITY, not for its own sake.
+
+**NEW at Rev 14.3 (round-3 attack question 3, fixed mechanically) — the
+MIXED case: condition 1 (adjacent/non-adjacent-gap) trips for exactly ONE
+structure, not both.** The rule is restricted to SAME-STRUCTURE evidence,
+picked mechanically rather than left as a judgment call: **condition 1 is
+evaluated INDEPENDENTLY per structure, and K=84 activates ONLY for the
+structure(s) whose OWN condition-1 test trips** — e.g. if rank-4 alone
+shows the hidden-threshold signature (large total range, small max
+adjacent gap) while diffuse's own dose-response is clean and monotone,
+K=84 launches for rank-4 ONLY (9 cells, 5.769/11.538 GPU-h at 1×/2×, the
+new table row above), not both (18 cells). **Condition 2 (cross-structure
+disagreement) is inherently a joint test and is unaffected by this
+restriction** — it already requires BOTH structures' K=68 data to
+evaluate, so when it trips, BOTH structures' K=84 cells are needed (the
+whole reason a second K is being asked to arbitrate between them); the
+18-cell row remains the correct pricing for a condition-2 trigger, or for
+a case where condition 1 trips independently in BOTH structures at once.
+**Mechanical summary:** condition 1 trigger scope = the triggering
+structure(s) only (9 or 18 cells, whichever structures actually trip it);
+condition 2 trigger scope = always both structures (18 cells, fixed).
+
+### 14.5 The axis-separation logic — restated for the frozen, co-primary
+dose-response design
+
+**This wave's discriminating logic remains stronger than a between-wave
+(§13.10-vs-new-wave) comparison, and is now stronger still than Rev
+14.1's single-structure version:**
+
+- **A monotone (or threshold-like) decline in h4 as dose rises, at fixed
+  K, fixed d_state, fixed n_entities, fixed steps, IN A FROZEN TABLE** is
+  attributable to nothing other than the injected (and HELD) coherence —
+  every other variable that could confound the comparison is identical
+  across every cell in this wave's own manifest, and the F1 drift confound
+  (which Rev 14.1's own design did not close) is now closed by
+  construction, not by careful re-measurement.
+- **Flat h4=1.0 at every dose, in BOTH structures, including the
+  super-d64 ~0.40 point**, is the strongest available EXONERATE result
+  this design's evidence base can produce, and (per §14.0's fix) is now
+  the ONLY configuration that is labeled EXONERATE — a single-structure
+  flat result routes to STRUCTURE-DEPENDENT (outcome 3) instead, closing
+  the internal contradiction the round-2 attack flagged in Rev 14.1's own
+  "strongest possible EXONERATE" language.
+- **The residual open question, narrowed but not fully closed — REVISED
+  Rev 14.3 with the real (`subspace_rank=48`) diffuse construction's
+  measured spectrum, replacing the fabricated `subspace_rank=d_state`
+  numbers:** even a clean co-primary result cannot yet establish that
+  d=64's OWN specific organic coherence (frame-potential-minimized, not a
+  rotation-blend) is bit-for-bit the same KIND of diffuseness as this
+  wave's `subspace_rank=48` diffuse arm — the Gram-spectrum comparison
+  (§14.1, `dose_dial_verify.py`'s `verdict` block) shows the diffuse arm's
+  spectrum SPREAD (`max(top8)-min(top8)`) is **0.073**, versus rank-4's
+  **1.898** and d=64's own exactly-flat **0.000**. The diffuse arm is
+  **≈26× flatter than rank-4** — a large, real, structural difference —
+  but it is **not an exact match to d=64's tight-frame flatness**; it sits
+  a measurable 0.073 spread-units above it, for the mechanistically
+  understood reason that a fixed-rank QR-rotation blend does not itself
+  perform a frame-potential descent on the blended result. **Honest
+  framing, stated plainly rather than oversold:** this wave's diffuse arm
+  is best read as "co-primary, MEANINGFULLY MORE STRUCTURALLY DIFFUSE than
+  rank-4" — a real and useful discriminator against the rank-4 arm — NOT
+  as "co-primary, diffuse-equivalent-to-d=64's-organic-geometry." Any
+  CONFIRM/EXONERATE/STRUCTURE-DEPENDENT call that leans on the diffuse
+  arm's closeness to d=64 specifically (rather than its distinctness from
+  rank-4) should carry this caveat. This residual is disclosed, not
+  resolved, and — because it is now grounded in a real, executed
+  construction rather than an asserted one — is a MORE RELIABLE
+  disclosure than Rev 14.2's version of this paragraph, even though the
+  numeric gap itself (0.073 spread-units) happens to be of comparable
+  size to what Rev 14.2 claimed.
+
+### 14.6 Bars — unchanged instrument, dose-verification + frozen-constancy
+Gate-2, single pin, TWO structure tags
+
+**Gate 2 at each dosed table:** `gate2_construction_check` extended with
+the dose-verification assertion (§14.3) AND the frozen-constancy assertion
+(§14.3, new at Rev 14.2) — G2-a/G2-c legs unchanged, `ks=(68,)` for the
+mandatory grid (`ks=(68,84)` if the K=84 conditional extension activates
+per §14.4c's mechanical rule), explicit, never the default.
+
+**Threshold pin:** `REV7_THRESHOLD_PINNED_D128.json`, unchanged, applies
+to every cell.
+
+**Step count:** `steps=20000`, unchanged.
+
+**No reference (bare geo3) arm** — same disclosed cut as §12.2 item 2/
+§13.2/§13's own precedent, unchanged rationale.
+
+### 14.7 The n=149 design — DEMOTED to a registered, optional secondary
+(unchanged from Rev 14.1, retained verbatim below)
+
+**Everything below is the original (pre-Rev-14.1) n>128 design,
+RELABELED as an optional secondary rather than this wave's primary, with
+the F1 dose-arithmetic correction folded in. It is PARKED — not built,
+not launched, not consuming any of §14.4's budget — unless the
+dose-response primary's own result (§14.0's outcomes 1–4, Rev 14.2's
+numbering) motivates reviving it.** Two of its own build prerequisites are
+registered as useful regardless of activation status (below).
+
+**Why this design is weaker than the dose-response primary (unchanged):**
+raising `n_entities` past `d_state` via `heldout_frac` changes coherence
+AND the number of distinct entities the model must represent through the
+same `d_state=128` state — two variables moving together. The dose-
+response primary avoids this by holding n_entities fixed and injecting
+coherence directly (and, as of Rev 14.2, holding it FIXED for the whole
+run via freezing).
+
+**Corrected dose arithmetic (F1, applied to this design specifically,
+unchanged from Rev 14.1):** at `heldout_frac=0.30` (`n_train=149`),
+`welch(149,128)=0.033295`, realized `max|cos|=0.120882` (5-seed band
+0.113–0.125) — vs. d=64's own realized `0.284151` at init (5-seed band
+0.278–0.326; §14.0b's own re-measurement now additionally shows d=64's
+FINAL-checkpoint range-of-K-means is 0.373–0.385 (corrected at Rev 14.3
+from an unreconciled "0.363–0.397," §14.4's own MINOR-fix note), meaning
+n=149's dose is even
+further below d=64's own realized coherence once drift is accounted for
+than the init-only comparison already showed). **The n=149 dose remains
+genuinely weaker than d=64's own, so a null result under this design
+remains ambiguous** between "coherence is not the mechanism" and
+"coherence IS the mechanism but this margin is too weak" — the exact
+ambiguity the dose-response primary's own super-d64 (~0.40) point is
+designed to close.
+
+**n choice table (unchanged arithmetic):**
+
+| `heldout_frac` | n_train | n_heldout | n_train > d=128? | Margin above K=92 |
+|---|---|---|---|---|
+| 0.50 (current default) | 107 | 106 | NO (current orthogonal regime) | n/a |
+| 0.40 | 128 | 85 | NO (boundary case, avoid) | n/a |
+| 0.35 | 138 | 75 | yes | heldout FAILS K=92 |
+| **0.30 (registered, if activated)** | **149** | **64** | **yes** | **heldout FAILS K=76/84/92** |
+| 0.25 | 160 | 53 | yes | heldout FAILS K=92 |
+
+**CRITICAL build-blocker at this wave's own K=76/84/92 (unchanged from Rev
+14.1, retained in full):** `train()`'s own per-checkpoint evaluation path
+calls `evaluate_pool(..., use_heldout_entities=True)` UNCONDITIONALLY at
+every checkpoint (`run_deltanet_rd.py` line 795), which calls
+`sample_batch_rd(..., use_heldout_entities=True)` (`grammar_rd.py`),
+which contains a HARD `assert N_names >= K` (`grammar_rd.py` line ~426)
+with `N_names = pools.heldout_name_ids.numel()`. **At `heldout_frac=0.30`
+(`n_heldout=64`), any K > 64 — i.e., K=76, 84, or 92 — will CRASH THE
+ENTIRE TRAINING RUN via `AssertionError` at the very first checkpoint.**
+Confirmed to NOT affect the dose-response PRIMARY wave (§14.1–§14.6): that
+design uses `heldout_frac=0.50` (`n_heldout=106 ≥ 92`, unaffected).
+**Registered as a REQUIRED build task if this secondary is ever
+activated** — either (a) guard the `evaluate_pool` call behind a
+pool-size check, or (b) restrict this secondary's own K-grid to K ≤ 64.
+
+**Two items flagged as worth keeping independent of activation status:**
+
+1. `run_deltanet_rd_exactness_sweep.py::_spec()`'s missing `heldout_frac`
+   parameter (a real gap regardless of which wave needs it next).
+2. `rev7_threshold_derive.py`'s missing `--n-entities` CLI argparse flag
+   (`derive()` itself already accepts `n_entities` as a free keyword
+   argument, line 171 — only the CLI plumbing is missing).
+
+### 14.8 What this wave explicitly defers (not silently dropped)
+
+- **A rank-matched or spectrum-matched dose injection that goes BEYOND the
+  diffuse (`subspace_rank=48`, Rev 14.3-corrected — NOT `subspace_rank=
+  d_state`, §14.1) arm already promoted to co-primary
+  this revision** — e.g. a true frame-potential-style descent applied to
+  the dosed table directly (rather than a QR-rotation blend), to close
+  the residual Gram-spectrum gap (§14.5, measured at 0.073 spread-units
+  above organic d=64, Rev 14.3) even further. Registered as a
+  natural next build if the co-primary result is itself ambiguous or a
+  reviewer judges the remaining rank/spectrum residual load-bearing.
+- **A subspace-seed sensitivity sweep on TRAINING outcomes** (§14.3) — the
+  achieved DOSE is already shown stable across subspace seeds in both
+  structures (§14.1's 5-seed sweep, both arms); whether TRAINED h4 is also
+  insensitive to which specific subspace was used is a cheap, deferred
+  follow-on.
+- **The K=84 conditional extension**, now gated by the mechanical rule in
+  §14.4c, not pre-committed.
+- **The diffuse structure's own SIMULTANEOUS (non-staged) launch**,
+  contingent on the PI-decision at §14.4 (Option 2) rather than the
+  mechanical default (Option 1, staged).
+- **The demoted n=149 secondary in full** (§14.7), including its own
+  required build fix for the C17 crash risk at K>64.
+- **A formal dose-response curve fit** — attempted only opportunistically
+  if the 4-point grid shows a graded (not step-function) pattern in
+  either structure.
+- **Reference-arm (bare geo3) admissibility at this wave's own config** —
+  same disclosed cut as prior sections' own precedent.
+- **[Carried from Min2's program-level audit, explicitly parked, not
+  forgotten]** — the program-level heldout audit item Min2 raised (round-2
+  attack question 4, Rev 14.1 §14.10): re-verify EVERY other admitted wave
+  in this program's history against the same unconditional-
+  `evaluate_pool(use_heldout_entities=True)`-plus-hard-`assert N_names >=
+  K` exposure this section's own §14.7 crash-finding surfaced for the
+  n=149 secondary specifically — confirm no other admitted `heldout_frac`/
+  K pairing was silently exposed to the same crash risk and got lucky (or
+  crashed and was silently re-launched without the root cause being
+  named). **This audit has NOT been run this session — it is registered
+  here as a parked, explicitly-owed program-level task, distinct from
+  anything this wave's own primary/co-primary cells require**, since the
+  primary grid's own `heldout_frac=0.50` is independently confirmed
+  unaffected (§14.7).
+
+### 14.9 REVISION LOG
+
+#### Rev 14.1 (round-1 attack → fix map, retained for history)
+
+| # | Attack finding | Fix | Location |
+|---|---|---|---|
+| 1 | F1 — dose arithmetic uncorrected: frame-potential minimizers land ~3.5–4× ABOVE their Welch floor | Corrected: true gap is realized-vs-realized, ≈2.2×, not ~8.5× | §14.0 (Rev 14.1) |
+| 2/3 | F2/F3 — restructure recommendation: primary should be a controlled coherence dose-response at the ALREADY-MEASURED n=107/d=128 geometry | Full restructure to a dose-response design; n=149 demoted | §14.1–§14.5 (Rev 14.1) |
+| 4 | F4 — n=149 secondary should be registered as optional/contingent | Done, plus a newly-discovered C17 crash-severity finding | §14.7 (Rev 14.1) |
+| 5 (F6) | The 80 GPU-h ceiling is a program sub-ledger, not the real hardware limit | Stated explicitly | §14.4 (Rev 14.1) |
+| 6 (F8) | Register/run the `C17_heldout_entities` grep | Run; traced to the real unconditional `evaluate_pool` call | §14.7 (Rev 14.1) |
+| 7 | Append revision log + round-2 questions | Done | §14.9/§14.10 (Rev 14.1) |
+
+#### Rev 14.2 (round-2 attack → fix map, this revision)
+
+| # | Round-2 finding | Fix | Location |
+|---|---|---|---|
+| 1 | **F1 FATAL — drift**: the Rev 14.1 design's own "held" doses were never actually held during training; §13.10's archived JSONs show `max_abs_cos` drifting from exact-orthogonal (or exact-dosed) init to ≈0.13–0.20 by step 2000 and plateauing there for all 20,000 steps, at EVERY K (68/76/84/92) and EVERY seed measured this session (12/12 cells, no exception) | (a) Primary arms restructured to use FROZEN dosed tables (`anchor_table_frozen=True`), licensed by §10.14's own CONFIRMED-BY-ABLATION "constancy suffices" verdict (arm e mean 0.7274, arm e-fp mean 0.7413, both ≥ candidate (d)'s 0.6669). (b) d=64 comparison RE-AXISED onto final-checkpoint coherence, measured this session: d=64 final band 0.363–0.397 (vs. 0.284 init), d=128 zero-dose final band 0.150–0.177 (vs. 0.000 init). (c) §13.10's zero-dose final coherence (0.13–0.20) reported honestly as a "learned-control, drifted" reference point, with h4=1.0 exactly at all 12 cells noted as a low-dose null datum. (d) Per-checkpoint `max_abs_cos` recording registered for all new cells + a pre-registered frozen-constancy assertion (±1e-5 tolerance) and read rule | §14.0, §14.0b, §14.3 |
+| 2 | **F2 FATAL — build gaps**: no code path exists to inject a pre-built dosed table into the model (`model_rd.py` line 837–839 hard-asserts only `frame_potential`/`random_unit_rows`); `_spec()`/`is_done()` carry no dose-identity field, meaning dosed cells at the same K/seed would silently collision-resume | Five build tasks registered with explicit acceptance criteria (`build_dose_table`/`calibrate_dose` unit test; `anchor_table_override` constructor path + frozen-gating smoke; `_spec()` dose/structure/subspace-seed fields + filename bits; `is_done()` extension with a demonstrated negative unit test proving the collision is closed; `exactness_config` writer extension) — NOT built by this design-only revision | §14.1b |
+| 3 | **M1 — diffuse co-primary**: rank-4-only injection cannot distinguish coherence-as-scalar from coherence-of-this-structural-kind; "strongest possible EXONERATE" language was internally contradictory while only one structure was tested | Diffuse (`subspace_rank=d_state`) arm added as co-primary, same doses/K/seeds. New outcome 3 (STRUCTURE-DEPENDENT) added; EXONERATE now requires BOTH structures flat. Budget re-priced: 19 cells (9+9+1 calib) = 12.179/24.358 GPU-h at 1×/2× — fits 1× (margin 1.501), exceeds 2× by 10.678 GPU-h. Mechanical default: Option 1 (staged rank-4-then-diffuse, fits both brackets per stage); Option 2 (simultaneous launch, +10.678 GPU-h ask) flagged as an explicit PI-decision, not self-amended | §14.0, §14.1, §14.2, §14.4, §14.5 |
+| 4 | **M2 — numeric prediction table overstated precision**: propagating the §12.9 sigmoid CI through the logistic shape at specific K/d points is a weaker inference than a numeric ± band communicates | Softened to a labeled illustrative expectation table + one directional pre-registered claim ("h4 measurably below 1.0 at the d64-matched dose, in at least one structure, if coherence is the mechanism"). CONFIRM/EXONERATE/STRUCTURE-DEPENDENT key off qualitative monotone-decline-vs-flat only | §14.2b |
+| 5 | **M3 — K=84 activation was a post-hoc judgment call**: "ambiguous enough" was not mechanically defined | Two numeric trigger conditions registered: (1) largest adjacent-dose gap <0.10 while total range >0.20 (hidden-threshold signature); (2) cross-structure disagreement >0.15 at any shared dose | §14.4c |
+| — | Min2's program-level heldout-crash audit item (round-2 question 4) | Explicitly carried forward as a parked, owed program-level task — NOT run this session, distinct from this wave's own (independently-confirmed-safe) primary grid | §14.8 |
+| — | Append Rev 14.2 revision log + refreshed round-3 questions | Done | §14.9, §14.10 |
+
+#### Rev 14.3 (round-3 VERIFY → fix map, this revision — house-honesty
+statement first, per task instruction)
+
+**Rev 14.2's diffuse numbers were not producible by the stated mechanism;
+all diffuse figures re-derived from committed artifacts this revision.**
+Round-3 verify re-implemented Rev 14.2's own `build_dose_table`/
+`calibrate_dose` pseudocode (§14.1) exactly as specified and found that at
+`subspace_rank=d_state=128` (the Rev 14.2 diffuse arm's registered
+construction), `torch.linalg.qr` of a square `(128,128)` Gaussian returns a
+FULL orthogonal `Q`, so `Q @ Q.T == I` (measured max deviation
+`9.992e-16`) and the dial's blend is a no-op AT EVERY `t` — the achieved
+dose is exactly `0.000000`, not the Rev 14.2 text's claimed
+`0.130084`/`0.284077`/`0.400012`, and the claimed "<0.0004 stable across 5
+subspace seeds" and `[1.701 .. 1.673]` Gram spectrum for that arm were
+never producible by any execution of the stated mechanism at that rank.
+No run of this code at `subspace_rank=128` had actually happened before
+those numbers were written into the Rev 14.2 text.
+
+| # | Round-3 finding | Fix | Location |
+|---|---|---|---|
+| 1 | **FATAL — diffuse dial degenerate at `subspace_rank=d_state`**: QR of a square Gaussian gives a full orthogonal `Q`, `Q@Q.T=I`, blend is a no-op at every `t`; achieved-dose ceiling (measured, not asserted) DECREASES monotonically with rank: rank=48→0.4227, rank=64→0.3399, rank=96→0.2129, rank=107→0.1608, rank=120→0.1096, rank=128→0.0000 | Rank-scanned {8,16,32,48,64,96} on the real `frame_potential_init(107,128,seed=20260705)` table via a new committed CPU script; chosen `subspace_rank=48` (max rank with ceiling ≥0.42); recalibrated BOTH structures at all 3 doses × 5 subspace seeds; remeasured Gram spectra (rank-4 spread=1.898, diffuse-r48 spread=0.073, organic-d64 spread=0.000 — diffuse is ≈26× flatter than rank-4 but still 0.073 spread-units short of organic d=64's exact flatness); every §14.1/§14.1b/§14.2/§14.5/§14.8 reference to `subspace_rank=d_state`/`128` replaced | §14.1, §14.1b, §14.2, §14.5, §14.8 |
+| 2 | **MINOR — candidate-(d) range typo**: "0.6141–0.7141" (3 occurrences, §10.14.2 ×2 + §14.1) conflated candidate (d)'s own 3-seed max (0.7125, seeds {0.6741,0.7125,0.6141}, §10.14.1's own fresh-seed line) with candidate (d′)'s max (0.7141, a DIFFERENT arm) | All 3 occurrences corrected to 0.6141–0.7125, with an inline note distinguishing (d) from (d′) at each site | §10.14.2 (×2), §14.1 |
+| 3 | **MINOR — d=64 final-coherence band ambiguity**: "0.3363–0.4244" (per-K seed range, i.e. the widest single-K spread across its 3 seeds, K=34) vs. "0.3731–0.3845" (range-of-4-K-means) were both in play, plus a THIRD, unreconciled "0.363–0.397" figure (§14.4, §14.7, §14.10) that matched neither | Both quantities now explicitly labeled ("range-of-seeds (this K)" in the per-K table; "range-of-K-means" in prose) at every site; the unreconciled "0.363–0.397" replaced with the correct range-of-K-means figure (0.373–0.385) at all 3 sites, each annotated with the correction | §14.0b, §14.4, §14.7, §14.10 |
+| 4 | **Round-3 Q1 — frozen-constancy check not a launch gate**: the per-checkpoint assertion (§14.3) could in principle fire late into a 20,000-step run rather than blocking launch | Promoted to a BLOCKING pre-launch smoke test, extending `smoke_key_anchoring.py`'s §10.14 grad-is-None precedent to the `anchor_table_override` path: construct a frozen dosed cell, run one real backward pass, assert `anchor_table.weight.grad is None` AND `max_abs_cos` unchanged, BEFORE any dosed cell is allowed to launch — registered as a build-task list item, acceptance criterion stated | §14.1b (new item 6) |
+| 5 | **Round-3 Q3 — mixed single-structure K=84 activation unpriced**: the budget table only priced "both structures" (18 cells) for the K=84 conditional extension, not the case where only ONE structure (e.g. rank-4 alone) trips the mechanical trigger | Restricted the trigger to require SAME-STRUCTURE evidence for activation of THAT structure only; budget table extended with the 9-cell (one-structure) row, mechanically distinguished from the 18-cell (both-structures) row | §14.4c |
+| 6 | **Self-caught during this revision's own independent verification pass**: the doc cited two "informational-only" rank-scan points (r=107→0.1608, r=120→0.1096) as consistent with the round-3 verifier's own figures, but `dose_dial_verify.py`'s committed `RANK_SCAN` constant only covered the mandatory grid {8,16,32,48,64,96,128} — those two numbers were correct (independently re-derived twice, by the round-3 verifier and separately by this revision's own verification agent) but NOT reproducible by re-running the committed script/JSON as the doc's own "every number is re-derivable" claim implied | `dose_dial_verify.py` extended with a separate `RANK_SCAN_INFORMATIONAL=[107,120]` list, computed and written to the JSON's own `rank_scan_informational` field (script re-run, JSON regenerated, numbers unchanged); this closes the gap rather than leaving it as a disclosed-but-uncommitted loose end | §14.1, `dose_dial_verify.py`, `dose_dial_verify_results.json` |
+| — | Append Rev 14.3 revision log + refreshed round-4 questions | Done | §14.9, §14.11 |
+
+**Artifacts backing every number in this table (committed, re-runnable, CPU-only, no GPU):**
+`matrix-thinking/deltanet_rd/dose_dial_verify.py` (the verification script)
+and `matrix-thinking/deltanet_rd/dose_dial_verify_results.json` (its
+output) — re-running the script reproduces every figure cited in this
+revision to the precision shown.
+
+### 14.10 ATTACK-ROUND QUESTIONS — ROUND 3 (superseded by Rev 14.3's fix
+map above; retained verbatim for the historical record — round-3's own
+structural-kind and drift questions are answered, in full or in part, by
+this revision's rank-scan + recalibration; see §14.11 for round-4)
+
+1. **Does the frozen-constancy assertion (§14.3) actually get exercised
+   before launch, or is it only a runtime check that could pass
+   vacuously if `anchor_table_override` (§14.1b item 2) is implemented in
+   a way that still lets SOME gradient reach the table** (e.g. a missed
+   `requires_grad_(False)` call, or an optimizer param-group that
+   includes the anchor table despite the flag)? Is a dedicated smoke test
+   — construct a frozen dosed cell, run one real backward pass, assert
+   `anchor_table.weight.grad is None` AND `max_abs_cos` unchanged —
+   registered as a LAUNCH GATE (blocking, not just a per-checkpoint
+   assertion that could fire late into a 20,000-step run), mirroring
+   §10.14's own precedent exactly?
+2. **Is Option 1's staged launch (rank-4 first, diffuse second,
+   §14.4) actually free of the drift confound it was designed to close?**
+   Specifically: does staging introduce a NEW confound where diffuse's
+   own launch decision is made with knowledge of rank-4's result, biasing
+   which doses/seeds get scrutinized, even though the mechanical default
+   states diffuse "launches regardless of what rank-4 finds"? Should the
+   blinding discipline (§14.4b, `h4` quarantined until manifest) be
+   extended to ALSO quarantine rank-4's own result from whoever decides
+   whether to proceed with diffuse, not just from the cost-decision step?
+3. **Does the K=84 mechanical activation rule (§14.4c) have a
+   corresponding rule for when EXACTLY ONE structure (not both) satisfies
+   a trigger condition** — e.g. rank-4 shows condition 1 (hidden
+   threshold) but diffuse does not? Is K=84 then activated for BOTH
+   structures, or only the triggering one, and does the budget table
+   (§14.4) account for a MIXED K=84 activation (one structure, not two),
+   which would cost 9 cells (5.769/11.538 GPU-h) rather than the
+   registered 18?
+4. **Is the re-axised d=64 comparison (§14.0b, final-checkpoint
+   range-of-K-means coherence 0.373–0.385, figure corrected at Rev 14.3
+   from an unreconciled "0.363–0.397") itself confounded by the SAME drift
+   issue this whole
+   revision exists to fix** — i.e., d=64's own tables are LEARNED, not
+   frozen, so their final-checkpoint coherence is itself a moving target
+   across the 20,000 steps, not a single stable number. Should the
+   dose-response primary's own frozen ~0.284/~0.40 arms be compared
+   against d=64's full DRIFT TRAJECTORY (a curve, not two endpoints)
+   rather than init-vs-final, to avoid quietly repeating the same
+   single-snapshot-of-a-moving-target error this revision's F1 fix was
+   built to eliminate?
+5. **Now that Min2's program-level heldout-crash audit (§14.8, carried
+   forward) remains unrun, should it block THIS wave's own launch, or is
+   the "independently confirmed the primary grid's own `heldout_frac=
+   0.50` is unaffected" argument (§14.7) sufficient to decouple the two**
+   — i.e., is there any plausible path by which a program-level crash-
+   risk finding in an UNRELATED archived wave should change this wave's
+   own launch readiness, or is this purely a separate, parallel-track
+   audit with no dependency edge onto §14's own cells?
+
+### 14.11 ATTACK-ROUND QUESTIONS — ROUND 4 (short; round-3's FATAL is now
+fixed with committed, re-runnable artifacts — round 4 should stress-test
+whether THIS fix itself has quietly introduced new gaps, the same
+discipline that caught round-3's own finding)
+
+1. **Was the rank-48 selection itself blind to the training outcome, or
+   could a different rank in {8,16,32,48,64,96} have been picked to
+   engineer a more favorable spectrum comparison?** The selection rule
+   ("maximum scanned rank with ceiling ≥0.42") is mechanical and was fixed
+   BEFORE the scan ran (§14.1b item 1's own task brief), but round-3's own
+   finding shows a mechanical-sounding spec can still hide a degenerate or
+   cherry-pickable choice if not independently re-derived. Does a FOURTH,
+   fresh reviewer re-run `dose_dial_verify.py` from scratch (not read its
+   output) and confirm rank=48 falls out of the stated rule on the exact
+   registered table, closing the same "re-implement, don't just read"
+   discipline that caught the original FATAL?
+2. **Does `dose_dial_verify.py`'s own bisection (`calibrate_dose`) have a
+   silent failure mode analogous to the QR degeneracy** — e.g. does
+   monotonicity of achieved-dose-in-`t` (assumed by bisection, and checked
+   at ONE (rank, seed) pair per structure via `monotonicity_check`) hold
+   at EVERY one of the 5×2×3 = 30 (subspace_seed × structure × dose)
+   calibration cells actually used, not just the two spot-checked ones?
+3. **Now that `subspace_rank=48` (not `d_state`) is the registered diffuse
+   arm, does the wave's own cost-parity argument (§14.4, "content does not
+   change per-step cost") still hold exactly**, or does a rank-48 (vs. the
+   originally-envisioned rank-128) construction change ANYTHING about the
+   one-time CPU calibration cost cited as negligible — still true, but is
+   it re-verified post-fix, not merely re-asserted?
+4. **Does the Gram-spectrum verdict's flatness metric (`max(top8)-
+   min(top8)`, i.e. spread) risk hiding a DIFFERENT kind of structural
+   mismatch** — e.g. two spectra with identical spread but different
+   SHAPE (linear decay vs. plateau-then-drop) would score identically
+   under this metric. Is spread alone sufficient to support "meaningfully
+   flatter," or does the CONFIRM/EXONERATE call's reliance on this
+   comparison (§14.5) need a shape-sensitive statistic (e.g. spectral
+   entropy) before it is treated as dispositive?
+5. **Is the MINOR-fix reconciliation of the d=64 coherence bands
+   (§14.0b/§14.4/§14.7/§14.10, range-of-seeds vs. range-of-K-means) now
+   applied with FULLY consistent labeling everywhere those numbers are
+   cited, including any future wave that inherits this section's own
+   citations** — i.e., should a grep-based consistency check (searching
+   for bare "0.3xx–0.3xx" or "0.3xx-0.4xx" patterns near "d=64" or
+   "coherence" in this file) be run as a standing pre-commit-style check
+   for this specific class of ambiguity, given it recurred at least twice
+   (the (d)/(d′) range conflation, MINOR 1, and the seed-range/K-means-
+   range conflation, MINOR 2) in this same design document?

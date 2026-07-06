@@ -1,0 +1,501 @@
+{
+  "meta": {
+    "n_entities": 107,
+    "d_state": 128,
+    "base_seed": 20260705,
+    "dose_targets": [
+      0.13,
+      0.284,
+      0.4
+    ],
+    "rank_scan": [
+      8,
+      16,
+      32,
+      48,
+      64,
+      96,
+      128
+    ],
+    "ceiling_target": 0.42,
+    "n_subspace_seeds": 5,
+    "tol": 0.0001,
+    "base_table_max_abs_cos": 8.08590101541995e-08,
+    "base_table_sigma_ratio": 0.9999997019767761
+  },
+  "degeneracy_proof": {
+    "claim": "QR(randn(d,d)) gives full orthogonal Q; Q@Q.T == I; proj = table @ Q @ Q.T == table; blend is a no-op at every t.",
+    "max_abs_deviation_QQt_from_identity_rank128": 9.992007221626409e-16,
+    "achieved_dose_at_t1_rank128": 8.08590101541995e-08,
+    "note": "achieved_dose_at_t1_rank128 should equal base_table_max_abs_cos (i.e. 0 injected dose) if the degeneracy is real."
+  },
+  "rank_scan_table": [
+    {
+      "subspace_rank": 8,
+      "achieved_dose_ceiling_at_t1": 0.9268581867218018,
+      "meets_ceiling_target_0.42": true
+    },
+    {
+      "subspace_rank": 16,
+      "achieved_dose_ceiling_at_t1": 0.8454036712646484,
+      "meets_ceiling_target_0.42": true
+    },
+    {
+      "subspace_rank": 32,
+      "achieved_dose_ceiling_at_t1": 0.5530027747154236,
+      "meets_ceiling_target_0.42": true
+    },
+    {
+      "subspace_rank": 48,
+      "achieved_dose_ceiling_at_t1": 0.4226725697517395,
+      "meets_ceiling_target_0.42": true
+    },
+    {
+      "subspace_rank": 64,
+      "achieved_dose_ceiling_at_t1": 0.33986571431159973,
+      "meets_ceiling_target_0.42": false
+    },
+    {
+      "subspace_rank": 96,
+      "achieved_dose_ceiling_at_t1": 0.2129349261522293,
+      "meets_ceiling_target_0.42": false
+    },
+    {
+      "subspace_rank": 128,
+      "achieved_dose_ceiling_at_t1": 8.08590101541995e-08,
+      "meets_ceiling_target_0.42": false
+    }
+  ],
+  "rank_scan_informational": [
+    {
+      "subspace_rank": 107,
+      "achieved_dose_ceiling_at_t1": 0.1607646346092224
+    },
+    {
+      "subspace_rank": 120,
+      "achieved_dose_ceiling_at_t1": 0.1095847561955452
+    }
+  ],
+  "chosen_diffuse_rank": {
+    "subspace_rank": 48,
+    "ceiling_at_t1": 0.4226725697517395,
+    "selection_rule": "MAXIMUM rank among scanned ranks with ceiling >= 0.42"
+  },
+  "monotonicity_check": {
+    "rank4": {
+      "ts": [
+        0.0,
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        1.0
+      ],
+      "doses": [
+        0.0,
+        0.066102,
+        0.161158,
+        0.285973,
+        0.433799,
+        0.589096,
+        0.739313,
+        0.86271,
+        0.944889,
+        0.987004,
+        0.998652
+      ],
+      "is_monotone": true
+    },
+    "rank48_diffuse": {
+      "ts": [
+        0.0,
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        1.0
+      ],
+      "doses": [
+        0.0,
+        0.053198,
+        0.111596,
+        0.172826,
+        0.233585,
+        0.290079,
+        0.338727,
+        0.376881,
+        0.40329,
+        0.418129,
+        0.422673
+      ],
+      "is_monotone": true
+    }
+  },
+  "calibration": {
+    "rank4": {
+      "subspace_rank": 4,
+      "doses": {
+        "0.13": {
+          "per_seed": [
+            {
+              "subspace_seed": 0,
+              "t": 0.174560546875,
+              "achieved": 0.13004806637763977,
+              "n_iters": 12,
+              "converged": true,
+              "ceiling_at_t1": 0.9986386895179749
+            },
+            {
+              "subspace_seed": 1,
+              "t": 0.180908203125,
+              "achieved": 0.1300959289073944,
+              "n_iters": 12,
+              "converged": true,
+              "ceiling_at_t1": 0.9961934685707092
+            },
+            {
+              "subspace_seed": 2,
+              "t": 0.16552734375,
+              "achieved": 0.12995228171348572,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.9988626837730408
+            },
+            {
+              "subspace_seed": 3,
+              "t": 0.154541015625,
+              "achieved": 0.13006341457366943,
+              "n_iters": 12,
+              "converged": true,
+              "ceiling_at_t1": 0.9965391159057617
+            },
+            {
+              "subspace_seed": 4,
+              "t": 0.1695556640625,
+              "achieved": 0.1299957036972046,
+              "n_iters": 13,
+              "converged": true,
+              "ceiling_at_t1": 0.9983909726142883
+            }
+          ],
+          "achieved_mean": 0.13003107905387878,
+          "achieved_min": 0.12995228171348572,
+          "achieved_max": 0.1300959289073944,
+          "achieved_spread": 0.0001436471939086914,
+          "all_converged": true
+        },
+        "0.284": {
+          "per_seed": [
+            {
+              "subspace_seed": 0,
+              "t": 0.302734375,
+              "achieved": 0.28402477502822876,
+              "n_iters": 9,
+              "converged": true,
+              "ceiling_at_t1": 0.9986386895179749
+            },
+            {
+              "subspace_seed": 1,
+              "t": 0.3115234375,
+              "achieved": 0.2839941680431366,
+              "n_iters": 10,
+              "converged": true,
+              "ceiling_at_t1": 0.9961934685707092
+            },
+            {
+              "subspace_seed": 2,
+              "t": 0.2943115234375,
+              "achieved": 0.28399813175201416,
+              "n_iters": 13,
+              "converged": true,
+              "ceiling_at_t1": 0.9988626837730408
+            },
+            {
+              "subspace_seed": 3,
+              "t": 0.28076171875,
+              "achieved": 0.2840222716331482,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.9965391159057617
+            },
+            {
+              "subspace_seed": 4,
+              "t": 0.2958984375,
+              "achieved": 0.28392550349235535,
+              "n_iters": 10,
+              "converged": true,
+              "ceiling_at_t1": 0.9983909726142883
+            }
+          ],
+          "achieved_mean": 0.28399296998977663,
+          "achieved_min": 0.28392550349235535,
+          "achieved_max": 0.28402477502822876,
+          "achieved_spread": 9.927153587341309e-05,
+          "all_converged": true
+        },
+        "0.4": {
+          "per_seed": [
+            {
+              "subspace_seed": 0,
+              "t": 0.380615234375,
+              "achieved": 0.4000139534473419,
+              "n_iters": 12,
+              "converged": true,
+              "ceiling_at_t1": 0.9986386895179749
+            },
+            {
+              "subspace_seed": 1,
+              "t": 0.3890380859375,
+              "achieved": 0.3999446630477905,
+              "n_iters": 13,
+              "converged": true,
+              "ceiling_at_t1": 0.9961934685707092
+            },
+            {
+              "subspace_seed": 2,
+              "t": 0.3751220703125,
+              "achieved": 0.40005382895469666,
+              "n_iters": 13,
+              "converged": true,
+              "ceiling_at_t1": 0.9988626837730408
+            },
+            {
+              "subspace_seed": 3,
+              "t": 0.3609619140625,
+              "achieved": 0.39995336532592773,
+              "n_iters": 13,
+              "converged": true,
+              "ceiling_at_t1": 0.9965391159057617
+            },
+            {
+              "subspace_seed": 4,
+              "t": 0.3740234375,
+              "achieved": 0.3999939262866974,
+              "n_iters": 10,
+              "converged": true,
+              "ceiling_at_t1": 0.9983909726142883
+            }
+          ],
+          "achieved_mean": 0.39999194741249083,
+          "achieved_min": 0.3999446630477905,
+          "achieved_max": 0.40005382895469666,
+          "achieved_spread": 0.00010916590690612793,
+          "all_converged": true
+        }
+      }
+    },
+    "diffuse_rank48": {
+      "subspace_rank": 48,
+      "doses": {
+        "0.13": {
+          "per_seed": [
+            {
+              "subspace_seed": 0,
+              "t": 0.215087890625,
+              "achieved": 0.1300145834684372,
+              "n_iters": 12,
+              "converged": true,
+              "ceiling_at_t1": 0.4434519112110138
+            },
+            {
+              "subspace_seed": 1,
+              "t": 0.23828125,
+              "achieved": 0.1300247758626938,
+              "n_iters": 8,
+              "converged": true,
+              "ceiling_at_t1": 0.41296717524528503
+            },
+            {
+              "subspace_seed": 2,
+              "t": 0.22412109375,
+              "achieved": 0.13007566332817078,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.4271518588066101
+            },
+            {
+              "subspace_seed": 3,
+              "t": 0.22607421875,
+              "achieved": 0.12994398176670074,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.4436793923377991
+            },
+            {
+              "subspace_seed": 4,
+              "t": 0.197265625,
+              "achieved": 0.13003531098365784,
+              "n_iters": 9,
+              "converged": true,
+              "ceiling_at_t1": 0.5397365093231201
+            }
+          ],
+          "achieved_mean": 0.13001886308193206,
+          "achieved_min": 0.12994398176670074,
+          "achieved_max": 0.13007566332817078,
+          "achieved_spread": 0.00013168156147003174,
+          "all_converged": true
+        },
+        "0.284": {
+          "per_seed": [
+            {
+              "subspace_seed": 0,
+              "t": 0.4599609375,
+              "achieved": 0.28402578830718994,
+              "n_iters": 10,
+              "converged": true,
+              "ceiling_at_t1": 0.4434519112110138
+            },
+            {
+              "subspace_seed": 1,
+              "t": 0.50341796875,
+              "achieved": 0.28396934270858765,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.41296717524528503
+            },
+            {
+              "subspace_seed": 2,
+              "t": 0.47998046875,
+              "achieved": 0.2840573191642761,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.4271518588066101
+            },
+            {
+              "subspace_seed": 3,
+              "t": 0.46923828125,
+              "achieved": 0.28394508361816406,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.4436793923377991
+            },
+            {
+              "subspace_seed": 4,
+              "t": 0.39501953125,
+              "achieved": 0.2839248776435852,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.5397365093231201
+            }
+          ],
+          "achieved_mean": 0.2839844822883606,
+          "achieved_min": 0.2839248776435852,
+          "achieved_max": 0.2840573191642761,
+          "achieved_spread": 0.00013244152069091797,
+          "all_converged": true
+        },
+        "0.4": {
+          "per_seed": [
+            {
+              "subspace_seed": 0,
+              "t": 0.71240234375,
+              "achieved": 0.40001964569091797,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.4434519112110138
+            },
+            {
+              "subspace_seed": 1,
+              "t": 0.8330078125,
+              "achieved": 0.3999435305595398,
+              "n_iters": 10,
+              "converged": true,
+              "ceiling_at_t1": 0.41296717524528503
+            },
+            {
+              "subspace_seed": 2,
+              "t": 0.765625,
+              "achieved": 0.39993274211883545,
+              "n_iters": 6,
+              "converged": true,
+              "ceiling_at_t1": 0.4271518588066101
+            },
+            {
+              "subspace_seed": 3,
+              "t": 0.71533203125,
+              "achieved": 0.3999791443347931,
+              "n_iters": 11,
+              "converged": true,
+              "ceiling_at_t1": 0.4436793923377991
+            },
+            {
+              "subspace_seed": 4,
+              "t": 0.554931640625,
+              "achieved": 0.40000447630882263,
+              "n_iters": 12,
+              "converged": true,
+              "ceiling_at_t1": 0.5397365093231201
+            }
+          ],
+          "achieved_mean": 0.3999759078025818,
+          "achieved_min": 0.39993274211883545,
+          "achieved_max": 0.40001964569091797,
+          "achieved_spread": 8.690357208251953e-05,
+          "all_converged": true
+        }
+      }
+    }
+  },
+  "gram_spectrum_comparison": {
+    "dose_target_for_comparison": 0.284,
+    "rank4": {
+      "t": 0.298583984375,
+      "achieved_max_abs_cos": 0.28401869535446167,
+      "top8_singular_values": [
+        2.796,
+        2.767,
+        2.665,
+        2.568,
+        0.908,
+        0.903,
+        0.901,
+        0.898
+      ]
+    },
+    "diffuse_rank48": {
+      "t": 0.48876953125,
+      "achieved_max_abs_cos": 0.28406548500061035,
+      "top8_singular_values": [
+        1.56,
+        1.542,
+        1.53,
+        1.515,
+        1.509,
+        1.499,
+        1.493,
+        1.487
+      ]
+    },
+    "organic_d64": {
+      "max_abs_cos": 0.2841511368751526,
+      "top8_singular_values": [
+        1.293,
+        1.293,
+        1.293,
+        1.293,
+        1.293,
+        1.293,
+        1.293,
+        1.293
+      ]
+    }
+  },
+  "verdict": {
+    "rank4_spectrum_spread": 1.8979999999999997,
+    "diffuse_spectrum_spread": 0.07299999999999995,
+    "organic_d64_spectrum_spread": 0.0,
+    "diffuse_meaningfully_flatter_than_rank4": true,
+    "diffuse_gap_to_organic_flat": 0.07299999999999995
+  }
+}
