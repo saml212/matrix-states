@@ -62,12 +62,22 @@ LAMBDA_WINDOW_LOG_POINTS = 5
 GATE2_SIGMA_RATIO_MIN = 0.1        # G2-a: sigma_64/sigma_1 >= 0.1 (raw table, train-row block)
 GATE2_MAX_COS_MAX = 0.5            # G2-b: max_{i!=j} |cos(A_i,A_j)| <= 0.5
 GATE2_RESID_TOL = 1e-2             # G2-c: NS admission tolerance (sec 14.10 item 2 semantics)
-GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20}   # production tier per K (sec 16.3's own n_iter
-                                                # escalation; 48 added per KEY_ANCHORING_DESIGN.md
-                                                # sec 11.3 -- "NS at n_iter=12 lands at resid 0.104
-                                                # > tol on realistic near-collinear probes; 20
-                                                # converges to ~1e-6" -- verified this build, see
-                                                # gate2_construction_test.py's ks=(16,32,48).
+GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20,
+                     34: 20, 38: 20, 42: 20, 46: 20}   # production tier per K (sec 16.3's own
+                                                # n_iter escalation; 48 added per KEY_ANCHORING_
+                                                # DESIGN.md sec 11.3 -- "NS at n_iter=12 lands at
+                                                # resid 0.104 > tol on realistic near-collinear
+                                                # probes; 20 converges to ~1e-6" -- verified this
+                                                # build, see gate2_construction_test.py's
+                                                # ks=(16,32,48). 34/38/42/46 added per sec 12.2.1
+                                                # (Rev 12.1): n_iter=20 was originally chosen BY
+                                                # ANALOGY to K=32/48 (both already 20) -- sec
+                                                # 12.2.2's own registered Wave -1 sufficiency check
+                                                # (attack finding 7), keyanchor_cliff_niter_check.py,
+                                                # has since RUN and CONFIRMED convergence at all 4
+                                                # new K's (rel_change 20->24 == 0.000000 at every
+                                                # K, well under the 0.5% tolerance) -- n_iter=20 is
+                                                # verified sufficient, not merely assumed.
 GATE2_N_SUBSETS = 512
 
 # sec 2.2's anchor-init recipe (the frozen frame-potential construction).

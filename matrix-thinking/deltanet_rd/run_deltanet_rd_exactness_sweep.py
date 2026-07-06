@@ -805,7 +805,7 @@ def keyanchor_k48_reference_manifest():
     return runs
 
 
-def keyanchor_k48_manifest():
+def keyanchor_k48_manifest(K: int = 48, seeds: tuple = (30, 31, 32)):
     """sec 11.1 arm 1 (MANDATORY, PRIMARY): candidate (d), K=48, seeds
     {30,31,32}, 20,000 steps -- byte-identical architecture to Rev 7.1's own
     candidate (d) (anchor_blend_gather_scatter, learned scalar lambda,
@@ -815,15 +815,29 @@ def keyanchor_k48_manifest():
     per sec 11.0 -- literally the same code path, not a re-derivation). No
     K=16 spot check is registered for this arm (sec 11.1: K=16 already
     saturates near h4~=1.0 under bare geo3, no headroom to see an
-    anchoring effect there)."""
+    anchoring effect there).
+
+    Generalized to accept K/seeds (sec 12.2.1, Rev 12.1 build scope) so the
+    capacity-cliff wave's own keyanchor_cliff_manifest() below can reuse this
+    SAME function per new K rather than a hand-copied twin -- defaults are
+    BYTE-IDENTICAL to the pre-generalization hardcoded K=48/{30,31,32} form
+    (smoke_keyanchor_cliff.py's own regression smoke asserts this directly,
+    not merely by inspection, mirroring sec 11.9 item 14's own precedent for
+    reference_arms_manifest). geo3_n_iter is read from key_anchoring.
+    GATE2_N_ITER_BY_K (the same per-K production tier Gate 2 uses) rather
+    than the K48-only KEYANCHOR_K48_NS_N_ITER constant, so a K=34/38/42/46
+    call and the K=48 default can never silently diverge from Gate 2's own
+    tier for that K."""
     steps = KEYANCHOR_K48_TIER_STEPS
+    n_iter = ka.GATE2_N_ITER_BY_K[K]
     runs = []
-    for s in (30, 31, 32):
-        runs.append(_spec("keyanchor-k48", 48, s, steps, "d", geo3_active=True,
-                           geo3_n_iter=KEYANCHOR_K48_NS_N_ITER, geo3_resid_tol=1e-2,
+    for s in seeds:
+        runs.append(_spec("keyanchor-k48", K, s, steps, "d", geo3_active=True,
+                           geo3_n_iter=n_iter, geo3_resid_tol=1e-2,
                            anchor_active=True, anchor_lambda_mode="learned",
                            drift_probe=True, rev7_engagement=True))
-    assert len(runs) == 3, f"keyanchor-k48 manifest drifted from its registered 3 runs: {len(runs)}"
+    assert len(runs) == len(seeds), \
+        f"keyanchor-k48 manifest (K={K}) drifted from its registered {len(seeds)} runs: {len(runs)}"
     return runs
 
 
@@ -851,7 +865,7 @@ def keyanchor_k48_dprime_manifest():
     return runs
 
 
-def keyanchor_k48_gate1_manifest():
+def keyanchor_k48_gate1_manifest(K: int = 48, seed: int = 0):
     """sec 11.1 arm 4: Gate-1-style pre-launch probe, candidate (d) arch
     only, K=48, 5,000 steps, seed 0 -- DISCLOSED, NON-GATING (mirrors Rev
     7.1's own d' probe scope-carve-out; the simulator drift->recovery
@@ -859,11 +873,18 @@ def keyanchor_k48_gate1_manifest():
     regime, so the same non-gating status is inherited, not re-derived).
     Carries rev7_engagement=True (same audit-fold-in-1 precedent as
     keyanchor_mech_gate1_manifest: exercise the checkpoint/r_e wiring on
-    the cheap probe first)."""
-    runs = [_spec("keyanchor-k48-gate1", 48, 0, KEYANCHOR_K48_GATE1_STEPS, "d", geo3_active=True,
-                   geo3_n_iter=KEYANCHOR_K48_NS_N_ITER, geo3_resid_tol=1e-2, anchor_active=True,
+    the cheap probe first).
+
+    Generalized to accept K/seed (sec 12.2.1, Rev 12.1 build scope) -- SAME
+    byte-identical-at-defaults discipline as keyanchor_k48_manifest above;
+    the cliff wave's own optional per-K Gate-1 probes (seeds 133/233/333/433,
+    sec 12.2 item 3) reuse this function rather than a hand-copied twin."""
+    n_iter = ka.GATE2_N_ITER_BY_K[K]
+    runs = [_spec("keyanchor-k48-gate1", K, seed, KEYANCHOR_K48_GATE1_STEPS, "d", geo3_active=True,
+                   geo3_n_iter=n_iter, geo3_resid_tol=1e-2, anchor_active=True,
                    anchor_lambda_mode="learned", drift_probe=True, rev7_engagement=True)]
-    assert len(runs) == 1, f"keyanchor-k48 Gate-1 probe manifest drifted from its registered 1 run: {len(runs)}"
+    assert len(runs) == 1, \
+        f"keyanchor-k48 Gate-1 probe manifest (K={K}) drifted from its registered 1 run: {len(runs)}"
     return runs
 
 
@@ -1198,6 +1219,418 @@ def keyanchor_e_wave_manifest():
     runs = keyanchor_e_manifest() + keyanchor_e_fp_manifest()
     assert len(runs) == 6, f"keyanchor-e wave manifest drifted from its registered 6 runs: {len(runs)}"
     return runs
+
+
+# ---------------------------------------------------------------------------
+# KEY_ANCHORING_DESIGN.md sec 12 (Rev 12.2, CLEARED-FOR-BUILD, human sign-off
+# recorded at the sec 12 header 2026-07-06) -- the capacity-cliff
+# localization wave. Registered manifest name: 'keyanchor-cliff'.
+#
+# Arms (sec 12.2): (1) candidate (d), K in {34,38,42,46}, 3 seeds each --
+# MANDATORY, PRIMARY, the ONLY arm this wave runs by default (12 cells).
+# Reference arms are CUT from this wave's scope (sec 12.2 item 2) -- no
+# keyanchor_cliff_reference_manifest() exists, unlike keyanchor-k48's own
+# reference arm. (2) Gate-1-style probes, 1 per K (4 total) -- OPTIONAL,
+# lowest cut priority (sec 12.2 item 3). (3) seed contingency, +2 seeds per
+# K -- CONDITIONAL, registered but NOT built as manifest cells here (sec
+# 12.2's own reserved-block discipline: these seed integers are reserved,
+# never silently promoted to a callable manifest function until an
+# orchestrator actually needs them, same "registering them now is what
+# prevents them from becoming free post-hoc additions later" precedent as
+# keyanchor_k48_dprime_manifest's own conditional gate).
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_CLIFF_TIER_STEPS = KEYANCHOR_K48_TIER_STEPS   # 20,000 -- continuity, sec 12.2
+KEYANCHOR_CLIFF_GATE1_STEPS = KEYANCHOR_K48_GATE1_STEPS  # 5,000 -- continuity, sec 12.2 item 3
+KEYANCHOR_CLIFF_KS = (34, 38, 42, 46)                    # sec 12.2's re-picked point set
+
+# sec 12.2's registered seed blocks, candidate (d) only (mandatory manifest).
+KEYANCHOR_CLIFF_SEEDS_BY_K = {34: (130, 131, 132), 38: (230, 231, 232),
+                              42: (330, 331, 332), 46: (430, 431, 432)}
+
+# sec 12.2's optional Gate-1-style probe seeds, one per K -- conditional,
+# lowest cut priority (sec 12.2 item 3 / sec 12.2.3's running-projection
+# cut-priority order).
+KEYANCHOR_CLIFF_GATE1_SEED_BY_K = {34: 133, 38: 233, 42: 333, 46: 433}
+
+# sec 12.2's seed-contingency reserved blocks (+2 seeds per K, fires only if
+# a K's own lambda-band/h4-bar assignment lands ambiguous at 2/3) -- RESERVED
+# integers only, per this program's never-reuse convention; NOT a callable
+# manifest function in this build (no orchestrator decision to fire them has
+# been made yet, mirrors keyanchor_k48_dprime_manifest's own conditional-gate
+# precedent: registering the identity now is what prevents it from becoming
+# a free post-hoc addition later).
+KEYANCHOR_CLIFF_CONTINGENCY_SEEDS_BY_K = {34: (134, 135), 38: (234, 235),
+                                           42: (334, 335), 46: (434, 435)}
+
+# sec 12.2.3's staged launch (Rev 12.2, round-2 fix 3): Stage 1 = the two
+# interior/most-informative-for-x0 points (K=38, K=42); Stage 2 = the two
+# points nearer the existing K=32/K=48 anchors (K=34, K=46). Stage 2 is
+# mechanically REFUSED (sec 12.2.3) unless Stage 1's own realized cells
+# clear the K48-calibrated bracket -- see keyanchor_cliff_stage_gate below.
+KEYANCHOR_CLIFF_STAGE_BY_K = {38: 1, 42: 1, 34: 2, 46: 2}
+
+
+def keyanchor_cliff_manifest(Ks=KEYANCHOR_CLIFF_KS):
+    """sec 12.2's MANDATORY, PRIMARY arm: candidate (d) only, K in
+    {34,38,42,46}, 3 seeds each (12 cells total) -- reference arms are CUT
+    from this wave's scope (sec 12.2 item 2), so unlike keyanchor_k48_
+    manifest's sibling reference/gate1/dprime/fixed-lambda1 arms, this
+    wave registers exactly ONE candidate-(d)-only manifest function.
+    Reuses keyanchor_k48_manifest(K, seeds) directly (sec 12.2.1's own
+    build-scope requirement: 'a keyanchor_k48_manifest(K, seeds)... plus
+    extend GATE2_N_ITER_BY_K') -- the SAME function every K's candidate-(d)
+    cells go through, never a hand-copied twin. The wave tag string inside
+    each spec's own name stays 'keyanchor-k48' (out_path()/_spec()'s own
+    K-bit already makes every filename K-distinct, sec 11.9 item 16's own
+    precedent) -- but main()'s own f"wave{args.wave}" convention resolves
+    THIS wave's out_dir to wavekeyanchor-cliff/ (args.wave=='keyanchor-cliff'),
+    a directory of its own, disjoint from wavekeyanchor-k48/ by construction
+    (every wave gets its own subdirectory), not merely by disjoint K values
+    within a shared one."""
+    runs = []
+    for K in Ks:
+        runs += keyanchor_k48_manifest(K=K, seeds=KEYANCHOR_CLIFF_SEEDS_BY_K[K])
+    assert len(runs) == len(Ks) * 3, \
+        f"keyanchor-cliff manifest drifted from its registered {len(Ks) * 3} runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_cliff_gate1_manifest(Ks=KEYANCHOR_CLIFF_KS):
+    """sec 12.2 item 3: OPTIONAL, lowest-cut-priority Gate-1-style probes,
+    one per K (4 total by default), 5,000 steps, seeds {133,233,333,433}.
+    Reuses keyanchor_k48_gate1_manifest(K, seed) -- same discipline as
+    keyanchor_cliff_manifest above."""
+    runs = []
+    for K in Ks:
+        runs += keyanchor_k48_gate1_manifest(K=K, seed=KEYANCHOR_CLIFF_GATE1_SEED_BY_K[K])
+    assert len(runs) == len(Ks), \
+        f"keyanchor-cliff Gate-1 probe manifest drifted from its registered {len(Ks)} runs: {len(runs)}"
+    return runs
+
+
+# sec 12.5's budget table -- the K48-calibrated bracket (sec 11.5, unchanged;
+# no per-K34/38/42/46 interpolation table, sec 12.2's own "table deleted
+# outright" ruling) applies unchanged to this wave's own cells.
+KEYANCHOR_CLIFF_GPUH_PER_CELL = KEYANCHOR_K48_GPUH_PER_CELL      # (0.22752, 0.97328) unrounded, sec 12.5
+KEYANCHOR_CLIFF_GATE1_GPUH = KEYANCHOR_K48_GATE1_GPUH            # (0.06, 0.24), sec 12.5
+KEYANCHOR_CLIFF_CONTINGENCY_MULTIPLIER = 2.0                     # sec 12.2/12.5's mandatory 2x, shared-GPU risk
+# sec 12.5's registered nominal ceiling: mandatory-only bracket-pessimistic
+# 2x -- the wave's OWN registered ceiling (distinct from
+# KEYANCHOR_K48_GPUH_CEILING, sec 12.5's own separate arithmetic, not a
+# re-derivation of the K48 wave's 12.0 ceiling).
+#
+# DISCLOSED discrepancy vs. sec 12.5's own prose (12 * 0.97 * 2 = 23.28):
+# the design doc's own text rounds KEYANCHOR_K48_GPUH_PER_CELL[1] to "0.97"
+# before multiplying; the actual, unrounded constant this file computes
+# from (0.77 * KEYANCHOR_K48_STEP_COST_RATIO = 0.97328) gives 23.35872, not
+# 23.28 -- a ~0.34% difference from the doc's own cited figure, same root
+# cause as KEYANCHOR_CLIFF_ABORT_WALL_S's own rounding note above. Computed
+# from the unrounded constant HERE (unlike the abort threshold, which is
+# pinned to the doc's own literal 5,238s) because this ceiling is a live
+# go/no-go computation the budget guard re-evaluates, not a single pinned
+# trigger value the design text states as a specific number to match
+# exactly -- using the more-precise upstream constant is the more correct
+# arithmetic, not a drift. Both the 23.28 (doc prose) and 23.35872 (this
+# file) versions fit within the 24.17 GPU-h reserve (margin 0.89 vs. 0.81
+# GPU-h respectively) -- the wave's affordability verdict is unchanged
+# either way, only the disclosed margin shrinks slightly.
+KEYANCHOR_CLIFF_MANDATORY_CELLS = 12
+KEYANCHOR_CLIFF_GPUH_CEILING = (KEYANCHOR_CLIFF_MANDATORY_CELLS
+                                 * KEYANCHOR_CLIFF_GPUH_PER_CELL[1]
+                                 * KEYANCHOR_CLIFF_CONTINGENCY_MULTIPLIER)   # 23.35872
+
+# sec 12.7.2 R3-4 / sec 12.8.2 Rev 12.3 build-audit item (REQUIRED code
+# addition): Stage 1 (6 cells, K=38+K=42) gets its OWN, smaller, dedicated
+# sub-ceiling rather than only "gate Stage 2 on Stage 1's rate" -- the
+# attack's own point was that an in-bracket-per-cell Stage-1 overrun could
+# still consume the WHOLE wave's margin before Stage 2 launches a single
+# cell. Derivation (doc-pinned, sec 12.8.2's own registered number):
+# KEYANCHOR_CLIFF_GPUH_CEILING (the full 12-cell, bracket-pessimistic 2x
+# mandatory ceiling, 23.35872 unrounded) / 2, rounded to the doc's own
+# registered 11.68 -- half the total ceiling because Stage 1 is exactly
+# half the cells (6 of 12), same bracket-pessimistic-2x costing as the full
+# ceiling, no separate re-derivation. Pinned to the doc's literal 11.68
+# (not left as a live `KEYANCHOR_CLIFF_GPUH_CEILING / 2` re-derivation) per
+# this project's "exact thresholds" hard rule -- same precedent as
+# KEYANCHOR_CLIFF_ABORT_WALL_S's own doc-pinned-literal treatment above.
+KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING = 11.68   # 23.35872 / 2, rounded to the doc's registered 11.68
+
+# sec 12.5's headroom check: 24.17 GPU-h exactness-program reserve against
+# the 55.83/80 GPU-h spent figure (STATE.md, sec 12 header) -- a SEPARATE
+# reconciled base from KEYANCHOR_PROGRAM_SPENT_GPUH_RECONCILED above (that
+# constant is this program's OWN earlier reconciliation, 49.8493, predating
+# both the keyanchor-k48 and keyanchor-e waves' own realized spend; sec 12's
+# own header cites a LATER, more-recent total, "≈55.83/80", which already
+# includes those two waves' own realized costs). This wave's budget guard
+# uses the sec-12-header figure directly, not a re-derivation from the
+# earlier reconciliation -- re-summing 49.8493 + keyanchor-k48's + keyanchor-
+# e's own realized wall_s would just reproduce the same 55.83 STATE.md
+# already reports, so this constant is read off STATE.md's own line 654-655
+# citation ("Program formally complete at ≈55.83/80 GPU-h") rather than
+# re-itemized a third time in this file.
+KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH = 55.83
+KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING = 80.0
+KEYANCHOR_CLIFF_RESERVE_GPUH = KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING - KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH  # 24.17
+
+# sec 12.2.3's mid-run abort/budget guard, restated in full (NOT merely
+# "mirrors sec 11.5" by reference -- sec 12.2.3's own text): after ANY
+# completed candidate-(d) cell (broadened at Rev 12.2 from "the first cell
+# only" -- round-2 finding R2-3), if that cell's realized wall_s >= 1.5x the
+# K48-calibrated bracket's own upper edge, halt ALL remaining cell launches
+# in this wave immediately.
+#
+# sec 12.2.3's own prose rounds the bracket's upper edge to "0.97 GPU-h/cell,
+# i.e. 0.97 x 3600 = 3492s" and states the pinned threshold as "5,238s"
+# (1.5x of the rounded 3492s). The UNROUNDED constant this file actually
+# uses, KEYANCHOR_K48_GPUH_PER_CELL[1] (0.77 * KEYANCHOR_K48_STEP_COST_RATIO
+# = 0.77*1.264 = 0.97328), gives 1.5*0.97328*3600 = 5255.712s -- a ~0.34%
+# difference from the design doc's own cited 5,238s, traceable entirely to
+# the doc's own prose rounding 0.97328 down to "0.97" before multiplying.
+# Pinned to the design's OWN literal registered number (5,238s) rather than
+# re-derived from the unrounded bracket, per this project's "exact
+# thresholds" hard rule -- a threshold the design text itself states as a
+# specific pinned value must be used AS PINNED, not silently re-derived to a
+# slightly different number from a more-precise upstream constant the design
+# text never asked this check to track.
+KEYANCHOR_CLIFF_ABORT_WALL_S = 5238.0   # sec 12.2.3's own pinned literal, see comment above
+
+
+def keyanchor_cliff_budget_guard(accept_override: bool) -> float:
+    """Mirrors keyanchor_k48_budget_guard's exact pattern, using this wave's
+    OWN registered ceiling (sec 12.5) against the sec-12-header reconciled
+    program-spent figure (55.83), not the earlier keyanchor-k48-era 49.8493
+    base (see the comment above KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH)."""
+    cumulative = KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH + KEYANCHOR_CLIFF_GPUH_CEILING
+    print(f"BUDGET GUARD (keyanchor-cliff): program-spent-so-far={KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH:.4f} "
+          f"GPU-h + this-wave-registered-ceiling(mandatory-only, bracket-pessimistic, 2x)="
+          f"{KEYANCHOR_CLIFF_GPUH_CEILING:.4f} GPU-h = cumulative {cumulative:.4f} GPU-h, program ceiling "
+          f"{KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING:.0f} GPU-h (reserve "
+          f"{KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING - cumulative:.4f} GPU-h -- sec 12.5's own "
+          f"'~0.89 GPU-h to spare' figure).", flush=True)
+    if cumulative > KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING and not accept_override:
+        print(f"ERROR: projected cumulative spend {cumulative:.4f} GPU-h EXCEEDS the "
+              f"{KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING:.0f} GPU-h exactness-program ceiling -- REFUSING "
+              f"to launch keyanchor-cliff. Pass --accept-budget-override to force past this guard.",
+              file=sys.stderr)
+        sys.exit(5)
+    return cumulative
+
+
+# sec 12.7.2 R3-5 / sec 12.8.2 Rev 12.3 build-audit item (REQUIRED code
+# addition): the durable cross-program clearance sentinel's filename,
+# written into THIS wave's own out_dir (out_path()'s existing convention --
+# derived, never a hand-typed divergent path, same e633862 audit F1
+# discipline as KEYANCHOR_MECH_GATE1_JSON_DEFAULT above). FROZEN_BIAS_LM_
+# DESIGN.md's own launcher is required (sec 12.8.2's own text) to check
+# this file's existence before its calibration cell starts -- this
+# constant is the one source of truth both sides read/write against.
+KEYANCHOR_CLIFF_STAGE1_SENTINEL_NAME = "STAGE1_RATES_OK"
+
+
+def keyanchor_cliff_stage_gate(out_dir: str, stage: int, accept_override: bool) -> dict:
+    """sec 12.2.3's staged-launch mechanical gate (Rev 12.2, round-2 fix 3):
+    --stage 2 REFUSES to launch unless every Stage-1 K (38, 42) has ALL of
+    its registered seeds' completed, validity-checked cells in out_dir
+    (per-seed completeness, not mere per-K non-emptiness -- independent-
+    verifier poke B) AND every completed
+    Stage-1 cell's own realized wall_s sits within the K48-calibrated
+    bracket's upper edge (sec 12.2.3 item 1's own 0.97 GPU-h/cell = 3492s,
+    NOT the 1.5x hard-abort threshold -- the stage gate is the softer
+    'within bracket' check sec 12.2.3's own staged-launch text requires
+    before Stage 2 commits, distinct from the hard abort rule which fires
+    at 1.5x regardless of stage). This is a MECHANICAL check against
+    completed cells' own recorded wall_s (never an honor-system flag) --
+    reads each Stage-1 cell's result JSON directly, the same is_done()-
+    adjacent discipline every other gate in this file uses.
+
+    sec 12.7.2 R3-4 (build-audit REQUIRED addition): ALSO enforces Stage 1's
+    own dedicated sub-ceiling (KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING, 11.68
+    GPU-h) by summing the six Stage-1 cells' realized wall_s -> GPU-h --
+    this fires regardless of per-cell abort status (a cell can each
+    individually sit within the per-cell bracket yet the STAGE-1 TOTAL still
+    blow through its own dedicated margin; that is exactly the gap the
+    attack (sec 12.7.2 R3-4) flagged: 'Stage 1 alone should carry its own
+    smaller, dedicated contingency... so a Stage-1-only overrun cannot
+    itself consume the margin intended for Stage 2'). Comparison is STRICT
+    greater-than (sum > 11.68 refuses; sum == 11.68 passes) -- deliberately
+    chosen to mirror keyanchor_cliff_budget_guard's own existing pattern
+    ('if cumulative > ...GPUH_CEILING') elsewhere in this file, and because
+    the ceiling is framed throughout sec 12.5/12.8.2 as a MAXIMUM spend the
+    wave must fit WITHIN (a sum exactly equal to a fixed budget is the
+    textbook boundary-inclusive case for a "fits within" ceiling, not an
+    overrun) -- exact threshold, no slack, per this project's hard rule.
+
+    sec 12.7.2 R3-5 (build-audit REQUIRED addition): on a CLEAN pass (rates
+    within bracket AND sub-ceiling respected), writes the durable cross-
+    program clearance sentinel (KEYANCHOR_CLIFF_STAGE1_SENTINEL_NAME) into
+    out_dir -- the SAME directory the Stage-1 cells themselves write their
+    result JSONs to (out_path()'s existing convention, not a new path).
+    NEVER written on an --accept-stage-override bypass (that path returns
+    before this function reaches the sentinel-writing branch at all) --
+    an override bypass means 'a human decided to proceed anyway', not
+    'Stage 1 actually cleared', and the sentinel's whole purpose (a
+    cross-program signal that rates were mechanically verified OK) would
+    be a lie if written on a bypassed check."""
+    stage1_ks = [K for K, s in KEYANCHOR_CLIFF_STAGE_BY_K.items() if s == 1]
+    bracket_upper_s = KEYANCHOR_CLIFF_GPUH_PER_CELL[1] * 3600.0   # 3492.0
+    if accept_override:
+        print("=" * 70 + "\nWARNING: --accept-stage-override -- sec 12.2.3's Stage-1-clears-"
+              "bracket-before-Stage-2 mechanical gate is being BYPASSED by an explicit human "
+              "decision. This is recorded here; it does NOT mean Stage 1 cleared. Per sec "
+              "12.7.2 R3-5, the STAGE1_RATES_OK sentinel is NOT written on an override bypass.\n"
+              + "=" * 70, flush=True)
+        return {"gate_bypassed": True, "stage1_ks": stage1_ks, "sentinel_written": False}
+    if stage != 2:
+        return {"gate_bypassed": False, "not_applicable": True, "stage": stage, "sentinel_written": False}
+    # Independent-verifier poke A: a sentinel left over from an EARLIER gate
+    # run must not survive a re-check that would refuse -- downstream
+    # consumers (FROZEN_BIAS_LM sec 8.2a) gate on existence alone, so the
+    # file may only exist if the MOST RECENT gate evaluation passed clean.
+    # Remove any pre-existing sentinel before evaluating; the clean-pass
+    # branch below rewrites it.
+    _stale = os.path.join(out_dir, KEYANCHOR_CLIFF_STAGE1_SENTINEL_NAME)
+    if os.path.exists(_stale):
+        os.remove(_stale)
+        print(f"stage gate: removed pre-existing {KEYANCHOR_CLIFF_STAGE1_SENTINEL_NAME} "
+              f"(re-derived below; a stale pass certificate must not survive a failed re-check)",
+              flush=True)
+    per_k_cells = {K: [] for K in stage1_ks}
+    for spec in keyanchor_cliff_manifest(Ks=tuple(stage1_ks)):
+        p = out_path(out_dir, spec)
+        if not os.path.exists(p):
+            continue
+        with open(p) as f:
+            result = json.load(f)
+        if not is_done(out_dir, spec):
+            continue
+        per_k_cells[spec["K"]].append(result.get("wall_s"))
+    # Independent-verifier poke B (FATAL, fixed): a K counts as missing when
+    # FEWER than its registered seeds have completed, not only when zero
+    # have -- 5-of-6 cells must refuse, not silently certify Stage 1.
+    missing_ks = [K for K, cells in per_k_cells.items()
+                  if len(cells) < len(KEYANCHOR_CLIFF_SEEDS_BY_K[K])]
+    if missing_ks:
+        print(f"ERROR: --stage 2 REFUSED -- Stage 1 (K={stage1_ks}) is incomplete for "
+              f"K={missing_ks}: fewer completed, validity-checked cells than the registered "
+              f"seeds ({ {K: len(per_k_cells[K]) for K in missing_ks} } of "
+              f"{ {K: len(KEYANCHOR_CLIFF_SEEDS_BY_K[K]) for K in missing_ks} }). Run --stage 1 "
+              f"to completion first, or pass --accept-stage-override for an explicit, documented "
+              f"human override.",
+              file=sys.stderr)
+        sys.exit(1)
+    # sec 12.7.2 R3-4: Stage-1 sub-ceiling, checked FIRST and independently
+    # of the softer per-cell bracket check below -- "regardless of per-cell
+    # abort status" (the task's own registered wording) means this check
+    # must not be reachable-only-if-the-bracket-check-already-passed. Sum
+    # the six Stage-1 cells' own realized wall_s (all six are guaranteed
+    # present by this point: missing_ks already refused above, and each K's
+    # list holds every completed cell this manifest registers for that K,
+    # 3 seeds each = 6 total at K=38+42). NOTE (disclosed, not hidden): at
+    # the doc's own registered numbers, 6 cells all individually WITHIN the
+    # per-cell bracket (bracket_upper_s=3503.808s, unrounded) can sum to at
+    # most 6*3503.808=21022.8s=5.84 GPU-h, well under this 11.68 GPU-h
+    # ceiling -- so in practice this sub-ceiling only ever binds together
+    # with (or ahead of) the per-cell bracket check on cells that are
+    # ALSO individually over-bracket; checking it first (rather than after
+    # the bracket check's own sys.exit) is what makes it a genuinely
+    # independent, always-evaluated condition rather than dead code the
+    # bracket check's own exit would otherwise mask.
+    stage1_wall_s_flat = [w for cells in per_k_cells.values() for w in cells if w is not None]
+    stage1_gpuh = sum(stage1_wall_s_flat) / 3600.0
+    if stage1_gpuh > KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING:
+        print(f"ERROR: --stage 2 REFUSED -- sec 12.7.2 R3-4 Stage-1 sub-ceiling: Stage 1 (K="
+              f"{stage1_ks})'s six realized cells sum to {stage1_gpuh:.4f} GPU-h > the dedicated "
+              f"{KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING:.2f} GPU-h Stage-1 ceiling (half the full "
+              f"bracket-pessimistic 2x mandatory ceiling) -- regardless of any individual cell's "
+              f"own per-cell abort status. Stage 1 alone has consumed more than its own dedicated "
+              f"margin; re-price before continuing (contention diagnosis first) -- do not launch "
+              f"Stage 2 at the original estimate. Pass --accept-stage-override for an explicit, "
+              f"documented human override.", file=sys.stderr)
+        sys.exit(1)
+    over_bracket = {K: [w for w in cells if w is not None and w > bracket_upper_s]
+                    for K, cells in per_k_cells.items()}
+    any_over = any(len(ws) > 0 for ws in over_bracket.values())
+    if any_over:
+        print(f"ERROR: --stage 2 REFUSED -- sec 12.2.3's staged-launch gate: Stage 1 (K="
+              f"{stage1_ks}) has at least one completed cell whose realized wall_s exceeds the "
+              f"K48-calibrated bracket's upper edge ({bracket_upper_s:.1f}s, 0.97 GPU-h/cell): "
+              f"{over_bracket}. Per sec 12.2.3 item 3, re-price before continuing (contention "
+              f"diagnosis first) -- do not launch Stage 2 at the original estimate. Pass "
+              f"--accept-stage-override for an explicit, documented human override.",
+              file=sys.stderr)
+        sys.exit(1)
+    print(f"sec 12.2.3 STAGE GATE PASSED: Stage 1 (K={stage1_ks}) has ALL registered seeds "
+          f"completed per K, "
+          f"all within the {bracket_upper_s:.1f}s bracket upper edge -- Stage 2 (K="
+          f"{[K for K, s in KEYANCHOR_CLIFF_STAGE_BY_K.items() if s == 2]}) may proceed. "
+          f"sec 12.7.2 R3-4 Stage-1 sub-ceiling: {stage1_gpuh:.4f} / "
+          f"{KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING:.2f} GPU-h -- WITHIN.", flush=True)
+    sentinel_report = _write_keyanchor_cliff_stage1_sentinel(
+        out_dir, per_k_cells, stage1_gpuh, bracket_upper_s)
+    return {"gate_bypassed": False, "stage1_ks": stage1_ks, "per_k_wall_s": per_k_cells,
+            "stage1_gpuh": stage1_gpuh, "sentinel_written": True,
+            "sentinel_path": sentinel_report["sentinel_path"]}
+
+
+def _write_keyanchor_cliff_stage1_sentinel(out_dir: str, per_k_cells: dict, stage1_gpuh: float,
+                                            bracket_upper_s: float) -> dict:
+    """sec 12.7.2 R3-5's durable cross-program clearance sentinel. Written
+    ONLY by keyanchor_cliff_stage_gate's own clean-pass branch (never called
+    from the override-bypass or gate-not-applicable paths). One JSON line
+    (matches this project's other single-line-JSON artifacts, e.g.
+    ABORTED.txt's sibling pattern) containing: the six cells' own wall_s
+    values (per-K), the computed Stage-1 GPU-h, the bracket edge, and a
+    timestamp. This file's result-JSON schema (run_deltanet_rd.py's own
+    "wall_s": time.time() - t0) records only a DURATION, never an absolute
+    end-timestamp -- there is no upstream timestamp field to reuse here, so
+    (matching this file's own existing precedent of calling time.time()
+    directly at operational gate points, e.g. `unblind_override_at =
+    time.time()` above) this wall-clock call is made directly, at sentinel-
+    write time, immediately after the newest cell's own completion was
+    already confirmed by the gate above."""
+    sentinel_path = os.path.join(out_dir, KEYANCHOR_CLIFF_STAGE1_SENTINEL_NAME)
+    payload = {
+        "stage1_wall_s_by_k": {str(K): cells for K, cells in per_k_cells.items()},
+        "stage1_gpuh": stage1_gpuh,
+        "stage1_gpuh_ceiling": KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING,
+        "bracket_upper_s": bracket_upper_s,
+        "timestamp": time.time(),
+    }
+    os.makedirs(out_dir, exist_ok=True)
+    with open(sentinel_path, "w") as f:
+        f.write(json.dumps(payload, sort_keys=True) + "\n")
+    print(f"sec 12.7.2 R3-5: wrote clearance sentinel {sentinel_path!r} "
+          f"(stage1_gpuh={stage1_gpuh:.4f}, ceiling={KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING:.2f}).",
+          flush=True)
+    return {"sentinel_path": sentinel_path}
+
+
+def keyanchor_cliff_check_abort(spec: dict, wall_s: float) -> None:
+    """sec 12.2.3's mechanical abort rule, broadened at Rev 12.2 to ANY
+    completed cell (not only the first): if a completed candidate (d)
+    cell's own realized wall_s >= KEYANCHOR_CLIFF_ABORT_WALL_S (5,238s),
+    halt all remaining cell launches in this wave immediately by raising --
+    the caller (main()'s own dispatch loop) catches this and stops
+    launching new cells for the keyanchor-cliff wave, rather than proceeding
+    on the assumption the outlier cell was a one-off. In-code, not a
+    comment: every keyanchor-cliff cell completion calls this."""
+    if wall_s >= KEYANCHOR_CLIFF_ABORT_WALL_S:
+        raise KeyanchorCliffAbort(
+            f"sec 12.2.3 ABORT: cell {spec['name']!r} (K={spec['K']}) realized wall_s={wall_s:.1f}s "
+            f">= {KEYANCHOR_CLIFF_ABORT_WALL_S:.1f}s (1.5x the K48-calibrated bracket's upper edge). "
+            f"Halting all remaining keyanchor-cliff launches -- diagnose contention with the "
+            f"concurrent frozen-bias LM program on shared GPUs 2-7 (sec 12.2.3 item 2) before "
+            f"resuming.")
+
+
+class KeyanchorCliffAbort(RuntimeError):
+    """sec 12.2.3's mechanical, in-code hard-halt signal -- raised by
+    keyanchor_cliff_check_abort, caught by main()'s dispatch loop for the
+    keyanchor-cliff wave only. A distinct exception type (not a bare
+    RuntimeError) so the dispatch loop's own generic except-and-CRASHED.txt
+    handler can distinguish a deliberate, expected halt from an actual
+    orchestrator crash."""
 
 
 KEYANCHOR_DRIFT_DIAG_JSON_DEFAULT = os.path.join(
@@ -1598,7 +2031,7 @@ def main():
                                         "keyanchor-mech-gate1", "keyanchor-mech",
                                         "keyanchor-k48-ref", "keyanchor-k48-bands",
                                         "keyanchor-k48-gate1", "keyanchor-k48",
-                                        "keyanchor-e"], default=None,
+                                        "keyanchor-e", "keyanchor-cliff"], default=None,
                      help="'geo3' launches F-geo-3's Wave-1-style cells (sec 14.7) -- GATED on "
                           "--geo3-drift-json (sec 14.6's launch-read result) unless "
                           "--accept-gate-override is passed. The sec 14.6 drift diagnostic ITSELF "
@@ -1635,7 +2068,17 @@ def main():
                           "frame-potential arm (seeds 70-72, per the stub's literal init text -- "
                           "audit prescription) -- REUSES the EXISTING K=16/32 BANDS_PINNED.json gate "
                           "(these are K=32 anchor-arm cells, sec 3.6 applies unchanged, no new "
-                          "K48-style bands file needed here).")
+                          "K48-style bands file needed here). "
+                          "KEY_ANCHORING_DESIGN.md sec 12 (Rev 12.2, CLEARED-FOR-BUILD, human "
+                          "sign-off recorded 2026-07-06) wave: 'keyanchor-cliff' launches candidate "
+                          "(d)'s 12 MANDATORY cells, K in {34,38,42,46} x 3 seeds -- reference arms "
+                          "are CUT from this wave's scope (sec 12.2 item 2, unlike keyanchor-k48). "
+                          "REQUIRES --stage 1 or --stage 2: --stage 1 launches K=38+K=42 (the two "
+                          "interior points); --stage 2 launches K=34+K=46 and MECHANICALLY REFUSES "
+                          "unless every Stage-1 K has a completed cell within the K48-calibrated "
+                          "bracket (sec 12.2.3's staged-launch gate, --accept-stage-override "
+                          "bypasses). --include-cliff-gate1 additionally launches the OPTIONAL "
+                          "per-K Gate-1-style probes for the K's in the requested stage.")
     ap.add_argument("--gpus", type=int, default=None,
                      help="GPU COUNT. REQUIRED for a real (wave -1/1) launch, NO DEFAULT ON "
                           "PURPOSE -- check nvidia-smi before every launch (GPUs 0-5,7 run other "
@@ -1739,6 +2182,22 @@ def main():
                           "Outcome A(d') or D' verdict (sec 10.6's routing table) -- read this "
                           "wave's own docs before passing; there is no script that checks this "
                           "mechanically yet (sec 11.1 item 3's own registered build gap).")
+    ap.add_argument("--stage", type=int, choices=[1, 2], default=None,
+                     help="--wave keyanchor-cliff: REQUIRED. --stage 1 launches K=38+K=42 (sec "
+                          "12.2.3's staged launch, the two interior points). --stage 2 launches "
+                          "K=34+K=46 and REFUSES (mechanical check against Stage 1's own completed "
+                          "cells' wall_s, sec 12.2.3) unless Stage 1 cleared the K48-calibrated "
+                          "bracket -- --accept-stage-override bypasses.")
+    ap.add_argument("--accept-stage-override", action="store_true",
+                     help="--wave keyanchor-cliff --stage 2: bypass sec 12.2.3's mechanical "
+                          "Stage-1-clears-bracket gate with an explicit, loudly-logged human "
+                          "override -- same override class as --accept-gate-override/"
+                          "--unblind-override/--accept-budget-override.")
+    ap.add_argument("--include-cliff-gate1", action="store_true",
+                     help="--wave keyanchor-cliff: additionally launch the OPTIONAL, lowest-cut-"
+                          "priority Gate-1-style probes (sec 12.2 item 3) for the K's in the "
+                          "requested --stage. Off by default (sec 12.2.3: first cut under budget "
+                          "pressure).")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -1916,6 +2375,45 @@ def main():
               f"the exactness-program cap)")
         assert len(ke) == 3 and len(ke_fp) == 3 and len(ke_all) == 6, \
             f"keyanchor-e run counts drifted from their registered 3+3=6: {len(ke)}+{len(ke_fp)}"
+
+        print("\n" + "=" * 70)
+        print("KEY_ANCHORING_DESIGN.md sec 12 (Rev 12.2, CLEARED-FOR-BUILD) -- "
+              "keyanchor-cliff wave preview (capacity-cliff localization)")
+        print("=" * 70)
+        kc_mand = keyanchor_cliff_manifest()
+        kc_g1 = keyanchor_cliff_gate1_manifest()
+        lo_c, hi_c = KEYANCHOR_CLIFF_GPUH_PER_CELL
+        lo_g1c, hi_g1c = KEYANCHOR_CLIFF_GATE1_GPUH
+        stage1_ks = sorted(K for K, s in KEYANCHOR_CLIFF_STAGE_BY_K.items() if s == 1)
+        stage2_ks = sorted(K for K, s in KEYANCHOR_CLIFF_STAGE_BY_K.items() if s == 2)
+        print(f"  candidate (d), MANDATORY, PRIMARY, K in {KEYANCHOR_CLIFF_KS}: {len(kc_mand)} runs | "
+              f"3 seeds each | ~{len(kc_mand) * lo_c:.2f}-{len(kc_mand) * hi_c:.2f} GPU-h")
+        print(f"    stage 1 (K={stage1_ks}, launched first/alone): "
+              f"{len([s for s in kc_mand if s['K'] in stage1_ks])} runs")
+        print(f"    stage 2 (K={stage2_ks}, conditional on stage 1 clearing the bracket, sec 12.2.3): "
+              f"{len([s for s in kc_mand if s['K'] in stage2_ks])} runs")
+        print(f"  Gate-1-style probes, OPTIONAL, 1 per K: {len(kc_g1)} runs | "
+              f"~{len(kc_g1) * lo_g1c:.2f}-{len(kc_g1) * hi_g1c:.2f} GPU-h (not run by default)")
+        print(f"  seed contingency, CONDITIONAL, +2 seeds per K (reserved blocks "
+              f"{KEYANCHOR_CLIFF_CONTINGENCY_SEEDS_BY_K}): not a manifest function in this build "
+              f"(sec 12.2's own registered-but-not-fired discipline)")
+        print(f"  registered nominal ceiling (mandatory-only, bracket-pessimistic, 2x, sec 12.5): "
+              f"{KEYANCHOR_CLIFF_GPUH_CEILING:.2f} GPU-h -> program cumulative "
+              f"{KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH:.2f} + {KEYANCHOR_CLIFF_GPUH_CEILING:.2f} = "
+              f"{KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH + KEYANCHOR_CLIFF_GPUH_CEILING:.2f} / "
+              f"{KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING:.0f} GPU-h "
+              f"({'WITHIN' if KEYANCHOR_CLIFF_PROGRAM_SPENT_GPUH + KEYANCHOR_CLIFF_GPUH_CEILING <= KEYANCHOR_CLIFF_PROGRAM_GPUH_CEILING else 'EXCEEDS'} "
+              f"the exactness-program cap; reserve={KEYANCHOR_CLIFF_RESERVE_GPUH:.2f} GPU-h, sec 12.5's own "
+              f"'~0.89 GPU-h to spare' figure)")
+        print(f"  abort threshold (sec 12.2.3, ANY completed cell): wall_s >= "
+              f"{KEYANCHOR_CLIFF_ABORT_WALL_S:.1f}s (1.5x the {hi_c:.2f} GPU-h/cell bracket upper edge)")
+        assert len(kc_mand) == 12 and len(kc_g1) == 4, \
+            f"keyanchor-cliff run counts drifted from their registered 12+4: {len(kc_mand)}+{len(kc_g1)}"
+        assert sorted(set(s["K"] for s in kc_mand)) == sorted(KEYANCHOR_CLIFF_KS), \
+            f"keyanchor-cliff mandatory manifest K's drifted: {sorted(set(s['K'] for s in kc_mand))}"
+        assert stage1_ks == [38, 42] and stage2_ks == [34, 46], \
+            f"keyanchor-cliff stage split drifted from its registered stage1={{38,42}}/stage2={{34,46}}: " \
+            f"stage1={stage1_ks} stage2={stage2_ks}"
 
         print("\n" + "=" * 70)
         print(f"COMBINED (both waves, all-conditionals-max, using the RECONCILED "
@@ -2197,6 +2695,42 @@ def main():
               f"'e' frozen random-unit-rows seeds {{60,61,62}} + 'e-fp' frozen frame-potential "
               f"seeds {{70,71,72}}, fixed lambda={KEYANCHOR_E_LAMBDA_FIXED}); "
               f"bands_gate={bands_gate}", flush=True)
+    elif args.wave == "keyanchor-cliff":
+        # sec 12's capacity-cliff localization wave. REQUIRES --stage (sec
+        # 12.2.3's staged launch); no BANDS_PINNED gate (candidate (d)'s own
+        # architecture/frame-potential init is UNCHANGED from keyanchor-k48,
+        # sec 12.1 -- this wave reuses the ALREADY-VALIDATED K=16/32
+        # BANDS_PINNED.json blinding gate rather than a new K-specific one,
+        # since the reference-arm cut (sec 12.2 item 2) means there is no
+        # new per-K reference measurement to derive fresh bands from anyway).
+        if args.stage is None:
+            print("ERROR: --wave keyanchor-cliff requires --stage 1 or --stage 2 (sec 12.2.3's "
+                  "staged launch -- K=38+K=42 first, K=34+K=46 only after Stage 1 clears the "
+                  "K48-calibrated bracket).", file=sys.stderr)
+            sys.exit(1)
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        ref_out_dir = os.path.join(args.out_dir, "waveref")
+        bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
+        keyanchor_cliff_budget_guard(args.accept_budget_override)
+        stage_ks = tuple(sorted(K for K, s in KEYANCHOR_CLIFF_STAGE_BY_K.items() if s == args.stage))
+        cliff_out_dir = os.path.join(args.out_dir, "wavekeyanchor-cliff")
+        stage_gate_report = keyanchor_cliff_stage_gate(cliff_out_dir, args.stage, args.accept_stage_override)
+        manifest = keyanchor_cliff_manifest(Ks=stage_ks)
+        if args.include_cliff_gate1:
+            manifest = manifest + keyanchor_cliff_gate1_manifest(Ks=stage_ks)
+        ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-cliff"
+        disk_report = keyanchor_mech_disk_gate(ckpt_base_dir, manifest, label="keyanchor-cliff")
+        if not disk_report["ok"] and not args.accept_budget_override:
+            print(f"ERROR: DISK GATE (keyanchor-cliff) REFUSED -- "
+                  f"{disk_report['required_bytes'] / 1e6:.1f} MB required at "
+                  f"{disk_report['resolved_ckpt_dir']!r}, {disk_report['free_bytes'] / 1e9:.2f} GB free. "
+                  f"Free up space or pass --accept-budget-override.", file=sys.stderr)
+            sys.exit(1)
+        print(f"wave keyanchor-cliff manifest: {len(manifest)} runs (candidate (d), stage {args.stage}, "
+              f"K={stage_ks}, 3 seeds each"
+              f"{' + Gate-1 probes' if args.include_cliff_gate1 else ''}); "
+              f"bands_gate={bands_gate} stage_gate={stage_gate_report}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,
                                    args.calib_summary, args.accept_unconverged_rho)
@@ -2222,7 +2756,7 @@ def main():
     # same ABORTED.txt discipline as the pre-existing run_smoke gate below.
     if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1",
                       "keyanchor-mech", "keyanchor-k48-ref", "keyanchor-k48-gate1", "keyanchor-k48",
-                      "keyanchor-e") and not args.skip_smoke:
+                      "keyanchor-e", "keyanchor-cliff") and not args.skip_smoke:
         rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
         if rc != 0:
             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -2230,7 +2764,7 @@ def main():
             print("ERROR: smoke_key_anchoring.py failed -- wave aborted.", file=sys.stderr)
             sys.exit(1)
         if args.wave in ("keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1", "keyanchor-mech",
-                          "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e"):
+                          "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e", "keyanchor-cliff"):
             rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
             if rc != 0:
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -2268,6 +2802,17 @@ def main():
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                     f.write("smoke_keyanchor_k48_e.py FAILED (rc != 0); no training launched.\n")
                 print(f"ERROR: smoke_keyanchor_k48_e.py failed -- {args.wave} wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+        if args.wave == "keyanchor-cliff":
+            # KEY_ANCHORING_DESIGN.md sec 12.2.1/12.2.2/12.4 -- the cliff
+            # wave's own smoke suite (fla-free; manifest regression at K=48,
+            # zero-reference-arm-paths negative unit test, stage/seed shape).
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_keyanchor_cliff.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("smoke_keyanchor_cliff.py FAILED (rc != 0); no training launched.\n")
+                print(f"ERROR: smoke_keyanchor_cliff.py failed -- {args.wave} wave aborted.",
                       file=sys.stderr)
                 sys.exit(1)
 
@@ -2337,6 +2882,24 @@ def main():
                 free.append(gpu)
                 if rc == 0 and is_done(out_dir, spec):
                     done_ct += 1
+                    # sec 12.2.3's mechanical, in-code abort rule (Rev 12.2:
+                    # ANY completed cell, not only the first) -- keyanchor-
+                    # cliff ONLY. Reads THIS cell's own realized wall_s
+                    # straight from its result JSON (never re-derived from
+                    # the orchestrator's own wall-clock timer, which would
+                    # include queue/GPU-wait time the design's own bracket
+                    # does not price in).
+                    if args.wave == "keyanchor-cliff":
+                        with open(out_path(out_dir, spec)) as f:
+                            wall_s = json.load(f).get("wall_s")
+                        if wall_s is not None:
+                            try:
+                                keyanchor_cliff_check_abort(spec, wall_s)
+                            except KeyanchorCliffAbort as abort_exc:
+                                print(f"  {abort_exc}", flush=True)
+                                pending.clear()
+                                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                                    f.write(str(abort_exc) + "\n")
                 else:
                     failed.append((spec["name"], rc))
             write_progress(out_dir, done_ct, len(failed), len(running), args.wave)

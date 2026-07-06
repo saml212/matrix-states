@@ -1,0 +1,215 @@
+{
+  "generated_at": "2026-07-06T09:07:02.118498+00:00",
+  "script": "keyanchor_cliff_niter_check.py",
+  "purpose": "KEY_ANCHORING_DESIGN.md sec 12.2.2 (Rev 12.1, attack finding 7) -- zero-GPU n_iter-sufficiency check for GATE2_N_ITER_BY_K's K=34/38/42/46 entries",
+  "method": "sec 11.4.2's own method: fix 1 of 8 sampled train-pool anchor rows, resample K-1 co-drawn rows from the other 106, full production-tier Newton-Schulz, pooled (mean, p10) fixed-row post-NS pairwise cosine across 8*32=256 draws",
+  "n_iter_grid": [
+    12,
+    16,
+    20,
+    24
+  ],
+  "candidate_ks": [
+    34,
+    38,
+    42,
+    46
+  ],
+  "n_entities": 107,
+  "d_state": 64,
+  "n_fixed_anchors": 8,
+  "n_resamples": 32,
+  "convergence_tolerance_rel": 0.005,
+  "per_k": {
+    "34": {
+      "by_n_iter": {
+        "12": {
+          "K": 34,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9344163537025452,
+          "p10": 0.9150629043579102
+        },
+        "16": {
+          "K": 34,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9344163537025452,
+          "p10": 0.9150627255439758
+        },
+        "20": {
+          "K": 34,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9344163537025452,
+          "p10": 0.9150629043579102
+        },
+        "24": {
+          "K": 34,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9344163537025452,
+          "p10": 0.9150629043579102
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 0.9344163537025452,
+        "mean_at_24": 0.9344163537025452,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "38": {
+      "by_n_iter": {
+        "12": {
+          "K": 38,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9272398948669434,
+          "p10": 0.906417191028595
+        },
+        "16": {
+          "K": 38,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9272398948669434,
+          "p10": 0.9064171314239502
+        },
+        "20": {
+          "K": 38,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9272398948669434,
+          "p10": 0.9064170718193054
+        },
+        "24": {
+          "K": 38,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9272398948669434,
+          "p10": 0.9064171314239502
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 0.9272398948669434,
+        "mean_at_24": 0.9272398948669434,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "42": {
+      "by_n_iter": {
+        "12": {
+          "K": 42,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9173000454902649,
+          "p10": 0.8920056223869324
+        },
+        "16": {
+          "K": 42,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9173000454902649,
+          "p10": 0.8920055627822876
+        },
+        "20": {
+          "K": 42,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9173000454902649,
+          "p10": 0.8920055627822876
+        },
+        "24": {
+          "K": 42,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9173000454902649,
+          "p10": 0.8920055627822876
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 0.9173000454902649,
+        "mean_at_24": 0.9173000454902649,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "46": {
+      "by_n_iter": {
+        "12": {
+          "K": 46,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9046058654785156,
+          "p10": 0.8780925273895264
+        },
+        "16": {
+          "K": 46,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9046058654785156,
+          "p10": 0.8780924677848816
+        },
+        "20": {
+          "K": 46,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9046058654785156,
+          "p10": 0.8780925273895264
+        },
+        "24": {
+          "K": 46,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9046058654785156,
+          "p10": 0.8780925869941711
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 0.9046058654785156,
+        "mean_at_24": 0.9046058654785156,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    }
+  },
+  "all_ks_converged": true,
+  "wall_s": 2.3007988929748535
+}

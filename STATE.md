@@ -39,12 +39,26 @@ This document is the project dashboard. Anyone returning to the project (you, a 
      auto-ingests the new point); resolve the 3 `[PENDING RUNG-3]` todos
      in sections/; add the 3 missing intro contribution bullets +
      related-work anchoring citation (flagged in the sprint plan).
-- **GPUs 2-7:** legitimately idle — the registered experimental queue is
-  EMPTY (anchoring program COMPLETE: constancy-suffices ablation §10.14,
-  capacity cliff §11.12 in KEY_ANCHORING_DESIGN.md). Do not launch
-  un-gauntleted work to fill them.
-- **Budgets:** scale 266.47/300 GPU-h committed (rung-3 is the last
-  spend); anchoring 55.83/80.
+- **GPUs 2-7 (UPDATED 2026-07-06 ~10:30 UTC):** two NEW gauntlet-cleared
+  programs queued/launching, both user-signed-off ("Both, in parallel" +
+  standing full-autonomy directive, same date):
+  1. **Capacity-cliff localization wave** (KEY_ANCHORING_DESIGN.md §12,
+     Rev 12.3 — 3 attack rounds + build audit + independent additions
+     verify, ADDITIONS-VERIFIED): K∈{34,38,42,46}, 3 seeds, candidate-(d)
+     only, 12 cells staged (K38/K42 first on GPUs 2-3, then K34/K46 gated
+     on in-bracket rates + STAGE1_RATES_OK sentinel). Budget 23.36 GPU-h
+     ceiling at 2× contingency inside anchoring headroom (55.83+23.36 =
+     79.19/80). Abort: ANY cell wall_s ≥5238.0s halts launches. Deliverable:
+     cliff location x0 ± bootstrap CI (parameter estimation, no binary bar).
+  2. **Frozen-bias LM demo, RUNG-1-ONLY** (FROZEN_BIAS_LM_DESIGN.md — 4
+     attack rounds + r5 pin, estimation-mode primary: Arm2 vs Arm1′
+     post-hoc-blend control, pinned t(2,.975) CI thresholds 0.0546/0.1064,
+     ~11.2-14.2 GPU-h at 2×; rung-2 PARKED behind fresh review). Build
+     stage next; calibration gated on cliff STAGE1_RATES_OK (§8.2a).
+- **Budgets:** scale 266.47/300 GPU-h committed at launch-time constants
+  (rung-3 actual ≈334/300 DISCLOSED, see top block); anchoring 55.83/80 +
+  cliff 23.36 = 79.19/80; frozen-bias LM program own ceiling 135 (rung-1
+  scope ~14 GPU-h committed).
 - **User decisions pending:** see `matrix-thinking/submissions/PAPER_SPRINT_PLAN.md`
   §PI-decisions (venue NeurReps/UniReps EA ~Jul 11 CFP; title keep-default;
   author block + co-contributor question; parallel workshop-cut + ICLR

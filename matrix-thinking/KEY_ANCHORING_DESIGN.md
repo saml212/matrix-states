@@ -5492,3 +5492,1298 @@ to K/d=0.75. The capacity curve is reported as measured — 16/32 HIT,
   Wave 1 (candidates (d) and (c), early-stop armed, per-entity logging
   active) → assess against §3.5's outcome frame → candidate (b) /
   fixed-grid λ / follow-ons only per their registered triggers.
+
+---
+
+## 12. Capacity-cliff localization wave (design-only; DRAFT, pending its
+own attack round — zero GPU spent producing this section)
+
+**PI-DECISION flagged up front, before anything else in this section:**
+`STATE.md` (lines 42–44, 556–655) and this document's own §11.12 declare
+the key-anchoring program **COMPLETE** — "Program formally complete at
+≈55.83/80 GPU-h; no further waves scheduled" (`STATE.md` line 654–655),
+and GPUs 2–7 are described as "legitimately idle... do not launch
+un-gauntleted work to fill them" (`STATE.md` lines 42–45). This section
+is written because it was requested, and it is designed to the same
+discipline as every prior wave — but launching it would **reopen a
+program the project's own state file marked closed**, not extend an
+open one. §11.12's own capacity curve (16→32→48, HIT/HIT/MISS) already
+localizes the cliff to "somewhere between K/d=0.5 and K/d=0.75" at
+three points; this wave adds three more points *inside* that same
+bracketed interval. That is a real, well-posed follow-up question, but
+it is additional resolution on an already-answered qualitative
+question (a cliff exists in that interval), not a new hypothesis the
+program lacks an answer to. **This section is CLEARED-FOR-BUILD on
+technical grounds only; it is NOT self-authorizing a launch — a human
+sign-off re-opening the program is required before Wave −1 smokes are
+even run**, separate from and prior to any attack round on the design
+itself.
+
+**RESOLVED 2026-07-06 ~08:00 UTC — user sign-off obtained.** The PI was
+presented the next-program decision directly ("Which next program should
+I take through the gauntlet to fill GPUs 2-7...?", option "Capacity-cliff
+sweep — pin the cliff edge between K/d=0.5 and 0.75, 3 values × 3
+seeds") and selected **"Both, in parallel"** (this wave + the frozen-bias
+LM demo program), then issued a standing full-autonomy directive for all
+subsequent decisions. The program is hereby REOPENED for this single
+localization wave under the existing 80 GPU-h ceiling; the attack round
+and every downstream gauntlet stage still apply in full.
+
+### 12.0 Hypothesis — REVISED at Rev 12.1 (attack finding 1a: reframed from a binary test to parameter estimation)
+
+Held-out compositional recovery (h4 `rec@0.9`) collapses somewhere in
+the interval K/d_state ∈ (0.5, 0.75): the drop from K=32 (h4 mean
+≈0.61–0.71 across waves) to K=48 (h4 mean 0.0215) is real and already
+established (§11.12); what this wave localizes is *where in that
+interval* the collapse is centered and *how wide* the transition is.
+**This wave's deliverable is a parameter estimate, not a binary
+verdict**: fit the logistic form `h4(x) = L / (1 + exp((x-x0)/w))` to
+the full available curve (archived K=16/32/48 points plus this wave's
+new points) and report the cliff location `x0` and width `w`, each with
+a seed-level parametric bootstrap 95% CI, pre-registered in §12.4. A
+CI is always reportable by construction — there is no "ambiguous"
+outcome, only a wider or narrower CI — which is the direct fix for the
+attack round's finding that the original binary sigmoid-vs-linear test
+was underpowered at 6 points (simulated P(ambiguous) 86.8–95.8% under
+archived noise levels, §12.4/§12.7.1). §12.4a's own pre-registered CPU
+power simulation (`sim_cliff_power.py`) is the basis for both the
+point-set choice (§12.2) and the honesty check on whether this wave is
+worth running at all (§12.4b).
+
+### 12.1 Relationship to §11 — what this wave does and does not reopen
+
+Per §11.7's own precedent ("this wave never reopens or rescores any of
+the [prior] JSONs... this section's own K=48 Outcome assignment... is
+independent and separately reported"): this wave does not touch, revisit,
+or rescore any Outcome assignment in §9/§9.6/§9.7/§10/§10.13/§10.14/§11/
+§11.12. It adds new K points (four, per the re-picked set at §12.2,
+Rev 12.1) to the same capacity-curve figure
+(§11.2's curve-reporting rule: "the eventual paper/write-up figure
+reports **all** K points on one plot... never pooled, averaged, or
+presented as a single aggregate statistic across K" — that rule already
+anticipated exactly this kind of extension). Candidate (d)'s own
+architecture is used unchanged (§11.1 arm 1: `anchor_blend_gather_scatter`,
+single learned scalar λ, frame-potential init at
+`ANCHOR_INIT_SEED=20260705`) — no candidate (e) (frozen-table ablation,
+§10.14) or candidate (d′) (per-entity λ, §11.1 arm 3) cells are proposed
+here; §10.14's constancy-suffices finding and §11.12's cliff finding are
+both accepted as settled inputs, not re-tested.
+
+**d_state — verified from the archive, matches the task's expectation.**
+Every K=48 result JSON in `experiment-runs/2026-07-07_keyanchor_k48/`
+reports `"d_state": 64` (confirmed by direct JSON field read this
+session, all 7 files: `wavekeyanchor-k48/*.json`,
+`wavekeyanchor-k48-ref/*.json`, `wavekeyanchor-k48-gate1/*.json`). No
+discrepancy to flag — `d_state=64` is the correct, verified constant to
+hold fixed for K∈{34,38,42,46} (re-picked point set, §12.2 Rev 12.1).
+
+**Archive path correction.** The task brief cites
+`experiment-runs/2026-07-06_keyanchor_k48/` — this directory does not
+exist. The real archive (repo root and SSD mirror, both checked) is
+`experiment-runs/2026-07-07_keyanchor_k48/` (matches §11.12's own dated
+header, "2026-07-07"). This section cites the correct path throughout.
+
+### 12.2 Configs — REVISED at Rev 12.1 (attack findings 1b, 2, 3, 4)
+
+**K ∈ {34, 38, 42, 46}, d_state = 64 (unchanged), same task/instrument/
+readout protocol as §11's K=48 wave.** K/d_state ratios: 0.53125,
+0.59375, 0.65625, 0.71875 — **re-picked from the Rev 12.0 draft's
+{36,40,44}, per `sim_cliff_power.py` (§12.4a).** Four points spread
+wider across the (0.5, 0.75) bracket (closer to both existing anchors
+at 0.50 and 0.75) constrain the logistic's `(x0, w)` with one more
+data point than three evenly-spaced interior points, at a modest
+extra cost (12 mandatory candidate-(d) cells vs. 9, reference arms cut
+per item 2 below, §12.5 budget below). Combined
+with the two existing endpoints (K=32 at 0.50, K=48 at 0.75) and the
+K=16 saturation point (0.25), this gives a **6-point curve** across
+the full observed range — the point count carried through §12.4/§12.7
+consistently below (attack finding 5).
+
+**Arms per K — REVISED (attack finding 2): the reference arms are CUT
+from this wave's mandatory scope.**
+
+1. **Candidate (d), learned-λ, full Rev-7.1/§11.0-inherited
+   instrumentation — MANDATORY, PRIMARY, the only arm this wave runs.**
+   Same architecture as §11.1 arm 1, byte-identical except for `K`.
+   `drift_probe=True`, `rev7_engagement=True` from run 1 (same code
+   path, §11.0/§11.8 — nothing new to inherit-check here since
+   K-independence of every inherited instrument was already verified at
+   §11.1.1/§11.8 and holds for any K by the same argument, §12.3).
+2. **Reference arms (bare geo3): CUT, not run — the tradeoff stated
+   honestly, not hidden.** §12.4's fit reads ONLY candidate-(d) h4
+   values (verified this session, §12.4 below) — reference arms feed no
+   bar and no fit in this wave; there are no per-K HIT/MISS bars to
+   contextualize with a baseline (§12.4's own "no h4 bar registered for
+   K=34/38/42/46" ruling, carried over unchanged from Rev 12.0). Cutting
+   them loses per-K *admissibility context at the new K's* — whether
+   bare geo3's own value-salvage floor also fails at these intermediate
+   K's, which §11.12 found failing 3/3 at K=48 already. This is a real
+   loss of information, disclosed rather than hidden: it means this
+   wave cannot independently confirm or bound whether the K=48-style
+   reference-side value-salvage failure sets in gradually or abruptly
+   across 34→46. **Judged an acceptable cut because the K48 wave's own
+   reference legs already straddle the salvage floor (0.071–0.087
+   against a 0.1 floor, §11.12.1) — their information value strictly
+   *at* K=48 is established, but a reference re-measurement at
+   intermediate K would only interpolate between two points (K=32's
+   healthy salvage ratio and K=48's failing one) whose own shape is not
+   this wave's question.** If a future wave needs the reference-side
+   admissibility curve specifically, it is a separate, cheap follow-on
+   (4 K's × 3 seeds = 12 cells, re-using this section's own manifest
+   generalization) — not bundled into this wave's already-tight budget
+   (§12.5).
+3. **Gate-1-style pre-launch probes: registered as OPTIONAL, lowest cut
+   priority (unchanged reasoning from Rev 12.0), one per new K (4
+   total).** Retained rather than cut outright because they are cheap
+   (5,000/20,000-steps × bracket) and give a real pre-launch sanity
+   read at each of the 4 new K's specifically (the existing K=32/48
+   Gate-1 archives don't cover K=34/38/42/46 directly) — but they are
+   the first thing cut under the budget guard (§12.2.3) if the
+   mandatory-only bracket's pessimistic tail is already tight (it is,
+   §12.5).
+4. No d′ or fixed-λ=1 ceiling-validation probe (unchanged from Rev
+   12.0: §11.12 already answered the "hard question," and the
+   ceiling's own shape is cheap to recompute analytically per K,
+   §12.2.2). Gate 2 (construction, §12.3) remains the sole go/no-go,
+   unchanged from every prior K.
+
+**Seed count — arithmetic shown, not asserted.** §11.5's realized K=48
+per-cell costs (this session, re-pulled directly from the 7 archived
+JSONs, §11 header table plus fresh extraction):
+
+| K | Arm | Realized `wall_s` (mean of 3 seeds where applicable) | GPU-h/cell |
+|---|---|---|---|
+| 48 | candidate (d) | (943.65+928.54+953.32)/3 = 941.84 | 0.2616 |
+| 48 | reference (geo3) | (876.33+867.78+906.08)/3 = 883.40 | 0.2454 |
+| 48 | Gate-1 probe (5,000 steps, 1 run) | 274.46 | 0.0762 |
+
+(These reproduce §11.12's own published total: 0.2616×3 + 0.2454×3 +
+0.0762 = 0.785+0.736+0.076 = 1.597 GPU-h, matching §11.12's "Realized
+cost: 1.597 GPU-h total" line exactly — the per-cell figures above are
+internally consistent with the wave-level total already on record. The
+reference-arm row is kept in this table for cost-model provenance even
+though the reference arm itself is cut from this wave's manifest, item
+2 above — the number is still the basis for the candidate/reference
+cost-ratio sanity check in §12.2.2.)
+
+**Cost model for K=34/38/42/46 — the interpolation table is DELETED
+(attack finding 4), not corrected.** Rev 12.0's draft computed a
+per-unit-K geometric scaling factor and applied it asymmetrically (down
+from K=48 for K=36, up-and-down for K=40/44), producing a K=36 factor
+of 0.938 — **wrong: the exponent counted 4 steps of K from the K=32
+anchor while the base rate (`0.2616`/`0.2454`) is K=48's own, an
+anchor/step-count mismatch.** Anchored correctly from K=48 (the closer,
+more-recently-calibrated point, as Rev 12.0 itself intended), the
+correct 12-step-of-K factor is `1.01473^-12 = 0.839`, not 0.938 (a
+~10.6% relative error in the disclosed-as-non-load-bearing number).
+Rather than re-derive four corrected factors for a table whose own
+point set just changed (K=34/38/42/46, not K=36/40/44) and whose own
+text already disclosed it "is not used for anything load-bearing"
+(§12.7 attack-round-1 finding 5, agreeing the exercise was decoration) —
+**the table is deleted outright.** The budgeting below uses only the
+flat K=48-calibrated bracket (0.23–0.97 GPU-h/cell) and the K=48
+realized-rate point estimate, both already disclosed as adequate for a
+bracket this wide (§11.5's own bracket, unchanged).
+
+**Seeds: 3 per K, candidate (d) only (12 mandatory cells) + up to 4
+optional Gate-1 probes (1 per K) = up to 16 cells** — reference arms
+cut per item 2 above. Full budget arithmetic, including the mandatory
+2× contingency multiplier (attack finding 2), moved to §12.5 (was
+scattered across this subsection in Rev 12.0; consolidated so the
+go/no-go lives in one place).
+
+**Seed integers — new, escalating block, per this program's own
+never-reuse convention (§11.1's own reasoning, restated), candidate (d)
+only (reference blocks retained below for provenance/re-use if a future
+wave restores the reference arm):** K=34 candidate (d) {130,131,132};
+K=38 candidate (d) {230,231,232}; K=42 candidate (d) {330,331,332};
+K=46 candidate (d) {430,431,432}. Gate-1 probes: K=34 seed 133; K=38
+seed 233; K=42 seed 333; K=46 seed 433 (escalating-block convention
+extended one further, non-colliding with any candidate-(d) seed or any
+prior wave's range). (K alone already prevents filename collision per
+`out_path()`/`is_done()`'s own key-on-K behavior, §11.9 item 16's own
+verified mechanism — these new blocks are for human provenance-tracing
+only, matching §11.1's stated reasoning exactly.) Reference-arm seed
+blocks, reserved but NOT launched this wave (item 2 above): K=34
+{101,102,103}; K=38 {201,202,203}; K=42 {301,302,303}; K=46 {401,402,
+403}.
+
+**Seed contingency (inherited, §6/§11.1's own convention): +2 seeds per
+K if any K's λ-band or h4-bar assignment lands ambiguous at 2/3 —
+reserved blocks {134,135} (K=34), {234,235} (K=38), {334,335} (K=42),
+{434,435} (K=46).** Per §12.2.3's mid-run budget guard, this is the
+FIRST conditional cut if the running-projection check trips.
+
+#### 12.2.1 Build scope — `keyanchor_k48_manifest()` is NOT yet K-parameterized
+
+**Verified directly, this session, `run_deltanet_rd_exactness_sweep.py`
+lines 808–827:** `keyanchor_k48_manifest()` hardcodes seeds `(30, 31, 32)`
+and the string `"keyanchor-k48"` with no `K` argument at all — unlike
+`geo3_wave1_manifest(include_k48: bool)` (line 215) or
+`reference_arms_manifest(Ks=(16, 32), ...)` (line 314), it was never
+generalized to accept an arbitrary `K`, because K=48 was the only value
+ever needed when it was written. **Required build task, registered now
+(mirrors §11.0's own build-scope disclosure when K=48 itself was
+added):** generalize `keyanchor_k48_manifest(K: int, seeds: tuple)` and
+`keyanchor_k48_gate1_manifest(K: int, seed: int)` to accept
+34/38/42/46 — plus extend `GATE2_N_ITER_BY_K` (`key_anchoring.py` line
+65, currently `{16: 12, 32: 20, 48: 20}`) with `{34: 20, 38: 20, 42: 20,
+46: 20}` (all at the n_iter=20 production tier already used for
+K=32/48 — analogy-based, NOT yet verified sufficient at these specific
+K's; the required zero-GPU sufficiency check is registered as a Wave −1
+item below, attack finding 7). `reference_arms_manifest`'s own `Ks`
+parameter is NOT extended to 34/38/42/46 in this build — the reference
+arm is cut from this wave's scope (§12.2 item 2), so no new reference-K
+branch is needed; the function's existing generality (already accepting
+arbitrary `Ks`, §11.0) is left untouched and unexercised at these new
+K's. **A Wave −1 smoke, registered now (mirrors §11.9 item 14
+exactly):** assert the generalized manifest functions produce
+byte-identical output to the existing hardcoded K=48 manifests when
+called with `K=48` — before trusting the new K=34/38/42/46 branches.
+**A second Wave −1 smoke, NEW at Rev 12.1 (attack finding 6): assert the
+fitting script's own input file list (§12.4 below) contains ZERO
+reference-arm result paths.** Trivially satisfied since the reference
+arm is cut (item 2 above has no cells to produce such a path from), but
+run to completion anyway, not merely written — a negative unit test
+that would catch a future accidental re-introduction of a reference
+path into the fit (e.g. if a later wave restores the reference arm per
+§12.2 item 2's own disclosed follow-on and someone forgets to keep it
+out of the fit's own input glob).
+
+#### 12.2.2 The λ=1 ceiling at K=34/38/42/46 — computed, zero GPU cost, before any run
+
+Per §11.4.2's own method (fix one of 8 sampled anchor rows, resample
+K−1 co-drawn rows from the other 106, full-pool production-tier
+Newton-Schulz `n_iter=20`, pooled pairwise cosine across 32 resamples,
+same registered frame-potential table/seed) — **required pre-launch
+action, not yet performed in this drafting session (flagged, not
+silently assumed):** compute this ceiling at K=34/38/42/46 exactly as
+§11.4.2 did at K=48, before Gate 2 is trusted. Given the already-measured
+monotone sequence (K=16: 0.9745 → K=32: 0.9423 → K=48: 0.8987), the
+four new points are expected to land between 0.9423 and 0.8987,
+monotonically — this is a **stated expectation, not a substitute for
+computing it**, exactly the same discipline §11.1.1's own "disclosed
+expectation, not a presumed result" language already applies to the
+K=48 baseline prior.
+
+**Registered Wave −1 item, NEW at Rev 12.1 (attack finding 7): the
+`n_iter=20` production-tier assumption for K=34/38/42/46 is chosen by
+analogy to K=32/48 (both already `n_iter=20`), not verified at these
+specific K's.** §12.2.2's own method (this subsection) is the cheap,
+zero-GPU way to check it: `n_iter`-sufficiency is exactly what the
+pooled-pairwise-cosine ceiling computation is already sensitive to (an
+insufficient `n_iter` would show up as the ceiling failing to converge
+across increasing `n_iter`, the same check §12.2.2's own pattern already
+performs for the ceiling value itself). **Required, before Gate 2 is
+trusted at any of the 4 new K's:** re-run the ceiling computation at
+`n_iter ∈ {12, 16, 20, 24}` for each of K=34/38/42/46 and confirm the
+ceiling value has converged (change from `n_iter=20`→`24` below a small
+disclosed tolerance, e.g. <0.5% relative) before accepting `n_iter=20`
+as sufficient — mirrors the same "don't assume the production tier
+transfers, check it" discipline §12.2.1's `GATE2_N_ITER_BY_K` extension
+above is now flagged as needing.
+
+#### 12.2.3 Mid-run abort/budget guard — this wave's OWN rule, stated explicitly (NEW at Rev 12.1, attack finding 3; abort scope broadened and staged launch adopted at Rev 12.2, round-2 fix 3)
+
+**Not "mirrors §11.5" by reference — restated here in full, since this
+wave's own concurrency risk is not identical in cause to §11.5's (that
+guard was about this program's own historical +17–26% overshoot rate;
+this wave's added risk is the CONCURRENT frozen-bias LM program sharing
+GPUs 2–7, §12.5's own GPU plan) even though the mechanical shape is the
+same discipline (§3.4's early-stop, extended to a wave's aggregate
+budget, exactly as §11.5 itself did first).**
+
+**Abort rule, mechanical, checked after ANY completed cell (broadened at
+Rev 12.2 from "the FIRST completed cell" — round-2 finding R2-3 noted
+that restricting the hard halt trigger to only the first cell leaves an
+un-diagnosed contention spike arriving mid-run, e.g. once the
+concurrent LM program's own calibration cell starts, invisible to this
+rule until the running-projection check catches up several cells
+later):**
+
+1. **After ANY candidate (d) completed cell (not only the first),**
+   compare its realized `wall_s` against the K48-calibrated bracket's
+   own upper edge (0.97 GPU-h/cell, i.e. `0.97 × 3600 = 3492s`). **If
+   that cell's realized `wall_s` ≥ 1.5× that upper edge (≥5,238s) —
+   halt all remaining cell launches in this wave immediately, do not
+   proceed on the assumption the outlier cell was a one-off.** This
+   check runs on every completed cell's own individual `wall_s`, not
+   only the first — a contention spike arriving on, say, the 5th cell
+   (e.g. because the concurrent LM program's own calibration cell only
+   starts partway through this wave, per the compounding-contention note
+   below) must trigger the same immediate halt as a first-cell outlier
+   would.
+2. **Diagnose before continuing, leading suspect stated explicitly:**
+   contention with the concurrently-running frozen-bias LM program on
+   the same shared GPUs 2–7 (§12.5's own GPU plan puts both programs on
+   the same 6-GPU allocation) — check `nvidia-smi` process list and the
+   LM program's own concurrent cell count/GPU assignment before
+   assuming any other cause (a code regression, an unrelated host
+   issue, etc.).
+3. **Re-price before continuing:** if contention is confirmed, either
+   (a) wait for the LM program's own concurrent cell count to drop
+   before resuming this wave's remaining cells, or (b) re-derive the
+   bracket at the contended rate and re-check the full §12.5 budget
+   table against the 2× headroom before launching another cell — never
+   silently continue at the degraded rate without re-pricing.
+
+**Staged launch (Rev 12.2, round-2 fix 3 — the attacker's own endorsed
+mitigation for R2-3's "0.89 GPU-h margin is thin" finding): launch 2 of
+the 4 K's first, not all 4 at once.** Launch **K=38 and K=42 first** —
+the two interior points closest to the bracket midpoint (K/d=0.59375
+and 0.65625), the most informative pair for constraining `x0` per
+§12.4a's own point-set arithmetic (the interior points do more to pin
+down the transition's location than the two points nearer the existing
+K=32/K=48 anchors do). Observe realized `wall_s`/GPU-h rates on these 2
+K's worth of cells (6 cells, 3 seeds each) against the K48-calibrated
+bracket. **Only after those rates are confirmed within bracket** (i.e.
+no trigger of the abort rule above, and the running-projection check
+does not already show overshoot), launch the remaining **K=34 and
+K=46**. If the first stage's realized rate is at or above the bracket's
+pessimistic edge, this is exactly the re-pricing trigger in item 3
+above — re-price before committing to the second stage's 6 cells, do
+not launch them at the original bracket estimate once real contention
+data from the first stage exists. This staging is folded into §12.5's
+GPU plan below, not left as a policy statement disconnected from the
+actual launch sequence.
+
+**Compounding-contention note (Rev 12.2, round-2 fix 5, NEW).** Both
+this wave and the concurrent `FROZEN_BIAS_LM_DESIGN.md` program
+independently apply a 2× contingency multiplier (§12.5 here; §8.4/§8.5
+there), each calibrated against a SINGLE-sibling precedent (Track C
+rung-3's own measured 2× overrun, attributed to contention with one
+other concurrent program). **Neither program's 2× figure was derived
+against a scenario where BOTH multi-cell programs are running
+simultaneously on the same shared 6-GPU pool (GPUs 2–7) at once** — two
+concurrent multi-cell programs stacking contention could plausibly
+compound worse than the single-sibling precedent either program's own
+2× number is based on. This is disclosed as a real, unquantified risk,
+not smoothed into either program's existing multiplier.
+
+**Mitigation registered here:** this wave launches FIRST and ALONE on
+its 2 GPUs (per the staged launch above — K=38/K=42 first), so its own
+first-stage realized rate is observed under single-program conditions,
+not compounded contention. **The frozen-bias LM program's own
+calibration cell must not start until this wave's first-stage rates
+(K=38/K=42) are observed within bracket** — i.e. this wave's staged
+first-stage check (above) is also the gate for the LM program's launch
+timing, not merely a fact about this wave's own internal sequencing.
+**Cross-reference requirement, not performed here:** this mitigation
+must be mirrored in `FROZEN_BIAS_LM_DESIGN.md` at its own next revision
+so both design documents state the same ordering constraint — that file
+is owned by another agent currently working on it; this note only
+registers the requirement on this wave's side and does not edit that
+file.
+
+**Running-projection cut rule, per completed cell (mirrors §11.5's own
+mechanism, extended with this wave's own priority order):** after each
+completed cell, compare cumulative realized `wall_s` against a running
+projection for the remaining mandatory-plus-optional cells (using the
+realized-per-cell rate observed so far, not the original bracket
+estimate, once ≥3 cells have completed — the same "trust realized over
+estimated" discipline §12.2's own realized-rate figure already applies
+wave-level). **If the projection would exceed the mandatory-only 2×
+bracket ceiling (§12.5), cut in this stated priority order before the
+next cell launches:** (1) seed contingency (§12.2's reserved blocks) →
+(2) optional Gate-1 probes not yet launched → (3) if even
+mandatory-only cells are projected to overshoot, halt and report rather
+than let the wave run past its own ceiling silently.
+
+### 12.3 Thresholds — re-derived data-independently, pinned before any run
+
+**Command (identical invocation to the one that produced
+`REV7_THRESHOLD_PINNED.json`, since the derivation takes no K input at
+all):**
+
+```
+python matrix-thinking/deltanet_rd/rev7_threshold_derive.py \
+    --out matrix-thinking/deltanet_rd/REV7_THRESHOLD_PINNED_K34_K38_K42_K46.json
+```
+
+**Why re-running the identical command is the correct discipline here,
+not a redundant formality.** Verified directly this session,
+`rev7_threshold_derive.py` lines 48–50: `derive()`'s only three free
+inputs are `N_ENTITIES=107`, `D_STATE=64`, `ALPHA=0.05` — a full-file
+grep confirms `K` (or any per-episode draw count) does not appear
+anywhere in the file, exactly as §11.1.1 already established for K=48.
+`N_ENTITIES=107` is the fixed train-pool vocabulary size from
+`grammar_rd.py::build_entity_pools` (`heldout_frac=0.5`, no `K`
+parameter in the function signature), unchanged for any K∈{34,38,42,46}
+(all ≤107, so the "pool large enough to draw K names" guard passes
+trivially — confirmed by the existing `run_deltanet_rd.py` assertion
+pattern, unaffected by the specific K value). **Consequence: the
+constants (`r_crit_exact_beta`≈0.4009 at the Bonferroni tail, BH
+step-up thresholds, BY correction factor, `σ_chance=0.125`,
+`r_min_partial=0.25`, `r_min_headline=0.35`) are identical, byte-for-byte,
+to `REV7_THRESHOLD_PINNED.json`** — this wave produces a **second,
+separately-hash-locked pin artifact with the identical `derived` block**
+rather than reusing the existing pin file directly, for provenance
+hygiene (each wave's own launcher gate checks its own pin's timestamp
+precedes its own earliest cell start, §11.1.1's writer/gate/readout
+triple pattern) — not because the numbers could plausibly differ.
+
+**Pin artifact path:** `matrix-thinking/deltanet_rd/
+REV7_THRESHOLD_PINNED_K34_K38_K42_K46.json` (repo-committed, ≤25MB,
+sha256 recorded in this wave's own manifest/PROGRESS.txt at write time,
+same discipline as every prior pin). **Required pre-launch check
+(mechanical, not a paper exercise): diff the new pin's own `derived`
+block against the existing `REV7_THRESHOLD_PINNED.json`'s `derived`
+block — byte-identical is the PASS condition; any difference is a
+FATAL blocking launch** (would mean either file's `N_ENTITIES`/
+`D_STATE`/`ALPHA` inputs silently drifted, which should be structurally
+impossible given the source is unchanged, but the check is mechanical
+per this project's own "exact thresholds, no numerical-tolerance slack
+on structural checks" hard rule — a byte-diff, not an approximate
+comparison).
+
+**Per-K r_crit — there is only one r_crit; it is not "per-K" in
+substance.** The task's own framing ("per-K r_crit must be re-derived")
+is answered by demonstrating there is exactly one r_crit for all K,
+verified mechanically rather than assumed — the re-derivation IS the
+verification that no K-dependence exists, not a search for three
+different numbers.
+
+### 12.4 Pre-registered success criteria — REVISED at Rev 12.1 (attack finding 1: reframed from binary model-comparison to parameter estimation)
+
+**Why the Rev 12.0 draft's binary test is retracted, not patched.** The
+Rev 12.0 draft posed a sigmoid-vs-linear RSS-ratio test (≥3× "sharp,"
+≤1.5× "gradual," in-between "ambiguous") on a 6-point curve, fit by
+plain least-squares on per-K means with no account for seed noise. Two
+independent problems, both fatal to that framing specifically (not to
+the wave):
+1. **Power.** `sim_cliff_power.py` (§12.4a) simulated this exact test
+   under the archived per-seed relative noise (~9.3% pooled, measured
+   directly off the K=32/K=48 h4 seed arrays this session — see §12.4a)
+   at several plausible true cliff widths. Reproducing the attack
+   round's own finding: **P(ambiguous) = 86.8% at true width w=0.03,
+   95.8% at w=0.08** — the RSS-ratio≥3×/≤1.5× bands were failing to
+   resolve on most simulated draws regardless of the true shape,
+   meaning the test was reporting "ambiguous" almost independent of
+   the actual data.
+2. **Degeneracy at the anchor points.** With only 3 archived anchor
+   points (K/d=0.25/0.50/0.75) and a 3-parameter sigmoid (L, x0, w),
+   the "noiseless" fit has zero residual degrees of freedom and its RSS
+   is not ~0.0076 as the attack round's own characterization stated —
+   independently re-verified this session (`sim_cliff_power.py`'s
+   `noiseless_anchor_fit()`), the exact 3-point sigmoid fit reaches
+   **RSS ≈ 1.53×10⁻¹⁷** (machine-precision zero; x0≈0.5376, w≈0.0555 —
+   figure corrected at Rev 12.2, round-2 fix 4: the Rev 12.1 text cited
+   `5×10⁻³⁵`, which does not match `1.53×10⁻¹⁷`, the value this Rev
+   12.2 re-run's `noiseless_anchor_fit()` actually produces from the
+   unchanged three archived anchor points — `noiseless_anchor_fit()`
+   itself was not touched by any Rev 12.2 fix, so this is a citation
+   correction, not a re-derivation; the `sim_cliff_power_results.json`
+   artifact was untracked/not previously committed, so the Rev 12.1
+   number cannot be reconciled against a prior artifact — it is simply
+   superseded by the actual, regenerated, committed value. The fitted
+   `(L, x0, w)` and the qualitative "machine-precision zero, overfitting
+   artifact" conclusion are unaffected, only the cited magnitude was
+   wrong),
+   against the linear fit's RSS ≈0.0163 on the same 3 points — an
+   apparent "infinite" RSS ratio that is a pure overfitting artifact
+   (3 points, 3 free parameters), not evidence either curve fits the
+   *true* underlying shape well. Neither the attacker's 0.0076 figure
+   nor this session's ≈1.53×10⁻¹⁷ figure is a meaningful "does the
+   sigmoid fit" statement at 3 points — the number is close to undefined
+   regardless of its exact value, and reporting either without this
+   caveat would mislead.
+
+**Both problems trace to the same root cause: a binary yes/no label
+demands more resolving power than 6 noisy points can supply.**
+Re-framed accordingly:
+
+**The deliverable is now: `x0 = A ± B`, `w ≤ C` (95% CI), reported as a
+curve characterization — no ambiguous outcome by construction.**
+
+1. **Fit the sigmoid form to the full available curve** — K=16 (fixed
+   anchor, h4≈1.00, no per-seed archive at this citation depth, §12.4a),
+   K=32 and K=48 (mean of their own archived 3-seed h4 arrays), plus
+   K=34/38/42/46 (mean of this wave's own 3-seed h4 arrays) — a
+   **6-point curve** (attack finding 5: point count kept consistent
+   with the final re-picked set, §12.2). **`h4(x) = L / (1 + exp((x -
+   x0) / w))`, fit by `scipy.optimize.curve_fit`, bounds `L∈[0.5,1.2]`,
+   `x0∈[0.3,0.9]`, `w∈[0.005,0.5]`** (the same bounds `sim_cliff_power.py`
+   uses, so the pre-registered fit and the power sim are the identical
+   procedure, not two different scripts that could silently drift
+   apart). The linear form is retained as a DISCLOSED SECONDARY
+   comparison (RSS reported alongside, no bar attached to it) — useful
+   context for a reader, never load-bearing for the wave's own
+   pre-registered deliverable.
+2. **CI method, pre-registered: seed-level parametric bootstrap.** For
+   each of `N_BOOT` (≥2,000) replicates: at each K with an archived or
+   newly-run 3-seed array, resample 3 seeds WITH replacement from that
+   K's own array and take the mean; at K=16 (no per-seed archive), use
+   the fixed point unperturbed; re-fit the sigmoid to the resampled
+   6-point curve; record the fitted `x0` and `w`. Report the 95%
+   percentile interval (2.5/97.5 quantiles) of the resulting `x0`
+   distribution as the pre-registered CI, and the analogous interval
+   for `w`. This is the exact procedure `sim_cliff_power.py`'s
+   `bootstrap_ci_width()` already implements and validates in
+   simulation (§12.4a) — the real-data fit reuses the same function,
+   not a re-implementation.
+3. **Degenerate-fit definition, pre-registered (finding 1a: "what
+   counts as a degenerate fit" must be stated, not left implicit):** a
+   bootstrap replicate is DEGENERATE (excluded from the CI, counted and
+   reported as a disclosed fraction) if `curve_fit` fails to converge,
+   OR the fitted `w` lands within 1% of either bound (`[0.005, 0.5]`),
+   OR the fitted `x0` lands within 1% of either bound (`[0.3, 0.9]`) —
+   a boundary-pinned fit means the data did not constrain that
+   parameter, and silently keeping it would understate the true CI
+   width. **If the degenerate fraction on the REAL data exceeds 10%,
+   report this explicitly as a reliability caveat on the CI, not a
+   silently-excluded footnote.**
+4. **Honest pre-registered disclosure quality, from the simulation
+   itself (finding 1c) — this is the expected result, stated before any
+   real data exists:** at 3 seeds/K (this wave's registered seed count,
+   §12.2) across the 4 candidate true widths simulated, expected
+   `CI(x0)` width ranges from **≈0.015 (true w=0.03, sharp cliff)** to
+   **≈0.067 (true w=0.15, gradual)** for the final re-picked point set —
+   see §12.4a's full table. **Both ends of this range are narrower than
+   the (0.5, 0.75) sub-bracket's own 0.25 span**, so even the
+   worst-simulated-case (gradual truth) still delivers a real,
+   publishable localization, not a vacuous "CI covers the whole
+   interval" non-result. This is the basis for NOT marking this wave
+   WITHDRAWN — see §12.4b.
+5. **This criterion is decided by the bootstrap distribution of the
+   fitted `x0`/`w`, computed mechanically — no free choice at readout,**
+   mirroring §11.2's own "no free choice left" discipline for the bar
+   derivation. The fitting script (`sim_cliff_power.py`'s own
+   `sigmoid()`/bootstrap machinery, reused directly — not a
+   re-implementation, so the pre-registered sim and the real-data
+   readout cannot silently diverge in fit form or bounds) is written
+   and committed BEFORE any K=34/38/42/46 GPU cell launches, exactly as
+   `rev7_threshold_derive.py` and `bands_pinned_trackb.py` were written
+   before their own respective waves' data existed. **Registered
+   negative unit test (attack finding 6): assert the fitting script's
+   own input file list contains ZERO reference-arm result paths** — run
+   to completion, not merely written (§12.2.1's second Wave −1 smoke
+   item).
+6. **h1 guard (inherited, unchanged, §11.2): h=1 ≥0.98 per K**, checked
+   independently at each of K=34/38/42/46 against candidate (d)'s OWN
+   `M2_in_distribution['1']` field (NOT against a reference arm's h=1 —
+   the reference arm is cut, §12.2 item 2; candidate (d)'s own
+   in-distribution h=1 measurement is self-contained and does not
+   require a reference-arm comparator, exactly as it already is at
+   K=32/48, where the guard reads candidate (d)'s own h=1 field
+   directly, §11.12.1's own per-cell table).
+7. **Admissibility (item 1–4 substitute-admission stack, inherited
+   unchanged) is checked and reported per K independently, for
+   candidate (d) only** — §11.12's own finding (candidate (d) fully
+   admissible 3/3 at K=48 while the *reference* arms failed
+   value-salvage 3/3) cannot be re-checked on the reference side at
+   K=34/38/42/46 in this wave (reference arms cut, §12.2 item 2) — this
+   is exactly the information loss §12.2 item 2 discloses. Candidate
+   (d)'s OWN admissibility (items 1–4 of the stack, all measured off
+   candidate (d)'s own checkpoint fields) is unaffected by the
+   reference-arm cut and is checked at every K exactly as before.
+
+**No h4 "bar" (HIT/MISS) is registered for K=34/38/42/46 individually**
+(unchanged ruling from Rev 12.0, restated for the new point set) —
+unlike K=16/32/48, this wave's purpose is not to clear a per-K
+threshold but to characterize the *shape* of the transition already
+known to occur in this interval. (A per-K bar could be constructed via
+§11.2's own multiplicative-transplant method, but doing so here would
+manufacture four more binary HIT/MISS calls that add no information
+beyond what the continuous h4 values themselves already carry into the
+fit — registered explicitly as a choice, not an oversight.)
+
+#### 12.4a `sim_cliff_power.py` — the pre-registered CPU power simulation (NEW at Rev 12.1, attack finding 1b)
+
+**Script:** `matrix-thinking/deltanet_rd/sim_cliff_power.py`. **Results
+JSON (this session's run, `--n-trials 4000`):**
+`matrix-thinking/deltanet_rd/sim_cliff_power_results.json`. CPU-only,
+`numpy`/`scipy.optimize.curve_fit` only, zero GPU cost, run and
+committed before any real GPU cell of this wave launches.
+
+**What it does:** simulates the seed-level parametric bootstrap CI
+procedure (§12.4 item 2) under the archived per-seed relative noise
+(K=32: 7.44%, K=48: 11.25%, measured directly off the two archived
+3-seed h4 arrays this session; pooled figure used for the un-archived
+new K's: 9.35%, the mean of the two measured points — disclosed as an
+interpolation, matching the task brief's own "~8% relative"
+characterization within rounding), across a small grid of plausible
+TRUE cliff widths (`w ∈ {0.03, 0.05, 0.08, 0.15}`, all centered at
+`x0=0.625`, the bracket midpoint) and three candidate point sets:
+
+| Point set | K values | K/d values | Cells (mandatory, cand-only) |
+|---|---|---|---|
+| Rev 12.0 original | {36,40,44} | 0.5625/0.625/0.6875 | 9 (3 seeds × 3 K) |
+| **Re-picked (registered)** | **{34,38,42,46}** | **0.53125/0.59375/0.65625/0.71875** | **12 (3 seeds × 4 K)** |
+| 5-point superset | {34,37,40,43,46} | 0.53125/0.578125/0.625/0.671875/0.71875 | 15 (3 seeds × 5 K) |
+
+**Cell-count bookkeeping correction (Rev 12.2, round-2 fix, MAJOR).**
+`sim_cliff_power.py`'s own `mandatory_cells` computation (previously
+`len(ks) * n_seeds * 2`) was stale: it still multiplied by 2 for a
+"candidate (d) + reference arm" pairing that Rev 12.1 itself cut from
+this wave's scope (§12.2 item 2) in the SAME revision that introduced
+this script — the reference arm was never in the script's own simulated
+grid (`simulate_once` only ever draws candidate-(d)-style points), so
+the `x2` only ever inflated the reported cell count, never the CI
+computation itself. Corrected to `len(ks) * n_seeds` (candidate (d)
+alone); the JSON's `mandatory_cells` field for the registered
+configuration now reads **12** (3 seeds × 4 K), matching what the prose
+table above already stated by hand. **CI widths are unchanged in kind
+by this fix** — the bootstrap procedure never read the stale
+`mandatory_cells` field, so re-verification below confirms the CI
+numbers move only by ordinary re-run-to-re-run RNG variation, not by
+this bookkeeping fix.
+
+**Result table (mean expected `CI(x0)` width across the 4 original truth
+widths, n_trials=4000 per cell, Rev 12.2 re-run, cell-count fix applied,
+grid extended per fix 2 below — table restricted to the original 4
+truths for direct comparability with the Rev 12.1 numbers it supersedes):**
+
+| Point set | 3 seeds/K | 4 seeds/K | 5 seeds/K |
+|---|---|---|---|
+| orig {36,40,44} | 0.0250 | 0.0230 | 0.0216 |
+| **re-picked {34,38,42,46}** | **0.0247** | 0.0222 | 0.0206 |
+| 5-point {34,37,40,43,46} | 0.0229 | 0.0204 | 0.0191 |
+
+(Per-truth breakdown, 3 seeds/K, re-picked set, this re-run: sharp
+w=0.03 → CI 0.0152; w=0.05 → 0.0175; w=0.08 (moderate) → 0.0223; w=0.15
+(gradual) → 0.0683. Degenerate-fit fraction: 0.000 at every cell in
+this grid — the K=16/32/48 anchors keep the fit well-constrained even
+in the worst-simulated-case truth. These numbers differ from Rev 12.1's
+0.0305/0.0279/0.0264-family figures by ordinary RNG-stream drift — the
+Rev 12.2 re-run added new grid cells, listed below, ahead of these in
+the same seeded random stream, so the specific draws consumed here
+differ from Rev 12.1's run even at an identical `--seed`; the
+qualitative picture — re-picked set narrowly beats the original 3-point
+set, 5-point set beats both, diminishing but real per-point gains — is
+unchanged.)
+
+**Point-set decision, arithmetic shown (unchanged conclusion from Rev
+12.1, re-verified against the corrected cell counts and re-run
+numbers):** the 4-point re-picked set gives a mean CI(x0) only ≈1.2%
+narrower than the original 3-point set at matched 3-seeds/K (0.0247 vs
+0.0250) — a small gain relative to the +33% cell-count cost (12 vs 9
+mandatory cells, now correctly labeled, not 24 vs 18). **The re-pick is
+registered anyway, for a reason the mean-CI number alone doesn't
+capture: the 5-point superset (adding a 5th K) buys a LARGER marginal
+CI improvement (0.0229, an 8.4% gain over the original 3-point set)
+than the jump from 3→4 points does, suggesting the wider spread (points
+closer to both existing anchors) is what's doing the work, not sheer
+point count** — and the budget (§12.5) comfortably affords 4 points but
+is materially tighter at 5 (mandatory-only bracket-pessimistic total,
+2×: 23.28 GPU-h at 4 points vs. 29.10 GPU-h at 5 points, against the
+24.17 GPU-h reserve — 5 points alone would already exceed it before any
+optional/conditional cell is even considered, §12.5's own arithmetic).
+**4 points at 3 seeds is the chosen
+configuration: it captures most of the wider-spread benefit the 5-point
+set shows, at a cost this wave's own 2× budget can actually absorb.**
+5 seeds/K (vs. 3) buys a further ≈17% CI reduction (0.0247→0.0206) but
+at 5/3 = 1.67× the cell count — not registered, since §12.2's own
+3-seed convention (matching every prior wave) is not budget-forced here
+and the marginal CI gain doesn't justify departing from that
+convention.
+
+**Off-center truths and noise-level sweep (Rev 12.2 fix 2, round-2
+attack findings R2-2/R2-5) — extending the grid beyond the single
+midpoint-centered, single-noise-level check Rev 12.1 relied on.** Round
+2 flagged that (a) the 0%-degenerate-fit result was only ever observed
+at truths centered on the bracket midpoint `x0=0.625`, never near either
+of the new point set's own extremes, and (b) the pooled 9.35%
+relative-noise figure (the mean of exactly two measured points, K=32 and
+K=48) was applied uniformly to all four un-measured K's with no
+sensitivity check. `sim_cliff_power.py` now sweeps four additional
+off-center truths (`x0 ∈ {0.55, 0.70}`, each at `w ∈ {0.03, 0.08}`) and a
+`NOISE_SD_MULTIPLIER ∈ {0.85, 1.0, 1.15}` sweep restricted to the
+registered configuration (re-picked 4-point set, 3 seeds/K — the config
+this wave will actually run), against the full 8-truth grid.
+
+**Boundary-truth CI widths and degenerate fractions, registered config
+(re-picked 4pt, 3 seeds/K, multiplier=1.0):**
+
+| Truth | true x0 | true w | CI(x0) width | degenerate frac |
+|---|---|---|---|---|
+| offcenter_x055_w03 | 0.55 | 0.03 | 0.01165 | 0.000 |
+| offcenter_x055_w08 | 0.55 | 0.08 | 0.02345 | 0.000 |
+| offcenter_x070_w03 | 0.70 | 0.03 | 0.01421 | 0.000 |
+| offcenter_x070_w08 | 0.70 | 0.08 | 0.02490 | 0.000 |
+
+Both boundary locations produce CI widths comparable to or narrower
+than the midpoint-centered truths at the same `w` (e.g. `w=0.03`:
+0.0152 at midpoint vs. 0.0117/0.0142 at the two off-center locations) —
+the fit is, if anything, slightly BETTER constrained near the point
+set's own K=34/K=46 extremes than at the exact midpoint, and the
+0%-degenerate result is not an artifact of the midpoint-only truth grid
+Rev 12.1 swept.
+
+**Noise-multiplier sweep, registered config, all 8 truths (full table
+in `sim_cliff_power_results.json`'s `noise_sensitivity_registered_config`
+key) — worst cell across the entire 3×8 = 24-cell sweep:**
+`multiplier=1.15`, `truth=gradual_w15` (`x0=0.625, w=0.15`): **CI(x0) =
+0.07366, degenerate frac = 0.000.** At `multiplier=0.85` (optimistic
+noise) the same truth gives CI(x0)=0.06210; at the registered
+`multiplier=1.0` it gives 0.06695 (this re-run's own number for that
+cell, consistent with the 0.0683 figure in the result table above up to
+RNG-stream ordering). **The pooled 9.35% noise estimate is not fragile
+within this ±15% bracket** — even a 15%-higher-than-assumed true noise
+level at the new K's keeps the worst-case CI(x0) at ≈0.074, still well
+under the 0.25 sub-bracket span (§12.4b below re-checks the honesty bar
+against this exact number, not the Rev 12.1 multiplier=1.0-only figure).
+
+#### 12.4b Honest disclosure — is this wave worth running? (NEW at Rev 12.1, attack finding 1c; re-checked at Rev 12.2 against the pessimistic corner, round-2 fix 2)
+
+**Criterion, pre-registered before this check was run:** if the best
+affordable configuration's expected `CI(x0)` width (worst-simulated-case
+truth, i.e. the gradual w=0.15 row) is WIDER than the (0.5, 0.75)
+sub-bracket's own span (0.25), the wave does not deliver a meaningfully
+tighter localization than already exists and should be marked
+WITHDRAWN — stated as an acceptable, reportable verdict, not something
+to spin around.
+
+**Rev 12.1 check (superseded by the re-check below, retained for the
+record):** re-picked 4-point set, 3 seeds/K, worst-case truth w=0.15,
+noise multiplier implicitly 1.0 (no sweep existed yet): expected
+`CI(x0)` ≈ 0.0669, ~27% of the 0.25 span. Verdict at the time: NOT
+withdrawn.
+
+**Rev 12.2 re-check, against the PESSIMISTIC CORNER, not just the
+pessimistic truth (round-2 fix 2 — R2-2 required the noise assumption
+itself to be stress-tested, not only the cliff-width assumption).** The
+honesty bar must be checked against the worst cell in the full swept
+grid, not the single multiplier=1.0 slice: that worst cell is
+`noise_sd_multiplier=1.15` (a true noise level 15% higher than the
+pooled 9.35% point estimate) crossed with `truth=gradual_w15`
+(`x0=0.625, w=0.15`, still the widest-CI truth shape). **This session's
+re-run: expected `CI(x0)` ≈ 0.07366 at that pessimistic corner** (vs.
+0.0669 at Rev 12.1's less-pessimistic multiplier=1.0 slice — a ≈10%
+widening from the +15% noise stress, in the direction expected, not a
+qualitative surprise). This is **~29.5% of the sub-bracket's 0.25
+span**, still narrower than the full (0.25, 0.75) observed-data range
+(0.50 span, ≈14.7%) the 6-point curve actually spans. **Verdict,
+applying §12.4b's own rule honestly at the pessimistic corner: this
+wave STILL clears its own honesty bar — it is NOT WITHDRAWN.** The
+margin under the 0.25 threshold narrowed from Rev 12.1's ~73%-of-bar
+comfortable clearance to a still-clearing but tighter ~70.5%-of-bar
+clearance once both the cliff-width AND the noise-level uncertainty are
+stress-tested simultaneously — reported as the honest, slightly-less-
+comfortable number, not smoothed back toward the more favorable Rev
+12.1 figure. Every other cell in the 3-multiplier × 8-truth sweep
+(§12.4a) clears the bar by a wider margin than this corner does; this
+IS the binding worst case. This verdict remains a pre-registered
+EXPECTATION from simulation, not a guarantee — the real bootstrap CI
+(§12.4 item 2, computed on the REAL bootstrap resamples once GPU data
+exists, per §12.4's own updated disclosure rule below) is the actual
+deliverable, and if it comes in wider than this simulation's own worst
+case, that divergence itself is required to be reported, not smoothed
+over.
+
+**Degenerate-fit disclosure rule, clarified (Rev 12.2, round-2 fix 2's
+third requirement):** the >10% degenerate-fraction disclosure rule
+(§12.4 item 3) applies to the REAL degenerate fraction computed on the
+actual bootstrap resamples at harvest time, once K=34/38/42/46 GPU data
+exists — NOT to the simulation's own 0.000 rate reported throughout
+§12.4a above. The simulation's 0% rate (now verified across 8 truths and
+3 noise multipliers, not just the original 4 midpoint-centered truths at
+a single noise level) is evidence the fitting PROCEDURE is well-behaved
+under a wide range of plausible conditions; it is not, and must not be
+read as, a substitute measurement for the real data's own degenerate
+fraction, which is a separate, mandatory computation at readout.
+
+### 12.5 Paper FLOPs / memory / params + GPU plan — REVISED at Rev 12.1 (attack finding 2: 2× contingency multiplier applied to all cost figures)
+
+**FLOPs/memory/params — unchanged from §11 (inherited, not re-derived):**
+candidate (d)'s architecture is byte-identical to §11.1 arm 1 except for
+`K`; `d_state=64` is fixed. Per-cell training FLOPs scale with `K` only
+through the per-episode Newton-Schulz cost (an O(K·d_state²) orthogonalize
+per episode, per `n_iter=20` iterations) and the entity-embedding gather/
+scatter (O(K·d_state)) — both sub-dominant to the fixed per-token model
+FLOPs at `d_state=64` (verified by the near-linear, not super-linear,
+`wall_s` scaling already measured across K=16→32→48, §11.5's own table:
+step-cost ratio 1.264× over a 1.5× K increase, sub-linear in K, not
+super-linear). Params: identical count to every other K in this
+design (K only changes the per-episode entity draw, not any learned
+parameter's shape — the anchor table is a fixed `[107, 64]` regardless
+of K). Memory: no new peak-VRAM risk — K=34/38/42/46 all sit between the
+already-run K=32 and K=48 cells, both of which trained without incident
+on the registered GPU allocation.
+
+**GPU plan.** GPUs 0–1 are OCCUPIED by Track C rung-3 until **≈05:00
+UTC 2026-07-08** (`STATE.md` line 13-16, live-log-measured 1.416 s/step
+projection) — **do not plan any cell in this wave on GPUs 0–1.** GPUs
+2–7 (6 GPUs) are free (`STATE.md` line 42: "GPUs 2-7: legitimately
+idle") but **run CONCURRENTLY with the frozen-bias LM program on this
+same 6-GPU allocation** (the user's own "both, in parallel" decision,
+§12 header) — this is the SAME shared-GPU concurrency condition
+`FROZEN_BIAS_LM_DESIGN.md` §8.4 itself flags as the suspected root
+cause of Track C rung-3's own measured 2× per-step overrun (1.416s/step
+realized vs. 0.7135s/step banked, "root cause unknown, suspect
+dataloader/CPU contention between concurrent runs," `STATE.md`). **The
+same 2× contingency multiplier that program applies to its own cost
+table (§8.4/§8.5 there) is applied here, to every GPU-h figure below,
+for the identical reason — not a different, weaker precaution because
+this is "only" a localization wave.**
+
+**Registered allocation: `KEYANCHOR_K34K38K42K46_GPUS=6`,
+`KEYANCHOR_K34K38K42K46_GPU_OFFSET=2`** (mirrors `keyanchor_k48_chain.sh`'s
+own `KEYANCHOR_K48_GPU_OFFSET=2` convention exactly).
+
+**Staged launch plan (Rev 12.2, round-2 fix 3, mechanics registered in
+full in §12.2.3 — restated here as the concrete GPU-plan sequencing):**
+
+- **Stage 1: launch K=38 and K=42 only** (3 seeds each, 6 cells total),
+  on 2 of the 6 allocated GPUs (offset 2), alone — no other multi-cell
+  program starts on GPUs 2–7 until Stage 1's rates are observed (this is
+  also the compounding-contention mitigation, §12.2.3 fix 5: the
+  frozen-bias LM program's own calibration cell is gated on this Stage 1
+  completing within bracket).
+- **Checkpoint:** compare Stage 1's realized `wall_s`/GPU-h against the
+  K48-calibrated bracket ([0.23, 0.97] GPU-h/cell). Apply §12.2.3's
+  per-cell abort rule (≥1.5× the bracket's upper edge on ANY completed
+  cell → halt) and the running-projection cut rule throughout Stage 1,
+  not only at its end.
+- **Stage 2 (conditional on Stage 1 clearing): launch K=34 and K=46**
+  (3 seeds each, 6 cells total) at the now-observed realized rate. If
+  Stage 1's realized rate sat within bracket, proceed at the original
+  budget; if it was elevated but under the 1.5× hard-halt threshold,
+  re-price per §12.2.3 item 3 before committing Stage 2's 6 cells.
+- Optional Gate-1 probes and seed contingency remain cut-eligible in the
+  priority order already registered (§12.2.3's running-projection rule),
+  evaluated at the end of whichever stage is executing when the
+  projection check fires.
+
+**Full budget table, re-derived — mandatory-only is candidate (d)
+alone (reference arms cut, §12.2 item 2); optional/conditional rows
+priced separately, cut-eligible per §12.2.3's stated priority order:**
+
+| Item | Cells | GPU-h/cell (K48-calibrated bracket) | Bracket total (1×) | **Bracket total (2×)** |
+|---|---|---|---|---|
+| Mandatory: candidate (d), K∈{34,38,42,46}, 3 seeds each | 12 | [0.23, 0.97] | [2.76, 11.64] | **[5.52, 23.28]** |
+| Optional: Gate-1 probes, 1 per K (4) | 4 | [0.06, 0.24] | [0.24, 0.96] | **[0.48, 1.92]** |
+| Conditional: seed contingency, +2 seeds, up to 4 K's firing (worst case) | ≤8 | [0.23, 0.97] | [1.84, 7.76] | **[3.68, 15.52]** |
+| **All-in bracket (mandatory + all conditionals fire)** | ≤24 | | **[4.84, 20.36]** | **[9.68, 40.72]** |
+
+**Realized-rate estimate (K48-realized actuals, the better-calibrated
+number per §11.5/§11.12's own precedent that realized cost tracks the
+LOW end of the bracket):**
+
+- Mandatory (12 cells × 0.2616 GPU-h/cell, candidate-(d)'s own realized
+  K=48 rate): 12 × 0.2616 = 3.14 GPU-h (1×) → **6.28 GPU-h (2×)**
+- + Gate-1 (4 × 0.0762): 0.30 GPU-h (1×) → **0.61 GPU-h (2×)**
+- + seed contingency, full fire (8 × 0.2616): 2.09 GPU-h (1×) → **4.19 GPU-h (2×)**
+- **All-in realized-rate total (2×): 6.28 + 0.61 + 4.19 ≈ 11.07 GPU-h.**
+
+**Headroom check against the 24.17 GPU-h exactness-program reserve
+(`STATE.md`, ≈55.83/80 GPU-h spent):**
+
+- **Mandatory-only, bracket pessimistic tail, 2×: 23.28 GPU-h — fits,
+  with only ≈0.89 GPU-h to spare.** This is the load-bearing number:
+  even before any optional or conditional cell fires, the worst-case
+  bracket already consumes nearly the entire 24.17 GPU-h reserve.
+  **Consequence, stated plainly: under the 2× contingency, this wave
+  cannot afford its OWN optional Gate-1 probes or seed contingency at
+  the bracket's pessimistic rate — both must be genuinely cut-eligible,
+  not decorative, exactly as §12.2.3's mid-run guard requires.**
+- **All-in bracket (every conditional fires simultaneously at the
+  pessimistic rate), 2×: 40.72 GPU-h — does NOT fit**, overshooting the
+  24.17 reserve by ≈16.6 GPU-h. This is the scenario §12.2.3's
+  mid-run cut rule exists to prevent: if realized cost tracks anywhere
+  near the bracket's own top under contention, conditionals must be cut
+  BEFORE they launch (seed contingency first, then Gate-1 probes),
+  never let all of them fire unchecked.
+- **All-in realized-rate estimate, 2×: ≈11.07 GPU-h — fits comfortably,
+  ≈13.1 GPU-h spare.** This is the expected/working number (§11.12's
+  own K=48 wave landed at 1.597 vs. a ≤12 nominal ceiling, 13% of
+  nominal — realized cost has consistently undershot the bracket in
+  this program's own history at this specific cost driver). **The
+  bracket's pessimistic tail is retained as the go/no-go ceiling
+  precisely because it is NOT what's expected to happen — it's the
+  number that must still fit, per the sibling program's own 2×
+  discipline, in case contention is worse than history suggests.**
+
+**Verdict: mandatory-only cells are affordable at the pessimistic 2×
+bracket with slim (≈0.89 GPU-h) margin; the full conditional set is
+only affordable at the realized rate, not the bracket's pessimistic
+tail.** This is registered explicitly as the wave's real risk profile —
+not smoothed into a single comfortable-sounding total.
+
+### 12.6 Standing constraints (restated, apply unchanged to this wave)
+
+- **Exact thresholds, no numerical-tolerance slack on structural
+  checks** (project Hard Rules) — the pin-diff check (§12.3) is a byte
+  comparison, not an approximate one; the manifest-regression smoke
+  (§12.2.1) asserts byte-identical output at K=48, not "close enough."
+- **Negative unit tests run to completion, not merely written** (Hard
+  Rules) — the manifest-regression smoke and the pin-diff check must
+  both be run and observed to PASS (or correctly FAIL on an injected
+  bad case) before this wave's first GPU cell launches, not left as
+  written-but-unexecuted code.
+- **Smoke test every model incl. eval batch before launch** (Hard
+  Rules) — `smoke_key_anchoring.py` and `gate2_construction_test.py`
+  (once extended per §12.2.1) are run fresh for K=34/38/42/46 before any
+  training cell, mirroring `keyanchor_k48_chain.sh`'s own pre-launch
+  smoke sequence exactly.
+- **tmux + supervisor launch pattern for unattended runs** (Hard Rules)
+  — this wave's chain script (`keyanchor_k34k38k42k46_chain.sh`, to be
+  built mirroring `keyanchor_k48_chain.sh`'s own structure) launches
+  inside `tmux new-session -d -s <name> "<cmd>"`, never a backgrounded
+  shell over SSH.
+- **Sweep script try/except per config** (Hard Rules) — one crashing
+  cell (e.g. an OOM at an untested K) must not kill the remaining
+  cells; this is already the existing behavior of
+  `run_deltanet_rd_exactness_sweep.py`'s per-cell dispatch loop
+  (verified present for the K48 wave, inherited unchanged).
+- **Archives to repo (≤25MB) + SSD mirror, both, no exceptions** — this
+  wave's result JSONs, logs, PROGRESS.txt, and the new
+  `REV7_THRESHOLD_PINNED_K34_K38_K42_K46.json` pin go to both
+  `experiment-runs/2026-07-0X_keyanchor_k34k38k42k46/` (repo root) and its
+  SSD mirror, mirroring §11's own archive structure exactly (checkpoints,
+  if any exceed 25MB, go to SSD only, per the repo-wide archive policy).
+- **Multiple independent adversarial audit rounds, not one** (Hard
+  Rules / project workflow) — this design section is explicitly DRAFT
+  pending its own attack round(s) before CLEARED-FOR-BUILD, exactly as
+  §11 itself required (Rev K48.1's internal 4-agent round, then §11.11's
+  independent external verify round) before any GPU was touched.
+
+### 12.7 ATTACK-ROUND QUESTIONS — ROUND 1 (superseded findings retained verbatim for the record; disposition noted inline, full map in §12.8)
+
+1. **Is this wave actually authorized to run at all?** `STATE.md`
+   explicitly declares the anchoring program COMPLETE with "no further
+   waves scheduled" (line 655) and GPUs 2–7 "legitimately idle... do
+   not launch un-gauntleted work to fill them" (lines 42–45). This
+   design being CLEARED-FOR-BUILD on technical merit does not resolve
+   whether reopening a program the project's own state file marked
+   closed is the right call — this is a PI-DECISION, not something an
+   attack round on the experimental design can adjudicate, and the
+   attack round should confirm this section does not quietly slide past
+   that gate.
+   **[Disposition: unresolved by design, correctly so — this remains a
+   PI-DECISION per the header's own framing. RESOLVED operationally:
+   the 2026-07-06 sign-off recorded at the top of §12 answers this
+   specific question; not re-litigated here.]**
+2. **Does the localization actually buy anything §11.12 didn't already
+   establish?** §11.12 already shows a cliff exists between K/d=0.5 and
+   0.75 and names value-crowding as the open theory question. Three
+   more points inside that bracket sharpen the *empirical* shape (sharp
+   step vs. gradual decline) but do not, by this design's own
+   construction, test *why* — an attacker should ask whether the
+   5,000-word design investment here is proportional to the marginal
+   scientific claim ("the transition is sharp/gradual") versus what it
+   would cost to instead test value-crowding directly (a different,
+   arguably higher-value experiment this design does not propose).
+   **[Disposition: NOT addressed by this revision — carried forward
+   into ROUND 2 below (question R2-1). The reframe to parameter
+   estimation (finding 1) sharpens what this wave measures but does not
+   change what it measures; the value-crowding critique applies
+   identically to the revised design.]**
+3. **Is 6 points enough to distinguish a sigmoid from a linear fit with
+   any statistical confidence?** With only 6 (K/d, mean-h4) pairs and 2–3
+   free parameters in the sigmoid, the RSS-ratio test (§12.4) has very
+   few degrees of freedom — an attacker should check whether the
+   registered thresholds (w≤0.10, RSS ratio ≥3× or ≤1.5×) were validated
+   against any power analysis, or whether they're arbitrary round
+   numbers that happen to produce a clean-looking verdict on whatever
+   data materializes. No power analysis is shown in §12.4 — this is a
+   real gap, not merely a hypothetical attack.
+   **[Disposition: FATAL, addressed at Rev 12.1 — this is finding 1.
+   The RSS-ratio binary test is retracted entirely (not merely
+   re-thresholded) and replaced with a parameter-estimation framing
+   (§12.4) backed by `sim_cliff_power.py`'s own pre-registered power
+   simulation (§12.4a). See §12.8 finding 1.]**
+4. **Does the K=36/40/44 admissibility risk undermine the whole
+   exercise before it starts?** §11.12 found the *reference* (bare
+   geo3) arms fail value-salvage 3/3 at K=48, while candidate (d)
+   remains admissible. If the same reference-side failure recurs at
+   K=36/40/44 (plausible, per §11.12's own trend — value-salvage
+   already sits at 0.071–0.094 at K=48, and the fresh K=32 reference
+   sits comfortably higher), the reference arms' own h4 values may not
+   be trustworthy as the curve's "baseline" leg even though the fit in
+   §12.4 uses candidate (d)'s own values, not the reference's — an
+   attacker should confirm the fit criterion in §12.4 is not silently
+   contingent on reference-arm data that could itself be non-admissible.
+   **[Disposition: MOOTED at Rev 12.1 — the reference arms are cut
+   entirely from this wave's scope (§12.2 item 2, finding 2's funding
+   path), so there is no reference-arm data of any admissibility status
+   for the fit to be contingent on. The information loss this creates
+   (no per-K reference-side admissibility context at the new K's) is
+   disclosed explicitly at §12.2 item 2, not silently accepted.]**
+5. **Is the cost-model interpolation (§12.2) doing any real work, or is
+   it decoration around a bracket that was going to be used regardless?**
+   §12.2 computes per-K interpolated GPU-h estimates via a geometric
+   scaling from the single K=32→48 calibration point, then discloses
+   that the actual budgeting uses the flatter K=48 bracket instead
+   because the interpolation spread (≈6%) doesn't matter at this
+   bracket's width. An attacker should ask whether this interpolation
+   exercise should simply be cut from the design (it computes a number
+   that is then not used for anything load-bearing) or whether it has
+   a real purpose (e.g., catching a super-linear surprise) that the
+   current text doesn't state clearly enough to justify its own length.
+   **[Disposition: RESOLVED at Rev 12.1 — the interpolation table is
+   deleted outright (finding 4), not retained as decoration. The
+   underlying arithmetic error the table also contained (K=36 factor
+   0.938, should be 0.839 anchored correctly from K=48) is moot once
+   the table itself is gone, but is recorded in §12.8 for the trail.]**
+
+---
+
+### 12.7.1 ATTACK-ROUND QUESTIONS — ROUND 2 (Rev 12.1, post-revision — dispositions recorded at Rev 12.2, full map in §12.8)
+
+**R2-1. Does the reframed wave still buy anything §11.12 didn't already
+establish, now that it's a parameter estimate rather than a binary
+verdict?**
+**[Disposition: NOT addressed by Rev 12.2 — this is a scope/value
+question, not a bookkeeping or statistical-power gap, and none of this
+round's five fixes touch it. Carried forward unchanged into ROUND 3
+below (question R3-1) — it remains the single largest open question
+about this wave.]**
+
+**R2-2. Is the pooled 9.35% relative-noise figure (§12.4a) actually
+representative of K=34/38/42/46, or is it an assumption doing silent
+work?**
+**[Disposition: ADDRESSED at Rev 12.2 — fix 2. `sim_cliff_power.py` now
+sweeps `NOISE_SD_MULTIPLIER ∈ {0.85, 1.0, 1.15}` against the registered
+configuration across all 8 truths (§12.4a). Worst cell (multiplier=1.15,
+truth=gradual_w15): CI(x0)≈0.0737, still well under the 0.25 honesty
+bar (§12.4b re-check). The point-estimate concern is answered for a
+±15% stress range; a noise level MORE than 15% off the pooled estimate
+remains untested — narrower residual risk, registered at R3-2 below.]**
+
+**R2-3. Does the 2× contingency's own ≈0.89 GPU-h margin on
+mandatory-only cells (§12.5) survive contact with reality, or is it as
+fragile as Track C rung-3's own ≈1% headroom (§11.5/C12) already
+proved to be once?**
+**[Disposition: ADDRESSED at Rev 12.2 — fix 3. The staged launch the
+attacker's own phrasing endorsed ("running only 2 of the 4 new K's
+first, checking realized contention, THEN launching the remaining 2")
+is now adopted verbatim: K=38/K=42 first, K=34/K=46 gated on Stage 1's
+realized rate landing within bracket (§12.2.3, §12.5). The abort
+trigger is also broadened from the first completed cell to any
+completed cell, closing the gap where a mid-run contention spike (e.g.
+from the concurrent LM program's own calibration cell starting
+partway through) would have gone undetected until the running-
+projection check caught up several cells later.]**
+
+**R2-4. Is candidate (d)'s own admissibility stack (items 1–4, §12.4
+item 7) sufficient on its own to certify the curve's *candidate-(d)*
+leg, now that there is no reference arm to cross-check against at the
+new K's?**
+**[Disposition: NOT addressed by Rev 12.2 — none of the five fixes
+touch the admissibility-stack interpretation question. Carried forward
+into ROUND 3 below (question R3-3).]**
+
+**R2-5. Does `sim_cliff_power.py`'s own bootstrap correctly propagate
+degenerate-fit exclusion into the REPORTED coverage, or could excluding
+boundary-pinned fits silently produce an under-covering (too-narrow) CI
+even though this session's run showed 0% degenerate fits on the
+simulated grid?**
+**[Disposition: ADDRESSED at Rev 12.2 — fix 2. Off-center truths
+(`x0 ∈ {0.55, 0.70}`, `w ∈ {0.03, 0.08}`) added to `TRUTH_GRID`,
+specifically to test locations away from the midpoint the original
+grid was entirely centered on. Degenerate fraction remains 0.000 at
+both off-center locations and across the full noise-multiplier sweep
+(§12.4a) — the 0%-degenerate result is not an artifact of the
+midpoint-only grid. §12.4b also now states explicitly, as a standing
+rule (not only a simulation footnote), that the >10% disclosure
+threshold applies to the REAL bootstrap's own degenerate fraction at
+harvest, not to any simulated rate — closing the "silently inherits the
+sim's 0%" failure mode this question raised.]**
+
+---
+
+### 12.7.2 ATTACK-ROUND QUESTIONS — ROUND 3 (Rev 12.2, post-revision — what remains weakest, expected to be short)
+
+**R3-1. (Carried from R2-1, unresolved.) Is a `x0 ± CI` localization
+result, on its own, worth ≈6–23 GPU-h, or does its value depend entirely
+on an unscoped future value-crowding experiment?** Nothing in Rev 12.2's
+five fixes changes what this wave measures, only how precisely and how
+safely it measures it. This remains the question most likely to
+determine whether the wave should run at all, independent of whether
+its own internal statistics are now sound (they are, per §12.4a/§12.4b).
+An attacker should press for an actual scoping decision here, not
+another round of statistical hardening.
+
+**R3-2. Is a ±15% noise-multiplier bracket wide enough, or was the
+range itself chosen to comfortably pass rather than to genuinely stress
+the assumption?** Fix 2's sweep (0.85/1.0/1.15) is symmetric and
+modest; the pooled 9.35% figure is built from only two measured points
+whose OWN relative noise differs by a factor of ~1.5 (7.44% at K=32 vs.
+11.25% at K=48) — a spread wider than the ±15% bracket itself spans
+around the pooled mean. An attacker should check whether the sweep
+bracket should be widened to bracket the two measured points' own full
+range (e.g. a multiplier as low as ~0.80 and as high as ~1.20 to
+roughly span 7.44%–11.25% around the 9.35% pooled center) rather than a
+round ±15%, and whether the honesty-bar re-check (§12.4b) still passes
+at that wider bracket.
+
+**R3-3. (Carried from R2-4, unresolved.) Does candidate (d)'s
+admissibility stack mean the same thing read in isolation as it did
+when read alongside a reference-arm comparison?** Still open — no fix
+in this revision addresses it. An attacker should check the four
+admissibility-stack items' own original derivation (§3.1) for any
+implicit reliance on a reference baseline for INTERPRETING (not just
+computing) a pass.
+
+**R3-4. Does the staged-launch mitigation (fix 3) actually shrink risk,
+or does it just move the same total risk earlier in the schedule?**
+Splitting 4 K's into two 2-K stages means Stage 1's 6 cells are launched
+with the SAME thin 0.89 GPU-h mandatory-only margin as before (the
+budget table, §12.5, is unchanged in total) — the staging changes WHEN
+contention is discovered, not how much margin exists once Stage 2
+launches. An attacker should check whether Stage 1 alone should carry
+its own smaller, dedicated contingency (not just "gate Stage 2 on
+Stage 1's rate") so that a Stage-1-only overrun cannot itself consume
+the margin intended for Stage 2 before Stage 2 has even launched a
+single cell.
+
+**R3-5. Is the compounding-contention cross-reference (fix 5) actually
+binding, given the note explicitly defers the mirrored edit to another
+agent's next revision of `FROZEN_BIAS_LM_DESIGN.md`?** The mitigation
+("this wave launches first and alone... the LM program's calibration
+cell must not start until this wave's first-stage rates are observed
+within bracket") is a real constraint on THIS document's own launch
+plan, but it has no enforcement mechanism on the LM program's side
+until that file's own next revision lands. An attacker should check
+whether this wave's own launch tooling (the chain script,
+§12.2.1/§12.6) should itself hard-block on a file-based signal (e.g. a
+sentinel file this wave writes once Stage 1 clears, that the LM
+program's own launcher is required to check) rather than relying on a
+prose cross-reference two independently-edited documents must both
+honor by convention.
+
+---
+
+### 12.8 REVISION LOG — Rev 12.1 (2026-07-06), attack-round-1 → fix map
+
+**Independent adversarial review, this session.** Every FATAL/MAJOR/
+MINOR finding from the round-1 attack is addressed in place below or at
+its own cited location; nothing contested or deferred. This design
+section remains DRAFT pending a fresh (round-2) attack pass on this
+revision itself — per this project's own repeated finding that
+independent adversarial audit rounds catch different bugs each round,
+this log does not substitute for that fresh pass, and §12.7.1 registers
+what a round-2 attacker should look at first.
+
+| # | Finding (condensed) | Severity | Fix | Landed where |
+|---|---|---|---|---|
+| 1 | Rev 12.0's sigmoid-vs-linear RSS-ratio binary test was underpowered: simulated P(ambiguous) = 86.8% at true width w=0.03, 95.8% at w=0.08 under archived ~8% relative seed noise; the 3 archived anchor points don't sit on any clean noiseless sigmoid (a 3-point/3-parameter fit is degenerate, not evidence of cleanliness) | FATAL | (a) Reframed from binary model-comparison to parameter estimation: report `x0 ± CI`, `w ≤ C` (95% seed-level parametric bootstrap CI), no ambiguous outcome by construction. (b) Point set re-picked to K∈{34,38,42,46} (K/d=0.53125/0.59375/0.65625/0.71875) per a new CPU power simulation, `sim_cliff_power.py`, comparing point sets/seed counts by expected CI(x0) width under archived noise. (c) Honest disclosure: simulated worst-case CI(x0)≈0.067 at 3 seeds/K, well under the 0.25 sub-bracket span — wave judged NOT withdrawn, verdict stated as a pre-registered expectation, not a guarantee | §12.0, §12.2, §12.4, §12.4a, §12.4b; script at `matrix-thinking/deltanet_rd/sim_cliff_power.py`, results at `matrix-thinking/deltanet_rd/sim_cliff_power_results.json` |
+| 2 | No 2× contingency multiplier applied, despite this wave sharing GPUs 2–7 concurrently with the frozen-bias LM program — the identical shared-GPU concurrency condition `FROZEN_BIAS_LM_DESIGN.md` §8.4 itself flags as the suspected cause of Track C rung-3's own measured 2× overrun | MAJOR | 2× multiplier applied to every GPU-h figure in the budget table. Funding path: reference arms CUT entirely from this wave's mandatory scope (verified §12.4's fit reads only candidate-(d) values; tradeoff disclosed — no per-K reference-side admissibility context at the new K's). Full re-derived budget table shown: mandatory-only (12 cells) bracket-pessimistic 2× = 23.28 GPU-h, fits the 24.17 GPU-h reserve with ≈0.89 GPU-h margin; all-in-conditionals-fire bracket 2× = 40.72 GPU-h, does NOT fit (16.6 GPU-h over) — conditionals (Gate-1 probes, seed contingency) registered as genuinely cut-eligible under §12.2.3's mid-run guard, not decorative | §12.2 (item 2, arm cuts), §12.5 (full budget table + headroom check) |
+| 3 | The wave's own mechanical abort/budget rule was only asserted by reference ("mirrors §11.5") with no restated mechanics — no first-cell abort threshold, no diagnosis-before-continuing step, no running-projection cut rule specific to this wave's own shared-GPU risk | MAJOR | New §12.2.3, restated in full: after the first completed cell, halt all launches if realized `wall_s` ≥1.5× the K48-calibrated bracket's upper edge (≥5,238s); diagnose (leading suspect: LM-program contention on shared GPUs); re-price before continuing. Running-projection cut rule per completed cell, priority order: seed contingency → Gate-1 probes → halt-and-report if even mandatory cells project to overshoot | §12.2.3 (new subsection) |
+| 4 | §12.2's K=36 interpolation factor was arithmetically wrong: anchored from K=48 the correct 12-step factor is `1.01473^-12 = 0.839`, not the stated `0.938` (a steps-from-32 count mixed with a K=48-anchored base rate) | MAJOR | Table deleted outright (disclosed as non-load-bearing already at round 1, and the point set changed anyway per finding 1b, making a K=36/40/44-specific table stale regardless of the arithmetic fix). Budgeting uses only the flat K=48-calibrated bracket + K=48 realized-rate point estimate, both already adequate at this bracket's width | §12.2 (interpolation subsection replaced with deletion + rationale) |
+| 5 | §12.4's "5-point curve" language would be inconsistent once the point set changed | MINOR | All curve/point-count language updated to "6-point curve" (K=16/32/48 archived + 4 new K's), consistent throughout §12.0/§12.1/§12.2/§12.4/§12.4a | §12.0, §12.1, §12.2, §12.4 |
+| 6 | No executed negative unit test guaranteeing the fitting script's input list excludes reference-arm result paths | MINOR | Registered and specified: assert zero reference-arm paths in the fitting script's own input glob, run to completion (not merely written) as a Wave −1 smoke item — trivially satisfied since reference arms are cut (finding 2), kept anyway as a guard against future re-introduction | §12.2.1 (second Wave −1 smoke item), §12.4 item 5 |
+| 7 | `GATE2_N_ITER_BY_K` for K=34/38/42/46 chosen by analogy to K=32/48 (n_iter=20), with no registered check that n_iter=20 is actually sufficient at these new K's | MINOR | Registered Wave −1 item: re-run §12.2.2's own ceiling computation at `n_iter∈{12,16,20,24}` per new K, confirm convergence (<0.5% relative change 20→24) before trusting n_iter=20 as sufficient, mirroring §12.2.2's own "computed, not assumed" discipline | §12.2.2 (new Wave −1 item) |
+
+**Cross-references corrected as a consequence of the above (not
+separately numbered findings, but required for internal consistency):**
+seed-integer blocks re-issued for the 4-K point set (§12.2); pin
+artifact path renamed `REV7_THRESHOLD_PINNED_K34_K38_K42_K46.json`
+throughout (§12.3); chain-script name renamed
+`keyanchor_k34k38k42k46_chain.sh`, GPU env-var names renamed
+`KEYANCHOR_K34K38K42K46_*` (§12.5, §12.6); archive directory renamed
+`experiment-runs/2026-07-0X_keyanchor_k34k38k42k46/` (§12.6); h1 guard
+(§12.4 item 6) re-pointed to candidate (d)'s own `M2_in_distribution`
+field rather than a now-nonexistent fresh reference arm's h=1.
+
+**Status after this response: Rev 12.1, still DRAFT.** Every finding
+from round 1 is addressed in place; per this project's own standing
+rule that independent adversarial audit rounds catch different bugs
+each round, this revision needs its own fresh attack pass (§12.7.1
+registers the round-2 starting questions) before CLEARED-FOR-BUILD —
+not self-certified by the same session that made these fixes. No GPU
+has been spent at any point in this section's drafting or revision;
+`sim_cliff_power.py` (§12.4a) is CPU-only, run on the local dev
+machine, zero GPU-h charged against any program's ceiling.
+
+---
+
+### 12.8.1 REVISION LOG — Rev 12.2 (2026-07-06), attack-round-2 → fix map
+
+**Independent adversarial round-2 review verdict: REVISE-THEN-PROCEED
+with specific cheap fixes, applied exactly as specified below.** All
+five findings (four MAJOR, one MINOR) are addressed in place; nothing
+contested or deferred. CPU-only sim re-runs only — no GPU work at any
+point in this revision.
+
+| # | Finding (condensed) | Severity | Fix | Landed where |
+|---|---|---|---|---|
+| 1 | `sim_cliff_power.py` line ~269's `mandatory_cells = len(ks) * n_seeds * 2` was stale — the `×2` (candidate (d) + reference arm) dated from before Rev 12.1 cut the reference arm from this wave's scope in the same revision that introduced the script, so the JSON reported 24 cells for the registered config where the true count is 12 | MAJOR | Corrected to `len(ks) * n_seeds` (candidate (d) only), both at the per-cell computation and the `by_set` summary loop. Sim re-run (`--n-trials 4000`, same seed); regenerated `sim_cliff_power_results.json` now reports `mandatory_cells: 12` for the registered repick_4pt/3-seed config. CI widths confirmed unchanged in kind (bootstrap never read the stale field) — re-run values (e.g. sharp_w03 CI 0.0152 vs. Rev 12.1's 0.0153) differ only by ordinary RNG-stream drift from the new grid cells added ahead of them in the same seeded stream, not from this fix | `matrix-thinking/deltanet_rd/sim_cliff_power.py` (cell-count computation + summary loop), `sim_cliff_power_results.json` (regenerated); note added at §12.4a |
+| 2 | TRUTH_GRID's four truths were all centered at the bracket midpoint `x0=0.625`, so the reported 0%-degenerate-fit rate was never checked near either of the new point set's own extremes; the pooled 9.35% relative-noise figure (mean of exactly 2 measured points) was applied as a single point estimate with no sensitivity sweep | MAJOR | Extended `TRUTH_GRID` with 4 off-center truths (`x0∈{0.55,0.70}`, `w∈{0.03,0.08}`); added `NOISE_SD_MULTIPLIER∈{0.85,1.0,1.15}` sweep against the registered config across all 8 truths (24 cells). Degenerate fraction remains 0.000 at every boundary truth and every noise-multiplier cell. Worst cell (mult=1.15, truth=gradual_w15): CI(x0)≈0.0737 — §12.4b's WITHDRAWN check re-run against this pessimistic corner (not just the Rev 12.1 multiplier=1.0 slice): still clears the 0.25 honesty bar (≈29.5% of span vs. Rev 12.1's ≈27%), verdict remains NOT WITHDRAWN, reported honestly at the slightly tighter margin. Degenerate-fraction disclosure rule (§12.4 item 3) re-stated explicitly: the >10% threshold applies to the REAL bootstrap's own measurement at harvest, never to the sim's rate | §12.4a (off-center truths + noise sweep tables), §12.4b (re-checked WITHDRAWN verdict + disclosure-rule clarification); script/JSON as above |
+| 3 | The mid-run hard-halt trigger (§12.2.3) only fired on the FIRST completed cell — a contention spike arriving mid-run (e.g. once the concurrent LM program's own calibration cell starts) would go undetected by the hard trigger until the slower running-projection check caught up several cells later | MAJOR | Broadened to ANY completed cell: every cell's own realized `wall_s` is checked against the ≥1.5×-bracket-upper-edge (≥5,238s) threshold, not only the first. Staged launch adopted (the attacker's own endorsed mitigation): Stage 1 = K=38+K=42 (6 cells, the two interior/most-informative-for-x0 points) launched first and alone; Stage 2 = K=34+K=46 (6 cells) launched only after Stage 1's realized rate is confirmed within bracket | §12.2.3 (broadened trigger + staged-launch subsection), §12.5 (GPU plan staging table) |
+| 4 | §12.4's cited noiseless 3-point sigmoid RSS, `≈5×10⁻³⁵`, does not match `noiseless_anchor_fit()`'s actual output | MINOR | Corrected to `≈1.53×10⁻¹⁷`, the value the committed (unmodified by this revision) `noiseless_anchor_fit()` function actually produces from the three archived anchor points, both in this Rev 12.2 re-run and as the number the regenerated JSON now contains. Fitted `(L,x0,w)` and the "machine-precision zero, overfitting artifact" conclusion unaffected — citation-only correction | §12.4 (degeneracy-at-anchor-points item) |
+| 5 | This wave and the concurrent `FROZEN_BIAS_LM_DESIGN.md` program each independently apply a 2× contingency calibrated against a SINGLE-sibling-program precedent (Track C rung-3's own overrun) — neither multiplier was derived against BOTH multi-cell programs running simultaneously on the same 6-GPU pool, which could compound worse | NEW | Compounding-contention note added: this wave launches first and alone on its 2 GPUs (per the Stage-1 staging, fix 3); the LM program's own calibration cell is gated on this wave's Stage-1 rates landing within bracket. Cross-reference requirement registered (not self-executed): the mirrored ordering constraint must land in `FROZEN_BIAS_LM_DESIGN.md` at its own next revision, owned by another agent — this section only registers the requirement on this wave's side | §12.2.3 (new compounding-contention note) |
+
+**Cross-references corrected as a consequence of the above:** none
+required renaming this round (no path/env-var/seed-block renames — all
+five fixes are internal to §12.2.3/§12.4/§12.4a/§12.4b/§12.5's own text
+and the sim script; no new artifact names introduced).
+
+**Status after this response: Rev 12.2, still DRAFT.** Every finding
+from round 2 is addressed in place, per the round-2 verdict
+(REVISE-THEN-PROCEED). Per this project's own standing rule that
+independent adversarial audit rounds catch different bugs each round,
+this revision needs its own fresh (round-3) attack pass (§12.7.2
+registers the round-3 starting questions, expected to be short — the
+two carried-forward scope/admissibility questions plus three new,
+narrower implementation questions) before CLEARED-FOR-BUILD — not
+self-certified by the same session that made these fixes. No GPU has
+been spent at any point in this section's drafting or revision;
+`sim_cliff_power.py`'s Rev 12.2 re-run (§12.4a) is CPU-only, run on the
+local dev machine (via a throwaway `uv venv` with `numpy`/`scipy`, no
+project-wide environment changes), zero GPU-h charged against any
+program's ceiling.
+
+### 12.8.2 REVISION LOG — Rev 12.3 (2026-07-06, round-3 disposition + build-audit items)
+
+**Round-3 independent verification pass: EXECUTED and CLEARED (this entry
+records its disposition, which Rev 12.2's status line correctly demanded
+before CLEARED-FOR-BUILD).** A fresh-eyes round-3 agent (did not write
+the design or any revision) re-executed the Rev 12.2 sim in an
+independent venv (reproduced offcenter CI widths 0.0114/0.0143 vs
+reported 0.01165/0.01421 — within RNG variation), verified the cell-count
+fix (mandatory_cells=12 everywhere, no stray ×2), re-derived the
+pessimistic-corner honesty check (0.07366/0.25 = 29.46%, threshold
+unmoved, PASSES), independently re-simulated the boundary-degenerate
+regime (x0=0.80→41.3%, 0.85→82.8%, 0.88→86.6% degenerate — confirming
+the §12.4 degenerate definition has teeth and that 0.000 at the tested
+x0∈{0.55,0.70} is expected given distance from the [0.3,0.9] fit bounds,
+not a scipy silent-success artifact), and verified all 36 seed integers
+collision-free vs the archive. Verdict: **CLEARED-FOR-LAUNCH-GATE, no
+FATAL findings.**
+
+Round-3 question dispositions (§12.7.2):
+- **R3-1 (scope/value):** open by nature, accepted — proceed, but further
+  localization waves without an attached mechanism test require fresh
+  justification (recorded as a program-level norm).
+- **R3-2 (noise-bracket width):** residual — ±15% tested vs ~±51%
+  measured K32-vs-K48 spread; CI degradation is smooth
+  (0.0621→0.0669→0.0737), a verdict flip would need ~3× the tested
+  perturbation; accepted, wider bracket recommended in any future rev.
+- **R3-3 (admissibility-in-isolation):** open, carried; the §3.1
+  admissibility stack items are each self-contained statements about
+  candidate (d)'s own checkpoint (verified: no hidden reference-arm
+  dependency), so "items pass" is interpretable without the reference
+  contrast; the *comparative* framing is simply unavailable and results
+  must be worded accordingly at harvest.
+- **R3-4 (Stage-1 sub-ceiling): converted to REQUIRED code addition**
+  (build audit): `KEYANCHOR_CLIFF_STAGE1_GPUH_CEILING = 11.68` GPU-h
+  (half the bracket-pessimistic 2× mandatory ceiling), enforced
+  mechanically at/after Stage-1 completion, before any Stage-2 dispatch.
+- **R3-5 (cross-program enforcement): converted to REQUIRED code
+  addition** (build audit): on a clean Stage-1 rate check the machinery
+  writes a durable sentinel `results/deltanet_rd_exactness/
+  wavekeyanchor-cliff/STAGE1_RATES_OK`; FROZEN_BIAS_LM_DESIGN.md's
+  launcher gates its calibration cell on that file's existence (mirrors
+  §12.2.3 / that design's §8.2a).
+
+**Build-audit disclosures folded in (one number, one source of truth):**
+the code's unrounded per-cell bracket constant is 0.97328 GPU-h
+(0.77×1.264), giving an unrounded abort edge of 5255.712s and a
+mandatory-only 2× ceiling of 23.35872 GPU-h (reserve margin 0.81 GPU-h),
+vs this doc's hand-rounded 0.97 → 5238.0s / 23.28 / 0.89. The pinned
+ABORT TRIGGER is the doc's literal **5238.0s** (stricter, pre-registered
+single trigger value, per the exact-thresholds rule); the LIVE BUDGET
+CEILING uses the unrounded 23.35872 (a re-derivable go/no-go, not a
+pinned trigger). Both clear the 24.17 GPU-h reserve; the operative margin
+is the thinner 0.81. Additionally disclosed: on an abort trigger the
+dispatcher halts all remaining cell LAUNCHES and writes ABORTED.txt, but
+does not kill cells already in flight (bounded: ≤1 in-flight cell per
+GPU); this satisfies §12.2.3's literal "halt remaining launches" and is
+the intended behavior — a mid-cell kill would waste the cell's own
+already-spent GPU-h without improving the ceiling math.
+
+**Status after this entry: Rev 12.3 — CLEARED-FOR-LAUNCH-GATE, gated
+only on the two REQUIRED code additions above (R3-4/R3-5) landing with
+executed smoke coverage and an independent verification of those
+additions.** No GPU spent in any drafting/revision/verification pass.
