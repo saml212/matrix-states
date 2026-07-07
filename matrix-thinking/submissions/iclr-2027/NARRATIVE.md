@@ -203,9 +203,15 @@ contrast.** The same frozen table's per-token-keyed construction and its
 global-mean-vector construction, trained identically at matched λ=0.58 on
 the same two corpora, move the same observable in **opposite,
 both-CI-excluding-zero directions**: per-token training-mediated delta
-+0.1955/+0.2273 (destabilizing — the observable spreads out) versus
-global-vector training-mediated delta **−0.3319/−0.2308** (stabilizing —
-the observable collapses), per §7.1a's mandatory licensing comparison.
++0.1955/+0.2273 (destabilizing — the key population moves TOWARD
+collapse: higher span_frac = more collapsed, per the instrument's
+definition; this line originally read "spreads out", an inverted gloss
+corrected 2026-07-07 after a numeric re-derivation — identical keys give
+span_frac=1.0, i.i.d. random ≈0.01) versus global-vector
+training-mediated delta **−0.3319/−0.2308** (stabilizing — the key
+population moves AWAY from collapse; originally mis-glossed as
+"collapses", same correction), per §7.1a's mandatory licensing
+comparison.
 Neither sim family in the design anticipated a sign split; both predicted
 a uniformly stabilizing direction regardless of per-token keying. The
 cosine diagnostic the design pre-registered specifically for this

@@ -3083,12 +3083,18 @@ two corpora:**
 
 - Per-token (Arm 2 vs. Arm 1′): **+0.1955 / +0.2273** — training through
   a dense, per-token-identity-keyed frozen bias makes post-blend
-  `span_frac` **larger** (more spread, less collapsed) than the
+  `span_frac` **larger** (MORE collapsed / destabilized — CORRECTED
+  2026-07-07, sec 12.0: the original parenthetical here read "more
+  spread, less collapsed", which inverts the instrument's direction;
+  verified numerically — identical keys give span_frac=1.0, i.i.d.
+  random keys ≈0.01, and fit_frozenbias_estimation.py's own
+  mechanism_direction="negative" convention agrees) than the
   artifact-matched no-bias control.
 - Global-vector (Arm 2′ vs. Arm 1″): **−0.3319 / −0.2308** — training
   through the *same frozen table's single mean row*, added identically to
   every token's key with no per-token lookup at all, makes post-blend
-  `span_frac` **smaller** (more collapsed) than its own artifact-matched
+  `span_frac` **smaller** (LESS collapsed / stabilized — CORRECTED
+  2026-07-07, same inversion as above) than its own artifact-matched
   no-bias control.
 
 Both deltas exclude zero at 95% CI in both corpora. Neither sim family in
@@ -3167,3 +3173,657 @@ transplant confirmation: the original hypothesis did not survive, but the
 wave's instrumentation surfaced a real, controlled, reproducible
 (3-seed, 2-corpus) geometric phenomenon worth a follow-up mechanism study
 in its own right, should the project choose to pursue one.
+
+---
+
+## 12. MECHANISM-WAVE — follow-up design for the sim-training-divergence puzzle (opened 2026-07-07, this session)
+
+### 12.0 Scope, framing, and one verified documentation correction
+
+**This is an explicitly EXPLORATORY/MECHANISTIC follow-up, not a further
+confirmatory test of the original transplant hypothesis.** The rung-1
+wave's own fourth-outcome classification stands, unchanged, unrevisited
+by anything below. Every hypothesis here is being written with knowledge
+of rung-1's own measured direction (there is no way to un-know it), so
+nothing in §12 can claim the blind-pin discipline §7.3/§10 built for the
+primary bars — every reading below is Tier-2 descriptive/exploratory BY
+CONSTRUCTION, same tier the VERDICT's own geometry finding already
+occupies, never elevated to confirmatory regardless of how clean a number
+comes back.
+
+**A verified correction to the VERDICT section's own plain-language gloss
+(numbers unaffected, wording only) — load-bearing for how every hypothesis
+below is phrased, so stated first, precisely, before anything else:**
+the VERDICT section (§ above, lines ~3086 and ~3091 of this file) glosses
+the per-token delta `+0.1955/+0.2273` as "span_frac larger (**more
+spread, less collapsed**)" and the global-vector delta `−0.3319/−0.2308`
+as "span_frac smaller (**more collapsed**)". This pass re-derived
+`span_frac` numerically from its own registered formula
+(`analyze_probe_wave2.py`'s `anchors`/`span_frac`, reused unmodified
+throughout this design) on three synthetic populations (K=16, d=16,
+pure-Python, no framework dependency): i.i.d. random unit keys give
+`span_frac≈0.012` (near the "random" anchor, by construction); **fully
+collapsed keys (all K rows identical) give `span_frac=1.000` exactly**
+(the "collapse" anchor, by construction); a population blended 70% toward
+one shared direction gives `span_frac≈0.78` (between the two, much closer
+to collapse). **This proves the opposite of the VERDICT's own
+parentheticals: HIGHER span_frac is MORE collapsed / less differentiated,
+LOWER (more negative) span_frac is MORE spread / more differentiated** —
+consistent with `fit_frozenbias_estimation.py`'s own hard-coded
+`mechanism_direction="negative"` default (a CONFIRM requires the delta to
+be NEGATIVE, i.e. the hoped-for constancy-suffices mechanism is expected
+to make span_frac FALL) and with §4.a-i's own prose ("Arm 2's OWN k_raw...
+should show LESS non-orthonormal drift... i.e. the SAME one-sided
+'falls' direction"). **Corrected reading, numbers unchanged:** Arm 2
+(per-token, `+0.1955/+0.2273`) — training makes post-blend keys MORE
+mutually collinear / MORE collapsed, the OPPOSITE of the hoped-for
+mechanism. Arm 2′ (global-vector, `−0.3319/−0.2308`) — training makes
+post-blend keys LESS collinear / LESS collapsed, i.e. in the
+mechanism-predicted, stabilizing direction. **This matches this task's
+own framing exactly** ("per-token bias made write-geometry LESS
+stable... global-vector bias made it MORE stable") — it is specifically
+the VERDICT section's own two parentheticals that read backwards. Every
+hypothesis below uses the corrected direction throughout; the VERDICT
+section's own two parentheticals now carry this same fix directly
+(correction applied in working tree, to be committed with this design),
+consistent with §7.1/§7.1a/§9's own pinned
+`mechanism_direction="negative"` convention.
+
+**Pre-check performed this pass (read-only, zero GPU, no training,
+no code changed on the box):** `ssh youthful-indigo-turkey` (the same
+Brev box rung-1 trained on) confirms (a) all **400** per-checkpoint `.pt`
+files are present at `/data/deltanet_rd_frozenbias_ckpts/` — exactly
+20 training cells × 20 checkpoints (every 1,000 steps, matching §5's
+registered cadence), not merely the final-step checkpoints the existing
+retrofit tool consumed; (b) `/data` has 15TB free (2.6TB/18TB used); (c)
+`lm_pretrain_rd.py`, `lm_attractor_probe_rd.py`,
+`frozen_bias_retrofit_eval_rd.py`, `key_anchoring.py` are present,
+unmodified, at `/home/nvidia/chapter2/deltanet_rd`; (d) GPUs 2-7 were idle
+(0 MiB used) at check time, GPUs 0/1 were at 100% util (the concurrent
+capacity-cliff wave the rung-1 README already discloses). **This
+materially de-risks every eval-only item below (the intermediate
+checkpoints are the input every Stage-0/Stage-1 item needs) but must be
+re-verified immediately before a BUILD agent executes anything** — a
+disk-pressure cleanup or a concurrent wave's own launch could have changed
+either fact since this check.
+
+### 12.1 Verified numbers this wave's hypotheses must explain (re-cited, not re-derived)
+
+| Quantity | openr1-mix-ext | wikitext-mix-ext | Source |
+|---|---|---|---|
+| Primary, post-blend `span_frac` Δ (Arm2−Arm1′) | +0.1955 [0.0937,0.2973] | +0.2273 [0.0926,0.3621] | `estimation_primary_arm2_vs_arm1prime.json` |
+| Co-primary, pre-blend `k_raw` `span_frac` Δ (Arm2−Arm1) | +0.1097 [0.0491,0.1704] | +0.1345 [0.0070,0.2621] | same file |
+| Control, post-blend `span_frac` Δ (Arm2′−Arm1″) | −0.3319 [−0.6362,−0.0276] | −0.2308 [−0.2838,−0.1777] | `PHASE_D_FULL_REPORT.json` |
+| Cosine(trained k_raw, own frozen anchor row), Arm2 final | 0.0017 / 0.0007 (2 dims) | — | `cosine_diagnostic_sec1_3.json` |
+| Cosine, Arm1 final (never trained through bias) | −0.0043 / 0.0062 | — | same file |
+| Val-loss gate | PASS both arms | PASS both arms | `PHASE_D_FULL_REPORT.json` |
+| λ-mini-sweep (n=1, per-token, openr1 only) | +0.038 (λ=.3) / +0.219 (λ=.58) / +0.290 (λ=.8) | — | same file |
+| Realized GPU-h, entire rung-1 wave | 6.90 / 135 ceiling | | VERDICT §, this file |
+| Per-training-cell wall time | 899–914s (≈0.25 GPU-h) | | `frozenbias_lm_*.json` `wall_s` |
+| Per-retrofit-eval-pass wall time (avg, all 7 corpora/call) | ≈0.0348 GPU-h (≈125s) | | 1.6 GPU-h / 46 passes |
+
+Nothing in §12 disputes any of these figures — they are the fixed
+explanandum. The puzzle, restated with the corrected direction (§12.0):
+**why does training through a per-token frozen key bias make keys MORE
+collapsed, while training through a global-constant frozen key bias makes
+keys LESS collapsed, at matched λ, matched architecture, matched budget,
+with no evidence of anchor-cosine alignment in either arm?**
+
+### 12.2 Hypothesis table
+
+| # | Statement | Primary test statistic | New GPU? | Stage | Est. cost |
+|---|---|---|---|---|---|
+| H1 | Token-identity structure: the per-token bias lets training homogenize raw keys for REPEATED occurrences of the same token within a chunk (their distinguishing job is now redundant with the bias), inflating within-chunk collinearity; the global bias offers no per-token handle to exploit, so no analogous repeat-specific homogenization occurs. | `repeat_excess` (defined §12.4) | Yes (forward-pass only, reuses existing ckpts) | 1 | ≈0.21–0.63 GPU-h |
+| H2 | Effective-dimension corroboration: the SAME Gram-spectrum that produces `span_frac` also produces `effective_rank`/`stable_rank` (already archived, unused as a headline). If the collapse story is real, Arm2 should show LOWER effective/stable rank than Arm1′, Arm2′ HIGHER than Arm1″. | `effective_rank_mean`, `stable_rank_mean` deltas, same pinned CI | **No — zero GPU, already-archived JSON fields** | 0 | ≈0 |
+| H3 | Optimizer/gradient-flow interaction: the λ-blend's `normalize()` Jacobian, evaluated at a per-token-random vs. a fixed-global bias direction, differentially reshapes the gradient signal reaching `k_raw`, and this difference compounds over training. | Backward-hook gradient-norm/variance telemetry on `k_raw`, short instrumented runs | Yes — new short training | 2 (conditional) | ≈0.15–0.8 GPU-h |
+| H4 (new) | Compensatory-constant hypothesis: a GLOBAL constant bias is a translation-like perturbation training can partly absorb via correlated drift in a low-dimensional locus (`k_conv1d`'s own weights, or upstream); a PER-TOKEN bias cannot be absorbed this way (50,257 different, uncorrelated perturbations), so training instead suppresses raw-key diversity to reduce interaction with the un-absorbable per-token noise. | Checkpoint parameter-diff norm/cosine, `k_conv1d` (and block-0 more broadly, per attack Q2) | **No — zero GPU, `torch.load`+diff only** | 0 | ≈0 (CPU/box time only) |
+| H5 (new, refines H1) | Frequency-concentration confound: any apparent "token-identity" effect could be driven entirely by a handful of extremely high-frequency tokens (punctuation, "the", sub-word fragments) that recur predictably, rather than a genuine broad-vocabulary identity effect — i.e. H1's signal could really be a small-support, quasi-positional artifact. | Stratify `repeat_excess` by in-sample token frequency band (top-20 vs. long tail) | **No new capture — reuses H1's own captured tensors** | 1 (same pass as H1) | ≈0 marginal |
+
+**Critiques folded into the table, stated plainly:**
+- H2 is honestly not independent evidence — `gram_deviation_mean`,
+  `effective_rank_mean`, and `stable_rank_mean` are three statistics of
+  the SAME per-episode eigenspectrum (`rank_utils.py`'s
+  `effective_rank`/`stable_rank`, `model_rd.py`'s `gram_deviation`, all
+  computed inside the SAME `chunk_key_gram_stats` call). A "positive" H2
+  result is close to a restatement of the primary bar in different units,
+  not a new causal claim. Still worth running FIRST because it costs
+  literally nothing (§12.3) and is a legitimate robustness triangulation
+  (do independent rank estimators agree on direction, not just the raw
+  Gram-deviation number) — but it must be reported as corroboration, not
+  as discriminating evidence between H1/H3/H4.
+- H1's originally-suggested formulation (η², a one-way ANOVA
+  variance-explained-by-token-identity share) was REJECTED in favor of
+  `repeat_excess` (§12.4): with a 50,257-token vocabulary sampled through
+  a ≤512-token window, the overwhelming majority of distinct tokens are
+  singletons in any given sample, and singleton-heavy groups make η²
+  trivially close to 1 regardless of any real effect (each singleton's
+  "between-group" contribution is just its own distance to the grand
+  mean, contributing no real group structure) — an uninformative,
+  near-tautological statistic at this vocabulary/window-size ratio.
+  `repeat_excess` restricts attention to tokens that actually recur
+  within the same chunk, directly targeting what H1 claims.
+
+### 12.3 Stage 0 — zero-GPU analyses (run first, no forward pass, no training)
+
+**12.3.1 H2 — effective-rank/stable-rank pinned-CI reharvest.**
+`pooled_subset()` (`experiment-runs/2026-07-05_trackc_rung2/analyze_probe_wave2.py`,
+already the span_frac pipeline's own dependency) already returns
+`effective_rank_mean` and `stable_rank_mean`, n-weighted-pooled across
+both layers, for every one of the **48** already-archived `retrofit_*.json`
+files (46 counted in an earlier pass of this design plus 2 kraw-mode
+λ-mini-sweep control files, `retrofit_kraw_lam030_openr1_s0.json` and
+`retrofit_kraw_lam080_openr1_s0.json` — both verified present on disk
+alongside the other 46, and equally in scope for this reharvest since
+they are the SAME kraw-mode/pre-blend population this subsection's own
+pre-blend comparison already touches) — the SAME files
+`build_fit_inputs_and_run.py` already parses for `span_frac`. **Spec:**
+clone `build_fit_inputs_and_run.py`'s
+`extract_group`/`span_frac_from_retrofit_json` pattern into a new
+`build_fit_inputs_rankstats.py`, swapping which field of `pooled_subset()`'s
+return dict is read (`effective_rank_mean`, `stable_rank_mean` instead of
+computing `span_frac` from `gram_deviation_mean`), and feed the resulting
+per-seed values into the UNMODIFIED `derive_estimation()`
+(`fit_frozenbias_estimation.py`) — same pinned `t(2,.975)=4.303` CI
+formula, zero new statistical machinery. Produces 4 new deltas with CIs:
+Arm2−Arm1′ (post-blend, both stats), Arm2′−Arm1″ (post-blend, both
+stats), plus the pre-blend versions using the already-archived
+`retrofit_kraw_arm2_*`/`retrofit_kraw_arm1_*` files. **Pre-registered
+reading:** corroboration-consistent-with-collapse-story (never
+"CONFIRM" — see the schema requirement below) requires
+`effective_rank`/`stable_rank` deltas to move OPPOSITE to `span_frac`'s
+own sign convention (higher rank = less collapsed = should FALL for
+Arm2, RISE for Arm2′) — i.e. the SAME direction §12.0's corrected
+reading predicts, just in rank units instead of Gram-deviation units.
+**Cost: 0 GPU-h — pure Python over already-repo-committed JSON files,
+runs on the Mac, no SSH needed.**
+
+**Per-comparison `mechanism_direction` pin (MAJOR-3 fix — pinned NOW, by
+comparison, never chosen per-call after a result is seen):**
+`derive_estimation()`'s `mechanism_direction` argument must be set
+explicitly for every call this subsection (and §12.3.2) makes, per the
+comparison being estimated, not left at the function's own default:
+- **`mechanism_direction="negative"`** for every Arm2-vs-Arm1′ (post-blend)
+  and Arm2-vs-Arm1 (pre-blend) comparison — the per-token arm vs. its own
+  control. A FALLING rank (`effective_rank`/`stable_rank` delta negative)
+  is what corroborates H2/the collapse story for this comparison.
+- **`mechanism_direction="positive"`** for every Arm2′-vs-Arm1″
+  (post-blend) and Arm2′-vs-Arm1 (pre-blend, §12.3.2) comparison — the
+  global-vector arm vs. its own control. A RISING rank (delta positive)
+  is what corroborates here — the OPPOSITE sign from the per-token case,
+  because §12.0's corrected reading has the two arms moving in opposite
+  directions on the same underlying observable.
+
+**Expected-sign sanity anchors (attack-round-executed values, to be
+REPRODUCED at Stage 0, not assumed correct by construction):** the
+independent attack round that reviewed this design already ran this
+exact Arm2-vs-Arm1 pre-blend rank reharvest once, obtaining
+**`effective_rank` Δ=−2.09 [−2.73,−1.46] (openr1-mix-ext)** and
+**`stable_rank` Δ=−1.75 [−2.26,−1.24] (wikitext-mix-ext)** — both
+negative, both CI-excluding-zero, both matching the `mechanism_direction
+="negative"` pin above. A Stage 0 run of `build_fit_inputs_rankstats.py`
+that reproduces these two figures (same files, same formula) is a strong
+implementation-correctness check on the new script; a Stage 0 run that
+disagrees with these attack-round-executed numbers should be treated as
+a bug in the new script before it is treated as a substantive finding.
+
+**Schema requirement, binding on every §12 JSON artifact — Stage 0, 1,
+and 2 alike, not just this subsection (MAJOR-2 fix):**
+1. Every JSON file any §12 script writes must carry a top-level
+   `"tier": "exploratory-mechanism-wave — NOT a confirmatory bar"` field,
+   set unconditionally, so no downstream reader (human or script) can
+   mistake a §12 artifact for a §7–§9 confirmatory one from its shape
+   alone.
+2. `derive_estimation()`'s returned `confirm_direction_consistent` field
+   must be renamed (or wrapped under an added key, leaving the original
+   in place for traceability) to **`direction_consistent_with_hypothesis`**
+   before anything is persisted to disk — the word "confirm" in a
+   persisted field name is exactly the kind of shape-level leak that lets
+   an exploratory reading get quoted later as if it carried confirmatory
+   license, which §12.0 already disclaims everywhere in this section.
+3. **`headline_verdict()` (`fit_frozenbias_estimation.py`) must NEVER be
+   called anywhere in §12** — not in Stage 0, 1, or 2, not even "just to
+   see." That function's entire purpose is to emit a
+   CONFIRM/INCONCLUSIVE/ESTIMATION verdict under the blind-pin discipline
+   §7.3/§9 built for the primary bars; §12.0 already establishes there is
+   no blind pin here and every reading is post-hoc, so a `headline_verdict()`
+   call would manufacture a confirmatory-shaped output this wave has no
+   license to produce. Any script needing a combined multi-corpus read
+   must write its own small, explicitly-exploratory summary function
+   instead of importing `headline_verdict()`.
+
+**12.3.2 The missing Arm2′-pre-blend comparison (a gap in the existing
+archive, closed for free).** `retrofit_kraw_arm2p_{openr1,wikitext}_s{0,1,2}.json`
+(6 files) already exist on disk (verified present, both locally and on
+the SSD mirror) but were **never fed into `derive_estimation()`** — the
+existing `PHASE_D_FULL_REPORT.json` only computed Arm2-vs-Arm1′ pre/post
+and Arm2′-vs-Arm1″ post-blend; the pre-blend Arm2′-vs-Arm1 comparison
+(the direct global-arm analogue of the co-primary) was captured but never
+summarized. **Spec:** same script as 12.3.1, one more `extract_group("kraw", "arm2p_")`
+call, one more `derive_estimation()` call against the already-extracted
+`arm1_kraw` — `mechanism_direction="positive"` per 12.3.1's pin (this is
+an Arm2′-vs-Arm1 comparison), and subject to the SAME schema requirement
+(`"tier"` field, field rename, no `headline_verdict()`) as every other
+§12 JSON artifact. **Cost: 0 GPU-h.**
+
+**12.3.3 H4 — checkpoint parameter-diff (compensatory-constant test).**
+For a matched seed/corpus triple (recommend seed 0, openr1-mix-ext — same
+choice as the λ-mini-sweep, for consistency), `torch.load` (CPU,
+`map_location="cpu"`) the step-1000 and step-20000 checkpoints for Arm1,
+Arm2, Arm2′ (6 files, ~56MB each = ~336MB, trivial). Define
+`ΔW(arm) := W(arm, step20000) − W(Arm1, step1000)` for a chosen parameter
+subset (primary: `blocks[i].mixer.k_conv1d`'s own weight/bias; per attack
+Q2, widen to the FULL block-0 parameter set as a secondary reading, since
+compensation could sit upstream of `k_conv1d`). Report `‖ΔW(Arm2)‖_F` vs.
+`‖ΔW(Arm2′)‖_F`, and `cos(ΔW(Arm2′), b_global)` where structurally
+meaningful (e.g. if a bias/weight column can be reshaped to `(d_state,)`).
+**Pre-registered reading:** H4-consistent if `‖ΔW(Arm2′)‖` shows a more
+COHERENT (higher-cosine-to-`b_global`, i.e. lower-rank/more
+one-directional) drift pattern than `‖ΔW(Arm2)‖`'s own drift relative to
+Arm1's matched drift — NOT merely "which norm is bigger" (a norm
+comparison alone is not diagnostic of compensation; directionality is).
+**Cost: 0 GPU-h — CPU-only `torch.load` + tensor diff, run on the box
+(needs the checkpoint files) or after `scp`-ing the ~336MB down; no CUDA
+context ever created.**
+
+**12.3.4 Stage 0.5 — synthetic self-tests for this wave's THREE new
+statistics (MAJOR-5b fix; GATE: Stage 1 may not launch until every test
+below passes).** Per the standing "run the negative unit test that's
+supposed to prove the check has teeth to completion" `[LEARN]`, and
+mirroring `fit_frozenbias_estimation.py`'s own `_self_test()` rigor
+(hand-picked synthetic inputs, hard-coded expected outputs, hard
+assertions, executed to completion, not merely written) — none of
+`repeat_excess`, the parameter-diff cosine, or the gradient-flow norm has
+had its OWN implementation independently verified before this pass; each
+gets one below. All three are pure-Python/CPU, zero GPU, zero dependence
+on the real checkpoints.
+
+*Self-test 1 — `repeat_excess` (H1/H5).* Two pinned constructions, both
+on the same 12 hand-picked (not RNG-drawn) 3-D vectors, L2-normalized:
+`raw = [(1,2,-1), (0.5,-1.5,2), (-2,0.5,1), (1.5,1.5,1.5), (-1,-2,0.5),
+(2,-0.5,-1.5), (0,1,-2), (-1.5,0.5,-1), (1,-1,1), (-0.5,2,0.5), (2,2,-0.5),
+(-1,0,2)]`.
+  - **(a) Uncorrelated-assignment construction:** token ids assigned
+    round-robin, uncorrelated with the vector values —
+    `['A','B','C','D']*3`. Computed `repeat_excess = -0.238404`
+    (`same_tok_sim=-0.252186`, `diff_tok_sim=-0.013781`, n_same=24,
+    n_diff=108). **Pass:** the implementation must reproduce
+    `-0.238404 ± 1e-4` on this EXACT input — an implementation-
+    correctness check (does the formula/pooling match this hand-verified
+    reference), not a claim that this value is "the null."
+  - **(b) Planted-clustering construction:** SAME 12 vectors, but the 6
+    positions forming the 3 closest-cosine pairs (`(0,10)`, `(1,8)`,
+    `(2,11)`, cosines 0.924/0.906/0.781) are all merged into ONE shared
+    token id; every other position gets a unique singleton id (no other
+    repeats). Computed `repeat_excess = +0.034437`
+    (`same_tok_sim=-0.030517`, `diff_tok_sim=-0.064954`, n_same=30,
+    n_diff=102). **Pass:** the implementation must reproduce
+    `+0.034437 ± 1e-4` on this EXACT input, AND this value must exceed
+    construction (a)'s value by **≥ +0.2** (planted delta = +0.272841) —
+    i.e. the statistic detects a real, planted same-token-clustering
+    effect of this registered strength, not just that it computes SOME
+    number.
+
+*Self-test 2 — parameter-diff norm/cosine (H4).* Mock 6-dimensional
+flattened parameter subset (stand-in for a tiny `k_conv1d` weight/bias
+slice), frozen `b_global = (0.3, -0.1, 0.2, 0.4, -0.2, 0.1)`.
+  - **(a) Planted-coherent construction:** `ΔW = 2.5 · b_global` exactly
+    (a pure scalar multiple). **Pass:** `‖ΔW‖_F` must equal
+    `1.479019945774904 ± 1e-9` and `cos(ΔW, b_global)` must equal
+    `1.0 ± 1e-6` — the implementation must report perfect coherence when
+    the drift IS a scalar multiple of `b_global`, by construction.
+  - **(b) Incoherent construction:** `ΔW = (0.4, 0.4, -0.3, -0.1, 0.35, 0.5)`
+    (hand-picked, not a multiple of `b_global`). **Pass:** `‖ΔW‖_F` must
+    equal `0.8902246907382427 ± 1e-9` and `cos(ΔW, b_global)` must equal
+    `-0.0759497473859234 ± 1e-6`, AND `abs(cos) < 0.2` (correctly reports
+    LOW coherence for an unrelated drift direction). Construction (a)'s
+    cosine must exceed construction (b)'s by **≥ 0.5** — the comparative
+    "more coherent than" reading §12.3.3's pre-registered reading actually
+    depends on, verified on a case where the right answer is known.
+
+*Self-test 3 — gradient-flow norm telemetry (H3, feeds §12.5's smoke).*
+Closed-form linear construction, no autodiff needed to derive the
+expected value: mock "k_raw" stand-in `x = (1.0, -2.0, 0.5)` (1×3),
+downstream weight `W = [[0.2,-0.3],[0.4,0.1],[-0.5,0.6]]` (3×2), target
+`t = (0.1, -0.2)`, `y = x @ W`, `L = 0.5·Σ(y-t)²`. Hand-derived:
+`y = (-0.85, -0.2)`, `resid = (-0.95, 0.0)`, `L = 0.45125`,
+`dL/dx = resid @ Wᵀ = (-0.19, -0.38, 0.475)`,
+`‖dL/dx‖₂ = 0.6372793735874401`. **Pass:** (i) the hook-captured gradient
+norm on THIS exact `x`/`W`/`t` triple must equal `0.637279 ± 1e-5`
+(verifies the hook observes the correct tensor's gradient, not a stale or
+mismatched one); (ii) the hook must fire exactly once per forward/backward
+pair (call-count assertion); (iii) the captured value must be finite and
+nonzero (true by construction here since `resid ≠ 0`). This self-test is
+the exact-value counterpart to — not a replacement for — §12.5's own
+loss-trajectory-equality smoke (hook-vs-no-hook `torch.equal` check),
+which stays a Stage-2-specific gate on top of this one.
+
+**Gate:** Stage 1 (§12.4) may not launch until all three self-tests above
+have been RUN and PASSED — a specification that has not been executed is
+not a passed gate, same status-disclosure convention §10 already uses for
+§8.0/§8.0b. **Cost: 0 GPU-h, pure Python, no checkpoints/box needed —
+runs entirely on the Mac.**
+
+### 12.4 Stage 1 — cheap eval-only GPU passes on already-existing checkpoints (H1, H5) — gated on §12.3.4 (Stage 0.5) passing
+
+**`repeat_excess`, the primary H1 statistic, defined precisely:** within
+each `(b, chunk, head)` episode (identical chunking to
+`chunk_key_gram_stats`, `chunk_size=64`, `content_mask` excludes EOT
+exactly as today), among the `n_valid` content positions, group by token
+id via the ALREADY-AVAILABLE `token_ids_cat` (joined by position — the
+prior agent's finding, confirmed: `chunk_key_gram_stats`'s own records
+carry no token id, but `capture_raw_keys` already returns `token_ids_cat`
+aligned to the SAME `(B,T)` axes as the captured key tensor, so the join
+is a reshape, not new plumbing). Require ≥1 pair `(i,j)`, `i≠j`,
+`tok(i)=tok(j)` (a genuine within-chunk repeat) AND ≥1 pair with
+`tok(i)≠tok(j)`, else the episode is excluded (counted, not silently
+zeroed, per the standing "don't silently treat undefined as 0"
+`[LEARN]`). Compute, on L2-normalized keys (same pre-normalization
+`chunk_key_gram_stats` already applies):
+
+```
+same_tok_sim = mean over all (i,j), i≠j, tok(i)=tok(j), of cos(k_i, k_j)
+diff_tok_sim = mean over all (i,j), tok(i)≠tok(j), of cos(k_i, k_j)
+repeat_excess = same_tok_sim − diff_tok_sim
+```
+
+computed per episode, pooled (n-weighted mean) exactly the way
+`summarize_gram_records` already pools `gram_deviation`. **Pre-registered
+reading:** H1-consistent requires `Δrepeat_excess` (Arm2−Arm1, pre-blend
+`k_raw` — the artifact-free population, same discipline as the
+co-primary) to be POSITIVE (repeats become more self-similar) AND
+materially larger than `Δrepeat_excess` (Arm2′−Arm1, pre-blend) — since
+the global bias gives no token-varying signal for training to exploit
+specifically among repeats, H1 predicts this second delta stays near the
+pre-blend co-primary's own established noise floor. **H5 (frequency
+confound) reuses the exact same captured `(k_raw, token_ids_cat)` pairs**:
+stratify the pooled `repeat_excess` computation by whether `tok(i)` falls
+in the top-20 most frequent tokens in THIS sample vs. the rest, report
+both strata's own delta separately — if H1's signal is concentrated
+entirely in the top-20 stratum, that is disclosed as a small-support/
+quasi-positional reading, not a broad-vocabulary identity effect, per
+H5's own registered purpose.
+
+**Yield estimate and mechanical check (MINOR-4 fix).** One-line
+back-of-envelope: at `chunk_size=64` over a ~50,257-token BPE vocabulary
+with a realistically Zipfian frequency profile (a handful of tokens each
+carry ≫1/64 of total mass), a within-chunk same-token collision is a
+birthday-problem-style near-certainty for any *effective* vocabulary
+support well under a few hundred categories — `repeat_excess` is expected
+to be a HIGH-yield statistic (most 64-token chunks should contain ≥1
+repeat), not a rare-event one; this is an estimate, not a measurement.
+**Mechanical yield check, registered minimum n=50 (run automatically at
+Stage-1 start, per the standing "don't silently treat undefined as 0"
+discipline already invoked above for per-episode exclusion):** the probe
+script must report the realized count of INCLUDED (non-excluded)
+episodes pooled across the descriptive pass, before any `repeat_excess`
+number is trusted; if that pooled count is **< 50**, STOP and report
+`repeat_excess` as under-powered/insufficient-yield rather than as a
+trusted reading — a registered floor decided now, not a post-hoc call
+made after seeing how many episodes happened to qualify.
+
+**Spec (new script, `frozen_bias_token_identity_probe.py`, cloning
+`frozen_bias_retrofit_eval_rd.py`'s `load_checkpoint`/`capture_raw_keys`
+verbatim — same pod-safety convention this codebase already uses
+throughout):** identical sampling discipline to the existing retrofit
+tool (`n_windows=32`, `batch_size=16`, `seq_len=512`,
+`corpus_fixed_seed(corpus)+95_000` generator seed) so the captured
+population is IDENTICAL to what the existing co-primary `kraw` retrofit
+already measured — this makes `repeat_excess` and `gram_deviation`
+directly joint-interpretable per episode (e.g. a per-chunk correlation
+between the two, a free byproduct worth reporting).
+
+**Cost, descriptive-first (n=1, seed 0, both corpora-trained-on, 3 arms
+— Arm1/Arm2/Arm2′):** 6 checkpoint-passes × ≈0.0348 GPU-h/pass ≈ **0.21
+GPU-h**. **Cost, full 3-seed confirmatory grid (matching this design's own
+pinned-CI convention, if the descriptive pass shows a nonzero signal):**
+18 checkpoint-passes ≈ **0.63 GPU-h**.
+
+**12.4.1 Trajectory sub-study (optional but cheap, informs Stage 2's
+decision rule) — reuses the SAME 400 already-present intermediate
+checkpoints, no new capture logic beyond pointing the same script at 5
+steps instead of 1.** Purpose: determine WHEN the Arm2-vs-Arm1 /
+Arm2′-vs-Arm1 divergence emerges — this directly gates Stage 2's
+step-count decision (§12.5) at zero marginal training cost, since these
+checkpoints already exist regardless of whether Stage 2 ever launches.
+Executed as an explicit numbered procedure (MAJOR-5a fix — promotes the
+densification fallback from an attack-round question into a mandatory
+step, per attack Q3):
+
+1. Run the identical `repeat_excess` (and, for a free cross-check,
+   `gram_deviation`/`span_frac` via the existing `kraw` mode) computation
+   at steps {1000, 5000, 10000, 15000, 20000}, 1 seed (0), 1 corpus
+   (openr1-mix-ext, matching the mini-sweep's own corpus choice), 3 arms:
+   15 checkpoint-passes ≈ **0.52 GPU-h**.
+2. Read the resulting 5-point signed-delta trajectory separately for
+   each of the two comparisons (Arm2-vs-Arm1, Arm2′-vs-Arm1). Define
+   **"ambiguous" MECHANICALLY, not by eyeball**: a trajectory is
+   ambiguous if the sign of the delta flips between any two ADJACENT
+   sampled checkpoints in the 5-point grid (e.g. step 5000's delta
+   positive and step 10000's delta negative, or vice versa, for either
+   comparison).
+3. **If step 2 finds either comparison's trajectory ambiguous by this
+   mechanical definition, densify for free** (all 400 checkpoints already
+   exist at 1,000-step spacing — zero new training): compute the SAME
+   `repeat_excess`/`gram_deviation`/`span_frac` statistics at the 3
+   additional steps {2000, 3000, 4000}, and re-apply step 2's
+   adjacent-sign-flip check to the resulting 8-point grid before
+   concluding anything is genuinely ambiguous.
+4. Feed the (possibly-densified) final trajectory into Stage 2's gate
+   (§12.5) — the gate itself is now a single frozen numeric rule, not a
+   judgment call made after looking at the shape of the curve.
+
+### 12.5 Stage 2 — new short instrumented training cells (H3), conditional on 12.4.1
+
+**Gate (pinned NOW, per attack MAJOR-4 — a single frozen numeric
+criterion, fixed before any BUILD agent runs 12.4.1, replacing the
+previously-deferred early/late/ambiguous trichotomy that left the actual
+threshold for a BUILD agent to choose after seeing the data):**
+
+Stage-2 full 20,000-step runs are authorized ONLY if the step-5,000
+descriptive delta's sign matches the step-20,000 sign AND
+|Δ@5000| ≥ 0.5·|Δ@20000|; otherwise truncated 3,000-step runs suffice.
+
+This criterion is evaluated separately for each of 12.4.1's two
+comparisons (Arm2-vs-Arm1, Arm2′-vs-Arm1), read off the (possibly
+densified, per 12.4.1 step 3) `repeat_excess`/`span_frac` trajectory the
+same script already captures, on openr1-mix-ext (12.4.1's only corpus).
+If the two comparisons select different branches under this rule, the
+full 20,000-step branch governs for both — Stage 2 is never downgraded
+to the cheaper branch by one comparison's own weaker signal.
+
+**Spec:** new script `frozen_bias_gradflow_probe.py`, NOT a modification
+of `lm_pretrain_rd.py` in place (clone the training loop, per this
+codebase's own duplication-over-cross-import convention) — instruments a
+backward hook capturing the gradient norm reaching `k_raw` (the
+post-conv, pre-blend key tensor `apply_frozen_bias_blend` consumes) at a
+fixed cadence (every 100 steps), for Arm1 (off), Arm2 (per-token, λ=0.58),
+Arm2′ (global, λ=0.58), 1 seed (0), 1 corpus (openr1-mix-ext) — 3 cells.
+**Mandatory Stage-2-specific smoke, before any real cell launches (per
+the standing "smoke test every model before training" hard rule, same
+discipline as §8.0/§8.0b's Wave −1 smokes for rung-1):** verify on a tiny
+CPU-runnable model that (a) the hook fires exactly once per forward pass
+per layer, (b) captured gradient norms are finite and nonzero, (c) adding
+the hook does not change the loss trajectory relative to an unhooked
+control run on the same seed/data (a `torch.equal`-level check on the
+first few steps' loss, mirroring §8.0b's own code-path-equality
+discipline). **This smoke does not exist yet — a SPECIFICATION only,
+same status disclosure convention §10 already uses for §8.0/§8.0b.**
+
+**Cost:** at 3,000 steps, ≈137s/cell × 3 ≈ **0.11 GPU-h** (+ smoke, ≈0
+GPU-h, CPU-only). At the full 20,000-step fallback, ≈912s/cell × 3 ≈
+**0.76 GPU-h**. No separate calibration run required (§6.3's standing
+rule) — these are short DERIVATIVES of an already-calibrated recipe
+(identical architecture/lr/corpus/seed convention to rung-1's own
+calibrated cell), differing only in step count and the added hook; the
+Stage-2-specific smoke above is the load-bearing gate instead.
+
+### 12.6 Budget summary
+
+| Item | GPU-h (1×) | GPU-h (2× contingency) |
+|---|---|---|
+| Stage 0 (H2 reharvest, missing Arm2′-pre-blend comparison, H4 param-diff) | 0 | 0 |
+| Stage 0.5 (synthetic self-tests: `repeat_excess` null+planted, parameter-diff cosine, gradient-flow norm — §12.3.4, gates Stage 1) | 0 | 0 |
+| Stage 1 core, descriptive (n=1, 6 passes) | 0.21 | 0.42 |
+| Stage 1 core, full confirmatory grid — **12 ADDITIONAL passes** beyond the descriptive pass's own seed-0 data (seeds 1,2 × 3 arms × 2 corpora only; NOT 18 independent passes — seed 0's 6 passes are the SAME 6 already counted in the row above, not re-run and not re-counted here), if the descriptive pass shows signal | 0.42 | 0.84 |
+| Stage 1.1 trajectory sub-study (15 passes, includes the conditional 3-step densification from §12.4.1 step 3 — zero marginal cost, already-present checkpoints) | 0.52 | 1.04 |
+| Stage 2, conditional, cheap branch (3 cells × 3,000 steps) | 0.11 | 0.22 |
+| Stage 2, conditional, expensive branch (3 cells × 20,000 steps) | 0.76 | 1.52 |
+| **Total, cheapest path (descriptive-only Stage 1, Stage-2 cheap branch)** | **0.84** | **1.68** |
+| **Total, most expensive plausible path (full Stage 1 grid as 12 ADDITIONAL passes + Stage-2 expensive branch)** | **1.91** | **3.82** |
+
+**Corrected arithmetic (MINOR-1 fix):** the previous revision of this
+table listed the full confirmatory grid as 18 independent passes (0.63
+GPU-h) ADDED on top of the descriptive pass's own 6 passes (0.21 GPU-h),
+double-counting seed 0's 6 passes twice (descriptive row + first 6 of the
+"18"). The full grid is 3 seeds × 3 arms × 2 corpora = 18 passes TOTAL,
+of which 6 (seed 0) are already the descriptive pass; only the
+**remaining 12** (seeds 1 and 2) are incremental cost: 12 × ≈0.0348
+GPU-h/pass ≈ **0.42 GPU-h** (1×), **0.84 GPU-h** (2×) — not 0.63/1.26.
+Most-expensive-path total recomputed: 0.21 (descriptive) + 0.42 (12
+additional) + 0.52 (trajectory) + 0.76 (Stage 2 expensive) = **1.91
+GPU-h** (1×), **3.82 GPU-h** (2×). The cheapest-path total (0.84/1.68) is
+unaffected — it never included the full confirmatory grid.
+
+Against the rung-1 wave's own realized spend (6.90/135 GPU-h) and the
+committed rung-1-only budget's own remaining headroom (≈121–124 GPU-h,
+§8.5.1), this entire mechanism wave — EVERY item, both branches, worst
+case — costs under **3.82 GPU-h at 2× contingency**, i.e. under 3.2% of
+the rung-1-only headroom and under 2.9% of the full 135 GPU-h program
+ceiling. No case in this design approaches a budget concern; the
+constraint on this wave is design/interpretive rigor, not compute.
+
+### 12.7 Standing constraints carried forward (checked, not re-derived)
+
+- Same corpora, same tokenization, same architecture as rung-1 (§5, §10)
+  — no new axis introduced anywhere in §12.
+- Blind-pin discipline (§7.3) does NOT apply here — §12.0 already
+  discloses every hypothesis is post-hoc/exploratory; no new pin is
+  claimed or needed, and no result here should be reported with a
+  confirmatory CI-excludes-zero framing without that caveat attached.
+- tmux+supervisor, try/except per config, `/data` checkpoint convention,
+  disk-space gate, repo(≤25MB)+SSD-mirror archive policy — all apply
+  unchanged to any Stage-1/Stage-2 script that runs on the box.
+- Smoke-before-train (Stage 2 only, §12.5) — mandatory, not yet built.
+- Re-verify the 12.0 pre-check (checkpoint presence, disk space, GPU
+  contention) immediately before any BUILD agent executes anything —
+  it was true at check time this session, not guaranteed true later.
+
+### 12.8 ATTACK-ROUND-1 QUESTIONS — the 5 weakest points in this section (RESOLVED-OR-CARRIED-FORWARD by Rev 12.1 below — kept verbatim as historical record; see the Rev 12.1 REVISION LOG for the finding→fix map, and §12.9 for what's still open after this pass)
+
+1. **Correlational ceiling.** `repeat_excess`, the rank-stat deltas
+   (H2), and the parameter-diff (H4) are all OBSERVATIONAL/descriptive —
+   none of them intervene on the candidate mechanism directly. Even a
+   clean, CI-excluding-zero `repeat_excess` delta establishes correlation
+   with the collapse phenomenon, not causation; a true causal test (e.g.
+   forcibly perturbing raw-key repeat-similarity and checking whether
+   `span_frac` follows) is out of scope this wave and should be named as
+   a limitation in any writeup, not silently implied.
+2. **H4's parameter-diff locus may be wrong.** The primary reading
+   diffs `k_conv1d` only; if the compensatory adaptation this hypothesis
+   proposes actually happens upstream (the token embedding table, an
+   earlier FFN, or the residual stream feeding `k_conv1d`'s input), a
+   `k_conv1d`-only diff would show nothing even if H4's causal story is
+   correct elsewhere — a null H4 result at this locus does NOT refute
+   the broader compensatory-constant idea, only this specific
+   operationalization of it. The widened block-0 reading (§12.3.3) is a
+   partial mitigation, not a complete one.
+3. **Checkpoint sampling density risk.** §12.4.1's 5-point trajectory
+   grid (1000/5000/10000/15000/20000) assumes a roughly monotonic
+   divergence; the training loss curve itself (already in the archived
+   `trajectory` arrays) drops most steeply in the first ~2,000–3,000
+   steps, and a transient early divergence that later reverses could
+   alias through a 5,000-step-spaced sample. All 400 checkpoints already
+   exist at 1,000-step spacing — if §12.4.1's coarse grid looks
+   ambiguous, densify for free (add steps 2000/3000/4000, still zero new
+   training) before falling back to Stage 2's own new-training branch.
+4. **The Stage-2 gate (§12.5) itself could be mis-specified.** It
+   pre-registers "early/late/ambiguous" as a trichotomy but does not
+   pre-register a numeric threshold for what counts as "already
+   resolved by step ≤5,000" (e.g. CI-excludes-zero on a 1-seed
+   descriptive read is not the same evidentiary bar as the confirmatory
+   n=3 grid uses elsewhere in this document) — a BUILD agent implementing
+   §12.5 should pin an explicit numeric rule (e.g. "the step-5,000
+   descriptive delta's sign matches the step-20,000 descriptive delta's
+   sign AND exceeds half its magnitude") before running 12.4.1, not
+   choose one after seeing the trajectory data, to avoid exactly the
+   post-hoc-pin failure mode the rung-1 wave's own descriptive-tier
+   caveat already flagged once.
+5. **None of §12's new statistics have their own validating synthetic
+   self-test yet** — `sim_frozen_bias_training_mediated.py` earned real
+   trust for `span_frac` specifically by proving (a) an exact-zero null
+   on synthetic data with no training-mediated difference and (b)
+   detection of a planted synthetic effect at a disclosed strength,
+   BEFORE any real number was trusted. `repeat_excess`, the parameter-diff
+   norm/cosine, and the gradient-flow telemetry (H3) have no analogous
+   self-test. Per the standing "run the negative unit test that's
+   supposed to prove the check has teeth to completion" `[LEARN]`, each
+   new statistic should get a cheap synthetic self-test (e.g. verify
+   `repeat_excess≈0` on i.i.d. random keys with randomly-assigned token
+   ids, and that it detects a planted same-token-clustering effect at a
+   known strength) as a mandatory Stage-0.5 gate — not skipped for
+   expedience, and not treated as optional polish.
+
+---
+
+## Rev 12.1 REVISION LOG — 2026-07-07, §12 round-1 attack response (REVISE-THEN-PROCEED, every fix below is text-only — no code run, nothing committed)
+
+| # | Severity | Finding (one-line) | Fix applied | Landed in |
+|---|---|---|---|---|
+| 1 | MAJOR-1 | NARRATIVE.md's own plain-language gloss inverted the same `span_frac` direction §12.0 already caught in THIS file's VERDICT section | Fixed separately, in a different document (`matrix-thinking/submissions/iclr-2027/NARRATIVE.md`) — out of scope for this pass, not touched here | `NARRATIVE.md` (not this file) |
+| 2 | MAJOR-2 | §12's JSON artifacts had no schema-level marker distinguishing them from confirmatory-tier output; `derive_estimation()`'s own `confirm_direction_consistent` field name and `headline_verdict()` both carry confirmatory connotations §12.0 explicitly disclaims | Added a mandatory top-level `"tier"` field on every §12 JSON artifact; required renaming/wrapping `confirm_direction_consistent` to `direction_consistent_with_hypothesis` before persisting; explicitly forbade calling `headline_verdict()` anywhere in §12 | §12.3.1 (new "Schema requirement" paragraph), cross-referenced from §12.3.2 |
+| 3 | MAJOR-3 | H2's rank-stat reharvest never pinned `mechanism_direction` per comparison explicitly, and had no independently-executed reference numbers to sanity-check the new script against | Pinned `mechanism_direction="negative"` for Arm2-vs-Arm1′/Arm1, `="positive"` for Arm2′-vs-Arm1″/Arm1; added the attack round's own executed sanity-anchor values (openr1 `effective_rank` Δ=−2.09 [−2.73,−1.46]; wikitext `stable_rank` Δ=−1.75 [−2.26,−1.24], Arm2 pre-blend), to be reproduced (not assumed) at Stage 0 | §12.3.1 (new "Per-comparison `mechanism_direction` pin" + "Expected-sign sanity anchors" paragraphs), §12.3.2 (cross-referenced) |
+| 4 | MAJOR-4 | §12.5's Stage-2 gate deferred its own numeric threshold to a future BUILD agent ("e.g." language only), risking exactly the post-hoc-pin failure mode §12.0's own descriptive-tier caveat already flagged once | Pinned the frozen criterion IN THE DESIGN TEXT NOW: Stage-2 full 20,000-step runs are authorized ONLY if the step-5,000 descriptive delta's sign matches the step-20,000 sign AND \|Δ@5000\| ≥ 0.5·\|Δ@20000\|; otherwise truncated 3,000-step runs suffice. Applied per-comparison, with an explicit tie-break (disagreement → full branch governs) | §12.5 (Gate rewritten, no "e.g." language) |
+| 5 | MAJOR-5 | Two attack-round questions (checkpoint-density risk, no self-test) were raised as OPEN QUESTIONS rather than built into the numbered spec | (a) §12.4.1 rewritten as 4 numbered steps; step 2 defines "ambiguous" mechanically (adjacent-checkpoint sign flip); step 3 promotes the densification fallback (steps 2000/3000/4000, zero GPU) from a suggestion into a mandatory conditional step. (b) New §12.3.4 "Stage 0.5" — 3 pinned synthetic self-tests (`repeat_excess` null+planted, parameter-diff cosine, gradient-flow norm), each with exact hand-computed expected values and hard pass/fail tolerances, mirroring `fit_frozenbias_estimation.py`'s own `_self_test()` rigor; added as a zero-GPU row in §12.6; Stage 1 is now explicitly gated on Stage 0.5 passing | §12.4.1 (rewritten, numbered), §12.3.4 (new section), §12.4 header (gate cross-reference), §12.6 (new budget row) |
+| 6 | MINOR-1 | §12.6's "most expensive path" total double-counted seed 0's 6 descriptive-pass checkpoint-passes inside the "18-pass full grid" row | Recomputed: full grid is 12 ADDITIONAL passes (seeds 1,2 only) at ≈0.42/0.84 GPU-h, not 18 passes at 0.63/1.26; most-expensive-path total corrected 2.12→**1.91** (1×), 4.24→**3.82** (2×); cheapest-path total (0.84/1.68) unaffected | §12.6 (table + new "Corrected arithmetic" note, narrative percentages updated) |
+| 7 | MINOR-2 | §12.3.1 undercounted the already-archived `retrofit_*.json` population as 46 files; 48 actually exist (verified by directory listing this pass) | Corrected 46→48, identifying the 2 previously-uncounted files by name (`retrofit_kraw_lam030_openr1_s0.json`, `retrofit_kraw_lam080_openr1_s0.json`) | §12.3.1 |
+| 8 | MINOR-3 | §12.0 described the VERDICT section's own direction-gloss fix as "no committed edit was made there," which reads as unresolved even though the VERDICT section already carries the corrected wording in this working tree | Reworded to "correction applied in working tree, to be committed with this design" | §12.0 |
+| 9 | MINOR-4 | `repeat_excess`'s expected YIELD (fraction of chunks actually containing a within-chunk token repeat) was never estimated or checked, so a low-yield/near-empty result could silently masquerade as "no signal" | Added a one-line Zipfian/birthday-problem back-of-envelope yield estimate (HIGH-yield expected) plus a mechanical yield check at Stage-1 start with a registered minimum n=50 included episodes, pooled | §12.4 (new "Yield estimate and mechanical check" paragraph) |
+| — | — | Rev 12.1 revision log + refreshed round-2 questions needed | This entry; §12.8 retitled to mark ROUND-1/historical; added §12.9 (5 short items) | §12.8 (header), this table, §12.9 |
+
+### What could NOT be fixed this pass, and why
+
+- **Attack-round-1 item 1 (correlational ceiling)** — unaddressed by
+  design; this is a genuine scope limitation of every Stage-0/Stage-1
+  instrument (`repeat_excess`, the rank-stat deltas, the parameter-diff),
+  not a bug fixable by rewording. Carried forward to §12.9.
+- **Attack-round-1 item 2 (H4's parameter-diff locus may be wrong)** —
+  the widened block-0 reading (§12.3.3) remains a partial, not complete,
+  mitigation; no design-only fix closes this without new instrumentation
+  scoped beyond this pass. Carried forward to §12.9.
+
+### 12.9 ROUND-2 ATTACK QUESTIONS — refreshed, short (post-Rev-12.1)
+
+1. **Correlational ceiling still stands** (carried from attack-round-1
+   item 1, unresolved by design) — every Stage-0/Stage-1 statistic here
+   remains observational; a clean result establishes correlation with the
+   collapse phenomenon, not causation.
+2. **H4's parameter-diff locus risk still stands** (carried from
+   attack-round-1 item 2) — a null result at `k_conv1d` does not refute
+   the broader compensatory-constant idea if the real adaptation sits
+   upstream; the widened block-0 reading is a partial mitigation only.
+3. **The Stage-2 gate's own `0.5` multiplier is itself an unexamined
+   constant.** Rev 12.1 froze the threshold at "\|Δ@5000\| ≥
+   0.5·\|Δ@20000\|," which closes the post-hoc-pin risk, but the
+   specific value 0.5 (vs. 0.4 or 0.6) was chosen for round-number
+   simplicity, not derived from any noise-floor or power argument — a
+   fresh attack could ask whether this threshold is itself well-calibrated
+   to the trajectory's actual step-to-step noise.
+4. **Stage 0.5's self-tests validate arithmetic correctness, not the real
+   pipeline's plumbing.** All three synthetic self-tests (§12.3.4) use
+   hand-picked mock tensors/vectors, not the actual `capture_raw_keys`/
+   `torch.load`/hook-registration code paths the real Stage-1/Stage-2
+   scripts will run — passing them proves the FORMULAS are implemented
+   correctly, not that the real scripts wire the correct real tensors
+   into those formulas (the same gap §8.0b's own code-path-equality smoke
+   exists to close for the rung-1 primary bar; §12 has no analogous
+   real-code-path check yet, only the formula-level one).
+5. **MINOR-4's yield estimate is a back-of-envelope, not a measurement**
+   — if the real per-episode exclusion rate turns out far lower than the
+   "birthday-problem near-certainty" estimate predicts (e.g. if
+   `content_mask`/EOT handling excludes more positions than assumed, or
+   `chunk_size=64` chunks are dominated by a single repeated token that
+   never pairs with a different one), the registered n=50 floor is the
+   only thing standing between a silently-underpowered `repeat_excess`
+   and a trusted number — worth a fresh attack checking whether n=50
+   itself is adequately conservative given the real pooled sample sizes
+   Stage 1's 6-pass descriptive run will actually produce.
