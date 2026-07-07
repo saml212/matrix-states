@@ -1,0 +1,44 @@
+\section{Limitations}
+\label{sec:limitations}
+
+\begin{itemize}
+  \item \textbf{Scope.} All results use a single-head, single-layer
+    DeltaNet, a $107$-entity synthetic-grammar testbed, and $\leq$sub-1M
+    trainable parameters at $\dstate \in \{64, 128\}$ only ($\dstate=32$ is
+    a hard kernel-level crash in the underlying \texttt{fla} dependency,
+    measured independently of this program, not a cost tradeoff). No claim
+    is made about production-scale Gated-DeltaNet
+    \citep{siems2025deltaproduct, grazzi2025negative}, matrix-valued RNNs
+    at scale \citep{mishra2026m2rnn}, or natural language.
+  \item \textbf{Two $d$-points, one direction.} Act 2's dimension
+    comparison uses exactly two scales (64, 128); this can determine that
+    the cliff shifted or vanished but cannot, by two points alone,
+    establish which of several $d$-linked confounds (state size,
+    optimization dynamics through a larger Newton--Schulz block, or table
+    coherence) is causally responsible --- which is exactly why Act 3 tests
+    the coherence candidate directly rather than inferring it.
+  \item \textbf{The dose-response result is rank-4-only.} A rank-4-only
+    exoneration cannot distinguish ``coherence-as-a-scalar does not drive
+    the cliff'' from ``coherence-of-this-particular-concentrated-structural
+    -kind does not drive the cliff, but a diffuse injection might'' ---
+    the diffuse co-primary arm (\S\ref{sec:open-question}) remains
+    unresolved.
+  \item \textbf{No mechanism claim beyond the disclosed comparison axis.}
+    Every wave in this paper measures \emph{where} a transition sits (in
+    $K/\dstate$, in dose) and whether it is present or absent in a
+    measured window; none constitutes a controlled test of \emph{why} the
+    underlying write mechanism behaves this way at the level of individual
+    gradient updates.
+  \item \textbf{Learned-table reference point is non-dispositive.} A
+    separate, non-frozen $d=128$ zero-dose reference point (final
+    coherence $\approx\!0.13$--$0.20$, drifted from init under ordinary
+    training, $h4=1.0$) is reported honestly as a low-dose null datum in
+    the full paper but is not a substitute for the frozen, controlled dose
+    sweep this paper's Act 3 depends on --- it confounds coherence
+    magnitude with how that coherence was arrived at.
+  \item \textbf{Single architecture family.} All results are specific to
+    the delta-rule state-update; whether the same three-act structure
+    (cliff, dissolution, coherence-exoneration) appears in other
+    fast-weight or matrix-valued architectures
+    \citep{mishra2026m2rnn, schlag2019tptransformer} is untested.
+\end{itemize}

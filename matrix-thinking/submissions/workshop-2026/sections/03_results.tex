@@ -1,0 +1,105 @@
+\section{Results: The Capacity Trilogy}
+\label{sec:results}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig_cliff}
+  \caption{\textbf{Left:} at $d_{\mathrm{state}}{=}64$, held-out $h4$
+  recovery transitions sharply as $K/\dstate$ increases; a logistic fit to
+  six points (two archived anchors, $K{=}32/48$, plus four new intermediate
+  loads, $K{=}34/38/42/46$) locates the midpoint at $x_0=0.5455$ (95\% CI
+  $[0.5385,0.5513]$). \textbf{Right:} re-running the identical $K/\dstate$
+  window at $d_{\mathrm{state}}{=}128$ ($K{=}68/76/84/92$) shows no
+  transition anywhere in the window --- $h4{=}1.0$ at all 12 cells. The
+  sigmoid fit on this flat data is degenerate by construction (bootstrap
+  degenerate fraction $=1.0$) and is plotted as such, never as a spurious
+  curve.}
+  \label{fig:cliff}
+\end{figure*}
+
+\subsection{Act 1: the cliff, located}
+\begin{itemize}
+  \item At $d_{\mathrm{state}}=64$, six points spanning $K/\dstate \in
+    [0.25, 0.75]$ (Fig.~\ref{fig:cliff}, left) trace a sharp, not gradual,
+    transition: $h4 = 1.000$ ($K{=}16$) $\to 0.6669$ ($K{=}32$) $\to
+    0.5676$ ($K{=}34$) $\to 0.3316$ ($K{=}38$) $\to 0.1177$ ($K{=}42) \to
+    0.0434$ ($K{=}46$) $\to 0.0215$ ($K{=}48$).
+  \item A logistic fit (0/4000 degenerate bootstrap fits) locates the
+    transition's midpoint at $x_0 = 0.5455$ (95\% CI $[0.5385, 0.5513]$,
+    width $0.0127$) with characteristic width $w=0.0597$ (CI $[0.0557,
+    0.0642]$) --- i.e.\ the transition's effective span is $K/\dstate
+    \approx [0.486, 0.605]$, or $K \approx 31$--$39$ raw at $d{=}64$. This
+    is a $\sim\!20\times$ tightening of the prior 0.25-wide bracket
+    (spanned only by the two flanking archived anchors) to a $\pm0.006$-wide
+    located transition.
+  \item \textbf{This is a WHERE result, not a WHY result.} The fit
+    characterizes the transition's location and width; it makes no claim
+    about the mechanism driving it (Acts 2--3 test the leading candidate
+    directly).
+\end{itemize}
+
+\subsection{Act 2: the cliff, dissolved}
+\begin{itemize}
+  \item Re-running the identical $K/\dstate$ window at
+    $d_{\mathrm{state}}=128$, using the equivalent loads $K=68,76,84,92$,
+    shows $h4=1.0$ at all four loads, all 3 seeds each, $12/12$ cells, no
+    exception (Fig.~\ref{fig:cliff}, right). This is the same $K/\dstate$
+    window that collapsed $0.667 \to 0.022$ at $d=64$.
+  \item Per pre-registered outcome semantics this is
+    \textbf{CONFIRM-SHIFTED in its strong form}: not merely a shifted
+    $x_0$, but the transition exits the measured window entirely. At
+    $d=128$, capacity extends past $K/\dstate=0.71875$ --- at least 92 of
+    107 entities recover perfectly through held-out 4-hop composition, in
+    the exact band where $d=64$ had already collapsed to near zero.
+  \item Instrument-saturation is ruled out: hop-21 recovery at $d=128$
+    ranges $0.9900$--$1.0$ across the 12 cells (not uniformly $1.0$), and
+    effective rank tracks each $K$ almost exactly (e.g.\ $K{=}84 \to
+    83.6$) --- the state is using its full permitted rank, not saturating
+    against $\dstate$ itself.
+  \item \textbf{This rules out ``$K/\dstate$ ratio alone determines the
+    cliff.''} The exact ratio window that cliffs at $d=64$ stays
+    completely flat at $d=128$.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig_dose}
+  \caption{Coherence-dose response at $K{=}68$, $d_{\mathrm{state}}{=}128$,
+  rank-4 (concentrated) injection: $h4$ stays flat at $1.0$ at every dose
+  tested (green), including $0.40$ --- exceeding $d_{\mathrm{state}}{=}64$'s
+  own measured trained-coherence band (grey, $[0.373,0.385]$) --- while
+  $d_{\mathrm{state}}{=}64$'s own cliff (orange) collapses across the
+  identical coherence range at the matched $K/\dstate$ window.}
+  \label{fig:dose}
+\end{figure}
+
+\subsection{Act 3: the leading confound, tested and exonerated}
+\begin{itemize}
+  \item The two waves above differ in more than raw scale: the $d=64$
+    table (107 entities in 64 dimensions) is forced non-orthogonal by the
+    Welch bound (measured coherence $0.2842$ at construction, drifting to a
+    final-checkpoint range-of-$K$-means of $0.373$--$0.385$ under normal
+    training); the $d=128$ table (107 entities in 128 dimensions) is
+    exactly orthogonal at construction ($\max|\cos|=0.000000$). This is the
+    single most natural remaining mechanistic candidate for the cliff's
+    disappearance.
+  \item We test it directly: holding $\dstate=128$, $n=107$, $K=68$ fixed
+    at exactly the geometry Act 2 measured flat, we inject controlled,
+    \emph{frozen} coherence into the anchor table under a concentrated
+    (rank-4) structure and sweep the dose --- $0.130$, $0.284$, $0.40$ ---
+    the last exceeding $d=64$'s own realized training band
+    (Fig.~\ref{fig:dose}).
+  \item \textbf{Result: $h4=1.0$ at every cell, every dose, $10/10$, no
+    exception} --- flat across the entire dose range, including $0.40$.
+    This is the strongest possible exoneration this design can produce for
+    the rank-4 structure: directly-injected anchor-table coherence, held
+    frozen for the full run and verified never to drift (bit-identical
+    across all 10 recorded checkpoints per cell, zero slack), does not
+    reproduce the $d=64$ cliff at matched $K/\dstate/n$ geometry.
+  \item Frozen-constancy and instrument-saturation are both independently
+    verified: \texttt{max\_abs\_cos} is exactly bit-identical across every
+    checkpoint at every dose (the frozen-table mechanism worked as built),
+    and hop-21 recovery ranges $0.9987$--$1.0$ across all 10 cells (not
+    uniformly $1.0$) --- the flat $h4=1.0$ is a real ceiling for this
+    quantity, not a broken or saturated readout.
+\end{itemize}

@@ -1,0 +1,122 @@
+% Workshop-cut submission -- 4pp Extended Abstract, targeting NeurIPS 2026
+% NeurReps/UniReps (CFP expected ~2026-07-11; see PAPER_SPRINT_PLAN.md \S4
+% Decision 1). This is the CAPACITY TRILOGY as its own standalone
+% contribution -- distinct from the ICLR full-paper draft in
+% ../iclr-2027/ (that paper's scope is the write-geometry attractor +
+% F-geo-3 fix; this paper's scope is the key-anchoring capacity-boundary
+% arc that closed out that program). Distinct also from the already
+% -accepted ICML MI-workshop 2026 negative result (rank-blind bolt-on
+% matrix-CODI, ../icml-mi-workshop-2026/) and the NeurIPS-ws-2026 Task
+% D/E/frontier paper (../neurips-ws-2026/) -- three papers, three
+% non-overlapping arcs, same underlying testbed lineage.
+%
+% VENUE: PENDING-USER decision (see PAPER_SPRINT_PLAN.md \S3 update, this
+% session). Uses the same reusable article scaffold as the companion
+% papers until an official style file is confirmed.
+%
+% AUTHOR BLOCK: PENDING-USER (placeholder below). Needs a PI sign-off on
+% final author list/order/affiliation, same open item as the other two
+% workshop papers' Makefiles note.
+%
+% TITLE: PENDING-USER. Working title below states the trilogy directly;
+% alternatives not yet drafted (this is a new paper, no prior title
+% options exist to choose among, unlike the two companion papers).
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\providecommand{\anon}{0}
+
+\usepackage[margin=0.85in]{geometry}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,square,sort&compress]{natbib}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\graphicspath{{figures/}}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+\newtheorem{fact}{Fact}
+
+\newcommand{\vecop}{\operatorname{vec}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\anonymous}{Anonymous}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\dstate}{d_{\mathrm{state}}}
+
+\title{The Capacity Cliff Is Not Capacity: Locating, Dissolving, and\\
+Exonerating a Coherence Confound in Trained Fast-Weight Memories}
+
+\if\anon1
+  \author{\anonymous{} Authors\\
+  \anonymous{} Institution\\
+  \texttt{anonymous@example.com}}
+\else
+  \author{Author Name(s) TBD$^{\dagger}$\\
+  Affiliation TBD\\
+  \texttt{email@TBD}}
+\fi
+
+\date{}
+
+\begin{document}
+
+\twocolumn[
+\begin{@twocolumnfalse}
+\maketitle
+\begin{abstract}
+A trained DeltaNet-style fast-weight memory that recruits provably-necessary
+rank to solve an associative-recall task does not degrade gracefully as load
+approaches capacity: it falls off a cliff. We locate that cliff precisely
+--- at capacity ratio $K/\dstate = 0.5455$ (95\% seed-level bootstrap CI
+$\lbrack 0.5385, 0.5513\rbrack$, width $0.0127$, $d_{\mathrm{state}}=64$) --- by measuring
+exact held-out compositional recovery across four new intermediate loads
+($K=34,38,42,46$) bracketed by two previously-archived anchors ($K=32,48$).
+We then ask whether this is a universal property of the ratio $K/\dstate$ or
+a finite-size artifact of $d_{\mathrm{state}}=64$ specifically, by re-running
+the identical $K/\dstate$ window at $d_{\mathrm{state}}=128$
+($K=68,76,84,92$): the cliff is gone, $h4=1.0$ at all four loads, all seeds
+--- not merely shifted, but absent from the entire measured window. The
+natural mechanistic candidate is anchor-table \emph{coherence}
+($\max|\cos|$ among the table's rows, forced upward when the entity count
+exceeds $d_{\mathrm{state}}$ by the Welch bound, and removed entirely when
+it does not): we test this directly by injecting controlled, frozen
+coherence into an otherwise-flat ($d_{\mathrm{state}}=128$) table and
+sweeping the dose from $0$ up to $0.40$ --- exceeding $d_{\mathrm{state}}=64$'s
+own measured trained-coherence band ($0.373$--$0.385$) --- under a
+concentrated (rank-4) injection structure. The result is a clean
+exoneration: $h4=1.0$ at every dose, $10/10$ cells, no exception. Scalar
+coherence, injected directly at and above the level the real cliff
+co-occurs with, does not reproduce it. Two candidates survive, neither
+adjudicated by data in hand: overlap \emph{structure} (a diffuse rather
+than concentrated injection may behave differently) and raw
+\emph{state capacity} ($d_{\mathrm{state}}$ grew $4\times$ while $K$ only
+grew $\sim\!2\times$ across the two waves, a confound this design cannot
+separate). We report a precisely-located transition, its clean dissolution
+with scale, and the honest failure of the most natural single-variable
+account of it --- a complete, three-act, negative-result-driven capacity
+story with every reported number traced to an archived run.
+\end{abstract}
+\vspace{0.6em}
+\end{@twocolumnfalse}
+]
+
+\input{sections/01_intro}
+\input{sections/02_method}
+\input{sections/03_results}
+\input{sections/04_open_question}
+\input{sections/05_limitations}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

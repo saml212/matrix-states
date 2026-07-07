@@ -1,0 +1,60 @@
+\section{Testbed and Process}
+\label{sec:method}
+
+\subsection{Architecture and task}
+\begin{itemize}
+  \item Vanilla single-head, single-layer DeltaNet (\texttt{chunk\_delta\_rule},
+    production \texttt{fla-org} kernel), state update $S_t = S_{t-1}(I -
+    \beta_t k_t k_t^\top) + \beta_t v_t k_t^\top$ \citep{schlag2021linear}.
+  \item Synthetic-grammar associative-recall task: a pool of $107$ trainable
+    entities, each bound to a value via the delta rule; recovery is graded by
+    \emph{exact continuous} cosine similarity against the true value at
+    threshold $0.9$ ($\mathrm{rec@0.9}$), never argmax over a codebook ---
+    the design choice that keeps a rank bound from being silently satisfiable
+    by codebook lookup \citep{nichani2025factual}.
+  \item Held-out compositional recovery at hop depth 4, $h4 =
+    \mathrm{rec@0.9}$ on entities/bindings never seen during training, is
+    the paper's single load-bearing quantity throughout.
+  \item \textbf{The load parameter, $K$.} $K$ is the number of independent
+    entity bindings the state must simultaneously support within one
+    episode; $K/\dstate$ is this paper's capacity ratio.
+  \item \textbf{The anchor table.} A per-entity key-anchoring mechanism
+    (established in prior work on this testbed as improving held-out
+    recovery through blend-arithmetic constancy, not learned entity-specific
+    content) provides the frozen table this paper's dose-response arm
+    injects controlled coherence into.
+\end{itemize}
+
+\subsection{Coherence, defined}
+\begin{itemize}
+  \item Anchor-table coherence is $\max|\cos|$ among the table's $n=107$
+    row vectors. The Welch bound forces this to be strictly positive
+    whenever $n > \dstate$ (as at $d=64$, measured $0.2842$ at
+    construction) and permits exact orthogonality when $n \leq \dstate$
+    (as at $d=128$, measured $0.000000$ at construction) --- the single
+    structural difference between the two scales beyond raw dimension.
+\end{itemize}
+
+\subsection{Process: pre-registration and independent adversarial audit}
+\begin{itemize}
+  \item Every wave below was pre-registered (hypothesis and outcome
+    semantics fixed before data existed) and independently attacked before
+    being treated as final. The cliff-localization wave's own deliverable
+    (a CI width bar) was pre-registered against a power simulation before
+    any of the four new $K$ cells ran. The dimension-generalization wave's
+    three-way outcome space (CONFIRM-UNIVERSAL / CONFIRM-SHIFTED /
+    degenerate) was fixed before any $d{=}128$ cell ran, including the
+    explicit disclosure rule that a degenerate sigmoid fit on flat data
+    must be reported as such, never quoted as a located transition.
+  \item The dose-response wave's own launch was gated on a pre-launch smoke
+    test proving the frozen anchor table's gradient path is truly severed
+    (\texttt{anchor\_table.weight.grad is None}) and that its coherence is
+    bit-identical across the full 20{,}000-step run --- verified after the
+    fact at every one of 10 checkpoints per cell, zero drift, zero slack
+    used.
+  \item Instrument-saturation is checked, not assumed, at every wave: hop-21
+    recovery (a harder, far-extrapolation quantity than $h4$) is never
+    uniformly $1.0$ in any of the three waves below, ruling out a
+    globally-ceilinged readout as an alternative explanation for any flat
+    result reported in \S\ref{sec:results}.
+\end{itemize}

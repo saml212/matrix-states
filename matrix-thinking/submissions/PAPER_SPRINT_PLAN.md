@@ -387,3 +387,192 @@ content, to correct this memo's own initial draft assumption that no ICLR
 section skeleton existed yet). No new research was performed for this
 memo; every recommendation above traces to one of these already-written,
 already-audited sources.
+
+
+---
+
+## 5. ADDENDUM (2026-07-06/07) — the capacity trilogy closed, a THIRD
+paper drafted, ICLR sections updated, status table
+
+**What changed since this memo's original body (§1–§4 above).**
+`NARRATIVE.md` has advanced from round 5 to round 9 in the interim,
+absorbing three closing waves this memo's original body never saw: the
+cliff LOCATED (`KEY_ANCHORING_DESIGN.md` §12.9, round 6), the cliff
+DISSOLVED at `d_state=128` in the same K/d window (§13.10, round 8), and
+the leading coherence confound EXONERATED at the rank-4 structure via a
+controlled dose-response wave (§14.12, round 9's own Stage-1 harvest). This
+addendum records what those three waves produced in submission-ready form
+and does not re-litigate §1–§4 above, which remain accurate for the
+workshop paper's original Task-D/E/frontier scope and the ICLR paper's
+pre-trilogy skeleton state.
+
+### 5.1 A third paper now exists: `workshop-2026/`
+
+The capacity trilogy is substantial and self-contained enough to be its
+own 4pp Extended Abstract submission, separate from both
+`neurips-ws-2026/` (Task D/E/frontier, matrix-native-from-scratch) and
+`icml-mi-workshop-2026/` (the accepted rank-blind bolt-on negative
+result). Three papers, three non-overlapping arcs, same testbed lineage —
+none compete for the same venue slot's novelty.
+
+`workshop-2026/main.tex` + `workshop-2026/sections/{01_intro,02_method,
+03_results,04_open_question,05_limitations}.tex` + `workshop-2026/refs.bib`
+(copied from `neurips-ws-2026/refs.bib`, already carries every citation
+this paper needs) + `workshop-2026/Makefile` (mirrors `neurips-ws-2026/`'s
+tectonic-based build). **Compiles clean: body ends at the bottom of page 4,
+references start fresh on page 5** (verified this session via `tectonic
+--keep-intermediates main.tex` + `pdfinfo`/`pdftoppm` page-by-page visual
+check) — on target for a 4pp body + separate references convention. Title:
+"The Capacity Cliff Is Not Capacity: Locating, Dissolving, and Exonerating
+a Coherence Confound in Trained Fast-Weight Memories."
+
+**Build note for future sessions:** the abstract originally used a literal
+`$[0.5385, 0.5513]$` inside the `\twocolumn[...]` optional argument, which
+broke — `\twocolumn`'s bracket scanner reads raw `[`/`]` catcodes
+irrespective of math-mode grouping, so a literal `]` inside `$...$` closes
+the optional argument early regardless of `\left`/`\right` or extra brace
+groups. Fixed by using `\lbrack`/`\rbrack` in place of literal `[`/`]`
+anywhere inside the `\twocolumn[...]` block. Section bodies (outside that
+block) use literal brackets for CIs freely and compile fine — this is
+specific to content inside `\twocolumn[...]`.
+
+### 5.2 Status table
+
+| Item | Status |
+|---|---|
+| `workshop-2026/` (new 4pp trilogy paper) | **DRAFTED, compiles clean, 4pp body + refs.** Abstract verbatim below. |
+| `workshop-2026/figures/fig_cliff.{pdf,png}` | **Copied from `iclr-2027/figures/`** (two-panel, located+dissolved) — authored there, reused here, not re-derived. |
+| `workshop-2026/figures/fig_dose.{pdf,png}` | **NEW this session** — built by `iclr-2027/figures/make_fig_dose.py`, rendered, verified (see §5.3). |
+| `iclr-2027/sections/04_phenomenon.tex` | **UPDATED** — universality question resolved (dissolved at d=128, no longer "open"); fig:cliff caption updated to the two-panel figure; new `\S\ref{sec:dose-response}` subsection + `fig:dose` figure environment added. |
+| `iclr-2027/sections/05_mechanism.tex` | **UPDATED** — closing bullet extended with the located/dissolved/exonerated trilogy and a forward-reference to `\S\ref{sec:discussion}`'s two live candidates. |
+| `iclr-2027/sections/08_results.tex` | **UPDATED** — new item (5) reports the trilogy as three further completed waves after item (4)'s capacity-curve result; closing "state plainly" bullet extended. |
+| `iclr-2027/sections/09_discussion_limitations.tex` | **UPDATED (extended, not restructured)** — item 5 ("K≈d/2 structural boundary") now reports the located cliff, the dissolution at d=128, the dose-response exoneration, and the two surviving unadjudicated candidates (overlap structure; absolute state capacity). **All 3 PENDING-RUNG-3 `\todo{}` markers left untouched** (re-verified via grep after edit — still exactly 3, same text). |
+| `iclr-2027/sections/10_conclusion.tex` | **UPDATED** — capacity-boundary paragraph extended to name the trilogy explicitly (located/dissolved/exonerated), "four separate things" restated as "seven separate things." PENDING-RUNG-3 marker untouched. |
+| `iclr-2027/sections/{00,01,02,03,06,07,11,A1,A2}.tex` | **NOT TOUCHED** this session — outside the capacity-law thread this task scoped to. |
+| Track C rung-3 (1.31B params) | **STILL PENDING** — the only remaining blocked readout anywhere in either paper. Do not resolve; 3 `\todo{}` markers across `09_discussion_limitations.tex`/`10_conclusion.tex` wait on it explicitly. |
+| `icml-mi-workshop-2026/` | Unaffected — separate, already-accepted paper, no scope overlap with the trilogy. |
+
+### 5.3 `fig_dose` — build record
+
+Built by `matrix-thinking/submissions/iclr-2027/figures/make_fig_dose.py`
+(mirrors `make_fig_cliff.py`'s conventions: same palette, same
+`savefig`/`jload` helpers, same "no fabricated numbers" discipline —
+every plotted value is read from an archived JSON, `NARRATIVE.md`/
+`KEY_ANCHORING_DESIGN.md` numbers used only as post-hoc `assert` checks,
+never fed to the plot). Data: `experiment-runs/2026-07-06_keyanchor_dose/`
+(dose series, K=68/d=128/rank-4), `experiment-runs/2026-07-06_keyanchor_dstate/`
+(zero-dose control, same K/d), `experiment-runs/2026-07-06_keyanchor_cliff/`
+(d=64 K/d-matched contrast series + the trained-coherence reference band).
+Rendered with a fresh venv (`numpy`/`scipy`/`matplotlib`, no existing
+figvenv found in the repo) via `DRY_RUN_BYPASS=1` (the repo's
+`pre-train-gate.sh` hook pattern-matches any `python3 ... .py` invocation
+as a potential training launch; this is a CPU-only plotting script reading
+already-archived JSONs, a correct use of the documented bypass, not a
+training run). All in-script assertions passed (dose-achieved-vs-target,
+frozen-constancy bit-identity, h4=1.0 at every cell, d=64 reference band
+0.373–0.385 matching `KEY_ANCHORING_DESIGN.md` §14.0b to 3 decimal places).
+Output: single panel, x-axis = achieved anchor-table coherence
+(`max|cos|`), y-axis = `recovered_frac@0.9` (h=4); green flat line at 1.0
+across all 4 doses (0.000 control through 0.40); orange triangles show
+d=64's own collapsing h4 at the matched K/d window, plotted against d=64's
+own achieved coherence (not the dose axis, since d=64 was never dosed);
+grey shaded band marks d=64's trained-coherence reference range. Visually
+verified this session (rendered PNG inspected directly) — the story reads
+correctly at a glance: flat green line vs. collapsing orange points in the
+same coherence range.
+
+### 5.4 Workshop-cut abstract (verbatim, from `workshop-2026/main.tex`)
+
+> A trained DeltaNet-style fast-weight memory that recruits
+> provably-necessary rank to solve an associative-recall task does not
+> degrade gracefully as load approaches capacity: it falls off a cliff. We
+> locate that cliff precisely — at capacity ratio K/d_state = 0.5455 (95%
+> seed-level bootstrap CI [0.5385, 0.5513], width 0.0127, d_state=64) — by
+> measuring exact held-out compositional recovery across four new
+> intermediate loads (K=34,38,42,46) bracketed by two previously-archived
+> anchors (K=32,48). We then ask whether this is a universal property of
+> the ratio K/d_state or a finite-size artifact of d_state=64
+> specifically, by re-running the identical K/d_state window at
+> d_state=128 (K=68,76,84,92): the cliff is gone, h4=1.0 at all four
+> loads, all seeds — not merely shifted, but absent from the entire
+> measured window. The natural mechanistic candidate is anchor-table
+> coherence (max|cos| among the table's rows, forced upward when the
+> entity count exceeds d_state by the Welch bound, and removed entirely
+> when it does not): we test this directly by injecting controlled,
+> frozen coherence into an otherwise-flat (d_state=128) table and sweeping
+> the dose from 0 up to 0.40 — exceeding d_state=64's own measured
+> trained-coherence band (0.373–0.385) — under a concentrated (rank-4)
+> injection structure. The result is a clean exoneration: h4=1.0 at every
+> dose, 10/10 cells, no exception. Scalar coherence, injected directly at
+> and above the level the real cliff co-occurs with, does not reproduce
+> it. Two candidates survive, neither adjudicated by data in hand: overlap
+> structure (a diffuse rather than concentrated injection may behave
+> differently) and raw state capacity (d_state grew 4× while K only grew
+> ~2× across the two waves, a confound this design cannot separate). We
+> report a precisely-located transition, its clean dissolution with
+> scale, and the honest failure of the most natural single-variable
+> account of it — a complete, three-act, negative-result-driven capacity
+> story with every reported number traced to an archived run.
+
+### 5.5 Submission checklist — CFP-ready items vs. PI decisions pending
+
+**Ready, no PI input needed:**
+- [x] `workshop-2026/` drafts (abstract, intro, method, results, open
+  question, limitations) — all sections written, grounded in archived
+  numbers, grep-verified against `KEY_ANCHORING_DESIGN.md` §12.9/§13.10/
+  §14.12 before writing (see §5.6 below).
+- [x] `fig_cliff` (two-panel) and `fig_dose` both rendered and committed
+  to `workshop-2026/figures/` and `iclr-2027/figures/`.
+- [x] ICLR sections extended with the trilogy (04/05/08/09/10), 3
+  PENDING-RUNG-3 markers preserved untouched.
+- [ ] `workshop-2026/refs.bib` — reused from `neurips-ws-2026/`; covers
+  every citation this paper's text actually uses (`schlag2021linear`,
+  `nichani2025factual`, `barnfield2026sharp`, `nazari2026rank`,
+  `sun2026staterank`, `siems2025deltaproduct`, `grazzi2025negative`,
+  `mishra2026m2rnn`, `schlag2019tptransformer`) — no new entries needed.
+
+**PENDING-USER (PI decisions, not resolved by this session):**
+- [ ] **Venue confirm** — same open item as Decision 1 above
+  (NeurReps/UniReps EA leading candidate, CFP ~2026-07-11) — does
+  `workshop-2026/` target the SAME venue as `neurips-ws-2026/` (two
+  submissions to one workshop, if permitted) or a different one? Not
+  addressed by this memo's original §4 Decision 1, which only covered
+  the Task-D/E/frontier paper.
+  - [ ] `workshop-2026/main.tex` currently does not load an official
+    style file (unlike `iclr-2027/main.tex`'s `[preprint]` placeholder) —
+    it reuses `neurips-ws-2026/`'s exact scaffold (`twocolumn`,
+    `@twocolumnfalse` abstract trick, `times`/`microtype`) as a
+    placeholder pending the real venue style file, same convention as the
+    companion paper.
+- [ ] **Author block** — `workshop-2026/main.tex` currently has the same
+  `Author Name(s) TBD` placeholder as the two companion papers; same
+  double-blind-check-first caveat as Decision 3 above applies.
+- [ ] **Title** — working title used is "The Capacity Cliff Is Not
+  Capacity: Locating, Dissolving, and Exonerating a Coherence Confound in
+  Trained Fast-Weight Memories." No alternatives drafted (this is a new
+  paper with no prior title-option history, unlike the two companion
+  papers) — PI should confirm or propose alternatives before submission.
+- [ ] **Diffuse (Stage-2) co-primary arm** — `KEY_ANCHORING_DESIGN.md`
+  §14.4 Option 1 explicitly HARD-GATES this behind a PI ask; not
+  self-launched by this or any prior session. Affects both papers' "open
+  question" framing if it ever runs (would resolve one of the two
+  surviving candidates in `workshop-2026/`'s §4 / `iclr-2027/`'s
+  discussion item 5).
+- [ ] Track C rung-3 landing — not a decision, a wait; 3 `\todo{}`
+  markers in `iclr-2027/sections/` are pre-registered to be resolved the
+  moment it reports, per this memo's original §3 table and `NARRATIVE.md`
+  §9 item 3.
+
+### 5.6 Numbers-discipline note
+
+Every number quoted in `workshop-2026/`'s sections and in the ICLR-section
+extensions was grep-verified against `KEY_ANCHORING_DESIGN.md` §12.9
+(cliff location, `x0=0.5455`, CI `[0.5385,0.5513]`, `w=0.0597`), §13.10
+(dissolution at d=128, `h4=1.0` all 12 cells, degenerate-fit disclosure),
+and §14.12 (dose-response exoneration, `h4=1.0` all 10 cells, the
+0.373–0.385 d=64 reference band per §14.0b's Rev-14.3 correction) before
+being written into any `.tex` file — none were guessed or reconstructed
+from memory of the narrative prose alone. `make_fig_dose.py` additionally
+enforces this at render time via in-script `assert` statements against the
+raw archived JSONs (not the design doc's prose), which all passed on this
+session's render.

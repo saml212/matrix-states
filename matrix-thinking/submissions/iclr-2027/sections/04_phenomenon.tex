@@ -116,24 +116,98 @@ Fig.~11)}
     (no fresh reference arm at the 4 new $K$'s, a disclosed budget
     tradeoff); no mechanism claim (this locates \emph{where} and \emph{how
     wide} the transition is, not \emph{why} it occurs at this $K/d$ ratio);
-    measured at a single $d_{\mathrm{state}}{=}64$ --- universality of
-    $x_0{\approx}0.55$ across $d$ is the program's own registered open
-    question.
+    measured at a single $d_{\mathrm{state}}{=}64$.
+  \item \textbf{The universality question above is now ANSWERED, and the
+    answer is negative (Fig.~\ref{fig:cliff}, right panel): the cliff is
+    dimension-dependent, not a universal property of $K/d$.} Re-running
+    the identical $K/d$ window at $d_{\mathrm{state}}{=}128$
+    ($K{=}68,76,84,92$, the same four ratios) shows $h4{=}1.0$ at every
+    load, every seed, 12/12 cells --- the transition does not shift, it
+    exits the measured window entirely. Instrument saturation is ruled out
+    (hop-21 recovery is not uniformly $1.0$; effective rank tracks each
+    $K$ almost exactly). Full mechanism testing --- whether this tracks
+    anchor-table coherence, forced by the Welch bound only when entity
+    count exceeds $d_{\mathrm{state}}$ --- is reported next
+    (\S\ref{sec:dose-response}).
 \end{itemize}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=0.85\linewidth]{figures/fig_cliff.pdf}
-  \caption{The capacity cliff, located. Candidate (d)'s held-out
-  four-hop recovery ($\mathrm{rec@0.9}$, $h{=}4$) against capacity ratio
+  \includegraphics[width=0.98\textwidth]{figures/fig_cliff.pdf}
+  \caption{The capacity cliff, located then shown to dissolve with scale.
+  \textbf{Left:} candidate (d)'s held-out four-hop recovery
+  ($\mathrm{rec@0.9}$, $h{=}4$) against capacity ratio
   $K/d_{\mathrm{state}}$ at $d_{\mathrm{state}}{=}64$ (twin top axis: raw
   $K$). Grey squares are the 3 archived anchors ($K{=}16/32/48$); orange
   circles are the 4 new points this wave measured ($K{=}34/38/42/46$);
   per-seed values are shown as scatter around each point's mean. The blue
   curve is the fitted sigmoid $h_4(x){=}L/(1{+}\exp((x{-}x_0)/w))$; the
   shaded band marks the 95\% bootstrap CI on $x_0$
-  ($[0.5385, 0.5513]$, centered on $x_0{=}0.5455$, $w{=}0.0597$).}
+  ($[0.5385, 0.5513]$, centered on $x_0{=}0.5455$, $w{=}0.0597$).
+  \textbf{Right:} re-running the SAME $K/d_{\mathrm{state}}$ window at
+  $d_{\mathrm{state}}{=}128$ ($K{=}68,76,84,92$) shows no transition
+  anywhere --- $h4{=}1.0$ at all 12 cells. The sigmoid fit on this
+  flat-at-ceiling data is degenerate by construction (bootstrap degenerate
+  fraction $=1.0$) and is plotted as such, never as a spurious curve.}
   \label{fig:cliff}
+\end{figure*}
+
+\subsection{The leading confound, tested directly: coherence-dose response}
+\label{sec:dose-response}
+\begin{itemize}
+  \item The two waves above (Fig.~\ref{fig:cliff}) differ in more than raw
+    scale: the $d{=}64$ anchor table (107 entities packed into 64
+    dimensions) is forced non-orthogonal by the Welch bound (measured
+    coherence $\max|\cos|{=}0.2842$ at construction, drifting under normal
+    training to a final-checkpoint range-of-$K$-means of
+    $0.373$--$0.385$); the $d{=}128$ table (107 entities, 128 dimensions)
+    is exactly orthogonal at construction ($\max|\cos|{=}0.000000$). This
+    is the single most natural remaining mechanistic candidate for the
+    cliff's disappearance, and we test it directly rather than by
+    inference.
+  \item \textbf{Design.} Hold $d_{\mathrm{state}}{=}128$, $n{=}107$,
+    $K{=}68$ fixed at exactly the geometry measured flat above; inject
+    controlled, \emph{frozen} coherence into the anchor table under a
+    concentrated (rank-4) injection structure; sweep the dose
+    $\{0.130, 0.284, 0.40\}$, the last exceeding $d{=}64$'s own realized
+    training band. The frozen table's gradient path is verified severed at
+    launch (\texttt{anchor\_table.weight.grad is None}) and its coherence
+    verified bit-identical across all 10 recorded checkpoints per cell at
+    harvest --- zero drift, zero tolerance slack used.
+  \item \textbf{Result: $h4{=}1.0$ at every cell, every dose, 10/10, no
+    exception} (Fig.~\ref{fig:dose}) --- flat across the entire dose
+    range, including $0.40$. This is the strongest possible exoneration
+    this design can produce for the rank-4 structure: directly-injected
+    anchor-table coherence, frozen for the full run and verified never to
+    drift, does not reproduce the $d{=}64$ cliff at matched
+    $K/d_{\mathrm{state}}/n$ geometry. Instrument saturation is again ruled
+    out (hop-21 recovery ranges $0.9987$--$1.0$ across all 10 cells, not
+    uniformly $1.0$).
+  \item \textbf{Scope, stated precisely:} this is a rank-4 (concentrated)
+    injection only --- it cannot distinguish ``coherence-as-a-scalar does
+    not drive the cliff'' from ``coherence-of-this-particular-structural
+    -kind does not drive it, but a diffuse ($\mathrm{subspace\_rank}{=}48$)
+    injection might.'' The diffuse co-primary arm is registered but
+    PI-gated, not run by this wave. Neither of the two most naturally
+    testable single-variable accounts of the cliff's dissolution ($K/d$
+    ratio; scalar rank-4 coherence) is sufficient; overlap structure and
+    raw state capacity ($d_{\mathrm{state}}$ grew $4\times$ while $K$ only
+    grew $\sim$2$\times$ across the two waves, a confound this design
+    cannot separate) remain the two live, unadjudicated candidates
+    (\S\ref{sec:discussion}).
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_dose.pdf}
+  \caption{Coherence-dose response at $K{=}68$, $d_{\mathrm{state}}{=}128$,
+  rank-4 (concentrated) injection: $h4$ (green) stays flat at $1.0$ at
+  every dose tested, including $0.40$ --- exceeding
+  $d_{\mathrm{state}}{=}64$'s own measured trained-coherence band (grey
+  band, $[0.373, 0.385]$) --- while $d_{\mathrm{state}}{=}64$'s own cliff
+  (orange triangles) collapses across the identical coherence range at the
+  matched $K/d_{\mathrm{state}}$ window.}
+  \label{fig:dose}
 \end{figure}
 
 \subsection{Connective tissue: where this whole research line started}

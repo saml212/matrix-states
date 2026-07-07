@@ -1,0 +1,59 @@
+\section{Introduction}
+\label{sec:intro}
+
+\textbf{The rank-recruitment question.} Descriptive work on linear-attention
+and fast-weight LLMs shows that the state's effective rank is bounded by
+sequence length and by how many independent associations the state must
+hold \citep{nazari2026rank, sun2026staterank}. A companion causal result on
+this same DeltaNet testbed \citep{schlag2021linear} showed something
+stronger: when a task \emph{forces} the state to solve $K$ independent
+associative bindings under a hard single-state bottleneck, gradient descent
+recruits effective rank $\approx K$ and the resulting write operator is
+exact, not merely approximately correct, for a wide range of $K$. That raises
+the natural next question this paper answers: \textbf{what happens as $K$
+approaches the state's own dimensionality $\dstate$?} A linear memory has a
+hard information-theoretic ceiling near $K \approx \dstate$; but a
+\emph{trained} memory need not approach that ceiling gracefully, and prior
+work in this testbed lineage already hinted it does not
+\citep{barnfield2026sharp}. This paper measures exactly how the trained
+system fails as load increases, locates the failure precisely, tests whether
+it is fundamental to the architecture or an artifact of one scale, and then
+tests the single most natural mechanistic account of it directly.
+
+\textbf{Contribution 1 --- the cliff, located.} At $d_{\mathrm{state}}=64$,
+held-out compositional recovery ($h4 = \mathrm{rec@0.9}$ at hop depth 4) does
+not decline smoothly with $K/\dstate$ --- it transitions sharply. We fit a
+logistic to six points spanning $K/\dstate \in [0.25, 0.75]$ and locate the
+transition's midpoint to $x_0 = 0.5455$ (95\% CI $[0.5385, 0.5513]$, width
+$0.0127$, characteristic width $w=0.0597$), a $\sim\!20\times$ tightening
+over the prior 0.25-wide bracket between the two flanking anchors.
+
+\textbf{Contribution 2 --- the cliff, dissolved.} Re-running the identical
+$K/\dstate$ window at $d_{\mathrm{state}}=128$ shows no cliff at all:
+$h4=1.0$ at all four matched loads, all seeds, $12/12$ cells. The transition
+is not shifted --- it exits the measured window entirely. This rules out a
+naive ``$K/\dstate$ ratio alone determines the cliff'' account.
+
+\textbf{Contribution 3 --- the leading confound, tested and exonerated.}
+The two waves above differ in more than raw scale: the $d=64$ table (107
+entities packed into 64 dimensions) is forced non-orthogonal by the Welch
+bound, while the $d=128$ table (107 entities, 128 dimensions) is exactly
+orthogonal. This is the single most natural remaining mechanistic
+candidate --- and we test it directly, not by inference. Injecting
+controlled, frozen coherence into the otherwise-flat $d=128$/$K=68$ cell,
+swept from $0$ to $0.40$ (exceeding $d=64$'s own trained coherence band),
+produces no cliff at any dose under a concentrated (rank-4) injection
+structure: $h4=1.0$, $10/10$ cells, no exception.
+
+\textbf{What this paper is NOT.} Not a claim that coherence-as-a-scalar can
+never matter --- only that this specific, concentrated (rank-4) injection,
+at this specific geometry, does not reproduce the cliff; a diffuse
+injection structure is a registered, not-yet-run follow-on
+(\S\ref{sec:open-question}). Not a resolution of \emph{why} the cliff
+occurs at $d=64$ specifically --- this paper locates and characterizes the
+transition and rules out one candidate mechanism; it does not close the
+mechanism question. Not a claim about production-scale Gated-DeltaNet
+\citep{siems2025deltaproduct, grazzi2025negative} or matrix-valued RNNs at
+scale \citep{mishra2026m2rnn} --- all experiments here use a $\sim$sub-1M
+parameter, single-layer synthetic-grammar testbed with 107 trainable
+entities.
