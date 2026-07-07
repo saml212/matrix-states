@@ -5359,10 +5359,13 @@ adopted with those refinements folded in:**
    reads out" framing was correct: all five critiques ran in parallel with
    Path (i)/(iii) at no calendar cost. **What still gates Path (ii)'s
    build:** the surface-form template is now PINNED (marker template, per
-   §16.8.3's mechanical fallback — Path (i) and Phase-1b both read out
-   PROBE-INVALID, so the pre-registered fallback governs); the remaining
-   gate (§16.2.4) is the round-5 reviewer's confirmation pass on Rev 5's
-   corrected status prose ONLY.
+   §16.8.3's mechanical fallback — Phase 1 read out PROBE-INVALID (§15)
+   and Phase-1b/Path (i)'s Stage-0 gate refused both candidates (§16.8),
+   so the pre-registered marker-template fallback governs); the remaining
+   gate (§16.2.4) is the round-5 reviewer's spot-check of the Rev-5
+   status-sync patches (the confirmation pass on the first patch ran
+   2026-07-07 and found 5 residual prose defects, all fixed in the second
+   patch — §16.13's addendum).
 5. **At Path (i)'s Stage-0 gate readout, branch mechanically:**
    - **PASS on the wikitext-cell (either candidate), openr1-cell stays a
      null as expected →** launch the full Phase-1b grid (~0.4 GPU-h,
@@ -5374,9 +5377,10 @@ adopted with those refinements folded in:**
      Path (ii)'s recipe (§16.2.1) — whose attack rounds already concluded
      in step 4 (Rev 1, NEEDS-REDESIGN → fixed, §16.7; Rev 2,
      NEEDS-REVISION → fixed, §16.9; Rev 3, NEEDS-REVISION → fixed, §16.10;
-     Rev 4, NEEDS-REVISION → fixed, §16.12) and whose remaining gate is
-     now the fresh, FIFTH independent audit of Rev 4 (§16.2.4) — then
-     build+audit+launch Phase-2.
+     Rev 4, NEEDS-REVISION → fixed, §16.12; Rev 5, NEEDS-REVISION
+     prose-only → fixed, §16.13) and whose remaining gate is §16.2.4's
+     current one (the round-5 reviewer's spot-check of the Rev-5
+     status-sync patches) — then build+audit+launch Phase-2.
    - **PASS on the wikitext-cell but the openr1-cell ALSO passes →** flag
      the confound named in §16.1.3 item 2b before trusting the wikitext
      result; audit before running the full grid.
@@ -5387,8 +5391,9 @@ adopted with those refinements folded in:**
      Stage-0-gate-only check has already answered "was it the format" with
      "no"). Move directly to finalizing and launching Path (ii) (whose
      attack rounds concluded in parallel in step 4, per the stress-tested
-     refinement, and whose remaining gate is now the fresh, FIFTH
-     independent audit of Rev 4, §16.2.4) — gauntleted next in the queue.
+     refinement, and whose remaining gate is §16.2.4's current one — the
+     round-5 reviewer's spot-check of the Rev-5 status-sync patches) —
+     gauntleted next in the queue.
 6. **Path (iii) reports out independently on its own ≈2.2-4.3 hour
    timeline throughout, feeding the capacity-law paper track whenever it
    completes — never gated on, and never gating, steps 3-5 above.**
@@ -5402,24 +5407,24 @@ adopted with those refinements folded in:**
 | Path (i) Stage-0 gate: wikitext-cell PASS, openr1-cell ALSO passes | Audit for a confound before trusting either reading |
 | Path (i) Stage-0 gate: wikitext-cell FAIL (both candidates) | Skip Path (i)'s full grid; finalize + build + launch Path (ii) |
 | Path (i) full grid: h1 clears, h≥2 stays floor | Report h1 as primary/confirmatory, h≥2 as exploratory (per §12's existing READOUT-FORM-INVALID-adjacent framing); still route to Path (ii) for the keystone itself |
-| Path (ii) attack rounds 1+2+3+4 complete | Fold in Path (i)'s validated template (if any) → build → audit → launch, independent of Path (iii)'s own status; still gated on a FIFTH independent audit of Rev 4 (§16.2.4) |
+| Path (ii) attack rounds 1-5 + round-5 confirmation pass complete | Marker template pinned (§16.8.3 fallback) → build → audit → launch, independent of Path (iii)'s own status; gated only on the round-5 reviewer's spot-check of the Rev-5 status-sync patches (§16.2.4) |
 | Path (iii) grid complete (any outcome) | Report to the capacity-law paper track; does not change anything in this decision tree |
 
-**Status update (2026-07-07, post-Rev-4).** Path (ii)'s attack rounds
-(step 4, trigger-table row above) are **all four complete** — see
-§16.2's Rev 1 header and §16.7's fix-map (1 FATAL, 6 MAJOR, 1 MINOR, all
-fixed), §16.2's Rev 2 header and §16.9's fix-map (6 new MAJOR, 2 new
-MINOR, no FATAL, all fixed), §16.2's Rev 3 header and §16.10's fix-map
-(3 new MAJOR, 4 new MINOR, no FATAL, all fixed), and §16.12's fix-map
-(3 new MAJOR, no new MINOR, no FATAL, all fixed, landed in §16.2.1).
-Per this table's own last row, the live next action is: (a) wait for
-Path (i)'s Stage-0 gate readout to pin the familiarization surface-form
-template (or fall back to the marker template if Path (i) has not
-cleared a gate by the time Path (ii) needs to build, §16.2.1), AND
-(b) run a fresh, independent FIFTH audit of Rev 4 itself (§16.2.4)
-before any build starts — landing every attack-round-1-through-4
-finding does not, on its own, satisfy this project's standing
-multiple-independent-audit-rounds rule.
+**Status update (2026-07-07, post-Rev-5).** Path (ii)'s attack rounds
+(step 4, trigger-table row above) are **all five complete, plus the
+round-5 confirmation pass** — see §16.7 (round 1: 1 FATAL+6 MAJOR+1
+MINOR), §16.9 (round 2: 6 new MAJOR+2 new MINOR), §16.10 (round 3: 3
+new MAJOR+4 new MINOR), §16.12 (round 4: 3 new MAJOR, all
+internal-consistency), and §16.13 (round 5: 2 MAJOR+1 MINOR, ALL
+prose/status-sync, every substantive check PASSED; its confirmation
+pass then found 5 residual prose defects in §16.6/§16.7, fixed in the
+second Rev-5 status patch — §16.13's addendum). The familiarization
+surface-form template is PINNED: Phase 1 read out PROBE-INVALID (§15),
+Phase-1b/Path (i)'s Stage-0 gate refused both natural candidates
+(§16.8), so §16.8.3's pre-registered marker-template fallback governs —
+nothing is waiting on Path (i). The live next action is: the round-5
+reviewer's spot-check of the Rev-5 status-sync patches (§16.2.4), then
+Phase-2 build → independent build audit → launch.
 
 ---
 
@@ -5511,6 +5516,26 @@ unaffected by this round's findings. **Rev 4 itself has not yet had its
 own independent (fifth) audit pass** (§16.2.4) — the same standing
 caveat this paragraph just discharged for Rev 3 now applies, unchanged in
 kind, to Rev 4.
+
+**Rev 5 status update (2026-07-07).** The "Rev 4 itself has not yet had
+its own independent (fifth) audit pass" caveat directly above has now
+been acted on. A fifth independent attack round (a fifth distinct
+reviewer) targeted Rev 4 specifically; verdict **NEEDS-REVISION**, 2
+MAJOR, 1 MINOR, no FATAL — ALL prose/status-sync defects, with every
+substantive check PASSING (all three Rev-4 fixes verified landed
+byte-accurate against source; an independent from-scratch 32-pattern
+re-enumeration reproduced 1+15+1+4+11=32 and confirmed the round-4
+counter-example classifies PERSISTENT/c1=500; the diff-scoped new-bug
+sweep found nothing). Findings landed as Rev 5 — a status-sync-only
+patch, recipe content unchanged from Rev 4; trace in §16.13. The
+reviewer's confirmation pass on the first patch then found 5 residual
+prose defects (in §16.6 and this very paragraph's own chain tail),
+fixed in the second Rev-5 status patch (§16.13's addendum). Confound
+(c) (λ held fixed during familiarization) remains open, unchanged —
+round 5 did not raise or resolve it either. MINOR-1's own pilot
+measurement (data-mix fraction) still has not run — unaffected. The
+remaining gate before build is the round-5 reviewer's spot-check of the
+Rev-5 status-sync patches (§16.2.4).
 
 ---
 
@@ -6048,3 +6073,28 @@ predates Rev 4 (it is MAJOR-R3-3-era text, unchanged in kind by Rev 4's
 anchor rewording) and is explicitly out of round 5's tight scope; it is
 recorded here so the build round inherits it as a named open item
 rather than rediscovering it.
+
+**§16.13 addendum — round-5 confirmation pass (2026-07-07, same
+reviewer).** The confirmation pass on the first Rev-5 status patch
+confirmed all three prescribed fixes (R5-1/R5-2/R5-3) LANDED, then
+found 5 residual status-sync defects where the patch's propagation
+stopped short inside §16.6/§16.7 — 2 MAJOR (§16.6's closing
+status-update paragraph still narrated post-Rev-4 state with a false
+"live next action"; §16.6's trigger-table Path-(ii) row still named the
+superseded fifth-audit gate) and 3 MINOR (a false verdict label in
+§16.6 item 4's new parenthetical — "Path (i) and Phase-1b both read out
+PROBE-INVALID" conflated Phase 1's §15 PROBE-INVALID verdict with
+Phase-1b's §16.8 Stage-0 gate-null, and Path (i) IS Phase-1b; §16.6
+step-5 branches still pointing at the superseded gate; §16.7's chain
+tail left undischarged with no Rev-5 status update). All 5 fixed in the
+second Rev-5 status patch: §16.6 status paragraph and trigger row
+rewritten post-Rev-5, the verdict label corrected to the reviewer's own
+prescribed sentence, both step-5 branches repointed, and §16.7 given
+its Rev-5 status-update paragraph in the established chain convention.
+The reviewer noted the recursive risk explicitly (fixes introducing
+false citations — the same failure mode rounds 3→4 exhibited); the
+corrected verdict-label sentence was taken verbatim from the reviewer's
+prescription rather than re-paraphrased. Substantive checks 1/2/4
+continue to carry forward; the remaining gate is the reviewer's
+spot-check of these five edits, after which §16.2.4's gate reads
+CLEARED-FOR-BUILD.
