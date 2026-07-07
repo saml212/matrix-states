@@ -47,19 +47,24 @@ Archive `experiment-runs/2026-07-07_mech_stage1/` + SSD. LM ledger
    clone training loop, backward hook on k_raw grad norms every 100
    steps, 3 cells full 20K steps, smoke a/b/c mandatory) → independent
    audit → box run (~0.76 GPU-h).
-2. **Design-ahead buffer (agents in flight overnight 2026-07-07):**
-   (a) cliff scaling-law wave draft (x0(d) at d∈{80,96}) — NOTE the
-   brainstorm agent flagged `_SAFE_D_STATE=(64,128)` as a hard
-   chunk_delta_rule kernel constraint; the attack round MUST verify
-   d=80/96 are even runnable before this design proceeds; (b)
-   REASONING-LINK keystone design (in-context binding/multi-hop
-   composition probe over the frozen-bias arms + the trackc scale
-   ladder — intervention→reasoning and scale→reasoning legs, eval-only
-   Phase 1); (c) waterfall brainstorm DONE — top pick converged with
-   REASONING-LINK Leg B (SCALE_TRANSFER_DESIGN.md §5.5 items 2-3,
-   pre-registered never-executed) + full-attention control arm as
-   mandatory companion. Next waterfall stage: research agent, then
-   attack rounds on both drafts.
+2. **Design-ahead buffer status (2026-07-07 ~06:20 UTC):**
+   (a) **Scaling-law wave (KEY_ANCHORING_SCALING_DRAFT.md §15): PARKED —
+   attack-round-1 verdict RUN-AFTER-REASONING-LINK** (§15.18: FATAL-1
+   manifest KeyError build gap + MAJOR-3 missing wave smoke file, both
+   zero-GPU parallel fixes; kernel gate RE-RUN at the full registered
+   T∈{128,224,448} protocol and GENUINELY CLEARED for d=80/96, artifact
+   `deltanet_rd/results/smoke_dstate_kernel_result.json` committed; d=32
+   crash REPRODUCED at T=128 — the first smoke's T=256-only pass was a
+   false negative, attacker's prediction exact).
+   (b) **REASONING-LINK (matrix-thinking/REASONING_LINK_DESIGN.md):
+   Rev-1 synthesis in flight** (attack-1 NEEDS-MAJOR-REVISION: F1
+   probe-eval pool < killer-cell Ks; F2 blend-live-at-eval confound →
+   mandatory 2×2 surgery grid; M1-M5; litreview GO-WITH-REFRAME,
+   research/reasoning-link-litreview-2026-07-07.md) → attack-2 fresh
+   eyes → build → audit → Phase 1 launch (~20-25 GPU-h, eval-only, THE
+   registered publication keystone — takes GPU budget priority per the
+   attack round's sequencing adjudication).
+   (c) Waterfall brainstorm + research validation DONE (committed).
 3. **At rung-3 ALL_DONE (~05:00 UTC Jul 8):** harvest per the older
    handoff block's step 1 (archived-4 pooling validation to 1e-6 FIRST,
    attractor probe on 2×1.31B final ckpts at /data/lm_rd_trackc_ckpts/

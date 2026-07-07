@@ -1085,3 +1085,79 @@ was at d=64. **TODO for attack round:** re-run §15.8's own power-check at
 marginal CI improvement justifies departing from the 3-seed convention here
 specifically, rather than assuming §12.4a's own conclusion (reached at a
 DIFFERENT, better-anchored configuration) transfers unchanged.
+
+---
+
+## §15.18 ATTACK-ROUND-1 (2026-07-07) — VERDICT: RUN-AFTER-REASONING-LINK (wave PARKED)
+
+Independent adversarial attack (fresh agent, re-derived every load-bearing
+number). Verdict: technically competent, mostly arithmetically sound, but
+one code-level FATAL falsifying the draft's own "no build task" claim, one
+gate weaker than advertised, and the draft's own Q4 already concedes it is
+the program's weakest-motivated wave. **Sequencing decision (accepted by
+the orchestrator): REASONING-LINK Phase 1 (eval-only, existing checkpoints,
+the STATE.md-registered publication keystone) takes the GPU budget first;
+this wave's build gaps get fixed in parallel at zero GPU cost; launch is
+revisited after REASONING-LINK Phase 1 lands.**
+
+**FATAL-1 (build gap, fails loud):** `keyanchor_dstate_manifest()` /
+`_gate1_manifest()` / `_calibration_manifest()` all index module-level
+seed dicts hardcoded to K∈{68,76,84,92}
+(`run_deltanet_rd_exactness_sweep.py:1888-1895`) — calling them at the new
+K grids raises `KeyError: 20` immediately. §15.15 item 2's "already fully
+generalized" claim is FALSE; the real build task is threading
+`seeds_by_k`/`gate1_seed_by_k` parameters through (or fresh
+`keyanchor_scaling_*` manifests). §15.15 item 6's manifest-regression
+smoke cannot catch this (it only re-verifies existing Ks).
+
+**FATAL-2 (gate insufficiency — RESOLVED same session):** the first
+kernel smoke tested only T=256 — not §15.2 item 1's registered
+T∈{128,224,448} protocol — and T=128 (the `_MIN_KERNEL_T` padding floor,
+hence the most common real value) is exactly where D=32 historically
+crashed. The attacker predicted the d=32 "pass" anomaly was the untested
+T. **Re-run executed to the full registered protocol
+(`smoke_dstate_kernel.py` superseding version, box GPU 3, artifact
+`results/smoke_dstate_kernel_result.json` committed): d=80/96 PASS
+forward+backward with finite grads AND finite forward outputs at ALL of
+T∈{128,224,448} → gate GENUINELY CLEARED. d=32 FAILS at T=128 with
+`cudaErrorIllegalAddress` — the historical crash reproduces exactly where
+predicted, confirming the T=256-only pass was a false negative.** (d=32's
+T=224/448 rows are cascade artifacts of the poisoned CUDA context, not
+independent measurements; candidates ran before d=32 in loop order, so
+their cells are clean.) The chain script must mechanically require this
+PASSING artifact before launch (Q1 TODO stands).
+
+**MAJOR-3 (build gap):** §15.13 item 8's "re-run smoke_key_anchoring.py
+at d=80/96" is not a re-run — that suite has no `--d-state` flag and
+hardcodes d∈{64,128} per helper. Needs a wave-specific
+`smoke_keyanchor_scaling.py` (per the `smoke_keyanchor_cliff.py` /
+`smoke_keyanchor_dstate.py` convention) — a new file never entered in
+§15.15's build-scope enumeration.
+
+**MINOR-4:** §15.3 arithmetic slip — K=43 at d=80 is 0.64 (not 0.36)
+from raw predicted 43.64. Non-load-bearing.
+
+**Additional latent collision named:** sibling per-wave `_ceiling_by_k`
+functions follow the same K-keyed pattern as GATE2_N_ITER_BY_K — §15.7's
+ceiling computation needs fresh namespaced storage, same fix class.
+
+**Verified correct by independent re-derivation (no changes needed):**
+Welch-floor/σ_chance/a_shape table; cost power-law (p=1.2013, A=6.4545,
+0.3465/0.4313 GPU-h/cell); budget table (20.956 GPU-h at 2×, ≈0.04
+margin); K-grid translations both d's; pool arithmetic; fit_cliff_curve
+generality; pooled_null_check d_state-genericity; GATE2 collision scope
+(K=48 the only one); `sim_cliff_power.py` bootstrap re-run reproduced the
+cited CI widths (bare 0.0741/0.0724, anchored 0.0385/0.0383). Band-power:
+fixed-K rival predicts x0(96)≈0.364 and absolute-slack rival predicts
+x0(80)≈0.636/x0(96)≈0.697 — BOTH outside the ±0.071 band, so the
+pre-registered criterion is not vacuous against either named rival;
+residual weakness (Q2) unchanged: mild drift ≤~0.07 would still read
+CONFIRMED.
+
+**Q4 adjudication (existence question):** a law needs ≥3 points and no
+prior wave held organic coherence regime constant while varying d — the
+wave is not redundant with §14. But §14's exoneration headroom (doses
+0.13-0.40 vs organic 0.098-0.200) makes CONFIRM the strongly expected
+outcome, and the result does not feed the registered publication keystone.
+Hence: park, fix build gaps at zero GPU cost, revisit after
+REASONING-LINK Phase 1.

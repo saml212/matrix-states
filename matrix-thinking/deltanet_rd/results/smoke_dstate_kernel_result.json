@@ -1,0 +1,55 @@
+{
+  "design_ref": "KEY_ANCHORING_SCALING_DRAFT.md sec 15.2 item 1 (attack-round-1 FATAL-2 protocol)",
+  "t_sweep": [
+    128,
+    224,
+    448
+  ],
+  "grid_pass": {
+    "64": {
+      "128": true,
+      "224": true,
+      "448": true
+    },
+    "128": {
+      "128": true,
+      "224": true,
+      "448": true
+    },
+    "80": {
+      "128": true,
+      "224": true,
+      "448": true
+    },
+    "96": {
+      "128": true,
+      "224": true,
+      "448": true
+    },
+    "32": {
+      "128": false,
+      "224": false,
+      "448": false
+    }
+  },
+  "messages": {
+    "d64_T128": "ok (loss=0.5895)",
+    "d64_T224": "ok (loss=0.7175)",
+    "d64_T448": "ok (loss=0.8758)",
+    "d128_T128": "ok (loss=0.3638)",
+    "d128_T224": "ok (loss=0.5388)",
+    "d128_T448": "ok (loss=0.7544)",
+    "d80_T128": "ok (loss=0.4868)",
+    "d80_T224": "ok (loss=0.7002)",
+    "d80_T448": "ok (loss=0.8597)",
+    "d96_T128": "ok (loss=0.4588)",
+    "d96_T224": "ok (loss=0.6547)",
+    "d96_T448": "ok (loss=0.8473)",
+    "d32_T128": "Traceback (most recent call last): |   File \"/home/nvidia/chapter2/deltanet_rd/smoke_dstate_kernel.py\", line 56, in try_cell |     if not torch.isfinite(g.float()).all(): |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | torch.AcceleratorError: CUDA error: an illegal memory access was encountered | Search for `cudaErrorIllegalAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information. | CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect. | For debugging consider passing CUDA_LAUNCH_BLOCKING=1 | Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.",
+    "d32_T224": "Traceback (most recent call last): |   File \"/home/nvidia/chapter2/deltanet_rd/smoke_dstate_kernel.py\", line 43, in try_cell |     q = torch.randn(B, T, H, d_state, device=device, dtype=torch.bfloat16, requires_grad=True) |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | torch.AcceleratorError: CUDA error: an illegal memory access was encountered | Search for `cudaErrorIllegalAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information. | CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect. | For debugging consider passing CUDA_LAUNCH_BLOCKING=1 | Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.",
+    "d32_T448": "Traceback (most recent call last): |   File \"/home/nvidia/chapter2/deltanet_rd/smoke_dstate_kernel.py\", line 43, in try_cell |     q = torch.randn(B, T, H, d_state, device=device, dtype=torch.bfloat16, requires_grad=True) |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | torch.AcceleratorError: CUDA error: an illegal memory access was encountered | Search for `cudaErrorIllegalAddress' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information. | CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect. | For debugging consider passing CUDA_LAUNCH_BLOCKING=1 | Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions."
+  },
+  "verdict": "d_state 80+96 KERNEL-SAFE at full T sweep -- sec 15 gate CLEARED",
+  "exit_code": 0,
+  "torch_version": "2.12.1+cu130"
+}
