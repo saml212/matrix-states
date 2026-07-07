@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-06
+**Last updated:** 2026-07-07
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -86,19 +86,50 @@ This document is the project dashboard. Anyone returning to the project (you, a 
      **7.3130 GPU-h** vs the 20.99 GPU-h calibration-derived headroom
      (34.8% used). Full verdict: `matrix-thinking/KEY_ANCHORING_DESIGN.md`
      §13.10. **GPUs 2-7 now idle.**
+  4. **Coherence-dose-response wave, Stage 1 (rank-4) — COMPLETE
+     2026-07-06/07.** All 10 cells (K=68, doses 0.130/0.284/0.40, 3 seeds
+     each + 1 shared calibration cell) finished. **HEADLINE: `h4=1.0` at
+     EVERY cell, EVERY dose, 10/10, no exception** — FLAT ACROSS ALL
+     DOSES, including 0.40, which EXCEEDS d=64's own final-checkpoint
+     coherence band (0.373–0.385 range-of-K-means, §14.0b). Per §14.0's
+     pre-registered outcome semantics: **COHERENCE EXONERATED at the
+     rank-4 structure** — directly-injected anchor overlap, at and above
+     the d=64 regime, does NOT reproduce the cliff at matched K/d/n
+     geometry. Frozen-table constancy holds EXACTLY (max deviation = 0.0
+     across all 10 checkpoints, all 10 cells — no build regression).
+     `§14.4c`'s mechanical K=84 trigger evaluated numerically: condition 1
+     fails (total range 0.0 is not >0.20), condition 2 not evaluable (no
+     diffuse-arm data yet) — **K=84 NOT activated**. Combined with §13.10,
+     neither K/d ratio NOR scalar rank-4-structured coherence suffices;
+     surviving candidates: overlap STRUCTURE (diffuse — the registered
+     Stage 2 arm, HARD-GATED as a PI ask) and absolute state capacity
+     (d² grew 4× vs. K's ~2× at matched ratio). Realized **6.2742 GPU-h**
+     vs the Stage-1 6.410 GPU-h 1×-bracket estimate and the wave's full
+     13.68 GPU-h ceiling (45.8% used). Full verdict:
+     `matrix-thinking/KEY_ANCHORING_DESIGN.md` §14.12. **GPUs 2-7 now
+     idle.**
 - **Budgets:** scale 266.47/300 GPU-h committed at launch-time constants
   (rung-3 actual ≈334/300 DISCLOSED, see top block); anchoring 55.83/80 +
-  cliff realized 3.18 + dstate realized 7.31 = **66.32/80** (both cliff
-  and dstate waves complete, see items 1 and 3 above — the 23.36 figure
-  was the pre-run pessimistic ceiling for item 1 only, not the realized
-  cost, and item 3 had no separate static ceiling by design, sec 13.5/13.6
-  — reserve now 13.68/80); frozen-bias LM program own ceiling 135,
+  cliff realized 3.18 + dstate realized 7.31 + dose-stage1 realized
+  6.2742 = **72.594/80** (2026-07-07 update — cliff, dstate, and
+  dose-stage1 waves all complete, see items 1/3/4 above — reserve now
+  **7.406/80**); frozen-bias LM program own ceiling 135,
   realized **6.8988/135** (rung-1 complete, see item 2 above).
+- **PI ASK QUEUED (2026-07-07):** Stage 2 (diffuse, `subspace_rank=48`,
+  9 cells) of the coherence-dose-response design is priced at
+  5.769/11.538 GPU-h at 1×/2× (§14.4). Against the anchoring ledger's
+  remaining 7.406 GPU-h reserve: **fits at 1× (margin 1.637 GPU-h) but
+  NOT at 2× (short 4.132 GPU-h)**. Per §14.4 Option 1's mechanical
+  default, this needs an explicit decision, not self-amendment: **(a)
+  launch Stage 2 now at 1× exposure (no ceiling change), or (b) request a
+  +4.132 GPU-h ceiling amendment first to clear the 2× contingency
+  bracket before launching.** Both numbers stated per house discipline.
 - **User decisions pending:** see `matrix-thinking/submissions/PAPER_SPRINT_PLAN.md`
   §PI-decisions (venue NeurReps/UniReps EA ~Jul 11 CFP; title keep-default;
   author block + co-contributor question; parallel workshop-cut + ICLR
   drafting; next-program candidates: frozen-bias fix in from-scratch small
-  LM / capacity-cliff theory / submission execution).
+  LM / capacity-cliff theory / submission execution) — PLUS the new Stage-2
+  launch decision above.
 - Housekeeping: `git prune` pending (gc.log warning); two orphan local
   dashboard PIDs (82723/82725) left for the user's call.
 

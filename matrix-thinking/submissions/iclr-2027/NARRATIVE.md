@@ -1,11 +1,10 @@
 # ICLR 2027 Narrative Architecture — DeltaNet Rank Recruitment vs. Exactness
 
-**Status: DRAFT — round 7 adds a small, distinct side-chapter (frozen-bias
-LM transplant test, rung-1 complete, honestly closed as a
-discovery-shaped negative-plus-surprise, not a confirm — see round 7,
-below); round 6, capacity cliff LOCATED (a measurement upgrade on
-top of round 5's ARC COMPLETE key-anchoring program), is otherwise
-unchanged.** Round 6 absorbs the anchoring program's actual, final outcome — not the
+**Status: DRAFT — round 9 closes Stage 1 of the coherence-dose-response
+wave (rank-4 EXONERATE, honest cliffhanger left for Stage 2 — see round
+9, below); round 8's universality result and round 7's frozen-bias
+side-chapter are otherwise unchanged.** Round 6 absorbs the anchoring
+program's actual, final outcome — not the
 Outcome-C mechanism null round 4 left as the ending, but the two waves that
 ran *after* it: candidate (e)'s frozen-random-table ablation
 (CONFIRMED-BY-ABLATION: constancy suffices) and the K=48 capacity-curve
@@ -311,6 +310,74 @@ calibration-derived headroom; cumulative key-anchoring program spend
 59.01 → **66.32**/80 GPU-h. Full verdict: `KEY_ANCHORING_DESIGN.md`
 §13.10; archive: `experiment-runs/2026-07-06_keyanchor_dstate/`
 (+ SSD mirror).
+
+**Round 9 (2026-07-06/07) — the capacity trilogy's third wave: coherence
+is exonerated too (at the rank-4 structure), leaving an honest
+cliffhanger.** Round 6 located the cliff; round 8 dissolved it at
+d=128 and named table coherence as the leading candidate account, with
+the caveat that d=64→128 moves state size, optimization dynamics, and
+table coherence all at once — round 8's own text could not isolate
+coherence from the other two. This round runs the wave designed to
+isolate it: hold `d_state=128`, `n_entities=107`, `K=68` fixed at
+exactly round 8's own flat-h4=1.0 geometry, and inject controlled,
+FROZEN coherence directly into the anchor table's own row geometry,
+sweeping the dose (0.130 / 0.284 / 0.40 — the last exceeding d=64's own
+realized final-checkpoint coherence band, 0.373–0.385) under a
+concentrated (rank-4) injection structure — 10 cells (9 dose cells × 3
+seeds + 1 shared calibration cell), **6.2742 realized GPU-h** against a
+6.410 GPU-h 1×-bracket estimate.
+
+**Result: `h4 = 1.0` at every cell, every dose, 10/10, no exception —
+flat across the entire dose range, including 0.40.** This is the
+strongest possible EXONERATE the design can produce for the rank-4
+structure: directly injecting anchor-table coherence, held frozen for
+the full 20,000-step run (verified bit-identical across all 10
+checkpoints in every cell — the frozen gradient path never let
+coherence drift), at and above d=64's own realized band, still does not
+reproduce the cliff at matched K/d/n geometry. Instrument saturation is
+ruled out the same way round 8 ruled it out: hop-21 shows real variation
+(0.9987–1.0, not floored) and `effective_rank_whole_mean` tracks K=68
+almost exactly at every dose. The design's own mechanical K=84
+escalation rule (adjacent-gap/total-range test) does not fire on a
+perfectly flat curve — no further K is needed to resolve this arm.
+
+**The three-wave capacity trilogy, stated as a single arc: LOCATED
+(round 6) → DISSOLVED (round 8) → COHERENCE EXONERATED (this round, at
+the rank-4 structure).** Neither of the two most naturally testable
+scalar accounts for the d=64-vs-d=128 split survives: not raw K/d ratio
+(round 8: the exact K/d window that cliffs at d=64 stays flat at d=128),
+and not scalar rank-4-structured anchor coherence (this round: injecting
+coherence up to and beyond d=64's own band still does not reproduce the
+cliff). **The honest cliffhanger, left deliberately open rather than
+oversold:** two candidates survive, adjudicated by neither wave run so
+far — (1) **overlap STRUCTURE**, diffuse vs. concentrated (this wave
+tested only concentrated/rank-4; a diffuse, `subspace_rank=48`
+co-primary arm is designed and registered but not launched, gated behind
+an explicit PI ask, since its 2× contingency cost slightly exceeds the
+anchoring ledger's remaining headroom — 5.769/11.538 GPU-h needed
+against 7.406 GPU-h remaining, fits at 1×, short 4.132 GPU-h at 2×); and
+(2) **absolute state capacity** — `d_state` grew 4× (64→128) between
+the cliff's location and its disappearance while `K` only grew ~2× at
+matched ratio, a factorial no wave run so far has tested, since every
+wave to date has held `d_state=128` fixed while varying only dose or K.
+Stage 2 (diffuse) is the next wave that can discriminate structure from
+scalar magnitude; a `d_state`-vs-capacity factorial remains undesigned.
+
+**What this upgrades in the paper's own figure/claim plan.** The
+capacity-cliff section's own narrative arc gains its third, honestly
+incomplete chapter: not "we found the mechanism," but "we ruled out two
+of the three most natural candidate mechanisms, in sequence, each with
+its own controlled wave — leaving one structural and one scale-based
+candidate open for a reader (or a follow-on wave) to adjudicate." No
+figure is regenerated this round (the dose-response curve is flat, not a
+new shape to plot beyond round 8's own flat-line panel) — this round's
+contribution is scoping, not a new visual.
+
+Realized cost: **6.2742 GPU-h**, 45.8% of the wave's own `H=13.68`
+GPU-h ceiling; cumulative key-anchoring program spend 66.32 →
+**72.594**/80 GPU-h (reserve now 7.406/80). Full verdict:
+`KEY_ANCHORING_DESIGN.md` §14.12; archive:
+`experiment-runs/2026-07-06_keyanchor_dose/` (+ SSD mirror).
 
 ---
 
