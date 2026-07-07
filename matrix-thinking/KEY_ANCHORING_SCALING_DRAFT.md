@@ -1520,14 +1520,35 @@ repo's already-committed copies). SSD mirror, full superset, same tree:
 
 ## §15.20 DESIGN — d=96 wider-K cliff-hunting wave + d=80 seed escalation +
 `fit_cliff_curve.py` admissibility-filter fix (resolves §15.19's AMBIGUOUS
-verdict; design-only, zero GPU/CPU spent building anything, pending its own
-attack round(s))
+verdict; design-only, zero GPU spent building anything; one CPU-only power
+check now landed, MAJOR-2 below) (Rev 1, 2026-07-07 — post-attack)
 
-**Status: DESIGN-ONLY DRAFT**, written under the same discipline §15's own
-header required (§15.17's self-attack-round precedent) — every number below
-is either cited to an existing, already-run artifact (§15.11's cost model,
-§15.19's harvest) or freshly VERIFIED this session against the live code
-(file + line, stated explicitly), never assumed by analogy.
+**Rev 1 status note.** An independent adversarial attack round reviewed this
+design before any GPU work launched, per this program's own standing
+multiple-independent-audit-rounds discipline (`CLAUDE.md`). Verdict:
+**NEEDS-REVISION** — 4 MAJOR, 4 MINOR, plus an independently CONFIRMED check
+that the two rival CI bands (§15.20.4) really are disjoint (`[0.718,0.739]`
+vs `[0.768,0.837]`). Every finding is fixed below (§15.20.1–§15.20.6); none
+is deferred or waved away. The full finding→fix trace is recorded in §15.21,
+per house style (mirrors `REASONING_LINK_DESIGN.md` §16.7's own fix-map
+convention). Nothing in §15.20.1–§15.20.6 below predates this revision —
+read this section as Rev 1, not as the Rev-0 draft the attack round
+reviewed. One fix (MAJOR-2) required actually running a CPU-only script
+before this text could be finalized — that run is now landed, its artifact
+is `matrix-thinking/deltanet_rd/sim_cliff_power_wide_grid_results.json`, and
+its numbers are reported at §15.20.4 rather than projected. **This
+revision has not yet had its own independent audit pass** — per this
+project's standing rule that multiple independent adversarial rounds catch
+different bugs each round, landing attack-round-1's findings does not, on
+its own, certify Rev 1 as build-ready.
+
+**Status: DESIGN-ONLY DRAFT** (Rev 1), written under the same discipline
+§15's own header required (§15.17's self-attack-round precedent) — every
+number below is either cited to an existing, already-run artifact (§15.11's
+cost model, §15.19's harvest), freshly VERIFIED this session against the
+live code (file + line, stated explicitly), or freshly MEASURED this
+session by an actually-run CPU script (§15.20.4's MAJOR-2 fix) — never
+assumed by analogy.
 
 ### 15.20.0 What this wave resolves, and what it explicitly does NOT reopen
 
@@ -1698,9 +1719,27 @@ ever used OR reserved anywhere in the KEY_ANCHORING program's history is
 1735 (K=69's own Gate-1 probe slot, §15.15, never fired). No seed in
 `[1736, 2100)` appears in any filename or any registered seed table in
 either `KEY_ANCHORING_DESIGN.md` or this file** (REASONING_LINK's own seed
-scheme, checked too, uses a disjoint `10,000,000`-scale allocation,
-§REASONING_LINK_DESIGN.md lines 1449–1464 — six orders of magnitude away,
-no realistic collision). **Continuing this program's own 100-wide-block,
+scheme, checked too, is disjoint from this program's own — **structurally,
+not merely by magnitude, corrected at Rev 1 attack-round-1 MINOR-4**:
+`REASONING_LINK_DESIGN.md`'s `episode_seed` formula, lines 1449–1464, sums
+`PURPOSE_BASE ∈ {0, 10_000_000, 20_000_000}` + `LEG_BASE ∈ {0, 5_000_000}`
++ `condition_idx·1_000_000` + `corpus_idx·100_000` + `ckpt_seed_idx·10_000`
++ `k_idx·1_000` — EVERY term in that sum is an exact multiple of 1,000, so
+`episode_seed ≡ 0 (mod 1000)` for every REASONING_LINK seed that will ever
+be emitted, by construction, not by the current numeric range. This
+program's own 100-wide blocks (1730, 1740, 1840, 1940, 2040, …) never land
+on a multiple of 1000 — verified directly, `1730 mod 1000 = 730`, `1740 mod
+1000 = 740`, `2040 mod 1000 = 40`, and every other reserved base in
+§15.15/§15.20's own tables shares this property (each block's own `+40`
+offset from a `X700/X800/X900/Y000`-style round base is never itself a
+multiple of 1000). **The two seed spaces are disjoint by residue class,
+not merely by the two programs' allocations happening to sit six orders of
+magnitude apart today** — a guarantee that survives even if either
+program's own seed range were to grow substantially, which the
+magnitude-only framing this design originally used did not establish. (The
+six-orders-of-magnitude fact is still true and disclosed as a secondary,
+consistent cross-check — it is simply not the LOAD-BEARING reason
+collision is impossible.) **Continuing this program's own 100-wide-block,
 +0/+1/+2 primary / +3/+4 contingency / +5 Gate-1-probe convention exactly
 (§15.15's own table), starting immediately after the last reserved slot:**
 
@@ -1729,11 +1768,36 @@ wave's directory while pulling K=72–90 from this wave's own new directory
 in a single invocation. **Required Stage −1 step (mechanical, not a code
 change):** copy the 3 existing K=69/d=96 result JSONs (seeds 1730/1731/
 1732) into this wave's own `wavekeyanchor-scaling-wide/` output directory
-before running the fit; **verify byte-identical copies via sha256 against
-the originals** (mirrors §15.19's own script-provenance discipline) — a
-copy that silently diverges from the archived original would corrupt the
-reused low-edge point without any other check catching it. **This ties
-directly to §15.20.3's fix below:** the copied K=69/seed=1730 file's
+before running the fit.
+
+**ENFORCED sha256 gate, named mechanism (Rev 1, attack-round-1 MAJOR-1
+fix — a prose "verify byte-identical" instruction is not itself a check
+anything can fail; this closes that gap the same way §15.18 FATAL-2 closed
+the documented-but-unenforced kernel gate):** immediately after the copy,
+`keyanchor_scaling_wide_chain.sh` (this wave's own chain script, built from
+`keyanchor_scaling_chain.sh`'s pattern per §15.20.1's `--wave
+keyanchor-scaling-wide` build task) runs a dedicated step,
+`sha256sum <copied K=69 files> | diff - <pinned manifest>`, where the
+pinned manifest is a fixed block committed to this wave's own build
+artifact (`results/keyanchor_scaling_wide_k69_copy_manifest.sha256`,
+generated ONCE against the ORIGINAL §15.19 archive at build time, never
+regenerated from the copy itself — regenerating from the copy would make
+the check tautological). **Fail-loud: any hash mismatch, or any of the 3
+expected files missing from the copy, exits 1 and halts the chain before
+any new GPU cell launches** — mirrors `keyanchor_scaling_chain.sh`'s own
+GATE 1 kernel-safety belt-and-suspenders pattern (bash-level standalone
+check first, so a direct Python invocation bypassing the chain cannot skip
+it either — the Python-side `keyanchor_scaling_stage_gate` equivalent for
+this wave must ALSO refuse to proceed to the fit step if the pinned-hash
+sentinel file the bash gate writes on success is absent, same
+belt-and-suspenders shape as the existing kernel gate). **Added to the
+§15.20.6 enforced-gate table below as Gate (c).** A copy that silently
+diverges from the archived original would corrupt the reused low-edge
+point without any other check catching it — this was previously a
+documented step relying on human vigilance, exactly the class of gap
+§15.18 FATAL-2 already found and closed once for the kernel-safety check;
+it must not be reopened by omission here. **This ties directly to
+§15.20.3's fix below:** the copied K=69/seed=1730 file's
 `geo3_admission.admissible=false` will now be caught AUTOMATICALLY by the
 fixed loader, closing the loop on the one place this wave's own manual
 exclusion (§15.19) would otherwise need to be re-applied by hand a second
@@ -1780,11 +1844,14 @@ regression test)
 
 **Verified this session, exact and complete:** `grep -n "admissible"
 matrix-thinking/deltanet_rd/fit_cliff_curve.py` returns **zero matches**.
-`load_k_mean_h4` (lines 120–142) is the SINGLE choke point every K's data
-passes through (anchored K=32/K=48 AND every unanchored `--k-grid` entry,
-verified via `main()`'s own call sites, lines 300–307) — it checks
-`d.get("complete")` only (line 135) before appending `h4` to `per_seed`,
-never touching `d.get("geo3_admission")` at all. §15.9's own registration
+`load_k_mean_h4` (lines 122–145, **refreshed at Rev 1 attack-round-1
+MINOR-2** — the original draft cited 120–142, stale by the time of the
+attack-round re-check) is the SINGLE choke point every K's data passes
+through (anchored K=32/K=48 AND every unanchored `--k-grid` entry, verified
+via `main()`'s own call sites, lines 303–310 — refreshed from the stale
+300–307) — it checks `d.get("complete")` only (line 137, refreshed from
+the stale line 135) before appending `h4` to `per_seed`, never touching
+`d.get("geo3_admission")` at all. §15.9's own registration
 ("every cell must show `admissible: true`... no new fields, no new logic,
 the same instrument every prior wave's own admissibility check used") is
 **not actually enforced by this script** — §15.19's own K=69/seed=1730
@@ -1814,7 +1881,8 @@ never spuriously exclude any real historical cell.
 **Required build task, exact, minimal (single-point fix, mirrors this
 project's own "one instrument, reused everywhere" discipline):** in
 `load_k_mean_h4`, immediately after the existing
-`if not d.get("complete"): continue` (line 135), add:
+`if not d.get("complete"): continue` (line 137, refreshed at Rev 1
+attack-round-1 MINOR-2), add:
 ```python
 if d.get("geo3_admission", {}).get("admissible") is not True:
     continue
@@ -1872,13 +1940,21 @@ fixed-K are both already cleanly refuted, §15.19's own rival table):
 **Absolute-slack** (`S = d − K_crit ≈ const`, §13.10/§14.13's own surviving
 candidate): using the NEWLY MEASURED, clean d=80 point (`x0(80)=0.6756`,
 replacing the pre-d=80 d=64-only estimate) to recalibrate `S`:
-`K_crit(80) = 0.6756 × 80 = 54.048 ≈ 54`; `S = 80 − 54 = 26`. **Predicted
-`x0(96) = (96 − 26) / 96 = 70/96 = 0.7292`.** Propagating the CI corners
-(`x0(80) ∈ [0.6620, 0.6868]`, `x0(64) ∈ [0.53915, 0.55185]`, the latter from
-§15.10's own `δ64` half-width) through the SAME `S`-formula's 4 corner
-combinations gives a band of **`[0.718, 0.739]`** (worked example, low
+`K_crit(80) = 0.6756 × 80 = 54.048` — **kept unrounded from here on (Rev 1,
+attack-round-1 MINOR-3 fix: the original draft rounded `K_crit(80)` to 54
+before subtracting, an unnecessary detour that silently shifted the point
+prediction).** `S = 80 − 54.048 = 25.952`. **Predicted `x0(96) = (96 −
+25.952) / 96 = 70.048/96 = 0.729667`** (vs. the rounded detour's
+`0.7292` — a small, real difference, direction disclosed: the unrounded
+figure is the correct one and sits slightly HIGHER). Propagating the CI
+corners (`x0(80) ∈ [0.6620, 0.6868]`, `x0(64) ∈ [0.53915, 0.55185]`, the
+latter from §15.10's own `δ64` half-width) through the SAME `S`-formula's 4
+corner combinations gives a band of **`[0.718, 0.739]`** (worked example, low
 corner: `S = 80×(1−0.6620) = 27.04 → x0(96) = (96−27.04)/96 = 0.71833`; high
-corner: `S = 80×(1−0.6868) = 25.056 → x0(96) = (96−25.056)/96 = 0.73900`).
+corner: `S = 80×(1−0.6868) = 25.056 → x0(96) = (96−25.056)/96 = 0.73900`;
+the corner arithmetic was never routed through the rounded-`K_crit` detour,
+so this band itself is UNCHANGED by the MINOR-3 fix — only the single
+point-prediction sentence was affected).
 **Disclosed wobble in the rival itself, not smoothed over:** the OLDER,
 d=64-only-anchored estimate (§15.19's own rival table: `x0(96)≈0.697`, from
 `S(64) = 64×(1−0.5455) = 29.088`) sits noticeably below this d=80-recalibrated
@@ -1905,42 +1981,137 @@ depends only on the two `d` values, verified algebraically this session)
 gives a band of **`[0.768, 0.837]`**.
 
 **The two bands are DISJOINT** (`[0.718, 0.739]` vs `[0.768, 0.837]`, a real
-gap of 0.029 between them) — **this is the key design property that makes
-the wider grid worth running**: a genuinely non-degenerate x0(96) fit from
-this wave's own wider K-grid, IF its own 95% CI lands cleanly inside one
-band and excludes the other, discriminates the two rivals with a real
-margin, unlike the original ratio-invariance test's own disclosed
-vacuousness risk (§15.17 Q2).
+gap of 0.029 between them, **independently re-confirmed by attack-round-1**
+via fresh re-derivation of both corner sets) — **this is the key design
+property that makes the wider grid worth running**: a genuinely
+non-degenerate x0(96) fit from this wave's own wider K-grid, IF its own 95%
+CI lands cleanly inside one band and excludes the other, discriminates the
+two rivals with a real margin, unlike the original ratio-invariance test's
+own disclosed vacuousness risk (§15.17 Q2).
+
+**MAJOR-2 fix (Rev 1) — the disjoint-band property alone does not establish
+this wave's own grid can ACHIEVE that clean discrimination; measured, not
+projected, this session.** §15.20.8 Q2's own TODO asked for a
+`sim_cliff_power.py`-machinery re-run at the wave's ACTUAL, heterogeneous
+5-point grid (`K=69` reused at `n=2` — seed 1730 excluded on admissibility
+— plus `K∈{72,78,84,90}` fresh at `n=3` each). The existing script's
+`bootstrap_ci_width`/`simulate_once` take one scalar `n_seeds_new` applied
+uniformly to every new K, which cannot represent this heterogeneous grid,
+so a purpose-built driver,
+`matrix-thinking/deltanet_rd/sim_cliff_power_wide_grid.py`, was written —
+importing `sigmoid`/`POOLED_REL_SD`/`NOISE_SD_MULTIPLIERS` from
+`sim_cliff_power.py` UNMODIFIED (same discipline as §15.8's own driver-call
+precedent) and adding only a heterogeneous-`n` sibling of
+`simulate_once`/`bootstrap_ci_width`, with the SAME sigmoid form, pooled
+relative-noise model, and degenerate-fit guard thresholds. **Actually run
+this session** (`../../.venv/bin/python sim_cliff_power_wide_grid.py`,
+`n_trials=4000`, `seed=20260706` reusing §15.8's own registered
+power-check seed, `d_state=96`, `include_anchors=False`), artifact
+committed at
+`matrix-thinking/deltanet_rd/sim_cliff_power_wide_grid_results.json`:
+
+| Truth (x0, w) | ci_width (95%) | projected half-width | degenerate_frac |
+|---|---|---|---|
+| abs-slack center (0.729667), w=0.03 (sharp) | 0.0380 | 0.0190 | 0.000 |
+| abs-slack center (0.729667), **w=0.0597 (measured, d=64's own fitted width)** | **0.0859** | **0.0430** | 0.000 |
+| abs-slack center (0.729667), w=0.08 (moderate) | 0.1119 | 0.0559 | 0.000 |
+| power-law center (0.804619), w=0.03 (sharp) | 0.0275 | 0.0138 | 0.002 |
+| power-law center (0.804619), **w=0.0597 (measured)** | **0.0637** | **0.0319** | 0.000 |
+| power-law center (0.804619), w=0.08 (moderate) | 0.0892 | 0.0446 | 0.000 |
+| grid-interior control (x0=0.75), w=0.0597 | 0.0763 | 0.0382 | 0.000 |
+| upper-edge control (x0=0.90), w=0.0597 | 0.0314 | 0.0157 | 0.836 |
+
+**Pre-registered response rule (derived, not the loose "±~0.036" the
+original attack-round framing used — the RIGHT threshold, derived here
+from the disjoint-band gap itself):** the trigger is **half of the
+`0.029` inter-band gap = `0.0145`** — the largest projected CI half-width
+that could still sit entirely inside one named band without touching the
+other from that band's own near edge. **Both rival-center truths at the
+REALISTIC, measured cliff width (w=0.0597) EXCEED this threshold** by a wide
+margin (abs-slack half-width 0.0430, ~3.0× the threshold; power-law
+half-width 0.0319, ~2.2×) — **the fire condition is met.** A follow-up
+check (same driver, `K=69` restored to `n=3` — the already-reserved,
+unfired contingency seed 1733) was ALSO run this session: it narrows the
+abs-slack half-width only to 0.0408 and the power-law half-width only to
+0.0307 — **a ~4% reduction, nowhere close to closing the gap to 0.0145.**
+An even more aggressive check (uniform `n=4` across all 5 K's, a
+cost-upper-bound this wave does not propose funding) still leaves
+half-widths at 0.0375/0.0287 — still 2×+ the threshold. **Honest
+conclusion, disclosed rather than smoothed over: at this program's own
+actually-measured cliff width, THIS wave's own mandatory grid — even with
+every already-reserved contingency seed fired — cannot reliably achieve
+the "CI lands cleanly inside one band, excludes the other" clean
+discrimination the original framing implied.** Firing seed 1733 is still
+registered as a Stage-1 action (cheap, already-reserved, a real if small
+improvement) but must NOT be read as restoring clean discrimination. **The
+decision rule below (MAJOR-3 fix) is written to degrade gracefully under
+this finding** — a genuinely uninformative BOTH-CONSISTENT read at the
+measured-width noise level is the EXPECTED outcome under this power
+analysis, not a design failure if it occurs; a follow-up wave sized to
+close the gap to 0.0145 (roughly a further ~2-3× in per-K seed count,
+extrapolating from the `n=2→n=3→n=4` narrowing rate above) would be a NEW,
+separate GPU ask outside this wave's own scope, named here as a live
+future decision point rather than silently assumed available.
 
 **Pre-registered decision rule, mechanical, stated BEFORE any new cell
-runs:**
+runs (Rev 1, attack-round-1 MAJOR-3 fix — the Step-1 data-quality gate and
+outcome 5 are now resolved explicitly rather than conflated; see the table
+below):**
 
-1. **Data-quality gate, evaluated first (reused verbatim, §15.10 item 2):**
-   if the new fit's degenerate fraction exceeds 10% → AMBIGUOUS, same
-   follow-up class as before (further widen, do not re-seed a flat curve).
-2. **ABSOLUTE-SLACK FAVORED:** CI(x0,96-wide) overlaps `[0.718, 0.739]` AND
-   excludes `[0.768, 0.837]`.
-3. **POWER-LAW FAVORED:** CI(x0,96-wide) overlaps `[0.768, 0.837]` AND
-   excludes `[0.718, 0.739]`.
-4. **BOTH-CONSISTENT (genuinely uninformative, disclosed as such, not
-   forced into a pick):** CI spans or touches both bands (e.g., a CI wide
-   enough to cover `[0.70, 0.80]`).
-5. **NEITHER SURVIVES (a real, informative negative result in its own
-   right, mirrors this wave's own already-established pattern of
-   cleanly killing fixed-K):** CI excludes both bands entirely — e.g.,
-   pinned again near the 0.9 fit-bound (no cliff even up to K/d=0.9375,
-   which would additionally suggest `S` itself grows with `d` rather than
-   staying constant, an even-more-open question for a future wave) or
-   landing somewhere else neither band covers.
+| Step | Trigger (evaluated in order) | Verdict | Follow-up |
+|---|---|---|---|
+| 0 | Fit converges, `degenerate_frac ≤ 10%` | (proceed to steps 2-4 below; steps 1a/1b handle the `>10%` branch) | — |
+| 1a | `degenerate_frac > 10%` AND every sampled K's own raw per-seed h4 mean is `≥ 0.98` (the curve never left ceiling anywhere in the window — a FLATNESS signature, not a scatter signature) | **CLIFF-BEYOND-WINDOW** (named, distinct from AMBIGUOUS — see adjudication below) | Report `x0(96) > 0.9375`, lower-bounded only; do not re-seed a flat curve (mirrors §15.20.0 item 1's own "widen, don't re-seed" reasoning) — a future wave would need to widen the K-grid further, an explicit new ask |
+| 1b | `degenerate_frac > 10%` AND at least one sampled K's own raw per-seed h4 mean is `< 0.98` (genuine scatter/non-convergence, not flatness) | **AMBIGUOUS** (data-quality gate, noisy-fit) | Seed escalation at the noisiest K-group (§15.14's own trigger convention) |
+| 2 | CI(x0,96-wide) overlaps `[0.718, 0.739]` AND excludes `[0.768, 0.837]` | **ABSOLUTE-SLACK FAVORED** | Report; absolute-slack survives as the leading account |
+| 3 | CI(x0,96-wide) overlaps `[0.768, 0.837]` AND excludes `[0.718, 0.739]` | **POWER-LAW FAVORED** | Report; power-law survives as the leading account |
+| 4 | CI spans or touches both bands (e.g., wide enough to cover `[0.70, 0.80]`) | **BOTH-CONSISTENT** (genuinely uninformative, disclosed as such — the EXPECTED outcome at the measured w=0.0597 noise level per this session's own power check above) | Report as uninformative at this seed budget; do not force a pick |
+| 5 | CI excludes both bands entirely, but the fit is non-degenerate and per-K means are NOT all `≥0.98` (a real, located x0 landing somewhere else) | **NEITHER SURVIVES (elsewhere)** | A genuinely new, informative negative result — neither named functional form fits; open a new rival-search question |
 
-**Why K=90 (ratio 0.9375) is far enough right to make outcome 5 meaningful,
-not merely a formality:** if h4 has not started declining by K/d=0.9375
-(bootstrap margin from the pool: only 16 heldout entities are NOT drawn as
-keys at that K, `n_query=K=90` per `grammar_rd.py`'s own default, verified
-§15.20.1), that is itself informative — either the cliff needs an even
-wider window, or the mechanism is not well-described by ANY of the three
-named accounts at this `d_state`, both real findings the design does not
-pre-judge.
+**CLIFF-BEYOND-WINDOW adjudication, per rival (Rev 1, MAJOR-3 — replaces
+the old outcome-5 text's conflated "e.g. pinned again near the 0.9
+fit-bound" example with an explicit reading for each named account):** a
+lower-bounded `x0(96) > 0.9375` sits ABOVE both registered numeric bands
+(`[0.718,0.739]` and `[0.768,0.837]`), so NEITHER band survives numerically
+— but the two rivals' own FUNCTIONAL FORMS are not equally strained by
+this outcome. **Absolute-slack is strained more severely:** its own
+predicted point (0.729667) would then miss by `> 0.9375 − 0.729667 =
+0.208`, an even larger absolute miss than the already-disclosed 11%
+`S`-drift between d=64 and d=80 (§ above) — a constant-slack account has no
+free parameter left to reconcile a miss this large; it would need to be
+retired in favor of "`S` grows with `d`" (a structurally different,
+weaker rival this design does not currently register). **Power-law is
+strained but not retired:** CLIFF-BEYOND-WINDOW would mean this wave's own
+2-point `α=0.9586` fit under-estimated the true exponent, but the
+FUNCTIONAL FORM (superlinear-in-`d` growth of `K_crit`) is directly
+rescuable by re-fitting `α` with the new, beyond-window x0(96) point added
+as a THIRD calibration point — a coherent next step this design names but
+does not build. **This distinction (form survives vs. form is retired) is
+why CLIFF-BEYOND-WINDOW is registered as its own named verdict rather than
+folded into the generic "neither survives" outcome 5** — it is
+MORE informative than a bare "neither band" read, and it is a materially
+different situation from AMBIGUOUS (1b): a flat, uniformly-near-ceiling
+curve (1a) reflects a genuine absence of decline in the tested window, not
+noise the seed-escalation follow-up (1b's own remedy) could ever fix by
+adding seeds at the SAME K's — this is exactly the distinction the
+original single "if degenerate_frac > 10% → AMBIGUOUS" framing collapsed.
+**Corroborating evidence from this session's own power-check run (table
+above):** the `upper_edge_x090` control truth (x0=0.90, just inside the
+grid) already shows `degenerate_frac` climbing to 0.65–0.997 depending on
+width — direct, measured confirmation that a cliff sitting at or beyond
+the grid's own right edge produces exactly the high-degenerate-fraction
+signature step 1a is keyed on, distinguishing it empirically from a
+merely-noisy in-window fit (every in-window truth in the table above shows
+`degenerate_frac ≈ 0`).
+
+**Why K=90 (ratio 0.9375) is far enough right to make step 5/CLIFF-BEYOND-
+WINDOW meaningful, not merely a formality:** if h4 has not started
+declining by K/d=0.9375 (bootstrap margin from the pool: only 16 heldout
+entities are NOT drawn as keys at that K, `n_query=K=90` per
+`grammar_rd.py`'s own default, verified §15.20.1), that is itself
+informative — either the cliff needs an even wider window, or the
+mechanism is not well-described by ANY of the three named accounts at this
+`d_state`, both real findings the design does not pre-judge.
 
 ---
 
@@ -1974,26 +2145,29 @@ seeds each).
 | d=96 wide grid (K=72,78,84,90, 3 seeds) | 12 | 0.4313 | 5.1756 | 10.3512 |
 | d=80 escalation, K=48 (+2 seeds) | 2 | 0.3533 | 0.7065 | 1.4130 |
 | d=80 escalation, K=53 (+2 seeds) | 2 | 0.3842 | 0.7684 | 1.5368 |
-| **Mandatory total (16 cells)** | **16** | | **6.6505** | **13.3011** |
+| **Mandatory total (16 cells)** | **16** | | **6.6505** | **13.3010** |
 
 **Mandatory-only, pessimistic 2× bracket: ≈13.30 GPU-h — the load-bearing
 go/no-go ceiling number**, per §15.12's own established discipline (the
-realized-rate expectation is NOT the ceiling number).
+realized-rate expectation is NOT the ceiling number). (Rev 1, attack-round-1
+MINOR-1: `6.6505 × 2 = 13.3010`, not `13.3011` — a bare arithmetic slip in
+the original draft, corrected here; every downstream number in this
+subsection is recomputed from the corrected `13.3010`.)
 
 **KEY_ANCHORING_SCALING sub-ledger status, verified against `STATE.md`
 (2026-07-07 snapshot): 11.7865/21 GPU-h realized, reserve 9.2135/21.**
 
 - **At 1×, this design's own point estimate (6.6505 GPU-h) FITS the
   existing reserve** with 2.5630 GPU-h margin remaining.
-- **At 2× (the actual go/no-go number, 13.3011 GPU-h), this design does
-  NOT fit** — a shortfall of **4.0876 GPU-h** against the existing 9.2135
+- **At 2× (the actual go/no-go number, 13.3010 GPU-h), this design does
+  NOT fit** — a shortfall of **4.0875 GPU-h** against the existing 9.2135
   reserve.
 
 **Proposed honest ceiling treatment (mirrors §15.12's own two-tier pattern,
 NOT a silent draw-down of the existing reserve past its own pessimistic
 bracket):** request an explicit, small, disclosed extension to the
 KEY_ANCHORING_SCALING sub-ledger specifically — **`H_scaling_2 = +5.0
-GPU-h`** (rounds the 4.0876 shortfall up, leaving ≈0.91 GPU-h of its own
+GPU-h`** (rounds the 4.0875 shortfall up, leaving ≈0.9125 GPU-h of its own
 margin), bringing the sub-ledger's own ceiling from 21 → **26 GPU-h**. This
 is a NEW PI-decision, stated as such (mirrors §15's own top-level framing
 requiring an explicit reopening decision, not self-authorized by this
@@ -2002,6 +2176,35 @@ KEY_ANCHORING ledger, and not a request sized to the nominal "saturate the
 cluster" framing (§15.12's own explicit disclosure that this program's
 waves should NOT be padded to consume idle GPU-time; the ask here is sized
 to this wave's own honest mandatory grid only).
+
+**Distinct enforced sign-off token, Rev 1 attack-round-1 MAJOR-4 fix (this
+extension gets its OWN gate, not a reuse of the original wave's own
+gate):** §15's own original reopening decision is already enforced by
+`KEYANCHOR_SCALING_PI_SIGNOFF=1`, checked BOTH in
+`keyanchor_scaling_chain.sh`'s GATE 0 (bash) and in
+`run_deltanet_rd_exactness_sweep.py`'s `keyanchor_scaling_stage_gate`
+(Python, defense-in-depth against a direct-invocation bypass — the
+EXISTING, already-built precedent this fix mirrors). **This `+5.0 GPU-h`
+sub-ledger extension is a SECOND, separate PI decision (§15.20.0/this
+subsection's own framing: "a NEW PI-decision, stated as such") and
+therefore requires its OWN, DISTINCT env-var token,
+`KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1`** — registered here as a required
+build task for `--wave keyanchor-scaling-wide` (§15.20.1's own new `--wave`
+choice), enforced at BOTH the same two points as the existing token:
+(a) `keyanchor_scaling_wide_chain.sh`'s own GATE 0-equivalent bash check,
+refusing with `exit 1` and a printed explanation if
+`KEYANCHOR_SCALING_EXT_PI_SIGNOFF` is unset or not exactly `"1"`; (b) a
+Python-side check inside the wide-grid wave's own stage-gate function
+(mirrors `keyanchor_scaling_stage_gate`'s own
+`os.environ.get("KEYANCHOR_SCALING_EXT_PI_SIGNOFF", "0") != "1"` →
+`print(...); sys.exit(1)` pattern verbatim). **Explicitly, by construction,
+a stale `KEYANCHOR_SCALING_PI_SIGNOFF=1` left exported in the environment
+from launching the ORIGINAL wave must NOT satisfy this new gate** — the
+two checks are on two DIFFERENT env-var names, never OR'd together in
+either the bash or the Python check, so an operator who signed off on the
+original 21 GPU-h reopening cannot accidentally also authorize the +5
+GPU-h extension without a second, explicit, separately-named decision on
+record. **Added to the §15.20.6 enforced-gate table below as Gate (d).**
 
 **Realized-rate expectation (disclosed, not the ceiling number, mirrors
 every prior wave):** this program's own historical realized/ceiling ratios
@@ -2040,8 +2243,9 @@ until this completes):**
    tests run to completion, the d=64 regression guard confirmed
    byte-identical.
 4. **Byte-verified copy of the 3 reused K=69/d=96 JSONs** into this wave's
-   own output directory (§15.20.1's own closing step), sha256-checked
-   against the originals.
+   own output directory (§15.20.1's own closing step), **ENFORCED via the
+   sha256 gate (Gate (c) below, Rev 1 MAJOR-1 fix)** against the pinned
+   manifest — not merely checked by hand.
 5. **Manifest-regression smoke** (mirrors §15.15 item 6): the new
    `keyanchor_dstate_manifest(d_state=96, Ks=KEYANCHOR_SCALING_D96_WIDE_KS)`
    wrapper call must NOT alter the byte-output of the EXISTING
@@ -2051,22 +2255,41 @@ until this completes):**
 6. **`smoke_keyanchor_scaling.py`-style suite re-run**, extended to cover
    the new K-grid and the new `KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[96]`
    entries (mirrors smoke 12/13's own existing coverage pattern).
+7. **`sim_cliff_power.py` re-run at the wave's ACTUAL grid — PROMOTED to
+   Stage −1 BLOCKING, Rev 1 attack-round-1 MAJOR-2 fix (previously an
+   un-run §15.20.8 Q2 TODO). CPU-only, COMPLETE this session, not merely
+   scheduled:** `matrix-thinking/deltanet_rd/sim_cliff_power_wide_grid.py`
+   (new purpose-built driver, `sim_cliff_power.py`'s own functions reused
+   unmodified) run at `K_seeds={69:2, 72:3, 78:3, 84:3, 90:3}`, `d_state=96`,
+   `n_trials=4000`, `seed=20260706`; artifact committed at
+   `sim_cliff_power_wide_grid_results.json`. **Result: at this program's own
+   measured cliff width (w=0.0597), both rival-center projected CI
+   half-widths (0.0430 abs-slack, 0.0319 power-law) exceed the derived
+   `0.0145` half-gap trigger — full numbers, the pre-registered response
+   rule, and the CLIFF-BEYOND-WINDOW adjudication are at §15.20.4.** This
+   item BLOCKS Stage 1 exactly like items 1-6 — it is listed last here only
+   because it was the last one actually executed, not because it is lower
+   priority; all 7 Stage −1 items are equally BLOCKING.
 
-**Enforced gate branches, not merely documented prerequisites (per this
+**Enforced gate table, not merely documented prerequisites (per this
 program's own established discipline — §15.17 Q1's own TODO, closed for
 the ORIGINAL kernel gate at §15.18's FATAL-2 resolution: "the chain script
 must mechanically require this PASSING artifact before launch" — extended
-here to this wave's own TWO new gates):** `keyanchor_scaling_chain.sh`'s
-own follow-up invocation must refuse to launch ANY d=96-wide cell if either
-(a) the long-T kernel-safety artifact is missing or reports FAIL, or (b) the
-`GATE2_N_ITER_BY_D_K[96]` sufficiency-check artifact for K∈{72,78,84,90} is
-missing or reports a convergence failure — mirrored exactly on the
-ALREADY-WORKING enforcement pattern the original wave's own chain script
-uses for the base kernel-safety artifact (verified present in
-`keyanchor_scaling_run1.log`/`run2.log`'s own header, §15.19's own citation).
+here to this wave's own FOUR gates, Rev 1: (a)/(b) already registered,
+(c)/(d) added by attack-round-1 MAJOR-1/MAJOR-4):**
+
+| Gate | Mechanism | Enforcement points | Failure mode |
+|---|---|---|---|
+| (a) Kernel long-T safety | `T∈{504,546,588,630}` forward+backward probe artifact, PASS required | bash belt (`keyanchor_scaling_wide_chain.sh` standalone check) + Python suspenders (`keyanchor_scaling_stage_gate`-equivalent) | Missing artifact or reported FAIL → refuse to launch ANY d=96-wide cell |
+| (b) `GATE2_N_ITER_BY_D_K[96]` sufficiency | K∈{72,78,84,90} `n_iter=20` convergence-check artifact, PASS required | Same belt+suspenders pair as (a) | Missing artifact or convergence failure → refuse to launch |
+| (c) K=69 reused-JSON integrity (**NEW, MAJOR-1**) | `sha256sum` of the 3 copied K=69 files diffed against a manifest pinned at build time against the ORIGINAL §15.19 archive (never regenerated from the copy) | bash belt (dedicated chain step, `exit 1` on mismatch) + Python suspenders (fit step refuses without the bash gate's own success sentinel) | Any hash mismatch or missing file → fail loud, halt before the fit runs |
+| (d) `+5.0 GPU-h` extension sign-off (**NEW, MAJOR-4**) | `KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1`, a DISTINCT env var from the original wave's `KEYANCHOR_SCALING_PI_SIGNOFF` — never OR'd with it | bash GATE 0-equivalent in `keyanchor_scaling_wide_chain.sh` + Python-side check in the wide-grid wave's own stage-gate function | Unset, or only the STALE original-wave token set → refuse with `exit 1` / `sys.exit(1)` before any cell (including Stage 0 calibration) launches |
+
 A documented-but-unenforced gate is exactly the gap this program has
 already found and closed once (§15.18 FATAL-2); it must not be reopened by
-omission here.
+omission here — this table is the single place all four of this wave's own
+gates are enumerated, per attack-round-1's own instruction to record them
+"in the §15.20.6 enforced-gates list + the gate table."
 
 **Stage 0 (calibration, mandatory house rule):** ONE cell, the cheapest new
 K in the d=96 wide grid — `K=72`, seed 1740. **Blinded readout** (`wall_s`
@@ -2115,34 +2338,63 @@ design's own drafting time.
 
 **Q1. Is the disjoint-band discrimination test (§15.20.4) actually as clean
 as claimed, or does it quietly assume the new fit will be non-degenerate —
-the SAME assumption that failed at d=96 the first time?** **Current
-answer:** yes, this is a real, unresolved risk, not fully closed by this
-design. If the new d=96-wide curve is ALSO flat (h4 stays near 1.0 all the
-way to K/d=0.9375), the fit degenerates the same way §15.19's own fit did,
-and NEITHER band gets tested — outcome 5 (§15.20.4) covers this case
-descriptively but the mechanical "FAVORED" calls (outcomes 2/3) simply
-don't fire. This is disclosed, not hidden, but a hostile reviewer could
-reasonably ask whether K=90 is far enough right with real confidence, or
-whether this design is repeating the same "the transition is probably just
-past our tested ceiling" bet that already failed once at K=69→90's own
-old ceiling. **TODO for attack round:** consider whether a PRE-registered
-"if K=90 shows no decline whatsoever (h4 ≥ 0.98, matching K=69's own
-89.39–98.6% range with no visible dip), the wave should note this as
-evidence `S` itself may not be constant even locally" — i.e. define a
-descriptive trigger for outcome 5's own sub-case, not just a bare "neither
-band" catch-all.
+the SAME assumption that failed at d=96 the first time?** **RESOLVED at
+Rev 1 (attack-round-1 MAJOR-3):** no longer a bare disclosed risk — the
+decision-rule table now names the flat/ceiling failure mode explicitly as
+**CLIFF-BEYOND-WINDOW** (step 1a), distinct from noisy-scatter AMBIGUOUS
+(step 1b), triggered specifically when `degenerate_frac > 10%` AND every
+sampled K's raw per-seed h4 mean is `≥0.98`. §15.20.4 now also adjudicates
+what a beyond-0.9375 cliff means for EACH rival (absolute-slack strained
+past rescue; power-law's functional form survives via a re-fit `α`), and
+this session's own power-check run (§15.20.4 MAJOR-2) empirically
+corroborates the trigger's own diagnostic signature: the `upper_edge_x090`
+control truth shows `degenerate_frac` climbing to 0.65–0.997 while every
+in-window truth stays near 0. The original text below (Q1's own pre-Rev-1
+TODO) is left as the historical record of what the attack round was
+reacting to.
+
+*(Original, pre-Rev-1 text, preserved per house "record history, don't
+retcon it" convention):* yes, this is a real, unresolved risk, not fully
+closed by this design. If the new d=96-wide curve is ALSO flat (h4 stays
+near 1.0 all the way to K/d=0.9375), the fit degenerates the same way
+§15.19's own fit did, and NEITHER band gets tested — outcome 5 (§15.20.4)
+covers this case descriptively but the mechanical "FAVORED" calls (outcomes
+2/3) simply don't fire. This is disclosed, not hidden, but a hostile
+reviewer could reasonably ask whether K=90 is far enough right with real
+confidence, or whether this design is repeating the same "the transition is
+probably just past our tested ceiling" bet that already failed once at
+K=69→90's own old ceiling. **TODO for attack round:** consider whether a
+PRE-registered "if K=90 shows no decline whatsoever (h4 ≥ 0.98, matching
+K=69's own 89.39–98.6% range with no visible dip), the wave should note
+this as evidence `S` itself may not be constant even locally" — i.e. define
+a descriptive trigger for outcome 5's own sub-case, not just a bare
+"neither band" catch-all.
 
 **Q2. Is reusing K=69 as the grid's "low edge" actually sound, given ONE of
 its 3 seeds is already known to be excluded (admissibility) — does the
 resulting n=2 low-edge point weaken the fit's own left-tail anchoring
-disproportionately?** **Current answer:** K=69's own role in THIS wave's
-fit is structurally different from K=16's role in the original d=64 cliff
-(§15.8) — it is not the FAR-left anchor (K=72–90 sit to its right, not
-around it), it is simply the leftmost of 5 roughly-evenly-spaced points,
-already itself close to the ceiling (h4≈0.98 at n=3, 0.96–1.0 at n=2). An
-n=2 vs n=3 seed count at one interior-ish point is a real, small power
-loss, not a structural gap — but this design has not re-run §15.8's own
-power-check machinery to confirm the n=2 K=69 doesn't meaningfully widen
+disproportionately?** **RESOLVED at Rev 1 (attack-round-1 MAJOR-2):** the
+TODO below asked for exactly the `sim_cliff_power.py` re-run at the actual
+5-point grid — now run (§15.20.4), not merely planned. The measured
+finding is MORE serious than this TODO anticipated: at the program's own
+realistic cliff width (w=0.0597) the n=2 K=69 point is not the dominant
+weakness — restoring it to n=3 only narrows the projected CI half-width by
+~4% (0.0430→0.0408 abs-slack; 0.0319→0.0307 power-law), nowhere near
+closing the gap to the derived 0.0145 discrimination threshold. The
+"real, small power loss, not a structural gap" framing below undersold the
+issue: the whole mandatory grid, not just the K=69 point, is underpowered
+for clean band discrimination at the measured noise level — see §15.20.4's
+own pre-registered response rule.
+
+*(Original, pre-Rev-1 text, preserved per house "record history, don't
+retcon it" convention):* K=69's own role in THIS wave's fit is structurally
+different from K=16's role in the original d=64 cliff (§15.8) — it is not
+the FAR-left anchor (K=72–90 sit to its right, not around it), it is simply
+the leftmost of 5 roughly-evenly-spaced points, already itself close to the
+ceiling (h4≈0.98 at n=3, 0.96–1.0 at n=2). An n=2 vs n=3 seed count at one
+interior-ish point is a real, small power loss, not a structural gap — but
+this design has not re-run §15.8's own power-check machinery to confirm the
+n=2 K=69 doesn't meaningfully widen
 the new fit's own CI. **TODO for attack round:** run `sim_cliff_power.py`'s
 existing machinery once more, this time simulating the ACTUAL 5-point grid
 `{K=69(n=2), 72(n=3), 78(n=3), 84(n=3), 90(n=3)}`, before trusting this
@@ -2220,5 +2472,57 @@ before any PI sign-off on the GPU-costing parts of this design** — the
 fix is safe, already-scoped, already-regression-tested-on-paper, and
 directly closes a registered mandatory-since-§15.9 gap regardless of
 whether the wider K-grid ever launches.
+
+---
+
+## §15.21 ATTACK-ROUND-1 fix-map (2026-07-07) — verdict NEEDS-REVISION
+
+An independent adversarial pass reviewed §15.20 (the d=96 wider-K
+cliff-hunting design, Rev 0) before any GPU work launched, per this
+program's own standing multiple-independent-audit-rounds discipline and
+per §15.20.7's own registered prerequisite (mirrors
+`REASONING_LINK_DESIGN.md` §16.7's and `KEY_ANCHORING_DESIGN.md`'s own
+fix-map convention, house style). Verdict: **NEEDS-REVISION** — 4 MAJOR,
+4 MINOR. The attack round also independently RE-DERIVED both rival CI
+bands from scratch (§15.20.4's absolute-slack and power-law corner
+arithmetic) and **CONFIRMED they remain disjoint** — `[0.718, 0.739]` vs
+`[0.768, 0.837]`, a real 0.029 gap — the design's own central claimed
+property survives fresh scrutiny even though the power to EXPLOIT that
+disjointness (MAJOR-2) does not, at this wave's own registered seed
+budget. Every finding below is fixed in this revision (Rev 1, §15.20.1–
+§15.20.6); none is deferred or waved away. Findings are recorded
+near-verbatim for the historical record, per house style; resolutions are
+stated as landed in this text, not as intentions.
+
+| # | Finding (attack-round on §15.20, Rev 0) | Severity | Fix (Rev 1) | Location |
+|---|---|---|---|---|
+| MAJOR-1 | The reused K=69 JSON byte-copy (3 files, seeds 1730/1731/1732, copied from the original §15.19 archive into this wave's own output directory) was only ever a PROSE instruction to "verify byte-identical copies via sha256" — no mechanism existed that could actually fail if the copy silently diverged, the exact class of gap §15.18 FATAL-2 already found and closed once for the kernel-safety gate | MAJOR | Named, enforced mechanism: a dedicated chain-script step (`keyanchor_scaling_wide_chain.sh`) computes `sha256sum` of the 3 copied files and diffs against a manifest PINNED at build time against the ORIGINAL §15.19 archive (never regenerated from the copy itself, which would make the check tautological); fail-loud, `exit 1` on any mismatch or missing file, before the fit step runs. Enforced belt (bash) + suspenders (Python-side refusal without the bash gate's own success sentinel), mirroring the existing kernel-gate pattern exactly. Added to the new §15.20.6 enforced-gate table as Gate (c) | §15.20.1 (Reusing K=69 in the fit input); §15.20.6 Stage −1 item 4 + enforced-gate table |
+| MAJOR-2 | §15.20.8 Q2's own TODO ("run `sim_cliff_power.py`'s existing machinery once more, simulating the ACTUAL 5-point grid") was left as an un-run TODO, not a Stage −1 BLOCKING requirement — the design's own central "clean discrimination" claim (§15.20.4) was never power-checked at the grid it actually proposes to run | MAJOR | Promoted to Stage −1 BLOCKING and RUN THIS SESSION (CPU-only, no GPU): new purpose-built driver `sim_cliff_power_wide_grid.py` (imports `sim_cliff_power.py`'s own `sigmoid`/`POOLED_REL_SD`/`NOISE_SD_MULTIPLIERS` unmodified, adds a heterogeneous-`n` sibling of `simulate_once`/`bootstrap_ci_width`) run at `K_seeds={69:2,72:3,78:3,84:3,90:3}`, `d_state=96`, `n_trials=4000`, `seed=20260706`. **Measured: at the program's own realistic cliff width (w=0.0597), both rival-center projected CI half-widths (0.0430 abs-slack, 0.0319 power-law) exceed the derived `0.0145` half-gap trigger** (half of the 0.029 inter-band gap — the correct, derived threshold, replacing the attack round's own rough "±~0.036" estimate). Firing the reserved K=69 contingency seed 1733 (n=2→n=3) narrows the half-widths by only ~4% — nowhere near sufficient. Pre-registered response: the decision rule now expects BOTH-CONSISTENT as the likely outcome at this seed budget (not a failure), and a genuinely powered follow-up is named as a separate, out-of-scope future GPU ask, not assumed funded here | §15.20.4 (new MAJOR-2 subsection, full table + response rule); §15.20.6 Stage −1 item 7; §15.20.8 Q2 (RESOLVED) |
+| MAJOR-3 | The Step-1 data-quality gate ("if degenerate_frac > 10% → AMBIGUOUS") conflated two structurally different failure modes — genuine noisy scatter (real signal, seed-escalation is the right remedy) and a curve that never leaves ceiling at all (no signal in this window, seed escalation cannot fix it) — and outcome 5's own worked example ("pinned again near the 0.9 fit-bound") gave no adjudication of what that would mean for either named rival | MAJOR | New named verdict **CLIFF-BEYOND-WINDOW** (step 1a: `degenerate_frac>10%` AND every sampled K's raw per-seed h4 mean `≥0.98`), distinct from AMBIGUOUS (step 1b: scatter-driven, seed-escalation eligible). Decision rule rewritten as an explicit table (§15.20.4). Per-rival adjudication written out: absolute-slack strained past rescue (a >0.208 absolute miss, larger than the already-disclosed 11% `S`-drift), power-law's functional form survives via a re-fit `α` using the new point as a third calibration point. Empirically corroborated by this session's own MAJOR-2 power-check run: the `upper_edge_x090` control truth shows `degenerate_frac` climbing to 0.65–0.997 while every in-window truth stays near 0 | §15.20.4 (decision-rule table + CLIFF-BEYOND-WINDOW adjudication); §15.20.8 Q1 (RESOLVED) |
+| MAJOR-4 | The proposed `+5.0 GPU-h` sub-ledger extension (§15.20.5) had no enforcement mechanism of its own — the ORIGINAL wave's `KEYANCHOR_SCALING_PI_SIGNOFF=1` token, already built and enforced (bash + Python), would silently also gate this SECOND, separate PI decision if left as the only check, meaning a stale token exported from launching the original wave could authorize the extension without a second explicit sign-off | MAJOR | New, DISTINCT token `KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1`, registered as a required build task for `--wave keyanchor-scaling-wide`, enforced at the SAME two points as the existing token (bash GATE 0-equivalent + Python-side `os.environ.get(...) != "1"` check, mirroring `keyanchor_scaling_stage_gate`'s own precedent verbatim) — the two env vars are never OR'd together in either check. Added to the enforced-gate table as Gate (d) | §15.20.5 (new MAJOR-4 paragraph); §15.20.6 enforced-gate table |
+| MINOR-1 | Cost-table arithmetic slip: `6.6505 × 2 = 13.3011` stated, but the correct product is `13.3010`; the shortfall (`4.0876`) and extension-margin (`≈0.91`) figures inherited the error | MINOR | Corrected to `13.3010`; shortfall recomputed to `4.0875`; extension margin recomputed to `≈0.9125` (rounds to the same `≈0.91` disclosed figure) | §15.20.5 (cost table + shortfall/margin text) |
+| MINOR-2 | `fit_cliff_curve.py` line-pin citations (`load_k_mean_h4` "lines 120–142", `d.get("complete")` "line 135", `main()` call sites "lines 300–307") were stale relative to the live file | MINOR | Refreshed to the verified-live values: `load_k_mean_h4` lines 122–145, `d.get("complete")` line 137, `main()` call sites lines 303–310 | §15.20.3 (both citations) |
+| MINOR-3 | The absolute-slack point prediction routed through an unnecessary rounding detour (`K_crit(80) = 54.048 ≈ 54`, `S = 80−54 = 26`), silently shifting the point estimate | MINOR | Dropped the rounding detour; `S` kept unrounded (`25.952`), giving the corrected point prediction `x0(96) = 0.729667` (vs. the rounded detour's `0.7292`) — the CI-corner band `[0.718, 0.739]` was never routed through the detour and is UNCHANGED | §15.20.4 (absolute-slack paragraph) |
+| MINOR-4 | The seed-disjointness-from-REASONING_LINK justification relied on MAGNITUDE ("six orders of magnitude away, no realistic collision") rather than structure — a weaker guarantee that would not survive either program's seed range growing substantially | MINOR | Corrected to a STRUCTURAL argument: REASONING_LINK's `episode_seed` formula sums only exact multiples of 1,000, so it emits `≡0 (mod 1000)` by construction; every KEY_ANCHORING seed block in this program's history (verified directly: 1730, 1740, 1840, 1940, 2040, …) is never a multiple of 1000. The two seed spaces are disjoint by residue class, not merely by today's numeric range. The magnitude fact is retained as a disclosed secondary cross-check, no longer the load-bearing reason | §15.20.1 (seed table paragraph) |
+
+**What Rev 1 could NOT cleanly fix, disclosed rather than hidden:** MAJOR-2's
+own measured result is a genuinely negative finding, not fully "fixed" in
+the sense of restoring the design's original ambition — this wave's own
+mandatory grid, even with every already-reserved contingency seed fired,
+cannot reliably achieve clean band discrimination at this program's own
+measured cliff width. Rev 1 responds to this honestly (a pre-registered
+BOTH-CONSISTENT expectation, a named future-wave ask, MAJOR-3's
+CLIFF-BEYOND-WINDOW branch as a MORE informative fallback) rather than by
+quietly lowering the discrimination bar to declare success more easily, but
+the underlying power gap is real and is not closed by this revision.
+§15.20.8's Q3–Q6 (power-law's own epistemic status as a rival, whether the
+`+5.0 GPU-h` ask re-litigates an already-once-reopened sub-ledger, the
+`fit_cliff_curve.py` fix's own citation-impact scan scope, and the
+scope-bundling recommendation) were **not** in this attack round's scope
+and remain open exactly as Rev 0 left them — this revision does not claim
+to have addressed them. **Rev 1 itself has not yet had its own independent
+audit pass** — per this project's standing rule that multiple independent
+adversarial rounds catch different bugs each round, landing attack-round-1's
+findings does not, on its own, certify §15.20 as CLEARED-FOR-BUILD.
 
 ---
