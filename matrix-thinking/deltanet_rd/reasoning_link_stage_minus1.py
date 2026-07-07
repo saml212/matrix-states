@@ -6,15 +6,36 @@ convention). Every item imports and exercises `reasoning_link_probe.py`'s
 OWN real functions -- never a reimplemented copy -- so a Stage -1 pass
 actually certifies the probe's own code, not a parallel stand-in.
 
+PLUS items 15-18 (sec 16.1's PHASE-1B natural-language-surface-form
+addition, registered by this feature's own BUILD brief rather than by sec 9
+itself, since sec 9 predates sec 16.1): Candidate B's succession-verb
+tokenizer verification, the natural-template T_bind/K_min re-derivation,
+and the natural-query causality/q_conv1d-hook re-checks -- plus a
+gate-enforcement negative test (test_extra_gate_enforcement_negative_test,
+alongside the sec-12 outcome-routing extra check) closing sec 15.2's own
+DISCREPANCY finding for the Phase-1b chain.
+
+PLUS item 19 (mini-audit FIX-1, this build round, closing MAJOR-1 + MAJOR-2
+of the Phase-1b gate build's mini-audit): natural-query SEMANTIC-CONTENT
+verification. Items 15-18 verify the natural query's tokenizer validity,
+shape, causal-locality, and hook-vs-direct-call agreement -- but never (a)
+drive it through `measure_cell_all_h`'s own `query_mode` DISPATCH (they all
+call `build_natural_query_tokens` directly), and never (b) check the
+window's DECODED CONTENT at all (only its shape/numerics). Item 19 closes
+both gaps with one assertion set: it exercises the real dispatch (catching
+a typo'd string comparison that would silently fall through to the marker
+branch) and decodes the actual window content (catching a KEY/REL order
+swap inside the builder, which no shape/causality/hook check can see).
+
 CPU-runnable throughout. Items needing "a real checkpoint" (5, 6, 11, 13,
-14) use a small, freshly-initialized `DeltaNetLM` instance (via this repo's
-own CPU fla-stub, see `reasoning_link_probe.py`'s module docstring) as a
-stand-in "checkpoint" -- mirrors `lm_attractor_probe_rd.py`'s own smoke()
-item [6] convention exactly ("a TINY (but REAL-vocab-sized) SYNTHETIC
-(untrained) model ... NOT a claim about real key geometry"). What this DOES
-verify for real: the hook-registration code, the direct-submodule-call
-code, the surgery-toggle conditional, and the causal-locality guarantee of
-`ShortConvolution` itself (a structural property of the operator,
+14, 17, 18, 19) use a small, freshly-initialized `DeltaNetLM` instance (via this
+repo's own CPU fla-stub, see `reasoning_link_probe.py`'s module docstring)
+as a stand-in "checkpoint" -- mirrors `lm_attractor_probe_rd.py`'s own
+smoke() item [6] convention exactly ("a TINY (but REAL-vocab-sized)
+SYNTHETIC (untrained) model ... NOT a claim about real key geometry"). What
+this DOES verify for real: the hook-registration code, the direct-submodule-
+call code, the surgery-toggle conditional, and the causal-locality guarantee
+of `ShortConvolution` itself (a structural property of the operator,
 independent of trained-vs-random weights or stub-vs-real kernel -- see
 item 5's own docstring for the argument). What it does NOT verify: the
 real CUDA Triton `chunk_delta_rule` kernel's own behavior, or any property
@@ -536,6 +557,343 @@ def test_item_14_q_conv1d_hook_equivalence():
 
 
 # ---------------------------------------------------------------------------
+# Items 15-18 -- sec 16.1 PHASE-1B (natural-language surface form) additions.
+# Not part of the design's original 14 (sec 9 was written before sec 16.1
+# existed) -- registered by THIS BUILD's own brief ("Stage -1 additions per
+# sec 16.1's registered items"), numbered onward from 14 following this
+# file's own convention of one executable item per registered build
+# artifact.
+# ---------------------------------------------------------------------------
+
+def test_item_15_candidate_b_verb_verification():
+    """sec 16.1.1 Candidate B's own registered build item: the succession-
+    family verb pool ("succeeded"/"replaced") is NEW, Phase-1b-only
+    vocabulary, never verified anywhere in this codebase before -- single-
+    token + round-trip-decode + non-collision, against the REAL GPT-2
+    tokenizer (never assumed)."""
+    tokenizer = grammar_rd.load_gpt2_tokenizer()
+    pools, _ = rlp.build_reasoning_link_pools(tokenizer=tokenizer, seed=0)
+    report = rlp.verify_natural_template_b_verbs(tokenizer, pools)
+    assert report["ok"], f"Candidate B verb verification FAILED: {report['rejected']!r}"
+    assert report["n_verified"] == len(rlp._CANDIDATE_B_VERBS) == 2
+    # end-to-end: build_natural_pools(template='B') must actually succeed and substitute rel_a_ids
+    # with exactly these verified ids (not silently fall back to the gift-verb pool on failure).
+    nat_pools_b, nat_report_b = rlp.build_natural_pools(tokenizer=tokenizer, seed=0, template="B")
+    verified_ids = {tid for _, tid in report["verified"]}
+    assert set(nat_pools_b.rel_a_ids.tolist()) == verified_ids, (
+        "build_natural_pools(template='B') did not substitute rel_a_ids with the verified succession ids")
+    _report(15, "Candidate B succession-verb pool ('succeeded'/'replaced') single-token + "
+                "non-collision verified against the real GPT-2 tokenizer; build_natural_pools "
+                "substitutes rel_a_ids with exactly these ids", True,
+            f"verified={report['verified']}")
+
+
+def test_item_16_natural_template_floor_rederivation():
+    """This BUILD's own brief: "clause length CHANGES -- re-derive T_bind
+    and the K_min floor for the natural template; assert them." Re-derived
+    (not assumed) and checked directly: the BIND-side clause shape is
+    UNCHANGED under sec 16.1 ("Both candidates keep the period-repeat
+    buffer convention unchanged" -- same buf+KEY+REL+VALUE+PERIOD template,
+    only WHICH verb pool renders REL differs) -- so T_bind/K_min are
+    IDENTICAL to the marker template's, a checked conclusion, not an
+    inherited assumption. The quantity that GENUINELY changes is the QUERY
+    window (marker dropped, not replaced) -- natural_query_len is exactly
+    ONE TOKEN SHORTER than the marker template's query_len at every
+    conv_size, checked directly against a real episode_cfg rather than by
+    formula alone."""
+    for conv_size in (4,):
+        assert rlp.natural_clause_len(conv_size) == rlp.clause_len_for_conv_size(conv_size) == 7, (
+            "BIND clause_len must be unchanged under the natural template (sec 16.1)")
+        assert rlp.natural_k_min_for_conv_size(conv_size) == rlp.k_min_for_conv_size(conv_size) == 19, (
+            "K_min must be unchanged under the natural template (T_bind depends only on the "
+            "unchanged BIND clause_len)")
+        cfg = rlp.episode_config_for_checkpoint(conv_size, K=20)
+        assert rlp.natural_query_len(conv_size) == cfg.query_len - 1 == 5, (
+            "natural_query_len must be exactly one token shorter than the marker template's "
+            "query_len (the <Q> marker dropped, not replaced)")
+    for K in (20, 32, 40, 48, 64, 96):
+        T_bind_natural = K * rlp.natural_clause_len(4)
+        assert T_bind_natural >= 128, f"K={K}: natural T_bind={T_bind_natural} < _MIN_KERNEL_T=128"
+        # forward-B's total T (T_bind + query_len) only grows relative to T_bind alone -- a SHORTER
+        # query_len cannot newly violate the kernel floor once T_bind alone already clears it.
+        assert T_bind_natural + rlp.natural_query_len(4) >= 128
+    _report(16, "natural-template T_bind/K_min re-derived and IDENTICAL to the marker template's "
+                "(BIND clause shape unchanged, K_min=19); natural_query_len re-derived and CHANGED "
+                "(one token shorter than the marker template's query_len, marker dropped not "
+                "replaced) -- every registered K clears the re-derived floor", True)
+
+
+def test_item_17_natural_query_causality_assertion():
+    """Mirrors item 11 (two-forward causality assertion) but drives it
+    through sec 16.1's own natural-completion query construction, for BOTH
+    Candidate A and Candidate B -- the query window's SHAPE changed (marker
+    dropped, one token shorter), so the shared-BIND-prefix causality
+    guarantee is re-verified here rather than assumed to still hold
+    unchanged from item 11's marker-template check."""
+    torch.manual_seed(70)
+    V = 50257
+    model = DeltaNetLM(V, d_model=32, d_state=64, n_layers=2, conv_size=4, num_heads=1)
+    model.eval()
+    tokenizer = grammar_rd.load_gpt2_tokenizer()
+    cfg = rlp.episode_config_for_checkpoint(conv_size=4, K=20)
+    for template in rlp.NATURAL_TEMPLATES:
+        pools, _ = rlp.build_natural_pools(tokenizer=tokenizer, seed=0, template=template)
+        gen = torch.Generator().manual_seed(0)
+        batch = grammar_rd.sample_batch_rd(cfg, 4, gen, hop_set=(1,), pools=pools)
+        qk_one = torch.gather(batch["entity_ids"], 1, batch["a_slot"][:, :1])
+        natural_query_one = rlp.build_natural_query_tokens(cfg, pools, qk_one, batch["rel_id"])[:, 0, :]
+        assert natural_query_one.shape[-1] == rlp.natural_query_len(4)
+        result = rlp.causality_check(model, batch["token_ids"], natural_query_one, tol=1e-6)
+        assert result["pass"], (
+            f"template={template!r}: natural-query causality check FAILED: "
+            f"max_abs_diff={result['max_abs_diff']}")
+    _report(17, "forward-A/forward-B produce identical k/v_conv1d outputs over the shared BIND "
+                "prefix under sec 16.1's natural-completion query (marker dropped), Candidates A "
+                "and B both verified", True)
+
+
+def test_item_18_natural_q_conv1d_hook_equivalence():
+    """Mirrors item 14 (q_conv1d hook equivalence) but on sec 16.1's natural
+    query window -- confirms q_eff is correctly captured at the query's own
+    NEW final position (the relation-verb token REL, since the marker that
+    used to sit there is dropped) and matches a direct submodule call,
+    for both candidates."""
+    torch.manual_seed(71)
+    V = 50257
+    model = DeltaNetLM(V, d_model=32, d_state=64, n_layers=2, conv_size=4, num_heads=1)
+    model.eval()
+    tokenizer = grammar_rd.load_gpt2_tokenizer()
+    cfg = rlp.episode_config_for_checkpoint(conv_size=4, K=20)
+    for template in rlp.NATURAL_TEMPLATES:
+        pools, _ = rlp.build_natural_pools(tokenizer=tokenizer, seed=0, template=template)
+        gen = torch.Generator().manual_seed(0)
+        batch = grammar_rd.sample_batch_rd(cfg, 2, gen, hop_set=(1,), pools=pools)
+        qk_one = torch.gather(batch["entity_ids"], 1, batch["a_slot"][:, :1])
+        natural_query_one = rlp.build_natural_query_tokens(cfg, pools, qk_one, batch["rel_id"])[:, 0, :]
+        concat = torch.cat([batch["token_ids"], natural_query_one], dim=1)  # forward-B's own construction
+
+        handles, captured = rlp.register_kqv_hooks(model)
+        try:
+            with torch.no_grad():
+                _ = rlp.forward_body(model, concat, need_hidden=False)
+        finally:
+            rlp.remove_hooks(handles)
+
+        with torch.no_grad():
+            xemb = model.embed(concat)
+        blk0 = model.blocks[0]
+        direct_q, _ = blk0.mixer.q_conv1d(blk0.mixer.q_proj(blk0.norm1(xemb)))  # item 13's own norm1 note
+        hook_q = captured["q"][0]
+        max_diff = (direct_q - hook_q).abs().max().item()
+        assert max_diff < 1e-6, f"template={template!r}: q_conv1d hook diverges from direct call by {max_diff}"
+        # the query's own final position is now REL (marker dropped) -- confirm the last-position
+        # read this module's forward-B scoring convention relies on lands on a REAL token, not an
+        # out-of-range/padding position: query_len == buf_len(3) + KEY + REL == 5 for conv_size=4,
+        # and concat's last natural_query_len(4)=5 columns ARE exactly natural_query_one, so index
+        # -1 is unambiguously REL's own hook output.
+        assert concat.shape[1] - rlp.natural_query_len(4) == batch["token_ids"].shape[1]
+    _report(18, "q_conv1d forward-hook output (on forward-B's natural-query bind+query input) "
+                "matches a direct submodule call (1e-6); the query's own final position (REL, "
+                "marker dropped) is confirmed unambiguous, Candidates A and B both verified", True)
+
+
+# ---------------------------------------------------------------------------
+# Item 19 -- mini-audit FIX-1 (this build round): natural-query
+# semantic-content verification, closing MAJOR-1 + MAJOR-2 with one
+# assertion set.
+# ---------------------------------------------------------------------------
+
+def test_item_19_natural_query_semantic_content_verification():
+    """Mini-audit MAJOR-1 + MAJOR-2 fix (this build round).
+
+    MAJOR-1: `measure_cell_all_h`'s own `query_mode` DISPATCH (the
+    `if query_mode == "natural":` branch, sec 16.1) is a bare string
+    comparison that items 1-18 never independently exercise -- items 17/18
+    call `build_natural_query_tokens` DIRECTLY, bypassing the dispatch
+    entirely. A typo'd comparison (e.g. 'natura1' vs 'natural') would
+    silently fall through to the marker branch -- `measure_cell_all_h`
+    would keep running (forward_a/forward_b counts unchanged) and feed
+    forward-B a MARKER-template window while every caller (including
+    `run_stage0_natural`) believes it asked for, and the returned JSON is
+    later interpreted as, the natural-completion query. No prior item can
+    catch this: it is purely a property of the DISPATCH, not the builder.
+
+    MAJOR-2: items 17/18 assert shape, causal-locality, and hook-vs-
+    direct-call agreement on the natural window -- but never its CONTENT.
+    A KEY/REL order swap inside `build_natural_query_tokens` (sec 16.1's
+    own registered [buf...,KEY,REL] order) would still pass every one of
+    those checks unchanged (identical shape, identical causal-locality
+    property, identical hook-vs-direct agreement -- none of them depend on
+    WHICH entity sits in which of the last two slots) while silently
+    handing forward-B's own "read q_eff at position -1" convention (this
+    module's docstring, `measure_cell_all_h`'s own docstring) the WRONG
+    (entity, not verb) token to score against.
+
+    Fix: spy on the PRODUCTION `rlp.build_natural_query_tokens` (a
+    module-level rebind, restored in `finally` even on exception) and
+    drive it through `measure_cell_all_h`'s REAL `query_mode='natural'`
+    dispatch -- never a hand call, never a parallel reimplementation. The
+    spy's call count is itself the MAJOR-1 assertion (0 calls means the
+    dispatch silently fell through to the marker branch). Its captured
+    (args, return) is then decoded against the REAL GPT-2 tokenizer and
+    checked for MAJOR-2's content properties: (a) the natural window
+    differs from the marker path's window FOR THE SAME BATCH (reproduced
+    directly via `grammar_rd.sample_batch_rd` with the identical seed/
+    pools/episode_cfg `measure_cell_all_h` itself uses -- torch.Generator's
+    own determinism makes this a bit-identical redraw, not an
+    approximation); (b) no query_id/marker token appears anywhere in the
+    natural window (checked against the GENUINELY DISTINCT reserved marker
+    `build_reasoning_link_pools` selects -- not `build_natural_pools`'s own
+    `query_id`, which sec 16.1 defensively collapses to `buffer_id`/
+    `period_id` and therefore DOES legitimately appear at the natural
+    window's buf positions; checking that inert placeholder for "absence"
+    would be vacuously false on every correct run); (c) the LAST token
+    (the position `measure_cell_all_h` actually reads q_eff from) is drawn
+    from the ACTIVE `rel_a_ids` verb pool, never the entity pool -- pinned
+    against the live-tokenizer-verified literal ids for Candidate B
+    (' succeeded'->14131, ' replaced'->6928, cross-checked against item
+    15's own verification); (d) the entity token appears at its expected
+    KEY slot (index -2, immediately before REL). A KEY/REL swap makes (a)
+    fail outright (the reconstructed prefix-equality breaks) and, even if
+    (a) were somehow weakened, makes (c) and (d) fail independently and
+    precisely (last token becomes the entity id, KEY-slot token becomes
+    the verb id) -- MAJOR-1 and MAJOR-2 are both caught by this one
+    assertion set, per the mini-audit's own prescription.
+    """
+    torch.manual_seed(190)
+    V = 50257
+    model = DeltaNetLM(V, d_model=32, d_state=64, n_layers=2, conv_size=4, num_heads=1)
+    model.eval()
+    tokenizer = grammar_rd.load_gpt2_tokenizer()
+    cfg = rlp.episode_config_for_checkpoint(conv_size=4, K=20)
+    readout_layer = rlp.readout_layer_index(model)
+
+    # Literal-token pins (mirrors item 9's own "direct hard-coded-literal, not only a
+    # relative/transitive check" convention), computed fresh against the REAL GPT-2
+    # tokenizer -- never assumed -- so a tokenizer-version drift is caught loudly here
+    # rather than silently comparing against a stale hardcoded id.
+    succeeded_id_live = tokenizer.encode(" succeeded")[0]
+    replaced_id_live = tokenizer.encode(" replaced")[0]
+    assert (succeeded_id_live, replaced_id_live) == (14131, 6928), (
+        f"Candidate B verb ids drifted from the registered literals (item 15's own "
+        f"verification): got ({succeeded_id_live}, {replaced_id_live}), expected (14131, 6928)")
+
+    # The GENUINELY DISTINCT reserved query-marker token -- from `build_reasoning_link_pools`
+    # (the ORIGINAL marker-template path), never `build_natural_pools`'s own `query_id` (which
+    # sec 16.1 defensively collapses to `buffer_id`, see this function's own docstring point (b)).
+    marker_pools, _ = rlp.build_reasoning_link_pools(tokenizer=tokenizer, seed=0)
+    real_marker_id = int(marker_pools.query_id)
+    assert real_marker_id != int(marker_pools.buffer_id), (
+        "degenerate marker selection: query_id collided with buffer_id -- (b)'s absence check "
+        "would be vacuous")
+
+    for template in rlp.NATURAL_TEMPLATES:
+        pools, _ = rlp.build_natural_pools(tokenizer=tokenizer, seed=0, template=template)
+
+        # Spy on the PRODUCTION function -- module-attribute rebind, so calls made FROM WITHIN
+        # measure_cell_all_h (which resolves `build_natural_query_tokens` via this module's own
+        # globals at call time, standard Python late-binding) are intercepted too, not only calls
+        # made directly from this test.
+        calls = []
+        original_fn = rlp.build_natural_query_tokens
+
+        def _spy(cfg_arg, pools_arg, query_key_ids_arg, rel_id_arg, _orig=original_fn):
+            out = _orig(cfg_arg, pools_arg, query_key_ids_arg, rel_id_arg)
+            calls.append({"query_key_ids": query_key_ids_arg.clone(), "tokens": out.clone()})
+            return out
+
+        rlp.build_natural_query_tokens = _spy
+        try:
+            rlp.measure_cell_all_h(
+                model, cfg, pools, readout_layer, 20, (1,), 4, 0, "native", "cpu",
+                compute_option2=False, compute_premises=False, query_mode="natural")
+        finally:
+            rlp.build_natural_query_tokens = original_fn
+
+        # MAJOR-1: the dispatch must have ACTUALLY entered the natural branch and called the
+        # production builder exactly once. A 'natura1'-typo'd (or any other silently-false)
+        # comparison never calls it at all -- caught here directly, not via a downstream numeric
+        # side effect that might coincidentally still look plausible.
+        assert len(calls) == 1, (
+            f"template={template!r}: measure_cell_all_h(query_mode='natural') called "
+            f"build_natural_query_tokens {len(calls)} time(s), expected exactly 1 -- the dispatch "
+            f"silently fell through to the marker branch (MAJOR-1: e.g. a 'natural' vs 'natura1' "
+            f"typo in the dispatch's own string comparison)")
+
+        natural_window = calls[0]["tokens"][0, 0, :]
+        query_key_id = int(calls[0]["query_key_ids"][0, 0])
+
+        # Reproduce the SAME episode's marker-style window directly via grammar_rd.sample_batch_rd
+        # -- the EXACT call measure_cell_all_h itself makes before query_mode='natural' overwrites
+        # batch["query_tokens"] (same episode_cfg/batch_size/hop_set/pools/seed reproduces the
+        # IDENTICAL draw, torch.Generator's own determinism) -- a REAL "marker path window for the
+        # same batch" to diff against, not a synthetic stand-in.
+        gen_repro = torch.Generator(device="cpu").manual_seed(0)
+        batch_repro = grammar_rd.sample_batch_rd(cfg, 4, gen_repro, hop_set=(1,), pools=pools, device="cpu")
+        marker_window = batch_repro["query_tokens"][0, 0, :]
+
+        # (a) the natural window differs from the marker path's window for the same batch --
+        # checked PRECISELY: natural_window must equal marker_window's own [buf...,KEY,REL] prefix
+        # with ONLY the trailing marker slot dropped (sec 16.1: "dropped entirely, not replaced").
+        # A KEY/REL order swap breaks this equality directly (the last two elements would no
+        # longer match marker_window's own KEY,REL order).
+        assert natural_window.shape[-1] == marker_window.shape[-1] - 1, (
+            f"template={template!r}: natural_query_len={natural_window.shape[-1]} is not exactly "
+            f"one token shorter than the marker window's query_len={marker_window.shape[-1]}")
+        assert torch.equal(natural_window, marker_window[:-1]), (
+            f"template={template!r}: natural window {natural_window.tolist()} is not the marker "
+            f"window's own [buf...,KEY,REL] prefix {marker_window[:-1].tolist()} -- content diverged "
+            f"(MAJOR-2: e.g. a KEY/REL order swap inside build_natural_query_tokens)")
+        natural_decoded = tokenizer.decode(natural_window.tolist())
+        marker_decoded = tokenizer.decode(marker_window.tolist())
+        assert natural_decoded != marker_decoded, (
+            f"template={template!r}: natural/marker windows decode to the SAME string: "
+            f"{natural_decoded!r}")
+
+        # (b) NO query_id/marker token appears anywhere in the natural window -- checked against
+        # the GENUINELY DISTINCT reserved marker (build_reasoning_link_pools's own query_id), not
+        # build_natural_pools's collapsed one (see this function's own docstring).
+        assert real_marker_id not in natural_window.tolist(), (
+            f"template={template!r}: the reserved marker token {real_marker_id} leaked into the "
+            f"natural window {natural_window.tolist()} -- sec 16.1 requires it DROPPED, not merely "
+            f"unused")
+
+        # (c) the LAST token (the scored q_eff position, forward-B's own "-1" convention) is drawn
+        # from the ACTIVE rel_a_ids verb pool, never the entity pool.
+        last_token = int(natural_window[-1])
+        active_verb_ids = set(pools.rel_a_ids.tolist())
+        entity_pool_ids = set(pools.train_name_ids.tolist()) | set(pools.heldout_name_ids.tolist())
+        assert last_token in active_verb_ids, (
+            f"template={template!r}: natural window's last (scored) token {last_token} is not in "
+            f"the active rel_a_ids verb pool {sorted(active_verb_ids)} -- q_eff would be read at "
+            f"the WRONG (non-verb) position")
+        assert last_token not in entity_pool_ids, (
+            f"template={template!r}: natural window's last token {last_token} collides with the "
+            f"entity pool -- cannot distinguish a KEY/REL order swap from a correct build")
+        if template == "B":
+            assert last_token in (succeeded_id_live, replaced_id_live), (
+                f"template=B: last token {last_token} is not one of the verified succession-verb "
+                f"literals ({succeeded_id_live}, {replaced_id_live})")
+
+        # (d) the entity token appears at its expected slot (index -2 -- KEY, immediately before
+        # REL, per build_natural_query_tokens's own registered [buf...,KEY,REL] order).
+        entity_slot_token = int(natural_window[-2])
+        assert entity_slot_token == query_key_id, (
+            f"template={template!r}: expected the KEY slot (index -2) to hold the query entity id "
+            f"{query_key_id}, found {entity_slot_token} instead -- KEY/REL order swap (MAJOR-2)")
+        assert entity_slot_token in entity_pool_ids, (
+            f"template={template!r}: KEY slot token {entity_slot_token} is not itself in the "
+            f"entity pool -- unexpected content at the expected entity slot")
+
+    _report(19, "natural query semantic-content verification: measure_cell_all_h's REAL "
+                "query_mode='natural' DISPATCH is exercised (not just the builder, closing "
+                "MAJOR-1) and its window's DECODED content is checked -- differs from the marker "
+                "window (a), no reserved-marker token present (b), last (scored) token is a verb "
+                "from the active rel_a_ids pool (c), entity token at its expected KEY slot (d, "
+                "closing MAJOR-2) -- Candidates A and B both verified", True)
+
+
+# ---------------------------------------------------------------------------
 # Extra (non-numbered) checks: the sec-12 outcome-routing gates have teeth.
 # Not part of the official 14 items, but cheap and worth exercising since
 # they are pure functions this build also delivers (sec 12's own
@@ -563,6 +921,22 @@ def test_extra_outcome_routing_gates():
     print("[Stage-1 extra] outcome-routing gates (sec 12) mechanically fire as pre-registered: PASS")
 
 
+def test_extra_gate_enforcement_negative_test():
+    """This BUILD's own brief, item (c): the sec-16.1 chain's gate
+    enforcement (reasoning_link_gate_enforce.py, closing sec 15.2's
+    DISCREPANCY finding) "must READ the gate verdict from the output JSON
+    and refuse/announce mechanically -- verified by a negative test." Wired
+    into the standard Stage -1 suite so `--mode selftest` exercises it too,
+    in addition to its own standalone `--selftest` entrypoint (the chain
+    calls the SAME module, so a regression here would be caught either
+    way)."""
+    import reasoning_link_gate_enforce as glinke
+    ok = glinke._run_selftest()
+    assert ok, ("reasoning_link_gate_enforce's own negative-test fixture suite FAILED -- the "
+                "Phase-1b chain's gate enforcement does not have teeth (sec 15.2's own gap, unfixed)")
+    print("[Stage-1 extra] gate-enforcement negative test (sec 15.2 fix, this BUILD item (c)): PASS")
+
+
 ALL_ITEMS = [
     test_item_1_tokenizer_verification, test_item_2_hand_built_composition,
     test_item_3_bigram_shortcut_scorer, test_item_4_label_shuffle_null,
@@ -571,12 +945,16 @@ ALL_ITEMS = [
     test_item_9_kernel_t_floor, test_item_10_seed_non_collision,
     test_item_11_causality_assertion, test_item_12_three_entity_worked_example,
     test_item_13_v_conv1d_hook_equivalence, test_item_14_q_conv1d_hook_equivalence,
+    test_item_15_candidate_b_verb_verification, test_item_16_natural_template_floor_rederivation,
+    test_item_17_natural_query_causality_assertion, test_item_18_natural_q_conv1d_hook_equivalence,
+    test_item_19_natural_query_semantic_content_verification,
 ]
 
 
 def run_all_selftests() -> bool:
     print("=" * 70)
-    print("REASONING-LINK Stage -1 SELF-TESTS (14 items, sec 9)")
+    print("REASONING-LINK Stage -1 SELF-TESTS (14 items, sec 9, + items 15-18, sec 16.1 Phase-1b, "
+          "+ item 19, mini-audit FIX-1)")
     print(f"fla_stub_installed={rlp.FLA_STUB_INSTALLED}")
     print("=" * 70)
     t0 = time.time()
@@ -592,6 +970,11 @@ def run_all_selftests() -> bool:
     except AssertionError as e:
         failures.append(("test_extra_outcome_routing_gates", str(e)))
         print(f"  ** FAILURE in test_extra_outcome_routing_gates: {e}")
+    try:
+        test_extra_gate_enforcement_negative_test()
+    except AssertionError as e:
+        failures.append(("test_extra_gate_enforcement_negative_test", str(e)))
+        print(f"  ** FAILURE in test_extra_gate_enforcement_negative_test: {e}")
 
     wall = time.time() - t0
     print("=" * 70)

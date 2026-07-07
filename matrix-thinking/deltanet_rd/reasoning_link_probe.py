@@ -424,6 +424,196 @@ def build_reasoning_link_pools(tokenizer=None, heldout_frac: float = 0.5, seed: 
 
 
 # ---------------------------------------------------------------------------
+# sec 16.1 -- PHASE-1B, PATH (i): natural-language surface form (Stage-0-
+# gate-only test, ~0.01 GPU-h). Tests whether sec 15's PROBE-INVALID result
+# was a surface-form artifact (the reserved marker template) or a deeper
+# representational fact (premise iv's near-zero k<->v correlation) -- see
+# the design's own sec 16.0 framing.
+#
+# "What stays fixed, by design" (sec 16.1, quoted): the single-Hamiltonian-
+# K-cycle generator (_permutation_graph), the 107-entity pool (reused
+# verbatim), the three Leg-A arms / Leg-B rungs, h in {1,2,3,4} and the K
+# sweep, premises (iii)/(iv) and the h1-floor gate EXACTLY as registered
+# (sec 8.4), the v_eff-scored Option 1 readout and Option 2 secondary
+# (sec 4.4), and the two-forward causality protocol -- this section changes
+# ONLY the query window's surface form, nothing else. Bind-phase construction
+# therefore calls grammar_rd.sample_batch_rd VERBATIM (never modified,
+# mirroring sec 4.1's own "reused verbatim" convention for grammar_rd.py) --
+# the single axis this section touches is the QUERY window: the reserved
+# marker token is DROPPED ENTIRELY (not replaced) and q_eff is read at the
+# query's own final (relation-verb) position via completion truncation,
+# exactly the existing forward-B/measure_cell_all_h machinery's own generic
+# "read q_eff at position -1" convention (sec 4.4) -- no downstream scoring
+# code changes at all, only how the query window itself is assembled.
+#
+# Two candidates (sec 16.1.1), both built here (design registers BOTH as
+# "cheap enough to run in the same Stage-0 gate... running BOTH candidates x
+# 2 corpora (4 gate cells total)"):
+#   Candidate A -- minimal diff. Reuses the ALREADY-verified gift-verb pool
+#     (grammar_rd's own rel_a_ids, e.g. "gave"/"handed"/"passed") verbatim --
+#     zero new Stage -1 tokenizer verification burden.
+#   Candidate B -- succession family ("succeeded"/"replaced"), an order of
+#     magnitude more common in the project's own WikiText corpus (sec
+#     16.1.1's own grep: 223 hits vs. 23 for the gift-verb bind shape) and a
+#     better semantic match to multi-hop composition. NOT yet verified
+#     anywhere in this codebase -- a genuinely NEW Stage -1 single-token/
+#     non-collision check, disclosed by the design itself as "a small,
+#     disclosed build item, not a blocker" (sec 16.1.1).
+# ---------------------------------------------------------------------------
+
+NATURAL_TEMPLATES = ("A", "B")
+_CANDIDATE_B_VERBS = ["succeeded", "replaced"]   # sec 16.1.1 Candidate B, registered verbatim
+
+
+def verify_natural_template_b_verbs(tokenizer, pools: grammar_rd.EntityPools) -> dict:
+    """sec 16.1.1 Candidate B's own registered build item: single-token +
+    round-trip-decode + non-collision verification for the succession-family
+    verb pool against the REAL GPT-2 tokenizer -- mirrors
+    grammar_rd._verify_words's own convention exactly, but implemented here
+    (not grammar_rd.py) since this vocabulary is NEW, Phase-1b-only, and
+    sec 4.1/16.1 both register grammar_rd.py as reused VERBATIM, never
+    modified for this adaptation."""
+    used_ids = (set(pools.train_name_ids.tolist()) | set(pools.heldout_name_ids.tolist())
+                | set(pools.rel_a_ids.tolist()) | set(pools.rel_b_ids.tolist()) | {pools.period_id})
+    verified, rejected = [], []
+    for w in _CANDIDATE_B_VERBS:
+        ids = tokenizer.encode(" " + w)
+        if len(ids) != 1:
+            rejected.append((w, "multi-token", ids))
+            continue
+        tid = ids[0]
+        decoded = tokenizer.decode([tid])
+        if decoded != (" " + w):
+            rejected.append((w, "decode-mismatch", decoded))
+            continue
+        if tid in used_ids:
+            rejected.append((w, "collides-with-existing-pool", tid))
+            continue
+        used_ids.add(tid)
+        verified.append((w, tid))
+    return {"candidates": list(_CANDIDATE_B_VERBS), "verified": verified, "rejected": rejected,
+            "n_verified": len(verified), "ok": len(verified) == len(_CANDIDATE_B_VERBS)}
+
+
+def natural_clause_len(conv_size: int) -> int:
+    """BIND-clause shape is UNCHANGED under sec 16.1 ("Both candidates keep
+    the period-repeat buffer convention unchanged" -- the same
+    buf+KEY+REL+VALUE+PERIOD template, only WHICH verb pool renders REL
+    differs between candidates). Reproduces clause_len_for_conv_size's own
+    formula as a SEPARATE, independently-callable function -- not a bare
+    alias -- so this module's own T_bind/K_min re-derivation (this BUILD's
+    own brief: "re-derive... assert them") is a genuine, checked
+    computation, never an unstated inheritance from the marker template's
+    config (see the Stage -1 self-test that pins the two formulas equal,
+    rather than assuming it)."""
+    return clause_len_for_conv_size(conv_size)
+
+
+def natural_query_len(conv_size: int) -> int:
+    """sec 16.1's "drop the reserved/rare query marker entirely" (Candidate
+    A, applied identically to Candidate B's completion-style query, per this
+    BUILD's own "query as natural completion" instruction): the natural
+    query window is [buf..., KEY, REL] -- buf_len+2 -- ONE TOKEN SHORTER than
+    the marker template's buf_len+3 (grammar_rd.DeltaNetRDTaskConfig.
+    query_len), since the trailing <Q> marker token is dropped, not
+    replaced by another single token."""
+    return max(1, conv_size - 1) + 2
+
+
+def natural_k_min_for_conv_size(conv_size: int, min_kernel_t: int = _MIN_KERNEL_T) -> int:
+    """Re-derived K-floor for the natural template, from natural_clause_len
+    (not by importing k_min_for_conv_size directly) so a future divergence
+    between the two clause-length formulas cannot silently go unnoticed.
+    T_bind = K * clause_len depends ONLY on the BIND side (unchanged, see
+    natural_clause_len's own docstring), so this evaluates to the IDENTICAL
+    floor as the marker template's k_min_for_conv_size -- a re-derived,
+    checked conclusion (Stage -1 item 16 pins the equality), not an
+    assumption. The genuinely-changed quantity is natural_query_len, which
+    plays no role in T_bind/K_min at all (forward-B's total T = T_bind +
+    query_len is already >= T_bind >= _MIN_KERNEL_T for every registered K,
+    so a shorter query_len cannot violate the kernel floor either)."""
+    return math.ceil(min_kernel_t / natural_clause_len(conv_size))
+
+
+def build_natural_pools(tokenizer=None, seed: int = 0, template: str = "A") -> tuple[grammar_rd.EntityPools, dict]:
+    """sec 16.1: both candidates reuse the SAME buffer_id=period_id
+    substitution as the marker template (sec 4.1 item 1, "Both candidates
+    keep the period-repeat buffer convention unchanged") and DROP the
+    query_id marker entirely -- `query_id` is left at whatever
+    grammar_rd.build_entity_pools assigned (a reserved, out-of-real-vocab
+    id) but this is INERT: no natural-mode function in this module ever
+    reads `pools.query_id` (they construct [buf...,KEY,REL] windows
+    directly, sec 16.1's own registration), and grammar_rd.sample_batch_rd's
+    OWN query_tokens field (which DOES embed query_id) is always immediately
+    discarded/overwritten by this module's callers before any forward pass
+    consumes it -- never fed to a real embedding lookup. Pinned to
+    `period_id` here anyway, defensively, in case a future caller reads the
+    field directly. Candidate B additionally substitutes `rel_a_ids` with
+    the NEW, freshly-verified succession-verb pool (sec 16.1.1) -- the exact
+    "adaptation realized entirely as a data substitution on the returned
+    EntityPools dataclass, never a code change to grammar_rd.py" convention
+    build_reasoning_link_pools already established for the marker template."""
+    assert template in NATURAL_TEMPLATES, f"template={template!r} not in {NATURAL_TEMPLATES}"
+    if tokenizer is None:
+        tokenizer = grammar_rd.load_gpt2_tokenizer()
+    base_pools, base_report = grammar_rd.build_entity_pools(tokenizer, heldout_frac=0.5, seed=seed)
+    report = {"template": template, "base_entity_pool_report": base_report,
+              "buffer_substitution": "period_id reused as buffer_id (sec 4.1 item 1, sec 16.1 unchanged)",
+              "query_marker": "DROPPED ENTIRELY (sec 16.1) -- no marker token in the natural query window"}
+    if template == "B":
+        verify_report = verify_natural_template_b_verbs(tokenizer, base_pools)
+        assert verify_report["ok"], (
+            f"sec 16.1.1 Candidate B verb verification FAILED: {verify_report['rejected']!r} -- STOP, "
+            f"do not silently fall back to Candidate A's gift-verb pool.")
+        rel_b_natural_ids = torch.tensor([tid for _, tid in verify_report["verified"]], dtype=torch.int64)
+        pools = dataclasses.replace(base_pools, buffer_id=int(base_pools.period_id),
+                                     query_id=int(base_pools.period_id), rel_a_ids=rel_b_natural_ids,
+                                     vocab_size_total=int(base_pools.vocab_size_base))
+        report["verb_verification"] = verify_report
+        report["rel_a_ids_substituted_with"] = _CANDIDATE_B_VERBS
+    else:
+        pools = dataclasses.replace(base_pools, buffer_id=int(base_pools.period_id),
+                                     query_id=int(base_pools.period_id),
+                                     vocab_size_total=int(base_pools.vocab_size_base))
+        report["rel_a_ids_substituted_with"] = None  # Candidate A: gift-verb pool unchanged, verbatim
+    return pools, report
+
+
+def build_natural_query_tokens(cfg: grammar_rd.DeltaNetRDTaskConfig, pools: grammar_rd.EntityPools,
+                                query_key_ids: torch.Tensor, rel_id: torch.Tensor) -> torch.Tensor:
+    """sec 16.1's natural-completion query: [buf..., KEY, REL] -- the
+    trailing <Q> marker is DROPPED, not replaced (mirrors
+    grammar_rd.sample_batch_rd's own query_tokens construction with the
+    final q_mark concat term removed). query_key_ids: (B,Q); rel_id: (B,).
+    Returns (B,Q,natural_query_len(cfg.conv_size)). The existing forward-B/
+    measure_cell_all_h machinery reads q_eff at this window's own LAST
+    position (q_raw[...,-1,:]) regardless of what token sits there -- no
+    downstream change needed for the marker's removal to "just work"."""
+    B, Q = query_key_ids.shape
+    buf_len = cfg.buf_len
+    qbuf = torch.full((B, Q, buf_len), int(pools.buffer_id), dtype=torch.int64, device=query_key_ids.device)
+    q_rel = rel_id.view(B, 1, 1).expand(B, Q, 1)
+    tokens = torch.cat([qbuf, query_key_ids.unsqueeze(-1), q_rel], dim=-1)
+    assert tokens.shape[-1] == natural_query_len(cfg.conv_size)
+    return tokens
+
+
+def build_natural_self_query_tokens(cfg: grammar_rd.DeltaNetRDTaskConfig, pools: grammar_rd.EntityPools,
+                                     key_ids: torch.Tensor, rel_id: torch.Tensor) -> torch.Tensor:
+    """Natural-completion analog of grammar_rd.self_query_tokens (premises
+    (iii)/(iv)'s own self-query pass, sec 4.4/16.1's "premises... exactly as
+    registered"): [buf..., KEY_j, REL] for every item j, marker dropped
+    identically to build_natural_query_tokens above."""
+    B, K = key_ids.shape
+    buf_len = cfg.buf_len
+    qbuf = torch.full((B, K, buf_len), int(pools.buffer_id), dtype=torch.int64, device=key_ids.device)
+    q_rel = rel_id.view(B, 1, 1).expand(B, K, 1)
+    windows = torch.cat([qbuf, key_ids.unsqueeze(-1), q_rel], dim=-1)
+    assert windows.shape[-1] == natural_query_len(cfg.conv_size)
+    return windows
+
+
+# ---------------------------------------------------------------------------
 # Hooks + the slim forward body (no full-sequence LM head -- CLAUDE.md's own
 # hard rule + sec 4.4's explicit registration: "never the full-sequence LM
 # head over every position, which would materialize the standing-known
@@ -1041,7 +1231,8 @@ def leg_b_ckpt_path_final(ckpt_root: str, rung: int, corpus: str, seed: int) -> 
 
 def wrap_reasoning_link(payload: dict, stage: str) -> dict:
     assert isinstance(payload, dict)
-    assert stage in ("stage-minus1-selftest", "stage0-calibration", "stage0.5-cost-calibration", "stage1-cell")
+    assert stage in ("stage-minus1-selftest", "stage0-calibration", "stage0-natural-calibration",
+                      "stage0.5-cost-calibration", "stage1-cell")
     wrapped = {"design_ref": DESIGN_REF, "program": "REASONING-LINK Phase 1", "stage": stage,
                "fla_stub_installed": FLA_STUB_INSTALLED, "timestamp": time.time()}
     wrapped.update(payload)
@@ -1083,8 +1274,8 @@ def measure_cell_all_h(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTask
                         pools: grammar_rd.EntityPools, readout_layer: int, K: int, hops: tuple,
                         batch_size: int, seed: int, surgery: str, device: str,
                         max_rows_per_forward: int = 4096, compute_option2: bool = True,
-                        compute_premises: bool = True, null_seed: int | None = None
-                        ) -> tuple[dict, dict]:
+                        compute_premises: bool = True, null_seed: int | None = None,
+                        query_mode: str = "marker") -> tuple[dict, dict]:
     """FATAL-1 fix (this audit round) -- the per-cell measurement body SHARED
     by `run_cell` (Stage 1) and `run_stage0` (calibration), restructured to
     draw ONE episode batch and run ONE forward-A + ONE (batched) forward-B
@@ -1137,13 +1328,32 @@ def measure_cell_all_h(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTask
 
     Returns (per_h: dict[h -> result], forward_counts: dict) --
     `forward_counts` is meant to be checked by the caller via
-    `assert_forward_call_counts` (the FATAL-1 regression guard)."""
+    `assert_forward_call_counts` (the FATAL-1 regression guard).
+
+    `query_mode` (sec 16.1, Phase-1b): 'marker' (default) uses
+    grammar_rd.sample_batch_rd's own query_tokens field VERBATIM (the
+    reserved-marker template sec 15 harvested). 'natural' REPLACES the
+    query window with sec 16.1's marker-dropped natural completion
+    (build_natural_query_tokens / build_natural_self_query_tokens) --
+    bind-phase construction (token_ids, item_pos, succ, entity_ids, a_slot,
+    hops, tgt_slot) is IDENTICAL either way (grammar_rd.sample_batch_rd is
+    called once, unconditionally, exactly as before); only the query window
+    fed to forward-B differs. This is the ONE shared measurement path both
+    `run_cell`/`run_stage0` (marker) and `run_stage0_natural` (natural) call
+    -- premises/gates/scoring code is therefore identical between the two
+    surface forms by construction, never a parallel reimplementation that
+    could silently drift."""
+    assert query_mode in ("marker", "natural"), f"query_mode={query_mode!r} not in ('marker','natural')"
     forward_counts = {"forward_a": 0, "forward_b": 0}
     surgery_off = (surgery == "off")
 
     gen = torch.Generator(device=device).manual_seed(seed)
     batch = grammar_rd.sample_batch_rd(episode_cfg, batch_size, gen, hop_set=tuple(hops), pools=pools,
                                         device=device)
+    if query_mode == "natural":
+        query_key_ids = torch.gather(batch["entity_ids"], 1, batch["a_slot"])
+        batch = dict(batch)  # shallow copy -- never mutate grammar_rd.sample_batch_rd's own returned dict
+        batch["query_tokens"] = build_natural_query_tokens(episode_cfg, pools, query_key_ids, batch["rel_id"])
 
     # --- forward-A: ONCE, for every h (S_T/k_eff/v_eff never depend on h). ---
     final_states, k_raw, v_raw = run_forward_a(model, batch["token_ids"], surgery_off=surgery_off)
@@ -1163,7 +1373,11 @@ def measure_cell_all_h(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTask
     self_concat = None
     Bk = Kk = None
     if compute_premises:
-        self_q_windows = grammar_rd.self_query_tokens(episode_cfg, pools, batch["key_ids"], batch["rel_id"])
+        if query_mode == "natural":
+            self_q_windows = build_natural_self_query_tokens(episode_cfg, pools, batch["key_ids"],
+                                                               batch["rel_id"])
+        else:
+            self_q_windows = grammar_rd.self_query_tokens(episode_cfg, pools, batch["key_ids"], batch["rel_id"])
         Bk, Kk, qlen = self_q_windows.shape
         assert qlen == query_len, (
             "main-query and self-query windows must share one query_len to batch them together "
@@ -1426,6 +1640,82 @@ def run_stage0(ckpt_path: str, batch_size: int = BATCH_SIZE_DEFAULT, device: str
     }, stage="stage0-calibration")
 
 
+def run_stage0_natural(ckpt_path: str, template: str, batch_size: int = BATCH_SIZE_DEFAULT,
+                        device: str = "cpu", seed: int = 0, K: int = 32) -> dict:
+    """sec 16.1.2's Stage-0-gate-only re-run: identical procedure to
+    run_stage0 above (causality assertion on a real checkpoint, per-h
+    label-shuffle null bands + the h1 sanity floor, premises (iii)/(iv)
+    action-rule gates) -- run through the SAME `measure_cell_all_h` shared
+    instrument (query_mode='natural') so gate logic can never silently
+    drift between the two surface forms -- but on Candidate A's or
+    Candidate B's natural-completion query instead of the reserved-marker
+    template sec 15 harvested as PROBE-INVALID.
+
+    "Markers may not apply in natural format" (this BUILD's own brief,
+    reflecting sec 16.1's "drop the reserved/rare query marker entirely"):
+    the sec 7.6/run_stage0 two-query-marker robustness replicate has NO
+    REFERENT here -- there is no second marker to disagree with (the marker
+    is dropped, not swapped for a second candidate token) -- so this
+    function runs ONE query construction, not a two-marker loop, and
+    reports `marker_disagreement_flag=None` (not-applicable) rather than
+    silently computing a same-vs-same diff of 0.0 (the exact vacuous-pass
+    trap sec 15.1's own harvest flagged for the ORIGINAL marker gate: "both
+    markers scored identically at 0.0, so there was nothing to disagree
+    about" -- disclosed as n/a here instead of repeated).
+
+    The registered gate this function's return value is actually evaluated
+    against (sec 16.1.2/8.4/4.4's action-rule table, applied by
+    reasoning_link_gate_enforce.py at the chain level): `gate_result_
+    h1_probe_valid` (null-relative AND absolute-0.10 backstop, BOTH
+    required) and the premise (iii)/(iv) action-rule pass/fail flags."""
+    assert template in NATURAL_TEMPLATES, f"template={template!r} not in {NATURAL_TEMPLATES}"
+    model, ckpt = load_checkpoint(ckpt_path, device)
+    conv_size = ckpt["config"]["conv_size"]
+    episode_cfg = episode_config_for_checkpoint(conv_size, K)   # bind-side K-floor gate, sec 16.1 unchanged
+    nat_k_min = natural_k_min_for_conv_size(conv_size)
+    assert K >= nat_k_min, (
+        f"K={K} < natural K_min(conv_size={conv_size})={nat_k_min} -- sec 16.1's own re-derived floor "
+        f"(identical to the marker template's, since BIND clause shape is unchanged, see "
+        f"natural_k_min_for_conv_size's docstring).")
+    readout_layer = readout_layer_index(model)
+    tokenizer = grammar_rd.load_gpt2_tokenizer()
+    pools, pool_report = build_natural_pools(tokenizer=tokenizer, seed=0, template=template)
+
+    t0 = time.time()
+    gen_c = torch.Generator(device=device).manual_seed(seed)
+    causality_batch = grammar_rd.sample_batch_rd(episode_cfg, batch_size, gen_c, hop_set=(1,),
+                                                  pools=pools, device=device)
+    qk_one = torch.gather(causality_batch["entity_ids"], 1, causality_batch["a_slot"][:, :1])
+    natural_query_one = build_natural_query_tokens(episode_cfg, pools, qk_one,
+                                                    causality_batch["rel_id"])[:, 0, :]
+    causality_result = causality_check(model, causality_batch["token_ids"], natural_query_one)
+
+    calibration_seed = episode_seed("calibration", "leg_a", 0,
+                                     CORPUS_INDEX.get(ckpt.get("corpus", "openr1-mix-ext"), 0), 0, K_INDEX[K])
+    null_shuffle_seed = episode_seed("null_shuffle", "leg_a", 0, 0, 0, K_INDEX[32])
+
+    per_h, fcounts = measure_cell_all_h(model, episode_cfg, pools, readout_layer, K, H_TEST, batch_size,
+                                         calibration_seed, "native", device, compute_option2=False,
+                                         compute_premises=True, null_seed=null_shuffle_seed,
+                                         query_mode="natural")
+    assert_forward_call_counts(fcounts, context=f"run_stage0_natural template={template!r}")
+
+    wall_s = time.time() - t0
+    return wrap_reasoning_link({
+        "ckpt_path": ckpt_path, "K": K, "batch_size": batch_size, "wall_s": wall_s,
+        "template": template, "corpus": ckpt.get("corpus"),
+        "natural_query_len": natural_query_len(conv_size), "natural_clause_len": natural_clause_len(conv_size),
+        "natural_k_min": nat_k_min, "pool_report": pool_report,
+        "causality_check": causality_result,
+        "per_h": per_h,
+        "marker_disagreement_flag": None,  # sec 16.1: no referent -- the marker is dropped, not swapped
+        "gate_result_h1_probe_valid": per_h[1]["probe_valid"],
+        "gate_result_premise_iii_pass": per_h[1]["premise_iii_pass"],
+        "gate_result_premise_iv_pass": per_h[1]["premise_iv_pass"],
+        "forward_counts": fcounts,
+    }, stage="stage0-natural-calibration")
+
+
 def run_stage05(ckpt_path: str, K: int = 64, batch_size: int = BATCH_SIZE_DEFAULT, device: str = "cpu",
                 baseline_gpu_h_per_pass: float = 0.09) -> dict:
     """sec 9 Stage 0.5 -- rung-3 pass-cost calibration, BLINDED to any h4-
@@ -1509,9 +1799,13 @@ def run_stage05(ckpt_path: str, K: int = 64, batch_size: int = BATCH_SIZE_DEFAUL
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--mode", choices=["selftest", "stage0", "stage05", "cell"], required=True)
+    ap.add_argument("--mode", choices=["selftest", "stage0", "stage0-natural", "stage05", "cell"],
+                     required=True)
     ap.add_argument("--ckpt", type=str, default=None, help="direct checkpoint .pt path")
     ap.add_argument("--family", choices=["leg_a", "leg_b"], default=None)
+    ap.add_argument("--template", choices=list(NATURAL_TEMPLATES), default=None,
+                     help="sec 16.1 Phase-1b: 'A' (minimal-diff gift-verb, marker dropped) or "
+                          "'B' (succession-family, marker dropped) -- required for --mode stage0-natural")
     ap.add_argument("--arm", choices=list(FROZEN_BIAS_ARM_MODES), default="off")
     ap.add_argument("--lam", type=float, default=0.58)
     ap.add_argument("--rung", type=int, default=0, choices=[0, 1, 2, 3])
@@ -1578,6 +1872,22 @@ def main():
         result = run_stage0(ckpt_path, batch_size=args.batch_size, device=args.device, K=args.k)
         # sec 9 Stage 0's "blinded from any headline decision" requirement: the console/chain-log
         # print never shows recovery numbers, only structural gate outcomes + timing/metadata.
+        print(json.dumps(blinded_console_summary(result), indent=2, default=str))
+        if args.out:
+            os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+            with open(args.out, "w") as f:
+                json.dump(result, f, indent=2, default=str)
+            print(f"wrote {args.out} (full, UNBLINDED numbers -- read only at a deliberate unblinding step)")
+        return
+
+    if args.mode == "stage0-natural":
+        assert ckpt_path is not None, "--mode stage0-natural requires --ckpt or --family leg_a(+args)"
+        assert args.template is not None, "--mode stage0-natural requires --template A|B (sec 16.1)"
+        result = run_stage0_natural(ckpt_path, args.template, batch_size=args.batch_size,
+                                     device=args.device, K=args.k)
+        # sec 9/16.1's "blinded from any headline decision" requirement carries over unchanged --
+        # reuses the SAME blinded_console_summary the marker template's stage0 uses (it strips
+        # recovery-bearing keys wherever they occur, generically, not by stage name).
         print(json.dumps(blinded_console_summary(result), indent=2, default=str))
         if args.out:
             os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
