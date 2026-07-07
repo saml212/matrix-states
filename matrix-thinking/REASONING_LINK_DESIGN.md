@@ -3975,7 +3975,7 @@ tempts an overclaim.
 
 ---
 
-### 16.2 PATH (ii) — PHASE-2: task familiarization (Rev 4, 2026-07-07 — post-fourth-attack)
+### 16.2 PATH (ii) — PHASE-2: task familiarization (Rev 5, 2026-07-07 — post-fifth-attack; status-sync-only patch over Rev 4, recipe content unchanged)
 
 **Rev 1 status note (superseded by Rev 2, itself superseded by Rev 3
 immediately below; kept intact for the historical record, per this
@@ -4001,7 +4001,9 @@ not design-logic errors). Every finding was fixed in Rev 2 (§16.2.1-
 recorded in §16.9, per house style, mirroring §13.x's and §16.7's own
 attack-round convention.
 
-**Rev 3 status note.** Rev 2's own §16.2.4 registered its next step
+**Rev 3 status note (superseded by Rev 4, itself superseded by Rev 5
+immediately below; kept intact for the historical record, same
+convention).** Rev 2's own §16.2.4 registered its next step
 explicitly: the next concrete step before build is "a THIRD, fresh
 adversarial pass targeting Rev 2 specifically." That pass has now run —
 a third independent reviewer, different from attack-rounds 1 and 2, per
@@ -4015,9 +4017,37 @@ arithmetic, a MECE gap in the pentachotomy with a concrete counter-example,
 and four buildability/precision gaps). Every finding is fixed below; none
 is deferred or waved away. The full finding→fix trace is recorded in
 §16.10, per house style, mirroring §16.7's and §16.9's own attack-round
-convention. Read §16.2.1-§16.2.4 below as Rev 3 — passages this round's
-fixes touch are marked inline (`Rev 3 fix, attack-round-3 MAJOR-R3-n`/
-`MINOR-R3-n`); unmarked passages are carried forward from Rev 2 unchanged.
+convention.
+
+**Rev 4 status note (superseded by Rev 5 immediately below; kept intact
+for the historical record, same convention).** Rev 3's own §16.2.4
+registered a FOURTH fresh adversarial pass targeting Rev 3 specifically.
+That pass has now run — a fourth independent reviewer. Verdict:
+**NEEDS-REVISION** — 3 new MAJOR, 0 new MINOR, **no FATAL** (every Rev
+1/2/3 fix independently re-verified and HOLDS; this round's findings are
+internal-consistency bugs inside Rev 3's own fixes: a `c1`-selection
+rule that could silently misroute a real PERSISTENT trajectory, an
+arithmetic error in the totality narration, and a false field citation).
+All fixed in Rev 4; trace in §16.12.
+
+**Rev 5 status note (current).** Rev 4's own §16.2.4 registered a FIFTH
+fresh adversarial pass targeting Rev 4 specifically. That pass has now
+run — a fifth independent reviewer. Verdict: **NEEDS-REVISION** — 2
+MAJOR, 1 MINOR, **no FATAL**, ALL prose/status-sync defects (stale
+pre-Rev-4 narration in §16.2.4's body and §16.6 item 4, and this
+preamble's own status-note chain stopping at Rev 3); **every substantive
+check PASSED** (all three Rev-4 fixes verified landed byte-accurate
+against source; an independent from-scratch 32-pattern re-enumeration
+under the holds-anchored `c1` reproduced 1+15+1+4+11=32 and confirmed
+the round-4 counter-example classifies PERSISTENT/c1=500; the
+diff-scoped new-bug sweep found nothing). All fixed in Rev 5 — a
+status-sync-only patch; recipe content, build tasks, cost bracket, and
+all algorithms are UNCHANGED from Rev 4. Trace in §16.13. Read
+§16.2.1-§16.2.4 below as Rev 5 (content-identical to Rev 4 except
+status prose) — passages carrying round-3/round-4 fixes remain marked
+inline (`Rev 3 fix, attack-round-3 MAJOR-R3-n`, `Rev 4 fix,
+attack-round-4 MAJOR-R4-n`); unmarked passages are carried forward
+unchanged.
 
 **What it tests.** Not "does a never-task-trained checkpoint show
 zero-shot multi-hop composition" (§16.1.4's own answer: implausible by
@@ -4033,7 +4063,7 @@ the exact BIND/QUERY task** — Zoology/Based/MQAR's own in-context-recall
 successes are likewise task-trained, per §16.1.4. Path (ii) is the only
 path here that puts REASONING-LINK's checkpoints in that same regime.
 
-#### 16.2.1 Recipe sketch (Rev 4 — not a committed build, a design sketch that has now survived four attack rounds; folds in Rev 1's FATAL-1, MAJOR-1, MAJOR-2, MAJOR-3, MAJOR-4, MAJOR-6, MINOR-1 per §16.7, Rev 2's MAJOR-NEW-1 through MAJOR-NEW-6, MINOR-NEW-1, MINOR-NEW-2 per §16.9, Rev 3's MAJOR-R3-1a, MAJOR-R3-1b, MAJOR-R3-2, MAJOR-R3-3, MINOR-R3-1, MINOR-R3-2, MINOR-R3-3, MINOR-R3-4 per §16.10, AND the round-4 audit's 3 MAJORs (c1 holds-anchor, totality count, checkpoints-field citation) per §16.12)
+#### 16.2.1 Recipe sketch (Rev 5, content-identical to Rev 4 — not a committed build, a design sketch that has now survived five attack rounds (round 5's substantive checks all PASSED; its findings were status-prose only, §16.13); folds in Rev 1's FATAL-1, MAJOR-1, MAJOR-2, MAJOR-3, MAJOR-4, MAJOR-6, MINOR-1 per §16.7, Rev 2's MAJOR-NEW-1 through MAJOR-NEW-6, MINOR-NEW-1, MINOR-NEW-2 per §16.9, Rev 3's MAJOR-R3-1a, MAJOR-R3-1b, MAJOR-R3-2, MAJOR-R3-3, MINOR-R3-1, MINOR-R3-2, MINOR-R3-3, MINOR-R3-4 per §16.10, AND the round-4 audit's 3 MAJORs (c1 holds-anchor, totality count, checkpoints-field citation) per §16.12)
 
 **Base checkpoints:** continue training from the archived Leg-A frozen-bias
 checkpoints at their final (step-20,000) state — all 3 arms (`off`,
@@ -5065,14 +5095,14 @@ than a forward-only probe. The raw lower bound (≈0.30 GPU-h) is now
 cheaper than Path (i)'s own full grid, a fact the old "~5-15 GPU-h"
 placeholder obscured entirely.
 
-#### 16.2.4 Gate before build (Rev 4 — FOUR attack rounds complete, verdicts recorded)
+#### 16.2.4 Gate before build (Rev 5 — FIVE attack rounds complete, verdicts recorded)
 
 Per this project's own waterfall discipline (`CLAUDE.md`), Path (ii)
 needed a dedicated attack round (fresh-eyes agent, minimum the standing
 5-6 questions, addressing at minimum §16.2.2's three confound items)
 BEFORE any build — registered in the prior revision as a hard
-prerequisite, not a suggestion. **Three independent attack rounds have
-now run, by three different reviewers.** Round 1 verdict: NEEDS-REDESIGN
+prerequisite, not a suggestion. **Four independent attack rounds have
+now run, by four different reviewers.** Round 1 verdict: NEEDS-REDESIGN
 — 1 FATAL, 6 MAJOR, 1 MINOR, all fixed in Rev 1 (§16.7). Round 2 verdict:
 NEEDS-REVISION — 6 new MAJOR, 2 new MINOR, no FATAL (every Rev 1 fix
 independently re-verified and HOLDS — round 2 found code-reality/
@@ -5084,9 +5114,22 @@ finding→fix trace is recorded in §16.9, per house style, mirroring
 independently re-verified and HOLDS — round 3 found a FALSE code citation
 inside Rev 2's own query-loss mechanism, an undisclosed cost-arithmetic
 assumption, a MECE gap in the pentachotomy, and buildability/precision
-gaps, not a re-opening of any prior finding), all fixed in this revision,
-Rev 3 (§16.2.1-§16.2.3 above); the full finding→fix trace is recorded in
-§16.10, per house style, mirroring §16.7's and §16.9's own convention.
+gaps, not a re-opening of any prior finding), all fixed in Rev 3
+(§16.2.1-§16.2.3 as they read at that revision); the full finding→fix
+trace is recorded in §16.10, per house style, mirroring §16.7's and
+§16.9's own convention. Round 4 verdict: **NEEDS-REVISION** — 3 new
+MAJOR, 0 new MINOR, no FATAL (every Rev 1, Rev 2, AND Rev 3 fix
+independently re-verified and HOLDS — round 4 found three
+internal-consistency bugs inside Rev 3's OWN fixes: a `c1`-selection
+rule anchored on `det(32)` instead of `holds` that could silently
+misroute a real PERSISTENT trajectory to NON-MONOTONE, an arithmetic
+error in the totality narration's own claimed sum, and a false field
+citation — `val_loss` lives in `result["checkpoints"]`, not
+`result["trajectory"]` — the same false-citation failure mode round 3
+itself flagged as round 2's worst sin, reproduced inside round 3's own
+fix text), all fixed in this revision, Rev 4 (§16.2.1 above); the full
+finding→fix trace is recorded in §16.12, mirroring the prior rounds'
+convention.
 
 **What this gate does and does not license.** Per this project's own
 standing rule that a self-audit is not a substitute for an independent
@@ -5094,23 +5137,37 @@ audit, and that multiple independent adversarial audit rounds catch
 different bugs each round (`CLAUDE.md`, verified on Task E: round 1
 caught 2 FATALs a self-audit missed, and the fix itself was audited fresh
 in round 2 before being trusted — and now verified AGAIN on this exact
-Phase-2 recipe across THREE rounds: round 2 caught 6 new MAJORs round 1's
-own reviewer and this document's own self-audit both missed, and round 3
+Phase-2 recipe across FOUR rounds: round 2 caught 6 new MAJORs round 1's
+own reviewer and this document's own self-audit both missed, round 3
 caught a FALSE code citation that round 2's OWN reviewer — despite that
 round's stated purpose being a source-reading buildability check — still
-missed) — **Rev 3's own fixes have not yet had their own independent
-audit pass.** Landing every registered finding in this revision closes
-the specific gaps attack-round-3 found; it does not, by itself, certify
-Phase-2 is build-ready. The next concrete step before any GPU-hour is
-spent is a FOURTH, fresh adversarial pass targeting Rev 3 specifically
-(not a re-read of Rev 1 or Rev 2), run zero-GPU/zero-wall-clock-blocking
-exactly as all three prior rounds were — concurrently with Path (i) or
-Path (iii)'s own execution (§16.6, unchanged on this point). Only after
-that fourth pass clears (or a further revision addresses its findings)
-should Phase-2 build, per §16.6's own sequencing. **Disclosed, not
-treated as a stopping rule:** findings-per-round have not yet decayed to
+missed, and round 4 caught the same false-citation failure mode
+reproduced inside round 3's own fix text) — a FIFTH, fresh adversarial
+pass targeting Rev 4 specifically HAS NOW ALSO RUN (2026-07-07, fifth
+distinct reviewer). Round 5 verdict: **NEEDS-REVISION** — 0 FATAL, 2
+MAJOR, 1 MINOR, ALL prose/status-sync defects in the header-bump
+commit's own wake (this §16.2.4 body and §16.6 item 4 still narrated
+the pre-Rev-4 state their own headers had moved past; the §16.2
+preamble's status-note chain stopped at Rev 3), with **every
+substantive check PASSING**: all three Rev-4 fixes verified landed
+byte-accurate against the real source (line citations re-executed), an
+independent from-scratch 32-pattern re-enumeration under the
+holds-anchored `c1` reproduced 1+15+1+4+11=32 exactly and confirmed the
+round-4 counter-example now classifies PERSISTENT/c1=500, and the
+diff-scoped new-bug sweep found nothing. Those prose findings are fixed
+in this revision, Rev 5 (a status-sync-only patch — recipe content,
+build tasks, cost bracket, and all algorithms UNCHANGED from Rev 4);
+trace in §16.13. Per the round-5 reviewer's own scoping, the remaining
+step before build is that reviewer's confirmation pass on the corrected
+status prose ONLY — the substantive checks (1, 2, 4) carry forward
+without re-verification. Only after that confirmation (or a further
+revision addressing its findings) should Phase-2 build, per §16.6's own
+sequencing. **Disclosed, not treated as a stopping rule:**
+findings-per-round have not yet decayed to
 zero (round 1: 1 FATAL+6 MAJOR+1 MINOR; round 2: 0 FATAL+6 MAJOR+2 MINOR;
-round 3: 0 FATAL+3 MAJOR+4 MINOR) — this project's `CLAUDE.md` rule
+round 3: 0 FATAL+3 MAJOR+4 MINOR; round 4: 0 FATAL+3 MAJOR+0 MINOR,
+all internal-consistency, none design-logic; round 5: 0 FATAL+2 MAJOR+1
+MINOR, all prose/status-sync, zero design impact) — this project's `CLAUDE.md` rule
 requires running the next independent round regardless of how the count
 trends; a zero-finding round, not a declining count, is what licenses
 build. **A specific, disclosed reason this round's own finding count
@@ -5212,7 +5269,7 @@ actual next concrete action correctly.
 |---|---|---|---|---|---|
 | (i) Stage-0-gate-only | ~0.01 GPU-h | minutes | New episode-render templates (Candidates A/B), reuse existing pool — zero new Stage −1 verification for A, one small addition for B | No — even a pass only licenses h=1 as primary | Failure isolates the blocker as NOT surface-form (premise-iv-style representational gap), mechanically promoting Path (ii) |
 | (i) Full Phase-1b grid (conditional) | ~0.4 GPU-h | ~1 hour | Same as above, gated on the Stage-0 pass | No — h=1-primary result at best, h≥2 stays exploratory | A clean h1 pass with h≥2 still floor is itself informative (READOUT-FORM-INVALID-style, per §12's own existing outcome) |
-| (ii) Phase-2 familiarization (Rev 4, post-fourth-attack, §16.2) | ≈0.30-1.21 GPU-h raw (training + Stage-0.5 gate null-bands); ≈1.48-12.06 GPU-h at the disclosed 5-10× debug-tax multiplier (§16.2.3 — WIDENED from Rev 1/Rev 2's ≈1.15-11.4 GPU-h by MAJOR-R3-3's newly-priced gate cost; MAJOR-R3-1b's own re-derived query-loss multiplier stays inside margin on its own, §16.10's own BUDGET paragraph) | hours (training, not eval-only) — 1,000-5,000 steps × 18 cells at the measured 0.04544 s/step rate, plus `n_query=2`-pinned query-loss forward passes | FOUR attack rounds COMPLETE (round 1: NEEDS-REDESIGN, 1 FATAL+6 MAJOR+1 MINOR, fixed in Rev 1, §16.7; round 2: NEEDS-REVISION, 6 new MAJOR+2 new MINOR, no FATAL, fixed in Rev 2, §16.9; round 3: NEEDS-REVISION, 3 new MAJOR+4 new MINOR, no FATAL, fixed in Rev 3, §16.10; round 4: NEEDS-REVISION, 3 new MAJOR+0 new MINOR, no FATAL — all internal-consistency bugs inside Rev 3's own fixes — fixed in Rev 4, §16.12); hop-depth train/eval split present via exclusion-by-sampling (h∈{1,2} trained, h∈{3,4} held out, `hop_set=(1,2)`); query loss pinned as the CORRECTED §4.4 concatenated-recompute mechanism (vocab-space CE, MAJOR-R3-1a fixes a false continuation-pattern citation); `--ckpt-steps`/`--init-checkpoint` build tasks registered with negative tests (MAJOR-NEW-2/3, MINOR-R3-2/3); Rev 4 itself still needs its own independent (fifth) audit pass before build (§16.2.4) | **Yes — the only path that can** | Six named outcomes now distinguish the trajectory (§16.2.1, hexachotomy, Rev 3 MAJOR-R3-2): PERSISTENT/TRANSIENT/LATE-EMERGENT/CONVERGED-EQUIVALENT/UNRESOLVED/NON-MONOTONE — CONVERGED-EQUIVALENT (task-trained equivalence, arms never separate despite BOTH learning the task with a real determinate effect each, MINOR-R3-1) is the program's most severe finding, distinct from and stronger than Cell 4's zero-shot inertness (MAJOR-3); UNRESOLVED is a distinct, non-negative "underpowered" finding no longer silently folded into it; NON-MONOTONE is a distinct "inconclusive-without-rerun" finding, disclosed per-seed and never averaged away |
+| (ii) Phase-2 familiarization (Rev 5, post-fifth-attack, §16.2) | ≈0.30-1.21 GPU-h raw (training + Stage-0.5 gate null-bands); ≈1.48-12.06 GPU-h at the disclosed 5-10× debug-tax multiplier (§16.2.3 — WIDENED from Rev 1/Rev 2's ≈1.15-11.4 GPU-h by MAJOR-R3-3's newly-priced gate cost; MAJOR-R3-1b's own re-derived query-loss multiplier stays inside margin on its own, §16.10's own BUDGET paragraph) | hours (training, not eval-only) — 1,000-5,000 steps × 18 cells at the measured 0.04544 s/step rate, plus `n_query=2`-pinned query-loss forward passes | FIVE attack rounds COMPLETE (round 1: NEEDS-REDESIGN, 1 FATAL+6 MAJOR+1 MINOR, fixed in Rev 1, §16.7; round 2: NEEDS-REVISION, 6 new MAJOR+2 new MINOR, no FATAL, fixed in Rev 2, §16.9; round 3: NEEDS-REVISION, 3 new MAJOR+4 new MINOR, no FATAL, fixed in Rev 3, §16.10; round 4: NEEDS-REVISION, 3 new MAJOR+0 new MINOR, no FATAL — all internal-consistency bugs inside Rev 3's own fixes — fixed in Rev 4, §16.12; round 5: NEEDS-REVISION, 2 MAJOR+1 MINOR, no FATAL — ALL prose/status-sync, every substantive check PASSED — fixed in Rev 5, §16.13); hop-depth train/eval split present via exclusion-by-sampling (h∈{1,2} trained, h∈{3,4} held out, `hop_set=(1,2)`); query loss pinned as the CORRECTED §4.4 concatenated-recompute mechanism (vocab-space CE, MAJOR-R3-1a fixes a false continuation-pattern citation); `--ckpt-steps`/`--init-checkpoint` build tasks registered with negative tests (MAJOR-NEW-2/3, MINOR-R3-2/3); remaining gate: the round-5 reviewer's confirmation pass on Rev 5's corrected status prose only (§16.2.4) | **Yes — the only path that can** | Six named outcomes now distinguish the trajectory (§16.2.1, hexachotomy, Rev 3 MAJOR-R3-2): PERSISTENT/TRANSIENT/LATE-EMERGENT/CONVERGED-EQUIVALENT/UNRESOLVED/NON-MONOTONE — CONVERGED-EQUIVALENT (task-trained equivalence, arms never separate despite BOTH learning the task with a real determinate effect each, MINOR-R3-1) is the program's most severe finding, distinct from and stronger than Cell 4's zero-shot inertness (MAJOR-3); UNRESOLVED is a distinct, non-negative "underpowered" finding no longer silently folded into it; NON-MONOTONE is a distinct "inconclusive-without-rerun" finding, disclosed per-seed and never averaged away |
 | (iii) Scaling wave, mandatory grid | ~21 GPU-h (2×); ~10.5 GPU-h realized-rate expectation | ~2.2 hours (30 cells / 6 GPUs) | FATAL-1 (manifest KeyError) + MAJOR-3 (missing `--d-state` smoke) — both zero-GPU, need build + audit | No — orthogonal, capacity-law-paper-track question | REFUTE/DIRECTIONAL-DRIFT revises the capacity law's own generality claim, unrelated to REASONING-LINK |
 
 ---
@@ -5288,23 +5345,24 @@ adopted with those refinements folded in:**
    "reuse Phase 1's Stage-0 cell" plan), run it (~0.01-0.02 GPU-h,
    effectively free, can run on any spare GPU including one of 2-7 before
    or interleaved with Path (iii)'s own cells).**
-4. **Path (ii)'s attack rounds — TWO COMPLETE (Rev 1, 2026-07-07; Rev 2,
-   2026-07-07), both run concurrently and zero-GPU exactly as this step
-   originally prescribed.** Round-1 verdict: NEEDS-REDESIGN (1 FATAL, 6
-   MAJOR, 1 MINOR), every finding folded into §16.2's Rev 1 text, full
-   fix-map at §16.7. Round-2 verdict: NEEDS-REVISION (6 new MAJOR, 2 new
-   MINOR, no FATAL — every Rev 1 fix independently re-verified and HOLDS),
-   every finding folded into §16.2's Rev 2 text, full fix-map at §16.9.
+4. **Path (ii)'s attack rounds — FIVE COMPLETE (Revs 1-4 + the round-5
+   verify pass, all 2026-07-07), all run concurrently and zero-GPU exactly
+   as this step originally prescribed.** Round-1 verdict: NEEDS-REDESIGN
+   (1 FATAL, 6 MAJOR, 1 MINOR), fix-map §16.7. Round-2: NEEDS-REVISION
+   (6 new MAJOR, 2 new MINOR), fix-map §16.9. Round-3: NEEDS-REVISION
+   (3 new MAJOR, 4 new MINOR), fix-map §16.10. Round-4: NEEDS-REVISION
+   (3 new MAJOR, all internal-consistency), fix-map §16.12. Round-5:
+   NEEDS-REVISION (2 MAJOR + 1 MINOR, ALL prose/status-sync; every
+   substantive check PASSED — Rev-4 fixes verified landed, independent
+   32-pattern re-enumeration clean, diff sweep clean), fix-map §16.13.
    This confirms the refinement over the naive "decide (ii) only after (i)
-   reads out" framing was correct: both critiques ran in parallel with
+   reads out" framing was correct: all five critiques ran in parallel with
    Path (i)/(iii) at no calendar cost. **What still gates Path (ii)'s
-   build, unchanged from the original plan:** the FINAL RECIPE PINNING
-   (which surface-form template feeds familiarization) still waits on
-   Path (i)'s own readout (§16.2.1) — but a NEW item now also gates it
-   (§16.2.4): Rev 4's own fixes (§16.12) have not yet had their own
-   independent (fifth) audit pass, per this project's standing
-   multiple-independent-audit-rounds rule (`CLAUDE.md`). Build should wait
-   on both.
+   build:** the surface-form template is now PINNED (marker template, per
+   §16.8.3's mechanical fallback — Path (i) and Phase-1b both read out
+   PROBE-INVALID, so the pre-registered fallback governs); the remaining
+   gate (§16.2.4) is the round-5 reviewer's confirmation pass on Rev 5's
+   corrected status prose ONLY.
 5. **At Path (i)'s Stage-0 gate readout, branch mechanically:**
    - **PASS on the wikitext-cell (either candidate), openr1-cell stays a
      null as expected →** launch the full Phase-1b grid (~0.4 GPU-h,
@@ -5933,7 +5991,9 @@ as landed in this text, not as intentions.
 unchanged from Rev 1/Rev 2/Rev 3 — this round did not raise or resolve it
 either. MINOR-1's own pilot measurement (data-mix fraction) still has not
 run — none of this round's findings touch it. **Rev 4 itself has not yet
-had its own independent (fifth) audit pass** — per this project's
+had its own independent (fifth) audit pass** [SUPERSEDED 2026-07-07,
+Rev 5: that fifth pass has since run — see §16.13 immediately below;
+sentence kept for the historical record] — per this project's
 standing multiple-independent-audit-rounds rule, this revision should not
 be read as a certification that Phase-2 is build-ready, only that
 attack-round-4's own findings — all three of them internal-consistency
@@ -5947,3 +6007,44 @@ with zero GPU cost and no change to any registered build task, op count,
 or per-step forward pass. The committed ≈1.48-12.06 GPU-h bracket
 (§16.2.3) is UNCHANGED, re-printed not re-derived, exactly as this task's
 own instruction requires for anything this revision did not touch.
+
+### 16.13 Round-5 independent audit findings + Rev 5 fixes (2026-07-07)
+
+The fifth independent adversarial pass — targeting Rev 4 specifically,
+per §16.2.4's own registered next step — ran 2026-07-07 (fifth distinct
+reviewer). Verdict: **NEEDS-REVISION** — 0 FATAL, 2 MAJOR, 1 MINOR.
+
+**Substantive checks: ALL PASSED.** (1) All three Rev-4 fixes verified
+landed as prescribed, every line citation re-executed byte-accurate
+against `lm_pretrain_rd.py` (L1748/L1801/L1858/L1863/L1933-1935/
+L1937-1939/L1950/L3061-3062). (2) An independent, from-scratch,
+programmatic 32-pattern totality enumeration under the holds-anchored
+`c1` reproduced 1+15+1+4+11=32 exactly, matched every worked-table row,
+and confirmed the round-4 counter-example (`F,T,T,T,T`) now classifies
+PERSISTENT with c1=500. (3) The diff-scoped new-bug sweep of Rev 4's
+own changes found nothing.
+
+**Findings (all prose/status-sync, zero design impact):**
+
+| # | Severity | Finding | Rev 5 fix |
+|---|---|---|---|
+| R5-1 | MAJOR | §16.2.4's body still narrated "Three independent attack rounds have now run" / "Rev 3's own fixes have not yet had their own independent audit pass" / "next step is a FOURTH pass targeting Rev 3" — contradicting its own Rev-4 header and the actual state (round 4 ran and produced Rev 4; round 5 ran targeting Rev 4) | Body rewritten: four rounds narrated with round-4 verdict paragraph added, round-5 verdict + scoping recorded, per-round finding-count disclosure extended through round 5 |
+| R5-2 | MAJOR | §16.6 item 4's lead said "TWO COMPLETE (Rev 1; Rev 2)" — stale since Rev 2, self-contradicting its own paragraph and §16.6's trigger table | Lead rewritten: FIVE COMPLETE with per-round verdicts; template-pin status corrected to PINNED (marker template via §16.8.3's mechanical fallback); remaining gate restated as the round-5 confirmation pass only |
+| R5-3 | MINOR | §16.2 preamble's status-note chain stopped at Rev 3 ("Read ... below as Rev 3" stale) | Rev-3 note marked superseded; Rev-4 and Rev-5 status notes appended mirroring the Rev-1/Rev-2 pattern |
+
+**Scope pinned by the round-5 reviewer itself:** the three fixes above
+are pure text/status-sync edits — zero GPU cost, zero change to any
+build task, algorithm, or the ≈1.48-12.06 GPU-h bracket (§16.2.3,
+re-printed not re-derived). Per that reviewer's own scoping, the
+substantive checks (1, 2, 4 above) carry forward without
+re-verification; the remaining gate before CLEARED-FOR-BUILD is that
+same reviewer's confirmation pass on the corrected status prose ONLY.
+
+**One pre-existing observation, disclosed (not a Rev-5 item):** the
+round-5 reviewer noted the Stage-0.5 skip-past provision does not state
+what happens if Stage-0.5 never passes at ANY non-terminal checkpoint
+within an otherwise-confirmed monotone holds-true run. This ambiguity
+predates Rev 4 (it is MAJOR-R3-3-era text, unchanged in kind by Rev 4's
+anchor rewording) and is explicitly out of round 5's tight scope; it is
+recorded here so the build round inherits it as a named open item
+rather than rediscovering it.
