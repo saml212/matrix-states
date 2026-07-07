@@ -187,7 +187,7 @@ RUNG3_CKPT="$TRACKC_CKPT_ROOT/wave3/lmC_openr1-mix-ext_dm2560_ds128_L22_s0_step2
 # (`find $TRACKC_CKPT_ROOT -iname '*ds128_L22*step20000.pt'`) and set
 # RUNG3_CKPT explicitly before re-running this step.
 CUDA_VISIBLE_DEVICES=$REASONING_LINK_GPU $PY reasoning_link_probe.py \
-    --mode stage05 --ckpt "$RUNG3_CKPT" --k 64 --batch-size 16 --device cuda \
+    --mode stage05 --ckpt "$RUNG3_CKPT" --k 64 --batch-size 4 --device cuda \
     --out results/reasoning_link/stage05_rung3_cost_calibration.json \
     2>&1 | tee logs/92_reasoning_link_stage05.log
 
@@ -260,6 +260,19 @@ for rung in 0 1 2 3; do
   if [ "$rung" -lt 2 ]; then k=32; else k=64; fi
   # rung 3 is 2 corpora x 1 seed (sec 6.1's PINNED configuration); rungs 0-2 are 2 corpora x 3 seeds.
   if [ "$rung" = "3" ]; then seeds=(0); else seeds=(0 1 2); fi
+  # LAUNCH FIX 5 (2026-07-07, debug-agent root cause): fla 0.5.1's
+  # layer_norm_fwd_kernel1 (the D>512 one-program-per-row branch every
+  # d_model=2560 norm call routes through) computes int32 pointer offsets --
+  # at batch 16 the combined main+self-query forward-B rows x T x d_model
+  # exceeds 2^31 and the offset wraps (illegal memory access; surfaced
+  # asynchronously as CUBLAS_INTERNAL_ERROR in run 5). batch 8 clears the
+  # overflow but OOMs on the 20GiB fp32 FFN intermediate; batch 4 PASSES
+  # end-to-end (diag_stage05_b4.json: ratio_to_baseline=0.085, "OK: within
+  # budget, proceed"). Scoped to rung 3 ONLY: smaller rungs' d_model<=1536
+  # never reaches the overflow region at batch 16, and Stage 0 already
+  # passed at batch 16. Mirrors the training sweep's own per-rung batch
+  # precedent (BATCH_SIZE_BY_RUNG in run_lm_rd_trackc_sweep.py).
+  if [ "$rung" = "3" ]; then cell_batch=4; else cell_batch=16; fi
   for corpus in "${LEG_B_CORPORA[@]}"; do
     for seed in "${seeds[@]}"; do
       out="results/reasoning_link/leg_b_rung${rung}_${corpus}_s${seed}_k${k}.json"
@@ -267,7 +280,7 @@ for rung in 0 1 2 3; do
       CUDA_VISIBLE_DEVICES=$REASONING_LINK_GPU $PY reasoning_link_probe.py \
           --mode cell --family leg_b --rung "$rung" --corpus "$corpus" --ckpt-seed "$seed" \
           --ckpt-base-dir "$TRACKC_CKPT_ROOT" --k "$k" --hops 1,2,3,4 \
-          --surgery native --batch-size 16 --device cuda --out "$out" \
+          --surgery native --batch-size "$cell_batch" --device cuda --out "$out" \
           2>&1 | tee "$log"
     done
   done
