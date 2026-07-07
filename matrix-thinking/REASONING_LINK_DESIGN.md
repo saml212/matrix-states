@@ -1262,13 +1262,28 @@ multi-layer `DeltaNetLM.forward`, never a short submodule-level call:
   is registered as the honest, well-defined choice for every multi-layer
   checkpoint (rung-2/3, `n_layers∈{16,22}`), not an approximation of some
   other "true" `q_eff` this design could have extracted more cheaply.
-- **Stage −1 causality assertion (new, §9 item 11).** Forward-A and
-  forward-B **must** produce bit-identical (fp32, CPU) or
-  tolerance-pinned (`1e-6`, GPU/bf16-kernel-boundary — matching this
-  design's own standing tolerance convention, §9 items 2/5) residual
-  streams over the shared BIND-phase prefix — the mechanical proof that
-  appending the query in forward-B never leaks backward into the captured
-  `S_T`, checked, not merely argued from causality.
+- **Stage −1 causality assertion (new, §9 item 11; tolerance corrected
+  Rev 6.1 — an independent audit measured the real number rather than
+  trusting the "bit-identical" claim below.)** Forward-A and forward-B
+  **must** produce residual streams over the shared BIND-phase prefix that
+  agree to **≤`1e-6` in fp32, on CPU** — **bit-identity is not achievable
+  across different-length conv calls**: forward-A's `ShortConvolution`
+  call sees only the `T_bind`-length bind sequence, forward-B's sees the
+  longer `T_bind+query_len` concatenation, and `torch.nn.Conv1d`'s
+  internal reduction order is not guaranteed identical across two calls
+  with different total lengths even over the shared causal prefix (a
+  floating-point non-associativity effect, not a causality violation —
+  the VALUES are correct to float precision, just not bit-for-bit). An
+  independent audit measured the real CPU divergence directly: **≈`2.4e-7`
+  max abs diff**, comfortably inside the `1e-6` tolerance this design's
+  own items 2/5 already use elsewhere — the earlier "bit-identical (fp32,
+  CPU)" framing below overclaimed a stronger guarantee than the operator
+  actually provides. Tolerance-pinned (`1e-6`) is therefore the ONE
+  registered CPU criterion (not "bit-identical, or 1e-6 at the bf16/GPU
+  boundary" — `1e-6` applies uniformly, CPU or GPU) — the mechanical proof
+  that appending the query in forward-B never leaks backward into the
+  captured `S_T` is unaffected: `2.4e-7` is six orders of magnitude below
+  any threshold this design conditions a decision on.
 - **Cost, honestly re-derived (§10).** Every episode this readout scores
   now costs **two** full mixer forward passes, not one — the existing
   per-pass GPU-h anchors (§10) are measured **forward-pass-only** (a
@@ -1656,15 +1671,23 @@ a mechanical effect worth decomposing.
   blend-OFF) — isolates what the blend does MECHANICALLY to the SAME
   trained weights, holding training fixed.
 
-**Stage −1 self-test (new, §9 item 6):** verify the surgery toggle
-reproduces `frozen_bias_retrofit_eval_rd.py`'s own `"kraw"`-mode raw-key
-capture byte-for-byte (`torch.equal`) on a tiny smoke batch — forcing
-`frozen_bias_arm="off"` on a LOADED arm checkpoint and running its forward
-pass must produce numerically identical post-`k_conv1d` keys to that same
-checkpoint's `"kraw"`-mode captured `k_raw` (both are "no blend applied"
-readings of the identical model, reached by two different code paths). A
-single tiny-batch smoke, not a full grid cell, gates trust in the surgery
-mechanism before the real grid launches.
+**Stage −1 self-test (§9 item 6 — AS BUILT, Rev 6.2 reconciliation after
+audit #2):** the implemented test drives the probe's OWN production
+`frozen_bias_surgery()` context manager through `run_forward_b` with two
+non-vacuous controls, both mutation-proven (a forced no-op surgery fails
+the test — verified independently by two auditors): (a) live-gate-fires —
+with `frozen_bias_arm="global"` the pipeline output differs from
+`arm="off"` by more than tolerance (the blend genuinely acts); (b)
+surgery-mechanics — the context manager flips and RESTORES the attribute
+(including under an exception mid-scope), and forced-off output matches
+the never-blended path. This is a stronger production-code-path test than
+the originally drafted variant (which compared against
+`frozen_bias_retrofit_eval_rd.py`'s external `"kraw"`-mode capture —
+byte-for-byte `torch.equal`); the external cross-tool `kraw` equivalence
+check is registered as an OPTIONAL follow-on (cheap, the retrofit tool's
+`kraw` mode still exists), not a launch gate — audit #2 adjudicated the
+substitution as non-vacuous and non-blocking, and this paragraph records
+the reconciliation rather than silently retconning the spec.
 
 ### 5.3 The killer prediction (K-dependence)
 
@@ -2212,9 +2235,23 @@ band happens to sit.
    project's own "run the negative test to completion, don't just write it"
    discipline.
 4. **Marker-disagreement flag** (§7.6): if the two-query-marker robustness
-   replicate disagrees beyond a registered tolerance at the calibration
+   replicate disagrees beyond the registered tolerance at the calibration
    cell, the entire Phase-1 grid is blocked pending a design revision — not
    an exclusion rule applied per-cell, a hard gate before the grid launches.
+   **Registered tolerance (Rev 6.1, closing a build-time gap the BUILD
+   agent correctly flagged rather than silently inventing): 0.15 in
+   `recovered_frac` units.** Rationale: the marker replicate exists to
+   catch a probe that measures marker identity rather than binding; a
+   disagreement of 0.15 would rival the arm/scale contrasts this design
+   treats as meaningful (the killer prediction's separations are read
+   against pinned CIs whose widths at n=3 have run 0.05-0.15 across this
+   project's own waves), so any calibration-cell disagreement at that
+   scale means marker choice is a same-order effect and the instrument is
+   not marker-neutral. Additionally, at HARVEST any individual cell whose
+   two-marker disagreement exceeds the cell's own claimed arm-contrast
+   magnitude is labeled MARKER-FRAGILE and excluded from confirmatory
+   tables (reported separately) — a relative, self-scaling demotion rule
+   applied at the interpretation layer.
 5. ~~(Rev 2, attack-round-2 MAJOR-4) MEMORIZATION-CONFOUND cells~~ —
    **REMOVED, Rev 3 (attack-round-3 FATAL-1).** This category existed to
    demote a cell when the (now-removed) heldout-pool memorization-ceiling
@@ -2396,12 +2433,16 @@ and states the general rule for any future K added to either grid.
 11. **(Rev 3, attack-round-3 FATAL-2) Two-forward causality assertion** —
     for a real checkpoint and a real episode, run forward-A (BIND-only) and
     forward-B (BIND+query concatenated) and assert their residual streams
-    are IDENTICAL over the shared BIND-phase prefix: bit-identical in fp32
-    on CPU, or within `1e-6` (this design's standing tolerance, items 2/5
-    above) if run at the bf16 kernel boundary on GPU. Mechanically verifies
-    §4.4's causality argument (the appended query in forward-B cannot
-    retroactively affect the `S_T` captured from forward-A) rather than
-    resting on the argument alone — per this project's own "run the
+    agree over the shared BIND-phase prefix to **≤`1e-6` in fp32, on CPU**
+    (this design's standing tolerance, items 2/5 above — Rev 6.1 correction:
+    bit-identity is NOT achievable across different-length conv calls, an
+    independent audit measured the real CPU divergence at `≈2.4e-7`, see
+    §4.4's own corrected registration; the earlier "bit-identical (fp32,
+    CPU)" claim overstated what `ShortConvolution`'s reduction order
+    actually guarantees across two differently-shaped calls). Mechanically
+    verifies §4.4's causality argument (the appended query in forward-B
+    cannot retroactively affect the `S_T` captured from forward-A) rather
+    than resting on the argument alone — per this project's own "run the
     negative test to completion" discipline, this is checked directly, not
     merely asserted from the causal-mask property of the architecture.
 12. **(Rev 4, attack-round-4 FATAL, hop-index self-test) The 3-entity
