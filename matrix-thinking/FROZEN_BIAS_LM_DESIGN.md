@@ -4005,3 +4005,229 @@ confound), H2 corroborated (Stage 0), H4 consistent at one locus
 (§12.10.3), H3 now the live open mechanism — Stage 2 (gradient-flow
 instrumented cells, full-length per the gate) is the registered next
 step.
+
+### 12.12 MECH-WAVE CONCLUSION — STAGE-2 (H3 gradient-flow) RESULTS + FULL WAVE SYNTHESIS — executed 2026-07-07, exploratory tier throughout, WAVE CONCLUDED
+
+**§12.2's H3 row, quoted verbatim (the registered hypothesis; NO sign was
+pre-registered, unlike H1/H2):** "H3 | Optimizer/gradient-flow
+interaction: the λ-blend's `normalize()` Jacobian, evaluated at a
+per-token-random vs. a fixed-global bias direction, differentially
+reshapes the gradient signal reaching `k_raw`, and this difference
+compounds over training. | Backward-hook gradient-norm/variance
+telemetry on `k_raw`, short instrumented runs | Yes — new short training
+| 2 (conditional) | ≈0.15–0.8 GPU-h."
+
+**Provenance.** `frozen_bias_gradflow_probe.py` + `mech_stage2_chain.sh`
+(§12.5 spec, FULL 20,000-step branch per §12.11.4's frozen gate) were
+built, smoke-verified (three-part CPU smoke: hook fires exactly once per
+forward/layer on cadence-eligible steps only, captured norms finite and
+nonzero, hooked vs. unhooked loss trajectories `torch.equal`-identical),
+and independently audited **CLEARED-WITH-MINORS, zero FATAL/MAJOR
+blockers**, committed `ffce8bb`. The auditor re-executed the smoke plus
+three mutation tests (cadence break, grad-mutating hook — loss
+divergence traced to exactly step 3 on a constant flip) and re-derived
+the 11-file import closure. **MINOR-1, fixed at that commit:** the smoke
+step's device was pinned to `MECH_STAGE2_GPU` — unpinned, it would have
+landed on GPU 0 (rung-3's), a collision the pin also turned into a real
+kernel exercise rather than a no-op. Run on-box as one combined-JSON
+process (all 3 arms trained sequentially in a single invocation), GPU 2,
+tmux session exited cleanly by harvest time (`tmux list-sessions` shows
+only `trackc3` remaining; GPU 2 independently confirmed idle, 0 MiB / 0%
+util at harvest). Raw:
+`results/mech_wave/mech_stage2_gradflow_openr1-mix-ext_s0.json`; archive
+`experiment-runs/2026-07-07_mech_stage2/` (result JSON + both scripts +
+chain log + smoke log + real-run log, ~672KB, all files ≤25MB) + SSD
+mirror, `diff -rq` confirmed byte-identical. The two on-box scripts are
+ALSO byte-verified zero-drift against this repo's committed copies (md5
+`144c8b98c53c55433fe74317eb93c104` /
+`381a12da42da21409668aafecf2cb1e1`, both sides match exactly).
+
+**Measured rate vs. estimate — a DISCLOSED CORRECTION to this harvest's
+own inherited framing.** Re-derived directly from on-box file
+timestamps, not asserted: chain deploy (`mech_stage2_chain.sh` written
+to the box) 2026-07-07 06:14:27.301 UTC → `MECH_STAGE2_DONE` sentinel
+06:59:02.321 UTC = **2675.0s ≈ 44.58 min ≈ 0.7431 GPU-h** (1 GPU),
+corroborated independently by the sum of the 3 cells' own instrumented
+`wall_s` fields (879.2546 + 890.9115 + 888.7030 = 2658.8691s = 0.73858
+GPU-h — within 16s / <1% of the outer wall-clock bound, the gap being
+smoke-test + JSON-write overhead). **This is UNDER §12.5's 0.76 GPU-h
+estimate** (≈2–3% under, not over) — the realized per-cell rate
+(≈886s/cell) is well-calibrated against the ≈912s/cell estimate, unlike
+Stage 1's ~20×-conservative eval-pass estimate. **Flagged prominently
+per this task's own re-derive-from-raw-artifacts instruction:** an
+assumption carried into this harvest task (a claimed ≈70 min / ≈1.2
+GPU-h realized wall, framed as an overrun against the 0.76 estimate) is
+**not supported by the on-box timestamps** — the real run finished in
+well under 45 minutes and under budget, not over it. Every downstream
+ledger number in this section uses the re-derived 0.7431 GPU-h, not the
+inherited figure.
+
+**Verification (re-derived from the raw JSON directly, not the box's own
+printed summary).** All 3 arms present (`off`, `per_token`, `global`);
+`steps_completed=20000`, `n_skipped=0` for all three (no silently
+skipped/truncated cell). Cadence-100 grad-norm series: 200 events × 2
+layers × 3 arms = **1200 total events**, every one finite and nonzero
+(checked programmatically over the full grid, zero exceptions). Cadence
+itself verified exact — each layer's recorded steps are exactly
+`[100, 200, ..., 20000]`, no gaps or duplicates. Metadata: `seed=0`,
+`corpus=openr1-mix-ext`, `lambda=0.58` for `per_token`/`global` (`off`
+correctly carries `lam=None`), architecture `d_model=256 / d_state=64 /
+n_layers=2` matches rung-1's own registered architecture. `tier` field
+present, reads exactly `"exploratory-mechanism-wave -- NOT a
+confirmatory bar"`. Loss trajectories (201 points each, steps 1..20000)
+all finite; final losses 3.8434 / 3.8322 / 3.8675 (off / per_token /
+global) — closely matched, no divergence in any arm.
+
+**H3 per-arm per-layer grad-norm results.** Independently re-derived
+from the raw per-step series (own script, not the JSON's pre-computed
+summary) — matches the JSON's own `h3_gradnorm_comparison` block to 6
+decimal places, a plumbing cross-check on the archived summary, not a
+re-quote of it:
+
+| Layer | Arm | mean (n=200) | early mean (≤5000, n=50) | late mean (>15000, n=50) | Δ vs off (all) | Δ vs off (late) | linear trend (Δnorm / 1000 steps) |
+|---|---|---|---|---|---|---|---|
+| 0 | off | 0.04017 | 0.02824 | 0.04870 | — | — | +0.00136 |
+| 0 | per_token | 0.00595 | 0.00768 | 0.00497 | **−0.03421** | −0.04374 | **−0.000176** |
+| 0 | global | 0.02190 | 0.01786 | 0.02628 | −0.01826 | −0.02242 | +0.000558 |
+| 1 | off | 0.02207 | 0.01143 | 0.03031 | — | — | +0.00126 |
+| 1 | per_token | 0.00486 | 0.00404 | 0.00529 | **−0.01721** | −0.02502 | +0.000086 |
+| 1 | global | 0.02240 | 0.01347 | 0.02937 | **+0.00034** | −0.00094 | +0.001065 |
+
+Suppression relative to `off` (1 − arm/off), early→late window: layer 0
+per_token 72.8%→89.8% (deepens), layer 0 global 36.7%→46.0% (deepens
+mildly); layer 1 per_token 64.6%→82.5% (deepens), layer 1 global
+**−17.9%→+3.1%** (starts ABOVE `off`, ends within noise of parity — no
+persistent suppression at any point in training). Gradient-norm variance
+(std) falls over training in every arm/layer (expected under any
+converging optimization) and is not itself a differentiator between
+arms; the mean-suppression pattern above is the load-bearing signal.
+
+**H3 verdict: H3-CONSISTENT (exploratory tier — no sign was
+pre-registered per §12.2's own row; this reads the qualitative SHAPE of
+the hypothesis, not confirmation of a predicted direction).** Three
+findings jointly support "the λ-blend's `normalize()` Jacobian
+differentially reshapes the gradient reaching `k_raw`, compounding over
+training," read against the standing correlational ceiling (§12.9 item
+1):
+1. **Differential magnitude, both layers.** The per-token arm suppresses
+   `k_raw`'s gradient norm far more than the global arm at BOTH layers
+   (layer 0: 89.8% vs 46.0% suppression by late training; layer 1: 82.5%
+   vs ≈0%). This is the gradient-flow analogue of H2's rank-collapse
+   finding (per-token collapses, global stabilizes) — here manifesting
+   as differential gradient attenuation rather than differential
+   Gram-spectrum rank.
+2. **Layer-resolved, and the resolution is qualitative, not just a
+   magnitude difference.** At layer 0, BOTH blended arms show real
+   suppression relative to `off` (unequal, but both present). At layer
+   1, the global arm's gradient norm is statistically at parity with —
+   briefly above, then within ≈3% of — the unblended baseline
+   *throughout training*, i.e. no suppression signature at all, while
+   the per-token arm remains substantially suppressed (82.5% by late
+   training). The per-token/global divergence is thus MORE starkly
+   qualitative at layer 1 (one arm fully recovers to baseline parity,
+   the other never does) than at layer 0 (both arms suppressed, to
+   different degrees). This is a second, independent mechanistic probe
+   this wave finding layer 1 qualitatively distinct from layer 0 —
+   distinct in its own particulars from Stage 1's layer-1 span_frac
+   sign-flip wrinkle (§12.11.5), but the same broader theme (layer 1
+   behaves unlike layer 0 across multiple instruments this wave).
+3. **Compounds over training, with the one exception itself
+   informative.** Per-token suppression deepens at both layers (layer 0:
+   72.8%→89.8%; layer 1: 64.6%→82.5%), and layer 0's linear trend is
+   FLAT-TO-NEGATIVE (slope −0.000176/1000 steps — the ONLY negative
+   trend in the whole 6-cell grid — against `off`'s own +0.00136
+   growth). Global's layer-0 suppression also deepens, more mildly
+   (36.7%→46.0%). The one cell where nothing compounds is exactly the
+   one cell with nothing to compound: global/layer-1 tracks `off`'s own
+   growing trend almost in parallel (slope +0.001065 vs. `off`'s
+   +0.00126).
+
+No claim is made beyond this description. H3 remains correlational/
+descriptive per §12.9 item 1: it establishes that gradient flow to
+`k_raw` IS differentially reshaped, in a layer- and training-stage-
+resolved way, tracking the destabilizing (per-token) vs. stabilizing
+(global) split established elsewhere in this wave — NOT that this
+reshaping is the CAUSE of the collapse/stabilization rather than a
+shared downstream consequence of the same underlying training dynamic.
+
+**12.12.1 FULL MECH-WAVE SYNTHESIS — H1 through H5, the mechanism
+picture this wave leaves behind.** Read jointly (each hypothesis still
+stands on its own single-seed/single-corpus-per-item evidentiary
+footing — this is a synthesis, not a re-run at higher n):
+
+- **H1 REFUTED** (§12.11.1): the per-token bias makes same-token keys
+  LESS mutually self-similar, not more (Δrepeat_excess = −0.09026
+  openr1 / −0.09005 wikitext, corpus-consistent to 3 decimals) — the
+  opposite of H1's predicted sign. The rank-collapse this wave otherwise
+  documents is NOT organized around token identity.
+- **H5 clean** (§12.11.2): no frequency-concentration confound — the
+  rest-of-vocabulary stratum carries at least as much repeat-similarity
+  signal as the top-20-token stratum in every arm tested. H1's
+  refutation is a broad-vocabulary finding, not a small-support artifact.
+- **H2 corroborated** (§12.10.2): effective_rank/stable_rank — an
+  independent estimator of the SAME Gram-spectrum `span_frac` measures —
+  agree in direction: per-token arm's post-blend key-rank FALLS vs. both
+  baselines (4/4 CI-excluding-zero cells), global arm's RISES (3/4).
+- **H4 consistent at one locus** (§12.10.3): the global (stabilizing)
+  arm's block-0 `k_conv1d` weight drift is `b_global`-coherent AND
+  anti-aligned (mean|cos|=0.1778 vs. chance 0.0997, all 4 tested columns
+  negative) — a low-rank, directionally-organized correction against the
+  frozen bias — while the per-token arm's drift sits at chance
+  (0.0816). Block-1 shows no such directional component in either arm.
+- **H3, this section:** the per-token arm's gradient signal reaching
+  `k_raw` is substantially and increasingly suppressed relative to an
+  unblended control, at BOTH instrumented layers, while the global arm's
+  suppression is present but shallower at layer 0 and effectively ABSENT
+  at layer 1 (statistical parity with the unblended control throughout
+  training).
+
+**The composite picture (still exploratory/correlational throughout,
+never elevated past this tier):** the per-token bias induces a genuine,
+BROAD (not token-identity-organized — H1/H5) collapse of the model's
+raw key-space rank (H2), and this collapse is accompanied by a
+substantial, deepening suppression of the gradient signal that reaches
+`k_raw` during training, undiminished across both instrumented layers
+(H3) — i.e. the destabilizing arm's own optimization pathway to `k_raw`
+is progressively starved of gradient signal at exactly the locus whose
+geometry collapses. The global bias, by contrast, is met with a
+coherent, low-rank, anti-aligned compensatory adjustment concentrated in
+block-0's `k_conv1d` weights (H4) that plausibly explains why ITS
+gradient path is only shallowly and locally (layer-0-only) suppressed —
+consistent with the compensation being sufficient to largely neutralize
+the global bias's distortion of the gradient path beyond block 0, where
+the per-token bias (50,257 uncorrelated per-token perturbations, no
+single low-rank direction to compensate against) leaves suppression
+un-neutralized at both layers, and the rank never recovers. This is a
+coherent, mutually-consistent story across four independent instruments
+(H1/H5 ruling out the token-identity account, H2 the direct
+Gram-spectrum read, H4 the parameter-space compensatory signature, H3
+the gradient-flow read) — but it is a STORY assembled from four
+observational instruments applied to the SAME two training runs, not
+four independent causal tests, and no instrument here manipulates the
+candidate mechanism directly.
+
+**What remains open.** The correlational ceiling (§12.9 item 1) stands
+for the entire wave, unchanged by Stage 2 — nothing in §12 intervenes on
+the candidate mechanism; Stage 2's instrumented cells are the closest
+this wave gets to an interventional design (a controlled, matched-
+everything-but-bias-mode pair of training runs with direct gradient
+telemetry), but they still observe an emergent consequence of training,
+not a designed perturbation of the gradient-reshaping mechanism itself.
+H4's parameter-diff locus risk (§12.9 item 2 — the real compensatory
+adaptation could sit upstream of `k_conv1d`) is untouched by Stage 2.
+Single seed (0), single corpus (openr1-mix-ext) throughout Stage 2,
+matching §12.5's registered design — no cross-seed or cross-corpus
+replication of the gradient-flow finding exists yet.
+
+**Ledger.** Stage 2 realized **0.7431 GPU-h** (log-timestamp bound,
+re-derived above). Frozen-bias LM program ledger: 6.9288 (rung-1 6.8988
++ Stage 0 0 + Stage 1 ≈0.03) + 0.7431 = **≈7.672 / 135 GPU-h**. This
+entire mechanism wave (Stage 0 + Stage 0.5 + Stage 1 + Stage 2), every
+item, cost **≈0.773 GPU-h realized** against §12.6's own worst-case
+2× estimate of 3.82 GPU-h (≈20% of the worst-case ceiling, and a small
+fraction of the frozen-bias LM program's 135 GPU-h ceiling).
+
+**MECH-WAVE STATUS: CONCLUDED, exploratory tier throughout, per §12.0's
+original framing.** H1 REFUTED, H5 clean, H2 corroborated, H4 consistent
+at one locus, H3 consistent (no sign pre-registered) — no hypothesis in
+§12.2 remains untested; no further stage is registered or gated.

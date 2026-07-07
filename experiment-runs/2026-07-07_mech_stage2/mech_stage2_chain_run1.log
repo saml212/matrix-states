@@ -1,0 +1,701 @@
+======================================================================
+  FROZEN_BIAS_GRADFLOW_PROBE SMOKE GATE (sec 12.5)
+======================================================================
+device=cuda  fla_stub_installed=False
+
+[1] hook fires exactly once per forward pass per layer, ONLY on cadence-eligible steps (arm='off' -- the case a naive apply_frozen_bias_blend-wrapping monkeypatch would silently miss entirely)
+  layer 0: recorded_steps=[2, 4, 6]  expected=[2, 4, 6]  duplicates=0  PASS=True
+  layer 1: recorded_steps=[2, 4, 6]  expected=[2, 4, 6]  duplicates=0  PASS=True
+[1] PASS=True
+
+[2] captured grad norms finite and nonzero
+  layer 0: grad_norms=[0.07402805238962173, 0.13691608607769012, 0.07671894878149033]  PASS=True
+  layer 1: grad_norms=[0.03032081574201584, 0.03143366798758507, 0.03004022128880024]  PASS=True
+[2] PASS=True
+
+[3] adding the hook does NOT change the loss trajectory vs an unhooked control (torch.equal-level check, same seed/init/data)
+  losses_hooked =[5.301604270935059, 5.3120880126953125, 5.29780387878418, 5.317966938018799, 5.312668323516846, 5.313490867614746]
+  losses_control=[5.301604270935059, 5.3120880126953125, 5.29780387878418, 5.317966938018799, 5.312668323516846, 5.313490867614746]
+[3] PASS=True
+
+[4] hook mechanism generalizes to arm='per_token' and arm='global' (the two arms where apply_frozen_bias_blend actually runs)
+  arm=per_token: per-layer records={0: [{'step': 1, 'grad_norm': 0.04375371336936951}, {'step': 2, 'grad_norm': 0.04888037592172623}], 1: [{'step': 1, 'grad_norm': 0.020601369440555573}, {'step': 2, 'grad_norm': 0.020820094272494316}]}  PASS=True
+  arm=global: per-layer records={0: [{'step': 1, 'grad_norm': 0.05772165581583977}, {'step': 2, 'grad_norm': 0.05919896066188812}], 1: [{'step': 1, 'grad_norm': 0.0243820883333683}, {'step': 2, 'grad_norm': 0.025358736515045166}]}  PASS=True
+[4] PASS=True
+
+======================================================================
+FROZEN_BIAS_GRADFLOW_PROBE SMOKE: ALL PASSED
+======================================================================
+
+======================================================================
+  CELL: arm=off  corpus=openr1-mix-ext  seed=0  steps=20000
+======================================================================
+  [off] step      1  loss 10.8783  lr 3.00e-06
+  [off] step    100  loss 7.5273  lr 3.00e-04
+  [off] step    200  loss 6.8705  lr 3.00e-04
+  [off] step    300  loss 6.6988  lr 3.00e-04
+  [off] step    400  loss 6.0851  lr 3.00e-04
+  [off] step    500  loss 5.9273  lr 3.00e-04
+  [off] step    600  loss 5.7273  lr 3.00e-04
+  [off] step    700  loss 5.9225  lr 2.99e-04
+  [off] step    800  loss 5.1787  lr 2.99e-04
+  [off] step    900  loss 5.6026  lr 2.99e-04
+  [off] step   1000  loss 5.3077  lr 2.99e-04
+  [off] step   1100  loss 5.4789  lr 2.98e-04
+  [off] step   1200  loss 5.2319  lr 2.98e-04
+  [off] step   1300  loss 5.5599  lr 2.98e-04
+  [off] step   1400  loss 5.3845  lr 2.97e-04
+  [off] step   1500  loss 4.5438  lr 2.97e-04
+  [off] step   1600  loss 5.1756  lr 2.96e-04
+  [off] step   1700  loss 4.9688  lr 2.96e-04
+  [off] step   1800  loss 5.3295  lr 2.95e-04
+  [off] step   1900  loss 4.7430  lr 2.95e-04
+  [off] step   2000  loss 4.5507  lr 2.94e-04
+  [off] step   2100  loss 4.9756  lr 2.93e-04
+  [off] step   2200  loss 4.4607  lr 2.93e-04
+  [off] step   2300  loss 4.4873  lr 2.92e-04
+  [off] step   2400  loss 4.5537  lr 2.91e-04
+  [off] step   2500  loss 4.8610  lr 2.90e-04
+  [off] step   2600  loss 4.9193  lr 2.90e-04
+  [off] step   2700  loss 4.4766  lr 2.89e-04
+  [off] step   2800  loss 4.3039  lr 2.88e-04
+  [off] step   2900  loss 4.8928  lr 2.87e-04
+  [off] step   3000  loss 4.5150  lr 2.86e-04
+  [off] step   3100  loss 4.6942  lr 2.85e-04
+  [off] step   3200  loss 4.3285  lr 2.84e-04
+  [off] step   3300  loss 4.7099  lr 2.83e-04
+  [off] step   3400  loss 4.6943  lr 2.82e-04
+  [off] step   3500  loss 4.3794  lr 2.81e-04
+  [off] step   3600  loss 4.1631  lr 2.80e-04
+  [off] step   3700  loss 4.5659  lr 2.79e-04
+  [off] step   3800  loss 4.4576  lr 2.78e-04
+  [off] step   3900  loss 4.2931  lr 2.76e-04
+  [off] step   4000  loss 4.6380  lr 2.75e-04
+  [off] step   4100  loss 4.4246  lr 2.74e-04
+  [off] step   4200  loss 4.4591  lr 2.73e-04
+  [off] step   4300  loss 4.0551  lr 2.71e-04
+  [off] step   4400  loss 4.4792  lr 2.70e-04
+  [off] step   4500  loss 4.2966  lr 2.69e-04
+  [off] step   4600  loss 4.4460  lr 2.67e-04
+  [off] step   4700  loss 4.4409  lr 2.66e-04
+  [off] step   4800  loss 4.4240  lr 2.65e-04
+  [off] step   4900  loss 4.5236  lr 2.63e-04
+  [off] step   5000  loss 4.2565  lr 2.62e-04
+  [off] step   5100  loss 4.8330  lr 2.60e-04
+  [off] step   5200  loss 3.9883  lr 2.59e-04
+  [off] step   5300  loss 4.3686  lr 2.57e-04
+  [off] step   5400  loss 4.3166  lr 2.55e-04
+  [off] step   5500  loss 4.2368  lr 2.54e-04
+  [off] step   5600  loss 4.3886  lr 2.52e-04
+  [off] step   5700  loss 4.1058  lr 2.51e-04
+  [off] step   5800  loss 4.3614  lr 2.49e-04
+  [off] step   5900  loss 4.6059  lr 2.47e-04
+  [off] step   6000  loss 4.2958  lr 2.46e-04
+  [off] step   6100  loss 4.4405  lr 2.44e-04
+  [off] step   6200  loss 3.8251  lr 2.42e-04
+  [off] step   6300  loss 4.0839  lr 2.40e-04
+  [off] step   6400  loss 4.5062  lr 2.39e-04
+  [off] step   6500  loss 4.2091  lr 2.37e-04
+  [off] step   6600  loss 4.2620  lr 2.35e-04
+  [off] step   6700  loss 4.5546  lr 2.33e-04
+  [off] step   6800  loss 3.5137  lr 2.31e-04
+  [off] step   6900  loss 4.5348  lr 2.29e-04
+  [off] step   7000  loss 4.1112  lr 2.28e-04
+  [off] step   7100  loss 4.0461  lr 2.26e-04
+  [off] step   7200  loss 4.0641  lr 2.24e-04
+  [off] step   7300  loss 4.1918  lr 2.22e-04
+  [off] step   7400  loss 4.0107  lr 2.20e-04
+  [off] step   7500  loss 3.7910  lr 2.18e-04
+  [off] step   7600  loss 3.8873  lr 2.16e-04
+  [off] step   7700  loss 4.2631  lr 2.14e-04
+  [off] step   7800  loss 3.7962  lr 2.12e-04
+  [off] step   7900  loss 4.2441  lr 2.10e-04
+  [off] step   8000  loss 4.1031  lr 2.08e-04
+  [off] step   8100  loss 3.9475  lr 2.06e-04
+  [off] step   8200  loss 3.9855  lr 2.04e-04
+  [off] step   8300  loss 4.2090  lr 2.02e-04
+  [off] step   8400  loss 4.2191  lr 2.00e-04
+  [off] step   8500  loss 3.9136  lr 1.98e-04
+  [off] step   8600  loss 3.6452  lr 1.96e-04
+  [off] step   8700  loss 3.9484  lr 1.94e-04
+  [off] step   8800  loss 3.6709  lr 1.91e-04
+  [off] step   8900  loss 3.8696  lr 1.89e-04
+  [off] step   9000  loss 4.1829  lr 1.87e-04
+  [off] step   9100  loss 4.0109  lr 1.85e-04
+  [off] step   9200  loss 3.8400  lr 1.83e-04
+  [off] step   9300  loss 3.5680  lr 1.81e-04
+  [off] step   9400  loss 4.1975  lr 1.79e-04
+  [off] step   9500  loss 3.7594  lr 1.77e-04
+  [off] step   9600  loss 4.2221  lr 1.75e-04
+  [off] step   9700  loss 3.9998  lr 1.72e-04
+  [off] step   9800  loss 4.0739  lr 1.70e-04
+  [off] step   9900  loss 4.4378  lr 1.68e-04
+  [off] step  10000  loss 3.9810  lr 1.66e-04
+  [off] step  10100  loss 4.0448  lr 1.64e-04
+  [off] step  10200  loss 4.1196  lr 1.62e-04
+  [off] step  10300  loss 4.0446  lr 1.60e-04
+  [off] step  10400  loss 3.9881  lr 1.58e-04
+  [off] step  10500  loss 4.0883  lr 1.55e-04
+  [off] step  10600  loss 3.7466  lr 1.53e-04
+  [off] step  10700  loss 4.0658  lr 1.51e-04
+  [off] step  10800  loss 4.0994  lr 1.49e-04
+  [off] step  10900  loss 3.6862  lr 1.47e-04
+  [off] step  11000  loss 3.9680  lr 1.45e-04
+  [off] step  11100  loss 3.7727  lr 1.43e-04
+  [off] step  11200  loss 4.2135  lr 1.41e-04
+  [off] step  11300  loss 4.0634  lr 1.39e-04
+  [off] step  11400  loss 3.8368  lr 1.36e-04
+  [off] step  11500  loss 3.9477  lr 1.34e-04
+  [off] step  11600  loss 3.8839  lr 1.32e-04
+  [off] step  11700  loss 4.3008  lr 1.30e-04
+  [off] step  11800  loss 3.9587  lr 1.28e-04
+  [off] step  11900  loss 3.7188  lr 1.26e-04
+  [off] step  12000  loss 3.7166  lr 1.24e-04
+  [off] step  12100  loss 3.6207  lr 1.22e-04
+  [off] step  12200  loss 3.7467  lr 1.20e-04
+  [off] step  12300  loss 3.9728  lr 1.18e-04
+  [off] step  12400  loss 3.8891  lr 1.16e-04
+  [off] step  12500  loss 4.0081  lr 1.14e-04
+  [off] step  12600  loss 3.4593  lr 1.12e-04
+  [off] step  12700  loss 3.9253  lr 1.10e-04
+  [off] step  12800  loss 3.9441  lr 1.08e-04
+  [off] step  12900  loss 3.9566  lr 1.06e-04
+  [off] step  13000  loss 3.4999  lr 1.04e-04
+  [off] step  13100  loss 3.4072  lr 1.02e-04
+  [off] step  13200  loss 4.0652  lr 1.01e-04
+  [off] step  13300  loss 3.8167  lr 9.87e-05
+  [off] step  13400  loss 3.9151  lr 9.69e-05
+  [off] step  13500  loss 3.6932  lr 9.51e-05
+  [off] step  13600  loss 3.8887  lr 9.32e-05
+  [off] step  13700  loss 3.5446  lr 9.14e-05
+  [off] step  13800  loss 3.8599  lr 8.97e-05
+  [off] step  13900  loss 3.9462  lr 8.79e-05
+  [off] step  14000  loss 3.8385  lr 8.62e-05
+  [off] step  14100  loss 3.6096  lr 8.44e-05
+  [off] step  14200  loss 3.9793  lr 8.27e-05
+  [off] step  14300  loss 3.8944  lr 8.11e-05
+  [off] step  14400  loss 4.2981  lr 7.94e-05
+  [off] step  14500  loss 3.9093  lr 7.78e-05
+  [off] step  14600  loss 3.9216  lr 7.62e-05
+  [off] step  14700  loss 3.7348  lr 7.46e-05
+  [off] step  14800  loss 4.0109  lr 7.30e-05
+  [off] step  14900  loss 3.6794  lr 7.14e-05
+  [off] step  15000  loss 3.9068  lr 6.99e-05
+  [off] step  15100  loss 3.4675  lr 6.84e-05
+  [off] step  15200  loss 3.7481  lr 6.69e-05
+  [off] step  15300  loss 3.9659  lr 6.55e-05
+  [off] step  15400  loss 4.0164  lr 6.41e-05
+  [off] step  15500  loss 4.0224  lr 6.27e-05
+  [off] step  15600  loss 4.1779  lr 6.13e-05
+  [off] step  15700  loss 3.8653  lr 5.99e-05
+  [off] step  15800  loss 3.7950  lr 5.86e-05
+  [off] step  15900  loss 3.6147  lr 5.73e-05
+  [off] step  16000  loss 4.0328  lr 5.60e-05
+  [off] step  16100  loss 3.9162  lr 5.48e-05
+  [off] step  16200  loss 3.5174  lr 5.36e-05
+  [off] step  16300  loss 3.3735  lr 5.24e-05
+  [off] step  16400  loss 4.2546  lr 5.12e-05
+  [off] step  16500  loss 3.9067  lr 5.01e-05
+  [off] step  16600  loss 4.1418  lr 4.90e-05
+  [off] step  16700  loss 4.1830  lr 4.79e-05
+  [off] step  16800  loss 3.8386  lr 4.69e-05
+  [off] step  16900  loss 3.6033  lr 4.58e-05
+  [off] step  17000  loss 3.9544  lr 4.49e-05
+  [off] step  17100  loss 3.7716  lr 4.39e-05
+  [off] step  17200  loss 4.0343  lr 4.30e-05
+  [off] step  17300  loss 3.8683  lr 4.21e-05
+  [off] step  17400  loss 3.8514  lr 4.12e-05
+  [off] step  17500  loss 3.7826  lr 4.04e-05
+  [off] step  17600  loss 3.8248  lr 3.96e-05
+  [off] step  17700  loss 3.9879  lr 3.88e-05
+  [off] step  17800  loss 3.5866  lr 3.81e-05
+  [off] step  17900  loss 3.8409  lr 3.74e-05
+  [off] step  18000  loss 4.0580  lr 3.67e-05
+  [off] step  18100  loss 3.9002  lr 3.60e-05
+  [off] step  18200  loss 3.5651  lr 3.54e-05
+  [off] step  18300  loss 4.0569  lr 3.48e-05
+  [off] step  18400  loss 3.8047  lr 3.43e-05
+  [off] step  18500  loss 3.9960  lr 3.38e-05
+  [off] step  18600  loss 3.9586  lr 3.33e-05
+  [off] step  18700  loss 3.7531  lr 3.28e-05
+  [off] step  18800  loss 3.7532  lr 3.24e-05
+  [off] step  18900  loss 4.1343  lr 3.20e-05
+  [off] step  19000  loss 3.8899  lr 3.17e-05
+  [off] step  19100  loss 3.7486  lr 3.14e-05
+  [off] step  19200  loss 4.1456  lr 3.11e-05
+  [off] step  19300  loss 3.6878  lr 3.08e-05
+  [off] step  19400  loss 3.8336  lr 3.06e-05
+  [off] step  19500  loss 3.9851  lr 3.04e-05
+  [off] step  19600  loss 3.8739  lr 3.03e-05
+  [off] step  19700  loss 3.7012  lr 3.02e-05
+  [off] step  19800  loss 3.8956  lr 3.01e-05
+  [off] step  19900  loss 3.6756  lr 3.00e-05
+  [off] step  20000  loss 3.8434  lr 3.00e-05
+
+======================================================================
+  CELL: arm=per_token  corpus=openr1-mix-ext  seed=0  steps=20000
+======================================================================
+  [per_token] step      1  loss 10.8780  lr 3.00e-06
+  [per_token] step    100  loss 7.4882  lr 3.00e-04
+  [per_token] step    200  loss 6.8634  lr 3.00e-04
+  [per_token] step    300  loss 6.7081  lr 3.00e-04
+  [per_token] step    400  loss 6.0877  lr 3.00e-04
+  [per_token] step    500  loss 5.9036  lr 3.00e-04
+  [per_token] step    600  loss 5.7110  lr 3.00e-04
+  [per_token] step    700  loss 5.9047  lr 2.99e-04
+  [per_token] step    800  loss 5.1644  lr 2.99e-04
+  [per_token] step    900  loss 5.5932  lr 2.99e-04
+  [per_token] step   1000  loss 5.2929  lr 2.99e-04
+  [per_token] step   1100  loss 5.4541  lr 2.98e-04
+  [per_token] step   1200  loss 5.2270  lr 2.98e-04
+  [per_token] step   1300  loss 5.5338  lr 2.98e-04
+  [per_token] step   1400  loss 5.3954  lr 2.97e-04
+  [per_token] step   1500  loss 4.5453  lr 2.97e-04
+  [per_token] step   1600  loss 5.1731  lr 2.96e-04
+  [per_token] step   1700  loss 4.9692  lr 2.96e-04
+  [per_token] step   1800  loss 5.3212  lr 2.95e-04
+  [per_token] step   1900  loss 4.7515  lr 2.95e-04
+  [per_token] step   2000  loss 4.5551  lr 2.94e-04
+  [per_token] step   2100  loss 4.9781  lr 2.93e-04
+  [per_token] step   2200  loss 4.4686  lr 2.93e-04
+  [per_token] step   2300  loss 4.4986  lr 2.92e-04
+  [per_token] step   2400  loss 4.5604  lr 2.91e-04
+  [per_token] step   2500  loss 4.9094  lr 2.90e-04
+  [per_token] step   2600  loss 4.9304  lr 2.90e-04
+  [per_token] step   2700  loss 4.4727  lr 2.89e-04
+  [per_token] step   2800  loss 4.3372  lr 2.88e-04
+  [per_token] step   2900  loss 4.9243  lr 2.87e-04
+  [per_token] step   3000  loss 4.5307  lr 2.86e-04
+  [per_token] step   3100  loss 4.7166  lr 2.85e-04
+  [per_token] step   3200  loss 4.3480  lr 2.84e-04
+  [per_token] step   3300  loss 4.7250  lr 2.83e-04
+  [per_token] step   3400  loss 4.7040  lr 2.82e-04
+  [per_token] step   3500  loss 4.3934  lr 2.81e-04
+  [per_token] step   3600  loss 4.2020  lr 2.80e-04
+  [per_token] step   3700  loss 4.6089  lr 2.79e-04
+  [per_token] step   3800  loss 4.5093  lr 2.78e-04
+  [per_token] step   3900  loss 4.3423  lr 2.76e-04
+  [per_token] step   4000  loss 4.6706  lr 2.75e-04
+  [per_token] step   4100  loss 4.4588  lr 2.74e-04
+  [per_token] step   4200  loss 4.5005  lr 2.73e-04
+  [per_token] step   4300  loss 4.0883  lr 2.71e-04
+  [per_token] step   4400  loss 4.5217  lr 2.70e-04
+  [per_token] step   4500  loss 4.3307  lr 2.69e-04
+  [per_token] step   4600  loss 4.4830  lr 2.67e-04
+  [per_token] step   4700  loss 4.4795  lr 2.66e-04
+  [per_token] step   4800  loss 4.4616  lr 2.65e-04
+  [per_token] step   4900  loss 4.5478  lr 2.63e-04
+  [per_token] step   5000  loss 4.2834  lr 2.62e-04
+  [per_token] step   5100  loss 4.8749  lr 2.60e-04
+  [per_token] step   5200  loss 4.0146  lr 2.59e-04
+  [per_token] step   5300  loss 4.4128  lr 2.57e-04
+  [per_token] step   5400  loss 4.3199  lr 2.55e-04
+  [per_token] step   5500  loss 4.2654  lr 2.54e-04
+  [per_token] step   5600  loss 4.4282  lr 2.52e-04
+  [per_token] step   5700  loss 4.1462  lr 2.51e-04
+  [per_token] step   5800  loss 4.3855  lr 2.49e-04
+  [per_token] step   5900  loss 4.6749  lr 2.47e-04
+  [per_token] step   6000  loss 4.3582  lr 2.46e-04
+  [per_token] step   6100  loss 4.4472  lr 2.44e-04
+  [per_token] step   6200  loss 3.8548  lr 2.42e-04
+  [per_token] step   6300  loss 4.0942  lr 2.40e-04
+  [per_token] step   6400  loss 4.5462  lr 2.39e-04
+  [per_token] step   6500  loss 4.2332  lr 2.37e-04
+  [per_token] step   6600  loss 4.2965  lr 2.35e-04
+  [per_token] step   6700  loss 4.5621  lr 2.33e-04
+  [per_token] step   6800  loss 3.5103  lr 2.31e-04
+  [per_token] step   6900  loss 4.5532  lr 2.29e-04
+  [per_token] step   7000  loss 4.1900  lr 2.28e-04
+  [per_token] step   7100  loss 4.1039  lr 2.26e-04
+  [per_token] step   7200  loss 4.1058  lr 2.24e-04
+  [per_token] step   7300  loss 4.2108  lr 2.22e-04
+  [per_token] step   7400  loss 4.0609  lr 2.20e-04
+  [per_token] step   7500  loss 3.7843  lr 2.18e-04
+  [per_token] step   7600  loss 3.9231  lr 2.16e-04
+  [per_token] step   7700  loss 4.2787  lr 2.14e-04
+  [per_token] step   7800  loss 3.8241  lr 2.12e-04
+  [per_token] step   7900  loss 4.2798  lr 2.10e-04
+  [per_token] step   8000  loss 4.1224  lr 2.08e-04
+  [per_token] step   8100  loss 3.9639  lr 2.06e-04
+  [per_token] step   8200  loss 3.9942  lr 2.04e-04
+  [per_token] step   8300  loss 4.2640  lr 2.02e-04
+  [per_token] step   8400  loss 4.2561  lr 2.00e-04
+  [per_token] step   8500  loss 3.9284  lr 1.98e-04
+  [per_token] step   8600  loss 3.6532  lr 1.96e-04
+  [per_token] step   8700  loss 3.9941  lr 1.94e-04
+  [per_token] step   8800  loss 3.7087  lr 1.91e-04
+  [per_token] step   8900  loss 3.8862  lr 1.89e-04
+  [per_token] step   9000  loss 4.1849  lr 1.87e-04
+  [per_token] step   9100  loss 4.0476  lr 1.85e-04
+  [per_token] step   9200  loss 3.8675  lr 1.83e-04
+  [per_token] step   9300  loss 3.5967  lr 1.81e-04
+  [per_token] step   9400  loss 4.2268  lr 1.79e-04
+  [per_token] step   9500  loss 3.7749  lr 1.77e-04
+  [per_token] step   9600  loss 4.2701  lr 1.75e-04
+  [per_token] step   9700  loss 4.0016  lr 1.72e-04
+  [per_token] step   9800  loss 4.0829  lr 1.70e-04
+  [per_token] step   9900  loss 4.4777  lr 1.68e-04
+  [per_token] step  10000  loss 3.9936  lr 1.66e-04
+  [per_token] step  10100  loss 4.0338  lr 1.64e-04
+  [per_token] step  10200  loss 4.1168  lr 1.62e-04
+  [per_token] step  10300  loss 4.0679  lr 1.60e-04
+  [per_token] step  10400  loss 4.0055  lr 1.58e-04
+  [per_token] step  10500  loss 4.0972  lr 1.55e-04
+  [per_token] step  10600  loss 3.7865  lr 1.53e-04
+  [per_token] step  10700  loss 4.0960  lr 1.51e-04
+  [per_token] step  10800  loss 4.0913  lr 1.49e-04
+  [per_token] step  10900  loss 3.6899  lr 1.47e-04
+  [per_token] step  11000  loss 3.9475  lr 1.45e-04
+  [per_token] step  11100  loss 3.7721  lr 1.43e-04
+  [per_token] step  11200  loss 4.2146  lr 1.41e-04
+  [per_token] step  11300  loss 4.0705  lr 1.39e-04
+  [per_token] step  11400  loss 3.8448  lr 1.36e-04
+  [per_token] step  11500  loss 3.9442  lr 1.34e-04
+  [per_token] step  11600  loss 3.8940  lr 1.32e-04
+  [per_token] step  11700  loss 4.3513  lr 1.30e-04
+  [per_token] step  11800  loss 3.9681  lr 1.28e-04
+  [per_token] step  11900  loss 3.7364  lr 1.26e-04
+  [per_token] step  12000  loss 3.7119  lr 1.24e-04
+  [per_token] step  12100  loss 3.6324  lr 1.22e-04
+  [per_token] step  12200  loss 3.7629  lr 1.20e-04
+  [per_token] step  12300  loss 3.9965  lr 1.18e-04
+  [per_token] step  12400  loss 3.9137  lr 1.16e-04
+  [per_token] step  12500  loss 4.0162  lr 1.14e-04
+  [per_token] step  12600  loss 3.4757  lr 1.12e-04
+  [per_token] step  12700  loss 3.9294  lr 1.10e-04
+  [per_token] step  12800  loss 3.9710  lr 1.08e-04
+  [per_token] step  12900  loss 3.9489  lr 1.06e-04
+  [per_token] step  13000  loss 3.4812  lr 1.04e-04
+  [per_token] step  13100  loss 3.3875  lr 1.02e-04
+  [per_token] step  13200  loss 4.0467  lr 1.01e-04
+  [per_token] step  13300  loss 3.8060  lr 9.87e-05
+  [per_token] step  13400  loss 3.9388  lr 9.69e-05
+  [per_token] step  13500  loss 3.6823  lr 9.51e-05
+  [per_token] step  13600  loss 3.9004  lr 9.32e-05
+  [per_token] step  13700  loss 3.5356  lr 9.14e-05
+  [per_token] step  13800  loss 3.8788  lr 8.97e-05
+  [per_token] step  13900  loss 3.9774  lr 8.79e-05
+  [per_token] step  14000  loss 3.8247  lr 8.62e-05
+  [per_token] step  14100  loss 3.6010  lr 8.44e-05
+  [per_token] step  14200  loss 3.9818  lr 8.27e-05
+  [per_token] step  14300  loss 3.8900  lr 8.11e-05
+  [per_token] step  14400  loss 4.3084  lr 7.94e-05
+  [per_token] step  14500  loss 3.9062  lr 7.78e-05
+  [per_token] step  14600  loss 3.9264  lr 7.62e-05
+  [per_token] step  14700  loss 3.7287  lr 7.46e-05
+  [per_token] step  14800  loss 4.0266  lr 7.30e-05
+  [per_token] step  14900  loss 3.6745  lr 7.14e-05
+  [per_token] step  15000  loss 3.9240  lr 6.99e-05
+  [per_token] step  15100  loss 3.4491  lr 6.84e-05
+  [per_token] step  15200  loss 3.7225  lr 6.69e-05
+  [per_token] step  15300  loss 3.9540  lr 6.55e-05
+  [per_token] step  15400  loss 4.0229  lr 6.41e-05
+  [per_token] step  15500  loss 4.0086  lr 6.27e-05
+  [per_token] step  15600  loss 4.1741  lr 6.13e-05
+  [per_token] step  15700  loss 3.8820  lr 5.99e-05
+  [per_token] step  15800  loss 3.8148  lr 5.86e-05
+  [per_token] step  15900  loss 3.6135  lr 5.73e-05
+  [per_token] step  16000  loss 4.0342  lr 5.60e-05
+  [per_token] step  16100  loss 3.9059  lr 5.48e-05
+  [per_token] step  16200  loss 3.5038  lr 5.36e-05
+  [per_token] step  16300  loss 3.3544  lr 5.24e-05
+  [per_token] step  16400  loss 4.2627  lr 5.12e-05
+  [per_token] step  16500  loss 3.9079  lr 5.01e-05
+  [per_token] step  16600  loss 4.1472  lr 4.90e-05
+  [per_token] step  16700  loss 4.1831  lr 4.79e-05
+  [per_token] step  16800  loss 3.8292  lr 4.69e-05
+  [per_token] step  16900  loss 3.5924  lr 4.58e-05
+  [per_token] step  17000  loss 3.9452  lr 4.49e-05
+  [per_token] step  17100  loss 3.7740  lr 4.39e-05
+  [per_token] step  17200  loss 4.0453  lr 4.30e-05
+  [per_token] step  17300  loss 3.8718  lr 4.21e-05
+  [per_token] step  17400  loss 3.8555  lr 4.12e-05
+  [per_token] step  17500  loss 3.7807  lr 4.04e-05
+  [per_token] step  17600  loss 3.8032  lr 3.96e-05
+  [per_token] step  17700  loss 4.0018  lr 3.88e-05
+  [per_token] step  17800  loss 3.5899  lr 3.81e-05
+  [per_token] step  17900  loss 3.8101  lr 3.74e-05
+  [per_token] step  18000  loss 4.0611  lr 3.67e-05
+  [per_token] step  18100  loss 3.8794  lr 3.60e-05
+  [per_token] step  18200  loss 3.5844  lr 3.54e-05
+  [per_token] step  18300  loss 4.0421  lr 3.48e-05
+  [per_token] step  18400  loss 3.7995  lr 3.43e-05
+  [per_token] step  18500  loss 4.0011  lr 3.38e-05
+  [per_token] step  18600  loss 3.9352  lr 3.33e-05
+  [per_token] step  18700  loss 3.7429  lr 3.28e-05
+  [per_token] step  18800  loss 3.7360  lr 3.24e-05
+  [per_token] step  18900  loss 4.1250  lr 3.20e-05
+  [per_token] step  19000  loss 3.8941  lr 3.17e-05
+  [per_token] step  19100  loss 3.7379  lr 3.14e-05
+  [per_token] step  19200  loss 4.1376  lr 3.11e-05
+  [per_token] step  19300  loss 3.6975  lr 3.08e-05
+  [per_token] step  19400  loss 3.8351  lr 3.06e-05
+  [per_token] step  19500  loss 3.9757  lr 3.04e-05
+  [per_token] step  19600  loss 3.8554  lr 3.03e-05
+  [per_token] step  19700  loss 3.6846  lr 3.02e-05
+  [per_token] step  19800  loss 3.9040  lr 3.01e-05
+  [per_token] step  19900  loss 3.6417  lr 3.00e-05
+  [per_token] step  20000  loss 3.8323  lr 3.00e-05
+
+======================================================================
+  CELL: arm=global  corpus=openr1-mix-ext  seed=0  steps=20000
+======================================================================
+  [global] step      1  loss 10.8752  lr 3.00e-06
+  [global] step    100  loss 7.5186  lr 3.00e-04
+  [global] step    200  loss 6.8174  lr 3.00e-04
+  [global] step    300  loss 6.6609  lr 3.00e-04
+  [global] step    400  loss 6.0395  lr 3.00e-04
+  [global] step    500  loss 5.9161  lr 3.00e-04
+  [global] step    600  loss 5.7417  lr 3.00e-04
+  [global] step    700  loss 5.9393  lr 2.99e-04
+  [global] step    800  loss 5.2012  lr 2.99e-04
+  [global] step    900  loss 5.6338  lr 2.99e-04
+  [global] step   1000  loss 5.3211  lr 2.99e-04
+  [global] step   1100  loss 5.5233  lr 2.98e-04
+  [global] step   1200  loss 5.2565  lr 2.98e-04
+  [global] step   1300  loss 5.5877  lr 2.98e-04
+  [global] step   1400  loss 5.4299  lr 2.97e-04
+  [global] step   1500  loss 4.5875  lr 2.97e-04
+  [global] step   1600  loss 5.2116  lr 2.96e-04
+  [global] step   1700  loss 5.0127  lr 2.96e-04
+  [global] step   1800  loss 5.3638  lr 2.95e-04
+  [global] step   1900  loss 4.8096  lr 2.95e-04
+  [global] step   2000  loss 4.6104  lr 2.94e-04
+  [global] step   2100  loss 5.0163  lr 2.93e-04
+  [global] step   2200  loss 4.5467  lr 2.93e-04
+  [global] step   2300  loss 4.5403  lr 2.92e-04
+  [global] step   2400  loss 4.6070  lr 2.91e-04
+  [global] step   2500  loss 4.9456  lr 2.90e-04
+  [global] step   2600  loss 4.9832  lr 2.90e-04
+  [global] step   2700  loss 4.5318  lr 2.89e-04
+  [global] step   2800  loss 4.3786  lr 2.88e-04
+  [global] step   2900  loss 4.9618  lr 2.87e-04
+  [global] step   3000  loss 4.5676  lr 2.86e-04
+  [global] step   3100  loss 4.7659  lr 2.85e-04
+  [global] step   3200  loss 4.3919  lr 2.84e-04
+  [global] step   3300  loss 4.7707  lr 2.83e-04
+  [global] step   3400  loss 4.7468  lr 2.82e-04
+  [global] step   3500  loss 4.4468  lr 2.81e-04
+  [global] step   3600  loss 4.2547  lr 2.80e-04
+  [global] step   3700  loss 4.6543  lr 2.79e-04
+  [global] step   3800  loss 4.5534  lr 2.78e-04
+  [global] step   3900  loss 4.3949  lr 2.76e-04
+  [global] step   4000  loss 4.7077  lr 2.75e-04
+  [global] step   4100  loss 4.5080  lr 2.74e-04
+  [global] step   4200  loss 4.5245  lr 2.73e-04
+  [global] step   4300  loss 4.1373  lr 2.71e-04
+  [global] step   4400  loss 4.5697  lr 2.70e-04
+  [global] step   4500  loss 4.3544  lr 2.69e-04
+  [global] step   4600  loss 4.5369  lr 2.67e-04
+  [global] step   4700  loss 4.5247  lr 2.66e-04
+  [global] step   4800  loss 4.5119  lr 2.65e-04
+  [global] step   4900  loss 4.6001  lr 2.63e-04
+  [global] step   5000  loss 4.3216  lr 2.62e-04
+  [global] step   5100  loss 4.9100  lr 2.60e-04
+  [global] step   5200  loss 4.0533  lr 2.59e-04
+  [global] step   5300  loss 4.4460  lr 2.57e-04
+  [global] step   5400  loss 4.3603  lr 2.55e-04
+  [global] step   5500  loss 4.3031  lr 2.54e-04
+  [global] step   5600  loss 4.4645  lr 2.52e-04
+  [global] step   5700  loss 4.1901  lr 2.51e-04
+  [global] step   5800  loss 4.4341  lr 2.49e-04
+  [global] step   5900  loss 4.7007  lr 2.47e-04
+  [global] step   6000  loss 4.4024  lr 2.46e-04
+  [global] step   6100  loss 4.4780  lr 2.44e-04
+  [global] step   6200  loss 3.8960  lr 2.42e-04
+  [global] step   6300  loss 4.1327  lr 2.40e-04
+  [global] step   6400  loss 4.5727  lr 2.39e-04
+  [global] step   6500  loss 4.2800  lr 2.37e-04
+  [global] step   6600  loss 4.3209  lr 2.35e-04
+  [global] step   6700  loss 4.6077  lr 2.33e-04
+  [global] step   6800  loss 3.5767  lr 2.31e-04
+  [global] step   6900  loss 4.5845  lr 2.29e-04
+  [global] step   7000  loss 4.2306  lr 2.28e-04
+  [global] step   7100  loss 4.1469  lr 2.26e-04
+  [global] step   7200  loss 4.1518  lr 2.24e-04
+  [global] step   7300  loss 4.2533  lr 2.22e-04
+  [global] step   7400  loss 4.1140  lr 2.20e-04
+  [global] step   7500  loss 3.8179  lr 2.18e-04
+  [global] step   7600  loss 3.9519  lr 2.16e-04
+  [global] step   7700  loss 4.3244  lr 2.14e-04
+  [global] step   7800  loss 3.8749  lr 2.12e-04
+  [global] step   7900  loss 4.3091  lr 2.10e-04
+  [global] step   8000  loss 4.1552  lr 2.08e-04
+  [global] step   8100  loss 4.0081  lr 2.06e-04
+  [global] step   8200  loss 4.0325  lr 2.04e-04
+  [global] step   8300  loss 4.2932  lr 2.02e-04
+  [global] step   8400  loss 4.2836  lr 2.00e-04
+  [global] step   8500  loss 3.9760  lr 1.98e-04
+  [global] step   8600  loss 3.6927  lr 1.96e-04
+  [global] step   8700  loss 4.0270  lr 1.94e-04
+  [global] step   8800  loss 3.7391  lr 1.91e-04
+  [global] step   8900  loss 3.9224  lr 1.89e-04
+  [global] step   9000  loss 4.2169  lr 1.87e-04
+  [global] step   9100  loss 4.0754  lr 1.85e-04
+  [global] step   9200  loss 3.9076  lr 1.83e-04
+  [global] step   9300  loss 3.6288  lr 1.81e-04
+  [global] step   9400  loss 4.2575  lr 1.79e-04
+  [global] step   9500  loss 3.8229  lr 1.77e-04
+  [global] step   9600  loss 4.2882  lr 1.75e-04
+  [global] step   9700  loss 4.0329  lr 1.72e-04
+  [global] step   9800  loss 4.1203  lr 1.70e-04
+  [global] step   9900  loss 4.4938  lr 1.68e-04
+  [global] step  10000  loss 4.0280  lr 1.66e-04
+  [global] step  10100  loss 4.0635  lr 1.64e-04
+  [global] step  10200  loss 4.1682  lr 1.62e-04
+  [global] step  10300  loss 4.1037  lr 1.60e-04
+  [global] step  10400  loss 4.0203  lr 1.58e-04
+  [global] step  10500  loss 4.1230  lr 1.55e-04
+  [global] step  10600  loss 3.8116  lr 1.53e-04
+  [global] step  10700  loss 4.1291  lr 1.51e-04
+  [global] step  10800  loss 4.1318  lr 1.49e-04
+  [global] step  10900  loss 3.7136  lr 1.47e-04
+  [global] step  11000  loss 3.9960  lr 1.45e-04
+  [global] step  11100  loss 3.8014  lr 1.43e-04
+  [global] step  11200  loss 4.2414  lr 1.41e-04
+  [global] step  11300  loss 4.1043  lr 1.39e-04
+  [global] step  11400  loss 3.8824  lr 1.36e-04
+  [global] step  11500  loss 3.9767  lr 1.34e-04
+  [global] step  11600  loss 3.9412  lr 1.32e-04
+  [global] step  11700  loss 4.3749  lr 1.30e-04
+  [global] step  11800  loss 3.9888  lr 1.28e-04
+  [global] step  11900  loss 3.7629  lr 1.26e-04
+  [global] step  12000  loss 3.7606  lr 1.24e-04
+  [global] step  12100  loss 3.6596  lr 1.22e-04
+  [global] step  12200  loss 3.7891  lr 1.20e-04
+  [global] step  12300  loss 4.0271  lr 1.18e-04
+  [global] step  12400  loss 3.9506  lr 1.16e-04
+  [global] step  12500  loss 4.0463  lr 1.14e-04
+  [global] step  12600  loss 3.5155  lr 1.12e-04
+  [global] step  12700  loss 3.9590  lr 1.10e-04
+  [global] step  12800  loss 4.0239  lr 1.08e-04
+  [global] step  12900  loss 3.9777  lr 1.06e-04
+  [global] step  13000  loss 3.5176  lr 1.04e-04
+  [global] step  13100  loss 3.4316  lr 1.02e-04
+  [global] step  13200  loss 4.0957  lr 1.01e-04
+  [global] step  13300  loss 3.8356  lr 9.87e-05
+  [global] step  13400  loss 3.9591  lr 9.69e-05
+  [global] step  13500  loss 3.7130  lr 9.51e-05
+  [global] step  13600  loss 3.9521  lr 9.32e-05
+  [global] step  13700  loss 3.5696  lr 9.14e-05
+  [global] step  13800  loss 3.9048  lr 8.97e-05
+  [global] step  13900  loss 4.0121  lr 8.79e-05
+  [global] step  14000  loss 3.8799  lr 8.62e-05
+  [global] step  14100  loss 3.6372  lr 8.44e-05
+  [global] step  14200  loss 4.0198  lr 8.27e-05
+  [global] step  14300  loss 3.9298  lr 8.11e-05
+  [global] step  14400  loss 4.3235  lr 7.94e-05
+  [global] step  14500  loss 3.9320  lr 7.78e-05
+  [global] step  14600  loss 3.9623  lr 7.62e-05
+  [global] step  14700  loss 3.7577  lr 7.46e-05
+  [global] step  14800  loss 4.0637  lr 7.30e-05
+  [global] step  14900  loss 3.7090  lr 7.14e-05
+  [global] step  15000  loss 3.9568  lr 6.99e-05
+  [global] step  15100  loss 3.4841  lr 6.84e-05
+  [global] step  15200  loss 3.7728  lr 6.69e-05
+  [global] step  15300  loss 3.9854  lr 6.55e-05
+  [global] step  15400  loss 4.0582  lr 6.41e-05
+  [global] step  15500  loss 4.0403  lr 6.27e-05
+  [global] step  15600  loss 4.2243  lr 6.13e-05
+  [global] step  15700  loss 3.9052  lr 5.99e-05
+  [global] step  15800  loss 3.8185  lr 5.86e-05
+  [global] step  15900  loss 3.6407  lr 5.73e-05
+  [global] step  16000  loss 4.0601  lr 5.60e-05
+  [global] step  16100  loss 3.9332  lr 5.48e-05
+  [global] step  16200  loss 3.5247  lr 5.36e-05
+  [global] step  16300  loss 3.3761  lr 5.24e-05
+  [global] step  16400  loss 4.2869  lr 5.12e-05
+  [global] step  16500  loss 3.9435  lr 5.01e-05
+  [global] step  16600  loss 4.1835  lr 4.90e-05
+  [global] step  16700  loss 4.1958  lr 4.79e-05
+  [global] step  16800  loss 3.8660  lr 4.69e-05
+  [global] step  16900  loss 3.6359  lr 4.58e-05
+  [global] step  17000  loss 3.9852  lr 4.49e-05
+  [global] step  17100  loss 3.7973  lr 4.39e-05
+  [global] step  17200  loss 4.0720  lr 4.30e-05
+  [global] step  17300  loss 3.9049  lr 4.21e-05
+  [global] step  17400  loss 3.8778  lr 4.12e-05
+  [global] step  17500  loss 3.8150  lr 4.04e-05
+  [global] step  17600  loss 3.8464  lr 3.96e-05
+  [global] step  17700  loss 4.0231  lr 3.88e-05
+  [global] step  17800  loss 3.6203  lr 3.81e-05
+  [global] step  17900  loss 3.8417  lr 3.74e-05
+  [global] step  18000  loss 4.0864  lr 3.67e-05
+  [global] step  18100  loss 3.9216  lr 3.60e-05
+  [global] step  18200  loss 3.6150  lr 3.54e-05
+  [global] step  18300  loss 4.0807  lr 3.48e-05
+  [global] step  18400  loss 3.8221  lr 3.43e-05
+  [global] step  18500  loss 4.0311  lr 3.38e-05
+  [global] step  18600  loss 3.9782  lr 3.33e-05
+  [global] step  18700  loss 3.7857  lr 3.28e-05
+  [global] step  18800  loss 3.7773  lr 3.24e-05
+  [global] step  18900  loss 4.1650  lr 3.20e-05
+  [global] step  19000  loss 3.9240  lr 3.17e-05
+  [global] step  19100  loss 3.7685  lr 3.14e-05
+  [global] step  19200  loss 4.1809  lr 3.11e-05
+  [global] step  19300  loss 3.7307  lr 3.08e-05
+  [global] step  19400  loss 3.8750  lr 3.06e-05
+  [global] step  19500  loss 4.0199  lr 3.04e-05
+  [global] step  19600  loss 3.8936  lr 3.03e-05
+  [global] step  19700  loss 3.7165  lr 3.02e-05
+  [global] step  19800  loss 3.9433  lr 3.01e-05
+  [global] step  19900  loss 3.6874  lr 3.00e-05
+  [global] step  20000  loss 3.8675  lr 3.00e-05
+
+RESULT SUMMARY: {
+  "tier": "exploratory-mechanism-wave -- NOT a confirmatory bar",
+  "design_ref": "FROZEN_BIAS_LM_DESIGN.md sec 12.5 (Stage 2, H3)",
+  "h3_hypothesis_verbatim": "H3 | Optimizer/gradient-flow interaction: the lambda-blend's normalize() Jacobian, evaluated at a per-token-random vs. a fixed-global bias direction, differentially reshapes the gradient signal reaching k_raw, and this difference compounds over training. | Backward-hook gradient-norm/variance telemetry on k_raw, short instrumented runs.",
+  "gate_result_sec_12_11_4_verbatim": "Stage-2 gate (sec 12.5's frozen rule): FULL 20,000-step branch. Arm2: sign(delta@5000)=sign(delta@20000) [pass] and |-0.0721| >= 0.5*|-0.0903|=0.0451 [pass] -> full. Arm2': sign [pass] but |-0.0570| < 0.5*|-0.1203|=0.0601 -> truncated. Per the rule's own clause (\"if the two comparisons select different branches, the full 20,000-step branch governs for both\"): Stage 2 is authorized at full 20,000 steps (~0.76 GPU-h + the mandatory CPU smoke, sec 12.5).",
+  "corpus": "openr1-mix-ext",
+  "seed": 0,
+  "steps": 20000,
+  "gradflow_cadence": 100,
+  "architecture": {
+    "d_model": 256,
+    "d_state": 64,
+    "n_layers": 2,
+    "conv_size": 4,
+    "num_heads": 1,
+    "seq_len": 512,
+    "batch_size": 32
+  },
+  "lr": 0.0003,
+  "warmup_steps": 100,
+  "weight_decay": 0.01,
+  "lambda": 0.58,
+  "tf32_state": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "h3_gradnorm_comparison": {
+    "note": "H3 registers a MECHANISM, not a predicted sign (unlike H1/H2) -- these deltas are descriptive/correlational (sec 12.9 item 1), no headline verdict.",
+    "per_layer": {
+      "0": {
+        "per_token_minus_off": {
+          "all": -0.03421305811149068,
+          "early": -0.020560836899094284,
+          "late": -0.043735454799607394
+        },
+        "global_minus_off": {
+          "all": -0.018264358203159647,
+          "early": -0.010373464156873523,
+          "late": -0.0224193075299263
+        }
+      },
+      "1": {
+        "per_token_minus_off": {
+          "all": -0.01720997665863251,
+          "early": -0.007384031679248436,
+          "late": -0.025017418824136255
+        },
+        "global_minus_off": {
+          "all": 0.00033644413342699686,
+          "early": 0.0020441270526498564,
+          "late": -0.000937999375164509
+        }
+      }
+    }
+  }
+}
+wrote results/mech_wave/mech_stage2_gradflow_openr1-mix-ext_s0.json

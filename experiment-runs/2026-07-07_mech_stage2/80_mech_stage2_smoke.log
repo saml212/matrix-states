@@ -1,0 +1,28 @@
+======================================================================
+  FROZEN_BIAS_GRADFLOW_PROBE SMOKE GATE (sec 12.5)
+======================================================================
+device=cuda  fla_stub_installed=False
+
+[1] hook fires exactly once per forward pass per layer, ONLY on cadence-eligible steps (arm='off' -- the case a naive apply_frozen_bias_blend-wrapping monkeypatch would silently miss entirely)
+  layer 0: recorded_steps=[2, 4, 6]  expected=[2, 4, 6]  duplicates=0  PASS=True
+  layer 1: recorded_steps=[2, 4, 6]  expected=[2, 4, 6]  duplicates=0  PASS=True
+[1] PASS=True
+
+[2] captured grad norms finite and nonzero
+  layer 0: grad_norms=[0.07402805238962173, 0.13691608607769012, 0.07671894878149033]  PASS=True
+  layer 1: grad_norms=[0.03032081574201584, 0.03143366798758507, 0.03004022128880024]  PASS=True
+[2] PASS=True
+
+[3] adding the hook does NOT change the loss trajectory vs an unhooked control (torch.equal-level check, same seed/init/data)
+  losses_hooked =[5.301604270935059, 5.3120880126953125, 5.29780387878418, 5.317966938018799, 5.312668323516846, 5.313490867614746]
+  losses_control=[5.301604270935059, 5.3120880126953125, 5.29780387878418, 5.317966938018799, 5.312668323516846, 5.313490867614746]
+[3] PASS=True
+
+[4] hook mechanism generalizes to arm='per_token' and arm='global' (the two arms where apply_frozen_bias_blend actually runs)
+  arm=per_token: per-layer records={0: [{'step': 1, 'grad_norm': 0.04375371336936951}, {'step': 2, 'grad_norm': 0.04888037592172623}], 1: [{'step': 1, 'grad_norm': 0.020601369440555573}, {'step': 2, 'grad_norm': 0.020820094272494316}]}  PASS=True
+  arm=global: per-layer records={0: [{'step': 1, 'grad_norm': 0.05772165581583977}, {'step': 2, 'grad_norm': 0.05919896066188812}], 1: [{'step': 1, 'grad_norm': 0.0243820883333683}, {'step': 2, 'grad_norm': 0.025358736515045166}]}  PASS=True
+[4] PASS=True
+
+======================================================================
+FROZEN_BIAS_GRADFLOW_PROBE SMOKE: ALL PASSED
+======================================================================

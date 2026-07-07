@@ -5061,3 +5061,64 @@ Archive: `experiment-runs/2026-07-07_mech_stage1/` (3 result JSONs +
 probe + chain + run-2 log, ~200KB) + SSD mirror. Design-doc results:
 `FROZEN_BIAS_LM_DESIGN.md` §12.10 + §12.11. Frozen-bias LM ledger:
 ≈6.93/135 GPU-h.
+
+## MECHANISM-WAVE STAGE 2 (H3 gradient-flow) + WAVE CONCLUSION (2026-07-07): H3-CONSISTENT (no sign pre-registered) — per-token arm's k_raw gradient suppressed at BOTH layers (up to 90%), global arm's suppression shallow at layer 0 and ABSENT at layer 1 (baseline parity throughout); full wave CONCLUDED — H1 REFUTED, H5 clean, H2 corroborated, H4 consistent, H3 consistent
+
+Stage 2 (`FROZEN_BIAS_LM_DESIGN.md` §12.5/§12.12, `frozen_bias_gradflow_
+probe.py` + `mech_stage2_chain.sh`, audit-CLEARED-WITH-MINORS commit
+`ffce8bb`, MINOR-1 GPU-pin fix applied there): 3 instrumented 20,000-step
+cells (off / per_token λ=0.58 / global λ=0.58, seed 0, openr1-mix-ext),
+backward hook on `k_raw` (post-conv, pre-blend) grad norm every 100
+steps/layer. Run on GPU 2, one combined-JSON process.
+
+**Verified from the raw JSON:** all 3 arms present, `steps_completed=
+20000`/`n_skipped=0` each; 1200 grad-norm events (200 × 2 layers × 3
+arms), ALL finite and nonzero, exact cadence (no gaps/duplicates);
+metadata (seed 0, openr1-mix-ext, λ=0.58, `d_model=256/d_state=64/
+n_layers=2`) correct; `tier` stamp correct.
+
+**H3 result (independently re-derived from the raw per-step series,
+matches the JSON's own summary to 6 decimals):** layer 0 means — off
+0.04017, per_token 0.00595 (Δ−0.03421, 89.8% suppressed late-training),
+global 0.02190 (Δ−0.01826, 46.0% suppressed late); layer 1 means — off
+0.02207, per_token 0.00486 (Δ−0.01721, 82.5% suppressed late), global
+0.02240 (Δ+0.00034, i.e. statistical PARITY with off throughout
+training — starts above off early, ends within 3% late, no suppression
+signature at all). Per-token suppression deepens over training at both
+layers (linear trend layer-0 slope −0.000176/1000 steps, the only
+negative trend in the 6-cell grid); global's layer-0 suppression deepens
+mildly (37%→46%); layer-1 global tracks off's own growth almost in
+parallel. **Verdict: H3-CONSISTENT (exploratory — H3 registered NO sign,
+unlike H1/H2)** — differential gradient-flow reshaping IS present,
+layer-resolved (qualitatively starker at layer 1, where global fully
+recovers to baseline and per-token doesn't), and compounds over training
+wherever suppression exists at all.
+
+**Measured cost — DISCLOSED CORRECTION:** re-derived from on-box
+timestamps (chain deploy 06:14:27 UTC → `MECH_STAGE2_DONE` 06:59:02
+UTC) = 2675.0s ≈ 0.7431 GPU-h, corroborated by the sum of per-cell
+`wall_s` (2658.87s = 0.73858 GPU-h, within 1%). This is UNDER §12.5's
+0.76 GPU-h estimate (≈2–3% under) — an inherited assumption of ≈70 min/
+≈1.2 GPU-h realized (framed as an overrun) is NOT supported by the raw
+timestamps; the real run finished under 45 minutes and under budget.
+
+**Full wave synthesis (§12.12.1):** H1 REFUTED (per-token bias makes
+repeats LESS self-similar, −0.090 both corpora — collapse is NOT
+token-identity-organized), H5 clean (no frequency confound), H2
+corroborated (independent rank estimators agree with span_frac's
+direction, 4/4 and 3/4 CI-excluding-zero), H4 consistent at one locus
+(global arm's block-0 k_conv1d drift is b_global-coherent and
+anti-aligned, mean|cos|=0.1778 vs chance 0.0997), H3 consistent (this
+entry) — a coherent four-instrument picture (broad rank-collapse +
+gradient starvation in the destabilizing arm; a compensatory low-rank
+correction + shallow/absent gradient suppression in the stabilizing arm)
+still bounded by the wave's own correlational ceiling (§12.9 item 1) —
+no instrument here intervenes on the mechanism directly; Stage 2's
+instrumented cells are the closest this wave gets to interventional.
+
+Archive: `experiment-runs/2026-07-07_mech_stage2/` (result JSON + both
+scripts + chain/smoke/real-run logs, ~672KB) + SSD mirror (byte-
+identical, `diff -rq` confirmed); on-box scripts byte-verified
+zero-drift against the repo's committed copies (md5 match). Design-doc
+results: `FROZEN_BIAS_LM_DESIGN.md` §12.12. **MECH WAVE CONCLUDED.**
+Frozen-bias LM ledger: 6.9288 + 0.7431 = **≈7.672/135 GPU-h**.

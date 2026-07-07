@@ -31,23 +31,32 @@ cost: 5.6330 GPU-h (measured, sum of 9 `wall_s`). Anchoring ledger:
 `matrix-thinking/KEY_ANCHORING_DESIGN.md` §14.13 (§14.12 holds the
 Stage-1 rank-4 verdict). GPUs 2/6/7 now idle.
 
-**MECHANISM WAVE (§12 FROZEN_BIAS_LM_DESIGN.md): Stages 0+1 COMPLETE
-2026-07-07 (~05:10 UTC), verdicts in §12.10+§12.11 + EXPERIMENT_LOG:**
-H1 REFUTED (Δrepeat_excess(Arm2−Arm1) = −0.090 BOTH corpora — required
-positive; rank collapse NOT organized around token identity), H5 clean,
-H2 corroborated (Stage 0), H4 consistent at block-0 k_conv1d (real run,
-CPU). Stage-2 gate (frozen §12.5 rule): FULL 20,000-step branch
-authorized (H3 gradient-flow instrumented cells, ≈0.76 GPU-h, needs
-`frozen_bias_gradflow_probe.py` build + mandatory CPU smoke + audit).
-Archive `experiment-runs/2026-07-07_mech_stage1/` + SSD. LM ledger
-≈6.93/135.
+**MECHANISM WAVE (§12 FROZEN_BIAS_LM_DESIGN.md): CONCLUDED 2026-07-07
+(~07:00 UTC), all stages done, verdicts in §12.10+§12.11+§12.12 +
+EXPERIMENT_LOG:** H1 REFUTED (Δrepeat_excess(Arm2−Arm1) = −0.090 BOTH
+corpora — required positive; rank collapse NOT organized around token
+identity), H5 clean, H2 corroborated (Stage 0), H4 consistent at block-0
+k_conv1d (real run, CPU), **H3 consistent (Stage 2, no sign
+pre-registered)** — per-token arm's k_raw gradient suppressed at BOTH
+layers (up to 89.8%, deepening over training, layer-0 the only negative
+trend in the grid), global arm's suppression shallow at layer 0 (46.0%)
+and statistically ABSENT at layer 1 (parity with the unblended control
+throughout training). Composite picture: broad rank-collapse +
+gradient-starvation in the destabilizing (per-token) arm vs. a coherent
+low-rank compensatory correction + shallow/absent gradient suppression
+in the stabilizing (global) arm — still bounded by the wave's own
+correlational ceiling (no instrument intervenes on the mechanism
+directly; Stage 2 is the closest this wave gets to interventional).
+Stage-2 measured cost **0.7431 GPU-h** (log-timestamp bound,
+chain-deploy 06:14:27 UTC → `MECH_STAGE2_DONE` 06:59:02 UTC), UNDER the
+0.76 GPU-h estimate — corrects an inherited ≈70min/≈1.2 GPU-h assumption
+not supported by the raw timestamps. Archive
+`experiment-runs/2026-07-07_mech_stage2/` + SSD (byte-identical). **LM
+ledger: 6.9288 + 0.7431 = ≈7.672/135. GPU 2 now free** (tmux session
+exited, confirmed idle).
 
 **IMMEDIATE QUEUE (in order):**
-1. **Mech Stage-2 build** (`frozen_bias_gradflow_probe.py` per §12.5:
-   clone training loop, backward hook on k_raw grad norms every 100
-   steps, 3 cells full 20K steps, smoke a/b/c mandatory) → independent
-   audit → box run (~0.76 GPU-h).
-2. **Design-ahead buffer status (2026-07-07 ~06:20 UTC):**
+1. **Design-ahead buffer status (2026-07-07 ~06:20 UTC):**
    (a) **Scaling-law wave (KEY_ANCHORING_SCALING_DRAFT.md §15): PARKED —
    attack-round-1 verdict RUN-AFTER-REASONING-LINK** (§15.18: FATAL-1
    manifest KeyError build gap + MAJOR-3 missing wave smoke file, both
@@ -60,12 +69,13 @@ Archive `experiment-runs/2026-07-07_mech_stage1/` + SSD. LM ledger
    Rev-1 synthesis in flight** (attack-1 NEEDS-MAJOR-REVISION: F1
    probe-eval pool < killer-cell Ks; F2 blend-live-at-eval confound →
    mandatory 2×2 surgery grid; M1-M5; litreview GO-WITH-REFRAME,
-   research/reasoning-link-litreview-2026-07-07.md) → attack-2 fresh
-   eyes → build → audit → Phase 1 launch (~20-25 GPU-h, eval-only, THE
-   registered publication keystone — takes GPU budget priority per the
-   attack round's sequencing adjudication).
+   research/reasoning-link-litreview-2026-07-07.md) → **NEXT: Rev 3
+   synthesis → attack-4 fresh eyes → build** → audit → Phase 1 launch
+   (~20-25 GPU-h, eval-only, THE registered publication keystone —
+   takes GPU budget priority per the attack round's sequencing
+   adjudication).
    (c) Waterfall brainstorm + research validation DONE (committed).
-3. **At rung-3 ALL_DONE (~05:00 UTC Jul 8):** harvest per the older
+2. **At rung-3 ALL_DONE (~05:00 UTC Jul 8):** harvest per the older
    handoff block's step 1 (archived-4 pooling validation to 1e-6 FIRST,
    attractor probe on 2×1.31B final ckpts at /data/lm_rd_trackc_ckpts/
    wave3/, 1 GPU, vs ladder 0.248→0.344→0.389; §5.11 verdict;
@@ -74,7 +84,8 @@ Archive `experiment-runs/2026-07-07_mech_stage1/` + SSD. LM ledger
    step 2 (paper addendum: narrative, make_figures_v2.py Fig 9 4th point,
    3 PENDING-RUNG-3 todos, 3 intro bullets, related-work cite, DELETE
    both handoff blocks from this file; fold §14 full-closure headline
-   into workshop-2026 draft).
+   into workshop-2026 draft). **This is the rung-3 harvest at ALL_DONE
+   — the queue's other standing item, unblocked by anything above.**
 
 **STRATEGY (PI check-in 2026-07-07 ~05:10 UTC):** the publication
 keystone is REASONING-LINK — connect the capacity law + geometry
@@ -94,17 +105,19 @@ recovery-vs-load curves separating at the law's predicted cliff.
 - Frozen-bias LM rung-1: fourth outcome (per-token bias destabilizes
   +0.20/+0.23, global stabilizes −0.33/−0.23; CORRECTED direction gloss:
   higher span_frac = MORE collapsed).
-- Mechanism Stage-0 (zero GPU): H2 rank-stats corroborate the collapse
-  account at exploratory tier.
+- Mechanism wave, ALL STAGES (0/0.5/1/2): H1 REFUTED, H5 clean, H2
+  corroborated, H4 consistent, H3 consistent (Stage 2, gradient-flow) —
+  wave CONCLUDED at exploratory tier, full synthesis in §12.12.
 - Papers: workshop-2026 4pp cut (compiles) + ICLR sections current;
   figures fig_cliff (2-panel) + fig_dose (rank-4 + diffuse series)
   rendered from archives.
 
 **PI ASKS at next check-in:** venue/author/title (~Jul 11 CFP);
-mechanism Stage-1/2 scope.
+mechanism wave now CONCLUDED (no further scope decision needed).
 
 **Budgets:** anchoring **78.2270/80** (§14 CLOSED, reserve 1.7730/80);
-scale ≈334/300 (disclosed overrun); frozen-bias LM 6.9/135.
+scale ≈334/300 (disclosed overrun); frozen-bias LM **≈7.672/135**
+(mechanism wave CONCLUDED).
 
 ---
 
