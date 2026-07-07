@@ -552,18 +552,50 @@ def run_forward_a(model: DeltaNetLM, bind_token_ids: torch.Tensor, surgery_off: 
     return final_states, captured["k"], captured["v"]
 
 
+_FORWARD_B_PAD_MULTIPLE = 64
+_PAD_TOKEN_ID = 50256  # GPT-2 EOT -- inert trailing filler, never read back
+
+
+def _pad_to_multiple(token_ids: torch.Tensor, multiple: int = _FORWARD_B_PAD_MULTIPLE) -> torch.Tensor:
+    """LAUNCH FIX 4 (2026-07-07): fla's causal_conv1d Triton AUTOTUNER hits an
+    illegal-memory-access on some non-multiple-of-64 T's at the 1.31B shapes
+    (T=454 crashed; T=448 is kernel-smoke-proven safe at d_state=128) --
+    trail-pad forward-B's input to the next multiple of 64. CAUSALLY SAFE BY
+    CONSTRUCTION: every read position (query positions, Option-2's last REAL
+    position) precedes the padding, and a causal model's outputs at position
+    t depend only on positions <= t -- trailing EOT tokens cannot affect any
+    captured tensor. Forward-A is NEVER padded (its FINAL state is the
+    readout; trailing tokens would write into it) -- forward-A's own T_bind
+    values are either multiples of 64 (448 at rung-3) or small-model shapes
+    the box has already executed cleanly (Stage 0 passed at T=224/230)."""
+    T = token_ids.shape[1]
+    rem = T % multiple
+    if rem == 0:
+        return token_ids
+    pad = torch.full((token_ids.shape[0], multiple - rem), _PAD_TOKEN_ID,
+                     dtype=token_ids.dtype, device=token_ids.device)
+    return torch.cat([token_ids, pad], dim=1)
+
+
 def run_forward_b(model: DeltaNetLM, concat_token_ids: torch.Tensor, need_option2_hidden: bool = False,
                    surgery_off: bool = False):
     """Bind+query-concatenated forward. Returns (hidden_or_None, final_states,
     q_raw_by_layer). `hidden` (if requested) is (B, T, d_model) POST-norm_f,
-    PRE-LM-head -- Option 2's own caller slices the last position only."""
+    PRE-LM-head -- Option 2's own caller slices at the ORIGINAL (pre-pad)
+    positions; all captured tensors are truncated back to the original T so
+    downstream indexing is pad-invisible (LAUNCH FIX 4)."""
+    T_orig = concat_token_ids.shape[1]
+    padded = _pad_to_multiple(concat_token_ids)
     handles, captured = register_kqv_hooks(model)
     try:
         with torch.no_grad(), frozen_bias_surgery(model, surgery_off):
-            hidden, final_states = forward_body(model, concat_token_ids, need_hidden=need_option2_hidden)
+            hidden, final_states = forward_body(model, padded, need_hidden=need_option2_hidden)
     finally:
         remove_hooks(handles)
-    return hidden, final_states, captured["q"]
+    if hidden is not None:
+        hidden = hidden[:, :T_orig, :]
+    q_by_layer = {i: t[:, :T_orig, :] for i, t in captured["q"].items()}
+    return hidden, final_states, q_by_layer
 
 
 def causality_check(model: DeltaNetLM, bind_token_ids: torch.Tensor, query_tokens_one: torch.Tensor,
