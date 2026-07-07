@@ -62,6 +62,12 @@ The most recent work. A multi-agent session investigated 11 topics in parallel a
 - **matrix-states-landscape-2025.md** — The 2025-2026 landscape of matrix-valued hidden states (Mamba-2, RWKV-5/6, TTT, Titans, GLA/DeltaNet).
 - **matrix-valued-outputs.md** — Design space for matrix-valued output heads.
 
+### Program-validation surveys
+
+- **reasoning-link-litreview-2026-07-07.md** — Literature validation for the
+  REASONING-LINK program (GO-WITH-REFRAME): must-defend papers (VLA,
+  Frozen-QK, Okpekpe & Orvieto), scoop-risk adjudication, novelty table.
+
 ## Convention for new research notes
 
 - One topic per file
