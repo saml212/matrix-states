@@ -1,9 +1,10 @@
 # ICLR 2027 Narrative Architecture — DeltaNet Rank Recruitment vs. Exactness
 
-**Status: DRAFT — round 9 closes Stage 1 of the coherence-dose-response
-wave (rank-4 EXONERATE, honest cliffhanger left for Stage 2 — see round
-9, below); round 8's universality result and round 7's frozen-bias
-side-chapter are otherwise unchanged.** Round 6 absorbs the anchoring
+**Status: DRAFT — round 10 closes Stage 2 of the coherence-dose-response
+wave and the capacity trilogy with it (diffuse EXONERATE, closing the
+cliffhanger round 9 left open — see round 10, below); round 8's
+universality result and round 7's frozen-bias side-chapter are otherwise
+unchanged.** Round 6 absorbs the anchoring
 program's actual, final outcome — not the
 Outcome-C mechanism null round 4 left as the ending, but the two waves that
 ran *after* it: candidate (e)'s frozen-random-table ablation
@@ -384,6 +385,83 @@ GPU-h ceiling; cumulative key-anchoring program spend 66.32 →
 **72.594**/80 GPU-h (reserve now 7.406/80). Full verdict:
 `KEY_ANCHORING_DESIGN.md` §14.12; archive:
 `experiment-runs/2026-07-06_keyanchor_dose/` (+ SSD mirror).
+
+**Round 10 (2026-07-07) — the capacity trilogy's honest cliffhanger
+closes: coherence is EXONERATED at the diffuse structure too, and the
+surviving account is absolute state capacity, not key geometry.** Round
+9 ruled out scalar rank-4-structured coherence but left one candidate
+account explicitly open: "coherence-of-this-particular-structural-kind"
+— round 9's own design tested only concentrated (rank-4) injection, and
+§14.0's outcome semantics require BOTH co-primary structures to be flat
+before the strongest EXONERATE call is licensed. This round runs the
+diffuse (`subspace_rank=48`) arm under the explicit PI sign-off round 9
+itself flagged as pending (Stage 2's 1×-bracket cost, 5.769 GPU-h, fit
+the post-Stage-1 anchoring reserve of 7.406 GPU-h with a 1.637 GPU-h
+margin — no ceiling amendment needed). Same fixed geometry as round 9
+(`d_state=128`, `n_entities=107`, `K=68`, frozen anchor table), same 3
+doses (0.130/0.284/0.40), 3 seeds each (seeds 940-948), 9 cells, **5.6330
+realized GPU-h** against a 5.769 GPU-h 1×-bracket estimate.
+
+**Result: `h4 = 1.0` at every cell, every dose, 9/9, no exception — flat
+across the entire dose range, mirroring round 9's rank-4 result exactly.**
+Frozen-table constancy again holds bit-identical across all 10
+checkpoints in every cell; the in-distribution h1 sanity guard reads
+1.000000 at every cell (guard ≥0.98); instrument saturation is ruled out
+the same way (hop-21 shows real variation, 0.9963-0.9999, not floored;
+`effective_rank_whole_mean` tracks K=68 almost exactly, 67.570-67.872);
+every cell's admissibility block (`geo3_admission`) reads clean — no
+fallback, no divergence, no floor violation, at any of the 9 cells.
+
+**§14.0's outcome-4 requirement — BOTH structures flat — is now
+satisfied exactly, for the first time in this program.** Combining round
+9 (rank-4: h4=1.0, 10/10 cells) with this round (diffuse: h4=1.0, 9/9
+cells): **coherence is FULLY EXONERATED at both co-primary structures**,
+at doses up to and including 0.40 — a dose that exceeds d=64's own
+final-checkpoint trained coherence band (0.373-0.385). The structure-
+dependent escape hatch round 9 left open (§14.0 outcome 3 —
+"coherence-of-this-particular-kind" as opposed to "coherence-as-scalar")
+is now closed: neither tested structural kind of coherence drives the
+cliff. The `§14.4c` mechanical K=84 trigger's condition 2 (cross-
+structure disagreement) is evaluable for the first time with both arms'
+data in hand — rank-4 h4={1.0,1.0,1.0} vs. diffuse h4={1.0,1.0,1.0} at
+the same 3 doses, zero disagreement — and does not fire, alongside
+condition 1's continued non-firing on the diffuse arm's own flat curve.
+
+**The capacity trilogy, now a closed four-wave arc: LOCATED (round 6) →
+DISSOLVED (round 8) → RANK-4 EXONERATED (round 9) → DIFFUSE EXONERATED,
+closing the cliffhanger (this round).** Every scalar and structural
+operationalization of table coherence this program has designed and run
+— raw K/d ratio (round 8), concentrated rank-4 coherence (round 9), and
+now diffuse rank-48 coherence (this round) — fails to reproduce the
+d=64-vs-d=128 cliff/no-cliff split. **One candidate survives,
+unadjudicated by any wave this program has run: absolute state
+capacity** — `d_state` grew 4× (64→128) between the cliff's location and
+its disappearance while `K` only grew ~2× at the matched K/d ratio; no
+wave in this program has varied `d_state` independently of `K`/coherence
+to test this directly, since every wave held `d_state=128` fixed while
+varying only dose, structure, or K. This is the honest ending stated
+plainly: not "we found the mechanism," but "we ruled out every scalar
+and structural coherence account this design could test, leaving one
+scale-based candidate open for a reader (or a follow-on wave, not yet
+designed) to adjudicate."
+
+**What this upgrades in the paper's own figure/claim plan.** `fig_dose`
+(`make_fig_dose.py`) is extended with the diffuse series (3 doses × 3
+seeds, square markers, dotted line) plotted alongside round 9's rank-4
+series (circle markers, dashed line) on the same axes, both flat at
+h4=1.0 against the d=64 K/d-matched contrast triangles and the trained-
+coherence reference band — a single-panel visual statement that BOTH
+structures were tested and BOTH came back flat. No new figure is added;
+the existing panel gains a series.
+
+Realized cost: **5.6330 GPU-h**, under the Stage-2 1×-bracket estimate
+(5.769 GPU-h); combined Stage 1 + Stage 2 = 11.9072 GPU-h, 87.0% of the
+wave's own `H=13.68` GPU-h ceiling. Cumulative key-anchoring program
+spend 72.594 → **78.2270**/80 GPU-h (reserve now 1.7730/80) — the
+anchoring program's own effective close; no further wave is registered
+against this ceiling. Full verdict: `KEY_ANCHORING_DESIGN.md` §14.13;
+archive: `experiment-runs/2026-07-06_keyanchor_dose/` (extended in
+place, + SSD mirror).
 
 ---
 

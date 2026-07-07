@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Fig. dose: the coherence-dose-response test at d_state=128, K=68 (rank-4
-concentrated injection) -- COHERENCE EXONERATED. Directly injecting frozen
-anchor-table coherence (max|cos|), swept from 0 up to and beyond d=64's own
-trained coherence band, produces NO cliff: h4=1.0 flat at every dose tested.
+"""Fig. dose: the coherence-dose-response test at d_state=128, K=68, under
+BOTH a rank-4 (concentrated) and a diffuse (subspace_rank=48) injection
+structure -- COHERENCE FULLY EXONERATED AT BOTH STRUCTURES. Directly
+injecting frozen anchor-table coherence (max|cos|), swept from 0 up to and
+beyond d=64's own trained coherence band, produces NO cliff under either
+structure: h4=1.0 flat at every dose tested, both arms.
 
 Mirrors `make_fig_cliff.py`'s conventions exactly (style, palette, savefig
 helper, "no fabricated numbers" discipline, assert-against-archive checks) --
@@ -12,12 +14,16 @@ and is a strict *addition* to the existing figure set, not a replacement.
 
 Panel content (single panel, per the task brief):
   - x-axis: frozen anchor-table coherence dose (`achieved_max_cos`), at
-    K=68, d_state=128, rank-4 (concentrated) injection structure.
+    K=68, d_state=128, rank-4 (concentrated) OR diffuse (subspace_rank=48)
+    injection structure.
   - y-axis: h4 = recovered_frac@0.9 at held-out hop depth 4 (same
     convention as make_fig_cliff.py's rec_h4()).
-  - 4 measured dose points: 0.000 (control, zero-dose K=68 cells reused
-    from the d=128 cliff-universality wave), 0.130, 0.284, 0.40 (this
-    wave, 2026-07-06/07 keyanchor-dose).
+  - 4 measured dose points per structure: 0.000 (control, zero-dose K=68
+    cells reused from the d=128 cliff-universality wave, shared by both
+    structures -- the control was never dosed so there is no structure to
+    distinguish at dose=0), 0.130, 0.284, 0.40. Rank-4 is Stage 1
+    (2026-07-06/07, 9 dose cells + 1 shared calibration cell); diffuse is
+    Stage 2 (2026-07-07, 9 dose cells, 3 seeds x 3 doses, seeds 940-948).
   - Shaded reference band: d_state=64's own final-checkpoint TRAINED
     coherence range-of-K-means, 0.373-0.385 (KEY_ANCHORING_DESIGN.md
     sec 14.0b) -- NOT d=64's init dose (0.284); the honest re-axised
@@ -30,7 +36,8 @@ Panel content (single panel, per the task brief):
     This is the "for contrast" panel element the task brief asks for:
     the same K/d window where d=64 collapses to h4~0.02-0.57 as coherence
     rises through the 0.373-0.385 band, vs. this wave's d=128/K=68 flat
-    line at h4=1.0 across the identical coherence range and beyond.
+    lines (both structures) at h4=1.0 across the identical coherence range
+    and beyond.
 
 Run from anywhere with a venv containing numpy/scipy/matplotlib:
     /path/to/figvenv/bin/python matrix-thinking/submissions/iclr-2027/figures/make_fig_dose.py
@@ -47,7 +54,7 @@ Data provenance (every number traced to an archived file, never hand-typed):
     these cells were not frozen; reported as "0.000 (control)" on the
     x-axis per the design doc's own dose-target labeling convention,
     sec 14.12's dose table, with the drifted achieved value annotated).
-  - 0.130 / 0.284 / 0.40 doses (this wave, rank-4, frozen): per-seed h4
+  - 0.130 / 0.284 / 0.40 doses, RANK-4 (Stage 1, frozen): per-seed h4
     and per-seed achieved_max_cos read directly from
     `experiment-runs/2026-07-06_keyanchor_dose/results/wavekeyanchor-dose/
     wkeyanchor-dose_rdx_K68_armd_s{930-939}_geo3n20_anchor_learned_dprobe_
@@ -55,6 +62,12 @@ Data provenance (every number traced to an archived file, never hand-typed):
     `checkpoints[-1]["M3_held_out"]["4"]["recovered_frac@0.9"]` and
     `exactness_config.achieved_max_cos` (frozen -- identical at every
     checkpoint, verified below).
+  - 0.130 / 0.284 / 0.40 doses, DIFFUSE (Stage 2, frozen, 2026-07-07): same
+    fields, from
+    `experiment-runs/2026-07-06_keyanchor_dose/results/wavekeyanchor-dose/
+    wkeyanchor-dose_rdx_K68_armd_s{940-948}_geo3n20_anchor_learned_dprobe_
+    rev7_d128_dose{130,284,400}_diffuse_sseed20260705.json` (3 seeds/dose,
+    no shared calibration cell for this arm -- 9 cells exactly).
   - d=64 contrast series (K=34/38/42/46): per-seed h4 from
     `experiment-runs/2026-07-06_keyanchor_cliff/results/deltanet_rd_exactness/
     wavekeyanchor-cliff/wkeyanchor-k48_rdx_K{K}_armd_s*_geo3n20_anchor_
@@ -222,6 +235,32 @@ def build_dose_series():
     return points
 
 
+def build_diffuse_series():
+    """Stage 2's 3-point dose grid at K=68, d=128, diffuse (subspace_rank=48)
+    injection: 0.130 / 0.284 / 0.40 (frozen, 2026-07-07). No shared
+    calibration cell for this arm (3 seeds x 3 doses = 9 cells exactly,
+    unlike the rank-4 arm's 9 dose cells + 1 shared calibration cell)."""
+    dose_groups = {}
+    for tag, target in (("130", 0.130), ("284", 0.284), ("400", 0.40)):
+        cells = load_cells(
+            DOSE_CELLS_DIR,
+            f"wkeyanchor-dose_rdx_K68_armd_s*_geo3n20_anchor_learned_dprobe_rev7_d128_dose{tag}_diffuse_sseed20260705.json")
+        h4 = [rec_h4(d) for d in cells]
+        coh = [rec_coh(d) for d in cells]
+        achieved = [d["exactness_config"]["achieved_max_cos"] for d in cells]
+        assert np.allclose(coh, achieved, atol=1e-4), (tag, coh, achieved)
+        assert all(abs(h - 1.0) < 1e-6 for h in h4), (tag, h4)
+        assert len(cells) == 3, f"expected 3 diffuse seeds at dose={target}, got {len(cells)}"
+        dose_groups[target] = (h4, coh)
+
+    points = [
+        (0.13, *dose_groups[0.13], "0.130 (frozen, diffuse)"),
+        (0.284, *dose_groups[0.284], "0.284 (frozen, diffuse)"),
+        (0.40, *dose_groups[0.40], "0.40 (frozen, diffuse)"),
+    ]
+    return points
+
+
 def build_d64_reference_band():
     """d=64's own final-checkpoint TRAINED coherence, range-of-K-means, from
     the 12 raw cliff-wave cells (K=34/38/42/46, 3 seeds each) -- computed
@@ -250,6 +289,7 @@ def build_d64_reference_band():
 
 def main():
     dose_points = build_dose_series()
+    diffuse_points = build_diffuse_series()
     band_lo, band_hi, d64_per_k = build_d64_reference_band()
 
     fig, ax = plt.subplots(1, 1, figsize=(6.0, 4.2))
@@ -296,16 +336,37 @@ def main():
     order = np.argsort(dose_x)
     ax.plot(np.array(dose_x)[order], np.array(dose_y)[order], color=C_GREEN,
             linewidth=1.4, linestyle="--", zorder=3, alpha=0.8,
-            label=r"$d_{\mathrm{state}}{=}128$, $K{=}68$, rank-4 (this wave, flat)")
+            label=r"$d_{\mathrm{state}}{=}128$, $K{=}68$, rank-4 (Stage 1, flat)")
+
+    # ---- Stage 2's diffuse (subspace_rank=48) dose series, also flat ----
+    diffuse_label_y_offsets = [12, 12, 12]
+    diffuse_x, diffuse_y = [0.0], [float(np.mean(dose_points[0][1]))]  # shares the 0.000 control point
+    for (dose, h4_vals, coh_vals, label), y_off in zip(diffuse_points, diffuse_label_y_offsets):
+        mean_coh = float(np.mean(coh_vals))
+        mean_h4 = float(np.mean(h4_vals))
+        diffuse_x.append(mean_coh)
+        diffuse_y.append(mean_h4)
+        ax.scatter([mean_coh] * len(h4_vals), h4_vals, color=C_BLUE, s=22,
+                   zorder=4, edgecolor=C_BLACK, linewidth=0.4, marker="s",
+                   alpha=0.85)
+        ax.scatter([mean_coh], [mean_h4], color=C_BLUE, s=72, zorder=6,
+                   marker="s", edgecolor=C_BLACK, linewidth=0.9)
+        ax.annotate(label, (mean_coh, mean_h4), textcoords="offset points",
+                    xytext=(6, y_off), fontsize=6.3, color=C_BLUE)
+
+    order_d = np.argsort(diffuse_x)
+    ax.plot(np.array(diffuse_x)[order_d], np.array(diffuse_y)[order_d], color=C_BLUE,
+            linewidth=1.4, linestyle=":", zorder=3, alpha=0.8,
+            label=r"$d_{\mathrm{state}}{=}128$, $K{=}68$, diffuse (Stage 2, flat)")
 
     ax.set_xlim(-0.02, 0.46)
     ax.set_ylim(-0.05, 1.10)
     ax.set_xlabel(r"anchor-table coherence, achieved $\max|\cos|$")
     ax.set_ylabel("recovered_frac@0.9 ($h{=}4$)")
     ax.set_title(
-        "Coherence-dose response at matched K/d: EXONERATED (rank-4)\n"
-        r"$h4{=}1.0$ at every dose up to $0.40$, vs. $d_{\mathrm{state}}{=}64$'s"
-        " own cliff in the same coherence range",
+        "Coherence-dose response at matched K/d: EXONERATED (both structures)\n"
+        r"$h4{=}1.0$ at every dose up to $0.40$, rank-4 AND diffuse, vs."
+        r" $d_{\mathrm{state}}{=}64$'s own cliff in the same coherence range",
         fontsize=8.5)
 
     ax.legend(loc="center left", frameon=True, framealpha=0.9, edgecolor="none",
@@ -318,4 +379,5 @@ def main():
 if __name__ == "__main__":
     main()
     print("fig_dose regenerated from archived JSONs (dose-response at K=68/"
-          "d=128/rank-4, flat at h4=1.0, vs. d=64 K/d-matched contrast).")
+          "d=128, rank-4 AND diffuse, both flat at h4=1.0, vs. d=64 K/d-matched "
+          "contrast).")

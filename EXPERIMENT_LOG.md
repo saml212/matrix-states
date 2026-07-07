@@ -4936,3 +4936,84 @@ the repo's committed copies + numbered/chain-run logs, ~66MB, all files
 ≤25MB) + SSD mirror at the same relative path under
 `/Volumes/1TB_SSD/learned-representations/`. Full verdict:
 `matrix-thinking/KEY_ANCHORING_DESIGN.md` §14.12. `STATE.md` updated.
+
+## KEY-ANCHORING COHERENCE-DOSE-RESPONSE WAVE, STAGE 2 (diffuse) VERDICT (2026-07-07): COHERENCE EXONERATED at the diffuse structure too — h4=1.0 flat across all doses (0.130/0.284/0.40); combined with Stage 1 (rank-4), coherence is FULLY EXONERATED at both co-primary structures, closing §14's structure-dependent escape hatch
+
+Tests the diffuse (`subspace_rank=48`) co-primary arm of the coherence-
+dose-response design (`KEY_ANCHORING_DESIGN.md` §14, Rev 14.3), launched
+under explicit PI sign-off recorded in the wave's own launch log (Stage
+2's 1×-bracket cost, 5.769 GPU-h, fit the post-Stage-1 anchoring ledger
+reserve of 7.406 GPU-h with a 1.637 GPU-h margin, per §14.4 Option 1's
+registered default). Same fixed geometry as Stage 1 (`d_state=128`,
+`n_entities=107`, `K=68`), same frozen anchor table
+(`anchor_table_frozen=True`) and same 3 doses (0.130, 0.284, 0.40), but
+the injected coherence is spread across a `subspace_rank=48` (diffuse)
+subspace instead of concentrated in rank-4, 3 seeds per dose (seeds
+940–948), 9 cells total, no shared calibration cell for this arm.
+
+**Result: `h4 = 1.0` at EVERY cell, EVERY dose, 9/9, no exception — FLAT
+ACROSS ALL DOSES, mirroring Stage 1's rank-4 result exactly.** Per
+§14.0's pre-registered outcome semantics, outcome 4 (the strongest
+EXONERATE) requires BOTH structures to be flat — Stage 1 alone routed to
+a rank-4-scoped EXONERATE; this diffuse result supplies the second and
+final structure, so the combined call is now the full outcome 4:
+**coherence EXONERATED at BOTH co-primary structures.**
+
+**Verification (gates the headline), recomputed directly from all 9 raw
+diffuse JSONs, not the box's own printed summary:** (a) per-dose h4
+means: dose=0.130 → 1.0 (seeds 940-942), dose=0.284 → 1.0 (943-945),
+dose=0.40 → 1.0 (946-948) — every one of the 10 checkpoints per cell
+reads exactly 1.0. (b) `achieved_max_cos` within 0.023–0.068% of target
+at every cell (tighter than Stage 1's 0.01–0.08%, still well inside the
+±10% Gate-2 tolerance). (c) **Frozen-table constancy holds EXACTLY**:
+`item6_table_conditioning.max_abs_cos` is bit-identical across all 10
+recorded checkpoints in every one of the 9 cells (max deviation = 0.0).
+(d) h1 in-distribution sanity guard (`M2_in_distribution["1"]
+["recovered_frac@0.9"]`, guard ≥0.98): 1.000000 at every cell,
+cross-checked against each cell's own `geo3_admission.
+h1_recovered_frac_at_0.9_final` (identical to 6 decimals). (e)
+Instrument saturation ruled out: hop-21 shows real variation
+(0.9963–0.9999, not floored, comparable to Stage 1's 0.9987–1.0),
+`effective_rank_whole_mean` tracks K=68 almost exactly (67.570–67.872)
+at every dose. (f) No degenerate-run flags anywhere: every cell's
+`geo3_admission` block reads `admissible: true`,
+`ns_converged_no_fallback: true`, `finite_loss_no_divergence: true`,
+`task_performance_floor_pass: true`. (g) Realized GPU-h: **5.6330** (sum
+of all 9 `wall_s`=20278.9434s), under the Stage-2 1×-bracket estimate
+(5.769 GPU-h) and comfortably under the wave's remaining `H=13.68`
+GPU-h ceiling (Stage 1 + Stage 2 combined = 11.9072 GPU-h, 87.0% used).
+
+**§14.4c mechanical K=84 trigger, now fully evaluable (both structures
+have data):** condition 1 (adjacent-gap<0.10 AND total-range>0.20) fails
+its second leg for the diffuse arm alone (total range 0.0), same as
+Stage 1. Condition 2 (cross-structure disagreement) is now evaluable for
+the first time: rank-4 h4={1.0,1.0,1.0} vs. diffuse h4={1.0,1.0,1.0} at
+the same 3 doses — zero disagreement. **Neither condition fires; K=84 is
+NOT activated for either structure.**
+
+**The mechanism landscape, sharpened to its final state for this
+program.** Combining §13.10 (K/d ratio ruled out), §14.12 (rank-4
+coherence ruled out), and this wave (diffuse coherence ruled out): every
+scalar and structural operationalization of table coherence tested by
+this design fails to reproduce the d=64-vs-d=128 cliff/no-cliff split.
+One candidate survives, unadjudicated by any wave run so far: **absolute
+state capacity** — `d_state` grew 4× (64→128) between the cliff's
+location and its disappearance while `K` only grew ~2× at the matched
+K/d ratio; no wave in this program has varied `d_state` independently of
+`K`/coherence to test this directly. A `d_state`-vs-`K` factorial is the
+design this program would need next; it is not registered anywhere yet.
+
+Realized cost this wave: 5.6330 GPU-h. Cumulative anchoring-program
+spend updated 72.594 → **78.2270** / 80 GPU-h ceiling (reserve now
+1.7730 GPU-h) — the program's own effective close; the remaining reserve
+is too thin to fund another full 9-cell wave at this design's per-cell
+rate (~0.626 GPU-h/cell).
+
+Archive: `experiment-runs/2026-07-06_keyanchor_dose/` (extended in
+place with the 9 diffuse cell result JSONs + 9 diffuse per-cell training
+logs + `keyanchor_dose_chain_run3.log` + `55_wave_keyanchor_dose_
+diffuse.log`, ~60MB added, all files ≤25MB) + SSD mirror at the same
+relative path under `/Volumes/1TB_SSD/learned-representations/`. Full
+verdict: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §14.13. Figure
+`make_fig_dose.py` extended with the diffuse series and re-rendered.
+`STATE.md` updated.

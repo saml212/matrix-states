@@ -9728,3 +9728,180 @@ repo's committed copies, numbered/chain-run logs, ~66MB, all files ≤25MB)
 + SSD mirror at the same relative path under
 `/Volumes/1TB_SSD/learned-representations/`. `STATE.md` and
 `EXPERIMENT_LOG.md` updated.
+
+### 14.13 VERDICT — Stage 2 (diffuse, `subspace_rank=48`) harvest,
+2026-07-07: COHERENCE EXONERATED at the diffuse structure too — combined
+with §14.12, FULLY EXONERATED at both co-primary structures
+
+**This section reports Stage 2 (diffuse, 9 cells) ONLY.** Launched under
+the explicit PI sign-off recorded in the wave's own launch log (`WARNING:
+--dose-stage diffuse proceeding under an explicit PI sign-off (sec 14.4
+Option 1)`, `55_wave_keyanchor_dose_diffuse.log` line 4) — Stage 2's
+1×-bracket cost (5.769 GPU-h) fit the anchoring ledger's post-Stage-1
+7.406 GPU-h reserve (margin 1.637 GPU-h), so it launched at 1× exposure
+without a ceiling amendment, per §14.4 Option 1's registered default (a).
+Same design as Stage 1: `d_state=128`, `n_entities=107`, `K=68` fixed at
+exactly §13.10's flat-h4=1.0 geometry, frozen anchor table
+(`anchor_table_frozen=True`), dose swept 0.130/0.284/0.40, 3 seeds each
+(seeds 940–948, no shared calibration cell for this arm — 9 cells
+exactly), under a **diffuse** (`subspace_rank=48`) injection structure
+this time, per §14.1's Rev-14.3 dial (the mandatory rank-scan grid
+`{8,16,32,48,64,96}` picked rank=48 as the maximum rank whose achieved-
+dose ceiling at `t=1` still meets the `>=0.42` target, re-verified
+independently at Stage-1 harvest time, §14.12 round-4 Q1).
+
+**HEADLINE: `h4 = 1.0` at EVERY cell, EVERY dose tested (0.130, 0.284,
+0.40), 9/9 cells, no exception — FLAT ACROSS ALL DOSES under the
+diffuse structure, exactly mirroring Stage 1's rank-4 result.** Per
+§14.0's pre-registered outcome semantics, a single-structure flat result
+alone would only route to outcome 3 (structure-dependent, pending the
+other arm) — but Stage 1 (rank-4) already measured flat (§14.12), so
+this diffuse result is the **second and final structure required for
+outcome 4, the strongest possible EXONERATE this design can produce**:
+**coherence is EXONERATED at BOTH co-primary structures.**
+
+**Per-cell verification table, recomputed directly from all 9 raw
+diffuse cell JSONs this session (never the box's own printed summary):**
+
+| seed | dose target | achieved max\|cos\| | rel. err | h4 | h1 (guard ≥0.98) | h21 | eff. rank (K=68) | complete | wall_s |
+|---|---|---|---|---|---|---|---|---|---|
+| 940 | 0.130 | 0.130089 | 0.068% | 1.0 | 1.000000 | 0.9999 | 67.872 | true | 2233.76 |
+| 941 | 0.130 | 0.130089 | 0.068% | 1.0 | 1.000000 | 0.9989 | 67.847 | true | 2221.46 |
+| 942 | 0.130 | 0.130089 | 0.068% | 1.0 | 1.000000 | 0.9999 | 67.870 | true | 2230.13 |
+| 943 | 0.284 | 0.284065 | 0.023% | 1.0 | 1.000000 | 0.9984 | 67.813 | true | 2266.24 |
+| 944 | 0.284 | 0.284065 | 0.023% | 1.0 | 1.000000 | 0.9991 | 67.845 | true | 2306.89 |
+| 945 | 0.284 | 0.284065 | 0.023% | 1.0 | 1.000000 | 0.9980 | 67.847 | true | 2273.82 |
+| 946 | 0.40  | 0.399902 | 0.024% | 1.0 | 1.000000 | 0.9963 | 67.757 | true | 2256.91 |
+| 947 | 0.40  | 0.399902 | 0.024% | 1.0 | 1.000000 | 0.9963 | 67.817 | true | 2229.07 |
+| 948 | 0.40  | 0.399902 | 0.024% | 1.0 | 1.000000 | 0.9989 | 67.570 | true | 2260.66 |
+
+All 9 cells: `steps_completed=20000`, `steps=20000`, `complete=true`,
+`timed_out=false` — no early-exit artifact. Seed-to-dose mapping is
+exactly the registered block (940–942→0.130, 943–945→0.284, 946–948→
+0.40), confirmed both from `exactness_config.dose_target` and from the
+filenames. `achieved_max_cos` lands within 0.023–0.068% of target at
+every dose (well inside the ±10% Gate-2 tolerance, §14.3) — even
+tighter than Stage 1's rank-4 arm (0.01–0.08%).
+
+**Frozen-dose constancy holds EXACTLY, same as Stage 1.**
+`item6_table_conditioning.max_abs_cos` was recorded at all 10
+checkpoints per cell (steps 2000–20000, every 2000 steps). Re-pulled
+directly from the raw JSONs this session: **every single cell's
+`max_abs_cos` is bit-identical across all 10 of its own checkpoints (max
+deviation measured = 0.0 at all 9 cells)** — the frozen table's gradient
+path never let coherence drift for the full 20,000-step run, at any
+dose, under the diffuse structure either.
+
+**h1 sanity guard (in-distribution hop=1 recovery,
+`M2_in_distribution["1"]["recovered_frac@0.9"]`, guard ≥0.98, same
+convention referenced elsewhere in this document): 1.000000 at every one
+of the 9 cells** — training is real and healthy, not a degenerate
+shortcut. Cross-checked against each cell's own `geo3_admission`
+sub-report (`h1_recovered_frac_at_0.9_final`, an independently-computed
+field in the JSON): identical to 6 decimal places at every cell.
+
+**Instrument-saturation ruled out (h4=1.0 is not a broken/ceilinged
+readout):** hop-21 (`M3_held_out["21"]["recovered_frac@0.9"]`, far-
+extrapolation) is NOT uniformly 1.0 at any dose — values range
+0.9963–0.9999 across the 9 cells (vs. Stage 1's 0.9987–1.0 — a
+comparable, slightly wider spread, still nowhere near floored).
+`M3_held_out["4"]["effective_rank_whole_mean"]` tracks K=68 almost
+exactly at every dose (67.570–67.872, vs. Stage 1's 67.816–67.883), i.e.
+the state uses essentially its full permitted rank at all doses
+including the highest, not saturating against `d_state=128`. Final
+training loss is non-trivial (0.002988–0.002995 across all 9 cells,
+matching Stage 1's ≈0.0030 band), not floored at machine epsilon.
+
+**Degenerate-run check:** every cell's own `geo3_admission` block reads
+`admissible: true`, `ns_converged_no_fallback: true`,
+`n_geo3_fallback_train_steps: 0`, `checkpoint_fallback_seen: false`,
+`finite_loss_no_divergence: true`, `task_performance_floor_pass: true` —
+no cell shows any fallback, divergence, or floor-violation flag. No
+`degenerate`-named field exists anywhere in the raw JSONs (searched
+exhaustively); the `geo3_admission` stack is this codebase's actual
+degenerate/admissibility instrument and it is clean at all 9 cells.
+
+**Realized GPU-h**, summed from each cell's own `wall_s`:
+
+| Group | Cells | Sum wall_s | GPU-h |
+|---|---|---|---|
+| All 9 Stage-2 diffuse cells | 9 | 20278.9434s | **5.6330** |
+
+**5.6330 GPU-h realized**, under the Stage-2 1×-bracket estimate (5.769
+GPU-h, §14.4) and comfortably under the wave manifest's own printed
+`stage2_gpuh_1x=5.769171`. Per-cell wall_s ranged 2221.5–2306.9s (≈37.0–
+38.4 min), consistent with Stage 1's realized per-cell rate (row content
+does not change per-step cost, structure notwithstanding).
+
+**§14.4c mechanical K=84 trigger, now FULLY evaluable (both structures
+have data) — evaluated numerically, not a judgment call:**
+
+- **Condition 1 (adjacent-gap / total-range hidden-threshold test),
+  diffuse arm alone:** adjacent gaps = [0.0, 0.0, 0.0], `max_adjacent_gap
+  = 0.0` (< 0.10: true) AND `total_range = 0.0` (> 0.20: false) — the AND
+  fails on its second leg, same mechanical outcome as Stage 1. Condition
+  1 does NOT fire for the diffuse arm.
+- **Condition 2 (cross-structure disagreement), now evaluable for the
+  first time:** rank-4 h4 = {1.0, 1.0, 1.0} at doses {0.130, 0.284, 0.40}
+  (§14.12); diffuse h4 = {1.0, 1.0, 1.0} at the same three doses (this
+  section). Zero disagreement at any matched dose — condition 2 does NOT
+  fire.
+- **Mechanical conclusion: NEITHER condition holds, evaluated exactly as
+  registered** → K=84 is NOT activated for either structure. The full
+  co-primary design now has a clean, unambiguous, doubly-confirmed
+  EXONERATE at K=68 requiring no K=84 extension.
+
+**§14.0's outcome-4 requirement — BOTH structures flat — is now
+satisfied exactly.** Combining §14.12 (rank-4: `h4=1.0`, 10/10 cells,
+doses up to 0.40) with this section (diffuse: `h4=1.0`, 9/9 cells, doses
+up to 0.40): **COHERENCE IS FULLY EXONERATED AT BOTH THE RANK-4 AND THE
+DIFFUSE STRUCTURES, at doses up to and including 0.40 — a dose that
+EXCEEDS d=64's own final-checkpoint trained coherence band (range-of-K-
+means 0.373–0.385, §14.0b).** Directly-injected, frozen anchor-table
+coherence, regardless of whether it is concentrated in a rank-4 subspace
+or spread diffusely across a rank-48 subspace, does NOT reproduce the
+d=64 cliff at matched K/d/n geometry at d=128. §14.0's own outcome-3
+escape hatch (structure-dependent — "coherence-of-this-particular-kind"
+as opposed to "coherence-as-scalar") is now closed: neither tested kind
+of structural coherence drives the cliff.
+
+**The mechanism landscape, sharpened to its final state for this
+program.** Combining all three waves — §13.10 (K/d ratio alone does not
+predict the cliff: the exact K/d window that cliffs at d=64 stays flat
+at d=128), §14.12 (rank-4-structured coherence, injected up to and
+beyond d=64's own band, does not reproduce the cliff), and this section
+(diffuse-structured coherence, same doses, same non-result) — **every
+scalar and structural operationalization of "table coherence" tested by
+this design has been ruled out as a sufficient account of the d=64
+cliff / d=128 non-cliff split.** One candidate survives, unadjudicated
+by any wave this program has run: **absolute state capacity** —
+`d_state` grew 4× (64→128) between the cliff's location and its
+disappearance, while `K` only grew ~2× at the matched K/d ratio. No wave
+in this program has varied `d_state` independently of `K`/coherence to
+test this directly (every wave held `d_state=128` fixed while varying
+only dose, structure, or K) — it is the one remaining natural candidate,
+not a confirmed mechanism. A `d_state`-vs-`K` factorial, independent of
+coherence, is the design this program would need next to adjudicate it;
+it is not registered anywhere in this document yet.
+
+**Realized cost vs. registered ceiling:** Stage 2 realized **5.6330
+GPU-h** against its own 1×-bracket estimate (5.769 GPU-h, §14.4) and the
+wave's full `H=13.68` GPU-h ceiling (Stage 1 + Stage 2 combined:
+6.2742 + 5.6330 = 11.9072 GPU-h, 87.0% of the wave's own ceiling).
+Cumulative key-anchoring program spend updates from the pre-Stage-2
+72.594/80 figure (`STATE.md`) by Stage 2's realized cost: **72.594 →
+78.2270 / 80 GPU-h** (reserve now **1.7730/80**). This is the anchoring
+program's own effective close — no further wave is registered against
+this ceiling, and the remaining reserve (1.773 GPU-h) is too thin to
+comfortably fund another full 9-cell wave at this design's own per-cell
+rate (~0.626 GPU-h/cell) without risking the ceiling.
+
+Archive: `experiment-runs/2026-07-06_keyanchor_dose/` (extended in
+place — 9 diffuse cell result JSONs + 9 diffuse per-cell training logs +
+the diffuse chain-launch log `keyanchor_dose_chain_run3.log` +
+`55_wave_keyanchor_dose_diffuse.log`, ~60MB added, all files ≤25MB) +
+SSD mirror at the same relative path under
+`/Volumes/1TB_SSD/learned-representations/`. `STATE.md` and
+`EXPERIMENT_LOG.md` updated. Figure `make_fig_dose.py` (`submissions/
+iclr-2027/figures/`) extended with the diffuse series, re-rendered from
+the archived JSONs.
