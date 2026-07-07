@@ -1,0 +1,102 @@
+{
+  "tier": "exploratory-mechanism-wave -- NOT a confirmatory bar",
+  "design_ref": "FROZEN_BIAS_LM_DESIGN.md sec 12.3.4 (Stage 0.5 synthetic self-tests)",
+  "gate_passed": true,
+  "selftest_1_repeat_excess": {
+    "passed": true,
+    "construction_a_uncorrelated": {
+      "same_tok_sim": -0.25218583367036423,
+      "diff_tok_sim": -0.013781488986964123,
+      "repeat_excess": -0.2384043446834001,
+      "n_same": 24,
+      "n_diff": 108
+    },
+    "construction_b_planted": {
+      "same_tok_sim": -0.030517464907781688,
+      "diff_tok_sim": -0.06495428305340606,
+      "repeat_excess": 0.03443681814562437,
+      "n_same": 30,
+      "n_diff": 102
+    },
+    "planted_delta": 0.2728411628290245,
+    "expected": {
+      "construction_a": {
+        "repeat_excess": -0.238404,
+        "same_tok_sim": -0.252186,
+        "diff_tok_sim": -0.013781,
+        "n_same": 24,
+        "n_diff": 108
+      },
+      "construction_b": {
+        "repeat_excess": 0.034437,
+        "same_tok_sim": -0.030517,
+        "diff_tok_sim": -0.064954,
+        "n_same": 30,
+        "n_diff": 102
+      },
+      "min_planted_delta": 0.2
+    }
+  },
+  "selftest_2_paramdiff": {
+    "passed": true,
+    "b_global": [
+      0.3,
+      -0.1,
+      0.2,
+      0.4,
+      -0.2,
+      0.1
+    ],
+    "construction_a_planted_coherent": {
+      "dW": [
+        0.75,
+        -0.25,
+        0.5,
+        1.0,
+        -0.5,
+        0.25
+      ],
+      "frobenius_norm": 1.479019945774904,
+      "cosine": 0.9999999999999999
+    },
+    "construction_b_incoherent": {
+      "dW": [
+        0.4,
+        0.4,
+        -0.3,
+        -0.1,
+        0.35,
+        0.5
+      ],
+      "frobenius_norm": 0.8902246907382427,
+      "cosine": -0.0759497473859234
+    },
+    "coherence_gap": 1.0759497473859232,
+    "expected": {
+      "a_norm": 1.479019945774904,
+      "a_cos": 1.0,
+      "b_norm": 0.8902246907382427,
+      "b_cos": -0.0759497473859234,
+      "min_coherence_gap": 0.5
+    }
+  },
+  "selftest_3_gradflow": {
+    "passed": true,
+    "expected_norm": 0.6372793735874401,
+    "expected_loss": 0.45125,
+    "pass_1": {
+      "loss": 0.45125000000000004,
+      "call_count": 1,
+      "captured_norm": 0.6372793735874401
+    },
+    "pass_2": {
+      "loss": 0.45125000000000004,
+      "call_count": 2,
+      "captured_norm": 0.6372793735874401
+    },
+    "all_captured_norms": [
+      0.6372793735874401,
+      0.6372793735874401
+    ]
+  }
+}
