@@ -115,7 +115,17 @@ from key_anchoring import (ANCHOR_INIT_SEED, LAMBDA_LOG_CADENCE_STEPS, LAMBDA_WI
 # set; the mini self-test configs were moved from d_state=16 to 64 for
 # exactly this reason, not for capacity.
 _MIN_KERNEL_T = 128
-_SAFE_D_STATE = (64, 128)
+# KEY_ANCHORING_SCALING_DRAFT.md sec 15.2 item 3: extended to include 80/96
+# ONLY AFTER the sec 15.2 item 1 kernel-safety measurement PASSED at both
+# (verified this build session -- results/smoke_dstate_kernel_result.json,
+# smoke_dstate_kernel.py's full T in {128,224,448} forward+backward sweep,
+# both PASS with finite grads/outputs; attack-round-1 FATAL-2's own
+# resolution). Never made speculatively ahead of that measurement (sec
+# 15.2's own "treating d=80/96 as obviously fine because they're between
+# two verified-safe values would be an unverified analogy" warning) --
+# this edit is licensed strictly by the PASSING artifact, not by
+# interpolation between 64 and 128.
+_SAFE_D_STATE = (64, 80, 96, 128)
 
 
 def truncate_to_rank_svd_lowrank(Z: torch.Tensor, k: int, n_oversample: int = 6,

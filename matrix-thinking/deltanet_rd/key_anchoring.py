@@ -64,7 +64,31 @@ GATE2_MAX_COS_MAX = 0.5            # G2-b: max_{i!=j} |cos(A_i,A_j)| <= 0.5
 GATE2_RESID_TOL = 1e-2             # G2-c: NS admission tolerance (sec 14.10 item 2 semantics)
 GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20,
                      34: 20, 38: 20, 42: 20, 46: 20,
-                     68: 20, 76: 20, 84: 20, 92: 20}   # production tier per K (sec 16.3's own
+                     68: 20, 76: 20, 84: 20, 92: 20,
+                     # KEY_ANCHORING_SCALING_DRAFT.md sec 15.6's own fix, the OTHER half of it:
+                     # sec 15.6 flags K=48 as a COLLISION risk (an EXISTING key, verified only at
+                     # d=64, that this wave's own d=80 grid coincidentally reuses) and requires the
+                     # wave's own per-cell n_iter selection to consult a NEW d_state-namespaced
+                     # dict instead (run_deltanet_rd_exactness_sweep.py's KEYANCHOR_SCALING_
+                     # GATE2_N_ITER_BY_D_K, never this flat dict, for that purpose) -- see
+                     # _keyanchor_scaling_spec there. But gate2_construction_check (this module,
+                     # directly below) is a SHARED, wave-agnostic utility with no d_state parameter
+                     # at all -- it has ALWAYS read this flat dict directly (exactly how 34-46 and
+                     # 68-92 above were each added by their own wave's build), and every K below
+                     # that is genuinely NEW (never appeared in this dict before, at ANY d_state) is
+                     # a plain, safe extension -- there is nothing existing to silently collide
+                     # with. 20/24 (the mandatory low-K anchor points, sec 15.3/15.8) and 43/51/53/
+                     # 57/58/63/69 (sec 15.3's translated K-grids) are ALL genuinely new; 48 is
+                     # deliberately NOT re-added here (already present above, untouched, still only
+                     # verified at d=64) -- gate2_construction_test.py's own mandatory pre-launch
+                     # gate would otherwise KeyError on this wave's full K-grid (found by this
+                     # build's own smoke suite, smoke_keyanchor_scaling.py smoke 13, which executes
+                     # gate2_construction_check at d=80/96 with the real registered K-grids). All at
+                     # n_iter=20 "by analogy only" (sec 15.6 item 2) pending the mandatory Wave -1
+                     # n_iter-sufficiency check -- NOT yet run (see run_deltanet_rd_exactness_
+                     # sweep.py's own KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K module-note).
+                     20: 20, 24: 20, 43: 20, 51: 20, 53: 20, 57: 20, 58: 20, 63: 20, 69: 20,
+                     }   # production tier per K (sec 16.3's own
                                                 # n_iter escalation; 48 added per KEY_ANCHORING_
                                                 # DESIGN.md sec 11.3 -- "NS at n_iter=12 lands at
                                                 # resid 0.104 > tol on realistic near-collinear

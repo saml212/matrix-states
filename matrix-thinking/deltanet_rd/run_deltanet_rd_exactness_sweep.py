@@ -2478,6 +2478,494 @@ def keyanchor_dose_is_calibration_dose_verified(out_dir: str) -> dict | None:
     return {"achieved": achieved, "target": target, "rel_err": rel_err, "verified": rel_err <= 0.10}
 
 
+# =============================================================================
+# KEY_ANCHORING_SCALING_DRAFT.md sec 15 (attack-round-1 verdict:
+# RUN-AFTER-REASONING-LINK, wave PARKED, sec 15.18) -- cliff-location
+# scaling-law-across-d_state wave. BUILD-ONLY session (zero GPU spent):
+# closes FATAL-1 (this section) and wires the sec 15.2/Q1 kernel-safety
+# gate as a MECHANICAL launch-blocking check, not documentation-only
+# prose. NOT launched by this build session -- --scaling-stage full
+# still requires an orchestrator PI-decision to reopen the ledger
+# (sec 15 header) and a free GPU set, neither of which this session
+# performs.
+#
+# FATAL-1 fix: sec 15.15 item 2's "keyanchor_dstate_manifest is already
+# generalized, no build task" claim was FALSE (sec 15.18) -- that
+# function (and its gate1/calibration siblings) index MODULE-LEVEL seed
+# dicts hardcoded to K in {68,76,84,92} (KEYANCHOR_DSTATE_SEEDS_BY_K et
+# al, sec 13's own wave) -- calling them at this wave's own K grids
+# raises KeyError immediately. Per the attacker's own "cleaner" fix (sec
+# 15.18): this section defines FRESH keyanchor_scaling_* manifest
+# functions (never reusing keyanchor_dstate_manifest/keyanchor_k48_
+# manifest, both of which read ka.GATE2_N_ITER_BY_K[K] or KEYANCHOR_
+# DSTATE_SEEDS_BY_K[K] directly -- exactly the collision paths below),
+# following keyanchor-dstate's OWN structure (parameterized by d_state,
+# a calibration manifest FILTERED from the full manifest, never
+# hand-duplicated).
+#
+# K=48 GATE2_N_ITER_BY_K collision (sec 15.6): this wave's d=80 grid
+# reuses K=48, an EXISTING key in the flat ka.GATE2_N_ITER_BY_K dict
+# (verified sufficient only at d=64, sec 15.6's own disclosure). Calling
+# ka.GATE2_N_ITER_BY_K[48] from a d=80 cell would SILENTLY inherit that
+# d=64-only verification. Fix: a d_state-namespaced n_iter table
+# (KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K below), consulted INSTEAD OF the
+# flat dict for every cell this wave builds -- never falls through to
+# ka.GATE2_N_ITER_BY_K.
+#
+# lambda=1 ceiling (sec 15.7): the sibling K-keyed _ceiling_by_k pattern
+# (keyanchor_ceiling_by_k/keyanchor_k48_ceiling_by_k) has the SAME
+# collision class. This wave gets its own namespaced storage,
+# KEYANCHOR_SCALING_CEILING_BY_D_K -- left explicitly UNPOPULATED (None)
+# below: sec 15.7's own real Newton-Schulz simulation at these 10 new
+# (K,d) pairs is a registered Wave -1 pre-launch step (sec 15.13 item 5)
+# NOT performed in this BUILD-ONLY session (no committed, reusable helper
+# exists in this file to call -- the two existing dicts' own values were
+# computed by an external, uncommitted process). A structurally-correct
+# empty slot, loudly not-yet-computed, is safer than a fabricated number.
+#
+# Disk-gate d_state-hardcoding (found during this build, not previously
+# flagged by name in sec 15.18): keyanchor_mech_disk_gate's own byte
+# projector (keyanchor_mech_projected_ckpt_bytes) reads the MODULE
+# CONSTANT KEYANCHOR_MECH_D_STATE (=64), never a per-spec d_state --
+# reusing it unmodified for this wave would silently under-project disk
+# usage at d=80/96 (each row is 1.25x/1.5x bigger than the d=64 figure it
+# was calibrated against). This section's own keyanchor_scaling_disk_gate
+# below uses a fresh, per-spec-d_state-aware projector instead.
+# =============================================================================
+
+KEYANCHOR_SCALING_TIER_STEPS = KEYANCHOR_DSTATE_TIER_STEPS     # 20,000 -- continuity, sec 15.9
+KEYANCHOR_SCALING_GATE1_STEPS = KEYANCHOR_DSTATE_GATE1_STEPS   # 5,000 -- continuity, sec 15.15 item 2
+
+# sec 15.3's K-grids, MANDATORY low-K anchor point folded in as the first
+# element (sec 15.8: mandatory, not conditional) -- 5 K's per d, 3 seeds
+# each = 15 cells/d, 30 mandatory cells total (sec 15.12).
+KEYANCHOR_SCALING_D80_KS = (20, 43, 48, 53, 58)
+KEYANCHOR_SCALING_D96_KS = (24, 51, 57, 63, 69)
+KEYANCHOR_SCALING_KS_BY_D = {80: KEYANCHOR_SCALING_D80_KS, 96: KEYANCHOR_SCALING_D96_KS}
+KEYANCHOR_SCALING_ANCHOR_K_BY_D = {80: 20, 96: 24}                  # sec 15.3/15.8's mandatory anchor
+KEYANCHOR_SCALING_CALIBRATION_K_BY_D = {80: 43, 96: 51}             # sec 15.13 Stage 0: cheapest K in
+                                                                      # the MAIN 4-pt grid, NOT the
+                                                                      # anchor (sec 15.13's own reasoning:
+                                                                      # the anchor's per-step cost profile
+                                                                      # may differ at very low K)
+KEYANCHOR_SCALING_CALIBRATION_SEED_BY_D = {80: 1030, 96: 1430}      # first seed of that K's own block
+
+# sec 15.15 item 5's registered seed table, reproduced verbatim -- the
+# draft does NOT leave these unpinned, so no fresh allocation is needed;
+# verified this build session by grep against every *.py in this
+# directory: zero collisions with 1020-1735 anywhere in this program's
+# own seed space (a bare '1234' hit in frozen_bias_gradflow_probe.py is a
+# DIFFERENT program's smoke-only constant, not this manifest's identity
+# space -- disjoint result-JSON namespace, no shared out_dir).
+KEYANCHOR_SCALING_SEEDS_BY_D_K = {
+    80: {20: (1020, 1021, 1022), 43: (1030, 1031, 1032), 48: (1130, 1131, 1132),
+         53: (1230, 1231, 1232), 58: (1330, 1331, 1332)},
+    96: {24: (1420, 1421, 1422), 51: (1430, 1431, 1432), 57: (1530, 1531, 1532),
+         63: (1630, 1631, 1632), 69: (1730, 1731, 1732)},
+}
+KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K = {
+    80: {20: (1023, 1024), 43: (1033, 1034), 48: (1133, 1134), 53: (1233, 1234), 58: (1333, 1334)},
+    96: {24: (1423, 1424), 51: (1433, 1434), 57: (1533, 1534), 63: (1633, 1634), 69: (1733, 1734)},
+}
+KEYANCHOR_SCALING_GATE1_SEED_BY_D_K = {
+    80: {20: 1025, 43: 1035, 48: 1135, 53: 1235, 58: 1335},
+    96: {24: 1425, 51: 1435, 57: 1535, 63: 1635, 69: 1735},
+}
+
+# sec 15.6's fix: d_state-namespaced n_iter table, ALL at n_iter=20 "by
+# analogy only" (sec 15.6 item 2) pending the mandatory Wave -1
+# n_iter-sufficiency check (a keyanchor_dstate_niter_check.py-style
+# driver at these 10 new (K,d) pairs -- NOT built or run this session,
+# registered here as an explicit TODO, not silently assumed clean). Every
+# keyanchor_scaling_* manifest builder below reads THIS dict, NEVER
+# ka.GATE2_N_ITER_BY_K (closing the K=48 collision by construction, not
+# by discipline alone).
+KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K = {
+    80: {20: 20, 43: 20, 48: 20, 53: 20, 58: 20},
+    96: {24: 20, 51: 20, 57: 20, 63: 20, 69: 20},
+}
+
+# sec 15.7's namespaced ceiling storage -- PENDING, NOT computed this
+# session (see module-note above). Populate via the SAME method sec
+# 11.4.2/12.2.2/13.2.1 used (fix one sampled anchor row, resample K-1
+# co-drawn rows from the other pool, full-pool production-tier
+# Newton-Schulz, pooled pairwise cosine, this wave's own registered
+# frame-potential table/seed) before Gate 2 is trusted at either new d.
+KEYANCHOR_SCALING_CEILING_BY_D_K = {80: None, 96: None}
+
+# sec 15.11's per-cell cost point estimates (log-log power-law
+# interpolation, NOT yet calibration-verified) -- used ONLY for sec
+# 15.14's abort-trigger arithmetic below, never as a launch-gating
+# ceiling by themselves (sec 15.12's own budget table is the ceiling).
+KEYANCHOR_SCALING_GPUH_PER_CELL_MAIN = {80: 0.3465, 96: 0.4313}
+KEYANCHOR_SCALING_GPUH_PER_CELL_ANCHOR = {80: 0.169, 96: 0.212}
+KEYANCHOR_SCALING_CONTINGENCY_MULTIPLIER = 2.0
+
+
+def _keyanchor_scaling_spec(K: int, seed: int, d_state: int, steps: int = KEYANCHOR_SCALING_TIER_STEPS):
+    """One candidate-(d) cell at (K, d_state) -- byte-identical
+    architecture to keyanchor-cliff/keyanchor-dstate's own candidate (d)
+    (sec 15.9: anchor_active=True, anchor_lambda_mode='learned',
+    frame_potential init, drift_probe=True, rev7_engagement=True) --
+    built DIRECTLY via _spec(), never via keyanchor_k48_manifest/
+    keyanchor_dstate_manifest (both of which read ka.GATE2_N_ITER_BY_K[K]
+    or KEYANCHOR_DSTATE_SEEDS_BY_K[K] respectively -- exactly the
+    collision paths this wave's own sec 15.6 fix must not fall through
+    to). n_iter is read from THIS wave's own namespaced KEYANCHOR_
+    SCALING_GATE2_N_ITER_BY_D_K[d_state][K], never the flat ka.
+    GATE2_N_ITER_BY_K."""
+    assert d_state in KEYANCHOR_SCALING_KS_BY_D, f"unregistered scaling d_state={d_state}"
+    n_iter = KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[d_state][K]
+    return _spec("keyanchor-scaling", K, seed, steps, "d", geo3_active=True,
+                 geo3_n_iter=n_iter, geo3_resid_tol=1e-2,
+                 anchor_active=True, anchor_lambda_mode="learned",
+                 drift_probe=True, rev7_engagement=True, d_state=d_state)
+
+
+def keyanchor_scaling_manifest(d_state: int, Ks=None) -> list:
+    """sec 15.3/15.9's MANDATORY, PRIMARY arm at the given new d_state:
+    candidate (d) only, K in Ks (default: this wave's own full registered
+    grid INCLUDING the mandatory low-K anchor, sec 15.8), 3 seeds each --
+    reference arms CUT (sec 15.9, same disclosed cut as keyanchor-cliff/
+    keyanchor-dstate)."""
+    if Ks is None:
+        Ks = KEYANCHOR_SCALING_KS_BY_D[d_state]
+    runs = []
+    for K in Ks:
+        for seed in KEYANCHOR_SCALING_SEEDS_BY_D_K[d_state][K]:
+            runs.append(_keyanchor_scaling_spec(K, seed, d_state))
+    assert len(runs) == len(Ks) * 3, \
+        f"keyanchor-scaling manifest (d_state={d_state}) drifted from its registered " \
+        f"{len(Ks) * 3} runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_scaling_gate1_manifest(d_state: int, Ks=None) -> list:
+    """sec 15.13 Stage 2's OPTIONAL, lowest-cut-priority Gate-1-style
+    probes, one per K-group (5 per d by default), 5,000 steps."""
+    if Ks is None:
+        Ks = KEYANCHOR_SCALING_KS_BY_D[d_state]
+    runs = [_keyanchor_scaling_spec(K, KEYANCHOR_SCALING_GATE1_SEED_BY_D_K[d_state][K], d_state,
+                                     steps=KEYANCHOR_SCALING_GATE1_STEPS)
+            for K in Ks]
+    assert len(runs) == len(Ks), \
+        f"keyanchor-scaling Gate-1 probe manifest (d_state={d_state}) drifted from its " \
+        f"registered {len(Ks)} runs: {len(runs)}"
+    return runs
+
+
+def keyanchor_scaling_full_manifest() -> list:
+    """sec 15.12's full 30-cell mandatory grid: d=80's 15 cells (K in
+    {20,43,48,53,58} x 3 seeds) + d=96's 15 cells (K in {24,51,57,63,69}
+    x 3 seeds). This is the manifest --scaling-stage full launches (minus
+    whatever cells are already is_done(), the normal resume path)."""
+    runs = keyanchor_scaling_manifest(80) + keyanchor_scaling_manifest(96)
+    assert len(runs) == 30, \
+        f"keyanchor-scaling full manifest drifted from its registered 30 mandatory cells: {len(runs)}"
+    return runs
+
+
+def keyanchor_scaling_calibration_manifest() -> list:
+    """sec 15.13 Stage 0: ONE cell per new d, the CHEAPEST K in that d's
+    own MAIN 4-point grid (NOT the low-K anchor, sec 15.13's own
+    disclosed reasoning) -- d=80: K=43/seed=1030; d=96: K=51/seed=1430.
+    Both run in PARALLEL (no shared-calibration dependency between the
+    two d's, unlike keyanchor-dstate's single-cell/single-d gate).
+    Filtered from (never hand-duplicated against) the full manifest, same
+    discipline as keyanchor_dstate_calibration_manifest."""
+    full = keyanchor_scaling_full_manifest()
+    runs = [s for s in full
+            if (s["d_state"] == 80 and s["K"] == KEYANCHOR_SCALING_CALIBRATION_K_BY_D[80]
+                and s["seed"] == KEYANCHOR_SCALING_CALIBRATION_SEED_BY_D[80])
+            or (s["d_state"] == 96 and s["K"] == KEYANCHOR_SCALING_CALIBRATION_K_BY_D[96]
+                and s["seed"] == KEYANCHOR_SCALING_CALIBRATION_SEED_BY_D[96])]
+    assert len(runs) == 2, \
+        f"keyanchor-scaling calibration manifest drifted -- expected exactly 2 cells " \
+        f"(d=80/K={KEYANCHOR_SCALING_CALIBRATION_K_BY_D[80]}/seed={KEYANCHOR_SCALING_CALIBRATION_SEED_BY_D[80]}, " \
+        f"d=96/K={KEYANCHOR_SCALING_CALIBRATION_K_BY_D[96]}/seed={KEYANCHOR_SCALING_CALIBRATION_SEED_BY_D[96]}), " \
+        f"got {len(runs)}"
+    return runs
+
+
+# ---------------------------------------------------------------------------
+# sec 15.2/15.18 Q1: the MECHANICAL kernel-safety gate.
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_SCALING_KERNEL_GATE_RESULT_PATH = os.path.join(HERE, "results", "smoke_dstate_kernel_result.json")
+KEYANCHOR_SCALING_KERNEL_GATE_T_SWEEP = (128, 224, 448)   # sec 15.2 item 1's registered protocol
+
+
+def keyanchor_scaling_kernel_gate_check(path: str | None = None) -> dict:
+    """sec 15.2/15.18 Q1's MECHANICAL kernel-safety gate -- the wave's own
+    single highest-consequence risk (sec 15.17 Q1): d=80/96 were NEVER
+    run through chunk_delta_rule before smoke_dstate_kernel.py's
+    attack-round-1 FATAL-2 fix (T in {128,224,448}, both passes, forward
+    AND backward, finite-grad AND finite-forward-output checks). This is
+    the ENFORCED tooling gate Q1's own TODO demanded -- refuses to report
+    ok=True unless the committed artifact exists, parses, exited 0, its
+    own verdict string contains 'CLEARED', its t_sweep covers the full
+    registered {128,224,448} protocol (not a subset -- not the T=256-only
+    false negative the FATAL-2 finding caught), and grid_pass['80']/
+    ['96'] are ALL True at every one of those three T values. EXACT
+    checks, no numerical slack (structural-gate house rule) -- called
+    BOTH by main()'s keyanchor-scaling dispatch (defense-in-depth,
+    mirrors sec 10.3.3 leg (ii)'s 'a gate must include a live re-run, not
+    just trust the artifact's filename' discipline) and by keyanchor_
+    scaling_chain.sh's own standalone check (belt-and-suspenders: the
+    chain script refuses before even invoking this script, sec 15.18
+    Q1's own 'gates-must-abort' requirement)."""
+    p = path or KEYANCHOR_SCALING_KERNEL_GATE_RESULT_PATH
+    if not os.path.exists(p):
+        return {"ok": False, "path": p, "reason": f"kernel-safety artifact not found at {p!r}"}
+    try:
+        with open(p) as f:
+            doc = json.load(f)
+    except Exception as e:
+        return {"ok": False, "path": p, "reason": f"artifact did not parse as JSON: {e!r}"}
+    if doc.get("exit_code") != 0:
+        return {"ok": False, "path": p, "reason": f"artifact exit_code={doc.get('exit_code')!r} != 0"}
+    verdict = doc.get("verdict", "")
+    if "CLEARED" not in verdict:
+        return {"ok": False, "path": p,
+                "reason": f"artifact verdict does not contain 'CLEARED': {verdict!r}"}
+    t_sweep = doc.get("t_sweep")
+    # MUST be a superset check (required T's all present IN t_sweep), not a
+    # subset check -- a completely disjoint t_sweep (e.g. the FATAL-2-style
+    # T=256-only artifact) is NOT a subset-of-required relation at all
+    # ({256} is not `< {128,224,448}`), so a naive subset check silently
+    # passes it through to the grid_pass loop below instead of rejecting it
+    # HERE, at the protocol-completeness check where the reason message
+    # actually names the real defect (found by this build's own negative
+    # test, smoke_keyanchor_scaling.py smoke 7d).
+    if not set(KEYANCHOR_SCALING_KERNEL_GATE_T_SWEEP) <= set(t_sweep or []):
+        return {"ok": False, "path": p,
+                "reason": f"artifact t_sweep={t_sweep!r} does not cover the full registered "
+                          f"protocol {KEYANCHOR_SCALING_KERNEL_GATE_T_SWEEP} (sec 15.2 item 1 -- a "
+                          f"partial or disjoint sweep, e.g. the FATAL-2 T=256-only false negative, "
+                          f"must not pass)"}
+    grid = doc.get("grid_pass") or {}
+    for d in (80, 96):
+        row = grid.get(str(d), {})
+        for T in KEYANCHOR_SCALING_KERNEL_GATE_T_SWEEP:
+            if row.get(str(T)) is not True:
+                return {"ok": False, "path": p,
+                        "reason": f"grid_pass[{d!r}][{T!r}] is not True (got {row.get(str(T))!r}) "
+                                  f"-- d_state={d} is NOT kernel-safe at T={T}"}
+    return {"ok": True, "path": p,
+            "reason": "d_state 80/96 PASS forward+backward, finite grads+outputs, at all "
+                      "T in {128,224,448}"}
+
+
+# ---------------------------------------------------------------------------
+# sec 15.14's per-cell abort rule.
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_SCALING_ABORT_WALL_S = {
+    # (d_state, is_anchor) -> 1.5x the pessimistic-2x bracket upper edge
+    # (sec 15.14's own literal pinned values: 3742.2/1825.2/4658.1/2289.6s
+    # -- computed here from the same GPU-h constants above rather than
+    # hand-typed, and asserted against those exact literals by the smoke
+    # suite, never silently re-derived differently at call time).
+    (80, False): 1.5 * KEYANCHOR_SCALING_GPUH_PER_CELL_MAIN[80] * KEYANCHOR_SCALING_CONTINGENCY_MULTIPLIER * 3600.0,
+    (80, True): 1.5 * KEYANCHOR_SCALING_GPUH_PER_CELL_ANCHOR[80] * KEYANCHOR_SCALING_CONTINGENCY_MULTIPLIER * 3600.0,
+    (96, False): 1.5 * KEYANCHOR_SCALING_GPUH_PER_CELL_MAIN[96] * KEYANCHOR_SCALING_CONTINGENCY_MULTIPLIER * 3600.0,
+    (96, True): 1.5 * KEYANCHOR_SCALING_GPUH_PER_CELL_ANCHOR[96] * KEYANCHOR_SCALING_CONTINGENCY_MULTIPLIER * 3600.0,
+}
+
+
+class KeyanchorScalingAbort(RuntimeError):
+    """sec 15.14's mechanical, in-code hard-halt signal -- raised by
+    keyanchor_scaling_check_abort, caught by main()'s dispatch loop for
+    the keyanchor-scaling wave only. Same distinct-exception-type
+    discipline as KeyanchorCliffAbort/KeyanchorDstateAbort (never a bare
+    RuntimeError)."""
+
+
+def keyanchor_scaling_check_abort(spec: dict, wall_s: float) -> None:
+    """sec 15.14's per-cell abort rule (ANY completed cell, not only the
+    first): if a completed cell's own realized wall_s >= 1.5x its OWN
+    d's pessimistic-bracket upper edge (main-grid vs anchor-K bracket,
+    sec 15.14's own disclosed two-tier thresholds), halt all remaining
+    keyanchor-scaling launches."""
+    d_state = spec["d_state"]
+    is_anchor = spec["K"] == KEYANCHOR_SCALING_ANCHOR_K_BY_D[d_state]
+    trigger = KEYANCHOR_SCALING_ABORT_WALL_S[(d_state, is_anchor)]
+    if wall_s >= trigger:
+        raise KeyanchorScalingAbort(
+            f"sec 15.14 ABORT: cell {spec['name']!r} (K={spec['K']}, d_state={d_state}) realized "
+            f"wall_s={wall_s:.1f}s >= {trigger:.1f}s (1.5x the "
+            f"{'anchor' if is_anchor else 'main-grid'} pessimistic-2x bracket upper edge). Halting "
+            f"all remaining keyanchor-scaling launches -- diagnose per sec 13.6.1 item 1's own "
+            f"precedent: (a) sec 15.11's cost interpolation was wrong in the pessimistic direction "
+            f"(re-price sec 15.12's full budget table, do not treat as a fluke), or (b) GPU "
+            f"contention with a concurrent program, before resuming.")
+
+
+# ---------------------------------------------------------------------------
+# sec 15.13's calibration-first staged launch gate.
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_SCALING_STAGE_SENTINEL_NAME = "CALIBRATION_DONE"
+
+
+def keyanchor_scaling_stage_gate(out_dir: str, stage: str, accept_override: bool) -> dict:
+    """sec 15.13's staged, calibration-first launch gate, restated in full
+    (genuinely simpler than keyanchor-dstate's own sec 13.6 mechanical
+    DECISION TABLE: this wave has NO branch-selects-a-smaller-K-grid
+    mechanism -- sec 15.13's own abort/re-price trigger is a single
+    pass/fail-and-halt check against the ALREADY-mandatory 30-cell grid,
+    never a K-grid-shrinking table).
+
+    PI-SIGNOFF (build-audit MAJOR-1 fix, 2026-07-07): this wave reopens a
+    program declared complete twice and commits a NEW ~21 GPU-h ledger
+    (sec 15.12) -- the reopening decision must be on record. Enforced HERE
+    in Python (defense-in-depth, mirroring the dose wave's own
+    KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF precedent at its sec-14 dispatch),
+    not only in keyanchor_scaling_chain.sh's GATE 0 -- a direct python
+    invocation bypassing the chain must ALSO refuse."""
+    if os.environ.get("KEYANCHOR_SCALING_PI_SIGNOFF", "0") != "1":
+        print("REFUSED: --wave keyanchor-scaling requires KEYANCHOR_SCALING_PI_SIGNOFF=1 "
+              "in the environment (sec 15.12's ledger-reopening decision on record; "
+              "build-audit MAJOR-1 defense-in-depth -- the chain script's GATE 0 alone "
+              "is bypassable by direct python invocation).")
+        sys.exit(1)
+    _keyanchor_scaling_stage_gate_docstring_continues = """
+
+    The sec 15.2/15.18 kernel-safety gate is checked FIRST, unconditionally,
+    for BOTH stages -- this is NOT the same override class as
+    accept_override (which only ever bypasses the calibration-completeness/
+    abort-trigger check below); --accept-scaling-stage-override must never
+    bypass kernel safety, so this check runs before accept_override is even
+    consulted.
+
+    --stage calibration: kernel gate only (the calibration cells ARE the
+    first thing that runs, sec 15.13 Stage 0).
+
+    --stage full: kernel gate, THEN requires BOTH calibration cells (d=80
+    K=43 seed=1030, d=96 K=51 seed=1430) to exist and validate complete;
+    reads EACH cell's own wall_s (read_wall_s_only, same h4-blinding
+    discipline as keyanchor-dstate's own sec 13.5 F9 rule) and checks it
+    against sec 15.13's own abort/re-price trigger (1.5x that d's own
+    pessimistic-2x main-grid bracket, sec 15.14) -- if EITHER exceeds its
+    own trigger, REFUSES (mirrors keyanchor-dstate's ESCALATE-branch
+    refusal) with an explicit 'halt, diagnose, re-price the FULL budget
+    table' message (sec 15.13's own text), never silently descoping the
+    K-grid the way keyanchor-dstate's Option B/C branches do (no such
+    branch is registered for this wave). On a clean pass, writes the
+    CALIBRATION_DONE sentinel and returns the full, unmodified 30-cell
+    grid for main() to build the remaining manifest from."""
+    kernel_gate = keyanchor_scaling_kernel_gate_check()
+    if not kernel_gate["ok"]:
+        print(f"ERROR: sec 15.2/15.18 KERNEL-SAFETY GATE REFUSED -- {kernel_gate['reason']} "
+              f"(checked {kernel_gate['path']!r}). This gate is NEVER bypassable by "
+              f"--accept-scaling-stage-override (a different override class, sec 15.13) -- re-run "
+              f"smoke_dstate_kernel.py to the FULL registered T in {{128,224,448}} protocol and "
+              f"commit a PASSING artifact before retrying.", file=sys.stderr)
+        sys.exit(1)
+    print(f"sec 15.2/15.18 KERNEL-SAFETY GATE CLEARED: {kernel_gate['reason']} "
+          f"(artifact: {kernel_gate['path']!r})", flush=True)
+    if accept_override:
+        print("=" * 70 + "\nWARNING: --accept-scaling-stage-override -- sec 15.13's "
+              "calibration-first/abort-trigger mechanical gate is being BYPASSED by an explicit "
+              "human decision (the kernel-safety gate above is NOT part of this bypass). This is "
+              "recorded here; it does NOT mean calibration ran or cleared its own bracket. No "
+              "CALIBRATION_DONE sentinel is written on this path.\n" + "=" * 70, flush=True)
+        return {"gate_bypassed": True, "stage": stage, "sentinel_written": False,
+                "kernel_gate": kernel_gate}
+    if stage == "calibration":
+        return {"gate_bypassed": False, "not_applicable": True, "stage": stage,
+                "sentinel_written": False, "kernel_gate": kernel_gate}
+    assert stage == "full", f"unknown stage {stage!r} -- must be 'calibration' or 'full'"
+    stale = os.path.join(out_dir, KEYANCHOR_SCALING_STAGE_SENTINEL_NAME)
+    if os.path.exists(stale):
+        os.remove(stale)
+        print(f"stage gate: removed pre-existing {KEYANCHOR_SCALING_STAGE_SENTINEL_NAME} "
+              f"(re-derived below; a stale pass certificate must not survive a re-check)", flush=True)
+    calib_specs = keyanchor_scaling_calibration_manifest()
+    readings = {}
+    for spec in calib_specs:
+        if not is_done(out_dir, spec):
+            print(f"ERROR: --scaling-stage full REFUSED -- the calibration cell (K={spec['K']}, "
+                  f"seed={spec['seed']}, d_state={spec['d_state']}) is not yet complete in "
+                  f"{out_dir!r}. Run --scaling-stage calibration first (both d's calibration cells "
+                  f"can run in parallel, sec 15.13 Stage 0), or pass "
+                  f"--accept-scaling-stage-override for an explicit, documented human override.",
+                  file=sys.stderr)
+            sys.exit(1)
+        wall_s = read_wall_s_only(out_path(out_dir, spec))
+        readings[spec["d_state"]] = wall_s
+        trigger = KEYANCHOR_SCALING_ABORT_WALL_S[(spec["d_state"], False)]
+        print(f"sec 15.13 CALIBRATION READ (blinded to wall_s only): d_state={spec['d_state']} "
+              f"K={spec['K']} wall_s={wall_s:.1f}s (abort/re-price trigger {trigger:.1f}s)",
+              flush=True)
+        if wall_s >= trigger:
+            print(f"ERROR: --scaling-stage full REFUSED -- d_state={spec['d_state']}'s calibration "
+                  f"cell realized wall_s={wall_s:.1f}s >= {trigger:.1f}s (sec 15.13's own 1.5x-of-"
+                  f"pessimistic-2x-bracket abort/re-price trigger). Per sec 15.13's own text: halt, "
+                  f"diagnose (nvidia-smi contention check first), and re-price the FULL sec 15.12 "
+                  f"budget table before proceeding -- this wave does NOT unilaterally descope its "
+                  f"own K-grid the way keyanchor-dstate's Option B/C branches do. Pass "
+                  f"--accept-scaling-stage-override for an explicit, documented human override.",
+                  file=sys.stderr)
+            sys.exit(1)
+    sentinel_path = os.path.join(out_dir, KEYANCHOR_SCALING_STAGE_SENTINEL_NAME)
+    payload = {"calibration_wall_s_by_d": readings, "timestamp": time.time()}
+    os.makedirs(out_dir, exist_ok=True)
+    with open(sentinel_path, "w") as f:
+        f.write(json.dumps(payload, sort_keys=True) + "\n")
+    print(f"sec 15.13: wrote {sentinel_path!r} -- both calibration cells cleared their own "
+          f"abort/re-price trigger.", flush=True)
+    return {"gate_bypassed": False, "stage": stage, "sentinel_written": True,
+            "sentinel_path": sentinel_path, "kernel_gate": kernel_gate, "readings": readings}
+
+
+# ---------------------------------------------------------------------------
+# Disk gate -- d_state-aware byte projector (see module-note above: reusing
+# keyanchor_mech_disk_gate unmodified would silently under-project at
+# d=80/96, since that function's own byte projector hardcodes d_state=64).
+# ---------------------------------------------------------------------------
+
+def keyanchor_scaling_projected_ckpt_bytes(manifest: list) -> int:
+    """Same formula as keyanchor_mech_projected_ckpt_bytes (per_row_block +
+    ids_block + scalar-lambda extra + framing overhead, times checkpoints-
+    per-cell), but reads d_state PER-SPEC (spec['d_state']) rather than a
+    fixed module constant -- this wave's own cells are NEVER all at the
+    same d_state, unlike every wave that constant was written for."""
+    n_train = KEYANCHOR_MECH_N_TRAIN          # 107 -- n_entities, unchanged across this whole program
+    ckpt_every = KEYANCHOR_MECH_CKPT_EVERY    # 2000 -- unchanged checkpoint cadence convention
+    framing_overhead = 2048
+    total = 0
+    for spec in manifest:
+        d_state = spec["d_state"]
+        per_row_block = n_train * d_state * 4
+        ids_block = n_train * 8
+        extra = 4   # candidate (d): single learned scalar lambda (never learned_per_entity here)
+        per_ckpt_bytes = per_row_block + ids_block + extra + framing_overhead
+        n_ckpts = spec["steps"] // ckpt_every + 1
+        total += n_ckpts * per_ckpt_bytes
+    return total
+
+
+def keyanchor_scaling_disk_gate(ckpt_base_dir: str, manifest: list) -> dict:
+    """Same house gate-(f) pattern as keyanchor_mech_disk_gate, using THIS
+    wave's own d_state-aware byte projector above."""
+    import shutil
+    os.makedirs(ckpt_base_dir, exist_ok=True)
+    resolved = os.path.realpath(ckpt_base_dir)
+    free_bytes = shutil.disk_usage(resolved).free if os.path.exists(resolved) else 0
+    projected = keyanchor_scaling_projected_ckpt_bytes(manifest)
+    safety_factor = 1.5
+    required = int(projected * safety_factor)
+    report = {"label": "keyanchor-scaling", "resolved_ckpt_dir": resolved,
+              "projected_ckpt_bytes": projected, "safety_factor": safety_factor,
+              "required_bytes": required, "free_bytes": free_bytes,
+              "ok": os.path.exists(resolved) and free_bytes >= required}
+    print(f"DISK GATE (keyanchor-scaling): projected {report['projected_ckpt_bytes'] / 1e6:.3f} MB x "
+          f"{safety_factor} = {required / 1e6:.3f} MB required, {free_bytes / 1e9:.2f} GB free -> "
+          f"{'OK' if report['ok'] else 'REFUSED'}", flush=True)
+    return report
+
+
 MANIFEST_FNS = {"-1": wave_neg1_manifest}
 
 
@@ -2807,7 +3295,7 @@ def main():
                                         "keyanchor-k48-ref", "keyanchor-k48-bands",
                                         "keyanchor-k48-gate1", "keyanchor-k48",
                                         "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate",
-                                        "keyanchor-dose"], default=None,
+                                        "keyanchor-dose", "keyanchor-scaling"], default=None,
                      help="'geo3' launches F-geo-3's Wave-1-style cells (sec 14.7) -- GATED on "
                           "--geo3-drift-json (sec 14.6's launch-read result) unless "
                           "--accept-gate-override is passed. The sec 14.6 drift diagnostic ITSELF "
@@ -2889,7 +3377,26 @@ def main():
                           "own numeric activation rule requires K=68's real dose-response data, "
                           "which does not exist at build time (registered as a manifest-building "
                           "function only, keyanchor_dose_k84_manifest, per the module's own "
-                          "docstring).")
+                          "docstring). "
+                          "KEY_ANCHORING_SCALING_DRAFT.md sec 15 (attack-round-1 verdict RUN-AFTER-"
+                          "REASONING-LINK, wave PARKED sec 15.18) wave: 'keyanchor-scaling' launches "
+                          "the cliff-location-scaling-law-across-d_state wave (candidate (d) only, "
+                          "d_state in {80,96}, K-grid per d INCLUDING the mandatory low-K anchor, sec "
+                          "15.3/15.8) -- REQUIRES --scaling-stage calibration or --scaling-stage full. "
+                          "The sec 15.2/15.18 kernel-safety gate (results/smoke_dstate_kernel_result."
+                          "json, verdict must contain 'CLEARED' at the FULL T in {128,224,448} "
+                          "protocol for BOTH d=80 and d=96) is checked FIRST, unconditionally, and is "
+                          "NEVER bypassable by any override flag. 'calibration' launches BOTH d's own "
+                          "cheapest-main-grid-K calibration cell (d=80 K=43 seed=1030, d=96 K=51 "
+                          "seed=1430) IN PARALLEL (sec 15.13 Stage 0, no cross-d dependency); 'full' "
+                          "requires BOTH to be complete AND within their own 1.5x-pessimistic-2x-"
+                          "bracket abort/re-price trigger (sec 15.13/15.14), then launches the "
+                          "remaining mandatory 30-cell grid (both d's combined) -- REFUSES (never "
+                          "silently descopes the K-grid, unlike keyanchor-dstate's Option B/C) if "
+                          "either calibration cell overruns its own trigger; --accept-scaling-stage-"
+                          "override bypasses the calibration/abort-trigger gate ONLY, never the "
+                          "kernel-safety gate. --include-scaling-gate1 additionally launches the "
+                          "OPTIONAL, lowest-cut-priority per-K-group Gate-1-style probes (10 total).")
     ap.add_argument("--gpus", type=int, default=None,
                      help="GPU COUNT. REQUIRED for a real (wave -1/1) launch, NO DEFAULT ON "
                           "PURPOSE -- check nvidia-smi before every launch (GPUs 0-5,7 run other "
@@ -3058,6 +3565,26 @@ def main():
                           "wave ceiling. KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 in the environment is an "
                           "equivalent, non-CLI way to record the same decision (e.g. from a chain "
                           "script that has already captured the PI's sign-off elsewhere).")
+    ap.add_argument("--scaling-stage", type=str, choices=["calibration", "full"], default=None,
+                     help="--wave keyanchor-scaling: REQUIRED. 'calibration' launches BOTH d=80's "
+                          "K=43/seed=1030 AND d=96's K=51/seed=1430 calibration cells IN PARALLEL "
+                          "(sec 15.13 Stage 0 -- no cross-d dependency, unlike keyanchor-dstate's "
+                          "single-cell gate). 'full' requires BOTH complete AND within their own "
+                          "1.5x-pessimistic-2x-bracket abort/re-price trigger (sec 15.13/15.14), then "
+                          "launches the remaining mandatory 30-cell grid. The sec 15.2/15.18 kernel-"
+                          "safety gate is checked FIRST regardless of stage and is never bypassable.")
+    ap.add_argument("--accept-scaling-stage-override", action="store_true",
+                     help="--wave keyanchor-scaling --scaling-stage full: bypass sec 15.13's "
+                          "calibration-completeness/abort-trigger mechanical gate (missing "
+                          "calibration cell OR an over-trigger realized rate) with an explicit, "
+                          "loudly-logged human override -- same override class as --accept-dstate-"
+                          "stage-override. Does NOT bypass the sec 15.2/15.18 kernel-safety gate "
+                          "(a structurally different, always-enforced check).")
+    ap.add_argument("--include-scaling-gate1", action="store_true",
+                     help="--wave keyanchor-scaling: additionally launch the OPTIONAL, lowest-cut-"
+                          "priority Gate-1-style probes (sec 15.13 Stage 2), one per K-group, 10 "
+                          "total. Off by default (first cut under budget pressure, sec 15.14's own "
+                          "priority order).")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -3351,6 +3878,41 @@ def main():
         assert all(s["d_state"] == KEYANCHOR_DOSE_D_STATE and s["K"] == KEYANCHOR_DOSE_K
                    for s in kdose_calib + kdose_rank4 + kdose_diffuse), \
             "keyanchor-dose manifest has a cell not at K=68/d_state=128"
+
+        print("\n" + "=" * 70)
+        print("KEY_ANCHORING_SCALING_DRAFT.md sec 15 (attack-round-1 verdict RUN-AFTER-REASONING-"
+              "LINK, wave PARKED sec 15.18) -- keyanchor-scaling wave preview (cliff-location "
+              "scaling law across d_state, BUILD-ONLY at this session)")
+        print("=" * 70)
+        ks_mand = keyanchor_scaling_full_manifest()
+        ks_calib = keyanchor_scaling_calibration_manifest()
+        ks_g1 = keyanchor_scaling_gate1_manifest(80) + keyanchor_scaling_gate1_manifest(96)
+        ks_kernel_gate = keyanchor_scaling_kernel_gate_check()
+        print(f"  candidate (d), d_state in {{80,96}}, MANDATORY, PRIMARY, K per d in "
+              f"{KEYANCHOR_SCALING_KS_BY_D} (incl. mandatory low-K anchor, sec 15.8): "
+              f"{len(ks_mand)} runs | 3 seeds each")
+        for d in (80, 96):
+            n_this_d = len([s for s in ks_mand if s["d_state"] == d])
+            print(f"    d_state={d}: {n_this_d} cells, K={KEYANCHOR_SCALING_KS_BY_D[d]}")
+        print(f"  sec 15.13 Stage 0 CALIBRATION (mandatory, both IN PARALLEL, no cross-d "
+              f"dependency): {len(ks_calib)} runs | {[(s['d_state'], s['K'], s['seed']) for s in ks_calib]}")
+        print(f"  Gate-1-style probes, OPTIONAL, 1 per K-group (--include-scaling-gate1): "
+              f"{len(ks_g1)} runs | not run by default")
+        print(f"  seed contingency, CONDITIONAL, +2 seeds per K-group (reserved blocks "
+              f"{KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K}): not a manifest function in this "
+              f"build (sec 15.14's own registered-but-not-fired discipline)")
+        print(f"  sec 15.2/15.18 KERNEL-SAFETY GATE: {'CLEARED' if ks_kernel_gate['ok'] else 'REFUSED'} "
+              f"-- {ks_kernel_gate['reason']} (artifact: {ks_kernel_gate['path']!r})")
+        print(f"  sec 15.7 lambda=1 ceiling (namespaced storage): {KEYANCHOR_SCALING_CEILING_BY_D_K} "
+              f"-- PENDING, not computed this BUILD-ONLY session (see module-note)")
+        print(f"  sec 15.14 abort thresholds (wall_s, 1.5x pessimistic-2x bracket): "
+              f"{ {k: round(v, 1) for k, v in KEYANCHOR_SCALING_ABORT_WALL_S.items()} }")
+        assert len(ks_mand) == 30 and len(ks_calib) == 2 and len(ks_g1) == 10, \
+            f"keyanchor-scaling run counts drifted from their registered 30+2+10: " \
+            f"{len(ks_mand)}+{len(ks_calib)}+{len(ks_g1)}"
+        assert sorted(set(s["d_state"] for s in ks_mand)) == [80, 96], \
+            f"keyanchor-scaling mandatory manifest d_states drifted: " \
+            f"{sorted(set(s['d_state'] for s in ks_mand))}"
 
         print("\n" + "=" * 70)
         print(f"COMBINED (both waves, all-conditionals-max, using the RECONCILED "
@@ -3817,6 +4379,56 @@ def main():
                   f"(subspace_rank={KEYANCHOR_DOSE_DIFFUSE_RANK}), K={KEYANCHOR_DOSE_K}, "
                   f"d_state={KEYANCHOR_DOSE_D_STATE}, doses={KEYANCHOR_DOSE_TARGETS}, 3 seeds each); "
                   f"bands_gate={bands_gate} budget={budget_report}", flush=True)
+    elif args.wave == "keyanchor-scaling":
+        # KEY_ANCHORING_SCALING_DRAFT.md sec 15 (attack-round-1 verdict
+        # RUN-AFTER-REASONING-LINK, wave PARKED sec 15.18) -- cliff-
+        # location scaling-law-across-d_state wave. REQUIRES
+        # --scaling-stage (sec 15.13's calibration-first discipline,
+        # mirroring keyanchor-dstate's own pattern but WITHOUT a
+        # K-grid-shrinking decision table -- sec 15.13's own trigger is a
+        # pass/fail-and-halt check against the already-mandatory 30-cell
+        # grid). The sec 15.2/15.18 kernel-safety gate is checked FIRST,
+        # unconditionally, by keyanchor_scaling_stage_gate itself (never
+        # bypassable by --accept-scaling-stage-override).
+        if args.scaling_stage is None:
+            print("ERROR: --wave keyanchor-scaling requires --scaling-stage calibration or "
+                  "--scaling-stage full (sec 15.13's calibration-first discipline -- BOTH d=80's "
+                  "K=43/seed=1030 and d=96's K=51/seed=1430 calibration cells must run and complete "
+                  "before 'full' can proceed).", file=sys.stderr)
+            sys.exit(1)
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        ref_out_dir = os.path.join(args.out_dir, "waveref")
+        bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
+        scaling_out_dir = os.path.join(args.out_dir, "wavekeyanchor-scaling")
+        stage_gate_report = keyanchor_scaling_stage_gate(scaling_out_dir, args.scaling_stage,
+                                                            args.accept_scaling_stage_override)
+        if args.scaling_stage == "calibration":
+            manifest = keyanchor_scaling_calibration_manifest()
+            print(f"wave keyanchor-scaling manifest: {len(manifest)} runs (sec 15.13 Stage 0's "
+                  f"TWO parallel calibration cells: d=80 K="
+                  f"{KEYANCHOR_SCALING_CALIBRATION_K_BY_D[80]} "
+                  f"seed={KEYANCHOR_SCALING_CALIBRATION_SEED_BY_D[80]}, d=96 K="
+                  f"{KEYANCHOR_SCALING_CALIBRATION_K_BY_D[96]} "
+                  f"seed={KEYANCHOR_SCALING_CALIBRATION_SEED_BY_D[96]}); bands_gate={bands_gate} "
+                  f"kernel_gate={stage_gate_report.get('kernel_gate')}", flush=True)
+        else:
+            manifest = keyanchor_scaling_full_manifest()
+            if args.include_scaling_gate1:
+                manifest = manifest + keyanchor_scaling_gate1_manifest(80) \
+                                     + keyanchor_scaling_gate1_manifest(96)
+            ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-scaling"
+            disk_report = keyanchor_scaling_disk_gate(ckpt_base_dir, manifest)
+            if not disk_report["ok"] and not args.accept_budget_override:
+                print(f"ERROR: DISK GATE (keyanchor-scaling) REFUSED -- "
+                      f"{disk_report['required_bytes'] / 1e6:.1f} MB required at "
+                      f"{disk_report['resolved_ckpt_dir']!r}, {disk_report['free_bytes'] / 1e9:.2f} GB "
+                      f"free. Free up space or pass --accept-budget-override.", file=sys.stderr)
+                sys.exit(1)
+            print(f"wave keyanchor-scaling manifest: {len(manifest)} runs (candidate (d), d_state in "
+                  f"{{80,96}}, K per d in {KEYANCHOR_SCALING_KS_BY_D}, 3 seeds each"
+                  f"{' + Gate-1 probes' if args.include_scaling_gate1 else ''}); "
+                  f"bands_gate={bands_gate} stage_gate={stage_gate_report}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,
                                    args.calib_summary, args.accept_unconverged_rho)
@@ -3843,7 +4455,7 @@ def main():
     if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1",
                       "keyanchor-mech", "keyanchor-k48-ref", "keyanchor-k48-gate1", "keyanchor-k48",
                       "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate",
-                      "keyanchor-dose") and not args.skip_smoke:
+                      "keyanchor-dose", "keyanchor-scaling") and not args.skip_smoke:
         rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
         if rc != 0:
             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -3852,7 +4464,7 @@ def main():
             sys.exit(1)
         if args.wave in ("keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1", "keyanchor-mech",
                           "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e", "keyanchor-cliff",
-                          "keyanchor-dstate", "keyanchor-dose"):
+                          "keyanchor-dstate", "keyanchor-dose", "keyanchor-scaling"):
             rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
             if rc != 0:
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -3925,6 +4537,19 @@ def main():
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                     f.write("smoke_keyanchor_dose.py FAILED (rc != 0); no training launched.\n")
                 print(f"ERROR: smoke_keyanchor_dose.py failed -- {args.wave} wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+        if args.wave == "keyanchor-scaling":
+            # KEY_ANCHORING_SCALING_DRAFT.md sec 15's own smoke suite
+            # (fla-free; manifest/seed shape at both new d's, GATE2_N_ITER
+            # namespacing, kernel-gate mechanical check incl. negative
+            # tests, calibration-first stage-gate mechanics, abort-check,
+            # threshold-pin byte-diff, zero-collision).
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_keyanchor_scaling.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("smoke_keyanchor_scaling.py FAILED (rc != 0); no training launched.\n")
+                print(f"ERROR: smoke_keyanchor_scaling.py failed -- {args.wave} wave aborted.",
                       file=sys.stderr)
                 sys.exit(1)
 
@@ -4023,6 +4648,23 @@ def main():
                         try:
                             keyanchor_dstate_check_abort(spec, wall_s, dstate_abort_bracket_upper_gpuh)
                         except KeyanchorDstateAbort as abort_exc:
+                            print(f"  {abort_exc}", flush=True)
+                            pending.clear()
+                            with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                                f.write(str(abort_exc) + "\n")
+                    # sec 15.14's mechanical, in-code abort rule -- keyanchor-
+                    # scaling ONLY. Two-tier bracket (main-grid vs anchor-K,
+                    # sec 15.14) resolved per-cell inside the check itself
+                    # (keyanchor_scaling_check_abort reads spec['K']/
+                    # spec['d_state'] directly), unlike keyanchor-dstate's
+                    # single scalar bracket -- no bracket_upper_gpuh argument
+                    # needed here. Same h4-blindness discipline as above
+                    # (read_wall_s_only, never the cell's own h4).
+                    if args.wave == "keyanchor-scaling":
+                        wall_s = read_wall_s_only(out_path(out_dir, spec))
+                        try:
+                            keyanchor_scaling_check_abort(spec, wall_s)
+                        except KeyanchorScalingAbort as abort_exc:
                             print(f"  {abort_exc}", flush=True)
                             pending.clear()
                             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:

@@ -1275,11 +1275,15 @@ def main():
     ap.add_argument("--K", type=int, default=32, help="bindings per sample (== pool draw size)")
     ap.add_argument("--conv-size", type=int, default=4)
     ap.add_argument("--d-model", type=int, default=256)
-    ap.add_argument("--d-state", type=int, default=64, choices=[64, 128],
+    ap.add_argument("--d-state", type=int, default=64, choices=[64, 80, 96, 128],
                      help="DeltaNet state dim (single head, C11). ONLY the measured-safe "
                           "head dims are accepted -- chunk_delta_rule's backward crashes at "
                           "d_state<64 on this box's build (model_rd._SAFE_D_STATE, F15-LM "
-                          "2026-07-02). 64 is the Wave-1 primary (section 4.1 continuity).")
+                          "2026-07-02). 64 is the Wave-1 primary (section 4.1 continuity). "
+                          "80/96 added per KEY_ANCHORING_SCALING_DRAFT.md sec 15.2 item 3, "
+                          "gated on that section's own kernel-safety measurement PASSING at "
+                          "both (results/smoke_dstate_kernel_result.json) -- never added "
+                          "speculatively ahead of the measurement.")
     ap.add_argument("--h-train", type=int, nargs="+", default=[1, 2, 3])
     ap.add_argument("--h-test", type=int, nargs="+", default=[4, 5, 6])
     ap.add_argument("--h-extra", type=int, nargs="+", default=[7, 21])

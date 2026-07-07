@@ -235,10 +235,22 @@ def smoke_6_zero_collision():
 def smoke_7_gate2_n_iter_by_k_extended():
     expected = {16: 12, 32: 20, 48: 20, 34: 20, 38: 20, 42: 20, 46: 20,
                 68: 20, 76: 20, 84: 20, 92: 20}
-    ok = ka.GATE2_N_ITER_BY_K == expected
-    print(f"    GATE2_N_ITER_BY_K={ka.GATE2_N_ITER_BY_K} (expect {expected})")
+    # SUBSET check (this wave's own registered keys are present with the
+    # correct values), NOT exact dict equality -- a later wave (sec 15,
+    # keyanchor-scaling) legitimately adds its OWN new K's (20/24/43/51/
+    # 53/57/58/63/69) to this SAME shared, wave-agnostic module dict
+    # (gate2_construction_check has no d_state parameter and has always
+    # read this flat dict directly, exactly how THIS wave's own 68-92 were
+    # added). An exact `==` here would spuriously regress every time any
+    # future wave extends the dict with its own genuinely-new K's -- this
+    # smoke's own job is "did sec 13.2's specific keys land correctly,"
+    # not "is the dict's total key set frozen forever" (found + fixed
+    # during the keyanchor-scaling build, 2026-07-07).
+    ok = all(ka.GATE2_N_ITER_BY_K.get(k) == v for k, v in expected.items())
+    print(f"    GATE2_N_ITER_BY_K={ka.GATE2_N_ITER_BY_K} (expect a superset of {expected})")
     _report("smoke 7: GATE2_N_ITER_BY_K extended with {68:20, 76:20, 84:20, 92:20} (sec 13.2 "
-            "item 3, confirmed sufficient by keyanchor_dstate_niter_check.py)", ok)
+            "item 3, confirmed sufficient by keyanchor_dstate_niter_check.py) -- checked as a "
+            "subset, since later waves may legitimately add further keys", ok)
 
 
 # ---------------------------------------------------------------------------
