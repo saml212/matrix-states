@@ -234,6 +234,11 @@ for arm in "${LEG_A_ARMS[@]}"; do
           fi
           out="results/reasoning_link/leg_a_${arm}_${corpus}_s${seed}_k${k}_${surgery}.json"
           log="logs/93_leg_a_${arm}_${corpus}_s${seed}_k${k}_${surgery}.log"
+          # LAUNCH FIX 6 resume-safety (house [LEARN]): skip completed cells.
+          if [ -s "$out" ] && $PY -c "import json,sys; d=json.load(open('$out')); sys.exit(0 if d.get('forward_counts') else 1)" 2>/dev/null; then
+            echo "SKIP (already complete): $out"
+            continue
+          fi
           CUDA_VISIBLE_DEVICES=$REASONING_LINK_GPU $PY reasoning_link_probe.py \
               --mode cell --family leg_a --arm "$arm" --corpus "$corpus" --ckpt-seed "$seed" \
               --ckpt-base-dir "$FROZEN_BIAS_CKPT_ROOT" --k "$k" --hops 1,2,3,4 \
@@ -252,9 +257,21 @@ done
 # ---------------------------------------------------------------------------
 LEG_B_CORPORA=(openr1-mix-ext wikitext-mix-ext)
 
+RUNG3_DEFERRED=0
 for rung in 0 1 2 3; do
   if [ "$rung" = "3" ] && [ "$RUNG3_HALTED" = "1" ]; then
     echo "Skipping rung 3 (Stage 0.5 HALT)."
+    continue
+  fi
+  # LAUNCH FIX 6: rung-3 cells evaluate the FINAL 1.31B checkpoint, which
+  # exists only after the trackc wave-3 training completes (ALL_DONE
+  # sentinel). Defer -- do NOT let the final-step glob grab a mid-training
+  # intermediate. Re-run this chain after ALL_DONE; resume-safety below
+  # skips every already-completed cell, so the re-run costs only the
+  # deferred rung-3 rows.
+  if [ "$rung" = "3" ] && [ ! -f results/lm_rd_trackc/wave3/ALL_DONE ]; then
+    echo "DEFERRED: rung 3 cells (trackc wave3 ALL_DONE not present -- final 1.31B ckpt pending)."
+    RUNG3_DEFERRED=1
     continue
   fi
   if [ "$rung" -lt 2 ]; then k=32; else k=64; fi
@@ -277,6 +294,12 @@ for rung in 0 1 2 3; do
     for seed in "${seeds[@]}"; do
       out="results/reasoning_link/leg_b_rung${rung}_${corpus}_s${seed}_k${k}.json"
       log="logs/94_leg_b_rung${rung}_${corpus}_s${seed}_k${k}.log"
+      # LAUNCH FIX 6 resume-safety (house [LEARN]: skip already-completed
+      # work by checking output validity, not just existence).
+      if [ -s "$out" ] && $PY -c "import json,sys; d=json.load(open('$out')); sys.exit(0 if d.get('forward_counts') else 1)" 2>/dev/null; then
+        echo "SKIP (already complete): $out"
+        continue
+      fi
       CUDA_VISIBLE_DEVICES=$REASONING_LINK_GPU $PY reasoning_link_probe.py \
           --mode cell --family leg_b --rung "$rung" --corpus "$corpus" --ckpt-seed "$seed" \
           --ckpt-base-dir "$TRACKC_CKPT_ROOT" --k "$k" --hops 1,2,3,4 \
@@ -286,5 +309,10 @@ for rung in 0 1 2 3; do
   done
 done
 
-touch results/reasoning_link/REASONING_LINK_PHASE1_DONE
-echo "REASONING-LINK Phase 1 committed grid complete."
+if [ "$RUNG3_DEFERRED" = "1" ]; then
+  touch results/reasoning_link/REASONING_LINK_PHASE1_PARTIAL
+  echo "REASONING-LINK Phase 1 grid complete EXCEPT deferred rung-3 (re-run after trackc ALL_DONE)."
+else
+  touch results/reasoning_link/REASONING_LINK_PHASE1_DONE
+  echo "REASONING-LINK Phase 1 committed grid complete."
+fi

@@ -999,6 +999,33 @@ def leg_b_ckpt_path_bestguess(ckpt_root: str, rung: int, corpus: str, seed: int,
     return flat if os.path.exists(flat) or not os.path.exists(nested) else nested
 
 
+def leg_b_ckpt_path_final(ckpt_root: str, rung: int, corpus: str, seed: int) -> str:
+    """LAUNCH FIX 6 (2026-07-07): resolve a Leg-B rung's FINAL checkpoint by
+    globbing the run's own saved steps and taking the max -- the trackc
+    ladder is TOKEN-matched, so every rung has a DIFFERENT final step count
+    (verified on box: mixcontrol (rung 0) s0 ends at step 6103; wave3
+    (rung 3) targets 183105 and is still training as of this fix). Raises a
+    loud, actionable error when NO file matches (e.g. rung 3 before its
+    training completes and if even intermediates were absent) -- callers
+    (the chain) gate rung-3 cells on the trackc ALL_DONE sentinel so this
+    resolver only ever sees finished rungs for final-checkpoint purposes."""
+    import glob as _glob
+    import re as _re
+    cfg = LEG_B_RUNG_CFG[rung]
+    run_name = f"lmC_{corpus}_dm{cfg['d_model']}_ds{cfg['d_state']}_L{cfg['n_layers']}_s{seed}"
+    pattern = os.path.join(ckpt_root, cfg["tag"], f"{run_name}_step*.pt")
+    matches = _glob.glob(pattern)
+    if not matches:
+        raise FileNotFoundError(
+            f"leg_b_ckpt_path_final: no checkpoint matches {pattern} -- either the rung's "
+            f"training has not produced files yet, or the layout/run-name convention drifted; "
+            f"pass --ckpt explicitly with the real path.")
+    def _step_of(p: str) -> int:
+        m = _re.search(r"_step(\d+)\.pt$", p)
+        return int(m.group(1)) if m else -1
+    return max(matches, key=_step_of)
+
+
 # ---------------------------------------------------------------------------
 # REASONING-LINK's own result-schema wrap. Sec 12.3.1's mech_schema.
 # wrap_exploratory() is a FROZEN_BIAS_LM_DESIGN.md-specific "mechanism-wave"
@@ -1513,7 +1540,12 @@ def main():
         ckpt_path = leg_a_ckpt_path(base, args.arm, lam, args.corpus, args.ckpt_seed)
     elif ckpt_path is None and args.family == "leg_b":
         base = args.ckpt_base_dir or TRACKC_CKPT_ROOT_DEFAULT
-        ckpt_path = leg_b_ckpt_path_bestguess(base, args.rung, args.corpus, args.ckpt_seed, step=20000)
+        # LAUNCH FIX 6 (2026-07-07): Leg B cells evaluate each rung's FINAL
+        # checkpoint, and the ladder is TOKEN-MATCHED -- each rung has its
+        # own final step (verified on box: mixcontrol s0 tops out at
+        # step 6103, not 20000). Resolve by globbing the run's own files and
+        # taking the max step, rather than assuming any fixed number.
+        ckpt_path = leg_b_ckpt_path_final(base, args.rung, args.corpus, args.ckpt_seed)
 
     if args.mode == "cell":
         assert ckpt_path is not None, "--mode cell requires --ckpt or --family(+args)"
