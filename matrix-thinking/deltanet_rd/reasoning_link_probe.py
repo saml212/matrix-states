@@ -708,9 +708,17 @@ def _random_derangement(B: int, K: int, gen: torch.Generator, device) -> torch.T
     Rejection-sampled per row (cheap: K<=96, derangement probability ~1/e
     per draw, expected <3 retries)."""
     result = torch.empty(B, K, dtype=torch.int64, device=device)
+    # LAUNCH FIX 2 (2026-07-07, first Stage-0 box run): torch.randperm with a
+    # generator requires the output device to MATCH the generator's device --
+    # on the box `gen` is a CUDA generator and the bare call raised "Expected
+    # a 'cpu' device type for generator but found 'cuda'". Pass gen.device
+    # explicitly (CPU locally, CUDA on box; same draws either way for a given
+    # seed on a given device -- the null is device-local, never compared
+    # across devices).
+    gen_device = gen.device if gen is not None else torch.device("cpu")
     for b in range(B):
         while True:
-            perm = torch.randperm(K, generator=gen).to(device)
+            perm = torch.randperm(K, generator=gen, device=gen_device).to(device)
             if bool((perm == torch.arange(K, device=device)).any().item()) is False:
                 result[b] = perm
                 break
@@ -744,7 +752,11 @@ def premise_action_rule(same_iii: torch.Tensor, null_iii: torch.Tensor,
 
 def bootstrap_ci_95(values: torch.Tensor, n_boot: int = 2000, seed: int = 0) -> tuple[float, float]:
     g = torch.Generator().manual_seed(seed)
-    values = values.float().flatten()
+    # LAUNCH FIX 2 companion: force CPU before indexing with the CPU-generator
+    # draws below -- callers pass CUDA tensors on the box, and CUDA-tensor[
+    # CPU-index-tensor] advanced indexing is version-fragile. Bootstrap is
+    # tiny; CPU is free.
+    values = values.detach().cpu().float().flatten()
     n = values.numel()
     assert n > 0
     idx = torch.randint(0, n, (n_boot, n), generator=g)
