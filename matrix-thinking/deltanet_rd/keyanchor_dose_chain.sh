@@ -120,18 +120,22 @@ touch results/deltanet_rd_exactness/KEYANCHOR_DOSE_STAGE1_DONE
 # CONFIRM or a clean EXONERATE at the top dose... stage 2 MAY be deferred
 # rather than mandatory").
 #
-# To launch Stage 2 after that decision is made, UNCOMMENT the block below
-# AND set KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 (or pass
-# --accept-dose-stage2-pi-signoff directly) -- this chain deliberately does
-# NOT set that variable itself, so a bare `bash keyanchor_dose_chain.sh`
-# run never launches Stage 2 by accident.
-#
-# KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 $PY run_deltanet_rd_exactness_sweep.py \
-#     --wave keyanchor-dose --dose-stage diffuse \
-#     --gpus "$KEYANCHOR_DOSE_GPUS" --gpu-offset "$KEYANCHOR_DOSE_GPU_OFFSET" --per-gpu 1 \
-#     --out-dir results/deltanet_rd_exactness \
-#     --ckpt-base-dir /data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-dose \
-#     2>&1 | tee logs/55_wave_keyanchor_dose_diffuse.log
-#
-# touch results/deltanet_rd_exactness/KEYANCHOR_DOSE_CHAIN_DONE
+# Stage 2 runs ONLY when KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 is set in the
+# environment (the PI-signoff record; a bare `bash keyanchor_dose_chain.sh`
+# run still never launches Stage 2 by accident). PI SIGNOFF RECORDED
+# 2026-07-07 ~02:15 UTC: user present at check-in, directed full GPU
+# capacity with the queued gauntleted work; launch authorized at 1x
+# (measured-rate) budget within the EXISTING 80 GPU-h ceiling -- the
+# in-code budget guard + per-cell abort enforce the ceiling mechanically;
+# no amendment made.
+if [ "${KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF:-0}" = "1" ]; then
+    KEYANCHOR_DOSE_STAGE2_PI_SIGNOFF=1 $PY run_deltanet_rd_exactness_sweep.py \
+        --wave keyanchor-dose --dose-stage diffuse \
+        --gpus "$KEYANCHOR_DOSE_GPUS" --gpu-offset "$KEYANCHOR_DOSE_GPU_OFFSET" --per-gpu 1 \
+        --out-dir results/deltanet_rd_exactness \
+        --ckpt-base-dir /data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-dose \
+        2>&1 | tee logs/55_wave_keyanchor_dose_diffuse.log
+
+    touch results/deltanet_rd_exactness/KEYANCHOR_DOSE_CHAIN_DONE
+fi
 # =============================================================================
