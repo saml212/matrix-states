@@ -391,46 +391,61 @@ def smoke_8_stage_gate_mechanics():
             refused_missing = (e.code == 1)
     print(f"    (b) stage='full' refuses when both calibration cells missing: {refused_missing}")
 
-    # (c) in-bracket calibration (both d's) -> sentinel written correctly.
-    with tempfile.TemporaryDirectory() as tmp:
-        _write_fake_result(tmp, calib80, trigger80 - 100.0)
-        _write_fake_result(tmp, calib96, trigger96 - 100.0)
-        report = rdx.keyanchor_scaling_stage_gate(tmp, "full", accept_override=False)
-        sentinel_path = os.path.join(tmp, rdx.KEYANCHOR_SCALING_STAGE_SENTINEL_NAME)
-        clean_ok = (report["sentinel_written"] is True and os.path.exists(sentinel_path)
-                    and report["gate_bypassed"] is False)
-        with open(sentinel_path) as f:
-            payload = json.loads(f.read().strip())
-        sentinel_content_ok = ("80" in str(payload["calibration_wall_s_by_d"])
-                                or 80 in payload["calibration_wall_s_by_d"]
-                                or "80" in {str(k) for k in payload["calibration_wall_s_by_d"]})
-    print(f"    (c) both in-bracket -> sentinel written+correct: {clean_ok and sentinel_content_ok}")
+    # (c)-(e) need KEYANCHOR_SCALING_PI_SIGNOFF=1 to get PAST keyanchor_scaling_stage_gate's own
+    # unconditional signoff check and reach the calibration-specific logic these three actually
+    # exercise -- MINOR-1 fix (build-audit, 2026-07-07): env-self-sufficient (save/set/restore),
+    # mirrors smoke_keyanchor_scaling_wide.py's own smoke_11_stage_gate_mechanics pattern (lines
+    # 488-527 there) so this smoke suite does not silently depend on an externally-exported
+    # signoff token (e.g. from keyanchor_scaling_chain.sh's own GATE 0) to run to completion.
+    saved_pi_signoff = os.environ.get("KEYANCHOR_SCALING_PI_SIGNOFF")
+    try:
+        os.environ["KEYANCHOR_SCALING_PI_SIGNOFF"] = "1"
 
-    # (d) one over-bracket calibration cell -> refuses, no sentinel.
-    with tempfile.TemporaryDirectory() as tmp:
-        _write_fake_result(tmp, calib80, trigger80 + 100.0)   # over trigger
-        _write_fake_result(tmp, calib96, trigger96 - 100.0)   # in bracket
-        refused_over = False
-        try:
-            rdx.keyanchor_scaling_stage_gate(tmp, "full", accept_override=False)
-        except SystemExit as e:
-            refused_over = (e.code == 1)
-        sentinel_path = os.path.join(tmp, rdx.KEYANCHOR_SCALING_STAGE_SENTINEL_NAME)
-        no_sentinel = not os.path.exists(sentinel_path)
-    print(f"    (d) d=80 over-bracket -> refuses, no sentinel: {refused_over and no_sentinel}")
+        # (c) in-bracket calibration (both d's) -> sentinel written correctly.
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_fake_result(tmp, calib80, trigger80 - 100.0)
+            _write_fake_result(tmp, calib96, trigger96 - 100.0)
+            report = rdx.keyanchor_scaling_stage_gate(tmp, "full", accept_override=False)
+            sentinel_path = os.path.join(tmp, rdx.KEYANCHOR_SCALING_STAGE_SENTINEL_NAME)
+            clean_ok = (report["sentinel_written"] is True and os.path.exists(sentinel_path)
+                        and report["gate_bypassed"] is False)
+            with open(sentinel_path) as f:
+                payload = json.loads(f.read().strip())
+            sentinel_content_ok = ("80" in str(payload["calibration_wall_s_by_d"])
+                                    or 80 in payload["calibration_wall_s_by_d"]
+                                    or "80" in {str(k) for k in payload["calibration_wall_s_by_d"]})
+        print(f"    (c) both in-bracket -> sentinel written+correct: {clean_ok and sentinel_content_ok}")
 
-    # (e) --accept-scaling-stage-override bypasses the calibration gate but
-    # NOT the kernel gate -- verified by construction (the kernel check
-    # runs unconditionally, before accept_override is even read, sec
-    # 15.13's own docstring claim) via the real (CLEARED) artifact.
-    with tempfile.TemporaryDirectory() as tmp:
-        report = rdx.keyanchor_scaling_stage_gate(tmp, "full", accept_override=True)
-        sentinel_path = os.path.join(tmp, rdx.KEYANCHOR_SCALING_STAGE_SENTINEL_NAME)
-        override_ok = (report["gate_bypassed"] is True and report["sentinel_written"] is False
-                        and not os.path.exists(sentinel_path)
-                        and report["kernel_gate"]["ok"] is True)
-    print(f"    (e) --accept-scaling-stage-override bypasses calibration gate, kernel_gate still "
-          f"evaluated+CLEARED, no sentinel: {override_ok}")
+        # (d) one over-bracket calibration cell -> refuses, no sentinel.
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_fake_result(tmp, calib80, trigger80 + 100.0)   # over trigger
+            _write_fake_result(tmp, calib96, trigger96 - 100.0)   # in bracket
+            refused_over = False
+            try:
+                rdx.keyanchor_scaling_stage_gate(tmp, "full", accept_override=False)
+            except SystemExit as e:
+                refused_over = (e.code == 1)
+            sentinel_path = os.path.join(tmp, rdx.KEYANCHOR_SCALING_STAGE_SENTINEL_NAME)
+            no_sentinel = not os.path.exists(sentinel_path)
+        print(f"    (d) d=80 over-bracket -> refuses, no sentinel: {refused_over and no_sentinel}")
+
+        # (e) --accept-scaling-stage-override bypasses the calibration gate but
+        # NOT the kernel gate -- verified by construction (the kernel check
+        # runs unconditionally, before accept_override is even read, sec
+        # 15.13's own docstring claim) via the real (CLEARED) artifact.
+        with tempfile.TemporaryDirectory() as tmp:
+            report = rdx.keyanchor_scaling_stage_gate(tmp, "full", accept_override=True)
+            sentinel_path = os.path.join(tmp, rdx.KEYANCHOR_SCALING_STAGE_SENTINEL_NAME)
+            override_ok = (report["gate_bypassed"] is True and report["sentinel_written"] is False
+                            and not os.path.exists(sentinel_path)
+                            and report["kernel_gate"]["ok"] is True)
+        print(f"    (e) --accept-scaling-stage-override bypasses calibration gate, kernel_gate still "
+              f"evaluated+CLEARED, no sentinel: {override_ok}")
+    finally:
+        if saved_pi_signoff is not None:
+            os.environ["KEYANCHOR_SCALING_PI_SIGNOFF"] = saved_pi_signoff
+        else:
+            os.environ.pop("KEYANCHOR_SCALING_PI_SIGNOFF", None)
 
     ok = (refused_calib_bad_kernel and refused_missing and clean_ok and sentinel_content_ok
           and refused_over and no_sentinel and override_ok)

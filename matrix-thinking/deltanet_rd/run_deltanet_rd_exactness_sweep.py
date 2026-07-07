@@ -3021,6 +3021,587 @@ def keyanchor_scaling_disk_gate(ckpt_base_dir: str, manifest: list) -> dict:
     return report
 
 
+# =============================================================================
+# KEY_ANCHORING_SCALING_DRAFT.md sec 15.20 Rev 1 (2026-07-07, post-attack-
+# round-1) -- d=96 wider-K cliff-hunting wave + d=80 seed escalation + the
+# fit_cliff_curve.py admissibility fix (--wave keyanchor-scaling-wide). BUILD
+# + CPU-VERIFY ONLY session -- nothing below has ever launched a GPU cell.
+# Per sec 15.20's own framing, this is MOSTLY CONFIG REUSE of the keyanchor_
+# scaling_* machinery directly above: same _spec() shape (_keyanchor_scaling_
+# spec called unmodified), same stage-gate/abort/disk-gate PATTERNS. Two
+# genuinely new mechanisms: the sha256 reused-JSON gate (sec 15.20.1 MAJOR-1)
+# and the supplementary long-T kernel gate (sec 15.20.1's own NEW finding).
+#
+# FOLLOW-UP FIX (build-audit MAJOR-1, 2026-07-07, same-day): the design doc's
+# own sec 15.20.6 gate table registered a THIRD new mechanism -- Gate (b),
+# the GATE2_N_ITER_BY_D_K[96] n_iter-sufficiency check at K in {72,78,84,90}
+# -- that this build session's own text above disclosed as a TODO but never
+# built or wired as an enforced gate. keyanchor_scaling_wide_niter_check.py
+# (a purpose-built driver, same treatment sim_cliff_power_wide_grid.py got
+# relative to sim_cliff_power.py) plus keyanchor_scaling_wide_niter_gate_check
+# below close that gap; keyanchor_scaling_wide_stage_gate now checks it
+# alongside the other four gates (see that function's own docstring).
+#
+# Build-time resolution of a real design-doc ambiguity, disclosed rather than
+# silently picked: sec 15.20.1's own "Build task" paragraph names the wrapper
+# "keyanchor_dstate_manifest(d_state=96, Ks=KEYANCHOR_SCALING_D96_WIDE_KS)" --
+# but that function (defined above, sec 13's own d=128 wave) indexes MODULE-
+# LEVEL seed dicts hardcoded to K in {68,76,84,92} (KEYANCHOR_DSTATE_SEEDS_BY_K
+# et al) -- calling it at K=72/78/84/90 would KeyError immediately, the EXACT
+# FATAL-1 collision class this file's own module-note above (search
+# "FATAL-1 fix") already found and fixed ONCE by building fresh, Ks-
+# parameterized keyanchor_scaling_* functions instead of reusing keyanchor_
+# dstate_manifest. Read as an inherited copy-paste of sec 15.15 item 2's own
+# wording (written for the keyanchor-dstate wave) into this new context
+# without updating the function name. This build uses the function that is
+# ACTUALLY already Ks-parameterized and collision-safe for this purpose --
+# keyanchor_scaling_manifest(d_state, Ks=...), defined above -- which is
+# functionally the SAME wrapper sec 15.20.1 describes (new K-tuple in, a
+# correctly-namespaced spec list out), just correctly named. No new manifest-
+# builder function was needed for the d=96 wide K's once the seed/n_iter
+# dicts below are extended (mirrors sec 15.20.1's own "mostly config reuse"
+# framing more literally than a from-scratch wrapper would).
+#
+# A second, undocumented gap this build found and resolved (sec 15.20.2's own
+# text never addresses it): fit_cliff_curve.py's load_k_mean_h4 takes exactly
+# ONE cell_dir -- the SAME single-directory limitation sec 15.20.1 discloses
+# for K=69 -- but it applies equally to the d=80 escalation's own re-fit (sec
+# 15.20.2: "re-run ... with n=5 seeds at K=48/53"), since the escalation's 4
+# new cells (seeds 1133/1134/1233/1234) would otherwise sit in a DIFFERENT
+# directory than the original 15-seed d=80 archive, unreadable by one --
+# cliff-out-dir invocation. Resolved the way sec 15.20.2's own re-fit
+# invocation implies (it re-cites the ORIGINAL --cliff-out-dir results/
+# deltanet_rd_exactness/wavekeyanchor-scaling, never a new "-wide" directory
+# for d=80): the d=80-escalation leg writes into the ORIGINAL wave's own
+# out_dir (wavekeyanchor-scaling/), continuing that wave's own archive in
+# place; only the d=96 WIDE K's (genuinely new, never launched under
+# 'keyanchor-scaling') get their own new wavekeyanchor-scaling-wide/
+# directory. See --scaling-wide-leg and its out_dir special-case in main().
+# =============================================================================
+
+KEYANCHOR_SCALING_D96_WIDE_KS = (72, 78, 84, 90)   # sec 15.20.1's build task -- the ORIGINAL
+                                                     # KEYANCHOR_SCALING_D96_KS=(24,51,57,63,69) is
+                                                     # left byte-untouched (sec 15.19's own harvest
+                                                     # stays reproducible from the existing calls).
+
+# Additive-only extensions to the module-level dicts above (sec 15.20.1's own
+# seed table + n_iter finding) -- every ORIGINAL key (24/51/57/63/69) is left
+# untouched, so keyanchor_scaling_manifest(96) (no Ks= override, i.e. the
+# ORIGINAL 5-K call) is byte-identical before and after this block runs (sec
+# 15.20.6 Stage -1 item 5's own manifest-regression requirement, verified by
+# smoke_keyanchor_scaling_wide.py).
+KEYANCHOR_SCALING_SEEDS_BY_D_K[96].update({
+    72: (1740, 1741, 1742), 78: (1840, 1841, 1842),
+    84: (1940, 1941, 1942), 90: (2040, 2041, 2042),
+})
+KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K[96].update({
+    72: (1743, 1744), 78: (1843, 1844), 84: (1943, 1944), 90: (2043, 2044),
+})
+KEYANCHOR_SCALING_GATE1_SEED_BY_D_K[96].update({72: 1745, 78: 1845, 84: 1945, 90: 2045})
+# sec 15.20.1's NEW finding: K=84/d=96 collides with the FLAT ka.GATE2_N_ITER_
+# BY_K[84] dict (a d=128-verified-only entry, sec 13.2/13.3) -- this wave's
+# own K=84/d=96 cells must read THIS namespaced dict instead, same as every
+# existing keyanchor-scaling K (sec 15.6's original precedent, generalized).
+# All 4 at n_iter=20 "by analogy only" pending the Wave -1 n_iter-sufficiency
+# check (sec 15.20.1, registered, NOT yet run this session -- box-only).
+KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[96].update({72: 20, 78: 20, 84: 20, 90: 20})
+
+
+def keyanchor_scaling_wide_d96_manifest() -> list:
+    """sec 15.20.1's 12-cell d=96 wide grid: K in {72,78,84,90} x 3 seeds,
+    reusing keyanchor_scaling_manifest's own Ks= parameter directly (see
+    this section's own module note on why this is the correctly-named
+    reuse of sec 15.20.1's described wrapper). The ORIGINAL K=69 cells
+    (already harvested, sec 15.19) are NOT re-launched here -- reused via
+    the copy+sha256-gate mechanism below instead (zero new GPU-h, sec
+    15.20.1's own framing)."""
+    runs = keyanchor_scaling_manifest(96, Ks=KEYANCHOR_SCALING_D96_WIDE_KS)
+    assert len(runs) == 12, f"d=96 wide-grid manifest drifted from its registered 12 cells: {len(runs)}"
+    return runs
+
+
+def keyanchor_scaling_d80_escalation_manifest() -> list:
+    """sec 15.20.2: fires the already-registered sec 15.14 seed-contingency
+    trigger at d=80's K=48 (3-seed h4 range 0.2183) and K=53 (range
+    0.1779), both already exceeding sec 15.14's own 0.15 threshold (sec
+    15.19's own trigger table). Both are ALREADY-VERIFIED K's at d=80 (no
+    new kernel/Gate-2/H_extra risk, sec 15.20.2's own disclosure) -- reuses
+    _keyanchor_scaling_spec DIRECTLY (never a hand-copied twin) and the
+    ALREADY-RESERVED contingency seeds from KEYANCHOR_SCALING_
+    CONTINGENCY_SEEDS_BY_D_K -- no new seed allocation, no new n_iter/
+    H_extra entry needed."""
+    runs = []
+    for K in (48, 53):
+        for seed in KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K[80][K]:
+            runs.append(_keyanchor_scaling_spec(K, seed, 80))
+    assert len(runs) == 4, \
+        f"d=80 seed-escalation manifest drifted from its registered 4 cells (sec 15.20.2): {len(runs)}"
+    return runs
+
+
+def keyanchor_scaling_wide_full_manifest() -> list:
+    """sec 15.20/15.12's full mandatory 16-cell grid: 12 d=96-wide + 4 d=80
+    escalation (sec 15.20.5's own 16-cell cost table). A pure aggregation
+    for manifest-enumeration/smoke purposes -- the two legs launch via
+    SEPARATE --scaling-wide-leg invocations in practice (different out_dirs,
+    see the module note above), never combined into one manifest at
+    launch time."""
+    runs = keyanchor_scaling_wide_d96_manifest() + keyanchor_scaling_d80_escalation_manifest()
+    assert len(runs) == 16, \
+        f"keyanchor-scaling-wide full manifest drifted from its registered 16 mandatory cells: {len(runs)}"
+    return runs
+
+
+def keyanchor_scaling_wide_gate1_manifest() -> list:
+    """sec 15.20.5's OPTIONAL, lowest-cut-priority Gate-1 probes -- one per
+    NEW d=96 K (4 total, seeds 1745/1845/1945/2045); explicitly NOT
+    requested/funded by sec 15.20.5's own cost table (cut-eligible)."""
+    runs = keyanchor_scaling_gate1_manifest(96, Ks=KEYANCHOR_SCALING_D96_WIDE_KS)
+    assert len(runs) == 4, f"keyanchor-scaling-wide Gate-1 manifest drifted from its registered 4 cells: {len(runs)}"
+    return runs
+
+
+def keyanchor_scaling_wide_calibration_manifest() -> list:
+    """sec 15.20.6 Stage 0: ONE cell, the cheapest new K in the d=96 wide
+    grid -- K=72, seed=1740 (d=80's escalation cells need NO separate
+    calibration cell, sec 15.20.6's own disclosure: already-proven K's).
+    Filtered from (never hand-duplicated against) the d=96 wide manifest."""
+    runs = [s for s in keyanchor_scaling_wide_d96_manifest() if s["K"] == 72 and s["seed"] == 1740]
+    assert len(runs) == 1, \
+        f"keyanchor-scaling-wide calibration manifest drifted -- expected exactly 1 cell " \
+        f"(K=72/seed=1740), got {len(runs)}"
+    return runs
+
+
+# ---------------------------------------------------------------------------
+# sec 15.20.1's NEW supplementary kernel-safety gate: T in {504,546,588,630}
+# at d_state=96 (K=72..90's own T_bind values, up to 41% beyond the ORIGINAL
+# 448 ceiling). d=80's escalation cells reuse already-tested T_bind values
+# (336/371, sec 15.20.2) -- this gate is d=96-only by design.
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_SCALING_WIDE_KERNEL_GATE_RESULT_PATH = os.path.join(HERE, "results", "smoke_dstate_kernel_wide_result.json")
+KEYANCHOR_SCALING_WIDE_KERNEL_GATE_T_SWEEP = (504, 546, 588, 630)   # sec 15.20.1's new T_bind values
+KEYANCHOR_SCALING_WIDE_KERNEL_GATE_D = 96   # sec 15.20.1: only d=96 needs new T's -- see module note
+
+
+def keyanchor_scaling_wide_kernel_gate_check(path: str | None = None) -> dict:
+    """sec 15.20.1's NEW long-T supplementary kernel-safety gate -- K=90's
+    own T_bind=630 (41% beyond the ORIGINAL 448 ceiling) is untested by the
+    sec 15.2 protocol; this is the SEPARATE, mechanically-enforced check
+    for it. Same shape/checks as keyanchor_scaling_kernel_gate_check
+    (superset t_sweep check -- never a naive subset check, sec 15.2/15.18's
+    own FATAL-2 lesson applied here too -- exit_code==0, verdict contains
+    'CLEARED', every grid_pass['96'][T] is True for T in
+    {504,546,588,630}) -- single-d (96 only), since d=80's escalation needs
+    no new T check (sec 15.20.2)."""
+    p = path or KEYANCHOR_SCALING_WIDE_KERNEL_GATE_RESULT_PATH
+    if not os.path.exists(p):
+        return {"ok": False, "path": p, "reason": f"wide kernel-safety artifact not found at {p!r}"}
+    try:
+        with open(p) as f:
+            doc = json.load(f)
+    except Exception as e:
+        return {"ok": False, "path": p, "reason": f"artifact did not parse as JSON: {e!r}"}
+    if doc.get("exit_code") != 0:
+        return {"ok": False, "path": p, "reason": f"artifact exit_code={doc.get('exit_code')!r} != 0"}
+    verdict = doc.get("verdict", "")
+    if "CLEARED" not in verdict:
+        return {"ok": False, "path": p,
+                "reason": f"artifact verdict does not contain 'CLEARED': {verdict!r}"}
+    t_sweep = doc.get("t_sweep")
+    if not set(KEYANCHOR_SCALING_WIDE_KERNEL_GATE_T_SWEEP) <= set(t_sweep or []):
+        return {"ok": False, "path": p,
+                "reason": f"artifact t_sweep={t_sweep!r} does not cover the full registered wide "
+                          f"protocol {KEYANCHOR_SCALING_WIDE_KERNEL_GATE_T_SWEEP} (sec 15.20.1 -- a "
+                          f"partial or disjoint sweep must not pass, mirrors the ORIGINAL gate's own "
+                          f"FATAL-2 fix)"}
+    grid = doc.get("grid_pass") or {}
+    row = grid.get(str(KEYANCHOR_SCALING_WIDE_KERNEL_GATE_D), {})
+    for T in KEYANCHOR_SCALING_WIDE_KERNEL_GATE_T_SWEEP:
+        if row.get(str(T)) is not True:
+            return {"ok": False, "path": p,
+                     "reason": f"grid_pass[{KEYANCHOR_SCALING_WIDE_KERNEL_GATE_D!r}][{T!r}] is not "
+                               f"True (got {row.get(str(T))!r}) -- d_state=96 is NOT kernel-safe at "
+                               f"the wide grid's own T={T}"}
+    return {"ok": True, "path": p,
+            "reason": f"d_state=96 PASSES forward+backward, finite grads+outputs, at all wide-grid "
+                      f"T in {KEYANCHOR_SCALING_WIDE_KERNEL_GATE_T_SWEEP}"}
+
+
+# ---------------------------------------------------------------------------
+# sec 15.20.6's Gate (b) -- GATE2_N_ITER_BY_D_K[96] sufficiency, K in
+# {72,78,84,90} (build-audit MAJOR-1 fix, 2026-07-07). Previously registered
+# in the design doc's own gate table but never built: the module-level
+# KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[96].update(...) above sets n_iter=20
+# for all four K's "by analogy only" (sec 15.20.1), and nothing mechanically
+# confirmed Newton-Schulz convergence at d_state=96 for any of them before
+# this fix. keyanchor_scaling_wide_niter_check.py (purpose-built driver,
+# mirrors sim_cliff_power_wide_grid.py's own treatment of sim_cliff_power.py)
+# is that measurement; this function is its belt+suspenders gate-check,
+# same shape as keyanchor_scaling_wide_kernel_gate_check above (superset
+# candidate_ks check -- never a naive subset check, sec 15.2/15.18's own
+# FATAL-2 lesson applied here too).
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_SCALING_WIDE_NITER_GATE_RESULT_PATH = os.path.join(HERE, "results",
+                                                                "keyanchor_scaling_wide_niter_result.json")
+KEYANCHOR_SCALING_WIDE_NITER_GATE_KS = (72, 78, 84, 90)   # sec 15.20.1's build task grid -- K=69
+                                                            # excluded, already verified clean.
+
+
+def keyanchor_scaling_wide_niter_gate_check(path: str | None = None) -> dict:
+    """sec 15.20.6 Gate (b): GATE2_N_ITER_BY_D_K[96] sufficiency at K in
+    {72,78,84,90} -- build-audit MAJOR-1 fix. Checks the artifact written by
+    keyanchor_scaling_wide_niter_check.py: exit-equivalent `all_ks_converged
+    is True`, `d_state == 96`, and `candidate_ks` is a SUPERSET of the
+    registered grid (never a naive subset check -- a partial or disjoint
+    sweep must not pass, same discipline as the kernel gates above)."""
+    p = path or KEYANCHOR_SCALING_WIDE_NITER_GATE_RESULT_PATH
+    if not os.path.exists(p):
+        return {"ok": False, "path": p, "reason": f"n_iter-sufficiency artifact not found at {p!r}"}
+    try:
+        with open(p) as f:
+            doc = json.load(f)
+    except Exception as e:
+        return {"ok": False, "path": p, "reason": f"artifact did not parse as JSON: {e!r}"}
+    if doc.get("d_state") != 96:
+        return {"ok": False, "path": p, "reason": f"artifact d_state={doc.get('d_state')!r} != 96"}
+    candidate_ks = set(doc.get("candidate_ks") or [])
+    if not set(KEYANCHOR_SCALING_WIDE_NITER_GATE_KS) <= candidate_ks:
+        return {"ok": False, "path": p,
+                 "reason": f"artifact candidate_ks={sorted(candidate_ks)} does not cover the full "
+                           f"registered grid {KEYANCHOR_SCALING_WIDE_NITER_GATE_KS} (sec 15.20.1 -- "
+                           f"a partial or disjoint K sweep must not pass)"}
+    if doc.get("all_ks_converged") is not True:
+        per_k = doc.get("per_k") or {}
+        not_converged = [K for K in KEYANCHOR_SCALING_WIDE_NITER_GATE_KS
+                          if per_k.get(str(K), {}).get("convergence_20_to_24", {}).get("converged") is not True]
+        return {"ok": False, "path": p,
+                 "reason": f"artifact all_ks_converged is not True -- K's failing convergence: "
+                           f"{not_converged or 'unknown (all_ks_converged missing/false)'}"}
+    return {"ok": True, "path": p,
+            "reason": f"n_iter=20 CONVERGES (<0.5% rel change, 20->24) at d_state=96 for every K in "
+                      f"{KEYANCHOR_SCALING_WIDE_NITER_GATE_KS}"}
+
+
+# ---------------------------------------------------------------------------
+# sec 15.20.1's ENFORCED sha256 gate (Rev 1 attack-round-1 MAJOR-1 fix),
+# Gate (c) -- the reused K=69/d=96 JSON copy's own integrity check.
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_SCALING_WIDE_K69_ORIGINAL_DIR = os.path.join(HERE, "results", "deltanet_rd_exactness",
+                                                         "wavekeyanchor-scaling")
+KEYANCHOR_SCALING_WIDE_K69_SEEDS = (1730, 1731, 1732)
+KEYANCHOR_SCALING_WIDE_K69_FILENAME_TEMPLATE = \
+    "wkeyanchor-scaling_rdx_K69_armd_s{seed}_geo3n20_anchor_learned_dprobe_rev7_d96.json"
+KEYANCHOR_SCALING_WIDE_K69_PINNED_SHA256_PATH = os.path.join(
+    HERE, "results", "keyanchor_scaling_wide_k69_copy_manifest.sha256")
+
+
+def keyanchor_scaling_wide_k69_filenames() -> list:
+    return [KEYANCHOR_SCALING_WIDE_K69_FILENAME_TEMPLATE.format(seed=s)
+            for s in KEYANCHOR_SCALING_WIDE_K69_SEEDS]
+
+
+def _sha256_file(path: str) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def keyanchor_scaling_wide_copy_k69(dest_dir: str, src_dir: str | None = None) -> dict:
+    """sec 15.20.1's mechanical copy step (Stage -1 item 4) -- NOT a
+    fit_cliff_curve.py code change (that script still takes exactly ONE
+    cell_dir, sec 15.20.1's own disclosure): copies the 3 already-
+    harvested K=69/d=96 result JSONs (seeds 1730/1731/1732, sec 15.19)
+    from the ORIGINAL wave's own out_dir into THIS wave's own
+    wavekeyanchor-scaling-wide/ directory, byte-for-byte (shutil.copy2),
+    so a single fit_cliff_curve.py --cliff-out-dir invocation can read
+    K=69 alongside K=72-90 (sec 15.20.1's 'Reusing K=69 in the fit input'
+    paragraph). Idempotent -- safe to call more than once (once from the
+    bash chain's own belt check, once from this module's own suspenders
+    check inside keyanchor_scaling_wide_stage_gate)."""
+    import shutil
+    src_dir = src_dir or KEYANCHOR_SCALING_WIDE_K69_ORIGINAL_DIR
+    os.makedirs(dest_dir, exist_ok=True)
+    copied = []
+    for name in keyanchor_scaling_wide_k69_filenames():
+        src = os.path.join(src_dir, name)
+        dst = os.path.join(dest_dir, name)
+        if not os.path.exists(src):
+            return {"ok": False, "reason": f"source K=69 file missing: {src!r}", "copied": copied}
+        shutil.copy2(src, dst)
+        copied.append(dst)
+    return {"ok": True, "copied": copied}
+
+
+def keyanchor_scaling_wide_k69_sha256_gate(copy_dir: str, pinned_path: str | None = None) -> dict:
+    """sec 15.20.1's ENFORCED sha256 gate (Rev 1 attack-round-1 MAJOR-1
+    fix), Gate (c). Independently RECOMPUTES sha256 of the 3 copied K=69
+    files in copy_dir and diffs against the PINNED manifest (generated
+    ONCE against the ORIGINAL sec 15.19 archive at build time --
+    results/keyanchor_scaling_wide_k69_copy_manifest.sha256 -- never
+    regenerated from the copy itself, which would make the check
+    tautological). Does its own independent hash computation rather than
+    only trusting a sentinel file a bash step wrote (STRONGER than the
+    sentinel-trust shape sec 15.20.1's own prose describes -- avoids a
+    TOCTOU-style gap where a stale sentinel survives a post-copy file
+    edit) -- same never-trust-the-artifact-alone discipline as
+    keyanchor_scaling_kernel_gate_check's own re-parse. Fails closed on
+    ANY mismatch or missing file."""
+    p = pinned_path or KEYANCHOR_SCALING_WIDE_K69_PINNED_SHA256_PATH
+    if not os.path.exists(p):
+        return {"ok": False, "reason": f"pinned sha256 manifest not found at {p!r}"}
+    pinned = {}
+    with open(p) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            digest, name = line.split(None, 1)
+            pinned[name.strip()] = digest.strip()
+    expected_names = set(keyanchor_scaling_wide_k69_filenames())
+    if set(pinned.keys()) != expected_names:
+        return {"ok": False,
+                "reason": f"pinned manifest names {sorted(pinned)} != expected {sorted(expected_names)}"}
+    for name, expected_digest in pinned.items():
+        fp = os.path.join(copy_dir, name)
+        if not os.path.exists(fp):
+            return {"ok": False, "reason": f"expected copied K=69 file missing: {fp!r}"}
+        actual = _sha256_file(fp)
+        if actual != expected_digest:
+            return {"ok": False,
+                     "reason": f"sha256 MISMATCH for {name!r}: expected {expected_digest} got "
+                               f"{actual} -- the copy diverged from the original sec 15.19 archive"}
+    return {"ok": True,
+            "reason": f"all {len(pinned)} copied K=69 files match the pinned sec 15.19 sha256 manifest"}
+
+
+# ---------------------------------------------------------------------------
+# sec 15.20.4's pre-registered discrimination decision rule, as a pure
+# function -- consumes an ALREADY-COMPUTED fit's own outputs, never runs a
+# fit itself. Both rival CI bands re-derived by attack-round-1, confirmed
+# disjoint (sec 15.20.4/15.21).
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_SCALING_WIDE_BAND_ABS_SLACK = (0.718, 0.739)      # sec 15.20.4, d=80-recalibrated
+KEYANCHOR_SCALING_WIDE_BAND_POWER_LAW = (0.768, 0.837)      # sec 15.20.4, 2-point alpha=0.9586 fit
+KEYANCHOR_SCALING_WIDE_CEILING_FLATNESS_H4 = 0.98            # sec 15.20.4 step 1a's own threshold
+KEYANCHOR_SCALING_WIDE_DEGENERATE_FRAC_GATE = 0.10            # sec 15.20.4 step 0/1's own 10% bar
+
+
+def keyanchor_scaling_wide_decision_rule(degenerate_frac: float, per_k_h4_means: dict,
+                                          ci_x0_lo: float | None, ci_x0_hi: float | None) -> dict:
+    """sec 15.20.4's pre-registered decision-rule table (Rev 1, attack-round-
+    1 MAJOR-3), as a pure function -- no I/O, no fit-running. per_k_h4_means:
+    {K: mean_h4} for every K actually sampled in the wide grid's own fit
+    input (K=69 included). ci_x0_lo/ci_x0_hi: the fit's own 95% bootstrap CI
+    on x0 (required whenever degenerate_frac <= 10%; irrelevant to steps
+    1a/1b, which never need a CI at all).
+
+    Step order (sec 15.20.4's own table, evaluated top to bottom, first
+    match wins):
+      1a: degenerate_frac > 10% AND every sampled K's raw h4 mean >= 0.98
+          -> CLIFF-BEYOND-WINDOW (a FLATNESS signature -- the curve never
+          left ceiling anywhere in the window -- distinct from scatter).
+      1b: degenerate_frac > 10% AND >=1 sampled K's raw h4 mean < 0.98
+          -> AMBIGUOUS (a scatter signature, seed-escalation eligible).
+      2: CI overlaps the abs-slack band AND excludes the power-law band ->
+         ABSOLUTE-SLACK-FAVORED.
+      3: CI overlaps the power-law band AND excludes the abs-slack band ->
+         POWER-LAW-FAVORED.
+      4: CI spans/touches both bands -> BOTH-CONSISTENT (genuinely
+         uninformative -- the EXPECTED outcome at this wave's own measured
+         cliff width per sec 15.20.4's own MAJOR-2 power check).
+      5: CI excludes both bands, fit non-degenerate, not every K is at
+         ceiling -> NEITHER-SURVIVES (a genuinely new negative result)."""
+    assert per_k_h4_means, "per_k_h4_means must not be empty -- the decision rule needs >=1 sampled K"
+    all_ceiling = all(m >= KEYANCHOR_SCALING_WIDE_CEILING_FLATNESS_H4 for m in per_k_h4_means.values())
+    if degenerate_frac > KEYANCHOR_SCALING_WIDE_DEGENERATE_FRAC_GATE:
+        if all_ceiling:
+            return {"verdict": "CLIFF-BEYOND-WINDOW", "step": "1a",
+                    "reason": f"degenerate_frac={degenerate_frac:.4f} > 0.10 AND every sampled K's "
+                              f"raw h4 mean >= {KEYANCHOR_SCALING_WIDE_CEILING_FLATNESS_H4} -- a "
+                              f"flatness signature, not scatter (sec 15.20.4 step 1a)."}
+        return {"verdict": "AMBIGUOUS", "step": "1b",
+                "reason": f"degenerate_frac={degenerate_frac:.4f} > 0.10 AND >=1 sampled K's raw h4 "
+                          f"mean < {KEYANCHOR_SCALING_WIDE_CEILING_FLATNESS_H4} -- a scatter "
+                          f"signature (sec 15.20.4 step 1b)."}
+    assert ci_x0_lo is not None and ci_x0_hi is not None, (
+        "a non-degenerate fit (degenerate_frac <= 10%) must report a real bootstrap CI -- steps "
+        "2-5 cannot be evaluated without one (sec 15.20.4)")
+    assert ci_x0_lo <= ci_x0_hi, f"malformed CI: lo={ci_x0_lo} > hi={ci_x0_hi}"
+    abs_lo, abs_hi = KEYANCHOR_SCALING_WIDE_BAND_ABS_SLACK
+    pow_lo, pow_hi = KEYANCHOR_SCALING_WIDE_BAND_POWER_LAW
+    overlaps_abs = ci_x0_lo <= abs_hi and ci_x0_hi >= abs_lo
+    overlaps_pow = ci_x0_lo <= pow_hi and ci_x0_hi >= pow_lo
+    if overlaps_abs and not overlaps_pow:
+        return {"verdict": "ABSOLUTE-SLACK-FAVORED", "step": "2",
+                "reason": f"CI [{ci_x0_lo:.4f},{ci_x0_hi:.4f}] overlaps abs-slack band "
+                          f"{KEYANCHOR_SCALING_WIDE_BAND_ABS_SLACK} and excludes power-law band "
+                          f"{KEYANCHOR_SCALING_WIDE_BAND_POWER_LAW} (sec 15.20.4 step 2)."}
+    if overlaps_pow and not overlaps_abs:
+        return {"verdict": "POWER-LAW-FAVORED", "step": "3",
+                "reason": f"CI [{ci_x0_lo:.4f},{ci_x0_hi:.4f}] overlaps power-law band "
+                          f"{KEYANCHOR_SCALING_WIDE_BAND_POWER_LAW} and excludes abs-slack band "
+                          f"{KEYANCHOR_SCALING_WIDE_BAND_ABS_SLACK} (sec 15.20.4 step 3)."}
+    if overlaps_abs and overlaps_pow:
+        return {"verdict": "BOTH-CONSISTENT", "step": "4",
+                "reason": f"CI [{ci_x0_lo:.4f},{ci_x0_hi:.4f}] spans/touches both bands -- "
+                          f"genuinely uninformative at this seed budget (sec 15.20.4 step 4, the "
+                          f"EXPECTED outcome per this session's own MAJOR-2 power check)."}
+    return {"verdict": "NEITHER-SURVIVES", "step": "5",
+            "reason": f"CI [{ci_x0_lo:.4f},{ci_x0_hi:.4f}] excludes BOTH bands, fit non-degenerate, "
+                      f"not every sampled K is at ceiling -- a genuinely new, informative negative "
+                      f"result (sec 15.20.4 step 5)."}
+
+
+# ---------------------------------------------------------------------------
+# sec 15.20.6's staging/gate discipline for --wave keyanchor-scaling-wide.
+# ---------------------------------------------------------------------------
+
+KEYANCHOR_SCALING_WIDE_STAGE_SENTINEL_NAME = "CALIBRATION_DONE"   # same name/semantics as the
+                                                                    # original wave's own sentinel,
+                                                                    # scoped by directory only.
+
+
+def keyanchor_scaling_wide_stage_gate(out_dir: str, leg: str, stage: str | None,
+                                       accept_override: bool, k69_copy_dir: str) -> dict:
+    """sec 15.20.6's staging/gate discipline for --wave keyanchor-scaling-
+    wide, mirrors keyanchor_scaling_stage_gate's own shape closely (sec
+    15.20's own 'mostly config reuse' framing). leg in {'d96-wide',
+    'd80-escalation'} (see --scaling-wide-leg). ALL FIVE sec 15.20.6
+    enforced gates are checked here, in order, for EITHER leg (sec 15.20.6:
+    'all 7 Stage -1 items are equally BLOCKING' -- conservatively applied
+    to both legs rather than risk under-gating one):
+      (a1) KEYANCHOR_SCALING_PI_SIGNOFF=1 (the ORIGINAL sec 15 reopening
+           decision, still required).
+      (a2) KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1 -- a DISTINCT env var, never
+           OR'd with (a1) (sec 15.20.5 MAJOR-4).
+      (b) the ORIGINAL kernel-safety gate (T in {128,224,448}).
+      (c) the NEW wide kernel-safety gate (T in {504,546,588,630} @ d=96).
+      (niter) sec 15.20.6's own design-doc Gate (b): GATE2_N_ITER_BY_D_K[96]
+          sufficiency at K in {72,78,84,90} (build-audit MAJOR-1 fix,
+          2026-07-07 -- registered in the design doc's gate table but never
+          built until now; labeled '(niter)' here, not '(b)', to avoid
+          colliding with this function's own pre-existing '(b)' label above
+          for the ORIGINAL kernel gate).
+      (d) the K=69 reused-JSON sha256 gate (copies + independently
+          re-verifies, sec 15.20.1 MAJOR-1).
+    accept_override bypasses ONLY the calibration-completeness/abort-
+    trigger check below (leg=='d96-wide', stage=='full') -- never gates
+    (a1)/(a2)/(b)/(c)/(niter)/(d), same discipline as the original wave's
+    own accept_override."""
+    if os.environ.get("KEYANCHOR_SCALING_PI_SIGNOFF", "0") != "1":
+        print("REFUSED: --wave keyanchor-scaling-wide requires KEYANCHOR_SCALING_PI_SIGNOFF=1 "
+              "in the environment (the ORIGINAL sec 15 ledger-reopening decision, still on "
+              "record -- gate (a1) of 2).")
+        sys.exit(1)
+    if os.environ.get("KEYANCHOR_SCALING_EXT_PI_SIGNOFF", "0") != "1":
+        print("REFUSED: --wave keyanchor-scaling-wide requires KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1 "
+              "in the environment (sec 15.20.5's own SECOND, DISTINCT +5.0 GPU-h sub-ledger "
+              "extension decision -- Rev 1 attack-round-1 MAJOR-4 fix; a stale "
+              "KEYANCHOR_SCALING_PI_SIGNOFF=1 left over from the original wave does NOT satisfy "
+              "this gate -- gate (a2) of 2).")
+        sys.exit(1)
+    kernel_gate = keyanchor_scaling_kernel_gate_check()
+    if not kernel_gate["ok"]:
+        print(f"ERROR: sec 15.2/15.18 ORIGINAL KERNEL-SAFETY GATE REFUSED -- {kernel_gate['reason']} "
+              f"(checked {kernel_gate['path']!r}). Gate (b) of sec 15.20.6's table -- never "
+              f"bypassable.", file=sys.stderr)
+        sys.exit(1)
+    wide_kernel_gate = keyanchor_scaling_wide_kernel_gate_check()
+    if not wide_kernel_gate["ok"]:
+        print(f"ERROR: sec 15.20.1 WIDE KERNEL-SAFETY GATE REFUSED -- {wide_kernel_gate['reason']} "
+              f"(checked {wide_kernel_gate['path']!r}). Gate (c) of sec 15.20.6's table -- never "
+              f"bypassable. Re-run smoke_dstate_kernel_wide.py and commit a PASSING artifact "
+              f"before retrying.", file=sys.stderr)
+        sys.exit(1)
+    print(f"sec 15.2/15.18 + sec 15.20.1 KERNEL-SAFETY GATES CLEARED: {kernel_gate['reason']} / "
+          f"{wide_kernel_gate['reason']}", flush=True)
+    niter_gate = keyanchor_scaling_wide_niter_gate_check()
+    if not niter_gate["ok"]:
+        print(f"ERROR: sec 15.20.6 GATE (b) REFUSED -- GATE2_N_ITER_BY_D_K[96] n_iter-sufficiency "
+              f"check -- {niter_gate['reason']} (checked {niter_gate['path']!r}). Never bypassable. "
+              f"Run 'keyanchor_scaling_wide_niter_check.py' and commit a PASSING artifact before "
+              f"retrying (build-audit MAJOR-1 fix).", file=sys.stderr)
+        sys.exit(1)
+    print(f"sec 15.20.6 GATE (b) CLEARED: {niter_gate['reason']}", flush=True)
+    copy_report = keyanchor_scaling_wide_copy_k69(k69_copy_dir)
+    if not copy_report["ok"]:
+        print(f"ERROR: sec 15.20.1 K=69 REUSE COPY step FAILED -- {copy_report['reason']}. Gate "
+              f"(d) cannot even be checked without a completed copy.", file=sys.stderr)
+        sys.exit(1)
+    sha_gate = keyanchor_scaling_wide_k69_sha256_gate(k69_copy_dir)
+    if not sha_gate["ok"]:
+        print(f"ERROR: sec 15.20.1 K=69 REUSED-JSON SHA256 GATE REFUSED (Gate (d), Rev 1 MAJOR-1) "
+              f"-- {sha_gate['reason']}. The copy must byte-match the pinned sec 15.19 archive "
+              f"before the fit (or any cell) proceeds.", file=sys.stderr)
+        sys.exit(1)
+    print(f"sec 15.20.1 K=69 REUSE SHA256 GATE CLEARED: {sha_gate['reason']}", flush=True)
+    if accept_override:
+        print("=" * 70 + "\nWARNING: --accept-scaling-wide-stage-override -- sec 15.20.6's "
+              "calibration-first/abort-trigger mechanical gate is being BYPASSED by an explicit "
+              "human decision (gates (a1)/(a2)/(b)/(c)/(niter)/(d) above are NOT part of this "
+              "bypass). No CALIBRATION_DONE sentinel is written on this path.\n" + "=" * 70, flush=True)
+        return {"gate_bypassed": True, "leg": leg, "stage": stage, "sentinel_written": False,
+                "kernel_gate": kernel_gate, "wide_kernel_gate": wide_kernel_gate,
+                "niter_gate": niter_gate, "sha_gate": sha_gate}
+    if leg == "d80-escalation":
+        # sec 15.20.6: d=80's escalation cells need NO separate calibration
+        # cell (already-proven K's) -- launch directly, gates (a1)-(niter)-
+        # (d) above are the only ones this leg needs.
+        return {"gate_bypassed": False, "leg": leg, "not_applicable": True, "stage": stage,
+                "sentinel_written": False, "kernel_gate": kernel_gate,
+                "wide_kernel_gate": wide_kernel_gate, "niter_gate": niter_gate, "sha_gate": sha_gate}
+    assert leg == "d96-wide", f"unknown --scaling-wide-leg {leg!r}"
+    if stage == "calibration":
+        return {"gate_bypassed": False, "leg": leg, "not_applicable": True, "stage": stage,
+                "sentinel_written": False, "kernel_gate": kernel_gate,
+                "wide_kernel_gate": wide_kernel_gate, "niter_gate": niter_gate, "sha_gate": sha_gate}
+    assert stage == "full", f"unknown --scaling-wide-stage {stage!r} -- must be 'calibration' or 'full'"
+    stale = os.path.join(out_dir, KEYANCHOR_SCALING_WIDE_STAGE_SENTINEL_NAME)
+    if os.path.exists(stale):
+        os.remove(stale)
+        print(f"stage gate: removed pre-existing {KEYANCHOR_SCALING_WIDE_STAGE_SENTINEL_NAME} "
+              f"(re-derived below; a stale pass certificate must not survive a re-check).", flush=True)
+    spec = keyanchor_scaling_wide_calibration_manifest()[0]
+    if not is_done(out_dir, spec):
+        print(f"ERROR: --scaling-wide-stage full REFUSED -- the calibration cell (K={spec['K']}, "
+              f"seed={spec['seed']}, d_state={spec['d_state']}) is not yet complete in {out_dir!r}. "
+              f"Run --scaling-wide-leg d96-wide --scaling-wide-stage calibration first, or pass "
+              f"--accept-scaling-wide-stage-override for an explicit, documented human override.",
+              file=sys.stderr)
+        sys.exit(1)
+    wall_s = read_wall_s_only(out_path(out_dir, spec))
+    trigger = KEYANCHOR_SCALING_ABORT_WALL_S[(96, False)]
+    print(f"sec 15.20.6 CALIBRATION READ (blinded to wall_s only): K={spec['K']} wall_s={wall_s:.1f}s "
+          f"(abort/re-price trigger {trigger:.1f}s)", flush=True)
+    if wall_s >= trigger:
+        print(f"ERROR: --scaling-wide-stage full REFUSED -- calibration cell realized "
+              f"wall_s={wall_s:.1f}s >= {trigger:.1f}s (1.5x-of-pessimistic-2x-bracket abort/re-"
+              f"price trigger, sec 15.20.6 Stage 0). Halt, diagnose (nvidia-smi contention check "
+              f"first), re-price sec 15.20.5's budget table before proceeding. Pass "
+              f"--accept-scaling-wide-stage-override for an explicit, documented human override.",
+              file=sys.stderr)
+        sys.exit(1)
+    sentinel_path = os.path.join(out_dir, KEYANCHOR_SCALING_WIDE_STAGE_SENTINEL_NAME)
+    payload = {"calibration_wall_s": wall_s, "timestamp": time.time()}
+    os.makedirs(out_dir, exist_ok=True)
+    with open(sentinel_path, "w") as f:
+        f.write(json.dumps(payload, sort_keys=True) + "\n")
+    print(f"sec 15.20.6: wrote {sentinel_path!r} -- calibration cell cleared its own abort/re-"
+          f"price trigger.", flush=True)
+    return {"gate_bypassed": False, "leg": leg, "stage": stage, "sentinel_written": True,
+            "sentinel_path": sentinel_path, "kernel_gate": kernel_gate,
+            "wide_kernel_gate": wide_kernel_gate, "niter_gate": niter_gate,
+            "sha_gate": sha_gate, "calibration_wall_s": wall_s}
+
+
 MANIFEST_FNS = {"-1": wave_neg1_manifest}
 
 
@@ -3370,7 +3951,8 @@ def main():
                                         "keyanchor-k48-ref", "keyanchor-k48-bands",
                                         "keyanchor-k48-gate1", "keyanchor-k48",
                                         "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate",
-                                        "keyanchor-dose", "keyanchor-scaling"], default=None,
+                                        "keyanchor-dose", "keyanchor-scaling",
+                                        "keyanchor-scaling-wide"], default=None,
                      help="'geo3' launches F-geo-3's Wave-1-style cells (sec 14.7) -- GATED on "
                           "--geo3-drift-json (sec 14.6's launch-read result) unless "
                           "--accept-gate-override is passed. The sec 14.6 drift diagnostic ITSELF "
@@ -3471,7 +4053,26 @@ def main():
                           "either calibration cell overruns its own trigger; --accept-scaling-stage-"
                           "override bypasses the calibration/abort-trigger gate ONLY, never the "
                           "kernel-safety gate. --include-scaling-gate1 additionally launches the "
-                          "OPTIONAL, lowest-cut-priority per-K-group Gate-1-style probes (10 total).")
+                          "OPTIONAL, lowest-cut-priority per-K-group Gate-1-style probes (10 total). "
+                          "KEY_ANCHORING_SCALING_DRAFT.md sec 15.20 Rev 1 (post-attack-round-1) wave: "
+                          "'keyanchor-scaling-wide' launches the d=96 wider-K cliff-hunting wave (K in "
+                          "{72,78,84,90} x 3 seeds) + the d=80 seed escalation (K=48/53's already-"
+                          "registered sec 15.14 contingency seeds) -- REQUIRES --scaling-wide-leg "
+                          "d96-wide or d80-escalation. BOTH KEYANCHOR_SCALING_PI_SIGNOFF=1 AND "
+                          "KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1 (a SECOND, DISTINCT sub-ledger-"
+                          "extension sign-off, sec 15.20.5 MAJOR-4) are required in the environment; "
+                          "the sec 15.2/15.18 ORIGINAL kernel gate AND the sec 15.20.1 NEW wide (T in "
+                          "{504,546,588,630} @ d=96) kernel gate are BOTH checked first, uncondition-"
+                          "ally, never bypassable. sec 15.20.6 Gate (b), the GATE2_N_ITER_BY_D_K[96] "
+                          "n_iter-sufficiency check (K in {72,78,84,90}, build-audit MAJOR-1 fix), and "
+                          "the K=69 reused-JSON sha256 gate (sec 15.20.1 MAJOR-1) also run "
+                          "unconditionally before either leg's cells launch. "
+                          "'d96-wide' additionally REQUIRES --scaling-wide-stage calibration or full "
+                          "(mirrors 'keyanchor-scaling', single calibration cell K=72/seed=1740); "
+                          "'d80-escalation' launches its 4 cells directly (no calibration cell, sec "
+                          "15.20.6) into the ORIGINAL wave's own out_dir (wavekeyanchor-scaling/, NOT "
+                          "wavekeyanchor-scaling-wide/) so fit_cliff_curve.py's re-fit can read all "
+                          "5 d=80 seeds per K in one --cliff-out-dir invocation, sec 15.20.2.")
     ap.add_argument("--gpus", type=int, default=None,
                      help="GPU COUNT. REQUIRED for a real (wave -1/1) launch, NO DEFAULT ON "
                           "PURPOSE -- check nvidia-smi before every launch (GPUs 0-5,7 run other "
@@ -3660,6 +4261,34 @@ def main():
                           "priority Gate-1-style probes (sec 15.13 Stage 2), one per K-group, 10 "
                           "total. Off by default (first cut under budget pressure, sec 15.14's own "
                           "priority order).")
+    ap.add_argument("--scaling-wide-leg", type=str, choices=["d96-wide", "d80-escalation"], default=None,
+                     help="--wave keyanchor-scaling-wide: REQUIRED. 'd96-wide' is the 12-cell K in "
+                          "{72,78,84,90} grid (sec 15.20.1), gated by --scaling-wide-stage. "
+                          "'d80-escalation' is the 4-cell K=48/53 seed-contingency firing (sec "
+                          "15.20.2) -- no --scaling-wide-stage needed, launches directly into the "
+                          "ORIGINAL wave's own out_dir (see the module note above "
+                          "keyanchor_scaling_wide_stage_gate).")
+    ap.add_argument("--scaling-wide-stage", type=str, choices=["calibration", "full"], default=None,
+                     help="--wave keyanchor-scaling-wide --scaling-wide-leg d96-wide: REQUIRED. "
+                          "'calibration' launches the single K=72/seed=1740 cell (sec 15.20.6 Stage "
+                          "0); 'full' requires it complete AND within its own 1.5x-pessimistic-2x-"
+                          "bracket abort/re-price trigger, then launches the remaining 11 cells. Both "
+                          "the ORIGINAL and NEW-wide kernel-safety gates, the GATE2_N_ITER_BY_D_K[96] "
+                          "sufficiency gate (build-audit MAJOR-1 fix), and the K=69 sha256 gate "
+                          "are checked FIRST regardless of stage and are never bypassable.")
+    ap.add_argument("--accept-scaling-wide-stage-override", action="store_true",
+                     help="--wave keyanchor-scaling-wide --scaling-wide-leg d96-wide "
+                          "--scaling-wide-stage full: bypass sec 15.20.6's calibration-completeness/"
+                          "abort-trigger mechanical gate with an explicit, loudly-logged human "
+                          "override -- same override class as --accept-scaling-stage-override. Does "
+                          "NOT bypass either kernel-safety gate, the n_iter-sufficiency gate, or the "
+                          "K=69 sha256 gate.")
+    ap.add_argument("--include-scaling-wide-gate1", action="store_true",
+                     help="--wave keyanchor-scaling-wide --scaling-wide-leg d96-wide: additionally "
+                          "launch the OPTIONAL, lowest-cut-priority Gate-1-style probes (sec 15.20.5's "
+                          "own explicitly-NOT-requested layer), one per new K, 4 total. Off by "
+                          "default -- sec 15.20.5 discloses no evidence motivates paying for this "
+                          "diagnostic layer preemptively.")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--skip-smoke", action="store_true")
@@ -4504,6 +5133,76 @@ def main():
                   f"{{80,96}}, K per d in {KEYANCHOR_SCALING_KS_BY_D}, 3 seeds each"
                   f"{' + Gate-1 probes' if args.include_scaling_gate1 else ''}); "
                   f"bands_gate={bands_gate} stage_gate={stage_gate_report}", flush=True)
+    elif args.wave == "keyanchor-scaling-wide":
+        # KEY_ANCHORING_SCALING_DRAFT.md sec 15.20 Rev 1 -- d=96 wider-K
+        # cliff-hunting wave + d=80 seed escalation. REQUIRES
+        # --scaling-wide-leg (two structurally different legs, sec
+        # 15.20.1/15.20.2 -- see the module note above keyanchor_scaling_
+        # wide_stage_gate for why they use DIFFERENT out_dirs).
+        if args.scaling_wide_leg is None:
+            print("ERROR: --wave keyanchor-scaling-wide requires --scaling-wide-leg d96-wide or "
+                  "d80-escalation (sec 15.20.1/15.20.2 -- two structurally different legs: the new "
+                  "d=96 K-grid vs the d=80 seed-contingency firing).", file=sys.stderr)
+            sys.exit(1)
+        if args.unblind_override:
+            unblind_override_at = time.time()
+        ref_out_dir = os.path.join(args.out_dir, "waveref")
+        bands_gate = gate_bands_pinned(ref_out_dir, args.unblind_override, unblind_override_at)
+        scaling_wide_out_dir = os.path.join(args.out_dir, "wavekeyanchor-scaling-wide")
+        if args.scaling_wide_leg == "d80-escalation":
+            original_scaling_out_dir = os.path.join(args.out_dir, "wavekeyanchor-scaling")
+            gate_report = keyanchor_scaling_wide_stage_gate(
+                original_scaling_out_dir, "d80-escalation", None,
+                args.accept_scaling_wide_stage_override, k69_copy_dir=scaling_wide_out_dir)
+            manifest = keyanchor_scaling_d80_escalation_manifest()
+            # MINOR-5 fix (build-audit, 2026-07-07): mirrors the d96-wide/full branch's own disk
+            # gate below -- this leg's 4 cells write checkpoints into the ORIGINAL wave's own
+            # ckpt dir (matches the chain script's LEG 2 --ckpt-base-dir), and that write was
+            # previously ungated here (the d96-wide leg alone had a disk check).
+            ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-scaling"
+            disk_report = keyanchor_scaling_disk_gate(ckpt_base_dir, manifest)
+            if not disk_report["ok"] and not args.accept_budget_override:
+                print(f"ERROR: DISK GATE (keyanchor-scaling-wide d80-escalation) REFUSED -- "
+                      f"{disk_report['required_bytes'] / 1e6:.1f} MB required at "
+                      f"{disk_report['resolved_ckpt_dir']!r}, {disk_report['free_bytes'] / 1e9:.2f} "
+                      f"GB free. Free up space or pass --accept-budget-override.", file=sys.stderr)
+                sys.exit(1)
+            print(f"wave keyanchor-scaling-wide manifest (leg=d80-escalation): {len(manifest)} runs "
+                  f"(K in {{48,53}}, already-reserved contingency seeds 1133/1134/1233/1234, sec "
+                  f"15.20.2 -- writes into the ORIGINAL wavekeyanchor-scaling/ out_dir, not this "
+                  f"wave's own -wide/ directory); bands_gate={bands_gate} gate_report={gate_report}",
+                  flush=True)
+        else:
+            assert args.scaling_wide_leg == "d96-wide"
+            if args.scaling_wide_stage is None:
+                print("ERROR: --wave keyanchor-scaling-wide --scaling-wide-leg d96-wide requires "
+                      "--scaling-wide-stage calibration or full (sec 15.20.6 Stage 0/1).",
+                      file=sys.stderr)
+                sys.exit(1)
+            gate_report = keyanchor_scaling_wide_stage_gate(
+                scaling_wide_out_dir, "d96-wide", args.scaling_wide_stage,
+                args.accept_scaling_wide_stage_override, k69_copy_dir=scaling_wide_out_dir)
+            if args.scaling_wide_stage == "calibration":
+                manifest = keyanchor_scaling_wide_calibration_manifest()
+                print(f"wave keyanchor-scaling-wide manifest (leg=d96-wide, stage=calibration): "
+                      f"{len(manifest)} run (K=72 seed=1740, sec 15.20.6 Stage 0); "
+                      f"bands_gate={bands_gate} gate_report={gate_report}", flush=True)
+            else:
+                manifest = keyanchor_scaling_wide_d96_manifest()
+                if args.include_scaling_wide_gate1:
+                    manifest = manifest + keyanchor_scaling_wide_gate1_manifest()
+                ckpt_base_dir = args.ckpt_base_dir or "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-scaling-wide"
+                disk_report = keyanchor_scaling_disk_gate(ckpt_base_dir, manifest)
+                if not disk_report["ok"] and not args.accept_budget_override:
+                    print(f"ERROR: DISK GATE (keyanchor-scaling-wide) REFUSED -- "
+                          f"{disk_report['required_bytes'] / 1e6:.1f} MB required at "
+                          f"{disk_report['resolved_ckpt_dir']!r}, {disk_report['free_bytes'] / 1e9:.2f} "
+                          f"GB free. Free up space or pass --accept-budget-override.", file=sys.stderr)
+                    sys.exit(1)
+                print(f"wave keyanchor-scaling-wide manifest (leg=d96-wide, stage=full): "
+                      f"{len(manifest)} runs (K in {KEYANCHOR_SCALING_D96_WIDE_KS}, 3 seeds each"
+                      f"{' + Gate-1 probes' if args.include_scaling_wide_gate1 else ''}); "
+                      f"bands_gate={bands_gate} gate_report={gate_report}", flush=True)
     else:
         g16, g32 = gate_gram_rho(args.gram_rho_16, args.gram_rho_32,
                                    args.calib_summary, args.accept_unconverged_rho)
@@ -4512,7 +5211,18 @@ def main():
               f"(arm (iv) K=16 {'INCLUDED' if g16 is not None else 'EXCLUDED'}, "
               f"K=32 {'INCLUDED' if g32 is not None else 'EXCLUDED'})", flush=True)
 
-    out_dir = os.path.join(args.out_dir, f"wave{args.wave}")
+    if args.wave == "keyanchor-scaling-wide" and args.scaling_wide_leg == "d80-escalation":
+        # sec 15.20.2's own re-fit invocation cites the ORIGINAL --cliff-
+        # out-dir (results/deltanet_rd_exactness/wavekeyanchor-scaling),
+        # never a new "-wide" directory for d=80 -- the escalation cells
+        # continue the ORIGINAL wave's own d=80 grid in place (its 15
+        # archived seeds + these 4 new ones, all readable by ONE fit_
+        # cliff_curve.py --cliff-out-dir invocation, exactly like the
+        # original 30-cell wave). Only the d=96 WIDE K's get their own new
+        # wavekeyanchor-scaling-wide/ directory (the generic branch below).
+        out_dir = os.path.join(args.out_dir, "wavekeyanchor-scaling")
+    else:
+        out_dir = os.path.join(args.out_dir, f"wave{args.wave}")
     log_dir = os.path.join(out_dir, "logs")
     os.makedirs(log_dir, exist_ok=True)
 
@@ -4530,7 +5240,8 @@ def main():
     if args.wave in ("ref", "keyanchor-neg1", "keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1",
                       "keyanchor-mech", "keyanchor-k48-ref", "keyanchor-k48-gate1", "keyanchor-k48",
                       "keyanchor-e", "keyanchor-cliff", "keyanchor-dstate",
-                      "keyanchor-dose", "keyanchor-scaling") and not args.skip_smoke:
+                      "keyanchor-dose", "keyanchor-scaling",
+                      "keyanchor-scaling-wide") and not args.skip_smoke:
         rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_key_anchoring.py")], cwd=HERE)
         if rc != 0:
             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -4539,7 +5250,8 @@ def main():
             sys.exit(1)
         if args.wave in ("keyanchor", "keyanchor-confirm", "keyanchor-mech-gate1", "keyanchor-mech",
                           "keyanchor-k48-gate1", "keyanchor-k48", "keyanchor-e", "keyanchor-cliff",
-                          "keyanchor-dstate", "keyanchor-dose", "keyanchor-scaling"):
+                          "keyanchor-dstate", "keyanchor-dose", "keyanchor-scaling",
+                          "keyanchor-scaling-wide"):
             rc = subprocess.call([sys.executable, os.path.join(HERE, "gate2_construction_test.py")], cwd=HERE)
             if rc != 0:
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
@@ -4625,6 +5337,25 @@ def main():
                 with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                     f.write("smoke_keyanchor_scaling.py FAILED (rc != 0); no training launched.\n")
                 print(f"ERROR: smoke_keyanchor_scaling.py failed -- {args.wave} wave aborted.",
+                      file=sys.stderr)
+                sys.exit(1)
+        if args.wave == "keyanchor-scaling-wide":
+            # KEY_ANCHORING_SCALING_DRAFT.md sec 15.20 Rev 1's own smoke
+            # suite sibling (fla-free; wide manifest/seed shape, the
+            # namespaced GATE2_N_ITER_BY_D_K[96] extension, the flat
+            # GATE2_N_ITER_BY_K extension, the sha256 reused-JSON gate incl.
+            # negative tests, the wide kernel gate incl. negative tests,
+            # the decision-rule pure function incl. CLIFF-BEYOND-WINDOW
+            # routing, zero-collision, manifest-regression against the
+            # ORIGINAL 5-K/15-cell d=96 calls). Re-runs smoke_keyanchor_
+            # scaling.py TOO (both suites cover this wave, sec 15.20.6
+            # Stage -1 item 6) -- already run above via the shared
+            # keyanchor-scaling-* dispatch this wave joined.
+            rc = subprocess.call([sys.executable, os.path.join(HERE, "smoke_keyanchor_scaling_wide.py")], cwd=HERE)
+            if rc != 0:
+                with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
+                    f.write("smoke_keyanchor_scaling_wide.py FAILED (rc != 0); no training launched.\n")
+                print(f"ERROR: smoke_keyanchor_scaling_wide.py failed -- {args.wave} wave aborted.",
                       file=sys.stderr)
                 sys.exit(1)
 
@@ -4728,14 +5459,20 @@ def main():
                             with open(os.path.join(out_dir, "ABORTED.txt"), "w") as f:
                                 f.write(str(abort_exc) + "\n")
                     # sec 15.14's mechanical, in-code abort rule -- keyanchor-
-                    # scaling ONLY. Two-tier bracket (main-grid vs anchor-K,
-                    # sec 15.14) resolved per-cell inside the check itself
-                    # (keyanchor_scaling_check_abort reads spec['K']/
-                    # spec['d_state'] directly), unlike keyanchor-dstate's
-                    # single scalar bracket -- no bracket_upper_gpuh argument
-                    # needed here. Same h4-blindness discipline as above
-                    # (read_wall_s_only, never the cell's own h4).
-                    if args.wave == "keyanchor-scaling":
+                    # scaling AND keyanchor-scaling-wide (sec 15.20.6: "this
+                    # wave's own bracket numbers ... unchanged from sec
+                    # 15.14's own main-grid figure since the per-cell rate
+                    # is unchanged" -- every wide-wave cell is a non-anchor
+                    # main-grid cell at an already-priced d_state, so the
+                    # SAME two-tier bracket applies unmodified). Two-tier
+                    # bracket (main-grid vs anchor-K, sec 15.14) resolved
+                    # per-cell inside the check itself (keyanchor_scaling_
+                    # check_abort reads spec['K']/spec['d_state'] directly),
+                    # unlike keyanchor-dstate's single scalar bracket -- no
+                    # bracket_upper_gpuh argument needed here. Same
+                    # h4-blindness discipline as above (read_wall_s_only,
+                    # never the cell's own h4).
+                    if args.wave in ("keyanchor-scaling", "keyanchor-scaling-wide"):
                         wall_s = read_wall_s_only(out_path(out_dir, spec))
                         try:
                             keyanchor_scaling_check_abort(spec, wall_s)

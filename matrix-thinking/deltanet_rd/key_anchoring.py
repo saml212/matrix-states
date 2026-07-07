@@ -88,6 +88,24 @@ GATE2_N_ITER_BY_K = {16: 12, 32: 20, 48: 20,
                      # n_iter-sufficiency check -- NOT yet run (see run_deltanet_rd_exactness_
                      # sweep.py's own KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K module-note).
                      20: 20, 24: 20, 43: 20, 51: 20, 53: 20, 57: 20, 58: 20, 63: 20, 69: 20,
+                     # KEY_ANCHORING_SCALING_DRAFT.md sec 15.20.1's own wide-grid extension
+                     # (Rev 1, 2026-07-07): the SAME "genuinely new K, safe to add" class sec
+                     # 15.6's own comment above describes -- 72/78/90 have NEVER appeared in
+                     # this flat dict at ANY d_state before (verified this session: grep for
+                     # each literal key across this dict's own source finds zero prior hits),
+                     # so there is nothing existing to silently collide with. K=84 is
+                     # DELIBERATELY NOT re-added here -- it already has an entry above (added
+                     # for d_state=128, sec 13.2/13.3 item 5), and this wave's own d=96/K=84
+                     # cells must read the namespaced KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[96]
+                     # (run_deltanet_rd_exactness_sweep.py), NEVER this flat dict, for exactly
+                     # the reason sec 15.6/15.20.1 both flag: this flat value is d=128-verified
+                     # only. Added here (a) so gate2_construction_test.py/smoke_keyanchor_
+                     # scaling_wide.py's own direct gate2_construction_check(ks=(72,78,84,90))
+                     # exercises do not KeyError on 72/78/90, and (b) per sec 15.6's own
+                     # precedent of also extending this flat dict for genuinely-new K's. All at
+                     # n_iter=20 "by analogy only" pending the mandatory Wave -1
+                     # n_iter-sufficiency check (sec 15.20.1, NOT yet run -- box-only).
+                     72: 20, 78: 20, 90: 20,
                      }   # production tier per K (sec 16.3's own
                                                 # n_iter escalation; 48 added per KEY_ANCHORING_
                                                 # DESIGN.md sec 11.3 -- "NS at n_iter=12 lands at

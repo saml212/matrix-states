@@ -136,6 +136,20 @@ def load_k_mean_h4(cell_dir: str, K: int, arm: str = "d") -> tuple[float, list]:
             d = json.load(f)
         if not d.get("complete"):
             continue
+        # KEY_ANCHORING_SCALING_DRAFT.md sec 15.20.3's admissibility-filter
+        # fix: sec 15.9 registered "every cell must show admissible: true"
+        # for every K's data, but this loader -- the SINGLE choke point every
+        # K passes through (anchored K=32/K=48 AND every unanchored
+        # --k-grid entry) -- never actually checked geo3_admission at all
+        # until now. `admissible` alone is provably sufficient (verified
+        # sec 15.20.3 against run_deltanet_rd.py line 562: it already ANDs
+        # together ns_converged_no_fallback/value_salvage_tier_pass/
+        # finite_loss_no_divergence/task_performance_floor_pass -- every
+        # field sec 15.9 separately listed). `is not True` (never a truthy
+        # check) so a MISSING geo3_admission block -- verified sec 15.20.3
+        # to occur on zero real archived cells -- fails closed, not open.
+        if d.get("geo3_admission", {}).get("admissible") is not True:
+            continue
         try:
             h4 = d["checkpoints"][-1]["M3_held_out"]["4"]["recovered_frac@0.9"]
         except (KeyError, IndexError, TypeError):

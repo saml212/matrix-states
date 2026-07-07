@@ -1,0 +1,215 @@
+{
+  "generated_at": "2026-07-07T20:53:48.150590+00:00",
+  "script": "keyanchor_scaling_wide_niter_check.py",
+  "purpose": "KEY_ANCHORING_SCALING_DRAFT.md sec 15.20.1/15.20.6 Gate (b) (build-audit MAJOR-1 fix): zero-GPU n_iter-sufficiency check at d_state=96 for KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[96]'s K=72/78/84/90 entries (all previously set to n_iter=20 'by analogy only', never mechanically verified at d_state=96).",
+  "method": "sec 11.4.2's own method, reused verbatim via keyanchor_dstate_niter_check.py's ceiling_at_niter/converged (unmodified): fix 1 of 8 sampled train-pool anchor rows, resample K-1 co-drawn rows from the other 106, full production-tier Newton-Schulz, pooled (mean, p10) fixed-row post-NS pairwise cosine across 8*32=256 draws per (K, n_iter)",
+  "n_iter_grid": [
+    12,
+    16,
+    20,
+    24
+  ],
+  "candidate_ks": [
+    72,
+    78,
+    84,
+    90
+  ],
+  "n_entities": 107,
+  "d_state": 96,
+  "n_fixed_anchors": 8,
+  "n_resamples": 32,
+  "convergence_tolerance_rel": 0.005,
+  "per_k": {
+    "72": {
+      "by_n_iter": {
+        "12": {
+          "K": 72,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9687666296958923,
+          "p10": 0.9612499475479126
+        },
+        "16": {
+          "K": 72,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9687666296958923,
+          "p10": 0.9612500071525574
+        },
+        "20": {
+          "K": 72,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9687666296958923,
+          "p10": 0.9612499475479126
+        },
+        "24": {
+          "K": 72,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9687665104866028,
+          "p10": 0.9612499475479126
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 0.9687666296958923,
+        "mean_at_24": 0.9687665104866028,
+        "rel_change_20_to_24": 1.2305263816550174e-07,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "78": {
+      "by_n_iter": {
+        "12": {
+          "K": 78,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9632796049118042,
+          "p10": 0.9549459218978882
+        },
+        "16": {
+          "K": 78,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9632794260978699,
+          "p10": 0.9549455642700195
+        },
+        "20": {
+          "K": 78,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9632794260978699,
+          "p10": 0.95494544506073
+        },
+        "24": {
+          "K": 78,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9632794857025146,
+          "p10": 0.95494544506073
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 0.9632794260978699,
+        "mean_at_24": 0.9632794857025146,
+        "rel_change_20_to_24": 6.187679624472199e-08,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "84": {
+      "by_n_iter": {
+        "12": {
+          "K": 84,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9577152132987976,
+          "p10": 0.9484437108039856
+        },
+        "16": {
+          "K": 84,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9576978087425232,
+          "p10": 0.9484290480613708
+        },
+        "20": {
+          "K": 84,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9576978087425232,
+          "p10": 0.9484289884567261
+        },
+        "24": {
+          "K": 84,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9576978087425232,
+          "p10": 0.9484289884567261
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 0.9576978087425232,
+        "mean_at_24": 0.9576978087425232,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    },
+    "90": {
+      "by_n_iter": {
+        "12": {
+          "K": 90,
+          "n_iter": 12,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9501913785934448,
+          "p10": 0.9411395192146301
+        },
+        "16": {
+          "K": 90,
+          "n_iter": 16,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9492887854576111,
+          "p10": 0.9399183988571167
+        },
+        "20": {
+          "K": 90,
+          "n_iter": 20,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9492887854576111,
+          "p10": 0.9399184584617615
+        },
+        "24": {
+          "K": 90,
+          "n_iter": 24,
+          "n_fixed_anchors": 8,
+          "n_resamples": 32,
+          "n_pooled": 7936,
+          "mean": 0.9492887854576111,
+          "p10": 0.9399183988571167
+        }
+      },
+      "convergence_20_to_24": {
+        "mean_at_20": 0.9492887854576111,
+        "mean_at_24": 0.9492887854576111,
+        "rel_change_20_to_24": 0.0,
+        "tolerance": 0.005,
+        "converged": true
+      }
+    }
+  },
+  "all_ks_converged": true,
+  "wall_s": 3.0805628299713135
+}
