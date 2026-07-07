@@ -943,6 +943,51 @@ being so loose it never fires.
    `--d-state`/`--k-grid` are free CLI parameters that work unmodified for
    any `d_state` outside `ANCHORED_D_STATES`).
 
+**Addendum (2026-07-07, FIX agent, K=20 anchor-cell H_extra hop-collision):**
+during the wave-2 launch (`keyanchor_scaling_run2`), the 3 d=80 K=20 anchor
+cells (seeds 1020–1022, item 5's own table above) failed deterministically
+at config construction, never reaching the training loop. Root cause:
+`run_deltanet_rd.py`'s `--h-extra` CLI flag defaults to `[7, 21]`
+(unchanged since before this wave); at K=20, `21 % 20 == 1`, which
+coincides with `H_train=(1,2,3)`'s own residue set `{1, 2, 3}` at that K.
+`grammar_rd.py`'s `DeltaNetRDTaskConfig.__post_init__` periodicity guard
+(the verbatim Finding B fix already documented in this file's own §15.4)
+correctly refused to construct the config — **the assertion worked exactly
+as designed; this is not a bug in the guard**, it is a K=20-specific gap in
+the wave's own manifest builder, which never threaded any `H_extra`
+override through `_spec()`/`build_cmd()` before this fix (every prior
+wave's cells all sit at K where `[7,21]`'s residues `{7, 1}` happen not to
+collide with `{1,2,3}` — K=20 is the first K in this program's own history
+where `21 % K` lands on a training residue).
+
+Fix (orchestrator design decision, implemented in
+`run_deltanet_rd_exactness_sweep.py`): a K-scoped exception,
+`KEYANCHOR_SCALING_H_EXTRA_OVERRIDE_BY_K = {20: (7, 25)}`, consulted by
+`_keyanchor_scaling_spec()` and threaded through `_spec()`'s new `h_extra`
+parameter into `build_cmd()`'s new `--h-extra` passthrough — **ONLY** for
+K=20 cells; every other cell (all 27 already-complete cells across both
+d=80 and d=96, including d=96's own anchor K=24) keeps the unmodified CLI
+default and an byte-identical emitted command line (verified locally,
+below). `H_extra=(7, 25)`: residues `7 % 20 == 7` and `25 % 20 == 5`, both
+outside `{1, 2, 3}`; 25 (like the original 21) stays `> K`, preserving the
+"beyond-K literal-depth extrapolation" role the extra hop plays (sec 15.9's
+own candidate-(d) instrumentation reads `H_test + H_extra` at eval time).
+`H_test=[4, 5, 6]` (the CLI default) is **UNCHANGED** — h4 is the
+fit-relevant hop this wave's own §15.10 success criteria read, and `[4,5,6]`
+does not collide with K=20's training residues either way.
+
+Local verification (CPU, `grammar_rd.DeltaNetRDTaskConfig` direct
+construction): `K=20, H_extra=(7,25)` — **PASSES** `__post_init__`.
+`K=20, H_extra=(7,21)` (the old default) — **still FAILS** with
+`"H_test/H_extra hop h=21 has h % K=20 == 1, coinciding with a TRAINING
+hop's residue ([1, 2, 3])"` (negative test, confirms the root cause
+reproduces and the guard has teeth). `K=24, H_extra=(7,21)` (d=96's own
+anchor, unmodified) — **PASSES**, confirming no override was needed there.
+`smoke_keyanchor_scaling.py`'s 16-item suite re-run clean after the fix.
+
+This is a disclosed, K-conditional exception, not a silent global change —
+no other cell's manifest, filename, or emitted CLI arguments changed.
+
 ---
 
 ### 15.16 Standing constraints (restated, apply unchanged to this wave)

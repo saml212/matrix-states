@@ -91,7 +91,7 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
           geo3_active=False, geo3_n_iter=12, geo3_resid_tol=1e-2,
           anchor_active=False, anchor_lambda_mode="learned", anchor_lambda_fixed=None,
           lambda_anchor=0.0, drift_probe=False, rev7_engagement=False, d_state=64,
-          dose_target=None, dose_structure=None, subspace_seed=None):
+          dose_target=None, dose_structure=None, subspace_seed=None, h_extra=None):
     """Variant-carrying run spec (sec 5's naming requirement) -- the `arm`
     tag alone would NOT be resume-safe if two arms shared identical other
     fields, so the name also encodes the fields that actually vary the
@@ -144,7 +144,24 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
     known to the spec builder) -- collision-safety therefore rests on
     dose_target (the pre-registered grid value), matching how every other
     identity field in this function is the REQUESTED config, not a
-    post-hoc measurement."""
+    post-hoc measurement.
+
+    h_extra (KEY_ANCHORING_SCALING_DRAFT.md sec 15.15 addendum, 2026-07-07
+    keyanchor-scaling K=20 hop-collision fix): NEW parameter, default None
+    -- BYTE-IDENTICAL to every existing caller (none of which pass this
+    arg; run_deltanet_rd.py's own --h-extra CLI default [7,21] is used
+    unmodified). Only set by _keyanchor_scaling_spec()'s own K=20 override
+    (h_extra=(7,25)): the default [7,21] is CONFOUNDED at K=20 specifically
+    (21 % 20 == 1, coinciding with H_train=(1,2,3)'s own residue set {1,2,3}
+    at that K), which grammar_rd.py's __post_init__ periodicity guard
+    correctly refuses to construct -- see build_cmd()'s own --h-extra
+    passthrough and is_done()'s own H_extra identity check below. The name
+    bit (f"hextra{...}", emitted only when h_extra is not None) is inserted
+    BEFORE the d_state bit so d_state stays the LAST bit for every
+    keyanchor-scaling cell (none of which set dose_target/dose_structure/
+    subspace_seed) -- preserves smoke_keyanchor_scaling.py's smoke 4
+    (`name.endswith(f"_d{d_state}")`) unmodified for the 3 affected K=20
+    cells."""
     bits = [f"w{wave}_rdx", f"K{K}", f"arm{arm}", f"s{seed}"]
     if embed_source == "frozen_gram_matched" and gram_rho is not None:
         bits.append(f"rho{gram_rho:.3f}".replace(".", "p"))
@@ -169,6 +186,10 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
         bits.append("dprobe")
     if rev7_engagement:
         bits.append("rev7")
+    if h_extra is not None:
+        # sec 15.15 addendum -- inserted BEFORE the d_state bit so d_state
+        # stays the LAST bit for keyanchor-scaling cells (see docstring).
+        bits.append("hextra" + "_".join(str(h) for h in h_extra))
     if d_state != 64:
         bits.append(f"d{d_state}")
     if dose_target is not None:
@@ -189,7 +210,7 @@ def _spec(wave, K, seed, steps, arm, embed_source="learned", gram_alpha=None, gr
             "lambda_anchor": lambda_anchor, "drift_probe": drift_probe,
             "rev7_engagement": rev7_engagement, "d_state": d_state,
             "dose_target": dose_target, "dose_structure": dose_structure,
-            "subspace_seed": subspace_seed,
+            "subspace_seed": subspace_seed, "h_extra": h_extra,
             "name": name}
 
 
@@ -2601,6 +2622,35 @@ KEYANCHOR_SCALING_GPUH_PER_CELL_MAIN = {80: 0.3465, 96: 0.4313}
 KEYANCHOR_SCALING_GPUH_PER_CELL_ANCHOR = {80: 0.169, 96: 0.212}
 KEYANCHOR_SCALING_CONTINGENCY_MULTIPLIER = 2.0
 
+# sec 15.15 addendum (2026-07-07, K=20 hop-collision fix): run_deltanet_
+# rd.py's own --h-extra CLI default is [7,21] -- confounded at K=20
+# specifically, since 21 % 20 == 1 coincides with H_train=(1,2,3)'s own
+# residue set {1,2,3} at that K (grammar_rd.py's __post_init__ periodicity
+# guard, verbatim from task_dn.py/task_e.py's Finding B fix, correctly
+# REFUSES to construct a DeltaNetRDTaskConfig(K=20, H_extra=(7,21)) --
+# working as designed, not a bug in the guard). This dict is flat over K
+# (not d_state-namespaced like KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K above)
+# because h % K collision is a pure function of K given the SHARED
+# H_train=(1,2,3) -- d_state never enters the residue arithmetic, so no
+# per-d_state collision risk exists here (unlike sec 15.6's K=48 n_iter
+# collision). K=20 is d=80's own mandatory low-K anchor point (sec 15.3/
+# 15.8); d=96's anchor K=24 does NOT collide (7 % 24 == 7, 21 % 24 == 21,
+# neither in {1,2,3}) so it is deliberately absent from this dict and gets
+# the unmodified CLI default. Override to (7,25): residues 7 and 5
+# (25 % 20 == 5), both outside {1,2,3}; 25 keeps the same >K
+# "beyond-K literal-depth extrapolation" role the original 21 played
+# (interpreted structurally, not by its literal numeric value). H_test
+# stays [4,5,6] (run_deltanet_rd.py's own CLI default, UNCHANGED) since h4
+# is the fit-relevant hop (sec 9.5/12's own precedent) and [4,5,6] does not
+# collide with K=20 (4/5/6 % 20 == 4/5/6, none in {1,2,3} or in the new
+# H_extra residues {7,5} -- 5 is shared between H_test's own h=5 and
+# H_extra's new h=25, but H_test/H_extra are checked for OVERLAP as VALUES
+# (5 != 25) and for residue-vs-TRAIN-residue collision only, per
+# grammar_rd.py's own __post_init__ -- h=5 and h=25 sharing a residue mod K
+# is not itself an assertion condition; both remain valid, non-identity,
+# non-training-residue held-out hops).
+KEYANCHOR_SCALING_H_EXTRA_OVERRIDE_BY_K = {20: (7, 25)}
+
 
 def _keyanchor_scaling_spec(K: int, seed: int, d_state: int, steps: int = KEYANCHOR_SCALING_TIER_STEPS):
     """One candidate-(d) cell at (K, d_state) -- byte-identical
@@ -2613,11 +2663,16 @@ def _keyanchor_scaling_spec(K: int, seed: int, d_state: int, steps: int = KEYANC
     collision paths this wave's own sec 15.6 fix must not fall through
     to). n_iter is read from THIS wave's own namespaced KEYANCHOR_
     SCALING_GATE2_N_ITER_BY_D_K[d_state][K], never the flat ka.
-    GATE2_N_ITER_BY_K."""
+    GATE2_N_ITER_BY_K. h_extra is read from KEYANCHOR_SCALING_H_EXTRA_
+    OVERRIDE_BY_K.get(K) (sec 15.15 addendum, 2026-07-07): None for every
+    K except 20 (byte-identical args to before this fix), (7, 25) for K=20
+    (the fix for the H_extra=[7,21] hop-collision documented on that
+    dict)."""
     assert d_state in KEYANCHOR_SCALING_KS_BY_D, f"unregistered scaling d_state={d_state}"
     n_iter = KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[d_state][K]
+    h_extra = KEYANCHOR_SCALING_H_EXTRA_OVERRIDE_BY_K.get(K)
     return _spec("keyanchor-scaling", K, seed, steps, "d", geo3_active=True,
-                 geo3_n_iter=n_iter, geo3_resid_tol=1e-2,
+                 geo3_n_iter=n_iter, geo3_resid_tol=1e-2, h_extra=h_extra,
                  anchor_active=True, anchor_lambda_mode="learned",
                  drift_probe=True, rev7_engagement=True, d_state=d_state)
 
@@ -3103,6 +3158,17 @@ def is_done(out_dir, spec):
         # defensive default, not an expected miss.
         if d.get("d_state", 64) != spec.get("d_state", 64):
             return False
+        # sec 15.15 addendum (2026-07-07 keyanchor-scaling K=20 fix): H_extra
+        # is written at the RESULT's own TOP LEVEL (run_deltanet_rd.py's
+        # _assemble_result, "H_extra": list(cfg.H_extra), unconditionally --
+        # SAME location as H_train/H_test/d_state), never inside
+        # exactness_config. Missing-key-defaults-to-[7,21] discipline, same
+        # as every field above: archived pre-fix result JSONs (every cell
+        # except the 3 K=20 anchor cells) always carried H_extra==[7,21]
+        # (run_deltanet_rd.py's own historical CLI default), so this check
+        # is a no-op for them and only distinguishes the K=20 override.
+        if list(d.get("H_extra", [7, 21])) != list(spec.get("h_extra") or (7, 21)):
+            return False
         # KEY_ANCHORING_DESIGN.md sec 14.1b item 4 (Rev 14.3, coherence
         # dose-response wave, the F2-closing fix): SAME missing-key-
         # defaults-to-off/None discipline as every field above. Before
@@ -3187,6 +3253,15 @@ def build_cmd(spec, out_dir, timeout, unblind_override_at: float | None = None,
         # since the CLI's own default already matches what was previously
         # never passed at all).
         cmd += ["--d-state", str(spec["d_state"])]
+    if spec.get("h_extra") is not None:
+        # sec 15.15 addendum (2026-07-07 keyanchor-scaling K=20 fix):
+        # run_deltanet_rd.py's own --h-extra default is [7,21], which
+        # collides at K=20 (21 % 20 == 1, coincides with H_train=(1,2,3)'s
+        # residue set) -- ONLY fires when a spec deliberately overrides
+        # h_extra (currently just keyanchor-scaling's K=20 cells), so every
+        # other cell's emitted command line is byte-identical to before
+        # this change.
+        cmd += ["--h-extra"] + [str(h) for h in spec["h_extra"]]
     if ckpt_base_dir is not None and spec.get("anchor_active"):
         # KEY_ANCHORING_DESIGN.md sec 10.10: one checkpoint subdirectory per
         # cell, under the wave's own checkpoint base dir.
