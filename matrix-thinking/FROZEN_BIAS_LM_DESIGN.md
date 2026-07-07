@@ -3827,3 +3827,101 @@ constraint on this wave is design/interpretive rigor, not compute.
    and a trusted number — worth a fresh attack checking whether n=50
    itself is adequately conservative given the real pooled sample sizes
    Stage 1's 6-pass descriptive run will actually produce.
+
+### 12.10 STAGE-0 + H4-REAL RESULTS — executed 2026-07-07 (exploratory tier throughout)
+
+**Provenance.** The four Stage-0 scripts (`mech_schema.py`,
+`mech_stage05_selftests.py`, `build_fit_inputs_rankstats.py`,
+`mech_h4_paramdiff.py`) were built, independently audited
+(STAGE0-CLEARED, zero findings), executed, and committed at `d20cbe8`;
+raw outputs live in `matrix-thinking/deltanet_rd/results/mech_wave/`.
+Every output JSON is stamped `"exploratory-mechanism-wave -- NOT a
+confirmatory bar"` by `mech_schema.wrap_exploratory()`. The
+correlational ceiling (§12.9 item 1) applies to EVERYTHING below —
+these results order hypotheses for Stage 1/2; none is a headline claim.
+
+**12.10.1 Stage 0.5 self-test gate (§12.3.4): PASSED.**
+`mech_stage05_selftests_results.json` records `gate_passed: true` — all
+three statistics (repeat_excess, parameter-diff norm/cosine,
+gradient-flow norm) reproduced their hand-pinned synthetic values within
+the registered tolerances, including the planted-effect detections. The
+Stage-1 launch gate is OPEN.
+
+**12.10.2 H2 rank reharvest (§12.3.1 + §12.3.2): H2 CORROBORATED
+(exploratory).** `build_fit_inputs_rankstats_results.json`; n=48
+archived retrofit JSONs verified; the sanity anchor reproduced the
+attack-round reference numbers within 0.02. Four-comparison grid,
+pinned `t(2,.975)=4.303` CIs, Δ = (arm − baseline), 2 metrics
+(effective_rank_mean, stable_rank_mean) × 2 corpora:
+
+- **Comparison 1 — Arm2 vs Arm1′ (post-blend): rank FALLS, 4/4 cells
+  CI-exclude-zero.** eff_rank openr1 −5.618 [−8.144, −3.092], wikitext
+  −9.142 [−12.836, −5.448]; stable_rank openr1 −3.109 [−5.913, −0.305],
+  wikitext −3.961 [−4.516, −3.406].
+- **Comparison 2 — Arm2 vs Arm1 (pre-blend): rank FALLS, 3/4
+  exclude zero.** eff_rank openr1 −2.094 [−2.731, −1.457]; stable_rank
+  openr1 −0.988 [−1.774, −0.201], wikitext −1.750 [−2.260, −1.241].
+  wikitext eff_rank −2.375 [−8.016, +3.266] straddles zero — the cell
+  §12.3.1 pre-flagged as expected-ambiguous, reported honestly.
+- **Comparison 3 — Arm2′ vs Arm1″ (post-blend): rank RISES, 3/4
+  exclude zero.** eff_rank wikitext +3.328 [2.238, 4.418]; stable_rank
+  openr1 +1.885 [0.524, 3.246], wikitext +1.158 [0.848, 1.467]. openr1
+  eff_rank +6.135 [−2.780, +15.050] ambiguous.
+- **Comparison 4 — Arm2′ vs Arm1 (pre-blend; the §12.3.2 gap, run for
+  the first time here): ALL FOUR cells ambiguous** (every CI straddles
+  zero) — an honest non-result; the pre-blend Arm2′ contrast does not
+  distinguish at n=3.
+
+Reading: the destabilizing per-token arm's key-space rank falls against
+BOTH baselines; the stabilizing global arm's rank rises post-blend —
+the direction H2 (rank-collapse) predicts. Pre-blend Arm2′ is
+uninformative.
+
+**12.10.3 H4 checkpoint parameter-diff — REAL RUN (§12.3.3):
+H4-CONSISTENT at the block-0 `k_conv1d` locus (exploratory).**
+Executed on-box 2026-07-07 04:32 UTC, CPU-only, via `mech_h4_chain.sh`
+in tmux session `mech_h4` (the on-box copy re-passed `--self-test`
+before the real run; chain exits on any failure). Registered cell:
+corpus=openr1-mix-ext, seed 0, `ΔW := W(step20000) − W(Arm1,
+step1000)`. Raw: `results/mech_wave/mech_h4_paramdiff_results.json`.
+
+- **Norms (reported only — NOT the diagnostic, per the §12.3.3
+  pre-registration):** ‖ΔW(k_conv1d)‖_F = 3.7911 (Arm1 natural drift) /
+  5.1157 (Arm2) / 4.0941 (Arm2′).
+- **Directionality (the pre-registered reading).** cos(ΔW column,
+  b_global), d_state=64 columns, chance E|cos| ≈ 0.0997:
+  block-0 **Arm2′ mean|cos| = 0.1778, max|cos| = 0.3740, all four
+  columns NEGATIVE** (drift anti-aligned with b_global); **Arm2
+  0.0816 / 0.1387 (≈ chance)**; Arm1 natural drift 0.1219 / 0.1963.
+  Block-1: Arm2′ 0.0310 / 0.0454 — no directional component; the
+  effect is block-0-localized.
+- **Verdict per the pre-registered reading:** Arm2′'s drift is more
+  b_global-coherent than Arm2's (mean |cos| 0.1778 vs 0.0816) →
+  H4-CONSISTENT at this locus. The observed SIGN is anti-alignment —
+  the stabilized arm's key-conv weights drift AWAY from the frozen
+  global-bias direction, a compensatory signature — but sign was not
+  pre-registered; noted as observed, not predicted.
+- **Secondary block0_full reading:** best-aligned single params sit at
+  max|cos| 0.39–0.42 in ALL arms (Arm2 k_proj 0.4245 the highest) — no
+  clean cross-arm separation at full-block granularity; the primary
+  reading stands on `k_conv1d` only, consistent with §12.9 item 2's
+  locus caveat cutting both ways.
+- **Shared-baseline sanity check:** step-1000 cross-arm k_conv1d
+  Frobenius distances 0.8407 (Arm2 vs Arm1) / 0.8043 (Arm2′ vs Arm1) —
+  ~21% of the drift norms, small enough to support the shared
+  step-early baseline.
+- **Caveats:** single seed, single corpus; 8 columns tested → the
+  0.374 max-stat carries a multiple-comparisons discount (naive
+  Gaussian approx: per-column two-sided p ≈ 0.003 at |cos| = 0.374,
+  ×8 comparisons ≈ 0.02 — suggestive, not confirmatory); and the
+  block-0 mean-level signal (0.1778 vs chance 0.0997) at n=4 columns is
+  the steadier component of the reading.
+
+**Where this leaves the hypothesis table (§12.2):** H2 corroborated
+(rank collapse tracks the destabilization direction in both arms), H4
+consistent at one locus (compensatory directional drift in the
+STABILIZED arm) — mutually compatible: Arm2's keys collapse toward a
+lower-rank configuration, Arm2′'s keys make a coherent low-rank
+correction against b_global and keep their rank. H1/H5
+(token-clustering / frequency) remain untested pending Stage 1's
+forward-pass probe (§12.4); H3 (gradient-flow) remains Stage-2-gated.
