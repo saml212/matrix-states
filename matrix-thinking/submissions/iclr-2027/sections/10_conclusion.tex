@@ -39,18 +39,39 @@
     precise location, its dissolution with scale, and the honest
     non-resolution of what \emph{does} drive it (overlap structure vs.\
     raw state capacity, both still live) are reported as the seven
-    separate things they are.
+    separate things they are. \textbf{The raw-state-capacity candidate has
+    since been tested directly at two further $d_{\mathrm{state}}$'s and
+    the result is super-linear, not ratio-invariant:} re-fitting the same
+    transition at $d_{\mathrm{state}}{=}80$ locates it at
+    $x_0{=}0.6756$ (95\% CI $[0.6620,0.6868]$), cleanly outside the
+    pre-registered ratio-invariant band $[0.4745,0.6165]$; at
+    $d_{\mathrm{state}}{=}96$ the transition does not localize at all
+    inside the tested window (load tolerance $>0.72$, $K/d{=}0.71875$).
+    This rules out ``the cliff sits at a fixed $K/d$ fraction'' as cleanly
+    as the $d{=}128$ dissolution ruled out ``the cliff never moves,'' but
+    the exact functional form of the growth (and the precise
+    $d_{\mathrm{state}}{=}96$ transition point) remains open --- a
+    wide-grid follow-up is designed and power-checked, not yet built or
+    launched, and its result is not claimed here.
   \item \textbf{Closing note on scale.} The phenomenon this paper studies
     is not confined to the scale it is studied at: a controlled
-    14M$\to$98M$\to$392M ladder, on a single held-fixed data mix, shows
-    the write-geometry deviation climbing monotonically
-    (span-fraction $0.248 \to 0.344 \to 0.389$), a \textbf{pure-scale}
-    finding, with a 1.31B-parameter fourth rung
-    \todo{[PENDING RUNG-3] state the rung-3 reading and whether it
-    continues the trend, plateaus, or reverses --- update this sentence
-    together with Fig.~9 Panel A the moment it lands; see NARRATIVE.md
-    \S9 item 3 and \S10 item 6(iv).} A substantially larger version of the
-    same signature is present in deployed production fixed-state models,
+    14M$\to$98M$\to$392M$\to$1.31B ladder, on a single held-fixed data
+    mix, shows the write-geometry deviation climbing monotonically across
+    all four points (span-fraction $0.248 \to 0.344 \to 0.389 \to
+    0.455$), a \textbf{pure-scale, now-complete} finding --- a positive
+    result in its own right: the failure mode this paper studies is real,
+    persists rather than being washed out by scale, and is now precisely
+    characterized through 1.31B parameters. \textbf{Disclosure:} the
+    1.31B rung self-terminated at a designed internal timeout at
+    $\approx$84.7\% of its token-matched budget (steps
+    $155{,}081/155{,}028$ of $183{,}105$, a clean shutdown, not a crash,
+    with no optimizer-state resume available); a plateau check at the
+    final four logged checkpoints shows the span-fraction reading flat to
+    mildly declining ($-0.003$ over the last 25k steps, against the
+    $+0.066$ rung-2$\to$rung-3 increment it would be revising), so the
+    harvested 155k-step reading is not sensitive to the shortfall. A
+    substantially larger version of the same signature is present in
+    deployed production fixed-state models,
     not yet attributable to the same mechanism. A companion attempt to
     install the demonstrated fix mechanism itself inside a
     free-running-text setting (Track B) is, independently, blocked twice

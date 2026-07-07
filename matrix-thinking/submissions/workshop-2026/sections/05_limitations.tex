@@ -10,13 +10,21 @@
     is made about production-scale Gated-DeltaNet
     \citep{siems2025deltaproduct, grazzi2025negative}, matrix-valued RNNs
     at scale \citep{mishra2026m2rnn}, or natural language.
-  \item \textbf{Two $d$-points, one direction.} Act 2's dimension
-    comparison uses exactly two scales (64, 128); this can determine that
-    the cliff shifted or vanished but cannot, by two points alone,
-    establish which of several $d$-linked confounds (state size,
+  \item \textbf{Two $d$-points in Act 2, one direction --- since extended
+    to four, still not enough to pin the functional form.} Act 2's own
+    dimension comparison uses exactly two scales (64, 128); this can
+    determine that the cliff shifted or vanished but cannot, by two points
+    alone, establish which of several $d$-linked confounds (state size,
     optimization dynamics through a larger Newton--Schulz block, or table
     coherence) is causally responsible --- which is exactly why Act 3 tests
-    the coherence candidate directly rather than inferring it.
+    the coherence candidate directly rather than inferring it. A follow-up
+    wave (\S\ref{sec:open-question}) has since added two further scales
+    ($d_{\mathrm{state}}{=}80, 96$) and refutes fixed-ratio invariance
+    outright, but four points (one of them, $d{=}96$, not even localizing
+    inside its own tested window) are still not enough to distinguish an
+    absolute-slack account from a power-law account or to fix the exact
+    $d_{\mathrm{state}}{=}96$ transition point --- a wide-grid follow-up
+    for that purpose is designed but not yet run.
   \item \textbf{The dose-response result is rank-4-only.} A rank-4-only
     exoneration cannot distinguish ``coherence-as-a-scalar does not drive
     the cliff'' from ``coherence-of-this-particular-concentrated-structural

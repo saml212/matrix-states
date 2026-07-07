@@ -58,6 +58,50 @@
     Kleyko \& Sommer 2020 (Resonator Networks) --- VSA/HRR capacity
     tradition, scope explicitly as a DIFFERENT notion of capacity
     (SNR/bundling) from this paper's exact-rank framing.
+  \item \textbf{Okpekpe \& Orvieto (arXiv:2508.19029) --- the credible
+    rival causal account, engaged head-on.} Their claim: Transformers and
+    SSMs differ in optimization dynamics, not expressive power ---
+    MQAR-style failures in Mamba/Hyena are gated by a narrow
+    learning-rate window, not a hard capacity ceiling, and disappear under
+    a fine LR grid. A hostile reading of this paper's own capacity cliff
+    (\S\ref{sec:phenomenon}, $x_0{=}0.5455$) is that it too is an
+    optimization artifact. \textbf{Rebuttal:} this paper's causal chain
+    runs through forced-rank construction and eval-time SVD truncation on
+    an already-trained matrix, not through any learning-rate axis ---
+    the recovery ceiling lands exactly at $k{=}K$ regardless of how the
+    checkpoint was optimized, a structural claim their account does not
+    make or predict.
+  \item \textbf{Frozen-QK (arXiv:2506.01115) --- nearest neighbor for the
+    frozen-anchor-table mechanism (\S\ref{sec:mechanism},
+    \S\ref{sec:the-fix}), distinguished on three axes.} That work fully
+    freezes an entire softmax transformer's Q/K projections at init;
+    induction heads still form, but at a real loss cost ($\approx$10\%
+    WikiText PPL regression). This paper's frozen anchor table differs:
+    (a) additive, not full-freeze --- a tuned-weight blend into an
+    otherwise fully-trained key path, not a projection replacement;
+    (b) the blend's own gain is loss-neutral by construction (the same
+    architecture with the table zeroed is the baseline); (c) it targets a
+    bounded recurrent fast-weight state, not unbounded-context softmax
+    attention --- the question (does a fixed-size state retain more) has
+    no analog in Frozen-QK's setting.
+  \item \textbf{VLA (arXiv:2605.11196) --- the geometric rival account for
+    the capacity cliff, engaged against the dose-response exoneration
+    (\S\ref{sec:dose-response}).} VLA's stabilized architecture
+    (Kalman/variational update, spectral-norm-1 write direction) pushes a
+    sharp MQAR-recall cliff outward, framing capacity as tied to key
+    linear independence / state-matrix rank --- a geometric account, in
+    tension with this paper's own direct coherence-injection result
+    ($h4{=}1.0$ at every dose up to and beyond $d{=}64$'s realized
+    coherence band, 10/10 cells). \textbf{The tension is stated, not
+    buried:} VLA studies single-hop recall under an architectural
+    stabilization; this paper studies relational binding plus multi-hop
+    composition via a direct causal manipulation of coherence at matched
+    load. It remains possible both accounts describe the same underlying
+    fact from different angles (a rank-deficient key population is also,
+    definitionally, capacity-constrained at fixed $d_{\mathrm{state}}$)
+    --- this paper does not claim to have resolved which framing is more
+    fundamental, only that its own causal dose-response manipulation did
+    not find coherence-as-such to be the lever.
   \item \textbf{This project's own prior chapter (Task D/E,
     \texttt{matrix-thinking/chapter2/}).} Not external work --- immediate
     lineage. The from-scratch, bespoke-attention-encoder version of the

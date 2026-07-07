@@ -83,13 +83,17 @@ WAVED_DIR = os.path.join(WAVE2_LM_DIR, "waveD")
 TRAJ_PROBES_DIR = os.path.join(EXPRUNS, "2026-07-06_trajectory_probes")
 TRAJ_TIDY_CSV = os.path.join(TRAJ_PROBES_DIR, "trajectories_tidy.csv")
 TRACKD_JSON = os.path.join(EXPRUNS, "2026-07-04_track_d", "attractor_probe_trackd.json")
-# Documented expected path convention for the not-yet-existing rung-3 harvest
-# (extrapolated from experiment-runs/2026-07-04_trackc_rung1/rung1_pooled.json
-# and experiment-runs/2026-07-05_trackc_rung2/rung2_final_pooled.json's own
-# naming pattern: experiment-runs/<harvest-date>_trackc_rung<N>/rung<N>_final_pooled.json).
-# Verified absent as of this script's writing (repo-wide search for
-# "rung3"/"rung-3" returns zero hits); this is the ONE figure allowed
-# missing data per the task brief -- see fig9_trackc_and_trackd's Panel A.
+# Rung-3 (1.31B) LANDED 2026-07-07: experiment-runs/2026-07-06_trackc_rung3/.
+# Disclosure (must travel with this point everywhere it appears): both
+# wave-3 cells self-terminated at their own --internal-timeout at steps
+# 155,081/155,028 of a planned 183,105 (~84.7% of the token-matched
+# budget) -- a clean, designed shutdown, not a crash, with no
+# optimizer-state resume available. Harvested at the step-155,000
+# checkpoints. A dedicated plateau check (SCALE_TRANSFER_DESIGN.md
+# §5.11 item 2) shows the reading flat/mildly declining over the
+# final 25k logged steps (-0.003 span_frac, vs. the +0.066
+# rung-2->rung-3 increment it would be revising), so the shortfall does
+# not threaten the monotonic-ladder reading. See probe_analysis_rung3.json.
 RUNG3_GLOB_PATTERNS = [
     os.path.join(EXPRUNS, "*trackc_rung3*", "rung3_final_pooled.json"),
     os.path.join(EXPRUNS, "*trackc_rung3*", "*_pooled.json"),
@@ -580,24 +584,60 @@ def fig08_wave2_corpus_generality():
 
 
 def _find_rung3_data():
-    """Search the documented expected path convention for the not-yet-landed
-    Track C rung-3 (1.31B) harvest. Extrapolated from rung-1/rung-2's own
-    naming (experiment-runs/<date>_trackc_rung{1,2}/rung{1,2}_final_pooled.json
-    or *_pooled.json). Returns (param_count, span_frac) if found, else None.
-    Verified absent as of this script's writing via repo-wide search for
-    "rung3"/"rung-3" (zero hits) -- this is the ONE figure allowed missing
-    data per the task brief. Once the file lands at any of these patterns,
-    re-running this script picks it up with NO code change."""
+    """Locate the Track C rung-3 (1.31B) harvest, landed 2026-07-07 at
+    experiment-runs/2026-07-06_trackc_rung3/. Returns
+    (param_count, span_frac) using the archived-4-corpus-subset pooling
+    convention (matches rungs 1/2's own trajectories_tidy.csv reads), or
+    None if not found.
+
+    SCHEMA CORRECTION (this function originally assumed rung-3 would reuse
+    rung-1/rung-2's own flat *_pooled.json shape -- top-level "n_params" +
+    "span_frac"/"archived4_span_frac". The landed harvest does not use that
+    shape at all: rung3_final_pooled.json's own top level has no span_frac
+    or n_params (see its "pooled" sub-dict, a different, all-corpora-as-
+    written convention). The archived-4 numbers instead live in
+    probe_analysis_rung3.json, a dict keyed by SOURCE FILENAME (one entry
+    per probed JSON -- the final harvest plus four late-checkpoint plateau
+    checks), each with its own "n_params" and a nested
+    "pooled_archived4"."span_frac". Schema B below reads that file,
+    deliberately SCOPED TO ITS OWN FILENAME and to its "rung3_final_pooled.json"
+    sub-entry specifically -- NOT a generic best-effort scan over any dict
+    with this shape -- because a sibling file in the same directory,
+    pooling_validation.json, carries the STRUCTURALLY IDENTICAL nested
+    n_params/pooled_archived4 shape for rung-1's and the control's OWN
+    re-validation numbers (used to confirm the archived4 pooling method
+    reproduces to <=4.5e-7 before trusting rung-3's own score); a
+    filename-blind scan would silently pick up the wrong rung.
+    """
+    # Schema A: flat top-level (rung1/rung2's own *_pooled.json convention).
+    # Kept for forward-compatibility; the landed rung-3 files do not match it.
     for pattern in RUNG3_GLOB_PATTERNS:
         for path in sorted(glob.glob(pattern)):
             try:
                 d = jload(path)
             except Exception:
                 continue
-            # Expect a pooled-probe schema analogous to rung1/rung2's
-            # *_pooled.json: look for a span-frac-like field and a param count.
             span = d.get("archived4_span_frac") or d.get("span_frac")
             n_params = d.get("n_params")
+            if span is not None and n_params is not None:
+                return float(n_params), float(span)
+
+    # Schema B: the actual landed convention (probe_analysis_rung3.json),
+    # filename-scoped -- see docstring for why a generic scan is unsafe here.
+    for pattern in RUNG3_GLOB_PATTERNS:
+        for path in sorted(glob.glob(pattern)):
+            if os.path.basename(path) != "probe_analysis_rung3.json":
+                continue
+            try:
+                d = jload(path)
+            except Exception:
+                continue
+            entry = d.get("rung3_final_pooled.json")
+            if not isinstance(entry, dict):
+                continue
+            n_params = entry.get("n_params")
+            pooled4 = entry.get("pooled_archived4")
+            span = pooled4.get("span_frac") if isinstance(pooled4, dict) else None
             if span is not None and n_params is not None:
                 return float(n_params), float(span)
     return None
@@ -613,8 +653,15 @@ def _find_rung3_data():
 # checked against each track's own summary .txt: mixcontrol=14,048,896 (14M),
 # wave1ext=97,618,176 (98M, EXTENDED-mix -- matches 0.344, NOT plain `wave1`
 # which is the original-mix 98M cell), wave2=391,869,440 (392M). Rung-3
-# (1.31B) is not yet archived -- see _find_rung3_data() above; if absent,
-# a hollow placeholder marker is drawn with NO plotted y-value.
+# (1.31B, n_params=1,311,135,488) is read via _find_rung3_data() above from
+# the landed harvest (experiment-runs/2026-07-06_trackc_rung3/); if for any
+# reason it is absent, a hollow placeholder marker is drawn instead with NO
+# plotted y-value (fallback path preserved below). When present, the point
+# is drawn with an open/annotated marker (not identical to rungs 1-3's
+# closed circles) plus an inline disclosure note, because this rung's own
+# training run self-terminated at ~84.7% of its token-matched budget
+# (SCALE_TRANSFER_DESIGN.md §5.11) -- the disclosure must travel with
+# the point wherever it is rendered, not just in prose.
 # Panel B source: experiment-runs/2026-07-04_track_d/attractor_probe_trackd.json,
 # models.{rwkv7,falcon_mamba,qwen_control}.per_corpus.{openr1,wikitext}.
 # per_chunk_size["64"].pooled_across_layers_gram_deviation_mean.
@@ -660,7 +707,23 @@ def fig09_trackc_ladder_and_trackd():
         n4, span4 = rung3
         axA.plot([xs_params[-1], n4], [ys_span[-1], span4], color=C_BLUE,
                   linewidth=1.5, zorder=3)
-        axA.scatter([n4], [span4], color=C_BLUE, marker="o", s=30, zorder=4)
+        # Open/starred marker (distinct from rungs 1-3's filled circles) plus
+        # an inline dagger note: this point's own training run was harvested
+        # at ~84.7% of its token-matched budget (self-terminated at its own
+        # internal timeout, a clean disclosed shutdown, not a crash -- see
+        # SCALE_TRANSFER_DESIGN.md §5.11). A dedicated plateau check found
+        # the reading flat/mildly-declining over the final 25k logged steps
+        # (-0.003 span_frac vs. the +0.066 rung-2->rung-3 increment it would
+        # be revising), so the shortfall does not threaten the monotonic
+        # reading, but the disclosure travels with the point regardless.
+        axA.scatter([n4], [span4], facecolors=C_BLUE, edgecolors=C_BLACK,
+                    marker="*", s=90, linewidth=0.8, zorder=4)
+        axA.annotate("rung-3$^\\dagger$", xy=(n4, span4), xytext=(4, -9),
+                     textcoords="offset points", fontsize=6.3, color=C_BLACK)
+        axA.annotate("$\\dagger$harvested @~84.7% token budget\n"
+                     "(plateau-corrected, see text)",
+                     xy=(0.98, 0.06), xycoords="axes fraction",
+                     fontsize=5.3, color=C_GREY, ha="right", va="bottom")
     else:
         # Rung-3 not yet archived: draw a visible hollow placeholder marker
         # at its documented expected x-position (1.31B params, per

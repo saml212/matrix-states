@@ -8,18 +8,31 @@
   \item \textbf{Small scale.} $d_{\mathrm{model}}$ in the low hundreds,
     $d_{\mathrm{state}}{=}64$, sub-1M--low-single-digit-M parameters (the
     core causal chapters). \textbf{Partial evidence, not a resolution:} a
-    controlled 14M$\to$98M$\to$392M scaling ladder (Tier 2,
-    geometry-only, a clean 3-point read on a single held-fixed corpus mix,
+    controlled 14M$\to$98M$\to$392M$\to$1.31B scaling ladder (Tier 2,
+    geometry-only, a clean 4-point read on a single held-fixed corpus mix,
     Fig.~9 Panel A) finds the write-geometry attractor does NOT dissolve
-    with scale --- it WORSENS monotonically (span-fraction
-    $0.248 \to 0.344 \to 0.389$), a \textbf{pure-scale} claim. A fourth,
-    1.31B-parameter rung was running as this draft was prepared
-    \todo{[PENDING RUNG-3] insert the 1.31B span-fraction reading and its
-    position relative to the 3-point trend the moment Track C rung-3
-    reports; update Fig.~9 Panel A's fourth point and this sentence
-    together --- see NARRATIVE.md \S9 item 3.}; this item's core claim
-    (untested at production scale for compositional recovery, not just
-    geometry) stands regardless of that reading.
+    with scale --- it WORSENS monotonically through the full ladder
+    (span-fraction $0.248 \to 0.344 \to 0.389 \to 0.455$), a
+    \textbf{pure-scale} claim, now COMPLETE at four points rather than an
+    open 3-point trend. \textbf{Disclosure, stated plainly:} the
+    1.31B-parameter rung self-terminated at its own internal timeout at
+    step $155{,}081/155{,}028$ of a planned $183{,}105$ ($\approx$84.7\%
+    of the token-matched budget) --- a clean, designed shutdown (loss
+    curves clean throughout, zero skipped steps), not a crash, and not
+    recoverable by resuming (no optimizer-state checkpointing existed for
+    this run). The harvested reading is neutralized against this shortfall
+    by a dedicated plateau check at four late checkpoints
+    (steps $130\text{k}$--$155\text{k}$): span-fraction is flat, mildly
+    \emph{declining} over that window ($0.4584 \to 0.4554$, $-0.003$),
+    linearly extrapolating to $\approx$0.452 at the full $183{,}105$-step
+    budget --- two orders of magnitude smaller than the $+0.066$
+    rung-2$\to$rung-3 increment it would be correcting, and in the
+    direction that would slightly shrink, not grow, the reading. Harvesting
+    at the 155k checkpoint (rather than a $\approx$144 GPU-h cold restart,
+    for which no state exists to resume from) was the adjudicated choice
+    on this basis. This item's core claim (untested at production scale
+    for compositional recovery, not just geometry) stands regardless of
+    that reading.
   \item \textbf{Single architecture family.} Vanilla, single-head,
     single-layer DeltaNet only. Gated DeltaNet (the actual Qwen3-Next
     production config), DeltaProduct's multi-Householder generalization,
@@ -93,7 +106,32 @@
     silently dropped, it is the paper's own open follow-on) and ABSOLUTE
     STATE CAPACITY ($d_{\mathrm{state}}$ grew $4\times$ while $K$ only grew
     $\sim$2$\times$ across the two waves, a confound no wave here holds
-    fixed). The open question is therefore sharper than before: not ``does
+    fixed). \textbf{A dedicated follow-up wave has since tested the
+    ABSOLUTE-CAPACITY candidate directly, by re-fitting the transition at
+    two further $d_{\mathrm{state}}$'s, and REFUTES pure ratio-invariance:
+    the transition's own load tolerance grows SUPER-LINEARLY in $d$, not
+    at a fixed $K/d$ ratio.} Against a pre-registered ratio-invariant band
+    $[0.4745, 0.6165]$ (centered on $d{=}64$'s own $x_0{=}0.5455$), the
+    identical fitting procedure at $d_{\mathrm{state}}{=}80$ locates the
+    transition at $x_0{=}0.6756$ (95\% CI $[0.6620,0.6868]$, clean,
+    non-degenerate fit) --- entirely above the band, a real, disclosed
+    exclusion. At $d_{\mathrm{state}}{=}96$, the curve does not merely
+    shift further, it does not localize at all inside the tested window:
+    $h{=}4$ stays at or above $0.98$ for every load through
+    $K/d{=}0.71875$ (i.e.\ load tolerance exceeds $\approx$0.72 in this
+    window), the same flat-near-ceiling signature $d{=}128$ showed one
+    step earlier. Of the two simplest rival functional forms, an
+    absolute-slack account ($x_0 \propto d_{\mathrm{state}}{-}\text{const}$)
+    sits closer to both measured points than the ratio-invariant band
+    does, but does not hit either exactly, and a power-law account is not
+    excluded either --- \textbf{the exact functional form of this
+    super-linear growth is not yet resolved.} A wide-grid follow-up at
+    $d_{\mathrm{state}}{=}96$ ($K{=}72,78,84,90$) has been designed and
+    power-checked to localize that $d$'s own transition precisely, but per
+    this project's own multiple-independent-audit discipline it is still
+    DRAFT pending its own attack round and has NOT been launched;
+    \textbf{its result is not claimed here.} The open question is
+    therefore sharper than before: not ``does
     it break past $d/2$'' (yes, precisely located) nor ``does the break
     persist at larger $d$'' (no, it dissolves) but ``what mechanism
     distinguishes a table forced non-orthogonal by the Welch bound from
@@ -108,13 +146,22 @@
     text is separately tested and blocked.} Wave 2 establishes the
     truncation-damage phenomenon generalizes to naturalistic LM
     pretraining at small scale (descriptive+interventional tier only).
-    Beyond that: (a) on a controlled 14M$\to$98M$\to$392M parameter
-    ladder, on a single held-fixed data mix, the write-geometry attractor
-    does not dissolve --- it WORSENS monotonically, a \textbf{pure-scale}
-    finding (Fig.~9 Panel A), not yet extended to compositional recovery
-    at scale, with a 1.31B-parameter fourth rung
-    \todo{[PENDING RUNG-3] state whether it continued climbing,
-    plateaued, or reversed once it reports.}; (b) a much larger version
+    Beyond that: (a) \textbf{the controlled 14M$\to$98M$\to$392M
+    $\to$1.31B parameter ladder is now COMPLETE, a positive headline
+    result in its own right}: on a single held-fixed data mix, the
+    write-geometry attractor does not dissolve --- it WORSENS
+    monotonically across all four points (span-fraction $0.248 \to 0.344
+    \to 0.389 \to 0.455$), a \textbf{pure-scale} finding (Fig.~9 Panel A),
+    confirming the failure mode is real, persists (rather than being a
+    small-model artifact scale would eventually wash out), and is now
+    precisely characterized through 1.31B parameters --- not yet extended
+    to compositional recovery at scale. The fourth rung's own training run
+    self-terminated at $\approx$84.7\% of its token-matched budget (a
+    disclosed, designed timeout, not a crash); a dedicated plateau check
+    at the final four logged checkpoints shows the reading flat-to-mildly-
+    declining ($-0.003$ span-fraction over the last $25$k steps, against a
+    $+0.066$ rung-2$\to$rung-3 increment), so the harvested value is not
+    sensitive to the shortfall. (b) a much larger version
     of the SAME non-orthonormal write-geometry signature is measurable
     directly in production-scale pretrained fixed-state models (RWKV-7
     1.5B, Falcon-Mamba-7B; Fig.~9 Panel B); (c) but a matched
@@ -181,4 +228,36 @@
     pre-registering and then confirming a falsifiable account of a
     surprising positive result. Report all of this, not just the
     flattering parts.
+  \item \textbf{An attempt to connect this paper's causal capacity and
+    geometry findings to natural in-context multi-hop reasoning ran into
+    an instrument-validity problem, caught by the instrument's own
+    pre-registered gates rather than silently reported as a finding ---
+    itself evidence for, not against, this project's gating discipline.}
+    A held-out-hop probe applied directly to this paper's own checkpoints
+    (the frozen-bias intervention arms as the geometry leg, the
+    14M--392M scale ladder as the scale leg) returned
+    $\mathrm{recovered\_frac@0.9}{=}0.0$ at every one of 78 cells and
+    every tested hop depth: the probe's own pre-registered Stage-0 sanity
+    floor and alignment premises fail categorically, not marginally,
+    routing the result to PROBE-INVALID rather than a licensed REFUTE
+    (the design's own explicit rule: an instrument that cannot clear its
+    own sanity floor does not get to report a negative result). A
+    follow-up isolated whether this was a surface-form artifact of the
+    original query-marker template: two structurally different
+    natural-language reformulations --- one dropping the reserved marker
+    entirely, one substituting an order-of-magnitude more corpus-common
+    relation-verb family --- were run through the identical gate and
+    failed IDENTICALLY (categorical failure at all 4 gate cells, the same
+    shape as the original 78-cell result). \textbf{Two structurally
+    different query formats failing the same way is the single most
+    informative null this instrument can produce: it exonerates surface
+    form as the cause and mechanically promotes a task-familiarization
+    instrument (continued training on the probe's own query distribution
+    before re-evaluating) as the next, already-designed step.} Realized
+    cost of both probe-invalid harvests combined was small (${\approx}0.30$
+    GPU-h against a ${\approx}24.2$ GPU-h ceiling); a disclosed process gap
+    let the first harvest run to completion past its own already-failed
+    gate (fixed and verified holding on the second harvest, which halted
+    correctly before any full-grid spend). No claim about in-context
+    reasoning, positive or negative, is licensed by either harvest.
 \end{enumerate}

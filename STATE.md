@@ -50,11 +50,24 @@ scoring). Archive: `experiment-runs/2026-07-06_trackc_rung3/` (repo
 Checkpoints stay on box (`/data/lm_rd_trackc_ckpts/wave3/`, 155/run).
 
 **Queue implication:** the PRE-COMPACTION SNAPSHOT's queue item 2 step 1
-(this harvest) is DONE; **its step 2 (paper addendum: fold rung-3 into
-`submissions/iclr-2027/NARRATIVE.md`, rerun `make_figures_v2.py` Fig 9
-4th point, resolve the 3 `[PENDING RUNG-3]` todos, intro bullets +
-related-work cite, then delete both stale handoff blocks from this
-file) is now the standing next item.** REASONING-LINK's 2 deferred
+(this harvest) is DONE; **its step 2 (paper addendum) is now ALSO DONE
+(2026-07-07, paper-addendum pass):** all 3 `[PENDING RUNG-3]` `\todo{}`
+markers resolved with the real numbers + disclosure
+(`iclr-2027/sections/09_discussion_limitations.tex`,
+`10_conclusion.tex`); the completed monotonic 4-point ladder, the
+super-linear-capacity finding (`KEY_ANCHORING_SCALING_DRAFT.md` §15.19,
+d=96 wide-grid marked in-flight, not pre-claimed), and the double
+PROBE-INVALID/format-exonerated result (`REASONING_LINK_DESIGN.md`
+§15/§16.8) folded into `04_phenomenon.tex`/`05_mechanism.tex`/
+`08_results.tex`/`09_discussion_limitations.tex`/`10_conclusion.tex`;
+3 missing intro contribution bullets added to `01_intro.tex`; 3
+related-work citations (VLA 2605.11196, Frozen-QK 2506.01115, Okpekpe
+\& Orvieto 2508.19029) added to `02_related_work.tex`; `make_figures_v2.py`
+Fig 9 Panel A extended to the 4th ladder point and regenerated; the
+super-linear-capacity update also folded into `workshop-2026/sections/
+04_open_question.tex` and `05_limitations.tex`; both stale handoff
+blocks (PRE-COMPACTION SNAPSHOT, SESSION HANDOFF) deleted from this
+file, consumed by this pass. REASONING-LINK's 2 deferred
 rung-3 Leg-B cells are unblocked in the narrow sense that trackc's lane
 is closed and GPUs 0-1 are free — but they would run on the step-155k
 (84.7%-budget) checkpoints; whether that's acceptable is a design-owner
@@ -135,252 +148,6 @@ a PI/design-owner call**, per §15.10.
 
 **Archive:** `experiment-runs/2026-07-07_reasoning_link_phase1/` (82
 raw JSONs + 89 logs + 3 exact scripts, ~1.3MB) + SSD mirror.
-
----
-
-## PRE-COMPACTION SNAPSHOT (2026-07-07 ~04:15 UTC) — supersedes the older SESSION HANDOFF block below
-
-**Everything through commit d20cbe8 is pushed to GitHub. On-box tmux
-sessions survive any local session loss.**
-
-**RUNNING on the box (youthful-indigo-turkey, repo /home/nvidia/chapter2/deltanet_rd):**
-1. **rung-3** (tmux `trackc3`, GPUs 0-1): 2×1.31B scale runs, step
-   ~121,200/183,105 (~66.2%) as of 04:40 UTC Jul 7 (verified live from
-   the box's own training log at harvest time), sentinel
-   `results/lm_rd_trackc/wave3/ALL_DONE`, ETA unchanged ≈05:00 UTC Jul 8.
-   Stop only via `touch STOP_trackc3`, never pkill.
-
-**§14 keyanchor_dose lane: COMPLETE 2026-07-07.** The `keyanchor_dose`
-tmux session has exited (verified: `tmux has-session -t keyanchor_dose`
-returns "can't find session" on the box). All 9 diffuse cells
-(seeds 940-948, doses 0.130/0.284/0.40) finished `complete=true`,
-`h4=1.0` at every cell — **coherence FULLY EXONERATED at BOTH the
-rank-4 (Stage 1) and diffuse (Stage 2) structures**, closing §14's
-structure-dependent escape hatch. Surviving candidate account of the
-d=64 cliff: absolute state capacity, not key geometry. Realized Stage-2
-cost: 5.6330 GPU-h (measured, sum of 9 `wall_s`). Anchoring ledger:
-72.594 → **78.2270/80 GPU-h** (reserve 1.7730/80). Full verdict:
-`matrix-thinking/KEY_ANCHORING_DESIGN.md` §14.13 (§14.12 holds the
-Stage-1 rank-4 verdict). GPUs 2/6/7 now idle.
-
-**MECHANISM WAVE (§12 FROZEN_BIAS_LM_DESIGN.md): CONCLUDED 2026-07-07
-(~07:00 UTC), all stages done, verdicts in §12.10+§12.11+§12.12 +
-EXPERIMENT_LOG:** H1 REFUTED (Δrepeat_excess(Arm2−Arm1) = −0.090 BOTH
-corpora — required positive; rank collapse NOT organized around token
-identity), H5 clean, H2 corroborated (Stage 0), H4 consistent at block-0
-k_conv1d (real run, CPU), **H3 consistent (Stage 2, no sign
-pre-registered)** — per-token arm's k_raw gradient suppressed at BOTH
-layers (up to 89.8%, deepening over training, layer-0 the only negative
-trend in the grid), global arm's suppression shallow at layer 0 (46.0%)
-and statistically ABSENT at layer 1 (parity with the unblended control
-throughout training). Composite picture: broad rank-collapse +
-gradient-starvation in the destabilizing (per-token) arm vs. a coherent
-low-rank compensatory correction + shallow/absent gradient suppression
-in the stabilizing (global) arm — still bounded by the wave's own
-correlational ceiling (no instrument intervenes on the mechanism
-directly; Stage 2 is the closest this wave gets to interventional).
-Stage-2 measured cost **0.7431 GPU-h** (log-timestamp bound,
-chain-deploy 06:14:27 UTC → `MECH_STAGE2_DONE` 06:59:02 UTC), UNDER the
-0.76 GPU-h estimate — corrects an inherited ≈70min/≈1.2 GPU-h assumption
-not supported by the raw timestamps. Archive
-`experiment-runs/2026-07-07_mech_stage2/` + SSD (byte-identical). **LM
-ledger: 6.9288 + 0.7431 = ≈7.672/135. GPU 2 now free** (tmux session
-exited, confirmed idle).
-
-**IMMEDIATE QUEUE (in order):**
-1. **Design-ahead buffer status (2026-07-07 ~06:20 UTC):**
-   (a) **Scaling-law wave (KEY_ANCHORING_SCALING_DRAFT.md §15): CONCLUDED
-   2026-07-07 — WAVE VERDICT AMBIGUOUS (mechanical, §15.10; d=80 alone
-   cleanly REFUTES ratio-invariance, d=96's fit is degenerate/flat-near-
-   ceiling).** Un-parked and launched under `KEYANCHOR_SCALING_PI_SIGNOFF=1`
-   as Path (iii) of `REASONING_LINK_DESIGN.md` §16.3/§16.6 once REASONING-
-   LINK Phase 1 landed. Full harvest, ledger, and queue implication (none
-   for §16's own decision tree): top-of-file KEYANCHOR-SCALING WAVE
-   HARVEST block, `matrix-thinking/KEY_ANCHORING_SCALING_DRAFT.md` §15.19.
-   (b) **REASONING-LINK (matrix-thinking/REASONING_LINK_DESIGN.md):
-   Rev-1 synthesis in flight** (attack-1 NEEDS-MAJOR-REVISION: F1
-   probe-eval pool < killer-cell Ks; F2 blend-live-at-eval confound →
-   mandatory 2×2 surgery grid; M1-M5; litreview GO-WITH-REFRAME,
-   research/reasoning-link-litreview-2026-07-07.md) → **NEXT: Rev 3
-   synthesis → attack-4 fresh eyes → build** → audit → Phase 1 launch
-   (~20-25 GPU-h, eval-only, THE registered publication keystone —
-   takes GPU budget priority per the attack round's sequencing
-   adjudication).
-   (c) Waterfall brainstorm + research validation DONE (committed).
-2. **At rung-3 ALL_DONE (~05:00 UTC Jul 8):** harvest per the older
-   handoff block's step 1 (archived-4 pooling validation to 1e-6 FIRST,
-   attractor probe on 2×1.31B final ckpts at /data/lm_rd_trackc_ckpts/
-   wave3/, 1 GPU, vs ladder 0.248→0.344→0.389; §5.11 verdict;
-   EXPERIMENT_LOG; archive experiment-runs/2026-07-06_trackc_rung3/
-   repo≤25MB+SSD; PROGRAM_SPENT_GPUH actuals ~334/300 disclosed), then
-   step 2 (paper addendum: narrative, make_figures_v2.py Fig 9 4th point,
-   3 PENDING-RUNG-3 todos, 3 intro bullets, related-work cite, DELETE
-   both handoff blocks from this file; fold §14 full-closure headline
-   into workshop-2026 draft). **This is the rung-3 harvest at ALL_DONE
-   — the queue's other standing item, unblocked by anything above.**
-
-**STRATEGY (PI check-in 2026-07-07 ~05:10 UTC):** the publication
-keystone is REASONING-LINK — connect the capacity law + geometry
-interventions to actual in-context multi-hop reasoning, on existing
-checkpoints (frozen-bias arms = intervention leg; trackc ladder =
-scale leg). The matrix-STATE line (DeltaNet family) carries the
-reasoning claim; the matrix-TOKEN line stays secondary (Stage G's own
-H_e inversion). Killer figure target: the three frozen-bias arms'
-recovery-vs-load curves separating at the law's predicted cliff.
-
-**TODAY'S COMPLETED RESULTS (all harvested, archived, pushed, in papers):**
-- Capacity trilogy, now a CLOSED three-wave arc: d=64 cliff LOCATED
-  (x0=0.5455, CI [0.5385,0.5513]) → d=128 DISSOLVED (h4=1.0, same K/d
-  window) → coherence FULLY EXONERATED at BOTH rank-4 and diffuse
-  structures (frozen doses to 0.40 flat at 1.0, both arms) → surviving
-  candidate: absolute state capacity, not key geometry.
-- Frozen-bias LM rung-1: fourth outcome (per-token bias destabilizes
-  +0.20/+0.23, global stabilizes −0.33/−0.23; CORRECTED direction gloss:
-  higher span_frac = MORE collapsed).
-- Mechanism wave, ALL STAGES (0/0.5/1/2): H1 REFUTED, H5 clean, H2
-  corroborated, H4 consistent, H3 consistent (Stage 2, gradient-flow) —
-  wave CONCLUDED at exploratory tier, full synthesis in §12.12.
-- Papers: workshop-2026 4pp cut (compiles) + ICLR sections current;
-  figures fig_cliff (2-panel) + fig_dose (rank-4 + diffuse series)
-  rendered from archives.
-
-**PI ASKS at next check-in:** venue/author/title (~Jul 11 CFP);
-mechanism wave now CONCLUDED (no further scope decision needed).
-
-**Budgets:** anchoring **78.2270/80** (§14 CLOSED, reserve 1.7730/80);
-scale ≈334/300 (disclosed overrun); frozen-bias LM **≈7.672/135**
-(mechanism wave CONCLUDED).
-
----
-
-## SESSION HANDOFF (2026-07-06 ~07:15 UTC — pre-compaction snapshot)
-
-**One experiment still running; everything else complete and pushed (main = c3b888b).**
-
-- **RUNNING:** Track C rung-3 (2×1.31B, tmux `trackc3` on box GPUs 0-1,
-  survives any local session loss). Sentinel:
-  `results/lm_rd_trackc/wave3/ALL_DONE`. **ETA CORRECTED 2026-07-06 ~07:35
-  UTC: ≈05:00 UTC 2026-07-08** (measured 1.416 s/step from live logs —
-  step 67,500 in 95,553 s — vs the banked 0.7135 s/step calibration; the
-  original ~19:00 UTC Jul 6 ETA was wrong by ~34 h). Budget implication:
-  rung-3 actual ≈144 GPU-h vs 76.25 booked → program lands ≈334/300 vs
-  §7's ceiling, DISCLOSED not silently absorbed; run continues because
-  the grant is uptime-metered (no incremental dollar cost) and GPUs 0-1
-  have no competing queued work. Update PROGRAM_SPENT_GPUH with final
-  actuals at harvest. Root cause of the 2× gap unknown (calibration cell
-  ran solo; suspect dataloader/CPU contention between the two concurrent
-  runs) — note in EXPERIMENT_LOG at harvest.
-  Stop only via `touch STOP_trackc3` on the box; never pkill.
-- **ON THAT SENTINEL, the remaining queue (in order):**
-  1. Harvest: attractor probe on the 2 final checkpoints + trajectory
-     (`/data/lm_rd_trackc_ckpts/wave3/`), SAME instrument, corpus-matched
-     archived-4 pooling (validate against archived refs to 1e-6 first —
-     see the rung-2 harvest [LEARN] in EXPERIMENT_LOG). Probe on 1 GPU.
-     Write SCALE_TRANSFER_DESIGN.md §5.11 + EXPERIMENT_LOG + archive
-     `experiment-runs/2026-07-06_trackc_rung3/` (repo ≤25MB + SSD mirror).
-     This adds the 4th point to the pure-scale ladder 0.248→0.344→0.389
-     and COMPLETES the scale program.
-  2. Final addendum pass: fold rung-3 into
-     `submissions/iclr-2027/NARRATIVE.md` (round 5); rerun
-     `submissions/iclr-2027/figures/make_figures_v2.py` (Fig 9
-     auto-ingests the new point); resolve the 3 `[PENDING RUNG-3]` todos
-     in sections/; add the 3 missing intro contribution bullets +
-     related-work anchoring citation (flagged in the sprint plan).
-- **GPUs 2-7 (UPDATED 2026-07-06 ~10:30 UTC):** two NEW gauntlet-cleared
-  programs queued/launching, both user-signed-off ("Both, in parallel" +
-  standing full-autonomy directive, same date):
-  1. **Capacity-cliff localization wave — COMPLETE 2026-07-06.** All 12
-     cells (K∈{34,38,42,46}, 3 seeds, candidate-(d) only) finished; sigmoid
-     fit: **x0=0.5455 (95% CI [0.5385,0.5513]), w=0.0597, 0/4000
-     degenerate.** Realized 3.1803 GPU-h vs the 23.3587 GPU-h ceiling
-     (≈13.6% used, abort never fired — all cells 900-986s, bracket edge
-     3503.8s). Anchoring ledger now 59.01/80. Full verdict:
-     `matrix-thinking/KEY_ANCHORING_DESIGN.md` §12.9. **GPUs 2-3 now idle.**
-  2. **Frozen-bias LM demo, RUNG-1 — COMPLETE 2026-07-06.** All 20/20
-     training cells + full measurement pipeline done. **FOURTH OUTCOME
-     (§1.3 "sim-training divergence"):** primary (Arm2−Arm1′ post-blend
-     span_frac) excludes zero BOTH corpora but is **positive**
-     (openr1 +0.1955 [0.0937,0.2973], wikitext +0.2273 [0.0926,0.3621]) —
-     opposite every sim's predicted direction; co-primary agrees in sign
-     (training-mediated, confirmed); control (global-vector bias) is
-     **negative** (openr1 −0.3319, wikitext −0.2308) — a striking
-     destabilize-vs-stabilize sign split no sim predicted. Cosine
-     diagnostic rules out key-anchor alignment; val-loss gate clean.
-     DESCRIPTIVE TIER ONLY — blind-pin was written post-training (process
-     lesson: pin before launch next time). Not a transplant confirm; a
-     real, controlled, surprising geometry effect instead. Realized
-     **≈6.90 GPU-h** (5.05 training + 1.6 eval + 0.25 calibration), well
-     under the ~14.2 GPU-h committed estimate. Full verdict:
-     `matrix-thinking/FROZEN_BIAS_LM_DESIGN.md` (VERDICT section).
-     **GPU 2 now idle.** Rung-2 remains PARKED.
-  3. **Cliff-universality-across-d_state wave (d=128) — COMPLETE
-     2026-07-06.** All 12 cells (K∈{68,76,84,92}, K/d matched to item 1's
-     window, 3 seeds, candidate-(d) only) finished. **HEADLINE: NO CLIFF
-     IN THE MEASURED WINDOW at d=128** — `h4=1.0` at all 4 K's, all 12
-     cells/seeds (verified against the raw JSONs, not just the fit's own
-     printout), vs. d=64's located `x0=0.5455` [0.5385,0.5513] in the
-     SAME K/d window (item 1) — CIs not merely disjoint, the transition
-     left the window (CONFIRM-SHIFTED, strong form, §13.0). Sigmoid fit
-     correctly reports degenerate (bootstrap `degenerate_frac=1.0`, CI
-     null) per the §12.4 disclosure rule — the point estimate
-     (x0=0.898) is extrapolation garbage, NOT a located cliff. Disclosed
-     comparison axis: the 107-entity anchor table is EXACTLY orthogonal
-     at d=128 (n<d, Gate-2 `max|cos|=0.000000`) vs. non-orthogonal at
-     d=64 (n>d, `max|cos|=0.284`) — leading candidate account is the
-     cliff tracks table coherence, not raw K/d capacity, but this wave
-     alone cannot isolate that confound (pre-registered follow-on: vary
-     `n_entities` independent of `d_state`, not designed yet). Realized
-     **7.3130 GPU-h** vs the 20.99 GPU-h calibration-derived headroom
-     (34.8% used). Full verdict: `matrix-thinking/KEY_ANCHORING_DESIGN.md`
-     §13.10. **GPUs 2-7 now idle.**
-  4. **Coherence-dose-response wave, Stage 1 (rank-4) — COMPLETE
-     2026-07-06/07.** All 10 cells (K=68, doses 0.130/0.284/0.40, 3 seeds
-     each + 1 shared calibration cell) finished. **HEADLINE: `h4=1.0` at
-     EVERY cell, EVERY dose, 10/10, no exception** — FLAT ACROSS ALL
-     DOSES, including 0.40, which EXCEEDS d=64's own final-checkpoint
-     coherence band (0.373–0.385 range-of-K-means, §14.0b). Per §14.0's
-     pre-registered outcome semantics: **COHERENCE EXONERATED at the
-     rank-4 structure** — directly-injected anchor overlap, at and above
-     the d=64 regime, does NOT reproduce the cliff at matched K/d/n
-     geometry. Frozen-table constancy holds EXACTLY (max deviation = 0.0
-     across all 10 checkpoints, all 10 cells — no build regression).
-     `§14.4c`'s mechanical K=84 trigger evaluated numerically: condition 1
-     fails (total range 0.0 is not >0.20), condition 2 not evaluable (no
-     diffuse-arm data yet) — **K=84 NOT activated**. Combined with §13.10,
-     neither K/d ratio NOR scalar rank-4-structured coherence suffices;
-     surviving candidates: overlap STRUCTURE (diffuse — the registered
-     Stage 2 arm, HARD-GATED as a PI ask) and absolute state capacity
-     (d² grew 4× vs. K's ~2× at matched ratio). Realized **6.2742 GPU-h**
-     vs the Stage-1 6.410 GPU-h 1×-bracket estimate and the wave's full
-     13.68 GPU-h ceiling (45.8% used). Full verdict:
-     `matrix-thinking/KEY_ANCHORING_DESIGN.md` §14.12. **GPUs 2-7 now
-     idle.**
-- **Budgets:** scale 266.47/300 GPU-h committed at launch-time constants
-  (rung-3 actual ≈334/300 DISCLOSED, see top block); anchoring 55.83/80 +
-  cliff realized 3.18 + dstate realized 7.31 + dose-stage1 realized
-  6.2742 = **72.594/80** (2026-07-07 update — cliff, dstate, and
-  dose-stage1 waves all complete, see items 1/3/4 above — reserve now
-  **7.406/80**); frozen-bias LM program own ceiling 135,
-  realized **6.8988/135** (rung-1 complete, see item 2 above).
-- **PI ASK QUEUED (2026-07-07):** Stage 2 (diffuse, `subspace_rank=48`,
-  9 cells) of the coherence-dose-response design is priced at
-  5.769/11.538 GPU-h at 1×/2× (§14.4). Against the anchoring ledger's
-  remaining 7.406 GPU-h reserve: **fits at 1× (margin 1.637 GPU-h) but
-  NOT at 2× (short 4.132 GPU-h)**. Per §14.4 Option 1's mechanical
-  default, this needs an explicit decision, not self-amendment: **(a)
-  launch Stage 2 now at 1× exposure (no ceiling change), or (b) request a
-  +4.132 GPU-h ceiling amendment first to clear the 2× contingency
-  bracket before launching.** Both numbers stated per house discipline.
-- **User decisions pending:** see `matrix-thinking/submissions/PAPER_SPRINT_PLAN.md`
-  §PI-decisions (venue NeurReps/UniReps EA ~Jul 11 CFP; title keep-default;
-  author block + co-contributor question; parallel workshop-cut + ICLR
-  drafting; next-program candidates: frozen-bias fix in from-scratch small
-  LM / capacity-cliff theory / submission execution) — PLUS the new Stage-2
-  launch decision above.
-- Housekeeping: `git prune` pending (gc.log warning); two orphan local
-  dashboard PIDs (82723/82725) left for the user's call.
-
-*(Delete this handoff block once the rung-3 harvest + addendum land.)*
 
 ---
 
