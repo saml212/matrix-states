@@ -5017,3 +5017,47 @@ relative path under `/Volumes/1TB_SSD/learned-representations/`. Full
 verdict: `matrix-thinking/KEY_ANCHORING_DESIGN.md` §14.13. Figure
 `make_fig_dose.py` extended with the diffuse series and re-rendered.
 `STATE.md` updated.
+
+## MECHANISM-WAVE STAGE 0+1 VERDICTS (2026-07-07): H1 REFUTED (per-token bias makes repeats LESS self-similar, corpus-consistent −0.090 both corpora), H5 clean, H2 corroborated, H4 consistent at block-0 k_conv1d; Stage-2 gate → FULL 20,000-step branch
+
+Frozen-bias LM mechanism wave (`FROZEN_BIAS_LM_DESIGN.md` §12), all
+exploratory tier — hypothesis ordering for Stage 2, not headline claims.
+
+**Stage 0 (zero GPU, §12.10):** Stage-0.5 self-test gate PASSED (pinned
+constructions reproduced ±1e-4). H2 rank reharvest (n=48 archived JSONs,
+pinned t(2,.975)=4.303 CIs): Arm2 (per-token, destabilizing) key-rank
+FALLS vs both baselines (post-blend 4/4 cells CI-exclude-zero, e.g.
+eff_rank openr1 −5.618 [−8.144,−3.092]; pre-blend 3/4, openr1 −2.094
+[−2.731,−1.457]); Arm2′ (global, stabilizing) rank RISES post-blend
+(3/4); Arm2′-pre-blend all-ambiguous (honest non-result). H4 param-diff
+REAL run (CPU, box, `mech_h4_chain.sh`): Arm2′ block-0 k_conv1d drift is
+b_global-coherent and anti-aligned (mean|cos| 0.1778 vs chance 0.0997,
+max 0.3740, 4/4 columns negative) while Arm2 sits at chance (0.0816) —
+H4-CONSISTENT at that locus, block-0-localized, single seed/corpus.
+
+**Stage 1 (§12.11, `frozen_bias_token_identity_probe.py`, audit-CLEARED
+commit 2432e23, realized ≈0.03 GPU-h vs 0.73 estimate):** H1 REFUTED at
+the pre-registered reading — Δrepeat_excess(Arm2−Arm1, kraw, step 20000)
+required POSITIVE, measured −0.09026 (openr1) / −0.09005 (wikitext),
+strikingly corpus-consistent; the rank collapse is NOT organized around
+token identity. H5 clean (rest-stratum ≥ top-20 stratum everywhere — no
+frequency concentration). Trajectory monotone from step 1000, zero
+adjacent sign flips (mechanically unambiguous, no densification).
+Stage-2 gate (§12.5 frozen rule): Arm2 selects FULL 20,000-step branch
+(|Δ@5000|=0.0721 ≥ 0.0451), Arm2′ selects truncated (0.0570 < 0.0601),
+full governs both → Stage 2 (H3 gradient-flow instrumented cells)
+authorized at full length, ≈0.76 GPU-h. Layer-resolved wrinkle flagged
+for Stage 2: Arm2's layer-1 span_frac delta sign-flips (+0.117@1000 →
+−0.051@20000) and Arm2′'s layer-1 delta rises to +0.225 — unexplained at
+n=1 seed, reported not interpreted.
+
+Deploy-closure incident (run 1): chain died at the Stage-0.5 gate re-run
+because `mech_stage05_selftests.py` was not shipped with the probe+chain
+scp — fixed, relaunched, both gates passed before any GPU pass. [LEARN]
+captured: ship every script a chain invokes, verify the tmux session
+survives past its gate steps.
+
+Archive: `experiment-runs/2026-07-07_mech_stage1/` (3 result JSONs +
+probe + chain + run-2 log, ~200KB) + SSD mirror. Design-doc results:
+`FROZEN_BIAS_LM_DESIGN.md` §12.10 + §12.11. Frozen-bias LM ledger:
+≈6.93/135 GPU-h.

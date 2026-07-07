@@ -35,8 +35,6 @@ See `AUTOPILOT_HANDOFF.md` for the full harness spec and phase plan.
 - `EXPERIMENT_LOG.md` — Every experiment and result
 - `references.md` — Paper references library
 - `matrix-thinking/` — Matrix-valued token representations (active)
-  - `ADAPTIVE_THINKING.md` — Certainty-driven mode switching design (next feature)
-  - `EXPERIMENTS.md` — Experiment queue and planning
   - `H100_SETUP.md` — H100 environment, access, commands
   - `h100_scripts/` — Training scripts
   - `src/` — Model code (v1/v2, legacy)

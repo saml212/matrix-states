@@ -3925,3 +3925,83 @@ lower-rank configuration, Arm2′'s keys make a coherent low-rank
 correction against b_global and keep their rank. H1/H5
 (token-clustering / frequency) remain untested pending Stage 1's
 forward-pass probe (§12.4); H3 (gradient-flow) remains Stage-2-gated.
+
+### 12.11 STAGE-1 RESULTS — H1 REFUTED, H5 clean, Stage-2 gate resolves to the FULL 20,000-step branch (executed 2026-07-07, exploratory tier)
+
+**Provenance.** `frozen_bias_token_identity_probe.py` +
+`mech_stage1_chain.sh` (built this session, self-test through the
+probe's OWN code path, independent adversarial audit
+CLEARED-WITH-MINORS — zero FATAL/MAJOR, committed `2432e23`). Run
+on-box in tmux `mech_stage1`, GPU 2, 2026-07-07 ~05:02–05:04 UTC (chain
+run 2; run 1 died at the Stage-0.5 gate re-run because
+`mech_stage05_selftests.py` had not been shipped — a deploy-closure
+miss, disclosed; both gates PASSED on run 2 before any GPU pass). Raw:
+`results/mech_wave/mech_stage1_descriptive_{openr1,wikitext}-mix-ext_s0.json`
++ `mech_stage1_trajectory_openr1-mix-ext_s0.json`; archive
+`experiment-runs/2026-07-07_mech_stage1/` (+SSD). Realized cost ≈0.03
+GPU-h (log-timestamp bound) vs. the 0.73 estimate — eval passes at
+dm256/ds64/L2 are seconds each, the banked per-pass estimate was
+conservative ~20×. Yield floor: 512 included / 0 excluded episodes per
+arm per corpus in the descriptive pass (1,024 across corpora ≥ the
+registered 50); trajectory invocation pooled 7,680 included. Every
+number below re-verified from the pulled raw JSONs.
+
+**12.11.1 H1 (token-identity clustering): REFUTED at the pre-registered
+reading (1 seed, exploratory).** §12.4 required
+`Δrepeat_excess(Arm2−Arm1)` POSITIVE (repeats become MORE self-similar
+under the destabilizing per-token bias) AND materially above
+`Δ(Arm2′−Arm1)`. Measured (pooled across layers, step 20000, kraw):
+
+| corpus | Arm1 (off) | Arm2 (per-tok) | Arm2′ (global) | Δ(Arm2−Arm1) | Δ(Arm2′−Arm1) |
+|---|---|---|---|---|---|
+| openr1-mix-ext | 0.38380 | 0.29354 | 0.26353 | **−0.09026** | −0.12028 |
+| wikitext-mix-ext | 0.40906 | 0.31900 | 0.44003 | **−0.09005** | +0.03098 |
+
+The required sign FAILS in both corpora — and the Arm2 delta is
+strikingly corpus-CONSISTENT (−0.0903 / −0.0901). The per-token bias
+makes same-token keys LESS self-similar relative to control. H1's
+clustering account of the destabilization is dead at this tier; read
+jointly with §12.10.2, the H2 rank collapse is NOT organized around
+token identity. (Arm2′ is corpus-INCONSISTENT here — −0.120 on openr1,
++0.031 on wikitext — reported, not interpreted, at n=1 seed.)
+
+**12.11.2 H5 (frequency confound): clean.** The top-20-token stratum
+does NOT carry the signal — the rest-stratum repeat_excess is ≥ the
+top-20 stratum in every arm on openr1 (e.g. off 0.42191 vs 0.36858;
+per_token 0.31710 vs 0.27671) and comparable on wikitext. No
+small-support/quasi-positional disclosure is required; the H1 refutation
+is broad-vocabulary.
+
+**12.11.3 Trajectory (§12.4.1): mechanically unambiguous, monotone from
+step 1000.** repeat_excess deltas (openr1): Arm2−Arm1
+−0.0600/−0.0721/−0.0763/−0.0863/−0.0903 at steps
+1000/5000/10000/15000/20000; Arm2′−Arm1
+−0.0264/−0.0570/−0.0869/−0.1106/−0.1203. Zero adjacent sign flips in
+either comparison (`ambiguous: false` both) — no densification needed.
+The divergence exists already at step 1000 and deepens smoothly.
+
+**12.11.4 Stage-2 gate (§12.5's frozen rule): FULL 20,000-step branch.**
+Arm2: sign(Δ@5000)=sign(Δ@20000) ✓ and |−0.0721| ≥ 0.5·|−0.0903|=0.0451
+✓ → full. Arm2′: sign ✓ but |−0.0570| < 0.5·|−0.1203|=0.0601 →
+truncated. Per the rule's own clause ("if the two comparisons select
+different branches, the full 20,000-step branch governs for both"):
+**Stage 2 is authorized at full 20,000 steps** (≈0.76 GPU-h + the
+mandatory CPU smoke, §12.5). span_frac cross-check concurs at layer 0
+(Arm2 +0.2457@5000 vs half-of +0.3008@20000; monotone, no flips).
+
+**12.11.5 Layer-resolved span_frac observations (free §12.4.1
+cross-check — reported, not pre-registered):** (a) layer-0 span_frac
+reproduces the rung-1 story in direction: Arm2 +0.30084 vs Arm1 at
+step 20000 (collapse), Arm2′ +0.10590. (b) layer-1 is genuinely
+dynamic: Arm2's delta sign-flips (+0.117@1000 → −0.051@20000 — an early
+transient collapse that REVERSES), and Arm2′'s layer-1 delta RISES
+steadily (+0.012 → +0.225). The rung-1 primary measured its stabilization
+claim on a different captured population/pooling; this layer-1 pattern
+is a real, unexplained wrinkle at n=1 seed — flagged for Stage 2's
+instrumented cells, not resolved here.
+
+**Where this leaves §12.2 after Stage 1:** H1 REFUTED, H5 clean (no
+confound), H2 corroborated (Stage 0), H4 consistent at one locus
+(§12.10.3), H3 now the live open mechanism — Stage 2 (gradient-flow
+instrumented cells, full-length per the gate) is the registered next
+step.

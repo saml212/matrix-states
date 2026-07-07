@@ -31,13 +31,36 @@ cost: 5.6330 GPU-h (measured, sum of 9 `wall_s`). Anchoring ledger:
 `matrix-thinking/KEY_ANCHORING_DESIGN.md` §14.13 (§14.12 holds the
 Stage-1 rank-4 verdict). GPUs 2/6/7 now idle.
 
+**MECHANISM WAVE (§12 FROZEN_BIAS_LM_DESIGN.md): Stages 0+1 COMPLETE
+2026-07-07 (~05:10 UTC), verdicts in §12.10+§12.11 + EXPERIMENT_LOG:**
+H1 REFUTED (Δrepeat_excess(Arm2−Arm1) = −0.090 BOTH corpora — required
+positive; rank collapse NOT organized around token identity), H5 clean,
+H2 corroborated (Stage 0), H4 consistent at block-0 k_conv1d (real run,
+CPU). Stage-2 gate (frozen §12.5 rule): FULL 20,000-step branch
+authorized (H3 gradient-flow instrumented cells, ≈0.76 GPU-h, needs
+`frozen_bias_gradflow_probe.py` build + mandatory CPU smoke + audit).
+Archive `experiment-runs/2026-07-07_mech_stage1/` + SSD. LM ledger
+≈6.93/135.
+
 **IMMEDIATE QUEUE (in order):**
-1. **Mechanism wave next steps** (design §12 of FROZEN_BIAS_LM_DESIGN.md,
-   Stage 0 DONE+committed d20cbe8 — H2 corroborated: per-token bias
-   REDUCES key-population rank vs controls, global RAISES it): H4 box-run
-   (`mech_h4_paramdiff.py run_real` via chain+tmux, CPU-only) + H1/H5
-   Stage-1 build (Stage-0.5 gate PASSED).
-2. **At rung-3 ALL_DONE (~05:00 UTC Jul 8):** harvest per the older
+1. **Mech Stage-2 build** (`frozen_bias_gradflow_probe.py` per §12.5:
+   clone training loop, backward hook on k_raw grad norms every 100
+   steps, 3 cells full 20K steps, smoke a/b/c mandatory) → independent
+   audit → box run (~0.76 GPU-h).
+2. **Design-ahead buffer (agents in flight overnight 2026-07-07):**
+   (a) cliff scaling-law wave draft (x0(d) at d∈{80,96}) — NOTE the
+   brainstorm agent flagged `_SAFE_D_STATE=(64,128)` as a hard
+   chunk_delta_rule kernel constraint; the attack round MUST verify
+   d=80/96 are even runnable before this design proceeds; (b)
+   REASONING-LINK keystone design (in-context binding/multi-hop
+   composition probe over the frozen-bias arms + the trackc scale
+   ladder — intervention→reasoning and scale→reasoning legs, eval-only
+   Phase 1); (c) waterfall brainstorm DONE — top pick converged with
+   REASONING-LINK Leg B (SCALE_TRANSFER_DESIGN.md §5.5 items 2-3,
+   pre-registered never-executed) + full-attention control arm as
+   mandatory companion. Next waterfall stage: research agent, then
+   attack rounds on both drafts.
+3. **At rung-3 ALL_DONE (~05:00 UTC Jul 8):** harvest per the older
    handoff block's step 1 (archived-4 pooling validation to 1e-6 FIRST,
    attractor probe on 2×1.31B final ckpts at /data/lm_rd_trackc_ckpts/
    wave3/, 1 GPU, vs ladder 0.248→0.344→0.389; §5.11 verdict;
@@ -45,7 +68,17 @@ Stage-1 rank-4 verdict). GPUs 2/6/7 now idle.
    repo≤25MB+SSD; PROGRAM_SPENT_GPUH actuals ~334/300 disclosed), then
    step 2 (paper addendum: narrative, make_figures_v2.py Fig 9 4th point,
    3 PENDING-RUNG-3 todos, 3 intro bullets, related-work cite, DELETE
-   both handoff blocks from this file).
+   both handoff blocks from this file; fold §14 full-closure headline
+   into workshop-2026 draft).
+
+**STRATEGY (PI check-in 2026-07-07 ~05:10 UTC):** the publication
+keystone is REASONING-LINK — connect the capacity law + geometry
+interventions to actual in-context multi-hop reasoning, on existing
+checkpoints (frozen-bias arms = intervention leg; trackc ladder =
+scale leg). The matrix-STATE line (DeltaNet family) carries the
+reasoning claim; the matrix-TOKEN line stays secondary (Stage G's own
+H_e inversion). Killer figure target: the three frozen-bias arms'
+recovery-vs-load curves separating at the law's predicted cliff.
 
 **TODAY'S COMPLETED RESULTS (all harvested, archived, pushed, in papers):**
 - Capacity trilogy, now a CLOSED three-wave arc: d=64 cliff LOCATED

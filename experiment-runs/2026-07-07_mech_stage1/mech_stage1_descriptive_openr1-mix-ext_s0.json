@@ -1,0 +1,524 @@
+{
+  "tier": "exploratory-mechanism-wave -- NOT a confirmatory bar",
+  "design_ref": "FROZEN_BIAS_LM_DESIGN.md sec 12.4/12.4.1 (Stage 1 -- repeat_excess H1/H5)",
+  "corpus": "openr1-mix-ext",
+  "seed": 0,
+  "arms": [
+    "off",
+    "per_token",
+    "global"
+  ],
+  "steps": [
+    20000
+  ],
+  "chunk_size": 64,
+  "n_windows": 32,
+  "batch_size": 16,
+  "seq_len": 512,
+  "analyze_path_used": "/home/nvidia/experiment-runs/2026-07-05_trackc_rung2/analyze_probe_wave2.py",
+  "kraw_discipline_note": "every repeat_excess/gram_deviation/span_frac number in this file is computed on capture_raw_keys' own pre-blend k_raw -- no apply_frozen_bias_blend call is made anywhere in this script; see module docstring.",
+  "per_arm_per_step": {
+    "off": {
+      "20000": {
+        "checkpoint": "/data/deltanet_rd_frozenbias_ckpts/frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0/lmC_openr1-mix-ext_dm256_ds64_L2_s0_step20000.pt",
+        "corpus": "openr1-mix-ext",
+        "n_windows_sampled": 32,
+        "top20_token_ids": [
+          3,
+          7,
+          8,
+          10,
+          11,
+          12,
+          13,
+          16,
+          17,
+          28,
+          59,
+          87,
+          90,
+          92,
+          198,
+          220,
+          262,
+          720,
+          3467,
+          36796
+        ],
+        "per_layer": {
+          "0": {
+            "repeat_excess": {
+              "overall": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.30927839438663796,
+                "repeat_excess_std": 0.10903649377274247,
+                "same_tok_sim_mean": 0.48969928396400064,
+                "diff_tok_sim_mean": 0.1804208895773627
+              },
+              "h5_top20_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.2885833081381861,
+                "repeat_excess_std": 0.11970021817092273,
+                "same_tok_sim_mean": 0.47036206669872627,
+                "diff_tok_sim_mean": 0.18177875856054015
+              },
+              "h5_rest_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.33584513451205567,
+                "repeat_excess_std": 0.15529063067152965,
+                "same_tok_sim_mean": 0.5158676414866932,
+                "diff_tok_sim_mean": 0.1800225069746375
+              }
+            },
+            "gram_deviation_span_frac": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 17.104026794433594,
+              "gram_deviation_std": 2.185534715652466,
+              "effective_rank_mean": 37.6369743347168,
+              "stable_rank_mean": 4.651432037353516,
+              "anchors": {
+                "random": 7.937253933193772,
+                "collapse": 63.49803146555018
+              },
+              "span_frac": 0.16498640350922833
+            },
+            "repeat_excess_vs_gram_deviation_correlation": {
+              "n_paired": 256,
+              "pearson_r": 0.03660724713133374
+            }
+          },
+          "1": {
+            "repeat_excess": {
+              "overall": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.458329764805967,
+                "repeat_excess_std": 0.11676123285766365,
+                "same_tok_sim_mean": 0.6218685563653708,
+                "diff_tok_sim_mean": 0.16353879155940376
+              },
+              "h5_top20_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.4485677874617977,
+                "repeat_excess_std": 0.12842105205442653,
+                "same_tok_sim_mean": 0.5974143050261773,
+                "diff_tok_sim_mean": 0.1488465175643796
+              },
+              "h5_rest_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.5079770204902161,
+                "repeat_excess_std": 0.13914885808415486,
+                "same_tok_sim_mean": 0.6789779315586202,
+                "diff_tok_sim_mean": 0.1710009110684041
+              }
+            },
+            "gram_deviation_span_frac": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 21.033950805664062,
+              "gram_deviation_std": 2.801347494125366,
+              "effective_rank_mean": 32.28642272949219,
+              "stable_rank_mean": 4.021953582763672,
+              "anchors": {
+                "random": 7.937253933193772,
+                "collapse": 63.49803146555018
+              },
+              "span_frac": 0.23571838721737273
+            },
+            "repeat_excess_vs_gram_deviation_correlation": {
+              "n_paired": 256,
+              "pearson_r": 0.00956407827066393
+            }
+          }
+        },
+        "pooled_across_layers": {
+          "overall": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.38380407959630247,
+            "repeat_excess_std": 0.13533347328845674,
+            "same_tok_sim_mean": 0.5557839201646857,
+            "diff_tok_sim_mean": 0.17197984056838322
+          },
+          "h5_top20_stratum": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.3685755477999919,
+            "repeat_excess_std": 0.14767807158335283,
+            "same_tok_sim_mean": 0.5338881858624518,
+            "diff_tok_sim_mean": 0.16531263806245988
+          },
+          "h5_rest_stratum": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.4219110775011359,
+            "repeat_excess_std": 0.17072240299047603,
+            "same_tok_sim_mean": 0.5974227865226567,
+            "diff_tok_sim_mean": 0.1755117090215208
+          }
+        }
+      }
+    },
+    "per_token": {
+      "20000": {
+        "checkpoint": "/data/deltanet_rd_frozenbias_ckpts/frozenbias_lm_per_token_lam0p58_openr1-mix-ext_dm256_ds64_L2_s0/lmC_openr1-mix-ext_dm256_ds64_L2_s0_step20000.pt",
+        "corpus": "openr1-mix-ext",
+        "n_windows_sampled": 32,
+        "top20_token_ids": [
+          3,
+          7,
+          8,
+          10,
+          11,
+          12,
+          13,
+          16,
+          17,
+          28,
+          59,
+          87,
+          90,
+          92,
+          198,
+          220,
+          262,
+          720,
+          3467,
+          36796
+        ],
+        "per_layer": {
+          "0": {
+            "repeat_excess": {
+              "overall": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.34605224954430014,
+                "repeat_excess_std": 0.05147772225817687,
+                "same_tok_sim_mean": 0.8384607441257685,
+                "diff_tok_sim_mean": 0.4924084945814684
+              },
+              "h5_top20_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.31932003085967153,
+                "repeat_excess_std": 0.05211845416576364,
+                "same_tok_sim_mean": 0.821833468042314,
+                "diff_tok_sim_mean": 0.5025134371826425
+              },
+              "h5_rest_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.38464332080911845,
+                "repeat_excess_std": 0.06866508908467935,
+                "same_tok_sim_mean": 0.8713078137952834,
+                "diff_tok_sim_mean": 0.486664492986165
+              }
+            },
+            "gram_deviation_span_frac": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 33.81923294067383,
+              "gram_deviation_std": 2.659518003463745,
+              "effective_rank_mean": 27.80498695373535,
+              "stable_rank_mean": 1.932591199874878,
+              "anchors": {
+                "random": 7.937253933193772,
+                "collapse": 63.49803146555018
+              },
+              "span_frac": 0.46583183599990863
+            },
+            "repeat_excess_vs_gram_deviation_correlation": {
+              "n_paired": 256,
+              "pearson_r": -0.417095377787408
+            }
+          },
+          "1": {
+            "repeat_excess": {
+              "overall": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.24103115694015287,
+                "repeat_excess_std": 0.11530503965522512,
+                "same_tok_sim_mean": 0.4179132995195687,
+                "diff_tok_sim_mean": 0.1768821425794158
+              },
+              "h5_top20_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.2341009881638456,
+                "repeat_excess_std": 0.12732356411475623,
+                "same_tok_sim_mean": 0.408088017225964,
+                "diff_tok_sim_mean": 0.17398702906211838
+              },
+              "h5_rest_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.24955007893731818,
+                "repeat_excess_std": 0.15745182936250562,
+                "same_tok_sim_mean": 0.427837962488411,
+                "diff_tok_sim_mean": 0.17828788355109282
+              }
+            },
+            "gram_deviation_span_frac": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 18.22832679748535,
+              "gram_deviation_std": 2.7651054859161377,
+              "effective_rank_mean": 37.507530212402344,
+              "stable_rank_mean": 4.460234642028809,
+              "anchors": {
+                "random": 7.937253933193772,
+                "collapse": 63.49803146555018
+              },
+              "span_frac": 0.18522190151673928
+            },
+            "repeat_excess_vs_gram_deviation_correlation": {
+              "n_paired": 256,
+              "pearson_r": -0.04439051246449901
+            }
+          }
+        },
+        "pooled_across_layers": {
+          "overall": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.2935417032422265,
+            "repeat_excess_std": 0.10358552747528849,
+            "same_tok_sim_mean": 0.6281870218226686,
+            "diff_tok_sim_mean": 0.3346453185804421
+          },
+          "h5_top20_stratum": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.2767105095117586,
+            "repeat_excess_std": 0.10620443931990256,
+            "same_tok_sim_mean": 0.614960742634139,
+            "diff_tok_sim_mean": 0.33825023312238045
+          },
+          "h5_rest_stratum": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.3170966998732183,
+            "repeat_excess_std": 0.13898033139319194,
+            "same_tok_sim_mean": 0.6495728881418472,
+            "diff_tok_sim_mean": 0.3324761882686289
+          }
+        }
+      }
+    },
+    "global": {
+      "20000": {
+        "checkpoint": "/data/deltanet_rd_frozenbias_ckpts/frozenbias_lm_global_lam0p58_openr1-mix-ext_dm256_ds64_L2_s0/lmC_openr1-mix-ext_dm256_ds64_L2_s0_step20000.pt",
+        "corpus": "openr1-mix-ext",
+        "n_windows_sampled": 32,
+        "top20_token_ids": [
+          3,
+          7,
+          8,
+          10,
+          11,
+          12,
+          13,
+          16,
+          17,
+          28,
+          59,
+          87,
+          90,
+          92,
+          198,
+          220,
+          262,
+          720,
+          3467,
+          36796
+        ],
+        "per_layer": {
+          "0": {
+            "repeat_excess": {
+              "overall": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.31805291841737926,
+                "repeat_excess_std": 0.09249532386823632,
+                "same_tok_sim_mean": 0.6172991542844102,
+                "diff_tok_sim_mean": 0.2992462358670309
+              },
+              "h5_top20_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.28362547827418894,
+                "repeat_excess_std": 0.09828107528732394,
+                "same_tok_sim_mean": 0.5916100134490989,
+                "diff_tok_sim_mean": 0.30798453517491
+              },
+              "h5_rest_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.3634649508167058,
+                "repeat_excess_std": 0.1304590384492248,
+                "same_tok_sim_mean": 0.6582053671590984,
+                "diff_tok_sim_mean": 0.29474041634239256
+              }
+            },
+            "gram_deviation_span_frac": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 22.98800277709961,
+              "gram_deviation_std": 2.94789457321167,
+              "effective_rank_mean": 33.704933166503906,
+              "stable_rank_mean": 3.0583109855651855,
+              "anchors": {
+                "random": 7.937253933193772,
+                "collapse": 63.49803146555018
+              },
+              "span_frac": 0.270888016913386
+            },
+            "repeat_excess_vs_gram_deviation_correlation": {
+              "n_paired": 256,
+              "pearson_r": -0.19148428717354965
+            }
+          },
+          "1": {
+            "repeat_excess": {
+              "overall": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.20900279458146542,
+                "repeat_excess_std": 0.06580150171525447,
+                "same_tok_sim_mean": 0.690381680498831,
+                "diff_tok_sim_mean": 0.48137888591736555
+              },
+              "h5_top20_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.19684985897038132,
+                "repeat_excess_std": 0.07395159738417952,
+                "same_tok_sim_mean": 0.6663462735014036,
+                "diff_tok_sim_mean": 0.4694964145310223
+              },
+              "h5_rest_stratum": {
+                "n_episodes": 256,
+                "n_excluded": 0,
+                "n_included": 256,
+                "repeat_excess_mean": 0.2491539870388806,
+                "repeat_excess_std": 0.08665066535709204,
+                "same_tok_sim_mean": 0.737088589463383,
+                "diff_tok_sim_mean": 0.4879346024245024
+              }
+            },
+            "gram_deviation_span_frac": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 33.51980972290039,
+              "gram_deviation_std": 3.75132155418396,
+              "effective_rank_mean": 31.90500831604004,
+              "stable_rank_mean": 1.9920003414154053,
+              "anchors": {
+                "random": 7.937253933193772,
+                "collapse": 63.49803146555018
+              },
+              "span_frac": 0.4604427246326484
+            },
+            "repeat_excess_vs_gram_deviation_correlation": {
+              "n_paired": 256,
+              "pearson_r": -0.1661203926188757
+            }
+          }
+        },
+        "pooled_across_layers": {
+          "overall": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.26352785649942234,
+            "repeat_excess_std": 0.09703398198514432,
+            "same_tok_sim_mean": 0.6538404173916206,
+            "diff_tok_sim_mean": 0.39031256089219823
+          },
+          "h5_top20_stratum": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.24023766862228513,
+            "repeat_excess_std": 0.09719313907906287,
+            "same_tok_sim_mean": 0.6289781434752513,
+            "diff_tok_sim_mean": 0.38874047485296614
+          },
+          "h5_rest_stratum": {
+            "n_episodes": 512,
+            "n_excluded": 0,
+            "n_included": 512,
+            "repeat_excess_mean": 0.3063094689277932,
+            "repeat_excess_std": 0.12462222261665591,
+            "same_tok_sim_mean": 0.6976469783112407,
+            "diff_tok_sim_mean": 0.39133750938344747
+          }
+        }
+      }
+    }
+  },
+  "deltas": {
+    "arm2_minus_arm1_per_step": {
+      "20000": -0.09026237635407597
+    },
+    "arm2prime_minus_arm1_per_step": {
+      "20000": -0.12027622309688013
+    }
+  },
+  "trajectory_ambiguity_check_sec_12_4_1_step2": {
+    "arm2_vs_arm1": {
+      "applicable": false,
+      "note": "fewer than 2 steps present in this invocation -- ambiguity check requires >=2"
+    },
+    "arm2prime_vs_arm1": {
+      "applicable": false,
+      "note": "fewer than 2 steps present in this invocation -- ambiguity check requires >=2"
+    }
+  },
+  "yield_floor": {
+    "registered_minimum": 50,
+    "scope": "pooled across every (arm, step) checkpoint pass THIS invocation captured (this corpus, this seed only) -- sum this field across both corpora's own output JSONs to check the FULL sec 12.4 descriptive-pass floor.",
+    "pooled_included_episodes_this_invocation": 1536,
+    "pooled_excluded_episodes_this_invocation": 0,
+    "pooled_total_episodes_this_invocation": 1536,
+    "under_powered_insufficient_yield": false
+  },
+  "missing_checkpoints": [],
+  "repeat_excess_trust_status": "yield floor cleared (1536 >= 50 included episodes) -- repeat_excess numbers here may be read as intended, subject to sec 12's own exploratory-tier/correlational-ceiling caveats (sec 12.9 items 1-2)."
+}
