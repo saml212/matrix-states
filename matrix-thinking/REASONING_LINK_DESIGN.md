@@ -4076,23 +4076,32 @@ reproduces the archived checkpoint's own last-recorded eval metrics
 step runs — closing the silent-fresh-start failure mode this finding
 names.
 
-**Dependency named explicitly (Rev 3 fix, attack-round-3 MINOR-R3-3) —
-the archived checkpoint's own `.pt` file does NOT contain the val-loss
-metrics this self-test needs to compare against.** Verified directly: the
-ONLY fields `torch.save` writes at a training checkpoint are `step`/
-`model_state_dict`/`config`/`corpus`/`seed`/`run_name`
+**Dependency named explicitly (Rev 3 fix, attack-round-3 MINOR-R3-3;
+field citation corrected, Rev 4 fix, attack-round-4 MAJOR-R4-3 — see
+§16.12) — the archived checkpoint's own `.pt` file does NOT contain the
+val-loss metrics this self-test needs to compare against.** Verified
+directly: the ONLY fields `torch.save` writes at a training checkpoint
+are `step`/`model_state_dict`/`config`/`corpus`/`seed`/`run_name`
 (`lm_pretrain_rd.py` L1933-1935) — no `val_loss`, no `eval_windows`,
 nothing metric-bearing. The self-test's own "last-recorded eval metrics"
 comparison target must therefore be read from a SEPARATE source: the
 ORIGINAL Leg-A training run's own results JSON — the file `main()`'s own
 `--out` argument wrote (`json.dump(result, ...)`, `lm_pretrain_rd.py`
-L3061-3062; `result`'s own `"trajectory"` field, populated per-checkpoint
-with a `res` dict that DOES carry `"val_loss"`, L1748/L1939 — unlike the
-`.pt`), located by the archived checkpoint's own `run_name`/`step`/
-`corpus`/`seed` fields (all of which ARE in the `.pt`, enough to identify
-which results JSON and which trajectory entry to cross-reference against).
-This cross-reference is a named, explicit build dependency (the results
-JSON archive path must be resolvable from the checkpoint's own recorded
+L3061-3062; `result`'s own `"checkpoints"` field — NOT `"trajectory"` as
+Rev 3's text previously said. `train()` declares both as separate lists,
+`trajectory, checkpoints = [], []`, L1801: `trajectory` entries (appended
+L1858, at the `log_every` cadence, `step % args.log_every == 0`) carry
+only `"step"`/`"loss"`/`"lr"`/`"grad_finite"`/`"skip_rate_so_far"` — no
+`val_loss` key at all; `checkpoints` entries (appended L1950, at the
+`ckpt_every` cadence, `step % args.ckpt_every == 0`, L1863) are built as
+a `res` dict that DOES carry `"val_loss"`, L1937-1939. Both lists surface
+as separate top-level fields in the assembled result JSON —
+`"trajectory": trajectory, "checkpoints": checkpoints`, L1748), located
+by the archived checkpoint's own `run_name`/`step`/`corpus`/`seed` fields
+(all of which ARE in the `.pt`, enough to identify which results JSON and
+which `checkpoints` entry to cross-reference against). This
+cross-reference is a named, explicit build dependency (the results JSON
+archive path must be resolvable from the checkpoint's own recorded
 fields) pinned here at design time, not something discovered as a missing
 input when the self-test is first run.
 
@@ -4596,15 +4605,23 @@ at every checkpoint `c` ∈ {250, 500, 1,000, 2,500, 5,000}:**
 
 **Outcomes, checked in this fixed precedence order so exactly one
 applies:**
-1. **PERSISTENT** — let `c1` be the FIRST checkpoint, in trajectory
-   order, where `det(32,c1)=TRUE`. **Tie-break (closes the exact boundary
-   case attack-round-2 flagged): `c1` must be a NON-TERMINAL checkpoint**
-   (`c1 ∈ {250,500,1000,2500}`) — if `det(32,c)` is FALSE at every
-   checkpoint before 5,000 and only becomes TRUE at 5,000 itself, that
-   case is NOT PERSISTENT (there is no later checkpoint for "continues to
-   hold" to be non-vacuously true against); it routes to LATE-EMERGENT
-   below. Given a valid non-terminal `c1`: PERSISTENT iff `holds(c1)=TRUE`
-   AND `holds(c)=TRUE` at every later checkpoint through 5,000 inclusive.
+1. **PERSISTENT (`c1` anchor corrected, Rev 4 fix, attack-round-4
+   MAJOR-R4-1 — see §16.12)** — let `c1` be the FIRST checkpoint, in
+   trajectory order, where `holds(c1)=TRUE`. **Tie-break (closes the
+   exact boundary case attack-round-2 flagged): `c1` must be a
+   NON-TERMINAL checkpoint** (`c1 ∈ {250,500,1000,2500}`) — if `holds(c)`
+   is FALSE at every checkpoint before 5,000 and only becomes TRUE at
+   5,000 itself, that case is NOT PERSISTENT (there is no later checkpoint
+   for "continues to hold" to be non-vacuously true against); it routes to
+   LATE-EMERGENT below. Given a valid non-terminal `c1`: PERSISTENT iff
+   `holds(c)=TRUE` at `c1` itself (true by construction of `c1` as the
+   first checkpoint where `holds` fires — Rev 3's separate
+   `det(32,c1)=TRUE`-only selection step is dropped here, since
+   `det(32,c)=TRUE` does NOT imply `holds(c)=TRUE` [`holds` also requires
+   `det(20,c)=FALSE` AND `|Δ(32,c)|>|Δ(20,c)|`] and could misroute a real
+   PERSISTENT trajectory — e.g. `det(32,250)=TRUE` but `holds(250)=FALSE`,
+   `holds(500..5000)=TRUE` — to NON-MONOTONE under the old anchor) AND
+   `holds(c)=TRUE` at every later checkpoint through 5,000 inclusive.
    Reads as a durable, training-stable separation, corroborated by an
    early reading — **but ONLY a valid corroboration if Stage-0.5 (below,
    now re-measured at EVERY checkpoint per Rev 3 fix MAJOR-R3-3) also
@@ -4614,10 +4631,11 @@ applies:**
    uninterpretable by §16.5 Constraint 1's own gates-must-abort rule and
    cannot serve as PERSISTENT's early corroboration even though
    `holds(c1)=TRUE` was computed — a PERSISTENT verdict must re-identify
-   `c1` as the first NON-TERMINAL checkpoint where BOTH `det(32,c1)=TRUE`
-   AND Stage-0.5 passed at `c1`, skipping past any earlier
-   `det`-true-but-gate-failed checkpoint (and re-applying the same
-   monotone-through-5,000 condition from that later `c1`).
+   `c1` as the first NON-TERMINAL checkpoint, WITHIN the already-confirmed
+   monotone `holds`-TRUE run through 5,000, where Stage-0.5 passed,
+   skipping past any earlier `holds`-true-but-Stage-0.5-failed checkpoint
+   (and re-applying the same monotone-through-5,000 condition from that
+   later `c1`).
 2. **TRANSIENT** — `holds(c)=TRUE` for at least one `c` ∈
    {250,500,1000,2500} AND `holds(5000)=FALSE`. Reads as a
    training-dynamics artifact of exactly the kind §16.2.2 confound (a) —
@@ -4701,19 +4719,22 @@ applies:**
    labels individually, never a single blended verdict.
 
 **Totality, checked exhaustively, not merely asserted (Rev 3 fix,
-attack-round-3 MAJOR-R3-2).** Every one of the `2^5=32` possible
+attack-round-3 MAJOR-R3-2; count corrected, Rev 4 fix, attack-round-4
+MAJOR-R4-2 — see §16.12).** Every one of the `2^5=32` possible
 `holds(c)` truth-assignments across `{250,500,1000,2500,5000}` maps to
 exactly one of the six buckets above, by direct enumeration: the single
 all-FALSE pattern routes to #4/#5 (split by the terminal `det_arm`/
-`agree` reads); of the remaining 31 patterns with ≥1 TRUE, the 16 with
-`holds(5000)=FALSE` are ALL claimed by #2 TRANSIENT (any ≥1 TRUE among
-the first four checkpoints, `holds(5000)=FALSE`, by definition — no
-further split needed); of the 16 patterns with `holds(5000)=TRUE`, 1 is
-the all-false-before-terminal pattern (#3 LATE-EMERGENT), 4 are the
+`agree` reads) — note this pattern also has `holds(5000)=FALSE`, so of
+the 16 total patterns with `holds(5000)=FALSE`, this one is already
+claimed by #4/#5; of the remaining 31 patterns with ≥1 TRUE, the other 15
+with `holds(5000)=FALSE` are ALL claimed by #2 TRANSIENT (any ≥1 TRUE
+among the first four checkpoints, `holds(5000)=FALSE`, by definition —
+no further split needed); of the 16 patterns with `holds(5000)=TRUE`, 1
+is the all-false-before-terminal pattern (#3 LATE-EMERGENT), 4 are the
 monotone-true-run-ending-at-5000 patterns for each possible non-terminal
 start (`TTTTT`, `FTTTT`, `FFTTT`, `FFFTT` — #1 PERSISTENT), and the
 remaining `16-1-4=11` are flicker shapes claimed by #6 NON-MONOTONE.
-`1+16+1+4+11=32` — exhaustive, with no residual case. Representative
+`1+15+1+4+11=32` — exhaustive, with no residual case. Representative
 rows, including the exact adversarial pattern this finding named:
 
 | Pattern (250,500,1000,2500,5000) | Outcome | Why |
@@ -5280,9 +5301,10 @@ adopted with those refinements folded in:**
    build, unchanged from the original plan:** the FINAL RECIPE PINNING
    (which surface-form template feeds familiarization) still waits on
    Path (i)'s own readout (§16.2.1) — but a NEW item now also gates it
-   (§16.2.4): Rev 3's own fixes have not yet had their own independent
-   (fourth) audit pass, per this project's standing multiple-independent-
-   audit-rounds rule (`CLAUDE.md`). Build should wait on both.
+   (§16.2.4): Rev 4's own fixes (§16.12) have not yet had their own
+   independent (fifth) audit pass, per this project's standing
+   multiple-independent-audit-rounds rule (`CLAUDE.md`). Build should wait
+   on both.
 5. **At Path (i)'s Stage-0 gate readout, branch mechanically:**
    - **PASS on the wikitext-cell (either candidate), openr1-cell stays a
      null as expected →** launch the full Phase-1b grid (~0.4 GPU-h,
@@ -5293,9 +5315,10 @@ adopted with those refinements folded in:**
      h1 pass as answering the keystone.** Fold the validated template into
      Path (ii)'s recipe (§16.2.1) — whose attack rounds already concluded
      in step 4 (Rev 1, NEEDS-REDESIGN → fixed, §16.7; Rev 2,
-     NEEDS-REVISION → fixed, §16.9; Rev 3, NEEDS-REVISION → fixed, §16.10)
-     and whose remaining gate is now the fresh, FOURTH independent audit
-     of Rev 3 (§16.2.4) — then build+audit+launch Phase-2.
+     NEEDS-REVISION → fixed, §16.9; Rev 3, NEEDS-REVISION → fixed, §16.10;
+     Rev 4, NEEDS-REVISION → fixed, §16.12) and whose remaining gate is
+     now the fresh, FIFTH independent audit of Rev 4 (§16.2.4) — then
+     build+audit+launch Phase-2.
    - **PASS on the wikitext-cell but the openr1-cell ALSO passes →** flag
      the confound named in §16.1.3 item 2b before trusting the wikitext
      result; audit before running the full grid.
@@ -5306,8 +5329,8 @@ adopted with those refinements folded in:**
      Stage-0-gate-only check has already answered "was it the format" with
      "no"). Move directly to finalizing and launching Path (ii) (whose
      attack rounds concluded in parallel in step 4, per the stress-tested
-     refinement, and whose remaining gate is now the fresh, FOURTH
-     independent audit of Rev 3, §16.2.4) — gauntleted next in the queue.
+     refinement, and whose remaining gate is now the fresh, FIFTH
+     independent audit of Rev 4, §16.2.4) — gauntleted next in the queue.
 6. **Path (iii) reports out independently on its own ≈2.2-4.3 hour
    timeline throughout, feeding the capacity-law paper track whenever it
    completes — never gated on, and never gating, steps 3-5 above.**
@@ -5321,23 +5344,24 @@ adopted with those refinements folded in:**
 | Path (i) Stage-0 gate: wikitext-cell PASS, openr1-cell ALSO passes | Audit for a confound before trusting either reading |
 | Path (i) Stage-0 gate: wikitext-cell FAIL (both candidates) | Skip Path (i)'s full grid; finalize + build + launch Path (ii) |
 | Path (i) full grid: h1 clears, h≥2 stays floor | Report h1 as primary/confirmatory, h≥2 as exploratory (per §12's existing READOUT-FORM-INVALID-adjacent framing); still route to Path (ii) for the keystone itself |
-| Path (ii) attack rounds 1+2+3 complete | Fold in Path (i)'s validated template (if any) → build → audit → launch, independent of Path (iii)'s own status; still gated on a FOURTH independent audit of Rev 3 (§16.2.4) |
+| Path (ii) attack rounds 1+2+3+4 complete | Fold in Path (i)'s validated template (if any) → build → audit → launch, independent of Path (iii)'s own status; still gated on a FIFTH independent audit of Rev 4 (§16.2.4) |
 | Path (iii) grid complete (any outcome) | Report to the capacity-law paper track; does not change anything in this decision tree |
 
-**Status update (2026-07-07, post-Rev-3).** Path (ii)'s attack rounds
-(step 4, trigger-table row above) are **all three complete** — see
+**Status update (2026-07-07, post-Rev-4).** Path (ii)'s attack rounds
+(step 4, trigger-table row above) are **all four complete** — see
 §16.2's Rev 1 header and §16.7's fix-map (1 FATAL, 6 MAJOR, 1 MINOR, all
 fixed), §16.2's Rev 2 header and §16.9's fix-map (6 new MAJOR, 2 new
-MINOR, no FATAL, all fixed), and §16.2's Rev 3 header and §16.10's
-fix-map (3 new MAJOR, 4 new MINOR, no FATAL, all fixed). Per this
-table's own last row, the live next action is: (a) wait for Path (i)'s
-Stage-0 gate readout to pin the familiarization surface-form template
-(or fall back to the marker template if Path (i) has not cleared a gate
-by the time Path (ii) needs to build, §16.2.1), AND (b) run a fresh,
-independent FOURTH audit of Rev 3 itself (§16.2.4) before any build
-starts — landing every attack-round-1-through-3 finding does not, on its
-own, satisfy this project's standing multiple-independent-audit-rounds
-rule.
+MINOR, no FATAL, all fixed), §16.2's Rev 3 header and §16.10's fix-map
+(3 new MAJOR, 4 new MINOR, no FATAL, all fixed), and §16.12's fix-map
+(3 new MAJOR, no new MINOR, no FATAL, all fixed, landed in §16.2.1).
+Per this table's own last row, the live next action is: (a) wait for
+Path (i)'s Stage-0 gate readout to pin the familiarization surface-form
+template (or fall back to the marker template if Path (i) has not
+cleared a gate by the time Path (ii) needs to build, §16.2.1), AND
+(b) run a fresh, independent FIFTH audit of Rev 4 itself (§16.2.4)
+before any build starts — landing every attack-round-1-through-4
+finding does not, on its own, satisfy this project's standing
+multiple-independent-audit-rounds rule.
 
 ---
 
@@ -5410,6 +5434,25 @@ still has not run — unaffected by this round's findings. **Rev 3 itself
 has not yet had its own independent (fourth) audit pass** (§16.2.4) — the
 same standing caveat this paragraph just discharged for Rev 2 now applies,
 unchanged in kind, to Rev 3.
+
+**Rev 4 status update (2026-07-07).** The "Rev 3 itself has not yet had
+its own independent (fourth) audit pass" caveat directly above has now
+been acted on. A fourth independent attack round (a different reviewer
+from rounds 1-3) targeted Rev 3 specifically, per §16.2.4's own
+registered next step; verdict **NEEDS-REVISION**, 3 new MAJOR, no new
+MINOR, no FATAL, every Rev 1, Rev 2, AND Rev 3 fix independently
+re-verified and HOLDS — this round's own findings were narrow,
+internal-consistency bugs inside Rev 3's own fixes themselves (the
+PERSISTENT `c1` anchor, the totality-count arithmetic, and a field
+citation), not newly-discovered design gaps. Full finding→fix trace
+recorded in §16.12 (mirroring this section's own table format), landed
+as Rev 4 (§16.2.1). Confound (c) (λ held fixed during familiarization)
+remains open, unchanged — round 4 did not raise or resolve it either.
+MINOR-1's own pilot measurement (data-mix fraction) still has not run —
+unaffected by this round's findings. **Rev 4 itself has not yet had its
+own independent (fifth) audit pass** (§16.2.4) — the same standing
+caveat this paragraph just discharged for Rev 3 now applies, unchanged in
+kind, to Rev 4.
 
 ---
 
@@ -5703,7 +5746,7 @@ intentions.
 | MAJOR-R3-3 | The Stage-0.5 gate (premises iii/iv + h1 floor) still read as one-shot (measured once on the OFF-arm checkpoint) while the val-loss tolerance band (MAJOR-6/MINOR-NEW-1) was ALREADY pinned per-checkpoint — a checkpoint could clear its own val-loss band while its Stage-0.5 reading is stale or never measured at that checkpoint at all; PERSISTENT's own early-reading corroboration implicitly assumed Stage-0.5 validity at the early checkpoint without stating it | MAJOR | Stage-0.5 re-measured AT EACH of the 5 trajectory checkpoints on the OFF arm's own weights at that checkpoint; an arm contrast at checkpoint `c` is only interpretable if Stage-0.5 passed at `c`; PERSISTENT's `c1` must now be the first non-terminal checkpoint where BOTH `det(32,c1)=TRUE` AND Stage-0.5 passed. Added cost PRICED, not waved as "small": 30 gate-with-null-band passes (OFF arm's 6 cells × 5 checkpoints) at the §16.8.5-realized ≈0.0022 GPU-h/cell rate ≈ **0.066 GPU-h**, folded into §16.2.3's re-derived bracket | §16.2.1 (Stage-0.5-familiarized gate, per-checkpoint rewrite + priced cost paragraph; PERSISTENT outcome, Stage-0.5 cross-reference); §16.2.3 (Cost, new line) |
 | MINOR-R3-1 | CONVERGED-EQUIVALENT could fire on `det_arm(global,5000)=TRUE` alone, with `det_arm(per_token,5000)=FALSE` (a merely WIDE, indeterminate per-token CI) silently passing as if it were positive evidence of equivalence — mislabeling asymmetric uncertainty as equivalence | minor | CONVERGED-EQUIVALENT now requires `det_arm(arm,c)=TRUE` for BOTH global AND per_token (plus `agree(5000)=TRUE`, unchanged); UNRESOLVED widened to the logical complement within the `holds(c)=FALSE`-everywhere precondition, with the rarer "both determinate but disagree" sub-case named explicitly and distinguished from the common "at least one indeterminate" sub-case | §16.2.1 (pentachotomy outcomes #4/#5, condition widened) |
 | MINOR-R3-2 | Both new Stage −1 self-tests (`--ckpt-steps`, `--init-checkpoint`) had only POSITIVE assertions (the flag works when given correct input) — neither proved the corresponding failure mode is actually EXCLUDED (extra checkpoints not silently written; a mismatched checkpoint not silently partially loaded) | minor | Registered a negative test for each: `--ckpt-steps {250,500}` must NOT write a step-750 checkpoint (or any step beyond the given list) on a run that continues past 750; loading a deliberately-corrupted/mismatched-config checkpoint via `--init-checkpoint` must raise/ABORT (via `load_state_dict`'s own `strict=True` default or an explicit config-equality assert), not silently proceed | §16.2.1 (`--ckpt-steps` and `--init-checkpoint` build-task paragraphs, negative tests added) |
-| MINOR-R3-3 | The `--init-checkpoint` Stage −1 self-test needs the archived checkpoint's own "last-recorded eval metrics" (val loss) to compare against, but the `.pt` file does not carry them — verified directly: `torch.save` writes only `step`/`model_state_dict`/`config`/`corpus`/`seed`/`run_name` (`lm_pretrain_rd.py` L1933-1935), no `val_loss` | minor | Named the dependency explicitly: the comparison target must be read from the ORIGINAL Leg-A training run's own results JSON (`main()`'s `--out` write, L3061-3062; the `"trajectory"` field's own per-checkpoint `val_loss`, L1748/L1939), located via the checkpoint's own `run_name`/`step`/`corpus`/`seed` fields — registered as an explicit build dependency, not a surprise discovered when the self-test first runs | §16.2.1 (`--init-checkpoint` build-task paragraph, dependency paragraph added) |
+| MINOR-R3-3 | The `--init-checkpoint` Stage −1 self-test needs the archived checkpoint's own "last-recorded eval metrics" (val loss) to compare against, but the `.pt` file does not carry them — verified directly: `torch.save` writes only `step`/`model_state_dict`/`config`/`corpus`/`seed`/`run_name` (`lm_pretrain_rd.py` L1933-1935), no `val_loss` | minor | Named the dependency explicitly: the comparison target must be read from the ORIGINAL Leg-A training run's own results JSON (`main()`'s `--out` write, L3061-3062; the `"trajectory"` field's own per-checkpoint `val_loss`, L1748/L1939), located via the checkpoint's own `run_name`/`step`/`corpus`/`seed` fields — registered as an explicit build dependency, not a surprise discovered when the self-test first runs. **[CORRECTED 2026-07-07, Rev 4, attack-round-4 MAJOR-R4-3]** The field cited above is wrong — `result['trajectory']` entries (`lm_pretrain_rd.py` L1858, `log_every` cadence) carry no `val_loss` key; `result['checkpoints']` entries (L1950, appending a `res` dict built at L1937 with `val_loss` at L1939, `ckpt_every` cadence) do. §16.2.1's own dependency paragraph is corrected accordingly (§16.12); this row is otherwise left intact per the "record history, don't retcon it" convention | §16.2.1 (`--init-checkpoint` build-task paragraph, dependency paragraph added) |
 | MINOR-R3-4 | Nothing disclosed that the per-checkpoint val-loss tolerance band has ZERO discriminating power for the OFF arm's own cells, since the band is computed FROM those same cells — a future reader could cite "OFF passed its own gate" as if it were evidence of anything | minor | One disclosure sentence added: the band is near-tautologically satisfied by the OFF arm's own cells by construction; "OFF passed its own val-loss gate" is never evidence and must never be cited as corroborating the gate's real target (`per_token`/`global`'s own, independently-computed val-loss) | §16.2.1 (Gate/blind-pin granularity paragraph, disclosure sentence added) |
 
 **What Rev 3 could NOT cleanly fix, disclosed rather than hidden.**
@@ -5848,3 +5891,59 @@ to `/Volumes/1TB_SSD/learned-representations/experiment-runs/`; the
 84.7%-budget disclosure is carried inside each output JSON's own
 `harvest_metadata` key (additive-only, never touching an
 instrument-computed field), not merely narrated here.
+
+---
+
+### 16.12 Rev-3 independent audit findings + Rev 4 fixes (2026-07-07)
+
+A fourth independent adversarial pass reviewed Rev 3 of §16.2 (Phase-2
+task-familiarization recipe, §16.2.1-§16.2.4) before any code was written,
+per §16.2.4's own registered next step ("a FOURTH, fresh adversarial pass
+targeting Rev 3 specifically") and per house discipline (mirrors §13.x's,
+§16.7's, §16.9's, and §16.10's own attack-round convention; a different
+reviewer from attack-rounds 1-3). Verdict: **NEEDS-REVISION** — 3 new
+MAJOR, **no new MINOR, no FATAL**. Every Rev 1 fix (the FATAL-1 hop-depth
+split, MAJOR-1 trajectory schedule, MAJOR-2 K sweep, MAJOR-3
+CONVERGE-vs-Cell-4 distinction, MAJOR-4 Stage-0.5 gate, MAJOR-5 cost
+re-derivation, MAJOR-6 val-loss tolerance band, MINOR-1 data-mix
+fraction), every Rev 2 fix (MAJOR-NEW-1 through MAJOR-NEW-6, MINOR-NEW-1,
+MINOR-NEW-2), AND every Rev 3 fix (MAJOR-R3-1a, MAJOR-R3-1b, MAJOR-R3-2,
+MAJOR-R3-3, MINOR-R3-1, MINOR-R3-2, MINOR-R3-4) was independently
+re-verified by this pass and **HOLDS** — this round's own findings are
+narrow: an internal-consistency bug in the PERSISTENT outcome's own `c1`
+anchor (introduced by Rev 3's own MAJOR-R3-3 fix, which added a
+Stage-0.5-at-`c1` requirement without re-checking that the underlying
+`c1` SELECTION rule still implied `holds(c1)=TRUE`), an arithmetic slip
+in the totality-count narration Rev 3's own MAJOR-R3-2 fix added, and a
+false field citation inside Rev 3's own MINOR-R3-3 fix. Every finding
+below is fixed in this revision (Rev 4, §16.2.1); the corresponding
+Rev 3 fix-map row (§16.10, MINOR-R3-3) is annotated with a bracketed
+correction note rather than silently rewritten, per house style. Findings
+recorded near-verbatim for the historical record; resolutions are stated
+as landed in this text, not as intentions.
+
+| # | Finding (attack-round-4 on Rev 3) | Severity | Fix (Rev 4) | Location |
+|---|---|---|---|---|
+| MAJOR-R4-1 | PERSISTENT's own `c1` was defined as "the FIRST checkpoint where `det(32,c1)=TRUE`," then the very next sentence required `holds(c1)=TRUE` — but `det(32,c)=TRUE` does NOT imply `holds(c)=TRUE` (`holds` also requires `det(20,c)=FALSE` AND `\|Δ(32,c)\|>\|Δ(20,c)\|`). Direct counter-example: `det(32,250)=TRUE` but `holds(250)=FALSE`, `holds(500..5000)=TRUE` — a real PERSISTENT-shaped trajectory (monotone-true from 500 through 5,000) whose literal `c1`-selection rule anchors on checkpoint 250, where `holds` is FALSE, silently routing the whole trajectory to NON-MONOTONE (§16.2.1 outcome 6's own else-branch) instead of PERSISTENT — directly contradicting the section's own worked table row `F,T,T,T,T → PERSISTENT, c1=500` | MAJOR | `c1` redefined as the FIRST checkpoint where `holds(c1)=TRUE` (the `det(32)`-only selection step is dropped); the tie-break (non-terminal `c1` requirement) and the Stage-0.5 skip-past provision reworded to anchor on `holds`, not `det(32)`, throughout — closing the misrouting while leaving every other outcome (2-6) and the worked table unchanged (the table already implicitly used `holds`-based `c1`, confirmed by re-check) | §16.2.1 (PERSISTENT outcome, `c1` definition + tie-break + Stage-0.5 skip-past provision) |
+| MAJOR-R4-2 | The "Totality, checked exhaustively" paragraph (Rev 3's own MAJOR-R3-2 fix) claimed "the 16 with `holds(5000)=FALSE` are ALL claimed by #2 TRANSIENT" and summed `1+16+1+4+11=32` — both wrong: the all-FALSE pattern (already claimed by #4/#5) is itself one of the 16 `holds(5000)=FALSE` patterns, leaving only 15 available for #2 TRANSIENT among the 31 patterns with ≥1 TRUE; and the stated sum `1+16+1+4+11` literally equals 33, not 32 | MAJOR | Corrected to: 1 (all-FALSE, `FFFFF` → #4/#5) + 15 (TRANSIENT, the OTHER `holds(5000)=FALSE` patterns) + 1 (`FFFFT` → LATE-EMERGENT) + 4 (PERSISTENT: `TTTTT`, `FTTTT`, `FFTTT`, `FFFTT`) + 11 (NON-MONOTONE) = 32. Worked-table rows re-verified against MAJOR-R4-1's new `holds`-based `c1` anchor — all classify identically (the table already used `holds`, not `det(32)`, per row) | §16.2.1 (Totality paragraph, count + sum corrected) |
+| MAJOR-R4-3 | Rev 3's own MINOR-R3-3 fix (§16.2.1's dependency paragraph, and the corresponding §16.10 fix-map row) claimed the archived checkpoint's val loss lives in `result['trajectory']` — FALSE, verified directly against `lm_pretrain_rd.py`: `train()` declares `trajectory, checkpoints = [], []` as separate lists (L1801); `trajectory` entries (appended L1858, at the `log_every` cadence) carry only `"step"`/`"loss"`/`"lr"`/`"grad_finite"`/`"skip_rate_so_far"` — no `val_loss` key; `checkpoints` entries (appended L1950, at the `ckpt_every` cadence, L1863) are built from a `res` dict with `"val_loss"` at L1939. Both surface as separate top-level fields in the assembled result JSON, `"trajectory": trajectory, "checkpoints": checkpoints` (L1748) | MAJOR | §16.2.1's dependency paragraph corrected to cite `result['checkpoints']` (not `'trajectory'`), with the right line numbers and cadence for both lists, so the reader can tell them apart. §16.10's MINOR-R3-3 fix-map row is annotated with a bracketed `[CORRECTED 2026-07-07, Rev 4, ...]` note (house style, `STATE.md`/`EXPERIMENT_LOG.md` convention) rather than silently rewritten, per the "record history, don't retcon it" rule this document already applies to its own fix-map tables (§13.x, the `q_conv1d` FATAL fix-map row) | §16.2.1 (`--init-checkpoint` build-task paragraph, dependency paragraph corrected); §16.10 (MINOR-R3-3 row, correction note appended) |
+
+**What Rev 4 could NOT cleanly fix, disclosed rather than hidden.**
+§16.2.2 confound (c) (λ held fixed during familiarization) remains open,
+unchanged from Rev 1/Rev 2/Rev 3 — this round did not raise or resolve it
+either. MINOR-1's own pilot measurement (data-mix fraction) still has not
+run — none of this round's findings touch it. **Rev 4 itself has not yet
+had its own independent (fifth) audit pass** — per this project's
+standing multiple-independent-audit-rounds rule, this revision should not
+be read as a certification that Phase-2 is build-ready, only that
+attack-round-4's own findings — all three of them internal-consistency
+bugs inside PRIOR rounds' own fixes, not newly-discovered design gaps —
+are now landed.
+
+**BUDGET (verified, not merely asserted):** all three Rev 4 fixes are
+pure logic-correction/prose-correction fixes (a `c1`-anchor redefinition,
+a totality-count arithmetic correction, and a field-citation correction)
+with zero GPU cost and no change to any registered build task, op count,
+or per-step forward pass. The committed ≈1.48-12.06 GPU-h bracket
+(§16.2.3) is UNCHANGED, re-printed not re-derived, exactly as this task's
+own instruction requires for anything this revision did not touch.
