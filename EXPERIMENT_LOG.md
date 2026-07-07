@@ -5568,3 +5568,83 @@ and when a live ETA correction is logged, immediately recompute
 remaining-time vs internal-timeout and either extend the timeout (if
 the platform allows) or register the expected shortfall and its
 harvest plan BEFORE the bound fires.
+
+---
+
+## REASONING-LINK Leg-B rung-3 rows (2026-07-07): scale series COMPLETE — PROBE-INVALID persists at 1.31B, 80/80 Option-1 readings zero across all 4 rungs (14M→98M→392M→1.31B)
+
+Registered queue item, ~0.02 GPU-h, filling the ONE cell the Phase-1
+harvest (above) left `PARTIAL` on: Leg B rung-3, deferred pending
+`results/lm_rd_trackc/wave3/ALL_DONE`, which never landed — wave3
+self-terminated at step 155081/183105 = **84.69% (~84.7%)** of its
+token-matched budget (`timed_out: true`, same run and same 84.7% figure
+as the "SCALE-TRANSFER Track C Wave 3" entry above), val-loss
+trajectory already flattening by the final checkpoints
+(PLATEAU-NEUTRALIZED — the early stop does not compromise this rung's
+representativeness for this probe).
+
+**What ran:** `reasoning_link_rung3_chain.sh` (new, archived), GPU 0
+only (GPUs 2-7 were running the unrelated `keyanchor_scaling_wide`
+sweep, confirmed untouched via `nvidia-smi`/`ps` before and during the
+run) inside `tmux -s reasoning_link_rung3`. Stage -1 self-tests (19/19 +
+gate checks, PASS, 61.7s CPU) gated the launch, then 2 cells —
+`reasoning_link_probe.py --mode cell --ckpt <step-155000 path>
+--family leg_b --rung 3 --corpus {openr1-mix-ext,wikitext-mix-ext}
+--ckpt-seed 0 --k 64 --hops 1,2,3,4 --surgery native --batch-size 4
+--device cuda`, pointing `--ckpt` directly at the run's own final saved
+checkpoint (step 155000) to bypass `leg_b_ckpt_path_final`'s
+`ALL_DONE`-gated glob. Verified before launch: `load_checkpoint` reads
+`d_model=2560/d_state=128/n_layers=22/conv_size=4` from the
+checkpoint's OWN saved config dict (`DeltaNetLM(**ckpt["config"])`),
+never from `LEG_B_RUNG_CFG` (used only by the path resolvers this run
+bypassed) — no rung-0/1 dims could leak in. `batch_size=4` reused
+Stage 0.5's own prior real cost calibration on this exact shape
+(`stage05_rung3_cost_calibration.json`: `action="OK: within budget,
+proceed"`, `ratio_to_baseline=0.042`) — no OOM/retry needed, held on
+the first attempt.
+
+**Per-cell gate table (h=1):**
+
+| Corpus | recovered_frac@0.9 | premise (iii) median vs null p95 | (iii) pass | premise (iv) median vs null p95 | (iv) pass |
+|---|---|---|---|---|---|
+| openr1-mix-ext | 0.0000 | -0.0330 vs -0.0173 | False | +0.1330 vs +0.2461 | False |
+| wikitext-mix-ext | 0.0000 | +0.0198 vs +0.0335 | False | -0.0619 vs +0.1102 | False |
+
+`recovered_frac@0.9 = 0.0000` at all 8 (corpus × h∈{1,2,3,4}) readings;
+`cos_mean` stays centered near zero (`[-0.050,+0.060]`), the same
+sub-threshold distribution the Phase-1 harvest already characterized.
+Both premise gates fail their null-relative action rule at both
+corpora — same categorical failure as rungs 0-2, not a borderline miss,
+now confirmed at the largest registered rung.
+
+**Verdict: PROBE-INVALID, unchanged, scale series now COMPLETE.**
+Combined with the Phase-1 harvest's 18 Leg-B cells (rungs 0-2, 72/72
+zero readings), this entry's 2 cells (8/8 zero) close the ladder:
+**80/80 Option-1 readings are `recovered_frac@0.9=0.0` across all 4
+rungs (14M/98M/392M/1.31B), both corpora, every tested h.** This is a
+scale-series completion, not a new finding — the bind↔query alignment
+gate failure (premise iii/iv) established at the smallest rung
+reproduces in kind, unchanged, across 4 orders of magnitude of
+parameters. No CONFIRM/REFUTE/AMBIGUOUS reading of H_LINK-B is possible
+from Option 1 at any rung; this does not reopen the Phase-1
+PROBE-INVALID routing.
+
+Option 2 (secondary, non-headline): the "worse with scale" margin trend
+already on record (rung0≈-3.2/-3.4 → rung1≈-3.7/-3.9 → rung2≈-4.3/-5.5,
+h=3,4) continues at rung-3: **-6.33/-6.16 (openr1-mix-ext),
+-6.90/-6.71 (wikitext-mix-ext)** — more negative again, reported
+descriptively only, `option_agreement` still vacuously "agree" (Option
+1 is flat zero everywhere, no direction to agree or disagree with).
+
+**Realized GPU-h:** 61s of GPU-0 wall-clock (2 cells, checkpoint load +
+1 forward-A + 1 forward-B each) = **0.017 GPU-h**, against the
+registered ~0.02 GPU-h budget. Stage -1's 61.7s was CPU-only. No
+discrepancies against the registered CLI convention.
+
+Full design-doc writeup: `REASONING_LINK_DESIGN.md` §16.11. Archived
+(repo, 164K, no file >25MB): `experiment-runs/2026-07-07_reasoning_link_rung3/`
+(script + probe snapshot + logs + result JSONs), mirrored to
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-07_reasoning_link_rung3/`
+(diff-verified identical). The 84.7%-budget disclosure is carried
+inside each output JSON's own `harvest_metadata` key, additive-only,
+never touching an instrument-computed field.

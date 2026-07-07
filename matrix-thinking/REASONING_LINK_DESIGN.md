@@ -5264,3 +5264,108 @@ per-step upper bound, covered by the already-registered 5-10× debug-tax
 multiplier's own margin). **The committed 1.15-11.4 GPU-h bracket
 (§16.2.3) is UNCHANGED, re-printed not re-derived**, per this task's own
 instruction not to weaken any registered element.
+
+---
+
+### 16.11 Leg-B rung-3 rows — scale series complete (2026-07-07)
+
+§15.8 registered Leg B rungs 0-2 as **PARTIAL**, explicitly deferred on
+`results/lm_rd_trackc/wave3/ALL_DONE` (§15.9 item 2: "Rung-3 (1.31B) is
+not in this harvest at all"). That sentinel never landed —
+`/tmp/wave3_training_summaries.json` on box shows wave3 self-terminated
+at **step 155081/183105 = 84.69% (~84.7%) of its token-matched training
+budget** (`timed_out: true`), with its val-loss trajectory already
+flattening by the final recorded checkpoints (openr1-mix-ext /
+wikitext-mix-ext `final_val_loss` 1.162 / 5.267 at step 155081, against a
+trajectory that had already slowed by step ~61,000) —
+**PLATEAU-NEUTRALIZED**: the early stop does not compromise this rung's
+representativeness for this probe. This entry runs the two deferred
+rung-3 cells directly against the run's own final saved checkpoint
+(step 155000), via `reasoning_link_probe.py --mode cell`'s `--ckpt`
+override (bypassing `leg_b_ckpt_path_final`'s `ALL_DONE`-gated glob,
+which would otherwise defer this rung indefinitely) — a small,
+disclosed, one-off queue task (registered ~0.02 GPU-h), not a
+re-opening of §15's own routing or a Phase-1 grid re-launch.
+
+**What ran.** `reasoning_link_rung3_chain.sh` (GPU 0 only, GPUs 2-7 were
+running the unrelated `keyanchor_scaling_wide` sweep, untouched): Stage
+-1 self-tests (19/19 + gate checks, PASS, 61.7s, CPU-only) gating the
+launch, then 2 cells — `{openr1-mix-ext, wikitext-mix-ext} × rung 3`,
+K=64 (rung-3's own committed near-cliff K, `K_SWEEP`/`LEG_B_RUNG_CFG`),
+hops {1,2,3,4}, surgery=native (Leg B has no frozen-bias arms), seed 0
+only (§6.1's PINNED rung-3 configuration — 1 seed, not rungs 0-2's 3),
+batch-size 4 (LAUNCH FIX 5/7's int32-pointer-overflow floor for
+`d_model=2560`, independently re-confirmed by
+`results/reasoning_link/stage05_rung3_cost_calibration.json`'s own real
+measurement: `action="OK: within budget, proceed"`, `ratio_to_baseline
+=0.042`). The checkpoint's `d_model=2560/d_state=128/n_layers=22/
+conv_size=4` config was read from `ckpt["config"]` — the checkpoint's own
+saved dict (`load_checkpoint` → `DeltaNetLM(**ckpt["config"])`) — never
+from `LEG_B_RUNG_CFG`, which is used only by the path *resolvers* this
+run bypassed; confirmed directly in each output JSON's own
+`ckpt_config` field before trusting any number below. Both cells
+completed with `forward_counts={"forward_a":1,"forward_b":1}` (the
+FATAL-1 regression guard, `assert_forward_call_counts`) — no per-h
+forward-loop regression, one shuffled-pairing draw scored at all 4 h's,
+exactly sec 10's own pricing.
+
+**Per-cell gate table (h=1, the headline row; full h∈{1,2,3,4} in the
+archived JSONs).**
+
+| Corpus | recovered_frac@0.9 (h=1) | premise (iii) median | (iii) null p95 | (iii) pass | premise (iv) median | (iv) null p95 | (iv) pass |
+|---|---|---|---|---|---|---|---|
+| openr1-mix-ext | 0.0000 | -0.0330 | -0.0173 | **False** | +0.1330 | +0.2461 | **False** |
+| wikitext-mix-ext | 0.0000 | +0.0198 | +0.0335 | **False** | -0.0619 | +0.1102 | **False** |
+
+`recovered_frac@0.9 = 0.0000` at every one of the 8 (corpus × h) readings
+in this harvest (both corpora, all h∈{1,2,3,4}) — `cos_mean` stays
+centered near zero throughout (`[-0.050, +0.060]`), the same
+sub-threshold distribution §15.9 item 3 already characterized for rungs
+0-2 (reaching `|cos|>0.9` from this spread is a >10σ event). Premise
+(iii) (query↔same-entity-key alignment) and premise (iv) (key↔value
+alignment) both fail their null-p95 action rule at both corpora — the
+bind↔query alignment gate failure is not a small-scale artifact; it
+reproduces bit-for-bit in kind (never in exact number, per-checkpoint)
+at 1.31B, the largest rung this design registers.
+
+**Verdict.** PROBE-INVALID, unchanged, now confirmed across the full
+Leg-B scale ladder. Combined with §15.8's rungs 0-2 (18 cells × 4h =
+72/72 zero), this rung-3 entry (2 cells × 4h = 8/8 zero) completes the
+series: **80/80 Option-1 readings are `recovered_frac@0.9=0.0` across
+all 4 rungs (14M → 98M → 392M → 1.31B), both corpora, every tested h**.
+This is a **scale-series completion, not a new finding** — it closes
+§15.9 item 2's own open item ("nothing above should be read as a 4-rung
+verdict") by supplying the missing rung, and the 4-rung verdict it
+licenses is the same one §15.1/§15.4/§15.8 already gave for rungs 0-2:
+the instrument itself is probe-invalid, at every scale tested, so no
+CONFIRM/REFUTE/AMBIGUOUS reading of the underlying H_LINK-B hypothesis
+is possible from Option 1 at any rung. This does **not** reopen §15's
+routing or §16.0-16.10's own path analysis — it is the disclosed
+completion of a partial harvest, not a re-audit.
+
+**Option 2 (secondary, non-headline — §5.2/§8.2's standing rule
+unchanged).** The "worse with scale" margin trend §15.8 flagged (rung0
+≈-3.2/-3.4 → rung1 ≈-3.7/-3.9 → rung2 ≈-4.3/-5.5, `h=3,4`) continues
+monotonically at rung-3: `option2_margin_mean` at h=3,4 is
+**-6.33/-6.16 (openr1-mix-ext)** and **-6.90/-6.71 (wikitext-mix-ext)**
+— more negative again. Reported descriptively only, exactly as §15.8
+cautions: Option 1 is flat zero at every rung, so `option_agreement` is
+vacuously "agree" here too (no direction on Option 1 to agree or
+disagree with) — this is **not** read as validating a monotone Option-2
+trend, only as the same continuing pattern already on record.
+
+**Realized cost.** GPU-0 wall-clock from Stage -1 completion to the
+wikitext cell's own log finalizing: 61s (2 cells, checkpoint load +
+one forward-A + one forward-B each) = **0.017 GPU-h**, against the
+registered ~0.02 GPU-h budget (Stage -1's own 61.7s was CPU-only, GPUs
+2-7 untouched throughout). No discrepancies against the registered
+invocation convention, no OOM/kernel-overflow retries needed (batch=4
+held on the first attempt, consistent with Stage 0.5's own prior
+calibration on this exact shape).
+
+Raw JSONs + logs archived at
+`experiment-runs/2026-07-07_reasoning_link_rung3/` (repo) and mirrored
+to `/Volumes/1TB_SSD/learned-representations/experiment-runs/`; the
+84.7%-budget disclosure is carried inside each output JSON's own
+`harvest_metadata` key (additive-only, never touching an
+instrument-computed field), not merely narrated here.
