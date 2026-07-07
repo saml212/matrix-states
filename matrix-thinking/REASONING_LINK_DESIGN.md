@@ -1,11 +1,12 @@
-# REASONING-LINK: does key-geometry stabilization causally improve in-context multi-hop composition? (Rev 2 (2026-07-07) — post-attack-2)
+# REASONING-LINK: does key-geometry stabilization causally improve in-context multi-hop composition? (Rev 3 (2026-07-07) — post-attack-3)
 
-**Status: DESIGN, attack-round-2 complete (verdict NEEDS-REVISION,
-2026-07-07, fresh-eyes independent pass), this revision (Rev 2) resolves
-every finding — see §13.2 for the full attack record and fix map (§13.1
-records attack-round-1, resolved by Rev 1). Still not built, no GPU spent.**
-This document is written to survive a third, independent adversarial attack
-round before any code is written. Nothing here is a launch authorization.
+**Status: DESIGN, attack-round-3 complete (verdict NEEDS-REVISION,
+2026-07-07, fresh-eyes independent pass), this revision (Rev 3) resolves
+every finding — see §13.3 for the full attack record and fix map (§13.1
+records attack-round-1, resolved by Rev 1; §13.2 records attack-round-2,
+resolved by Rev 2). Still not built, no GPU spent.** This document is
+written to survive a fourth, independent adversarial attack round before
+any code is written. Nothing here is a launch authorization.
 
 **One-paragraph summary.** This project has three closed or near-closed
 results sitting unconnected: (1) a located, real capacity cliff at
@@ -32,16 +33,23 @@ n=107-entity table underlying the capacity-cliff work) to zero-shot,
 no-fine-tuning presentation. Two legs run in parallel on existing
 checkpoints (Leg A: does the frozen-bias intervention improve composition;
 Leg B: does composition rise with scale and track the span_frac ladder), a
-shared eval-only instrument, an estimated Phase-1 budget of **≈24.95 GPU-h**
-(Rev 2 — re-derived from Rev 1's ≈24.97 GPU-h after attack-round-2 forced a
-K-floor fix across every swept K, the §5.3 killer-prediction K's moving from
-{8,32,48} to {20,32,48} at `d_state=64` and the Leg B `d_state=128` sweep
-gaining a corrected committed pair {20,64}, §4.3/§10, plus two new mandatory
-controls — a per-killer-cell memorization-ceiling check and a rung-3
-pass-cost calibration gate, §4.5/§10 — funded by demoting the non-critical
-4th K point (now K=40, formerly the K=16 Rev-1 point) from the committed
-grid to a priced extension; still under the 25 GPU-h ceiling, margin now
-≈0.05 GPU-h, disclosed honestly in §10), and a gated, sketched-only Phase 2
+shared eval-only instrument, an estimated Phase-1 budget of **≈24.20 GPU-h**
+(Rev 3 — re-derived from Rev 2's ≈24.95 GPU-h after attack-round-3 found two
+new FATALs in the shared instrument itself, §4.4: a dimension mismatch that
+forced dropping the trained probe entirely in favor of scoring directly in
+`d_state` space against the target entity's own effective key [freeing the
+probe-training and heldout-pool-control budget, ≈3.89 GPU-h, §4.5], and a
+query-phase extraction gap that forced a two-forward protocol for
+multi-layer checkpoints [doubling the per-pass cost, 4×→8× anchor
+multiplier]. The freed probe budget covers only a fraction of the
+two-forward tax — Rev 2's grid at the doubled rate would have landed
+≈42.1 GPU-h, ≈17.1 over the unchanged 25 GPU-h ceiling — so the committed
+grid is re-scoped per-leg: Leg A keeps its structurally-required two-point
+K-contrast `{20,32}`, Leg B narrows to its own single primary near-cliff K
+per `d_state` (`K=32` at d=64, `K=64` at d=128 — the only K's its headline
+ever used), demoting `K=48`/`K=40`/Leg-B `K=20` to named extensions —
+landing under the 25 GPU-h ceiling with margin ≈0.80 GPU-h, reconciled
+old→new row-by-row in §10), and a gated, sketched-only Phase 2
 (new training, standard benchmark) if Leg A shows a real effect.
 
 ---
@@ -70,10 +78,11 @@ grid to a priced extension; still under the 25 GPU-h ceiling, margin now
   Rungs: 14M mixcontrol (`d_model=256,n_layers=2,d_state=64`, 2 corpora × 3
   seeds), 98M wave-1ext (`d_model=768,n_layers=12,d_state=64`, 2×3), 392M
   rung-2 (`d_model=1536,n_layers=16,d_state=128`, 2×3), 1.31B rung-3
-  (`d_model=2560,n_layers=22,d_state=128`, **2 runs only** — token-matched
-  to rung-2 at 1.5B tok/run, ETA ≈2026-07-08, not yet harvested at draft
-  time). **d_state steps 64→64→128→128 across the ladder — not constant** —
-  load-bearing for §6's K-sweep stratification below.
+  (`d_model=2560,n_layers=22,d_state=128`, **2 runs only — PINNED at Rev 3
+  as 2 corpora × 1 seed from the launch manifest itself, §6.1** —
+  token-matched to rung-2 at 1.5B tok/run, ETA ≈2026-07-08, not yet
+  harvested at draft time). **d_state steps 64→64→128→128 across the ladder
+  — not constant** — load-bearing for §6's K-sweep stratification below.
 - `CLAUDE.md` "Hard Rules" — every anti-shortcut rule is binding on this
   design: exact continuous recovery via cosine, never argmax/codebook
   nearest-neighbor, when a rank-necessity-flavored claim rides on it; single
@@ -133,10 +142,20 @@ grid to a priced extension; still under the 25 GPU-h ceiling, margin now
   `capture_raw_keys`-style hooks are the existing, non-invasive mechanism
   for reading `k_eff` (post-conv, pre-kernel) off these exact checkpoints —
   the same hook the frozen-bias program's co-primary (`k_raw`) observable
-  already uses. `DeltaNetLM.forward(token_ids, initial_states=...)`
+  already uses; **verified this revision (Rev 3, load-bearing for §4.4's
+  FATAL-1 fix): `capture_raw_keys` hooks `k_conv1d`'s output ONLY — no
+  `v_conv1d` hook exists anywhere in this codebase**, and both that tool
+  and `frozen_bias_retrofit_eval_rd.py` run exactly ONE hooked mixer
+  forward per batch with a shared `--batch-size` default of **16**
+  (load-bearing for §10's Rev 3 two-forward multiplier and §4.2's pinned
+  batch size). `DeltaNetLM.forward(token_ids, initial_states=...)`
   (`lm_pretrain_rd.py`) accepts/returns per-layer recurrent state, so a
   BIND-phase forward pass can be truncated and its final state captured
-  without modifying the architecture.
+  without modifying the architecture — but its mixer hard-asserts
+  `T ≥ _MIN_KERNEL_T=128` BEFORE the k/q/v convs (L831-836), and
+  `model_rd.py::effective_key_window`'s short-window direct-submodule
+  extraction is a SINGLE-mixer precedent that does NOT generalize to these
+  multi-layer checkpoints (Rev 3, load-bearing for §4.4's FATAL-2 fix).
 
 ---
 
@@ -460,10 +479,12 @@ general formula above, never from a hard-coded `19`.
 
 ### 4.2 Episode construction
 
-Each episode: `K` entities drawn from the entity pool (§4.5, Rev 1: probe-
-training and probe-eval episodes draw from the SAME 107-name pool, disjoint
-only in EPISODE-seed range, not entity sub-pool — the arithmetic-impossibility
-finding that forced this correction is recorded in §13.1 F1), bound by a
+Each episode: `K` entities drawn from the full 107-name entity pool (§4.5,
+Rev 1: the arithmetic-impossibility finding that forced drawing from the
+full pool rather than a further sub-split is recorded in §13.1 F1; Rev 3:
+with no probe-training/probe-eval distinction left to keep seed-disjoint
+[§4.5], every episode now draws from this same pool under the single `eval`
+purpose, §4.6), bound by a
 single Hamiltonian K-cycle `π` (verbatim `_permutation_graph`, never a
 general random permutation — closes the periodicity-collapse trap named in
 `NEXT_EXPERIMENT_DESIGN.md` §2 and `CLAUDE.md`'s standing rule). The `K`
@@ -512,6 +533,17 @@ window-shape match needs — `DELTANET_REALDATA_DESIGN.md` §5.2's own
 convention, carried forward unchanged). The hop count `h` **never appears in
 the surface form** — it is an external parameter of the readout only (§4.4).
 
+**Batch size — PINNED (Rev 3, attack-round-3 MINOR), not left implicit.**
+Every GPU pass in this design (forward-A, forward-B, §4.4) uses
+**`batch_size=16`**, verified directly against this codebase's own existing
+convention: `lm_attractor_probe_rd.py` and `frozen_bias_retrofit_eval_rd.py`
+both default `--batch-size` to `16`, and rung-3's own Rev 2.2 pass-cost
+calibration (`SCALE_TRANSFER_DESIGN.md`) was measured at batch 16 — this
+design reuses that same value rather than introducing an unmeasured one.
+Stage 0/0.5 calibration (§9) validates this batch size against a real
+per-cell wall-clock measurement rather than assuming it transfers unchanged
+to this design's own (differently-shaped) episodes.
+
 ### 4.3 Hop depths and K sweep — stratified by `d_state`, not held at a fixed K/d fraction
 
 Every tested `K` must satisfy `K > h_max = 4` (the single-K-cycle guard
@@ -545,39 +577,55 @@ the `d=64` row (which used both 8 and 16) and the `d=128` row (which used
 16), so every registered K below 19 is replaced, not merely the ones named
 in the FATAL finding:
 
-| `d_state` | K values, COMMITTED (Phase-1 grid) | K values, EXTENSION (named, priced §10, not committed) | Checkpoints using this `d_state` |
-|---|---|---|---|
-| 64 | **20, 32, 48** (loads 0.3125 / 0.5 / 0.75) | 40 (load 0.625) | Leg A (all 3 arms); Leg B 14M + 98M rungs |
-| 128 | **20, 64** (loads 0.15625 / 0.5) | 32, 96 (loads 0.25 / 0.75) | Leg B 392M + 1.31B rungs |
+| `d_state` | K values, LEGAL (clear `K_min(conv_size)=19`) | K values, COMMITTED per leg (Phase-1 grid, Rev 3) | K values, EXTENSION (named, priced §10, not committed) | Checkpoints using this `d_state` |
+|---|---|---|---|---|
+| 64 | 20, 32, 40, 48 | **Leg A: 20, 32** (loads 0.3125 / 0.5); **Leg B: 32 only** (load 0.5) | 40, 48 (Leg A); 20, 40, 48 (Leg B) | Leg A (all 3 arms); Leg B 14M + 98M rungs |
+| 128 | 20, 32, 64, 96 | **Leg B: 64 only** (load 0.5) | 20, 32, 96 (loads 0.15625/0.25/0.75) | Leg B 392M + 1.31B rungs |
+
+**Rev 3 (attack-round-3 FATAL-2 — the two-forward protocol's cost forces a
+per-leg, not per-`d_state`, committed set).** Rev 2's table listed one
+committed K set per `d_state`, shared by whichever leg used it. §10's
+FATAL-2 re-derivation (the mandatory two-forward pass doubles the per-pass
+rate, 4×→8×) makes that no longer affordable at Rev 2's resolution — but
+the two legs' own primary claims never needed the same K's in the first
+place: Leg A's §5.3 killer prediction is structurally a **two-point**
+K-contrast (one low-load, one near-cliff, §5.3), while Leg B's §6.2 primary
+reading was **always** a single near-cliff K per `d_state` (`K=32` at
+`d=64`, `K=64` at `d=128` — `K=20` never entered Leg B's headline at all,
+§6.3). Committing per-leg rather than per-`d_state` costs neither leg's
+actual claim anything, and is what makes the grid affordable again (§10).
+The LEGAL column (which K's clear the `T_bind≥128` floor at
+`conv_size=4`) is unchanged from Rev 2 and gates every cell regardless of
+committed/extension status.
 
 `T_bind` at every listed value (20×7=140, 32×7=224, 40×7=280, 48×7=336,
 64×7=448, 96×7=672) clears `_MIN_KERNEL_T=128` with margin — verified
 arithmetically here and re-verified per-checkpoint at build time by Stage −1
 item 9 (§9), which is the actual gate, not this table.
 
-**Why 3 committed points at d=64 and only 2 at d=128 (not a straight 8→20,
-16→20 relabeling that would have kept 4 and 4):** the `d=64` killer-prediction
-test (§5.3) needs exactly a low-load contrast plus its two near/past-cliff
-points — `K=20` (replacing the invalid K=8 low-load point), `K=32` (closest
-tested point below the located `x0≈0.5455` cliff center, `0.5455×64≈34.9`),
+**Why these specific K's (Rev 2 selection logic, still governing which K's
+matter even after Rev 3's per-leg committed/extension split above):** the
+`d=64` killer-prediction test (§5.3) needs exactly a low-load contrast plus
+its near/past-cliff point(s) — `K=20` (replacing the invalid K=8 low-load
+point), `K=32` (closest tested point below the located `x0≈0.5455` cliff
+center, `0.5455×64≈34.9`, and the single primary agreement-gate K, §5.3),
 and `K=48` (intentional overshoot past the cliff on the "collapsed" side,
 per `KEY_ANCHORING_DESIGN.md` §11.12's own K=48 capacity-curve convention,
-unchanged from Rev 1). `K=40` (a new, non-critical fourth resolution point,
-playing the same role Rev 1's `K=16` played — present in the mechanical-
-effect reading only, deferred from the surgery-only pass and, this revision,
-also demoted from the committed native grid to a priced extension, §8.6/§10)
-is retained as a **named, not silently dropped**, extension. At `d=128`,
-Rev 1's own committed pair was `{8,32}` — but `K=8` was never a valid `d=128`
-point at all (MAJOR-1 below), and `K=32` (load 0.25) is not d=128's near-
-cliff point; `K=64` (`0.5455×128≈69.8`) is (§6.2 already used K=64 as the
-headline Leg-B near-cliff comparison, which means Rev 1's own §6.2 reading
-depended on a K value that was NOT actually in Rev 1's own committed budget —
-an additional latent inconsistency this revision's fix resolves as a side
-effect, disclosed here rather than silently corrected). The corrected,
-most-decisive first-pass pair is therefore **{20 (low-load), 64
-(near-cliff)}**, deferring `{32, 96}` (load 0.25, a non-decisive mid point,
-and load 0.75, the deep-collapsed extra point) as the extension — a stronger
-first-pass selection than Rev 1's, not a relabeling of it.
+unchanged from Rev 1 — Rev 3: committed for Leg A through Rev 2, now a named
+extension per §10's FATAL-2 re-derivation, since it was never the primary
+agreement-gate K to begin with). `K=40` (a non-critical fourth resolution
+point, playing the same role Rev 1's `K=16` played) remains a named
+extension, unchanged in status. At `d=128`, Rev 1's own committed pair was
+`{8,32}` — but `K=8` was never a valid `d=128` point at all (MAJOR-1
+below), and `K=32` (load 0.25) is not d=128's near-cliff point; `K=64`
+(`0.5455×128≈69.8`) is (§6.2 already used K=64 as the headline Leg-B
+near-cliff comparison, which means Rev 1's own §6.2 reading depended on a K
+value that was NOT actually in Rev 1's own committed budget — an
+additional latent inconsistency Rev 2's fix resolved as a side effect).
+`K=64` is Leg B's `d=128` primary near-cliff K (§6.2) and, Rev 3, its ONLY
+committed `d=128` point — `K=20` (low-load) and `{32,96}` (mid/deep-collapse
+points) are named extensions (§10), since Leg B's headline never used any
+of them (§6.3).
 
 At `d=128`, both committed and extension K's sit at loads
 (0.15625/0.5/0.25/0.75) that are still, per §13.10, inside the window that
@@ -609,33 +657,184 @@ invariants without asserting any false "trained-hop" semantics.
 
 ### 4.4 Readout — three options enumerated, one chosen with registered justification
 
-**Option 1 (PRIMARY) — hooked fast-weight composition + trained
-embedding-space probe, cosine>0.9.** Run the pretrained checkpoint forward
-over the BIND phase only (its own natural, learned β via `b_proj` — **not**
-hard-masked, since the checkpoint cannot be retrained; this is itself part
-of what's being tested, §7 throughout), capturing the per-layer final
-recurrent state `S_T` via `chunk_delta_rule`'s `output_final_state=True`
-(`DeltaNetLM.forward(..., initial_states=...)` already supports this
-split, no architecture change). Extract `q_eff` at the query position via
-the same non-invasive post-conv, pre-kernel hook `lm_attractor_probe_rd.py`
-already uses for `k_eff` (the query span passes through the feature path
-only, never re-entering the recurrence — the same split
-`DELTANET_REALDATA_DESIGN.md` §5.2 and `NEXT_EXPERIMENT_DESIGN.md` §2 both
-already use). Compute `pred(a,h) = S_T^h @ q_eff_a` externally (plain
-matrix power in `d_state`-dim space, cheap). Score via a **trained linear
-probe** `W_probe: R^{d_state} → R^{d_state}` mapping `pred(a,h)` into the
-checkpoint's own input-embedding space, cosine-scored against
-`W_embed[value_token_id]`, threshold **0.9** (this project's standing
-convention throughout Task D/E, DeltaNet-causal-rank, DELTANET_REALDATA,
-F-geo-3). **This is the direct, minimal-new-code continuation of the
-already-validated `pred(a,h)=S_T^h·q_eff_a` formula** (`DELTANET_REALDATA_DESIGN.md`
-§5.1), now applied eval-only to checkpoints that never trained on the task —
-the probe (not the checkpoint) supplies the "does this project's own
-readout convention still decode something" bridge, since a general LM's raw
-key/value subspace geometry cannot be assumed a priori to align with the
-embedding table the way a from-scratch, hard-β-masked model's does.
+**Option 1 (PRIMARY) — hooked fast-weight composition, scored directly in
+`d_state` space against the target entity's own effective key (REWRITTEN,
+Rev 3 — attack-round-3 FATAL-1, FATAL-2; see §13.3).**
+
+> **FATAL-1 (why the Rev 2 readout died — a dimension mismatch, not a
+> tuning problem).** Rev 2's Option 1 scored `pred(a,h)` through a
+> **trained linear probe** `W_probe: R^{d_state} → R^{d_state}` mapping it
+> into the checkpoint's own **input-embedding space**, cosine-scored
+> against `W_embed[value_token_id] ∈ R^{d_model}`. But `W_probe`'s declared
+> codomain (`R^{d_state}`) never matched the space it was actually scored
+> in (`R^{d_model}`) — and `d_state ≠ d_model` at **every** checkpoint this
+> design evaluates (64 vs. 256/768 for the frozen-bias/14M/98M family, 128
+> vs. 1536/2560 for the 392M/1.31B family, §0/§6.1). The formula could not
+> even be evaluated as written; every downstream probe-training,
+> probe-leakage, and memorization-ceiling apparatus (Rev 2 §4.5) inherited
+> the hole.
+
+**Fixed readout: drop the trained probe entirely; stay in `d_state` space,
+score against the model's own machinery, never the embedding table.** Run
+the pretrained checkpoint forward over the BIND phase only (its own
+natural, learned β via `b_proj` — **not** hard-masked, since the checkpoint
+cannot be retrained; this is itself part of what's being tested, §7
+throughout), capturing the per-layer final recurrent state `S_T` via
+`chunk_delta_rule`'s `output_final_state=True`. Compute
+`pred(a,h) = S_Tʰ @ q_eff_a` externally (plain matrix power in
+`d_state`-dim space, cheap, still zero learned parameters). Score via
+**absolute cosine ≥ 0.9 against the TARGET entity's own effective key,
+`k_eff_target`** — extracted through the **identical** per-layer,
+post-conv, pre-kernel hook already used for every bind-phase key and for
+`q_eff` itself (`lm_attractor_probe_rd.py::capture_raw_keys`, verified
+directly this revision to hook `k_conv1d`'s output only — no `v_conv1d`
+hook exists anywhere in this codebase, §0). `k_eff`, `q_eff`, and
+`pred(a,h)` are therefore all `R^{d_state}` vectors produced by the
+checkpoint's own forward machinery — **no learned probe, no projection
+into `d_model`, no dimension mismatch possible by construction**, at
+`d_state=64` or `d_state=128` alike.
+
+**Exactly which target — quoting and adapting `DELTANET_REALDATA_DESIGN.md`'s
+own established convention, not inventing a new one.** That design's §5.2
+pins the readout this project already validated at production-kernel
+scale — `pred(a,h) = S_Tʰ · q_eff_a` — and its §14.3 restates the scoring
+rule verbatim (quoted directly, not paraphrased): *"the readout: the
+pinned linear unbind `pred(a,h) = S_Tʰ · q_eff_a`, scored at eval by
+**absolute cosine against the target `v_eff` at the 0.9 threshold — exact
+continuous recovery, never an in-episode argmax or softmax**."* This
+design mirrors that convention's every load-bearing property — same-space
+(`d_state`) scoring, absolute cosine, the 0.9 threshold, exact continuous
+recovery, never argmax/codebook decoding — and departs from it in exactly
+one specified place: the compared-against object is the target's own
+**`k_eff`**, not `v_eff`. Two independent reasons this is the correct
+adaptation, not a convenience substitution:
+
+1. **Representational-family consistency across `h`.** `DELTANET_REALDATA_
+   DESIGN.md` §5.2 itself extracts `q_eff` "through the model's own
+   embedding → conv → `W_k` path" — i.e. `q_eff` and every bind-phase
+   `k_eff` already live in the **same** `W_k`-projection family; `v_eff` is
+   a *different* family (`W_v`). That design's own `h=1` case never needs
+   to bridge families for the comparison to be well-defined: `tgt_slot =
+   succ[a_slot]`, and the SOURCE clause's own `v_eff_items[a_slot]`
+   already denotes the target entity directly (the value written at
+   clause `a`), so a single `W_k`→`W_v` family crossing, made exactly
+   once, suffices. REASONING-LINK's multi-hop readout iterates `S_Tʰ`
+   **on top of** a `W_k`-family vector (`q_eff_a`) for `h>1` — there is no
+   established premise that repeatedly left-multiplying `S_T` and
+   comparing the result against a `W_v`-family vector stays well-defined
+   as `h` grows, since each hop would silently need to re-cross families
+   with no premise-(iii)-style alignment ever pre-registered for it.
+   Comparing against the target's own `k_eff` (same family as `q_eff`
+   throughout) keeps every hop's comparison apples-to-apples, at every `h`.
+2. **Mechanical minimality — no new, unvalidated hook.** This project's
+   only existing non-invasive key-observable hook
+   (`lm_attractor_probe_rd.py::capture_raw_keys`) attaches to `k_conv1d`
+   only (verified directly, §0) — there is no `v_conv1d` hook anywhere in
+   this codebase to reuse for `v_eff`. Scoring against `k_eff` needs
+   **zero new hook code**; scoring against `v_eff` would require building
+   and validating an entirely new observable this design has never
+   exercised. This keeps Option 1 "the cheapest to build correctly" (as
+   claimed below) genuinely true under the fix, not merely asserted.
+
+**Well-defined by the grammar's own structure.** Every entity in a
+single-Hamiltonian-K-cycle episode plays **both** roles exactly once: KEY
+in its own bind clause, VALUE in its predecessor's — so "the target
+entity's own `k_eff`" is never an undefined or missing quantity.
+Concretely (`grammar_rd.py::sample_batch_rd`, §0): `tgt_slot` is the SLOT
+holding the target entity, and `entity_ids[b, tgt_slot]` is literally that
+entity's own token id — gathering `k_eff_items[b, tgt_slot]` (the
+effective key extracted at slot `tgt_slot`'s own bind-clause write
+position) is exactly "the target's own key," per the exact gather the
+docstring already anticipates ("gather `k_eff_items`/`v_eff_items` with
+this [`tgt_slot`]," `grammar_rd.py` L392-396) — this design uses the
+`k_eff_items` half of that anticipated gather, never the `v_eff_items`
+half (which would instead denote `succ[tgt_slot]`'s entity, one hop past
+the intended target — an off-by-one-hop error this design's fix avoids by
+construction, not by convention).
+
+**The extraction problem this creates for a multi-layer production LM —
+FATAL-2, and the fix.** `k_eff`/`q_eff` extraction cannot simply mirror
+`model_rd.py::effective_key_window` (§0) — that function calls
+`self.embed`→`self.k_proj`→`self.k_conv1d` **directly** on a short
+(`query_len`, e.g. 6-token) window, entirely bypassing any sequence-length
+floor, because `model_rd.py` is a **single-mixer, no-conv-boundary-assert**
+harness with no multi-layer residual stream to reconstruct. The production
+checkpoints this design evaluates (`lm_pretrain_rd.py::DeltaNetLMMixer`,
+§0) hard-assert `T ≥ _MIN_KERNEL_T = 128` **before** the k/q/v convs run
+(L831-836) — and for layer `i>0`, that layer's own input is layer `i−1`'s
+**residual-stream output**, which itself requires a valid (`T≥128`)
+forward through layer `i−1`. A bare short-window submodule call, run
+layer-by-layer, would either (a) crash the `T≥128` assert at every layer,
+or (b) if bypassed ad hoc, silently feed layer `i>0` an input that never
+passed through a real multi-layer forward at all — breaking the per-layer
+`S_T` framing this design's entire multi-layer claim (§6.1, `d_state=128`
+rungs) depends on. Layer-0-only extraction (the tempting shortcut) is
+explicitly rejected for the same reason: it would validate only the
+single-layer case and silently fail to generalize to rung-2/3.
+
+**Fix — the two-forward protocol.** Every episode's readout is built from
+**two separate full-length forward calls** through the checkpoint's own
+multi-layer `DeltaNetLM.forward`, never a short submodule-level call:
+
+- **Forward-A (bind-only, captures `S_T`).** The streamed BIND-phase
+  sequence alone (`T_bind = K × clause_len(conv_size) ≥ 128`, guaranteed
+  by §4.1's own `K_min(conv_size)` floor for every registered `K`), run
+  through every layer with `output_final_state=True` — yields each
+  layer's own final `S_T`, and (via the same `k_conv1d` hook) every
+  bind-clause's `k_eff_items` (one per slot — every entity's "own key,"
+  used both as bind keys AND, gathered at `tgt_slot`, as each query's
+  scoring target).
+- **Forward-B (bind+query, captures `q_eff` in situ).** The BIND phase and
+  the query clause **concatenated into one sequence**
+  (`T_bind + query_len`, trivially `≥128` since `T_bind` alone already is,
+  §4.1), run through every layer, with `q_eff` extracted via the
+  **same** `k_conv1d` hook at the query's own final position. This is a
+  genuine, disclosed deviation from `grammar_rd.py`'s own training-time
+  convention that "queries NEVER enter the streamed sequence" (§4.2) —
+  justified because (i) this is an **eval-only** readout, never a training
+  step, and (ii) `S_T` is taken from forward-A alone, which the appended
+  query in forward-B **cannot retroactively affect** (a later token in a
+  causal model cannot change an earlier state) — the state-freeze
+  discipline is preserved exactly where it matters (the state that gets
+  matrix-powered), even though the *query's own* extraction now
+  legitimately sees the full bind context ahead of it, which is in fact
+  the more faithful reading of "how would this checkpoint's own
+  multi-layer processing actually represent this query," not a weaker one.
+- **`q_eff` is thereby defined IN SITU, honestly.** Unlike the from-scratch
+  harness's raw-vector convention (query and bind key are architecturally
+  guaranteed identical, `model_dn.py`), a general multi-layer pretrained
+  LM's query representation is whatever ITS OWN per-layer conv processing
+  of the query clause, in the full bind context, actually produces — this
+  is registered as the honest, well-defined choice for every multi-layer
+  checkpoint (rung-2/3, `n_layers∈{16,22}`), not an approximation of some
+  other "true" `q_eff` this design could have extracted more cheaply.
+- **Stage −1 causality assertion (new, §9 item 11).** Forward-A and
+  forward-B **must** produce bit-identical (fp32, CPU) or
+  tolerance-pinned (`1e-6`, GPU/bf16-kernel-boundary — matching this
+  design's own standing tolerance convention, §9 items 2/5) residual
+  streams over the shared BIND-phase prefix — the mechanical proof that
+  appending the query in forward-B never leaks backward into the captured
+  `S_T`, checked, not merely argued from causality.
+- **Cost, honestly re-derived (§10).** Every episode this readout scores
+  now costs **two** full mixer forward passes, not one — the existing
+  per-pass GPU-h anchors (§10) are measured **forward-pass-only** (a
+  single call), so this doubles the per-pass rate for every row that runs
+  Option 1, not a cost this design can absorb by construction. §10 prices
+  this honestly and re-derives the committed grid under it.
+
 **Continuous, never argmax over a codebook — satisfies the CLAUDE.md hard
-rule directly.**
+rule directly**, unchanged from Rev 2.
+
+**Justification for choosing Option 1 as primary (unchanged in substance,
+strengthened by the fix):** it is (a) the direct continuation of this
+project's own validated readout formula, (b) the only option satisfying
+CLAUDE.md's exact-continuous-recovery rule without any enumeration-based
+scoring, and (c) now genuinely **the cheapest to build correctly** — both
+forward-A and forward-B reuse the SAME existing `k_conv1d` hook, no new
+observable of any kind. Option 2's cost is a full model forward pass
+anyway (already needed to obtain the natural next-token logits) so it
+remains nearly free to also report — hence still co-registered, not
+deferred.
 
 **Option 2 (SECONDARY, co-registered, complementary not substitutive) —
 fully natural, black-box next-token logit margin.** Run the *entire*
@@ -670,149 +869,94 @@ stream position to patch and whether later-layer nonlinearities sensibly
 consume a substituted vector) and more expensive to build correctly.
 **Registered as a follow-on only if Option 1 shows a real effect worth
 independently cross-validating** — not part of the Phase-1 mandatory grid.
+(Option 1's own "why primary" justification now lives with its rewritten
+description above, Rev 3.)
 
-**Justification for choosing Option 1 as primary:** it is (a) the direct
-continuation of this project's own validated readout formula, (b) the only
-option satisfying CLAUDE.md's exact-continuous-recovery rule without any
-enumeration-based scoring, and (c) the cheapest to build correctly (reuses
-existing hooks, no architecture patching). Option 2's cost is a full model
-forward pass anyway (already needed to obtain `k_eff`/`q_eff` along the way)
-so it is nearly free to also report — hence co-registered, not deferred.
+### 4.5 No trained probe — why the probe-leakage/memorization apparatus dissolves, and what survives (REWRITTEN, Rev 3 — attack-round-3 FATAL-1 consequence; see §13.3)
 
-### 4.5 Probe training protocol — closing the probe-leakage shortcut by design, not by assumption
+**What FATAL-1's fix removes, structurally, not by choice.** §4.4's Rev 3
+readout fits **zero learned parameters** — `pred(a,h)` and every `k_eff`/
+`q_eff` come directly from the checkpoint's own frozen forward pass, and
+the cosine comparison against the target's own `k_eff` is a closed-form
+computation, never a fitting step. Rev 1/Rev 2's entire probe-training
+apparatus — the PRIMARY (arm-blind shared probe) and SECONDARY (per-arm
+probe + Hewitt & Liang control-task null) protocols, the probe-train/
+probe-eval episode-seed split, and the heldout-pool memorization-ceiling
+control built to catch a FITTED model leaking eval-time information — has
+**no object left to attach to**. There is no probe to leak into, no probe
+capacity to worry about "under-reporting" a genuinely different-geometry
+arm (attack-round-0 item 3, §13), and no probe weights whose training-pool
+exposure needs a held-out-entity check. All of it is obsolete and removed
+here, not merely deprioritized.
 
-**Rev 1 (attack-round-1 F1) — the pre-attack entity sub-split was
-arithmetically impossible at the design's own decisive cells and is
-replaced below; full finding recorded at §13.1.** `build_entity_pools()`
-(`grammar_rd.py`, verified directly this revision) yields 213 GPT-2-BPE-
-verified single-token names split 107 train / 106 heldout
-(`heldout_frac=0.5`, `n_heldout=round(213×0.5)=106`). The pre-attack draft
-proposed carving the 107-pool itself into a further ≈60/47 probe-train /
-probe-eval sub-split — but `sample_batch_rd` draws its `K` entities WITHOUT
-replacement from whichever pool it is given and hard-asserts `N_names ≥ K`
-(`grammar_rd.py` L425-428). A 47-name probe-eval sub-pool cannot construct
-`K=48` (d=64 killer-prediction cell, §5.3) or `K=64`/`K=96` (d=128 rungs,
-§4.3) episodes at all — the sub-split made the design's own decisive cells
-unbuildable.
+**What survives, unchanged in role, rebuilt probe-free.**
 
-**Corrected construction (Rev 1): no entity-level sub-split for probe-
-train/probe-eval.** Both probe-TRAINING episodes and probe-EVAL (headline)
-episodes are drawn from the **same, full 107-name train pool**
-(`use_heldout_entities=False`), using **disjoint episode-seed ranges**
-(§4.6 pins the exact numeric ranges, Rev 2) rather than a disjoint entity
-sub-pool. Every swept `K` (20/32/40/48 at d=64; 20/32/64/96 at d=128, §4.3)
-fits comfortably under 107 with margin — the arithmetic-impossibility
-finding is closed by construction, not by picking smaller K values.
+- **The 107-name entity pool, still the standard episode source.** Rev 1's
+  F1 fix (§13.1) — draw every episode's `K` entities from the **full**
+  107-name `train_name_ids` pool, never a further sub-split — still holds,
+  for the ORIGINAL arithmetic reason (`sample_batch_rd` hard-asserts
+  `N_names ≥ K`, and no swept `K` up to 96 fits a smaller sub-pool, §4.2).
+  This was never actually about probe-training/probe-eval leakage in the
+  first place — F1's own fix was itself an entity-pool-ARITHMETIC
+  correction, and it is retained on that basis alone. There is now only
+  **one** episode purpose drawing from this pool (the headline eval grid,
+  §4.6's `eval` purpose, replacing the obsolete `probe_train`/`probe_eval`
+  split with a single stream).
+- **The label-shuffle null, rebuilt probe-free (§8.4's chance floor).**
+  Generate episodes with the bind-clause `(key, value)` pairing shuffled
+  across episodes (surface form, entity pool, and token statistics held
+  fixed — unchanged mechanism, §8.4), then run the **identical** Rev 3
+  readout (forward-A/forward-B, cosine against the shuffled episode's own
+  `tgt_slot`-gathered `k_eff`) — no probe to retrain on shuffled labels,
+  no separate "null probe" fitting step at all. The null is simply this
+  design's one deterministic readout applied to episodes whose true
+  compositional structure has been destroyed; §8.4's per-h chance-floor
+  role is unchanged, only simpler to build (one fewer moving part).
+- **The 106-name heldout pool.** No longer reserved for a memorization
+  control (below) — available, if ever wanted, as a plain robustness
+  cross-check (a second, disjoint entity source for the SAME probe-free
+  readout), but not committed to any Phase-1 cell.
 
-**Memorization-ceiling control (new purpose for the existing, already-
-disjoint heldout pool — the attack's own recommended fix).** The 106-name
-`heldout_name_ids` pool (`use_heldout_entities=True`) — already fully
-disjoint from the 107-name train pool by `build_entity_pools`' own
-construction, and never drawn from during probe training under the
-corrected protocol above — is reserved for a separate diagnostic: score the
-SAME frozen probe on episodes drawn entirely from this held-out pool. This
-is a **strictly stronger** generalization check than the discarded entity
-sub-split (it tests entities the probe's weights had zero exposure to at
-ALL, under ANY permutation, rather than merely a disjoint slice of episodes
-built from overlapping entities), and every swept K (max 96) fits within 106
-with margin. Reported as a covariate/robustness check, not the headline.
+**Heldout-pool memorization-ceiling control — REMOVED, adjudicated, not
+silently dropped.** Rev 2's MAJOR-4 fix priced this control (§10, 3.79
+GPU-h) at every killer-prediction and Leg-B primary near-cliff-K cell,
+specifically to catch a TRAINED PROBE's weights showing an identity-
+correlated recoverability differential between arms/rungs. Adjudicated
+this revision: **it no longer measures anything, and is removed.** Two
+independent reasons, both verified directly against this codebase this
+revision, not asserted:
 
-**Rev 2 (attack-round-2 MAJOR-4) — this control must be run at EVERY
-killer-prediction cell, not priced as a single one-off draw per `d_state`.**
-Rev 1 priced the heldout-pool control as "one draw per `d_state`" (folded
-into §10's probe-training line), which measures only whether the SHARED
-reference probe has a memorization ceiling in the abstract. But H_LINK-A/B's
-actual claims ride on **ARM/RUNG comparisons** (`Δ` between arms, or a
-scale trend across rungs) — a differential in identity-correlated
-recoverability **between conditions** (e.g., the global arm's checkpoint
-happens to make held-out entities slightly more recoverable than the off
-arm's does, for reasons having nothing to do with composition) would be
-completely invisible to a single pooled draw, since it only ever compares
-one number against itself. **Fix:** run the heldout-pool control, using the
-SAME frozen probe, at every killer-prediction cell — Leg A: each of the 3
-arms × 2 corpora × the killer K's `{20,32,48}` (§4.3); Leg B: each rung's own
-primary near-cliff K (`K=32` for the two `d=64` rungs, `K=64` for the two
-`d=128` rungs, §6.2) × 2 corpora. Compute the identical arm/rung differential
-on this control (`Δ_heldout`) the headline `Δ` already computes. **Priced
-at n=1 representative seed per cell** (not the full n=3 — an explicit,
-disclosed power tradeoff, mirroring this project's own accepted treatment of
-non-headline covariates, e.g. the λ-mini-sweep's registered n=1 status),
-costed in §10 (new line item). **Pass condition (n=1 diagnostic —
-point-estimate, not CI-based):** `|Δ_heldout|` must not exceed 0.5× the
-headline `Δ`'s own CI half-width at that cell — a magnitude-relative
-tripwire appropriate for a diagnostic that lacks its own CI, deliberately
-coarser than the CI-exclusion gates used elsewhere in this design, disclosed
-as such rather than dressed up as equally rigorous. **Escalation path (named,
-separately priced, not committed):** if the tripwire fires at any cell, the
-full n=3 heldout-control replicate for that cell (3× its n=1 cost) is the
-registered follow-up before CONFIRM is finalized there — the n=1 diagnostic's
-job is to flag a concern cheaply, not to substitute for real statistical
-power once it does. **New outcome-gate (§8.5):** a cell where the n=1
-tripwire fires AND (if escalated) the n=3 heldout differential's CI excludes
-zero is reported as **MEMORIZATION-CONFOUND** — distinct from `probe-invalid`
-(the probe is not globally broken, just showing an identity-correlated
-differential between conditions) and from REFUTE (a real between-condition
-difference exists, it is just not attributable to composition) — that cell's
-headline CONFIRM is demoted to this named outcome, never silently folded into
-CONFIRM.
+1. **The mechanism it existed to catch cannot occur.** With no probe
+   fitting step (above), there are no weights that could encode a
+   train-pool-identity-correlated shortcut for the control to expose.
+   Every episode, from either pool, is scored by the identical,
+   already-frozen checkpoint machinery.
+2. **Even repurposed as a bare robustness check, it would show nothing
+   informative.** `build_entity_pools()`'s train/heldout split
+   (`grammar_rd.py` L221-226, verified directly) is a **pure random
+   shuffle** (`random.Random(seed).shuffle` over the candidate list, then
+   sliced) — uncorrelated by construction with any property (pretraining
+   frequency, BPE structure, embedding quality) that could make the two
+   pools differ systematically. Two random subsets of the same curated
+   single-token-name distribution give this design no "embedding-
+   familiarity" axis to measure a differential against.
 
-**Why probe-leakage is still closed without the entity sub-split — stated
-explicitly, not assumed (Rev 1 honesty requirement).** The residual concern
-a hostile reader would raise: if probe-training and probe-eval episodes can
-share entities, can the probe simply memorize "this raw vector, near token
-X's own embedding, predicts value Y"? It cannot, because `Y` is not a fixed
-fact about entity `X` in this design: every episode draws a FRESH random
-single-Hamiltonian-K-cycle (`_permutation_graph`, resampled per episode,
-§4.2) and a fresh random query source slot (`a_slot`), so the (key, value)
-pairing any given entity participates in is essentially never repeated
-across two different episodes even when the SAME entity token recurs — with
-`K≥8`, the number of possible K-cycles is `(K−1)!/2 ≥ 2520`, making exact
-episode recurrence (same entity draw AND same cycle AND same query)
-vanishingly unlikely across the disjoint probe-train/probe-eval seed ranges.
-A probe therefore cannot learn "entity X → value Y" as a fixed lookup; it
-can only learn the general `pred(a,h) → W_embed[value]` mapping this design
-exists to test. The narrower, real residual risk — could the probe instead
-learn some entity-IDENTITY-correlated property of recoverability itself,
-independent of the specific pairing (e.g., some tokens are systematically
-"easier" regardless of role) — is exactly what the two existing controls
-already close: **(a)** the label-shuffle-null memorization-ceiling in the
-SECONDARY protocol below (permutes the (key,value) pairing across episodes
-while holding the entity pool fixed; if recovery survives THIS shuffle, that
-specifically indicates an identity-correlated shortcut, not composition —
-§8.4's null-relative pass bar exists precisely to catch it), and **(b)** the
-new heldout-pool memorization-ceiling control above (no degradation on
-entities absent from probe training at all is the positive check that
-identity-specific memorization isn't occurring). Both controls are
-pre-registered and reported alongside the primary reading, never used to
-retroactively rescue a headline number.
+Its entire budget line (§10, 3.79 GPU-h) is freed; the **MEMORIZATION-
+CONFOUND** outcome category (§8.5, old item 5) is removed with it — there
+is no longer a control whose firing could demote a cell to that outcome
+(§8.5 renumbered accordingly).
 
-**PRIMARY protocol — one shared, arm-blind probe per `d_state`.** Train a
-single linear probe on episodes drawn from a **reference condition** (the
-"off"/control arm's checkpoint for Leg A; an early, still-converging rung-1
-checkpoint or the same "off"-arm-style reference for Leg B, since Leg B has
-no explicit "off" arm — decide at build time, registered choice: use the
-14M mixcontrol final checkpoint as the shared `d_state=64` reference probe,
-and the 392M rung-2 final checkpoint as the shared `d_state=128` reference
-probe, since these are each leg's own largest same-`d_state` checkpoint with
-no frozen-bias intervention applied). Freeze this probe; apply it
-**identically** (same weights) to every arm/checkpoint/rung sharing that
-`d_state`. **This is the headline reading** — any measured difference
-between arms/rungs is attributable to the checkpoint's own representational
-geometry, not to a probe re-fit per condition.
+**Attack-round-0 item 3 dissolves (§13, recorded there and at §13.3).**
+"Does the shared, arm-blind probe have enough capacity to decode a
+stabilized checkpoint's geometry" presupposed a fitted probe with a
+capacity ceiling. With no probe at all, there is no capacity axis for a
+different-geometry arm to be under-reported through — the question does
+not survive Rev 3's fix, the same way attack-round-0 item 4 stopped
+applying once Rev 1 built the buffer-blank-out test it asked for (§13.1).
 
-**SECONDARY protocol — per-arm/per-rung probes + a label-shuffle control
-task (Hewitt & Liang, EMNLP 2019, "Designing and Interpreting Probes with
-Control Tasks").** Fit a separate probe per arm/checkpoint on that
-checkpoint's own probe-train split (giving each condition its fairest
-possible chance to express whatever geometry it has), **and** fit the
-identical probe procedure on a label-shuffled null (bind-clause `(key,
-value)` pairing permuted across episodes, keeping surface form and token
-statistics fixed) — report eval-split recovery on the null as the probe's
-own **memorization ceiling**. A per-arm/per-rung headline number is treated
-as informative only to the extent it clears its own null by a registered
-margin; **never reported as the primary bar**, exactly the same
-discipline this project already applies to its val-loss gate (a passing
-gate is necessary, not sufficient, for a headline claim).
+**§7.4 (Probe-leakage) is updated to match** — the shortcut it was written
+to close no longer has a channel to occur through at all, not merely a
+better-defended one; see §7.4's own Rev 3 text.
 
 ### 4.6 Episode-seed allocation — exact numeric ranges, non-collision by construction (Rev 2, attack-round-2 MAJOR-5)
 
@@ -835,8 +979,10 @@ episode_seed = PURPOSE_BASE[purpose]
              + ckpt_seed_idx * STRIDE_SEED         # 0-2 (the checkpoint's OWN training seed)
              + k_idx         * STRIDE_K            # 0-5, over the registered K's {20,32,40,48,64,96}
 
-PURPOSE_BASE = {"probe_train": 0, "probe_eval": 10_000_000, "null_shuffle": 20_000_000,
-                "calibration": 30_000_000, "heldout_control": 40_000_000}
+PURPOSE_BASE = {"eval": 0, "null_shuffle": 10_000_000, "calibration": 20_000_000}
+# Rev 3 (attack-round-3 FATAL-1): "probe_train"/"probe_eval"/"heldout_control"
+# removed -- no probe fitting step exists to separate from scoring (§4.5); one
+# flat "eval" purpose replaces the train/eval split.
 LEG_BASE     = {"leg_a": 0, "leg_b": 5_000_000}
 STRIDE_CONDITION = 1_000_000   # max 4 conditions used (Leg B rungs) -> uses <=3,000,000 of the 5,000,000 leg block
 STRIDE_CORPUS     = 100_000    # max 2 corpora -> uses <=100,000 of the 1,000,000 condition block
@@ -857,20 +1003,20 @@ numbering guarantee, not an empirical claim requiring its own proof, but
 still checked mechanically (below) per this project's "don't trust a
 guarantee you can cheaply verify" convention.
 
-**Per-purpose usage:** `probe_train`/`probe_eval` use the full
-`(condition, corpus, seed, K)` product for whichever checkpoints that role's
-episodes are drawn against (§4.5's reference-condition convention, e.g. the
-14M mixcontrol "off" arm for the shared d=64 probe). `null_shuffle` is
-computed at Stage 0's single calibration cell only (§9) — one fixed
-`(condition=off, corpus=index-0, seed=0, K=32)` point, scored at all 4 h's,
-using the SAME formula (only one combination is ever actually instantiated).
-`calibration` covers Stage 0 (14M mixcontrol) and the new Stage 0.5 (§9,
-MAJOR-6, rung-3 pass-cost timing) as two disjoint sub-offsets within the one
-`calibration` purpose block (Stage 0 at `condition_idx=0`; Stage 0.5 at
-`condition_idx=3`, `leg_b`, `k_idx` for K=64 — no special-casing needed, the
-same formula covers both). `heldout_control` (MAJOR-4, §4.5) uses
-`ckpt_seed_idx` fixed to whichever single representative seed that control's
-n=1 diagnostic uses per cell.
+**Per-purpose usage (Rev 3 — `probe_train`/`probe_eval`/`heldout_control`
+removed with §4.5's fix; one flat `eval` purpose replaces the obsolete
+train/eval split since there is no longer a fitting step to separate from
+scoring).** `eval` uses the full `(condition, corpus, seed, K)` product for
+every committed and named-extension cell in Leg A's and Leg B's grids
+(§4.3/§10) — the single stream every headline and extension episode is
+drawn from. `null_shuffle` is computed at Stage 0's single calibration cell
+only (§9) — one fixed `(condition=off, corpus=index-0, seed=0, K=32)`
+point, scored at all 4 h's, using the SAME formula (only one combination is
+ever actually instantiated). `calibration` covers Stage 0 (14M mixcontrol)
+and Stage 0.5 (§9, rung-3 pass-cost timing) as two disjoint sub-offsets
+within the one `calibration` purpose block (Stage 0 at `condition_idx=0`;
+Stage 0.5 at `condition_idx=3`, `leg_b`, `k_idx` for K=64 — no
+special-casing needed, the same formula covers both).
 
 **Stage −1 assertion (new item 10, §9): non-collision check.** Enumerate
 every `(purpose, leg, condition_idx, corpus_idx, ckpt_seed_idx, k_idx)`
@@ -924,7 +1070,8 @@ kind of "control doesn't distinguish the arms" pattern
 about and this design inherits the discipline of, not the specific test).
 **Rev 1 (attack-round-1 M1) — additional CONFIRM requirement:** CONFIRM at
 the killer-prediction cell (§5.3) additionally REQUIRES Option 1 (§4.4,
-`S_T^h·q_eff` cosine-probe readout) and Option 2 (§4.4, natural next-token
+`S_T^h·q_eff` cosine readout against the target's own `k_eff`, Rev 3) and
+Option 2 (§4.4, natural next-token
 logit-margin) to **agree in direction**. Operationalized: construct
 Option 2's own global-vs-off margin-delta CI the identical pinned way
 (`t(2,.975)=4.303`, 3 seeds), at the SAME (K, corpus) cell. Agreement =
@@ -1004,10 +1151,10 @@ table's origin (a fixed seed, not a training run) makes it applicable to
 ANY checkpoint's raw keys, trained-with-blend or not.
 
 **Corrected registration: the 4th cell IS constructible, DEFERRED ON
-BUDGET.** Cost: 2 corpora × 3 seeds (off arm only) × the 3 killer-prediction
-K's `{20,32,48}` = 18 passes ≈2.51 GPU-h (§10, new line item, not part of
-the Phase-1 committed total — the thin margin, §10, does not accommodate it
-this phase). **What it would isolate, registered now so it is not
+BUDGET.** Cost (Rev 3 re-priced — committed killer K's now `{20,32}`, §4.3,
+at the two-forward rate, §10): 2 corpora × 3 seeds (off arm only) × 2 K =
+12 passes ≈3.34 GPU-h (§10 extension table, not part of the Phase-1
+committed total — the margin, §10, does not accommodate it this phase). **What it would isolate, registered now so it is not
 re-derived under pressure later:** whether the MECHANICAL blend effect
 (§5.2a's own mechanical-effect contrast, arm-ckpt blend-ON vs. blend-OFF)
 requires prior TRAINING under that blend to manifest, or whether cold-
@@ -1046,36 +1193,46 @@ mechanism before the real grid launches.
 
 **The single most falsifiable claim this design makes:** arm separation
 (global vs. off vs. per-token) is **not uniform across K** — it is
-concentrated at K∈{32,48} (near and past the located `x0≈34.9` cliff for
-`d_state=64`) and small-to-absent at **K=20** (well inside the "capacity is
-not the thing that fails first" regime, `DELTANET_REALDATA_DESIGN.md` §16.4
-— **Rev 2, attack-round-2 FATAL:** this replaces Rev 1's `K=8` low-load point,
-which crashes `chunk_delta_rule` at this checkpoint family's `conv_size=4`
-[`T_bind=56 < _MIN_KERNEL_T=128`, §4.1/§4.3]; `K=20` is the new floor-safe
-low-load contrast, load `20/64=0.3125`, still comfortably below the cliff).
-Operationalized: report `Δ(K)` (the global-vs-off **training-effect** delta,
-§5.2a) at every tested K separately; the pre-registered killer-prediction
-pass condition is `|Δ(K=32 or 48)| > |Δ(K=20)|` with the larger-K delta's CI
-excluding zero while K=20's does not, replicated in at least one corpus, AND
-(Rev 1, M1) Option 1/Option 2 directional agreement per §5.2 at the passing
-K. This ties the probe **directly** to the capacity law rather than merely
-re-measuring "does an intervention move some LM metric" — a failure of this
-specific prediction (arm separation flat across K, or concentrated at *low*
-K) would be a genuinely informative negative about whether the capacity
-cliff has any behavioral teeth at all, distinct from whether the
-intervention has *any* effect. **Rev 1 mandatory zero-cost covariate (M1):**
-at every headline cell (this one included), also report `S_T`'s condition
-number / eigenvalue spread and a within-episode cross-`a` cosine-convergence
-check — see §8.3.
+predicted to concentrate at K∈{32,48} (near and past the located `x0≈34.9`
+cliff for `d_state=64`) and be small-to-absent at **K=20** (well inside the
+"capacity is not the thing that fails first" regime,
+`DELTANET_REALDATA_DESIGN.md` §16.4 — **Rev 2, attack-round-2 FATAL:** this
+replaces Rev 1's `K=8` low-load point, which crashes `chunk_delta_rule` at
+this checkpoint family's `conv_size=4` [`T_bind=56 < _MIN_KERNEL_T=128`,
+§4.1/§4.3]; `K=20` is the new floor-safe low-load contrast, load
+`20/64=0.3125`, still comfortably below the cliff). **Rev 3 (attack-round-3
+FATAL-2 budget consequence, §10):** `K=48` is demoted from committed to a
+named, priced extension — the two-point scientific prediction still names
+both `{32,48}`, but only `K=32` is **committed** for Phase-1 execution
+(the point closest to the cliff center, already the sole primary
+agreement-gate K per the tie-break rule below); `K=48` reports as
+corroborating evidence if/when its extension is run. Operationalized:
+report `Δ(K)` (the global-vs-off **training-effect** delta, §5.2a) at
+every tested K separately; the **committed** killer-prediction pass
+condition is `|Δ(K=32)| > |Δ(K=20)|` with `K=32`'s CI excluding zero while
+`K=20`'s does not, replicated in at least one corpus, AND (Rev 1, M1)
+Option 1/Option 2 directional agreement per §5.2 at `K=32`; if `K=48`'s
+extension is run, `|Δ(K=48)| > |Δ(K=20)|` is checked as the same
+corroborating condition, never substituting for the `K=32` committed
+reading. This ties the readout **directly** to the capacity law rather
+than merely re-measuring "does an intervention move some LM metric" — a
+failure of this specific prediction (arm separation flat across K, or
+concentrated at *low* K) would be a genuinely informative negative about
+whether the capacity cliff has any behavioral teeth at all, distinct from
+whether the intervention has *any* effect. **Rev 1 mandatory zero-cost
+covariate (M1):** at every headline cell (this one included), also report
+`S_T`'s condition number / eigenvalue spread and a within-episode cross-`a`
+cosine-convergence check — see §8.3.
 
 **Rev 2 (attack-round-2 minor M1) — multi-K conflict rule for the Option
-1/Option 2 agreement gate.** With two "near/past-cliff" K's now committed
-(`K=32` and `K=48`), and a third, non-critical `K=40` reported for extra
-resolution (§4.3), the agreement gate needs a single, pre-registered tie-
-break rather than an implicit "whichever K looks best" choice. **Registered
-rule:** the killer-prediction verdict (CONFIRM/REFUTE/READOUT-DIVERGENCE) is
-read at **`K=32` as the single primary agreement-gate K** (the point
-closest to the located `x0≈0.5455` cliff center, `0.5455×64≈34.9` — the most
+1/Option 2 agreement gate.** With `K=32` committed and `K=48`/`K=40`
+available only as named, priced extensions (Rev 3, §10), the agreement gate
+still needs a single, pre-registered tie-break rather than an implicit
+"whichever K looks best" choice. **Registered rule (unaffected by the Rev 3
+budget demotion, since it already named `K=32` the sole primary K):** the
+killer-prediction verdict (CONFIRM/REFUTE/READOUT-DIVERGENCE) is read at
+**`K=32` as the single primary agreement-gate K** (the point closest to the
+located `x0≈0.5455` cliff center, `0.5455×64≈34.9` — the most
 externally-anchored of the swept points, §8.6's own exemption logic).
 `K=48` and (if run) `K=40` report their own Option 1/Option 2 agreement and
 `Δ` alongside, as corroborating or complicating evidence, but **never
@@ -1102,16 +1259,34 @@ treatment of its own n=1 λ-sweep.
 | 14M mixcontrol | 14,048,896 | 64 | 2 × 3 | 6 final | full pinned-CI (n=3) |
 | 98M wave-1ext | 97,618,176 | 64 | 2 × 3 | 6 final | full pinned-CI (n=3) |
 | 392M rung-2 | 391,869,440 | 128 | 2 × 3 (per §5.6/§5.10) | 6 final | full pinned-CI (n=3) |
-| 1.31B rung-3 | ≈1.31B | 128 | **2 runs only**, not yet harvested | 2 final (pending ≈2026-07-08) | **descriptive only, no CI** |
+| 1.31B rung-3 | ≈1.31B | 128 | **2 × 1** (PINNED, Rev 3 — see below), not yet harvested | 2 final (pending ≈2026-07-08) | **descriptive only, no CI** |
 
-**Rung-3 caveat, stated plainly and registered now, before rung-3 data
-exists (mirroring the project's own standing discipline of naming a
-limitation before it can be seen as post-hoc):** with only 2 runs (likely 1
-seed × 2 corpora, or 2 seeds × 1 corpus — confirm against the actual launch
-manifest at harvest time), the pinned `t(2,.975)` formula does not apply.
-Rung-3's contribution to H_LINK-B is a **point estimate plus qualitative
-direction only** — consistent with how this project has already handled
-every other n=1/n=2 cell (the λ-mini-sweep, the H4 single-seed parameter-diff
+**Rung-3 configuration — PINNED this revision (attack-round-3 MAJOR), not
+left as a harvest-time TODO.** Rev 2 left this an open confirm-at-harvest
+question ("likely 1 seed × 2 corpora, or 2 seeds × 1 corpus"). Verified
+directly this revision against the actual launch manifest
+(`deltanet_rd/run_lm_rd_trackc_sweep.py::wave23_manifest`/
+`WAVE23_SEEDS_BY_RUNG[3]`, L100/L868-869: *"rung 3 stays '2 corpora x 1
+seed' as registered"*) and `STATE.md`'s own launch record ("2×1.31B scale
+runs", tmux `trackc3`): **rung-3 is 2 EXTENDED-mix corpora
+(`openr1-mix-ext`, `wikitext-mix-ext`) × 1 seed each — NOT 2 seeds of one
+corpus.** This is not a cosmetic distinction: under "1 seed × 2 corpora,"
+**both** corpora get exactly one rung-3 data point each; under "2 seeds ×
+1 corpus" (the alternative Rev 2 left open), **one** corpus would have 2
+rung-3 seeds and the **other would have zero** — silently truncating that
+corpus's own ladder at the 392M rung, breaking §7.8's standing
+within-corpus-never-pooled reporting discipline for exactly the rung that
+matters most. The verified reality is the better-behaved case: every
+downstream table/budget line touching rung-3 (§10, this section) is
+written against **1 seed × 2 corpora**, giving each corpus a complete, if
+descriptive-only (n=1), 4-rung ladder.
+
+With only 1 seed per corpus, the pinned `t(2,.975)` formula still does not
+apply (n=1, not n≥3). Rung-3's contribution to H_LINK-B is a **point
+estimate plus qualitative direction only, reported separately per corpus**
+(never pooled across the 2 corpora, per §7.8) — consistent with how this
+project has already handled every other n=1 cell (the λ-mini-sweep, the H4
+single-seed parameter-diff
 check) — never a CI-based confirm/refute on its own.
 
 ### 6.2 Comparisons and pre-registered reading
@@ -1144,12 +1319,18 @@ for `d_state`" sanity contrast, never the headline. **Rev 2 (attack-round-2,
 consistency fix):** this fixed-K value is **`K=20`**, not Rev 1's `K=32` —
 `K=32` is a committed `d=64` point but only a named EXTENSION at `d=128`
 (§4.3), so a `K=32`-fixed comparison is not affordable across all 4 rungs
-under the committed Phase-1 budget; `K=20` is committed at both `d_state`
-values and is used here instead (loads 0.3125 at `d=64` vs. 0.15625 at
-`d=128` — a weaker but still real "same raw K, different relative load"
-contrast than `K=32` would have given). If the `d=128` `K=32` extension is
-ever run, the richer `K=32`-fixed contrast becomes available as a bonus,
-reported alongside, not required for this sanity check to stand.
+under the committed Phase-1 budget; `K=20` is used here (loads 0.3125 at
+`d=64` vs. 0.15625 at `d=128` — a weaker but still real "same raw K,
+different relative load" contrast than `K=32` would have given). **Rev 3
+(attack-round-3 FATAL-2 budget consequence, §10):** `K=20` at BOTH
+`d_state`'s is itself now a named, priced extension for Leg B, not
+committed — H_LINK-B's primary claim (§6.2) never used `K=20` at all, so
+this demotion costs the headline nothing, but this secondary sanity check
+is unfunded within the Phase-1 committed grid until its extension is run.
+If the `d=128` `K=32` extension or the `K=20` extension (either `d_state`)
+is ever run, the corresponding richer fixed-K contrast becomes available as
+a bonus, reported alongside, not required for the design's primary claims
+to stand.
 
 ### 6.4 Statistics
 
@@ -1228,23 +1409,24 @@ stratify `recovered_frac@0.9` by in-episode entity frequency band
 exact H5 stratification pattern) as a standing diagnostic at every headline
 cell, not assumed away by pool curation alone.
 
-### 7.4 Probe-leakage
+### 7.4 Probe-leakage (REWRITTEN, Rev 3 — dissolved by FATAL-1's fix, not merely better-defended)
 
-Addressed structurally in §4.5 (arm-blind shared primary probe + label-shuffle
-control-task null on the per-arm secondary reading). Restated here as the
-registered decision: **the primary bar never uses a probe fit on the same
-condition it is scored against.** A hostile reading of this design ("you
-just fit a probe until it found what you wanted") is closed by the fact that
-the headline probe is fit once, on the reference condition, frozen, and
-never re-touched after seeing any arm's or rung's actual eval numbers — the
-exact same "pin the reference before seeing the intervention arm" discipline
-`FROZEN_BIAS_LM_DESIGN.md`'s own blind-pin was *supposed* to have (and, per
-its own VERDICT section, the sequencing failure that demoted that wave to
-descriptive tier). **Process commitment carried forward from that lesson:**
-the probe weights (and every threshold in §8) must be written to disk and
-committed **before** the full Leg A/B grid launches, not constructed after
-training-cell results already exist — this design explicitly inherits that
-process fix rather than repeating the sequencing mistake.
+Rev 1/Rev 2 addressed this shortcut by defending a **fitted** probe's
+hygiene (arm-blind training, a frozen reference-condition fit, a
+label-shuffle control-task null). Rev 3's §4.5 fix removes the fitting step
+itself: `pred(a,h)` is scored directly against the target's own `k_eff`
+(§4.4), a closed-form cosine comparison with **zero learned parameters**.
+There is no probe weight matrix that could be fit on, peek at, or be tuned
+toward any arm's or rung's eval numbers — the failure mode this section
+exists to close ("you just fit a probe until it found what you wanted")
+has **no mechanism left to occur through**, not merely a well-guarded one.
+**What still matters, restated for the fitting-free readout:** every
+threshold this design uses (the 0.9 cosine bar, the per-h chance floors,
+the alignment/agreement rules) is still pre-registered in this document
+**before** any checkpoint's real numbers exist (§8, §9) — the discipline
+`FROZEN_BIAS_LM_DESIGN.md`'s own blind-pin was supposed to have is
+inherited at the level of *thresholds*, not *probe weights*, since the
+latter no longer exist to pin.
 
 ### 7.5 Periodicity collapse
 
@@ -1359,20 +1541,22 @@ silently inflating a headline claim.
 
 ## 8. Metrics, thresholds, and degenerate/exclusion rules
 
-### 8.1 Primary metric
+### 8.1 Primary metric (formula corrected, Rev 3 — attack-round-3 FATAL-1)
 
 `recovered_frac@0.9` — fraction of eval episodes with
-`cos(probe(pred(a,h)), W_embed[value_token]) > 0.9`, per (arm-or-rung,
-corpus, K, h) cell, Option 1 readout (§4.4), the SAME threshold this
-project's entire composition-study lineage uses (Task D/E,
+`cos(pred(a,h), k_eff_target) > 0.9` (§4.4: `pred(a,h) = S_Tʰ @ q_eff_a`,
+`k_eff_target` gathered at `tgt_slot` from forward-A, both terms
+`d_state`-dimensional, no probe, no `W_embed` in the formula anywhere), per
+(arm-or-rung, corpus, K, h) cell, Option 1 readout (§4.4), the SAME 0.9
+threshold this project's entire composition-study lineage uses (Task D/E,
 DELTANET_REALDATA, F-geo-3) — no new threshold introduced without cause.
 
-### 8.2 Secondary metrics
+### 8.2 Secondary metrics (Rev 3 — per-arm/per-rung probe bullet removed, no probe exists)
 
 - Option 2 next-token logit margin (§4.4), reported alongside, never
   load-bearing alone.
-- Per-arm/per-rung probe + label-shuffle-null delta (§4.5), reported as a
-  robustness cross-check on the primary shared-probe reading.
+- The rebuilt, probe-free label-shuffle null (§4.5/§8.4), reported as the
+  chance-floor cross-check at every registered h.
 - Raw entity-embedding Gram statistics (§7.7), reported as a standing
   covariate.
 
@@ -1420,8 +1604,10 @@ constructs an explicit **structural chance null**: for each calibration
 cell (§9), generate a matched set of episodes with the bind-clause
 `(key,value)` pairing **shuffled across episodes** (surface form, entity
 pool, and token statistics held fixed — only which value follows which key
-is scrambled), score `recovered_frac@0.9` under the SAME probe and readout,
-and bootstrap a 95% band for this null. **Registered pass condition:** the
+is scrambled), score `recovered_frac@0.9` under the SAME readout (Rev 3:
+no probe — §4.5's rebuilt, probe-free null applies this design's one
+deterministic hooked-geometry readout directly), and bootstrap a 95% band
+for this null. **Registered pass condition:** the
 real h=1 recovery on the "off"/reference arm must exceed the null band's
 upper edge by a margin at least as large as the null band's own width
 (a self-relative, non-arbitrary bar, mirroring the real-floor-vs-synthetic-floor
@@ -1449,11 +1635,11 @@ finding.
 
 ### 8.5 Degenerate/exclusion rules, with counts (registered categories)
 
-1. **Premise-invalid checkpoints**: `k_eff`/`q_eff` at bind/query positions
-   are near-zero-norm (`<1e-6`), non-finite, or produce a probe-training
-   design matrix with condition number `>1e6` (probe cannot be fit
-   meaningfully). Excluded from headline, reported as its own category with
-   an exact count, never silently dropped.
+1. **Premise-invalid checkpoints** (Rev 3: probe-training clause removed,
+   §4.5 — no probe-training design matrix exists anymore): `k_eff`/`q_eff`
+   (bind, query, or target) are near-zero-norm (`<1e-6`) or non-finite.
+   Excluded from headline, reported as its own category with an exact
+   count, never silently dropped.
 2. **h1-floor-failed cells**: §8.4's pass condition fails for that
    (arm/rung, corpus) pair. The entire K/h grid for that cell is reported
    under "probe-invalid," not blended into CONFIRM/REFUTE, exact count
@@ -1467,37 +1653,40 @@ finding.
    replicate disagrees beyond a registered tolerance at the calibration
    cell, the entire Phase-1 grid is blocked pending a design revision — not
    an exclusion rule applied per-cell, a hard gate before the grid launches.
-5. **(Rev 2, attack-round-2 MAJOR-4) MEMORIZATION-CONFOUND cells**: a
-   killer-prediction cell (§5.3) or Leg-B primary near-cliff-K cell (§6.2)
-   whose heldout-pool memorization-ceiling control (§4.5) fires its n=1
-   tripwire and, upon the registered n=3 escalation, shows a CI-excluding-zero
-   arm/rung differential on entities the probe/checkpoint had zero training
-   exposure to. That cell's headline CONFIRM is demoted to this named
-   outcome — distinct from `probe-invalid` and REFUTE (§4.5) — with an exact
-   count reported, never silently absorbed into CONFIRM.
+5. ~~(Rev 2, attack-round-2 MAJOR-4) MEMORIZATION-CONFOUND cells~~ —
+   **REMOVED, Rev 3 (attack-round-3 FATAL-1).** This category existed to
+   demote a cell when the (now-removed) heldout-pool memorization-ceiling
+   control fired; with no trained probe and no heldout-pool control (§4.5),
+   there is nothing left for this category to detect. Removed with
+   disclosure, not silently renumbered away.
 
 ### 8.6 Multiple-comparison correction for the non-primary grid (Rev 1 minor, attack-round-1)
 
 This design runs ONE pre-registered, externally-anchored primary test — the
-§5.3 killer-prediction contrast (training-effect Δ at K∈{32,48} vs. K=20, in
-at least one corpus, now also requiring Option 1/Option 2 agreement per
-§5.2/M1, read at the single primary K=32 per §5.3's Rev 2 tie-break rule).
-That cell's CI-based CONFIRM/REFUTE reading is exempt from any
-multiple-comparison correction: it is a single hypothesis, anchored to an
-externally-located quantity (`KEY_ANCHORING_DESIGN.md`'s own `x0≈0.5455`
-cliff), not one draw from a scanned family. **Every other cell in the
-grid** — every other K, h, corpus, arm/rung combination reported across Leg
-A's and Leg B's full sweeps — constitutes a non-primary grid of many
-simultaneous comparisons, and is reported under Benjamini-Hochberg FDR
+§5.3 killer-prediction contrast (training-effect Δ at **K=32 vs. K=20**, Rev
+3 — `K=48` is no longer committed, §10's FATAL-2 re-derivation, so the
+committed primary contrast is now this two-point pair; `K=48`, if run as a
+named extension, reports alongside per §5.3's unchanged tie-break rule but
+was never structurally required for the primary verdict), in at least one
+corpus, now also requiring Option 1/Option 2 agreement per §5.2/M1, read at
+the single primary K=32 per §5.3's Rev 2 tie-break rule (unchanged by the
+K=48 demotion, since that rule already named K=32 the sole primary
+agreement-gate K). That cell's CI-based CONFIRM/REFUTE reading is exempt
+from any multiple-comparison correction: it is a single hypothesis,
+anchored to an externally-located quantity (`KEY_ANCHORING_DESIGN.md`'s own
+`x0≈0.5455` cliff), not one draw from a scanned family. **Every other cell
+in the grid** — every other K, h, corpus, arm/rung combination reported
+across Leg A's and Leg B's full sweeps — constitutes a non-primary grid of
+many simultaneous comparisons, and is reported under Benjamini-Hochberg FDR
 control (`q=0.05`, this project's standard significance convention) rather
 than raw per-cell CIs, so that scanning many K/h/corpus/arm cells does not
 manufacture spurious "detections" through multiple comparisons alone. Which
 cells counted as "the non-primary grid" for BH purposes is fixed before any
-data exists (every headline cell in §5/§6 other than the single K∈{32,48}
-killer-prediction contrast) — not chosen post-hoc after seeing which cells
-look interesting.
+data exists (every headline cell in §5/§6 other than the single `K=32`-vs-
+`K=20` killer-prediction contrast) — not chosen post-hoc after seeing which
+cells look interesting.
 
-**Rev 2 (attack-round-2 MAJOR-7) — the K=40 extension may never enter a
+**Rev 2 (attack-round-2 MAJOR-7) — a demoted extension K may never enter a
 training-effect table without its own surgery pass.** Rev 1's trim #3
 deferred `K=16` from the Leg-A **surgery-only** pass while keeping it in the
 native/blend-ON grid — creating exactly the confound this finding names:
@@ -1505,17 +1694,18 @@ without a blend-OFF surgery reading at that K, its row cannot be attributed
 to training vs. mechanical blend action, so reporting it in a
 training-effect table (even a BH-corrected non-primary one) would silently
 smuggle in the confounded blend-ON number. **Fix, registered as a standing
-rule, not a one-off patch:** `K=40` (this revision's equivalent non-critical
-point, §4.3) is demoted from the committed grid entirely to a named
-extension (§10) — its native/blend-ON reading, if ever generated, is
-reported **ONLY in the mechanical-effect table** (§5.2a), explicitly
-labeled "no blend-OFF surgery run at this K," and is **never** included in
-any training-effect or BH-corrected non-primary training-effect table. If
-`K=40`'s own surgery extension (§10, priced separately) is ever run, its row
-is promoted to the training-effect tables like any other K — but promotion
-requires the surgery pass to actually exist, not merely the native reading.
-This closes the specific K=16→K=40 case Rev 1 left open AND states the
-general rule for any future K added to either grid.
+rule, not a one-off patch:** every K demoted from the committed grid to a
+named extension — `K=40` (unchanged) and, Rev 3, `K=48` (§10's FATAL-2
+re-derivation) — is reported **ONLY in the mechanical-effect table**
+(§5.2a) until its own surgery extension (§10, priced separately) is also
+run, explicitly labeled "no blend-OFF surgery run at this K" in the
+interim, and is **never** included in any training-effect or
+BH-corrected non-primary training-effect table before that. If a demoted
+K's own surgery extension is run, its row is promoted to the
+training-effect tables like any other K — but promotion requires the
+surgery pass to actually exist, not merely the native reading. This closes
+the specific K=16→K=40 case Rev 1 left open, extends it to K=48 (Rev 3),
+and states the general rule for any future K added to either grid.
 
 ---
 
@@ -1532,10 +1722,11 @@ general rule for any future K added to either grid.
 3. The bigram-shortcut adversarial construction (§7.2) — verify the scorer
    distinguishes the true in-context value from the bigram-prior
    completion on a hand-built disagreement case.
-4. The label-shuffle null generator (§4.5/§8.4) — verify it actually
-   destroys the true pairing (a planted-recoverable check: shuffle a
-   hand-built K=4 episode, assert the previously-correct answer no longer
-   scores above threshold).
+4. The label-shuffle null generator (§4.5/§8.4, Rev 3: probe-free — verify
+   the SHUFFLE mechanism, not a probe) — verify it actually destroys the
+   true pairing (a planted-recoverable check: shuffle a hand-built K=4
+   episode, assert the previously-correct answer no longer scores above
+   threshold).
 5. **(Rev 1, attack-round-1 M3) Buffer/query blank-out test** — carries
    forward attack-round-0's own §13 item 4/§13.1's Q4-answering finding:
    corrupt clause `j`'s tokens post-encoding (replace with a different valid
@@ -1553,7 +1744,24 @@ general rule for any future K added to either grid.
    own `_MIN_KERNEL_T` assert) at all; it is ordinary CPU-compatible
    `nn.Linear`/short-convolution arithmetic on a loaded checkpoint's real
    weights, not a synthetic hand-built matrix like items 2-4, but still
-   zero-GPU.
+   zero-GPU. **(Rev 3 disclosure, reconsidered against FATAL-2's own
+   argument below and found NOT to have the same problem.)** This item's
+   direct-submodule, layer-0-only approach looks superficially like the
+   exact pattern FATAL-2 (below, §4.4) rejects for `q_eff`/`S_T`
+   extraction — but the two tests check fundamentally different kinds of
+   claims. FATAL-2 is a **construction/legality** question (can a valid
+   multi-layer forward even be assembled for layer `i>0` without first
+   passing through a real `T≥128` forward of layer `i−1`) — a bare
+   submodule call cannot answer it representatively past layer 0. This
+   item instead checks a **structural guarantee of the conv operator
+   itself** (a short causal convolution's output at position `t` depends
+   only on inputs at `[t−conv_size+1, t]`) — a property guaranteed by the
+   operator's definition identically at every layer, regardless of what
+   feeds it (raw token embeddings at layer 0, or a prior layer's residual
+   output at layer `i>0`). Verifying it once, with real trained weights, at
+   layer 0 is a representative test of the operator's structural guarantee
+   at every layer — unlike FATAL-2, there is no layer-dependent construction
+   step this item's approach could be silently failing to generalize past.
 6. **(Rev 2, attack-round-2 MAJOR-3, supersedes Rev 1's version below —
    Rev 1's smoke was VACUOUS)** Surgery-toggle equivalence smoke, with a
    genuine negative control. **What was wrong:** Rev 1's version called
@@ -1623,6 +1831,17 @@ general rule for any future K added to either grid.
     this assertion is run to catch a construction error, not merely
     asserted correct by the argument alone. Pure Python arithmetic,
     zero-GPU.
+11. **(Rev 3, attack-round-3 FATAL-2) Two-forward causality assertion** —
+    for a real checkpoint and a real episode, run forward-A (BIND-only) and
+    forward-B (BIND+query concatenated) and assert their residual streams
+    are IDENTICAL over the shared BIND-phase prefix: bit-identical in fp32
+    on CPU, or within `1e-6` (this design's standing tolerance, items 2/5
+    above) if run at the bf16 kernel boundary on GPU. Mechanically verifies
+    §4.4's causality argument (the appended query in forward-B cannot
+    retroactively affect the `S_T` captured from forward-A) rather than
+    resting on the argument alone — per this project's own "run the
+    negative test to completion" discipline, this is checked directly, not
+    merely asserted from the causal-mask property of the architecture.
 
 **Gate:** Stage 0 (calibration) may not launch until all Stage −1 tests
 pass — the exact "specification that has not been executed is not a passed
@@ -1630,61 +1849,71 @@ gate" convention this project applies everywhere.
 
 **Stage 0 (calibration, 1 cell, blinded from any headline decision):** the
 14M mixcontrol "off" arm, seed 0, one corpus, K=32, h∈{1,2,3,4}, BOTH query
-markers (§7.6's robustness replicate). Purposes: (a) fix the probe's
-hyperparameters (regularization strength, training-episode count) once,
-before touching any other checkpoint; (b) measure real per-cell wall-clock
-cost to firm up §10's budget; (c) run the §8.4 null-band construction for
-real, **at every h∈{1,2,3,4} independently (Rev 1, attack-round-1 M2 — not
-h=1 only)**, and confirm the h1 floor is achievable at all before committing
-to the full grid — if it is not, this is itself a decisive, informative
-result (the whole probe is uninterpretable for this checkpoint family) and
-the grid does not launch; the h=2/3/4 null bands become the registered
-per-h chance floors §8.4 now requires before a CONFIRM/REFUTE reading at
-those hops is licensed.
+markers (§7.6's robustness replicate). Purposes (Rev 3: purpose (a)
+rewritten — no probe hyperparameters exist to fix, §4.5): (a) run the
+Stage −1 item 11 causality assertion for real on this checkpoint, and
+confirm the two-forward protocol (§4.4) executes cleanly end to end before
+touching any other checkpoint; (b) measure real per-cell wall-clock cost —
+now covering BOTH forward-A and forward-B — to firm up §10's budget; (c)
+run the §8.4 null-band construction for real, **at every h∈{1,2,3,4}
+independently (Rev 1, attack-round-1 M2 — not h=1 only)**, and confirm the
+h1 floor is achievable at all before committing to the full grid — if it is
+not, this is itself a decisive, informative result (the whole readout is
+uninterpretable for this checkpoint family) and the grid does not launch;
+the h=2/3/4 null bands become the registered per-h chance floors §8.4 now
+requires before a CONFIRM/REFUTE reading at those hops is licensed.
 
-**Stage 0.5 (Rev 2, attack-round-2 MAJOR-6, new — rung-3 pass-cost
+**Stage 0.5 (Rev 2, attack-round-2 MAJOR-6; thresholds/actions restated at
+Rev 3's two-forward rates and single committed rung-3 K — rung-3 pass-cost
 calibration, gates ONLY Leg B's rung-3 rows, does not block Leg A or
-rungs 1/2 of Leg B):** one single-pass, single-checkpoint timing cell at
-1.31B scale (one of the 2 archived rung-3 runs, `K=64` — the primary
-near-cliff point, so the timing measured is representative of what actually
-matters, not an arbitrary K), **blinded to any h4-style recovery readout**
-— this cell measures wall-clock/GPU-h cost only, so that a mini calibration
-wave does not become an accidental peek at the headline composition result.
-**Registered because the existing 1.31B pass-cost figure is an unmeasured
-extrapolation, not an anchor:** §10's own three measured anchors are
-non-monotonic with scale (0.0348 GPU-h/pass @ 14M → 0.013 @ 98M → 0.045 @
-392M) — there is no justified functional form to extrapolate from, so
-applying the 392M rate to rung-3 (1.31B, ≈3.3× the params) is a guess, not a
+rungs 1/2 of Leg B):** one single-EPISODE-timing, single-checkpoint cell at
+1.31B scale (one of the 2 archived rung-3 runs, `K=64` — rung-3's sole
+committed K, §4.3, so the timing measured is exactly what the committed
+grid will pay), timing **both** forward-A and forward-B (the two-forward
+protocol's real per-episode cost, §4.4 — a single-forward timing would
+re-import the exact amortization error §10's Rev 3 multiplier fix just
+removed), **blinded to any h4-style recovery readout** — this cell measures
+wall-clock/GPU-h cost only, so that a mini calibration wave does not become
+an accidental peek at the headline composition result. **Registered because
+the existing 1.31B pass-cost figure is an unmeasured extrapolation, not an
+anchor:** §10's own three measured anchors are non-monotonic with scale
+(0.0348 GPU-h/pass @ 14M → 0.013 @ 98M → 0.045 @ 392M, all single-forward)
+— there is no justified functional form to extrapolate from, so applying
+the 392M rate to rung-3 (1.31B, ≈3.3× the params) is a guess, not a
 measurement. **Abort trigger (fires BEFORE the committed 25 GPU-h ceiling
-is ever at risk):** if this cell's measured per-pass cost exceeds **2×** the
-392M anchor (`>0.09 GPU-h/pass`, pre-multiplier — the same threshold this
-cell is itself conservatively priced against, §10), drop rung-3's
-non-primary K (`K=20`) from the committed grid, keeping only the `K=64`
-near-cliff cell — rung-3 becomes a single-K, still-descriptive-only
-contribution (consistent with its existing n=2 statistical treatment,
-§6.1). If the measured cost exceeds **4×** the 392M anchor
-(`>0.18 GPU-h/pass`), halt Leg B's rung-3 rows entirely (both K's) and
-disclose rung-3 as unevaluated within Phase-1 budget, reporting only rungs
-1/2/(392M) for H_LINK-B — mirroring the existing Stage-0 abort rule's
-structure (a multiple-of-anchor trigger, fired before committing further
-compute) but calibrated at rung-3's own scale rather than reusing the
-14M-scale threshold.
+is ever at risk; Rev 3 — rung-3 now has only ONE committed K, so the Rev 2
+first tier's "drop the non-primary K" action has no committed object left
+and moves to the extension gate):** if this cell's measured per-pass cost
+exceeds **2×** the 392M two-forward baseline (`>0.18 GPU-h/pass`,
+pre-sequence/contingency-multiplier — 2 × the doubled 0.09 base, the same
+threshold the cell is itself conservatively priced against, §10), rung-3
+keeps its single committed `K=64` cell but its `d=128` K-extension
+eligibility (§10) is revoked for this phase. If the measured cost exceeds
+**4×** that baseline (`>0.36 GPU-h/pass`), halt Leg B's rung-3 rows
+entirely and disclose rung-3 as unevaluated within Phase-1 budget,
+reporting only rungs 1/2/(392M) for H_LINK-B — mirroring the existing
+Stage-0 abort rule's structure (a multiple-of-anchor trigger, fired before
+committing further compute) but calibrated at rung-3's own scale rather
+than reusing the 14M-scale threshold.
 
-**Stage 1 (full grid):** Leg A committed grid — 18 core cells × 3 K
-`{20,32,48}` × 4 h (native + surgery, both at the identical 3 K, §4.3/§8.6)
-— plus Leg B committed grid — 20 checkpoints total (12 at `d_state=64`: 14M
-+ 98M rungs, 2 corpora × 3 seeds × 2 rungs; 8 at `d_state=128`: 392M rung-2
-6 + rung-3 2) × the rung-appropriate committed K's (3 K `{20,32,48}` for the
-`d=64` rungs, 2 K `{20,64}` for the `d=128` rungs, §6.1/§4.3) × 4 h — per
-§10's budget. `K=40` (`d=64`, both legs) and `K∈{32,96}` (`d=128`, Leg B)
-are named, separately-priced EXTENSIONS (§10), not part of the committed
-Stage 1 launch. **(Rev 2 correction: Rev 1's own Stage-1 line read "Leg B
-(14 checkpoints...)" — an arithmetic slip; 12 (`d=64`) + 8 (`d=128`) = 20,
-not 14, corrected here.)**
+**Stage 1 (full grid, Rev 3 — re-derived per-leg committed K sets, §4.3/§10,
+attack-round-3 FATAL-2):** Leg A committed grid — 18 core cells × 2 K
+`{20,32}` × 4 h (native + surgery, both at the identical 2 K, §4.3/§8.6) —
+plus Leg B committed grid — 20 checkpoints total (12 at `d_state=64`: 14M +
+98M rungs, 2 corpora × 3 seeds × 2 rungs; 8 at `d_state=128`: 392M rung-2 6
++ rung-3 2, per §6.1's PINNED 1-seed×2-corpora rung-3 configuration) × the
+leg's own single committed near-cliff K (`K=32` for the `d=64` rungs,
+`K=64` for the `d=128` rungs, §6.1/§4.3/§6.2) × 4 h — per §10's budget.
+`K=48` (both legs), `K=40` (both legs), `K=20` (Leg B, both `d_state`'s),
+and `K∈{32,96}` (`d=128`, Leg B) are named, separately-priced EXTENSIONS
+(§10), not part of the committed Stage 1 launch. **(Rev 2 correction,
+preserved for the record: Rev 1's own Stage-1 line read "Leg B (14
+checkpoints...)" — an arithmetic slip; 12 (`d=64`) + 8 (`d=128`) = 20, not
+14.)**
 
 ---
 
-## 10. Budget
+## 10. Budget (RE-DERIVED, Rev 3 — attack-round-3 FATAL-1 frees the probe budget, FATAL-2 doubles the per-pass rate; full old→new reconciliation below)
 
 **Unit cost anchor (measured, not assumed):** this project's own
 retrofit-eval instrumentation on the 14M/rung-1-scale architecture costs
@@ -1698,80 +1927,117 @@ sequences dominate); **1.31B (rung-3) has NO measured anchor** — the three
 existing anchors are non-monotonic (0.0348→0.013→0.045), so extrapolating
 to rung-3 is a guess, not a measurement (§9 Stage 0.5/MAJOR-6 registers the
 calibration cell that replaces the guess with a real number before the
-rung-3 grid is trusted). This design's own probe sequences are longer
-(`K` bind clauses instead of a handful of corpus windows) — budgeted at a
-flat **2× multiplier** over the largest same-scale anchor as a conservative
-per-cell estimate, plus a further **2× contingency** matching this
-project's own standing "budget with a 2× contingency multiplier" rule
-(`SCALE_TRANSFER_DESIGN.md` §8.4). Anchor×4-multiplier subtotals:
-`d=64` anchor `0.0348×4=0.1392` GPU-h/pass; `d=128` (392M) anchor
-`0.045×4=0.18` GPU-h/pass — unchanged methodology from Rev 1, only cell
-COUNTS and K labels change below.
+rung-3 grid is trusted).
 
-**Rev 2 (attack-round-2) re-derivation, committed grid:**
+**Rev 3 multiplier re-derivation — the anchors do NOT amortize the
+two-forward protocol; the rate doubles, honestly.** The three anchors above
+were all measured on **single-forward** instrumentation (one mixer call per
+batch of windows — `lm_attractor_probe_rd.py`/`frozen_bias_retrofit_eval_rd.py`
+each run exactly one hooked forward per batch, verified against the tools
+themselves, §0). §4.4's two-forward protocol (FATAL-2) makes every Option-1
+episode cost **two** full mixer calls (forward-A bind-only + forward-B
+bind+query) — nothing in the anchors' own measurement ever included a
+second forward, so the honest treatment is a **2× protocol multiplier on
+the per-pass rate**, not an assumption that the anchor "probably absorbs
+it." (Forward-B simultaneously serves Option 2's natural logit-margin
+reading — the query-position logits come from the same call — so Option 2
+remains effectively free; the 2× covers both readouts, not 2× each.
+Multiple queries per episode batch into forward-B's batch dimension at
+`batch_size=16`, §4.2 — more sequences, not more calls, covered by the
+sequence-length multiplier below.) The full per-pass rate is therefore:
+anchor × 2 (longer sequences than the anchors' corpus windows, unchanged
+from Rev 1/2) × 2 (standing contingency rule, `SCALE_TRANSFER_DESIGN.md`
+§8.4, unchanged) × **2 (two-forward protocol, NEW)** = **anchor × 8**:
+`d=64` rate `0.0348×8=0.2784` GPU-h/pass; `d=128` (392M) rate
+`0.045×8=0.36` GPU-h/pass.
 
-| Item | Cells | GPU-h/pass | Subtotal | Rev 1 → Rev 2 |
+**Rev 3 re-derivation, committed grid (per-leg committed K's, §4.3):**
+
+| Item | Cells | GPU-h/pass | Subtotal | Rev 2 → Rev 3 |
 |---|---|---|---|---|
-| Leg A native grid, COMMITTED K∈{20,32,48} (18 core cells × 3 K) | 54 | 0.1392 | **7.52** | 72 passes/10.02 → 54/7.52 (K=40 demoted to extension, row below) |
-| Leg A surgery grid, K∈{20,32,48} (12 arm-only cells × 3 K) | 36 | 0.1392 | **5.01** | unchanged count (K=8→K=20 relabel only) |
-| Leg B, `d=64` rungs, COMMITTED K∈{20,32,48} (12 checkpoints × 3 K) | 36 | 0.1392 | **5.01** | 48 passes/6.68 → 36/5.01 (K=40 demoted to extension) |
-| Leg B, `d=128` rungs, COMMITTED K∈{20,64} (8 checkpoints × 2 K, MAJOR-1 fix — Rev 1's `{8,32}` had an invalid K=8 and omitted the actual near-cliff K=64) | 16 | 0.18 | **2.88** | same GPU-h (2.88) as Rev 1's trimmed line, now with the CORRECT, more decisive K pair |
-| Stage −1 self-tests (CPU only, incl. new items 6/9/10) | — | 0 | **0** | unchanged |
-| Stage 0 calibration (1 cell × 2 markers × 4 h) | 2 | 0.1392 | **0.28** | unchanged (K=32 still valid/committed) |
-| **Stage 0.5, NEW (MAJOR-6): rung-3 pass-cost calibration cell** (1 checkpoint × K=64, priced at 2× the 392M anchor = 0.09/pass, matching its own abort threshold) | 1 | 0.36 | **0.36** | did not exist in Rev 1 |
-| Probe training (2 shared reference probes + one-time heldout-pool draw setup) | 2 | — | **0.10** | unchanged |
-| **NEW (MAJOR-4): heldout-pool memorization-ceiling control at every killer-prediction cell + Leg B primary near-cliff-K cells**, n=1 representative seed (§4.5) — Leg A: 3 arms × 2 corpora × 1 seed × 3 killer-K = 18 passes; Leg B: 4 rungs × 2 corpora × 1 seed × rung's own near-cliff K = 8 passes | 26 | 0.1392 (d=64) / 0.18 (d=128) | **3.79** | did not exist in Rev 1 (folded into the 0.10 GPU-h probe-training line as a single one-off draw, insufficient per MAJOR-4) |
-| **Total, Phase 1 (committed)** | | | **≈24.95 GPU-h** | Rev 1: ≈24.97 → Rev 2: ≈24.95 |
+| Leg A native grid, COMMITTED K∈{20,32} (18 core cells × 2 K) | 36 | 0.2784 | **10.02** | 54 passes/7.52 → 36/10.02 (K=48 demoted to extension; rate doubled) |
+| Leg A surgery grid, K∈{20,32} (12 arm-only cells × 2 K) | 24 | 0.2784 | **6.68** | 36 passes/5.01 → 24/6.68 (same demotion; rate doubled) |
+| Leg B, `d=64` rungs, COMMITTED K=32 only (12 checkpoints × 1 K — the leg's own single primary near-cliff K, §6.2; K=20/48 were never in its headline) | 12 | 0.2784 | **3.34** | 36 passes/5.01 → 12/3.34 |
+| Leg B, `d=128` rungs, COMMITTED K=64 only (8 checkpoints × 1 K — same single-primary-K logic; rung-3 = 2 checkpoints per §6.1's PINNED 1-seed×2-corpora config) | 8 | 0.36 | **2.88** | 16 passes/2.88 → 8/2.88 (half the passes at double the rate — exact coincidence of the 2× factors, disclosed as such) |
+| Stage −1 self-tests (CPU only, incl. new item 11) | — | 0 | **0** | unchanged |
+| Stage 0 calibration (1 cell × 2 markers, all 4 h scored from the same captured passes) | 2 | 0.2784 | **0.56** | 0.28 → 0.56 (rate doubled) |
+| Stage 0.5: rung-3 pass-cost calibration cell (1 checkpoint × K=64, priced at 2× the 392M two-forward rate = 0.72/pass, matching its own abort threshold; now times BOTH forwards) | 1 | 0.72 | **0.72** | 0.36 → 0.72 (rate doubled) |
+| ~~Probe training (2 shared reference probes + heldout-pool setup)~~ | — | — | **0 (REMOVED)** | 0.10 → 0 (FATAL-1: no probe exists to train, §4.5) |
+| ~~Heldout-pool memorization-ceiling control (Rev 2 MAJOR-4)~~ | — | — | **0 (REMOVED)** | 3.79 → 0 (FATAL-1: control measures nothing without a trained probe, §4.5 adjudication) |
+| **Total, Phase 1 (committed)** | | | **≈24.20 GPU-h** | Rev 2: ≈24.95 → Rev 3: ≈24.20 |
 
-**Reconciliation, in words (old → new, every row):** the K-floor fix
-(§4.1/§4.3) does not, on its own, change any committed pass COUNT — every
-row above sweeps the SAME NUMBER of K's as Rev 1, just floor-safe/correctly-
-labeled ones (K=8→K=20 relabel in 3 of 4 rows; the `d=128` row additionally
-swaps which 2 of its 4 K's are committed, MAJOR-1). The real, deliberate
-change this revision is demoting the 4th, non-critical K point at `d=64`
-(Rev 1's `K=16`, now `K=40`) from the COMMITTED native and Leg-B-`d=64`
-grids to a named EXTENSION (below) — freeing **4.18 GPU-h**
-(2.51 Leg-A-native + 1.67 Leg-B-d64) — which funds the two new mandatory
-controls this revision adds: MAJOR-4's heldout-pool control (3.79 GPU-h)
-and MAJOR-6's rung-3 calibration cell (0.36 GPU-h), summing to **4.15
-GPU-h** of new mandatory cost. Net: 4.18 freed − 4.15 spent = **+0.03
-GPU-h**, landing the committed total at ≈24.95 GPU-h — almost exactly Rev
-1's own ≈24.97, not by design but because the freed and spent amounts
-happen to nearly cancel; disclosed as a coincidence of the arithmetic, not
-engineered to look tidy.
+**Reconciliation, in words (old → new, every moving part):**
+- **Freed by FATAL-1:** probe training (0.10) + heldout-pool control (3.79)
+  = **3.89 GPU-h** removed outright — not respent elsewhere, simply gone
+  with the machinery that motivated it.
+- **Charged by FATAL-2:** the per-pass rate doubles (anchor×4 → anchor×8)
+  on every remaining GPU row. Rev 2's grid held at Rev 2's K sets under the
+  doubled rate would have cost `(7.52+5.01+5.01+2.88+0.28)×2 + 0.72 =
+  42.12` GPU-h — **≈17.1 GPU-h over the 25 GPU-h ceiling**; the freed 3.89
+  covers less than a quarter of that. The rate increase is therefore paid
+  for by grid re-scoping, not by the freed budget alone.
+- **Re-scoped:** committed K's move from per-`d_state` sets (Rev 2:
+  `{20,32,48}` at d=64, `{20,64}` at d=128, shared by both legs) to
+  per-leg sets (Rev 3: Leg A `{20,32}`; Leg B `K=32` (d=64) / `K=64`
+  (d=128) only). What each leg's PRIMARY claim needs is preserved exactly:
+  Leg A's killer prediction was always a low-load-vs-near-cliff two-point
+  contrast read at K=32 (§5.3's own tie-break rule already made K=32 the
+  sole primary agreement-gate K); Leg B's headline was always the single
+  near-cliff K per `d_state` (§6.2). The demoted points (`K=48`, `K=40`,
+  Leg-B `K=20`, `d=128` `{32,96}`) lose grid RESOLUTION — extra
+  corroborating points, the §6.3 fixed-K sanity contrast — not any
+  registered primary claim; each is a named, priced extension below.
+- **Bottom line:** 24.95 (Rev 2) → 24.20 (Rev 3), margin 0.05 → **0.80**
+  under the unchanged 25 GPU-h ceiling. The margin improves not because
+  Rev 3 is cheaper in any real sense (the per-pass rate DOUBLED) but
+  because the committed grid is deliberately narrower — stated plainly
+  rather than presented as a savings.
 
-**Named extensions (fully priced, registered, NOT part of the Phase-1
-committed total — the reserve, disclosed rather than silently available):**
+**Named extensions (fully priced at the Rev 3 two-forward rates,
+registered, NOT part of the Phase-1 committed total — the reserve,
+disclosed rather than silently available):**
 
 | Extension | Cells | Subtotal | Trigger to promote |
 |---|---|---|---|
-| Leg A native grid, K=40 only | 18 | 2.51 GPU-h | Non-critical 4th resolution point; run if the committed 3-K reading shows a pattern worth an extra data point |
-| Leg A surgery grid, K=40 only (required before K=40's native reading may enter any training-effect table, §8.6/MAJOR-7) | 12 | 1.67 GPU-h | Same trigger as above, run together with it, never the native-only reading alone |
-| Leg B `d=64` rungs, K=40 only | 12 | 1.67 GPU-h | Same trigger as the Leg-A native K=40 extension |
-| Leg B `d=128` rungs, K∈{32,96} | 16 | 2.88 GPU-h | Gated on the committed 2-K (`{20,64}`) pass showing a signal worth resolving further (unchanged logic from Rev 1's own trim #2) |
-| §5.2a's 4th 2×2-grid cell (off-ckpt, blend-ON via retrofit table, MAJOR-2) | 18 | 2.51 GPU-h | The mechanical-effect contrast (arm-ckpt blend-ON vs. blend-OFF) is itself significant at the killer-prediction cell |
-| **Total named extensions (reserve)** | | **≈11.24 GPU-h** | — |
+| Leg A native grid, K=48 only (Rev 2-committed, demoted this revision) | 18 | 5.01 GPU-h | The committed K∈{20,32} killer contrast passes or trends — K=48 is the past-cliff corroboration point (§5.3) |
+| Leg A surgery grid, K=48 only (required before K=48's native reading may enter any training-effect table, §8.6/MAJOR-7) | 12 | 3.34 GPU-h | Same trigger as above, run together with it, never the native-only reading alone |
+| Leg A native grid, K=40 only | 18 | 5.01 GPU-h | Non-critical resolution point; run only after the K=48 extension |
+| Leg A surgery grid, K=40 only (same §8.6 rule) | 12 | 3.34 GPU-h | Same trigger, run together |
+| Leg B `d=64` rungs, K∈{20,48} (restores the low-load + past-cliff points; enables §6.3's K=20 fixed-K sanity contrast at d=64) | 24 | 6.68 GPU-h | Committed single-K ladder shows a scale trend worth bracketing in load |
+| Leg B `d=64` rungs, K=40 only | 12 | 3.34 GPU-h | Only after the {20,48} extension |
+| Leg B `d=128` rungs, K∈{20,32,96} (K=20 enables §6.3's fixed-K contrast at d=128) | 24 | 8.64 GPU-h | Gated on the committed K=64 pass showing a signal worth resolving (unchanged logic from Rev 1's own trim #2) |
+| §5.2a's 4th 2×2-grid cell (off-ckpt, blend-ON via retrofit table, MAJOR-2), at the committed K∈{20,32} | 12 | 3.34 GPU-h | The mechanical-effect contrast (arm-ckpt blend-ON vs. blend-OFF) is itself significant at the killer-prediction cell |
+| **Total named extensions (reserve)** | | **≈38.70 GPU-h** | — |
 
-**Ceiling: 25 GPU-h** (unchanged — Rev 2's re-derivation targets fitting
-under this existing ceiling, same as Rev 1, not raising it). **Margin:
-≈0.05 GPU-h** — thin, and stated as such: the abort rules below (both
-Stage-0's original and Stage-0.5's new one, §9) are the real safety valve,
-not this arithmetic margin, exactly Rev 1's own framing, carried forward
-unchanged in spirit. **Abort rules (two, distinct scopes):**
-1. **Stage 0 (14M-scale, unchanged from Rev 1):** if the calibration cell's
-   real measured wall-clock cost exceeds **3×** the 0.0348 GPU-h anchor,
-   halt before Stage 1 launches and re-price the full grid from the real
-   number.
-2. **Stage 0.5 (rung-3-scale, new, MAJOR-6):** if the rung-3 calibration
-   cell's real measured cost exceeds **2×** the 392M anchor, drop rung-3's
-   non-primary K; if it exceeds **4×**, halt Leg B's rung-3 rows entirely
-   and disclose (§9 gives the full trigger detail).
+**Ceiling: 25 GPU-h** (unchanged — Rev 3's re-derivation targets fitting
+under this existing ceiling, same as Rev 1/2, not raising it). **Margin:
+≈0.80 GPU-h** — materially better than Rev 2's ≈0.05, for the disclosed
+re-scoping reason above, and still thin enough that the abort rules below
+(both Stage-0's original and Stage-0.5's) remain the real safety valve,
+not this arithmetic margin. **Abort rules (two, distinct scopes; thresholds
+now stated against the TWO-FORWARD per-pass rates):**
+1. **Stage 0 (14M-scale):** if the calibration cell's real measured
+   wall-clock cost exceeds **3×** the two-forward d=64 baseline
+   (3 × 0.0696 GPU-h = the anchor's own 0.0348 doubled for two forwards,
+   before the sequence/contingency multipliers), halt before Stage 1
+   launches and re-price the full grid from the real number.
+2. **Stage 0.5 (rung-3-scale, MAJOR-6):** if the rung-3 calibration cell's
+   real measured cost exceeds **2×** the 392M two-forward baseline
+   (2 × 0.09 GPU-h), rung-3 stays at its single committed K=64 cell but
+   its Leg-B extension eligibility is revoked; if it exceeds **4×**, halt
+   Leg B's rung-3 rows entirely and disclose (§9 gives the full trigger
+   detail — the Rev 2 "drop rung-3's non-primary K" first tier is
+   restated here because rung-3 now has only ONE committed K, so the
+   first tier's action moves to the extension gate instead).
 If either abort rule fires and a further cut is still needed, the named
 extensions above are never touched (they were never committed); the next
-lever is deferring Leg B `d=64`'s already-thin K=48 cell in favor of
-reporting only `{20,32}` for that leg — named here as the last-resort lever,
-not yet applied, held in reserve exactly as Rev 1 held its own equivalent
-lever.
+lever is deferring Leg B's 98M rung (6 checkpoints × K=32 = 6 passes,
+1.67 GPU-h — the ladder's headline question remains answerable, less
+finely resolved, from the 14M/392M/1.31B points, mirroring
+`SCALE_TRANSFER_DESIGN.md` §8's own "endpoints alone" cut logic) — named
+here as the last-resort lever, not yet applied. (Rev 2's equivalent lever
+— deferring Leg B `d=64`'s K=48 cell — no longer exists to pull: that
+cell is already an extension this revision.)
 
 ---
 
@@ -1845,19 +2111,24 @@ cells above.
    on this assumption; if Option 1 and Option 2 disagree sharply, that
    disagreement is itself the finding, reported explicitly, not resolved
    by picking whichever one shows the hoped-for effect.
-3. **Does the shared, arm-blind probe (§4.5 primary) have enough capacity
-   to decode a stabilized (global-arm) checkpoint's geometry if that
-   geometry is meaningfully DIFFERENT from the reference ("off") checkpoint
-   it was trained on?** Best current answer: this is a real tension in the
-   design — the arm-blind probe is the most defensible against
-   probe-leakage (§7.4) but is also the most likely to systematically
-   *under*-report a genuinely different-geometry arm's true capability,
-   because a linear probe fit on one basis need not transfer perfectly to
-   a rotated/rescaled one. Partially mitigated by the per-arm secondary
-   reading (§4.5) with its own label-shuffle null, but this is registered
-   as an unresolved tension, not a solved problem — a negative Leg-A result
-   under the primary probe alone should be cross-checked against the
-   secondary before being reported as REFUTE.
+3. **Does the shared, arm-blind probe (Rev 1/2 §4.5 primary) have enough
+   capacity to decode a stabilized (global-arm) checkpoint's geometry if
+   that geometry is meaningfully DIFFERENT from the reference ("off")
+   checkpoint it was trained on?** Historical best answer (Rev 1/2): a real
+   unresolved tension — an arm-blind probe was the most defensible against
+   probe-leakage (§7.4) but the most likely to systematically
+   *under*-report a genuinely different-geometry arm, because a linear
+   probe fit on one basis need not transfer perfectly to a rotated/rescaled
+   one.
+   **DISSOLVED at Rev 3 (attack-round-3 FATAL-1):** the trained probe this
+   question was about no longer exists — §4.4's fixed readout scores in
+   `d_state` space against the target's own `k_eff`, fitting nothing. With
+   no fitted basis to transfer, there is no capacity ceiling through which
+   a different-geometry arm could be under-reported; each arm's own
+   forward machinery produces both sides of its own cosine comparison.
+   Recorded at §13.3 — this question dissolves rather than being answered,
+   the same way item 4 below was RESOLVED (rather than dissolved) by Rev 1
+   actually building the test it asked for.
 4. **Is the ordinary-token buffer/query-marker adaptation (§4.1, §7.6) safe,
    or does it reopen exactly the cross-clause smearing problem the
    from-scratch harness's zero-pinned buffer was built to close?** TODO,
@@ -1976,6 +2247,46 @@ Attack-round-0's items 3/6 and the OpenReview R8ZbLi3oUv blocked full-read
 attack-round-2 did not raise or resolve either, and this revision does not
 claim to have closed them.
 
+### 13.3 ATTACK-ROUND-3 (2026-07-07, fresh eyes) — verdict NEEDS-REVISION
+
+A third independent adversarial pass (a different reviewer from
+attack-rounds 1 and 2, per house discipline) reviewed Rev 2 before any code
+was written. Verdict: **NEEDS-REVISION** — 2 new FATALs, both in the shared
+instrument (§4.4) itself, an axis neither prior round examined closely
+(round 1 attacked the episode/probe-protocol layer, round 2 the
+kernel-floor/budget layer; neither ever type-checked the readout formula or
+walked the extraction path through a multi-layer checkpoint), plus 1 MAJOR
+and 1 minor. **Every round-2 fix was re-verified by this pass and HOLDS** —
+the two FATALs are new findings in previously-unattacked territory, not
+regressions of anything round 2 fixed. Every finding below is fixed in this
+revision (Rev 3); none is deferred or waved away. Findings recorded
+near-verbatim for the historical record, per house style; resolutions are
+stated as landed in this text, not as intentions.
+
+| # | Finding (attack-round-3) | Severity | Fix (Rev 3) | Location |
+|---|---|---|---|---|
+| FATAL-1 | §4.4's Option 1 readout could not be evaluated as written: it declared a trained probe `W_probe: R^{d_state} → R^{d_state}` but cosine-scored its output against `W_embed[value_token_id] ∈ R^{d_model}` — and `d_state ≠ d_model` at EVERY checkpoint in scope (64 vs. 256/768; 128 vs. 1536/2560). A dimension mismatch, not a tuning problem; the entire §4.5 probe-training/leakage/memorization apparatus inherited the hole | FATAL | Dropped the trained probe ENTIRELY. Score in `d_state` space against the TARGET ENTITY'S OWN `k_eff` (gathered at `tgt_slot` from forward-A, through the same per-layer `k_conv1d` hook as the bind keys and `q_eff`), absolute cosine ≥ 0.9 — mirroring `DELTANET_REALDATA_DESIGN.md` §5.2/§14.3's established convention (same-space scoring, absolute cosine, 0.9 threshold, exact continuous recovery, never argmax), with one specified, doubly-justified departure: compare against `k_eff` (same `W_k` family as `q_eff` at every hop; zero new hook code — no `v_conv1d` hook exists in this codebase) rather than `v_eff`. Consequences propagated: §4.5 rewritten (probe-training protocol, probe-train/probe-eval seed split, arm-blind machinery all OBSOLETE and removed; label-shuffle null SURVIVES rebuilt probe-free as the §8.4 chance floor); heldout-pool memorization control adjudicated to measure NOTHING probe-free (no fitted weights to leak; pools are a pure random shuffle of one curated name distribution — no familiarity axis) and REMOVED with its 3.79 GPU-h line and the MEMORIZATION-CONFOUND outcome (§8.5); attack-round-0 item 3 (arm-blind probe under-reporting) DISSOLVES (recorded at §13 item 3); §10 re-derived (probe lines freed, ≈3.89 GPU-h) | §4.4, §4.5, §4.6, §7.4, §8.1, §8.2, §8.5, §10, §13 item 3 |
+| FATAL-2 | Query-phase extraction was unbuildable as written for multi-layer checkpoints: `grammar_rd.py` builds queries as SEPARATE short tensors (`query_len=6`), but the production mixer hard-asserts `T ≥ _MIN_KERNEL_T=128` BEFORE the k/q/v convs (`lm_pretrain_rd.py` L831-836), and layer `i>0`'s input is layer `i−1`'s residual output — itself requiring a valid `T≥128` forward. `model_rd.py::effective_key_window`'s direct-submodule short-window precedent is a SINGLE-mixer construction that does not generalize; layer-0-only extraction would silently break the per-layer `S_T` framing at rung-2/3 (`n_layers` 16/22) | FATAL | Adopted the TWO-FORWARD protocol: forward-A = bind-only sequence (`T_bind ≥ 128` guaranteed by §4.1's K-floor) → per-layer `S_T` via the mixer's own final-state path + all bind `k_eff` (incl. the target's); forward-B = bind+query CONCATENATED (`T_bind+query_len`, trivially ≥128) → per-layer `q_eff` from the `k_conv1d` hook at the query positions. Registered: (i) a disclosed, eval-only deviation from grammar_rd's "query never enters the streamed sequence" training convention — `S_T` comes from forward-A, which the appended query cannot retroactively affect (causality); (ii) `q_eff` thereby defined IN SITU (the model's own contextual multi-layer processing of the query clause) — the honest, well-defined choice for multi-layer checkpoints; (iii) new Stage −1 item 11: forward-A/forward-B residual streams asserted IDENTICAL over the bind prefix (bit-identical fp32/CPU, or `1e-6` at the bf16 kernel boundary on GPU); (iv) cost re-derived honestly — the anchors are single-forward measurements that do NOT amortize a second pass, so the per-pass rate doubles (anchor×4 → anchor×8), §10's rows re-priced and the grid re-scoped per-leg to stay under the 25 GPU-h ceiling (old→new reconciliation printed in §10) | §4.4, §9 item 11, §9 Stage 0, §10 |
+| MAJOR | The Leg-B `d=128` "8 passes"-style budget lines assumed 4 rungs × 2 corpora uniformly, but rung-3's actual configuration was left as an open "confirm at harvest time" question (§6.1: "likely 1 seed × 2 corpora, or 2 seeds × 1 corpus") — two configurations with materially different corpus coverage, silently unpinned under budget lines that priced one of them | MAJOR | PINNED from the actual launch artifacts, not guessed: `run_lm_rd_trackc_sweep.py::wave23_manifest` (L100/L868-869, "rung 3 stays '2 corpora x 1 seed' as registered") and `STATE.md`'s launch record both fix rung-3 at **2 corpora × 1 seed** (openr1-mix-ext + wikitext-mix-ext, one run each). §6.1 rewritten with the pin and its consequence (each corpus gets a complete 4-rung ladder at n=1, vs. the alternative's zero-coverage corpus); every rung-3-touching row in §10 written against this configuration. NOTE: the orchestrator's own fix directive suggested pinning to "2 seeds × 1 corpus openr1-mix-ext" — the launch artifacts contradict that suggestion, and reality wins; recorded here so the discrepancy is visible, not silently resolved | §6.1, §10 |
+| minor | Batch size for GPU passes was never registered anywhere — every cost anchor implicitly assumed one, and a build-time choice could silently diverge from what the anchors measured | minor | PINNED `batch_size=16` (§4.2), verified as the shared default of both anchor-generating tools (`lm_attractor_probe_rd.py`/`frozen_bias_retrofit_eval_rd.py` `--batch-size` defaults) AND the batch rung-3's own Rev 2.2 pricing was measured at (`SCALE_TRANSFER_DESIGN.md`); Stage 0/0.5 calibration validates it on this design's own episodes | §4.2, §9 |
+
+**What Rev 3 could NOT cleanly fix, disclosed rather than hidden:** the
+committed grid is genuinely NARROWER than Rev 2's — the two-forward tax
+was paid mostly in grid resolution (K=48/K=40/Leg-B K=20 demoted to
+extensions), not found for free; §5.3's killer prediction executes at a
+two-point contrast with its past-cliff corroboration point (K=48) gated
+behind an extension, and §6.3's fixed-K sanity contrast is unfunded within
+the committed grid. The improved margin (≈0.80 vs. ≈0.05 GPU-h) reflects
+that narrowing, stated plainly in §10, not a real cost saving. The
+adaptation of `DELTANET_REALDATA_DESIGN.md` §5.2's scoring convention
+substitutes `k_eff` for `v_eff` as the comparison target — argued from
+representational-family consistency and hook-mechanics in §4.4, but it IS
+a departure from the letter of the validated convention, registered as
+such rather than claimed identical. Attack-round-0's item 6 (frozen-table
+training-dynamics channel) and the OpenReview R8ZbLi3oUv blocked full-read
+remain open — this round did not raise or resolve either. Attack-round-0's
+item 3 is now DISSOLVED (not answered) by FATAL-1's fix, per §13 item 3.
+
 ---
 
 ## 14. Standing constraints (inherited, checked off explicitly)
@@ -1999,8 +2310,9 @@ claim to have closed them.
   at the killer-prediction cell; disagreement is a named, reported outcome
   (READOUT-DIVERGENCE), never silently resolved (attack-round-1 M1).
 - [x] **(Rev 1)** Every K value in the sweep is constructible from its
-  entity pool (107-name primary, 106-name memorization-ceiling control)
-  with margin — the arithmetic-impossibility gap attack-round-1 F1 found is
+  entity pool (the full 107-name primary pool; Rev 3: the 106-name pool's
+  memorization-control role is retired with the trained probe, §4.5) with
+  margin — the arithmetic-impossibility gap attack-round-1 F1 found is
   closed by construction.
 - [x] **(Rev 2)** Every registered K value (20/32/40/48/64/96) also clears
   `chunk_delta_rule`'s hard `T_bind ≥ _MIN_KERNEL_T=128` floor, per
@@ -2008,21 +2320,37 @@ claim to have closed them.
   assumed value; the entire pre-Rev-2 low end (K=8, K=16) crashed this floor
   and is retired (attack-round-2 FATAL).
 - [x] **(Rev 2)** Episode-generation seeds cannot collide across purpose
-  (probe-train/probe-eval/null-shuffle/calibration/heldout-control) or across
-  the other seed axes (arm/rung, corpus, checkpoint seed, K) — a pinned,
-  mixed-radix numeric formula (§4.6), mechanically verified by a Stage −1
-  assertion (item 10), not merely argued collision-free (attack-round-2 M5).
-- [x] **(Rev 2)** The heldout-pool memorization-ceiling control is priced
-  and run at every killer-prediction cell and Leg B's primary near-cliff-K
-  cells, not a single pooled draw — an arm/rung differential on it demotes
-  CONFIRM to the named MEMORIZATION-CONFOUND outcome (attack-round-2 M4).
+  (Rev 3 purposes: eval/null-shuffle/calibration, §4.6) or across the other
+  seed axes (arm/rung, corpus, checkpoint seed, K) — a pinned, mixed-radix
+  numeric formula (§4.6), mechanically verified by a Stage −1 assertion
+  (item 10), not merely argued collision-free (attack-round-2 M5).
+- [x] ~~(Rev 2) The heldout-pool memorization-ceiling control...~~ —
+  **RETIRED at Rev 3** with the trained probe it was built to check
+  (attack-round-3 FATAL-1; adjudication in §4.5): probe-free, the control
+  measures nothing, and the MEMORIZATION-CONFOUND outcome is removed with
+  it. Struck through rather than deleted so the checklist's history stays
+  legible.
 - [x] **(Rev 2)** Rung-3's (1.31B) pass cost is gated by a real,
   blinded calibration cell before its grid is trusted, with a two-tier
   abort trigger — not an unmeasured extrapolation from a non-monotonic
   anchor sequence (attack-round-2 M6).
+- [x] **(Rev 3)** The readout is dimensionally well-typed at every
+  checkpoint: `S_T`, `q_eff`, `k_eff_target`, and `pred(a,h)` all live in
+  `R^{d_state}`, produced by the checkpoint's own machinery — no trained
+  probe, no projection into `d_model`, no `W_embed` in any scoring formula
+  (attack-round-3 FATAL-1).
+- [x] **(Rev 3)** Per-layer extraction is legal at every checkpoint depth:
+  the two-forward protocol (§4.4) never feeds the mixer a sub-`_MIN_KERNEL_T`
+  sequence and never fabricates a layer-`i>0` input outside a real
+  multi-layer forward; the forward-A/forward-B bind-prefix identity is a
+  Stage −1 assertion (item 11), not an argument (attack-round-3 FATAL-2).
+- [x] **(Rev 3)** Rung-3's configuration (2 corpora × 1 seed) is pinned
+  from the actual launch manifest, not left to harvest-time confirmation;
+  batch size (16) is pinned from the anchor tools' own measured defaults
+  (attack-round-3 MAJOR/minor).
 - [x] No compressing matrices to vectors — `S_T` and `pred(a,h)` stay
-  `d_state`-dimensional throughout; the probe maps `d_state→d_state`, never
-  through a flattened intermediate.
+  `d_state`-dimensional throughout (Rev 3: the readout compares them
+  directly in `d_state` space; nothing is flattened or projected out).
 - [x] Same dataset/instrument across every arm in one comparison — one
   probe-generation script, one readout, shared across Leg A's 3 arms and
   Leg B's 4 rungs; only the checkpoint being loaded differs.
