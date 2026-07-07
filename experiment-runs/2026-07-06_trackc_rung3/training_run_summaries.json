@@ -1,0 +1,314 @@
+{
+  "wave3": [
+    {
+      "path": "results/lm_rd_trackc/wave3/w3_rung3_lm_openr1-mix-ext_dm2560_ds128_L22_s0.json",
+      "run_name": "lmC_openr1-mix-ext_dm2560_ds128_L22_s0",
+      "corpus": "openr1-mix-ext",
+      "other_corpus": "wikitext-mix-ext",
+      "seed": 0,
+      "d_model": 2560,
+      "d_state": 128,
+      "n_layers": 22,
+      "num_heads": 1,
+      "steps": 183105,
+      "steps_completed": 155081,
+      "complete": false,
+      "timed_out": true,
+      "n_skipped_steps": 0,
+      "skip_rate": 0.0,
+      "n_params": 1311135488,
+      "wall_s": 219618.09200668335,
+      "final_step": 155000,
+      "final_checkpoint_path": "results/lm_rd_trackc/wave3/checkpoints/lmC_openr1-mix-ext_dm2560_ds128_L22_s0_step155000.pt",
+      "n_checkpoints": 155,
+      "first_ckpt_step": 1000,
+      "final_ckpt_step": 155000,
+      "final_val_loss": {
+        "openr1-mix-ext": 1.1620889008045197,
+        "wikitext-mix-ext": 5.267421722412109
+      },
+      "final_eff_rank_frac1_by_corpus": {
+        "openr1-mix-ext": 63.68314090909091,
+        "wikitext-mix-ext": 63.540290909090906
+      },
+      "val_loss_trajectory_every10th": [
+        {
+          "step": 1000,
+          "val_loss": {
+            "openr1-mix-ext": 2.969020366668701,
+            "wikitext-mix-ext": 7.530693233013153
+          }
+        },
+        {
+          "step": 11000,
+          "val_loss": {
+            "openr1-mix-ext": 1.589114934206009,
+            "wikitext-mix-ext": 5.714251637458801
+          }
+        },
+        {
+          "step": 21000,
+          "val_loss": {
+            "openr1-mix-ext": 1.472186803817749,
+            "wikitext-mix-ext": 5.3946428298950195
+          }
+        },
+        {
+          "step": 31000,
+          "val_loss": {
+            "openr1-mix-ext": 1.3304091840982437,
+            "wikitext-mix-ext": 5.250088691711426
+          }
+        },
+        {
+          "step": 41000,
+          "val_loss": {
+            "openr1-mix-ext": 1.3019563257694244,
+            "wikitext-mix-ext": 5.070831716060638
+          }
+        },
+        {
+          "step": 51000,
+          "val_loss": {
+            "openr1-mix-ext": 1.2816785722970963,
+            "wikitext-mix-ext": 5.059594631195068
+          }
+        },
+        {
+          "step": 61000,
+          "val_loss": {
+            "openr1-mix-ext": 1.1987842619419098,
+            "wikitext-mix-ext": 5.015046715736389
+          }
+        },
+        {
+          "step": 71000,
+          "val_loss": {
+            "openr1-mix-ext": 1.1819222122430801,
+            "wikitext-mix-ext": 5.026459515094757
+          }
+        },
+        {
+          "step": 81000,
+          "val_loss": {
+            "openr1-mix-ext": 1.2465401589870453,
+            "wikitext-mix-ext": 5.036114454269409
+          }
+        },
+        {
+          "step": 91000,
+          "val_loss": {
+            "openr1-mix-ext": 1.1532656997442245,
+            "wikitext-mix-ext": 4.9623019099235535
+          }
+        },
+        {
+          "step": 101000,
+          "val_loss": {
+            "openr1-mix-ext": 1.1882010102272034,
+            "wikitext-mix-ext": 4.998994052410126
+          }
+        },
+        {
+          "step": 111000,
+          "val_loss": {
+            "openr1-mix-ext": 1.232609137892723,
+            "wikitext-mix-ext": 5.1158400774002075
+          }
+        },
+        {
+          "step": 121000,
+          "val_loss": {
+            "openr1-mix-ext": 1.2426902800798416,
+            "wikitext-mix-ext": 5.169922828674316
+          }
+        },
+        {
+          "step": 131000,
+          "val_loss": {
+            "openr1-mix-ext": 1.2345644384622574,
+            "wikitext-mix-ext": 5.203617513179779
+          }
+        },
+        {
+          "step": 141000,
+          "val_loss": {
+            "openr1-mix-ext": 1.1401142477989197,
+            "wikitext-mix-ext": 5.194514334201813
+          }
+        },
+        {
+          "step": 151000,
+          "val_loss": {
+            "openr1-mix-ext": 1.2379276156425476,
+            "wikitext-mix-ext": 5.212445974349976
+          }
+        },
+        {
+          "step": 155000,
+          "val_loss": {
+            "openr1-mix-ext": 1.1620889008045197,
+            "wikitext-mix-ext": 5.267421722412109
+          }
+        }
+      ],
+      "peak_memory_allocated_bytes": 50129788928,
+      "peak_memory_reserved_bytes": 56780390400
+    },
+    {
+      "path": "results/lm_rd_trackc/wave3/w3_rung3_lm_wikitext-mix-ext_dm2560_ds128_L22_s0.json",
+      "run_name": "lmC_wikitext-mix-ext_dm2560_ds128_L22_s0",
+      "corpus": "wikitext-mix-ext",
+      "other_corpus": "openr1-mix-ext",
+      "seed": 0,
+      "d_model": 2560,
+      "d_state": 128,
+      "n_layers": 22,
+      "num_heads": 1,
+      "steps": 183105,
+      "steps_completed": 155028,
+      "complete": false,
+      "timed_out": true,
+      "n_skipped_steps": 0,
+      "skip_rate": 0.0,
+      "n_params": 1311135488,
+      "wall_s": 219618.42097234726,
+      "final_step": 155000,
+      "final_checkpoint_path": "results/lm_rd_trackc/wave3/checkpoints/lmC_wikitext-mix-ext_dm2560_ds128_L22_s0_step155000.pt",
+      "n_checkpoints": 155,
+      "first_ckpt_step": 1000,
+      "final_ckpt_step": 155000,
+      "final_val_loss": {
+        "wikitext-mix-ext": 2.8098082840442657,
+        "openr1-mix-ext": 4.538464844226837
+      },
+      "final_eff_rank_frac1_by_corpus": {
+        "wikitext-mix-ext": 60.39067272727273,
+        "openr1-mix-ext": 59.085972727272726
+      },
+      "val_loss_trajectory_every10th": [
+        {
+          "step": 1000,
+          "val_loss": {
+            "wikitext-mix-ext": 5.476544439792633,
+            "openr1-mix-ext": 8.278777599334717
+          }
+        },
+        {
+          "step": 11000,
+          "val_loss": {
+            "wikitext-mix-ext": 3.6268013417720795,
+            "openr1-mix-ext": 5.513142883777618
+          }
+        },
+        {
+          "step": 21000,
+          "val_loss": {
+            "wikitext-mix-ext": 3.461216479539871,
+            "openr1-mix-ext": 4.8713396191596985
+          }
+        },
+        {
+          "step": 31000,
+          "val_loss": {
+            "wikitext-mix-ext": 3.3067134022712708,
+            "openr1-mix-ext": 4.9912397265434265
+          }
+        },
+        {
+          "step": 41000,
+          "val_loss": {
+            "wikitext-mix-ext": 3.1392558217048645,
+            "openr1-mix-ext": 4.645298719406128
+          }
+        },
+        {
+          "step": 51000,
+          "val_loss": {
+            "wikitext-mix-ext": 3.1072276532649994,
+            "openr1-mix-ext": 4.558255612850189
+          }
+        },
+        {
+          "step": 61000,
+          "val_loss": {
+            "wikitext-mix-ext": 3.0362348556518555,
+            "openr1-mix-ext": 4.587893068790436
+          }
+        },
+        {
+          "step": 71000,
+          "val_loss": {
+            "wikitext-mix-ext": 3.0322077870368958,
+            "openr1-mix-ext": 4.438594043254852
+          }
+        },
+        {
+          "step": 81000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.857698231935501,
+            "openr1-mix-ext": 4.43930971622467
+          }
+        },
+        {
+          "step": 91000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.943347454071045,
+            "openr1-mix-ext": 4.390922963619232
+          }
+        },
+        {
+          "step": 101000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.910445421934128,
+            "openr1-mix-ext": 4.3711549043655396
+          }
+        },
+        {
+          "step": 111000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.8578536212444305,
+            "openr1-mix-ext": 4.53745436668396
+          }
+        },
+        {
+          "step": 121000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.9302925169467926,
+            "openr1-mix-ext": 4.3736255168914795
+          }
+        },
+        {
+          "step": 131000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.921480029821396,
+            "openr1-mix-ext": 4.225596249103546
+          }
+        },
+        {
+          "step": 141000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.886068046092987,
+            "openr1-mix-ext": 4.3954883217811584
+          }
+        },
+        {
+          "step": 151000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.904881328344345,
+            "openr1-mix-ext": 4.531610012054443
+          }
+        },
+        {
+          "step": 155000,
+          "val_loss": {
+            "wikitext-mix-ext": 2.8098082840442657,
+            "openr1-mix-ext": 4.538464844226837
+          }
+        }
+      ],
+      "peak_memory_allocated_bytes": 50716991488,
+      "peak_memory_reserved_bytes": 57355010048
+    }
+  ]
+}

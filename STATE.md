@@ -6,6 +6,63 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## TRACK C RUNG-3 HARVEST (2026-07-07 ~20:45 UTC) — CLOSES the rung-3 lane (Option-A harvest); supersedes ALL rung-3/trackc tracking in every block below (the "~05:00 UTC Jul 8 ALL_DONE" ETA is dead — see disclosure)
+
+**SCALE PROGRAM COMPLETE AT 4 POINTS. The 4-point ladder is MONOTONIC —
+span_frac 0.248 (14M) → 0.344 (98M) → 0.389 (392M) → 0.455 (1.31B), all
+on the held-fixed extended mixes — the write-geometry attractor WORSENS
+with pure scale through 1.31B params.** §5.7's literal 3-rung criterion
+reads "persists/worsens", the pre-registered headline direction. Full
+verdict + tables: `matrix-thinking/SCALE_TRANSFER_DESIGN.md` §5.11;
+EXPERIMENT_LOG "SCALE-TRANSFER Track C Wave 3 (rung-3) harvest" entry.
+
+**PROMINENT DISCLOSURE:** rung-3's training never reached `ALL_DONE` —
+both cells **self-terminated at their own `--internal-timeout` at steps
+155,081/155,028 of 183,105 (~84.7% of the token-matched budget, ≈1.27B
+of 1.5B tokens)**. Clean designed shutdown, not a crash (loss curves
+clean, `skip_rate=0.0`, ckpts every 1k steps through 155,000;
+`complete=false, timed_out=true`). Root cause: the banked solo
+calibration constant (0.7135 s/step) underestimated the two concurrent
+runs' real steady-state rate (1.416 s/step) by 1.985×, consuming the
+1.6× margin (derived internal timeout 219,631 s; both cells stopped
+within 13 s under it) — the mid-run ETA disclosure (2026-07-06 ~07:35
+UTC) was never propagated to the running cells' timeout. No
+optimizer-state resume exists; budget guard correctly blocked a ~144
+GPU-h restart; supervisor stopped via `STOP_trackc3`. **Option A
+(harvest at 155k + disclosure) adjudicated over restart** on the plateau
+check: span_frac at 130k/140k/150k/155k = 0.4584/0.4573/0.4566/0.4554 —
+flat, mildly declining; extrapolated to 183k ≈ 0.452, a −0.003
+correction vs the +0.066 rung-2→rung-3 increment. Two [LEARN]s
+registered (optimizer state in checkpoints as a build requirement;
+timeouts must track measured steady-state rate, not calibration
+constants).
+
+**Ledger (realized, from the cells' own wall_s):** wave-3 = 219,618.09 +
+219,618.42 s = **122.01 GPU-h** (vs 76.25 booked) → program total
+**312.23/300 GPU-h, OVER the ceiling by 12.23, disclosed** (the earlier
+≈334/300 projection assumed a full-length run; the timeout capped it).
+`PROGRAM_SPENT_GPUH` 266.47 → 312.23 in `run_lm_rd_trackc_sweep.py`
+(repo + box, md5-matched). No further Track C training exists to launch.
+Probe cost 0.49 GPU-h (GPU 0 only; smoke gate 6/6 PASS; pooling method
+re-validated against archived rung-1/control numbers to ≤4.5e-7 before
+scoring). Archive: `experiment-runs/2026-07-06_trackc_rung3/` (repo
+≤25MB) + SSD mirror (incl. the 2×69MB raw training JSONs, SSD-only).
+Checkpoints stay on box (`/data/lm_rd_trackc_ckpts/wave3/`, 155/run).
+
+**Queue implication:** the PRE-COMPACTION SNAPSHOT's queue item 2 step 1
+(this harvest) is DONE; **its step 2 (paper addendum: fold rung-3 into
+`submissions/iclr-2027/NARRATIVE.md`, rerun `make_figures_v2.py` Fig 9
+4th point, resolve the 3 `[PENDING RUNG-3]` todos, intro bullets +
+related-work cite, then delete both stale handoff blocks from this
+file) is now the standing next item.** REASONING-LINK's 2 deferred
+rung-3 Leg-B cells are unblocked in the narrow sense that trackc's lane
+is closed and GPUs 0-1 are free — but they would run on the step-155k
+(84.7%-budget) checkpoints; whether that's acceptable is a design-owner
+call under REASONING-LINK's own probe-invalid verdict (rungs 0-2
+already showed the identical pattern; see the Phase-1b block below).
+
+---
+
 ## REASONING-LINK PHASE-1B GATE-TEST NULL (2026-07-07 ~20:21 UTC) — supersedes the REASONING-LINK PHASE 1 HARVEST SNAPSHOT block's own queue implication below (that block's PROBE-INVALID Phase-1 finding is otherwise still current/unchanged), and supersedes IMMEDIATE QUEUE item 1(b) in the PRE-COMPACTION SNAPSHOT block further below (stale, pre-dates Phase 1's own launch); the KEYANCHOR-SCALING WAVE HARVEST block immediately below is UNAFFECTED (never gated, and never gates, this block's own decision tree, §16.6 step 6)
 
 **Phase-1b (`REASONING_LINK_DESIGN.md` §16.1/§16.8) ran on box and is CLOSED-NULL: both natural-language candidates (A — gift-verb, reserved query marker dropped; B — succession-family verbs) return `gate_result_h1_probe_valid=False` on the licensing WIKITEXT-mix-ext cell, identically to Phase 1's marker-template result** — `recovered_frac`(h1)=0.0, premises (iii)/(iv) both fail their null-relative gate, at all 4 gate cells (2 templates × {wikitext-licensing, openr1-expected-null}). The openr1 "expected-null" cells also fail as predicted (no §16.1.3 item 2b confound flag). Per §16.1.3 item 1's own pre-registered reading, two structurally different templates failing the SAME way on the licensing checkpoint is the single most informative null this instrument can produce — the failure is NOT attributable to surface form. **This mechanically PROMOTES Path (ii)/Phase-2 per §16.6's trigger table (row 4).** The conditional ≈0.4 GPU-h full Phase-1b grid was correctly NOT launched.

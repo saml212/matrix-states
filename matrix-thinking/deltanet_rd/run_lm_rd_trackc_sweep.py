@@ -295,7 +295,15 @@ EPOCH_CAP = 5
 # timing constants -- committed spend the moment the wave started). 190.22 -> 266.47 (2026-07-05
 # ~05:05 UTC): +76.25 for the real --wave 3 launch on GPUs 0-1 (Rev 2.2 signed-off config, 2 runs
 # x 183,105 steps at the banked batch-16 rung-3 constants; budget guard printed 266.47/300 at launch).
-PROGRAM_SPENT_GPUH = 266.47
+# 266.47 -> 312.23 (2026-07-07, wave-3 harvest): wave 3's REALIZED cost replaced its 76.25 booked
+# estimate -- both cells self-terminated at their --internal-timeout at steps 155,081/155,028 of
+# 183,105 (~84.7% of the token-matched budget; the banked 0.7135 s/step calibration constant was
+# ~1.9x optimistic vs the measured steady-state 1.416 s/step, so the 1.6x margin was consumed);
+# realized = sum of the 2 cells' own wall_s (219,618.09 + 219,618.42 s) = 122.01 GPU-h.
+# 190.22 + 122.01 = 312.23 -- OVER the 300 ceiling by 12.23 GPU-h, DISCLOSED (sec 5.11), not
+# silently absorbed; no further Track C training exists to launch (program COMPLETE at 4 rungs),
+# so this constant is now a closing ledger entry, not a launch-gate input.
+PROGRAM_SPENT_GPUH = 312.23
 GPU_H_PROGRAM_CEILING = 300.0
 
 CALIBRATION_STEPS_DEFAULT = 200

@@ -1,0 +1,121 @@
+SCALE-TRANSFER Track C Wave 3 (rung-3, 1.31B) harvest — 2026-07-07
+==================================================================
+Box: youthful-indigo-turkey, /home/nvidia/chapter2/deltanet_rd
+Probe GPU: 0 only. Design: SCALE_TRANSFER_DESIGN.md §5.11 (full verdict there).
+EXPERIMENT_LOG.md: "SCALE-TRANSFER Track C Wave 3 (rung-3) harvest" entry.
+
+PROMINENT DISCLOSURE (read before any number below)
+---------------------------------------------------
+Training did NOT complete its registered token-matched budget. Both cells
+(1 seed x 2 corpora, dm2560/L22/ds128, 1,311,135,488 params) self-terminated
+at their own --internal-timeout:
+  openr1-mix-ext  : steps_completed 155,081 / 183,105 (84.70%), wall_s 219,618.09
+  wikitext-mix-ext: steps_completed 155,028 / 183,105 (84.67%), wall_s 219,618.42
+~1.270B of the registered 1.500B tokens/run. complete=false, timed_out=true,
+skip_rate=0.0, checkpoints + eval every 1,000 steps through step 155,000.
+Clean designed shutdown, NOT a crash.
+
+Root cause: internal timeout derived from the banked SOLO calibration constant
+(0.7135 s/step, batch 16); the two CONCURRENT production runs sustained
+1.416 s/step — a 1.985x miss that consumed the 1.6x launch margin. Derived
+internal timeout: (30 + 0.7135*183105 + 184*35.94)*1.6 - 30 = 219,631 s; both
+cells stopped within 13 s under that bound. The 2x throughput gap was disclosed
+mid-run (STATE.md ETA correction 2026-07-06 ~07:35 UTC) but never propagated to
+the running cells' timeout. Checkpoints store weights only (no optimizer
+state) -> no warm resume; budget guard correctly blocked a ~144 GPU-h cold
+restart; supervisor stopped via STOP_trackc3. Option A (harvest at 155k with
+prominent disclosure) adjudicated over restart on the plateau check below.
+
+Registered order: pooling validation FIRST
+------------------------------------------
+analyze_probe_wave2.py (n-weighted exact recombination, archived-4 subset
+{openr1, openr1-mix, wikitext, wikitext-mix}) re-validated against the
+archived rung-1/control JSONs (experiment-runs/2026-07-04_trackc_rung1/):
+  rung-1 : recomputed 27.8168550365501 vs archived 27.8168550 (diff 3.7e-8)
+           span 0.35779918831732027 vs 0.357799 (diff 1.9e-7)
+  control: recomputed 21.92787140607834 vs archived 21.9278714 (diff 6.1e-9)
+           span 0.25180744572440483 vs 0.251807 (diff 4.5e-7)
+All <= 4.5e-7, inside the 1e-6 bar. Record: pooling_validation.json.
+
+Instrument health
+-----------------
+lm_attractor_probe_rd.py on-box md5 3fb0f80028477d0b1cefe468c81b1da4 —
+bit-identical to the §5.9/§5.10/§5.10-addendum archived copies (copy here).
+Smoke gate re-run on GPU 0 before scoring: 6/6 PASS. 0 excluded episodes,
+no crashes. Final-pooled and plateau-155k invocations (same checkpoints,
+independent runs) reproduced each other bit-identically (determinism check).
+Pre-harvest safety diag (2026-07-07 ~11:33 UTC, step-20000 ckpt, 98.7 s):
+diag_attractor_rung3_smoke.json + diag_attractor_rung3.log.
+
+Headline: the 4-point ladder (archived-4 subset, held-fixed extended mixes)
+---------------------------------------------------------------------------
+  14M  mixcontrol : raw gd 21.74 +- 5.80  span_frac 0.248  (n=12,288)
+  98M  wave-1ext  : raw gd 27.05 +- 12.76 span_frac 0.344  (n=73,728)
+  392M rung-2     : raw gd 28.10 +- 14.33 span_frac 0.389  (n=98,304)
+  1.31B rung-3 @155k: raw gd 31.98 +- 14.78 span_frac 0.455 (n=45,056)
+Anchors at K=64/d=128: random 5.612, collapse 63.498 (d=64 rows: 7.937/63.498).
+Per-cell rung-3 (archived-4): openr1-mix-ext 31.47 (span 0.447),
+wikitext-mix-ext 32.49 (span 0.464). All-7-pooled as-written: 32.08 +- 14.70
+(n=78,848, span 0.457). Distance above random anchor: 13.80 -> 19.11 -> 22.49
+-> 26.36 raw.
+
+VERDICT (per §5.7's pre-registered criteria): the literal 3-rung criterion
+(98M/392M/1.31B) reads WORSENS monotonically (0.344 -> 0.389 -> 0.455).
+The write-geometry attractor does not dissolve with scale — it grows more
+pronounced through 1.31B params; per the §5.10-addendum mix-axis closure this
+is a PURE-SCALE result. Track C scale program COMPLETE at 4 points.
+Scope: geometry leg only, raw-only probe, Tier 2, 1 seed x 2 corpora at this
+rung, 84.7%-of-budget harvest (see disclosure + plateau check).
+
+Plateau check (token-shortfall neutralizer)
+-------------------------------------------
+Archived-4 pooled span_frac, both corpora, late steps:
+  130,000: gd 32.148  span 0.4584
+  140,000: gd 32.081  span 0.4573
+  150,000: gd 32.046  span 0.4566
+  155,000: gd 31.976  span 0.4554
+Flat, mildly declining: -0.17 raw / -0.0030 span over the final 25k steps
+(-0.00012 span per 1k steps). Linear extrapolation to 183,105: span ~0.452 —
+a -0.003 correction, two orders of magnitude smaller than the +0.066
+rung-2 -> rung-3 increment, in the shrinking direction. The 155k reading
+approximates the 183k value; monotonicity is insensitive to the shortfall.
+
+Secondary instruments (step-155,000 checkpoints)
+------------------------------------------------
+Val loss self/cross: openr1-mix-ext 1.162 / 5.267; wikitext-mix-ext 2.810 /
+4.538 — rough parity with rung-2 (1.135 / 2.847) at 15% fewer tokens; no
+capability claim licensed (§5.8 item 4). Whole-state eff-rank fraction f=1.0:
+63.7/128 = 0.497 (openr1), 60.4/128 = 0.472 (wikitext) — flat vs rung-2's
+0.488/0.458. stable_rank 2.96 << effective_rank 37.5 (the family's most
+extreme dominant-channel signal; massive-activation confound still UNTESTED).
+
+Cost / ledger
+-------------
+Probe: 5 invocations x ~353.6 s = 1,768 s ~= 0.49 GPU-h (GPU 0 only).
+Training realized: 219,618.09 + 219,618.42 s = 122.01 GPU-h (vs 76.25 booked).
+Program: 190.22 committed base + 122.01 = 312.23/300 GPU-h — OVER the §7
+ceiling by 12.23 GPU-h, DISCLOSED (the mid-run ~334/300 projection assumed a
+full-length run; the timeout capped it). PROGRAM_SPENT_GPUH 266.47 -> 312.23
+in run_lm_rd_trackc_sweep.py (repo + box, md5-matched).
+
+Files here
+----------
+rung3_final_pooled.json               probe output, 2x step-155000 ckpts
+rung3_plateau_step{130000,140000,150000,155000}.json  plateau points
+probe_analysis_rung3.json             archived-4/ext-2/all-7/per-corpus recomputes
+pooling_validation.json               the 1e-6 validation record (rung-1/control)
+training_run_summaries.json           compact extraction of the 2 training JSONs
+attractor_probe_wave3_run.log         probe chain run log (EXIT_CODE=0)
+run_attractor_probe_wave3.sh          exact probe chain script
+lm_attractor_probe_rd.py              exact instrument copy (md5 3fb0f800...)
+analyze_probe_wave2.py                exact pooling-script copy
+extract_run_summaries_wave3.py        exact extraction script
+wave3_{AGGREGATE.json,PROGRESS.txt,SUMMARY.txt}  box status files (n_failed=2
+                                      = the 2 timed-out cells, per is_done_cell)
+diag_attractor_rung3_smoke.json/.log  pre-harvest 1.31B safety diag
+trackc_rung3_summary.txt              this file
+
+SSD-only (exceeds 25MB repo cap): the 2 raw wave-3 training JSONs (~69MB each)
+at /Volumes/1TB_SSD/learned-representations/experiment-runs/
+2026-07-06_trackc_rung3/wave3_training_jsons/. Checkpoints stay on box
+(/data/lm_rd_trackc_ckpts/wave3/, 155 per run, ~5.2GB each — NOT archived).

@@ -5459,3 +5459,112 @@ fresh independent second audit pass (§16.2.4's registered prerequisite,
 this project's standing multiple-independent-audit-rounds rule) before
 build — zero-GPU, can start immediately, concurrent with Path (iii)'s own
 independent timeline.
+
+## SCALE-TRANSFER Track C Wave 3 (rung-3, 1.31B) harvest (2026-07-07): 4-point ladder MONOTONIC — span_frac 0.248 → 0.344 → 0.389 → 0.455 — attractor WORSENS with pure scale; PROMINENT DISCLOSURE: training self-terminated at internal timeout at ~84.7% of the token-matched budget (calibration underestimated throughput 1.985×)
+
+**DISCLOSURE FIRST (Option-A harvest, adjudicated).** Both wave-3 cells
+(1 seed × 2 corpora, `dm2560/L22/ds128`, 1,311,135,488 params measured)
+**self-terminated at their own `--internal-timeout`** at steps
+155,081/155,028 of 183,105 planned (~84.7%, ≈1.270B of 1.500B
+tokens/run) — a clean designed shutdown, NOT a crash: `complete=false,
+timed_out=true` in both JSONs, `skip_rate=0.0`, loss curves clean,
+checkpoints + eval every 1,000 steps through 155,000. Root cause: the
+timeout was priced from the banked solo-calibration constant (0.7135
+s/step, batch 16) but the two CONCURRENT production runs sustained
+1.416 s/step (219,618 s / 155,081 steps) — a **1.985× miss** that ate
+the whole 1.6× margin: the derived internal timeout was 219,631 s and
+both cells stopped within 13 s under it (wall_s 219,618.09 /
+219,618.42). The 2× throughput gap was noticed and disclosed mid-run
+(STATE.md ETA correction 2026-07-06 ~07:35 UTC, "suspect
+dataloader/CPU contention between the two concurrent runs") but the
+implication for the internal timeout was never propagated to the
+running cells. Checkpoints store weights only (no optimizer state), so
+no warm resume existed; the budget guard correctly blocked a ~144 GPU-h
+cold restart; supervisor stopped cleanly via `STOP_trackc3`. Option A
+(harvest at 155k + disclosure) chosen over restart because the plateau
+check (below) shows the reading flat over the final 25k steps —
+re-spending ≈144 GPU-h would chase a −0.003-span correction against a
++0.066 rung-2→rung-3 increment.
+
+**Registered order followed: pooling validation FIRST.** The archived-4
+corpus-matched pooling (`analyze_probe_wave2.py`, n-weighted exact
+recombination) reproduced the archived rung-1 (27.8168550, span
+0.357799) and control (21.9278714, span 0.251807) pooled numbers from
+their own archived JSONs to ≤4.5e-7 — inside the 1e-6 bar (per the
+rung-2 harvest's standing [LEARN]). Instrument bit-identical to all
+three prior harvests (md5 `3fb0f80028477d0b1cefe468c81b1da4`); smoke
+gate re-run on GPU 0 before scoring, 6/6 PASS; 0 excluded episodes; the
+final-pooled and plateau-155k invocations reproduced each other
+bit-identically (determinism check). Probe on GPU 0 only, 5 invocations
+≈1,768 s ≈ **0.49 GPU-h** (`keyanchor_scaling_wide`, a different
+program's session, untouched).
+
+**The 4-point ladder (archived-4 subset, held-fixed extended mixes):**
+14M mixcontrol **0.248** → 98M wave-1ext **0.344** → 392M rung-2
+**0.389** → 1.31B rung-3 **0.455** (raw gd 21.74 → 27.05 → 28.10 →
+31.98; distance above random anchor 13.80 → 19.11 → 22.49 → 26.36 raw).
+Per-cell rung-3: openr1-mix-ext 31.47 (span 0.447), wikitext-mix-ext
+32.49 (span 0.464) — both individually above rung-2's pooled 0.389.
+**Verdict per §5.7's pre-registered criteria: the literal 3-rung
+criterion (98M/392M/1.31B) reads WORSENS monotonically — the
+write-geometry attractor is not a small-model artifact; it grows more
+pronounced through 1.31B params, and per the §5.10-addendum mix-axis
+closure this is a PURE-SCALE result.** Track C's scale program is
+COMPLETE at 4 points. Scope limits unchanged: geometry leg only
+(frontier-probe transplant never built), raw-only probe
+(massive-activation confound untested; stable_rank 2.96 ≪
+effective_rank 37.5 at rung-3 — the family's most extreme
+dominant-channel signal yet), 1 seed × 2 corpora at this rung, and the
+~84.7% token shortfall above.
+
+**Plateau check (the token-shortfall neutralizer):** archived-4 pooled
+span_frac at steps 130k/140k/150k/155k = 0.4584 / 0.4573 / 0.4566 /
+0.4554 — flat, mildly DECLINING (−0.0030 span per 25k steps); linear
+extrapolation to 183,105 gives ≈0.452, a −0.003 correction, two orders
+of magnitude smaller than the +0.066 rung-2→rung-3 increment and in the
+shrinking direction. The 155k reading approximates the 183k value;
+monotonicity is insensitive to the shortfall.
+
+**Val losses (step 155k):** openr1-mix-ext self 1.162/cross 5.267;
+wikitext-mix-ext self 2.810/cross 4.538 — rough parity with rung-2
+(1.135/2.847) at 15% fewer tokens; no capability claim licensed (§5.8
+item 4, deepened by the shortfall). Whole-state eff-rank fraction
+f=1.0: 0.497/0.472 of d_state=128 — flat vs rung-2's 0.488/0.458.
+
+**Realized GPU-h and program ledger:** wave-3 realized = 219,618.09 +
+219,618.42 s = **122.01 GPU-h** (vs 76.25 booked at launch). Program:
+190.22 committed base + 122.01 = **312.23/300 GPU-h — OVER the §7
+ceiling by 12.23 GPU-h, DISCLOSED** (the mid-run ≈334/300 projection
+assumed a full 183k-step run; the timeout capped it). No further Track
+C training exists; `PROGRAM_SPENT_GPUH` 266.47 → 312.23 in
+`run_lm_rd_trackc_sweep.py` (repo + box, md5-matched) as a closing
+ledger entry.
+
+[LEARN] training-harness: checkpoints for any multi-day training run
+must save optimizer state (not just model weights) so a timeout/crash
+can warm-resume — registered as a BUILD REQUIREMENT for all future
+training waves.
+Mistake: wave-3's 5.2GB checkpoints stored weights only; when the
+internal timeout fired at 84.7% of budget there was no way to resume
+the last 28k steps without a full ~144 GPU-h cold restart, forcing an
+Option-A partial harvest.
+Correction: torch.save the optimizer (and scheduler/step counter) state
+dict alongside model weights at every checkpoint for runs whose restart
+cost exceeds ~1 GPU-h; verify resume actually works in the smoke test.
+
+[LEARN] budget-calibration: an --internal-timeout for a production run
+must be re-derived from the run's OWN measured steady-state rate as
+soon as it is observed to diverge from the calibration constant — a
+mid-run ETA correction that is disclosed but not propagated to the
+running process's timeout is a silent kill order.
+Mistake: rung-3's 2× throughput gap (1.416 vs 0.7135 s/step, solo
+calibration cell vs two concurrent runs sharing dataloader/CPU) was
+measured and disclosed at step ~67.5k, ~2.5 days before the timeout
+fired, but the stale timeout (sized to the calibration constant × 1.6)
+was left in place and terminated both runs at 84.7%.
+Correction: calibrate at the REAL concurrency level the wave will run
+at (co-scheduled cells, same GPU-adjacent CPU/dataloader contention),
+and when a live ETA correction is logged, immediately recompute
+remaining-time vs internal-timeout and either extend the timeout (if
+the platform allows) or register the expected shortfall and its
+harvest plan BEFORE the bound fires.

@@ -1267,6 +1267,168 @@ own precedent — checkpoints stay on box,
 `/data/lm_rd_trackc_ckpts/wave1ext/`). `EXPERIMENT_LOG.md`: "SCALE-TRANSFER
 Track C Wave 1ext harvest" entry.
 
+### 5.11 Wave 3 (rung-3, 1.31B) results — harvest run 2026-07-07, GPU 0 only, ≈0.49 GPU-h probe cost — TRACK C VERDICT: the 4-point ladder is monotonic, the attractor WORSENS with scale
+
+> **DISCLOSURE — READ FIRST. This rung's training did NOT complete its
+> registered token-matched budget.** Both wave-3 cells (1 seed × 2
+> corpora, `d_model=2560, n_layers=22, d_state=128`, measured
+> 1,311,135,488 params) **self-terminated at their own
+> `--internal-timeout`** at steps **155,081 / 155,028 of 183,105 planned
+> (~84.7%; ≈1.270B of the registered 1.500B tokens/run)** — a clean,
+> designed shutdown, NOT a crash: loss curves clean to the end,
+> `skip_rate=0.0`, checkpoints + eval metrics logged every 1,000 steps
+> through step 155,000, `complete=false, timed_out=true` in both result
+> JSONs. **Root cause:** the timeout was derived from the banked
+> calibration constant (0.7135 s/step, batch 16, measured on a SOLO
+> two-point calibration cell) but the two concurrent production runs
+> sustained a measured 1.416 s/step (219,618 s / 155,081 steps) — a
+> **1.985× miss** that consumed the entire 1.6× launch margin
+> (`(30 + 0.7135×183,105 + 184×35.94) × 1.6 − 30 = 219,631 s` internal
+> timeout — both cells self-terminated within 13 s under exactly that
+> bound). The throughput gap was
+> observed and DISCLOSED mid-run (STATE.md ETA correction, 2026-07-06
+> ~07:35 UTC) but its implication for the internal timeout was not
+> propagated — the run was left to hit the stale bound. **No
+> optimizer-state resume exists** (checkpoints store model weights only),
+> so continuing from step 155,000 was impossible without a cold restart;
+> the budget guard correctly refused a ~144 GPU-h restart (program
+> already over ceiling, below). **Option A (harvest at ~155k with
+> prominent disclosure) was adjudicated over the restart** because (a)
+> the plateau check below shows the geometry reading flat over the final
+> 25k steps — the 155k value empirically approximates the 183k value —
+> and (b) a restart would re-spend ≈144 GPU-h to move a reading whose
+> measured drift over the last 25k steps is −0.003 span, two orders of
+> magnitude smaller than the +0.066 rung-2→rung-3 gap it would be
+> re-measuring. The supervisor was stopped cleanly via `STOP_trackc3`
+> (never pkill).
+
+**Scope of this pass.** This session ran **only §5.5 item 1** (the
+write-geometry attractor probe) on the two step-155,000 final
+checkpoints plus a 4-point late-training plateau check, and read the
+val-loss/rank-stats already logged by training. **§5.5 items 2
+(frontier-probe transplant) and 3 (fix-effect) were NOT run** — same
+gating as §5.9/§5.10 (item 2 was never built at any rung; item 3 stays
+hard-gated on Track B's no-launch). Geometry-leg-only claims, Tier 2
+(§2). Rung-3 is 1 seed × 2 corpora per Rev 2.2's registered scope — a
+2-run point, not a 3-seed cell like rungs 1/2.
+
+**Instrument identity + validation.** `lm_attractor_probe_rd.py` on-box
+bit-identical (md5 `3fb0f80028477d0b1cefe468c81b1da4`) to the
+§5.9/§5.10/§5.10-addendum archived copies; smoke gate re-run on GPU 0
+before scoring, 6/6 PASS. Per the registered order, the archived-4
+corpus-matched pooling method was validated FIRST: reproducing the
+archived rung-1 (27.8168550, span 0.357799) and control (21.9278714,
+span 0.251807) pooled numbers from their own archived JSONs to
+≤4.5e-7 (well inside the 1e-6 bar), using the same
+`analyze_probe_wave2.py` n-weighted recombination as the rung-2/wave-1ext
+harvests. Probe: 0 excluded episodes, no crashes; the final-pooled and
+plateau-155k invocations (same checkpoints, independent runs) reproduced
+each other bit-identically — a free determinism check. GPU 0 exclusively
+(all other GPUs idle at probe launch; the later-launched
+`keyanchor_scaling_wide` session, a different program, was untouched).
+
+**1. The 4-point ladder (archived-4 eval-corpus subset, same convention
+as §5.9/§5.10; rows 14M→392M unchanged from §5.10-addendum):**
+
+| Cell | n params | raw gd (mean ± std) | random / collapse anchor | span_frac | eff rank | stable rank | n episodes |
+|---|---|---|---|---|---|---|---|
+| 14M mixcontrol, ext mixes | 14,048,896 | 21.74 ± 5.80 | 7.94 / 63.50 | 0.248 | 34.77 | 4.12 | 12,288 |
+| 98M wave-1ext, ext mixes | 97,618,176 | 27.05 ± 12.76 | 7.94 / 63.50 | 0.344 | 32.99 | 3.62 | 73,728 |
+| 392M rung-2, ext mixes | 391,869,440 | 28.10 ± 14.33 | 5.61 / 63.50 | 0.389 | 39.46 | 3.63 | 98,304 |
+| **1.31B rung-3, ext mixes (new, @155k)** | 1,311,135,488 | **31.98 ± 14.78** | 5.61 / 63.50 | **0.455** | 37.47 | 2.96 | 45,056 |
+
+(All-7-pooled, as-written: 32.08 ± 14.70, n=78,848, span 0.457.
+Per-cell archived-4 pooled: openr1-mix-ext 31.47 (span 0.447),
+wikitext-mix-ext 32.49 (span 0.464) — both corpora individually above
+rung-2's 0.389.) Distance above the random anchor in raw units:
+13.80 → 19.11 → 22.49 → **26.36**. The original-mix ladder version
+reads 0.252 → 0.358 → 0.389 → 0.455 — same shape.
+
+**2. Plateau check (the token-shortfall neutralizer, run for exactly
+this disclosure).** Same probe on both corpora's checkpoints at 4 late
+steps (archived-4 pooled):
+
+| step | raw gd | span_frac |
+|---|---|---|
+| 130,000 | 32.148 | 0.4584 |
+| 140,000 | 32.081 | 0.4573 |
+| 150,000 | 32.046 | 0.4566 |
+| 155,000 | 31.976 | 0.4554 |
+
+**Flat, mildly declining: −0.17 raw / −0.0030 span over the final 25k
+steps** (−0.00012 span per 1k steps) — the same slow-late-decline shape
+rung-2's and wave-1ext's own trajectories showed. Linearly extrapolated
+to the planned 183,105 steps: span ≈ 0.452 — a −0.003 correction,
+**two orders of magnitude smaller than the +0.066 rung-2→rung-3
+increment**, and in the direction that would very slightly SHRINK, not
+grow, the rung-3 reading. The 155k harvest value approximates the 183k
+value; monotonicity is insensitive to the shortfall.
+
+**3. Val losses + whole-state rank (step-155,000 checkpoints, 1
+seed/corpus; compact extraction in the archive's
+`training_run_summaries.json`):** openr1-mix-ext self 1.162 / cross
+5.267; wikitext-mix-ext self 2.810 / cross 4.538. Against rung-2 (self
+1.135 / 2.847): the 1.31B model at 1.27B tokens is at rough val-loss
+PARITY with 392M at 1.5B tokens (openr1-side +0.027 worse, wikitext-side
+−0.037 better) — consistent with §5.8 item 4's standing caveat (all
+rungs are far below Chinchilla-optimal; **no capability claim is
+licensed by these checkpoints**, and rung-3's token shortfall deepens
+that). Whole-state effective-rank fraction f=1.0: 63.7/128 = 0.497
+(openr1-side) and 60.4/128 = 0.472 (wikitext-side) — roughly flat vs.
+rung-2's 0.488/0.458, no dimensional-usage growth with scale.
+
+**4. VERDICT, per §5.7's pre-registered criteria.** §5.7's literal
+3-rung criterion (98M/392M/1.31B) is now assessable: key-Gram deviation
+does **NOT** monotonically improve across the rungs — it monotonically
+**WORSENS**: span_frac **0.344 → 0.389 → 0.455** (98M → 392M → 1.31B,
+all on the held-fixed extended mixes; with the 14M control the full
+4-point ladder is **0.248 → 0.344 → 0.389 → 0.455**, increments +0.096,
++0.045, +0.066). **The write-geometry attractor is not a small-model
+artifact that scale dissolves — it grows more pronounced through 1.31B
+params.** This is the "persists (or worsens)" direction §5.7
+pre-registers as the headline this track is named for, and — per the
+§5.10-addendum's mix-axis closure — it is a **pure-scale** result, not a
+joint scale+mix one. Standing scope limits, unchanged: geometry leg only
+(no compositional-recovery cross-check — §5.5 item 2 was never built at
+any rung, so §5.7's "uninterpretable result" failure mode is avoided
+only for the geometry leg, the one instrument that validated); raw-only
+probe (Track D's massive-activation confound remains UNTESTED on our
+own models — stable_rank 2.96 ≪ effective_rank 37.5 at rung-3 continues
+the suggestive, unconfirmed dominant-channel signal, now at its most
+extreme value in the family); rung-3 is 1 seed × 2 corpora; and the
+rung-3 point is an ~84.7%-of-budget harvest per the disclosure block
+above. **Track C's scale program is COMPLETE at 4 points.**
+
+**Anomalies/flags:** (1) the two corpora's per-cell span_fracs (0.447 /
+0.464) straddle the pooled 0.455 with the wikitext side higher —
+consistent with rung-2's own per-corpus ordering, not a new effect. (2)
+`openr1-stress` again reads high-side (32.68 vs 31.32–32.69 band) —
+excluded from cross-scale rows by the archived-4 subsetting, consistent
+with precedent. (3) The plateau check is 1-seed-per-corpus by
+construction (only 2 runs exist at this rung).
+
+**Cost.** Probe: 5 invocations × ≈353.6 s = 1,768 s ≈ **0.49 GPU-h**,
+GPU 0 only (+98.7 s for the pre-harvest safety diag already logged
+2026-07-07 ~11:33 UTC). Training (realized, the disclosure block's
+numbers): 219,618.09 + 219,618.42 s = **122.01 GPU-h** vs. 76.25 booked
+at launch. **Program ledger: 190.22 (pre-wave-3 committed base) +
+122.01 = 312.23 GPU-h realized vs. the §7 300 GPU-h ceiling — OVER by
+12.23 GPU-h, disclosed** (the earlier ≈334/300 projection assumed the
+run would reach 183k steps; the timeout capped it). No further Track C
+training exists to launch, so the overrun is a closed ledger fact, not
+a live budget decision. `PROGRAM_SPENT_GPUH` updated 266.47 → 312.23 in
+`run_lm_rd_trackc_sweep.py` (repo + box, md5-matched).
+
+**Archive:** `experiment-runs/2026-07-06_trackc_rung3/` (probe JSONs
+incl. 4 plateau points, corpus-matched recomputes, pooling-validation
+record, exact scripts, run log, compact training-run extraction,
+summary; all repo files ≤25MB) + SSD mirror; the 2 × 69MB raw wave-3
+training JSONs are **SSD-only** per archive policy
+(`.../2026-07-06_trackc_rung3/wave3_training_jsons/`). Checkpoints stay
+on box (`/data/lm_rd_trackc_ckpts/wave3/`, 155 per run).
+`EXPERIMENT_LOG.md`: "SCALE-TRANSFER Track C Wave 3 (rung-3) harvest"
+entry.
+
 ---
 
 ## 6. TRACK D — Measurement-first probing of a pretrained fixed-state model (conditional graft NOT authorized by this document)

@@ -1,0 +1,8 @@
+DeltaNet-RD Track C (scaling ladder) -- wave 3
+==================================================
+{
+  "wave": "3",
+  "n_manifest": 2,
+  "n_failed": 2,
+  "cells": {}
+}
