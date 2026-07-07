@@ -1,0 +1,12 @@
+{
+  "design_ref": "REASONING_LINK_DESIGN.md Rev 6 (2026-07-07, CLEARED-FOR-BUILD)",
+  "program": "REASONING-LINK Phase 1",
+  "stage": "stage0.5-cost-calibration",
+  "fla_stub_installed": false,
+  "timestamp": 1783423909.659332,
+  "ckpt_path": "/data/lm_rd_trackc_ckpts/wave3/lmC_openr1-mix-ext_dm2560_ds128_L22_s0_step20000.pt",
+  "K": 64,
+  "status": "HALT_OOM_AT_BATCH_8",
+  "error": "CUDA out of memory. Tried to allocate 20.00 GiB. GPU 0 has a total capacity of 79.18 GiB of which 11.45 GiB is free. Including non-PyTorch memory, this process has 67.72 GiB memory in use. Of the allocated memory 62.22 GiB is allocated by PyTorch, and 4.24 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)",
+  "action": "halt Leg-B rung-3 rows entirely, disclose (sec 9 MINOR fix)"
+}

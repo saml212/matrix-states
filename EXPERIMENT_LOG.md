@@ -5122,3 +5122,124 @@ identical, `diff -rq` confirmed); on-box scripts byte-verified
 zero-drift against the repo's committed copies (md5 match). Design-doc
 results: `FROZEN_BIAS_LM_DESIGN.md` §12.12. **MECH WAVE CONCLUDED.**
 Frozen-bias LM ledger: 6.9288 + 0.7431 = **≈7.672/135 GPU-h**.
+
+## REASONING-LINK PHASE 1 HARVEST (Leg A + Leg B rungs 0-2, 2026-07-07): PROBE-INVALID — h1 sanity floor and both premise gates fail at EVERY cell, `recovered_frac@0.9` exactly 0.0 across the full 78-cell / 312-reading grid; NOT a licensed REFUTE
+
+The campaign keystone (`REASONING_LINK_DESIGN.md` Rev 6, `bb1869c`
+build+audit LAUNCH-CLEARED) ran on box across 3 resume-safe launches
+(runs 6-8, after 5 build-time crashes fixed by launch fixes 1-5, git log
+`8bc90ba`..`6475770`): Stage -1 (14 self-tests, all PASS, 48.6s CPU) →
+Stage 0 (1 calibration cell) → Stage 0.5 (rung-3 cost calibration,
+blinded) → Stage 1 (60 Leg-A cells: 3 arms × 2 corpora × 3 seeds × K∈
+{20,32}, native + blend-off surgery for the 2 bias arms; 18 Leg-B cells:
+rungs 0/1/2 × 2 corpora × 3 seeds, each at its own d_state-matched
+near-cliff K). Rung-3 (1.31B) DEFERRED pending trackc `ALL_DONE` — 78/78
+committed Phase-1 cells present, `REASONING_LINK_PHASE1_PARTIAL`
+sentinel written, exactly as pre-registered (expected, not an error).
+
+**Verified from the raw JSONs (82 files pulled, 78 cells + 4 calibration/
+diag):** every cell has `forward_counts={forward_a:1,forward_b:1}` (the
+FATAL-1 anti-regression guard), all required per-h fields present
+(recovered_frac, option2 margins, premises i-iv, condition number),
+zero malformed/missing-field flags. Cell counts confirmed exactly 60 Leg
+A + 18 Leg B = 78.
+
+**GATES FIRST, applied mechanically before any headline number
+(`REASONING_LINK_DESIGN.md` §15.1):** Stage 0's own `gate_result_
+h1_probe_valid = False` — both the null-relative pass (real h=1
+`recovered_frac`=0.0 must exceed null_hi+null_width=0.0; fails, 0.0 is
+not >0.0) and the absolute 0.10 backstop (fails) are FALSE. Premise
+(iii) bind↔query alignment and premise (iv) cross-role k↔v identity BOTH
+fail their own null-relative action-rule gate (median below the
+cross-entity null's 95th percentile) at Stage 0 AND at 0/78 cells across
+the full harvested grid, at every scale from 14M to 392M params —
+categorical, not a borderline miss. Marker disagreement (0.0, trivially
+— both markers score identically) and the causality assertion
+(max_abs_diff=0.0) both pass.
+
+**HEADLINE FINDING: `recovered_frac@0.9` (Option 1) is exactly `0.0` at
+all 78 cells × 4 h = 312/312 readings, not one nonzero.** `cos_mean`
+across the grid is tightly centered near zero (`[-0.33,0.25]`, `cos_std`
+`[0.03,0.20]`) — reaching the 0.9 absolute-cosine threshold from this
+distribution is a >10σ event. `state_condition_number_mean` is uniformly
+enormous (median 6e4-2e5, up to 3.85e6) — `S_T` is extremely
+ill-conditioned everywhere, consistent with (not proof of) a
+dominant-direction collapse that would mechanically produce exactly this
+flat-zero signature regardless of hop depth.
+
+**Mechanical routing (`REASONING_LINK_DESIGN.md` §8.4's own rule:
+"failure routes to probe-invalid, not to REFUTE"): PROBE-INVALID for the
+entire grid, Leg A and Leg B rungs 0-2 alike.** Running
+`killer_prediction_verdict` literally on the degenerate `[0,0]`-CI deltas
+mechanically returns REFUTE at every arm/corpus/h (K=32 vs K=20, both
+identically zero) — this is reported in the design doc as the
+transparent by-product of the routing function, explicitly NOT presented
+as a licensed scientific finding, since the prior probe-invalidity gate
+pre-empts it. READOUT-FORM-INVALID does not fire either (its own trigger
+requires h=1 to CLEAR its floor first — it does not clear here, so this
+sits one level more severe than that named outcome). h=1 (in-context
+one-hop recall, the "easiest" case) is 0.0 everywhere too — no clean
+associative-recall signal to build a multi-hop story on. Leg B rungs 0-2
+show the identical universal-zero pattern; no scale trend, no
+CONFIRM/REFUTE/AMBIGUOUS verdict, explicitly PARTIAL pending rung-3.
+
+**Option 2 (secondary, non-headline, natural next-token logit margin)
+shows real per-seed variation but no signal that changes the routing** —
+one non-primary-grid cell (per_token/wikitext/K=20) shows a consistently
+negative, CI-excluding-zero training-effect delta across all 4 h,
+reported as an observation only (BH-FDR not run, moot since Option 1 is
+uniformly floor). Leg B's Option 2 margin trends WORSE (more negative)
+with scale, not better — descriptive only, `option_agreement` is
+vacuously "agree" at every rung since Option 1 never excludes zero on
+either side, so this cannot be read as validating a scale trend.
+
+**[LEARN] discrepancy, flagged prominently — a computed, registered
+launch gate with no enforcing code path let the full grid run past a
+failed validity check.** `reasoning_link_chain.sh` implements exactly
+one Stage-0-level abort (the wall-clock cost ratio, §10 abort rule 1)
+and never references `marker_disagreement_flag` or `gate_result_
+h1_probe_valid` anywhere (grepped directly, zero hits). Per the design's
+own §9 Stage-0 registration ("if [the h1 floor] is not achievable... the
+grid does not launch") and §8.5 item 4 (marker disagreement "blocks" the
+grid), the Stage-0 h1-floor failure should have halted the chain before
+Stage 1 launched. It did not. Realized cost of running past this gate
+was small in absolute terms this run (≈0.29 GPU-h — rung-3, the
+expensive row, was never in scope) but the pattern — a gate computed and
+correctly failing, with no code path enforcing it — is a repeat instance
+of the "gates without teeth" failure mode, not a one-off.
+[LEARN] process: a pre-registered launch-blocking gate (e.g. §9's "the
+grid does not launch" language) must be paired with an explicit,
+testable abort branch in the launch script itself — computing the gate
+value into the output JSON is necessary but not sufficient; the chain
+must read that value back and `exit`/`halt` on failure, the same way
+Stage 0.5's cost-abort and OOM-fallback are actually wired as `case`
+branches, not merely documented as prose.
+Mistake: `reasoning_link_chain.sh` computed `gate_result_h1_probe_valid`
+into the Stage-0 JSON but never read it back to decide whether to
+proceed — only the unrelated wall-clock cost check was wired as a real
+abort.
+Correction: every registered "must not launch on failure" gate needs its
+own `if`/`case` check in the launch script, verified by a deliberate
+negative test (force the gate to fail, confirm the chain actually halts)
+before the chain is trusted for an unattended run — mirroring the
+Stage-1-item-6 "a test that cannot fail is not a passed gate" discipline
+already applied elsewhere in this same design.
+
+**Realized GPU-h (§15.7, box `stat` birth/modify timestamps, box is UTC,
+single GPU throughout):** run6 613.5s + run7 224.4s + run8 197.3s =
+1035.2s ≈ **0.2876 GPU-h** for the productive grid (runs 6-8); + ≈0.086
+GPU-h of pre-launch build-time crashes (runs 1-5, before any real grid
+cell ran) = **≈0.373 GPU-h total, ≈1.2% of the ≈24.20 GPU-h Phase-1
+ceiling** — every checkpoint evaluated this run is ≤392M params
+(rung-3, the expensive row, is deferred).
+
+Archive: `experiment-runs/2026-07-07_reasoning_link_phase1/` (82 raw
+result JSONs + 89 log files + the 3 exact scripts, ~1.3MB, all files
+≤25MB) + SSD mirror (byte-identical, `diff -rq` confirmed); on-box
+scripts byte-verified identical to the repo's committed copies (`diff`,
+zero drift). Design-doc results: `REASONING_LINK_DESIGN.md` §15 (§15.1
+gates, §15.2 discrepancy, §15.3-15.4 Leg A + killer prediction, §15.5
+h=1 story, §15.6 Option 2, §15.7 GPU-h, §15.8 Leg B partial, §15.9
+scope, §15.10 next steps). Rung-3 (2 cells) still pending trackc
+`ALL_DONE` — queued as the next harvest item, no trend verdict until
+then regardless of the probe-invalid finding above.

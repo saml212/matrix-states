@@ -1,0 +1,15 @@
+{
+  "design_ref": "REASONING_LINK_DESIGN.md Rev 6 (2026-07-07, CLEARED-FOR-BUILD)",
+  "program": "REASONING-LINK Phase 1",
+  "stage": "stage0.5-cost-calibration",
+  "fla_stub_installed": false,
+  "timestamp": 1783424024.1033912,
+  "ckpt_path": "/data/lm_rd_trackc_ckpts/wave3/lmC_openr1-mix-ext_dm2560_ds128_L22_s0_step20000.pt",
+  "K": 64,
+  "used_batch_size": 4,
+  "oom_fallback_used": false,
+  "per_episode_wall_s": 6.917756021022797,
+  "baseline_gpu_h_per_pass": 0.09,
+  "ratio_to_baseline": 0.08540439532126909,
+  "action": "OK: within budget, proceed"
+}

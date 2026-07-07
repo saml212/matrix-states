@@ -1,0 +1,611 @@
+"""reasoning_link_stage_minus1.py -- REASONING_LINK_DESIGN.md sec 9's Stage -1
+self-tests, ALL 14 items, each an EXECUTABLE test with its own registered
+pass criterion (never a printed value trusted by eye, per this project's
+"a specification that has not been executed is not a passed gate"
+convention). Every item imports and exercises `reasoning_link_probe.py`'s
+OWN real functions -- never a reimplemented copy -- so a Stage -1 pass
+actually certifies the probe's own code, not a parallel stand-in.
+
+CPU-runnable throughout. Items needing "a real checkpoint" (5, 6, 11, 13,
+14) use a small, freshly-initialized `DeltaNetLM` instance (via this repo's
+own CPU fla-stub, see `reasoning_link_probe.py`'s module docstring) as a
+stand-in "checkpoint" -- mirrors `lm_attractor_probe_rd.py`'s own smoke()
+item [6] convention exactly ("a TINY (but REAL-vocab-sized) SYNTHETIC
+(untrained) model ... NOT a claim about real key geometry"). What this DOES
+verify for real: the hook-registration code, the direct-submodule-call
+code, the surgery-toggle conditional, and the causal-locality guarantee of
+`ShortConvolution` itself (a structural property of the operator,
+independent of trained-vs-random weights or stub-vs-real kernel -- see
+item 5's own docstring for the argument). What it does NOT verify: the
+real CUDA Triton `chunk_delta_rule` kernel's own behavior, or any property
+of a REAL trained checkpoint's weights -- both disclosed as box-only per
+item, never silently treated as verified here.
+
+Run: python reasoning_link_stage_minus1.py
+"""
+from __future__ import annotations
+
+import math
+import sys
+import time
+
+import torch
+import torch.nn.functional as F
+
+import reasoning_link_probe as rlp
+import grammar_rd
+from lm_pretrain_rd import DeltaNetLM
+
+RESULTS = []
+
+
+def _report(item: int, name: str, passed: bool, detail: str = "") -> None:
+    RESULTS.append({"item": item, "name": name, "passed": passed, "detail": detail})
+    status = "PASS" if passed else "FAIL"
+    print(f"[Stage-1 item {item}] {name}: {status}" + (f" -- {detail}" if detail else ""))
+    assert passed, f"Stage -1 item {item} ({name}) FAILED: {detail}"
+
+
+# ---------------------------------------------------------------------------
+# Item 1 -- single-token/non-overlap verification for the adapted template.
+# ---------------------------------------------------------------------------
+
+def test_item_1_tokenizer_verification():
+    tokenizer = grammar_rd.load_gpt2_tokenizer()
+    pools, report = rlp.build_reasoning_link_pools(tokenizer=tokenizer, seed=0)
+    marker_report = rlp.verify_query_marker_candidates(tokenizer, pools)
+    assert marker_report["n_ok"] >= 2, "need >=2 independently-qualifying markers (sec 7.6)"
+    # conv_size=4 is the ONLY value every registered checkpoint (Leg A rung-1, Leg B rungs 1-3,
+    # per lm_rd_rung_configs.py/frozen_bias_lm_sweep.py, verified this build session) uses --
+    # verify K_min/clause_len for conv_size=4 explicitly (both checkpoint families).
+    for conv_size in (4,):
+        cl = rlp.clause_len_for_conv_size(conv_size)
+        kmin = rlp.k_min_for_conv_size(conv_size)
+        assert cl == max(1, conv_size - 1) + 4
+        assert kmin == math.ceil(128 / cl)
+    detail = (f"marker={pools.query_id!r} n_ok_markers={marker_report['n_ok']} "
+              f"n_train={pools.train_name_ids.numel()} n_heldout={pools.heldout_name_ids.numel()} "
+              f"buffer_id==period_id: {pools.buffer_id == pools.period_id}")
+    _report(1, "tokenizer + query-marker + conv_size=4 verification", True, detail)
+
+
+# ---------------------------------------------------------------------------
+# Item 2 -- hand-built S/q matrices, known composition answer.
+# ---------------------------------------------------------------------------
+
+def test_item_2_hand_built_composition():
+    S = torch.tensor([[2.0, 0.0, 0.0, 0.0],
+                       [0.0, 1.0, 0.0, 0.0],
+                       [0.0, 0.0, 1.0, 0.0],
+                       [0.0, 0.0, 0.0, 1.0]]).unsqueeze(0)              # (1,4,4)
+    q = torch.tensor([[1.0, 0.0, 0.0, 0.0]]).unsqueeze(1)               # (1,1,4) -- one query
+    for h, expected in [(0, [1.0, 0, 0, 0]), (1, [2.0, 0, 0, 0]), (2, [4.0, 0, 0, 0]),
+                        (3, [8.0, 0, 0, 0]), (4, [16.0, 0, 0, 0])]:
+        pred = rlp.apply_state_power(S, q, h)
+        exp = torch.tensor(expected).view(1, 1, 4)
+        assert torch.allclose(pred, exp, atol=1e-6), f"h={h}: pred={pred} expected={exp}"
+    # cosine-recovery scorer: pred exactly aligned with target -> recovered True, cos~1.0
+    target = torch.tensor([16.0, 0.0, 0.0, 0.0]).view(1, 1, 4)
+    pred4 = rlp.apply_state_power(S, q, 4)
+    cos, recovered = rlp.cosine_and_recovered(pred4, target)
+    assert abs(cos.item() - 1.0) < 1e-6 and bool(recovered.item()) is True
+    # target orthogonal -> recovered False, cos~0
+    target_orth = torch.tensor([0.0, 1.0, 0.0, 0.0]).view(1, 1, 4)
+    cos2, recovered2 = rlp.cosine_and_recovered(pred4, target_orth)
+    assert abs(cos2.item()) < 1e-6 and bool(recovered2.item()) is False
+    _report(2, "hand-built S^h@q + cosine scorer reproduce pinned values to 1e-6", True)
+
+
+# ---------------------------------------------------------------------------
+# Item 3 -- bigram-shortcut adversarial construction.
+# ---------------------------------------------------------------------------
+
+def test_item_3_bigram_shortcut_scorer():
+    true_value = F.normalize(torch.tensor([[[1.0, 1.0, 0.0, 0.0]]]), dim=-1)         # true in-context value
+    bigram_prior = F.normalize(torch.tensor([[[0.0, 0.0, 1.0, 1.0]]]), dim=-1)        # orthogonal "most common" value
+    assert abs(F.cosine_similarity(true_value, bigram_prior, dim=-1).item()) < 1e-6, "fixture not orthogonal"
+    # scorer, given pred == true in-context value, must recover (never fooled by the bigram prior
+    # simply because it wasn't even compared against here -- this checks the SCORER, not the model)
+    cos_true, rec_true = rlp.cosine_and_recovered(true_value, true_value)
+    assert bool(rec_true.item()) is True and abs(cos_true.item() - 1.0) < 1e-6
+    # scorer, given pred == the bigram-prior completion, must NOT recover against the true target
+    # (demonstrates the scorer discriminates the two rather than passing either way)
+    cos_bigram, rec_bigram = rlp.cosine_and_recovered(bigram_prior, true_value)
+    assert bool(rec_bigram.item()) is False
+    _report(3, "scorer distinguishes true in-context value from an orthogonal bigram-prior completion", True)
+
+
+# ---------------------------------------------------------------------------
+# Item 4 -- label-shuffle null generator destroys the true pairing.
+# ---------------------------------------------------------------------------
+
+def test_item_4_label_shuffle_null():
+    d = 6                                                               # K=6 (<=d) entities, mutually orthogonal
+    Q_ortho, _ = torch.linalg.qr(torch.randn(d, d))                    # (d,d) orthonormal columns
+    v_eff_items = Q_ortho.T.unsqueeze(0)                                # (1,K=6,d), mutually orthogonal rows
+
+    succ_true = torch.tensor([[1, 2, 3, 4, 5, 0]])                     # a hand-built 6-cycle: i -> i+1 mod 6
+    a_slot = torch.tensor([[0]])
+    # h=2 (not h=1): h=1's own prev_slot = _iterate_permutation(succ, a_slot, hops-1=0), whose
+    # hops==0 BASE CASE returns a_slot directly WITHOUT ever reading `succ` -- an h=1 fixture
+    # would make true and null prev_slot identical by construction regardless of the shuffle,
+    # a vacuous test. h=2's prev_slot = succ[a_slot] (hops-1=1) genuinely depends on succ.
+    hops = torch.tensor([[2]])
+
+    # FATAL-2 fix (this audit round, item-4 tautology): the earlier draft built `pred` FROM
+    # `prev_slot_true` -- the just-computed OUTPUT of the very function under test -- so
+    # cos_true==1.0 was guaranteed by pure algebra (pred and target_true were the same tensor by
+    # construction), never actually checking whether `compute_prev_slot_and_target` computed the
+    # RIGHT slot. Fix: derive the expected slot by an INDEPENDENT hand computation that never calls
+    # `compute_prev_slot_and_target` -- succ_true is the literal cycle 0->1->2->3->4->5->0, so its
+    # inverse is the reverse cycle (succ_inv[j] = (j-1) mod 6, read off directly from the hand-built
+    # array, not from any grammar_rd/rlp function); `prev_slot = succ^-1(succ^h(a))` is a
+    # mathematically distinct route to the same quantity from the one `_iterate_permutation`
+    # actually takes (forward iteration by hops-1), per REASONING_LINK_DESIGN.md sec 4.4's own
+    # "equivalently, prev_slot = inv_succ[tgt_slot]" remark.
+    succ_inv = [(j - 1) % 6 for j in range(6)]
+    a, h = 0, 2
+    target_slot_hand = a
+    for _ in range(h):
+        target_slot_hand = succ_true[0, target_slot_hand].item()          # pi^h(a) by direct iteration
+    expected_prev_slot = succ_inv[target_slot_hand]                       # pi^-1(pi^h(a)) = pi^(h-1)(a)
+    assert expected_prev_slot == 1, f"hand computation itself is wrong: expected 1, got {expected_prev_slot}"
+
+    prev_slot_true, target_true = rlp.compute_prev_slot_and_target(succ_true, a_slot, hops, v_eff_items)
+    assert prev_slot_true.item() == expected_prev_slot, (
+        f"compute_prev_slot_and_target's own prev_slot ({prev_slot_true.item()}) disagrees with the "
+        f"independently hand-derived slot ({expected_prev_slot}) -- a real correctness check, not a "
+        f"tautology built from the function's own output")
+
+    pred = v_eff_items[:, expected_prev_slot, :].unsqueeze(1)   # PLANTED from the INDEPENDENT hand
+                                                                  # index (never from prev_slot_true)
+    cos_true, rec_true = rlp.cosine_and_recovered(pred, target_true)
+    assert bool(rec_true.item()) is True and abs(cos_true.item() - 1.0) < 1e-6, "planted-recoverable setup broken"
+
+    gen = torch.Generator().manual_seed(0)
+    succ_null = rlp.build_null_labeling(succ_true, gen)
+    assert not torch.equal(succ_null, succ_true), "null cycle draw coincided with the true cycle -- reseed"
+    prev_slot_null, target_null = rlp.compute_prev_slot_and_target(succ_null, a_slot, hops, v_eff_items)
+    cos_null, rec_null = rlp.cosine_and_recovered(pred, target_null)
+    assert bool(rec_null.item()) is False, (
+        f"label-shuffle null FAILED to destroy the true pairing: cos={cos_null.item()}")
+    _report(4, "label-shuffle null destroys a planted-recoverable true pairing (planted pred derived "
+               "from an INDEPENDENT hand computation of the target slot, not from the function's own "
+               "output -- not a tautology)", True,
+            f"cos_true={cos_true.item():.4f} cos_null={cos_null.item():.4f}")
+
+
+# ---------------------------------------------------------------------------
+# Item 5 -- buffer/query blank-out test (structural conv-locality guarantee).
+# ---------------------------------------------------------------------------
+
+def test_item_5_blank_out_test():
+    """Verifies a STRUCTURAL guarantee of ShortConvolution (causal, window
+    conv_size): corrupting clause j's tokens cannot change clause j+1's
+    k_eff, since j+1's own conv window (size conv_size, causal) never
+    reaches back into clause j's positions once buf_len>=1 separates them.
+    This holds identically for a synthetic (untrained) stand-in model --
+    the property is about the OPERATOR's definition, not learned weights
+    (module docstring's own argument, mirroring sec 9 item 5's Rev 3
+    disclosure)."""
+    torch.manual_seed(0)
+    V = 50257
+    model = DeltaNetLM(V, d_model=32, d_state=64, n_layers=2, conv_size=4, num_heads=1)
+    model.eval()
+    pools, _ = rlp.build_reasoning_link_pools(seed=0)
+    cfg = rlp.episode_config_for_checkpoint(conv_size=4, K=20)
+    gen = torch.Generator().manual_seed(0)
+    batch = grammar_rd.sample_batch_rd(cfg, 4, gen, hop_set=(1,), pools=pools)
+    token_ids = batch["token_ids"].clone()
+    item_pos = batch["item_pos"]
+
+    j = 5  # an interior clause, margin on both sides
+    key_pos_j, rel_pos_j, val_pos_j, per_pos_j = (item_pos[:, j] - 2, item_pos[:, j] - 1,
+                                                    item_pos[:, j], item_pos[:, j] + 1)
+    buf_start_j = j * cfg.clause_len
+    buf_end_j = key_pos_j[0].item()  # exclusive
+
+    with torch.no_grad():
+        x_before = model.embed(token_ids)
+        blk0 = model.blocks[0]
+        k_raw_before, _ = blk0.mixer.k_conv1d(blk0.mixer.k_proj(blk0.norm1(x_before)))
+
+    corrupted = token_ids.clone()
+    torch.manual_seed(123)
+    corrupted[:, buf_start_j:buf_end_j] = torch.randint(0, V, (corrupted.shape[0], buf_end_j - buf_start_j))
+    for pos in (key_pos_j, rel_pos_j, val_pos_j, per_pos_j):
+        corrupted.scatter_(1, pos.unsqueeze(1), torch.randint(0, V, (corrupted.shape[0], 1)))
+    assert not torch.equal(corrupted[:, buf_start_j:per_pos_j[0].item() + 1],
+                            token_ids[:, buf_start_j:per_pos_j[0].item() + 1]), "corruption was a no-op"
+
+    with torch.no_grad():
+        x_after = model.embed(corrupted)
+        k_raw_after, _ = blk0.mixer.k_conv1d(blk0.mixer.k_proj(blk0.norm1(x_after)))
+
+    item_pos_jp1 = item_pos[:, j + 1]
+    k_before_jp1 = torch.gather(k_raw_before, 1, item_pos_jp1.view(-1, 1, 1).expand(-1, 1, 64)).squeeze(1)
+    k_after_jp1 = torch.gather(k_raw_after, 1, item_pos_jp1.view(-1, 1, 1).expand(-1, 1, 64)).squeeze(1)
+    max_diff = (k_before_jp1 - k_after_jp1).abs().max().item()
+    assert max_diff < 1e-6, f"clause j+1's k_eff CHANGED after corrupting clause j: max_diff={max_diff}"
+    _report(5, "corrupting clause j leaves clause j+1's k_eff unchanged (1e-6)", True, f"max_diff={max_diff:.2e}")
+
+
+# ---------------------------------------------------------------------------
+# Item 6 -- surgery-toggle equivalence smoke with 2 genuine negative controls.
+# ---------------------------------------------------------------------------
+
+def test_item_6_surgery_toggle_smoke():
+    """FATAL-2 fix (this audit round): drives the PRODUCTION `rlp.frozen_bias_surgery` context
+    manager + `rlp.run_forward_b` directly -- the exact functions `measure_cell_all_h`/
+    `causality_check` call in real use -- rather than a hand-reproduced parallel copy of
+    `DeltaNetLMMixer.forward`'s pre-kernel sequence (the earlier draft's `reproduce_forward_
+    pre_kernel`, which could pass even if `frozen_bias_surgery` itself were broken or a no-op,
+    since it never called that function at all). Two controls, both driven through the real path:
+    (a) live-gate-fires -- forcing the blend off via surgery must change the model's own forward
+    OUTPUT (`hidden`, post-norm_f) vs. the native (arm='global') pass; (b) surgery-mechanics -- the
+    context manager itself must flip `frozen_bias_arm` to 'off' while inside the `with` block and
+    restore the ORIGINAL arm on exit, including when an exception is raised inside the block. A
+    no-op `frozen_bias_surgery` mutation (the exact case audited) fails control (b)'s in-context
+    assertion immediately, and control (a)'s output-difference assertion as a second, independent
+    line of defense.
+
+    Why `hidden` (via run_forward_b), not `S_T`/`final_state` (via run_forward_a): under this
+    file's own CPU fla-stub, `chunk_delta_rule`'s `final_state` is a DELIBERATE hardcoded zero
+    regardless of q/k/v/beta (see reasoning_link_probe.py's stub docstring: "box-only-verifiable
+    items depending on a NONZERO, trained S_T ... cannot be given meaningful numbers by this
+    stub") -- comparing S_T here would compare zero to zero regardless of whether surgery did
+    anything, a vacuous check under the stub (caught empirically this audit-fix session: an
+    S_T-based draft of this control passed with mean_abs_diff=0.0 even with a genuinely-working
+    surgery). The stub's own output `o = v * sigmoid(beta) * sigmoid((q*k).sum(-1))` DOES
+    genuinely depend on `k` (the stub's own disclosed k-routing fix, module docstring) and flows
+    into `hidden` via `model.norm_f`, so `hidden` is the correct CPU-observable signal here."""
+    torch.manual_seed(41)
+    V, D_STATE = 300, 64
+    model = DeltaNetLM(V, d_model=64, d_state=D_STATE, n_layers=1, conv_size=4, num_heads=1,
+                        frozen_bias_arm="global", frozen_bias_lambda=0.58,
+                        frozen_bias_vocab_size=V, frozen_bias_seed=999)
+    model.eval()
+    x_ids = torch.randint(0, V, (4, 128))
+    mixer = model.blocks[0].mixer
+    original_arm = mixer.frozen_bias_arm
+    assert original_arm == "global"
+
+    # native pass -- surgery_off=False must be a documented no-op (frozen_bias_surgery's own
+    # `if not force_off: yield; return` branch).
+    hidden_native, _, _ = rlp.run_forward_b(model, x_ids, need_option2_hidden=True, surgery_off=False)
+    assert mixer.frozen_bias_arm == "global", "surgery_off=False must never touch frozen_bias_arm"
+
+    # THE surgery, through the production context manager + run_forward_b -- never a hand-copied
+    # pre-kernel sequence.
+    hidden_off, _, _ = rlp.run_forward_b(model, x_ids, need_option2_hidden=True, surgery_off=True)
+    assert mixer.frozen_bias_arm == "global", (
+        "frozen_bias_surgery FAILED to restore the original arm after run_forward_b's own context exited")
+
+    # control (a): live-gate-fires -- forcing the blend off through the REAL forward path must
+    # change the model's own output. A no-op frozen_bias_surgery mutation makes native and off
+    # compute with the IDENTICAL (still-'global') arm both times, collapsing this diff to ~0 and
+    # failing here.
+    mean_abs_diff = (hidden_native - hidden_off).abs().mean().item()
+    assert mean_abs_diff > 1e-4, f"live-gate-fires control FAILED (surgery had no effect on the model's output): mean_abs_diff={mean_abs_diff}"
+
+    # control (b): surgery-mechanics -- entering/exiting the context manager DIRECTLY (not via
+    # run_forward_b this time) must flip frozen_bias_arm to 'off' strictly inside the `with` block
+    # and restore the ORIGINAL value immediately on exit -- including exit via an exception, the
+    # `finally` clause's own job.
+    with rlp.frozen_bias_surgery(model, force_off=True):
+        assert mixer.frozen_bias_arm == "off", "frozen_bias_surgery did not flip frozen_bias_arm to 'off' inside the context"
+    assert mixer.frozen_bias_arm == "global", "frozen_bias_surgery did not restore the original arm on normal exit"
+    try:
+        with rlp.frozen_bias_surgery(model, force_off=True):
+            assert mixer.frozen_bias_arm == "off"
+            raise RuntimeError("deliberate -- exercising the finally-restores-on-exception path")
+    except RuntimeError:
+        pass
+    assert mixer.frozen_bias_arm == "global", "frozen_bias_surgery did not restore the arm after an exception inside the context"
+
+    _report(6, "surgery toggle driven through the PRODUCTION frozen_bias_surgery + run_forward_b "
+               "path: live-gate-fires (model output changes, >1e-4) AND surgery-mechanics "
+               "(flip+restore, incl. under an exception) controls all pass",
+            True, f"mean_abs_diff(hidden)={mean_abs_diff:.4f}")
+
+
+# ---------------------------------------------------------------------------
+# Item 7 -- conv_size-match assertion.
+# ---------------------------------------------------------------------------
+
+def test_item_7_conv_size_match_assertion():
+    fake_ckpt_config = {"conv_size": 4}
+    cfg = rlp.episode_config_for_checkpoint(fake_ckpt_config["conv_size"], K=32)
+    assert fake_ckpt_config["conv_size"] == cfg.conv_size
+
+    raised = False
+    try:
+        assert 5 == rlp.episode_config_for_checkpoint(4, K=32).conv_size, "deliberate mismatch"
+    except AssertionError:
+        raised = True
+    assert raised, "conv_size-mismatch assertion did not fire on a deliberately wrong comparison"
+    _report(7, "conv_size-match assertion holds on real config, fires on deliberate mismatch", True)
+
+
+# ---------------------------------------------------------------------------
+# Item 8 -- render-adjacency vs. cycle-adjacency correlation measurement.
+# ---------------------------------------------------------------------------
+
+def test_item_8_render_adjacency_measurement():
+    pools, _ = rlp.build_reasoning_link_pools(seed=0)
+    n_episodes = 10_000
+    detail_lines = []
+    for K in (20, 32, 40, 48, 64, 96):
+        cfg = rlp.episode_config_for_checkpoint(conv_size=4, K=K)
+        gen = torch.Generator().manual_seed(K)
+        batch = grammar_rd.sample_batch_rd(cfg, n_episodes, gen, hop_set=(1,), pools=pools)
+        succ = batch["succ"]                                             # (B,K)
+        is_adjacent = torch.zeros(n_episodes, K, dtype=torch.bool)
+        for i in range(K):
+            neighbors = [n for n in (i - 1, i + 1) if 0 <= n < K]
+            row_match = torch.zeros(n_episodes, dtype=torch.bool)
+            for n in neighbors:
+                row_match |= (succ[:, i] == n)
+            is_adjacent[:, i] = row_match
+        empirical = is_adjacent.float()
+        theoretical_rate = 2.0 / K   # sec 4.2's own closed-form: (K-2)*2/(K-1) + 2*1/(K-1), averaged over K slots
+        lo, hi = rlp.bootstrap_ci_95(empirical, seed=K)
+        ok = lo <= theoretical_rate <= hi
+        detail_lines.append(f"K={K}: theoretical={theoretical_rate:.5f} CI=[{lo:.5f},{hi:.5f}] pass={ok}")
+        assert ok, f"K={K}: theoretical rate {theoretical_rate} outside empirical 95% CI [{lo},{hi}]"
+    _report(8, "render-adjacency rate statistically indistinguishable from chance at every swept K",
+            True, "; ".join(detail_lines))
+
+
+# ---------------------------------------------------------------------------
+# Item 9 -- T_bind >= _MIN_KERNEL_T floor assertion.
+# ---------------------------------------------------------------------------
+
+def test_item_9_kernel_t_floor():
+    from lm_pretrain_rd import _MIN_KERNEL_T
+    # MINOR-1 fix (this audit round): a direct, hard-coded-literal check on k_min_for_conv_size(4)
+    # ITSELF, independent of item 1's own check (item 1 verifies the FORMULA structurally --
+    # `kmin == math.ceil(128 / cl)` -- which would still pass even if `k_min_for_conv_size`'s
+    # registered constant floor changed; this assertion pins the actual number sec 4.1 registers,
+    # 19, so a mutation that silently changes what k_min_for_conv_size(4) returns is caught HERE,
+    # not only transitively through item 1's relative formula check).
+    assert rlp.k_min_for_conv_size(4) == 19, (
+        f"k_min_for_conv_size(4) expected the sec-4.1-registered value 19, got {rlp.k_min_for_conv_size(4)}")
+    for K in (20, 32, 40, 48, 64, 96):
+        cfg = rlp.episode_config_for_checkpoint(conv_size=4, K=K)
+        assert cfg.T_bind >= _MIN_KERNEL_T, f"K={K}: T_bind={cfg.T_bind} < _MIN_KERNEL_T={_MIN_KERNEL_T}"
+    _report(9, "k_min_for_conv_size(4)==19 (direct literal check) and every registered K clears "
+               "T_bind >= _MIN_KERNEL_T=128 at conv_size=4", True)
+
+
+# ---------------------------------------------------------------------------
+# Item 10 -- episode-seed non-collision assertion.
+# ---------------------------------------------------------------------------
+
+def test_item_10_seed_non_collision():
+    combos = rlp.enumerate_registered_seed_combinations()
+    seeds = [rlp.episode_seed(*c) for c in combos]
+    assert len(set(seeds)) == len(seeds), (
+        f"seed collision detected: {len(combos)} combinations produced {len(set(seeds))} unique seeds")
+    _report(10, "episode_seed() is collision-free over every registered combination", True,
+            f"n_combinations={len(combos)}")
+
+
+# ---------------------------------------------------------------------------
+# Item 11 -- two-forward causality assertion.
+# ---------------------------------------------------------------------------
+
+def test_item_11_causality_assertion():
+    """Verifies the PROBE'S OWN forward-A/forward-B slicing never leaks
+    forward-B's trailing query content backward into the shared BIND prefix
+    -- a property guaranteed by ShortConvolution's causal locality
+    (identical whether the kernel underneath is the stub or the real
+    Triton kernel, see item 5's argument) plus this file's own correct
+    tensor bookkeeping. BOX-ONLY CAVEAT: `S_T` itself (the recurrent
+    state) is a hardcoded ZERO matrix under the CPU stub (see
+    reasoning_link_probe.py's stub docstring) -- this test cannot exercise
+    the REAL kernel's own state-recurrence causality (that is an
+    established property of the production Triton kernel, not re-verified
+    here); it verifies the PREFIX-IDENTITY bookkeeping this design's own
+    two-forward protocol depends on."""
+    torch.manual_seed(7)
+    V = 50257
+    model = DeltaNetLM(V, d_model=32, d_state=64, n_layers=2, conv_size=4, num_heads=1)
+    model.eval()
+    pools, _ = rlp.build_reasoning_link_pools(seed=0)
+    cfg = rlp.episode_config_for_checkpoint(conv_size=4, K=20)
+    gen = torch.Generator().manual_seed(0)
+    batch = grammar_rd.sample_batch_rd(cfg, 4, gen, hop_set=(1,), pools=pools)
+    query_one = batch["query_tokens"][:, 0, :]
+    result = rlp.causality_check(model, batch["token_ids"], query_one, tol=1e-6)
+    assert result["pass"], f"causality check FAILED: max_abs_diff={result['max_abs_diff']}"
+    _report(11, "forward-A/forward-B produce identical k/v_conv1d outputs over the shared BIND prefix "
+                "(box-only: real Triton kernel's own recurrence not exercised, see docstring)",
+            True, f"max_abs_diff={result['max_abs_diff']:.2e}")
+
+
+# ---------------------------------------------------------------------------
+# Item 12 -- 3-entity worked example (off-by-one-hop fix), with negative control.
+# ---------------------------------------------------------------------------
+
+def test_item_12_three_entity_worked_example():
+    """FATAL-2 fix (this audit round): calls `rlp.compute_prev_slot_and_target` -- the PRODUCTION
+    function `measure_cell_all_h` actually uses for every real cell -- rather than hand-reproducing
+    its two-line body (`_iterate_permutation(succ, a_slot, hops-1)` + gather) directly against
+    `grammar_rd._iterate_permutation`. The earlier draft called `_iterate_permutation` itself twice
+    (once for `tgt_slot`, once with `hops-1` for `prev_slot`) -- a TEST COPY of the production
+    function's own logic, which would keep passing even if `compute_prev_slot_and_target` itself
+    regressed (e.g. the exact `hops-1` -> `hops` mutation an independent audit applies), since the
+    test never actually calls that function at all."""
+    succ = torch.tensor([[1, 2, 0]])                # A->B->C->A
+    entity_ids = torch.tensor([[100, 200, 300]])     # A=100, B=200, C=300 (slots 0,1,2)
+    value_ids = torch.gather(entity_ids, 1, succ)    # [B, C, A] = [200, 300, 100]
+    assert torch.equal(value_ids, torch.tensor([[200, 300, 100]]))
+
+    a_slot = torch.tensor([[0]])   # querying about A
+    # `compute_prev_slot_and_target` takes `v_eff_items` shaped (B,K,d) -- here d=1, with the
+    # "effective value" simply BEING the entity id (no learned representation involved at this
+    # scale), letting gather_at_positions' generic (B,K,d) machinery stand in for value_ids
+    # directly and route this test through the REAL production function, not a reimplementation.
+    v_eff_items = value_ids.unsqueeze(-1).float()    # (1,3,1)
+    for hops_val, expected_correct, expected_naive_wrong in [(1, 200, 300), (2, 300, 100)]:
+        hops = torch.tensor([[hops_val]])
+        prev_slot, v_eff_target = rlp.compute_prev_slot_and_target(succ, a_slot, hops, v_eff_items)
+        scored_correct = int(v_eff_target.item())
+        # negative control: the KNOWN one-hop-past bug this fix corrects -- gathering at tgt_slot
+        # (pi^h(a)'s own slot) instead of prev_slot (pi^(h-1)(a)'s slot). Uses grammar_rd's own
+        # `_iterate_permutation` directly (the production primitive `compute_prev_slot_and_target`
+        # itself calls), fed the WRONG hop-count on purpose to reproduce the bug -- not a parallel
+        # reimplementation of the FIXED path, only of the deliberately-wrong one.
+        tgt_slot = grammar_rd._iterate_permutation(succ, a_slot, hops)
+        scored_naive = torch.gather(value_ids, 1, tgt_slot).item()
+        assert scored_correct == expected_correct, (
+            f"h={hops_val}: compute_prev_slot_and_target gave entity {scored_correct}, expected {expected_correct}")
+        assert scored_naive == expected_naive_wrong, (
+            f"h={hops_val}: naive tgt_slot gather gave {scored_naive}, "
+            f"expected it to reproduce the KNOWN one-hop-past bug ({expected_naive_wrong})")
+        assert scored_correct != scored_naive, "negative control vacuous: fixed and naive indices agree"
+    _report(12, "3-entity worked example: rlp.compute_prev_slot_and_target (the PRODUCTION function "
+                "measure_cell_all_h uses) correct at h=1,2; naive tgt_slot gather reproduces the "
+                "known one-hop-past bug (negative control non-vacuous)", True)
+
+
+# ---------------------------------------------------------------------------
+# Item 13 -- v_conv1d hook equivalence smoke.
+# ---------------------------------------------------------------------------
+
+def test_item_13_v_conv1d_hook_equivalence():
+    torch.manual_seed(3)
+    V = 50257
+    model = DeltaNetLM(V, d_model=32, d_state=64, n_layers=2, conv_size=4, num_heads=1)
+    model.eval()
+    x_ids = torch.randint(0, V, (2, 128))
+    handles, captured = rlp.register_kqv_hooks(model)
+    try:
+        with torch.no_grad():
+            _ = rlp.forward_body(model, x_ids, need_hidden=False)
+    finally:
+        rlp.remove_hooks(handles)
+    # NOTE: DeltaNetLMBlock.forward calls `self.mixer(self.norm1(x), ...)` -- the mixer's REAL
+    # input is the block's own pre-norm, not the raw embedding/residual stream directly. The
+    # direct-submodule comparison below must reproduce that pre-norm step, or it compares against
+    # the wrong input entirely (caught empirically this build session: an earlier draft omitted
+    # `blk.norm1(...)` and got a spurious ~1.35 "divergence" that was really just "normed vs
+    # unnormed input", not a real hook-vs-module mismatch).
+    with torch.no_grad():
+        xemb = model.embed(x_ids)
+    blk0 = model.blocks[0]
+    direct_v, _ = blk0.mixer.v_conv1d(blk0.mixer.v_proj(blk0.norm1(xemb)))
+    hook_v = captured["v"][0]
+    max_diff = (direct_v - hook_v).abs().max().item()
+    assert max_diff < 1e-6, f"layer 0: v_conv1d hook diverges from direct call by {max_diff}"
+    _report(13, "v_conv1d forward-hook output matches a direct submodule call (1e-6)", True)
+
+
+# ---------------------------------------------------------------------------
+# Item 14 -- q_conv1d hook equivalence smoke, on forward-B's own input construction.
+# ---------------------------------------------------------------------------
+
+def test_item_14_q_conv1d_hook_equivalence():
+    torch.manual_seed(4)
+    V = 50257
+    model = DeltaNetLM(V, d_model=32, d_state=64, n_layers=2, conv_size=4, num_heads=1)
+    model.eval()
+    pools, _ = rlp.build_reasoning_link_pools(seed=0)
+    cfg = rlp.episode_config_for_checkpoint(conv_size=4, K=20)
+    gen = torch.Generator().manual_seed(0)
+    batch = grammar_rd.sample_batch_rd(cfg, 2, gen, hop_set=(1,), pools=pools)
+    concat = torch.cat([batch["token_ids"], batch["query_tokens"][:, 0, :]], dim=1)  # forward-B's own construction
+
+    handles, captured = rlp.register_kqv_hooks(model)
+    try:
+        with torch.no_grad():
+            _ = rlp.forward_body(model, concat, need_hidden=False)
+    finally:
+        rlp.remove_hooks(handles)
+
+    with torch.no_grad():
+        xemb = model.embed(concat)
+    blk0 = model.blocks[0]
+    direct_q, _ = blk0.mixer.q_conv1d(blk0.mixer.q_proj(blk0.norm1(xemb)))  # see item 13's own norm1 note
+    hook_q = captured["q"][0]
+    max_diff = (direct_q - hook_q).abs().max().item()
+    assert max_diff < 1e-6, f"layer 0: q_conv1d hook diverges from direct call by {max_diff}"
+    _report(14, "q_conv1d forward-hook output (on forward-B's bind+query input) matches a direct "
+                "submodule call (1e-6)", True, f"max_diff={max_diff:.2e}")
+
+
+# ---------------------------------------------------------------------------
+# Extra (non-numbered) checks: the sec-12 outcome-routing gates have teeth.
+# Not part of the official 14 items, but cheap and worth exercising since
+# they are pure functions this build also delivers (sec 12's own
+# instruction: "implement the mechanical gates").
+# ---------------------------------------------------------------------------
+
+def test_extra_outcome_routing_gates():
+    ci_pos = {"mean": 0.2, "ci_low": 0.05, "ci_high": 0.35}
+    ci_straddle = {"mean": 0.02, "ci_low": -0.05, "ci_high": 0.09}
+    assert rlp.killer_prediction_verdict(ci_pos, ci_straddle, "agree") == "CONFIRM"
+    assert rlp.killer_prediction_verdict(ci_straddle, ci_straddle, "agree") == "REFUTE"
+    assert rlp.killer_prediction_verdict(ci_pos, ci_straddle, "disagree") == "READOUT-DIVERGENCE"
+
+    assert rlp.leg_b_scale_gate(["agree", "agree", "agree", "disagree"]) == "ELIGIBLE_FOR_TREND_READ"
+    assert rlp.leg_b_scale_gate(["agree", "agree", "disagree", "disagree"]) == "AMBIGUOUS"
+
+    assert rlp.readout_form_invalid(True, True) is True
+    assert rlp.readout_form_invalid(False, True) is False
+    assert rlp.outcome_precedence(True, True) == "READOUT-FORM-INVALID"
+    assert rlp.outcome_precedence(False, True) == "AMBIGUOUS"
+    assert rlp.outcome_precedence(False, False) is None
+
+    d = rlp.delta_ci_n3([0.5, 0.6, 0.55], [0.4, 0.42, 0.41])
+    assert d["ci_low"] < d["mean"] < d["ci_high"]
+    print("[Stage-1 extra] outcome-routing gates (sec 12) mechanically fire as pre-registered: PASS")
+
+
+ALL_ITEMS = [
+    test_item_1_tokenizer_verification, test_item_2_hand_built_composition,
+    test_item_3_bigram_shortcut_scorer, test_item_4_label_shuffle_null,
+    test_item_5_blank_out_test, test_item_6_surgery_toggle_smoke,
+    test_item_7_conv_size_match_assertion, test_item_8_render_adjacency_measurement,
+    test_item_9_kernel_t_floor, test_item_10_seed_non_collision,
+    test_item_11_causality_assertion, test_item_12_three_entity_worked_example,
+    test_item_13_v_conv1d_hook_equivalence, test_item_14_q_conv1d_hook_equivalence,
+]
+
+
+def run_all_selftests() -> bool:
+    print("=" * 70)
+    print("REASONING-LINK Stage -1 SELF-TESTS (14 items, sec 9)")
+    print(f"fla_stub_installed={rlp.FLA_STUB_INSTALLED}")
+    print("=" * 70)
+    t0 = time.time()
+    failures = []
+    for fn in ALL_ITEMS:
+        try:
+            fn()
+        except AssertionError as e:
+            failures.append((fn.__name__, str(e)))
+            print(f"  ** FAILURE in {fn.__name__}: {e}")
+    try:
+        test_extra_outcome_routing_gates()
+    except AssertionError as e:
+        failures.append(("test_extra_outcome_routing_gates", str(e)))
+        print(f"  ** FAILURE in test_extra_outcome_routing_gates: {e}")
+
+    wall = time.time() - t0
+    print("=" * 70)
+    if failures:
+        print(f"REASONING-LINK Stage -1: {len(failures)} FAILURE(S) in {wall:.1f}s")
+        for name, msg in failures:
+            print(f"  - {name}: {msg}")
+        print("=" * 70)
+        return False
+    print(f"REASONING-LINK Stage -1: ALL {len(ALL_ITEMS)} ITEMS + extra gate checks PASSED in {wall:.1f}s")
+    print("=" * 70)
+    return True
+
+
+if __name__ == "__main__":
+    ok = run_all_selftests()
+    sys.exit(0 if ok else 1)

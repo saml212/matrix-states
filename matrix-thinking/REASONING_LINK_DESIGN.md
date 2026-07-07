@@ -3414,3 +3414,320 @@ raise or resolve either.
   checkpoint's probe results exist — no threshold, K choice, or marker
   choice in §4–§10 is contingent on having seen a real number from any
   arm or rung.
+
+---
+
+## 15. PHASE 1 RESULTS — Leg A unblinded (rung-3 rows pending), 2026-07-07
+
+**HEADLINE: the readout is PROBE-INVALID for the entire harvested grid.
+`recovered_frac@0.9` (Option 1) is exactly `0.0` at every single one of
+the 78 committed cells (60 Leg A + 18 Leg B rungs 0-2), at every tested
+`h∈{1,2,3,4}` — 0/312 (cell,h) readings nonzero, not one. Stage 0's own
+pre-registered h=1 sanity floor (§8.4/§9 purpose c/e) FAILS both its
+null-relative and absolute (0.10) conditions (`gate_result_h1_probe_valid
+= False`), and premises (iii)/(iv) fail their own null-relative gate at
+ALL 78 cells (0/78 pass either premise). Per this design's own §8.4 rule
+("failure routes to probe-invalid, not to REFUTE") and §9 Stage-0
+registration ("if [the h1 floor] is not achievable... the grid does not
+launch"), this is NOT a licensed REFUTE of H_LINK-A or H_LINK-B — it is
+the design's own safety net correctly identifying that the `S_Tʰ·q_eff`
+readout, scored via absolute cosine ≥0.9, never fires for any
+never-task-trained checkpoint in this grid's scope. Separately and
+importantly: the on-box launch script did NOT act on this gate — see
+the discrepancy below. No CONFIRM / REFUTE / READOUT-DIVERGENCE /
+READOUT-FORM-INVALID / AMBIGUOUS / Cell-1-4 reading is licensed by this
+harvest. This section reports the mechanical routing, the raw numbers
+behind it, and the process gap that let a probe-invalid instrument run
+to completion, in full.
+
+### 15.1 Gates (checked first, before any headline number)
+
+| Gate | Registered rule | Measured | Result |
+|---|---|---|---|
+| Marker disagreement (§8.5 item 4) | abs diff ≤ 0.15 at every h, both query markers (`§`,`¶`) | 0.0 at h∈{1,2,3,4} (both markers scored identically — trivially, since both are 0.0) | PASS (vacuous — see §15.5) |
+| Causality assertion (§9 item 11 / Stage 0 purpose a) | forward-A/forward-B agree ≤1e-6 fp32 CPU over shared bind prefix | `max_abs_diff = 0.0` | PASS |
+| h1 null-relative pass (§8.4) | real h=1 `recovered_frac` > null_hi + null_width | real=0.0, null=[0.0,0.0] (width 0) → 0.0 > 0.0 is False | **FAIL** |
+| h1 absolute backstop (§8.4 MAJOR-2) | real h=1 `recovered_frac` ≥ 0.10 | real=0.0 | **FAIL** |
+| **`gate_result_h1_probe_valid`** (both above, AND) | — | — | **FAIL — probe declared invalid at Stage 0** |
+| Premise (iii) bind↔query alignment (§4.4 MAJOR-1) | same-entity median > cross-entity null p95 | Stage-0 median=0.5406 vs null_p95=0.6097 | **FAIL** |
+| Premise (iv) cross-role k↔v identity (§4.4 MAJOR-1) | same-entity median > cross-entity null p95 | Stage-0 median=0.0139 vs null_p95=0.1424 | **FAIL** |
+| Stage-0 cost abort (§10 abort rule 1, chain script) | wall_s ≤ 3× the 0.0696 GPU-h baseline | `wall_s=1.11s`, ratio≈0.004× | PASS |
+
+**Premise (iii)/(iv) fail everywhere, not just at Stage 0** — re-derived
+per §4.4 Rev 6's own "at every rung's own primary cell" registration,
+using the actual per-cell readings the raw JSONs already carry (premises
+are computed once per cell, shared across all 4 h's, per
+`measure_cell_all_h`):
+
+| Family (own primary cell, seed 0, native) | premise iii median / null p95 / pass | premise iv median / null p95 / pass |
+|---|---|---|
+| Leg A control arm (Stage 0, licenses Leg-A arms + rung 0) | 0.5406 / 0.6097 / **False** | 0.0139 / 0.1424 / **False** |
+| rung0 (14M, d64/L2) openr1 | 0.3448 / 0.4599 / **False** | 0.0793 / 0.1683 / **False** |
+| rung0 (14M, d64/L2) wikitext | -0.2513 / -0.1752 / **False** | 0.0283 / 0.1184 / **False** |
+| rung1 (98M, d64/L12) openr1 | -0.1408 / -0.0422 / **False** | 0.0472 / 0.2086 / **False** |
+| rung1 (98M, d64/L12) wikitext | 0.6092 / 0.6898 / **False** | -0.0525 / 0.0270 / **False** |
+| rung2 (392M, d128/L16) openr1 | 0.0231 / 0.1174 / **False** | 0.0431 / 0.1644 / **False** |
+| rung2 (392M, d128/L16) wikitext | 0.7310 / 0.7980 / **False** | -0.0183 / 0.0835 / **False** |
+
+Across the FULL 78-cell grid (every arm/corpus/seed/K/surgery for Leg A,
+every rung/corpus/seed for Leg B), 0/78 cells pass premise (iii) and 0/78
+pass premise (iv) — `premise_iii_median` ranges `[-0.3272, 0.7633]`,
+`premise_iv_median` ranges `[-0.0727, 0.3435]` across the grid, i.e. this
+is not a borderline near-miss at one point but a categorical failure of
+both action-rule gates everywhere they were measured, at every scale from
+14M to 392M params. By §4.4's own action-rule table, this means
+`h1_confirmatory=False` and `h_ge2_confirmatory=False` at every single
+cell — no hop depth retains confirmatory status anywhere in this harvest.
+
+### 15.2 DISCREPANCY — the launch script did not enforce Stage 0's own registered abort gate
+
+**`reasoning_link_chain.sh` contains exactly one Stage-0-level abort check
+— the wall-clock cost ratio (§10 abort rule 1, lines ~159-176 of that
+script) — and never references `marker_disagreement_flag` or
+`gate_result_h1_probe_valid` anywhere (grepped directly, zero hits for
+either string).** Per this design's own registration (§9 Stage 0 purpose
+c: *"confirm the h1 floor is achievable at all before committing to the
+full grid — if it is not, this is itself a decisive, informative result
+... and the grid does not launch"*; §8.5 item 4: a marker disagreement
+beyond tolerance "blocks" the grid), the h1-floor failure measured at
+Stage 0 (§15.1 above) should have halted the chain before Stage 1 ever
+ran. It did not — all 78 committed cells ran to completion on a probe the
+design's own instrument had already flagged invalid. The marker-tolerance
+gate happened to pass in this run (trivially — both markers scored
+identically at 0.0, so there was nothing to disagree about) so it would
+not have blocked the launch either way, but that is incidental, not a
+mitigating fact: had marker disagreement been nonzero, the chain still
+had no code path that would have stopped it. This is a genuine build gap
+against the design's own registration, not a data-analysis judgment call
+— flagged prominently per this harvest's own charter. **Realized cost of
+running past this gate: ≈0.29 GPU-h (§15.7)** — small in absolute terms
+(rung-3, the expensive row, was never in scope this run), but the
+principle — a computed, registered gate with no enforcing code path — is
+the same failure mode CLAUDE.md's own "run the negative test to
+completion" and "gates without teeth" lessons already warn about, and is
+recorded here as a fresh instance, not a one-off.
+
+### 15.3 LEG A — full unblinded table
+
+`recovered_frac@0.9` (Option 1) is `0.0` for all 3 arms (off/per_token/
+global) × 2 corpora × 3 seeds × 2 K (20,32) × applicable surgery
+(native, plus blend-OFF for the two bias arms) × 4 h — 60/60 cells,
+240/240 (cell,h) Option-1 readings. Reproduced directly from the raw
+JSONs (`per_h[h]["recovered_frac"]`), not summarized from a subset.
+
+Because every constituent value is identically `0.0`, both §5.2a
+contrasts are degenerate:
+
+- **training-effect** (`rec@0.9`(arm ckpt, blend-OFF) − `rec@0.9`(off
+  ckpt)) = `0.0 − 0.0 = 0.0` at every (arm, corpus, K, h) cell, `n=3`
+  seeds, zero variance → pinned CI `[0.0000, 0.0000]` everywhere.
+- **mechanical-effect** (`rec@0.9`(arm ckpt, blend-ON) − `rec@0.9`(arm
+  ckpt, blend-OFF)) = `0.0 − 0.0 = 0.0` everywhere, same CI degeneracy.
+
+No arm, corpus, K, or h shows any Option-1 separation, by construction of
+the data — there is nothing to distinguish global/per_token/off on this
+instrument.
+
+### 15.4 KILLER PREDICTION VERDICT — K=32 primary (and K=20), mechanical routing
+
+Applying `reasoning_link_probe.killer_prediction_verdict` (the design's
+own pure function, §12) exactly as registered, to every (arm, corpus, h):
+
+| arm | corpus | h | Δ(K=32) mean [95% CI] | Δ(K=20) mean [95% CI] | Opt1/Opt2 agreement | Mechanical verdict |
+|---|---|---|---|---|---|---|
+| global | openr1-mix-ext | 1–4 | 0.0000 [0.0000, 0.0000] | 0.0000 [0.0000, 0.0000] | agree | REFUTE |
+| global | wikitext-mix-ext | 1–4 | 0.0000 [0.0000, 0.0000] | 0.0000 [0.0000, 0.0000] | agree | REFUTE |
+| per_token | openr1-mix-ext | 1–4 | 0.0000 [0.0000, 0.0000] | 0.0000 [0.0000, 0.0000] | agree | REFUTE |
+| per_token | wikitext-mix-ext | 1–4 | 0.0000 [0.0000, 0.0000] | 0.0000 [0.0000, 0.0000] | agree | REFUTE |
+
+(All 16 rows — every arm × corpus × h — return the identical
+`[0.0000, 0.0000]` CI and REFUTE verdict; collapsed above for space, full
+per-h breakdown reproduced by the harvest script from the raw JSONs.)
+
+**This REFUTE reading is a MECHANICAL BY-PRODUCT of `killer_prediction_
+verdict`'s own logic (`ci_low > 0` fails when the CI is degenerately
+`[0,0]`), not a licensed scientific verdict.** Per §15.1's gates, the
+readout failed its own h1 sanity floor and both premise gates BEFORE this
+point in the routing — §8.4's explicit rule ("failure routes to
+probe-invalid, not to REFUTE") pre-empts this REFUTE reading. **The
+correct, gate-respecting outcome is PROBE-INVALID, reported honestly as
+such; the mechanical REFUTE computation is shown above only so the
+routing is fully transparent, never presented as if it were the
+headline finding.** The killer-prediction's own `K=32 vs K=20` structure
+(is arm separation concentrated near the capacity cliff) cannot be
+evaluated at all when both K's read identically zero.
+
+### 15.5 The h=1 recall story, on its own
+
+h=1 (in-context one-hop associative recall, needing only premise iii) is
+`0.0` for every arm/corpus/K, `n=3` seeds each — the "easiest" case this
+design's own literature review (Zoology, Based) predicted should show
+*some* nontrivial recovery in a fixed-state LM if the readout has any
+referent at all (§8.4's own justification for the 0.10 absolute floor).
+It does not clear even that low bar, anywhere. Option 2 (natural
+next-token logit margin, secondary/non-headline) is uniformly *negative*
+at h=1 across every arm/corpus/K (range ≈ -2.6 to -4.3, meaning the
+true-answer token's logit trails the best distractor's by 2.6-4.3 nats
+on average) — the natural forward pass does not favor the correct
+in-context entity over distractors either, at h=1, for any checkpoint in
+this grid. Both instruments agree: there is no clean one-hop signal to
+build a multi-hop story on top of.
+
+### 15.6 Option 2 (secondary, non-headline) corroboration
+
+Option 2 shows real per-seed variation (unlike Option 1's flat zero) but
+no signal that would change the routing. One cell reaches BH-uncorrected
+significance in the non-primary grid — per_token arm, wikitext-mix-ext
+corpus, **K=20**, all four h: training-effect margin-delta CI excludes
+zero on the negative side at every h (e.g. h=1: mean=-0.79, CI=[-0.96,
+-0.62]) — i.e. per_token training *hurts* the natural next-token margin
+at this corpus/K, consistent in sign across h=1-4. This is a single
+non-primary-grid cell (K=20 is the low-load contrast point, not the
+K=32 killer-prediction cell) and is reported here as an observation, not
+a claim — §8.6's BH-FDR correction over the full non-primary grid was not
+run for this harvest (moot: Option 1, the primary instrument, is
+uniformly floor, so no CONFIRM/REFUTE claim rests on this number). No
+other arm/corpus/K shows a CI excluding zero on Option 2.
+
+**Registered covariate `cross_a_cosine_convergence` (§8.3 M1) was never
+computed** — the function exists in `reasoning_link_probe.py` but is not
+called anywhere in `measure_cell_all_h`/`run_cell`/`run_stage0`, so the
+power-iteration-degeneracy diagnostic this design registered as
+mandatory at every headline cell is absent from every JSON in this
+harvest. Flagged as a second, lower-severity build gap alongside §15.2's
+launch-gate gap.
+
+**`state_condition_number_mean` (computed, present at every cell) is
+uniformly enormous** — median ≈6.3e4 to 2.2e5 depending on arm/rung,
+range up to 3.85e6 (leg_a global arm) — `S_T` is extremely
+ill-conditioned everywhere in this grid, dominated by one or a few
+directions. This is offered as corroboration only (§8.3's own discipline
+— "not a discriminating result on its own"), but it is at least
+*consistent with* the total-floor recovery result: a near-singular `S_T`
+matrix-powered `h` times plausibly collapses toward one dominant
+direction rather than any entity-specific `v_eff_target`, which would
+mechanically produce exactly the kind of flat-zero recovery measured
+here regardless of hop depth.
+
+### 15.7 Realized GPU-h
+
+The grid ran across 3 resume-safe launches (runs 6-8; runs 1-5 were
+build-time crashes fixed by launch fixes 1-5/6/7, git log `6475770` down
+to `8bc90ba`) after the design's own build+audit (`bb1869c`). Timestamps
+below are box filesystem birth/modify times (`stat`, box is UTC,
+confirmed via `date -u`/`timedatectl`), single GPU throughout
+(`REASONING_LINK_GPU`, default device 3):
+
+| Run | Birth (UTC) | Last write (UTC) | Duration | What it covered |
+|---|---|---|---|---|
+| run6 | 11:36:47.99 | 11:47:01.49 | 613.5s | Stage -1/0/0.5 + all 60 Leg-A cells; crashed on a Leg-B rung-0 checkpoint-path guess (fixed by launch fix 3) |
+| run7 | 12:19:46.47 | 12:23:30.86 | 224.4s | Stage -1/0/0.5 rerun (idempotent) + Leg-B rung0+rung1 (Leg-A skipped, resume-safe); crashed on rung-2 FFN OOM (fixed by launch fix 7) |
+| run8 | 12:25:54.29 | 12:29:11.60 | 197.3s | Stage -1/0/0.5 rerun + Leg-B rung2 (rungs 0/1 skipped, resume-safe); completed, wrote `REASONING_LINK_PHASE1_PARTIAL` |
+| **Sum (runs 6-8, "realized")** | | | **1035.2s ≈ 0.2876 GPU-h** | |
+
+Disclosed method: each run's own (birth → last-write) span is summed
+directly — this excludes the idle/debugging gaps BETWEEN runs (e.g. the
+~33 min between run6's crash at 11:47 and run7's birth at 12:19 was
+agent debugging time, not GPU time) by construction, since only time
+inside a running process is counted. Runs 1-5 (pre-launch build-time
+crashes, Stage -1/CUDA-kernel failures before any real grid cell ran)
+add a further ≈309s (≈0.086 GPU-h) of mostly-wasted false-start cost,
+reported for completeness but excluded from the "realized" figure per
+the task's own framing (runs 6-8 are the grid that actually executed).
+**Grand total across all 8 runs ≈1344s ≈0.373 GPU-h — Stage 1 (this
+harvest) realized ≈0.29 GPU-h against the ≈24.20 GPU-h Phase-1 ceiling
+(§10), ≈1.2% utilized.** The gap is real, not a rounding artifact: every
+checkpoint evaluated this run is ≤392M params (rung-3 at 1.31B, the
+expensive row, is deferred), and per-cell cost is small at this scale
+regardless of what the readout returns — probe-invalidity does not
+change forward-pass cost.
+
+### 15.8 LEG B rungs 0-2 (PARTIAL — rung-3 pending trackc `ALL_DONE`)
+
+Same universal-zero pattern: `recovered_frac@0.9 = 0.0` at all 18 cells
+(rung0 14M d64/L2, rung1 98M d64/L12, rung2 392M d128/L16; 2 corpora × 3
+seeds each) × 4 h = 72/72 Option-1 readings, all zero. No monotone trend,
+no Spearman correlation with `span_frac`, and no CONFIRM/REFUTE reading
+is possible from this instrument — the same probe-invalid routing
+applies to Leg B as to Leg A (§15.1/§15.4).
+
+Option 2 (secondary) shows a monotone trend in the WRONG direction for a
+"scale helps" story if taken naively: mean margin (vs. a zero baseline,
+`n=3` per rung/corpus, `h=3,4`) goes from ≈-3.2 to -3.4 (rung0, 14M) to
+≈-3.7 to -3.9 (rung1, 98M) to ≈-4.3 to -5.5 (rung2, 392M) — i.e. the
+natural next-token margin AGAINST the correct answer gets WORSE, not
+better, with scale, across both corpora. This is reported descriptively
+only (Option 2 is never load-bearing alone, §5.2/§8.2) and is exactly
+the kind of reading the §6.2 Rev 4 agreement gate exists to catch:
+Option 1 is flat zero everywhere (no direction to agree or disagree
+with), so `option_agreement` is vacuously "agree" at every rung
+(`opt1_excludes_positive` is always False, so the disagreement branch
+never fires) — **this vacuous agreement must not be read as validating
+a scale trend**. `leg_b_scale_gate` cannot be meaningfully applied:
+3-of-4 rungs "agreeing" here means 3 rungs where nothing is happening on
+either instrument, not 3 rungs of genuine directional concordance.
+**No H_LINK-B trend verdict (CONFIRM/REFUTE/AMBIGUOUS) is reported —
+rungs 0-2 are PARTIAL, rung-3 is not yet run, and the instrument itself
+is probe-invalid regardless.**
+
+### 15.9 What this harvest does NOT show
+
+1. **This is not evidence that geometry stabilization or scale don't
+   matter for composition.** The instrument that was supposed to test
+   that (Option 1, single-layer state self-iteration, §4.4's own framing
+   note) never produced a usable signal on ANY checkpoint, including the
+   architecturally-simplest 14M control. A uniformly-floor readout with a
+   failed validity gate cannot distinguish "no capability" from "wrong
+   mechanism" from "wrong threshold for this checkpoint family" — exactly
+   the ambiguity §12's own READOUT-FORM-INVALID outcome was built to
+   name, except this harvest sits one level more severe than that (h=1
+   never cleared its OWN floor, so READOUT-FORM-INVALID's trigger — h=1
+   clears, h≥2 doesn't — is not even satisfied; see §15.1).
+2. **Rung-3 (1.31B) is not in this harvest at all** — deferred pending
+   trackc `ALL_DONE`, per the design's own registration (§6.1). Nothing
+   above should be read as a 4-rung verdict.
+3. **Stage -1's self-tests passing (all 14 items + the extra gate check,
+   `logs/90_reasoning_link_stage_minus1.log`, 48.6s, ALL PASSED) rules out
+   an arithmetic bug in the readout's hand-built-case behavior, but does
+   not rule out the readout being the wrong construct for real,
+   never-task-trained checkpoints** — the self-tests exercise synthetic
+   matrices with known answers, not whether real pretrained
+   representations ever produce the kind of alignment Option 1 requires.
+   `cos_mean` across the full grid is tightly centered near zero
+   (`[-0.33, 0.25]`, `cos_std` `[0.03, 0.20]`) — reaching `|cos|>0.9`
+   from this distribution is a >10σ event, i.e. the 0.9 absolute
+   threshold (inherited from the task-TRAINED `KEY_ANCHORING`/exactness
+   lineage, where h1=1.0 is achievable) appears simply unreachable for
+   this never-task-trained checkpoint family under this specific linear
+   readout — consistent with, though not proof of, a threshold/mechanism
+   mismatch rather than a genuine absence of any composable structure.
+4. **Options 2's own signal (§15.6/§15.8), where nonzero, is explicitly
+   non-headline** (§5.2/§8.2's own standing rule) and is reported for
+   completeness, not as a substitute finding.
+
+### 15.10 Next steps (not self-launched by this harvest)
+
+This harvest does not license a design revision, a re-threshold, or a
+Phase-2 build on its own authority — those are PI/design-owner decisions.
+What is recorded here, mechanically and completely, is: the gates fired
+correctly (the design's own instrumentation caught its own invalidity),
+the launch script did not enforce that finding before spending GPU-h
+(§15.2), and the raw data, once unblinded, cannot license any of the
+six named §12 outcomes. Candidate next steps for whoever picks this up
+(not decided here): (a) re-examine whether an absolute-cosine≥0.9
+threshold is appropriate for never-task-trained checkpoints at all
+(vs. e.g. a rank/percentile-based or relative-margin readout); (b) wire
+the missing gates into `reasoning_link_chain.sh` before any re-run;
+(c) wire `cross_a_cosine_convergence` into `measure_cell_all_h` if a
+re-run is designed; (d) decide whether rung-3 should still run once
+`trackc` completes, given rungs 0-2 already show the identical
+probe-invalid pattern this instrument would need to have differed from
+to matter.
+
+Archive: `experiment-runs/2026-07-07_reasoning_link_phase1/` (82 raw
+result JSONs + 89 log files + the 3 exact scripts —
+`reasoning_link_chain.sh`, `reasoning_link_probe.py`,
+`reasoning_link_stage_minus1.py` — byte-identical to the box's own
+copies, verified directly, ~1.3MB, all files ≤25MB) + SSD mirror at the
+same relative path under `/Volumes/1TB_SSD/learned-representations/`.
+`STATE.md` and `EXPERIMENT_LOG.md` updated.

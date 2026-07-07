@@ -6,6 +6,51 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## REASONING-LINK PHASE 1 HARVEST SNAPSHOT (2026-07-07 ~12:45 UTC) — supersedes the PRE-COMPACTION SNAPSHOT block below for REASONING-LINK status; that block's rung-3/trackc tracking is otherwise still current
+
+**REASONING-LINK Phase 1 (Leg A 60 cells + Leg B rungs 0-2, 18 cells)
+ran to completion on box and was unblinded: PROBE-INVALID, not a
+licensed CONFIRM/REFUTE.** `recovered_frac@0.9` (Option 1) is exactly
+`0.0` at all 78 cells × 4 h = 312/312 readings — the readout never
+fires on ANY checkpoint (14M-392M, both corpora, every arm/K/surgery).
+Stage 0's own registered h1 sanity floor fails both its null-relative
+and absolute-0.10 conditions, and premises (iii)/(iv) fail their own
+null-relative gate at 0/78 cells. Per the design's own §8.4 rule
+("failure routes to probe-invalid, not to REFUTE"), this is NOT a
+negative result about H_LINK-A/H_LINK-B — it is the instrument itself
+being invalid for this checkpoint family, caught by its own
+pre-registered gates. **Discrepancy, flagged prominently: the launch
+script (`reasoning_link_chain.sh`) never wired `gate_result_
+h1_probe_valid` (or `marker_disagreement_flag`) into an actual abort
+branch — only the wall-clock cost check is a real gate — so the grid
+ran to completion past a failed validity check that, per the design's
+own §9 registration, should have halted it before Stage 1 launched.**
+Realized cost was small regardless (≈0.29 GPU-h for runs 6-8, ≈0.373
+GPU-h total incl. 5 pre-launch build crashes, vs the ≈24.20 GPU-h
+Phase-1 ceiling — ≈1.2% utilized; rung-3, the expensive row, was never
+in scope this run). Full verdict, gates table, per-cell numbers, and
+the `[LEARN]` writeup: `REASONING_LINK_DESIGN.md` §15;
+`EXPERIMENT_LOG.md`'s matching entry.
+
+**Queue implication:** rung-3's 2 Leg-B cells remain DEFERRED pending
+trackc `ALL_DONE` (unchanged, ≈05:00 UTC Jul 8 ETA per the block below)
+— when they land, they get harvested the same way, but rungs 0-2
+already show the identical probe-invalid pattern a rung-3 result would
+need to have differed from to change anything. Before any re-run of
+this instrument: (a) wire the missing gates into the chain script as
+real abort branches (the `[LEARN]` item), (b) reconsider whether an
+absolute-cosine≥0.9 threshold is right for never-task-trained
+checkpoints at all — `cos_mean` across the grid sits in `[-0.33,0.25]`
+with `cos_std` `[0.03,0.20]`, so `|cos|>0.9` is a >10σ event under the
+measured distribution, consistent with a threshold/mechanism mismatch
+rather than proof of zero composable structure. **Not decided here —
+a PI/design-owner call**, per §15.10.
+
+**Archive:** `experiment-runs/2026-07-07_reasoning_link_phase1/` (82
+raw JSONs + 89 logs + 3 exact scripts, ~1.3MB) + SSD mirror.
+
+---
+
 ## PRE-COMPACTION SNAPSHOT (2026-07-07 ~04:15 UTC) — supersedes the older SESSION HANDOFF block below
 
 **Everything through commit d20cbe8 is pushed to GitHub. On-box tmux
