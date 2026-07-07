@@ -128,17 +128,20 @@ TRACKC_CKPT_ROOT=${TRACKC_CKPT_ROOT:-/data/lm_rd_trackc_ckpts}
 STAGE0_CKPT="$FROZEN_BIAS_CKPT_ROOT/frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0/lmC_openr1-mix-ext_dm256_ds64_L2_s0_step20000.pt"
 
 # ---------------------------------------------------------------------------
-# Step 1 -- Stage -1 self-tests (gate).
-# AUDIT-2 OPERATIONAL FIX (2026-07-07): pinned to the wave's own GPU, NOT
-# CUDA_VISIBLE_DEVICES= (empty). On the box the REAL fla package imports
-# regardless of GPU visibility, and forward_body routes items 6/11/13/14
-# through the real Triton chunk_delta_rule -- which crashes on CPU tensors
-# ("Pointer argument cannot be accessed from Triton"). Running the selftests
-# on $REASONING_LINK_GPU exercises the real kernel there (strictly stronger
-# than the local CPU-stub pass; same pattern as mech_stage2_chain.sh's own
-# audited MINOR-1 fix).
+# Step 1 -- Stage -1 self-tests (gate). Pure CPU BY REGISTRATION (design
+# sec 9's tolerances are fp32/CPU; the suite's toy models live on CPU).
+# LAUNCH FIX (2026-07-07, after the first box launch crashed here): the
+# suite must run through the probe's own CPU fla-stub even though the box
+# has real fla installed -- CPU toy tensors into the real Triton kernel
+# crash with "Pointer argument cannot be accessed from Triton". A first
+# attempted fix (pinning a GPU) was WRONG: the tensors are CPU-side by
+# design, so GPU visibility is irrelevant. REASONING_LINK_FORCE_CPU_STUB=1
+# makes _ensure_fla_stub() install the stub unconditionally -- the EXACT
+# audited local semantics. The real kernel is still exercised for real at
+# Stage 0 (sec 9 purpose (a) re-runs the item-11 causality assertion on a
+# real checkpoint).
 # ---------------------------------------------------------------------------
-CUDA_VISIBLE_DEVICES=$REASONING_LINK_GPU $PY reasoning_link_probe.py --mode selftest \
+REASONING_LINK_FORCE_CPU_STUB=1 CUDA_VISIBLE_DEVICES= $PY reasoning_link_probe.py --mode selftest \
     2>&1 | tee logs/90_reasoning_link_stage_minus1.log
 
 # ---------------------------------------------------------------------------

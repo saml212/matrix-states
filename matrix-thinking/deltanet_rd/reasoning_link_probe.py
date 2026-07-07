@@ -106,8 +106,21 @@ DESIGN_REF = "REASONING_LINK_DESIGN.md Rev 6 (2026-07-07, CLEARED-FOR-BUILD)"
 # ---------------------------------------------------------------------------
 
 def _ensure_fla_stub() -> bool:
-    try:
-        import fla  # noqa: F401
+    # LAUNCH FIX (2026-07-07, first box launch attempt): the Stage -1 suite
+    # is a CPU-fp32 suite BY REGISTRATION (design sec 9's tolerances are
+    # fp32/CPU), and its toy models live on CPU. On the box the REAL fla
+    # package imports fine, so without this override items 6/11/13/14 route
+    # CPU tensors into the real Triton chunk_delta_rule -> "Pointer argument
+    # cannot be accessed from Triton (cpu tensor?)". Setting
+    # REASONING_LINK_FORCE_CPU_STUB=1 (chain step 1 does) installs this
+    # file's own CPU stub even when real fla exists, preserving the EXACT
+    # audited selftest semantics (both independent audits ran the suite
+    # through this stub locally). The real kernel is still exercised for
+    # real at Stage 0, which re-runs the item-11 causality assertion on a
+    # real checkpoint per sec 9's own purpose (a).
+    if os.environ.get("REASONING_LINK_FORCE_CPU_STUB", "0") != "1":
+        try:
+            import fla  # noqa: F401
         # MINOR-3 fix (this audit round) -- the double-execution misreport. When this file runs
         # as `__main__` (e.g. `python reasoning_link_probe.py --mode selftest`) AND is separately
         # imported by module name (`reasoning_link_stage_minus1.py`'s own `import
@@ -121,11 +134,11 @@ def _ensure_fla_stub() -> bool:
         # still this file's own CPU stub. Detect that case by a marker attribute on the module
         # object itself (never by import success/failure alone, which cannot distinguish "real fla"
         # from "a stub some earlier execution already installed").
-        if getattr(fla, "_REASONING_LINK_CPU_STUB", False):
-            return True
-        return False
-    except ImportError:
-        pass
+            if getattr(fla, "_REASONING_LINK_CPU_STUB", False):
+                return True
+            return False
+        except ImportError:
+            pass
 
     class _StubShortConvolution(nn.Module):
         def __init__(self, hidden_size: int, kernel_size: int = 4, bias: bool = False,
