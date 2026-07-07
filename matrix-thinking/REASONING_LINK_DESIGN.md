@@ -3975,7 +3975,16 @@ tempts an overclaim.
 
 ---
 
-### 16.2 PATH (ii) — PHASE-2: task familiarization
+### 16.2 PATH (ii) — PHASE-2: task familiarization (Rev 1, 2026-07-07 — post-attack)
+
+**Rev 1 status note.** An independent attack round reviewed this recipe
+before any code was written, per §16.2.4's own registered prerequisite and
+this project's waterfall discipline (`CLAUDE.md`). Verdict:
+**NEEDS-REDESIGN** — 1 FATAL, 6 MAJOR, 1 MINOR. Every finding is fixed
+below (§16.2.1-§16.2.4); none is deferred or waved away. The full
+finding→fix trace is recorded in §16.7, per house style. Nothing in
+§16.2.1-§16.2.4 below predates this revision — read this section as Rev
+1, not as the original sketch the attack round reviewed.
 
 **What it tests.** Not "does a never-task-trained checkpoint show
 zero-shot multi-hop composition" (§16.1.4's own answer: implausible by
@@ -3991,7 +4000,7 @@ the exact BIND/QUERY task** — Zoology/Based/MQAR's own in-context-recall
 successes are likewise task-trained, per §16.1.4. Path (ii) is the only
 path here that puts REASONING-LINK's checkpoints in that same regime.
 
-#### 16.2.1 Recipe sketch (not a committed build — a design sketch, per the task's own framing)
+#### 16.2.1 Recipe sketch (Rev 1 — not a committed build, a design sketch that has now survived one attack round; folds in FATAL-1, MAJOR-1, MAJOR-2, MAJOR-3, MAJOR-4, MAJOR-6, MINOR-1, per §16.7)
 
 **Base checkpoints:** continue training from the archived Leg-A frozen-bias
 checkpoints at their final (step-20,000) state — all 3 arms (`off`,
@@ -4001,7 +4010,11 @@ scratch" sketch. This is a deliberate departure from §11, chosen because
 continuing an ALREADY-VAL-LOSS-MATCHED set of checkpoints (§7.2's existing
 gate) preserves the one clean apples-to-apples property this whole program
 has fought to establish across arms; training fresh models re-opens every
-val-loss-matching question from scratch.
+val-loss-matching question from scratch. **Scope is 14M-class (rung-1)
+only** — these are the only frozen-bias checkpoints that exist anywhere in
+this program's archive (`FROZEN_BIAS_LM_DESIGN.md` §6.2/§8.1: rung-2, 98M,
+was formally PARKED before any rung-2 cell ever launched); §16.2.3 below
+re-derives cost on this basis explicitly.
 
 **What continues training, what stays frozen:** the frozen-bias table
 itself and its blend mechanism (`apply_frozen_bias_blend`, λ=0.58) stay
@@ -4012,29 +4025,209 @@ parameter (backbone, k/q/v/o projections, embedding table) continues
 training normally under gradient descent, same optimizer family/schedule
 convention as the original Track-C/frozen-bias runs.
 
-**Data mix (needs its own design pass before commit, sketched here):** a
-blend of (a) the ORIGINAL pretraining corpus (openr1-mix-ext or
-wikitext-mix-ext, matching each checkpoint's own arm) at a majority
-fraction, to avoid catastrophic forgetting of general LM capability and to
-keep familiarization "on top of" rather than "instead of" the original
-training distribution, and (b) newly-rendered BIND/QUERY episodes — using
-whichever surface form Path (i) validates if it has already run by this
-point (§16.6), or the original marker template if Path (i) has not yet
-cleared a gate — at a minority fraction, drawn from a **familiarization
-pool of entities/cycles held disjoint from an eval pool** (mirroring
-§4.5's existing eval-purpose seed-disjointness discipline, extended here
-to a genuine train/eval split this design currently lacks, since Phase 1
-had none). **Held out for eval, never in the familiarization mix:** a
-disjoint sub-draw of K-cycles (fresh permutations) and, if the entity pool
-allows it (107 names is the hard ceiling, §4.2), a disjoint entity
-sub-pool — this needs its own arithmetic check against the max committed
-K (32-96 depending on rung) before being finalized, mirroring F1's own
-resolved arithmetic-impossibility lesson (§13.1) rather than repeating it.
+**Hop-depth train/eval split (Rev 1 fix, FATAL-1) — the single most
+important correction this revision makes.** Familiarization trains ONLY on
+h∈{1,2} queries: the per-episode loss is masked so no gradient ever flows
+through an h=3 or h=4 query loss, at any checkpoint, any arm, any corpus.
+Evaluation is read at BOTH h∈{1,2} (trained — reported as a **sanity
+ceiling**, confirming familiarization is actually teaching the task at
+all) and h∈{3,4} (never trained on — reported as **THE H_LINK test**,
+the genuine held-out generalization reading this whole path exists to
+produce). This makes `DeltaNetRDTaskConfig.H_train`/`H_test` (§4.3)
+**real for the first time in this program.** Under Phase 1's zero-shot
+instrument, `H_train=(5,)` was registered explicitly as a
+"semantically-inert placeholder" (§4.3) — it satisfied the dataclass's
+own periodicity-guard invariant with no gradient ever flowing through it,
+since those checkpoints "trained on zero hops of anything." Here,
+`H_train=(1,2)` and `H_test=(3,4)` have a genuine referent: SGD actually
+optimizes the H_train losses during familiarization. **The periodicity
+guard must therefore be RE-VERIFIED for real, not assumed to still pass
+vacuously** — this is exactly the collapse failure mode `CLAUDE.md`'s own
+standing rule names (a general permutation's `h mod cycle_length`
+periodicity silently folding "held-out" hops back into in-distribution or
+trivial queries; 50-100% of nominally held-out queries collapsed across
+K∈{4,8,12,16} before that fix was applied elsewhere in this codebase).
+Checked at both of Phase-2's committed K's (§16.2.1, MAJOR-2, below):
+`{1,2,3,4} mod 20 = {1,2,3,4}` and `{1,2,3,4} mod 32 = {1,2,3,4}` — no
+residue collision between the `{1,2}` (trained) and `{3,4}` (held-out)
+partitions at either K, so the guard passes for real, not merely
+structurally. This re-verification is a mandatory Stage −1 assertion for
+Phase-2's own build, mirroring the existing per-checkpoint K-floor
+assertion convention (§4.3, §9 item 9).
 
-**Step budget:** modest continuation (order 1,000-5,000 steps, a fraction
-of the original 20,000-step run), since this is familiarization on top of
-an already-converged checkpoint, not training from scratch — an exact
-number is a Stage-0-style calibration item, not fixed here.
+**Data mix:** a blend of (a) the ORIGINAL pretraining corpus
+(openr1-mix-ext or wikitext-mix-ext, matching each checkpoint's own arm)
+at a majority fraction, to avoid catastrophic forgetting of general LM
+capability and to keep familiarization "on top of" rather than "instead
+of" the original training distribution, and (b) newly-rendered BIND/QUERY
+episodes (h∈{1,2} only, per FATAL-1 above) — using whichever surface form
+Path (i) validates if it has already run by this point (§16.6), or the
+original marker template if Path (i) has not yet cleared a gate — at a
+minority fraction, drawn from a **familiarization pool of entities/cycles
+held disjoint from an eval pool** (mirroring §4.5's existing eval-purpose
+seed-disjointness discipline, extended here to a genuine train/eval split
+this design lacked before this revision, since Phase 1 had none). **Held
+out for eval, never in the familiarization mix:** a disjoint sub-draw of
+K-cycles (fresh permutations) and, if the entity pool allows it (107 names
+is the hard ceiling, §4.2), a disjoint entity sub-pool — this needs its
+own arithmetic check against the max committed K (now {20,32}, MAJOR-2
+below) before being finalized, mirroring F1's own resolved
+arithmetic-impossibility lesson (§13.1) rather than repeating it. This
+composes with, and is independent of, the hop-depth split above: a
+held-out eval episode is disjoint on BOTH axes simultaneously (unseen
+cycle/entity draw AND, for its h=3/4 readings, an unseen hop depth).
+
+**Rev 1 fix (MINOR-1, attack-round) — the majority/minority fraction is a
+named open item, not a default picked by feel.** The split above was
+originally sketched with no derivation (an assumed "majority original
+corpus, minority BIND/QUERY" ratio). Registered now: the actual fraction
+must be set by a **Stage-0-scale pilot measurement** (this program's own
+calibration-before-sweep discipline, `CLAUDE.md`) that sweeps a small
+grid of candidate fractions on ONE checkpoint/corpus/seed and reports the
+**smallest fraction at which a detectable familiarization signal
+appears** (e.g., h=1 sanity-ceiling accuracy on held-out cycles clears its
+own chance floor) — the pilot's own measured floor pins the fraction used
+in the full 18-cell grid, not an assumed round number (10%, 20%, ...).
+Held open until that pilot runs; **no fraction is committed in this
+revision.**
+
+**K sweep and killer-prediction re-application (Rev 1 fix, MAJOR-2).**
+Familiarization and eval both use **K∈{20,32}** — Leg A's own committed
+pair (§5.3), not a new K grid invented for Phase-2. This keeps Phase-2
+commensurable with Phase-1's own killer-prediction structure and lets the
+SAME falsifiable, externally-anchored prediction be re-applied
+post-familiarization rather than replaced with an ad hoc "does training
+help" reading. **The killer-prediction pass condition is re-applied
+exactly as §5.3 states it**, substituting the familiarized checkpoints'
+own per-trajectory-checkpoint training-effect delta for Phase-1's static
+one: `|Δ(K=32)| > |Δ(K=20)|`, with K=32's CI excluding zero while K=20's
+does not, checked at each trajectory readout (MAJOR-1, below) — the
+near-cliff K (32, ratio 0.5 at d=64) is predicted to show any LEARNED arm
+separation first and most strongly; the low-load K (20, ratio 0.3125) is
+predicted to lag or stay flat, mirroring the same capacity-cliff-anchored
+logic §5.3 already registers for the zero-shot instrument.
+
+**This capacity connection is d=64-cliff-specific, not a general
+K/d≈0.55 claim — registered explicitly to prevent overreach** (cites
+`KEY_ANCHORING_SCALING_DRAFT.md` §15.19's own harvested verdict,
+2026-07-07): that wave's own **WAVE VERDICT: AMBIGUOUS** — d=80 alone is
+a clean, non-degenerate REFUTE of ratio-invariance (`x0(80)=0.6756`, CI
+`[0.6620,0.6868]`, excluding the pre-registered `[0.4745,0.6165]` band
+entirely), and d=96's fit is degenerate (`degenerate_frac=98.52%`, no
+cliff visible anywhere in the tested `K/d∈[0.25,0.71875]` window). The
+general "K/d≈0.55 is where composition-relevant capacity cliffs sit" law
+does **NOT** generalize past d=64. Only the LOCATED d=64 point
+(`x0=0.5455`, CI `[0.5385,0.5513]`, §12.9) has any anchoring value for
+Phase-2 — precisely because Phase-2's own checkpoints ARE the d=64
+architecture (Track C's rung-1 config, `d_state=64`,
+`FROZEN_BIAS_LM_DESIGN.md` §6.1). K∈{20,32} is chosen for its
+relationship to d=64's own measured cliff, not as one instance of a
+general scaling law — a distinction Phase-2's own reporting must
+preserve.
+
+**Trajectory readout schedule and pre-registered outcome trichotomy (Rev
+1 fix, MAJOR-1/MAJOR-3).** Rather than reading arm contrasts only at the
+terminal checkpoint of the familiarization budget, Phase-2 takes a full
+trajectory: checkpoints at **steps {250, 500, 1000, 2500, 5000}** of the
+now-fixed 5,000-step familiarization budget (superseding the prior "order
+1,000-5,000 steps" open-ended framing — 5,000 is the committed ceiling,
+not an estimate). The killer-prediction contrast above is computed at
+EVERY checkpoint, for every arm, both corpora, all 3 seeds — not just once
+at the end. This directly answers §16.2.2's confound (a) in a different
+way than the Stage-0.5 gate below does: if arm separation is a training-
+DYNAMICS artifact (per-token/global differing in how fast they converge
+on the new mix, not in what they converge TO), a single terminal-
+checkpoint readout cannot distinguish that from a genuine, durable
+capability difference — a trajectory can.
+
+**Three pre-registered, mutually exclusive outcomes classify each (K,
+corpus, seed) trajectory, fixed before any checkpoint is read:**
+- **PERSISTENT** — the killer-prediction condition holds at the first
+  checkpoint where either arm's CI is determinate AND continues to hold
+  at every later checkpoint through 5,000, including the terminal one.
+  Reads as a durable, training-stable separation.
+- **TRANSIENT** — the killer-prediction condition holds at one or more
+  intermediate checkpoints (250-2,500) but does NOT hold at the terminal
+  checkpoint (5,000) — the separation opens then closes under continued
+  training. Reads as a training-dynamics artifact of exactly the kind
+  §16.2.2 confound (a) warns about, not a durable capability difference.
+- **CONVERGE** — the killer-prediction condition does not hold at ANY
+  checkpoint (including 5,000) despite both arms clearing the Stage-0.5
+  gate (below) and h∈{1,2}'s own sanity-ceiling floor — i.e., all arms
+  genuinely LEARN the task (task-trained equivalence) but never separate
+  from each other while doing so.
+
+**CONVERGE is a named outcome distinct from Cell 4 (Rev 1 fix, MAJOR-3) —
+registered explicitly because the two are easy to conflate and are NOT
+the same finding.** Cell 4 (§12) is "geometry stabilization is real but
+functionally inert for in-context composition," diagnosed on checkpoints
+that never trained on the task at all (Phase-1's zero-shot instrument) —
+its natural reading is "the stabilized geometry doesn't matter because the
+model was never asked to use it." CONVERGE is diagnosed on checkpoints
+that DID train on the task and DID learn it (h∈{1,2} clear their floor) —
+its reading is "the stabilized geometry doesn't matter even once the
+model is actually asked to use it, and given every opportunity via
+gradient descent to exploit whatever advantage it might confer."
+Task-trained equivalence is a strictly stronger, more informative
+negative than zero-shot inertness, and — per the same "publication value:
+high, as an honest, hard-won negative" logic §12 already applies to Cell
+4 — independently publishable on its own terms, not merely as a footnote
+to Cell 4.
+
+**Stage-0.5-familiarized gate (Rev 1 fix, MAJOR-4) — a new gate, distinct
+from and in addition to Phase-1's own Stage-0/Stage −1 gates.** Before any
+arm contrast at any trajectory checkpoint above is trusted, premises
+(iii)/(iv) and the h1 sanity floor (§8.4, the same instrument-validity
+checks Phase-1's own Stage 0 registers) are RE-MEASURED on the
+familiarized OFF-arm checkpoint — the arm that continues training on the
+new mix with no frozen-bias intervention at all. This is a mandatory
+go/no-go: if the OFF arm's own premises (iii)/(iv) or h1 floor fail their
+action-rule gates (§4.4) on the familiarized checkpoint, Phase-2's entire
+arm-contrast structure is uninterpretable (there is no valid baseline to
+contrast the intervention arms against), and the chain MUST abort before
+any global/per_token contrast is computed — per §16.5 Constraint 1's own
+registered hard requirement (gates-must-abort; every chain script under
+this section needs an explicit abort branch, verified by a deliberate
+negative test, not merely a computed-but-unread gate value, per the
+paired gates-must-abort `[LEARN]` `EXPERIMENT_LOG.md`'s Phase-1 entry
+already names).
+
+**This gate also carries real instrument-validation value, disclosed here
+rather than treated as pure overhead:** if the readout construct
+(`S_T^h · q_eff`, §4.4) is actually measuring what this design claims,
+premises (iii)/(iv) SHOULD pass on a checkpoint that has now genuinely
+trained on the bind/query structure — familiarization gives the readout
+every reason to succeed that Phase-1's zero-shot instrument lacked. A
+PERSISTENT failure of premises (iii)/(iv) even after familiarization
+indicts the readout construct itself far more decisively than Phase-1's
+own zero-shot PROBE-INVALID verdict (§15) could, since that verdict could
+always be attributed to "never task-trained" rather than to the
+instrument. Phase-2's Stage-0.5 gate is therefore doing double duty: a
+go/no-go for the arm contrast, and the most stringent test this program
+has yet run of whether the readout itself is sound.
+
+**Familiarization-mix val-loss tolerance band, blind-pinned before launch
+(Rev 1 fix, MAJOR-6).** §7.2's existing val-loss-matching gate was
+established on the ORIGINAL pretraining objective/corpus mix (§16.2.2
+confound (a)) and has no referent on the new familiarization mix.
+Registered fix: a FRESH tolerance band, `mean_ref ± 2·s_ref` (this
+codebase's own house `k=2` convention, `KEY_ANCHORING_DESIGN.md` §3.6 /
+`key_anchoring.derive_engaged_bands`, already reused once for exactly
+this purpose by `FROZEN_BIAS_LM_DESIGN.md` §7.2's own val-loss tolerance
+derivation), computed from the OFF arm's own per-seed loss ON THE NEW MIX
+— and this band must be computed and committed to a `BANDS_PINNED`-style
+JSON **BEFORE** the global/per_token familiarization launches, not after.
+**This sequencing requirement is a direct, named guard against a real,
+disclosed process failure this exact program already committed once:**
+`FROZEN_BIAS_LM_DESIGN.md`'s own rung-1 wave wrote its
+`BANDS_PINNED-FrozenBias.json` AFTER all 20 training cells had already
+completed (`pinned_at_iso` postdates every training result on disk),
+which — despite the CI arithmetic itself being numerically real and
+independently re-verified — forfeited the blind's confirmatory license
+and demoted the entire wave to the DESCRIPTIVE TIER; that document's own
+"process finding for future waves" names "pin before launch" as a hard
+sequencing rule for exactly this reason. Phase-2 registers that rule as a
+build requirement here, not as a lesson to remember later.
 
 #### 16.2.2 The new confound surface — why this needs its own attack round before build
 
@@ -4064,26 +4257,115 @@ under a NEW data distribution silently becomes a worse blend than what
 would have been tuned for this objective, artificially handicapping the
 intervention arms relative to `off`.
 
-#### 16.2.3 Cost
+**Rev 1 disposition of the three items above (attack-round, this pass;
+full fix-map §16.7).** Item (a) — whether val-loss needs to be
+RE-established on the new mix — is now **RESOLVED BY CONSTRUCTION**: the
+Stage-0.5-familiarized gate (§16.2.1, MAJOR-4) plus the blind-pinned
+val-loss tolerance band on the new mix (§16.2.1, MAJOR-6) together give
+this a concrete, pre-registered mechanism, closing the open question
+rather than merely re-stating it. Item (b) — whether the familiarization
+fraction stays small enough to remain "continue training with some task
+exposure" rather than "train a task-specific model" — is **partially
+addressed**: MINOR-1 (§16.2.1) commits to measuring rather than guessing
+the fraction, but the pilot measurement itself has not yet run, so this
+item stays open pending that result. **Item (c) — whether holding λ
+fixed during familiarization is the right choice, or silently handicaps
+the intervention arms under a new data distribution — is NOT addressed
+by this attack round and remains genuinely open,** disclosed here rather
+than hidden: no finding in §16.7 speaks to it, and it should be the first
+item a future attack round on this recipe takes up.
 
-**~5-15 GPU-h (task's own registered estimate; a firm number requires its
-own costed design pass, not re-derived here since no build exists yet).**
-Sanity context: this is materially more expensive than Path (i)'s
-eval-only ~0.4 GPU-h (continued TRAINING, not a forward-only probe) but a
-small fraction of Phase 1's own registered ≈24.20 GPU-h ceiling (§10) or
-Path (iii)'s ≈21 GPU-h mandatory grid (§16.3) — 18 checkpoints × a modest
-step budget × forward+backward at 14M-98M-class model sizes (Leg A's
-checkpoints, §5.1) is the right order of magnitude for a single-digit-to-
-low-double-digit GPU-h figure, consistent with the task's own bracket.
+#### 16.2.3 Cost (Rev 1 — re-derived, attack-round MAJOR-5; supersedes the prior ungrounded "~5-15 GPU-h" placeholder)
 
-#### 16.2.4 Gate before build
+**Scope clarification, stated up front:** Phase-2 operates on **14M-class
+(rung-1) checkpoints ONLY.** No 98M-class (rung-2) frozen-bias checkpoints
+exist anywhere in this program's archive — rung-2 was formally PARKED
+before any rung-2 cell ever launched (`FROZEN_BIAS_LM_DESIGN.md`
+§6.2/§8.1; the VERDICT section confirms "all 20 mandatory training cells
+ran to completion" at rung-1, `d_model=256, n_layers=2, d_state=64`,
+`n_params=14,048,896` — zero rung-2 cells exist to continue-train from).
+The prior placeholder's own text ("18 checkpoints × a modest step budget
+× forward+backward at 14M-98M-class model sizes") was ambiguous enough to
+read as pricing in a rung-2 leg that does not exist; this revision removes
+that ambiguity.
 
-Per this project's own waterfall discipline (`CLAUDE.md`), Path (ii) needs
-a dedicated attack round (fresh-eyes agent, minimum the standing 5-6
-questions, addressing at minimum §16.2.2's three items) BEFORE any build —
-this is registered here as a hard prerequisite, not a suggestion, and can
-run zero-GPU/zero-wall-clock-blocking, concurrently with Path (i) or Path
-(iii)'s own execution (§16.6).
+**Raw compute-only cost, re-derived from this program's own realized rate
+(not the task's placeholder estimate):** `FROZEN_BIAS_LM_DESIGN.md`'s own
+rung-1 wave measured **18,175.744s summed `wall_s` across 20 training
+cells × 20,000 steps = 0.04544 s/step** (18175.744 / 400,000) — a tight,
+real, cross-checked realized rate (899-914s per cell, no crashes or
+retries, per that document's own VERDICT section). Applying that rate to
+Phase-2's own **18 core cells** (3 arms × 2 corpora × 3 seeds,
+unchanged from §16.2.1's Base-checkpoints paragraph) at the registered
+**1,000-5,000 step familiarization budget** (§16.2.1's trajectory
+schedule, MAJOR-1 — 5,000 is now the fixed upper end, not an open-ended
+"order of" estimate):
+
+- 18 cells × 1,000 steps × 0.04544 s/step = 817.9s = **0.23 GPU-h** (lower bound)
+- 18 cells × 5,000 steps × 0.04544 s/step = 4,089.6s = **1.14 GPU-h** (upper bound)
+
+**Plus negligible eval passes:** the trajectory-readout forward passes (5
+checkpoints × 18 cells × 2 K's × Option 1/Option 2, all short
+forward-only jobs, no backward pass) are the same class of cost
+`FROZEN_BIAS_LM_DESIGN.md`'s own 46 retrofit re-evals registered at ≈1.6
+GPU-h TOTAL for a comparable-or-larger pass count — priced here as
+negligible relative to the training-cell total above, not zero, but not
+separately budgeted pending an exact pass count at build time.
+
+**Raw total: ≈0.23-1.14 GPU-h.** This is an order of magnitude below the
+task's own placeholder bracket (~5-15 GPU-h) — the placeholder was not
+merely imprecise, it was ungrounded (no derivation, no cited realized
+rate). **If a larger registered bracket is retained for build/debug
+margin, the multiplier must be disclosed, not silently absorbed into a
+bigger round number** — this program has an exact, in-repo precedent for
+how much margin a "trivial-looking" change actually needs: Path (i)'s own
+Stage-0-gate-only estimate (§16.1.2) registered **~0.01 GPU-h against a
+real measured-rate cost of ≈0.001-0.002 GPU-h — a 5-10× debug-tax
+multiplier**, disclosed explicitly rather than picked by feel. Applying
+that SAME 5-10× multiplier to Phase-2's own raw 0.23-1.14 GPU-h range
+gives a registered, debug-tax-inclusive bracket of **≈1.15-11.4 GPU-h** —
+this is the figure that should be carried forward as Phase-2's committed
+cost, replacing the old placeholder, with the multiplier's provenance
+stated exactly as it is here rather than re-absorbed into a fresh
+unexplained round number.
+
+**Sanity context, re-stated at the new figures:** even at the
+debug-tax-inclusive upper bound (≈11.4 GPU-h), this remains a small
+fraction of Phase-1's own registered ≈24.20 GPU-h ceiling (§10) and of
+Path (iii)'s ≈21 GPU-h mandatory grid (§16.3), while comfortably
+exceeding Path (i)'s eval-only ~0.4 GPU-h full grid (§16.1.2) — expected,
+since Phase-2 is continued TRAINING (forward+backward, 18 cells) rather
+than a forward-only probe. The raw lower bound (0.23 GPU-h) is now
+cheaper than Path (i)'s own full grid, a fact the old "~5-15 GPU-h"
+placeholder obscured entirely.
+
+#### 16.2.4 Gate before build (Rev 1 — attack round complete, verdict recorded)
+
+Per this project's own waterfall discipline (`CLAUDE.md`), Path (ii)
+needed a dedicated attack round (fresh-eyes agent, minimum the standing
+5-6 questions, addressing at minimum §16.2.2's three confound items)
+BEFORE any build — registered in the prior revision as a hard
+prerequisite, not a suggestion. **That attack round has now run.**
+Verdict: **NEEDS-REDESIGN** — 1 FATAL, 6 MAJOR, 1 MINOR, all fixed in
+this revision (§16.2.1-§16.2.3 above); the full finding→fix trace is
+recorded in §16.7, per house style.
+
+**What this gate does and does not license.** Per this project's own
+standing rule that a self-audit is not a substitute for an independent
+audit, and that multiple independent adversarial audit rounds catch
+different bugs each round (`CLAUDE.md`, verified on Task E: round 1
+caught 2 FATALs a self-audit missed, and the fix itself was audited fresh
+in round 2 before being trusted) — **Rev 1's own fixes have not yet had
+their own independent audit pass.** Landing every registered finding in
+this revision closes the specific gaps attack-round-1 found; it does not,
+by itself, certify Rev 1 is build-ready. The next concrete step before
+any GPU-hour is spent is a FRESH adversarial pass targeting Rev 1
+specifically (not a re-read of the original sketch), run
+zero-GPU/zero-wall-clock-blocking exactly as the original attack round
+was — concurrently with Path (i) or Path (iii)'s own execution (§16.6,
+unchanged on this point). Only after that second pass clears (or a
+further revision addresses its findings) should Phase-2 build, per
+§16.6's own sequencing.
 
 ---
 
@@ -4176,7 +4458,7 @@ actual next concrete action correctly.
 |---|---|---|---|---|---|
 | (i) Stage-0-gate-only | ~0.01 GPU-h | minutes | New episode-render templates (Candidates A/B), reuse existing pool — zero new Stage −1 verification for A, one small addition for B | No — even a pass only licenses h=1 as primary | Failure isolates the blocker as NOT surface-form (premise-iv-style representational gap), mechanically promoting Path (ii) |
 | (i) Full Phase-1b grid (conditional) | ~0.4 GPU-h | ~1 hour | Same as above, gated on the Stage-0 pass | No — h=1-primary result at best, h≥2 stays exploratory | A clean h1 pass with h≥2 still floor is itself informative (READOUT-FORM-INVALID-style, per §12's own existing outcome) |
-| (ii) Phase-2 familiarization | ~5-15 GPU-h | hours-to-a-day (training, not eval-only) | Dedicated attack round (mandatory, zero-GPU) resolving §16.2.2's 3 confound items; train/eval split design (currently absent) | **Yes — the only path that can** | A clean negative here (no arm separation even after task exposure) would be the program's most severe finding: not even LEARNED in-context binding differentiates the arms |
+| (ii) Phase-2 familiarization (Rev 1, post-attack, §16.2) | ≈0.23-1.14 GPU-h raw; ≈1.15-11.4 GPU-h at the disclosed 5-10× debug-tax multiplier (§16.2.3) | hours (training, not eval-only) — 1,000-5,000 steps × 18 cells at the measured 0.04544 s/step rate | Attack round COMPLETE (verdict NEEDS-REDESIGN, 1 FATAL + 6 MAJOR + 1 MINOR, all fixed — §16.7); hop-depth train/eval split now present (h∈{1,2} trained, h∈{3,4} held out, §16.2.1 FATAL-1); Rev 1 itself still needs its own independent audit pass before build (§16.2.4) | **Yes — the only path that can** | Three named outcomes now distinguish the trajectory (§16.2.1): PERSISTENT/TRANSIENT/CONVERGE — CONVERGE (task-trained equivalence, arms never separate despite both learning the task) is the program's most severe finding, distinct from and stronger than Cell 4's zero-shot inertness (MAJOR-3) |
 | (iii) Scaling wave, mandatory grid | ~21 GPU-h (2×); ~10.5 GPU-h realized-rate expectation | ~2.2 hours (30 cells / 6 GPUs) | FATAL-1 (manifest KeyError) + MAJOR-3 (missing `--d-state` smoke) — both zero-GPU, need build + audit | No — orthogonal, capacity-law-paper-track question | REFUTE/DIRECTIONAL-DRIFT revises the capacity law's own generality claim, unrelated to REASONING-LINK |
 
 ---
@@ -4195,9 +4477,12 @@ abort branch for EVERY registered "must not launch on failure" gate
 (Phase-1b: the h1 null-relative pass, the h1 absolute-0.10 backstop, and
 premises (iii)/(iv)'s own action-rule checks, all already defined in §8.4/
 §4.4 and now doubly load-bearing since Phase-1b's whole point is to
-re-evaluate them; Phase-2: an equivalent go/no-go on whatever
-familiarization-stage validity check the attack round in §16.2.4
-registers), and each such branch must be verified by a **deliberate
+re-evaluate them; Phase-2: the Stage-0.5-familiarized gate — premises
+(iii)/(iv) and the h1 floor re-measured on the familiarized OFF-arm
+checkpoint (§16.2.1, MAJOR-4) — and the blind-pinned val-loss tolerance
+band on the new mix (§16.2.1, MAJOR-6), both now concretely registered
+rather than left as "whatever the attack round names"), and each such
+branch must be verified by a **deliberate
 negative test** — force the gate to fail, confirm the chain actually
 halts — before the chain is trusted for an unattended run. A gate computed
 but not enforced is not a passed gate, per this same finding.
@@ -4248,16 +4533,19 @@ adopted with those refinements folded in:**
    "reuse Phase 1's Stage-0 cell" plan), run it (~0.01-0.02 GPU-h,
    effectively free, can run on any spare GPU including one of 2-7 before
    or interleaved with Path (iii)'s own cells).**
-4. **Concurrently, start Path (ii)'s attack round (zero-GPU, does not need
-   to wait for Path (i)'s readout — the attack round critiques Phase-2's
-   OWN recipe design, §16.2.2's three confound items, independent of
-   whether Phase-1b's gate passes).** Refinement over the naive "decide
-   (ii) only after (i) reads out" framing: only the FINAL RECIPE PINNING
-   and BUILD of Path (ii) should wait for Path (i)'s result (since a
-   successful Phase-1b template is the natural candidate for Phase-2's own
-   familiarization surface form, §16.2.1) — the critique itself can and
-   should start now, in parallel, so no calendar time is lost to a
-   dependency that doesn't actually exist.
+4. **Path (ii)'s attack round — COMPLETE (Rev 1, 2026-07-07), run
+   concurrently and zero-GPU exactly as this step originally prescribed.**
+   Verdict: NEEDS-REDESIGN (1 FATAL, 6 MAJOR, 1 MINOR), every finding
+   folded into §16.2's Rev 1 text, full fix-map at §16.7. This confirms
+   the refinement over the naive "decide (ii) only after (i) reads out"
+   framing was correct: the critique ran in parallel with Path (i)/(iii)
+   at no calendar cost. **What still gates Path (ii)'s build, unchanged
+   from the original plan:** the FINAL RECIPE PINNING (which surface-form
+   template feeds familiarization) still waits on Path (i)'s own readout
+   (§16.2.1) — but a NEW item now also gates it (§16.2.4): Rev 1's own
+   fixes have not yet had an independent second audit pass, per this
+   project's standing multiple-independent-audit-rounds rule (`CLAUDE.md`).
+   Build should wait on both.
 5. **At Path (i)'s Stage-0 gate readout, branch mechanically:**
    - **PASS on the wikitext-cell (either candidate), openr1-cell stays a
      null as expected →** launch the full Phase-1b grid (~0.4 GPU-h,
@@ -4266,8 +4554,10 @@ adopted with those refinements folded in:**
      if it clears the grid-wide gate, h≥2 as exploratory-only per §16.1.4's
      own honest-plausibility verdict — **explicitly do not read a Phase-1b
      h1 pass as answering the keystone.** Fold the validated template into
-     Path (ii)'s recipe (§16.2.1) once its attack round (started in step 4)
-     has also concluded, then build+audit+launch Phase-2.
+     Path (ii)'s recipe (§16.2.1) — whose attack round already concluded
+     in step 4 (Rev 1, NEEDS-REDESIGN → fixed, §16.7) and whose remaining
+     gate is now the fresh independent audit of Rev 1 (§16.2.4) — then
+     build+audit+launch Phase-2.
    - **PASS on the wikitext-cell but the openr1-cell ALSO passes →** flag
      the confound named in §16.1.3 item 2b before trusting the wikitext
      result; audit before running the full grid.
@@ -4277,8 +4567,9 @@ adopted with those refinements folded in:**
      full Phase-1b grid (nothing left to gain from it once the
      Stage-0-gate-only check has already answered "was it the format" with
      "no"). Move directly to finalizing and launching Path (ii) (whose
-     attack round has been running in parallel since step 4, per the
-     stress-tested refinement) — gauntleted next in the queue.
+     attack round concluded in parallel in step 4, per the stress-tested
+     refinement, and whose remaining gate is now the fresh independent
+     audit of Rev 1, §16.2.4) — gauntleted next in the queue.
 6. **Path (iii) reports out independently on its own ≈2.2-4.3 hour
    timeline throughout, feeding the capacity-law paper track whenever it
    completes — never gated on, and never gating, steps 3-5 above.**
@@ -4294,3 +4585,54 @@ adopted with those refinements folded in:**
 | Path (i) full grid: h1 clears, h≥2 stays floor | Report h1 as primary/confirmatory, h≥2 as exploratory (per §12's existing READOUT-FORM-INVALID-adjacent framing); still route to Path (ii) for the keystone itself |
 | Path (ii) attack round complete | Fold in Path (i)'s validated template (if any) → build → audit → launch, independent of Path (iii)'s own status |
 | Path (iii) grid complete (any outcome) | Report to the capacity-law paper track; does not change anything in this decision tree |
+
+**Status update (2026-07-07, post-Rev-1).** Path (ii)'s attack round
+(step 4, trigger-table row above) is **complete** — see §16.2's Rev 1
+header and §16.7's fix-map (1 FATAL, 6 MAJOR, 1 MINOR, all fixed).
+Per this table's own last row, the live next action is: (a) wait for
+Path (i)'s Stage-0 gate readout to pin the familiarization surface-form
+template (or fall back to the marker template if Path (i) has not
+cleared a gate by the time Path (ii) needs to build, §16.2.1), AND (b)
+run a fresh, independent audit of Rev 1 itself (§16.2.4) before any
+build starts — landing every attack-round-1 finding does not, on its
+own, satisfy this project's standing multiple-independent-audit-rounds
+rule.
+
+---
+
+### 16.7 ATTACK-ROUND-1 fix-map (2026-07-07) — verdict NEEDS-REDESIGN
+
+An independent adversarial pass reviewed §16.2 (Phase-2 task-
+familiarization recipe) before any code was written, per house discipline
+(mirrors `KEY_ANCHORING_DESIGN.md`'s and this document's own §13.x
+attack-round convention) and per §16.2.4's own registered prerequisite.
+Verdict: **NEEDS-REDESIGN** — 1 FATAL, 6 MAJOR, 1 MINOR. Every finding
+below is fixed in this revision (Rev 1, §16.2.1-§16.2.4); none is
+deferred or waved away. Findings are recorded near-verbatim for the
+historical record, per house style; resolutions are stated as landed in
+this text, not as intentions.
+
+| # | Finding (attack-round on §16.2) | Severity | Fix (Rev 1) | Location |
+|---|---|---|---|---|
+| FATAL-1 | The recipe had no hop-depth train/test split at all — familiarization would have trained on and evaluated the same hop depths, making any h≥2 result unable to distinguish "learned to compose" from "memorized this specific query shape." `DeltaNetRDTaskConfig.H_train`/`H_test` (§4.3) had only ever been exercised as a semantically-inert placeholder (Phase-1 checkpoints trained on zero hops of anything); Phase-2 is the first place this convention has a real gradient referent, and the periodicity guard that makes the split non-collapsing had never been re-verified under that real referent | FATAL | Familiarize on h∈{1,2} ONLY — no gradient ever flows through an h=3/4 query loss. Eval reads h∈{1,2} as a sanity ceiling and h∈{3,4} as THE H_LINK test. Periodicity guard re-verified for real at both committed K's: `{1,2,3,4} mod 20` and `mod 32` both equal `{1,2,3,4}`, no residue collision between the trained and held-out partitions — closing the exact hop-collapse failure mode `CLAUDE.md`'s own standing rule names (50-100% collapse at K∈{4,8,12,16} before that fix) | §16.2.1 (Hop-depth train/eval split) |
+| MAJOR-1 | Arm contrasts were only ever going to be read once, at the terminal checkpoint of the familiarization budget — unable to distinguish a durable capability difference from a training-dynamics artifact that opens then closes under continued training (exactly §16.2.2 confound (a)'s own concern) | MAJOR | Trajectory readout at checkpoints `{250, 500, 1000, 2500, 5000}` of the now-fixed 5,000-step budget; the killer-prediction contrast computed at EVERY checkpoint, every arm, both corpora, all 3 seeds; pre-registered PERSISTENT/TRANSIENT/CONVERGE trichotomy classifies each trajectory before any checkpoint is read | §16.2.1 (Trajectory readout schedule and pre-registered outcome trichotomy) |
+| MAJOR-2 | The recipe named no committed K sweep at all for Phase-2, and the implicit capacity-cliff framing risked reading as a general K/d≈0.55 law rather than the d=64-specific result this program has actually located | MAJOR | K∈{20,32} (Leg A's committed pair) in both familiarization and eval; the killer-prediction structure re-applied exactly as §5.3 states it (`\|Δ(K=32)\|>\|Δ(K=20)\|`, K=32 CI excludes zero, K=20's does not); the capacity connection framed explicitly as d=64-cliff-specific, citing `KEY_ANCHORING_SCALING_DRAFT.md` §15.19's own harvested verdict (d=80 REFUTES ratio-invariance, d=96 degenerate/AMBIGUOUS — the general K/d law does NOT generalize past d=64; only the located `x0=0.5455` anchors Phase-2) | §16.2.1 (K sweep and killer-prediction re-application) |
+| MAJOR-3 | No named outcome existed for "arms converge to statistical equivalence after task training" — this would have been silently read as Cell 4 ("stabilization is functionally inert"), when task-trained equivalence is a categorically different, stronger finding than Cell 4's zero-shot inertness | MAJOR | Added CONVERGE as a named outcome, explicitly distinct from Cell 4 (§12): CONVERGE requires both arms to have genuinely LEARNED the task (h∈{1,2} clear their sanity floor, Stage-0.5 gate passes) yet never separate on the killer-prediction contrast at any trajectory checkpoint — independently publishable on the same "honest, hard-won negative" logic §12 already grants Cell 4, not a footnote to it | §16.2.1 (CONVERGE vs. Cell 4) |
+| MAJOR-4 | The val-loss-matching gate that makes the arms comparable (§7.2) was established on the original pretraining objective/mix, with no equivalent check registered for the NEW familiarization mix — any arm contrast would have been trusted with no validity gate on the familiarized checkpoints at all | MAJOR | New Stage-0.5-familiarized gate: premises (iii)/(iv) and the h1 floor re-measured on the familiarized OFF-arm checkpoint BEFORE any arm contrast is trusted; enforced abort branch required by, and verified per, §16.5 Constraint 1 (gates-must-abort, citing the paired `[LEARN]` in `EXPERIMENT_LOG.md`'s Phase-1 entry) — a deliberate negative test (force the gate to fail, confirm the chain halts) is mandatory before the chain is trusted unattended. Disclosed added value: if the readout construct is sound, premises (iii)/(iv) SHOULD pass post-familiarization — a persistent failure here indicts `S_T^h·q_eff` more decisively than Phase-1's zero-shot PROBE-INVALID verdict could | §16.2.1 (Stage-0.5-familiarized gate); §16.5 Constraint 1 |
+| MAJOR-5 | §16.2.3's cost figure (~5-15 GPU-h) was a bare, underived placeholder with no cited realized rate, and its own text ("14M-98M-class model sizes") was ambiguous enough to read as pricing in a 98M-class (rung-2) leg that does not exist anywhere in this program's archive | MAJOR | Re-derived from `FROZEN_BIAS_LM_DESIGN.md`'s own realized rate (0.04544 s/step, 18,175.744s / 400,000 steps across its 20 rung-1 training cells): raw cost = 18 cells × 1,000-5,000 steps × 0.04544 s/step = 0.23-1.14 GPU-h + negligible eval passes, 14M-class ONLY (rung-2 formally PARKED, `FROZEN_BIAS_LM_DESIGN.md` §6.2/§8.1 VERDICT). A disclosed 5-10× debug-tax multiplier (Path (i)'s own precedent, §16.1.2: ~0.01 GPU-h registered against a ≈0.001-0.002 GPU-h measured-rate cost) yields a registered bracket of ≈1.15-11.4 GPU-h, replacing the old placeholder with a fully derived, provenance-disclosed number | §16.2.3 (Cost, full rewrite) |
+| MAJOR-6 | No tolerance band existed for re-matching val-loss on the new familiarization mix, and this program has an exact, disclosed precedent for what happens when a blind-pin is constructed after training rather than before it (`FROZEN_BIAS_LM_DESIGN.md`'s rung-1 wave: pin written after all 20 cells completed, forfeiting confirmatory license, wave demoted to DESCRIPTIVE TIER despite numerically real CI arithmetic) | MAJOR | Fresh tolerance band, `mean_ref ± 2·s_ref` (house `k=2` convention, `KEY_ANCHORING_DESIGN.md` §3.6) from the OFF arm's own per-seed loss on the NEW mix, computed and blind-pinned to a committed JSON **BEFORE** the global/per_token familiarization launches — registering `FROZEN_BIAS_LM_DESIGN.md`'s own disclosed "pin before launch" process finding as a hard build requirement here, not a lesson to remember later | §16.2.1 (Familiarization-mix val-loss tolerance band) |
+| MINOR-1 | The BIND/QUERY data-mix fraction was picked by feel (an assumed "majority original corpus, minority task episodes" split), with no derivation or measurement plan | MINOR | Registered as a named open item: the fraction must be set by a Stage-0-scale pilot measurement (smallest fraction at which a detectable familiarization signal appears), not committed in this revision — kept open pending that pilot, per this program's own calibration-before-sweep discipline | §16.2.1 (Data mix / MINOR-1 fix) |
+
+**What Rev 1 could NOT cleanly fix, disclosed rather than hidden:**
+§16.2.2 confound (c) — whether holding the frozen-bias table's λ fixed
+during familiarization is the right choice, or silently handicaps the
+intervention arms under a new data distribution — was not raised or
+resolved by this attack round; it remains open, flagged for a future
+round (§16.2.2's own Rev 1 disposition paragraph). §16.2.2 confound (b)
+— the familiarization-fraction-size framing question — is only
+partially addressed: MINOR-1 commits to a measurement plan, not a
+measured answer. **Rev 1 itself has not yet had its own independent
+audit pass** (§16.2.4) — per this project's standing rule that multiple
+independent adversarial rounds catch different bugs each round, this
+revision should not be read as a certification that Phase-2 is
+build-ready, only that attack-round-1's own findings are now landed.
