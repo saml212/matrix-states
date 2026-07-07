@@ -1,0 +1,148 @@
+{
+  "tier": "exploratory-mechanism-wave -- NOT a confirmatory bar",
+  "design_ref": "FROZEN_BIAS_LM_DESIGN.md sec 12.4 (Stage 1 repeat_excess) -- PLUMBING self-test (sec 12.9 item 4), NOT sec 12.3.4's formula-level gate",
+  "self_test_passed": true,
+  "construction_a_uncorrelated": {
+    "b": 0,
+    "chunk": 0,
+    "head": 0,
+    "n_valid": 12,
+    "excluded": false,
+    "exclusion_reason": null,
+    "same_tok_sim": -0.25218583367036423,
+    "diff_tok_sim": -0.013781488986964132,
+    "repeat_excess": -0.2384043446834001,
+    "n_same": 24,
+    "n_diff": 108,
+    "stratum_top20": {
+      "excluded": true,
+      "exclusion_reason": "no_top20_set",
+      "same_tok_sim": null,
+      "diff_tok_sim": null,
+      "repeat_excess": null,
+      "n_same": 0,
+      "n_diff": 0
+    },
+    "stratum_rest": {
+      "excluded": true,
+      "exclusion_reason": "no_top20_set",
+      "same_tok_sim": null,
+      "diff_tok_sim": null,
+      "repeat_excess": null,
+      "n_same": 0,
+      "n_diff": 0
+    }
+  },
+  "construction_b_planted": {
+    "b": 0,
+    "chunk": 0,
+    "head": 0,
+    "n_valid": 12,
+    "excluded": false,
+    "exclusion_reason": null,
+    "same_tok_sim": -0.03051746490778168,
+    "diff_tok_sim": -0.06495428305340605,
+    "repeat_excess": 0.03443681814562437,
+    "n_same": 30,
+    "n_diff": 102,
+    "stratum_top20": {
+      "excluded": true,
+      "exclusion_reason": "no_top20_set",
+      "same_tok_sim": null,
+      "diff_tok_sim": null,
+      "repeat_excess": null,
+      "n_same": 0,
+      "n_diff": 0
+    },
+    "stratum_rest": {
+      "excluded": true,
+      "exclusion_reason": "no_top20_set",
+      "same_tok_sim": null,
+      "diff_tok_sim": null,
+      "repeat_excess": null,
+      "n_same": 0,
+      "n_diff": 0
+    }
+  },
+  "planted_delta": 0.2728411628290245,
+  "exclusion_rule": {
+    "all_same": {
+      "b": 0,
+      "chunk": 0,
+      "head": 0,
+      "n_valid": 12,
+      "excluded": true,
+      "exclusion_reason": "no_diff_pair",
+      "same_tok_sim": null,
+      "diff_tok_sim": null,
+      "repeat_excess": null,
+      "n_same": 132,
+      "n_diff": 0,
+      "stratum_top20": {
+        "excluded": true,
+        "exclusion_reason": "no_diff_pair",
+        "same_tok_sim": null,
+        "diff_tok_sim": null,
+        "repeat_excess": null,
+        "n_same": 0,
+        "n_diff": 0
+      },
+      "stratum_rest": {
+        "excluded": true,
+        "exclusion_reason": "no_diff_pair",
+        "same_tok_sim": null,
+        "diff_tok_sim": null,
+        "repeat_excess": null,
+        "n_same": 0,
+        "n_diff": 0
+      }
+    },
+    "all_distinct": {
+      "b": 0,
+      "chunk": 0,
+      "head": 0,
+      "n_valid": 12,
+      "excluded": true,
+      "exclusion_reason": "no_same_pair",
+      "same_tok_sim": null,
+      "diff_tok_sim": null,
+      "repeat_excess": null,
+      "n_same": 0,
+      "n_diff": 132,
+      "stratum_top20": {
+        "excluded": true,
+        "exclusion_reason": "no_same_pair",
+        "same_tok_sim": null,
+        "diff_tok_sim": null,
+        "repeat_excess": null,
+        "n_same": 0,
+        "n_diff": 0
+      },
+      "stratum_rest": {
+        "excluded": true,
+        "exclusion_reason": "no_same_pair",
+        "same_tok_sim": null,
+        "diff_tok_sim": null,
+        "repeat_excess": null,
+        "n_same": 0,
+        "n_diff": 0
+      }
+    },
+    "counted_check": {
+      "n_episodes": 2,
+      "n_excluded": 2,
+      "n_included": 0,
+      "repeat_excess_mean": null,
+      "repeat_excess_std": null,
+      "same_tok_sim_mean": null,
+      "diff_tok_sim_mean": null,
+      "note": "every episode excluded -- no qualifying same+diff pair anywhere in this population"
+    }
+  },
+  "yield_floor_check": {
+    "n_included_49": 49,
+    "under_powered_49": true,
+    "n_included_50": 50,
+    "under_powered_50": false
+  }
+}
