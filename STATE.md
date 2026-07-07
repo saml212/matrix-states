@@ -6,6 +6,64 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## PRE-COMPACTION SNAPSHOT (2026-07-07 ~04:15 UTC) — supersedes the older SESSION HANDOFF block below
+
+**Everything through commit d20cbe8 is pushed to GitHub. On-box tmux
+sessions survive any local session loss.**
+
+**RUNNING on the box (youthful-indigo-turkey, repo /home/nvidia/chapter2/deltanet_rd):**
+1. **rung-3** (tmux `trackc3`, GPUs 0-1): 2×1.31B scale runs, ~65%,
+   sentinel `results/lm_rd_trackc/wave3/ALL_DONE`, ETA ≈05:00 UTC Jul 8.
+   Stop only via `touch STOP_trackc3`, never pkill.
+2. **§14 diffuse dose cells** (tmux `keyanchor_dose`, GPUs 2/6/7): the
+   last 3 cells (seeds 946-948, dose 0.40) in their readout phase;
+   doses 0.130 + 0.284 already FLAT at h4=1.0 (all seeds). Sentinel
+   `results/deltanet_rd_exactness/KEYANCHOR_DOSE_CHAIN_DONE`.
+
+**IMMEDIATE QUEUE (in order):**
+1. **Diffuse read + harvest** (when all 9 diffuse cells `complete=true` —
+   NEVER trust sentinels alone): h4 vs dose at K=68. If 0.40 also flat →
+   §14 CLOSED, coherence FULLY EXONERATED at both structures → the d=64
+   cliff is an absolute-state-capacity effect, not key-geometry (paper
+   headline). Harvest: extend `experiment-runs/2026-07-06_keyanchor_dose/`
+   with the 9 diffuse cells, §14.13 verdict in KEY_ANCHORING_DESIGN.md,
+   EXPERIMENT_LOG, spent 72.594→realized (~78.4/80), fig_dose diffuse
+   series, narrative round-10, commit+review+push.
+2. **Mechanism wave next steps** (design §12 of FROZEN_BIAS_LM_DESIGN.md,
+   Stage 0 DONE+committed d20cbe8 — H2 corroborated: per-token bias
+   REDUCES key-population rank vs controls, global RAISES it): H4 box-run
+   (`mech_h4_paramdiff.py run_real` via chain+tmux, CPU-only) + H1/H5
+   Stage-1 build (Stage-0.5 gate PASSED).
+3. **At rung-3 ALL_DONE (~05:00 UTC Jul 8):** harvest per the older
+   handoff block's step 1 (archived-4 pooling validation to 1e-6 FIRST,
+   attractor probe on 2×1.31B final ckpts at /data/lm_rd_trackc_ckpts/
+   wave3/, 1 GPU, vs ladder 0.248→0.344→0.389; §5.11 verdict;
+   EXPERIMENT_LOG; archive experiment-runs/2026-07-06_trackc_rung3/
+   repo≤25MB+SSD; PROGRAM_SPENT_GPUH actuals ~334/300 disclosed), then
+   step 2 (paper addendum: narrative, make_figures_v2.py Fig 9 4th point,
+   3 PENDING-RUNG-3 todos, 3 intro bullets, related-work cite, DELETE
+   both handoff blocks from this file).
+
+**TODAY'S COMPLETED RESULTS (all harvested, archived, pushed, in papers):**
+- Capacity trilogy: d=64 cliff LOCATED (x0=0.5455, CI [0.5385,0.5513]) →
+  d=128 DISSOLVED (h4=1.0, same K/d window) → coherence EXONERATED at
+  rank-4 structure (frozen doses to 0.40 flat at 1.0).
+- Frozen-bias LM rung-1: fourth outcome (per-token bias destabilizes
+  +0.20/+0.23, global stabilizes −0.33/−0.23; CORRECTED direction gloss:
+  higher span_frac = MORE collapsed).
+- Mechanism Stage-0 (zero GPU): H2 rank-stats corroborate the collapse
+  account at exploratory tier.
+- Papers: workshop-2026 4pp cut (compiles) + ICLR sections current;
+  figures fig_cliff (2-panel) + fig_dose rendered from archives.
+
+**PI ASKS at next check-in:** venue/author/title (~Jul 11 CFP);
+mechanism Stage-1/2 scope.
+
+**Budgets:** anchoring 72.594/80 (diffuse realized to add ~5.8);
+scale ≈334/300 (disclosed overrun); frozen-bias LM 6.9/135.
+
+---
+
 ## SESSION HANDOFF (2026-07-06 ~07:15 UTC — pre-compaction snapshot)
 
 **One experiment still running; everything else complete and pushed (main = c3b888b).**
