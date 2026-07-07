@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-07-07T18:06:55.876811+00:00",
+  "script": "fit_cliff_curve.py",
+  "design_ref": "KEY_ANCHORING_DESIGN.md sec 12.4 (Rev 12.2) / sec 13.3 item 8 (Rev 13.2)",
+  "d_state": 96,
+  "k_grid": [
+    24,
+    51,
+    57,
+    63,
+    69
+  ],
+  "anchored": false,
+  "curve_points": {
+    "x": [
+      0.25,
+      0.53125,
+      0.59375,
+      0.65625,
+      0.71875
+    ],
+    "h4": [
+      1.0,
+      1.0,
+      0.9973958532015482,
+      0.9804791410764059,
+      0.9839315613110861
+    ],
+    "labels": [
+      "K24(this wave)",
+      "K51(this wave)",
+      "K57(this wave)",
+      "K63(this wave)",
+      "K69(this wave)"
+    ]
+  },
+  "sigmoid_fit": {
+    "L": 0.9967780068636364,
+    "x0": 0.8999999999999999,
+    "w": 0.044495899498666884,
+    "rss": 0.0001875047109326624
+  },
+  "linear_fit_disclosed_secondary": {
+    "a": -0.037109182196020996,
+    "b": 1.0127713613256195,
+    "rss": 0.00017247329703118472
+  },
+  "bootstrap_ci": {
+    "n_trials": 4000,
+    "n_degenerate": 3941,
+    "degenerate_frac": 0.98525,
+    "ci_x0": null,
+    "ci_w": null,
+    "note": "too few valid fits to report a CI"
+  },
+  "degenerate_fraction_disclosure": {
+    "value": 0.98525,
+    "exceeds_10pct": true,
+    "rule": "sec 12.4 item 3: if the REAL degenerate fraction exceeds 10%, report explicitly as a reliability caveat on the CI, not a silently-excluded footnote"
+  },
+  "wall_s": 12.44520878791809
+}

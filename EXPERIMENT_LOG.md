@@ -5243,3 +5243,121 @@ h=1 story, §15.6 Option 2, §15.7 GPU-h, §15.8 Leg B partial, §15.9
 scope, §15.10 next steps). Rung-3 (2 cells) still pending trackc
 `ALL_DONE` — queued as the next harvest item, no trend verdict until
 then regardless of the probe-invalid finding above.
+
+---
+
+## KEY-ANCHORING x0(d) CLIFF-INVARIANCE (SCALING) WAVE VERDICT (2026-07-07): AMBIGUOUS (mechanical, pre-registered) — d=80 alone cleanly REFUTES ratio-invariance (x0=0.6756, CI excludes the band entirely), d=96's fit is degenerate/flat-near-ceiling, no cliff found anywhere in its own tested window
+
+Tests whether the d=64 capacity cliff (`x0=0.5455`, 95% CI
+[0.5385,0.5513], `w=0.0597`, `KEY_ANCHORING_DESIGN.md` §12.9) holds
+INVARIANT IN RATIO TERMS as `d_state` grows to 80 and 96, holding the
+SAME organic-coherence regime fixed (`n_entities=107 > d_state`, the one
+regime axis §13's d=128 jump and §14's frozen-dose injection each varied
+instead of holding constant). Full design: `KEY_ANCHORING_SCALING_
+DRAFT.md` §15; attack round + PARK/un-park history: §15.18; this
+harvest's full verdict: §15.19. Launched under
+`KEYANCHOR_SCALING_PI_SIGNOFF=1` as Path (iii) of `REASONING_LINK_
+DESIGN.md` §16.3/§16.6, once REASONING-LINK Phase 1 landed (the wave was
+PARKED pending exactly that, §15.18) — §16.6 step 6 pre-registered that
+Path (iii) never gates, and is never gated by, REASONING-LINK's own
+decision tree, regardless of outcome.
+
+**30/30 mandatory cells verified from raw JSONs (never the box's own
+printed summary trusted blind): `complete=true`, `steps_completed=20000`,
+`timed_out=false`, seed/K/d_state matching the registered table exactly,
+uniform architecture pin, `H_extra=[7,25]` at the 3 K=20/d=80 anchor
+cells (the registered K-scoped hop-collision fix, §15.15 addendum) and
+the unmodified `[7,21]` at all other 27 cells, h1 guard exactly 1.000000
+at every cell.**
+
+**Independent re-fit (re-run locally against the pulled raws, reproduces
+the box's own committed fit JSONs to full float precision):**
+
+| d_state | x0 | 95% CI(x0) | w | degenerate_frac |
+|---|---|---|---|---|
+| 80 | **0.6756** | **[0.6620, 0.6868]** | 0.0521 | 0.0000 (clean) |
+| 96 | 0.9000 (bound-pinned) | none — too few valid bootstrap fits | 0.0445 | **0.9852** (>>10% bar) |
+
+**Mechanical verdict (§15.10, applied exactly as pre-registered, not a
+judgment call):** the data-quality gate (item 2) is evaluated FIRST —
+d=96's `degenerate_frac` (98.5%) far exceeds the 10% bar → **d=96's fit
+= AMBIGUOUS**, regardless of why (§15.10's own rule draws no distinction
+between "noisy near a transition" and "flat at ceiling with nothing to
+localize"). Per item 4's own text, "the WAVE's own overall call is
+AMBIGUOUS if either d's fit is AMBIGUOUS" → **WAVE VERDICT: AMBIGUOUS.**
+
+**d=80 evaluated alone is a clean, non-degenerate REFUTE:** its CI
+`[0.6620,0.6868]` excludes the pre-registered invariance band
+`[0.4745,0.6165]` entirely, on the high side (gap 0.0455) — `x0` drifted
+UPWARD by +0.130 in ratio terms (≈10.4 raw K) from d=64 to d=80. **d=96's
+own curve is not noisy — h4 sits flat near ceiling (0.98–1.0) across the
+ENTIRE tested K/d window (0.25 to 0.71875)**, mechanically the same
+"no cliff in the window" signature §13.10 found at d=128 (`x0=0.898`
+bound-pinned there too), reproducing one `d_state` earlier than
+previously observed; a small, real decline is visible only at the top
+two K's (K63/K69), consistent with a transition sitting at or beyond
+the edge of this wave's own tested window rather than hiding inside it.
+
+**Rival comparison, stated exactly where the fits land:** the
+"fixed-K" account (`x0(96)≈0.364`) is directly and cleanly contradicted
+— K=51/d=96 (ratio 0.531, well past its predicted trouble zone) still
+reads `h4=1.0`. The "absolute-slack" account (`x0(80)≈0.636`,
+`x0(96)≈0.697`) is the closest of the three to both d's: d=80's measured
+`x0=0.6756` sits 0.040 above its point prediction (closer than to the
+ratio-invariant band center, off by 0.13+), and d=96's own visible
+decline concentrates almost exactly around K/d≈0.66–0.72, bracketing its
+`x0(96)≈0.697` prediction — a descriptive, not confirmed, reading given
+the mechanical AMBIGUOUS call.
+
+**Two disclosed anomalies, neither changing the verdict.** (1) One
+admissibility FAIL — first of its kind anywhere in the KEY_ANCHORING
+program's archive history: `d=96, K=69, seed=1730` reads
+`geo3_admission.admissible=false` (`checkpoint_fallback_seen=true`,
+`ns_converged_no_fallback=false`, but `n_geo3_fallback_train_steps=0`
+and every other admissibility field clean, h1 still 1.0). Sensitivity
+re-fit excluding it: `degenerate_frac` drops 98.5%→94.8%, still far past
+the 10% bar — no change to d=96's outcome. (2) The pre-registered
+seed-contingency range trigger (§15.14, independent mechanism from the
+data-quality gate above) fires at K=48/d=80 (3-seed h4 range 0.2183) and
+K=53/d=80 (range 0.1779), both exceeding the 0.15 bar — the two K-groups
+straddling d=80's own fitted transition, a wider version of the same
+near-transition seed-noise signature §15.14 cited from d=64's own K=34
+(range 0.0951). Queued follow-up: +2 seeds each, not yet run.
+
+**Realized GPU-h**, summed from each cell's own `wall_s` (all 30 cells
+single-GPU, `--per-gpu 1`):
+
+| Group | Cells | Sum wall_s | GPU-h |
+|---|---|---|---|
+| d=80 | 15 | 19984.65s | 5.5513 |
+| d=96 | 15 | 22446.75s | 6.2352 |
+| **All 30 mandatory cells** | **30** | **42431.40s** | **11.7865** |
+
+**11.7865 GPU-h realized against the Tier-1 approved ceiling
+`H_scaling=21 GPU-h`** (mandatory-only 2× bracket: 20.956, §15.12) —
+**56.2%** of the 2× ceiling, and **112.5%** of the 1× point estimate
+(10.478 GPU-h) — the first wave in this program to land ABOVE its own 1×
+point estimate rather than comfortably under it (prior waves: 13.6%–
+87.0% of bracket). This is a NEW sub-ledger per §15.12's own registered
+framing (not an extension of the exhausted 80/80 KEY_ANCHORING ledger):
+**KEY_ANCHORING_SCALING: 11.7865/21 GPU-h, reserve 9.2135/21.** The 3
+initial K=20/d=80 hop-collision failures (§15.15 addendum) cost ~0
+GPU-h (failed at config construction, before any GPU work started).
+GPUs 2-7 now idle.
+
+**What this wave does and does not show:** does NOT confirm ratio-
+invariance (d=80 cleanly refutes it, d=96 is genuinely uninformative by
+the mechanical rule though descriptively also inconsistent with it);
+does NOT cleanly confirm any single rival (three points cannot
+discriminate every possible rescaling, §15.10.1's own disclosed limit);
+DOES newly and directly contradict fixed-K at d=96; sharpens without
+resolving the "absolute state capacity" candidate `§14.13` named as the
+program's one remaining unadjudicated account.
+
+Archive: `experiment-runs/2026-07-07_keyanchor_scaling/` (30 raw cell
+JSONs, 34 per-cell logs + `smoke.log`, 2 full chain-session logs, both
+fit outputs, both threshold pins, the kernel-safety gate artifact, 4
+exact scripts byte-verified zero-drift against both box and repo, ~99MB,
+all files ≤25MB) + SSD mirror (full parity, `diff -rq` clean).
+`STATE.md` updated (new top-of-file harvest snapshot + IMMEDIATE QUEUE
+item 1(a) corrected from PARKED to CONCLUDED).

@@ -6,6 +6,22 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## KEYANCHOR-SCALING WAVE HARVEST (2026-07-07 ~18:15 UTC) — supersedes IMMEDIATE QUEUE item 1(a) in the PRE-COMPACTION SNAPSHOT block below; the REASONING-LINK PHASE 1 block immediately below is UNAFFECTED (this wave never gated, and was never gated by, that block's own decision tree)
+
+**`KEY_ANCHORING_SCALING_DRAFT.md` §15 (Path (iii) of `REASONING_LINK_DESIGN.md` §16.3/§16.6) ran to completion on box (`KEYANCHOR_SCALING_PI_SIGNOFF=1`, past the §15.18 PARK gate, after REASONING-LINK Phase 1 landed) and was harvested: WAVE VERDICT = AMBIGUOUS (mechanical, pre-registered §15.10) — not a judgment call.** Tests whether the d=64 capacity cliff (`x0=0.5455`, §12.9) is invariant IN RATIO TERMS as `d_state` grows to 80/96, holding the SAME organic-coherence regime (`n_entities=107>d_state`) fixed. d=96's fit is degenerate (`degenerate_frac=98.5%`, far past the pre-registered 10% bar) because `h4` sits flat near ceiling (0.98–1.0) across the ENTIRE tested K/d window — mechanically the same "no cliff in the window" signature §13.10 found at d=128, reproducing one `d_state` earlier than previously seen. Per §15.10 item 4's own text, any AMBIGUOUS `d` makes the WHOLE wave AMBIGUOUS, regardless of the other `d`'s result.
+
+**d=80 alone is a clean, non-degenerate result and REFUTES ratio-invariance:** `x0(80)=0.6756`, 95% CI `[0.6620,0.6868]`, `degenerate_frac=0.0` — excludes the pre-registered invariance band `[0.4745,0.6165]` entirely, on the high side (gap 0.0455). Closer to the "absolute-slack" rival's own `x0(80)≈0.636` prediction than to the ratio-invariant band center (0.5455); d=96's own descriptive (not statistically clean) decline also concentrates near that rival's `x0(96)≈0.697` prediction. The "fixed-K" rival (`x0(96)≈0.364`) is directly contradicted: K=51/d=96 (ratio 0.531, well past fixed-K's predicted trouble zone) still reads `h4=1.0`.
+
+**Two disclosed anomalies, neither changing the verdict:** (1) one admissibility FAIL, first of its kind in the program's archive history (`d=96, K=69, seed=1730`: `geo3_admission.admissible=false`, `checkpoint_fallback_seen=true`; every other admissibility field on that cell is clean; sensitivity re-fit excluding it leaves d=96 degenerate regardless, 94.8% vs 98.5%); (2) the pre-registered seed-contingency range trigger (§15.14) fires at K=48/d=80 and K=53/d=80 (3-seed h4 range 0.218/0.178, both >0.15 — the two K-groups straddling d=80's own fitted transition), queued as a follow-up, not yet run.
+
+**Realized 11.7865 GPU-h** (summed `wall_s` across all 30 cells, on-box timestamps, `run1`+`run2` chain logs) **against the Tier-1 approved ceiling `H_scaling=21 GPU-h`** (mandatory-only 2× bracket: 20.956, §15.12) — **56.2% used**, and the first wave in this program to land ABOVE its own 1× point estimate (10.478 GPU-h, 112.5%) rather than comfortably under it (prior waves: 13.6%–87.0% of bracket). This is a NEW sub-ledger, not an extension of the exhausted 80/80 KEY_ANCHORING ledger (§15.12's own registered framing) — tracked separately: **KEY_ANCHORING_SCALING sub-ledger: 11.7865/21 GPU-h realized, reserve 9.2135/21.** **GPUs 2-7 now idle.**
+
+Full verdict, 30-cell verification table, independent re-fit, rival comparison, disclosed critique of the mechanical AMBIGUOUS rule against a flat-not-noisy fit: `matrix-thinking/KEY_ANCHORING_SCALING_DRAFT.md` §15.19. Archive: `experiment-runs/2026-07-07_keyanchor_scaling/` (30 raw JSONs + 34 per-cell logs + 2 chain-session logs + fit outputs + pins + kernel-safety artifact + 4 exact scripts byte-verified zero-drift against both box and repo, ~99MB, all files ≤25MB) + SSD mirror (full parity verified, `diff -rq` clean).
+
+**Queue implication: none for REASONING-LINK's own decision tree** — `REASONING_LINK_DESIGN.md` §16.6 step 6 pre-registered this exactly: "Path (iii) grid complete (any outcome) → report to the capacity-law paper track; does not change anything in this decision tree." Next: §16 Path (i) (Phase-1b Stage-0-gate-only build) + Path (ii) (Phase-2 attack round) continue, unaffected — both already in flight per the REASONING-LINK block below's own step 3/4. rung-3 `ALL_DONE` (~05:00 UTC Jul 8) harvest remains the other standing queue item, unblocked by anything above.
+
+---
+
 ## REASONING-LINK PHASE 1 HARVEST SNAPSHOT (2026-07-07 ~12:45 UTC) — supersedes the PRE-COMPACTION SNAPSHOT block below for REASONING-LINK status; that block's rung-3/trackc tracking is otherwise still current
 
 **REASONING-LINK Phase 1 (Leg A 60 cells + Leg B rungs 0-2, 18 cells)
@@ -102,14 +118,14 @@ exited, confirmed idle).
 
 **IMMEDIATE QUEUE (in order):**
 1. **Design-ahead buffer status (2026-07-07 ~06:20 UTC):**
-   (a) **Scaling-law wave (KEY_ANCHORING_SCALING_DRAFT.md §15): PARKED —
-   attack-round-1 verdict RUN-AFTER-REASONING-LINK** (§15.18: FATAL-1
-   manifest KeyError build gap + MAJOR-3 missing wave smoke file, both
-   zero-GPU parallel fixes; kernel gate RE-RUN at the full registered
-   T∈{128,224,448} protocol and GENUINELY CLEARED for d=80/96, artifact
-   `deltanet_rd/results/smoke_dstate_kernel_result.json` committed; d=32
-   crash REPRODUCED at T=128 — the first smoke's T=256-only pass was a
-   false negative, attacker's prediction exact).
+   (a) **Scaling-law wave (KEY_ANCHORING_SCALING_DRAFT.md §15): CONCLUDED
+   2026-07-07 — WAVE VERDICT AMBIGUOUS (mechanical, §15.10; d=80 alone
+   cleanly REFUTES ratio-invariance, d=96's fit is degenerate/flat-near-
+   ceiling).** Un-parked and launched under `KEYANCHOR_SCALING_PI_SIGNOFF=1`
+   as Path (iii) of `REASONING_LINK_DESIGN.md` §16.3/§16.6 once REASONING-
+   LINK Phase 1 landed. Full harvest, ledger, and queue implication (none
+   for §16's own decision tree): top-of-file KEYANCHOR-SCALING WAVE
+   HARVEST block, `matrix-thinking/KEY_ANCHORING_SCALING_DRAFT.md` §15.19.
    (b) **REASONING-LINK (matrix-thinking/REASONING_LINK_DESIGN.md):
    Rev-1 synthesis in flight** (attack-1 NEEDS-MAJOR-REVISION: F1
    probe-eval pool < killer-cell Ks; F2 blend-live-at-eval confound →
