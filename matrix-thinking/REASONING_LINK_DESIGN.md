@@ -1,30 +1,52 @@
-# REASONING-LINK: does key-geometry stabilization causally improve in-context multi-hop composition? (Rev 4 (2026-07-07) — post-attack-4)
+# REASONING-LINK: does key-geometry stabilization causally improve in-context multi-hop composition? (Rev 5 (2026-07-07) — post-attack-5)
 
-**Status: DESIGN, attack-round-4 complete (verdict NEEDS-REVISION,
-2026-07-07, fresh-eyes independent pass), this revision (Rev 4) resolves
-every finding — see §13.4 for the full attack record and fix map (§13.1
+**Status: DESIGN, attack-round-5 complete (verdict NEEDS-REVISION,
+2026-07-07, fresh-eyes independent pass), this revision (Rev 5) resolves
+every finding — see §13.5 for the full attack record and fix map (§13.1
 records attack-round-1, resolved by Rev 1; §13.2 records attack-round-2,
-resolved by Rev 2; §13.3 records attack-round-3, resolved by Rev 3). Still
-not built, no GPU spent.** This document is written to survive a fifth,
-independent adversarial attack round before any code is written. Nothing
-here is a launch authorization. **Rev 4 headline:** attack-round-4 proved
-Rev 3's own readout-target choice (scoring against the target's own
-`k_eff`) algebraically unsound — a symbolic-algebra proof (§13.4) shows the
-delta rule's image is confined to value-space at every composition depth
-`h≥1`, for any `β`, so the family-consistent scoring target at EVERY `h` is
-the target's own `v_eff`, not `k_eff`. This reverts §4.4's comparison
-object to `v_eff` (restoring `DELTANET_REALDATA_DESIGN.md` §14.3's exact
-original convention), requires one new ~5-line `v_conv1d` hook (no new
-probe — `v_eff` stays `d_state`-dimensional), and carries forward that
-design's own §14.2 hop-indexing audit-fix (the off-by-one-hop bug) into
-this design's gather expression explicitly, with a worked 3-entity example
-and a new Stage −1 self-test. Rev 4 also closes a FATAL-ADJACENT gap (Leg
-B's scale-trend claim had no Option-1/Option-2 agreement gate at all), adds
-a new pre-registered outcome (READOUT-FORM-INVALID), and folds in the
-attacker's mechanism-framing adjudication (Option 1 tests one
-a-priori-unlikely mechanism; Option 2 is the capability-general
-instrument; arm/scale contrasts remain valid even if Option 1's absolute
-levels are readout-limited) into §1 and §5.1 explicitly.
+resolved by Rev 2; §13.3 records attack-round-3, resolved by Rev 3; §13.4
+records attack-round-4, resolved by Rev 4). Still not built, no GPU
+spent.** This document is written to survive a sixth, independent
+adversarial attack round before any code is written. Nothing here is a
+launch authorization. **Rev 5 headline:** attack-round-5 found that every
+`q_eff` extraction in this design, through Rev 4, hooked the WRONG
+projection. §4.4 said `q_eff` is captured "via the same `k_conv1d` hook at
+the query's own final position" — but this checkpoint family (unlike the
+from-scratch harness that convention was inherited from, `model_rd.py`,
+which has NO `q_proj` at all) has a real, separately-trained
+`q_proj`/`q_conv1d` path, and `chunk_delta_rule` is called with `q=q_bf` —
+the Q-path's own output — not `k_bf` (`lm_pretrain_rd.py` L45-49 header
+comment, L787-793 the three untied projections/convs, L837-839 the
+per-token conv calls, L983 the kernel call). Substituting `W_k` for `W_q`
+at the query position was an unexamined carry-over of the from-scratch
+harness's own forced convention (that harness has no `q_conv1d` to hook —
+this one does), never an intentional design choice. Forward-B's
+query-position extraction is retargeted to a new `q_conv1d` hook (§4.4,
+§13.5) — a ~5-line, same-forward-pass, zero-new-GPU-cost fix, mirroring
+Rev 4's own `v_conv1d` hook exactly; every `k_conv1d` mention describing
+`q_eff` extraction (§4.4, §7.9) is corrected, while every mention
+describing bind-phase `k_eff` extraction (unaffected) is left unchanged.
+This retargeting **strengthens, rather than merely corrects, premise
+(iii)** (bind↔query alignment, `DELTANET_REALDATA_DESIGN.md` §5.2):
+`cos(q_eff_a, k_eff_a)` is now a genuine comparison of two
+independently-trained projections of the same entity, not a
+near-tautological reuse of one weight matrix (`W_k`) applied twice — Rev 5
+gives premise (iii) the same measured, Stage-0-calibrated treatment
+premise (iv) already had, and replaces both premises' reused, unjustified
+"0.9 alignment bar" with one shared, mechanical, null-relative action-rule
+table (§4.4) that pre-registers h=1's and h≥2's confirmatory status
+*before* any grid launches. Rev 5 also adds an absolute chance-plus-margin
+backstop to the h=1 sanity floor (§8.4), a registered OOM fallback for
+Stage 0.5's rung-3 calibration cell (§9), and two reporting-precedence
+rules to §12 (a Leg-A READOUT-DIVERGENCE verdict and a Leg-B outcome may
+coexist, reported side by side, neither overriding the other;
+READOUT-FORM-INVALID takes precedence over AMBIGUOUS when both gates would
+otherwise fire, being the more specific diagnosis). Every fix is
+hook/doc-level — §10's budget is confirmed unchanged (≈24.20/25 GPU-h,
+≈0.80 GPU-h margin). Rev 4's own fixes (the `v_eff` revert, the
+FATAL-ADJACENT Leg-B agreement gate, READOUT-FORM-INVALID) all HOLD,
+independently re-verified this round, including the gather indexing
+(re-derived by hand, correct) — see §13.5.
 
 **One-paragraph summary.** This project has three closed or near-closed
 results sitting unconnected: (1) a located, real capacity cliff at
@@ -77,6 +99,19 @@ already-existing submodule's output alongside the existing `k_conv1d`
 hook, neither of which changes the number or shape of GPU passes §10
 prices; §10 now carries an explicit Rev 4 confirmation line rather than
 leaving this to be re-derived by inspection.
+
+**Rev 5 addendum (attack-round-5, §13.5): the ≈24.20 GPU-h Phase-1 total
+above is, again, UNCHANGED.** The FATAL fix retargets forward-B's
+query-position hook from `k_conv1d` to a new `q_conv1d` hook — a same-pass,
+zero-new-GPU-cost addition exactly like Rev 4's own `v_conv1d` hook,
+firing on the already-priced forward-B call, adding no new mixer forward
+and no measurable wall-clock delta. Every other Rev 5 fix (the premise
+action-rule table, the h1 absolute backstop, the Stage 0.5 OOM fallback,
+the two new §12 precedence rules) is either a Stage −1/Stage 0
+measurement already priced inside the existing calibration cells, or a
+pure interpretation/reporting rule with no GPU cost at all. §10 carries an
+explicit Rev 5 confirmation line rather than leaving this to be re-derived
+by inspection.
 
 ---
 
@@ -174,7 +209,27 @@ leaving this to be re-derived by inspection.
   and `frozen_bias_retrofit_eval_rd.py` run exactly ONE hooked mixer
   forward per batch with a shared `--batch-size` default of **16**
   (load-bearing for §10's Rev 3 two-forward multiplier and §4.2's pinned
-  batch size). `DeltaNetLM.forward(token_ids, initial_states=...)`
+  batch size). **Verified this revision (Rev 5, load-bearing for §4.4's
+  FATAL fix): no `capture_raw_queries` function, and no `q_conv1d` hook of
+  any kind, exists anywhere in this codebase** — `capture_raw_keys` is the
+  ONLY hook-style extractor `lm_attractor_probe_rd.py` defines, mirroring
+  the already-verified `v_conv1d` absence (Rev 4, above) for the query
+  path as well. This matters because `lm_pretrain_rd.py`'s own header
+  comment states this LM block, unlike `model_rd.py`'s Wave-1 harness
+  (external pinned readout only, **NO `q_proj` at all** — "the kernel's
+  own per-token output is architecturally irrelevant there"), **"DOES use
+  a real, learned q_proj/q_conv1d: an LM needs `chunk_delta_rule`'s own
+  per-token output `o_t` at EVERY position for next-token prediction, not
+  just the final recurrent state"** (L45-49, quoted verbatim) — realized
+  as three UNTIED projections/convs, `self.q_proj`/`self.k_proj`/`self.v_proj`
+  and `self.q_conv1d`/`self.k_conv1d`/`self.v_conv1d` (L787-793), each
+  called on every forward pass (`q, _ = self.q_conv1d(self.q_proj(x))` etc.,
+  L837-839), with `chunk_delta_rule` invoked as `chunk_delta_rule(q=q_bf,
+  k=k_bf, v=v_bf, ...)` (L983) — the model's own read-through at any
+  position runs on `q_bf` (the Q-PATH's output), never `k_bf`. Building a
+  `q_conv1d` hook (mirroring the already-existing `k_conv1d`/`v_conv1d`
+  hook pattern) is this revision's own FATAL fix, not a pre-existing tool
+  this design merely reuses (§4.4, §13.5). `DeltaNetLM.forward(token_ids, initial_states=...)`
   (`lm_pretrain_rd.py`) accepts/returns per-layer recurrent state, so a
   BIND-phase forward pass can be truncated and its final state captured
   without modifying the architecture — but its mixer hard-asserts
@@ -825,6 +880,22 @@ AND `v_eff_items` together costs one forward, not two. This build item
 adds no new GPU pass and no measurable cost (§10 confirms the budget is
 unaffected).
 
+**MINOR (Rev 5, attack-round-5) — `apply_frozen_bias_blend` touches ONLY
+`k`, a disclosed design strength of the `v_eff` convention, stated
+explicitly rather than left implicit.** `lm_pretrain_rd.py` L854-857
+verified directly: the frozen-bias conditional wraps exactly one
+reassignment, `k = apply_frozen_bias_blend(k, token_ids, ...)` — `q` and
+`v` are never arguments to it, in any arm. Consequence: `v_eff_target`
+(the Rev 4 scoring target) and, as of this revision, `q_eff` (via the new
+`q_conv1d` hook) are **blend-invariant by construction** across all three
+Leg-A arms — Arm 2's extra frozen table cannot reach either tensor
+through any code path, not merely "code-path-identical" in the weaker
+sense §7.9 already argued for `k_eff`. This means the readout's TARGET
+(`v_eff`) and its QUERY (`q_eff`) are both immune to the exact confound
+§5.2a's blend-toggle surgery grid exists to isolate for `k_eff` — a
+strength of the `v_eff`/`q_conv1d` convention worth stating plainly, not
+an accident to be silently relied on (full argument at §7.9).
+
 **Exactly which target — quoting `DELTANET_REALDATA_DESIGN.md`'s own
 established convention VERBATIM, zero departure (Rev 4 reverts Rev 3's
 one specified departure).** That design's §5.2 pins the readout this
@@ -936,23 +1007,78 @@ checkpoint learned this) `≈v_eff_{π(j)}`; a second hop feeds `S_T` the
 first hop's own output, `≈v_eff_{π(a)}`, and only continues to track
 `π²(a)` to the extent that `v_eff_{π(a)} ≈ k_eff_{π(a)}` — i.e. the
 INTERMEDIATE entity's value representation and its own key representation
-are cross-role aligned. **Measured, not assumed:** at Stage 0 calibration
-(§9), report `cos(k_eff_i, v_eff_i)` per entity `i` in the calibration
-episode pool, alongside premises (i)-(iii)
-(`DELTANET_REALDATA_DESIGN.md` §5.2, R2-2). **Wired into outcome
-interpretation, not left as a free-floating number:** a high mean
-`cos(k_eff_i, v_eff_i)` (near R2-2's own 0.9 alignment bar, reused here
-rather than inventing a new threshold) is the premise under which `h≥2`
-composition through `S_Tʰ` can be expected to track past `h=1` at all; a
-low value predicts `h≥2` recovery will sit near its chance floor
-regardless of arm/scale, **regardless of whether genuine reasoning
-capability exists in the checkpoint** — a low premise-(iv) reading is one
-of the two candidate explanations for a uniform `h≥2` floor (the other
-being the mechanism-framing point of §1: single-layer self-iteration may
-simply be the wrong hypothesis for how a given checkpoint composes).
-**Both are disclosed together wherever a floor result at `h≥2` is
-reported** (including under the new READOUT-FORM-INVALID outcome, §12),
-never picked as if the other explanation had been ruled out.
+are cross-role aligned.
+
+**PREMISE DIAGNOSTIC (iii) — bind↔query alignment, now a genuine measured
+quantity, not a near-tautology (Rev 5, attack-round-5 FATAL consequence).**
+`DELTANET_REALDATA_DESIGN.md` §5.2/R2-2's premise (iii) is
+`cos(q_eff_a, k_eff_a)` — does the query's own read-position
+representation for entity `a` align with `a`'s own key representation from
+its bind clause? That premise was built for a harness (`model_rd.py`) with
+**no `q_proj` at all**, where `q_eff` IS `k_eff` re-read through the
+identical `W_k`/`k_conv1d` operator at a different position — a high
+score there is close to a tautology (the same weight matrix applied to
+the same token in a similar local context, not an independent
+comparison). Through Rev 4, this design's own premise (iii) inherited
+that exact convention via the FATAL bug above (`q_eff` extracted via
+`k_conv1d`), despite this checkpoint family having a real, separately
+TRAINED `q_proj`/`q_conv1d` (§0). **Rev 5's fix strengthens premise
+(iii)'s meaning, it does not merely correct a bug:** with `q_eff` now
+genuinely extracted through the model's own `q_conv1d`, `cos(q_eff_a,
+k_eff_a)` measures whether two INDEPENDENTLY-TRAINED projections (`W_q`
+vs. `W_k`) of the same entity token converge to a similar representation —
+a real, falsifiable structural fact about the checkpoint's own learned
+geometry, not an artifact of reusing one weight matrix twice. **`h=1`
+recovery structurally depends on this premise:** `pred(a,1) = S_T ·
+q_eff_a` can only recover `v_eff_target` correctly if `q_eff_a` functions
+as a good read-cue into the state `S_T` actually trained on
+`(k_eff_a, v_eff_·)` pairs during the BIND phase — i.e., only to the
+extent `q_eff_a ≈ k_eff_a`.
+
+**Both measured identically, not assumed, at Stage 0 calibration (§9):**
+report `cos(q_eff_a, k_eff_a)` (premise iii) and `cos(k_eff_i, v_eff_i)`
+(premise iv) per entity in the calibration episode pool, alongside
+premises (i)-(ii) (`DELTANET_REALDATA_DESIGN.md` §5.2, R2-2).
+
+**MAJOR-1 fix (Rev 5, attack-round-5) — one mechanical, null-relative
+action-rule table replaces the reused, unjustified 0.9 bar and the
+"disclosed alongside" language this design used through Rev 4, which had
+no stated consequence for a cross-role comparison whose null is near
+zero.** At Stage 0, for EACH premise, measure (a) the per-entity
+SAME-entity cosine distribution (the premise's own quantity, above) and
+(b) its NULL — the identical cosine computed over CROSS-entity shuffled
+pairs drawn from the same calibration pool (entity `i`'s key vs. a
+DIFFERENT, randomly chosen entity `j≠i`'s value/query). No `0.9` constant
+anywhere; the gate is relative to each premise's own measured null, never
+an externally invented number:
+
+| Premise | Gate (measured at Stage 0, before unblinding) | Consequence on fail |
+|---|---|---|
+| **(iii) bind↔query alignment** — median same-entity `cos(q_eff_a, k_eff_a)` | Must exceed the 95th percentile of the cross-entity null `cos(q_eff_a, k_eff_{j≠a})` | `h=1`'s confirmatory status is revoked and pre-declared exploratory-only — `h=1` recovery structurally depends on this premise alone (above), so its failure is expected to produce a floor at EVERY `h`, not a surprise requiring separate diagnosis |
+| **(iv) cross-role (k↔v) identity** — median same-entity `cos(k_eff_i, v_eff_i)` | Must exceed the 95th percentile of the cross-entity null `cos(k_eff_i, v_eff_{j≠i})` | `h≥2` cells are pre-declared exploratory-only (`h=1` RETAINS confirmatory status if premise (iii) alone passes, since `h=1` never compounds through premise (iv)) — READOUT-FORM-INVALID (§12) becomes the EXPECTED outcome for `h≥2`, not a surprise requiring separate diagnosis |
+
+Both gates are evaluated and their consequences applied **before** Stage 1
+launches, per this project's standing "registered before any data exists"
+discipline — a premise that fails its own gate demotes the dependent
+hop-depths' confirmatory status in the pre-registration itself, never
+after seeing how the headline numbers happen to look.
+
+**MAJOR-2 fix (Rev 5, attack-round-5) — an absolute backstop alongside the
+null-relative gate, so h=1 cannot be declared valid by a
+near-zero-vs-near-zero comparison alone.** See §8.4 for the full
+registration: `h=1`'s `recovered_frac@0.9` must ALSO clear a registered
+absolute floor (0.10), independent of where the null band happens to sit.
+
+**Wired into outcome interpretation, restated with the table above
+replacing the free-floating threshold:** a low premise-(iv) reading is
+one of the two candidate explanations for a uniform `h≥2` floor
+(**regardless of whether genuine reasoning capability exists in the
+checkpoint**) — the other being the mechanism-framing point of §1:
+single-layer self-iteration may simply be the wrong hypothesis for how a
+given checkpoint composes. **Both are disclosed together wherever a floor
+result at `h≥2` is reported** (including under the READOUT-FORM-INVALID
+outcome, §12), never picked as if the other explanation had been ruled
+out.
 
 **Framing adjudication and query-circularity disclosure (Rev 4,
 attack-round-4 MAJOR, folded in per the attacker's own analysis —
@@ -1005,6 +1131,41 @@ rungs) depends on. Layer-0-only extraction (the tempting shortcut) is
 explicitly rejected for the same reason: it would validate only the
 single-layer case and silently fail to generalize to rung-2/3.
 
+**FATAL (Rev 5, attack-round-5 — every `q_eff` extraction through Rev 4
+hooked the wrong projection; full record §13.5).** Every prior mention of
+`q_eff` extraction in this design — §4.4's Forward-B bullet below, the
+FATAL-2 fix table (§13.3), §10's Option-1 justification, §7.9's cross-arm
+confound argument, §14's checklist — said `q_eff` comes "via the same
+`k_conv1d` hook at the query's own final position." That convention was
+correct for `model_rd.py`'s from-scratch harness (§0) — that harness has
+**no `q_proj` at all**, so reading the query through `k_conv1d`/`W_k` was
+the only option, forced by the architecture, not a chosen approximation.
+It is WRONG for the checkpoints this design actually evaluates:
+`lm_pretrain_rd.py`'s `DeltaNetLMMixer` instantiates three UNTIED
+projections/convs (`q_proj`/`k_proj`/`v_proj`, `q_conv1d`/`k_conv1d`/
+`v_conv1d`, L787-793), computes all three on every forward
+(`q, _ = self.q_conv1d(self.q_proj(x))` etc., L837-839), and calls
+`chunk_delta_rule(q=q_bf, k=k_bf, v=v_bf, ...)` (L983) — the model's own
+recurrent READ at any position runs on `q_bf`, the Q-path's own output,
+never `k_bf`. Extracting `q_eff` via `k_conv1d` therefore measured a
+projection (`W_k`) the checkpoint's own forward pass never actually reads
+the query through — an arbitrary substitution, not a principled
+approximation, discovered because the from-scratch harness's forced
+convention was carried over unexamined into a checkpoint family that does
+not share the constraint that forced it. **DIRECTIVE, executed below:
+retarget forward-B's query-position extraction hook to `q_conv1d`**
+(already instantiated at L791 and already executed on every forward at
+L837 — a ~5-line hook copy, mirroring Rev 4's own `v_conv1d` hook, zero
+new GPU passes). Bind-phase `k_eff` extraction (forward-A) and value
+extraction (`v_eff`, forward-A) are UNCHANGED — this fix touches only the
+query-position hook, nothing else. **This strengthens premise (iii)
+(bind↔query alignment) rather than weakening it** — with `q_eff` now
+genuinely a `W_q`-family object, `cos(q_eff_a, k_eff_a)` compares two
+INDEPENDENTLY-TRAINED projections of the same entity token, a real,
+falsifiable structural fact, not the near-tautology it was when both
+sides were computed by the identical `W_k` matrix (see the premise
+diagnostic and the unified action-rule table below).
+
 **Fix — the two-forward protocol.** Every episode's readout is built from
 **two separate full-length forward calls** through the checkpoint's own
 multi-layer `DeltaNetLM.forward`, never a short submodule-level call:
@@ -1024,8 +1185,10 @@ multi-layer `DeltaNetLM.forward`, never a short submodule-level call:
 - **Forward-B (bind+query, captures `q_eff` in situ).** The BIND phase and
   the query clause **concatenated into one sequence**
   (`T_bind + query_len`, trivially `≥128` since `T_bind` alone already is,
-  §4.1), run through every layer, with `q_eff` extracted via the
-  **same** `k_conv1d` hook at the query's own final position. This is a
+  §4.1), run through every layer, with `q_eff` extracted via a **new**
+  per-layer `q_conv1d` hook (Rev 5, attack-round-5 FATAL — retargeted from
+  the erroneous `k_conv1d` hook this design used through Rev 4, see the
+  FATAL box above and §13.5) at the query's own final position. This is a
   genuine, disclosed deviation from `grammar_rd.py`'s own training-time
   convention that "queries NEVER enter the streamed sequence" (§4.2) —
   justified because (i) this is an **eval-only** readout, never a training
@@ -1037,6 +1200,34 @@ multi-layer `DeltaNetLM.forward`, never a short submodule-level call:
   legitimately sees the full bind context ahead of it, which is in fact
   the more faithful reading of "how would this checkpoint's own
   multi-layer processing actually represent this query," not a weaker one.
+- **The `q_conv1d` hook — a ~5-line addition, the exact mirror of Rev 4's
+  `v_conv1d` hook (Rev 5).** `lm_pretrain_rd.py`'s `DeltaNetLMMixer`
+  already instantiates `self.q_conv1d = ShortConvolution(...)` at L791
+  (verified directly, §0) and calls it at L837
+  (`q, _ = self.q_conv1d(self.q_proj(x))`) — inside the exact forward pass
+  Option 1 already runs as forward-B. The fix is a direct copy of
+  `capture_raw_keys`'s own hook-registration pattern
+  (`lm_attractor_probe_rd.py` L163-170 — the same pattern Rev 4's
+  `v_conv1d` hook already copied), retargeted to `blk.mixer.q_conv1d`:
+
+  ```python
+  def make_q_hook(i):
+      def hook(module, inp, out):
+          q_raw = out[0] if isinstance(out, tuple) else out
+          captured_q[i].append(q_raw.detach())
+      return hook
+
+  q_handles = [blk.mixer.q_conv1d.register_forward_hook(make_q_hook(i))
+               for i, blk in enumerate(model.blocks)]
+  ```
+
+  registered on forward-B (not forward-A — the query token only exists in
+  forward-B's sequence), read at the query clause's own final position,
+  per layer. Adds no new mixer call and no measurable wall-clock delta:
+  forward-B is already one of the two-forward protocol's two priced calls
+  (§10) — this only adds a second hook registration and a second small
+  tensor capture to a call that already runs, exactly as Rev 4's
+  `v_conv1d` hook added no cost to forward-A.
 - **`q_eff` is thereby defined IN SITU, honestly.** Unlike the from-scratch
   harness's raw-vector convention (query and bind key are architecturally
   guaranteed identical, `model_dn.py`), a general multi-layer pretrained
@@ -1063,13 +1254,15 @@ multi-layer `DeltaNetLM.forward`, never a short submodule-level call:
 rule directly**, unchanged from Rev 2.
 
 **Justification for choosing Option 1 as primary (unchanged in substance
-across Rev 3→Rev 4):** it is (a) the direct continuation of this project's
+across Rev 3→Rev 5):** it is (a) the direct continuation of this project's
 own validated readout formula, (b) the only option satisfying CLAUDE.md's
 exact-continuous-recovery rule without any enumeration-based scoring, and
 (c) still cheap to build correctly — forward-A reuses the existing
 `k_conv1d` hook and adds the new (but trivial, ~5-line, same-pass,
-zero-extra-GPU-cost) `v_conv1d` hook (Rev 4); forward-B reuses only
-`k_conv1d` for `q_eff`. Option 2's cost is a full model forward pass
+zero-extra-GPU-cost) `v_conv1d` hook (Rev 4); forward-B uses a new (Rev 5,
+same ~5-line, same-pass, zero-extra-GPU-cost) `q_conv1d` hook for `q_eff`
+— corrected from Rev 1-4's erroneous reuse of `k_conv1d` there, §13.5.
+Option 2's cost is a full model forward pass
 anyway (already needed to obtain the natural next-token logits) so it
 remains nearly free to also report — hence still co-registered, not
 deferred.
@@ -1799,14 +1992,25 @@ Arm 2 (per-token) carries an extra, frozen `(50257,64)` anchor table
 non-issue for a *loss*-based comparison (already handled by that design's
 own artifact-matched Arm 1′/1″ construction) but is a **live question**
 for this design's own probe: does the mere presence of extra frozen buffer
-memory change anything about how `k_eff`/`q_eff` are extracted at the
-conv/`W_k` stage this design hooks? **Answer, stated honestly: no
-additional control is needed beyond what already exists** — the hook point
-(`k_conv1d` output, pre-kernel) is identical in shape and code path across
-all three arms (verified directly from `lm_pretrain_rd.py`, §0's reading
-list); the frozen table only enters the computation graph via the
-key-blend arithmetic itself, which is exactly the quantity under test, not
-an artifact to be controlled away.
+memory change anything about how `k_eff` (bind-phase keys, extracted via
+`k_conv1d`) or `q_eff` (the query read, extracted via `q_conv1d` — Rev 5,
+corrected from this section's own erroneous "conv/`W_k` stage" wording
+through Rev 4, which mis-described `q_eff` as sharing `k_eff`'s hook
+point; see §4.4/§13.5) are extracted at their respective conv stages?
+**Answer, stated honestly: no additional control is needed beyond what
+already exists** — each hook point (`k_conv1d` output for bind keys,
+`q_conv1d` output for the query, both pre-kernel) is identical in shape
+and code path across all three arms (verified directly from
+`lm_pretrain_rd.py`, §0's reading list). **`q_eff`'s answer is in fact
+stronger than `k_eff`'s (Rev 5): `apply_frozen_bias_blend` is applied to
+`k` ONLY** (`lm_pretrain_rd.py` L854-857, verified directly — the
+conditional wraps exactly one reassignment, `k = apply_frozen_bias_blend(k,
+...)`, never touching `q` or `v`), so `q_eff` (and `v_eff`) are
+**blend-invariant by construction** across all three arms, not merely
+code-path-identical — the frozen table cannot reach `q_conv1d`'s output at
+all, through any arm. For `k_eff`, the frozen table enters the
+computation graph via the key-blend arithmetic itself, which is exactly
+the quantity under test, not an artifact to be controlled away.
 
 **Rev 1 note (attack-round-1 F2):** the answer above defends only the hook's
 LOCATION (identical pre-blend code path across arms) — it does NOT, by
@@ -1929,6 +2133,41 @@ carried forward as the actual chance baselines the headline
 `recovered_frac@0.9` numbers at those hops must clear before a CONFIRM/REFUTE
 reading at that hop is licensed — closing the exact gap named by this
 finding.
+
+**MAJOR-2 fix (Rev 5, attack-round-5) — an absolute backstop alongside the
+null-relative rule, so a near-zero-vs-near-zero comparison cannot pass by
+default.** The null-band-relative pass condition above degenerates toward
+"almost any recovery passes" if the measured null band itself sits near
+zero — a real risk for a fixed-state model whose chance-level recovery
+could plausibly be near-uniform-random across a K-entity pool.
+**Registered fix:** `h=1`'s `recovered_frac@0.9` on the "off"/reference
+arm must ALSO exceed a registered fixed absolute minimum, **0.10**,
+independent of where the null band lands — BOTH conditions (null-relative
+AND absolute) must pass; failing either routes to probe-invalid (§1), not
+REFUTE. **Justification for 0.10, not an invented number:** this
+project's own from-scratch, trained-on-the-exact-task exactness program
+runs its h=1 guard at **1.0** (`h1_recovered_frac_at_0.9_final: 1.0`,
+`KEY_ANCHORING_DESIGN.md`; `DELTANET_RD_EXACTNESS_DESIGN.md` §16.8) — but
+that guard is for checkpoints TRAINED on the BIND/QUERY grammar itself,
+which this design's checkpoints (§0, never-task-trained pretrained LMs)
+are not, so reusing 1.0 here would repeat exactly the
+"in-distribution-trained floor imported into a never-trained-on-the-task
+regime" mistake §7.10 already flags as this design's own weakest
+terminological point. For never-task-trained checkpoints, the defensible
+low bar is instead anchored to the in-context associative-recall
+capability already documented in this size class in the literature this
+design's own litreview (§2.1) surfaced: Zoology (arXiv:2312.04927)
+establishes fixed-size recurrent state as the associative-recall
+bottleneck this whole program studies, and Based (arXiv:2402.18668,
+Theorem 3.1) proves the same Ω(N)-bits-of-state necessity — both motivate
+that a pretrained fixed-state LM in this size class SHOULD recover some
+nontrivial fraction of simple one-hop associative bindings if the readout
+has any referent at all. **0.10** is registered as that defensible low
+bar — well above pure chance at the smallest committed K (`K=20`, chance
+`≈1/19≈0.053`), while still low enough not to mechanically fail a
+genuinely-capable-but-imperfect checkpoint. Below it, the probe is
+declared invalid for that checkpoint family regardless of how the null
+band happens to sit.
 
 ### 8.5 Degenerate/exclusion rules, with counts (registered categories)
 
@@ -2163,6 +2402,17 @@ and states the general rule for any future K added to either grid.
     applied to the one new observable this revision adds. CPU-compatible
     (`v_conv1d` is a `ShortConvolution`, not the CUDA-only kernel), same
     tolerance convention as items 2/5/11.
+14. **(Rev 5, attack-round-5 FATAL, `q_conv1d` hook equivalence smoke,
+    mirroring item 13 exactly)** verify the new `q_conv1d` forward hook
+    (§4.4) captures the identical tensor a direct
+    `mixer.q_proj`→`mixer.q_conv1d` submodule call produces on the same
+    input, to `1e-6` — the same equivalence-smoke pattern item 13 already
+    applies to `v_conv1d`, applied here to the observable this revision's
+    own FATAL fix retargets `q_eff` extraction onto. CPU-compatible
+    (`q_conv1d` is a `ShortConvolution`, not the CUDA-only kernel), same
+    tolerance convention as items 2/5/11/13. Run on forward-B's own input
+    construction (bind+query concatenated, §4.4), since `q_eff` is only
+    ever read from forward-B, never forward-A.
 
 **Gate:** Stage 0 (calibration) may not launch until all Stage −1 tests
 pass — the exact "specification that has not been executed is not a passed
@@ -2183,12 +2433,23 @@ not, this is itself a decisive, informative result (the whole readout is
 uninterpretable for this checkpoint family) and the grid does not launch;
 the h=2/3/4 null bands become the registered per-h chance floors §8.4 now
 requires before a CONFIRM/REFUTE reading at those hops is licensed;
-(d) **(Rev 4, attack-round-4 FATAL consequence)** measure premise
-diagnostic (iv), `cos(k_eff_i, v_eff_i)` per entity `i` in this
-calibration cell's own episode pool (§4.4), alongside premises (i)-(iii)
-— reported as a mean and spread, informing (per §4.4's own wiring) how
-far past `h=1` this checkpoint family's `h≥2` numbers should be expected
-to track before any full-grid `h≥2` result is interpreted.
+(d) **(Rev 4, attack-round-4 FATAL consequence; Rev 5, attack-round-5
+FATAL consequence extends this to premise (iii))** measure premise
+diagnostic (iv), `cos(k_eff_i, v_eff_i)` per entity `i`, AND premise
+diagnostic (iii), `cos(q_eff_a, k_eff_a)` per entity `a` (now genuinely
+via the new `q_conv1d` hook, §4.4/§13.5 — not the near-tautological
+`k_conv1d`-only reading this design used through Rev 4), in this
+calibration cell's own episode pool (§4.4), alongside premises (i)-(ii) —
+each reported as a mean/median and spread, together with its own
+cross-entity-shuffled null distribution (§4.4's MAJOR-1 action-rule
+table); (e) **(Rev 5, attack-round-5 MAJOR-1/MAJOR-2)** apply the §4.4
+action-rule table's two gates (premise iii vs. its null, premise iv vs.
+its null) and the §8.4 absolute h=1 backstop (recovered_frac ≥ 0.10) —
+all three gates are evaluated HERE, before Stage 1 launches, and their
+consequences (demoting h=1 and/or h≥2 to exploratory-only status) are
+applied to the pre-registration itself, informing (per §4.4's own wiring)
+how far past `h=1` this checkpoint family's `h≥2` numbers should be
+expected to track before any full-grid result is interpreted.
 
 **Stage 0.5 (Rev 2, attack-round-2 MAJOR-6; thresholds/actions restated at
 Rev 3's two-forward rates and single committed rung-3 K — rung-3 pass-cost
@@ -2220,6 +2481,26 @@ eligibility (§10) is revoked for this phase. If the measured cost exceeds
 entirely and disclose rung-3 as unevaluated within Phase-1 budget,
 reporting only rungs 1/2/(392M) for H_LINK-B — mirroring the existing
 Stage-0 abort rule's structure (a multiple-of-anchor trigger, fired before
+the committed ceiling is at risk).
+
+**MINOR fix (Rev 5, attack-round-5) — a registered OOM fallback, never a
+crash-loop.** The abort triggers above assume the Stage 0.5 cell completes
+and produces a real timing number; they say nothing about what happens if
+the cell OOMs outright (a distinct failure mode from "slow but
+completes," plausible at 1.31B scale with two full forward passes per
+episode). **Registered fallback:** on OOM, retry the Stage 0.5 cell
+**once**, at `batch_size=8` (half the pinned `batch_size=16`, §4.2) — if
+that retry also OOMs, **halt Leg B's rung-3 rows and disclose**, exactly
+as the `>4×` abort trigger above already does, never a further
+retry-at-smaller-batch loop. This is a bounded, one-shot fallback (retry
+once, then halt), not an open-ended crash-loop — consistent with this
+project's own standing discipline against unattended retry loops (see
+`CLAUDE.md`'s tmux/supervisor rules for the analogous long-running-job
+case). If the batch-8 retry DOES complete, its measured per-pass cost
+(scaled back to the `batch_size=16` rate for a like-for-like comparison
+against the abort thresholds above) is used in place of the batch-16
+number, and this substitution is disclosed in the harvest report rather
+than silently presented as if batch 16 had been measured directly.
 committing further compute) but calibrated at rung-3's own scale rather
 than reusing the 14M-scale threshold.
 
@@ -2240,7 +2521,7 @@ checkpoints...)" — an arithmetic slip; 12 (`d=64`) + 8 (`d=128`) = 20, not
 
 ---
 
-## 10. Budget (RE-DERIVED, Rev 3 — attack-round-3 FATAL-1 frees the probe budget, FATAL-2 doubles the per-pass rate; full old→new reconciliation below; Rev 4 CONFIRMS the total is unchanged, see the Rev 4 note immediately below)
+## 10. Budget (RE-DERIVED, Rev 3 — attack-round-3 FATAL-1 frees the probe budget, FATAL-2 doubles the per-pass rate; full old→new reconciliation below; Rev 4 and Rev 5 each CONFIRM the total is unchanged, see the notes immediately below)
 
 **Rev 4 budget-neutrality confirmation (attack-round-4 BUDGET item,
 verified rather than merely asserted).** Reverting §4.4's comparison
@@ -2260,6 +2541,25 @@ lines, below) reappears. **Every number in this section — the anchors, the
 the ≈0.80 GPU-h margin, the ≈38.70 GPU-h named-extension reserve — is
 UNCHANGED from Rev 3 and is re-printed below rather than re-derived, per
 the directive to state this explicitly.**
+
+**Rev 5 budget-neutrality confirmation (attack-round-5 BUDGET item,
+verified rather than merely asserted).** Retargeting `q_eff` extraction
+from `k_conv1d` to a new `q_conv1d` hook changes **zero** GPU-priced
+quantities: (a) the number of mixer forward calls per episode is
+unchanged — the new hook fires on the SAME forward-B call the two-forward
+protocol already runs (forward-B is where `q_eff` was always read; only
+which submodule's output the hook attaches to changes), so no new pass is
+added; (b) it adds a second `register_forward_hook` call and a second
+small tensor capture to an already-executing call, the identical
+zero-cost pattern Rev 4's `v_conv1d` hook already established for
+forward-A; (c) the premise-diagnostic action-rule table, the h1 absolute
+backstop, the Stage 0.5 OOM fallback, and the two new §12 precedence
+rules are Stage −1/Stage 0 measurements already priced inside the
+existing calibration cells, or pure interpretation/reporting rules with
+no GPU cost of their own — none adds a row to the budget table below.
+**Every number in this section remains UNCHANGED from Rev 3/Rev 4 —
+≈24.20 GPU-h committed, ≈0.80 GPU-h margin, ≈38.70 GPU-h named-extension
+reserve, 25 GPU-h ceiling — re-printed below rather than re-derived.**
 
 **Unit cost anchor (measured, not assumed):** this project's own
 retrofit-eval instrumentation on the 14M/rung-1-scale architecture costs
@@ -2431,6 +2731,23 @@ disagree directionally routes to READOUT-DIVERGENCE (§5.2), a fifth, named
 outcome outside this 2×2 table, not silently folded into any of the four
 cells above.
 
+**MINOR fix (Rev 5, attack-round-5) — reporting rule for READOUT-DIVERGENCE
+at Leg A's primary cell coexisting with Leg B's own cell-table verdict.**
+READOUT-DIVERGENCE (Leg A's killer-prediction cell, §5.2) and the 2×2
+table's H_LINK-B column (or its AMBIGUOUS/READOUT-FORM-INVALID demotion,
+below) gate two DIFFERENT sub-hypotheses (H_LINK-A vs. H_LINK-B) through
+the identical instrument at DIFFERENT cells — one routing to a named
+outcome neither forces nor excludes any particular reading of the other.
+**Registered rule:** when Leg A's killer-prediction cell routes to
+READOUT-DIVERGENCE, this is reported ALONGSIDE whichever outcome Leg B's
+own primary cells yield (a 2×2-table cell, AMBIGUOUS, or
+READOUT-FORM-INVALID) — **both named outcomes are stated side by side in
+the final report, neither overriding or suppressing the other.** A Leg-A
+READOUT-DIVERGENCE does not retroactively invalidate a clean Leg-B
+reading, and a clean Leg-A CONFIRM/REFUTE does not retroactively resolve a
+Leg-B READOUT-DIVERGENCE/AMBIGUOUS finding at its own cells — each leg's
+own outcome is reported on its own terms.
+
 **READOUT-FORM-INVALID (Rev 4, attack-round-4 MAJOR) — a sixth named
 outcome, distinct from "no capability" (Cell 4) and from
 READOUT-DIVERGENCE.** **Trigger:** `h=1` clears its registered chance
@@ -2464,6 +2781,27 @@ AMBIGUOUS rather than forced into "present" or "absent" for the 2×2 table
 above — the corresponding column is annotated "H_LINK-B: AMBIGUOUS" and
 read descriptively (per-rung agreement/disagreement and point estimates),
 never collapsed into Cell 1/2/3/4's binary framing.
+
+**MINOR fix (Rev 5, attack-round-5) — precedence between
+READOUT-FORM-INVALID and AMBIGUOUS when both gates could fire.**
+READOUT-FORM-INVALID's trigger (h=1 clears its floor but h≥2 sits at a
+uniform floor across every arm/rung) and AMBIGUOUS's trigger (fewer than
+3 of 4 Track C rungs show Option 1/Option 2 agreement) are not mutually
+exclusive — a uniform h≥2 floor plausibly ALSO produces disagreement or
+degenerate non-agreement at most rungs' own Option 1/Option 2 check (a
+floor reading is close to noise, and noise need not agree in direction
+with Option 2 at any given rung). **Registered precedence rule:
+READOUT-FORM-INVALID wins.** If both triggers are met simultaneously, the
+outcome is reported as READOUT-FORM-INVALID, not AMBIGUOUS — it is the
+MORE SPECIFIC diagnosis (it names the actual mechanism-level reason the
+readout is uninformative at h≥2, whereas AMBIGUOUS only states that the
+ladder's own agreement gate did not clear enough rungs, which is itself a
+likely SYMPTOM of the same underlying readout-form problem, not an
+independent finding). AMBIGUOUS remains the reported outcome only when
+Leg B's own agreement gate fails WITHOUT a uniform h≥2 floor also being
+present — some rungs show real, non-floor h≥2 signal but Option 1/Option 2
+nonetheless disagree in direction at enough of them to miss the 3-of-4
+bar — a genuinely narrower failure mode than READOUT-FORM-INVALID's own.
 
 ---
 
@@ -2774,6 +3112,110 @@ have solved. Attack-round-0's item 6 (frozen-table training-dynamics
 channel) and the OpenReview R8ZbLi3oUv blocked full-read remain open —
 this round did not raise or resolve either.
 
+### 13.5 ATTACK-ROUND-5 (2026-07-07, fresh eyes) — verdict NEEDS-REVISION
+
+A fifth independent adversarial pass (a different reviewer from
+attack-rounds 1-4, per house discipline) reviewed Rev 4 before any code
+was written. Verdict: **NEEDS-REVISION** — 1 new FATAL (every `q_eff`
+extraction in this design hooked the wrong projection), 2 MAJOR (an
+unfalsifiable premise-(iv) ornament with no null and no consequence, and
+a chance-floor backstop gap that lets a near-zero null band pass almost
+anything), 4 MINOR. **Every Rev 1-4 fix was independently re-verified by
+this pass and HOLDS** — including §13.4's own gather-indexing fix
+(`prev_slot = _iterate_permutation(succ, a_slot, hops-1)`), re-derived by
+hand against the 3-entity worked example and confirmed correct. The
+FATAL is a new finding in previously-unattacked territory: no prior round
+checked which PROJECTION `q_eff` is actually read through in the real
+checkpoint code — round 3 established the two-forward EXTRACTION
+MECHANICS (dimensions, multi-layer legality) and round 4 proved the
+readout's own ALGEBRA (which family `pred(a,h)` lands in); this round is
+the first to check the much more basic fact of which trained weight
+matrix a hooked tensor actually comes from. Every finding below is fixed
+in this revision (Rev 5); none is deferred or waved away. Findings
+recorded near-verbatim for the historical record, per house style;
+resolutions are stated as landed in this text, not as intentions.
+
+**The attacker's finding, reproduced in substance — a source-reading
+check no prior round ran.** Every occurrence of `q_eff` extraction in
+this design, through Rev 4, read: "`q_eff` extracted via the **same**
+`k_conv1d` hook at the query's own final position." That sentence is
+true of `model_rd.py`'s own from-scratch harness — verified directly,
+that harness has **no `q_proj` at all**, and its own
+`effective_key_window` function (named for exactly this reason) is the
+ONLY read-path available, so reading the query through `W_k` there is
+forced, not chosen. It is false of `lm_pretrain_rd.py`'s
+`DeltaNetLMMixer`, the class every checkpoint in Leg A and Leg B actually
+is: its own header comment states plainly that "this LM block DOES use a
+real, learned q_proj/q_conv1d" (L45-49) — realized as `self.q_proj =
+nn.Linear(...)` and `self.q_conv1d = ShortConvolution(...)` (L787, L791),
+computed on every forward (`q, _ = self.q_conv1d(self.q_proj(x))`, L837),
+and fed to the kernel as `chunk_delta_rule(q=q_bf, k=k_bf, v=v_bf, ...)`
+(L983) — `q_bf`, not `k_bf`. No design-level algebra was wrong here; a
+convention that was FORCED in one codebase was copied into a different
+codebase where it was merely CONVENIENT, and the difference was never
+checked against the actual source before this round.
+
+| # | Finding (attack-round-5) | Severity | Fix (Rev 5) | Location |
+|---|---|---|---|---|
+| FATAL | Every `q_eff` extraction in this design, through Rev 4, said `q_eff` comes "via the same `k_conv1d` hook at the query's own final position." This checkpoint family has a real, separately-trained `q_proj`/`q_conv1d` path that `chunk_delta_rule` actually reads through (`lm_pretrain_rd.py` L45-49 header comment, L787-793 the three untied projections/convs, L837-839 the per-token conv calls, L983 `chunk_delta_rule(q=q_bf, ...)`) — the from-scratch harness's own forced convention (no `q_proj` at all) was carried over unexamined into a checkpoint family that does not share the constraint that forced it | FATAL | Retargeted forward-B's query-position extraction to a new `q_conv1d` hook (~5-line copy of the existing `k_conv1d`/`v_conv1d` hook pattern, zero new GPU passes, mirroring Rev 4's own `v_conv1d` hook exactly). Swept every `k_conv1d` mention across the document and adjudicated each: bind-phase `k_eff` extraction (forward-A), the frozen-bias blend/surgery tooling, and the buffer-blank-out tests correctly stay `k_conv1d`/`v_conv1d` (UNCHANGED); every mention describing `q_eff` extraction (§4.4's Forward-B bullet, the new FATAL callout box, §4.4's "Justification for choosing Option 1" paragraph, §7.9's cross-arm confound argument) is corrected to `q_conv1d`. Historical fix-map tables (§13.1-§13.4) describing what earlier revisions ACTUALLY did are left intact per the "record history, don't retcon it" convention. New Stage −1 item 14 (`q_conv1d` hook equivalence smoke, mirroring item 13). Premise (iii) (bind↔query alignment) is now a genuine measured quantity as a direct consequence — see MAJOR-1 | §0, §4.4, §7.9, §9 item 14, §13.5 |
+| MAJOR-1 | Premise (iv)'s "wired into outcome interpretation" text reused R2-2's 0.9 alignment bar for a cross-role comparison whose null is near-zero, with no justification, and "disclosed alongside" had no stated consequence | MAJOR | Replaced with one mechanical, null-relative action-rule table covering BOTH premise (iii) (now genuinely measured via the `q_conv1d` fix, above) and premise (iv): measure the per-entity same-entity cosine distribution AND its null (cross-entity shuffled pairs) at Stage 0; if the median same-entity cosine fails to exceed the null's 95th percentile, the dependent hop-depths are pre-declared exploratory-only BEFORE unblinding — premise (iii)'s failure demotes `h=1` itself (`h=1` depends only on premise iii); premise (iv)'s failure demotes `h≥2` only (`h=1` retains confirmatory status if premise iii alone passes) and READOUT-FORM-INVALID becomes the expected, not surprising, outcome for `h≥2`. No 0.9 magic number anywhere in the new rule | §4.4, §9 (Stage 0 items d/e) |
+| MAJOR-2 | The null-band-relative h1 pass rule (§8.4) degenerates to "almost any recovery passes" if the measured null band itself sits near zero | MAJOR | Added an absolute backstop: `h=1`'s `recovered_frac@0.9` must ALSO exceed a registered fixed minimum, **0.10**, independent of the null band — both conditions required, either failing routes to probe-invalid. Justified from this project's own exactness-program h=1 guard (1.0, for TRAINED-on-task checkpoints — not reusable here per §7.10's own never-task-trained caveat) and the litreview's Zoology (arXiv:2312.04927)/Based (arXiv:2402.18668) line (fixed-state associative-recall capacity is a documented property in this size class), landing well above chance at the smallest committed K (K=20, chance≈0.053) | §8.4, §4.4 |
+| MINOR (1) | Stage 0.5's abort-trigger structure assumed the rung-3 calibration cell completes and times cleanly; no registered behavior existed for an outright OOM (a distinct failure mode from "slow but completes") | minor | Registered fallback: retry once at `batch_size=8` (half the pinned 16), then halt Leg-B rung-3 rows with disclosure if the retry also OOMs — a bounded, one-shot fallback, never an open-ended crash-loop, consistent with the project's standing anti-retry-loop discipline | §9 (Stage 0.5) |
+| MINOR (2) | §4.4 never stated explicitly that `apply_frozen_bias_blend` touches only `k` (verified L854-857) — a fact that, once stated, is a disclosed design strength of the `v_eff` (and now `q_eff`) scoring convention | minor | Added an explicit statement in §4.4 (and strengthened §7.9's cross-arm confound argument to match): the blend conditional wraps exactly one reassignment (`k = apply_frozen_bias_blend(k, ...)`), never `q` or `v` — so `v_eff_target` and `q_eff` are blend-invariant BY CONSTRUCTION across all three Leg-A arms, not merely code-path-identical | §4.4, §7.9 |
+| MINOR (3) | §12 had no reporting rule for the case where Leg A's killer-prediction cell routes to READOUT-DIVERGENCE while Leg B's own cell-table verdict (a 2×2 cell, AMBIGUOUS, or READOUT-FORM-INVALID) is something else | minor | Added a registered reporting rule: both named outcomes are stated side by side in the final report; neither overrides or suppresses the other, since Leg A and Leg B gate different sub-hypotheses (H_LINK-A vs. H_LINK-B) through the same instrument at different cells | §12 |
+| MINOR (4) | §12 had no stated precedence between READOUT-FORM-INVALID and AMBIGUOUS when both gates could fire simultaneously (a uniform `h≥2` floor plausibly also produces Option 1/Option 2 disagreement or degenerate non-agreement at most rungs) | minor | Pinned precedence: READOUT-FORM-INVALID wins — it is the more specific mechanism-level diagnosis, of which a failed AMBIGUOUS gate is a likely symptom, not an independent finding; AMBIGUOUS remains the reported outcome only when Leg B's agreement gate fails WITHOUT a uniform `h≥2` floor also present | §12 |
+
+**BUDGET (verified, not merely asserted):** the FATAL fix is
+budget-neutral — same number of GPU passes (forward-B already exists and
+is already priced by the two-forward protocol; the new hook only adds a
+second `register_forward_hook` call to an already-executing call), no
+probe is reintroduced, and every other Rev 5 fix is a Stage −1/Stage 0
+measurement already priced inside the existing calibration cells, or a
+pure interpretation/reporting rule with zero GPU cost. §10's Rev 3/Rev 4
+total (**≈24.20 GPU-h committed, ≈0.80 GPU-h margin, ≈38.70 GPU-h
+named-extension reserve, unchanged 25 GPU-h ceiling**) is re-printed, not
+re-derived, with an explicit Rev 5 confirmation note (§10).
+
+**Straggler sweep (performed, not merely promised):** `grep -n
+'k_conv1d'` located every occurrence in the document; each was read in
+context and adjudicated. Bind-phase `k_eff` extraction (forward-A, the
+frozen-bias blend surgery/retrofit tooling, the Stage −1 buffer-blank-out
+test, the surgery-toggle smoke) correctly stays `k_conv1d` throughout —
+unchanged. `q_eff` extraction — the FATAL's own target — is corrected to
+`q_conv1d` at every LIVE (non-historical) location: §4.4's Forward-B
+bullet, the new FATAL callout box, §4.4's "Justification for choosing
+Option 1" paragraph, and §7.9's cross-arm confound argument.
+`model_rd.py::effective_key_window`'s own `self.embed→self.k_proj→
+self.k_conv1d` description (§4.4's FATAL-2 discussion) is an accurate
+citation of the OTHER file's own (architecturally forced) convention and
+is left unchanged — it is now, explicitly, the convention Rev 5 declines
+to carry over. Historical fix-map tables (§13.1-§13.4) describing what
+earlier revisions ACTUALLY did or found are left intact per the standing
+"record history, don't retcon it" convention. `grep`'d separately:
+"premise (iv)" consequence text and the "0.9 alignment bar" reuse text
+(§4.4) — both located and replaced by the unified action-rule table
+(MAJOR-1, above); no residual reference to the old reused-threshold
+language remains outside the historical §13.1-§13.4 record.
+
+**What Rev 5 could NOT cleanly fix, disclosed rather than hidden:** the
+premise (iii)/(iv) action-rule table and the h1 absolute backstop
+pre-register HOW to read a null-band or floor failure, but neither can be
+evaluated until Stage 0 actually runs on a real checkpoint — this
+revision registers the mechanism and its consequences, it does not
+(cannot, pre-data) resolve whether premise (iii) or (iv) will in fact
+clear their own gates for this checkpoint family. The FATAL fix corrects
+WHICH projection `q_eff` comes from; it does not change the
+framing-adjudication caveat already registered at Rev 4 (§1/§4.4/§5.1) —
+Option 1 still tests one a priori unlikely mechanism (single-layer state
+self-iteration), and a genuinely-correct `q_eff` extraction can still
+show a uniform floor at `h≥2` if that mechanism is simply the wrong
+hypothesis for how this checkpoint family composes, which is exactly why
+READOUT-FORM-INVALID remains a live, expected-not-surprising outcome
+rather than something this revision claims to have resolved.
+Attack-round-0's item 6 (frozen-table training-dynamics channel) and the
+OpenReview R8ZbLi3oUv blocked full-read remain open — this round did not
+raise or resolve either.
+
 ---
 
 ## 14. Standing constraints (inherited, checked off explicitly)
@@ -2845,6 +3287,34 @@ this round did not raise or resolve either.
   chance floor but `h≥2` sits at floor uniformly across every arm and
   rung — the observationally-indistinguishable case between "no
   capability" and "wrong readout mechanism" (attack-round-4 MAJOR, §12).
+- [x] **(Rev 5)** `q_eff` is extracted through the checkpoint's own real
+  `q_proj`/`q_conv1d` path (a new hook, §4.4), never through `k_conv1d` —
+  the from-scratch harness's forced (no-`q_proj`) convention is no longer
+  carried over into a checkpoint family that has a real Q-path
+  (`chunk_delta_rule(q=q_bf,...)`, `lm_pretrain_rd.py` L983); every
+  `k_conv1d` mention describing `q_eff` extraction is corrected, every
+  mention describing bind-phase `k_eff`/`v_eff` extraction is unchanged
+  (attack-round-5 FATAL, §13.5).
+- [x] **(Rev 5)** Premises (iii) (bind↔query alignment) and (iv)
+  (cross-role k↔v identity) share one mechanical, null-relative
+  action-rule table, measured at Stage 0 against each premise's own
+  cross-entity-shuffled null — no reused, unjustified 0.9 constant;
+  premise (iii) is now a genuine measured quantity (two
+  independently-trained projections), not the near-tautology it was when
+  `q_eff` came from `k_conv1d` (attack-round-5 MAJOR-1, §4.4).
+- [x] **(Rev 5)** The h=1 sanity floor combines the null-band-relative
+  rule with a registered absolute backstop (`recovered_frac@0.9 ≥ 0.10`)
+  — a near-zero null band can no longer pass the probe as valid by
+  default (attack-round-5 MAJOR-2, §8.4).
+- [x] **(Rev 5)** Stage 0.5's rung-3 calibration cell has a registered,
+  bounded OOM fallback (retry once at half batch size, then halt with
+  disclosure) — never an open-ended retry/crash-loop (attack-round-5
+  MINOR, §9).
+- [x] **(Rev 5)** §12's outcome reporting is fully specified when multiple
+  named outcomes could apply at once: a Leg-A READOUT-DIVERGENCE and a
+  Leg-B cell-table verdict are reported side by side, neither overriding;
+  READOUT-FORM-INVALID takes precedence over AMBIGUOUS when both gates
+  would otherwise fire (attack-round-5 MINOR, §12).
 - [x] **(Rev 3)** Per-layer extraction is legal at every checkpoint depth:
   the two-forward protocol (§4.4) never feeds the mixer a sub-`_MIN_KERNEL_T`
   sequence and never fabricates a layer-`i>0` input outside a real
