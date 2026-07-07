@@ -1,14 +1,19 @@
-# REASONING-LINK: does key-geometry stabilization causally improve in-context multi-hop composition? (Rev 5 (2026-07-07) — post-attack-5)
+# REASONING-LINK: does key-geometry stabilization causally improve in-context multi-hop composition? (Rev 6 (2026-07-07) — post-attack-6, CLEARED-FOR-BUILD)
 
-**Status: DESIGN, attack-round-5 complete (verdict NEEDS-REVISION,
-2026-07-07, fresh-eyes independent pass), this revision (Rev 5) resolves
-every finding — see §13.5 for the full attack record and fix map (§13.1
-records attack-round-1, resolved by Rev 1; §13.2 records attack-round-2,
-resolved by Rev 2; §13.3 records attack-round-3, resolved by Rev 3; §13.4
-records attack-round-4, resolved by Rev 4). Still not built, no GPU
-spent.** This document is written to survive a sixth, independent
-adversarial attack round before any code is written. Nothing here is a
-launch authorization. **Rev 5 headline:** attack-round-5 found that every
+**Status: DESIGN CLEARED-FOR-BUILD. Attack-round-6 (fresh eyes,
+2026-07-07) returned CLEARED-WITH-MINORS — the FIRST round with zero
+FATALs after five consecutive FATAL-bearing rounds (seven fatal axes
+found and fixed across rounds 1-5; every prior round's fixes re-verified
+HOLD by later rounds). Rev 6 (orchestrator-applied) resolves round 6's
+three findings: the MAJOR scope gap (premise/floor validity gates were
+certified at one 2-layer/d_state=64 point and silently applied to
+12/16/22-layer, d_state=128 rungs — now measured PER RUNG from the same
+already-captured tensors, each rung's confirmatory eligibility gated on
+its own first-pass premise read, zero new GPU passes, §4.4/§8.4), the
+Stage-0 checkpoint-identity conflation (pinned to the Leg-A control-arm
+checkpoint, §9), and an orphaned editing fragment (deleted). Attack
+records: §13.1-§13.5. Still not built, no GPU spent — build + independent
+code audit are the remaining gates before launch.** **Rev 5 headline:** attack-round-5 found that every
 `q_eff` extraction in this design, through Rev 4, hooked the WRONG
 projection. §4.4 said `q_eff` is captured "via the same `k_conv1d` hook at
 the query's own final position" — but this checkpoint family (unlike the
@@ -1035,10 +1040,26 @@ as a good read-cue into the state `S_T` actually trained on
 `(k_eff_a, v_eff_·)` pairs during the BIND phase — i.e., only to the
 extent `q_eff_a ≈ k_eff_a`.
 
-**Both measured identically, not assumed, at Stage 0 calibration (§9):**
-report `cos(q_eff_a, k_eff_a)` (premise iii) and `cos(k_eff_i, v_eff_i)`
-(premise iv) per entity in the calibration episode pool, alongside
-premises (i)-(ii) (`DELTANET_REALDATA_DESIGN.md` §5.2, R2-2).
+**Both measured identically, not assumed — and (Rev 6, attack-round-6
+MAJOR) measured PER CHECKPOINT FAMILY, not only at the single Stage-0
+point:** report `cos(q_eff_a, k_eff_a)` (premise iii) and
+`cos(k_eff_i, v_eff_i)` (premise iv) per entity, alongside premises
+(i)-(ii) (`DELTANET_REALDATA_DESIGN.md` §5.2, R2-2). Attack-round-6
+identified that certifying these gates at one 2-layer/d_state=64
+architecture and silently applying the verdict to 12/16/22-layer,
+d_state=128 checkpoints leaves exactly the failure mode §1's own framing
+note predicts (deeper models are MORE likely to compose via cross-layer
+chaining, i.e. more likely to fail premise iv) unguarded at the rungs
+where it is most likely. The fix costs zero new GPU passes: the premise
+quantities are computed from the SAME per-layer `k_eff`/`q_eff`/`v_eff`
+tensors the probe already captures at every cell, so the premise
+distributions and their nulls are re-derived AT EVERY RUNG'S OWN PRIMARY
+CELL (first pass per rung) and each rung's confirmatory eligibility is
+gated on ITS OWN measurements per the table below — Stage 0's
+measurement licenses only the architectures that share its config
+(d_state=64, n_layers=2: the Leg-A arms and the 14M rung); 98M, 392M,
+and 1.31B are each licensed (or demoted) by their own first-pass premise
+read, applied before that rung's own unblinding.
 
 **MAJOR-1 fix (Rev 5, attack-round-5) — one mechanical, null-relative
 action-rule table replaces the reused, unjustified 0.9 bar and the
@@ -1058,10 +1079,15 @@ an externally invented number:
 | **(iv) cross-role (k↔v) identity** — median same-entity `cos(k_eff_i, v_eff_i)` | Must exceed the 95th percentile of the cross-entity null `cos(k_eff_i, v_eff_{j≠i})` | `h≥2` cells are pre-declared exploratory-only (`h=1` RETAINS confirmatory status if premise (iii) alone passes, since `h=1` never compounds through premise (iv)) — READOUT-FORM-INVALID (§12) becomes the EXPECTED outcome for `h≥2`, not a surprise requiring separate diagnosis |
 
 Both gates are evaluated and their consequences applied **before** Stage 1
-launches, per this project's standing "registered before any data exists"
-discipline — a premise that fails its own gate demotes the dependent
-hop-depths' confirmatory status in the pre-registration itself, never
-after seeing how the headline numbers happen to look.
+launches for the Stage-0-licensed family, and **before each rung's own
+unblinding** for the other families (Rev 6): a premise that fails its own
+gate demotes the dependent hop-depths' confirmatory status in the
+pre-registration itself, never after seeing how the headline numbers
+happen to look. The same per-family scoping applies to §8.4's null-band
+construction: each d_state/K combination's chance floor is measured from
+its own rung's first-pass label-shuffle null (the 392M/1.31B rungs run at
+K=64 with a different chance geometry than the calibration cell's K=32 —
+their floors are measured there, not transplanted).
 
 **MAJOR-2 fix (Rev 5, attack-round-5) — an absolute backstop alongside the
 null-relative gate, so h=1 cannot be declared valid by a
@@ -2419,8 +2445,16 @@ pass — the exact "specification that has not been executed is not a passed
 gate" convention this project applies everywhere.
 
 **Stage 0 (calibration, 1 cell, blinded from any headline decision):** the
-14M mixcontrol "off" arm, seed 0, one corpus, K=32, h∈{1,2,3,4}, BOTH query
-markers (§7.6's robustness replicate). Purposes (Rev 3: purpose (a)
+Leg-A CONTROL-arm checkpoint
+`frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0` (final step
+20000, under `/data/deltanet_rd_frozenbias_ckpts/` — Rev 6 fix,
+attack-round-6 MINOR-2: the earlier "14M mixcontrol 'off' arm" phrase
+conflated two disjoint families — "mixcontrol" is a Track-C/Leg-B
+checkpoint with no arms at all; Stage 0 calibrates on the ACTUAL Leg-A
+comparison family's control arm, which shares the mixcontrol
+architecture d_model=256/n_layers=2/d_state=64 anyway), seed 0, one
+corpus, K=32, h∈{1,2,3,4}, BOTH query markers (§7.6's robustness
+replicate). Purposes (Rev 3: purpose (a)
 rewritten — no probe hyperparameters exist to fix, §4.5): (a) run the
 Stage −1 item 11 causality assertion for real on this checkpoint, and
 confirm the two-forward protocol (§4.4) executes cleanly end to end before
@@ -2501,8 +2535,6 @@ case). If the batch-8 retry DOES complete, its measured per-pass cost
 against the abort thresholds above) is used in place of the batch-16
 number, and this substitution is disclosed in the harvest report rather
 than silently presented as if batch 16 had been measured directly.
-committing further compute) but calibrated at rung-3's own scale rather
-than reusing the 14M-scale threshold.
 
 **Stage 1 (full grid, Rev 3 — re-derived per-leg committed K sets, §4.3/§10,
 attack-round-3 FATAL-2):** Leg A committed grid — 18 core cells × 2 K
