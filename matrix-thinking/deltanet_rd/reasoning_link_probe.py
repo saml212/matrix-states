@@ -957,7 +957,14 @@ def leg_b_ckpt_path_bestguess(ckpt_root: str, rung: int, corpus: str, seed: int,
     guess (the chain script does exactly that for its own pinned cells)."""
     cfg = LEG_B_RUNG_CFG[rung]
     run_name = f"lmC_{corpus}_dm{cfg['d_model']}_ds{cfg['d_state']}_L{cfg['n_layers']}_s{seed}"
-    return os.path.join(ckpt_root, cfg["tag"], "checkpoints", f"{run_name}_step{step}.pt")
+    # LAUNCH FIX 3 (2026-07-07, verified against the REAL box layout, not
+    # inferred from code): wave checkpoint files live FLAT in
+    # <ckpt_root>/<wave_tag>/ -- there is NO "checkpoints/" subdirectory
+    # (confirmed: /data/lm_rd_trackc_ckpts/wave3/lmC_..._step*.pt). Keep the
+    # old guess as a fallback probe for robustness across wave layouts.
+    flat = os.path.join(ckpt_root, cfg["tag"], f"{run_name}_step{step}.pt")
+    nested = os.path.join(ckpt_root, cfg["tag"], "checkpoints", f"{run_name}_step{step}.pt")
+    return flat if os.path.exists(flat) or not os.path.exists(nested) else nested
 
 
 # ---------------------------------------------------------------------------

@@ -180,7 +180,7 @@ PYEOF
 # nothing to blind. Two-tier abort + OOM fallback both implemented inside
 # run_stage05 itself; this step only reads the returned `action` field.
 # ---------------------------------------------------------------------------
-RUNG3_CKPT="$TRACKC_CKPT_ROOT/wave3/checkpoints/lmC_openr1-mix-ext_dm2560_ds128_L22_s0_step20000.pt"
+RUNG3_CKPT="$TRACKC_CKPT_ROOT/wave3/lmC_openr1-mix-ext_dm2560_ds128_L22_s0_step20000.pt"  # LAUNCH FIX 3: flat layout, no checkpoints/ subdir (verified on box)
 # BEST-EFFORT path (see reasoning_link_probe.py::leg_b_ckpt_path_bestguess's
 # own disclosure -- Track C naming is "per-wave, not uniform", sec 0). If
 # this path does not exist, find the real rung-3 checkpoint on the box
