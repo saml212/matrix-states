@@ -3731,3 +3731,566 @@ result JSONs + 89 log files + the 3 exact scripts —
 copies, verified directly, ~1.3MB, all files ≤25MB) + SSD mirror at the
 same relative path under `/Volumes/1TB_SSD/learned-representations/`.
 `STATE.md` and `EXPERIMENT_LOG.md` updated.
+
+
+---
+
+## 16. THE NEXT INSTRUMENT — three paths after PROBE-INVALID, compared and sequenced (design pass, 2026-07-07)
+
+### 16.0 What §15 licenses here, and what it doesn't
+
+§15's verdict is PROBE-INVALID, not REFUTE: the h1 sanity floor fails both
+its null-relative and absolute-0.10 conditions, and premises (iii)
+(bind↔query alignment, Stage-0 median 0.5406 vs. null p95 0.6097) and (iv)
+(cross-role k↔v identity, 0.0139 vs. 0.1424) fail their own action-rule
+gates at every one of 78 cells, 14M-392M params, both corpora. **The
+keystone question — does frozen-bias key-geometry stabilization causally
+improve in-context multi-hop composition — was never actually asked of the
+data; the instrument that was supposed to ask it never produced a
+referent-bearing signal on any checkpoint.** This section does not attempt
+to re-run the same instrument hoping for a different answer. It compares
+three structurally different next moves, each of which changes something
+§15 held fixed, and stress-tests a sequencing recommendation rather than
+asserting one.
+
+Two structural facts from §15 bound every option below:
+1. **The failure is categorical, not marginal.** `recovered_frac@0.9` is
+   exactly `0.0` at 312/312 (cell, h) readings — not "mostly zero with a
+   few near-misses." Whatever is wrong is not a threshold-tuning problem.
+2. **Premise (iv) failing much harder than premise (iii)** (iv's real
+   values sit at 1-8% of typical premise-iii magnitudes across the grid,
+   §15.1) is a specific, informative asymmetry: `k_eff` and `v_eff` (two
+   projections of the SAME token, captured milliseconds apart in the same
+   forward pass) are nearly uncorrelated in this checkpoint family, while
+   `q_eff` and `k_eff` (different tokens, same family) are only mildly
+   anisotropic. This is closer to "the k/v split itself carries little
+   entity-identity structure in a never-task-trained LM" than to "the
+   surface form confused the model" — a point that bears directly on how
+   much any of the three paths below should expect to fix.
+
+### 16.1 PATH (i) — PHASE-1B: natural-language surface form
+
+**What it tests.** Whether §15's failure is a **surface-form artifact** —
+the marker template's reserved-adjacent buffer/query tokens (§4.1: period
+repeated `conv_size−1` times as buffer, a rare symbol or fixed phrase as
+the query marker) putting the episode text far enough outside the
+pretraining distribution that even a genuinely capable checkpoint could
+not engage its own induction/in-context machinery — versus a **deeper
+representational fact** about this checkpoint family (premise iv's
+near-zero k↔v correlation) that no surface-form change can fix.
+
+**What stays fixed, by design (per the task brief, and because changing
+more than one axis at once makes any result uninterpretable per this
+project's own standing "hold tokenization fixed" rule, `CLAUDE.md`):** the
+single-Hamiltonian-K-cycle generator (`_permutation_graph`, §4.2), the
+107-entity pool (§4.1, reused verbatim — the pool is already a fixed,
+somewhat artificial set of common first names; Phase-1b changes the
+SENTENCE FRAME around those names, not the entity vocabulary itself), the
+three Leg-A arms and Leg-B rung ladder, the h∈{1,2,3,4} depths and K sweep,
+premises (iii)/(iv) and the h1-floor gate exactly as registered (§8.4),
+the `v_eff`-scored Option 1 readout and Option 2 secondary (§4.4), and the
+two-forward causality protocol (§4.4/§9 item 11).
+
+#### 16.1.1 Template design, checked against ACTUAL wikitext statistics, not assumed
+
+The project's own local WikiText-103 corpus
+(`/Volumes/1TB_SSD/learned-representations/data/text.bin`, 100MB raw
+UTF-8 — the same file `CLAUDE.md`'s Data section documents) was grepped
+directly this pass (read-only, no code committed, no GPU) to check what
+this design assumed rather than measured. Three findings, all load-bearing
+for the template choice:
+
+| Check | Pattern | Hits / 100MB | Reading |
+|---|---|---|---|
+| Query marker OOD-ness | `‽` | **0** | Confirms §4.1's own prediction ("close to its random-init value") — this token is never seen in this register at all |
+| Query marker OOD-ness | `§` | 72 | Rare, and essentially all legal/citation-register, not relational — not a genuine in-distribution relational cue either |
+| Bind-clause shape, existing verb pool | `[Name] [gift-verb] [Name] .` (37-verb pool from `grammar_rd.py::_CANDIDATE_RELS_A/B` — "gave", "handed", "passed", "carried", "sent", ...) | 23 | Modest but real — e.g. `"Bonds passed Ruth ,"`, `"Dresden carried Huerta ,"`, `"Coulthard passed Herbert ,"`. The EXISTING bind-clause shape (ignoring buffer padding and the query marker) is not as far out-of-distribution as the marker template's total package |
+| Query-clause completion shape | `[Name] [gift-verb].` (verb, sentence-final, nothing after) | 0 (5-verb sample) | Real wikitext essentially never truncates a sentence immediately after a bare transitive verb with no object — the readout's own truncation requirement (must stop before the answer token) has **no clean wikitext precedent under ANY relation-verb choice**, not just the marker's |
+| Alternative relation family — succession | `[Name] succeeded [Name]`, `was succeeded by [Name]`, `[Name] replaced [Name]` | 40 + 64 + 119 = **223** | An order of magnitude more common than the gift-verb bind shape, AND directionally composable in exactly the way a K-cycle is: succession chains (e.g. lines of monarchs, officeholders) are real wikitext objects with genuine 2+-hop structure ("who succeeded the person who succeeded X" is a normal historical question) |
+
+**Two candidate templates, both cheap enough to run in the same Stage-0
+gate (§16.1.2 below):**
+
+- **Candidate A — minimal diff.** Reuse the existing, already
+  single-token-verified 107-name pool and 37-verb gift pool verbatim for
+  bind clauses (`"Adam gave Bob . Carl handed Dave . ..."`); **drop the
+  reserved/rare query marker entirely** and read `q_eff` off the query
+  clause's own final relation-verb token via completion truncation
+  (`"...Adam gave"`, no marker token at all) — this is a genuine
+  simplification, not merely a substitution: it eliminates the single most
+  quantifiably OOD element (`‽`: 0 hits) by construction, at **zero new
+  Stage −1 verification burden** (every name/verb token is already
+  verified single-token by `grammar_rd.py::build_entity_pools`).
+- **Candidate B — succession family.** Replace the gift-verb pool with
+  `succeeded`/`replaced` (bind: `"Adam succeeded Bob . Carl succeeded
+  Dave . ..."`; query: completion-style `"...Adam succeeded"` or, as a
+  named variant, an interrogative `"Who succeeded Adam ?"`). Backed by an
+  order-of-magnitude stronger wikitext base rate AND a conceptually
+  better match to multi-hop semantics (succession chains genuinely
+  compose; gift-giving chains do not have as natural a "2-hop" reading —
+  "who received what Adam originally gave, after it changed hands twice"
+  is a convoluted story next to "who succeeded the person who succeeded
+  X"). Requires a **new** Stage −1 single-token/non-collision check for
+  `succeeded`/`replaced` under GPT-2 BPE (not yet verified anywhere in
+  this codebase) — a small, disclosed build item, not a blocker.
+
+Both candidates keep the period-repeat buffer convention unchanged (§4.1's
+own argument — an ordinary, maximally generic token — is not challenged by
+this pass; periods are trivially the single most common punctuation token
+in the measured corpus, so this is not the risk surface Phase-1b targets).
+
+**Worked example episode (Candidate A, K=4 for illustration; real cells
+use K∈{20,32}), exactly mirroring §4.4's own 3-entity worked-example
+convention:**
+
+```
+Adam gave Bob . Carl handed Dave . Ellen passed Adam . Bob offered Carl .
+```
+
+(bind clauses at fixed slot positions, cycle `succ = [1, 3, 0, 2]` meaning
+Adam→Bob, Carl→Dave, Ellen→Adam, Bob→Carl — i.e. Adam gave [something]
+to Bob, and separately Bob offered [something] to Carl, so hop-2 from Adam
+is Carl); query at h=1: `Adam gave` (`q_eff` read at the final "gave"
+token, scored against Bob's `v_eff`); at h=2: same query text, scored two
+matrix-powers deep against Carl's `v_eff`. Buffer padding (`conv_size−1`
+period repeats between clauses) omitted from the illustration above for
+readability, present in the real render exactly as §4.1 specifies.
+
+#### 16.1.2 Staged cost — Stage-0-gate-only, then (conditionally) the full grid
+
+**Stage-0-gate-only first (~0.01 GPU-h).** Re-run exactly Stage 0's own
+single-cell calibration procedure (§9: one checkpoint, one corpus, K=32,
+h∈{1,2,3,4}, both null-band construction and premise (iii)/(iv)
+measurement) — but with Candidates A and B substituted for the marker
+template, and, **critically, on the WIKITEXT-mix-ext control-arm checkpoint,
+not a mechanical re-use of Phase 1's own Stage-0 cell.** This is a genuine
+correction to the naive form of this plan, not a cosmetic detail: Phase
+1's Stage-0 calibration cell (§9) was
+`frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0` — the **openr1**
+corpus's control arm. OpenR1-Math is step-by-step mathematical derivation
+text; it contains essentially no "Name verb Name" narrative sentences of
+any kind, gift-verb or succession-family alike. Naively re-using that same
+calibration cell for Phase-1b would test the natural-language premise on
+exactly the checkpoint family where it has the WEAKEST possible referent
+— the resulting gate reading would say more about openr1's own register
+than about whether natural surface form helps. **Registered fix: Phase-1b's
+Stage-0 gate cell must be drawn from the wikitext-mix-ext control arm**
+(the corpus where "sentence resembling the pretraining distribution" has
+an actual referent), with the openr1 cell run alongside as a **named,
+expected-null contrast** — if openr1 ALSO clears the gate despite having
+no natural-template precedent, that is a flag for a confound (something
+generically easier about Candidates A/B, unrelated to distribution match),
+not a second confirmation.
+
+Cost basis: §15.7's own realized rate (0.2876 GPU-h across the full
+78-cell grid, ≈0.0037 GPU-h/cell average) and §15.1's own single-cell
+abort-rule measurement (`wall_s=1.11s ≈ 0.0003 GPU-h` for the ORIGINAL
+Stage-0 cell) both put a single calibration cell an order of magnitude
+under 0.01 GPU-h; running BOTH candidates × 2 corpora (4 gate cells total)
+still costs ≈0.001-0.002 GPU-h at the measured rate. **~0.01 GPU-h is
+registered here as a conservative estimate** (includes Stage −1's own
+CPU-only re-verification — new single-token checks for Candidate B's
+verbs, zero GPU — plus build/debug overhead; Phase 1 itself needed 3
+resume-safe launches after 5 build-time crashes, §15.7, so a nonzero
+debug tax should be priced in even for a "trivial" change).
+
+**Full Phase-1b grid, conditional (~0.4 GPU-h at measured rates).** If the
+wikitext-cell gate clears for at least one candidate: the full 78-cell grid
+(60 Leg A + 18 Leg B rungs 0-2, identical shape to Phase 1, §15.3/§15.8)
+re-run with the winning candidate's template. At the realized 0.0037
+GPU-h/cell rate this is ≈0.29 GPU-h — essentially identical to Phase 1's
+own realized cost, since template text does not change forward-pass FLOPs;
+~0.4 GPU-h is the registered figure with the same build/debug margin
+applied above.
+
+#### 16.1.3 Failure modes and what a null means
+
+1. **Both candidates fail the wikitext-cell gate identically to the marker
+   template.** This is the single most informative possible outcome for
+   sequencing purposes: it would mean the failure is NOT attributable to
+   OOD surface form (two structurally different templates, one with real
+   wikitext precedent, both fail the same way) — reinforcing premise
+   (iv)'s own diagnosis (§16.0 point 2) that the k/v split itself lacks
+   entity structure in this checkpoint family, a fact no zero-shot prompt
+   redesign can route around. **This directly and mechanically promotes
+   Path (ii) to the only remaining instrument that can engage the
+   keystone** (§16.6's decision tree).
+2. **Candidate A fails, Candidate B passes (or vice versa).** Would
+   isolate WHICH surface-form element mattered — the marker specifically
+   (A tests this cleanly, since A's only change from the original is
+   marker removal) vs. the relation-verb family's compositional semantics
+   (B tests this). Informative regardless of which wins.
+2b. **The openr1 "expected-null" cell ALSO clears** despite having no
+   natural-template referent. Named explicitly as a confound flag
+   (§16.1.2) — routes to an audit of what actually changed (e.g., a
+   readout-mechanics artifact common to both new templates, unrelated to
+   distributional match) before any wikitext-cell pass is trusted as
+   evidence for the "format was the blocker" story.
+3. **h=1 clears the gate but premises (iii)/(iv) still fail their own
+   action-rule gates.** Per §4.4's own action-rule table (already
+   registered, not new), this demotes `h≥2` to exploratory-only even
+   though the probe is no longer flatly "invalid" — h=1 becomes the
+   primary, reportable result; h≥2 stays descriptive. This is a real,
+   licensed outcome under the design's own existing rules, not a new
+   category this section invents.
+
+#### 16.1.4 Honest plausibility verdict — can Phase-1b show zero-shot h≥2 at all?
+
+**No, not with confidence, and this should be stated plainly rather than
+discovered by a reviewer.** Even under the MOST favorable reading of the
+literature this design's own litreview surfaced
+(`research/reasoning-link-litreview-2026-07-07.md`): Zoology and Based's
+in-context recall results, and the credible rival account in Okpekpe &
+Orvieto (arXiv:2508.19029) about optimization-gated recall in recurrent
+models, are uniformly about models **trained on the task's own data
+distribution** (MQAR-format training, or fine LR-grid training runs on
+synthetic recall data) — not zero-shot application of a general-purpose
+pretrained LM to a task-shaped prompt it has never seen a single example
+of. This is the crux the task brief names, and it holds regardless of how
+wikitext-native the surface form is made: **making the SENTENCES look
+like wikitext does not make the TASK (extract, from one forward pass,
+enough relational structure to answer a 2-4-hop query about entities never
+seen together before) something wikitext pretraining teaches.** Sanford,
+Hsu & Telgarsky's k-hop induction-head work (arXiv:2402.09268) establishes
+hop-depth-dependent circuit depth requirements for TRANSFORMER models
+performing this class of task — but again as an architectural/training
+question, not a zero-shot-generalization guarantee. The general LLM
+literature on zero-shot multi-hop QA (not specifically cited in this
+design's litreview, flagged here as a related-work gap to close before any
+publication) is consistent with genuine difficulty at 2+ hops without
+chain-of-thought scaffolding, which this design's single-forward-pass,
+no-decoding-loop readout structurally cannot provide.
+
+**Consequence for how Phase-1b should be read even if it "succeeds":** a
+clean Phase-1b pass most plausibly lands as **h=1 becomes the primary,
+confirmatory result (in-context one-hop associative recall, a capability
+this size class is documented to have some purchase on) and h≥2 stays
+exploratory** (§16.1.3 item 3) — not as a demonstration that the keystone
+question (multi-hop composition) has been answered zero-shot. **A
+successful Stage-0 gate and full grid under Phase-1b does not, by itself,
+resolve H_LINK-A/B; it removes one confound (surface form) from an
+instrument that may still need Path (ii) to reach the keystone's own
+h≥2 claim.** This is registered now, not after a positive h=1 result
+tempts an overclaim.
+
+---
+
+### 16.2 PATH (ii) — PHASE-2: task familiarization
+
+**What it tests.** Not "does a never-task-trained checkpoint show
+zero-shot multi-hop composition" (§16.1.4's own answer: implausible by
+construction) but **"does the frozen-bias intervention's stabilized key
+geometry help a model LEARN in-context binding, once it is actually given
+task-relevant training signal"** — a learnability question, not a
+zero-shot-presence one. This is the capability question §11's own
+gated-Phase-2 sketch already anticipated, and it is the only one of the
+three paths that reconnects H_LINK directly to the capacity law's own
+empirical basis: every K/d cliff measurement in this project (`x0=0.5455`,
+d=128 dissolution, coherence exoneration) was made on models **trained on
+the exact BIND/QUERY task** — Zoology/Based/MQAR's own in-context-recall
+successes are likewise task-trained, per §16.1.4. Path (ii) is the only
+path here that puts REASONING-LINK's checkpoints in that same regime.
+
+#### 16.2.1 Recipe sketch (not a committed build — a design sketch, per the task's own framing)
+
+**Base checkpoints:** continue training from the archived Leg-A frozen-bias
+checkpoints at their final (step-20,000) state — all 3 arms (`off`,
+`per_token`, `global`) × 2 corpora × 3 seeds, the same 18 core cells §5.1
+already scopes — rather than §11's original "train NEW small LMs from
+scratch" sketch. This is a deliberate departure from §11, chosen because
+continuing an ALREADY-VAL-LOSS-MATCHED set of checkpoints (§7.2's existing
+gate) preserves the one clean apples-to-apples property this whole program
+has fought to establish across arms; training fresh models re-opens every
+val-loss-matching question from scratch.
+
+**What continues training, what stays frozen:** the frozen-bias table
+itself and its blend mechanism (`apply_frozen_bias_blend`, λ=0.58) stay
+exactly as trained — this design never re-tunes λ or re-initializes the
+table, since the point is to test whether the ALREADY-STABILIZED geometry
+helps learning, not to re-derive a new stabilization. Every other
+parameter (backbone, k/q/v/o projections, embedding table) continues
+training normally under gradient descent, same optimizer family/schedule
+convention as the original Track-C/frozen-bias runs.
+
+**Data mix (needs its own design pass before commit, sketched here):** a
+blend of (a) the ORIGINAL pretraining corpus (openr1-mix-ext or
+wikitext-mix-ext, matching each checkpoint's own arm) at a majority
+fraction, to avoid catastrophic forgetting of general LM capability and to
+keep familiarization "on top of" rather than "instead of" the original
+training distribution, and (b) newly-rendered BIND/QUERY episodes — using
+whichever surface form Path (i) validates if it has already run by this
+point (§16.6), or the original marker template if Path (i) has not yet
+cleared a gate — at a minority fraction, drawn from a **familiarization
+pool of entities/cycles held disjoint from an eval pool** (mirroring
+§4.5's existing eval-purpose seed-disjointness discipline, extended here
+to a genuine train/eval split this design currently lacks, since Phase 1
+had none). **Held out for eval, never in the familiarization mix:** a
+disjoint sub-draw of K-cycles (fresh permutations) and, if the entity pool
+allows it (107 names is the hard ceiling, §4.2), a disjoint entity
+sub-pool — this needs its own arithmetic check against the max committed
+K (32-96 depending on rung) before being finalized, mirroring F1's own
+resolved arithmetic-impossibility lesson (§13.1) rather than repeating it.
+
+**Step budget:** modest continuation (order 1,000-5,000 steps, a fraction
+of the original 20,000-step run), since this is familiarization on top of
+an already-converged checkpoint, not training from scratch — an exact
+number is a Stage-0-style calibration item, not fixed here.
+
+#### 16.2.2 The new confound surface — why this needs its own attack round before build
+
+**Training-on-task may itself differentially interact with the arms — and
+that differential interaction IS the hypothesis, which is exactly why it
+needs careful handling, not exclusion.** H_LINK-A's causal claim (global
+arm learns to compose at least as well as off, per-token no better) is
+easy to state but the val-loss-matching gate that currently makes the
+arms comparable (§7.2) was established on the ORIGINAL pretraining
+objective, at the ORIGINAL corpus mix — not on a mix that now includes
+BIND/QUERY episodes. **The attack round this design owes before build must
+resolve, at minimum:** (a) whether val-loss (or an equivalent matching
+criterion) needs to be RE-established on the new mix before any
+arm-contrast is trusted, since a differential in how fast each arm's loss
+converges under the NEW data could itself be the causal story, confounding
+"stabilized geometry helps learning" with "stabilized geometry changes
+optimization dynamics on this specific new objective" (the same rival
+account Okpekpe & Orvieto raise for MQAR, §2.1, re-appearing here in a
+training-dynamics form); (b) whether the familiarization fraction is small
+enough that this remains "continue training an LM that also sees some
+task examples" rather than "train a new task-specific model with LM
+pretraining as an initialization" — a framing distinction that changes
+which literature this design should be positioned against; (c) whether
+holding the frozen-bias table's λ fixed during familiarization (rather
+than letting it also adapt) is the right choice, or whether a fixed λ
+under a NEW data distribution silently becomes a worse blend than what
+would have been tuned for this objective, artificially handicapping the
+intervention arms relative to `off`.
+
+#### 16.2.3 Cost
+
+**~5-15 GPU-h (task's own registered estimate; a firm number requires its
+own costed design pass, not re-derived here since no build exists yet).**
+Sanity context: this is materially more expensive than Path (i)'s
+eval-only ~0.4 GPU-h (continued TRAINING, not a forward-only probe) but a
+small fraction of Phase 1's own registered ≈24.20 GPU-h ceiling (§10) or
+Path (iii)'s ≈21 GPU-h mandatory grid (§16.3) — 18 checkpoints × a modest
+step budget × forward+backward at 14M-98M-class model sizes (Leg A's
+checkpoints, §5.1) is the right order of magnitude for a single-digit-to-
+low-double-digit GPU-h figure, consistent with the task's own bracket.
+
+#### 16.2.4 Gate before build
+
+Per this project's own waterfall discipline (`CLAUDE.md`), Path (ii) needs
+a dedicated attack round (fresh-eyes agent, minimum the standing 5-6
+questions, addressing at minimum §16.2.2's three items) BEFORE any build —
+this is registered here as a hard prerequisite, not a suggestion, and can
+run zero-GPU/zero-wall-clock-blocking, concurrently with Path (i) or Path
+(iii)'s own execution (§16.6).
+
+---
+
+### 16.3 PATH (iii) — un-park the scaling wave (`KEY_ANCHORING_SCALING_DRAFT.md` §15)
+
+**What it tests.** `x0(d)` invariance — whether the located d=64 capacity
+cliff (`x0=0.5455`, CI `[0.5385,0.5513]`) holds as a fixed `K/d_state`
+ratio at `d∈{80,96}`, extending the already-closed d=128 dissolution
+result (§4/`KEY_ANCHORING_DESIGN.md` §12) one step further along the
+capacity-law's own generalization axis. **This is orthogonal to
+REASONING-LINK entirely** — it runs on the proven `run_deltanet_rd_
+exactness_sweep.py` harness, on models TRAINED on the exact BIND/QUERY
+task (the capacity-law lineage's own convention throughout), and answers
+a capacity-law-paper-track question, not the keystone question this
+document's §2 opens with.
+
+**Prerequisite build gaps — both already identified, both zero-GPU,
+neither blocking the other paths (`KEY_ANCHORING_SCALING_DRAFT.md`
+§15.18):**
+- **FATAL-1:** `keyanchor_dstate_manifest()`/`_gate1_manifest()`/
+  `_calibration_manifest()` hardcode seed dicts keyed to
+  `K∈{68,76,84,92}` (`run_deltanet_rd_exactness_sweep.py:1888-1895`) —
+  calling at the new K grids raises `KeyError` immediately. Fix: thread
+  `seeds_by_k`/`gate1_seed_by_k` parameters through, or build fresh
+  `keyanchor_scaling_*` manifests.
+- **MAJOR-3:** `smoke_key_anchoring.py` has no `--d-state` flag and
+  hardcodes `d∈{64,128}`. Fix: a new `smoke_keyanchor_scaling.py`, per the
+  `smoke_keyanchor_cliff.py`/`smoke_keyanchor_dstate.py` naming
+  convention already established.
+- **FATAL-2 (kernel-safety gate) is ALREADY RESOLVED, not outstanding.**
+  The re-run at the full registered `T∈{128,224,448}` protocol confirms
+  d=80/96 PASS forward+backward with finite grads at every T (artifact
+  `deltanet_rd/results/smoke_dstate_kernel_result.json`, committed); d=32
+  reproduces its historical crash exactly at T=128, confirming the
+  original T=256-only smoke was a false negative. Nothing further is
+  needed here before launch.
+
+Both remaining gaps are ordinary implementation work — per `CLAUDE.md`'s
+Build→Audit workflow, they still need a build pass AND a separate-agent
+audit before launch, not a "just patch it and go" shortcut (§16.6 makes
+this an explicit sequencing step, not an assumption).
+
+**Cost.** §15.12's own budget table: **≈21 GPU-h (20.956) mandatory-only,
+at the pessimistic 2× contingency bracket** — 30 cells (12 d=80 grid + 12
+d=96 grid + 6 mandatory low-K anchor cells), the load-bearing go/no-go
+number. Realized-rate expectation (not the go/no-go figure) is
+substantially lower: this program's own historical realized/ceiling ratios
+have run 13.6%-87.0% (median well under 50%, §15.12), putting mandatory-
+only-at-1× (≈10.5 GPU-h) as the reasonable single best guess. All-in worst
+case (every optional Gate-1 probe and seed-contingency cell firing) is
+≈36.7 GPU-h at 2×.
+
+**Time-to-signal.** 30 mandatory cells across 6 idle GPUs (2-7, confirmed
+free per `STATE.md`'s current snapshot) run in `ceil(30/6)=5` parallel
+rounds at ≈1250-1550s/cell ≈ **2.2 hours** wall-clock; even the full
+60-cell worst case completes in ≈4.3 hours. This is the fastest
+time-to-signal of any of the three paths by a wide margin.
+
+**Failure modes.** Structurally low-risk in the "wasted GPU-h" sense: per
+§15.18's own Q4 adjudication, CONFIRM (the CI overlapping the pre-
+registered `[0.4745, 0.6165]` band) is the strongly expected outcome given
+§14's own coherence-exoneration headroom (doses to 0.40 flat, well above
+d=64's own realized 0.098-0.200 coherence) — but a REFUTE or DIRECTIONAL-
+DRIFT reading would itself be a real, informative capacity-law finding
+(the ratio law breaks down beyond d=64), not a null result in the sense of
+"nothing was learned." **What this path's own null would mean:** a
+disconfirmed or drifting `x0(d)` invariance is a genuine revision to the
+capacity-law paper track's own generality claim — independent of and
+non-competing with anything REASONING-LINK concludes.
+
+**Why "orthogonal + idle GPUs = run it now" needs one qualification.**
+The uptime-metered-box discipline (`CLAUDE.md`/MEMORY: "saturate, GPUs
+hot forever") correctly argues against leaving GPUs 2-7 idle while Path
+(i)'s tiny gate check and Path (ii)'s attack round occupy essentially no
+GPU time at all. But "now" should mean **"as soon as FATAL-1 and MAJOR-3
+are fixed and independently audited"**, not literally immediately — this
+project's own Build→Audit rule applies to a 2-item manifest-plumbing fix
+exactly as much as it applies to a novel architecture; skipping the audit
+step because the fix is "small" is precisely the kind of shortcut
+`CLAUDE.md`'s own standing rules exist to prevent. The fix-then-audit
+cycle is itself cheap and zero-GPU, so this qualification costs no real
+calendar time against the "saturate now" framing — it just names the
+actual next concrete action correctly.
+
+---
+
+### 16.4 Costs table — all three paths, side by side
+
+| Path | GPU cost | Wall-clock (idle GPUs) | Build prerequisites | Engages the keystone (h≥2 composition)? | What a null tells you |
+|---|---|---|---|---|---|
+| (i) Stage-0-gate-only | ~0.01 GPU-h | minutes | New episode-render templates (Candidates A/B), reuse existing pool — zero new Stage −1 verification for A, one small addition for B | No — even a pass only licenses h=1 as primary | Failure isolates the blocker as NOT surface-form (premise-iv-style representational gap), mechanically promoting Path (ii) |
+| (i) Full Phase-1b grid (conditional) | ~0.4 GPU-h | ~1 hour | Same as above, gated on the Stage-0 pass | No — h=1-primary result at best, h≥2 stays exploratory | A clean h1 pass with h≥2 still floor is itself informative (READOUT-FORM-INVALID-style, per §12's own existing outcome) |
+| (ii) Phase-2 familiarization | ~5-15 GPU-h | hours-to-a-day (training, not eval-only) | Dedicated attack round (mandatory, zero-GPU) resolving §16.2.2's 3 confound items; train/eval split design (currently absent) | **Yes — the only path that can** | A clean negative here (no arm separation even after task exposure) would be the program's most severe finding: not even LEARNED in-context binding differentiates the arms |
+| (iii) Scaling wave, mandatory grid | ~21 GPU-h (2×); ~10.5 GPU-h realized-rate expectation | ~2.2 hours (30 cells / 6 GPUs) | FATAL-1 (manifest KeyError) + MAJOR-3 (missing `--d-state` smoke) — both zero-GPU, need build + audit | No — orthogonal, capacity-law-paper-track question | REFUTE/DIRECTIONAL-DRIFT revises the capacity law's own generality claim, unrelated to REASONING-LINK |
+
+---
+
+### 16.5 Design-level constraints inherited from the two Phase-1 LEARNs
+
+**Constraint 1 — every gate needs a chain enforcement branch (gates-must-
+abort).** §15.2's discrepancy and its paired `[LEARN]` (`EXPERIMENT_LOG.md`,
+Phase-1 entry): `reasoning_link_chain.sh` computed `gate_result_
+h1_probe_valid` into Stage 0's JSON but never read it back to decide
+whether to proceed — only the unrelated wall-clock cost check was wired as
+a real abort. **Registered as a hard design requirement for every chain
+script built under this section, not merely a lesson to remember:** any
+Phase-1b or Phase-2 launch script must implement an explicit `if`/`case`
+abort branch for EVERY registered "must not launch on failure" gate
+(Phase-1b: the h1 null-relative pass, the h1 absolute-0.10 backstop, and
+premises (iii)/(iv)'s own action-rule checks, all already defined in §8.4/
+§4.4 and now doubly load-bearing since Phase-1b's whole point is to
+re-evaluate them; Phase-2: an equivalent go/no-go on whatever
+familiarization-stage validity check the attack round in §16.2.4
+registers), and each such branch must be verified by a **deliberate
+negative test** — force the gate to fail, confirm the chain actually
+halts — before the chain is trusted for an unattended run. A gate computed
+but not enforced is not a passed gate, per this same finding.
+
+**Constraint 2 — instrument-vs-distribution matching is a Stage −1 design
+question, never an assumption (the zero-shot-OOD-floor lesson).** §15.9
+item 3 measured, after the fact, that Option 1's `cos_mean` sits in
+`[-0.33,0.25]` across the whole grid — making the inherited `|cos|≥0.9`
+threshold (imported unchanged from the task-TRAINED `KEY_ANCHORING`
+lineage, where h1=1.0 is routinely achievable) a >10σ event for this
+never-task-trained checkpoint family, "consistent with... a
+threshold/mechanism mismatch" that was never checked before the full grid
+ran. §16.1's own wikitext-bigram grep (§16.1.1) exists precisely because
+this project already paid for the "assumed transfer instead of measured
+transfer" mistake once and should not pay for a second instance of the
+same shape. **Registered as a standing Stage −1 requirement for both
+remaining paths:** before either Phase-1b or Phase-2 commits to a
+threshold, a template, or a data-mix ratio, that choice must be measured
+against the ACTUAL target distribution (the real corpus's own n-gram
+statistics for a surface-form choice; the real checkpoint family's own
+output/activation distribution for a threshold choice — e.g. Phase-2's own
+new familiarization objective may warrant re-deriving the h1 floor's null
+band rather than assuming §8.4's original marker-template-derived band
+still applies), never assumed to transfer from a differently-distributed
+regime (task-trained → never-task-trained, or marker-vocabulary →
+natural-corpus-vocabulary) by analogy alone.
+
+---
+
+### 16.6 Recommended sequencing — decision tree with mechanical triggers
+
+**The orchestrator's prior, stress-tested (four refinements below), then
+adopted with those refinements folded in:**
+
+1. **Fix Path (iii)'s two build gaps NOW, build + independently audit them
+   (zero-GPU, can start immediately, does not wait on anything else).**
+   Refinement over the naive "just patch and launch" reading: the audit
+   step is not optional just because the fix is small (§16.3's own
+   qualification) — but since both fixes are zero-GPU, this costs no real
+   calendar time against the "saturate idle GPUs" goal.
+2. **Launch Path (iii)'s mandatory 30-cell grid on GPUs 2-7 as soon as (1)
+   clears audit — fully parallel with everything below, gated on nothing
+   from Path (i) or (ii).** Reports out in ≈2.2 hours; feeds the capacity-
+   law paper track independent of REASONING-LINK's own outcome.
+3. **Build Path (i)'s Stage-0-gate-only check (Candidates A and B, wikitext-
+   mix-ext control-arm cell as PRIMARY, openr1-mix-ext control-arm cell as
+   a named expected-null contrast — §16.1.2's own correction of the naive
+   "reuse Phase 1's Stage-0 cell" plan), run it (~0.01-0.02 GPU-h,
+   effectively free, can run on any spare GPU including one of 2-7 before
+   or interleaved with Path (iii)'s own cells).**
+4. **Concurrently, start Path (ii)'s attack round (zero-GPU, does not need
+   to wait for Path (i)'s readout — the attack round critiques Phase-2's
+   OWN recipe design, §16.2.2's three confound items, independent of
+   whether Phase-1b's gate passes).** Refinement over the naive "decide
+   (ii) only after (i) reads out" framing: only the FINAL RECIPE PINNING
+   and BUILD of Path (ii) should wait for Path (i)'s result (since a
+   successful Phase-1b template is the natural candidate for Phase-2's own
+   familiarization surface form, §16.2.1) — the critique itself can and
+   should start now, in parallel, so no calendar time is lost to a
+   dependency that doesn't actually exist.
+5. **At Path (i)'s Stage-0 gate readout, branch mechanically:**
+   - **PASS on the wikitext-cell (either candidate), openr1-cell stays a
+     null as expected →** launch the full Phase-1b grid (~0.4 GPU-h,
+     ~1 hour). This is cheap enough to just run, not worth a second gate.
+     On the full-grid result: report h1 as the primary confirmatory result
+     if it clears the grid-wide gate, h≥2 as exploratory-only per §16.1.4's
+     own honest-plausibility verdict — **explicitly do not read a Phase-1b
+     h1 pass as answering the keystone.** Fold the validated template into
+     Path (ii)'s recipe (§16.2.1) once its attack round (started in step 4)
+     has also concluded, then build+audit+launch Phase-2.
+   - **PASS on the wikitext-cell but the openr1-cell ALSO passes →** flag
+     the confound named in §16.1.3 item 2b before trusting the wikitext
+     result; audit before running the full grid.
+   - **FAIL on both candidates, at the wikitext-cell specifically →** per
+     §16.1.3 item 1, this mechanically promotes Path (ii) to the sole
+     remaining instrument that can engage the keystone. Do not build the
+     full Phase-1b grid (nothing left to gain from it once the
+     Stage-0-gate-only check has already answered "was it the format" with
+     "no"). Move directly to finalizing and launching Path (ii) (whose
+     attack round has been running in parallel since step 4, per the
+     stress-tested refinement) — gauntleted next in the queue.
+6. **Path (iii) reports out independently on its own ≈2.2-4.3 hour
+   timeline throughout, feeding the capacity-law paper track whenever it
+   completes — never gated on, and never gating, steps 3-5 above.**
+
+**Mechanical trigger summary:**
+
+| Trigger | Action |
+|---|---|
+| FATAL-1 + MAJOR-3 fixed and audited | Launch Path (iii)'s 30-cell grid immediately |
+| Path (i) Stage-0 gate: wikitext-cell PASS, openr1-cell null as expected | Launch Path (i)'s full grid |
+| Path (i) Stage-0 gate: wikitext-cell PASS, openr1-cell ALSO passes | Audit for a confound before trusting either reading |
+| Path (i) Stage-0 gate: wikitext-cell FAIL (both candidates) | Skip Path (i)'s full grid; finalize + build + launch Path (ii) |
+| Path (i) full grid: h1 clears, h≥2 stays floor | Report h1 as primary/confirmatory, h≥2 as exploratory (per §12's existing READOUT-FORM-INVALID-adjacent framing); still route to Path (ii) for the keystone itself |
+| Path (ii) attack round complete | Fold in Path (i)'s validated template (if any) → build → audit → launch, independent of Path (iii)'s own status |
+| Path (iii) grid complete (any outcome) | Report to the capacity-law paper track; does not change anything in this decision tree |
