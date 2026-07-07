@@ -289,7 +289,12 @@ for rung in 0 1 2 3; do
   # never reaches the overflow region at batch 16, and Stage 0 already
   # passed at batch 16. Mirrors the training sweep's own per-rung batch
   # precedent (BATCH_SIZE_BY_RUNG in run_lm_rd_trackc_sweep.py).
-  if [ "$rung" = "3" ]; then cell_batch=4; else cell_batch=16; fi
+  # LAUNCH FIX 7 (2026-07-07, run 7): rung 2 (392M, dm1536/L16) OOMs at
+  # batch 16 -- the combined forward-B FFN intermediate is 2*16*64 rows x
+  # T512 x 4*dm1536 x 4B = 24.0 GiB in one op. batch 8 halves it to 12 GiB
+  # (fits alongside the ~1.5GB weights) and its flat-rows x dm = 805M stays
+  # far under the int32 offset line. Same per-rung principle as fix 5.
+  if [ "$rung" = "3" ]; then cell_batch=4; elif [ "$rung" = "2" ]; then cell_batch=8; else cell_batch=16; fi
   for corpus in "${LEG_B_CORPORA[@]}"; do
     for seed in "${seeds[@]}"; do
       out="results/reasoning_link/leg_b_rung${rung}_${corpus}_s${seed}_k${k}.json"
