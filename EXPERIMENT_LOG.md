@@ -5361,3 +5361,101 @@ exact scripts byte-verified zero-drift against both box and repo, ~99MB,
 all files ≤25MB) + SSD mirror (full parity, `diff -rq` clean).
 `STATE.md` updated (new top-of-file harvest snapshot + IMMEDIATE QUEUE
 item 1(a) corrected from PARKED to CONCLUDED).
+
+---
+
+## REASONING-LINK PHASE-1B GATE-TEST NULL (2026-07-07): both natural-language candidates PROBE-INVALID on the licensing wikitext cell, identical failure to Phase 1's marker template — mechanically promotes Path (ii)/Phase-2, gate enforcement REFUSED the full grid as designed
+
+Phase-1b's Stage-0-gate-only check (`REASONING_LINK_DESIGN.md` §16.1.2,
+~0.01 GPU-h registered) re-ran Stage 0's single-cell calibration on two
+natural-language surface-form candidates — Candidate A (existing
+gift-verb bind clauses, the OOD reserved query marker DROPPED entirely)
+and Candidate B (succession-family verbs `succeeded`/`replaced`, an
+order of magnitude more common in the project's own wikitext corpus,
+§16.1.1's own grep) — on BOTH the licensing wikitext-mix-ext control-arm
+checkpoint and the openr1-mix-ext "expected-null" contrast checkpoint (4
+cells total). `reasoning_link_phase1b_stage0_chain.sh` ran clean in a
+single launch (`phase1b_run1.log`, no crashes, no resumes) — 19 Stage −1
+self-test items (all PASS, 53.5s CPU, includes 4 new items for the
+natural-template build plus a subprocess-level negative test proving the
+new gate-enforcement script has teeth) → 4 GPU-attached gate cells → gate
+enforcement.
+
+**Per-cell gate table, verified from the 4 raw JSONs (all fields
+present, internally consistent with the console log's own matching
+numbers):**
+
+| Template | Corpus | `recovered_frac`(h1) | `gate_result_h1_probe_valid` | premise (iii) median / null p95 | premise (iv) median / null p95 | `forward_counts` |
+|---|---|---|---|---|---|---|
+| A (gift-verb, marker dropped) | wikitext (licensing) | 0.0 | **False** | -0.5092 / -0.3637 | 0.1174 / 0.2028 | 1/1 |
+| A (gift-verb, marker dropped) | openr1 (expected-null) | 0.0 | **False** | 0.3540 / 0.4492 | 0.0139 / 0.1424 | 1/1 |
+| B (succession) | wikitext (licensing) | 0.0 | **False** | -0.5288 / -0.4652 | 0.0250 / 0.1075 | 1/1 |
+| B (succession) | openr1 (expected-null) | 0.0 | **False** | 0.3246 / 0.4398 | 0.0320 / 0.0907 | 1/1 |
+
+All 4 cells fail the absolute h=1 floor (0.10) and the null-relative
+condition by the maximum possible margin (`recovered_frac=0.0`,
+`null=[0.0,0.0]`), and both premise (iii)/(iv) action-rule gates
+identically to Phase 1's marker-template harvest (§15.1, 0/78 cells).
+**No §16.1.3 item 2b confound flag fires** — the openr1 "expected-null"
+cells did NOT clear either template's gate, exactly as predicted, so
+there is no ambiguity to audit before trusting the wikitext reading.
+
+**Verdict, §16.8 of `REASONING_LINK_DESIGN.md`: gate null, format
+exonerated.** Per §16.1.3 item 1's own pre-registered reading — two
+structurally different templates (one, B, with an order-of-magnitude
+stronger wikitext precedent than the original marker template ever had)
+failing on the SAME licensing checkpoint, the SAME way, is the single
+most informative possible outcome: the failure is NOT attributable to
+surface form. This reinforces §16.0 point 2's diagnosis (premise (iv)
+failing harder than premise (iii) — `k_eff`/`v_eff`, two projections of
+the same token from the same forward pass, are nearly uncorrelated in
+this checkpoint family) as a deeper representational fact no zero-shot
+prompt redesign can route around. **This mechanically promotes Path
+(ii)/Phase-2 per §16.6's own trigger table** (row 4: wikitext-cell FAIL
+on both candidates → skip Path (i)'s full grid, finalize + build + launch
+Path (ii)). The conditional ≈0.4 GPU-h full Phase-1b grid was correctly
+NOT launched — nothing left to gain from it once the format question was
+already answered "no."
+
+**Gate enforcement worked — direct fix of Phase 1's own §15.2/[LEARN]
+discrepancy.** `reasoning_link_gate_enforce.py`, built specifically to
+close the gap where Phase 1's chain computed `gate_result_h1_probe_valid`
+but never read it back (§15.2, ≈0.29 GPU-h spent running an
+already-invalid probe to completion), read the REAL exit code on both
+wikitext cells, printed `REFUSE:` for both candidates, wrote
+`STAGE0_GATE_REFUSED`, and exited nonzero — no full-grid launch was
+attempted. First real-failure exercise of that fix, working as designed.
+
+**Realized GPU-h (box `stat` birth/mtime, UTC, single GPU device 3):**
+the 4 GPU-attached gate cells span 20:21:23.477→20:21:55.331 = 31.85s ≈
+**0.0088 GPU-h** (matches the §16.1.2 pre-registered "~0.01 GPU-h"
+estimate almost exactly); full single-launch wall-clock including the
+CPU-only Stage −1 self-tests and gate-enforcement overhead
+(`phase1b_run1.log` birth 20:20:28.223 → last write 20:21:56.258) =
+88.04s ≈ **0.0244 GPU-h**, still inside the same pre-registered bracket.
+One clean run, zero crashes, zero resumes — contrast with Phase 1's own 3
+resume-safe launches after 5 build-time crashes. Against the ≈24.20
+GPU-h Phase-1 ceiling (§10, shared budget line): ≈0.1% this pass, ≈1.3%
+cumulative with Phase 1's own ≈1.2%.
+
+**Discrepancy, disclosed:** the task brief's assumed archive path
+`results/reasoning_link/` does not match the box's actual path,
+`results/reasoning_link_phase1b/` (a sibling directory to Phase 1's own
+`results/reasoning_link/`, not a subpath) — pulled from, and archived
+under, the real path. The box's copy of
+`reasoning_link_phase1b_stage0_chain.sh` was diffed byte-for-byte against
+the local repo's committed copy: IDENTICAL, zero drift. No other
+discrepancies found between the raw JSONs, the console log, and this
+entry's own numbers.
+
+Archive: `experiment-runs/2026-07-07_phase1b_gate/` (4 raw cell JSONs +
+`STAGE0_GATE_REFUSED` sentinel + 6 log files + the 1 exact chain script,
+~120KB, all files ≤25MB) + SSD mirror (byte-identical, `diff -rq`
+confirmed). Design-doc results: `REASONING_LINK_DESIGN.md` §16.8 (§16.8.1
+gate table, §16.8.2 reading, §16.8.3 mechanical promotion, §16.8.4 gate-
+enforcement contrast, §16.8.5 GPU-h, §16.8.6 discrepancies, §16.8.7 next
+steps). Next: Phase-2 (§16.2, Rev 1 landed, §16.7 fix-map) needs its own
+fresh independent second audit pass (§16.2.4's registered prerequisite,
+this project's standing multiple-independent-audit-rounds rule) before
+build — zero-GPU, can start immediately, concurrent with Path (iii)'s own
+independent timeline.

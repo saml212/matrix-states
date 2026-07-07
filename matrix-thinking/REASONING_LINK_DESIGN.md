@@ -4636,3 +4636,188 @@ audit pass** (§16.2.4) — per this project's standing rule that multiple
 independent adversarial rounds catch different bugs each round, this
 revision should not be read as a certification that Phase-2 is
 build-ready, only that attack-round-1's own findings are now landed.
+
+---
+
+### 16.8 PHASE-1B RESULT — gate null, format exonerated (2026-07-07)
+
+**HEADLINE: Phase-1b's Stage-0-gate-only check (§16.1.2) REFUSED to
+launch — both natural-language candidates (Candidate A, gift-verb bind
+clauses with the reserved query marker dropped entirely; Candidate B,
+succession-family verbs, an order of magnitude more common in the
+project's own wikitext corpus per §16.1.1's own grep) return
+`PROBE-INVALID` on the licensing WIKITEXT-mix-ext control-arm cell,
+identically to §15's marker-template result. The OPENR1-mix-ext
+"expected-null" contrast cells (§16.1.2/§16.1.3 item 2b) also fail, as
+predicted — no confound flag fires. Per §16.1.3 item 1, four structurally
+different cells (2 templates × 2 corpora) failing the SAME way is the
+single most informative null this instrument can produce: the failure is
+NOT attributable to surface form, and this mechanically promotes Path
+(ii)/Phase-2 per §16.6's decision tree. The chain's own gate-enforcement
+code (`reasoning_link_gate_enforce.py`, built specifically to close §15.2's
+DISCREPANCY finding) worked exactly as designed — it read the real gate
+result and refused to launch the full 78-cell grid, writing
+`STAGE0_GATE_REFUSED` and exiting nonzero — a direct, verified fix of the
+gap that let Phase 1 burn ≈0.29 GPU-h running a probe its own Stage-0
+already knew was invalid. Realized cost: ≈0.0088 GPU-h of actual GPU time
+(four gate cells), ≈0.024 GPU-h total single-launch wall-clock including
+CPU-only Stage −1 self-tests — both consistent with §16.1.2's own
+"~0.01 GPU-h" pre-registered estimate, no launch fixes or crashes needed
+(`phase1b_run1.log`, the only run).
+
+#### 16.8.1 Per-cell gate table (all 4 cells, unblinded, reproduced directly from the raw JSONs)
+
+| Template | Corpus | Role | `recovered_frac`(h1) | null-relative pass | absolute (≥0.10) pass | `gate_result_h1_probe_valid` | premise (iii) median / null p95 / pass | premise (iv) median / null p95 / pass | `forward_counts` a/b | `state_condition_number_mean` |
+|---|---|---|---|---|---|---|---|---|---|---|
+| A (gift-verb, marker dropped) | wikitext-mix-ext | **licensing** | 0.0 | False | False | **False** | -0.5092 / -0.3637 / **False** | 0.1174 / 0.2028 / **False** | 1/1 | 272,778.7 |
+| A (gift-verb, marker dropped) | openr1-mix-ext | expected-null | 0.0 | False | False | **False** | 0.3540 / 0.4492 / **False** | 0.0139 / 0.1424 / **False** | 1/1 | 51,093.7 |
+| B (succession) | wikitext-mix-ext | **licensing** | 0.0 | False | False | **False** | -0.5288 / -0.4652 / **False** | 0.0250 / 0.1075 / **False** | 1/1 | 886,249.9 |
+| B (succession) | openr1-mix-ext | expected-null | 0.0 | False | False | **False** | 0.3246 / 0.4398 / **False** | 0.0320 / 0.0907 / **False** | 1/1 | 74,407.1 |
+
+Every cell: `recovered_frac`(h1) exactly `0.0`, `null=[0.0,0.0]` (zero
+width — nothing to be relative to), causality check `max_abs_diff=0.0`
+(forward-A/forward-B agree, `pass=true`), `marker_disagreement_flag=null`
+(no marker exists in the natural-completion query window at all — moot by
+construction, §16.1.1's own point). h≥2 rows are identical to h1's premise
+readings within each cell (premises are computed once per cell, shared
+across h, `measure_cell_all_h` convention, same as §15.1). Template B's
+verb pool (`succeeded`→14131, `replaced`→6928) verified single-token,
+non-colliding under the real GPT-2 tokenizer at Stage −1 item 15
+(`phase1b_run1.log` line 20) before any cell ran — the new Stage −1
+build item §16.1.1 disclosed as required for Candidate B landed clean.
+
+**Wikitext-primary vs. openr1-contrast reading.** The licensing cells
+(wikitext, the register with an actual natural-template referent) and the
+expected-null cells (openr1, step-by-step math derivation text with no
+"Name verb Name" precedent) fail by the **same margin structure** —
+premise (iii) misses its null p95 by a comparable gap in both corpora
+(≈0.15 abs at wikitext, ≈0.10-0.12 abs at openr1), premise (iv) clears
+nowhere. Neither corpus shows a directional hint that wikitext-native
+phrasing helps even partially. **No §16.1.3 item 2b confound flag fires**
+— openr1 did NOT clear where wikitext also did not clear, so this is
+clean "expected-null behaved as expected" (`phase1b_run1.log`'s own
+per-candidate printout), not the ambiguous "openr1 also passes" case that
+would have required an audit before trusting the result.
+
+#### 16.8.2 Reading — §16.1.3 item 1, the most informative null
+
+This is not a marginal miss. `premise_iii_pass` and `premise_iv_pass` are
+`False` at all 4 cells, `gate_result_h1_probe_valid` is `False` at all 4
+cells, and the absolute h=1 floor (§8.4, ≥0.10) is missed by the maximum
+possible margin (`0.0`) everywhere — the exact same categorical-failure
+shape §15.1 found for the marker template (0/78 cells, 0/312 (cell,h)
+readings nonzero). Per §16.0 point 2 (premise (iv) failing harder than
+premise (iii) — `k_eff`/`v_eff`, two projections of the same token
+captured milliseconds apart in the same forward pass, are nearly
+uncorrelated in this checkpoint family), this natural-language pass adds
+direct, fresh evidence for that same diagnosis: dropping the OOD query
+marker (Candidate A) and swapping to a wikitext-native, order-of-magnitude
+more common relation-verb family with genuine compositional semantics
+(Candidate B) — the two structurally different levers §16.1's own
+failure-mode enumeration named — neither one moves the needle. Per
+§16.1.3 item 1's own pre-registered reading: **this reinforces that the
+k/v split itself lacks entity-identity structure in this checkpoint
+family, a fact no zero-shot prompt redesign can route around.**
+
+#### 16.8.3 Mechanical promotion of Phase-2 per §16.6
+
+§16.6's own trigger table, row 4: *"Path (i) Stage-0 gate: wikitext-cell
+FAIL (both candidates) → Skip Path (i)'s full grid; finalize + build +
+launch Path (ii)."* That trigger has now fired for real, not
+hypothetically. Per §16.1.2's own registration, the conditional ≈0.4
+GPU-h full Phase-1b grid is **not launched** — there is nothing left to
+gain from it once the Stage-0-gate-only check has already answered "was
+it the format" with "no" (§16.6 step 5, third bullet). Path (ii) — task
+familiarization (§16.2, Rev 1 landed, §16.7's fix-map: 1 FATAL, 6 MAJOR, 1
+MINOR, all fixed) — is now the sole remaining instrument that can engage
+the REASONING-LINK keystone question. Path (ii)'s own recipe-pinning step
+(§16.2.1, "fold in the validated template if any") has no template to
+fold in from this null — Path (ii) proceeds with its own registered
+fallback, the original marker template (§16.2.1's own disclosed
+contingency), since neither Candidate A nor B cleared a gate to supersede
+it.
+
+#### 16.8.4 Gate enforcement worked — contrast with Phase 1's §15.2 discrepancy
+
+Phase 1's own chain (`reasoning_link_chain.sh`) computed
+`gate_result_h1_probe_valid` at Stage 0 but never read it — the h1-floor
+failure that should have halted the chain before Stage 1 instead let all
+78 cells run to completion on an already-invalid probe (§15.2,
+`≈0.29 GPU-h` spent past the gate). Phase-1b's chain
+(`reasoning_link_phase1b_stage0_chain.sh`) was built specifically to close
+that gap (script header, "GATE ENFORCEMENT" block): it calls
+`reasoning_link_gate_enforce.py` on each wikitext cell's own JSON and acts
+on its REAL subprocess exit code inside an explicit `if` guard (not
+`set -e`'s default hard-stop, so BOTH candidates get a mechanical verdict
+before the script decides anything, deliberately preserving the
+"both fail identically" observation intact). Per `phase1b_run1.log`
+lines 722-734: both `REFUSE:` lines printed, `STAGE0_GATE_REFUSED`
+written, script exited nonzero, no full-grid launch attempted. This is
+the first run of this design in which the registered gate had teeth at
+the process boundary and those teeth were actually exercised on a real
+failing result — the negative test at Stage −1 item confirmed the
+enforcement script's own exit codes under the 3 negative fixtures
+PLUS a subprocess-level proof (`phase1b_run1.log` line 26) before any
+real cell ran.
+
+#### 16.8.5 Realized GPU-h (box timestamps, UTC, `stat` birth/mtime, single GPU device 3)
+
+| Segment | Start (UTC) | End (UTC) | Duration | GPU-attached? |
+|---|---|---|---|---|
+| Stage −1 self-tests (19 items) | 20:20:28.226 | 20:21:23.125 | 54.9s (53.5s per the script's own internal timer) | No — `CUDA_VISIBLE_DEVICES=` forced, CPU stub |
+| 4 stage0-natural gate cells (A/wikitext → A/openr1 → B/wikitext → B/openr1) | 20:21:23.477 | 20:21:55.331 | 31.85s | Yes — `CUDA_VISIBLE_DEVICES=3` |
+| Gate enforcement + `STAGE0_GATE_REFUSED` write | 20:21:55.331 | 20:21:56.258 | 0.93s | No — pure Python, subprocess exit-code read |
+| **Single-launch wall-clock** (`phase1b_run1.log` birth → last write) | 20:20:28.223 | 20:21:56.258 | **88.04s ≈ 0.02445 GPU-h** | mixed |
+
+**Realized GPU-device time (the 4 gate cells alone): ≈0.0088 GPU-h** —
+matches this task's own pre-stated "~0.01 GPU-h realized" and §16.1.2's
+own pre-registered estimate (which itself folds in the CPU-only Stage −1
+re-verification and build/debug margin as a conservative envelope, so the
+full 0.024 GPU-h single-launch figure is also inside that same
+pre-registered ~0.01-0.02 GPU-h bracket, §16.6 step 3). One clean run,
+`phase1b_run1.log`, no resume-safe relaunches and no build-time crashes —
+a direct contrast with Phase 1's own 3 resume-safe launches after 5
+build-time crashes (§15.7). Against the ≈24.20 GPU-h Phase-1 ceiling
+(§10, this Stage-0-gate-only check drawing from the same budget line),
+Phase-1b's realized cost is ≈0.1% of ceiling on top of Phase 1's own
+≈1.2%, ≈1.3% cumulative utilization of the program's Phase-1 GPU budget
+across both harvests.
+
+#### 16.8.6 Discrepancies, disclosed prominently
+
+1. **File location.** The task brief named `results/reasoning_link/` for
+   the 4 stage0-natural JSONs; the box's actual path (and this design's
+   own §16.1.2/chain-script convention) is
+   `results/reasoning_link_phase1b/` — a sibling directory to Phase 1's
+   own `results/reasoning_link/`, not a subpath of it. Pulled from, and
+   archived under, the box's real path; noted here rather than silently
+   renamed to match the brief.
+2. **No git repo on the box path.** `/home/nvidia/chapter2/deltanet_rd`
+   on `youthful-indigo-turkey` is a plain deployed directory (scp/rsync
+   target), not a git checkout (`git log` → "fatal: not a git
+   repository") — unlike this local repo. §15.7's commit-hash-range
+   convention for identifying which fixes were live during a harvest
+   does not carry over to this pull; the local working copy of
+   `reasoning_link_phase1b_stage0_chain.sh` was diffed byte-for-byte
+   against the box's executed copy and is IDENTICAL (no drift), so the
+   committed script here is confirmed to be exactly what ran.
+3. **No other discrepancies found.** `STAGE0_GATE_REFUSED` exists and is
+   the expected 0-byte sentinel (a `touch`, per the chain script's own
+   Step 3); all 4 JSONs' `design_ref` fields correctly cite "Rev 6
+   (2026-07-07, CLEARED-FOR-BUILD)"; every gate field required by the
+   task brief (h1 floor fail, premise iii/iv medians vs. nulls,
+   `forward_counts`) was present and internally consistent across all 4
+   raw JSONs and the console log's own (matching) numbers.
+
+#### 16.8.7 Next steps (not self-launched by this harvest, per §15.10's own discipline)
+
+Per §16.6's trigger table (row 4) and §16.2.4's own registered
+prerequisite: Phase-2's Rev 1 (§16.2.1-§16.2.3, fix-map §16.7) needs a
+**fresh, independent second audit pass** — targeting Rev 1 specifically,
+not a re-read of the original sketch — before any build starts (this
+project's standing multiple-independent-audit-rounds rule,
+`CLAUDE.md`). That audit is zero-GPU and can run immediately, concurrently
+with Path (iii)'s own independent timeline (§16.6 step 6, never gated on
+this). Only after that second pass clears (or a further revision addresses
+its findings) does Phase-2 build + get its own independent code audit +
+launch, per this project's standing Build→Audit→Run discipline.
