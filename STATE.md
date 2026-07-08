@@ -99,12 +99,15 @@ params/32,768 bytes exact, ablation 14,047,872 = 0.0073% off, Transformer
 exact, floor 13 live; gate 7 null PASSED all 3 arms at 0.0000; negative
 tests run w/ teeth; 7 limitations precisely flagged incl. CPU-stub-only
 coverage — real-kernel box smoke REGISTERED as deploy-stage gate) →
-**INDEPENDENT BUILD AUDIT RUNNING** (mutation tests: 6 mandated
-mutations must be caught; spec-conformance deep checks on RoPE,
-sink+FIFO off-by-ones, probe-tap recurrence isolation, M* four
-hand-walked cases on synthetic data, aux-loss backbone grad check) →
-fixes → audit verdict RECORDED → deploy closure → box smoke → launch
-rung-1 GPUs 0-6.
+BUILD AUDIT done (§1.20, NEEDS-FIXES): every builder number confirmed
+exact; 6-mutation protocol run (5 caught cleanly, 1 partial — TASK_BASE
+smoke blind for seed_idx∈[12,49], inert); **AUD-F1 substantive: smoke_7's
+joint-training grad claim VACUOUS for the contender (CPU stub zero-state
+kills the aux path; pass was confounded by loss_ce)** → aux-only
+isolation test + box-only registration mandated; AUD-F2/F3 smoke gaps;
+AUD-F4 cosmetic; 8-item binding box-smoke checklist produced (§1.20).
+→ **FIX STAGE ACTIVE** → scoped re-audit → deploy closure → box smoke
+(checklist) → gate-1 calibration → gate-2 pilots → LAUNCH GPUs 0-6.
 
 **CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
 push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)

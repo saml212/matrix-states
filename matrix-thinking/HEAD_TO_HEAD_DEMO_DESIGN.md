@@ -2538,6 +2538,69 @@ NOT pre-authorized).
 
 ---
 
-*(End §1. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 → Rev 3 →
-§1.18 → **§1.19 DESIGN-CLEARED-FOR-BUILD** (4 doc-precision patches
-applied in place). BUILD STAGE ACTIVE.)*
+### 1.20 INDEPENDENT BUILD AUDIT VERDICT (2026-07-08): NEEDS-FIXES (non-blocking for CPU stage; 1 substantive)
+
+Recorded per the gauntlet-bookkeeping hard rule before dispatching the
+fix stage. Build = commits 8d55f17..9480ced (12 files). The audit
+re-ran every suite fresh, confirmed EVERY builder number exactly
+(param/FLOP/bytes/cap-table/floor/eligible-M; gate-7 nulls 0.0000 all
+arms; K-bindings anchors; all four M* synthetic cases; delta_ci_n
+verified paired-per-seed), and ran the 6-mutation protocol on
+scratchpad copies (repo untouched, verified):
+
+| Mutation | Result |
+|---|---|
+| (a) match-gate Pass-2 constant 4→2 | CAUGHT (passes disagree, exit 1) |
+| (b) ablation width drift >1% | CAUGHT (both checks fail) |
+| (c) TASK_BASE spacing collision | **PARTIAL** — caught for seed_idx≤11; smoke blind for seed_idx∈[12,49] (smoke_5 compares a hardcoded 500_000, not the live dict; currently INERT — no call site exceeds seed_idx=11) |
+| (d) sink-retention drop | CAUGHT TWICE (independent checks — real defense-in-depth) |
+| (e) M* walk inverted to ascending | CAUGHT DECISIVELY (4/7 smoke items incl. the LOSE→WIN flip) |
+| (f) corrupted sweep JSON | CAUGHT end-to-end (resume re-executes only corrupted cells) |
+
+**FINDINGS (binding on the fix stage):**
+
+- **AUD-F1 (substantive) — smoke_7's joint-training gradient claim is
+  VACUOUS for the contender arm.** The CPU stub's `final_state =
+  zeros(requires_grad=False)` kills the aux-loss gradient path through
+  the tap (`S @ q_last`), so the aux loss contributes ZERO gradient to
+  every contender backbone param (verified by aux-only isolation:
+  q_proj/k_proj/v_proj/b_proj/embed all grad=0.0); smoke_7's PASS was
+  confounded by loss_ce touching q_proj through the stub's own gate.
+  §1.3.1.3's core premise (probe loss backprops into the BACKBONE) has
+  NO valid test for the contender, CPU or box. Ablation + Transformer
+  arms verified genuinely nonzero. → FIX: aux-loss-only (CE-excluded)
+  gradient-isolation test checking k_proj/v_proj/b_proj (q_proj stays
+  confounded even on real hardware), honest CPU-side split (ablation/
+  transformer provable now; contender registered as a BOX-ONLY deploy
+  gate mirroring smoke_3's discipline).
+- **AUD-F2** — TASK_BASE collision smoke: derive the offset check from
+  the LIVE dict (not the hardcoded 500_000) and extend the exhaustive
+  range to seed_idx<50. Currently inert; fix before any seed-extension
+  beyond n=12 is ever authorized.
+- **AUD-F3** — `gate_extra_width>0` path is 100% untested; add one CPU
+  smoke at a nonzero value (param count exact, forward OK, match-gate
+  fails when it drifts >1%).
+- **AUD-F4 (cosmetic)** — task3 calibration manifest reuses
+  task2_calib's TASK_BASE key without the explanatory comment its
+  sibling has.
+
+**Builder's 7 flagged limitations:** all adjudicated honest/complete;
+none launch-blocking; the disclosed box-only items are correctly
+registered.
+
+**REGISTERED BOX-SMOKE CHECKLIST (deploy stage, binding):** (1) real
+fla/Triton forward+backward+grad smoke for DeltaNetLM; (2) tap-changes-
+with-q on a real nonzero S_T_last; (3) [NEW, AUD-F1] aux-only gradient
+isolation for the contender on real kernels (k/v/b_proj nonzero); (4)
+state-bytes/dtype round-trip = 32,768 fp32 on real kernel; (5) R3-F4
+M-sweep timing pilot before the 90-pass fan-out; (6) gate-2 per-
+arch×task timing pilots; (7) gate-1 full 14-cell 3-arm calibration
+run to completion w/ bands checked; (8) deferred: d=128 diagnostic
+only if escalation authorized.
+
+---
+
+*(End §1. Rev 0 → ... → §1.19 CLEARED → BUILD (9480ced) → **§1.20
+BUILD AUDIT: NEEDS-FIXES** (AUD-F1 vacuous contender grad test;
+AUD-F2/F3 smoke gaps; AUD-F4 cosmetic). FIX STAGE ACTIVE →
+scoped re-audit → deploy.)*
