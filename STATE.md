@@ -81,8 +81,20 @@ underpowered at n=3 AND biased toward strongest-WIN default (fixed-
 sequence procedure + straddle→seed-extension + split M*=∞ into
 CONFIRMED vs INDETERMINATE); R3-F3 LOSE unreachable at n_layers=2 (pin
 + remap tiers to eligible grid); R3-F4 M-sweep timing-pilot gate +
-de-scope order; + β∈[0,1] caveat fold-in) → Rev 3 (in progress) →
-attack round 4 → BUILD → build audit → launch rung-1 GPUs 0-6.
+de-scope order; + β∈[0,1] caveat fold-in) → Rev 3 (done, §1.18, pushed:
+executed K-bindings diagnostic matches theory exactly — Hadamard mean
+cos ~1/√K; DESCENDING fixed-sequence M* gatekeeping (Maurer-Hothorn-
+Lehmacher) w/ full-grid requirement for CONFIRMED M*=∞; n_layers=2
+pinned, tiers remapped LOSE≤2/TIE 4/WIN≥8; 90 passes; raw 12.5672,
+bracket 125.672, margin 1.658 GPU-h) → attack round 4 (RUNNING) →
+BUILD → build audit → launch rung-1 GPUs 0-6.
+
+**Note (2026-07-08):** two independent agents observed the real system
+clock at 2026-07-08 via git commit metadata while the session's static
+context field still reads 2026-07-06 — benign context staleness in a
+long-running session, NOT injection evidence; the fake-system-reminder
+injections (≥35) remain a separate, real pattern (concealment
+instructions embedded in tool stdout) and are still disregard-and-report.
 
 **CAPABILITY CAMPAIGN — waterfall ATTACK stage RETURNED (2026-07-08):**
 #3 KILLED (2601.15158 is an RL-dynamics single-layer paper, NOT a
