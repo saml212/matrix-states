@@ -7457,11 +7457,34 @@ everywhere:** `2.06 × 5 ≈ 10.3 GPU-h` (low) to `2.06 × 10 ≈ 20.6 GPU-h`
 (high) — registered bracket **≈10.3-20.6 GPU-h** (cached, primary; Rev 2
 corrects Rev 1's `≈10.2-20.4 GPU-h` — a rounding-level shift from the
 smoke-line fix above, not from the cache, which by design keeps the
-cached figure unchanged from Rev 1's own 360-pass arithmetic). **Uncached
-contingency, disclosed alongside, never silently dropped:** were the
-OFF-eval cache somehow not wired, the same convention gives
+cached figure unchanged from Rev 1's own 360-pass arithmetic).
+
+**TIMING-PILOT RE-DERIVATION (2026-07-08, PILOT-FORCED — the mandatory
+pre-launch calibration this section itself registered, resolving
+§16.16.11 item 1; disclosed, never silent).** The first launch attempt's
+own timing pilot (box, real kernels, one full eval pass) measured
+**13.7339 s/pass ≈ 0.003815 GPU-h/pass** — 1.73× the assumed 0.0022
+reference — and the chain's enforced budget gate correctly ABORTED the
+launch at a projected 26.37 GPU-h vs the then-registered 20.6 ceiling,
+before any of the 12 cells spent GPU time (realized abort cost ≈0.09
+GPU-h of gates+smoke). Re-derived from the MEASURED rate: evals cached
+`360 × 13.7339s = 4944s ≈ 1.373 GPU-h`; raw total
+`1.234 + 1.373 + 0.03 ≈ 2.64 GPU-h`; bracket
+`2.64 × 5 ≈ 13.2` to `2.64 × 10 ≈ 26.4` — **registered ceiling REPLACED:
+26.4 GPU-h** (chain + off_cache constants updated to match). The
+expected REAL spend is ~2.6 GPU-h; the ceiling is the debug-tax-inclusive
+upper bound, not the plan. This replacement follows the identical
+pilot/audit-forced precedent of §16.2.3's Rev-3 widening — measured
+number, shown arithmetic, named trigger — and is exactly the scenario
+the "not an assumption to build the full 360-pass budget on unverified"
+sentence above pre-registered the pilot to catch. **Uncached
+contingency at the measured rate:** `480 × 13.7339s ≈ 1.831 GPU-h` →
+raw `≈3.10` → `15.5-31.0 GPU-h` — the OFF-eval cache remains mandatory.
+
+**Superseded pre-pilot contingency text (kept for the record):** were the
+OFF-eval cache somehow not wired, the pre-pilot convention gave
 `2.32 × 5 ≈ 11.6 GPU-h` to `2.32 × 10 ≈ 23.2 GPU-h` — modestly above the
-registered ceiling, which is exactly why §16.16.8's OFF-eval cache (above)
+pre-pilot ceiling, which is exactly why §16.16.8's OFF-eval cache (above)
 is a MANDATORY, tested build task for this wave, not an optional
 efficiency nicety; the budget guard (§16.16.9) is re-pinned to the CACHED
 ceiling (`20.6 GPU-h`) on the assumption the cache lands as registered,
@@ -7599,6 +7622,11 @@ having decomposed which of the two components drives the effect.
    eval-`L_query` pass, or does it under-price the null-shuffle-free but
    otherwise-comparable computation (§16.16.8's own disclosed 16×
    alternative)? A build-time timing pilot is registered but has not run.
+   **[RESOLVED 2026-07-08, by the pilot itself: measured 13.7339 s/pass
+   ≈ 0.003815 GPU-h/pass — 1.73× the 0.0022 reference, 9× BELOW the 16×
+   alternative; the chain's budget gate correctly aborted the first
+   launch attempt at the stale ceiling; bracket re-derived and ceiling
+   replaced at 26.4 GPU-h — see §16.16.8's TIMING-PILOT RE-DERIVATION.]**
 2. Is the `σ≈0.43-0.48` between-seed proxy (§16.16.4) actually conservative,
    or could readout (B)'s own between-seed variance be LARGER than
    readout (A)'s for some reason not yet considered (e.g. `Q=K=32` queries

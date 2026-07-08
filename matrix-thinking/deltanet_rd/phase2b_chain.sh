@@ -14,8 +14,9 @@
 # historical record of the Phase-2 OFF-arm run that already happened.
 #
 # BUDGET (sec 16.16.8, Rev 2): raw combined total ~=2.06 GPU-h (cached); debug-tax-inclusive
-# registered bracket ~=10.3-20.6 GPU-h. ABORTS (real process-boundary halt) if projected GPU-h
-# exceeds the registered ceiling (20.6 GPU-h) at any checkpoint between phases, mirroring
+# registered bracket ~=13.2-26.4 GPU-h (sec 16.16.8 TIMING-PILOT RE-DERIVATION 2026-07-08,
+# pilot-forced: measured 13.7339 s/pass). ABORTS (real process-boundary halt) if projected GPU-h
+# exceeds the registered ceiling (26.4 GPU-h) at any checkpoint between phases, mirroring
 # phase2_chain.sh's own budget_check() exactly, PLUS a dedicated pre-launch TIMING PILOT (sec
 # 16.16.11 item 1) that times ONE real eval pass and projects the full 360-pass cost before the
 # OFF-eval cache is even built.
@@ -65,10 +66,10 @@ SHA256_MANIFEST=results/phase2/gates/phase2b_off_ckpts_reuse_manifest.sha256
 OFF_CACHE=results/phase2/off_lquery_cache-Phase2b.json
 FLOOR_PINNED=results/phase2/FLOOR_PINNED-Phase2b.json
 
-# Registered bracket ceiling (sec 16.16.8, Rev 2): ~=10.3-20.6 GPU-h, debug-tax-inclusive, CACHED
+# Registered bracket ceiling (sec 16.16.8, TIMING-PILOT RE-DERIVATION): ~=13.2-26.4 GPU-h, debug-tax-inclusive, CACHED
 # primary figure. This script aborts if PROJECTED GPU-h exceeds the UPPER bound -- never silently
 # runs past it.
-BUDGET_CEILING_GPU_H=20.6
+BUDGET_CEILING_GPU_H=26.4
 
 budget_check() {
   local elapsed_s=$SECONDS

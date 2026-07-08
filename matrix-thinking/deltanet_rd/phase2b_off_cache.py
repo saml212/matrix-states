@@ -72,7 +72,7 @@ N_CACHED_PASSES = 18 * 5 * 2 * 2   # sec 16.16.8's own registered CACHED pass co
 RAW_FIXED_GPU_H = 1.234 + 0.03      # sec 16.16.8's own priced training (1.234) + 3-arm smoke (0.03)
                                      # lines, unaffected by the eval-pass rate this pilot measures
 BUDGET_RAW_CEILING_GPU_H = 2.06     # sec 16.16.8's own raw-total registered figure (heads-up only)
-BUDGET_CEILING_GPU_H = 20.6         # sec 16.16.8's own cached-primary, debug-tax-inclusive ceiling
+BUDGET_CEILING_GPU_H = 26.4         # sec 16.16.8's TIMING-PILOT RE-DERIVATION (2026-07-08): measured 13.7339 s/pass replaced the 0.0022 GPU-h/pass reference; ceiling 20.6 -> 26.4, pilot-forced, disclosed
 DEBUG_TAX_HIGH = 10.0               # the SAME 5-10x bracket convention this document uses everywhere
 
 
@@ -95,7 +95,7 @@ def time_one_eval_pass(ckpt_dir: str, device: str, corpus: str = CORPORA[0],
 def project_and_gate_timing_pilot(elapsed_s_per_pass: float) -> dict:
     """Projects the FULL 360-cached-pass eval-readout cost from ONE measured pass, adds the
     already-priced fixed lines (training + 3-arm smoke), and checks the projection against BOTH the
-    raw (2.06 GPU-h, heads-up only) and debug-tax-inclusive (20.6 GPU-h, ENFORCED) ceilings --
+    raw (2.64 GPU-h, heads-up only) and debug-tax-inclusive (26.4 GPU-h, ENFORCED) ceilings --
     mirrors this document's own 5-10x debug-tax bracket convention, applied here as a pre-launch
     abort condition rather than a post-hoc narration. Returns a dict with `ok: bool` (False =>
     caller must abort BEFORE the 12-cell launch)."""
@@ -307,7 +307,7 @@ def main():
                      default="cuda" if __import__("torch").cuda.is_available() else "cpu")
     ap.add_argument("--time-pilot", action="store_true",
                      help="sec 16.16.11 item 1's mandatory pre-launch timing pilot: time ONE real "
-                          "eval pass, project against the 2.06/20.6 GPU-h budget, exit nonzero if "
+                          "eval pass, project against the 2.64/26.4 GPU-h budget, exit nonzero if "
                           "the projection exceeds the registered ceiling -- does NOT build the cache")
     args = ap.parse_args()
 
