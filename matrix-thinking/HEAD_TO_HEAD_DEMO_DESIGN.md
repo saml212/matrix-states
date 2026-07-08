@@ -1364,5 +1364,92 @@ against the ≈127.33 GPU-h headroom before accepting it.
 
 ---
 
-*(End §1. Rev 0 attacked → NEEDS-REVISION (§1.13). Rev 1 (this revision)
-resolves every binding finding — §1.14. Awaiting attack round 2.)*
+### 1.15 ATTACK ROUND 2 VERDICT (independent fresh-eyes agent, 2026-07-08): NEEDS-REVISION
+
+Recorded per the gauntlet-bookkeeping hard rule before dispatching Rev 2.
+Scope was: verify §1.13 resolutions real, attack everything Rev 1 added,
+adjudicate 6 coordinator-flagged items. Not FATAL-REDESIGN — every
+finding has a targeted, budget-compatible fix preserving the
+3-arch/2-axis/OR-win structure. Findings binding on Rev 2:
+
+**FATAL (axis 2 — must be fixed structurally, both have inference-only
+resolutions):**
+
+- **F-NEW-1 — cap_length is DEGENERATE at rung-1; the equal-byte axis-2
+  test as written is vacuous.** Re-derived from the design's own
+  head-dominated FLOP method (`DELTANET_REALDATA_DESIGN.md` §4.2): the
+  fixed `V=50257` head (~92% of FLOPs/token) pins the FLOP-matched
+  Transformer to `d_model≈256`, `n_layers∈{1,2}` (n_layers=3 overshoots
+  the ≤5% band; deep-narrow escapes fail the match entirely and are
+  WORSE). `cap_length = 32768/(2×n_layers×d_model×4)` = **8-16 tokens
+  fp32 (16-32 bf16)** vs task geometry `query_len=6`,
+  `T_bind=K×clause_len=224` tokens at K=32 (`grammar_rd.py:307-332`).
+  The capped baseline retains 1-2 of 32 bind clauses regardless of
+  eviction policy → contender clears the 0.20 margin trivially →
+  reviewers correctly call the headline rigged. Degeneracy is robust
+  across the entire admissible config family.
+  → **Rev 2 resolution (proposed by the attack, inference-only, no new
+  training cells): replace the single byte-parity point with a
+  MEMORY-MULTIPLIER SWEEP** — cap at `M×` contender total bytes,
+  `M∈{1,2,4,8,16,32,...}` geometric until cap_length clears query+one
+  clause; report the crossover multiplier `M*`; re-register the axis-2
+  WIN in terms of `M*` ("Transformer needs ≥X× the contender's bytes to
+  match"). Strictly more informative for the constant-memory framing.
+- **F-NEW-2 — train/eval mismatch: (b-primary) caps at INFERENCE ONLY a
+  checkpoint trained fully uncapped.** Zero train-with-cap precedent in
+  the repo (grepped). Full-attention-trained models concentrate mass on
+  early tokens (attention sinks); FIFO eviction removes exactly those →
+  unpredictable distribution-shift degradation, not graceful
+  memory-limited degradation → strawman objection independent of
+  cap_length. Compounds F-NEW-1 at the informative low-M end.
+  → **Rev 2 resolution: attention-sink patch** (always retain first
+  k_sink≈4 tokens in the eviction rule), disclosed as a PARTIAL
+  mitigation; the full fix (a genuinely cap-trained arm) is explicitly
+  unaffordable this wave (+0.76 raw → +7.6 bracket > the 2.93 margin)
+  and must be registered as a costed follow-on, not silently absorbed.
+
+**MAJOR:**
+
+- **M-NEW-1 — F1b's `TASK_BASE` is incomplete:** no `task2_calib` (or
+  `task1_stress`) key, yet Wave −1 items C/D require those cells; a
+  build agent must invent a key or silently reuse `task2_sweep`'s base →
+  seed collision between calibration and sweep, the exact bug class F1b
+  closes. Fix: 5 keys with spaced bases (task1_calib=0,
+  task1_stress=500k, task1_sweep=1M, task2_calib=1.5M, task2_sweep=2M) +
+  extend the collision smoke to all five.
+- **M-NEW-2 — probe native-tap asymmetry, undisclosed:** contender reads
+  via full matvec `S_T @ q` (any-to-any mixing); ablation reads via
+  Hadamard `s_T ⊙ q` (diagonal-only) — an irreversible expressivity gap
+  the linear adapter/probe cannot repair, NOT covered by the §1.3.1.4
+  null (which bypasses the taps). Structurally favors the contender on
+  axis 1. Fix: disclose alongside self-attack items 8-9 + add the
+  synthetic cross-dimension diagnostic bounding how much of any axis-1
+  gap tap expressivity alone could explain.
+- **M-NEW-3 — "eval-time axis" prose inconsistency:** K is baked into
+  training episode structure (`T_bind=K×clause_len`), so K/d=0.75 is NOT
+  an eval-time sub-condition; Wave −1(C)'s own separate quarter-cells
+  concede this. Costing already correct; prose isn't. Fix: narrow the
+  §1.6 claim to exclude the load axis; state K/d=0.75 is permanently
+  locate-only/non-decision-grade.
+- **M-NEW-4 — budget arithmetic verified clean but LOAD-BEARING:**
+  12.4376≈12.44 raw, 124.4 bracket, 127.33 headroom, 2.93 margin all
+  independently reproduced. Any fix requiring one new 3-arm cell block
+  (+7.6 at bracket) blows the margin — hence F-NEW-1/2's resolutions
+  MUST stay inference-only.
+
+**MINOR:** m-new-1 — `ckpt_idx < STRIDE_SEED_RD` never asserted (add
+runtime assert); seed independence of PROBE_TARGET_SEED vs
+ANCHOR_INIT_SEED empirically CONFIRMED (matched-row cos mean≈-0.0005,
+std≈0.1255 vs theoretical 1/√64=0.125). m-new-2 — §1.3.1.4 null protocol
+ambiguous between fresh-per-step vs fixed-pool draws (fixed pool risks a
+memorization false-pass); pin fresh draws + held-out eval draws.
+
+**Verified clean this round:** all §1.13 resolutions real; rd_episode_seed
+mixed-radix arithmetic; seed independence (empirical); 0.05 null bar
+(given m-new-2 pinned); the 10× circuit-breaker multiple vs realized
+97-122% ratios; param figures 14,048,896/1,183,104 cross-validated.
+
+---
+
+*(End §1. Rev 0 → §1.13 NEEDS-REVISION → Rev 1 → §1.15 NEEDS-REVISION
+(2 FATAL w/ inference-only fixes, 4 MAJOR, 2 minor). Rev 2 in progress.)*

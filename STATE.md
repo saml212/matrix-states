@@ -26,9 +26,9 @@ records).
 
 Does a matrix-native fast-weight model (frozen-bias fix + recruitable
 rank + super-linear capacity + exact composition) beat matched baselines?
-Design registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` (**§1 Rev 0
-attacked → NEEDS-REVISION, verdict recorded §1.13; Rev 1 in progress** —
-see QUEUE below). PI comparison
+Design registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` (**Rev 1
+attacked → NEEDS-REVISION, verdict §1.15; Rev 2 in progress** — see QUEUE
+below). PI comparison
 framing — we research for the FUTURE's constraints (compute grows
 fastest; quality data and HBM are the coming walls):
 - PRIMARY 1: data-efficiency (param+data-matched learning curves on
@@ -45,12 +45,17 @@ fastest; quality data and HBM are the coming walls):
 - Byte-level input explicitly OUT of scope (never bundle two unproven
   axes).
 
-**QUEUE:** design (§1 Rev 0, done) → attack round 1 (done, NEEDS-REVISION:
-1 FATAL-caliber — the architecture-neutral trained probe head does not
-exist for ANY of the three arms and must be designed/costed as Wave −1;
-3 MAJOR — K/d=0.75 is above the d=64 cliff AND cliff evidence is from a
-different architecture, per-layer-vs-total byte-match ambiguity, no
-baseline tuning-parity rule; §1.13) → Rev 1 (in progress) → ...
+**QUEUE:** design Rev 0 → attack round 1 (NEEDS-REVISION, §1.13: F1
+neutral-probe-head gap → Wave −1; M1 above-cliff load; M2 byte ambiguity;
+M3 tuning parity) → Rev 1 (resolved all, §1.14; raw 12.44 GPU-h, bracket
+124.4 vs 127.33) → attack round 2 (NEEDS-REVISION, §1.15: F-NEW-1
+cap_length DEGENERATE at rung-1 — 8-16 tokens vs 224-token bind phase →
+fix = memory-multiplier sweep reporting crossover M*, inference-only;
+F-NEW-2 train/eval mismatch → attention-sink patch, partial, disclosed;
+M-NEW-1 TASK_BASE missing keys; M-NEW-2 Hadamard-vs-matvec tap asymmetry
+undisclosed; M-NEW-3 eval-time-axis prose; M-NEW-4 budget margin 2.93
+GPU-h load-bearing — fixes MUST stay inference-only) → Rev 2 (in
+progress) → ...
 iterate to DESIGN-CLEARED-FOR-BUILD → build (new code: flat-vector
 ablation mixer, switchable uncapped/capped-KV Transformer,
 `verify_match_gate.py`, calibration/timing-pilot wrappers) →
