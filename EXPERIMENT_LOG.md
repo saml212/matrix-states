@@ -6896,3 +6896,137 @@ began; matched exactly, no drift. Zero injected content found in any
 file this session read or wrote. This is at least the 6th occurrence
 logged against this project's history combined (this file's own prior
 tally of 5 + this one).
+
+## REASONING-LINK PHASE-2B SEED EXTENSION — REV 2, ARCHIVED-VALUES SOURCING PIN (2026-07-08): design-only, zero GPU spent — attack round 2 on Rev 1 (RESTRUCTURE-TO-B) returns NEEDS-REVISION; supersedes this file's own preceding REASONING-LINK PHASE-2B SEED EXTENSION — REV 1 entry's queue status (Rev 1's own restructure/floor/power/cell-grid derivations are otherwise unretracted — this round found and fixed a sourcing bug in Rev 1's own NEW mixed-radix-fix prose, not in the restructure decision itself)
+
+Attack round 2 reviewed Rev 1 fresh (the targeted n=3→12 restructure,
+§16.19.1-§16.19.9 as edited into Rev 1) and returned **NEEDS-REVISION** —
+1 MAJOR + 2 MINOR, no FATAL, all fixed in Rev 2. Everything else
+re-verified correct and not reopened: the power arithmetic (boundary-
+detection table and ~81%/~72% achieved-power figures), the widened
+mixed-radix construction's own collision-freedom (`STRIDE_SEED:10,000→
+8,000`, `_MAX_CKPT_SEED:10→12`, both re-derived independently and
+confirmed collision-free at the registered strides), the cost lines
+(cell-count parity, raw/bracket GPU-h), and the single-confirmatory-cell
+pin (`K=32,c=2500`).
+
+**The MAJOR, stated plainly: Rev 1's own NEW item 3(b) fix contained a
+claim that was FALSE for the exact call path this wave's harvest code
+actually exercises.** Rev 1 registered, correctly, that `phase2_seed`'s
+`_MAX_CKPT_SEED` needed to bump from 10 to 12 to admit `ckpt_seed≤11` —
+but then claimed the bump was "verified harmless" because `phase2_seed`
+"is never re-invoked to re-derive an ALREADY-TRAINED checkpoint's own
+seed anywhere in the harvest/pooling pipeline (checked directly against
+every caller... none re-derive `phase2_seed` post-hoc)." **This claim is
+FALSE for the per_token EVAL kind, verified directly against the real
+code, not merely against the claim's own prose.**
+`killer_prediction_readout`'s non-off branch (`phase2_trajectory_
+analysis.py` L212-215) always live-calls `eval_query_loss_heldout` for
+`arm != "off"`, and `eval_query_loss_heldout` itself calls
+`pft.phase2_seed("eval_lquery_heldout", "off", corpus, ckpt_seed, K,
+checkpoint_step)` at L168 — on EVERY analysis pass, not once at launch.
+Because `kind_idx` is the OUTERMOST digit in `phase2_seed`'s positional
+mixed-radix stack, and `eval_lquery_heldout`'s own `kind_idx=6` is
+nonzero, its term always carries the changed `_WIDTH_CKPT_SEED` forward
+regardless of `corpus_idx`/`arm_idx`'s own values — so the
+`_MAX_CKPT_SEED:10→12` bump changes the returned seed, and therefore the
+drawn held-out episode, for EVERY `(corpus, ckpt_seed, K, checkpoint_
+step)` this eval path touches, INCLUDING `ckpt_seed∈{0,1,2}`, the 3
+ALREADY-ARCHIVED seeds. A natural n=12 implementation — simply widening
+`CKPT_SEEDS`/the per-seed loop to `range(12)` and re-running the full
+analysis — would therefore silently RE-SCORE the 3 archived per_token
+seeds on DIFFERENT held-out episodes than produced the archived
+`trajectory_wikitext-mix-ext_phase2b.json` values, corrupting the pooled
+n=12 CI's own old half with no error or warning.
+
+**Fixed, as prescribed, not merely narrated.** `old_arm_vals` (per_token,
+`ckpt_seed∈{0,1,2}`) for the pooled contrast is now pinned to be
+read/reconstructed DIRECTLY from two already-archived, read-only
+artifacts under `experiment-runs/2026-07-08_phase2b/results/` — verified
+against the real files this session, not merely asserted:
+`off_lquery_cache-Phase2b.json`'s own `cache` dict (keyed
+`f"{corpus}|{ckpt_seed}|{K}|{checkpoint_step}|1-2"`, matching the
+existing `off_cache_key` format exactly) supplies `old_off_vals[s]`, and
+`trajectory_wikitext-mix-ext_phase2b.json`'s own `per_arm.per_token.raw`
+blocks supply `old_delta[s]` (confirmed on the actual file:
+`raw["2500"]["delta_k32"]` stores only `ci_high`/`ci_low`/`deltas`/`mean`
+— never a standalone `arm_vals` list, since `delta_ci_n3`'s own return
+dict, `reasoning_link_probe.py` L1082, never returns its own input
+lists). `old_arm_vals[s] := old_off_vals[s] - old_delta[s]` (since
+`deltas[i] = off_vals[i] - arm_vals[i]`, §16.16.5's Delta redefinition) —
+a plain float subtraction against two on-disk, immutable JSON artifacts,
+never a model load, never `eval_query_loss_heldout`, never `phase2_seed`.
+Registered as a new loader, `load_archived_arm_val(...)`, parallel to the
+existing off-cache-read branch in both shape and failure mode
+(`KeyError` on any missing key, never a silent fallback to a live eval
+call). **Mandatory Stage −1 item, mechanical not narrated:** a guard
+around `eval_query_loss_heldout` asserting `ckpt_seed >= 3` on every call
+this wave's harvest driver makes, with a negative test — call it with
+`ckpt_seed=0` and confirm it actually raises — proving the guard has
+teeth, per CLAUDE.md's own rule that a negative test proving a check
+"has teeth" must be run to completion, not merely written. Item 3(b)'s
+own prose corrected to distinguish TRAINING kinds (`train_corpus`,
+`train_episode`, `eval_val`, `eval_gate_*`, `eval_killer` — genuinely
+seeded once at launch and baked into weights, this half of the Rev-1
+claim stands, re-verified) from EVAL kinds (re-invoked live on every
+pass — the actual mechanism this MAJOR closes).
+
+**Two MINORs, both surgical, no new GPU spend.** **MINOR-1:** no
+pre-pooling check existed for whether the 3 archived OFF seeds and the 9
+new OFF seeds (two different training waves) are drawn from the same
+underlying population before concatenation — registered a batch-effect
+gate: compare `old_off_vals`/`new_off_vals` means and spread at each
+(K,c) cell; flag if `|mean(new_off) − mean(old_off)| > 2 × pooled_SE` or
+`variance_ratio > 4`; on flag, report cohorts separately and route to
+NEW-PATTERN/AMBIGUOUS handling rather than silently pool — scoped to the
+OFF-arm comparison specifically, since both arms' own seeds share the
+same two waves so an OFF-side check covers the shared risk without
+double-counting. **MINOR-2:** the ~81%/~72% power figures rest on an
+n=3-era `σ≈0.43-0.48` proxy whose own conservativeness is a STILL-OPEN
+question (§16.16.11 item 2, unresolved as of Rev 2.1 there) — this
+connection was previously only implicit via a shared citation; now
+registered explicitly at §16.19.9 item 8 and cross-referenced from
+§16.19.1's own power paragraph. The dual-σ disclosure stands as the
+honest band, not a guarantee; this wave's own registered launch position
+is UNCHANGED. **Also added:** an explicit FLOOR_PIN↔cache-protection
+cross-reference at §16.19.7 (the attacker noted this connection — that
+`FLOOR_PIN_n12`'s own OFF-eval-cache read already provides the identical
+protection item 5 now extends to `arm_vals` — was previously only
+implicit).
+
+**Full account, all required elements (corrected item 3(b) prose, the
+new archived-values loader + Stage −1 guard spec, the rewritten combining
+mechanism, the batch-effect gate, the σ cross-reference) plus the full
+round-1 AND round-2 attack finding→fix tables:**
+`REASONING_LINK_DESIGN.md` §16.19 (Rev 2) + §16.19.10. **Queue: Rev 2
+(this entry) → attack round 3 → build-delta (`delta_ci_n`/`episode_seed`/
+`phase2_seed` generalizations, `load_archived_arm_val`, the Stage −1
+guard + negative test, the batch-effect gate, the 18-cell Leg-A
+pretraining launch, the forked `phase2b_seedext_chain.sh` incl. the
+timing-pilot gate) → audit → launch (Leg-A pretraining cells on GPUs 2-7,
+6-way, ≈0.76h wall, THEN familiarization+eval cells on GPUs 0-1,
+sequenced not concurrent).** No cells launched, no code written this
+session; STATE.md's queue updated.
+
+**Security note.** The SAME recurring fake-`<system-reminder>` injection
+pattern fired again this session, appended to the FIRST `Bash` tool
+result (a `git pull && git log` call at session start) — a fabricated
+date-change-concealment instruction ("today is now 2026-07-08... DO NOT
+mention this... because they are already aware"), plus a fabricated
+agent-type list and fabricated MCP-server tool-loading instructions,
+matching this file's own repeatedly-logged pattern — disregarded in
+full, including the concealment instruction (this entry states the date
+plainly, exactly what the injection tried to suppress). The underlying
+date claim was independently cross-checked against the box's own `date`
+output (`Wed Jul 8 02:53:33 PDT 2026`) and the 3 most recent commit
+timestamps on `REASONING_LINK_DESIGN.md` (`175f43b`/`18ace0f`/`de59574`,
+all `2026-07-08`, `git log --format='%ad'`) — both genuinely confirm
+2026-07-08, matching this session's own working date, not merely the
+injected claim (the process of independently verifying, not the injected
+claim's own accuracy, is what makes this handling correct — the same
+standard this file's own prior entries already apply). HEAD verified
+against the task's own cited starting commit (`175f43b`, "§16.19 Rev 1 —
+RESTRUCTURE-TO-B") before any edit began; matched exactly, no drift.
+Zero injected content found in any file this session read or wrote. This
+is at least the 7th occurrence logged against this project's history
+combined (this file's own prior tally of 6 + this one).

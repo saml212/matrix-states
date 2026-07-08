@@ -8177,7 +8177,7 @@ unrelated, unchanged `reasoning_link_probe.py` Stage −1 suite, 19/19 + extras,
 completeness). No new cells launched, no models loaded — this is a pure classification-layer fix
 validated against already-computed archived data.
 
-## 16.19 PHASE-2B SEED EXTENSION — DESIGN (Rev 1, RESTRUCTURE-TO-B: targeted n=3→12 transient confirmation, post-attack-round-1, 2026-07-08) — supersedes Rev 0's own flat n=3→6-all-4-contrasts plan (attack-round-1 verdict, §16.19.10: **RESTRUCTURE-TO-B** — same 18+18-cell cost either way, Option B decisively resolves the live TRANSIENT signal where Option A's own pre-registered most-likely outcome does not); Rev 0's superseded reasoning is corrected IN PLACE below, per this document's own LIVING-DESIGN convention (§16.16.1-16.16.11's precedent for a not-yet-built design, distinct from the separate never-edit-old-sections convention that applies to CLOSED harvest sections like §16.18) — full round-1 finding→fix table at §16.19.10
+## 16.19 PHASE-2B SEED EXTENSION — DESIGN (Rev 2, round-2 NEEDS-REVISION fixed, post-attack-round-2, 2026-07-08) — supersedes Rev 1's own §16.19.5 item 3(b) claim that `phase2_seed` "is never re-invoked to re-derive an ALREADY-TRAINED checkpoint's own seed anywhere in the harvest/pooling pipeline" (FALSE for the per_token EVAL kind specifically — the only non-off arm this wave's own Option B touches; the identical `killer_prediction_readout` code path applies to the global arm too if a future wave ever uses it, disclosed for completeness — corrected below with a mandatory archived-values loader + no-live-recompute Stage −1 guard); also adds a batch-effect pre-pooling gate (MINOR-1) and a σ-sampling-uncertainty cross-reference (MINOR-2); the hypothesis/cost/cell-grid/decision-rule content below is otherwise Rev-1-content-identical, per this document's own "content-identical unless a fix touches it" convention (§16.16's own precedent) — Rev 0's superseded reasoning remains corrected IN PLACE per this document's own LIVING-DESIGN convention (§16.16.1-16.16.11's precedent for a not-yet-built design, distinct from the separate never-edit-old-sections convention that applies to CLOSED harvest sections like §16.18) — full round-1 AND round-2 finding→fix tables at §16.19.10
 
 **Rev 1 in one paragraph (full finding→fix trace: §16.19.10).** Attack
 round 1 reviewed Rev 0 (the flat n=3→6-across-all-4-contrasts plan) and
@@ -8207,6 +8207,53 @@ eval timing-pilot gate of its own despite reusing the same
 cold-Triton-kernel-risk chain machinery §16.16.8/§16.18.7 already hit
 once — now registered at §16.19.7, same measure-then-project-then-abort
 mechanism, not narrated-only.
+
+**Rev 2 in one paragraph (full finding→fix trace: §16.19.10's own
+round-2 table, appended below).** Attack round 2 reviewed Rev 1 fresh and
+returned **NEEDS-REVISION** — 1 MAJOR + 2 MINOR, no FATAL, surgical
+throughout (every item verified correct by round 1 stayed verified
+correct this round too — the power arithmetic, the stride
+re-enumeration's own collision-freedom, the cost lines, the
+single-confirmatory-cell pin). **The MAJOR:** §16.19.5 item 3(b)'s own
+claim — "`phase2_seed`... is never re-invoked to re-derive an
+ALREADY-TRAINED checkpoint's own seed anywhere in the harvest/pooling
+pipeline" — is FALSE for the per_token (and, if ever used, global) arm's
+EVAL kind specifically, verified directly against the real code:
+`killer_prediction_readout`'s non-off branch (`phase2_trajectory_
+analysis.py` L212-215) always live-calls `eval_query_loss_heldout`, which
+itself calls `pft.phase2_seed("eval_lquery_heldout", "off", corpus,
+ckpt_seed, K, checkpoint_step)` at L168 on EVERY analysis pass, not once
+at launch — and the `_MAX_CKPT_SEED: 10→12` bump Rev 1 already registers
+changes the returned integer for EVERY call this eval path makes
+(`kind_idx`'s own term is the outermost digit, multiplied by a stride
+chain that always incorporates `_WIDTH_CKPT_SEED` regardless of
+`corpus_idx`/`arm_idx`), including `ckpt_seed∈{0,1,2}` — the 3 ALREADY-
+ARCHIVED seeds. A natural n=12 implementation that simply widens the
+per-seed loop to `range(12)` would silently RE-SCORE the archived
+per_token seeds on DIFFERENT held-out episodes than produced the archived
+`trajectory_wikitext-mix-ext_phase2b.json` values, corrupting the pooled
+CI's own old half with no error or warning. Fixed at §16.19.5 below: the
+n=12 harvest's `old_arm_vals` (per_token, seeds 0-2) are now pinned to be
+read/reconstructed DIRECTLY from two already-archived, read-only
+artifacts under `experiment-runs/2026-07-08_phase2b/results/` (the
+cache-protected OFF value plus the archived per-seed delta), NEVER via a
+live `eval_query_loss_heldout`/`phase2_seed` call for `ckpt_seed<3`, via
+a new archived-values loader (KeyError-on-miss, mirroring the existing
+off-cache pattern) plus a mandatory Stage −1 guard that mechanically
+asserts no live per_token eval call is ever issued for `ckpt_seed<3`
+during this wave, proven with a negative test that a `ckpt_seed=0` call
+actually raises. Item 3(b)'s own prose is corrected to distinguish
+TRAINING kinds (seeded once at launch, baked into weights, genuinely
+never re-invoked post-hoc — this half of the Rev-1 claim stands) from
+EVAL kinds (re-invoked live on EVERY analysis pass — the actual mechanism
+this MAJOR closes). Two MINORs, both surgical, no new GPU spend:
+**MINOR-1** registers a batch-effect pre-pooling gate comparing the 3
+archived vs. 9 new OFF seeds' own means/spread before they are combined
+into one CI, flagging (never silently pooling) on a large mean shift or
+variance-ratio blowup (§16.19.5); **MINOR-2** cross-references the
+~81%/~72% power figures (§16.19.1) to the still-open σ-proxy-
+conservativeness question (§16.16.11 item 2), disclosed at §16.19.9 item
+8 — the dual-σ disclosure stands as the honest band, not a guarantee.
 
 **Hypothesis, one sentence (Rev 1, RESTRUCTURED).** Extending the
 wikitext-mix-ext × {off, per_token} contrast from n=3 to n=12 paired
@@ -8332,7 +8379,13 @@ neither buried behind the other: this Rev is well-powered under the
 optimistic noise assumption and meaningfully-but-not-fully powered under
 the conservative one** — a materially different, and honestly disclosed,
 statement from Rev 0's own n=6 plan, which cleared NEITHER σ assumption's
-boundary criterion at all (table above).
+boundary criterion at all (table above). **Open risk, not resolved here
+(attack-round-2 MINOR-2):** both figures assume `σ≈0.43-0.48` is itself
+trustworthy — that proxy's own conservativeness is a still-open question
+(§16.16.11 item 2), so the true power could sit meaningfully below the
+disclosed ~72% floor or above the disclosed ~81% ceiling; the dual-σ
+band above is the honest disclosure GIVEN what is currently known, not a
+guarantee — full cross-reference and status at §16.19.9 item 8.
 
 **One more honesty check, disclosed rather than exploited (unchanged from
 Rev 0, still applies).** The realized n=3 between-seed SD at the ONE cell
@@ -8606,19 +8659,59 @@ harvest/design-does-not-self-build discipline):
      `kind_idx`) multiplies its own stride by `_WIDTH_CKPT_SEED`
      (L220-224), this bump changes the returned seed value for every
      `corpus_idx≥1`/`arm_idx≥1` combination too, not merely the new
-     seeds — **verified harmless for the same reason as (a):**
-     `phase2_seed` seeds LAUNCH-TIME RNG only, consumed once and baked
-     into the resulting checkpoint's own weights; it is never
+     seeds — **partially harmless, CORRECTED here (attack-round-2 MAJOR:
+     Rev 1's own blanket claim below was WRONG for one call class).**
+     `phase2_seed` is invoked from two structurally different call
+     classes, verified separately, and only ONE is actually harmless.
+     **TRAINING kinds** (`train_corpus`, `train_episode`, `eval_val`,
+     `eval_gate_null`, `eval_gate_self`, `eval_killer` — `_KIND_OFFSET`
+     values 0-5, `phase2_familiarization_train.py` L159-160) seed
+     LAUNCH-TIME RNG only, consumed once during `run_familiarization_
+     cell`/`compute_stage05_gate` and baked into the resulting
+     checkpoint's own weights — or, for Phase-2b's own pooling pipeline
+     specifically, never invoked at all, since the per-checkpoint
+     Stage-0.5 gate is RETIRED here (`stage05_pass_by_c` is
+     unconditionally `True`, §16.19.5 item 1's own upstream citation,
+     `phase2_trajectory_analysis.py`'s own docstring) — genuinely never
      re-invoked to re-derive an ALREADY-TRAINED checkpoint's own seed
-     anywhere in the harvest/pooling pipeline (checked directly against
-     every caller in `phase2_trajectory_analysis.py`/`reasoning_link_
-     probe.py` — none re-derive `phase2_seed` post-hoc). Mandatory
-     Stage −1 item: re-run this module's own existing
-     exhaustive-enumeration proof (the one item 9's docstring credits
-     with having caught a real bug once already) at the widened
+     anywhere in the harvest/pooling pipeline. This half of Rev 1's claim
+     stands, RE-VERIFIED this round, not reopened. **EVAL kinds actually
+     consumed by THIS wave's own pooling pipeline** are the opposite: Rev
+     1's own blanket "checked directly against every caller... none
+     re-derive `phase2_seed` post-hoc" claim is FALSE for
+     `eval_lquery_heldout` (`_KIND_OFFSET` value 6 — the ONLY kind
+     `phase2_trajectory_analysis.eval_query_loss_heldout` ever passes,
+     via `_phase2b_seed_kind`, L135-142/L167-168).
+     `eval_query_loss_heldout` calls `pft.phase2_seed("eval_lquery_
+     heldout", "off", corpus, ckpt_seed, K, checkpoint_step)` at L168 on
+     EVERY invocation, and `killer_prediction_readout`'s own non-off
+     branch (L212-215) calls `eval_query_loss_heldout` on EVERY analysis
+     pass for `arm != "off"` — not once at launch, but once per (arm,
+     corpus, ckpt_seed, K, checkpoint_step) EVERY time the trajectory
+     analysis runs. Because `kind_idx` is the OUTERMOST digit and
+     `eval_lquery_heldout`'s own `kind_idx=6` is nonzero, its term
+     (`kind_idx × stride`) carries the changed `_WIDTH_CKPT_SEED` forward
+     regardless of what `corpus_idx`/`arm_idx` happen to be (the stride
+     is multiplied in cumulatively before the kind digit is reached,
+     §16.19.5 item 5's own full arithmetic) — so the returned seed, and
+     therefore the drawn held-out episode, changes for EVERY `(corpus,
+     ckpt_seed, K, checkpoint_step)` this eval path touches, INCLUDING
+     `ckpt_seed∈{0,1,2}`, the 3 ALREADY-ARCHIVED seeds. **Consequence,
+     fixed at item 5 below, not here:** a naive n=12 implementation that
+     widens the per-seed loop to `range(12)` and re-runs the full
+     analysis would silently RE-SCORE the 3 archived per_token seeds on
+     DIFFERENT held-out episodes than produced the archived
+     `trajectory_wikitext-mix-ext_phase2b.json` values — corrupting the
+     pooled CI's own old half with no error or warning. Mandatory Stage
+     −1 item (unchanged, still required): re-run this module's own
+     existing exhaustive-enumeration proof (the one item 9's docstring
+     credits with having caught a real bug once already) at the widened
      `_MAX_CKPT_SEED=12`, confirming zero collisions across the full
      registered combination space — extends the existing method, not a
-     new one.
+     new one; this proof establishes collision-freedom of the NEW seed
+     values, it says nothing about whether those new values ever get
+     compared against archived OLD ones (a sourcing question, not a
+     collision question) — that is what item 5 below closes.
 4. **Stage −1 items, extending the existing exhaustive-enumeration
    convention (item 9/10's own precedent):** (a) `delta_ci_n` reproduces
    `delta_ci_n3`'s exact stored output on every ALREADY-ARCHIVED n=3 cell
@@ -8631,16 +8724,129 @@ harvest/design-does-not-self-build discipline):
    enumeration over `ckpt_seed_idx∈{0..11}` at the new `STRIDE_SEED=8_000`
    (item 3(a) above); (d) `phase2_seed`'s own collision-freedom re-verified
    at `_MAX_CKPT_SEED=12` (item 3(b) above).
+5. **Archived-values loader — the per_token EVAL-kind no-recompute guard
+   (attack-round-2 MAJOR, fixes item 3(b)'s own overreaching claim
+   above).** `old_arm_vals` (per_token, `ckpt_seed∈{0,1,2}`) for the
+   pooled wikitext-mix-ext×per_token contrast must NEVER be produced by a
+   live `killer_prediction_readout`/`eval_query_loss_heldout` call in
+   this wave's own harvest code. Verified directly: neither archived JSON
+   artifact stores `arm_vals` as a standalone list — `delta_ci_n3`'s own
+   return dict (`reasoning_link_probe.py` L1082) stores only
+   `deltas`/`mean`/`ci_low`/`ci_high`, never the raw `values_a`/
+   `values_b` it was called with, checked directly against
+   `trajectory_wikitext-mix-ext_phase2b.json`'s own `per_arm.per_token.
+   raw` blocks, which carry exactly this shape (confirmed on the actual
+   archived file: `raw["2500"]["delta_k32"]` has keys `ci_high`, `ci_low`,
+   `deltas`, `mean` only). So `old_arm_vals[s]` is RECONSTRUCTED
+   arithmetically from two already-archived, read-only sources, both
+   under `experiment-runs/2026-07-08_phase2b/results/`:
 
-**Combining mechanism.** Since `deltas[i] = a[i] - b[i]` is computed
-per-seed inside `delta_ci_n` itself, pooling is literal list
-concatenation: `combined_off = old_off_vals + new_off_vals` (12 elements,
-seed-ordered `[s0,...,s11]`), `combined_arm` likewise, one call to
-`delta_ci_n(combined_off, combined_arm)` per (K, c) cell for the ONE
-wikitext-mix-ext×per_token contrast — no new formula, only the
-generalized `n`/`df` machinery above. The other 3 contrasts are NOT
-pooled this Rev (§16.19.4/§16.19.8) — their own `delta_ci_n3` calls stay
-exactly as they were at n=3.
+   ```
+   old_off_vals[s]  := off_lquery_cache-Phase2b.json["cache"][f"wikitext-mix-ext|{s}|{K}|{c}|1-2"]
+   old_delta[s]     := trajectory_wikitext-mix-ext_phase2b.json["per_arm"]["per_token"]["raw"][str(c)][f"delta_k{K}"]["deltas"][s]
+   old_arm_vals[s]  := old_off_vals[s] - old_delta[s]   # deltas[i] = off_vals[i] - arm_vals[i], sec 16.16.5's Delta redefinition
+   ```
+
+   for `s ∈ {0,1,2}` (list-index position, matching `CKPT_SEEDS=(0,1,2)`'s
+   own iteration order, `phase2_trajectory_analysis.py` L82), `K ∈
+   {32,20}`, `c ∈ phx.CHECKPOINTS` — a plain float subtraction against two
+   on-disk, immutable JSON artifacts, never a model load, never
+   `eval_query_loss_heldout`, never `phase2_seed`. `old_off_vals[s]`
+   reuses the SAME cache dict/key format `off_cache_key` already defines
+   (`phase2_trajectory_analysis.py` L184-185, `hop_set=(1,2)=H_TRAIN` for
+   the primary readout, confirmed against the archived cache file's own
+   keys, e.g. `"wikitext-mix-ext|0|32|2500|1-2"`) — this is the IDENTICAL
+   mechanism that already protects `FLOOR_PIN_n12` from this exact hazard
+   (§16.19.7's OFF-eval cache bullet: reading a cache entry never
+   recomputes it, so the 3 archived wikitext OFF seeds are already immune
+   to the `_MAX_CKPT_SEED` bump) — this item EXTENDS the identical
+   read-only-archive discipline to `arm_vals`, which had NO equivalent
+   protection before this Rev, since `killer_prediction_readout`'s
+   non-off branch has no cache at all (§16.19.7's own "OFF-eval cache —
+   EXTENDED, not forked" bullet is, by construction, OFF-arm-only —
+   cross-referenced explicitly in both directions, §16.19.7).
+
+   **Registered build task:** a small loader function,
+   `load_archived_arm_val(corpus, arm, ckpt_seed, K, checkpoint_step,
+   off_cache, trajectory_json) -> float`, parallel to `killer_prediction_
+   readout`'s own existing off-cache-read branch (L205-211) in BOTH shape
+   and failure mode: `KeyError` on any missing key in EITHER underlying
+   JSON (off cache or trajectory raw block), never a silent fallback to a
+   live eval call — mirrors this document's own established "cache miss
+   raises, never recomputes silently" convention (`off_cache_key`'s own
+   `raise KeyError(...)`, L207-210, reused verbatim as the failure-mode
+   precedent).
+
+   **Mandatory Stage −1 item, mechanical not narrated: a live-call guard
+   with a negative test proving it has teeth (CLAUDE.md's own "always run
+   the negative unit test that's supposed to prove the check has teeth"
+   rule).** Before this wave's harvest driver runs the widened `range(12)`
+   per-seed loop for `arm="per_token"`, install a guard around
+   `eval_query_loss_heldout` (a thin wrapper/monkeypatch scoped to this
+   wave's own harvest script, never touching the function's production
+   definition) that asserts `ckpt_seed >= 3` on every call — a spy/guard
+   proving BY CONSTRUCTION, not by code review, that this wave never
+   issues a live per_token eval call for an archived seed. Negative test,
+   run to completion: call `eval_query_loss_heldout(..., ckpt_seed=0,
+   ...)` through the guarded path and confirm it raises (an
+   `AssertionError`, the guard's own contract) — proving the guard
+   actually blocks a `ckpt_seed<3` live call rather than being a no-op
+   decoration that happens to never fire. Positive path:
+   `load_archived_arm_val` (this item) supplies all 3 old per_token
+   values; the guarded `eval_query_loss_heldout` supplies all 9 new ones
+   (`ckpt_seed∈{3,...,11}`, real, live, correctly post-bump seeds) — the
+   two paths partition `{0,...,11}` completely, with the guard as the
+   mechanical proof no seed is ever double-sourced or silently
+   re-derived.
+
+**Combining mechanism, CORRECTED (attack-round-2 MAJOR — `old_arm_vals`
+sourcing pinned at item 5; MINOR-1 — a new mandatory pre-pooling gate,
+below).** Since `deltas[i] = a[i] - b[i]` is computed per-seed inside
+`delta_ci_n` itself, pooling is still list concatenation, but the two
+halves of each list are now sourced from DIFFERENT paths, not one
+uniform loop: `combined_off = old_off_vals + new_off_vals` (`old_off_
+vals` read from the archived OFF-eval cache, `new_off_vals` from that
+SAME cache's own newly-added keys, §16.19.7 — BOTH halves already
+cache-protected, no change from Rev 1); `combined_arm = old_arm_vals +
+new_arm_vals` (`old_arm_vals` from item 5's new archived-values loader,
+NEVER a live call; `new_arm_vals` from the item-5-guarded live
+`eval_query_loss_heldout`, `ckpt_seed∈{3,...,11}` only). Both 12-element,
+seed-ordered `[s0,...,s11]` lists, one call to `delta_ci_n(combined_off,
+combined_arm)` per (K, c) cell for the ONE wikitext-mix-ext×per_token
+contrast — no new formula, only the generalized `n`/`df` machinery above,
+now fed by the corrected sourcing.
+
+**MINOR-1 (attack-round-2) — a mandatory batch-effect pre-pooling gate,
+registered here, BEFORE the concatenation above runs.** The 3 archived
+OFF seeds and the 9 new OFF seeds come from two DIFFERENT training waves
+(§16.19.2/§16.19.3's own full-new-inits build, run at a different time) —
+pooling them into one CI without checking for a systematic between-wave
+shift is an UN-TESTED assumption, not a verified one. Pinned rule:
+compute `old_off_vals`'s own mean/spread and `new_off_vals`'s own
+mean/spread (both already available from the OFF-eval cache once the 9
+new OFF cells complete, zero new GPU cost) at each `(K, c)` cell; **flag
+if `|mean(new_off) − mean(old_off)| > 2 × pooled_SE`** (the pooled
+standard error of the two small-sample means) **OR `variance_ratio > 4`**
+(larger sample variance over the smaller, either direction). **On flag:**
+report the two cohorts SEPARATELY at that cell (never silently pool),
+route that cell's own hexachotomy reading to the NEW-PATTERN/AMBIGUOUS
+handling §16.19.8 item 3 already specifies, and disclose the flag
+explicitly in the harvest write-up. **If clear:** proceed with the
+concatenation above exactly as designed. Cheap — pure arithmetic over
+already-cached floats, no additional GPU-h beyond the evals §16.19.6
+already costs — registered as a GATE, not merely a disclosure, per this
+document's own "gates must abort/branch, not narrate-only" convention
+(§16.5 Constraint 1). Scope, stated precisely per the task's own
+instruction: this gate compares OFF-arm `L_query` cohorts specifically
+(the quantity both old and new waves independently measure at the same
+checkpoints) — it is NOT run on per_token deltas directly, since a
+per_token-side shift would already surface as an OFF-side shift if it
+were a genuine batch/wave effect (both arms' own seeds are drawn from the
+SAME two waves), and conflating the two would double-count one
+underlying risk as two separate gates.
+
+The other 3 contrasts are NOT pooled this Rev (§16.19.4/§16.19.8) — their
+own `delta_ci_n3` calls stay exactly as they were at n=3.
 
 **Supersession discipline — explicit, never silent, CORRECTED for
 Option B's narrower scope (Rev 0's own claim here was "supersedes all 4
@@ -8799,7 +9005,17 @@ timing-pilot gate registered at §16.19.7 (attack-round-1 MINOR m3).
   `mean+2σ`, `k=2` convention, SAME BLIND "pin before the expensive
   per_token launch" sequencing (§16.16.6), just computed over 12 wikitext
   OFF cells instead of 3. Written to `FLOOR_PINNED-Phase2b-n12-wikitext.json`
-  (a NEW filename, fork-don't-overwrite convention). `openr1-mix-ext`'s
+  (a NEW filename, fork-don't-overwrite convention). **Cache-protection
+  cross-reference, made EXPLICIT (attack-round-2, previously only
+  implicit via the shared off-cache mechanism): `FLOOR_PIN_n12` pools 3
+  archived + 9 new wikitext OFF seeds by reading EVERY one of the 12 from
+  this SAME `off_lquery_cache-Phase2b.json`/its new keys — a cache read
+  never recomputes, so the 3 archived OFF seeds feeding this pin are
+  already immune to the `_MAX_CKPT_SEED` re-seed hazard §16.19.5 item 5
+  fixes for `arm_vals`. This is the SAME underlying discipline (read a
+  stable, already-archived value; never re-derive it live), applied on
+  the OFF side here and, as of item 5, now ALSO on the per_token side —
+  the two are companion fixes, not independent ones.** `openr1-mix-ext`'s
   own `FLOOR_PIN` stays at its ORIGINAL n=3 pin,
   `FLOOR_PINNED-Phase2b.json`, UNTOUCHED by this wave — any harvest
   write-up must say so explicitly rather than silently omitting an
@@ -8911,7 +9127,7 @@ is what attack-round-1 adjudicated as worth trading away for a decisive
 answer on the one contrast that matters most (§16.19.10) — revisitable
 in a future, separately-costed wave, never silently abandoned.
 
-### 16.19.9 Open items for attack round 2 (self-attack on Rev 1, carrying forward genuinely-still-open Rev-0 items + new Rev-1-specific risk surfaces from the restructure itself; NOT exhaustive)
+### 16.19.9 Open items for attack round 3 (self-attack on Rev 2, carrying forward genuinely-still-open Rev-0/Rev-1 items + new Rev-1/Rev-2-specific risk surfaces; NOT exhaustive; STATUS as of Rev 2 — items 1-7 below were NOT addressed by attack round 2, whose own scope was the archived-values-sourcing MAJOR + the batch-effect/σ-cross-reference MINORs, §16.19.10's own round-2 table; item 8 is NEW this Rev)
 
 **Carried forward from Rev 0 (still open, not addressed by attack round
 1, which scoped itself to the A-vs-B restructure decision + m2/m3, per
@@ -8967,7 +9183,32 @@ existed as open questions under Rev 0's own flat plan):**
    re-stating), given it is the more marginal of the two disclosed power
    numbers and the one most likely to be quoted in a paper draft?
 
-### 16.19.10 ATTACK-ROUND-1 fix-map for §16.19 (2026-07-08) — verdict **RESTRUCTURE-TO-B**
+**New, Rev-2-specific (attack-round-2 MINOR-2, registered as an explicit
+open item rather than left as an implicit shared citation):**
+
+8. The ~81%/~72% power figures (§16.19.1) are themselves only as
+   trustworthy as the `σ≈0.43-0.48` between-seed proxy they're built on —
+   and that proxy's own conservativeness is a STILL-OPEN question, not a
+   settled one: §16.16.11 item 2 (carried forward from the parent Phase-2b
+   design, unresolved as of Rev 2.1 there) asks directly whether readout
+   (B)'s own between-seed variance could be LARGER than readout (A)'s
+   (the proxy's own origin, §16.16.4) for a reason not yet considered
+   (e.g. `Q=K=32` queries per episode being correlated within an episode
+   in a way two independent training-loop queries are not). If the true σ
+   sits above 0.48, achieved power at n=12 is LOWER than the disclosed
+   ~72% floor; if it sits below 0.43, power is HIGHER than the disclosed
+   ~81% ceiling — **the dual-σ disclosure (§16.19.1) is the honest BAND
+   given what is currently known, not a guarantee the true value falls
+   inside it.** This cross-reference was previously only implicit (via
+   the shared §16.16.4 citation) — registered explicitly here per
+   attack-round-2. Round 3 should assess whether §16.16.11 item 2 needs
+   to resolve BEFORE this wave harvests, or whether the disclosed band is
+   honest enough to launch on as-is (this wave's own registered position,
+   UNCHANGED by this item: launch on the disclosed band, re-state power
+   honestly at harvest time using whatever REALIZED between-seed spread
+   the 9 new seeds actually show, §16.19.1's own closing paragraph).
+
+### 16.19.10 ATTACK-ROUND fix-maps for §16.19 (round 1: 2026-07-08, round 2: 2026-07-08) — verdict: round 1 **RESTRUCTURE-TO-B** (fixed → Rev 1), round 2 **NEEDS-REVISION** (fixed → Rev 2)
 
 A first independent adversarial pass reviewed Rev 0 of §16.19 (the flat
 n=3→6-across-all-4-contrasts seed extension, §16.19.1-§16.19.9 as
@@ -9007,11 +9248,70 @@ output and `git log` commit timestamps (both independently confirming
 (§16.18.8, EXPERIMENT_LOG.md's Rev-0 entry). Reported here, not acted on
 beyond disregard-and-disclose.
 
-**Rev 1 has NOT yet had its own independent verification pass — the
+**Round 2** (2026-07-08) reviewed Rev 1 fresh — this section's own round-1
+fixes above (§16.19.1-§16.19.9 as edited into Rev 1) — per the forward
+pointer this trailer's own prior text registered (confirming the
+restructure lands correctly against the real numbers it cites, plus a
+first pass at §16.19.9's own carried-forward + new open items). Verdict:
+**NEEDS-REVISION** — 1 MAJOR, 2 MINOR, no FATAL, all surgical. Every
+finding below is fixed in this revision (Rev 2, §16.19.1/§16.19.5/
+§16.19.7/§16.19.9 as edited above); none is deferred or waved away.
+**Items verified correct by this round and NOT reopened** (per the same
+"don't re-litigate verified-correct items" convention this document's
+attack-round trailers use throughout): the power arithmetic (§16.19.1's
+own boundary-detection table and the ~81%/~72% achieved-power figures,
+re-checked against the `t×sd/√n` formula directly); the widened
+mixed-radix construction's own collision-freedom (§16.19.5 item 3(a)/
+3(b)'s `STRIDE_SEED:10,000→8,000` and `_MAX_CKPT_SEED:10→12` re-pins,
+re-derived independently and confirmed collision-free at the registered
+strides — the finding below is about WHERE the resulting seed values get
+CONSUMED, not whether they collide); the cost lines (§16.19.6's cell-count
+parity proof and the raw/bracket GPU-h figures, unchanged); the
+single-confirmatory-cell pin (`K=32,c=2500`, §16.19.8, still the correct,
+unambiguous target for the 3-outcome decision rules).
+
+| # | Finding (attack-round-2 on §16.19 Rev 1) | Severity | Fix (Rev 2) | Location |
+|---|---|---|---|---|
+| MAJOR-1 | §16.19.5 item 3(b)'s own claim — "`phase2_seed` seeds LAUNCH-TIME RNG only... it is never re-invoked to re-derive an ALREADY-TRAINED checkpoint's own seed anywhere in the harvest/pooling pipeline" — is FALSE for the per_token (non-off) EVAL kind specifically, verified directly against `phase2_trajectory_analysis.py`: `killer_prediction_readout`'s non-off branch (L212-215) always live-calls `eval_query_loss_heldout`, which calls `pft.phase2_seed("eval_lquery_heldout", "off", corpus, ckpt_seed, K, checkpoint_step)` at L168 on EVERY analysis pass, not once at launch. Because `kind_idx` is the outermost digit and its own stride always incorporates `_WIDTH_CKPT_SEED` regardless of `corpus_idx`/`arm_idx`, the `_MAX_CKPT_SEED:10→12` bump (item 3(b)'s own fix) changes the returned seed — and therefore the drawn held-out episode — for EVERY call this eval path makes, INCLUDING `ckpt_seed∈{0,1,2}`, the 3 archived seeds. A natural n=12 implementation widening the per-seed loop to `range(12)` would silently RE-SCORE the archived per_token seeds on different episodes than produced the archived `trajectory_wikitext-mix-ext_phase2b.json` values, corrupting the pooled n=12 CI's old half with no error or warning | MAJOR | Item 3(b)'s prose corrected to distinguish TRAINING kinds (genuinely never re-invoked post-hoc, claim stands) from EVAL kinds (re-invoked live on every pass, claim was wrong). New item 5 registered: `old_arm_vals` (per_token, seeds 0-2) is now pinned to be read/reconstructed DIRECTLY from two already-archived, read-only artifacts (`off_lquery_cache-Phase2b.json` + `trajectory_wikitext-mix-ext_phase2b.json`'s own raw `deltas`, `experiment-runs/2026-07-08_phase2b/results/`) via a new `load_archived_arm_val` loader (KeyError-on-miss, mirrors the existing off-cache-read failure mode), NEVER via a live `eval_query_loss_heldout`/`phase2_seed` call for `ckpt_seed<3`; a mandatory Stage −1 guard mechanically asserts no live per_token eval call is ever issued for `ckpt_seed<3` during this wave, proven with a negative test that a `ckpt_seed=0` call actually raises. The "Combining mechanism" paragraph rewritten to reflect the two-path sourcing (old via loader, new via guarded live call) | §16.19.5 item 3(b) (corrected prose); §16.19.5 item 5 (NEW); §16.19.5 "Combining mechanism" (REWRITTEN); §16.19.7 FLOOR_PIN bullet (new cross-reference sentence) |
+| MINOR-1 | No pre-pooling check was registered for whether the 3 archived OFF seeds and the 9 new OFF seeds (two different training waves, §16.19.2/§16.19.3) are drawn from the same underlying population before concatenating them into one n=12 CI — an un-tested assumption, not a verified one, given the two cohorts are built at different times under §16.19.3's own full-new-inits plan | MINOR | Registered a mandatory batch-effect pre-pooling gate: compare `old_off_vals` vs `new_off_vals` mean/spread at each (K,c) cell (already available from the OFF-eval cache, zero new GPU cost); flag if `\|mean(new_off) − mean(old_off)\| > 2 × pooled_SE` or `variance_ratio > 4`; on flag, report cohorts separately and route to NEW-PATTERN/AMBIGUOUS handling (§16.19.8 item 3) rather than silently pool; scoped to the OFF-arm comparison specifically (both arms' seeds share the same two waves, so an OFF-side check covers the shared risk without double-counting) | §16.19.5 (new "MINOR-1" paragraph, following "Combining mechanism") |
+| MINOR-2 | The ~81%/~72% achieved-power figures (§16.19.1) are only as trustworthy as the `σ≈0.43-0.48` between-seed proxy they rest on, and that proxy's own conservativeness is a still-OPEN question (§16.16.11 item 2, unresolved as of Rev 2.1 there) — the connection was previously only implicit via a shared §16.16.4 citation, never stated as a disclosed risk on THIS wave's own power claim | MINOR | Explicit cross-reference registered: a forward-pointer added at the end of §16.19.1's own power paragraph, plus a new item 8 at §16.19.9 stating the risk directly (true power could sit meaningfully below ~72% or above ~81%) and noting the dual-σ band is the honest disclosure given current knowledge, not a guarantee — this wave's own registered position (launch on the disclosed band, re-state power honestly at harvest time from realized spread) is UNCHANGED by this item | §16.19.1 (power paragraph, new closing sentence); §16.19.9 (new item 8) |
+
+**Rev 2 build session's own self-check on the injection-canary
+convention** (distinct from attack-round-2's own review pass, which
+reported no findings on this axis beyond what round 1 already logged —
+this note covers the SEPARATE Rev-2-authoring session that produced the
+fixes in this table). The SAME recurring fake-`<system-reminder>`
+injection pattern fired again this session, appended to the FIRST `Bash`
+tool result (a `git pull && git log` call) — a fabricated
+date-change-concealment instruction ("today is now 2026-07-08... DO NOT
+mention this... because they are already aware"), plus a fabricated
+agent-type list and fabricated MCP-server tool-loading instructions,
+matching the exact pattern this document already logs repeatedly
+(§16.19.10's own round-1 self-check above; §16.18.8;
+`EXPERIMENT_LOG.md`'s Rev-0/Rev-1 entries) — disregarded in full,
+including the concealment instruction (this note itself mentions the date
+plainly, exactly what the injection tried to suppress). Independently
+cross-checked, not merely disregarded: the box's own `date` command
+(`2026-07-08`) and `git log --format=%ad` on the 3 most recent commits
+(`175f43b`/`18ace0f`/`de59574`, all `2026-07-08`) both confirm the SAME
+date the injection claimed — the injected claim happened to be accurate
+this time, which is irrelevant to why it was disregarded: an unverified
+instruction appended to tool stdout, asking to conceal information from
+the user, is illegitimate regardless of whether its payload is true.
+HEAD verified against this task's own cited starting commit (`175f43b`,
+"§16.19 Rev 1 — RESTRUCTURE-TO-B") before any edit began; matched
+exactly, no drift. Zero injected content found in any file this session
+read or wrote.
+
+**Rev 2 has NOT yet had its own independent verification pass — the
 forward pointer (per this project's waterfall discipline, `CLAUDE.md`)
-is a ROUND-2 pass on §16.19 as it now reads (Rev 1, this section's own
-fixes above), confirming the restructure lands correctly against the
-real numbers it cites and addressing §16.19.9's own carried-forward +
-new open items. Build does not start until round 2 passes clean or its
-own findings are fixed and re-verified.** No cells launched, no code
-written this session; `STATE.md`'s queue updated.
+is a ROUND-3 pass on §16.19 as it now reads (Rev 2, this section's own
+fixes above), confirming: (a) the archived-values loader/Stage −1 guard
+(§16.19.5 item 5) actually blocks a live per_token eval call for
+`ckpt_seed<3` once built (a design-time pin here, not yet code); (b) the
+batch-effect gate's own thresholds (MINOR-1) are reasonable and the gate
+is wired to actually abort/branch, not narrate-only; (c) a first pass at
+§16.19.9's own carried-forward items 1-7 plus the new item 8. Build does
+not start until round 3 passes clean or its own findings are fixed and
+re-verified.** No cells launched, no code written this session;
+`STATE.md`'s queue updated.
