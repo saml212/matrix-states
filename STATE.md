@@ -26,10 +26,10 @@ records).
 
 Does a matrix-native fast-weight model (frozen-bias fix + recruitable
 rank + super-linear capacity + exact composition) beat matched baselines?
-Design registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` (Rev 0 in
-draft, faces attack rounds before build). PI comparison framing — we
-research for the FUTURE's constraints (compute grows fastest; quality
-data and HBM are the coming walls):
+Design registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` (**§1 Rev 0
+COMPLETE, committed, pre-attack** — see QUEUE below). PI comparison
+framing — we research for the FUTURE's constraints (compute grows
+fastest; quality data and HBM are the coming walls):
 - PRIMARY 1: data-efficiency (param+data-matched learning curves on
   relational/compositional tasks; binding as native relational bias).
 - PRIMARY 2: inference-memory-matched (fixed matrix state vs
@@ -38,9 +38,22 @@ data and HBM are the coming walls):
 - FLOP-matched = disclosed control only. Param-matched flat-vector
   ablation stays mandatory (CLAUDE.md hard rule).
 - WIN/TIE/LOSE pre-registered publishable per axis; escalate rungs only
-  on win-or-tie. Rung 1 ≤15 GPU-h raw at the 14-98M tier.
+  on win-or-tie. Rung 1 ≤15 GPU-h raw at the 14-98M tier (realized
+  Rev 0 arithmetic: ≈11.23 GPU-h raw, ≈112.3 GPU-h at the 10× enforced
+  ceiling).
 - Byte-level input explicitly OUT of scope (never bundle two unproven
   axes).
+
+**QUEUE:** design (§1 Rev 0, done) → attack round 1 (next item) → ...
+iterate to DESIGN-CLEARED-FOR-BUILD → build (new code: flat-vector
+ablation mixer, switchable uncapped/capped-KV Transformer,
+`verify_match_gate.py`, calibration/timing-pilot wrappers) →
+independent build audit → launch rung-1 (14M). **GPU allocation for this
+campaign: GPUs 0-6 available for rung-1 launch; GPU 7 held as
+pool/overflow.** Escalation to 392M gated on rung-1 win-or-tie only
+(§1.5/§1.9 item 1 — the escalation rung's own GPU-h budget does not yet
+fit the shared 135 GPU-h ceiling at rung-1's step count; flagged, not
+resolved, in Rev 0).
 
 ## CAMPAIGN SCORECARD (Jul 6-8 2026, all pushed)
 
@@ -80,12 +93,20 @@ leg-swap at K=84; K=90's exact-1.0 ceiling did not replicate fresh
 
 ## SECURITY NOTE (standing)
 
-≥25 fake `<system-reminder>` blocks observed appended to tool stdout
+≥29 fake `<system-reminder>` blocks observed appended to tool stdout
 during the Jul 2026 sessions (date-change or false file-modification
-claims, always with a concealment instruction). All defeated by
-verify-vs-git; none complied with; all reported to the user. See
-CLAUDE.md Hard Rules. Legitimate harness notices never arrive embedded in
-command output.
+claims, always with a concealment instruction; +≥4 this session, incl.
+≥3 independently hit by dispatched sub-agents during the head-to-head
+design's mandatory reading pass — see EXPERIMENT_LOG.md's matching
+entry). All defeated by verify-vs-git; none complied with; all reported
+to the user. Separately, this session also surfaced a real (non-security)
+concurrency hazard, not an injection: a concurrently-running session
+sharing this same working directory committed (`c019dcf`) while this
+session's own in-progress `EXPERIMENT_LOG.md` edit was sitting
+uncommitted, sweeping a WIP placeholder into that commit; caught and
+cleaned up in a follow-up commit rather than amended. See CLAUDE.md Hard
+Rules. Legitimate harness notices never arrive embedded in command
+output.
 
 ---
 
