@@ -47,6 +47,7 @@ cache available in this sandbox).
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -402,6 +403,219 @@ def item_4_determinism_cross_check():
             "cross-check, per-launch' item; >=1 event REQUIRED, vacuous-pass guarded)", ok,
             f"n_live_events={len(live_events)} n_replay_events={len(replay_sink)} "
             f"byte_identical={ok_bytes} nonempty={ok_nonempty}")
+
+
+# ===========================================================================
+# STEP 3b -- REAL-launch, per-launch determinism replay (C17 build audit
+# residual 2, MINOR-4 fix: "item 4 ... run PER LAUNCH -- primary run, and
+# again for each fired contingency seed -- each time sequenced immediately
+# after THAT launch and before ITS events are folded into the combined
+# sink", KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.4/15.24.5, line 4736).
+# NOT part of the Stage -1 suite (main(), below) -- a SEPARATE CLI mode,
+# invoked by diag_c17_repro_chain.sh between the real cell's own launch and
+# the offline analysis step, against THAT launch's REAL on-disk dump
+# (never a synthetic mini-fixture like item 4's own K=84/d_state=64
+# self-test, whose job is only to prove the MECHANISM works at all).
+# Reuses item 4's own machinery byte-for-byte (full-state reload,
+# eval_gen = seed+10_000+step, m2/m3/c17/c19 replay order) -- the ONLY
+# difference is the SOURCE of ground truth: a REAL c17fallback_step<step>.pt
+# + full_step<step>.pt pair already on disk, never a freshly-trained
+# synthetic mini-model.
+# ===========================================================================
+
+def replay_launch_dump(ckpt_dir: str, seed: int, step: int, K: int = 84, d_state: int = 96) -> int:
+    """Loads `<ckpt_dir>/c17fallback_step<step>.pt` (the REAL live dump)
+    and, if it carries >=1 event, `<ckpt_dir>/full_step<step>.pt` (the REAL
+    full state_dict snapshot -- sec 15.24.2 item (i)) into a FRESH model
+    instance, rebuilds eval_gen = seed + 10_000 + step (train()'s own
+    formula, run_deltanet_rd.py:955), replays the m2/m3/c17/c19 pool-call
+    order (train()'s own order, run_deltanet_rd.py:961-985), and asserts
+    the replayed c17 dump is BYTE-IDENTICAL (key_ids AND k_eff_raw) to the
+    live one. Returns 0 (chain continues) on a match OR a disclosed
+    zero-event skip; 1 (chain stops) on any real mismatch or a missing
+    required file.
+
+    Architecture (K/d_state/geo3_n_iter/geo3_resid_tol/anchor_lambda_mode/
+    h_extra) is sourced from `rdx._keyanchor_scaling_spec(K, seed,
+    d_state)` -- the SAME spec object diag_c17_repro_chain.sh's own STEP 3
+    token-diffs the real launch command against (never hand-typed here
+    either). `d_model=256` is the one architecture field left hardcoded --
+    it is NEVER emitted as a CLI flag by build_cmd() for any spec in this
+    file (verified this session: build_cmd has no `--d-model` branch), so
+    there is no flag to source it from; it is both run_deltanet_rd.py's own
+    `--d-model` argparse default AND model_rd.DeltaNetRDBlock's own
+    constructor default, cross-checked this session against the ORIGINAL
+    archived K84/seed=1940 result JSON's own recorded `d_model` field
+    (box-side), and matches this file's own pre-existing item-2/3 fixture
+    (`_force_fallback_dump_event`, above), which already defaults to the
+    same production cell's `d_model=256`. A wrong value would fail loudly
+    inside `load_state_dict` regardless (shape mismatch), so this is
+    defense-in-depth, not the only safety net.
+
+    Disclosed skip (per this task's own explicit routing instruction), WITH
+    an independent-audit fix (this session): a zero-event FINAL checkpoint
+    is a clean, non-fatal skip (return 0) ONLY if the COMBINED event count
+    across every `c17fallback_step*.pt` file in `ckpt_dir` also stays below
+    the analysis script's own Step -1 minimum (`A.STEP_NEG1_MIN_EVENTS`) --
+    mirroring `diag_c17_repro_analysis.py`'s own `load_launch_dump()`,
+    which globs and combines EVERY checkpoint's events, not just the final
+    one. If earlier checkpoints already cleared that floor, the downstream
+    analysis WILL proceed past its own NO-REPRO gate using events this
+    replay mechanism structurally cannot verify (only ONE full state_dict
+    snapshot exists, at `full_ckpt_step`) -- that case is a disclosed
+    FATAL coverage gap (return 1), not a clean skip. Item 4's own
+    `ok_nonempty` assertion is correct for item 4's PURPOSE (proving the
+    mechanism has teeth on its own single-checkpoint synthetic fixture) but
+    was insufficient for THIS purpose against a REAL multi-checkpoint
+    launch, exactly the gap this docstring's own fix addresses."""
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    out_path = os.path.join(
+        RESULTS_DIR, f"c17_repro_replay_launch_dump_seed{seed}_step{step}.json")
+
+    rdr = _try_import_run_deltanet_rd()
+    assert rdr is not None, (
+        "--replay-launch-dump requires CUDA + fla (needs a REAL forward pass to replay against "
+        "a REAL checkpoint) -- this CLI mode is box-only, unlike the rest of this script's own "
+        "Stage -1 suite, which has a legitimate off-box BOX-DEFERRED path. There is no deferred "
+        "path here: STEP 3b only ever runs immediately after a real GPU launch, on the same box.")
+    assert torch.cuda.is_available(), "DeltaNet-RD requires CUDA (chunk_delta_rule has no CPU path)"
+    device = "cuda"
+
+    fallback_path = os.path.join(ckpt_dir, f"c17fallback_step{step}.pt")
+    assert os.path.exists(fallback_path), (
+        f"STEP 3b: {fallback_path!r} does not exist -- run_deltanet_rd.py writes this file "
+        f"UNCONDITIONALLY under --c17-repro-telemetry (even a 0-event checkpoint, sec 15.24.2 "
+        f"item (ii)), so a missing file means the launch did not actually run with telemetry on, "
+        f"or wrote to a different --ckpt-dir than passed here -- a real bug, not a legitimate "
+        f"zero-event outcome (that case is the `len(live_events) == 0` branch below, which DOES "
+        f"find this file, just with an empty events list).")
+    live_dump = torch.load(fallback_path, map_location="cpu", weights_only=False)
+    live_events = live_dump["events"]
+
+    if len(live_events) == 0:
+        # Independent-audit fix (this session): a zero-event FINAL checkpoint is NOT automatically
+        # the "routes to NO-REPRO" skip the task brief describes -- diag_c17_repro_analysis.py's
+        # own load_launch_dump() globs and COMBINES every c17fallback_step*.pt file in ckpt_dir
+        # (ckpt_every defaults to 2000, so a full 20000-step launch writes up to 10 such files),
+        # not just the final one. If earlier checkpoints already accumulated >= the analysis
+        # script's own Step -1 minimum (A.STEP_NEG1_MIN_EVENTS), the real analysis proceeds PAST
+        # its own NO-REPRO gate and emits a dispositive verdict built from checkpoints this replay
+        # mechanism structurally CANNOT verify -- only ONE full state_dict snapshot exists, at
+        # full_ckpt_step (sec 15.24.2 item (i)), so there is no way to reconstruct any EARLIER
+        # checkpoint's model state to replay against it. Check the COMBINED count (mirroring
+        # load_launch_dump's own glob) before deciding this is a genuine, clean skip.
+        import glob as _glob
+        all_fallback_paths = sorted(_glob.glob(os.path.join(ckpt_dir, "c17fallback_step*.pt")))
+        combined_n_events = sum(
+            len(torch.load(p, map_location="cpu", weights_only=False)["events"])
+            for p in all_fallback_paths)
+        if combined_n_events < A.STEP_NEG1_MIN_EVENTS:
+            note = (f"STEP 3b DISCLOSED SKIP: {fallback_path!r} (the final checkpoint) carries 0 "
+                     f"C17 fallback events for seed={seed} step={step}, AND the COMBINED count "
+                     f"across all {len(all_fallback_paths)} checkpoint file(s) in {ckpt_dir!r} is "
+                     f"only {combined_n_events} (< the analysis script's own Step -1 minimum, "
+                     f"{A.STEP_NEG1_MIN_EVENTS}) -- per this task's own registered instruction, this "
+                     f"routes to the analysis script's own Step -1 NO-REPRO path (sec 15.24.4). "
+                     f"Skipping the replay (nothing to reconstruct).")
+            print(note, flush=True)
+            payload = {"skipped": True, "coverage_gap": False, "reason": note, "seed": seed,
+                       "step": step, "ckpt_dir": ckpt_dir, "n_live_events_final_checkpoint": 0,
+                       "combined_n_events_all_checkpoints": combined_n_events,
+                       "n_checkpoint_files": len(all_fallback_paths)}
+            with open(out_path, "w") as f:
+                json.dump(payload, f, indent=2)
+            print(f"wrote {out_path}")
+            return 0
+        note = (f"STEP 3b FATAL COVERAGE GAP: the FINAL checkpoint (step={step}) carries 0 C17 "
+                 f"fallback events, but the COMBINED count across all {len(all_fallback_paths)} "
+                 f"checkpoint file(s) in {ckpt_dir!r} is {combined_n_events} (>= the analysis "
+                 f"script's own Step -1 minimum, {A.STEP_NEG1_MIN_EVENTS}) -- the downstream "
+                 f"analysis WILL proceed past its own NO-REPRO gate and emit a dispositive verdict "
+                 f"built (in part) from earlier checkpoints this replay mechanism structurally "
+                 f"CANNOT verify (only ONE full state_dict snapshot exists, at step={step} -- sec "
+                 f"15.24.2 item (i) -- so there is no way to reconstruct any earlier checkpoint's "
+                 f"model state to replay against it). This is a genuine structural coverage gap in "
+                 f"the instrument itself (found by independent audit, disclosed rather than "
+                 f"silently proceeding) -- NOT proof of a reproducibility bug at the checkpoints it "
+                 f"COULD verify (this cell's own final-checkpoint zero-event outcome is itself the "
+                 f"expected shape for a well-conditioned late-training state, sec 15.24.5's own "
+                 f"item-2b fixture comment). Stopping rather than letting the analysis draw a "
+                 f"conclusion this instrument cannot fully vouch for -- a human should review "
+                 f"whether Step 0b/1/2's OWN verdict logic (which reads dumped tensors directly, "
+                 f"independent of this replay) is trustworthy enough to proceed on anyway before "
+                 f"re-running just the analysis step by hand.")
+        print(note, file=sys.stderr, flush=True)
+        payload = {"skipped": True, "coverage_gap": True, "reason": note, "seed": seed, "step": step,
+                   "ckpt_dir": ckpt_dir, "n_live_events_final_checkpoint": 0,
+                   "combined_n_events_all_checkpoints": combined_n_events,
+                   "n_checkpoint_files": len(all_fallback_paths)}
+        with open(out_path, "w") as f:
+            json.dump(payload, f, indent=2)
+        print(f"wrote {out_path}")
+        return 1
+
+    full_state_path = os.path.join(ckpt_dir, f"full_step{step}.pt")
+    assert os.path.exists(full_state_path), (
+        f"STEP 3b: {fallback_path!r} carries {len(live_events)} event(s), so a replay IS "
+        f"required, but {full_state_path!r} (the full state_dict snapshot, sec 15.24.2 item (i)) "
+        f"is missing -- the launch must pass --full-ckpt-step {step} (matching this checkpoint "
+        f"step exactly).")
+    full_state = torch.load(full_state_path, map_location="cpu", weights_only=False)
+
+    import run_deltanet_rd_exactness_sweep as rdx
+    spec = rdx._keyanchor_scaling_spec(K, seed, d_state)
+    h_extra = tuple(spec["h_extra"]) if spec.get("h_extra") is not None else (7, 21)
+
+    tokenizer = grd.load_gpt2_tokenizer()
+    pools, _pool_report = grd.build_entity_pools(tokenizer, heldout_frac=0.5, seed=0)
+    pools = pools.to(device)
+    cfg = rdr.DeltaNetRDTaskConfig(K=spec["K"], conv_size=4, H_train=(1, 2, 3),
+                                    H_test=(4, 5, 6), H_extra=h_extra)
+
+    D_MODEL = 256   # see docstring -- the never-flagged, never-varied CLI/constructor default
+    model2 = rdr.DeltaNetRDBlock(
+        pools.vocab_size_total, d_model=D_MODEL, d_state=spec["d_state"], conv_size=cfg.conv_size,
+        buffer_id=pools.buffer_id, geo3_active=spec["geo3_active"], geo3_n_iter=spec["geo3_n_iter"],
+        geo3_resid_tol=spec["geo3_resid_tol"], anchor_active=spec["anchor_active"],
+        anchor_lambda_mode=spec["anchor_lambda_mode"], anchor_lambda_fixed=spec["anchor_lambda_fixed"],
+        anchor_train_ids=(pools.train_name_ids if spec["anchor_active"] else None),
+        anchor_table_frozen=spec.get("anchor_table_frozen", False),
+        anchor_table_init_mode=spec.get("anchor_table_init_mode", "frame_potential"),
+    ).to(device)
+    model2.load_state_dict({k: v.to(device) for k, v in full_state.items()})
+    model2.eval()
+
+    # Replay the m2/m3/c17/c19 pool-call order (train()'s OWN order, run_deltanet_rd.py) -- ONE
+    # shared eval_gen, the SAME seed+10_000+step formula train() itself uses, and the SAME
+    # force_rank_k this cell was launched with (None for this cell; threaded for generality).
+    force_rank_k = spec.get("force_rank_k")
+    eval_gen = torch.Generator(device=device).manual_seed(seed + 10_000 + step)
+    rdr.evaluate_pool(model2, cfg, eval_gen, device, cfg.H_train, pools, force_rank_k=force_rank_k,
+                       c17_repro_telemetry=True)
+    rdr.evaluate_pool(model2, cfg, eval_gen, device, (*cfg.H_test, *cfg.H_extra), pools,
+                       force_rank_k=force_rank_k, c17_repro_telemetry=True)
+    replay_sink: list = []
+    rdr.evaluate_pool(model2, cfg, eval_gen, device, cfg.H_train, pools, force_rank_k=force_rank_k,
+                       use_heldout_entities=True, fallback_dump_sink=replay_sink, step=step,
+                       seed=seed, c17_repro_telemetry=True)
+
+    ok_count = len(live_events) == len(replay_sink)
+    ok_bytes = ok_count and all(
+        torch.equal(le["key_ids"], re["key_ids"]) and torch.equal(le["k_eff_raw"], re["k_eff_raw"])
+        for le, re in zip(live_events, replay_sink))
+    ok = ok_count and ok_bytes
+    detail = (f"n_live_events={len(live_events)} n_replay_events={len(replay_sink)} "
+              f"count_match={ok_count} byte_identical={ok_bytes}")
+    status = "PASS" if ok else "FAIL"
+    print(f"[STEP 3b: per-launch determinism replay, seed={seed} step={step}] {status} -- {detail}",
+          flush=True)
+    payload = {"skipped": False, "ok": ok, "seed": seed, "step": step, "ckpt_dir": ckpt_dir,
+               "n_live_events": len(live_events), "n_replay_events": len(replay_sink),
+               "count_match": ok_count, "byte_identical": ok_bytes}
+    with open(out_path, "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"wrote {out_path}")
+    return 0 if ok else 1
 
 
 # ===========================================================================
@@ -898,4 +1112,21 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--replay-launch-dump" in sys.argv:
+        # STEP 3b CLI mode (audit residual 2 / MINOR-4) -- a SEPARATE entrypoint from the Stage -1
+        # suite's own `main()` above, never run together in one invocation.
+        ap = argparse.ArgumentParser(
+            description="STEP 3b: per-launch determinism replay against a REAL launch's own "
+                        "on-disk C17 dump (KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.4/15.24.5, "
+                        "audit residual 2 / MINOR-4). Does NOT run the Stage -1 suite.")
+        ap.add_argument("--replay-launch-dump", type=str, required=True, metavar="CKPT_DIR",
+                         help="the launch's own --ckpt-dir (containing c17fallback_step<STEP>.pt "
+                              "+ full_step<STEP>.pt)")
+        ap.add_argument("--seed", type=int, required=True)
+        ap.add_argument("--step", type=int, required=True)
+        ap.add_argument("--k", type=int, default=84)
+        ap.add_argument("--d-state", type=int, default=96)
+        args = ap.parse_args()
+        sys.exit(replay_launch_dump(args.replay_launch_dump, args.seed, args.step,
+                                     K=args.k, d_state=args.d_state))
     sys.exit(main())

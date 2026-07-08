@@ -374,8 +374,9 @@ else
 fi
 
 # =============================================================================
-# STEP 4 (SEPARATE chain step, runs ONLY after the cell above completes --
-# sec 15.24 task brief's own explicit instruction): offline analysis.
+# CKPT_DIR (this cell's own --ckpt-dir, via _keyanchor_scaling_spec's own
+# `name` -- NEVER hand-typed) is needed by BOTH STEP 3b and STEP 4 below;
+# computed ONCE here, shared by both.
 # =============================================================================
 CKPT_DIR="$REPRO_CKPT_BASE/$($PY -c "
 import sys
@@ -384,6 +385,62 @@ import run_deltanet_rd_exactness_sweep as rdx
 spec = rdx._keyanchor_scaling_spec($K, $SEED, $D_STATE)
 print(spec['name'])
 ")"
+
+# =============================================================================
+# STEP 3b (C17 build audit residual 2 / MINOR-4 fix, KEY_ANCHORING_SCALING_
+# DRAFT.md sec 15.24.4/15.24.5 line 4736): PER-LAUNCH determinism replay
+# against the REAL cell's own on-disk dump -- reuses Stage -1 item 4's own
+# machinery (diag_c17_repro_stage_minus1.py --replay-launch-dump), but
+# against the ACTUAL cell above, never item 4's own synthetic mini-fixture.
+# Runs between the launch and the offline analysis (this task's own
+# explicit instruction), GPU-2-pinned (sec 15.24.7, same as the LAUNCH step
+# above -- independent-audit fix, this session: the replay is a real CUDA
+# forward pass and must not silently land on a different GPU). Skipped
+# (disclosed, non-fatal) only when the launch step above was an idempotent
+# no-op (BUILD_RC==3, "already done") -- a PRIOR run of this same chain
+# already replayed THAT launch when it first completed; re-replaying now
+# against possibly-rotated on-disk state is not this step's job. A genuine
+# replay MISMATCH (real bytes differ) is FATAL; a zero-event FINAL
+# checkpoint is a disclosed, NON-fatal skip ONLY if the combined event
+# count across every checkpoint in this launch also stays below the
+# analysis script's own Step -1 minimum (routes to its NO-REPRO path, per
+# this task's own explicit routing instruction) -- if earlier checkpoints
+# already cleared that floor, the replay script itself treats it as a
+# FATAL coverage gap instead (independent-audit finding, this session: only
+# the FINAL checkpoint has a full state_dict snapshot to replay against, so
+# earlier-checkpoint events cannot be verified at all -- see that script's
+# own `replay_launch_dump()` docstring for the full reasoning). Either
+# FATAL case (rc!=0) is NOT the same as the BUILD_RC==3 skip above (that
+# skip means STEP 3b did not run AT ALL this invocation).
+# =============================================================================
+if [ "$BUILD_RC" -eq 3 ]; then
+    echo "STEP 3b SKIPPED: launch step was an idempotent no-op (already done) -- this cell's own" \
+         " STEP 3b already ran when it first completed." | tee logs/c17repro_18_step3b_replay.log
+else
+    set +e
+    CUDA_VISIBLE_DEVICES="$C17REPRO_GPU" $PY diag_c17_repro_stage_minus1.py \
+        --replay-launch-dump "$CKPT_DIR" --seed "$SEED" \
+        --step "$FULL_CKPT_STEP" --k "$K" --d-state "$D_STATE" \
+        2>&1 | tee logs/c17repro_18_step3b_replay.log
+    REPLAY_RC="${PIPESTATUS[0]}"
+    set -e
+    if [ "$REPLAY_RC" -ne 0 ]; then
+        echo "ERROR: STEP 3b (per-launch determinism replay) FAILED (rc=$REPLAY_RC) -- see" >&2
+        echo "  logs/c17repro_18_step3b_replay.log. Either a real byte mismatch, a required" >&2
+        echo "  on-disk file was missing, or a disclosed FATAL coverage gap (earlier checkpoints" >&2
+        echo "  accumulated events this replay cannot verify -- see the log's own reason field for" >&2
+        echo "  which). Stopping before the analysis step runs on unverified data." >&2
+        exit 1
+    fi
+    echo "STEP 3b PASSED (or disclosed clean zero-event skip -- see log for which)." \
+        | tee -a logs/c17repro_18_step3b_replay.log
+    touch "$REPRO_OUT_DIR/C17REPRO_STEP3B_REPLAY_DONE"
+fi
+
+# =============================================================================
+# STEP 4 (SEPARATE chain step, runs ONLY after the cell above completes --
+# sec 15.24 task brief's own explicit instruction): offline analysis.
+# =============================================================================
 ANALYSIS_JSON="$REPRO_OUT_DIR/diag_c17_repro_analysis_K${K}_s${SEED}.json"
 
 $PY diag_c17_repro_analysis.py --launch "$CKPT_DIR" "$SEED" --k "$K" --out-json "$ANALYSIS_JSON" \
