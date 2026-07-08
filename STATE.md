@@ -149,6 +149,8 @@ design gauntlet — design Rev 0 in `matrix-thinking/
 CAPABILITY_SEPARATION_DESIGN.md` (dispatched 2026-07-08) → attack
 rounds → build → audit → launch alongside head-to-head.
 
+**QUEUE:** Design Rev 0 committed (this commit) → attack round 1 next.
+
 **PUBLICATION PIPELINE:** measurement-2026 chop paper DRAFTED (local
 commit 4c7d172; "The Cliff That Wasn't"; compiles clean w/ tectonic,
 ~4.6pp body; every number provenance-commented to §15.NN anchors; claim
