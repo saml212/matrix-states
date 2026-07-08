@@ -141,24 +141,33 @@ Fig.~11) --- not a forward-reference}
   \item \textbf{(6) A fourth completed wave tests the raw-state-capacity
     candidate directly and finds SUPER-LINEAR, not ratio-invariant,
     growth.} Re-fitting the identical localization procedure at
-    $d_{\mathrm{state}}{=}80$ and $d_{\mathrm{state}}{=}96$ (30/30 cells,
-    all admissibility gates clean bar one disclosed, non-load-bearing
-    anomaly) locates $d{=}80$'s transition at $x_0{=}0.6756$ (95\% CI
-    $[0.6620,0.6868]$, clean fit) --- entirely excluding the
+    $d_{\mathrm{state}}{=}80$ and $d_{\mathrm{state}}{=}96$ locates
+    $d{=}80$'s transition at $x_0{=}0.6779$ (95\% CI $[0.6683,0.6867]$,
+    clean fit, $n{=}5$ seeds/$K$) --- entirely excluding the
     pre-registered ratio-invariant band $[0.4745,0.6165]$ centered on
-    $d{=}64$'s own $x_0{=}0.5455$ --- while $d_{\mathrm{state}}{=}96$'s
-    fit does not localize at all inside the tested window ($h{=}4 \geq
-    0.98$ at every load through $K/d{=}0.71875$, load tolerance
-    $>0.72$), the identical flat-near-ceiling signature $d{=}128$ showed
-    one step earlier. This rules out fixed-ratio invariance as cleanly as
-    the $d{=}128$ wave ruled out ``the cliff never moves''; an
-    absolute-slack account fits both new points more closely than the
-    ratio-invariant band does, without hitting either exactly, and a
-    power-law account is not excluded --- the precise functional form,
-    and the exact $d_{\mathrm{state}}{=}96$ transition point, remain
-    open. A wide-grid follow-up ($K{=}72,78,84,90$ at
-    $d_{\mathrm{state}}{=}96$) is designed and power-checked but is still
-    DRAFT, not yet built or launched; its result is not reported here.
+    $d{=}64$'s own $x_0{=}0.5455$. \textbf{At $d_{\mathrm{state}}{=}96$, a
+    wider grid ($K{=}72,78,84,90$) initially flagged 11 of 12 new cells
+    inadmissible; an independently-audited repro instrument diagnosed a
+    tolerance miscalibration in the convergence gate (all 4,608 flagged
+    episodes resolve by $n_{\mathrm{iter}}{\leq}28$ against a production
+    $n_{\mathrm{iter}}{=}20$), and the admission flag alone --- never the
+    $h4$ measurement --- was recalibrated, unlocking the full grid at
+    zero new GPU spend.} The re-fit on the complete, unlocked grid
+    ($K{\in}\{69,72,78,84,90\}$, $n{=}3$/$K$) finds NO cliff anywhere
+    through $K/d{=}0.9375$, but a non-monotonic curve
+    ($h4$ means $0.9592/0.9216/0.9326/0.9581/1.0000$: a dip at
+    $K{=}72/78$, partial recovery at $K{=}84$, an exact ceiling at
+    $K{=}90$) that the sigmoid fit cannot localize --- 100\% of 4,000
+    bootstrap resamples land at the fit's own degenerate parameter
+    bounds. This rules out fixed-ratio invariance as cleanly as the
+    $d{=}128$ wave ruled out ``the cliff never moves''; neither the
+    absolute-slack band ($[0.718,0.739]$) nor the power-law band
+    ($[0.768,0.837]$) is confirmed or excluded --- the precise functional
+    form, and the exact $d_{\mathrm{state}}{=}96$ transition point, remain
+    open, now for a scatter/power reason rather than a data-availability
+    one. Seed escalation at the noisiest group ($K{=}72$, per-seed range
+    $0.8426$--$0.9904$) is the registered next step, not launched by this
+    wave.
   \item State plainly, as the paper's own honesty discipline requires: the
     behavioral gain is real and its cause is now known (constancy,
     confirmed by ablation); the originally-hypothesized entity-alignment

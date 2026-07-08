@@ -131,13 +131,22 @@ sufficient'' corner itself --- the key-anchoring program's complete arc
     raw-state-capacity candidate has since been tested directly and load
     tolerance turns out to grow SUPER-LINEARLY in $d_{\mathrm{state}}$,
     not at a fixed $K/d$ ratio:} re-fitting the transition at
-    $d_{\mathrm{state}}{=}80$ places it at $x_0{=}0.6756$ (95\% CI
-    $[0.6620,0.6868]$), cleanly excluding the ratio-invariant band around
-    $0.5455$; at $d_{\mathrm{state}}{=}96$ the transition does not
-    localize inside the tested window at all (load tolerance $>0.72$).
-    The exact functional form and the precise $d{=}96$ transition point
-    remain open --- a wide-grid follow-up is designed and power-checked
-    but not yet built or launched (\S\ref{sec:discussion}).
+    $d_{\mathrm{state}}{=}80$ places it at $x_0{=}0.6779$ (95\% CI
+    $[0.6683,0.6867]$), cleanly excluding the ratio-invariant band around
+    $0.5455$; at $d_{\mathrm{state}}{=}96$ the FULL unlocked grid
+    ($K{\in}\{69,72,78,84,90\}$, $n{=}3$/$K$ --- 11 of 12 new cells were
+    initially flagged inadmissible by a since-diagnosed tolerance
+    miscalibration in the convergence gate, not a real capacity wall; all
+    4,608 flagged episodes resolve by $n_{\mathrm{iter}}{\leq}28$, and only
+    the admission flag was recalibrated) shows NO cliff through
+    $K/d{=}0.9375$ but a non-monotonic curve
+    ($0.9592/0.9216/0.9326/0.9581/1.0000$) that the sigmoid fit cannot
+    localize (100\% bootstrap-degenerate). The exact functional form and
+    the precise $d{=}96$ transition point remain open --- neither the
+    absolute-slack band $[0.718,0.739]$ nor the power-law band
+    $[0.768,0.837]$ is confirmed or excluded; seed escalation at the
+    noisiest group ($K{=}72$) is the registered next step
+    (\S\ref{sec:discussion}).
   \item \textbf{State this precisely, not as a substitution:} the 2$\times$2's
     ``jointly sufficient'' corner still rests on the hand-built i-strong
     pin for a \emph{causal} demonstration at $K{=}32$; the \emph{practical},

@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-08 (C17 harvest session: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-08 (paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -77,19 +77,30 @@ harvest (harvest-only discipline).
 across lanes for the next check-in, not a new decision on any of them —
 none of the PENDING-USER items below were acted on by this harvest):**
 
-- **The d=96 resolution, for the paper drafts specifically:**
-  `iclr-2027/sections/{04_phenomenon,05_mechanism,08_results,
-  09_discussion_limitations,10_conclusion}.tex` currently describe the
-  d=96 wide-grid super-linear-capacity point as **"in-flight, not
-  pre-claimed"** (per this file's own 2026-07-07 paper-addendum note,
-  preserved below). **That language is now STALE** — the lane is CLOSED,
-  and the actual landed result is AMBIGUOUS/non-monotonic, not a clean
-  extension of the d=64→d=80 progression. The `workshop-2026/` 4pp
-  Extended Abstract (the capacity-trilogy submission, commit `1c0ea65`)
-  is UNAFFECTED — it is scoped to d=64 LOCATED / d=128 DISSOLVED /
-  coherence EXONERATED only, never touches d=96. **This is a PI-reviewed
-  text update, not self-launched by this harvest** — flagged here so it
-  is not missed before the ICLR sections are next touched.
+- **The d=96 resolution, for the paper drafts — DONE (2026-07-08, fold-in
+  session).** `iclr-2027/sections/{01_intro,04_phenomenon,05_mechanism,
+  08_results,09_discussion_limitations,10_conclusion}.tex` no longer say
+  "in-flight, not pre-claimed" / "still DRAFT... not yet launched" — every
+  d=96 passage now states the actual landed result (per-K h4
+  0.9592/0.9216/0.9326/0.9581/1.0000, NO cliff through K/d=0.9375, curve
+  non-monotonic not flat-ceiling, sigmoid 100% bootstrap-degenerate,
+  x0(96) unresolved from genuine scatter not a data gap) plus the
+  tolerance-miscalibration catch story (11/12 flagged cells, all 4,608
+  episodes resolve n_iter≤28, admission flag alone recalibrated). x0(80)
+  corrected 0.6756→0.6779 (the escalated n=5 fit) everywhere it appears,
+  for internal consistency with the new x0(96) text. **Correction to this
+  block's own prior claim:** the `workshop-2026/` 4pp Extended Abstract
+  was NOT actually scoped away from d=96 as this note previously
+  asserted — `sections/04_open_question.tex` and `05_limitations.tex`
+  both discuss the d=80/96 super-linear-growth follow-up at length and
+  carried the identical stale DRAFT hedge; both are now updated the same
+  way, and `main.pdf` was recompiled clean via `tectonic` (5pp, unchanged
+  page count). No figure needed regeneration — neither `fig_cliff.py`
+  (d=64/d=128 only) nor `fig11_capacity_curve` in `make_figures_v2.py`
+  (K=16/32/48 at d=64 only) plots d=80/96 data. Reasoning-link's own
+  triple-null + Phase-2b bounded-causal result was folded into ICLR
+  discussion item 10 (§16.15/§16.18) in the same pass. Full detail:
+  `EXPERIMENT_LOG.md`'s "PAPER FOLD-IN" entry.
 - **Submissions venue/author/title — still PENDING-USER, unchanged by
   this harvest, timing now close:** `matrix-thinking/submissions/
   neurips-ws-2026/VENUE_DECISION.md` (Decision 1: NeurReps/UniReps
