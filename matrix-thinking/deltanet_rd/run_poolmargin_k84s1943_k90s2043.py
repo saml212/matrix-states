@@ -25,10 +25,15 @@ generated command matches a sibling-seed reference command with only
 seed-derived tokens differing) cannot pass VERBATIM for K=84's own cell,
 whose real command carries an extra `--m3-pool-restrict-n 100` token
 build_cmd() does not know how to generate. Fixed here by stripping an
-explicitly-enumerated NEW_FLAG_WHITELIST from the generated command BEFORE
-the precedent's own equality-diff runs (strip_whitelisted() below), so the
-check keeps its teeth against every OTHER kind of drift. K=90's own cell
-carries no new flag, so its own whitelist strip is a documented no-op.
+explicitly-enumerated, PER-K whitelist (NEW_FLAG_WHITELIST_BY_K, build-audit
+MAJOR-3 fix -- keyed by K, not global, so an errant flag on K=90's own cell
+is never silently absorbed through K=84's own whitelist entry) from the
+generated command BEFORE the precedent's own equality-diff runs
+(strip_whitelisted() below, build-audit MAJOR-2 fix: refuses loudly on a
+DUPLICATED whitelisted flag rather than stripping every occurrence), so the
+check keeps its teeth against every OTHER kind of drift. K=90's own
+whitelist entry is EMPTY -- its own whitelist strip is a documented no-op,
+and any extra token on that cell's cmd, including this same flag, refuses.
 
 n_iter=28 (sec 15.26.3, REUSED verbatim from the killed grid's own
 registered bump, additive-only): applied as a POST-CONSTRUCTION override
@@ -128,17 +133,50 @@ assert abs(POOLMARGIN_ABORT_WALL_S - 4611.6) < 1e-6, \
 # sec 15.26.3.1's Rev 2 MAJOR-3 fix: the enumerated whitelist of new flag tokens this wave's own
 # cmd carries that build_cmd() itself does not know how to generate. Kept exhaustive by
 # construction (see the reserved second-generator-flag entry's own comment, sec 15.26.3.1).
-NEW_FLAG_WHITELIST = {
-    "--m3-pool-restrict-n": 1,   # takes exactly 1 positional value (the int)
-    # second-generator flag: N/A this design -- the noise-floor repeat passes (sec 15.26.2.2,
-    # Rev 2 MAJOR-1 fix + round-3 adopted second draw) are auto-gated by the SAME
-    # `m3_pool_restrict_n is not None` condition inside train(), not their own separate CLI
-    # token; this entry is reserved in case a future revision splits one out, so the whitelist
-    # stays exhaustive by construction rather than by omission.
+#
+# build-audit MAJOR-3 fix (2026-07-08): keyed PER-K, not global. A single shared whitelist would
+# let an ERRANT --m3-pool-restrict-n on the K=90 side (which must NEVER carry it -- K=90 is the
+# unmodified natural-margin comparator, sec 15.26.2.2) be silently stripped and no-op through the
+# field-diff check, exactly like a legitimate K=84 token -- masking a real bug instead of catching
+# it. K=90's own entry is deliberately EMPTY: any extra token on that cell's cmd, including this
+# flag, must still refuse. Negative test: `field-diff-negative[K90-errant-whitelisted-flag-...]`
+# below injects the flag into K=90's cmd and confirms refusal.
+NEW_FLAG_WHITELIST_BY_K = {
+    84: {
+        "--m3-pool-restrict-n": 1,   # takes exactly 1 positional value (the int)
+        # second-generator flag: N/A this design -- the noise-floor repeat passes (sec 15.26.2.2,
+        # Rev 2 MAJOR-1 fix + round-3 adopted second draw) are auto-gated by the SAME
+        # `m3_pool_restrict_n is not None` condition inside train(), not their own separate CLI
+        # token; this entry is reserved in case a future revision splits one out, so the whitelist
+        # stays exhaustive by construction rather than by omission.
+    },
+    90: {},   # K=90 carries NO new flag ever -- empty by design (build-audit MAJOR-3 fix).
 }
 
-OUT_DIR = os.path.join(rdx.DEFAULT_OUT_DIR, "wavekeyanchor-scaling-wide")
-CKPT_BASE_DIR = "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-scaling-wide"
+# build-audit MAJOR-1 fix (2026-07-08): OUT_DIR is DELIBERATELY its own
+# directory, NOT the shared wavekeyanchor-scaling-wide/ dir the rest of this
+# wave's cells (K in {24,51,57,63,69,72,78,84,90} at n_iter=20) live in.
+# `fit_cliff_curve.load_k_mean_h4(cell_dir, K, arm="d")` globs
+# `cell_dir/*_K{K}_armd_*.json` with NO n_iter/seed filter -- if this
+# diagnostic's own n_iter=28 K=84/seed=1943 and K=90/seed=2043 cells landed
+# in the SAME directory as the FROZEN sec 15.26.1 per-K table's own n_iter=20
+# cells (K=84/90 are both members of KEYANCHOR_SCALING_D96_WIDE_KS=(72,78,
+# 84,90)), a future regeneration of that table via the SAME loader would
+# silently pull these mismatched-n_iter cells into the "mean h4"/"sample sd"
+# columns, contaminating a table this wave explicitly registers as frozen
+# (sec 15.26.1). Routing to a NEW, disjoint directory closes this by
+# construction -- mirrors the LOCAL_D96_ARCHIVE_DIR isolation precedent
+# (smoke_keyanchor_scaling_wide.py) of never letting a test/diagnostic's own
+# reads or writes share a path with the production archive they must not
+# perturb. poolmargin_stage_minus1.py's own new Item 5 asserts this
+# disjointness by construction (path-prefix check), not just by comment.
+FROZEN_WIDE_DIR = os.path.join(rdx.DEFAULT_OUT_DIR, "wavekeyanchor-scaling-wide")
+OUT_DIR = os.path.join(rdx.DEFAULT_OUT_DIR, "wavekeyanchor-scaling-poolmargin")
+assert OUT_DIR != FROZEN_WIDE_DIR and not OUT_DIR.startswith(FROZEN_WIDE_DIR + os.sep) and \
+       not FROZEN_WIDE_DIR.startswith(OUT_DIR + os.sep), (
+    "build-audit MAJOR-1: OUT_DIR must be disjoint from the frozen wavekeyanchor-scaling-wide/ "
+    f"dir -- got OUT_DIR={OUT_DIR!r}, FROZEN_WIDE_DIR={FROZEN_WIDE_DIR!r}")
+CKPT_BASE_DIR = "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-scaling-poolmargin"
 LOG_DIR = os.path.join(HERE, "logs")
 SENTINEL_DIR = OUT_DIR   # sentinels live alongside this wave's own result JSONs
 
@@ -216,7 +254,15 @@ def _pool_margin_spec(K: int, seed: int) -> dict:
     reads n_iter FROM) is NEVER modified. Also fixes the spec's own `name` bit
     (`geo3n{n_iter}`, baked in at construction time from the dict-read n_iter) to match the
     overridden value, so out_path()/is_done()/the ckpt-dir all consistently reflect n_iter=28
-    rather than a misleading geo3n20 filename for a cell that actually trains at n_iter=28."""
+    rather than a misleading geo3n20 filename for a cell that actually trains at n_iter=28.
+
+    build-audit MINOR-3 fix -- framing, not mechanism: this rename is a NON-MISLEADING-FILENAME
+    fix only, never a collision-avoidance one. `_spec()`'s own bit order (rdx.py) already puts
+    `s{seed}` BEFORE the `geo3n{n_iter}` bit, and seed=1943/2043 are unique to this diagnostic's
+    2 cells (sec 15.26.2.3's own collision-check, gate (g) above) -- every filename in this
+    directory is therefore already distinct by seed alone, with or without this rename. Renaming
+    `geo3n20`->`geo3n28` changes nothing about whether a collision could occur; it exists solely
+    so a human/tool reading the filename sees the n_iter this cell actually trained at."""
     spec = rdx._keyanchor_scaling_spec(K, seed, D_STATE)
     n_iter = POOLMARGIN_N_ITER_OVERRIDE[D_STATE][K]
     old_bit, new_bit = f"geo3n{spec['geo3_n_iter']}", f"geo3n{n_iter}"
@@ -242,12 +288,26 @@ def build_cell_cmd(K: int, seed: int, m3_pool_restrict_n: int | None) -> tuple[d
 # Gate (j): whitelist-adapted field-diff (Rev 2 MAJOR-3 fix).
 # ---------------------------------------------------------------------------
 
-def strip_whitelisted(cmd_tokens: list) -> list:
+def strip_whitelisted(cmd_tokens: list, K: int) -> list:
+    """build-audit MAJOR-3 fix: looks up K's OWN whitelist (NEW_FLAG_WHITELIST_BY_K[K]) rather
+    than a single global one -- K=90's own entry is empty, so an errant whitelisted-elsewhere flag
+    on K=90's cmd is never silently stripped.
+
+    build-audit MAJOR-2 fix: a duplicated whitelisted flag has no registered meaning (the launch
+    mechanism never emits one twice) -- silently stripping ALL occurrences would mask that
+    corruption instead of surfacing it. Assert at most one occurrence of each whitelisted flag
+    BEFORE stripping; refuse loudly (AssertionError) on a duplicate rather than stripping blindly."""
+    whitelist = NEW_FLAG_WHITELIST_BY_K[K]
+    for flag in whitelist:
+        count = cmd_tokens.count(flag)
+        assert count <= 1, (
+            f"build-audit MAJOR-2: whitelisted flag {flag!r} appears {count} times in K={K}'s own "
+            f"generated command -- refusing to strip a duplicated flag silently (cmd={cmd_tokens!r})")
     out, i = [], 0
     while i < len(cmd_tokens):
         tok = cmd_tokens[i]
-        if tok in NEW_FLAG_WHITELIST:
-            i += 1 + NEW_FLAG_WHITELIST[tok]   # skip the flag + its N values
+        if tok in whitelist:
+            i += 1 + whitelist[tok]   # skip the flag + its N values
             continue
         out.append(tok)
         i += 1
@@ -259,13 +319,13 @@ def normalize(cmd: list, seed: int) -> list:
 
 
 def check_field_diff(K: int, seed: int, ref_seed: int, cmd: list, m3_pool_restrict_n: int | None) -> None:
-    """sec 15.26.3.1's Rev 2 MAJOR-3 fix: strips NEW_FLAG_WHITELIST from `cmd` BEFORE the
-    precedent's own equality-diff runs against a sibling-seed reference command (built the SAME
-    way, at ref_seed, WITHOUT the new flag -- an in-process, never-launched reference, sec
-    15.26.2.3's own disclosed cross-reference), so the check keeps its teeth against any OTHER
-    kind of drift."""
+    """sec 15.26.3.1's Rev 2 MAJOR-3 fix: strips K's own whitelist (NEW_FLAG_WHITELIST_BY_K[K],
+    build-audit MAJOR-3 fix: per-K, not global) from `cmd` BEFORE the precedent's own equality-diff
+    runs against a sibling-seed reference command (built the SAME way, at ref_seed, WITHOUT the new
+    flag -- an in-process, never-launched reference, sec 15.26.2.3's own disclosed cross-reference),
+    so the check keeps its teeth against any OTHER kind of drift."""
     _, ref_cmd = build_cell_cmd(K, ref_seed, m3_pool_restrict_n=None)
-    cmd_for_diff = strip_whitelisted(cmd)
+    cmd_for_diff = strip_whitelisted(cmd, K)
     n_new = normalize(cmd_for_diff, seed)
     n_ref = normalize(ref_cmd, ref_seed)
     if n_new != n_ref:
@@ -398,8 +458,8 @@ def _self_test() -> int:
     spec_a, cmd_a = build_cell_cmd(K_A, SEED_A, M3_POOL_RESTRICT_N)
     check("whitelist-strip-removes-exactly-the-new-flag",
           cmd_a.count("--m3-pool-restrict-n") == 1 and
-          strip_whitelisted(cmd_a).count("--m3-pool-restrict-n") == 0 and
-          len(strip_whitelisted(cmd_a)) == len(cmd_a) - 2)
+          strip_whitelisted(cmd_a, K_A).count("--m3-pool-restrict-n") == 0 and
+          len(strip_whitelisted(cmd_a, K_A)) == len(cmd_a) - 2)
     try:
         check_field_diff(K_A, SEED_A, REF_SEED_A, cmd_a, M3_POOL_RESTRICT_N)
         check("field-diff-positive[K84-whitelisted]", True)
@@ -407,7 +467,7 @@ def _self_test() -> int:
         check("field-diff-positive[K84-whitelisted]", False)
 
     spec_b, cmd_b = build_cell_cmd(K_B, SEED_B, None)
-    check("whitelist-strip-is-noop-for-K90", strip_whitelisted(cmd_b) == cmd_b)
+    check("whitelist-strip-is-noop-for-K90", strip_whitelisted(cmd_b, K_B) == cmd_b)
     try:
         check_field_diff(K_B, SEED_B, REF_SEED_B, cmd_b, None)
         check("field-diff-positive[K90-no-new-flag]", True)
@@ -422,6 +482,29 @@ def _self_test() -> int:
     except SystemExit as e:
         negative_refused = (e.code == 1)
     check("field-diff-negative[one-extra-non-whitelisted-token]", negative_refused)
+
+    # build-audit MAJOR-2 negative test: a DUPLICATED whitelisted flag must refuse (loudly,
+    # AssertionError), never be silently stripped in full.
+    dup_cmd = cmd_a + ["--m3-pool-restrict-n", "100"]   # cmd_a already carries it once
+    assert dup_cmd.count("--m3-pool-restrict-n") == 2, "test fixture itself must carry 2 copies"
+    dup_refused = False
+    try:
+        strip_whitelisted(dup_cmd, K_A)
+    except AssertionError:
+        dup_refused = True
+    check("whitelist-strip-refuses-duplicated-flag[MAJOR-2]", dup_refused)
+
+    # build-audit MAJOR-3 negative test: K=90's own whitelist is EMPTY -- an errant
+    # --m3-pool-restrict-n token on K=90's cmd must NOT silently no-op through K=84's own
+    # whitelist entry (a global whitelist would mask exactly this bug).
+    bogus_cmd_b = cmd_b + ["--m3-pool-restrict-n", "100"]
+    negative_refused_b = False
+    try:
+        check_field_diff(K_B, SEED_B, REF_SEED_B, bogus_cmd_b, None)
+    except SystemExit as e:
+        negative_refused_b = (e.code == 1)
+    check("field-diff-negative[K90-errant-whitelisted-elsewhere-flag][MAJOR-3]", negative_refused_b)
+    check("whitelist-by-k-K90-entry-is-empty[MAJOR-3]", NEW_FLAG_WHITELIST_BY_K[K_B] == {})
 
     # --- n_iter override determinism ---
     check("n-iter-override-K84", spec_a["geo3_n_iter"] == 28 and "geo3n28" in spec_a["name"])

@@ -37,10 +37,13 @@ under the n_iter=28 admission gate), and the whole comparison routes to
 AMBIGUOUS (never forcing a REAL/ARTIFACT call) if the fresh K90 reading
 drops below K84's own mean -- i.e. the premise (K84 < K90) no longer holds.
 
-Usage:
+Usage (build-audit MAJOR-1 fix, 2026-07-08: paths point at this diagnostic's OWN isolated
+results/deltanet_rd_exactness/wavekeyanchor-scaling-poolmargin/ dir, matching
+run_poolmargin_k84s1943_k90s2043.py's own OUT_DIR -- NEVER the shared, frozen
+wavekeyanchor-scaling-wide/ dir the sec 15.26.1 per-K table's own cells live in):
   .venv/bin/python harvest_poolmargin_k84s1943_k90s2043.py \\
-      --k84-json results/deltanet_rd_exactness/wavekeyanchor-scaling-wide/<K84 cell>.json \\
-      --k90-json results/deltanet_rd_exactness/wavekeyanchor-scaling-wide/<K90 cell>.json \\
+      --k84-json results/deltanet_rd_exactness/wavekeyanchor-scaling-poolmargin/<K84 cell>.json \\
+      --k90-json results/deltanet_rd_exactness/wavekeyanchor-scaling-poolmargin/<K90 cell>.json \\
       --out verdict.json
 
   Local, GPU-free self-test (synthetic cases, no result JSON needed):
@@ -50,12 +53,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 H4_HOP = "4"           # sec 15.26.5: h4 = M3_held_out['4']['recovered_frac@0.9'] (JSON int-key stringification)
 TAU_KEY = "recovered_frac@0.9"
 K90_OLD_GRID_MEAN = 1.0000     # sec 15.26.1's table: K=90's own real n=3 mean, exact ceiling
 K90_ADMISSION_FLOOR = 0.98     # sec 15.26.5 MINOR-3 contingency: "does NOT reproduce ceiling"
+
+# build-audit MAJOR-1 fix (2026-07-08): the FROZEN sec 15.26.1 per-K table's own directory --
+# this diagnostic's own result JSONs must NEVER be read from (or, by the wrapper's own OUT_DIR
+# fix, written to) here. Refused loudly in harvest() below rather than silently harvesting off
+# whatever the caller happens to point at.
+FROZEN_WIDE_DIR_BASENAME = "wavekeyanchor-scaling-wide"
 
 
 def _h4(entry: dict) -> float:
@@ -132,7 +142,21 @@ def compute_verdict(*, k84_standard: float, k84_restricted: float,
                       f"noise_shift={noise_shift:.6f}, round-3 max-of-2-draws)"}
 
 
+def _refuse_if_in_frozen_dir(label: str, path: str) -> None:
+    """build-audit MAJOR-1 fix: refuses loudly if the given result JSON sits inside the FROZEN
+    wavekeyanchor-scaling-wide/ dir -- this diagnostic's own cells belong exclusively under
+    wavekeyanchor-scaling-poolmargin/ (the wrapper's own OUT_DIR). Catches a human/tool pointing
+    this harvest at the wrong (shared) directory, e.g. by copy-pasting a pre-fix example path."""
+    parent = os.path.basename(os.path.dirname(os.path.abspath(path)))
+    assert parent != FROZEN_WIDE_DIR_BASENAME, (
+        f"build-audit MAJOR-1: {label}_json path {path!r} sits inside the FROZEN "
+        f"{FROZEN_WIDE_DIR_BASENAME!r} directory -- this diagnostic's own cells must be read from "
+        f"wavekeyanchor-scaling-poolmargin/ only, never the shared frozen per-K table's own dir.")
+
+
 def harvest(k84_json_path: str, k90_json_path: str) -> dict:
+    _refuse_if_in_frozen_dir("k84", k84_json_path)
+    _refuse_if_in_frozen_dir("k90", k90_json_path)
     with open(k84_json_path) as f:
         k84 = json.load(f)
     with open(k90_json_path) as f:
@@ -263,6 +287,25 @@ def _self_test() -> int:
             if real_thresh > artifact_thresh:
                 violations += 1
     check("totality-walk-numeric-sweep", violations == 0, f"{violations} violation(s) out of 10,005 grid points")
+
+    # build-audit MAJOR-1 negative test: a path inside the FROZEN wavekeyanchor-scaling-wide/ dir
+    # must refuse, never be silently harvested from.
+    frozen_refused = False
+    try:
+        _refuse_if_in_frozen_dir("k84", "results/deltanet_rd_exactness/wavekeyanchor-scaling-wide/"
+                                         "wkeyanchor-scaling-wide_rdx_K84_armd_s1940_geo3n20.json")
+    except AssertionError:
+        frozen_refused = True
+    check("frozen-dir-read-guard-refuses[MAJOR-1]", frozen_refused)
+    poolmargin_ok = False
+    try:
+        _refuse_if_in_frozen_dir("k84", "results/deltanet_rd_exactness/"
+                                         "wavekeyanchor-scaling-poolmargin/"
+                                         "wkeyanchor-scaling_rdx_K84_armd_s1943_geo3n28.json")
+        poolmargin_ok = True
+    except AssertionError:
+        poolmargin_ok = False
+    check("poolmargin-dir-read-guard-passes[MAJOR-1]", poolmargin_ok)
 
     print(f"\nSELF-TEST SUMMARY: {len(failures)} failure(s) out of self-test items run.", flush=True)
     if failures:

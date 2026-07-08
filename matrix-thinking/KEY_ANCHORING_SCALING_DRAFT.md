@@ -6030,6 +6030,20 @@ negative test above (three combinations); all four negative cases
 must refuse before either real cell (seed=1943, seed=2043) is trusted
 to launch.
 
+**[Build-audit MAJOR-1 fix, 2026-07-08: `OUT_DIR` (and `CKPT_BASE_DIR`)
+are routed to a NEW, isolated
+`results/deltanet_rd_exactness/wavekeyanchor-scaling-poolmargin/` dir,
+never the shared `wavekeyanchor-scaling-wide/` dir the FROZEN §15.26.1
+per-K table's own cells live in. Both K=84 and K=90 are members of
+`KEYANCHOR_SCALING_D96_WIDE_KS`, and `fit_cliff_curve.load_k_mean_h4`
+globs `*_K{K}_armd_*.json` with no n_iter/seed filter — this
+diagnostic's own n_iter=28 cells would otherwise silently contaminate
+any future regeneration of that frozen table. Mirrors the
+`LOCAL_D96_ARCHIVE_DIR` isolation precedent
+(`smoke_keyanchor_scaling_wide.py`). `poolmargin_stage_minus1.py`'s own
+new Item 5 asserts the disjointness and the generated `--out` paths by
+construction, a path-prefix check, not just this disclosure.]**
+
 ### 15.26.4 Cost + ledger
 
 **Historical record — the killed 10-cell grid's own cost table, retained
@@ -6160,6 +6174,39 @@ generator-offset switch alone moves the reading, in either direction;
 `shift` itself, below, keeps its sign, since a restriction that makes
 recovery WORSE is still informative and must not be treated as an
 artifact signal).
+
+**Build-audit MINOR-2 disclosure (cross-checkpoint generator-offset
+aliasing, 2026-07-08) — provably inert for this harvest, disclosed rather
+than left unstated:** every per-checkpoint `torch.Generator` offset this
+program uses (`eval_gen`+10,000, `eval_gen2`/`eval_gen2_repeat`+20,000,
+`eval_gen3`+30,000, `drift_gen`+50,000, `align_gen`+60,000, `h1_gen`
++70,000, `r7_gen`+80,000) is a multiple of 10,000, and checkpoints land
+every `ckpt_every=2,000` steps across this wave's own `steps=20,000` run
+(10 checkpoints, `step∈{2000,4000,…,20000}`) — so two DIFFERENT generator
+variables evaluated at two DIFFERENT checkpoint steps 10,000 apart
+produce the numerically IDENTICAL `manual_seed()` value
+(`seed+offset+step`), since their offsets also differ by exactly 10,000.
+Within this run's own 10-checkpoint schedule there are exactly **5** such
+step pairs (`(2000,12000), (4000,14000), (6000,16000), (8000,18000),
+(10000,20000)`), each aliasing every generator-offset pair 10,000 apart
+(e.g. `eval_gen`↔`eval_gen2`, `eval_gen2`↔`eval_gen3`) across those two
+steps. One instance names the largest offset gap directly: at
+`step=20,000` (this wave's own FINAL checkpoint), `eval_gen`'s value is
+`seed+10,000+20,000 = seed+30,000` — numerically identical to
+`fixed_gen`'s own value (`seed+30,000`, no `+step`, drawn ONCE before the
+training loop for an unrelated fixed reference batch). **This is
+provably inert for `shift`/`noise_shift`/`Δ_measured`:** every quantity
+this harvest reads (`M3_held_out`, `M3_held_out_pool_restricted`,
+`M3_held_out_noise_repeat`, `M3_held_out_noise_repeat_2`) is read from
+`checkpoints[-1]` — the SAME single step — never compared across two
+different steps, so a coincidental seed match between two DIFFERENT
+steps (or between a per-step generator and the once-only `fixed_gen`,
+which this harvest never reads at all) cannot leak into this diagnostic's
+own arithmetic. `M3_held_out_noise_repeat`'s own intentional seed
+SHARING with `M3_held_out_pool_restricted` (both `seed+20,000+step`, same
+step) is the one deliberate exception, already disclosed above as the
+mechanism that isolates the pool-restriction treatment from eval-sampling
+noise — not part of this aliasing finding.
 
 Both outcome thresholds are re-pinned RELATIVE to `noise_shift`, not
 fixed fractions of `Δ_measured` alone:
