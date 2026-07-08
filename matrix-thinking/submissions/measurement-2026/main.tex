@@ -1,0 +1,536 @@
+% Measurement/instrument-calibration methodology short paper -- the
+% "instrument-calibration methodology story" identified as a purpose-built
+% fit for AIMS/Sci-FM-class venues (see
+% ../neurips-ws-2026/VENUE_DECISION.md, "Live/near-live windows" +
+% "Per-venue one-liners: Sci-FM/AIMS", and STATE.md's matching PI-scout
+% entry: "AIMS/Sci-FM ~ purpose-built for the instrument-methodology
+% story"). Dispatched 2026-07-06, drafted 2026-07-08.
+%
+% SCOPE BOUNDARY (read before editing): this paper reports the MEASUREMENT
+% FAILURE MODE and the audit PROCESS that caught it -- a numerical-
+% tolerance miscalibration in an eval-time admission gate that produced an
+% apparent capacity collapse at d_state=96. It does NOT claim the capacity
+% RESULTS themselves (cliff location at d=64, dissolution at d=128,
+% coherence-dose-response exoneration) -- those are the companion capacity-
+% trilogy paper's own contribution (../workshop-2026/, cited throughout as
+% \citet{larson2026capacitycliff}). Numbers describing the d=96/pool-margin
+% episode necessarily appear in both papers (both are drawn from the same
+% underlying repo record, KEY_ANCHORING_SCALING_DRAFT.md \S15.22-\S15.27,
+% and EXPERIMENT_LOG.md's matching entries) -- the CLAIM each paper stakes
+% on those numbers differs, per \S1's "Scope and companion paper"
+% paragraph below. Never edit workshop-2026/'s files from this paper's
+% own drafting session; never edit this paper's files to assert a new
+% capacity-boundary result beyond what \S15.22-\S15.27 already record.
+%
+% VENUE: single-column COLM-2026-style scaffold (COLM's own official
+% .sty is not vendored here -- this preamble is deliberately generic
+% article-class + geometry so it retargets cleanly to a twocolumn
+% NeurIPS-workshop-style scaffold (AIMS/Sci-FM/NeurIPS-ws) by swapping
+% the \documentclass line and re-wrapping the abstract, mirroring the
+% companion papers' own "reusable scaffold until an official style file
+% is confirmed" convention (../workshop-2026/main.tex, ../neurips-ws-2026/
+% main.tex).
+%
+% AUTHOR BLOCK: Sam Larson, affiliation placeholder below -- PENDING PI
+% DECISION (see STATE.md "PENDING PI DECISIONS" item 1 and
+% ../neurips-ws-2026/VENUE_DECISION.md's venue/author-block items). Do
+% NOT fill in \texttt{[affiliation]} without a PI sign-off, matching the
+% other two workshop papers' own placeholder convention.
+%
+% TITLE: working title as given in the task brief, used verbatim below.
+%
+% PROVENANCE DISCIPLINE: every number in this paper is cited, in a LaTeX
+% comment adjacent to its first use, to an exact \S15.NN anchor in
+% matrix-thinking/KEY_ANCHORING_SCALING_DRAFT.md and/or the matching
+% EXPERIMENT_LOG.md entry, so a verifier can grep and check. No number
+% below was invented or estimated; every one was re-read from those two
+% files this drafting session.
+
+\documentclass[10pt,letterpaper]{article}
+
+\providecommand{\anon}{0}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,square,sort&compress]{natbib}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+\newcommand{\anonymous}{Anonymous}
+\newcommand{\dstate}{d_{\mathrm{state}}}
+\newcommand{\niter}{n_{\mathrm{iter}}}
+
+\title{The Cliff That Wasn't: How Numerical Tolerance Miscalibration\\
+Manufactured a Capacity Collapse (and What Caught It)}
+
+\if\anon1
+  \author{\anonymous{} Authors\\
+  \anonymous{} Institution\\
+  \texttt{anonymous@example.com}}
+\else
+  % TODO(PI): affiliation is a placeholder pending sign-off -- do not fill
+  % in without approval (see comment block above).
+  \author{Sam Larson\\
+  \texttt{[affiliation]}\\
+  \texttt{email@TBD}}
+\fi
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+A wide-grid scaling sweep on a trained matrix fast-weight memory appeared
+to show a capacity collapse: at state dimension $\dstate=96$, 11 of 12 new
+load cells ($K \in \{72,78,84,90\}$) failed an eval-time admission gate --
+a result that, reported as measured, would have been a headline negative
+finding, directly contradicting the same architecture's clean super-linear
+capacity growth already measured from $\dstate=64$ to $\dstate=80$. We
+report the diagnosis instead. The admission gate's Newton--Schulz
+convergence check, tuned against anchor-stabilized \emph{blended} keys,
+was miscalibrated for a structurally different, un-stabilized \emph{raw}
+key population that one specific evaluation probe pool actually queries. A
+purpose-built, four-times independently-audited repro instrument recovered
+the true failing tensor and showed every one of 4{,}608 flagged episodes
+resolves cleanly under a modestly larger iteration budget ($\niter=20 \to
+28$) -- a near-miss, not a structural wall. Recalibrating the admission
+\emph{flag} alone (never the underlying capacity measurement) unlocked the
+quarantined cells at zero additional GPU spend; the re-fit shows no cliff
+through $K/\dstate = 0.9375$. We report four further findings from the
+same instrument-audit chain: the recalibrated frontier itself moves with
+load (sufficient at $K{=}84$, insufficient at $K{=}90$); the failing
+admission leg swaps identity across recalibrations; an archived
+exact-ceiling reading did not replicate at a fresh seed; and a diagnosed
+confound shows a real, directionally-consistent effect roughly
+twelve times its own measured noise floor, correctly withheld from
+promotion to a finding because its own diagnostic cell never cleared
+admission. We describe the discipline -- pre-registered decision rules
+over instrument state, independent adversarial audit rounds with fresh
+eyes at each round, negative unit tests exercised (and mutated) to
+completion, and verification against raw artifacts rather than summary
+logs -- that caught the miscalibration before it became a published
+claim, and argue it generalizes to any measurement-heavy empirical ML
+claim gated by a numerical admission check.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Empirical claims about learned systems are only as trustworthy as the
+instrument that measured them. This is a case study of one instrument
+failing quietly, being caught before publication, and being fixed --
+reported because the failure mode (a numerical tolerance calibrated
+against one data population, silently misapplied to a structurally
+different one) and the practice that caught it (pre-registered decision
+rules, independent adversarial audit, verification against raw artifacts)
+generalize to any measurement-heavy ML claim gated by a numerical
+admission check. \textbf{The setup, one sentence:} a trained matrix
+fast-weight memory's associative-recall capacity is measured by exact
+continuous recovery across a load sweep $K/\dstate$, and a separate,
+eval-time admission gate decides which measured cells are trustworthy
+enough to enter a capacity fit.
+
+\textbf{Scope and companion paper.} A companion paper
+\citep{larson2026capacitycliff} reports this program's capacity
+\emph{results}: the cliff located at $\dstate=64$, its dissolution at
+$\dstate=128$, and a coherence confound tested and exonerated; its own
+Limitations section discloses several of the same raw numbers analyzed
+here, as scope-limited caveats on its $\dstate=96$ material. This paper's
+claim is different in kind: it is about the measurement \emph{failure
+mode itself} -- how a capacity collapse was manufactured by an
+uncalibrated instrument, and what process caught it -- not a new
+capacity-boundary result. Where a number appears in both papers, this
+paper cites it for what the audit trail says about instrument
+reliability, not to re-claim it as a located transition.
+
+\section{Setup}
+\label{sec:setup}
+
+The testbed is a single-head, single-layer DeltaNet-style fast-weight
+memory \citep{schlag2021linear}: a per-entity key-anchoring mechanism
+provides a table of $107$ trainable entity keys, and capacity is measured
+by held-out compositional recovery at hop depth 4 ($h4$), graded by
+\emph{exact continuous} cosine similarity against the true target vector
+at threshold $0.9$ -- never argmax over a codebook, the design choice that
+keeps a rank or capacity bound from being silently satisfiable by
+codebook lookup \citep{nichani2025factual}. $K$ is the number of
+independent entity bindings one episode must simultaneously support;
+$K/\dstate$ is the capacity ratio the load sweeps below vary.
+
+Not every trained cell's $h4$ is automatically eligible for a capacity
+fit: an eval-time \emph{admission gate} must clear four disjoint legs --
+a value-salvage tier check, a finite-loss/no-divergence check, a
+task-performance floor, and a Newton--Schulz convergence check -- before
+a cell enters a fit.\footnote{Exact identifiers, verified against the
+live code:
+\texttt{value\_salvage\_tier\_pass},
+\texttt{finite\_loss\_no\_divergence},
+\texttt{task\_performance\_floor\_pass},
+\texttt{ns\_converged\_no\_fallback}.}
+The leg this paper is about, Newton--Schulz convergence
+(\texttt{ns\_converged\_no\_fallback}), gates whether an orthogonalization
+procedure -- an ancillary computation \emph{inside the recovery-probe
+scoring path}, not part of the trained model itself -- converges to a
+residual under $\mathrm{resid\_tol}=0.01$ within a fixed iteration budget
+$\niter$ (production setting $\niter=20$).
+% [PROVENANCE] Four-leg admission definition, resid_tol=0.01, production
+% niter=20: KEY_ANCHORING_SCALING_DRAFT.md \S15.23 ("cross-checked
+% directly against compute_geo3_admission" table + "resid_tol=0.01,
+% exactly key_anchoring.GATE2_RESID_TOL").
+
+\section{The Phenomenon: An Apparent Capacity Collapse at $\dstate=96$}
+\label{sec:phenomenon}
+
+A wide-grid load sweep at $\dstate=96$ ran 12 new cells
+($K\in\{72,78,84,90\}$, 3 seeds each) alongside 3 reused $K{=}69$ cells.
+% [PROVENANCE] Wave design/scope: KEY_ANCHORING_SCALING_DRAFT.md \S15.22
+% ("12 new d=96 cells... reusing the 3 already-archived K=69/d=96 cells").
+Training was clean at every single cell -- $h1$ (the in-distribution
+training-health guard) read exactly $1.0$ at all 19, and
+$n\_geo3\_fallback\_train\_steps=0$ everywhere -- but of the 12 new
+cells, only \textbf{1 was admissible}: $K{=}78$, $K{=}84$, and $K{=}90$
+each failed admission on all 3 of their own seeds (0/3 each), an overall
+new-cell admissibility rate of \textbf{5/16 (31.25\%)}.
+% [PROVENANCE] Per-cell admissibility table, h1=1.0 guard, training-health
+% clean: KEY_ANCHORING_SCALING_DRAFT.md \S15.22 per-cell table + "h1 guard
+% ... reads exactly 1.0 at all 19 cells" + "Admissibility, new cells only:
+% 5/16 (31.25%)".
+Reported as measured, this is the shape of a genuine capacity cliff: a
+sharp admissibility collapse rising from $0/30$ at $K/\dstate \le 0.71875$
+to $3/3$ inadmissible at every $K/\dstate \ge 0.8125$ -- directly
+contradicting the clean, non-degenerate super-linear growth already
+measured between $\dstate=64$ and $\dstate=80$
+($x_0 = 0.5455 \to 0.6779$, \citealp{larson2026capacitycliff}): a
+newsworthy, and as it turned out wrong, negative result.
+% [PROVENANCE] Admissibility-collapse rate by K/d:
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.22 addendum ("intensifies sharply
+% above K/d~=0.75: 0/30 at ... K/d<=0.71875, 1/3 at K/d=0.75 ... 3/3 at
+% each of K/d=0.8125/0.875/0.9375").
+% [PROVENANCE] x0=0.5455 (d=64) is the companion paper's own headline
+% result (cited to it, not re-derived here); x0=0.6779 (d=80) is this
+% program's own escalated (n=5 seed) re-fit, established within the cited
+% range: KEY_ANCHORING_SCALING_DRAFT.md \S15.22 ("sigmoid fit: x0=0.6779
+% w=0.0479 L=0.9994 rss=0.00024").
+
+The \emph{first} mechanistic hypothesis was itself wrong, and catching
+that was the episode's first lesson. The initial writeup attributed the
+failure to the trained anchor table's own Newton--Schulz convergence at
+high $K/\dstate$. An independent follow-up diagnostic tested that claim
+directly on six pulled checkpoints (four failing, two passing controls)
+and refuted it: the anchor table converges cleanly at $\niter=20$ with
+residuals \textbf{$\sim$7{,}000--8{,}000$\times$ below} the $0.01$
+tolerance, indistinguishable between failing and passing cells. The real
+failure traced to a single evaluation probe pool
+(\texttt{C17\_heldout\_entities}) that is, by construction, architecturally
+anchor-\emph{bypassed} -- the anchor table's own conditioning cannot input
+a computation it never participates in. The original mechanistic claim
+was formally retracted before any fix was attempted.
+% [PROVENANCE] Anchor-table residual margin, C17-exclusive/anchor-bypass
+% finding, retraction: KEY_ANCHORING_SCALING_DRAFT.md \S15.23 VERDICT
+% MISDIAGNOSED-ARTIFACT ("every measured residual sits ~7,000x-8,000x
+% below the admission threshold" + "the failure is 100%
+% C17_heldout_entities-exclusive... \S15.22's own mechanistic-root-cause
+% claim is retracted").
+
+\section{The Catch: Instrument Saturation, Not Model Failure}
+\label{sec:catch}
+
+With the wrong object identified and ruled out, a purpose-built repro
+instrument was designed to recover the \emph{true} failing tensor: C17's
+raw, pre-Newton--Schulz post-conv keys for held-out entities, which the
+original wave's checkpoint writer never saved. The design went through
+\textbf{four independent adversarial attack rounds} before any GPU cell
+launched, each catching real defects, not merely stylistic ones.
+% [PROVENANCE] Repro instrument design, Rev 0 -> Rev 4 attack-round
+% history: KEY_ANCHORING_SCALING_DRAFT.md \S15.24 (status notes at each
+% revision).
+Round 1's FATAL fix closed a gap where an empty telemetry dump (a
+plausible outcome, given this hardware's own measured fixed-seed
+run-to-run nondeterminism) would let a universally quantified check
+vacuously pass and silently emit an unearned \textsc{tolerance-
+miscalibration} verdict -- in the design's own words, ``an unearned
+`unlock the 11 cells' paper claim.''
+% [PROVENANCE] Round-1 FATAL-1 (zero/low-event guard):
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.24 fix-map table, FATAL-1 row
+% (quoted verbatim in-text).
+Round 4's MAJOR fix closed a ``two-seeds trap'': the offline analysis
+reconstructs the training/held-out entity partition from a
+\emph{hardcoded} seed decoupled from the cell's own launch seed --
+naively threading the launch seed in would silently reconstruct the
+wrong partition and produce a confidently wrong verdict on healthy code.
+% [PROVENANCE] Round-4 MAJOR-1 ("two seeds trap"):
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.24 Rev 4 status note.
+
+The instrument's own decision rule was pre-registered as a strict
+precedence order over telemetry state, walked mechanically at harvest
+time: a pool-membership precheck (any single violation is dispositive,
+structural, no statistics required) $\to$ a reproduction-count floor
+$\to$ live/offline Newton--Schulz agreement $\to$ an $\niter$ sweep. Every
+step ran, in order, on the real cell ($K{=}84$, seed$=1940$): the
+reconstruction gate passed ($107/107$ set-equal); \textbf{zero}
+pool-membership violations across all 36 dumped events (ruling out an
+instrument bug); the reproduction floor cleared at $12\times$ its own
+minimum; \textbf{zero} live/offline disagreements across all
+\textbf{4{,}608} examined episodes (ruling out an instrument bug a
+second, independent way); and the $\niter$ sweep resolved
+\textbf{every single one} of those 4{,}608 episodes by $\niter\le28$
+($4{,}313$ at $\niter=24$, the remaining $295$ at $\niter=28$, zero left
+unresolved even at $\niter=32$ or $40$) $\to$ \textsc{tolerance-
+miscalibration}.
+% [PROVENANCE] Full decision-rule walk, per-step results, 4,608-episode
+% n_iter-sweep tally: KEY_ANCHORING_SCALING_DRAFT.md \S15.25.1 (also
+% independently re-tallied in EXPERIMENT_LOG.md's matching 2026-07-08
+% C17 repro run+harvest entry).
+
+The magnitude makes the "near-miss, not a wall" reading concrete: at the
+final checkpoint, the worst-case flagged episode's residuals ranged
+\textbf{0.696--1.371} against the $0.01$ tolerance -- 70$\times$--
+137$\times$ over threshold -- and this near-miss population
+\emph{worsened monotonically} over training (13--27 of 128 anomalous rows
+at step 16{,}000, all 128/128 by step 20{,}000). Yet it still cleared
+cleanly by $\niter=28$. A structural wall would be expected to keep
+worsening past $\niter=40$; a miscalibrated tolerance resolves at a
+fixed, modest iteration bump, and did.
+% [PROVENANCE] Event-0 residual range, monotonic worsening over training:
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.25.1 ("event-0 range 0.696-1.371"
+% + "checkpoint 16000's own 12 events show only 13-27/128 anomalous rows
+% ... checkpoints 18000 and 20000 show ALL 128/128").
+
+Because the underlying capacity measurement was never in question --
+training converged cleanly at all 11 quarantined cells regardless of
+admission status -- only the admission \emph{flag}, never $h4$, was
+recalibrated, and only for the 11 cells independently verified to share
+the identical failure signature (one pre-existing, out-of-scope anomaly
+at $K{=}69$ was deliberately \emph{not} flipped, a disclosed scope
+decision, not an oversight). This unlocked the full grid at
+\textbf{zero additional GPU spend}. The re-fit found no cliff anywhere
+through $K/\dstate=0.9375$: per-$K$ mean $h4$ reads
+$0.9592 (K{=}69), 0.9216 (K{=}72), 0.9326 (K{=}78), 0.9581 (K{=}84),
+1.0000 (K{=}90)$ -- non-monotonic, but nowhere collapsing.
+% [PROVENANCE] Unlock scope (11 of 12 cells, K=69 excluded), zero-GPU
+% mechanism, re-fit per-K means: KEY_ANCHORING_SCALING_DRAFT.md \S15.25.4
+% ("THE UNLOCK") and \S15.25.5 (per-K table).
+
+\section{General Findings: Admission Checks Are Instrument-Relative}
+\label{sec:findings}
+
+The follow-up diagnostic chain (a zero-GPU power check, then a two-cell
+control diagnostic at the recalibrated $\niter=28$) surfaced five findings
+that generalize beyond this one instrument.
+
+\textbf{(a) The $\niter$-sufficiency frontier moves with load.}
+$\niter=28$ resolved every flagged episode at $K{=}84$ (\S\ref{sec:catch}).
+A follow-up control cell at $K{=}90$, run under the \emph{same}
+recalibrated $\niter=28$, stayed fallback-inadmissible: a frontier
+measured at one $K/\dstate$ does not transfer to a higher one without
+re-verification.
+% [PROVENANCE] K=90 fallback-inadmissible at n_iter=28:
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.27 escalated finding (2).
+
+\textbf{(b) Admission legs swap failure modes across recalibrations.}
+At $\niter=28$, $K{=}84$ fails a \emph{different} leg
+(\texttt{value\_salvage\_tier\_pass}, $0.09307 < 0.10$, training
+convergence now fully clean) than the original $\niter=20$ population,
+which failed convergence while value-salvage \emph{passed}
+($0.102$--$0.126$). Fixing one failure mode can silently expose the next.
+% [PROVENANCE] Leg-swap at K=84: KEY_ANCHORING_SCALING_DRAFT.md \S15.27
+% escalated finding (1).
+
+\textbf{(c) An archived exact ceiling did not replicate.} $K{=}90$'s
+original 3 seeds all read exact $h4=1.0000$; a fresh seed at the
+recalibrated $\niter=28$ read $0.9725$ -- ``exact'' described the specific
+seeds measured, not a property of the load.
+% [PROVENANCE] K=90 fresh h4=0.972526: KEY_ANCHORING_SCALING_DRAFT.md
+% \S15.27 descriptive finding (3) / EXPERIMENT_LOG.md matching entry.
+
+\textbf{(d) A diagnosed confound is real in direction but was correctly
+withheld.} Restricting $K{=}84$'s eval-time entity-pool margin to match
+$K{=}90$'s own overlap fraction raised $h4$ by $+0.0330$ -- roughly
+\textbf{12$\times$} the measured eval-sampling noise floor ($0.0028$, the
+larger of two independent noise draws). The mechanism is directionally
+real, but because \emph{both} of this diagnostic's own cells stayed
+inadmissible even at $\niter=28$, the pre-registered routing correctly
+refused to promote it to a finding -- the discipline that caught the
+original miscalibration also declined to over-claim its own follow-up.
+% [PROVENANCE] Pool-restriction shift +0.0330 vs noise floor 0.0028
+% (~12x), DEGENERATE_CELL routing: KEY_ANCHORING_SCALING_DRAFT.md \S15.27
+% ("K=84's pool-restriction shift = +0.0330 vs a measured noise floor of
+% 0.0028 ... ~12x noise") + EXPERIMENT_LOG.md matching harvest entry
+% (0.033040 / 0.002767).
+
+\textbf{(e) Structural checks need exact thresholds, never tolerance
+slack borrowed from a numerical context.} This instrument's own attack
+history supplies the counter-example: an early draft of the
+pool-membership precheck reused a $\ge2$-event recurrence floor built for
+a genuinely noisy \emph{numerical} disagreement check, applied unexamined
+to a \emph{structural} fact -- pool membership has no floating-point
+component; an id either is or is not in a disjoint set. Under the reused
+floor, a single real violation in a small event set would be silently
+excluded, and the verdict would continue, confidently and wrongly, toward
+\textsc{tolerance-miscalibration}. The fix split the floor: a single
+structural violation is dispositive on its own; the recurrence floor is
+retained only for the numerical check it was designed for.
+% [PROVENANCE] Structural-vs-numerical floor split (the exact-threshold
+% lesson, this instrument's own instance of it):
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.24 fix-map, FATAL-1 row (quoted
+% and paraphrased in-text). Generalizes the same rule already recorded
+% project-wide in this repo's CLAUDE.md hard-rules list.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{0.95}
+\begin{tabular}{@{}p{0.6cm}p{3.3cm}p{3.6cm}@{}}
+\toprule
+\S & Wave & Verdict \\
+\midrule
+15.22 & $\dstate{=}96$ wide-grid load sweep & AMBIGUOUS (data-quality collapse) \\
+15.23 & anchor-table NS diagnostic & MISDIAGNOSED-ARTIFACT \\
+15.24 & C17 repro instrument, design & DESIGN-CLEARED (4 audit rounds) \\
+15.25 & C17 repro instrument, harvest & TOLERANCE-MISCALIBRATION $\to$ unlock $\to$ re-fit AMBIGUOUS (non-monotonic, no cliff) \\
+15.26 & scatter-resolution power check & finding registered (zero GPU); 10-cell grid killed \\
+15.27 & K90 pool-margin control & DEGENERATE\_CELL (3 escalated findings, PI-gated) \\
+\bottomrule
+\end{tabular}
+\caption{The full diagnostic chain and its verdicts, each anchored to its
+own \S in \texttt{KEY\_ANCHORING\_SCALING\_DRAFT.md}. No step skipped or
+silently absorbed a prior step's finding.}
+\label{tab:chain}
+\end{table}
+
+\section{The Methodology That Caught It}
+\label{sec:methodology}
+
+Table~\ref{tab:chain} names six waves; four independent adversarial audit
+rounds landed on the repro instrument's own design alone
+(\S\ref{sec:catch}), and a fifth wave's design took two further rounds
+plus a dedicated verification pass before any GPU cell launched.
+% [PROVENANCE] Pool-margin wave's own 2-round-plus-verify history:
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.26.9/\S15.26.10 (Rev 1/Rev 2
+% fix-maps) + the "\S15.26 ROUND-3 VERIFY PASS" block (commit c66b3f6,
+% verdict DESIGN-CLEARED-FOR-BUILD).
+That later rounds keep finding real defects -- round 4's two-seeds trap
+(\S\ref{sec:catch}) is not a first-round-only phenomenon -- is itself the
+argument against stopping at one audit pass.
+
+This one case study sits inside a well-documented broader pattern:
+reported ML results are known to be sensitive to analytic and
+implementation choices invisible in the final number
+\citep{silberzahn2018many, damour2020underspecification}, that empirical
+rigor has not obviously kept pace with the field's own pace of progress
+\citep{sculley2018winners, lipton2018troubling}, and that unaccounted
+sources of variance routinely change which of two systems looks better
+\citep{henderson2018deep, bouthillier2021accounting}; reporting-standard
+proposals such as REFORMS \citep{kapoor2023reforms} formalize much of the
+raw-artifact verification and pre-registration this instrument-audit
+chain practiced informally, ahead of any such checklist.
+
+Four practices recur across every wave in Table~\ref{tab:chain} and are
+offered here as transferable, not architecture-specific:
+
+\begin{itemize}
+  \item \textbf{Pre-registration of outcome semantics.} The repro
+    instrument's six-step decision rule mapped every possible telemetry
+    state to exactly one named verdict, fixed \emph{before} the cell that
+    would decide this paper's own headline claim ran.
+  \item \textbf{Negative tests exercised, and mutated, to completion.} A
+    synthetic empty-sink fixture had to emit \textsc{no-repro}, never a
+    verdict; a synthetic single-violation pool-mismatch fixture had to
+    emit \textsc{instrument-bug} unconditionally; the pool-margin wave's
+    own safety guards were \emph{mutation-tested} -- reverting a guard had
+    to make its own regression suite fail, not merely pass when correct.
+% [PROVENANCE] Negative-test fixtures (E1/E4 pool-mismatch cases, empty-
+% sink NO-REPRO): KEY_ANCHORING_SCALING_DRAFT.md \S15.24 fix-map
+% (FATAL-1/MAJOR-3 rows, Stage -1 items). Mutation-testing of pool-margin
+% guards: \S15.26.10 "BUILD AUDIT" block ("verified by re-execution AND
+% by mutation-testing the new guards themselves").
+  \item \textbf{Spend compute only where it changes the answer.} A
+    registered 10-cell, $4.27$--$8.54$ GPU-h seed-escalation sweep was
+    killed and replaced by a $360{,}000$-trial, zero-GPU bootstrap power
+    check (8 seeds, an independent reimplementation, a positive control
+    proving the check has teeth) that answered the same question at CPU
+    cost.
+% [PROVENANCE] Killed 10-cell grid, 360,000-trial power check, positive
+% control: KEY_ANCHORING_SCALING_DRAFT.md \S15.26.1.
+  \item \textbf{Verify against raw artifacts, not summary logs.} Every
+    headline number here -- the admissibility table, the 4{,}608-episode
+    $\niter$-sweep tally, the pool-margin shift and noise floor -- was
+    independently re-derived, at the harvest that reported it, from raw
+    JSON/\texttt{.pt} dumps or a fresh read-only box pull, not re-read
+    from an earlier commit message.
+% [PROVENANCE] "Independently re-verified... not merely re-asserted from
+% the commit message" discipline, applied at every harvest in Table 1:
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.22, \S15.25.1, \S15.27 (each
+% harvest's own opening verification paragraph).
+\end{itemize}
+
+The economics are worth stating plainly: the repro instrument that
+identified \textsc{tolerance-miscalibration} cost \textbf{0.82 GPU-h};
+the follow-up pool-margin diagnostic cost \textbf{1.09 GPU-h} -- under
+\textbf{2 GPU-h combined} to interrogate an instrument whose uncorrected
+reading would have discredited \textbf{6.33 GPU-h} of clean training
+compute already spent, and shipped as a false 11-of-12-cell capacity
+collapse. Auditing the instrument was cheap relative to the compute it
+was protecting.
+% [PROVENANCE] Repro-instrument realized cost 0.82 GPU-h:
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.25.3. Pool-margin diagnostic
+% realized cost 1.0933 GPU-h: \S15.27 / EXPERIMENT_LOG.md matching entry.
+% Original wide-grid wave's own realized cost 6.3331 GPU-h: \S15.22
+% "Realized GPU-h vs. ceiling" table.
+
+\section{Limitations}
+\label{sec:limitations}
+
+\textbf{Single architecture family.} All findings come from one
+DeltaNet-style fast-weight testbed and one specific admission gate
+(Newton--Schulz residual tolerance inside an eval-time recovery probe).
+No claim is made that this exact failure mode, or this exact fix,
+recurs in other admission gates, architectures, or codebases -- only that
+this one, checked, was miscalibrated and is now fixed.
+
+\textbf{The ceiling fine structure remains genuinely open.} Finding (d)'s
+pool-margin mechanism is real in direction but the diagnostic built to
+confirm or refute it landed \textsc{degenerate\_cell}: neither of its own
+two cells cleared admission even at $\niter=28$, so its own adjudication
+triggers never fired. This is registered for a follow-up design round and
+is explicitly \textbf{PI-gated}, not run as of this writing.
+% [PROVENANCE] DEGENERATE_CELL routing, PI-gated §15.28-class follow-up:
+% KEY_ANCHORING_SCALING_DRAFT.md \S15.27 ("Next step: ... registered for
+% the PI check-in and a \S15.28-class design round; NOT self-launched")
+% + STATE.md "PENDING PI DECISIONS" item 3.
+
+\textbf{One instrument, one recalibration, no counterfactual.} This paper
+documents one class of numerical miscalibration (Newton--Schulz residual
+tolerance, calibrated against a blended-key population, silently
+misapplied to a raw-key one) and one recalibration of it -- not a general
+certificate that every admission gate in this codebase, or any other, is
+now trustworthy. The methodology narrative is reconstructed from this
+project's own audit trail, not a controlled comparison against a matched
+project that skipped the audit steps; we cannot report a rate of
+miscalibration a lighter process would have missed, only that this
+process caught the one it did.
+
+\textbf{Companion-paper boundary, restated.} The capacity numbers this
+paper cites for provenance ($x_0$ progression, the $\dstate=96$ re-fit,
+the pool-margin diagnostic's own descriptive readings) are also reported,
+as scope-limited caveats, in \citet{larson2026capacitycliff}. That paper's
+claim is about the located transition and its dissolution with scale;
+this paper's claim is about the measurement failure mode and the process
+that caught it before it became one.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}
