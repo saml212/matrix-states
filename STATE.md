@@ -101,6 +101,56 @@ self-launched by this harvest.
 
 ---
 
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — RUN COMPLETE (2026-07-08, chain
+06:25:46–06:55 UTC on GPU 2) — **VERDICT: TOLERANCE-MISCALIBRATION** (via
+Step 2) — supersedes the REV 4 LANDED block below's queue status
+
+**Queue status: COMPLETE.** One clean launch (tmux `c17_repro`, GPU 2
+only; GPUs 0–1 untouched, Phase-2b concurrent). The K=84/seed=1940/d=96
+repro cell re-ran with telemetry (20,000/20,000 steps, `wall_s=1403.2s`,
+under both the 2430s budget guard and §15.22's 1409s baseline), and the
+full §15.24.4 precedence resolved: reconstruction gate PASS (107/107
+set-equal); **Step 0b: 0 pool-membership violations**; Step −1: **36
+distinct events** (≥3 minimum, all from checkpoints 16000/18000/20000 —
+12 each, hops 1/2/3 × 4 batches; checkpoints 2000–14000 carried zero);
+Step 0a: 0 anomalous episodes; **Step 1: 0 live/offline disagreements, 0
+TF32-sensitive flips** (recorded tf32_matmul=False, tf32_cudnn=True);
+**Step 2: all 4,608 episodes (36×128) resolve below the 0.01 tol by
+n_iter≤28 — 4,313 at n_iter=24, 295 at n_iter=28, none needed 32/40** →
+TOLERANCE-MISCALIBRATION per §15.24.1 row (c): live resids at n_iter=20
+sit far above tol (event-0 range 0.696–1.371) yet are an
+iteration-count-fixable near-miss, not a structural wall. The probe is
+NOT buggy (0b/Step-1 clean) and the failure is NOT a real capacity
+boundary at these K/d. STEP 3b per-launch determinism replay (new,
+disclosed chain addition, audit residual 2): **PASS, 12/12 step-20000
+events byte-identical** (key_ids + k_eff_raw) against a fresh
+full_step20000.pt reload. Box Stage −1 fully green in-chain: ALL items
+PASS, 0 deferrals (formerly-deferred 1/2/3/4/9 real branches + item 5's
+box half all ran live). **Disclosed deviations this deploy:** (1) item 1's
+registered bitwise OFF-vs-ON smoke was UNSATISFIABLE on this hardware —
+OFF-vs-OFF at identical flag/seed diverges from step 4 (max_abs_dev
+7.5e-04; the repo's documented fixed-seed nondeterminism) — re-pinned
+baseline-relative (≤3× the OFF-vs-OFF envelope; envelope 0 → bitwise;
+bracketed note at §15.24.2); (2) STEP 3b's zero-event skip fatals on a
+coverage gap if earlier checkpoints carry ≥3 events (independent-audit
+MAJOR, fixed pre-launch — moot here, final checkpoint had 12 events).
+GPU-h: chain 0.487 (1,754s × 1 GPU) + ≈0.33 pre-launch verification
+(3 Stage-−1 suite runs + OFF-vs-OFF diagnostic) ≈ **0.82 total**.
+Artifacts pulled to `matrix-thinking/deltanet_rd/results/
+keyanchor_scaling_c17repro/` (analysis JSON, replay JSON, Stage-−1
+results, OFF-vs-OFF diag, chain log; raw ~100MB dumps stay on box).
+**GPU 2 is FREE.** Harvest (§15.25 + EXPERIMENT_LOG) is a separate
+agent's task, per the deploy brief. Registered §15.24.6 outcome-(c)
+implication of this verdict, verbatim: "a cheap, surgical fix (bump
+`geo3_resid_tol` for raw/un-blended queries specifically, or raise
+`n_iter` modestly) unlocks the ALREADY-COLLECTED 11 inadmissible cells'
+own h4 values for the fit **without any new GPU spend**" — the fastest
+path back to §15.20.4's rival-discrimination test (this run's own Step-2
+data says n_iter=28 suffices for every flagged episode). PI decision at
+next check-in, not self-launched.
+
+---
+
 ## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 4 LANDED (2026-07-11) —
 supersedes the REV 3 LANDED block below's own queue status (that block's
 Rev 3 content is otherwise unaffected/unretracted; Rev 4 fixes it, not

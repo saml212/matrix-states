@@ -1,0 +1,11 @@
+{
+  "skipped": false,
+  "ok": true,
+  "seed": 1940,
+  "step": 20000,
+  "ckpt_dir": "/data/deltanet_rd_keyanchor_ckpts/wavekeyanchor-scaling-c17repro/wkeyanchor-scaling_rdx_K84_armd_s1940_geo3n20_anchor_learned_dprobe_rev7_d96",
+  "n_live_events": 12,
+  "n_replay_events": 12,
+  "count_match": true,
+  "byte_identical": true
+}
