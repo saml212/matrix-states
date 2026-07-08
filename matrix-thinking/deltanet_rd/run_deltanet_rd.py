@@ -34,6 +34,7 @@ the GPT-2 tokenizer download/cache on first run): python run_deltanet_rd.py --sm
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import os
 import sys
@@ -315,13 +316,36 @@ def _dump_c17_fallback_event(model, fallback_dump_sink: list, seed, step, hop, b
         f"than this cell's own registered worst case; aborting rather than growing unbounded.")
 
 
+def _restrict_entity_pool(pools: EntityPools, restrict_entity_pool_n: int,
+                           use_heldout_entities: bool) -> EntityPools:
+    """KEY_ANCHORING_SCALING_DRAFT.md sec 15.26.2.2 (K90 pool-margin control
+    diagnostic): deterministically restricts the entity pool a SINGLE
+    evaluate_pool() call draws from to its first `restrict_entity_pool_n`
+    entries (train_name_ids if use_heldout_entities is False, else
+    heldout_name_ids -- the SAME field/flag mapping sample_batch_rd itself
+    already uses, grammar_rd.py:423). `pools.train_name_ids`'s own order is
+    FIXED (build_entity_pools is always called with seed=0 in production,
+    this module's own main(), verified directly against the live source) --
+    slicing the first N is therefore a deterministic, zero-new-randomness
+    restriction, reproducible across cells without a new RNG draw. Pure
+    tensor-slicing function, no model/CUDA dependency -- independently
+    unit-testable off-box (no `fla` import needed to exercise this alone)."""
+    field = "heldout_name_ids" if use_heldout_entities else "train_name_ids"
+    src = getattr(pools, field)
+    assert restrict_entity_pool_n <= src.numel(), (
+        f"restrict_entity_pool_n={restrict_entity_pool_n} exceeds the {field!r} pool size "
+        f"({src.numel()}) -- cannot restrict to MORE entities than the pool actually has")
+    return dataclasses.replace(pools, **{field: src[:restrict_entity_pool_n]})
+
+
 @torch.no_grad()
 def evaluate_pool(model: DeltaNetRDBlock, cfg: DeltaNetRDTaskConfig, gen, device,
                    hops_to_eval, pools: EntityPools, force_rank_k=None,
                    n_batches=4, batch_size=128,
                    use_heldout_entities=False, use_heldout_template=False,
                    fallback_dump_sink: list | None = None, step: int | None = None,
-                   seed: int | None = None, c17_repro_telemetry: bool = False) -> dict:
+                   seed: int | None = None, c17_repro_telemetry: bool = False,
+                   restrict_entity_pool_n: int | None = None) -> dict:
     """Per-hop evaluation on ONE pool combination (train/C17/C19 x H_train/
     H_test+H_extra -- run_deltanet_rd.py's train() calls this 4x per
     checkpoint, section 5.3/5.4). Every entry carries C16's premise
@@ -359,8 +383,24 @@ def evaluate_pool(model: DeltaNetRDBlock, cfg: DeltaNetRDTaskConfig, gen, device
     `model.geo3_active`, attaches `entry["geo3_resid_stats"]` (mean/max/
     min/n_batches_fallback/n_batches_total) to every pool's own entry -- a
     magnitude comparison across pools the codebase has never logged
-    before."""
+    before.
+
+    KEY_ANCHORING_SCALING_DRAFT.md sec 15.26.2.2 (K90 pool-margin control
+    diagnostic): ONE new optional, additive-only parameter,
+    `restrict_entity_pool_n` (default None) -- BYTE-IDENTICAL to every
+    existing caller (none of which pass this arg) at its default. When set,
+    THIS call's own `pools` is deterministically restricted (see
+    `_restrict_entity_pool` above) to the first N entries of the relevant
+    field BEFORE the per-batch sampling loop below runs -- every batch this
+    call draws (and therefore every recovery/premise statistic this call's
+    own entry reports) comes from the restricted pool. Training draws
+    (train()'s own main loop) and every OTHER evaluate_pool() call this
+    checkpoint block makes are entirely unaffected -- this is a genuinely
+    additive, eval-call-scoped intervention, never a training-time or
+    global change."""
     model.eval()
+    if restrict_entity_pool_n is not None:
+        pools = _restrict_entity_pool(pools, restrict_entity_pool_n, use_heldout_entities)
     per_hop = {}
     for h in hops_to_eval:
         cos_all, norm_all = [], []
@@ -715,7 +755,7 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
           drift_probe_active: bool = False, drift_probe_n_entities: int = 8,
           drift_probe_n_resamples: int = 32, rev7_pin_derived: dict | None = None,
           ckpt_dir: str | None = None, c17_repro_telemetry: bool = False,
-          full_ckpt_step: int | None = None):
+          full_ckpt_step: int | None = None, m3_pool_restrict_n: int | None = None):
     """lambda_anchor (KEY_ANCHORING_DESIGN.md sec 2.4, candidate (c)): soft
     cross-episode drift regularizer weight, > 0 only for candidate (c)
     cells (requires model.geo3_active; model.anchor_active stays False --
@@ -777,7 +817,42 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
         writer above saves) to `<ckpt_dir>/full_step<N>.pt` -- the ONLY way
         to reconstruct a real C17 batch's `k_eff_raw` offline later (the
         wide-grid wave's own checkpoint writer never saved `embed`/
-        `k_proj`/`k_conv1d`, sec 15.24.0)."""
+        `k_proj`/`k_conv1d`, sec 15.24.0).
+
+    m3_pool_restrict_n (KEY_ANCHORING_SCALING_DRAFT.md sec 15.26.2.2, the
+    K90 pool-margin control diagnostic): default None -- BYTE-IDENTICAL to
+    every existing wave, past or future, that does not set it (no new
+    evaluate_pool() calls, no new keys in any checkpoint's own `res` dict).
+    When set, THREE additional, additive, eval-only evaluate_pool() calls
+    run at every checkpoint, all restricted to (or measuring the noise
+    floor of) the SAME unrestricted `M3_held_out` comparison, none of them
+    touching the training-time draw (`sample_batch_rd` at this function's
+    own main loop, above) or the trained weights in any way:
+      - `M3_held_out_pool_restricted`: the `m3` eval call repeated with
+        `restrict_entity_pool_n=m3_pool_restrict_n` under a FRESH
+        generator, offset `seed+20_000+step` (`eval_gen2`).
+      - `M3_held_out_noise_repeat`: the SAME unrestricted `M3_held_out`
+        call repeated under `eval_gen2`'s own offset (a fresh Generator
+        object re-seeded to the IDENTICAL value, not the same object
+        already consumed by the restricted call above) -- isolates
+        eval-batch sampling noise from the pool-restriction treatment.
+      - `M3_held_out_noise_repeat_2` (round-3 VERIFY-pass adopted fix
+        m-b, 2026-07-08: `noise_shift` from a single repeat is only an
+        n=1 draw of the null): a SECOND unrestricted `M3_held_out` repeat
+        under a THIRD, independent generator offset, `seed+30_000+step`
+        (`eval_gen3`) -- NOT the same numeric offset as this function's
+        own pre-loop `fixed_gen` (`seed+30_000`, no `+step`, seeded once
+        before training starts for the fixed-reference probe batch) --
+        the two never collide since `step` is always >= `ckpt_every` > 0
+        inside this block.
+    This function only RECORDS all three readings under new, additive keys
+    (`res["M3_held_out_pool_restricted"]`, `res["M3_held_out_noise_repeat"]`,
+    `res["M3_held_out_noise_repeat_2"]`) -- it never computes `shift` or
+    `noise_shift` itself; that arithmetic (including the round-3 adopted
+    `noise_shift := max(|repeat1-standard|, |repeat2-standard|)`
+    conservative combination) is computed at HARVEST time
+    (`harvest_poolmargin_k84s1943_k90s2043.py`), never in this training
+    script."""
     t0 = time.time()
     gen = torch.Generator(device=device).manual_seed(seed)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
@@ -984,6 +1059,45 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                                  force_rank_k=force_rank_k, use_heldout_template=True,
                                  c17_repro_telemetry=c17_repro_telemetry)
 
+            # KEY_ANCHORING_SCALING_DRAFT.md sec 15.26.2.2 (K90 pool-margin control
+            # diagnostic, Rev 2 MAJOR-1 fix + round-3 VERIFY-pass adopted fix m-b):
+            # THREE additive, eval-only calls, gated by m3_pool_restrict_n -- None
+            # (every existing/other wave, and K=90's own cell in this diagnostic,
+            # which never sets this param) reproduces the pre-existing 4-call
+            # checkpoint block byte-identically. All three thread
+            # c17_repro_telemetry=c17_repro_telemetry (Rev 2 MINOR-1 fix), matching
+            # the SAME "threaded to ALL pool calls" invariant m2/m3/c17/c19 already
+            # follow -- now a 7-call invariant for a cell that sets this param.
+            m3_restricted = m3_noise_repeat = m3_noise_repeat_2 = None
+            if m3_pool_restrict_n is not None:
+                eval_gen2 = torch.Generator(device=device).manual_seed(seed + 20_000 + step)
+                m3_restricted = evaluate_pool(model, cfg, eval_gen2, device,
+                                               (*cfg.H_test, *cfg.H_extra), pools,
+                                               force_rank_k=force_rank_k,
+                                               restrict_entity_pool_n=m3_pool_restrict_n,
+                                               c17_repro_telemetry=c17_repro_telemetry)
+                # Rev 2 MAJOR-1 fix -- the FIRST measured noise-floor pass: the SAME
+                # unrestricted M3_held_out call, repeated under eval_gen2's own offset
+                # scheme (a FRESH Generator object re-seeded to the identical value,
+                # NOT the same eval_gen2 object already consumed by the restricted
+                # call above -- that would draw a different, position-shifted
+                # sub-sequence instead of the matched starting draw this null needs).
+                eval_gen2_repeat = torch.Generator(device=device).manual_seed(seed + 20_000 + step)
+                m3_noise_repeat = evaluate_pool(model, cfg, eval_gen2_repeat, device,
+                                                 (*cfg.H_test, *cfg.H_extra), pools,
+                                                 force_rank_k=force_rank_k,
+                                                 c17_repro_telemetry=c17_repro_telemetry)
+                # round-3 VERIFY-pass adopted fix (m-b, 2026-07-08): a SECOND
+                # unrestricted M3_held_out repeat, at a THIRD, independent generator
+                # offset (seed+30_000+step) -- noise_shift is computed at HARVEST
+                # time as max(|repeat1-standard|, |repeat2-standard|) (conservative),
+                # never in this training script, which only records the reading.
+                eval_gen3 = torch.Generator(device=device).manual_seed(seed + 30_000 + step)
+                m3_noise_repeat_2 = evaluate_pool(model, cfg, eval_gen3, device,
+                                                   (*cfg.H_test, *cfg.H_extra), pools,
+                                                   force_rank_k=force_rank_k,
+                                                   c17_repro_telemetry=c17_repro_telemetry)
+
             # MAJOR-3: fixed-reference entity-subspace rank on the fixed
             # probe batch; reference snapshotted at the FIRST checkpoint.
             model.eval()
@@ -1001,6 +1115,15 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
             res = {"step": step, "M2_in_distribution": m2, "M3_held_out": m3,
                    "C17_heldout_entities": c17, "C19_heldout_template": c19,
                    "fixedref_entity_subspace": fixedref}
+            # sec 15.26.2.2: NEW keys, only present when m3_pool_restrict_n is set --
+            # NEVER overwriting the existing M3_held_out key above (preserves the
+            # manifest-regression invariant for every wave/cell that never passes it).
+            if m3_restricted is not None:
+                res["M3_held_out_pool_restricted"] = m3_restricted
+            if m3_noise_repeat is not None:
+                res["M3_held_out_noise_repeat"] = m3_noise_repeat
+            if m3_noise_repeat_2 is not None:
+                res["M3_held_out_noise_repeat_2"] = m3_noise_repeat_2
             if drift_probe_active:
                 # sec 3.6's reference-arm per-checkpoint drift instrumentation
                 # ("identical config to the archived geo3 cells PLUS the
@@ -1653,6 +1776,15 @@ def main():
                           "k_conv1d included) to <ckpt-dir>/full_step<N>.pt -- separate from, and "
                           "additive to, the existing anchor-only step<N>.pt payload. Requires "
                           "--ckpt-dir. None (default) = no full checkpoint written.")
+    ap.add_argument("--m3-pool-restrict-n", type=int, default=None,
+                     help="KEY_ANCHORING_SCALING_DRAFT.md sec 15.26.2.2 (K90 pool-margin control "
+                          "diagnostic): when set, gates THREE additive, eval-only calls per "
+                          "checkpoint -- M3_held_out_pool_restricted (the M3 eval pool "
+                          "deterministically restricted to the first N entries), plus two "
+                          "unrestricted M3_held_out noise-floor repeats at independent generator "
+                          "offsets (M3_held_out_noise_repeat, M3_held_out_noise_repeat_2). Never "
+                          "touches the training-time draw or the trained weights. None (default) = "
+                          "byte-identical to every existing wave.")
     ap.add_argument("--out", type=str, default=None)
     args = ap.parse_args()
 
@@ -1894,7 +2026,8 @@ def main():
                     drift_probe_active=args.drift_probe, drift_probe_n_entities=args.drift_probe_n_entities,
                     drift_probe_n_resamples=args.drift_probe_n_resamples,
                     rev7_pin_derived=rev7_pin_derived, ckpt_dir=args.ckpt_dir,
-                    c17_repro_telemetry=args.c17_repro_telemetry, full_ckpt_step=args.full_ckpt_step)
+                    c17_repro_telemetry=args.c17_repro_telemetry, full_ckpt_step=args.full_ckpt_step,
+                    m3_pool_restrict_n=args.m3_pool_restrict_n)
     result["n_params"] = n_params
     if embed_meta:
         result["embed_meta"] = embed_meta
