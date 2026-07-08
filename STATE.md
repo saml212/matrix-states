@@ -1,69 +1,86 @@
 # Project State
 
-**Last updated:** 2026-07-08 (KEYANCHOR-SCALING §15.26 d=96 SCATTER-RESOLUTION wave — Rev 1 LANDED, RESHAPE-TO-C: attack round 1 on Rev 0's own 10-cell seed-escalation design found the wave's central ambition already analytically resolved by its own power check — the grid is KILLED, the AMBIGUOUS finding is REGISTERED directly (zero GPU, now backed by 360,000 cumulative degenerate trials across 8 seeds + an independent reimplementation + a positive control, this session's own fresh 320,000-trial extension archived), and a small K90 POOL-MARGIN CONTROL DIAGNOSTIC (2 cells, ≈0.9 GPU-h, fits under the ORIGINAL 21 GPU-h ceiling without the extension) replaces it, targeting a real mechanism-pin correction found by reading `grammar_rd.py` directly this session (the fit metric draws from the TRAIN pool, N=107, not the N=106 heldout pool Rev 0 cited). Design-only, zero GPU spent this session — queue: Rev 1 (done) → attack round 2 → build wrapper → audit → launch GPU 2, ≈0.9 GPU-h. Full account below. **Disclosed lane note (unchanged):** this diagnostic shares GPUs 2-7 with the REASONING-LINK §16.19 Leg-A pretraining slice — neither has reached build/launch yet, so no live conflict today. REASONING-LINK Phase-2b seed-extension Rev 2 (attack round 2 on Rev 1 returned NEEDS-REVISION, 1 MAJOR + 2 MINOR, all fixed — a per_token EVAL-kind live-recompute hazard closed with an archived-values loader + a Stage −1 no-live-call guard, plus a batch-effect pre-pooling gate and a σ-uncertainty cross-reference — design-only, zero GPU spent, queue: Rev 2 (done) → attack round 3 → build-delta → audit → launch) is retained below for history, unaffected in its own content. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-08 (REASONING-LINK §16.19 PHASE-2B SEED EXTENSION — Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM: attack round 3 on Rev 2 returned NEEDS-REVISION — 3 MAJOR + 2 MINOR, all fixed. MAJOR-A: §16.19.8's own 3-outcome decision rules could double-fire (TRANSIENT-CONFIRMED and TRANSIENT-REFUTED sub-case 2(b) both true of the same realized CI, e.g. `[-0.35,-0.05]`) — rewritten as an explicit, precedence-ordered, MECE 4-outcome partition (TRANSIENT-CONFIRMED-AT-MAGNITUDE / TRANSIENT-CONFIRMED-SMALLER / TRANSIENT-REFUTED / NEW-PATTERN(SIGN-FLIP)) via a new `contains_point()` helper, totality walk shown not asserted. MAJOR-B: Rev 2's own archived-values no-recompute guard closed the primary per_token readout's re-seed hazard only — `secondary_ood_readout` hits the SAME hazard at `hop_set=(3,4)` through a call site the guard's own prior scoping did not provably cover; fixed by generalizing the loader over `hop_set` and re-pinning the guard's scope as WHOLE-HARVEST-RUNTIME (one guard, both readouts, by construction, since both route through the same `eval_query_loss_heldout` seam); also disclosed the harvest driver is its own wave-specific `analyze_corpus_seedext` function, not production `analyze_corpus` invoked blindly. MAJOR-C: the 18 Leg-A pretraining cells' own launch mechanism was never named anywhere in §16.19 — registered a new, additive `--wave rung1-seedext` manifest in `frozen_bias_lm_sweep.py`, launched via a forked `frozen_bias_seedext_chain.sh` (mirrors `frozen_bias_chain.sh`), with a calibration-cell-first stop whose human-inspection step is replaced by a mechanical val-loss sanity band pinned from 3 real archived numbers (`[4.2426, 4.4426]`), and `contention_gate()` reuse (already-built, already-generically-tested) registered as the mechanical resolution of the disclosed GPUs-2-7 lane conflict with §15.26. Two surgical MINORs (an exact `pooled_SE` formula pin; naming the familiarization-layer's own fork, `phase2b_seedext_chain.sh`, distinct from the Leg-A-layer's `frozen_bias_seedext_chain.sh`). Design-only, zero GPU spent this session — queue: Rev 3 (done) → attack round 4 → build-delta → audit → launch. Full account below. KEYANCHOR-SCALING §15.26 d=96 SCATTER-RESOLUTION wave (Rev 1 LANDED, RESHAPE-TO-C, prior session, retained below for history, UNAFFECTED in its own content — still shares GPUs 2-7 with this block's own Leg-A slice, now mechanically gated via `contention_gate()` reuse per MAJOR-C above rather than a disclosure-only note) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
 ---
 
-## REASONING-LINK PHASE-2B SEED EXTENSION — REV 2 LANDED, ARCHIVED-VALUES SOURCING PIN (2026-07-08) — supersedes the REV 1 LANDED, RESTRUCTURE-TO-B block's own queue status (Rev 1's own restructure/floor/power/cell-grid content is reused and extended, not retracted — attack round 2 found a sourcing bug in Rev 1's own NEW mixed-radix-fix prose, fixed here, nothing about the A-vs-B restructure itself reopened); the KEYANCHOR-SCALING §15.26 block immediately below is UNAFFECTED in its own content but still shares a GPU range with this block (disclosed, not a blocker — see below)
+## REASONING-LINK PHASE-2B SEED EXTENSION — REV 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (2026-07-08) — supersedes the REV 2 LANDED, ARCHIVED-VALUES SOURCING PIN block's own queue status (Rev 1/Rev 2's own restructure/floor/power/cell-grid/primary-readout-sourcing content is reused and extended, not retracted — attack round 3 found a MECE gap in the decision rules, a scope gap in the archived-values guard, and an unnamed launch mechanism, none of which reopens the A-vs-B restructure or the primary-readout sourcing fix themselves); the KEYANCHOR-SCALING §15.26 block below is UNAFFECTED in its own content — the GPUs-2-7 lane note it shares with this block is now backed by a mechanical `contention_gate()`-reuse gate (§16.19.7.1, MAJOR-C below), not disclosure-only
 
-**Queue status: DESIGN (Rev 2) → (next) ATTACK ROUND 3 → BUILD-DELTA →
+**Queue status: DESIGN (Rev 3) → (next) ATTACK ROUND 4 → BUILD-DELTA →
 AUDIT → LAUNCH (Leg-A pretraining cells on GPUs 2-7, 6-way, ≈0.76h wall,
 THEN familiarization+eval cells on GPUs 0-1, sequenced not concurrent).**
 
-Attack round 2 on Rev 1 returned **NEEDS-REVISION** — 1 MAJOR + 2 MINOR,
+Attack round 3 on Rev 2 returned **NEEDS-REVISION** — 3 MAJOR + 2 MINOR,
 no FATAL, all surgical (everything else re-verified correct: the power
-arithmetic, the stride re-enumeration's own collision-freedom, the cost
-lines, the single-confirmatory-cell pin), full finding→fix table at
-`REASONING_LINK_DESIGN.md` §16.19.10's own round-2 table. **The MAJOR:
-Rev 1's own §16.19.5 item 3(b) claimed `phase2_seed` "is never re-invoked
-to re-derive an ALREADY-TRAINED checkpoint's own seed anywhere in the
-harvest/pooling pipeline" — FALSE for the per_token EVAL kind
-specifically.** Verified directly against the real code:
-`killer_prediction_readout`'s non-off branch
-(`phase2_trajectory_analysis.py` L212-215) always live-calls
-`eval_query_loss_heldout`, which calls `phase2_seed` on EVERY analysis
-pass, not once at launch — and Rev 1's own `_MAX_CKPT_SEED: 10→12` bump
-changes the returned seed for EVERY call this eval path makes, INCLUDING
-the 3 archived seeds (`ckpt_seed∈{0,1,2}`). A natural n=12
-implementation that simply widens the per-seed loop to `range(12)` would
-silently RE-SCORE the archived per_token seeds on DIFFERENT held-out
-episodes than produced the archived trajectory JSON's own values —
-corrupting the pooled CI's old half with no error or warning. **Fixed:**
-`old_arm_vals` (per_token, seeds 0-2) is now pinned to be
-read/reconstructed DIRECTLY from two already-archived, read-only
-artifacts (`off_lquery_cache-Phase2b.json` + `trajectory_wikitext-mix-
-ext_phase2b.json`'s own raw `deltas`, `experiment-runs/2026-07-08_
-phase2b/results/`) via a new archived-values loader (KeyError-on-miss,
-mirroring the existing off-cache pattern), NEVER via a live eval call for
-`ckpt_seed<3` — plus a mandatory Stage −1 guard mechanically asserting no
-live per_token eval call is ever issued for `ckpt_seed<3`, proven with a
-negative test that a `ckpt_seed=0` call actually raises. Item 3(b)'s own
-prose corrected to distinguish TRAINING kinds (genuinely safe, unchanged)
-from EVAL kinds (the actual hazard).
+arithmetic, the mixed-radix collision-freedom, the cost lines, the
+primary-readout archived-values-sourcing MECHANISM Rev 2 registered —
+its own loader shape and negative-test discipline reused, only extended
+in scope, the single-confirmatory-cell pin), full finding→fix table at
+`REASONING_LINK_DESIGN.md` §16.19.10's own round-3 table.
 
-**Two MINORs, both surgical, no new GPU spend.** MINOR-1: a mandatory
-batch-effect pre-pooling gate — before combining 3 archived + 9 new OFF
-seeds into one CI, compare old-cohort vs new-cohort OFF `L_query`
-means/spread; flag if `|mean diff| > 2×pooled-SE` or `variance ratio >
-4`; on flag, report cohorts separately, never silently pool. MINOR-2: an
-explicit cross-reference from the ~81%/~72% power figures to the
-still-open σ-proxy-conservativeness question (§16.16.11 item 2) — the
-dual-σ disclosure stands as the honest band, not a guarantee. Also added:
-an explicit FLOOR_PIN↔cache-protection cross-reference (the attack noted
-this connection was previously only implicit).
+**MAJOR-A: §16.19.8's own 3-outcome decision rules could double-fire.**
+TRANSIENT-CONFIRMED ("pooled CI excludes zero, negative side") and
+TRANSIENT-REFUTED's own sub-case 2(b) ("CI excludes the archived n=3
+point estimate, `-0.4999`, entirely") can both be true of the SAME CI
+(e.g. `[-0.35,-0.05]`) — plausibly the single most likely non-trivial
+outcome this wave produces, given regression-to-the-mean off a
+significance-filtered n=3 estimate. **Fixed:** §16.19.8 rewritten as an
+explicit, precedence-ordered, MECE 4-outcome partition — TRANSIENT-
+CONFIRMED-AT-MAGNITUDE / TRANSIENT-CONFIRMED-SMALLER / TRANSIENT-REFUTED
+/ NEW-PATTERN(SIGN-FLIP) — driven by `phase2_hexachotomy.det()` (already
+registered) plus a NEW `contains_point(ci_low,ci_high,point)` helper,
+with the totality walk shown, not asserted: every realized CI now maps
+to exactly one bucket.
 
-**New detectable floor at n=12: ≈0.39-0.43 loss units, BOTH below the
-observed 0.4999 magnitude** (unchanged from Rev 1). **Power, both σ
-honestly stated: ~81% at σ=0.43, ~72% at σ=0.48** (unchanged from Rev 1,
-now cross-referenced to its own open sampling-uncertainty risk).
+**MAJOR-B: the archived-values no-recompute guard (Rev 2) closed the
+recompute hazard for the primary per_token readout only.**
+`secondary_ood_readout` hits the IDENTICAL `_MAX_CKPT_SEED`-driven
+re-seed hazard at `hop_set=(3,4)` (`kind="eval_lquery_ood"`), through a
+call site Rev 2's own guard scoping did not provably cover. **Fixed:**
+`load_archived_arm_val` generalized over `hop_set` (one function, both
+readouts); the guard's scope re-pinned as WHOLE-HARVEST-RUNTIME rather
+than call-site-local — since both readouts route through the SAME
+`eval_query_loss_heldout` seam, one whole-runtime guard covers both by
+construction. Also disclosed: the harvest driver is its own wave-specific
+`analyze_corpus_seedext` function, not production `analyze_corpus`
+invoked blindly (which would attempt a `global`-arm branch this wave
+trains no new seeds for).
 
-**Cost: raw ≈6.65 GPU-h, bracket ≈33.3-66.5 GPU-h, ceiling 66.5 GPU-h —
-unchanged from Rev 1's own figure (this round changed sourcing/gating
-logic only, not the cell grid or cost).** Full account:
-`REASONING_LINK_DESIGN.md` §16.19 (Rev 2) + §16.19.10 (round-1 AND
-round-2 attack fix-maps). No cells launched, no code written this
+**MAJOR-C: the 18 Leg-A pretraining cells' own launch mechanism was
+never named.** §16.19.4/§16.19.6 registered the grid and cost, never a
+manifest, `--wave` flag, chain script, or env var — the same class of
+gap §15.26's own MAJOR-2 found and fixed (§15.26.3.1). **Fixed,
+mirroring that fix's own shape:** a NEW, additive `--wave rung1-seedext`
+in `frozen_bias_lm_sweep.py` (seed∈{3,...,11}, 2 arms, 1 corpus, never
+editing the existing `rung1` manifest), launched via a forked
+`frozen_bias_seedext_chain.sh`; the calibration-cell-first stop APPLIES
+but its human-inspection step is REPLACED by a mechanical val-loss
+sanity-band gate pinned from 3 real archived numbers (`[4.2426,
+4.4426]`, per_token/wikitext-mix-ext terminal val_loss); `contention_
+gate()` reuse (already-built, already-generically-tested — verified
+directly against `smoke_frozen_bias_lm.py`'s own `smoke_6_contention_
+gate_refusal`) registered as the mechanical resolution of the GPUs-2-7
+lane conflict with §15.26.
+
+**Two MINORs, both surgical, no new GPU spend.** MINOR-1: `pooled_SE`
+(round-2's own batch-effect gate) pinned explicitly as `sqrt(SE_old² +
+SE_new²)` — the standard-error-of-a-difference form, justified by
+`n_old=3 ≠ n_new=9`. MINOR-2: named the familiarization-layer's own
+forked chain, `phase2b_seedext_chain.sh`, in the design doc for the
+first time (previously only named in this file's own narrative queue
+text) — distinct from the Leg-A-layer's own `frozen_bias_seedext_
+chain.sh` (MAJOR-C).
+
+**Detectable floor, power, and cost figures all UNCHANGED from Rev 2**
+(this round touched decision-rule structure, guard scope, and launch
+mechanism only, not the underlying n=12 statistics or cell grid): new
+detectable floor ≈0.39-0.43 loss units, both below the observed 0.4999
+magnitude; power ~81% at σ=0.43, ~72% at σ=0.48; raw ≈6.65 GPU-h,
+bracket ≈33.3-66.5 GPU-h, ceiling 66.5 GPU-h. Full account:
+`REASONING_LINK_DESIGN.md` §16.19 (Rev 3) + §16.19.10 (round-1, round-2,
+AND round-3 attack fix-maps). No cells launched, no code written this
 session.
 
 ---
