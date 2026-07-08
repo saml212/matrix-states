@@ -1,10 +1,19 @@
 # Project State
 
-**Last updated:** 2026-07-13
+**Last updated:** 2026-07-08 (deploy session; this project's clock has run ahead of the prior 2026-07-13 STATE.md update because Rev 2.2's round-4 spot-check, BUILD, and the independent build audit all landed in the interim — see `EXPERIMENT_LOG.md` for the commits between `cb016da` and `42b3f48` this block folds in)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
 ---
+
+## REASONING-LINK PHASE-2B VOCAB-SPACE CONTRAST — DEPLOY ATTEMPT, BUDGET-GATE ABORTED (2026-07-08 ~05:30 UTC) — supersedes this block's own prior "REV 2.1 LANDED (2026-07-13)" status below: Rev 2.2 (round-4 spot-check) landed, BUILD landed (commit 4cf6122), an independent build audit landed and fixed a FATAL (cache-envelope KeyError) + a MAJOR (cache sha256 integrity check) at commit 42b3f48 — LAUNCH-CLEARED, 22/22 Stage −1, mutation-confirmed. Deploy then shipped everything cleanly (closure + manifest sync + box Stage −1 22/22 + reasoning_link Stage −1 19/19 + real-kernel smoke ×3 arms all PASS + FORCE_FAIL negative correctly failed + full pre-flight clean) and launched `phase2b_chain.sh` in tmux on GPUs 0-1 — but the chain MECHANICALLY ABORTED at its own pre-launch timing-pilot budget gate, before the OFF-eval cache build or any of the 12 new cells. One real eval pass on GPU 0 measured 13.7339s; projected debug-tax-bracket-high cost 26.3739 GPU-h exceeds the registered ENFORCED ceiling (20.6 GPU-h, §16.16.8) by ~28% — `phase2b_off_cache.py --time-pilot`'s own registered logic correctly refused, `set -euo pipefail` propagated the abort, zero cells launched, negligible GPU-h spent (<0.1). This is the pre-launch safety gate working as designed (see full account in `EXPERIMENT_LOG.md`'s matching entry) — it also empirically resolves §16.16.11 item 1's own open "GPU-h reference-rate uncertainty" concern: the registered reference rate was too optimistic by ~28% for this box's real measured rate, even after the existing 10× debug-tax bracket.
+
+**Queue (blocks re-launch, GPUs 0-1 free again):**
+1. **Re-derive the reference rate** in `REASONING_LINK_DESIGN.md` §16.16.8/§16.16.11 from this run's empirical pilot figure (13.7339s/pass, `logs/phase2b_run1.log` on box) — either register a corrected, honest ceiling if the true ≈26.4 GPU-h cost is acceptable, or investigate speeding up the 360-pass eval readout (batch the passes, avoid redundant model reloads) before re-attempting. A registered design update, not a live bypass — loosening/raising the ceiling without one defeats the gate's purpose.
+2. **Re-run `phase2b_chain.sh`** once (1) lands — everything upstream of the timing pilot (Stage −1 ×2 suites, smoke ×3 arms, sha256 reuse gate) is already verified clean and does not need re-auditing, only re-running.
+3. Only past the timing pilot: OFF-eval cache + `FLOOR_PINNED-Phase2b.json` write → OFF-floor gate (per corpus) → the 12-cell `per_token`/`global` × 2 corpora × 3 seeds launch → trajectory analysis → summary.
+
+**Superseded block below (2026-07-13, "REV 2.1 LANDED") — its own Rev 2/2.1 fix history is still accurate background, only its "Queue" (round-4 spot-check → build → audit → launch) is now stale, completed by the above:**
 
 ## REASONING-LINK PHASE-2B VOCAB-SPACE CONTRAST — REV 2.1 LANDED (2026-07-13) — supersedes this block's own prior "REV 2 LANDED (2026-07-12)" status: round-3 verify returned NEEDS-REVISION (1 MAJOR, 1 MINOR, no FATAL, both surgical), all fixed. The REASONING-LINK PHASE-2 FAMILIARIZATION block further below's own harvest facts (gate-refused, PARTIAL-TASK-LEARNING-BELOW-PIN, triple-null arc) are otherwise still current/unchanged.
 
