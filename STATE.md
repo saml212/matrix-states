@@ -6,6 +6,41 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## REASONING-LINK PHASE-2 FAMILIARIZATION — LAUNCHED (2026-07-08 ~01:27
+UTC) — advances the REASONING-LINK PHASE-1B GATE-TEST NULL block's own
+queue implication below (Phase-2 build → audit → launch) to RUNNING; the
+C17/§15.24 blocks above/below are unaffected (different program, GPU 2
+planned there; Phase-2 owns GPUs 0–1 exactly as that block records)
+
+**Queue status: RUNNING UNATTENDED on box, tmux `phase2_familiarization`,
+GPUs 0–1 only.** 18 cells (3 arms × 2 corpora × 3 seeds), 5,000 steps,
+trajectory checkpoints {250,500,1000,2500,5000}, OFF-arm-first with the
+BANDS_PINNED barrier + terminal-checkpoint Stage-0.5 launch gate, K∈{20,32}
+readout-only, budget ceiling 12.06 GPU-h with in-chain enforced abort
+(§16.2 Rev 5 + §16.14 fixes, commits `1f53a68`+`3937d0c`+`a4b3b0d`).
+
+**Harvest at the sentinel, do NOT babysit:** completion =
+`results/phase2/PHASE2_SUMMARY.json` on box (log line `PHASE-2 CHAIN
+COMPLETE` in `logs/phase2_familiarization_run1.log`). Abort sentinels:
+`results/phase2/BUDGET_ABORTED`, `results/phase2/STAGE05_LAUNCH_GATE_
+REFUSED` (the latter = instrument indictment on familiarized checkpoints,
+NOT a program-stopping rule, §16.2.1). ETA: registered bracket 1.48–12.06
+GPU-h ÷ 2 GPUs = 0.74–6.03 h wall from 01:27 UTC; realized early rate
+projects ≈2 h wall (≈4 GPU-h). Hard abort at 6.03 h wall.
+
+**Launch-time verification (full detail in `EXPERIMENT_LOG.md`'s matching
+entry):** 20-file closure md5-verified box↔repo; 18/18 init checkpoints +
+archived results JSONs pre-verified; in-chain gates all green (Stage -1
+19/19+extras and 13/13 under the CPU stub, then the NEW real-kernel smoke
+gate `phase2_smoke_gpu.py` — added this deploy after finding the Stage -1
+suites are CPU-stub-only by design and fla 0.5.1 crashes un-stubbed on CPU;
+its forced-fail negative test proven on box, exit 1); first OFF pair ran
+healthy through step-1000 checkpoints with finite losses before watch was
+dropped. Early `stage05_gate_pass=False` is expected/non-blocking — only
+the TERMINAL step-5000 OFF gate licenses per_token/global.
+
+---
+
 ## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 1 LANDED (2026-07-08) —
 supersedes the DESIGN QUEUED block below's own queue status (that block's
 design content is otherwise unaffected/unretracted; Rev 1 fixes it, not

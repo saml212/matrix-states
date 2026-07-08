@@ -159,6 +159,23 @@ REASONING_LINK_FORCE_CPU_STUB=1 CUDA_VISIBLE_DEVICES= $PY phase2_stage_minus1.py
     2>&1 | tee logs/98_phase2_stage_minus1.log
 
 # ---------------------------------------------------------------------------
+# Step 1.5 -- REAL-KERNEL smoke gate (deploy decision, 2026-07-07): step 1 above runs under the CPU
+# fla stub BY DESIGN (fla 0.5.1's RMSNorm has no CPU fallback -- forcing those suites onto real
+# kernels crashes in Triton, verified on-box 2026-07-07, logs/predeploy_*_real.log), so NO Stage -1
+# item has ever exercised the REAL fla/Triton kernel path the 18 cells train on. This gate closes
+# that gap on the PRODUCTION path itself (phase2_smoke_gpu.py's own docstring: strict init-ckpt
+# load -> measure_cell_all_h -> per-step finiteness loop -> run_familiarization_cell end-to-end
+# incl. optimizer_state_dict checkpoint + resume + Q=K Stage-0.5 gate), on GPU_LIST[0], with NO
+# stub env vars. Same bare-command + `set -euo pipefail` abort discipline as step 1; its abort
+# branch is proven by the PHASE2_SMOKE_FORCE_FAIL=1 negative test (run at deploy time, re-runnable
+# any time). The CPU-stub Stage -1 above stays as-is: it tests LOGIC, this gate tests KERNELS.
+# ---------------------------------------------------------------------------
+CUDA_VISIBLE_DEVICES="${GPU_LIST[0]}" $PY phase2_smoke_gpu.py \
+    --init-checkpoint "$FROZEN_BIAS_CKPT_ROOT/frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0/lmC_openr1-mix-ext_dm256_ds64_L2_s0_step20000.pt" \
+    2>&1 | tee logs/98b_phase2_smoke_gpu.log
+budget_check
+
+# ---------------------------------------------------------------------------
 # Step 2 -- OFF arm, ALL 6 cells (2 corpora x 3 seeds), run FIRST and ALONE (sec 16.2.1's own
 # Gate/blind-pin granularity requirement) -- per_token/global do NOT launch until BANDS_PINNED
 # is written (step 4) AND the per-checkpoint Stage-0.5 launch gate clears (step 5). MINOR-2 fix:
