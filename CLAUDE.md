@@ -239,11 +239,23 @@ geometric-readout nulls at all scales; causal effect bounded; the n=3
 transient did not replicate at n=12). Full scorecard: EXPERIMENT_LOG +
 the memory file campaign-2026-07-record.
 
+**CAPABILITY-FIRST directive (PI, 2026-07-08):** the world-changing
+headline is capability SEPARATION — things current architectures cannot
+do functionally or as observed/tested (state tracking, compositional
+depth generalization) — not efficiency. Matched comparisons stay as
+grounding. Modality (language/bytes/other) is an open question settled
+by the waterfall, never bundled. Research wave dispatched; see STATE.md
+and the memory file capability-first-directive.
+
 **Publications:** 1 PUBLISHED (ICML 2026 MI workshop, above); 3 drafts —
 `neurips-ws-2026/` (positive rank results; venue+cut decision pending,
 ~Jul 11 CFP), `workshop-2026/` (capacity trilogy, current), `iclr-2027/`
-(the full paper, complete draft, deadline ~late Sept 2026). Goal: publish
-the workshop-tier material AND land a full main-conference publication.
+(the full paper, complete draft, deadline ~late Sept 2026). Strategy
+(PI, 2026-07-08): MANY workshop submissions from the chop inventory
+(reasoning-link null program, instrument-methodology story, the M*
+memory result, the capability result) + ONE flagship full paper with
+Berkeley/Stanford collaboration; the flagship needs a POSITIVE result
+to matter.
 
 **Byte-Agnostic (on hold):** Raw byte input for domain-general processing.
 Partially validated. Explicitly out of scope for the head-to-head (never

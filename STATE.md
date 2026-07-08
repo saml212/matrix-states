@@ -14,21 +14,36 @@ records).
    decision pending, ~Jul 11 CFP), `workshop-2026/` (capacity trilogy,
    current), `iclr-2027/` (the FULL main-conference paper — complete
    draft, deadline ~late Sept 2026).
-2. **Land a full (main-conference) publication** — the ICLR 2027 draft is
-   the vehicle; the head-to-head campaign below exists to give it (or a
-   successor) a positive demonstration headline.
-3. **The overall research goal (PI, verbatim intent):** find and
-   demonstrate that the matrix approach can, at scale, change how machines
-   think — positive signals showing a path to machine reasoning,
-   generalization, and abstraction.
+2. **Multi-workshop strategy (PI, 2026-07-08):** chop the result
+   inventory into MANY workshop submissions (ground-level credibility)
+   beyond the two dated ones — chop candidates: the reasoning-link null
+   program (80/80 + methodology), the instrument-calibration/fake-cliff
+   methodology story, the coming M* memory result, the coming
+   capability-separation result. A venue-scout agent maintains the CFP
+   pipeline (dispatched 2026-07-08; re-scan Aug 2026 for NeurIPS-2026
+   workshop CFPs).
+3. **Land a full (main-conference) publication** — the ICLR 2027 draft is
+   the vehicle; PI wants to collaborate with Berkeley/Stanford professors
+   on the flagship; PI publishes it regardless, but it needs a POSITIVE
+   result to matter.
+4. **The overall research goal (PI, verbatim intent, sharpened
+   2026-07-08):** demonstrate CAPABILITIES current architectures are
+   incapable of, functionally or as observed/tested — capability
+   SEPARATION, not efficiency, is the world-changing headline. Matched
+   comparisons (the head-to-head) remain the grounding. Modality is an
+   open research question (language / bytes / other), settled by the
+   waterfall, never bundled two-unproven-axes-at-once. A
+   capability-separation research wave was dispatched 2026-07-08 (TC0
+   limits of transformers AND diagonal SSMs vs delta-rule state-tracking
+   expressivity; sharpest unclaimed demo reachable by our stack).
 
 ## ACTIVE CAMPAIGN — HEAD-TO-HEAD DEMO (PI-ratified 2026-07-08)
 
 Does a matrix-native fast-weight model (frozen-bias fix + recruitable
 rank + super-linear capacity + exact composition) beat matched baselines?
-Design registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` (**Rev 1
-attacked → NEEDS-REVISION, verdict §1.15; Rev 2 in progress** — see QUEUE
-below). PI comparison
+Design registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` (**Rev 2
+committed+pushed 48778bb; attack round 3 running** — see QUEUE below).
+PI comparison
 framing — we research for the FUTURE's constraints (compute grows
 fastest; quality data and HBM are the coming walls):
 - PRIMARY 1: data-efficiency (param+data-matched learning curves on
@@ -54,8 +69,20 @@ fix = memory-multiplier sweep reporting crossover M*, inference-only;
 F-NEW-2 train/eval mismatch → attention-sink patch, partial, disclosed;
 M-NEW-1 TASK_BASE missing keys; M-NEW-2 Hadamard-vs-matvec tap asymmetry
 undisclosed; M-NEW-3 eval-time-axis prose; M-NEW-4 budget margin 2.93
-GPU-h load-bearing — fixes MUST stay inference-only) → Rev 2 (in
-progress) → ...
+GPU-h load-bearing — fixes MUST stay inference-only) → Rev 2 (done,
+§1.16, pushed 48778bb: M-sweep M∈{1..32} w/ crossover M* re-registered
+WIN M*≥4/TIE 2/LOSE ≤1; absolute horizons H4=902 primary; sink patch
+k_sink=4; TASK_BASE 5 keys; raw 12.59, bracket 125.88, margin 1.45
+GPU-h — thinnest yet, flagged) → attack round 3 (RUNNING) → ... →
+BUILD → build audit → launch rung-1 GPUs 0-6.
+
+**PARALLEL RESEARCH WAVES (dispatched 2026-07-08, PI capability-first
+directive):** (1) capability-separation scout — formal TC0 landscape
+(transformers AND diagonal SSMs limited; delta-rule/negative-eigenvalue
+models escape — verify our fla kernel's β range as shipped), sharpest
+unclaimed demo, top-5 ranked w/ kill-tests + GPU-h; (2) venue scout —
+live workshop CFPs Jul 2026-Jan 2027 matched to the chop inventory,
+double-submission policies vs the ICLR 2027 flagship.
 iterate to DESIGN-CLEARED-FOR-BUILD → build (new code: flat-vector
 ablation mixer, switchable uncapped/capped-KV Transformer,
 `verify_match_gate.py`, calibration/timing-pilot wrappers) →
