@@ -1478,7 +1478,7 @@ def measure_cell_all_h(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTask
 def run_cell(ckpt_path: str, K: int, hops: tuple, surgery: str = "native", batch_size: int = BATCH_SIZE_DEFAULT,
              device: str = "cpu", max_rows_per_forward: int = 4096, marker_word: str | None = None,
              compute_option2: bool = True, leg: str | None = None, condition_idx: int = 0,
-             corpus_idx: int = 0, ckpt_seed_idx: int = 0) -> dict:
+             corpus_idx: int = 0, ckpt_seed_idx: int = 0, seed_override: int | None = None) -> dict:
     """Runs the full two-forward Option-1 (+ Option-2) readout for ONE cell:
     one checkpoint, one K, one or more h's, one surgery mode ('native' = as
     loaded; 'off' = sec 5.2a's forced-off surgery). Returns a dict with
@@ -1492,6 +1492,24 @@ def run_cell(ckpt_path: str, K: int, hops: tuple, surgery: str = "native", batch
     OUTSIDE the registered grid, never silently reusing seed 0 for a REAL
     committed-grid cell without the caller noticing (the CLI always passes
     a real leg when --family is used, see main()).
+
+    `seed_override` (additive, backward-compatible -- every existing caller
+    passes None, preserving the leg-based/ad-hoc seed computation exactly
+    as before): when given, this EXACT seed is used instead, bypassing
+    both the `leg`-keyed sec 4.6 formula AND the ad-hoc seed=0 fallback.
+    Exists for REASONING_LINK_DESIGN.md sec 16.2.1's own Phase-2 killer-
+    prediction re-application (this design's own "reasoning_link_probe.py's
+    frozen_bias_surgery is the reference pattern" citation for reusing
+    `run_cell` directly on FAMILIARIZED checkpoints) -- Phase-2 cells are
+    NOT a `leg` sec 4.6 already enumerates (`leg_a`/`leg_b` only), and
+    extending that registered, already-audited formula's own LEG_BASE/
+    PURPOSE_BASE vocabulary for a different program is out of scope here;
+    a Phase-2-local, disjoint seed formula (`phase2_familiarization_train.
+    phase2_seed`) is computed by the CALLER and threaded through this one
+    additive parameter instead, so every 18 familiarized cells still gets
+    its own differentiated, reproducible seed rather than sharing `leg=None`'s
+    single ad-hoc seed=0 across all of them.
+
     All 4 tested h's SHARE one episode_seed (the sec 4.6 formula has no
     h-axis at all) -- "same shuffled-pairing episodes, scored at each h
     separately" (sec 9's own Stage-0 language). FATAL-1 fix (this audit
@@ -1506,7 +1524,9 @@ def run_cell(ckpt_path: str, K: int, hops: tuple, surgery: str = "native", batch
     assert ckpt["config"]["conv_size"] == episode_cfg.conv_size, (
         "Stage -1 item 7's own gate, re-checked live: checkpoint conv_size mismatch")
 
-    if leg is not None:
+    if seed_override is not None:
+        seed = seed_override
+    elif leg is not None:
         seed = episode_seed("eval", leg, condition_idx, corpus_idx, ckpt_seed_idx, K_INDEX[K])
     else:
         seed = 0  # ad-hoc/exploratory usage outside the registered grid (no --family given)
@@ -1817,6 +1837,14 @@ def main():
     ap.add_argument("--arms", type=str, default=None, help="comma-separated, Leg-A multi-arm convenience")
     ap.add_argument("--surgery", choices=["native", "off"], default="native")
     ap.add_argument("--seed-purpose", type=str, default="eval", choices=list(PURPOSE_BASE))
+    ap.add_argument("--seed-override", type=int, default=None,
+                     help="run_cell's own additive seed_override passthrough -- bypasses the "
+                          "leg-keyed sec 4.6 formula AND the ad-hoc seed=0 fallback. For a caller "
+                          "with its own disjoint, already-differentiated seed formula (e.g. "
+                          "REASONING_LINK_DESIGN.md sec 16.2's Phase-2 killer-prediction "
+                          "re-application, phase2_familiarization_train.phase2_seed) -- never used "
+                          "by a real Phase-1 committed-grid cell, which always passes --family "
+                          "instead.")
     ap.add_argument("--batch-size", type=int, default=BATCH_SIZE_DEFAULT)
     ap.add_argument("--out", type=str, default=None)
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
@@ -1858,7 +1886,7 @@ def main():
         corpus_idx = CORPUS_INDEX.get(args.corpus, 0)
         result = run_cell(ckpt_path, args.k, hops, surgery=args.surgery, batch_size=args.batch_size,
                            device=args.device, leg=leg, condition_idx=condition_idx, corpus_idx=corpus_idx,
-                           ckpt_seed_idx=args.ckpt_seed)
+                           ckpt_seed_idx=args.ckpt_seed, seed_override=args.seed_override)
         print(json.dumps({k: v for k, v in result.items() if k != "per_h"}, indent=2, default=str))
         if args.out:
             os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)

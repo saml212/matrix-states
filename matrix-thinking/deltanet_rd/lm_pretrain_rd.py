@@ -1770,6 +1770,81 @@ def _assemble_result(args, run_name, other_corpus, trajectory, checkpoints, n_pa
 # Train
 # ---------------------------------------------------------------------------
 
+def should_checkpoint_now(step: int, total_steps: int, ckpt_every: int,
+                           ckpt_steps: list | tuple | None) -> bool:
+    """REASONING_LINK_DESIGN.md sec 16.2.1 (Rev 2 fix, attack-round-2
+    MAJOR-NEW-2) -- Phase-2's own registered build task: `--ckpt-every`'s
+    modulo test (`step % ckpt_every == 0 or step == total_steps`) cannot
+    produce the non-arithmetic checkpoint sequence `{250,500,1000,2500,5000}`
+    (no single divisor fires at exactly those 5 steps and no others), and
+    the `--ckpt-every 250` workaround is EXPLICITLY FORBIDDEN (it would
+    silently checkpoint+eval 20 times instead of 5, a 4x eval-pass cost
+    inflation the design's own cost derivation never priced in).
+
+    Pure function (no torch dependency) so it is unit-testable without a
+    GPU or even a `torch` import -- deliberately factored out of `train()`'s
+    body for exactly that reason.
+
+    When `ckpt_steps` is given (non-empty), it REPLACES the modulo test
+    entirely (this design's own launch only, `--ckpt-every` stays the
+    default path for every OTHER script/launch in this codebase that
+    depends on it, unchanged) -- `step in set(ckpt_steps)` is the ONLY
+    condition, deliberately WITHOUT the `or step == total_steps` fallback
+    the modulo path carries: a run that reaches its final step without that
+    step being IN `ckpt_steps` must NOT silently checkpoint anyway (the
+    exact negative-test contract sec 16.2.1's own registered fix specifies:
+    `--ckpt-steps 250 500` continuing past step 750 writes NO step-750-or-
+    later checkpoint, even though 750 could be a run's own final step)."""
+    if ckpt_steps:
+        return step in set(ckpt_steps)
+    return step % ckpt_every == 0 or step == total_steps
+
+
+def load_init_checkpoint_strict(model: DeltaNetLM, path: str, device: str) -> dict:
+    """REASONING_LINK_DESIGN.md sec 16.2.1 -- Phase-2's own registered build
+    task: "add --init-checkpoint <path>... load_state_dict the archived
+    checkpoint's model_state_dict into the freshly constructed model...
+    BEFORE train() is called." Factored out of `main()` as its own reusable
+    function (rather than inlined) so `phase2_familiarization_train.py` can
+    call the SAME loader instead of re-deriving it.
+
+    TWO independent layers of defense against a mismatched/corrupted
+    checkpoint silently partially-loading (sec 16.2.1's own registered
+    negative-test requirement -- "construct a deliberately-corrupted
+    checkpoint... and assert that loading it... raises/ABORTS... rather
+    than silently proceeding with a partially- or mis-loaded model"):
+      1. An EXPLICIT config-equality assert, BEFORE any load_state_dict call
+         -- catches a config mismatch (e.g. d_state/n_layers) with a clear,
+         actionable message, mirroring the existing checkpoint round-trip
+         smoke test's own `assert loaded["config"] == model2.config()`
+         pattern (item [4], L2220).
+      2. `load_state_dict(..., strict=True)` (PyTorch's own default) as a
+         second, independent layer -- catches a shape mismatch that could
+         theoretically slip past an equality check on a HAND-CONSTRUCTED
+         `ckpt["config"]` dict that does not match the ACTUAL model's
+         module structure (defense in depth, never relied on alone).
+
+    Returns the loaded checkpoint dict (`step`/`model_state_dict`/`config`/
+    `corpus`/`seed`/`run_name`) so the caller can cross-reference the
+    archived run's own results JSON (sec 16.2.1's own registered
+    dependency: `.pt` fields alone identify WHICH results JSON and WHICH
+    `checkpoints` entry to compare against, since the `.pt` itself carries
+    no val_loss)."""
+    ckpt = torch.load(path, map_location=device)
+    for required in ("step", "model_state_dict", "config", "corpus", "seed", "run_name"):
+        assert required in ckpt, (
+            f"--init-checkpoint {path!r} is missing required field {required!r} -- not a "
+            f"lm_pretrain_rd.py-produced checkpoint (or a corrupted one); refusing to load")
+    live_config = model.config()
+    assert ckpt["config"] == live_config, (
+        f"--init-checkpoint {path!r}: saved config does NOT match the freshly-constructed "
+        f"model's own config -- refusing to load (this is the config-equality layer of sec "
+        f"16.2.1's registered two-layer defense; a mismatched d_state/n_layers/etc. must ABORT, "
+        f"never silently partial-load).\n  saved:  {ckpt['config']}\n  live:   {live_config}")
+    model.load_state_dict(ckpt["model_state_dict"], strict=True)   # 2nd defense layer, PyTorch default
+    return ckpt
+
+
 def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets: torch.Tensor,
           val_same: tuple, val_other: tuple, other_corpus: str, device: str, run_name: str,
           out_path: str | None = None, ckpt_dir: str | None = None, timeout_s: float | None = None) -> dict:
@@ -1860,7 +1935,7 @@ def train(model: DeltaNetLM, args, train_tokens: torch.Tensor, train_doc_offsets
             print(f"  step {step:6d}  loss {loss.item():.4f}  lr {lr:.2e}{'  [NON-FINITE GRAD, SKIPPED]' if not finite else ''}",
                   flush=True)
 
-        if step % args.ckpt_every == 0 or step == args.steps:
+        if should_checkpoint_now(step, args.steps, args.ckpt_every, getattr(args, "ckpt_steps", None)):
             # FIX-1: eval/rank samplers seeded from the CORPUS, never args.seed
             eval_gen_same = torch.Generator(device=device).manual_seed(
                 corpus_fixed_seed(args.corpus) + 10_000 + step)
@@ -2852,9 +2927,25 @@ def main():
     ap.add_argument("--log-every", type=int, default=100)
     ap.add_argument("--ckpt-every", type=int, default=1000,
                      help="section 8's build requirement: mid-training eval checkpoints every <=2000 steps")
+    ap.add_argument("--ckpt-steps", type=int, nargs="+", default=None,
+                     help="REASONING_LINK_DESIGN.md sec 16.2.1: an explicit, sorted, arbitrary list "
+                          "of steps to checkpoint at (e.g. --ckpt-steps 250 500 1000 2500 5000), "
+                          "REPLACING the --ckpt-every modulo test for THIS run only (--ckpt-every "
+                          "stays the default path for every other launch). Omit for the ordinary "
+                          "modulo-cadence behavior (unchanged).")
     ap.add_argument("--ckpt-dir", type=str, default=None,
                      help="directory to torch.save model checkpoints -- REQUIRED for a real run "
                           "(the intervention script needs them); omit only for a throwaway/dry run.")
+    ap.add_argument("--init-checkpoint", type=str, default=None,
+                     help="REASONING_LINK_DESIGN.md sec 16.2.1: path to an archived checkpoint's "
+                          ".pt file. If given, its model_state_dict is loaded (strict=True, plus an "
+                          "explicit config-equality assert) into the freshly-constructed model "
+                          "BEFORE train() is called -- 'continue training from an archived "
+                          "checkpoint' (Phase-2's familiarization recipe) rather than the ordinary "
+                          "fresh-init path. Optimizer state is NEVER loaded (the archived checkpoint "
+                          "carries none -- see sec 16.2.1's own disclosed optimizer-restart "
+                          "confound); familiarization always begins with fresh Adam moments and a "
+                          "fresh LR warmup/decay cycle, by design, disclosed explicitly there.")
     ap.add_argument("--internal-timeout", type=float, default=None)
     ap.add_argument("--out", type=str, default=None)
     ap.add_argument("--use-geo3-lm", action="store_true",
@@ -2949,6 +3040,15 @@ def main():
         f"time, matching DeltaNetLM.__init__'s own assert (never rely on that one alone).")
     if args.ckpt_every > 2000:
         print(f"WARNING: --ckpt-every={args.ckpt_every} > 2000: violates section 8's build requirement.", flush=True)
+    if args.ckpt_steps is not None:
+        assert len(args.ckpt_steps) >= 1 and all(s >= 1 for s in args.ckpt_steps), (
+            f"--ckpt-steps {args.ckpt_steps} must be a non-empty list of positive step numbers")
+        assert args.ckpt_steps == sorted(args.ckpt_steps), (
+            f"--ckpt-steps {args.ckpt_steps} must be given in sorted order (sec 16.2.1's own "
+            f"registered contract: 'an explicit, SORTED, arbitrary integer list')")
+        assert max(args.ckpt_steps) <= args.steps, (
+            f"--ckpt-steps max ({max(args.ckpt_steps)}) exceeds --steps ({args.steps}) -- that "
+            f"checkpoint step would never be reached")
     if args.ckpt_dir is None:
         print("WARNING: --ckpt-dir not given -- no model checkpoints will be saved; "
               "lm_intervene_rd.py will have nothing to load.", flush=True)
@@ -3034,6 +3134,17 @@ def main():
         # mixer (see DeltaNetLMMixer's selection_probe_k_sel comment).
         for blk in model.blocks:
             blk.mixer.selection_probe_k_sel = args.trackb_selection_probe
+    if args.init_checkpoint is not None:
+        # REASONING_LINK_DESIGN.md sec 16.2.1's registered build task: load the archived
+        # checkpoint's model_state_dict into this freshly-constructed model BEFORE train() is
+        # called -- "continue training" rather than "train from scratch". Strict + config-equality
+        # checked (load_init_checkpoint_strict's own two-layer defense); ABORTS loudly on any
+        # mismatch rather than silently partial-loading.
+        init_ckpt = load_init_checkpoint_strict(model, args.init_checkpoint, device)
+        print(f"--init-checkpoint: loaded {args.init_checkpoint} (archived step={init_ckpt['step']}, "
+              f"corpus={init_ckpt['corpus']}, seed={init_ckpt['seed']}, run_name={init_ckpt['run_name']}) "
+              f"-- optimizer state NOT loaded (none archived; fresh Adam moments + fresh LR schedule, "
+              f"disclosed sec 16.2.1)", flush=True)
     n_params = sum(p.numel() for p in model.parameters())
     geo3_tag = f"_geo3{args.geo3_selection.replace('_', '')[:8]}k{args.geo3_k_sel}" if args.use_geo3_lm else ""
     hs_tag = f"_hs{args.hard_select_mechanism.replace('_', '')[:8]}k{args.hard_select_k_sel}" \

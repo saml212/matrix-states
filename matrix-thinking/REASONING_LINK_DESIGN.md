@@ -4666,6 +4666,36 @@ applies:**
    skipping past any earlier `holds`-true-but-Stage-0.5-failed checkpoint
    (and re-applying the same monotone-through-5,000 condition from that
    later `c1`).
+
+   **Rev-5-build note (BUILD agent, this commit) — resolves the open item
+   §16.13 disclosed but left out of that round's tight scope: "the
+   Stage-0.5 skip-past provision does not state what happens if Stage-0.5
+   never passes at ANY non-terminal checkpoint within an otherwise-
+   confirmed monotone holds-true run."** PINNED: when the skip-past search
+   above finds NO non-terminal checkpoint within the confirmed monotone
+   run whose own Stage-0.5 gate passes (i.e. Stage-0.5 FAILS at every
+   candidate `c1` from `c1_raw` through the last non-terminal checkpoint
+   inclusive), the trajectory is reported **UNRESOLVED-GATE** — a
+   SEVENTH, named, disclosed outcome, distinct from all six outcomes
+   above (never silently folded into PERSISTENT, NON-MONOTONE, or
+   UNRESOLVED) and reported per-seed only, exactly like NON-MONOTONE's
+   own disclosure discipline: never averaged into a headline number or a
+   mean effect size alongside cleanly-classified seeds. UNRESOLVED-GATE's
+   own reading: the killer-prediction condition may genuinely hold at
+   every checkpoint in a monotone run, but this instrument cannot
+   CERTIFY that reading as interpretable at any point in the run (every
+   candidate corroborating checkpoint's own premises (iii)/(iv)/h1-floor
+   failed) — a DIFFERENT epistemic status from UNRESOLVED (which means
+   the best-powered terminal reading itself never clears noise) and from
+   NON-MONOTONE (a genuinely unclassifiable `holds` shape): UNRESOLVED-
+   GATE means the `holds` shape IS classifiable (monotone, PERSISTENT-
+   shaped) but the READOUT INSTRUMENT itself failed its own validity
+   check throughout. Implemented mechanically in
+   `phase2_hexachotomy.classify_trajectory` (`deltanet_rd/
+   phase2_hexachotomy.py`), unit-tested against this exact scenario
+   (Stage-0.5 failing at every non-terminal checkpoint of a confirmed
+   monotone run) as part of this build's own Stage -1 self-tests
+   (`deltanet_rd/phase2_stage_minus1.py` item 5).
 2. **TRANSIENT** — `holds(c)=TRUE` for at least one `c` ∈
    {250,500,1000,2500} AND `holds(5000)=FALSE`. Reads as a
    training-dynamics artifact of exactly the kind §16.2.2 confound (a) —
@@ -5177,6 +5207,40 @@ qualitatively different failure mode than rounds 1-2's own design/
 buildability gaps, and a reminder that "findings per round trending down"
 is not the same claim as "the remaining findings are getting less
 severe" or "the next round will find nothing."
+
+**CLEARED-FOR-BUILD (round-5 reviewer's own confirmation pass, 2026-07-07).**
+The remaining gate this section's own text above registers — "the
+reviewer's confirmation pass on the corrected status prose ONLY" — has now
+run, on the second Rev-5 status patch (§16.13's own addendum: five residual
+status-sync defects found and fixed, none substantive, same "prose only,
+zero design impact" shape as every Rev-5 finding). That confirmation pass
+PASSED: the five edits landed as prescribed, substantive checks 1/2/4 carry
+forward unchanged (never re-opened), and no new finding was raised. Per
+this section's own registered sequencing ("Only after that confirmation...
+should Phase-2 build"), the gate is discharged: **Phase-2 §16.2.1 (Rev 5)
+is CLEARED-FOR-BUILD.** The build ran the same day — folded in here by the
+BUILD agent itself, per the round-5 reviewer's own explicit assignment of
+this recording task to the build commit: files added under
+`matrix-thinking/deltanet_rd/` (`phase2_familiarization_train.py`,
+`phase2_gate_enforce.py`, `phase2_bands_pinned.py`, `phase2_hexachotomy.py`,
+`phase2_trajectory_analysis.py`, `phase2_stage_minus1.py`,
+`phase2_chain.sh`), `lm_pretrain_rd.py` extended with `--ckpt-steps`/
+`--init-checkpoint` (sec 16.2.1's own two registered build tasks), and
+`reasoning_link_probe.py`'s `run_cell` extended with an additive
+`seed_override` parameter (sec 16.2.1's own killer-prediction-reapplication
+reuse instruction). Every Stage −1 self-test this build registers (11 items,
+`phase2_stage_minus1.py`, PLUS Phase-1's own unchanged 19-item suite,
+re-run as a dependency-closure check) ran to completion, on CPU, via this
+repo's own fla stub — build commit hash intentionally left for a same-day
+follow-up patch (this paragraph is written IN the build commit itself, so
+its own hash cannot be self-cited without fabricating one; `git log
+--oneline -- matrix-thinking/deltanet_rd/phase2_chain.sh` on this branch
+resolves it exactly, and this document's own established convention is to
+backfill a commit hash in the FIRST subsequent revision that cites it, per
+every prior Rev's own "commit <hash>" pattern above). This build did not
+itself launch the 18-cell grid (LOCAL BUILD ONLY, per its own task scope)
+— that launch, and this build's own independent audit, remain separate,
+later steps.
 
 ---
 
