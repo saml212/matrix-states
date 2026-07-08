@@ -6213,3 +6213,79 @@ during run (not caused by it): `phase2_familiarization` self-terminated at
 idle after; flagged to coordinator, out of this task's scope.
 
 ---
+
+## REASONING-LINK PHASE-2B VOCAB-SPACE CONTRAST — DESIGN (2026-07-10): Rev 0, pre-attack, DESIGN-ONLY, zero GPU spent — promotes §16.15.5's own first registered option to a full design
+
+Designs a vocab-space behavioral-contrast instrument for the
+REASONING-LINK keystone question ("does frozen-bias key-geometry
+stabilization causally improve in-context multi-hop composition"),
+replacing the `d_state`-space `S_T^h·q_eff` readout that failed identically
+at three structurally different instruments (§16.15.4's triple-null arc)
+with the vocab-space `L_query` readout §16.2.1 already built and ran as an
+INDEPENDENT signal — which showed real, uniform partial task-learning
+(21.8-46.4% fall, §16.15.2) while the geometric gate stayed at an exact
+`0.0000` floor. The causal logic is unchanged from H_LINK-A: the 3 arms
+(`off`/`per_token`/`global`) differ ONLY in the frozen-bias intervention,
+so any arm-vs-arm divergence in task-learning trajectory is attributable to
+that intervention. **Confound-freedom, verified against the real code, not
+assumed:** checked `phase2_seed`'s own mixed-radix formula directly —
+init checkpoints are protocol-matched (not literally shared, as expected);
+training data order and the OLD eval seeds are arm-KEYED (`arm_idx` is a
+digit in the formula), so realized draws differ by arm even though the
+underlying distribution doesn't (disclosed as an unbiased variance source,
+not a confound); the NEW eval-`L_query` readout is registered to
+DELIBERATELY drop this keying (a pairing device, passing the literal
+string `"off"` regardless of which arm is being scored) for a genuinely
+paired comparison. **Primary readout, adjudicated:** a NEW frozen-checkpoint
+held-out eval-`L_query` pass (clean, `Q=K`, held-out entities) over the
+existing noisy training-loop `L_query` (train-pool, minibatch noise) —
+recommended primary with the training curve as corroborating, reusing
+`query_loss_forward` verbatim via one new parameterization
+(`hop_set` currently hardcoded) and two new `phase2_seed` kinds. **Power
+sketch, honest and sobering:** from the 6 OFF cells' own terminal `L_query`
+spread (2.552-3.659, §16.15.2), between-seed σ≈0.43-0.48; at n=3 seeds the
+minimum detectable arm effect is ≈1.5-1.7 loss units — the SAME order of
+magnitude as the OFF arm's OWN entire familiarization effect (≈1.69) —
+meaning a plausible, modest intervention effect will very likely land in
+the pre-registered UNRESOLVED bucket rather than resolving cleanly;
+disclosed prominently as a real risk to the "adequately-powered negative"
+framing, not softened. **Arm contrast:** reuses §16.2.1's `det`/`holds`/
+`agree`/six-bucket hexachotomy machinery verbatim (readout-agnostic by
+construction) with Δ redefined as `L_query(off) − L_query(arm)`; drops the
+now-referentless UNRESOLVED-GATE bucket; replaces the per-checkpoint
+Stage-0.5 gate with a single upfront, per-corpus OFF-FLOOR gate
+(`ratio=L_query@5000/L_query@250 ≤ 0.80`) that can abort the 12-cell launch
+BEFORE any GPU-h is spent on an uninterpretable wave — closing §16.15.7's
+own disclosed trichotomy gap formally with a 3-way MECE bucket
+(FLOOR-PASS / PARTIAL-BELOW-FLOOR, demoted to descriptive tier / 
+FAMILIARIZATION-NULL, blocked). A secondary h∈{3,4} held-out-hop
+generalization readout is pinned, reported as a standalone `det()` table,
+not folded into the primary classification. **Cells + cost:** 12 new
+training cells (`per_token`/`global` × 2 corpora × 3 seeds); the 6 OFF
+cells are DONE and REUSED — verified directly against the box
+(`youthful-indigo-turkey`) this session: exactly 30 `.pt` files exist,
+sha256-pinned this session against the ORIGINAL box archive (never a copy),
+mirroring the K=69 precedent exactly
+(`experiment-runs/2026-07-08_phase2_familiarization/gates/
+phase2b_off_ckpts_reuse_manifest.sha256`). Cost re-derived from §16.15.6's
+own realized rate: `0.617→1.234 GPU-h` (training, scaled) + `0.792 GPU-h`
+(360 new eval-`L_query` passes, both hop-sets × both K's × 18 cells × 5
+checkpoints, at the Stage-0.5 gate's own twice-cross-validated per-pass
+rate) + `≈0.01 GPU-h` (new smoke) ≈ `2.04 GPU-h` raw → **≈10.2-20.4 GPU-h**
+bracket at this document's standard 5-10× debug-tax convention (every
+prior wave using this methodology has landed well under its own bracket's
+low end, most recently §16.15.6's own 0.617-realized-vs-2.22-4.45-bracket
+result). **Gates:** reuses the Stage −1 CPU suite (extended: 2 new seed
+kinds' collision-freedom, 1 new arm-invariance assertion) and
+`BANDS_PINNED-Phase2Familiarization.json` (unchanged, no re-pin — the
+training recipe is identical, only the readout changed); found a genuine,
+previously-undiscovered gap in `phase2_smoke_gpu.py` (`SMOKE_ARM="off"`
+hardcoded, no `--arm` flag — the real fla/Triton kernel path has NEVER
+exercised the `apply_frozen_bias_blend` non-off code path all 12 new cells
+run), registered as a build task rather than inherited silently. Full
+design, all worked arithmetic, and a 5-question self-attack list:
+`REASONING_LINK_DESIGN.md` §16.16. Awaits an independent attack round
+before build. No cells launched, no code written this session; STATE.md's
+queue updated.
+
+---

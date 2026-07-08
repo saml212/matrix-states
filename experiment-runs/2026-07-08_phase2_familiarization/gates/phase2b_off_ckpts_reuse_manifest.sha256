@@ -1,0 +1,52 @@
+# REASONING_LINK_DESIGN.md sec 16.16.8's registered sha256 reuse gate for
+# Phase-2b's 6 reused OFF-arm cells (2 corpora x 3 seeds x 5 trajectory
+# checkpoints = 30 .pt files). Pinned ONCE, this design session
+# (2026-07-10), against the ORIGINAL box archive --
+# youthful-indigo-turkey:/home/nvidia/chapter2/deltanet_rd/results/phase2/
+# ckpts/ -- via `ssh youthful-indigo-turkey "cd .../ckpts && sha256sum
+# *.pt"`. Never regenerated from a local/SSD copy (that would make the
+# check tautological). Verified directly at pin time: exactly 30 files
+# present on box, matching this design's own expectation exactly (6 cells
+# x 5 checkpoints, zero missing/extra). Format: standard sha256sum output
+# (digest, two spaces, basename) so `sha256sum -c` / `diff <(sha256sum
+# ...) <(sort this file)` both work directly against it. Mirrors the
+# K=69 precedent exactly: experiment-runs/2026-07-07_keyanchor_scaling_wide/
+# gates/keyanchor_scaling_wide_k69_copy_manifest.sha256.
+#
+# Consulted by (registered build task, sec 16.16.9, not yet built): a
+# Python-level gate function analogous to phase2_gate_enforce.py's own
+# read-only verdict pattern, called before Phase-2b's new eval-L_query
+# pass (sec 16.16.3) reads any of these 6 reused cells' checkpoints, plus
+# a standalone bash-level `sha256sum -c` check in whatever chain script
+# orchestrates the 12-cell launch (mirrors keyanchor_scaling_wide_chain.sh's
+# own belt-and-suspenders GATE (c) structure).
+28231a770c809f48c284611f8603a6a7db9c139e94f7435397cc01a15984d1af  phase2fam_off_openr1-mix-ext_s0_step1000.pt
+cd90a2e1703defacb7c2d97eb3c0050d03413a4e92a45f22f169fcebdf46c815  phase2fam_off_openr1-mix-ext_s0_step250.pt
+fd000c2e76a7c4f76c2f5452c968c240390a94ee8e9445c420fdfd81f3291b4b  phase2fam_off_openr1-mix-ext_s0_step2500.pt
+64ed903b7da85645563b3fa9c71e497849e80d9658c9c2e07522b85c0ec0d062  phase2fam_off_openr1-mix-ext_s0_step500.pt
+a6e87a377254a83f99287d47c382c88e27658f1fc52eb471343ea53c5622ee4c  phase2fam_off_openr1-mix-ext_s0_step5000.pt
+bdf0cc3f4db9aca87ccd462637f1d3c423f4bed9f2d3954efc352150389bb7e1  phase2fam_off_openr1-mix-ext_s1_step1000.pt
+f317f46c8e7c2ef500ee7568ccbeed42f1e83fc9387512c82771305da9124058  phase2fam_off_openr1-mix-ext_s1_step250.pt
+33576d0636ddf586557dda743df67a20a8ec1ad1de24fea4e8342c8ef06ab3c3  phase2fam_off_openr1-mix-ext_s1_step2500.pt
+e65b0300a4b253c393ac8f534ccb9a69a6e3e7af4d2bf55637ff98fdfc8e7e0e  phase2fam_off_openr1-mix-ext_s1_step500.pt
+d830eb3890266557ecb124bc7f89eb49b3bf9078041ae91df54aa8fb257e90ca  phase2fam_off_openr1-mix-ext_s1_step5000.pt
+ca49f8feb969ae5a3e0a87f3aaf6d4174d67c7f70f1d7e168942cea97fc1f614  phase2fam_off_openr1-mix-ext_s2_step1000.pt
+fb7bcf8e4f270b32cbb28fadb6cf0197a17450ebb652bf4ef7989d8671541028  phase2fam_off_openr1-mix-ext_s2_step250.pt
+7b1eac85a6972c11a5b0ea8542a303e531248814c6224a5b1b2e168d96cae615  phase2fam_off_openr1-mix-ext_s2_step2500.pt
+48e1e41d5f04b445af5a41e7bbd610cf8ad7d30649307b7e8b4679949ce9bd11  phase2fam_off_openr1-mix-ext_s2_step500.pt
+168d478891ad6a0e1b7b03a59d0fcd85a13f8d80ff61db76d5f8bc58668ff062  phase2fam_off_openr1-mix-ext_s2_step5000.pt
+c96ccf997ee5480c112360c8dc2b17c902de071cf74e91a72f3d3a3e3445a516  phase2fam_off_wikitext-mix-ext_s0_step1000.pt
+00867af1a453e7f398b27d5b43df49748e2082389e78f03eb10ffde739e98366  phase2fam_off_wikitext-mix-ext_s0_step250.pt
+5503e9793b18b09cf1c8cb4784b6e3ec125e7dacc0532d92288cc84f8700e2a9  phase2fam_off_wikitext-mix-ext_s0_step2500.pt
+81bce8cf5cf6c49df64ccb25c440a25f7eebe125d78577a506964aa8a75e9ae0  phase2fam_off_wikitext-mix-ext_s0_step500.pt
+d2ac1b3f09b6014036dccda7918ab6c1a985c1c765fca13b8067e100f53255ec  phase2fam_off_wikitext-mix-ext_s0_step5000.pt
+9b3e1dc8992932f6dc57b3033659f8ef0ff083edbb26bbcde171492cac2e1db4  phase2fam_off_wikitext-mix-ext_s1_step1000.pt
+be02184fcfee26e3b219409458f54513c55a03696caa132240665840afc817a3  phase2fam_off_wikitext-mix-ext_s1_step250.pt
+2110accada8185c38f73d9cbf63c8a58535a6488372cc391d05bbcab1a434a84  phase2fam_off_wikitext-mix-ext_s1_step2500.pt
+d94abe42dd498dc62ddfb1bf73dafb483321e2b9e30c236760cd2bd1bf0324c8  phase2fam_off_wikitext-mix-ext_s1_step500.pt
+9e4950fd600aace11010c7774b9c6a64717c366dcbc1e310fbf8a3a869e79082  phase2fam_off_wikitext-mix-ext_s1_step5000.pt
+428d5b240def12594997eaf6c25cd4e406d0d3a821b64c90abc2f8ecf870fa24  phase2fam_off_wikitext-mix-ext_s2_step1000.pt
+e33efd901d94edacbabe785221984aca70e134457f61932b55bdc40c6fa6be67  phase2fam_off_wikitext-mix-ext_s2_step250.pt
+7e37451d52ef8bbe9b7575b8acc18169d405adeba4880ae6f11ab9d50fa9cdc3  phase2fam_off_wikitext-mix-ext_s2_step2500.pt
+8d4cdc3814a773bb1b53dada4eb9eec4578ac7b8bb364113a9f16b92569ca44c  phase2fam_off_wikitext-mix-ext_s2_step500.pt
+59ceafd50cd16a36034fab79862213348cf47d94a07329a3e2c30710d14b08e5  phase2fam_off_wikitext-mix-ext_s2_step5000.pt

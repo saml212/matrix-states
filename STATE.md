@@ -6,6 +6,20 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## REASONING-LINK PHASE-2B VOCAB-SPACE CONTRAST — DESIGN QUEUED (2026-07-10) — supersedes the REASONING-LINK PHASE-2 FAMILIARIZATION block immediately below's own "PI decision... at next check-in" queue item with a concrete selection: §16.15.5 registered-option 1 (a vocab-space behavioral-contrast instrument, promoted to primary) is now a full Rev-0 design, not merely named. That block's own harvest facts (gate-refused, PARTIAL-TASK-LEARNING-BELOW-PIN, triple-null arc) are otherwise still current/unchanged.
+
+**Status: Rev 0, pre-attack, DESIGN-ONLY.** `matrix-thinking/REASONING_LINK_DESIGN.md` §16.16. Zero GPU spent this session; the box was touched read-only (verified 30 reused OFF checkpoints exist, sha256-pinned).
+
+**Queue (design → attack round → build delta → audit → launch on GPUs 0-1, currently free):**
+1. **Independent attack round on §16.16** (fresh-eyes reviewer, mirrors §16.2's own 5-round precedent) — NOT YET RUN. Blocking item.
+2. **Build delta**, once cleared: parameterize `query_loss_forward`'s hardcoded `hop_set`; add 2 new `phase2_seed` kinds (`eval_lquery_heldout`, `eval_lquery_ood`) with the arm-independent pairing convention (§16.16.2/16.16.3); write `phase2b_floor_gate_enforce.py` (mirrors `phase2_gate_enforce.py`'s pattern, §16.16.6); extend `phase2_smoke_gpu.py` with a real `--arm` flag and run it against a non-off arm on real kernels for the first time (a genuine, previously-undiscovered gap found this session, §16.16.9); wire the sha256 reuse gate (manifest already committed, `experiment-runs/2026-07-08_phase2_familiarization/gates/phase2b_off_ckpts_reuse_manifest.sha256`).
+3. **Independent build audit** (separate agent, per `CLAUDE.md`'s "the implementer does not review their own work").
+4. **Launch**: 12 new cells (`per_token`/`global` × 2 corpora × 3 seeds) on GPUs 0-1, registered cost bracket ≈10.2-20.4 GPU-h (§16.16.8).
+
+**Known risk, registered now so it cannot be silently elided at harvest time (§16.16.4):** at n=3 seeds, the minimum detectable arm effect (≈1.5-1.7 loss units) is roughly the SAME SIZE as the OFF arm's own entire familiarization effect (≈1.69) — a modest, plausible intervention effect will likely resolve to the pre-registered UNRESOLVED bucket, not a clean positive or negative. Any harvest read as a clean negative must be checked against this power sketch before being reported as such.
+
+---
+
 ## REASONING-LINK PHASE-2 FAMILIARIZATION — GATE-REFUSED (harvested
 2026-07-08, chain ran 01:27–01:45 UTC) — verdict PARTIAL-TASK-LEARNING-
 BELOW-PIN; the C17/§15.24 blocks below are unaffected (different program,

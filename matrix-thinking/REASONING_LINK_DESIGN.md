@@ -6547,3 +6547,494 @@ the REASONING-LINK keystone lane, at the next check-in. GPUs 0-1 are
 free in the meantime. Path (iii)'s own scaling-wave track is
 unaffected and continues independently (§16.3, not gated on this
 result).
+
+---
+
+## 16.16 PATH (iv) — PHASE-2B: vocab-space behavioral-contrast instrument (Rev 0, pre-attack, 2026-07-10)
+
+This is §16.15.5's own first registered option, promoted: **a vocab-space
+behavioral contrast, scored entirely through the LM head, replacing the
+`d_state`-space `S_T^h·q_eff` readout that just failed for the third
+structurally-different time (§16.15.4's triple-null arc) — not a fourth
+variant of that same construct.** The dead readout is not needed here at
+all; every piece of machinery this design reuses (the trainer, the 3-arm
+checkpoint family, the 5-checkpoint trajectory schedule, the CI/hexachotomy
+primitives) was already built and already ran cleanly (§16.2, Rev 5,
+CLEARED-FOR-BUILD; §16.6). This section is Rev 0 — a design sketch, not a
+committed build — and per this project's own waterfall discipline
+(`CLAUDE.md`) it must clear an independent attack round before any code
+changes.
+
+### 16.16.1 Hypothesis and the causal logic, stated precisely
+
+**One-sentence hypothesis:** frozen-bias key-geometry stabilization
+(`arm ∈ {per_token, global}` vs. `off`) causally changes how fast and how
+completely a DeltaNet LM acquires in-context multi-hop bind/query
+composition during task familiarization, as measured by vocab-space
+cross-entropy on held-out episodes.
+
+**Causal logic (the keystone question, re-derived for this instrument).**
+The three arms differ, by construction, in exactly ONE thing at the moment
+familiarization begins: which frozen-bias table (none / per-token / global)
+was blended into the key projection during the ORIGINAL 20,000-step
+pretraining that produced each arm's own step-20,000 checkpoint
+(`FROZEN_BIAS_LM_DESIGN.md` §5-7). Familiarization then continues training
+ALL THREE arms with the IDENTICAL recipe (§16.2.1: same corpus mix, same
+`λ_fam=1.0`, same H_train=(1,2)/H_test=(3,4) split, same 5,000-step budget,
+same trajectory-checkpoint schedule, same optimizer/LR schedule shape). If
+`per_token`'s or `global`'s own task-learning TRAJECTORY (not a single
+terminal number — §16.2.1's own trajectory-not-terminal design choice,
+MAJOR-1) diverges from `off`'s, at a checkpoint where the comparison is
+independently certified interpretable (§16.16.6 below), that divergence is
+attributable to the ONE thing that differs across arms — the frozen-bias
+intervention's effect on key geometry — not to a confound, PROVIDED the
+verification in §16.16.2 holds. This is exactly H_LINK-A's own causal claim
+(§16.2, "What it tests"), now asked with an instrument that has actual
+signal (§16.15.2's dissociation: `L_query` moved 21.8-46.4% while the
+geometric gate stayed at 0.0000) rather than one that has never once
+produced a referent-bearing reading in three attempts (§16.15.4).
+
+### 16.16.2 Confound-freedom, verified against the real code — not asserted
+
+**Claim under test:** "arms differ ONLY in the frozen-bias intervention;
+everything else — init checkpoints, data order, eval batches — is shared."
+Checked directly against `phase2_seed` (`phase2_familiarization_train.py`
+L196-222) and its own three call sites this design's new machinery adds to
+(train_corpus/train_episode already existed; the new eval kinds are
+registered in §16.16.3 below). **Verdict: TRUE at the level of
+CONSTRUCTION (the generative protocol), FALSE at the level of REALIZATION
+(the literal token sequences drawn) — a distinction this section states
+explicitly because the task's own framing ("share... data order... eval
+batches") elides it, and an attack round would otherwise find it first.**
+
+1. **Init checkpoints.** Each arm's own checkpoint is the archived Leg-A
+   frozen-bias step-20,000 weights FOR THAT ARM (`off`/`per_token`/`global`),
+   at the SAME corpus/seed correspondence, all three already cleared §7.2's
+   val-loss-matching gate (§16.2.1's "Base checkpoints" paragraph). "Shared"
+   here means the PROTOCOL that produced them is identical across arms
+   (same corpus, same step budget, same seed-to-seed correspondence, same
+   matching gate) — not that arms load the same file, which would be
+   incoherent (the arm identity IS which frozen-bias table, if any, is
+   baked into that checkpoint's own pretraining).
+2. **Training data order — NOT literally identical, and this is not a
+   confound.** `phase2_seed(kind, arm, corpus, ckpt_seed, k,
+   checkpoint_step)` is a TRUE mixed-radix seed (L196-222) with `arm_idx`
+   (`_ARM_INDEX = {"off": 0, "per_token": 1, "global": 2}`, L157) as one of
+   its six stacked digits. Every training-draw call —
+   `gen_corpus = ...manual_seed(phase2_seed("train_corpus", arm, corpus,
+   ...))` (L446) and `gen_episode = ...manual_seed(phase2_seed(
+   "train_episode", arm, corpus, ...))` (L448) — therefore produces a
+   DIFFERENT corpus-window order and a DIFFERENT episode draw for
+   `off`/`per_token`/`global` at the SAME `(corpus, ckpt_seed)`. This is
+   real and disclosed here explicitly (the task's own phrasing implied it
+   might be literal). It is not a confound because (a) arm assignment does
+   not select or bias which RNG stream a given arm receives — the mapping
+   is a fixed, non-adaptive digit in a positional numeral system, computed
+   before any result exists to condition on; (b) every arm draws from the
+   IDENTICAL underlying distribution (same corpus files, same
+   `sample_batch_rd` hyperparameters, same entity pools, same hop-depth
+   split) — only the realized draw differs, not its distribution; (c) the
+   3-`ckpt_seed` CI machinery this design reuses (`delta_ci_n3`) is already
+   built to absorb seed-level noise from exactly this kind of source. Net
+   effect: this is an unbiased VARIANCE contributor, not a bias source —
+   but it does mean this is NOT a common-random-numbers/paired design at
+   the TRAINING level, and §16.16.4's power sketch prices that honestly.
+   **Changing this would touch the ALREADY-COMPLETED OFF arm's own training
+   path** (whose 6 checkpoints this design reuses, §16.16.8) — out of scope
+   here; registered as a standing property of the existing, audited
+   trainer, not a defect this Rev fixes.
+3. **Eval batches — same underlying fact, but THIS design gets to choose,
+   because the eval machinery is new.** The existing `eval_killer`/
+   `eval_gate_self`/`eval_gate_null` seed kinds (L159-160) are ALSO
+   `arm`-keyed, so the OLD (now-dead) geometric readout never scored arms on
+   identical held-out episodes either. Since §16.16.3's new frozen-checkpoint
+   eval-`L_query` pass is genuinely new code, it does not inherit this
+   property by default — **registered build choice: pin it to NOT inherit
+   the arm-keying**, making the arm contrast a real paired comparison on
+   identical held-out episodes (below).
+
+### 16.16.3 Primary readout — adjudicated
+
+**The choice, stated as the task requires.** (A) **Training-loop `L_query`**
+— already logged, zero marginal cost, but computed on TRAIN-POOL episodes
+(`use_heldout_entities=False`, `query_loss_forward`'s own default,
+L263-272) with training-batch noise (`batch_size×Q=2` per step — the
+`n_query=2` pin, §16.2.1 MAJOR-R3-1b) at whatever step the trajectory
+logger happens to land on. (B) **A NEW frozen-checkpoint eval-`L_query`
+pass** on HELD-OUT episodes, at the SAME `Q=K` convention the (now dead)
+Stage-0.5 gate already used (`familiarization_gate_episode_config`,
+`n_query=None → Q=K`, L239-256), run on the FROZEN `.pt` weights at each of
+the 5 trajectory checkpoints, for every one of the 18 cells (6 reused OFF +
+12 new).
+
+**Recommendation: (B) is PRIMARY, (A) is corroborating.** Three reasons,
+all concrete: (1) (A)'s own §16.15.2 numbers are exactly what this design
+inherits as its between-seed noise floor (§16.16.4) — that noise is
+partly REAL trajectory divergence and partly minibatch measurement noise
+(32 queries/step vs. (B)'s `Q=K=32` per EPISODE at a full eval batch,
+`batch_size×K`, an order of magnitude more queries per reading); using the
+noisier one as primary would understate power further. (2) (A) is drawn
+from the TRAIN pool, the exact contamination §16.2.1's own MAJOR-1 build
+fix (`use_heldout_entities=True`) was written to close for every other
+readout in this design — (A) alone would silently reopen it. (3) (B) is
+structurally the SAME machinery `query_loss_forward` already validates
+(§16.2.1's "Corrected definition" paragraph: ONE forward call over
+`main_concat`, `initial_states=None`, the causally-verified, ALREADY-
+Stage−1-tested mode) — reused on frozen weights instead of during the
+backward pass, zero new forward-pass logic, only a new caller.
+
+**Build delta (concrete, scoped):**
+- A new function, e.g. `eval_query_loss_heldout(model, K, hop_set,
+  ckpt_seed_or_pool, batch_size, device) -> float`, wrapping
+  `query_loss_forward` with `use_heldout_entities=True` and a
+  CALLER-supplied `hop_set` (§16.16.7 needs `hop_set=(3,4)`;
+  `query_loss_forward`'s own `hop_set=H_TRAIN` is currently HARDCODED at
+  the call site, L271 — this is a real, small, disclosed parameterization
+  task, not a design assumption).
+- Two new `phase2_seed` kinds, extending `_KIND_OFFSET` (currently
+  `{"train_corpus":0, "train_episode":1, "eval_val":2, "eval_gate_null":3,
+  "eval_gate_self":4, "eval_killer":5}`, L159-160) with
+  `"eval_lquery_heldout": 6` (primary, `hop_set=(1,2)`) and
+  `"eval_lquery_ood": 7` (secondary, `hop_set=(3,4)`) — `phase2_seed`'s own
+  signature is UNCHANGED; this is two new dict entries, zero new digit-width
+  arithmetic (kind is the outermost/last digit, no `_MAX_*` constant
+  depends on how many kinds exist).
+- **Pairing device (§16.16.2 item 3): every caller of these two new kinds
+  passes the LITERAL STRING `"off"` as the `arm` argument, regardless of
+  which arm's checkpoint is actually being scored.** `phase2_seed`'s own
+  formula is untouched; this is a call-site convention (mirrors §16.2.1's
+  own repeated "zero new code, a config-value choice" framing) that makes
+  the resulting seed IDENTICAL across all 3 arms for a given `(corpus,
+  ckpt_seed, K, checkpoint_step)` — the deliberate point of this readout is
+  a paired comparison on the SAME held-out episodes, not three independent
+  draws.
+- Loader reuse: `load_init_checkpoint_strict` (already the production
+  loader every cell launch and `phase2_smoke_gpu.py` use) loads each of the
+  90 already-existing `.pt` files (18 cells × 5 checkpoints) fresh per
+  scoring pass — no new loading code.
+
+### 16.16.4 Power sketch — the detectable effect size at n=3 seeds, honestly derived
+
+**Between-seed σ proxy, from real numbers already on disk (§16.15.2's
+terminal training-loop `L_query`, the 6 OFF cells):** openr1
+`{2.8736, 3.6592, 2.5519}`, wikitext `{3.1751, 2.5948, 3.2641}`. Two pooling
+choices, both computed directly (n−1 denominators, matching
+`delta_ci_n3`'s own variance convention): pooled-within-corpus
+`σ≈0.478` (average of the two corpora's own n=3 sample variances); pooled-
+across-all-6 `σ≈0.427` (ignoring corpus structure). Both land in the same
+`≈0.43-0.48` band — the qualitative conclusion below is insensitive to
+which is used. **This proxy is disclosed as CONSERVATIVE (an
+over-estimate):** it is computed from readout (A) — the noisier
+training-loop numbers §16.16.3 rejected as primary specifically for
+their noise — not the cleaner `Q=K` frozen-checkpoint readout (B) this
+design actually registers; (B)'s own true between-seed σ is expected to be
+smaller (more queries per reading, `batch_size×K≈512` vs. `≈32`) but is not
+knowable until real (B) numbers exist.
+
+**CI half-width at n=3 seeds, using `delta_ci_n3`'s own pinned formula
+(`t(2,.975)=4.303`).** Assuming the ARM cell's own between-seed noise is
+comparable in magnitude to, and statistically independent of, `off`'s
+(a necessary assumption — no real `per_token`/`global` (B)-readout numbers
+exist yet to check it against; independence follows from §16.16.2 item 2's
+own finding that arm/off draw from separate RNG streams and start from
+already-arm-diverged checkpoints): `Var(Δ_seed) ≈ 2σ²`. At `σ=0.48`:
+`sd_Δ=0.679`, `SE=sd_Δ/√3=0.392`, `half_width=4.303×0.392≈1.69`. At
+`σ=0.43`: `half_width≈4.303×(0.43×√2/√3)≈1.51`. **Detectable `|mean Δ|` at
+n=3 seeds: roughly 1.5-1.7 loss units.**
+
+**The sobering comparison, stated plainly.** The OFF arm's own FULL
+5,000-step familiarization effect (mean `L_query@250 − L_query@5000`
+across the 6 cells) is `4.7125 − 3.0198 ≈ 1.69` — **the SAME order of
+magnitude as the minimum detectable arm-vs-arm effect.** At n=3 seeds, this
+design is well-powered only for an arm effect roughly as large as the
+ENTIRE observed familiarization effect itself; a more plausible, modest
+arm effect (say 10-50% of the total learning effect, `≈0.17-0.85` loss
+units) will very likely land in the pre-registered **UNRESOLVED** bucket
+(§16.2.1's own "insufficiently powered... too few seeds/too much variance
+to say anything" reading) rather than resolving cleanly either way. **This
+is disclosed prominently, not softened**, because it directly qualifies
+requirement 6's "no arm effect w/ adequate power" framing below (§16.16.9):
+a null read from this instrument at n=3 seeds may be genuinely
+underpowered, not a clean negative — the pairing device (§16.16.2 item 3)
+and the larger `Q=K` per-reading sample (B) both work to shrink this
+number below the pessimistic estimate above, but by how much is an
+empirical question this wave itself will answer, not one this design can
+resolve on paper. **No design change is proposed to fix this** — the 3
+`ckpt_seed`s are fixed by the already-completed, reused Leg-A/OFF
+checkpoints (§16.16.8); more seeds would mean re-running Leg-A pretraining,
+out of scope for this Rev.
+
+### 16.16.5 Arm contrast — Δ redefinition, reusing §16.2.1's machinery verbatim
+
+**Δ, redefined.** `Δ_Lquery(arm, K, c) := L_query(off, K, c) −
+L_query(arm, K, c)` (readout (B), §16.16.3) — sign chosen so **positive =
+arm's loss is LOWER than off's = arm helps**, preserving the "positive=arm
+better" reading convention the old `recovered_frac`-based Δ used
+(`arm − off`, higher=better there). At the `delta_ci_n3(values_a,
+values_b)` call site (which returns `a−b`) this means calling
+`delta_ci_n3(off_vals, arm_vals)` — an INTENTIONAL, disclosed argument-order
+reversal from the existing `killer_prediction_readout`'s own
+`delta_ci_n3(arm_vals, off_vals)` call (§16.2.1's own convention, correct
+for a higher-is-better metric) — same function, swapped arguments, one-line
+reason, not a new CI formula.
+
+**`det`/`holds`/`det_arm`/`agree` — reused verbatim, zero changes.**
+`phase2_hexachotomy.py`'s own primitives operate on already-computed
+`(ci_low, ci_high)` pairs and booleans (its own docstring: "does not
+compute CIs itself... consumes already-computed pairs") — they are
+readout-agnostic by construction and require no modification. The SAME
+`K∈{32,20}` pair, the SAME per-checkpoint schedule
+`{250,500,1000,2500,5000}`, and the SAME six-bucket outcome space
+(PERSISTENT/TRANSIENT/LATE-EMERGENT/CONVERGED-EQUIVALENT/UNRESOLVED/
+NON-MONOTONE) are reused unchanged — the totality proof (§16.2.1,
+`1+15+1+4+11=32`) is a property of the `holds(c)` TRUTH-TABLE shape, not of
+what `holds(c)` is computed FROM, so it carries over without
+re-verification.
+
+**UNRESOLVED-GATE — dropped, per the task's own instruction.** That
+seventh bucket existed for one specific failure mode: a per-checkpoint
+Stage-0.5 gate that could fail at every non-terminal checkpoint of an
+otherwise-monotone run. There is no per-checkpoint gate in this design
+(§16.16.6 replaces it with a single upfront validity check) — the bucket
+has no referent here and is not carried forward. What replaces it is
+§16.16.6.
+
+### 16.16.6 The OFF-floor validity gate — replaces Stage-0.5, closes the §16.15.7 gap formally
+
+**Why a gate is still needed, even with a live readout.** §16.15.2's own
+central finding — the OFF arm's noisy readout fell 21.8-46.4% but never
+cleared the strict <50% pin — means "did familiarization teach the task at
+all, well enough for an arm contrast on top of it to mean anything" is
+NOT free to assume even for a working readout. This design pins a
+**single, upfront, per-corpus FLOOR gate**, computed from ONLY the OFF
+arm's own (already-existing, reused) checkpoints at readout (B) — no
+per_token/global data needed to evaluate it, so it can run BEFORE the
+12-cell launch (mirroring §16.2.1's own "compute the cheap gate before the
+expensive launch" sequencing, and Constraint 1's gates-must-abort
+discipline, §16.5).
+
+**Rule, exactly as specified, with the trichotomy gap now closed formally
+(requirement 7).** Per corpus, pool the 3 `ckpt_seed`s' own readout-(B)
+`L_query(off, K=32, h∈{1,2}, c)` at `c=250` and `c=5000` (mean across
+seeds — the SAME per-corpus, 3-seed-pooled convention
+`phase2_trajectory_analysis.py`'s own module docstring already commits to
+for the hexachotomy itself, reused here, not invented fresh); compute
+`ratio := L_query(c=5000) / L_query(c=250)`. **Three MECE buckets, closing
+exactly the gap §16.15.7 disclosed** (the observed pattern there — a
+uniform, substantial, sub-pin fall — mapped to none of the pre-registered
+options):
+
+1. **FLOOR-PASS** (`ratio ≤ 0.80`) — reproduces or exceeds §16.15's own
+   observed learning (the pin is calibrated to that harvest's own WEAKEST
+   cell, openr1_s1 at `ratio=0.7823`, plus a small margin, since this is a
+   different — cleaner — readout methodology and an exact reproduction of
+   the noisy number is not the bar). That corpus's arm-contrast proceeds
+   to full hexachotomy classification (§16.16.5), CONFIRMATORY tier.
+2. **PARTIAL-BELOW-FLOOR** (`0.80 < ratio < 1.00`) — the formal name for
+   §16.15.7's own disclosed gap: real, substantial task engagement
+   occurred, but not enough to clear the reproduction floor. That corpus's
+   hexachotomy classification is still COMPUTED (there is real signal to
+   contrast) but the corpus's own headline finding is DEMOTED to
+   DESCRIPTIVE TIER — this project's own established demotion convention
+   (`FROZEN_BIAS_LM_DESIGN.md`'s blind-pin-timing demotion;
+   `KEY_ANCHORING_DESIGN.md`'s own literal "DESCRIPTIVE, not confirmed"
+   verdicts) — never silently promoted to a confirmatory reading.
+3. **FAMILIARIZATION-NULL** (`ratio ≥ 1.00`) — loss did not fall at all (or
+   rose). That corpus's own arm-contrast is uninterpretable and MUST be
+   excluded (§16.5 Constraint 1) — no hexachotomy is computed for it.
+
+**Wave-level enforcement (mirrors the old Stage-0.5 gate's own "at least
+one clears" convention, §16.2, Step 4).** If NEITHER corpus reaches
+FLOOR-PASS or PARTIAL-BELOW-FLOOR (i.e. both land in FAMILIARIZATION-NULL),
+the chain writes `PHASE2B_FLOOR_GATE_REFUSED` (naming mirrors
+`STAGE05_LAUNCH_GATE_REFUSED` exactly) and ABORTS before launching the
+12-cell training grid at all — a real, mechanical, GPU-saving early exit,
+not a narrated warning. If at least one corpus reaches FLOOR-PASS or
+PARTIAL-BELOW-FLOOR, the 12-cell launch proceeds; each corpus's own
+downstream finding is reported at the tier (CONFIRMATORY / DESCRIPTIVE /
+excluded) its own floor bucket licenses.
+
+**Gate enforcement, mirroring `phase2_gate_enforce.py` exactly.** A new
+`phase2b_floor_gate_enforce.py` (pure function `floor_verdict(ratio) ->
+str` returning one of the three bucket names, read-only, never recomputing
+`ratio` itself) plus the SAME belt-and-suspenders proof pattern
+`phase2_gate_enforce.py`'s own `_run_selftest` already established:
+positive + negative fixtures (`ratio=0.75`→FLOOR-PASS, `ratio=0.90`→
+PARTIAL-BELOW-FLOOR, `ratio=1.05`→FAMILIARIZATION-NULL, plus boundary
+cases at exactly `0.80` and `1.00`), each also proven at the subprocess
+exit-code level (a real abort, not a computed-but-unread value) — this is
+the "new gate needs a negative test" obligation the task itself names.
+
+### 16.16.7 Secondary readout — h∈{3,4} held-out-hop generalization
+
+Using the SAME `eval_query_loss_heldout` function with `hop_set=(3,4)`
+(§16.16.3's build delta), compute `Δ_Lquery(arm, K, c)` for the held-out
+hop depths at every checkpoint, both K's, both arms — reported as a
+SIMPLER, standalone `det(K,c)` table (CI excludes zero, yes/no) alongside
+the primary hexachotomy, NOT folded into a second parallel classification
+(disproportionate for a secondary readout). **Reading:** does key-geometry
+stabilization help OOD hop-depth generalization even where in-distribution
+(`h∈{1,2}`) learning already matches between arms — the genuine
+generalization question §16.2.1's own `H_train=(1,2)/H_test=(3,4)` split
+was built to ask, now askable for real (§16.2.1's own periodicity-guard
+re-verification, `{1,2,3,4} mod {20,32} = {1,2,3,4}`, already holds and
+needs no re-checking).
+
+### 16.16.8 Cells and cost
+
+**Cells.** 12 NEW training cells (`per_token`/`global` × `openr1-mix-ext`/
+`wikitext-mix-ext` × 3 seeds) — the OFF arm's own 6 cells are DONE and
+REUSED, not re-run. **Verified directly, this session, against the box**
+(`youthful-indigo-turkey:/home/nvidia/chapter2/deltanet_rd/results/phase2/
+ckpts/`): exactly 30 `.pt` files exist (6 cells × 5 checkpoints
+`{250,500,1000,2500,5000}`), matching the design's own expectation exactly,
+zero missing/extra files. **sha256-pinned for reuse, mirroring the K=69
+precedent** (`experiment-runs/2026-07-07_keyanchor_scaling_wide/gates/
+keyanchor_scaling_wide_k69_copy_manifest.sha256` — "Pinned ONCE... against
+the ORIGINAL archive... never regenerated from a copy, which would make
+the check tautological"): `sha256sum *.pt` computed directly on the box
+against the ORIGINAL, never-copied files, all 30 hashes captured this
+session. Build task: commit this manifest as
+`experiment-runs/2026-07-08_phase2_familiarization/gates/
+phase2b_off_ckpts_reuse_manifest.sha256` and wire a belt-and-suspenders
+check (bash-level `sha256sum -c`, mirrored by a Python-level gate function)
+before Phase-2b's own eval-`L_query` pass reads any of the 6 reused OFF
+cells' checkpoints — closing the exact "silently scored a corrupted or
+wrong-version reused checkpoint" failure mode the K=69 precedent exists to
+prevent.
+
+**Cost, re-derived from §16.15's own realized rate, not a fresh estimate.**
+- **Training, 12 new cells:** §16.15.6's realized `0.6172 GPU-h` for 6
+  cells (same 5,000-step budget, same architecture, includes a
+  proportional share of Stage−1/smoke/gate overhead — `FROZEN_BIAS_LM_
+  DESIGN.md`'s own rung-1 wave measured a tight 899-914s band across ALL
+  20 training cells regardless of arm, so per-cell rate is NOT
+  arm-dependent) scales to `0.6172 × (12/6) = 1.234 GPU-h`.
+- **New eval-`L_query` passes (both readouts, both K's, all 18 cells):**
+  `18 cells × 5 checkpoints × 2 hop-sets (primary {1,2}, secondary {3,4})
+  × 2 K's (32,20) = 360 passes`. Priced at the Stage-0.5 gate's own
+  realized, TWICE-cross-validated rate (`§16.2.1`'s own priced estimate
+  ≈0.0022 GPU-h/pass AND `§16.15.6`'s own independent realized
+  cross-check, both agreeing) — a structurally comparable one-forward-call,
+  `Q=K` scoring pass: `360 × 0.0022 ≈ 0.792 GPU-h`. **Disclosed
+  uncertainty, not hidden:** an OLDER, less-recently-validated reference
+  rate exists in this document (`FROZEN_BIAS_LM_DESIGN.md`'s 46 retrofit
+  re-evals at ≈1.6 GPU-h total ⇒ ≈0.0348 GPU-h/pass, 16× higher) — the
+  0.0022 rate is preferred as PRIMARY because it is the more recent,
+  independently-cross-validated number from THIS wave's own family
+  (§16.15.6: "closely matching §16.2.1's own priced estimate... a clean
+  cross-check"), but a build-time timing check on ONE real pass (cheap,
+  minutes) is registered as a mandatory pre-launch calibration
+  (`CLAUDE.md`'s own "calibration run before a big sweep" rule), not an
+  assumption to build the full 360-pass budget on unverified.
+- **New real-kernel smoke (below, §16.16.9):** small, priced at the same
+  order as the original Phase-2 smoke gate, ≈0.01 GPU-h.
+- **Raw total: `1.234 + 0.792 + 0.01 ≈ 2.04 GPU-h`.**
+
+**Bracket, same 5-10× debug-tax convention this document applies
+everywhere:** `2.04 × 5 ≈ 10.2 GPU-h` (low) to `2.04 × 10 ≈ 20.4 GPU-h`
+(high) — registered bracket **≈10.2-20.4 GPU-h**. **Sanity context:**
+comparable in size to Phase-1's own ≈24.2 GPU-h ceiling and Path (iii)'s
+≈21 GPU-h grid, but every prior wave in this document that used this exact
+methodology (raw realized-or-realized-rate-scaled estimate × 5-10×) landed
+its REALIZED cost well under the bracket's own low end — most recently
+§16.15.6 itself, `0.617` realized against a leg-scoped `2.22-4.45` bracket,
+a ≈3.6-7.2× undershoot even of the LOW end. No claim is made that Phase-2b
+will repeat that margin, only that it is the base rate this project has
+observed every time it has bracketed this way. GPUs 0-1 are free.
+
+### 16.16.9 Gates before launch
+
+- **Stage −1 CPU-stub suite (`phase2_stage_minus1.py`), reused, EXTENDED
+  not replaced.** Already exercises `per_token`/`global` at the LOGIC level
+  (L510-527: "per_token/global arms: buildable, and the OFF-only gate is
+  correctly None for them") and the seed formula's own collision-freedom
+  (item 9, exhaustive enumeration). New items owed: (a) the two new
+  `phase2_seed` kinds' own collision-freedom, extending item 9's proof;
+  (b) a NEW positive assertion — the arm-INDEPENDENCE pairing device
+  (§16.16.2 item 3) actually produces IDENTICAL seeds across arms for the
+  new kinds (inverse of item 9's existing `s1 != s2` collision test).
+- **Real-kernel smoke — a genuine, previously-undiscovered gap, found
+  this session, not assumed closed.** `phase2_smoke_gpu.py`'s own
+  `SMOKE_ARM = "off"` (L80, hardcoded module constant, no `--arm` CLI flag
+  exists) means the real fla/Triton kernel path has NEVER exercised
+  `apply_frozen_bias_blend` (§16.2.1: applied UNCONDITIONALLY whenever
+  `frozen_bias_arm != "off"`) — the exact code path all 12 of Phase-2b's
+  NEW cells run. **Registered build task:** extend `phase2_smoke_gpu.py`
+  with a real `--arm {off,per_token,global}` flag (threading `SMOKE_ARM`
+  through to checkpoint selection and model config instead of hardcoding
+  it) and run the full positive+negative smoke suite against at least one
+  non-off arm before the 12-cell launch — closing this gap rather than
+  inheriting it silently.
+- **BANDS_PINNED-Phase2Familiarization.json — reused AS-IS, no re-pin.**
+  This band is computed from OFF's own per-seed VAL-LOSS (not `L_query`) at
+  each checkpoint, and val-loss-band validity depends on the TRAINING
+  recipe (corpus mix, `λ_fam`, optimizer/LR schedule), which is COMPLETELY
+  UNCHANGED for Phase-2b's 12 new cells (same trainer, same recipe, only
+  the READOUT changed). Reused unchanged; disclosed explicitly so a future
+  reader does not mistake "no new band" for an oversight.
+- **Budget guard.** Same `phase2_chain.sh`-style mechanical wall-clock ×
+  N_GPUs / 3600 check, re-pinned to the new §16.16.8 ceiling (20.4 GPU-h),
+  same real-abort-not-narrated discipline (§16.5 Constraint 1).
+- **OFF-floor gate enforcement.** §16.16.6's own belt-and-suspenders
+  pattern, run BEFORE the 12-cell launch.
+- **sha256 reuse gate.** §16.16.8's own belt-and-suspenders pattern, run
+  before any reused OFF checkpoint is read by the new eval pass.
+
+### 16.16.10 Paper stakes, both directions — qualified by §16.16.4's power sketch
+
+- **Arm effect found (a hexachotomy PERSISTENT or LATE-EMERGENT verdict, at
+  a FLOOR-PASS corpus, with the floor/CI machinery intact):** the FIRST
+  causal evidence in this program that key-geometry stabilization aids
+  in-context task ACQUISITION, not merely a static zero-shot geometric
+  property — directly answers the keystone question, reconnecting H_LINK
+  to the capacity-law empirical basis (§16.2's own "What it tests"
+  paragraph) for the first time with a live instrument.
+- **No arm effect, WITH adequate power (CONVERGED-EQUIVALENT at a
+  FLOOR-PASS corpus, both arms individually `det_arm`-positive):** the
+  frozen-bias intervention does not transfer to task acquisition even when
+  the model is trained on the task and given every opportunity via SGD to
+  exploit it — combined with the triple-null (§16.15.4), a coherent,
+  publishable negative: geometry stabilization is real (Chapter 2's own
+  confirmed finding) but behaviorally inert for THIS composition task, at
+  every instrument this program has built.
+- **No arm effect, UNDERPOWERED (UNRESOLVED, or a FLOOR-gated corpus
+  reporting only DESCRIPTIVE-tier numbers):** per §16.16.4, this is the
+  MOST LIKELY null outcome at n=3 seeds for anything short of a huge
+  effect — must be reported as an open measurement question (more seeds,
+  a longer budget, or the pairing device's own realized variance-reduction
+  once (B) numbers exist), NEVER dressed up as evidence the intervention
+  doesn't matter. **This is a real risk to the "bounds the mechanism's
+  behavioral relevance" framing** and is registered here so it cannot be
+  silently elided at harvest time the way §16.15.7's trichotomy gap
+  almost was.
+
+### 16.16.11 Open items for the independent attack round (self-attack, not exhaustive)
+
+1. Is `0.0022 GPU-h/pass` really the right reference rate for the new
+   eval-`L_query` pass, or does it under-price the null-shuffle-free but
+   otherwise-comparable computation (§16.16.8's own disclosed 16×
+   alternative)? A build-time timing pilot is registered but has not run.
+2. Is the `σ≈0.43-0.48` between-seed proxy (§16.16.4) actually conservative,
+   or could readout (B)'s own between-seed variance be LARGER than
+   readout (A)'s for some reason not yet considered (e.g. `Q=K=32` queries
+   per episode are correlated within an episode in a way 2 independent
+   training-loop queries are not)?
+3. Is pooling 3 `ckpt_seed`s into ONE floor-gate ratio per corpus
+   (§16.16.6) the right granularity, or should the floor gate be evaluated
+   per-seed with an "at least 2/3" rule, mirroring this document's other
+   "at least one/some" gate conventions more closely than a strict pooled
+   mean?
+4. Does the arm-independent pairing device (§16.16.2 item 3) introduce any
+   NEW risk — e.g., does scoring `off`/`per_token`/`global` on the
+   IDENTICAL held-out episode at a given checkpoint create any shared
+   dependency the `delta_ci_n3` CI formula's own independence assumptions
+   did not anticipate?
+5. Should the secondary h∈{3,4} readout's own `det(K,c)` table be
+   corrected for multiple comparisons (4 checkpoints × 2 K's × 2 arms = up
+   to 16 tests) before being read as evidence of anything, given this
+   design explicitly declines to fold it into the primary hexachotomy's
+   own single pre-registered decision rule?
+
+**Not self-launched.** Per this project's waterfall discipline, §16.16
+awaits an independent attack round before any build task above is started.
