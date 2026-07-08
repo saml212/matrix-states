@@ -1,0 +1,22 @@
+{
+  "design_ref": "KEY_ANCHORING_SCALING_DRAFT.md sec 15.20.4 MAJOR-2 / sec 15.22 next-step 2 (RUN-session pre-flight for the registered K=69/d=96 contingency seed 1733 -- closes the T_bind=483 gap between the ORIGINAL {128,224,448} kernel gate and the wide {448,504,546,588,630} supplementary gate, neither of which covers 483)",
+  "t_sweep": [
+    448,
+    483
+  ],
+  "candidate_t": 483,
+  "control_t": 448,
+  "grid_pass": {
+    "96": {
+      "448": true,
+      "483": true
+    }
+  },
+  "messages": {
+    "d96_T448": "ok (loss=0.8167)",
+    "d96_T483": "ok (loss=0.7988)"
+  },
+  "verdict": "d_state=96 KERNEL-SAFE at K=69's own T_bind=483 (the smoke_dstate_kernel_wide.py <-> smoke_dstate_kernel.py gap this RUN session found and closed) -- contingency seed 1733 cleared to launch",
+  "exit_code": 0,
+  "torch_version": "2.12.1+cu130"
+}
