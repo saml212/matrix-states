@@ -1372,6 +1372,70 @@ the same way CA1-M2's cost table was until this revision itemized it.
 
 ---
 
-*(End §1 Rev 1 records. Rev 0 attacked → NEEDS-REVISION (§1.13: CA1-F1
-impossible coverage bar, 3 MAJOR, 2 minor). Rev 1 (§1.14) resolves all 6
-findings. Attack round 2 next.)*
+### 1.15 ATTACK ROUND 2 VERDICT (independent fresh-eyes agent, 2026-07-08): NEEDS-REVISION
+
+Recorded per the gauntlet-bookkeeping hard rule before dispatching Rev 2.
+All §1.13 resolutions verified GENUINELY resolved; all three companion
+scripts re-run BYTE-EXACT and independently re-implemented (different
+algorithms, different RNG, N=400,000/group MC vs the design's 20,000 —
+every §1.3.3/§1.5/§1.6 numeric reproduced; false-block probabilities
+computed: S3≈0%, S4≈0.068%, A5≈0.075%, S5≈0.135%, A6≈0.002%; joint
+family exposure ≈0.28% shared-draw / ≈2.75% per-cell-draw; fit-floor
+0/400,000 failures, Wilson-CI upper ≈0.001%; Spearman enumeration exact
+via independent recursive generator + scipy cross-check). Findings
+binding on Rev 2 (narrow scope — all cheap; round expects a fast Rev 2
+clear):
+
+**MAJOR:**
+
+- **CA2-M1 — A5's coverage-calibration generator is CLASS-unverified.**
+  A5's order-5 elements split into two non-conjugate classes (cycle
+  type (5), single odd-length part → splits; the same fact behind A5's
+  two inequivalent 3-dim real irreps). `coverage_calibration.py`'s
+  permutation stand-in never verifies its 5-cycle corresponds to the
+  SAME class as the real icosahedral 2π/5 generator in
+  `verify_option_a_readout.py`. Empirically: swapping to the other
+  class (g5²) drops mean coverage 33.79→31.76 and p1 28→**26 — below
+  the pinned bar 27** — false-block 0.077%→1.274% (16×). Only A5 has
+  this ambiguity among the five. → Rev 2: verify the correspondence
+  explicitly (trace/character check between the stand-in and the
+  matrix generator) or re-calibrate A5's bar with the verified class.
+- **CA2-M2 — variable-per-sample word length has NO batching spec.**
+  `BindingEncoder.forward` requires fixed-shape (B,K,h), no padding
+  mask anywhere in the reused code; Task D always used fixed K per run
+  (never exercised variable lengths); this task samples L~Uniform{1..8}
+  train / {9..16} eval PER SAMPLE. The builder would have to invent
+  padding+key_padding_mask vs per-batch-fixed-L — a real methodological
+  choice (the CLAUDE.md nn.MultiheadAttention mask gotcha class).
+  → Rev 2: pin the scheme as a disclosed THIRD architectural extension
+  (recommend per-batch-fixed-L for zero mask-code risk — batch groups
+  share one L, L varies across batches; justify either way).
+
+**MINOR:** CA2-m1 — pin the coverage-check draw cadence (once-per-group
+vs fresh-per-cell; Task D's own seed+10_000 precedent implies per-cell
+→ ~2.75% operative sweep exposure) + add a disclosed retry-once rule
+symmetric with the existing fit-diversity redraw guard [= the round's
+single highest-value change]. CA2-m2 — no diversity floor on the
+n_eval=20 scoring subset (empirically fine, unguarded). CA2-m3 —
+fit-floor JUSTIFICATION imprecise (raw d² equation-count doesn't pin Q
+— the null space is ρ(g)'s centralizer; the real mechanism is
+Schur/irreducibility w/ ~2 generic elements sufficing exactly, plus
+noise margin anchored to §1.3.2's 4.7×d toy ratio) — reword, keep the
+number. CA2-m4 — gate 5's "flagged for attack round 1" cross-reference
+was never answered: close the loop (round 2 adjudicated the
+single-token simplification SAFE — C2 deferred, no matched-comparison
+invariant at risk). CA2-m5 — STATE queue line stale (coordinator note).
+
+**Verified clean this round:** all §1.14 resolutions; all three scripts
+byte-exact + independently reproduced; cost anchors at exact cited
+lines; ρ≥0.8 keep-decision sound; injection-spec deferral honest and
+correctly sequenced; no stale 200-element/80% leftovers; h=32
+disclosure ×4 consistent; chapter2 citations all verified; S4-vs-A5
+coverage confound independently reproduced; self-attack item 7's
+rotation-sensitivity math verified.
+
+---
+
+*(End §1 records. Rev 0 → §1.13 → Rev 1 (§1.14) → §1.15 NEEDS-REVISION
+(CA2-M1 A5 class ambiguity, CA2-M2 batching spec; 5 minors). Rev 2 in
+progress.)*

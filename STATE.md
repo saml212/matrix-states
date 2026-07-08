@@ -130,8 +130,17 @@ CA1-M2 cost ceiling ~1 GPU-h unreconciled; CA1-M3 n_fit/n_eval +
 gate-1 acceptance test unpinned. Reps verified clean via INDEPENDENT
 constructions (quaternion A5, char-theory minimality); S4-vs-A5
 coverage confound EMPIRICALLY CLEARED; own 30 GPU-h hard-abort breaker
-CLEARED. → Rev 1 (in progress) → attack round 2 → build → audit →
-launch alongside head-to-head.
+CLEARED. → Rev 1 (done, §1.14, pushed 93b2964: executed per-group coverage
+bars — naive 80% FAILED execution for S4/A5; ρ≥0.8 kept w/ exact
+p=6.67% disclosed; cost 17.25 exact/42.5% margin; 60/40 split +
+diversity floor; injection spec pinned-unrun) → attack round 2 (done,
+NEEDS-REVISION §1.15: CA2-M1 A5 generator CLASS-unverified — other
+class drops p1 below bar, 16× false-block; CA2-M2 variable-length
+batching unspec'd — BindingEncoder fixed-shape, Task D never exercised
+variable L; 5 minors incl. draw-cadence + retry-once = highest-value;
+all §1.14 resolutions + scripts verified byte-exact + independently
+reproduced at 20× MC scale) → Rev 2 (in progress, narrow) → attack
+round 3 (expect fast clear) → build → audit → launch alongside.
 
 **Note (2026-07-08):** two independent agents observed the real system
 clock at 2026-07-08 via git commit metadata while the session's static
