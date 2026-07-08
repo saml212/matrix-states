@@ -2600,7 +2600,26 @@ only if escalation authorized.
 
 ---
 
-*(End §1. Rev 0 → ... → §1.19 CLEARED → BUILD (9480ced) → **§1.20
-BUILD AUDIT: NEEDS-FIXES** (AUD-F1 vacuous contender grad test;
-AUD-F2/F3 smoke gaps; AUD-F4 cosmetic). FIX STAGE ACTIVE →
-scoped re-audit → deploy.)*
+**§1.20 ADDENDUM — SCOPED RE-AUDIT (2026-07-08): FIXES-VERIFIED-CLEARED.**
+Fix commit ed6996c (5 files, 572+/16−, zero scope creep verified via
+diff-stat). Independent re-verification: AUD-F1's smoke_8 read +
+re-run (genuinely CE-excluded; ablation/transformer aux grads nonzero;
+detach negatives collapse to None; contender box-only branch traced —
+fires with zero new wiring when real fla imports); AUD-F2's mutation
+RE-RUN by the re-auditor (400k spacing shrink caught by BOTH smoke_1b
+— the exact (task1_stress,0,0)-vs-(task1_calib,40,0) collision — and
+smoke_5's live-dict spacing proof; the smoke_1/1b split adjudicated
+NO-COVERAGE-LOSS: exhaustive-at-low-seed + sampled-at-full-range +
+algebraic spacing proof is a superset of the mandate); AUD-F3's
+drifted-count catch confirmed against the UNMODIFIED gate function;
+AUD-F4 comment verified; checklist manifest 1:1 with §1.20's 8 items,
+consumable. Full regression: 7 suites exit 0 with real PASS sentinels.
+**BUILD STAGE CLOSED. DEPLOY STAGE AUTHORIZED** (closure checksum →
+box smoke per h2h_box_smoke_checklist → gates 6+7 on box → pilots →
+gate-1 calibration → margins freeze recorded → sweep release).
+
+---
+
+*(End §1. Rev 0 → ... → §1.19 DESIGN-CLEARED → BUILD (9480ced) →
+§1.20 audit NEEDS-FIXES → fixes (ed6996c) → **re-audit
+FIXES-VERIFIED-CLEARED. DEPLOY STAGE ACTIVE.**)*

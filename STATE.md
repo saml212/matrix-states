@@ -106,8 +106,16 @@ joint-training grad claim VACUOUS for the contender (CPU stub zero-state
 kills the aux path; pass was confounded by loss_ce)** → aux-only
 isolation test + box-only registration mandated; AUD-F2/F3 smoke gaps;
 AUD-F4 cosmetic; 8-item binding box-smoke checklist produced (§1.20).
-→ **FIX STAGE ACTIVE** → scoped re-audit → deploy closure → box smoke
-(checklist) → gate-1 calibration → gate-2 pilots → LAUNCH GPUs 0-6.
+→ fixes ed6996c (all 4 + checklist manifest; negative tests run w/
+teeth) → scoped re-audit **FIXES-VERIFIED-CLEARED** (§1.20 addendum;
+mutations re-run independently; no coverage loss; no scope creep) →
+**DEPLOY STAGE ACTIVE** (agent dispatched): closure checksum box-vs-repo
+→ box smoke per h2h_box_smoke_checklist (items 1-4 direct) → gates 6+7
+on box → signoff tokens → PILOTS+CALIBRATION chain launched in tmux w/
+supervisor (items 5-7; calibration bands populated from archived
+Task-D/E/frozen-bias results w/ citations, flagged for coordinator
+review) → THEN coordinator reviews calibration harvest + RECORDS margin
+freeze in doc → sweep release (27 cells GPUs 0-6, then 90-pass fan-out).
 
 **CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
 push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)
