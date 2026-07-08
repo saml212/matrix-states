@@ -6550,7 +6550,7 @@ result).
 
 ---
 
-## 16.16 PATH (iv) — PHASE-2B: vocab-space behavioral-contrast instrument (Rev 1, attack-round-1 landed, 2026-07-11 — supersedes Rev 0's own analysis-integration, chain-reuse, floor-pin, and causal-framing text; the hypothesis/confound-freedom/primary-readout/power-sketch/cost content below is otherwise Rev-0-content-identical, per this document's own "content-identical unless a fix touches it" convention)
+## 16.16 PATH (iv) — PHASE-2B: vocab-space behavioral-contrast instrument (Rev 2, attack-round-2 landed, 2026-07-12 — supersedes Rev 1's own Stage-1-test, surgery-mode, and eval-pass-cost text; the hypothesis/confound-freedom/causal-package-framing/chain-fork/floor-pin/power-sketch content below is otherwise Rev-1-content-identical, per this document's own "content-identical unless a fix touches it" convention)
 
 This is §16.15.5's own first registered option, promoted: **a vocab-space
 behavioral contrast, scored entirely through the LM head, replacing the
@@ -6560,10 +6560,10 @@ variant of that same construct.** The dead readout is not needed here at
 all; every piece of machinery this design reuses (the trainer, the 3-arm
 checkpoint family, the 5-checkpoint trajectory schedule, the CI/hexachotomy
 primitives) was already built and already ran cleanly (§16.2, Rev 5,
-CLEARED-FOR-BUILD; §16.6). This section is Rev 1 — still a design sketch,
-not a committed build — and per this project's own waterfall discipline
-(`CLAUDE.md`) it must clear a second, independent attack round before any
-code changes (§16.17's own forward-pointer, below).
+CLEARED-FOR-BUILD; §16.6). This section is now Rev 2 — still a design
+sketch, not a committed build — and per this project's own waterfall
+discipline (`CLAUDE.md`) it must clear a third, independent attack round
+before any code changes (§16.17's own forward-pointer, below).
 
 **Rev 1 in one paragraph (full finding→fix trace: §16.17).** Attack round 1
 returned NEEDS-REVISION, 5 MAJOR + 3 MINOR, all fixed here, zero GPU spent.
@@ -6583,6 +6583,35 @@ calibrated on the wrong readout (fixed with a blind, data-derived re-pin,
 §16.16.6); the causal paragraph understated its own intervention (fixed at
 §16.16.1); and the real-kernel smoke gate under-covered the two new arms
 (fixed at §16.16.9).
+
+**Rev 2 in one paragraph (full finding→fix trace: §16.17's own round-2
+table, appended below).** Attack round 2 reviewed Rev 1 fresh and returned
+NEEDS-REVISION, 3 MAJOR + 2 MINOR, all fixed here, zero GPU spent. The
+highest-value finding (MAJOR-R2-1): Rev 1's own registered Stage-1
+negative test proved only that `phase2_hexachotomy.classify_trajectory`
+classifies a hand-built `holds_by_c` pattern correctly — a fact already
+true before Rev 1 existed — never that the REWRITTEN
+`build_holds_and_gate_by_checkpoint` (`phase2_trajectory_analysis.py`
+L98-136) actually produces that pattern from the new readout; the test
+would pass whether or not MAJOR-1's own rewrite ever landed. Fixed at
+§16.16.3 below by re-registering the test one layer down: a stubbed
+`eval_query_loss_heldout` feeding the REAL `delta_ci_n3`→`det`→`holds`
+chain inside the rewritten function itself, plus a structural grep-level
+assertion that the dead `recovered_frac`/`gate_json_path_for` sourcing is
+actually gone from the module. The other two MAJORs: eval-(B)'s own
+forward path was left adjudication-free against the parent document's
+broadly-worded MAJOR-NEW-5 surgery rule, risking a silent habit-paste that
+would revert the whole causal claim (fixed with an explicit surgery-scope
+pin, §16.16.3); and the "360 passes, computed once, consumed twice" cost
+claim was checked against `analyze_corpus`'s own per-arm iteration and
+found to under-count by ~33% absent a cache (fixed with a registered
+OFF-eval cache, both the cached (360) and honest uncached (≈480) figures
+now disclosed, §16.16.8). Two MINORs: `eval_query_loss_heldout`'s own
+`batch_size` is now pinned at the codebase's own `=16` convention rather
+than left as an unpinned parameter; the smoke-cost line's stale ≈0.01
+GPU-h figure (superseded by Rev 1's own disclosed ≈0.02-0.03 GPU-h,
+MAJOR-5's three-arm suite) is corrected in the actual arithmetic, not just
+narrated beside it.
 
 ### 16.16.1 Hypothesis and the causal logic, stated precisely
 
@@ -6734,7 +6763,14 @@ backward pass, zero new forward-pass logic, only a new caller.
   CALLER-supplied `hop_set` (§16.16.7 needs `hop_set=(3,4)`;
   `query_loss_forward`'s own `hop_set=H_TRAIN` is currently HARDCODED at
   the call site, L271 — this is a real, small, disclosed parameterization
-  task, not a design assumption).
+  task, not a design assumption). **`batch_size` pinned to a default of
+  `16` (Rev 2, attack-round-2 MINOR-R2-1)** — the codebase's own existing
+  convention (`killer_prediction_readout`'s own `batch_size: int = 16`
+  default and `build_holds_and_gate_by_checkpoint`'s own same default,
+  `phase2_trajectory_analysis.py` L78, L99), now REGISTERED explicitly on
+  this new function's own signature (`batch_size: int = 16`) rather than
+  left unpinned and silently inherited from whatever a future caller
+  happens to pass.
 - Two new `phase2_seed` kinds, extending `_KIND_OFFSET` (currently
   `{"train_corpus":0, "train_episode":1, "eval_val":2, "eval_gate_null":3,
   "eval_gate_self":4, "eval_killer":5}`, L159-160) with
@@ -6756,6 +6792,45 @@ backward pass, zero new forward-pass logic, only a new caller.
   loader every cell launch and `phase2_smoke_gpu.py` use) loads each of the
   90 already-existing `.pt` files (18 cells × 5 checkpoints) fresh per
   scoring pass — no new loading code.
+
+**Surgery-mode scope, pinned (Rev 2 fix, attack-round-2 MAJOR-R2-2) —
+eval-(B) runs with NO surgery override; MAJOR-NEW-5's rule does not apply
+here.** Checked directly against `query_loss_forward`
+(`phase2_familiarization_train.py` L263-285): its own forward pass,
+`logits = model(concat_tokens, initial_states=None, step=step)` (L279),
+is the model's NATIVE call — no `frozen_bias_surgery` context manager
+wraps it, on this path or on `eval_query_loss_heldout`'s own reuse of it
+(this section's "Build delta" above: `eval_query_loss_heldout` wraps
+`query_loss_forward` directly, adding no surgery of its own). This is
+REQUIRED, not an oversight to close: §16.16.1's own causal-package framing
+(Rev 1) registers the arm's ENTIRE causal package — pretraining-era weight
+divergence AND the blend continuing to fire on every forward pass — as
+the thing under test, and the blend firing during eval-(B)'s own scoring
+pass IS part of that package, exactly as it is during familiarization
+training itself (§16.16.1: `apply_frozen_bias_blend` is unconditional
+whenever `frozen_bias_arm != "off"`, `lm_pretrain_rd.py` L854-857, on
+EVERY forward pass regardless of train/eval mode). Forcing the blend off
+at eval-(B) time would silently narrow the causal claim to the isolated,
+un-built follow-on §16.16.1 explicitly named out of scope, while still
+being reported under the whole-package framing. **§5.2a's/§16.2.1's own
+MAJOR-NEW-5 rule ("before computing `rec@0.9` [or any Stage-0.5 gate
+quantity] at ANY trajectory checkpoint... wrap the scoring forward pass in
+`frozen_bias_surgery(model, force_off=True)`", this document's own
+MAJOR-NEW-5 fix-map row) is RETIRED-GATE-ONLY for Phase-2b — it applies to
+the dead `d_state`-space Stage-0.5 readout (`rec@0.9`), which this
+section's own "`stage05_pass_by_c` is retired, not computed" fix (below)
+already drops entirely, never to eval-(B)'s `L_query` readout.** A
+builder pattern-matching on MAJOR-NEW-5's own broad "wrap scoring passes
+in force_off surgery" phrasing, out of habit, could paste the wrapper onto
+`eval_query_loss_heldout` and silently revert this design's own causal
+claim without any test catching it (a surgery-wrapped and a
+native-forward eval-(B) pass both return a plausible-looking float) —
+closed here by a mandatory Stage −1 assertion (§16.16.9, new item): after
+constructing `eval_query_loss_heldout`, inspect its own source (e.g.
+`inspect.getsource(eval_query_loss_heldout)` plus the `query_loss_forward`
+it wraps) and assert the string `frozen_bias_surgery` does not appear in
+either — a mechanical, not a trusted, guarantee that eval-(B) measures the
+arm's whole causal package, not a surgically-isolated slice of it.
 
 **Analysis-module rewrite — registered build task (Rev 1, attack-round-1
 MAJOR-1, the highest-value finding this round found).** As specced through
@@ -6786,7 +6861,32 @@ instrument this Phase already retired. Registered fix, three parts:
    `recovered_frac`. `delta_ci_n3` is called with the §16.16.5 sign
    convention (`delta_ci_n3(off_vals, arm_vals)`, positive = arm's loss
    lower = arm helps) — the same reversal §16.16.5 already registers, now
-   wired to the actual call site that needs it.
+   wired to the actual call site that needs it. **OFF-eval cache,
+   registered (Rev 2 fix, attack-round-2 MAJOR-R2-3) — the `off`-half of
+   this replacement's own two `eval_query_loss_heldout` calls reads from a
+   precomputed cache rather than calling fresh every time.** Verified
+   directly against the call structure this replaces `killer_prediction_
+   readout` into: `analyze_corpus` (L139-142) builds `per_arm` via `{arm:
+   build_holds_and_gate_by_checkpoint(ckpt_dir, arm, corpus, ...) for arm
+   in ARMS_NON_OFF}` (`ARMS_NON_OFF = ("global", "per_token")`, L60) — TWO
+   separate calls, each of which (per this item's own replacement,
+   unchanged in this respect) independently re-scores `off` inside its own
+   branch. Left as Rev 1 registered it, `off`'s own `eval_query_loss_
+   heldout` calls fire once inside the `global` branch AND once again
+   inside the `per_token` branch — real, silent duplication, not a
+   mislabeling (§16.16.8's own corrected cost line, below). **Fix:** the
+   pre-launch cache §16.16.8's "New first Python step" (item 3 below)
+   writes — ALL 5 checkpoints × both K's × both hop-sets for the 6 reused
+   OFF cells, not merely the `c∈{250,5000}` floor-gate pair — is promoted
+   from an informal "consumed twice" convention to a literal, committed
+   JSON handoff (`off_lquery_cache-Phase2b.json`) that THIS replacement
+   function reads `off`'s own `L_query` values FROM, keyed on `(corpus,
+   ckpt_seed, K, checkpoint_step, hop_set)`, instead of calling
+   `eval_query_loss_heldout(off_model, ...)` itself. This is pure economy,
+   not a new independence assumption: §16.16.2 item 3's own pairing device
+   already makes `off`'s seed identical regardless of which arm branch
+   asks for it, so the cached value IS the value a fresh call would
+   return, deterministically.
 2. **`stage05_pass_by_c` is retired, not computed.**
    `build_holds_and_gate_by_checkpoint` sets `stage05_pass_by_c = {c: True
    for c in phx.CHECKPOINTS}` unconditionally — mirroring
@@ -6799,17 +6899,53 @@ instrument this Phase already retired. Registered fix, three parts:
    gone, and its replacement validity check is §16.16.6's OFF-floor gate,
    evaluated ONCE per corpus before launch, not per-checkpoint inside the
    classifier — the Stage-0.5 gate is RETIRED for Phase-2b.
-3. **New Stage-1 negative test (this build's own obligation, proving the fix
-   has teeth — house convention, `phase2_stage_minus1.py`-style, mirrors
-   `phase2_hexachotomy.py`'s own totality-table row naming): construct a
-   SYNTHETIC `holds_by_c` pattern that is monotone-holds-true from a
-   non-terminal checkpoint through 5,000** (e.g.
-   `{250:False,500:True,1000:True,2500:True,5000:True}`, the `FTTTT` row the
-   totality table already names PERSISTENT) **and assert the fixed pipeline
-   classifies it `PERSISTENT`, never `UNRESOLVED-GATE`,** under the fixed
-   `stage05_pass_by_c=always-True` sourcing — the direct, mechanical proof
-   that this fix closes MAJOR-1's own failure mode rather than merely
-   asserting it does.
+3. **New Stage-1 negative test — RE-REGISTERED one layer down (Rev 2 fix,
+   attack-round-2 MAJOR-R2-1; supersedes Rev 1's own version of this item,
+   which only exercised `phase2_hexachotomy.classify_trajectory` on a
+   hand-built `holds_by_c` dict — a fact already true before this fix
+   existed, since `classify_trajectory` was never the broken piece;
+   `build_holds_and_gate_by_checkpoint` itself (`phase2_trajectory_
+   analysis.py` L98-136) takes no `holds_by_c` parameter at all — it
+   COMPUTES `holds_by_c` internally, so a test that never calls it cannot
+   prove the rewrite happened).** Two parts, both required, both in the
+   SAME test:
+   - **(i) Behavioral part.** Monkeypatch `eval_query_loss_heldout` (the
+     seam item 1 above wires the replacement `killer_prediction_readout`
+     through) to return controlled, per-(arm-or-off, checkpoint, K, seed)
+     synthetic `L_query` floats from a small fixed lookup table — never a
+     constant, so the reduction has real per-cell content to fold over —
+     together with a stub of the replacement's own checkpoint-load call
+     (`load_init_checkpoint_strict`) returning a trivial sentinel object
+     carrying `(arm, checkpoint_step)` as plain attributes, so the
+     `eval_query_loss_heldout` stub can look up the right table entry
+     without touching a real `.pt` file or GPU. Engineer the table so
+     that, run through the REAL `delta_ci_n3` → `phx.det` → `phx.holds`
+     chain INSIDE the rewritten `build_holds_and_gate_by_checkpoint` (not
+     hand-assembled and fed to `classify_trajectory` directly): at K=32,
+     `off_vals`/`arm_vals` (3 seeds each) are statistically
+     indistinguishable at `c=250` (CI straddles zero, `det32=False`) and
+     cleanly separated, arm lower, at `c∈{500,1000,2500,5000}` (CI
+     excludes zero on the positive side, `det32=True`); at K=20, the same
+     values are indistinguishable at EVERY checkpoint (`det20=False`
+     throughout) — reproducing the exact `holds_by_c=
+     {250:False,500:True,1000:True,2500:True,5000:True}` (`FTTTT`) pattern
+     Rev 1's own version of this test named PERSISTENT, now PRODUCED by
+     the real formula chain rather than asserted by construction. Assert
+     the resulting classification is `PERSISTENT`, never
+     `UNRESOLVED-GATE` — the same outcome Rev 1 checked, now actually
+     exercising the rewritten function that is supposed to produce it.
+   - **(ii) Structural part, exact assertions pinned (not left to the
+     builder's judgment):** `"recovered_frac" not in
+     inspect.getsource(phase2_trajectory_analysis)` (whole-module check —
+     proves the dead `d_state`-space quantity is gone, not merely
+     shadowed by an unexercised branch) AND `"gate_json_path_for" not in
+     inspect.getsource(phase2_trajectory_analysis.
+     build_holds_and_gate_by_checkpoint)` (function-scoped check — proves
+     the rewritten function's own body no longer calls the dead gate-JSON
+     reader, whether or not the helper itself is deleted elsewhere in the
+     module). A test that passes (i) but fails (ii) would mean the dead
+     sourcing was routed AROUND rather than removed — exactly the gap this
+     re-registration exists to close.
 
 ### 16.16.4 Power sketch — the detectable effect size at n=3 seeds, honestly derived
 
@@ -7074,13 +7210,24 @@ happened), differing in exactly these ways:
    DROPPED — the 6 OFF cells are DONE (§16.16.8's own verified-on-box count)
    and `BANDS_PINNED-Phase2Familiarization.json` is already reused AS-IS
    (§16.16.9). Nothing to launch or re-pin at this step.
-3. **New first Python step (does double duty for MAJOR-2 and MAJOR-3):**
-   runs `eval_query_loss_heldout` (readout (B)) on the 6 reused OFF
-   checkpoints (after the sha256 reuse gate above clears), producing the
-   per-corpus, per-seed, per-checkpoint `L_query` numbers both (a) the
-   OFF-floor ratio (§16.16.6, re-pinned below) and (b) the trajectory
-   analysis's own `off_vals` (§16.16.3's MAJOR-1 fix) need — computed ONCE,
-   consumed twice, never recomputed.
+3. **New first Python step (does triple duty for MAJOR-2, MAJOR-3, and
+   Rev-2's MAJOR-R2-3):** runs `eval_query_loss_heldout` (readout (B)) on
+   the 6 reused OFF checkpoints (after the sha256 reuse gate above
+   clears), at ALL 5 trajectory checkpoints, BOTH K's, and BOTH hop-sets
+   (primary `{1,2}`, secondary `{3,4}`) — not merely the `c∈{250,5000}`
+   pair the floor gate alone needs — writing every resulting `L_query`
+   float to a committed `off_lquery_cache-Phase2b.json`, keyed on
+   `(corpus, ckpt_seed, K, checkpoint_step, hop_set)`. **Registered as a
+   real cache, not an informal one (Rev 2 fix, attack-round-2
+   MAJOR-R2-3):** this single file is CONSUMED THREE TIMES — (a) the
+   OFF-floor ratio (§16.16.6, re-pinned below), (b) the primary
+   hexachotomy's own `off_vals` (§16.16.3's MAJOR-1 fix, now reading the
+   cache rather than calling `eval_query_loss_heldout(off_model, ...)`
+   fresh inside EACH of `analyze_corpus`'s own two `ARMS_NON_OFF`
+   branches), and (c) the secondary `h∈{3,4}` readout's own off-half
+   (§16.16.7) — computed ONCE here, never recomputed downstream, closing
+   the exact duplication a naive per-branch implementation would otherwise
+   introduce (§16.16.8's "Cost" paragraph, below).
 4. **OFF-floor gate (§16.16.6, re-pinned below) replaces Step 4's old
    Stage-0.5 REFUSE gate entirely** — same "real subprocess exit code,
    mechanical abort, `PHASE2B_FLOOR_GATE_REFUSED` on failure" discipline,
@@ -7104,41 +7251,73 @@ happened), differing in exactly these ways:
   arm-dependent) scales to `0.6172 × (12/6) = 1.234 GPU-h`.
 - **New eval-`L_query` passes (both readouts, both K's, all 18 cells):**
   `18 cells × 5 checkpoints × 2 hop-sets (primary {1,2}, secondary {3,4})
-  × 2 K's (32,20) = 360 passes`. Priced at the Stage-0.5 gate's own
-  realized, TWICE-cross-validated rate (`§16.2.1`'s own priced estimate
-  ≈0.0022 GPU-h/pass AND `§16.15.6`'s own independent realized
+  × 2 K's (32,20) = 360 passes` — **the CACHED count, now the registered
+  build target (Rev 2 fix, attack-round-2 MAJOR-R2-3), not the arithmetic's
+  own default outcome.** Checked directly against `analyze_corpus`'s own
+  per-arm iteration (`ARMS_NON_OFF = ("global", "per_token")`,
+  `phase2_trajectory_analysis.py` L60): absent the OFF-eval cache
+  (§16.16.3 item 1's own Rev-2 addition; §16.16.8's "New first Python
+  step" above), `off`'s own `eval_query_loss_heldout` calls fire once
+  inside the `global` branch of `build_holds_and_gate_by_checkpoint` AND
+  once again inside the `per_token` branch — `off`'s own 120-of-360 passes
+  double to 240, for a true UNCACHED total of `240 (off, doubled) + 240
+  (global + per_token, once each) = 480 passes`, a ~33% undercount of the
+  bare `18 cells × 5 × 2 × 2` arithmetic. **Both figures disclosed, not
+  softened:** cached (registered, mandatory build task)
+  `360 × 0.0022 ≈ 0.792 GPU-h`; uncached worst case (if the cache were
+  somehow not wired) `480 × 0.0022 ≈ 1.056 GPU-h`. Priced at the Stage-0.5
+  gate's own realized, TWICE-cross-validated rate (`§16.2.1`'s own priced
+  estimate ≈0.0022 GPU-h/pass AND `§16.15.6`'s own independent realized
   cross-check, both agreeing) — a structurally comparable one-forward-call,
-  `Q=K` scoring pass: `360 × 0.0022 ≈ 0.792 GPU-h`. **Disclosed
-  uncertainty, not hidden:** an OLDER, less-recently-validated reference
-  rate exists in this document (`FROZEN_BIAS_LM_DESIGN.md`'s 46 retrofit
-  re-evals at ≈1.6 GPU-h total ⇒ ≈0.0348 GPU-h/pass, 16× higher) — the
-  0.0022 rate is preferred as PRIMARY because it is the more recent,
-  independently-cross-validated number from THIS wave's own family
-  (§16.15.6: "closely matching §16.2.1's own priced estimate... a clean
-  cross-check"), but a build-time timing check on ONE real pass (cheap,
-  minutes) is registered as a mandatory pre-launch calibration
-  (`CLAUDE.md`'s own "calibration run before a big sweep" rule), not an
-  assumption to build the full 360-pass budget on unverified.
+  `Q=K` scoring pass. **Disclosed uncertainty, not hidden:** an OLDER,
+  less-recently-validated reference rate exists in this document
+  (`FROZEN_BIAS_LM_DESIGN.md`'s 46 retrofit re-evals at ≈1.6 GPU-h total ⇒
+  ≈0.0348 GPU-h/pass, 16× higher) — the 0.0022 rate is preferred as
+  PRIMARY because it is the more recent, independently-cross-validated
+  number from THIS wave's own family (§16.15.6: "closely matching
+  §16.2.1's own priced estimate... a clean cross-check"), but a build-time
+  timing check on ONE real pass (cheap, minutes) is registered as a
+  mandatory pre-launch calibration (`CLAUDE.md`'s own "calibration run
+  before a big sweep" rule), not an assumption to build the full 360-pass
+  (or, uncached, 480-pass) budget on unverified.
 - **New real-kernel smoke (below, §16.16.9):** small, priced at the same
-  order as the original Phase-2 smoke gate, ≈0.01 GPU-h. **Disclosed (Rev
-  1): MAJOR-5's fix runs this suite THREE times (off, per_token, global)
-  rather than once** — still the same order of magnitude (≈0.02-0.03 GPU-h),
-  an immaterial change against the already-registered 5-10× debug-tax
-  margin; kept at the Rev-0 `≈0.01 GPU-h` figure below rather than
-  re-deriving a bracket over a rounding-level line item.
-- **Raw total: `1.234 + 0.792 + 0.01 ≈ 2.04 GPU-h`.**
+  order as the original Phase-2 smoke gate. **Corrected (Rev 2 fix,
+  attack-round-2 MINOR-R2-2) — the raw total below now actually USES the
+  Rev-1-disclosed ≈0.02-0.03 GPU-h figure, not the stale Rev-0 ≈0.01 GPU-h
+  line Rev 1 left the arithmetic on.** MAJOR-5's fix runs this suite
+  THREE times (off, per_token, global) rather than once — still the same
+  order of magnitude against the already-registered 5-10× debug-tax
+  margin, but the actual number now belongs in the sum below, not merely
+  narrated beside it: **≈0.03 GPU-h** (the disclosed `≈0.02-0.03` range's
+  own upper bound, used conservatively).
+- **Raw total: `1.234 + 0.792 + 0.03 ≈ 2.06 GPU-h`** (cached, registered
+  primary figure). **Uncached worst case, disclosed as a contingency, Rev
+  2:** `1.234 + 1.056 + 0.03 ≈ 2.32 GPU-h` — the OFF-eval cache above is
+  what keeps the real figure at the lower number, not an assumption.
 
 **Bracket, same 5-10× debug-tax convention this document applies
-everywhere:** `2.04 × 5 ≈ 10.2 GPU-h` (low) to `2.04 × 10 ≈ 20.4 GPU-h`
-(high) — registered bracket **≈10.2-20.4 GPU-h**. **Sanity context:**
-comparable in size to Phase-1's own ≈24.2 GPU-h ceiling and Path (iii)'s
-≈21 GPU-h grid, but every prior wave in this document that used this exact
-methodology (raw realized-or-realized-rate-scaled estimate × 5-10×) landed
-its REALIZED cost well under the bracket's own low end — most recently
-§16.15.6 itself, `0.617` realized against a leg-scoped `2.22-4.45` bracket,
-a ≈3.6-7.2× undershoot even of the LOW end. No claim is made that Phase-2b
-will repeat that margin, only that it is the base rate this project has
-observed every time it has bracketed this way. GPUs 0-1 are free.
+everywhere:** `2.06 × 5 ≈ 10.3 GPU-h` (low) to `2.06 × 10 ≈ 20.6 GPU-h`
+(high) — registered bracket **≈10.3-20.6 GPU-h** (cached, primary; Rev 2
+corrects Rev 1's `≈10.2-20.4 GPU-h` — a rounding-level shift from the
+smoke-line fix above, not from the cache, which by design keeps the
+cached figure unchanged from Rev 1's own 360-pass arithmetic). **Uncached
+contingency, disclosed alongside, never silently dropped:** were the
+OFF-eval cache somehow not wired, the same convention gives
+`2.32 × 5 ≈ 11.6 GPU-h` to `2.32 × 10 ≈ 23.2 GPU-h` — modestly above the
+registered ceiling, which is exactly why §16.16.8's OFF-eval cache (above)
+is a MANDATORY, tested build task for this wave, not an optional
+efficiency nicety; the budget guard (§16.16.9) is re-pinned to the CACHED
+ceiling (`20.6 GPU-h`) on the assumption the cache lands as registered,
+and will mechanically abort a run that overshoots it regardless of cause.
+**Sanity context:** comparable in size to Phase-1's own ≈24.2 GPU-h
+ceiling and Path (iii)'s ≈21 GPU-h grid, but every prior wave in this
+document that used this exact methodology (raw realized-or-realized-rate-
+scaled estimate × 5-10×) landed its REALIZED cost well under the
+bracket's own low end — most recently §16.15.6 itself, `0.617` realized
+against a leg-scoped `2.22-4.45` bracket, a ≈3.6-7.2× undershoot even of
+the LOW end. No claim is made that Phase-2b will repeat that margin, only
+that it is the base rate this project has observed every time it has
+bracketed this way. GPUs 0-1 are free.
 
 ### 16.16.9 Gates before launch
 
@@ -7167,7 +7346,14 @@ observed every time it has bracketed this way. GPUs 0-1 are free.
   (every `phase2b_chain.sh` launch already pairs the right checkpoint path
   with the right `--arm` by construction, per its own `init_ckpt` path
   templating; this assertion makes that pairing verified, not merely
-  trusted).
+  trusted); (d) **MAJOR-R2-2 (Rev 2, attack-round-2) — a new assertion
+  that `eval_query_loss_heldout`'s own forward path never invokes
+  surgery, per §16.16.3's "Surgery-mode scope, pinned" paragraph above:**
+  `"frozen_bias_surgery" not in inspect.getsource(eval_query_loss_heldout)`
+  and the same check against `query_loss_forward` (the function it wraps)
+  — a mechanical proof that eval-(B) runs the blend natively, never
+  force-off, so the reported effect stays the arm's whole causal package
+  and never silently narrows to the un-built isolated-contrast follow-on.
 - **Real-kernel smoke — a genuine, previously-undiscovered gap, found
   this session, not assumed closed; EXPANDED (Rev 1, attack-round-1
   MAJOR-5) to cover BOTH new blend paths, not just one.** `phase2_smoke_
@@ -7199,8 +7385,10 @@ observed every time it has bracketed this way. GPUs 0-1 are free.
   the READOUT changed). Reused unchanged; disclosed explicitly so a future
   reader does not mistake "no new band" for an oversight.
 - **Budget guard.** Same `phase2_chain.sh`-style mechanical wall-clock ×
-  N_GPUs / 3600 check, re-pinned to the new §16.16.8 ceiling (20.4 GPU-h),
-  same real-abort-not-narrated discipline (§16.5 Constraint 1).
+  N_GPUs / 3600 check, re-pinned to the new §16.16.8 ceiling (**20.6
+  GPU-h**, Rev 2's corrected cached-primary bracket high end — supersedes
+  Rev 1's `20.4 GPU-h`; §16.16.8's "Cost" paragraph), same
+  real-abort-not-narrated discipline (§16.5 Constraint 1).
 - **OFF-floor gate enforcement.** §16.16.6's own belt-and-suspenders
   pattern, run BEFORE the 12-cell launch.
 - **sha256 reuse gate.** §16.16.8's own belt-and-suspenders pattern, run
@@ -7244,7 +7432,7 @@ having decomposed which of the two components drives the effect.
   silently elided at harvest time the way §16.15.7's trichotomy gap
   almost was.
 
-### 16.16.11 Open items for the independent attack round (self-attack, not exhaustive; STATUS as of Rev 1 — none of these 5 overlapped attack-round-1's own 5 MAJOR/3 MINOR findings, §16.17 — all 5 below remain genuinely OPEN, carried forward to round 2)
+### 16.16.11 Open items for the independent attack round (self-attack, not exhaustive; STATUS as of Rev 2 — none of these 5 overlapped attack-round-1's own 5 MAJOR/3 MINOR findings OR attack-round-2's own 3 MAJOR/2 MINOR findings, §16.17 — all 5 below remain genuinely OPEN, carried forward to round 3)
 
 1. Is `0.0022 GPU-h/pass` really the right reference rate for the new
    eval-`L_query` pass, or does it under-price the null-shuffle-free but
@@ -7272,16 +7460,17 @@ having decomposed which of the two components drives the effect.
    own single pre-registered decision rule?
 
 **Not self-launched.** Per this project's waterfall discipline, §16.16 (now
-Rev 1) awaits a SECOND independent attack round — reviewing this Rev's own
-fixes (§16.17) fresh, plus the 5 items above, still open — before any build
-task registered above is started. See §16.17 for the full Rev 0 → Rev 1
-finding→fix trace and the round-2 forward-pointer.
+Rev 2) awaits a THIRD independent attack round — reviewing this Rev's own
+fixes (§16.17's round-2 table) fresh, plus the 5 items above, still open —
+before any build task registered above is started. See §16.17 for the full
+Rev 0 → Rev 1 → Rev 2 finding→fix trace and the round-3 forward-pointer.
 
-### 16.17 ATTACK-ROUND-1 fix-map for §16.16 (2026-07-11) — verdict NEEDS-REVISION
+### 16.17 ATTACK-ROUND fix-maps for §16.16 (round 1: 2026-07-11, round 2: 2026-07-12) — verdict: round 1 NEEDS-REVISION (fixed → Rev 1), round 2 NEEDS-REVISION (fixed → Rev 2)
 
-A first independent adversarial pass reviewed Rev 0 of §16.16 (the
-Phase-2b vocab-space behavioral-contrast instrument, §16.16.1-§16.16.11)
-before any code was written, per this project's own waterfall discipline
+**Round 1** (2026-07-11). A first independent adversarial pass reviewed
+Rev 0 of §16.16 (the Phase-2b vocab-space behavioral-contrast instrument,
+§16.16.1-§16.16.11) before any code was written, per this project's own
+waterfall discipline
 (`CLAUDE.md`) and mirroring §16.7's/§16.9's own attack-round convention for
 §16.2. Verdict: **NEEDS-REVISION** — 5 MAJOR, 3 MINOR, no FATAL. Every
 finding below is fixed in this revision (Rev 1, §16.16.1-§16.16.11); none is
@@ -7308,14 +7497,39 @@ secondary readout; §16.16.8's cost re-derivation arithmetic.
 | MINOR-2 | §16.16.5's totality citation (`1+15+1+4+11=32`) transposes PERSISTENT and CONVERGED-EQUIVALENT when read positionally against the six-bucket list immediately above it | MINOR | Verified directly against `phase2_hexachotomy.py`'s own `totality_check` self-test ground truth (L221-222) and corrected with explicit labels: `PERSISTENT=4, TRANSIENT=15, LATE-EMERGENT=1, CONVERGED-EQUIVALENT=1, NON-MONOTONE=11` (`4+15+1+1+11=32`) — the enumeration and proof are unaffected, only the per-bucket count attached to each label was wrong | §16.16.5 ("Bucket labels corrected" sentence) |
 | MINOR-3 | No assertion ties `--arm` to the init checkpoint's own baked `frozen_bias_arm` config field — `run_familiarization_cell` constructs the model straight from the checkpoint's own saved config (`phase2_familiarization_train.py` L408; `DeltaNetLM.config()` bakes `frozen_bias_arm`, `lm_pretrain_rd.py` L1174), so the model's actual blend behavior is governed by the checkpoint, not the CLI flag, and a wrong `--init-checkpoint` path could silently disagree with `--arm` | MINOR | New Stage −1 assertion: immediately after loading the init checkpoint's config, assert `config["frozen_bias_arm"] == arm`, fail loudly on mismatch — defends the chain's own by-construction path/arm pairing mechanically rather than by trust alone | §16.16.9 (Stage −1 CPU-stub suite bullet, item (c)) |
 
-**Rev 1 has NOT yet had its own independent audit pass — the forward
-pointer (per this project's waterfall discipline, `CLAUDE.md`) is a SECOND,
-fresh-eyes attack round on §16.16 as it now reads (Rev 1, this section's own
-fixes above), not a build audit — build does not start until that round
-passes clean or its own findings are fixed and re-verified. The 5 open
-self-attack items §16.16.11 lists (GPU-h reference-rate uncertainty,
-readout-(B) variance-proxy conservativeness, floor-gate pooling granularity,
+**Round 2** (2026-07-12) reviewed Rev 1 fresh — this section's own fixes
+above (§16.16.1-§16.16.11) plus the 5 self-attack items §16.16.11 listed as
+still open. Verdict: **NEEDS-REVISION** — 3 MAJOR, 2 MINOR, no FATAL. Every
+finding below is fixed in this revision (Rev 2, §16.16.1-§16.16.11 as
+edited above); none is deferred or waved away. **Verified CORRECT and NOT
+reopened this round** (per the same "don't re-litigate verified-correct
+items" convention): the floor-gate DIRECTION itself (§16.16.6's
+`ratio := L_query(c=5000)/L_query(c=250)`, lower=better,
+`FLOOR_PIN := mean+2σ` — reviewed explicitly this round and confirmed to
+correctly gate on FALLING loss, not rising); every Rev-1 fix (MAJOR-1
+through MAJOR-5, MINOR-1 through MINOR-3) — checked against the real code
+each cites and confirmed landed as described, not reopened. The 5
+self-attack items §16.16.11 lists remain OPEN, unaddressed by this round's
+own findings (below), carried forward to round 3.
+
+| # | Finding (attack-round-2 on §16.16 Rev 1) | Severity | Fix (Rev 2) | Location |
+|---|---|---|---|---|
+| MAJOR-R2-1 | Rev 1's own registered Stage-1 negative test only exercised `phase2_hexachotomy.classify_trajectory` on a hand-built synthetic `holds_by_c` dict — a fact already true before Rev 1's MAJOR-1 fix ever existed, since `classify_trajectory` was never the broken piece. `build_holds_and_gate_by_checkpoint` (`phase2_trajectory_analysis.py` L98-136) takes no `holds_by_c` parameter at all — it computes `holds_by_c` internally from `killer_prediction_readout`'s own dead `recovered_frac` sourcing (L116-117) and the failed gate JSONs (L125-134) — so the registered test would pass identically whether or not MAJOR-1's rewrite ever actually landed | MAJOR | Test re-registered one layer down: stub `eval_query_loss_heldout` with controlled synthetic `L_query` floats engineered to produce the SAME monotone-holds-true `FTTTT` pattern through the REAL `delta_ci_n3`→`det`→`holds` chain running INSIDE the rewritten `build_holds_and_gate_by_checkpoint` itself (plus a stubbed checkpoint loader so no real `.pt`/GPU is touched), PLUS a structural assertion pinned exactly: `"recovered_frac" not in inspect.getsource(phase2_trajectory_analysis)` and `"gate_json_path_for" not in inspect.getsource(...build_holds_and_gate_by_checkpoint)` — proving the dead sourcing paths are actually GONE, not merely routed around | §16.16.3 (item 3, "New Stage-1 negative test") |
+| MAJOR-R2-2 | The new eval-(B) readout's own forward path (`query_loss_forward`, `phase2_familiarization_train.py` L263-285) runs the frozen-bias blend NATIVELY — required by the whole-package causal framing (§16.16.1) — but the parent document's own MAJOR-NEW-5 rule ("wrap scoring passes in `frozen_bias_surgery(force_off=True)`") is worded broadly enough that a builder pattern-matching on it could paste the wrapper onto `eval_query_loss_heldout` out of habit, silently narrowing the causal claim to the un-built isolated-contrast follow-on while still reporting it under the whole-package framing | MAJOR | Explicit surgery-mode paragraph pinned: eval-(B) runs with NO surgery override (the blend is part of the measured causal package, by construction); MAJOR-NEW-5's own scope is RETIRED-GATE-ONLY — it applied to the dead `d_state`-space `rec@0.9` Stage-0.5 quantity, which §16.16.3's own MAJOR-1 fix already retires entirely, never to eval-(B)'s `L_query`; cites the native L263-285/L279 forward call directly; a new Stage −1 assertion (`"frozen_bias_surgery" not in inspect.getsource(eval_query_loss_heldout)`, same check against `query_loss_forward`) makes the no-surgery guarantee mechanical, not trusted | §16.16.3 (new "Surgery-mode scope, pinned" paragraph); §16.16.9 (new Stage −1 item (d)) |
+| MAJOR-R2-3 | The cost paragraph's own "computed ONCE, consumed twice" framing (§16.16.8 item 3) contradicts the literal Rev-1 fix-1 text: `killer_prediction_readout`'s replacement calls eval for `off` INSIDE each per-arm branch, and `analyze_corpus` (`phase2_trajectory_analysis.py` L139-142) iterates 2 non-off arms (`ARMS_NON_OFF = ("global","per_token")`, L60) — so `off` is re-evaluated 2× absent a real cache; the registered `360`-pass figure undercounts the true `≈480`-pass cost by ~33% | MAJOR | Registered an explicit OFF-eval cache: the pre-launch "New first Python step" (§16.16.8) now computes `off`'s own `L_query` at ALL 5 checkpoints × both K's × both hop-sets (not just the floor gate's `c∈{250,5000}` pair) and writes it to a committed `off_lquery_cache-Phase2b.json`, keyed `(corpus, ckpt_seed, K, checkpoint_step, hop_set)`; BOTH `analyze_corpus`'s own arm branches (and the secondary h∈{3,4} readout) read `off`'s values from this cache rather than recomputing — deterministic given §16.16.2 item 3's own pairing device, so caching is pure economy, not a new independence assumption. Cost line corrected: `360` passes (cached, now the registered/mandatory build target) `≈0.792 GPU-h`, with the uncached worst case `≈480` passes `≈1.056 GPU-h` disclosed alongside, both folded into the corrected raw-total/bracket arithmetic | §16.16.3 (item 1, cache addition); §16.16.8 ("New first Python step" item 3; "Cost" paragraph) |
+| MINOR-R2-1 | `eval_query_loss_heldout`'s own `batch_size` parameter (§16.16.3's "Build delta") was left unpinned — a future caller's own default would silently govern it rather than the codebase's own established convention | MINOR | Pinned explicitly to `batch_size: int = 16`, matching `killer_prediction_readout`'s and `build_holds_and_gate_by_checkpoint`'s own existing `=16` defaults (`phase2_trajectory_analysis.py` L78, L99) — now REGISTERED on the new function's own signature, not inherited | §16.16.3 ("Build delta" bullet) |
+| MINOR-R2-2 | The smoke-cost line's own arithmetic still used the stale Rev-0 `≈0.01 GPU-h` figure in the "Raw total" sum, even though the SAME paragraph's own prose, two sentences earlier, disclosed MAJOR-5's three-arm suite pricing at `≈0.02-0.03 GPU-h` — the narration and the arithmetic disagreed | MINOR | Raw total corrected to actually use `≈0.03 GPU-h` (the disclosed range's own conservative upper bound) — raw total `1.234 + 0.792 + 0.03 ≈ 2.06 GPU-h` (cached), bracket `≈10.3-20.6 GPU-h`, both re-derived from the corrected figure rather than left narrated-but-unused | §16.16.8 ("Cost" paragraph, smoke bullet + "Raw total"/"Bracket" lines) |
+
+**Rev 2 has NOT yet had its own independent audit pass — the forward
+pointer (per this project's waterfall discipline, `CLAUDE.md`) is a THIRD,
+fresh-eyes attack round on §16.16 as it now reads (Rev 2, this section's
+own round-2 fixes above), not a build audit — build does not start until
+that round passes clean or its own findings are fixed and re-verified.
+Round 3's own scope, explicitly: (a) verify all 5 round-2 fixes above land
+as described against the (still design-only) text; (b) the 5 self-attack
+items §16.16.11 lists (GPU-h reference-rate uncertainty, readout-(B)
+variance-proxy conservativeness, floor-gate pooling granularity,
 pairing-device CI-independence risk, secondary-readout multiple-comparisons
-correction) are unresolved by this round and remain live targets for round
-2.** No cells launched, no code written this session; STATE.md's queue
-updated.
+correction) — unaddressed by round 2, still genuinely open, still carried
+forward.** No cells launched, no code written this session; STATE.md's
+queue updated.
