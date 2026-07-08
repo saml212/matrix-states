@@ -27,7 +27,8 @@ records).
 Does a matrix-native fast-weight model (frozen-bias fix + recruitable
 rank + super-linear capacity + exact composition) beat matched baselines?
 Design registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` (**§1 Rev 0
-COMPLETE, committed, pre-attack** — see QUEUE below). PI comparison
+attacked → NEEDS-REVISION, verdict recorded §1.13; Rev 1 in progress** —
+see QUEUE below). PI comparison
 framing — we research for the FUTURE's constraints (compute grows
 fastest; quality data and HBM are the coming walls):
 - PRIMARY 1: data-efficiency (param+data-matched learning curves on
@@ -44,7 +45,12 @@ fastest; quality data and HBM are the coming walls):
 - Byte-level input explicitly OUT of scope (never bundle two unproven
   axes).
 
-**QUEUE:** design (§1 Rev 0, done) → attack round 1 (next item) → ...
+**QUEUE:** design (§1 Rev 0, done) → attack round 1 (done, NEEDS-REVISION:
+1 FATAL-caliber — the architecture-neutral trained probe head does not
+exist for ANY of the three arms and must be designed/costed as Wave −1;
+3 MAJOR — K/d=0.75 is above the d=64 cliff AND cliff evidence is from a
+different architecture, per-layer-vs-total byte-match ambiguity, no
+baseline tuning-parity rule; §1.13) → Rev 1 (in progress) → ...
 iterate to DESIGN-CLEARED-FOR-BUILD → build (new code: flat-vector
 ablation mixer, switchable uncapped/capped-KV Transformer,
 `verify_match_gate.py`, calibration/timing-pilot wrappers) →

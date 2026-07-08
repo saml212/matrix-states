@@ -782,4 +782,69 @@ paper fold-in (iclr-2027, workshop-2026) either way.
 
 ---
 
-*(End §1, Rev 0. Not yet attacked.)*
+### 1.13 ATTACK ROUND 1 VERDICT (independent fresh-eyes agent, 2026-07-08): NEEDS-REVISION
+
+Recorded per the gauntlet-bookkeeping hard rule before dispatching Rev 1.
+Full report retained in the session transcript; findings binding on Rev 1:
+
+**FATAL-caliber (must be resolved structurally, not disclaimed):**
+
+- **F1 — The architecture-neutral readout does not exist for ANY of the
+  three comparison arms.** The `recovered_frac@0.9` cosine FORMULA is
+  neutral in principle, but the only live implementation
+  (`key_anchoring.py:953` `measure_h1_behavioral_companion`) is welded to
+  `model_rd.py`'s Wave-1 5-tuple forward signature — a FOURTH architecture,
+  not any of the three being compared. `DeltaNetLM` has zero
+  `grammar_rd`/`recovered_frac` references (its own docstring says so,
+  lines 9-16); the only DeltaNetLM↔grammar_rd bridge in the codebase is
+  the dead §16.15-16.20 zero-shot readout this design correctly refuses.
+  The flat-vector ablation and the Transformer don't exist at all.
+  → Rev 1 must add a pre-build design item: ONE shared probe-head
+  architecture (tap point, dimensionality, training regime — trained as
+  part of the objective, not zero-shot), implemented with matched
+  capacity across all three arms, costed and gated as its own Wave −1
+  item in §1.6/§1.7, listed in §1.12. Probe-parity is itself a
+  confound to be closed by construction.
+- **F1b (compounding) — Tasks 1/2 data-matching is unoperationalized.**
+  §1.3(b)'s same-data prescription covers only Task 3's static corpora;
+  Tasks 1/2 use `grammar_rd.py` on-the-fly generation. Rev 1 must pin
+  the same-RNG/seed-schedule + matched-steps rule explicitly.
+
+**MAJOR:**
+
+- **M1 — K/d=0.75 at d=64 is ABOVE the measured cliff (x0=0.5455) and the
+  measurement is from a different architecture.** K=48/d=64 measured
+  h4=0.0215 (near-total collapse) — but on `model_rd.py`'s
+  anchor-table/Newton-Schulz architecture, NOT on DeltaNetLM/ablation/
+  Transformer. Neither the "above-cliff" hazard nor the
+  different-ARCHITECTURE (not just different-d) caveat is named in the
+  self-attack. Rev 1: re-pin the Task-1 load point (or justify it) and
+  extend the calibration gate to cover ALL THREE arms, incl. the
+  Transformer's capped-cache behavior, before margins freeze.
+- **M2 — Byte-match ambiguity: per-layer vs total.** §1.3(b)'s formula
+  and §1.7 MATCH-GATE Pass 1 disagree on whether cap_length matches the
+  contender's per-layer 16,384 bytes or its total-across-layers state.
+  At different n_layers this silently unbalances total memory. Rev 1:
+  pin ONE interpretation (total-across-layers is the defensible one) and
+  make the MATCH-GATE check it end-to-end.
+- **M3 — Baseline tuning parity entirely absent.** No LR/warmup/tuning
+  budget/positional-scheme (RoPE vs learned-absolute) parity rule.
+  The #1 hostile-reviewer rejection vector. Rev 1: pin a modern-strong
+  baseline recipe + an explicit equal-tuning-budget rule.
+
+**MINOR:** m1 — §1.2 miscites the 14M config to `lm_rd_rung_configs.py`
+`RUNGS` (it holds only 98M/392M/1.3B; the 14M is `RUNG1_CFG`/
+`CONTROL_CFG`). m2 — §4.2's head-dominated FLOP basis is 14M-specific;
+re-derive at 392M in the escalation addendum (already implicitly
+disclosed).
+
+**Independently re-verified clean:** rate 0.25244 GPU-h/cell; rung-1
+≈11.23 GPU-h and ×10=112.3 vs 127.33 headroom; ledger 7.672/135
+(→127.33); escalation-rung 168 GPU-h infeasibility; frozen-bias
+mechanism vs `lm_pretrain_rd.py:178-247`; 14,048,896 params; K-cycle
+h%K guard; position-decomposition closed for axis 1 (P=1 both arms) and
+deliberately exercised-then-capped for axis 2.
+
+---
+
+*(End §1. Rev 0 attacked → NEEDS-REVISION (§1.13). Rev 1 in progress.)*
