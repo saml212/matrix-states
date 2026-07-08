@@ -6374,3 +6374,28 @@ round, landing attack-round-2's findings does not, on its own, certify
 attack round) is next, per the queue in `STATE.md`.
 
 ---
+
+**[§15.26 ROUND-3 VERIFY PASS — DISCHARGED, 2026-07-08, recorded before
+build dispatch per the gauntlet-bookkeeping rule logged this session.]**
+A third independent reviewer verified Rev 2 at commit c66b3f6. VERDICT:
+**DESIGN-CLEARED-FOR-BUILD** — 0 FATAL, 0 MAJOR, 2 new MINOR. Per-check:
+the trigger totality walk independently re-derived (3-case enumeration +
+a 200,001-point numeric sweep, zero REAL<ARTIFACT violations; the only
+collapse corner Δ=noise_shift=0 is excluded both by premise and by the
+MINOR-3 contingency's runtime routing); N'=100 arithmetic exact
+(84/100=84.00% vs 90/107=84.11%, residual 0.11pp); the whitelist
+strip-then-diff logic mechanically exercised with teeth (positive,
+negative, and no-op cases); all five round-2 MINORs byte-verified landed;
+the empirical core (μ=0.958093, σ=0.022157, z=6.687/19.48; K90's exact
+1.0000/1.0000/1.0000; C17 per-seed values) re-derived from raw archived
+JSONs to the digit. NEW MINORS folded into the build-task list: (m-a) the
+"8.417" ratio digit slip → 8.4193 (immaterial, same ≈8.4× headline);
+(m-b) noise_shift is an n=1 draw of the null — ADOPTED FIX: the build
+adds a SECOND noise-repeat pass at a third generator offset
+(seed+30_000+step), noise_shift := max of the two draws (conservative),
+at the same negligible marginal cost the design's own MAJOR-1 language
+already prices. Build is now licensed: 8-task list per the reviewer's
+enumeration (evaluate_pool restrict param + telemetry threading; the
+now-THREE extra eval calls; the wrapper w/ signoff + whitelist-diff +
+negative tests; n_iter=28 admission reuse + asserts; GPU-2 two-stage
+calibration-gated chain; harvest w/ noise-gated triggers + Δ contingency).

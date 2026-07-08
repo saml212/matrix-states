@@ -7483,3 +7483,5 @@ one).
 [LEARN] gauntlet-bookkeeping: a read-only verify/audit round's verdict must be RECORDED in the design doc (round row + gate-sentence discharge + STATE queue tick) BEFORE dispatching the next stage — downstream agents verify against the repo's source of truth, not the coordinator's context.
 Mistake: dispatched the §16.19 build-delta agent immediately after the round-4 verify returned CLEARED in-conversation; the docs still said 'round 4 pending', and the build agent (correctly) halted.
 Correction: after every audit/verify round, land a bookkeeping commit recording the verdict before dispatching the dependent stage.
+
+- 2026-07-08: §15.26 ROUND-3 VERIFY discharged (DESIGN-CLEARED-FOR-BUILD; 2 MINORs folded into build: 8.4193 digit fix + SECOND noise-floor draw adopted, noise_shift := max of two repeats). Verdict recorded before build dispatch per the gauntlet-bookkeeping [LEARN] rule.
