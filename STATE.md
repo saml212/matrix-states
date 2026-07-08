@@ -92,9 +92,19 @@ re-implemented and CONFIRMED; all gatekeeping edge cases hand-walked;
 4 MINOR doc-precision findings patched in place per the round's exact
 prescriptions, incl. the monotonicity-sentence correction (FWER holds
 unconditionally) and the bracket-vs-straddle mutual-exclusivity note)
-→ **BUILD STAGE ACTIVE** (agent dispatched w/ §1.19's binding
-dependency order) → independent build audit w/ mutation tests →
-deploy closure → launch rung-1 GPUs 0-6.
+→ BUILD COMPLETE (5 commits 8d55f17..9480ced, pushed: 12 files in
+deltanet_rd/; MATCH-GATE PASSED w/ real numbers — contender 14,048,896
+params/32,768 bytes exact, ablation 14,047,872 = 0.0073% off, Transformer
+14,439,936 params/86,639,616 FLOPs/token = 2.78% off, cap_length table
+exact, floor 13 live; gate 7 null PASSED all 3 arms at 0.0000; negative
+tests run w/ teeth; 7 limitations precisely flagged incl. CPU-stub-only
+coverage — real-kernel box smoke REGISTERED as deploy-stage gate) →
+**INDEPENDENT BUILD AUDIT RUNNING** (mutation tests: 6 mandated
+mutations must be caught; spec-conformance deep checks on RoPE,
+sink+FIFO off-by-ones, probe-tap recurrence isolation, M* four
+hand-walked cases on synthetic data, aux-loss backbone grad check) →
+fixes → audit verdict RECORDED → deploy closure → box smoke → launch
+rung-1 GPUs 0-6.
 
 **CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
 push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)
