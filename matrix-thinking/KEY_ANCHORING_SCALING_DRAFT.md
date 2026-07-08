@@ -5297,31 +5297,86 @@ same tree: `/Volumes/1TB_SSD/learned-representations/experiment-runs/
 
 ---
 
-## §15.26 DESIGN — d=96 SCATTER-RESOLUTION wave (Rev 1, RESHAPE-TO-C), 2026-07-08
+## §15.26 DESIGN — d=96 SCATTER-RESOLUTION wave (Rev 2, 2026-07-09 — post-attack round 2)
 
-**Status: Rev 1, responding to an independent attack round that returned
-verdict RESHAPE-TO-C (3 MAJOR + 1 MINOR, §15.26.9's own fix-map table,
-house style) — every finding fixed below, none deferred. Rev 1 itself
-has not yet had its own independent audit pass (attack round 2 pending)
-before CLEARED-FOR-BUILD.** RESHAPE-TO-C means: neither straight
-NEEDS-REVISION-and-relaunch-the-same-10-cell-design, nor a pure kill —
-the wave's central empirical ambition (spend 4.27–8.54 GPU-h escalating
-`n=3→5` at all 5 K-groups to see whether the d=96 h4(K/d) sigmoid fit
-de-degenerates) is retired because its own pre-registered power check
-already answers the question it was funded to ask, at zero GPU cost;
-the wave's INFORMATION VALUE is preserved by registering that answer
-directly (§15.26.1); and a differently shaped, much smaller (2 cells,
-≈0.9 GPU-h), sharper instrument — a control diagnostic targeting Rev 0's
-own single most important disclosed loose end, the K90 pool-margin
-confound — is substituted in the freed budget (§15.26.2). Every number
+**Rev 2 status note.** A second independent adversarial attack round
+reviewed Rev 1 (landed 2026-07-08, §15.26.9's own RESHAPE-TO-C fix-map)
+before any GPU work launched, per this program's own standing
+multiple-independent-audit-rounds discipline (`CLAUDE.md`). Verdict:
+**NEEDS-REVISION** — 0 FATAL, 3 MAJOR, 5 MINOR — every finding surgical
+and individually prescribed, no category error. The empirical core was
+independently re-verified this round and found exceptionally clean:
+every cited number reproduces, and the 320,000-trial extension
+underlying §15.26.1's own zero-GPU finding (280,000 across 7 new seeds
++ 40,000 from an independent reimplementation) was independently
+RE-EXECUTED this round, not merely re-read, and reproduced exactly
+(100.00% degenerate, both nulls, every seed). **MAJOR-1 (highest value,
+noise-floor calibration):** §15.26.5's own outcome trigger compared
+`M3_held_out_pool_restricted` against `M3_held_out` using TWO DIFFERENT
+eval generators (`eval_gen`, offset `seed+10_000`, vs. `eval_gen2`,
+offset `seed+20_000`) — `shift` therefore conflated the pool-restriction
+treatment with plain eval-batch resampling noise, and the
+CEILING-IS-REAL trigger (`shift ≤ 0.1×Δ`) had no measured null to be
+judged against. Fixed by registering ONE additional eval-only pass in
+the K=84 checkpoint block (§15.26.2.2) — the SAME unrestricted
+`M3_held_out` call, repeated under `eval_gen2`'s own offset scheme (same
+weights, same UNRESTRICTED pool — generator offset is the only thing
+that differs from the standard call) — giving `noise_shift := |repeat −
+standard|`, a directly measured eval-sampling null. All three outcome
+triggers are re-pinned relative to it (§15.26.5), proven MECE by an
+explicit totality walk. **MAJOR-2 (control the diagnosed variable):**
+§15.26.2.1 itself pins the live mechanism as entity-draw OVERLAP
+FRACTION `K/N`, not spare-entity margin `N−K` — but Rev 1's own
+manipulation (`m3_pool_restrict_n=101`) matched MARGIN (`N'=101 →
+83.17%` vs. K90's natural `84.11%`, a 0.94pp residual), not the
+mechanism it was built to isolate. Fixed by re-pinning `N'=100`
+(`84/100=84.00%` vs. `84.11%`, 0.11pp residual, ≈8.4× tighter on the
+actually-diagnosed variable, same cost) — Rev 1's own margin-vs-overlap
+slip disclosed explicitly in the fix-map (§15.26.10), not silently
+absorbed. **MAJOR-3 (wrapper field-diff adaptation):** §15.26.3.1 names
+the launch wrapper as mirroring `run_k69_s1733_contingency.py`'s own
+precedent "line-for-line," but that precedent's own token-diff check
+(refuse unless the generated command matches a sibling-seed reference
+command with only seed-derived tokens differing) cannot pass verbatim
+once the K=84 cell's own command carries the new
+`--m3-pool-restrict-n` flag the reference command never has. Fixed by
+pinning the adapted check explicitly: strip an explicitly-enumerated
+whitelist of new-flag tokens from the generated command BEFORE running
+the precedent's own diff, so it still refuses on any OTHER,
+non-whitelisted divergence — plus its own registered negative test (a
+command carrying one extra, non-whitelisted flag must still be
+refused). Five MINOR findings (telemetry-threading consistency on the
+new eval calls, a `:961`→`:963-964` citation fix, a pre-registered
+Δ_measured contingency, a finding-text reword, and a ledger
+rounding-consistency fix on the 2× bracket) are folded in directly at
+their own locations, none deferred. The full finding→fix trace is
+recorded at §15.26.10, per house style (mirrors §15.26.9's own
+convention). **This revision has not yet had its own verification
+pass** — round 3, a VERIFY pass confirming Rev 2's fixes land clean (not
+a fresh full attack round), next, per this project's standing rule.
+
+**Status: DESIGN-ONLY DRAFT (Rev 2).** RESHAPE-TO-C — Rev 1's own central
+move, unchanged and not reopened by this revision — means: neither
+straight NEEDS-REVISION-and-relaunch-the-same-10-cell-design, nor a pure
+kill — the wave's central empirical ambition (spend 4.27–8.54 GPU-h
+escalating `n=3→5` at all 5 K-groups to see whether the d=96 h4(K/d)
+sigmoid fit de-degenerates) is retired because its own pre-registered
+power check already answers the question it was funded to ask, at zero
+GPU cost; the wave's INFORMATION VALUE is preserved by registering that
+answer directly (§15.26.1); and a differently shaped, much smaller (2
+cells, ≈0.9 GPU-h), sharper instrument — a control diagnostic targeting
+Rev 0's own single most important disclosed loose end, the K90
+pool-margin confound — is substituted in the freed budget (§15.26.2).
+Rev 2 re-calibrates that diagnostic's own outcome trigger,
+mechanism-matching, and launch-safety machinery before any GPU cell
+fires; it does not reopen the retirement decision itself. Every number
 below is either cited to an already-run artifact (§15.22's realized
-per-cell `wall_s`, §15.25's per-K per-seed h4 table, this session's own
-freshly-run 7-seed/280,000-trial extended power check and independent
-reimplementation, §15.26.1) or freshly re-derived this session
-directly against the live `grammar_rd.py`/`run_deltanet_rd.py` source
-and the raw archived JSONs (§15.26.2.1) — never carried over by
-assumption. No GPU cell has launched under this design; Rev 1 is still
-design-only.
+per-cell `wall_s`, §15.25's per-K per-seed h4 table, the 320,000-trial
+extended power check and independent reimplementation, §15.26.1) or
+freshly re-derived/verified this session directly against the live
+`grammar_rd.py`/`run_deltanet_rd.py` source and the raw archived JSONs
+(§15.26.2.1) — never carried over by assumption. No GPU cell has
+launched under this design; Rev 2 is still design-only.
 
 ### 15.26.0 What this wave is, and what it explicitly does NOT reopen
 
@@ -5354,22 +5409,26 @@ rescores" precedent (§15.1/§15.19/§15.22/§15.24.0):**
    incidentally exercise this gate again at K∈{84,90} under the
    corrected `n_iter=28` production setting (§15.26.3), disclosed as an
    open empirical question its own launch answers, not assumed.
-4. **Build-scope fence, restated for Rev 1's own (much smaller) build
-   surface:** the killed 10-cell grid's own registered build tasks
+4. **Build-scope fence, restated for this diagnostic's own (much
+   smaller) build surface, Rev 2 update — now two additive eval calls,
+   not one:** the killed 10-cell grid's own registered build tasks
    (`run_deltanet_rd_exactness_sweep.py` additive override + spec-builder
-   function) are retired unbuilt with it. Rev 1's OWN build tasks: one
-   new optional, additive-only parameter on `evaluate_pool`
-   (`restrict_entity_pool_n`, §15.26.2.2), one new additive eval call in
-   `train()`'s checkpoint block gated by a new `m3_pool_restrict_n`
-   parameter (same file, same additive discipline), and one new
-   standalone launch wrapper (`run_poolmargin_k84s1943_k90s2043.py`,
-   §15.26.3.1) — plus the two CPU-only analysis scripts already written
-   and run this session (§15.26.1, Rev 0's own original + this Rev 1's
-   own extended verification). No `phase2_*` file, no
-   `lm_pretrain_rd.py`, no change to the EXISTING
-   `KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K` dict's own entries (preserves
-   the ORIGINAL/wide-grid manifest-regression invariant, §15.20.1
-   Stage-1 item 5).
+   function) are retired unbuilt with it. The diagnostic's OWN build
+   tasks: one new optional, additive-only parameter on `evaluate_pool`
+   (`restrict_entity_pool_n`, §15.26.2.2), TWO new additive eval calls in
+   `train()`'s checkpoint block gated by the SAME new
+   `m3_pool_restrict_n` parameter (`m3_restricted`, Rev 1, plus
+   `m3_noise_repeat`, Rev 2's own MAJOR-1 fix — same file, same additive
+   discipline), a whitelist-adapted field-diff check inside the launch
+   wrapper (Rev 2's own MAJOR-3 fix, §15.26.3.1), and one new standalone
+   launch wrapper (`run_poolmargin_k84s1943_k90s2043.py`, §15.26.3.1) —
+   plus the two CPU-only analysis scripts already written and run in
+   prior sessions (§15.26.1, Rev 0's own original + Rev 1's own extended
+   verification; Rev 2 added no new run artifacts, a pure design
+   revision). No `phase2_*` file, no `lm_pretrain_rd.py`, no change to
+   the EXISTING `KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K` dict's own
+   entries (preserves the ORIGINAL/wide-grid manifest-regression
+   invariant, §15.20.1 Stage-1 item 5).
 
 ### 15.26.1 Part 1 — the registered finding (zero GPU)
 
@@ -5377,9 +5436,14 @@ rescores" precedent (§15.1/§15.19/§15.22/§15.24.0):**
 multiply-independently-confirmed power analysis, no new GPU cell
 required:**
 
-> No cliff to K/d=0.9375; h4 near ceiling is seed-dependent and
-> non-sigmoid in this window; x0(96) is unlocalizable with this
-> instrument.
+> No cliff to K/d=0.9375; h4 is seed-dependent in the sub-ceiling regime
+> (K72–K84) and non-sigmoid in this window; K90 is pinned at exact
+> ceiling in all 3 seeds; x0(96) is unlocalizable with this instrument.
+
+(Rev 2 MINOR-4 fix — reworded for precision: the per-K table just below
+shows K90's own `sample sd=0.0000` across all 3 real seeds, an EXACT
+ceiling, not merely "near" it; "seed-dependent" describes the
+sub-ceiling K-groups specifically, K72–K84, not K90.)
 
 This is the SAME published statement §15.25.6's own mechanical verdict
 already reached (AMBIGUOUS, `degenerate_frac=1.0000`, `sigmoid_fit`
@@ -5635,13 +5699,15 @@ literally cited.**
 training path
 
 Training draws (`run_deltanet_rd.py:843`) and the `m3` eval call
-(`:961` in Rev 0's own citation numbering, unchanged this session)
-currently share the SAME unrestricted `pools` object (`train_name_ids`,
-N=107). The cleanest registered manipulation restricts ONLY the eval-time
-pool for the `m3` call, leaving the training-time draw (and therefore the
-trained WEIGHTS) exactly what standard production K=84 training already
-produces — a genuinely additive, eval-only intervention, not a new
-training regime:
+(`:963-964` — Rev 2 MINOR-2 fix; Rev 0's own citation numbering said
+`:961`, which is actually the PRECEDING `m2` call, verified directly
+against the live file this session: `m3 = evaluate_pool(...)` itself
+spans lines 963-964) currently share the SAME unrestricted `pools`
+object (`train_name_ids`, N=107). The cleanest registered manipulation
+restricts ONLY the eval-time pool for the `m3` call, leaving the
+training-time draw (and therefore the trained WEIGHTS) exactly what
+standard production K=84 training already produces — a genuinely
+additive, eval-only intervention, not a new training regime:
 
 ```python
 # sec 15.26.2.2, registered, NOT YET BUILT — one new optional,
@@ -5662,49 +5728,99 @@ def evaluate_pool(..., restrict_entity_pool_n: int | None = None, ...):
     # ... existing body unchanged, now reads the (possibly restricted) pools
 ```
 
-At `train()`'s own checkpoint block (Rev 0's own `:961` call site), ONE
-new, additional, optional eval pass, gated by a new `m3_pool_restrict_n`
-parameter threaded from the launch wrapper (§15.26.3.1), default `None`
-(byte-identical to today):
+At `train()`'s own checkpoint block (Rev 0's own `:963-964` call site,
+per the MINOR-2 fix above), TWO new, additional, optional eval passes,
+both gated by the same new `m3_pool_restrict_n` parameter threaded from
+the launch wrapper (§15.26.3.1), default `None` (byte-identical to
+today):
 
 ```python
-# registered, NOT YET BUILT — additive 5th eval call per checkpoint,
-# only when m3_pool_restrict_n is set; stored under a NEW key, NEVER
-# overwriting the existing M3_held_out (preserves the manifest-
-# regression invariant for every wave/cell that never passes this param)
+# registered, NOT YET BUILT — additive 5th AND 6th eval calls per
+# checkpoint, only when m3_pool_restrict_n is set (K=84's own cell only
+# — K=90 never sets this param, so K=90's checkpoint block is byte-
+# identical to the pre-Rev-1 4-call baseline). Stored under NEW keys,
+# NEVER overwriting the existing M3_held_out (preserves the manifest-
+# regression invariant for every wave/cell that never passes this
+# param). Rev 2 MINOR-1 fix: both new calls now thread
+# c17_repro_telemetry=c17_repro_telemetry, matching the docstring's own
+# "SEPARATE flag threaded to ALL FOUR pool calls" invariant
+# (run_deltanet_rd.py:354-355) — now a 6-call invariant for K=84's own
+# cell (m2, m3, c17, c19, m3_restricted, m3_noise_repeat), 4-call
+# unchanged for K=90's.
 if m3_pool_restrict_n is not None:
     eval_gen2 = torch.Generator(device=device).manual_seed(seed + 20_000 + step)
     m3_restricted = evaluate_pool(model, cfg, eval_gen2, device,
                                    (*cfg.H_test, *cfg.H_extra), pools,
                                    force_rank_k=force_rank_k,
-                                   restrict_entity_pool_n=m3_pool_restrict_n)
+                                   restrict_entity_pool_n=m3_pool_restrict_n,
+                                   c17_repro_telemetry=c17_repro_telemetry)
     res["M3_held_out_pool_restricted"] = m3_restricted
+    # Rev 2 MAJOR-1 fix — measured noise-floor pass: repeats the
+    # UNRESTRICTED M3_held_out call under eval_gen2's OWN offset scheme
+    # (seed+20_000+step), same weights, same UNRESTRICTED pool -- a
+    # FRESH Generator object re-seeded to the identical value (NOT the
+    # same eval_gen2 object already consumed by the restricted call
+    # above, which would draw a different, position-shifted
+    # sub-sequence instead of the matched starting draw this null
+    # needs). The ONLY thing that differs from the standard `m3` call
+    # (which uses eval_gen, offset seed+10_000+step) is which generator
+    # offset draws the eval batch -- isolates eval-batch sampling noise
+    # from the pool-margin treatment effect. Negligible marginal cost:
+    # one more evaluate_pool call, n_batches=4 default, small against a
+    # full training step.
+    eval_gen2_repeat = torch.Generator(device=device).manual_seed(seed + 20_000 + step)
+    m3_noise_repeat = evaluate_pool(model, cfg, eval_gen2_repeat, device,
+                                     (*cfg.H_test, *cfg.H_extra), pools,
+                                     force_rank_k=force_rank_k,
+                                     c17_repro_telemetry=c17_repro_telemetry)
+    res["M3_held_out_noise_repeat"] = m3_noise_repeat
 ```
 
-**The manipulation for this diagnostic's own 2 cells:** K=84's own eval
-restricts `train_name_ids` to its first **101** entries
-(`m3_pool_restrict_n=101 = 84+17`, matching K=90's own REAL, unmodified
-margin of 17) — giving a same-checkpoint, same-weights, paired
-comparison of K=84's `M3_held_out` (margin 23, standard) against
-`M3_held_out_pool_restricted` (margin 17, artificially thinned to
-K=90's own value). K=90 needs no restriction (its natural margin is
-already 17) and is evaluated normally — it serves as a freshly-launched,
-same-production-config comparator (§15.26.3), not a re-use of an OLD
-`n_iter=20` cell that could carry the tolerance-miscalibration confound
-§15.25 already found and fixed once.
+**The manipulation for this diagnostic's own 2 cells (Rev 2 MAJOR-2 fix
+— re-pinned to match the mechanism §15.26.2.1 itself diagnoses as live,
+entity-draw OVERLAP FRACTION `K/N`, not raw spare-entity MARGIN `N−K`;
+Rev 1's own margin-matched pin is disclosed as a slip in the fix-map,
+§15.26.10):** K=84's own eval restricts `train_name_ids` to its first
+**100** entries (`m3_pool_restrict_n=100`) — giving K=84's restricted
+overlap fraction `84/100=84.00%`, matching K=90's own REAL, unmodified
+overlap fraction `90/107=84.1121%` to within **0.11 percentage points**.
+Rev 1's own margin-matched pin (`N'=101=84+17`, matching K=90's spare-entity
+count of 17 rather than its overlap fraction) gave overlap `84/101=
+83.1683%` — a 0.9438pp residual, **≈8.4× looser** on the variable this
+diagnostic actually targets (precise ratio `0.9438/0.1121=8.417`,
+rounding to `8×`, not `9×`; the attack round's own shorthand, "~9×
+tighter," rounds a cruder `0.94/0.11≈8.55` estimate instead — both
+describe the same real, order-of-magnitude tightening, disclosed here
+as `≈8.4×` from the more precise inputs rather than silently repeating
+the brief's own rounder figure). Same cost — the restriction mechanism
+(§15.26.2.2's own code, one integer parameter) is unchanged; only the
+integer itself moves from 101 to 100. This gives a same-checkpoint,
+same-weights, paired comparison of K=84's `M3_held_out` (margin 23 /
+overlap 78.50%, standard) against `M3_held_out_pool_restricted` (margin
+16 / overlap 84.00%, artificially thinned to closely match K=90's own
+overlap). K=90 needs no restriction (its natural overlap is already
+84.11%, margin 17) and is evaluated normally — it serves as a
+freshly-launched, same-production-config comparator (§15.26.3), not a
+re-use of an OLD `n_iter=20` cell that could carry the
+tolerance-miscalibration confound §15.25 already found and fixed once.
 
 #### 15.26.2.3 Seed table — disclosed reuse of 2 of the killed grid's own
 now-unneeded reservations
 
 | K | K/d | cell | seed | eval treatment | provenance |
 |---|---|---|---|---|---|
-| 84 | 0.87500 | margin-equalized | **1943** | `M3_held_out` (margin 23, standard) AND `M3_held_out_pool_restricted` (margin 17, `restrict_entity_pool_n=101`) | REDIRECTED, disclosed — 1943 was the killed 10-cell grid's own reserved K=84 contingency seed (§15.26.1's own disposition paragraph), never fired; the grid it was reserved for no longer exists, so this is a re-use of an already-idle reservation, not a new token |
+| 84 | 0.87500 | overlap-equalized (Rev 2 MAJOR-2 fix — was "margin-equalized," disclosed as a slip, §15.26.10) | **1943** | `M3_held_out` (margin 23 / overlap 78.50%, standard) AND `M3_held_out_pool_restricted` (margin 16 / overlap 84.00%, `restrict_entity_pool_n=100`) plus the Rev 2 MAJOR-1 noise-floor repeat, `M3_held_out_noise_repeat` (unrestricted, `eval_gen2`'s own offset) | REDIRECTED, disclosed — 1943 was the killed 10-cell grid's own reserved K=84 contingency seed (§15.26.1's own disposition paragraph), never fired; the grid it was reserved for no longer exists, so this is a re-use of an already-idle reservation, not a new token |
 | 90 | 0.93750 | natural-margin comparator | **2043** | `M3_held_out` only (margin 17, unmodified — its natural value) | REDIRECTED, disclosed — same disposition as 1943, the killed grid's own reserved K=90 contingency seed |
 
 Seeds 1944 (K=84) and 2044 (K=90) — the OTHER half of each killed pair —
 stay unclaimed, available for any future need, not fired and not
 orphaned (they were never registered for anything but the now-killed
-grid). Collision check (mechanical, re-run this session):
+grid). **Rev 2 cross-reference:** §15.26.3.1's own MAJOR-3 whitelist fix
+uses these SAME two seeds as in-process, sibling-seed reference commands
+for the launch wrapper's own field-diff check — an in-memory
+`_keyanchor_scaling_spec`/`build_cmd` call only, never a launch, so this
+does not consume or fire either token; they remain unclaimed by the
+definition above. Collision check (mechanical, re-run this session):
 `grep -rn '_s1943_\|_s2043_' matrix-thinking/deltanet_rd/*.py
 experiment-runs/` returns hits only in the REGISTRATION table
 (`run_deltanet_rd_exactness_sweep.py:3098`) and the C17 repro instrument's
@@ -5764,7 +5880,8 @@ onward, ~7,000× margin at `n_iter=20`, bumping to 28 adds headroom to an
 already-converged quantity). Gate (c), sha256 reused-JSON, is N/A — both
 cells are fresh launches.
 
-#### 15.26.3.1 Launch mechanism, named explicitly (MAJOR-2 fix)
+#### 15.26.3.1 Launch mechanism, named explicitly (round-1 MAJOR-2 fix;
+round-2 MAJOR-3 whitelist adaptation folded in below)
 
 **Named, not assumed:** this diagnostic launches via a NEW, standalone
 wrapper script (`run_poolmargin_k84s1943_k90s2043.py`, registered, not
@@ -5790,12 +5907,12 @@ if os.environ.get("KEYANCHOR_SCALING_EXT_PI_SIGNOFF", "0") != "1":
 **Both gates required, even though the 1× point estimate alone fits
 under the ORIGINAL 21 GPU-h ceiling without needing the extension
 (§15.26.4) — disclosed reasoning, not a copy-paste of the precedent:**
-the 2× pessimistic bracket (§15.26.4: `21.0746/21=100.36%`) marginally
-EXCEEDS the original 21, so gate a2 is required as a conservative safety
-net, mirroring the precedent's own unconditional two-gate requirement —
-the claim that "the extension stays undrawn" (§15.26.4) is about the
-REALIZED total, not about whether the token must be present at launch
-time.
+the 2× pessimistic bracket (§15.26.4, Rev 2 MINOR-5 fix:
+`21.1666/21=100.79%`) marginally EXCEEDS the original 21, so gate a2 is
+required as a conservative safety net, mirroring the precedent's own
+unconditional two-gate requirement — the claim that "the extension
+stays undrawn" (§15.26.4) is about the REALIZED total, not about
+whether the token must be present at launch time.
 
 **Registered negative test (build-phase item — per CLAUDE.md's own
 "negative unit tests run to completion, not merely written" discipline,
@@ -5807,6 +5924,82 @@ only `KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1` set, and confirm `REFUSED`/exit
 to completion, not merely written, closing the exact gap MAJOR-2 found
 (the precedent wrapper's own gate was never negative-tested by any prior
 session).
+
+**Rev 2 MAJOR-3 fix — the field-diff/token-diff check, adapted for the
+new flag, pinned explicitly (this "mirrors the precedent line-for-line"
+claim above was previously silent on the precedent's OWN field-diff
+mechanism, `run_k69_s1733_contingency.py:137–154` — an omission, not a
+disclosed scope-narrowing):** the precedent builds its real command via
+`_keyanchor_scaling_spec`/`build_cmd` (the SAME functions every audited
+cell uses), builds a SECOND command via the SAME functions at a
+sibling, same-K reference seed, normalizes both by replacing every
+literal seed-value token with a `"SEED"` placeholder, and refuses unless
+the two normalized token lists are exactly equal — catching any
+config drift beyond the seed itself. A verbatim port of that check
+breaks for K=84's own cell: its real command carries an extra token
+this wrapper itself appends after `build_cmd` returns
+(`--m3-pool-restrict-n 100`, since `build_cmd` does not know about this
+diagnostic's own wave-specific flag), which the sibling-seed reference
+command never has — an unmodified equality check would see that token
+as an unexplained divergence and wrongly refuse a legitimate launch.
+Fixed by stripping an explicitly-enumerated whitelist from the K=84
+command BEFORE the precedent's own equality check runs, so the check
+keeps its teeth against every OTHER kind of drift:
+
+```python
+# registered, NOT YET BUILT — Rev 2 MAJOR-3 fix, adapts
+# run_k69_s1733_contingency.py's own normalize()/equality-diff pattern
+# (lines 142-147 of that file) rather than porting it verbatim.
+NEW_FLAG_WHITELIST = {
+    "--m3-pool-restrict-n": 1,   # takes exactly 1 positional value (the int)
+    # second-generator flag: N/A this design -- the noise-floor repeat
+    # pass (§15.26.2.2, MAJOR-1 fix) is auto-gated by the SAME
+    # `m3_pool_restrict_n is not None` condition inside train(), not its
+    # own separate CLI token; this entry is reserved in case a future
+    # revision splits it out, so the whitelist stays exhaustive by
+    # construction rather than by omission.
+}
+
+def strip_whitelisted(cmd_tokens: list) -> list:
+    out, i = [], 0
+    while i < len(cmd_tokens):
+        tok = cmd_tokens[i]
+        if tok in NEW_FLAG_WHITELIST:
+            i += 1 + NEW_FLAG_WHITELIST[tok]   # skip the flag + its N values
+            continue
+        out.append(tok)
+        i += 1
+    return out
+
+# K=84/seed=1943: cmd carries --m3-pool-restrict-n 100 (appended by this
+# wrapper, after build_cmd returns); ref_cmd is built at sibling seed
+# 1944 (§15.26.2.3's own OTHER released, still-unclaimed K=84 token —
+# an in-process self-consistency reference, never itself launched) and
+# never carries the new flag at all.
+# K=90/seed=2043: cmd carries no new flag; ref_cmd at sibling seed 2044
+# (§15.26.2.3's own OTHER released K=90 token) likewise carries none --
+# strip_whitelisted() is a safe no-op for this cell.
+cmd_for_diff = strip_whitelisted(cmd)
+n_new = normalize(cmd_for_diff, SEED)      # normalize(): precedent's own function, unchanged
+n_ref = normalize(ref_cmd, REF_SEED)
+if n_new != n_ref:
+    refuse("generated command diverges from the sibling-seed reference command in a "
+           "field OTHER than seed or a whitelisted new flag -- refusing to launch.")
+```
+
+**Registered negative test for the whitelist itself (build-phase item,
+run to completion before either real cell launches, closing the exact
+gap MAJOR-3 found — a whitelist that is never proven to still catch
+real drift is not a safety mechanism, it is a permanent bypass):**
+construct a synthetic command with ONE extra, non-whitelisted token
+appended (e.g. `--bogus-extra-flag 1`, not present in
+`NEW_FLAG_WHITELIST`) and confirm the check still refuses — proving the
+whitelist carve-out did not silently widen into "accept any extra
+token." Run alongside, not in place of, §15.26.3.1's own PI-signoff
+negative test above (three combinations); all four negative cases
+(missing-a1, missing-a2, missing-both, one non-whitelisted extra token)
+must refuse before either real cell (seed=1943, seed=2043) is trusted
+to launch.
 
 ### 15.26.4 Cost + ledger
 
@@ -5830,19 +6023,34 @@ favor of a design whose downside case (below) stays inside the ORIGINAL
 budget, is a strict improvement on both the expected-value AND the
 tail-risk axis, not merely the expected-value one.
 
-**This diagnostic's own ledger — the operative numbers for Rev 1:** 2
-cells × 0.427 GPU-h/cell (SAME base rate) = **0.854 GPU-h at 1×**,
-rounded up to **≈0.9 GPU-h** to leave disclosed headroom for K=84's own
-extra `M3_held_out_pool_restricted` eval pass (§15.26.2.2) — bounded,
-since `evaluate_pool`'s own `n_batches=4` default makes one additional
-eval call per checkpoint a small addition relative to training, not a
-second training run.
+**This diagnostic's own ledger — the operative numbers, carried forward
+from Rev 1 unchanged at 1× (the K=84 cell's own extra noise-floor eval
+pass, MAJOR-1, adds no meaningful GPU-h beyond the headroom already
+reserved below — one more `n_batches=4` eval call):** 2 cells × 0.427
+GPU-h/cell (SAME base rate) = **0.854 GPU-h at 1×**, rounded up to
+**≈0.9 GPU-h** to leave disclosed headroom for K=84's own extra
+`M3_held_out_pool_restricted`/`M3_held_out_noise_repeat` eval passes
+(§15.26.2.2) — bounded, since `evaluate_pool`'s own `n_batches=4`
+default makes each additional eval call per checkpoint a small addition
+relative to training, not a second training run.
 
 | Item | GPU-h | Running total | vs. ORIGINAL 21 | vs. extended 26 |
 |---|---|---|---|---|
 | Baseline (§15.25.3) | — | 19.3666/26 | 92.22% | 74.49% |
 | This diagnostic, 1× (2×0.427, +headroom) | +0.900 | **20.2666/26** | **96.51% — FITS WITHOUT the extension** | 77.95%, reserve 5.7334 |
-| This diagnostic, 2× pessimistic | +1.708 | **21.0746/26** | **100.36% — a small, disclosed tail excess over the ORIGINAL ceiling** | 81.06%, well inside the extension |
+| This diagnostic, 2× pessimistic | +1.800 | **21.1666/26** | **100.79% — a small, disclosed tail excess over the ORIGINAL ceiling** | 81.41%, reserve 4.8334, well inside the extension |
+
+**Rev 2 MINOR-5 fix:** the 2× pessimistic row now doubles the SAME
+rounded **0.900** GPU-h base the 1× row itself uses (`2×0.900=1.800`,
+running total `19.3666+1.800=21.1666`), not the unrounded 0.854
+(`2×0.854=1.708`, Rev 1's own figure) — a rounding-base inconsistency
+between the 1× and 2× rows of the SAME table (Rev 1 rounded up for the
+1× row's own disclosed headroom, then reverted to the unrounded figure
+for the 2× row two lines below it). The underlying conclusion is
+unchanged either way (both `100.36%` and `100.79%` are a small,
+disclosed tail excess over the ORIGINAL 21 GPU-h ceiling, both well
+inside the extended 26) — this is a consistency fix, not a new finding
+about the wave's own risk profile.
 
 **Design virtue, stated explicitly (per the task's own framing):**
 because the 1× point estimate fits under the ORIGINAL 21 GPU-h ceiling
@@ -5854,8 +6062,9 @@ realized/estimate history: every prior wave landed at 13.6%–112.5% of
 its own 1× estimate, never near 2×), even though gate a2
 (`KEYANCHOR_SCALING_EXT_PI_SIGNOFF`) is still required at launch
 (§15.26.3.1) as a conservative, mechanically-checked safety net against
-the small 2× tail (100.36%), not because the ledger is actually expected
-to need it.
+the small 2× tail (100.79%, Rev 2 MINOR-5 fix — was 100.36% under Rev
+1's own rounding-inconsistent 2× figure), not because the ledger is
+actually expected to need it.
 
 **Mitigations, registered as mechanical gates:**
 
@@ -5873,7 +6082,9 @@ to need it.
    alone is sufficient mitigation for a 2-cell wave.
 
 ### 15.26.5 Fit + decision rules — the K90 pool-margin diagnostic's own
-outcome table (MAJOR-3 fix folded in directly)
+outcome table (MAJOR-1 noise-floor recalibration, this revision, plus
+round-1's own MAJOR-3 discrimination-honesty disclosure, both folded in
+directly)
 
 **No sigmoid re-fit is invoked this wave** (unlike the killed grid,
 which would have supplied new n=5/K points to `fit_cliff_curve.py`) —
@@ -5888,14 +6099,107 @@ exact-threshold discipline), using Δ_measured = 1.0000 (K90's own real
 n=3 mean) − seed=1943's own UNRESTRICTED `M3_held_out` h4 value (measured
 fresh this wave, not assumed) and shift = seed=1943's own
 `M3_held_out_pool_restricted` h4 − its own UNRESTRICTED `M3_held_out` h4
-(same checkpoint, same weights, only the eval-time pool margin differs):**
+(same checkpoint, same weights, only the eval-time pool restriction
+differs — "margin" retired as the framing term per the MAJOR-2 fix
+below):**
+
+**Rev 2 MAJOR-1 fix — the measured noise floor.** Rev 1's own `shift`
+compared `M3_held_out_pool_restricted` (drawn under `eval_gen2`, offset
+`seed+20_000+step`) against `M3_held_out` (drawn under `eval_gen`,
+offset `seed+10_000+step`) — two DIFFERENT generators, so `shift`
+conflated the pool-restriction treatment with plain eval-batch
+resampling noise, and the `CEILING-IS-REAL` trigger (`shift ≤
+0.1×Δ_measured`) was being judged against zero measured null. §15.26.2.2's
+own new `M3_held_out_noise_repeat` call (same weights, same UNRESTRICTED
+pool, `eval_gen2`'s own offset — the ONLY difference from the standard
+`M3_held_out` call) gives a directly measured null:
+
+```
+noise_shift := |M3_held_out_noise_repeat h4 − M3_held_out h4|
+```
+
+(absolute value — this null measures HOW MUCH the generator-offset
+switch alone moves the reading, in either direction; `shift` itself,
+below, keeps its sign, since a restriction that makes recovery WORSE is
+still informative and must not be treated as an artifact signal).
+
+Both outcome thresholds are re-pinned RELATIVE to `noise_shift`, not
+fixed fractions of `Δ_measured` alone:
+
+```
+REAL_THRESH     := max(0.1 × Δ_measured, noise_shift)
+ARTIFACT_THRESH := max(0.5 × Δ_measured, 3 × noise_shift)
+```
 
 | Outcome | Trigger | What it means |
 |---|---|---|
-| **CEILING-IS-ARTIFACT** | `shift ≥ 0.5 × Δ_measured` | The margin-restricted eval recovers at least half of the K84–K90 gap purely from thinning the eval-time pool margin, with the SAME trained weights — the observed K84<K90 non-monotonicity is (at least partly) an eval-time artifact of pool margin, not a genuine capacity difference at K/d=0.875 vs 0.9375. **MAJOR-3 discrimination-honesty disclosure, stated here explicitly rather than left implicit: even in this best case, any resulting re-fit or rival-band read is registered as DESCRIPTIVE ONLY, not a discriminating test.** §15.20.4's own uniform-`n=4` power check already found rival-center CI half-widths (abs-slack 0.0375, power-law 0.0287) still ~2×+ the derived `0.0145` half-gap discrimination threshold at FIVE FULL K-groups of data; this diagnostic adds at most 2 data points at 2 K's, nowhere near enough to close that gap. A training-side memorization variant of the pool-margin hypothesis (repeated near-fixed-subset exposure DURING training, not reachable by an eval-only manipulation) also remains untested and is named as a disclosed, separately-scoped future question, not folded into this verdict. |
-| **CEILING-IS-REAL** | `shift ≤ 0.1 × Δ_measured` | The margin-restricted eval is materially inert (comparable to GPU eval run-to-run noise) — the K84<K90 gap is NOT explained by eval-time pool margin; SCATTER-IS-REAL / the observed non-monotonicity stands as measured, unresolved by this diagnostic. The training-side memorization variant remains a disclosed, untested, separately-scoped open question either way. |
-| **AMBIGUOUS** | `0.1 × Δ_measured < shift < 0.5 × Δ_measured` | A real but partial, inconclusive effect — reported as such, not forced into either bucket. |
+| **CEILING-IS-ARTIFACT** | `shift ≥ ARTIFACT_THRESH` | The margin-restricted eval recovers at least half of the K84–K90 gap (or ≥3× the measured eval-sampling noise, whichever bar is higher) purely from thinning the eval-time pool overlap, with the SAME trained weights — the observed K84<K90 non-monotonicity is (at least partly) an eval-time artifact of pool overlap, not a genuine capacity difference at K/d=0.875 vs 0.9375. **Round-1 MAJOR-3 discrimination-honesty disclosure, unchanged: even in this best case, any resulting re-fit or rival-band read is registered as DESCRIPTIVE ONLY, not a discriminating test.** §15.20.4's own uniform-`n=4` power check already found rival-center CI half-widths (abs-slack 0.0375, power-law 0.0287) still ~2×+ the derived `0.0145` half-gap discrimination threshold at FIVE FULL K-groups of data; this diagnostic adds at most 2 data points at 2 K's, nowhere near enough to close that gap. A training-side memorization variant of the pool-overlap hypothesis (repeated near-fixed-subset exposure DURING training, not reachable by an eval-only manipulation) also remains untested and is named as a disclosed, separately-scoped future question, not folded into this verdict. |
+| **CEILING-IS-REAL** | `shift ≤ REAL_THRESH` | The margin-restricted eval is materially inert — indistinguishable from (or smaller than) the directly measured eval-sampling noise floor, `noise_shift` — the K84<K90 gap is NOT explained by eval-time pool overlap; SCATTER-IS-REAL / the observed non-monotonicity stands as measured, unresolved by this diagnostic. A negative `shift` (restriction made recovery worse) also falls here, since `REAL_THRESH ≥ 0` always. The training-side memorization variant remains a disclosed, untested, separately-scoped open question either way. |
+| **AMBIGUOUS** | `REAL_THRESH < shift < ARTIFACT_THRESH` | A real but partial, inconclusive effect — reported as such, not forced into either bucket. |
 | (degenerate cell) | Either cell reads `geo3_admission.admissible is not True` after the n_iter=28 gate (§15.26.3) | Escalated per the SAME §15.23 C17-exclusive-signature adjudication Rev 0 already registered, not silently absorbed |
+
+**Totality walk — proof the three buckets are MECE for any measured
+`noise_shift ≥ 0` and any `Δ_measured > 0` (the diagnostic's own
+premise, K84 sitting below K90, already requires `Δ_measured > 0`; the
+`Δ_measured ≤ 0` case is routed separately by the MINOR-3 contingency
+below, never evaluated by this trigger at all):**
+
+`REAL_THRESH ≤ ARTIFACT_THRESH` must hold for every possible measured
+`noise_shift`, or the three buckets could overlap or leave a gap.
+Three cases on `noise_shift`, exhaustive and non-overlapping by
+construction:
+
+1. **`noise_shift ≤ 0.1×Δ_measured`** (the noise floor is small relative
+   to the treatment scale): `REAL_THRESH = max(0.1Δ, noise_shift) =
+   0.1Δ`; `3×noise_shift ≤ 0.3Δ < 0.5Δ`, so `ARTIFACT_THRESH =
+   max(0.5Δ, 3×noise_shift) = 0.5Δ`. `REAL_THRESH=0.1Δ < 0.5Δ=
+   ARTIFACT_THRESH` — reduces exactly to Rev 1's own original, fixed
+   10%/50% thresholds, unrecalibrated, because the measured noise floor
+   turned out not to bind.
+2. **`0.1×Δ_measured < noise_shift ≤ Δ_measured/6`** (the noise floor
+   exceeds 10% of Δ but stays small enough that tripling it still
+   doesn't reach 50% of Δ): `REAL_THRESH = noise_shift` (now the
+   measured null, not the fixed fraction, governs the lower boundary);
+   `3×noise_shift ≤ 0.5Δ`, so `ARTIFACT_THRESH` stays `0.5Δ`.
+   `REAL_THRESH = noise_shift ≤ Δ/6 < 0.5Δ = ARTIFACT_THRESH`.
+3. **`noise_shift > Δ_measured/6`** (a large measured noise floor):
+   `REAL_THRESH = noise_shift` (since `noise_shift > Δ/6 > 0.1Δ`);
+   `ARTIFACT_THRESH = 3×noise_shift` (since `3×noise_shift > 0.5Δ`).
+   `REAL_THRESH = noise_shift < 3×noise_shift = ARTIFACT_THRESH`
+   whenever `noise_shift > 0`, which this case requires.
+
+In all three cases `REAL_THRESH < ARTIFACT_THRESH` strictly (equality
+is possible only in the fully degenerate `Δ_measured=noise_shift=0`
+corner, excluded by the `Δ_measured > 0` premise above) — the interval
+`(REAL_THRESH, ARTIFACT_THRESH)` is always non-empty and the three
+triggers (`shift ≤ REAL_THRESH`, the open interval, `shift ≥
+ARTIFACT_THRESH`) partition the entire real line with no gap and no
+overlap, for ANY nonnegative measured `noise_shift`. (Illustrative only,
+not a substitute for the fresh measurement: using K84's own prior
+3-seed aggregate mean, 0.9581, as a provisional stand-in for
+`Δ_measured` gives `Δ_measured≈0.0419`, `0.1Δ≈0.00419`, `0.5Δ≈0.02095` —
+matching the task brief's own illustrative figure; the actual trigger
+uses seed=1943's own freshly measured value, not this proxy.)
+
+**Rev 2 MINOR-3 fix — the Δ_measured contingency, pre-registered so a
+surprising K90 reading is never silently absorbed into the trigger
+table above:** `Δ_measured` is defined using K90's own real n=3 MEAN
+from the OLD grid (1.0000, exact ceiling, §15.26.1's table) as its
+minuend, but seed=2043 is a FRESH cell, launched under THIS wave's own
+bumped `n_iter=28` (§15.26.3), not a re-use of the old n_iter=20 cells
+that produced that 1.0000 figure. If seed=2043's own fresh h4 does NOT
+reproduce ceiling (`h4 < 0.98` under the `n_iter=28` admission gate),
+this diagnostic re-pins `Δ_measured` to use seed=2043's own fresh
+reading in place of the old grid's 1.0000 mean, and DISCLOSES the
+re-pin explicitly in the harvest — never silently substituting one
+number for another. If seed=2043's own fresh reading drops BELOW
+K=84/seed=1943's own unrestricted `M3_held_out` mean (i.e. the
+K84<K90 gap this diagnostic exists to explain no longer holds under the
+fresh, matched-`n_iter` comparison), the whole premise shifts: this
+diagnostic does NOT force a CEILING-IS-ARTIFACT/CEILING-IS-REAL call in
+that case — it routes directly to **AMBIGUOUS** and registers a
+follow-up naming the reversed direction as a new, disclosed open
+question, never silently picking a bucket as if the premise still held.
 
 ### 15.26.6 Gates (reuse chain, mirrors §15.20.6/§15.24.5's own table
 format)
@@ -5912,6 +6216,8 @@ format)
 | (g) Seed-space collision check | `grep` across `experiment-runs/` + `*.py`, zero hits (§15.26.2.3) | REUSED mechanism, re-run this session, clean |
 | (h) Calibration-first launch | §15.26.4 item 1 | REUSED mechanism, scope narrowed (no cut rule needed at 2 cells) |
 | (i) NEW — launch-mechanism negative test (MAJOR-2 fix) | Wrapper refuses without either/both PI-signoff tokens, all 3 missing-token combinations tested | NEW, registered, run to completion before launch (§15.26.3.1) |
+| (j) NEW — field-diff whitelist negative test (Rev 2 MAJOR-3 fix) | Wrapper refuses when the generated command carries one extra, non-whitelisted flag beyond `NEW_FLAG_WHITELIST` | NEW, registered, run to completion before launch, alongside gate (i) (§15.26.3.1) |
+| (k) NEW — noise-floor measurement (Rev 2 MAJOR-1 fix) | K=84/seed=1943's own `M3_held_out_noise_repeat` call lands and `noise_shift` is computed BEFORE the outcome trigger (§15.26.5) is evaluated | NEW, registered, mechanical precondition on the harvest (§15.26.2.2) |
 
 ### 15.26.7 GPU plan
 
@@ -5927,27 +6233,33 @@ K=90/seed=2043, same GPU, after Stage 0 clears.
 - Exact thresholds, no numerical-tolerance slack (the admission gate's
   `admissible is True`, never a fuzzy read, §15.26.3 gate item 2's
   negative test proves it; this diagnostic's own outcome trigger,
-  §15.26.5, uses exact fractions of a measured gap, not fuzzy language).
+  §15.26.5, uses exact fractions of a measured gap RELATIVE to a
+  measured noise floor, Rev 2 MAJOR-1 fix, not fuzzy language, and its
+  own totality walk proves the three buckets are MECE for any measured
+  `noise_shift`).
 - Negative unit tests run to completion, not merely written (§15.26.3
-  gate items 1–2; §15.26.3.1's new launch-mechanism negative test,
-  MAJOR-2 fix; §15.26.2.3's collision grep, re-run this session; this
-  Rev 1's own positive-control run, §15.26.1, proving the degeneracy
-  detector has teeth).
+  gate items 1–2; §15.26.3.1's launch-mechanism negative test, MAJOR-2
+  fix, AND its own field-diff whitelist negative test, Rev 2 MAJOR-3
+  fix; §15.26.2.3's collision grep, re-run this session; Rev 1's own
+  positive-control run, §15.26.1, proving the degeneracy detector has
+  teeth).
 - Smoke test every model incl. eval batch before launch — this wave
   reuses an already-smoke-tested architecture/config; the only new
   smoke surface is the `n_iter` override (reused) plus the new
   `restrict_entity_pool_n` eval-only parameter (§15.26.2.2, additive,
-  zero-behavioral-change at its `None` default).
+  zero-behavioral-change at its `None` default) and its own new
+  noise-floor repeat call (Rev 2 MAJOR-1 fix, same additive discipline).
 - tmux + supervisor launch pattern, same discipline as every prior wave.
 - Archive to repo (≤25MB) + SSD mirror, both, no exceptions — registered
   for the harvest, not built here (design-only session); the power-check
   scripts + their outputs ARE archived now (both the Rev 0 script and
-  this Rev 1 session's own extended-verification script, below), since
-  they were run this session. No SSD mirror needed yet (no GPU cell has
-  run under this design).
-- Multiple independent adversarial audit rounds — this section is Rev 1,
-  responding to attack round 1 (§15.26.9); it has not yet had its own
-  attack round 2, still pending before CLEARED-FOR-BUILD.
+  the Rev 1 session's own extended-verification script, below), since
+  they were run in those sessions. No new scripts were run this Rev 2
+  session — a pure design revision. No SSD mirror needed yet (no GPU
+  cell has run under this design).
+- Multiple independent adversarial audit rounds — this section is Rev 2,
+  responding to attack round 2 (§15.26.10); it has not yet had its own
+  attack round 3 (a VERIFY pass), still pending before CLEARED-FOR-BUILD.
 - Never compress matrices to vectors — N/A, no new readout head.
 
 ### Archive (Rev 0 + Rev 1 sessions, same directory)
@@ -5965,6 +6277,11 @@ tracked, all files ≤25MB):
   positive control, all byte-identical copies of
   `matrix-thinking/deltanet_rd/sim_d96_scatter_resolution_power_
   extended.py` (verified this session, `diff` clean).
+
+**Rev 2 note:** this revision added no new run artifacts — a pure
+design revision (noise-floor trigger recalibration, overlap-fraction
+re-pin, wrapper whitelist), all registered as code, none run this
+session. Nothing to archive beyond the two entries above.
 
 ### 15.26.9 ATTACK-ROUND-1 fix-map (2026-07-08) — verdict RESHAPE-TO-C
 
@@ -6005,5 +6322,55 @@ independent audit pass** — per this project's standing rule that
 multiple independent adversarial rounds catch different bugs each round,
 landing attack-round-1's findings does not, on its own, certify §15.26 as
 CLEARED-FOR-BUILD.
+
+### 15.26.10 ATTACK-ROUND-2 fix-map (2026-07-09) — verdict NEEDS-REVISION
+
+A second independent adversarial pass reviewed §15.26 (Rev 1, landed
+2026-07-08, RESHAPE-TO-C) before any GPU work launched, per this
+program's own standing multiple-independent-audit-rounds discipline.
+Verdict: **NEEDS-REVISION** — 0 FATAL, 3 MAJOR, 5 MINOR — every finding
+surgical, individually prescribed, no category error this round. The
+empirical core (the 360,000 cumulative trial power check, the analytic
+K84-vs-K90 z-derivation) was independently re-verified this round and
+found exceptionally clean — every cited number reproduces, and the
+320,000-trial multi-seed/reimplementation/positive-control extension
+underlying §15.26.1's own zero-GPU finding was independently
+RE-EXECUTED, not merely re-read, and reproduced exactly. Every finding
+below is fixed in this revision (Rev 2, §15.26.1–§15.26.8); none is
+deferred or waved away. Findings are recorded near-verbatim for the
+historical record, per house style; resolutions are stated as landed in
+this text, not as intentions.
+
+| # | Finding (attack-round on §15.26, Rev 1) | Severity | Fix (Rev 2) | Location |
+|---|---|---|---|---|
+| MAJOR-1 | The outcome trigger (§15.26.5)'s `CEILING-IS-REAL` branch (`shift ≤ 0.1×Δ_measured ≈ 0.00419`) has no measured null: the restricted (`M3_held_out_pool_restricted`) and unrestricted (`M3_held_out`) `M3` calls use TWO DIFFERENT eval generators (`eval_gen`, offset `seed+10_000`, vs. `eval_gen2`, offset `seed+20_000`) — `shift` therefore conflates the pool-restriction treatment with plain eval-batch sampling noise, and the trigger is judged against zero measured baseline | MAJOR | Registered ONE additional eval-only pass in the K=84 checkpoint block — the SAME unrestricted `M3_held_out` call, repeated under `eval_gen2`'s own offset (same weights, same UNRESTRICTED pool, generator offset the only difference from the standard call), giving `noise_shift := \|repeat − standard\|`, a directly measured eval-sampling null. Both outcome thresholds re-pinned relative to it: `REAL_THRESH=max(0.1×Δ,noise_shift)`, `ARTIFACT_THRESH=max(0.5×Δ,3×noise_shift)`; MECE proven by an explicit 3-case totality walk (any `noise_shift≥0` collapses cleanly to one of three orderings, `REAL_THRESH<ARTIFACT_THRESH` strictly in every case). Negligible marginal cost — one more `evaluate_pool` call | §15.26.2.2 (new noise-repeat call); §15.26.5 (re-pinned trigger table + totality walk); §15.26.6 gate (k) |
+| MAJOR-2 | §15.26.2.1 itself pins the diagnosed mechanism as entity-draw OVERLAP FRACTION `K/N`, not spare-entity margin `N−K` — but Rev 1's own manipulation (`m3_pool_restrict_n=101=84+17`) matched K90's MARGIN (17), not its overlap fraction: `N'=101` gives K84's restricted overlap `84/101=83.17%` vs. K90's real `90/107=84.11%`, a 0.94pp residual on the variable the diagnostic exists to control | MAJOR | Re-pinned `N'=100`: `84/100=84.00%` vs. K90's `84.11%`, a 0.11pp residual — ≈8.4× tighter on the actually-diagnosed variable, same cost (one integer parameter change, `101→100`). Rev 1's own margin-vs-overlap slip disclosed explicitly here rather than silently corrected | §15.26.2.2 (manipulation paragraph); §15.26.2.3 (seed table row) |
+| MAJOR-3 | §15.26.3.1 names the launch wrapper as mirroring `run_k69_s1733_contingency.py`'s own precedent "line-for-line," but stayed silent on that precedent's own field-diff/token-diff check (refuse unless the generated command matches a sibling-seed reference command with only seed-derived tokens differing, `run_k69_s1733_contingency.py:137–154`). A verbatim port of that check cannot pass for K=84's own cell: its real command carries a new `--m3-pool-restrict-n` flag `build_cmd` doesn't know how to generate, which the reference command never has — an unmodified equality check would wrongly refuse a legitimate launch | MAJOR | Pinned the adapted check explicitly: an enumerated `NEW_FLAG_WHITELIST` (`--m3-pool-restrict-n`, plus a reserved, currently-unused entry for a second-generator flag in case a future revision splits the noise-repeat pass out of its current auto-gated design) is stripped from the generated command BEFORE the precedent's own equality-diff runs, so the check refuses on any OTHER, non-whitelisted divergence. Its own registered negative test (a command carrying one extra, non-whitelisted flag must still be refused) closes the gap, run alongside the existing PI-signoff negative test, not in place of it | §15.26.3.1 (new whitelist subsection + negative test); §15.26.6 gate (j) |
+| MINOR-1 | §15.26.2.2's own registered `m3_restricted` call omitted `c17_repro_telemetry=c17_repro_telemetry` — every OTHER pool call at this checkpoint block (`m2`, `m3`, `c17`, `c19`) threads it uniformly (`run_deltanet_rd.py:354-355`'s own docstring: "a SEPARATE flag threaded to ALL FOUR pool calls"), so the new call silently broke that invariant | MINOR | Threaded `c17_repro_telemetry=c17_repro_telemetry` into both new calls (`m3_restricted` AND the new `m3_noise_repeat`, MAJOR-1's own addition) — the invariant now covers 6 calls for K=84's own cell (4 for K=90's, which never sets `m3_pool_restrict_n`) | §15.26.2.2 (both new call sites) |
+| MINOR-2 | §15.26.2.2's own citation `:961` for the `m3` call site is off by 2 — verified directly against `run_deltanet_rd.py` this round: line 961 is the PRECEDING `m2` call; `m3 = evaluate_pool(...)` itself spans lines 963–964 | MINOR | Corrected to `:963-964` at both occurrences, with the verification noted inline | §15.26.2.2 (both citations) |
+| MINOR-3 | §15.26.5's `Δ_measured` uses K90's OLD n=3 mean (1.0000, from cells run under the pre-bump `n_iter`) as its minuend, but seed=2043 is a FRESH cell launched under THIS wave's own bumped `n_iter=28` — no pre-registered contingency existed for the case where the fresh reading does not reproduce that old ceiling, or reverses the K84<K90 ordering this diagnostic exists to explain | MINOR | Pre-registered contingency added: if seed=2043's fresh h4 `<0.98` under the `n_iter=28` admission gate, `Δ_measured` is re-pinned to the fresh K90 reading and the re-pin is DISCLOSED; if the fresh K90 reading drops below K84/seed=1943's own mean, the diagnostic routes directly to AMBIGUOUS plus a registered follow-up, never silently forcing a CEILING-IS-ARTIFACT/-REAL call on a premise that no longer holds | §15.26.5 (Δ_measured contingency paragraph) |
+| MINOR-4 | §15.26.1's own registered finding text said h4 "near ceiling is seed-dependent," but K90's own per-seed table (§15.26.1) shows `sample sd=0.0000` across all 3 real seeds — an EXACT ceiling, not merely "near" it; the sub-ceiling K-groups (K72–K84) are where the real seed-dependence lives | MINOR | Reworded: "h4 is seed-dependent in the sub-ceiling regime (K72–K84) and non-sigmoid in this window; K90 is pinned at exact ceiling in all 3 seeds" | §15.26.1 (registered finding blockquote) |
+| MINOR-5 | §15.26.4's own second ledger table rounds the 1× base up (`0.854→0.900` GPU-h, disclosed headroom) but then doubles the UNROUNDED `0.854` for the 2× pessimistic row (`+1.708`, not `+1.800`) — a rounding-base inconsistency within the same table (`19.3666+1.708=21.0746/21=100.36%`, vs. the internally-consistent `19.3666+1.800=21.1666/21=100.79%`) | MINOR | Corrected the 2× pessimistic row to double the SAME rounded 0.900 base used by the 1× row (`21.1666/26`, `100.79%`/`81.41%`); every downstream citation of the old `100.36%`/`21.0746`/`1.708` figures (§15.26.3.1, §15.26.4's own surrounding prose) updated to match. Underlying conclusion unchanged either way — both figures are a small, disclosed tail excess over the ORIGINAL ceiling, well inside the extended one | §15.26.4 (ledger table + surrounding prose); §15.26.3.1 (citation) |
+
+**What Rev 2 could not cleanly fix, disclosed rather than hidden:** the
+K90 pool-margin control diagnostic (§15.26.2) is still a genuinely NEW
+instrument, never run before in any form — its own outcome remains
+unknown until it launches, and the round-1 MAJOR-3 discrimination-
+honesty disclosure still means even a clean CEILING-IS-ARTIFACT result
+would not fully resolve x0(96) or discriminate the two rival bands. The
+training-side memorization variant of the pool-overlap hypothesis
+remains untested, still named as a disclosed future question. The
+MAJOR-1 noise-floor fix measures `noise_shift` from a SINGLE pair of
+calls (one `standard`, one `repeat`) at ONE checkpoint of ONE seed —
+itself only a point estimate of the eval-sampling noise floor, not a
+distribution; if that single point estimate happens to land unusually
+low or high by chance, the re-pinned thresholds inherit that sampling
+variance, a residual risk disclosed here rather than hidden behind the
+"measured, not assumed" framing. **Rev 2 itself has not yet had its own
+independent audit pass** — per this project's standing rule that
+multiple independent adversarial rounds catch different bugs each
+round, landing attack-round-2's findings does not, on its own, certify
+§15.26 as CLEARED-FOR-BUILD; round 3 (a VERIFY pass, not a fresh full
+attack round) is next, per the queue in `STATE.md`.
 
 ---

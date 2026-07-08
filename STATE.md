@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-08 (REASONING-LINK §16.19 PHASE-2B SEED EXTENSION — Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM: attack round 3 on Rev 2 returned NEEDS-REVISION — 3 MAJOR + 2 MINOR, all fixed. MAJOR-A: §16.19.8's own 3-outcome decision rules could double-fire (TRANSIENT-CONFIRMED and TRANSIENT-REFUTED sub-case 2(b) both true of the same realized CI, e.g. `[-0.35,-0.05]`) — rewritten as an explicit, precedence-ordered, MECE 4-outcome partition (TRANSIENT-CONFIRMED-AT-MAGNITUDE / TRANSIENT-CONFIRMED-SMALLER / TRANSIENT-REFUTED / NEW-PATTERN(SIGN-FLIP)) via a new `contains_point()` helper, totality walk shown not asserted. MAJOR-B: Rev 2's own archived-values no-recompute guard closed the primary per_token readout's re-seed hazard only — `secondary_ood_readout` hits the SAME hazard at `hop_set=(3,4)` through a call site the guard's own prior scoping did not provably cover; fixed by generalizing the loader over `hop_set` and re-pinning the guard's scope as WHOLE-HARVEST-RUNTIME (one guard, both readouts, by construction, since both route through the same `eval_query_loss_heldout` seam); also disclosed the harvest driver is its own wave-specific `analyze_corpus_seedext` function, not production `analyze_corpus` invoked blindly. MAJOR-C: the 18 Leg-A pretraining cells' own launch mechanism was never named anywhere in §16.19 — registered a new, additive `--wave rung1-seedext` manifest in `frozen_bias_lm_sweep.py`, launched via a forked `frozen_bias_seedext_chain.sh` (mirrors `frozen_bias_chain.sh`), with a calibration-cell-first stop whose human-inspection step is replaced by a mechanical val-loss sanity band pinned from 3 real archived numbers (`[4.2426, 4.4426]`), and `contention_gate()` reuse (already-built, already-generically-tested) registered as the mechanical resolution of the disclosed GPUs-2-7 lane conflict with §15.26. Two surgical MINORs (an exact `pooled_SE` formula pin; naming the familiarization-layer's own fork, `phase2b_seedext_chain.sh`, distinct from the Leg-A-layer's `frozen_bias_seedext_chain.sh`). Design-only, zero GPU spent this session — queue: Rev 3 (done) → attack round 4 → build-delta → audit → launch. Full account below. KEYANCHOR-SCALING §15.26 d=96 SCATTER-RESOLUTION wave (Rev 1 LANDED, RESHAPE-TO-C, prior session, retained below for history, UNAFFECTED in its own content — still shares GPUs 2-7 with this block's own Leg-A slice, now mechanically gated via `contention_gate()` reuse per MAJOR-C above rather than a disclosure-only note) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-09 (KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION wave — Rev 2 LANDED, NOISE-FLOOR CALIBRATED: a second independent attack round on Rev 1's own RESHAPE-TO-C design returned NEEDS-REVISION — 3 MAJOR + 5 MINOR, no FATAL, all surgical; the empirical core (360,000-trial cumulative power check, the analytic K84-vs-K90 z-derivation) independently re-verified and found exceptionally clean, the 320,000-trial extension independently RE-EXECUTED and reproduced exactly. MAJOR-1 (highest value): the outcome trigger's CEILING-IS-REAL branch had no measured noise null (the restricted/unrestricted `M3` calls used two different eval generators) — fixed by registering one additional eval-only noise-floor repeat pass in the K=84 block, re-pinning both thresholds relative to the directly-measured `noise_shift`, MECE proven by an explicit totality walk. MAJOR-2: the manipulation matched K90's spare-entity MARGIN (`N'=101`, 0.94pp overlap-fraction residual) instead of the actually-diagnosed mechanism, entity-draw OVERLAP FRACTION — re-pinned `N'=100` (0.11pp residual, ≈8.4× tighter, same cost). MAJOR-3: the launch wrapper's own field-diff check couldn't pass verbatim with the new `--m3-pool-restrict-n` flag — fixed with an enumerated `NEW_FLAG_WHITELIST` stripped before the diff runs, plus its own negative test. Five surgical MINORs (telemetry-threading consistency, a citation fix, a pre-registered Δ_measured contingency, a finding-text reword, a ledger rounding-consistency fix). Design-only, zero GPU spent this session — queue: Rev 2 (done) → attack round 3 (VERIFY pass) → build wrapper → audit → launch GPU 2 FIRST, ≈0.9 GPU-h, THEN REASONING-LINK §16.19's own Leg-A pretraining slice per the pinned sequencing (shares GPUs 2-7, sequenced not concurrent). Full account below. REASONING-LINK §16.19 PHASE-2B SEED EXTENSION Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (prior session, retained below for history, UNAFFECTED in its own content by this session's §15.26 work — the two lanes remain sequenced on the shared GPU range per this session's own explicit note above) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -85,89 +85,97 @@ session.
 
 ---
 
-## KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION WAVE — REV 1 LANDED, RESHAPE-TO-C (2026-07-08) — supersedes the DESIGN (Rev 0, pre-attack) block's own queue status below (Rev 0's own re-derived per-K stats and original power check are reused, not retracted; the 10-cell escalation grid itself is killed and replaced). Different lane from, never gates and never gated by, the REASONING-LINK PHASE-2B SEED EXTENSION block above in CONTENT (different files) — but still shares GPUs 2-7 with that block's own Leg-A pretraining slice; neither has reached build/launch yet, so no live conflict today
+## KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION WAVE — REV 2 LANDED, NOISE-FLOOR CALIBRATED (2026-07-09) — supersedes the REV 1 LANDED, RESHAPE-TO-C block's own queue status below (Rev 1's own retirement of the 10-cell grid + substitution of the K90 pool-margin control diagnostic is reused and extended, not retracted — attack round 2 found and fixed an unmeasured-noise-null gap in the outcome trigger, a margin-vs-overlap mismatch in the manipulation itself, and a wrapper field-diff check that couldn't pass verbatim with the new flag, none of which reopens the retirement decision). Different lane from, never gates and never gated by, the REASONING-LINK §16.19 Leg-A pretraining lane in CONTENT (different files) — but still shares GPUs 2-7 with that lane; neither has reached build/launch yet, so no live conflict today. Per the task's own pinned sequencing, this lane's launch (GPU 2) goes FIRST once it clears build+audit, THEN §16.19's own Leg-A pretraining slice reaches its own launch gate — the two stay sequenced, not concurrent, on the shared GPU range
 
-**Queue status: Rev 1 (this entry) → ATTACK ROUND 2 → BUILD WRAPPER
+**Queue status: Rev 2 (this entry) → ATTACK ROUND 3 (a VERIFY pass, not
+a fresh full attack round) → BUILD WRAPPER
 (`run_poolmargin_k84s1943_k90s2043.py` + the additive
-`restrict_entity_pool_n`/`m3_pool_restrict_n` params) → AUDIT → LAUNCH
-GPU 2 (Stage 0: K=84/seed=1943 alone, calibration-gated; Stage 1:
-K=90/seed=2043), ≈0.9 GPU-h.**
+`restrict_entity_pool_n`/`m3_pool_restrict_n` params + the
+`NEW_FLAG_WHITELIST` field-diff adaptation) → AUDIT → LAUNCH GPU 2
+FIRST (Stage 0: K=84/seed=1943 alone, calibration-gated; Stage 1:
+K=90/seed=2043), ≈0.9 GPU-h — THEN §16.19's own Leg-A pretraining slice
+(GPUs 2-7, 6-way) once it separately clears its own build+audit gate.**
 
-**An independent attack round returned RESHAPE-TO-C — 3 MAJOR + 1 MINOR,
-no FATAL** (`KEY_ANCHORING_SCALING_DRAFT.md` §15.26.9's own fix-map).
-Rev 1 restructures the wave in three parts, all landed this session,
-zero GPU spent:
+**A second independent attack round returned NEEDS-REVISION — 3 MAJOR +
+5 MINOR, no FATAL, all surgical** (`KEY_ANCHORING_SCALING_DRAFT.md`
+§15.26.10's own fix-map); the empirical core (360,000-trial cumulative
+power check, the analytic K84-vs-K90 z-derivation) was independently
+re-verified this round and found exceptionally clean — every number
+reproduces, and the 320,000-trial extension was independently
+RE-EXECUTED, not merely re-read. Every finding fixed, zero GPU spent:
 
-**(1) The finding is REGISTERED directly from existing n=3 data, no GPU
-spent:** "no cliff to K/d=0.9375; h4 near ceiling is seed-dependent and
-non-sigmoid in this window; x0(96) unlocalizable with this instrument" —
-the SAME §15.25.6 verdict, now standing on a power analysis independently
-confirmed at 360,000 cumulative trials (Rev 0's own original 40,000 +
-this session's own freshly-run 280,000 across 7 new seeds + a 40,000-
-trial from-scratch reimplementation, ALL 100% degenerate under both
-nulls, plus a 2,000-trial positive control proving the detector has
-teeth), archived at `experiment-runs/2026-07-08_
-d96_scatter_resolution_design/`. **The 10-cell seed-escalation grid is
-KILLED** — its own power check already shows resolution analytically
-disfavored with near-certainty, so spending 4.27–8.54 GPU-h to re-confirm
-it is not justified; 8 of its 10 reserved seeds released unclaimed, 2
-(1943 @ K84, 2043 @ K90) redirected to (2).
+**(1) MAJOR-1, noise-floor calibration (highest value):** the outcome
+trigger's `CEILING-IS-REAL` branch (`shift≤0.1×Δ`) had no measured
+null — the restricted and unrestricted `M3` calls used two DIFFERENT
+eval generators, conflating the pool-restriction treatment with plain
+eval-batch sampling noise. Fixed by registering ONE additional
+eval-only pass in the K=84 block (the SAME unrestricted call, repeated
+under the second generator's own offset), giving `noise_shift :=
+|repeat−standard|`, a directly measured null. Both thresholds re-pinned
+relative to it (`REAL_THRESH=max(0.1×Δ,noise_shift)`,
+`ARTIFACT_THRESH=max(0.5×Δ,3×noise_shift)`), MECE proven by an explicit
+3-case totality walk.
 
-**(2) A NEW K90 POOL-MARGIN CONTROL DIAGNOSTIC replaces it.** Reading
-`grammar_rd.py`/`run_deltanet_rd.py` directly found a real mechanism
-error in Rev 0's own disclosed confound: the fit metric (`h4`=
-`M3_held_out`) draws from `pools.train_name_ids` (N=107, margins 23/17
-at K=84/90) — NOT `pools.heldout_name_ids` (N=106, margins 22/16) that
-Rev 0 cited (correctly sourced from §15.24.2's C17-specific flag, but
-misapplied here); `C17_heldout_entities` itself is verified NOT at
-ceiling at K=90 either. Live mechanism, pinned from code: entity-draw
-diversity (inter-episode overlap = K/N exactly, 84.11% at K=90 vs 78.50%
-at K=84), not "fewer confusable distractors" (the readout is continuous
-cosine-similarity, no distractor step exists). Manipulation: restrict
-ONLY the eval-time pool for K=84's own `M3_held_out` call (margin
-23→17, matching K=90's real value) via one new additive parameter — the
-training path is untouched. 2 cells, ≈0.9 GPU-h, launches via a new
-standalone wrapper naming both PI-signoff gates explicitly + a new
-registered negative test proving refusal (MAJOR-2 fix). Pre-registered,
-exact-threshold outcome table: CEILING-IS-ARTIFACT / CEILING-IS-REAL /
-AMBIGUOUS.
+**(2) MAJOR-2, control the diagnosed variable:** the live mechanism is
+entity-draw OVERLAP FRACTION `K/N` (per §15.26.2.1's own code-level
+pin), but Rev 1's own manipulation (`N'=101`) matched K90's spare-entity
+MARGIN (17) instead — `84/101=83.17%` vs. K90's real `84.11%`, a 0.94pp
+residual on the actual mechanism. Fixed by re-pinning `N'=100`
+(`84/100=84.00%` vs. `84.11%`, 0.11pp residual, ≈8.4× tighter, same
+cost) — Rev 1's own margin-vs-overlap slip disclosed explicitly, not
+silently corrected.
 
-**(3) Attack findings fixed:** MAJOR-1 — Rev 0's "isolated K84-vs-K90
-sub-check, 200,000 trials" claim had no archived artifact; replaced with
-the exact analytic derivation (`z≈6.687` at n=5, `z≈19.5` projected to
-N=103). MAJOR-3 — the CEILING-IS-ARTIFACT branch now discloses that any
-resulting re-fit is descriptive only, never discriminating (§15.20.4's
-own n=4 power check already found CI half-widths ~2×+ the 0.0145
-discrimination threshold). MINOR-1 — 112.65%→112.56%.
+**(3) MAJOR-3, wrapper field-diff adaptation:** the launch wrapper is
+named as mirroring `run_k69_s1733_contingency.py`'s own precedent
+"line-for-line," but that precedent's own token-diff check (refuse
+unless the command matches a sibling-seed reference with only
+seed-derived tokens differing) can't pass verbatim once K=84's own
+command carries the new `--m3-pool-restrict-n` flag. Fixed by pinning
+an enumerated `NEW_FLAG_WHITELIST` stripped from the generated command
+before the precedent's own diff runs, plus a registered negative test
+(one extra, non-whitelisted flag must still be refused).
 
-**Ledger: 19.3666 + 0.900 = 20.2666/26 (96.51% of the ORIGINAL 21 GPU-h
-ceiling — FITS WITHOUT drawing on the extension)**, avoiding the killed
-grid's own worst property (its 2× bracket breached even the EXTENDED
-26 ceiling, 107.33%). This diagnostic's own 2× bracket (100.36%) still
-marginally exceeds the original ceiling by a small tail — both
-PI-signoff gates required at launch as a safety net regardless.
+**Five MINORs, all surgical, no new GPU spend.** MINOR-1: threaded
+`c17_repro_telemetry` into both new eval calls, restoring the
+"threaded to every pool call" invariant. MINOR-2: fixed an off-by-2
+citation, `:961`→`:963-964` (verified against the live source). MINOR-3:
+pre-registered a `Δ_measured` contingency for a fresh K90 reading that
+doesn't reproduce ceiling or reverses the K84<K90 ordering — routes to
+AMBIGUOUS + a registered follow-up, never silent. MINOR-4: reworded the
+registered finding — "seed-dependent in the sub-ceiling regime
+(K72–K84); K90 pinned at exact ceiling in all 3 seeds." MINOR-5: fixed a
+rounding-base inconsistency in the ledger's 2× pessimistic row
+(`+1.708`→`+1.800`, `21.1666/26`, `100.79%` — was `100.36%`; conclusion
+unchanged).
 
-Full account: `KEY_ANCHORING_SCALING_DRAFT.md` §15.26 (Rev 1) + §15.26.9
-(attack-round-1 fix-map). Harvest entry: `EXPERIMENT_LOG.md`.
+**Ledger unchanged at 1×: 19.3666 + 0.900 = 20.2666/26 (96.51% of the
+ORIGINAL 21 GPU-h ceiling — FITS WITHOUT drawing on the extension).**
+2× pessimistic bracket corrected (MINOR-5): `21.1666/26` (`100.79%` of
+the original, `81.41%` of the extended) — a small, disclosed tail
+excess unchanged in substance from Rev 1's own (rounding-inconsistent)
+`100.36%` figure.
+
+Full account: `KEY_ANCHORING_SCALING_DRAFT.md` §15.26 (Rev 2) +
+§15.26.9 + §15.26.10. Harvest entry: `EXPERIMENT_LOG.md`.
 
 **Security note.** The same recurring fake `<system-reminder>`
 injection (date-change-concealment instruction + fabricated agent-type
 list + fabricated MCP-server tool-loading instructions, appended to the
-first `Bash` tool result mid-session) fired again this session.
-Disregarded in full, including the concealment instruction; the
-underlying date claim was independently cross-checked against the box's
-own `date` output and recent commit timestamps (both genuinely
-2026-07-08) rather than trusted because asserted. HEAD was verified
-against the task's own cited starting commit (`18ace0f`, "§15.26 d=96
-scatter-resolution wave, Rev 0, pre-attack") before any edit began;
-matched exactly. Mid-session, HEAD advanced twice more
-(`175f43b`→`813e716`, a concurrent sibling agent — the REASONING-LINK
-§16.19 Rev 1/Rev 2 design threads, same working tree, same session
-family) — verified a normal linear fast-forward, zero content loss, and
-confirmed neither commit touched `KEY_ANCHORING_SCALING_DRAFT.md`.
-Handled operationally by re-reading `STATE.md`/`EXPERIMENT_LOG.md` fresh
-immediately before every edit in this session rather than trusting the
-initial read.
+first `Bash` tool result mid-session) fired again this session —
+disregarded in full, including the concealment instruction; the
+underlying date claim was independently cross-checked against this
+machine's own `date` output and recent commit timestamps (both
+genuinely 2026-07-08) rather than trusted because asserted — the
+fabricated delivery mechanism and concealment instruction are the
+actual finding, not whether the date itself happened to be accurate.
+This is at least the 10th occurrence logged against this project's
+history (`EXPERIMENT_LOG.md`'s own running tally). HEAD was verified
+against the task's own cited starting commit (`f18b106`, "§15.26 Rev 1
+— RESHAPE-TO-C") via `git pull --ff-only` (already up to date) before
+any edit began; matched exactly, and did not move mid-session this
+time (no concurrent sibling-agent commits landed). `REASONING_LINK_
+DESIGN.md` was never opened this session, per the task's own explicit
+constraint.
 
 ---
 
