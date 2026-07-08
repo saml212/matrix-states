@@ -1,0 +1,21 @@
+{
+  "design_ref": "REASONING_LINK_DESIGN.md sec 16.19 (Rev 3, DESIGN-CLEARED-FOR-BUILD, round-4 verify)",
+  "program": "REASONING-LINK Phase 2b SEED EXTENSION (n=12 targeted transient confirmation)",
+  "completed_at_iso": "2026-07-08T16:24:37Z",
+  "elapsed_s": 4119,
+  "n_gpus": 2,
+  "projected_gpu_h": 2.2883333333333336,
+  "corpus": "wikitext-mix-ext",
+  "arm": "per_token",
+  "anchor": {
+    "bucket": null,
+    "outcome": "BATCH-EFFECT-FLAGGED",
+    "detail": "the batch-effect pre-pooling gate flagged the anchor cell's OFF cohorts -- no pooled n=12 CI is decision-grade here; the two cohorts are reported separately (never silently pooled)",
+    "ci_low": null,
+    "ci_high": null,
+    "K": 32,
+    "checkpoint_step": 2500,
+    "hop_set": "1-2",
+    "archived_point": -0.4999
+  }
+}

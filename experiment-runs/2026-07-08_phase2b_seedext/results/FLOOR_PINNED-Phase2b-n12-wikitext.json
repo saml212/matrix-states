@@ -1,0 +1,58 @@
+{
+  "formula_version": "REASONING_LINK_DESIGN.md sec 16.19.7: FLOOR_PIN_n12 := mean_B(ratio) + 2*sigma_B(ratio) over wikitext-mix-ext's own 12 pooled per-seed L_query(c=5000)/L_query(c=250) ratios (K=32, hop_set=(1,2), house k=2 one-sided convention, seeds 0-2 archived + 3-11 new, ALL read from the extended OFF-eval cache -- a cache read never recomputes). The RUNTIME-gated quantity is the separate pooled ratio (mean-across-12-seeds at c=5000 / mean-across-12-seeds at c=250). wikitext-only: openr1-mix-ext's own FLOOR_PIN stays at its ORIGINAL n=3 pin (FLOOR_PINNED-Phase2b.json), UNTOUCHED by this wave.",
+  "floor_by_corpus": {
+    "wikitext-mix-ext": {
+      "pooled_ratio": 1.0231221612564803,
+      "per_seed_ratios": [
+        0.9465453805285602,
+        1.046631824673211,
+        1.0464900585928392,
+        0.8723512550329221,
+        1.139979135555607,
+        1.1066012354831691,
+        0.9163488726836087,
+        1.0495768868722264,
+        1.130939955568905,
+        1.0701395529608952,
+        0.9822023330807724,
+        0.9698792432529076
+      ],
+      "mean_b": 1.0231404778571354,
+      "s_b": 0.08568646698535223,
+      "k": 2.0,
+      "floor_pin": 1.1945134118278398,
+      "l_query_c250_per_seed": [
+        11.722597122192383,
+        11.970792770385742,
+        12.147649765014648,
+        11.97464370727539,
+        11.890507698059082,
+        11.870647430419922,
+        11.959416389465332,
+        11.875818252563477,
+        11.9413480758667,
+        11.778020858764648,
+        11.920884132385254,
+        11.894793510437012
+      ],
+      "l_query_c5000_per_seed": [
+        11.095970153808594,
+        12.529012680053711,
+        12.712394714355469,
+        10.44609546661377,
+        13.554930686950684,
+        13.136073112487793,
+        10.95899772644043,
+        12.464584350585938,
+        13.504947662353516,
+        12.6041259765625,
+        11.708720207214355,
+        11.536513328552246
+      ]
+    }
+  },
+  "off_cache_path": "results/phase2/off_lquery_cache-Phase2b.json",
+  "off_cache_sha256": "76214f64c10e0be75b37c27cb8c1b661714e7aa26b004307d2d4f1d367100a7a",
+  "pinned_at": 1783525849.2813911,
+  "pinned_at_iso": "2026-07-08T15:50:49Z"
+}

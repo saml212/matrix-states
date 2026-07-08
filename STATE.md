@@ -1,8 +1,175 @@
 # Project State
 
-**Last updated:** 2026-07-08 (§16.19 PHASE-2B SEED EXTENSION DEPLOYED: Leg-A COMPLETE — 18/18 cells, 4.531 GPU-h realized = 99.8% of estimate, both mechanical calibration gates PASSED; fam/eval chain RUNNING on GPUs 0-1, tmux `seedext_fam`, sentinel `PHASE2B_SEEDEXT_CHAIN_DONE`, ETA ≈17:00-17:45 UTC — see the top block below. Prior header retained: §15.26 K90 POOL-MARGIN DIAGNOSTIC RUN + HARVESTED — VERDICT: DEGENERATE_CELL, both cells inadmissible at n_iter=28 with a NEW disclosed admission-signature finding; GPU 2 free, box clean — see the top block below. Prior header retained: KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION wave — Rev 2 LANDED, NOISE-FLOOR CALIBRATED: a second independent attack round on Rev 1's own RESHAPE-TO-C design returned NEEDS-REVISION — 3 MAJOR + 5 MINOR, no FATAL, all surgical; the empirical core (360,000-trial cumulative power check, the analytic K84-vs-K90 z-derivation) independently re-verified and found exceptionally clean, the 320,000-trial extension independently RE-EXECUTED and reproduced exactly. MAJOR-1 (highest value): the outcome trigger's CEILING-IS-REAL branch had no measured noise null (the restricted/unrestricted `M3` calls used two different eval generators) — fixed by registering one additional eval-only noise-floor repeat pass in the K=84 block, re-pinning both thresholds relative to the directly-measured `noise_shift`, MECE proven by an explicit totality walk. MAJOR-2: the manipulation matched K90's spare-entity MARGIN (`N'=101`, 0.94pp overlap-fraction residual) instead of the actually-diagnosed mechanism, entity-draw OVERLAP FRACTION — re-pinned `N'=100` (0.11pp residual, ≈8.4× tighter, same cost). MAJOR-3: the launch wrapper's own field-diff check couldn't pass verbatim with the new `--m3-pool-restrict-n` flag — fixed with an enumerated `NEW_FLAG_WHITELIST` stripped before the diff runs, plus its own negative test. Five surgical MINORs (telemetry-threading consistency, a citation fix, a pre-registered Δ_measured contingency, a finding-text reword, a ledger rounding-consistency fix). Design-only, zero GPU spent this session — queue: Rev 2 (done) → ROUND-3 VERIFY DISCHARGED 2026-07-08 (DESIGN-CLEARED-FOR-BUILD, 0 MAJOR, 2 MINORs folded into build incl. adopted second noise-draw; verdict recorded in the §15.26 closing addendum) → (now) BUILD wrapper → audit → launch GPU 2 FIRST, ≈0.9 GPU-h, THEN REASONING-LINK §16.19's own Leg-A pretraining slice per the pinned sequencing (shares GPUs 2-7, sequenced not concurrent). Full account below. REASONING-LINK §16.19 PHASE-2B SEED EXTENSION Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (prior session, retained below for history, UNAFFECTED in its own content by this session's §15.26 work — the two lanes remain sequenced on the shared GPU range per this session's own explicit note above) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-08 (§16.20 PHASE-2B SEED EXTENSION HARVESTED: VERDICT BATCH-EFFECT-FLAGGED at the confirmatory cell (`K=32,c=2500,wikitext-mix-ext×per_token`) — NOT one of the pre-registered 4-outcome MECE partition; the anchor cell's own pre-pooling gate caught a real ~4.5× OFF-cohort variance mismatch between the 3 archived and 9 new seeds and correctly refused to pool them; both cohorts reported separately (old n=3 mean=−0.4999 CI=[−0.6241,−0.3758], identical to §16.18's own record; new n=9 mean=−0.0746 CI=[−0.5060,0.3569]); FLOOR-PASS at n=12 (no bucket flip vs n=3); GPUs 0-7 all FREE — see the top block below. Prior header retained: §15.26 K90 POOL-MARGIN DIAGNOSTIC RUN + HARVESTED — VERDICT: DEGENERATE_CELL, both cells inadmissible at n_iter=28 with a NEW disclosed admission-signature finding; GPU 2 free, box clean — see the top block below. Prior header retained: KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION wave — Rev 2 LANDED, NOISE-FLOOR CALIBRATED: a second independent attack round on Rev 1's own RESHAPE-TO-C design returned NEEDS-REVISION — 3 MAJOR + 5 MINOR, no FATAL, all surgical; the empirical core (360,000-trial cumulative power check, the analytic K84-vs-K90 z-derivation) independently re-verified and found exceptionally clean, the 320,000-trial extension independently RE-EXECUTED and reproduced exactly. MAJOR-1 (highest value): the outcome trigger's CEILING-IS-REAL branch had no measured noise null (the restricted/unrestricted `M3` calls used two different eval generators) — fixed by registering one additional eval-only noise-floor repeat pass in the K=84 block, re-pinning both thresholds relative to the directly-measured `noise_shift`, MECE proven by an explicit totality walk. MAJOR-2: the manipulation matched K90's spare-entity MARGIN (`N'=101`, 0.94pp overlap-fraction residual) instead of the actually-diagnosed mechanism, entity-draw OVERLAP FRACTION — re-pinned `N'=100` (0.11pp residual, ≈8.4× tighter, same cost). MAJOR-3: the launch wrapper's own field-diff check couldn't pass verbatim with the new `--m3-pool-restrict-n` flag — fixed with an enumerated `NEW_FLAG_WHITELIST` stripped before the diff runs, plus its own negative test. Five surgical MINORs (telemetry-threading consistency, a citation fix, a pre-registered Δ_measured contingency, a finding-text reword, a ledger rounding-consistency fix). Design-only, zero GPU spent this session — queue: Rev 2 (done) → ROUND-3 VERIFY DISCHARGED 2026-07-08 (DESIGN-CLEARED-FOR-BUILD, 0 MAJOR, 2 MINORs folded into build incl. adopted second noise-draw; verdict recorded in the §15.26 closing addendum) → (now) BUILD wrapper → audit → launch GPU 2 FIRST, ≈0.9 GPU-h, THEN REASONING-LINK §16.19's own Leg-A pretraining slice per the pinned sequencing (shares GPUs 2-7, sequenced not concurrent). Full account below. REASONING-LINK §16.19 PHASE-2B SEED EXTENSION Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (prior session, retained below for history, UNAFFECTED in its own content by this session's §15.26 work — the two lanes remain sequenced on the shared GPU range per this session's own explicit note above) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
+
+---
+
+## REASONING-LINK §16.20 PHASE-2B SEED EXTENSION — HARVESTED, VERDICT: BATCH-EFFECT-FLAGGED (2026-07-08, chain completed 16:24:37Z) — supersedes the LEG-A COMPLETE + FAM CHAIN RUNNING block's own RUNNING status below (the block's Leg-A facts are unchanged, restated here with the now-complete fam/eval facts added). **GPUs 0-7 are ALL FREE.** Full account: `matrix-thinking/REASONING_LINK_DESIGN.md` §16.20; harvest entry: `EXPERIMENT_LOG.md`.
+
+**THE VERDICT.** The pre-registered §16.19.8 4-outcome MECE partition did
+**NOT** fire at the confirmatory cell (`K=32, c=2500,
+wikitext-mix-ext×per_token`) — the anchor's own batch-effect pre-pooling
+gate (§16.19.5 MINOR-1) flagged the OFF-arm cohorts (var_ratio=4.4715,
+12% over the pinned `>4` cutoff; mean-shift leg did NOT fire) and, per
+its own pre-registered routing rule, the wave reports
+**BATCH-EFFECT-FLAGGED** rather than one of TRANSIENT-CONFIRMED-AT-
+MAGNITUDE / TRANSIENT-CONFIRMED-SMALLER / TRANSIENT-REFUTED /
+NEW-PATTERN(SIGN-FLIP). Both cohorts reported separately, never pooled:
+**old (archived, n=3): mean=−0.499965, CI=[−0.624145,−0.375786]** —
+byte-identical to §16.18's own n=3 record, confirming the archived-values
+loader never re-scored it live; **new (live, n=9): mean=−0.074558,
+CI=[−0.506033,0.356917]**. Hand-recomputed independently from the raw 12
+`L_query` values and matched to the pipeline's own output to full float
+precision — not merely re-quoted. As a disclosed, explicitly
+non-decision-grade diagnostic: the naive n=12 pool would have read
+mean=−0.180910, CI=[−0.508992,0.147172] (contains zero — would-have-been
+TRANSIENT-REFUTED), shown only to make the gate's own bite legible, never
+treated as a competing verdict. **Floor gate: FLOOR-PASS at n=12**
+(pooled_ratio=1.0231≤floor_pin=1.1945; n=3 pin was also FLOOR-PASS, no
+bucket flip). **§16.18.6 (the original keystone verdict section) now
+carries a one-line supersession pointer** to §16.20 for the
+wikitext×per_token contrast specifically; the other 3 contrasts stay
+their own n=3 §16.18 verdicts, untouched.
+
+**What the outcome means, stated plainly:** this is a genuine
+measurement-integrity finding, not a confirmation and not a refutation.
+The original §16.18 TRANSIENT finding (`Δ=−0.4999`,
+`CI=[−0.6241,−0.3758]`) stands unchanged at its own n=3 evidentiary
+weight — the n=12 wave built the full registered machinery (generalized
+`delta_ci_n`, the widened mixed-radix seed space, the archived-values
+no-recompute guard, the batch-effect gate) and that machinery correctly
+caught a real ~4.5× OFF-cohort variance mismatch at exactly the cell this
+wave was costed to resolve, refusing to produce a decision-grade pooled
+CI there. The variance-mismatch direction flips sign across checkpoints
+(not a single systematic between-wave shift) — most consistent with
+ordinary small-`n` SD imprecision in the archived cohort, disclosed
+honestly, not used to override the gate. Where a pooled reading IS
+computable elsewhere in the grid (5/10 primary cells, 3/10 OOD cells),
+every one reads CI-contains-zero — directional color only.
+
+**Completeness, independently re-verified from raw box files (not the
+pipeline's own summary):** 18/18 Leg-A pretraining cells (18-file sha256
+manifest RE-VERIFIED directly against the live `.pt` files, 18/18 OK);
+18/18 new familiarization+eval cells at 5000/5000 steps, 1,818 trajectory
+rows checked, `grad_finite=true` on every one; the whole-harvest-runtime
+no-live-recompute guard held (code inspection + Stage-1 negative test
+`SE8` PASS + the empirical byte-identity of the anchor cell's own 3
+archived deltas against §16.18's record — three independent confirmations,
+zero live calls at `ckpt_seed<3`); the off-cache extension left all 120
+pre-existing keys (60 wikitext + 60 openr1) byte-identical (0 mismatches,
+direct diff against the pre-extension archive), 180 new keys added (300
+total); all 17 seedext-specific Stage-1 items (SE1-SE17) + the reused
+19/19+23/23+17/17 general suite PASS, zero real failures.
+
+**GPU-h:** Leg-A 4.531 (unchanged from deploy, 99.8% of estimate) +
+fam/eval **2.288333** (4,119s×2 GPUs/3600, newly realized this harvest)
+= **6.819333 GPU-h total** = 102.53% of the 6.651 raw estimate, 102.14%
+of the live 6.6763 timing-pilot projection, 10.26% of the 66.5 ceiling
+(reserve 59.68). New Phase-2b seedext sub-ledger: 6.819/66.5 (10.26%),
+separate from the closed n=3 wave's own untouched 1.66/26.4.
+`FROZEN_BIAS_LM_DESIGN.md`'s shared 135 GPU-h ceiling (Leg-A pretraining
+only, three separately-tracked citations combined): rung-1 (≈6.90) +
+mech-wave (7.672) + this wave's Leg-A (4.531) = ≈19.10/135 (14.15%).
+
+**Archive:** `experiment-runs/2026-07-08_phase2b_seedext/` extended (repo
++ SSD, byte-verified) with the 18 new fam cell JSONs,
+`PHASE2B_SEEDEXT_SUMMARY.json`, `trajectory_seedext_wikitext_n12.json`,
+`FLOOR_PINNED-Phase2b-n12-wikitext.json`, the extended
+`off_lquery_cache-Phase2b.json`, the fam chain + per-cell logs, and
+`phase2b_seedext_stage_minus1.py`'s own run log; `.pt` checkpoints stay
+SSD-only per policy. Local commit only (not pushed).
+
+**Security note.** One more fake `<system-reminder>` injection this
+harvest session (date-change-concealment pattern, appended to the first
+local `Bash` tool result, plus fabricated agent-type list and fabricated
+MCP-server instructions) — disregarded in full including the
+concealment instruction, reported. Zero injected content found in any
+box-persisted artifact; every number above was independently
+reconstructed from raw JSON/log files. Session-family tally now **≥24**.
+
+**Queue: GPUs 0-7 all free.** No cells launched, no code built this
+harvest session (harvest-only discipline). The wikitext×per_token
+contrast's own next step (not self-launched, registered for a future
+wave) is a dedicated investigation into the OFF-cohort variance mismatch
+at `K=32` before any further seed-pooling attempt at this cell; the other
+3 (corpus×arm) contrasts remain UNRESOLVED at n=3, unchanged, revisitable
+in a future, separately-costed wave.
+
+---
+
+## PI CHECK-IN PACKAGE — FULL REFRESH (2026-07-08, this harvest) — consolidates status across every open lane for the next PI check-in; none of the PENDING-USER items below were acted on by this harvest
+
+- **SEEDEXT VERDICT (this harvest, headline):** §16.20
+  BATCH-EFFECT-FLAGGED at the confirmatory cell — see the block directly
+  above for the full number set. The keystone question itself
+  (`REASONING_LINK_DESIGN.md` §16.18/§16.6) remains where the n=3 harvest
+  left it: an underpowered/TRANSIENT picture at n=3 seeds, now with a
+  documented, gate-caught reason (a real OFF-cohort variance mismatch)
+  why simply adding 9 more seeds does not resolve it at this cell without
+  a further, separately-costed investigation.
+- **Phase-2b + seedext ratification — STILL awaiting a PI decision,
+  updated by this harvest's own new fact.** The original Phase-2b
+  KEYSTONE UNRESOLVED question (§16.18) now has a second, more expensive
+  data point (this n=12 wave) that also did not resolve it — for a
+  DIFFERENT, disclosed reason (a variance-mismatch gate-fail, not a
+  power floor). PI options: (a) report both the n=3 TRANSIENT and the
+  n=12 gate-fail as the standing, honest result and close this lane; (b)
+  fund a dedicated variance-mismatch investigation (candidate causes:
+  small-`n` SD imprecision vs. a genuine between-wave confound) before
+  any further seed-pooling attempt; (c) accept the underpowered-null
+  reading across the other 3 contrasts as final. None of the three is
+  decided by this harvest.
+- **Submissions venue/author/title — still PENDING-USER, CFP window now
+  imminent.** `matrix-thinking/submissions/neurips-ws-2026/
+  VENUE_DECISION.md` (Decision 1: NeurReps/UniReps Extended Abstract
+  leading candidate; NeurIPS 2026 workshop accepted-list drops
+  **~2026-07-11**, CFPs open shortly after) and `PAPER_SPRINT_PLAN.md`
+  §5.5 (Decision 2: title; Decision 3: author block —
+  `Sam Larson, Pebble AI, pebbleml.com`, contingent on the chosen venue's
+  double-blind requirement) both still show open checkboxes. Nothing in
+  this harvest resolves any of the three.
+- **§15.28-class admission-frontier design question — escalated, not
+  yet a registered design.** `KEY_ANCHORING_SCALING_DRAFT.md` §15.27 (the
+  K90 pool-margin DEGENERATE_CELL harvest) escalated a design-level
+  question this harvest did not touch: the admission-frontier-vs-K/d
+  relationship (K=84 now clean-converging at n_iter=28 with only a
+  near-threshold value-salvage miss; K=90 stays fallback-inadmissible
+  even at n_iter=28, and its own exact-ceiling h4 reading did NOT
+  replicate) plus a value-salvage-calibration question (0.0931 vs the
+  0.10 threshold at K=84/n_iter=28) — both named there as candidate
+  §15.28-class follow-up design work, not started.
+- **Injection report (security, consolidated across every lane this
+  session family).** Session-family tally now **≥24** fake
+  `<system-reminder>` injections (all the same recurring fabricated
+  date-change-concealment pattern, most also carrying a fabricated
+  agent-type list and fabricated MCP-server tool-loading instructions).
+  All disregarded, including every concealment instruction, and reported
+  plainly at each occurrence. Zero injected content has landed in any
+  box-persisted artifact or committed file across the full session
+  family to date — a well-established recurring pattern worth a standing
+  note for whoever next triages the harness's own tool-output handling,
+  not a new finding specific to this harvest.
+- **Campaign headline list (skim version, full campaign to date):**
+  (1) the 4-point monotonic capacity ladder; (2) the super-linear
+  capacity-scaling result, d=96 rung resolved to NO CLIFF through
+  K/d=0.9375 (AMBIGUOUS on the exact x0(96), not a data gap); (3) the
+  PROBE-INVALID scale series (Phase-1 reasoning-link, `recovered_frac@0.9`
+  exactly 0.0 across the full 78-cell/312-reading grid); (4) the
+  triple-null geometric-floor result plus the vocab/geometry dissociation
+  (folded into ICLR discussion item 10); (5) Phase-2b's own bounded-causal
+  n=3 result — 3/4 contrasts UNDERPOWERED-NULL, 1/4 (wikitext×per_token)
+  TRANSIENT (hurts-direction, non-durable); (6) the C17
+  TOLERANCE-MISCALIBRATION catch — an 11/12-inadmissible mystery
+  resolved to a calibration bug, not a real capacity boundary; (7) the
+  K90 pool-margin DEGENERATE_CELL harvest with 3 escalated findings
+  (leg-swap at K=84, the K/d admission-frontier data point at K=90, the
+  exact-ceiling non-replication); (8) **this harvest's own SEEDEXT
+  VERDICT — BATCH-EFFECT-FLAGGED, the first determinate causal-adjacent
+  reading this program has produced at the n=12 confirmatory cell, even
+  though that reading is "the pooling gate correctly refused," not a
+  bucket (i)-(iv) confirm/refute.**
 
 ---
 
