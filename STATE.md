@@ -1,8 +1,57 @@
 # Project State
 
-**Last updated:** 2026-07-09 (KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION wave — Rev 2 LANDED, NOISE-FLOOR CALIBRATED: a second independent attack round on Rev 1's own RESHAPE-TO-C design returned NEEDS-REVISION — 3 MAJOR + 5 MINOR, no FATAL, all surgical; the empirical core (360,000-trial cumulative power check, the analytic K84-vs-K90 z-derivation) independently re-verified and found exceptionally clean, the 320,000-trial extension independently RE-EXECUTED and reproduced exactly. MAJOR-1 (highest value): the outcome trigger's CEILING-IS-REAL branch had no measured noise null (the restricted/unrestricted `M3` calls used two different eval generators) — fixed by registering one additional eval-only noise-floor repeat pass in the K=84 block, re-pinning both thresholds relative to the directly-measured `noise_shift`, MECE proven by an explicit totality walk. MAJOR-2: the manipulation matched K90's spare-entity MARGIN (`N'=101`, 0.94pp overlap-fraction residual) instead of the actually-diagnosed mechanism, entity-draw OVERLAP FRACTION — re-pinned `N'=100` (0.11pp residual, ≈8.4× tighter, same cost). MAJOR-3: the launch wrapper's own field-diff check couldn't pass verbatim with the new `--m3-pool-restrict-n` flag — fixed with an enumerated `NEW_FLAG_WHITELIST` stripped before the diff runs, plus its own negative test. Five surgical MINORs (telemetry-threading consistency, a citation fix, a pre-registered Δ_measured contingency, a finding-text reword, a ledger rounding-consistency fix). Design-only, zero GPU spent this session — queue: Rev 2 (done) → ROUND-3 VERIFY DISCHARGED 2026-07-08 (DESIGN-CLEARED-FOR-BUILD, 0 MAJOR, 2 MINORs folded into build incl. adopted second noise-draw; verdict recorded in the §15.26 closing addendum) → (now) BUILD wrapper → audit → launch GPU 2 FIRST, ≈0.9 GPU-h, THEN REASONING-LINK §16.19's own Leg-A pretraining slice per the pinned sequencing (shares GPUs 2-7, sequenced not concurrent). Full account below. REASONING-LINK §16.19 PHASE-2B SEED EXTENSION Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (prior session, retained below for history, UNAFFECTED in its own content by this session's §15.26 work — the two lanes remain sequenced on the shared GPU range per this session's own explicit note above) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-08 (§15.26 K90 POOL-MARGIN DIAGNOSTIC RUN + HARVESTED — VERDICT: DEGENERATE_CELL, both cells inadmissible at n_iter=28 with a NEW disclosed admission-signature finding; GPU 2 free, box clean — see the top block below. Prior header retained: KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION wave — Rev 2 LANDED, NOISE-FLOOR CALIBRATED: a second independent attack round on Rev 1's own RESHAPE-TO-C design returned NEEDS-REVISION — 3 MAJOR + 5 MINOR, no FATAL, all surgical; the empirical core (360,000-trial cumulative power check, the analytic K84-vs-K90 z-derivation) independently re-verified and found exceptionally clean, the 320,000-trial extension independently RE-EXECUTED and reproduced exactly. MAJOR-1 (highest value): the outcome trigger's CEILING-IS-REAL branch had no measured noise null (the restricted/unrestricted `M3` calls used two different eval generators) — fixed by registering one additional eval-only noise-floor repeat pass in the K=84 block, re-pinning both thresholds relative to the directly-measured `noise_shift`, MECE proven by an explicit totality walk. MAJOR-2: the manipulation matched K90's spare-entity MARGIN (`N'=101`, 0.94pp overlap-fraction residual) instead of the actually-diagnosed mechanism, entity-draw OVERLAP FRACTION — re-pinned `N'=100` (0.11pp residual, ≈8.4× tighter, same cost). MAJOR-3: the launch wrapper's own field-diff check couldn't pass verbatim with the new `--m3-pool-restrict-n` flag — fixed with an enumerated `NEW_FLAG_WHITELIST` stripped before the diff runs, plus its own negative test. Five surgical MINORs (telemetry-threading consistency, a citation fix, a pre-registered Δ_measured contingency, a finding-text reword, a ledger rounding-consistency fix). Design-only, zero GPU spent this session — queue: Rev 2 (done) → ROUND-3 VERIFY DISCHARGED 2026-07-08 (DESIGN-CLEARED-FOR-BUILD, 0 MAJOR, 2 MINORs folded into build incl. adopted second noise-draw; verdict recorded in the §15.26 closing addendum) → (now) BUILD wrapper → audit → launch GPU 2 FIRST, ≈0.9 GPU-h, THEN REASONING-LINK §16.19's own Leg-A pretraining slice per the pinned sequencing (shares GPUs 2-7, sequenced not concurrent). Full account below. REASONING-LINK §16.19 PHASE-2B SEED EXTENSION Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (prior session, retained below for history, UNAFFECTED in its own content by this session's §15.26 work — the two lanes remain sequenced on the shared GPU range per this session's own explicit note above) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
+
+---
+
+## KEYANCHOR-SCALING §15.26 K90 POOL-MARGIN DIAGNOSTIC — RUN + HARVESTED (2026-07-08) — VERDICT: DEGENERATE_CELL (pre-registered trigger row; supersedes the Rev 2 block's own queue status below)
+
+**Deployed, launched (tmux `poolmargin`, GPU 2 only), completed, and
+harvested this session at build 8905a33 + audit-fix 2b5ef87 (LAUNCH-CLEARED
+70d224b).** All gates passed live at launch (PI signoff d, wide
+kernel-safety a1, seed-collision g, field-diff MATCH vs sibling seeds
+1944/2044 both cells); Stage -1 suite on box: 0 failures, 0 deferred (real
+`fla` present — the real `_restrict_entity_pool` branch ran directly);
+`run_deltanet_rd.py --smoke` on GPU 2: ALL CHECKS PASSED before launch.
+Calibration gate: K=84 wall 2600.5s ≪ 4611.6s abort trigger — within
+bracket, Stage 1 proceeded.
+
+**VERDICT (mechanical, `poolmargin_verdict.json`): DEGENERATE_CELL — BOTH
+cells read `geo3_admission.admissible=False` at n_iter=28,** routed by the
+pre-registered §15.26.5 degenerate-cell row before any
+REAL/ARTIFACT/AMBIGUOUS bucket. **The disclosed new finding (escalation per
+§15.23's signature adjudication):** (a) K=84/s1943 fails ONLY
+`value_salvage_tier_pass` (0.09307 < 0.10) with convergence CLEAN (0
+fallbacks — the n_iter 20→28 bump fixed exactly the leg §15.23 diagnosed;
+NOT the C17-exclusive signature; the frozen n_iter=20 cells all read
+value-salvage 0.102–0.126 PASS with the fallback leg failing — the two legs
+have swapped). (b) K=90/s2043 fails BOTH legs — `checkpoint_fallback_seen=
+True` (C17-signature, eval-only, 0 train-step fallbacks) AND value-salvage
+0.06707 — i.e. **K=90 stays fallback-inadmissible even at n_iter=28**: the
+C17 resolution profile was K=84-derived (§15.25.5's 295-episode/n_iter=28
+finding), and K/d=0.9375's requirement exceeds it — a real new data point
+about the K/d trend. Descriptive-only trigger arithmetic (NEVER a verdict —
+both cells inadmissible): shift=+0.033040, noise draws 0.002209/0.002767 →
+noise_shift=0.002767, K90 fresh h4=0.972526 (< 0.98 floor → Δ would have
+re-pinned to 0.078646; thresholds would have been 0.007865/0.039323 →
+would-have-read AMBIGUOUS). K84 h4 readings: unrestricted 0.893880,
+pool-restricted 0.926921. **GPU-h: 1.0933 realized (K84 0.7224 + K90
+0.3709) = 121.5% of the 0.9 estimate (new worst realized/1× vs the
+13.6–112.5% history, still ≪ 2×); +~0.18 pre-flight smoke on GPU 2.
+Ledger: 19.3666 + 1.0933 = 20.4599 → 97.43% of ORIGINAL 21 (fits without
+the extension), 78.69% of extended 26.** Artifacts: both cell JSONs +
+verdict JSON + wrapper log pulled to
+`matrix-thinking/deltanet_rd/results/keyanchor_poolmargin/` (md5-verified);
+box copies in `results/deltanet_rd_exactness/wavekeyanchor-scaling-poolmargin/`
+(isolated dir per build-audit MAJOR-1 — the frozen wide table is untouched).
+**GPU 2 IS FREE; box is clean (tmux session exited on completion; GPUs 0–7
+all idle). §16.19 seedext launches next on GPUs 2–7 per the pinned
+sequencing.** Follow-ups registered, not run: value-salvage near-threshold
+adjudication (0.0931 vs 0.10 at n_iter=28/seed=1943) and the K=90
+n_iter>28 requirement question. ≥20 fake-system-reminder injections this
+session family (see EXPERIMENT_LOG security note).
 
 ---
 

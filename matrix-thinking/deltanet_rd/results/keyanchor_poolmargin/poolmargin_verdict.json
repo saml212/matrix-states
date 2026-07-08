@@ -1,0 +1,15 @@
+{
+  "verdict": "DEGENERATE_CELL",
+  "reason": "K=84/seed=1943 did not land an admissible reading (sec 15.26.5's own '(degenerate cell)' trigger row) -- escalate per the SAME sec 15.23 C17-exclusive-signature adjudication Rev 0 already registered.",
+  "inputs": {
+    "k84_standard_h4": 0.8938802480697632,
+    "k84_restricted_h4": 0.9269205927848816,
+    "k84_noise_repeat_h4": 0.8960891366004944,
+    "k84_noise_repeat_2_h4": 0.8966471552848816,
+    "k90_fresh_h4": null,
+    "k84_admissible": false,
+    "k90_admissible": false,
+    "k84_json": "results/deltanet_rd_exactness/wavekeyanchor-scaling-poolmargin/wkeyanchor-scaling_rdx_K84_armd_s1943_geo3n28_anchor_learned_dprobe_rev7_d96.json",
+    "k90_json": "results/deltanet_rd_exactness/wavekeyanchor-scaling-poolmargin/wkeyanchor-scaling_rdx_K90_armd_s2043_geo3n28_anchor_learned_dprobe_rev7_d96.json"
+  }
+}
