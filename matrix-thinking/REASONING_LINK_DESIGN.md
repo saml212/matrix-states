@@ -6550,7 +6550,7 @@ result).
 
 ---
 
-## 16.16 PATH (iv) — PHASE-2B: vocab-space behavioral-contrast instrument (Rev 2, attack-round-2 landed, 2026-07-12 — supersedes Rev 1's own Stage-1-test, surgery-mode, and eval-pass-cost text; the hypothesis/confound-freedom/causal-package-framing/chain-fork/floor-pin/power-sketch content below is otherwise Rev-1-content-identical, per this document's own "content-identical unless a fix touches it" convention)
+## 16.16 PATH (iv) — PHASE-2B: vocab-space behavioral-contrast instrument (Rev 2.1, round-3 verify landed, 2026-07-13 — supersedes Rev 2's own "Loader reuse" bullet and its `getsource` substring assertions; the hypothesis/confound-freedom/causal-package-framing/chain-fork/floor-pin/power-sketch/analysis-rewrite/OFF-eval-cache content below is otherwise Rev-2-content-identical, per this document's own "content-identical unless a fix touches it" convention)
 
 This is §16.15.5's own first registered option, promoted: **a vocab-space
 behavioral contrast, scored entirely through the LM head, replacing the
@@ -6560,10 +6560,10 @@ variant of that same construct.** The dead readout is not needed here at
 all; every piece of machinery this design reuses (the trainer, the 3-arm
 checkpoint family, the 5-checkpoint trajectory schedule, the CI/hexachotomy
 primitives) was already built and already ran cleanly (§16.2, Rev 5,
-CLEARED-FOR-BUILD; §16.6). This section is now Rev 2 — still a design
+CLEARED-FOR-BUILD; §16.6). This section is now Rev 2.1 — still a design
 sketch, not a committed build — and per this project's own waterfall
-discipline (`CLAUDE.md`) it must clear a third, independent attack round
-before any code changes (§16.17's own forward-pointer, below).
+discipline (`CLAUDE.md`) it must clear a fourth, independent spot-check
+round before any code changes (§16.17's own forward-pointer, below).
 
 **Rev 1 in one paragraph (full finding→fix trace: §16.17).** Attack round 1
 returned NEEDS-REVISION, 5 MAJOR + 3 MINOR, all fixed here, zero GPU spent.
@@ -6612,6 +6612,32 @@ than left as an unpinned parameter; the smoke-cost line's stale ≈0.01
 GPU-h figure (superseded by Rev 1's own disclosed ≈0.02-0.03 GPU-h,
 MAJOR-5's three-arm suite) is corrected in the actual arithmetic, not just
 narrated beside it.
+
+**Rev 2.1 in one paragraph (full finding→fix trace: §16.17's own round-3
+table, appended below).** A focused round-3 VERIFY pass on Rev 2 — checking
+round-2's own 5 fixes land correctly against the real code they
+cite, per §16.16.11's forward pointer — returned NEEDS-REVISION, 1 MAJOR +
+1 MINOR, both surgical, zero GPU spent. **MAJOR-R3-1:** the registered
+Stage-1 test (item 3(i)) stubbed `load_init_checkpoint_strict` as the
+eval-model loader, but that function (`lm_pretrain_rd.py` L1803) takes an
+ALREADY-CONSTRUCTED model and mutates it in place — it cannot be stubbed
+to deliver a sentinel, and the actual model-construction step lives one
+layer up, a separate `torch.load(...)['config']` antecedent
+(`phase2_familiarization_train.py` L408→L421). Fixed at §16.16.3 below by
+registering a single, new-in-this-rewrite seam, `phase2b_load_eval_model`,
+that reproduces the SAME L408→L421 double-defense pattern internally and
+is the ONLY thing the rewritten `killer_prediction_readout` calls to load
+an eval-time model — production keeps the strict double-defense path
+unconditionally, never the laxer `reasoning_link_probe.load_checkpoint`.
+**MINOR-R3-1:** the `getsource` substring-absence assertions (the
+`frozen_bias_surgery`/`recovered_frac`/`gate_json_path_for` checks,
+§16.16.3 items and §16.16.9 item (d)) are fragile to a well-meaning
+docstring or comment mentioning the same identifier in prose. Fixed by
+re-pinning all four as AST-level checks (parse with `ast`, walk
+`Call`/`Attribute`/`Name` nodes for the identifier, ignoring
+docstrings/comments/string literals) plus a house convention that in-code
+prose should cite the fix by section number rather than the literal
+retired identifier where feasible.
 
 ### 16.16.1 Hypothesis and the causal logic, stated precisely
 
@@ -6788,10 +6814,61 @@ backward pass, zero new forward-pass logic, only a new caller.
   ckpt_seed, K, checkpoint_step)` — the deliberate point of this readout is
   a paired comparison on the SAME held-out episodes, not three independent
   draws.
-- Loader reuse: `load_init_checkpoint_strict` (already the production
-  loader every cell launch and `phase2_smoke_gpu.py` use) loads each of the
-  90 already-existing `.pt` files (18 cells × 5 checkpoints) fresh per
-  scoring pass — no new loading code.
+- **Loader — a single-seam helper, `phase2b_load_eval_model` (Rev 2.1 fix,
+  round-3 verify MAJOR-R3-1; supersedes Rev 0-2's own "Loader reuse:
+  `load_init_checkpoint_strict`... loads each of the 90 already-existing
+  `.pt` files... no new loading code" bullet, which named a function that
+  cannot deliver what a Stage-1 stub needs).** Verified directly against
+  the real code: `load_init_checkpoint_strict` (`lm_pretrain_rd.py` L1803)
+  takes an ALREADY-CONSTRUCTED `model` argument, mutates its weights in
+  place via `load_state_dict`, and returns the ckpt dict — it does not
+  build a model from a bare checkpoint path, so it cannot itself be
+  stubbed to "return a sentinel" the way a loader normally would, and
+  calling it for real requires an actual `.pt` file. The model is built
+  one layer up, from a SEPARATE `torch.load(...)['config']` antecedent
+  (`phase2_familiarization_train.py`'s own `run_familiarization_cell`,
+  L408: `model = DeltaNetLM(**torch.load(init_checkpoint,
+  map_location=device)["config"]).to(device)`), immediately followed
+  (L421, non-resume branch) by `load_init_checkpoint_strict(model,
+  init_checkpoint, device)` — construction, then strict load, the
+  codebase's own established double-defense pattern (config-equality
+  assert + `strict=True load_state_dict`, both inside
+  `load_init_checkpoint_strict` itself, `lm_pretrain_rd.py` L1803-1820ish).
+  **Fix, a new function in `phase2_trajectory_analysis.py` (the analysis
+  rewrite this item's parent paragraph already registers):**
+  ```python
+  import lm_pretrain_rd as lpr  # same direct-import convention phase2_stage_minus1.py
+                                 # already uses (L46) -- new to this module
+
+  def phase2b_load_eval_model(ckpt_path: str, device: str) -> lpr.DeltaNetLM:
+      config = torch.load(ckpt_path, map_location=device)["config"]  # mirrors
+                                       # phase2_familiarization_train.py L408
+      model = lpr.DeltaNetLM(**config).to(device)
+      lpr.load_init_checkpoint_strict(model, ckpt_path, device)      # mirrors
+                                       # L421; lm_pretrain_rd.py L1803's own
+                                       # config-equality assert + strict=True
+                                       # load_state_dict double-defense
+      model.eval()
+      return model
+  ```
+  This is the ONE seam: the REWRITTEN `killer_prediction_readout` (item 1
+  below) calls `phase2b_load_eval_model(ckpt_path, device)` once per
+  (arm-or-off, checkpoint) and passes the resulting `model` into
+  `eval_query_loss_heldout` — no other call site in this design's own
+  build delta constructs or loads an eval-time model. **Production keeps
+  the STRICT double-defense path unconditionally — no silent laxening.**
+  The auditor's own noted alternative, switching to
+  `reasoning_link_probe.load_checkpoint` (`reasoning_link_probe.py`
+  L705-713 — `DeltaNetLM(**ckpt["config"])` then a bare `load_state_dict`,
+  no explicit config-equality assert; the single-layer pattern
+  `killer_prediction_readout`'s OWN pre-rewrite body actually uses today,
+  via `rlp.run_cell`'s internal `load_checkpoint` call), is explicitly
+  REJECTED — it would silently drop the config-equality half of the
+  double-defense. The Stage-1 test (item 3(i), below) stubs
+  `phase2b_load_eval_model` itself — this single seam — with a sentinel
+  carrying `(arm, checkpoint_step)` as plain attributes; it never stubs
+  `load_init_checkpoint_strict` directly, and touches no real `.pt` file
+  or GPU.
 
 **Surgery-mode scope, pinned (Rev 2 fix, attack-round-2 MAJOR-R2-2) —
 eval-(B) runs with NO surgery override; MAJOR-NEW-5's rule does not apply
@@ -6828,9 +6905,47 @@ native-forward eval-(B) pass both return a plausible-looking float) —
 closed here by a mandatory Stage −1 assertion (§16.16.9, new item): after
 constructing `eval_query_loss_heldout`, inspect its own source (e.g.
 `inspect.getsource(eval_query_loss_heldout)` plus the `query_loss_forward`
-it wraps) and assert the string `frozen_bias_surgery` does not appear in
-either — a mechanical, not a trusted, guarantee that eval-(B) measures the
-arm's whole causal package, not a surgically-isolated slice of it.
+it wraps) and assert `frozen_bias_surgery` is never REFERENCED as a real
+identifier in either — a mechanical, not a trusted, guarantee that eval-(B)
+measures the arm's whole causal package, not a surgically-isolated slice
+of it. **Assertion mechanism re-pinned at AST level (Rev 2.1 fix,
+round-3 verify MINOR-R3-1) — supersedes the plain `"frozen_bias_surgery"
+not in inspect.getsource(...)` substring check Rev 2 registered, which
+would false-positive-fail on a well-meaning docstring or comment
+mentioning the identifier in prose (exactly the kind of disclosure this
+document's own house style favors) despite the code itself being
+correct.** A single helper, registered once in `phase2_stage_minus1.py`
+(the Stage −1 CPU-stub suite this and item 3(ii)'s own tests both live
+in, §16.16.9's first bullet) and reused by every `getsource`-style
+assertion in this design:
+  ```python
+  import ast
+
+  def _references(func_or_module, identifier: str) -> bool:
+      """True iff `identifier` appears as a real Call/Attribute/Name node
+      in `func_or_module`'s own source -- never merely inside a docstring,
+      comment, or string literal. `ast.parse` drops comments outright, and
+      a docstring is an Expr(Constant(str)) node -- a string CONSTANT, not
+      a Name/Attribute/Call -- so a plain ast.walk() never matches an
+      identifier that only appears embedded in prose."""
+      tree = ast.parse(inspect.getsource(func_or_module))
+      return any(
+          (isinstance(n, ast.Name) and n.id == identifier)
+          or (isinstance(n, ast.Attribute) and n.attr == identifier)
+          for n in ast.walk(tree)
+      )
+  ```
+  This paragraph's own assertion becomes `assert not _references(
+  eval_query_loss_heldout, "frozen_bias_surgery")` and the same check
+  against `query_loss_forward` (§16.16.9 item (d), re-pinned to match).
+  **House convention, registered alongside (one line, not a new
+  mechanism):** in-code prose SHOULD cite a retired-quantity or
+  surgery-scope fix by SECTION NUMBER (e.g. "§16.16.3's MAJOR-1 fix")
+  rather than spelling out the literal identifier, where feasible — this
+  keeps a future disclosure comment from tripping the same class of
+  check `_references` is built to be immune to at the CALL/ATTRIBUTE/NAME
+  level, but a docstring can still trivially defeat a substring check by
+  accident.
 
 **Analysis-module rewrite — registered build task (Rev 1, attack-round-1
 MAJOR-1, the highest-value finding this round found).** As specced through
@@ -6856,7 +6971,9 @@ instrument this Phase already retired. Registered fix, three parts:
    `build_holds_and_gate_by_checkpoint`, new body) by a function that calls
    `eval_query_loss_heldout(model, K, hop_set=(1,2), ...)` (this section's
    own new function) on the frozen checkpoint for both `off` and `arm`,
-   returning `L_query` floats directly. `off_vals`/`arm_vals` (the L112-117
+   loading each `model` via `phase2b_load_eval_model(ckpt_path, device)`
+   (this section's own "Loader" bullet, the single seam — Rev 2.1 fix,
+   round-3 verify MAJOR-R3-1), and returning `L_query` floats directly. `off_vals`/`arm_vals` (the L112-117
    accumulation loop) are populated from these `L_query` floats, never from
    `recovered_frac`. `delta_ci_n3` is called with the §16.16.5 sign
    convention (`delta_ci_n3(off_vals, arm_vals)`, positive = arm's loss
@@ -6914,9 +7031,15 @@ instrument this Phase already retired. Registered fix, three parts:
      through) to return controlled, per-(arm-or-off, checkpoint, K, seed)
      synthetic `L_query` floats from a small fixed lookup table — never a
      constant, so the reduction has real per-cell content to fold over —
-     together with a stub of the replacement's own checkpoint-load call
-     (`load_init_checkpoint_strict`) returning a trivial sentinel object
-     carrying `(arm, checkpoint_step)` as plain attributes, so the
+     together with a stub of the replacement's own checkpoint-load call,
+     **`phase2b_load_eval_model`, the single-seam loader (Rev 2.1 fix,
+     round-3 verify MAJOR-R3-1; supersedes stubbing
+     `load_init_checkpoint_strict` directly, which this round's own verify
+     found unbuildable — that function mutates an already-constructed
+     model in place rather than building one from a bare path, so it
+     cannot itself deliver a sentinel; see §16.16.3's "Loader" bullet
+     above for the full citation trace)** — returning a trivial sentinel
+     object carrying `(arm, checkpoint_step)` as plain attributes, so the
      `eval_query_loss_heldout` stub can look up the right table entry
      without touching a real `.pt` file or GPU. Engineer the table so
      that, run through the REAL `delta_ci_n3` → `phx.det` → `phx.holds`
@@ -6935,17 +7058,22 @@ instrument this Phase already retired. Registered fix, three parts:
      `UNRESOLVED-GATE` — the same outcome Rev 1 checked, now actually
      exercising the rewritten function that is supposed to produce it.
    - **(ii) Structural part, exact assertions pinned (not left to the
-     builder's judgment):** `"recovered_frac" not in
-     inspect.getsource(phase2_trajectory_analysis)` (whole-module check —
-     proves the dead `d_state`-space quantity is gone, not merely
-     shadowed by an unexercised branch) AND `"gate_json_path_for" not in
-     inspect.getsource(phase2_trajectory_analysis.
-     build_holds_and_gate_by_checkpoint)` (function-scoped check — proves
-     the rewritten function's own body no longer calls the dead gate-JSON
-     reader, whether or not the helper itself is deleted elsewhere in the
-     module). A test that passes (i) but fails (ii) would mean the dead
-     sourcing was routed AROUND rather than removed — exactly the gap this
-     re-registration exists to close.
+     builder's judgment); re-pinned at AST level (Rev 2.1 fix, round-3
+     verify MINOR-R3-1, same fragility class and same `_references`
+     helper as the surgery-mode assertion, §16.16.3's "Surgery-mode
+     scope" paragraph above — supersedes the plain substring checks Rev 2
+     registered, which would false-positive-fail on a well-meaning
+     docstring or comment mentioning either identifier in prose):**
+     `not _references(phase2_trajectory_analysis, "recovered_frac")`
+     (whole-module check — proves the dead `d_state`-space quantity is
+     gone, not merely shadowed by an unexercised branch) AND
+     `not _references(phase2_trajectory_analysis.
+     build_holds_and_gate_by_checkpoint, "gate_json_path_for")`
+     (function-scoped check — proves the rewritten function's own body no
+     longer calls the dead gate-JSON reader, whether or not the helper
+     itself is deleted elsewhere in the module). A test that passes (i)
+     but fails (ii) would mean the dead sourcing was routed AROUND rather
+     than removed — exactly the gap this re-registration exists to close.
 
 ### 16.16.4 Power sketch — the detectable effect size at n=3 seeds, honestly derived
 
@@ -7348,11 +7476,15 @@ bracketed this way. GPUs 0-1 are free.
   templating; this assertion makes that pairing verified, not merely
   trusted); (d) **MAJOR-R2-2 (Rev 2, attack-round-2) — a new assertion
   that `eval_query_loss_heldout`'s own forward path never invokes
-  surgery, per §16.16.3's "Surgery-mode scope, pinned" paragraph above:**
-  `"frozen_bias_surgery" not in inspect.getsource(eval_query_loss_heldout)`
-  and the same check against `query_loss_forward` (the function it wraps)
-  — a mechanical proof that eval-(B) runs the blend natively, never
-  force-off, so the reported effect stays the arm's whole causal package
+  surgery, per §16.16.3's "Surgery-mode scope, pinned" paragraph above;
+  re-pinned at AST level (Rev 2.1 fix, round-3 verify MINOR-R3-1, same
+  `_references` helper §16.16.3 registers — supersedes the plain
+  substring check, fragile to a docstring/comment mentioning the
+  identifier):** `not _references(eval_query_loss_heldout,
+  "frozen_bias_surgery")` and the same check against `query_loss_forward`
+  (the function it wraps) — a mechanical proof that eval-(B) runs the
+  blend natively, never force-off, so the reported effect stays the arm's
+  whole causal package
   and never silently narrows to the un-built isolated-contrast follow-on.
 - **Real-kernel smoke — a genuine, previously-undiscovered gap, found
   this session, not assumed closed; EXPANDED (Rev 1, attack-round-1
@@ -7432,7 +7564,7 @@ having decomposed which of the two components drives the effect.
   silently elided at harvest time the way §16.15.7's trichotomy gap
   almost was.
 
-### 16.16.11 Open items for the independent attack round (self-attack, not exhaustive; STATUS as of Rev 2 — none of these 5 overlapped attack-round-1's own 5 MAJOR/3 MINOR findings OR attack-round-2's own 3 MAJOR/2 MINOR findings, §16.17 — all 5 below remain genuinely OPEN, carried forward to round 3)
+### 16.16.11 Open items for the independent attack round (self-attack, not exhaustive; STATUS as of Rev 2.1 — none of these 5 overlapped attack-round-1's own 5 MAJOR/3 MINOR findings, attack-round-2's own 3 MAJOR/2 MINOR findings, OR round-3's own 1 MAJOR/1 MINOR verify findings, §16.17 — all 5 below remain genuinely OPEN, carried forward to round 4)
 
 1. Is `0.0022 GPU-h/pass` really the right reference rate for the new
    eval-`L_query` pass, or does it under-price the null-shuffle-free but
@@ -7460,12 +7592,17 @@ having decomposed which of the two components drives the effect.
    own single pre-registered decision rule?
 
 **Not self-launched.** Per this project's waterfall discipline, §16.16 (now
-Rev 2) awaits a THIRD independent attack round — reviewing this Rev's own
-fixes (§16.17's round-2 table) fresh, plus the 5 items above, still open —
-before any build task registered above is started. See §16.17 for the full
-Rev 0 → Rev 1 → Rev 2 finding→fix trace and the round-3 forward-pointer.
+Rev 2.1) awaits a FOURTH independent round — round 3 (2026-07-13) was a
+focused VERIFY pass on round-2's own 5 fixes, not a re-run of the 5
+self-attack items above, so those remain open, still unaddressed, still
+blocking build. Round 4 is registered as a SPOT-CHECK (per this round's
+own forward-pointer, §16.17): confirm round-3's own 2 fixes (MAJOR-R3-1,
+MINOR-R3-1) land as described against the real code they cite, plus take
+a first pass at the 5 items above — before any build task registered
+above is started. See §16.17 for the full Rev 0 → Rev 1 → Rev 2 → Rev 2.1
+finding→fix trace and the round-4 forward-pointer.
 
-### 16.17 ATTACK-ROUND fix-maps for §16.16 (round 1: 2026-07-11, round 2: 2026-07-12) — verdict: round 1 NEEDS-REVISION (fixed → Rev 1), round 2 NEEDS-REVISION (fixed → Rev 2)
+### 16.17 ATTACK-ROUND fix-maps for §16.16 (round 1: 2026-07-11, round 2: 2026-07-12, round 3: 2026-07-13) — verdict: round 1 NEEDS-REVISION (fixed → Rev 1), round 2 NEEDS-REVISION (fixed → Rev 2), round 3 NEEDS-REVISION (fixed → Rev 2.1)
 
 **Round 1** (2026-07-11). A first independent adversarial pass reviewed
 Rev 0 of §16.16 (the Phase-2b vocab-space behavioral-contrast instrument,
@@ -7520,16 +7657,41 @@ own findings (below), carried forward to round 3.
 | MINOR-R2-1 | `eval_query_loss_heldout`'s own `batch_size` parameter (§16.16.3's "Build delta") was left unpinned — a future caller's own default would silently govern it rather than the codebase's own established convention | MINOR | Pinned explicitly to `batch_size: int = 16`, matching `killer_prediction_readout`'s and `build_holds_and_gate_by_checkpoint`'s own existing `=16` defaults (`phase2_trajectory_analysis.py` L78, L99) — now REGISTERED on the new function's own signature, not inherited | §16.16.3 ("Build delta" bullet) |
 | MINOR-R2-2 | The smoke-cost line's own arithmetic still used the stale Rev-0 `≈0.01 GPU-h` figure in the "Raw total" sum, even though the SAME paragraph's own prose, two sentences earlier, disclosed MAJOR-5's three-arm suite pricing at `≈0.02-0.03 GPU-h` — the narration and the arithmetic disagreed | MINOR | Raw total corrected to actually use `≈0.03 GPU-h` (the disclosed range's own conservative upper bound) — raw total `1.234 + 0.792 + 0.03 ≈ 2.06 GPU-h` (cached), bracket `≈10.3-20.6 GPU-h`, both re-derived from the corrected figure rather than left narrated-but-unused | §16.16.8 ("Cost" paragraph, smoke bullet + "Raw total"/"Bracket" lines) |
 
-**Rev 2 has NOT yet had its own independent audit pass — the forward
-pointer (per this project's waterfall discipline, `CLAUDE.md`) is a THIRD,
-fresh-eyes attack round on §16.16 as it now reads (Rev 2, this section's
-own round-2 fixes above), not a build audit — build does not start until
-that round passes clean or its own findings are fixed and re-verified.
-Round 3's own scope, explicitly: (a) verify all 5 round-2 fixes above land
-as described against the (still design-only) text; (b) the 5 self-attack
-items §16.16.11 lists (GPU-h reference-rate uncertainty, readout-(B)
-variance-proxy conservativeness, floor-gate pooling granularity,
-pairing-device CI-independence risk, secondary-readout multiple-comparisons
-correction) — unaddressed by round 2, still genuinely open, still carried
-forward.** No cells launched, no code written this session; STATE.md's
-queue updated.
+**Round 3** (2026-07-13) executed part (a) of round-2's own forward
+pointer above: verify all 5 round-2 fixes land as described against the
+(still design-only) text, fresh-eyes, per this project's own waterfall
+discipline (`CLAUDE.md`). All 5 confirmed landed as described, not
+reopened. The pass also caught 2 NEW findings — both surgical, neither a
+re-opening of a round-1/round-2 item — while checking those fixes' own
+citations against the real code. Verdict: **NEEDS-REVISION** — 1 MAJOR, 1
+MINOR, no FATAL. Both fixed in this revision (Rev 2.1, §16.16.3/§16.16.9
+as edited above); neither deferred nor waved away. **Verified CORRECT and
+NOT reopened this round:** every Rev-2 fix (MAJOR-R2-1 through MAJOR-R2-3,
+MINOR-R2-1/MINOR-R2-2) — checked against the real code each cites
+(`phase2_trajectory_analysis.py`, `phase2_familiarization_train.py`,
+`lm_pretrain_rd.py`) and confirmed landed as described. Part (b) of
+round-2's own forward pointer — the 5 self-attack items §16.16.11 lists —
+was OUT OF SCOPE for this round's own surgical verify mandate; all 5
+remain OPEN, unaddressed, carried forward to round 4.
+
+| # | Finding (round-3 verify on §16.16 Rev 2) | Severity | Fix (Rev 2.1) | Location |
+|---|---|---|---|---|
+| MAJOR-R3-1 | The registered Stage-1 negative test (item 3(i)) stubbed `load_init_checkpoint_strict` as the replacement `killer_prediction_readout`'s own checkpoint-load call — but that function (`lm_pretrain_rd.py` L1803) takes an ALREADY-CONSTRUCTED `model` argument, mutates it in place via `load_state_dict`, and returns the ckpt dict; it does not build a model from a bare path. The actual model-construction step lives one layer up, a SEPARATE `torch.load(...)['config']` antecedent (`phase2_familiarization_train.py`'s own `run_familiarization_cell`, L408, immediately followed by `load_init_checkpoint_strict` at L421) — as specced, the stub target could neither deliver the sentinel the test needs nor avoid a real `.pt`/GPU dependency | MAJOR | Registered a single-seam loading helper, `phase2b_load_eval_model(ckpt_path, device) -> DeltaNetLM`, as part of the analysis rewrite (new function in `phase2_trajectory_analysis.py`): internally reproduces the SAME `phase2_familiarization_train.py` L408→L421 double-defense sequence (`torch.load(...)['config']` → `DeltaNetLM(**config)` → `load_init_checkpoint_strict(model, path, device)`, preserving the config-equality assert + `strict=True load_state_dict`, `lm_pretrain_rd.py` L1803, verbatim). The rewritten `killer_prediction_readout` routes ALL eval-model loading through this ONE helper; the Stage-1 test now stubs `phase2b_load_eval_model` itself — the single seam — with a sentinel carrying `(arm, checkpoint_step)` as plain attributes, no real `.pt` read, no GPU. Production keeps the strict double-defense path unconditionally — the auditor's own noted laxer alternative, `reasoning_link_probe.load_checkpoint` (`reasoning_link_probe.py` L705-713, a single-layer `load_state_dict` with no explicit config-equality assert), is explicitly REJECTED, not silently substituted | §16.16.3 ("Loader" bullet, REWRITTEN; item 1; item 3(i)) |
+| MINOR-R3-1 | The `"frozen_bias_surgery" not in inspect.getsource(...)` assertion (§16.16.3's surgery-mode paragraph, §16.16.9 item (d)) and the `"recovered_frac"`/`"gate_json_path_for"` structural assertions (item 3(ii), MAJOR-R2-1) are all plain substring-absence checks against `inspect.getsource(...)` — fragile to a well-meaning docstring or comment mentioning the same identifier in prose (exactly the disclosure style this document favors), which would false-positive-fail the assertion despite the code itself being correct | MINOR | All four assertions re-pinned as AST-level checks via one shared helper, `_references(func_or_module, identifier)` (registered once in `phase2_stage_minus1.py`): parses the source with `ast.parse`, walks `Call`/`Attribute`/`Name` nodes for the identifier — matches real calls/attribute-accesses/names, never a docstring's own string-constant contents or a comment (comments are dropped by `ast.parse` outright). One-line house convention registered alongside: in-code prose SHOULD cite a fix by section number rather than the literal retired identifier, where feasible | §16.16.3 (surgery-mode paragraph; item 3(ii)); §16.16.9 (item (d)) |
+
+**Rev 2.1 has NOT yet had its own independent audit pass — the forward
+pointer (per this project's waterfall discipline, `CLAUDE.md`) is a
+FOURTH round on §16.16 as it now reads (Rev 2.1, this section's own
+round-3 fixes above), registered as a SPOT-CHECK rather than a full
+fresh-eyes attack round — round 3's own surgical scope (2 findings, both
+narrow mechanics) does not warrant re-running the full adversarial
+machinery a third time in a row; build does not start until round 4
+passes clean or its own findings are fixed and re-verified. Round 4's own
+scope, explicitly: (a) confirm round-3's own 2 fixes (MAJOR-R3-1,
+MINOR-R3-1) land as described against the (still design-only) text; (b)
+the 5 self-attack items §16.16.11 lists (GPU-h reference-rate uncertainty,
+readout-(B) variance-proxy conservativeness, floor-gate pooling
+granularity, pairing-device CI-independence risk, secondary-readout
+multiple-comparisons correction) — unaddressed by round 3, still
+genuinely open, still carried forward.** No cells launched, no code
+written this session; STATE.md's queue updated.
