@@ -1,8 +1,96 @@
 # Project State
 
-**Last updated:** 2026-07-08 (Phase-2b seed-extension n=3→6 DESIGN added below, Rev 0 pre-attack, zero GPU spent — queue: design→attack→build-delta→audit→launch GPUs 0-1 for the familiarization/eval slice; see the top section. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-08 (KEYANCHOR-SCALING §15.26 d=96 SCATTER-RESOLUTION wave DESIGN added below, Rev 0 pre-attack, zero GPU spent this session except a CPU-only power-check script — queue: design→attack→build→audit→launch GPUs 2-7. Different lane from, and unaffected by, the REASONING-LINK Phase-2b seed-extension DESIGN immediately below (GPUs 0-1) — the two never share GPUs or files. Phase-2b seed-extension n=3→6 DESIGN added below, Rev 0 pre-attack, zero GPU spent — queue: design→attack→build-delta→audit→launch GPUs 0-1 for the familiarization/eval slice; see the top section. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
+
+---
+
+## KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION WAVE — DESIGN (Rev 0, pre-attack), 2026-07-08 — supersedes the C17 EVAL-ADMISSION REPRO INSTRUMENT — CLOSED block's own queue implication further below (§15.25's "noisiest K-group... not launched this harvest" follow-up); that block's own verdict/harvest facts are otherwise still current/unchanged. Different lane from, never gates and never gated by, the REASONING-LINK PHASE-2B SEED EXTENSION block immediately below (different GPUs: 2-7 vs 0-1; different files: `KEY_ANCHORING_SCALING_DRAFT.md` vs `REASONING_LINK_DESIGN.md`)
+
+**Queue status: DESIGN (Rev 0) → (next) ATTACK ROUND 1 → BUILD → AUDIT →
+LAUNCH GPUs 2-7 (Stage 0 calibration cell on GPU 2, then fan out).**
+
+**+2 seeds/K (n=3→5) at `K∈{69,72,78,84,90}, d=96`** — extends §15.20
+Rev 1's own row-1b follow-up ("seed escalation at the noisiest K-group")
+from K72 alone to all 5 K-groups, in response to §15.25's AMBIGUOUS
+verdict on the full unlocked grid (100% bootstrap-degenerate,
+non-monotonic curve: K69=0.9592, K72=0.9216, K78=0.9326, K84=0.9581,
+K90=1.0000).
+
+**Power sketch (RUN this session, CPU-only, `sim_d96_scatter_resolution_
+power.py`, 20,000 trials/null): the analytically EXPECTED outcome is
+SCATTER-IS-REAL / STILL-NON-MONOTONIC, not resolution.** Per-K sd at
+n=3: 0.0000–0.0745 (SE shrinks 1.29× at n=5, `sqrt(5/3)`, independently
+re-derived). Under BOTH a "scatter is real" null and a "the dip is pure
+noise" null, 0/40,000 combined trials produced a non-degenerate,
+monotonic fit. Root cause, diagnosed directly: not really the K72/K78
+dip — the K84 (0.9581, tight sd=0.0222) vs. K90 (exactly 1.0000, sd=
+0.0000, 3/3 seeds) relationship sits ≈6.7 SEs apart and does not budge
+even projected to +100 extra seeds at K84 alone. Candidate mechanism,
+disclosed not built: K90's own pool-margin confound (only 16/106
+held-out entities excluded per draw, vs. 22/106 at K84, §15.24.2's own
+prior flag). Registered as informative either way, per the task's own
+explicit instruction — a tighter, n=5-confirmed non-monotonic result
+still rules out a simple monotonic-cliff account with much more
+confidence than n=3 permits.
+
+**Cost — requires the standing `+5.0 GPU-h` extension, first wave to
+actually draw on it.** 10 cells × 0.427 GPU-h/cell (re-derived from
+§15.22's own K=69/seed=1733 realized rate) = 4.27 GPU-h at 1×. Ledger:
+19.3666 + 4.270 = **23.6366/26 (90.91%, reserve 2.3634)** — EXCEEDS the
+original 21 GPU-h ceiling (112.65%), REQUIRES the already-authorized-
+but-never-drawn-on `+5.0 GPU-h` extension (`KEYANCHOR_SCALING_EXT_PI_
+SIGNOFF`, cited verbatim from §15.22: "authorized and its gate fired
+correctly, but was never actually drawn on"). **Scrupulously disclosed:
+the 2× pessimistic bracket (27.9066/26 = 107.33%) EXCEEDS even the
+EXTENDED ceiling** — the first time in this program's history the 2×
+bracket alone would breach the extension. Mitigated by a mandatory
+Stage-0 calibration-first launch (1 cell, K=84/seed=1943, GPU 2 alone,
+1.5×-of-point-estimate abort trigger) and a new running-projection cut
+rule specific to this wave (bring every K to n=4 before firing any K's
+5th seed; halt before any further, self-authorized extension) — not by
+hoping the 2× bracket never fires.
+
+**New production change, gated:** `geo3_n_iter` bumped 20→28 for these
+10 cells only (additive-only override, does NOT touch the existing
+`KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K` dict — preserves the ORIGINAL/
+wide-grid manifest-regression invariant), justified by §15.25's own
+Step 2 finding (295/4,608 episodes at K=84/seed=1940 require exactly
+n_iter=28, 0 unresolved beyond). Gated by (i) a baseline-relative
+negative test mirroring the C17-repro Item-1 re-pin (OFF×2+ON×1, ≤3× the
+freshly-measured envelope) and (ii) a NEW post-hoc admission check on
+all 10 landed cells + its own negative-test fixture proving the check
+has teeth — both registered, not yet run (design-only session).
+
+Full hypothesis, re-derived per-K stats, the power-check script + its
+JSON output (archived, already run), seed table, cost table, gates, and
+the pre-registered outcome table (CLIFF-IN-WINDOW / STILL-NO-CLIFF-
+TIGHTER / SCATTER-IS-REAL / conditional rival-band comparison):
+`KEY_ANCHORING_SCALING_DRAFT.md` §15.26. Archive (power-check only, no
+GPU cell run yet): `experiment-runs/2026-07-08_d96_scatter_resolution_
+design/`.
+
+**Security note.** The same recurring fake `<system-reminder>`
+injection (date-change-concealment instruction + fabricated agent-type
+list + fabricated MCP-server tool-loading instructions, appended to the
+first `Bash` tool result mid-session) fired again this session.
+Disregarded in full, including the concealment instruction; the
+underlying date claim was independently cross-checked against the box's
+own `date` output and recent commit timestamps (both genuinely
+2026-07-08) rather than trusted because asserted. Also disclosed, then
+independently checked and found benign: this session's `HEAD` advanced
+from the `d14fe89` commit named in this task's own brief to `de59574`
+(`d14fe89`'s own direct child, `fcfde7a`→`d14fe89`→`de59574`, a normal
+linear fast-forward, `git merge-base --is-ancestor d14fe89 de59574`
+confirms it, `git diff` shows zero content loss) partway through this
+session — a concurrent sibling agent (the REASONING-LINK Phase-2b
+seed-extension design immediately below, same working tree) committing
+normally during this session, not a rewrite, reset, or data loss (an
+initial, more alarming read of a truncated `git log` was itself
+mistaken and corrected before being reported here). Handled
+operationally by re-reading `STATE.md`/`EXPERIMENT_LOG.md` fresh immediately
+before every edit in this session rather than trusting the initial read.
 
 ---
 

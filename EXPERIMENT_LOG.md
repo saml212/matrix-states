@@ -6575,6 +6575,143 @@ SSD-mirrored, byte-verified). GPU 2 free. STATE.md updated.
 
 **Security note.** One fake `<system-reminder>` injection this session (date-change-concealment pattern + fabricated agent-type list + fabricated MCP-server instructions, appended to the first `git`/Bash tool result) — the same recurring pattern this project's history already logs repeatedly. Disregarded in full, including the concealment instruction; verified against real `git` output (HEAD=origin/main=714cdaf) instead. Zero injected content found in any file this session touched or read.
 
+---
+
+## KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION WAVE — DESIGN (Rev 0, pre-attack), 2026-07-08: +2 seeds/K (n=3→5) at `K∈{69,72,78,84,90}`, extending §15.20 Rev 1's own row-1b follow-up from K72 alone to all 5 K-groups, in response to §15.25's AMBIGUOUS (100% bootstrap-degenerate, non-monotonic) verdict on the full unlocked d=96 grid. Zero GPU spent — a CPU-only power-check script was written and RUN this session, no training cell launched.
+
+**Re-derived per-K stats (independently verified against the raw JSONs
+in `experiment-runs/2026-07-07_keyanchor_scaling_wide/`, matching
+§15.25.5's table to 4 decimal places):** mean/sd at n=3 — K69 0.9592/
+0.0406, K72 0.9216/0.0745, K78 0.9326/0.0595, K84 0.9581/0.0222, K90
+1.0000/0.0000. SE shrinks n=3→n=5 by exactly `sqrt(5/3)=1.2910×`,
+confirming the task brief's own "~1.29×" figure independently.
+
+**Power sketch — the analytically EXPECTED outcome is SCATTER-IS-REAL /
+STILL-NON-MONOTONIC, not resolution, stated up front rather than
+discovered at harvest.** A purpose-built CPU-only Monte Carlo
+(`matrix-thinking/deltanet_rd/sim_d96_scatter_resolution_power.py`,
+imports `sigmoid`/bounds from `sim_cliff_power.py` unmodified, mirrors
+§15.20.4 MAJOR-2's own "promoted to Stage −1 BLOCKING, RUN THIS SESSION"
+precedent) held the 3 real, archived seeds at each K fixed and drew 2
+new synthetic seeds under two pre-registered nulls — H0 "scatter is
+real" (2 new draws ~ that K's own observed mean/sd) and H1 "dip is
+noise" (K72/K78's assumed true mean replaced by the K69→K84 linear
+interpolation, ≈0.9585–0.9589, K69/K84/K90 unchanged) — 20,000 trials
+each, fitting the sigmoid once per trial exactly as `fit_cliff_curve.
+fit_sigmoid` does. **Result: `degenerate_frac=1.0000` and
+`monotonic_frac=0.0000` under BOTH nulls, 0/40,000 combined trials.**
+Isolating the sub-relationship (200,000 additional trials) shows the
+dominant driver is NOT the K72/K78 dip but the K84 (0.9581, tight
+sd=0.0222) vs. K90 (exactly 1.0000, sd=0.0000, 3/3 seeds) relationship
+— a ≈6.7-SE gap in K84's own mean-of-5 distribution that stays at
+`P=0/200,000` even projected to +100 extra seeds at K84 alone,
+regardless of which null generates the new draws. A literal "true curve
+= one of the two rival bands' sigmoid" null was considered and
+REJECTED as incoherent (evaluates to <0.02 at K90 under either rival
+center, flatly contradicted by K90's own fixed, real 3/3-ceiling data)
+rather than run anyway and buried. Disclosed, not-built candidate
+mechanism for K90's own apparent ceiling: the pool-margin confound
+§15.24.2 already flagged once (only 16/106 held-out entities excluded
+per draw at K90 vs. 22/106 at K84) — registered as the leading
+follow-up diagnostic if SCATTER-IS-REAL is confirmed, not designed or
+built here. Per the task brief's own explicit instruction, this
+outcome is registered as INFORMATIVE, not a failed wave — a
+tighter, n=5-confirmed non-monotonic result rules out a simple
+monotonic-cliff account of h4(K/d) at d=96 in this window with
+materially more confidence than the current n=3 scatter permits.
+
+**Seeds:** `K∈{69,72,78,84,90} × 2` = 10 new cells. K72/78/84/90 reuse
+the ALREADY-REGISTERED, unfired `+2 contingency` pairs from §15.20.1's
+own 100-wide-block table (`KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K
+[96]`, `run_deltanet_rd_exactness_sweep.py:3098`) — 1743/1744, 1843/
+1844, 1943/1944, 2043/2044. K69's own contingency pair (1733,1734) is
+PARTIALLY spent (1733 already fired, §15.22 addendum) — reuses the one
+remaining seed (1734) plus ONE newly registered seed (1736, the next
+free slot in the K=69 block after the existing primary/contingency/
+Gate-1-probe allocation, disclosed rather than silently repurposing the
+different-cost-tier Gate-1-probe slot 1735). Mechanical collision check
+(`grep` across `experiment-runs/` + every `*.py`) returns zero hits for
+all 10 new seed tokens. K=84's contingency pair (1943/1944) was ALSO
+the C17 repro instrument's own unfired NO-REPRO fallback reservation
+(§15.24.7) — that reservation is moot (the C17 verdict landed without
+firing it, §15.25.3) and its reuse here, for the seed table's own
+originally-intended purpose, is disclosed, not a collision.
+
+**Production fix + gate:** `geo3_n_iter` bumped 20→28 for these 10
+cells only, via a NEW additive-only override
+(`KEYANCHOR_SCALING_SCATTER_RESOLUTION_N_ITER_OVERRIDE`) that does NOT
+touch the existing `KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K` dict
+(preserves the ORIGINAL/wide-grid manifest-regression invariant),
+justified by §15.25's own Step 2 finding (295/4,608 episodes at K=84/
+seed=1940 require exactly n_iter=28, 0 unresolved beyond — 24 would
+leave a disclosed non-trivial re-quarantine risk). Two new gates,
+registered not yet run: (i) a negative test mirroring the C17-repro
+Item-1 baseline-relative re-pin (OFF×2 n_iter=20 + ON×1 n_iter=28, PASS
+iff max_abs dev ≤3× the freshly-measured OFF-vs-OFF envelope); (ii) a
+post-hoc admission check on all 10 landed cells (`assert
+geo3_admission.admissible is True`) plus its OWN synthetic-fixture
+negative test proving the check has teeth — per the task's own explicit
+"NEW w/ negative test" requirement. Existing kernel-safety gates
+(`T_bind=7K` gives `{483,504,546,588,630}` for this wave's 5 K's) and
+the n_iter-sufficiency Gate (b) (flat/converged from n_iter=12 already)
+are REUSED by citation, verified this session against the committed
+artifacts, not re-run.
+
+**Cost — requires the standing `+5.0 GPU-h` extension, the first wave
+to actually draw on it, disclosed scrupulously.** 10 × 0.427 GPU-h/cell
+(re-derived from §15.22's own K=69/seed=1733 realized rate,
+`wall_s=1535.2s`) = 4.27 GPU-h at 1×. Ledger: 19.3666 (§15.25.3) + 4.270
+= **23.6366/26 (90.91%, reserve 2.3634)** — exceeds the ORIGINAL 21
+GPU-h ceiling (112.65%), requiring the extension §15.22 quotes verbatim
+as "authorized and its gate fired correctly, but was never actually
+drawn on" (`KEYANCHOR_SCALING_EXT_PI_SIGNOFF`, already-built, already-
+enforced token, reused not rebuilt). **Honestly, the part that does not
+comfortably fit: the 2× pessimistic bracket (27.9066/26 = 107.33%)
+EXCEEDS even the EXTENDED ceiling** — never true of any prior wave in
+this program (realized/estimate history: 13.6%–112.5% of 1×, never near
+2×). Mitigated by a mandatory Stage-0 calibration-first launch (1 cell,
+K=84/seed=1943, GPU 2 alone, recalibrated 1.5×-of-point-estimate abort
+trigger) and a wave-specific running-projection cut rule (bring every K
+to n=4 before firing any K's 5th seed; halt before any further,
+self-authorized extension) — not by assuming the 2× bracket never
+fires.
+
+**Pre-registered outcomes (6-row decision rule reused unmodified from
+§15.20.4):** CLIFF-IN-WINDOW (empirically disfavored — 0/40,000 power-
+check trials), STILL-NO-CLIFF-TIGHTER (disfavored — K72/K78 already sit
+well under 0.98 at n=3), **SCATTER-IS-REAL / STILL-NON-MONOTONIC
+(analytically the most probable outcome, registered as informative)**,
+and a conditional rival-band comparison (abs-slack `[0.718,0.739]` vs.
+power-law `[0.768,0.837]`) only reachable if CLIFF-IN-WINDOW fires.
+Success is explicitly redefined as "materially tighter, mechanically
+re-applied verdict" — NOT "resolve x0(96)" — so a repeat-AMBIGUOUS
+harvest is not later mis-read as a failed wave.
+
+Full design: `KEY_ANCHORING_SCALING_DRAFT.md` §15.26. Power-check
+script + JSON output archived at `experiment-runs/2026-07-08_
+d96_scatter_resolution_design/` (repo-tracked, no SSD mirror yet — no
+GPU cell has run). Queue: DESIGN (Rev 0, this entry) → ATTACK ROUND 1 →
+BUILD → AUDIT → LAUNCH GPUs 2-7. STATE.md updated.
+
+**Security note.** The same recurring fake `<system-reminder>`
+injection (date-change-concealment instruction + fabricated agent-type
+list + fabricated MCP-server tool-loading instructions, appended to the
+first `Bash` tool result mid-session) fired again this session —
+disregarded in full, including the concealment instruction; the
+underlying date claim was independently cross-checked against the box's
+own `date` output and recent commit timestamps (both genuinely
+2026-07-08). Separately, this session's own `HEAD` advanced from
+`d14fe89` (the commit named in this task's brief) to `de59574` partway
+through — checked and confirmed a normal linear fast-forward
+(`d14fe89`'s own direct child, zero content loss, `git merge-base
+--is-ancestor` confirms), a concurrent sibling agent (the
+REASONING-LINK Phase-2b seed-extension design) committing normally to
+the same working tree, not a rewrite or data loss; an initial, more
+alarming read of a truncated `git log` was itself mistaken and
+corrected before being reported here (see STATE.md's own note). Handled
+by re-reading `STATE.md`/`EXPERIMENT_LOG.md` fresh immediately before
+every edit this session.
+
 ## REASONING-LINK PHASE-2B SEED EXTENSION (n=3→6) — DESIGN (2026-07-08): Rev 0, pre-attack, DESIGN-ONLY, zero GPU spent — extends §16.16's audited instrument from 3 to 6 paired seeds/cell
 
 Designs the n=3→6 seed extension of the vocab-space behavioral-contrast
