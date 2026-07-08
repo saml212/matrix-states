@@ -5999,3 +5999,40 @@ Mistake: Assumed "disable the CPU stub + set CUDA_VISIBLE_DEVICES" would exercis
 Correction: Before running a "real-kernel Stage -1" pre-flight, grep the self-test file(s) for hardcoded `device="cpu"` / `"cpu"` map_location literals — if present throughout, the suite was authored CPU-stub-only and a real-kernel run will crash on the first fla-backed forward pass, not produce a meaningful pass/fail count. Treat that as a coverage-gap finding to escalate (here: closed with a production-path real-kernel smoke gate), not a bug to route around.
 
 ---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 2 (2026-07-09): attack-round-2
+landed, NEEDS-REVISION (1 FATAL, 3 MAJOR, 4 MINOR), all fixed, zero GPU
+spent — a second independent adversarial pass reviewed §15.24 (Rev 1)
+before any GPU work launched. FATAL: "episode" was never pinned to one
+referent — Step 0a's own rank check already operated on ONE within-batch
+`(K,d)` row, while the granularity-threshold paragraph's own "~120 dumped
+events" denominator counted whole triggering batches, a ~128× gap
+(120 events vs. ~15,360 rows) that made Rev 1's dispositive-floor
+arithmetic ambiguous; the codebase's own docstring (`model_rd.py:433–434`)
+already draws this row-vs-batch line. Fixed by pinning `episode :=
+(step, hop, batch_idx, row_idx)`, one within-batch `(K,d)` problem, and
+`event := one dumped dict, one triggering batch`; the inherited
+percentage clause (unworkable at the correct episode granularity — 2% of
+15,360 rows is 308, a bar a genuinely broken probe would plausibly never
+clear) is dropped in favor of a two-level absolute floor: ≥2 anomalous
+episodes occurring in ≥2 distinct events. Three MAJORs: Step −1's `<3`-
+event reproduction bar and Step 0b's structural floor disagreed on a
+2-event, 2-pool-mismatch sink (a deterministic bug signature refused as
+AMBIGUOUS-NONDETERMINISM) — fixed by reordering 0b (structural) ahead of
+Step −1 (reproduction), with total precedence now pinned explicitly (0b >
+Step −1 > Step 1 > Step 2); 0b's dispositive trigger had no enforced-abort
+branch — added, with its own negative test; §15.24.2's dump-dict spec
+referenced a nonexistent `evaluate_pool()` `step` parameter — fixed with
+an additive `step=None` parameter threaded only at the C17 call site
+(also caught and fixed the same code block's undefined `batch_i` loop
+index). Four MINORs: a stale §15.24.1 table row still called Step 0a
+dispositive after Rev 1's own demotion; a citation off by 1000 lines
+(`model_rd.py:149`→`:1149`); TF32 matched-mode recompute pinned
+per-source-run (the combined sink can now span up to 3 launches); the
+determinism cross-check now runs per-launch, not once. Full finding→fix
+table (house style): `KEY_ANCHORING_SCALING_DRAFT.md` §15.24.11. Rev 2
+has NOT yet had its own independent audit pass — next step is a fresh
+attack round 3, before build. No cells launched, no code built this
+session; STATE.md's queue updated.
+
+---

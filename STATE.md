@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-08
+**Last updated:** 2026-07-09
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -38,6 +38,47 @@ its forced-fail negative test proven on box, exit 1); first OFF pair ran
 healthy through step-1000 checkpoints with finite losses before watch was
 dropped. Early `stage05_gate_pass=False` is expected/non-blocking — only
 the TERMINAL step-5000 OFF gate licenses per_token/global.
+
+---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 2 LANDED (2026-07-09) —
+supersedes the REV 1 LANDED block below's own queue status (that block's
+Rev 1 content is otherwise unaffected/unretracted; Rev 2 fixes it, not
+replaces it).
+
+**Queue status: DESIGN (Rev 2) → (next) ATTACK ROUND 3 → BUILD → AUDIT →
+LAUNCH.** `KEY_ANCHORING_SCALING_DRAFT.md` §15.24's independent
+attack-round-2 verdict: **NEEDS-REVISION** — 1 FATAL, 3 MAJOR, 4 MINOR.
+All eight fixed in Rev 2, finding→fix table at §15.24.11. Headline fix
+(**FATAL**): "episode" was never pinned to one referent across Rev 1's own
+text — Step 0a's rank check already operated on ONE within-batch `(K,d)`
+row, while the granularity-threshold paragraph's own "~120 dumped events"
+denominator counted whole triggering batches, a ~128× gap (120 events vs.
+~15,360 rows) in the dispositive-floor arithmetic; the codebase's own
+docstring (`model_rd.py:433–434`) already distinguishes the two. Fixed by
+pinning `episode := (step, hop, batch_idx, row_idx)` and `event := one
+dumped dict, one triggering batch`, and replacing the inherited
+percentage clause (2% of the correct 15,360-row population is 308 rows —
+a bar a genuinely broken probe would plausibly never clear) with a
+two-level absolute floor: ≥2 anomalous episodes occurring in ≥2 distinct
+events. Three MAJORs: Step −1's `<3`-event reproduction bar and Step 0b's
+structural floor disagreed on a 2-event, 2-pool-mismatch sink (a
+deterministic bug signature Step −1 alone would refuse as AMBIGUOUS-
+NONDETERMINISM) — fixed by reordering 0b (structural) ahead of Step −1
+(reproduction), with total precedence pinned explicitly (0b > Step −1 >
+Step 1 > Step 2); 0b's dispositive trigger had no enforced-abort branch —
+added, with its own negative test; §15.24.2's dump-dict spec referenced a
+nonexistent `evaluate_pool()` `step` parameter — fixed with an additive
+`step=None` parameter threaded only at the C17 call site (also caught the
+same code block's undefined `batch_i` loop index). Four MINORs: a stale
+§15.24.1 table row still called Step 0a dispositive after Rev 1's own
+demotion; a citation off by 1000 lines (`model_rd.py:149`→`:1149`); TF32
+matched-mode recompute now pinned per-source-run (the combined sink can
+span up to 3 launches — primary + 2 contingency seeds); the determinism
+cross-check now runs per-launch, not once. **Rev 2 has NOT yet had its
+own independent audit pass — per this program's standing multiple-
+independent-audit-rounds rule, a fresh attack round 3 is the next step,
+before build.** No cells launched, no code written this session.
 
 ---
 
