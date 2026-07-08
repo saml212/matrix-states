@@ -1,17 +1,26 @@
 # HEAD-TO-HEAD DEMO — the program's capstone question
 
-## §1 DESIGN — HEAD-TO-HEAD DEMO (Rev 1, post-attack-round-1 revision,
+## §1 DESIGN — HEAD-TO-HEAD DEMO (Rev 2, post-attack-round-2 revision,
 2026-07-08) — does the matrix-native fast-weight model beat a matched
 conventional baseline on real tasks at meaningful scale, or is its value
 honestly bounded?
 
-Status: **Rev 1, pre-attack (round 2 pending), zero GPU spent.** Rev 0
+Status: **Rev 2, pre-attack (round 3 pending), zero GPU spent.** Rev 0
 (§1.1-1.12 below) was independently attacked and returned NEEDS-REVISION
 (§1.13, retained verbatim as the record: 2 FATAL-caliber + 3 MAJOR + 2
-MINOR findings). This Rev 1 resolves every binding finding **structurally**
-(new design machinery, not a disclaimer bolted on) — §1.14 maps each
-finding to its exact resolution and flags the one item that could not be
-closed with full margin (the Wave −1 GPU-h fit, §1.6). Ratified by the PI
+MINOR findings), resolved by Rev 1 (§1.14). Rev 1 was independently
+attacked a second time and ALSO returned NEEDS-REVISION (§1.15, retained
+verbatim as the record: 2 FATAL findings on axis 2 — a degenerate
+cap_length at rung-1 and an undisclosed train/eval attention mismatch,
+both with mandated INFERENCE-ONLY fixes — + 4 MAJOR + 2 minor). This Rev 2
+resolves every §1.15 finding **structurally, staying inference-only per
+the binding M-NEW-4 budget constraint** (a memory-multiplier sweep
+replaces the single degenerate equal-byte point; an attention-sink
+eviction patch partially mitigates the train/eval mismatch, with the full
+cap-trained fix registered, costed, and deferred as a follow-on, never
+silently absorbed) — §1.16 maps each finding to its exact resolution and
+flags the one item that could not be closed with full margin (the Wave −1
+GPU-h fit, now thinner than any prior revision — §1.6). Ratified by the PI
 as the program's capstone question. **This design absorbs one mid-drafting
 PI directive** (received during Rev-0 authorship, before first commit —
 see the note at the top of §1.3) that re-pointed the comparison framing
@@ -359,8 +368,9 @@ recipe, not a strawman vanilla GPT-2 clone:
     non-gating FLOP-matched control (§1.1). Reports today's-compute-regime
     comparison honestly alongside whatever the primary axes show.
   - **Role (b-primary, axis 2's baseline): hard-capped KV cache**, capped
-    at the SAME byte budget as the contender's **TOTAL, across-all-layers**
-    fixed matrix state (**M2 fix, Rev 1** — Rev 0 left per-layer vs.
+    at an **M×-multiplier** of the contender's **TOTAL, across-all-layers**
+    fixed matrix state (**M2 fix, Rev 1, byte-basis unchanged; M-sweep
+    parametrization F-NEW-1 fix, Rev 2** — Rev 0 left per-layer vs.
     total ambiguous; total-across-layers is the defensible quantity,
     because it is what a deployed instance of the contender actually
     holds in memory end-to-end, and per-layer parity alone would silently
@@ -370,16 +380,35 @@ recipe, not a strawman vanilla GPT-2 clone:
     `n_layers_contender (2) × d_state² (64×64) × 4 bytes (fp32) = 32,768
     bytes`, not the 16,384-bytes/layer figure Rev 0 quoted (that number
     is the correct PER-LAYER figure, §1.2, but §1.7 MATCH-GATE now checks
-    the TOTAL, not the per-layer, quantity) — via the simplest, most
-    conservative eviction policy available: a sliding/FIFO window sized
-    so `2 (K&V) × n_layers_transformer × n_heads × d_head × cap_length ×
-    bytes_per_elt = contender's TOTAL state bytes (32,768 at rung-1)`,
-    solved for `cap_length` (in tokens) once `n_layers_transformer`/
+    the TOTAL, not the per-layer, quantity). **Rev 2 (F-NEW-1): the single
+    `M=1` (exact-byte-parity) cap is replaced by a geometric
+    memory-multiplier sweep, `M ∈ {1,2,4,8,16,32}`, capping at `M ×
+    32,768` bytes** — full derivation, the pinned accounting dtype, and
+    the crossover-multiplier decision rule are in §1.4.2 (the single-point
+    version was independently found DEGENERATE at rung-1: §1.15 F-NEW-1).
+    Eviction policy, for every `M`: `2 (K&V) × n_layers_transformer ×
+    n_heads × d_head × cap_length(M) × bytes_per_elt = M × 32,768`, solved
+    for `cap_length(M)` (in tokens) once `n_layers_transformer`/
     `n_heads`/`d_head` are fixed by the Transformer's own param-matching
-    build. Deliberately the SIMPLEST policy, not a sophisticated
-    KV-compression scheme, disclosed as such (§1.9 item 7) — this is the
-    fair, conservative comparison, not a strawman tilted further toward
-    the contender than the byte-budget match alone already tilts it.
+    build, over a **sink+FIFO** window (**F-NEW-2 fix, Rev 2**): the first
+    `k_sink=4` tokens of the sequence are ALWAYS retained, and the
+    remaining `cap_length(M) − k_sink` slots hold the most-recent tokens
+    on a FIFO basis (one-line rationale: StreamingLLM, Xiao et al. 2023,
+    showed a handful of early "attention sink" tokens absorb
+    disproportionate attention mass in models trained with full/uncapped
+    attention, and dropping them under a naive sliding window causes
+    catastrophic, distribution-shifted degradation independent of the
+    cap's actual information content — retaining them is the standard,
+    minimal, still-simple mitigation). Deliberately still the SIMPLEST
+    policy that addresses the disclosed train/eval mismatch (§1.9 item
+    11), not a sophisticated KV-compression or attention-score-based
+    scheme (§1.9 item 5) — this is the fair, conservative comparison, not
+    a strawman tilted further toward the contender than the byte-budget
+    match alone already tilts it. **Disclosed, not fully closed (F-NEW-2,
+    Rev 2):** the sink patch is a PARTIAL mitigation for the checkpoint
+    being trained fully uncapped and only capped at inference; the full
+    fix — a genuinely cap-trained `(b)` arm — is registered as a costed,
+    explicitly unaffordable-this-wave follow-on (§1.9 item 7).
 
 **Matching arithmetic table, rung-1 (14M tier) — to be verified for real
 by MATCH-GATE (§1.7) before any cell launches, not assumed from this
@@ -390,15 +419,15 @@ layers, not per-layer.**
 |---|---|---|---|---|
 | Contender (`DeltaNetLM`, frozen-bias `per_token`, λ=0.58) | 14,048,896 (measured, `d_model=256/n_layers=2/d_state=64`) | measured per-token profile × steps × batch × seq_len (pin once) | `wikitext-mix-ext` + `openr1-mix-ext`, same step count as (a)/(b) | 32,768 = 2 layers × 64×64 × 4 bytes (fp32; CONSTANT in context length T) |
 | (a) Flat-vector ablation | matched to contender within ≤1% | falls out (reported) | same corpora, same step count (data-matched by construction — axis 1's premise) | 32,768 = 2 layers × 64 (`d_state`, pinned equal to the contender's, §1.3(a)) × 4 bytes — reported, not the axis-2 comparison arm |
-| (b) Standard Transformer | falls out (reported) | matched to contender within ≤5% | same corpora, same step count | role (b-control): grows `O(T)` uncapped, reported at eval horizon; role (b-primary): hard-capped so TOTAL K+V bytes across all layers/heads = 32,768 (`cap_length` solved from `n_layers_transformer/n_heads/d_head`, pinned by MATCH-GATE) |
+| (b) Standard Transformer | falls out (reported) | matched to contender within ≤5% | same corpora, same step count | role (b-control): grows `O(T)` uncapped, reported at eval horizon; role (b-primary): hard-capped so TOTAL K+V bytes across all layers/heads = `M × 32,768`, swept over `M ∈ {1,2,4,8,16,32}` (`cap_length(M)` solved from `n_layers_transformer/n_heads/d_head`, pinned by MATCH-GATE, sink+FIFO eviction — F-NEW-1/F-NEW-2, Rev 2, full derivation §1.4.2) |
 
 The ≤1% / ≤5% / exact-byte-match tolerances are deliberately tighter than
 the 15% rung-config planning tolerance in `lm_rd_rung_configs.py` — that
 tolerance governs whether a scale-ladder point is "close enough to its
 target" for an unrelated study; here the match arithmetic between arms IS
 the finding, so it needs its own, much tighter bar, with the
-inference-memory byte match held EXACT (an integer token cap solved from
-the contender's real measured TOTAL byte count, not a rounded
+inference-memory byte match held EXACT at every `M` (an integer token cap
+solved from the contender's real measured TOTAL byte count, not a rounded
 approximation, and not the per-layer figure — M2).
 
 ---
@@ -571,16 +600,84 @@ requires).** Before the shared probe is trusted for ANY arm's real cells:
 train `adapter_arm + shared_probe` (each arm's REAL adapter shape) on
 FROZEN, RANDOM `state_summary_raw` vectors (i.i.d. Gaussian, no backbone
 forward pass at all — the null does not need a real model, only the
-probe+adapter's own shapes) against the SAME frozen `T_val` targets. Pass
-condition: `recovered_frac@0.9` after training stays statistically
-indistinguishable from chance (chance ≈ 0 for cosine recovery of a
-random unit vector in `R^64`; pass bar set at `< 0.05`, i.e. the probe
-alone, with no real state to read, must not "solve" the task by
-memorizing the frozen target table's own structure). FAIL on this null
+probe+adapter's own shapes) against the SAME frozen `T_val` targets. **Null
+protocol, pinned (m-new-2, Rev 2 — Rev 1 left fresh-vs-fixed-pool
+ambiguous, and a fixed pool risks a memorization false-pass):** draw a
+FRESH i.i.d. `state_summary_raw` batch every training step (never reuse a
+fixed pool of pre-drawn vectors across steps), and evaluate
+`recovered_frac@0.9` on a SEPARATE held-out set of fresh draws never seen
+during the null's own training — mirrors this program's standing
+train/eval-split discipline, applied to a synthetic-input null exactly as
+it would be to a real task. Pass condition: `recovered_frac@0.9` on the
+held-out fresh draws stays statistically indistinguishable from chance
+(chance ≈ 0 for cosine recovery of a random unit vector in `R^64`; pass
+bar set at `< 0.05`, i.e. the probe alone, with no real state to read and
+no fixed pool to memorize, must not "solve" the task). FAIL on this null
 is a hard launch-block for the responsible arm's probe design — this is
 what closes the F1-mandated "probe-parity confound... closed by
 construction" requirement with an actual negative test, not an assertion.
-Cost: negligible (no backbone), see §1.6 Wave −1 item B.
+Cost: negligible (no backbone), see §1.6 Wave −1 item B (item B's scope
+extended, Rev 2, to also run §1.3.1.5's cross-dimension tap diagnostic —
+same CPU-feasible, no-backbone harness, no separate cost line).
+
+**1.3.1.5 Synthetic cross-dimension tap diagnostic (M-NEW-2, Rev 2 — new,
+CPU-only/negligible-GPU, reuses §1.3.1.4's frozen-synthetic-state
+harness).** Closes the gap self-attack item 10 names: the contender's
+native tap is a full matrix-vector product `S_T @ q` (every output
+dimension is a function of every input dimension of `q` — full
+cross-dimension mixing), while the flat-vector ablation's native tap is a
+Hadamard product `s_T ⊙ q` (diagonal-only — output dimension `i` is a
+function of input dimension `i` alone, structurally). This is an
+irreversible expressivity gap the shared linear `adapter_arm`/
+`shared_probe` (§1.3.1.2) CANNOT repair (a linear map fed a
+diagonal-only-derived vector cannot recover information that was never
+routed through cross-dimension terms in the first place), and it is NOT
+exercised by §1.3.1.4's null (which uses i.i.d. Gaussian inputs with no
+adversarial diagonal/off-diagonal structure at all). This diagnostic
+bounds — not eliminates — how much of any REAL axis-1 gap tap
+expressivity alone could explain:
+
+```
+for alpha in {0.0, 0.25, 0.5, 0.75, 1.0}:        # diagonal-energy fraction
+    q      = unit vector, R^{d_state}            # fresh draw, independent RNG
+    t      = unit vector, R^{d_state}             # fresh target, seed != PROBE_TARGET_SEED,
+                                                    # seed != ANCHOR_INIT_SEED (never reuse a
+                                                    # frozen-table seed for a diagnostic input)
+    D      = diag(alpha * t / q)                  # elementwise solve: D @ q == alpha * t exactly
+                                                    # (guard |q_i| >= eps via the same
+                                                    # random_unit_rows_init-style draw that
+                                                    # already avoids axis-degenerate vectors)
+    O      = ((1 - alpha) * t) @ q^T / (q . q)     # rank-1 solve: O @ q == (1-alpha)*t exactly
+    O_offdiag = O - diag(diag(O))                  # zero O's own diagonal; keep only cross-dim terms
+    S_star = D + O_offdiag                         # synthetic state: exact diag/off-diag energy split
+    target_effective = S_star @ q                  # the REAL, exactly-achievable target for THIS S_star
+                                                     # (recomputed after zeroing O's diagonal, so the
+                                                     # construction is exact, never approximate)
+    hadamard_pred = diag(S_star) . q                # = D . q = alpha * t, by construction
+    matvec_pred   = S_star @ q                      # = target_effective, by construction (exact)
+    score both preds against target_effective via the SAME F.cosine_similarity @ 0.9 metric
+```
+
+At `alpha=0`, `D=0` by construction: the Hadamard tap is mathematically
+guaranteed `recovered_frac@0.9 = 0` (it reads zero diagonal, always) while
+the matvec tap is guaranteed `recovered_frac@0.9 = 1` (it reads the exact
+target by construction) — the worst-case, maximal-adversarial bound (a
+100-percentage-point gap attributable to tap expressivity ALONE, on a
+construction designed to defeat a diagonal-only reader). Sweeping
+`alpha ∈ {0, 0.25, 0.5, 0.75, 1.0}` traces a **calibration curve**
+(`alpha → Hadamard-tap recovered_frac`, monotonically increasing from 0 to
+1) that a real ablation's measured axis-1 Hadamard-tap `recovered_frac`
+can be read against, at analysis time, to report an implied "as-if diagonal
+fraction" for the ablation's own trained states — a genuine, quantitative
+bound on the tap-expressivity confound's contribution to any observed
+axis-1 gap, not merely a qualitative disclosure. **What this diagnostic
+does NOT do:** it does not measure the REAL ablation's actual diagonal
+fraction (that would require a separate post-hoc measurement on real
+trained states, out of scope this wave, registered as a cheap potential
+follow-on); it only establishes the theoretical mapping a real number can
+be read against. Cost: CPU-only (linear algebra on `d_state`-dimensional
+vectors, no backbone forward pass, no training loop), folds into §1.6
+Wave −1 item B at no additional GPU-h.
 
 **F1b — Tasks 1/2 data-matching (compounding finding, resolved here).**
 Rev 0's §1.3(b) same-data prescription covered only Task 3's static
@@ -591,12 +688,27 @@ generation, which was left unpinned. Fix, mirroring
 each digit's stride exceeding the previous digit's max reach):
 
 ```
-TASK_BASE = {"task1_calib": 0, "task1_sweep": 1_000_000, "task2_sweep": 2_000_000}
-STRIDE_SEED_RD = 10_000   # per-seed-index stride (n=3 seeds, extendable to 12 -- 11*10_000=110_000 < 1_000_000 margin)
+# TASK_BASE widened to 5 keys (M-NEW-1, Rev 2) -- Rev 1's 3-key table had
+# no task1_stress / task2_calib slot, yet Wave -1 items C/D (sec 1.6) need
+# them; a build agent facing a missing key would either invent one or
+# silently reuse task2_sweep's base, colliding calibration with sweep
+# seeds -- exactly the bug class F1b exists to close.
+TASK_BASE = {
+    "task1_calib":  0,
+    "task1_stress": 500_000,
+    "task1_sweep":  1_000_000,
+    "task2_calib":  1_500_000,
+    "task2_sweep":  2_000_000,
+}
+STRIDE_SEED_RD = 10_000   # per-seed-index stride (n=3 seeds, extendable to 12 -- 11*10_000=110_000 < 500_000 margin between adjacent TASK_BASE keys)
 STRIDE_STEP_RD = 1        # per-checkpoint-index stride (raw checkpoint index, not raw step count)
 
 def rd_episode_seed(task: str, seed_idx: int, ckpt_idx: int) -> int:
-    return TASK_BASE[task] + seed_idx * STRIDE_SEED_RD + ckpt_idx
+    assert task in TASK_BASE, f"unknown task key {task!r}"
+    assert 0 <= ckpt_idx < STRIDE_SEED_RD, \
+        f"ckpt_idx={ckpt_idx} >= STRIDE_SEED_RD={STRIDE_SEED_RD} -- would overflow into the " \
+        f"next seed_idx's own seed range (m-new-1, Rev 2 runtime assert)"
+    return TASK_BASE[task] + seed_idx * STRIDE_SEED_RD + ckpt_idx * STRIDE_STEP_RD
 ```
 
 **Deliberately excludes architecture/arm from the formula** — this is the
@@ -608,12 +720,21 @@ checkpoint — the on-the-fly-generation analogue of `CLAUDE.md`'s "use the
 SAME dataset for ALL experiments in a comparison," operationalized for a
 generator that has no file to share. Batch size and step count are
 pinned identical across arms by the existing 27-cell sweep design (§1.6);
-this formula is the piece Rev 0 omitted. Collision-freedom (no two
-distinct `(task,seed_idx,ckpt_idx)` triples mapping to the same seed) is
-mechanically verified by a dedicated negative-test smoke item, mirroring
-`phase2b_seedext_stage_minus1.py`'s own exhaustive-enumeration check —
-not assumed from the arithmetic alone (`CLAUDE.md`'s own "run the
-negative unit test... to completion" rule on structural checks).
+this formula is the piece Rev 0 omitted. **Collision-freedom (Rev 2:
+extended to enumerate ALL FIVE `TASK_BASE` keys, M-NEW-1 — Rev 1's smoke
+covered only the 3 keys that existed then)** — no two distinct
+`(task,seed_idx,ckpt_idx)` triples across `{task1_calib, task1_stress,
+task1_sweep, task2_calib, task2_sweep} × seed_idx∈[0,11] ×
+ckpt_idx∈[0,STRIDE_SEED_RD)` mapping to the same seed — is mechanically
+verified by a dedicated negative-test smoke item, mirroring
+`phase2b_seedext_stage_minus1.py`'s own SE4/SE5 exhaustive-enumeration
+check (`matrix-thinking/deltanet_rd/phase2b_seedext_stage_minus1.py:165-235`)
+— not assumed from the arithmetic alone (`CLAUDE.md`'s own "run the
+negative unit test... to completion" rule on structural checks). The
+`seed_idx∈[0,11]` bound in the smoke's own enumeration matches the
+seed-extension contingency's own ceiling (§1.8, n=12); the `ckpt_idx`
+bound is the m-new-1 runtime assert above, exercised by its own
+negative-test cell (`ckpt_idx = STRIDE_SEED_RD` must raise).
 
 ---
 
@@ -749,41 +870,180 @@ actively costs data efficiency, the reportable-not-hidden case.
 ---
 
 #### 1.4.2 Axis 2 (PRIMARY) — INFERENCE-MEMORY-MATCHED, "the program's
-strongest card"
+strongest card" (F-NEW-1/F-NEW-2 memory-multiplier redesign, Rev 2 — the
+Rev-1 single equal-byte point was independently found DEGENERATE at
+rung-1, §1.15's own re-derivation, restated below)
 
-**Comparison:** contender (fixed-size matrix state, constant in T) vs.
-(b-primary) the same trained Transformer with its KV cache hard-capped at
-the contender's own byte budget (§1.3(b), exact-byte MATCH-GATE item).
-Tested at pre-registered horizons **T = 2×, 4×, and 8× `cap_length`** on
-Task 1 (long-horizon recall) and Task 2 (multi-hop composition where the
-hop chain's span exceeds `cap_length`) — horizons chosen to be clearly
-past where the cap forces eviction (2×) through comfortably past it (8×),
-giving a dose-response reading rather than a single point, and following
-this program's own repeated preference for a graded frontier over a single
-razor-edge test (`DELTANET_RD_EXACTNESS_DESIGN.md` §17.5's "graded
-frontier, not a razor cliff" precedent).
+**Why Rev 1's single point failed (kept, not hidden, per this program's
+own convention of showing the wreck before the fix).** Re-deriving from
+`DELTANET_REALDATA_DESIGN.md` §4.2's head-dominated FLOP method: at
+rung-1 the fixed `V=50,257` head is `~92%` of FLOPs/token, which pins the
+FLOP-matched (§1.3(b), ≤5%) Transformer's admissible family to
+`d_model≈256`, `n_layers∈{1,2}` (deeper/narrower configs either overshoot
+the FLOP band or lose the match outright). Solving `2 (K&V) ×
+n_layers_transformer × d_model × bytes_per_elt × cap_length =
+32,768` for `cap_length` at `M=1` (fp32, `bytes_per_elt=4`) gives
+**`cap_length = 8` tokens at `n_layers=2`, `16` at `n_layers=1`** — both
+below `query_len (6) + one full bind clause (clause_len=7) = 13` tokens,
+against the task's own `T_bind = K×clause_len = 224` tokens at the
+primary load `K=32` (`grammar_rd.py:307-332`, §1.4's M1 re-pin). The
+capped baseline retains 1-2 of 32 bind clauses regardless of eviction
+policy, so the contender clears the old 0.20 margin trivially — a rigged,
+not a hard, test. **This does not mean the byte-parity comparison is
+wrong in principle** — it means a SINGLE point at exact parity is the
+wrong instrument; the fix below tests a RANGE of memory budgets and
+reports where (if anywhere) the crossover sits, which is strictly more
+informative for the "constant-memory minds" framing than a single
+pass/fail point ever was.
 
-**Rationale this is the strongest card:** the byte-budget match makes this
-an intentionally hard test FOR the contender in one sense (its state must
-do real work in a small fixed footprint) and an intentionally hard test
-FOR the baseline in another (a capped cache with a naive eviction policy
-provably cannot retain information past `cap_length` tokens old, while a
-correctly-functioning fixed-size recurrent state is not architecturally
-prevented from doing so — whether it ACTUALLY does is exactly what this
-axis measures, not assumed).
+**Comparison, redesigned (F-NEW-1):** contender (fixed-size matrix state,
+constant in T) vs. (b-primary) the SAME trained Transformer checkpoint
+(no new training — inference-only, per M-NEW-4's binding budget
+constraint), with its KV cache hard-capped at **`M ×` the contender's own
+total state bytes**, `M` swept over a fixed, pre-registered geometric grid
+**`M ∈ {1, 2, 4, 8, 16, 32}`** (6 points — deterministic, cost-bounded;
+derivation of the grid's own endpoint below). **Accounting dtype, pinned
+(part of F-NEW-1's resolution):** fp32. The contender's fast-weight state
+persists in fp32 OUTSIDE the delta-rule kernel's own internal boundary —
+`final_state = final_state.float()` immediately after the
+`chunk_delta_rule` call, `lm_pretrain_rd.py:986` — the kernel's bf16 usage
+(`:978-984`) is a compute-boundary detail (`chunk_delta_rule`
+"categorically rejects float32," per that file's own comment), not the
+dtype a deployed instance actually HOLDS in memory end-to-end (§1.3(b)'s
+own byte-parity language). The byte-parity comparison must therefore use
+the dtype each side actually PERSISTS, and the contender persists fp32 —
+using bf16 for the Transformer's cache while the contender's own
+accounted bytes are fp32 would silently unbalance the match (M2's own
+"total, not per-layer" logic, applied to dtype instead of layer count).
+**bf16 reported as a disclosed secondary variant** (a bf16-cache
+deployment is a realistic, if not primary-accounted, alternative): every
+`cap_length(M)` value in the table below doubles under bf16
+(`bytes_per_elt=2`), never the decision quantity.
 
-**Win margin:** at the primary pre-registered horizon **T = 4× cap_length**,
-`recovered_frac@0.9` (contender) − `recovered_frac@0.9` (b-primary) ≥
-**0.20** absolute (paired `delta_ci_n`, n=3), CI excluding 0.20 — the
-largest margin in this design, appropriate to a claim billed as the
-program's strongest card (a small effect here would already be an
-ambiguous, secondary-tier result, not the headline). The 2× and 8×
-horizons are pre-registered SECONDARY reads at the same 0.20 margin,
-reported as a dose-response curve alongside the 4× primary point, not
-separately gating the axis verdict. TIE: |Δ|<0.20 at 4×, or CI includes
-0.20. LOSE: the capped baseline wins by ≥0.20 at 4×, CI excluding −0.20 —
-striking and reportable precisely because the setup is designed to favor
-the contender.
+**cap_length(M), in tokens, for the admissible transformer family
+(`d_model≈256`, per the head-dominated FLOP match above), fp32 pinned,
+bf16 disclosed:**
+
+| M | n_layers=1, fp32 | n_layers=1, bf16 | n_layers=2, fp32 | n_layers=2, bf16 |
+|---|---|---|---|---|
+| 1 | 16 | 32 | 8 | 16 |
+| 2 | 32 | 64 | 16 | 32 |
+| 4 | 64 | 128 | 32 | 64 |
+| 8 | 128 | 256 | 64 | 128 |
+| 16 | 256 | 512 | 128 | 256 |
+| 32 | 512 | 1024 | 256 | 512 |
+
+(formula: `cap_length(M) = M × 32,768 / (2 × n_layers_transformer ×
+d_model × bytes_per_elt)`; MATCH-GATE, §1.7 gate 6, resolves the REAL
+`n_layers_transformer` from the actual param/FLOP-matching build and
+computes the real table, not this illustrative `d_model≈256` sketch.)
+
+**Grid-endpoint rule, pinned exactly (F-NEW-1).** Run the full fixed grid
+`M ∈ {1,2,4,8,16,32}` for the MATCH-GATE-resolved config, UNLESS the
+empirical crossover `M*` (defined below) is found at a smaller `M`, in
+which case remaining larger-`M` cells for that (task, horizon) MAY be
+skipped (pre-registered cost-saving, not a post-hoc stopping rule). Two
+conditions justify `M=32` as the grid's fixed, cost-bounded practical
+ceiling if no crossover is found earlier: (i) **floor clearance** — every
+grid config clears the `≥13`-token minimum-viable floor (holds at least
+one bind clause + the query window) by `M=2` at the latest (worst case
+`n_layers=2`, fp32: `cap_length(2)=16≥13`; `n_layers=1` clears it already
+at `M=1`); grid points BELOW the floor for the resolved config (only
+possible at `M=1`, `n_layers=2`, fp32: `cap_length=8<13`) are reported as
+descriptive-only and are NEVER eligible to set `M*` (avoids an ill-posed
+"crossover" whose cause is "can't hold the query window at all," not
+memory-insufficiency); (ii) **cost bound** — `M=32` is exactly the
+`≈6 M-values` this design's own Wave −1 budget (§1.6 item F) prices; it is
+NOT claimed to be the mathematically exhaustive point past which the
+Transformer's capped role provably equals its uncapped (b-control) role at
+every tested horizon (that would require `M` in the low hundreds at the
+primary horizon, well beyond this wave's affordable, inference-only
+scope) — if `M*` is not found by `M=32`, Rev 2 reports **"`M*` not
+reached within the tested grid"** honestly (the `M*=∞` edge case, below),
+not a false claim of having found the true asymptote.
+
+**Horizons, re-pinned as ABSOLUTE token counts derived from task geometry
+(F-NEW-1's own mandate — the old `2×/4×/8× cap_length` multiples are now
+incoherent, since `cap_length` varies by two orders of magnitude across
+the `M` grid).** Anchored to `T_bind` (224 tokens at the primary load
+`K=32`, §1.4's M1 — a TASK-fixed constant, independent of `M` and of
+`n_layers_transformer`), mirroring the old `2×/4×/8×` graded-frontier
+shape (`DELTANET_RD_EXACTNESS_DESIGN.md` §17.5 precedent) at the new,
+coherent anchor:
+
+| Horizon | Formula | Tokens | Role |
+|---|---|---|---|
+| H2 | `2×T_bind + query_len` | 454 | secondary (clearly past low-`M` eviction) |
+| H4 | `4×T_bind + query_len` | **902** | **PRIMARY — the `M*` decision horizon** |
+| H8 | `8×T_bind + query_len` | 1798 | secondary (comfortably past) |
+
+Task 1 (long-horizon recall) is the PRIMARY task for `M*` (its
+`T_bind`/`query_len` geometry is what F-NEW-1's own re-derivation used,
+and it mirrors axis 1's own primary/secondary task split, §1.4.1). Task 2
+shares the identical `DeltaNetRDTaskConfig` bind-phase geometry (same
+`K`/`clause_len`/`T_bind`), so the SAME horizon table applies; its `M*`
+(same formula, same grid) is reported as a secondary, non-gating
+bonus read, at no extra design cost.
+
+**Rationale this is the strongest card (unchanged):** the byte-budget
+match makes this an intentionally hard test FOR the contender in one
+sense (its state must do real work in a small fixed footprint) and an
+intentionally hard test FOR the baseline in another (a capped cache with a
+naive-plus-sink eviction policy provably cannot retain information past
+`cap_length(M)` tokens old, while a correctly-functioning fixed-size
+recurrent state is not architecturally prevented from doing so — whether
+it ACTUALLY does, and at what memory premium, is exactly what the `M`
+sweep measures, not assumed).
+
+**Win margin, re-registered in terms of the crossover multiplier `M*`
+(F-NEW-1).** `M*` = the SMALLEST `M` in the grid at which
+`recovered_frac@0.9`(contender) − `recovered_frac@0.9`(b-primary, `M`) at
+the PRIMARY horizon (H4, 902 tokens) comes within the old 0.20 margin —
+i.e. the paired `delta_ci_n` (n=3) CI on that gap EXCLUDES 0.20 on the
+high side (the gap is CI-detectably `<0.20`), restricted to grid points
+that clear the `≥13`-token floor (above). **Thresholds, pinned with their
+one-sentence justification each:**
+
+- **WIN if `M* ≥ 4`** — "the transformer needs at least 4× the
+  contender's own bytes to match its recall" is a defensible, inspiring
+  headline without overclaiming an unbounded advantage; the ACTUAL `M*`
+  value (4, 8, 16, 32, or `∞`) is reported alongside the WIN tier, since
+  "needs 8×" and "needs 32×" are both WINs but very different in
+  narrative strength.
+- **TIE if `M* = 2`** — a modest, real memory premium; matches this
+  design's own TIE semantics (structure costs nothing extra, doesn't
+  obviously save much either) at a byte-doubling a careful reviewer would
+  call "close."
+- **LOSE if `M* ≤ 1`** — the transformer already matches at exact byte
+  parity (the old Rev-1 point); the constant-memory story has no
+  empirical teeth at this scale, reported plainly, not softened.
+- **Edge case `M* = ∞`** (pinned explicitly, per F-NEW-1's own mandate):
+  the gap never comes within 0.20 anywhere in the tested grid, through
+  `M=32` — the STRONGEST form of WIN (falls inside the `M*≥4` tier by
+  construction). **Caveat, disclosed, not resolved:** at `M=32` the
+  capped Transformer may already be close to or at its own UNCAPPED
+  (b-control) ceiling for SOME resolved configs (§1.4.2's cap_length
+  table: `n_layers=1`, fp32, `M=32` → `cap_length=512`, still below H4's
+  902 tokens, so this specific edge is not actually reached in the
+  registered grid — but a build-time re-derivation at a different
+  `n_layers`/`d_model` resolution could reach it) — if `cap_length(32)`
+  ever exceeds the primary horizon for the resolved config, an `M*=∞`
+  reading there would partially reflect a residual FLOP-matched QUALITY
+  gap (a Task-3-style effect), not pure memory-insufficiency; report
+  alongside the Task 3 / b-control read in that event, never presented as
+  pure memory-story evidence in isolation.
+- **Edge case `M* ≤ 1`** (pinned explicitly, per F-NEW-1's own mandate):
+  identical to the LOSE bullet above — "matches at parity" is the
+  strongest possible LOSE for the constant-memory framing, since it means
+  the contender's structural byte advantage buys nothing even before any
+  multiplier is applied.
+
+The old exact-parity `M=1` point is **RETAINED and REPORTED as a
+disclosed descriptive datum** (the first row of the sweep table) — it is
+no longer, by itself, the decision quantity; `M*` is. TIE and LOSE tiers
+above subsume it exactly where it would have driven the old Rev-1 verdict
+anyway, so no information is lost, only re-contextualized inside the full
+dose-response curve.
 
 ---
 
@@ -836,69 +1096,96 @@ may revise this table before launch, not after.
 NO new training cells.** Axis 1 (data-efficiency) only requires logging
 `recovered_frac@0.9` at more checkpoints during training runs that were
 already planned — additional eval compute, not additional training.
-Axis 2 (inference-memory-matched) only requires a SECOND, capped-cache
-INFERENCE pass over (b)'s already-trained checkpoint — no new training
-run for role (b-primary), which is exactly why (b) was described in §1.3
-as "two roles from one trained arch." The FLOP-matched control (b-control)
-is the same trained checkpoint's normal, uncapped eval. Architecture and
-training-cell count are therefore **unchanged from the original 3-arch
-plan.**
+Axis 2 (inference-memory-matched) only requires SECOND, THIRD, ... capped-
+cache INFERENCE passes over (b)'s already-trained checkpoint, one per
+`M`-grid point (**Rev 2: the F-NEW-1 memory-multiplier sweep multiplies
+axis 2's own inference-pass count, but stays, by construction,
+INFERENCE-ONLY** — no new training run for role (b-primary), which is
+exactly why (b) was described in §1.3 as "two roles from one trained
+arch," and exactly the constraint M-NEW-4 makes binding this revision).
+The FLOP-matched control (b-control) is the same trained checkpoint's
+normal, uncapped eval. Architecture and training-cell count are therefore
+**unchanged from the original 3-arch plan, unchanged again in Rev 2.**
 
 **Rung-1 cell count:** 3 archs × 3 tasks × 3 seeds = **27 training cells**
-(Task 1 now split load/horizon sub-conditions and Task 2's held-out hops
-are read at eval time from the same trained cells, not separate training
-runs — sub-condition variation is an eval-time axis, not a training-cell
-multiplier). Seed count (n=3) matches this program's own standing
-convention for a first-look wave — justified as the cheapest cell width
-this program's own CI machinery (`delta_ci_n`) already has a pinned
-t-quantile for (df=2, t=4.303), with a pre-registered, separately-costed
-seed-extension option (§1.8) available if a primary axis's CI is
-ambiguous, mirroring the `REASONING_LINK_DESIGN.md` §16.19/§16.20
-n=3→n=12 precedent.
+(Task 2's held-out hops are read at eval time from the same trained
+cells, not separate training runs — sub-condition variation there is an
+eval-time axis, not a training-cell multiplier. **M-NEW-3 (Rev 2)
+narrows this claim: the K/d LOAD sub-condition is explicitly EXCLUDED**
+— `K` is baked into the training episode structure itself
+(`T_bind=K×clause_len`, `grammar_rd.py`), so a different `K` is a
+different TRAINING cell, not an eval-time read of an existing one; Wave
+−1 item C's own separate full+quarter cells already concede this in their
+costing, this line only fixes the PROSE to match). Seed count (n=3)
+matches this program's own standing convention for a first-look wave —
+justified as the cheapest cell width this program's own CI machinery
+(`delta_ci_n`) already has a pinned t-quantile for (df=2, t=4.303), with a
+pre-registered, separately-costed seed-extension option (§1.8) available
+if a primary axis's CI is ambiguous, mirroring the
+`REASONING_LINK_DESIGN.md` §16.19/§16.20 n=3→n=12 precedent.
 
 | Item | Cells / basis | GPU-h |
 |---|---|---|
 | Training (27 cells × 0.2524 GPU-h) | 3 archs × 3 tasks × 3 seeds | 6.8148 |
-| Eval overhead — adds axis-1's multi-checkpoint logging + axis-2's second (capped) inference pass on top of the FROZEN_BIAS_LM_DESIGN.md-observed ≈32% ratio (1.6/5.05); budgeted at ≈50% of training to cover both additions | — | 3.4074 |
+| Eval overhead — adds axis-1's multi-checkpoint logging + axis-2's original (single, `M=1`) capped inference pass on top of the FROZEN_BIAS_LM_DESIGN.md-observed ≈32% ratio (1.6/5.05); budgeted at ≈50% of training to cover both additions | — | 3.4074 |
 | **Wave −1 (A) probe smoke** — forward/backward/grad-check with the §1.3.1 probe+adapter attached, all 3 arms | nominal | 0.05 |
-| **Wave −1 (B) probe-capacity sanity null** (§1.3.1.4) — frozen-random-state control, NO backbone forward pass (probe+adapter shapes only) | negligible | 0.02 |
+| **Wave −1 (B) probe-capacity sanity null + cross-dimension tap diagnostic** (§1.3.1.4, §1.3.1.5 — M-NEW-2, Rev 2 folds the new diagnostic into this line, same CPU-feasible no-backbone harness) — frozen-random-state control, NO backbone forward pass | negligible | 0.02 |
 | **Wave −1 (C) Task-1 K/d calibration** (M1) — PRIMARY point K/d=0.5 run to completion (3 arms × 1 full cell, ALSO serves as Task-1's own §1.7 gate-item-1 calibration cell) + ONE disclosed above-cliff stress point K/d=0.75 at quarter-budget, locate-only (3 arms × 1 quarter cell) — extended to all 3 arms incl. the Transformer's own capped-cache behavior | 3×(1 full + 1 quarter) | 0.95 |
 | **Wave −1 (D) Task-2 calibration** — target hop-depth config, held-out-hop guard re-verified, full cells, all 3 arms | 3 cells | 0.76 |
 | **Wave −1 (E) Task-3 calibration** — contender's own rung-1 config already calibrated by `FROZEN_BIAS_LM_DESIGN.md`'s own rung-1 run (not re-run); ablation reuses the contender's pinned LR, 1 full cell; Transformer's 3-point LR grid (M3) at quarter-budget, 3 cells | 1 full + 3 quarter | 0.44 |
-| MATCH-GATE verification (§1.7) — now 3 matched quantities (incl. the M2 total-across-layers byte check), still CPU-only | — | 0.0000 |
-| **Raw total** | | **≈12.44 GPU-h** |
+| **Wave −1 (F) Axis-2 memory-multiplier sweep, INFERENCE overhead** (F-NEW-1, Rev 2, new — explicitly bumped, NOT silently folded into the eval-overhead line above, since that line's ≈50%-of-training ratio was calibrated to ONE capped inference pass per checkpoint, not this differently-shaped addition) — `6 M-values × 3 horizons × 2 tasks × 3 seeds = 108` short (≤1,798-token) forward-only inference passes over the already-trained (b) checkpoints, no backward/optimizer step; priced at a deliberately padded ≈5s/pass wall-clock (dominated by short-pass fixed overhead — eval-harness setup, batch construction, checkpoint access — not raw FLOPs, at this ≤1,798-token/14M-param scale) → `108 × 5s = 540s ≈ 0.15 GPU-h` | 108 inference passes | 0.15 |
+| MATCH-GATE verification (§1.7) — now 3 matched quantities (incl. the M2 total-across-layers byte check and the F-NEW-1 per-`M` `cap_length` table) plus the M-NEW-1 5-key collision smoke, all still CPU-only | — | 0.0000 |
+| **Raw total** | | **≈12.59 GPU-h** |
 
 **Still meets the ≤15 GPU-h raw target**, tighter than both the original
-brief's ≈9.75 GPU-h and Rev 0's own ≈11.23 GPU-h — F1's Wave −1 machinery
-(probe integration, its mandatory null, and the M1/M3-driven 3-arm
-calibration extensions) is real, disclosed added cost, not hand-waved
-away. Enforced ceiling (circuit-breaker, not expected spend — this
-program's realized/estimate ratios have run 97-122% historically):
-bracket at **10× raw ≈ 124.4 GPU-h**, mechanically enforced by a
-pre-launch timing pilot exactly like `phase2b_off_cache.py --time-pilot`'s
-existing pattern.
+brief's ≈9.75 GPU-h and Rev 0's own ≈11.23 GPU-h, and only ≈0.15 GPU-h
+above Rev 1's own independently-reproduced ≈12.4376 GPU-h (§1.15) — the
+ENTIRE Rev 2 cost delta is the axis-2 M-sweep's inference overhead
+(item F); F-NEW-2's sink-eviction patch and M-NEW-1's widened
+`TASK_BASE` are genuinely zero-added-GPU-h fixes (a different eviction
+RULE inside the same inference passes; a wider dict + a CPU-only smoke,
+respectively), disclosed as such rather than assumed. Enforced ceiling
+(circuit-breaker, not expected spend — this program's realized/estimate
+ratios have run 97-122% historically): bracket at **10× raw ≈ 125.88
+GPU-h**, mechanically enforced by a pre-launch timing pilot exactly like
+`phase2b_off_cache.py --time-pilot`'s existing pattern.
 
 **Ledger against the shared 135 GPU-h `FROZEN_BIAS_LM_DESIGN.md` program
 ceiling.** The brief cites "~123 headroom" — that is the *pre-execution
 planning estimate* from that design's own §8.1. The **current, realized**
 figure (post rung-1 + its mechanism follow-on wave, `FROZEN_BIAS_LM_DESIGN.md`
 §12 closing ledger) is **≈7.672/135 GPU-h spent**, i.e. **≈127.33 GPU-h
-headroom** — this design uses that current, verified figure. Rung-1's own
-enforced ceiling (≈124.4 GPU-h) would consume **≈97.7%** of that headroom
-in the worst-case abort scenario — markedly tighter than Rev 0's own
-≈88% draw, and flagged honestly, not smoothed over: **the margin is real
-(≈2.9 GPU-h, ≈2.3% of headroom) but razor-thin, and was reached by
-genuine scope trimming (reduced-budget locate-only calibration cells,
-waiving the contender's own already-proven Task-3 calibration, pinning
-warmup instead of gridding it), not by cutting anything F1/M1/M3 actually
-require.** This leaves near-zero slack for the escalation rung under the
-SAME shared ceiling (below) — tighter than Rev 0 already flagged it to
-be. Expected realized spend (≈100-130% of raw, this program's typical
-range) is ≈12.4-16.2 GPU-h, ≈9.8-12.7% of headroom — comparable to Rev
-0's ≈9-12% in the EXPECTED case; it is only the worst-case 10× circuit
-breaker that tightened materially. **Flagged in §1.14 as the one
-resolution this revision could not close with full margin** — an
-attack-round-2 agent should treat this bracket's fit as live, not settled.
+headroom** — this design uses that current, verified figure, UNCHANGED by
+Rev 2 (Rev 2 adds inference-only cost against the SAME headroom; it does
+not touch the program's own spend ledger). Rung-1's own enforced ceiling
+(≈125.88 GPU-h) would consume **≈98.86%** of that headroom in the
+worst-case abort scenario — tighter again than Rev 1's own ≈97.7% draw,
+flagged honestly, not smoothed over: **the margin is real (≈1.45 GPU-h,
+≈1.14% of headroom) but the THINNEST this design has carried through any
+revision — roughly half of Rev 1's already-razor-thin ≈2.93 GPU-h/2.3%
+margin.** This tightening is the direct, disclosed cost of keeping
+F-NEW-1/F-NEW-2's fixes strictly inference-only per M-NEW-4 (the
+alternative — a genuinely cap-trained `(b)` arm, +0.76 raw/+7.6 at
+bracket — would have consumed FOUR TIMES the entire remaining margin and
+is registered as an explicit, costed, unaffordable-this-wave follow-on
+instead, §1.9 item 7, never silently absorbed). **The bracket still fits
+(125.88 < 127.33), so no training cell, Wave −1 gate, or seed count was
+touched to make it fit** — but this is now flagged, explicitly, as the
+single most fragile arithmetic in the design (below Rev 1's own already-
+flagged item), and an attack-round-3 agent should re-derive the ≈0.15
+GPU-h item-F estimate's own assumptions (pass count, per-pass wall-clock)
+before accepting the bracket's fit, exactly as §1.15 did for Rev 1's
+Wave −1 costing as a whole. This leaves near-zero slack for the
+escalation rung under the SAME shared ceiling (below) — tighter than Rev
+1 already flagged it to be. Expected realized spend (≈100-130% of raw,
+this program's typical range) is ≈12.6-16.4 GPU-h, ≈9.9-12.9% of
+headroom — essentially unchanged from Rev 1's own ≈9.8-12.7% EXPECTED-
+case read (item F is small in absolute terms; it is specifically the
+worst-case 10× circuit breaker that tightened materially, exactly as Rev
+1's own text already flagged for its own additions). **Flagged in §1.16
+as the one resolution this revision could not close with full margin** —
+an attack-round-3 agent should treat this bracket's fit as live, not
+settled.
 
 **Escalation-rung cost — flagged now, not resolved now.** Track C's own
 realized 392M rate: 128.3 GPU-h / 91,552 steps = 0.0014017 GPU-h/step →
@@ -906,8 +1193,8 @@ realized 392M rate: 128.3 GPU-h / 91,552 steps = 0.0014017 GPU-h/step →
 reduced-scope escalation matrix of even just 2 archs × 1 task × 3 seeds =
 6 cells at the SAME 20,000-step budget would cost **≈168 GPU-h** — more
 than the entire current headroom, and now competing with rung-1's own
-larger (≈12.4-16.2 GPU-h realized, ≈124.4 GPU-h worst-case) draw on the
-same 135 GPU-h ceiling — a materially smaller cushion than Rev 0's own
+larger (≈12.6-16.4 GPU-h realized, ≈125.88 GPU-h worst-case, Rev 2) draw
+on the same 135 GPU-h ceiling — a materially smaller cushion than Rev 0's own
 already-tight ≈112.3 GPU-h worst-case draw, per the Wave −1 additions
 above. **The escalation rung, as currently scoped, does not fit the
 existing ceiling at rung-1's own step budget, full stop.**
@@ -974,30 +1261,40 @@ re-derived:
    negative-test triple.
 6. **MATCH-GATE — the make-or-break gate, now covering THREE matched
    quantities per the PI directive (params, FLOPs, inference-memory
-   bytes), not two.** Structured as two independent passes that must
-   agree:
+   bytes), not two, and (Rev 2) a `cap_length(M)` TABLE rather than a
+   single point.** Structured as two independent passes that must agree:
    - **Pass 1 (implementer):** `verify_match_gate.py` (to be built)
      instantiates all three real models/roles, sums `numel()` for param
      counts (mirrors `lm_rd_rung_configs.verify_param_count`), computes
      the measured FLOP profile for each (mirrors
      `DELTANET_REALDATA_DESIGN.md` §4.2's method), AND derives/verifies
-     `cap_length` from the contender's real measured **TOTAL-across-all-
-     layers** state-byte count (M2, Rev 1 — NOT per-layer) against
-     (b-primary)'s real `n_layers/n_heads/d_head` — asserting the ≤1% /
-     ≤5% / exact-byte tolerances from §1.3's table.
+     `cap_length(M)` **for every `M ∈ {1,2,4,8,16,32}`** (F-NEW-1, Rev 2 —
+     Rev 1 derived a single point) from the contender's real measured
+     **TOTAL-across-all-layers** state-byte count (M2, Rev 1 — NOT
+     per-layer), **at the pinned fp32 accounting dtype** (§1.4.2 — the
+     contender's real persisted-state dtype, `lm_pretrain_rd.py:986`,
+     NOT the kernel-internal bf16 cast), against (b-primary)'s real
+     `n_layers/n_heads/d_head` — asserting the ≤1% / ≤5% / exact-byte
+     tolerances from §1.3's table at EVERY `M`, not just `M=1`.
    - **Pass 2 (independent audit agent, NOT the implementer — `CLAUDE.md`'s
      "the implementer does not review their own work" rule, plus
      "multiple independent adversarial audit rounds catch different bugs"):**
-     re-derives all three matched quantities from scratch, from the model
-     configs alone, without reading Pass 1's code, and must land within
-     the same tolerances — INCLUDING an independent check that (i) the
-     capped eviction policy (§1.3(b), sliding/FIFO window) is implemented
-     as the simple policy disclosed, not something quietly more
-     sophisticated that would understate the memory constraint's real
-     bite, and (ii) the byte accounting is genuinely TOTAL-across-layers
-     on BOTH sides (M2) — a per-layer vs. total mismatch is exactly the
-     kind of silent-imbalance bug this Pass-2 re-derivation exists to
-     catch.
+     re-derives all three matched quantities (incl. the full `cap_length(M)`
+     table, all 6 grid points) from scratch, from the model configs alone,
+     without reading Pass 1's code, and must land within the same
+     tolerances — INCLUDING an independent check that (i) the capped
+     eviction policy (§1.3(b), **sink+FIFO, k_sink=4** — F-NEW-2, Rev 2,
+     was plain sliding/FIFO in Rev 1) is implemented exactly as disclosed
+     (first `k_sink=4` tokens always retained, remainder FIFO), not
+     something quietly more or less sophisticated that would over- or
+     under-state the memory constraint's real bite, (ii) the byte
+     accounting is genuinely TOTAL-across-layers on BOTH sides at the
+     PINNED fp32 dtype (M2 + the Rev-2 dtype pin) — a per-layer-vs-total
+     OR an fp32-vs-bf16 mismatch on either side is exactly the kind of
+     silent-imbalance bug this Pass-2 re-derivation exists to catch, and
+     (iii) the `M`-grid itself matches the pinned `{1,2,4,8,16,32}` set
+     and the grid-endpoint rule (§1.4.2) — no silently truncated or
+     extended grid.
    - Disagreement between passes is a hard launch-block, full stop.
 7. **Probe-capacity null gate (F1, new in Rev 1).** §1.3.1.4's
    probe-capacity sanity null must PASS (`recovered_frac@0.9 < 0.05` on
@@ -1049,19 +1346,20 @@ avoids the exact trap that produced §16.20's BATCH-EFFECT-FLAGGED outcome.
 ---
 
 ### 1.9 Attack-yourself — self-attack round 0 (minimum 5, per house
-convention; 7 in Rev 0, now **9 in Rev 1** — F1's new probe machinery is
-itself new attack surface and gets its own self-attack, items 8-9)
+convention; 7 in Rev 0, 9 in Rev 1, now **11 in Rev 2** — F-NEW-1's memory
+sweep and F-NEW-2's sink patch are themselves new attack surface and get
+their own self-attack, items 10-11)
 
 1. **The escalation-rung budget does not fit the current ceiling at the
-   step budget this doc assumes (§1.6).** Tighter again in Rev 1 than in
-   Rev 0 (rung-1's own worst-case ceiling draw grew from ≈76.5%
-   pre-directive → ≈88% in Rev 0 → **≈97.7% in Rev 1**, because F1's
-   mandatory Wave −1 probe/calibration machinery, itself a genuine,
-   non-optional cost, adds ≈1.2 GPU-h raw on top of Rev 0's own added
-   eval overhead) — this is the single biggest open item, deliberately
-   not papered over, and NOW the closest to its own ceiling this design
-   has ever been (§1.6's own honest disclosure: "the margin is real...
-   but razor-thin").
+   step budget this doc assumes (§1.6).** Tighter at every revision
+   (rung-1's own worst-case ceiling draw grew from ≈76.5% pre-directive →
+   ≈88% in Rev 0 → ≈97.7% in Rev 1 → **≈98.86% in Rev 2**, because
+   F-NEW-1's mandatory memory-multiplier sweep, itself a genuine,
+   non-optional inference cost, adds a further ≈0.15 GPU-h raw on top of
+   Rev 1's own already-thin margin) — this is the single biggest open
+   item, deliberately not papered over, and NOW the closest to its own
+   ceiling this design has EVER been (§1.6's own honest disclosure: "the
+   THINNEST this design has carried through any revision").
 2. **model_rd.py's K/d cliff numbers carry ZERO evidentiary weight for
    any of this design's three arms (M1, resolved structurally in Rev 1,
    restated here per the attack's own instruction).** Rev 0's K/d=0.75
@@ -1092,13 +1390,16 @@ itself new attack surface and gets its own self-attack, items 8-9)
    budget (raw K/V tensor storage only? or all inference-time buffers?)
    BEFORE `cap_length` is derived — an under-specified byte accounting
    would silently favor whichever side counts less.
-5. **Is the sliding/FIFO eviction policy a fair baseline, or a strawman?**
-   §1.3(b) deliberately used the simplest policy and disclosed it as such
-   — but a reviewer will reasonably ask whether a modestly smarter,
-   still-standard policy (e.g. attention-score-based eviction) would close
-   axis 2's gap. Registered as an explicit follow-on robustness check
-   (§1.9 item 6 list), not required to win the Rev-0 verdict, but flagged
-   for the paper's limitations section either way.
+5. **Is the sink+FIFO eviction policy a fair baseline, or a strawman?**
+   §1.3(b) deliberately used the simplest policy that closes the
+   disclosed train/eval mismatch (F-NEW-2, Rev 2: sink+FIFO, `k_sink=4`,
+   replacing Rev 1's plain sliding/FIFO) and disclosed it as such — but a
+   reviewer will reasonably ask whether a modestly smarter, still-standard
+   policy (e.g. attention-score-based eviction, or a larger/tuned
+   `k_sink`) would close axis 2's gap further. Registered as an explicit
+   follow-on robustness check (item 7's list, below), not required to win
+   the Rev-2 verdict, but flagged for the paper's limitations section
+   either way.
 6. **Is n=3 really justified for two co-primary axes**, given this exact
    program's own repeated, costly experience that n=3 is chronically
    underpowered (`REASONING_LINK_DESIGN.md`'s §16.18-20 arc)? Now doubly
@@ -1110,11 +1411,19 @@ itself new attack surface and gets its own self-attack, items 8-9)
 7. **Scope creep risk in the other direction.** Cut from this scope: the
    fix-ON/OFF ablation (§1.2), length generalization (no reusable
    instrument found), byte-level input (explicitly parked per the PI
-   directive), and a smarter-eviction-policy robustness check (item 5
-   above). If the PI's intent for "the program's capstone question"
-   implies more than this Rev 0 scopes, that should surface now, before
-   rung-1 data creates sunk-cost pressure to declare a narrower victory
-   than intended.
+   directive), a smarter-eviction-policy robustness check (item 5 above),
+   **and (Rev 2, F-NEW-2) a genuinely cap-trained `(b)` arm** — training
+   the Transformer WITH its KV cache capped from step 0, rather than
+   capping only at inference on a fully-uncapped checkpoint, is the
+   COMPLETE fix for F-NEW-2's train/eval mismatch (the sink patch is
+   PARTIAL); explicitly costed at **+0.76 GPU-h raw / +7.6 GPU-h at the
+   10× bracket** (a new 3-arm training-cell block, M-NEW-4) — more than
+   FOUR TIMES Rev 2's entire remaining ≈1.45 GPU-h bracket margin, hence
+   categorically unaffordable this wave and never silently absorbed into
+   the sink-patch's own (zero-added-cost) scope. If the PI's intent for
+   "the program's capstone question" implies more than this Rev 2 scopes,
+   that should surface now, before rung-1 data creates sunk-cost pressure
+   to declare a narrower victory than intended.
 8. **(NEW, Rev 1) The Transformer's probe adapter is not capacity-matched
    to the other two arms' adapters, by construction, and cannot be.**
    §1.3.1.2 pins every arm's adapter to the SAME `nn.Linear` class/init/LR,
@@ -1148,6 +1457,54 @@ itself new attack surface and gets its own self-attack, items 8-9)
    Transformer that has no real-world deployment analogue, which this
    design declines to do (a real deployed capped-cache Transformer has
    this exact same limitation).
+10. **(NEW, Rev 2, M-NEW-2) The contender's and the ablation's native taps
+    are not expressivity-matched, by construction, and cannot be fully
+    repaired by the shared linear probe.** The contender reads via a full
+    matrix-vector product `S_T @ q` (every output dimension mixes every
+    input dimension of the query); the flat-vector ablation reads via a
+    Hadamard product `s_T ⊙ q` (diagonal-only — output dimension `i`
+    depends on input dimension `i` alone). This is an irreversible
+    expressivity gap: information the ablation's state encodes ONLY in
+    cross-dimension (off-diagonal-equivalent) structure is invisible to
+    its own native tap, and no LINEAR adapter/probe downstream can
+    recover it post hoc (§1.3.1.2's adapters are deliberately
+    linear-only, for the F1-mandated reason of not letting the probe do
+    compositional work the backbone should be doing — which means they
+    also cannot silently paper over this asymmetry). §1.3.1.4's null does
+    NOT exercise this confound (it scores i.i.d. Gaussian inputs with no
+    adversarial diagonal/off-diagonal structure). This structurally
+    favors the CONTENDER on axis 1 (data-efficiency) for reasons that
+    have nothing to do with matrix-vs-vector state CAPACITY, only
+    matrix-vs-vector READ mechanism — a confound the original F1/M2
+    probe-parity work never closed because it targeted probe capacity,
+    not tap expressivity. **Mitigation, not elimination (§1.3.1.5, Rev
+    2):** a synthetic cross-dimension diagnostic bounds — via a
+    diagonal/off-diagonal energy-split calibration curve — how much of
+    any REAL axis-1 gap tap expressivity alone COULD explain, letting a
+    reader cross-reference the ablation's real measured Hadamard-tap
+    `recovered_frac` against the curve for an implied "as-if diagonal
+    fraction." It does not measure the ablation's actual diagonal
+    fraction on real trained states (a cheap potential follow-on, out of
+    scope this wave) and does not repair the confound; it bounds it.
+11. **(NEW, Rev 2, F-NEW-2 residual) The sink+FIFO patch mitigates, but
+    does not eliminate, the train/eval attention mismatch.** Retaining
+    `k_sink=4` tokens addresses the specific, well-documented failure mode
+    StreamingLLM identifies (catastrophic collapse from evicting early
+    high-attention-mass tokens) but does not address every way a
+    fully-uncapped-trained Transformer's attention distribution could
+    differ from what it would have learned under a genuinely cap-trained
+    regime — e.g. the model may have learned to spread retrieval-relevant
+    signal across MID-sequence positions in a way no fixed sink size
+    protects, and `k_sink=4` itself is not empirically tuned this wave
+    (borrowed as a standard small default, not searched). The gap between
+    "sink+FIFO-patched, inference-only" and "genuinely cap-trained" is
+    exactly what item 7's costed, deferred follow-on (+0.76 raw/+7.6
+    bracket) would close; until that follow-on runs, any axis-2 LOSE or
+    weak-WIN result carries this residual, disclosed uncertainty — it
+    could reflect the Transformer's genuine memory-limited capability, OR
+    an artifact of the imperfect train/eval match, and this wave's design
+    cannot fully distinguish the two. Flagged for the paper's limitations
+    section regardless of which way axis 2 resolves.
 
 ---
 
@@ -1174,44 +1531,73 @@ cliff's zero evidentiary weight for these arms (M1); fixes the
 byte-match to total-across-layers (M2); pins a modern-strong,
 equal-tuning-budget Transformer baseline recipe (M3); corrects the 14M
 config citation (m1) and flags the 392M FLOP-basis re-derivation (m2).
+**Rev 2 adds:** replaces axis 2's single, independently-found-DEGENERATE
+equal-byte point with a pre-registered geometric memory-multiplier sweep
+(`M ∈ {1,2,4,8,16,32}`) and re-registers the axis-2 verdict around the
+crossover multiplier `M*`, with pinned WIN/TIE/LOSE thresholds and both
+`M*` edge cases defined (F-NEW-1); patches the capped-cache eviction rule
+to sink+FIFO (`k_sink=4`) as a disclosed PARTIAL fix for the train/eval
+attention mismatch, registering the full cap-trained fix as an explicit,
+costed, unaffordable-this-wave follow-on rather than absorbing it
+silently (F-NEW-2); widens `TASK_BASE` to 5 keys with a runtime
+collision-guard assert and an extended collision smoke (M-NEW-1);
+discloses the contender-vs-ablation native-tap expressivity asymmetry as
+its own self-attack item and adds a synthetic cross-dimension diagnostic
+bounding its contribution to any axis-1 gap (M-NEW-2); narrows the
+§1.6 "eval-time axis" claim to exclude the K/load sub-condition, which is
+baked into training structure (M-NEW-3); pins the probe-capacity null's
+protocol to fresh-per-step draws scored on held-out fresh draws
+(m-new-2); re-derives §1.6's cost table with the M-sweep's own inference
+overhead as an explicit, disclosed line item, keeping every fix
+inference-only per the binding M-NEW-4 budget constraint.
 
-**Does NOT:** authorize any GPU launch (Rev 1, pre-attack-round-2);
+**Does NOT:** authorize any GPU launch (Rev 2, pre-attack-round-3);
 decide the 392M escalation rung's exact scope or budget (§1.6, §1.9 item
-1 — explicitly deferred, now with an even thinner headroom cushion);
-reopen the frozen-bias mechanism story, the key-anchoring capacity/
-pool-margin instrument questions, or the reasoning-link geometric-transfer
-readout (all cited, none re-litigated); claim a paper-grade benchmark
-result from Task 3's internal byte-BPC number without a follow-on
-standard-benchmark step; introduce byte-level input (explicitly out of
-scope per the PI directive); build the fix-ON/OFF ablation, a
-length-generalization task, a smarter-eviction robustness arm, or an
-MLP-probe upgrade (all explicitly cut, registered as follow-on
-candidates); fully close the Transformer-adapter capacity asymmetry or
-the query-continuation asymmetry (§1.9 items 8-9 — bounded by the
-probe-capacity null, not eliminated).
+1 — explicitly deferred, now with the thinnest headroom cushion this
+design has carried); reopen the frozen-bias mechanism story, the
+key-anchoring capacity/pool-margin instrument questions, or the
+reasoning-link geometric-transfer readout (all cited, none re-litigated);
+claim a paper-grade benchmark result from Task 3's internal byte-BPC
+number without a follow-on standard-benchmark step; introduce byte-level
+input (explicitly out of scope per the PI directive); build the fix-ON/OFF
+ablation, a length-generalization task, a smarter-eviction robustness
+arm, an MLP-probe upgrade, or **a genuinely cap-trained `(b)` arm** (all
+explicitly cut, registered as costed follow-on candidates, §1.9 item 7);
+fully close the Transformer-adapter capacity asymmetry, the
+query-continuation asymmetry, the contender/ablation tap-expressivity
+asymmetry, or the sink-patch's own residual train/eval mismatch (§1.9
+items 8-11 — each bounded or partially mitigated by its own control, not
+eliminated).
 
 ---
 
 ### 1.11 Sequencing
 
-design (Rev 0) → attack round 1 → NEEDS-REVISION (§1.13) → design (this
-doc, Rev 1) → attack round 2 → ... (iterate until DESIGN-CLEARED-FOR-BUILD,
-per this program's own standing gauntlet discipline) → build (contender
-wiring for the frozen-bias arm already exists; new code needed:
-flat-vector ablation mixer WITH its own `q_proj`/`q_conv1d` (§1.3(a)),
-standard Transformer with RoPE + the contender's own `FFN` class +
-switchable uncapped/capped-KV inference mode (§1.3(b)), the §1.3.1 shared
-probe head + per-arm adapters + frozen `T_val` target table + probe-
-capacity null harness, the `rd_episode_seed` schedule (F1b),
-`verify_match_gate.py` (now total-across-layers, M2), per-task/per-axis/
-per-arm calibration wrappers incl. the K/d sweep (M1) and the
-Transformer's LR grid (M3), the axis-2 `cap_length` derivation) →
-independent build audit (separate agent, per `CLAUDE.md`) → launch rung-1
-on GPUs 0-6 (GPU 7 held as pool/overflow) → harvest → escalation-rung
-decision (§1.5 rule, mechanically applied) → IF win-or-tie: escalation-rung
-design addendum (resolves §1.9 item 1, incl. m2's 392M FLOP-basis
-re-derivation) → attack → build → audit → launch 392M → harvest → paper
-fold-in (iclr-2027, workshop-2026) either way.
+design (Rev 0) → attack round 1 → NEEDS-REVISION (§1.13) → design (Rev 1)
+→ attack round 2 → NEEDS-REVISION (§1.15) → design (this doc, Rev 2) →
+attack round 3 → ... (iterate until DESIGN-CLEARED-FOR-BUILD, per this
+program's own standing gauntlet discipline) → build (contender wiring for
+the frozen-bias arm already exists; new code needed: flat-vector ablation
+mixer WITH its own `q_proj`/`q_conv1d` (§1.3(a)), standard Transformer
+with RoPE + the contender's own `FFN` class + switchable uncapped/
+capped-KV inference mode with sink+FIFO eviction (§1.3(b), F-NEW-2), the
+§1.3.1 shared probe head + per-arm adapters + frozen `T_val` target table
++ probe-capacity null harness + the cross-dimension tap diagnostic
+(§1.3.1.5, M-NEW-2), the `rd_episode_seed` schedule with its 5-key
+`TASK_BASE` and runtime collision assert (F1b, M-NEW-1),
+`verify_match_gate.py` (now total-across-layers at the pinned fp32
+accounting dtype, M2 + Rev-2 dtype pin), per-task/per-axis/per-arm
+calibration wrappers incl. the K/d sweep (M1) and the Transformer's LR
+grid (M3), the axis-2 `cap_length(M)` sweep across the pinned
+`{1,2,4,8,16,32}` grid and the `M*` crossover-detection logic (F-NEW-1))
+→ independent build audit (separate agent, per `CLAUDE.md`) → launch
+rung-1 on GPUs 0-6 (GPU 7 held as pool/overflow) → harvest →
+escalation-rung decision (§1.5 rule, mechanically applied) → IF
+win-or-tie: escalation-rung design addendum (resolves §1.9 item 1, incl.
+m2's 392M FLOP-basis re-derivation, and decides whether the cap-trained
+`(b)` follow-on, §1.9 item 7, is affordable at that point) → attack →
+build → audit → launch 392M → harvest → paper fold-in (iclr-2027,
+workshop-2026) either way.
 
 ---
 
@@ -1246,24 +1632,44 @@ fold-in (iclr-2027, workshop-2026) either way.
 - Frozen-table precedent: `matrix-thinking/deltanet_rd/key_anchoring.py`
   (`random_unit_rows_init`, `ANCHOR_INIT_SEED=20260705`) — reused
   unmodified for §1.3.1's `T_val` probe-target table, at a NEW,
-  deliberately distinct `PROBE_TARGET_SEED=20260709`.
+  deliberately distinct `PROBE_TARGET_SEED=20260709`, and again (Rev 2,
+  §1.3.1.5) for the cross-dimension diagnostic's own fresh, independent
+  `q`/`t` draws (never sharing a seed with `T_val` or the frozen bias
+  table).
 - Gate precedent: `phase2b_off_cache.py` (`--time-pilot`),
   `run_poolmargin_k84s1943_k90s2043.py` / `run_k69_s1733_contingency.py`
   (dual PI-signoff tokens), `lm_rd_rung_configs.py` (`verify_param_count`
   as the MATCH-GATE's param-counting precedent),
-  `phase2b_seedext_stage_minus1.py` (exhaustive-enumeration
-  collision-freedom check, the precedent for `rd_episode_seed`'s own
-  negative test, F1b).
+  `phase2b_seedext_stage_minus1.py` (`:165-235`, SE4/SE5
+  exhaustive-enumeration collision-freedom check, the precedent for
+  `rd_episode_seed`'s own negative test, F1b, extended Rev 2 to 5 keys
+  per M-NEW-1).
+- **FLOP-basis precedent (Rev 2, F-NEW-1):**
+  `matrix-thinking/DELTANET_REALDATA_DESIGN.md` §4.2's head-dominated
+  FLOP re-derivation (`:568-641`) — the same method §1.3(b) already cited
+  for the ≤5% training-FLOP match is reused, Rev 2, to derive the
+  admissible `d_model≈256`/`n_layers∈{1,2}` Transformer family the
+  axis-2 `cap_length(M)` table is built from.
+- **StreamingLLM precedent (Rev 2, F-NEW-2):** Xiao et al. 2023's
+  attention-sink observation — the one-line rationale for §1.3(b)'s
+  sink+FIFO eviction patch (`k_sink=4`); not otherwise reused code in
+  this repo, cited for the mechanism only.
 - **New, not yet built:** the standard-Transformer arch with RoPE, the
   contender's own `FFN` class, standard init, and a switchable
-  uncapped/hard-capped-KV inference mode (axis 2's baseline, §1.3(b), M3);
-  `verify_match_gate.py`, now total-across-layers (§1.7 item 6, M2); the
-  axis-1 power-sketch script that pins `X` (§1.4.1); the flat-vector-
-  ablation mixer WITH its own `q_proj`/`q_conv1d` (§1.3(a)); **§1.3.1's
-  shared probe head** (`shared_probe`, per-arm `adapter_arm`, `T_val`
-  target table, the probe-capacity null harness) — the F1 FATAL's entire
-  resolution; the `rd_episode_seed` schedule module (F1b); the
-  Transformer's 3-point LR-grid calibration harness (M3).
+  uncapped/hard-capped-KV inference mode with **sink+FIFO eviction**
+  (axis 2's baseline, §1.3(b), M3, F-NEW-2); `verify_match_gate.py`, now
+  total-across-layers at the pinned fp32 accounting dtype, over the
+  **`cap_length(M)` table across `M ∈ {1,2,4,8,16,32}`** (§1.7 item 6,
+  M2 + Rev-2 dtype pin + F-NEW-1); the axis-1 power-sketch script that
+  pins `X` (§1.4.1); the flat-vector-ablation mixer WITH its own
+  `q_proj`/`q_conv1d` (§1.3(a)); **§1.3.1's shared probe head**
+  (`shared_probe`, per-arm `adapter_arm`, `T_val` target table, the
+  probe-capacity null harness, **and (Rev 2) the §1.3.1.5
+  cross-dimension tap diagnostic**) — the F1 FATAL's entire resolution
+  plus its Rev-2 M-NEW-2 extension; the `rd_episode_seed` schedule
+  module, now 5-keyed with a runtime collision-guard assert (F1b,
+  M-NEW-1); the Transformer's 3-point LR-grid calibration harness (M3);
+  the axis-2 `M*` crossover-detection/reporting logic (F-NEW-1).
 
 ---
 
@@ -1451,5 +1857,68 @@ mixed-radix arithmetic; seed independence (empirical); 0.05 null bar
 
 ---
 
+### 1.16 REV 2 CHANGES — finding → resolution map
+
+Every §1.15 finding, mapped to its exact Rev 2 resolution. Every fix stays
+**inference-only** per the binding M-NEW-4 constraint (one new 3-arm
+training-cell block would cost +7.6 GPU-h at the 10× bracket — more than
+FOUR TIMES Rev 2's entire remaining ≈1.45 GPU-h margin).
+
+| Finding | Resolution (Rev 2) | Where |
+|---|---|---|
+| **F-NEW-1** (FATAL) — `cap_length` degenerate at rung-1 (8-16 tokens fp32 vs. `T_bind=224`/`query_len=6`); the equal-byte axis-2 test as written is vacuous | The single `M=1` equal-byte point is replaced by a pre-registered geometric **memory-multiplier sweep**, `M ∈ {1,2,4,8,16,32}`, capping `(b-primary)` at `M × 32,768` bytes; a `cap_length(M)` table is derived for the admissible `d_model≈256`/`n_layers∈{1,2}` Transformer family at the PINNED fp32 accounting dtype (justified by the contender's own persisted-state dtype, `lm_pretrain_rd.py:986`), with the bf16 variant disclosed as a non-decision secondary column; the grid's endpoint rule is pinned exactly (floor clearance by `M≤2`; cost-bounded practical ceiling at `M=32`, disclosed as not mathematically exhaustive); axis-2's horizons are re-pinned as ABSOLUTE token counts anchored to the task-fixed `T_bind` (`H2=454`, `H4=902` PRIMARY, `H8=1798`), replacing the now-incoherent `cap_length`-multiple horizons; the axis-2 verdict is re-registered around the crossover multiplier `M*` (smallest grid `M` with the contender-vs-`(b-primary)` gap at H4 CI-detectably `<0.20`), with pinned thresholds (WIN `M*≥4`, TIE `M*=2`, LOSE `M*≤1`) and both `M*=∞`/`M*≤1` edge cases defined explicitly, including the disclosed `M*=∞` interpretation caveat (residual quality-gap confound if `cap_length(32)` ever exceeds the primary horizon at a different resolved config). | §1.3(b), §1.4.2 (full rewrite), §1.6 item F, §1.7 gate 6, §1.9 items 1/7 |
+| **F-NEW-2** (FATAL) — train/eval mismatch: `(b-primary)` caps at INFERENCE ONLY a checkpoint trained fully uncapped; naive FIFO evicts exactly the early "attention sink" tokens full-attention training concentrates mass on | Eviction rule upgraded to **sink+FIFO**: always retain the first `k_sink=4` tokens, FIFO over the remainder (one-line StreamingLLM rationale, Xiao et al. 2023), disclosed as a PARTIAL mitigation, not a full fix; the full fix — a genuinely cap-trained `(b)` arm — is explicitly costed (+0.76 raw/+7.6 bracket) and registered as an unaffordable-this-wave follow-on (never silently absorbed); the residual gap between "sink-patched" and "genuinely cap-trained" is named as its own self-attack item (11), disclosed for the paper's limitations section regardless of axis-2's outcome. | §1.3(b), §1.7 gate 6, §1.9 items 5/7/11 |
+| **M-NEW-1** — `TASK_BASE` incomplete (3 keys; Wave −1 items C/D need `task1_stress`/`task2_calib`, inviting a silent seed collision) | Widened to 5 keys (`task1_calib=0, task1_stress=500_000, task1_sweep=1_000_000, task2_calib=1_500_000, task2_sweep=2_000_000`); `rd_episode_seed` gets a runtime assert (`ckpt_idx < STRIDE_SEED_RD`); the collision-freedom smoke (SE4/SE5 precedent) is extended to enumerate all 5 keys × `seed_idx∈[0,11]` × the full `ckpt_idx` range, plus a dedicated negative test for the new assert. | §1.3.1 (F1b subsection), §1.12 |
+| **M-NEW-2** — undisclosed native-tap asymmetry (contender: full matvec, any-to-any mixing; ablation: Hadamard, diagonal-only) — an irreversible expressivity gap the linear probe/adapter cannot repair, not covered by §1.3.1.4's null, structurally favoring the contender on axis 1 | Disclosed as self-attack item 10; new §1.3.1.5 **synthetic cross-dimension diagnostic** — exact diagonal/off-diagonal energy-split constructions swept over `alpha∈{0,0.25,0.5,0.75,1.0}`, scoring both taps against the same cosine-recovery metric, tracing a calibration curve a real measured Hadamard-tap `recovered_frac` can be read against for an implied "as-if diagonal fraction"; CPU-only, folds into Wave −1 item B at zero added GPU-h. | §1.3.1.5, §1.6 item B, §1.9 item 10 |
+| **M-NEW-3** — "eval-time axis" prose claims K/d is an eval-time sub-condition; contradicted by `T_bind=K×clause_len` being baked into training structure and by Wave −1(C)'s own separate cells | §1.6's cell-count paragraph narrowed to explicitly EXCLUDE the K/load sub-condition from the "eval-time axis, not a training-cell multiplier" claim; states K/d=0.75 is permanently locate-only/non-decision-grade (unchanged from Rev 1's own M1 text, now cross-referenced correctly). | §1.6 |
+| **M-NEW-4** — budget arithmetic verified clean but load-bearing; any fix requiring a new 3-arm training-cell block blows the ≈2.93 GPU-h margin | Binding constraint honored by construction: F-NEW-1 (inference-only M-sweep on already-trained checkpoints) and F-NEW-2 (an eviction-rule patch inside the same inference passes) add **zero new training cells**. The M-sweep's own inference overhead is priced explicitly (not silently absorbed into the unchanged 50%-of-training eval line) at **+0.15 GPU-h raw**, re-derived in full in §1.6. | §1.6 (full re-derivation) |
+| **m-new-1** — `ckpt_idx < STRIDE_SEED_RD` never asserted; seed independence unconfirmed | Runtime assert added to `rd_episode_seed`; seed independence was already empirically confirmed per §1.15's own verification (cos mean≈-0.0005, std≈0.1255 vs. theoretical 1/√64=0.125) — no further action needed, restated here for completeness. | §1.3.1 (F1b subsection) |
+| **m-new-2** — §1.3.1.4 null protocol ambiguous (fresh-per-step vs. fixed-pool draws; fixed pool risks a memorization false-pass) | Pinned: fresh i.i.d. `state_summary_raw` draws every training step, `recovered_frac@0.9` evaluated on a SEPARATE held-out set of fresh draws never seen during the null's own training. | §1.3.1.4 |
+
+**Budget re-derivation (M-NEW-4's own instruction).** Rev 1's
+independently-reproduced raw total (§1.15: 12.4376≈12.44 GPU-h) plus the
+ONLY new cost this revision adds — Wave −1 item F, the M-sweep's
+inference overhead, **+0.15 GPU-h** (108 short forward-only passes: 6
+`M`-values × 3 horizons × 2 tasks × 3 seeds, priced at a padded ≈5s/pass
+— F-NEW-2's sink patch and M-NEW-1's `TASK_BASE` widening are genuine
+zero-added-GPU-h fixes, verified, not assumed) — gives:
+
+- **New raw total: ≈12.59 GPU-h** (still ≤ the 15 GPU-h raw target).
+- **New 10× bracket: ≈125.88 GPU-h.**
+- **Headroom (unchanged, verified figure): 127.33 GPU-h.**
+- **New margin: ≈1.45 GPU-h (≈1.14% of headroom)** — the bracket still
+  fits (125.88 < 127.33), so no training cell, Wave −1 gate, or seed
+  count was trimmed to make it fit — but this margin is roughly HALF of
+  Rev 1's own already-razor-thin ≈2.93 GPU-h (≈2.3%), and is the
+  thinnest this design has carried through any revision.
+- **Pinned `M*` WIN/TIE/LOSE thresholds (F-NEW-1):** WIN if `M*≥4`; TIE
+  if `M*=2`; LOSE if `M*≤1`; `M*=∞` (gap never closes within the tested
+  grid, through `M=32`) is the strongest form of WIN, with a disclosed
+  interpretive caveat about residual quality-gap confounding at the
+  grid's own practical ceiling.
+
+**What this revision could NOT close with full margin (flagged, not
+papered over — the task's own instruction):** the M-sweep's inference
+overhead is real, necessary, and inference-only, exactly as M-NEW-4
+requires — but pricing it explicitly (rather than silently stretching the
+unchanged 50%-of-training eval-overhead ratio to cover a structurally
+different addition) pushed the worst-case 10× bracket to ≈98.86% of the
+current 127.33 GPU-h headroom, the tightest this design has been at any
+revision. The ≈0.15 GPU-h item-F estimate itself rests on assumptions
+(pass count, ≈5s/pass wall-clock) that have not been measured on real
+hardware — an attack-round-3 agent should treat this specific number as
+the most likely place a re-derivation would move the bracket's fit,
+exactly as §1.15 treated Rev 1's Wave −1 costing as a whole. The `M*=∞`
+edge case's own interpretive caveat (§1.4.2 — a residual quality-gap
+confound if `cap_length(32)` ever exceeds the primary horizon for a
+different resolved `n_layers`/`d_model`) is disclosed but not resolved;
+it would require either a tighter admissible-config pin at MATCH-GATE
+time or an explicit cross-reference rule against the Task-3/b-control
+read, neither of which this revision builds. Both are flagged as live
+items for attack round 3, not silently assumed away.
+
+---
+
 *(End §1. Rev 0 → §1.13 NEEDS-REVISION → Rev 1 → §1.15 NEEDS-REVISION
-(2 FATAL w/ inference-only fixes, 4 MAJOR, 2 minor). Rev 2 in progress.)*
+(2 FATAL w/ inference-only fixes, 4 MAJOR, 2 minor) → Rev 2 (this doc,
+§1.16) → attack round 3 pending.)*
