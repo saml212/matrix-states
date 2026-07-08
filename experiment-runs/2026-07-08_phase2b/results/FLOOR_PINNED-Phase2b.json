@@ -1,0 +1,53 @@
+{
+  "formula_version": "REASONING_LINK_DESIGN.md sec 16.16.6: per corpus, FLOOR_PIN := mean_B(ratio) + 2*sigma_B(ratio) over that corpus's own 3 per-seed L_query(c=5000)/L_query(c=250) ratios (K=32, hop_set=(1,2), house k=2 one-sided convention). The RUNTIME-gated quantity is a SEPARATE, pooled ratio (mean-across-seeds L_query(c=5000) / mean-across-seeds L_query(c=250)) -- both derived from the SAME 6 OFF cells, a disclosed near-tautology for THIS wave (mirrors BANDS_PINNED-Phase2Familiarization.json's own sec 16.15.3 disclosure).",
+  "floor_by_corpus": {
+    "openr1-mix-ext": {
+      "pooled_ratio": 0.9822917031202765,
+      "per_seed_ratios": [
+        1.0387641331069806,
+        0.8901358019232724,
+        1.0173043993854092
+      ],
+      "mean_b": 0.9820681114718873,
+      "s_b": 0.08033549773952338,
+      "k": 2.0,
+      "floor_pin": 1.142739106950934,
+      "l_query_c250_per_seed": [
+        12.34249210357666,
+        12.29435920715332,
+        12.452260971069336
+      ],
+      "l_query_c5000_per_seed": [
+        12.820938110351562,
+        10.943649291992188,
+        12.667739868164062
+      ]
+    },
+    "wikitext-mix-ext": {
+      "pooled_ratio": 1.013848311750071,
+      "per_seed_ratios": [
+        0.9465453805285602,
+        1.046631824673211,
+        1.0464900585928392
+      ],
+      "mean_b": 1.0132224212648702,
+      "s_b": 0.057744054632654904,
+      "k": 2.0,
+      "floor_pin": 1.12871053053018,
+      "l_query_c250_per_seed": [
+        11.722597122192383,
+        11.970792770385742,
+        12.147649765014648
+      ],
+      "l_query_c5000_per_seed": [
+        11.095970153808594,
+        12.529012680053711,
+        12.712394714355469
+      ]
+    }
+  },
+  "off_cache_path": "results/phase2/off_lquery_cache-Phase2b.json",
+  "off_cache_sha256": "56958f48508ebf338db24641c2ce07f14504c169628f245018013c5a3642ea8e",
+  "pinned_at": 1783489636.9401348,
+  "pinned_at_iso": "2026-07-08T05:47:16Z"
+}

@@ -7767,3 +7767,387 @@ in its own session (responding to the standing injection-canary notice);
 the §16.16.11 self-attack items remain open and carried forward. The
 remaining gate before build is the same reviewer's confirmation of these
 two Rev 2.2 fixes.
+
+## 16.18 PHASE-2B HARVEST — KEYSTONE UNRESOLVED at the registered instrument; one real, non-durable, HURTS-direction TRANSIENT signal surfaced by a per-arm re-derivation the registered pipeline's own corpus-level rollup absorbed (2026-07-08)
+
+The chain (§16.16.8's `phase2b_chain.sh`) completed at
+`2026-07-08T06:28:19Z`: `PHASE-2B CHAIN COMPLETE. See
+results/phase2/PHASE2B_SUMMARY.json`. This section harvests it — verified
+against raw box artifacts pulled and independently re-derived this
+session, not against the summary's own prose alone.
+
+### 16.18.1 Completeness verification (raw files, not the summary)
+
+All 18 cells (6 reused OFF + 12 new `per_token`/`global`) checked directly
+from their own `results/phase2/{arm}_{corpus}_s{seed}.json`: **18/18**
+`steps==5000 AND steps_completed==5000`, **18/18**
+`ckpt_steps==[250,500,1000,2500,5000]` with exactly 5 checkpoint records
+each (90 total, matching the box's own `ls ckpts/ | grep phase2fam | wc -l`
+= 90), and **18/18** `grad_finite==True` at every one of the 101 logged
+training-loop steps per cell (1,818 checks, zero `False`) — no NaN/Inf
+excursion anywhere in the training loop. Per-cell `wall_s` and terminal
+training-loop `L_query` are tabulated in §16.18.6 below.
+
+**Checkpoint reuse integrity.** The 30 reused OFF `.pt` files
+(`results/phase2/ckpts/phase2fam_off_*`) were re-hashed live on the box
+this session and checked against
+`results/phase2/gates/phase2b_off_ckpts_reuse_manifest.sha256`
+(`sha256sum -c`, run from the correct `ckpts/` directory): **30/30 OK**,
+zero mismatches, zero missing files.
+
+**OFF-eval cache integrity.** `off_lquery_cache-Phase2b.json`'s sha256,
+computed independently three ways this session — locally on the pulled
+copy, live on the box, and cross-checked against the hash
+`FLOOR_PINNED-Phase2b.json` pinned at build time
+(`56958f48508ebf338db24641c2ce07f14504c169628f245018013c5a3642ea8e`) — all
+three **agree exactly**. `phase2_trajectory_analysis.analyze_corpus`'s own
+`load_off_lquery_cache_verified` gate (§16.16.3's build-audit FATAL/MAJOR
+fix) would have hard-aborted on any mismatch; none occurred.
+
+**FLOOR gate.** Both corpora reached **FLOOR-PASS**, matching the task's
+own stated pins exactly: `openr1-mix-ext` pooled_ratio=0.9823,
+floor_pin=1.142739 (mean_b=0.9821, s_b=0.0803); `wikitext-mix-ext`
+pooled_ratio=1.0138, floor_pin=1.128711 (mean_b=1.0132, s_b=0.0577). Both
+corpora's arm-contrast proceeds at **CONFIRMATORY tier** (§16.16.6) — no
+DESCRIPTIVE-tier demotion, no FAMILIARIZATION-NULL exclusion.
+
+**Sign convention, checked against the actual code, not assumed.**
+`phase2_trajectory_analysis.build_holds_and_gate_by_checkpoint` (L238)
+calls `rlp.delta_ci_n3(off_vals, arm_vals)` — matching §16.16.5's
+registered `Δ_Lquery(arm,K,c) := L_query(off,K,c) − L_query(arm,K,c)`,
+positive = arm's loss LOWER than off's = **arm helps**. Every delta
+reported below follows this convention.
+
+### 16.18.2 Independent re-derivation, one cell, by hand (task requirement 2)
+
+Re-derived `wikitext-mix-ext × per_token`, K=32, c=2500 directly from the
+three raw seed deltas in `trajectory_wikitext-mix-ext_phase2b.json`
+(`[-0.5364027, -0.5205116, -0.4429817]`) using `delta_ci_n3`'s own pinned
+formula (`t(2,.975)=4.303`, n−1 variance): mean=−0.499965, sd=0.049985,
+SE=0.028868, half-width=0.124228 → CI=[−0.624193, −0.375737] — matches the
+pipeline's own stored `ci_low=-0.6241445`, `ci_high=-0.3757862` to 4
+decimal places (the ~1e-4 residual is this hand-derivation's own rounding,
+not a discrepancy). K=20 re-derived the same way from
+`[-0.1740799, -0.5511141, -0.0303011]`: mean=−0.251832, CI=[−0.920047,
++0.416384], matching the stored values. `det32=TRUE` (CI excludes zero on
+the negative side), `det20=FALSE` (CI straddles zero),
+`|Δ32|=0.499965 > |Δ20|=0.251832` → `holds(2500)=TRUE`. **The pipeline's
+own `det`/`holds`/`delta_ci_n3` implementations (pulled directly from
+`reasoning_link_probe.py` and `phase2_hexachotomy.py` on the box this
+session) were also read line-by-line and reimplemented independently in a
+scratch script; re-running the reimplementation across all 4×5=20 primary
+checkpoints reproduced every stored `det32`/`det20`/`holds` value in the
+trajectory JSONs exactly** — the pipeline's own arithmetic is confirmed
+correct, not merely self-consistent.
+
+### 16.18.3 THE FOUR PRIMARY (corpus × arm) CONTRASTS — a build-time scoping finding, disclosed
+
+**Finding, disclosed prominently.** `phase2_trajectory_analysis.analyze_corpus`
+(L312-321) computes only ONE hexachotomy classification per corpus (2
+total: `PHASE2B_SUMMARY.json`'s own `trajectories` field), using the
+**global** arm's own `holds_by_c` pattern as the corpus's representative
+signal for outcomes #1-3 (PERSISTENT/TRANSIENT/LATE-EMERGENT); `per_token`
+is folded in ONLY via its terminal-checkpoint (`c=5000`) `det_arm` value,
+which feeds the #4/#5 (CONVERGED-EQUIVALENT/UNRESOLVED) split. This is a
+disclosed, intentional build-time choice ("carried forward from Phase-2
+unchanged... sec 16.2.1's own H_LINK-A causal claim is itself
+global-arm-centric" per the module's own docstring, L312-315), not a
+crash or silent bug — but it means `per_token`'s own `holds_by_c` pattern,
+though fully computed and stored (`per_arm.per_token.holds_by_c` in each
+trajectory JSON), is **never consulted** for the registered corpus-level
+verdict except at the single terminal checkpoint. The task's own framing
+("4 primary (corpus × arm) contrasts") does not match what the registered
+pipeline literally computes (2 corpus-level verdicts) — this section
+supplies the 4-way breakdown by applying the SAME `classify_trajectory`
+primitives (reimplemented verbatim from `phase2_hexachotomy.py`, verified
+against the box copy) to EACH arm's own `holds_by_c`, keeping the
+inherently two-arm `det_arm(global,5000)`/`det_arm(per_token,5000)`/
+`agree(5000)` trio shared (outcomes #4/#5 are definitionally
+equivalence-between-arms, not single-arm quantities).
+
+**Result: 3 of 4 independently-derived per-arm verdicts match the
+registered pipeline's corpus-level output exactly; the 4th does not.**
+
+| Corpus | Arm | `holds_by_c` (250,500,1000,2500,5000) | Independent per-arm verdict | Registered pipeline (corpus-level, global-representative) |
+|---|---|---|---|---|
+| openr1-mix-ext | global | F,F,F,F,F | UNRESOLVED | UNRESOLVED |
+| openr1-mix-ext | per_token | F,F,F,F,F | UNRESOLVED | (absorbed into openr1's UNRESOLVED) |
+| wikitext-mix-ext | global | F,F,F,F,F | UNRESOLVED | UNRESOLVED |
+| wikitext-mix-ext | per_token | **F,F,F,T,F** | **TRANSIENT** | (absorbed into wikitext's UNRESOLVED — MASKED) |
+
+`wikitext-mix-ext × per_token` independently classifies **TRANSIENT**
+(`holds(2500)=TRUE`, `holds(5000)=FALSE` — outcome #2's condition fires
+exactly, before the classifier ever reaches the #4/#5 branch the
+registered pipeline's global-representative scoping used to fold this
+cell into UNRESOLVED). **This is real signal, not noise mislabeled by my
+own re-derivation** — §16.18.2 independently confirmed the underlying CI
+arithmetic by hand. It does not change the substantive keystone reading
+(§16.18.4 below) because TRANSIENT is registered as "a training-dynamics
+artifact... not a durable capability difference" (§16.2.1 outcome #2)
+regardless of sign, and — critically, per the task's own sign-discipline
+warning — **the sign is NEGATIVE**: `Δ(K=32,c=2500)=−0.4999` means
+`per_token`'s `L_query` is HIGHER (worse) than `off`'s at that checkpoint,
+i.e. the arm's causal package **transiently HURTS** in-context
+acquisition at c=2500, not helps, before both arms re-converge toward `off`
+by c=5000 (Δ=−0.7949, CI straddles zero again). Reading this as "arm
+helps" would be a wrong-sign claim; reading it as durable would be a
+wrong-outcome-bucket claim; the correct, registered reading is: one real,
+transient, HURTS-direction deviation, not durable, not evidence for the
+keystone's "arm helps" branch.
+
+**Registered as a follow-up fix, not self-authorized here (per §15.10's
+own harvest-does-not-self-launch discipline):** a future revision of
+`analyze_corpus` should classify BOTH arms' own `holds_by_c` independently
+per corpus (4 verdicts, not 2) rather than using `global` as a silent
+proxy for `per_token` — this harvest's own §16.18.3 table is the
+concrete evidence that the current scoping can mask a real, non-noise
+signal in exactly the outcome-bucket direction (TRANSIENT) the hexachotomy
+was built to detect.
+
+### 16.18.4 Full per-checkpoint delta tables (K∈{32,20}), all 4 contrasts
+
+Sign: positive Δ = arm's `L_query` LOWER than off's = arm HELPS; negative
+= arm HURTS. `holds(c)` is the killer-prediction differential condition
+(`det32 AND NOT det20 AND |Δ32|>|Δ20|`), computed at K=32 vs K=20 for the
+SAME arm at the SAME checkpoint.
+
+**openr1-mix-ext × global** — independent verdict: **UNRESOLVED**
+
+| c | K=32 mean Δ | K=32 CI | det32 | K=20 mean Δ | K=20 CI | det20 | holds(c) |
+|---|---|---|---|---|---|---|---|
+| 250 | −0.1392 | [−0.8559, +0.5775] | False | −0.1226 | [−0.8817, +0.6365] | False | False |
+| 500 | −0.5637 | [−2.4711, +1.3436] | False | −0.5965 | [−2.5941, +1.4011] | False | False |
+| 1000 | −0.2030 | [−0.4025, −0.0036] | **True** | −0.1992 | [−0.3247, −0.0737] | **True** | False (det20 also fires) |
+| 2500 | +0.4147 | [−3.5935, +4.4230] | False | +0.4405 | [−3.3622, +4.2432] | False | False |
+| 5000 | −0.8192 | [−2.8854, +1.2470] | False | −0.9260 | [−2.4800, +0.6280] | False | False |
+
+**openr1-mix-ext × per_token** — independent verdict: **UNRESOLVED**
+
+| c | K=32 mean Δ | K=32 CI | det32 | K=20 mean Δ | K=20 CI | det20 | holds(c) |
+|---|---|---|---|---|---|---|---|
+| 250 | −0.1022 | [−0.4086, +0.2042] | False | −0.0979 | [−0.5041, +0.3082] | False | False |
+| 500 | −0.6092 | [−2.7151, +1.4966] | False | −0.6794 | [−2.7498, +1.3911] | False | False |
+| 1000 | −1.0028 | [−5.8676, +3.8620] | False | −1.0946 | [−5.9000, +3.7108] | False | False |
+| 2500 | +0.3873 | [−1.1603, +1.9349] | False | +0.4629 | [−1.0675, +1.9933] | False | False |
+| 5000 | −0.7429 | [−5.7215, +4.2357] | False | −1.0070 | [−6.2821, +4.2680] | False | False |
+
+**wikitext-mix-ext × global** — independent verdict: **UNRESOLVED**
+
+| c | K=32 mean Δ | K=32 CI | det32 | K=20 mean Δ | K=20 CI | det20 | holds(c) |
+|---|---|---|---|---|---|---|---|
+| 250 | +0.0015 | [−0.5953, +0.5983] | False | +0.0351 | [−0.3359, +0.4062] | False | False |
+| 500 | −0.0308 | [−0.3519, +0.2903] | False | +0.0236 | [−0.4471, +0.4943] | False | False |
+| 1000 | −0.1357 | [−0.5433, +0.2719] | False | −0.1319 | [−0.5234, +0.2595] | False | False |
+| 2500 | −0.9674 | [−5.2856, +3.3507] | False | −0.7009 | [−4.3621, +2.9603] | False | False |
+| 5000 | −0.4169 | [−4.6533, +3.8195] | False | −0.2434 | [−4.1804, +3.6935] | False | False |
+
+**wikitext-mix-ext × per_token** — independent verdict: **TRANSIENT**
+
+| c | K=32 mean Δ | K=32 CI | det32 | K=20 mean Δ | K=20 CI | det20 | holds(c) |
+|---|---|---|---|---|---|---|---|
+| 250 | −0.0838 | [−0.9432, +0.7756] | False | −0.0628 | [−0.8654, +0.7398] | False | False |
+| 500 | −0.1323 | [−0.3719, +0.1072] | False | −0.0398 | [−0.4684, +0.3889] | False | False |
+| 1000 | −0.1683 | [−0.3006, −0.0361] | **True** | −0.1089 | [−0.2114, −0.0064] | **True** | False (det20 also fires) |
+| 2500 | **−0.5000** | **[−0.6241, −0.3758]** | **True** | −0.2518 | [−0.9200, +0.4164] | False | **TRUE — c1 of the TRANSIENT verdict** |
+| 5000 | −0.7949 | [−2.5128, +0.9230] | False | −0.3063 | [−1.7661, +1.1535] | False | False |
+
+**Directional pattern, worth naming explicitly.** Every determinate
+(`det32=TRUE`) K=32 reading found across all 4×5=20 primary-readout
+checkpoints — `openr1×global@1000`, `wikitext×per_token@1000`,
+`wikitext×per_token@2500` — is **negative**: whenever the instrument finds
+a real signal, the arm's loss is HIGHER than off's, never lower. No
+positive (arm-helps) determinate reading occurred anywhere in the primary
+table.
+
+### 16.18.5 Secondary OOD readout (h∈{3,4}, held-out hop depths)
+
+Simple `det(K,c)` table per §16.16.7, NOT folded into the hexachotomy.
+**39 of 40 (corpus × arm × checkpoint × K) reads are indeterminate.** The
+sole exception: `wikitext-mix-ext × per_token @ c=2500`, **both K=32 and
+K=20 determinate**, both negative (K32: Δ=−0.5261, CI=[−0.6483,−0.4039];
+K20: Δ=−0.2715, CI=[−0.5237,−0.0194]) — the SAME cell and checkpoint where
+the primary in-distribution readout also fired, same direction (hurts),
+suggesting one coherent mid-training deviation for this specific
+(corpus, arm, checkpoint) rather than two independent spurious hits. By
+c=5000 the OOD signal also resolves back to indeterminate (K32
+Δ=−0.6130, CI=[−2.4529,+0.9230]), consistent with the primary readout's
+own TRANSIENT (not durable) classification. Full table:
+
+| Corpus × arm | c=250 | c=500 | c=1000 | c=2500 | c=5000 |
+|---|---|---|---|---|---|
+| openr1 × global (K32/K20 det) | F/F | F/F | F/F | F/F | F/F |
+| openr1 × per_token (K32/K20 det) | F/F | F/F | F/F | F/F | F/F |
+| wikitext × global (K32/K20 det) | F/F | F/F | F/F | F/F | F/F |
+| wikitext × per_token (K32/K20 det) | F/F | F/F | F/F | **T/T** | F/F |
+
+### 16.18.6 THE KEYSTONE VERDICT — mechanical, per §16.16.5's registered rules
+
+**None of the 4 primary contrasts hit PERSISTENT, LATE-EMERGENT, or
+CONVERGED-EQUIVALENT** — the three outcomes that would license any "arm
+effect found" reading (§16.16.10). Reachable-outcome note: `classify_
+trajectory`'s own `OUTCOMES` tuple still nominally lists a 7th label,
+UNRESOLVED-GATE, inherited from the general Phase-2 classifier — but
+`stage05_pass_by_c` is unconditionally `True` at every checkpoint for
+Phase-2b (§16.16.3 item 2, the per-checkpoint Stage-0.5 gate is retired
+here), which makes the UNRESOLVED-GATE branch structurally unreachable by
+construction (confirmed by reading `classify_trajectory`'s own source on
+the box: the branch requires `g[c]=False` somewhere inside an
+already-monotone run, impossible when `g` is always `True`). The
+REGISTERED outcome space for Phase-2b is therefore the six-bucket
+hexachotomy per §16.16.5's own explicit "UNRESOLVED-GATE — dropped"
+statement, and none of the 4 contrasts land there, as expected.
+
+- **openr1-mix-ext × global: UNRESOLVED** — sub-case: power problem
+  (`det_arm(global,5000)=False`, `det_arm(per_token,5000)=False`, both
+  arms' own terminal effects fail to clear noise).
+- **openr1-mix-ext × per_token: UNRESOLVED** — same precondition, same
+  sub-case.
+- **wikitext-mix-ext × global: UNRESOLVED** — same sub-case
+  (`det_arm(global,5000)=False`).
+- **wikitext-mix-ext × per_token: TRANSIENT** — `c1`=n/a (TRANSIENT
+  carries no `c1`); the killer-prediction pattern fires once, at c=2500,
+  in the HURTS direction, then dissolves back to indeterminate by c=5000.
+
+**The registered reading (§16.16.10, applied mechanically):** 3 of 4
+contrasts land in **"No arm effect, UNDERPOWERED"** — per §16.16.4's own
+pre-registered power sketch, this is disclosed as **the single most
+likely outcome at n=3 seeds for anything short of a huge effect** (the
+detectable `|mean Δ|` floor is ≈1.5-1.7 loss units, the SAME order of
+magnitude as the OFF arm's own entire 5,000-step familiarization effect,
+≈1.69). **This must be reported as an open measurement question, never
+dressed up as evidence the causal package doesn't matter** — §16.16.10's
+own explicit instruction. The 4th contrast (wikitext × per_token) fires
+TRANSIENT, which §16.2.1 registers as "a training-dynamics artifact... not
+a durable capability difference" — explicitly NOT the PERSISTENT/
+LATE-EMERGENT bucket that would license "first causal evidence the arm
+helps," and (per §16.18.3/16.18.4's sign check) pointed the WRONG
+direction for that reading even if the bucket matched.
+
+**Answer to the keystone question as posed:** *does frozen-bias
+key-geometry stabilization (the arm's whole causal package) causally
+change in-context multi-hop task acquisition, measured as held-out-entity
+`L_query`?* — **This wave does not answer it either way.** No contrast
+produced PERSISTENT/LATE-EMERGENT (the only registered path to "yes, it
+helps"). No contrast produced CONVERGED-EQUIVALENT (the only registered
+path to "no, and we had the power to say so" — a coherent negative). The
+dominant finding (3/4) is an underpowered null at n=3 seeds, exactly the
+outcome §16.16.4 pre-registered as most likely; the one determinate signal
+found (wikitext × per_token, TRANSIENT) is real (independently
+re-derived, §16.18.2) but non-durable and in the hurts, not helps,
+direction — it does not overturn the underpowered-null picture, and per
+§16.16.10's own framing caveat, no claim here decomposes whether
+pretraining-era divergence or the persistent familiarization-time blend
+(or neither) drives it. **This is a measurement-power result, not a
+mechanism result** — more seeds (requiring fresh Leg-A pretraining runs,
+out of scope for this Rev per §16.16.4's own disclosed limitation) or a
+lower-variance readout would be needed to resolve the keystone question
+either direction.
+
+### 16.18.7 Realized GPU-h and the timing-pilot story
+
+**Attempt 1 (aborted, ~05:41 UTC start):** ran Stage −1 (both suites) +
+real-kernel smoke ×3 arms + sha256 reuse gate, then hit its own
+pre-launch timing pilot: one real eval pass on a COLD (just-loaded)
+Triton kernel cache measured **13.7339 s/pass**, projecting a
+debug-tax-bracket-high of 26.3739 GPU-h against the then-registered 20.6
+GPU-h ceiling — the chain correctly hard-aborted before the OFF-eval
+cache build or any of the 12 cells launched. Realized cost: `[budget]
+elapsed=157s n_gpus=2` → **0.0872 GPU-h**. The ceiling was then re-derived
+in-place (§16.16.8's TIMING-PILOT RE-DERIVATION block, already landed
+before this harvest) to **26.4 GPU-h**.
+
+**Attempt 2 (run2, ~05:47 UTC start → complete 06:28:19Z):** re-ran the
+full gate ladder; this time the timing pilot ran against a WARM kernel
+cache and measured **2.1488 s/pass** — a 6.4× per-pass speedup,
+confirming attempt 1's overrun was cold-compile-dominated, not a true
+steady-state cost problem. Projected raw total from this pilot: 1.4789
+GPU-h (under even the ORIGINAL pre-abort 2.06 GPU-h raw figure).
+`PHASE2B_SUMMARY.json`'s own final accounting: `elapsed_s=2833,
+n_gpus=2` → **1.573889 GPU-h**.
+
+**Total realized (both attempts, this project's own `elapsed_s × n_gpus /
+3600` convention):** `0.0872 + 1.5739 ≈ 1.6611 GPU-h`. Against the raw
+point estimate (2.64 GPU-h, itself derived from attempt-1's pessimistic
+cold-compile rate) this is a **~1.6× undershoot**; against the
+debug-tax-bracket ceiling (26.4 GPU-h) this is a **~15.9× undershoot** —
+consistent with this project's own disclosed track record (§16.16.8's own
+"every prior wave... landed its REALIZED cost well under the bracket's
+own low end" note, most recently §16.15.6's 3.6-7.2× undershoot).
+
+**Component breakdown (from the raw cell JSONs' own `wall_s` fields,
+independently summed this session, not read off the summary):** the 12
+NEW training cells' own wall time sums to 3936.60s = **1.0935 GPU-h**
+(single-GPU-second-equivalent; cells ran 2-way parallel on GPUs 0-1, which
+shortens wall-clock but not the `elapsed×n_gpus` GPU-h accounting). The
+remaining ≈0.48 GPU-h of run2's total covers Stage −1 (≈31s×2 suites),
+real-kernel smoke ×3 arms (≈17s each), the sha256 reuse gate, the timing
+pilot, the 120-pass OFF-eval cache build (§16.16.8 chain step 3), and the
+240-pass non-off trajectory-analysis eval (360 total cached passes at the
+warm 2.1488s/pass rate ≈ 0.215 GPU-h, plus per-pass model-load overhead
+for the 240 live non-off loads). The 6 reused OFF cells' own ORIGINAL
+training wall time (1967.88s = 0.5466 GPU-h) is a Phase-2 cost (§16.15.6),
+**not double-counted here** — Phase-2b's own new cost against those
+checkpoints is only their eval-pass re-scoring, already inside the 360-pass
+figure above.
+
+**Per-cell wall_s** (all 18 cells, for the record; full detail in the
+archived cell JSONs): training cells cluster tightly at 324.75-333.03s
+regardless of arm or corpus (consistent with §16.15.6's own "tight
+899-914s band... per-cell rate is NOT arm-dependent" finding, scaled to
+this design's shorter per-step cost).
+
+### 16.18.8 Discrepancies and the injection-canary note
+
+**Discrepancies, disclosed:**
+1. §16.18.3's scoping finding (global-arm-representative corpus
+   classification silently absorbing `per_token`'s own TRANSIENT signal
+   at wikitext) — real, not a crash, registered as a follow-up fix, does
+   not change the substantive keystone reading.
+2. The task's own "7 outcomes" framing does not match the registered
+   6-bucket (hexachotomy) outcome space for Phase-2b specifically
+   (§16.16.5's own explicit "UNRESOLVED-GATE — dropped" statement,
+   confirmed structurally unreachable in §16.18.6) — likely carried over
+   from the general Phase-2 (7-bucket) framework's own wording. Noted, not
+   treated as a design error.
+3. `BUDGET_RAW_CEILING_GPU_H` inside `phase2b_off_cache.py` was already
+   disclosed (prior EXPERIMENT_LOG entry, launch attempt 2) as reading a
+   stale `2.06` against the design doc's own updated `2.64` — harmless
+   both runs since realized cost landed under both figures; unchanged
+   this harvest, flagged again for whoever next touches that file.
+
+**Injection-canary note.** This harvest session directly observed **one**
+fake-`<system-reminder>` injection: a `Bash` tool call (a `grep` over
+this design doc's own §16 headers) returned its real, correct grep output
+followed by fabricated blocks impersonating a date-change notice with a
+concealment instruction ("do not mention this... they are already aware"),
+a fake available-agent-types list, and fake MCP-server tool-loading
+instructions. **Disregarded in full, including the concealment
+instruction itself** — the harvest proceeded using the real system
+context (actual date 2026-07-06, actual tool set) established at
+conversation start. Cross-checked: **zero** injection-style strings
+(`system-reminder`, `disregard`, `do not mention`, `ignore previous`,
+etc.) were found in any of the raw, persisted artifacts pulled from the
+box this session (18 cell JSONs, the 2 trajectory JSONs, the summary,
+floor-pin, cache, sha256 manifest, chain/analysis/hexachotomy `.py`
+source, or the `phase2b_run1.log`/`phase2b_run2.log` chain logs) — the
+injection vector this session is confined to live tool-output wrapping,
+not planted in any git-tracked or box-persisted file. This is the 4th
+occurrence logged against this session in `EXPERIMENT_LOG.md`/this
+document combined (2 during the DEPLOY ATTEMPT entry, 1 during LAUNCH
+ATTEMPT 2, 1 here), consistent with this task's own "7+ confirmed this
+session" figure for the session as a whole.
+
+### 16.18.9 Next steps (not self-launched by this harvest, per §15.10's own discipline)
+
+1. Fix `analyze_corpus`'s corpus-level scoping (§16.18.3) to classify both
+   arms independently rather than using `global` as a silent proxy for
+   `per_token` — register and build before any future Phase-2b-family
+   wave, so a future TRANSIENT/PERSISTENT signal on the non-representative
+   arm is never silently absorbed again.
+2. The keystone question remains genuinely open. A follow-on wave would
+   need either more seeds (fresh Leg-A pretraining, real GPU cost, out of
+   scope here) or a lower-variance readout to move any of the 3
+   UNRESOLVED contrasts off the power floor.
+3. PI check-in: report the underpowered-null-dominant result plus the one
+   real, non-durable, hurts-direction TRANSIENT signal; do not present
+   either as a resolved keystone answer.

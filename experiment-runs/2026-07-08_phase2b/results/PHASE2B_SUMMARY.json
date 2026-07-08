@@ -1,0 +1,114 @@
+{
+  "design_ref": "REASONING_LINK_DESIGN.md sec 16.16 (Rev 2.2, DESIGN-CLEARED-FOR-BUILD)",
+  "program": "REASONING-LINK Phase 2b (vocab-space behavioral contrast)",
+  "completed_at_iso": "2026-07-08T06:28:19Z",
+  "elapsed_s": 2833,
+  "n_gpus": 2,
+  "projected_gpu_h": 1.573888888888889,
+  "trajectories": {
+    "openr1-mix-ext": {
+      "outcome": "UNRESOLVED",
+      "c1": null,
+      "detail": "holds() never fires and the terminal CONVERGED-EQUIVALENT condition does not hold in full -- sub-case: power problem (>=1 arm's own effect vs. off never clears noise)"
+    },
+    "wikitext-mix-ext": {
+      "outcome": "UNRESOLVED",
+      "c1": null,
+      "detail": "holds() never fires and the terminal CONVERGED-EQUIVALENT condition does not hold in full -- sub-case: power problem (>=1 arm's own effect vs. off never clears noise)"
+    }
+  },
+  "secondary_ood": {
+    "openr1-mix-ext": {
+      "global": {
+        "250": {
+          "det32": false,
+          "det20": false
+        },
+        "500": {
+          "det32": false,
+          "det20": false
+        },
+        "1000": {
+          "det32": false,
+          "det20": false
+        },
+        "2500": {
+          "det32": false,
+          "det20": false
+        },
+        "5000": {
+          "det32": false,
+          "det20": false
+        }
+      },
+      "per_token": {
+        "250": {
+          "det32": false,
+          "det20": false
+        },
+        "500": {
+          "det32": false,
+          "det20": false
+        },
+        "1000": {
+          "det32": false,
+          "det20": false
+        },
+        "2500": {
+          "det32": false,
+          "det20": false
+        },
+        "5000": {
+          "det32": false,
+          "det20": false
+        }
+      }
+    },
+    "wikitext-mix-ext": {
+      "global": {
+        "250": {
+          "det32": false,
+          "det20": false
+        },
+        "500": {
+          "det32": false,
+          "det20": false
+        },
+        "1000": {
+          "det32": false,
+          "det20": false
+        },
+        "2500": {
+          "det32": false,
+          "det20": false
+        },
+        "5000": {
+          "det32": false,
+          "det20": false
+        }
+      },
+      "per_token": {
+        "250": {
+          "det32": false,
+          "det20": false
+        },
+        "500": {
+          "det32": false,
+          "det20": false
+        },
+        "1000": {
+          "det32": false,
+          "det20": false
+        },
+        "2500": {
+          "det32": true,
+          "det20": true
+        },
+        "5000": {
+          "det32": false,
+          "det20": false
+        }
+      }
+    }
+  }
+}

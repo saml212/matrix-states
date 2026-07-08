@@ -1,0 +1,1 @@
+See ../2026-07-08_phase2_familiarization/gates/phase2b_off_ckpts_reuse_manifest.sha256 (identical byte-for-byte, verified this harvest session via diff against the box-live re-hash; not duplicated here to avoid drift).

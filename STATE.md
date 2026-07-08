@@ -1,10 +1,26 @@
 # Project State
 
-**Last updated:** 2026-07-08 (deploy session; this project's clock has run ahead of the prior 2026-07-13 STATE.md update because Rev 2.2's round-4 spot-check, BUILD, and the independent build audit all landed in the interim — see `EXPERIMENT_LOG.md` for the commits between `cb016da` and `42b3f48` this block folds in)
+**Last updated:** 2026-07-08 (harvest session; Phase-2b behavioral-contrast wave HARVESTED, GPUs 0-1 now FREE; prior deploy-session note retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
 ---
+
+## REASONING-LINK PHASE-2B VOCAB-SPACE CONTRAST — HARVESTED, KEYSTONE UNRESOLVED at the registered instrument (2026-07-08, chain completed 06:28:19Z) — supersedes this block's own prior "LAUNCH ATTEMPT 2 RUNNING" status (chain ran to completion cleanly). **GPUs 0-1 are FREE.** Full account: `matrix-thinking/REASONING_LINK_DESIGN.md` §16.18; harvest entry: `EXPERIMENT_LOG.md`.
+
+**Completeness verified from raw box files:** 18/18 cells (6 reused OFF + 12 new `per_token`/`global` × 2 corpora × 3 seeds) at 5000/5000 steps, grad_finite throughout; 30/30 reused OFF checkpoints sha256-verified; OFF-eval cache sha256 verified 3 ways (local/box/pin, all agree); both corpora FLOOR-PASS (openr1 ratio=0.9823≤1.1427; wikitext ratio=1.0138≤1.1287), CONFIRMATORY tier.
+
+**THE KEYSTONE VERDICT.** None of the 4 primary (corpus × arm) contrasts — independently re-derived per-arm from the raw CIs, since the registered pipeline computes only 2 corpus-level verdicts using the `global` arm as a representative proxy (a disclosed scoping finding, §16.18.3) — hit PERSISTENT/LATE-EMERGENT (would mean "arm helps") or CONVERGED-EQUIVALENT (would mean "genuine, well-powered equivalence"). **3/4 (openr1×global, openr1×per_token, wikitext×global) are UNRESOLVED** — the pre-registered most-likely outcome at n=3 seeds (detectable-effect floor ≈1.5-1.7 loss units, same order as the OFF arm's own entire familiarization effect) — an open measurement question, not a clean negative. **1/4 (wikitext×per_token) is TRANSIENT** — a real, independently-confirmed signal (`holds(2500)=TRUE`) that the registered pipeline's own global-arm-representative corpus rollup silently absorbed into wikitext's UNRESOLVED — but the sign is NEGATIVE (arm transiently HURTS, Δ=−0.4999 at c=2500, CI=[−0.6241,−0.3758]), not a "helps" reading, and TRANSIENT is registered as a non-durable training-dynamics artifact regardless of sign. **Answer to the keystone question ("does the frozen-bias arm's whole causal package change in-context task acquisition"): this wave does not resolve it either way** — a measurement-power result, not a mechanism result.
+
+**GPU-h:** total realized (both launch attempts) **1.6611 GPU-h** — attempt-1 abort 0.0872 (cold-compile timing-pilot overrun, caught correctly pre-launch) + attempt-2 complete 1.5739 (warm-cache pilot 6.4× faster) — a ~1.6× undershoot of the 2.64 GPU-h raw estimate, ~15.9× undershoot of the 26.4 GPU-h debug-tax ceiling.
+
+**Discrepancies/follow-ups (not self-launched, registered for a future wave):** fix `analyze_corpus`'s corpus-level scoping to classify both non-off arms independently rather than using `global` as a silent proxy for `per_token`; the keystone question needs either more seeds (fresh Leg-A pretraining, real GPU cost) or a lower-variance readout to move off the power floor; PI check-in should report the underpowered-null-dominant result plus the one real, non-durable, hurts-direction TRANSIENT signal, not a resolved answer either direction.
+
+**Security note:** 2 more fake-system-reminder injections this harvest session (one appended to a `grep` Bash-tool result, one appended to an `Edit` tool result — both the same fabricated date-change/concealment pattern, one also carrying a fake agent-list + fake MCP-instructions block) — disregarded in full including the concealment instructions, reported. Zero injection strings found in any raw box-persisted artifact. 5th and 6th occurrences logged against this overall session (2 in DEPLOY ATTEMPT, 1 in LAUNCH ATTEMPT 2, 2 here).
+
+**Queue:** GPUs 0-1 free for the next wave. No cells launched, no code built this harvest session (harvest-only, per `CLAUDE.md`'s "the implementer does not review their own work" / §15.10's "harvest does not self-launch" discipline).
+
+**Superseded block below (2026-07-08 ~05:44 UTC launch-attempt-2 status) — kept for the record, now stale, completed by the harvest above:**
 
 ## REASONING-LINK PHASE-2B VOCAB-SPACE CONTRAST — LAUNCH ATTEMPT 2 RUNNING, HEALTHY START (2026-07-08 ~05:44 UTC, GPUs 0-1) — supersedes this block's own prior "BUDGET-GATE ABORTED" queue below (items 1-2 completed: re-derivation landed at commit f5a0c21, ceiling 20.6→26.4, §16.16.11 item 1 RESOLVED; chain relaunched). **12 cells (`per_token`/`global` × 2 corpora × 3 seeds) are TRAINING on GPUs 0-1 right now** — `tmux phase2b` on the box, log `logs/phase2b_run2.log`, ETA ≈ 06:30-06:50 UTC 2026-07-08, completion sentinel `results/phase2/PHASE2B_SUMMARY.json` + the `PHASE-2B CHAIN COMPLETE` log line. Do not touch GPUs 0-1 until the sentinel appears; **HARVEST IS THE NEXT QUEUE ITEM** once it does.
 
