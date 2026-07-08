@@ -51,18 +51,27 @@ at a cache-less call's left edge would corrupt the query window's first
 (`lambda_fam=1.0` pinned BUILD DEFAULT), summed into ONE scalar before ONE
 `.backward()` call -- two separate forward+CE passes, never four.
 
-**Held-out eval pool (sec 16.2.1's own still-open MINOR-1 item, resolved
-here at BUILD time using EXISTING, zero-new-code machinery, disclosed
-explicitly per this codebase's own "resolved during BUILD" convention,
-reasoning_link_probe.py's module docstring):** familiarization TRAINING
-episodes draw entities from `pools.train_name_ids`
+**Held-out eval pool (sec 16.2.1's own still-open MINOR-1 item -- MAJOR-1
+fix, Phase-2 build-audit round: actually wired, not merely claimed).**
+familiarization TRAINING episodes draw entities from `pools.train_name_ids`
 (`use_heldout_entities=False`); every EVAL-purpose episode batch this
-script draws (the Stage-0.5 gate's own premise/null-shuffle batch) draws
-from `pools.heldout_name_ids` (`use_heldout_entities=True`) instead --
-`grammar_rd.py`'s own C17 disjoint-pool mechanism, applied here for the
-first time to separate TRAIN-vs-EVAL entities rather than merely
-zero-shot-vs-trained-pool. Cycle-level disjointness is automatic: eval
-draws use an eval-only seed stream, never the training seed's own stream.
+script draws (the Stage-0.5 gate's own premise/null-shuffle batch, via
+`compute_stage05_gate`) draws from `pools.heldout_name_ids`
+(`use_heldout_entities=True`) instead -- `grammar_rd.py`'s own C17
+disjoint-pool mechanism, applied here for the first time to separate
+TRAIN-vs-EVAL entities rather than merely zero-shot-vs-trained-pool. **Build
+audit correction (this fix):** the ORIGINAL build of this module made this
+claim while `reasoning_link_probe.measure_cell_all_h` had no
+`use_heldout_entities` parameter at all -- `compute_stage05_gate`'s own
+`use_heldout_entities=True` intent was silently dropped on the floor, and
+EVERY eval-purpose episode (both the Stage-0.5 gate here AND the
+killer-prediction readout in `phase2_trajectory_analysis.
+killer_prediction_readout`, which reuses `reasoning_link_probe.run_cell`)
+drew from `pools.train_name_ids` instead. Fixed: `measure_cell_all_h` (and
+`run_cell`) now carry an ADDITIVE `use_heldout_entities` parameter, set
+True at both Phase-2 eval call sites. Cycle-level disjointness is
+automatic: eval draws use an eval-only seed stream, never the training
+seed's own stream.
 
 **Checkpoint saving includes `optimizer_state_dict`** ([LEARN], rung-3:
 "checkpoints without optimizer state block resume forever") -- every
@@ -227,6 +236,26 @@ def familiarization_episode_config(conv_size: int, K: int) -> grammar_rd.DeltaNe
                                             H_train=H_TRAIN, H_test=H_TEST_HELD_OUT, H_extra=())
 
 
+def familiarization_gate_episode_config(conv_size: int, K: int) -> grammar_rd.DeltaNetRDTaskConfig:
+    """MAJOR-2 fix (Phase-2 build-audit round, sec 16.2.1 SS16.2.1): the
+    Stage-0.5 gate's own EVAL episodes use Q=K (`n_query=None`), mirroring
+    `reasoning_link_probe.episode_config_for_checkpoint`'s own Q=K eval
+    convention -- the SAME convention the killer-prediction trajectory
+    readout already uses (sec 16.2.1's own "byproduct of the scoring pass"
+    citation for `run_cell`'s `compute_premises=True`) -- rather than
+    reusing TRAINING's own fixed `n_query=N_QUERY=2` config
+    (`familiarization_episode_config` above), whose `B*Q` (gate_batch_size
+    x N_QUERY=16*2=32) is a 16x power reduction vs `Q=K=32`'s own
+    `B*Q=512` that this gate, sec 16.2.1's own most stringent
+    readout-soundness test, is registered to run at. As-built (pre-fix)
+    `compute_stage05_gate` received the SAME `episode_cfg` object
+    `run_familiarization_cell` builds for training (n_query=2) and passed
+    it straight through to `measure_cell_all_h` -- this function exists so
+    the gate constructs its OWN, separate, Q=K episode config instead."""
+    return grammar_rd.DeltaNetRDTaskConfig(K=K, conv_size=conv_size, n_query=None,
+                                            H_train=H_TRAIN, H_test=H_TEST_HELD_OUT, H_extra=())
+
+
 # ---------------------------------------------------------------------------
 # Query-loss forward (sec 16.2.1's "Corrected definition" paragraph, implemented verbatim).
 # ---------------------------------------------------------------------------
@@ -268,17 +297,35 @@ def compute_stage05_gate(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTa
     sec 16.2.1's own per-checkpoint gate. Reuses `reasoning_link_probe.
     measure_cell_all_h` verbatim (compute_premises=True, null_seed set --
     the SAME shared computation `run_stage0` already runs) rather than a
-    parallel reimplementation. Held-out entity pool (sec 16.2.1's own
-    still-open eval-disjointness item, resolved here -- see module
-    docstring)."""
+    parallel reimplementation.
+
+    `episode_cfg` here is the CALLER's own TRAINING config (n_query=2) --
+    used ONLY to read `conv_size`/`K`, never passed to `measure_cell_all_h`
+    directly (MAJOR-2 fix, Phase-2 build-audit round): this gate builds its
+    OWN, separate `familiarization_gate_episode_config` (Q=K, n_query=None)
+    below, matching `reasoning_link_probe.episode_config_for_checkpoint`'s
+    own Q=K eval convention rather than training's own fixed-Q=2 config
+    (as-built, pre-fix, this function silently reused the training
+    `episode_cfg` verbatim -- a 16x power reduction, `gate_batch_size *
+    N_QUERY=16*2=32` vs the registered `Q=K=32`'s own `B*Q=512`, on this,
+    sec 16.2.1's own most stringent readout-soundness test).
+
+    Held-out entity pool (MAJOR-1 fix, Phase-2 build-audit round; sec
+    16.2.1's own still-open eval-disjointness item): `use_heldout_entities=
+    True` is now actually threaded through to `measure_cell_all_h` (as-built,
+    pre-fix, this module's own docstring CLAIMED this was already resolved,
+    but `measure_cell_all_h` had no such parameter at all, so every EVAL
+    episode this gate drew silently came from `pools.train_name_ids`, the
+    SAME pool familiarization trained on)."""
     assert arm == "off", "the Stage-0.5-familiarized gate is registered OFF-arm-only (sec 16.2.1)"
     readout_layer = rlp.readout_layer_index(model)
-    eval_seed = phase2_seed("eval_gate_self", arm, corpus, ckpt_seed, episode_cfg.K, checkpoint_step)
-    null_seed = phase2_seed("eval_gate_null", arm, corpus, ckpt_seed, episode_cfg.K, checkpoint_step)
+    gate_episode_cfg = familiarization_gate_episode_config(episode_cfg.conv_size, episode_cfg.K)
+    eval_seed = phase2_seed("eval_gate_self", arm, corpus, ckpt_seed, gate_episode_cfg.K, checkpoint_step)
+    null_seed = phase2_seed("eval_gate_null", arm, corpus, ckpt_seed, gate_episode_cfg.K, checkpoint_step)
     per_h, forward_counts = rlp.measure_cell_all_h(
-        model, episode_cfg, pools, readout_layer, episode_cfg.K, hops=(1,), batch_size=batch_size,
+        model, gate_episode_cfg, pools, readout_layer, gate_episode_cfg.K, hops=(1,), batch_size=batch_size,
         seed=eval_seed, surgery="native", device=device, compute_option2=False, compute_premises=True,
-        null_seed=null_seed)
+        null_seed=null_seed, use_heldout_entities=True)
     # native surgery is correct here (not "off"): sec 16.2.1's "What continues training, what stays
     # frozen" paragraph -- the OFF arm never had a frozen-bias table to begin with (arm='off' is
     # mechanically identical to blend-off, sec 5.2a), so surgery is a no-op for this arm specifically.
@@ -286,8 +333,8 @@ def compute_stage05_gate(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTa
     gate_pass = bool(per_h1["premise_iii_pass"] and per_h1["premise_iv_pass"] and per_h1["probe_valid"])
     return wrap_phase2({
         "checkpoint_step": checkpoint_step, "arm": arm, "corpus": corpus, "ckpt_seed": ckpt_seed,
-        "K": episode_cfg.K, "gate_k": episode_cfg.K, "gate_pass": gate_pass,
-        "per_h": {"1": per_h1}, "forward_counts": forward_counts,
+        "K": gate_episode_cfg.K, "gate_k": gate_episode_cfg.K, "gate_q": gate_episode_cfg.queries,
+        "gate_pass": gate_pass, "per_h": {"1": per_h1}, "forward_counts": forward_counts,
     }, stage="stage05-gate")
 
 
@@ -388,10 +435,18 @@ def run_familiarization_cell(init_checkpoint: str, arm: str, corpus: str, ckpt_s
         f"sec 4.1's own 'no architecture change, no embedding-table resize' guarantee is violated")
 
     model.train()
+    # MINOR-1 fix (Phase-2 build-audit round): seed the training RNG streams with `start_step` (0 on
+    # a fresh run -- byte-identical to pre-fix behavior; the resumed step on a REAL resume) rather
+    # than always `checkpoint_step=0`. As-built (pre-fix), a resumed run re-seeded these generators
+    # with the SAME stream a fresh run uses, so the FIRST post-resume draw replayed the exact same
+    # batch the pre-crash run already consumed at its own step 1 -- `phase2_seed`'s own mixed-radix
+    # formula (each `checkpoint_step` a fully independent digit, not a continuation) makes
+    # `checkpoint_step=start_step` a cheap, sufficient fix: a differently-seeded stream, disjoint by
+    # construction from the `checkpoint_step=0` stream the pre-crash run already consumed from.
     gen_corpus = torch.Generator(device=device).manual_seed(phase2_seed("train_corpus", arm, corpus,
-                                                                          ckpt_seed, K))
+                                                                          ckpt_seed, K, start_step))
     gen_episode = torch.Generator(device=device).manual_seed(phase2_seed("train_episode", arm, corpus,
-                                                                           ckpt_seed, K))
+                                                                           ckpt_seed, K, start_step))
 
     trajectory, checkpoints = [], []
     ckpt_step_set = set(ckpt_steps)

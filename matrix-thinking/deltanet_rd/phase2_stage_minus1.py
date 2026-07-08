@@ -452,31 +452,60 @@ def test_item_8_e2e_familiarization_cell():
         init_path = _build_synthetic_init_checkpoint(td, arm="off")
         ckpt_dir = os.path.join(td, "ckpts")
 
-        result = pft.run_familiarization_cell(
-            init_checkpoint=init_path, arm="off", corpus="openr1-mix-ext", ckpt_seed=0, K=20,
-            steps=6, ckpt_steps=[2, 4, 6], lambda_fam=1.0, lr=3e-4, weight_decay=0.0, warmup_steps=2,
-            corpus_batch_size=4, episode_batch_size=4, gate_batch_size=4, seq_len=128,
-            eval_batches=1, eval_batch_size=2, data_dir=data_dir, device="cpu",
-            ckpt_dir=ckpt_dir, out_path=os.path.join(td, "off_result.json"), resume=False)
+        # MINOR-1 fix (Phase-2 build-audit round) instrumentation: spy on pft.get_batch (the module-
+        # level binding run_familiarization_cell's own training loop calls) to capture the FIRST
+        # corpus batch each of the two runs below actually draws -- proves the RESUMED run's gen_corpus
+        # stream is genuinely different from the pre-crash run's, not merely re-seeded identically.
+        captured_batches = []
+        orig_get_batch = pft.get_batch
+        def _spying_get_batch(*a, **kw):
+            x, y = orig_get_batch(*a, **kw)
+            captured_batches.append(x.clone())
+            return x, y
+        pft.get_batch = _spying_get_batch
+        try:
+            result = pft.run_familiarization_cell(
+                init_checkpoint=init_path, arm="off", corpus="openr1-mix-ext", ckpt_seed=0, K=20,
+                steps=6, ckpt_steps=[2, 4, 6], lambda_fam=1.0, lr=3e-4, weight_decay=0.0, warmup_steps=2,
+                corpus_batch_size=4, episode_batch_size=4, gate_batch_size=4, seq_len=128,
+                eval_batches=1, eval_batch_size=2, data_dir=data_dir, device="cpu",
+                ckpt_dir=ckpt_dir, out_path=os.path.join(td, "off_result.json"), resume=False)
+            assert captured_batches, "pft.get_batch spy captured nothing on the pre-crash run"
+            first_pre_crash_x = captured_batches[0].clone()
+            captured_batches.clear()
 
-        assert [c["step"] for c in result["checkpoints"]] == [2, 4, 6]
-        assert all(c["stage05_gate"] is not None and "gate_pass" in c["stage05_gate"]
-                   for c in result["checkpoints"]), "OFF arm must compute the gate at EVERY checkpoint"
-        for c in result["checkpoints"]:
-            ck = torch.load(c["checkpoint_path"], map_location="cpu")
-            assert "optimizer_state_dict" in ck, f"missing optimizer_state_dict in {c['checkpoint_path']}"
+            assert [c["step"] for c in result["checkpoints"]] == [2, 4, 6]
+            assert all(c["stage05_gate"] is not None and "gate_pass" in c["stage05_gate"]
+                       for c in result["checkpoints"]), "OFF arm must compute the gate at EVERY checkpoint"
+            for c in result["checkpoints"]:
+                ck = torch.load(c["checkpoint_path"], map_location="cpu")
+                assert "optimizer_state_dict" in ck, f"missing optimizer_state_dict in {c['checkpoint_path']}"
 
-        # REAL mid-run resume: continue from step 6 to step 10; must load model+optimizer+step, not
-        # restart at step 1 (which would silently re-inflict the optimizer-restart confound a
-        # SECOND time on top of the already-disclosed familiarization-start one).
-        result2 = pft.run_familiarization_cell(
-            init_checkpoint=init_path, arm="off", corpus="openr1-mix-ext", ckpt_seed=0, K=20,
-            steps=10, ckpt_steps=[8, 10], lambda_fam=1.0, lr=3e-4, weight_decay=0.0, warmup_steps=2,
-            corpus_batch_size=4, episode_batch_size=4, gate_batch_size=4, seq_len=128,
-            eval_batches=1, eval_batch_size=2, data_dir=data_dir, device="cpu",
-            ckpt_dir=ckpt_dir, out_path=os.path.join(td, "off_resumed.json"), resume=True)
+            # REAL mid-run resume: continue from step 6 to step 10; must load model+optimizer+step, not
+            # restart at step 1 (which would silently re-inflict the optimizer-restart confound a
+            # SECOND time on top of the already-disclosed familiarization-start one).
+            result2 = pft.run_familiarization_cell(
+                init_checkpoint=init_path, arm="off", corpus="openr1-mix-ext", ckpt_seed=0, K=20,
+                steps=10, ckpt_steps=[8, 10], lambda_fam=1.0, lr=3e-4, weight_decay=0.0, warmup_steps=2,
+                corpus_batch_size=4, episode_batch_size=4, gate_batch_size=4, seq_len=128,
+                eval_batches=1, eval_batch_size=2, data_dir=data_dir, device="cpu",
+                ckpt_dir=ckpt_dir, out_path=os.path.join(td, "off_resumed.json"), resume=True)
+            assert captured_batches, "pft.get_batch spy captured nothing on the resumed run"
+            first_post_resume_x = captured_batches[0].clone()
+        finally:
+            pft.get_batch = orig_get_batch
+
         assert result2["resumed_from"] is not None and "step6" in result2["resumed_from"]
         assert [c["step"] for c in result2["checkpoints"]] == [8, 10]
+
+        # MINOR-1 fix's own assertion: the first post-resume corpus batch must DIFFER from the first
+        # pre-crash corpus batch (both are step-1-of-their-own-run draws from gen_corpus) -- pre-fix,
+        # both runs re-seeded gen_corpus with the SAME checkpoint_step=0 stream, so the resumed run's
+        # first draw would REPLAY the pre-crash run's own already-consumed step-1 batch verbatim.
+        assert first_pre_crash_x.shape == first_post_resume_x.shape
+        assert not torch.equal(first_pre_crash_x, first_post_resume_x), (
+            "MINOR-1 regression: the resumed run's first corpus batch is IDENTICAL to the pre-crash "
+            "run's first corpus batch -- gen_corpus is not being re-seeded with the resume step")
 
         # per_token / global arms: buildable, and the OFF-only gate is correctly None for them.
         for arm in ("per_token", "global"):
@@ -493,7 +522,8 @@ def test_item_8_e2e_familiarization_cell():
 
     _report("8", "REAL end-to-end familiarization cell (arm=off): combined corpus+query loss "
                  "training, checkpointing with optimizer_state_dict at exact steps, per-checkpoint "
-                 "Stage-0.5 gate always computed; REAL mid-run resume (model+optimizer+step); "
+                 "Stage-0.5 gate always computed; REAL mid-run resume (model+optimizer+step); MINOR-1 "
+                 "fix verified (first post-resume corpus batch != first pre-crash corpus batch); "
                  "per_token/global arms buildable with gate correctly None", True)
 
 
@@ -621,19 +651,127 @@ def test_item_11_budget_guard_negative_test():
                   "function, not a reimplemented copy", True)
 
 
+# ---------------------------------------------------------------------------
+# Item 12 -- MAJOR-1 fix (Phase-2 build-audit round): measure_cell_all_h's use_heldout_entities param
+# actually reaches grammar_rd.sample_batch_rd. POSITIVE: True -> drawn entity ids are a SUBSET of
+# pools.heldout_name_ids. NEGATIVE (mutation-style, proves the positive check has teeth): with the
+# flag left at its default False, entity ids come from pools.train_name_ids instead, which is
+# DISJOINT from heldout_name_ids by construction -- so the SAME subset-of-heldout assertion correctly
+# FAILS on that batch.
+# ---------------------------------------------------------------------------
+
+def test_item_12_heldout_entity_pool_wiring():
+    torch.manual_seed(0)
+    model = lpr.DeltaNetLM(V_REAL, d_model=32, d_state=64, n_layers=1, conv_size=4)
+    tokenizer = grammar_rd.load_gpt2_tokenizer()
+    pools, _ = rlp.build_reasoning_link_pools(tokenizer=tokenizer, seed=0)
+    cfg = pft.familiarization_gate_episode_config(conv_size=4, K=20)
+    readout_layer = rlp.readout_layer_index(model)
+
+    heldout_set = set(pools.heldout_name_ids.tolist())
+    train_set = set(pools.train_name_ids.tolist())
+    assert heldout_set.isdisjoint(train_set), (
+        "precondition: pools.heldout_name_ids/train_name_ids must be disjoint by construction (C17) "
+        "for the negative control below to mean anything")
+
+    captured = {}
+    orig_sample = grammar_rd.sample_batch_rd
+    def _spying_sample_batch_rd(*a, **kw):
+        batch = orig_sample(*a, **kw)
+        captured["entity_ids"] = batch["entity_ids"].clone()
+        captured["use_heldout_entities"] = kw.get("use_heldout_entities", False)
+        return batch
+    grammar_rd.sample_batch_rd = _spying_sample_batch_rd
+    try:
+        rlp.measure_cell_all_h(model, cfg, pools, readout_layer, cfg.K, hops=(1,), batch_size=4,
+                                seed=1, surgery="native", device="cpu", compute_option2=False,
+                                compute_premises=False, use_heldout_entities=True)
+        assert captured["use_heldout_entities"] is True, (
+            "measure_cell_all_h did not pass use_heldout_entities=True through to sample_batch_rd")
+        ids_true = set(captured["entity_ids"].flatten().tolist())
+        assert ids_true.issubset(heldout_set), (
+            f"POSITIVE: use_heldout_entities=True must draw entities ONLY from pools.heldout_name_ids; "
+            f"found ids outside the heldout pool: {ids_true - heldout_set}")
+
+        rlp.measure_cell_all_h(model, cfg, pools, readout_layer, cfg.K, hops=(1,), batch_size=4,
+                                seed=1, surgery="native", device="cpu", compute_option2=False,
+                                compute_premises=False)   # use_heldout_entities omitted -> default False
+        assert captured["use_heldout_entities"] is False
+        ids_false = set(captured["entity_ids"].flatten().tolist())
+        assert not ids_false.issubset(heldout_set), (
+            "NEGATIVE (mutation-style) FAILED TO FAIL: with use_heldout_entities left at its default "
+            "False, entity ids should NOT be a subset of heldout_name_ids (this is the exact pre-fix "
+            "bug -- MAJOR-1 -- where the eval pool silently fell back to train_name_ids); if this "
+            "assertion itself passed, the POSITIVE check above would have no teeth")
+        assert ids_false.issubset(train_set), (
+            f"NEGATIVE: with use_heldout_entities=False, entity ids should come from train_name_ids; "
+            f"found ids outside the train pool: {ids_false - train_set}")
+    finally:
+        grammar_rd.sample_batch_rd = orig_sample
+
+    _report("12", "MAJOR-1 fix: measure_cell_all_h's additive use_heldout_entities param actually "
+                  "reaches grammar_rd.sample_batch_rd -- POSITIVE (True -> entity ids subset of "
+                  "heldout_name_ids) + mutation-style NEGATIVE (False -> entity ids subset of "
+                  "train_name_ids, NOT heldout_name_ids, proving the positive check has teeth)", True,
+            f"heldout_pool_size={len(heldout_set)}, train_pool_size={len(train_set)}")
+
+
+# ---------------------------------------------------------------------------
+# Item 13 -- MAJOR-2 fix (Phase-2 build-audit round): the Stage-0.5 gate's own eval episode config
+# uses Q=K (n_query=None), separate from and never mutating training's own pinned n_query=2 config.
+# ---------------------------------------------------------------------------
+
+def test_item_13_gate_q_equals_k():
+    for K in pft.K_SWEEP:
+        train_cfg = pft.familiarization_episode_config(conv_size=4, K=K)
+        gate_cfg = pft.familiarization_gate_episode_config(conv_size=4, K=K)
+        assert train_cfg.n_query == pft.N_QUERY == 2, (
+            f"K={K}: training episode config must still be pinned at n_query=2, got {train_cfg.n_query}")
+        assert train_cfg.queries == 2, (
+            f"K={K}: training config's own .queries must be 2 (Q!=K), got {train_cfg.queries}")
+        assert gate_cfg.n_query is None, (
+            f"K={K}: gate episode config must use n_query=None (Q=K), got {gate_cfg.n_query}")
+        assert gate_cfg.queries == K, (
+            f"K={K}: gate episode config's own .queries must equal K, got {gate_cfg.queries}")
+
+    # end-to-end: compute_stage05_gate's own returned dict discloses gate_k/gate_q -- confirm gate_q
+    # equals K (not N_QUERY=2) on a REAL call, not just the config object checked in isolation.
+    with tempfile.TemporaryDirectory() as td:
+        init_path = _build_synthetic_init_checkpoint(td, arm="off")
+        ck = torch.load(init_path, map_location="cpu")
+        model = lpr.DeltaNetLM(**ck["config"])
+        model.load_state_dict(ck["model_state_dict"])
+        tokenizer = grammar_rd.load_gpt2_tokenizer()
+        pools, _ = rlp.build_reasoning_link_pools(tokenizer=tokenizer, seed=0)
+        train_cfg = pft.familiarization_episode_config(conv_size=4, K=20)
+        gate_result = pft.compute_stage05_gate(model, train_cfg, pools, "off", "openr1-mix-ext", 0,
+                                                 250, 4, "cpu")
+    assert train_cfg.n_query == 2, "compute_stage05_gate must not have mutated the caller's own training config"
+    assert gate_result["gate_k"] == 20 and gate_result["gate_q"] == 20, (
+        f"compute_stage05_gate: expected gate_k=gate_q=20 (Q=K), got gate_k={gate_result['gate_k']} "
+        f"gate_q={gate_result['gate_q']}")
+
+    _report("13", "MAJOR-2 fix: compute_stage05_gate builds its OWN Q=K eval episode config "
+                  "(familiarization_gate_episode_config) rather than reusing training's own pinned "
+                  "n_query=2 config -- verified at the config-object level (all K in K_SWEEP, training "
+                  "config confirmed UNCHANGED at n_query=2) AND end-to-end via compute_stage05_gate's "
+                  "own returned gate_k/gate_q fields", True, f"K_SWEEP={pft.K_SWEEP}")
+
+
 ALL_ITEMS = [
     test_item_1_ckpt_steps, test_item_2_init_checkpoint, test_item_3_periodicity_guard,
     test_item_4_query_loss_forward, test_item_5_hexachotomy_totality,
     test_item_6_gate_enforcement_negative_test, test_item_7_bands_pinned_blind_sequencing,
     test_item_8_e2e_familiarization_cell, test_item_9_seed_non_collision,
     test_item_10_killer_prediction_seed_override, test_item_11_budget_guard_negative_test,
+    test_item_12_heldout_entity_pool_wiring, test_item_13_gate_q_equals_k,
 ]
 
 
 def run_all_selftests() -> bool:
     print("=" * 70)
-    print("PHASE-2 (task familiarization) Stage -1 SELF-TESTS -- 11 items, REASONING_LINK_DESIGN.md "
-          "sec 16.2 (Rev 5, CLEARED-FOR-BUILD)")
+    print("PHASE-2 (task familiarization) Stage -1 SELF-TESTS -- 13 items, REASONING_LINK_DESIGN.md "
+          "sec 16.2 (Rev 5, CLEARED-FOR-BUILD) + build-audit fixes (sec 16.14)")
     print(f"fla_stub_installed={rlp.FLA_STUB_INSTALLED}")
     print("=" * 70)
     t0 = time.time()

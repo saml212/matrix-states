@@ -4778,6 +4778,31 @@ applies:**
    classify `{PERSISTENT, NON-MONOTONE, TRANSIENT}` reports all three
    labels individually, never a single blended verdict.
 
+   **Rev-5 build-audit note (FIX agent, Phase-2 build-audit round,
+   2026-07-07) — reconciles the "3 seeds classify... reports all three
+   labels individually" sentence above with this section's own buildable
+   classification granularity, flagged by the independent build audit
+   (MINOR-3).** `holds(c)` and `det(K,c)` are ALREADY defined, earlier in
+   this same section (Mechanical primitives paragraph), as CI-based
+   quantities computed from `Δ(K)`'s pinned **3-seed-pooled** CI at
+   checkpoint `c` — not per-seed values. There is therefore exactly ONE
+   `holds(c)` pattern, and exactly ONE classification, per (corpus) —
+   never three independent per-seed classifications to individually label.
+   `phase2_trajectory_analysis.py`'s own build-time scoping decision (its
+   module docstring, disclosed explicitly for this audit's attention)
+   makes this literal: ONE trajectory PER CORPUS, built from a
+   3-seed-pooled `delta_ci_n3` CI at every checkpoint, for both non-off
+   arms. **The registered outcome per (corpus) cell is this pooled
+   classification.** The "per-seed" language above is retained as a
+   DISCLOSURE requirement, not a second, competing classification
+   granularity: for any pooled trajectory that is NOT cleanly
+   PERSISTENT/TRANSIENT/LATE-EMERGENT (i.e. NON-MONOTONE or
+   UNRESOLVED-GATE), report each seed's own observed
+   recovered_frac(h=1)-vs-band pattern as a disclosure line alongside the
+   pooled verdict — computed FROM the per-seed holds-relevant readings
+   that already feed the pooled CI, never as a stand-alone classification
+   that could disagree with it.
+
 **Totality, checked exhaustively, not merely asserted (Rev 3 fix,
 attack-round-3 MAJOR-R3-2; count corrected, Rev 4 fix, attack-round-4
 MAJOR-R4-2 — see §16.12).** Every one of the `2^5=32` possible
@@ -4881,6 +4906,16 @@ negative test, not merely a computed-but-unread gate value, per the
 paired gates-must-abort `[LEARN]` `EXPERIMENT_LOG.md`'s Phase-1 entry
 already names) — applied per-checkpoint here, not once at the end of the
 run.
+
+**Rev-5 build-audit note (K coupling, MINOR-3 adjudication (ii)).** This
+gate's own eval episodes run at Q=K (build-audit MAJOR-2 fix, matching
+`reasoning_link_probe.episode_config_for_checkpoint`'s own Q=K eval
+convention) — but `K` itself is, by construction, whatever `K` that
+checkpoint's own familiarization TRAINING used to build its episodes
+(`phase2_familiarization_train.K_TRAIN_DEFAULT=32`), never independently
+swept over the registered `K∈{20,32}` READOUT pair the killer-prediction
+contrast applies post-hoc. The Stage-0.5 gate is therefore always a
+K=32-only instrument, not a second K-sweep.
 
 **Added cost, priced (Rev 3 fix, attack-round-3 MAJOR-R3-3's own
 instruction: price it, don't wave it as "small").** The premises
@@ -6160,3 +6195,38 @@ prescription rather than re-paraphrased. Substantive checks 1/2/4
 continue to carry forward; the remaining gate is the reviewer's
 spot-check of these five edits, after which §16.2.4's gate reads
 CLEARED-FOR-BUILD.
+
+### 16.14 Phase-2 build-audit findings + fixes (2026-07-07)
+
+An independent build audit of the Phase-2 familiarization BUILD (commits
+`1f53a68`+`3937d0c`, discharging §16.2.4's CLEARED-FOR-BUILD gate) ran
+2026-07-07 against the actually-shipped code, not the design sketch.
+Verdict: **FINDINGS-REQUIRE-FIXES** — 0 FATAL, 2 MAJOR, 3 MINOR (all 4 gate
+mutation-tests, run separately, PASSED 4/4). A FIX agent applied every
+prescribed fix the same day, re-verified with new/extended Stage -1 items.
+The two MAJORs, house table style (mirrors §16.7/§16.9/§16.10/§16.12/
+§16.13's own finding→fix convention):
+
+| # | Severity | Finding | Fix |
+|---|---|---|---|
+| MAJOR-1 | MAJOR | `phase2_familiarization_train.py`'s own module docstring CLAIMED EVAL-purpose episodes (the Stage-0.5 gate's premise/null-shuffle batch AND the killer-prediction arm-contrast) draw from `pools.heldout_name_ids` (`use_heldout_entities=True`) — FALSE as built: `reasoning_link_probe.measure_cell_all_h` had NO `use_heldout_entities` parameter at all and never overrode `grammar_rd.sample_batch_rd`'s own default `False`, so every eval episode silently drew from `pools.train_name_ids`, the SAME pool familiarization TRAINING itself drew from. Affected BOTH `compute_stage05_gate` and the killer-prediction readout (`phase2_trajectory_analysis.killer_prediction_readout` → `reasoning_link_probe.run_cell`) — the wave's central arm-contrast measurement | Threaded an ADDITIVE `use_heldout_entities: bool = False` param through `measure_cell_all_h` and `run_cell` (default False = byte-identical pre-existing behavior for every Phase-1 caller); set `True` at both Phase-2 eval call sites. New Stage -1 item verifies eval batches' entity ids are a subset of `heldout_name_ids`, PLUS a mutation-style negative (flag=False → ids are NOT a subset) |
+| MAJOR-2 | MAJOR | `compute_stage05_gate` reused the TRAINING `episode_cfg` (`n_query=2`) instead of a design-pinned Q=K eval config — a 16x power reduction (`gate_batch_size*N_QUERY=16*2=32` vs the registered `Q=K=32`'s own `B*Q=512`) on §16.2.1's own most stringent readout-soundness test, and contradicted the "byproduct of the scoring pass" claim (the trajectory-readout path already uses Q=K via `reasoning_link_probe.episode_config_for_checkpoint`) | Added `familiarization_gate_episode_config` (Q=K, `n_query=None`), threaded into `compute_stage05_gate` as a SEPARATE eval-purpose config from training's own `n_query=2` config. New Stage -1 assertion: the gate's own episode config has `queries==K` while the training config still has `n_query=2` |
+
+**Three MINORs, fixed in the same pass (not tabled in full here — see the
+build commit's own diff for line-level detail):** MINOR-1 (resume replayed
+the same early RNG stream — `gen_corpus`/`gen_episode` now seed from
+`phase2_seed(..., checkpoint_step=start_step)`, so post-resume draws differ
+from consumed pre-crash draws); MINOR-2 (`phase2_chain.sh` reserved 2 GPUs
+but ran cells strictly serially — cells now launch 2-way parallel via
+`run_cells_2way`, one per physical GPU, preserving the OFF-arm-first
+barrier and resume-safety); MINOR-3 (this section's own documentation
+gaps — the per-seed-labels reconciliation above, the K-coupling note
+above, and this §16.14 itself).
+
+**Scope, disclosed explicitly:** this was a build-correctness audit (does
+the shipped code match what the CLEARED-FOR-BUILD design registered), not
+a further design-level attack round — it carries no new finding against
+the recipe itself, and does not reopen §16.2.4's gate. Every fix here is
+additive/backward-compatible by construction (new parameters default to
+the pre-fix behavior), verified by re-running the full Phase-2 Stage -1
+suite to completion after every fix landed.

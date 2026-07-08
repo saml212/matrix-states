@@ -1275,8 +1275,23 @@ def measure_cell_all_h(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTask
                         batch_size: int, seed: int, surgery: str, device: str,
                         max_rows_per_forward: int = 4096, compute_option2: bool = True,
                         compute_premises: bool = True, null_seed: int | None = None,
-                        query_mode: str = "marker") -> tuple[dict, dict]:
-    """FATAL-1 fix (this audit round) -- the per-cell measurement body SHARED
+                        query_mode: str = "marker", use_heldout_entities: bool = False) -> tuple[dict, dict]:
+    """MAJOR-1 fix (Phase-2 build-audit round, REASONING_LINK_DESIGN.md sec
+    16.2.1): additive `use_heldout_entities` param (default False --
+    byte-identical to every pre-existing caller's behavior), threaded
+    straight through to `grammar_rd.sample_batch_rd`'s own C17 disjoint-pool
+    mechanism below. Before this fix, this function had NO such parameter
+    at all, so `sample_batch_rd` always fell back to its own
+    `use_heldout_entities=False` default regardless of what a caller
+    (`phase2_familiarization_train.compute_stage05_gate`,
+    `phase2_trajectory_analysis.killer_prediction_readout` via `run_cell`)
+    believed it was requesting -- every Phase-2 EVAL-purpose episode was
+    silently drawing from `pools.train_name_ids` (the TRAINING pool) rather
+    than `pools.heldout_name_ids`, contaminating both the Stage-0.5 gate and
+    the killer-prediction arm-contrast with train-pool entities identical to
+    the ones familiarization itself trained on.
+
+    FATAL-1 fix (this audit round) -- the per-cell measurement body SHARED
     by `run_cell` (Stage 1) and `run_stage0` (calibration), restructured to
     draw ONE episode batch and run ONE forward-A + ONE (batched) forward-B
     for ALL of `hops`, instead of the pre-fix code's per-h loop (which
@@ -1349,7 +1364,7 @@ def measure_cell_all_h(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTask
 
     gen = torch.Generator(device=device).manual_seed(seed)
     batch = grammar_rd.sample_batch_rd(episode_cfg, batch_size, gen, hop_set=tuple(hops), pools=pools,
-                                        device=device)
+                                        device=device, use_heldout_entities=use_heldout_entities)
     if query_mode == "natural":
         query_key_ids = torch.gather(batch["entity_ids"], 1, batch["a_slot"])
         batch = dict(batch)  # shallow copy -- never mutate grammar_rd.sample_batch_rd's own returned dict
@@ -1478,7 +1493,8 @@ def measure_cell_all_h(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTask
 def run_cell(ckpt_path: str, K: int, hops: tuple, surgery: str = "native", batch_size: int = BATCH_SIZE_DEFAULT,
              device: str = "cpu", max_rows_per_forward: int = 4096, marker_word: str | None = None,
              compute_option2: bool = True, leg: str | None = None, condition_idx: int = 0,
-             corpus_idx: int = 0, ckpt_seed_idx: int = 0, seed_override: int | None = None) -> dict:
+             corpus_idx: int = 0, ckpt_seed_idx: int = 0, seed_override: int | None = None,
+             use_heldout_entities: bool = False) -> dict:
     """Runs the full two-forward Option-1 (+ Option-2) readout for ONE cell:
     one checkpoint, one K, one or more h's, one surgery mode ('native' = as
     loaded; 'off' = sec 5.2a's forced-off surgery). Returns a dict with
@@ -1509,6 +1525,14 @@ def run_cell(ckpt_path: str, K: int, hops: tuple, surgery: str = "native", batch
     additive parameter instead, so every 18 familiarized cells still gets
     its own differentiated, reproducible seed rather than sharing `leg=None`'s
     single ad-hoc seed=0 across all of them.
+
+    `use_heldout_entities` (MAJOR-1 fix, Phase-2 build-audit round -- additive,
+    backward-compatible: default False == every pre-existing caller's
+    unaffected behavior): threaded straight through to `measure_cell_all_h`
+    below. `phase2_trajectory_analysis.killer_prediction_readout` (the
+    wave's central arm-contrast measurement) passes True here so its own
+    EVAL episodes draw from `pools.heldout_name_ids`, disjoint from the
+    `pools.train_name_ids` familiarization itself trained on.
 
     All 4 tested h's SHARE one episode_seed (the sec 4.6 formula has no
     h-axis at all) -- "same shuffled-pairing episodes, scored at each h
@@ -1541,7 +1565,8 @@ def run_cell(ckpt_path: str, K: int, hops: tuple, surgery: str = "native", batch
     # that rung's "first pass" reading.
     per_h_results, forward_counts = measure_cell_all_h(
         model, episode_cfg, pools, readout_layer, K, hops, batch_size, seed, surgery, device,
-        max_rows_per_forward=max_rows_per_forward, compute_option2=compute_option2, compute_premises=True)
+        max_rows_per_forward=max_rows_per_forward, compute_option2=compute_option2, compute_premises=True,
+        use_heldout_entities=use_heldout_entities)
     assert_forward_call_counts(forward_counts, context="run_cell")
 
     return wrap_reasoning_link({

@@ -80,11 +80,19 @@ def killer_prediction_readout(ckpt_dir: str, arm: str, corpus: str, ckpt_seed: i
     blend-OFF surgery on the FAMILIARIZED checkpoint at this trajectory
     step (sec 16.2.1's own registered reuse of the audited machinery,
     verbatim -- no new scoring code). `K` here governs ONLY how `run_cell`
-    constructs its own EVAL episode (the checkpoint itself carries no K)."""
+    constructs its own EVAL episode (the checkpoint itself carries no K).
+
+    MAJOR-1 fix (Phase-2 build-audit round): `use_heldout_entities=True` --
+    this is the wave's central arm-contrast measurement, so its EVAL
+    episodes must draw from `pools.heldout_name_ids`, disjoint from the
+    `pools.train_name_ids` familiarization training itself drew from
+    (`phase2_familiarization_train.query_loss_forward`'s own
+    `use_heldout_entities=False`) -- never the same entities re-tested."""
     ckpt_path = ckpt_path_for(ckpt_dir, arm, corpus, ckpt_seed, checkpoint_step)
     seed = pft.phase2_seed("eval_killer", arm, corpus, ckpt_seed, K, checkpoint_step)
     return rlp.run_cell(ckpt_path, K, hops=(1, 2, 3, 4), surgery="off", batch_size=batch_size,
-                         device=device, compute_option2=False, seed_override=seed)
+                         device=device, compute_option2=False, seed_override=seed,
+                         use_heldout_entities=True)
 
 
 def build_holds_and_gate_by_checkpoint(ckpt_dir: str, arm: str, corpus: str, K_pair=(32, 20),

@@ -43,6 +43,8 @@ mkdir -p logs results/phase2/ckpts
 
 PHASE2_GPUS=${PHASE2_GPUS:-"0,1"}
 N_GPUS=$(echo "$PHASE2_GPUS" | tr ',' '\n' | wc -l | tr -d ' ')
+IFS=',' read -ra GPU_LIST <<< "$PHASE2_GPUS"   # MINOR-2 fix: per-cell GPU assignment for the 2-way
+                                                 # parallel launcher below (run_cells_2way).
 FROZEN_BIAS_CKPT_ROOT=${FROZEN_BIAS_CKPT_ROOT:-/data/deltanet_rd_frozenbias_ckpts}
 CKPT_DIR=results/phase2/ckpts
 STEPS=5000
@@ -74,6 +76,78 @@ budget_check() {
 }
 
 # ---------------------------------------------------------------------------
+# MINOR-2 fix (Phase-2 build-audit round): 2-way parallel cell launcher. As-built (pre-fix), every
+# cell ran strictly serially even though the chain reserves BOTH `CUDA_VISIBLE_DEVICES=0,1` and
+# prices `N_GPUS=2` in budget_check -- GPU 1 sat idle the entire chain. This function launches cells
+# in pairs, one per physical GPU (CUDA_VISIBLE_DEVICES pinned per-subprocess to a SINGLE device, not
+# the full $PHASE2_GPUS list), waits on BOTH before moving to the next pair, and aborts the whole
+# chain (mirrors every other gate in this script: a real subprocess exit code, never narrated-only)
+# if either half of a pair fails. Resume-safety is preserved exactly as before: a cell whose own
+# --out JSON already validates as complete (steps_completed==STEPS) is skipped before it ever
+# enters the pending queue, so a chain restart never re-launches finished work.
+#
+# Budget arithmetic stays honest under this schedule (MINOR-2's own "keep the budget arithmetic
+# honest" requirement): budget_check's own `elapsed_s * N_GPUS / 3600` formula prices the RESERVED
+# capacity (both GPUs held for the script's own $SECONDS wall-clock span) rather than per-cell
+# runtime, so it needs no change here -- pre-fix, that formula OVER-priced relative to REALIZED
+# utilization (2 GPUs reserved, 1 ever busy); post-fix, realized utilization actually matches what
+# was always being priced, and the same wall-clock $SECONDS counter (script-scoped, unaffected by
+# how many cells run concurrently inside it) still feeds it unchanged.
+# ---------------------------------------------------------------------------
+run_cells_2way() {
+  # $@: cell descriptors "arm:corpus:seed". Resolves each into its own --init-checkpoint/--out/--log
+  # exactly as the pre-fix serial loops did, then launches PENDING (not-already-complete) cells two
+  # at a time, one per entry in $GPU_LIST.
+  local cells=("$@")
+  local pending=()
+  local arm corpus seed out
+  for c in "${cells[@]}"; do
+    IFS=':' read -r arm corpus seed <<< "$c"
+    out="results/phase2/${arm}_${corpus}_s${seed}.json"
+    if [ -s "$out" ] && $PY -c "import json,sys; d=json.load(open('$out')); sys.exit(0 if d.get('steps_completed')==$STEPS else 1)" 2>/dev/null; then
+      echo "SKIP (already complete): $out"
+      continue
+    fi
+    pending+=("$c")
+  done
+
+  local i=0
+  while [ $i -lt ${#pending[@]} ]; do
+    local pids=()
+    local slot idx gpu log lam_tag init_ckpt
+    for slot in 0 1; do
+      idx=$((i + slot))
+      [ $idx -ge ${#pending[@]} ] && break
+      IFS=':' read -r arm corpus seed <<< "${pending[$idx]}"
+      out="results/phase2/${arm}_${corpus}_s${seed}.json"
+      log="logs/99_phase2_${arm}_${corpus}_s${seed}.log"
+      gpu="${GPU_LIST[$((slot % ${#GPU_LIST[@]}))]}"
+      if [ "$arm" = "off" ]; then
+        init_ckpt="$FROZEN_BIAS_CKPT_ROOT/frozenbias_lm_off_lam0p00_${corpus}_dm256_ds64_L2_s${seed}/lmC_${corpus}_dm256_ds64_L2_s${seed}_step20000.pt"
+      else
+        lam_tag="lam$($PY -c "print(f'{$FROZEN_BIAS_LAMBDA:.2f}'.replace('.', 'p'))")"
+        init_ckpt="$FROZEN_BIAS_CKPT_ROOT/frozenbias_lm_${arm}_${lam_tag}_${corpus}_dm256_ds64_L2_s${seed}/lmC_${corpus}_dm256_ds64_L2_s${seed}_step20000.pt"
+      fi
+      echo "LAUNCH (gpu=$gpu): arm=$arm corpus=$corpus seed=$seed -> $out"
+      ( CUDA_VISIBLE_DEVICES="$gpu" $PY phase2_familiarization_train.py \
+            --init-checkpoint "$init_ckpt" --arm "$arm" --corpus "$corpus" --seed "$seed" \
+            --steps $STEPS --ckpt-steps $CKPT_STEPS --ckpt-dir "$CKPT_DIR" --out "$out" \
+            --device cuda 2>&1 | tee "$log" ) &
+      pids+=($!)
+    done
+    local fail=0 pid
+    for pid in "${pids[@]}"; do
+      wait "$pid" || fail=1
+    done
+    if [ "$fail" -ne 0 ]; then
+      echo "ERROR: at least one cell in this GPU-pair FAILED -- halting mechanically (see per-cell logs above)." >&2
+      exit 1
+    fi
+    i=$((i + 2))
+  done
+}
+
+# ---------------------------------------------------------------------------
 # Step 1 -- Stage -1 self-tests (CPU, gate). Both this design's OWN new items AND Phase-1's own
 # suite (a transitive dependency-closure check -- phase2_familiarization_train.py imports
 # reasoning_link_probe.py directly; a stale/broken copy of THAT file must be caught here, before
@@ -87,7 +161,12 @@ REASONING_LINK_FORCE_CPU_STUB=1 CUDA_VISIBLE_DEVICES= $PY phase2_stage_minus1.py
 # ---------------------------------------------------------------------------
 # Step 2 -- OFF arm, ALL 6 cells (2 corpora x 3 seeds), run FIRST and ALONE (sec 16.2.1's own
 # Gate/blind-pin granularity requirement) -- per_token/global do NOT launch until BANDS_PINNED
-# is written (step 4) AND the per-checkpoint Stage-0.5 launch gate clears (step 5).
+# is written (step 4) AND the per-checkpoint Stage-0.5 launch gate clears (step 5). MINOR-2 fix:
+# launched 2-way parallel (one cell per physical GPU) via run_cells_2way -- this call BLOCKS until
+# every one of the 6 OFF cells has completed (or the chain has aborted on a failure), preserving the
+# exact same "all 6 OFF cells complete -> bands pinned -> gate -> then per_token/global" barrier the
+# pre-fix serial loop also enforced; only the WITHIN-this-step scheduling changed (pairs instead of
+# one-at-a-time), never the barrier itself.
 # ---------------------------------------------------------------------------
 # K is NOT a training-cell axis here (build-time correction: sec 16.2.3's own cost arithmetic prices
 # 18 TRAINING cells total -- 3 arms x 2 corpora x 3 seeds, NO x2-for-K anywhere in the training-cost
@@ -95,22 +174,13 @@ REASONING_LINK_FORCE_CPU_STUB=1 CUDA_VISIBLE_DEVICES= $PY phase2_stage_minus1.py
 # own killer-prediction re-application on these SAME 18 cells' saved checkpoints -- see
 # phase2_familiarization_train.py's K_TRAIN_DEFAULT for the full disclosure). Each cell below trains
 # at the SINGLE fixed K_TRAIN_DEFAULT (32); --k is left at its own default, never swept here.
+off_cells=()
 for corpus in "${CORPORA[@]}"; do
   for seed in "${SEEDS[@]}"; do
-    out="results/phase2/off_${corpus}_s${seed}.json"
-    log="logs/99_phase2_off_${corpus}_s${seed}.log"
-    # Resume-safety: skip a cell whose own JSON already validates as complete.
-    if [ -s "$out" ] && $PY -c "import json,sys; d=json.load(open('$out')); sys.exit(0 if d.get('steps_completed')==$STEPS else 1)" 2>/dev/null; then
-      echo "SKIP (already complete): $out"
-      continue
-    fi
-    init_ckpt="$FROZEN_BIAS_CKPT_ROOT/frozenbias_lm_off_lam0p00_${corpus}_dm256_ds64_L2_s${seed}/lmC_${corpus}_dm256_ds64_L2_s${seed}_step20000.pt"
-    CUDA_VISIBLE_DEVICES=$PHASE2_GPUS $PY phase2_familiarization_train.py \
-        --init-checkpoint "$init_ckpt" --arm off --corpus "$corpus" --seed "$seed" \
-        --steps $STEPS --ckpt-steps $CKPT_STEPS --ckpt-dir "$CKPT_DIR" --out "$out" \
-        --device cuda 2>&1 | tee "$log"
+    off_cells+=("off:${corpus}:${seed}")
   done
 done
+run_cells_2way "${off_cells[@]}"
 budget_check
 
 # ---------------------------------------------------------------------------
@@ -186,27 +256,19 @@ touch results/phase2/STAGE05_LAUNCH_GATE_CLEARED
 budget_check
 
 # ---------------------------------------------------------------------------
-# Step 5 -- per_token/global, ALL 12 cells (2 arms x 2 corpora x 3 seeds), resume-safe.
+# Step 5 -- per_token/global, ALL 12 cells (2 arms x 2 corpora x 3 seeds), resume-safe. MINOR-2 fix:
+# launched 2-way parallel via the SAME run_cells_2way helper step 2 uses (lam_tag resolution for the
+# non-off init-checkpoint path lives inside that function now).
 # ---------------------------------------------------------------------------
+nonoff_cells=()
 for arm in per_token global; do
   for corpus in "${CORPORA[@]}"; do
     for seed in "${SEEDS[@]}"; do
-      out="results/phase2/${arm}_${corpus}_s${seed}.json"
-      log="logs/99_phase2_${arm}_${corpus}_s${seed}.log"
-      if [ -s "$out" ] && $PY -c "import json,sys; d=json.load(open('$out')); sys.exit(0 if d.get('steps_completed')==$STEPS else 1)" 2>/dev/null; then
-        echo "SKIP (already complete): $out"
-        continue
-      fi
-      # leg_a_cell_name's own lam_tag formula (reasoning_link_probe.py): f"{lam:.2f}".replace(".","p")
-      lam_tag="lam$($PY -c "print(f'{$FROZEN_BIAS_LAMBDA:.2f}'.replace('.', 'p'))")"
-      init_ckpt="$FROZEN_BIAS_CKPT_ROOT/frozenbias_lm_${arm}_${lam_tag}_${corpus}_dm256_ds64_L2_s${seed}/lmC_${corpus}_dm256_ds64_L2_s${seed}_step20000.pt"
-      CUDA_VISIBLE_DEVICES=$PHASE2_GPUS $PY phase2_familiarization_train.py \
-          --init-checkpoint "$init_ckpt" --arm "$arm" --corpus "$corpus" --seed "$seed" \
-          --steps $STEPS --ckpt-steps $CKPT_STEPS --ckpt-dir "$CKPT_DIR" --out "$out" \
-          --device cuda 2>&1 | tee "$log"
+      nonoff_cells+=("${arm}:${corpus}:${seed}")
     done
   done
 done
+run_cells_2way "${nonoff_cells[@]}"
 budget_check
 
 # ---------------------------------------------------------------------------
