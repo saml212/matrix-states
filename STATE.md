@@ -1,8 +1,58 @@
 # Project State
 
-**Last updated:** 2026-07-08 (§15.26 K90 POOL-MARGIN DIAGNOSTIC RUN + HARVESTED — VERDICT: DEGENERATE_CELL, both cells inadmissible at n_iter=28 with a NEW disclosed admission-signature finding; GPU 2 free, box clean — see the top block below. Prior header retained: KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION wave — Rev 2 LANDED, NOISE-FLOOR CALIBRATED: a second independent attack round on Rev 1's own RESHAPE-TO-C design returned NEEDS-REVISION — 3 MAJOR + 5 MINOR, no FATAL, all surgical; the empirical core (360,000-trial cumulative power check, the analytic K84-vs-K90 z-derivation) independently re-verified and found exceptionally clean, the 320,000-trial extension independently RE-EXECUTED and reproduced exactly. MAJOR-1 (highest value): the outcome trigger's CEILING-IS-REAL branch had no measured noise null (the restricted/unrestricted `M3` calls used two different eval generators) — fixed by registering one additional eval-only noise-floor repeat pass in the K=84 block, re-pinning both thresholds relative to the directly-measured `noise_shift`, MECE proven by an explicit totality walk. MAJOR-2: the manipulation matched K90's spare-entity MARGIN (`N'=101`, 0.94pp overlap-fraction residual) instead of the actually-diagnosed mechanism, entity-draw OVERLAP FRACTION — re-pinned `N'=100` (0.11pp residual, ≈8.4× tighter, same cost). MAJOR-3: the launch wrapper's own field-diff check couldn't pass verbatim with the new `--m3-pool-restrict-n` flag — fixed with an enumerated `NEW_FLAG_WHITELIST` stripped before the diff runs, plus its own negative test. Five surgical MINORs (telemetry-threading consistency, a citation fix, a pre-registered Δ_measured contingency, a finding-text reword, a ledger rounding-consistency fix). Design-only, zero GPU spent this session — queue: Rev 2 (done) → ROUND-3 VERIFY DISCHARGED 2026-07-08 (DESIGN-CLEARED-FOR-BUILD, 0 MAJOR, 2 MINORs folded into build incl. adopted second noise-draw; verdict recorded in the §15.26 closing addendum) → (now) BUILD wrapper → audit → launch GPU 2 FIRST, ≈0.9 GPU-h, THEN REASONING-LINK §16.19's own Leg-A pretraining slice per the pinned sequencing (shares GPUs 2-7, sequenced not concurrent). Full account below. REASONING-LINK §16.19 PHASE-2B SEED EXTENSION Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (prior session, retained below for history, UNAFFECTED in its own content by this session's §15.26 work — the two lanes remain sequenced on the shared GPU range per this session's own explicit note above) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-08 (§16.19 PHASE-2B SEED EXTENSION DEPLOYED: Leg-A COMPLETE — 18/18 cells, 4.531 GPU-h realized = 99.8% of estimate, both mechanical calibration gates PASSED; fam/eval chain RUNNING on GPUs 0-1, tmux `seedext_fam`, sentinel `PHASE2B_SEEDEXT_CHAIN_DONE`, ETA ≈17:00-17:45 UTC — see the top block below. Prior header retained: §15.26 K90 POOL-MARGIN DIAGNOSTIC RUN + HARVESTED — VERDICT: DEGENERATE_CELL, both cells inadmissible at n_iter=28 with a NEW disclosed admission-signature finding; GPU 2 free, box clean — see the top block below. Prior header retained: KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION wave — Rev 2 LANDED, NOISE-FLOOR CALIBRATED: a second independent attack round on Rev 1's own RESHAPE-TO-C design returned NEEDS-REVISION — 3 MAJOR + 5 MINOR, no FATAL, all surgical; the empirical core (360,000-trial cumulative power check, the analytic K84-vs-K90 z-derivation) independently re-verified and found exceptionally clean, the 320,000-trial extension independently RE-EXECUTED and reproduced exactly. MAJOR-1 (highest value): the outcome trigger's CEILING-IS-REAL branch had no measured noise null (the restricted/unrestricted `M3` calls used two different eval generators) — fixed by registering one additional eval-only noise-floor repeat pass in the K=84 block, re-pinning both thresholds relative to the directly-measured `noise_shift`, MECE proven by an explicit totality walk. MAJOR-2: the manipulation matched K90's spare-entity MARGIN (`N'=101`, 0.94pp overlap-fraction residual) instead of the actually-diagnosed mechanism, entity-draw OVERLAP FRACTION — re-pinned `N'=100` (0.11pp residual, ≈8.4× tighter, same cost). MAJOR-3: the launch wrapper's own field-diff check couldn't pass verbatim with the new `--m3-pool-restrict-n` flag — fixed with an enumerated `NEW_FLAG_WHITELIST` stripped before the diff runs, plus its own negative test. Five surgical MINORs (telemetry-threading consistency, a citation fix, a pre-registered Δ_measured contingency, a finding-text reword, a ledger rounding-consistency fix). Design-only, zero GPU spent this session — queue: Rev 2 (done) → ROUND-3 VERIFY DISCHARGED 2026-07-08 (DESIGN-CLEARED-FOR-BUILD, 0 MAJOR, 2 MINORs folded into build incl. adopted second noise-draw; verdict recorded in the §15.26 closing addendum) → (now) BUILD wrapper → audit → launch GPU 2 FIRST, ≈0.9 GPU-h, THEN REASONING-LINK §16.19's own Leg-A pretraining slice per the pinned sequencing (shares GPUs 2-7, sequenced not concurrent). Full account below. REASONING-LINK §16.19 PHASE-2B SEED EXTENSION Rev 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (prior session, retained below for history, UNAFFECTED in its own content by this session's §15.26 work — the two lanes remain sequenced on the shared GPU range per this session's own explicit note above) — full prior-session account also below. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
+
+---
+
+## REASONING-LINK §16.19 PHASE-2B SEED EXTENSION — LEG-A COMPLETE + FAM CHAIN RUNNING (2026-07-08, GPUs 0-1) — supersedes the §15.26 block's own "§16.19 seedext launches next" queue line below
+
+**Leg-A (pretraining layer) is COMPLETE:** `frozen_bias_seedext_chain.sh`
+ran in tmux `seedext_lega` 13:52:51→14:55:50 UTC (~63 min wall, launched
+at repo HEAD 027a3f1 after full closure/archive/suite pre-flight). Both
+mechanical gates that replaced the original chain's human calibration
+stop PASSED on the calibration cell (`per_token`/wikitext-mix-ext/s3):
+val-loss band gate **4.3453 ∈ [4.2426, 4.4426] PASS**; timing gate
+realized **914.6s vs banked 908.8s/cell (1.01×)**, projected 6.680 GPU-h
+≪ 66.5 ceiling, PASS. The remaining-17 fan-out ran 6-way on GPUs 2-7 as
+registered (slots=6, gpus [2..7]); **18/18 cells DONE, n_failed=0.
+Realized Leg-A cost: 4.531 GPU-h (Σ wall_s = 16,312.6s) = 99.8% of the
+4.54 GPU-h §16.19.6 estimate.** Deploy note (disclosed): the chain's
+`SEC1526_SENTINEL` default is the deliberately-nonexistent placeholder
+(§15.26 had not registered a sentinel at build time) — this deploy
+traced §15.26's REAL completion sentinel and passed it explicitly
+(`SEC1526_SENTINEL=results/deltanet_rd_exactness/wavekeyanchor-scaling-
+poolmargin/POOLMARGIN_CHAIN_DONE`, verified present on box, written
+13:21 UTC by the completed §15.26 chain); both contention gates passed
+live at launch.
+
+**Fam/eval layer (`phase2b_seedext_chain.sh`) is RUNNING NOW** — tmux
+`seedext_fam` on GPUs 0-1, log `logs/seedext_fam_run1.log`, launched
+15:15:58 UTC. Healthy start verified through EVERY pre-cell gate: Leg-A
+completion gate (sentinel + 18 terminal ckpts) PASS; on-box in-chain
+Stage −1 suites **19/19 + 23/23 + 17/17**; real-kernel smoke off +
+per_token both PASS; sha256 gates CLEARED — 18-file Leg-A manifest belt
+(`sha256sum -c`: 18/18 OK) + suspenders (`phase2b_ckpt_reuse_gate.py`:
+18 files PASS) — the manifest was pinned once this deploy against the
+freshly-trained originals at `results/phase2/gates/
+phase2b_seedext_lega_manifest.sha256` (committed copy:
+`experiment-runs/2026-07-08_phase2b_seedext/gates/`, md5-identical
+box/repo/SSD) — plus all 3 archived-artifact build-time pins OK
+(trajectory JSON, off-cache, FLOOR_PINNED); seedext timing pilot PASS
+(**2.4027s/pass → 360 passes = 0.2403 GPU-h; projected wave total
+6.6763 GPU-h vs 66.5 ceiling**). First OFF cell pair (s3 GPU 0, s4
+GPU 1) confirmed training with step-250 checkpoints on disk at 15:19
+UTC; GPUs 0-1 at 91%/86%. Remaining chain (unattended, self-gating):
+9 OFF cells 2-way → cache extend + BLIND n=12 FLOOR_PINNED re-pin →
+floor gate → 9 per_token cells → `analyze_corpus_seedext` harvest.
+**Completion sentinel: `results/phase2/PHASE2B_SEEDEXT_CHAIN_DONE` +
+`PHASE2B_SEEDEXT_SUMMARY.json`; ETA ≈ 17:00-17:45 UTC 2026-07-08. Do
+not touch GPUs 0-1 until the sentinel appears; HARVEST (a separate
+agent) is the next queue item once it does.** Leg-A artifacts archived
+to `experiment-runs/2026-07-08_phase2b_seedext/` (repo + SSD). ≥23
+fake-system-reminder injections now logged this session family (2 more
+this deploy session — see EXPERIMENT_LOG security note).
 
 ---
 
