@@ -6550,7 +6550,7 @@ result).
 
 ---
 
-## 16.16 PATH (iv) — PHASE-2B: vocab-space behavioral-contrast instrument (Rev 0, pre-attack, 2026-07-10)
+## 16.16 PATH (iv) — PHASE-2B: vocab-space behavioral-contrast instrument (Rev 1, attack-round-1 landed, 2026-07-11 — supersedes Rev 0's own analysis-integration, chain-reuse, floor-pin, and causal-framing text; the hypothesis/confound-freedom/primary-readout/power-sketch/cost content below is otherwise Rev-0-content-identical, per this document's own "content-identical unless a fix touches it" convention)
 
 This is §16.15.5's own first registered option, promoted: **a vocab-space
 behavioral contrast, scored entirely through the LM head, replacing the
@@ -6560,10 +6560,29 @@ variant of that same construct.** The dead readout is not needed here at
 all; every piece of machinery this design reuses (the trainer, the 3-arm
 checkpoint family, the 5-checkpoint trajectory schedule, the CI/hexachotomy
 primitives) was already built and already ran cleanly (§16.2, Rev 5,
-CLEARED-FOR-BUILD; §16.6). This section is Rev 0 — a design sketch, not a
-committed build — and per this project's own waterfall discipline
-(`CLAUDE.md`) it must clear an independent attack round before any code
-changes.
+CLEARED-FOR-BUILD; §16.6). This section is Rev 1 — still a design sketch,
+not a committed build — and per this project's own waterfall discipline
+(`CLAUDE.md`) it must clear a second, independent attack round before any
+code changes (§16.17's own forward-pointer, below).
+
+**Rev 1 in one paragraph (full finding→fix trace: §16.17).** Attack round 1
+returned NEEDS-REVISION, 5 MAJOR + 3 MINOR, all fixed here, zero GPU spent.
+The highest-value finding (MAJOR-1): Rev 0's own §16.16.3 "Build delta" had
+registered the right new readout, but nothing in Rev 0 told
+`phase2_trajectory_analysis.py` to actually USE it — as specced, that
+module's `off_vals`/`arm_vals` still sourced the DEAD `d_state`-space
+`recovered_frac` quantity (0.0 in 30/30 §16.15 readings) and its
+`stage05_pass_by_c` still read the permanently-FAILED Stage-0.5 gate JSONs,
+silently forcing a real monotone-holds-true trajectory into UNRESOLVED-GATE
+before a single new (B)-readout number is ever computed. Fixed at §16.16.3
+below with an explicit, registered rewrite of the analysis module's own
+sourcing, plus a negative Stage-1 test proving the fix has teeth. The other
+four MAJORs: the chain script self-refuses on reuse (fixed with a forked
+`phase2b_chain.sh`, §16.16.8); the OFF-floor pin was knife-edge and
+calibrated on the wrong readout (fixed with a blind, data-derived re-pin,
+§16.16.6); the causal paragraph understated its own intervention (fixed at
+§16.16.1); and the real-kernel smoke gate under-covered the two new arms
+(fixed at §16.16.9).
 
 ### 16.16.1 Hypothesis and the causal logic, stated precisely
 
@@ -6573,26 +6592,51 @@ completely a DeltaNet LM acquires in-context multi-hop bind/query
 composition during task familiarization, as measured by vocab-space
 cross-entropy on held-out episodes.
 
-**Causal logic (the keystone question, re-derived for this instrument).**
-The three arms differ, by construction, in exactly ONE thing at the moment
-familiarization begins: which frozen-bias table (none / per-token / global)
-was blended into the key projection during the ORIGINAL 20,000-step
-pretraining that produced each arm's own step-20,000 checkpoint
-(`FROZEN_BIAS_LM_DESIGN.md` §5-7). Familiarization then continues training
-ALL THREE arms with the IDENTICAL recipe (§16.2.1: same corpus mix, same
-`λ_fam=1.0`, same H_train=(1,2)/H_test=(3,4) split, same 5,000-step budget,
-same trajectory-checkpoint schedule, same optimizer/LR schedule shape). If
-`per_token`'s or `global`'s own task-learning TRAJECTORY (not a single
-terminal number — §16.2.1's own trajectory-not-terminal design choice,
-MAJOR-1) diverges from `off`'s, at a checkpoint where the comparison is
-independently certified interpretable (§16.16.6 below), that divergence is
-attributable to the ONE thing that differs across arms — the frozen-bias
-intervention's effect on key geometry — not to a confound, PROVIDED the
-verification in §16.16.2 holds. This is exactly H_LINK-A's own causal claim
-(§16.2, "What it tests"), now asked with an instrument that has actual
-signal (§16.15.2's dissociation: `L_query` moved 21.8-46.4% while the
-geometric gate stayed at 0.0000) rather than one that has never once
-produced a referent-bearing reading in three attempts (§16.15.4).
+**Causal logic (the keystone question, re-derived for this instrument;
+REVISED Rev 1, attack-round-1 MAJOR — the treatment is the arm's ENTIRE
+causal package, not a one-time pretraining-era divergence).** Rev 0's own
+"exactly ONE thing at the moment familiarization begins" framing understated
+the intervention. Checked directly against `lm_pretrain_rd.py`
+(`DeltaNetLMMixer.forward`, L854-857): `if self.frozen_bias_arm != "off": k
+= apply_frozen_bias_blend(...)` is UNCONDITIONAL on training-vs-eval mode or
+on which phase (pretraining vs. familiarization) is running — it fires on
+EVERY forward pass, for as long as the loaded checkpoint's own baked
+`frozen_bias_arm` config field (`DeltaNetLM.config()`, L1174; see §16.16.9
+Stage −1 item (c) below) reads `per_token`/`global`. The registered
+intervention this design tests is therefore the arm's **entire causal
+package**: (a) the ORIGINAL 20,000-step pretraining's own arm-specific
+weight divergence (the blend was already active throughout that run, not
+merely "baked in" as a static table afterward), PLUS (b) the SAME blend
+mechanism continuing to fire on every one of the 5,000 familiarization steps
+that follow — both pieces are inseparable in what these checkpoints
+actually are (§16.2.1's own "Base checkpoints" paragraph: "continue training
+from the archived Leg-A frozen-bias checkpoints at their final [step-20,000]
+state"; that paragraph never claims the blend is switched off for
+familiarization, and the code confirms it is not). Familiarization then
+continues training ALL THREE arms with the IDENTICAL recipe otherwise
+(§16.2.1: same corpus mix, same `λ_fam=1.0`, same H_train=(1,2)/H_test=(3,4)
+split, same 5,000-step budget, same trajectory-checkpoint schedule, same
+optimizer/LR schedule shape). If `per_token`'s or `global`'s own
+task-learning TRAJECTORY (not a single terminal number — §16.2.1's own
+trajectory-not-terminal design choice, MAJOR-1) diverges from `off`'s, at a
+checkpoint where the comparison is independently certified interpretable
+(§16.16.6 below), that divergence is attributable to the arm's own causal
+package as a whole — pretraining-era divergence AND the persistently-applied
+familiarization-time blend, taken together — not to a confound, PROVIDED the
+verification in §16.16.2 holds. This IS exactly H_LINK-A's own causal claim
+as registered (§16.2, "What it tests"; §16.2.1's own "Base checkpoints"
+paragraph), now asked with an instrument that has actual signal (§16.15.2's
+dissociation: `L_query` moved 21.8-46.4% while the geometric gate stayed at
+0.0000) rather than one that has never once produced a referent-bearing
+reading in three attempts (§16.15.4). **Named, not built here:** an
+ISOLATED familiarization-time-only contrast — all three arms initialized
+from the SAME `off` checkpoint, with `frozen_bias_arm` toggled only for the
+5,000-step familiarization window — would ask a narrower, cleaner question
+(does the blend help ACQUISITION specifically, independent of any
+pretraining-era divergence) but is a categorically different intervention
+requiring a fresh set of init checkpoints (none of which exist in this
+program's archive today); registered as a distinct follow-on design, out of
+scope for this Rev.
 
 ### 16.16.2 Confound-freedom, verified against the real code — not asserted
 
@@ -6713,6 +6757,60 @@ backward pass, zero new forward-pass logic, only a new caller.
   90 already-existing `.pt` files (18 cells × 5 checkpoints) fresh per
   scoring pass — no new loading code.
 
+**Analysis-module rewrite — registered build task (Rev 1, attack-round-1
+MAJOR-1, the highest-value finding this round found).** As specced through
+Rev 0, the "Build delta" above registers `eval_query_loss_heldout` but never
+tells `phase2_trajectory_analysis.py` to actually call it. Verified directly
+against that module (`phase2_trajectory_analysis.py`): `killer_prediction_
+readout` (L77-95) still calls `rlp.run_cell(..., surgery="off", ...)` and
+`build_holds_and_gate_by_checkpoint` (L98-136) still reads `off_r["per_h"]
+[h]["recovered_frac"]` / `arm_r["per_h"][h]["recovered_frac"]` (L116-117)
+into `off_vals`/`arm_vals` — the DEAD `d_state`-space quantity that read
+exactly 0.0 in 30/30 §16.15.1 readings. The same function's own
+`stage05_pass_by_c` (L108, populated L125-134) still reads a per-checkpoint
+gate JSON via `gate_json_path_for`/`phase2_gate_enforce.gate_verdict`, gate
+JSONs that are permanently FAIL per §16.15.1's own 30/30 REFUSED table. Left
+as specced, a clean Phase-2b run would compute zero real (B)-readout numbers
+and would silently route ANY monotone-holds-true trajectory into
+`phase2_hexachotomy.classify_trajectory`'s own UNRESOLVED-GATE branch
+(L136-152) before that trajectory is ever actually evaluated on the new
+readout — burying a real PERSISTENT finding as a gate artifact of an
+instrument this Phase already retired. Registered fix, three parts:
+
+1. **`killer_prediction_readout` is replaced** (same call-site shape feeding
+   `build_holds_and_gate_by_checkpoint`, new body) by a function that calls
+   `eval_query_loss_heldout(model, K, hop_set=(1,2), ...)` (this section's
+   own new function) on the frozen checkpoint for both `off` and `arm`,
+   returning `L_query` floats directly. `off_vals`/`arm_vals` (the L112-117
+   accumulation loop) are populated from these `L_query` floats, never from
+   `recovered_frac`. `delta_ci_n3` is called with the §16.16.5 sign
+   convention (`delta_ci_n3(off_vals, arm_vals)`, positive = arm's loss
+   lower = arm helps) — the same reversal §16.16.5 already registers, now
+   wired to the actual call site that needs it.
+2. **`stage05_pass_by_c` is retired, not computed.**
+   `build_holds_and_gate_by_checkpoint` sets `stage05_pass_by_c = {c: True
+   for c in phx.CHECKPOINTS}` unconditionally — mirroring
+   `phase2_hexachotomy.totality_check`'s own `always_pass_gate = {c: True
+   for c in CHECKPOINTS}` (L204) verbatim — and the `gate_json_path_for`/
+   `pge.gate_verdict` call (L125-134) is DELETED, not merely bypassed, so a
+   future reader cannot mistake a retained-but-dead code path for a live
+   check. Rationale, stated once here: the per-checkpoint Stage-0.5 gate was
+   a validity check on the OLD `d_state`-space readout; that readout is
+   gone, and its replacement validity check is §16.16.6's OFF-floor gate,
+   evaluated ONCE per corpus before launch, not per-checkpoint inside the
+   classifier — the Stage-0.5 gate is RETIRED for Phase-2b.
+3. **New Stage-1 negative test (this build's own obligation, proving the fix
+   has teeth — house convention, `phase2_stage_minus1.py`-style, mirrors
+   `phase2_hexachotomy.py`'s own totality-table row naming): construct a
+   SYNTHETIC `holds_by_c` pattern that is monotone-holds-true from a
+   non-terminal checkpoint through 5,000** (e.g.
+   `{250:False,500:True,1000:True,2500:True,5000:True}`, the `FTTTT` row the
+   totality table already names PERSISTENT) **and assert the fixed pipeline
+   classifies it `PERSISTENT`, never `UNRESOLVED-GATE`,** under the fixed
+   `stage05_pass_by_c=always-True` sourcing — the direct, mechanical proof
+   that this fix closes MAJOR-1's own failure mode rather than merely
+   asserting it does.
+
 ### 16.16.4 Power sketch — the detectable effect size at n=3 seeds, honestly derived
 
 **Between-seed σ proxy, from real numbers already on disk (§16.15.2's
@@ -6786,10 +6884,22 @@ readout-agnostic by construction and require no modification. The SAME
 `K∈{32,20}` pair, the SAME per-checkpoint schedule
 `{250,500,1000,2500,5000}`, and the SAME six-bucket outcome space
 (PERSISTENT/TRANSIENT/LATE-EMERGENT/CONVERGED-EQUIVALENT/UNRESOLVED/
-NON-MONOTONE) are reused unchanged — the totality proof (§16.2.1,
-`1+15+1+4+11=32`) is a property of the `holds(c)` TRUTH-TABLE shape, not of
-what `holds(c)` is computed FROM, so it carries over without
-re-verification.
+NON-MONOTONE) are reused unchanged — the totality proof (§16.2.1) is a
+property of the `holds(c)` TRUTH-TABLE shape, not of what `holds(c)` is
+computed FROM, so it carries over without re-verification. **Bucket labels
+corrected (Rev 1, attack-round-1 MINOR-2 — a transposition, not a new
+count):** Rev 0's own bare `1+15+1+4+11=32` citation, read positionally
+against the six-bucket list immediately above it, transposes PERSISTENT and
+CONVERGED-EQUIVALENT. Verified directly against `phase2_hexachotomy.py`'s
+own `totality_check` self-test (`__main__`, L221-222, the registered
+ground truth): `PERSISTENT=4, TRANSIENT=15, LATE-EMERGENT=1,
+CONVERGED-EQUIVALENT=1, NON-MONOTONE=11` (`4+15+1+1+11=32`) — PERSISTENT is
+the 4-pattern bucket (the monotone-true-run-ending-at-5000 patterns for
+each of the 4 possible non-terminal starts, §16.2.1's own worked
+enumeration), CONVERGED-EQUIVALENT is the single all-FALSE pattern, not the
+reverse. The underlying `32`-pattern enumeration and the totality PROOF
+itself are unaffected by this citation fix — only the per-bucket count
+attached to each label, here, was transposed.
 
 **UNRESOLVED-GATE — dropped, per the task's own instruction.** That
 seventh bucket existed for one specific failure mode: a per-checkpoint
@@ -6814,9 +6924,10 @@ expensive launch" sequencing, and Constraint 1's gates-must-abort
 discipline, §16.5).
 
 **Rule, exactly as specified, with the trichotomy gap now closed formally
-(requirement 7).** Per corpus, pool the 3 `ckpt_seed`s' own readout-(B)
-`L_query(off, K=32, h∈{1,2}, c)` at `c=250` and `c=5000` (mean across
-seeds — the SAME per-corpus, 3-seed-pooled convention
+(requirement 7), and the pin itself now BLIND rather than knife-edge (Rev 1,
+attack-round-1 MAJOR-3).** Per corpus, pool the 3 `ckpt_seed`s' own
+readout-(B) `L_query(off, K=32, h∈{1,2}, c)` at `c=250` and `c=5000` (mean
+across seeds — the SAME per-corpus, 3-seed-pooled convention
 `phase2_trajectory_analysis.py`'s own module docstring already commits to
 for the hexachotomy itself, reused here, not invented fresh); compute
 `ratio := L_query(c=5000) / L_query(c=250)`. **Three MECE buckets, closing
@@ -6824,14 +6935,11 @@ exactly the gap §16.15.7 disclosed** (the observed pattern there — a
 uniform, substantial, sub-pin fall — mapped to none of the pre-registered
 options):
 
-1. **FLOOR-PASS** (`ratio ≤ 0.80`) — reproduces or exceeds §16.15's own
-   observed learning (the pin is calibrated to that harvest's own WEAKEST
-   cell, openr1_s1 at `ratio=0.7823`, plus a small margin, since this is a
-   different — cleaner — readout methodology and an exact reproduction of
-   the noisy number is not the bar). That corpus's arm-contrast proceeds
-   to full hexachotomy classification (§16.16.5), CONFIRMATORY tier.
-2. **PARTIAL-BELOW-FLOOR** (`0.80 < ratio < 1.00`) — the formal name for
-   §16.15.7's own disclosed gap: real, substantial task engagement
+1. **FLOOR-PASS** (`ratio ≤ FLOOR_PIN`) — reproduces or exceeds this
+   wave's OWN readout-(B) baseline. That corpus's arm-contrast proceeds to
+   full hexachotomy classification (§16.16.5), CONFIRMATORY tier.
+2. **PARTIAL-BELOW-FLOOR** (`FLOOR_PIN < ratio < 1.00`) — the formal name
+   for §16.15.7's own disclosed gap: real, substantial task engagement
    occurred, but not enough to clear the reproduction floor. That corpus's
    hexachotomy classification is still COMPUTED (there is real signal to
    contrast) but the corpus's own headline finding is DEMOTED to
@@ -6842,6 +6950,38 @@ options):
 3. **FAMILIARIZATION-NULL** (`ratio ≥ 1.00`) — loss did not fall at all (or
    rose). That corpus's own arm-contrast is uninterpretable and MUST be
    excluded (§16.5 Constraint 1) — no hexachotomy is computed for it.
+
+**`FLOOR_PIN`, derived BLIND from data that exists BEFORE any new cell runs
+— not the fixed `≤0.80` constant Rev 0 registered.** Rev 0's own `≤0.80`
+pin was knife-edge (0.018 above the observed worst readout-(A) case,
+openr1_s1 at `ratio=0.7823`, against a between-seed `σ≈0.093` on THAT same
+readout — a margin smaller than one seed's own noise) AND was calibrated on
+readout (A) (§16.15's training-loop numbers) while the gate it feeds is
+evaluated on readout (B) (this design's own new frozen-checkpoint
+`Q=K` pass) — two different instruments, never cross-validated against each
+other before the pin was set. **Fixed via the design's own sequencing,
+mirroring `bands_pinned_frozenbias.py`/`phase2_bands_pinned.py`'s own
+"pin before launch, from data that already exists" convention exactly:**
+`phase2b_chain.sh`'s new first Python step (§16.16.8's chain-fork item 3)
+computes readout-(B) ratios on the 6 REUSED OFF checkpoints — data that
+exists before any of the 12 new cells ever launches. `FLOOR_PIN :=
+mean_B(ratio) + 2·σ_B(ratio)`, per corpus, computed from those 6 cells'
+own 2 corpora × 3 seeds readout-(B) ratios (the house `k=2` one-sided
+convention, `KEY_ANCHORING_DESIGN.md` §3.6 / `phase2_bands_pinned.py`'s own
+`K_TOLERANCE=2.0`, reused verbatim rather than inventing a fourth tolerance
+convention in this document). The Rev-0 `≤0.80` number is DEMOTED to a
+provisional sanity bound only — reported alongside the real pin at harvest
+time (if `FLOOR_PIN` lands far from `0.80`, that discrepancy is itself
+disclosed, never silently absorbed) — never used as the enforced threshold.
+**Registered BEFORE launch, written to a committed
+`FLOOR_PINNED-Phase2b.json`** (mirrors `BANDS_PINNED-Phase2Familiarization.
+json`'s own writer/validator/blind-check pattern, `phase2_bands_pinned.py`:
+sha256-hash-of-referenced-inputs tamper-evidence, a strict-precedes
+timestamp assertion the chain's own step ordering proves mechanically,
+never re-derived from a copy), and enforced: `phase2b_floor_gate_enforce.py`
+(below) reads `FLOOR_PIN` from this JSON, never recomputes it, and the
+chain refuses to proceed past this step if the file is missing or its own
+tamper-evidence check fails.
 
 **Wave-level enforcement (mirrors the old Stage-0.5 gate's own "at least
 one clears" convention, §16.2, Step 4).** If NEITHER corpus reaches
@@ -6855,15 +6995,23 @@ downstream finding is reported at the tier (CONFIRMATORY / DESCRIPTIVE /
 excluded) its own floor bucket licenses.
 
 **Gate enforcement, mirroring `phase2_gate_enforce.py` exactly.** A new
-`phase2b_floor_gate_enforce.py` (pure function `floor_verdict(ratio) ->
-str` returning one of the three bucket names, read-only, never recomputing
-`ratio` itself) plus the SAME belt-and-suspenders proof pattern
+`phase2b_floor_gate_enforce.py` (pure function `floor_verdict(ratio,
+floor_pin) -> str` returning one of the three bucket names — `floor_pin` is
+now a REQUIRED argument, read from `FLOOR_PINNED-Phase2b.json` above, never
+a hardcoded constant, and the function itself never recomputes `ratio` or
+`floor_pin`) plus the SAME belt-and-suspenders proof pattern
 `phase2_gate_enforce.py`'s own `_run_selftest` already established:
-positive + negative fixtures (`ratio=0.75`→FLOOR-PASS, `ratio=0.90`→
-PARTIAL-BELOW-FLOOR, `ratio=1.05`→FAMILIARIZATION-NULL, plus boundary
-cases at exactly `0.80` and `1.00`), each also proven at the subprocess
-exit-code level (a real abort, not a computed-but-unread value) — this is
-the "new gate needs a negative test" obligation the task itself names.
+positive + negative fixtures at an EXAMPLE `floor_pin=0.80` (the demoted
+Rev-0 sanity-bound value, reused here only as a fixture, never as the
+enforced pin) — `ratio=0.75`→FLOOR-PASS, `ratio=0.90`→PARTIAL-BELOW-FLOOR,
+`ratio=1.05`→FAMILIARIZATION-NULL, plus boundary cases at exactly
+`ratio=floor_pin` and `ratio=1.00` — each also proven at the subprocess
+exit-code level (a real abort, not a computed-but-unread value), PLUS a
+fixture at a DIFFERENT `floor_pin` (e.g. `0.65`) reclassifying the SAME
+`ratio=0.75` from FLOOR-PASS to PARTIAL-BELOW-FLOOR — proving the function
+actually reads its `floor_pin` argument rather than silently reverting to
+a baked-in `0.80` — this is the "new gate needs a negative test" obligation
+the task itself names.
 
 ### 16.16.7 Secondary readout — h∈{3,4} held-out-hop generalization
 
@@ -6901,7 +7049,51 @@ check (bash-level `sha256sum -c`, mirrored by a Python-level gate function)
 before Phase-2b's own eval-`L_query` pass reads any of the 6 reused OFF
 cells' checkpoints — closing the exact "silently scored a corrupted or
 wrong-version reused checkpoint" failure mode the K=69 precedent exists to
-prevent.
+prevent. **Enforced with its own negative test (MINOR-1, folded in here per
+the task's own instruction — not a separate item):** corrupt one byte of one
+reused `.pt` file's copy in a throwaway scratch dir, confirm `sha256sum -c`
+exits nonzero and the Python-level gate function returns fail, mirroring the
+K=69 precedent's own "run it, don't just write it" discipline.
+
+**Chain script — forked, not reused naively (Rev 1, attack-round-1
+MAJOR-2).** Verified directly against `phase2_chain.sh`: its Step 4 ("the
+TERMINAL [5,000-step] checkpoint's own gate must clear for AT LEAST ONE
+[corpus,seed] cell before ANY per_token/global cell launches", L245-273)
+reads `phase2_gate_enforce.py` against the OLD Stage-0.5 gate JSONs, which
+are permanently FAILED per §16.15.1's own 30/30 REFUSED table — a naive
+`bash phase2_chain.sh` re-run would immediately self-refuse via
+`STAGE05_LAUNCH_GATE_REFUSED` (L264) before a single Phase-2b cell launches,
+even though the OLD gate is exactly what §16.16.3's MAJOR-1 fix (above)
+just retired. Registered build task: **`phase2b_chain.sh`, a NEW script
+forked from `phase2_chain.sh`** (not a flag/branch added to the original,
+which stays the historical record of the Phase-2 run that already
+happened), differing in exactly these ways:
+1. Step 1 (Stage −1 self-tests) and step 1.5 (real-kernel smoke, extended
+   per §16.16.9's Finding-5 fix below) are REUSED verbatim.
+2. Step 2's OFF-arm-first launch and step 3's `BANDS_PINNED` pin are
+   DROPPED — the 6 OFF cells are DONE (§16.16.8's own verified-on-box count)
+   and `BANDS_PINNED-Phase2Familiarization.json` is already reused AS-IS
+   (§16.16.9). Nothing to launch or re-pin at this step.
+3. **New first Python step (does double duty for MAJOR-2 and MAJOR-3):**
+   runs `eval_query_loss_heldout` (readout (B)) on the 6 reused OFF
+   checkpoints (after the sha256 reuse gate above clears), producing the
+   per-corpus, per-seed, per-checkpoint `L_query` numbers both (a) the
+   OFF-floor ratio (§16.16.6, re-pinned below) and (b) the trajectory
+   analysis's own `off_vals` (§16.16.3's MAJOR-1 fix) need — computed ONCE,
+   consumed twice, never recomputed.
+4. **OFF-floor gate (§16.16.6, re-pinned below) replaces Step 4's old
+   Stage-0.5 REFUSE gate entirely** — same "real subprocess exit code,
+   mechanical abort, `PHASE2B_FLOOR_GATE_REFUSED` on failure" discipline,
+   different (retired) predicate.
+5. The 30-checkpoint sha256 manifest is verified AT RUN TIME (enforced,
+   with the negative test above) as this forked script's own first gate,
+   before step 3's eval pass reads any reused checkpoint.
+6. Step 5 (the 12 new `per_token`/`global` cells, `run_cells_2way` on GPUs
+   0-1) is REUSED verbatim from `phase2_chain.sh` unchanged — same helper,
+   same 2-way scheduling, same resume-safety and budget-check discipline.
+7. Step 6 (trajectory analysis) calls the MAJOR-1-fixed
+   `phase2_trajectory_analysis.py`, now covering all 18 cells (6 reused OFF
+   + 12 new) rather than the original chain's 18-cells-it-just-trained.
 
 **Cost, re-derived from §16.15's own realized rate, not a fresh estimate.**
 - **Training, 12 new cells:** §16.15.6's realized `0.6172 GPU-h` for 6
@@ -6928,7 +7120,12 @@ prevent.
   (`CLAUDE.md`'s own "calibration run before a big sweep" rule), not an
   assumption to build the full 360-pass budget on unverified.
 - **New real-kernel smoke (below, §16.16.9):** small, priced at the same
-  order as the original Phase-2 smoke gate, ≈0.01 GPU-h.
+  order as the original Phase-2 smoke gate, ≈0.01 GPU-h. **Disclosed (Rev
+  1): MAJOR-5's fix runs this suite THREE times (off, per_token, global)
+  rather than once** — still the same order of magnitude (≈0.02-0.03 GPU-h),
+  an immaterial change against the already-registered 5-10× debug-tax
+  margin; kept at the Rev-0 `≈0.01 GPU-h` figure below rather than
+  re-deriving a bracket over a rounding-level line item.
 - **Raw total: `1.234 + 0.792 + 0.01 ≈ 2.04 GPU-h`.**
 
 **Bracket, same 5-10× debug-tax convention this document applies
@@ -6953,19 +7150,47 @@ observed every time it has bracketed this way. GPUs 0-1 are free.
   `phase2_seed` kinds' own collision-freedom, extending item 9's proof;
   (b) a NEW positive assertion — the arm-INDEPENDENCE pairing device
   (§16.16.2 item 3) actually produces IDENTICAL seeds across arms for the
-  new kinds (inverse of item 9's existing `s1 != s2` collision test).
+  new kinds (inverse of item 9's existing `s1 != s2` collision test); (c)
+  **MINOR-3 (Rev 1, attack-round-1) — a new assertion tying `--arm` to the
+  init checkpoint's own baked config.** Verified directly against
+  `phase2_familiarization_train.py`: `run_familiarization_cell`
+  constructs the model from `torch.load(init_checkpoint, ...)["config"]`
+  (L408) — that config dict includes `frozen_bias_arm` (`DeltaNetLM.
+  config()`, `lm_pretrain_rd.py` L1174) — so the model's ACTUAL blend
+  behavior is governed entirely by the checkpoint's own baked value, and
+  the CLI `--arm` argument (used only for `run_name`, seeding, and
+  bookkeeping) could silently disagree with it if a wrong `--init-
+  checkpoint` path were ever passed. New Stage −1 item: immediately after
+  loading `init_checkpoint`'s config (mirroring L408's own call), assert
+  `config["frozen_bias_arm"] == arm` and fail loudly on mismatch — a
+  cheap, mechanical defense of the chain's own by-construction safety
+  (every `phase2b_chain.sh` launch already pairs the right checkpoint path
+  with the right `--arm` by construction, per its own `init_ckpt` path
+  templating; this assertion makes that pairing verified, not merely
+  trusted).
 - **Real-kernel smoke — a genuine, previously-undiscovered gap, found
-  this session, not assumed closed.** `phase2_smoke_gpu.py`'s own
-  `SMOKE_ARM = "off"` (L80, hardcoded module constant, no `--arm` CLI flag
-  exists) means the real fla/Triton kernel path has NEVER exercised
-  `apply_frozen_bias_blend` (§16.2.1: applied UNCONDITIONALLY whenever
-  `frozen_bias_arm != "off"`) — the exact code path all 12 of Phase-2b's
-  NEW cells run. **Registered build task:** extend `phase2_smoke_gpu.py`
-  with a real `--arm {off,per_token,global}` flag (threading `SMOKE_ARM`
-  through to checkpoint selection and model config instead of hardcoding
-  it) and run the full positive+negative smoke suite against at least one
-  non-off arm before the 12-cell launch — closing this gap rather than
-  inheriting it silently.
+  this session, not assumed closed; EXPANDED (Rev 1, attack-round-1
+  MAJOR-5) to cover BOTH new blend paths, not just one.** `phase2_smoke_
+  gpu.py`'s own `SMOKE_ARM = "off"` (L80, hardcoded module constant, no
+  `--arm` CLI flag exists) means the real fla/Triton kernel path has NEVER
+  exercised `apply_frozen_bias_blend` (§16.16.1: applied UNCONDITIONALLY
+  whenever `frozen_bias_arm != "off"`) — the exact code path all 12 of
+  Phase-2b's NEW cells run. Rev 0 registered running the smoke suite
+  against "at least one non-off arm" — insufficient, because `per_token`
+  and `global` exercise DIFFERENT tensor operations inside `apply_frozen_
+  bias_blend` (a per-token gather-lookup vs. a broadcast add — different
+  kernel/memory-access shapes, not two branches of the same op), and this
+  program has direct, disclosed precedent for a kernel bug that was
+  branch-specific and device-placement-specific (§16.15.7 item 2: a real
+  Triton `Pointer argument cannot be accessed from Triton` failure caught
+  in a pre-launch dry run, invisible to the CPU-stub suite). **Registered
+  build task:** extend `phase2_smoke_gpu.py` with a real `--arm
+  {off,per_token,global}` flag (threading `SMOKE_ARM` through to
+  checkpoint selection and model config instead of hardcoding it), and
+  PARAMETERIZE the chain's own smoke step to run the FULL positive+negative
+  suite three times — once per arm (`off`, `per_token`, `global`) — with
+  ALL THREE required to pass before the 12-cell launch, not merely one
+  non-off arm as a stand-in for both.
 - **BANDS_PINNED-Phase2Familiarization.json — reused AS-IS, no re-pin.**
   This band is computed from OFF's own per-seed VAL-LOSS (not `L_query`) at
   each checkpoint, and val-loss-band validity depends on the TRAINING
@@ -6981,23 +7206,33 @@ observed every time it has bracketed this way. GPUs 0-1 are free.
 - **sha256 reuse gate.** §16.16.8's own belt-and-suspenders pattern, run
   before any reused OFF checkpoint is read by the new eval pass.
 
-### 16.16.10 Paper stakes, both directions — qualified by §16.16.4's power sketch
+### 16.16.10 Paper stakes, both directions — qualified by §16.16.4's power sketch AND §16.16.1's causal-package framing (Rev 1, attack-round-1 MAJOR — tempered)
+
+**Framing caveat, stated once here rather than repeated in every bullet
+(§16.16.1's Rev 1 fix):** every "causal evidence" claim below is evidence
+about the arm's ENTIRE causal package — pretraining-era weight divergence
+PLUS the blend persistently firing throughout familiarization — not an
+isolated claim about acquisition-time intervention alone (that narrower
+claim would require the un-built isolated-contrast follow-on, §16.16.1).
+Neither direction below should be written up, in the eventual paper, as
+having decomposed which of the two components drives the effect.
 
 - **Arm effect found (a hexachotomy PERSISTENT or LATE-EMERGENT verdict, at
   a FLOOR-PASS corpus, with the floor/CI machinery intact):** the FIRST
-  causal evidence in this program that key-geometry stabilization aids
-  in-context task ACQUISITION, not merely a static zero-shot geometric
-  property — directly answers the keystone question, reconnecting H_LINK
-  to the capacity-law empirical basis (§16.2's own "What it tests"
-  paragraph) for the first time with a live instrument.
+  causal evidence in this program that the frozen-bias arm's causal package
+  (key-geometry stabilization AND its ongoing familiarization-time
+  application) aids in-context task ACQUISITION, not merely a static
+  zero-shot geometric property — directly answers the keystone question,
+  reconnecting H_LINK to the capacity-law empirical basis (§16.2's own
+  "What it tests" paragraph) for the first time with a live instrument.
 - **No arm effect, WITH adequate power (CONVERGED-EQUIVALENT at a
   FLOOR-PASS corpus, both arms individually `det_arm`-positive):** the
-  frozen-bias intervention does not transfer to task acquisition even when
-  the model is trained on the task and given every opportunity via SGD to
-  exploit it — combined with the triple-null (§16.15.4), a coherent,
-  publishable negative: geometry stabilization is real (Chapter 2's own
-  confirmed finding) but behaviorally inert for THIS composition task, at
-  every instrument this program has built.
+  frozen-bias arm's causal package does not transfer to task acquisition
+  even when the model is trained on the task and given every opportunity
+  via SGD to exploit it — combined with the triple-null (§16.15.4), a
+  coherent, publishable negative: geometry stabilization is real (Chapter
+  2's own confirmed finding) but behaviorally inert for THIS composition
+  task, at every instrument this program has built.
 - **No arm effect, UNDERPOWERED (UNRESOLVED, or a FLOOR-gated corpus
   reporting only DESCRIPTIVE-tier numbers):** per §16.16.4, this is the
   MOST LIKELY null outcome at n=3 seeds for anything short of a huge
@@ -7009,7 +7244,7 @@ observed every time it has bracketed this way. GPUs 0-1 are free.
   silently elided at harvest time the way §16.15.7's trichotomy gap
   almost was.
 
-### 16.16.11 Open items for the independent attack round (self-attack, not exhaustive)
+### 16.16.11 Open items for the independent attack round (self-attack, not exhaustive; STATUS as of Rev 1 — none of these 5 overlapped attack-round-1's own 5 MAJOR/3 MINOR findings, §16.17 — all 5 below remain genuinely OPEN, carried forward to round 2)
 
 1. Is `0.0022 GPU-h/pass` really the right reference rate for the new
    eval-`L_query` pass, or does it under-price the null-shuffle-free but
@@ -7036,5 +7271,51 @@ observed every time it has bracketed this way. GPUs 0-1 are free.
    design explicitly declines to fold it into the primary hexachotomy's
    own single pre-registered decision rule?
 
-**Not self-launched.** Per this project's waterfall discipline, §16.16
-awaits an independent attack round before any build task above is started.
+**Not self-launched.** Per this project's waterfall discipline, §16.16 (now
+Rev 1) awaits a SECOND independent attack round — reviewing this Rev's own
+fixes (§16.17) fresh, plus the 5 items above, still open — before any build
+task registered above is started. See §16.17 for the full Rev 0 → Rev 1
+finding→fix trace and the round-2 forward-pointer.
+
+### 16.17 ATTACK-ROUND-1 fix-map for §16.16 (2026-07-11) — verdict NEEDS-REVISION
+
+A first independent adversarial pass reviewed Rev 0 of §16.16 (the
+Phase-2b vocab-space behavioral-contrast instrument, §16.16.1-§16.16.11)
+before any code was written, per this project's own waterfall discipline
+(`CLAUDE.md`) and mirroring §16.7's/§16.9's own attack-round convention for
+§16.2. Verdict: **NEEDS-REVISION** — 5 MAJOR, 3 MINOR, no FATAL. Every
+finding below is fixed in this revision (Rev 1, §16.16.1-§16.16.11); none is
+deferred or waved away. Findings recorded near-verbatim for the historical
+record, per house style; resolutions are stated as landed in this text, not
+as intentions. **Items verified correct by this round and NOT reopened**
+(not itemized in the table below, per the same "don't re-litigate
+verified-correct items" convention §16.9's own trailer uses): §16.16.2's own
+confound-freedom analysis (init-checkpoint sharing, training-data-order
+non-identity, eval-batch pairing device); §16.16.3's readout-(A)-vs-(B)
+adjudication and `eval_query_loss_heldout`/new-seed-kind build delta as
+FAR as it went (MAJOR-1 below is a gap in what CONSUMES that delta, not an
+error in the delta itself); §16.16.4's power sketch arithmetic; §16.16.7's
+secondary readout; §16.16.8's cost re-derivation arithmetic.
+
+| # | Finding (attack-round-1 on §16.16 Rev 0) | Severity | Fix (Rev 1) | Location |
+|---|---|---|---|---|
+| MAJOR-1 | The `L_query`→hexachotomy integration was unregistered: `phase2_trajectory_analysis.py`'s own `build_holds_and_gate_by_checkpoint`/`analyze_corpus`/`killer_prediction_readout` sourced `off_vals`/`arm_vals` from `per_h[h]['recovered_frac']` (the DEAD `d_state`-space quantity, 0.0 in 30/30 §16.15.1 readings) and `stage05_pass_by_c` from the permanently-FAILED Stage-0.5 gate JSONs — as specced, a clean run would silently force a real monotone-holds-true trajectory into UNRESOLVED-GATE, burying a PERSISTENT finding, and would never compute a single real (B)-readout number at all | MAJOR | Registered the explicit analysis-module rewrite: `off_vals`/`arm_vals` now source from the NEW `eval_query_loss_heldout` outputs (`L_query` floats, paired via `delta_ci_n3(off_vals, arm_vals)`); `stage05_pass_by_c = {c: True for c in CHECKPOINTS}` unconditionally (mirroring `totality_check`'s own `always_pass_gate`, `phase2_hexachotomy.py` L204) and the dead gate-JSON read is DELETED, not bypassed — the Stage-0.5 gate is RETIRED for Phase-2b, replaced by the OFF-floor gate (§16.16.6); plus a REGISTERED negative Stage-1 test: a synthetic monotone-holds-true trajectory must classify PERSISTENT, never UNRESOLVED-GATE, under the fixed sourcing | §16.16.3 ("Analysis-module rewrite" paragraph) |
+| MAJOR-2 | Chain reuse ambiguity: `phase2_chain.sh`'s Step-4 terminal Stage-0.5 REFUSE gate is permanently failed (§16.15.1's 30/30 REFUSED table) — a naive re-run of the existing chain on the reused OFF checkpoints self-refuses via `STAGE05_LAUNCH_GATE_REFUSED` before a single Phase-2b cell launches | MAJOR | Registered `phase2b_chain.sh` as its own forked script (not a flag on the original, which stays the historical Phase-2 record): drops the Stage-0.5 launch gate and the OFF-arm-training/BANDS_PINNED steps (already done, already reused); adds a new first Python step running `eval_query_loss_heldout` passes on the 6 reused OFF checkpoints (produces both the OFF-floor ratios MAJOR-3 needs AND MAJOR-1's own `off_vals`, computed once); adds the OFF-floor gate (enforced abort, MAJOR-3); verifies the 30-checkpoint sha256 manifest AT RUN TIME (enforced, with a negative test, MINOR-1); reuses Stage −1/real-kernel-smoke/`run_cells_2way`/trajectory-analysis steps verbatim; then launches the 12 new cells 2-way on GPUs 0-1 | §16.16.8 ("Chain script — forked, not reused naively" paragraph) |
+| MAJOR-3 | The OFF-floor pin (`ratio ≤ 0.80`) was knife-edge — 0.018 above the observed readout-(A) worst case (openr1_s1, 0.7823) against a `σ≈0.093` between-seed spread on THAT SAME readout, a margin smaller than one seed's own noise — AND was calibrated on readout (A) while evaluated on readout (B), two different instruments never cross-validated against each other | MAJOR | Re-pinned via the design's own sequencing, mirroring `phase2_bands_pinned.py`'s "pin before launch, from data that already exists" convention: `phase2b_chain.sh`'s new first step computes readout-(B) ratios on the 6 reused OFF checkpoints (data that exists before any new cell runs); `FLOOR_PIN := mean_B(ratio) + 2·σ_B(ratio)`, per corpus (house `k=2` convention, `phase2_bands_pinned.py`'s own `K_TOLERANCE`); the Rev-0 `≤0.80` number demoted to a provisional sanity bound only, never the enforced threshold; registered BEFORE launch, written to a committed `FLOOR_PINNED-Phase2b.json` (same sha256/tamper-evidence/strict-precedes discipline as `BANDS_PINNED-Phase2Familiarization.json`), and enforced (`phase2b_floor_gate_enforce.py`'s own `floor_verdict(ratio, floor_pin)` now takes the pin as a required argument, never a hardcoded constant) | §16.16.6 ("`FLOOR_PIN`, derived BLIND from data..." paragraph) |
+| MAJOR-4 | Causal-framing understatement: the frozen-bias blend fires on EVERY forward pass throughout familiarization (`lm_pretrain_rd.py` L854-857, `apply_frozen_bias_blend` unconditional whenever `frozen_bias_arm != "off"`), not merely as a one-time pretraining-era divergence baked into the init checkpoint — Rev 0's own "exactly ONE thing at the moment familiarization begins" framing implied the latter, understating what this design's intervention actually is and what it can be read as evidence for | MAJOR | Causal paragraph rewritten (§16.16.1): the registered intervention is the arm's ENTIRE causal package — (a) the ORIGINAL 20,000-step pretraining's own arm-specific weight divergence PLUS (b) the SAME blend mechanism continuing to fire on every familiarization step — this IS the registered H_LINK-A target, citing §16.2.1's own "Base checkpoints" paragraph directly; an isolated familiarization-time-only contrast (all arms initialized from the SAME `off` checkpoint, blend toggled only during familiarization) is NAMED as a distinct, out-of-scope follow-on design requiring init checkpoints that do not exist in this program's archive today, not this wave; §16.16.10's paper-stakes framing tempered with an explicit "entire causal package, not a decomposed claim" caveat | §16.16.1 ("Causal logic" paragraph, REVISED); §16.16.10 (framing caveat added) |
+| MAJOR-5 | Real-kernel smoke under-covers the two new arms: Rev 0 registered running `phase2_smoke_gpu.py` against "at least one non-off arm," but `per_token` and `global` exercise DIFFERENT tensor operations inside `apply_frozen_bias_blend` (per-token gather-lookup vs. global broadcast add, not two branches of one op), and this program has direct precedent for a kernel bug that was branch-and-device-specific (§16.15.7 item 2's own Triton `Pointer argument cannot be accessed from Triton` failure, invisible to the CPU-stub suite) | MAJOR | Registered `phase2_smoke_gpu.py` parameterization (`--arm {off,per_token,global}`, threading `SMOKE_ARM` through checkpoint selection and model config) with the chain's own smoke step running the FULL positive+negative suite THREE times — once per arm, off AND per_token AND global — all three required to pass before the 12-cell launch | §16.16.9 ("Real-kernel smoke" bullet, EXPANDED) |
+| MINOR-1 | The sha256 reuse gate (§16.16.8) was registered as a belt-and-suspenders check but its own negative test was left implicit, not stated as a distinct obligation | MINOR | Made explicit: corrupt one byte of a scratch-dir copy of one reused `.pt` file, confirm both `sha256sum -c` and the Python-level gate function exit/return fail — folded into §16.16.8's own sha256-gate paragraph, and into MAJOR-2's `phase2b_chain.sh` fork item 5 | §16.16.8 (sha256 reuse gate paragraph) |
+| MINOR-2 | §16.16.5's totality citation (`1+15+1+4+11=32`) transposes PERSISTENT and CONVERGED-EQUIVALENT when read positionally against the six-bucket list immediately above it | MINOR | Verified directly against `phase2_hexachotomy.py`'s own `totality_check` self-test ground truth (L221-222) and corrected with explicit labels: `PERSISTENT=4, TRANSIENT=15, LATE-EMERGENT=1, CONVERGED-EQUIVALENT=1, NON-MONOTONE=11` (`4+15+1+1+11=32`) — the enumeration and proof are unaffected, only the per-bucket count attached to each label was wrong | §16.16.5 ("Bucket labels corrected" sentence) |
+| MINOR-3 | No assertion ties `--arm` to the init checkpoint's own baked `frozen_bias_arm` config field — `run_familiarization_cell` constructs the model straight from the checkpoint's own saved config (`phase2_familiarization_train.py` L408; `DeltaNetLM.config()` bakes `frozen_bias_arm`, `lm_pretrain_rd.py` L1174), so the model's actual blend behavior is governed by the checkpoint, not the CLI flag, and a wrong `--init-checkpoint` path could silently disagree with `--arm` | MINOR | New Stage −1 assertion: immediately after loading the init checkpoint's config, assert `config["frozen_bias_arm"] == arm`, fail loudly on mismatch — defends the chain's own by-construction path/arm pairing mechanically rather than by trust alone | §16.16.9 (Stage −1 CPU-stub suite bullet, item (c)) |
+
+**Rev 1 has NOT yet had its own independent audit pass — the forward
+pointer (per this project's waterfall discipline, `CLAUDE.md`) is a SECOND,
+fresh-eyes attack round on §16.16 as it now reads (Rev 1, this section's own
+fixes above), not a build audit — build does not start until that round
+passes clean or its own findings are fixed and re-verified. The 5 open
+self-attack items §16.16.11 lists (GPU-h reference-rate uncertainty,
+readout-(B) variance-proxy conservativeness, floor-gate pooling granularity,
+pairing-device CI-independence risk, secondary-readout multiple-comparisons
+correction) are unresolved by this round and remain live targets for round
+2.** No cells launched, no code written this session; STATE.md's queue
+updated.
