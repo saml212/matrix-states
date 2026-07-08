@@ -615,16 +615,23 @@ def test_item_10_killer_prediction_seed_override():
 # process-boundary negative-test discipline, applied here to a bash-native (not Python) gate.
 # ---------------------------------------------------------------------------
 
-def test_item_11_budget_guard_negative_test():
+def _budget_check_negative_test(chain_filename: str, sentinel_filename: str) -> str:
+    """Shared machinery (build-audit MINOR-5 extension -- factored out of the phase2_chain.sh-only
+    version so phase2b_chain.sh's OWN budget_check() gets the SAME real-subprocess teeth-proof,
+    not merely an assumption that the fork preserved it correctly): extracts budget_check() from
+    `chain_filename` via regex (never a reimplemented copy -- both sibling chain scripts define
+    the IDENTICAL `budget_check() { ... }` shape) and drives it with a forced-huge and a
+    forced-tiny elapsed time, via a REAL bash subprocess, asserting the exit code AND
+    `sentinel_filename`. Returns a short diagnostic string for the caller's own _report() detail."""
     import subprocess
-    chain_path = os.path.join(HERE, "phase2_chain.sh")
+    chain_path = os.path.join(HERE, chain_filename)
     with tempfile.TemporaryDirectory() as td:
         os.makedirs(os.path.join(td, "results", "phase2"))
         extracted = os.path.join(td, "extracted_fn.sh")
         with open(chain_path) as f:
             content = f.read()
         m = re.search(r"(budget_check\(\) \{.*?\n\})", content, re.DOTALL)
-        assert m, "budget_check() function not found in phase2_chain.sh -- cannot extract for testing"
+        assert m, f"budget_check() function not found in {chain_filename} -- cannot extract for testing"
         with open(extracted, "w") as f:
             f.write(m.group(1))
 
@@ -637,24 +644,40 @@ def test_item_11_budget_guard_negative_test():
             return subprocess.run(["bash", "-c", script], capture_output=True, text=True)
 
         r_over = _run("100000")   # 100,000s * 2 GPUs / 3600 ~= 55.6 GPU-h >> 12.06 ceiling
-        sentinel_over = os.path.join(td, "results", "phase2", "BUDGET_ABORTED")
+        sentinel_over = os.path.join(td, "results", "phase2", sentinel_filename)
         assert r_over.returncode != 0, (
-            f"budget_check did NOT abort when way over budget: rc={r_over.returncode}, "
-            f"stdout={r_over.stdout!r} stderr={r_over.stderr!r}")
-        assert os.path.exists(sentinel_over), "budget_check aborted but did NOT write the sentinel file"
-        assert "ABORT" in r_over.stderr, f"abort message missing from stderr: {r_over.stderr!r}"
+            f"{chain_filename}: budget_check did NOT abort when way over budget: "
+            f"rc={r_over.returncode}, stdout={r_over.stdout!r} stderr={r_over.stderr!r}")
+        assert os.path.exists(sentinel_over), (
+            f"{chain_filename}: budget_check aborted but did NOT write the sentinel file "
+            f"{sentinel_filename}")
+        assert "ABORT" in r_over.stderr, (
+            f"{chain_filename}: abort message missing from stderr: {r_over.stderr!r}")
 
         os.remove(sentinel_over)
         r_under = _run("10")      # 10s * 2 GPUs / 3600 ~= 0.0056 GPU-h, well under 12.06
         assert r_under.returncode == 0, (
-            f"budget_check incorrectly aborted when well under budget: rc={r_under.returncode}, "
-            f"stdout={r_under.stdout!r} stderr={r_under.stderr!r}")
-        assert not os.path.exists(sentinel_over), "budget_check wrote the sentinel when under budget"
+            f"{chain_filename}: budget_check incorrectly aborted when well under budget: "
+            f"rc={r_under.returncode}, stdout={r_under.stdout!r} stderr={r_under.stderr!r}")
+        assert not os.path.exists(sentinel_over), (
+            f"{chain_filename}: budget_check wrote the sentinel when under budget")
+    return f"{chain_filename}:{sentinel_filename} OK"
 
-    _report("11", "phase2_chain.sh's budget_check() (obligation (8)): forced-huge elapsed time "
-                  "correctly ABORTS (nonzero exit + BUDGET_ABORTED sentinel), forced-tiny elapsed "
-                  "time correctly does NOT abort -- REAL subprocess exercising the extracted "
-                  "function, not a reimplemented copy", True)
+
+def test_item_11_budget_guard_negative_test():
+    r1 = _budget_check_negative_test("phase2_chain.sh", "BUDGET_ABORTED")
+    # Build-audit MINOR-5: phase2b_chain.sh is a FORK of phase2_chain.sh (its own docstring header,
+    # "FORKED from phase2_chain.sh ... not reused naively") with its OWN budget_check() definition
+    # and its OWN sentinel name (PHASE2B_BUDGET_ABORTED, not BUDGET_ABORTED) -- item 11 previously
+    # only extracted+tested phase2_chain.sh's copy, silently trusting the fork preserved the same
+    # abort teeth. Extended to extract+subprocess-test phase2b_chain.sh's own budget_check() too.
+    r2 = _budget_check_negative_test("phase2b_chain.sh", "PHASE2B_BUDGET_ABORTED")
+    _report("11", "phase2_chain.sh's AND phase2b_chain.sh's own budget_check() (obligation (8); "
+                  "build-audit MINOR-5 extension covers the fork): forced-huge elapsed time "
+                  "correctly ABORTS (nonzero exit + own sentinel file: BUDGET_ABORTED / "
+                  "PHASE2B_BUDGET_ABORTED), forced-tiny elapsed time correctly does NOT abort -- "
+                  "REAL subprocess exercising the extracted function from EACH chain script, "
+                  "never a reimplemented copy", True, f"{r1}; {r2}")
 
 
 # ---------------------------------------------------------------------------
@@ -936,6 +959,16 @@ def test_item_16_ftttt_persistent_behavioral_test():
 
     assert call_log, "eval_query_loss_heldout stub was never called -- the arm branch didn't fire"
 
+    # Build-audit MINOR-4: this dict-equality pin is DETERMINISM-OF-THE-FIXTURE, NOT the property
+    # under test -- it confirms the REAL delta_ci_n3->det->holds chain reproduces THIS engineered
+    # table's own exact intended shape (FTTTT), so a later numeric regression in that chain is
+    # caught early with a precise diff. It is fragile to a fixture-shape change even when an
+    # EQUALLY-VALID PERSISTENT trajectory would result (e.g. an all-True "TTTTT" shape, c1=250, is
+    # just as much a legitimate PERSISTENT/monotone-holds-true reference pattern as this table's
+    # own FTTTT/c1=500) -- the audit's own TTTTT-variant concern. The classification assertion
+    # below is therefore kept INDEPENDENT and PRIMARY: it does not rely on this dict matching
+    # exactly, so it would still catch a real MAJOR-1 regression (silently reverting to
+    # UNRESOLVED-GATE) even under a fixture shape other than this one.
     expected_holds = {250: False, 500: True, 1000: True, 2500: True, 5000: True}   # FTTTT
     assert result["holds_by_c"] == expected_holds, (
         f"engineered lookup table did not reproduce FTTTT through the REAL "
@@ -947,11 +980,24 @@ def test_item_16_ftttt_persistent_behavioral_test():
     classification = phx.classify_trajectory(
         holds_by_c=result["holds_by_c"], stage05_pass_by_c=result["stage05_pass_by_c"],
         det_arm_global_5000=True, det_arm_per_token_5000=True, agree_5000=True)
-    assert classification["outcome"] == "PERSISTENT" and classification["c1"] == 500, (
-        f"expected PERSISTENT/c1=500 (Rev-4's own FTTTT reference pattern), got {classification} "
+
+    # PRIMARY assertion (build-audit MINOR-4): the property under test -- a monotone
+    # holds-true-from-some-checkpoint-on trajectory computed through the REAL rewrite classifies
+    # PERSISTENT, NEVER UNRESOLVED-GATE (the exact MAJOR-1 failure mode this rewrite exists to
+    # fix) -- checked on its own, independent of the exact c1 value, so an equally-valid PERSISTENT
+    # shape would still satisfy this line even if the dict-equality pin above were ever loosened.
+    assert classification["outcome"] == "PERSISTENT", (
+        f"expected outcome=PERSISTENT, got {classification['outcome']!r} (full={classification}) "
         f"-- if this resolves to UNRESOLVED-GATE instead, the rewrite has silently reverted to "
         f"burying a real finding as a gate artifact (the exact MAJOR-1 failure mode this rewrite "
         f"exists to fix)")
+    assert classification["outcome"] != "UNRESOLVED-GATE"   # explicit belt-and-suspenders negative
+    # SECONDARY, fixture-specific check: THIS table's own engineered shape (FTTTT) additionally
+    # pins c1=500 (Rev-4's own reference pattern) -- a fixture-shape detail, not the primary
+    # property under test above.
+    assert classification["c1"] == 500, (
+        f"expected c1=500 for THIS table's own FTTTT shape (Rev-4's own reference pattern), got "
+        f"{classification['c1']} (full={classification})")
 
     _report("16", "FTTTT PERSISTENT behavioral test: an engineered off_cache + a stubbed "
                   "phase2b_load_eval_model/eval_query_loss_heldout pair, run through the REAL "
@@ -1038,10 +1084,23 @@ def test_item_19_arm_independent_pairing_device():
     independent weight draws) score the SAME (corpus, ckpt_seed, K, checkpoint_step) and must
     receive byte-identical batches, proving the SEED -- not the model identity -- determines the
     drawn episode. PLUS a negative control (a different checkpoint_step draws a different episode)."""
+    # Build-audit MINOR-3: model_a/model_b now carry DIFFERENT frozen_bias_arm values ('off' vs
+    # 'per_token'), not merely different weight draws under the SAME arm as before.
+    # eval_query_loss_heldout has NO arm parameter at all (this item's own "Pairing device"
+    # structural guarantee) -- its seed formula must therefore be blind to model.frozen_bias_arm
+    # entirely. Pre-fix (both fixtures sharing frozen_bias_arm='off' by omission), a future
+    # regression that accidentally keyed the seed off that field would have been INVISIBLE here:
+    # both models would still draw identical episodes purely because they happened to share the
+    # same arm value, giving the positive assertion below no teeth against exactly that mutation.
+    # With the two fixtures now genuinely differentiated on frozen_bias_arm, such a regression
+    # would make model_a/model_b draw DIFFERENT episodes and this item's own positive assertion
+    # would correctly FAIL.
     torch.manual_seed(0)
-    model_a = lpr.DeltaNetLM(V_REAL, d_model=32, d_state=64, n_layers=1, conv_size=4)
+    model_a = lpr.DeltaNetLM(V_REAL, d_model=32, d_state=64, n_layers=1, conv_size=4,
+                              frozen_bias_arm="off")
     torch.manual_seed(1)   # a DIFFERENT weight draw -- a genuinely different model instance
-    model_b = lpr.DeltaNetLM(V_REAL, d_model=32, d_state=64, n_layers=1, conv_size=4)
+    model_b = lpr.DeltaNetLM(V_REAL, d_model=32, d_state=64, n_layers=1, conv_size=4,
+                              frozen_bias_arm="per_token", frozen_bias_vocab_size=V_REAL)
 
     captured = []
     orig_sample = grammar_rd.sample_batch_rd
@@ -1082,10 +1141,12 @@ def test_item_19_arm_independent_pairing_device():
         "would have no teeth")
 
     _report("19", "arm-independent pairing device: eval_query_loss_heldout draws the IDENTICAL "
-                  "held-out episode (entity_ids/hops/tgt_slot) for two DIFFERENT model instances at "
-                  "the SAME (corpus, ckpt_seed, K, checkpoint_step) -- structural, since the "
-                  "function has no arm parameter at all -- PLUS a negative control (a different "
-                  "checkpoint_step draws a genuinely different episode)", True)
+                  "held-out episode (entity_ids/hops/tgt_slot) for two DIFFERENT model instances "
+                  "(build-audit MINOR-3: model_a=frozen_bias_arm='off', model_b='per_token', not "
+                  "merely two same-arm weight draws as before) at the SAME (corpus, ckpt_seed, K, "
+                  "checkpoint_step) -- structural, since the function has no arm parameter at all "
+                  "-- PLUS a negative control (a different checkpoint_step draws a genuinely "
+                  "different episode)", True)
 
 
 def test_item_20_phase2b_gate_selftests():
@@ -1157,6 +1218,119 @@ def test_item_21_off_cache_and_floor_pin_round_trip():
             True)
 
 
+def test_item_22_analyze_corpus_e2e_off_cache_round_trip_and_integrity():
+    """Build-audit FATAL + MAJOR fix, END-TO-END teeth-run (sec 16.16.8 chain step 3 -> step 7's
+    own real data flow, NEVER a hand-built off_cache dict): writes a REAL on-disk
+    off_lquery_cache-Phase2b.json via the PRODUCTION `phase2b_off_cache.write_off_lquery_cache`
+    (the exact envelope {design_ref, n_entries, cached_at, cached_at_iso, cache: {...}} chain step
+    3 writes for real), pins a REAL FLOOR_PINNED-Phase2b.json against it via the PRODUCTION
+    `write_floor_pinned` (sec 16.16.6), stubs ONLY `phase2b_load_eval_model`/
+    `eval_query_loss_heldout` (model I/O -- mirrors item 16's own stubbing discipline, never a
+    reimplemented `analyze_corpus`), and drives `analyze_corpus` with `off_cache_path`/
+    `floor_pinned_path` pointed at those REAL on-disk files.
+
+    POSITIVE (FATAL fix): `analyze_corpus` completes and returns a well-formed classification.
+    PRE-FIX, this raised KeyError inside `killer_prediction_readout`'s off branch on EVERY real
+    run -- `analyze_corpus` read the writer's own envelope with a bare `json.load`, never
+    unwrapped, so `off_cache[off_cache_key(...)]` KeyError'd against envelope keys like
+    'design_ref'/'n_entries' instead of the flat cache. Independently re-confirmed THIS build
+    session against a scratch copy of the pre-fix module (`git show
+    4cf6122:matrix-thinking/deltanet_rd/phase2_trajectory_analysis.py`) -- see the build report's
+    own teeth-run output, not re-derivable here post-fix (mirrors item 14's own disclosure
+    convention: the pre-fix module no longer exists in the working tree).
+
+    NEGATIVE (MAJOR fix): poisoning ONE cached float on disk AFTER pinning must hard-abort (raises
+    `phase2b_off_cache.CacheIntegrityFailure`, NO verdict computed) -- pre-fix, a poisoned value
+    flowed silently into the classification (build-audit finding, empirically reproduced by
+    poisoning one value 10x and observing it propagate)."""
+    import re as _re
+    import types
+
+    CORPUS = "openr1-mix-ext"
+    with tempfile.TemporaryDirectory() as td:
+        cache = {}
+        for s, jitter in enumerate([0.0, 0.05, -0.05]):
+            for c in phx.CHECKPOINTS:
+                frac = {250: 1.0, 500: 0.9, 1000: 0.8, 2500: 0.65, 5000: 0.6}[c]
+                v = (4.7 + jitter) * frac
+                for K in poc.K_VALUES:
+                    for hop_set in poc.HOP_SETS:
+                        cache[pta.off_cache_key(CORPUS, s, K, c, hop_set)] = v
+
+        cache_path = os.path.join(td, "off_lquery_cache-Phase2b.json")
+        floor_path = os.path.join(td, "FLOOR_PINNED-Phase2b.json")
+        poc.write_off_lquery_cache(cache_path, cache)                       # REAL production writer
+        floor_data = poc.compute_floor_ratios_and_pin(cache, corpora=(CORPUS,))
+        poc.write_floor_pinned(floor_path, floor_data, cache_path)          # REAL production pin
+
+        def _fake_load_eval_model(ckpt_path, device):
+            m = _re.search(r"phase2fam_(\w+)_.+_s\d+_step(\d+)\.pt$", ckpt_path)
+            assert m, f"unexpected ckpt_path shape: {ckpt_path!r}"
+            return types.SimpleNamespace(arm=m.group(1), checkpoint_step=int(m.group(2)))
+
+        def _fake_eval_query_loss_heldout(model, K, hop_set, corpus, ckpt_seed, checkpoint_step,
+                                           batch_size=16, device="cpu"):
+            assert model.arm in pta.ARMS_NON_OFF, (
+                f"eval_query_loss_heldout stub reached for arm={model.arm!r} -- 'off' must NEVER "
+                f"reach this stub (it reads the verified off_cache instead)")
+            assert model.checkpoint_step == checkpoint_step
+            # Deterministic, plausible positive float -- this item does not engineer a specific
+            # classification shape (item 16 already does that); it only proves analyze_corpus's
+            # own REAL on-disk data flow completes end-to-end and produces SOME well-formed verdict.
+            return 3.0 + 0.01 * K + 0.0001 * checkpoint_step + 0.001 * ckpt_seed
+
+        orig_load, orig_eval = pta.phase2b_load_eval_model, pta.eval_query_loss_heldout
+        pta.phase2b_load_eval_model = _fake_load_eval_model
+        pta.eval_query_loss_heldout = _fake_eval_query_loss_heldout
+        try:
+            # POSITIVE (FATAL fix): completes end-to-end against the REAL on-disk envelope file --
+            # this call is exactly what raised KeyError on every run pre-fix.
+            result = pta.analyze_corpus("/fake/ckpt/dir", CORPUS, cache_path, floor_path,
+                                         batch_size=4, device="cpu")
+        finally:
+            pta.phase2b_load_eval_model, pta.eval_query_loss_heldout = orig_load, orig_eval
+
+        assert result["corpus"] == CORPUS
+        assert "classification" in result and result["classification"]["outcome"] in phx.OUTCOMES, (
+            f"analyze_corpus did not produce a well-formed classification: "
+            f"{result.get('classification')}")
+        assert "secondary_ood" in result and set(result["secondary_ood"]) == set(pta.ARMS_NON_OFF)
+
+        # NEGATIVE (MAJOR fix): poison ONE cached value on disk AFTER pinning -> analyze_corpus
+        # must hard-abort (CacheIntegrityFailure), never silently compute a verdict from tampered
+        # data (build-audit finding: pre-fix, a poisoned value flowed through silently).
+        with open(cache_path) as f:
+            doc = json.load(f)
+        one_key = next(iter(doc["cache"]))
+        doc["cache"][one_key] = doc["cache"][one_key] * 10.0   # the audit's own "poisoned 10x" repro
+        with open(cache_path, "w") as f:
+            json.dump(doc, f, indent=2)
+
+        pta.phase2b_load_eval_model = _fake_load_eval_model
+        pta.eval_query_loss_heldout = _fake_eval_query_loss_heldout
+        raised = False
+        try:
+            pta.analyze_corpus("/fake/ckpt/dir", CORPUS, cache_path, floor_path,
+                                batch_size=4, device="cpu")
+        except poc.CacheIntegrityFailure as e:
+            raised = True
+            assert "CACHE-INTEGRITY-FAILURE" in str(e), f"wrong exception message: {e}"
+        finally:
+            pta.phase2b_load_eval_model, pta.eval_query_loss_heldout = orig_load, orig_eval
+        assert raised, (
+            "MAJOR-fix regression: analyze_corpus did NOT hard-abort against a cache poisoned "
+            "on-disk after pinning -- it must raise CacheIntegrityFailure, never compute a "
+            "verdict from tampered data")
+
+    _report("22", "END-TO-END off-cache round trip through analyze_corpus's own REAL on-disk data "
+                  "flow (production write_off_lquery_cache -> write_floor_pinned -> analyze_corpus, "
+                  "model I/O stubbed only): POSITIVE completes and returns a well-formed "
+                  "classification (FATAL fix -- pre-fix this KeyError'd on EVERY real run, "
+                  "independently re-confirmed against a scratch copy of the pre-fix module this "
+                  "build session) AND NEGATIVE a value poisoned on disk AFTER pinning forces a "
+                  "hard CacheIntegrityFailure abort, never a silent verdict (MAJOR fix)", True)
+
+
 ALL_ITEMS = [
     test_item_1_ckpt_steps, test_item_2_init_checkpoint, test_item_3_periodicity_guard,
     test_item_4_query_loss_forward, test_item_5_hexachotomy_totality,
@@ -1173,14 +1347,15 @@ ALL_ITEMS = [
     test_item_19_arm_independent_pairing_device,
     test_item_20_phase2b_gate_selftests,
     test_item_21_off_cache_and_floor_pin_round_trip,
+    test_item_22_analyze_corpus_e2e_off_cache_round_trip_and_integrity,
 ]
 
 
 def run_all_selftests() -> bool:
     print("=" * 70)
-    print("PHASE-2 (task familiarization) Stage -1 SELF-TESTS -- 21 items, REASONING_LINK_DESIGN.md "
+    print("PHASE-2 (task familiarization) Stage -1 SELF-TESTS -- 22 items, REASONING_LINK_DESIGN.md "
           "sec 16.2 (Rev 5, CLEARED-FOR-BUILD) + build-audit fixes (sec 16.14) + Phase-2b (sec "
-          "16.16, Rev 2.2, DESIGN-CLEARED-FOR-BUILD) items 14-21")
+          "16.16, Rev 2.2, DESIGN-CLEARED-FOR-BUILD) items 14-21 + Phase-2b build-audit fix item 22")
     print(f"fla_stub_installed={rlp.FLA_STUB_INSTALLED}")
     print("=" * 70)
     t0 = time.time()

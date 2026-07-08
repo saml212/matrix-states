@@ -259,12 +259,13 @@ budget_check
 # ---------------------------------------------------------------------------
 # Step 7 -- per-checkpoint trajectory analysis + hexachotomy classification + OOD secondary
 # readout, ONE PER CORPUS (phase2_trajectory_analysis.py's own MAJOR-1-rewritten analyze_corpus,
-# now reading off_vals from the cache built at step 4).
+# now reading off_vals from the cache built at step 4, sha256-verified against FLOOR_PINNED-
+# Phase2b.json's own pinned hash before any verdict is computed -- build-audit MAJOR fix).
 # ---------------------------------------------------------------------------
 for corpus in "${CORPORA[@]}"; do
   out="results/phase2/trajectory_${corpus}_phase2b.json"
   CUDA_VISIBLE_DEVICES=$PHASE2_GPUS $PY phase2_trajectory_analysis.py --corpus "$corpus" \
-      --ckpt-dir "$CKPT_DIR" --off-cache "$OFF_CACHE" --out "$out" \
+      --ckpt-dir "$CKPT_DIR" --off-cache "$OFF_CACHE" --floor-pinned "$FLOOR_PINNED" --out "$out" \
       2>&1 | tee "logs/99c_phase2b_trajectory_${corpus}.log"
 done
 

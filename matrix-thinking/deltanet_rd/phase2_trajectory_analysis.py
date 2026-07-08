@@ -275,10 +275,29 @@ def secondary_ood_readout(ckpt_dir: str, arm: str, corpus: str, off_cache: dict,
     return table
 
 
-def analyze_corpus(ckpt_dir: str, corpus: str, off_cache_path: str, batch_size: int = 16,
-                    device: str = "cpu") -> dict:
-    with open(off_cache_path) as f:
-        off_cache = json.load(f)
+def analyze_corpus(ckpt_dir: str, corpus: str, off_cache_path: str, floor_pinned_path: str,
+                    batch_size: int = 16, device: str = "cpu") -> dict:
+    """Build-audit FATAL fix: this used to read `off_cache_path` with a bare `json.load`, which
+    returns `write_off_lquery_cache`'s own writer ENVELOPE ({design_ref, n_entries, cached_at,
+    cached_at_iso, cache: {...}}), never unwrapped -- every real run hit a KeyError inside
+    `killer_prediction_readout`'s off branch (the flat `{off_cache_key(...): float}` dict it
+    expects was never what `off_cache` actually held). Fixed: reads via
+    `phase2b_off_cache.load_off_lquery_cache_verified`, the production reader that (a) unwraps the
+    envelope correctly (mirrors `phase2b_off_cache.py`'s own `load_off_lquery_cache`) and (b),
+    build-audit MAJOR fix, hard-aborts (raises `phase2b_off_cache.CacheIntegrityFailure`, no
+    verdict) if `off_cache_path`'s sha256 does not match the hash pinned in
+    `floor_pinned_path`/FLOOR_PINNED-Phase2b.json at pin time -- closing the gap where this
+    function (and `killer_prediction_readout`, which it feeds `off_cache` into) consumed the cache
+    with zero integrity check, unlike the floor-gate's own already-tamper-evident read path.
+
+    Imports `phase2b_off_cache` LOCALLY (not at module top level): that module already does
+    `import phase2_trajectory_analysis as pta` at ITS top level (it calls this module's
+    `off_cache_key`/`ckpt_path_for`/`phase2b_load_eval_model`/`eval_query_loss_heldout`) -- a
+    top-level `import phase2b_off_cache` here would be a circular module import; deferring to this
+    function's own single call site breaks the cycle cleanly without touching either module's
+    existing import graph."""
+    import phase2b_off_cache as poc
+    off_cache = poc.load_off_lquery_cache_verified(off_cache_path, floor_pinned_path)
 
     per_arm = {arm: build_holds_and_gate_by_checkpoint(ckpt_dir, arm, corpus, off_cache,
                                                           batch_size=batch_size, device=device)
@@ -315,13 +334,18 @@ def main():
     ap.add_argument("--ckpt-dir", type=str, required=True)
     ap.add_argument("--off-cache", type=str, required=True,
                      help="off_lquery_cache-Phase2b.json path (sec 16.16.8 chain step 3)")
+    ap.add_argument("--floor-pinned", type=str, required=True,
+                     help="FLOOR_PINNED-Phase2b.json path (sec 16.16.6 chain step 4) -- build-audit "
+                          "MAJOR fix: --off-cache's sha256 is verified against the hash pinned here "
+                          "before any verdict is computed (phase2b_off_cache."
+                          "load_off_lquery_cache_verified)")
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--out", type=str, default=None)
     args = ap.parse_args()
 
-    result = analyze_corpus(args.ckpt_dir, args.corpus, args.off_cache, batch_size=args.batch_size,
-                             device=args.device)
+    result = analyze_corpus(args.ckpt_dir, args.corpus, args.off_cache, args.floor_pinned,
+                             batch_size=args.batch_size, device=args.device)
     print(json.dumps({"corpus": result["corpus"], "classification": result["classification"],
                        "agree_by_c": result["agree_by_c"]}, indent=2, default=str))
     if args.out:

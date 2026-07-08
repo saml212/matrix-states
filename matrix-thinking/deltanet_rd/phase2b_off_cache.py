@@ -165,6 +165,55 @@ def load_off_lquery_cache(path: str) -> dict:
     return doc["cache"] if "cache" in doc and "cached_at" in doc else doc
 
 
+class CacheIntegrityFailure(RuntimeError):
+    """Build-audit MAJOR fix: raised by `load_off_lquery_cache_verified` when the on-disk
+    `off_lquery_cache-Phase2b.json`'s sha256 does not match the hash `FLOOR_PINNED-Phase2b.json`
+    recorded at pin time (`write_floor_pinned`'s own `off_cache_sha256` field, sec 16.16.6 -- the
+    SAME hash `validate_floor_pinned`/`read_floor_pin` already trust for the floor-gate's own read
+    path). A distinct exception type (not a bare RuntimeError) so a caller's generic
+    except-and-log handler can distinguish a deliberate integrity halt from an unrelated crash --
+    mirrors `run_deltanet_rd_exactness_sweep.py`'s own `KeyanchorCliffAbort` convention."""
+
+
+def load_off_lquery_cache_verified(path: str, floor_pinned_path: str) -> dict:
+    """Build-audit MAJOR fix: `load_off_lquery_cache`'s tamper-evidence protects ONLY
+    `phase2b_floor_gate_enforce.py`'s own read path (via `validate_floor_pinned`, reached through
+    `read_floor_pin`) -- `analyze_corpus`/`killer_prediction_readout`
+    (phase2_trajectory_analysis.py, the OTHER TWO of this cache's THREE documented downstream
+    consumers, this module's own docstring header) previously read the cache with ZERO integrity
+    check, so a single poisoned float on disk flowed silently into a classification (build-audit
+    finding, empirically reproduced by poisoning one cached value 10x and observing it propagate).
+
+    This wrapper re-hashes `path` and requires EXACT identity with the `off_cache_sha256`
+    `FLOOR_PINNED-Phase2b.json` recorded at pin time (`write_floor_pinned`) -- the SAME hash the
+    floor-gate's own tamper-evidence already trusts, never a second independent hash or a
+    re-derivation from the cache's own contents. Hard-aborts (raises `CacheIntegrityFailure`, NO
+    verdict computed) on ANY mismatch: a missing/malformed FLOOR_PINNED doc, a missing cache file,
+    or a hash that does not match."""
+    if not os.path.exists(floor_pinned_path):
+        raise CacheIntegrityFailure(
+            f"CACHE-INTEGRITY-FAILURE: {floor_pinned_path} does not exist -- cannot verify "
+            f"{path} against a pinned hash before computing a verdict")
+    with open(floor_pinned_path) as f:
+        floor_doc = json.load(f)
+    try:
+        expected_sha256 = floor_doc["off_cache_sha256"]
+    except (KeyError, TypeError):
+        raise CacheIntegrityFailure(
+            f"CACHE-INTEGRITY-FAILURE: {floor_pinned_path} is malformed (missing "
+            f"off_cache_sha256) -- cannot verify {path}")
+    if not os.path.exists(path):
+        raise CacheIntegrityFailure(f"CACHE-INTEGRITY-FAILURE: {path} does not exist")
+    actual_sha256 = sha256_of_file(path)
+    if actual_sha256 != expected_sha256:
+        raise CacheIntegrityFailure(
+            f"CACHE-INTEGRITY-FAILURE: {path} sha256={actual_sha256} does not match the hash "
+            f"pinned in {floor_pinned_path} ({expected_sha256}) -- the cache changed since "
+            f"FLOOR_PINNED-Phase2b.json was written; refusing to compute a verdict from a "
+            f"tampered or stale cache")
+    return load_off_lquery_cache(path)
+
+
 def _mean_std(values: list) -> tuple:
     n = len(values)
     assert n >= 2, f"sample std requires n>=2, got n={n}"
