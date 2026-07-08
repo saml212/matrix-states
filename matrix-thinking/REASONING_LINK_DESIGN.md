@@ -9902,3 +9902,33 @@ first pass at §16.19.9's own carried-forward items 1-5, 7, 8 plus the new
 items 9-12. Build does not start until round 4 passes clean or its own
 findings are fixed and re-verified.** No cells launched, no code written
 this session; `STATE.md`'s queue updated.
+
+**[ROUND-4 VERIFY PASS — DISCHARGED, 2026-07-08, recorded post-hoc by
+the coordinator (the verify agent was read-only; its verdict was
+delivered but not written into this file, and the subsequently-dispatched
+build agent CORRECTLY refused to build against the formally-undischarged
+gate above — the refusal is itself logged here as the gate working as
+designed).** A fourth independent reviewer ran the scoped verify on Rev 3
+at commit 6f72e43. VERDICT: **DESIGN-CLEARED-FOR-BUILD** — 1 MINOR, no
+MAJOR/FATAL. Per-check: (a) the 4-outcome MECE partition independently
+re-enumerated over the full (ci_low, ci_high) space — exactly-one-bucket
+totality confirmed; `contains_point`'s non-strict ≤ pins the
+endpoint-exactly-at-−0.4999 boundary to bucket (i); `det()` verified
+byte-identical vs phase2_hexachotomy.py L46-53. (b) OOD guard symmetry:
+archived secondary_ood deltas verified on disk (e.g. c=2500/K=32:
+[−0.5819, −0.5075, −0.4889]); the off-cache carries both hop-set key
+families (30 |1-2 + 30 |3-4); off_cache_key's format matches the loader
+spec; eval_query_loss_heldout confirmed a single seam (no arm param) so
+the whole-runtime guard covers both readouts by construction. (c) Leg-A
+mechanism: the val-loss band [4.2426, 4.4426] independently RE-DERIVED
+from the 3 archived per_token/wikitext rung-1 JSONs (values 4.35931,
+4.34344, 4.32495; mean 4.342568, SD 0.017197; rule mean±max(5·SD, 0.10)
+— exact match); --wave choices=['rung1'] confirmed in source (seedext
+correctly unbuilt); contention_gate verified generic +
+smoke_6_contention_gate_refusal genuinely exercises it. (d) pooled_SE
+Welch form + both chain fork names landed. The 1 MINOR — §16.19.5's
+batch-effect paragraph still cites the pre-Rev-3 '§16.19.8 item
+3/AMBIGUOUS' structure — is folded into the build-task list (fix the
+wording before implementing that gate's routing). Build-task list as
+enumerated by the reviewer is authoritative for the build-delta agent.
+Build is now licensed.**

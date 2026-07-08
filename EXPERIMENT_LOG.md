@@ -7477,3 +7477,9 @@ content found in any file this session read or wrote, and
 constraint. This is at least the 10th occurrence logged against this
 project's history combined (this file's own prior tally of 9 + this
 one).
+
+- 2026-07-08: §16.19 ROUND-4 VERIFY discharged (DESIGN-CLEARED-FOR-BUILD, 1 MINOR folded into build list; verdict recorded post-hoc in §16.19.10's closing addendum after the build agent correctly REFUSED to build against the formally-undischarged gate — the refusal is the waterfall discipline working; process lesson logged below). Build-delta re-dispatched.
+
+[LEARN] gauntlet-bookkeeping: a read-only verify/audit round's verdict must be RECORDED in the design doc (round row + gate-sentence discharge + STATE queue tick) BEFORE dispatching the next stage — downstream agents verify against the repo's source of truth, not the coordinator's context.
+Mistake: dispatched the §16.19 build-delta agent immediately after the round-4 verify returned CLEARED in-conversation; the docs still said 'round 4 pending', and the build agent (correctly) halted.
+Correction: after every audit/verify round, land a bookkeeping commit recording the verdict before dispatching the dependent stage.

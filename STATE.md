@@ -8,7 +8,7 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ## REASONING-LINK PHASE-2B SEED EXTENSION — REV 3 LANDED, MECE OUTCOME PARTITION + OOD GUARD SYMMETRY + LEG-A LAUNCH MECHANISM (2026-07-08) — supersedes the REV 2 LANDED, ARCHIVED-VALUES SOURCING PIN block's own queue status (Rev 1/Rev 2's own restructure/floor/power/cell-grid/primary-readout-sourcing content is reused and extended, not retracted — attack round 3 found a MECE gap in the decision rules, a scope gap in the archived-values guard, and an unnamed launch mechanism, none of which reopens the A-vs-B restructure or the primary-readout sourcing fix themselves); the KEYANCHOR-SCALING §15.26 block below is UNAFFECTED in its own content — the GPUs-2-7 lane note it shares with this block is now backed by a mechanical `contention_gate()`-reuse gate (§16.19.7.1, MAJOR-C below), not disclosure-only
 
-**Queue status: DESIGN (Rev 3) → (next) ATTACK ROUND 4 → BUILD-DELTA →
+**Queue status: ROUND-4 VERIFY DISCHARGED (DESIGN-CLEARED-FOR-BUILD, recorded in §16.19.10's closing addendum) → (now) BUILD-DELTA →
 AUDIT → LAUNCH (Leg-A pretraining cells on GPUs 2-7, 6-way, ≈0.76h wall,
 THEN familiarization+eval cells on GPUs 0-1, sequenced not concurrent).**
 
