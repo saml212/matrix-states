@@ -28,6 +28,31 @@
     power-law account or to fix the exact $d_{\mathrm{state}}{=}96$
     transition point --- a seed escalation at the noisiest measured group
     ($K{=}72$) is the registered next step, not yet run.
+  \item \textbf{The $d{=}96$ near-ceiling regime is itself instrument-sensitive,
+    at two independent levels, per a dedicated follow-up diagnostic.} Built
+    to test whether $K{=}84$'s own dip below $K{=}90$ is a genuine
+    non-monotonicity or an eval-time artifact of overlapping entity pools,
+    a margin-restricted re-run of $K{=}84$ and $K{=}90$ at fresh,
+    independent seeds (already-escalated $n_{\mathrm{iter}}{=}28$) landed
+    at DEGENERATE\_CELL: neither cell was admissible, so neither of the
+    diagnostic's own adjudication triggers fired. Three findings are
+    disclosed as descriptive-only: (a) $K{=}84$ now fails a DIFFERENT
+    admission leg (value-salvage $0.093{<}0.10$, otherwise-clean
+    convergence) than the original grid's failure mode (convergence
+    failing with value-salvage passing) --- the failing leg swapped; (b)
+    $K{=}90$ stays fallback-inadmissible even at $n_{\mathrm{iter}}{=}28$,
+    showing the admission frontier itself moves with $K/\dstate$ rather
+    than being fixed; (c) at this fresh seed $K{=}90$'s own $h4$ measured
+    $0.9725$, not the archived exact $1.0000$ --- that specific ceiling
+    reading did not replicate --- while $K{=}84$'s own pool-restriction
+    shift ($+0.0330$) is $\approx$12$\times$ the measured noise floor
+    ($0.0028$), consistent with a real pool-margin effect in direction even
+    though the routing correctly refuses to promote an inadmissible cell to
+    a finding. The NO-CLIFF-through-$K/\dstate{=}0.9375$ result above
+    stands (a claim about the absence of a monotonic decline, not about the
+    exact value at $K{=}90$), but its fine structure near the ceiling is
+    now known to be instrument-limited rather than settled; the escalation
+    is registered for a design-level follow-up, not yet run.
   \item \textbf{The dose-response result is rank-4-only.} A rank-4-only
     exoneration cannot distinguish ``coherence-as-a-scalar does not drive
     the cliff'' from ``coherence-of-this-particular-concentrated-structural

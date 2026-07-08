@@ -143,8 +143,10 @@
     $n{=}3$ seeds/$K$) finds NO cliff anywhere in the tested window (through
     $K/d{=}0.9375$), but the curve is non-monotonic, not flat-at-ceiling:}
     per-$K$ means $0.9592/0.9216/0.9326/0.9581/1.0000$ dip through
-    $K{=}72/78$, partially recover at $K{=}84$, and hit an exact ceiling
-    ($1.0000$, all 3 seeds) at $K{=}90$, the widest load tested. The
+    $K{=}72/78$, partially recover at $K{=}84$, and reach an apparent
+    exact ceiling ($1.0000$, all 3 archived seeds) at $K{=}90$, the widest
+    load tested --- a reading a later diagnostic (below) did not replicate
+    at a fresh, independent seed. The
     sigmoid fit is degenerate at its own parameter bounds ($x_0{=}0.9$,
     $L{=}1.2$, both pinned at their upper bound), and every one of 4,000
     bootstrap resamples lands in the same degenerate regime (100\%) ---
@@ -171,7 +173,42 @@
     entities packed into the same fixed value dimensionality reducing
     per-entity value-recovery headroom independent of key-side
     conditioning), which would require a fresh design to test, alongside
-    the structure/capacity candidates above.
+    the structure/capacity candidates above. \textbf{A dedicated
+    pool-margin diagnostic, designed to test whether $K{=}84$'s own dip
+    below $K{=}90$ reflects a genuine non-monotonicity or an eval-time
+    artifact of overlapping entity pools, instead surfaced instrument
+    sensitivity at both the admission-gate and the ceiling-measurement
+    level, and is reported in full rather than treated as a clean
+    adjudication.} Re-running $K{=}84$ and $K{=}90$ at fresh, independent
+    seeds with a margin-restricted eval variant at the already-escalated
+    $n_{\mathrm{iter}}{=}28$ admission setting returned
+    \textbf{DEGENERATE\_CELL}: neither cell landed an admissible reading,
+    so the diagnostic's own two adjudication triggers never fired. Three
+    findings are escalated as disclosed, descriptive-only observations:
+    \textbf{(a)} $K{=}84$ now fails a DIFFERENT admission leg than the
+    original grid's own failure mode --- value-salvage $0.093{<}0.10$ with
+    otherwise-clean convergence (zero fallback steps), where the original
+    $n_{\mathrm{iter}}{=}20$ population instead failed on convergence with
+    value-salvage passing ($0.102$--$0.126$); the failing leg SWAPPED, not
+    merely repeated. \textbf{(b)} $K{=}90$ remains fallback-inadmissible
+    even at $n_{\mathrm{iter}}{=}28$ --- the $n_{\mathrm{iter}}$-sufficiency
+    frontier that resolved the original 11-cell miscalibration is itself a
+    function of $K/d$, not a fixed instrument constant. \textbf{(c)} at
+    this fresh, independent seed, $K{=}90$'s own $h4$ measured $0.9725$,
+    not the exact $1.0000$ above --- the archived exact-ceiling reading did
+    NOT replicate under these conditions --- while $K{=}84$'s own
+    pool-restriction shift ($+0.0330$) is $\approx$12$\times$ the measured
+    noise floor ($0.0028$), indicating the pool-margin mechanism this
+    diagnostic targeted is real in direction (restriction RAISES $h4$)
+    even though the verdict machinery correctly refuses to promote an
+    inadmissible cell's reading to a finding. \textbf{Net:} the NO-CLIFF
+    finding through $K/d{=}0.9375$ above stands (a claim about the absence
+    of a monotonic decline in the tested window, not about the exact value
+    at any one $K$), but the $d{=}96$ near-ceiling regime's own fine
+    structure is now known to be instrument-sensitive at two independent
+    levels (the admission frontier moves with $K/d$; a real but
+    not-yet-isolated pool-margin effect) --- registered for a
+    design-level follow-up, not self-launched by this wave.
   \item \textbf{Scale-transfer to a full pretrained LLM checkpoint is now
     PARTIALLY measured, and the fix mechanism's transfer to free-running
     text is separately tested and blocked.} Wave 2 establishes the
@@ -324,14 +361,32 @@
     result (the detectable $|\Delta|$ floor, $\approx$1.5--1.7 loss units,
     is the same order of magnitude as the OFF arm's own entire 5,000-step
     familiarization effect, $\approx$1.69). The 4th contrast
-    (wikitext$\times$per\_token) is determinate and TRANSIENT:
+    (wikitext$\times$per\_token) was determinate at $n{=}3$ and TRANSIENT:
     $\Delta(K{=}32,c{=}2500){=}{-}0.4999$, 95\% CI $[-0.6241,-0.3758]$ ---
-    the arm's loss is HIGHER, not lower, than the untreated baseline at
-    that checkpoint, resolving back toward the baseline by $c{=}5000$
-    ($\Delta{=}{-}0.7949$, CI straddles zero) --- a non-durable
-    training-dynamics artifact per the pre-registered rule, and in the
-    HURTS, not helps, direction. Every determinate reading found across all
-    20 primary checkpoints was negative-direction; none was positive.
+    the arm's loss HIGHER, not lower, than the untreated baseline at that
+    checkpoint, resolving back toward the baseline by $c{=}5000$
+    ($\Delta{=}{-}0.7949$, CI straddles zero). \textbf{A dedicated
+    $3{\times}$ seed-extension wave has since tested this specific reading
+    directly, and it did NOT replicate.} Nine new, fully independent seeds
+    at the same anchor cell give mean $\Delta{=}{-}0.0746$, 95\% CI
+    $[-0.5060,+0.3569]$ --- spanning zero --- but the wave's own
+    pre-registered batch-effect gate, evaluated before any pooling,
+    flagged the two cohorts non-exchangeable (OFF-arm variance ratio
+    $4.47{>}4.0$ between the archived $n{=}3$ and the new $n{=}9$; the
+    cohort means were close and did not flag) and correctly routed the
+    combined $n{=}12$ reading OUTSIDE the pre-registered 4-outcome
+    decision partition rather than silently pooling it: the registered
+    outcome is \textbf{BATCH-EFFECT-FLAGGED}, not TRANSIENT-CONFIRMED or
+    TRANSIENT-REFUTED. As an explicitly non-decision-grade diagnostic only
+    (shown to make the gate's own bite legible, never as a competing
+    verdict), the naive $n{=}12$ pool reads mean $-0.1809$, CI
+    $[-0.5090,+0.1472]$ --- also spanning zero. Every determinate reading
+    found across all 20 primary checkpoints in the original wave was
+    negative-direction; none was positive. The gate's own trigger is
+    itself disclosed as an honest instrument finding: two independent
+    pretraining campaigns (the archived cohort and the extension cohort)
+    differ measurably in their OFF-arm evaluation variance at this cell,
+    not merely their means.
     \textbf{Because the tested intervention is the arm's entire causal
     package} (the original pretraining-era weight divergence plus the same
     frozen-bias blend continuing to fire on every familiarization step,
@@ -349,8 +404,16 @@
     still routed to PROBE-INVALID, never REFUTE, per this project's own
     standing rule; separately, the promoted vocab-space behavioral
     instrument bounds any causal effect of the arm's whole causal package
-    at under 1.5--1.7 loss units at this seed budget, with the one
-    determinate signal found being real but transient and pointed in the
-    hurts, not helps, direction. No claim about in-context reasoning,
-    positive or negative, is licensed by any of the four harvests.
+    at under 1.5--1.7 loss units at this seed budget, and the one
+    originally-determinate signal (the $n{=}3$ TRANSIENT reading) did not
+    survive a $3{\times}$ seed extension --- the extension's own
+    pre-registered safety gate correctly refused to pool it into a
+    decision-grade verdict rather than reporting a false REFUTE. The
+    keystone causal question is therefore bounded, not resolved, by FIVE
+    harvests: the reasoning-link causal effect of the arm's whole causal
+    package remains a multiply-bounded null (underpowered at $n{=}3$
+    across three contrasts; measurement-integrity-flagged, neither
+    confirmed nor refuted, at the fourth). No claim about in-context
+    reasoning, positive or negative, is licensed by any of the five
+    harvests.
 \end{enumerate}
