@@ -6499,3 +6499,32 @@ none blocking (assert-vs-python-O note consistent with house style).
 Launch licensed: K=84/s1943 calibration-first on GPU 2 per §15.26.7,
 with the box-side halves (item1-true-cuda-half via --smoke, kernel gate
 real PASS) run first per the suite's deferral list.**
+
+## §15.27 POOL-MARGIN DIAGNOSTIC — harvest, 2026-07-08: DEGENERATE_CELL
+(mechanical, pre-registered routing), with three escalated findings
+
+The two-cell diagnostic ran clean operationally (all gates live, field-diff
+MATCH both cells, calibration inside bracket, 1.0933 GPU-h realized —
+ledger 20.4599/21 = 97.43%, extension undrawn). The registered verdict is
+**DEGENERATE_CELL**: neither cell landed an admissible reading at the
+recalibrated n_iter=28, so the CEILING-IS-REAL/ARTIFACT triggers were
+never licensed to fire (§15.26.5's own degenerate row, routed before any
+bucket). Escalated findings, all descriptive-only per the routing:
+(1) **K=84/s1943 fails a DIFFERENT admission leg than the frozen cells**
+— value-salvage 0.09307 < 0.10 with CLEAN convergence (0 fallbacks); the
+frozen n_iter=20 population failed convergence with value-salvage PASSING
+(0.102-0.126). The failing leg SWAPPED — not the §15.23 C17-exclusive
+signature; a new one. (2) **K=90/s2043 stays fallback-inadmissible even
+at n_iter=28** — the C17 resolution profile (all 4,608 episodes ≤28) was
+K=84-derived; K/d=0.9375's near-miss exceeds it. The n_iter-sufficiency
+frontier moves with K/d. (3) **Descriptive readings that motivate the
+escalation**: K=90's fresh h4 = 0.9725 — the archived exact-1.0000×3
+ceiling did NOT replicate at this seed under these conditions; K=84's
+pool-restriction shift = +0.0330 vs a measured noise floor of 0.0028
+(max of two draws) — ~12× noise, i.e. the pool-margin mechanism is REAL
+in direction (restriction RAISES h4) even though the verdict machinery
+correctly refuses to promote it from an inadmissible cell.
+**Next step: the escalation is a DESIGN-LEVEL question (the admission
+instrument's n_iter/tolerance frontier vs K/d, and the value-salvage leg's
+own calibration) — registered for the PI check-in and a §15.28-class
+design round; NOT self-launched.**
