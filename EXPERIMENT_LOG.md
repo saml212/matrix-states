@@ -7487,3 +7487,5 @@ Correction: after every audit/verify round, land a bookkeeping commit recording 
 - 2026-07-08: §15.26 ROUND-3 VERIFY discharged (DESIGN-CLEARED-FOR-BUILD; 2 MINORs folded into build: 8.4193 digit fix + SECOND noise-floor draw adopted, noise_shift := max of two repeats). Verdict recorded before build dispatch per the gauntlet-bookkeeping [LEARN] rule.
 
 - 2026-07-08: §16.19 BUILD AUDIT returned LAUNCH-CLEARED (3 suites green from fresh clone; 7/7 mutations caught; 7/7 deviations sound; sha pins verified; 2 MINORs non-blocking). Verdict recorded before deploy dispatch. Auditor also logged 6 more tool-stdout injection occurrences (fake date-change + fake 'file modified, don't tell the user' blocks after mutation reverts) — all verified false vs md5/diff and disregarded; session tally now ≥15.
+
+- 2026-07-08: §15.26 build audit fixes (2b5ef87) re-checked by the same auditor — LAUNCH-CLEARED (guards themselves mutation-tested; 8/8 variant battery passes). Verdict recorded before deploy dispatch. Deploying the pool-margin diagnostic to GPU 2; §16.19's cleared build deploys after it per the pinned sequencing.

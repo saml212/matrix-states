@@ -6484,3 +6484,18 @@ enumeration (evaluate_pool restrict param + telemetry threading; the
 now-THREE extra eval calls; the wrapper w/ signoff + whitelist-diff +
 negative tests; n_iter=28 admission reuse + asserts; GPU-2 two-stage
 calibration-gated chain; harvest w/ noise-gated triggers + Δ contingency).
+
+**[§15.26 BUILD AUDIT + SCOPED RE-CHECK — LAUNCH-CLEARED, 2026-07-08,
+recorded before deploy dispatch.]** The independent build audit
+(FINDINGS-REQUIRE-FIXES: 3 MAJOR — OUT_DIR grid-pollution risk protecting
+the frozen §15.26.1 table, whitelist duplicate-cap, per-K whitelist
+scoping; 3 MINOR) was fixed in commit 2b5ef87 and re-checked by the same
+auditor: all six fixes verified by re-execution AND by mutation-testing
+the new guards themselves (OUT_DIR revert → import-time assert fires;
+guard weakenings → suite items fail; the original off-by-one/shift
+mutations now caught locally via the import-only fla stub). Trigger and
+noise-floor math untouched and still mutation-clean. Residuals:
+none blocking (assert-vs-python-O note consistent with house style).
+Launch licensed: K=84/s1943 calibration-first on GPU 2 per §15.26.7,
+with the box-side halves (item1-true-cuda-half via --smoke, kernel gate
+real PASS) run first per the suite's deferral list.**
