@@ -203,19 +203,51 @@ def _force_fallback_dump_event(rdr, device, k: int = 84, d_state: int = 96, d_mo
 
 
 # ===========================================================================
-# Item 1 -- Bitwise-identical-trajectory smoke. REAL when capable, else
-# BOX-DEFERRED (C17 build audit HIGH fix).
+# Item 1 -- Trajectory-perturbation smoke (baseline-relative RE-PIN of sec
+# 15.24.2's bitwise spec -- disclosed deviation, see docstring). REAL when
+# capable, else BOX-DEFERRED (C17 build audit HIGH fix).
 # ===========================================================================
 
 def item_1_bitwise_identical_trajectory_smoke():
+    """Sec 15.24.2's required Wave -1 smoke, RE-PINNED (disclosed deviation,
+    2026-07-07 box Stage -1 run) from strict bitwise equality to a
+    BASELINE-RELATIVE check. Why: the first real box execution FAILED the
+    bitwise form (step-50 loss 3.3978 OFF vs 3.3981 ON), and the
+    discriminating OFF-vs-OFF diagnostic (logs/c17repro_item1_off_vs_off_
+    diag.json on box; 3 dense log_every=1 runs) adjudicated branch (b):
+    two runs with the IDENTICAL flag (both OFF), identical seeds, diverge
+    from step 4 with max_abs_dev=7.5e-04 -- the repo's own already-measured
+    fixed-seed GPU run-to-run nondeterminism (KEY_ANCHORING_DESIGN.md
+    ~L1976-1994, the same F1 premise sec 15.24.4's Step -1 guard is built
+    on; no use_deterministic_algorithms pin exists anywhere in the training
+    path, by design). Bitwise equality of full 50-step trajectories is
+    therefore UNSATISFIABLE on this hardware for ANY flag, so it cannot be
+    the test of whether the telemetry flag perturbs training. Causal
+    cross-check (code-level): c17_repro_telemetry's only effects inside
+    evaluate_pool() are .detach().cpu() reads of already-computed tensors
+    (run_deltanet_rd.py:392-393/473-482) -- it never consumes RNG and never
+    mutates the model -- and the fixture's ONLY checkpoint eval fires at
+    step 50 AFTER the step-50 loss is logged, so the observed step-50
+    divergence had no causal path from the flag even in principle.
+
+    Re-pinned criterion: OFF is run TWICE (measuring this hardware's own
+    same-flag nondeterminism envelope on the identical fixture) + ON once,
+    all at log_every=1 (dense, 50 points -- the original 2-point
+    log_every=50 form couldn't even localize a divergence). PASS iff
+    max-abs OFF-vs-ON loss deviation <= 3x the OFF-vs-OFF envelope (3x =
+    registered slack for the envelope being a 1-sample estimate). If the
+    envelope is EXACTLY 0 (deterministic hardware), the criterion reduces
+    to the original bitwise spec -- i.e. this is a strict generalization,
+    not a weakening on hardware that can support the original."""
     rdr = _try_import_run_deltanet_rd()
     if rdr is None:
-        _defer("item 1: bitwise-identical-trajectory smoke",
+        _defer("item 1: trajectory-perturbation smoke (baseline-relative re-pin)",
                "run_deltanet_rd.py's train() needs `model_rd` (imports "
                "`fla.modules.ShortConvolution` at module scope, CUDA-oriented) to even import -- "
-               "genuinely box-only. Box-side requirement: a 50-step, fixed-seed mini run TWICE "
-               "(--c17-repro-telemetry ON vs OFF, otherwise identical), assert bitwise-identical "
-               "trajectory/loss curve (sec 15.24.2's own required Wave -1 smoke).")
+               "genuinely box-only. Box-side requirement: a 50-step, fixed-seed mini run THREE "
+               "times (--c17-repro-telemetry OFF/OFF/ON, otherwise identical, log_every=1); "
+               "assert the max-abs OFF-vs-ON loss deviation <= 3x the OFF-vs-OFF (same-flag "
+               "nondeterminism) envelope; envelope 0 -> the original bitwise spec.")
         return
     assert torch.cuda.is_available(), "DeltaNet-RD requires CUDA (chunk_delta_rule has no CPU path)"
     device = "cuda"
@@ -229,16 +261,32 @@ def item_1_bitwise_identical_trajectory_smoke():
         model = rdr.DeltaNetRDBlock(pools.vocab_size_total, d_model=64, d_state=64,
                                      conv_size=cfg.conv_size, buffer_id=pools.buffer_id,
                                      geo3_active=True, geo3_n_iter=12, geo3_resid_tol=1e-2).to(device)
-        return rdr.train(model, cfg, pools, pool_report, device, d_model=64, d_state=64,
-                          steps=50, batch_size=16, seed=42, log_every=50, ckpt_every=50,
-                          c17_repro_telemetry=telemetry)
+        res = rdr.train(model, cfg, pools, pool_report, device, d_model=64, d_state=64,
+                         steps=50, batch_size=16, seed=42, log_every=1, ckpt_every=50,
+                         c17_repro_telemetry=telemetry)
+        return [t["loss"] for t in res["trajectory"]]
 
-    losses_off = [t["loss"] for t in _run(False)["trajectory"]]
-    losses_on = [t["loss"] for t in _run(True)["trajectory"]]
-    ok = losses_off == losses_on
-    _report("item 1: bitwise-identical-trajectory smoke (--c17-repro-telemetry OFF vs ON, "
-            "50-step fixed-seed run, sec 15.24.2's own required Wave -1 smoke)", ok,
-            f"n_steps_logged={len(losses_off)} identical={ok}")
+    off1 = _run(False)
+    off2 = _run(False)
+    on1 = _run(True)
+
+    def _max_abs_dev(a, b):
+        assert len(a) == len(b), f"trajectory length mismatch: {len(a)} vs {len(b)}"
+        return max((abs(x - y) for x, y in zip(a, b)), default=0.0)
+
+    env = _max_abs_dev(off1, off2)
+    dev_on = max(_max_abs_dev(off1, on1), _max_abs_dev(off2, on1))
+    if env == 0.0:
+        ok = dev_on == 0.0     # deterministic hardware -> the original bitwise spec applies
+    else:
+        ok = dev_on <= 3.0 * env
+    _report("item 1: trajectory-perturbation smoke (--c17-repro-telemetry OFF/OFF/ON, 50-step "
+            "fixed-seed dense-logged runs; baseline-relative re-pin of sec 15.24.2's Wave -1 "
+            "smoke -- OFF-vs-ON deviation must sit within 3x the same-flag OFF-vs-OFF "
+            "nondeterminism envelope; envelope 0 -> bitwise)", ok,
+            f"n_steps_logged={len(off1)} off_vs_off_envelope={env:.3e} "
+            f"max_off_vs_on_dev={dev_on:.3e} threshold={(3.0 * env):.3e} "
+            f"bitwise_mode={env == 0.0}")
 
 
 # ===========================================================================
@@ -674,13 +722,50 @@ def item_5_sha256_config_cross_check():
             "ONLY seed-derived tokens differ", diff_ok,
             f"normalized command lists equal: {diff_ok}")
 
-    _defer("item 5 (BOX HALF): sha256/config cross-check vs the REAL archived JSON",
-           "the archived K84/seed=1940 result JSON (its own exactness_config block) lives on "
-           "the H100 box, not in this checkout. Box-side requirement: diff build_cmd()'s "
-           "architecture-relevant fields (K, d_state, seed, geo3_n_iter, geo3_resid_tol, "
-           "anchor_active, anchor_lambda_mode, drift_probe, H_extra) against that JSON's own "
-           "exactness_config block, by hand, recorded in the launch log.",
-           gated=False)   # blocker is a missing ARTIFACT, not CUDA/fla -- never gated (see GATED_ITEM_LABELS)
+    # BOX HALF (deploy-session fix, 2026-07-07: was an unconditional _defer even ON the box,
+    # written from the dev machine's perspective -- the same only-branch-is-defer pattern the
+    # build audit's HIGH finding already killed for items 1/2/3/4/9; the artifact-presence probe
+    # below is this item's own capability probe): mechanically cross-check build_cmd()/spec
+    # fields against the REAL archived K84/seed=1940 result JSON's own recorded config, when
+    # that artifact exists at its registered path (HERE-relative, cwd-independent).
+    archived_json = os.path.join(HERE, "results", "deltanet_rd_exactness",
+                                  "wavekeyanchor-scaling-wide", f"{spec['name']}.json")
+    if not os.path.exists(archived_json):
+        _defer("item 5 (BOX HALF): config cross-check vs the REAL archived JSON",
+               f"the archived K84/seed=1940 result JSON ({spec['name']}.json, its own "
+               "exactness_config block) lives on the H100 box, not in this checkout. Box-side "
+               "requirement: this same item re-runs there and mechanically diffs the spec's "
+               "architecture-relevant fields (K, d_state, seed, steps, geo3_n_iter, "
+               "geo3_resid_tol, anchor_active, anchor_lambda_mode, drift_probe, "
+               "rev7_engagement, H_extra) against that JSON's own recorded config.",
+               gated=False)   # blocker is a missing ARTIFACT, not CUDA/fla -- never gated (see GATED_ITEM_LABELS)
+        return
+    with open(archived_json) as f:
+        arch = json.load(f)
+    xc = arch["exactness_config"]
+    checks = {
+        "K": (arch["K"], spec["K"]),
+        "seed": (arch["seed"], spec["seed"]),
+        "d_state": (arch["d_state"], spec["d_state"]),
+        "steps": (arch["steps"], spec["steps"]),
+        # run_deltanet_rd.py's own --h-extra CLI default (7,21) is what a spec with
+        # h_extra=None launches with -- the same defaulting build_cmd() itself relies on.
+        "H_extra": (tuple(arch["H_extra"]),
+                     tuple(spec["h_extra"]) if spec.get("h_extra") is not None else (7, 21)),
+        "geo3_active": (xc["geo3_active"], spec["geo3_active"]),
+        "geo3_n_iter": (xc["geo3_n_iter"], spec["geo3_n_iter"]),
+        "geo3_resid_tol": (xc["geo3_resid_tol"], spec["geo3_resid_tol"]),
+        "anchor_active": (xc["anchor_active"], spec["anchor_active"]),
+        "anchor_lambda_mode": (xc["anchor_lambda_mode"], spec["anchor_lambda_mode"]),
+        "drift_probe": (xc["drift_probe"], spec["drift_probe"]),
+        "rev7_engagement": (xc["rev7_engagement"], spec["rev7_engagement"]),
+    }
+    mismatches = {k: v for k, v in (checks.items()) if v[0] != v[1]}
+    _report("item 5 (BOX HALF): mechanical config cross-check -- the spec this chain launches "
+            "from matches the REAL archived K84/seed=1940 JSON's own recorded "
+            "config/exactness_config field-for-field", not mismatches,
+            f"archived={os.path.basename(archived_json)} n_fields={len(checks)} "
+            f"mismatches={mismatches}")
 
 
 # ===========================================================================

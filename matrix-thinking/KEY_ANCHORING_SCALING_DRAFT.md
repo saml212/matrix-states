@@ -3635,6 +3635,24 @@ consumes from `gen`/`eval_gen`/any model-internal generator, so it MUST
 NOT perturb the training path; this smoke proves it, not merely asserts
 it by construction.
 
+    **[Deploy-session build note (2026-07-07, disclosed deviation — Stage −1
+    item 1 re-pin):** the bitwise form of this smoke FAILED its first real
+    box execution, and the discriminating OFF-vs-OFF diagnostic
+    (`logs/c17repro_item1_off_vs_off_diag.json` on box, three dense
+    `log_every=1` runs) adjudicated the cause as same-flag fixed-seed GPU
+    run-to-run nondeterminism (OFF-vs-OFF max-abs loss dev 7.5e-04 from
+    step 4 — the SAME already-measured phenomenon `KEY_ANCHORING_DESIGN.md`
+    ~L1976–1994 documents and §15.24.4's own Step −1/F1 premise is built
+    on), NOT a telemetry perturbation (OFF-vs-ON devs 7.3e-04/6.0e-04, both
+    inside the OFF-vs-OFF envelope; code-level causal cross-check: the
+    fixture's only telemetry-affected code path runs AFTER the step-50 loss
+    is logged). Item 1 is re-pinned baseline-relative: OFF×2 (envelope) +
+    ON×1, PASS iff max-abs OFF-vs-ON dev ≤ 3× the OFF-vs-OFF envelope, with
+    envelope = 0 reducing to the original bitwise spec (a strict
+    generalization on deterministic hardware). The intent of the registered
+    test — "the flag must not perturb the training path" — is unchanged;
+    only the satisfiable form of the assertion is.]**
+
 **Required negative test, TF32-recording (Rev 1, attack-round-1 MAJOR M1
 fix):** launch the same short smoke twice, once with
 `torch.backends.cuda.matmul.allow_tf32` explicitly forced `True` before

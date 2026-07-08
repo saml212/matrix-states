@@ -6,8 +6,8 @@
   "n_box_deferred": 6,
   "box_deferred": [
     {
-      "item": "item 1: bitwise-identical-trajectory smoke",
-      "requirement": "run_deltanet_rd.py's train() needs `model_rd` (imports `fla.modules.ShortConvolution` at module scope, CUDA-oriented) to even import -- genuinely box-only. Box-side requirement: a 50-step, fixed-seed mini run TWICE (--c17-repro-telemetry ON vs OFF, otherwise identical), assert bitwise-identical trajectory/loss curve (sec 15.24.2's own required Wave -1 smoke).",
+      "item": "item 1: trajectory-perturbation smoke (baseline-relative re-pin)",
+      "requirement": "run_deltanet_rd.py's train() needs `model_rd` (imports `fla.modules.ShortConvolution` at module scope, CUDA-oriented) to even import -- genuinely box-only. Box-side requirement: a 50-step, fixed-seed mini run THREE times (--c17-repro-telemetry OFF/OFF/ON, otherwise identical, log_every=1); assert the max-abs OFF-vs-ON loss deviation <= 3x the OFF-vs-OFF (same-flag nondeterminism) envelope; envelope 0 -> the original bitwise spec.",
       "gated": true
     },
     {
@@ -26,8 +26,8 @@
       "gated": true
     },
     {
-      "item": "item 5 (BOX HALF): sha256/config cross-check vs the REAL archived JSON",
-      "requirement": "the archived K84/seed=1940 result JSON (its own exactness_config block) lives on the H100 box, not in this checkout. Box-side requirement: diff build_cmd()'s architecture-relevant fields (K, d_state, seed, geo3_n_iter, geo3_resid_tol, anchor_active, anchor_lambda_mode, drift_probe, H_extra) against that JSON's own exactness_config block, by hand, recorded in the launch log.",
+      "item": "item 5 (BOX HALF): config cross-check vs the REAL archived JSON",
+      "requirement": "the archived K84/seed=1940 result JSON (wkeyanchor-scaling_rdx_K84_armd_s1940_geo3n20_anchor_learned_dprobe_rev7_d96.json, its own exactness_config block) lives on the H100 box, not in this checkout. Box-side requirement: this same item re-runs there and mechanically diffs the spec's architecture-relevant fields (K, d_state, seed, steps, geo3_n_iter, geo3_resid_tol, anchor_active, anchor_lambda_mode, drift_probe, rev7_engagement, H_extra) against that JSON's own recorded config.",
       "gated": false
     },
     {
@@ -39,7 +39,7 @@
   "capable": false,
   "capability_gate_failed": false,
   "still_deferred_gated": [
-    "item 1: bitwise-identical-trajectory smoke",
+    "item 1: trajectory-perturbation smoke (baseline-relative re-pin)",
     "item 2: dump-fires-exactly-at-fallback smoke",
     "item 3: tensor-shape assertions",
     "item 4: determinism cross-check, per-launch",
