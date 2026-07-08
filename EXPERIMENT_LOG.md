@@ -6212,6 +6212,16 @@ during run (not caused by it): `phase2_familiarization` self-terminated at
 01:45 UTC with its own `STAGE05_LAUNCH_GATE_REFUSED` sentinel — GPUs 0-1
 idle after; flagged to coordinator, out of this task's scope.
 
+**Running-total correction (2026-07-11, folded in by §15.24 Rev 4
+MAJOR-2 — attack round 4 found this cell's own 0.427 GPU-h had never been
+folded into the KEY_ANCHORING_SCALING sub-ledger anywhere it is quoted):**
+this cell's realized cost updates the sub-ledger to **11.7865 (§15.19) +
+6.3331 (§15.22 wide-grid harvest) + 0.427 (this cell) = 18.5466/26 GPU-h
+realized** — the correct running total as of this entry, superseding the
+`18.1196/26` figure the wide-grid-wave harvest entry above states (that
+entry's own 6.3331 figure never included this standalone cell, run
+separately afterward).
+
 ---
 
 ## REASONING-LINK PHASE-2B VOCAB-SPACE CONTRAST — DESIGN (2026-07-10): Rev 0, pre-attack, DESIGN-ONLY, zero GPU spent — promotes §16.15.5's own first registered option to a full design
@@ -6287,5 +6297,49 @@ design, all worked arithmetic, and a 5-question self-attack list:
 `REASONING_LINK_DESIGN.md` §16.16. Awaits an independent attack round
 before build. No cells launched, no code written this session; STATE.md's
 queue updated.
+
+---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 4 (2026-07-11): attack-round-4
+landed, NEEDS-REVISION (0 FATAL, 2 MAJOR, 1 MINOR), all fixed, zero GPU
+spent — a fourth independent adversarial pass reviewed §15.24 (Rev 3)
+before any GPU work launched; the narrowest, most surgical finding set of
+the four rounds so far, and the first with zero FATALs. MAJOR-1 (highest
+value): the offline analysis must reconstruct
+`pools.heldout_name_ids`/`pools.train_name_ids` to evaluate Step 0b at
+all, but nothing pinned HOW — `build_entity_pools` takes `seed` as an
+argument, and the training path's own caller
+(`run_deltanet_rd.py:1470`) calls it with a HARDCODED `seed=0`, decoupled
+from the training `--seed` Rev 3 made a load-bearing per-event field. A
+builder naively threading the launch seed (1940) into `build_entity_pools`
+would reconstruct the WRONG train/held-out partition, firing a total,
+confidently wrong INSTRUMENT-BUG verdict on healthy code. Fixed by pinning
+offline reconstruction to the literal hardcoded call
+`grd.build_entity_pools(tokenizer, heldout_frac=0.5, seed=0)` — verified
+this cell's own launch never overrides `--heldout-frac` — NEVER the
+launch seed, plus a new prerequisite gate: assert the reconstructed
+`pools.train_name_ids` is SET-EQUAL to the checkpoint's own archived
+`anchor_train_ids` tensor (`run_deltanet_rd.py:934–936`, already logged at
+every checkpoint, zero new cost) before Step 0b runs at all; mismatch →
+hard-abort, no verdict (a new RECONSTRUCTION-FAILURE state). Also verified
+and one-line-noted: the C17 sampler's own heldout-exclusivity invariant is
+independently structural (`grammar_rd.py:194–253` non-overlapping
+shuffled-list slices with globally-unique ids; `grammar_rd.py:423,434–436`
+single-pool draw per episode). MAJOR-2: the KEY_ANCHORING_SCALING ledger
+baseline (18.1196/26) omitted the K=69/seed=1733 contingency cell's own
+realized 0.427 GPU-h (§15.22 addendum, landed 2026-07-08) — corrected to
+**18.5466/26 GPU-h realized**; every downstream figure re-derived, worst
+case now 20.3466/21 = 96.89%, reserve 0.6534 GPU-h (down from the
+previously-claimed 1.0804, a ~40% tightening — the conclusion survives,
+the margin does not). Folded into this log's own running-total convention
+(see the K=69/s1733 entry above) and into `STATE.md`. MINOR-1: added the
+minimal-boundary Stage −1 fixture 0b's own prose already promised but no
+fixture exercised — a SINGLE-EVENT sink with exactly 1 pool-mismatch
+violation, asserting INSTRUMENT-BUG fires before Step −1's own `<3`-event
+gate would even run. Full finding→fix table (house style):
+`KEY_ANCHORING_SCALING_DRAFT.md` §15.24.13. Rev 4 has NOT yet had its own
+verification pass — next step is round 5, a VERIFY pass confirming these
+three fixes land clean (not a fresh full attack round), before build. No
+cells launched, no code built this session; STATE.md's queue updated.
 
 ---

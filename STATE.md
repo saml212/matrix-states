@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-10
+**Last updated:** 2026-07-11
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -66,6 +66,53 @@ without selecting one: a vocab-space behavioral-contrast instrument
 promoted to primary; lane closure with the triple null as the
 publishable finding; or a recipe-extension calibration run). Not
 self-launched by this harvest.
+
+---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 4 LANDED (2026-07-11) —
+supersedes the REV 3 LANDED block below's own queue status (that block's
+Rev 3 content is otherwise unaffected/unretracted; Rev 4 fixes it, not
+replaces it)
+
+**Queue status: DESIGN (Rev 4) → (next) ROUND 5 VERIFY PASS → BUILD →
+AUDIT → LAUNCH.** `KEY_ANCHORING_SCALING_DRAFT.md` §15.24's independent
+attack-round-4 verdict: **NEEDS-REVISION** — 0 FATAL, 2 MAJOR, 1 MINOR —
+the narrowest, most surgical finding set of the four rounds so far, and
+the first with zero FATALs. All three fixed in Rev 4, finding→fix table
+at §15.24.13. **MAJOR-1 (highest value):** the offline analysis must
+reconstruct `pools.heldout_name_ids`/`pools.train_name_ids` to evaluate
+Step 0b at all, but nothing pinned HOW — the training path's own caller
+(`run_deltanet_rd.py:1470`) builds these pools with a HARDCODED `seed=0`,
+decoupled from the training `--seed` Rev 3 made a load-bearing per-event
+field. A builder naively threading the launch seed (1940) into the
+offline reconstruction would silently draw the WRONG train/held-out
+partition, firing a total, confidently wrong INSTRUMENT-BUG verdict on
+otherwise-healthy code — the "two seeds" trap. Fixed by pinning offline
+reconstruction to the literal hardcoded call
+`grd.build_entity_pools(tokenizer, heldout_frac=0.5, seed=0)`, NEVER the
+launch seed, plus a new prerequisite gate ahead of Step 0b itself: assert
+the reconstructed `train_name_ids` is SET-EQUAL to the checkpoint's own
+already-archived `anchor_train_ids` tensor (`run_deltanet_rd.py:934–936`,
+zero new telemetry cost); mismatch → hard-abort before any verdict (a new
+RECONSTRUCTION-FAILURE state, distinct from INSTRUMENT-BUG). **MAJOR-2:**
+the KEY_ANCHORING_SCALING ledger baseline (previously stated as
+`18.1196/26`) omitted the K=69/seed=1733 contingency cell's own realized
+0.427 GPU-h (§15.22 addendum, landed 2026-07-08) — corrected to
+**`18.5466/26` GPU-h realized**; every downstream figure re-derived, worst
+case (2× + NO-REPRO contingency) now `20.3466/21 = 96.89%`, reserve
+**0.6534 GPU-h** against the ORIGINAL ceiling (down from the
+previously-claimed 1.0804 — a ~40% tightening of the reserve; the
+conclusion this design fits without the `+5.0 GPU-h` extension survives
+unchanged, the margin backing it does not). Folded into
+`EXPERIMENT_LOG.md`'s running-total convention and into this file (see the
+correction note on the wide-grid-wave harvest block below). **MINOR-1:**
+new dedicated Stage −1 fixture for the minimal boundary case 0b's own
+prose already names but no fixture yet exercised — a SINGLE-EVENT sink
+with exactly 1 pool-mismatch violation, asserting INSTRUMENT-BUG fires
+BEFORE Step −1's own `<3`-event gate would even run. **Rev 4 has NOT yet
+had its own verification pass — round 5, a VERIFY pass confirming these
+three fixes land clean (not a fresh full attack round), is next.** No
+cells launched, no code built this session.
 
 ---
 
@@ -338,6 +385,20 @@ bracket.** KEY_ANCHORING_SCALING sub-ledger: 11.7865 (§15.19) + 6.3331
 inside the ORIGINAL ceiling; the `+5.0 GPU-h` extension token
 (`KEYANCHOR_SCALING_EXT_PI_SIGNOFF`) was authorized and its gate fired
 correctly but was never actually drawn on.
+
+**LEDGER CORRECTED 2026-07-11 (§15.24 Rev 4 MAJOR-2, C17 attack round
+4):** the `18.1196/21` figure above never included the K=69/seed=1733
+contingency cell's own realized 0.427 GPU-h (fired standalone, AFTER this
+wave, `wall_s=1535.2s`, §15.22 addendum — see the "KEY-ANCHORING K=69/d=96
+CONTINGENCY SEED 1733" block below). **Corrected running total: 11.7865 +
+6.3331 + 0.427 = 18.5466/21 GPU-h realized, reserve 2.4534/21** — this
+wave's own 6.3331 figure and this block's other findings are otherwise
+unaffected/unretracted; only the running-total figure was stale. Every
+`18.1196`/`19.0196`/`19.9196`-derived figure elsewhere in this file's
+history predates this correction and is left verbatim per house style
+(the historical record of what was believed at each point in time); the
+CURRENT figure is `18.5466/21`, per `KEY_ANCHORING_SCALING_DRAFT.md`
+§15.24.7.
 
 Full verdict, 19-cell verification table, root-cause derivation, local
 re-fits, and the mechanical 6-row decision-rule walk:
