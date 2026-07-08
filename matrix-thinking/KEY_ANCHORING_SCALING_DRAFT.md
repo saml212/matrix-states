@@ -2924,4 +2924,280 @@ per-cell verification table script and its output). SSD mirror, full
 superset, same tree: `/Volumes/1TB_SSD/learned-representations/
 experiment-runs/2026-07-07_keyanchor_scaling_wide/`.
 
+## §15.23 DIAGNOSTIC — the Newton-Schulz eval-admission failure, 2026-07-08:
+MISDIAGNOSED-ARTIFACT (a new, disclosed extension to the pre-registered
+NS-ITER-FIX-CONFIRMED / STRUCTURAL-ILL-CONDITIONING / MIXED taxonomy) —
+§15.22's own "confined to the LEARNED anchor table" mechanistic claim is
+WRONG at the mechanism level; the failure is 100% `C17_heldout_entities`-
+exclusive, a pool that is architecturally anchor-bypassed by construction,
+so testing/fixing the anchor table (this section's own pre-registered ask)
+cannot explain or repair the observed admissibility collapse
+
+**Hypothesis (pre-stated, this diagnostic's own charter):** NS at
+`n_iter=20` under-converges on the LEARNED/drifted anchor tables at high
+K/d; `n_iter∈{24,28,32}` restores convergence and flips admission on the
+SAME tables. **Falsifier:** if rel-change/admission does not improve
+monotonically with `n_iter` on the real learned tables, the failure is
+structural, not iteration count.
+
+**Method:** `matrix-thinking/deltanet_rd/diag_ns_admission.py` (new,
+archived at `experiment-runs/2026-07-08_ns_admission_diag/scripts/`), run
+CPU-only, zero GPU-h (imports `key_anchoring.py`/`geo3_simulator.py`
+directly — both explicitly fla-free per `key_anchoring.py`'s own header,
+lines 1–33 — never a hand-copied twin). Three steps, in order:
+
+1. **`mechanism_breakdown()`** — reads every one of the 16 new + 3 reused
+   d=96-wide cell JSONs directly (no checkpoint needed) and, per
+   checkpoint, records WHICH of the four recovery-probe pools
+   (`M2_in_distribution`, `M3_held_out`, `C17_heldout_entities`,
+   `C19_heldout_template`) raised `geo3_fallback_triggered_this_hop=True`
+   at any hop.
+2. **`anchor_table_ns_sweep()`** — THE PRE-REGISTERED CHECK. Pulls the
+   final (`step20000.pt`) checkpoint's `anchor_table_trained_rows`
+   `(107, 96)` block for one failing cell per K∈{78,84,90}, the one
+   failing K=72 seed, and a passing-cell control (K=69 AND the good K=72
+   seed — both pulled, no reason not to at 44KB/file), draws 512 random
+   K-row subsets (seeded, SAME subsets reused across every `n_iter` for a
+   clean per-subset comparison), runs `geo3_simulator.newton_schulz`
+   (`key_anchoring.py`'s own documented production-equivalent, lines
+   19–33: "mathematically IDENTICAL... cross-verified to
+   convergence-precision agreement across every attack round on this
+   design") at `n_iter∈{20,24,28,32,40}`, and reports per-`n_iter`
+   admissibility (`n_fallback==0`, `resid_tol=0.01`, exactly
+   `key_anchoring.GATE2_RESID_TOL`) plus each subset's pre-NS Gram-matrix
+   condition number (largest/smallest eigenvalue of the row-normalized
+   K×K Gram — the quantity that actually governs whether ANY
+   orthogonalizer, at ANY `n_iter`, can drive the subset to `I_K`).
+   `raw_table_conditioning` (6a/6b) is also run on the full 107-row table
+   as an integrity cross-check against each cell's own already-logged
+   `checkpoints[-1]['item6_table_conditioning']`.
+3. **`random_proxy_sweep()`** — EXPLORATORY ONLY. Runs the identical
+   sweep on `key_anchoring.random_unit_rows_init` draws (the codebase's
+   own "candidate (e), frozen-random-table" construction — seeded random
+   unit rows, explicitly NOT frame-potential-optimized) at `n=106`
+   (`pool_report.n_heldout_names`, every cell this wave) and each cell's
+   own `(K, d_state=96)`, as an architecturally-motivated stand-in for
+   "a K-set that never received the anchor's own engineering" — flagged
+   throughout as NOT a reproduction of the real failing object (see
+   headline finding below for why the real object could not be
+   reconstructed this session).
+
+**Checkpoints pulled (READ ONLY, `scp` from
+`/data/deltanet_rd_keyanchor_ckpts/` on `youthful-indigo-turkey`, GPUs
+idle throughout, no tmux touched, no training launched):**
+
+| Cell | K | seed | admissible | role |
+|---|---|---|---|---|
+| K78/s1840 | 78 | 1840 | False | failing |
+| K84/s1940 | 84 | 1940 | False | failing |
+| K90/s2040 | 90 | 2040 | False | failing |
+| K72/s1742 | 72 | 1742 | False | failing (K=72 representative) |
+| K69/s1731 | 69 | 1731 | True | passing control |
+| K72/s1741 | 72 | 1741 | True | passing control |
+
+**DISCREPANCY, disclosed prominently:** the task brief's own choice of
+"the one failing K=72 seed" (s1740, the first-launched K=72 cell) has
+**zero checkpoints on box** — its own JSON's `ckpt_written` field is
+`null`/absent (`n_ckpts=0`), while both K=72/s1741 (passing) and
+K=72/s1742 (failing) DO have full 10-checkpoint trees. Not a pull
+failure — confirmed by `find` returning zero hits for `*s1740*` anywhere
+under `/data/deltanet_rd_keyanchor_ckpts/`, and the local archived
+`wkeyanchor-scaling_rdx_K72_armd_s1740_...json`'s own `ckpt_written` is
+already empty. Root cause not further chased (out of this diagnostic's
+scope — does not affect the verdict, since s1742 is an equally-valid
+same-K failing representative and both are used); registered as a loose
+end for whoever next touches `--ckpt-dir` wiring in the wide-grid launch
+scripts.
+
+### HEADLINE FINDING — the failure is C17-exclusive and architecturally
+anchor-bypassed, discovered BEFORE any NS sweep was run
+
+`mechanism_breakdown()`, applied to all 12 originally-failing cells
+(the 11 new d=96-wide inadmissible cells + the K=69/seed=1730 first-hint
+anomaly §15.19/§15.22 already flagged): **every single
+`geo3_fallback_triggered_this_hop=True` event, at every checkpoint, in
+every cell, occurs in `C17_heldout_entities` and NEVER in
+`M2_in_distribution`, `M3_held_out`, or `C19_heldout_template`.**
+
+| Cell | First fallback step | Pool(s) hit (ever) |
+|---|---|---|
+| K69/s1730 | 20000 | C17 only |
+| K72/s1740 | 20000 | C17 only |
+| K72/s1742 | 20000 | C17 only |
+| K78/s1840 | 20000 | C17 only |
+| K78/s1841 | 18000 | C17 only |
+| K78/s1842 | 18000 | C17 only |
+| K84/s1940 | 16000 | C17 only |
+| K84/s1941 | 16000 | C17 only |
+| K84/s1942 | 16000 | C17 only |
+| K90/s2040 | 2000 | C17 only |
+| K90/s2041 | 2000 | C17 only |
+| K90/s2042 | 2000 | C17 only |
+
+Cross-checked directly against `compute_geo3_admission`
+(`run_deltanet_rd.py:520–575`): `ns_converged_no_fallback =
+(n_geo3_fallback_train_steps==0) and not checkpoint_fallback_seen` is the
+ONLY one of the four admissibility legs (`value_salvage_tier_pass`,
+`ns_converged_no_fallback`, `finite_loss_no_divergence`,
+`task_performance_floor_pass`) that reads `False` in any of the 12 cells
+— verified directly on every cell's own `geo3_admission` block, all three
+other legs read `True` everywhere. **`checkpoint_fallback_seen`, driven
+100% by C17, is the sole and complete cause of every inadmissible cell in
+this wave.**
+
+**Why this matters, mechanistically (verified by reading the exact code
+path, not inferred):** `run_deltanet_rd.py`'s own module docstring
+(line 13) names `C17_heldout_entities` as drawing from a **"disjoint name
+pool"** relative to the trained-entity pool. `model_rd.py:925`
+constructs `anchor_trained_mask` EXCLUSIVELY from `anchor_train_ids =
+pools.train_name_ids` (`trained_mask[anchor_train_ids] = True`, every
+other row False) — and this is a HARD invariant, not a soft convention:
+`model_rd.py:2048` asserts `anchor_table.weight.grad` is EXACTLY zero at
+every non-trained row, checked in this codebase's own unit tests.
+`anchor_blend_gather_scatter` (`key_anchoring.py:439–469`) computes
+`trained_here = anchor_trained_mask[key_ids]` and blends the anchor table
+in ONLY where `trained_here` is True (`t_idx`); for C17 batches
+`key_ids` are drawn from the disjoint held-out pool, so `trained_here` is
+False for 100% of C17's K bind items, by construction — `k_blend_raw`
+(the tensor fed to Newton-Schulz) is therefore architecturally IDENTICAL
+to `k_eff_raw`, the model's own raw post-conv keys, for every single C17
+query. **`anchor_table.weight`'s own content — its conditioning, its
+drift, its `n_iter`-sufficiency at any n_iter — cannot be an input to
+a computation it never participates in.** This directly and specifically
+falsifies §15.22's own "confined to Newton-Schulz convergence on
+EVAL-time recovery-probe queries against the FINAL, fully-learned anchor
+table" mechanistic claim (§15.22, "Mechanistic root cause..." paragraph)
+— that claim is now known to be wrong, not merely underspecified: the
+one pool that ever fails is precisely the one pool structurally
+guaranteed to never touch the object that claim names.
+
+### Step 2 result — the pre-registered check, run anyway (as the task
+asked), returns an unambiguous, doubly-negative answer
+
+Every one of the 6 pulled tables — the 4 FAILING cells' own
+post-training anchor tables AND the 2 PASSING controls' — is **100%
+admissible at `n_iter=20` already**, with enormous margin:
+
+| Table | K | role | `n_iter=20` max resid | `n_iter=40` max resid | subset cond # (mean / max) | 6a `sigma_ratio` (full table) |
+|---|---|---|---|---|---|---|
+| K78/s1840 | 78 | FAILING | 1.42e-06 | 1.29e-06 | 75.5 / 177 | 0.0330 (FAIL, <0.1) |
+| K84/s1940 | 84 | FAILING | 1.47e-06 | 1.36e-06 | 78.0 / 213 | 0.1229 (pass) |
+| K90/s2040 | 90 | FAILING | 1.56e-06 | 1.43e-06 | 199.1 / 1169 | 0.2929 (pass) |
+| K72/s1742 | 72 | FAILING | 1.31e-06 | 1.20e-06 | 28.7 / 60 | 0.0909 (FAIL, <0.1) |
+| K69/s1731 | 69 | PASSING | 1.31e-06 | 1.27e-06 | 24.9 / 44 | 0.0528 (FAIL, <0.1) |
+| K72/s1741 | 72 | PASSING | 1.28e-06 | 1.19e-06 | 49.1 / 105 | 0.0690 (FAIL, <0.1) |
+
+(`resid_tol=0.01` — every measured residual sits **~7,000×–8,000× below**
+the admission threshold, at `n_iter=20`, already. `n_fallback=0/512`
+subsets at every `n_iter` tested, every table, no exception.) The 6a
+`sigma_ratio` leg (raw, un-normalized 107-row table) fails its own `≥0.1`
+bar at 4 of 6 tables — including BOTH passing controls — confirming this
+is an expected, benign property of a trained anchor table under this
+design (sec 3.1's own 6a rewrite note already flags 6a as measuring
+something orthogonal to NS admission) and not itself predictive of
+`checkpoint_fallback_seen` in either direction. The per-cell
+`item6_table_conditioning` values logged in each cell's own JSON at
+`checkpoints[-1]` match this diagnostic's independently-recomputed 6a/6b
+to 6+ decimal places at every table (e.g. K78/s1840: JSON `sigma_ratio=
+0.032989490777254105` vs. this script's `0.032989565283060074`,
+JSON `max_abs_cos=0.37628111243247986` vs. this script's exact match) —
+confirms the pulled checkpoints and the extraction path are correct, not
+a silent corruption.
+
+**Falsifier evaluation:** the falsifier as literally written ("does
+rel-change/admission improve monotonically with n_iter") cannot even be
+exercised — there is no room to improve, because admission was never
+failing in the FIRST tested `n_iter` (20) for ANY of the 6 real tables.
+This is a STRONGER disconfirmation of the pre-registered hypothesis than
+the falsifier anticipated: not "iteration count doesn't help an existing
+problem" (which would look like `STRUCTURAL-ILL-CONDITIONING`, high
+residuals stuck at a floor across n_iter) but "there was never a
+numerically-observable problem in the tested object at all." No
+difference is detectable between the FAILING cells' own tables and the
+PASSING controls' — residuals, cond numbers, and admissibility are
+statistically indistinguishable between the two groups.
+
+### Step 3 (exploratory) — even un-engineered random draws don't fail at
+these (K, d=96) shapes
+
+`random_unit_rows_init` draws (n=106, no frame-potential optimization,
+seeded independently per K) are ALSO 100% admissible at every `n_iter`
+tested, up to K=90 (cond # mean 2197, max 13506 — 10-60× worse
+conditioned than the real anchor tables above): `n_iter=20` max resid
+2.25e-06, `n_iter=40` max resid 1.47e-06. **NS at `n_iter=20`, this exact
+production iteration, has enormous headroom for essentially any
+reasonably-drawn near-orthogonal K-row set up to K/d=0.9375 in this
+codebase** — reinforcing that the observed failure is not a generic
+"K approaching d" numerics squeeze either; something specific to the
+REAL C17 held-out-entity post-conv key geometry (not reproduced by
+either the anchor table or a random proxy) is responsible. This step is
+explicitly exploratory and does not by itself carry the verdict.
+
+### Why the true failing object could not be tested this session
+
+C17's actual NS input (`k_eff_raw` for held-out entities — raw,
+post-`k_conv` keys) requires the FULL trained model (embed table,
+`k_proj`, `k_conv1d` weights) at the failing checkpoint. This wave's own
+checkpoint writer (§15.22's own citation, `run_deltanet_rd.py:926–947`,
+sec 10.10 item 1) deliberately saves ONLY the anchor table's trained-row
+block ("27KB negligible" by design) — never the full model. No artifact
+exists, on box or in the archive, from which the real C17 input can be
+reconstructed offline. Building one requires either a new checkpoint
+field (candidate 1) or a fresh, deterministic-seeded repro run
+(candidate 2) — both are follow-up build items, not run here.
+
+## **VERDICT: MISDIAGNOSED-ARTIFACT** — a new, disclosed extension to the
+pre-registered three-bucket taxonomy (mirrors this program's own house
+convention, e.g. §15.22's own "AMBIGUOUS — DATA-QUALITY COLLAPSE"
+extension of row 1b), since neither `NS-ITER-FIX-CONFIRMED` nor
+`STRUCTURAL-ILL-CONDITIONING` nor `MIXED` literally fits: the anchor
+table is not "structurally ill-conditioned" (residuals sit ~7,000×
+below tolerance) and there is no "K/d regime" at which the TESTED object
+fails at all. The pre-registered hypothesis targeted the wrong artifact,
+confirmed two independent ways: (a) architecturally, C17 —
+the ONLY pool that ever fails, in all 12 cells — is anchor-bypassed by
+construction; (b) empirically, the anchor table's own NS convergence is
+indistinguishable between failing and passing cells and has ~7,000×
+margin at `n_iter=20` already. **§15.22's own mechanistic-root-cause
+claim is retracted at the mechanism level** (the K/d-correlated failure
+RATE pattern §15.22 measured is real and stands unchanged — only the
+attributed CAUSE, "the learned anchor table," is wrong); a correction is
+owed in `STATE.md`'s matching block.
+
+**Registered candidates (named, NOT designed — a design decision for
+whoever builds the follow-up, mirroring this program's own house
+convention):**
+
+1. **Extend the checkpoint payload to also snapshot a fixed C17
+   diagnostic batch's `k_eff_raw`** (pre-NS, post-conv keys, for a
+   reproducible fixed held-out-entity batch) at each admission
+   checkpoint — a small, cheap addition (a handful of KB, same
+   "eval-truncation lesson" discipline already used for the `Z_dump`
+   `S_T_raw` dumps) that would let a future offline diagnostic like this
+   one run directly on the TRUE failing object without a re-run.
+2. **A targeted, deterministic-seeded repro on ONE already-failing
+   cell**, resuming (or re-running) to `step=20000` with a full model
+   checkpoint at that one step only, then extracting `k_eff_raw` for the
+   SAME C17 batch that logged the fallback (the eval batch sampling is
+   deterministic given `eval_gen = seed + 10_000 + step` and the fixed
+   pool/hop-sampling call order) — closes the gap this diagnostic could
+   not close, at the cost of a short, targeted GPU repro rather than a
+   full re-run at more seeds.
+
+No cost estimate is registered for either candidate (both need their own
+scoping pass by whoever builds them); this diagnostic itself cost
+**~0 GPU-h** (CPU-only local analysis + `scp` pulls of 264KB total from
+already-idle box GPUs; no training launched, no tmux touched).
+
+### Archive
+
+`experiment-runs/2026-07-08_ns_admission_diag/` (repo-tracked, all files
+≤25MB — total ~300KB): `ckpts/` (6 pulled `step20000.pt` checkpoints, 6×
+44KB), `scripts/diag_ns_admission.py` (byte-identical copy of
+`matrix-thinking/deltanet_rd/diag_ns_admission.py`), `results/
+diag_ns_admission_result.json` (full per-table, per-`n_iter` sweep +
+mechanism-breakdown output). SSD mirror, same tree:
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/
+2026-07-08_ns_admission_diag/`.
+
 ---

@@ -5785,3 +5785,86 @@ reproduction) + SSD mirror (full parity, byte-verified). `STATE.md`
 updated (wide wave CLOSED with verdict).
 
 ---
+
+## NS EVAL-ADMISSION DIAGNOSTIC (2026-07-08): MISDIAGNOSED-ARTIFACT — the
+d=96-wide wave's own admission failures are 100% `C17_heldout_entities`-
+exclusive, a pool that is architecturally anchor-bypassed by construction;
+§15.22's "confined to the learned anchor table" mechanistic claim is
+retracted at the mechanism level (the K/d-correlated failure RATE stands,
+the attributed CAUSE does not)
+
+Diagnoses §15.22's own queued follow-up (STATE.md's "Queue implication"
+item 1): does bumping Newton-Schulz's `n_iter` past 20 restore
+`geo3_admission.admissible` on the REAL, post-training LEARNED anchor
+tables pulled from the wide-grid wave's failing cells? Full method,
+citations, and per-table tables: `KEY_ANCHORING_SCALING_DRAFT.md` §15.23.
+New script: `matrix-thinking/deltanet_rd/diag_ns_admission.py` (CPU-only,
+imports `key_anchoring.py`/`geo3_simulator.py` directly, zero fla/CUDA
+dependency, zero GPU-h).
+
+**Checkpoints pulled (READ ONLY, `scp` off `youthful-indigo-turkey`, GPUs
+idle, no tmux touched):** the 4 failing cells' own final (`step20000.pt`)
+anchor-table checkpoints (K78/s1840, K84/s1940, K90/s2040, K72/s1742) plus
+2 passing-cell controls (K69/s1731, K72/s1741) — 6× 44KB. **Disclosed
+discrepancy:** the task's own preferred K=72 failing seed (s1740) has
+ZERO checkpoints anywhere on box (`ckpt_written` empty in its own JSON) —
+substituted with the equally-valid same-K failing seed s1742, noted, not
+silently swapped.
+
+**Headline finding (discovered BEFORE any NS sweep, from the archived
+JSONs alone):** across all 12 originally-failing cells (11 new + the
+K=69/seed=1730 first-hint anomaly), every `geo3_fallback_triggered_
+this_hop=True` event, at every checkpoint, occurs in
+`C17_heldout_entities` and NEVER in M2/M3/C19 — confirmed the sole cause
+of every inadmissible cell (`ns_converged_no_fallback` is the only one of
+`compute_geo3_admission`'s 4 legs that ever reads False; the other 3 pass
+everywhere). C17's bind items are drawn from a name pool architecturally
+DISJOINT from `pools.train_name_ids` (`run_deltanet_rd.py` line 13);
+`anchor_trained_mask` is built exclusively from that same trained-id set
+(`model_rd.py:925`, a hard invariant asserted via zero-gradient at
+`model_rd.py:2048`); `anchor_blend_gather_scatter`
+(`key_anchoring.py:439–469`) therefore NEVER touches the anchor table for
+C17 queries — the tensor fed to Newton-Schulz for C17 is architecturally
+identical to the model's own raw, un-blended post-conv keys. **The anchor
+table cannot be the cause of a computation it never participates in.**
+
+**The pre-registered check, run anyway (as asked):** all 6 pulled tables
+(4 failing-cell + 2 passing-control) are 100% admissible at `n_iter=20`
+ALREADY, with residuals ~7,000×–8,000× below the 0.01 tolerance
+(1.3e-06–1.6e-06), statistically indistinguishable between failing and
+passing cells, unchanged out to `n_iter=40`. An exploratory proxy sweep
+on un-engineered random unit-row draws (candidate (e)'s own construction,
+no frame-potential optimization) is ALSO 100% admissible up to K=90
+despite 10–60× worse Gram condition numbers than the real anchor tables
+— NS at `n_iter=20` has enormous headroom at these (K, d=96) shapes for
+essentially any reasonably-drawn table, engineered or not. The
+falsifier's own literal test (does admission improve monotonically with
+`n_iter`) cannot even be exercised — there was never a numerically
+observable problem in the tested object at `n_iter=20` to begin with.
+
+## **VERDICT: MISDIAGNOSED-ARTIFACT** (a new, disclosed extension to the
+NS-ITER-FIX-CONFIRMED / STRUCTURAL-ILL-CONDITIONING / MIXED taxonomy,
+mirroring this program's own house convention of extending, not forcing,
+a table that didn't anticipate the exact failure found). The anchor table
+is neither iteration-starved nor structurally ill-conditioned; it simply
+is not an input to the failing computation. §15.22's attributed
+mechanism is retracted; the K/d-correlated FAILURE RATE §15.22 measured
+is unchanged and still real, now unexplained.
+
+**Registered candidates (named, not designed, no cost estimate — a
+design decision for whoever builds the follow-up):** (1) extend the
+checkpoint payload to also snapshot a fixed C17 diagnostic batch's raw
+pre-NS `k_eff_raw`, enabling this exact diagnostic on the TRUE failing
+object without a re-run; (2) a targeted, deterministic-seeded repro on
+one already-failing cell with a full model checkpoint at `step=20000`
+only, extracting the SAME C17 batch that logged the fallback.
+
+**Cost: ~0 GPU-h** (CPU-only + 264KB of `scp` pulls off already-idle
+GPUs; no training launched). Archive: `experiment-runs/
+2026-07-08_ns_admission_diag/` (repo, ~330KB: 6 pulled checkpoints,
+the exact script, the full result JSON) + SSD mirror (full parity).
+`STATE.md` updated (§15.22's mechanistic claim corrected, queue item 1
+closed with this diagnostic's own two new candidates queued in its
+place).
+
+---

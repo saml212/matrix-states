@@ -6,7 +6,58 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## NS EVAL-ADMISSION DIAGNOSTIC (2026-07-08) — CORRECTS the mechanistic
+claim in the KEYANCHOR-SCALING §15.20 WIDE-GRID WAVE HARVEST block
+immediately below (lines ~22-29 of that block: "the failure is confined
+to Newton-Schulz convergence on EVAL-time recovery-probe queries against
+the final, fully-LEARNED anchor table" is **RETRACTED at the mechanism
+level** — the failure-RATE pattern that block reports (0/30 at
+K/d≤0.71875 → 1/3 at K/d=0.75 → 3/3 at K/d≥0.8125) is unchanged and still
+real, but the CAUSE it names is wrong).
+
+**Verdict: MISDIAGNOSED-ARTIFACT.** Diagnosed the wide-grid wave's own
+queued follow-up (that block's "Queue implication" item 1: does
+`n_iter>20` restore admission on the learned anchor table?). Found,
+BEFORE running any NS sweep, that all 12 originally-failing cells'
+`checkpoint_fallback_seen=True` flags trace 100% to
+`C17_heldout_entities` — a recovery-probe pool that is architecturally
+**anchor-bypassed by construction** (its bind items are drawn from a name
+pool disjoint from `pools.train_name_ids`, the exact set
+`anchor_trained_mask` is built from; `anchor_blend_gather_scatter` never
+touches the anchor table for these queries). The anchor table cannot be
+the cause of a computation it never participates in. Ran the
+pre-registered check anyway: all 6 pulled tables (4 failing-cell + 2
+passing-control, `step20000.pt`) are 100% admissible at `n_iter=20`
+already, residuals ~7,000-8,000× below tolerance, indistinguishable
+between failing and passing cells, unchanged through `n_iter=40` — the
+anchor table was never close to a convergence problem, at any K tested
+(69-90). Full method, citations, per-table tables:
+`KEY_ANCHORING_SCALING_DRAFT.md` §15.23; `EXPERIMENT_LOG.md`'s matching
+entry. Archive: `experiment-runs/2026-07-08_ns_admission_diag/` (repo,
+~330KB) + SSD mirror. Cost: ~0 GPU-h (CPU-only, 264KB of `scp` pulls off
+idle box GPUs, no training launched).
+
+**Queue implication:** item 1 from the block below ("diagnose the NS
+eval-admissibility failure... check whether n_iter>20 converges on a
+LEARNED, post-training anchor-table snapshot") is CLOSED — answered NO,
+for a more fundamental reason than the item anticipated. Two NEW
+candidates are queued in its place (named only, not designed, no cost
+estimate — §15.23's own "Registered candidates"): (1) extend the
+checkpoint payload to snapshot a fixed C17 diagnostic batch's raw pre-NS
+`k_eff_raw`, enabling this same diagnostic on the TRUE failing object;
+(2) a targeted, deterministic-seeded repro on one already-failing cell
+with a full model checkpoint at `step=20000` only. Item 2 from the block
+below (the K=69 contingency seed 1733) is UNAFFECTED by this correction.
+
+---
+
 ## KEYANCHOR-SCALING §15.20 WIDE-GRID WAVE HARVEST (2026-07-08 ~00:45 UTC) — CLOSES the wide-grid wave; supersedes the KEYANCHOR-SCALING WAVE HARVEST block below's own "queued next steps" for §15.19's AMBIGUOUS d=96 result. The TRACK C RUNG-3 HARVEST block immediately below is UNAFFECTED (different lane; its own "rung-3 ALL_DONE harvest remains the other standing queue item" line is independently already stale — that harvest itself is the block below, already closed)
+
+**MECHANISTIC CLAIM IN THIS BLOCK CORRECTED, 2026-07-08 — see the NS
+EVAL-ADMISSION DIAGNOSTIC block above.** The "confined to... the final,
+fully-LEARNED anchor table" sentence two paragraphs below is now known to
+be wrong; do not rely on it. The K/d-correlated failure-RATE numbers
+remain accurate.
 
 **`KEY_ANCHORING_SCALING_DRAFT.md` §15.20 (Rev 1, d=96 wider-K grid +
 d=80 seed escalation) ran to completion on box and was harvested: WAVE
