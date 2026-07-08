@@ -157,7 +157,11 @@ PHASE2_SEED_BASE = 777_000_000
 _ARM_INDEX = {"off": 0, "per_token": 1, "global": 2}
 _CORPUS_INDEX = {"openr1-mix-ext": 0, "wikitext-mix-ext": 1, "openr1": 0, "wikitext": 1}
 _KIND_OFFSET = {"train_corpus": 0, "train_episode": 1, "eval_val": 2, "eval_gate_null": 3,
-                "eval_gate_self": 4, "eval_killer": 5}
+                "eval_gate_self": 4, "eval_killer": 5,
+                # sec 16.16.3's own two new kinds (Phase-2b vocab-space behavioral contrast):
+                # zero new digit-width arithmetic -- kind is the outermost/last digit, no _MAX_*
+                # constant depends on how many kinds exist (phase2_seed's own formula, unchanged).
+                "eval_lquery_heldout": 6, "eval_lquery_ood": 7}
 
 
 def wrap_phase2(payload: dict, stage: str) -> dict:
@@ -262,13 +266,30 @@ def familiarization_gate_episode_config(conv_size: int, K: int) -> grammar_rd.De
 
 def query_loss_forward(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTaskConfig,
                         pools: grammar_rd.EntityPools, batch_size: int, gen: torch.Generator,
-                        device: str, use_heldout_entities: bool = False, step: int | None = None):
+                        device: str, use_heldout_entities: bool = False, step: int | None = None,
+                        hop_set: tuple = H_TRAIN):
     """ONE forward call over the concatenated bind+query sequence (sec
     16.2.1: NEVER a two-phase continuation -- see this module's own
     docstring for why). Returns (L_query, batch, n_forward_calls=1) --
     `batch` is returned so a caller can also read hops/tgt_slot/entity_ids
-    for diagnostics without a second draw."""
-    batch = grammar_rd.sample_batch_rd(episode_cfg, batch_size, gen, hop_set=H_TRAIN, pools=pools,
+    for diagnostics without a second draw.
+
+    `hop_set` (sec 16.16.3's own registered parameterization -- Rev 0 had
+    this HARDCODED to H_TRAIN at this call site; a real, small, disclosed
+    build task, not a design assumption): additive, defaults to H_TRAIN so
+    every pre-existing caller (the familiarization training loop itself,
+    phase2_smoke_gpu.py, phase2_stage_minus1.py's item 4) is byte-identical,
+    unaffected. Phase-2b's own eval_query_loss_heldout (phase2_trajectory_
+    analysis.py) is the first caller to pass hop_set=(3,4) (the secondary,
+    held-out-hop OOD readout, sec 16.16.7) alongside hop_set=(1,2) (primary).
+    `sample_batch_rd`'s own `hop_set` argument governs ONLY which hops this
+    ONE batch draws from -- independent of `episode_cfg.H_train`/`H_test`,
+    which remain fixed at (1,2)/(3,4) for the periodicity guard regardless
+    of which hop_set a given call requests (verified directly against
+    grammar_rd.sample_batch_rd's own body: no cross-check against cfg.H_train/
+    H_test exists there, by design -- the guard lives in DeltaNetRDTaskConfig.
+    __post_init__ instead, already re-verified live by Stage -1 item 3)."""
+    batch = grammar_rd.sample_batch_rd(episode_cfg, batch_size, gen, hop_set=hop_set, pools=pools,
                                         device=device, use_heldout_entities=use_heldout_entities)
     B, Q = batch["hops"].shape
     T_bind = batch["token_ids"].shape[1]
@@ -405,7 +426,19 @@ def run_familiarization_cell(init_checkpoint: str, arm: str, corpus: str, ckpt_s
         if latest is not None:
             resumed_from = latest
 
-    model = DeltaNetLM(**torch.load(init_checkpoint, map_location=device)["config"]).to(device)
+    init_config = torch.load(init_checkpoint, map_location=device)["config"]
+    # sec 16.16.9 Stage -1 item (c) (MINOR-3, attack-round-1 on sec 16.16): the model's ACTUAL blend
+    # behavior is governed ENTIRELY by this checkpoint's own baked frozen_bias_arm config field
+    # (DeltaNetLM.config(), lm_pretrain_rd.py L1174) -- the CLI --arm flag below is used only for
+    # run_name/seeding/bookkeeping and could silently disagree with it if a wrong --init-checkpoint
+    # path were ever passed (every phase2b_chain.sh launch already pairs the right checkpoint with
+    # the right --arm by construction, per its own init_ckpt path templating -- this assertion makes
+    # that pairing VERIFIED, not merely trusted).
+    assert init_config["frozen_bias_arm"] == arm, (
+        f"--arm={arm!r} does not match the init checkpoint's own baked frozen_bias_arm="
+        f"{init_config['frozen_bias_arm']!r} ({init_checkpoint}) -- refusing to silently train with a "
+        f"mismatched arm/checkpoint pairing (sec 16.16.9 MINOR-3)")
+    model = DeltaNetLM(**init_config).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     if resumed_from is not None:

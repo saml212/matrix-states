@@ -1,45 +1,52 @@
-"""phase2_trajectory_analysis.py -- REASONING_LINK_DESIGN.md sec 16.2.1's
-"Trajectory readout schedule" + the hexachotomy classification, wired end
-to end: for a given corpus, re-scores EVERY trajectory checkpoint of EVERY
-familiarized cell (3 arms x 3 ckpt_seeds x 2 K's = 18 killer-prediction
-readouts PER checkpoint, 90 per corpus, 180 total across both corpora --
-sec 16.2.3's own priced "5 checkpoints x 18 cells x 2 K's" trajectory-
-readout line) via `reasoning_link_probe.run_cell(..., surgery="off")`
-(sec 16.2.1's own explicit reuse instruction: "reasoning_link_probe.py's
-frozen_bias_surgery is the reference pattern"), pools the 3 ckpt_seeds into
-a `delta_ci_n3` 3-seed CI per (arm, checkpoint) -- the SAME formula sec
-5.3's own killer-prediction condition already uses, reused verbatim, never
-reimplemented -- computes `det`/`holds`/`agree` via `phase2_hexachotomy`'s
-own primitives, reads the OFF-arm's own per-checkpoint Stage-0.5 gate
-verdict via `phase2_gate_enforce.gate_verdict` (never recomputed), and
+"""phase2_trajectory_analysis.py -- REASONING_LINK_DESIGN.md sec 16.16
+(Rev 2.2, DESIGN-CLEARED-FOR-BUILD) Phase-2b vocab-space behavioral-contrast
+analysis: for a given corpus, re-scores EVERY trajectory checkpoint of EVERY
+familiarized cell (3 arms x 3 ckpt_seeds x 2 K's per checkpoint) via the
+NEW frozen-checkpoint eval-L_query readout (sec 16.16.3's readout (B):
+`eval_query_loss_heldout`, held-out entities, Q=K), pools the 3 ckpt_seeds
+into a `delta_ci_n3` 3-seed CI per (arm, checkpoint), computes
+`det`/`holds`/`agree` via `phase2_hexachotomy`'s own primitives, and
 classifies the resulting trajectory via `phase2_hexachotomy.classify_
 trajectory`.
 
-**Scoping decision, disclosed explicitly (this BUILD's own resolution of a
-genuinely underspecified point, mirroring reasoning_link_probe.py's own
-"resolved during BUILD" convention -- flagged for the independent audit's
-attention, not silently assumed):** sec 16.2.1's own prose alternates
-between "classify each (K, corpus, seed) trajectory" and, two paragraphs
-later, "a cell whose 3 SEEDS classify {PERSISTENT, NON-MONOTONE,
-TRANSIENT} reports all three labels individually" -- the second sentence
-only parses if "3 seeds" are three INPUTS to ONE classification, not three
-SEPARATE per-seed classifications (a lone seed has no natural multi-sample
-CI to compute `det`/`holds` from at all). The worked totality table (sec
-16.2.1) also operates on ONE `holds(c)` pattern per row, matching a SINGLE
-classification per (corpus) -- `holds(c)` itself already folds BOTH K's
-into one boolean (`det(32,c) AND NOT det(20,c) AND ...`), so there is no
-separate per-K classification either. This module therefore classifies
-ONE trajectory PER CORPUS (2 total: openr1-mix-ext, wikitext-mix-ext),
-each built from a 3-seed-pooled `delta_ci_n3` CI at every checkpoint, for
-BOTH arms (global, per_token) -- consistent with every mechanical
-primitive's own literal definition in sec 16.2.1, and with the totality
-table's own single-holds()-pattern-per-row structure.
+**MAJOR-1 rewrite (sec 16.16.3, attack-round-1 on sec 16.16, the highest-
+value finding that round found).** The Phase-2 (sec 16.2) version of this
+module sourced `off_vals`/`arm_vals` from the DEAD `d_state`-space
+`per_h[h]['recovered_frac']` quantity (0.0 in 30/30 sec 16.15.1 readings)
+and `stage05_pass_by_c` from the permanently-FAILED Stage-0.5 gate JSONs --
+left as-is, a clean run would silently force any real monotone-holds-true
+trajectory into UNRESOLVED-GATE before a single (B)-readout number was ever
+computed. This rewrite: (1) `killer_prediction_readout` now returns a plain
+`L_query` FLOAT, sourced from `eval_query_loss_heldout` -- the OFF half
+reads a precomputed cache (`off_lquery_cache-Phase2b.json`, sec 16.16.8's
+chain-step-3 cache builder; MAJOR-R2-3's own duplication fix), the non-off
+half loads the frozen checkpoint live via the single-seam
+`phase2b_load_eval_model` helper (Rev 2.1 MAJOR-R3-1). (2)
+`stage05_pass_by_c` is now UNCONDITIONALLY `{c: True for c in CHECKPOINTS}`
+(mirrors `phase2_hexachotomy.totality_check`'s own `always_pass_gate`
+verbatim) -- the per-checkpoint Stage-0.5 gate is RETIRED for Phase-2b,
+replaced by the single upfront OFF-floor gate (sec 16.16.6,
+`phase2b_floor_gate_enforce.py`). The dead `gate_json_path_for` helper and
+its `phase2_gate_enforce.gate_verdict` read are DELETED, not bypassed.
 
-Run (per corpus, after both OFF and the two intervention arms' 6 cells
-each have completed and their .pt checkpoints + stage05_gate JSONs exist
-in `--ckpt-dir`):
+**Scoping decision carried forward unchanged from Phase-2 (sec 16.2.1's own
+"resolved during BUILD" convention, flagged for the independent audit's
+attention):** this module classifies ONE trajectory PER CORPUS (2 total:
+openr1-mix-ext, wikitext-mix-ext), each built from a 3-seed-pooled
+`delta_ci_n3` CI at every checkpoint, for BOTH arms (global, per_token).
+
+**Secondary readout (sec 16.16.7):** `secondary_ood_readout` reuses the
+SAME `eval_query_loss_heldout` function at `hop_set=(3,4)` (the held-out
+hop depths never trained on) and reports a SIMPLER standalone `det(K,c)`
+table per arm -- NOT folded into the primary hexachotomy classification.
+
+Run (per corpus, after both OFF (reused) and the two intervention arms' 6
+cells each have completed, AND `off_lquery_cache-Phase2b.json` has been
+built by phase2b_off_cache.py, sec 16.16.8's chain-step-3):
     python phase2_trajectory_analysis.py --corpus openr1-mix-ext \\
-        --ckpt-dir results/phase2/ckpts --out results/phase2/traj_openr1.json
+        --ckpt-dir results/phase2/ckpts \\
+        --off-cache results/phase2/off_lquery_cache-Phase2b.json \\
+        --out results/phase2/traj_openr1_phase2b.json
 """
 from __future__ import annotations
 
@@ -48,12 +55,15 @@ import json
 import os
 import sys
 
+import torch
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import reasoning_link_probe as rlp  # noqa: E402  (installs the CPU fla stub as an import side effect)
+import grammar_rd  # noqa: E402
+import lm_pretrain_rd as lpr  # noqa: E402  (same direct-import convention phase2_stage_minus1.py already uses)
 import phase2_familiarization_train as pft  # noqa: E402
-import phase2_gate_enforce as pge  # noqa: E402
 import phase2_hexachotomy as phx  # noqa: E402
 
 CKPT_SEEDS = (0, 1, 2)
@@ -64,81 +74,214 @@ def ckpt_path_for(ckpt_dir: str, arm: str, corpus: str, ckpt_seed: int, checkpoi
     """NO K in this path (build-time correction, sec 16.2.3's own cost arithmetic: 18 training
     cells, not 36 -- see phase2_familiarization_train.K_TRAIN_DEFAULT's own comment). The SAME
     checkpoint file is re-scored at BOTH K=20 and K=32 by `killer_prediction_readout` below --
-    `reasoning_link_probe.run_cell`'s own `K` parameter controls EVAL episode construction only,
-    independent of what K the checkpoint trained under."""
+    the eval-time `K` controls readout episode construction only, independent of what K the
+    checkpoint trained under."""
     return os.path.join(ckpt_dir, f"phase2fam_{arm}_{corpus}_s{ckpt_seed}_step{checkpoint_step}.pt")
 
 
-def gate_json_path_for(ckpt_dir: str, corpus: str, ckpt_seed: int, checkpoint_step: int) -> str:
-    run_name = f"phase2fam_off_{corpus}_s{ckpt_seed}"
-    return os.path.join(ckpt_dir, f"stage05_gate_{run_name}_step{checkpoint_step}.json")
+# ---------------------------------------------------------------------------
+# Loader -- the single seam (sec 16.16.3's "Loader" bullet, Rev 2.1 fix, round-3 verify MAJOR-R3-1).
+# TWO PRODUCTION callers (Rev 2.2, round-4 MINOR-R4-2 harmonization): the rewritten
+# `killer_prediction_readout` below (non-off arms only) and phase2b_off_cache.py's own OFF-eval
+# cache builder (chain step 3, `build_off_lquery_cache`). Build-time disclosure (this Rev's own
+# resolution, not a silent extension of the round-4-pinned "exactly two" invariant): sec 16.16.11
+# item 1's own mandatory pre-launch timing pilot (a SEPARATE, later-registered obligation) is a
+# THIRD, narrow caller (`phase2b_off_cache.time_one_eval_pass`) -- it needs a real loaded checkpoint
+# to time one real scoring pass, and reusing this SAME seam (rather than a duplicate loader) is the
+# DRY choice; disclosed explicitly here rather than silently widening the "exactly two" wording.
+# Reproduces the SAME phase2_familiarization_train.py L408->L421
+# double-defense sequence (torch.load(...)['config'] -> DeltaNetLM(**config) ->
+# load_init_checkpoint_strict, config-equality assert + strict=True load_state_dict) -- production
+# keeps the STRICT double-defense path unconditionally, never the laxer
+# reasoning_link_probe.load_checkpoint (a single-layer load_state_dict with no explicit
+# config-equality assert), which is explicitly REJECTED here.
+# ---------------------------------------------------------------------------
+
+def phase2b_load_eval_model(ckpt_path: str, device: str) -> lpr.DeltaNetLM:
+    config = torch.load(ckpt_path, map_location=device)["config"]  # mirrors
+                                     # phase2_familiarization_train.py L408
+    model = lpr.DeltaNetLM(**config).to(device)
+    lpr.load_init_checkpoint_strict(model, ckpt_path, device)      # mirrors
+                                     # L421; lm_pretrain_rd.py L1803's own
+                                     # config-equality assert + strict=True
+                                     # load_state_dict double-defense
+    model.eval()
+    return model
+
+
+# ---------------------------------------------------------------------------
+# eval_query_loss_heldout -- readout (B), sec 16.16.3's "Build delta". Wraps query_loss_forward
+# with use_heldout_entities=True and a CALLER-supplied hop_set (parameterized at the source,
+# phase2_familiarization_train.query_loss_forward, sec 16.16.3's own disclosed parameterization
+# task). NO surgery override (sec 16.16.3's "Surgery-mode scope, pinned" paragraph): eval-(B) runs
+# the frozen-bias blend NATIVELY, required by sec 16.16.1's whole-causal-package framing --
+# query_loss_forward's own forward pass has no frozen_bias_surgery wrapper on this path, and this
+# function adds none of its own.
+# ---------------------------------------------------------------------------
+
+def _phase2b_seed_kind(hop_set: tuple) -> str:
+    """Maps a hop_set to its own registered phase2_seed kind (sec 16.16.3's two new kinds)."""
+    if tuple(hop_set) == tuple(pft.H_TRAIN):
+        return "eval_lquery_heldout"
+    if tuple(hop_set) == tuple(pft.H_TEST_HELD_OUT):
+        return "eval_lquery_ood"
+    raise ValueError(f"hop_set={hop_set!r} is neither the registered primary {pft.H_TRAIN} (sec "
+                      f"16.16.3) nor secondary {pft.H_TEST_HELD_OUT} (sec 16.16.7) hop set")
+
+
+def eval_query_loss_heldout(model: lpr.DeltaNetLM, K: int, hop_set: tuple, corpus: str,
+                             ckpt_seed: int, checkpoint_step: int, batch_size: int = 16,
+                             device: str = "cpu") -> float:
+    """ONE frozen-checkpoint eval-L_query reading, held-out entities, Q=K (sec 16.16.3's readout
+    (B)). `batch_size` pinned to a default of `16` (Rev 2, attack-round-2 MINOR-R2-1) -- matching
+    `killer_prediction_readout`'s/`build_holds_and_gate_by_checkpoint`'s own existing `=16` default.
+
+    **Pairing device, structural (sec 16.16.2 item 3, sec 16.16.3's own "Pairing device"
+    paragraph): this function has NO `arm` parameter at all** -- the literal string `"off"` is
+    baked into the seed formula's `arm` digit HERE, unconditionally, rather than left as a
+    caller-supplied convention a future call site could violate. Every (arm-or-off) checkpoint
+    scored at the SAME (corpus, ckpt_seed, K, checkpoint_step, hop_set) therefore draws the
+    IDENTICAL held-out episode (same seed -> same torch.Generator stream -> same
+    grammar_rd.sample_batch_rd draw) by construction -- a real paired comparison on shared
+    episodes, never three independent draws. This is a build-time strengthening of sec 16.16.3's
+    own illustrative signature (which named the caller-convention version) -- disclosed here per
+    this project's "resolved during BUILD" convention, flagged for the independent audit.
+
+    Pools/tokenizer are rebuilt per call (`rlp.build_reasoning_link_pools(seed=0)`, deterministic,
+    marker template -- sec 16.8.3's own fallback pin), mirroring `reasoning_link_probe.run_cell`'s
+    own existing per-call pool-rebuild convention exactly -- not a new inefficiency this build
+    introduces."""
+    kind = _phase2b_seed_kind(hop_set)
+    seed = pft.phase2_seed(kind, "off", corpus, ckpt_seed, K, checkpoint_step)
+    gen = torch.Generator(device=device).manual_seed(seed)
+    episode_cfg = pft.familiarization_gate_episode_config(model.conv_size, K)  # Q=K, sec 16.16.3
+    tokenizer = grammar_rd.load_gpt2_tokenizer()
+    pools, _ = rlp.build_reasoning_link_pools(tokenizer=tokenizer, seed=0)
+    L_query, _, _ = pft.query_loss_forward(model, episode_cfg, pools, batch_size, gen, device,
+                                            use_heldout_entities=True, step=checkpoint_step,
+                                            hop_set=hop_set)
+    return L_query.item()
+
+
+# ---------------------------------------------------------------------------
+# OFF-eval cache key -- shared format between this module (reader, killer_prediction_readout) and
+# phase2b_off_cache.py (writer, chain step 3) -- defined ONCE here so the two can never drift apart.
+# ---------------------------------------------------------------------------
+
+def off_cache_key(corpus: str, ckpt_seed: int, K: int, checkpoint_step: int, hop_set: tuple) -> str:
+    return f"{corpus}|{ckpt_seed}|{K}|{checkpoint_step}|{hop_set[0]}-{hop_set[1]}"
 
 
 def killer_prediction_readout(ckpt_dir: str, arm: str, corpus: str, ckpt_seed: int, K: int,
-                               checkpoint_step: int, batch_size: int = 16, device: str = "cpu") -> dict:
-    """ONE (arm,corpus,ckpt_seed,K,checkpoint_step) readout: `run_cell` with
-    blend-OFF surgery on the FAMILIARIZED checkpoint at this trajectory
-    step (sec 16.2.1's own registered reuse of the audited machinery,
-    verbatim -- no new scoring code). `K` here governs ONLY how `run_cell`
-    constructs its own EVAL episode (the checkpoint itself carries no K).
+                               checkpoint_step: int, off_cache: dict, hop_set: tuple = pft.H_TRAIN,
+                               batch_size: int = 16, device: str = "cpu") -> float:
+    """ONE (arm-or-off, corpus, ckpt_seed, K, checkpoint_step, hop_set) L_query reading (sec
+    16.16.3's MAJOR-1 rewrite -- REPLACES the Rev-0/Phase-2 version, which returned a dict sourced
+    from the dead `recovered_frac` quantity; this returns a plain float, `off_vals`/`arm_vals` are
+    now populated directly from these).
 
-    MAJOR-1 fix (Phase-2 build-audit round): `use_heldout_entities=True` --
-    this is the wave's central arm-contrast measurement, so its EVAL
-    episodes must draw from `pools.heldout_name_ids`, disjoint from the
-    `pools.train_name_ids` familiarization training itself drew from
-    (`phase2_familiarization_train.query_loss_forward`'s own
-    `use_heldout_entities=False`) -- never the same entities re-tested."""
+    `arm == "off"`: reads from the precomputed `off_cache` (sec 16.16.3 item 1's own Rev-2 OFF-eval
+    cache fix, MAJOR-R2-3) -- NEVER loads a model or calls `eval_query_loss_heldout` for this
+    branch. This is one of `phase2b_load_eval_model`'s two PRODUCTION callers (Rev 2.2, round-4
+    MINOR-R4-2 -- see that function's own docstring for the disclosed third, timing-pilot-only
+    caller): this function's own non-off branch below, and the cache builder
+    (phase2b_off_cache.py) that populates `off_cache` in the first place -- never this off branch.
+
+    `arm != "off"`: loads the frozen checkpoint via `phase2b_load_eval_model` (the single seam) and
+    scores it live via `eval_query_loss_heldout`."""
+    if arm == "off":
+        key = off_cache_key(corpus, ckpt_seed, K, checkpoint_step, hop_set)
+        if key not in off_cache:
+            raise KeyError(f"off_cache is missing key {key!r} -- the OFF-eval cache "
+                            f"(off_lquery_cache-Phase2b.json, sec 16.16.8 chain step 3) must be "
+                            f"built BEFORE any hexachotomy/secondary-readout pass runs")
+        return off_cache[key]
     ckpt_path = ckpt_path_for(ckpt_dir, arm, corpus, ckpt_seed, checkpoint_step)
-    seed = pft.phase2_seed("eval_killer", arm, corpus, ckpt_seed, K, checkpoint_step)
-    return rlp.run_cell(ckpt_path, K, hops=(1, 2, 3, 4), surgery="off", batch_size=batch_size,
-                         device=device, compute_option2=False, seed_override=seed,
-                         use_heldout_entities=True)
+    model = phase2b_load_eval_model(ckpt_path, device)
+    return eval_query_loss_heldout(model, K, hop_set, corpus, ckpt_seed, checkpoint_step,
+                                    batch_size, device)
 
 
-def build_holds_and_gate_by_checkpoint(ckpt_dir: str, arm: str, corpus: str, K_pair=(32, 20),
-                                        h: int = 1, batch_size: int = 16, device: str = "cpu") -> dict:
-    """For ONE (arm, corpus): at each of the 5 trajectory checkpoints, pools the 3 ckpt_seeds'
-    own recovered_frac(h) readings (via killer_prediction_readout, arm AND off) into a 3-seed
-    delta_ci_n3 CI at BOTH K's, then computes det(32,c)/det(20,c)/holds(c) via phase2_hexachotomy's
-    own primitives. Also reads the OFF arm's own per-checkpoint Stage-0.5 gate verdict (NEVER
-    recomputed -- phase2_gate_enforce.gate_verdict on the JSON phase2_familiarization_train.py
-    already wrote). Returns {"holds_by_c": {...}, "stage05_pass_by_c": {...}, "det_arm_by_c": {...},
-    "raw": {...}} (raw = every intermediate CI, for disclosure/debugging)."""
+def build_holds_and_gate_by_checkpoint(ckpt_dir: str, arm: str, corpus: str, off_cache: dict,
+                                        K_pair=(32, 20), hop_set: tuple = pft.H_TRAIN,
+                                        batch_size: int = 16, device: str = "cpu") -> dict:
+    """For ONE (arm, corpus): at each of the 5 trajectory checkpoints, pools the 3 ckpt_seeds' own
+    L_query readings (via killer_prediction_readout, arm AND off) into a 3-seed delta_ci_n3 CI at
+    BOTH K's, then computes det(32,c)/det(20,c)/holds(c) via phase2_hexachotomy's own primitives.
+    Returns {"holds_by_c": {...}, "stage05_pass_by_c": {...}, "det_arm_by_c": {...}, "raw": {...}}
+    (raw = every intermediate CI, for disclosure/debugging).
+
+    **stage05_pass_by_c is now UNCONDITIONALLY True at every checkpoint (sec 16.16.3 item 2) --
+    the per-checkpoint Stage-0.5 gate is RETIRED for Phase-2b**, mirroring
+    `phase2_hexachotomy.totality_check`'s own `always_pass_gate = {c: True for c in CHECKPOINTS}`
+    verbatim (L204). Its replacement, the single upfront OFF-floor gate (sec 16.16.6,
+    `phase2b_floor_gate_enforce.py`), is evaluated ONCE per corpus BEFORE the 12-cell launch, not
+    per-checkpoint inside this classifier -- the dead `gate_json_path_for`/`pge.gate_verdict` read
+    is DELETED, not bypassed (verified dead by `phase2_stage_minus1._references`)."""
     K32, K20 = K_pair
-    holds_by_c, stage05_pass_by_c, det_arm_by_c, raw = {}, {}, {}, {}
+    holds_by_c, det_arm_by_c, raw = {}, {}, {}
     for c in phx.CHECKPOINTS:
         per_k_delta = {}
         for K in (K32, K20):
             off_vals, arm_vals = [], []
             for s in CKPT_SEEDS:
-                off_r = killer_prediction_readout(ckpt_dir, "off", corpus, s, K, c, batch_size, device)
-                arm_r = killer_prediction_readout(ckpt_dir, arm, corpus, s, K, c, batch_size, device)
-                off_vals.append(off_r["per_h"][h]["recovered_frac"])
-                arm_vals.append(arm_r["per_h"][h]["recovered_frac"])
-            per_k_delta[K] = rlp.delta_ci_n3(arm_vals, off_vals)   # arm - off, sec 5.2a's own convention
+                off_val = killer_prediction_readout(ckpt_dir, "off", corpus, s, K, c, off_cache,
+                                                      hop_set, batch_size, device)
+                arm_val = killer_prediction_readout(ckpt_dir, arm, corpus, s, K, c, off_cache,
+                                                      hop_set, batch_size, device)
+                off_vals.append(off_val)
+                arm_vals.append(arm_val)
+            # sec 16.16.5's Delta redefinition: Delta_Lquery(arm,K,c) := L_query(off,K,c) -
+            # L_query(arm,K,c) -- positive = arm's loss is LOWER than off's = arm helps. An
+            # INTENTIONAL, disclosed argument-order reversal from the old recovered_frac-based
+            # delta_ci_n3(arm_vals, off_vals) convention (correct there for a higher-is-better metric).
+            per_k_delta[K] = rlp.delta_ci_n3(off_vals, arm_vals)
         det32 = phx.det(per_k_delta[K32]["ci_low"], per_k_delta[K32]["ci_high"])
         det20 = phx.det(per_k_delta[K20]["ci_low"], per_k_delta[K20]["ci_high"])
         holds_by_c[c] = phx.holds(det32, det20, abs(per_k_delta[K32]["mean"]), abs(per_k_delta[K20]["mean"]))
         det_arm_by_c[c] = det32   # det_arm(arm,c) reuses the SAME K=32 delta (sec 16.2.1's own citation)
         raw[c] = {"delta_k32": per_k_delta[K32], "delta_k20": per_k_delta[K20], "det32": det32, "det20": det20}
 
-        gate_path = gate_json_path_for(ckpt_dir, corpus, 0, c)   # the OFF arm's own seed=0 gate at this
-                                                                   # checkpoint gates this corpus's
-                                                                   # reading (seed=0 is this module's
-                                                                   # own build-time pin, disclosed here)
-        if os.path.exists(gate_path):
-            with open(gate_path) as f:
-                gate_pass, _ = pge.gate_verdict(json.load(f))
-        else:
-            gate_pass = False  # fail-closed: no gate JSON means uninterpretable, never silently assumed OK
-        stage05_pass_by_c[c] = gate_pass
+    stage05_pass_by_c = {c: True for c in phx.CHECKPOINTS}
     return {"holds_by_c": holds_by_c, "stage05_pass_by_c": stage05_pass_by_c,
             "det_arm_by_c": det_arm_by_c, "raw": raw}
 
 
-def analyze_corpus(ckpt_dir: str, corpus: str, batch_size: int = 16, device: str = "cpu") -> dict:
-    per_arm = {arm: build_holds_and_gate_by_checkpoint(ckpt_dir, arm, corpus, batch_size=batch_size,
-                                                          device=device)
+def secondary_ood_readout(ckpt_dir: str, arm: str, corpus: str, off_cache: dict, K_pair=(32, 20),
+                           batch_size: int = 16, device: str = "cpu") -> dict:
+    """sec 16.16.7's held-out-hop (h in {3,4}) generalization readout: the SAME
+    eval_query_loss_heldout function at `hop_set=H_TEST_HELD_OUT`, reported as a SIMPLER standalone
+    `det(K,c)` table -- NOT folded into a second parallel hexachotomy classification
+    (disproportionate for a secondary readout)."""
+    K32, K20 = K_pair
+    table = {}
+    for c in phx.CHECKPOINTS:
+        per_k_delta = {}
+        for K in (K32, K20):
+            off_vals, arm_vals = [], []
+            for s in CKPT_SEEDS:
+                off_val = killer_prediction_readout(ckpt_dir, "off", corpus, s, K, c, off_cache,
+                                                      pft.H_TEST_HELD_OUT, batch_size, device)
+                arm_val = killer_prediction_readout(ckpt_dir, arm, corpus, s, K, c, off_cache,
+                                                      pft.H_TEST_HELD_OUT, batch_size, device)
+                off_vals.append(off_val)
+                arm_vals.append(arm_val)
+            per_k_delta[K] = rlp.delta_ci_n3(off_vals, arm_vals)
+        table[c] = {
+            "det32": phx.det(per_k_delta[K32]["ci_low"], per_k_delta[K32]["ci_high"]),
+            "det20": phx.det(per_k_delta[K20]["ci_low"], per_k_delta[K20]["ci_high"]),
+            "delta_k32": per_k_delta[K32], "delta_k20": per_k_delta[K20],
+        }
+    return table
+
+
+def analyze_corpus(ckpt_dir: str, corpus: str, off_cache_path: str, batch_size: int = 16,
+                    device: str = "cpu") -> dict:
+    with open(off_cache_path) as f:
+        off_cache = json.load(f)
+
+    per_arm = {arm: build_holds_and_gate_by_checkpoint(ckpt_dir, arm, corpus, off_cache,
+                                                          batch_size=batch_size, device=device)
                for arm in ARMS_NON_OFF}
     # agree(c): global's vs per_token's own Delta(K=32,c) CIs overlap.
     agree_by_c = {}
@@ -148,11 +291,9 @@ def analyze_corpus(ckpt_dir: str, corpus: str, batch_size: int = 16, device: str
         agree_by_c[c] = phx.agree(g["ci_low"], g["ci_high"], p["ci_low"], p["ci_high"])
 
     # holds(c) at the CORPUS level is the SAME condition regardless of which non-off arm is being
-    # read (sec 16.2.1's own "holds(c) -- the full killer-prediction pass condition ... exactly as
-    # the K-sweep paragraph already states it" -- ONE condition per checkpoint, not one per arm).
-    # Build-time resolution (disclosed): use the GLOBAL arm's own holds_by_c as the trajectory's
-    # holds() input (sec 16.2.1's H_LINK-A causal claim is itself global-arm-centric: "global arm
-    # learns to compose at least as well as off, per-token no better").
+    # read -- build-time resolution (disclosed, carried forward from Phase-2 unchanged): use the
+    # GLOBAL arm's own holds_by_c as the trajectory's holds() input (sec 16.2.1's H_LINK-A causal
+    # claim is itself global-arm-centric).
     classification = phx.classify_trajectory(
         holds_by_c=per_arm["global"]["holds_by_c"],
         stage05_pass_by_c=per_arm["global"]["stage05_pass_by_c"],
@@ -160,19 +301,27 @@ def analyze_corpus(ckpt_dir: str, corpus: str, batch_size: int = 16, device: str
         det_arm_per_token_5000=per_arm["per_token"]["det_arm_by_c"][phx.TERMINAL_CHECKPOINT],
         agree_5000=agree_by_c[phx.TERMINAL_CHECKPOINT])
 
-    return {"corpus": corpus, "per_arm": per_arm, "agree_by_c": agree_by_c, "classification": classification}
+    secondary_ood = {arm: secondary_ood_readout(ckpt_dir, arm, corpus, off_cache,
+                                                  batch_size=batch_size, device=device)
+                      for arm in ARMS_NON_OFF}
+
+    return {"corpus": corpus, "per_arm": per_arm, "agree_by_c": agree_by_c,
+            "classification": classification, "secondary_ood": secondary_ood}
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--corpus", choices=["openr1-mix-ext", "wikitext-mix-ext"], required=True)
     ap.add_argument("--ckpt-dir", type=str, required=True)
+    ap.add_argument("--off-cache", type=str, required=True,
+                     help="off_lquery_cache-Phase2b.json path (sec 16.16.8 chain step 3)")
     ap.add_argument("--batch-size", type=int, default=16)
-    ap.add_argument("--device", type=str, default="cuda" if __import__("torch").cuda.is_available() else "cpu")
+    ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--out", type=str, default=None)
     args = ap.parse_args()
 
-    result = analyze_corpus(args.ckpt_dir, args.corpus, batch_size=args.batch_size, device=args.device)
+    result = analyze_corpus(args.ckpt_dir, args.corpus, args.off_cache, batch_size=args.batch_size,
+                             device=args.device)
     print(json.dumps({"corpus": result["corpus"], "classification": result["classification"],
                        "agree_by_c": result["agree_by_c"]}, indent=2, default=str))
     if args.out:

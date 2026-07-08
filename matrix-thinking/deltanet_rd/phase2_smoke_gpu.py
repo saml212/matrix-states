@@ -1,6 +1,29 @@
 """phase2_smoke_gpu.py -- REAL-KERNEL (fla/Triton/CUDA) smoke gate for the
 Phase-2 familiarization PRODUCTION path (deploy decision, 2026-07-07).
 
+**`--arm` extension (sec 16.16.9, MAJOR-5 -- Phase-2b build round).** Rev 0
+of this gate hardcoded `SMOKE_ARM = "off"` (no CLI flag) -- the real
+fla/Triton kernel path had NEVER exercised `apply_frozen_bias_blend`
+(`lm_pretrain_rd.py` L854-857, fires UNCONDITIONALLY whenever
+`frozen_bias_arm != "off"`), the exact code path all 12 of Phase-2b's NEW
+cells run. `per_token` and `global` exercise DIFFERENT tensor operations
+inside that blend (a per-token gather-lookup vs. a broadcast add, not two
+branches of one op) -- this program has direct precedent for a kernel bug
+that was branch-and-device-specific (sec 16.15.7 item 2's own Triton
+`Pointer argument cannot be accessed from Triton` failure, invisible to
+the CPU-stub suite). `--arm {off,per_token,global}` threads `SMOKE_ARM`
+through checkpoint selection (init-checkpoint path resolution now mirrors
+`phase2_chain.sh`'s own `run_cells_2way` lam_tag templating for non-off
+arms) and model config; `phase2b_chain.sh` runs this FULL positive suite
+THREE TIMES, once per arm, ALL THREE required to pass before the 12-cell
+launch (never merely one non-off arm as a stand-in for both). Items 4/5
+(the end-to-end `run_familiarization_cell` + resume check) assert the
+Stage-0.5 gate fields ONLY for `arm="off"` (the gate is OFF-arm-only by
+registered design, sec 16.2.1 `compute_stage05_gate`'s own
+`assert arm == "off"`) -- for `per_token`/`global` those items instead
+assert the gate is correctly `None`, mirroring
+`phase2_stage_minus1.test_item_8`'s own per_token/global sub-check.
+
 Why this exists: the Stage -1 self-test suites (phase2_stage_minus1.py,
 reasoning_link_stage_minus1.py) are CPU-stub-only BY DESIGN (`device="cpu"`
 hardcoded throughout; their own docstrings disclose it), and fla 0.5.1's
@@ -72,12 +95,22 @@ from lm_pretrain_rd import (  # noqa: E402
     DeltaNetLM, load_corpus, get_batch, get_lr, load_init_checkpoint_strict, set_and_log_tf32,
 )
 
-DEFAULT_INIT_CKPT = os.path.join(
-    os.environ.get("FROZEN_BIAS_CKPT_ROOT", "/data/deltanet_rd_frozenbias_ckpts"),
-    "frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0",
-    "lmC_openr1-mix-ext_dm256_ds64_L2_s0_step20000.pt")
 SMOKE_K = 20          # the SMALLER of Leg A's committed K pair -- fastest real-kernel gate episode
-SMOKE_ARM = "off"     # the only arm whose Stage-0.5 gate runs (sec 16.2.1) -- maximal path coverage
+FROZEN_BIAS_LAMBDA = 0.58   # sec 5's registered fixed blend weight -- matches phase2_chain.sh's own
+                            # FROZEN_BIAS_LAMBDA / lam_tag templating for non-off init checkpoints.
+
+
+def default_init_checkpoint_for_arm(arm: str, corpus: str, seed: int = 0) -> str:
+    """sec 16.16.9 MAJOR-5's own `--arm` extension: mirrors `phase2_chain.sh`'s own `run_cells_2way`
+    init-checkpoint path templating EXACTLY (off vs. non-off arms resolve to structurally different
+    directory names -- the lam_tag component only exists for arm != 'off')."""
+    root = os.environ.get("FROZEN_BIAS_CKPT_ROOT", "/data/deltanet_rd_frozenbias_ckpts")
+    if arm == "off":
+        cell = f"frozenbias_lm_off_lam0p00_{corpus}_dm256_ds64_L2_s{seed}"
+    else:
+        lam_tag = f"lam{FROZEN_BIAS_LAMBDA:.2f}".replace(".", "p")
+        cell = f"frozenbias_lm_{arm}_{lam_tag}_{corpus}_dm256_ds64_L2_s{seed}"
+    return os.path.join(root, cell, f"lmC_{corpus}_dm256_ds64_L2_s{seed}_step20000.pt")
 
 
 def _assert_finite(name: str, value: float) -> None:
@@ -89,12 +122,20 @@ def _assert_finite(name: str, value: float) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--init-checkpoint", default=DEFAULT_INIT_CKPT)
+    ap.add_argument("--arm", choices=["off", "per_token", "global"], default="off",
+                     help="sec 16.16.9 MAJOR-5: which frozen-bias arm's checkpoint/blend path to "
+                          "exercise on real kernels -- phase2b_chain.sh runs this gate three times, "
+                          "once per arm, all three required to pass")
+    ap.add_argument("--init-checkpoint", default=None,
+                     help="defaults to default_init_checkpoint_for_arm(--arm, --corpus) if omitted")
     ap.add_argument("--corpus", default="openr1-mix-ext")
     ap.add_argument("--data-dir", default="/data/deltanet_rd_data")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--finegrained-steps", type=int, default=20)
     args = ap.parse_args()
+    if args.init_checkpoint is None:
+        args.init_checkpoint = default_init_checkpoint_for_arm(args.arm, args.corpus)
+    SMOKE_ARM = args.arm
     t0 = time.time()
 
     # -- Reality checks: this gate is meaningless under the CPU stub or off-GPU. Refuse loudly. --
@@ -205,19 +246,30 @@ def main() -> None:
             f"trajectory checkpoint {ck1['checkpoint_path']} is missing required fields "
             f"(keys: {sorted(payload.keys())})")
         gate = ck1["stage05_gate"]
-        assert gate is not None and isinstance(gate["gate_pass"], bool)
-        with open(gate["gate_json_path"]) as f:
-            gate_doc = json.load(f)
-        assert gate_doc["gate_k"] == gate_doc["gate_q"] == SMOKE_K, (
-            f"Stage-0.5 gate must run Q=K (MAJOR-2 fix): gate_k={gate_doc['gate_k']} "
-            f"gate_q={gate_doc['gate_q']}")
-        for field in ("recovered_frac", "cos_mean", "premise_iii_median", "premise_iv_median",
-                      "null_recovered_frac_mean"):
-            _assert_finite(f"stage05 gate per_h.1.{field}", gate_doc["per_h"]["1"][field])
-        print(f"[smoke] run_familiarization_cell end-to-end OK: 1 checkpoint at step 10 "
-              f"(optimizer_state_dict present), val_loss finite, stage05 gate Q=K={SMOKE_K} with "
-              f"finite premise stats (gate_pass={gate['gate_pass']} -- its VALUE is box-truth, "
-              f"only well-formedness is asserted here)", flush=True)
+        # sec 16.16.9 MAJOR-5 fix: the Stage-0.5 gate is registered OFF-arm-only
+        # (compute_stage05_gate's own `assert arm == "off"`, sec 16.2.1) -- for per_token/global,
+        # `gate` must be correctly None (mirrors phase2_stage_minus1.test_item_8's own
+        # per_token/global sub-check), never a fabricated/omitted assertion either way.
+        if SMOKE_ARM == "off":
+            assert gate is not None and isinstance(gate["gate_pass"], bool)
+            with open(gate["gate_json_path"]) as f:
+                gate_doc = json.load(f)
+            assert gate_doc["gate_k"] == gate_doc["gate_q"] == SMOKE_K, (
+                f"Stage-0.5 gate must run Q=K (MAJOR-2 fix): gate_k={gate_doc['gate_k']} "
+                f"gate_q={gate_doc['gate_q']}")
+            for field in ("recovered_frac", "cos_mean", "premise_iii_median", "premise_iv_median",
+                          "null_recovered_frac_mean"):
+                _assert_finite(f"stage05 gate per_h.1.{field}", gate_doc["per_h"]["1"][field])
+            print(f"[smoke] run_familiarization_cell end-to-end OK: 1 checkpoint at step 10 "
+                  f"(optimizer_state_dict present), val_loss finite, stage05 gate Q=K={SMOKE_K} with "
+                  f"finite premise stats (gate_pass={gate['gate_pass']} -- its VALUE is box-truth, "
+                  f"only well-formedness is asserted here)", flush=True)
+        else:
+            assert gate is None, (
+                f"arm={SMOKE_ARM!r}: the OFF-arm-only Stage-0.5 gate must be None, got {gate!r}")
+            print(f"[smoke] run_familiarization_cell end-to-end OK: 1 checkpoint at step 10 "
+                  f"(optimizer_state_dict present), val_loss finite, stage05_gate correctly None "
+                  f"(arm={SMOKE_ARM!r} is not OFF-arm-only)", flush=True)
 
         res2 = pft.run_familiarization_cell(
             args.init_checkpoint, SMOKE_ARM, args.corpus, 0, K=SMOKE_K, steps=11, ckpt_steps=[11],

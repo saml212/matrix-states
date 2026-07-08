@@ -29,7 +29,9 @@ Run: python phase2_stage_minus1.py
 """
 from __future__ import annotations
 
+import ast
 import glob
+import inspect
 import json
 import os
 import re
@@ -48,6 +50,10 @@ import phase2_familiarization_train as pft  # noqa: E402
 import phase2_gate_enforce as pge  # noqa: E402
 import phase2_bands_pinned as pbp  # noqa: E402
 import phase2_hexachotomy as phx  # noqa: E402
+import phase2_trajectory_analysis as pta  # noqa: E402  (sec 16.16, Phase-2b)
+import phase2b_off_cache as poc  # noqa: E402
+import phase2b_ckpt_reuse_gate as pcrg  # noqa: E402
+import phase2b_floor_gate_enforce as pfge  # noqa: E402
 
 import torch  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
@@ -758,6 +764,399 @@ def test_item_13_gate_q_equals_k():
                   "own returned gate_k/gate_q fields", True, f"K_SWEEP={pft.K_SWEEP}")
 
 
+# =============================================================================
+# Phase-2b (sec 16.16, Rev 2.2, DESIGN-CLEARED-FOR-BUILD) additions -- items 14-21.
+# =============================================================================
+
+def _references(func_or_module, identifier: str) -> bool:
+    """True iff `identifier` appears as a real Call/Attribute/Name node
+    OR as a dict-subscript key (e.g. r["per_h"][h]["recovered_frac"])
+    in `func_or_module`'s own source -- never merely inside a docstring
+    or comment. `ast.parse` drops comments outright, and a docstring is
+    a bare Expr(Constant(str)) node -- never a Subscript slice -- so
+    prose mentions stay immune. [Rev 2.2, round-4 MAJOR-R4-1: the
+    Subscript clause is LOAD-BEARING -- the dead sourcing this check
+    exists to detect is a dict-key string literal, which a
+    Name/Attribute-only walk ignores; the round-4 auditor demonstrated
+    the two-clause version passes vacuously against the pre-rewrite
+    module.]"""
+    tree = ast.parse(inspect.getsource(func_or_module))
+    return any(
+        (isinstance(n, ast.Name) and n.id == identifier)
+        or (isinstance(n, ast.Attribute) and n.attr == identifier)
+        or (isinstance(n, ast.Subscript)
+            and isinstance(n.slice, ast.Constant)
+            and n.slice.value == identifier)
+        for n in ast.walk(tree)
+    )
+
+
+def _synthetic_dead_pattern(off_r, h):
+    """Module-level (NOT nested -- `inspect.getsource` on a nested function returns
+    indentation-prefixed source that `ast.parse` cannot parse standalone) fixture for item 14's own
+    positive teeth-check: the EXACT dict-subscript dead-pattern shape (`off_r["per_h"][h]
+    ["recovered_frac"]`) the `_references` Subscript clause exists to detect."""
+    return off_r["per_h"][h]["recovered_frac"]
+
+
+def test_item_14_references_helper_and_dead_path_removal():
+    """sec 16.16.3 MAJOR-1 / round-4 MAJOR-R4-1's own registered Stage -1 obligation: the
+    EMPIRICAL teeth-run. Pre-rewrite, `_references(phase2_trajectory_analysis, "recovered_frac")`
+    was independently RE-CONFIRMED `True` this BUILD session (before the rewrite landed, against
+    the then-current module source -- recorded in the build report, not re-derivable here since the
+    pre-rewrite module no longer exists in the working tree). This item exercises the POST-rewrite
+    half, which MUST return `False`, PLUS a positive teeth-check (a synthetic function using the
+    EXACT dict-subscript dead-pattern shape must still be DETECTED, proving the Subscript clause is
+    load-bearing, not merely absent-by-accident)."""
+    assert _references(_synthetic_dead_pattern, "recovered_frac") is True, (
+        "_references FAILED its own positive teeth-check: a synthetic function using the EXACT "
+        "dict-subscript dead-pattern shape was not detected -- this is the exact vacuous-pass "
+        "failure mode round-4 MAJOR-R4-1 found and fixed")
+
+    post_module = _references(pta, "recovered_frac")
+    post_scoped = _references(pta.build_holds_and_gate_by_checkpoint, "gate_json_path_for")
+    assert post_module is False, (
+        "POST-REWRITE teeth-run FAILED: phase2_trajectory_analysis still references "
+        "'recovered_frac' -- the dead d_state-space sourcing was not actually removed "
+        "(sec 16.16.3 MAJOR-1)")
+    assert post_scoped is False, (
+        "POST-REWRITE teeth-run FAILED: build_holds_and_gate_by_checkpoint still references "
+        "'gate_json_path_for' -- the dead Stage-0.5 gate-JSON read was not actually removed")
+    assert not hasattr(pta, "gate_json_path_for"), (
+        "gate_json_path_for should be DELETED from phase2_trajectory_analysis.py entirely, not "
+        "merely unused at this one call site")
+
+    _report("14", "_references AST helper (round-4 MAJOR-R4-1's Subscript-clause fix): positive "
+                  "teeth-check on a synthetic dict-subscript dead-pattern PASSES; POST-REWRITE "
+                  "structural checks confirm phase2_trajectory_analysis no longer references "
+                  "'recovered_frac' anywhere and build_holds_and_gate_by_checkpoint no longer "
+                  "references 'gate_json_path_for' (which is deleted from the module entirely) -- "
+                  "PRE-REWRITE True side independently re-confirmed this build session (see the "
+                  "build report's own teeth-run output, not re-derivable post-rewrite)", True,
+            f"post_module_recovered_frac={post_module} post_scoped_gate_json_path_for={post_scoped}")
+
+
+def test_item_15_no_surgery_on_eval_lquery_heldout():
+    """sec 16.16.3's 'Surgery-mode scope, pinned' paragraph / sec 16.16.9 Stage -1 item (d)
+    (MAJOR-R2-2, re-pinned AST-level Rev 2.1 MINOR-R3-1): eval-(B) must run the frozen-bias blend
+    NATIVELY -- `eval_query_loss_heldout` and the `query_loss_forward` it wraps must NEVER
+    reference `frozen_bias_surgery`, mechanically proving the reported effect stays the arm's whole
+    causal package (sec 16.16.1), never silently narrowed to the un-built isolated-contrast
+    follow-on."""
+    no_surgery_eval = not _references(pta.eval_query_loss_heldout, "frozen_bias_surgery")
+    no_surgery_qlf = not _references(pft.query_loss_forward, "frozen_bias_surgery")
+    assert no_surgery_eval, (
+        "eval_query_loss_heldout references frozen_bias_surgery -- eval-(B) must run the blend "
+        "NATIVELY, never force-off (sec 16.16.3)")
+    assert no_surgery_qlf, (
+        "query_loss_forward (the function eval_query_loss_heldout wraps) references "
+        "frozen_bias_surgery")
+    _report("15", "AST-level no-surgery assertions: eval_query_loss_heldout and the "
+                  "query_loss_forward it wraps never reference frozen_bias_surgery -- eval-(B) "
+                  "measures the arm's whole causal package natively, never a surgically-isolated "
+                  "slice (sec 16.16.3/16.16.9 item (d))", True)
+
+
+def test_item_16_ftttt_persistent_behavioral_test():
+    """sec 16.16.3 item 3(i)+(ii) / sec 16.16.9's own registered Stage -1 obligation: stubs
+    `phase2b_load_eval_model` (returning a sentinel carrying `(arm, checkpoint_step)` as plain
+    attributes, parsed straight out of the REAL `ckpt_path_for(...)` filename convention) and
+    `eval_query_loss_heldout` (an engineered lookup table, K=32 separated / K=20 indistinguishable)
+    through the REAL `delta_ci_n3` -> `phx.det` -> `phx.holds` chain running INSIDE the rewritten
+    `build_holds_and_gate_by_checkpoint` -- never a hand-built `holds_by_c` dict. Asserts
+    PERSISTENT, never UNRESOLVED-GATE (Rev-4's own FTTTT reference pattern, c1=500).
+
+    **Build-time resolution, disclosed** (this project's "resolved during BUILD" convention): sec
+    16.16.3's own phrasing describes the lookup table as "per-(arm-or-off, checkpoint, K, seed)" --
+    but the REWRITTEN function's own OFF branch reads `off_vals` from a directly-supplied
+    `off_cache` dict (NEVER calling `phase2b_load_eval_model`/`eval_query_loss_heldout` at all, per
+    Rev 2's own OFF-eval-cache fix MAJOR-R2-3, and Rev 2.2's own "exactly TWO callers"
+    harmonization, round-4 MINOR-R4-2 -- `killer_prediction_readout`'s off branch is NOT one of
+    those two callers). This test therefore supplies `off_vals` via an in-memory `off_cache` dict
+    (exactly mirroring the REAL production data flow) and stubs `phase2b_load_eval_model`/
+    `eval_query_loss_heldout` ONLY for the non-off arm side -- a MORE faithful exercise of the
+    actual committed code path than routing `off` through the stub would be."""
+    import re as _re
+    import types
+
+    K32, K20 = 32, 20
+    CORPUS, ARM = "openr1-mix-ext", "global"
+    CKPT_DIR = "/fake/ckpt/dir"   # never touched -- phase2b_load_eval_model is stubbed below
+
+    # Engineered off_cache (K=32, hop_set=H_TRAIN): straddles zero at c=250; clean positive
+    # separation (off > arm, i.e. arm's loss is lower = arm helps) at c in {500,1000,2500,5000}.
+    off_by_c_k32 = {250: [3.00, 3.10, 2.90], 500: [3.00, 3.05, 2.95], 1000: [3.10, 3.15, 3.05],
+                     2500: [3.20, 3.25, 3.15], 5000: [3.30, 3.35, 3.25]}
+    off_by_c_k20 = {250: [3.00, 3.05, 2.95], 500: [3.02, 3.07, 2.97], 1000: [3.04, 3.09, 2.99],
+                     2500: [3.06, 3.11, 3.01], 5000: [3.08, 3.13, 3.03]}
+    # K=20: indistinguishable from arm at EVERY checkpoint (never a constant across checkpoints --
+    # each c's own values are offset, but the off-arm DELTA pattern straddles zero throughout).
+    arm_by_c_k32 = {500: [2.00, 2.05, 1.95], 1000: [2.00, 2.05, 1.95],
+                     2500: [2.00, 2.05, 1.95], 5000: [2.00, 2.05, 1.95]}
+    arm_by_c_k32[250] = [3.05, 2.95, 3.00]
+    arm_by_c_k20 = {250: [3.02, 2.98, 3.00], 500: [3.04, 3.00, 3.02], 1000: [3.06, 3.02, 3.04],
+                     2500: [3.08, 3.04, 3.06], 5000: [3.10, 3.06, 3.08]}
+
+    off_cache = {}
+    for c in phx.CHECKPOINTS:
+        for s in range(3):
+            off_cache[pta.off_cache_key(CORPUS, s, K32, c, pft.H_TRAIN)] = off_by_c_k32[c][s]
+            off_cache[pta.off_cache_key(CORPUS, s, K20, c, pft.H_TRAIN)] = off_by_c_k20[c][s]
+
+    def _fake_load_eval_model(ckpt_path, device):
+        m = _re.search(r"phase2fam_(\w+)_.+_s\d+_step(\d+)\.pt$", ckpt_path)
+        assert m, f"unexpected ckpt_path shape: {ckpt_path!r}"
+        return types.SimpleNamespace(arm=m.group(1), checkpoint_step=int(m.group(2)))
+
+    arm_lookup = {}
+    for c in phx.CHECKPOINTS:
+        for s in range(3):
+            arm_lookup[(K32, c, s)] = arm_by_c_k32[c][s]
+            arm_lookup[(K20, c, s)] = arm_by_c_k20[c][s]
+    call_log = []
+
+    def _fake_eval_query_loss_heldout(model, K, hop_set, corpus, ckpt_seed, checkpoint_step,
+                                       batch_size=16, device="cpu"):
+        assert model.arm == ARM, (
+            f"eval_query_loss_heldout stub reached for arm={model.arm!r}, expected {ARM!r} -- "
+            f"'off' must NEVER reach this stub (it reads off_cache instead)")
+        assert model.checkpoint_step == checkpoint_step
+        assert tuple(hop_set) == tuple(pft.H_TRAIN)
+        call_log.append((K, checkpoint_step, ckpt_seed))
+        return arm_lookup[(K, checkpoint_step, ckpt_seed)]
+
+    orig_load, orig_eval = pta.phase2b_load_eval_model, pta.eval_query_loss_heldout
+    pta.phase2b_load_eval_model = _fake_load_eval_model
+    pta.eval_query_loss_heldout = _fake_eval_query_loss_heldout
+    try:
+        result = pta.build_holds_and_gate_by_checkpoint(CKPT_DIR, ARM, CORPUS, off_cache,
+                                                           K_pair=(K32, K20), device="cpu")
+    finally:
+        pta.phase2b_load_eval_model, pta.eval_query_loss_heldout = orig_load, orig_eval
+
+    assert call_log, "eval_query_loss_heldout stub was never called -- the arm branch didn't fire"
+
+    expected_holds = {250: False, 500: True, 1000: True, 2500: True, 5000: True}   # FTTTT
+    assert result["holds_by_c"] == expected_holds, (
+        f"engineered lookup table did not reproduce FTTTT through the REAL "
+        f"delta_ci_n3->det->holds chain: got {result['holds_by_c']}, expected {expected_holds}")
+    assert result["stage05_pass_by_c"] == {c: True for c in phx.CHECKPOINTS}, (
+        "stage05_pass_by_c must be unconditionally True at every checkpoint post-rewrite (sec "
+        "16.16.3 item 2 -- the per-checkpoint Stage-0.5 gate is RETIRED for Phase-2b)")
+
+    classification = phx.classify_trajectory(
+        holds_by_c=result["holds_by_c"], stage05_pass_by_c=result["stage05_pass_by_c"],
+        det_arm_global_5000=True, det_arm_per_token_5000=True, agree_5000=True)
+    assert classification["outcome"] == "PERSISTENT" and classification["c1"] == 500, (
+        f"expected PERSISTENT/c1=500 (Rev-4's own FTTTT reference pattern), got {classification} "
+        f"-- if this resolves to UNRESOLVED-GATE instead, the rewrite has silently reverted to "
+        f"burying a real finding as a gate artifact (the exact MAJOR-1 failure mode this rewrite "
+        f"exists to fix)")
+
+    _report("16", "FTTTT PERSISTENT behavioral test: an engineered off_cache + a stubbed "
+                  "phase2b_load_eval_model/eval_query_loss_heldout pair, run through the REAL "
+                  "delta_ci_n3->phx.det->phx.holds chain INSIDE the rewritten "
+                  "build_holds_and_gate_by_checkpoint, reproduces holds_by_c=FTTTT and classifies "
+                  "PERSISTENT/c1=500 (never UNRESOLVED-GATE) -- proves the rewrite has teeth, not "
+                  "merely that classify_trajectory itself works on a hand-built dict",
+            True, f"n_arm_calls={len(call_log)}")
+
+
+def test_item_17_arm_vs_checkpoint_config_assertion():
+    """sec 16.16.9 Stage -1 item (c) (MINOR-3, attack-round-1 on sec 16.16): run_familiarization_cell
+    must REFUSE (AssertionError, before any training step) when --arm disagrees with the init
+    checkpoint's own baked frozen_bias_arm config field, rather than silently training with a
+    mismatched pairing. The MATCHING-arm positive case is already exercised end-to-end by item 8's
+    own off/per_token/global sub-checks; this item adds the NEGATIVE control those never exercised."""
+    with tempfile.TemporaryDirectory() as td:
+        data_dir = _build_synthetic_data_dir(td)
+        off_init = _build_synthetic_init_checkpoint(td, arm="off")
+
+        raised = False
+        try:
+            pft.run_familiarization_cell(
+                init_checkpoint=off_init, arm="global", corpus="openr1-mix-ext", ckpt_seed=0, K=20,
+                steps=2, ckpt_steps=[2], lambda_fam=1.0, lr=3e-4, weight_decay=0.0, warmup_steps=1,
+                corpus_batch_size=4, episode_batch_size=4, gate_batch_size=4, seq_len=128,
+                eval_batches=1, eval_batch_size=2, data_dir=data_dir, device="cpu",
+                ckpt_dir=os.path.join(td, "mismatch_ckpts"),
+                out_path=os.path.join(td, "mismatch_result.json"), resume=False)
+        except AssertionError as e:
+            raised = True
+            assert "does not match" in str(e), f"wrong assertion message: {e}"
+        assert raised, "run_familiarization_cell did NOT refuse a mismatched --arm/checkpoint pairing"
+
+    _report("17", "sec 16.16.9 MINOR-3: run_familiarization_cell REFUSES (AssertionError, before "
+                  "any training step) when --arm='global' is paired with an off-arm-baked init "
+                  "checkpoint -- the matching-arm positive case is already exercised end-to-end by "
+                  "item 8's own off/per_token/global sub-checks", True)
+
+
+def test_item_18_new_seed_kinds_present_and_collision_free():
+    """sec 16.16.9 Stage -1 item (a): the two new phase2_seed kinds' own collision-freedom,
+    extending item 9's exhaustive-enumeration proof. Item 9 already iterates `pft._KIND_OFFSET`
+    DYNAMICALLY (`for kind in pft._KIND_OFFSET:`), so the two new kinds below are automatically
+    included in that item's own full cross-kind collision-freedom sweep -- this item adds an
+    EXPLICIT presence/offset check (a future accidental deletion of either new kind would silently
+    shrink item 9's own coverage without any other visible failure) plus a standalone,
+    targeted collision check over the new kinds' own full grid."""
+    assert pft._KIND_OFFSET.get("eval_lquery_heldout") == 6, (
+        f"eval_lquery_heldout must be registered at offset 6, got "
+        f"{pft._KIND_OFFSET.get('eval_lquery_heldout')!r}")
+    assert pft._KIND_OFFSET.get("eval_lquery_ood") == 7, (
+        f"eval_lquery_ood must be registered at offset 7, got "
+        f"{pft._KIND_OFFSET.get('eval_lquery_ood')!r}")
+    assert len(pft._KIND_OFFSET) == len(set(pft._KIND_OFFSET.values())), (
+        "duplicate kind offsets -- the two new kinds collide with an existing one")
+
+    seen = {}
+    n_checked = 0
+    for kind in ("eval_lquery_heldout", "eval_lquery_ood"):
+        for arm in pft._ARM_INDEX:
+            for corpus in ("openr1-mix-ext", "wikitext-mix-ext"):
+                for ckpt_seed in range(3):
+                    for k in pft.K_SWEEP:
+                        for c in (0, *pft.CKPT_STEPS):
+                            s = pft.phase2_seed(kind, arm, corpus, ckpt_seed, k, c)
+                            key = (kind, arm, corpus, ckpt_seed, k, c)
+                            assert s not in seen, f"seed collision: {key} and {seen[s]} both -> {s}"
+                            seen[s] = key
+                            n_checked += 1
+    _report("18", "the 2 new phase2_seed kinds (eval_lquery_heldout=6, eval_lquery_ood=7) are "
+                  "registered at their pinned offsets and collision-free over their own full grid "
+                  "(cross-kind collision-freedom, incl. vs. every pre-existing kind, is already "
+                  "covered automatically by item 9's own dynamic _KIND_OFFSET iteration)",
+            True, f"n_checked={n_checked}")
+
+
+def test_item_19_arm_independent_pairing_device():
+    """sec 16.16.2 item 3 / sec 16.16.3's "Pairing device" paragraph: `eval_query_loss_heldout` has
+    NO `arm` parameter at all (structural guarantee, this build's own strengthening of the design's
+    illustrative signature) -- every (arm-or-off) checkpoint scored at the SAME (corpus, ckpt_seed,
+    K, checkpoint_step, hop_set) must therefore draw the IDENTICAL held-out episode. Positive proof:
+    two DIFFERENT freshly-constructed models (standing in for off vs. a non-off arm -- same config,
+    independent weight draws) score the SAME (corpus, ckpt_seed, K, checkpoint_step) and must
+    receive byte-identical batches, proving the SEED -- not the model identity -- determines the
+    drawn episode. PLUS a negative control (a different checkpoint_step draws a different episode)."""
+    torch.manual_seed(0)
+    model_a = lpr.DeltaNetLM(V_REAL, d_model=32, d_state=64, n_layers=1, conv_size=4)
+    torch.manual_seed(1)   # a DIFFERENT weight draw -- a genuinely different model instance
+    model_b = lpr.DeltaNetLM(V_REAL, d_model=32, d_state=64, n_layers=1, conv_size=4)
+
+    captured = []
+    orig_sample = grammar_rd.sample_batch_rd
+    def _spying_sample_batch_rd(*a, **kw):
+        batch = orig_sample(*a, **kw)
+        captured.append({"entity_ids": batch["entity_ids"].clone(), "hops": batch["hops"].clone(),
+                          "tgt_slot": batch["tgt_slot"].clone()})
+        return batch
+    grammar_rd.sample_batch_rd = _spying_sample_batch_rd
+    try:
+        pta.eval_query_loss_heldout(model_a, K=20, hop_set=pft.H_TRAIN, corpus="openr1-mix-ext",
+                                     ckpt_seed=0, checkpoint_step=250, batch_size=4, device="cpu")
+        pta.eval_query_loss_heldout(model_b, K=20, hop_set=pft.H_TRAIN, corpus="openr1-mix-ext",
+                                     ckpt_seed=0, checkpoint_step=250, batch_size=4, device="cpu")
+    finally:
+        grammar_rd.sample_batch_rd = orig_sample
+
+    assert len(captured) == 2, f"expected exactly 2 sample_batch_rd draws, got {len(captured)}"
+    a, b = captured
+    assert torch.equal(a["entity_ids"], b["entity_ids"]), (
+        "entity_ids differ across two DIFFERENT models at the SAME (corpus,ckpt_seed,K,"
+        "checkpoint_step) -- the pairing device is broken")
+    assert torch.equal(a["hops"], b["hops"]), "hops differ -- the pairing device is broken"
+    assert torch.equal(a["tgt_slot"], b["tgt_slot"]), "tgt_slot differs -- the pairing device is broken"
+
+    # NEGATIVE control (proves the positive check has teeth): a DIFFERENT checkpoint_step must
+    # draw a DIFFERENT episode.
+    captured.clear()
+    grammar_rd.sample_batch_rd = _spying_sample_batch_rd
+    try:
+        pta.eval_query_loss_heldout(model_a, K=20, hop_set=pft.H_TRAIN, corpus="openr1-mix-ext",
+                                     ckpt_seed=0, checkpoint_step=500, batch_size=4, device="cpu")
+    finally:
+        grammar_rd.sample_batch_rd = orig_sample
+    assert not torch.equal(a["entity_ids"], captured[0]["entity_ids"]), (
+        "NEGATIVE FAILED TO FAIL: a different checkpoint_step drew an IDENTICAL episode -- the "
+        "seed formula may not actually be checkpoint-differentiated, so the positive check above "
+        "would have no teeth")
+
+    _report("19", "arm-independent pairing device: eval_query_loss_heldout draws the IDENTICAL "
+                  "held-out episode (entity_ids/hops/tgt_slot) for two DIFFERENT model instances at "
+                  "the SAME (corpus, ckpt_seed, K, checkpoint_step) -- structural, since the "
+                  "function has no arm parameter at all -- PLUS a negative control (a different "
+                  "checkpoint_step draws a genuinely different episode)", True)
+
+
+def test_item_20_phase2b_gate_selftests():
+    """sec 16.16.8/16.16.6's own registered negative tests, wired into Stage -1 (mirrors item 6's/
+    item 7's own existing convention of calling a gate module's `_run_selftest()` from here rather
+    than requiring a separate chain step)."""
+    ok1 = pcrg._run_selftest()
+    assert ok1, "phase2b_ckpt_reuse_gate's own negative-test fixture suite FAILED"
+    ok2 = pfge._run_selftest()
+    assert ok2, "phase2b_floor_gate_enforce's own negative-test fixture suite FAILED"
+    _report("20", "phase2b_ckpt_reuse_gate --selftest (sha256 reuse gate, MINOR-1's own "
+                  "corrupt-one-byte negative test, sec 16.16.8) AND phase2b_floor_gate_enforce "
+                  "--selftest (OFF-floor gate, sec 16.16.6, incl. the cross-pin reclassification "
+                  "fixture) both PASSED", True)
+
+
+def test_item_21_off_cache_and_floor_pin_round_trip():
+    """phase2b_off_cache.py's own pure-function mechanism (cache write/read, FLOOR_PIN derivation,
+    FLOOR_PINNED write/validate tamper-evidence, timing-pilot projection) -- CPU-only, no real
+    checkpoint or GPU needed. Mirrors phase2_bands_pinned's own write/validate/tamper-detect Stage
+    -1 convention (item 7)."""
+    with tempfile.TemporaryDirectory() as td:
+        cache = {}
+        for corpus, base in [("openr1-mix-ext", 4.7), ("wikitext-mix-ext", 4.8)]:
+            for s, jitter in enumerate([0.0, 0.05, -0.05]):
+                for c in phx.CHECKPOINTS:
+                    frac = {250: 1.0, 500: 0.9, 1000: 0.8, 2500: 0.65, 5000: 0.6}[c]
+                    v = (base + jitter) * frac
+                    for K in poc.K_VALUES:
+                        for hop_set in poc.HOP_SETS:
+                            cache[pta.off_cache_key(corpus, s, K, c, hop_set)] = v
+
+        cache_path = os.path.join(td, "off_lquery_cache-Phase2b.json")
+        floor_path = os.path.join(td, "FLOOR_PINNED-Phase2b.json")
+        poc.write_off_lquery_cache(cache_path, cache)
+        loaded = poc.load_off_lquery_cache(cache_path)
+        assert loaded == cache, "off_lquery_cache round-trip mismatch"
+
+        floor_data = poc.compute_floor_ratios_and_pin(cache)
+        assert set(floor_data) == {"openr1-mix-ext", "wikitext-mix-ext"}
+        for corpus, d in floor_data.items():
+            assert d["pooled_ratio"] < 1.0, f"{corpus}: synthetic fixture ratio should fall (<1.0)"
+
+        doc = poc.write_floor_pinned(floor_path, floor_data, cache_path)
+        assert doc["floor_by_corpus"] == floor_data
+        v = poc.validate_floor_pinned(floor_path)
+        assert v is not None, "FLOOR_PINNED validation FAILED on untampered data"
+        pin = poc.read_floor_pin(floor_path, "openr1-mix-ext")
+        assert abs(pin - floor_data["openr1-mix-ext"]["floor_pin"]) < 1e-9
+
+        # NEGATIVE: tamper with the cache file AFTER pinning -> validation must reject.
+        with open(cache_path, "a") as f:
+            f.write(" ")
+        assert poc.validate_floor_pinned(floor_path) is None, (
+            "FLOOR_PINNED validation did NOT reject a tampered off_lquery_cache-Phase2b.json")
+
+        # Timing-pilot projection, pure function: the registered reference rate reproduces the
+        # design's own ~2.06/~20.6 GPU-h figures; the disclosed 16x alternative rate correctly
+        # aborts (sec 16.16.11 item 1's own open concern).
+        proj_ok = poc.project_and_gate_timing_pilot(0.0022 * 3600)
+        assert proj_ok["ok"] is True and abs(proj_ok["projected_raw_total_gpu_h"] - 2.056) < 0.01
+        proj_bad = poc.project_and_gate_timing_pilot(0.0348 * 3600)
+        assert proj_bad["ok"] is False
+
+    _report("21", "phase2b_off_cache.py: off_lquery_cache round-trip, FLOOR_PIN derivation, "
+                  "FLOOR_PINNED write/validate/tamper-detect (positive + negative), read_floor_pin, "
+                  "and the timing-pilot projection (registered rate passes near the design's own "
+                  "2.06/20.6 GPU-h figures; the disclosed 16x alternative rate correctly aborts)",
+            True)
+
+
 ALL_ITEMS = [
     test_item_1_ckpt_steps, test_item_2_init_checkpoint, test_item_3_periodicity_guard,
     test_item_4_query_loss_forward, test_item_5_hexachotomy_totality,
@@ -765,13 +1164,23 @@ ALL_ITEMS = [
     test_item_8_e2e_familiarization_cell, test_item_9_seed_non_collision,
     test_item_10_killer_prediction_seed_override, test_item_11_budget_guard_negative_test,
     test_item_12_heldout_entity_pool_wiring, test_item_13_gate_q_equals_k,
+    # Phase-2b (sec 16.16, Rev 2.2) additions:
+    test_item_14_references_helper_and_dead_path_removal,
+    test_item_15_no_surgery_on_eval_lquery_heldout,
+    test_item_16_ftttt_persistent_behavioral_test,
+    test_item_17_arm_vs_checkpoint_config_assertion,
+    test_item_18_new_seed_kinds_present_and_collision_free,
+    test_item_19_arm_independent_pairing_device,
+    test_item_20_phase2b_gate_selftests,
+    test_item_21_off_cache_and_floor_pin_round_trip,
 ]
 
 
 def run_all_selftests() -> bool:
     print("=" * 70)
-    print("PHASE-2 (task familiarization) Stage -1 SELF-TESTS -- 13 items, REASONING_LINK_DESIGN.md "
-          "sec 16.2 (Rev 5, CLEARED-FOR-BUILD) + build-audit fixes (sec 16.14)")
+    print("PHASE-2 (task familiarization) Stage -1 SELF-TESTS -- 21 items, REASONING_LINK_DESIGN.md "
+          "sec 16.2 (Rev 5, CLEARED-FOR-BUILD) + build-audit fixes (sec 16.14) + Phase-2b (sec "
+          "16.16, Rev 2.2, DESIGN-CLEARED-FOR-BUILD) items 14-21")
     print(f"fla_stub_installed={rlp.FLA_STUB_INSTALLED}")
     print("=" * 70)
     t0 = time.time()
