@@ -5297,16 +5297,31 @@ same tree: `/Volumes/1TB_SSD/learned-representations/experiment-runs/
 
 ---
 
-## §15.26 DESIGN — d=96 SCATTER-RESOLUTION wave (Rev 0, pre-attack), 2026-07-08
+## §15.26 DESIGN — d=96 SCATTER-RESOLUTION wave (Rev 1, RESHAPE-TO-C), 2026-07-08
 
-**Status: DESIGN-ONLY DRAFT (Rev 0), pending an independent attack round
-before CLEARED-FOR-BUILD** — written under this program's own standing
-discipline (§15.20/§15.24's own header precedent): every number below is
-either cited to an already-run artifact (§15.22's realized per-cell
-`wall_s`, §15.25's per-K per-seed h4 table) or freshly re-derived this
-session directly from the raw JSONs / a purpose-built, RUN-THIS-SESSION,
-CPU-only power-check script (§15.26.1) — never carried over by
-assumption. No GPU cell has launched under this design.
+**Status: Rev 1, responding to an independent attack round that returned
+verdict RESHAPE-TO-C (3 MAJOR + 1 MINOR, §15.26.9's own fix-map table,
+house style) — every finding fixed below, none deferred. Rev 1 itself
+has not yet had its own independent audit pass (attack round 2 pending)
+before CLEARED-FOR-BUILD.** RESHAPE-TO-C means: neither straight
+NEEDS-REVISION-and-relaunch-the-same-10-cell-design, nor a pure kill —
+the wave's central empirical ambition (spend 4.27–8.54 GPU-h escalating
+`n=3→5` at all 5 K-groups to see whether the d=96 h4(K/d) sigmoid fit
+de-degenerates) is retired because its own pre-registered power check
+already answers the question it was funded to ask, at zero GPU cost;
+the wave's INFORMATION VALUE is preserved by registering that answer
+directly (§15.26.1); and a differently shaped, much smaller (2 cells,
+≈0.9 GPU-h), sharper instrument — a control diagnostic targeting Rev 0's
+own single most important disclosed loose end, the K90 pool-margin
+confound — is substituted in the freed budget (§15.26.2). Every number
+below is either cited to an already-run artifact (§15.22's realized
+per-cell `wall_s`, §15.25's per-K per-seed h4 table, this session's own
+freshly-run 7-seed/280,000-trial extended power check and independent
+reimplementation, §15.26.1) or freshly re-derived this session
+directly against the live `grammar_rd.py`/`run_deltanet_rd.py` source
+and the raw archived JSONs (§15.26.2.1) — never carried over by
+assumption. No GPU cell has launched under this design; Rev 1 is still
+design-only.
 
 ### 15.26.0 What this wave is, and what it explicitly does NOT reopen
 
@@ -5314,53 +5329,69 @@ assumption. No GPU cell has launched under this design.
 (`K∈{69,72,78,84,90}`, n=3 seeds/K) is **AMBIGUOUS** — not from a data
 gap (that closed cleanly, §15.25.4's unlock) but from genuine,
 non-monotonic scatter: `sigmoid_fit` pins at both its own upper bounds
-(`x0=0.9, L=1.2`), bootstrap `degenerate_frac=1.0000`. §15.20 Rev 1's own
-row-1b follow-up ("seed escalation at the noisiest K-group") is already
-registered; this design extends that follow-up from "K72 alone" to
-**every one of the 5 K-groups** (+2 seeds/K, n=3→5), on the grounds
-(developed at §15.26.1) that the degeneracy is not confined to K72's own
-noise.
+(`x0=0.9, L=1.2`), bootstrap `degenerate_frac=1.0000`. **Rev 0 proposed
+extending §15.20 Rev 1's own row-1b follow-up ("seed escalation at the
+noisiest K-group") from "K72 alone" to all 5 K-groups (+2 seeds/K,
+n=3→5, 10 cells) to tighten that verdict. The attack round found this
+premise self-defeating: Rev 0's OWN pre-registered power check
+(§15.26.1) already shows, at zero GPU cost, that this tightening cannot
+plausibly change the verdict's direction — so Rev 1 registers the AMBIGUOUS
+finding directly instead of spending 4.27–8.54 GPU-h to re-confirm it,
+and redirects the freed budget to a small, sharper instrument (the K90
+pool-margin control diagnostic, §15.26.2) targeting Rev 0's own most
+important disclosed loose end.**
 
 **Explicitly NOT reopened, per this program's own "never reopens or
 rescores" precedent (§15.1/§15.19/§15.22/§15.24.0):**
 
 1. §15.25.4's own admission-flag unlock (11 cells, `False→True`) —
-   unchanged, not re-litigated. This wave's 10 NEW cells are fresh
-   launches under a corrected PRODUCTION setting (§15.26.3), not a
-   re-score of the existing 15.
+   unchanged, not re-litigated.
 2. §15.23's own anchor-table finding (NS at n_iter=20 has ~7,000×
    margin on the anchor table itself) — closed, not re-tested.
 3. §15.24's own C17 mechanism diagnosis (the failure is 100%
    `C17_heldout_entities`-exclusive, architecturally anchor-bypassed) —
-   closed, not re-tested; this wave's own gate (§15.26.3) explicitly
-   checks whether that diagnosis GENERALIZES to K∈{69,72,78,90} (only
-   K=84/seed=1940 was ever episode-level tested), disclosed as an open
-   question this wave's own launch will answer empirically, not assumed.
-4. **Build-scope fence, restated:** this design's own build tasks touch
-   `run_deltanet_rd_exactness_sweep.py` only (one new additive-only
-   override dict + one new spec-builder function, §15.26.3) plus one new
-   standalone CPU-only analysis script (already written and run this
-   session, §15.26.1). No `phase2_*` file, no `lm_pretrain_rd.py`,
-   no change to the EXISTING `KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K`
-   dict's own entries (preserves the ORIGINAL/wide-grid manifest-
-   regression invariant, §15.20.1 Stage-1 item 5).
+   closed, not re-tested. This diagnostic's own 2 cells (§15.26.2) will
+   incidentally exercise this gate again at K∈{84,90} under the
+   corrected `n_iter=28` production setting (§15.26.3), disclosed as an
+   open empirical question its own launch answers, not assumed.
+4. **Build-scope fence, restated for Rev 1's own (much smaller) build
+   surface:** the killed 10-cell grid's own registered build tasks
+   (`run_deltanet_rd_exactness_sweep.py` additive override + spec-builder
+   function) are retired unbuilt with it. Rev 1's OWN build tasks: one
+   new optional, additive-only parameter on `evaluate_pool`
+   (`restrict_entity_pool_n`, §15.26.2.2), one new additive eval call in
+   `train()`'s checkpoint block gated by a new `m3_pool_restrict_n`
+   parameter (same file, same additive discipline), and one new
+   standalone launch wrapper (`run_poolmargin_k84s1943_k90s2043.py`,
+   §15.26.3.1) — plus the two CPU-only analysis scripts already written
+   and run this session (§15.26.1, Rev 0's own original + this Rev 1's
+   own extended verification). No `phase2_*` file, no
+   `lm_pretrain_rd.py`, no change to the EXISTING
+   `KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K` dict's own entries (preserves
+   the ORIGINAL/wide-grid manifest-regression invariant, §15.20.1
+   Stage-1 item 5).
 
-### 15.26.1 Hypothesis and power sketch (RUN THIS SESSION, CPU-only)
+### 15.26.1 Part 1 — the registered finding (zero GPU)
 
-**One-sentence hypothesis:** adding 2 real seeds/K (n=3→5) at
-`K∈{69,72,78,84,90}, d=96` will tighten each K-group's own SE by the
-sampling-theory factor `sqrt(5/3)=1.2910×` — but whether that tightening
-is enough to de-degenerate `fit_cliff_curve.py`'s sigmoid fit depends on
-whether the CURRENT non-monotonic shape is sampling noise around a true
-monotonic decline, or a real feature of the population means.
+**The finding, registered directly from the existing n=3 data + a now
+multiply-independently-confirmed power analysis, no new GPU cell
+required:**
 
-**Re-derived per-K stats (independently re-verified this session
-directly against the raw JSONs in
-`experiment-runs/2026-07-07_keyanchor_scaling_wide/results/
-deltanet_rd_exactness/wavekeyanchor-scaling-wide/*.json`,
-`checkpoints[-1]['M3_held_out']['4']['recovered_frac@0.9']` +
-`geo3_admission.admissible` — matches §15.25.5's table to 4 decimal
-places, not re-typed from that prose):**
+> No cliff to K/d=0.9375; h4 near ceiling is seed-dependent and
+> non-sigmoid in this window; x0(96) is unlocalizable with this
+> instrument.
+
+This is the SAME published statement §15.25.6's own mechanical verdict
+already reached (AMBIGUOUS, `degenerate_frac=1.0000`, `sigmoid_fit`
+pinned at both its own upper bounds) — Rev 1 does not change the
+verdict, it changes what's SPENT to stand behind it: zero GPU, versus
+the killed grid's own 4.27–8.54 GPU-h.
+
+**Power justification, part (i) — REUSED unchanged from Rev 0, still the
+foundation:** the existing per-K stats (independently re-verified
+directly against the raw JSONs, `checkpoints[-1]['M3_held_out']['4']
+['recovered_frac@0.9']`, matching §15.25.5's own table to 4 decimal
+places):
 
 | K | K/d | n | mean h4 | sample sd | SE(n=3) | SE(n=5, projected) |
 |---|---|---|---|---|---|---|
@@ -5370,50 +5401,16 @@ places, not re-typed from that prose):**
 | 84 | 0.87500 | 3 | 0.9581 | 0.0222 | 0.0128 | 0.0099 |
 | 90 | 0.93750 | 3 | 1.0000 | 0.0000 | 0.0000 | 0.0000 |
 
-Per-K sd range at n=3: **0.0000–0.0745** (matches the task brief's own
-"~0.02–0.09" bracket once K90's degenerate zero-variance ceiling is set
-aside as the special case it structurally is). `SE(n=3)/SE(n=5) =
-sqrt(5/3) = 1.2910` exactly, confirming the task brief's own "~1.29×"
-figure independently, not merely reciting it.
-
-**A purpose-built, CPU-only power-check script was written and RUN this
-session** (`matrix-thinking/deltanet_rd/sim_d96_scatter_resolution_
-power.py`, imports `sigmoid`/bounds from `sim_cliff_power.py` unmodified,
-mirrors `sim_cliff_power_wide_grid.py`'s own §15.20.4 MAJOR-2 precedent:
-a purpose-built driver, promoted to a pre-launch, RUN-THIS-SESSION check
-rather than a hand-waved estimate) — 20,000 trials each, seed 20260708,
-archived at `experiment-runs/2026-07-08_d96_scatter_resolution_design/`.
-Per trial: hold the 3 REAL, already-archived seeds at each K FIXED
-(never re-drawn), draw 2 NEW synthetic seeds from a per-K null, take the
-mean-of-5, fit the sigmoid ONCE (byte-identical form/bounds/maxfev to
-`fit_cliff_curve.fit_sigmoid`), and record whether that single fit is
-degenerate (pinned within 1% of a bound) and whether the resulting
-5-point mean curve is itself monotonically non-increasing.
-
-**Two nulls, both pre-registered before running:**
-
-- **H0 "SCATTER-IS-REAL":** the 2 new draws at each K ~ `N(that K's own
-  observed mean, that K's own observed sd)` — "if nothing changes."
-- **H1 "DIP-IS-NOISE":** K69/K84/K90's true means are left AT their own
-  observed values (unchanged); K72/K78 (the two K's driving the observed
-  dip) have their assumed TRUE mean replaced by the K69→K84 linear
-  interpolation at that K's own K/d (≈0.9589 at K72, ≈0.9585 at K78) —
-  "what if the dip is pure between-seed noise and the true curve is
-  flat-ish near ceiling across this window." Noise scale (sd) at every K,
-  under EITHER null, reuses that K's own observed sd.
-
-**A literal "true curve = one of the two rival bands' sigmoid" null was
-considered and REJECTED as incoherent, disclosed rather than run anyway:**
-`sigmoid(x=90/96, x0=0.7297 or 0.80, w=0.05, L=1.0)` evaluates to
-`<0.02` at either rival center — flatly contradicted by K90's own
-already-real, fixed, 3/3-exact-ceiling data (sd=0.0000), which this
-script holds fixed at every trial. Simulating draws from that truth at
-K90 would mix one incoherent synthetic point with two already-decided
-real 1.0's, testing nothing real.
-
-**Result (both nulls, 20,000/20,000 trials, archived at
+`SE(n=3)/SE(n=5) = sqrt(5/3) = 1.2910` exactly. A purpose-built,
+CPU-only power-check script (`sim_d96_scatter_resolution_power.py`,
+imports `sigmoid`/bounds from `sim_cliff_power.py` unmodified) was
+written and RUN in the Rev 0 session — 20,000 trials/null, seed
+20260708, two pre-registered nulls (H0 "SCATTER-IS-REAL": 2 new draws/K
+~ `N(K's own observed mean, sd)`; H1 "DIP-IS-NOISE": K69/K84/K90 held at
+their own observed means, K72/K78's assumed true mean replaced by the
+K69→K84 linear interpolation) — archived at
 `experiment-runs/2026-07-08_d96_scatter_resolution_design/fits/
-sim_d96_scatter_resolution_power_results.json`):**
+sim_d96_scatter_resolution_power_results.json`:
 
 | Null | degenerate_frac | monotonic_frac |
 |---|---|---|
@@ -5421,379 +5418,592 @@ sim_d96_scatter_resolution_power_results.json`):**
 | H1 (dip is noise) | **1.0000** | **0.0000** |
 
 **Zero out of 40,000 combined trials produced a non-degenerate,
-monotonic 5-point fit — under EITHER null.** This is a stronger,
-sharper, and more decision-relevant finding than "the dip might be
-noise": diagnosed directly (isolated K84-vs-K90 sub-check, same script,
-200,000 trials), the dominant, near-deterministic driver is **not**
-the K72/K78 dip at all — it is the K84→K90 relationship. K84's own
-mean-of-5 is centered at ≈0.9581 with a tiny projected sd (≈0.0063,
-since 3 of the 5 values are FIXED reals); K90's mean-of-5 is
-**deterministically exactly 1.0000** (sd=0 at n=3, and any 2 new draws
-under either null are centered at or clipped toward 1.0 too). The gap
-(0.0419) sits **≈6.7 SEs** above K84's own mean-of-5 distribution.
-`P(K84's mean-of-N ≥ K90's 1.0)` stays at **exactly 0/200,000** even
-projected out to N=103 (100 EXTRA seeds at K84 alone, holding K90 fixed)
-— **more seeds cannot fix this relationship unless the true population
-differs sharply from what is already tightly, consistently measured, or
-K90's own exact ceiling is itself not what it appears to be.**
+monotonic 5-point fit — under EITHER null.**
 
-**A disclosed, non-remediated-by-this-wave candidate mechanism for why
-K90 might read as an artificial ceiling: the pool-margin confound
-§15.24.2 already flagged once (not resolved there either).** At K=90,
-only 16 of 106 held-out entities are NOT drawn per K-item pool draw
-(vs. 22/106 at K=84) — the held-out-entity recovery task may become
-measurably EASIER at K90 purely from near-exhaustion of the held-out
-pool, independent of genuine model capacity. This wave does not test or
-fix that confound (out of scope, a different instrument would be
-needed); it is registered here as the LEADING candidate explanation if
-SCATTER-IS-REAL / STILL-NON-MONOTONIC is confirmed at n=5, a named
-next-step diagnostic for whoever picks this up, not designed or built
-here.
+**Power justification, part (ii) — NEW this Rev 1 session, independently
+confirmed at much higher trial counts, multiple seeds, an independent
+reimplementation, and a positive control (MAJOR-1 fix folds this in;
+CLAUDE.md's own "verify before claiming" applied to the attack round's
+own reported additional confirmation, which had no archived artifact —
+so it was re-run fresh here rather than cited on trust):**
+`sim_d96_scatter_resolution_power_extended.py` (registered,
+RUN THIS SESSION, archived at `experiment-runs/2026-07-08_
+d96_scatter_resolution_design/{scripts,fits}/`, mirrored at
+`matrix-thinking/deltanet_rd/`), three independent pieces:
 
-**Honest bottom line, stated up front rather than discovered at
-harvest:** this power check does not show "n=5 might resolve it" as a
-toss-up — it shows resolution (a clean, monotonic, non-degenerate fit)
-is **analytically disfavored under both tested nulls**, because of a
-specific, well-measured, low-noise structural fact (K84 < K90) that 2
-more seeds cannot plausibly overturn. **SCATTER-IS-REAL /
-STILL-NON-MONOTONIC is therefore pre-registered as the EXPECTED,
-most-probable outcome of this wave, not merely one of several
-possibilities held in reserve** — per the task brief's own explicit
-instruction, this is registered as INFORMATIVE, not a failed wave: a
-tighter, n=5-confirmed non-monotonic curve is a stronger, more citable
-negative result (rules out a simple monotonic-cliff account of h4(K/d)
-at d=96 in this window with materially more confidence than the current
-n=3 scatter permits) than the ambiguous n=3 reading it replaces. The
-wave still runs, justified by (a) the real, disclosed 1.29× SE
-tightening, (b) confirming persistence at n=5 being itself a stronger
-result than leaving the question at n=3, (c) being the natural,
-already-registered next increment (§15.20 Rev 1 row-1b), now done
-properly across all 5 K-groups instead of only the noisiest one, and
-(d) sharpening the mechanistic follow-up target (the K90 pool-margin
-confound) for a future, separately-scoped wave.
+1. **Extended multi-seed confirmation:** the SAME audited driver
+   (`sim_d96_scatter_resolution_power.py`, imported unmodified),
+   re-run at **7 NEW seeds** (20260801–20260807, distinct from the
+   archived 20260708) × 20,000 trials/null = **280,000 additional
+   trials**. Result: **all 7 seeds, both nulls, 100.00% degenerate**
+   (`combined_degenerate_frac=1.000000`).
+2. **From-scratch reimplementation:** an independently re-typed sigmoid
+   form + `curve_fit` call + degeneracy check (`sigmoid_reimpl`/
+   `fit_and_check_reimpl`, never importing `sigmoid()` from
+   `sim_cliff_power.py` or `fit_sigmoid_once()` from the original
+   driver — rules out a bug shared across all three scripts that
+   otherwise import the same function), one seed (20260810), 20,000
+   trials/null = **40,000 additional trials**. Result: **100.00%
+   degenerate, 0.00% monotonic, both nulls** — matches the shared-code
+   result exactly under independent implementation.
+3. **Positive control (proves the detector has teeth, CLAUDE.md's own
+   "assert has teeth" discipline applied to this diagnostic instrument,
+   not just to `geo3_admission`):** a SYNTHETIC truth deliberately
+   constructed to be non-degenerate — sigmoid centered at the abs-slack
+   rival's own `x0=0.729667, w=0.0597`, LOW noise `sd=0.01` (well under
+   this program's own much noisier real per-K sds) — fed through the
+   SAME degeneracy check, 2,000 trials, seed 20260811. Result:
+   **`degenerate_frac=0.0000`, `monotonic_frac=1.0000`,
+   `abs_slack_band_hit_frac=0.3250`** — the check correctly reports
+   non-degenerate, monotonic fits, and correctly localizes `x0` inside
+   the rival band it was centered on nearly a third of the time, when
+   fed a genuinely non-degenerate truth. The check is not vacuously
+   always-degenerate.
 
-**Success criteria, restated so a repeat-AMBIGUOUS harvest is not
-mis-read as a failed wave:** success = a materially tighter (SE
-shrinks ~1.29×, verified against realized n=5 data) and mechanically
-re-applied 6-row-rule verdict, whatever it is — NOT "resolve x0(96)."
-If CLIFF-IN-WINDOW fires anyway (empirically disfavored but not
-impossible — see the table below), that is itself new information
-(either K84 or K90's true population mean differs materially from its
-tight n=3 estimate) and is reported as such, not assumed away.
+**Cumulative total across this wave's own history: 40,000 (Rev 0,
+archived) + 280,000 (7 new seeds, this session) + 40,000 (independent
+reimplementation, this session) = 360,000 trials, 100% degenerate under
+both nulls in every single one, across 8 distinct seeds and 2
+independent implementations, plus a 2,000-trial positive control proving
+the instrument itself is not the reason.**
 
-### 15.26.2 Cells — seed table
+**MAJOR-1 fix — the "isolated K84-vs-K90 sub-check, 200,000 trials"
+claim, replaced with the explicit analytic derivation it actually is,
+plus disclosure of Rev 0's own misattribution:** Rev 0's text asserted
+this driver-vs-K90 comparison came from "diagnosed directly (isolated
+K84-vs-K90 sub-check, same script, 200,000 trials)." **Verified directly
+against `sim_d96_scatter_resolution_power.py`: no such isolated
+sub-check function or CLI path exists in that script, and its own single
+archived run used `n_trials=20,000` per null (40,000 total, matching the
+table above) — no 200,000-trial run was ever coded, executed, or
+archived anywhere in this program's history.** This was a misattribution
+in Rev 0, disclosed here rather than silently carried forward. The
+underlying claim is TRUE, and is exactly what an ANALYTIC derivation
+gives, exactly, with no simulation needed (K84's mean-of-5 is a location-
+scale transform of 2 Gaussian draws plus 3 fixed constants, hence itself
+exactly Gaussian):
 
-**K∈{69,72,78,84,90} × 2 new seeds each = 10 new GPU cells, d=96.** Seed
-selection reuses the REGISTERED contingency blocks from §15.20.1's own
-100-wide-block table (`KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K`,
-`run_deltanet_rd_exactness_sweep.py:2587–2590` base dict +
-`:3097–3099` wide-grid `.update()`) wherever unfired, disclosed
-otherwise:
+For `n_fixed=3` known, FIXED archived values plus `n_new` new draws
+`~N(μ,σ²)` (μ = that K's own observed mean, σ = its own observed sample
+sd), the resulting mean-of-`(n_fixed+n_new)` is itself Gaussian with
+`SE = σ·√(n_new) / (n_fixed+n_new)` — exact, not approximate. Using
+K=84's own re-verified `σ=0.022157` (matches the table's rounded
+`0.0222`) and `μ=0.958093` (matches the table's rounded `0.9581`):
 
-| K | K/d | existing n=3 (used in §15.25's fit) | new seeds (this wave) | source, verified this session |
-|---|---|---|---|---|
-| 69 | 0.71875 | 1731,1732,1733 | **1734, 1736** | 1734 = the ONE remaining unfired seed of the registered K=69 contingency pair `(1733,1734)`, `:2590` (1733 already fired, §15.22 addendum). 1736 = **NEW registration, disclosed** — the K=69 block (1730–1739) already allocates 1730–1732 (primary), 1733–1734 (contingency), 1735 (Gate-1 probe, a DIFFERENT-purpose, 0.25×-rate partial cell, §15.12 — deliberately NOT repurposed as a full training seed); 1736 is the next free slot before the K=72 block starts at 1740, following the exact block convention (§15.20.1's own "100-wide-block, +0/+1/+2 primary / +3/+4 contingency / +5 Gate-1-probe" text, extended one slot further, +6, for this wave's own escalation) |
-| 72 | 0.75000 | 1740,1741,1742 | **1743, 1744** | registered contingency pair, `:3098`, unfired |
-| 78 | 0.81250 | 1840,1841,1842 | **1843, 1844** | registered contingency pair, `:3098`, unfired |
-| 84 | 0.87500 | 1940,1941,1942 | **1943, 1944** | registered contingency pair, `:3098`, unfired (per task brief) |
-| 90 | 0.93750 | 2040,2041,2042 | **2043, 2044** | registered contingency pair, `:3098`, unfired |
+- **`n_new=2` (the mean-of-5 this wave's own escalation would have
+  produced): `SE = 0.022157·√2/5 ≈ 0.00627`.** Gap to K90's real,
+  fixed 1.0000 ceiling: `1.0000−0.958093 = 0.04191`. **`z = 0.04191 /
+  0.00627 ≈ 6.687`.**
+- **`n_new=100` (projected to N=103, 100 EXTRA seeds at K84 alone,
+  holding K90 fixed): `SE = 0.022157·√100/103 ≈ 0.002151`.** **`z =
+  0.04191 / 0.002151 ≈ 19.5`.**
 
-**Disclosed re-use, not a double-booking:** K=84's contingency pair
-(1943,1944) was ALSO the C17 repro instrument's own registered
-"Step −1 NO-REPRO" fallback (§15.24.4/§15.24.7) — never fired
-(§15.25.3: "Contingency seeds 1943/1944 were NOT fired... the
-reservation remains untouched"). That instrument's own verdict
-(TOLERANCE-MISCALIBRATION) already landed without needing it; the
-reservation is moot, and reusing the pair here, for the SAME
-`KEYANCHOR_SCALING_SEEDS_BY_D_K`-table-registered purpose the original
-§15.20.1 seed table always intended contingency seeds for (seed
-escalation on a noisy K-group), is the correct disclosed re-use, not a
-collision. No other K's contingency pair was ever reserved for a second
-purpose.
+Both figures match the task brief's own cited numbers to 3 significant
+digits, independently re-derived here from the raw archived seed values
+directly (not copied from the brief), confirming K84's mean-of-5 (or
+mean-of-103) reaching K90's exact 1.0000 ceiling is a many-SE event under
+the observed population parameters — the SAME conclusion the (now
+misattributed-and-replaced) 200,000-trial claim asserted, now resting on
+an exact closed form instead of an unarchived, never-run empirical claim.
 
-**Seed-space collision check (mechanical, re-run this session):**
-`grep -n '_s173[46]_\|_s174[34]_\|_s184[34]_\|_s194[34]_\|_s204[34]_'` across
-`experiment-runs/` and every `*.py` in `matrix-thinking/deltanet_rd/`
-returns zero hits — none of the 10 new seed tokens (1734, 1736, 1743,
-1744, 1843, 1844, 1943, 1944, 2043, 2044) has ever been used or reserved
-anywhere else in this program's history.
+**10-cell seed grid: KILLED. Reasoning — its own pre-registered power
+analysis:** the grid's entire purpose was tightening each K-group's SE
+enough that `fit_cliff_curve.py`'s sigmoid fit might de-degenerate. The
+power check above (100,000+% overkill on trial count, 8 seeds, 2
+implementations, a positive control proving the check has teeth) already
+answers that question with near-certainty: resolution is analytically
+disfavored under both tested nulls, driven by a specific, tightly-measured,
+low-noise structural fact (K84's mean sits ≈6.7–19.5 SEs below K90's
+exact ceiling depending on seed count) that 2, or even 100, more seeds at
+K84 cannot plausibly overturn. Spending 4.27–8.54 GPU-h (§15.26.4's own
+historical table) to empirically re-confirm a near-certainty already
+established analytically, at zero GPU cost, is not justified — per this
+program's own compute-discipline (Pre-Experiment Checklist item 3, "try
+to disprove it in 5 minutes" — here, in 34.6s of CPU time for the
+original run and under 5 minutes for this session's own 320,000-trial
+extension). **The wave's own registered success criterion never required
+a NEW sigmoid fit** ("success = a materially tighter... mechanically
+re-applied verdict, NOT resolve x0(96)," Rev 0's own text) — but since
+the DIRECTION of that verdict is already known with overwhelming
+confidence without spending the GPU-h, registering the finding directly
+is the correct, GPU-efficient conclusion, not a shortcut around the
+wave's own discipline.
 
-**Build task:** a NEW additive-only override,
-`KEYANCHOR_SCALING_SCATTER_RESOLUTION_SEEDS_BY_K = {69: (1734, 1736)}`
-(the only K whose new pair is NOT already the registered contingency
-tuple) threaded through the wave's own manifest builder; K∈{72,78,84,90}
-read `KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K[96][K]` directly,
-unmodified.
+**Disposition of the killed grid's own 10 reserved seeds:** 1734, 1736
+(K69), 1743, 1744 (K72), 1843, 1844 (K78), 1943, 1944 (K84), 2043, 2044
+(K90) are all released from this purpose, none fired. Two (1943 @ K84,
+2043 @ K90) are REDIRECTED, disclosed, to the new K90 pool-margin
+control diagnostic (§15.26.2.3) — the correct disclosed re-use of an
+already-idle reservation, the same discipline §15.26.2.3 (formerly
+§15.26.2's own "disclosed re-use, not double-booking" paragraph) already
+established for this exact pair once before. The remaining 8 stay
+unclaimed, available for any future need.
 
-### 15.26.3 The recalibrated admission fix — production change + gate
+### 15.26.2 Part 2 — the K90 POOL-MARGIN CONTROL DIAGNOSTIC
 
-**§15.25.4's own unlock was a PURE RE-READ of the admission FLAG on
-already-collected data (11 cells, disclosed as NOT a literal per-cell
-NS re-sweep) — it changes nothing about how NEW cells are launched.**
-Without a production fix, these 10 new cells would launch at the SAME
-`geo3_n_iter=20` that produced the original 11/12 wide-grid
-inadmissibility rate (§15.22: 0/30 at K/d≤0.71875 → 1/3 at K/d=0.75 →
-3/3 at K/d≥0.8125) and likely re-quarantine on arrival — defeating the
-whole point of this wave (real, admissible n=5 data, not more cells that
-need a second inferential unlock).
+**What this replaces:** the killed 10-cell grid's own registered "not
+built, out of scope" candidate mechanism (§15.26.1 above, carried
+forward from Rev 0 §15.26.0's disclosed paragraph and §15.24.2's
+original flag) — this wave's own single most important loose end,
+finally given its own instrument instead of staying a named-but-untested
+footnote.
 
-**One-line production change (registered, not yet built): bump
-`geo3_n_iter` from 20 to 28 for these 10 cells specifically, via a NEW,
-additive-only override — never mutating the existing
-`KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[96]` dict** (preserves
-§15.20.1 Stage-1 item 5's manifest-regression invariant for the
-ORIGINAL 5-K and wide-4-K grids, which must stay byte-reproducible):
+#### 15.26.2.1 Mechanism pin — read directly against `grammar_rd.py` +
+`run_deltanet_rd.py` this session, not assumed by analogy to §15.24.2
+
+**Correction 1 (a real, previously-unnoticed citation-transplant error
+in Rev 0, found by actually reading the code this session — not an
+attack-round finding, disclosed here on its own merits): the metric
+`fit_cliff_curve.py` actually fits (`h4` = `M3_held_out`) does NOT draw
+from the pool Rev 0's own confound paragraph cited.** Verified directly:
+`run_deltanet_rd.py`'s own `train()` calls `evaluate_pool` four times
+per checkpoint — `m2 = evaluate_pool(..., pools, ...)` (no
+`use_heldout_entities` flag), `m3 = evaluate_pool(..., pools,
+force_rank_k=..., c17_repro_telemetry=...)` (SAME, no flag), `c17 =
+evaluate_pool(..., pools, ..., use_heldout_entities=True, ...)` (ONLY
+this third call sets the flag), `c19 = evaluate_pool(..., pools, ...,
+use_heldout_template=True)`. Inside `evaluate_pool`,
+`sample_batch_rd`'s own pool selection (`grammar_rd.py:423`) is `name_ids
+= pools.heldout_name_ids if use_heldout_entities else
+pools.train_name_ids`. **`M3_held_out` (the `h4` metric) therefore draws
+from `pools.train_name_ids` (N=107, verified against every archived
+`pool_report` this session — e.g.
+`.../wkeyanchor-scaling_rdx_K90_armd_s2041_.../d96.json`:
+`n_train_names=107, n_heldout_names=106`), never from
+`pools.heldout_name_ids` (N=106) — "held-out" in `M3_held_out` names
+held-out HOPS (`H_test+H_extra`, `run_deltanet_rd.py`'s own docstring
+line 12: "M3_held_out (train entities+template, H_test+H_extra)"), not
+held-out ENTITIES.** Rev 0's own disclosed confound paragraph (old
+§15.26.0) cited "16 of 106 held-out entities... vs 22 of 106 at K=84" —
+those exact figures are real and correctly sourced from §15.24.2's own
+original flag, but §15.24.2 was diagnosing `C17_heldout_entities`
+specifically (§15.24 is the C17 eval-admission repro instrument's own
+section), and Rev 0 carried the citation over to explain a ceiling in a
+DIFFERENT metric (`M3_held_out`) that provably does not read that pool
+at all. **Corrected margins for the metric actually being fit:**
+`pools.train_name_ids`, N=107 — K=84 → 107−84=**23** spare, K=90 →
+107−90=**17** spare (not 22/16 against N=106).
+
+**Correction 2 (verified directly against the archived raw JSONs this
+session, not assumed): `C17_heldout_entities` — the metric that DOES
+read the N=106 pool Rev 0 actually cited — is NOT at ceiling at K=90.**
+`checkpoints[-1].C17_heldout_entities.<H_train[0]>.recovered_frac@0.9`
+across the 3 real K=90 seeds: **0.9917 (s2040), 0.8446 (s2041), 0.7278
+(s2042)** — MORE variable, and on 2/3 seeds materially LOWER, than the 3
+real K=84 seeds' own C17 values (0.9544, 0.9492, 0.9765). This is the
+OPPOSITE of "near-exhaustion of the held-out pool makes the held-out-entity
+recovery task measurably easier" for that mechanism's own literal
+referent — a fresh, session-verified correction to Rev 0's own mechanism
+claim, disclosed rather than silently absorbed into Rev 1.
+
+**Correction 3 (scoring mechanism, read directly, not assumed): a
+"fewer confusable distractors" channel does not exist in this readout.**
+`evaluate_pool` computes `recovered_frac@0.9` from `cos_all =
+F.cosine_similarity(pred, targets, dim=-1)` (`run_deltanet_rd.py`, inside
+the per-batch eval loop) — a direct, CONTINUOUS cosine-similarity
+comparison against the exact true target vector, thresholded at 0.9,
+never a nearest-neighbor/argmax decode against a candidate/distractor
+set (consistent with this project's own standing rule against
+codebook-style readouts). A thinner pool margin cannot make recovery
+"easier" via fewer distractors to confuse with, because there is no
+distractor-comparison step in the scoring path to make easier.
+
+**The mechanistically live channel, pinned from code: entity-draw
+DIVERSITY, not decode confusability.** `sample_batch_rd` draws K of N
+entities per episode via `pool_idx = scores.argsort(dim=-1)[:, :K]`
+(`grammar_rd.py:434–436`) — uniform K-subsets of `name_ids` without
+replacement, independently per episode/row. For two independent
+K-subsets drawn uniformly from the same N-item pool,
+`E[|A∩B|] = K²/N` exactly (each of the N items is in both draws with
+probability `(K/N)²` by independence), so the expected overlap AS A
+FRACTION OF EACH SET'S OWN SIZE is `E[|A∩B|]/K = K/N` exactly. On the
+TRAIN pool (N=107) that actually feeds `M3_held_out`: K=90 → expected
+inter-episode membership overlap **90/107 = 84.11%**; K=84 → **84/107 =
+78.50%**. A real, quantifiable, code-derived difference — at K=90 both
+TRAINING (`run_deltanet_rd.py:843`, `sample_batch_rd(..., pools=pools,
+...)`, same unrestricted `pools`) and EVAL (the `m3` call above) draw
+from a narrower effective diversity of entity subsets than at K=84,
+which could produce apparent-ceiling recovery through reduced
+generalization DEMAND (episodes look more like each other, both during
+training and at eval) rather than genuine composition capacity at
+K/d=0.9375. **This is the corrected candidate mechanism this diagnostic
+targets — not the "fewer confusable distractors" framing Rev 0's own
+citation-transplant implied, and not the N=106 heldout pool Rev 0
+literally cited.**
+
+#### 15.26.2.2 Manipulation — implementable WITHOUT touching the
+training path
+
+Training draws (`run_deltanet_rd.py:843`) and the `m3` eval call
+(`:961` in Rev 0's own citation numbering, unchanged this session)
+currently share the SAME unrestricted `pools` object (`train_name_ids`,
+N=107). The cleanest registered manipulation restricts ONLY the eval-time
+pool for the `m3` call, leaving the training-time draw (and therefore the
+trained WEIGHTS) exactly what standard production K=84 training already
+produces — a genuinely additive, eval-only intervention, not a new
+training regime:
 
 ```python
-# sec 15.26.3: additive-only, does NOT touch KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K
+# sec 15.26.2.2, registered, NOT YET BUILT — one new optional,
+# additive-only parameter on evaluate_pool (mirrors sec 15.24.2's own
+# "FOUR new optional, additive parameters, all zero-behavioral-change at
+# their defaults" precedent, applied once more):
+def evaluate_pool(..., restrict_entity_pool_n: int | None = None, ...):
+    if restrict_entity_pool_n is not None:
+        field = "heldout_name_ids" if use_heldout_entities else "train_name_ids"
+        src = getattr(pools, field)
+        assert restrict_entity_pool_n <= src.numel()
+        # pools.train_name_ids' own order is FIXED (build_entity_pools is
+        # always called with seed=0 in production, run_deltanet_rd.py:1228/
+        # :1672, verified this session) -- slicing the first N is a
+        # deterministic, zero-new-randomness restriction, reproducible
+        # across cells without a new RNG draw.
+        pools = dataclasses.replace(pools, **{field: src[:restrict_entity_pool_n]})
+    # ... existing body unchanged, now reads the (possibly restricted) pools
+```
+
+At `train()`'s own checkpoint block (Rev 0's own `:961` call site), ONE
+new, additional, optional eval pass, gated by a new `m3_pool_restrict_n`
+parameter threaded from the launch wrapper (§15.26.3.1), default `None`
+(byte-identical to today):
+
+```python
+# registered, NOT YET BUILT — additive 5th eval call per checkpoint,
+# only when m3_pool_restrict_n is set; stored under a NEW key, NEVER
+# overwriting the existing M3_held_out (preserves the manifest-
+# regression invariant for every wave/cell that never passes this param)
+if m3_pool_restrict_n is not None:
+    eval_gen2 = torch.Generator(device=device).manual_seed(seed + 20_000 + step)
+    m3_restricted = evaluate_pool(model, cfg, eval_gen2, device,
+                                   (*cfg.H_test, *cfg.H_extra), pools,
+                                   force_rank_k=force_rank_k,
+                                   restrict_entity_pool_n=m3_pool_restrict_n)
+    res["M3_held_out_pool_restricted"] = m3_restricted
+```
+
+**The manipulation for this diagnostic's own 2 cells:** K=84's own eval
+restricts `train_name_ids` to its first **101** entries
+(`m3_pool_restrict_n=101 = 84+17`, matching K=90's own REAL, unmodified
+margin of 17) — giving a same-checkpoint, same-weights, paired
+comparison of K=84's `M3_held_out` (margin 23, standard) against
+`M3_held_out_pool_restricted` (margin 17, artificially thinned to
+K=90's own value). K=90 needs no restriction (its natural margin is
+already 17) and is evaluated normally — it serves as a freshly-launched,
+same-production-config comparator (§15.26.3), not a re-use of an OLD
+`n_iter=20` cell that could carry the tolerance-miscalibration confound
+§15.25 already found and fixed once.
+
+#### 15.26.2.3 Seed table — disclosed reuse of 2 of the killed grid's own
+now-unneeded reservations
+
+| K | K/d | cell | seed | eval treatment | provenance |
+|---|---|---|---|---|---|
+| 84 | 0.87500 | margin-equalized | **1943** | `M3_held_out` (margin 23, standard) AND `M3_held_out_pool_restricted` (margin 17, `restrict_entity_pool_n=101`) | REDIRECTED, disclosed — 1943 was the killed 10-cell grid's own reserved K=84 contingency seed (§15.26.1's own disposition paragraph), never fired; the grid it was reserved for no longer exists, so this is a re-use of an already-idle reservation, not a new token |
+| 90 | 0.93750 | natural-margin comparator | **2043** | `M3_held_out` only (margin 17, unmodified — its natural value) | REDIRECTED, disclosed — same disposition as 1943, the killed grid's own reserved K=90 contingency seed |
+
+Seeds 1944 (K=84) and 2044 (K=90) — the OTHER half of each killed pair —
+stay unclaimed, available for any future need, not fired and not
+orphaned (they were never registered for anything but the now-killed
+grid). Collision check (mechanical, re-run this session):
+`grep -rn '_s1943_\|_s2043_' matrix-thinking/deltanet_rd/*.py
+experiment-runs/` returns hits only in the REGISTRATION table
+(`run_deltanet_rd_exactness_sweep.py:3098`) and the C17 repro instrument's
+own disclosed-moot fallback note (`diag_c17_repro_analysis.py`) — zero
+hits in any archived result JSON, confirming neither seed has ever
+actually launched — the SAME collision-check discipline the killed
+grid's own seed table used, re-run this session against this
+diagnostic's own 2 redirected tokens rather than reusing the killed
+grid's own (now-moot) 10-token check.
+
+### 15.26.3 Production config (reused, unchanged) + launch mechanism (NEW,
+MAJOR-2 fix)
+
+**Production config reused verbatim from Rev 0, scope narrowed from 10
+cells to 2:** both K=84 and K=90 sit at K/d≥0.875 where `geo3_n_iter=20`
+produced the original wide-grid's own 3/3 inadmissibility rate (§15.22);
+Rev 0's own `geo3_n_iter` 20→28 bump (justified by §15.25.5's own Step 2
+finding — 295/4,608 episodes at K=84/seed=1940 require exactly
+`n_iter=28`, 0 unresolved beyond) is REUSED unmodified, additive-only,
+never touching `KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K`:
+
+```python
+# sec 15.26.3, REUSED from Rev 0 unmodified — additive-only, does NOT
+# touch KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K. Scope narrowed to the 2
+# K's this diagnostic actually launches (84, 90); the OTHER 3 entries
+# (69,72,78) from Rev 0's own override are simply unused this wave, not
+# deleted from the registered dict (no manifest-regression risk either
+# way, since neither wave ever reads a K it doesn't launch).
 KEYANCHOR_SCALING_SCATTER_RESOLUTION_N_ITER_OVERRIDE = {96: {69: 28, 72: 28, 78: 28, 84: 28, 90: 28}}
 ```
 
-plus a new `_keyanchor_scatter_resolution_spec(K, seed, d_state=96)`,
-byte-identical to `_keyanchor_scaling_spec` except it reads `n_iter`
-from this override dict instead of `KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K
-[d_state][K]` — the exact namespacing pattern `_keyanchor_scaling_spec`
-itself already used relative to the flat `ka.GATE2_N_ITER_BY_K`, applied
-one level deeper.
+Both gate halves REUSED verbatim, scope narrowed to 2 cells:
 
-**Why 28, not "modestly higher":** §15.25.5's own Step 2 sweep (K=84/
-seed=1940, the ONLY cell with episode-level ground truth) found 4,313/
-4,608 episodes resolve at n_iter=24 but **295/4,608 (6.4%) require
-exactly n_iter=28**, 0 unresolved at 28 or beyond. Since ONE unresolved
-episode anywhere sets the checkpoint-level `checkpoint_fallback_seen`
-flag True (the same OR-across-hops logic §15.22 already established),
-`n_iter=24` would leave a disclosed, non-trivial re-quarantine risk;
-28 is the minimum value consistent with the evidence, not a round-number
-guess.
+1. **Negative/regression test for the n_iter bump** (`OFF×2 + ON×1`,
+   `≤3×` freshly-measured OFF-vs-OFF envelope, K=84, 50-step fixed-seed
+   smoke) — REUSED, already validated twice on this box (§15.24.2's own
+   re-pin, §15.25.2's own fresh re-confirmation); this diagnostic's own
+   K=84/seed=1943 cell reuses the SAME validated gate, not a fresh
+   re-derivation.
+2. **Mechanical post-hoc admission check + its own negative-test
+   fixture** — REUSED, scope narrowed: `assert geo3_admission.admissible
+   is True` for both landed cells (1943, 2043); any cell that still
+   reads `checkpoint_fallback_seen=True` at `n_iter=28` is a new,
+   disclosed finding, checked against §15.23's own C17-exclusive
+   signature per the SAME adjudication rule Rev 0 already registered.
+   Negative-test fixture run to completion before either real cell's
+   own JSON is trusted, per requirement 5's "assert has teeth"
+   discipline.
 
-**Disclosed, unverified generalization (this wave's own launch is the
-first test of it):** the 295-episode near-miss population was
-characterized at K=84 only. Whether K∈{69,72,78,90} show the SAME
-`n_iter≤28`-suffices pattern is assumed, not independently confirmed —
-§15.26.3's own gate (below) checks this empirically on arrival, not by
-extrapolation alone.
+**No new kernel-safety or Gate-(b) check needed** — K∈{84,90} at d=96
+give `T_bind∈{588,630}` (`grammar_rd.py:325–327`, `T_bind=7K`), both
+already inside the `T∈{504,546,588,630}` PASS set verified in
+`smoke_dstate_kernel_wide_result.json` (`grid_pass.96` all `true`); Gate
+(b) (`n_iter`-sufficiency on the static anchor table) is REUSED by the
+SAME disclosed reasoning Rev 0 already registered (flat from `n_iter=12`
+onward, ~7,000× margin at `n_iter=20`, bumping to 28 adds headroom to an
+already-converged quantity). Gate (c), sha256 reused-JSON, is N/A — both
+cells are fresh launches.
 
-**Gate (NEW this wave, both halves required before ANY of the 10 cells
-launch):**
+#### 15.26.3.1 Launch mechanism, named explicitly (MAJOR-2 fix)
 
-1. **Negative/regression test for the n_iter bump itself, mirrors the
-   C17-repro Item-1 baseline-relative re-pin exactly** (§15.24.2's own
-   re-pinned form, already validated twice on this box — §15.25.2's own
-   fresh, independent re-confirmation): `OFF×2 (n_iter=20, envelope) +
-   ON×1 (n_iter=28)`, same K=84, 50-step fixed-seed smoke, **PASS iff
-   `max_abs OFF-vs-ON dev ≤ 3× the freshly-measured OFF-vs-OFF
-   envelope`** — proves the bump does not perturb the training path
-   beyond the ALREADY-ESTABLISHED GPU run-to-run nondeterminism this
-   program's own history documents (`KEY_ANCHORING_DESIGN.md`
-   ~L1976–1994), not a fresh, unfalsifiable assumption.
-2. **Mechanical post-hoc admission check, run against each of the 10
-   new cells' own raw JSON once landed:** `assert
-   geo3_admission.admissible is True` for all 10. Any cell that STILL
-   reads `checkpoint_fallback_seen=True` at n_iter=28 is a NEW,
-   disclosed finding — not silently absorbed. That cell's own
-   `mechanism_breakdown`-style signature (which pool(s) triggered the
-   fallback) is checked against §15.23's already-established
-   C17-exclusive pattern; a MATCH is eligible for the SAME §15.25.4
-   inferential re-read this wave's own fix is meant to make
-   unnecessary (a fallback, not a silent pass); a NON-match (fallback on
-   M2/M3/C19) is a genuinely new failure mode, escalated out of this
-   wave's own scope, not patched over.
-3. **Negative test FOR the admission check itself (per requirement 5's
-   own explicit ask — "assert has teeth," CLAUDE.md's exact-threshold
-   discipline):** feed the checker a synthetic fixture JSON with
-   `checkpoint_fallback_seen=True`/`geo3_admission.admissible=False` at
-   `geo3_n_iter=28` and confirm the checker correctly FAILS/flags it —
-   run to completion, not merely written, before this gate is trusted on
-   real data.
+**Named, not assumed:** this diagnostic launches via a NEW, standalone
+wrapper script (`run_poolmargin_k84s1943_k90s2043.py`, registered, not
+yet built), mirroring `run_k69_s1733_contingency.py`'s own precedent
+line-for-line — a small, two-cell, non-manifest launch does not fit the
+`--wave keyanchor-scaling-wide` manifest abstraction cleanly, the exact
+same reasoning the precedent wrapper used for its own single contingency
+cell. **Per MAJOR-2's own finding: `run_k69_s1733_contingency.py`
+RE-IMPLEMENTS both PI-signoff checks itself (`main()` lines 85–88) rather
+than deferring to `run_deltanet_rd_exactness_sweep.py`'s own central
+`--wave` dispatcher gate (`:3499–3508`) — this wrapper does the same,
+disclosed rather than silently assumed inherited:**
 
-**No new kernel-safety or Gate-(b) check needed, verified this session
-against the committed artifacts (not assumed clean by analogy):**
+```python
+# registered, NOT YET BUILT — mirrors run_k69_s1733_contingency.py's own
+# main()/refuse() structure exactly
+if os.environ.get("KEYANCHOR_SCALING_PI_SIGNOFF", "0") != "1":
+    refuse("KEYANCHOR_SCALING_PI_SIGNOFF=1 not set (gate a1).")
+if os.environ.get("KEYANCHOR_SCALING_EXT_PI_SIGNOFF", "0") != "1":
+    refuse("KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1 not set (gate a2, distinct from a1).")
+```
 
-- `T_bind = 7K` (`grammar_rd.py:325–327`, verified directly) gives
-  `T_bind∈{483, 504, 546, 588, 630}` for `K∈{69,72,78,84,90}` — **all
-  five already PASS** in committed artifacts: `T∈{504,546,588,630}` in
-  `experiment-runs/2026-07-07_keyanchor_scaling_wide/gates/
-  smoke_dstate_kernel_wide_result.json` (`grid_pass.96` all `true`), and
-  `T=483` in that same directory's
-  `smoke_dstate_kernel_t483_probe_result.json` (`grid_pass.96.483:
-  true`). No new kernel probe is needed for this wave's own K-grid.
-- Gate (b) (`KEYANCHOR_SCALING_GATE2_N_ITER_BY_D_K[96]` sufficiency,
-  `keyanchor_scaling_wide_niter_result.json`, verified this session) swept
-  `n_iter∈{12,16,20,24}` on the STATIC, frame-potential-initialized
-  anchor table and found the pooled-cosine convergence metric already
-  FLAT from `n_iter=12` onward (K=72's own `mean`/`p10` unchanged to 6+
-  decimals across the whole grid) — consistent with §15.23's own
-  finding that the anchor table has ~7,000× margin at `n_iter=20`
-  already. Bumping to 28 adds headroom to an already-converged quantity;
-  **Gate (b) is not re-run at n_iter=28, disclosed reasoning, not a
-  silent skip.**
-- The sha256 reused-JSON gate (Gate c, §15.20.1 MAJOR-1) is **N/A this
-  wave** — no file is copied from another archive; all 10 cells are
-  fresh launches.
+**Both gates required, even though the 1× point estimate alone fits
+under the ORIGINAL 21 GPU-h ceiling without needing the extension
+(§15.26.4) — disclosed reasoning, not a copy-paste of the precedent:**
+the 2× pessimistic bracket (§15.26.4: `21.0746/21=100.36%`) marginally
+EXCEEDS the original 21, so gate a2 is required as a conservative safety
+net, mirroring the precedent's own unconditional two-gate requirement —
+the claim that "the extension stays undrawn" (§15.26.4) is about the
+REALIZED total, not about whether the token must be present at launch
+time.
 
-### 15.26.4 Cost + ledger — the hard part, stated scrupulously
+**Registered negative test (build-phase item — per CLAUDE.md's own
+"negative unit tests run to completion, not merely written" discipline,
+mirrors the precedent's own untested-by-this-wave gate, now closed for
+THIS wrapper specifically):** at build time, invoke the wrapper with (i)
+neither env var set, (ii) only `KEYANCHOR_SCALING_PI_SIGNOFF=1` set, (iii)
+only `KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1` set, and confirm `REFUSED`/exit
+1 in all three cases before either real cell is allowed to launch — run
+to completion, not merely written, closing the exact gap MAJOR-2 found
+(the precedent wrapper's own gate was never negative-tested by any prior
+session).
 
-**Base rate: 0.427 GPU-h/cell, re-derived from §15.22's own addendum**
-(K=69/seed=1733, `wall_s=1535.2s`, the closest real, single-cell
-calibration point at this exact d=96/production config, standard
-launch, no telemetry overhead) — this is the SAME figure the task brief
-itself cites, independently re-confirmed here (`1535.2/3600 =
-0.42644...`, rounds to 0.427 exactly as §15.22 states).
+### 15.26.4 Cost + ledger
 
-**1× point estimate: `10 × 0.427 = 4.27 GPU-h`** (rounds to the task
-brief's own "~4.3").
-
-**Running ledger arithmetic (starting from §15.25.3's own realized
-19.3666/26):**
+**Historical record — the killed 10-cell grid's own cost table, retained
+for the record (per house style, findings recorded near-verbatim), MINOR-1
+fix applied:** base rate 0.427 GPU-h/cell (§15.22's own K=69/seed=1733
+`wall_s=1535.2s`, `1535.2/3600=0.42644...`); 1× point estimate
+`10×0.427=4.27 GPU-h`; ledger from §15.25.3's own realized 19.3666/26:
 
 | Item | GPU-h | Running total | vs. ORIGINAL 21 | vs. extended 26 |
 |---|---|---|---|---|
 | Baseline (§15.25.3) | — | 19.3666/26 | 92.22% | 74.49% |
-| This wave, 1× (10×0.427) | +4.270 | **23.6366/26** | **112.65% — EXCEEDS the original ceiling** | **90.91%, reserve 2.3634** |
-| This wave, 2× pessimistic (10×0.427×2) | +8.540 | **27.9066/26** | **132.89% — EXCEEDS the original ceiling** | **107.33% — EXCEEDS the EXTENDED ceiling too** |
+| Killed grid, 1× (10×0.427) | +4.270 | 23.6366/26 | **112.56%** (Rev 1 MINOR-1 fix — Rev 0 stated 112.65%; `23.6366/21=1.125552...`, corrected) — EXCEEDS the original ceiling | 90.91%, reserve 2.3634 |
+| Killed grid, 2× pessimistic | +8.540 | 27.9066/26 | 132.89% | **107.33% — EXCEEDS the EXTENDED ceiling too** |
 
-**At the 1× point estimate, this wave requires the extension.** The
-task brief's own rounded arithmetic (`19.37+4.3=23.67`, `23.67/26≈91%`)
-matches this precise re-derivation (`23.6366/26=90.91%`) within
-rounding. **This wave is the FIRST in this program's history to
-actually draw on the `+5.0 GPU-h` extension** — §15.22's own exact,
-quoted wording is the registered authorization: *"the `+5.0 GPU-h`
-extension (`KEYANCHOR_SCALING_EXT_PI_SIGNOFF`, §15.20.5) was authorized
-and its gate fired correctly, but was never actually drawn on."*
-`KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1` is an ALREADY-BUILT, ALREADY-
-ENFORCED token (§15.21 MAJOR-4, verified live at both required gate
-points in §15.22's own launch log) — this wave's own launch reuses it
-verbatim, a real invocation of a standing authorization, not a
-self-amended ceiling. **If an independent attack round finds this
-authorization insufficiently documented for a SECOND wave to draw on
-it, this design BLOCKS pending PI, per the task's own explicit
-instruction** — the citation above is the complete, verified paper
-trail this design rests on; no additional PI language is assumed.
+This 2× bracket breaching even the extended ceiling (never true of any
+prior wave, §15.24.7's own 13.6%–112.5% history) is, in hindsight, itself
+corroborating evidence for killing the grid: a design whose own
+downside case was already disclosed as uniquely bad, being retired in
+favor of a design whose downside case (below) stays inside the ORIGINAL
+budget, is a strict improvement on both the expected-value AND the
+tail-risk axis, not merely the expected-value one.
 
-**Scrupulously honest disclosure — the part that does NOT comfortably
-fit:** unlike every prior wave in this program's history, **this wave's
-own 2× pessimistic bracket (27.9066/26 = 107.33%) EXCEEDS the EXTENDED
-26 GPU-h ceiling, not just the original 21.** This has never happened
-before in this program (§15.24.7's own realized/estimate ratio history:
-13.6%–112.5% of the 1× point estimate, NEVER the full 2× bracket) — but
-it has also never been TRUE before that the 2× bracket alone would
-breach even the extension. Two compounding, disclosed reasons this
-wave's 2× bracket is worse than prior waves': (a) it draws on the
-already-thin extension margin from the FIRST GPU-h dollar, rather than
-having 9+ GPU-h of extension headroom to absorb a 2× miss the way
-earlier waves implicitly did; (b) the base rate itself
-(`geo3_n_iter=20`) is **not** the rate these 10 cells will actually run
-at (`geo3_n_iter=28`, §15.26.3) — NS iteration count could plausibly add
-wall-clock time this calibration point has never measured, an
-UNQUANTIFIED risk this design does not paper over with an invented
-percentage.
+**This diagnostic's own ledger — the operative numbers for Rev 1:** 2
+cells × 0.427 GPU-h/cell (SAME base rate) = **0.854 GPU-h at 1×**,
+rounded up to **≈0.9 GPU-h** to leave disclosed headroom for K=84's own
+extra `M3_held_out_pool_restricted` eval pass (§15.26.2.2) — bounded,
+since `evaluate_pool`'s own `n_batches=4` default makes one additional
+eval call per checkpoint a small addition relative to training, not a
+second training run.
 
-**Mitigations, registered as mechanical gates, not hand-waving:**
+| Item | GPU-h | Running total | vs. ORIGINAL 21 | vs. extended 26 |
+|---|---|---|---|---|
+| Baseline (§15.25.3) | — | 19.3666/26 | 92.22% | 74.49% |
+| This diagnostic, 1× (2×0.427, +headroom) | +0.900 | **20.2666/26** | **96.51% — FITS WITHOUT the extension** | 77.95%, reserve 5.7334 |
+| This diagnostic, 2× pessimistic | +1.708 | **21.0746/26** | **100.36% — a small, disclosed tail excess over the ORIGINAL ceiling** | 81.06%, well inside the extension |
 
-1. **Stage-0-style calibration-first launch (mandatory,
-   `CLAUDE.md`'s own "a calibration run before a big sweep is mandatory"
-   rule):** launch exactly ONE cell first — K=84/seed=1943 (the
-   best-characterized K, direct lineage to the C17 repro's own K=84/
-   seed=1940 precedent) — on GPU 2 alone. Compare its realized `wall_s`
-   against the 0.427 GPU-h point estimate using the SAME `1.5×` abort
-   trigger this program already uses (§15.14, recalibrated to this
-   wave's own bracket: `1.5 × 0.427 × 2 × 3600 = 4611.6s`). If it fires,
-   halt, diagnose (`nvidia-smi` contention first), re-price the FULL
-   §15.26.4 table before launching cell 2.
-2. **Running-projection cut rule, this wave's own priority order (no
-   separate seed-contingency/Gate-1-probe pool exists to shed here,
-   since these 10 cells ARE the program's own contingency seeds by
-   origin):** after ≥3 cells complete, compare cumulative realized
-   `wall_s` against a running projection at the REALIZED rate. If the
-   projection would exceed the extended-26 ceiling: **cut order — (1)
-   complete exactly 1 new seed per K first across all 5 K-groups
-   (n=3→4, the single highest-value increment for tightening every
-   group's own SE) before firing the SECOND new seed at ANY K (n=4→5);
-   (2) if even n=4-everywhere is projected to overshoot, halt and report
-   — no further, self-authorized extension.**
-3. **This program's own realized/estimate history is the disclosed,
-   non-dispositive reassurance, not a substitute for (1)/(2):** every
-   prior wave landed at 13.6%–112.5% of its own 1× point estimate, never
-   near 2×; if that pattern holds, this wave lands near 4.27–4.8 GPU-h
-   (23.64–24.17/26, 90.9%–93.0%), comfortably inside the extension. This
-   is a prior, not a guarantee — (1)/(2) are the actual safety
-   mechanism.
+**Design virtue, stated explicitly (per the task's own framing):**
+because the 1× point estimate fits under the ORIGINAL 21 GPU-h ceiling
+without drawing on the `+5.0 GPU-h` extension at all, this diagnostic
+avoids repeating the killed grid's own disclosed weakness (a 2×
+pessimistic bracket that breached even the EXTENDED ceiling) — the
+extension is expected to stay UNDRAWN in practice (this program's own
+realized/estimate history: every prior wave landed at 13.6%–112.5% of
+its own 1× estimate, never near 2×), even though gate a2
+(`KEYANCHOR_SCALING_EXT_PI_SIGNOFF`) is still required at launch
+(§15.26.3.1) as a conservative, mechanically-checked safety net against
+the small 2× tail (100.36%), not because the ledger is actually expected
+to need it.
 
-### 15.26.5 Fit + decision rules
+**Mitigations, registered as mechanical gates:**
 
-**Re-fit invocation (registered, not run): `fit_cliff_curve.py
---cliff-out-dir <this-wave's-own-output-dir-merged-with-the-existing-15-cell-archive>
---d-state 96 --k-grid 69 72 78 84 90 --n-trials ≥4000`**, reusing
-§15.20 Rev 1's own 6-row decision rule (§15.20.4) mechanically,
-unmodified — the table itself does not change; this wave only supplies
-n=5/K data instead of n=3/K.
+1. **Calibration-first launch (mandatory):** K=84/seed=1943 alone on GPU
+   2 first. Abort trigger REUSED verbatim from the killed grid's own
+   derivation (SAME 0.427 base rate): `1.5 × 0.427 × 2 × 3600 = 4611.6s`.
+   If it fires, halt, diagnose (`nvidia-smi` contention first), re-price
+   before launching K=90/seed=2043.
+2. **No running-projection cut rule needed at this scale** (unlike the
+   killed 10-cell grid) — 2 cells at 0.427 GPU-h/cell cannot plausibly
+   miss by enough to matter at this program's own realized/estimate
+   history (worst historical case 112.5% of 1×, applied here:
+   `0.9×1.125=1.0125 GPU-h`, ledger `20.3791/21=97.0%`, still comfortably
+   under the original ceiling) — the calibration-first gate (item 1)
+   alone is sufficient mitigation for a 2-cell wave.
 
-**Pre-registered outcomes (per the task brief's own explicit
-instruction — SCATTER-IS-REAL registered as informative, not a
-failure):**
+### 15.26.5 Fit + decision rules — the K90 pool-margin diagnostic's own
+outcome table (MAJOR-3 fix folded in directly)
 
-| Outcome | Trigger | What it means | Probability read from §15.26.1's power check |
-|---|---|---|---|
-| **CLIFF-IN-WINDOW** | Step 0 clears (`degenerate_frac≤10%`), x0 localizes, rival-band discrimination becomes possible (§15.26.6) | The original wide-grid rationale finally executes — a real, if surprising, resolution | **Empirically disfavored**: 0/40,000 combined power-check trials produced a non-degenerate, monotonic fit under either tested null. Would itself be new information if it fires (K84 or K90's true mean differs materially from its tight n=3 estimate) |
-| **STILL-NO-CLIFF-TIGHTER** | Step 1a fires (`degenerate_frac>10%` AND every K's mean `≥0.98`) | Flat-near-ceiling holds throughout the window, now with materially tighter per-K CIs | Disfavored — K72 (0.9216) and K78 (0.9326) sit well under 0.98 already at n=3 with modest sd; would require a substantial upward regression at both |
-| **SCATTER-IS-REAL / STILL-NON-MONOTONIC** | Step 1b fires (`degenerate_frac>10%` AND ≥1 K's mean `<0.98`) | The pre-registered, EXPECTED outcome per §15.26.1: the non-monotonic K84<K90 relationship (and/or the K72/K78 dip) survives at n=5, with materially tighter SEs (~1.29×). Itself informative — rules out a simple monotonic-cliff account with much higher confidence than n=3 permitted; motivates the K90 pool-margin confound as the next, separately-scoped diagnostic | **Analytically the most probable outcome** — matches both H0 and H1 in the power check (100% degenerate under each) |
-| Rival-band comparison (conditional) | Only reachable if CLIFF-IN-WINDOW fires with a real bootstrap CI | Apply §15.20.4's existing band-overlap test: abs-slack `[0.718,0.739]` vs. power-law `[0.768,0.837]` | N/A unless CLIFF-IN-WINDOW fires |
+**No sigmoid re-fit is invoked this wave** (unlike the killed grid,
+which would have supplied new n=5/K points to `fit_cliff_curve.py`) —
+this diagnostic supplies exactly one new, paired, within-checkpoint
+comparison (K=84/seed=1943's `M3_held_out` vs.
+`M3_held_out_pool_restricted`) plus one freshly-launched K=90 comparator
+(seed=2043), evaluated against the pre-registered trigger below, not
+against a re-fit curve.
+
+**Pre-registered trigger (exact, not fuzzy — CLAUDE.md's
+exact-threshold discipline), using Δ_measured = 1.0000 (K90's own real
+n=3 mean) − seed=1943's own UNRESTRICTED `M3_held_out` h4 value (measured
+fresh this wave, not assumed) and shift = seed=1943's own
+`M3_held_out_pool_restricted` h4 − its own UNRESTRICTED `M3_held_out` h4
+(same checkpoint, same weights, only the eval-time pool margin differs):**
+
+| Outcome | Trigger | What it means |
+|---|---|---|
+| **CEILING-IS-ARTIFACT** | `shift ≥ 0.5 × Δ_measured` | The margin-restricted eval recovers at least half of the K84–K90 gap purely from thinning the eval-time pool margin, with the SAME trained weights — the observed K84<K90 non-monotonicity is (at least partly) an eval-time artifact of pool margin, not a genuine capacity difference at K/d=0.875 vs 0.9375. **MAJOR-3 discrimination-honesty disclosure, stated here explicitly rather than left implicit: even in this best case, any resulting re-fit or rival-band read is registered as DESCRIPTIVE ONLY, not a discriminating test.** §15.20.4's own uniform-`n=4` power check already found rival-center CI half-widths (abs-slack 0.0375, power-law 0.0287) still ~2×+ the derived `0.0145` half-gap discrimination threshold at FIVE FULL K-groups of data; this diagnostic adds at most 2 data points at 2 K's, nowhere near enough to close that gap. A training-side memorization variant of the pool-margin hypothesis (repeated near-fixed-subset exposure DURING training, not reachable by an eval-only manipulation) also remains untested and is named as a disclosed, separately-scoped future question, not folded into this verdict. |
+| **CEILING-IS-REAL** | `shift ≤ 0.1 × Δ_measured` | The margin-restricted eval is materially inert (comparable to GPU eval run-to-run noise) — the K84<K90 gap is NOT explained by eval-time pool margin; SCATTER-IS-REAL / the observed non-monotonicity stands as measured, unresolved by this diagnostic. The training-side memorization variant remains a disclosed, untested, separately-scoped open question either way. |
+| **AMBIGUOUS** | `0.1 × Δ_measured < shift < 0.5 × Δ_measured` | A real but partial, inconclusive effect — reported as such, not forced into either bucket. |
+| (degenerate cell) | Either cell reads `geo3_admission.admissible is not True` after the n_iter=28 gate (§15.26.3) | Escalated per the SAME §15.23 C17-exclusive-signature adjudication Rev 0 already registered, not silently absorbed |
 
 ### 15.26.6 Gates (reuse chain, mirrors §15.20.6/§15.24.5's own table
 format)
 
 | Gate | Mechanism | Status this design |
 |---|---|---|
-| (a1) Kernel-safety, `T∈{504,546,588,630}` | `smoke_dstate_kernel_wide_result.json`, `grid_pass.96` all `true` | REUSED, verified this session, no new probe |
-| (a2) Kernel-safety, `T=483` (K=69) | `smoke_dstate_kernel_t483_probe_result.json`, `grid_pass.96.483=true` | REUSED, verified this session, no new probe |
+| (a1) Kernel-safety, `T∈{588,630}` (K=84,90) | `smoke_dstate_kernel_wide_result.json`, `grid_pass.96` all `true` | REUSED, verified this session, no new probe |
 | (b) `n_iter`-sufficiency (static anchor table) | `keyanchor_scaling_wide_niter_result.json`, flat/converged from `n_iter=12` | REUSED by disclosed reasoning (§15.26.3), not re-run at 28 |
 | (c) sha256 reused-JSON manifest | N/A — no file copied this wave | N/A, disclosed |
-| (d) PI signoff, primary | `KEYANCHOR_SCALING_PI_SIGNOFF=1` | REUSED, already-enforced token |
-| (d) PI signoff, extension | `KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1` | REUSED, already-enforced token — this wave is the first to actually need it drawn on (§15.26.4) |
-| (e) NEW — n_iter-bump negative test | Baseline-relative OFF×2+ON×1, `≤3×` envelope (§15.26.3 item 1) | NEW, registered, run to completion before launch |
-| (f) NEW — admission-recalibration gate + its own negative test | Post-hoc `admissible is True` assert on all 10 landed cells + synthetic-fixture negative test proving the assert has teeth (§15.26.3 items 2–3) | NEW, registered, run to completion before trusting harvest |
-| (g) Seed-space collision check | `grep` across `experiment-runs/` + `*.py`, zero hits (§15.26.2) | REUSED mechanism, re-run this session, clean |
-| (h) Calibration-first launch + running-projection cut rule | §15.26.4 items 1–2 | NEW this wave's own priority order, mechanism REUSED from §15.14 |
+| (d) PI signoff, primary | `KEYANCHOR_SCALING_PI_SIGNOFF=1` | REUSED, already-enforced token, re-implemented in the new standalone wrapper (§15.26.3.1) |
+| (d) PI signoff, extension | `KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1` | REUSED, already-enforced token, re-implemented in the new standalone wrapper — required as a safety net even though the 1× ledger does not need it drawn on (§15.26.4) |
+| (e) n_iter-bump negative test | Baseline-relative OFF×2+ON×1, `≤3×` envelope (§15.26.3 item 1) | REUSED, already validated twice on this box |
+| (f) admission-recalibration gate + its own negative test | Post-hoc `admissible is True` assert on both landed cells + synthetic-fixture negative test | REUSED, scope narrowed to 2 cells |
+| (g) Seed-space collision check | `grep` across `experiment-runs/` + `*.py`, zero hits (§15.26.2.3) | REUSED mechanism, re-run this session, clean |
+| (h) Calibration-first launch | §15.26.4 item 1 | REUSED mechanism, scope narrowed (no cut rule needed at 2 cells) |
+| (i) NEW — launch-mechanism negative test (MAJOR-2 fix) | Wrapper refuses without either/both PI-signoff tokens, all 3 missing-token combinations tested | NEW, registered, run to completion before launch (§15.26.3.1) |
 
 ### 15.26.7 GPU plan
 
-**GPUs 2–7 (6 slots), Phase-2b (GPUs 0–1, a different, concurrent
-lane — REASONING-LINK Phase-2b seed extension, §16.19) is UNAFFECTED
-and unaffects this wave.** Stage 0: 1 cell (K=84/seed=1943) on GPU 2
-alone, calibration-gated (§15.26.4 item 1). Stage 1: the remaining 9
-cells fanned across GPUs 2–7 (up to 6 concurrent), 2-way or wider per
-the task's own instruction — 2 batches at 6-way (6 then 3), running-
-projection cut rule (§15.26.4 item 2) checked after every completed
-cell once ≥3 have landed.
+**GPU 2 only** (this diagnostic is 2 cells, not a 6-way fan-out — no
+need for GPUs 3–7). Phase-2b (GPUs 0–1, REASONING-LINK's own Rev 1 Leg-A
+pretraining lane, §16.19) is unaffected and unaffects this wave; GPUs
+3–7 stay free for whichever other lane reaches launch first. Stage 0:
+K=84/seed=1943 alone, calibration-gated (§15.26.4 item 1). Stage 1:
+K=90/seed=2043, same GPU, after Stage 0 clears.
 
 ### 15.26.8 Standing constraints (restated, apply unchanged)
 
 - Exact thresholds, no numerical-tolerance slack (the admission gate's
-  `admissible is True`, never a fuzzy read; §15.26.3 item 3's negative
-  test proves it).
+  `admissible is True`, never a fuzzy read, §15.26.3 gate item 2's
+  negative test proves it; this diagnostic's own outcome trigger,
+  §15.26.5, uses exact fractions of a measured gap, not fuzzy language).
 - Negative unit tests run to completion, not merely written (§15.26.3
-  items 1 and 3; §15.26.2's collision grep).
+  gate items 1–2; §15.26.3.1's new launch-mechanism negative test,
+  MAJOR-2 fix; §15.26.2.3's collision grep, re-run this session; this
+  Rev 1's own positive-control run, §15.26.1, proving the degeneracy
+  detector has teeth).
 - Smoke test every model incl. eval batch before launch — this wave
   reuses an already-smoke-tested architecture/config; the only new
-  smoke surface is the `n_iter` override itself (§15.26.3 item 1).
+  smoke surface is the `n_iter` override (reused) plus the new
+  `restrict_entity_pool_n` eval-only parameter (§15.26.2.2, additive,
+  zero-behavioral-change at its `None` default).
 - tmux + supervisor launch pattern, same discipline as every prior wave.
 - Archive to repo (≤25MB) + SSD mirror, both, no exceptions — registered
   for the harvest, not built here (design-only session); the power-check
-  script + its output ARE archived now (`experiment-runs/2026-07-08_
-  d96_scatter_resolution_design/`), since they were run this session.
-- Multiple independent adversarial audit rounds — this section is
-  explicitly DRAFT pending its own attack round(s) before
-  CLEARED-FOR-BUILD.
+  scripts + their outputs ARE archived now (both the Rev 0 script and
+  this Rev 1 session's own extended-verification script, below), since
+  they were run this session. No SSD mirror needed yet (no GPU cell has
+  run under this design).
+- Multiple independent adversarial audit rounds — this section is Rev 1,
+  responding to attack round 1 (§15.26.9); it has not yet had its own
+  attack round 2, still pending before CLEARED-FOR-BUILD.
 - Never compress matrices to vectors — N/A, no new readout head.
 
-### Archive (this design session)
+### Archive (Rev 0 + Rev 1 sessions, same directory)
 
 `experiment-runs/2026-07-08_d96_scatter_resolution_design/` (repo-
-tracked, all files ≤25MB): `scripts/sim_d96_scatter_resolution_power.py`
-(byte-identical copy of `matrix-thinking/deltanet_rd/sim_d96_scatter_
-resolution_power.py`), `fits/sim_d96_scatter_resolution_power_results.json`
-(full H0/H1 power-check output, both nulls, 20,000 trials each). No SSD
-mirror needed yet (no GPU cell has run under this design; the mirror is
-registered for the eventual harvest).
+tracked, all files ≤25MB):
+
+- `scripts/sim_d96_scatter_resolution_power.py` + `fits/sim_d96_
+  scatter_resolution_power_results.json` — Rev 0's own original
+  40,000-trial (20,000/null) power check, unchanged.
+- `scripts/sim_d96_scatter_resolution_power_extended.py` + `fits/
+  sim_d96_scatter_resolution_power_extended_results.json` — Rev 1's own
+  NEW extended verification (§15.26.1): 280,000-trial 7-seed
+  confirmation + 40,000-trial from-scratch reimplementation + 2,000-trial
+  positive control, all byte-identical copies of
+  `matrix-thinking/deltanet_rd/sim_d96_scatter_resolution_power_
+  extended.py` (verified this session, `diff` clean).
+
+### 15.26.9 ATTACK-ROUND-1 fix-map (2026-07-08) — verdict RESHAPE-TO-C
+
+An independent adversarial pass reviewed §15.26 (Rev 0, the d=96
+SCATTER-RESOLUTION wave's own 10-cell seed-escalation design) before any
+GPU work launched, per this program's own standing multiple-independent-
+audit-rounds discipline. Verdict: **RESHAPE-TO-C** — 3 MAJOR, 1 MINOR, no
+FATAL. Unlike a straight NEEDS-REVISION (fix the same design and
+relaunch it) or a kill, RESHAPE-TO-C found the wave's own central
+empirical ambition already analytically resolved by its own pre-
+registered power check (§15.26.1) — the 10-cell grid is retired, not
+patched — while surfacing the wave's own single most important disclosed
+loose end (the K90 pool-margin confound) as a small, differently-shaped,
+cheaper instrument that fits the freed budget. Every finding below is
+fixed in this revision (Rev 1, §15.26.1–§15.26.8); none is deferred or
+waved away. Findings are recorded near-verbatim for the historical
+record, per house style; resolutions are stated as landed in this text,
+not as intentions.
+
+| # | Finding (attack-round on §15.26, Rev 0) | Severity | Fix (Rev 1) | Location |
+|---|---|---|---|---|
+| MAJOR-1 | Rev 0's own text asserted a "diagnosed directly (isolated K84-vs-K90 sub-check, same script, 200,000 trials)" empirical claim (`P(K84's mean-of-N ≥ K90's 1.0)` exactly `0/200,000`, projected to N=103). No such isolated sub-check function, CLI path, or archived 200,000-trial run exists anywhere in this program's history — `sim_d96_scatter_resolution_power.py`'s own single archived run used `n_trials=20,000`/null (40,000 total), verified directly this session | MAJOR | Replaced with the explicit ANALYTIC derivation the claim actually reduces to (K84's mean-of-`n` is an exact Gaussian location-scale transform of `n_new` fresh draws plus `n_fixed` archived constants): `SE=σ√(n_new)/(n_fixed+n_new)`, giving `SE≈0.00627, gap=0.04191, z≈6.687` at `n_new=2` and `z≈19.5` projected to `n_new=100` (N=103) — exact, not simulated, and independently re-derived here from the raw archived seed values (not copied from any prior claim). One sentence disclosing Rev 0's own misattribution added explicitly, not silently absorbed | §15.26.1 (MAJOR-1 fix subsection) |
+| MAJOR-2 | The launch mechanism for this wave's own 10 (now 2) special, non-manifest cells was never named. The program's own standalone-wrapper precedent, `run_k69_s1733_contingency.py`, RE-IMPLEMENTS both PI-signoff checks itself (`main()` lines 85–88) rather than deferring to the central `--wave` dispatcher's own gate (`run_deltanet_rd_exactness_sweep.py:3499–3508`) — Rev 0 never disclosed which mechanism this wave would use, or whether the precedent's own gate had ever been negative-tested | MAJOR | Named explicitly: a NEW standalone wrapper (`run_poolmargin_k84s1943_k90s2043.py`, registered, not yet built), mirroring the precedent's own two-gate re-implementation (`KEYANCHOR_SCALING_PI_SIGNOFF` + `KEYANCHOR_SCALING_EXT_PI_SIGNOFF`, both required, disclosed reasoning for requiring the extension token even though the 1× ledger doesn't need it — the 2× pessimistic bracket marginally does). A registered negative test (build-phase item, run to completion before real launch) proves refusal under all 3 missing-token combinations — closes the gap MAJOR-2 found (the precedent's own gate had never been negative-tested by any prior session either) | §15.26.3.1 (new subsection); §15.26.6 gate (i) |
+| MAJOR-3 | Rev 0's own "Fit + decision rules" table included a "Rival-band comparison (conditional)" row, reachable only if CLIFF-IN-WINDOW fires, with no discrimination-honesty disclosure — §15.20.4's own already-established uniform-`n=4` power check found rival-center CI half-widths (abs-slack 0.0375, power-law 0.0287) still ~2×+ the derived `0.0145` half-gap discrimination threshold at FIVE full K-groups of data; this wave's escalation (n=5, or this diagnostic's 2 extra points) would not close that gap, but the conditional branch never said so | MAJOR | Discrimination-honesty disclosure added directly to the CEILING-IS-ARTIFACT branch of this diagnostic's own outcome table (the only surviving conditional-refit-adjacent text after the grid's own kill): explicitly states any resulting re-fit or rival-band read is DESCRIPTIVE ONLY, not discriminating, citing §15.20.4's own n=4 figures directly, and names the untested training-side memorization variant as a disclosed, separately-scoped open question | §15.26.5 (CEILING-IS-ARTIFACT row) |
+| MINOR-1 | Cost-table arithmetic slip: `23.6366/21` stated as `112.65%`; the correct value is `23.6366/21=1.125552...=112.56%` | MINOR | Corrected to `112.56%` in the killed grid's own retained historical cost table (the underlying decision — that this bracket exceeds the original ceiling — is unchanged either way) | §15.26.4 (historical cost table) |
+
+**What Rev 1 could not cleanly fix, disclosed rather than hidden:** the
+K90 pool-margin control diagnostic (§15.26.2) is a genuinely NEW
+instrument, never run before in any form — its own outcome is unknown
+until it launches, and MAJOR-3's own discrimination-honesty disclosure
+means even a clean CEILING-IS-ARTIFACT result would not fully resolve
+x0(96) or discriminate the two rival bands. The training-side
+memorization variant of the pool-margin hypothesis (repeated near-fixed-
+subset exposure DURING training, not reachable by this diagnostic's
+eval-only manipulation) remains untested, named as a disclosed future
+question, not addressed here. **Rev 1 itself has not yet had its own
+independent audit pass** — per this project's standing rule that
+multiple independent adversarial rounds catch different bugs each round,
+landing attack-round-1's findings does not, on its own, certify §15.26 as
+CLEARED-FOR-BUILD.
 
 ---

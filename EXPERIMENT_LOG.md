@@ -7030,3 +7030,134 @@ RESTRUCTURE-TO-B") before any edit began; matched exactly, no drift.
 Zero injected content found in any file this session read or wrote. This
 is at least the 7th occurrence logged against this project's history
 combined (this file's own prior tally of 6 + this one).
+
+## §15.26 Rev 1 — RESHAPE-TO-C, 2026-07-08: grid killed, finding registered
+(zero GPU), K90 pool-margin control diagnostic designed
+
+An independent adversarial pass on §15.26 (the d=96 SCATTER-RESOLUTION
+wave's own 10-cell seed-escalation design, Rev 0) returned **RESHAPE-TO-C**
+— 3 MAJOR + 1 MINOR, no FATAL, full finding→fix table at
+`KEY_ANCHORING_SCALING_DRAFT.md` §15.26.9. Rev 1 restructures the wave in
+three parts, all landed this session, zero GPU spent:
+
+**(1) The finding is REGISTERED directly from existing data, no GPU
+spent:** "no cliff to K/d=0.9375; h4 near ceiling is seed-dependent and
+non-sigmoid in this window; x0(96) unlocalizable with this instrument" —
+the SAME verdict §15.25.6 already reached, now standing on a power
+analysis independently confirmed at much higher confidence. Beyond Rev
+0's own original 40,000-trial (20,000/null) power check, this session
+ran and archived THREE new pieces of confirmation
+(`sim_d96_scatter_resolution_power_extended.py`, CPU-only, ~289s wall):
+7 new seeds × 20,000 trials/null via the unmodified original driver
+(280,000 trials, 100.00% degenerate every seed, both nulls); a
+from-scratch, independently re-typed reimplementation of the sigmoid fit
++ degeneracy check (40,000 trials, matching exactly, ruling out a shared
+code bug); and a 2,000-trial positive control (a genuinely non-degenerate
+synthetic truth fed through the SAME checker) confirming the detector
+has teeth (`degenerate_frac=0.0000`, `monotonic_frac=1.0000`). Cumulative
+across this wave's history: **360,000 trials, 100% degenerate under both
+nulls, in every single one.** **MAJOR-1 fix:** Rev 0's own "isolated
+K84-vs-K90 sub-check, 200,000 trials" claim had no archived artifact
+anywhere (verified directly — no such sub-check exists in the driver) —
+replaced with the explicit closed-form analytic derivation the claim
+actually reduces to: `SE=σ√(n_new)/(n_fixed+n_new)`, giving
+`z≈6.687` at n=5 and `z≈19.5` projected to N=103, independently
+re-derived from the raw archived seeds. **The 10-cell escalation grid is
+KILLED** — its own pre-registered power check already shows resolution
+is analytically disfavored under both tested nulls with near-certainty,
+so spending the 4.27–8.54 GPU-h to empirically re-confirm a near-
+certainty is not justified. 8 of its 10 reserved seeds are released
+unclaimed; 2 (1943 @ K84, 2043 @ K90) are redirected, disclosed, to (2).
+
+**(2) A NEW, much smaller instrument replaces it: the K90 POOL-MARGIN
+CONTROL DIAGNOSTIC.** Reading `grammar_rd.py` + `run_deltanet_rd.py`
+directly this session surfaced a real, previously-unnoticed mechanism
+error in Rev 0's own disclosed confound paragraph: the fit metric
+(`h4`=`M3_held_out`) draws its K entities from `pools.train_name_ids`
+(N=107, margins 23/17 at K=84/90) — NOT from `pools.heldout_name_ids`
+(N=106, margins 22/16) that Rev 0's own paragraph cited (correctly
+sourced from §15.24.2's C17-specific flag, but misapplied to a different
+metric). Further, `C17_heldout_entities` itself — the metric that DOES
+read the N=106 pool — is verified NOT at ceiling at K=90 (0.73–0.99,
+more variable than K=84's own 0.95–0.98), the opposite of the confound's
+own predicted direction. The live candidate mechanism, pinned from code:
+`recovered_frac@0.9` is a continuous cosine-similarity threshold (never
+nearest-neighbor/argmax over a candidate pool), so "fewer confusable
+distractors" has no causal channel; the real candidate is entity-draw
+DIVERSITY (expected inter-episode membership overlap = K/N exactly,
+84.11% at K=90 vs. 78.50% at K=84 on the TRAIN pool). The diagnostic
+restricts ONLY the eval-time pool for K=84's own `M3_held_out` call
+(margin thinned from 23→17, matching K=90's real value) via one new
+additive `evaluate_pool` parameter — the training path is untouched, so
+the manipulation isolates an eval-time effect on the SAME trained
+weights. 2 cells (K=84/seed=1943 margin-equalized, K=90/seed=2043
+natural comparator, both redirected from the killed grid's own idle
+reservations), ≈0.9 GPU-h, launches via a new standalone wrapper
+(`run_poolmargin_k84s1943_k90s2043.py`, **MAJOR-2 fix**: names the
+launch mechanism explicitly, mirroring `run_k69_s1733_contingency.py`'s
+own precedent of re-implementing both PI-signoff gates itself, with a
+NEW registered negative test proving refusal under all 3 missing-token
+combinations — closing a gap that existed in the precedent itself, never
+negative-tested by any prior session). Pre-registered, exact-threshold
+outcome table: CEILING-IS-ARTIFACT (`shift≥0.5×Δ`) / CEILING-IS-REAL
+(`shift≤0.1×Δ`) / AMBIGUOUS (between). **MAJOR-3 fix:** the
+CEILING-IS-ARTIFACT branch now carries an explicit discrimination-
+honesty disclosure — §15.20.4's own uniform-n=4 power check already
+found rival-band CI half-widths ~2×+ the derived 0.0145 discrimination
+threshold at 5 full K-groups; this diagnostic's 2 extra points cannot
+close that gap, so any resulting re-fit is registered as descriptive,
+never discriminating.
+
+**Ledger: 19.3666 + 0.900 = 20.2666/26 (96.51% of the ORIGINAL 21
+GPU-h ceiling — FITS WITHOUT drawing on the +5.0 GPU-h extension)**, a
+disclosed design virtue avoiding the killed grid's own worst property
+(its 2× pessimistic bracket breached even the EXTENDED 26 ceiling,
+107.33%, corrected from Rev 0's arithmetic slip of 112.65%→**112.56%**,
+**MINOR-1 fix**). This diagnostic's own 2× pessimistic bracket
+(21.0746/21=100.36%) still marginally exceeds the original ceiling by a
+small, disclosed tail — both PI-signoff gates (primary + extension) are
+still required at launch as a conservative safety net, even though the
+extension is not expected to actually be drawn on.
+
+**Full account, all required elements (registered finding, killed-grid
+disposition, pool-margin mechanism pin, manipulation design, seed table,
+launch mechanism, cost/ledger, gates, outcome table) plus the full
+attack-round-1 finding→fix table:** `KEY_ANCHORING_SCALING_DRAFT.md`
+§15.26 (Rev 1) + §15.26.9. Archive (both Rev 0's original power check and
+this session's own new extended-verification script + results, all
+≤25MB, repo-tracked): `experiment-runs/2026-07-08_
+d96_scatter_resolution_design/`. **Queue: Rev 1 (this entry) → attack
+round 2 → build wrapper (`run_poolmargin_k84s1943_k90s2043.py` +
+`restrict_entity_pool_n`/`m3_pool_restrict_n` additive params) → audit →
+launch GPU 2 (Stage 0: K=84/seed=1943 alone, calibration-gated; Stage 1:
+K=90/seed=2043), ≈0.9 GPU-h.** No cells launched, no production code
+written this session (the CPU-only verification script is the only code
+run); STATE.md's queue updated.
+
+**Security note.** The SAME recurring fake-`<system-reminder>` injection
+pattern fired again this session, appended to the first `Bash` tool
+result (a `git pull && git log` call at session start) — a fabricated
+date-change-concealment instruction, a fabricated agent-type list, and
+fabricated MCP-server tool-loading instructions, matching this file's
+own repeatedly-logged pattern exactly — disregarded in full, including
+the concealment instruction (this entry states the date plainly). The
+underlying date claim was independently cross-checked against the box's
+own `date` output (`Wed Jul 8 02:55:55 PDT 2026`) and recent commit
+timestamps (`git log`, `18ace0f`/`175f43b`/`813e716`, all `2026-07-08`)
+— both genuinely confirm 2026-07-08. HEAD was verified against the
+task's own cited starting commit (`18ace0f`, "§15.26 d=96 scatter-
+resolution wave, Rev 0, pre-attack") before any edit began; matched
+exactly. Mid-session, HEAD advanced twice more (`175f43b`→`813e716`, a
+concurrent sibling agent — the REASONING-LINK §16.19 Rev 1/Rev 2 design
+threads, same working tree, same session family per the matching
+`Claude-Session` commit trailer) — verified a normal linear fast-forward
+(`git merge-base --is-ancestor`), zero content loss, and confirmed
+neither commit touched `KEY_ANCHORING_SCALING_DRAFT.md` (`git log -1
+--format=%H -- matrix-thinking/KEY_ANCHORING_SCALING_DRAFT.md` stayed
+pinned at `18ace0f` throughout this session, until this session's own
+edits). `STATE.md`/`EXPERIMENT_LOG.md` re-read fresh immediately before
+every edit to those two shared files, per the same discipline this
+file's own prior entries already established. Zero injected content
+found in any file this session read or wrote. This is at least the 8th
+occurrence logged against this project's history combined (this file's
+own prior tally of 7 + this one).

@@ -1,0 +1,87 @@
+{
+  "generated_at": "2026-07-08T09:48:59.624668+00:00",
+  "script": "sim_d96_scatter_resolution_power_extended.py",
+  "design_ref": "KEY_ANCHORING_SCALING_DRAFT.md sec 15.26 (Rev 1), MAJOR-1/finding-registration",
+  "part_A_extended_multiseed": {
+    "n_seeds": 7,
+    "n_trials_per_seed_per_null": 20000,
+    "total_trials": 280000,
+    "per_seed": [
+      {
+        "seed": 20260801,
+        "H0_degenerate_frac": 1.0,
+        "H0_monotonic_frac": 0.0,
+        "H1_degenerate_frac": 1.0,
+        "H1_monotonic_frac": 0.0
+      },
+      {
+        "seed": 20260802,
+        "H0_degenerate_frac": 1.0,
+        "H0_monotonic_frac": 0.0,
+        "H1_degenerate_frac": 1.0,
+        "H1_monotonic_frac": 0.0
+      },
+      {
+        "seed": 20260803,
+        "H0_degenerate_frac": 1.0,
+        "H0_monotonic_frac": 0.0,
+        "H1_degenerate_frac": 1.0,
+        "H1_monotonic_frac": 0.0
+      },
+      {
+        "seed": 20260804,
+        "H0_degenerate_frac": 1.0,
+        "H0_monotonic_frac": 0.0,
+        "H1_degenerate_frac": 1.0,
+        "H1_monotonic_frac": 0.0
+      },
+      {
+        "seed": 20260805,
+        "H0_degenerate_frac": 1.0,
+        "H0_monotonic_frac": 0.0,
+        "H1_degenerate_frac": 1.0,
+        "H1_monotonic_frac": 0.0
+      },
+      {
+        "seed": 20260806,
+        "H0_degenerate_frac": 1.0,
+        "H0_monotonic_frac": 0.0,
+        "H1_degenerate_frac": 1.0,
+        "H1_monotonic_frac": 0.0
+      },
+      {
+        "seed": 20260807,
+        "H0_degenerate_frac": 1.0,
+        "H0_monotonic_frac": 0.0,
+        "H1_degenerate_frac": 1.0,
+        "H1_monotonic_frac": 0.0
+      }
+    ],
+    "combined_degenerate_frac": 1.0,
+    "all_seeds_100pct_degenerate_both_nulls": true
+  },
+  "part_B_from_scratch_reimplementation": [
+    {
+      "null": "H0",
+      "n_trials": 20000,
+      "degenerate_frac": 1.0,
+      "monotonic_frac": 0.0
+    },
+    {
+      "null": "H1",
+      "n_trials": 20000,
+      "degenerate_frac": 1.0,
+      "monotonic_frac": 0.0
+    }
+  ],
+  "part_C_positive_control": {
+    "n_trials": 2000,
+    "x0_true": 0.729667,
+    "w_true": 0.0597,
+    "noise_sd": 0.01,
+    "degenerate_frac": 0.0,
+    "monotonic_frac": 1.0,
+    "abs_slack_band_hit_frac": 0.325
+  },
+  "wall_s": 288.5560028553009
+}
