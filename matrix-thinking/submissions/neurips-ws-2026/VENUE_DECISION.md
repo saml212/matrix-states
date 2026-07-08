@@ -93,3 +93,83 @@ currently cited as a single-author workshop paper with no arXiv ID recorded
 itself establish an endorsed account) before starting the endorsement-request
 flow from scratch; if it hasn't been posted yet, doing so first is probably
 the fastest path to an endorsed account for this paper too.
+
+---
+
+## VENUE SCAN 2026-07-06 (agent-verified live CFPs; supersedes stale dates above where they conflict)
+
+**NeurIPS 2026 workshop timing CONFIRMED from neurips.cc:** proposal
+deadline was Jun 6; accepted-workshop list drops **Jul 11, 2026**;
+suggested paper deadline **Aug 29**. No NeurIPS-ws CFPs (NeurReps,
+UniReps, MathAI, MI-successor) are live yet. **Jul 11 is the
+highest-value re-scan date** — both this draft and `workshop-2026/`
+(capacity trilogy) are pre-built for NeurReps/UniReps EA tracks
+(non-archival, dual-submission-safe).
+
+**Live/near-live windows (all non-archival):**
+- **COLM 2026 Efficient Reasoning — deadline Jul 19** (extended). KV-cache
+  /memory themes. Candidate: capacity trilogy (already 4pp). The M*
+  result is NOT ready — do not force it (rigor first).
+- **COLM 2026 MOSS (Methods & Opportunities at Small Scale)** — closed
+  Jul 3 BUT page says late submissions may be allowed. Best scope match
+  found (≤3B params rigorous small-scale science). Late-add email
+  recommended THIS WEEK.
+- **COLM 2026 Actionable Interpretability / Sci-FM / AIMS / Context
+  Beyond the Window** — all closed Jun 23-24, all strong fits
+  (AIMS/Sci-FM ≈ purpose-built for the instrument-calibration story);
+  low-cost late-add emails recommended.
+- **ICBINB** (negative results; reasoning-link null's natural home):
+  next instance unannounced; re-scan Nov-Dec 2026.
+- **CPAL 2027 Spotlight** (already-published work; zero novelty risk —
+  re-present the ICML MI paper): re-scan Nov 2026.
+- **NeSy 2026 is ARCHIVAL (PMLR)** — AVOID for anything feeding the
+  flagship.
+- ICLR 2027: iclr.cc confirms West Coast North America; Sept 19/24
+  dates are third-party figures — re-verify when the official CFP page
+  goes live.
+
+**Chop plan (recommended):** Jul 11 → submit BOTH pre-built EAs to
+NeurReps/UniReps when CFPs drop. This week → five late-add emails
+(drafts below). NOW → draft the instrument-calibration methodology
+short paper (dispatched 2026-07-06) so it's ready for AIMS/Sci-FM-class
+venues. Hold reasoning-link null for ICBINB. Never touch the ICLR-2027
+flagship's scope; all listed venues are non-archival.
+
+### Late-add email drafts (PI to review author/affiliation before sending — author/title remain a PENDING PI DECISION)
+
+Template (customize the [bracket] per venue):
+
+> Subject: Late submission inquiry — [WORKSHOP NAME]
+>
+> Dear [WORKSHOP] organizers,
+>
+> I'm writing to ask whether you would consider a late submission to
+> [WORKSHOP]. My work is a close fit for your scope: [ONE-LINER BELOW].
+> The paper is [4pp extended-abstract / short-paper] length, non-archival
+> submission, and I can deliver it within [48 hours / by DATE].
+> I understand if the review pipeline is already closed — thank you
+> either way.
+>
+> Best regards,
+> Sam Larson
+
+Per-venue one-liners:
+- **MOSS:** "a rigorous small-scale (14M-1.31B) experimental program on
+  matrix-valued fast-weight memories: provably-necessary rank
+  recruitment, super-linear capacity scaling, and a scale-monotonic
+  write-geometry pathology with a validated fix — all pre-registered,
+  adversarially audited, and within your ≤10^20 FLOP scope."
+- **Actionable Interpretability:** "a mechanistic diagnosis of a
+  write-geometry pathology in delta-rule fast-weight LMs that converts
+  directly into a one-line architectural fix (frozen key bias),
+  validated causally at 14M-1.31B."
+- **Sci-FM:** "an evaluation-reliability case study: a reported
+  'capacity cliff' in matrix memories that was actually a
+  numerical-tolerance miscalibration in the measurement instrument,
+  plus evidence that instrument admission frontiers move with task
+  load — with the methodology that caught both."
+- **AIMS:** same one-liner as Sci-FM (measurement-science framing).
+- **Context Beyond the Window:** "fixed-size matrix fast-weight states
+  vs KV-cache-capped transformers at matched inference-memory bytes:
+  super-linear capacity scaling in the state dimension and a
+  pre-registered memory-multiplier crossover protocol."

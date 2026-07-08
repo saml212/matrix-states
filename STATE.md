@@ -76,13 +76,57 @@ k_sink=4; TASK_BASE 5 keys; raw 12.59, bracket 125.88, margin 1.45
 GPU-h — thinnest yet, flagged) → attack round 3 (RUNNING) → ... →
 BUILD → build audit → launch rung-1 GPUs 0-6.
 
-**PARALLEL RESEARCH WAVES (dispatched 2026-07-08, PI capability-first
-directive):** (1) capability-separation scout — formal TC0 landscape
-(transformers AND diagonal SSMs limited; delta-rule/negative-eigenvalue
-models escape — verify our fla kernel's β range as shipped), sharpest
-unclaimed demo, top-5 ranked w/ kill-tests + GPU-h; (2) venue scout —
-live workshop CFPs Jul 2026-Jan 2027 matched to the chop inventory,
-double-submission policies vs the ICLR 2027 flagship.
+**PARALLEL RESEARCH WAVES (dispatched + RETURNED 2026-07-08, PI
+capability-first directive):**
+
+(1) **Capability-separation scout — RETURNED.** Verified landscape:
+fixed-depth transformers TC0-bounded (Merrill-Sabharwal line, holds
+through log-CoT; only linear CoT escapes — so all claims must be
+single-pass/no-CoT); diagonal SSMs ALSO TC0 (Illusion of State,
+2404.08819); delta-rule models escape ONLY with negative eigenvalues
+(Grazzi 2411.12537 ICLR'25 oral; DeltaProduct 2502.10297: S3 needs
+n_h=2, S5 n_h=4; RWKV-7 2503.14456). ⚠️ **BLOCKING: our
+`lm_pretrain_rd.py` uses plain sigmoid β∈[0,1] everywhere, zero
+`allow_neg_eigval` hits in repo → contender AS CONFIGURED is
+TC0-bounded, no separation property. One-line fix (β×2) but the fix
+itself is published prior art (DeltaProduct at LM scale) — our novelty
+must be built ON TOP.** Bare "recurrent beats transformer at state
+tracking" is FORECLOSED (Chess-World-Model 2605.30100 at 3M-40M; code
+traces 2602.14814 by the Grazzi group; M²RNN 2603.14360 matrix-state at
+7B). THE UNCLAIMED GAP: causally-verified rank↔representation-complexity
+correspondence (force-rank methodology, our asset) + inference-memory-
+matched accounting — no 2026 paper measures either. Top candidates:
+#1 rank↔minimal-faithful-rep-dim across solvable/non-solvable groups
+(~20-40 GPU-h); #3 single-pass exact composition on the provably-
+CoT-required task class (2601.15158 inverted, ~10-20 GPU-h); #4 exact
+unbind vs the published "global suppression tag" failure taxonomy
+(2605.30233, ~15-25 GPU-h); #2 = head-to-head axis 2 (already in
+gauntlet). Bytes: CONFOUND for this campaign, stays parked (sequenced
+follow-on only). "Abstract thinking" claim ceiling: systematic
+compositional generalization + causal state tracking w/ extrapolation.
+HEAD-TO-HEAD CROSS-IMPLICATION: contender stays β∈[0,1] there (frozen-
+bias λ=0.58 evidence was collected under sigmoid β; changing mid-
+gauntlet invalidates provenance) — Task-2 held-out-depth results are
+empirical-only, disclose in the design's caveats register; the
+capability campaign pins β∈[0,2] as its own arm w/ own calibration.
+NEXT (waterfall): ATTACK stage on candidates #1/#3/#4 (dispatched
+2026-07-08) — esp. verify the representation-theory dims (S5 minimal
+faithful = 4-dim standard rep; A5 has 3-dim faithful irreps — the
+scout's "5 for S5/A5" is suspect) and whether delta-rule state rank ↔
+rep dimension is well-posed (state update S(I-βkk^T)+βvk^T IS a
+Householder-product recurrence, so plausibly yes — needs rigor).
+
+(2) **Venue scout — RETURNED.** Full table + email drafts appended to
+`neurips-ws-2026/VENUE_DECISION.md`. Headlines: NeurIPS-2026 workshop
+list drops **Jul 11** (both pre-built EAs → NeurReps/UniReps, deadline
+~Aug 29); COLM Efficient Reasoning open to **Jul 19** (capacity trilogy
+candidate); 5 late-add emails recommended THIS WEEK (MOSS best scope
+match; AIMS/Sci-FM ≈ purpose-built for the instrument-methodology
+story); ICBINB (reasoning-link null) re-scan Nov-Dec; NeSy is ARCHIVAL —
+avoid. Instrument-methodology chop paper DRAFTING NOW
+(`submissions/measurement-2026/`, agent dispatched). PI ACTIONS NEEDED:
+approve/send the late-add emails (author/affiliation pending), Jul 11
+submissions.
 iterate to DESIGN-CLEARED-FOR-BUILD → build (new code: flat-vector
 ablation mixer, switchable uncapped/capped-KV Transformer,
 `verify_match_gate.py`, calibration/timing-pilot wrappers) →
