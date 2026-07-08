@@ -351,23 +351,40 @@ def _step_2_recompute_resolve_niter(events: list, excluded_episodes=(), sweep=ST
     """BOX-ONLY (same reason as _step_1_recompute_disagreements). Sweeps
     `n_iter` on the SAME dumped `k_eff_raw`, per episode (excluding
     whatever Step 1 already excluded). Returns {episode_5tuple:
-    n_iter_first_resolved (int) or None (never resolves in the grid)}."""
+    n_iter_first_resolved (int) or None (never resolves in the grid)}.
+
+    C17 build audit MEDIUM-2 fix (mirrors Step 1's own Rev 3 MAJOR-B fix,
+    `_step_1_recompute_disagreements` above): for EACH `n` in `sweep`, this
+    runs ONE BATCHED `newton_schulz_orthogonalize` call on the event's FULL
+    dumped `(B,K,d)` tensor -- NEVER a `k_eff_raw[row_idx:row_idx+1]`
+    singleton slice inside the per-row loop, which reintroduces the exact
+    batch-size GEMM-kernel-selection confound MAJOR-B killed for Step 1
+    (cuBLAS/cuDNN kernel selection is batch-size-dependent; a singleton
+    recompute can silently route through a different kernel and flip a
+    near-boundary residual from batching alone, independent of any real
+    numerical disagreement). `resid_by_n[n][row_idx]` is indexed from the
+    batched result, never recomputed singleton -- same discipline as Step
+    1's `resid_offline[row_idx]`."""
     newton_schulz_orthogonalize = _load_ns_orthogonalize()
     resid_tol = ka.GATE2_RESID_TOL if resid_tol is None else resid_tol
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     excluded = set(excluded_episodes)
     per_episode: dict = {}
     for ev in events:
-        k_eff_raw = ev["k_eff_raw"].to(device)
-        for row_idx in range(k_eff_raw.shape[0]):
+        k_eff_raw = ev["k_eff_raw"].to(device)           # (B,K,d) -- FULL event tensor
+        B = k_eff_raw.shape[0]
+        resid_by_n = {}
+        for n in sweep:
+            with torch.no_grad():
+                _, resid = newton_schulz_orthogonalize(k_eff_raw, n_iter=n)   # ONE batched call
+            resid_by_n[n] = resid
+        for row_idx in range(B):
             episode = episode_key(ev, row_idx)
             if episode in excluded:
                 continue
             resolved_at = None
             for n in sweep:
-                with torch.no_grad():
-                    _, resid = newton_schulz_orthogonalize(k_eff_raw[row_idx:row_idx + 1], n_iter=n)
-                if resid.item() <= resid_tol:
+                if resid_by_n[n][row_idx].item() <= resid_tol:
                     resolved_at = n
                     break
             per_episode[episode] = resolved_at
@@ -449,6 +466,24 @@ def load_launch_dump(ckpt_dir: str, seed: int) -> dict:
             assert ev["seed"] == seed, (
                 f"event seed={ev['seed']!r} != the launch seed {seed!r} passed via --launch for "
                 f"{ckpt_dir!r} -- wrong --launch SEED argument, or a mixed-launch ckpt_dir")
+            # C17 build audit MEDIUM-3 fix: k_blend_raw is dumped (sec 15.24.2 item (ii)) but
+            # every downstream step (0b/0a/1/2) reads k_eff_raw ONLY -- k_blend_raw would be dead
+            # cargo unless something actually reads it back. Defense-in-depth, near-zero cost
+            # (one torch.equal on already-loaded tensors): re-assert the SAME bitwise-equality
+            # invariant run_deltanet_rd.py's `_dump_c17_fallback_event` HARD-ABORTS on at dump
+            # time (sec 15.24.2's own "100% of C17 keys are trained_here=False" claim) -- a
+            # second, independent check at LOAD time, on the PERSISTED artifact, catching a
+            # corrupted/hand-edited dump file the dump-time assert never saw. Same failure mode,
+            # same pinned hard-abort path: an uncaught AssertionError, never a soft warning.
+            assert torch.equal(ev["k_eff_raw"], ev["k_blend_raw"]), (
+                "C17 REPRO ANALYSIS HARD-ABORT (KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.5 "
+                "MEDIUM-3 defense-in-depth): k_eff_raw and k_blend_raw are NOT bitwise-identical "
+                f"for an event loaded from {p!r} (seed={seed} step={ev.get('step')} "
+                f"hop={ev.get('hop')} batch_idx={ev.get('batch_idx')}) -- either the dump-time "
+                "HARD-ABORT (run_deltanet_rd.py's _dump_c17_fallback_event) was bypassed, or this "
+                "file was corrupted/hand-edited after being written. Every downstream Step "
+                "0b/0a/1/2 verdict computed from k_eff_raw assumes this equality; refusing to "
+                "proceed on an unverified assumption.")
             events.append(ev)
 
     anchor_paths = sorted(

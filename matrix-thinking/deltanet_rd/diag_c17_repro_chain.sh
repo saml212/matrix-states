@@ -80,6 +80,27 @@ PY=/home/nvidia/tdenv/bin/python
 mkdir -p logs
 
 # =============================================================================
+# STEP 0 pre-flight (C17 build audit MINOR-7 fix): the wide kernel-safety
+# gate artifact this repro cell's own T_bind(K=84)=588 depends on (sec
+# 15.20.1/15.24.2) must exist on THIS RUNTIME box path -- checked FIRST,
+# before ANYTHING else (even the PI-signoff gates below), so a missing
+# artifact fails in seconds with a clear message rather than only being
+# caught later (STEP 2, below) after the PI-signoff gates AND the full
+# Stage -1 CPU self-test suite have already run.
+# =============================================================================
+readonly WIDE_KERNEL_GATE_JSON=results/smoke_dstate_kernel_wide_result.json
+if [ ! -f "$WIDE_KERNEL_GATE_JSON" ]; then
+    echo "ERROR (pre-flight): wide kernel-safety gate artifact missing at" >&2
+    echo "  $WIDE_KERNEL_GATE_JSON on THIS box (sec 15.20.1) -- this repro cell's own" >&2
+    echo "  T_bind(K=84)=588 is covered ONLY by this artifact's own {504,546,588,630} T-sweep" >&2
+    echo "  (sec 15.24.2). Generate/commit a PASSING artifact on THIS box first, then re-run" >&2
+    echo "  this chain." >&2
+    exit 1
+fi
+echo "pre-flight OK: $WIDE_KERNEL_GATE_JSON exists on this box." \
+    | tee logs/c17repro_00a_preflight_kernel_gate_artifact.log
+
+# =============================================================================
 # GPU pin (HARD-CODED, not overridable via environment -- sec 15.24.7).
 # =============================================================================
 readonly C17REPRO_GPU=2
@@ -132,28 +153,75 @@ sys.exit(0 if ok else 1)
 " 2>&1 | tee logs/c17repro_02_pi_signoff_pyside.log
 
 # =============================================================================
-# STEP 1: Stage -1 self-test suite (diag_c17_repro_stage_minus1.py). CPU-
-# only -- run BEFORE any GPU work. `set -e` stops this chain here on any
-# RUN item's own failure (BOX-DEFERRED items do not count as failures --
-# see that script's own exit-code convention).
+# STEP 1: Stage -1 self-test suite (diag_c17_repro_stage_minus1.py). Runs ON
+# THIS BOX -- items 1/2/3/4/9's REAL box-side implementations execute HERE
+# (C17 build audit HIGH fix: these used to be unconditional `_defer()`
+# calls with no box-side execution path at all). `set -e` stops this chain
+# here on any RUN item's own failure OR on the script's own capability-gate
+# refusal (its exit code is already non-zero if the environment reports
+# itself capable but a launch-blocking item is still deferred -- see that
+# script's own `capability_gate_failed` logic).
 # =============================================================================
 $PY diag_c17_repro_stage_minus1.py 2>&1 | tee logs/c17repro_10_stage_minus1.log
 touch "$REPRO_OUT_DIR/C17REPRO_STAGE_MINUS1_DONE"
+
+# =============================================================================
+# STEP 1b (C17 build audit HIGH fix): chain-side hard gate on Stage -1's OWN
+# results JSON, BEFORE the launch step -- independent, belt-and-suspenders
+# (this chain does NOT merely trust the Python script's own exit code, the
+# same discipline as GATE 0a/0b's own bash+python double-check above):
+# parse diag_c17_repro_stage_minus1_results.json and REFUSE to launch
+# unless it reports ZERO deferred items among the 5 launch-blocking items
+# (1/2/3/4/9). This is the actual ENFORCEMENT of this chain's own header
+# comment's claim ("re-runs them on box") -- previously false (see this
+# chain's own git history), now checked mechanically, not merely asserted.
+# =============================================================================
+STAGE_MINUS1_JSON=results/keyanchor_scaling_c17repro/diag_c17_repro_stage_minus1_results.json
+if [ ! -f "$STAGE_MINUS1_JSON" ]; then
+    echo "ERROR: Stage -1 results JSON missing at $STAGE_MINUS1_JSON -- diag_c17_repro_stage_minus1.py" >&2
+    echo "  did not write its own output file; refusing to launch." >&2
+    exit 1
+fi
+set +e
+$PY -c "
+import json, sys
+
+with open('$STAGE_MINUS1_JSON') as f:
+    r = json.load(f)
+gated_labels = ('item 1', 'item 2', 'item 3', 'item 4', 'item 9')
+still_deferred_gated = [d for d in r.get('box_deferred', [])
+                         if d.get('gated', True) and any(d['item'].startswith(lbl) for lbl in gated_labels)]
+n_failures = r.get('n_failures', 1)
+capability_gate_failed = r.get('capability_gate_failed', True)
+ok = (n_failures == 0) and (not still_deferred_gated) and not capability_gate_failed
+print(f'Stage -1 results (chain-side hard gate): n_failures={n_failures} '
+      f'capability_gate_failed={capability_gate_failed} '
+      f'still_deferred_gated={[d[\"item\"] for d in still_deferred_gated]}')
+sys.exit(0 if ok else 1)
+" 2>&1 | tee logs/c17repro_10b_stage_minus1_hard_gate.log
+GATE_RC="${PIPESTATUS[0]}"
+set -e
+if [ "$GATE_RC" -ne 0 ]; then
+    touch "$REPRO_OUT_DIR/C17REPRO_STAGE_MINUS1_GATE_REFUSED"
+    echo "ERROR: Stage -1 hard gate REFUSED launch (rc=$GATE_RC) -- see" >&2
+    echo "  logs/c17repro_10b_stage_minus1_hard_gate.log and $STAGE_MINUS1_JSON for exactly" >&2
+    echo "  which item(s) are still deferred on this box." >&2
+    exit 1
+fi
+echo "Stage -1 hard gate PASSED -- zero launch-blocking items deferred on this box." \
+    | tee -a logs/c17repro_10b_stage_minus1_hard_gate.log
 
 # =============================================================================
 # STEP 2: kernel-gate artifact check (sec 15.24.2: "No new kernel or Gate-2
 # check needed -- both already cleared for this exact (K,d) pair."
 # T_bind(K=84)=588 is one of the FOUR T's the wide kernel-safety gate's own
 # sweep already tested. STANDALONE bash-level check ("belt") -- re-verifies
-# the ALREADY-COMMITTED artifact, does not regenerate it.
+# the ALREADY-COMMITTED artifact, does not regenerate it. (MINOR-7 fix:
+# the bare file-existence check used to live here -- moved to the STEP 0
+# pre-flight above, which already guarantees $WIDE_KERNEL_GATE_JSON exists
+# by the time this step runs; this step's own job is the DEEPER content
+# check -- T-sweep coverage + the artifact's own recorded "ok" verdict.)
 # =============================================================================
-WIDE_KERNEL_GATE_JSON=results/smoke_dstate_kernel_wide_result.json
-if [ ! -f "$WIDE_KERNEL_GATE_JSON" ]; then
-    echo "ERROR: wide kernel-safety gate artifact missing at $WIDE_KERNEL_GATE_JSON (sec 15.20.1)" >&2
-    echo "  -- this repro cell's own T_bind(K=84)=588 is covered ONLY by this artifact's own" >&2
-    echo "  {504,546,588,630} T-sweep (sec 15.24.2). Generate/commit a PASSING artifact first." >&2
-    exit 1
-fi
 $PY -c "
 import sys
 sys.path.insert(0, '.')
@@ -253,6 +321,28 @@ if [ "$BUILD_RC" -eq 3 ]; then
 else
     mapfile -t CMD <<< "$CMD_STDOUT"
     echo "CMD: ${CMD[*]}" | tee logs/c17repro_14_final_cmd.log
+
+    # =========================================================================
+    # GPU-2 idle pre-flight check (C17 build audit MINOR-8 fix): abort BEFORE
+    # launching if GPU 2 (this chain's own HARD-PINNED assignment, sec
+    # 15.24.7) is already busy -- re-checked at launch time, never assumed
+    # idle from drafting time (this chain's own budget-guard nvidia-smi
+    # diagnostic above only runs POST-HOC, on a timeout; this check runs
+    # PRE-EMPTIVELY instead, before a single GPU-hour is spent).
+    # =========================================================================
+    GPU2_UTIL=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits -i "$C17REPRO_GPU" | tr -dc '0-9')
+    GPU2_MEM_USED=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -i "$C17REPRO_GPU" | tr -dc '0-9')
+    echo "GPU $C17REPRO_GPU pre-launch idle check: utilization=${GPU2_UTIL:-0}% memory_used=${GPU2_MEM_USED:-0}MiB" \
+        | tee logs/c17repro_13_gpu_idle_check.log
+    if [ "${GPU2_UTIL:-0}" -gt 5 ] || [ "${GPU2_MEM_USED:-0}" -gt 512 ]; then
+        echo "ERROR: GPU $C17REPRO_GPU is NOT idle (utilization=${GPU2_UTIL:-0}%, " >&2
+        echo "  memory_used=${GPU2_MEM_USED:-0}MiB) -- refusing to launch (MINOR-8 pre-launch" >&2
+        echo "  idle check). GPU 2 is this chain's own HARD-PINNED assignment (sec 15.24.7); a" >&2
+        echo "  busy GPU 2 means contention from another process. Investigate before re-running." >&2
+        nvidia-smi --query-compute-apps=pid,used_memory,process_name --format=csv -i "$C17REPRO_GPU" \
+            2>&1 | tee -a logs/c17repro_13_gpu_idle_check.log
+        exit 1
+    fi
 
     # =========================================================================
     # LAUNCH, GPU 2 ONLY, budget-guard-wrapped (sec 15.24.5/15.24.7).

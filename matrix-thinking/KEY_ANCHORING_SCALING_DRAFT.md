@@ -4239,6 +4239,21 @@ rule):**
     floor. Proves the "same anomaly marker" language in §15.24.4's floor
     paragraph is enforced by the analysis script, not merely asserted in
     prose.
+
+    **[Rev-4-build note (FIX agent, C17 build audit, this commit) — disclosed
+    deviation 1, ties to this item's own build-time disclosure in
+    `diag_c17_repro_stage_minus1.py`'s item 10c]:** `run_full_precedence()`
+    short-circuits at Step 0b's dispositive return — when 0b fires, Step 1's
+    own diagnostic is never ALSO computed and attached to that SAME result
+    dict. Item 10's own per-marker-type counting completeness is therefore
+    proven IN ISOLATION (`step_0b_pool_membership`/`_apply_two_level_floor`
+    called directly on the same synthetic sink, items 10a/10b) rather than
+    exhibited together in one run's combined verdict JSON (item 10c).
+    Confirmed harmless (0b's own any-single-violation rule is unconditionally
+    dispositive regardless of what Step 1 would have found on the same
+    sink), but flagged here per the build audit's own request so a future
+    revision does not mistake item 10c's own single-source verdict for
+    having surfaced both markers in one output.
 11. **Pool-reconstruction cross-check, the two-seeds-trap fixture (NEW,
     Rev 4, MAJOR-1 fix — "assertion has teeth"):** BEFORE Step 0b runs on
     any event (§15.24.4's new prerequisite gate), reconstruct

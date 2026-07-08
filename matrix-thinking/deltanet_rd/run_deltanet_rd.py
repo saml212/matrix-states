@@ -90,6 +90,31 @@ C16_VALUE_SALVAGE_RATIO = 0.1
 NCE_LAMBDA = 1.0
 NCE_T = 0.1
 
+# KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.5 (C17 build audit MINOR-6 fix):
+# a dump-size cap guard on `fallback_dump_sink` -- a fallback storm (many
+# triggering batches within one checkpoint) accumulates full (B,K,d)
+# k_eff_raw/k_blend_raw tensors PLUS key_ids/resid per event with no upper
+# bound otherwise; ~1.5GB is generous headroom above this cell's own
+# single-checkpoint worst case (sec 15.24.7: ~120 events/checkpoint at
+# B=128,K=84,d=96 fp32 is ~120*128*84*96*4*2 bytes =~ 10MB, ~150x under this
+# cap) while still catching a genuinely pathological run before it silently
+# fills memory/disk.
+C17_REPRO_DUMP_SIZE_CAP_BYTES = int(1.5 * 1024 ** 3)   # ~1.5GB
+
+
+def _c17_dump_sink_size_bytes(fallback_dump_sink: list) -> int:
+    """Sum of tensor storage (bytes) across every event currently in
+    `fallback_dump_sink` -- the four tensor fields `_dump_c17_fallback_event`
+    appends (key_ids/k_eff_raw/k_blend_raw/resid); any non-tensor field is
+    ignored (there are none today, but this stays robust to a future
+    additive field)."""
+    total = 0
+    for ev in fallback_dump_sink:
+        for v in ev.values():
+            if isinstance(v, torch.Tensor):
+                total += v.element_size() * v.nelement()
+    return total
+
 
 class AnchorEMA:
     """KEY_ANCHORING_DESIGN.md sec 2.3/sec 2.4 -- candidate (c)'s stop-
@@ -278,6 +303,16 @@ def _dump_c17_fallback_event(model, fallback_dump_sink: list, seed, step, hop, b
         "k_blend_raw": k_blend_raw.detach().cpu().clone(),
         "resid": model.geo3_last_resid.detach().cpu().clone(),
     })
+    # C17 build audit MINOR-6 fix: dump-size cap guard, checked AFTER the append (the same
+    # append-then-check discipline as R2-3's buffer-row assert elsewhere in this file) so the
+    # sink's OWN size at the moment it crosses the cap is what gets reported.
+    dump_size = _c17_dump_sink_size_bytes(fallback_dump_sink)
+    assert dump_size <= C17_REPRO_DUMP_SIZE_CAP_BYTES, (
+        f"C17ReproDumpSizeExceeded: fallback_dump_sink has grown to {dump_size} bytes "
+        f"(cap={C17_REPRO_DUMP_SIZE_CAP_BYTES} bytes, ~1.5GB, KEY_ANCHORING_SCALING_DRAFT.md sec "
+        f"15.24.5 MINOR-6 fix) at seed={seed} step={step} hop={hop} batch_idx={batch_idx}, "
+        f"n_events={len(fallback_dump_sink)} -- a fallback storm is filling memory/disk faster "
+        f"than this cell's own registered worst case; aborting rather than growing unbounded.")
 
 
 @torch.no_grad()
