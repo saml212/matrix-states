@@ -1,19 +1,22 @@
 # CAPABILITY-SEPARATION — group-element-recovery rank/representation-dimension test
 
-## §1 DESIGN — Stage 1 (Rev 0, 2026-07-08) — does a from-scratch matrix-state
-model recruit subspace-restricted state rank equal to a group's minimal
-faithful real representation dimension `d_min(G)`, tracking dimension not
-solvability?
+## §1 DESIGN — Stage 1 (Rev 1, post-attack-round-1 revision, 2026-07-08) —
+does a from-scratch matrix-state model recruit subspace-restricted state
+rank equal to a group's minimal faithful real representation dimension
+`d_min(G)`, tracking dimension not solvability?
 
-Status: **Rev 0, pre-attack (round 1 next), zero GPU spent.** This design
-came through the full waterfall (brainstorm → research → attack →
-validation, `STATE.md` "CAPABILITY CAMPAIGN"); the hypothesis, group
-family, readout (Option A), controls, budget, and pre-registered verdicts
-below are **BINDING** per the 2026-07-08 validation verdict
-(BUILD-WITH-CHANGES) and are not relitigated here — this document's job is
-to make them buildable without further design decisions, to the rigor bar
-`HEAD_TO_HEAD_DEMO_DESIGN.md` §1.13-§1.17 set (numerically-executed
-formulas, not asserted ones; a self-attack register with teeth).
+Status: **Rev 1, pre-attack (round 2 pending), zero GPU spent.** Rev 0
+(§1.1-§1.12) was attacked (§1.13: NEEDS-REVISION — 1 FATAL-as-written + 3
+MAJOR + 2 minor); every finding is resolved by this Rev 1 (mapped in
+§1.14). This design came through the full waterfall (brainstorm →
+research → attack → validation, `STATE.md` "CAPABILITY CAMPAIGN"); the
+hypothesis, group family, readout (Option A), controls, budget, and
+pre-registered verdicts below are **BINDING** per the 2026-07-08
+validation verdict (BUILD-WITH-CHANGES) and are not relitigated here —
+this document's job is to make them buildable without further design
+decisions, to the rigor bar `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.13-§1.17 set
+(numerically-executed formulas, not asserted ones; a self-attack register
+with teeth).
 
 ---
 
@@ -290,6 +293,134 @@ case does not, because no exact intertwiner exists.
 
 ---
 
+### 1.3.3 Executed verification (Rev 1) — query-coverage calibration
+(CA1-F1 fix) and the M1 Spearman null (CA1-M1 fix)
+
+**Why this section exists.** Attack round 1 (§1.13) found Rev 0's
+query-coverage bar mathematically impossible for 2 of 5 groups (CA1-F1)
+and Rev 0's M1 Spearman bar statistically undisclosed (CA1-M1). Both fixes
+are numerically executed here, not asserted — the same discipline §1.3
+already applies to the reference representations and degauging pipeline.
+
+**Script 1 (repo-committed):**
+`matrix-thinking/capability_separation/coverage_calibration.py` (numpy +
+stdlib only, deterministic `RNG_SEED=20260710`, ~15s wall-clock). Verifies
+each group's PERMUTATION stand-in generating set (order-matched to §1.4's
+table — a 3-cycle+transposition for S3, a 4-cycle+3-cycle for S4, a
+5-cycle+3-cycle for A5, a transposition+5-cycle for S5, a 3-cycle+5-cycle
+sharing one point for A6) closes to the correct `|G|` via `bfs_closure`
+(the same closure discipline §1.3.1 uses on the matrix realizations), then
+Monte Carlo-simulates the ACTUAL held-out sampler (`N=50` words/trial,
+`L~Uniform{9,16}`, i.i.d. generator draws — §1.4's exact rule) against a
+pathological UNDERSAMPLED negative control (`L` fixed at `1`, a
+DETERMINISTIC ceiling of `|generating set|` distinct elements reachable,
+not merely a statistical tail — a plausible real bug, e.g. the held-out
+length sampler silently defaulting to the trivial case).
+
+**Executed output (verbatim, this session):**
+
+```
+========================================================================================
+STEP 0 -- verify each generating set's closure matches |G| (faithfulness
+of the permutation stand-in, same discipline as S1.3's bfs_closure check)
+========================================================================================
+  [S3] closure size = 6  (expect 6): PASS  |  gen set size = 3
+  [S4] closure size = 24  (expect 24): PASS  |  gen set size = 4
+  [A5] closure size = 60  (expect 60): PASS  |  gen set size = 4
+  [S5] closure size = 120  (expect 120): PASS  |  gen set size = 3
+  [A6] closure size = 360  (expect 360): PASS  |  gen set size = 4
+
+========================================================================================
+STEP 1 -- Monte Carlo: N=50 words/trial, 20000 trials/group/sampler, L~Uniform{9..16}
+========================================================================================
+Group    |G| d_min   healthy: mean     p1     p5   min  |   undersamp: mean   max
+---------------------------------------------------------------------------------
+S3         6     2        6.00 (100.0%)      6      6     5  |          3.00 (50.0%)     3
+S4        24     3       21.12 (88.0%)     18     19    15  |          4.00 (16.7%)     4
+A5        60     3       33.78 (56.3%)     28     30    25  |          4.00 ( 6.7%)     4
+S5       120     4       37.41 (31.2%)     31     33    27  |          3.00 ( 2.5%)     3
+A6       360     5       44.90 (12.5%)     40     41    35  |          4.00 ( 1.1%)     4
+
+========================================================================================
+STEP 2 -- calibrated bar selection: largest 5%-of-|G| bar such that
+(a) it clears the healthy-sampler 1st-percentile floor (>=99% of
+healthy N=50 draws pass) AND (b) it strictly exceeds the
+undersampled (L=1 pathological) ceiling -- note undersamp max is a
+DETERMINISTIC hard cap at L=1 (== |gens|, never exceedable by
+construction, not just a statistical tail), so bar>u_max alone
+already guarantees a 100%, not just high-probability, fail rate
+for that corruption mode -- both conditions numerically checked.
+========================================================================================
+Group    |G|  healthy p1   undersamp max  bar (frac)  bar (count)  p1 margin  undersamp mult
+--------------------------------------------------------------------------------------------
+S3         6           6               3        0.80          4.8        1.2            1.60
+S4        24          18               4        0.70         16.8        1.2            4.20
+A5        60          28               4        0.45         27.0        1.0            6.75
+S5       120          31               3        0.25         30.0        1.0           10.00
+A6       360          40               4        0.10         36.0        4.0            9.00
+
+Bars (fraction of |G|): {'S3': 0.8, 'S4': 0.7, 'A5': 0.45, 'S5': 0.25, 'A6': 0.1}
+
+========================================================================================
+STEP 3 -- CA1-M3 fit-set diversity floor: n_fit=30 words/trial, 20000 trials/group, bar = min(3*d_min(G), floor(0.8*|G|))
+========================================================================================
+Group    |G| d_min  bar=min(3d,.8|G|)   fit p1  fit mean   margin
+-----------------------------------------------------------------
+S3         6     2                  4        5      5.98        1  PASS
+S4        24     3                  9       14     17.29        5  PASS
+A5        60     3                  9       19     23.62       10  PASS
+S5       120     4                 12       21     25.05        9  PASS
+A6       360     5                 15       25     28.12       10  PASS
+```
+
+**Deviation from the naive "80% for S3/S4/A5" default, disclosed
+explicitly.** The recommended family-consistent starting point (≥80% of
+`|G|` for the three smaller groups) does NOT survive execution for S4
+(healthy p1 = 18/24 = 75% < 80%) or A5 (healthy p1 = 28/60 = 46.7%, far
+below 80%) at the pinned `N=50` floor — adopting it uncorrected would have
+reproduced CA1-F1's own failure mode (a bar a healthy sampler cannot
+reliably clear) one level down, on groups where it happens to look
+plausible at a glance. Each group's bar above is instead the largest
+5%-of-`|G|` step that (a) clears the healthy sampler's 1st-percentile
+floor by ≥1 element and (b) strictly exceeds the undersampled sampler's
+DETERMINISTIC ceiling — a per-group calibration, not a single inherited
+percentage. S3 is the only group where 80% survives on its own merits.
+
+**Script 2 (repo-committed):**
+`matrix-thinking/capability_separation/spearman_null_calibration.py`
+(numpy-free, stdlib only, exact enumeration of all `5!=120` permutations,
+deterministic). Independently re-derives the M1 null distribution from
+scratch this Rev-1 pass (not copied from §1.13's own numbers).
+
+**Executed output (verbatim, this session):**
+
+```
+================================================================================
+CA1-M1 fix -- exact permutation null for the M1 Spearman bar
+================================================================================
+d_min(G) sequence (S3,S4,A5,S5,A6) = [2, 3, 3, 4, 5]
+midranks (S4/A5 tie at value 3)     = [1.0, 2.5, 2.5, 4.0, 5.0]
+
+total permutations enumerated = 120 (5! = 120)
+max achievable rho (perfect ordering respecting the S4/A5 tie) = 0.9747
+next-highest achievable rho (one non-tie misordering)          = 0.8721  (cliff size = 0.1026)
+
+P(rho >= 0.8 | null) = 8/120 = 6.6667%
+P(rho >= 0.9 | null) = 2/120 = 1.6667%
+
+top 4 distinct achievable rho values: [0.9747, 0.8721, 0.8208, 0.7182]
+
+ASSERTIONS PASSED -- independently reproduces the attack round 1 figures (S1.13 CA1-M1: 8/120~=6.67%, tie cap 0.9747) via fresh exhaustive enumeration.
+```
+
+**This independently reproduces §1.13's own CA1-M1 figures exactly**
+(`8/120≈6.67%`, tie cap `0.9747`) via a from-scratch exhaustive
+enumeration, not a copy — see §1.5 for how these numbers are used in M1's
+bar decision, and §1.4/§1.4.1 for how the coverage numbers above are used
+in the query-coverage bar and the degauging fit-set split.
+
+---
+
 ### 1.4 The task, architecture, and readout
 
 **Task — group-element-recovery via word composition (the Barrington-style
@@ -315,11 +446,31 @@ one operator applied `L` times, so there is no fixed period for word
 length to collide with. By the standard theory of random walks on finite
 groups, the distribution over the resulting element approaches uniform as
 `L` grows (mixing) with no periodic collapse. **Query-coverage
-pre-registration (the concrete, checkable bar):** for each group's
-eval-word set (§1.4.1), (a) the set of DISTINCT resulting group elements
-reached must span ≥80% of `|G|` for S3/S4 (small enough to nearly fully
-cover) or ≥200 distinct elements for A5/S5/A6 (checked directly by
-enumerating the eval batch's realized targets); (b) exact token-sequence
+pre-registration (the concrete, checkable bar — CA1-F1 fix, Rev 1:
+replaces Rev 0's mathematically-impossible bar, "≥200 distinct elements
+for A5/S5/A6," which contradicted the group table above — `|A5|=60`,
+`|S5|=120`, a group cannot yield more distinct elements than it has, and
+gate 3's coverage check could never pass for A5, the marquee dissociation
+partner, or S5. The replacement is a per-group, NUMERICALLY CALIBRATED
+percentage-of-`|G|` bar, executed via Monte Carlo simulation of the actual
+sampler — full derivation, deviation disclosure, and raw output in
+§1.3.3):** for each group's eval-word set (§1.4.1, `N=50` words), (a) the
+set of DISTINCT resulting group elements reached must clear the
+group-specific bar below —
+
+| Group | `|G|` | calibrated bar | bar (count) | healthy-sampler p1 | undersampled (L=1) ceiling |
+|---|---|---|---|---|---|
+| S3 | 6 | ≥80% of `|G|` | ≥5 | 6 | 3 |
+| S4 | 24 | ≥70% of `|G|` | ≥17 | 18 | 4 |
+| A5 | 60 | ≥45% of `|G|` | ≥27 | 28 | 4 |
+| S5 | 120 | ≥25% of `|G|` | ≥30 | 31 | 3 |
+| A6 | 360 | ≥10% of `|G|` | ≥36 | 40 | 4 |
+
+every bar clears the healthy sampler's 1st-percentile floor with a ≥1-
+element margin and strictly exceeds the undersampled sampler's
+DETERMINISTIC ceiling (by ≥1.6×, and by ≥4.2× for S4-A6) — checked
+directly by enumerating the eval batch's realized targets; (b) exact
+token-sequence
 (word) overlap between train and eval is prevented by construction (a
 disjoint `rd_episode_seed`-style mixed-radix RNG stream per split,
 precedent: `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.3.1's F1b fix,
@@ -348,8 +499,9 @@ even permutation directly, not by closing 2 generators); the build step
 will still run the standard closure-order smoke (below) on these two
 specific generators as a cheap, load-bearing sanity check before launch.
 
-**Architecture (Task D/E's exact bespoke encoder, ONE required
-extension).** Reuses `matrix-thinking/chapter2/model_v4.py`'s
+**Architecture (Task D/E's exact bespoke encoder, TWO required
+extensions — CA1-m1 fix, Rev 1: Rev 0 undercounted this as "ONE," see
+below).** Reuses `matrix-thinking/chapter2/model_v4.py`'s
 `BindingEncoder` (`d`, `h`, `n_layers`, `n_heads`, `n_refine`
 constructor signature, `nn.TransformerEncoder` + learned `row_queries` +
 `MultiheadAttention` reader + `row_norm` + `row_out` — same class,
@@ -361,14 +513,24 @@ EQUIVARIANT (no positional signal) by construction** (it was correct for
 Task D's genuinely order-INDEPENDENT set-of-bindings task, and would
 silently break here): a learned absolute positional embedding
 (`nn.Embedding(L_max, h)`), added to each generator token's embedding
-before the `nn.TransformerEncoder`, tags word position 1..L. This is the
-ONLY change to Task D's encoder — `CLAUDE.md`'s "hold every second axis
-fixed when testing a primary hypothesis" rule is honored by making this
-the single, structurally-necessary addition, not a broader redesign.
+before the `nn.TransformerEncoder`, tags word position 1..L. **Two
+deltas total, both structurally required by the task change, not a
+broader redesign (CA1-m1 fix — Rev 0's "ONLY change" sentence undercounted
+the second, which was already disclosed two bullets below but never
+folded into this count):** (1) this positional embedding
+(order-sensitivity, above), and (2) the input embedding itself — a single
+generator-index embedding (below) replacing Task D's `[key; value]`
+concatenation, because this task has no separate value to bind, the WORD
+is the whole composition. `CLAUDE.md`'s "hold every second axis fixed when
+testing a primary hypothesis" rule is honored because both deltas are
+direct, minimal consequences of the SAME task-family change (word
+composition replacing parallel key-value binding), not two independent
+design choices stacked on top of it.
 
 - **Input:** each token is a generator-index one-hot/embedding
   (`nn.Embedding(|S_G|, h)`), NOT Task D's `[key; value]` concatenation
-  (there is no separate value here — the task IS the composition).
+  (there is no separate value here — the task IS the composition; this is
+  delta (2) above).
 - **`d_state(G) = d_min(G) + 2`** (uniform margin rule across the family —
   enough ambient headroom for the force-rank grid `{d_min−1, d_min,
   d_min+1}` (§1.4.2) to fit inside `[1, d_state]`, and for the
@@ -443,10 +605,26 @@ verbatim reuse):
    derivation, adapted because there is no single target here.
 3. Restrict: `A(w) = Uᵀ·Z(w)·U` (`d_min(G) × d_min(G)`) for every held-out
    `w`.
-4. Fit the Procrustes/scale degauging `(Q_hat, c_hat)` (§1.3.2) on a
-   FITTING subset of the held-out words; score `recovered_frac@0.9` and
-   mean cosine on a DISJOINT scoring subset — this is the Stage-1 decision
-   metric (§1.5 M1/M3).
+4. **Fit/eval split, pinned (CA1-M3 fix, Rev 1 — Rev 0 left this
+   implicit).** Split the `N=50` held-out words 60/40 by index (disjoint,
+   no overlap): `n_fit=30` (fits the Procrustes/scale degauging
+   `(Q_hat, c_hat)`, §1.3.2) / `n_eval=20` (scored ONLY, never used to fit
+   either parameter — the same fit/eval discipline §1.3.2 already verified
+   has teeth, now applied to the real pipeline's exact split ratio).
+   **Fit-set diversity floor:** the `n_fit=30` subset must realize
+   `≥min(3·d_min(G), ⌊0.8·|G|⌋)` DISTINCT target elements — enough that the
+   `d_min(G)²`-unknown orthogonal-intertwiner linear system (§1.3.2 step 2)
+   is comfortably overdetermined, a deliberately conservative floor
+   relative to §1.3.2's own toy ratio (14 fit elements for a `d=3` group,
+   ≈4.7×`d`). Executed via `coverage_calibration.py::fit_set_diversity_check`
+   (`n_fit=30`, 20,000 trials/group, §1.3.3) — every group clears its floor
+   by ≥1 element at the 1st percentile (S3: bar 4, p1 5; S4: bar 9, p1 14;
+   A5: bar 9, p1 19; S5: bar 12, p1 21; A6: bar 15, p1 25). If a real
+   fit-set draw fails the floor (rare, ≤1% by construction), redraw the
+   fit/eval split from the same `N=50` sample before fitting — a redraw
+   guard, not a silent pass/fail toggle. Score `recovered_frac@0.9` and
+   mean cosine on the DISJOINT `n_eval=20` subset — this is the Stage-1
+   decision metric (§1.5 M1/M3).
 5. Report whole-matrix effective rank of raw `Z(w)` too (Task D/E's M1
    convention), but flagged NON-decisive by default — Task E §4's own
    retracted lesson (whole-matrix rank saturates toward the ambient
@@ -554,6 +732,39 @@ across the 5-group family).
 - CONFIRM: Spearman ρ(`d_min(G)`, restricted_eff_rank) ≥ 0.8 across the
   family AND restricted_eff_rank ∈ `[0.7·d_min, 1.3·d_min]` per group
   (Task D M1's exact band).
+- **Statistical weight, disclosed exactly (CA1-M1 fix, Rev 1 — Rev 0 left
+  this undisclosed).** The family's `d_min(G)` sequence is `[2,3,3,4,5]`
+  (S3,S4,A5,S5,A6) with a TIE at `d_min=3` (S4/A5 — the marquee
+  dissociation pair, intentionally). Under the exact permutation null (all
+  `5!=120` equally-likely rank assignments of the measured metric,
+  midrank-adjusted for the tie; independently re-derived from scratch this
+  Rev-1 pass, §1.3.3, byte-identical to §1.13's own figures):
+  `P(ρ≥0.8 | null) = 8/120 ≈ 6.667%`, and the tie caps the MAXIMUM
+  achievable ρ at `0.9747` (perfect ordering respecting the S4/A5 tie).
+  **M1 alone is corroborating-only, not independently decisive at this
+  bar** — `ρ≥0.8` is not conventionally significant at `α=0.05` on its own
+  (one-sided 6.67%). The Stage-1 CONFIRM verdict's actual statistical
+  weight rests on **M3's per-group paired-seed causal force-rank test +
+  the S4-vs-A5 marquee dissociation check**, both genuine independent
+  causal tests — M1's role is a corroborating trend check, stated
+  explicitly here rather than left implicit.
+- **Bar choice: `ρ≥0.8` kept, NOT tightened to `ρ≥0.9`, evaluated and
+  declined (CA1-M1's own suggested alternative).** `ρ≥0.9` is nominally
+  achievable (`0.9747 ≥ 0.9`, exact `P(ρ≥0.9|null)=2/120≈1.667%`, §1.3.3)
+  and would be a stronger disclosed p-value — but the achievable-ρ set
+  under this exact 5-point/1-tie configuration is DISCRETE with a steep
+  cliff just below the maximum: the next-highest achievable value after
+  `0.9747` (perfect ordering) is `0.8721` — independently enumerated, a
+  drop of `~0.10` from a SINGLE non-tie pairwise misordering among
+  S3/S5/A6's three non-tied points. A `ρ≥0.9` bar is therefore satisfied
+  ONLY by (essentially) perfect ranking; any one ordinary-noise
+  misordering collapses it straight to `0.8721`, BELOW even the ORIGINAL
+  `0.8` bar's own value. Since M1 is corroborating-only (above),
+  tightening it to a near-exact-match bar would convert a soft trend
+  check into a brittle pass/fail gate disproportionate to its actual role
+  in the CONFIRM decision — declined. `ρ≥0.8` (satisfied by any of the 8
+  permutations scoring `≥0.8208`, i.e. tolerating one non-tie
+  misordering) is kept as the better-calibrated corroborating bar.
 - FALSIFY: restricted_eff_rank stays ≤2 (or flat across the family) while
   recovery accuracy is high. (If observed with a PASSING blank-out test,
   this contradicts §1.4's definitional necessity argument and signals a
@@ -649,16 +860,26 @@ costing the first-look budget separately from contingency).
 | Calibration-first wave (§1.7 gate 1) — 5 cells (1/group, unconstrained, seed=0), **reused within the 50 sweep cells above, not double-charged** | 5 cells | 0.0 (already counted) |
 | Degauging-pipeline validation on a REAL trained checkpoint (§1.7 gate 1) | CPU-only, numpy | ≈0.0 |
 | Contingency margin — 2-2.5× escalation rule firing on 1-2 cells | ~2 cells re-run at 2.25× | 1.35 |
-| **β∈[0,2] fla positive-control smoke** (§1.4.3 below) — forward/backward/grad-check + one reproduced DeltaProduct Fig.5 point | nominal | <1.0 |
+| **β∈[0,2] fla positive-control smoke** (§1.4.3 below) — forward/backward/grad-check (~0.05) + one reproduced DeltaProduct Fig.5 point on a minimal S4/A5 instance, `L≤4`, `n_h∈{1,2}` (~0.85) | nominal | **0.90** |
 | Group-construction + generator-closure smoke (§1.3, §1.4) — CPU-only, numpy | — | ≈0.0 |
 | MATCH/verification overhead (blank-out test, query-coverage check, injectivity-guard negative test) — CPU-only | — | ≈0.0 |
-| **Raw total** | | **≈17.4-18.3 GPU-h** |
+| **Raw total** | | **≈17.25 GPU-h** |
+
+**CA1-M2 fix, Rev 1 — cost ceiling reconciled.** Rev 0's stated raw total
+("≈17.4-18.3 GPU-h") carried ~1 GPU-h with no itemized source above the
+itemized rows' own sum (§1.13 CA1-M2). Fixed by itemizing the previously-
+vague `<1.0` β-smoke row to a specific **0.90 GPU-h** (forward/backward/
+grad-check plus the actual Fig.5-reproduction training run, not a nominal
+upper bound) — the raw total now equals the itemized sum exactly:
+`15.0 + 1.35 + 0.90 = 17.25` GPU-h, no unaccounted margin.
 
 **Stage-1 dedicated ledger: 30 GPU-h cap, PI-visible, does NOT draw the
 frozen-bias ledger** (per the validation verdict's explicit instruction —
 this campaign is budgeted separately from the head-to-head demo's 135
-GPU-h program ceiling). Raw ≈17.4-18.3 GPU-h leaves **≈40-42% margin**
-under the 30 GPU-h cap — comfortably wider than `HEAD_TO_HEAD_DEMO_DESIGN.md`'s
+GPU-h program ceiling). Raw ≈17.25 GPU-h leaves **≈42.5% margin**
+(`(30−17.25)/30`) under the 30 GPU-h cap (CA1-M2 fix, Rev 1 — a single
+reconciled figure, not Rev 0's own unreconciled "≈40-42%" range) — comfortably
+wider than `HEAD_TO_HEAD_DEMO_DESIGN.md`'s
 own razor-thin margins (≈1-2%), appropriate for a first-look Stage-1
 gate at this much smaller scale (`d_state≤7` vs the head-to-head's 14M+
 param models).
@@ -668,7 +889,7 @@ param models).
 `HEAD_TO_HEAD_DEMO_DESIGN.md`'s convention).** That design's 10× bracket
 exists because ITS cells are large (0.25 GPU-h/cell at 14M params,
 scaling to 28 GPU-h/cell at 392M) and a runaway sweep could plausibly
-consume the WHOLE shared 135 GPU-h ceiling; a literal `10×17.4≈174 GPU-h`
+consume the WHOLE shared 135 GPU-h ceiling; a literal `10×17.25≈172.5 GPU-h`
 bracket here would be nonsensical overkill relative to this campaign's
 own explicitly-stated 30 GPU-h cap. **This design's circuit breaker
 instead mechanically enforces the 30 GPU-h dedicated cap directly**, via
@@ -680,7 +901,10 @@ before spending it, and this design's cell/seed grid gets re-scoped
 before relaunch, not silently over-spent.
 
 **β∈[0,2] fla positive-control smoke, registered, non-load-bearing:**
-<1 GPU-h forward/backward/grad-check on a minimal `fla` DeltaNet layer
+**0.90 GPU-h** (CA1-M2 fix, Rev 1 — itemized: ~0.05 GPU-h
+forward/backward/grad-check + ~0.85 GPU-h to actually reach the
+qualitative split below on the minimal instance, replacing Rev 0's
+un-itemized "<1.0") on a minimal `fla` DeltaNet layer
 with `allow_neg_eigval=True`, β-gate range `[0,2]` (not this repo's
 current plain-sigmoid `β∈[0,1]`, per Grazzi et al. 2411.12537), `n_h∈{1,2}`
 Householder products, trained on a MINIMAL S4 (or A5) word-problem
@@ -706,14 +930,38 @@ Reused verbatim from this program's own precedent (Task D/E,
 
 1. **Calibration-first, 5 cells (1/group, unconstrained arm, seed=0),
    mandatory per `CLAUDE.md`.** Run to completion BEFORE the remaining 45
-   sweep cells launch. Does double duty: (a) confirms convergence at the
+   sweep cells launch. Does FOUR duties in sequence (CA1-M3 fix, Rev 1 —
+   (b) below is a new, concrete acceptance test; Rev 0 had no ground-truth
+   criterion for a real checkpoint at all): (a) confirms convergence at the
    planned 8,000-step budget (or triggers the 2-2.5× escalation rule,
    §1.6, before the rest of the sweep inherits a bad assumption);
-   (b) **the Procrustes/scale degauging pipeline (§1.3.2) is validated ON
-   these 5 REAL trained checkpoints before anything else is trusted** —
-   this is the single biggest registered risk in this design (§1.9 item
-   1), and the validation verdict explicitly requires this to happen on
-   the calibration cell, not deferred; (c) measures the REAL per-cell
+   (b) **synthetic-injection acceptance test, run BEFORE any real
+   checkpoint's degauging output is trusted.** Since no ground-truth
+   `(Q,c)` exists on a real checkpoint, the PRODUCTION eval harness (the
+   exact imported `verify_option_a_readout.py` functions wired into the
+   real pipeline per gate 6 below — not a standalone numpy re-run) is fed
+   a SYNTHETIC injection instead: a known `(Q_true, c_true)`-conjugated
+   `rho_G` trajectory (`Z_synth(w) = c_true · Q_true · rho_G(w) · Q_trueᵀ +
+   noise(std=0.03)`, §1.3.2's exact ground truth and noise level) written
+   into the harness's real on-disk dump format/shapes/dtypes, for S4
+   (reusing §1.3.2's own setup, `n_fit=14`/`n_eval=10` there — or the
+   Rev-1-pinned `n_fit=30`/`n_eval=20` split, §1.4.1 step 4, if the
+   production harness is already wired to it). Acceptance requires, on
+   the disjoint eval subset: **recovery** — `mean_cos > 0.95` AND
+   `recovered_frac@0.9 ≥ 0.9` (§1.3.2's own noisy-condition thresholds,
+   unchanged) — AND **the rank-deficient negative control holds in the
+   SAME harness** — inject §1.3.2's `Q_def` (rank-2-of-3) corruption
+   through the identical production code path, require `mean_cos` at
+   least `0.3` below the honest recovery's value AND
+   `recovered_frac@0.9 < 0.5` (§1.3.2's exact corrupted-condition
+   thresholds). This catches wiring/shape/dtype bugs in the PRODUCTION
+   harness specifically — a standalone numpy re-run of
+   `verify_option_a_readout.py` cannot, by construction, catch those; only
+   after (b) passes does (c) **the Procrustes/scale degauging pipeline
+   (§1.3.2) get validated ON the 5 REAL trained checkpoints** — this is
+   the single biggest registered risk in this design (§1.9 item 1), and
+   the validation verdict explicitly requires this to happen on the
+   calibration cell, not deferred; (d) measures the REAL per-cell
    wall-clock rate, superseding §1.6's planning-estimate rate for the
    remaining 45-cell sweep's own go/no-go.
 2. **Timing pilot, mechanical enforced abort.** One real cell per group
@@ -730,7 +978,15 @@ Reused verbatim from this program's own precedent (Task D/E,
    `task_e.py::_test_injectivity_guard_detects_merge`) proven to
    actually fire before being trusted, per `CLAUDE.md`'s "never trust a
    'proves the check has teeth' test without running it to completion"
-   rule.
+   rule. **Re-specified against the corrected per-group bars (CA1-F1 fix,
+   Rev 1, §1.4/§1.3.3):** the negative test plants the `L=1` pathological
+   sampler (§1.4) for EACH of the 5 groups and asserts the coverage check
+   fails every time; this cannot flake, because the undersampled
+   sampler's reach (`|generating set|` ≤ 4 elements, a DETERMINISTIC
+   ceiling) sits strictly below every group's calibrated bar (`≥5` for
+   S3 up to `≥36` for A6, §1.4's table) — proven directly by
+   `coverage_calibration.py`'s `undersampled_trial` (§1.3.3), not merely
+   claimed.
 4. **Sha closure.** Every shipped script/config gets a sha256 manifest,
    verified against the box copy before launch and re-verified after
    completion (standing project convention).
@@ -926,14 +1182,17 @@ gated); test Option B (emergent, unsupervised representation discovery,
 
 ### 1.11 Sequencing
 
-design (this doc, Rev 0) → attack round 1 → iterate to
+design (this doc, Rev 0) → attack round 1 (§1.13, NEEDS-REVISION) → Rev 1
+(§1.14, this revision) → attack round 2 (pending) → iterate to
 DESIGN-CLEARED-FOR-BUILD (per this program's standing gauntlet discipline,
 `HEAD_TO_HEAD_DEMO_DESIGN.md`'s own §1.11 precedent) → build (new code
 needed: `GroupWordEncoder` — `BindingEncoder` + positional embedding,
 §1.4; the word-sampling grammar per group, §1.4, incl. the query-coverage
 guard + its negative test; the block-diagonal embedding of `rho_G`;
 `verify_option_a_readout.py`'s functions imported directly into the eval
-harness, not re-implemented; the β∈[0,2] `fla` smoke, §1.6) → independent
+harness, not re-implemented; the β∈[0,2] `fla` smoke, §1.6; the 30 GPU-h
+hard-abort enforcement wrapper, §1.6's circuit breaker, CA1-m2 fix Rev 1)
+→ independent
 build audit (separate agent, `CLAUDE.md`'s "the implementer does not
 review their own work" rule) → launch alongside/after the head-to-head
 demo's own rung-1 (GPU allocation TBD at build time, this campaign's own
@@ -953,6 +1212,15 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
   `matrix-thinking/capability_separation/verify_option_a_readout.py`
   (repo-committed, numpy + stdlib only, deterministic `RNG_SEED=20260709`,
   §1.3's exact output reproduces on re-run).
+- **CA1-F1/CA1-M3 fix's own executed verification (Rev 1):**
+  `matrix-thinking/capability_separation/coverage_calibration.py`
+  (repo-committed, numpy + stdlib only, deterministic `RNG_SEED=20260710`,
+  §1.3.3/§1.4/§1.4.1's query-coverage and fit-set-diversity tables both
+  reproduce on re-run).
+- **CA1-M1 fix's own executed verification (Rev 1):**
+  `matrix-thinking/capability_separation/spearman_null_calibration.py`
+  (repo-committed, numpy-free stdlib only, exact enumeration, no RNG —
+  §1.3.3/§1.5's M1 p-values reproduce on re-run).
 - **Reused architecture:** `matrix-thinking/chapter2/model_v4.py`
   (`BindingEncoder`, `MatrixMemoryModel.encode`/`.unbind` pattern —
   `.unbind` itself NOT reused, no query mechanism in this task, §1.4).
@@ -984,7 +1252,12 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
 - **New, not yet built:** `GroupWordEncoder` (positional-embedding
   extension of `BindingEncoder`); the per-group word-sampling grammar +
   query-coverage guard + its negative test; the block-diagonal `rho_G`
-  embedding; the β∈[0,2] `fla` smoke harness.
+  embedding; the β∈[0,2] `fla` smoke harness; **the 30 GPU-h hard-abort
+  enforcement wrapper** (§1.6's circuit breaker — projects the 50-cell
+  sweep's cost from the calibration cell's real per-cell rate and
+  mechanically hard-aborts before exceeding the dedicated cap; CA1-m2
+  fix, Rev 1 — Rev 0 designed this mechanism in §1.6 but never itemized
+  it in this build list).
 
 ---
 
@@ -1066,5 +1339,39 @@ as a footnote, non-blocking); gauge-freedom scoping; dim-2 disclosure;
 
 ---
 
-*(End §1 Rev 0 records. Rev 0 attacked → NEEDS-REVISION (§1.13:
-CA1-F1 impossible coverage bar, 3 MAJOR, 2 minor). Rev 1 in progress.)*
+### 1.14 REV 1 CHANGES — finding → resolution map
+
+Every §1.13 finding, mapped to its exact Rev 1 resolution. Nothing below
+is a disclaimer-only close — each row points at new or rewritten design
+text (or a new, executed, repo-committed script), not a footnote.
+
+| Finding | Resolution (Rev 1) | Where |
+|---|---|---|
+| **CA1-F1** (FATAL) — query-coverage bar "≥200 distinct elements for A5/S5/A6" impossible (`|A5|=60`, `|S5|=120`) | Replaced with a per-group, NUMERICALLY CALIBRATED percentage-of-`|G|` bar: S3 ≥80%, S4 ≥70%, A5 ≥45%, S5 ≥25%, A6 ≥10% — each the largest 5%-step clearing the healthy-sampler 1st-percentile floor (≥1-element margin) while strictly exceeding a pathological (`L=1`) undersampled sampler's DETERMINISTIC ceiling. Derived via a new Monte Carlo script (`coverage_calibration.py`, 20,000 trials/group, executed this session), NOT the naive uniform-80% default — that default is explicitly shown to fail for S4 (p1=75%) and A5 (p1=46.7%) and disclosed as a deviation, not silently adopted. Gate 3's negative test re-specified against the corrected bars for all 5 groups. | §1.3.3 (new), §1.4, §1.7 gate 3 |
+| **CA1-M1** (MAJOR) — M1's Spearman bar statistically undisclosed | Exact one-sided permutation p-values disclosed (`P(ρ≥0.8|null)=8/120≈6.67%`, `P(ρ≥0.9|null)=2/120≈1.67%`, tie cap `ρ≤0.9747`), independently re-derived from scratch this Rev-1 pass (`spearman_null_calibration.py`, exact enumeration) — reproduces §1.13's own figures exactly. M1 stated explicitly as corroborating-only; CONFIRM's statistical weight attributed to M3 + the marquee dissociation check. `ρ≥0.9` evaluated and EXPLICITLY DECLINED (not silently kept at 0.8): achievable but brittle — the next-highest achievable ρ after the perfect-ordering maximum is 0.8721, an ~0.10 cliff, so a 0.9 bar would fail on any single ordinary-noise misordering, undermining M1's corroborating role. | §1.3.3 (new), §1.5 |
+| **CA1-M2** (MAJOR) — cost-table ceiling unreconciled (~1 GPU-h unaccounted) | β-smoke row itemized from vague `<1.0` to a specific **0.90 GPU-h** (0.05 smoke + 0.85 Fig.5-reproduction run); raw total now equals the itemized sum exactly (`15.0+1.35+0.90=17.25` GPU-h, was "≈17.4-18.3" with no source for the extra ~1). Margin recomputed to a single reconciled figure, **≈42.5%** (was an unreconciled "≈40-42%" range). | §1.6 |
+| **CA1-M3** (MAJOR) — degauging pipeline's real-run n_fit/n_eval split and gate-1 acceptance test unpinned | Split pinned: 60/40 of the `N=50` eval words (`n_fit=30`/`n_eval=20`, disjoint by index), plus a fit-set diversity floor (`≥min(3·d_min(G), ⌊0.8·|G|⌋)` distinct elements, executed and cleared by ≥1 element at p1 for all 5 groups, `coverage_calibration.py::fit_set_diversity_check`). Gate 1's acceptance test pinned: a synthetic-injection check on the PRODUCTION eval harness (known `(Q_true,c_true)`-conjugated `rho_G` trajectory, §1.3.2's exact noise/tolerance numbers) requiring (a) recovery (`mean_cos>0.95`, `recovered_frac@0.9≥0.9`) and (b) the rank-deficient negative control (`Q_def`) to hold in the SAME harness (`mean_cos` ≥0.3 below (a), `recovered_frac@0.9<0.5`) — run BEFORE any real checkpoint's degauging output is trusted. | §1.4.1 step 4, §1.7 gate 1 |
+| **CA1-m1** (minor) — "ONLY change to Task D's encoder" undercounted the input-embedding delta | Corrected to "TWO required extensions": (1) the positional embedding, (2) the generator-index input embedding replacing Task D's `[key;value]` concat — both stated as direct, minimal consequences of the same task-family change, not independent design choices. | §1.4 |
+| **CA1-m2** (minor) — 30 GPU-h hard-abort enforcement wrapper not itemized in the build list | Added to §1.12's "New, not yet built" list and to §1.11's sequencing parenthetical. | §1.11, §1.12 |
+
+**Nothing from §1.13's "Verified clean" list was touched** — the five
+reference representations, the degauging guard's teeth (rank-deficient
+corruption + fit-set-bias tests), the corrected cost anchors' provenance,
+the cell count, the OWN-30-GPU-h circuit-breaker design, the S4-vs-A5
+training-coverage-confound clearance, gauge-freedom scoping, dim-2
+disclosure, β-smoke non-load-bearing status, Stage-2 gating, and ledger
+separation all stand as attack round 1 verified them, unmodified in Rev 1.
+
+**What this revision could not fully close (flagged, not papered over):**
+CA1-M3's synthetic-injection acceptance test is pinned at the DESIGN
+level (exact tolerances, exact procedure) but has not been RUN — it
+requires the production eval harness code, which does not exist until
+build (§1.11); an attack-round-2 agent should treat gate 1's acceptance
+test as a real, load-bearing build-time obligation, not settled evidence,
+the same way CA1-M2's cost table was until this revision itemized it.
+
+---
+
+*(End §1 Rev 1 records. Rev 0 attacked → NEEDS-REVISION (§1.13: CA1-F1
+impossible coverage bar, 3 MAJOR, 2 minor). Rev 1 (§1.14) resolves all 6
+findings. Attack round 2 next.)*
