@@ -9940,3 +9940,21 @@ batch-effect paragraph still cites the pre-Rev-3 '§16.19.8 item
 wording before implementing that gate's routing). Build-task list as
 enumerated by the reviewer is authoritative for the build-delta agent.
 Build is now licensed.**
+
+**[§16.19 BUILD AUDIT — LAUNCH-CLEARED, 2026-07-08, recorded before
+deploy dispatch.]** An independent auditor re-executed all three suites
+from a fresh scratch clone (19/19, 23/23, 17/17), ran a 7-mutation
+battery (loader wrong-source, guard bypass, band-gate flip, manifest
+overlap, precedence swap, batch-gate flip, cache tamper — ALL CAUGHT,
+with the cache tamper's third defense layer independently proven
+non-decorative), adjudicated all 7 disclosed deviations sound (the
+66.5-ceiling literal-wording choice adjudicated as the only
+non-self-defeating reading, with the noted asymmetry vs the original
+wave's re-derivation precedent flagged for harvest-time attention if a
+cold rate is ever measured), verified the three build-time sha pins
+against freshly-computed hashes of the committed archives (exact match),
+and confirmed guard coverage/no-production-fallback/GPU pinning/ledger
+wiring by direct inspection. 2 MINORs (an undisclosed df=8 t-dict entry,
+scipy-verified harmless; the timing-gate permissiveness note) + 1
+observation, none blocking. Deploy is licensed; launch remains SEQUENCED
+after §15.26's diagnostic per the pinned GPU-2-7 ordering.**
