@@ -106,9 +106,36 @@ GPU-h. #4 SURVIVES-WITH-MODIFICATIONS: replication-first gate mandatory
 failure may not exist at 14-98M from-scratch — verify on their released
 battery, github.com/PootieT/entity-tracking-mi, ~5-10 GPU-h, BEFORE
 funding the full 15-25). fla allow_neg_eigval verified low-risk (β×2
-pre-scale, pretrained to 1.3B in Grazzi). NEXT: VALIDATION stage
-(waterfall 4) — dispatched 2026-07-08 — then campaign design gauntlet
-w/ own ledger, PI-visible.
+pre-scale, pretrained to 1.3B in Grazzi).
+
+**VALIDATION stage (waterfall 4) RETURNED (2026-07-08): BUILD-WITH-CHANGES
+— waterfall COMPLETE, Claim B survives all four stages.** Validator
+independently confirmed: the rep-theory table (with ONE load-bearing
+correction — PSL(2,7) minimal faithful REAL dim = 6, not 3; its 3-dim
+irreps are a complex-conjugate pair, and delta-rule states are real
+matrices → re-slot to dim 6 or drop); DeltaProduct n_h numbers exact
+(S3=2,S4=2,A5=2,S5=4, primary source) + novelty absence CONFIRMED (no
+force-rank causal ablation or subspace-restricted state-rank work found
+anywhere 2025-26); #3 kill DOUBLY confirmed (2601.15158 never
+establishes the claimed bound); #4 gate confirmed (2B-70B only; battery
+repo live; ~5-10 GPU-h = port-their-probes-to-our-checkpoints
+interpretation; rides along w/ own short pre-registration). REQUIRED
+CHANGES pinned: (1) PSL(2,7)→dim 6 or drop; (2) readout Option A
+PRIMARY = fixed reference representation ρ + continuous full-MATRIX
+readout + PROCRUSTES/scale degauging (new O(d)×R+ gauge freedom — the
+single biggest remaining risk, validate on the calibration cell first);
+Option B (emergent embedding) secondary/exploratory only; (3) Stage 1 =
+Task D/E's exact bespoke architecture, end-of-sequence-only force-rank
+(mid-trajectory rank-forcing on a production delta-rule kernel =
+explicitly a LATER wave — two-axes rule); (4) budget re-derived: Stage 1
+~20-30 GPU-h (incl. ~5 calibration+contingency + <1 β∈[0,2] smoke vs
+DeltaProduct Fig.5 as positive control); Stage 2 (multi-hop word
+problems) ~50-120 GPU-h GATED on Stage 1 — original 20-35 estimate was
+2-4× low for the multi-hop interpretation (Task E rates). Pre-registered
+CONFIRM/FALSIFY/INCONCLUSIVE incl. publishable negative. NEXT: campaign
+design gauntlet — design Rev 0 in `matrix-thinking/
+CAPABILITY_SEPARATION_DESIGN.md` (dispatched 2026-07-08) → attack
+rounds → build → audit → launch alongside head-to-head.
 
 **PUBLICATION PIPELINE:** measurement-2026 chop paper DRAFTED (local
 commit 4c7d172; "The Cliff That Wasn't"; compiles clean w/ tectonic,
