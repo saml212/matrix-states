@@ -1,0 +1,36 @@
+{
+  "design_ref": "KEY_ANCHORING_SCALING_DRAFT.md sec 15.20.1 (Rev 1, NEW supplementary long-T kernel-safety probe)",
+  "t_sweep": [
+    448,
+    504,
+    546,
+    588,
+    630
+  ],
+  "candidate_t_sweep": [
+    504,
+    546,
+    588,
+    630
+  ],
+  "control_t": 448,
+  "grid_pass": {
+    "96": {
+      "448": true,
+      "504": true,
+      "546": true,
+      "588": true,
+      "630": true
+    }
+  },
+  "messages": {
+    "d96_T448": "ok (loss=0.8172)",
+    "d96_T504": "ok (loss=0.8436)",
+    "d96_T546": "ok (loss=0.8783)",
+    "d96_T588": "ok (loss=0.8786)",
+    "d96_T630": "ok (loss=0.8605)"
+  },
+  "verdict": "d_state=96 KERNEL-SAFE at the full wide-grid T sweep {504,546,588,630} -- sec 15.20.1 supplementary gate CLEARED",
+  "exit_code": 0,
+  "torch_version": "2.12.1+cu130"
+}

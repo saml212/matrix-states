@@ -1,0 +1,14 @@
+# KEY_ANCHORING_SCALING_DRAFT.md sec 15.20.1's ENFORCED sha256 gate (Rev 1
+# attack-round-1 MAJOR-1 fix), Gate (c). Pinned ONCE, this build session
+# (2026-07-07), against the ORIGINAL sec 15.19 archive --
+# experiment-runs/2026-07-07_keyanchor_scaling/results/deltanet_rd_exactness/
+# wavekeyanchor-scaling/ -- via `shasum -a 256 <file>`. Never regenerated
+# from a copy (that would make the check tautological). Format: standard
+# sha256sum output (digest, two spaces, basename) so `sha256sum -c` /
+# `diff <(sha256sum ...) <(sort this file)` both work directly against it.
+# Consulted by run_deltanet_rd_exactness_sweep.py's
+# keyanchor_scaling_wide_k69_sha256_gate() and keyanchor_scaling_wide_chain.sh's
+# own standalone bash-level GATE (c) check.
+f734dd1e266279a667787180687b233e5fb8d5d7e2910a3cd3ca6f89d0951bef  wkeyanchor-scaling_rdx_K69_armd_s1730_geo3n20_anchor_learned_dprobe_rev7_d96.json
+9495cfa8bb0227a5dadce59403c442e6c982b3e39f7b66c4346eea1a03723c19  wkeyanchor-scaling_rdx_K69_armd_s1731_geo3n20_anchor_learned_dprobe_rev7_d96.json
+240ee3a3e758afe4493b023b2c1f3a4a54c93883839f1294aeedf81413a98280  wkeyanchor-scaling_rdx_K69_armd_s1732_geo3n20_anchor_learned_dprobe_rev7_d96.json

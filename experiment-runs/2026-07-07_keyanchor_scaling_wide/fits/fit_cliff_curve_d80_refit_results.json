@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-07-08T00:13:20.421360+00:00",
+  "script": "fit_cliff_curve.py",
+  "design_ref": "KEY_ANCHORING_DESIGN.md sec 12.4 (Rev 12.2) / sec 13.3 item 8 (Rev 13.2)",
+  "d_state": 80,
+  "k_grid": [
+    20,
+    43,
+    48,
+    53,
+    58
+  ],
+  "anchored": false,
+  "curve_points": {
+    "x": [
+      0.25,
+      0.5375,
+      0.6,
+      0.6625,
+      0.725
+    ],
+    "h4": [
+      1.0,
+      0.9424812197685242,
+      0.8459554195404053,
+      0.5712632775306702,
+      0.2762998342514038
+    ],
+    "labels": [
+      "K20(this wave)",
+      "K43(this wave)",
+      "K48(this wave)",
+      "K53(this wave)",
+      "K58(this wave)"
+    ]
+  },
+  "sigmoid_fit": {
+    "L": 0.9993619769939635,
+    "x0": 0.6779197570495672,
+    "w": 0.047870385269021265,
+    "rss": 0.00023996786180775353
+  },
+  "linear_fit_disclosed_secondary": {
+    "a": -1.2888626123366622,
+    "b": 1.4425187000650481,
+    "rss": 0.13688869415925112
+  },
+  "bootstrap_ci": {
+    "n_trials": 4000,
+    "n_degenerate": 0,
+    "degenerate_frac": 0.0,
+    "ci_x0": {
+      "lo": 0.6682877611050937,
+      "hi": 0.6866848529025871,
+      "width": 0.01839709179749338,
+      "median": 0.6779239000387495
+    },
+    "ci_w": {
+      "lo": 0.039130649522990946,
+      "hi": 0.05936999295822334,
+      "width": 0.02023934343523239,
+      "median": 0.04770428572513864
+    }
+  },
+  "degenerate_fraction_disclosure": {
+    "value": 0.0,
+    "exceeds_10pct": false,
+    "rule": "sec 12.4 item 3: if the REAL degenerate fraction exceeds 10%, report explicitly as a reliability caveat on the CI, not a silently-excluded footnote"
+  },
+  "wall_s": 2.9865548610687256
+}

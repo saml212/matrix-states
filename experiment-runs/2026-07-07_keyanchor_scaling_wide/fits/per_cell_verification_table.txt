@@ -1,0 +1,32 @@
+group              K   d  seed complete  steps timeout    wall_s admiss fallback       h4
+d80-original      48  80  1130     True  20000   False   1301.28   True    False   0.8732
+d80-original      48  80  1131     True  20000   False   1252.32   True    False   0.6558
+d80-original      48  80  1132     True  20000   False   1261.61   True    False   0.8741
+d80-escalation    48  80  1133     True  20000   False   1301.00   True    False   0.9056
+d80-escalation    48  80  1134     True  20000   False   1279.48   True    False   0.9212
+d80-original      53  80  1230     True  20000   False   1390.82   True    False   0.5828
+d80-original      53  80  1231     True  20000   False   1356.97   True    False   0.4767
+d80-original      53  80  1232     True  20000   False   1401.62   True    False   0.6546
+d80-escalation    53  80  1233     True  20000   False   1426.01   True    False   0.6274
+d80-escalation    53  80  1234     True  20000   False   1403.63   True    False   0.5149
+d96-wide          69  96  1730     True  20000   False   1568.51  False     True   0.9918
+d96-wide          69  96  1731     True  20000   False   1583.28   True    False   0.9986
+d96-wide          69  96  1732     True  20000   False   1547.48   True    False   0.9614
+d96-wide          72  96  1740     True  20000   False   1591.20  False     True   0.9319
+d96-wide          72  96  1741     True  20000   False   1517.35   True    False   0.8426
+d96-wide          72  96  1742     True  20000   False   1588.36  False     True   0.9904
+d96-wide          78  96  1840     True  20000   False   1473.54  False     True   0.8667
+d96-wide          78  96  1841     True  20000   False   1511.03  False     True   0.9823
+d96-wide          78  96  1842     True  20000   False   1537.37  False     True   0.9488
+d96-wide          84  96  1940     True  20000   False   1419.82  False     True   0.9806
+d96-wide          84  96  1941     True  20000   False   1378.79  False     True   0.9573
+d96-wide          84  96  1942     True  20000   False   1429.39  False     True   0.9363
+d96-wide          90  96  2040     True  20000   False   1334.59  False     True   1.0000
+d96-wide          90  96  2041     True  20000   False   1301.71  False     True   1.0000
+d96-wide          90  96  2042     True  20000   False   1305.78  False     True   1.0000
+
+Total NEW cells (12 wide + 4 escalation): 16, admissible: 5
+Sum wall_s, NEW cells only (16): 22799.05s = 6.3331 GPU-h
+Sum wall_s, ALL wide-dir cells (incl reused K69 copies, 15 files): 22088.20s = 6.1356 GPU-h
+Sum wall_s, d96-wide NEW cells only (12): 17388.93s = 4.8303 GPU-h
+Sum wall_s, d80-escalation NEW cells (4): 5410.12s = 1.5028 GPU-h

@@ -2526,3 +2526,402 @@ adversarial rounds catch different bugs each round, landing attack-round-1's
 findings does not, on its own, certify §15.20 as CLEARED-FOR-BUILD.
 
 ---
+
+## §15.22 VERDICT — harvest, 2026-07-08: AMBIGUOUS (data-quality collapse,
+more severe than the pre-registered rule anticipated), d=80 seed
+escalation REFUTE stands (tightened); the wide grid's own rival
+discrimination test (§15.20.4) never executed
+
+**Launched under both required tokens** (`KEYANCHOR_SCALING_PI_SIGNOFF=1`
+and `KEYANCHOR_SCALING_EXT_PI_SIGNOFF=1`, both recorded at the top of
+`keyanchor_scaling_wide_run2.log`, confirming Gate (d) fired as designed).
+`keyanchor_scaling_wide_run1.log` is an earlier, incomplete smoke-only
+session (5 smoke FAILUREs — `sim_cliff_power_wide_grid_results.json` and
+the archived §15.19 directory were not yet in place at that point);
+`run2.log` is the real, complete session, all 16 smoke items PASS, and is
+the log this harvest treats as authoritative throughout. tmux is gone
+(session ended cleanly, not crashed — see below), so this section is
+built entirely from raw JSONs, logs, and gate artifacts pulled off box,
+never from a live session.
+
+### Scope
+
+12 new d=96 cells (`K∈{72,78,84,90}×3` seeds, blocks 1740/1840/1940/2040)
+in `wavekeyanchor-scaling-wide/`, reusing the 3 already-archived K=69/d=96
+cells (seeds 1730–1732, byte-verified via the Gate (c) sha256 check) as
+the grid's low edge, plus 4 new d=80 seed-escalation cells (K=48 seeds
+1133/1134, K=53 seeds 1233/1234) written into the ORIGINAL wave's own
+`wavekeyanchor-scaling/` directory per §15.20.2's design. **16 new GPU
+cells total.**
+
+### Per-cell verification (mechanical, all 16 new raws + the 3 reused)
+
+`complete=true`, `steps_completed=20000`, `timed_out=false` — **19/19, no
+exception** (16 new + 3 reused). Architecture pins uniform across all 19:
+`anchor_active=True`, `anchor_lambda_mode="learned"`,
+`anchor_table_frozen=False`, `geo3_n_iter=20`. `H_extra=[7,21]`
+(unmodified default) at every new cell — confirmed no collision at any of
+K∈{72,78,84,90} (§15.20.1's own arithmetic: `7%K` and `21%K` never
+wrap into `{1,2,3}` for K>21, verified directly on the raw JSONs, not
+just derived on paper). h1 guard
+(`M2_in_distribution["1"]["recovered_frac@0.9"]`) reads **exactly 1.0 at
+all 19 cells** — zero training-health concern anywhere in this wave; every
+symptom below is confined to the eval-side geo3 admission check, never to
+training itself.
+
+| group | K | d | seed | complete | wall_s | admissible | checkpoint_fallback_seen | h4 (M3, hop 4, rec@0.9) |
+|---|---|---|---|---|---|---|---|---|
+| d80-escalation | 48 | 80 | 1133 | True | 1301.00 | **True** | False | 0.9056 |
+| d80-escalation | 48 | 80 | 1134 | True | 1279.48 | **True** | False | 0.9212 |
+| d80-escalation | 53 | 80 | 1233 | True | 1426.01 | **True** | False | 0.6274 |
+| d80-escalation | 53 | 80 | 1234 | True | 1403.63 | **True** | False | 0.5149 |
+| d96-wide (reused) | 69 | 96 | 1730 | True | 1568.51 | False (known, §15.19) | True | 0.9918 |
+| d96-wide (reused) | 69 | 96 | 1731 | True | 1583.28 | **True** | False | 0.9986 |
+| d96-wide (reused) | 69 | 96 | 1732 | True | 1547.48 | **True** | False | 0.9614 |
+| d96-wide (new) | 72 | 96 | 1740 | True | 1591.20 | **False** | True | 0.9319 |
+| d96-wide (new, calib) | 72 | 96 | 1741 | True | 1517.35 | **True** | False | 0.8426 |
+| d96-wide (new) | 72 | 96 | 1742 | True | 1588.36 | **False** | True | 0.9904 |
+| d96-wide (new) | 78 | 96 | 1840 | True | 1473.54 | **False** | True | 0.8667 |
+| d96-wide (new) | 78 | 96 | 1841 | True | 1511.03 | **False** | True | 0.9823 |
+| d96-wide (new) | 78 | 96 | 1842 | True | 1537.37 | **False** | True | 0.9488 |
+| d96-wide (new) | 84 | 96 | 1940 | True | 1419.82 | **False** | True | 0.9806 |
+| d96-wide (new) | 84 | 96 | 1941 | True | 1378.79 | **False** | True | 0.9573 |
+| d96-wide (new) | 84 | 96 | 1942 | True | 1429.39 | **False** | True | 0.9363 |
+| d96-wide (new) | 90 | 96 | 2040 | True | 1334.59 | **False** | True | 1.0000 |
+| d96-wide (new) | 90 | 96 | 2041 | True | 1301.71 | **False** | True | 1.0000 |
+| d96-wide (new) | 90 | 96 | 2042 | True | 1305.78 | **False** | True | 1.0000 |
+
+**Admissibility, new cells only: 5/16 (31.25%).** All 4 d80-escalation
+cells are clean (100% admissible, `checkpoint_fallback_seen=False`
+throughout — same clean pattern as every other d=80 cell this program has
+ever run). Of the 12 new d=96-wide cells, only **1** (K=72/seed=1741) is
+admissible; K=78, K=84, K=90 are **0/3 admissible each** — every single
+seed at those three K's fails. This table was built by direct Python
+inspection of every raw JSON's `complete`/`geo3_admission`/`M3_held_out`
+fields (`build_table.py`, archived at `fits/`), not by trusting any
+box-side printed summary.
+
+### Resolving the NOT-READY anomaly
+
+**Root cause, stated precisely: this is NOT a path/glob bug. It is a
+real, disclosed admissibility collapse in the underlying data at the new
+d=96-wide K's.** Four independent checks rule out a path/environment
+explanation:
+
+1. **The registered fit invocation was reproduced locally, off-box, byte-
+   for-byte, and failed identically.** `fit_cliff_curve.py` pulled from
+   the box is sha256-identical to the repo's own already-committed copy
+   (both match the file used throughout §15.19/§15.20). Running
+   `python3 fit_cliff_curve.py --cliff-out-dir wavekeyanchor-scaling-wide
+   --d-state 96 --k-grid 69 72 78 84 90 --n-trials 4000` against the
+   pulled raws, in this repo's own `.venv` (no box environment, no box
+   filesystem), reproduces the exact same line: `NOT READY: k32_mean=None
+   k48_mean=None missing new-K means=[78, 84, 90]`. `k32_mean=None
+   k48_mean=None` is a RED HERRING, not a symptom — `d_state=96` is not in
+   `ANCHORED_D_STATES=(64,)` (line 295), so those two variables are
+   unconditionally `None` by construction (line 321) regardless of data
+   availability; the load-bearing part of the message is `missing new-K
+   means=[78, 84, 90]`.
+2. **`missing` is computed from `per_k_mean[K] is None`, and `load_k_mean_h4`
+   (the SAME fixed loader §15.20.3 built and regression-tested) returns
+   `(None, [])` for a K only when `per_seed` ends up empty after its
+   `complete` AND `geo3_admission.admissible is True` filters.** Direct
+   inspection (above table) confirms: K=78/84/90 have 3/3 seeds each with
+   `admissible=False` — `per_seed` is genuinely empty for those three K's
+   in `wavekeyanchor-scaling-wide/`, glob pattern and all. The glob
+   (`*_K{K}_armd_*.json`) matches all 3 files at every K (verified
+   directly, 3 paths per K, all 5 K's) — the files are found; their DATA
+   is what fails the filter.
+3. **Trying a combined 9-K directory (original K=24/51/57/63 copied in
+   alongside the wide grid's own K=69/72/78/84/90) reproduces the exact
+   same `NOT READY: ... missing new-K means=[78, 84, 90]`.** If this were
+   a directory/path issue, pointing the loader at a superset of every
+   archived d=96 cell this program has ever run would have to change the
+   outcome. It does not — because no admissible seed exists ANYWHERE in
+   the program's archive at K=78, K=84, or K=90. The data gap is real,
+   not local to one directory.
+4. **The chain log confirms the halt is exactly here, not somewhere
+   upstream.** `keyanchor_scaling_wide_run2.log`'s last two lines are the
+   `--scaling-wide-leg d80-escalation` dispatcher's own completion message
+   (`WAVE keyanchor-scaling-wide DONE. 4 succeeded this session, 0 failed,
+   0 still pending.` — this reports the 4 d80-escalation cells, NOT a
+   whole-chain completion) immediately followed by the `NOT READY` line,
+   then nothing — `keyanchor_scaling_wide_chain.sh` runs under
+   `set -euo pipefail` (line 79), so the fit step's non-zero exit through
+   the `| tee` pipe killed the chain there. `KEYANCHOR_SCALING_WIDE_DONE`
+   (the chain's own final sentinel, `touch`ed only after BOTH fit steps
+   succeed) **does not exist on box** — direct confirmation the chain
+   never reached the d=80 re-fit (step 92) or its own completion line.
+   The `WAVE ... DONE` message the task brief read as "the chain
+   completed" is a different, narrower message — the d80-escalation
+   dispatcher's own per-leg summary, printed BEFORE the two fit steps in
+   the same chain script, not the chain's own overall completion.
+
+**Mechanistic root cause of the admissibility collapse itself (verified
+by reading `compute_geo3_admission`/`_geo3_checkpoint_fallback_seen`,
+`run_deltanet_rd.py` lines 509–571):** `checkpoint_fallback_seen` is
+computed by scanning every logged checkpoint's four recovery-probe pools
+(`M2_in_distribution`, `M3_held_out`, `C17_heldout_entities`,
+`C19_heldout_template`) for a per-hop `geo3_fallback_triggered_this_hop`
+flag — this is an **EVAL-side** signal, raised when the Newton-Schulz
+orthogonalization used to SCORE a recovery probe falls back to its `eigh`
+path. It is entirely independent of `n_geo3_fallback_train_steps`, the
+TRAINING-side counter. **Every one of the 11 inadmissible new cells reads
+`n_geo3_fallback_train_steps=0`** — training itself converged cleanly at
+every logged step, consistent with the clean loss curves, `h1=1.0`
+guard, and `task_performance_floor_pass=true`/`value_salvage_tier_pass=
+true` on every affected cell. **The failure is confined to Newton-Schulz
+convergence on the EVAL-time recovery-probe queries against the FINAL,
+fully-learned (`anchor_table_frozen=False`) anchor table — not to
+anything about training health.** This directly explains why §15.20.1's
+own Wave −1 `GATE2_N_ITER_BY_D_K[96]` sufficiency check (Gate (b), which
+PASSED cleanly for K∈{72,78,84,90}, confirmed in
+`keyanchor_scaling_wide_niter_result.json`, archived) did not predict
+this: that check tests Newton-Schulz convergence on the STATIC,
+frame-potential-initialized anchor table only — it structurally cannot
+see a failure mode that only appears once the anchor table has drifted
+away from that init over a full 20,000-step LEARNED training run, probed
+at query geometries the static check never exercises. **This is a real,
+previously-unregistered gap in Gate (b)'s own coverage**, disclosed here
+for the first time — not a rubber-stamped gate (§15.19's own K=69/seed=
+1730 anomaly was the first, isolated hint of exactly this failure mode;
+this wave shows it is not a one-off but a real, K/d-ratio-correlated
+effect that intensifies sharply above K/d≈0.75: 0/30 at the original
+grid's K≤0.71875, 1/3 at K=0.75 (K=72), 3/3 at each of K=0.8125/0.875/
+0.9375). The d=80 escalation cells (K=48/53, both already-verified K's
+from the ORIGINAL, non-widened grid) show **zero** instances of this
+failure — consistent with it being specific to the newly-pushed d=96/
+high-K geometry, not a generic regression.
+
+**No cells are actually missing or incomplete** — the task brief's own
+caution to "stop and report prominently" if that were the case is
+triggered by a related but distinct finding: every cell ran to
+completion, trained cleanly, and produced a real, readable `h4`; they are
+simply excluded from the fit by the (correctly-behaving, already
+regression-tested) admissibility filter at a rate this program has never
+seen before. This is disclosed prominently as the wave's own headline
+finding, not smoothed into a footnote.
+
+### Local re-fits (all run this session, `fit_cliff_curve.py` — the FIXED
+version, sha256-confirmed identical to both box and repo — against the
+raw JSONs pulled off box)
+
+**1. Exact registered invocation (d=96 wide, `--k-grid 69 72 78 84 90`):**
+reproduces `NOT READY` verbatim (above) — **no fit output exists, and
+none can be produced from this K-grid with the data this wave collected.**
+
+**2. d=80 seed escalation re-fit (`--k-grid 20 43 48 53 58`, now 5 seeds
+at K=48/53), against `wavekeyanchor-scaling/` (all cells 100% admissible):**
+
+```
+sigmoid fit: x0=0.6779 w=0.0479 L=0.9994 rss=0.00024
+bootstrap CI(x0): [0.6683, 0.6867] width=0.0184
+bootstrap CI(w):  [0.0391, 0.0594] width=0.0202
+degenerate fraction: 0.0000 (within the 10% bar)
+```
+
+vs. the original (n=3) `x0=0.6756`, CI `[0.6620, 0.6868]` width `0.0248`
+— the point estimate shifts negligibly (+0.0023) and the CI tightens by
+26% (width 0.0248→0.0184), exactly the "not expected to change the
+verdict, tightens the CI" outcome §15.20.2 pre-registered. **This fit was
+never run on box** — the chain halted at step 91, before step 92 (the
+d=80 re-fit) could execute; this local run is its first execution.
+
+**3. Regression check (original 5-K d=96 grid, `--k-grid 24 51 57 63 69`,
+FIXED loader, no manual pre-filtering) — confirms the loader itself is
+working correctly, independent of the wide-grid anomaly:**
+
+```
+degenerate fraction: 0.9477 (EXCEEDS the 10% bar)
+```
+
+Matches §15.20.3's own hand-computed regression target
+(`degenerate_frac=94.77%` exactly) to 4 decimal places — the fixed
+loader, this exact venv, and the pulled data all check out before
+trusting anything above.
+
+**4. Diagnostic-only combined fit (`--k-grid 24 51 57 63 69 72`, NOT the
+registered wide-grid test — every original d=96 K plus the ONE new K
+that has any admissible data at all, K=72 at n=1):**
+
+```
+sigmoid fit: x0=0.7716 w=0.0126 L=0.9946 rss=0.00026
+bootstrap CI(x0): [0.7700, 0.7841] width=0.0140
+degenerate fraction: 0.2622 (EXCEEDS the 10% bar)
+curve: K24=1.0, K51=1.0, K57=0.9974, K63=0.9805, K69=0.9800, K72=0.8426
+```
+
+**Explicitly NOT licensed to invoke §15.20.4's discrimination test** —
+wrong K-grid (78/84/90 are structurally absent, the entire reason the
+grid was widened), `degenerate_frac` itself exceeds the 10% bar, and the
+one point driving the visible decline (K=72) rests on a SINGLE seed.
+Reported only as a descriptive lead: the point estimate (0.7716, CI
+[0.7700,0.7841]) sits just outside the abs-slack band `[0.718,0.739]`
+and just inside the power-law band `[0.768,0.837]` — suggestive that
+SOMETHING starts declining right around K/d≈0.75, consistent with
+neither d=96 result seen so far (§15.19's flat-to-K/d=0.71875 curve, or
+CLIFF-BEYOND-WINDOW) being the final word — but this is a hint for a
+properly-powered follow-up, not a result.
+
+### Applying §15.20.4's decision rule, mechanically
+
+| Step | Condition (quoted) | Evaluation | Result |
+|---|---|---|---|
+| 0 | "Fit converges, `degenerate_frac ≤ 10%`" | **Fit does not converge — it cannot even be attempted.** `main()` exits 1 (`NOT READY`) before `curve_fit` is ever called, because 3 of the 5 registered K's (78, 84, 90) have zero admissible seeds anywhere in the archive. | Does not apply — no `degenerate_frac` value exists to evaluate against ≤10% or >10%. |
+| 1a | `degenerate_frac > 10%` AND every sampled K's raw per-seed h4 mean `≥ 0.98` | Cannot be evaluated on the registered grid (no fit ran). Evaluated on the ADMISSIBLE-only per-seed data as the closest analog: K=69 admissible mean = 0.9800 (seeds 1731/1732); K=72 admissible mean = 0.8426 (seed 1741, n=1) — **K=72's own admissible mean is well below 0.98**, so even this looser reading fails the flatness condition. | **Not CLIFF-BEYOND-WINDOW** — there is a real, if thin, decline visible in what admissible data exists, not a curve stuck at ceiling. |
+| 1b | `degenerate_frac > 10%` AND at least one sampled K's raw per-seed h4 mean `< 0.98` (scatter, not flatness) | No `degenerate_frac` exists to test the numeric threshold, but the QUALITATIVE signature (a K with mean well under 0.98 alongside K's at/near ceiling) matches. **This is the closest-fitting named row, generalized one level further than it was written for:** row 1b's own literal text presumes a completed (if noisy) fit exists; this wave's own failure is a level EARLIER and MORE SEVERE — the fit cannot be attempted at all because 3 of 5 K's return zero valid data, not merely a wide CI. | **AMBIGUOUS — DATA-QUALITY COLLAPSE**, an extension of row 1b's own spirit that the pre-registered table did not literally anticipate (it distinguished flat-ceiling from noisy-scatter, but implicitly assumed every grid K would produce SOME usable data either way). |
+| 2–5 | Band-overlap / BOTH-CONSISTENT / NEITHER-SURVIVES tests | All four require a real `CI(x0, 96-wide)` from the registered grid. **None exists.** | Not reachable. |
+
+## **WAVE VERDICT (d=96-wide leg): AMBIGUOUS — DATA-QUALITY COLLAPSE.**
+## **WAVE VERDICT (d=80-escalation leg): REFUTE stands, tightened CI, unchanged conclusion.**
+## **Overall wave verdict, per §15.19's own carried-forward rule ("the WAVE's own overall call is AMBIGUOUS if either d's fit is AMBIGUOUS"): AMBIGUOUS.**
+
+This is the mechanical, closest-defensible application of the
+pre-registered table to a situation that table did not literally name —
+disclosed as an extension, not asserted as a literal row match. §15.20.4's
+own central discrimination test (the entire point of widening the grid:
+bracket both rival bands with real points at K/d∈[0.75,0.9375]) **never
+executed** — not because it was underpowered (§15.20's own MAJOR-2 power
+check already, honestly, expected a likely BOTH-CONSISTENT outcome even
+in the best case), but because the data needed to attempt it at all does
+not exist. This is a DIFFERENT, more severe failure than anything §15.20
+Rev 1's own attack round considered (§15.20.8 Q1's own TODO worried about
+a flat, non-degenerate-but-uninformative curve — not a curve that cannot
+be fit at all).
+
+### Reading this honestly, alongside the mechanical call
+
+**d=80 (escalation): unchanged from §15.19 — a clean, non-degenerate
+REFUTE of ratio-invariance, now with a tighter CI.** `x0(80)=0.6779`
+`[0.6683,0.6867]` still excludes the invariance band `[0.4745,0.6165]`
+by a wide margin (gap 0.0518 at the CI's own near edge). Nothing about
+this wave changes that conclusion.
+
+**d=96 (wide): the widening attempt itself produced a genuinely new,
+disclosed finding — but not the one it was designed to produce.** Instead
+of localizing (or definitively ruling out) a cliff in `K/d∈[0.75,
+0.9375]`, it surfaced a real, K/d-correlated Newton-Schulz eval-admission
+failure that makes 11 of 12 new cells unusable for the fit they were
+built to feed. The ONE admissible new point (K=72, h4=0.8426) is,
+descriptively, the single most informative new datum this wave produced
+— it is the first d=96 point in the program's history to read
+meaningfully below the 0.98 ceiling band, right where both named rivals
+predicted a transition should start. It cannot, on n=1, carry any
+statistical weight.
+
+### Rival comparison — unchanged from §15.19, since the wide grid's own
+discrimination test did not execute
+
+| Account | §15.19 status | This wave |
+|---|---|---|
+| Ratio-invariant | Refuted (d=80), uninterpretable (d=96) | Unchanged — not re-tested here |
+| Fixed-K | Refuted at both d's | Unchanged |
+| Absolute-slack (`[0.718,0.739]` predicted band at d=96) | Closest surviving rival, not confirmed | **Still not tested** — the diagnostic-only 6-K fit's point estimate (0.7716) sits just OUTSIDE this band, but is not a licensed test |
+| Power-law (`[0.768,0.837]` predicted band at d=96, new at §15.20) | N/A (named this wave) | **Still not tested** — the diagnostic point estimate sits just INSIDE this band, but is not a licensed test (wrong grid, degenerate, n=1-driven) |
+
+### Realized GPU-h vs. ceiling
+
+Summed directly from all 16 new cells' own `wall_s` (all single-GPU,
+`--per-gpu 1`), independently cross-checked against on-box file
+timestamps (`started_at` field to output-JSON `mtime`, per-cell agreement
+to within 4.1s, program-wide sum agreement to within 0.32s / 0.0001
+GPU-h — the two methods concur):
+
+| Group | Cells | Sum wall_s | GPU-h (wall_s) | GPU-h (timestamp cross-check) |
+|---|---|---|---|---|
+| d=96-wide, new (K=72,78,84,90 ×3) | 12 | 17388.93s | 4.8303 | 4.8302 |
+| d=80-escalation, new (K=48,53 ×2) | 4 | 5410.12s | 1.5028 | 1.5029 |
+| **All 16 new cells** | **16** | **22799.05s** | **6.3331** | **6.3330** |
+
+Wall-clock bracket (earliest `started_at` to latest completion, across 6
+parallel GPU slots 2–7): **2.10h** — consistent with 16 cells at
+~1425s/cell average scheduled across 6 concurrent slots in roughly two
+batches, not evidence of any stall or restart.
+
+**Realized: 6.3331 GPU-h against this design's own mandatory-only cost
+table — 95.2% of the 1× point estimate (6.6505 GPU-h) and 47.6% of the
+2× pessimistic bracket (13.3010 GPU-h).** This is a return to this
+program's more typical realized/estimate ratio (§15.19 was the outlier,
+landing at 112.5% of its own 1×); the escalation cells landed almost
+exactly on their own K-specific point estimates (K=48: realized 0.7176
+GPU-h vs. priced 0.7065, +1.6%; K=53: realized 0.7860 vs. priced 0.7684,
++2.3%), and the d=96-wide grid landed under its own point estimate
+(realized 4.8303 vs. priced 5.1756, −6.7%) despite the admissibility
+collapse — the COST model was accurate; only the DATA-QUALITY assumption
+implicit in it (every K yields usable data) was wrong.
+
+**KEY_ANCHORING_SCALING sub-ledger update:** 11.7865/21 GPU-h (§15.19) +
+6.3331/21 GPU-h (this wave) = **18.1196/21 GPU-h realized, reserve
+2.8804/21** — **this wave's realized cost fits inside the ORIGINAL 21
+GPU-h ceiling with room to spare; the `+5.0 GPU-h` extension
+(`KEYANCHOR_SCALING_EXT_PI_SIGNOFF`, §15.20.5) was authorized and its
+gate fired correctly, but was never actually drawn on.** Extended
+ceiling (21+5=26), if ever needed for a genuine follow-up: 18.1196/26
+(69.7%), reserve 7.8804/26.
+
+### What this wave does and does not show
+
+1. **Does NOT execute §15.20.4's own discrimination test** — the wave's
+   entire reason for existing. Neither the absolute-slack band nor the
+   power-law band is confirmed, refuted, or even meaningfully
+   approached at the pre-registered grid.
+2. **Does NOT change d=80's own clean REFUTE of ratio-invariance** — now
+   with a tighter, still-excluding CI.
+3. **DOES surface a new, real, disclosed instrument finding**: Newton-
+   Schulz eval-side admissibility failure rate rises sharply with K/d at
+   d=96 (0/30 at K/d≤0.71875 → 1/3 at K/d=0.75 → 3/3 at K/d≥0.8125),
+   confined to the EVAL-time recovery-probe queries against the final
+   learned anchor table, not to training health. This is itself a
+   partially-informative negative result about the CURRENT `n_iter=20`
+   Newton-Schulz configuration's adequacy at the higher end of this
+   wave's own tested window — orthogonal to, and not resolving, the
+   original capacity-cliff-location question.
+4. **Descriptively, not statistically:** the one usable new d=96 point
+   (K=72, h4=0.8426) is the first datum in this program's history to show
+   a real decline anywhere in `[K/d∈0.72,0.75]`, roughly where both named
+   rivals predicted a transition should begin. Worth a properly-powered
+   follow-up; not evidence on its own.
+
+### Pre-registered next steps (queued, not run this session)
+
+1. **Diagnose the Newton-Schulz eval-admission failure before re-running
+   more seeds at the same K's.** Row 1b's literal remedy ("+2 seeds at
+   the noisiest K-group") is unlikely to help here — the failure hit 3/3
+   seeds at each of K=78/84/90, consistent with a systematic geometry
+   effect (the LEARNED, drifted anchor table at these K/d ratios), not
+   per-seed noise. A candidate fix worth testing cheaply (CPU/short-GPU,
+   no full re-run): re-check Newton-Schulz convergence at `n_iter>20`
+   (e.g. 24 or 28 — already known to converge better on the STATIC init
+   per Gate (b)'s own 20→24 rel-change check) against a LEARNED,
+   post-training anchor table snapshot from one of the failing cells,
+   before committing to a re-run at higher `n_iter`. **A design decision
+   for whoever builds the follow-up, not self-authorized here** — mirrors
+   this program's own house convention.
+2. Firing the reserved K=69 contingency seed (1733, per §15.20.4's own
+   MAJOR-2 disclosure) remains registered but is now clearly
+   insufficient on its own — it narrows the fit's CI by ~4% and does
+   nothing about the K=78/84/90 data gap.
+3. Neither is launched by this harvest — both are queued in `STATE.md`.
+
+### Archive
+
+`experiment-runs/2026-07-07_keyanchor_scaling_wide/` (repo-tracked, all
+files ≤25MB — largest raw is 4.7MB): `results/deltanet_rd_exactness/
+wavekeyanchor-scaling-wide/` (12 new + 3 reused K=69 cell JSONs,
+`ALL_DONE`, `CALIBRATION_DONE`, `PROGRESS.txt`, `logs/` — 12 per-cell
+logs + `smoke.log`), `results/deltanet_rd_exactness/
+wavekeyanchor-scaling_d80_escalation/` (the 4 NEW d80-escalation cell
+JSONs + logs only, clearly labeled as a subset extracted from the
+ORIGINAL wave's own shared output directory — the other 26 cells there
+are already archived at `experiment-runs/2026-07-07_keyanchor_scaling/`),
+`logs/` (both chain sessions + numbered stage logs 84–91), `scripts/`
+(`fit_cliff_curve.py`, `sim_cliff_power.py`, `sim_cliff_power_wide_grid.py`,
+`keyanchor_scaling_wide_chain.sh`, `smoke_keyanchor_scaling.py` — all
+byte-verified against box), `gates/` (kernel-safety, n_iter-sufficiency,
+sha256 copy-manifest, and power-check artifacts), `fits/` (this session's
+4 local fit runs incl. the NOT-READY reproduction's stdout/stderr, the
+per-cell verification table script and its output). SSD mirror, full
+superset, same tree: `/Volumes/1TB_SSD/learned-representations/
+experiment-runs/2026-07-07_keyanchor_scaling_wide/`.
+
+---

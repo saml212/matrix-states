@@ -1,0 +1,1 @@
+NOT READY: k32_mean=None k48_mean=None missing new-K means=[78, 84, 90] -- cannot fit until every K has >=1 completed candidate-(d) cell.

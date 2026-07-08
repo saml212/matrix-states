@@ -1,8 +1,78 @@
 # Project State
 
-**Last updated:** 2026-07-07
+**Last updated:** 2026-07-08
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
+
+---
+
+## KEYANCHOR-SCALING §15.20 WIDE-GRID WAVE HARVEST (2026-07-08 ~00:45 UTC) — CLOSES the wide-grid wave; supersedes the KEYANCHOR-SCALING WAVE HARVEST block below's own "queued next steps" for §15.19's AMBIGUOUS d=96 result. The TRACK C RUNG-3 HARVEST block immediately below is UNAFFECTED (different lane; its own "rung-3 ALL_DONE harvest remains the other standing queue item" line is independently already stale — that harvest itself is the block below, already closed)
+
+**`KEY_ANCHORING_SCALING_DRAFT.md` §15.20 (Rev 1, d=96 wider-K grid +
+d=80 seed escalation) ran to completion on box and was harvested: WAVE
+VERDICT = AMBIGUOUS — DATA-QUALITY COLLAPSE, more severe than the
+pre-registered decision rule anticipated.** The chain halted at its own
+d=96-wide fit step (`set -euo pipefail`, `KEYANCHOR_SCALING_WIDE_DONE`
+sentinel never written) — confirmed NOT a path/glob bug by four
+independent checks (byte-identical local reproduction off-box, direct
+per-JSON inspection, a combined-9-K-directory retry, and reading the
+`k32_mean=None`/`k48_mean=None` red herring correctly). **Real root
+cause: 11 of the 12 new d=96-wide cells (K∈{72,78,84,90}) fail the
+`geo3_admission.admissible` eval-side gate — K=78/84/90 have ZERO
+admissible seeds each (3/3 fail at every one).** Verified mechanistic
+cause (`run_deltanet_rd.py` `compute_geo3_admission`): the failure is
+confined to Newton-Schulz convergence on EVAL-time recovery-probe
+queries against the final, fully-LEARNED anchor table — every failing
+cell has `n_geo3_fallback_train_steps=0` (training itself is clean, h1
+guard 1.0 everywhere). §15.20.1's own Wave −1 `n_iter=20` sufficiency
+check passed cleanly because it only tests the STATIC frame-potential
+init, not a post-20,000-step drifted table — a real, newly-disclosed gap
+in that gate's own coverage. Failure rate rises sharply with K/d at
+d=96: 0/30 at K/d≤0.71875 → 1/3 at K/d=0.75 → 3/3 at K/d≥0.8125.
+
+**d=80 seed escalation (K=48/K=53, now 5 seeds each) is unaffected —
+100% admissible — and REFUTES ratio-invariance more tightly than before:
+`x0(80)=0.6779`, 95% CI `[0.6683,0.6867]` (width 0.0184, down from
+0.0248), still excluding the invariance band `[0.4745,0.6165]` by a wide
+margin.** This fit was never run on box (chain halted one step earlier);
+this harvest ran it for the first time, locally.
+
+**§15.20.4's own rival-discrimination test — the wide grid's entire
+reason for existing — never executed.** No `CI(x0,96-wide)` exists at
+all; the registered `--k-grid 69 72 78 84 90` fit cannot be attempted
+with any data this wave collected, reproduced identically off-box. A
+diagnostic-only (non-registered) 6-K fit using every K with ANY
+admissible data (24,51,57,63,69,72, the last at n=1) gives `x0=0.7716`
+CI `[0.7700,0.7841]`, `degenerate_frac=26.2%` (exceeds the 10% bar) —
+descriptively just outside the abs-slack band and just inside the
+power-law band, a real lead but explicitly not a licensed result.
+
+**Realized 6.3331 GPU-h** (16 new cells, summed `wall_s`, independently
+cross-checked against on-box file timestamps to within 0.32s program-
+wide) **— 95.2% of the design's own 1× point estimate, 47.6% of the 2×
+bracket.** KEY_ANCHORING_SCALING sub-ledger: 11.7865 (§15.19) + 6.3331
+(this wave) = **18.1196/21 GPU-h realized, reserve 2.8804/21** — fits
+inside the ORIGINAL ceiling; the `+5.0 GPU-h` extension token
+(`KEYANCHOR_SCALING_EXT_PI_SIGNOFF`) was authorized and its gate fired
+correctly but was never actually drawn on.
+
+Full verdict, 19-cell verification table, root-cause derivation, local
+re-fits, and the mechanical 6-row decision-rule walk:
+`matrix-thinking/KEY_ANCHORING_SCALING_DRAFT.md` §15.22. Archive:
+`experiment-runs/2026-07-07_keyanchor_scaling_wide/` (repo, ~78MB, all
+files ≤25MB) + SSD mirror (full parity, byte-verified).
+`EXPERIMENT_LOG.md`'s matching entry.
+
+**Queue implication:** the wide-grid wave is CLOSED. Not launched by
+this harvest, both queued: (1) diagnose the Newton-Schulz eval-
+admissibility failure (candidate: check whether `n_iter>20` converges on
+a LEARNED, post-training anchor-table snapshot before committing to a
+re-run) — a design decision for whoever builds the follow-up, not
+self-authorized here; (2) the already-reserved K=69 contingency seed
+(1733) remains registered but is known-insufficient on its own (~4% CI
+narrowing, per §15.20.4's own MAJOR-2 power check). No other program's
+decision tree is gated by this wave (mirrors §15.19's own "Path (iii)
+never gates, and is never gated by" framing, restated one wave later).
 
 ---
 
