@@ -1,6 +1,6 @@
 {
   "design_ref": "KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.5 (Stage -1, C17 repro instrument)",
-  "gate_passed_locally": true,
+  "gate_passed_locally": false,
   "n_failures": 0,
   "failures": [],
   "n_box_deferred": 6,
@@ -36,8 +36,8 @@
       "gated": true
     }
   ],
-  "capable": false,
-  "capability_gate_failed": false,
+  "capable": true,
+  "capability_gate_failed": true,
   "still_deferred_gated": [
     "item 1: bitwise-identical-trajectory smoke",
     "item 2: dump-fires-exactly-at-fallback smoke",

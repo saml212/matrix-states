@@ -69,7 +69,7 @@ BOX_DEFERRED: list[dict] = []
 # blocker is missing CUDA/fla, so once the environment IS capable, deferring them is a FAILURE,
 # not a legitimate state. Item 5's box half is deliberately EXCLUDED (its blocker is a missing
 # ARCHIVED RESULT JSON, a different kind of unavailability that persists even in a capable env).
-GATED_ITEM_LABELS = ("item 1", "item 2", "item 3", "item 4", "item 9")
+GATED_ITEM_LABELS = ("item 1:", "item 2", "item 3:", "item 4:", "item 9")  # colon-terminated where a longer label shares the prefix (item 1 vs 10-13); "item 2"/"item 9" cover their own a/b/c sub-labels deliberately
 
 # C17 build audit MINOR-4 fix: a SAVED, INDEPENDENTLY-COMPUTED expected fixture for item 11a's
 # positive case -- sha256(repr(sorted(train_name_ids))) from a REAL, isolated
@@ -191,7 +191,12 @@ def _force_fallback_dump_event(rdr, device, k: int = 84, d_state: int = 96, d_mo
         model.k_proj.weight[2:, :] = 0.0
     gen = torch.Generator(device=device).manual_seed(seed)
     sink: list = []
-    rdr.evaluate_pool(model, cfg, gen, device, cfg.H_train, pools, n_batches=1, batch_size=batch_size,
+    # Single hop only: the rank-collapsed k_proj trips the fallback structurally,
+    # hop-independently, so passing all of H_train would dump one event PER hop
+    # (3 events) and break items 2a/3's exactly-one-event precondition
+    # (round-2 audit residual #1 -- would false-block a healthy box).
+    rdr.evaluate_pool(model, cfg, gen, device, (cfg.H_train[0],), pools, n_batches=1,
+                       batch_size=batch_size,
                        use_heldout_entities=True, fallback_dump_sink=sink, step=step, seed=seed)
     return model, pools, cfg, sink
 
@@ -343,7 +348,13 @@ def item_4_determinism_cross_check():
     tokenizer = grd.load_gpt2_tokenizer()
     pools, pool_report = grd.build_entity_pools(tokenizer, heldout_frac=0.5, seed=0)
     pools = pools.to(device)
-    cfg = rdr.DeltaNetRDTaskConfig(K=8, conv_size=4, H_train=(1, 2, 3), H_test=(4, 5, 6), H_extra=(7, 21))
+    # K=84 at d_state=64 -> K/d = 1.31, far beyond the observed >=0.8125
+    # total-collapse regime (sec 15.22): the C17 fallback is structurally
+    # guaranteed to fire during training's own checkpoint eval, so the live
+    # dump carries >=1 event and the >=1-event guard below (round-2 audit
+    # residual #2, vacuous-all F1 pattern) can never false-block a healthy
+    # box. Was K=8 (well-conditioned -> likely zero events -> vacuous pass).
+    cfg = rdr.DeltaNetRDTaskConfig(K=84, conv_size=4, H_train=(1, 2, 3), H_test=(4, 5, 6), H_extra=(7, 21))
     seed, steps = 1940, 20
 
     with tempfile.TemporaryDirectory(prefix="c17repro_item4_") as ckpt_dir:
@@ -377,16 +388,20 @@ def item_4_determinism_cross_check():
                            fallback_dump_sink=replay_sink, step=steps, seed=seed, c17_repro_telemetry=True)
 
     live_events = live_dump["events"]
-    ok_count = len(live_events) == len(replay_sink)
+    # Round-2 audit residual #2: a 0-event mini-run would make the all() below
+    # pass vacuously -- the exact F1 pattern. The fixture must produce >=1 event
+    # or this item proves nothing.
+    ok_nonempty = len(live_events) >= 1
+    ok_count = ok_nonempty and len(live_events) == len(replay_sink)
     ok_bytes = ok_count and all(
         torch.equal(le["key_ids"], re["key_ids"]) and torch.equal(le["k_eff_raw"], re["k_eff_raw"])
         for le, re in zip(live_events, replay_sink))
-    ok = ok_count and ok_bytes
+    ok = ok_nonempty and ok_count and ok_bytes
     _report("item 4: determinism cross-check -- offline state_dict-replay reconstruction "
             "byte-matches the live dump's key_ids/k_eff_raw (sec 15.24.4's own 'Determinism "
-            "cross-check, per-launch' item)", ok,
+            "cross-check, per-launch' item; >=1 event REQUIRED, vacuous-pass guarded)", ok,
             f"n_live_events={len(live_events)} n_replay_events={len(replay_sink)} "
-            f"byte_identical={ok_bytes}")
+            f"byte_identical={ok_bytes} nonempty={ok_nonempty}")
 
 
 # ===========================================================================
@@ -628,10 +643,31 @@ def item_9_batched_vs_singleton_recompute():
     # wired into the source, not merely true on today's synthetic data (item 9a/9b's own numeric
     # checks can pass by luck if this specific hardware/software stack happens not to exhibit the
     # kernel-selection confound on THIS data).
+    import ast
     import inspect
-    src_step1 = inspect.getsource(A._step_1_recompute_disagreements)
-    src_step2 = inspect.getsource(A._step_2_recompute_resolve_niter)
-    singleton_pattern = "row_idx:row_idx + 1"
+
+    def _code_only_normalized(func) -> str:
+        # Audit nit fix, hardened twice over: (1) whitespace-insensitive (a
+        # spacing variant of the slice would evade an exact-string match);
+        # (2) DOCSTRING-STRIPPED via ast.unparse -- both functions' own
+        # docstrings legitimately NAME the forbidden pattern in prose
+        # ("NEVER a k_eff_raw[row_idx:row_idx+1] slice"), and a raw
+        # getsource substring check trips on that prose (found live this
+        # session: the un-stripped check false-flagged Step 2 on its own
+        # docstring). ast.unparse drops comments; we drop the leading
+        # docstring Expr node explicitly. Same fragility class the Phase-2b
+        # round-4 auditor demonstrated for _references.
+        tree = ast.parse(inspect.getsource(func))
+        fn = tree.body[0]
+        if (fn.body and isinstance(fn.body[0], ast.Expr)
+                and isinstance(fn.body[0].value, ast.Constant)
+                and isinstance(fn.body[0].value.value, str)):
+            fn.body = fn.body[1:]
+        return "".join(ast.unparse(tree).split())
+
+    src_step1 = _code_only_normalized(A._step_1_recompute_disagreements)
+    src_step2 = _code_only_normalized(A._step_2_recompute_resolve_niter)
+    singleton_pattern = "".join("row_idx:row_idx + 1".split())
     has_singleton_step1 = singleton_pattern in src_step1
     has_singleton_step2 = singleton_pattern in src_step2
     ok_no_singleton = not has_singleton_step1 and not has_singleton_step2
