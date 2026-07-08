@@ -9017,9 +9017,17 @@ analogous "state the assumption, don't silently reach for the familiar
 formula" choice) **OR `variance_ratio > 4`**
 (larger sample variance over the smaller, either direction). **On flag:**
 report the two cohorts SEPARATELY at that cell (never silently pool),
-route that cell's own hexachotomy reading to the NEW-PATTERN/AMBIGUOUS
-handling §16.19.8 item 3 already specifies, and disclose the flag
-explicitly in the harvest write-up. **If clear:** proceed with the
+and route that cell OUTSIDE §16.19.8's 4-outcome MECE partition entirely
+— the partition's own precondition (a validly-pooled n=12 CI) fails, so
+NO bucket (i)-(iv) is declared at that cell; the reported outcome is
+BATCH-EFFECT-FLAGGED with both cohorts' own separate CIs, a disclosed
+gate-fail reading, never a fifth bucket competing with the partition
+(wording FIXED at build time per the round-4 verify's own 1 MINOR — the
+prior text here cited the pre-Rev-3 "§16.19.8 item 3/AMBIGUOUS"
+structure, which Rev 3's MECE rewrite removed; the round-3 table at
+§16.19.10 records the original wording as history, un-retconned) — and
+disclose the flag explicitly in the harvest write-up. **If clear:**
+proceed with the
 concatenation above exactly as designed. Cheap — pure arithmetic over
 already-cached floats, no additional GPU-h beyond the evals §16.19.6
 already costs — registered as a GATE, not merely a disclosure, per this

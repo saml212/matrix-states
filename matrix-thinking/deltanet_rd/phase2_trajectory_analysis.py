@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -376,6 +377,286 @@ def analyze_corpus(ckpt_dir: str, corpus: str, off_cache_path: str, floor_pinned
             "secondary_ood": secondary_ood}
 
 
+# ===========================================================================
+# sec 16.19 (Rev 3, Phase-2b SEED EXTENSION) -- wave-specific n=12 harvest machinery.
+# EVERYTHING below is ADDITIVE: analyze_corpus above stays byte-identical, still used verbatim by
+# every other corpus/arm combination (sec 16.19.5 item 5's "fork, do not edit a shared production
+# path in place" disclosure -- this wave's driver is its OWN function, NOT production analyze_corpus
+# invoked blindly, which would attempt a global-arm branch this wave trains no new seeds for).
+# ===========================================================================
+
+SEEDEXT_CORPUS = "wikitext-mix-ext"                  # sec 16.19.4 Option B: ONE corpus
+SEEDEXT_ARM = "per_token"                            # sec 16.19.4 Option B: the one live-signal arm
+SEEDEXT_ARCHIVED_SEEDS = (0, 1, 2)                   # sourced via load_archived_arm_val, NEVER live
+SEEDEXT_NEW_SEEDS = tuple(range(3, 12))              # sourced via the guarded live eval path
+SEEDEXT_MIN_LIVE_CKPT_SEED = 3                       # the whole-harvest-runtime guard's threshold
+SEEDEXT_ANCHOR_K = 32                                # sec 16.19.8: keyed FIRST on K=32, c=2500
+SEEDEXT_ANCHOR_CHECKPOINT = 2500
+# sec 16.19.8's registered archived n=3 point estimate for the anchor cell (the design's own
+# literal, quoted throughout the partition table; the full-precision archived mean is
+# -0.4999653498331706, trajectory_wikitext-mix-ext_phase2b.json per_arm.per_token.raw["2500"]
+# .delta_k32.mean -- the ROUNDED registered literal is what the decision rules pin).
+SEEDEXT_ARCHIVED_POINT = -0.4999
+# sec 16.19.5 MINOR-1 (round-2) batch-effect gate thresholds, round-3 MINOR-1's pinned pooled_SE.
+SEEDEXT_BATCH_MEAN_SHIFT_K = 2.0                     # |mean(new)-mean(old)| > 2 x pooled_SE
+SEEDEXT_BATCH_VAR_RATIO_MAX = 4.0                    # larger sample variance / smaller > 4
+
+
+def contains_point(ci_low: float, ci_high: float, point: float) -> bool:
+    """sec 16.19.8's registered point-in-CI helper (round-3 MAJOR-A): NON-STRICT <= on BOTH sides
+    -- an endpoint exactly at `point` counts as containing it (round-4 verify: pins the
+    endpoint-exactly-at--0.4999 boundary to bucket (i), never (ii)). Pure, alongside
+    phase2_hexachotomy.det (which stays untouched -- its strict/non-strict split at zero is a
+    SEPARATE, already-registered convention this helper does not modify)."""
+    return ci_low <= point <= ci_high
+
+
+def classify_seedext_outcome(ci_low: float, ci_high: float,
+                              point: float = SEEDEXT_ARCHIVED_POINT) -> dict:
+    """sec 16.19.8's 4-outcome MECE partition of the anchor cell's pooled n=12 CI, precedence-
+    ordered (i)-(iv) exactly as registered (the 4 conditions are pairwise disjoint by construction
+    -- precedence is implementation clarity, not a tie-break; the totality walk is sec 16.19.8's
+    own proof, re-enumerated mechanically by phase2b_seedext_stage_minus1.py)."""
+    assert ci_low <= ci_high, f"malformed CI: ci_low={ci_low} > ci_high={ci_high}"
+    excludes_zero = phx.det(ci_low, ci_high)
+    if excludes_zero and ci_high < 0 and contains_point(ci_low, ci_high, point):
+        return {"bucket": "(i)", "outcome": "TRANSIENT-CONFIRMED-AT-MAGNITUDE",
+                "detail": f"CI excludes zero (negative side) AND contains the archived n=3 point "
+                          f"estimate {point}"}
+    if excludes_zero and ci_high < 0:
+        return {"bucket": "(ii)", "outcome": "TRANSIENT-CONFIRMED-SMALLER",
+                "detail": f"CI excludes zero (negative side) AND excludes the archived n=3 point "
+                          f"estimate {point} -- a REAL negative causal effect at a DIFFERENT "
+                          f"magnitude (attenuation is the a priori likelier sub-direction; a CI "
+                          f"entirely MORE negative than {point} is the disclosed other "
+                          f"sub-direction, flag explicitly at harvest)"}
+    if not excludes_zero:
+        return {"bucket": "(iii)", "outcome": "TRANSIENT-REFUTED",
+                "detail": "pooled CI straddles/includes zero -- the n=3 window was noise around a "
+                          "null (or CI-consistent-with-null) true effect"}
+    return {"bucket": "(iv)", "outcome": "NEW-PATTERN(SIGN-FLIP)",
+            "detail": "CI excludes zero on the POSITIVE side -- a sign-discipline violation, never "
+                      "silently relabeled as 'arm helps' without its own dedicated investigation"}
+
+
+def load_archived_arm_val(corpus: str, arm: str, ckpt_seed: int, K: int, checkpoint_step: int,
+                           hop_set: tuple = pft.H_TRAIN, *, off_cache: dict,
+                           trajectory_json: dict) -> float:
+    """sec 16.19.5 item 5 (round-2 MAJOR, hop_set-generalized at round-3 MAJOR-B): reconstructs an
+    ARCHIVED seed's own arm-side L_query from two already-archived, read-only artifacts -- NEVER a
+    model load, NEVER eval_query_loss_heldout/phase2_seed, for EITHER hop_set:
+
+        old_arm_val = off_cache[off_cache_key(...)] - trajectory_deltas[ckpt_seed]
+
+    (deltas[i] = off_vals[i] - arm_vals[i], sec 16.16.5's Delta redefinition.) The trajectory
+    sub-block is selected per the registered table: per_arm[arm]["raw"] for the primary hop_set
+    H_TRAIN=(1,2), secondary_ood[arm] for H_TEST_HELD_OUT=(3,4) (one function serving both
+    readouts, not a fork). Failure mode mirrors killer_prediction_readout's own off-cache branch:
+    KeyError on ANY missing key in EITHER artifact, never a silent fallback to a live eval call.
+
+    Build-time note (disclosed): `off_cache`/`trajectory_json` are keyword-only -- the design's
+    registered positional order with a defaulted `hop_set` mid-signature is not otherwise
+    expressible in Python; no Rev-2 call site existed in code (Rev 2 was design-only), so no
+    existing caller changes."""
+    if ckpt_seed not in SEEDEXT_ARCHIVED_SEEDS:
+        raise KeyError(
+            f"load_archived_arm_val serves ARCHIVED seeds {SEEDEXT_ARCHIVED_SEEDS} only, got "
+            f"ckpt_seed={ckpt_seed} -- new seeds must go through the (guarded) live eval path, "
+            f"never a loader that would silently index a 3-element archived deltas list")
+    hop_t = tuple(hop_set)
+    if hop_t == tuple(pft.H_TRAIN):
+        try:
+            traj_block = trajectory_json["per_arm"][arm]["raw"]
+        except KeyError:
+            raise KeyError(f"trajectory_json has no per_arm[{arm!r}].raw block")
+    elif hop_t == tuple(pft.H_TEST_HELD_OUT):
+        try:
+            traj_block = trajectory_json["secondary_ood"][arm]
+        except KeyError:
+            raise KeyError(f"trajectory_json has no secondary_ood[{arm!r}] block")
+    else:
+        raise ValueError(f"hop_set={hop_set!r} is neither the registered primary {pft.H_TRAIN} nor "
+                          f"secondary {pft.H_TEST_HELD_OUT} hop set")
+
+    key = off_cache_key(corpus, ckpt_seed, K, checkpoint_step, hop_set)
+    if key not in off_cache:
+        raise KeyError(f"off_cache is missing archived key {key!r} -- refusing to reconstruct "
+                        f"(never recomputes live)")
+    c_key, delta_key = str(checkpoint_step), f"delta_k{K}"
+    if c_key not in traj_block or delta_key not in traj_block[c_key]:
+        raise KeyError(f"trajectory block is missing [{c_key!r}][{delta_key!r}] -- refusing to "
+                        f"reconstruct (never recomputes live)")
+    return off_cache[key] - traj_block[c_key][delta_key]["deltas"][ckpt_seed]
+
+
+def install_seedext_live_eval_guard() -> None:
+    """sec 16.19.5 item 5's WHOLE-HARVEST-RUNTIME no-live-recompute guard (scope re-pinned at
+    round-3 MAJOR-B): installed ONCE, at this wave's own harvest driver's entry point, active for
+    the process's ENTIRE remaining lifetime -- never call-site-local. Rebinds this module's own
+    `eval_query_loss_heldout` global to a wrapper asserting `ckpt_seed >= 3` on EVERY call. This
+    ONE seam mechanically covers BOTH readout loops by construction: `eval_query_loss_heldout` has
+    no `arm` parameter of its own and is the single function both `killer_prediction_readout`'s
+    non-off branch (primary) and `secondary_ood_readout` (OOD) route through. Idempotent (a second
+    install is a no-op, never a double-wrap). Production NEVER uninstalls this guard -- the Stage
+    -1 suite restores the module global after its own negative tests purely as test hygiene,
+    disclosed there."""
+    global eval_query_loss_heldout
+    if getattr(eval_query_loss_heldout, "_seedext_whole_runtime_guard", False):
+        return
+    inner = eval_query_loss_heldout
+
+    def _seedext_guarded_eval_query_loss_heldout(model, K, hop_set, corpus, ckpt_seed,
+                                                   checkpoint_step, batch_size=16, device="cpu"):
+        assert ckpt_seed >= SEEDEXT_MIN_LIVE_CKPT_SEED, (
+            f"SEEDEXT LIVE-EVAL GUARD (sec 16.19.5 item 5, whole-harvest-runtime): live "
+            f"eval_query_loss_heldout called with ARCHIVED ckpt_seed={ckpt_seed} (< "
+            f"{SEEDEXT_MIN_LIVE_CKPT_SEED}) at hop_set={hop_set} -- archived seeds must be "
+            f"sourced via load_archived_arm_val/the OFF-eval cache, NEVER re-scored live (the "
+            f"_MAX_CKPT_SEED 10->12 bump changed every EVAL-kind seed, so a live call would "
+            f"silently draw a DIFFERENT held-out episode than produced the archived values)")
+        return inner(model, K, hop_set, corpus, ckpt_seed, checkpoint_step, batch_size, device)
+
+    _seedext_guarded_eval_query_loss_heldout._seedext_whole_runtime_guard = True
+    _seedext_guarded_eval_query_loss_heldout._seedext_guard_inner = inner
+    eval_query_loss_heldout = _seedext_guarded_eval_query_loss_heldout
+
+
+def _sample_mean_sd(values: list) -> tuple:
+    n = len(values)
+    mean = sum(values) / n
+    var = sum((v - mean) ** 2 for v in values) / (n - 1)
+    return mean, var ** 0.5
+
+
+def batch_effect_gate(old_off_vals: list, new_off_vals: list) -> dict:
+    """sec 16.19.5 MINOR-1 (round-2) pre-pooling gate with the round-3-MINOR-1-pinned pooled_SE:
+    compares the 3 archived vs 9 new OFF seeds' own mean/spread BEFORE concatenation. Flags iff
+    |mean(new) - mean(old)| > 2 x pooled_SE, where pooled_SE := sqrt(SE_old^2 + SE_new^2) (the
+    standard-error-OF-A-DIFFERENCE / Welch form -- correct for unequal n, NOT the equal-variance
+    "pooled SD" two-sample formula), OR variance_ratio > 4 (larger sample variance over the
+    smaller, either direction; a zero-variance cohort against a nonzero one counts as a flag).
+    Scope: OFF-arm L_query cohorts ONLY (per the registered single-risk scoping)."""
+    mean_old, sd_old = _sample_mean_sd(old_off_vals)
+    mean_new, sd_new = _sample_mean_sd(new_off_vals)
+    se_old = sd_old / math.sqrt(len(old_off_vals))
+    se_new = sd_new / math.sqrt(len(new_off_vals))
+    pooled_se = math.sqrt(se_old ** 2 + se_new ** 2)
+    mean_shift = abs(mean_new - mean_old)
+    mean_shift_flag = mean_shift > SEEDEXT_BATCH_MEAN_SHIFT_K * pooled_se
+    var_old, var_new = sd_old ** 2, sd_new ** 2
+    lo, hi = min(var_old, var_new), max(var_old, var_new)
+    if hi == 0.0:
+        var_ratio = 1.0
+    elif lo == 0.0:
+        var_ratio = float("inf")
+    else:
+        var_ratio = hi / lo
+    var_ratio_flag = var_ratio > SEEDEXT_BATCH_VAR_RATIO_MAX
+    return {"mean_old": mean_old, "mean_new": mean_new, "sd_old": sd_old, "sd_new": sd_new,
+            "se_old": se_old, "se_new": se_new, "pooled_se": pooled_se, "mean_shift": mean_shift,
+            "mean_shift_flag": mean_shift_flag, "var_ratio": var_ratio,
+            "var_ratio_flag": var_ratio_flag, "flagged": bool(mean_shift_flag or var_ratio_flag)}
+
+
+def _seedext_table_for_hop_set(ckpt_dir: str, off_cache: dict, trajectory_json: dict,
+                                hop_set: tuple, batch_size: int, device: str) -> dict:
+    """One n=12 table (all 5 checkpoints x both K's) for ONE hop_set -- the SAME concatenation
+    pattern applied identically to the primary (H_TRAIN) and OOD (H_TEST_HELD_OUT) readouts
+    (round-3 MAJOR-B's symmetry). Per cell: 12 OFF values (3 archived + 9 new, ALL via the
+    OFF-eval cache through killer_prediction_readout's cache-only off branch), 12 arm values (3
+    archived via load_archived_arm_val + 9 new via the guarded live path), the batch-effect gate
+    on the OFF cohorts, then EITHER one pooled delta_ci_n (gate clear) OR the two cohorts' own
+    separate CIs (gate flagged -- never silently pooled; the sec 16.19.8 partition is NOT applied
+    to a flagged cell, its precondition -- a validly-pooled CI -- fails)."""
+    corpus, arm = SEEDEXT_CORPUS, SEEDEXT_ARM
+    all_seeds = SEEDEXT_ARCHIVED_SEEDS + SEEDEXT_NEW_SEEDS
+    table = {}
+    for c in phx.CHECKPOINTS:
+        per_k = {}
+        for K in (32, 20):
+            off_vals = [killer_prediction_readout(ckpt_dir, "off", corpus, s, K, c, off_cache,
+                                                    hop_set, batch_size, device)
+                        for s in all_seeds]
+            old_arm_vals = [load_archived_arm_val(corpus, arm, s, K, c, hop_set,
+                                                    off_cache=off_cache,
+                                                    trajectory_json=trajectory_json)
+                            for s in SEEDEXT_ARCHIVED_SEEDS]
+            new_arm_vals = [killer_prediction_readout(ckpt_dir, arm, corpus, s, K, c, off_cache,
+                                                        hop_set, batch_size, device)
+                            for s in SEEDEXT_NEW_SEEDS]
+            arm_vals = old_arm_vals + new_arm_vals
+            gate = batch_effect_gate(off_vals[:3], off_vals[3:])
+            entry = {"batch_gate": gate, "flagged": gate["flagged"]}
+            if gate["flagged"]:
+                entry["pooled"] = None
+                entry["old_cohort"] = rlp.delta_ci_n(off_vals[:3], arm_vals[:3])
+                entry["new_cohort"] = rlp.delta_ci_n(off_vals[3:], arm_vals[3:])
+            else:
+                entry["pooled"] = rlp.delta_ci_n(off_vals, arm_vals)
+            per_k[K] = entry
+        cell = {"delta_k32": per_k[32], "delta_k20": per_k[20]}
+        if not per_k[32]["flagged"] and not per_k[20]["flagged"]:
+            det32 = phx.det(per_k[32]["pooled"]["ci_low"], per_k[32]["pooled"]["ci_high"])
+            det20 = phx.det(per_k[20]["pooled"]["ci_low"], per_k[20]["pooled"]["ci_high"])
+            cell.update({"det32": det32, "det20": det20,
+                          "holds": phx.holds(det32, det20, abs(per_k[32]["pooled"]["mean"]),
+                                              abs(per_k[20]["pooled"]["mean"]))})
+        else:
+            cell.update({"det32": None, "det20": None, "holds": None})
+        table[c] = cell
+    return table
+
+
+def analyze_corpus_seedext(ckpt_dir: str, off_cache_path: str, floor_pinned_path: str,
+                            archived_trajectory_path: str, batch_size: int = 16,
+                            device: str = "cpu") -> dict:
+    """sec 16.19.5 item 5's wave-specific n=12 harvest driver -- NOT production analyze_corpus:
+    (a) NEVER touches arm="global" (zero new seeds this wave; that arm stays at its own n=3 sec
+    16.18 verdict); (b) wikitext-mix-ext x per_token ONLY; (c) archived seeds 0-2 via
+    load_archived_arm_val / the OFF-eval cache, new seeds 3-11 via the whole-runtime-guarded live
+    path -- the two paths partition {0..11} completely, for the primary AND OOD readouts
+    independently. The guard installs HERE, first, for the process's whole lifetime.
+
+    `floor_pinned_path` is the WAVE'S OWN pin file (FLOOR_PINNED-Phase2b-n12-wikitext.json), whose
+    off_cache_sha256 records the EXTENDED cache -- the same verified-read discipline
+    analyze_corpus already uses, pointed at this wave's own pin."""
+    install_seedext_live_eval_guard()
+
+    import phase2b_off_cache as poc   # local import -- same circular-import note as analyze_corpus
+    off_cache = poc.load_off_lquery_cache_verified(off_cache_path, floor_pinned_path)
+    with open(archived_trajectory_path) as f:
+        trajectory_json = json.load(f)
+
+    primary = _seedext_table_for_hop_set(ckpt_dir, off_cache, trajectory_json, pft.H_TRAIN,
+                                          batch_size, device)
+    secondary = _seedext_table_for_hop_set(ckpt_dir, off_cache, trajectory_json,
+                                            pft.H_TEST_HELD_OUT, batch_size, device)
+
+    anchor_entry = primary[SEEDEXT_ANCHOR_CHECKPOINT][f"delta_k{SEEDEXT_ANCHOR_K}"]
+    if anchor_entry["flagged"]:
+        # Fixed sec 16.19.5 routing (round-4 MINOR): a flagged anchor cell sits OUTSIDE the sec
+        # 16.19.8 partition entirely -- no bucket (i)-(iv) is declared; the two cohorts' own
+        # separate CIs and the flag itself are the reported outcome.
+        anchor = {"bucket": None, "outcome": "BATCH-EFFECT-FLAGGED",
+                  "detail": "the batch-effect pre-pooling gate flagged the anchor cell's OFF "
+                            "cohorts -- no pooled n=12 CI is decision-grade here; the two cohorts "
+                            "are reported separately (never silently pooled)",
+                  "ci_low": None, "ci_high": None}
+    else:
+        pooled = anchor_entry["pooled"]
+        anchor = dict(classify_seedext_outcome(pooled["ci_low"], pooled["ci_high"]))
+        anchor.update({"ci_low": pooled["ci_low"], "ci_high": pooled["ci_high"]})
+    anchor.update({"K": SEEDEXT_ANCHOR_K, "checkpoint_step": SEEDEXT_ANCHOR_CHECKPOINT,
+                    "hop_set": f"{pft.H_TRAIN[0]}-{pft.H_TRAIN[1]}",
+                    "archived_point": SEEDEXT_ARCHIVED_POINT})
+
+    return {"design_ref": "REASONING_LINK_DESIGN.md sec 16.19 (Rev 3, DESIGN-CLEARED-FOR-BUILD, "
+                           "round-4 verify)",
+            "corpus": SEEDEXT_CORPUS, "arm": SEEDEXT_ARM,
+            "seeds": {"archived": list(SEEDEXT_ARCHIVED_SEEDS), "new": list(SEEDEXT_NEW_SEEDS)},
+            "anchor": anchor, "primary": primary, "secondary_ood": secondary}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--corpus", choices=["openr1-mix-ext", "wikitext-mix-ext"], required=True)
@@ -390,13 +671,34 @@ def main():
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--out", type=str, default=None)
+    ap.add_argument("--seedext", action="store_true",
+                     help="sec 16.19: run the wave-specific n=12 seed-extension harvest driver "
+                          "(analyze_corpus_seedext -- wikitext-mix-ext x per_token ONLY) instead "
+                          "of production analyze_corpus. Requires --archived-trajectory, and "
+                          "--floor-pinned must be the wave's OWN FLOOR_PINNED-Phase2b-n12-"
+                          "wikitext.json (its off_cache_sha256 records the EXTENDED cache).")
+    ap.add_argument("--archived-trajectory", type=str, default=None,
+                     help="sec 16.19.5 item 5: path to the ARCHIVED, read-only "
+                          "trajectory_wikitext-mix-ext_phase2b.json the archived-values loader "
+                          "reconstructs seeds 0-2 from (required with --seedext)")
     args = ap.parse_args()
 
-    result = analyze_corpus(args.ckpt_dir, args.corpus, args.off_cache, args.floor_pinned,
-                             batch_size=args.batch_size, device=args.device)
-    print(json.dumps({"corpus": result["corpus"], "classification": result["classification"],
-                       "classification_by_arm": result["classification_by_arm"],
-                       "agree_by_c": result["agree_by_c"]}, indent=2, default=str))
+    if args.seedext:
+        assert args.corpus == SEEDEXT_CORPUS, (
+            f"--seedext is registered for {SEEDEXT_CORPUS} ONLY (sec 16.19.4 Option B), got "
+            f"--corpus {args.corpus}")
+        assert args.archived_trajectory, "--seedext requires --archived-trajectory"
+        result = analyze_corpus_seedext(args.ckpt_dir, args.off_cache, args.floor_pinned,
+                                          args.archived_trajectory, batch_size=args.batch_size,
+                                          device=args.device)
+        print(json.dumps({"corpus": result["corpus"], "arm": result["arm"],
+                           "anchor": result["anchor"]}, indent=2, default=str))
+    else:
+        result = analyze_corpus(args.ckpt_dir, args.corpus, args.off_cache, args.floor_pinned,
+                                 batch_size=args.batch_size, device=args.device)
+        print(json.dumps({"corpus": result["corpus"], "classification": result["classification"],
+                           "classification_by_arm": result["classification_by_arm"],
+                           "agree_by_c": result["agree_by_c"]}, indent=2, default=str))
     if args.out:
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
         with open(args.out, "w") as f:

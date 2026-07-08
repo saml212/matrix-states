@@ -242,7 +242,17 @@ PURPOSE_BASE = {"eval": 0, "null_shuffle": 10_000_000, "calibration": 20_000_000
 LEG_BASE = {"leg_a": 0, "leg_b": 5_000_000}
 STRIDE_CONDITION = 1_000_000
 STRIDE_CORPUS = 100_000
-STRIDE_SEED = 10_000
+# STRIDE_SEED re-pinned 10_000 -> 8_000 (sec 16.19.5 item 3(a), Phase-2b seed extension): at the
+# old stride, ckpt_seed_idx=10 (10*10,000=100,000) collided EXACTLY with corpus_idx=1's own digit
+# (1*100,000) -- a genuine silent-collision bug for the widened seed range {0..11}. 8_000 satisfies
+# 11*8,000=88,000 < STRIDE_CORPUS with margin while staying strictly above STRIDE_K's own max reach
+# (5*1,000=5,000 < 8,000) -- the same "each digit's stride strictly exceeds the previous digit's own
+# max reach" discipline phase2_seed's docstring names. DISCLOSED consequence (sec 16.19.5 item 3(a),
+# verified harmless there): the NUMERIC value episode_seed returns for ckpt_seed_idx in {1,2}
+# CHANGES relative to the original n=3 instrument -- no archived result depends on the OLD numeric
+# value (pooling concatenates ALREADY-COMPUTED L_query floats, never re-derives episode_seed for
+# archived seeds), and old-seed bit-identity is deliberately NOT claimed anywhere.
+STRIDE_SEED = 8_000
 STRIDE_K = 1_000
 # "k_idx ... over the registered K's {20,32,40,48,64,96}" -- sec 4.6's own listed order.
 K_INDEX = {20: 0, 32: 1, 40: 2, 48: 3, 64: 4, 96: 5}
@@ -278,7 +288,10 @@ def episode_seed(purpose: str, leg: str, condition_idx: int, corpus_idx: int,
     assert leg in LEG_BASE, f"unknown leg {leg!r}"
     assert 0 <= condition_idx <= 3, condition_idx
     assert 0 <= corpus_idx <= 1, corpus_idx
-    assert 0 <= ckpt_seed_idx <= 2, ckpt_seed_idx
+    # Widened 2 -> 11 (sec 16.19.5 item 3(a), Phase-2b seed extension, seeds {0..11}); collision-
+    # freedom over the FULL widened space re-proven by exhaustive enumeration at the new
+    # STRIDE_SEED=8_000 (phase2b_seedext_stage_minus1.py), not assumed from the old <=2 proof.
+    assert 0 <= ckpt_seed_idx <= 11, ckpt_seed_idx
     assert 0 <= k_idx <= 5, k_idx
     return (PURPOSE_BASE[purpose] + LEG_BASE[leg]
             + condition_idx * STRIDE_CONDITION
@@ -1070,16 +1083,44 @@ def option2_margin(hidden_at_query: torch.Tensor, embed_weight: torch.Tensor,
 # a later harvest script calls once real multi-seed cell numbers exist).
 # ---------------------------------------------------------------------------
 
+# sec 16.19.5 items 1-2 (Phase-2b seed extension): pinned t(df,.975) lookup -- this project's own
+# convention is to PIN exact constants, never compute quantiles at runtime. Every entry is
+# cross-checked against scipy.stats.t.ppf(0.975, df) to 3 decimals by a Stage -1 item
+# (phase2b_seedext_stage_minus1.py) -- pin AND verify, the same double-defense pattern as
+# FLOOR_PIN's sha256 tamper-evidence. df=2 is the standing n=3 constant (== CI_T_975_DF2 above);
+# df=5/8 retained for any future partial-n use per the "never silently drop a registered entry"
+# convention; df=11 is the n=12 case this wave actually launches.
+CI_T_975_BY_DF = {2: 4.303, 5: 2.571, 8: 2.306, 11: 2.201}
+
+
+def delta_ci_n(values_a: list, values_b: list) -> dict:
+    """sec 16.19.5 item 1's generalization of delta_ci_n3 over n: paired delta = a - b,
+    `half_width = t(n-1,.975) * s/sqrt(n)` with the t-quantile read from the PINNED
+    CI_T_975_BY_DF table (asserts, never silently interpolates, on an unpinned df)."""
+    n = len(values_a)
+    assert len(values_b) == n, f"delta_ci_n requires equal-length paired lists, got {n} vs {len(values_b)}"
+    assert n >= 2, f"delta_ci_n requires n >= 2 paired seeds, got n={n}"
+    df = n - 1
+    assert df in CI_T_975_BY_DF, (
+        f"df={df} (n={n}) has no pinned t(df,.975) entry in CI_T_975_BY_DF ({sorted(CI_T_975_BY_DF)}) "
+        f"-- pin (and scipy-verify) a new constant rather than computing one silently at runtime")
+    deltas = [a - b for a, b in zip(values_a, values_b)]
+    mean = sum(deltas) / n
+    var = sum((d - mean) ** 2 for d in deltas) / df
+    se = math.sqrt(var / n)
+    half_width = CI_T_975_BY_DF[df] * se
+    return {"deltas": deltas, "mean": mean, "ci_low": mean - half_width, "ci_high": mean + half_width}
+
+
 def delta_ci_n3(values_a: list, values_b: list) -> dict:
     """Pinned CI over n=3 seeds' paired delta = a - b, this project's
-    standing formula (t(2,.975)=4.303) wherever n=3 seeds."""
+    standing formula (t(2,.975)=4.303) wherever n=3 seeds. Now a thin,
+    byte-identical-output wrapper over delta_ci_n (sec 16.19.5 item 1's
+    "keep the old name as an alias, never break an existing call site
+    silently" convention) -- the len==3 assert is retained here so every
+    pre-existing n=3 call site keeps its exact contract."""
     assert len(values_a) == 3 and len(values_b) == 3, "delta_ci_n3 requires exactly 3 paired seeds"
-    deltas = [a - b for a, b in zip(values_a, values_b)]
-    mean = sum(deltas) / 3
-    var = sum((d - mean) ** 2 for d in deltas) / 2  # n-1=2
-    se = math.sqrt(var / 3)
-    half_width = CI_T_975_DF2 * se
-    return {"deltas": deltas, "mean": mean, "ci_low": mean - half_width, "ci_high": mean + half_width}
+    return delta_ci_n(values_a, values_b)
 
 
 def option_agreement(option1_ci: dict, option2_ci_or_point) -> str:

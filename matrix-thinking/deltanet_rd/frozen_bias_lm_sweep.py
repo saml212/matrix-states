@@ -117,6 +117,14 @@ LAUNCH_TIMEOUT_MARGIN = 1.6
 # exactness_sweep.py / keyanchor_cliff_chain.sh).
 STAGE1_SENTINEL_DEFAULT = "results/deltanet_rd_exactness/wavekeyanchor-cliff/STAGE1_RATES_OK"
 
+# REASONING_LINK_DESIGN.md sec 16.19.7.1's SECOND contention gate target: the KEYANCHOR-SCALING
+# sec 15.26 wave's own completion sentinel. That wave has NOT yet built/registered a sentinel path
+# (a disclosed forward dependency, sec 16.19.9 item 12) -- this default is a DELIBERATELY-
+# NONEXISTENT placeholder so the rung1-seedext calibration launch mechanically REFUSES until
+# either sec 15.26 registers its real path (pass --sec1526-sentinel) or a human passes
+# --accept-sec1526-override explicitly. Never a silently-satisfiable default.
+SEC1526_SENTINEL_DEFAULT = "results/UNREGISTERED_SEC1526_SENTINEL_SEE_REASONING_LINK_16.19.7.1"
+
 DISK_SAFETY_FACTOR = 1.5   # mirrors run_lm_rd_trackc_sweep.py's own DISK_SAFETY_FACTOR exactly
 
 
@@ -211,6 +219,157 @@ def rung1_manifest(steps: int, ckpt_every: int = 1000) -> list[dict]:
     codebase's own preview/launch-parity discipline, run_lm_rd_trackc_sweep.py's wave1_manifest
     precedent)."""
     return core_manifest(steps, ckpt_every) + mini_sweep_manifest(steps, ckpt_every)
+
+
+# ---------------------------------------------------------------------------
+# REASONING_LINK_DESIGN.md sec 16.19.7.1 (Phase-2b SEED EXTENSION, round-3 MAJOR-C) -- the
+# `--wave rung1-seedext` manifest + gates. EVERYTHING here is ADDITIVE: the rung-1 constants/
+# manifest above are NEVER edited (SEEDS/CORPORA/RUNG1_CFG untouched); cell_name is reused
+# UNMODIFIED (seed in {3..11} produces filenames disjoint from the existing 20 rung-1 cells purely
+# by the `_s{seed}` suffix -- the disjointness is ASSERTED at launch, below, not assumed).
+# ---------------------------------------------------------------------------
+
+SEEDS_SEEDEXT = tuple(range(3, 12))          # sec 16.19.3: seed in {3,...,11}, 9 new seeds
+ARMS_SEEDEXT = ("off", "per_token")          # sec 16.19.4 Option B: 2 arms, NOT "global"
+CORPORA_SEEDEXT = ("wikitext-mix-ext",)      # sec 16.19.4 Option B: 1 corpus, NOT openr1-mix-ext
+
+# sec 16.19.7.1's MECHANICAL val-loss sanity-band gate, replacing the original chain's human
+# calibration inspection (unattended-launch compatible). Pinned from REAL archived numbers, not
+# asserted: the 3 archived per_token/wikitext-mix-ext rung-1 cells' terminal step-20000
+# val_loss["wikitext-mix-ext"] readings (4.359310626983643 / 4.343442440032959 /
+# 4.324949622154236 -> mean 4.342568, SD 0.017197, n=3); band := mean +- max(5*SD, 0.10) =
+# [4.2426, 4.4426] -- generous by design (ordinary seed variance never false-positives; a
+# genuinely broken run lands orders of magnitude off).
+SEEDEXT_CALIB_BAND = (4.2426, 4.4426)
+SEEDEXT_CALIB_CORPUS = "wikitext-mix-ext"
+
+# sec 16.19.6's calibration re-check + budget guard constants: the banked rung-1 realized rate
+# (18,175.744s / 20 cells, EXPERIMENT_LOG.md's rung-1 verdict) and this wave's own registered
+# ceiling / familiarization+eval raw slice (sec 16.19.6's component lines).
+SEEDEXT_BANKED_LEGA_CELL_S = 908.7872
+SEEDEXT_WAVE_CEILING_GPUH = 66.5             # sec 16.19.6's registered (debug-tax-inclusive) ceiling
+SEEDEXT_FAMEVAL_RAW_GPUH = 2.107             # sec 16.19.6: 1.852 (fam) + 0.2149 (eval) + 0.04 (gates)
+SEEDEXT_N_LEGA_CELLS = 18
+
+
+def rung1_seedext_manifest(steps: int, ckpt_every: int = 1000) -> list[dict]:
+    """sec 16.19.7.1's registered seed-extension manifest: ARMS_SEEDEXT x CORPORA_SEEDEXT x
+    SEEDS_SEEDEXT = 2 x 1 x 9 = 18 cells at the ORIGINAL RUNG1_CFG, lam=0.58 (per_token) /
+    lam=0.00 (off) -- a seed-only replica of the rung-1 recipe (sec 16.19.3's "no new lambda
+    sweep"), mirroring rung1_manifest's own shape exactly."""
+    runs = []
+    for arm in ARMS_SEEDEXT:
+        lam = LAMBDA_PRIMARY if arm != "off" else 0.0
+        for corpus in CORPORA_SEEDEXT:
+            for seed in SEEDS_SEEDEXT:
+                runs.append(_spec(arm, lam, corpus, seed, steps, ckpt_every))
+    return runs
+
+
+def calibration_cell_seedext(steps: int, ckpt_every: int = 1000) -> dict:
+    """sec 16.19.7.1's registered calibration cell: (per_token, wikitext-mix-ext, seed=3,
+    lambda=0.58) -- the FIRST of the 9 new seeds, mirroring rung-1's own per_token-arm calibration
+    choice (sec 6.3's precedent). One of the 18, not a 19th run."""
+    return _spec("per_token", LAMBDA_PRIMARY, SEEDEXT_CALIB_CORPUS, 3, steps, ckpt_every)
+
+
+def assert_manifests_disjoint(manifest_a: list[dict], manifest_b: list[dict]) -> None:
+    """sec 16.19.7.1's registered Stage -1 disjointness check: the seedext manifest must share
+    ZERO cell names with the rung-1 manifest (a colliding name would silently overwrite an
+    existing rung-1 result JSON/checkpoint dir). AssertionError on ANY overlap -- exercised with a
+    deliberately-overlapping fixture by phase2b_seedext_stage_minus1.py (negative test with
+    teeth), and called at every real rung1-seedext launch below."""
+    names_a = {s["name"] for s in manifest_a}
+    names_b = {s["name"] for s in manifest_b}
+    overlap = names_a & names_b
+    assert not overlap, (
+        f"MANIFEST COLLISION (sec 16.19.7.1): {len(overlap)} cell name(s) appear in BOTH the "
+        f"seedext and rung-1 manifests -- refusing (would silently overwrite an existing rung-1 "
+        f"artifact): {sorted(overlap)}")
+
+
+def seedext_valloss_band_gate(val_loss: float) -> bool:
+    """sec 16.19.7.1's mechanical band check, pure: True iff the calibration cell's terminal
+    val_loss lands inside SEEDEXT_CALIB_BAND (inclusive ends -- the band is a sanity envelope,
+    not a strict-inequality structural check)."""
+    lo, hi = SEEDEXT_CALIB_BAND
+    return lo <= val_loss <= hi
+
+
+def seedext_timing_gate(wall_s: float) -> dict:
+    """sec 16.19.6's calibration re-check, mechanical: projects the FULL 18-cell Leg-A slice from
+    the calibration cell's own realized wall_s (18 x wall_s GPU-seconds -- GPU-h is
+    parallelism-independent), adds the registered familiarization+eval raw slice, and gates the
+    projection against the wave's registered 66.5 GPU-h ceiling per sec 16.19.7's m3 wording
+    ("PROJECT the full ... cost plus the already-realized ... spend against the registered 66.5
+    GPU-h ceiling -- hard-abort if the projection exceeds the ceiling"). The 10x debug-tax
+    bracket-high figure is REPORTED for disclosure but not itself the abort trigger: the ceiling
+    is already the bracket-high of the registered raw total (6.65 x 10), and gating a re-taxed
+    projection against it would false-positive at exactly the nominal banked rate
+    (6.6509 x 10 = 66.509 > 66.5) -- build-time resolution, disclosed for the independent audit."""
+    projected_lega_gpu_h = SEEDEXT_N_LEGA_CELLS * wall_s / 3600.0
+    projected_wave_gpu_h = projected_lega_gpu_h + SEEDEXT_FAMEVAL_RAW_GPUH
+    return {"wall_s": wall_s, "banked_cell_s": SEEDEXT_BANKED_LEGA_CELL_S,
+            "ratio_vs_banked": wall_s / SEEDEXT_BANKED_LEGA_CELL_S,
+            "projected_lega_gpu_h": projected_lega_gpu_h,
+            "projected_wave_gpu_h": projected_wave_gpu_h,
+            "bracket_high_10x_gpu_h": projected_wave_gpu_h * 10.0,
+            "ceiling_gpu_h": SEEDEXT_WAVE_CEILING_GPUH,
+            "ok": projected_wave_gpu_h <= SEEDEXT_WAVE_CEILING_GPUH}
+
+
+def _read_calib_result(path: str) -> dict:
+    if not os.path.exists(path):
+        print(f"ERROR: calibration result JSON not found at {path!r} -- the calibration cell must "
+              f"complete before this gate can run.", file=sys.stderr)
+        sys.exit(6)
+    with open(path) as f:
+        d = json.load(f)
+    if d.get("complete") is not True:
+        print(f"ERROR: calibration result at {path!r} is not complete=true -- refusing to gate on "
+              f"a partial run.", file=sys.stderr)
+        sys.exit(6)
+    return d
+
+
+def run_seedext_band_check(path: str) -> None:
+    """CLI entry (--seedext-band-check): reads the calibration cell's own result JSON, extracts
+    the TERMINAL checkpoint's val_loss[wikitext-mix-ext], enforces the pinned band. exit 0 pass /
+    exit 6 refuse (a real process-boundary abort for the chain's `set -e`)."""
+    d = _read_calib_result(path)
+    terminal = max(d["checkpoints"], key=lambda e: e["step"])
+    val_loss = terminal["val_loss"][SEEDEXT_CALIB_CORPUS]
+    lo, hi = SEEDEXT_CALIB_BAND
+    print(f"SEEDEXT VAL-LOSS BAND GATE (sec 16.19.7.1): terminal step {terminal['step']} "
+          f"val_loss[{SEEDEXT_CALIB_CORPUS}]={val_loss:.6f}, band [{lo}, {hi}].", flush=True)
+    if not seedext_valloss_band_gate(val_loss):
+        print(f"ABORT: calibration val_loss {val_loss:.6f} is OUTSIDE the pinned sanity band "
+              f"[{lo}, {hi}] (mean +- max(5*SD, 0.10) over the 3 archived per_token/wikitext "
+              f"rung-1 cells) -- the run is presumed broken (divergence / hyperparameter "
+              f"mismatch); halting mechanically BEFORE the remaining 17 cells launch.",
+              file=sys.stderr)
+        sys.exit(6)
+    print("SEEDEXT VAL-LOSS BAND GATE: PASS.", flush=True)
+
+
+def run_seedext_timing_check(path: str) -> None:
+    """CLI entry (--seedext-timing-check): reads the calibration cell's own realized wall_s,
+    projects per seedext_timing_gate, hard-aborts (exit 8) on a ceiling breach."""
+    d = _read_calib_result(path)
+    r = seedext_timing_gate(d["wall_s"])
+    print(f"SEEDEXT TIMING GATE (sec 16.19.6 calibration re-check): realized wall_s="
+          f"{r['wall_s']:.1f}s vs banked {r['banked_cell_s']:.1f}s/cell "
+          f"(ratio {r['ratio_vs_banked']:.2f}x); projected Leg-A slice "
+          f"{r['projected_lega_gpu_h']:.3f} GPU-h + fam/eval raw {SEEDEXT_FAMEVAL_RAW_GPUH} = "
+          f"{r['projected_wave_gpu_h']:.3f} GPU-h (10x bracket-high "
+          f"{r['bracket_high_10x_gpu_h']:.1f}, disclosure only) vs ceiling "
+          f"{r['ceiling_gpu_h']} GPU-h.", flush=True)
+    if not r["ok"]:
+        print(f"ABORT: projected wave spend {r['projected_wave_gpu_h']:.3f} GPU-h exceeds the "
+              f"registered {SEEDEXT_WAVE_CEILING_GPUH} GPU-h ceiling (sec 16.19.6) -- halting "
+              f"mechanically BEFORE the remaining 17 cells launch.", file=sys.stderr)
+        sys.exit(8)
+    print("SEEDEXT TIMING GATE: PASS.", flush=True)
 
 
 def calibration_cell(steps: int, ckpt_every: int = 1000) -> dict:
@@ -596,10 +755,122 @@ def gate_and_run_rung1(args) -> None:
     sys.exit(0 if all_done else 1)
 
 
+def gate_and_run_rung1_seedext(args) -> None:
+    """sec 16.19.7.1's launch path for --wave rung1-seedext -- mirrors gate_and_run_rung1's own
+    two-phase structure (calibration cell alone first, then the remaining 17), with THREE seedext-
+    specific differences, all registered: (1) TWO contention gates on the calibration launch --
+    the original K-anchoring Stage-1 sentinel AND a second, sec-15.26-pointed sentinel
+    (independently wired: a present first sentinel never satisfies the second); (2) the manifest
+    disjointness assert vs rung-1 runs before EITHER phase dispatches; (3) the post-calibration
+    human-inspection stop is replaced by the MECHANICAL band/timing gates, which the chain script
+    (frozen_bias_seedext_chain.sh) invokes between the two phases -- this function itself keeps
+    the same calibration-completed precondition on the remaining-17 phase."""
+    calibration_json_path = os.path.join(args.out_dir, "calibration.json")
+    steps = args.rung1_steps
+
+    if steps is None:
+        print("ERROR: --rung1-steps is REQUIRED for a real --wave rung1-seedext launch (REUSED "
+              "UNCHANGED from the original chain -- a different step count would silently "
+              "reintroduce a comparability confound between the 3 archived and 9 new per-arm "
+              "seeds, sec 16.19.7.1).", file=sys.stderr)
+        sys.exit(2)
+
+    # sec 16.19.7.1's registered disjointness check -- before ANY dispatch, both phases.
+    assert_manifests_disjoint(rung1_seedext_manifest(steps, args.ckpt_every),
+                               rung1_manifest(steps, args.ckpt_every))
+
+    calib_spec = calibration_cell_seedext(steps, args.ckpt_every)
+    if args.calibration_only:
+        contention_gate(args.stage1_sentinel, args.accept_contention_override)
+        # SECOND gate (sec 16.19.7.1): the SAME already-built, already-generically-tested
+        # contention_gate, pointed at the sec 15.26 lane's own completion sentinel (GPUs 2-7 are
+        # shared with that wave's K90 pool-margin diagnostic). sec 15.26 has not yet registered
+        # its sentinel path -- until it does, this gate REFUSES unless the explicit
+        # --accept-sec1526-override escape hatch is passed (a human decision, loud warning, never
+        # a silent default). The gate function's own prose names the K-anchoring wave (reused
+        # verbatim per the design's "NO new gate code" instruction) -- the line below labels this
+        # call site's ACTUAL target so the two gates are never conflated in a log.
+        print("SECOND CONTENTION GATE (sec 16.19.7.1): checking the sec-15.26 lane's own "
+              f"completion sentinel ({args.sec1526_sentinel!r}) -- the gate prose below reuses "
+              "the generic contention_gate verbatim; its target here is the KEYANCHOR-SCALING "
+              "sec 15.26 wave, NOT the K-anchoring Stage-1 gate above.", flush=True)
+        contention_gate(args.sec1526_sentinel, args.accept_sec1526_override)
+        manifest = [calib_spec]
+        label = "rung1_seedext_calibration"
+    else:
+        if not os.path.exists(calibration_json_path):
+            write_calibration_json(args.out_dir, calib_spec)
+        if not os.path.exists(calibration_json_path) and not args.skip_calibration_check:
+            print(f"ERROR: {calibration_json_path} not found and the seedext calibration cell's "
+                  f"own result JSON was not found either -- run --calibration-only first (the "
+                  f"chain then enforces the sec 16.19.7.1 band/timing gates mechanically) before "
+                  f"the remaining 17 cells. (--skip-calibration-check overrides -- a human "
+                  f"decision, never a default.)", file=sys.stderr)
+            sys.exit(2)
+        if not is_done_cell(args.out_dir, calib_spec) and not args.skip_calibration_check:
+            print(f"ERROR: the seedext calibration cell ({calib_spec['name']}) has not completed "
+                  f"under {args.out_dir!r} -- run --calibration-only first.", file=sys.stderr)
+            sys.exit(2)
+        full = rung1_seedext_manifest(steps, args.ckpt_every)
+        manifest = [s for s in full if s["name"] != calib_spec["name"]]
+        label = "rung1_seedext_remaining17"
+
+    per_step_s = per_ckpt_s = None
+    if os.path.exists(calibration_json_path):
+        with open(calibration_json_path) as f:
+            calib = json.load(f)
+        tc = (calib.get("timing_constants") or {}).get("rung1")
+        if tc:
+            per_step_s, per_ckpt_s = tc["per_step_s"], tc["per_ckpt_s"]
+    if per_step_s is None:
+        if args.calibration_only:
+            per_step_s, per_ckpt_s = 0.25, 60.0   # same generous planning ceiling as rung-1's own
+        else:
+            print("ERROR: no timing_constants['rung1'] found in the seedext out-dir's "
+                  "calibration.json -- run --calibration-only first.", file=sys.stderr)
+            sys.exit(2)
+
+    projected = projected_gpu_hours(manifest, per_step_s, per_ckpt_s)
+    budget_guard(projected, label, args.accept_budget_override)
+
+    os.makedirs(args.out_dir, exist_ok=True)
+    ckpt_dir = args.ckpt_base_dir or os.path.join(args.out_dir, "checkpoints")
+    if os.path.isdir(ckpt_dir) and any(True for _r, _d, files in os.walk(ckpt_dir) for f in files if f.endswith(".pt")):
+        try:
+            ckpt_size = find_ckpt_size_bytes(ckpt_dir, RUNG1_CFG["d_model"], RUNG1_CFG["d_state"],
+                                              RUNG1_CFG["n_layers"])
+            n_ckpts_per_run = manifest[0]["steps"] // manifest[0]["ckpt_every"] + 1
+            projected_bytes = len(manifest) * n_ckpts_per_run * ckpt_size
+            disk_report = disk_space_check(ckpt_dir, projected_bytes, label)
+            print(f"Disk-space check: {disk_report}", flush=True)
+            if not disk_report["ok"]:
+                print(f"ERROR: disk-space check FAILED -- refusing to launch (need "
+                      f"{disk_report['required_bytes']:,} bytes free at {DISK_SAFETY_FACTOR}x "
+                      f"safety margin, have {disk_report['free_bytes']:,} under "
+                      f"{disk_report['resolved_ckpt_dir']}).", file=sys.stderr)
+                sys.exit(7)
+        except FileNotFoundError as e:
+            print(f"NOTE: disk-space check skipped (no existing checkpoint to measure size from "
+                  f"yet): {e}", flush=True)
+    else:
+        print("NOTE: disk-space check skipped -- no existing checkpoint directory yet (first "
+              "launch).", flush=True)
+
+    args.timeout_fn = lambda spec: default_timeout_pretrain(spec["steps"], spec["ckpt_every"],
+                                                             per_step_s, per_ckpt_s)
+    print(f"RUNG-1-SEEDEXT REAL LAUNCH ({label}): {len(manifest)} runs, timing "
+          f"per_step_s={per_step_s} per_ckpt_s={per_ckpt_s} (margin {LAUNCH_TIMEOUT_MARGIN}x).",
+          flush=True)
+    all_done = _run_manifest(label, manifest, args.out_dir, args)
+    if all_done and args.calibration_only:
+        write_calibration_json(args.out_dir, manifest[0])
+    sys.exit(0 if all_done else 1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--wave", choices=["rung1"], default=None)
+    ap.add_argument("--wave", choices=["rung1", "rung1-seedext"], default=None)
     ap.add_argument("--calibration-only", action="store_true",
                      help="sec 6.3: launch ONLY the calibration cell (Arm 2, openr1-mix-ext, "
                           "seed 0, lambda=0.58) -- inspect its span_frac trajectory/val-loss curve "
@@ -631,7 +902,49 @@ def main():
     ap.add_argument("--stage1-sentinel", default=STAGE1_SENTINEL_DEFAULT,
                      help="path (as seen from this box's deltanet_rd dir) to the K-anchoring "
                           "wave's Stage-1 clearance sentinel, sec 8.2a.")
+    ap.add_argument("--sec1526-sentinel", default=SEC1526_SENTINEL_DEFAULT,
+                     help="REASONING_LINK_DESIGN.md sec 16.19.7.1: path to the KEYANCHOR-SCALING "
+                          "sec 15.26 wave's own completion sentinel (GPUs 2-7 lane conflict). "
+                          "sec 15.26 has NOT yet registered a real path -- the default is a "
+                          "deliberately-nonexistent placeholder, so a rung1-seedext calibration "
+                          "launch REFUSES until either sec 15.26 registers its sentinel (point "
+                          "this flag at it) or --accept-sec1526-override is passed explicitly.")
+    ap.add_argument("--accept-sec1526-override", action="store_true",
+                     help="sec 16.19.7.1: bypass the second (sec 15.26) contention gate -- a "
+                          "human decision, loud warning printed, never a silent default.")
+    ap.add_argument("--seedext-band-check", type=str, default=None, metavar="CALIB_RESULT_JSON",
+                     help="sec 16.19.7.1's mechanical val-loss sanity-band gate: read the seedext "
+                          "calibration cell's result JSON, enforce the pinned "
+                          f"{SEEDEXT_CALIB_BAND} band on its terminal val_loss, exit 6 on breach. "
+                          "Runs alone (no launch).")
+    ap.add_argument("--seedext-timing-check", type=str, default=None, metavar="CALIB_RESULT_JSON",
+                     help="sec 16.19.6's calibration re-check: project the 18-cell Leg-A slice "
+                          "from the calibration cell's realized wall_s against the registered "
+                          f"{SEEDEXT_WAVE_CEILING_GPUH} GPU-h ceiling, exit 8 on breach. Runs "
+                          "alone (no launch).")
     args = ap.parse_args()
+
+    # Standalone mechanical gates (sec 16.19.7.1) -- run and exit before any launch machinery.
+    if args.seedext_band_check:
+        run_seedext_band_check(args.seedext_band_check)
+        return
+    if args.seedext_timing_check:
+        run_seedext_timing_check(args.seedext_timing_check)
+        return
+
+    if args.dry_run and args.wave == "rung1-seedext":
+        preview_steps = args.rung1_steps or 20000
+        full = rung1_seedext_manifest(preview_steps, args.ckpt_every)
+        calib = calibration_cell_seedext(preview_steps, args.ckpt_every)
+        assert_manifests_disjoint(full, rung1_manifest(preview_steps, args.ckpt_every))
+        print(f"DRY RUN -- rung1-seedext manifest preview at steps={preview_steps} "
+              f"(sec 16.19.7.1; disjointness vs rung-1 ASSERTED above, not assumed):")
+        print(f"  seedext cells ({ARMS_SEEDEXT} x {CORPORA_SEEDEXT} x seeds {SEEDS_SEEDEXT}): "
+              f"{len(full)} (registered: 18)")
+        print(f"  calibration cell (one of the 18): {calib['name']}")
+        for s in full:
+            print(f"    {s['name']}")
+        return
 
     if args.dry_run:
         preview_steps = args.rung1_steps or 20000   # sec 8.3's own illustrative planning number
@@ -660,8 +973,10 @@ def main():
 
     if args.wave == "rung1":
         gate_and_run_rung1(args)
+    elif args.wave == "rung1-seedext":
+        gate_and_run_rung1_seedext(args)
     else:
-        print("ERROR: --wave rung1 (or --dry-run) required.", file=sys.stderr)
+        print("ERROR: --wave rung1 or rung1-seedext (or --dry-run) required.", file=sys.stderr)
         sys.exit(2)
 
 

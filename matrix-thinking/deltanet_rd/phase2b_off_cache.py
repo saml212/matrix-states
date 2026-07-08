@@ -214,6 +214,130 @@ def load_off_lquery_cache_verified(path: str, floor_pinned_path: str) -> dict:
     return load_off_lquery_cache(path)
 
 
+# ---------------------------------------------------------------------------
+# REASONING_LINK_DESIGN.md sec 16.19 (Phase-2b SEED EXTENSION) -- additive seedext machinery:
+# a wave-specific timing pilot (sec 16.19.7's m3 gate) and the OFF-eval cache EXTENSION + n=12
+# wikitext-only FLOOR_PIN re-pin (sec 16.19.7's FLOOR_PIN bullet). Nothing above changes.
+# ---------------------------------------------------------------------------
+
+SEEDEXT_CORPUS = "wikitext-mix-ext"                  # sec 16.19.4 Option B: ONE corpus
+SEEDEXT_NEW_SEEDS = tuple(range(3, 12))              # 9 new OFF fam cells feed the cache extension
+SEEDEXT_ALL_SEEDS = tuple(range(12))                 # the pooled n=12 the new pin computes over
+SEEDEXT_N_CACHED_PASSES = 18 * 5 * 2 * 2             # sec 16.19.6: 18 NEW cells x 5 c x 2 K x 2 hop = 360
+SEEDEXT_RAW_FIXED_GPU_H = 4.544 + 1.852 + 0.04       # sec 16.19.6's own non-eval component lines
+                                                      # (Leg-A + familiarization + smoke/gates)
+SEEDEXT_BUDGET_CEILING_GPU_H = 66.5                  # sec 16.19.6's registered wave ceiling
+
+
+def project_and_gate_timing_pilot_seedext(elapsed_s_per_pass: float) -> dict:
+    """sec 16.19.7's m3 eval timing-pilot gate for THIS wave: projects the full 360-pass seedext
+    eval cost from ONE measured pass, adds the registered non-eval component lines, and gates the
+    projection against the wave's own 66.5 GPU-h ceiling per m3's wording ("PROJECT the full
+    360-pass eval-cache cost plus the already-realized Leg-A/familiarization spend against the
+    registered 66.5 GPU-h ceiling -- hard-abort if the projection exceeds the ceiling"). The 10x
+    debug-tax bracket-high is REPORTED for disclosure, not itself the abort trigger: 66.5 is
+    already the bracket-high of the registered raw total (6.65 x 10 = 66.5, sec 16.19.6), and
+    re-taxing the projection against it would false-positive at exactly the nominal registered
+    rates (6.6509 x 10 = 66.509 > 66.5) -- build-time resolution, disclosed for the independent
+    audit. This wave's own pilot must NOT assume the prior wave's 2.1488 s/pass warm rate holds
+    (kernel caching is process/session-level, sec 16.19.7's own cold-Triton precedent)."""
+    projected_eval_gpu_h = elapsed_s_per_pass * SEEDEXT_N_CACHED_PASSES / 3600.0
+    projected_total_gpu_h = SEEDEXT_RAW_FIXED_GPU_H + projected_eval_gpu_h
+    return {
+        "elapsed_s_per_pass": elapsed_s_per_pass, "n_cached_passes": SEEDEXT_N_CACHED_PASSES,
+        "projected_eval_gpu_h": projected_eval_gpu_h,
+        "projected_total_gpu_h": projected_total_gpu_h,
+        "bracket_high_10x_gpu_h": projected_total_gpu_h * DEBUG_TAX_HIGH,
+        "ceiling_gpu_h": SEEDEXT_BUDGET_CEILING_GPU_H,
+        "ok": projected_total_gpu_h <= SEEDEXT_BUDGET_CEILING_GPU_H,
+    }
+
+
+def extend_off_lquery_cache_seedext(ckpt_dir: str, device: str, cache_path: str,
+                                     original_floor_path: str, out_floor_n12_path: str,
+                                     build_fn=None) -> dict:
+    """sec 16.19.7's "OFF-eval cache -- EXTENDED, not forked" + wikitext-only FLOOR_PIN re-pin:
+
+    1. VERIFIES the on-disk cache against the ORIGINAL FLOOR_PINNED-Phase2b.json's pinned sha256
+       BEFORE extending (the archived half must be untampered at extension time) -- unless the
+       extension already ran (idempotent short-circuit below).
+    2. Scores the 9 NEW wikitext OFF familiarization cells (seeds 3-11, 5 checkpoints, 2 K's,
+       2 hop-sets = 180 passes) via the SAME build_off_lquery_cache machinery, ADDITIVE keys only.
+    3. Merges: asserts ZERO overlap between new and existing keys, asserts every EXISTING key's
+       value is byte-identical post-merge, writes the extended cache to the SAME path (sec
+       16.19.7: "the new wikitext seeds are simply NEW KEYS ... No new cache file needed").
+       DISCLOSED consequence: the ORIGINAL FLOOR_PINNED-Phase2b.json's own off_cache_sha256 no
+       longer matches the extended file -- its pin FILE stays untouched as the historical record,
+       and any post-extension verified read must use the NEW n12 pin written in step 4 (a future
+       openr1 re-verification would need its own re-pin; loud CacheIntegrityFailure, never a
+       silent wrong read).
+    4. Computes FLOOR_PIN_n12 over the 12 pooled wikitext OFF seeds (SAME mean+2*sigma / pooled-
+       ratio conventions, ckpt_seeds widened to 0..11) and writes FLOOR_PINNED-Phase2b-n12-
+       wikitext.json (NEW file, fork-don't-overwrite; its off_cache_sha256 records the EXTENDED
+       cache). openr1's own original pin is NOT touched.
+
+    Idempotent: if the extended cache already carries every expected key AND the n12 pin already
+    validates against it, this is a no-op (resume-safe re-invocation after a crash). `build_fn`
+    is a test seam (Stage -1 substitutes a synthetic builder); production leaves it None ->
+    build_off_lquery_cache."""
+    build = build_fn if build_fn is not None else build_off_lquery_cache
+
+    expected_new_keys = {
+        pta.off_cache_key(SEEDEXT_CORPUS, s, K, c, hop_set)
+        for s in SEEDEXT_NEW_SEEDS for c in phx.CHECKPOINTS for K in K_VALUES
+        for hop_set in HOP_SETS}
+
+    existing_raw = load_off_lquery_cache(cache_path)
+    if expected_new_keys <= set(existing_raw) and validate_floor_pinned(out_floor_n12_path):
+        print(f"[phase2b-seedext-extend] SKIP (idempotent): {cache_path} already carries all "
+              f"{len(expected_new_keys)} seedext keys and {out_floor_n12_path} validates against "
+              f"it -- nothing to do.", flush=True)
+        return {"skipped": True, "n_new_keys": 0}
+
+    # Step 1 -- integrity of the archived half, verified against the ORIGINAL pin before touching.
+    existing = load_off_lquery_cache_verified(cache_path, original_floor_path)
+
+    # Step 2 -- the 180 new passes (9 new seeds x 5 checkpoints x 2 K's x 2 hop-sets, ONE corpus).
+    new_entries = build(ckpt_dir, device, corpora=(SEEDEXT_CORPUS,), ckpt_seeds=SEEDEXT_NEW_SEEDS)
+    assert set(new_entries) == expected_new_keys, (
+        f"seedext cache build returned unexpected keys: {sorted(set(new_entries) ^ expected_new_keys)[:5]}")
+
+    # Step 3 -- additive merge, existing keys byte-identical, zero overlap.
+    overlap = set(existing) & set(new_entries)
+    assert not overlap, (f"REFUSE: {len(overlap)} seedext key(s) already present in the cache -- "
+                          f"would overwrite archived values: {sorted(overlap)[:5]}")
+    merged = dict(existing)
+    merged.update(new_entries)
+    for k, v in existing.items():
+        assert merged[k] == v, f"existing key {k!r} changed during merge -- refusing"
+    write_off_lquery_cache(cache_path, merged)
+    print(f"[phase2b-seedext-extend] extended {cache_path}: {len(existing)} existing + "
+          f"{len(new_entries)} new = {len(merged)} entries. NOTE (disclosed): the ORIGINAL "
+          f"{original_floor_path} off_cache_sha256 no longer matches the extended file -- "
+          f"post-extension verified reads must use {out_floor_n12_path}.", flush=True)
+
+    # Step 4 -- the n=12 wikitext-only re-pin (new file; openr1's original pin untouched).
+    floor_data = compute_floor_ratios_and_pin(merged, corpora=(SEEDEXT_CORPUS,),
+                                               ckpt_seeds=SEEDEXT_ALL_SEEDS)
+    doc = write_floor_pinned(
+        out_floor_n12_path, floor_data, cache_path,
+        formula_version=(
+            "REASONING_LINK_DESIGN.md sec 16.19.7: FLOOR_PIN_n12 := mean_B(ratio) + "
+            "2*sigma_B(ratio) over wikitext-mix-ext's own 12 pooled per-seed "
+            "L_query(c=5000)/L_query(c=250) ratios (K=32, hop_set=(1,2), house k=2 one-sided "
+            "convention, seeds 0-2 archived + 3-11 new, ALL read from the extended OFF-eval "
+            "cache -- a cache read never recomputes). The RUNTIME-gated quantity is the separate "
+            "pooled ratio (mean-across-12-seeds at c=5000 / mean-across-12-seeds at c=250). "
+            "wikitext-only: openr1-mix-ext's own FLOOR_PIN stays at its ORIGINAL n=3 pin "
+            "(FLOOR_PINNED-Phase2b.json), UNTOUCHED by this wave."),
+    )
+    d = floor_data[SEEDEXT_CORPUS]
+    print(f"[phase2b-seedext-extend] n12 re-pin: pooled_ratio={d['pooled_ratio']:.4f} "
+          f"floor_pin={d['floor_pin']:.4f} (mean_b={d['mean_b']:.4f} s_b={d['s_b']:.4f}, n=12) "
+          f"-> {out_floor_n12_path} (pinned_at_iso={doc['pinned_at_iso']})", flush=True)
+    return {"skipped": False, "n_new_keys": len(new_entries), "floor_n12": d}
+
+
 def _mean_std(values: list) -> tuple:
     n = len(values)
     assert n >= 2, f"sample std requires n>=2, got n={n}"
@@ -245,9 +369,14 @@ def compute_floor_ratios_and_pin(cache: dict, corpora=CORPORA, ckpt_seeds=CKPT_S
     return out
 
 
-def write_floor_pinned(path: str, floor_data: dict, cache_path: str) -> dict:
+def write_floor_pinned(path: str, floor_data: dict, cache_path: str,
+                        formula_version: str = None) -> dict:
+    # `formula_version=None` keeps the original sec 16.16.6 text byte-identical for every
+    # pre-existing caller; the seedext n=12 re-pin passes its own sec 16.19.7 text (additive
+    # parameter, sec 16.19's build -- the pinned prose must describe the pin actually computed,
+    # never claim "3 per-seed ratios" for a 12-seed pin).
     doc = {
-        "formula_version": (
+        "formula_version": formula_version if formula_version is not None else (
             "REASONING_LINK_DESIGN.md sec 16.16.6: per corpus, FLOOR_PIN := mean_B(ratio) + "
             "2*sigma_B(ratio) over that corpus's own 3 per-seed L_query(c=5000)/L_query(c=250) "
             "ratios (K=32, hop_set=(1,2), house k=2 one-sided convention). The RUNTIME-gated "
@@ -309,7 +438,51 @@ def main():
                      help="sec 16.16.11 item 1's mandatory pre-launch timing pilot: time ONE real "
                           "eval pass, project against the 2.64/26.4 GPU-h budget, exit nonzero if "
                           "the projection exceeds the registered ceiling -- does NOT build the cache")
+    ap.add_argument("--seedext-time-pilot", action="store_true",
+                     help="sec 16.19.7 m3's eval timing-pilot gate for the SEED-EXTENSION wave: "
+                          "time ONE real eval pass on an ARCHIVED wikitext OFF familiarization "
+                          "checkpoint, project the 360 seedext passes + the registered non-eval "
+                          "component lines against the 66.5 GPU-h wave ceiling, exit nonzero on "
+                          "breach -- does NOT build/extend the cache")
+    ap.add_argument("--seedext-extend", action="store_true",
+                     help="sec 16.19.7: extend the OFF-eval cache with the 9 new wikitext OFF "
+                          "seeds (additive keys, existing values byte-identical) and write the "
+                          "n=12 wikitext-only FLOOR_PINNED-Phase2b-n12-wikitext.json re-pin. "
+                          "Requires --out-cache (the EXISTING cache path, extended in place), "
+                          "--original-floor, --out-floor-n12.")
+    ap.add_argument("--original-floor", type=str, default=None,
+                     help="--seedext-extend: the ORIGINAL FLOOR_PINNED-Phase2b.json (the archived "
+                          "half is sha256-verified against it BEFORE extension)")
+    ap.add_argument("--out-floor-n12", type=str, default=None,
+                     help="--seedext-extend: where FLOOR_PINNED-Phase2b-n12-wikitext.json is "
+                          "written (NEW file, fork-don't-overwrite)")
     args = ap.parse_args()
+
+    if args.seedext_time_pilot:
+        # One real pass on an ARCHIVED wikitext OFF fam checkpoint (exists on the box from the
+        # original wave) -- the seedext-specific projection/ceiling, sec 16.19.7's m3 gate.
+        elapsed_s = time_one_eval_pass(args.ckpt_dir, args.device, corpus=SEEDEXT_CORPUS)
+        proj = project_and_gate_timing_pilot_seedext(elapsed_s)
+        print(f"[phase2b-seedext-timing-pilot] one real eval pass: {elapsed_s:.4f}s -- projected "
+              f"{proj['n_cached_passes']} passes = {proj['projected_eval_gpu_h']:.4f} GPU-h; "
+              f"projected total = {proj['projected_total_gpu_h']:.4f} GPU-h (10x bracket-high "
+              f"{proj['bracket_high_10x_gpu_h']:.1f}, disclosure only) vs registered ceiling "
+              f"{proj['ceiling_gpu_h']} GPU-h (sec 16.19.6)")
+        if not proj["ok"]:
+            print(f"ABORT: projected total ({proj['projected_total_gpu_h']:.4f} GPU-h) exceeds "
+                  f"the registered seedext ceiling ({SEEDEXT_BUDGET_CEILING_GPU_H} GPU-h, sec "
+                  f"16.19.6) -- halting mechanically before the cache extension or any cell "
+                  f"launch.", file=sys.stderr)
+            sys.exit(1)
+        print("[phase2b-seedext-timing-pilot] PASS: projection within the registered ceiling.")
+        return
+
+    if args.seedext_extend:
+        assert args.out_cache and args.original_floor and args.out_floor_n12, (
+            "--seedext-extend requires --out-cache, --original-floor, --out-floor-n12")
+        extend_off_lquery_cache_seedext(args.ckpt_dir, args.device, args.out_cache,
+                                          args.original_floor, args.out_floor_n12)
+        return
 
     if args.time_pilot:
         elapsed_s = time_one_eval_pass(args.ckpt_dir, args.device)

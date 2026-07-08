@@ -187,7 +187,18 @@ def wrap_phase2(payload: dict, stage: str) -> dict:
 # when both were simply ADDED with an insufficient stride).
 _MAX_CHECKPOINT = 5_000     # sec 16.2.1's own trajectory ceiling; checkpoint_step in [0, 5000]
 _MAX_K = 512                # generous headroom above every registered K (20, 32, up to d_state=128)
-_MAX_CKPT_SEED = 10         # registered grid uses 0-2; headroom for exploratory seeds
+_MAX_CKPT_SEED = 12         # 10 -> 12 (sec 16.19.5 item 3(b), Phase-2b seed extension, seeds {0..11}).
+                             # DISCLOSED consequence (checked, not assumed): _WIDTH_CKPT_SEED ==
+                             # _MAX_CKPT_SEED, so every digit ABOVE ckpt_seed (corpus/arm/kind)
+                             # changes its stride -- the returned seed value changes for EVERY
+                             # corpus_idx>=1 / arm_idx>=1 / kind_idx>=1 combination, INCLUDING the 3
+                             # already-archived seeds' own EVAL kinds. The design's protection is
+                             # NON-INVOCATION, not bit-identity: archived seeds 0-2 are NEVER
+                             # re-scored live this wave (sec 16.19.5 item 5's archived-values loader
+                             # + phase2_trajectory_analysis.install_seedext_live_eval_guard's
+                             # whole-harvest-runtime ckpt_seed>=3 assert); old-seed bit-identity is
+                             # deliberately NOT claimed anywhere. Collision-freedom at the widened
+                             # width re-proven exhaustively (phase2b_seedext_stage_minus1.py).
 _MAX_CORPUS_IDX = 10        # registered grid uses 0-1; headroom via _CORPUS_INDEX's own .get default
 _MAX_ARM = 3                # off/per_token/global
 _WIDTH_CHECKPOINT = _MAX_CHECKPOINT + 1
