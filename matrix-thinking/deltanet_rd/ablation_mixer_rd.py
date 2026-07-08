@@ -347,6 +347,72 @@ def smoke_5_initial_state_threading():
             ok)
 
 
+def smoke_6_gate_extra_width_nonzero():
+    """AUD-F3 fix (build audit §1.20): `gate_extra_width>0` -- the
+    documented, currently-inert (default 0) matching-slack escape hatch
+    (module docstring) -- was 100% untested. Exercises a nonzero width
+    end to end:
+      (a) `count_mixer_params`'s own gate_extra_width branch matches a
+          REAL instantiated `AblationLMMixer`'s numel() sum exactly;
+      (b) a full `AblationLM` built with gate_extra_width>0 runs a real
+          forward pass, finite, correct shape;
+      (c) a width driving the ablation's TOTAL param count >1% off the
+          contender's own count is CAUGHT by `verify_match_gate.py`'s own
+          sec 1.7 gate 6 tolerance check -- called DIRECTLY
+          (`verify_match_gate._check_tolerances`, isolated via its own
+          `sink=` param so this smoke cannot trip that gate's real exit
+          code), with a genuinely drifted count derived from a REAL
+          instantiated model, never a mutated gate file (no file mutation
+          needed, per the fix instruction)."""
+    d_model, d_state, conv_size = 256, 64, 4
+    gate_extra_width = 32
+    mixer = AblationLMMixer(d_model, d_state, conv_size=conv_size, gate_extra_width=gate_extra_width)
+    real = sum(p.numel() for p in mixer.parameters())
+    formula = count_mixer_params(d_model, d_state, conv_size, gate_extra_width=gate_extra_width)
+    formula_ok = real == formula
+    _report("smoke 6a: gate_extra_width>0 mixer param-count formula matches a REAL instantiated "
+            "mixer's numel() sum", formula_ok, f"gate_extra_width={gate_extra_width} real={real} "
+            f"formula={formula}")
+
+    torch.manual_seed(51)
+    m = AblationLM(500, d_model=32, d_state=16, n_layers=1, conv_size=4, gate_extra_width=8)
+    x = torch.randint(0, 500, (2, 12))
+    logits = m(x)
+    fwd_ok = bool(torch.isfinite(logits).all().item()) and logits.shape == (2, 12, 500)
+    _report("smoke 6b: gate_extra_width>0 forward pass runs, finite, correct shape", fwd_ok,
+            f"logits.shape={tuple(logits.shape)}")
+
+    import verify_match_gate as vmg   # local import -- avoids a module-level circular import
+    n_contender = vmg.pass2_contender_params_formula(
+        d_model=256, d_state=64, n_layers=2, conv_size=4, vocab_size=vmg.VOCAB_SIZE)
+    drift_width = 256   # deliberately large: pushes the ablation's REAL total param count >1% off
+                          # the contender's -- see module docstring's own "future rung" framing for
+                          # gate_extra_width's intended purpose (absorbing matching slack).
+    torch.manual_seed(52)
+    ablation_drifted = AblationLM(vmg.VOCAB_SIZE, d_model=256, d_state=64, n_layers=2, conv_size=4,
+                                   ffn_mult=4, gate_extra_width=drift_width)
+    n_ablation_drifted = sum(p.numel() for p in ablation_drifted.parameters())
+    drifted_rel_err = abs(n_ablation_drifted - n_contender) / n_contender
+    drift_exceeds_tolerance = drifted_rel_err > vmg.PARAM_TOLERANCE_ABLATION
+
+    sink: list[str] = []
+    vmg._check_tolerances(
+        {"param_rel_err": drifted_rel_err, "flop_rel_err": 0.0, "measured_state_bytes": 32_768},
+        sink=sink)
+    param_check_failed = any("param match" in item for item in sink)
+    other_checks_clean = not any(("FLOP match" in item) or ("state bytes" in item) for item in sink)
+    gate_catches_drift = param_check_failed and other_checks_clean
+
+    ok_6c = drift_exceeds_tolerance and gate_catches_drift
+    _report("smoke 6c: a gate_extra_width driving the ablation's REAL param count >1% off the "
+            "contender's own count is CAUGHT by verify_match_gate.py's own Pass-1 tolerance check "
+            "(_check_tolerances, called directly with the drifted count, isolated via sink= -- no "
+            "gate file mutation)", ok_6c,
+            f"drift_width={drift_width} n_contender={n_contender:,} "
+            f"n_ablation_drifted={n_ablation_drifted:,} drifted_rel_err={drifted_rel_err:.4%} "
+            f"tolerance={vmg.PARAM_TOLERANCE_ABLATION:.0%} sink={sink}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--smoke", action="store_true")
@@ -360,6 +426,7 @@ def main() -> int:
     smoke_3_q_never_touches_state_bottleneck()
     smoke_4_param_count_matches_formula()
     smoke_5_initial_state_threading()
+    smoke_6_gate_extra_width_nonzero()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)

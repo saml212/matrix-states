@@ -25,8 +25,24 @@ Pieces, each pinned exactly per sec 1.3.1.1-1.3.1.4:
     (gate 7): frozen-random `state_summary_raw`, fresh draws every step,
     held-out fresh eval draws, pass bar `recovered_frac@0.9 < 0.05`.
 
+AUD-F1 fix (build audit §1.20, this file's own substantive finding): smoke_7's
+JOINT (CE+aux) loss gradient check is CONFOUNDED evidence that "the aux loss
+backprops into the backbone" (sec 1.3.1.3's core premise) -- loss_ce alone
+already makes q_proj nonzero, aux_weight=0 would pass the same check. smoke_8
+below replaces it as the load-bearing claim: an AUX-LOSS-ONLY (CE-excluded)
+gradient-isolation test. CPU/box split, stated precisely: the CPU stub's
+`final_state = torch.zeros(..., requires_grad=False)` is a disconnected
+constant, so the contender's tap (`S_T_last @ q_last`) is identically zero
+regardless of q_last -- this kills BOTH the forward value AND the gradient of
+the contender's aux path on CPU (not just k/v/b -- q_proj too, for a
+stub-specific reason distinct from the real-hardware q_proj exclusion smoke_8
+documents). The contender arm is therefore registered BOX-ONLY (mirrors
+smoke_3's box-only registration discipline exactly); ablation + Transformer
+have no such stub disconnect and are PROVEN genuinely nonzero on CPU now.
+
 Run the smoke gate (incl. the gate-7 null for all three arms' REAL adapter
-shapes at rung-1): python probe_head_rd.py --smoke
+shapes at rung-1, and smoke_8's aux-ONLY gradient isolation): python
+probe_head_rd.py --smoke
 """
 from __future__ import annotations
 
@@ -366,10 +382,17 @@ def smoke_6_probe_capacity_null_all_three_arm_shapes():
 
 
 def smoke_7_joint_loss_gradients_flow_to_backbone():
-    """The aux loss must produce REAL gradients on the backbone's own
-    parameters (not just the adapter/probe) -- confirms sec 1.3.1.3's
-    "trains THROUGHOUT training, from step 0" premise is mechanically true,
-    not merely a design intention."""
+    """AUD-F1 (audit §1.20): this JOINT-loss (CE + aux) check alone is
+    CONFOUNDED evidence for "the aux loss reaches the backbone" -- loss_ce
+    touches q_proj regardless of aux_weight (a plain LM loss would make
+    this PASS even with aux_weight=0), so a PASS here proves CE reaches
+    q_proj, not that the aux term specifically does. Retained as a
+    mechanical joint-loss sanity check (the real training regime always
+    uses the joint loss, so this remains a genuine, non-vacuous
+    "no accidental detach anywhere in the combined graph" smoke), but
+    smoke_8 below is the ONLY item this suite treats as evidence for
+    sec 1.3.1.3's own "aux loss backprops into the backbone" premise --
+    see its docstring for the honest CPU/box split the audit required."""
     torch.manual_seed(8)
     m = DeltaNetLM(300, d_model=32, d_state=64, n_layers=1, conv_size=4)
     adapter = build_adapter_arm(64, 12)
@@ -385,8 +408,192 @@ def smoke_7_joint_loss_gradients_flow_to_backbone():
     loss = joint_loss(loss_ce, pred, target)
     loss.backward()
     q_proj_grad_nonzero = m.blocks[-1].mixer.q_proj.weight.grad.abs().sum().item() > 0
-    _report("smoke 7: joint aux loss produces nonzero gradient on the backbone's own q_proj "
-            "(gradients genuinely flow, not detached)", q_proj_grad_nonzero)
+    _report("smoke 7: JOINT (CE+aux) loss produces nonzero gradient on the backbone's own q_proj "
+            "-- CONFOUNDED evidence (CE alone would pass this too); see smoke 8 for the isolated "
+            "aux-ONLY claim", q_proj_grad_nonzero)
+
+
+# Per-arm "state-update-feeding" backbone param names checked by smoke_8's aux-ONLY isolation bar.
+# q_proj/q_conv1d are EXCLUDED for EVERY arm (not a per-arm special case): the tap's own dedicated
+# query-pathway call shares q_proj's WEIGHT with the main forward's per-token read use, and the
+# real fla `chunk_delta_rule(q, k, v, beta, initial_state, ...)` kernel signature takes q as an
+# input to the SAME call that produces `final_state` -- this design cannot rule out an internal
+# q-dependence inside the closed production kernel without inspecting its internals, so q_proj is
+# treated as a permanently confounded parameter for this bar, CPU or box, for every arm. The
+# ablation has no k-analog (Hadamard vector state has no key vector) and the Transformer has no
+# beta-gate analog (no b_proj) -- each arm's tuple lists only the projections that genuinely exist
+# and unambiguously feed that arm's own state/context representation.
+_ISOLATION_CHECK_ATTR_PATH = {
+    "contender": ("mixer.k_proj", "mixer.v_proj", "mixer.b_proj"),
+    "ablation": ("mixer.v_proj", "mixer.g_proj"),
+    "transformer": ("attn.k_proj", "attn.v_proj"),
+}
+
+
+def _grad_abs_sums(last_block, attr_paths: tuple[str, ...]) -> dict[str, float | None]:
+    """Reads `.weight.grad` off `last_block.<dotted attr path>` for each path in `attr_paths`,
+    returning None for an untouched (never-backprop'd) param rather than crashing -- the honest
+    way to represent "no gradient reached this parameter" (PyTorch leaves `.grad` as None, it does
+    NOT materialize a zero tensor, until backward() actually routes something there)."""
+    out: dict[str, float | None] = {}
+    for path in attr_paths:
+        mod = last_block
+        for part in path.split("."):
+            mod = getattr(mod, part)
+        grad = mod.weight.grad
+        out[path] = None if grad is None else grad.abs().sum().item()
+    return out
+
+
+def _all_zero_or_none(sums: dict[str, float | None]) -> bool:
+    return all(v is None or v == 0.0 for v in sums.values())
+
+
+def _all_positive(sums: dict[str, float | None]) -> bool:
+    return all(v is not None and v > 0.0 for v in sums.values())
+
+
+def smoke_8_aux_loss_only_gradient_isolation():
+    """AUD-F1 fix (audit §1.20's substantive finding): an AUX-LOSS-ONLY
+    (CE-EXCLUDED) gradient-isolation test, checking grad_abs_sum ONLY on
+    each arm's unambiguous state-feeding projections (see
+    `_ISOLATION_CHECK_ATTR_PATH` above for the per-arm set and the
+    q_proj-exclusion rationale). Backprops ONLY `aux_weight *
+    probe_aux_loss(...)` -- loss_ce is never constructed here, closing the
+    confound smoke_7 could not (loss_ce touching q_proj through the
+    stub's own gate, per the audit's exact wording).
+
+    HONEST CPU/BOX SPLIT (the audit's own confound analysis, restated
+    precisely): the CPU stub's `_stub_chunk_delta_rule` returns
+    `final_state = torch.zeros(..., dtype=q.dtype, device=q.device)` --
+    freshly constructed, `requires_grad=False`, with NO autograd history
+    connecting it to q/k/v/beta. This kills BOTH halves of the contender's
+    tap on CPU: the FORWARD VALUE (`S_T_last @ q_last` is identically the
+    zero tensor, a constant, regardless of q_last) AND the GRADIENT (the
+    einsum's own local derivative w.r.t. q_last IS `S_T_last`, itself
+    zero, so even q_proj's OWN dedicated query-pathway call receives
+    exactly zero gradient from this loss on CPU -- not merely k/v/b).
+    Because the tap is a CONSTANT on CPU, this isolation test cannot
+    exercise the contender's real claim there; the contender arm is
+    therefore registered BOX-ONLY below (mirrors smoke_3's box-only
+    registration discipline exactly: PASS is reported for what CPU CAN
+    prove -- that the stub's disconnection behaves exactly as diagnosed,
+    i.e. k/v/b grad is confirmed zero -- with the limitation stated in
+    the detail string, never silently skipped); the box-side variant
+    (real, differentiable Triton kernel, genuinely nonzero S_T_last) runs
+    in the SAME function below, gated on `not _STUB_INSTALLED`, so the
+    deploy stage exercises it with zero new wiring (checklist item 3,
+    `h2h_box_smoke_checklist.py`).
+
+    Ablation + Transformer arms have NO such stub disconnect -- their
+    state recurrence is real, differentiable PyTorch ops even on CPU --
+    and are PROVEN genuinely nonzero here (the audit's own verification).
+
+    NEGATIVE TEST (required, run to completion for every arm exercised
+    here): the SAME check is repeated with `tap.detach()` fed into the
+    probe -- this must drive every checked grad to EXACTLY zero, proving
+    the positive result above is measuring the aux path specifically and
+    not some unrelated confound (e.g. a stray shared-parameter path)."""
+    ok_all = True
+    aux_w = AUX_WEIGHT_DEFAULT
+
+    def _aux_only_loss(adapter, probe, tap, target, detach: bool = False):
+        fed = tap.detach() if detach else tap
+        pred = probe(adapter(fed))
+        return aux_w * probe_aux_loss(pred, target)
+
+    # ---- ablation arm (CPU-provable, genuinely nonzero) ----
+    torch.manual_seed(41)
+    m_abl = AblationLM(300, d_model=32, d_state=16, n_layers=1, conv_size=4)
+    ctx = torch.randint(0, 300, (2, _CONTENDER_SMOKE_CTX_LEN))
+    q_tok = torch.randint(0, 300, (2, 3, 5))
+    adapter_abl = build_adapter_arm(16, 12)
+    probe_abl = build_shared_probe(12)
+    tap_abl = ablation_native_tap(m_abl, ctx, q_tok)
+    target_abl = torch.randn(2, 3, 12)
+
+    _aux_only_loss(adapter_abl, probe_abl, tap_abl, target_abl).backward()
+    abl_pos = _grad_abs_sums(m_abl.blocks[-1], _ISOLATION_CHECK_ATTR_PATH["ablation"])
+    abl_pos_ok = _all_positive(abl_pos)
+    _report("smoke 8a: ablation arm aux-ONLY (CE-excluded) grad reaches v_proj+g_proj, nonzero "
+            "(CPU-provable)", abl_pos_ok, f"grad_abs_sums={abl_pos}")
+    ok_all = ok_all and abl_pos_ok
+
+    m_abl.zero_grad()
+    _aux_only_loss(adapter_abl, probe_abl, tap_abl, target_abl, detach=True).backward()
+    abl_neg = _grad_abs_sums(m_abl.blocks[-1], _ISOLATION_CHECK_ATTR_PATH["ablation"])
+    abl_neg_ok = _all_zero_or_none(abl_neg)
+    _report("smoke 8a-neg: ablation arm NEGATIVE control -- tap.detach() drives v_proj+g_proj grad "
+            "to exactly zero (proves the positive result measures the aux path specifically)",
+            abl_neg_ok, f"grad_abs_sums={abl_neg}")
+    ok_all = ok_all and abl_neg_ok
+
+    # ---- transformer arm (CPU-provable, genuinely nonzero) ----
+    torch.manual_seed(43)
+    m_tr = TransformerLM(300, d_model=32, n_layers=1, n_heads=4, ffn_mult=2)
+    adapter_tr = build_adapter_arm(32, 12)
+    probe_tr = build_shared_probe(12)
+    tap_tr = transformer_native_tap(m_tr, ctx, q_tok, attn_mask_fn=None)
+    target_tr = torch.randn(2, 3, 12)
+
+    _aux_only_loss(adapter_tr, probe_tr, tap_tr, target_tr).backward()
+    tr_pos = _grad_abs_sums(m_tr.blocks[-1], _ISOLATION_CHECK_ATTR_PATH["transformer"])
+    tr_pos_ok = _all_positive(tr_pos)
+    _report("smoke 8b: transformer arm aux-ONLY (CE-excluded) grad reaches k_proj+v_proj, nonzero "
+            "(CPU-provable)", tr_pos_ok, f"grad_abs_sums={tr_pos}")
+    ok_all = ok_all and tr_pos_ok
+
+    m_tr.zero_grad()
+    _aux_only_loss(adapter_tr, probe_tr, tap_tr, target_tr, detach=True).backward()
+    tr_neg = _grad_abs_sums(m_tr.blocks[-1], _ISOLATION_CHECK_ATTR_PATH["transformer"])
+    tr_neg_ok = _all_zero_or_none(tr_neg)
+    _report("smoke 8b-neg: transformer arm NEGATIVE control -- tap.detach() drives k_proj+v_proj "
+            "grad to exactly zero", tr_neg_ok, f"grad_abs_sums={tr_neg}")
+    ok_all = ok_all and tr_neg_ok
+
+    # ---- contender arm: BOX-ONLY registration (mirrors smoke_3's discipline exactly) ----
+    torch.manual_seed(42)
+    m_con = DeltaNetLM(300, d_model=32, d_state=64, n_layers=1, conv_size=4)
+    adapter_con = build_adapter_arm(64, 12)
+    probe_con = build_shared_probe(12)
+    tap_con = contender_native_tap(m_con, ctx, q_tok)
+    target_con = torch.randn(2, 3, 12)
+
+    _aux_only_loss(adapter_con, probe_con, tap_con, target_con).backward()
+    con_sums = _grad_abs_sums(m_con.blocks[-1], _ISOLATION_CHECK_ATTR_PATH["contender"])
+
+    if _STUB_INSTALLED:
+        # CPU stub: the tap is a disconnected constant (see docstring) -- the ONLY CPU-provable
+        # claim is that k/v/b grad is CONFIRMED exactly zero, i.e. the stub-vacuity diagnosis
+        # itself is correct, NOT that the contender's real aux path works. Registered as a
+        # box-only follow-up smoke item for the deploy stage, not silently skipped.
+        stub_confirms_diagnosis = _all_zero_or_none(con_sums)
+        _report(
+            "smoke 8c: contender arm aux-ONLY grad isolation -- BOX-ONLY (CPU stub's zero, "
+            "disconnected final_state makes S_T_last @ q_last a CONSTANT; k/v/b grad=0.0 here "
+            "CONFIRMS that diagnosis, it is NOT a real pass/fail on the aux path itself -- the "
+            "real claim requires a nonzero, differentiable S_T_last from the actual Triton "
+            "kernel, registered here as a box-only follow-up smoke item for the deploy stage, "
+            "see docstring)", stub_confirms_diagnosis, f"grad_abs_sums={con_sums}")
+        ok_all = ok_all and stub_confirms_diagnosis
+    else:
+        # Box-side (real fla): S_T_last is real and differentiable -- run the actual isolation
+        # claim, positive AND negative arms, exactly like the CPU-provable arms above.
+        con_pos_ok = _all_positive(con_sums)
+        _report("smoke 8c (BOX): contender arm aux-ONLY grad reaches k_proj+v_proj+b_proj, "
+                "nonzero (real Triton kernel)", con_pos_ok, f"grad_abs_sums={con_sums}")
+        ok_all = ok_all and con_pos_ok
+
+        m_con.zero_grad()
+        _aux_only_loss(adapter_con, probe_con, tap_con, target_con, detach=True).backward()
+        con_neg = _grad_abs_sums(m_con.blocks[-1], _ISOLATION_CHECK_ATTR_PATH["contender"])
+        con_neg_ok = _all_zero_or_none(con_neg)
+        _report("smoke 8c-neg (BOX): contender arm NEGATIVE control -- tap.detach() drives "
+                "k_proj+v_proj+b_proj grad to exactly zero", con_neg_ok, f"grad_abs_sums={con_neg}")
+        ok_all = ok_all and con_neg_ok
+
+    _report("smoke 8 (AUD-F1 fix): aux-loss-ONLY (CE-excluded) gradient isolation, all 3 arms "
+            "(ablation+transformer CPU-proven; contender box-only-registered)", ok_all)
 
 
 def main() -> int:
@@ -404,6 +611,7 @@ def main() -> int:
     smoke_5_transformer_tap_uncapped_vs_capped()
     smoke_6_probe_capacity_null_all_three_arm_shapes()
     smoke_7_joint_loss_gradients_flow_to_backbone()
+    smoke_8_aux_loss_only_gradient_isolation()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)

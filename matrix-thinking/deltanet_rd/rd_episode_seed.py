@@ -95,7 +95,9 @@ def smoke_1_collision_freedom() -> None:
     ckpt_idx range (not merely a sample) since 5*12*10,000=600,000 int
     comparisons is cheap in pure Python (~1s), and CLAUDE.md's own
     structural-check rule prefers exact/exhaustive over a sampled proxy
-    wherever affordable."""
+    wherever affordable. This is the practically-reachable sub-range (no
+    current call site exceeds seed_idx=11) -- see smoke_1b below for the
+    FULL runtime-legal seed_idx range (AUD-F2 fix)."""
     seen: dict[int, tuple] = {}
     n = 0
     for task in TASK_BASE:
@@ -113,6 +115,44 @@ def smoke_1_collision_freedom() -> None:
     ok = (n == expected_n == 600_000)
     _report("smoke 1: collision-freedom (5 keys x seed_idx[0..11] x full ckpt_idx[0..9999])", ok,
             f"n_checked={n} (expect {expected_n})")
+
+
+# AUD-F2 fix: sample of ckpt_idx values used by smoke_1b below, deliberately including BOTH runtime
+# boundaries (0 and STRIDE_SEED_RD-1=9999) plus interior points spread across the range -- a SAMPLE,
+# not the full [0,10000) enumeration (audit §1.20's own instruction: "a ckpt_idx sample incl. 0 and
+# 9_999"), because smoke_1b's OWN novelty is widening seed_idx to the full runtime-legal [0,50)
+# range (5 x 50 x this sample = manageable), while ckpt_idx's full-range exhaustiveness is already
+# covered by smoke_1 above at the practically-reached seed_idx<=11 sub-range.
+CKPT_IDX_SAMPLE = sorted({0, 1, 2, STRIDE_SEED_RD // 2, STRIDE_SEED_RD - 2, STRIDE_SEED_RD - 1})
+
+
+def smoke_1b_collision_freedom_full_seed_idx_range() -> None:
+    """AUD-F2 fix: the audit's mutation (c) found smoke_1's ORIGINAL
+    seed_idx<=11 sub-range blind to any collision only reachable at
+    seed_idx in [12,49] -- e.g. a TASK_BASE key shrunk enough that only a
+    seed_idx>=12 offset from the PRECEDING key's block reaches into it.
+    Extends the exhaustive enumeration to the FULL runtime-legal seed_idx
+    range (rd_episode_seed's own `assert 0 <= seed_idx < 50`), crossed
+    with `CKPT_IDX_SAMPLE` (a deliberate sample, not the full ckpt_idx
+    range, at this wider seed_idx span -- see that constant's own
+    docstring) x all 5 TASK_BASE keys."""
+    seen: dict[int, tuple] = {}
+    n = 0
+    for task in TASK_BASE:
+        for seed_idx in range(50):
+            for ckpt_idx in CKPT_IDX_SAMPLE:
+                s = rd_episode_seed(task, seed_idx, ckpt_idx)
+                key = (task, seed_idx, ckpt_idx)
+                if s in seen:
+                    _report("smoke 1b: collision-freedom (5 keys x FULL seed_idx[0..49] x "
+                            "ckpt_idx sample)", False, f"collision: {key} vs {seen[s]} -> seed {s}")
+                    return
+                seen[s] = key
+                n += 1
+    expected_n = len(TASK_BASE) * 50 * len(CKPT_IDX_SAMPLE)
+    ok = (n == expected_n)
+    _report("smoke 1b: collision-freedom (5 keys x FULL runtime-legal seed_idx[0..49] x ckpt_idx "
+            f"sample {CKPT_IDX_SAMPLE})", ok, f"n_checked={n} (expect {expected_n})")
 
 
 def smoke_2_seed_idx_negative_test() -> None:
@@ -172,14 +212,24 @@ def smoke_4_unknown_task_negative_test() -> None:
 
 
 def smoke_5_cross_task_margin() -> None:
-    """Arithmetic sanity: the widest legal (seed_idx, ckpt_idx) pair under the RUNTIME bound
-    (seed_idx<50, not merely the smoke's practical seed_idx<=11) still lands strictly below the
-    next TASK_BASE key's own base -- the load-bearing arithmetic fact the module docstring claims,
-    checked directly rather than merely asserted in prose."""
+    """AUD-F2 fix: derived from the LIVE TASK_BASE dict, never a hardcoded
+    500_000. The audit's own mutation test (shrink `task1_stress` to
+    400_000 in a scratchpad copy) found the PRE-FIX version of this check
+    compared against a hardcoded 500_000 constant -- so it kept PASSING
+    even when the real dict's own spacing had shrunk below the widest
+    legal offset, i.e. it was checking the WRONG number, INERT to the
+    exact class of bug it exists to catch. Fix: compute the MINIMUM
+    pairwise spacing between any two TASK_BASE bases directly from the
+    dict, and assert the widest runtime-legal (seed_idx, ckpt_idx) offset
+    stays strictly below THAT (not a constant that can silently drift out
+    of sync with the dict it's supposed to describe)."""
+    bases = sorted(TASK_BASE.values())
+    min_spacing = min(b - a for a, b in zip(bases, bases[1:]))
     widest = 49 * STRIDE_SEED_RD + (STRIDE_SEED_RD - 1)
-    ok = widest < 500_000
-    _report("smoke 5: widest runtime-legal (seed_idx=49, ckpt_idx=9999) offset stays < 500,000 "
-            "(the TASK_BASE key spacing)", ok, f"widest_offset={widest}")
+    ok = widest < min_spacing
+    _report("smoke 5: widest runtime-legal (seed_idx=49, ckpt_idx=9999) offset stays < the LIVE "
+            "TASK_BASE dict's own minimum pairwise base spacing (not a hardcoded constant)", ok,
+            f"widest_offset={widest} min_TASK_BASE_spacing={min_spacing} bases={bases}")
 
 
 def main() -> int:
@@ -187,6 +237,7 @@ def main() -> int:
     print("rd_episode_seed.py -- HEAD_TO_HEAD_DEMO_DESIGN.md sec 1.3.1 (F1b) smoke suite")
     print("=" * 70)
     smoke_1_collision_freedom()
+    smoke_1b_collision_freedom_full_seed_idx_range()
     smoke_2_seed_idx_negative_test()
     smoke_3_ckpt_idx_negative_test()
     smoke_4_unknown_task_negative_test()

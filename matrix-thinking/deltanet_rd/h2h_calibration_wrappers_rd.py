@@ -71,7 +71,15 @@ def build_task3_calibration_manifest() -> list[dict]:
     run (NOT re-run here -- registered as `reused`, never a phantom extra
     cell); the ablation reuses the contender's pinned LR (1 full cell); the
     Transformer gets its OWN 3-point LR grid (M3) at quarter-budget (3
-    cells) -- 1 full + 3 quarter, matching sec 1.6's own costed line."""
+    cells) -- 1 full + 3 quarter, matching sec 1.6's own costed line.
+
+    AUD-F4 (build audit §1.20, cosmetic): task3's own seed schedule below
+    reuses `task2_calib`'s TASK_BASE key (task3 has no dedicated
+    on-the-fly-generation seed need -- it trains on STATIC corpora, sec
+    1.4 -- so its own seed only needs to be collision-free against the
+    OTHER on-the-fly tasks, which `task2_calib`'s key already guarantees
+    by construction) -- mirrors `h2h_sweep_runner_rd.py:39-43`'s own
+    identical reasoning for the 27-cell sweep manifest's task3 rows."""
     cells = [{"arch": "contender", "task": "task3_calib", "role": "reused_not_relaunched",
               "budget_frac": 0.0, "seed": None, "lr": CONTENDER_LR, "warmup_steps": WARMUP_STEPS,
               "note": "FROZEN_BIAS_LM_DESIGN.md's own rung-1 run -- not re-launched this wave"},
