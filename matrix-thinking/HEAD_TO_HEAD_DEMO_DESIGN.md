@@ -1,32 +1,40 @@
 # HEAD-TO-HEAD DEMO — the program's capstone question
 
-## §1 DESIGN — HEAD-TO-HEAD DEMO (Rev 2, post-attack-round-2 revision,
+## §1 DESIGN — HEAD-TO-HEAD DEMO (Rev 3, post-attack-round-3 revision,
 2026-07-08) — does the matrix-native fast-weight model beat a matched
 conventional baseline on real tasks at meaningful scale, or is its value
 honestly bounded?
 
-Status: **Rev 2, pre-attack (round 3 pending), zero GPU spent.** Rev 0
+Status: **Rev 3, pre-attack (round 4 pending), zero GPU spent.** Rev 0
 (§1.1-1.12 below) was independently attacked and returned NEEDS-REVISION
 (§1.13, retained verbatim as the record: 2 FATAL-caliber + 3 MAJOR + 2
 MINOR findings), resolved by Rev 1 (§1.14). Rev 1 was independently
 attacked a second time and ALSO returned NEEDS-REVISION (§1.15, retained
 verbatim as the record: 2 FATAL findings on axis 2 — a degenerate
 cap_length at rung-1 and an undisclosed train/eval attention mismatch,
-both with mandated INFERENCE-ONLY fixes — + 4 MAJOR + 2 minor). This Rev 2
-resolves every §1.15 finding **structurally, staying inference-only per
-the binding M-NEW-4 budget constraint** (a memory-multiplier sweep
-replaces the single degenerate equal-byte point; an attention-sink
-eviction patch partially mitigates the train/eval mismatch, with the full
-cap-trained fix registered, costed, and deferred as a follow-on, never
-silently absorbed) — §1.16 maps each finding to its exact resolution and
-flags the one item that could not be closed with full margin (the Wave −1
-GPU-h fit, now thinner than any prior revision — §1.6). Ratified by the PI
-as the program's capstone question. **This design absorbs one mid-drafting
-PI directive** (received during Rev-0 authorship, before first commit —
-see the note at the top of §1.3) that re-pointed the comparison framing
-toward the future's binding constraints (data/quality scarcity,
-inference-memory/HBM scarcity) rather than today's compute-FLOPs framing;
-nothing below §1.3 predates that directive.
+both with mandated INFERENCE-ONLY fixes — + 4 MAJOR + 2 minor). Rev 2
+resolved every §1.15 finding structurally, staying inference-only per the
+binding M-NEW-4 budget constraint (§1.16). Rev 2 was independently attacked
+a third time and ALSO returned NEEDS-REVISION (§1.17, retained verbatim as
+the record: 2 FATAL findings — a mathematically broken tap-expressivity
+diagnostic, numerically proven broken by the attack itself, and an
+underpowered/biased `M*` statistical procedure — + 2 MAJOR + 2 minor).
+**This Rev 3 resolves every §1.17 finding**, replacing the broken
+diagnostic with a K-simultaneous-bindings construction that this revision
+itself numerically executed pre-commit (§1.3.1.5), replacing the `M*`
+search with a DESCENDING fixed-sequence gatekeeping test that actually
+controls axis-2's within-grid FWER (§1.4.2), pinning
+`n_layers_transformer=2` and remapping the verdict tiers onto the
+resulting eligible grid with the WIN bar made HARDER, not easier (§1.4.2),
+and closing the remaining MAJOR/minor findings (§1.7 gate 2's M-sweep
+timing pilot, the `seed_idx` runtime bound, and the `M=1` cost
+double-count) — §1.18 maps each §1.17 finding to its exact Rev 3
+resolution. Ratified by the PI as the program's capstone question. **This
+design absorbs one mid-drafting PI directive** (received during Rev-0
+authorship, before first commit — see the note at the top of §1.3) that
+re-pointed the comparison framing toward the future's binding constraints
+(data/quality scarcity, inference-memory/HBM scarcity) rather than today's
+compute-FLOPs framing; nothing below §1.3 predates that directive.
 
 ---
 
@@ -98,6 +106,14 @@ including the FLOP-matched control's demoted role, in §1.3-1.4):**
 | **WIN** | Contender beats its axis-appropriate baseline beyond the pre-registered margin on **at least one** of the two primary axes (data-efficiency OR inference-memory-matched), CI excludes the margin | Headline capstone result, framed by whichever axis won (the "future's constraints" framing the PI directive supplies: quality-data scarcity for data-efficiency, HBM/memory scarcity for inference-memory-matched — "constant-memory minds" if axis 2 wins). The OTHER axis's actual result (win, tie, or loss) is disclosed alongside, never hidden. The FLOP-matched control result is reported too, as the "today's scarcity caveat" — if the contender loses that control while winning a primary axis, the paper says so explicitly (a real, common, honestly-reportable pattern: worse today, better where the future is heading). |
 | **TIE** | Neither primary axis wins NOR loses beyond its margin (both CIs land inside their TIE bands) | Itself informative: matrix structure costs nothing on the axis(es) that matter for the future, while carrying the program's other proven properties (rank-recruitment, composition) a vector/capped-cache baseline cannot match by construction. |
 | **LOSE** | Neither primary axis wins, AND at least one primary axis's baseline beats the contender beyond its own margin (CI excludes the margin) | Reported plainly — this is `CLAUDE.md`'s "making matrix ops cheaper does NOT fix the quality gap" rule biting for real, on axes chosen specifically to favor the contender. Paper framing narrows to the smaller, still-true claims already banked (rank recruitment, exact composition, no-cliff capacity, in isolation) with the end-to-end claim explicitly bounded. No result is re-run or re-scoped to avoid this outcome (§1.5's escalation rule: never escalate a loss to make it win). |
+
+**Axis 2's WIN/TIE/LOSE cells above are themselves determined by a
+crossover-multiplier `M*` read off a pinned, descending fixed-sequence
+statistical test over a 6-point memory-multiplier grid, not a single CI
+(R3-F2/R3-F3, Rev 3, full statement in §1.4.2) — an `INDETERMINATE` fourth
+read is possible (an unresolved CI straddle after the §1.8 contingency
+path) and is explicitly NOT a WIN, reported as underpowered and treated as
+TIE-adjacent for escalation eligibility (§1.5).**
 
 Multiple-comparison discipline for the 2-primary-axis OR-win structure
 (full statement in §1.8): each axis keeps its own nominal 95% CI, no
@@ -617,67 +633,139 @@ is a hard launch-block for the responsible arm's probe design — this is
 what closes the F1-mandated "probe-parity confound... closed by
 construction" requirement with an actual negative test, not an assertion.
 Cost: negligible (no backbone), see §1.6 Wave −1 item B (item B's scope
-extended, Rev 2, to also run §1.3.1.5's cross-dimension tap diagnostic —
-same CPU-feasible, no-backbone harness, no separate cost line).
+extended, Rev 2, to also run §1.3.1.5's tap-expressivity diagnostic —
+now the Rev-3 K-simultaneous-bindings construction, R3-F1 — same
+CPU-feasible, no-backbone harness, no separate cost line).
 
-**1.3.1.5 Synthetic cross-dimension tap diagnostic (M-NEW-2, Rev 2 — new,
-CPU-only/negligible-GPU, reuses §1.3.1.4's frozen-synthetic-state
-harness).** Closes the gap self-attack item 10 names: the contender's
-native tap is a full matrix-vector product `S_T @ q` (every output
-dimension is a function of every input dimension of `q` — full
-cross-dimension mixing), while the flat-vector ablation's native tap is a
-Hadamard product `s_T ⊙ q` (diagonal-only — output dimension `i` is a
-function of input dimension `i` alone, structurally). This is an
-irreversible expressivity gap the shared linear `adapter_arm`/
-`shared_probe` (§1.3.1.2) CANNOT repair (a linear map fed a
-diagonal-only-derived vector cannot recover information that was never
-routed through cross-dimension terms in the first place), and it is NOT
-exercised by §1.3.1.4's null (which uses i.i.d. Gaussian inputs with no
-adversarial diagonal/off-diagonal structure at all). This diagnostic
-bounds — not eliminates — how much of any REAL axis-1 gap tap
-expressivity alone could explain:
+**1.3.1.5 K-simultaneous-bindings tap-expressivity diagnostic (M-NEW-2,
+Rev 2 — REPLACED, Rev 3, R3-F1: the Rev-2 single-pair diagonal/off-diagonal
+energy-split diagnostic was independently NUMERICALLY EXECUTED by attack
+round 3 and found mathematically broken.** Cosine similarity is
+scale-invariant, and `target_effective := S_star @ q` stays near-parallel
+to `t` for ANY `alpha > 0` (the off-diagonal-zeroing perturbation is only
+`O(1/√d)`) — the "calibration curve" the Rev-2 construction traced was a
+degenerate step function (cos≈0.9999 at `alpha=0.25..1.0`, dropping to 0
+only at the single point `alpha=0`), not the graduated bound it was meant
+to be; the matvec side was tautologically 1.0 by construction throughout.
+**ROOT CAUSE (§1.17):** single-`(q,t)`-pair reachability — a diagonal
+(Hadamard) read can always hit exactly ONE target exactly (`d` unknowns,
+`d` constraints), so the diagonal-vs-matvec expressivity gap only bites
+under MULTIPLE SIMULTANEOUS bindings held in one state, which the
+single-pair construction never tested. M-NEW-2 was therefore disclosed
+honestly but its mechanism was nonfunctional — this section is the
+working replacement, itself numerically verified below BEFORE being
+committed, per the round-3 process mandate ("a second broken diagnostic
+would be a gauntlet failure").
+
+**Construction, pinned exactly.** For `K` simultaneous `(q_i, t_i)`
+bindings, `K ∈ {1, 2, 4, 8, 16, 32, 48, 64}` (`d_state=64` at rung-1 — the
+diagnostic is re-run at `d_state=128` for the escalation rung, same code,
+new `d`), draw `q_i`, `t_i` as independent random unit vectors in
+`R^{d_state}` (fresh RNG each trial; seed independent of `T_val`'s
+`PROBE_TARGET_SEED` and `key_anchoring.py`'s `ANCHOR_INIT_SEED`, per this
+design's own never-share-a-frozen-table-seed rule), and fit each tap
+family's BEST POSSIBLE state to ALL `K` pairs SIMULTANEOUSLY (not one pair
+at a time, which is exactly what let the retired diagnostic slip past the
+real bound):
 
 ```
-for alpha in {0.0, 0.25, 0.5, 0.75, 1.0}:        # diagonal-energy fraction
-    q      = unit vector, R^{d_state}            # fresh draw, independent RNG
-    t      = unit vector, R^{d_state}             # fresh target, seed != PROBE_TARGET_SEED,
-                                                    # seed != ANCHOR_INIT_SEED (never reuse a
-                                                    # frozen-table seed for a diagnostic input)
-    D      = diag(alpha * t / q)                  # elementwise solve: D @ q == alpha * t exactly
-                                                    # (guard |q_i| >= eps via the same
-                                                    # random_unit_rows_init-style draw that
-                                                    # already avoids axis-degenerate vectors)
-    O      = ((1 - alpha) * t) @ q^T / (q . q)     # rank-1 solve: O @ q == (1-alpha)*t exactly
-    O_offdiag = O - diag(diag(O))                  # zero O's own diagonal; keep only cross-dim terms
-    S_star = D + O_offdiag                         # synthetic state: exact diag/off-diag energy split
-    target_effective = S_star @ q                  # the REAL, exactly-achievable target for THIS S_star
-                                                     # (recomputed after zeroing O's diagonal, so the
-                                                     # construction is exact, never approximate)
-    hadamard_pred = diag(S_star) . q                # = D . q = alpha * t, by construction
-    matvec_pred   = S_star @ q                      # = target_effective, by construction (exact)
-    score both preds against target_effective via the SAME F.cosine_similarity @ 0.9 metric
+# matvec tap family: S in R^{d x d} minimizing sum_i ||S q_i - t_i||^2
+#   Q = [q_1 ... q_K]   (d x K, columns are the queries)
+#   T = [t_1 ... t_K]   (d x K, columns are the targets)
+#   S = T @ pinv(Q)                       # least-squares / minimum-norm solution
+#   matvec_pred_i = S @ q_i  for each i   # = (S @ Q).T, one matmul
+
+# Hadamard tap family: s in R^d minimizing sum_i ||s (.) q_i - t_i||^2
+# NOTE (per R3-F1's own instruction): this least-squares problem is
+# SEPARABLE PER-COORDINATE -- coordinate j appears only in the j'th term
+# of every ||...||^2, so each s_j is an INDEPENDENT 1-D least-squares fit,
+# solvable in closed form (no numerical solver needed):
+#   s_j = ( sum_i q_i[j] * t_i[j] ) / ( sum_i q_i[j]^2 )      for j = 1..d
+#   had_pred_i = s (.) q_i  for each i
 ```
 
-At `alpha=0`, `D=0` by construction: the Hadamard tap is mathematically
-guaranteed `recovered_frac@0.9 = 0` (it reads zero diagonal, always) while
-the matvec tap is guaranteed `recovered_frac@0.9 = 1` (it reads the exact
-target by construction) — the worst-case, maximal-adversarial bound (a
-100-percentage-point gap attributable to tap expressivity ALONE, on a
-construction designed to defeat a diagonal-only reader). Sweeping
-`alpha ∈ {0, 0.25, 0.5, 0.75, 1.0}` traces a **calibration curve**
-(`alpha → Hadamard-tap recovered_frac`, monotonically increasing from 0 to
-1) that a real ablation's measured axis-1 Hadamard-tap `recovered_frac`
-can be read against, at analysis time, to report an implied "as-if diagonal
-fraction" for the ablation's own trained states — a genuine, quantitative
-bound on the tap-expressivity confound's contribution to any observed
-axis-1 gap, not merely a qualitative disclosure. **What this diagnostic
-does NOT do:** it does not measure the REAL ablation's actual diagonal
-fraction (that would require a separate post-hoc measurement on real
-trained states, out of scope this wave, registered as a cheap potential
-follow-on); it only establishes the theoretical mapping a real number can
-be read against. Cost: CPU-only (linear algebra on `d_state`-dimensional
-vectors, no backbone forward pass, no training loop), folds into §1.6
-Wave −1 item B at no additional GPU-h.
+Score both families' predictions against the SAME frozen-formula
+cosine-recovery metric this design uses everywhere
+(`F.cosine_similarity(pred_i, t_i, dim=-1)` @ 0.9), report
+`recovered_frac@0.9` = fraction of `(trial, i)` pairs clearing the
+threshold, over `>=100` trials per `K` (200 used below).
+
+**Expected analytic behavior, stated before the numbers (R3-F1's own
+requirement).** The matvec tap has `d^2` free parameters against `K*d`
+scalar constraints — for `K <= d` and generic (random) `q_i`, `Q` has full
+column rank `K`, the system `S @ Q = T` is under-determined-but-consistent,
+and the least-squares/minimum-norm solution recovers every target
+NEAR-EXACTLY (`recovered_frac@0.9 -> 1` for all `K <= d`). The Hadamard tap
+has only `d` free parameters (one scalar per coordinate) against the same
+`K*d` constraints — for `K=1` it is ALSO exactly solvable (`d` equations,
+`d` unknowns, one per coordinate); for `K >= 2`, each coordinate's single
+scalar `s_j` must simultaneously satisfy `K` generically-inconsistent
+equations, so the fitted read collapses toward the noise floor of an
+uninformative 1-parameter regression on independent random data
+(`recovered_frac@0.9 -> 0` for `K >= 2`, with the mean cosine of the
+best-fit read decaying `~ 1/sqrt(K)`).
+
+**Numerically executed, pre-commit — `d=64`, `n_trials=200` per `K`,
+`threshold=0.9`, seed reuses `PROBE_TARGET_SEED=20260709` for
+continuity/reproducibility, fresh independent `q_i`/`t_i` draws every
+trial (script: pure-numpy least-squares/closed-form fit, no backbone, no
+GPU; run in the design-review scratchpad before this commit, exactly the
+process R3-F1 mandated):**
+
+| K | matvec `recovered_frac@0.9` | Hadamard `recovered_frac@0.9` | Hadamard mean cosine |
+|---|---|---|---|
+| 1 | 1.000000 | 1.000000 | 1.0000 |
+| 2 | 1.000000 | 0.000000 | 0.7056 |
+| 4 | 1.000000 | 0.000000 | 0.4964 |
+| 8 | 1.000000 | 0.000000 | 0.3506 |
+| 16 | 1.000000 | 0.000000 | 0.2459 |
+| 32 | 1.000000 | 0.000000 | 0.1747 |
+| 48 | 1.000000 | 0.000000 | 0.1433 |
+| 64 | 1.000000 | 0.000000 | 0.1226 |
+
+**The numbers confirm the expected analytic behavior exactly — no spec
+change needed** (per the round-3 process instruction's own contingency:
+"if your numbers contradict the expected behavior, fix the spec, not the
+numbers" — here they agree). matvec recovers every `K <= d=64` exactly
+(the MINIMUM cosine across all `200*64=12,800` `(trial,i)` pairs at `K=64`
+was `1.00000000` — checked directly, not inferred from the mean, since
+`K=64` makes `Q` square and occasionally near-singular by chance, which
+produced large-but-non-corrupting intermediate values in the least-squares
+solve, verified clean). Hadamard recovers `K=1` exactly (trivially, one
+scalar per coordinate against one constraint) and then COLLAPSES
+COMPLETELY at `K>=2` (zero items cleared 0.9 out of `200*K` trials at
+every `K` from 2 to 64), with the mean cosine decaying as a clean
+`~1/sqrt(K)` power law (0.7056 -> 0.4964 -> 0.3506 -> 0.2459 -> 0.1747 ->
+0.1433 -> 0.1226, consistent with successive `sqrt(2)`-ratio steps in
+`K`), matching the "correlation floor of a 1-parameter fit to independent
+random data" prediction exactly.
+
+**This IS the tap-expressivity bound for axis-1 interpretation (restated,
+now on a working instrument):** any observed contender-vs-ablation
+`recovered_frac@0.9` gap at a real load `K` (the K-entity pool, §1.4's M1
+K/d re-pin) SMALLER than this diagnostic's gap at that SAME `K` cannot be
+attributed to architecture (matrix state vs. vector state) over tap
+(matvec-read vs. Hadamard-read) — a Hadamard tap facing `K>=2` simultaneous
+bindings is expected to collapse toward the `~1/sqrt(K)` floor REGARDLESS
+of what the underlying vector state actually stores, on this diagnostic's
+own exact, adversarial-fit construction. Concretely, at the primary load
+`K=32` (§1.4, M1), this diagnostic's own floor is `recovered_frac@0.9 = 0`
+for the Hadamard tap family — so if the real trained ablation's axis-1
+`recovered_frac@0.9` at `K=32` is ALSO near zero, that alone does not
+distinguish "the vector state failed to hold the bindings" from "the
+vector state held the bindings fine, but the Hadamard tap structurally
+cannot read out more than one of them" — the two readings are
+observationally identical at this diagnostic's own worst-case bound, and
+only a real, trained-state measurement (a genuine follow-on, out of scope
+this wave, same limit already disclosed for the retired Rev-2 diagnostic)
+can separate them. **What this diagnostic does NOT do (unchanged from Rev
+2's own honest scope limit):** it does not measure the ablation's REAL
+trained states' diagonal/off-diagonal energy split; it establishes the
+theoretical K-vs-recovery mapping a real measured number is read against.
+Cost: CPU-only (a `pinv`/least-squares solve per trial on
+`d_state`-dimensional vectors, no backbone forward pass, no training
+loop), folds into §1.6 Wave −1 item B at no additional GPU-h, unchanged
+from Rev 2.
 
 **F1b — Tasks 1/2 data-matching (compounding finding, resolved here).**
 Rev 0's §1.3(b) same-data prescription covered only Task 3's static
@@ -705,6 +793,11 @@ STRIDE_STEP_RD = 1        # per-checkpoint-index stride (raw checkpoint index, n
 
 def rd_episode_seed(task: str, seed_idx: int, ckpt_idx: int) -> int:
     assert task in TASK_BASE, f"unknown task key {task!r}"
+    assert 0 <= seed_idx < 50, \
+        f"seed_idx={seed_idx} out of bounds [0,50) -- seed_idx*STRIDE_SEED_RD would overflow " \
+        f"into the next TASK_BASE key's own 500,000-wide range (R3-F5, Rev 3 runtime assert -- " \
+        f"the ckpt_idx bound below had one from M-NEW-1/Rev 2; seed_idx did not, an asymmetry " \
+        f"attack round 3 caught: seed_idx=50 on task1_calib collides with task1_stress's own seed_idx=0)"
     assert 0 <= ckpt_idx < STRIDE_SEED_RD, \
         f"ckpt_idx={ckpt_idx} >= STRIDE_SEED_RD={STRIDE_SEED_RD} -- would overflow into the " \
         f"next seed_idx's own seed range (m-new-1, Rev 2 runtime assert)"
@@ -734,7 +827,11 @@ negative unit test... to completion" rule on structural checks). The
 `seed_idx∈[0,11]` bound in the smoke's own enumeration matches the
 seed-extension contingency's own ceiling (§1.8, n=12); the `ckpt_idx`
 bound is the m-new-1 runtime assert above, exercised by its own
-negative-test cell (`ckpt_idx = STRIDE_SEED_RD` must raise).
+negative-test cell (`ckpt_idx = STRIDE_SEED_RD` must raise). **The
+`seed_idx` bound is likewise now a runtime assert (R3-F5, Rev 3 — the
+`ckpt_idx` bound had one from M-NEW-1, `seed_idx` did not, an asymmetry
+attack round 3 caught), exercised by its own dedicated negative-test cell
+(`seed_idx = 50` must raise).**
 
 ---
 
@@ -934,33 +1031,80 @@ bf16 disclosed:**
 | 32 | 512 | 1024 | 256 | 512 |
 
 (formula: `cap_length(M) = M × 32,768 / (2 × n_layers_transformer ×
-d_model × bytes_per_elt)`; MATCH-GATE, §1.7 gate 6, resolves the REAL
-`n_layers_transformer` from the actual param/FLOP-matching build and
-computes the real table, not this illustrative `d_model≈256` sketch.)
+d_model × bytes_per_elt)`; MATCH-GATE, §1.7 gate 6, **verifies the PINNED
+`n_layers_transformer=2` (R3-F3, below) actually achieves the ≤1%/≤5%
+param/FLOP match within the admissible `d_model≈256` family, and computes
+the real table from that pinned config**, not this illustrative sketch,
+and NOT an arbitrary value the matching build happens to fall out to.)
 
-**Grid-endpoint rule, pinned exactly (F-NEW-1).** Run the full fixed grid
-`M ∈ {1,2,4,8,16,32}` for the MATCH-GATE-resolved config, UNLESS the
-empirical crossover `M*` (defined below) is found at a smaller `M`, in
-which case remaining larger-`M` cells for that (task, horizon) MAY be
-skipped (pre-registered cost-saving, not a post-hoc stopping rule). Two
-conditions justify `M=32` as the grid's fixed, cost-bounded practical
-ceiling if no crossover is found earlier: (i) **floor clearance** — every
-grid config clears the `≥13`-token minimum-viable floor (holds at least
-one bind clause + the query window) by `M=2` at the latest (worst case
-`n_layers=2`, fp32: `cap_length(2)=16≥13`; `n_layers=1` clears it already
-at `M=1`); grid points BELOW the floor for the resolved config (only
-possible at `M=1`, `n_layers=2`, fp32: `cap_length=8<13`) are reported as
-descriptive-only and are NEVER eligible to set `M*` (avoids an ill-posed
-"crossover" whose cause is "can't hold the query window at all," not
-memory-insufficiency); (ii) **cost bound** — `M=32` is exactly the
-`≈6 M-values` this design's own Wave −1 budget (§1.6 item F) prices; it is
-NOT claimed to be the mathematically exhaustive point past which the
+**`n_layers_transformer`, PINNED (R3-F3, Rev 3 — previously left to fall
+out of the param/FLOP-matching build; attack round 3 found this unpinned
+choice could silently gate which verdict tiers are even REACHABLE, since
+the two FLOP-admissible options, `n_layers∈{1,2}`, land at different
+floor-eligibility boundaries).** Pinned: **`n_layers_transformer = 2`**,
+matching the contender's own `n_layers=2` at rung-1 (§1.2's architecture
+pin) — the same "remove an asymmetry axis wherever the design has a free
+choice" logic already applied to the shared `FFN` class and the pre-norm
+convention (§1.3(b)): a depth-matched Transformer is the more defensible
+"same overall architecture depth budget" comparison, not an unpinned
+choice that happens to fall out of whichever `d_model`/`n_layers`
+combination the FLOP-matching search finds first. **Consequence, verified
+(the exact arithmetic R3-F3 asked to be checked):** at `n_layers=2`, fp32,
+`cap_length(M=1) = 1×32,768/(2×2×256×4) = 8` tokens — BELOW the
+`≥13`-token floor (query_len 6 + one bind clause 7) — so `M=1` is a
+floor-excluded, descriptive-only grid point at this pinned config
+(unchanged fact, already stated in the grid-endpoint rule below; what's
+NEW is that `M=1` can therefore never be assigned as `M*`, closing off
+Rev 2's own `LOSE if M*≤1` tier by construction). The smallest ELIGIBLE
+grid point is `M=2` (`cap_length = 2×32,768/(2×2×256×4) = 16 ≥ 13`, clears
+the floor). This reshapes which `M*` values are reachable at all:
+`M* ∈ {2, 4, 8, 16, 32, ∞}` only — the verdict tiers are remapped onto
+this eligible set below, after the statistical procedure that determines
+`M*` itself.
+
+**Grid-endpoint rule, pinned exactly (F-NEW-1; skip DIRECTION corrected,
+Rev 3, R3-F2 — the descending fixed-sequence procedure below walks
+`M=32→...→2`, so the cells that MAY be skipped are the SMALLER-`M` cells
+below a clean stop, not "remaining larger-`M`" as an ascending framing
+would have it).** The DEFAULT is to run the full fixed grid
+`M ∈ {1,2,4,8,16,32}` (6 points; `M=1` REPORTED but floor-excluded from
+`M*`-eligibility at the pinned `n_layers=2` config, R3-F3, above) for
+every `(task, horizon, seed)` combination — this is what §1.6 item F's own
+90-pass budget prices, as the conservative default. **Cost-saving
+exception (pre-registered, not a post-hoc stopping rule):** if the
+fixed-sequence walk (§1.4.2's win-margin procedure, below) hits a CLEAN
+(non-straddling) failure-to-reject at some eligible `M_0` while descending
+from `M=32`, the cells for the SMALLER eligible `M`'s below `M_0` for that
+`(task, horizon)` MAY be skipped — under the monotonicity assumption the
+walk already relies on, they would also fail to reject. **This shortcut is
+NEVER used to certify the `CONFIRMED no-crossover` / `M*=∞` STRONGEST-WIN
+claim** (below) — that claim specifically requires the FULL eligible grid
+to have been run and every point individually confirmed clean, the more
+defensible, assumption-light bar for a headline claim, even though the
+bare fixed-sequence theory would permit stopping after a single clean
+non-rejection at `M=32` itself. Two conditions justify `M=32` as the
+grid's fixed,
+cost-bounded practical ceiling if no crossover is found earlier: (i)
+**floor clearance** — the eligible grid clears the `≥13`-token
+minimum-viable floor (holds at least one bind clause + the query window)
+starting at `M=2` (`cap_length(2)=16≥13` at the pinned `n_layers=2`,
+fp32); `M=1` is the only grid point BELOW the floor at this pin
+(`cap_length=8<13`) and is reported as descriptive-only, NEVER eligible to
+set `M*` (avoids an ill-posed "crossover" whose cause is "can't hold the
+query window at all," not memory-insufficiency); (ii) **cost bound** —
+`M=32` is exactly the practical ceiling this design's own Wave −1 budget
+prices (6-point grid total: 5 eligible `M`-values priced in §1.6 item F,
+plus the descriptive `M=1` point priced inside the eval-overhead line,
+R3-F6); it is NOT claimed to be the mathematically exhaustive point past
+which the
 Transformer's capped role provably equals its uncapped (b-control) role at
 every tested horizon (that would require `M` in the low hundreds at the
 primary horizon, well beyond this wave's affordable, inference-only
-scope) — if `M*` is not found by `M=32`, Rev 2 reports **"`M*` not
-reached within the tested grid"** honestly (the `M*=∞` edge case, below),
-not a false claim of having found the true asymptote.
+scope) — if the fixed-sequence walk (below) exhausts the eligible grid
+without ever rejecting, this design reports **"`M*` not reached within the
+tested grid"** honestly (the `CONFIRMED no-crossover` / `INDETERMINATE`
+split, below, R3-F2c), not a false claim of having found the true
+asymptote.
 
 **Horizons, re-pinned as ABSOLUTE token counts derived from task geometry
 (F-NEW-1's own mandate — the old `2×/4×/8× cap_length` multiples are now
@@ -995,55 +1139,174 @@ recurrent state is not architecturally prevented from doing so — whether
 it ACTUALLY does, and at what memory premium, is exactly what the `M`
 sweep measures, not assumed).
 
-**Win margin, re-registered in terms of the crossover multiplier `M*`
-(F-NEW-1).** `M*` = the SMALLEST `M` in the grid at which
-`recovered_frac@0.9`(contender) − `recovered_frac@0.9`(b-primary, `M`) at
-the PRIMARY horizon (H4, 902 tokens) comes within the old 0.20 margin —
-i.e. the paired `delta_ci_n` (n=3) CI on that gap EXCLUDES 0.20 on the
-high side (the gap is CI-detectably `<0.20`), restricted to grid points
-that clear the `≥13`-token floor (above). **Thresholds, pinned with their
-one-sentence justification each:**
+**Win margin, statistical procedure (R3-F2, Rev 3 — REPLACES Rev 2's
+single-CI-per-grid-point framing, which attack round 3 found (a)
+systematically biased toward the strongest-WIN default under n=3 noise,
+(b) silent on within-axis-2 multiplicity across the 6-point grid, and (c)
+conflated "underpowered" with "confirmed no-crossover" inside the
+`M*=∞` edge case).**
 
-- **WIN if `M* ≥ 4`** — "the transformer needs at least 4× the
-  contender's own bytes to match its recall" is a defensible, inspiring
-  headline without overclaiming an unbounded advantage; the ACTUAL `M*`
-  value (4, 8, 16, 32, or `∞`) is reported alongside the WIN tier, since
-  "needs 8×" and "needs 32×" are both WINs but very different in
-  narrative strength.
-- **TIE if `M* = 2`** — a modest, real memory premium; matches this
-  design's own TIE semantics (structure costs nothing extra, doesn't
-  obviously save much either) at a byte-doubling a careful reviewer would
-  call "close."
-- **LOSE if `M* ≤ 1`** — the transformer already matches at exact byte
-  parity (the old Rev-1 point); the constant-memory story has no
-  empirical teeth at this scale, reported plainly, not softened.
-- **Edge case `M* = ∞`** (pinned explicitly, per F-NEW-1's own mandate):
-  the gap never comes within 0.20 anywhere in the tested grid, through
-  `M=32` — the STRONGEST form of WIN (falls inside the `M*≥4` tier by
-  construction). **Caveat, disclosed, not resolved:** at `M=32` the
-  capped Transformer may already be close to or at its own UNCAPPED
-  (b-control) ceiling for SOME resolved configs (§1.4.2's cap_length
-  table: `n_layers=1`, fp32, `M=32` → `cap_length=512`, still below H4's
-  902 tokens, so this specific edge is not actually reached in the
-  registered grid — but a build-time re-derivation at a different
-  `n_layers`/`d_model` resolution could reach it) — if `cap_length(32)`
-  ever exceeds the primary horizon for the resolved config, an `M*=∞`
-  reading there would partially reflect a residual FLOP-matched QUALITY
-  gap (a Task-3-style effect), not pure memory-insufficiency; report
-  alongside the Task 3 / b-control read in that event, never presented as
-  pure memory-story evidence in isolation.
-- **Edge case `M* ≤ 1`** (pinned explicitly, per F-NEW-1's own mandate):
-  identical to the LOSE bullet above — "matches at parity" is the
-  strongest possible LOSE for the constant-memory framing, since it means
-  the contender's structural byte advantage buys nothing even before any
-  multiplier is applied.
+**(a) Fixed-sequence (gatekeeping) test, DESCENDING order `M = 32 → 16 →
+8 → 4 → 2`, stopping at the first FAILURE TO REJECT — the FWER-controlling
+direction, replacing the informal "search upward for the first success"
+reading Rev 2's prose implied.** At each `M`, test `H_M`: "the contender's
+gap over `(b-primary)` at the primary horizon (H4, 902 tokens) is
+`≥ 0.20`" against the one-sided alternative "`< 0.20`," via the SAME
+paired `delta_ci_n` CI (§1.8) — REJECT `H_M` (crossover established at
+this `M`) iff the CI's lower bound excludes 0.20 (the whole CI sits below
+0.20). Test `M=32` first; continue to the NEXT SMALLER eligible `M` only
+if the CURRENT `M` was REJECTED; STOP at the first `M` that is NOT
+rejected. `M*` = the smallest `M` in the resulting unbroken chain of
+rejections (the last `M` tested and rejected before the stop).
+
+**Why descending, not ascending (the load-bearing correction).**
+Fixed-sequence testing controls FWER at the nominal per-test level `α`
+PRECISELY WHEN testing continues only while REJECTING and stops at the
+FIRST NON-REJECTION (Maurer, Hothorn & Lehmacher, 1995, "Multiple
+comparisons in drug clinical trials and preclinical assays: a-priori
+ordered hypotheses," *Biometrie in der Chemisch-Pharmazeutischen
+Industrie* 6:3-18 — the originating fixed-sequence/gatekeeping result,
+restated without an independence assumption by the sequential rejection
+principle, Goeman & Solari 2010). The argument: under ANY true
+configuration of the 5 eligible `H_M`'s, let `m` be the FIRST true null
+encountered in test order. Every `H_M` tested before `m` is a false null
+(rejecting it is a correct decision, not a Type-I error). The FIRST
+opportunity for a genuine Type-I error is therefore exactly at `m` — and
+because the procedure stops the moment it fails to reject, `H_m` is
+tested AT MOST once, at its own nominal `α`. So
+`P(FWER event) = P(reach m) × P(falsely reject H_m | reached m) ≤ α`,
+regardless of how many hypotheses lie beyond `m`, and WITHOUT assuming
+independence between the `M`-grid's tests (a genuine, disclosed benefit —
+the grid points share the same trained checkpoint and are plausibly
+correlated). **This requires testing in the direction where nulls become
+MORE likely false as the sequence progresses** (a standard
+minimum-effective-dose construction: descending `M`, so "the current
+point rejects" is the expected direction of travel, and running out of
+budget to keep rejecting is the natural stopping condition). Testing in
+the OPPOSITE, ascending direction ("start at `M=1`/`2`, stop at the first
+`M` where the gap comes within margin") does NOT enjoy this guarantee —
+worked example: under the global null that the contender's advantage
+never actually closes anywhere on the grid, an ascending "test until you
+find a rejection" walk over the 5 eligible points at nominal `α=0.05` each
+has a `≈1-(1-0.05)^5 ≈ 22.6%` chance of a spurious early stop somewhere in
+the sequence, not 5%. This is the bug R3-F2 caught and this is the fix.
+
+**What IS controlled, stated exactly:** the probability of the
+fixed-sequence procedure EVER declaring a finite `M*` when the truth is
+`M*=∞` (no true crossover anywhere on the eligible grid) is `≤ α` (the
+nominal 95% CI's own `α=0.05`), for BOTH axis-2's primary read (Task 1,
+H4) and, independently, Task 2's own non-gating secondary read (same
+grid, same procedure, its own separate `α` budget, never pooled with
+Task 1's). **What is NOT controlled, disclosed honestly:** (i) this `α` is
+INTERNAL to axis 2 — it does not change or subsume the existing
+between-axis OR-win inflation already disclosed in §1.8
+(`1-0.95²≈9.75%` across axis 1 and axis 2's own headline tests); the two
+disclosures compose, they do not replace each other. (ii) the guarantee is
+CONDITIONAL on the monotonicity assumption implicit in testing in
+descending-`M` order — that the TRUE gap is non-increasing in `M` (more
+memory helps or does not hurt the baseline) — a scientifically reasonable
+but UNVERIFIED assumption at design time; if the empirical, noisy `n=3`
+gap is non-monotonic across the grid, the pre-registered stopping rule
+still applies MECHANICALLY (stop at the first non-rejection walking down
+from `M=32`, never peek past it even if a smaller `M` would have looked
+like a rejection by chance) — preserving FWER validity at the cost of
+potentially reporting a coarser `M*` than a hypothetical noise-free
+re-ordering would find. This trade-off is disclosed, not resolved, and
+named again in §1.18's own "not closed with full margin" note.
+
+**(b) Straddle rule (R3-F2 — extends the EXISTING §1.8 seed-extension
+contingency to the grid; the contingency itself is unchanged, costed, and
+PI-gated, only its TRIGGER condition is generalized here from a
+single-CI axis test to a fixed-sequence grid walk; canonical registration
+in §1.8).** If the CI at the `M` where the fixed-sequence walk would
+otherwise STOP (the deciding, boundary `M` for that task's `M*`)
+STRADDLES 0.20 (the CI contains 0.20, excluding it on neither side) — as
+opposed to a CLEAN non-rejection (CI lower bound `> 0.20`, confidently no
+crossover at this `M`) — the walk does NOT finalize `M*` at that boundary.
+Instead, the EXISTING §1.8 seed-extension contingency (n=3→n=9,
+already-pinned CI machinery, already costed at ≈3.03 GPU-h raw per axis
+extended, already gated through the `var_ratio>4.0` batch-effect check)
+triggers for THAT SPECIFIC `(task, M)` cell-set only — never the whole
+grid, since the fixed-sequence structure guarantees at most ONE cell per
+task can ever be the deciding boundary (testing stops there by
+construction, so no cell downstream is ever reached to also need
+extension). Worst case across both Task 1 (primary) and Task 2
+(secondary): 2 extended cells, ≈6.06 GPU-h raw, PI-gated, inside remaining
+headroom — bounded, not open-ended. Only after the extended-seed CI
+resolves the straddle (clean reject or clean non-reject) does `M*`
+finalize for that task.
+
+**(c) `M*=∞`, split (R3-F2 — replaces Rev 2's single, conflated edge
+case):**
+
+- **`CONFIRMED no-crossover`** — this claim OVERRIDES the bare
+  fixed-sequence stopping rule's own cost-saving shortcut (the
+  Grid-endpoint rule's own disclosure, above: a single clean non-rejection
+  at `M=32` would already suffice to stop the walk and, under the
+  monotonicity assumption, imply no crossover anywhere smaller). For THIS
+  specific, strongest-possible claim, the full eligible grid is run
+  regardless, and the walk traverses the ENTIRE eligible grid (`M=32` down
+  to `M=2`) WITHOUT ever rejecting, AND every one of those 5 eligible
+  points' CIs cleanly excludes crossover (lower bound `> 0.20`, no
+  unresolved straddles anywhere — any straddle encountered was resolved
+  clean by its own §1.8 extension) — reportable
+  as the STRONGEST WIN (falls inside the `M*≥8` tier below by
+  construction), with the same `cap_length(32)`-vs-primary-horizon
+  interpretive caveat Rev 2 already disclosed (residual quality-gap
+  confound if `cap_length(32)` ever exceeded H4 for a DIFFERENT resolved
+  config than this pin's own — not reached at the pinned `n_layers=2`
+  config: `cap_length(32)=256 < 902`).
+- **`INDETERMINATE`** — the walk stops on a straddle that remains
+  UNRESOLVED even after its own §1.8 seed-extension (the n=9 CI still
+  straddles 0.20). **NOT reportable as a WIN** (R3-F2's own explicit
+  instruction) — reported as underpowered, naming the specific straddle
+  point(s) by `(task, M)`, alongside whatever tier the LARGER,
+  already-rejected `M`'s in the chain independently support as a lower
+  bound (e.g., if `M=32,16,8` all cleanly rejected and `M=4` is the
+  unresolved straddle, the honest report is "`M*≥8` confirmed (WIN tier
+  already reached), upper bound INDETERMINATE" — a real, disclosable
+  partial result, not a null report). For escalation purposes (§1.5),
+  `INDETERMINATE` is treated the same as `TIE` — escalation-eligible, not
+  a `LOSE`, exactly the "underpowered or borderline n=3 read" case §1.5
+  already names as the reason an escalation rung exists.
+
+**Verdict tiers, remapped onto the eligible grid (R3-F3) — every tier now
+REACHABLE under the pinned config, which was NOT true of Rev 2's generic
+`≥4/=2/≤1` tiers once `M=1` is excluded (Rev 2's own `LOSE if M*≤1` tier
+was UNREACHABLE at this pin, since `M*` could never legally equal 1):**
+
+- **LOSE if `M* ≤ 2`** — i.e. `M*=2`, the smallest eligible point: the
+  transformer already matches the contender within the old 0.20 margin at
+  the least memory this design can even test at this pin. Plain-language
+  reading unchanged from Rev 2's spirit ("the constant-memory story has no
+  empirical teeth at this scale"), re-anchored to the smallest testable
+  point rather than an unreachable `M=1`.
+- **TIE if `M* = 4`.**
+- **WIN if `M* ≥ 8`** — the actual value (8, 16, 32, or the `M*=∞`
+  `CONFIRMED no-crossover` case above) is reported alongside the tier,
+  exactly as Rev 2 already did for its own `≥4` tier.
+- **INDETERMINATE** — see (c) above; NOT a WIN, treated as TIE-adjacent
+  for escalation eligibility (§1.5).
+
+**Disclosed explicitly, per R3-F3's own instruction: this is a THRESHOLD
+SHIFT, not a re-scoping to make winning easier.** Every tier boundary
+moved UP by exactly one grid step relative to Rev 2's generic tiers (LOSE
+`≤1`→`≤2`; TIE `=2`→`=4`; WIN `≥4`→`≥8`) — driven mechanically by
+floor-eligibility (`M=1` dropping out of the eligible set), not by any
+discretionary loosening or tightening. The net effect is that the WIN bar
+is HARDER to clear under this pin (needs `M*≥8`, an 8× memory multiplier,
+where Rev 2's unpinned table would have called `M*≥4` a WIN) — the honest
+direction, disclosed rather than obscured, consistent with `CLAUDE.md`'s
+standing instruction to never re-scope a design step to make a win
+easier.
 
 The old exact-parity `M=1` point is **RETAINED and REPORTED as a
-disclosed descriptive datum** (the first row of the sweep table) — it is
-no longer, by itself, the decision quantity; `M*` is. TIE and LOSE tiers
-above subsume it exactly where it would have driven the old Rev-1 verdict
-anyway, so no information is lost, only re-contextualized inside the full
-dose-response curve.
+disclosed descriptive datum** (the first row of the sweep table,
+floor-excluded, never `M*`-eligible per R3-F3) — it is no longer, by
+itself, the decision quantity; `M*` is. The remapped LOSE/TIE tiers above
+subsume the same qualitative reads Rev 1's original exact-parity point
+would have driven, so no information is lost, only re-contextualized
+inside the full dose-response curve and the now-eligible grid.
 
 ---
 
@@ -1073,7 +1336,10 @@ BOTH primary axes lose at rung-1, the program reports the bounded result
 at 14M and does not spend further compute trying to make a bigger model
 win. A rung-1 TIE, or a WIN on one axis with the other axis ambiguous, is
 explicitly escalation-eligible — the whole point of an escalation rung is
-resolving exactly that kind of underpowered or borderline n=3 read.
+resolving exactly that kind of underpowered or borderline n=3 read. **An
+axis-2 `INDETERMINATE` read (R3-F2c, §1.4.2 — an unresolved `M*` CI
+straddle even after the §1.8 seed-extension) is treated identically to a
+TIE for this rule: escalation-eligible, never treated as a LOSE.**
 
 **Escalation scope is NOT decided by this design (Rev 0 or Rev 1) —
 flagged as an open, load-bearing item, not silently assumed (§1.6 shows
@@ -1129,26 +1395,29 @@ if a primary axis's CI is ambiguous, mirroring the
 | Training (27 cells × 0.2524 GPU-h) | 3 archs × 3 tasks × 3 seeds | 6.8148 |
 | Eval overhead — adds axis-1's multi-checkpoint logging + axis-2's original (single, `M=1`) capped inference pass on top of the FROZEN_BIAS_LM_DESIGN.md-observed ≈32% ratio (1.6/5.05); budgeted at ≈50% of training to cover both additions | — | 3.4074 |
 | **Wave −1 (A) probe smoke** — forward/backward/grad-check with the §1.3.1 probe+adapter attached, all 3 arms | nominal | 0.05 |
-| **Wave −1 (B) probe-capacity sanity null + cross-dimension tap diagnostic** (§1.3.1.4, §1.3.1.5 — M-NEW-2, Rev 2 folds the new diagnostic into this line, same CPU-feasible no-backbone harness) — frozen-random-state control, NO backbone forward pass | negligible | 0.02 |
+| **Wave −1 (B) probe-capacity sanity null + K-simultaneous-bindings tap-expressivity diagnostic** (§1.3.1.4, §1.3.1.5 — M-NEW-2/R3-F1, same CPU-feasible no-backbone harness) — frozen-random-state control, NO backbone forward pass | negligible | 0.02 |
 | **Wave −1 (C) Task-1 K/d calibration** (M1) — PRIMARY point K/d=0.5 run to completion (3 arms × 1 full cell, ALSO serves as Task-1's own §1.7 gate-item-1 calibration cell) + ONE disclosed above-cliff stress point K/d=0.75 at quarter-budget, locate-only (3 arms × 1 quarter cell) — extended to all 3 arms incl. the Transformer's own capped-cache behavior | 3×(1 full + 1 quarter) | 0.95 |
 | **Wave −1 (D) Task-2 calibration** — target hop-depth config, held-out-hop guard re-verified, full cells, all 3 arms | 3 cells | 0.76 |
 | **Wave −1 (E) Task-3 calibration** — contender's own rung-1 config already calibrated by `FROZEN_BIAS_LM_DESIGN.md`'s own rung-1 run (not re-run); ablation reuses the contender's pinned LR, 1 full cell; Transformer's 3-point LR grid (M3) at quarter-budget, 3 cells | 1 full + 3 quarter | 0.44 |
-| **Wave −1 (F) Axis-2 memory-multiplier sweep, INFERENCE overhead** (F-NEW-1, Rev 2, new — explicitly bumped, NOT silently folded into the eval-overhead line above, since that line's ≈50%-of-training ratio was calibrated to ONE capped inference pass per checkpoint, not this differently-shaped addition) — `6 M-values × 3 horizons × 2 tasks × 3 seeds = 108` short (≤1,798-token) forward-only inference passes over the already-trained (b) checkpoints, no backward/optimizer step; priced at a deliberately padded ≈5s/pass wall-clock (dominated by short-pass fixed overhead — eval-harness setup, batch construction, checkpoint access — not raw FLOPs, at this ≤1,798-token/14M-param scale) → `108 × 5s = 540s ≈ 0.15 GPU-h` | 108 inference passes | 0.15 |
-| MATCH-GATE verification (§1.7) — now 3 matched quantities (incl. the M2 total-across-layers byte check and the F-NEW-1 per-`M` `cap_length` table) plus the M-NEW-1 5-key collision smoke, all still CPU-only | — | 0.0000 |
-| **Raw total** | | **≈12.59 GPU-h** |
+| **Wave −1 (F) Axis-2 memory-multiplier sweep, INFERENCE overhead** (F-NEW-1, Rev 2, new — explicitly bumped, NOT silently folded into the eval-overhead line above, since that line's ≈50%-of-training ratio was calibrated to ONE capped inference pass per checkpoint, not this differently-shaped addition) — **`5` (R3-F6, Rev 3: `M∈{2,4,8,16,32}` — EXCLUDES `M=1`, which the eval-overhead line above ALREADY prices as "axis-2's original (single, M=1) capped inference pass"; Rev 2's own `6`-value count silently double-counted that pass, caught by attack round 3) M-values × 3 horizons × 2 tasks × 3 seeds = 90** short (≤1,798-token) forward-only inference passes over the already-trained (b) checkpoints, no backward/optimizer step; priced at a deliberately padded ≈5s/pass wall-clock (dominated by short-pass fixed overhead — eval-harness setup, batch construction, checkpoint access — not raw FLOPs, at this ≤1,798-token/14M-param scale; **R3-F4, Rev 3: this ≈5s/pass figure is a design-time ASSUMPTION, to be REPLACED by a real measured value from the §1.7 gate-2 M-sweep timing pilot before the fan-out launches**) → `90 × 5s = 450s ≈ 0.125 GPU-h` | 90 inference passes | 0.125 |
+| MATCH-GATE verification (§1.7) — now 3 matched quantities (incl. the M2 total-across-layers byte check and the F-NEW-1 per-`M` `cap_length` table, verified against the R3-F3-pinned `n_layers_transformer=2`) plus the M-NEW-1 5-key collision smoke and the R3-F5 `seed_idx` bound, all still CPU-only | — | 0.0000 |
+| **Raw total** | | **≈12.5672 GPU-h** |
 
 **Still meets the ≤15 GPU-h raw target**, tighter than both the original
-brief's ≈9.75 GPU-h and Rev 0's own ≈11.23 GPU-h, and only ≈0.15 GPU-h
-above Rev 1's own independently-reproduced ≈12.4376 GPU-h (§1.15) — the
-ENTIRE Rev 2 cost delta is the axis-2 M-sweep's inference overhead
-(item F); F-NEW-2's sink-eviction patch and M-NEW-1's widened
-`TASK_BASE` are genuinely zero-added-GPU-h fixes (a different eviction
-RULE inside the same inference passes; a wider dict + a CPU-only smoke,
-respectively), disclosed as such rather than assumed. Enforced ceiling
-(circuit-breaker, not expected spend — this program's realized/estimate
-ratios have run 97-122% historically): bracket at **10× raw ≈ 125.88
-GPU-h**, mechanically enforced by a pre-launch timing pilot exactly like
-`phase2b_off_cache.py --time-pilot`'s existing pattern.
+brief's ≈9.75 GPU-h and Rev 0's own ≈11.23 GPU-h, and only ≈0.1296 GPU-h
+above Rev 1's own independently-reproduced ≈12.4376 GPU-h (§1.15) — **the
+ENTIRE Rev 2→Rev 3 cost delta is the axis-2 M-sweep's inference overhead,
+now correctly counted at 90 passes not 108 (R3-F6, Rev 3 — the fix SHRANK
+item F from Rev 2's own now-superseded ≈0.15 to ≈0.125 GPU-h, §1.16's own
+record)**; F-NEW-2's sink-eviction patch and M-NEW-1's widened
+`TASK_BASE` remain genuinely zero-added-GPU-h fixes, unchanged from Rev 2.
+Enforced ceiling (circuit-breaker, not expected spend — this program's
+realized/estimate ratios have run 97-122% historically): bracket at **10×
+raw ≈ 125.672 GPU-h**, mechanically enforced by a pre-launch timing pilot
+exactly like `phase2b_off_cache.py --time-pilot`'s existing pattern, **now
+EXTENDED to the axis-2 M-sweep fan-out specifically (§1.7 gate 2, R3-F4)**
+— the ≈5s/pass assumption inside this very bracket is exactly the number
+that pilot exists to replace before the 90-pass fan-out is authorized.
 
 **Ledger against the shared 135 GPU-h `FROZEN_BIAS_LM_DESIGN.md` program
 ceiling.** The brief cites "~123 headroom" — that is the *pre-execution
@@ -1156,36 +1425,41 @@ planning estimate* from that design's own §8.1. The **current, realized**
 figure (post rung-1 + its mechanism follow-on wave, `FROZEN_BIAS_LM_DESIGN.md`
 §12 closing ledger) is **≈7.672/135 GPU-h spent**, i.e. **≈127.33 GPU-h
 headroom** — this design uses that current, verified figure, UNCHANGED by
-Rev 2 (Rev 2 adds inference-only cost against the SAME headroom; it does
-not touch the program's own spend ledger). Rung-1's own enforced ceiling
-(≈125.88 GPU-h) would consume **≈98.86%** of that headroom in the
-worst-case abort scenario — tighter again than Rev 1's own ≈97.7% draw,
-flagged honestly, not smoothed over: **the margin is real (≈1.45 GPU-h,
-≈1.14% of headroom) but the THINNEST this design has carried through any
-revision — roughly half of Rev 1's already-razor-thin ≈2.93 GPU-h/2.3%
-margin.** This tightening is the direct, disclosed cost of keeping
-F-NEW-1/F-NEW-2's fixes strictly inference-only per M-NEW-4 (the
-alternative — a genuinely cap-trained `(b)` arm, +0.76 raw/+7.6 at
-bracket — would have consumed FOUR TIMES the entire remaining margin and
-is registered as an explicit, costed, unaffordable-this-wave follow-on
-instead, §1.9 item 7, never silently absorbed). **The bracket still fits
-(125.88 < 127.33), so no training cell, Wave −1 gate, or seed count was
-touched to make it fit** — but this is now flagged, explicitly, as the
-single most fragile arithmetic in the design (below Rev 1's own already-
-flagged item), and an attack-round-3 agent should re-derive the ≈0.15
-GPU-h item-F estimate's own assumptions (pass count, per-pass wall-clock)
-before accepting the bracket's fit, exactly as §1.15 did for Rev 1's
-Wave −1 costing as a whole. This leaves near-zero slack for the
-escalation rung under the SAME shared ceiling (below) — tighter than Rev
-1 already flagged it to be. Expected realized spend (≈100-130% of raw,
-this program's typical range) is ≈12.6-16.4 GPU-h, ≈9.9-12.9% of
-headroom — essentially unchanged from Rev 1's own ≈9.8-12.7% EXPECTED-
-case read (item F is small in absolute terms; it is specifically the
-worst-case 10× circuit breaker that tightened materially, exactly as Rev
-1's own text already flagged for its own additions). **Flagged in §1.16
-as the one resolution this revision could not close with full margin** —
-an attack-round-3 agent should treat this bracket's fit as live, not
-settled.
+Rev 3 (Rev 3 adds no new training cost against the ledger; R3-F6's fix
+SHRANK the inference-only addition instead). Rung-1's own enforced ceiling
+(**≈125.672 GPU-h**, R3-F6-corrected) would consume **≈98.70%** of that
+headroom in the worst-case abort scenario — still tighter than Rev 1's own
+≈97.7% draw, but a genuine, if small, IMPROVEMENT over Rev 2's own
+now-superseded ≈98.86% (the exact double-count R3-F6 caught and fixed):
+**the margin is real (≈1.658 GPU-h, ≈1.30% of headroom)** — thinner than
+Rev 1's ≈2.93 GPU-h/2.3% margin, but no longer the single thinnest figure
+this design has carried (that distinction now belongs to Rev 2's own,
+corrected, ≈1.45 GPU-h/1.14% read, §1.16's record). This is the direct,
+disclosed accounting benefit of R3-F6's fix, layered on top of the SAME
+F-NEW-1/F-NEW-2 inference-only discipline M-NEW-4 already required
+(unchanged — Rev 3 adds no new training cells either; the alternative, a
+genuinely cap-trained `(b)` arm, +0.76 raw/+7.6 at bracket, remains
+registered as an explicit, costed, unaffordable-this-wave follow-on, §1.9
+item 7, never silently absorbed). **The bracket still fits (125.672 <
+127.33), so no training cell, Wave −1 gate, or seed count was touched to
+make it fit** — and this arithmetic is now flagged as re-derived by THREE
+independent passes (§1.15's Rev-1 re-derivation, §1.17's Rev-2
+re-derivation AND its own R3-F6 catch, this Rev-3 correction), which
+tightens confidence but does not retire the standing instruction: the
+≈5s/pass assumption inside item F remains a DESIGN-TIME assumption, not a
+measured one, until the R3-F4 timing pilot (§1.7 gate 2) runs for real —
+this is now the single most likely place a future re-derivation would
+still move the bracket's fit, restated as a live item in §1.18. This
+leaves near-zero slack for the escalation rung under the SAME shared
+ceiling (below) — tighter than Rev 1 already flagged it to be, marginally
+less tight than Rev 2. Expected realized spend (≈100-130% of raw, this
+program's typical range) is **≈12.57-16.34 GPU-h, ≈9.87-12.83% of
+headroom** — essentially unchanged from Rev 1/Rev 2's own expected-case
+reads (the R3-F6 fix moves the WORST-CASE circuit-breaker bracket, not the
+expected-case range materially). **Flagged in §1.18 as the one item this
+revision could improve but not fully retire (the timing-pilot
+measurement)** — an attack-round-4 agent should treat the bracket's fit as
+better-verified, not settled.
 
 **Escalation-rung cost — flagged now, not resolved now.** Track C's own
 realized 392M rate: 128.3 GPU-h / 91,552 steps = 0.0014017 GPU-h/step →
@@ -1193,8 +1467,8 @@ realized 392M rate: 128.3 GPU-h / 91,552 steps = 0.0014017 GPU-h/step →
 reduced-scope escalation matrix of even just 2 archs × 1 task × 3 seeds =
 6 cells at the SAME 20,000-step budget would cost **≈168 GPU-h** — more
 than the entire current headroom, and now competing with rung-1's own
-larger (≈12.6-16.4 GPU-h realized, ≈125.88 GPU-h worst-case, Rev 2) draw
-on the same 135 GPU-h ceiling — a materially smaller cushion than Rev 0's own
+larger (≈12.57-16.34 GPU-h realized, ≈125.672 GPU-h worst-case, Rev 3)
+draw on the same 135 GPU-h ceiling — a materially smaller cushion than Rev 0's own
 already-tight ≈112.3 GPU-h worst-case draw, per the Wave −1 additions
 above. **The escalation rung, as currently scoped, does not fit the
 existing ceiling at rung-1's own step budget, full stop.**
@@ -1245,7 +1519,29 @@ re-derived:
 2. **Timing pilots, mechanical enforced abort.** One real cell per
    arch×task pair measured for wall-clock before its own seed-fan-out
    launches; if the projected cost for that pair exceeds its share of the
-   §1.6 ceiling, the chain hard-aborts before spending it.
+   §1.6 ceiling, the chain hard-aborts before spending it. **Extended, Rev
+   3 (R3-F4) — the axis-2 `M`-sweep inference fan-out gets its OWN scoped
+   timing pilot**, separate from the per-arch×task pilots above: 2
+   `M`-values (one small, one large — `M=2` and `M=32`) × 1 already-trained
+   checkpoint × 1 horizon (H4, the primary), measured for real wall-clock
+   BEFORE the full 90-pass (§1.6 item F, post-R3-F6) fan-out launches. The
+   measured `s/pass` REPLACES the ≈5s/pass design-time assumption in §1.6
+   item F's own bracket arithmetic before that fan-out is authorized.
+   **Build requirement, pinned:** the trained checkpoints for role
+   `(b-primary)` MUST be held RESIDENT in memory across all inference
+   passes for a given `(task, seed)` (loaded once, evaluated at every
+   `M`/horizon combination), not reloaded from disk per pass — reload-per-
+   pass is the specific failure mode a real pilot exists to catch (a naive
+   implementation could run 3-6× the padded estimate, per R3-F4's own
+   finding). **De-scope order, pre-registered, not decided post-hoc:** if
+   the measured bracket would exceed the §1.6 127.33 GPU-h headroom
+   figure, drop grid cells in this order until it fits: (1) `M=32` first
+   (the single most expensive point, least load-bearing once a WIN is
+   already established at a smaller `M` via the fixed-sequence walk,
+   §1.4.2); (2) `H8` next (the least-informative secondary horizon). `H4`
+   (primary) and the floor-eligible `M∈{2,4,8,16}` core are NEVER
+   de-scoped by this rule — a bracket overrun that would require cutting
+   those instead is a hard abort, not a silent re-scope.
 3. **Enforced aborts with negative tests.** Every gate ships with its own
    negative test proven to have teeth — e.g. the injectivity guard reused
    from `grammar_rd.py` (`_assert_injective_entities`) gets its own
@@ -1275,7 +1571,14 @@ re-derived:
      contender's real persisted-state dtype, `lm_pretrain_rd.py:986`,
      NOT the kernel-internal bf16 cast), against (b-primary)'s real
      `n_layers/n_heads/d_head` — asserting the ≤1% / ≤5% / exact-byte
-     tolerances from §1.3's table at EVERY `M`, not just `M=1`.
+     tolerances from §1.3's table at EVERY `M`, not just `M=1`. **New,
+     Rev 3 (R3-F3): Pass 1 must VERIFY the PINNED `n_layers_transformer=2`
+     actually achieves the ≤1%/≤5% param/FLOP match within the admissible
+     `d_model≈256` family** — a pin that fails the match tolerance is
+     itself a launch-block, requiring either a `d_model` adjustment within
+     the `n_layers=2` family or an escalation to design revision, never a
+     silent fallback to `n_layers=1` (which would silently re-open the
+     LOSE-tier-unreachable bug R3-F3 closed).
    - **Pass 2 (independent audit agent, NOT the implementer — `CLAUDE.md`'s
      "the implementer does not review their own work" rule, plus
      "multiple independent adversarial audit rounds catch different bugs"):**
@@ -1294,7 +1597,11 @@ re-derived:
      silent-imbalance bug this Pass-2 re-derivation exists to catch, and
      (iii) the `M`-grid itself matches the pinned `{1,2,4,8,16,32}` set
      and the grid-endpoint rule (§1.4.2) — no silently truncated or
-     extended grid.
+     extended grid, and (iv) **(R3-F3, Rev 3)** the ELIGIBLE subset for
+     `M*` purposes correctly EXCLUDES `M=1` at the pinned `n_layers=2`/fp32
+     config (`cap_length=8<13`, floor-excluded) — an independent audit
+     that silently treats `M=1` as `M*`-eligible would wrongly re-open the
+     LOSE tier Rev 3 closed off by construction (§1.4.2).
    - Disagreement between passes is a hard launch-block, full stop.
 7. **Probe-capacity null gate (F1, new in Rev 1).** §1.3.1.4's
    probe-capacity sanity null must PASS (`recovered_frac@0.9 < 0.05` on
@@ -1343,23 +1650,42 @@ variance-ratio check `REASONING_LINK_DESIGN.md` §16.19.5 registered
 before any pooled reading is treated as decision-grade. This directly
 avoids the exact trap that produced §16.20's BATCH-EFFECT-FLAGGED outcome.
 
+**Extended trigger for axis 2's grid (R3-F2b, Rev 3 — this contingency
+previously referenced only a single-CI axis test; attack round 3 found
+that framing did not cover axis 2's Rev-3 fixed-sequence `M`-grid
+procedure, §1.4.2, at all).** Axis 1 (and any single-CI axis-2 read)
+triggers this contingency on a straddle of THAT AXIS'S OWN CI, as above,
+unchanged. Axis 2's fixed-sequence `M`-grid procedure (§1.4.2) triggers it
+more narrowly: ONLY the specific `(task, M)` cell-set at which the
+descending fixed-sequence walk would otherwise STOP on a STRADDLING (not a
+clean) non-rejection — never the whole grid, and never a cell the walk
+never reaches, since the fixed-sequence structure guarantees at most ONE
+cell per task can ever be the deciding boundary (testing stops there
+mechanically). This is the SAME contingency (n=3→n=9, same CI machinery,
+same per-cell cost, same `var_ratio>4.0` gate), re-triggered per boundary
+cell rather than per axis; worst case 2 extended cells (Task 1 primary +
+Task 2 secondary, if both independently straddle at their own boundary
+`M`) ≈6.06 GPU-h raw, PI-gated, bounded by the fixed-sequence structure
+itself, not open-ended.
+
 ---
 
 ### 1.9 Attack-yourself — self-attack round 0 (minimum 5, per house
-convention; 7 in Rev 0, 9 in Rev 1, now **11 in Rev 2** — F-NEW-1's memory
-sweep and F-NEW-2's sink patch are themselves new attack surface and get
-their own self-attack, items 10-11)
+convention; 7 in Rev 0, 9 in Rev 1, 11 in Rev 2, now **12 in Rev 3** —
+F-NEW-1's memory sweep and F-NEW-2's sink patch got their own self-attack
+in Rev 2 (items 10-11); Rev 3 folds in a cross-campaign caveat, item 12)
 
 1. **The escalation-rung budget does not fit the current ceiling at the
-   step budget this doc assumes (§1.6).** Tighter at every revision
-   (rung-1's own worst-case ceiling draw grew from ≈76.5% pre-directive →
-   ≈88% in Rev 0 → ≈97.7% in Rev 1 → **≈98.86% in Rev 2**, because
-   F-NEW-1's mandatory memory-multiplier sweep, itself a genuine,
-   non-optional inference cost, adds a further ≈0.15 GPU-h raw on top of
-   Rev 1's own already-thin margin) — this is the single biggest open
-   item, deliberately not papered over, and NOW the closest to its own
-   ceiling this design has EVER been (§1.6's own honest disclosure: "the
-   THINNEST this design has carried through any revision").
+   step budget this doc assumes (§1.6).** Tighter at every revision through
+   Rev 2 (rung-1's own worst-case ceiling draw grew from ≈76.5%
+   pre-directive → ≈88% in Rev 0 → ≈97.7% in Rev 1 → ≈98.86% in Rev 2,
+   because F-NEW-1's mandatory memory-multiplier sweep, itself a genuine,
+   non-optional inference cost, added ≈0.15 GPU-h raw on top of Rev 1's
+   own already-thin margin) — **Rev 3's R3-F6 double-count fix nudges this
+   BACK to ≈98.70%** (item F corrected from 108 to 90 passes, §1.6),
+   still the single biggest open item, deliberately not papered over,
+   and still among the closest to its own ceiling this design has carried
+   (§1.6's own honest disclosure: the margin improved but remains thin).
 2. **model_rd.py's K/d cliff numbers carry ZERO evidentiary weight for
    any of this design's three arms (M1, resolved structurally in Rev 1,
    restated here per the attack's own instruction).** Rev 0's K/d=0.75
@@ -1418,10 +1744,12 @@ their own self-attack, items 10-11)
    COMPLETE fix for F-NEW-2's train/eval mismatch (the sink patch is
    PARTIAL); explicitly costed at **+0.76 GPU-h raw / +7.6 GPU-h at the
    10× bracket** (a new 3-arm training-cell block, M-NEW-4) — more than
-   FOUR TIMES Rev 2's entire remaining ≈1.45 GPU-h bracket margin, hence
-   categorically unaffordable this wave and never silently absorbed into
-   the sink-patch's own (zero-added-cost) scope. If the PI's intent for
-   "the program's capstone question" implies more than this Rev 2 scopes,
+   FOUR TIMES this design's own remaining bracket margin at every revision
+   so far (≈2.93 GPU-h, Rev 1; ≈1.45 GPU-h, Rev 2; ≈1.658 GPU-h, Rev 3 —
+   R3-F6's fix narrowed but did not close this gap), hence categorically
+   unaffordable this wave and never silently absorbed into the
+   sink-patch's own (zero-added-cost) scope. If the PI's intent for "the
+   program's capstone question" implies more than this design scopes,
    that should surface now, before rung-1 data creates sunk-cost pressure
    to declare a narrower victory than intended.
 8. **(NEW, Rev 1) The Transformer's probe adapter is not capacity-matched
@@ -1505,6 +1833,27 @@ their own self-attack, items 10-11)
     an artifact of the imperfect train/eval match, and this wave's design
     cannot fully distinguish the two. Flagged for the paper's limitations
     section regardless of which way axis 2 resolves.
+12. **(NEW, Rev 3 — fold-in from the capability research wave,
+    `STATE.md` commit 58de0fa) The contender's β gate is plain sigmoid
+    (β∈[0,1]), which has NO TC0-escape property as configured.** Per
+    Grazzi et al. (arXiv:2411.12537), a DeltaNet-family gate needs
+    β∈[0,2] (specifically the ability to express `β>1`) to escape TC0 and
+    gain any formal state-tracking expressivity beyond a bounded-gate
+    recurrence; this design's contender uses `arm="per_token"` with a
+    plain sigmoid β restricted to `[0,1]` (§1.2), so **Task 2's
+    held-out-hop-depth results carry NO formal state-tracking-separation
+    implication** — they are empirical-only evidence about what THIS
+    specific gate configuration learns to do on THIS task, not evidence
+    bearing on the broader state-tracking/TC0 question. The β∈[0,2]
+    variant is deliberately RESERVED for the separate capability campaign
+    (not built or tested here), to protect this design's own frozen-bias
+    evidence provenance — λ=0.58 (§1.2) was tuned under the sigmoid-β
+    configuration, and swapping the gate here would silently invalidate
+    that tuning without re-validating it, exactly the kind of unpinned
+    axis-bundling `CLAUDE.md` warns against. Disclosed for the paper's
+    limitations section regardless of Task 2's outcome — a WIN or LOSE on
+    Task 2 is a claim about THIS architecture's actual trained behavior,
+    not a claim about matrix-state models' formal expressivity ceiling.
 
 ---
 
@@ -1551,10 +1900,35 @@ protocol to fresh-per-step draws scored on held-out fresh draws
 overhead as an explicit, disclosed line item, keeping every fix
 inference-only per the binding M-NEW-4 budget constraint.
 
-**Does NOT:** authorize any GPU launch (Rev 2, pre-attack-round-3);
+**Rev 3 adds:** replaces §1.3.1.5's mathematically-broken single-pair
+diagonal/off-diagonal diagnostic (independently found degenerate by
+numerical execution, §1.17) with a K-simultaneous-bindings diagnostic,
+itself numerically executed pre-commit (200 trials/K, `d=64`,
+`K∈{1,...,64}`) confirming the expected matvec-exact/Hadamard-collapses-
+at-K≥2 behavior (R3-F1); replaces the informal ascending "search for first
+success" `M*` procedure with a DESCENDING fixed-sequence gatekeeping test
+(Maurer, Hothorn & Lehmacher 1995) that actually controls axis-2's
+within-grid FWER at the nominal α, extends the EXISTING §1.8
+seed-extension contingency to trigger on a grid-boundary CI straddle, and
+splits the `M*=∞` edge case into `CONFIRMED no-crossover` (reportable WIN)
+vs `INDETERMINATE` (not a WIN, escalation-eligible like TIE) (R3-F2); pins
+`n_layers_transformer=2` (matching the contender's own depth) and remaps
+the WIN/TIE/LOSE tiers onto the resulting eligible grid (`M=1`
+floor-excluded), disclosing the resulting WIN bar as HARDER, not easier
+(R3-F3); adds an M-sweep-specific timing pilot to §1.7 gate 2 with a
+pre-registered de-scope order, replacing the ≈5s/pass design-time
+assumption with a measured value before the 90-pass fan-out launches
+(R3-F4); adds the missing `seed_idx` runtime bound (mirroring the existing
+`ckpt_idx` one) plus its negative test (R3-F5); fixes an `M=1` double-count
+between item F and the eval-overhead line, SHRINKING the raw total from
+≈12.5922 to ≈12.5672 GPU-h and widening the worst-case bracket margin from
+≈1.45 to ≈1.658 GPU-h (R3-F6); folds in the cross-campaign β-gate
+TC0-escape caveat (self-attack item 12).
+
+**Does NOT:** authorize any GPU launch (Rev 3, pre-attack-round-4);
 decide the 392M escalation rung's exact scope or budget (§1.6, §1.9 item
-1 — explicitly deferred, now with the thinnest headroom cushion this
-design has carried); reopen the frozen-bias mechanism story, the
+1 — explicitly deferred, still a thin headroom cushion); reopen the
+frozen-bias mechanism story, the
 key-anchoring capacity/pool-margin instrument questions, or the
 reasoning-link geometric-transfer readout (all cited, none re-litigated);
 claim a paper-grade benchmark result from Task 3's internal byte-BPC
@@ -1574,22 +1948,27 @@ eliminated).
 ### 1.11 Sequencing
 
 design (Rev 0) → attack round 1 → NEEDS-REVISION (§1.13) → design (Rev 1)
-→ attack round 2 → NEEDS-REVISION (§1.15) → design (this doc, Rev 2) →
-attack round 3 → ... (iterate until DESIGN-CLEARED-FOR-BUILD, per this
-program's own standing gauntlet discipline) → build (contender wiring for
-the frozen-bias arm already exists; new code needed: flat-vector ablation
+→ attack round 2 → NEEDS-REVISION (§1.15) → design (Rev 2) → attack round
+3 → NEEDS-REVISION (§1.17) → design (this doc, Rev 3) → attack round 4 →
+... (iterate until DESIGN-CLEARED-FOR-BUILD, per this program's own
+standing gauntlet discipline) → build (contender wiring for the
+frozen-bias arm already exists; new code needed: flat-vector ablation
 mixer WITH its own `q_proj`/`q_conv1d` (§1.3(a)), standard Transformer
 with RoPE + the contender's own `FFN` class + switchable uncapped/
 capped-KV inference mode with sink+FIFO eviction (§1.3(b), F-NEW-2), the
 §1.3.1 shared probe head + per-arm adapters + frozen `T_val` target table
-+ probe-capacity null harness + the cross-dimension tap diagnostic
-(§1.3.1.5, M-NEW-2), the `rd_episode_seed` schedule with its 5-key
-`TASK_BASE` and runtime collision assert (F1b, M-NEW-1),
-`verify_match_gate.py` (now total-across-layers at the pinned fp32
-accounting dtype, M2 + Rev-2 dtype pin), per-task/per-axis/per-arm
-calibration wrappers incl. the K/d sweep (M1) and the Transformer's LR
-grid (M3), the axis-2 `cap_length(M)` sweep across the pinned
-`{1,2,4,8,16,32}` grid and the `M*` crossover-detection logic (F-NEW-1))
++ probe-capacity null harness + the K-simultaneous-bindings
+tap-expressivity diagnostic (§1.3.1.5, M-NEW-2 + R3-F1 replacement,
+including its pre-commit numerical verification), the `rd_episode_seed`
+schedule with its 5-key `TASK_BASE`, runtime collision assert, and the
+`seed_idx` bound (F1b, M-NEW-1, R3-F5), `verify_match_gate.py` (now
+total-across-layers at the pinned fp32 accounting dtype, M2 + Rev-2 dtype
+pin, PLUS verification that the R3-F3-pinned `n_layers_transformer=2`
+achieves the match tolerance), per-task/per-axis/per-arm calibration
+wrappers incl. the K/d sweep (M1) and the Transformer's LR grid (M3), the
+axis-2 `cap_length(M)` sweep across the pinned `{1,2,4,8,16,32}` grid, the
+`M*` DESCENDING fixed-sequence gatekeeping test and its straddle/§1.8
+extension logic (F-NEW-1, R3-F2), and its OWN scoped timing pilot (R3-F4))
 → independent build audit (separate agent, per `CLAUDE.md`) → launch
 rung-1 on GPUs 0-6 (GPU 7 held as pool/overflow) → harvest →
 escalation-rung decision (§1.5 rule, mechanically applied) → IF
@@ -1632,10 +2011,18 @@ workshop-2026) either way.
 - Frozen-table precedent: `matrix-thinking/deltanet_rd/key_anchoring.py`
   (`random_unit_rows_init`, `ANCHOR_INIT_SEED=20260705`) — reused
   unmodified for §1.3.1's `T_val` probe-target table, at a NEW,
-  deliberately distinct `PROBE_TARGET_SEED=20260709`, and again (Rev 2,
-  §1.3.1.5) for the cross-dimension diagnostic's own fresh, independent
-  `q`/`t` draws (never sharing a seed with `T_val` or the frozen bias
-  table).
+  deliberately distinct `PROBE_TARGET_SEED=20260709`, and again (Rev 3,
+  §1.3.1.5) for the K-simultaneous-bindings diagnostic's own fresh,
+  independent `q_i`/`t_i` draws each trial (never sharing a seed with
+  `T_val` or the frozen bias table).
+- **Fixed-sequence/gatekeeping testing precedent (Rev 3, R3-F2):** Maurer,
+  Hothorn & Lehmacher (1995), "Multiple comparisons in drug clinical
+  trials and preclinical assays: a-priori ordered hypotheses," *Biometrie
+  in der Chemisch-Pharmazeutischen Industrie* 6:3-18 — the originating
+  fixed-sequence procedure §1.4.2's descending-`M` `M*` test is built on;
+  the FWER argument's independence-free generalization is the sequential
+  rejection principle (Goeman & Solari, 2010). Not otherwise reused code
+  in this repo, cited for the statistical method only.
 - Gate precedent: `phase2b_off_cache.py` (`--time-pilot`),
   `run_poolmargin_k84s1943_k90s2043.py` / `run_k69_s1733_contingency.py`
   (dual PI-signoff tokens), `lm_rd_rung_configs.py` (`verify_param_count`
@@ -1655,21 +2042,27 @@ workshop-2026) either way.
   sink+FIFO eviction patch (`k_sink=4`); not otherwise reused code in
   this repo, cited for the mechanism only.
 - **New, not yet built:** the standard-Transformer arch with RoPE, the
-  contender's own `FFN` class, standard init, and a switchable
-  uncapped/hard-capped-KV inference mode with **sink+FIFO eviction**
-  (axis 2's baseline, §1.3(b), M3, F-NEW-2); `verify_match_gate.py`, now
-  total-across-layers at the pinned fp32 accounting dtype, over the
-  **`cap_length(M)` table across `M ∈ {1,2,4,8,16,32}`** (§1.7 item 6,
-  M2 + Rev-2 dtype pin + F-NEW-1); the axis-1 power-sketch script that
-  pins `X` (§1.4.1); the flat-vector-ablation mixer WITH its own
-  `q_proj`/`q_conv1d` (§1.3(a)); **§1.3.1's shared probe head**
-  (`shared_probe`, per-arm `adapter_arm`, `T_val` target table, the
-  probe-capacity null harness, **and (Rev 2) the §1.3.1.5
-  cross-dimension tap diagnostic**) — the F1 FATAL's entire resolution
-  plus its Rev-2 M-NEW-2 extension; the `rd_episode_seed` schedule
-  module, now 5-keyed with a runtime collision-guard assert (F1b,
-  M-NEW-1); the Transformer's 3-point LR-grid calibration harness (M3);
-  the axis-2 `M*` crossover-detection/reporting logic (F-NEW-1).
+  contender's own `FFN` class, standard init, PINNED `n_layers=2`
+  (R3-F3), and a switchable uncapped/hard-capped-KV inference mode with
+  **sink+FIFO eviction** (axis 2's baseline, §1.3(b), M3, F-NEW-2);
+  `verify_match_gate.py`, now total-across-layers at the pinned fp32
+  accounting dtype, over the **`cap_length(M)` table across
+  `M ∈ {1,2,4,8,16,32}`** (§1.7 item 6, M2 + Rev-2 dtype pin + F-NEW-1),
+  PLUS verification that the pinned `n_layers=2` clears the match
+  tolerance and that `M=1` is correctly excluded from the eligible set
+  (R3-F3); the axis-1 power-sketch script that pins `X` (§1.4.1); the
+  flat-vector-ablation mixer WITH its own `q_proj`/`q_conv1d` (§1.3(a));
+  **§1.3.1's shared probe head** (`shared_probe`, per-arm `adapter_arm`,
+  `T_val` target table, the probe-capacity null harness, **and (Rev 3)
+  the §1.3.1.5 K-simultaneous-bindings diagnostic**) — the F1 FATAL's
+  entire resolution plus its Rev-3 R3-F1 replacement; the
+  `rd_episode_seed` schedule module, now 5-keyed with runtime
+  collision-guard asserts on BOTH `ckpt_idx` and `seed_idx` (F1b,
+  M-NEW-1, R3-F5); the Transformer's 3-point LR-grid calibration harness
+  (M3); the axis-2 `M*` DESCENDING fixed-sequence gatekeeping test, its
+  straddle-triggered §1.8 extension hook, and the `CONFIRMED`/
+  `INDETERMINATE` split reporting logic (F-NEW-1, R3-F2); the M-sweep's
+  own scoped timing pilot (R3-F4, §1.7 gate 2).
 
 ---
 
@@ -2004,6 +2397,68 @@ assert; CI table; §1.7 gate 6 coherence.
 
 ---
 
-*(End §1. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 NEEDS-REVISION
-(R3-F1 broken diagnostic, R3-F2 M* statistics; 2 MAJOR, 2 minor).
-Rev 3 in progress.)*
+### 1.18 REV 3 CHANGES — finding → resolution map
+
+Every §1.17 finding, mapped to its exact Rev 3 resolution. §1.13, §1.15,
+§1.16, and §1.17 are retained verbatim above as the historical record —
+this section maps forward from §1.17 only; it does not edit those
+sections' own numbers, which reflect what was known/claimed AT THAT TIME
+(including the R3-F6 double-count §1.16 itself did not yet know about).
+
+| Finding | Resolution (Rev 3) | Where |
+|---|---|---|
+| **R3-F1** (FATAL) — §1.3.1.5's single-pair diagonal/off-diagonal diagnostic is mathematically broken: cosine similarity is scale-invariant, so `target_effective` stays near-parallel to `t` for any `alpha>0`, producing a degenerate step function, not a graduated bound; single-pair reachability means a diagonal read can always hit ONE target exactly, so the real gap only bites under MULTIPLE simultaneous bindings | §1.3.1.5 REPLACED with a K-simultaneous-bindings diagnostic: for `K∈{1,2,4,8,16,32,48,64}` bindings, fit the matvec tap (`S=T@pinv(Q)`, least-squares/minimum-norm) and the Hadamard tap (per-coordinate closed-form, `s_j = Σ q_i[j]t_i[j] / Σ q_i[j]²` — separability stated explicitly, per the round's own instruction) to ALL `K` pairs simultaneously, score `recovered_frac@0.9` for both. **Numerically EXECUTED pre-commit** (200 trials/K, `d=64`): matvec = 1.000000 at every `K≤64=d`; Hadamard = 1.000000 only at `K=1`, then 0.000000 for every `K≥2` (mean cosine decaying `~1/√K`: 0.7056→0.4964→0.3506→0.2459→0.1747→0.1433→0.1226) — matches the expected analytic behavior exactly, no spec change needed. | §1.3.1.5 (full rewrite) |
+| **R3-F2** (FATAL) — `M*` is underpowered at n=3 and biased toward the strongest-WIN default (an ascending "search until rejection" walk over 5 grid points has a `≈22.6%`, not 5%, chance of a spurious early stop under the global null); no within-axis-2 multiplicity discipline; §1.8's seed-extension contingency never updated for a grid; `M*=∞` conflated "underpowered" with "confirmed no-crossover" | `M*` now determined by a DESCENDING fixed-sequence gatekeeping test (`M=32→...→2`, stop at first non-rejection; Maurer, Hothorn & Lehmacher 1995) that controls axis-2's within-grid FWER at nominal `α`, WITHOUT an independence assumption, CONDITIONAL on a disclosed monotonicity assumption (gap non-increasing in `M`); §1.8's EXISTING seed-extension contingency is extended to trigger on a straddling (not clean) non-rejection at the deciding boundary `(task,M)` cell, bounded at ≤2 extended cells (~6.06 GPU-h) across both tasks; `M*=∞` split into `CONFIRMED no-crossover` (every eligible CI clean, reportable strongest WIN) vs `INDETERMINATE` (unresolved straddle even after extension, NOT a WIN, treated as TIE for escalation). §1.1's table and §1.5's escalation rule both updated to reference `INDETERMINATE` coherently. | §1.4.2 (full rewrite), §1.1, §1.5, §1.8 |
+| **R3-F3** (MAJOR) — LOSE structurally unreachable if the Transformer resolves to `n_layers=2` (`M=1` floor-excluded there, but LOSE required `M*≤1`) — an unpinned implementation choice could silently gate the escalation decision | `n_layers_transformer` PINNED to 2 (matches the contender's own depth, verified arithmetic: `cap_length(1)=8<13` excluded, `cap_length(2)=16≥13` smallest eligible); verdict tiers remapped onto the eligible grid: LOSE `M*≤2`, TIE `M*=4`, WIN `M*≥8` — every tier reachable; disclosed explicitly as a THRESHOLD SHIFT (every boundary moved up one grid step) that makes the WIN bar HARDER, not easier. MATCH-GATE (§1.7 gate 6) extended to verify the pin achieves the match tolerance and that `M=1` is correctly excluded from `M*`-eligibility. | §1.4.2, §1.7 gate 6 |
+| **R3-F4** (MAJOR) — the ≈5s/pass M-sweep assumption has no scoped timing-pilot gate and no de-scope rule against a 1.45 GPU-h margin (a reload-per-pass implementation could run 3-6×) | §1.7 gate 2 extended with an M-sweep-specific timing pilot (2 `M`-values × 1 checkpoint × 1 horizon before the 90-pass fan-out); "checkpoints resident across all passes" pinned as a build requirement; pre-registered de-scope order (drop `M=32` first, then `H8`) if the measured bracket would exceed the 127.33 GPU-h headroom. | §1.7 gate 2, §1.6 (item F cross-reference) |
+| **R3-F5** (minor) — `seed_idx` has no runtime bound (`seed_idx=50` on `task1_calib` collides with `task1_stress` seed 0); `ckpt_idx` has an assert, `seed_idx` doesn't | `rd_episode_seed` gets `assert 0 <= seed_idx < 50`, mirroring the existing `ckpt_idx` assert; the collision smoke gets a dedicated negative test (`seed_idx=50` must raise). | §1.3.1 (F1b subsection) |
+| **R3-F6** (minor) — item F's 108-pass count double-counts the `M=1` pass already priced in the eval-overhead line | Item F's count corrected to 5 `M`-values (`{2,4,8,16,32}`, excluding `M=1`) × 3 horizons × 2 tasks × 3 seeds = 90 passes, ≈0.125 GPU-h (was 108 passes/≈0.15 GPU-h). Raw total: ≈12.5922 → **≈12.5672 GPU-h**. 10× bracket: ≈125.88 → **≈125.672 GPU-h**. Margin vs. the unchanged 127.33 GPU-h headroom: ≈1.45 GPU-h/1.14% → **≈1.658 GPU-h/1.30%** — the fix SHRANK cost and widened the margin, as required. | §1.6 (full re-derivation) |
+| **FOLD-IN** — cross-campaign: contender's β gate is plain sigmoid, no TC0-escape property, per Grazzi et al. (arXiv:2411.12537) | Added as self-attack item 12: Task-2 held-out-depth results are empirical-only, no formal state-tracking-separation implication; β∈[0,2] reserved for the separate capability campaign to protect frozen-bias provenance (λ=0.58 tuned under sigmoid β). | §1.9 item 12 |
+
+**What this revision could NOT close with full margin (flagged, not
+papered over — the task's own instruction):**
+
+1. **The ≈5s/pass M-sweep assumption is STILL a design-time assumption,
+   not a measured one.** R3-F4 added the GATE (a real timing pilot before
+   fan-out) and a pre-registered de-scope order, but — per this design's
+   own "zero GPU spent" status — no real hardware measurement exists yet
+   to replace the ≈5s/pass figure itself. This remains the single most
+   likely place a future re-derivation moves the bracket's fit, exactly as
+   flagged in §1.6's own closing paragraph.
+2. **The fixed-sequence procedure's monotonicity assumption (gap
+   non-increasing in `M`) is disclosed but unverified.** If the real,
+   noisy `n=3` gap is non-monotonic across the grid, the pre-registered
+   descending-walk stopping rule still applies mechanically (never peek
+   past the first non-rejection) — this preserves FWER validity at the
+   cost of potentially reporting a coarser `M*` than a hypothetical
+   noise-free re-ordering would find. This trade-off is a genuine,
+   disclosed cost of buying valid statistics, not a bug, but it is a real
+   one: an attack-round-4 agent should confirm the trade-off is
+   acceptable, not merely correctly described.
+3. **R3-F2's straddle-compounding cost bound (≤2 cells, ≈6.06 GPU-h) is
+   itself an upper bound reasoned from the fixed-sequence structure, not
+   independently re-derived by a fresh pass this round.** It follows
+   directly from "testing stops at the first non-rejection, so at most one
+   cell per task is ever the deciding boundary" — an attack-round-4 agent
+   should re-verify this claim holds for the ACTUAL build (i.e. that no
+   implementation shortcut re-tests a cell after the walk has already
+   stopped there).
+4. **The margin (≈1.658 GPU-h, ≈1.30% of headroom) improved from Rev 2's
+   ≈1.45 GPU-h/1.14% but remains thin** — R3-F6's fix is a genuine, real
+   improvement (not a re-scope), but the escalation-rung budget problem
+   (§1.9 item 1) is unchanged and unresolved: the escalation rung, as
+   currently scoped, still does not fit the existing ceiling at rung-1's
+   own step budget.
+5. **This design does not re-verify §1.17's own "verified clean this
+   round" list** (cap_length(M) table, fp32 pin, sink+FIFO buildability,
+   TASK_BASE margins, ckpt_idx assert, CI table, §1.7 gate 6 coherence) —
+   those are trusted as still valid since nothing in Rev 3 touched their
+   underlying arithmetic, but an attack-round-4 agent should confirm this
+   assumption explicitly rather than accept it silently.
+
+---
+
+*(End §1. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 → Rev 3 (this
+doc) → §1.18. R3-F1 (broken diagnostic) and R3-F2 (M* statistics)
+resolved structurally; R3-F3/R3-F4 resolved; R3-F5/R3-F6 resolved. Attack
+round 4 pending.)*
