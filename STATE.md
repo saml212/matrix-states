@@ -6,6 +6,44 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — DESIGN QUEUED (2026-07-08) —
+advances the NS EVAL-ADMISSION DIAGNOSTIC block's own "Queue implication"
+below from two named-not-designed candidates to one designed, pre-attack
+instrument. That block itself is otherwise unaffected/unretracted.
+
+**Queue status: DESIGN → (next) ATTACK ROUND → BUILD → AUDIT → LAUNCH.**
+`KEY_ANCHORING_SCALING_DRAFT.md` §15.24 (Rev 0, DESIGN-ONLY, zero GPU
+spent this session) designs §15.23's registered candidate (2) — a single
+deterministic repro of K=84/seed=1940/d=96 (the mid-pattern cell among
+the three uniformly-failing K=78/84/90 groups, chosen because it already
+has a verified complete on-box checkpoint tree, unlike §15.23's own
+preferred-but-missing K=72/seed=1740) with a full model `state_dict`
+snapshot at step 20000, live raw pre-NS `k_eff_raw` dumps on every C17
+fallback event, and per-probe-pool residual telemetry — as the primary
+instrument to discriminate three named mechanisms for the C17-exclusive
+admission failures §15.23 found but could not directly test: (a)
+**REAL-CAPACITY-BOUNDARY** (a genuine geometric-degeneracy finding about
+held-out-entity keys at K/d>0.75 — would turn the d=96 "flat at ceiling"
+reading into a real, arguably more-publishable measured boundary), (b)
+**INSTRUMENT-BUG** (would license a wide-grid re-run at a fixed probe),
+(c) **TOLERANCE-MISCALIBRATION** (would unlock the already-collected 11
+inadmissible cells for the fit at zero new GPU spend). Candidate (1) (a
+fixed-batch checkpoint-payload extension for future waves) is registered
+as a same-commit secondary build task, not separately costed. Cost,
+re-derived from K=84's own §15.22 realized rate: 1× 0.450 GPU-h, 2×
+0.900 GPU-h — **fits inside the ORIGINAL, non-extended 21 GPU-h
+KEY_ANCHORING_SCALING ceiling even at 2×** (18.1196 realized + 0.900 =
+19.0196/21, 1.9804 GPU-h margin untouched; the already-authorized but
+unused `+5.0 GPU-h` extension is not needed). Planned: GPU 2 (Phase-2
+owns GPUs 0–1, GPUs 3–7 idle). Full 3-way discrimination table, mechanical
+decision rules with exact pinned thresholds, gate table, and a 5-question
+self-attack round: §15.24. `EXPERIMENT_LOG.md`'s matching one-line entry.
+**Next step: an independent attack round on §15.24, per this program's
+own standing multiple-independent-audit-rounds discipline — not yet
+started.** No cells launched, no code written this session.
+
+---
+
 ## NS EVAL-ADMISSION DIAGNOSTIC (2026-07-08) — CORRECTS the mechanistic
 claim in the KEYANCHOR-SCALING §15.20 WIDE-GRID WAVE HARVEST block
 immediately below (lines ~22-29 of that block: "the failure is confined

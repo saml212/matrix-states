@@ -5868,3 +5868,21 @@ closed with this diagnostic's own two new candidates queued in its
 place).
 
 ---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — DESIGN (2026-07-08): Rev 0,
+pre-attack, DESIGN-ONLY, zero GPU spent — designs §15.23's registered
+candidate (2) (a targeted, deterministic-seeded repro of K=84/seed=1940/
+d=96 with a full model checkpoint at step 20000, live C17 raw-key dumps
+on every fallback event, per-pool residual telemetry) as the primary
+instrument to discriminate REAL-CAPACITY-BOUNDARY / INSTRUMENT-BUG /
+TOLERANCE-MISCALIBRATION as the true cause of the C17-exclusive eval
+admission failures §15.23 found but could not test directly; candidate
+(1) (a fixed-batch checkpoint-payload extension for future waves)
+registered as a same-commit secondary build task. Full design, 3-way
+discrimination table, mechanical decision rules, cost arithmetic (1×
+0.450 / 2× 0.900 GPU-h, re-derived from K=84's own §15.22 realized rate),
+gates, and a 5-question self-attack round: `KEY_ANCHORING_SCALING_DRAFT.md`
+§15.24. Awaits an independent attack round before build. No cells
+launched, no code written this session.
+
+---

@@ -3201,3 +3201,546 @@ mechanism-breakdown output). SSD mirror, same tree:
 2026-07-08_ns_admission_diag/`.
 
 ---
+
+## §15.24 DESIGN — C17 eval-admission repro instrument (Rev 0, 2026-07-08 —
+pre-attack)
+
+**Status: DESIGN-ONLY DRAFT (Rev 0).** Written under the same discipline as
+§15.20 Rev 0/§15's own header (§15.17/§15.20.8's self-attack-round
+precedent): every number below is either cited to an already-run artifact
+(§15.22's per-cell `wall_s`, §15.23's residual/conditioning measurements),
+or freshly VERIFIED this session against the live code (file + line, stated
+explicitly). **This section has NOT yet had its own independent attack
+round** — per this project's standing multiple-independent-audit-rounds
+rule, it is written to survive one, not asserted as already build-ready.
+No code is written or run in this session; every build task below is
+registered, not built.
+
+### 15.24.0 What this instrument resolves, and what it explicitly does NOT
+reopen
+
+§15.23's own diagnostic closed one question (is the anchor table itself
+NS-starved at high K/d?) with an unambiguous NO, and opened a narrower one
+it could not answer: **is the TRUE failing object — C17's raw,
+un-blended, pre-Newton-Schulz post-conv key for held-out entities — a
+genuine geometric-degeneracy case, an instrument artifact, or a
+tolerance-miscalibration case?** §15.23's own "Why the true failing object
+could not be tested this session" paragraph is the exact gap this design
+closes: the wide-grid wave's checkpoint writer (`run_deltanet_rd.py:926–947`,
+sec 10.10 item 1) saves ONLY the anchor table's trained-row block, never
+the full model (embed/`k_proj`/`k_conv1d`), so `k_eff_raw` for a real C17
+query cannot be reconstructed offline from anything currently archived.
+
+**This design builds candidate (2)** (§15.23's own registered list, "a
+targeted, deterministic-seeded repro on ONE already-failing cell... with a
+full model checkpoint at that one step only") **as the primary
+instrument**, and **candidate (1)** ("extend the checkpoint payload to
+also snapshot a fixed C17 diagnostic batch's `k_eff_raw`... at each
+admission checkpoint") **as a secondary, same-commit code change** for
+future waves' benefit — registered here, not separately costed as its own
+launch (it adds zero new GPU cells; it only changes what future,
+already-planned checkpoint writes contain).
+
+**Explicitly NOT reopened, frozen per §15.1/§15.19/§15.22's own "never
+reopens or rescores" precedent:**
+
+1. §15.22's own K/d-correlated failure-**RATE** measurement (0/30 at
+   K/d≤0.71875 → 1/3 at K/d=0.75 → 3/3 at K/d≥0.8125) — unchanged, not
+   re-measured here. This design explains the RATE's mechanism, never its
+   magnitude.
+2. §15.23's own anchor-table finding (100% admissible at `n_iter=20`,
+   residuals ~7,000–8,000× below tolerance, indistinguishable
+   failing-vs-passing) — closed, not re-tested.
+3. §15.20.4's own rival-discrimination test (absolute-slack vs power-law
+   bands) — this instrument produces ONE more data point about *why*
+   K=78/84/90 are inadmissible, not a new x0(96) fit; it does not revive
+   §15.20.4 on its own.
+4. **Build-scope fence, restated from the task brief:** this design's own
+   build tasks touch `run_deltanet_rd.py`, `model_rd.py`, and
+   `run_deltanet_rd_exactness_sweep.py` only (plus one new standalone
+   analysis script, §15.24.4). **No `phase2_*` file and no
+   `lm_pretrain_rd.py`** — those are different, unrelated tracks; nothing
+   in this design touches them, and no future build session executing this
+   design is authorized to either.
+
+### 15.24.1 Hypothesis and the 3-way mechanism space
+
+**One-sentence hypothesis:** the raw, pre-anchor, pre-Newton-Schulz
+post-conv keys C17 feeds to NS at high K/d either (a) really are
+geometrically non-recoverable at the production `n_iter=20`/`resid_tol=
+0.01` setting — a genuine, previously-unmeasured boundary on the
+super-linear capacity result — or (b) trigger the eval-side fallback flag
+for a reason unrelated to true NS non-convergence on that object (a bug
+upstream of NS itself), or (c) genuinely fail to converge at `n_iter=20`
+but would pass at a modestly larger iteration budget or a tolerance
+calibrated for THIS population rather than for anchor-stabilized blended
+keys.
+
+| Candidate | Mechanism, precisely | What observation discriminates it |
+|---|---|---|
+| **(a) REAL-CAPACITY-BOUNDARY** — genuine geometric degeneracy of raw held-out-entity keys at K/d>0.75 | The C17 probe is CORRECTLY reporting that raw held-out-entity keys, at these K/d ratios, are not NS-recoverable at the production setting — a real fact about the model's learned key geometry for entities it never anchors, not an artifact. | Offline-recomputed NS on the dumped `k_eff_raw` (same `n_iter=20`, same math) **reproduces** the live fallback (agrees with the live flag, §15.24.4 Step 1), **AND** sweeping `n_iter∈{24,28,32,40}` on that SAME tensor **does not** drive every flagged episode's residual below 0.01 (structural non-convergence, not "one more iteration away"). |
+| **(b) INSTRUMENT-BUG** — a defect in the C17 probe path itself (wrong pool row-count, a K-vs-pool-size mismatch, subset selection including near-duplicate rows) | The fallback fires for a reason that has nothing to do with NS struggling on a genuinely well-posed K-row set — e.g. the sampled "K distinct held-out entities" batch is not actually K linearly-independent rows, or the pool/К bookkeeping is wrong. | EITHER the exact-rank precheck finds `rank(k_eff_raw_episode) < K` for some episode (§15.24.4 Step 0a, a DISPOSITIVE, zero-tolerance structural fact, independent of NS entirely), OR the offline NS recompute at `n_iter=20` **disagrees** with the live flag (§15.24.4 Step 0/1) — either is conclusive on its own. |
+| **(c) TOLERANCE-MISCALIBRATION** — numerically real non-convergence at `n_iter=20`, but the 0.01 tolerance (calibrated for anchor-stabilized BLENDED keys) is simply too tight for the structurally different, un-stabilized raw-key population | NS genuinely does not hit `resid≤0.01` at `n_iter=20` on the real object, but this is a near-miss the existing numerical budget already fixes, not a structural wall. | Offline recompute agrees with the live flag (rules out (b)) **AND** the `n_iter∈{24,28,32,40}` sweep DOES drive every flagged episode below 0.01, at or before `n_iter=32` (the same grid §15.23 already used) — an iteration-count-fixable near-miss, the mirror image of (a)'s outcome on the identical sweep. |
+
+**Corroborating (non-triggering) context pinned before the run, per
+requirement #3:** the dumped raw-key residuals will be compared, as a
+descriptive scale check only, against §15.23's own already-measured
+blended-key residuals (~1.3–1.6e-6, "7,000–8,000× below tolerance") and
+its random-proxy condition numbers (mean 2197 / max 13506 at K=90, ALL
+of which still passed at `n_iter=20`) — useful for characterizing HOW
+different the raw C17 population is, but neither quantity is a verdict
+trigger by itself (§15.23 already showed condition number alone does not
+predict admissibility: even a 2197-mean-conditioned random draw converged
+fine).
+
+### 15.24.2 Instrument — candidate (2), primary: one deterministic repro cell
+
+**Cell: K=84, seed=1940, d_state=96 — "mid-pattern," justified, not
+arbitrary.** Per §15.22's own per-cell table, K=78/84/90 are each 0/3
+admissible (fully collapsed), structurally distinct from K=72 (1/3
+admissible — a partial, noisier regime) and from K=90 (the pool-margin
+extreme: only 16 of 106 held-out entities are NOT drawn per episode at
+K=90, vs. 22 of 106 at K=84 — closer to the pool-exhaustion boundary,
+a possible SECOND confound this design wants to avoid conflating with
+the geometric question). **K=84 sits at the middle of the three
+uniformly-failing K's**, making its diagnosis the most generalizable
+read on the K=78–90 band without either the K=72 partial-failure
+ambiguity or the K=90 pool-margin confound. **Seed 1940 is the primary
+(first-listed) seed for K=84** (`run_deltanet_rd_exactness_sweep.py:3095`:
+`84: (1940, 1941, 1942)`), and — critically, per §15.23's own disclosed
+discrepancy (its preferred K=72/seed=1740 had **zero** checkpoints
+anywhere on box, `ckpt_written` empty) — **K84/seed=1940 is already
+confirmed to have a complete, on-box 10-checkpoint tree** (§15.23's own
+checkpoint-pull table: "K78/s1840, K84/s1940, K90/s2040, K72/s1742" were
+the 4 failing cells actually pulled). Reusing this exact cell means the
+repro targets a cell already known-good for checkpoint availability,
+sidestepping the exact landmine §15.23 already hit once.
+
+**Byte-identical training path, sha256'd, not hand-typed.** The cell's
+CLI is reconstructed via `_keyanchor_scaling_spec(K=84, seed=1940,
+d_state=96)` + `build_cmd(spec, ...)`
+(`run_deltanet_rd_exactness_sweep.py:2655–2677`, `:3781–3855`) — the SAME
+function that emitted the original wave's own command, never hand-typed
+independently. This resolves to (all flags confirmed against the live
+function bodies this session):
+
+```
+python run_deltanet_rd.py --K 84 --steps 20000 --seed 1940 \
+  --internal-timeout <inherited from the wave dispatcher's standard per-cell timeout> \
+  --out <out_path> \
+  --use-geo3 --geo3-n-iter 20 --geo3-resid-tol 0.01 \
+  --anchor-active --anchor-lambda-mode learned \
+  --drift-probe --rev7-engagement --d-state 96 \
+  --ckpt-dir <ckpt_base_dir>/wkeyanchor-scaling-c17repro_rdx_K84_armd_s1940_...
+```
+
+**Required Stage −1 build step (mechanical, not a code change):** hash
+this emitted command list (`build_cmd`'s own return value) and diff, by
+hand, every architecture-relevant field (K, d_state, seed, `geo3_n_iter`,
+`geo3_resid_tol`, `anchor_active`, `anchor_lambda_mode`, `drift_probe`,
+`H_extra` default `[7,21]`) against the ALREADY-ARCHIVED K84/seed=1940
+result JSON's own logged `exactness_config`/architecture-pins block
+(§15.22's own per-cell table already confirms these are uniform across
+all 19 cells: `anchor_active=True`, `anchor_lambda_mode="learned"`,
+`geo3_n_iter=20`, `H_extra=[7,21]` unmodified). **The ONLY sanctioned
+delta from the byte-identical base command is the new
+`--c17-repro-telemetry` flag (below) and a NEW `--ckpt-dir` target** (never
+overwriting the original archived checkpoints). Mirrors §15.20.1's own
+Gate (c) sha256 discipline exactly, applied here to a command line instead
+of a copied file.
+
+**No new kernel or Gate-2 check needed — both already cleared for this
+exact (K,d) pair.** `T_bind(K=84) = 7×84 = 588` (`grammar_rd.py:325–327`,
+`T_bind=7K`) is literally one of the four values §15.20.1's own Stage −1
+kernel probe already tested (`T∈{504,546,588,630}`, §15.20.6 Stage −1 item
+1) and passed. `GATE2_N_ITER_BY_D_K[96][84]=20` was already confirmed
+sufficient by the original wave's own Wave −1 n_iter-sufficiency check
+(§15.20.6 Stage −1 item 2). This repro reuses BOTH artifacts by citation,
+building nothing new for either gate.
+
+**Telemetry additions — ONE new CLI flag, `--c17-repro-telemetry`
+(`store_true`, default `False`), gating three additive, read-only
+side-channel taps. Byte-identical to every existing cell when the flag is
+absent (default behavior unchanged for every other wave, past or
+future):**
+
+**(i) Full model `state_dict` snapshot at `step=20000` only.** New flag
+`--full-ckpt-step N` (`type=int`, default `None`); when set and
+`step==N` and `ckpt_dir is not None`, additionally
+`torch.save({k: v.detach().cpu().clone() for k, v in
+model.state_dict().items()}, os.path.join(ckpt_dir, f"full_step{N}.pt"))`
+— a NEW artifact, separate from (and additive to) the existing lightweight
+`step<N>.pt` anchor-only payload (`run_deltanet_rd.py:934–947`, unchanged).
+This is the ONLY way to load the real `embed`/`k_proj`/`k_conv1d` weights
+needed to recompute a genuine C17 batch offline later.
+
+**(ii) The C17 diagnostic batch's raw pre-NS `k_eff_raw`, dumped at every
+live fallback event.** `evaluate_pool()` (`run_deltanet_rd.py:231–357`)
+gains one new optional parameter, `fallback_dump_sink: list | None = None`
+(default `None` = zero behavioral change at every existing call site —
+the M2/M3/C19 calls in `train()` at lines 802–804/807–808 pass nothing).
+The C17 call site (line 805–806) passes a live list when
+`--c17-repro-telemetry` is set. Inside the per-batch loop
+(`run_deltanet_rd.py:263–277`), immediately after
+`model.geo3_last_fallback_triggered` is read (line 274–275), if it is
+`True` AND `fallback_dump_sink is not None`, append
+`{"step": step_arg_passed_in, "hop": h, "batch_idx": batch_i,
+"key_ids": b["key_ids"].detach().cpu().clone(),
+"k_eff_raw": model.geo3_last_k_eff_raw.detach().cpu().clone(),
+"k_blend_raw": model.anchor_last_k_blend_raw.detach().cpu().clone(),
+"resid": model.geo3_last_resid.detach().cpu().clone()}`.
+**Dumping BOTH `geo3_last_k_eff_raw` and `anchor_last_k_blend_raw` is
+deliberate and free** — §15.23 already proved these are architecturally
+IDENTICAL for C17 items (`anchor_blend_gather_scatter`,
+`key_anchoring.py:439–469`, `trained_here=False` for 100% of C17 keys);
+dumping both and asserting bitwise equality at analysis time is a live,
+free re-confirmation of that claim on THIS run, not an assumption carried
+over from a different cell. All events for one checkpoint's C17 call are
+bundled into one file, `<ckpt_dir>/c17fallback_step<N>.pt` (a list),
+mirroring the existing one-file-per-checkpoint convention.
+
+**(iii) Per-probe-pool admission telemetry, all four pools, every
+checkpoint.** `evaluate_pool()`'s existing per-hop accumulation loop
+already computes `model.geo3_last_resid` on every batch (line 149,
+`model_rd.py`) but currently only ORs it into a single
+`fallback_this_hop` boolean (line 274–275, discarding the magnitude).
+Gated behind the same flag: accumulate `resid_all.append(model.
+geo3_last_resid.detach().cpu())` alongside the existing `cos_all`/
+`norm_all` accumulation (mirrors that exact pattern, lines 276–277), and
+when `model.geo3_active` add `entry["geo3_resid_stats"] = {"mean":
+torch.cat(resid_all).mean().item(), "max": torch.cat(resid_all).max()
+.item(), "min": torch.cat(resid_all).min().item(), "n_batches_fallback":
+<count of batches where resid.max()>tol>, "n_batches_total": n_batches}`
+to EVERY pool's entry (M2/M3/C17/C19 alike) — giving, for the first time,
+a magnitude comparison across pools instead of only the binary flag
+(`geo3_fallback_triggered_this_hop`) the codebase currently logs.
+
+**Required negative test (regression, mirrors `bind()`'s own `return_beta`
+precedent, `model_rd.py`'s bind() docstring, ~line 1074–1076: "Wave −1
+smoke: bitwise-identical loss with the flag on vs off on a fixed
+seed/batch"):** run a short smoke (e.g. 50 steps, fixed seed) with
+`--c17-repro-telemetry` ON vs OFF and assert bitwise-identical
+`trajectory`/loss curve — every new tap is `.detach()`ed and never
+consumes from `gen`/`eval_gen`/any model-internal generator, so it MUST
+NOT perturb the training path; this smoke proves it, not merely asserts
+it by construction.
+
+### 15.24.3 Candidate (1), secondary — fixed-batch checkpoint payload
+extension (same commit, zero new GPU cells)
+
+Registered per §15.23's own text: a FIXED (not per-checkpoint-resampled)
+C17 diagnostic batch, dumped at every admission checkpoint of every future
+`geo3_active` wave, for general offline diagnosability — distinct from
+§15.24.2 item (ii)'s event-triggered dump of the REAL, live per-checkpoint
+C17 batches (which is what THIS repro's own decision rule needs, since a
+merely-fixed batch might happen not to be one of the ill-conditioned
+draws). **Build mechanics: reuse the EXISTING fixed-batch pattern already
+in `train()` almost verbatim** (`run_deltanet_rd.py:681–684`, the
+`b_fixed`/`s_ideal_fixedref` machinery): add
+`c17_fixed_gen = torch.Generator(device=device).manual_seed(seed +
+40_000)` and `c17_b_fixed = sample_batch_rd(cfg, min(32, batch_size),
+c17_fixed_gen, hop_set=(cfg.H_train[0],), pools=pools, device=device,
+use_heldout_entities=True)`, sampled ONCE before the training loop exactly
+like `b_fixed`. At every checkpoint, gated behind a NEW flag
+(`--ckpt-dump-c17-fixed-batch`, default `False`, byte-identical when
+absent), run `model.bind(c17_b_fixed, force_rank_k=force_rank_k)` in eval
+mode and stash `geo3_last_k_eff_raw.detach().cpu()` into the checkpoint
+payload alongside the anchor-table block. **Not separately costed** — it
+adds one extra `bind()` call (a single forward-only pass on ≤32 items,
+sub-millisecond) at each of the ≤10 checkpoints already being written;
+folded into the same commit as §15.24.2's build tasks, never launched on
+its own.
+
+### 15.24.4 Decision rules — mechanical, pinned before the run
+
+All thresholds below are EXACT, no numerical-tolerance slack, per this
+project's own standing rule (an integer/structural check needs an exact
+threshold, not a tolerance copied from a floating-point context).
+`resid_tol = 0.01` throughout (`key_anchoring.GATE2_RESID_TOL`, the SAME
+production constant this program uses everywhere — never re-derived).
+`n_iter` sweep grid `{20, 24, 28, 32, 40}` — the SAME grid §15.23's
+`anchor_table_ns_sweep()` already used, for direct comparability.
+
+| Step | Check (exact) | Outcome |
+|---|---|---|
+| **0a. Exact-rank precheck** | For EVERY dumped episode: `torch.linalg.matrix_rank(k_eff_raw_episode, tol=1e-4)` (tolerance on the pre-scaled `X_0 = A/√K` basin's own natural scale, `model_rd.py`'s `newton_schulz_orthogonalize` docstring, ~line 371–390). If `rank < K` for ANY episode | **INSTRUMENT-BUG, DISPOSITIVE** — an exact structural fact (near-duplicate/degenerate held-out rows), independent of anything NS-related. Verdict fires immediately; later steps still run for diagnosis but cannot overturn this. |
+| **0b. Pool-membership precheck** | Assert dumped `key_ids.shape == (B, 84)` (matches `cfg.K`) AND every id is an EXACT set-member of `pools.heldout_name_ids` (never the trained pool) | Mismatch on EITHER → **INSTRUMENT-BUG** (wrong pool row-count / K-vs-pool-size mismatch, the task's own named example) |
+| **1. Live/offline NS agreement** | Recompute `newton_schulz_orthogonalize(k_eff_raw_dump, n_iter=20)` OFFLINE (fp32, same math as the live bf16-adjacent path — the live/offline dtype difference is itself part of what this check tests) for every dumped event; compare `(resid > 0.01).any()` to the live `geo3_last_fallback_triggered` flag that was `True` at that exact event | **Disagreement on ANY event → INSTRUMENT-BUG** (something in the eval-time computation, e.g. a dtype mismatch or a stale/aliased tensor reference, differs from a straightforward re-application of the documented NS math). **Agreement on EVERY event → proceed to Step 2.** |
+| **2. n_iter sweep (only reached if Step 1 agrees everywhere)** | Sweep `n_iter∈{24,28,32,40}` on the SAME dumped `k_eff_raw`, per event | **Every event's residual ≤0.01 by `n_iter≤32` → TOLERANCE-MISCALIBRATION.** **ANY event still >0.01 at `n_iter=40` (the widest tested value, matching §15.23's own ceiling) → REAL-CAPACITY-BOUNDARY.** **Mixed across events (some resolve, some don't) → residual AMBIGUOUS** (named follow-on below). |
+
+**Residual AMBIGUOUS, named follow-on (registered, not run):** re-launch
+the identical cell (same seed, same config) a second time and confirm the
+SAME steps/episodes reproduce the SAME fallback pattern.
+**Reproducible** → escalate to 2 more cells (K=78 and K=90, bracketing
+K=84) to test whether the mixed signature is itself K/d-dependent.
+**NOT reproducible under the same seed** → this is ITSELF a strong
+INSTRUMENT-BUG signal (nondeterminism where the design assumes
+determinism) and must be escalated as its own FATAL finding, not filed
+away as merely AMBIGUOUS.
+
+**Determinism cross-check (also doubles as a Stage −1 negative test,
+§15.24.5):** the full `state_dict` snapshot at `step=20000`
+(§15.24.2 item i) permits an INDEPENDENT offline reconstruction of the
+same C17 batch — load the snapshot into a fresh model instance, rebuild
+`eval_gen = seed + 10_000 + 20000` (`run_deltanet_rd.py:801`, the exact,
+already-registered formula), and replay the SAME pool-call order
+(`m2, m3, c17, c19`, lines 802–808) so the shared generator advances
+identically before C17's own batches are drawn. Run this ONCE against the
+live-dumped tensors from §15.24.2 item (ii) and assert BYTE-IDENTICAL
+`key_ids`/`k_eff_raw` — this is the "determinism of the C17 batch under
+the pinned seed" gate item, and it is a REAL cross-check (two independent
+derivation paths agreeing), not a vacuous shape check, mirroring this
+program's own "two independent methods concur" discipline (§15.22's
+`wall_s`-vs-timestamp cross-check).
+
+### 15.24.5 Gates
+
+**Reused, not re-run (cited by artifact, per §15.24.2):**
+- Kernel long-T safety at `T=588` — already PASS, §15.20.1/§15.20.6 Stage
+  −1 item 1.
+- `GATE2_N_ITER_BY_D_K[96][84]=20` sufficiency — already PASS, §15.20.6
+  Stage −1 item 2.
+
+**New Stage −1 items, BLOCKING, this instrument's own telemetry hooks
+(none of these existed before this design; all must run to completion,
+not merely be written, per this project's own "assertion has teeth"
+rule):**
+
+1. **Bitwise-identical-trajectory smoke** (§15.24.2's own required
+   negative test): `--c17-repro-telemetry` ON vs OFF, fixed short seed,
+   identical loss curve.
+2. **Dump-fires-exactly-at-fallback smoke:** two synthetic fixtures — (a)
+   a hand-built near-duplicate K-row batch that FORCES
+   `fallback_triggered=True` (e.g. two rows within one episode set to
+   near-identical unit vectors), assert the dump sink receives **exactly
+   1** entry; (b) a well-conditioned/orthonormal-ish K-row batch, assert
+   the dump sink receives **exactly 0** entries. Proves the hook fires
+   precisely on the flag, neither more nor less often.
+3. **Tensor-shape assertions:** `k_eff_raw`/`k_blend_raw` dumps
+   `== (B_batch, 84, 96)`, `resid` dump `== (B_batch,)`, all on CPU, fp32,
+   detached (`requires_grad=False`).
+4. **Determinism cross-check** (§15.24.4's own "Determinism of the C17
+   batch" item): the offline state_dict-replay reconstruction byte-matches
+   the live dump. This is the ONE Stage −1 item that can only run AFTER
+   the repro cell itself has produced both the state_dict snapshot and at
+   least one live dump — sequenced as the LAST Stage −1 item, immediately
+   post-launch, before the decision-rule analysis (§15.24.4) is trusted.
+5. **`sha256`/config cross-check** (§15.24.2's own build step): the
+   reconstructed `build_cmd()` output's architecture-relevant fields
+   match the archived K84/seed=1940 JSON's own `exactness_config` block,
+   field by field, by hand, recorded in the build commit message.
+
+**Budget guard (mirrors §15.20.6's own Stage 0 abort-trigger formula,
+`1.5 × <point-estimate GPU-h> × 3600`):** realized `wall_s ≥ 1.5 × 0.450 ×
+3600 = 2430s` → halt, diagnose (`nvidia-smi` contention check on GPU 2
+first — Phase-2 owns GPUs 0–1, GPUs 3–7 idle but shared-cluster
+contention is always re-checked at launch time, not assumed from this
+design's own drafting time, per §15.13/§15.20.6's own re-verification
+discipline), re-price before retrying.
+
+**PI sign-off token.** This repro draws against the ALREADY-authorized
+KEY_ANCHORING_SCALING sub-ledger (§15.24.7 below shows it fits comfortably
+inside even the ORIGINAL, non-extended 21 GPU-h ceiling) — **no new
+ceiling ask**, unlike §15.20.5's own `+5.0 GPU-h` extension. Per this
+program's own MAJOR-4 precedent generalized (a NEW PI-decision earns its
+own named record whether or not it also asks for new ceiling — the
+original fix was about preventing a STALE token from silently authorizing
+an unrelated ask), this design registers **`KEYANCHOR_SCALING_
+C17REPRO_PI_SIGNOFF=1`**, checked belt-and-suspenders (bash launcher +
+Python-side `keyanchor_scaling_stage_gate`-equivalent) **IN ADDITION TO**
+the base `KEYANCHOR_SCALING_PI_SIGNOFF=1` (still required, since this is
+still spend against that same sub-ledger) — never OR'd, both required.
+**Flagged explicitly as a judgment call for the attack round:** since no
+ceiling increase is requested, an attack round could reasonably argue the
+base token alone suffices and the new token is unneeded ceremony; this
+design takes the more conservative reading (a genuinely new scientific
+instrument, not a re-run of the wide-grid wave, earns its own explicit
+go-ahead) but registers the disagreement rather than silently deciding it.
+
+**Enforced abort branches (registered here, built later, each needs its
+own negative test run to completion before Stage 1 launch):**
+- Missing/`False` kernel or Gate-2 cited artifact → refuse to launch
+  (same belt-and-suspenders shape as every prior `keyanchor-scaling*`
+  wave). Negative test: point the gate at a deliberately-absent artifact
+  path, assert `exit 1`/`sys.exit(1)`.
+- Live/offline NS-agreement mismatch at analysis time (§15.24.4 Step 1)
+  → the analysis script must refuse to emit a REAL-CAPACITY-BOUNDARY or
+  TOLERANCE-MISCALIBRATION verdict and instead print INSTRUMENT-BUG with
+  the disagreeing event's own step/hop/batch index. Negative test: feed
+  the analysis script a synthetic fixture where live and offline
+  DELIBERATELY disagree (a hand-edited dump with a flipped flag), assert
+  it reports INSTRUMENT-BUG and not one of the other two verdicts.
+- Stale-token check: launching with ONLY the base `KEYANCHOR_SCALING_
+  PI_SIGNOFF` set (new token absent) must refuse, exactly mirroring
+  §15.20.5's own MAJOR-4 fix pattern.
+
+### 15.24.6 What this changes for the paper
+
+**If (a) REAL-CAPACITY-BOUNDARY:** the d=96 "flat at ceiling" reading
+(§15.19's own flat-near-1.0 curve across the ORIGINAL K/d≤0.71875 window)
+becomes **"the C17-measurable ceiling ends at K/d≈0.75"** — a REAL,
+positive structural finding about where the super-linear capacity result's
+own held-out-entity generalization stops holding, arguably **more
+publishable** than a flat, uninformative curve: it names an actual
+boundary rather than reporting "no cliff found in the window we happened
+to test." This would also, finally, retroactively validate §15.20's own
+entire wide-grid rationale (bracket the two rival bands with real points)
+— just via a DIFFERENT instrument (a probe-path boundary) than the one
+originally planned (a fitted `x0(96)`).
+
+**If (b) INSTRUMENT-BUG:** the wide-grid wave's own 11/12 inadmissible
+cells are NOT evidence of anything about the model — they are a probe
+artifact. The correct next step is fixing the identified bug (pool
+construction / K-mismatch / whatever the sub-diagnosis names) and
+**re-running the wide-grid wave at the fixed instrument**, at which point
+§15.20.4's own original rival-discrimination test (never yet executed,
+§15.22's own headline gap) becomes attemptable again for the first time.
+
+**If (c) TOLERANCE-MISCALIBRATION:** a cheap, surgical fix (bump
+`geo3_resid_tol` for raw/un-blended queries specifically, or raise
+`n_iter` modestly) unlocks the ALREADY-COLLECTED 11 inadmissible cells'
+own `h4` values for the fit **without any new GPU spend** — the fastest
+path back to attempting §15.20.4's discrimination test, since the raw
+data already exists and only the ADMISSION gate, not the training, would
+need re-scoring.
+
+**Either way, this section's own existence is itself evidence the
+program's standing discipline is working as designed:** a misdiagnosed
+mechanistic claim (§15.22) was caught and retracted (§15.23) before it
+reached a paper, and this instrument is the pre-registered, mechanically-
+gated next step rather than a second guess.
+
+### 15.24.7 GPU plan and ledger
+
+**GPU assignment:** 1 GPU, **GPU 2** (Phase-2 owns GPUs 0–1; GPUs 3–7
+remain idle and unaffected by this launch).
+
+**Cost arithmetic, re-derived from §15.22's own realized per-cell rates
+(shown, not asserted):**
+
+- K=84's own 3-seed realized `wall_s` (§15.22's per-cell table):
+  1419.82 + 1378.79 + 1429.39 = 4228.00s, mean **1409.333s = 0.391481
+  GPU-h** — the closest calibrated analog (same K, same d_state, real
+  realized data), preferred over the 12-cell d=96-wide mean (0.4025 GPU-h)
+  per §15.20.5's own "K-SPECIFIC realized rates are more precise than a
+  generic point estimate" precedent.
+- **Telemetry-overhead disclosure:** the new hooks add (i) one full
+  `state_dict` `torch.save` at step 20000 only (low-MB, one-time,
+  negligible next to a 1409s run), (ii) up to ~120 event-triggered
+  `.detach().cpu()` + `torch.save` calls worst-case (4 batches × 3
+  H_train hops × ≤10 checkpoints, each a ≈4.1MB `(≤128,84,96)` fp32
+  tensor — ≈490MB worst-case disk, no added GPU compute), (iii) cheap
+  CPU-side resid aggregation reusing already-computed tensors. None of
+  these add GPU kernels; each `.cpu()` call DOES force a device-sync
+  stall (sub-millisecond to low-millisecond on an uncontended GPU) that
+  the ORIGINAL cell's own realized rate never paid. **Disclosed,
+  conservative +15% overhead buffer** (first-time code path, never
+  before measured): `0.391481 × 1.15 = 0.450 GPU-h` — this is the design's
+  own **1× point estimate**, landing exactly in the pre-registered
+  ~0.4–0.5 GPU-h range.
+- **2× pessimistic ceiling** (house discipline, §15.20.5's own "the
+  realized-rate expectation is NOT the ceiling number," reinforced by this
+  program's own realized/estimate ratio history of 13.6%–112.5%):
+  `0.450 × 2 = 0.900 GPU-h`.
+
+**Sub-ledger arithmetic:** KEY_ANCHORING_SCALING currently **18.1196/26
+GPU-h realized** (11.7865 §15.19 + 6.3331 §15.22; §15.23's diagnostic cost
+~0 GPU-h, already folded in). Adding this design's own:
+
+| Bracket | This design | Running total | vs. ORIGINAL 21 | vs. extended 26 |
+|---|---|---|---|---|
+| 1× (0.450) | +0.450 | 18.5696/26 | 18.5696/21 = 88.4% | 71.4%, reserve 7.4304 |
+| 2× (0.900) | +0.900 | 19.0196/26 | 19.0196/21 = **90.6%, still inside the ORIGINAL, non-extended ceiling** | 73.2%, reserve 6.9804 |
+
+**Notable: even at the 2× pessimistic bracket, this design's own worst
+case (19.0196 GPU-h) stays under the ORIGINAL 21 GPU-h ceiling** —
+1.9804 GPU-h of margin remains untouched, and the `+5.0 GPU-h` extension
+(already authorized, `KEYANCHOR_SCALING_EXT_PI_SIGNOFF`, never yet drawn
+on per §15.22) is not needed at all for this launch. This fits.
+
+### 15.24.8 Standing constraints (restated, apply unchanged)
+
+- Exact thresholds, no numerical-tolerance slack (§15.24.4's `rank<K`,
+  `resid>0.01`, live/offline exact-boolean-agreement checks).
+- Negative unit tests run to completion, not merely written (§15.24.5's
+  five Stage −1 items).
+- Smoke test every model incl. eval batch before launch — this repro
+  reuses an already-smoke-tested architecture/config; the ONLY new smoke
+  surface is the telemetry hooks themselves (§15.24.5 items 1–3).
+- tmux + supervisor launch pattern for the single-cell launch, same
+  discipline as every prior wave, scaled down to one cell.
+- Archive to repo (≤25MB) + SSD mirror, both, no exceptions — registered
+  for the harvest, not built here (design-only session).
+- Multiple independent adversarial audit rounds — this section is
+  explicitly DRAFT pending its own attack round(s) before
+  CLEARED-FOR-BUILD.
+- Never compress matrices to vectors; use MultiProbeHead-style bilinear
+  readouts — N/A to this instrument (no new readout head is built; this
+  is a diagnostic tap on existing tensors only).
+
+### 15.24.9 ATTACK-ROUND QUESTIONS — ROUND 0 (self-attack, minimum 5)
+
+**Q1. Does the offline NS recompute (Step 1) actually use the SAME
+numerics as the live path, or does an fp32-offline-vs-bf16-adjacent-live
+dtype difference risk a false INSTRUMENT-BUG verdict?** Genuinely open.
+`bind()`'s kernel call casts to bf16 for the `chunk_delta_rule` call
+(`model_rd.py:362–363`, `k_bf`/`v_bf`), but the geo3/NS path operates on
+`k_norm_raw`/`k_eff_raw` computed via `F.normalize(k_conv, ...)` in
+whatever dtype `k_conv` itself is (fp32 unless explicitly cast) — NOT
+inside the bf16 kernel call. **TODO for the attack round:** confirm
+`k_eff_raw`'s dtype at dump time is fp32 (matching `newton_schulz_
+orthogonalize`'s own assumed dtype), not silently bf16-downcast anywhere
+upstream; if it IS bf16, the offline fp32 recompute is not a clean
+apples-to-apples comparison and Step 1's disagreement branch could fire
+spuriously.
+
+**Q2. Is the exact-rank precheck's `tol=1e-4` threshold (Step 0a)
+actually well-calibrated, or was it picked by analogy without a real
+derivation?** Disclosed weakness: `tol=1e-4` was chosen "on the same
+natural scale as the `X_0=A/√K` pre-scaling basin" but this is a
+qualitative justification, not a derived number the way §15.20's own
+K_crit arithmetic was derived. **TODO for the attack round:** either
+derive a principled `tol` from the NS convergence basin's own math, or
+demote this check from "dispositive" to "strong evidence requiring
+corroboration," and re-verify it against a KNOWN-good (M2 in-distribution)
+batch first to confirm it doesn't fire spuriously on ordinary,
+non-degenerate rows.
+
+**Q3. Does dumping `k_blend_raw` alongside `k_eff_raw` for C17 batches
+risk masking a REAL anchor-table interaction that §15.23's own "100%
+architecturally bypassed" claim missed?** §15.23's claim rests on
+`trained_here=False` for every C17 item, verified via
+`anchor_trained_mask`'s own construction — this design re-confirms it
+live (bitwise-equality assertion) rather than assuming it, which is the
+right posture, but the attack round should confirm the bitwise-equality
+assertion is actually WIRED IN as a build-time check (§15.24.2 item ii),
+not merely described in prose here.
+
+**Q4. Is ONE cell (K=84/seed=1940) actually sufficient to reach ANY of
+the three named verdicts with confidence, or does a single-seed,
+single-K repro risk exactly the same "n=1, no statistical weight" problem
+§15.22 flagged for its own K=72/seed=1741 point?** Partially mitigated:
+unlike §15.22's h4-fit problem (a continuous statistical estimate needing
+multiple seeds), this design's verdicts (0a/0b/1/2) are STRUCTURAL/
+mechanical facts about a specific tensor (rank, NS convergence at fixed
+n_iter), not population statistics — a single well-chosen cell CAN
+answer "is THIS instrument's math internally consistent" definitively.
+But it canNOT, on its own, establish that the SAME verdict holds at
+K=78/K=90 too (§15.24.4's own AMBIGUOUS branch already registers a
+2-cell escalation for exactly this reason). **TODO for the attack round:**
+decide whether the mandatory grid should be widened to 2–3 cells upfront
+rather than escalating only on an AMBIGUOUS result — a cost/certainty
+tradeoff this design deliberately left as the cheaper, escalate-on-need
+option.
+
+**Q5. Does the `+15% overhead buffer` (§15.24.7) actually cover the
+worst-case ~120 dump events, or is it a hand-waved number?** Disclosed
+as "conservative... never before measured" — genuinely a guess, not a
+measurement, unlike this program's other cost numbers (which are pulled
+from real realized data). **TODO for the attack round:** either accept
+the disclosed uncertainty (the 2× pessimistic ceiling already absorbs a
+much larger miss than 15%) or require a even-cheaper CPU-only dry-run
+timing the `.detach().cpu()`+`torch.save` cost of a single dump event
+before trusting the multiplier.
+
+---
