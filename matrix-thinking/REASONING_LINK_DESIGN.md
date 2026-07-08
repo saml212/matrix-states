@@ -8176,3 +8176,537 @@ backward-compat `classification` alias reproduces the archived pipeline's own pr
 unrelated, unchanged `reasoning_link_probe.py` Stage −1 suite, 19/19 + extras, re-run for
 completeness). No new cells launched, no models loaded — this is a pure classification-layer fix
 validated against already-computed archived data.
+
+## 16.19 PHASE-2B SEED EXTENSION (n=3→6) — DESIGN (Rev 0, pre-attack, 2026-07-08) — extends §16.16's audited instrument from 3 to 6 paired seeds/cell, testing whether any of §16.18's 3 UNRESOLVED contrasts resolve and whether the 1 real, non-durable TRANSIENT (wikitext×per_token, HURTS-direction) signal replicates at independent seeds
+
+**Hypothesis, one sentence.** Tripling the paired-seed count per (corpus, arm)
+cell from n=3 to n=6 shrinks `delta_ci_n3`'s own CI half-width by a
+re-derived factor of **≈2.37×** — not the ≈1.45× a loose reading of "t-ratio
+and a √2 sample factor" might suggest (§16.19.1 shows the correct
+arithmetic) — moving §16.16.4's detectable `|mean Δ|` floor from ≈1.5-1.7
+down to **≈0.64-0.71 loss units**, enough to meaningfully re-test the 3
+UNRESOLVED contrasts but **NOT, on the pre-registered arithmetic itself,
+large enough to reliably confirm** the one determinate signal already found
+(§16.18.3's wikitext×per_token TRANSIENT, observed `|Δ(K=32,c=2500)|=0.4999`)
+as statistically significant, since 0.4999 sits BELOW even the optimistic
+end of the new floor. This wave is therefore honestly registered as a
+**bound-tightening + informal-replication-check** wave for the transient
+specifically, and a **genuine resolution attempt** for the 3 UNRESOLVED
+contrasts generally — not a "confirm the transient" wave. Full derivation,
+§16.19.1.
+
+### 16.19.1 What n=6 buys — the re-derived CI-shrinkage factor, the new detectable floor, and the honest transient-resolution caveat
+
+**Re-deriving the factor, shown not asserted.** `delta_ci_n3`'s own pinned
+formula (`reasoning_link_probe.py` L1073-1082, verified directly): for n
+paired seeds, `half_width = t(n−1,.975) × s/√n`, where `s` is the sample SD
+of the n per-seed deltas (n−1 denominator). Holding the underlying
+between-seed SD `s` fixed (the standard "more seeds, same population noise"
+power-sketch assumption §16.16.4 itself already uses), the ratio of n=6's
+half-width to n=3's is a **pure t-value/√n ratio**, nothing else:
+
+```
+factor = [t(5,.975)/√6] / [t(2,.975)/√3]
+       = (t(5,.975)/t(2,.975)) × √(3/6)
+       = (2.571/4.303) × √0.5
+       = 0.597491 × 0.707107
+       = 0.422483
+```
+
+So n=6 half-widths are **≈42.25% of** n=3 half-widths — a **tightening
+factor of 1/0.422483 ≈ 2.3669, i.e. ≈2.37×**. This does NOT match the
+task's own quoted "~1.45×" figure; 1.45× is closer to the √2 sample-size
+component ALONE (√2=1.41421, in the right ballpark if rounded loosely) with
+the t-value-ratio component (2.571 vs 4.303 → 1.6743×) never actually
+multiplied in — the two factors compound multiplicatively (1.6743 ×
+1.41421 = 2.3669), they do not average or partially cancel. **Correction,
+stated plainly per this project's own bait-number-catching convention
+(§16.16.5's PERSISTENT/CONVERGED-EQUIVALENT transposition catch is the
+precedent): the real factor is ≈2.37×, not ≈1.45×.** This is a favorable
+correction (n=6 buys MORE power than the task's own framing implied), not
+an unfavorable one, but it is re-derived and shown here rather than
+silently substituted.
+
+**New detectable floor.** Applying the 0.422483 factor to §16.16.4's own
+`≈1.5-1.7` band (σ=0.43 → half-width 1.51; σ=0.48 → half-width 1.69, SAME
+conservative, readout-(A)-derived σ proxy, SAME `Var(Δ_seed)≈2σ²`
+independence assumption — no new assumption introduced):
+
+```
+n=6, σ=0.43: half_width = 1.51 × 0.422483 ≈ 0.638
+n=6, σ=0.48: half_width = 1.69 × 0.422483 ≈ 0.714
+```
+
+**Detectable `|mean Δ|` at n=6: ≈0.64-0.71 loss units** (down from ≈1.5-1.7
+at n=3) — a real, meaningful tightening, re-derived independently via the
+direct `t×sd/√n` formula at n=6 as a cross-check (σ=0.48: `sd_Δ=σ√2=
+0.6788`, `SE=sd_Δ/√6=0.2771`, `half_width=2.571×0.2771=0.7125`; σ=0.43:
+`sd_Δ=0.6081`, `SE=0.2483`, `half_width=2.571×0.2483=0.6383`) — matches the
+factor-scaled figures to 3 decimal places, confirming the arithmetic is
+self-consistent both ways.
+
+**The honest caveat this design requires, stated prominently, not buried.**
+The observed TRANSIENT signal's own magnitude — `|Δ(K=32,c=2500)|=0.4999`,
+§16.18.3/§16.18.4 — is **smaller than even the optimistic (σ=0.43) end of
+the new n=6 floor (0.638)**. Read plainly: **if the true population effect
+at that (corpus, arm, K, c) cell is exactly what the n=3 data already
+measured, n=6 is projected to STILL produce a CI that straddles zero** —
+the transient would classify back to indeterminate at that checkpoint, not
+resolve to a confirmed, CI-excludes-zero replication. This is the direct
+answer to "would n=6 confirm the transient, or only tighten the bound":
+**on this pre-registered arithmetic, n=6 tightens the bound; it does NOT,
+by itself, license an expectation of confirming a ~0.50-magnitude effect.**
+
+**What n would confirm it — computed, not guessed, so the caveat has a real
+number attached.** Solving `t(n−1,.975) × sd_Δ/√n = 0.4999` for the smallest
+integer n (boundary/50%-power-like criterion, matching this document's own
+"detectable = half-width < |Δ|" convention, not a formal Type-II power
+calculation):
+
+| n (df) | t(df,.975) | half-width, σ=0.48 (`sd_Δ=0.6788`) | half-width, σ=0.43 (`sd_Δ=0.6081`) |
+|---|---|---|---|
+| 6 (5) | 2.571 | 0.7125 (fails) | 0.6383 (fails) |
+| 8 (7) | 2.365 | 0.5679 (fails) | 0.5085 (fails, barely) |
+| 9 (8) | 2.306 | 0.5218 (fails) | 0.4674 (**passes**) |
+| 10 (9) | 2.262 | 0.4855 (**passes**) | 0.4267 (passes) |
+
+**n≈9 (optimistic σ) to n≈10 (conservative σ) is the boundary minimum** —
+already well past this Rev's n=6 registration. For CONVENTIONAL ~80% power
+(not merely boundary/50%-power), a normal-approximation sample-size formula
+(`n ≈ (z_.975+z_.80)² sd_Δ² / δ²`, `z_.975=1.96, z_.80=0.8416`, `δ=0.4999`)
+gives **n≈12 (σ=0.43) to n≈15 (σ=0.48)** — a rough order-of-magnitude only
+(normal approximation, not the small-sample t-correction, which would push
+these figures slightly higher still), but directionally clear: **comfortable
+confirmation of a ~0.50-magnitude effect needs on the order of 2-2.5× more
+seeds than this Rev registers.** **This SAYS SO exactly as required: n=6
+cannot be sold as a confirmation attempt for the transient. It is
+registered as bound-tightening (general, all 4 contrasts) + an informal
+replication CHECK (does the new data point the same direction, at a
+similar rough magnitude — directionally suggestive even short of a
+CI-excludes-zero re-classification) for the transient specifically, not a
+powered confirmation wave.**
+
+**One more honesty check, disclosed rather than exploited.** The realized
+n=3 between-seed SD at the ONE cell that actually hit `det32=TRUE` at
+c=2500 (wikitext×per_token) was `sd=0.049985` (§16.18.2's hand-derivation)
+— far smaller than the conservative `σ≈0.43-0.48` proxy above. It is
+TEMPTING to substitute this smaller, cell-specific SD into the n needed
+table and conclude n=6 is already comfortably powered for the transient.
+**This substitution is not used here, and is flagged as invalid**: a cell
+selected (post-hoc, by this write-up) FOR having cleared significance has
+a realized noise estimate that is a biased-downward estimator of the TRUE
+population noise at that cell — exactly the "significant, therefore surely
+well-powered" trap. The pre-registered floor above correctly uses the
+conservative, non-selected proxy. If the 3 new seeds' own deltas at this
+specific cell land with similarly low spread, the REALIZED n=6 CI could
+still end up tighter than this section's own pessimistic projection — a
+good outcome, to be disclosed plainly at harvest time, never assumed here.
+
+### 16.19.2 THE key question — do Leg-A init checkpoints exist for seeds 3-5? Verified directly on the box: **NO**
+
+**Checked directly, this session**
+(`youthful-indigo-turkey:/data/deltanet_rd_frozenbias_ckpts/`, `ls`):
+exactly 20 directories, covering `{off, per_token(λ∈{0.30,0.58,0.80}),
+global} × {openr1-mix-ext, wikitext-mix-ext} × seed∈{0,1,2}` — the
+FROZEN_BIAS_LM_DESIGN.md §8.3 rung-1 mandatory manifest (18 core cells +
+2 λ-mini-sweep cells) exactly, **zero seed-3/4/5 directories of any arm,
+any corpus**. `du -sh` on the directory: 25G (20 cells × ~13 checkpoint
+files × ~54MB each). This directly confirms the task's own suspicion: the
+frozen-bias wave trained seeds 0-2 only — **there is no init checkpoint to
+load for ckpt_seed∈{3,4,5} today, for ANY of the 3 arms, in EITHER
+corpus.**
+
+**Consequence, stated as the task demands: this changes the cost picture
+fundamentally, not marginally.** §16.16.8's own Phase-2b-only cost
+derivation (raw ≈2.06-2.64 GPU-h, ceiling 26.4 GPU-h) assumed the init
+checkpoints already existed, because for the ORIGINAL n=3 instrument they
+did. An n=3→6 seed extension is NOT a pure Phase-2b-layer extension —
+it requires a real decision about where the 3 NEW seeds' own frozen-bias
+LM pretraining comes from. §16.19.3 adjudicates this.
+
+### 16.19.3 Init-checkpoint adjudication — full new Leg-A inits (RECOMMENDED) vs nested reuse of the 3 existing inits, statistics stated honestly
+
+**Option A — full new inits (RECOMMENDED).** Train 18 NEW Leg-A frozen-bias
+LM pretraining cells (3 arms × 2 corpora × 3 NEW seeds, seed∈{3,4,5}, λ=0.58
+for per_token/global matching the existing core-18's own value, λ=0.00 for
+off — i.e. an exact seed-only replica of the ORIGINAL rung-1 manifest's own
+hyperparameters, no new λ sweep) on `youthful-indigo-turkey`, THEN run the
+familiarization+eval extension on top of the resulting 18 NEW checkpoints,
+exactly mirroring how seeds 0-2 were built and consumed. **Produces
+genuinely independent draws for all 6 seeds** — pretraining RNG, data
+order, and familiarization RNG all vary independently across seed∈{0..5} —
+so the pooled n=6 CI's own IID-across-seeds assumption (the assumption
+`delta_ci_n3`/its n=6 generalization is built on) holds cleanly, with no
+disclosed caveat needed on independence.
+
+**Option B — nested reuse (NOT recommended).** Reuse the 3 EXISTING
+physical init checkpoints (seed∈{0,1,2}), but run 3 ADDITIONAL
+familiarization-only trajectories per (arm, corpus) cell using NEW
+familiarization-stage RNG streams (a `fam_seed∈{3,4,5}` argument, decoupled
+from which physical checkpoint is loaded) — i.e. re-run familiarization
+TWICE per physical checkpoint, once at each of two independent
+`phase2_seed`-stream draws. **Technically feasible with a small chain
+change**: `phase2_familiarization_train.py`'s own `--init-checkpoint`
+CLI argument is ALREADY decoupled from `--seed` (verified directly,
+`run_familiarization_cell`/`main`, L390-421/L575-580 — the trainer takes an
+explicit checkpoint PATH, and `--seed` only feeds `run_name`/RNG via
+`phase2_seed`; the caller, not the trainer, is what currently pairs
+`ckpt_seed` 1:1 to a physical file) — a `phase2b_seedext_chain.sh` could
+map `fam_seed∈{3,4,5} → init_checkpoint(arm,corpus,fam_seed mod 3)` and
+pass `fam_seed` as `--seed` for naming/RNG. **Costs zero new Leg-A
+pretraining GPU-h — but corrupts the pooled n=6 statistics, and this must
+be disclosed, not assumed away:** seeds `{0,3}`, `{1,4}`, `{2,5}` would
+each SHARE one physical pretraining draw (identical weights at
+familiarization start), differing ONLY in familiarization-stage RNG
+(corpus batch order, episode sampling, held-out eval draws). The
+between-seed variance the n=6 pooled CI is supposed to average over would
+then decompose into a between-INIT component (3 independent draws) and a
+within-init, across-familiarization-draw component (2 nested draws each) —
+treating these 6 nested observations as 6 IID samples for a `df=5` t-CI
+**overstates the effective sample size** (a textbook pseudoreplication
+pattern), silently understating the true CI half-width and silently
+INVALIDATING both this design's own claimed ≈2.37× tightening AND any
+"replicates at independent seeds" claim built on it — a replication claim
+built on 3 truly-independent inits, each familiarization-resampled twice,
+is not the same evidentiary strength as 6 truly-independent inits, and a
+reviewer would be correct to discount it.
+
+**Recommendation: Option A (full new inits), statistics stated
+honestly.** Cost is the deciding factor, and it is modest: §16.19.6 derives
+≈4.54 GPU-h realized-rate-scaled for the 18 new Leg-A cells (against
+`FROZEN_BIAS_LM_DESIGN.md`'s own 135 GPU-h program ceiling, already at only
+≈6.90 GPU-h realized — ≈128 GPU-h of headroom untouched) — cheap enough
+that trading away genuine seed-independence for a saving of ~4.5 GPU-h,
+on a wave whose entire PURPOSE is producing a defensible tightened/
+replication statistic, is not a good trade. **Option B is registered here,
+disclosed, and explicitly NOT recommended** — it exists as a documented
+fallback only if a future PI check-in caps this wave's GPU-h below Option
+A's own modest bracket (§16.19.6), in which case Option B's own
+pseudoreplication caveat MUST travel with any result it produces (a
+mandatory disclosure, not optional prose), and the nested pairs' own
+partial non-independence should additionally be reported as a sensitivity
+band (e.g. a mixed-effects or cluster-robust variance estimate treating
+init-checkpoint as the clustering unit) rather than the plain `df=5` t-CI.
+
+### 16.19.4 Cells — FULL grid (RECOMMENDED) vs narrower alternatives
+
+**FULL grid: 18 new cells** (3 arms × 2 corpora × 3 new seeds, INCLUDING 6
+new OFF cells) — reusing `phase2b_chain.sh`'s own audited chain end-to-end
+(forked again, §16.19.7) for the floor gate, OFF-eval cache, and trajectory
+analysis at the new seeds, exactly mirroring the original n=3 build.
+**The task's own "TARGETED (12 non-off + 6 OFF at new seeds)" alternative
+is numerically THE SAME 18 cells** — flagged explicitly rather than treated
+as a real second option: any design that produces a valid paired Δ at the
+new seeds needs OFF's own new-seed cells too (the CI machinery pairs
+`off_vals`/`arm_vals` from the SAME `ckpt_seed`), so "12 non-off + 6 off"
+is not a cheaper alternative to "18 total," it is the same grid described
+piecewise.
+
+**The one genuinely narrower alternative: wikitext×per_token replication
+only.** Train ONLY wikitext-mix-ext × {off, per_token} × 3 new seeds — **6
+cells, not the task's own quoted "~2"** (per_token alone, without OFF's own
+new-seed cells, cannot produce a paired Δ at all — the "~2" figure is
+flagged here as another undercount, the same class of error as the
+"~1.45×" catch in §16.19.1, both corrected rather than silently used).
+This narrow option tests ONLY objective (ii) (does the transient replicate)
+and cannot touch objective (i) (do any of the 3 UNRESOLVED contrasts
+resolve) — openr1's 2 UNRESOLVED contrasts and wikitext×global's own
+UNRESOLVED contrast would get zero new data under this option.
+
+**Cost comparison (both derived in full in §16.19.6):** FULL grid raw
+≈6.65 GPU-h (bracket ≈33.3-66.5 GPU-h, dominated by the new Leg-A
+pretraining, not the familiarization/eval layer); narrow (wikitext×
+per_token+off only) raw ≈2.20 GPU-h (bracket ≈11.0-22.0 GPU-h). **The
+narrow option saves ≈4.45 GPU-h raw (≈22-44 GPU-h bracketed) but gives up
+the entire "does any UNRESOLVED contrast resolve" objective — trivial
+against the program's own headroom (§16.19.3) and against the task's own
+explicit dual objective. Recommended: FULL grid**, exactly as the task's
+own framing steers, with both costs shown rather than asserted.
+
+### 16.19.5 Classification — how n=6 pools with the existing n=3, and the required `delta_ci_n3` generalization
+
+**`delta_ci_n3` hardcodes n=3 — confirmed directly, not assumed**
+(`reasoning_link_probe.py` L1073-1082): `assert len(values_a) == 3 and
+len(values_b) == 3`, `var = ... / 2` (the literal `n−1=2` denominator),
+`se = sqrt(var / 3)`, and `half_width = CI_T_975_DF2 × se` where
+`CI_T_975_DF2 = 4.303` is a MODULE-LEVEL CONSTANT (L224), not a computed
+t-quantile. **Pooling the existing 3 per-seed `L_query(off,K,c)`/
+`L_query(arm,K,c)` readings with the 3 new ones and calling this function
+unmodified is not possible — it will hard-`assert`-fail on a 6-element
+list.** Registered build task (Stage −1 item, not self-authorized here per
+this document's own harvest/design-does-not-self-build discipline):
+
+1. **Generalize `delta_ci_n3(values_a, values_b) → delta_ci_n(values_a,
+   values_b)`**, `n = len(values_a)` (asserted equal to `len(values_b)`,
+   `n ≥ 2`), `df = n − 1`, `var = sum((d-mean)**2 for d in deltas) / df`,
+   `se = sqrt(var / n)`, `half_width = t_quantile(df, .975) × se`. Keep
+   `delta_ci_n3` as a thin, byte-identical-output wrapper (`return
+   delta_ci_n(values_a, values_b)` with a `len==3` assert retained at the
+   call site for backward compatibility with every existing caller) —
+   mirrors this document's own established "keep the old name as an alias,
+   never break an existing call site silently" convention (§16.18.9's own
+   `classification` alias precedent).
+2. **`t_quantile(df, .975)`**: scipy IS present on the box (`scipy==1.11.4`,
+   verified this session, `scipy.stats.t.ppf`) — but this project's own
+   convention throughout is to PIN exact constants, not compute them at
+   runtime (`CI_T_975_DF2 = 4.303` is a named, comment-cited constant, not
+   a live scipy call). Registered as: a small pinned lookup,
+   `CI_T_975_BY_DF = {2: 4.303, 5: 2.571}` (extensible as future waves
+   register more df's), with a Stage −1 self-test that computes BOTH
+   entries via `scipy.stats.t.ppf(0.975, df)` on the box and asserts
+   agreement to 3 decimal places against the pinned constants — pin AND
+   verify, the same double-defense pattern this document uses everywhere
+   else (e.g. §16.16.6's `FLOOR_PIN` sha256 tamper-evidence).
+3. **`episode_seed`'s own `assert 0 <= ckpt_seed_idx <= 2` (L281,
+   `reasoning_link_probe.py`) must widen to `<= 5`** — this is the
+   READOUT-(B)-side seed formula (`eval_query_loss_heldout`'s own seed for
+   the frozen-checkpoint `Q=K` scoring pass), separate from
+   `phase2_seed`'s TRAINING-side formula. **Checked directly: `phase2_seed`
+   itself needs NO change** — its own `_MAX_CKPT_SEED = 10` (L190,
+   `phase2_familiarization_train.py`) already carries an explicit code
+   comment, "registered grid uses 0-2; headroom for exploratory seeds,"
+   and the mixed-radix stride construction (`STRIDE_SEED=10_000`,
+   `STRIDE_CORPUS=100_000`) has 10-way headroom on that digit by
+   construction — `episode_seed`'s narrower `<=2` bound is the ONLY
+   hardcoded n=3 assumption on the seed-allocation side, and its own
+   `STRIDE_SEED=10_000`/`STRIDE_CORPUS=100_000` ratio gives the identical
+   10-way headroom, so widening to `<=5` (or generously `<=9`, matching
+   `phase2_seed`'s own choice) is collision-free by the SAME
+   already-verified mixed-radix construction, not a new proof obligation.
+4. **Stage −1 items, extending the existing exhaustive-enumeration
+   convention (item 9/10's own precedent):** (a) `delta_ci_n` reproduces
+   `delta_ci_n3`'s exact stored output on every ALREADY-ARCHIVED n=3 cell
+   (a hard regression test — pull `trajectory_*_phase2b.json`'s own
+   `raw` blocks, re-run through `delta_ci_n`, byte/float-match); (b) a NEW
+   synthetic n=6 fixture with a HAND-COMPUTED expected mean/CI (mirroring
+   §16.18.2's own by-hand independent re-derivation discipline, done BEFORE
+   any real n=6 data exists so the test has real teeth); (c)
+   `episode_seed`'s own collision-freedom re-verified by exhaustive
+   enumeration over `ckpt_seed_idx∈{0..5}` (extends item 10 unchanged in
+   method, widened range).
+
+**Combining mechanism.** Since `deltas[i] = a[i] - b[i]` is computed
+per-seed inside `delta_ci_n` itself, pooling is literal list
+concatenation: `combined_off = old_off_vals + new_off_vals` (6 elements,
+seed-ordered `[s0,s1,s2,s3,s4,s5]`), `combined_arm` likewise, one call to
+`delta_ci_n(combined_off, combined_arm)` per (corpus, arm, K, c) cell — no
+new formula, only the generalized `n`/`df` machinery above.
+
+**Supersession discipline — explicit, never silent, per the task's own
+instruction.** The n=6 hexachotomy re-run **REPLACES** §16.18's 4 verdicts
+(3 UNRESOLVED + 1 TRANSIENT). The harvest write-up for this extension MUST
+say, in its own opening line (mirroring this document's own house
+"supersedes X" convention used at the top of nearly every §16.x/STATE.md
+section): **"§16.20 (or wherever this wave's harvest lands) SUPERSEDES
+§16.18's n=3 verdicts for all 4 (corpus × arm) contrasts — combined n=6
+data, not a freestanding new result."** The n=3-only verdicts stay in
+§16.18 UNCHANGED as the historical record (this document's own
+never-edit-old-sections convention); a one-line pointer is added at
+§16.18.6's own top ("SUPERSEDED by §16.20 at n=6 — see there") at harvest
+time, not now (nothing to point to yet). **Per-seed disclosure is
+unchanged**: the harvest must still report each of the 6 individual
+per-seed deltas (not merely the pooled mean/CI), exactly as §16.18.2's own
+independent by-hand re-derivation did for n=3, now extended to 6 numbers
+per cell.
+
+### 16.19.6 Cost — recommended option (FULL grid, Option A full new inits), re-derived from realized rates
+
+**Reference rates, as the task itself pins them.** Familiarization
+training: **0.6172 GPU-h / 6 cells** (§16.15.6's realized OFF-cell rate,
+already reused as the pricing basis for the original n=3 Phase-2b wave,
+§16.16.8) → **0.10287 GPU-h/cell**. Eval-`L_query` passes, warm kernel
+cache: **2.1488 s/pass** (§16.18.7's own realized attempt-2 timing-pilot
+measurement, the SAME rate the original wave's own final accounting used).
+Leg-A frozen-bias LM pretraining, rung-1 scale (`d_model=256/d_state=64/
+L2`, 20,000 steps, EXACTLY the architecture Phase-2b's own init checkpoints
+use): **realized 18,175.744s / 20 cells = 908.7872s/cell = 0.252441
+GPU-h/cell** (`EXPERIMENT_LOG.md`'s own "FROZEN-BIAS LM RUNG-1 WAVE
+VERDICT" entry, training-only realized figure — the wave's own priced
+estimate, `FROZEN_BIAS_LM_DESIGN.md` §8.3, independently gives 0.2514
+GPU-h/run, a 0.4% cross-check agreement, used here as further confirmation
+this rate is trustworthy, not merely self-consistent).
+
+**Component costs, recommended option (18 new Leg-A cells + 18 new
+Phase-2b familiarization cells, FULL grid):**
+
+- **New Leg-A pretraining, 18 cells** (3 arms × 2 corpora × 3 seeds, λ=0.58
+  per_token/global / λ=0.00 off, no λ mini-sweep): `18 × 0.252441 ≈ 4.544
+  GPU-h`. (Retrofit/measurement eval and calibration overhead from the
+  ORIGINAL rung-1 wave's own ≈1.6/≈0.25 GPU-h lines are NOT needed here —
+  this extension only consumes the terminal step-20,000 checkpoint file,
+  never the probe/retrofit readout that wave built for its OWN separate
+  question.)
+- **New Phase-2b familiarization training, 18 cells** (ALL 18 are new —
+  under Option A even the OFF arm needs new seed-3/4/5 cells, since its
+  own Leg-A checkpoints for those seeds don't exist either): `18 ×
+  0.10287 ≈ 1.852 GPU-h`.
+- **New eval-`L_query` passes, cached count** (identical arithmetic to
+  §16.16.8's own, scaled to the 18 NEW cells instead of the original
+  18-total-with-6-reused): `18 cells × 5 checkpoints × 2 hop-sets × 2 K's
+  = 360 passes × 2.1488s = 773.6s ≈ 0.2149 GPU-h`.
+- **Smoke/gates, extended not rebuilt**: real-kernel smoke is per-ARM, not
+  per-seed (already exercises off/per_token/global at the kernel level,
+  §16.16.9) — no new smoke needed; new Stage −1 items (§16.19.5) are
+  CPU-only, negligible; the new FLOOR_PIN re-pin (§16.19.7) reuses the
+  already-built OFF-eval cache mechanism, near-zero marginal cost. Priced
+  at the same small ≈0.03-0.05 GPU-h order §16.16.8 used for its own
+  smoke line: **≈0.04 GPU-h**.
+
+**Raw total: `4.544 + 1.852 + 0.2149 + 0.04 ≈ 6.65 GPU-h`.**
+
+**Bracket, same 5-10× debug-tax convention this document applies
+everywhere:** `6.65 × 5 ≈ 33.3 GPU-h` (low) to `6.65 × 10 ≈ 66.5 GPU-h`
+(high) — **registered bracket ≈33.3-66.5 GPU-h, ceiling 66.5 GPU-h.**
+
+**Budget context, honestly scaled (not the same ledger as the original
+wave).** The task's own "phase2b ledger 1.66 realized/26.4 — plenty" refers
+to the ORIGINAL, now-CLOSED n=3 Phase-2b wave's own ledger — that program
+is done and its own ceiling is not reusable here (this extension is
+materially different work: it opens a NEW Leg-A pretraining sub-cost the
+original wave never had). This wave needs its OWN new ceiling line,
+registered here as **66.5 GPU-h**, checked against TWO separate program
+ceilings it draws from: (a) the Leg-A pretraining slice (≈4.544 GPU-h raw,
+≈22.7-45.4 GPU-h bracketed) draws against `FROZEN_BIAS_LM_DESIGN.md`'s own
+135 GPU-h program ceiling, already realized at only ≈6.90 GPU-h — **≈128.1
+GPU-h of headroom untouched, trivially fits even at the bracket's high
+end**; (b) the familiarization+eval slice (≈2.107 GPU-h raw, ≈10.5-21.1
+GPU-h bracketed) is the SAME order of magnitude as the original wave's own
+`≈10.3-20.6`/`26.4` ceiling, so it "fits the same shape of budget" the
+original wave already proved workable. **Every prior wave using this exact
+methodology in this document has landed its REALIZED cost well under the
+bracket's own low end** (most recently §16.18.7's own ≈1.6× undershoot of
+the raw estimate, ≈15.9× undershoot of the debug-tax ceiling) — no
+promise this wave repeats that margin, only the base rate this project has
+observed every time it has bracketed this way. **Per `AUTOPILOT_HANDOFF.md`
+saturation posture and the Brev grant's own uptime-metered economics
+(≈192 GPU-h/day operative window), this cost is negligible against
+available capacity — GPUs 0-1 are free for the familiarization/eval slice;
+the Leg-A pretraining slice needs its own GPU(s), unassigned as of this
+Rev, a build-delta-stage decision.**
+
+**Calibration re-check (`CLAUDE.md`'s own "calibration run before a big
+sweep is mandatory" rule).** Architecture/recipe/step-count for the new
+Leg-A cells are IDENTICAL to the already-realized rung-1 wave (same
+`d_model=256/d_state=64/L2`, same 20,000 steps, same corpora) — no new
+calibration CELL is registered, but the FIRST new-seed cell's own realized
+`wall_s` must be checked against the banked 908.7872s/cell rate before the
+remaining 17 cells launch (a live in-chain calibration check, not a
+separate GPU-spending step), mirroring §16.16.8's own pilot-forced timing
+discipline that already caught a 1.73× cold-kernel deviation once in this
+same program family.
+
+### 16.19.7 Gates before launch
+
+- **All existing Phase-2b gates reused, unchanged**: Stage −1 CPU-stub
+  suite (extended per §16.19.5 items 3-4), real-kernel smoke ×3 arms
+  (already covers the new cells' own kernel paths — no seed-dependence in
+  which kernels fire), the sha256 reuse gate (EXTENDED — a NEW manifest
+  for the 18 NEW Leg-A `.pt` files, pinned the same way the original
+  30-checkpoint manifest was: hashed ONCE directly on the box against the
+  freshly-trained, never-copied originals, never regenerated from a copy),
+  BANDS_PINNED-Phase2Familiarization.json (**reused AS-IS, unchanged** —
+  same reasoning as §16.16.9's own: the training RECIPE is completely
+  unchanged, only the seed axis is new).
+- **FLOOR_PIN — RE-PINNED per corpus, pooling old + new OFF seeds,
+  written to a NEW file, old file untouched (registered explicitly, per
+  the task's own instruction).** Once the 6 new OFF cells (2 corpora × 3
+  seeds) complete, `FLOOR_PIN_n6 := mean_B(ratio over 6 pooled seeds) +
+  2·σ_B(ratio over 6 pooled seeds)`, per corpus — the SAME `mean+2σ`, `k=2`
+  convention, SAME BLIND "pin before the expensive per_token/global launch"
+  sequencing (§16.16.6), just computed over 6 OFF cells instead of 3.
+  Written to `FLOOR_PINNED-Phase2b-n6.json` (a NEW filename — the original
+  `FLOOR_PINNED-Phase2b.json` stays as the n=3 historical record, mirroring
+  this document's own "fork, don't overwrite" convention used for
+  `phase2b_chain.sh` itself). **Mandatory disclosure at harvest time:**
+  report whether either corpus's own FLOOR-PASS / PARTIAL-BELOW-FLOOR /
+  FAMILIARIZATION-NULL bucket assignment CHANGES between the n=3 pin and
+  the n=6 pin — a bucket flip would itself be a notable finding, not
+  something to silently absorb.
+- **Budget guard** — re-pinned to this section's own new ceiling (66.5
+  GPU-h, §16.19.6), same real-abort-not-narrated mechanical discipline
+  (§16.5 Constraint 1), checked against BOTH the Leg-A and the
+  familiarization/eval sub-costs separately (so an overrun in either slice
+  is attributable, not just a combined number).
+- **OFF-eval cache — EXTENDED, not forked.** `off_lquery_cache-Phase2b.json`
+  is keyed on `(corpus, ckpt_seed, K, checkpoint_step, hop_set)` — the new
+  seeds are simply NEW KEYS, additive, byte-identical for every existing
+  key (mirrors §16.18.9's own `classification_by_arm` additive-field
+  precedent). No new cache file needed.
+
+### 16.19.8 Pre-registered decision rules — 4 outcome readings, what each means for the keystone and the paper
+
+Applied per (corpus, arm) contrast, using the pooled n=6 hexachotomy
+(§16.19.5); the transient-specific reading is called out separately where
+it diverges from the general rule.
+
+1. **RESOLVES-POSITIVE** — a previously-UNRESOLVED contrast now lands
+   PERSISTENT or LATE-EMERGENT on the pooled n=6 data, POSITIVE sign (arm's
+   `L_query` lower than off's). **Meaning:** first real causal evidence
+   that the frozen-bias arm's whole causal package HELPS in-context
+   multi-hop acquisition for that (corpus, arm) cell — licenses the
+   keystone's "yes" branch there; directly usable as a positive paper
+   result (§16.16.10's own stakes framing), still qualified by the
+   causal-package-not-decomposed caveat that section already registers.
+2. **RESOLVES-NEGATIVE** — a previously-UNRESOLVED contrast now lands
+   CONVERGED-EQUIVALENT (all-FALSE `holds_by_c`, adequate power confirmed
+   by the tightened floor). **Meaning:** a genuine, well-powered negative —
+   "no effect, and n=6 had the power to say so" — a coherent negative
+   result for that cell, not an underpowered null; strengthens the paper's
+   negative-result narrative with a real power claim behind it (something
+   §16.18.6 explicitly could NOT say at n=3).
+3. **TRANSIENT-REPLICATES** — wikitext×per_token specifically: the pooled
+   n=6 CI at `K=32, c=2500` STILL excludes zero on the negative side
+   (`det32=TRUE`), same TRANSIENT (or a strengthened, still-negative,
+   possibly-more-durable) pattern. **Meaning, per §16.19.1's own honest
+   caveat:** this is the LEAST likely of the 4 readings given the observed
+   magnitude sits below the new floor — but if it happens anyway (e.g. the
+   3 new seeds' own realized variance at this cell is as low as the
+   original 3's, §16.19.1's closing paragraph), it is strong evidence the
+   HURTS-direction deviation is real and reproducible, not a 3-seed fluke —
+   independently notable (if unwelcome-direction) evidence, worth its own
+   mechanism follow-up, explicitly NOT relabeled as "arm helps" under any
+   circumstance (sign discipline, §16.18.3/§16.18.8).
+4. **STILL-UNRESOLVED, TIGHTER BOUND** — the CI half-width shrinks by the
+   registered ≈2.37× (validated post-hoc against the REALIZED n=6 variance,
+   not merely assumed to match the projection) but still straddles zero,
+   for one, several, or all 4 contrasts. **Meaning, and the pre-registered
+   MOST LIKELY reading per §16.19.1's own arithmetic:** the keystone
+   question remains genuinely open; report the concrete new floor (the
+   REALIZED one, not merely the ≈0.64-0.71 projection) as the update,
+   register explicitly that reaching resolution for an effect near the
+   transient's own observed magnitude needs n≈9-10 (boundary) to n≈12-15
+   (conventional power) — well past a 2nd seed-extension wave — and that a
+   LOWER-VARIANCE READOUT (not simply more seeds) may be the more
+   cost-effective next lever, exactly as §16.18.9 item 2 already flagged
+   before this Rev existed. **This outcome must be reported as an
+   updated, still-open measurement question — never dressed up as a
+   resolved keystone answer**, mirroring §16.18.6's own explicit
+   instruction for the n=3 result.
+
+### 16.19.9 Open items for the independent attack round (self-attack, not exhaustive)
+
+1. Does the `delta_ci_n` generalization (§16.19.5) actually preserve
+   `Var(Δ_seed)≈2σ²` independence once Option A's genuinely-independent
+   n=6 draws are real — or does some OTHER shared-randomness source (e.g.
+   a shared corpus-loading order across arms within one seed, already
+   disclosed as a controlled non-confound at n=3, §16.16.2 item 2) behave
+   differently at n=6 in a way not yet checked?
+2. Is `FLOOR_PIN_n6`'s own re-pin policy (§16.19.7) actually
+   BLIND — does the chain enforce that the 6 new OFF cells complete and
+   the new pin is written BEFORE any of the 12 new per_token/global cells'
+   own `L_query` is read, with the same mechanical ordering proof
+   `phase2b_chain.sh`'s own step ordering already supplies at n=3?
+3. Cost re-check: does the FIRST new Leg-A cell's own realized `wall_s`
+   actually land within the banked 908.7872s/cell rate (§16.19.6's
+   calibration re-check) — if not, is the abort/re-price discipline wired
+   the same way §16.16.8's own timing-pilot abort was?
+4. Is 18 NEW Leg-A cells the right count, or should the extension ALSO
+   re-verify (not re-train) seeds 0-2's own checkpoints are still
+   sha256-intact before this wave reads them a second time (a repeat of
+   the existing reuse-integrity gate, cheap, currently unregistered for
+   this specific Rev)?
+5. The normal-approximation n≈12-15 "comfortable power" figure (§16.19.1)
+   uses `z` quantiles, not `t` — does a proper noncentral-t-based
+   calculation move this materially, and is it worth the extra rigor
+   given the number is explicitly disclosed as an order-of-magnitude
+   estimate, not a registered gate threshold?

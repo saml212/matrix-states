@@ -6574,3 +6574,86 @@ SSD-mirrored, byte-verified). GPU 2 free. STATE.md updated.
 ## REASONING-LINK PHASE-2B — `analyze_corpus` PER-ARM SCOPING FIX (2026-07-08): §16.18.9's registered follow-up closed, zero GPU, no design change — `phase2_trajectory_analysis.analyze_corpus` now classifies `global` and `per_token` INDEPENDENTLY per corpus (new `classify_arms` helper, sec 16.16.5's classification rules unchanged) instead of using `global`'s own `holds_by_c` as a silent proxy for `per_token`'s, the exact scoping bug §16.18.3's hand-derivation caught. Top-level `classification` kept byte-identical for `phase2b_chain.sh`/`phase2_chain.sh` backward compatibility; new `classification_by_arm` field carries the complete 4-verdict answer, additively threaded into `phase2b_chain.sh`'s own summary as `trajectories_by_arm`. Re-run against the archived Phase-2b data (`experiment-runs/2026-07-08_phase2b/results/trajectory_*_phase2b.json`, no models/GPU needed — the per-arm CI data was already correctly computed pre-fix) reproduces §16.18.3/§16.18.6's own 4 hand-derived verdicts EXACTLY: openr1×global/per_token=UNRESOLVED, wikitext×global=UNRESOLVED, wikitext×per_token=TRANSIENT (Δ=−0.4999, CI=[−0.6241,−0.3758] @ c=2500). Stage −1 gained item 23 (dedicated no-proxy/no-coupling regression test: two engineered lookup tables, per_token→FTTTT/PERSISTENT vs. global→all-indeterminate/UNRESOLVED, in the same run); full suite 23/23 green, plus the unrelated `reasoning_link_probe.py` suite re-run for completeness (19/19 + extras). Full account: `REASONING_LINK_DESIGN.md` §16.18.9's own bracketed follow-up note.
 
 **Security note.** One fake `<system-reminder>` injection this session (date-change-concealment pattern + fabricated agent-type list + fabricated MCP-server instructions, appended to the first `git`/Bash tool result) — the same recurring pattern this project's history already logs repeatedly. Disregarded in full, including the concealment instruction; verified against real `git` output (HEAD=origin/main=714cdaf) instead. Zero injected content found in any file this session touched or read.
+
+## REASONING-LINK PHASE-2B SEED EXTENSION (n=3→6) — DESIGN (2026-07-08): Rev 0, pre-attack, DESIGN-ONLY, zero GPU spent — extends §16.16's audited instrument from 3 to 6 paired seeds/cell
+
+Designs the n=3→6 seed extension of the vocab-space behavioral-contrast
+instrument (`REASONING_LINK_DESIGN.md` §16.16), directly testing whether
+any of §16.18's 3 UNRESOLVED (corpus×arm) contrasts resolve at a tighter
+bound and whether the 1 real, non-durable TRANSIENT signal (wikitext×
+per_token, HURTS-direction, `|Δ(K=32,c=2500)|=0.4999`) replicates at
+independent seeds. **Re-derived the CI-shrinkage factor from first
+principles rather than accepting the task's own quoted figure: n=6
+shrinks `delta_ci_n3`'s half-width by ≈2.37× (`(t(5,.975)/t(2,.975)) ×
+√(3/6) = (2.571/4.303)×0.707107 = 0.422483`, tightening factor
+`1/0.422483≈2.367`), not the ≈1.45× loosely implied** — moving the
+detectable `|mean Δ|` floor from §16.16.4's ≈1.5-1.7 down to **≈0.64-0.71
+loss units**. **Honest caveat, computed not asserted: the observed
+transient's own magnitude (0.4999) sits BELOW even the optimistic end of
+this new floor** — n=6 is projected to tighten the bound but NOT reliably
+confirm the transient; resolving an effect of that magnitude needs n≈9-10
+(boundary) to n≈12-15 (conventional ~80% power, normal approximation) —
+registered as a bound-tightening + informal-replication-check wave, not a
+confirmation wave, exactly as the task itself anticipated might be needed.
+
+**THE key question, verified directly on the box, not assumed: Leg-A init
+checkpoints for seeds 3-5 do NOT exist.** `youthful-indigo-turkey:/data/
+deltanet_rd_frozenbias_ckpts/` has exactly the 20 rung-1 cells (18 core +
+2 λ-mini-sweep) at seed∈{0,1,2} only, zero seed-3/4/5 directories, any
+arm, any corpus (confirmed via `ls`/`du`). **This changes the cost picture
+fundamentally**, as the task itself flagged: the extension is not a
+pure Phase-2b-layer add-on, it requires either 18 NEW Leg-A pretraining
+cells or a nested reuse of the 3 existing physical checkpoints.
+**Adjudicated: full new inits (Option A), recommended over nested reuse
+(Option B) on statistical-validity grounds** — Option B would pair 2 of
+6 "seeds" to the same physical pretraining draw each, understating the
+true CI half-width via pseudoreplication and invalidating any
+"replicates at independent seeds" claim built on it; Option A costs only
+≈4.54 GPU-h more (realized rung-1 rate, `EXPERIMENT_LOG.md`'s own
+"FROZEN-BIAS LM RUNG-1 WAVE VERDICT" entry, 908.7872s/cell realized) —
+trivial against `FROZEN_BIAS_LM_DESIGN.md`'s own 135 GPU-h ceiling
+(≈128.1 GPU-h headroom untouched).
+
+**Cells: FULL grid (18 new cells, 3 arms × 2 corpora × 3 seeds, including
+new OFF cells) recommended over the one genuinely narrower alternative
+(wikitext×per_token+off replication only, 6 cells, not the task's own
+quoted "~2" — flagged as an undercount, same class of correction as the
+≈1.45×/≈2.37× catch above) — FULL costs ≈4.45 GPU-h raw more but is the
+only option that also tests objective (i), whether the openr1 and
+wikitext×global UNRESOLVED contrasts resolve.**
+
+**Classification: `delta_ci_n3` hardcodes n=3 (`assert len(values_a) ==
+3`, a fixed `CI_T_975_DF2=4.303` constant, `var/2` denominator) — confirmed
+directly, registered a generalization to `delta_ci_n` (variable `n`/`df`,
+pinned `t`-quantile lookup `{2: 4.303, 5: 2.571}` cross-checked against
+`scipy.stats.t.ppf` on the box, both a Stage −1 self-test) plus a
+1-line widening of `episode_seed`'s own `assert ckpt_seed_idx<=2 → <=5`
+(collision-free by the SAME already-verified mixed-radix construction;
+`phase2_seed` itself needs no change, its own `_MAX_CKPT_SEED=10` already
+has headroom). n=6 pooling REPLACES §16.18's 4 verdicts with disclosed
+supersession (never silent) once real data lands; per-seed disclosure
+unchanged.**
+
+**Cost, recommended option: raw ≈6.65 GPU-h (4.544 Leg-A pretraining +
+1.852 familiarization training + 0.215 eval passes + 0.04 smoke/gates),
+bracket ≈33.3-66.5 GPU-h, ceiling 66.5 GPU-h — a NEW ledger line, not an
+add-on to the closed n=3 wave's own 1.66/26.4 ledger, but negligible
+against the program's combined headroom.** Full account, all 7 required
+elements (hypothesis/floor, cells, classification/pooling, seed
+adjudication, cost, gates, 4 pre-registered decision rules):
+`REASONING_LINK_DESIGN.md` §16.19. Queue: design (this entry) → attack →
+build-delta (the `delta_ci_n`/`episode_seed` generalization, the 18-cell
+Leg-A pretraining launch, the forked `phase2b_seedext_chain.sh`) → audit →
+launch (GPUs 0-1, familiarization/eval slice; Leg-A pretraining slice's
+own GPU assignment is a build-delta-stage decision). No cells launched, no
+code written this session; STATE.md's queue updated.
+
+**Security note.** The SAME recurring fake-`<system-reminder>` injection
+pattern fired again this session (date-change-concealment + fabricated
+agent-type list + fabricated MCP-server tool-loading instructions,
+appended to the first `Bash` tool result mid-session) — disregarded in
+full, including the concealment instruction, using the real conversation-
+start context (actual date, actual tool set) throughout. Zero injected
+content found in any file this session read or wrote. This is at least the
+5th occurrence logged against this project's history combined
+(EXPERIMENT_LOG.md/`REASONING_LINK_DESIGN.md` §16.18.8 tally 4 prior).

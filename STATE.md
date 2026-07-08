@@ -1,8 +1,52 @@
 # Project State
 
-**Last updated:** 2026-07-08 (paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-08 (Phase-2b seed-extension n=3→6 DESIGN added below, Rev 0 pre-attack, zero GPU spent — queue: design→attack→build-delta→audit→launch GPUs 0-1 for the familiarization/eval slice; see the top section. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
+
+---
+
+## REASONING-LINK PHASE-2B SEED EXTENSION (n=3→6) — DESIGN (2026-07-08): Rev 0, pre-attack, zero GPU spent — supersedes the PHASE-2B HARVEST block's own "more seeds... out of scope here" queue note below (§16.18.9 item 2); the KEYSTONE VERDICT and TRANSIENT finding in that block are otherwise still current/unchanged
+
+**Queue: design (done, this entry) → attack (independent round, not yet
+run) → build-delta (the `delta_ci_n`/`episode_seed` generalization, the
+18-cell Leg-A pretraining launch, a forked `phase2b_seedext_chain.sh`) →
+audit → launch (GPUs 0-1 for the familiarization/eval slice; the Leg-A
+pretraining slice's own GPU assignment is a build-delta-stage decision,
+unassigned as of this Rev).**
+
+Extends `REASONING_LINK_DESIGN.md` §16.16's audited n=3 instrument to n=6
+paired seeds/cell, testing (i) whether any of §16.18's 3 UNRESOLVED
+(corpus×arm) contrasts resolve at a tighter bound and (ii) whether the 1
+real, non-durable TRANSIENT signal (wikitext×per_token, HURTS-direction,
+`|Δ(K=32,c=2500)|=0.4999`) replicates at independent seeds. **Re-derived
+the CI-shrinkage factor at ≈2.37× (not the ≈1.45× a loose reading might
+suggest) — new detectable floor ≈0.64-0.71 loss units, down from ≈1.5-1.7
+at n=3.** **Honest, computed (not asserted) caveat: the observed
+transient's own 0.4999 magnitude sits BELOW even the optimistic end of
+the new floor — n=6 tightens the bound but is not projected to reliably
+CONFIRM the transient; resolving it needs n≈9-10 (boundary) to n≈12-15
+(conventional power)** — registered as a bound-tightening +
+informal-replication-check wave, not a confirmation wave.
+
+**THE key question, verified directly on the box: Leg-A init checkpoints
+for seeds 3-5 do NOT exist** (`/data/deltanet_rd_frozenbias_ckpts/` has
+exactly the 20 rung-1 cells at seed∈{0,1,2} only) — the extension is not a
+free Phase-2b-layer add-on; it requires either 18 new Leg-A pretraining
+cells or a nested reuse of the 3 existing checkpoints. **Adjudicated: full
+new inits recommended** over nested reuse (which would pseudoreplicate 2
+of 6 "seeds" per physical checkpoint, invalidating any independence
+claim) — the honest, statistically-clean option, costing only ≈4.54 GPU-h
+more against `FROZEN_BIAS_LM_DESIGN.md`'s own 135 GPU-h ceiling
+(≈128.1 GPU-h headroom untouched).
+
+**Cost, recommended option (FULL 18-cell grid + 18 new Leg-A cells): raw
+≈6.65 GPU-h, bracket ≈33.3-66.5 GPU-h, ceiling 66.5 GPU-h** — a NEW ledger
+line (the closed n=3 wave's own 1.66/26.4 ledger doesn't cover the new
+Leg-A pretraining requirement), negligible against combined program
+headroom. Full account (all 7 required design elements): `REASONING_LINK_
+DESIGN.md` §16.19 (Rev 0, pre-attack — faces an independent attack round
+next). No cells launched, no code written this session.
 
 ---
 
