@@ -6851,12 +6851,20 @@ backward pass, zero new forward-pass logic, only a new caller.
       model.eval()
       return model
   ```
-  This is the ONE seam: the REWRITTEN `killer_prediction_readout` (item 1
-  below) calls `phase2b_load_eval_model(ckpt_path, device)` once per
-  (arm-or-off, checkpoint) and passes the resulting `model` into
-  `eval_query_loss_heldout` — no other call site in this design's own
-  build delta constructs or loads an eval-time model. **Production keeps
-  the STRICT double-defense path unconditionally — no silent laxening.**
+  This is the ONE seam — in the sense of one HELPER, with exactly TWO
+  registered callers [harmonized at Rev 2.2, round-4 MINOR-R4-1: the
+  original "once per (arm-or-off, checkpoint) ... no other call site"
+  wording contradicted MAJOR-R2-3's own cache flow]: (caller 1) the
+  REWRITTEN `killer_prediction_readout` (item 1 below) calls
+  `phase2b_load_eval_model(ckpt_path, device)` once per (non-off arm,
+  checkpoint) and passes the resulting `model` into
+  `eval_query_loss_heldout` — its OFF half never loads a model, it reads
+  `off_lquery_cache-Phase2b.json`; (caller 2) §16.16.8's chain-step-3
+  OFF-eval cache builder, which loads each of the 6 reused OFF
+  checkpoints through the SAME helper to populate that cache. No third
+  call site in this design's own build delta constructs or loads an
+  eval-time model. **Production keeps the STRICT double-defense path
+  unconditionally — no silent laxening.**
   The auditor's own noted alternative, switching to
   `reasoning_link_probe.load_checkpoint` (`reasoning_link_probe.py`
   L705-713 — `DeltaNetLM(**ckpt["config"])` then a bare `load_state_dict`,
@@ -6923,18 +6931,39 @@ assertion in this design:
 
   def _references(func_or_module, identifier: str) -> bool:
       """True iff `identifier` appears as a real Call/Attribute/Name node
-      in `func_or_module`'s own source -- never merely inside a docstring,
-      comment, or string literal. `ast.parse` drops comments outright, and
-      a docstring is an Expr(Constant(str)) node -- a string CONSTANT, not
-      a Name/Attribute/Call -- so a plain ast.walk() never matches an
-      identifier that only appears embedded in prose."""
+      OR as a dict-subscript key (e.g. r["per_h"][h]["recovered_frac"])
+      in `func_or_module`'s own source -- never merely inside a docstring
+      or comment. `ast.parse` drops comments outright, and a docstring is
+      a bare Expr(Constant(str)) node -- never a Subscript slice -- so
+      prose mentions stay immune. [Rev 2.2, round-4 MAJOR-R4-1: the
+      Subscript clause is LOAD-BEARING -- the dead sourcing this check
+      exists to detect is a dict-key string literal, which a
+      Name/Attribute-only walk ignores; the round-4 auditor demonstrated
+      the two-clause version passes vacuously against the pre-rewrite
+      module.]"""
       tree = ast.parse(inspect.getsource(func_or_module))
       return any(
           (isinstance(n, ast.Name) and n.id == identifier)
           or (isinstance(n, ast.Attribute) and n.attr == identifier)
+          or (isinstance(n, ast.Subscript)
+              and isinstance(n.slice, ast.Constant)
+              and n.slice.value == identifier)
           for n in ast.walk(tree)
       )
   ```
+  **Empirical teeth-run, REGISTERED as a Stage −1 obligation (round-4
+  MAJOR-R4-1's own fix, per the standing "run the negative test to
+  completion" rule):** before the analysis rewrite lands,
+  `_references(phase2_trajectory_analysis, "recovered_frac")` MUST
+  return `True` against the pre-rewrite module (proving the check sees
+  the dead dict-key sourcing at L116-117); after the rewrite it MUST
+  return `False`. Both runs are recorded in the Stage −1 output. The
+  round-4 auditor ran the two-clause version against the live module
+  and got `False` pre-rewrite — the vacuous-pass this clause closes.
+  (Disclosed, outside the threat model: an aliased import
+  `from rlp import frozen_bias_surgery as fbs` would dodge the check —
+  that is deliberate evasion, not the accidental-habit-paste class this
+  assertion defends against.)
   This paragraph's own assertion becomes `assert not _references(
   eval_query_loss_heldout, "frozen_bias_surgery")` and the same check
   against `query_loss_forward` (§16.16.9 item (d), re-pinned to match).
@@ -7602,7 +7631,7 @@ a first pass at the 5 items above — before any build task registered
 above is started. See §16.17 for the full Rev 0 → Rev 1 → Rev 2 → Rev 2.1
 finding→fix trace and the round-4 forward-pointer.
 
-### 16.17 ATTACK-ROUND fix-maps for §16.16 (round 1: 2026-07-11, round 2: 2026-07-12, round 3: 2026-07-13) — verdict: round 1 NEEDS-REVISION (fixed → Rev 1), round 2 NEEDS-REVISION (fixed → Rev 2), round 3 NEEDS-REVISION (fixed → Rev 2.1)
+### 16.17 ATTACK-ROUND fix-maps for §16.16 (round 1: 2026-07-11, round 2: 2026-07-12, round 3: 2026-07-13, round 4: 2026-07-08) — verdict: round 1 NEEDS-REVISION (fixed → Rev 1), round 2 NEEDS-REVISION (fixed → Rev 2), round 3 NEEDS-REVISION (fixed → Rev 2.1), round 4 NEEDS-REVISION (fixed → Rev 2.2, prose+assertion-mechanism only)
 
 **Round 1** (2026-07-11). A first independent adversarial pass reviewed
 Rev 0 of §16.16 (the Phase-2b vocab-space behavioral-contrast instrument,
@@ -7695,3 +7724,18 @@ granularity, pairing-device CI-independence risk, secondary-readout
 multiple-comparisons correction) — unaddressed by round 3, still
 genuinely open, still carried forward.** No cells launched, no code
 written this session; STATE.md's queue updated.
+
+**Round-4 scoped spot-check (2026-07-08, same round-3 reviewer) →
+Rev 2.2.** Verdict: NEEDS-REVISION — 1 MAJOR + 1 MINOR, both in Rev
+2.1's own fresh fixes; everything else carried forward clean.
+
+| # | Severity | Finding | Rev 2.2 fix |
+|---|---|---|---|
+| R4-1 | MAJOR | The re-pinned AST helper `_references` (Name/Attribute walk only) is VACUOUS for the `recovered_frac` teeth-check — the dead sourcing is a dict-key string literal (`off_r["per_h"][h]["recovered_frac"]`, an `ast.Subscript` slice `Constant`), which the walk ignores; the reviewer RAN the helper against the live pre-rewrite module and got `False` — the assertion would pass whether or not the MAJOR-1 rewrite ever lands, reproducing the exact failure class MAJOR-R2-1 was raised to kill, inside its own hardening fix | `_references` extended with the Subscript-key clause (verbatim per the reviewer's prescription); an EMPIRICAL teeth-run registered as a Stage −1 obligation (pre-rewrite → must return True — coordinator re-ran and confirmed True this session; post-rewrite → must return False); aliased-import evasion disclosed as outside the accidental-paste threat model |
+| R4-2 | MINOR | The "ONE seam ... no other call site" sentence contradicted MAJOR-R2-3's own cache flow (the OFF half reads the cache; the chain-step-3 cache builder necessarily loads the 6 OFF checkpoints) | Harmonized: one HELPER, exactly TWO registered callers — the rewritten `killer_prediction_readout` (non-off arms only) and the chain-step-3 OFF-eval cache builder; "arm-or-off" dropped |
+
+The round-4 reviewer also confirmed: no injected instructions observed
+in its own session (responding to the standing injection-canary notice);
+the §16.16.11 self-attack items remain open and carried forward. The
+remaining gate before build is the same reviewer's confirmation of these
+two Rev 2.2 fixes.
