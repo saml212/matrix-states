@@ -1,12 +1,58 @@
 # Project State
 
-**Last updated:** 2026-07-08 (KEYANCHOR-SCALING §15.26 d=96 SCATTER-RESOLUTION wave DESIGN added below, Rev 0 pre-attack, zero GPU spent this session except a CPU-only power-check script — queue: design→attack→build→audit→launch GPUs 2-7. Different lane from, and unaffected by, the REASONING-LINK Phase-2b seed-extension DESIGN immediately below (GPUs 0-1) — the two never share GPUs or files. Phase-2b seed-extension n=3→6 DESIGN added below, Rev 0 pre-attack, zero GPU spent — queue: design→attack→build-delta→audit→launch GPUs 0-1 for the familiarization/eval slice; see the top section. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
+**Last updated:** 2026-07-08 (REASONING-LINK Phase-2b seed-extension Rev 1 — RESTRUCTURE-TO-B — added at the top: attack round 1 on the n=3→6 flat plan found it strictly dominated by a same-cost, targeted n=3→12 push on the one live transient signal; design-only, zero GPU spent this session — queue: Rev 1 (done) → attack round 2 → build-delta → audit → launch (Leg-A pretraining GPUs 2-7, 6-way ≈0.76h wall, THEN familiarization/eval GPUs 0-1). **Disclosed lane note:** this now shares GPUs 2-7 with the KEYANCHOR-SCALING §15.26 wave immediately below — neither has reached build/launch yet, so no live conflict today, but the two must be sequenced explicitly once either is ready to launch, not assumed concurrent. KEYANCHOR-SCALING §15.26 d=96 SCATTER-RESOLUTION wave DESIGN (Rev 0 pre-attack, zero GPU spent except a CPU-only power-check script) and the REASONING-LINK Rev-0 entry it superseded are both retained below for history. Earlier this day — paper fold-in session: reasoning-link triple-null/Phase-2b bounded-causal result folded into ICLR discussion item 10; d=96 unlock/AMBIGUOUS resolution folded into every stale "in-flight/DRAFT" hedge across iclr-2027 + workshop-2026, x0(80) corrected 0.6756→0.6779 for consistency, workshop-2026 main.pdf recompiled clean. C17 harvest session below this line: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE (Rev 1's own Leg-A slice now queues against it, above). Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
 ---
 
-## KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION WAVE — DESIGN (Rev 0, pre-attack), 2026-07-08 — supersedes the C17 EVAL-ADMISSION REPRO INSTRUMENT — CLOSED block's own queue implication further below (§15.25's "noisiest K-group... not launched this harvest" follow-up); that block's own verdict/harvest facts are otherwise still current/unchanged. Different lane from, never gates and never gated by, the REASONING-LINK PHASE-2B SEED EXTENSION block immediately below (different GPUs: 2-7 vs 0-1; different files: `KEY_ANCHORING_SCALING_DRAFT.md` vs `REASONING_LINK_DESIGN.md`)
+## REASONING-LINK PHASE-2B SEED EXTENSION — REV 1 LANDED, RESTRUCTURE-TO-B (2026-07-08) — supersedes the REASONING-LINK PHASE-2B SEED EXTENSION (n=3→6) — DESIGN (Rev 0) block further below's own queue status (Rev 0's own floor/power derivations are reused and extended, not retracted — only the cell allocation and decision-rule scope change); the KEYANCHOR-SCALING §15.26 block immediately below is UNAFFECTED in its own content but now shares a GPU range with this block (disclosed, not a blocker — see below)
+
+**Queue status: DESIGN (Rev 1) → (next) ATTACK ROUND 2 → BUILD-DELTA →
+AUDIT → LAUNCH (Leg-A pretraining cells on GPUs 2-7, 6-way, ≈0.76h wall,
+THEN familiarization+eval cells on GPUs 0-1, sequenced not concurrent).**
+
+Attack round 1 on Rev 0 (the flat n=3→6-across-all-4-contrasts plan)
+returned **RESTRUCTURE-TO-B** — 1 MAJOR + 2 MINOR, no FATAL, full
+finding→fix table at `REASONING_LINK_DESIGN.md` §16.19.10. **The MAJOR:
+Rev 0's own registered arithmetic already showed n=6 clears neither
+σ=0.43 nor σ=0.48's detection floor for the transient's own observed
+magnitude (`|Δ(K=32,c=2500)|=0.4999`) — its own most-likely pre-registered
+outcome for the one contrast that matters was a non-answer, before any
+GPU spend.** Re-costing an alternative allocation of the SAME 18 Leg-A +
+18 familiarization cells — 9 new seeds concentrated on wikitext-mix-ext ×
+{off, per_token} alone (reaching combined n=12) instead of 3-per-contrast
+spread across 3 arms × 2 corpora (reaching only n=6 everywhere) — costs
+**identically** (raw ≈6.65 GPU-h, bracket ≈33.3-66.5 GPU-h — cell-count
+parity, verified via §16.18.7's own "rate is not arm-dependent" finding).
+**Option A (flat) is strictly dominated. Adopted Option B (targeted)
+outright.**
+
+**New detectable floor at n=12: ≈0.39-0.43 loss units, BOTH below the
+observed 0.4999 magnitude** (n=6 cleared neither). **Power, both σ
+honestly stated: ~81% at σ=0.43 (conventional 80% bar, at n≈12 exactly),
+~72% at σ=0.48 ("strong-partial," 80% needs n≈15, not reached here).**
+Decision rules narrowed to 3 targeted outcomes (TRANSIENT-CONFIRMED /
+TRANSIENT-REFUTED / NEW-PATTERN); the other 3 (corpus×arm) contrasts
+stay UNRESOLVED at n=3, an explicitly disclosed sacrifice, not touched
+by this wave. A genuine mixed-radix collision was caught and fixed while
+widening the pairing convention to `ckpt_seed_idx≤11` (Rev 0's own
+"generously `<=9`" pre-clearance does not extend to 11 — `episode_seed`'s
+`STRIDE_SEED` re-pinned `10,000→8,000`; `phase2_seed`'s own
+`_MAX_CKPT_SEED` bumped `10→12`, correcting Rev 0's "needs no change"
+claim). Two MINORs: m2 (a table-cell arithmetic error, `0.4267→0.4350`),
+m3 (a missing eval timing-pilot gate, now registered, same
+measure-project-abort mechanism as §16.16.8's own).
+
+**Cost: raw ≈6.65 GPU-h, bracket ≈33.3-66.5 GPU-h, ceiling 66.5 GPU-h —
+unchanged from Rev 0's own figure (cell-count parity, not a
+coincidence).** Full account: `REASONING_LINK_DESIGN.md` §16.19 (Rev 1)
++ §16.19.10 (attack-round-1 fix-map). No cells launched, no code written
+this session.
+
+---
+
+## KEYANCHOR-SCALING §15.26 D=96 SCATTER-RESOLUTION WAVE — DESIGN (Rev 0, pre-attack), 2026-07-08 — supersedes the C17 EVAL-ADMISSION REPRO INSTRUMENT — CLOSED block's own queue implication further below (§15.25's "noisiest K-group... not launched this harvest" follow-up); that block's own verdict/harvest facts are otherwise still current/unchanged. Different lane from, never gates and never gated by, the REASONING-LINK PHASE-2B SEED EXTENSION block above in CONTENT (different files: `KEY_ANCHORING_SCALING_DRAFT.md` vs `REASONING_LINK_DESIGN.md`) — but now shares GPUs 2-7 with that block's own Leg-A pretraining slice (Rev 1, above); neither has reached build/launch yet, so no live conflict today, disclosed for whichever reaches launch first
 
 **Queue status: DESIGN (Rev 0) → (next) ATTACK ROUND 1 → BUILD → AUDIT →
 LAUNCH GPUs 2-7 (Stage 0 calibration cell on GPU 2, then fan out).**

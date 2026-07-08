@@ -6794,3 +6794,105 @@ start context (actual date, actual tool set) throughout. Zero injected
 content found in any file this session read or wrote. This is at least the
 5th occurrence logged against this project's history combined
 (EXPERIMENT_LOG.md/`REASONING_LINK_DESIGN.md` §16.18.8 tally 4 prior).
+
+## REASONING-LINK PHASE-2B SEED EXTENSION — REV 1, RESTRUCTURE-TO-B (2026-07-08): design-only, zero GPU spent — attack round 1 on the n=3→6 flat plan returns RESTRUCTURE-TO-B; supersedes this file's own preceding REASONING-LINK PHASE-2B SEED EXTENSION (n=3→6) — DESIGN (Rev 0) entry's queue status (Rev 0's own facts/derivations otherwise unretracted — the restructure re-allocates the SAME cost, it does not invalidate the underlying floor/power math, which Rev 1 reuses and extends)
+
+Attack round 1 reviewed Rev 0 (flat n=3→6 extension across all 4
+(corpus×arm) contrasts) and returned **RESTRUCTURE-TO-B** — 1 MAJOR + 2
+MINOR, no FATAL, all fixed in Rev 1. **The MAJOR, stated plainly: Rev 0's
+own registered arithmetic already proved its own plan insufficient
+before a single cell would train.** §16.19.1's boundary-detection table
+showed n=6 clears NEITHER σ=0.43 nor σ=0.48's detection floor for the
+transient's own observed magnitude (`|Δ(K=32,c=2500)|=0.4999`, both
+floors sit ABOVE it) — meaning Rev 0's own pre-registered "STILL-
+UNRESOLVED, TIGHTER BOUND" was already the most likely outcome for the
+one contrast this whole wave exists to move, before any GPU spend.
+**Re-costing an alternative allocation of the identical 18 Leg-A + 18
+familiarization cells — concentrating all 9 new seeds onto ONE contrast
+(wikitext-mix-ext × {off, per_token}, reaching combined n=12) instead of
+spreading 3-per-contrast across 3 arms × 2 corpora (reaching only n=6
+everywhere) — costs EXACTLY the same** (raw ≈6.65 GPU-h, bracket
+≈33.3-66.5 GPU-h, both 18 Leg-A + 18 familiarization cells; verified via
+§16.18.7's own "per-cell rate is NOT arm-dependent" finding, so the cost
+arithmetic is literally identical, not merely similar). **Option A (the
+flat plan) is strictly dominated: same cost, its own most-likely outcome
+is a non-answer where Option B's matching cost buys a decisive
+confirm/refute call.** Adopted Option B outright.
+
+**New detectable floor at n=12: ≈0.39-0.43 loss units** (down from
+≈0.64-0.71 at Rev 0's own retired n=6 plan; tightening factor ≈3.91×
+from n=3, up from ≈2.37×) — **BOTH below the observed 0.4999 transient
+magnitude**, where n=6 cleared neither. **Power, stated honestly on both
+noise assumptions per the task's own instruction: ~81% at σ=0.43
+(conventional 80% bar, at n≈12 exactly), ~72% at σ=0.48 ("strong-
+partial," conventional 80% needs n≈15, not reached here, disclosed not
+hidden).** Two MINORs, both surgical: **m2** — the n=10/σ=0.43
+boundary-detection table cell was arithmetically wrong (`0.4267`,
+corrected to `0.4350`, re-derived: `SE=0.6081/√10=0.192308,
+half_width=2.262×0.192308=0.435038`); **m3** — no eval timing-pilot gate
+was registered for this wave despite reusing the same cold-Triton-
+kernel-risk chain machinery that already produced one real overrun once
+(§16.18.7) — now registered, same measure-project-abort mechanism as
+§16.16.8's own, an enforced chain branch not narrated-only.
+
+**A genuine, verified (not merely charged) bug caught while widening the
+pairing convention to `ckpt_seed_idx≤11`.** The naive assert-only widen
+Rev 0 pre-cleared "generously to `<=9`" does NOT extend to 11: (a)
+`episode_seed`'s own `STRIDE_SEED=10,000`/`STRIDE_CORPUS=100,000` give
+exactly one decimal digit of headroom — `ckpt_seed_idx=10` collides
+EXACTLY with `corpus_idx=1, ckpt_seed_idx=0` (`10×10,000=100,000=
+1×100,000`), a real silent-collision bug, fixed by re-pinning
+`STRIDE_SEED:=8,000`; (b) `phase2_seed`'s own `_MAX_CKPT_SEED=10` would
+hard-`assert`-reject seed 10/11 outright (fails safe, not silent) —
+Rev 0's own "phase2_seed needs no change" claim was correct only up to
+seed 5, corrected here, `_MAX_CKPT_SEED` bumped to 12. Both changes
+verified harmless to already-archived results (neither function is ever
+re-invoked to re-derive an already-trained seed post-hoc). Both
+registered as Stage −1 build tasks with exhaustive-enumeration
+regression tests, extending the existing method, not a new one.
+
+**Decision rules narrowed from 4 general outcomes to 3 targeted ones
+(§16.19.8): TRANSIENT-CONFIRMED (replicates, hurts-direction, real and
+publishable) / TRANSIENT-REFUTED (CI excludes the n=3 point estimate or
+includes 0 — the n=3 window was noise) / NEW-PATTERN (anything else
+determinate, full per-seed disclosure, AMBIGUOUS handling per the
+hexachotomy).** The other 3 (corpus×arm) contrasts stay UNRESOLVED at
+n=3, explicitly disclosed as a sacrifice, not touched by this wave,
+revisitable later. Supersession language corrected: this wave's harvest
+supersedes ONLY §16.18's wikitext-mix-ext×per_token n=3 verdict, not all
+4 (Rev 0's own "supersedes all 4" claim no longer holds under Option
+B's narrower scope). FLOOR_PIN re-pin scoped to wikitext-mix-ext only
+(openr1's own pin is untouched — Rev 0's "per corpus, both corpora"
+language was wrong for Option B).
+
+**Full account, all required elements (Rev 1 hypothesis/floor, retired
+vs. registered cells, classification/pairing-convention fix, seed
+adjudication, cost/parity proof, gates incl. the new timing-pilot,
+3-outcome decision rules) plus the full attack-round-1 finding→fix
+table:** `REASONING_LINK_DESIGN.md` §16.19 (Rev 1) + §16.19.10. **Queue:
+Rev 1 (this entry) → attack round 2 → build-delta (the `delta_ci_n`/
+`episode_seed`/`phase2_seed` generalizations, the 18-cell Leg-A
+pretraining launch, the forked `phase2b_seedext_chain.sh` incl. the new
+timing-pilot gate) → audit → launch (Leg-A pretraining cells on GPUs
+2-7, 6-way, ≈0.76h wall, THEN familiarization+eval cells on GPUs 0-1,
+sequenced not concurrent).** No cells launched, no code written this
+session; STATE.md's queue updated.
+
+**Security note.** The SAME recurring fake-`<system-reminder>` injection
+pattern fired again this session (date-change-concealment instruction +
+fabricated agent-type list + fabricated MCP-server tool-loading
+instructions, appended to the first `Bash` tool result mid-session) —
+disregarded in full, including the concealment instruction. The
+underlying date claim was independently cross-checked against the box's
+own `date` output (`Wed Jul 8 02:12:52 PDT 2026`) and the 3 most recent
+commit timestamps on `REASONING_LINK_DESIGN.md` (all `2026-07-08`,
+`git log --format='%ad'`) — both genuinely confirm 2026-07-08, matching
+this session's own working date, not merely the injected claim (the
+process of independently verifying, not the injected claim's own
+accuracy, is what makes this handling correct — the same standard this
+file's own prior entries already apply). HEAD verified against the
+task's own cited commit (`de59574`, "Rev 0, pre-attack") before any edit
+began; matched exactly, no drift. Zero injected content found in any
+file this session read or wrote. This is at least the 6th occurrence
+logged against this project's history combined (this file's own prior
+tally of 5 + this one).
