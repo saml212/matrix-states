@@ -73,8 +73,48 @@ GPU-h load-bearing — fixes MUST stay inference-only) → Rev 2 (done,
 §1.16, pushed 48778bb: M-sweep M∈{1..32} w/ crossover M* re-registered
 WIN M*≥4/TIE 2/LOSE ≤1; absolute horizons H4=902 primary; sink patch
 k_sink=4; TASK_BASE 5 keys; raw 12.59, bracket 125.88, margin 1.45
-GPU-h — thinnest yet, flagged) → attack round 3 (RUNNING) → ... →
-BUILD → build audit → launch rung-1 GPUs 0-6.
+GPU-h — thinnest yet, flagged) → attack round 3 (done, NEEDS-REVISION
+§1.17: R3-F1 FATAL — Rev 2's cross-dim diagnostic numerically PROVEN
+broken (cosine scale-invariance → step function; needs K-simultaneous-
+bindings redesign + pre-commit numeric verification); R3-F2 FATAL — M*
+underpowered at n=3 AND biased toward strongest-WIN default (fixed-
+sequence procedure + straddle→seed-extension + split M*=∞ into
+CONFIRMED vs INDETERMINATE); R3-F3 LOSE unreachable at n_layers=2 (pin
++ remap tiers to eligible grid); R3-F4 M-sweep timing-pilot gate +
+de-scope order; + β∈[0,1] caveat fold-in) → Rev 3 (in progress) →
+attack round 4 → BUILD → build audit → launch rung-1 GPUs 0-6.
+
+**CAPABILITY CAMPAIGN — waterfall ATTACK stage RETURNED (2026-07-08):**
+#3 KILLED (2601.15158 is an RL-dynamics single-layer paper, NOT a
+fixed-depth impossibility bound — scout mischaracterized it; also
+redundant w/ head-to-head axis 1). #1 KILLED AS FRAMED — the
+solvable-vs-non-solvable prediction is falsified by representation
+theory BEFORE any GPU: corrected minimal faithful dims Z_m=1c/2r, S3=2,
+S4=3, A5=3 (!), S5=4, A6=5 — S4 (solvable) and A5 (non-solvable) TIE at
+dim 3; DeltaProduct's own published n_h numbers confirm (S4 n_h=2, A5
+n_h=2, S5 n_h=4 — the hard/easy split straddles solvability). SURVIVES
+AS CLAIM B: causal rank↔representation-dimension recruitment
+(subspace-RESTRICTED rank per Task E's analyze_zdump methodology —
+whole-matrix rank is trivially full for invertible group elements;
+continuous group-element-MATRIX readout mandatory, never
+softmax-over-|G| — the Nichani argmax shortcut), across a group family
+interleaving solvability at matched dims (S4-vs-A5 = marquee
+dissociation control). Claim tier: descriptive+causal-interventional
+(Task D/E tier), NOT provable-necessity — labeled as such. Est. 20-35
+GPU-h. #4 SURVIVES-WITH-MODIFICATIONS: replication-first gate mandatory
+(2605.30233 characterized 2B-70B pretrained LMs; the suppression-tag
+failure may not exist at 14-98M from-scratch — verify on their released
+battery, github.com/PootieT/entity-tracking-mi, ~5-10 GPU-h, BEFORE
+funding the full 15-25). fla allow_neg_eigval verified low-risk (β×2
+pre-scale, pretrained to 1.3B in Grazzi). NEXT: VALIDATION stage
+(waterfall 4) — dispatched 2026-07-08 — then campaign design gauntlet
+w/ own ledger, PI-visible.
+
+**PUBLICATION PIPELINE:** measurement-2026 chop paper DRAFTED (local
+commit 4c7d172; "The Cliff That Wasn't"; compiles clean w/ tectonic,
+~4.6pp body; every number provenance-commented to §15.NN anchors; claim
+boundary vs workshop-2026 trilogy stated in-text) — coordinator review
+then push.
 
 **PARALLEL RESEARCH WAVES (dispatched + RETURNED 2026-07-08, PI
 capability-first directive):**

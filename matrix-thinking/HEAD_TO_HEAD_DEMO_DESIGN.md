@@ -1919,6 +1919,91 @@ items for attack round 3, not silently assumed away.
 
 ---
 
-*(End §1. Rev 0 → §1.13 NEEDS-REVISION → Rev 1 → §1.15 NEEDS-REVISION
-(2 FATAL w/ inference-only fixes, 4 MAJOR, 2 minor) → Rev 2 (this doc,
-§1.16) → attack round 3 pending.)*
+### 1.17 ATTACK ROUND 3 VERDICT (independent fresh-eyes agent, 2026-07-08): NEEDS-REVISION
+
+Recorded per the gauntlet-bookkeeping hard rule before dispatching Rev 3.
+The round numerically EXECUTED Rev 2's new formulas (a first for this
+gauntlet — 500-trial pure-Python simulation of §1.3.1.5) and
+cross-checked the M* rewrite against sections Rev 2 did not touch.
+Findings binding on Rev 3:
+
+**FATAL:**
+
+- **R3-F1 — §1.3.1.5's cross-dimension diagnostic is mathematically
+  broken.** Numerically verified: cosine similarity is scale-invariant
+  and `target_effective := S_star @ q` is near-parallel to `t` for any
+  α>0 (off-diagonal zeroing perturbs only O(1/√d)); the "calibration
+  curve" is a degenerate step function (cos≈0.9999 at α=0.25..1.0, 0
+  only at exactly α=0); the matvec side is tautologically 1.0 by
+  construction. ROOT CAUSE: single-(q,t)-pair reachability — a diagonal
+  read can always hit ONE target exactly; the diagonal-vs-matvec gap
+  only bites under MULTIPLE simultaneous bindings in one state. So
+  M-NEW-2 is NOT resolved (disclosure honest, mechanism nonfunctional).
+  → Rev 3: replace with a K-simultaneous-bindings diagnostic (fit each
+  tap family's optimal state to K (q_i,t_i) pairs by least squares;
+  report recovered_frac vs K for both taps — matvec holds to K≤d w/
+  orthogonal keys, Hadamard collapses generically at K≥2, giving a real
+  graduated bound) AND numerically verify the replacement's formulas
+  pre-commit exactly the way this round did.
+- **R3-F2 — M* is underpowered at n=3 and biased toward the
+  strongest-WIN default.** Wide n=3 CIs make excluding 0.20 HARDER →
+  pushes M* larger or to "not found," and M*=∞ is pre-registered as the
+  STRONGEST WIN — noise systematically favors the contender. Plus: (a)
+  no within-axis multiplicity discipline for the up-to-6-point ordered
+  search (§1.8 discloses only the between-axis 9.75%); (b) §1.8's
+  seed-extension contingency was never updated for the M* rewrite (no
+  rule for an intermediate grid point's CI straddling 0.20); (c)
+  "underpowered" and "confirmed no-crossover" are conflated inside
+  M*=∞. → Rev 3: pin a fixed-sequence testing procedure over the grid
+  w/ an honest FWER statement; a straddle at any would-be-M* grid point
+  triggers the EXISTING §1.8 seed-extension contingency (already
+  costed, PI-gated) before M* finalizes; split M*=∞ into
+  CONFIRMED-no-crossover (every grid CI excludes crossover) vs
+  INDETERMINATE (any straddle) — only the former reportable as
+  strongest WIN.
+
+**MAJOR:**
+
+- **R3-F3 — LOSE is structurally unreachable if the transformer
+  resolves to n_layers=2** (M=1 is floor-excluded at n_layers=2/fp32:
+  cap 8<13; LOSE requires M*≤1) — an unpinned implementation choice
+  (n_layers∈{1,2} both FLOP-admissible) can gate the §1.5 escalation
+  decision. → Rev 3: pin n_layers_transformer explicitly AND remap the
+  verdict tiers onto ELIGIBLE grid points so every tier is reachable
+  under the pinned config (justify the pin).
+- **R3-F4 — the ≈5s/pass M-sweep assumption has no scoped timing-pilot
+  gate and no de-scope rule** against a 1.45 GPU-h margin (a
+  reload-per-pass implementation could run 3-6×). → Rev 3: extend §1.7
+  gate 2 to the M-sweep inference fan-out (pilot 2 M-values on 1
+  checkpoint before fan-out); pin checkpoints-resident-across-passes as
+  a build requirement; pre-register the de-scope order (drop M=32,
+  then H8) if the pilot overruns.
+
+**MINOR:** R3-F5 — `seed_idx` has no runtime bound (seed_idx=50 on
+task1_calib collides with task1_stress seed 0); add the assert + its
+negative test (ckpt_idx has one; seed_idx doesn't). R3-F6 — item F's
+108-pass count double-counts the M=1 pass already claimed by the
+eval-overhead line (trivial, cost-shrinking; fix the stale
+cross-reference).
+
+**Also fold in (cross-campaign, from the capability research wave,
+recorded in STATE 58de0fa):** add to the §1.9 caveats register that the
+contender's β gate is plain sigmoid (β∈[0,1]) — per Grazzi et al.
+(arXiv:2411.12537) it has NO TC0-escape property as configured, so
+Task-2 held-out-depth results are empirical-only, carrying no formal
+state-tracking-separation implication; the β∈[0,2] variant is
+deliberately RESERVED for the separate capability campaign to protect
+the frozen-bias evidence provenance (λ=0.58 was tuned under sigmoid β).
+
+**Verified clean this round (attack's own list):** cap_length(M) table
+(4 entries re-derived incl. sink-inside-cap 8−4=4 at M=1/n_layers=2);
+fp32 pin vs lm_pretrain_rd.py:986; sink+FIFO spec buildable as a
+windowed-attention mask; raw 12.5922 line-sum; 108-pass factorization
+(6M×3H×2tasks×3seeds); TASK_BASE margins (380,001 headroom); ckpt_idx
+assert; CI table; §1.7 gate 6 coherence.
+
+---
+
+*(End §1. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 NEEDS-REVISION
+(R3-F1 broken diagnostic, R3-F2 M* statistics; 2 MAJOR, 2 minor).
+Rev 3 in progress.)*
