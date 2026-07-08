@@ -6036,3 +6036,100 @@ attack round 3, before build. No cells launched, no code built this
 session; STATE.md's queue updated.
 
 ---
+
+## REASONING-LINK PHASE-2 FAMILIARIZATION — Stage-0.5 gate REFUSED at
+30/30 (cell, checkpoint) readings; per_token/global launch mechanically
+blocked (2026-07-08, harvested 2026-07-08)
+
+**Status:** COMPLETE (OFF-arm leg only) — chain refused the
+`per_token`/`global` launch per its own pre-registered abort branch; not
+a crash. GPUs 0-1 idle at handoff. Full detail, tables, and the mechanical
+adjudication: `matrix-thinking/REASONING_LINK_DESIGN.md` §16.15.
+
+**What ran:** the OFF arm's 6 familiarization cells (2 corpora ×
+3 seeds), 5,000 steps each, 2-way parallel on GPUs 0-1, launched 01:27
+UTC. All 6 completed (`steps_completed=5000/5000`, `grad_finite=True` at
+all 606 trajectory rows, no crashes, one clean single launch). The
+Stage-0.5-familiarized gate (§16.2.1) then evaluated all 30 (cell,
+checkpoint) readings — `{250,500,1000,2500,5000} × 6 cells` — and **FAILED
+every one**: `recovered_frac(h1)=0.0000` at all 30, `premise_iii_pass`/
+`premise_iv_pass`/`probe_valid` all `False` at all 30. Per §16.5
+Constraint 1's gates-must-abort rule, `phase2_gate_enforce.py` refused
+`per_token`/`global` at the terminal checkpoint for all 6 cells,
+wrote `results/phase2/STAGE05_LAUNCH_GATE_REFUSED`, chain exited cleanly.
+
+**The central question (§16.15.2):** did the model learn the
+bind/query task at all while the geometric readout stayed invalid?
+Mechanical pin: terminal `L_query` < 50% of its step-250 value.
+**0/6 cells crossed the pin** (range 0.536-0.782 of the step-250 value,
+i.e. a 21.8%-46.4% relative fall, mean -35.9%) — real, substantial,
+uniform decline in every cell, but short of the strict threshold the
+design set for licensing the strong "readout construct indicted despite
+clean task learning" claim. Verdict: **PARTIAL-TASK-LEARNING-BELOW-PIN**
+— neither of the pre-registered (a)/(b) buckets fits cleanly (disclosed
+as a gap in the adjudication rule, not silently rounded into either).
+A relevant dissociation: `L_query` (a vocab-space CE readout, built
+deliberately independent of the `d_state`-space gate per §16.2.1) showed
+real partial signal in all 6 cells while the gate's own geometric readout
+stayed at the exact `0.0000` floor in all 30 — worth surfacing for the
+next-instrument decision even though it does not license the strict pin.
+
+**Triple-null arc:** Phase 1 marker/zero-shot (§15, 0/312), Phase-1b
+natural/zero-shot (§16.8, 0/4 cells), Phase-2 marker/FAMILIARIZED (this
+entry, 0/30) — three structurally different instruments at three
+training regimes, all landing on the identical categorical `0.0`
+`recovered_frac` floor for the `d_state`-space `S_T^h·q_eff` readout.
+Per §8.4/§16.0's standing rule this remains PROBE-INVALID, not REFUTE —
+the keystone question has still never been asked of the data by an
+instrument shown to produce a referent-bearing signal.
+
+**Val-loss bands:** OFF cells fall inside their own pinned bands at all
+30 own-corpus readings — tautological by construction (bands were built
+FROM these same 6 cells), disclosed per §16.2.1's own MINOR-R3-4 note,
+not cited as evidence. Corpus val-loss stayed healthy throughout (no
+divergence, no NaN): openr1 own `[1.857,2.421]`, wikitext own
+`[4.317,4.575]`, cross-corpus readings `[6.36,7.47]`.
+
+**Realized GPU-h:** ≈0.6172 GPU-h (1,111s wall-clock × 2 GPUs, box
+timestamps 01:26:57→01:45:28.679 UTC), matching the chain's own
+self-reported `projected_gpu_h=0.6167`. Well under the registered
+≈1.48-12.06 GPU-h bracket — but that bracket prices the FULL 18-cell,
+3-arm grid; this leg ran only the OFF arm's 6 cells. Scaled to this leg
+alone (§16.15.6), realized cost came in below even the scaled-down 5×
+low end — one clean launch, no crashes, no relaunches.
+
+**Next steps (not self-launched):** §16.6's decision tree has no
+pre-scripted branch for "Phase-2's own Stage-0.5 gate also refuses" —
+this is a PI decision point. Registered options named without
+self-authorizing any (§16.15.5): (1) promote a vocab-space behavioral
+contrast (already partially built as `L_query`) to the primary
+instrument instead of a fourth `d_state`-space variant; (2) lane closure
+with the triple null as the publishable finding; (3) extend the
+familiarization recipe (more steps / higher `λ_fam`) to test whether
+the sub-pin `L_query` decline was a recipe ceiling, with its own
+calibration run first. GPUs 0-1 free for the next queued item.
+
+`[LEARN] readout-instrument-validation: A gate built to re-validate a
+readout construct on a FAMILIARIZED (not zero-shot) checkpoint can do
+double duty — a persistent post-familiarization failure is stronger
+evidence against the readout than a zero-shot null, since "never
+task-trained" is no longer an available explanation. When such a gate
+fails categorically (exact 0.0 floor, not a near-miss) across multiple
+structurally different training regimes, that is evidence the readout
+CONSTRUCT is invalid, not that the task is unlearnable — but only if a
+genuinely independent readout (different machinery, e.g. vocab-space CE
+vs. d_state-space cosine) is ALSO measured on the same run, so the two
+can be compared. Building that second, independent readout in ahead of
+time (as §16.2.1 did with `L_query`) turned what would otherwise have
+been an uninterpretable flat null into a real dissociation finding.
+Mistake: none — this is what worked; recorded so future gate designs on
+a "does the intervention help" question deliberately budget a second,
+mechanically-independent readout up front rather than relying on the
+one readout the gate itself is trying to validate.
+Correction: When registering a validity gate for a readout construct,
+also register at least one second measurement computed through
+genuinely different machinery (different space, different forward path)
+so a categorical gate failure can be distinguished from "the model
+didn't learn anything" rather than left ambiguous.`
+
+---

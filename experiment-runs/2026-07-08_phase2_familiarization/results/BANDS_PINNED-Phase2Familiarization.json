@@ -1,0 +1,278 @@
+{
+  "formula_version": "REASONING_LINK_DESIGN.md sec 16.2.1 MAJOR-6/MINOR-NEW-1: FIVE per-checkpoint mean_ref + 2*s_ref one-sided val-loss tolerance bands (house k=2 convention, FROZEN_BIAS_LM_DESIGN.md sec 7.2's derive_val_loss_tolerance formula reused verbatim), computed from the OFF arm's own 6 cells on the NEW familiarization mix, one band per trajectory checkpoint step.",
+  "checkpoints": [
+    250,
+    500,
+    1000,
+    2500,
+    5000
+  ],
+  "bands_by_checkpoint": {
+    "250": {
+      "openr1-mix-ext": {
+        "mean": 2.0899195869763694,
+        "s": 0.07639123355239798,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.15278246710479595,
+        "pass_ceiling": 2.2427020540811653,
+        "per_seed": [
+          2.049439877271652,
+          2.0422870218753815,
+          2.178031861782074
+        ]
+      },
+      "wikitext-mix-ext": {
+        "mean": 4.452471415201823,
+        "s": 0.05578832091889726,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.11157664183779452,
+        "pass_ceiling": 4.564048057039618,
+        "per_seed": [
+          4.388126373291016,
+          4.487312912940979,
+          4.481974959373474
+        ]
+      }
+    },
+    "500": {
+      "openr1-mix-ext": {
+        "mean": 2.1670696338017783,
+        "s": 0.14181307814034674,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.2836261562806935,
+        "pass_ceiling": 2.450695790082472,
+        "per_seed": [
+          2.3120025396347046,
+          2.028597205877304,
+          2.160609155893326
+        ]
+      },
+      "wikitext-mix-ext": {
+        "mean": 4.496967355410258,
+        "s": 0.011016744754346974,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.022033489508693948,
+        "pass_ceiling": 4.519000844918952,
+        "per_seed": [
+          4.487267851829529,
+          4.494689106941223,
+          4.508945107460022
+        ]
+      }
+    },
+    "1000": {
+      "openr1-mix-ext": {
+        "mean": 2.210297852754593,
+        "s": 0.195062947296795,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.39012589459359,
+        "pass_ceiling": 2.600423747348183,
+        "per_seed": [
+          2.036584496498108,
+          2.172988086938858,
+          2.4213209748268127
+        ]
+      },
+      "wikitext-mix-ext": {
+        "mean": 4.540773630142212,
+        "s": 0.03931229684810326,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.07862459369620652,
+        "pass_ceiling": 4.619398223838418,
+        "per_seed": [
+          4.574618458747864,
+          4.497652888298035,
+          4.550049543380737
+        ]
+      }
+    },
+    "2500": {
+      "openr1-mix-ext": {
+        "mean": 2.0728147824605307,
+        "s": 0.18655199775209713,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.37310399550419426,
+        "pass_ceiling": 2.445918777964725,
+        "per_seed": [
+          2.1808356046676636,
+          1.8574033975601196,
+          2.1802053451538086
+        ]
+      },
+      "wikitext-mix-ext": {
+        "mean": 4.476732095082601,
+        "s": 0.06169576965144723,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.12339153930289445,
+        "pass_ceiling": 4.600123634385495,
+        "per_seed": [
+          4.537007093429565,
+          4.413707494735718,
+          4.4794816970825195
+        ]
+      }
+    },
+    "5000": {
+      "openr1-mix-ext": {
+        "mean": 2.153962870438894,
+        "s": 0.07883107828139937,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.15766215656279875,
+        "pass_ceiling": 2.3116250270016927,
+        "per_seed": [
+          2.096896708011627,
+          2.121079921722412,
+          2.2439119815826416
+        ]
+      },
+      "wikitext-mix-ext": {
+        "mean": 4.4216088851292925,
+        "s": 0.12493974929005697,
+        "n": 3,
+        "k": 2.0,
+        "tolerance_abs": 0.24987949858011393,
+        "pass_ceiling": 4.6714883837094066,
+        "per_seed": [
+          4.388331890106201,
+          4.5598180294036865,
+          4.316676735877991
+        ]
+      }
+    }
+  },
+  "result_paths": {
+    "250": {
+      "openr1-mix-ext": [
+        "results/phase2/off_openr1-mix-ext_s0.json",
+        "results/phase2/off_openr1-mix-ext_s1.json",
+        "results/phase2/off_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/phase2/off_wikitext-mix-ext_s0.json",
+        "results/phase2/off_wikitext-mix-ext_s1.json",
+        "results/phase2/off_wikitext-mix-ext_s2.json"
+      ]
+    },
+    "500": {
+      "openr1-mix-ext": [
+        "results/phase2/off_openr1-mix-ext_s0.json",
+        "results/phase2/off_openr1-mix-ext_s1.json",
+        "results/phase2/off_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/phase2/off_wikitext-mix-ext_s0.json",
+        "results/phase2/off_wikitext-mix-ext_s1.json",
+        "results/phase2/off_wikitext-mix-ext_s2.json"
+      ]
+    },
+    "1000": {
+      "openr1-mix-ext": [
+        "results/phase2/off_openr1-mix-ext_s0.json",
+        "results/phase2/off_openr1-mix-ext_s1.json",
+        "results/phase2/off_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/phase2/off_wikitext-mix-ext_s0.json",
+        "results/phase2/off_wikitext-mix-ext_s1.json",
+        "results/phase2/off_wikitext-mix-ext_s2.json"
+      ]
+    },
+    "2500": {
+      "openr1-mix-ext": [
+        "results/phase2/off_openr1-mix-ext_s0.json",
+        "results/phase2/off_openr1-mix-ext_s1.json",
+        "results/phase2/off_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/phase2/off_wikitext-mix-ext_s0.json",
+        "results/phase2/off_wikitext-mix-ext_s1.json",
+        "results/phase2/off_wikitext-mix-ext_s2.json"
+      ]
+    },
+    "5000": {
+      "openr1-mix-ext": [
+        "results/phase2/off_openr1-mix-ext_s0.json",
+        "results/phase2/off_openr1-mix-ext_s1.json",
+        "results/phase2/off_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "results/phase2/off_wikitext-mix-ext_s0.json",
+        "results/phase2/off_wikitext-mix-ext_s1.json",
+        "results/phase2/off_wikitext-mix-ext_s2.json"
+      ]
+    }
+  },
+  "result_sha256": {
+    "250": {
+      "openr1-mix-ext": [
+        "70fc40382d514ed9998d38cda1da7ff83fac517c785f6b854e017890c7ba0bff",
+        "ee310a6f33f62897514f1ae6f64bf513b5c5bb6ad1c9c9a37504fb80bb71ddd6",
+        "9de8fdd63c4a71c187e6fdf04d755db7a443750583664f3d354486a814f6043a"
+      ],
+      "wikitext-mix-ext": [
+        "50fc593bb6ca37d096ac7650ec001a9595013c827ca81f4c84a1937a95ffb3d0",
+        "dec6c50d5a456b7859e88f00231b45c8cc0e36ad12d62d95e4d9b053e7716536",
+        "d159edf6a4fd9e4e305f8e98792971497f736cff0aec98fc55ecd6089ba821c4"
+      ]
+    },
+    "500": {
+      "openr1-mix-ext": [
+        "70fc40382d514ed9998d38cda1da7ff83fac517c785f6b854e017890c7ba0bff",
+        "ee310a6f33f62897514f1ae6f64bf513b5c5bb6ad1c9c9a37504fb80bb71ddd6",
+        "9de8fdd63c4a71c187e6fdf04d755db7a443750583664f3d354486a814f6043a"
+      ],
+      "wikitext-mix-ext": [
+        "50fc593bb6ca37d096ac7650ec001a9595013c827ca81f4c84a1937a95ffb3d0",
+        "dec6c50d5a456b7859e88f00231b45c8cc0e36ad12d62d95e4d9b053e7716536",
+        "d159edf6a4fd9e4e305f8e98792971497f736cff0aec98fc55ecd6089ba821c4"
+      ]
+    },
+    "1000": {
+      "openr1-mix-ext": [
+        "70fc40382d514ed9998d38cda1da7ff83fac517c785f6b854e017890c7ba0bff",
+        "ee310a6f33f62897514f1ae6f64bf513b5c5bb6ad1c9c9a37504fb80bb71ddd6",
+        "9de8fdd63c4a71c187e6fdf04d755db7a443750583664f3d354486a814f6043a"
+      ],
+      "wikitext-mix-ext": [
+        "50fc593bb6ca37d096ac7650ec001a9595013c827ca81f4c84a1937a95ffb3d0",
+        "dec6c50d5a456b7859e88f00231b45c8cc0e36ad12d62d95e4d9b053e7716536",
+        "d159edf6a4fd9e4e305f8e98792971497f736cff0aec98fc55ecd6089ba821c4"
+      ]
+    },
+    "2500": {
+      "openr1-mix-ext": [
+        "70fc40382d514ed9998d38cda1da7ff83fac517c785f6b854e017890c7ba0bff",
+        "ee310a6f33f62897514f1ae6f64bf513b5c5bb6ad1c9c9a37504fb80bb71ddd6",
+        "9de8fdd63c4a71c187e6fdf04d755db7a443750583664f3d354486a814f6043a"
+      ],
+      "wikitext-mix-ext": [
+        "50fc593bb6ca37d096ac7650ec001a9595013c827ca81f4c84a1937a95ffb3d0",
+        "dec6c50d5a456b7859e88f00231b45c8cc0e36ad12d62d95e4d9b053e7716536",
+        "d159edf6a4fd9e4e305f8e98792971497f736cff0aec98fc55ecd6089ba821c4"
+      ]
+    },
+    "5000": {
+      "openr1-mix-ext": [
+        "70fc40382d514ed9998d38cda1da7ff83fac517c785f6b854e017890c7ba0bff",
+        "ee310a6f33f62897514f1ae6f64bf513b5c5bb6ad1c9c9a37504fb80bb71ddd6",
+        "9de8fdd63c4a71c187e6fdf04d755db7a443750583664f3d354486a814f6043a"
+      ],
+      "wikitext-mix-ext": [
+        "50fc593bb6ca37d096ac7650ec001a9595013c827ca81f4c84a1937a95ffb3d0",
+        "dec6c50d5a456b7859e88f00231b45c8cc0e36ad12d62d95e4d9b053e7716536",
+        "d159edf6a4fd9e4e305f8e98792971497f736cff0aec98fc55ecd6089ba821c4"
+      ]
+    }
+  },
+  "pinned_at": 1783475128.2437508,
+  "pinned_at_iso": "2026-07-08T01:45:28Z"
+}

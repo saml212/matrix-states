@@ -6,38 +6,52 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
-## REASONING-LINK PHASE-2 FAMILIARIZATION — LAUNCHED (2026-07-08 ~01:27
-UTC) — advances the REASONING-LINK PHASE-1B GATE-TEST NULL block's own
-queue implication below (Phase-2 build → audit → launch) to RUNNING; the
-C17/§15.24 blocks above/below are unaffected (different program, GPU 2
-planned there; Phase-2 owns GPUs 0–1 exactly as that block records)
+## REASONING-LINK PHASE-2 FAMILIARIZATION — GATE-REFUSED (harvested
+2026-07-08, chain ran 01:27–01:45 UTC) — verdict PARTIAL-TASK-LEARNING-
+BELOW-PIN; the C17/§15.24 blocks below are unaffected (different program,
+GPU 2 planned there; Phase-2 owned GPUs 0–1, now free)
 
-**Queue status: RUNNING UNATTENDED on box, tmux `phase2_familiarization`,
-GPUs 0–1 only.** 18 cells (3 arms × 2 corpora × 3 seeds), 5,000 steps,
-trajectory checkpoints {250,500,1000,2500,5000}, OFF-arm-first with the
-BANDS_PINNED barrier + terminal-checkpoint Stage-0.5 launch gate, K∈{20,32}
-readout-only, budget ceiling 12.06 GPU-h with in-chain enforced abort
-(§16.2 Rev 5 + §16.14 fixes, commits `1f53a68`+`3937d0c`+`a4b3b0d`).
+**Queue status: COMPLETE (OFF-arm leg only) — `per_token`/`global` launch
+MECHANICALLY REFUSED, not a crash.** The OFF arm's 6 cells (2 corpora ×
+3 seeds) ran to completion (5,000/5,000 steps, no crashes, one clean
+launch). The Stage-0.5-familiarized gate then FAILED all 30/30 (cell,
+checkpoint) readings (`recovered_frac(h1)=0.0000` everywhere;
+premises (iii)/(iv) and the h1 floor all `False`). Per §16.5 Constraint 1
+the chain refused to launch `per_token`/`global`, wrote
+`results/phase2/STAGE05_LAUNCH_GATE_REFUSED`, and exited cleanly.
+**GPUs 0–1 are FREE.** Full tables, mechanical adjudication, and the
+triple-null reading: `matrix-thinking/REASONING_LINK_DESIGN.md` §16.15;
+harvest entry: `EXPERIMENT_LOG.md`'s matching entry.
 
-**Harvest at the sentinel, do NOT babysit:** completion =
-`results/phase2/PHASE2_SUMMARY.json` on box (log line `PHASE-2 CHAIN
-COMPLETE` in `logs/phase2_familiarization_run1.log`). Abort sentinels:
-`results/phase2/BUDGET_ABORTED`, `results/phase2/STAGE05_LAUNCH_GATE_
-REFUSED` (the latter = instrument indictment on familiarized checkpoints,
-NOT a program-stopping rule, §16.2.1). ETA: registered bracket 1.48–12.06
-GPU-h ÷ 2 GPUs = 0.74–6.03 h wall from 01:27 UTC; realized early rate
-projects ≈2 h wall (≈4 GPU-h). Hard abort at 6.03 h wall.
+**The central question, adjudicated mechanically (§16.15.2):** did the
+model learn the bind/query task while the geometric readout stayed
+invalid? Pin: terminal `L_query` < 50% of its step-250 value. **0/6
+cells crossed it** (21.8%–46.4% relative fall, mean −35.9% — real and
+uniform, but short of the pin in every cell). Verdict:
+**PARTIAL-TASK-LEARNING-BELOW-PIN** — neither pre-registered bucket (a)
+or (b) fit cleanly; a genuinely independent vocab-space readout
+(`L_query`) showed real partial signal while the `d_state`-space gate
+stayed at an exact `0.0000` floor in all 30 readings — a real
+dissociation, disclosed but not overclaimed.
 
-**Launch-time verification (full detail in `EXPERIMENT_LOG.md`'s matching
-entry):** 20-file closure md5-verified box↔repo; 18/18 init checkpoints +
-archived results JSONs pre-verified; in-chain gates all green (Stage -1
-19/19+extras and 13/13 under the CPU stub, then the NEW real-kernel smoke
-gate `phase2_smoke_gpu.py` — added this deploy after finding the Stage -1
-suites are CPU-stub-only by design and fla 0.5.1 crashes un-stubbed on CPU;
-its forced-fail negative test proven on box, exit 1); first OFF pair ran
-healthy through step-1000 checkpoints with finite losses before watch was
-dropped. Early `stage05_gate_pass=False` is expected/non-blocking — only
-the TERMINAL step-5000 OFF gate licenses per_token/global.
+**Triple-null arc:** Phase 1 marker/zero-shot (§15, 0/312) → Phase-1b
+natural/zero-shot (§16.8, 0/4) → Phase-2 marker/FAMILIARIZED (this
+result, 0/30) — three structurally different instruments, three training
+regimes, identical categorical `0.0` floor on the `S_T^h·q_eff` readout.
+Still PROBE-INVALID, not REFUTE, per §8.4/§16.0's standing rule.
+
+**Realized cost:** ≈0.617 GPU-h (1,111s wall × 2 GPUs), well under the
+registered 1.48–12.06 GPU-h full-grid bracket (this leg ran only 6/18
+cells) and under even the leg-scaled 5–10× bracket's own low end — one
+clean launch, no crashes.
+
+**Queue: PI decision on the REASONING-LINK keystone lane at next
+check-in.** §16.6's decision tree has no pre-scripted branch for
+"Phase-2's own gate also refuses" (§16.15.5 names the registered options
+without selecting one: a vocab-space behavioral-contrast instrument
+promoted to primary; lane closure with the triple null as the
+publishable finding; or a recipe-extension calibration run). Not
+self-launched by this harvest.
 
 ---
 

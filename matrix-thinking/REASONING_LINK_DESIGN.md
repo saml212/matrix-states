@@ -6230,3 +6230,320 @@ the recipe itself, and does not reopen §16.2.4's gate. Every fix here is
 additive/backward-compatible by construction (new parameters default to
 the pre-fix behavior), verified by re-running the full Phase-2 Stage -1
 suite to completion after every fix landed.
+
+---
+
+### 16.15 PHASE-2 RESULT — Stage-0.5 gate REFUSED at 30/30 (cell, checkpoint) readings; `per_token`/`global` launch mechanically blocked (2026-07-08)
+
+**HEADLINE.** The OFF arm's 6 familiarization cells (2 corpora ×
+3 seeds, `openr1-mix-ext` / `wikitext-mix-ext`) ran to completion —
+`steps_completed=5000/5000` at all 6, `grad_finite=True` at all 606
+trajectory rows (101 rows × 6 cells), no crashes, one clean single
+launch (`phase2_familiarization_run1.log`, the only run). The
+Stage-0.5-familiarized gate (§16.2.1, MAJOR-4/MAJOR-R3-3) then
+**FAILED at every one of the 30 (cell, checkpoint) readings** —
+6 cells × {250,500,1000,2500,5000} — `recovered_frac(h1)` exactly
+`0.0000` at all 30, `premise_iii_pass`/`premise_iv_pass`/`probe_valid`
+all `False` at all 30. Per §16.5 Constraint 1's gates-must-abort rule,
+`phase2_gate_enforce.py` refused the `per_token`/`global` launch at
+the terminal checkpoint for all 6 (corpus, seed) cells, wrote
+`results/phase2/STAGE05_LAUNCH_GATE_REFUSED`, and the chain exited
+cleanly — GPUs 0-1 idle, no partial/orphaned launch. This is the
+pre-registered abort branch, not a crash: per §16.2.1's own disclosed
+"double duty" framing (line ~4961), a **persistent** post-familiarization
+failure of premises (iii)/(iv) "indicts the readout construct itself
+far more decisively than Phase-1's own zero-shot PROBE-INVALID verdict
+could." That is exactly the pattern observed. But the trajectory data
+also show something the gate-only readout cannot see: `L_query` (the
+training/eval objective's own vocab-space CE, deliberately built as a
+DIFFERENT readout from the d_state-space gate — see §16.15.2) fell
+substantially in all 6 cells, just not far enough to clear the
+pre-registered <50% pin. Both facts are reported below without forcing
+either into an overclaim.
+
+#### 16.15.1 Gate table — all 30/30 (cell, checkpoint) readings FAIL
+
+| Corpus | Seed | ck250 | ck500 | ck1000 | ck2500 | ck5000 |
+|---|---|---|---|---|---|---|
+| openr1-mix-ext | 0 | FAIL | FAIL | FAIL | FAIL | FAIL |
+| openr1-mix-ext | 1 | FAIL | FAIL | FAIL | FAIL | FAIL |
+| openr1-mix-ext | 2 | FAIL | FAIL | FAIL | FAIL | FAIL |
+| wikitext-mix-ext | 0 | FAIL | FAIL | FAIL | FAIL | FAIL |
+| wikitext-mix-ext | 1 | FAIL | FAIL | FAIL | FAIL | FAIL |
+| wikitext-mix-ext | 2 | FAIL | FAIL | FAIL | FAIL | FAIL |
+
+`recovered_frac(h1) = 0.0000` at every one of the 30 readings (0/512
+scored queries recovered, at every checkpoint, every cell) — the
+identical categorical floor §15 found at Phase 1 (0/312 (cell,h)
+readings, marker template) and §16.8 found at Phase-1b (0/4 cells,
+natural template). This is the THIRD instrument, at THREE structurally
+different surface forms/training regimes, landing on the exact same
+`0.0` floor — not a marginal miss.
+
+**How far the two premises actually missed (terminal step-5000 values,
+`median` vs. its own null-shuffle `p95`; premise passes iff
+`median > p95`):**
+
+| Cell | premise (iii) median | null p95 | pass? | premise (iv) median | null p95 | pass? |
+|---|---|---|---|---|---|---|
+| openr1_s0 | 0.1531 | 0.2358 | FAIL | 0.0556 | 0.1137 | FAIL |
+| openr1_s1 | -0.0880 | 0.0520 | FAIL | 0.0919 | 0.2569 | FAIL |
+| openr1_s2 | 0.5227 | 0.6044 | FAIL | 0.0474 | 0.1466 | FAIL |
+| wikitext_s0 | -0.4130 | -0.2854 | FAIL | -0.0056 | 0.0893 | FAIL |
+| wikitext_s1 | -0.3376 | -0.2649 | FAIL | -0.1773 | -0.0093 | FAIL |
+| wikitext_s2 | 0.4775 | 0.5493 | FAIL | 0.1159 | 0.1876 | FAIL |
+
+Premise (iii)'s median itself ranges from -0.41 to +0.52 across cells
+(real, cell-dependent structure, not a flat zero) — but it never once
+crosses its own null p95, by margins between 0.05 and 0.13 absolute.
+Premise (iv) shows the same never-crosses pattern, consistent with
+§16.0's standing diagnosis (`k_eff`/`v_eff`, two projections of the
+same token, stay nearly uncorrelated in this checkpoint family) —
+familiarization training did not change that structural fact.
+
+#### 16.15.2 THE central question — task-level learning vs. readout validity
+
+**Mechanical pin (pre-registered):** terminal `L_query` < 50% of its
+own step-250 value.
+
+| Cell | L_query@250 | @500 | @1000 | @2500 | @5000 | ratio(5000/250) | relative fall | pin (<50%) |
+|---|---|---|---|---|---|---|---|---|
+| openr1_s0 | 4.8853 | 4.4603 | 3.3657 | 3.6925 | 2.8736 | 0.5882 | -41.2% | NOT MET |
+| openr1_s1 | 4.6774 | 4.7878 | 4.5467 | 4.5665 | 3.6592 | 0.7823 | -21.8% | NOT MET |
+| openr1_s2 | 4.4874 | 4.6894 | 3.5333 | 2.8480 | 2.5519 | 0.5687 | -43.1% | NOT MET |
+| wikitext_s0 | 4.6950 | 4.6515 | 4.6808 | 3.4403 | 3.1751 | 0.6763 | -32.4% | NOT MET |
+| wikitext_s1 | 4.8407 | 4.7499 | 4.5959 | 4.3007 | 2.5948 | 0.5360 | -46.4% | NOT MET |
+| wikitext_s2 | 4.6891 | 4.5396 | 4.5320 | 3.9120 | 3.2641 | 0.6961 | -30.4% | NOT MET |
+| **mean** | | | | | | **0.6413** | **-35.9%** | **0/6** |
+
+`L_corpus` at the same 5 checkpoints stays flat in every cell
+(openr1 cells: ≈3.53-4.23; wikitext cells: ≈4.62-4.84, no trend) —
+expected, since these checkpoints already converged on corpus
+modeling during the 20,000-step frozen-bias pretraining this Phase-2
+run continues from; familiarization only meaningfully moves `L_query`.
+No answer-accuracy field is logged anywhere in the trajectory or
+checkpoint records — `loss_corpus`/`loss_query`/`loss_total`/`lr`/
+`grad_finite` are the only per-step fields the trainer writes; the
+adjudication below therefore uses loss, not accuracy.
+
+**Mechanical adjudication, run against the pre-registered rule exactly
+as specified:** **0/6 cells cross the <50% pin.** The closest miss is
+wikitext_s1 (ratio 0.536, a 46.4% relative fall); the largest miss is
+openr1_s1 (ratio 0.782, only a 21.8% relative fall). Per the letter of
+the pre-registered rule, verdict **(a) READOUT-CONSTRUCT-INVALID-
+DESPITE-TASK-LEARNING is NOT mechanically licensed** — the pin the
+design set for making that strong claim was not met by any cell.
+At the same time, the literal condition for verdict **(b)** ("L_query
+did NOT fall") **is also false** — `L_query` fell substantially and
+uniformly, 21.8-46.4% (mean 35.9%), in all 6/6 cells, not "mixed
+across cells" (ruling out verdict (c) as the honest description
+either — this is a single uniform pattern, not a split). The
+pre-registered trichotomy does not have a bucket for "fell
+substantially in every cell, but short of the pin everywhere" —
+disclosed here as a genuine gap in the adjudication rule rather than
+silently rounded into either bucket. Applying the rule's own spirit
+(the pin exists specifically to license the STRONG claim that task
+learning was clean and complete while the readout stayed invalid): **since
+the strong pin is not met, verdict (a) does not fire; the data are
+better described as partial, incomplete task-level engagement
+co-occurring with a categorically invalid geometric readout** — closer
+in practical consequence to (b) FAMILIARIZATION-TRAINING-NULL (the
+recipe has not been shown to fully teach the task in 5,000 steps,
+so the mechanism question is not yet cleanly separable from a recipe
+adequacy question) than to the strong form of (a), but explicitly
+NOT the flat "model failed to learn" reading (b)'s prose implies.
+**Verdict: PARTIAL-TASK-LEARNING-BELOW-PIN** (uniform across all 6
+cells) — recipe-adequacy question left open, mechanism question not
+cleanly resolved by this leg alone.
+
+**A relevant dissociation, already built into the design and worth
+surfacing explicitly.** `L_query` is NOT computed from the same
+machinery as the Stage-0.5 gate — §16.2.1 (lines ~4275-4298) pins
+`L_query` as a **vocab-space cross-entropy through the LM head**
+specifically so that it is measured through DIFFERENT machinery than
+the gate's **d_state-space cosine readout** (`S_T^h · q_eff`,
+premises iii/iv), "explicitly REJECTED" the alternative of training on
+the d_state-space objective directly for exactly this reason (would
+have "made familiarization directly optimize the quantity the readout
+later measures," collapsing the intended independence). That
+independence is what makes the following worth reporting: `L_query`
+fell substantially in 6/6 cells (in 5/6 cells the terminal value is
+below `ln(K=32)=3.4657` — for reference only, not a chance floor this
+trainer computes or reports — the sixth, openr1_s1, is close at 3.659),
+while the d_state-space gate stayed at the exact `0.0000` floor in
+30/30 readings. **This is a real dissociation between the two
+already-independent readouts this design built, not a new instrument.**
+It does not license the strong (a) verdict (the pin was set
+deliberately strict and was not met), but it is directly relevant to
+Task 2's question and is reported here rather than only in the
+gate-table.
+
+#### 16.15.3 Val-loss band cross-check
+
+Bands (`results/phase2/BANDS_PINNED-Phase2Familiarization.json`) were
+computed FROM these same 6 cells' own per-seed val-loss (`mean_ref ±
+2·s_ref`, one band per checkpoint) — per §16.2.1's own MINOR-R3-4
+disclosure (reproduced verbatim in the chain log), **"OFF passed its
+own val-loss gate" is near-tautological and is never evidence of
+anything**; it was never going to fail barring a >2σ same-corpus,
+cross-seed outlier. Confirmed directly: every one of the 30 own-corpus
+val-loss readings falls inside its own pinned `pass_ceiling` (e.g.
+step-5000 openr1: per-seed `[2.097, 2.121, 2.244]` vs. ceiling
+`2.3116`; step-5000 wikitext: per-seed `[4.388, 4.560, 4.317]` vs.
+ceiling `4.6715`). Disclosed per the design's own instruction, not
+cited as corroborating anything about the gate's real target
+(`per_token`'s/`global`'s own val-loss, which never got measured since
+the launch was refused).
+
+**Corpus val-loss health (no divergence):** own-corpus val-loss stayed
+in `[1.857, 2.421]` (openr1) / `[4.317, 4.575]` (wikitext) across all
+15 own-corpus readings each; cross-corpus (other-corpus) val-loss
+stayed in `[6.690, 7.468]` (openr1 cells' wikitext reading) /
+`[6.361, 6.618]` (wikitext cells' openr1 reading). No NaN, no
+divergence, `grad_finite=True` at all 606 trajectory rows across all
+6 cells.
+
+#### 16.15.4 Reading — the triple-null arc
+
+Three structurally different instruments, at three different
+training regimes, have now landed on the identical categorical `0.0`
+`recovered_frac` floor for the `d_state`-space `S_T^h·q_eff` readout:
+
+1. **Phase 1, marker template, zero-shot** (§15): 0/312 (cell,h)
+   readings, 78 cells, 14M-392M params.
+2. **Phase-1b, natural-language template, zero-shot** (§16.8):
+   0/4 cells (2 candidates × 2 corpora, wikitext-primary +
+   openr1-expected-null, both fail identically).
+3. **Phase-2, marker template, task-FAMILIARIZED (this section)**:
+   0/30 (cell, checkpoint) readings, the checkpoint family that had
+   the most reason of the three to succeed — genuinely trained on the
+   bind/query structure for 5,000 steps, with `L_query` showing real
+   partial task engagement (§16.15.2) at the same time the geometric
+   gate stayed flat.
+
+Per §8.4/§16.0's own standing rule ("failure routes to probe-invalid,
+not to REFUTE") and §16.2.1's own double-duty framing, a persistent
+post-familiarization failure is the single strongest evidence this
+program has produced that the `d_state`-space readout construct itself
+— not the surface form (arc step 1→2), and not "never task-trained"
+(arc step 2→3) — is what is invalid. This is still a PROBE-INVALID
+verdict, not a REFUTE of H_LINK-A/H_LINK-B: the keystone question
+(does frozen-bias key-geometry stabilization causally improve
+in-context multi-hop composition) has still never been asked of the
+data by an instrument shown to produce a referent-bearing signal.
+
+#### 16.15.5 §16.6 decision-tree status — what fires next (registered options, none self-authorized)
+
+§16.6 was written before either Path (i) or Path (ii) had reported a
+result and does not contain a pre-scripted branch for "Path (ii)'s own
+Stage-0.5 gate also refuses" — both instruments the decision tree
+named for the REASONING-LINK keystone (Path (i)/Phase-1b, Path
+(ii)/Phase-2) have now independently failed the same construct. Path
+(iii) (§16.3, the scaling wave) is explicitly NOT a candidate here —
+§16.3's own text names it "a capacity-law-paper-track question, not
+the keystone question." No option below is self-authorized by this
+harvest; this is a PI decision point for the next check-in. Registered
+material already in this document that bears on the choice:
+
+- **A different readout construct, vocab-space instead of
+  `d_state`-space.** §16.2.1 already built and ran exactly this
+  alternative as `L_query` (§16.15.2) — deliberately kept independent
+  of the gate by construction. The dissociation observed here (partial
+  vocab-space signal, zero geometric signal) is a concrete argument
+  for promoting a vocab-space **behavioral contrast** (does the
+  familiarized model's own next-token prediction differentiate
+  correctly-bound vs. mis-bound entities, scored through the LM head,
+  no `d_state` readout at all) to the PRIMARY instrument, rather than
+  building a fourth zero-shot/familiarized variant of the same
+  `S_T^h·q_eff` construct that has now failed identically three times.
+- **Lane closure, with the triple null (§16.15.4) as the publishable
+  finding.** Per §8.4/§16.0's own PROBE-INVALID-not-REFUTE routing,
+  this is a legitimate, precedented outcome in this document's own
+  house convention (mirrors §16.8.3's "no template to fold in" handling
+  when Phase-1b also came back null) — the finding would be "three
+  structurally different instruments at three training regimes all
+  fail to detect `S_T^h·q_eff` structure in this checkpoint family,"
+  not "the keystone hypothesis is false."
+- **Extend the familiarization recipe** (more steps, a higher
+  `λ_fam`, or a longer trajectory past 5,000 steps) to test whether
+  §16.15.2's PARTIAL-TASK-LEARNING-BELOW-PIN verdict was a recipe
+  ceiling rather than evidence about the readout — this would need its
+  own calibration run and its own cost re-derivation before any sweep,
+  per this program's own standing "calibration run before a big sweep
+  is mandatory" rule; not run here.
+
+No option above is ranked or selected by this harvest.
+
+#### 16.15.6 Realized GPU-h
+
+Box timestamps (UTC, `stat` birth/mtime, `youthful-indigo-turkey`,
+2-way parallel on GPUs 0-1):
+
+| Segment | Start (UTC) | End (UTC) | Duration |
+|---|---|---|---|
+| Chain launch (`97_phase2_reasoning_link_stage_minus1.log` birth) | 01:26:57 | — | — |
+| `STAGE05_LAUNCH_GATE_REFUSED` written / chain log's last write | — | 01:45:28.679 | — |
+| **Single-launch wall-clock, chain launch → refusal** | 01:26:57 | 01:45:28.679 | **1,111s ≈ 0.3086 hr** |
+
+**Realized GPU-h = wall-clock × 2 GPUs ≈ 0.6172 GPU-h** (matches the
+chain's own self-reported `[budget] elapsed=1110s n_gpus=2
+projected_gpu_h=0.6167` to within rounding). Decomposition: summed
+per-cell `wall_s` (6 cells, training loop only) = 1,967.88s ≈ **0.5466
+GPU-h**; the remaining ≈0.0706 GPU-h is Stage -1 self-tests + GPU
+smoke tests + the 30 gate-with-null-band passes combined — closely
+matching §16.2.3's own priced estimate of ≈0.066 GPU-h for exactly the
+30-gate-pass line, a clean cross-check.
+
+**Budget vs. the ≈1.48-12.06 GPU-h bracket.** That bracket (§16.2.3)
+prices the FULL 18-cell, 3-arm grid; this leg ran only the OFF arm's
+6 cells (1/3 of the grid, pre-registered to run standalone first,
+§16.2.1 MINOR-NEW-1's sequencing requirement), so a direct comparison
+undercounts by construction. Scaling §16.2.3's own raw-cost line down
+to exactly this leg (6 cells × 5,000 steps × 0.04544 s/step = 0.3787
+GPU-h training + the 30-gate-pass line's own priced 0.066 GPU-h =
+0.4447 GPU-h raw) and applying the SAME registered 5-10× debug-tax
+multiplier implies a leg-scoped bracket of ≈2.22-4.45 GPU-h. **Realized
+0.6172 GPU-h came in BELOW even that scaled-down low end** — realized/
+raw ≈1.39×, well inside the pre-registered conservative margin,
+consistent with one clean single launch, no crashes, no relaunches
+(mirrors §16.8.5's own Phase-1b "clean run" pattern). Against the full
+program's own budget lines, this is a small addition: Phase-1's
+≈24.20 GPU-h ceiling (§10), Path (iii)'s ≈21 GPU-h mandatory grid
+(§16.3).
+
+#### 16.15.7 Discrepancies, disclosed prominently
+
+1. **The pre-registered adjudication trichotomy (Task 2's own (a)/(b)/
+   (c) options) does not cover the observed pattern.** All 6 cells show
+   the SAME shape — substantial but sub-pin `L_query` decline — which is
+   neither (a)'s strict <50% pin (0/6 met it) nor (b)'s literal "did
+   not fall" (false in all 6 cells) nor (c)'s "mixed across cells"
+   (it is uniform, not split). §16.15.2 names this explicitly as
+   PARTIAL-TASK-LEARNING-BELOW-PIN rather than forcing it into either
+   bucket — flagged here as a gap in the adjudication rule as
+   registered, for whoever revises it next.
+2. **A pre-launch dry run hit a real bug, resolved before the harvested
+   run.** `logs/predeploy_phase2_stage_minus1_real.log` (01:10 UTC,
+   ~17 minutes before chain launch) shows a Triton kernel failure
+   (`ValueError: Pointer argument cannot be accessed from Triton (cpu
+   tensor?)`, inside `fla`'s `layer_norm_fwd`) — a device-placement bug
+   in an earlier dry-run attempt, not present in the two GPU smoke logs
+   that ran immediately before launch (`predeploy_phase2_smoke_gpu_
+   positive.log` / `_negative.log`, 01:25-01:26 UTC, both PASSED
+   including the deliberate `PHASE2_SMOKE_FORCE_FAIL=1` negative test)
+   or anywhere in the actual chain run. Pulled and archived per the
+   "pull everything" instruction; disclosed here so it is not mistaken
+   for a defect in the harvested result.
+3. **No answer-accuracy field exists in the trainer's output** —
+   `trajectory` rows carry only `loss_corpus`/`loss_query`/
+   `loss_total`/`lr`/`grad_finite`. §16.15.2's adjudication is
+   loss-based only, as instructed.
+
+#### 16.15.8 Next steps (not self-launched by this harvest)
+
+Per §16.15.5: PI decision on which registered option (different
+readout construct, lane closure, or recipe extension) to pursue for
+the REASONING-LINK keystone lane, at the next check-in. GPUs 0-1 are
+free in the meantime. Path (iii)'s own scaling-wave track is
+unaffected and continues independently (§16.3, not gated on this
+result).

@@ -1,0 +1,50 @@
+{
+  "design_ref": "REASONING_LINK_DESIGN.md sec 16.2 (Rev 5, CLEARED-FOR-BUILD)",
+  "program": "REASONING-LINK Phase 2 (task familiarization)",
+  "stage": "stage05-gate",
+  "fla_stub_installed": false,
+  "timestamp": 1783474839.2633858,
+  "checkpoint_step": 500,
+  "arm": "off",
+  "corpus": "wikitext-mix-ext",
+  "ckpt_seed": 1,
+  "K": 32,
+  "gate_k": 32,
+  "gate_q": 32,
+  "gate_pass": false,
+  "per_h": {
+    "1": {
+      "h": 1,
+      "K": 32,
+      "surgery": "native",
+      "batch_size": 16,
+      "recovered_frac": 0.0,
+      "n_scored": 512,
+      "cos_mean": -0.06659090518951416,
+      "cos_std": 0.045636121183633804,
+      "state_condition_number_mean": 130933.609375,
+      "premise_iii_median": 0.060801900923252106,
+      "premise_iii_null_p95": 0.1452387124300003,
+      "premise_iii_pass": false,
+      "premise_iv_median": -0.09601370990276337,
+      "premise_iv_null_p95": -0.025829724967479706,
+      "premise_iv_pass": false,
+      "h1_confirmatory": false,
+      "h_ge2_confirmatory": false,
+      "premise_i_key_gram_deviation_mean": 30.022680282592773,
+      "premise_ii_value_gram_deviation_mean": 30.548927307128906,
+      "null_recovered_frac_mean": 0.0,
+      "null_ci_lower": 0.0,
+      "null_ci_upper": 0.0,
+      "null_width": 0.0,
+      "recovered_frac_h1_real": 0.0,
+      "null_relative_pass": false,
+      "absolute_pass": false,
+      "probe_valid": false
+    }
+  },
+  "forward_counts": {
+    "forward_a": 1,
+    "forward_b": 1
+  }
+}
