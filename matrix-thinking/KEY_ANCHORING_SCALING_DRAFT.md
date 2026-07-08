@@ -3202,18 +3202,39 @@ mechanism-breakdown output). SSD mirror, same tree:
 
 ---
 
-## §15.24 DESIGN — C17 eval-admission repro instrument (Rev 0, 2026-07-08 —
-pre-attack)
+## §15.24 DESIGN — C17 eval-admission repro instrument (Rev 1, 2026-07-08 —
+post-attack)
 
-**Status: DESIGN-ONLY DRAFT (Rev 0).** Written under the same discipline as
+**Rev 1 status note.** An independent adversarial attack round reviewed
+this design (Rev 0) before any GPU work launched, per this program's own
+standing multiple-independent-audit-rounds discipline (`CLAUDE.md`).
+Verdict: **NEEDS-REVISION** — 1 FATAL, 2 MAJOR, 2 MINOR. The attack round
+also independently verified CLEAN, unchanged: the cost arithmetic
+(§15.24.7's 0.391481/0.450/0.900 GPU-h chain, other than the disk-line
+slip fixed below), the Stage −1 config-closure sha256/`build_cmd()` diff
+(§15.24.2/§15.24.5 item 5), the anchor-bypass wiring (item (ii)'s live
+bitwise-equality assertion between `k_eff_raw`/`k_blend_raw` really is a
+build-time check, not merely prose — §15.24.9 Q3), the kernel-safety/
+Gate-2 reuse-by-citation (§15.24.5's two "reused, not re-run" items), and
+the PI-sign-off token precedence (never OR'd, §15.24.5). Every finding is
+fixed below (§15.24.2, §15.24.4, §15.24.5, §15.24.7); none is deferred or
+waved away. The full finding→fix trace is recorded at §15.24.10, per
+house style (mirrors `REASONING_LINK_DESIGN.md` §16.7's and
+`KEY_ANCHORING_SCALING_DRAFT.md` §15.21's own fix-map convention). Nothing
+in §15.24.0–§15.24.9 below predates this revision — read this section as
+Rev 1, not as the Rev-0 draft the attack round reviewed. **This revision
+has not yet had its own independent audit pass** — per this project's
+standing rule that multiple independent adversarial rounds catch
+different bugs each round, landing attack-round-1's findings does not, on
+its own, certify Rev 1 as build-ready.
+
+**Status: DESIGN-ONLY DRAFT (Rev 1).** Written under the same discipline as
 §15.20 Rev 0/§15's own header (§15.17/§15.20.8's self-attack-round
 precedent): every number below is either cited to an already-run artifact
 (§15.22's per-cell `wall_s`, §15.23's residual/conditioning measurements),
 or freshly VERIFIED this session against the live code (file + line, stated
-explicitly). **This section has NOT yet had its own independent attack
-round** — per this project's standing multiple-independent-audit-rounds
-rule, it is written to survive one, not asserted as already build-ready.
-No code is written or run in this session; every build task below is
+explicitly) — never assumed by analogy. No code is written or run in this
+session; every build task below (including this revision's own fixes) is
 registered, not built.
 
 ### 15.24.0 What this instrument resolves, and what it explicitly does NOT
@@ -3360,9 +3381,12 @@ building nothing new for either gate.
 
 **Telemetry additions — ONE new CLI flag, `--c17-repro-telemetry`
 (`store_true`, default `False`), gating three additive, read-only
-side-channel taps. Byte-identical to every existing cell when the flag is
-absent (default behavior unchanged for every other wave, past or
-future):**
+side-channel taps (Rev 1, attack-round-1 MAJOR M1 fix: item (ii)'s own
+file format gains the two TF32-mode fields described below — no new
+numbered tap, no new build task beyond threading two `torch.backends`
+reads into item (ii)'s existing dict construction). Byte-identical to
+every existing cell when the flag is absent (default behavior unchanged
+for every other wave, past or future):**
 
 **(i) Full model `state_dict` snapshot at `step=20000` only.** New flag
 `--full-ckpt-step N` (`type=int`, default `None`); when set and
@@ -3396,8 +3420,19 @@ IDENTICAL for C17 items (`anchor_blend_gather_scatter`,
 dumping both and asserting bitwise equality at analysis time is a live,
 free re-confirmation of that claim on THIS run, not an assumption carried
 over from a different cell. All events for one checkpoint's C17 call are
-bundled into one file, `<ckpt_dir>/c17fallback_step<N>.pt` (a list),
-mirroring the existing one-file-per-checkpoint convention.
+bundled into one file, `<ckpt_dir>/c17fallback_step<N>.pt` — **(Rev 1,
+attack-round-1 MAJOR M1 fix) now a dict, not a bare list**:
+`{"tf32_matmul": torch.backends.cuda.matmul.allow_tf32, "tf32_cudnn":
+torch.backends.cudnn.allow_tf32, "events": [<the per-event dicts above>]}`
+— the two TF32 flags are read ONCE, at process start (a global,
+process-level setting, not a per-event one; `evaluate_pool()` itself never
+touches them), so recording them once per checkpoint file rather than once
+per event is exact, not an approximation. This is the offline analysis's
+ONLY way to know which precision mode the LIVE run actually used, closing
+the gap M1 found: without this tap, Step 1's offline recompute (§15.24.4)
+had no way to match the live run's own numerics and risked a false
+INSTRUMENT-BUG verdict on a TF32-mode mismatch it couldn't even detect.
+Otherwise mirrors the existing one-file-per-checkpoint convention.
 
 **(iii) Per-probe-pool admission telemetry, all four pools, every
 checkpoint.** `evaluate_pool()`'s existing per-hop accumulation loop
@@ -3425,6 +3460,16 @@ consumes from `gen`/`eval_gen`/any model-internal generator, so it MUST
 NOT perturb the training path; this smoke proves it, not merely asserts
 it by construction.
 
+**Required negative test, TF32-recording (Rev 1, attack-round-1 MAJOR M1
+fix):** launch the same short smoke twice, once with
+`torch.backends.cuda.matmul.allow_tf32` explicitly forced `True` before
+process start and once forced `False`, both with
+`--c17-repro-telemetry` on; assert the recorded `tf32_matmul` field in the
+resulting `c17fallback_step<N>.pt` matches the FORCED value each time
+(not a stale default, not always `True`/always `False` regardless of the
+forced setting) — proves the tap actually reads the live process state at
+dump time rather than a hardcoded or cached value.
+
 ### 15.24.3 Candidate (1), secondary — fixed-batch checkpoint payload
 extension (same commit, zero new GPU cells)
 
@@ -3451,7 +3496,8 @@ sub-millisecond) at each of the ≤10 checkpoints already being written;
 folded into the same commit as §15.24.2's build tasks, never launched on
 its own.
 
-### 15.24.4 Decision rules — mechanical, pinned before the run
+### 15.24.4 Decision rules — mechanical, pinned before the run (Rev 1,
+attack-round-1 fixes)
 
 All thresholds below are EXACT, no numerical-tolerance slack, per this
 project's own standing rule (an integer/structural check needs an exact
@@ -3459,14 +3505,59 @@ threshold, not a tolerance copied from a floating-point context).
 `resid_tol = 0.01` throughout (`key_anchoring.GATE2_RESID_TOL`, the SAME
 production constant this program uses everywhere — never re-derived).
 `n_iter` sweep grid `{20, 24, 28, 32, 40}` — the SAME grid §15.23's
-`anchor_table_ns_sweep()` already used, for direct comparability.
+`anchor_table_ns_sweep()` already used, for direct comparability. **Rev 1
+changes applied throughout this subsection** (full trace at §15.24.10):
+a new Step −1 zero/low-event guard (FATAL F1 fix); per-episode
+granularity thresholds replacing every prior "ANY episode" dispositive
+trigger in Steps 0a/0b/1 (MAJOR M2 fix); dual TF32-mode pinning for
+Step 1's offline recompute (MAJOR M1 fix); Step 0a demoted from
+dispositive to corroborating (MINOR m2 fix).
+
+**Episode-granularity threshold (Rev 1, MAJOR M2 fix) — applies to Steps
+0a, 0b, and 1 below.** A single anomalous episode among up to ~120 dumped
+events (§15.24.7's own worst-case count) is statistically consistent with
+an ordinary tail event — a one-off floating-point jitter, a rare unlucky
+sampled batch, a transient scheduling artifact — none of which indicate a
+SYSTEMATIC defect in the probe path. A genuine INSTRUMENT-BUG (wrong pool
+row-count, a K-vs-pool-size mismatch, a stale/aliased tensor reference) is
+a property of the CODE PATH itself, not of any one random draw, so it
+recurs across independently-sampled episodes and/or hops. **Dispositive
+floor: ≥2 distinct episodes, OR ≥2% of dumped events, whichever is
+larger, showing the SAME anomaly marker** (rank<K for 0a, a pool-
+membership mismatch for 0b, or a live/offline disagreement for 1
+respectively) — at the worst-case ~120-event volume this is effectively
+≥2–3 events, and the absolute floor (≥2) dominates at low event counts
+(a 4-event cell already clears both bars at 2 anomalies). **Exactly 1
+anomalous episode → flagged, EXCLUDED from that cell's analysis
+population, and disclosed by its `step`/`hop`/`batch_idx` in the output
+JSON**; the verdict is computed on the remaining episodes — neither
+silently poisoned by the single outlier (the bug M2 found) nor silently
+discarded without a trace.
+
+**TF32 precision pinning (Rev 1, MAJOR M1 fix) — Step 1 only.** The
+offline NS recompute now runs in BOTH modes on every dumped
+`k_eff_raw`/`k_blend_raw`: **(a) strict-fp32**
+(`torch.backends.cuda.matmul.allow_tf32 = False` explicitly set for the
+recompute process) and **(b) matched-mode** (TF32 set to whatever the
+LIVE run itself recorded — §15.24.2 item (ii)'s new `tf32_matmul`/
+`tf32_cudnn` fields). **Matched-mode is Step 1's primary agreement
+check** (the only apples-to-apples comparison against what the live run
+actually computed); **strict-fp32 is corroborating context, reported
+alongside but not gating.** If the two OFFLINE modes disagree with EACH
+OTHER (independent of whether either agrees with the live flag), this is
+reported as its own named sub-finding, **TF32-SENSITIVE**, and routed to
+Step 2's TOLERANCE-MISCALIBRATION examination rather than treated as an
+INSTRUMENT-BUG signal — a matmul-precision-mode sensitivity is a
+numerically real fact about the near-boundary raw-key population
+(candidate (c)'s own territory), not evidence of a probe-path defect.
 
 | Step | Check (exact) | Outcome |
 |---|---|---|
-| **0a. Exact-rank precheck** | For EVERY dumped episode: `torch.linalg.matrix_rank(k_eff_raw_episode, tol=1e-4)` (tolerance on the pre-scaled `X_0 = A/√K` basin's own natural scale, `model_rd.py`'s `newton_schulz_orthogonalize` docstring, ~line 371–390). If `rank < K` for ANY episode | **INSTRUMENT-BUG, DISPOSITIVE** — an exact structural fact (near-duplicate/degenerate held-out rows), independent of anything NS-related. Verdict fires immediately; later steps still run for diagnosis but cannot overturn this. |
-| **0b. Pool-membership precheck** | Assert dumped `key_ids.shape == (B, 84)` (matches `cfg.K`) AND every id is an EXACT set-member of `pools.heldout_name_ids` (never the trained pool) | Mismatch on EITHER → **INSTRUMENT-BUG** (wrong pool row-count / K-vs-pool-size mismatch, the task's own named example) |
-| **1. Live/offline NS agreement** | Recompute `newton_schulz_orthogonalize(k_eff_raw_dump, n_iter=20)` OFFLINE (fp32, same math as the live bf16-adjacent path — the live/offline dtype difference is itself part of what this check tests) for every dumped event; compare `(resid > 0.01).any()` to the live `geo3_last_fallback_triggered` flag that was `True` at that exact event | **Disagreement on ANY event → INSTRUMENT-BUG** (something in the eval-time computation, e.g. a dtype mismatch or a stale/aliased tensor reference, differs from a straightforward re-application of the documented NS math). **Agreement on EVERY event → proceed to Step 2.** |
-| **2. n_iter sweep (only reached if Step 1 agrees everywhere)** | Sweep `n_iter∈{24,28,32,40}` on the SAME dumped `k_eff_raw`, per event | **Every event's residual ≤0.01 by `n_iter≤32` → TOLERANCE-MISCALIBRATION.** **ANY event still >0.01 at `n_iter=40` (the widest tested value, matching §15.23's own ceiling) → REAL-CAPACITY-BOUNDARY.** **Mixed across events (some resolve, some don't) → residual AMBIGUOUS** (named follow-on below). |
+| **−1. Zero/low-event guard (NEW, Rev 1 FATAL F1 fix)** | `len(fallback_dump_sink) < 3` (the pinned minimum — MAJOR M2's own dispositive floor, restated as the entry bar), checked BEFORE 0a/0b/1/2 run at all | **`<3` events → refuse ALL THREE of (a)/(b)/(c); emit NO-REPRO.** Pre-registered follow-up: fire seeds 1943/1944 (the reserved `KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K[96][84] = (1943, 1944)`, `run_deltanet_rd_exactness_sweep.py:3097`), re-run the identical cell + telemetry, and combine the resulting dump sink with the primary run's. **Combined total STILL `<3` (the degenerate sub-case F1 names explicitly: zero events even after both contingency seeds) → AMBIGUOUS-NONDETERMINISM**, with candidate (1) (§15.24.3's checkpoint-payload extension) promoted to the primary next instrument. **Combined total `≥3` → proceed to Step 0a on the COMBINED sink.** |
+| **0a. Exact-rank precheck (Rev 1: demoted, MINOR m2 fix)** | For EVERY dumped episode: `torch.linalg.matrix_rank(k_eff_raw_episode, tol=1e-4)` (tolerance on the pre-scaled `X_0 = A/√K` basin's own natural scale, `model_rd.py`'s `newton_schulz_orthogonalize` docstring, ~line 371–390) | `rank < K` for episodes at or above the granularity floor above → **CORROBORATING evidence for INSTRUMENT-BUG, no longer dispositive on its own** (Q2's own disclosed `tol=1e-4` calibration weakness — Step 1's own dispositive disagreement, below, is now the sole trigger that actually decides the verdict; 0a's marker is reported and disclosed alongside whatever Step 1 finds, strengthening or complicating the human read of it, never gating it). Exactly 1 episode → flagged, excluded, disclosed; verdict continues on the remainder. |
+| **0b. Pool-membership precheck (Rev 1: granularity floor added)** | Assert dumped `key_ids.shape == (B, 84)` (matches `cfg.K`) AND every id is an EXACT set-member of `pools.heldout_name_ids` (never the trained pool) | Mismatch on EITHER, at or above the granularity floor → **INSTRUMENT-BUG, still DISPOSITIVE** (unlike 0a, this remains a zero-tolerance structural fact once past the floor — a wrong pool row-count or K-mismatch is a code-path property, not a scale-calibration choice like 0a's `tol`). Exactly 1 episode → flagged, excluded, disclosed; verdict continues on the remainder. |
+| **1. Live/offline NS agreement (Rev 1: dual TF32 mode + granularity floor)** | Recompute `newton_schulz_orthogonalize(k_eff_raw_dump, n_iter=20)` OFFLINE in BOTH strict-fp32 and matched-mode (see above) for every dumped event; compare matched-mode `(resid > 0.01).any()` to the live `geo3_last_fallback_triggered` flag that was `True` at that exact event (primary), strict-fp32 as corroborating | Disagreement (matched-mode vs. live) at or above the granularity floor → **INSTRUMENT-BUG, DISPOSITIVE.** Exactly 1 disagreeing event → flagged, excluded, disclosed; verdict continues on the remainder. **Agreement on every (remaining) event → proceed to Step 2.** Any strict-fp32-vs-matched-mode flip, independent of the above → **TF32-SENSITIVE** (reported, routed to Step 2 as TOLERANCE-MISCALIBRATION examination; never counted toward the INSTRUMENT-BUG floor). |
+| **2. n_iter sweep (only reached if Step 1 agrees everywhere)** | Sweep `n_iter∈{24,28,32,40}` on the SAME dumped `k_eff_raw`, per event | **Every event's residual ≤0.01 by `n_iter≤32` → TOLERANCE-MISCALIBRATION.** **ANY event still >0.01 at `n_iter=40` (the widest tested value, matching §15.23's own ceiling) → REAL-CAPACITY-BOUNDARY.** **Mixed across events (some resolve, some don't) → residual AMBIGUOUS** (named follow-on below — distinct from Step −1's AMBIGUOUS-NONDETERMINISM; disambiguated by name throughout this section). |
 
 **Residual AMBIGUOUS, named follow-on (registered, not run):** re-launch
 the identical cell (same seed, same config) a second time and confirm the
@@ -3529,6 +3620,37 @@ rule):**
    reconstructed `build_cmd()` output's architecture-relevant fields
    match the archived K84/seed=1940 JSON's own `exactness_config` block,
    field by field, by hand, recorded in the build commit message.
+6. **Step −1 NO-REPRO-guard negative test (NEW, Rev 1, attack-round-1
+   FATAL F1 fix — "assertion has teeth"):** feed the analysis script a
+   synthetic EMPTY `fallback_dump_sink` (`[]`, the zero-event case F1
+   named explicitly — the plausible-but-untested scenario a clean seed-
+   fixed re-run with GPU run-to-run floating-point nondeterminism could
+   produce, per `KEY_ANCHORING_DESIGN.md:1976–1994`'s own already-measured
+   precedent, and per the confirmed absence of any
+   `torch.use_deterministic_algorithms`/`cudnn.deterministic` pin anywhere
+   in `run_deltanet_rd.py`/`model_rd.py`/`key_anchoring.py`/
+   `run_deltanet_rd_exactness_sweep.py`, verified this session), and
+   separately a 2-event sink (below the pinned `<3` minimum): assert BOTH
+   cases emit **NO-REPRO** and refuse to emit any of REAL-CAPACITY-
+   BOUNDARY / INSTRUMENT-BUG / TOLERANCE-MISCALIBRATION. This is the
+   negative test that proves Step −1's guard actually blocks the
+   universally-quantified `all()`-over-empty-list vacuous-pass failure
+   mode F1 found, rather than merely being described in prose.
+7. **Episode-granularity-floor boundary test (NEW, Rev 1, attack-round-1
+   MAJOR M2 fix — same "assertion has teeth" discipline applied to the
+   NEW threshold this revision introduces):** three synthetic fixtures at
+   the exact boundary — (a) a dump sink with exactly 1 rank-deficient (or
+   pool-mismatched, or live/offline-disagreeing) episode among ≥3 total
+   events: assert that episode is flagged, EXCLUDED, and named in the
+   output JSON, and the verdict is computed on the remainder (NOT
+   INSTRUMENT-BUG on the strength of that 1 episode alone); (b) exactly 2
+   such episodes: assert the granularity floor IS met (0b/1 → INSTRUMENT-
+   BUG dispositive; 0a → CORROBORATING, per its own m2 demotion); (c) a
+   sink sized so ⌈2% of events⌉ > 2 (e.g. 150 synthetic events, 2%=3):
+   assert the RELATIVE floor, not the absolute floor of 2, is the one
+   that actually gates at that size. Proves the "≥2 distinct episodes OR
+   ≥2% of events, whichever is larger" rule has real teeth at both ends,
+   not just the illustrative worst-case-120 arithmetic quoted in prose.
 
 **Budget guard (mirrors §15.20.6's own Stage 0 abort-trigger formula,
 `1.5 × <point-estimate GPU-h> × 3600`):** realized `wall_s ≥ 1.5 × 0.450 ×
@@ -3563,13 +3685,24 @@ own negative test run to completion before Stage 1 launch):**
   (same belt-and-suspenders shape as every prior `keyanchor-scaling*`
   wave). Negative test: point the gate at a deliberately-absent artifact
   path, assert `exit 1`/`sys.exit(1)`.
-- Live/offline NS-agreement mismatch at analysis time (§15.24.4 Step 1)
-  → the analysis script must refuse to emit a REAL-CAPACITY-BOUNDARY or
-  TOLERANCE-MISCALIBRATION verdict and instead print INSTRUMENT-BUG with
-  the disagreeing event's own step/hop/batch index. Negative test: feed
-  the analysis script a synthetic fixture where live and offline
-  DELIBERATELY disagree (a hand-edited dump with a flipped flag), assert
-  it reports INSTRUMENT-BUG and not one of the other two verdicts.
+- **Zero/low-event guard (NEW, Rev 1 FATAL F1 fix, §15.24.4 Step −1)** →
+  the analysis script must refuse to emit ANY of the three named verdicts
+  when `len(fallback_dump_sink) < 3` and instead emit NO-REPRO, triggering
+  the seeds-1943/1944 contingency re-run. Negative test: Stage −1 item 6
+  above.
+- Live/offline NS-agreement mismatch at analysis time (§15.24.4 Step 1,
+  **Rev 1: now gated by the episode-granularity floor — ≥2 distinct
+  events or ≥2% of dumped events, whichever larger, per MAJOR M2 — and
+  computed on the TF32 matched-mode recompute, per MAJOR M1**) → the
+  analysis script must refuse to emit a REAL-CAPACITY-BOUNDARY or
+  TOLERANCE-MISCALIBRATION verdict once the floor is met and instead
+  print INSTRUMENT-BUG with every disagreeing event's own step/hop/batch
+  index. Negative test: feed the analysis script a synthetic fixture
+  where matched-mode live and offline DELIBERATELY disagree on ≥2 events
+  (a hand-edited dump with flipped flags), assert it reports
+  INSTRUMENT-BUG and not one of the other two verdicts; a SECOND fixture
+  with exactly 1 disagreeing event asserts EXCLUSION-and-continue instead
+  (Stage −1 item 7).
 - Stale-token check: launching with ONLY the base `KEYANCHOR_SCALING_
   PI_SIGNOFF` set (new token absent) must refuse, exactly mirroring
   §15.20.5's own MAJOR-4 fix pattern.
@@ -3628,8 +3761,12 @@ remain idle and unaffected by this launch).
   `state_dict` `torch.save` at step 20000 only (low-MB, one-time,
   negligible next to a 1409s run), (ii) up to ~120 event-triggered
   `.detach().cpu()` + `torch.save` calls worst-case (4 batches × 3
-  H_train hops × ≤10 checkpoints, each a ≈4.1MB `(≤128,84,96)` fp32
-  tensor — ≈490MB worst-case disk, no added GPU compute), (iii) cheap
+  H_train hops × ≤10 checkpoints), **each event dumping TWO ≈4.1MB
+  `(≤128,84,96)` fp32 tensors, `k_eff_raw` AND `k_blend_raw`
+  (§15.24.2 item (ii)'s own dict literal dumps both, deliberately, for
+  the free bitwise-equality re-confirmation) — corrected disk arithmetic
+  (Rev 1, attack-round-1 MINOR m1 fix): 4.1MB × 2 tensors × ≤120 events
+  ≈ 984MB ≈ ~1GB worst-case disk**, no added GPU compute, (iii) cheap
   CPU-side resid aggregation reusing already-computed tensors. None of
   these add GPU kernels; each `.cpu()` call DOES force a device-sync
   stall (sub-millisecond to low-millisecond on an uncontended GPU) that
@@ -3637,11 +3774,29 @@ remain idle and unaffected by this launch).
   conservative +15% overhead buffer** (first-time code path, never
   before measured): `0.391481 × 1.15 = 0.450 GPU-h` — this is the design's
   own **1× point estimate**, landing exactly in the pre-registered
-  ~0.4–0.5 GPU-h range.
+  ~0.4–0.5 GPU-h range. **The 15% figure itself is kept as-is (Rev 1,
+  attack-round-1 MINOR m2 fix, closing §15.24.9 Q5 by disclosure)** — the
+  attack round's own Q5 offered two remedies (accept the disclosed
+  uncertainty since the 2× ceiling already absorbs a far larger miss than
+  15%, OR require a cheaper CPU-only dry-run timing a single dump event);
+  this revision takes the first: the 2× pessimistic bracket already
+  absorbs a 100% miss on the 1× estimate, which comfortably covers a
+  plausible error in a 15% first-time-code-path guess, so a dry-run
+  timing pass is not required before launch.
 - **2× pessimistic ceiling** (house discipline, §15.20.5's own "the
   realized-rate expectation is NOT the ceiling number," reinforced by this
   program's own realized/estimate ratio history of 13.6%–112.5%):
   `0.450 × 2 = 0.900 GPU-h`.
+- **NO-REPRO contingency cost (Rev 1, attack-round-1 FATAL F1 fix,
+  §15.24.4 Step −1):** if the primary cell's `fallback_dump_sink` comes
+  back below the pinned `<3`-event minimum, the pre-registered follow-up
+  fires the reserved K=84 contingency seeds 1943/1944
+  (`KEYANCHOR_SCALING_CONTINGENCY_SEEDS_BY_D_K[96][84]`,
+  `run_deltanet_rd_exactness_sweep.py:3097`) — **2 additional cells at the
+  SAME per-cell 1× point estimate, `2 × 0.450 = 0.900 GPU-h`**, priced
+  against the 2× bracket below (not re-multiplied by a further 2×; the
+  contingency cells are the SAME K/d/architecture as the primary cell, so
+  the already-derived 1× rate applies to each).
 
 **Sub-ledger arithmetic:** KEY_ANCHORING_SCALING currently **18.1196/26
 GPU-h realized** (11.7865 §15.19 + 6.3331 §15.22; §15.23's diagnostic cost
@@ -3651,12 +3806,15 @@ GPU-h realized** (11.7865 §15.19 + 6.3331 §15.22; §15.23's diagnostic cost
 |---|---|---|---|---|
 | 1× (0.450) | +0.450 | 18.5696/26 | 18.5696/21 = 88.4% | 71.4%, reserve 7.4304 |
 | 2× (0.900) | +0.900 | 19.0196/26 | 19.0196/21 = **90.6%, still inside the ORIGINAL, non-extended ceiling** | 73.2%, reserve 6.9804 |
+| 2× + F1 NO-REPRO contingency (2 seeds, +0.900) | +0.900 | **19.9196/26** | 19.9196/21 = **94.86% (≈19.02+0.9=19.92 at 2-decimal display), still fits inside the ORIGINAL, non-extended ceiling** | 76.6%, reserve 6.0804 |
 
-**Notable: even at the 2× pessimistic bracket, this design's own worst
-case (19.0196 GPU-h) stays under the ORIGINAL 21 GPU-h ceiling** —
-1.9804 GPU-h of margin remains untouched, and the `+5.0 GPU-h` extension
-(already authorized, `KEYANCHOR_SCALING_EXT_PI_SIGNOFF`, never yet drawn
-on per §15.22) is not needed at all for this launch. This fits.
+**Notable: even at the 2× pessimistic bracket WITH the F1 NO-REPRO
+contingency fully fired (19.9196 GPU-h worst-worst-case), this design's
+own cost stays under the ORIGINAL 21 GPU-h ceiling** — 1.0804 GPU-h of
+margin remains untouched, and the `+5.0 GPU-h` extension (already
+authorized, `KEYANCHOR_SCALING_EXT_PI_SIGNOFF`, never yet drawn on per
+§15.22) is not needed at all for this launch, even in the worst case Rev 1
+now prices. This fits.
 
 ### 15.24.8 Standing constraints (restated, apply unchanged)
 
@@ -3678,7 +3836,9 @@ on per §15.22) is not needed at all for this launch. This fits.
   readouts — N/A to this instrument (no new readout head is built; this
   is a diagnostic tap on existing tensors only).
 
-### 15.24.9 ATTACK-ROUND QUESTIONS — ROUND 0 (self-attack, minimum 5)
+### 15.24.9 ATTACK-ROUND QUESTIONS — ROUND 0 (self-attack, minimum 5) —
+**Rev 1 status: adjudicated below, question by question, against the
+independent attack round's findings (§15.24.10).**
 
 **Q1. Does the offline NS recompute (Step 1) actually use the SAME
 numerics as the live path, or does an fp32-offline-vs-bf16-adjacent-live
@@ -3692,7 +3852,22 @@ inside the bf16 kernel call. **TODO for the attack round:** confirm
 orthogonalize`'s own assumed dtype), not silently bf16-downcast anywhere
 upstream; if it IS bf16, the offline fp32 recompute is not a clean
 apples-to-apples comparison and Step 1's disagreement branch could fire
-spuriously.
+spuriously. **Rev 1 status: NOT in the independent round's scope
+(MAJOR M1 fixes the adjacent-but-distinct TF32-precision-MODE axis, not
+this dtype-CAST question) — but independently VERIFIED this session
+while drafting Rev 1, so the dtype fear itself does not hold:**
+`_kv_over_sequence` (`model_rd.py:995–1007`, the function that produces
+`k_conv` feeding `k_norm_raw = F.normalize(k_conv, dim=-1)` at the geo3
+call site, `model_rd.py:1109`) runs `self.embed` → `self.k_proj` →
+`self.k_conv1d` → `self._zca_apply` with no `.to(torch.bfloat16)`/
+`.half()`/`.bfloat16()` cast anywhere in that chain; a whole-file grep of
+`run_deltanet_rd.py`/`model_rd.py` for `autocast`/`.half()`/
+`.to(torch.bfloat16)`/`.bfloat16()` finds exactly one autocast context
+(`model_rd.py:159`, explicitly `enabled=False`) and the three bf16 casts
+already named (`model_rd.py:362–364`) — all three feed ONLY the SEPARATE
+`chunk_delta_rule` kernel call, never `k_eff_raw`. `k_eff_raw` is fp32 at
+dump time. This remains a narrower, still-open question from the TF32 axis
+M1 fixes and is disclosed as such, not silently folded into that fix.
 
 **Q2. Is the exact-rank precheck's `tol=1e-4` threshold (Step 0a)
 actually well-calibrated, or was it picked by analogy without a real
@@ -3704,7 +3879,13 @@ derive a principled `tol` from the NS convergence basin's own math, or
 demote this check from "dispositive" to "strong evidence requiring
 corroboration," and re-verify it against a KNOWN-good (M2 in-distribution)
 batch first to confirm it doesn't fire spuriously on ordinary,
-non-degenerate rows.
+non-degenerate rows. **RESOLVED at Rev 1 (attack-round-1 MINOR m2 fix):**
+the second remedy taken — Step 0a demoted from dispositive to
+corroborating (§15.24.4), never independently sufficient for
+INSTRUMENT-BUG. The "re-verify against a KNOWN-good M2 batch" half of
+Q2's TODO is not yet run (no principled `tol` derivation either) — the
+demotion closes the FALSE-DISPOSITIVE risk Q2 raised without requiring
+either follow-up, but neither is claimed as done.
 
 **Q3. Does dumping `k_blend_raw` alongside `k_eff_raw` for C17 batches
 risk masking a REAL anchor-table interaction that §15.23's own "100%
@@ -3714,7 +3895,13 @@ architecturally bypassed" claim missed?** §15.23's claim rests on
 live (bitwise-equality assertion) rather than assuming it, which is the
 right posture, but the attack round should confirm the bitwise-equality
 assertion is actually WIRED IN as a build-time check (§15.24.2 item ii),
-not merely described in prose here.
+not merely described in prose here. **RESOLVED at Rev 1 — CONFIRMED
+CLEAN by the independent round:** the attack round independently
+re-verified the anchor-bypass wiring (one of its named clean items,
+§15.24's Rev 1 status note) — the bitwise-equality assertion between
+`geo3_last_k_eff_raw`/`anchor_last_k_blend_raw` really is a build-time
+check tied to §15.24.2 item (ii)'s dict construction, not merely prose.
+No fix needed; §15.24.2's text is unchanged by this revision.
 
 **Q4. Is ONE cell (K=84/seed=1940) actually sufficient to reach ANY of
 the three named verdicts with confidence, or does a single-seed,
@@ -3731,7 +3918,13 @@ K=78/K=90 too (§15.24.4's own AMBIGUOUS branch already registers a
 decide whether the mandatory grid should be widened to 2–3 cells upfront
 rather than escalating only on an AMBIGUOUS result — a cost/certainty
 tradeoff this design deliberately left as the cheaper, escalate-on-need
-option.
+option. **Rev 1 status: NOT resolved by this round — remains open,
+unchanged from Rev 0.** The independent round's own FATAL F1 fix adds a
+DIFFERENT same-K contingency escalation (seeds 1943/1944, fired only on
+the NO-REPRO path, §15.24.4 Step −1) — a partial precedent for
+escalate-on-need over upfront-widening, but it answers a different
+question (event-count sufficiency within K=84, not cross-K generalization
+to K=78/90) and does not resolve Q4's own upfront-widening tradeoff.
 
 **Q5. Does the `+15% overhead buffer` (§15.24.7) actually cover the
 worst-case ~120 dump events, or is it a hand-waved number?** Disclosed
@@ -3741,6 +3934,54 @@ from real realized data). **TODO for the attack round:** either accept
 the disclosed uncertainty (the 2× pessimistic ceiling already absorbs a
 much larger miss than 15%) or require a even-cheaper CPU-only dry-run
 timing the `.detach().cpu()`+`torch.save` cost of a single dump event
-before trusting the multiplier.
+before trusting the multiplier. **RESOLVED at Rev 1 (attack-round-1
+MINOR m2 fix):** the first remedy taken — the disclosed uncertainty is
+accepted as-is (§15.24.7), since the 2× pessimistic bracket already
+absorbs a 100% miss on the 1× point estimate, comfortably larger than any
+plausible miss on a 15% first-time-code-path guess; no CPU-only dry-run
+is required before launch. (Separately, MINOR m1 fixed a real arithmetic
+error in the adjacent DISK figure this same overhead-disclosure paragraph
+carried — ≈490MB corrected to ≈1GB — a distinct bug from Q5's own
+GPU-time-buffer question, not its resolution.)
+
+### 15.24.10 ATTACK-ROUND-1 fix-map (2026-07-08) — verdict NEEDS-REVISION
+
+An independent adversarial pass reviewed §15.24 (this C17 eval-admission
+repro instrument, Rev 0) before any GPU work launched, per this program's
+own standing multiple-independent-audit-rounds discipline and per
+§15.24.8's own registered prerequisite (mirrors
+`REASONING_LINK_DESIGN.md` §16.7's and this file's own §15.21 fix-map
+convention, house style). Verdict: **NEEDS-REVISION** — 1 FATAL, 2 MAJOR,
+2 MINOR. The attack round also independently re-verified CLEAN, requiring
+no fix: the cost arithmetic (other than the disk-line slip below), the
+Stage −1 config-closure sha256/`build_cmd()` diff, the anchor-bypass
+wiring (§15.24.9 Q3), the kernel-safety/Gate-2 reuse-by-citation, and the
+PI-sign-off token precedence (never OR'd). Every finding below is fixed
+in this revision (Rev 1, §15.24.2/§15.24.4/§15.24.5/§15.24.7); none is
+deferred or waved away. Findings are recorded near-verbatim for the
+historical record, per house style; resolutions are stated as landed in
+this text, not as intentions.
+
+| # | Finding (attack-round on §15.24, Rev 0) | Severity | Fix (Rev 1) | Location |
+|---|---|---|---|---|
+| FATAL-1 | The three-way decision rule (§15.24.4) operates only on `fallback_dump_sink` events; a ZERO-event re-run — plausible, since this repo already measured seed-fixed training-trajectory drift consistent with GPU run-to-run floating-point nondeterminism at a fixed seed (`KEY_ANCHORING_DESIGN.md:1976–1994`), and no `torch.use_deterministic_algorithms`/cudnn-determinism pin exists anywhere in the training path (verified this session: `run_deltanet_rd.py`, `model_rd.py`, `key_anchoring.py`, `run_deltanet_rd_exactness_sweep.py` all grep-clean for `use_deterministic_algorithms`/`cudnn.deterministic`) — makes Steps 0a/0b vacuously pass and Step 2's universally-quantified rule (`all()` over an empty list → `True`) silently emit TOLERANCE-MISCALIBRATION, an unearned "unlock the 11 cells" paper claim | FATAL | New **Step −1** zero/low-event guard (§15.24.4): `len(fallback_dump_sink) < 3` refuses all three named verdicts and emits **NO-REPRO**, triggering the pre-registered fallback of firing the reserved K=84 contingency seeds 1943/1944 (`run_deltanet_rd_exactness_sweep.py:3097`) — re-derived cost `2 × 0.450 = 0.900 GPU-h`, ledger still fits (`19.0196 + 0.900 = 19.9196/21 = 94.86%`, under the ORIGINAL non-extended ceiling). If the combined primary+contingency sink is STILL below the minimum → **AMBIGUOUS-NONDETERMINISM**, with candidate (1)'s checkpoint-payload extension promoted to the primary next instrument. Registered as a real `assert` + synthetic empty-list negative test, Stage −1 item 6 (§15.24.5) — the "assertion has teeth" rule | §15.24.4 (new Step −1 row + outcome list); §15.24.5 (Stage −1 item 6, new abort branch); §15.24.7 (contingency cost + ledger row) |
+| MAJOR-1 | Offline Step-1 NS recompute precision was unpinned — TF32 matmul mode could flip the dispositive live/offline agreement check exactly at the near-boundary population, and the live run's own TF32 state was never recorded, so a mismatch couldn't even be diagnosed after the fact | MAJOR | Offline recompute now runs BOTH modes: strict-fp32 (`allow_tf32=False`) and matched-mode (TF32 set to the LIVE run's own recorded state); the tap spec (§15.24.2 item (ii)) now records `torch.backends.cuda.matmul.allow_tf32`/`torch.backends.cudnn.allow_tf32` once per checkpoint file. Matched-mode is Step 1's primary agreement check, strict-fp32 corroborating. A mode-dependent flip between the two offline modes is reported as a new named sub-finding, **TF32-SENSITIVE**, routed to Step 2's TOLERANCE-MISCALIBRATION examination, never treated as INSTRUMENT-BUG. New negative test verifying the tap reads live process state, not a cached/default value | §15.24.2 item (ii) (tap spec + file format); §15.24.4 (TF32 precision-pinning paragraph + Step 1 row) |
+| MAJOR-2 | Steps 0a/0b/1 fired dispositively on ANY single anomalous episode among up to ~120 dumped events — a single-episode fluke (floating-point jitter, one unlucky sampled batch) could poison a whole cell's verdict | MAJOR | New episode-granularity threshold, applied uniformly to Steps 0a/0b/1: **dispositive floor = ≥2 distinct episodes, OR ≥2% of dumped events, whichever is larger**; exactly 1 anomalous episode → flagged, EXCLUDED from the cell's analysis population, disclosed by `step`/`hop`/`batch_idx` in the output JSON, verdict computed on the remainder. Justified in a dedicated paragraph (§15.24.4): a systematic bug is a code-path property and recurs across independently-sampled episodes; a single occurrence is statistically consistent with an ordinary tail event. Step −1's own `<3`-event NO-REPRO minimum is this same floor restated as the entry bar (FATAL-1's own fix). New boundary negative test at exactly 1, exactly 2, and the relative-floor crossover, Stage −1 item 7 (§15.24.5) | §15.24.4 (granularity-threshold paragraph + all four table rows); §15.24.5 (Stage −1 item 7, revised abort branch) |
+| MINOR-1 | Disk worst-case arithmetic (§15.24.7) counted only ONE ≈4.1MB tensor per dump event (≈490MB), but §15.24.2 item (ii)'s own dict literal dumps BOTH `k_eff_raw` AND `k_blend_raw` per event, deliberately, for the free bitwise-equality re-confirmation — the disk figure silently undercounted by 2× | MINOR | Corrected to `4.1MB × 2 tensors × ≤120 events ≈ 984MB ≈ ~1GB` worst-case disk | §15.24.7 (telemetry-overhead disclosure paragraph) |
+| MINOR-2 | Two loose ends bundled: (a) the `rank(k_eff_raw)<K` precheck (Step 0a, `tol=1e-4`) was dispositive despite its own §15.24.9 Q2 disclosing the tolerance was never rigorously derived; (b) §15.24.9 Q5 (does the `+15%` overhead buffer actually cover the worst case?) was left an open TODO rather than adjudicated | MINOR | (a) Step 0a demoted from dispositive to corroborating — reported and disclosed alongside Step 1's own (now-dispositive) live/offline disagreement, never independently sufficient for INSTRUMENT-BUG (§15.24.9 Q2's own remedy). (b) Q5 closed by disclosure: the `+15%` buffer is kept as-is, since the already-existing 2× pessimistic ceiling absorbs a 100% miss on the 1× estimate — comfortably larger than any plausible miss on a 15% first-time guess — so no CPU-only dry-run is required before launch | §15.24.4 (Step 0a row); §15.24.7 (overhead-disclosure paragraph); §15.24.9 (Q2, Q5, both marked RESOLVED) |
+
+**What Rev 1 could NOT cleanly fix, disclosed rather than hidden:** §15.24.9
+Q1 (does `k_eff_raw` carry a silent bf16 downcast anywhere upstream,
+which would make Step 1's fp32 recompute not apples-to-apples?) and Q4
+(should the mandatory grid widen to 2–3 cells upfront rather than
+escalating only on AMBIGUOUS/NO-REPRO?) were **not** in this attack
+round's scope and remain open exactly as Rev 0 left them — this revision
+does not claim to have addressed them, though Q1's dtype fear was
+independently verified NOT to hold this session (real code check, cited
+inline at §15.24.9), a narrower confirmation than a full fix. **Rev 1
+itself has not yet had its own independent audit pass** — per this
+project's standing rule that multiple independent adversarial rounds
+catch different bugs each round, landing attack-round-1's findings does
+not, on its own, certify §15.24 as CLEARED-FOR-BUILD.
 
 ---

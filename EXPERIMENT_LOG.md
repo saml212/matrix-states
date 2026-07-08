@@ -5886,3 +5886,116 @@ gates, and a 5-question self-attack round: `KEY_ANCHORING_SCALING_DRAFT.md`
 launched, no code written this session.
 
 ---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 1 (2026-07-08): attack-round-1
+landed, NEEDS-REVISION (1 FATAL, 2 MAJOR, 2 MINOR), all fixed, zero GPU
+spent — an independent adversarial pass reviewed §15.24 (Rev 0) before
+any GPU work launched. FATAL: the three-way decision rule (REAL-CAPACITY-
+BOUNDARY/INSTRUMENT-BUG/TOLERANCE-MISCALIBRATION) fired only on dumped
+fallback events, so a zero-event re-run — plausible, given this program's
+own already-measured seed-fixed run-to-run drift consistent with GPU
+floating-point nondeterminism (`KEY_ANCHORING_DESIGN.md:1976–1994`) and
+the confirmed absence of any `torch.use_deterministic_algorithms`/cudnn-
+determinism pin anywhere in the training path — would have silently
+emitted an unearned TOLERANCE-MISCALIBRATION verdict via a vacuous
+`all()`-over-empty-list pass. Fixed with a new Step −1 guard (`<3` events
+→ NO-REPRO, fires the reserved K=84 contingency seeds 1943/1944; still
+`<3` after that → AMBIGUOUS-NONDETERMINISM, promoting the checkpoint-
+payload-extension candidate to primary). MAJORs: TF32 matmul mode was
+unpinned/unrecorded for the offline NS recompute (now dual-mode,
+strict-fp32 + matched-to-the-live-run's-own-recorded-state, with a new
+TF32-SENSITIVE sub-finding routed to tolerance examination rather than
+INSTRUMENT-BUG); single-episode poisoning let ANY one anomalous episode
+among ~120 fire a dispositive verdict (now needs ≥2 episodes or ≥2% of
+events, whichever larger, else excluded-and-disclosed). MINORs: disk
+worst-case corrected 490MB→~1GB (both `k_eff_raw` AND `k_blend_raw` dump
+per event, not one); the exact-rank precheck (`tol=1e-4`, never
+rigorously derived) demoted from dispositive to corroborating. Ledger
+re-derived with the NO-REPRO contingency cost folded in: worst case (2×
+plus both contingency seeds) `18.1196 + 0.900 + 0.900 = 19.9196/21 =
+94.86%`, still fits the ORIGINAL, non-extended ceiling (1.0804 GPU-h
+margin). Verified-clean, unchanged: cost arithmetic (other than the disk
+line), Stage −1 config-closure sha256 diff, anchor-bypass wiring,
+kernel-safety/Gate-2 reuse-by-citation, PI-sign-off token precedence.
+Full finding→fix table (house style): `KEY_ANCHORING_SCALING_DRAFT.md`
+§15.24.10. Rev 1 has NOT yet had its own independent audit pass — next
+step is a fresh attack round 2, before build. No cells launched, no code
+built this session; STATE.md's queue updated.
+
+---
+
+## REASONING-LINK PHASE-2 FAMILIARIZATION — LAUNCHED (2026-07-08 ~01:27 UTC):
+18 cells (3 arms × 2 corpora × 3 seeds), 5,000 steps each, trajectory
+checkpoints {250,500,1000,2500,5000}, 2-way parallel on GPUs 0–1, in tmux
+`phase2_familiarization` on `youthful-indigo-turkey` — running unattended
+toward the chain's own completion sentinel
+
+Registered run per `REASONING_LINK_DESIGN.md` §16.2 (Rev 5) + §16.14
+build-audit fixes (commits `1f53a68`+`3937d0c`+`a4b3b0d`): OFF-arm-first
+sequencing with the BANDS_PINNED barrier, per-checkpoint Stage-0.5 gates
+(terminal step-5000 gate is the per_token/global launch license), K∈{20,32}
+applied at READOUT time only (18 training cells, never 36), budget ceiling
+12.06 GPU-h with an enforced in-chain abort.
+
+**Deploy finding 1 (coverage gap, closed before launch):** the registered
+pre-launch check "run the full Stage -1 suite on box with real fla/CUDA"
+is structurally unsatisfiable as written — both Stage -1 suites
+(`phase2_stage_minus1.py`, `reasoning_link_stage_minus1.py`) hardcode
+`device="cpu"` BY DESIGN, and fla 0.5.1's `RMSNorm` has no CPU fallback,
+so the un-stubbed run crashes in Triton (`Pointer argument cannot be
+accessed from Triton (cpu tensor?)`) at the first fla-backed forward —
+Phase-1 suite at item 5, Phase-2 suite at item 1 (verbatim logs:
+`logs/predeploy_reasoning_link_selftest_real.log`,
+`logs/predeploy_phase2_stage_minus1_real.log` on box). Net: NO Stage -1
+item had ever exercised the real kernel path the 18 cells train on.
+Decision (coordinator, option b — narrow): do NOT patch the CPU-stub
+suites (they test logic, correctly, under the stub); close the kernel gap
+on the PRODUCTION path instead. New `phase2_smoke_gpu.py` (chain step 1.5,
+before any OFF cell): strict init-ckpt load → `measure_cell_all_h` (K=20,
+Q=K, held-out entities, premises+null) → 20-step per-step finiteness loop
+(both losses + grad-norm, every step) → `run_familiarization_cell`
+end-to-end (1 checkpoint incl. `optimizer_state_dict`, resume from it,
+Q=K Stage-0.5 gate with finite premise stats), all real kernels, isolated
+throwaway ckpt_dir. Standalone on box: positive PASS (38.9s, exit 0);
+`PHASE2_SMOKE_FORCE_FAIL=1` negative (NaN injected post-load) correctly
+ABORTS (exit 1) at the first finiteness assertion — the gate's teeth are
+proven by execution, not narration.
+
+**Deploy finding 2 (closure completeness):** the true import closure is 20
+files, not 17 — `reasoning_link_probe.py --mode selftest` lazily imports
+`reasoning_link_stage_minus1.py`, which lazily imports
+`reasoning_link_gate_enforce.py` (both invisible to a top-of-file import
+scan). All 20 shipped and md5-verified byte-identical box vs repo.
+
+Pre-flight (all PASS): 18/18 Leg-A frozen-bias step-20000 init checkpoints
+present under `/data/deltanet_rd_frozenbias_ckpts/`; 18/18 archived results
+JSONs with `checkpoints[step==20000].val_loss[corpus]` populated and
+`checkpoint_path` matching; disk ~17 GB needed (5 ckpts/cell × 168.6–245.8
+MB incl. optimizer state) vs 156 GB free; GPUs 0–1 idle; no tmux collision;
+both extended-mix corpora verified on `/data`.
+
+Launch evidence (in-chain, `logs/phase2_familiarization_run1.log`):
+Phase-1 Stage -1 `ALL 19 ITEMS + extra gate checks PASSED in 52.4s`;
+Phase-2 Stage -1 `ALL 13 ITEMS PASSED in 26.3s`; smoke gate
+`PHASE2_SMOKE_GPU: ALL REAL-KERNEL CHECKS PASSED in 17.5s`; budget
+`0.059/12.06 GPU-h` at OFF launch; first OFF pair `LAUNCH (gpu=0)` s0 /
+`LAUNCH (gpu=1)` s1 (PIDs 3044492/3044494, ~21 GB, 86–88% util each);
+step-250/500/1000 checkpoints on disk (168.6 MB each,
+`optimizer_state_dict` present) with finite val losses by 01:30 UTC.
+`stage05_gate_pass=False` at early checkpoints is expected and
+non-blocking — only the TERMINAL step-5000 OFF gate licenses
+per_token/global; per-checkpoint gates feed hexachotomy classification.
+
+Completion sentinel: `results/phase2/PHASE2_SUMMARY.json` (+ log line
+`PHASE-2 CHAIN COMPLETE`). Abort sentinels: `results/phase2/BUDGET_ABORTED`,
+`results/phase2/STAGE05_LAUNCH_GATE_REFUSED`. ETA from the chain's own
+arithmetic: registered bracket 1.48–12.06 GPU-h ÷ 2 GPUs = 0.74–6.03 h
+wall; realized rate (~0.107 s/step incl. eval pauses → ~10–11 min per
+2-cell pair-slot × 9 slots + readout) projects ≈2 h wall ≈ 4 GPU-h. Hard
+abort at 6.03 h wall. Harvest happens at the sentinel, NOT babysat.
+
+[LEARN] deploy-verification: A "run Stage -1 with real (non-stub) kernels" pre-flight instruction can be structurally unsatisfiable if the self-test harness hardcodes `device="cpu"` by design — check for hardcoded device literals in the self-test files themselves before attempting a real-kernel run, not just for a `--force-cpu-stub` toggle.
+Mistake: Assumed "disable the CPU stub + set CUDA_VISIBLE_DEVICES" would exercise real kernels; the self-test code's own hardcoded `device="cpu"` calls override that regardless of GPU visibility, and the specific `fla` version installed (0.5.1) has zero CPU fallback in `RMSNorm`, so it crashes rather than silently running slow-but-correct on CPU.
+Correction: Before running a "real-kernel Stage -1" pre-flight, grep the self-test file(s) for hardcoded `device="cpu"` / `"cpu"` map_location literals — if present throughout, the suite was authored CPU-stub-only and a real-kernel run will crash on the first fla-backed forward pass, not produce a meaningful pass/fail count. Treat that as a coverage-gap finding to escalate (here: closed with a production-path real-kernel smoke gate), not a bug to route around.
+
+---

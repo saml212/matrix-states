@@ -6,6 +6,45 @@ This document is the project dashboard. Anyone returning to the project (you, a 
 
 ---
 
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 1 LANDED (2026-07-08) —
+supersedes the DESIGN QUEUED block below's own queue status (that block's
+design content is otherwise unaffected/unretracted; Rev 1 fixes it, not
+replaces it).
+
+**Queue status: DESIGN (Rev 1) → (next) ATTACK ROUND 2 → BUILD → AUDIT →
+LAUNCH.** `KEY_ANCHORING_SCALING_DRAFT.md` §15.24's independent
+attack-round-1 verdict: **NEEDS-REVISION** — 1 FATAL, 2 MAJOR, 2 MINOR.
+All five fixed in Rev 1, finding→fix table at §15.24.10. Headline fix
+(**FATAL-1**): the three-way decision rule (REAL-CAPACITY-BOUNDARY /
+INSTRUMENT-BUG / TOLERANCE-MISCALIBRATION) operated only on dumped
+fallback events — a zero-event re-run (plausible; this program already
+measured seed-fixed run-to-run drift consistent with GPU floating-point
+nondeterminism, `KEY_ANCHORING_DESIGN.md:1976–1994`, and no determinism
+pin exists anywhere in the training path) would have silently emitted an
+unearned TOLERANCE-MISCALIBRATION via a vacuous `all()`-over-empty-list
+pass. Fixed with a new Step −1 guard: `<3` events → **NO-REPRO**, fires
+the reserved K=84 contingency seeds 1943/1944 before concluding anything;
+still `<3` after that → **AMBIGUOUS-NONDETERMINISM**, promoting the
+checkpoint-payload extension (candidate (1)) to the primary next
+instrument. Two MAJORs: TF32 matmul mode was unpinned/unrecorded for the
+offline NS recompute (now dual-mode: strict-fp32 + matched-to-live, with
+the live run's own TF32 state now recorded in the tap); single-episode
+poisoning let ANY one anomalous episode among ~120 fire a dispositive
+verdict (now needs ≥2 episodes or ≥2% of events, whichever larger; a
+single occurrence is excluded-and-disclosed instead). Two MINORs: disk
+worst-case corrected 490MB→~1GB (both `k_eff_raw` and `k_blend_raw` are
+dumped per event, not one); the exact-rank precheck (`tol=1e-4`, never
+rigorously derived) demoted from dispositive to corroborating. Ledger
+re-derived with the new NO-REPRO contingency cost folded in: worst case
+(2× + both contingency seeds) `18.1196 + 0.900 + 0.900 = 19.9196/21 =
+94.86%`, still fits the ORIGINAL, non-extended ceiling with 1.0804 GPU-h
+margin. **Rev 1 has NOT yet had its own independent audit pass — per
+this program's standing multiple-independent-audit-rounds rule, a second,
+fresh attack round is the next step, before build.** No cells launched,
+no code written this session.
+
+---
+
 ## C17 EVAL-ADMISSION REPRO INSTRUMENT — DESIGN QUEUED (2026-07-08) —
 advances the NS EVAL-ADMISSION DIAGNOSTIC block's own "Queue implication"
 below from two named-not-designed candidates to one designed, pre-attack
