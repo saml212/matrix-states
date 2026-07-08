@@ -8151,3 +8151,28 @@ session" figure for the session as a whole.
 3. PI check-in: report the underpowered-null-dominant result plus the one
    real, non-durable, hurts-direction TRANSIENT signal; do not present
    either as a resolved keystone answer.
+
+**[Follow-up (2026-07-08), item 1 above CLOSED — build only, zero GPU, no design change.]**
+`analyze_corpus` (`phase2_trajectory_analysis.py`) now classifies BOTH non-off arms
+INDEPENDENTLY per corpus via a new `classify_arms` helper (4 verdicts total, sec 16.16.5's own
+classification rules unchanged) instead of using `global`'s own `holds_by_c` as a silent proxy for
+`per_token`'s. The single top-level `classification` field is kept, byte-identical to its pre-fix
+value, for backward compatibility with `phase2b_chain.sh`'s (and the historical `phase2_chain.sh`'s)
+own summary step; a new `classification_by_arm` field carries the complete 2-arm answer, and
+`phase2b_chain.sh`'s own summary step additively threads it through as `trajectories_by_arm`.
+Stage −1 gained a dedicated regression item (23): two independently-engineered lookup tables
+(`per_token`→FTTTT, `global`→all-indeterminate) run through the real
+`build_holds_and_gate_by_checkpoint`→`classify_arms` chain in the SAME call, asserting the two
+arms' own verdicts land in different buckets and are unequal — the direct proof that no
+global-as-proxy-for-per_token coupling survives. **Re-run against the ARCHIVED Phase-2b data**
+(`experiment-runs/2026-07-08_phase2b/results/trajectory_*_phase2b.json` — the per-arm
+`holds_by_c`/`det_arm_by_c`/CI data these files already stored pre-fix, since only the final
+classification step was ever buggy, not the per-arm computation feeding it) **reproduces this
+section's own 4 hand-derived verdicts exactly**: `openr1-mix-ext×global`=UNRESOLVED,
+`openr1-mix-ext×per_token`=UNRESOLVED, `wikitext-mix-ext×global`=UNRESOLVED,
+`wikitext-mix-ext×per_token`=TRANSIENT (Δ(K=32,c=2500)=−0.4999, CI=[−0.6241,−0.3758]) — and the
+backward-compat `classification` alias reproduces the archived pipeline's own pre-fix top-level
+`classification` field exactly, both corpora. Full Stage −1 suite: 23/23 items green (plus the
+unrelated, unchanged `reasoning_link_probe.py` Stage −1 suite, 19/19 + extras, re-run for
+completeness). No new cells launched, no models loaded — this is a pure classification-layer fix
+validated against already-computed archived data.

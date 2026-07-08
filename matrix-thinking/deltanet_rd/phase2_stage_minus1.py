@@ -1294,6 +1294,15 @@ def test_item_22_analyze_corpus_e2e_off_cache_round_trip_and_integrity():
         assert "classification" in result and result["classification"]["outcome"] in phx.OUTCOMES, (
             f"analyze_corpus did not produce a well-formed classification: "
             f"{result.get('classification')}")
+        # sec 16.18.3/16.18.9 follow-up fix: classification_by_arm must be present, cover both
+        # non-off arms, and the backward-compat top-level "classification" alias must be
+        # byte-identical to classification_by_arm["global"] (never independently computed twice).
+        assert "classification_by_arm" in result and set(result["classification_by_arm"]) == set(pta.ARMS_NON_OFF), (
+            f"analyze_corpus did not produce a well-formed classification_by_arm: "
+            f"{result.get('classification_by_arm')}")
+        assert result["classification"] == result["classification_by_arm"]["global"], (
+            "backward-compat alias broken: top-level classification must equal "
+            "classification_by_arm['global'] exactly")
         assert "secondary_ood" in result and set(result["secondary_ood"]) == set(pta.ARMS_NON_OFF)
 
         # NEGATIVE (MAJOR fix): poison ONE cached value on disk AFTER pinning -> analyze_corpus
@@ -1331,6 +1340,153 @@ def test_item_22_analyze_corpus_e2e_off_cache_round_trip_and_integrity():
                   "hard CacheIntegrityFailure abort, never a silent verdict (MAJOR fix)", True)
 
 
+def test_item_23_per_arm_classification_no_proxy_coupling():
+    """sec 16.18.3/16.18.9's own registered follow-up fix, its dedicated behavioral teeth-run:
+    extends item 16's FTTTT-through-the-REAL-chain discipline to BOTH non-off arms
+    SIMULTANEOUSLY, in the SAME `build_holds_and_gate_by_checkpoint` + `classify_arms` run, with
+    two DELIBERATELY DIFFERENT engineered lookup tables -- `per_token` engineered to reproduce
+    item 16's own FTTTT->PERSISTENT/c1=500 pattern, `global` engineered to be indeterminate
+    (straddling-zero K=32 CI) at EVERY checkpoint, which the real det->holds->classify_trajectory
+    chain must resolve to UNRESOLVED (never PERSISTENT, never anything else). A SINGLE shared
+    `off_cache` (built once, exactly `analyze_corpus`'s own single-load-per-corpus pattern) feeds
+    BOTH arm branches -- proving the OFF-cache single-read pattern survives the per-arm fix.
+
+    This is the exact regression guard for the sec 16.18.3 scoping bug: pre-fix,
+    `analyze_corpus` classified ONLY off `global`'s own holds_by_c -- had this test existed
+    pre-fix and been pointed at `analyze_corpus`-level classification, `per_token`'s own
+    PERSISTENT verdict here would have been silently OVERWRITTEN/absorbed by `global`'s
+    UNRESOLVED one. Asserting the two arms' own `classification_by_arm` entries land in
+    DIFFERENT outcome buckets in the SAME run is therefore the direct proof that no
+    proxy/coupling between the two arms' verdicts survives the fix."""
+    K32, K20 = 32, 20
+    CORPUS = "wikitext-mix-ext"
+    CKPT_DIR = "/fake/ckpt/dir"   # never touched -- phase2b_load_eval_model is stubbed below
+
+    # Shared off_cache (arm-agnostic key by construction, off_cache_key has no arm component) --
+    # reused verbatim from item 16's own engineered off-side table.
+    off_by_c_k32 = {250: [3.00, 3.10, 2.90], 500: [3.00, 3.05, 2.95], 1000: [3.10, 3.15, 3.05],
+                     2500: [3.20, 3.25, 3.15], 5000: [3.30, 3.35, 3.25]}
+    off_by_c_k20 = {250: [3.00, 3.05, 2.95], 500: [3.02, 3.07, 2.97], 1000: [3.04, 3.09, 2.99],
+                     2500: [3.06, 3.11, 3.01], 5000: [3.08, 3.13, 3.03]}
+    off_cache = {}
+    for c in phx.CHECKPOINTS:
+        for s in range(3):
+            off_cache[pta.off_cache_key(CORPUS, s, K32, c, pft.H_TRAIN)] = off_by_c_k32[c][s]
+            off_cache[pta.off_cache_key(CORPUS, s, K20, c, pft.H_TRAIN)] = off_by_c_k20[c][s]
+
+    # per_token: item 16's own FTTTT-producing table verbatim -- holds_by_c=FTTTT, PERSISTENT/c1=500.
+    per_token_k32 = {500: [2.00, 2.05, 1.95], 1000: [2.00, 2.05, 1.95],
+                      2500: [2.00, 2.05, 1.95], 5000: [2.00, 2.05, 1.95]}
+    per_token_k32[250] = [3.05, 2.95, 3.00]
+    per_token_k20 = {250: [3.02, 2.98, 3.00], 500: [3.04, 3.00, 3.02], 1000: [3.06, 3.02, 3.04],
+                      2500: [3.08, 3.04, 3.06], 5000: [3.10, 3.06, 3.08]}
+
+    # global: EXACTLY the off-arm's own per-seed values at every checkpoint/K -- NOT a jittered
+    # near-miss (a CONSTANT shift applied identically to all 3 seeds would collapse the per-seed
+    # delta_ci_n3 variance to exactly zero, making the CI a single point that can spuriously
+    # register as DETERMINATE if the shift is nonzero -- a real trap, caught by hand-deriving this
+    # fixture before trusting it). Zero delta at every seed instead: mean=0, var=0, CI=[0,0] EXACTLY,
+    # and det(0.0, 0.0) is False by det()'s own `(ci_low>0) or (ci_high<0)` definition -- so det32
+    # and det20 are False at EVERY checkpoint, deterministically, with no floating-point fragility.
+    global_k32 = {c: list(off_by_c_k32[c]) for c in phx.CHECKPOINTS}
+    global_k20 = {c: list(off_by_c_k20[c]) for c in phx.CHECKPOINTS}
+
+    arm_lookup = {}
+    for c in phx.CHECKPOINTS:
+        for s in range(3):
+            arm_lookup[("per_token", K32, c, s)] = per_token_k32[c][s]
+            arm_lookup[("per_token", K20, c, s)] = per_token_k20[c][s]
+            arm_lookup[("global", K32, c, s)] = global_k32[c][s]
+            arm_lookup[("global", K20, c, s)] = global_k20[c][s]
+
+    import re as _re
+    import types
+
+    def _fake_load_eval_model(ckpt_path, device):
+        m = _re.search(r"phase2fam_(\w+)_.+_s\d+_step(\d+)\.pt$", ckpt_path)
+        assert m, f"unexpected ckpt_path shape: {ckpt_path!r}"
+        return types.SimpleNamespace(arm=m.group(1), checkpoint_step=int(m.group(2)))
+
+    call_log = []
+
+    def _fake_eval_query_loss_heldout(model, K, hop_set, corpus, ckpt_seed, checkpoint_step,
+                                       batch_size=16, device="cpu"):
+        assert model.arm in pta.ARMS_NON_OFF, (
+            f"eval_query_loss_heldout stub reached for arm={model.arm!r} -- 'off' must NEVER "
+            f"reach this stub (it reads the shared off_cache instead)")
+        assert model.checkpoint_step == checkpoint_step
+        assert tuple(hop_set) == tuple(pft.H_TRAIN)
+        call_log.append((model.arm, K, checkpoint_step, ckpt_seed))
+        return arm_lookup[(model.arm, K, checkpoint_step, ckpt_seed)]
+
+    orig_load, orig_eval = pta.phase2b_load_eval_model, pta.eval_query_loss_heldout
+    pta.phase2b_load_eval_model = _fake_load_eval_model
+    pta.eval_query_loss_heldout = _fake_eval_query_loss_heldout
+    try:
+        # The SAME per-arm loop analyze_corpus itself runs -- one build_holds_and_gate_by_checkpoint
+        # call PER ARM, both reading the ONE shared off_cache built above (single-read-per-corpus
+        # pattern, never reloaded/re-consumed per arm).
+        per_arm = {arm: pta.build_holds_and_gate_by_checkpoint(CKPT_DIR, arm, CORPUS, off_cache,
+                                                                  K_pair=(K32, K20), device="cpu")
+                   for arm in pta.ARMS_NON_OFF}
+    finally:
+        pta.phase2b_load_eval_model, pta.eval_query_loss_heldout = orig_load, orig_eval
+
+    assert {a for a, *_ in call_log} == set(pta.ARMS_NON_OFF), (
+        f"expected both arms' own eval_query_loss_heldout stub to fire, got arms={ {a for a, *_ in call_log} }")
+
+    expected_per_token_holds = {250: False, 500: True, 1000: True, 2500: True, 5000: True}   # FTTTT
+    assert per_arm["per_token"]["holds_by_c"] == expected_per_token_holds, (
+        f"per_token: engineered lookup table did not reproduce FTTTT: {per_arm['per_token']['holds_by_c']}")
+    expected_global_holds = {c: False for c in phx.CHECKPOINTS}
+    assert per_arm["global"]["holds_by_c"] == expected_global_holds, (
+        f"global: engineered indeterminate lookup table did not reproduce all-False holds_by_c: "
+        f"{per_arm['global']['holds_by_c']}")
+    assert per_arm["global"]["holds_by_c"] != per_arm["per_token"]["holds_by_c"], (
+        "precondition: the two arms' own holds_by_c must genuinely differ for this test to prove "
+        "anything about proxy/coupling")
+    assert per_arm["global"]["det_arm_by_c"][phx.TERMINAL_CHECKPOINT] is False, (
+        "global: det_arm(global,5000) must be False (indeterminate) by this fixture's own construction")
+
+    # agree_by_c, computed the SAME way analyze_corpus itself computes it (global's vs per_token's
+    # own K=32 delta CIs at each checkpoint) -- not hand-waved to a fixed value.
+    agree_by_c = {}
+    for c in phx.CHECKPOINTS:
+        g = per_arm["global"]["raw"][c]["delta_k32"]
+        p = per_arm["per_token"]["raw"][c]["delta_k32"]
+        agree_by_c[c] = phx.agree(g["ci_low"], g["ci_high"], p["ci_low"], p["ci_high"])
+
+    # THE property under test: pta.classify_arms (the REAL function analyze_corpus itself calls)
+    # classifies BOTH arms independently, in the SAME call, landing in DIFFERENT outcome buckets.
+    classification_by_arm = pta.classify_arms(per_arm, agree_by_c)
+
+    assert classification_by_arm["per_token"]["outcome"] == "PERSISTENT", (
+        f"per_token: expected PERSISTENT, got {classification_by_arm['per_token']!r} -- if this "
+        f"instead matches global's own outcome, the per-arm fix has silently regressed to the "
+        f"global-as-proxy-for-per_token scoping bug (sec 16.18.3)")
+    assert classification_by_arm["per_token"]["c1"] == 500, classification_by_arm["per_token"]
+    assert classification_by_arm["global"]["outcome"] == "UNRESOLVED", (
+        f"global: expected UNRESOLVED, got {classification_by_arm['global']!r}")
+    # THE explicit no-proxy/no-coupling assertion: the two arms' own verdicts must differ from
+    # each other in the SAME run -- this is exactly the sec 16.18.3 masking failure mode made
+    # impossible to reintroduce silently (a global-as-proxy regression would make BOTH entries
+    # equal to global's own UNRESOLVED verdict).
+    assert classification_by_arm["global"] != classification_by_arm["per_token"], (
+        "NO-PROXY/NO-COUPLING FAILED: global's and per_token's own classification_by_arm entries "
+        "are IDENTICAL in the same run -- this is the exact sec 16.18.3 masking bug (global used "
+        "as a silent proxy for per_token) reintroduced")
+
+    _report("23", "sec 16.18.3/16.18.9 follow-up fix, dedicated behavioral teeth-run: TWO "
+                  "independently-engineered lookup tables (per_token=FTTTT, global=all-"
+                  "indeterminate), ONE shared off_cache (single-read-per-corpus pattern "
+                  "preserved), run through the REAL build_holds_and_gate_by_checkpoint (once per "
+                  "arm) -> classify_arms chain in the SAME call -- per_token classifies "
+                  "PERSISTENT/c1=500, global classifies UNRESOLVED, and the two verdicts are "
+                  "asserted UNEQUAL, proving no global-as-proxy-for-per_token coupling survives",
+            True, f"per_token={classification_by_arm['per_token']['outcome']}, "
+                  f"global={classification_by_arm['global']['outcome']}")
+
+
 ALL_ITEMS = [
     test_item_1_ckpt_steps, test_item_2_init_checkpoint, test_item_3_periodicity_guard,
     test_item_4_query_loss_forward, test_item_5_hexachotomy_totality,
@@ -1348,14 +1504,16 @@ ALL_ITEMS = [
     test_item_20_phase2b_gate_selftests,
     test_item_21_off_cache_and_floor_pin_round_trip,
     test_item_22_analyze_corpus_e2e_off_cache_round_trip_and_integrity,
+    test_item_23_per_arm_classification_no_proxy_coupling,
 ]
 
 
 def run_all_selftests() -> bool:
     print("=" * 70)
-    print("PHASE-2 (task familiarization) Stage -1 SELF-TESTS -- 22 items, REASONING_LINK_DESIGN.md "
+    print("PHASE-2 (task familiarization) Stage -1 SELF-TESTS -- 23 items, REASONING_LINK_DESIGN.md "
           "sec 16.2 (Rev 5, CLEARED-FOR-BUILD) + build-audit fixes (sec 16.14) + Phase-2b (sec "
-          "16.16, Rev 2.2, DESIGN-CLEARED-FOR-BUILD) items 14-21 + Phase-2b build-audit fix item 22")
+          "16.16, Rev 2.2, DESIGN-CLEARED-FOR-BUILD) items 14-21 + Phase-2b build-audit fix item 22 "
+          "+ sec 16.18.3/16.18.9 per-arm classification follow-up fix item 23")
     print(f"fla_stub_installed={rlp.FLA_STUB_INSTALLED}")
     print("=" * 70)
     t0 = time.time()

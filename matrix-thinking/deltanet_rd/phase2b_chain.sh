@@ -280,11 +280,18 @@ summary = {"design_ref": "REASONING_LINK_DESIGN.md sec 16.16 (Rev 2.2, DESIGN-CL
            "completed_at_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "elapsed_s": $SECONDS, "n_gpus": $N_GPUS,
            "projected_gpu_h": ($SECONDS * $N_GPUS) / 3600.0,
-           "trajectories": {}, "secondary_ood": {}}
+           # "trajectories" kept backward-compatible: the global-arm-representative verdict
+           # (analyze_corpus's own "classification" field, unchanged). "trajectories_by_arm" is the
+           # sec 16.18.3/16.18.9 follow-up fix's own complete, per-arm-independent answer (4
+           # verdicts total, never a global-as-proxy-for-per_token substitution) -- ADDITIVE, prefer
+           # this field going forward; "trajectories" is not removed since nothing else in this
+           # repo's chain scripts needs to change to keep reading it.
+           "trajectories": {}, "trajectories_by_arm": {}, "secondary_ood": {}}
 for corpus in ["${CORPORA[0]}", "${CORPORA[1]}"]:
     with open(f"results/phase2/trajectory_{corpus}_phase2b.json") as f:
         d = json.load(f)
     summary["trajectories"][corpus] = d["classification"]
+    summary["trajectories_by_arm"][corpus] = d["classification_by_arm"]
     summary["secondary_ood"][corpus] = {
         arm: {str(c): {"det32": v["det32"], "det20": v["det20"]} for c, v in table.items()}
         for arm, table in d["secondary_ood"].items()

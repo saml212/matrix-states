@@ -29,11 +29,24 @@ replaced by the single upfront OFF-floor gate (sec 16.16.6,
 `phase2b_floor_gate_enforce.py`). The dead `gate_json_path_for` helper and
 its `phase2_gate_enforce.gate_verdict` read are DELETED, not bypassed.
 
-**Scoping decision carried forward unchanged from Phase-2 (sec 16.2.1's own
-"resolved during BUILD" convention, flagged for the independent audit's
-attention):** this module classifies ONE trajectory PER CORPUS (2 total:
-openr1-mix-ext, wikitext-mix-ext), each built from a 3-seed-pooled
-`delta_ci_n3` CI at every checkpoint, for BOTH arms (global, per_token).
+**Per-arm scoping fix (sec 16.18.3/16.18.9's own registered follow-up,
+closed here -- NOT a design change, the classification RULES are sec
+16.16.5's/`phase2_hexachotomy`'s, unchanged; this completes the built
+pipeline to the scoping the design always specced).** `analyze_corpus`
+classifies BOTH non-off arms INDEPENDENTLY per corpus (4 verdicts total
+across the 2 corpora: each arm's own `holds_by_c`/`stage05_pass_by_c`
+drives its OWN `classify_trajectory` call, via the new `classify_arms`
+helper). Pre-fix, the corpus-level `classification` field was computed
+from ONLY the `global` arm's own `holds_by_c` pattern (`per_token` folded
+in solely via its terminal-checkpoint `det_arm` value, feeding outcomes
+#4/#5) -- a silent proxy that masked a real, independently-re-derived
+`wikitext-mix-ext x per_token` TRANSIENT signal (sec 16.18.3's own
+hand-derivation table). The single top-level `classification` field is
+KEPT, byte-identical to its pre-fix value (`classification_by_arm
+["global"]`), for backward compatibility with `phase2b_chain.sh`'s (and
+the historical `phase2_chain.sh`'s) own summary step, which reads
+`d["classification"]` verbatim -- `classification_by_arm` is the
+registered, complete 2-arm answer new callers should prefer.
 
 **Secondary readout (sec 16.16.7):** `secondary_ood_readout` reuses the
 SAME `eval_query_loss_heldout` function at `hop_set=(3,4)` (the held-out
@@ -275,6 +288,38 @@ def secondary_ood_readout(ckpt_dir: str, arm: str, corpus: str, off_cache: dict,
     return table
 
 
+def classify_arms(per_arm: dict, agree_by_c: dict) -> dict:
+    """sec 16.18.3/16.18.9's registered follow-up fix: classifies BOTH non-off arms
+    INDEPENDENTLY -- each arm's OWN `holds_by_c`/`stage05_pass_by_c` (already fully
+    computed per-arm by `build_holds_and_gate_by_checkpoint`, one call per arm in
+    `analyze_corpus`'s own `per_arm` dict) drives its OWN `classify_trajectory` call,
+    never a `global`-as-silent-proxy-for-`per_token` substitution (the exact scoping
+    bug sec 16.18.3's hand-derivation table caught: a real `wikitext-mix-ext x
+    per_token` TRANSIENT signal, absorbed into `wikitext`'s corpus-level UNRESOLVED
+    because only `global`'s `holds_by_c` was ever consulted).
+
+    The terminal-checkpoint `det_arm_global_5000`/`det_arm_per_token_5000`/`agree_5000`
+    trio is SHARED across both calls (unchanged from before this fix) -- outcomes #4/#5
+    (CONVERGED-EQUIVALENT/UNRESOLVED) are definitionally an equivalence BETWEEN arms,
+    not a single-arm quantity (`classify_trajectory`'s own signature takes both arms'
+    det_arm values as separate parameters for exactly this reason) -- only the
+    `holds_by_c`/`stage05_pass_by_c` inputs that drive outcomes #1-3 (PERSISTENT/
+    TRANSIENT/LATE-EMERGENT) were ever silently single-arm-sourced pre-fix.
+
+    Returns `{"global": {...}, "per_token": {...}}`, each value a `classify_trajectory`
+    result dict (`{"outcome", "c1", "detail"}`)."""
+    det_arm_global_5000 = per_arm["global"]["det_arm_by_c"][phx.TERMINAL_CHECKPOINT]
+    det_arm_per_token_5000 = per_arm["per_token"]["det_arm_by_c"][phx.TERMINAL_CHECKPOINT]
+    agree_5000 = agree_by_c[phx.TERMINAL_CHECKPOINT]
+    return {arm: phx.classify_trajectory(
+                holds_by_c=per_arm[arm]["holds_by_c"],
+                stage05_pass_by_c=per_arm[arm]["stage05_pass_by_c"],
+                det_arm_global_5000=det_arm_global_5000,
+                det_arm_per_token_5000=det_arm_per_token_5000,
+                agree_5000=agree_5000)
+            for arm in ARMS_NON_OFF}
+
+
 def analyze_corpus(ckpt_dir: str, corpus: str, off_cache_path: str, floor_pinned_path: str,
                     batch_size: int = 16, device: str = "cpu") -> dict:
     """Build-audit FATAL fix: this used to read `off_cache_path` with a bare `json.load`, which
@@ -309,23 +354,26 @@ def analyze_corpus(ckpt_dir: str, corpus: str, off_cache_path: str, floor_pinned
         p = per_arm["per_token"]["raw"][c]["delta_k32"]
         agree_by_c[c] = phx.agree(g["ci_low"], g["ci_high"], p["ci_low"], p["ci_high"])
 
-    # holds(c) at the CORPUS level is the SAME condition regardless of which non-off arm is being
-    # read -- build-time resolution (disclosed, carried forward from Phase-2 unchanged): use the
-    # GLOBAL arm's own holds_by_c as the trajectory's holds() input (sec 16.2.1's H_LINK-A causal
-    # claim is itself global-arm-centric).
-    classification = phx.classify_trajectory(
-        holds_by_c=per_arm["global"]["holds_by_c"],
-        stage05_pass_by_c=per_arm["global"]["stage05_pass_by_c"],
-        det_arm_global_5000=per_arm["global"]["det_arm_by_c"][phx.TERMINAL_CHECKPOINT],
-        det_arm_per_token_5000=per_arm["per_token"]["det_arm_by_c"][phx.TERMINAL_CHECKPOINT],
-        agree_5000=agree_by_c[phx.TERMINAL_CHECKPOINT])
+    # sec 16.18.3/16.18.9 follow-up fix: classify BOTH non-off arms independently (4 verdicts
+    # total across the 2 corpora), never using `global` as a silent proxy for `per_token`'s own
+    # holds_by_c pattern -- see classify_arms's own docstring for the full rationale and the
+    # sec 16.18.3 hand-derivation table this closes.
+    classification_by_arm = classify_arms(per_arm, agree_by_c)
+    # Backward-compat alias, byte-identical to this field's pre-fix value (it was ALWAYS exactly
+    # classify_trajectory() applied to the global arm's own holds_by_c -- classify_arms computes
+    # the identical thing for "global", just now alongside "per_token"'s own independent verdict
+    # rather than instead of it): `phase2b_chain.sh`'s (and the historical `phase2_chain.sh`'s)
+    # own summary step reads `d["classification"]` verbatim -- kept so neither script needs to
+    # change to keep working. New callers should prefer `classification_by_arm`.
+    classification = classification_by_arm["global"]
 
     secondary_ood = {arm: secondary_ood_readout(ckpt_dir, arm, corpus, off_cache,
                                                   batch_size=batch_size, device=device)
                       for arm in ARMS_NON_OFF}
 
     return {"corpus": corpus, "per_arm": per_arm, "agree_by_c": agree_by_c,
-            "classification": classification, "secondary_ood": secondary_ood}
+            "classification": classification, "classification_by_arm": classification_by_arm,
+            "secondary_ood": secondary_ood}
 
 
 def main():
@@ -347,6 +395,7 @@ def main():
     result = analyze_corpus(args.ckpt_dir, args.corpus, args.off_cache, args.floor_pinned,
                              batch_size=args.batch_size, device=args.device)
     print(json.dumps({"corpus": result["corpus"], "classification": result["classification"],
+                       "classification_by_arm": result["classification_by_arm"],
                        "agree_by_c": result["agree_by_c"]}, indent=2, default=str))
     if args.out:
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
