@@ -1,8 +1,142 @@
 # Project State
 
-**Last updated:** 2026-07-08 (harvest session; Phase-2b behavioral-contrast wave HARVESTED, GPUs 0-1 now FREE; prior deploy-session note retained below for history)
+**Last updated:** 2026-07-08 (C17 harvest session: TOLERANCE-MISCALIBRATION verdict walked + independently re-verified, the registered d=96 11-cell unlock executed and re-fit — AMBIGUOUS; GPU 2 FREE. Phase-2b behavioral-contrast wave HARVESTED earlier the same day, GPUs 0-1 also FREE; prior notes retained below for history)
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
+
+---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — CLOSED (2026-07-08, harvest
+session): verdict **TOLERANCE-MISCALIBRATION** (commit `a51f102`) walked
+and independently re-verified against the raws + a fresh read-only box
+pull; the registered §15.24.6 outcome-(c) UNLOCK executed (11 quarantined
+d=96 cells recalibrated); the registered re-fit lands **AMBIGUOUS**
+(non-monotonic scatter, 100% bootstrap-degenerate) — supersedes the "C17
+EVAL-ADMISSION REPRO INSTRUMENT — RUN COMPLETE" block below's own queue
+status ("harvest is a separate agent's task" — now done). **GPU 2 is
+FREE.** Full account: `KEY_ANCHORING_SCALING_DRAFT.md` §15.25; harvest
+entry: `EXPERIMENT_LOG.md`.
+
+**The verdict, independently re-verified (not merely re-cited from the
+commit message):** reconstruction gate PASS (107/107 set-equal, Stage
+−1's own positive+negative trap fixtures both confirmed); Step 0b 0
+violations; Step −1 36 distinct events (re-counted directly from the raw
+`.pt` dumps: 12 each at checkpoints 16000/18000/20000, zero at
+2000–14000); Step 0a 0 anomalous; Step 1 0 disagreements, 0
+TF32-sensitive flips; Step 2 all 4,608 episodes resolve by n_iter≤28
+(4,313 at 24, 295 at 28, independently re-tallied). STEP 3b replay PASS
+12/12 byte-identical. **New disclosure from this session's own raw-dump
+pull:** the n_iter=20 near-miss WORSENS over training (13–27/128
+anomalous rows at checkpoint 16000, maxima 0.07–0.43 → 128/128 anomalous
+at 18000/20000, maxima up to 1.43) yet still fully resolves by n_iter≤28
+at the worst-case checkpoint — the strongest evidence yet this is
+iteration-fixable, not a structural wall. Item-1's baseline-relative
+re-pin (nondeterminism envelope, 3× threshold) independently
+re-confirmed a SECOND time in-chain with a DIFFERENT measured envelope
+(8.841e-04 vs. the original adjudication's 7.51e-04) — consistent with
+genuine run-to-run GPU nondeterminism, strengthening confidence in the
+re-pin itself. GPU-h realized this launch: 0.487 chain + 0.33
+verification ≈ **0.82 total**; contingency seeds NOT fired.
+KEY_ANCHORING_SCALING sub-ledger: 18.5466/26 → **19.3666/26** (92.22% of
+the original 21 GPU-h ceiling, reserve 1.6334 — still fits without the
+`+5.0` extension).
+
+**THE UNLOCK (§15.24.6 outcome-(c), the only place the design registers
+the mechanics): PURE RE-READ, disclosed choice.** A literal per-cell NS
+re-sweep is impossible without new GPU spend (10 of the 11 quarantined
+cells never saved a full checkpoint) — the admission FLAG alone (never
+the always-valid h4 measurement) was recalibrated offline for the 11
+cells sharing the repro's own verified failure signature (`K72/{1740,
+1742}`, `K78/{1840,1841,1842}`, `K84/{1940,1941,1942}`,
+`K90/{2040,2041,2042}`); `K69/seed=1730` deliberately excluded (same
+signature, but the pre-existing §15.19-era anomaly, outside the declared
+11-cell scope). Byte-diff confirmed `admissible` is the only field that
+changed across all 11 flips.
+
+**The re-fit — `fit_cliff_curve.py`, full d=96 grid `{69,72,78,84,90}`,
+n=3/K — is DEGENERATE (100% of 4,000 bootstrap resamples), not the
+clean discrimination the wide-grid wave was built to attempt.** Per-K
+means: K69=0.9592, K72=0.9216, K78=0.9326, K84=0.9581, K90=1.0000 — the
+curve is NON-MONOTONIC (dips at K72/K78, exact ceiling at K90), not the
+assumed monotonic cliff shape; the main fit pins at BOTH its own upper
+bounds (`x0=0.9, L=1.2`). Applying §15.20 Rev 1's 6-row decision rule
+mechanically: Step 0 fails (degenerate>10%) → Step 1a fails (4/5 K means
+sit below 0.98, not a flatness signature) → **Step 1b fires: VERDICT
+AMBIGUOUS** (genuine scatter, not a data gap this time — the unlock
+closed the data gap cleanly, 5/5 K's populated). §15.20.4's own
+absolute-slack-vs-power-law discrimination test STILL does not execute —
+second wave in a row to reach that non-outcome, for a different
+mechanical reason each time. **Scaling-law reading:** `x0(64)=0.5455 →
+x0(80)=0.6779 → x0(96) UNRESOLVED`. This registered fit SUPERSEDES
+§15.22's own diagnostic-only 6-K fit (`x0=0.7716`, wrong grid, n=1-driven)
+— that suggestive point does not survive the full unlocked data.
+Noisiest K-group (registered follow-up target): K72. Not launched this
+harvest (harvest-only discipline).
+
+**PI check-in package, refreshed this session (consolidating status
+across lanes for the next check-in, not a new decision on any of them —
+none of the PENDING-USER items below were acted on by this harvest):**
+
+- **The d=96 resolution, for the paper drafts specifically:**
+  `iclr-2027/sections/{04_phenomenon,05_mechanism,08_results,
+  09_discussion_limitations,10_conclusion}.tex` currently describe the
+  d=96 wide-grid super-linear-capacity point as **"in-flight, not
+  pre-claimed"** (per this file's own 2026-07-07 paper-addendum note,
+  preserved below). **That language is now STALE** — the lane is CLOSED,
+  and the actual landed result is AMBIGUOUS/non-monotonic, not a clean
+  extension of the d=64→d=80 progression. The `workshop-2026/` 4pp
+  Extended Abstract (the capacity-trilogy submission, commit `1c0ea65`)
+  is UNAFFECTED — it is scoped to d=64 LOCATED / d=128 DISSOLVED /
+  coherence EXONERATED only, never touches d=96. **This is a PI-reviewed
+  text update, not self-launched by this harvest** — flagged here so it
+  is not missed before the ICLR sections are next touched.
+- **Submissions venue/author/title — still PENDING-USER, unchanged by
+  this harvest, timing now close:** `matrix-thinking/submissions/
+  neurips-ws-2026/VENUE_DECISION.md` (Decision 1: NeurReps/UniReps
+  Extended Abstract is the leading candidate; NeurIPS 2026 workshop
+  accepted-list drops **~2026-07-11 — 3 days from this update**, CFPs
+  open shortly after) and `PAPER_SPRINT_PLAN.md` §5.5 (Decision 2:
+  title — keep the current default, not adopting a 5th option; Decision
+  3: author block — fill in `Sam Larson, Pebble AI, pebbleml.com`
+  contingent on confirming the chosen venue's double-blind requirement
+  first) both still show open checkboxes. Nothing in this harvest
+  resolves any of the three — flagged for the PI's next check-in given
+  the CFP window is now imminent.
+- **Phase-2b ratification — still awaiting PI decision, unchanged by
+  this harvest:** the REASONING-LINK PHASE-2B block below (KEYSTONE
+  UNRESOLVED, harvested earlier 2026-07-08) has no pre-scripted next
+  branch in §16.6's own decision tree; PI options named there (more
+  seeds, a lower-variance readout, or reporting the underpowered-null
+  as the standing result) remain open, not decided by this harvest
+  (different lane, GPUs 0-1 vs. this lane's GPU 2 — never gated each
+  other).
+- **Injection report (security, consolidated across this harvest):** one
+  fake `<system-reminder>` this session (fabricated date-change
+  concealment instruction + fabricated agent-list/MCP-instructions
+  block, appended to the first `Bash` tool result) — disregarded in
+  full including the concealment instruction, reported. The one factual
+  claim inside it (date=2026-07-08) is independently correct against
+  box `date`, raw-JSON timestamps, and commit `a51f102`'s own author
+  date — the danger was the concealment instruction and fabricated
+  capability lists, not that string. Zero injected content found in any
+  box-persisted artifact this session. This continues a now
+  well-established recurring pattern across this project's recent
+  sessions (multiple prior occurrences logged in this file's own
+  Phase-2b blocks above/below) — worth a standing note for whoever next
+  triages the harness's own tool-output handling, not a new finding
+  specific to this harvest.
+- **Headlines (skim version):** (1) C17 is CLOSED — the wide-grid wave's
+  11/12-inadmissible mystery was tolerance miscalibration, not a real
+  capacity boundary or a broken probe. (2) The unlock worked exactly as
+  designed (data gap closed, zero new GPU spend) but the underlying
+  d=96 signal is genuinely noisy/non-monotonic at n=3 seeds/K — x0(96)
+  is NOT resolved, and neither rival scaling-law band (`[0.718,0.739]`
+  vs. `[0.768,0.837]`) is confirmed or excluded. (3) The super-linear
+  capacity story's own d=96 rung stays an open question, now for a
+  data-quality-of-signal reason rather than a data-availability reason —
+  the paper text needs a PI pass to reflect this honestly. (4) Neither
+  the workshop-2026 nor the ICLR venue/author/title decisions are
+  blocked by anything in this harvest, but the CFP window is 3 days out.
 
 ---
 

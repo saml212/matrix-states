@@ -6422,3 +6422,145 @@ Sign discipline checked against §16.16.5's registered convention (`Δ := L_quer
 **Security note.** 1 more fake-system-reminder injection this harvest session (a `grep` tool call's real, correct output followed by a fabricated date-change/concealment block, a fake agent-list, and fake MCP-instructions) — disregarded in full including the concealment instruction, reported. Zero injection-style strings found in any of the raw box-persisted artifacts pulled this session (cell JSONs, trajectory JSONs, summary, floor-pin, cache, sha256 manifest, `.py` source, chain logs) — the vector stayed confined to live tool-output wrapping, never planted in a persisted file. Combined with the 3 prior occurrences logged against this session (2 in the DEPLOY ATTEMPT entry, 1 in LAUNCH ATTEMPT 2), this is the 4th logged occurrence, consistent with the task's own "7+ confirmed this session" figure.
 
 Full tables (all 4 contrasts × 5 checkpoints × K∈{32,20}, the OOD secondary table, the per-cell wall_s table, and the complete verdict walk): `REASONING_LINK_DESIGN.md` §16.18. GPUs 0-1 now FREE. STATE.md updated.
+
+---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — RUN + HARVEST (2026-07-08, chain
+06:25:46–06:55 UTC, GPU 2): **VERDICT TOLERANCE-MISCALIBRATION** (commit
+`a51f102`) — full walk + independent re-verification, THE UNLOCK (11
+quarantined d=96 cells recalibrated), and the registered re-fit:
+**AMBIGUOUS** (non-monotonic scatter, 100% bootstrap-degenerate) —
+§15.20.4's own rival-discrimination test still does not execute, for a
+NEW reason. Full account: `KEY_ANCHORING_SCALING_DRAFT.md` §15.25.
+
+**The run, verdict walk (independently re-verified against the raws and
+a fresh read-only box pull this harvest, not merely the commit
+message):** reconstruction gate PASS (107/107 set-equal, independently
+confirmed by Stage −1's own items 11a–11d, incl. the negative
+seed=1940-vs-seed=0 trap correctly hard-aborting); Step 0b 0
+pool-membership violations; Step −1 36 distinct events, re-counted
+directly from the box's own raw `.pt` dumps (12 each at checkpoints
+16000/18000/20000, ZERO at 2000–14000); Step 0a 0 anomalous; Step 1 0
+live/offline disagreements, 0 TF32-sensitive flips (`tf32_matmul=False,
+tf32_cudnn=True` at every checkpoint file); Step 2 all 4,608 episodes
+resolve by n_iter≤28 (4,313 at n_iter=24, 295 at 28, 0 at 32/40 —
+re-tallied via `collections.Counter` from the analysis JSON's own
+`per_episode_resolve_niter`, matching exactly) → **TOLERANCE-
+MISCALIBRATION**. STEP 3b replay PASS, 12/12 byte-identical.
+**New disclosure from this harvest's own raw-dump pull (not previously
+in the commit or STATE.md):** the near-miss WORSENS over training —
+checkpoint 16000's 12 events show only 13–27/128 rows anomalous (maxima
+0.07–0.43); checkpoints 18000/20000 show ALL 128/128 rows anomalous,
+maxima climbing to 1.08 then 1.43 — yet Step 2 still resolves the
+worst-case population by n_iter≤28, the strongest evidence yet this is
+genuinely iteration-count-fixable rather than a structural wall that
+would be expected to worsen indefinitely. The disclosed "event-0 range
+0.696–1.371" figure is independently confirmed to 3 decimals (checkpoint
+20000, hop=1, batch=0, all 128/128 rows anomalous).
+
+**Item-1 re-pin, reconfirmed a second time under a fresh launch.** The
+2026-07-07 baseline-relative re-pin (OFF-vs-OFF envelope 7.51e-04,
+OFF-vs-ON must sit within 3× that) was NOT merely cited — this session's
+own in-chain re-run (`logs/c17repro_10_stage_minus1.log`) independently
+re-measured a DIFFERENT envelope (8.841e-04, ~18% larger) and still
+passed on its own freshly-measured threshold (2.652e-03 vs. measured
+max dev 8.354e-04) — exactly the behavior expected of genuine run-to-run
+GPU nondeterminism, not a fixed constant, and the strongest evidence yet
+the re-pin is the right fix rather than a one-off patch.
+
+**GPU-h and ledger.** Chain 0.487 GPU-h (1,782s wall on GPU 2, timestamp
+cross-checked) + ≈0.33 GPU-h pre-launch verification ≈ **0.82 GPU-h
+total realized**. Contingency seeds 1943/1944 NOT fired (Step −1 cleared
+36≥3 on the primary launch alone). **KEY_ANCHORING_SCALING sub-ledger:**
+18.5466/26 (§15.24 Rev 4 corrected baseline) + 0.820 (this run) =
+**19.3666/26 GPU-h realized** — 92.22% of the ORIGINAL 21 GPU-h ceiling
+(reserve 1.6334), 74.49% of the extended 26 (reserve 6.6334) — still
+fits without the `+5.0` extension.
+
+**THE UNLOCK — mechanism adjudication (§15.24.6 outcome-(c), the only
+place the design states the unlock mechanics): PURE RE-READ, disclosed.**
+A literal per-cell Newton-Schulz re-sweep is structurally impossible
+without new GPU spend (the original wide-grid checkpoint writer saved
+only the 27KB anchor-table block, never the full model `k_eff_raw` for a
+real C17 query, for 10 of the 11 quarantined cells) — REJECTED as
+inconsistent with §15.24.6's own "without any new GPU spend" text.
+Adopted instead: the admission FLAG alone (never the h4 measurement,
+which was always a valid, clean training-time measurement) is
+recalibrated offline, for exactly the 11 cells whose own raw JSON shows
+the IDENTICAL, independently-verified signature the repro diagnosed
+(`n_geo3_fallback_train_steps=0`, `checkpoint_fallback_seen=True` as the
+SOLE failing leg, the other 3 legs already True, C17-exclusive per
+§15.23's own mechanism_breakdown) — `K72/{1740,1742}`,
+`K78/{1840,1841,1842}`, `K84/{1940,1941,1942}`,
+`K90/{2040,2041,2042}`. **`K69/seed=1730` deliberately NOT flipped**
+(same signature, but the pre-existing §15.19-era anomaly, outside the
+declared 11-cell scope; K=69 stays at its already-admissible n=3:
+1731/1732/1733). A one-off script flipped `admissible: False→True` on
+verified copies of the raw JSONs (originals at
+`experiment-runs/2026-07-07_keyanchor_scaling_wide/` untouched); a
+post-hoc byte-diff confirms `admissible` is the ONLY field that changed
+in all 11 files.
+
+**Re-fit result: `fit_cliff_curve.py`, full d=96 K-grid `{69,72,78,84,90}`,
+n=3 seeds/K, n_trials=4000 — DEGENERATE.** Per-K means: K69=0.9592,
+K72=0.9216, K78=0.9326, K84=0.9581, K90=1.0000 (all 3 K90 seeds exactly
+1.0) — the curve is NON-MONOTONIC (dips at K72/K78, partially recovers
+at K84, hits an exact ceiling at K90), not the assumed monotonic
+capacity-cliff shape. `sigmoid_fit: x0=0.9000 w=0.1281 L=1.2000` (BOTH
+`x0` and `L` pinned at their own upper bound); bootstrap
+`degenerate_frac=1.0000` (100%, all 4,000 resamples degenerate), no CI.
+**This registered fit SUPERSEDES §15.22's own diagnostic-only 6-K fit**
+(`x0=0.7716 [0.7700,0.7841]`, 26.2% degenerate, wrong grid, K72 at n=1)
+— the earlier "something starts declining near K/d≈0.75" suggestion does
+not survive contact with the full, unlocked K78/K84/K90 data.
+
+**§15.20 Rev 1's 6-row decision rule, applied mechanically:** Step 0
+fails (`degenerate_frac=100%>10%`) → branch 1a/1b. Step 1a fails (4 of 5
+K's own per-seed mean sit below 0.98 — NOT a flatness signature). Step
+1b fires (`degenerate_frac>10%` AND ≥1 K's mean `<0.98`) →
+**VERDICT: AMBIGUOUS** (data-quality gate, genuine scatter). Steps 2–5
+(the band-overlap tests) are unreachable — no converged CI exists.
+Noisiest K-group (registered follow-up target): **K72** (per-seed range
+0.8426–0.9904 = 0.1478, the widest of the 5).
+
+**This is neither of the two outcomes the pre-registered power check
+flagged as most likely** (BOTH-CONSISTENT or CLIFF-BEYOND-WINDOW) — it
+is the THIRD registered branch (row 1b), reached for a genuinely NEW
+reason than §15.22's own AMBIGUOUS: that harvest failed because 3 of 5
+K's had zero usable data; this one has a full 5/5 grid at n=3/K, but the
+measured curve itself is too noisy/non-monotonic for a monotonic sigmoid
+to resolve. §15.20.4's own central discrimination test (absolute-slack
+`[0.718,0.739]` vs. power-law `[0.768,0.837]`) STILL does not execute —
+the second wave in a row to reach that non-outcome, for a different
+mechanical reason each time.
+
+**Scaling-law reading:** `x0(64)=0.5455 → x0(80)=0.6779 → x0(96)
+UNRESOLVED` (no point estimate or CI survives). The clean two-point rise
+from d=64→d=80 does not cleanly extend to d=96 at this seed budget — not
+from a renewed data gap (the unlock closed that) but from genuine
+non-monotonic scatter in the tested window. Neither rival band is
+confirmed or excluded; both remain live, untested hypotheses, exactly as
+before this harvest, for a different reason now. Descriptive
+(unlicensed) read: the curve looks closer to flat/near-ceiling-with-noise
+than to either rival's own smooth monotone-decline shape — consistent
+with (not proof of) the cliff sitting beyond this window, OR simply that
+n=3 seeds/K is too few (K72's own per-seed span, 0.1478, exceeds the
+ENTIRE 0.119-wide gap between the two rival bands). Registered next step
+either way: seed escalation at K72 first. Not launched this harvest.
+
+**Security note.** One fake `<system-reminder>` injection (fabricated
+date-change concealment instruction + fabricated agent-list/MCP-
+instructions block) appended to this session's first `Bash` tool result
+— the same recurring pattern this project's history already logs
+repeatedly. Disregarded in full including the concealment instruction,
+reported per the task brief's own explicit ask. The one factual claim
+inside it (date=2026-07-08) happens to be independently correct (box
+`date`, raw-JSON timestamps, and commit `a51f102`'s own author date all
+agree) — the injection's danger was the concealment instruction and
+fabricated capability lists, not that particular string. Zero injected
+content found in any box-persisted artifact this session.
+
+Full walk, the 6-row decision table quoted verbatim per row, and the
+complete per-cell recalibration table: `KEY_ANCHORING_SCALING_DRAFT.md`
+§15.25. Archive: `experiment-runs/2026-07-08_c17_repro/` (repo +
+SSD-mirrored, byte-verified). GPU 2 free. STATE.md updated.

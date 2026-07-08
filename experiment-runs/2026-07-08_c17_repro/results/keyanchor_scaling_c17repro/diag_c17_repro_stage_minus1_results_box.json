@@ -1,0 +1,11 @@
+{
+  "design_ref": "KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.5 (Stage -1, C17 repro instrument)",
+  "gate_passed_locally": true,
+  "n_failures": 0,
+  "failures": [],
+  "n_box_deferred": 0,
+  "box_deferred": [],
+  "capable": true,
+  "capability_gate_failed": false,
+  "still_deferred_gated": []
+}

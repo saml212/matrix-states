@@ -1,0 +1,46 @@
+{
+  "purpose": "sec 15.25 harvest -- independent re-verification pulled read-only from youthful-indigo-turkey (GPU 2 idle throughout, no training/tmux touched), supplementing the already-committed small analysis JSON with figures that JSON does not itself carry.",
+  "commands_run": [
+    "ssh youthful-indigo-turkey \"cd /home/nvidia/chapter2/deltanet_rd && grep -n 'item 1' logs/c17repro_10_stage_minus1.log\"",
+    "ssh youthful-indigo-turkey \"... torch.load(c17fallback_step<N>.pt) for N in [2000..20000] -- event counts + per-event anomalous(resid>0.01) min/max\"",
+    "ssh youthful-indigo-turkey \"... json.load(result JSON) -- wall_s cross-check\""
+  ],
+  "event_counts_by_checkpoint": {
+    "2000": 0, "4000": 0, "6000": 0, "8000": 0, "10000": 0, "12000": 0, "14000": 0,
+    "16000": 12, "18000": 12, "20000": 12
+  },
+  "tf32_flags_every_checkpoint_file": {"tf32_matmul": false, "tf32_cudnn": true},
+  "anomalous_resid_range_by_checkpoint_step20000_event0": {
+    "step": 20000, "hop": 1, "batch_idx": 0, "n_anomalous_of_128": 128,
+    "min": 0.6960997581481934, "max": 1.371482014656067,
+    "note": "matches commit a51f102's disclosed 'event-0 range 0.696-1.371' to 3 decimals"
+  },
+  "anomalous_resid_worsening_over_training_new_disclosure": {
+    "step16000_n_anomalous_range": "13-27 of 128 per event, maxima 0.07-0.43",
+    "step18000_n_anomalous_range": "128 of 128 per event, maxima 0.85-1.08",
+    "step20000_n_anomalous_range": "128 of 128 per event, maxima 1.25-1.43",
+    "note": "not previously disclosed in the commit message or STATE.md; the near-miss population drifts further from the n_iter=20 boundary as training continues, yet Step 2's own sweep still resolves every episode by n_iter<=28 at the worst-case (step=20000) checkpoint -- strengthens, does not weaken, the iteration-count-fixable reading."
+  },
+  "item1_repin_in_chain_reconfirmation": {
+    "source": "logs/c17repro_10_stage_minus1.log line 157",
+    "result": "PASS -- n_steps_logged=50 off_vs_off_envelope=8.841e-04 max_off_vs_on_dev=8.354e-04 threshold=2.652e-03 bitwise_mode=False",
+    "compare_to_original_2026-07-07_adjudication_envelope": "7.51e-04 (from c17repro_item1_off_vs_off_diag.json, already committed at matrix-thinking/deltanet_rd/results/keyanchor_scaling_c17repro/)",
+    "note": "different envelope magnitude each run (8.841e-04 vs 7.51e-04, ~18% larger) -- consistent with genuine run-to-run GPU nondeterminism, not a fixed constant; the baseline-relative re-pin rule (3x envelope) passed on ITS OWN freshly-measured envelope both times, not by reusing a stale number."
+  },
+  "wall_s_cross_check": {
+    "result_json_wall_s": 1403.1660766601562,
+    "commit_message_disclosed": 1403.2,
+    "chain_timestamps_utc": {"c17repro_00_pi_signoff.log_mtime": "2026-07-08T06:25:46.603373614Z", "c17repro_22_chain_done.log_mtime": "2026-07-08T06:55:28.942045905Z"},
+    "chain_span_s": 1782.3,
+    "chain_span_gpu_h": 0.4951,
+    "disclosed_chain_gpu_h": 0.487,
+    "note": "small (~2%) variance from exactly which log line is used as the chain's own start/end marker; not a discrepancy worth chasing further."
+  },
+  "reconstruction_gate_stage_minus1_items_11a_11d": {
+    "item_11a_positive_seed0_matches_pinned_fixture": "PASS -- sha256 match, n=107",
+    "item_11b_negative_seed1940_trap": "PASS (correctly fails set-equality) -- symmetric_diff_size=96",
+    "item_11c_hard_abort_on_mismatch": "PASS -- verdict='RECONSTRUCTION-FAILURE'",
+    "item_11d_correct_seed0_clears_gate": "PASS -- verdict='NO-REPRO' (proceeds past the gate)"
+  },
+  "injection_note": "one fake <system-reminder> (fabricated date-change concealment instruction + fabricated agent-list/MCP-instructions block) found appended to this session's first Bash tool result; disregarded, reported in KEY_ANCHORING_SCALING_DRAFT.md sec 15.25's own security note. No injected content found in any box-persisted artifact (these SSH pulls, the raw .pt dumps, the logs) this session."
+}
