@@ -227,11 +227,66 @@ def _recovery_stats(cos: torch.Tensor, prefix: str = "") -> dict:
     return d
 
 
+def _dump_c17_fallback_event(model, fallback_dump_sink: list, seed, step, hop, batch_idx,
+                              key_ids: torch.Tensor) -> None:
+    """KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.2 item (ii) (C17 eval-
+    admission repro instrument): appends ONE C17 fallback EVENT to
+    `fallback_dump_sink` (mutated in place), reading the model's own
+    already-computed geo3 side-channel attributes off THIS batch's bind()
+    call -- `{"seed", "step", "hop", "batch_idx", "key_ids", "k_eff_raw",
+    "k_blend_raw", "resid"}` (the per-row `resid` vector, so an anomalous
+    `row_idx` is recoverable offline -- sec 15.24.4's episode :=
+    (seed,step,hop,batch_idx,row_idx)).
+
+    Factored out of evaluate_pool()'s own per-batch loop, rather than
+    inlined, so Stage -1's own dump-fires-exactly-at-fallback smoke and
+    tensor-shape assertions (diag_c17_repro_stage_minus1.py items 2/3) can
+    exercise this EXACT production dump-decision logic directly on a small
+    CPU-constructed stand-in `model` object (no CUDA/chunk_delta_rule
+    forward pass required -- geo3_orthogonalize_logged, which sets the
+    attributes this function reads, is pure CPU-safe tensor math) instead
+    of a hand-duplicated copy that could silently drift from what
+    evaluate_pool() actually runs.
+
+    HARD-ABORTS (uncaught AssertionError, sec 15.24.2's own required
+    failure mode -- never a warning, never a soft-skip-and-continue) if
+    `model.geo3_last_k_eff_raw` and `model.anchor_last_k_blend_raw` are not
+    bitwise-identical: sec 15.23 already proved these are architecturally
+    IDENTICAL for C17 items (100% of C17 keys are `trained_here=False` in
+    `anchor_blend_gather_scatter`); a failure means that claim does not
+    hold for THIS run, invalidating every downstream Step 0b/0a/1/2 verdict
+    computed from k_eff_raw under that assumption -- the whole analysis is
+    untrustworthy the instant this fails, so this stops the run, not
+    merely flags one event. For a bare-geo3 call (anchor_active=False)
+    there is no separate blended tensor -- k_eff_raw IS the NS input
+    verbatim (bind()'s own `ns_input = k_eff_raw` branch) -- so
+    k_blend_raw is recorded as the SAME tensor rather than left absent,
+    keeping every dumped event's schema uniform regardless of arm."""
+    k_eff_raw = model.geo3_last_k_eff_raw
+    k_blend_raw = model.anchor_last_k_blend_raw if model.anchor_active else k_eff_raw
+    assert torch.equal(k_eff_raw, k_blend_raw), (
+        "C17 REPRO INSTRUMENT HARD-ABORT (KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.2 item (ii)): "
+        "geo3_last_k_eff_raw and anchor_last_k_blend_raw are NOT bitwise-identical for this dumped "
+        "C17 fallback event -- sec 15.23's own anchor-bypass claim (100% of C17 keys are "
+        "trained_here=False in anchor_blend_gather_scatter) does not hold for THIS run, "
+        "invalidating every downstream Step 0b/0a/1/2 verdict computed from k_eff_raw under that "
+        f"assumption. seed={seed} step={step} hop={hop} batch_idx={batch_idx}.")
+    fallback_dump_sink.append({
+        "seed": seed, "step": step, "hop": hop, "batch_idx": batch_idx,
+        "key_ids": key_ids.detach().cpu().clone(),
+        "k_eff_raw": k_eff_raw.detach().cpu().clone(),
+        "k_blend_raw": k_blend_raw.detach().cpu().clone(),
+        "resid": model.geo3_last_resid.detach().cpu().clone(),
+    })
+
+
 @torch.no_grad()
 def evaluate_pool(model: DeltaNetRDBlock, cfg: DeltaNetRDTaskConfig, gen, device,
                    hops_to_eval, pools: EntityPools, force_rank_k=None,
                    n_batches=4, batch_size=128,
-                   use_heldout_entities=False, use_heldout_template=False) -> dict:
+                   use_heldout_entities=False, use_heldout_template=False,
+                   fallback_dump_sink: list | None = None, step: int | None = None,
+                   seed: int | None = None, c17_repro_telemetry: bool = False) -> dict:
     """Per-hop evaluation on ONE pool combination (train/C17/C19 x H_train/
     H_test+H_extra -- run_deltanet_rd.py's train() calls this 4x per
     checkpoint, section 5.3/5.4). Every entry carries C16's premise
@@ -250,7 +305,26 @@ def evaluate_pool(model: DeltaNetRDBlock, cfg: DeltaNetRDTaskConfig, gen, device
     model_rd.py's own [model 16] item 4). Per sec 14.10, this makes the
     alignment instrument TAUTOLOGICALLY 1.0 under geo3_active -- logged,
     but EXCLUDED from premise-evidence (see the substitute admission stack
-    in train()/_assemble_result)."""
+    in train()/_assemble_result).
+
+    KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.2's C17 eval-admission repro
+    instrument: FOUR new optional, additive parameters, all zero-
+    behavioral-change at their defaults -- every existing call site (which
+    passes none of them) is byte-identical to before this change.
+    `fallback_dump_sink`/`step`/`seed` are threaded ONLY at train()'s own
+    C17 call site (the (seed,step,hop,batch_idx) event identity sec 15.24.4
+    defines is meaningful only for the C17 probe this instrument targets);
+    when `fallback_dump_sink` is a list, every batch where geo3's own
+    fallback fires calls `_dump_c17_fallback_event` (above) to append one
+    event. `c17_repro_telemetry` (sec 15.24.2 item (iii)) is a SEPARATE
+    flag threaded to ALL FOUR pool calls (M2/M3/C17/C19 alike, unlike the
+    three C17-only params above): gates accumulating the per-batch
+    `geo3_last_resid` magnitude (already computed every batch, previously
+    discarded by the OR-only `fallback_this_hop` boolean) and, when
+    `model.geo3_active`, attaches `entry["geo3_resid_stats"]` (mean/max/
+    min/n_batches_fallback/n_batches_total) to every pool's own entry -- a
+    magnitude comparison across pools the codebase has never logged
+    before."""
     model.eval()
     per_hop = {}
     for h in hops_to_eval:
@@ -260,7 +334,11 @@ def evaluate_pool(model: DeltaNetRDBlock, cfg: DeltaNetRDTaskConfig, gen, device
         align_mean, align_min, align_valid = [], [], []
         n_eval_batches_skipped = 0
         fallback_this_hop = False    # sec 14.4/14.10 item 2: reset PER HOP, OR'd over its own batches only
-        for _ in range(n_batches):
+        # sec 15.24.2 item (iii): per-batch resid magnitude, c17_repro_telemetry only (Rev 2 MAJOR-4
+        # fix's own "for _ in range(n_batches)" -> "for batch_i in range(n_batches)" loop-index fix,
+        # needed so the dump dict literal's own "batch_idx" field below names a real, defined value).
+        resid_all = []
+        for batch_i in range(n_batches):
             b = sample_batch_rd(cfg, batch_size, gen, hop_set=(h,), pools=pools, device=device,
                                  use_heldout_entities=use_heldout_entities,
                                  use_heldout_template=use_heldout_template, assert_injective=True)
@@ -273,6 +351,11 @@ def evaluate_pool(model: DeltaNetRDBlock, cfg: DeltaNetRDTaskConfig, gen, device
                 continue
             if model.geo3_active and model.geo3_last_fallback_triggered:
                 fallback_this_hop = True
+                if fallback_dump_sink is not None:
+                    _dump_c17_fallback_event(model, fallback_dump_sink, seed, step, h, batch_i,
+                                              b["key_ids"])
+            if c17_repro_telemetry and model.geo3_active:
+                resid_all.append(model.geo3_last_resid.detach().cpu())
             cos_all.append(F.cosine_similarity(pred, targets, dim=-1).reshape(-1))
             norm_all.append(pred.norm(dim=-1).reshape(-1))
 
@@ -352,6 +435,16 @@ def evaluate_pool(model: DeltaNetRDBlock, cfg: DeltaNetRDTaskConfig, gen, device
             # EXPLICITLY excluded from premise-evidence (never used to gate anything).
             entry["geo3_diagnostics_are_non_evidence"] = True
             entry["geo3_fallback_triggered_this_hop"] = fallback_this_hop
+            if c17_repro_telemetry and resid_all:
+                # sec 15.24.2 item (iii): magnitude comparison across pools (M2/M3/C17/C19 alike),
+                # never gating anything -- a pure diagnostic the OR-only fallback flag discarded.
+                resid_cat = torch.cat(resid_all)
+                entry["geo3_resid_stats"] = {
+                    "mean": resid_cat.mean().item(), "max": resid_cat.max().item(),
+                    "min": resid_cat.min().item(),
+                    "n_batches_fallback": sum(1 for r in resid_all if r.max().item() > model.geo3_resid_tol),
+                    "n_batches_total": n_batches,
+                }
         per_hop[h] = entry
     model.train()
     return per_hop
@@ -586,7 +679,8 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
           lambda_anchor: float = 0.0, unblind_override_at: float | None = None,
           drift_probe_active: bool = False, drift_probe_n_entities: int = 8,
           drift_probe_n_resamples: int = 32, rev7_pin_derived: dict | None = None,
-          ckpt_dir: str | None = None):
+          ckpt_dir: str | None = None, c17_repro_telemetry: bool = False,
+          full_ckpt_step: int | None = None):
     """lambda_anchor (KEY_ANCHORING_DESIGN.md sec 2.4, candidate (c)): soft
     cross-episode drift regularizer weight, > 0 only for candidate (c)
     cells (requires model.geo3_active; model.anchor_active stays False --
@@ -623,7 +717,32 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
     `<ckpt_dir>/step<N>.pt` at every eval checkpoint AND the final step --
     a mechanical, unconditional writer (sec 10.10 item 1), never a stated
     intention. None (default) = no checkpoint writing, byte-identical to
-    every existing wave."""
+    every existing wave.
+
+    c17_repro_telemetry / full_ckpt_step (KEY_ANCHORING_SCALING_DRAFT.md
+    sec 15.24.2, the C17 eval-admission repro instrument): both default to
+    values that are ZERO behavioral change (byte-identical trajectory/loss
+    curve, sec 15.24.2's own required Wave -1 smoke) for every existing
+    wave, past or future, that does not set them.
+      - `c17_repro_telemetry` (default False): threaded to EVERY
+        evaluate_pool() call this checkpoint block makes (item (iii)) AND,
+        at the C17 call site ONLY, also supplies a FRESH per-checkpoint
+        `fallback_dump_sink` list + `step`/`seed` (item (ii)) -- bundled
+        into `<ckpt_dir>/c17fallback_step<N>.pt` right after that call
+        (a dict, `{"tf32_matmul", "tf32_cudnn", "events"}` -- the two TF32
+        flags are read ONCE, at process start, a global process-level
+        setting evaluate_pool() itself never touches). Requires `ckpt_dir`
+        to actually write anything; a True flag with `ckpt_dir=None` still
+        runs the (harmless, additive) per-batch accounting but has nowhere
+        to persist it.
+      - `full_ckpt_step` (default None, item (i)): when set AND
+        `step == full_ckpt_step` AND `ckpt_dir is not None`, additionally
+        `torch.save`s the model's FULL `state_dict` (every parameter/
+        buffer, not just the anchor table's trained-row block the existing
+        writer above saves) to `<ckpt_dir>/full_step<N>.pt` -- the ONLY way
+        to reconstruct a real C17 batch's `k_eff_raw` offline later (the
+        wide-grid wave's own checkpoint writer never saved `embed`/
+        `k_proj`/`k_conv1d`, sec 15.24.0)."""
     t0 = time.time()
     gen = torch.Generator(device=device).manual_seed(seed)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
@@ -799,13 +918,36 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
             assert buf_ok, "R2-3 VIOLATED: buffer embedding row is not exactly zero post-optimizer-step"
 
             eval_gen = torch.Generator(device=device).manual_seed(seed + 10_000 + step)
-            m2 = evaluate_pool(model, cfg, eval_gen, device, cfg.H_train, pools, force_rank_k=force_rank_k)
+            # KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.2 item (ii): a FRESH per-checkpoint dump
+            # sink -- "All events for one checkpoint's C17 call are bundled into one file" -- never
+            # accumulated across checkpoints. None (c17_repro_telemetry off) is the pre-existing,
+            # byte-identical default for every call site below.
+            c17_dump_sink = [] if c17_repro_telemetry else None
+            m2 = evaluate_pool(model, cfg, eval_gen, device, cfg.H_train, pools, force_rank_k=force_rank_k,
+                                c17_repro_telemetry=c17_repro_telemetry)
             m3 = evaluate_pool(model, cfg, eval_gen, device, (*cfg.H_test, *cfg.H_extra), pools,
-                                force_rank_k=force_rank_k)
+                                force_rank_k=force_rank_k, c17_repro_telemetry=c17_repro_telemetry)
+            # The ONLY call site that ever passes fallback_dump_sink/step/seed (sec 15.24.2 item
+            # (ii)) -- M2/M3/C19 stay at their None defaults, exactly as before either fix.
             c17 = evaluate_pool(model, cfg, eval_gen, device, cfg.H_train, pools,
-                                 force_rank_k=force_rank_k, use_heldout_entities=True)
+                                 force_rank_k=force_rank_k, use_heldout_entities=True,
+                                 fallback_dump_sink=c17_dump_sink, step=step, seed=seed,
+                                 c17_repro_telemetry=c17_repro_telemetry)
+            if c17_repro_telemetry and ckpt_dir is not None:
+                # sec 15.24.2 item (ii): bundle this checkpoint's C17 events into one file, WITH
+                # the two TF32 flags (Rev 1, attack-round-1 MAJOR M1 fix) -- a global, process-level
+                # setting read ONCE here (evaluate_pool() itself never touches them), so recording
+                # them once per checkpoint file rather than once per event is exact, not an
+                # approximation. Written even when c17_dump_sink is empty (a clean checkpoint) so
+                # the offline analysis always has a TF32-flag record for every checkpoint it visits.
+                # (ckpt_dir already exists -- created unconditionally at this function's own top.)
+                torch.save({"tf32_matmul": torch.backends.cuda.matmul.allow_tf32,
+                            "tf32_cudnn": torch.backends.cudnn.allow_tf32,
+                            "events": c17_dump_sink},
+                           os.path.join(ckpt_dir, f"c17fallback_step{step}.pt"))
             c19 = evaluate_pool(model, cfg, eval_gen, device, cfg.H_train, pools,
-                                 force_rank_k=force_rank_k, use_heldout_template=True)
+                                 force_rank_k=force_rank_k, use_heldout_template=True,
+                                 c17_repro_telemetry=c17_repro_telemetry)
 
             # MAJOR-3: fixed-reference entity-subspace rank on the fixed
             # probe batch; reference snapshotted at the FIRST checkpoint.
@@ -945,6 +1087,17 @@ def train(model, cfg, pools, pool_report, device, d_model, d_state, steps=6000, 
                 ckpt_path = os.path.join(ckpt_dir, f"step{step}.pt")
                 torch.save(ckpt_payload, ckpt_path)
                 ckpt_written.append(ckpt_path)
+            if full_ckpt_step is not None and step == full_ckpt_step and ckpt_dir is not None:
+                # KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.2 item (i): the FULL model state_dict
+                # (embed/k_proj/k_conv1d included, unlike the anchor-only writer above) at ONE step
+                # only -- the only way to reconstruct a real C17 batch's k_eff_raw offline later.
+                # Independent of model.anchor_active (unlike the writer above): this instrument
+                # applies to any geo3_active model, not just candidate (d) anchor cells.
+                # (ckpt_dir already exists -- created unconditionally at this function's own top.)
+                full_ckpt_path = os.path.join(ckpt_dir, f"full_step{full_ckpt_step}.pt")
+                torch.save({k: v.detach().cpu().clone() for k, v in model.state_dict().items()},
+                           full_ckpt_path)
+                ckpt_written.append(full_ckpt_path)
             geo3_admission = (compute_geo3_admission(cfg, trajectory, checkpoints, n_geo3_fallback_train_steps)
                                if model.geo3_active else None)
             partial = _assemble_result(cfg, steps, seed, force_rank_k, trunc_impl, pool_report,
@@ -1451,6 +1604,20 @@ def main():
                           "or the scalar anchor_lambda_raw for candidate (d)) at every eval checkpoint "
                           "AND the final step. No effect when --anchor-active is not given. None "
                           "(default) = no checkpoint writing.")
+    ap.add_argument("--c17-repro-telemetry", action="store_true",
+                     help="KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.2: gates the C17 eval-admission "
+                          "repro instrument's THREE additive telemetry taps -- (ii) a per-checkpoint "
+                          "C17 fallback-event dump (<ckpt-dir>/c17fallback_step<N>.pt, requires "
+                          "--ckpt-dir), (iii) per-pool geo3 residual-magnitude stats on every "
+                          "checkpoint's M2/M3/C17/C19 entries. OFF by default -- byte-identical "
+                          "trajectory/loss curve to every existing wave when absent (sec 15.24.2's "
+                          "own required Wave -1 smoke).")
+    ap.add_argument("--full-ckpt-step", type=int, default=None,
+                     help="KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.2 item (i): step at which to "
+                          "additionally torch.save the model's FULL state_dict (embed/k_proj/"
+                          "k_conv1d included) to <ckpt-dir>/full_step<N>.pt -- separate from, and "
+                          "additive to, the existing anchor-only step<N>.pt payload. Requires "
+                          "--ckpt-dir. None (default) = no full checkpoint written.")
     ap.add_argument("--out", type=str, default=None)
     args = ap.parse_args()
 
@@ -1691,7 +1858,8 @@ def main():
                     lambda_anchor=args.lambda_anchor, unblind_override_at=args.unblind_override_at,
                     drift_probe_active=args.drift_probe, drift_probe_n_entities=args.drift_probe_n_entities,
                     drift_probe_n_resamples=args.drift_probe_n_resamples,
-                    rev7_pin_derived=rev7_pin_derived, ckpt_dir=args.ckpt_dir)
+                    rev7_pin_derived=rev7_pin_derived, ckpt_dir=args.ckpt_dir,
+                    c17_repro_telemetry=args.c17_repro_telemetry, full_ckpt_step=args.full_ckpt_step)
     result["n_params"] = n_params
     if embed_meta:
         result["embed_meta"] = embed_meta

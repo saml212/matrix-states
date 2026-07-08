@@ -1,0 +1,33 @@
+{
+  "design_ref": "KEY_ANCHORING_SCALING_DRAFT.md sec 15.24.5 (Stage -1, C17 repro instrument)",
+  "gate_passed_locally": true,
+  "n_failures": 0,
+  "failures": [],
+  "n_box_deferred": 6,
+  "box_deferred": [
+    {
+      "item": "item 1: bitwise-identical-trajectory smoke",
+      "requirement": "run_deltanet_rd.py's train()/smoke() needs `model_rd` (imports `fla.modules.ShortConvolution` at module scope, CUDA-oriented) to even import -- genuinely box-only. Box-side requirement: launch a 50-step, fixed-seed mini run TWICE (--c17-repro-telemetry ON vs OFF, otherwise identical CLI), assert bitwise-identical trajectory/loss curve (sec 15.24.2's own required Wave -1 smoke)."
+    },
+    {
+      "item": "item 2: dump-fires-exactly-at-fallback smoke",
+      "requirement": "_dump_c17_fallback_event (run_deltanet_rd.py) is exercised via a stand-in `model` object whose geo3_last_* attributes come from model_rd.geo3_orthogonalize_logged -- importing model_rd needs `fla`, genuinely box-only. Box-side requirement: (a) a hand-built near-duplicate K-row batch forcing fallback_triggered=True -> assert the dump sink receives EXACTLY 1 entry; (b) a well-conditioned/orthonormal-ish batch -> assert EXACTLY 0 entries."
+    },
+    {
+      "item": "item 3: tensor-shape assertions",
+      "requirement": "needs a REAL dumped event (produced by the same box-only path as item 2). Box-side requirement: k_eff_raw/k_blend_raw dumps == (B_batch, 84, 96), resid dump == (B_batch,), all CPU, fp32, detached (requires_grad=False)."
+    },
+    {
+      "item": "item 4: determinism cross-check, per-launch",
+      "requirement": "needs a REAL full_step<N>.pt state_dict snapshot + a REAL live C17 dump, both produced by an actual training launch (CUDA + fla). Box-side requirement: run ONCE PER LAUNCH (primary seed 1940, and again for each contingency seed if fired) -- load the snapshot into a fresh model instance, rebuild eval_gen = seed + 10_000 + step, replay the m2/m3/c17/c19 pool-call order, assert BYTE-IDENTICAL key_ids/k_eff_raw vs. that launch's own live dump."
+    },
+    {
+      "item": "item 5 (BOX HALF): sha256/config cross-check vs the REAL archived JSON",
+      "requirement": "the archived K84/seed=1940 result JSON (its own exactness_config block) lives on the H100 box, not in this checkout. Box-side requirement: diff build_cmd()'s architecture-relevant fields (K, d_state, seed, geo3_n_iter, geo3_resid_tol, anchor_active, anchor_lambda_mode, drift_probe, H_extra) against that JSON's own exactness_config block, by hand, recorded in the launch log."
+    },
+    {
+      "item": "item 9: batched-vs-singleton offline recompute comparison",
+      "requirement": "needs model_rd.newton_schulz_orthogonalize (fla-dependent import), genuinely box-only. Box-side requirement: on a hand-built (128,84,96) tensor with one row engineered near the resid=0.01 threshold, run newton_schulz_orthogonalize once as ONE BATCHED call on the full tensor (Step 1's own pinned method) and once as 128 singleton (1,84,96) calls; assert the batched call's resid_offline[row_idx] is what diag_c17_repro_analysis.py's Step 1 actually uses, and DISCLOSE any row where the two methods' resid values differ."
+    }
+  ]
+}
