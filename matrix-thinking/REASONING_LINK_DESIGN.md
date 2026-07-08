@@ -5231,13 +5231,11 @@ this recording task to the build commit: files added under
 reuse instruction). Every Stage −1 self-test this build registers (11 items,
 `phase2_stage_minus1.py`, PLUS Phase-1's own unchanged 19-item suite,
 re-run as a dependency-closure check) ran to completion, on CPU, via this
-repo's own fla stub — build commit hash intentionally left for a same-day
-follow-up patch (this paragraph is written IN the build commit itself, so
-its own hash cannot be self-cited without fabricating one; `git log
---oneline -- matrix-thinking/deltanet_rd/phase2_chain.sh` on this branch
-resolves it exactly, and this document's own established convention is to
-backfill a commit hash in the FIRST subsequent revision that cites it, per
-every prior Rev's own "commit <hash>" pattern above). This build did not
+repo's own fla stub — build commit `1f53a68d592fd6dcc676e8dd2613793524ff1968`
+(backfilled here in a small same-day follow-up commit, per this document's
+own established convention of citing a commit hash only in the FIRST
+subsequent revision that references it — this paragraph could not self-cite
+its own hash from inside the build commit itself). This build did not
 itself launch the 18-cell grid (LOCAL BUILD ONLY, per its own task scope)
 — that launch, and this build's own independent audit, remain separate,
 later steps.
