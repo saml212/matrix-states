@@ -990,3 +990,81 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
 
 **QUEUE (STATE.md, appended per this design's commit):** Design Rev 0
 committed (this commit) → attack round 1 next.
+
+---
+
+### 1.13 ATTACK ROUND 1 VERDICT (independent fresh-eyes agent, 2026-07-08): NEEDS-REVISION
+
+Recorded per the gauntlet-bookkeeping hard rule before dispatching Rev 1.
+The round re-executed `verify_option_a_readout.py` verbatim (byte-exact
+match) AND independently re-implemented the constructions via DIFFERENT
+methods (deleted-permutation reps for S3/S4; the binary-icosahedral
+QUATERNION construction for A5 — element-order distribution
+{1:1,2:15,3:20,5:24} matches A5's conjugacy classes exactly;
+Gram-Schmidt hyperplane bases for S5/A6; character-theoretic minimality
+re-derivations for all five). Findings binding on Rev 1:
+
+**FATAL-AS-WRITTEN:**
+
+- **CA1-F1 — the query-coverage threshold is mathematically impossible
+  for 2 of 5 groups.** §1.4's gate bar "≥200 distinct elements for
+  A5/S5/A6" contradicts the doc's own group table: |A5|=60, |S5|=120 —
+  a group cannot yield more distinct elements than it has. As
+  pre-registered, gate 3's mandatory coverage check can never pass for
+  A5 (the marquee dissociation partner!) or S5, silently blocking the
+  C5 control exactly where it matters most. → Rev 1: replace with a
+  family-consistent percentage-of-|G| bar (e.g. ≥80% for S3/S4/A5, a
+  calibrated lower % for S5/A6 at their larger orders), re-run gate 3's
+  negative test against the corrected numbers.
+
+**MAJOR:**
+
+- **CA1-M1 — M1's Spearman bar is statistically weaker than it reads.**
+  Exact null (brute-force over 5!=120 permutations, x=[2,3,3,4,5] with
+  the S4/A5 tie): P(ρ≥0.8 | null) = 8/120 ≈ 6.67% — NOT conventionally
+  significant alone at α=0.05 (and ρ=1.0 is impossible; the tie caps
+  ρ at 0.9747). Mitigated by CONFIRM requiring M1 AND M3 AND marquee
+  (M3's per-group paired-seed causal test is the workhorse). → Rev 1:
+  disclose the exact one-sided permutation p-value; state explicitly
+  that M1 alone is underpowered/corroborating-only and the claim rests
+  on M3+marquee.
+- **CA1-M2 — cost-table ceiling unreconciled.** Itemized rows sum to
+  ≤≈17.34 GPU-h (50 cells×0.3=15.0 + contingency 1.35 + β-smoke <1.0)
+  but the stated raw total reads "≈17.4-18.3" — the upper bound carries
+  ~1 GPU-h with no itemized source. Safety conclusion unchanged (39-42%
+  margin under the 30 GPU-h cap) but the arithmetic must reconcile. →
+  Rev 1: itemize or trim the range.
+- **CA1-M3 — degauging pipeline parameters unpinned for the REAL runs.**
+  Only "N≥50 words" is stated; no n_fit/n_eval ratio; gate 1's
+  real-checkpoint validation has no concrete acceptance criterion (no
+  ground-truth Q exists on a real checkpoint). → Rev 1: pin the split
+  (and its sampling rule) + define gate 1's acceptance test (e.g.
+  synthetic-injection: plant a known-Q conjugated ideal state in the
+  real pipeline's shapes and require recovery + the rank-deficient
+  negative to hold there).
+
+**MINOR:** CA1-m1 — "ONLY change to Task D's encoder" undercounts the
+input-embedding change (single generator-index embedding replaces the
+[key;value] concat — disclosed elsewhere in the same section, not
+counted here). CA1-m2 — the 30 GPU-h hard-abort enforcement wrapper is
+not itemized in §1.12's build list.
+
+**Verified clean this round (attack's own list):** all five reference
+representations (independent constructions, orthogonality, faithfulness,
+order, char-theory minimality); the degauging guard's teeth under fresh
+adversarial instances (rank-deficient corruption NOT rescued:
+mean_cos=0.663, sv-gap 11.06→1.26) plus a NEW fit-set-bias test (no
+degradation, 8 seeds); the corrected cost anchors (Task D ~76 GPU-h at
+EXPERIMENT_LOG:1556 confirmed; the 11.9 figure confirmed to belong to
+the unrelated coherence-dose-response wave); the cell count (5×10=50);
+the OWN-30-GPU-h-hard-abort circuit-breaker design (correctly declines
+the impossible inherited 10× bracket); the S4-vs-A5 training-coverage
+confound EMPIRICALLY CLEARED (both reach 100% element coverage by
+L=5-6; a mild A5 visit-frequency imbalance at L=8, max/min≈6.8×, noted
+as a footnote, non-blocking); gauge-freedom scoping; dim-2 disclosure;
+β-smoke non-load-bearing status; Stage-2 gating; ledger separation.
+
+---
+
+*(End §1 Rev 0 records. Rev 0 attacked → NEEDS-REVISION (§1.13:
+CA1-F1 impossible coverage bar, 3 MAJOR, 2 minor). Rev 1 in progress.)*

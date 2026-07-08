@@ -107,8 +107,18 @@ order); raw 17.4-18.3 GPU-h vs the NEW 30 GPU-h Stage-1 ledger. Agent
 CORRECTED a false brief figure: Task D's realized total is ~76 GPU-h
 (EXPERIMENT_LOG:1556), not the validator's 11.9 (that number belongs
 to the coherence-dose-response program) — cost anchors re-verified.
-NEXT: coordinator review + push → capability attack round 1 (must
-re-derive the cost table w/ corrected anchors).
+Attack round 1 (done, NEEDS-REVISION, §1.13 of that doc): CA1-F1
+FATAL-as-written — the query-coverage bar "≥200 distinct elements for
+A5/S5/A6" is IMPOSSIBLE (|A5|=60, |S5|=120; contradicts the doc's own
+table; would silently block the C5 control for the marquee groups) →
+percentage-of-|G| bar; CA1-M1 Spearman exact null P(ρ≥0.8)=8/120≈6.67%
+undisclosed (M1 corroborating-only, M3+marquee = the workhorse);
+CA1-M2 cost ceiling ~1 GPU-h unreconciled; CA1-M3 n_fit/n_eval +
+gate-1 acceptance test unpinned. Reps verified clean via INDEPENDENT
+constructions (quaternion A5, char-theory minimality); S4-vs-A5
+coverage confound EMPIRICALLY CLEARED; own 30 GPU-h hard-abort breaker
+CLEARED. → Rev 1 (in progress) → attack round 2 → build → audit →
+launch alongside head-to-head.
 
 **Note (2026-07-08):** two independent agents observed the real system
 clock at 2026-07-08 via git commit metadata while the session's static
