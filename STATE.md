@@ -86,8 +86,29 @@ executed K-bindings diagnostic matches theory exactly — Hadamard mean
 cos ~1/√K; DESCENDING fixed-sequence M* gatekeeping (Maurer-Hothorn-
 Lehmacher) w/ full-grid requirement for CONFIRMED M*=∞; n_layers=2
 pinned, tiers remapped LOSE≤2/TIE 4/WIN≥8; 90 passes; raw 12.5672,
-bracket 125.672, margin 1.658 GPU-h) → attack round 4 (RUNNING) →
-BUILD → build audit → launch rung-1 GPUs 0-6.
+bracket 125.672, margin 1.658 GPU-h) → attack round 4 (done:
+**DESIGN-CLEARED-FOR-BUILD**, §1.19 — diagnostic independently
+re-implemented and CONFIRMED; all gatekeeping edge cases hand-walked;
+4 MINOR doc-precision findings patched in place per the round's exact
+prescriptions, incl. the monotonicity-sentence correction (FWER holds
+unconditionally) and the bracket-vs-straddle mutual-exclusivity note)
+→ **BUILD STAGE ACTIVE** (agent dispatched w/ §1.19's binding
+dependency order) → independent build audit w/ mutation tests →
+deploy closure → launch rung-1 GPUs 0-6.
+
+**CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
+push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)
++ executed `capability_separation/verify_option_a_readout.py`
+(degauging verified: exact recovery under noise 0.9996 mean-cos;
+rank-deficient negative control NOT rescued, 0.6161/rec@0.9=0); family
+pinned to 5 groups (PSL(2,7) DROPPED w/ reasoning); all 5 reference
+reps constructed + numerically verified (orthogonal/faithful/correct
+order); raw 17.4-18.3 GPU-h vs the NEW 30 GPU-h Stage-1 ledger. Agent
+CORRECTED a false brief figure: Task D's realized total is ~76 GPU-h
+(EXPERIMENT_LOG:1556), not the validator's 11.9 (that number belongs
+to the coherence-dose-response program) — cost anchors re-verified.
+NEXT: coordinator review + push → capability attack round 1 (must
+re-derive the cost table w/ corrected anchors).
 
 **Note (2026-07-08):** two independent agents observed the real system
 clock at 2026-07-08 via git commit metadata while the session's static

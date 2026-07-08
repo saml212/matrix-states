@@ -1201,18 +1201,21 @@ Task 1's). **What is NOT controlled, disclosed honestly:** (i) this `α` is
 INTERNAL to axis 2 — it does not change or subsume the existing
 between-axis OR-win inflation already disclosed in §1.8
 (`1-0.95²≈9.75%` across axis 1 and axis 2's own headline tests); the two
-disclosures compose, they do not replace each other. (ii) the guarantee is
-CONDITIONAL on the monotonicity assumption implicit in testing in
-descending-`M` order — that the TRUE gap is non-increasing in `M` (more
-memory helps or does not hurt the baseline) — a scientifically reasonable
-but UNVERIFIED assumption at design time; if the empirical, noisy `n=3`
-gap is non-monotonic across the grid, the pre-registered stopping rule
-still applies MECHANICALLY (stop at the first non-rejection walking down
-from `M=32`, never peek past it even if a smaller `M` would have looked
-like a rejection by chance) — preserving FWER validity at the cost of
-potentially reporting a coarser `M*` than a hypothetical noise-free
-re-ordering would find. This trade-off is disclosed, not resolved, and
-named again in §1.18's own "not closed with full margin" note.
+disclosures compose, they do not replace each other. (ii) [corrected per
+attack round 4, §1.19] **FWER control does NOT depend on monotonicity** —
+the Maurer-Hothorn-Lehmacher first-true-null argument holds for ANY true
+configuration of the five hypotheses; monotonicity of the TRUE gap in `M`
+(more memory helps or does not hurt the baseline — scientifically
+reasonable but UNVERIFIED at design time) affects only whether the
+reported `M*` is a UNIQUE, cleanly interpretable crossover. If the
+empirical, noisy `n=3` gap is non-monotonic across the grid, the
+pre-registered stopping rule still applies MECHANICALLY (stop at the
+first non-rejection walking down from `M=32`, never peek past it even if
+a smaller `M` would have looked like a rejection by chance) — FWER
+remains controlled; the cost is potentially reporting a coarser `M*`
+than a hypothetical noise-free re-ordering would find. This
+interpretability trade-off is disclosed, not resolved, and named again
+in §1.18's own "not closed with full margin" note.
 
 **(b) Straddle rule (R3-F2 — extends the EXISTING §1.8 seed-extension
 contingency to the grid; the contingency itself is unchanged, costed, and
@@ -1442,7 +1445,16 @@ genuinely cap-trained `(b)` arm, +0.76 raw/+7.6 at bracket, remains
 registered as an explicit, costed, unaffordable-this-wave follow-on, §1.9
 item 7, never silently absorbed). **The bracket still fits (125.672 <
 127.33), so no training cell, Wave −1 gate, or seed count was touched to
-make it fit** — and this arithmetic is now flagged as re-derived by THREE
+make it fit.** **[Accounting-regime reconciliation, added per attack
+round 4 §1.19 finding B:] the 125.672 circuit-breaker bracket and the
+§1.8 straddle-extension bound (≤6.06 GPU-h real spend) are MUTUALLY
+EXCLUSIVE scenarios, never additive — the bracket fires only on an
+anomalous ~10×-over run that ABORTS before completion (no completed CI
+exists to straddle in that world); the extension triggers only on a
+COMPLETED run, whose realized cost falls in the disclosed
+12.57-16.34 GPU-h expected range (16.34 + 6.06 = 22.4 ≪ 127.33). A
+naive sum (125.672 + 6.06 = 131.73 > 127.33) misreads the regimes.**
+This arithmetic is now flagged as re-derived by THREE
 independent passes (§1.15's Rev-1 re-derivation, §1.17's Rev-2
 re-derivation AND its own R3-F6 catch, this Rev-3 correction), which
 tightens confidence but does not retire the standing instruction: the
@@ -1643,8 +1655,11 @@ both non-gating, reported reads, unaffected by this correction question.
 primary axis's n=3 CI is ambiguous (straddles its margin boundary) AND the
 point estimate's direction is consistent with a win, a seed-extension to
 n=9 is available for THAT axis's specific cells only — costed explicitly
-(6 more seed-cells × 0.2524 GPU-h ≈ 3.03 GPU-h raw per axis extended,
-inside remaining headroom) — and gated through the SAME batch-effect
+(6 more seeds × BOTH compared arms = 12 cells × 0.2524 GPU-h ≈ 3.03
+GPU-h raw per axis extended [formula corrected per attack round 4,
+§1.19 — the 3.03 bottom line was always the 12-cell figure; the stated
+multiplier previously omitted the ×2-arms factor], inside remaining
+headroom) — and gated through the SAME batch-effect
 variance-ratio check `REASONING_LINK_DESIGN.md` §16.19.5 registered
 (`var_ratio > 4.0` → flag, do not silently pool old and new seed cohorts)
 before any pooled reading is treated as decision-grade. This directly
@@ -1835,11 +1850,17 @@ in Rev 2 (items 10-11); Rev 3 folds in a cross-campaign caveat, item 12)
     section regardless of which way axis 2 resolves.
 12. **(NEW, Rev 3 — fold-in from the capability research wave,
     `STATE.md` commit 58de0fa) The contender's β gate is plain sigmoid
-    (β∈[0,1]), which has NO TC0-escape property as configured.** Per
-    Grazzi et al. (arXiv:2411.12537), a DeltaNet-family gate needs
-    β∈[0,2] (specifically the ability to express `β>1`) to escape TC0 and
-    gain any formal state-tracking expressivity beyond a bounded-gate
-    recurrence; this design's contender uses `arm="per_token"` with a
+    (β∈[0,1]), which forfeits the known state-tracking expressivity
+    gain as configured.** [Citation precision, per attack round 4
+    §1.19: Grazzi et al. (arXiv:2411.12537) prove finite-precision
+    linear RNNs with positive-eigenvalue-only transitions cannot solve
+    parity, and that extending eigenvalues to [-1,1] (β∈[0,2],
+    specifically `β>1`) enables learning any regular language — the
+    "TC0" framing used elsewhere in this repo is a gloss imported from
+    the adjacent Merrill-Sabharwal circuit-complexity line
+    (arXiv:2207.00729, 2404.08819), NOT Grazzi's own vocabulary;
+    re-source the exact class statement before any paper draft.]
+    This design's contender uses `arm="per_token"` with a
     plain sigmoid β restricted to `[0,1]` (§1.2), so **Task 2's
     held-out-hop-depth results carry NO formal state-tracking-separation
     implication** — they are empirical-only evidence about what THIS
@@ -2458,7 +2479,65 @@ papered over — the task's own instruction):**
 
 ---
 
-*(End §1. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 → Rev 3 (this
-doc) → §1.18. R3-F1 (broken diagnostic) and R3-F2 (M* statistics)
-resolved structurally; R3-F3/R3-F4 resolved; R3-F5/R3-F6 resolved. Attack
-round 4 pending.)*
+### 1.19 ATTACK ROUND 4 VERDICT (independent fresh-eyes agent, 2026-07-08): **DESIGN-CLEARED-FOR-BUILD**
+
+Recorded per the gauntlet-bookkeeping hard rule; the build stage
+dispatches against THIS recorded verdict. Fourth independent round; the
+attacker RE-IMPLEMENTED the load-bearing numerics from the prose spec
+(own code, own seed 13371, lstsq + independently-derived closed form):
+
+- **§1.3.1.5 diagnostic independently CONFIRMED** — full table match
+  within Monte Carlo noise at every K (incl. the K=64 near-singularity
+  edge); R3-F1's fix is real.
+- **Descending M\* gatekeeping** — all four edge cases hand-walked
+  (grid-exhaustion → LOSE; stop-at-4 → WIN M*=8; immediate non-reject →
+  M*=∞ pathway w/ full-grid requirement verified unambiguous at lines
+  1242-1249; boundary straddle → §1.8). Tier mapping coherent;
+  termination well-defined. BONUS CORRECTION: FWER control does NOT
+  require the monotonicity assumption (MHL first-true-null holds for any
+  true configuration) — the doc's own "CONDITIONAL" sentence was wrong
+  in the safe direction; patched this revision per the round's exact
+  prescription.
+- **Tier reachability** — cap_length(M)=M×8 at n_layers=2/fp32
+  re-derived; floor 13 re-verified against grammar_rd.py:552's LIVE
+  smoke assert (not the doc's claim); all tiers reachable.
+- **Budget** — 12.5672/125.672/1.658 re-summed exactly; every Wave −1
+  sub-item re-derived; Grazzi citation fact-checked against the paper.
+
+**Four MINOR documentation-precision findings, ALL PATCHED this
+revision per the round's prescriptions (no design change, no threshold
+change, no budget change):** (1) the monotonicity-sentence
+self-contradiction → corrected (§1.4.2); (2) bracket-vs-straddle
+accounting regimes never reconciled → mutual-exclusivity note added
+(§1.6); (3) §1.8's seed-extension formula stated "6 cells × 0.2524 ≈
+3.03" — the multiplier omitted the ×2-arms factor (12 cells; bottom
+line was always right) → corrected; (4) "TC0" attributed to Grazzi,
+who never uses the term (parity/regular-language is their vocabulary;
+TC0 is the Merrill-Sabharwal gloss) → re-attributed in self-attack
+item 12, with a re-source-before-paper-draft note.
+
+**Interpretation-rule disclosure (round 4, non-blocking):** at the real
+load points (K=32/48) the diagnostic's own tap gap is already maximal,
+so the §1.3.1.5 curve can EXPLAIN AWAY a near-null axis-1 result but
+can never POSITIVELY confirm a WIN reflects state capacity over tap
+mechanism — the K=32 disclosure at lines 750-760 generalizes; carried
+into the analysis stage as a standing interpretive bound.
+
+**Build-stage dependency order (round 4's list, binding on the build
+agent):** (1) CPU-parallel: verify_match_gate.py (2-pass),
+rd_episode_seed 5-key + seed_idx/ckpt_idx asserts + collision smoke,
+flat-vector mixer, Transformer (RoPE/shared FFN/n_layers=2/sink+FIFO
+capped mode), §1.3.1 probe head + adapters + frozen T_val +
+probe-capacity-null harness, K-bindings diagnostic script; (2) gates
+6+7 PASS before PI-signoff tokens; (3) gate 1 three-arm calibration;
+(4) gate 2 timing pilots incl. the R3-F4 M-sweep pilot
+(checkpoints-resident); (5) 27-cell training sweep; (6) 90-pass
+M-sweep fan-out; (7) analysis (axis-1 margins; descending M* walk w/
+§1.8 as needed, PI-gated); (8) escalation decision (§1.5, mechanical,
+NOT pre-authorized).
+
+---
+
+*(End §1. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 → Rev 3 →
+§1.18 → **§1.19 DESIGN-CLEARED-FOR-BUILD** (4 doc-precision patches
+applied in place). BUILD STAGE ACTIVE.)*
