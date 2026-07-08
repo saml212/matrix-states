@@ -6133,3 +6133,83 @@ so a categorical gate failure can be distinguished from "the model
 didn't learn anything" rather than left ambiguous.`
 
 ---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 3 (2026-07-10): attack-round-3
+landed, NEEDS-REVISION (1 FATAL, 2 MAJOR, 6 MINOR), all fixed, zero GPU
+spent — a third independent adversarial pass reviewed §15.24 (Rev 2)
+before any GPU work launched. FATAL: Rev 2's own two-level dispositive
+floor (≥2 anomalous episodes across ≥2 distinct events) is a NOISE
+argument — sound for Step 1's NUMERICAL live/offline disagreement check,
+where a near-boundary residual genuinely can jitter run to run — but
+wrongly applied, unchanged, to Step 0b's pool-membership precheck, which
+is STRUCTURAL: a dumped entity id either is or is not a member of the
+disjoint held-out pool, computed with zero floating-point arithmetic. One
+violation is already deterministic proof of a bug — exactly this
+project's own "exact threshold, no tolerance slack copied from a
+floating-point context" rule. Concretely, a real pool-mismatch in a
+5-event sink previously fell below the 2-event floor, was EXCLUDED, and
+the verdict silently continued to REAL-CAPACITY-BOUNDARY or
+TOLERANCE-MISCALIBRATION on the untainted remainder — a confidently wrong
+claim. Fixed by splitting the floor: Step 0b is now dispositive on ANY
+SINGLE pool-membership violation, no event/episode-count minimum,
+mirroring `model_rd.py:2048`'s own assert-exactly-zero convention; the
+≥2-episode/≥2-distinct-event bar now gates Step 1's numerical
+disagreement check ONLY. Two MAJORs, both in the combined-sink machinery
+Step −1's NO-REPRO contingency path created: event identity `(step, hop,
+batch_idx)` was never launch-unique across the up-to-3-launch combined
+sink, so a cross-launch reproduction at identical coordinates could
+wrongly dedup to "1 event" — fixed with an additive `seed` field on every
+dumped event, pinning `episode := (seed, step, hop, batch_idx, row_idx)`
+and `event := (seed, step, hop, batch_idx)` (cross-launch recurrence at
+identical coordinates is now disclosed as the STRONGEST reproduction
+evidence available, never discounted); and Step 1's offline recompute ran
+on a batch-size-1 slice of the dumped tensor, which can select a
+different GEMM kernel than the live batch-size-128 call and flip a
+near-boundary residual from batching alone — fixed by recomputing ONE
+batched call on each event's full dumped `(B,K,d)` tensor, matching the
+live call's own batching exactly, then indexing
+`resid_offline[row_idx]`. Six MINORs: a missing cross-marker negative
+test (a 0b violation and a Step 1 disagreement in different events must
+count toward their OWN marker's floor only, never combined); a stale "per
+episode" usage in the cell-selection paragraph that actually meant "per
+K-item pool draw," reworded; a citation off by one line
+(`run_deltanet_rd_exactness_sweep.py:3097`→`:3098`); the `k_eff_raw`/
+`k_blend_raw` bitwise re-confirmation pinned as an explicit hard-abort on
+failure; the floor paragraph now names 0a's own corroborating-marker
+counting rule explicitly (same recurrence bar as Step 1,
+corroborating-only); and "residual AMBIGUOUS" renamed to
+**AMBIGUOUS-RESIDUAL**, matching the hyphenated verdict-name convention
+every other outcome already follows. Full finding→fix table (house
+style): `KEY_ANCHORING_SCALING_DRAFT.md` §15.24.12. Rev 3 has NOT yet had
+its own independent audit pass — next step is a fresh attack round 4,
+before build. No cells launched, no code built this session; STATE.md's
+queue updated.
+
+---
+
+## KEY-ANCHORING K=69/d=96 CONTINGENCY SEED 1733 (2026-07-08): ADMISSIBLE — h4=0.9175, K=69 group now n=3 admissible (mean 0.9800→0.9592, first admissible K=69 seed below 0.96); registered fit stays blocked on C17
+
+§15.20.4 MAJOR-2 / §15.22 next-step 2's reserved seed, fired standalone on
+GPU 3 (tmux `keyanchor_k69_contingency`, wrapper
+`run_k69_s1733_contingency.py` — the sweep CLI has no single-cell dispatch
+for this cell, so the wrapper calls the audited
+`_keyanchor_scaling_spec`/`build_cmd` directly and field-diffs its command
+against the archived seed-1730 reference before launching: MATCH, seed
+tokens only). Pre-flight closed a real kernel-gate gap: T_bind(69)=483 is
+covered by NEITHER the original {128,224,448} gate NOR the wide
+{504,546,588,630} gate — new probe `smoke_dstate_kernel_t483_probe.py`
+PASSED (control 448 + candidate 483, d=96, forward+backward). Cell:
+complete=true 20000/20000, wall_s=1535.2s = 0.427 GPU-h at 1× (≈0.4
+registered), geo3_admission.admissible=true, no NS fallback. Descriptive
+only: K=69 admissibility-filtered mean h4 0.9800 (n=2) → 0.9592 (n=3), sd
+0.0263→0.0406; naive per-group t-CI half-width 0.2361→0.1009 (an artifact
+of the degenerate n=2 t-interval — the §15.20.4 power-check's ~4% fit-CI
+narrowing projection is unchanged, still ≫ the 0.0145 discrimination
+threshold). §15.22 verdict unchanged; seed 1734 stays reserved. Archive:
+`experiment-runs/2026-07-07_keyanchor_scaling_wide/` (+SSD mirror), §15.22
+addendum in `matrix-thinking/KEY_ANCHORING_SCALING_DRAFT.md`. Observed
+during run (not caused by it): `phase2_familiarization` self-terminated at
+01:45 UTC with its own `STAGE05_LAUNCH_GATE_REFUSED` sentinel — GPUs 0-1
+idle after; flagged to coordinator, out of this task's scope.
+
+---

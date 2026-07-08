@@ -1,6 +1,6 @@
 # Project State
 
-**Last updated:** 2026-07-09
+**Last updated:** 2026-07-10
 
 This document is the project dashboard. Anyone returning to the project (you, a collaborator, a grant reader, an experimenter agent) should read this first to answer: where is the project right now?
 
@@ -52,6 +52,57 @@ without selecting one: a vocab-space behavioral-contrast instrument
 promoted to primary; lane closure with the triple null as the
 publishable finding; or a recipe-extension calibration run). Not
 self-launched by this harvest.
+
+---
+
+## C17 EVAL-ADMISSION REPRO INSTRUMENT — REV 3 LANDED (2026-07-10) —
+supersedes the REV 2 LANDED block below's own queue status (that block's
+Rev 2 content is otherwise unaffected/unretracted; Rev 3 fixes it, not
+replaces it).
+
+**Queue status: DESIGN (Rev 3) → (next) ATTACK ROUND 4 → BUILD → AUDIT →
+LAUNCH.** `KEY_ANCHORING_SCALING_DRAFT.md` §15.24's independent
+attack-round-3 verdict: **NEEDS-REVISION** — 1 FATAL, 2 MAJOR, 6 MINOR.
+All nine fixed in Rev 3, finding→fix table at §15.24.12. Headline fix
+(**FATAL**): Rev 2's own two-level dispositive floor (≥2 anomalous
+episodes across ≥2 distinct events) is a NOISE argument — sound for Step
+1's NUMERICAL live/offline disagreement check, where a near-boundary
+residual genuinely can jitter run to run — but wrongly applied, unchanged,
+to Step 0b's pool-membership precheck, which is STRUCTURAL: a dumped
+entity id either is or is not a member of the disjoint held-out pool,
+computed with zero floating-point arithmetic; one violation is already
+deterministic proof of a bug, exactly this project's own "exact
+threshold, no tolerance slack copied from a floating-point context" rule.
+Concretely, a real pool-mismatch in a 5-event sink previously fell below
+the 2-event floor, was EXCLUDED, and the verdict silently continued to
+REAL-CAPACITY-BOUNDARY or TOLERANCE-MISCALIBRATION on the untainted
+remainder — a confidently wrong claim. Fixed by splitting the floor: Step
+0b is now dispositive on ANY SINGLE pool-membership violation, no
+event/episode-count minimum, mirroring `model_rd.py:2048`'s own
+assert-exactly-zero convention; the ≥2-episode/≥2-distinct-event bar now
+gates Step 1's numerical disagreement check ONLY. Two MAJORs, both in the
+combined-sink machinery Step −1's NO-REPRO contingency path created:
+event identity `(step, hop, batch_idx)` was never launch-unique across
+the up-to-3-launch combined sink, so a cross-launch reproduction at
+identical coordinates could wrongly dedup to "1 event" — fixed with an
+additive `seed` field on every dumped event, pinning `episode := (seed,
+step, hop, batch_idx, row_idx)` and `event := (seed, step, hop,
+batch_idx)` (cross-launch recurrence at identical coordinates is now
+disclosed as the STRONGEST reproduction evidence available); and Step 1's
+offline recompute ran on a batch-size-1 slice of the dumped tensor, which
+can select a different GEMM kernel than the live batch-size-128 call and
+flip a near-boundary residual from batching alone — fixed by recomputing
+ONE batched call on each event's full dumped `(B,K,d)` tensor, matching
+the live call's own batching exactly. Six MINORs: a missing cross-marker
+negative test (floors count per-marker-type, never combined); a stale
+"per episode" usage reworded to "per K-item pool draw"; a citation off by
+one line (`:3097`→`:3098`); the bitwise re-confirmation pinned as an
+explicit hard-abort on failure; 0a's own corroborating-marker counting
+rule named explicitly; "residual AMBIGUOUS" renamed to
+**AMBIGUOUS-RESIDUAL**. **Rev 3 has NOT yet had its own independent audit
+pass — per this program's standing multiple-independent-audit-rounds
+rule, a fresh attack round 4 is the next step, before build.** No cells
+launched, no code written this session.
 
 ---
 
