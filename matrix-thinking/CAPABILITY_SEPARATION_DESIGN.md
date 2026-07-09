@@ -3458,7 +3458,7 @@ trivial); (c) hybrid}, plus the L=1 mechanism micro-diagnostic
 
 ---
 
-## §2 DESIGN — Stage 2 (Rev 1, 2026-07-09; Rev 0 2026-07-08/09) — COMPOSITIONAL DEPTH
+## §2 DESIGN — Stage 2 (Rev 2, 2026-07-09; Rev 1 2026-07-09; Rev 0 2026-07-08/09) — COMPOSITIONAL DEPTH
 GENERALIZATION: does a matrix-state model trained on group word-products
 of depth ≤ D_train answer held-out depths D_test ≫ D_train in a SINGLE
 forward pass (no CoT), tracking the state's algebraic structure, while
@@ -3490,7 +3490,11 @@ fresh-eyes agent, primary sources re-fetched) returned NEEDS-REVISION**
 main registry was under concurrent Stage-1 Rev-7 edit at record time,
 per the gauntlet-bookkeeping hard rule); **this Rev 1 folds all six
 findings plus both also-noted items** — full finding→resolution map in
-§2.13.
+§2.13. **Micro-attack round 2 on Rev 1's delta (§2.14, 2026-07-09)
+returned NEEDS-REVISION (narrow — 2 MAJOR, 3 MODERATE, minors, all
+text-only); this Rev 2 folds its binding prescription** — full
+finding→resolution map in §2.15; kernel adjudication, arm structure,
+and the reconciled decision criteria are NOT reopened.
 
 This design's central finding, stated up front because it drives every
 other decision below: **Stage 1's own accumulated evidence — the §1.25
@@ -3788,14 +3792,17 @@ adjudicating; adjudicated here, torch ADOPTED):**
    carries ~3 significant decimal digits; fp32 removes an entire
    confound class from the decisive read — a far-depth FAIL must be
    attributable to architecture/β-range, not accumulated rounding.
-4. **Independent convergent adjudication:** the Novel-Architecture
+4. **Corroborating context (softened, Rev 2, §2.14 minor — reasons
+   1-3 above carry the adoption on their own):** the Novel-Architecture
    waterfall's NCR attack round (`NOVEL_ARCH_WATERFALL.md` §2, finding
-   M5) independently reached the same conclusion for the adjacent
+   M5) reached the same conclusion for the adjacent
    toy-scale regime — *"Bespoke fp32 torch at d=16 is the right call
    (no fla kernel computes powers; the 3-8× envelope band doesn't
    apply)"* — and its finding M4 explicitly defers NCR's own GPU work
-   until Stage 2's calibration "settles fla-vs-torch." Two independent
-   attack rounds, same verdict.
+   until Stage 2's calibration "settles fla-vs-torch." Both rounds
+   ran in this same repo against shared priors and artifacts, so this
+   is convergent CONTEXT, not independent evidence; the adoption does
+   not lean on it.
 
 **One retained `fla` role — a one-cell numerical cross-check, NEVER a
 decisive-path component:** because `beta_fla_smoke.py`'s fla path is
@@ -3808,8 +3815,15 @@ D=8), (n_h=2, D=8)}` (the `n_h=2` leg runs against
 relative Frobenius error `‖S_torch − S_fla‖_F / ‖S_torch‖_F ≤ 5e-2` at
 every checked config AND `≤ 1e-2` for the single-step `(1,1)` config.
 Tolerances are bf16-scale (unit roundoff `≈3.9e-3`, growing with the
-`n_h·D ≤ 16` accumulation steps); a violation at these depths cannot
-be produced by precision alone and indicates a semantic mismatch.
+`n_h·D ≤ 16` accumulation steps); softened (Rev 2, §2.14 minor —
+Rev 1's "cannot be produced by precision alone" overclaimed: the
+adversarial worst case is LINEAR accumulation, `16 × 3.9e-3 ≈ 6.2e-2 >
+5e-2`, so precision alone is not formally excluded at the multi-step
+legs) — in practice per-step rounding errors are sign-varying and
+accumulate ≈RMS (`√16 × 3.9e-3 ≈ 1.6e-2`, a `>3×` cushion under the
+`5e-2` bar), so a violation is STRONG evidence of a semantic mismatch
+rather than proof, with the single-step `(1,1)` leg's `≤1e-2` bar as
+the precision-clean discriminator (one step, no accumulation).
 Wired as a mandatory build-gate item (§2.11), run once, CPU/GPU-cheap.
 
 **Reconciling `S_t` (32×32, kernel-native) with `Z` (`d_state×d_state`,
@@ -3835,7 +3849,11 @@ plausible re-trigger of the PROVEN §1.30 reader degeneracy via rank
 instead of sequence length.** Mechanism, stated explicitly so the risk
 is registered, not implicit: each per-step update adds at most `n_h`
 rank-1 write terms (and the decay factor `(I − β k kᵀ)` cannot raise
-rank), so `rank(S_D) ≤ min(32, n_h·D)` — at `D=1` that is `n_h∈{2,4}`,
+rank), so `rank(S_D) ≤ min(32, n_h·D)` — with the initial state pinned
+`S_0 = 0` (stated explicitly, Rev 2, §2.14 minor: the bound assumes it;
+no learned or nonzero `S_0` is used anywhere in this design, and the
+last-`K` control's eval-time state reset, §2.9 item 4, resets to this
+same pinned `S_0=0`) — at `D=1` that is `n_h∈{2,4}`,
 and even at `D_train_max=8` with the default `n_h=2` it is `≤16`, i.e.
 **the ENTIRE training range feeds the reader a `(B,32,32)` memory whose
 32 rows span a subspace of dimension `≪ 32` (near-collinear rows).** A
@@ -3846,9 +3864,11 @@ query-independence provable with a single key), which cost Stage 1 four
 diagnosis rounds (§1.25/§1.27/§1.29/§1.30). The planned blank-out/P=1
 check (below) tests gradient flow, NOT query-dependence, and would not
 catch this. **Mandatory detection: the query-dependence diagnostic in
-the calibration-first gate, §2.8 item 2(e)** (exactly §1.30's P3
-method, numeric bar pinned there), gated BEFORE the sweep remainder
-launches. Pre-validated fix if it fires: §1.30 item 6's learned-BOS
+the calibration-first gate, §2.8 item 2(e)** (§1.30's P3 raw
+read-vector-std quantity, with Rev 2's setting-calibrated
+mean-aggregation, pinned probe sample, extended probe depths, and
+RELATIVE same-setting bar all pinned there), gated BEFORE the sweep
+remainder launches. Pre-validated fix if it fires: §1.30 item 6's learned-BOS
 fix, transposed to this reader's memory axis — a learned, always-present
 extra memory row ("row 0"/BOS-row) prepended to the 32 reshaped state
 rows before the reader, guaranteeing at least one key linearly
@@ -3881,7 +3901,12 @@ item, §2.11.
 **Param-matching, disclosed as a build-time obligation, not a
 precomputed number.** An analytical estimate (transformer-encoder-body
 scaling rule, `h²`-dominated terms) puts `GroupWordEncoder` at
-roughly 40-45K parameters for a `d_state=5` (S4/A5-shaped) instance —
+roughly 40-45K parameters for a `d_state=5` instance — S4/A5-shaped
+under §1.4's pinned `d_state = d_min+2` rule (disambiguated, Rev 2:
+the `5` here is the AMBIENT state dimension, not `d_min`; §2.14's
+minor read it as `d_min`, which at `5` would be A6 — `d_state=7` —
+and the conflict is adjudicated against §1.2/§1.4's own tables in
+§2.15's recorded tiebreak) —
 consistent with `model_v4.py`'s own ~171K-at-`h=64` figure scaled by
 `(32/64)²≈0.25`. `GroupWordDeltaComposer`'s per-token projections
 (`q_proj`/`k_proj`/`v_proj`/`beta_proj`, each roughly `h×(h·n_h)`) are
@@ -4287,7 +4312,17 @@ DeltaProduct's own published result already establishes sufficiency
 for these three and this design's own contribution is the untested
 S5/A6 cases, not re-deriving a published result.)
 
-**Calibration promotion (Rev 1, attack-round finding 4):** one
+**Arm of the `n_h` grid, pinned (Rev 2, §2.14 MODERATE-5 — Rev 1 left
+it unstated): Arm 3 (β∈[0,2]) exclusively.** Justification: the `n_h`
+axis exists to test DeltaProduct's published sufficiency claims, which
+were measured at `allow_neg_eigval=True` (§2.2.3, §2.9 item 5's own
+disclosure); running it on Arm 2 (β∈[0,1]) would confound the `n_h`
+question with the β-range exclusion Theorems 1/3 already predict binds
+Arm 2 on S5/A6 — an uninterpretable two-axis cell, exactly what the
+hold-axes-fixed rule forbids.
+
+**Calibration promotion (Rev 1, attack-round finding 4; base-cell
+`n_h` PINNED at Rev 2, §2.14 MODERATE-5):** one
 `(S5, Arm 3, n_h=4)` cell — S5's DECISIVE Arm-3 configuration
 (§2.2.4), and the config where `n_h` multiplies the expanded
 per-position work — is PROMOTED from the 18-cell grid above into the
@@ -4295,7 +4330,18 @@ mandatory calibration-first set (§2.8 item 2, now 11 cells), so the
 calibration gate exercises `n_h=4` (not just the `n_h=2` default)
 before the sweep remainder launches. Drawn from, not added to, the
 grid: zero incremental cells, zero incremental ledger cost (priced in
-§2.7's calibration row).
+§2.7's calibration row). **The 10 BASE calibration cells (one per
+(group, β-arm), Arms 2-3) are ALL pinned at `n_h=2`** — the primary-
+grid default — including the base `(S5, Arm 3)` cell, which is
+therefore `(S5, Arm 3, n_h=2)`, drawn from the 18-cell `n_h` grid's
+`(S5, n_h=2)` row (the PRIMARY grid's own S5 Arm-3 config is `n_h=4`
+per §2.2.4, so the `n_h=2` base cell's provenance is the flanking
+grid; still zero incremental cells, both rows are already ledgered).
+**The promoted 11th cell `(S5, Arm 3, n_h=4)` is thus DISTINCT from
+the base `(S5, Arm 3, n_h=2)` cell — not a near-duplicate** (the exact
+degeneracy §2.14 MODERATE-5 flagged as constructible under Rev 1's
+unpinned wording). Each calibration cell runs at seed index 0 of its
+own grid row's seed list (pinned, so a build agent cannot drift it).
 
 **Total new training cells: `50 (primary) + 18 (n_h grid) = 68`.**
 
@@ -4491,13 +4537,37 @@ unmeasured (calibration-pending, not assumed).**
 | Arm 1 (reused Stage-1 checkpoints, new `D_test` eval only) | 0 new training | — | ≈0.0 |
 | Arms 2-3 primary grid (5 groups × 2 β-arms × 5 seeds) | 50 | 0.018-0.054 GPU-h/cell | 0.90-2.70 |
 | `n_h` force-arm grid (S5, A6 × `n_h∈{1,2,4}` × 3 seeds) | 18 | 0.018-0.054 GPU-h/cell | 0.32-0.97 |
-| Contingency (Stage 1's own 2-2.5× escalation rule, 1-2 cells) | 2 × 2.25× | 0.054 GPU-h/cell (pricier end) | 0.24 |
+| Contingency (escalation allowance under §1.30's RECALIBRATED rule (c): ≤2 escalations/group, each PI-visible + priced, second miss → mandatory ≤0.1 GPU-h mechanism diagnostic before any action — Rev 2 fixes Rev 1's stale citation of the superseded "2-2.5× escalation rule"; planning allowance unchanged at 2 cells × 2.25×) | 2 × 2.25× | 0.054 GPU-h/cell (pricier end) | 0.24 |
 | Calibration-first wave (1 cell/(group,arm) for Arms 2-3, `5×2=10` cells, PLUS the promoted `(S5, Arm 3, n_h=4)` cell, §2.5 — 11 cells) | reused within the 50 + 18 above, not double-charged | — | ≈0.0 |
 | Torch-vs-fla one-cell numerical cross-check (§2.2.2, Rev 1) | build-time, one run | — | ≈0.0 |
-| Query-dependence diagnostic, §2.8 item 2(e) (Rev 1) | measured on the 11 calibration cells' own forwards | — | ≈0.0 |
+| Query-dependence diagnostic, §2.8 item 2(e) (Rev 2: mean-aggregated, relative bar, depths `D∈{1..64}`) | eval-only forwards on the 11 calibration cells' own checkpoints (incl. the free `D=16/32/64` probe extension + the norm-matched synthetic healthy anchor) | — | ≈0.0 |
 | Blank-out / P=1 re-verification for the new architecture (§2.2.2) | CPU-only | — | ≈0.0 |
 | Prefix-state-fidelity diagnostic, per-depth rank measurement (§2.5/§2.6) | post-hoc, reuses saved checkpoints | — | ≈0.0 |
-| **Raw total** | 68 new cells | | **≈1.5-3.9 GPU-h** |
+| **Raw total** | 68 new cells | | **≈1.5-3.9 GPU-h** (anchor-rate scenario — see the step-budget axis below) |
+
+**Step-budget axis, disclosed (Rev 2, §2.14 MODERATE-3 — a known
+in-repo multiplier Rev 1's band silently omitted, LARGER than the
+kernel-launch unknown it named as dominant):** the `0.0179` GPU-h/cell
+anchor is Stage 1's measured rate **at the 8K-STEP budget**, but Stage
+1's own Rev-7 budget pins (§1.30/§1.31) moved three of the five groups
+ABOVE 8K to clear a comparable convergence bar — S4/A5 to 20K (×2.5)
+and A6 to 40K (×5); S3/S5 stayed at 8K. If Stage 2's cells need the
+same per-group budgets, the per-group-pinned worst case is `≈9.6 GPU-h`
+(per-group multipliers applied to the 68-cell grid at the `3×` band
+ceiling, + contingency), and the JOINT worst case — every cell at the
+40K ceiling AND the `3×` kernel band, the honest bound since Stage 2's
+own budgets are UNMEASURED and Stage 1's own pins moved 8K→40K on one
+group — is `68 × 0.054 × 5 + 0.24 ≈ 18.4 GPU-h` (**≈18-19 GPU-h,
+approaching but still under the 25 GPU-h cap, margin ≈26%**).
+Containment, both pre-existing and now explicitly load-bearing for
+this axis: (1) the calibration-first gate re-derives the REAL per-cell
+rate at the real per-group step budgets before the 57-cell remainder
+launches (M-D0's recalibrated convergence profile sets the budgets;
+the 11 calibration cells measure the rate AT those budgets); (2) the
+`budget_guard` breaker (§2.8 item 3) hard-aborts if the measured rate
+projects the full grid over the cap. The `1.5-3.9` raw total and the
+margin figure below are therefore the ANCHOR-RATE (8K-step) scenario,
+labeled as such — not the worst case.
 
 **This directly confirms the PI's own prediction in the saturation
 directive** (verbatim, §2.0: *"cost re-derived at measured rates,
@@ -4523,9 +4593,15 @@ still being honestly justified rather than inflated for its own sake:**
 
 **Stage-2 dedicated ledger: 25 GPU-h cap, PI-visible, separate from
 Stage 1's own 30 GPU-h cap and from the concurrently-chartered
-FIX-AT-SCALE (~170 GPU-h) ledger — CAP UNCHANGED at Rev 1** — raw
+FIX-AT-SCALE (~170 GPU-h) ledger — CAP UNCHANGED at Rev 1/Rev 2** — raw
 estimate `1.5-3.9 GPU-h` (Rev 1 band) leaves `84-94%` margin under this
-cap, now comfortably inside Stage 1's own
+cap **in the anchor-rate (8K-step) scenario (re-labeled at Rev 2,
+§2.14 MODERATE-3: the honest range across the step-budget axis is
+`84-94%` at the anchor rate, degrading to `≈61%` at the per-group-
+pinned worst case and `≈26%` at the ≈18.4 GPU-h joint worst case
+disclosed above — still under the cap in every scenario, with the
+calibration-first re-derivation + `budget_guard` breaker as the
+containment)**, the anchor-rate figure being comfortably inside Stage 1's own
 convention (Stage 1's Rev-5 measured-rate margin was `90.7%`; Rev 0's
 thinner `56-84%` margin priced the fla envelope uncertainty, which the
 §2.2.2 kernel adjudication removed — the cap is deliberately NOT
@@ -4536,8 +4612,9 @@ convention):**
 ```
 - capability-sep-stage2: 0/25 (dedicated cap, separate from Stage-1's
   own 30 GPU-h; raw estimate 1.5-3.9 GPU-h at Rev-1 planning rates
-  (torch recurrence, §2.2.2), calibration-pending; PI 2026-07-09
-  saturation directive).
+  (torch recurrence, §2.2.2) in the 8K-step anchor-rate scenario —
+  step-budget joint worst case ≈18.4 GPU-h, §2.7 Rev 2, breaker-
+  contained; calibration-pending; PI 2026-07-09 saturation directive).
 ```
 
 **If, once launched, the calibration gate measures a rate materially
@@ -4574,7 +4651,9 @@ Stage 2's own claim requires it.
    (group, arm) combination for Arms 2-3 (`5×2=10` cells) PLUS the
    promoted `(S5, Arm 3, n_h=4)` cell (§2.5, Rev 1, attack-round
    finding 4 — S5's decisive Arm-3 config exercises `n_h=4` before the
-   sweep trusts it) — **11 cells total**, all already counted inside
+   sweep trusts it; the 10 BASE cells are all pinned at `n_h=2` and
+   the base `(S5, Arm 3, n_h=2)` cell is distinct from the promoted
+   11th, §2.5 Rev 2 pin) — **11 cells total**, all already counted inside
    §2.7's 50+18-cell grids, run to completion
    BEFORE the remaining 57 cells launch. Duties: (a) M-D0's per-depth
    convergence profile (§2.6, pre-split bar, RECALIBRATED against real
@@ -4587,38 +4666,128 @@ Stage 2's own claim requires it.
    UNMODIFIED (the target shape and degauging pipeline are unchanged
    from Stage 1, so the SAME synthetic trajectory and acceptance
    thresholds apply without re-derivation — a genuine "reused, not
-   rebuilt" case, not a hand-wave); **(e) [Rev 1, attack-round finding
-   1 — LAUNCH-BLOCKING] the QUERY-DEPENDENCE DIAGNOSTIC**, run on
-   EVERY calibration cell: measure the read-vector std across the
-   `d_state` `row_queries` outputs (EXACTLY §1.30's P3 method — the
-   `group_word_encoder.py:96-103` probe, the same raw quantity, ported
-   to the composer's reshaped `(B,32,32)` memory), at every probe
-   depth `D∈{1,2,4,8}` (spanning the low-rank regime: `rank(S_D) ≤
-   n_h·D`, worst at `D=1`, §2.2.2's registered risk). **Numeric bar,
-   pinned: PASS requires read-vector std `≥ 0.04` at EVERY probe
-   depth; any value `< 0.04` at any depth is a FAIL.** Derivation of
-   the bar from §1.30's two measured anchors: the proven-degenerate
-   anchor is `0.000e+00` (exact query-independence, single key) and
-   the healthy anchor is `0.41` (`L=2`); the anchors are separated by
-   an effectively infinite ratio, so the bar's real job is to
-   adjudicate the UNMEASURED middle — partial collapse via near-
-   collinear rows, exactly the §2.2.2 mechanism. `0.04` is one order
-   of magnitude below the healthy anchor: generous room for benign
-   scale shift from the new memory statistics (reshaped fp32 state
-   rows vs transformer token embeddings), while refusing to pass any
-   read sitting a full decade closer to degenerate than to healthy.
-   The bar is deliberately biased toward FAIL because the costs are
-   asymmetric: a false FAIL costs one BOS-row fix (§2.2.2's
-   pre-validated candidate) plus one re-run calibration cell
-   (`≤0.054` GPU-h at the §2.7 planning rate); a false PASS costs the
-   sweep's interpretability — the §1.25-§1.30 four-diagnosis-round
-   precedent. The norm-normalized ratio (std / mean read-vector norm)
-   is REPORTED alongside as disclosure, but the decisional bar stays
-   on the raw §1.30-P3 quantity to remain method-exact. FAIL routing:
-   apply the BOS-row fix uniformly to Arms 2-3 + the last-`K` control
-   (all-arms-or-none, §2.2.2), re-run the failing cell(s), re-measure;
-   the sweep remainder does NOT launch until every calibration cell
-   passes (e).
+   rebuilt" case, not a hand-wave); **(e) [Rev 2 rewrite — §2.14
+   MAJOR-1(a-c)+MAJOR-2; Rev 1's absolute-0.04, `{1,2,4,8}`-depth
+   version is SUPERSEDED] the QUERY-DEPENDENCE DIAGNOSTIC,
+   setting-calibrated and aggregation-pinned**, run on EVERY
+   calibration cell:
+
+   **Statistic, stated INLINE with the aggregation pinned:** feed the
+   trained reader the composer's reshaped `(B, 32, 32)` memory
+   (§2.2.2), expand the `d_state` `row_queries`, take `read =
+   reader(q, mem, mem)` of shape `(B, d_state, h)`, and compute
+   `read.std(dim=1)` — the per-(batch-item, dim) standard deviation
+   across the `d_state` row-query outputs — **aggregated as the MEAN
+   over the `B×h` entries**. Canonical method source, named with its
+   formula quoted (§2.14 minor):
+   `experiment-runs/2026-07-09_capability_gate1_round7/l1_micro_diag.py:210`,
+   whose archived statistic is `std_across_queries =
+   float(read.std(dim=1).max().item())` — a **MAX** over the `B×h`
+   entries. **Rev 2 REPLACES the archived max-aggregation with the
+   mean, and states why:** §1.30's P3 was adjudicating EXACT
+   degeneracy (anchors `0.000e+00` vs `0.41`, an effectively infinite
+   separation — max vs mean is immaterial there); THIS gate grades
+   PARTIAL collapse, where a max false-PASSES a mostly-collapsed read
+   on a single outlier coordinate (§2.14 MAJOR-1(a): the method-exact
+   port INVERTS Rev 1's claimed FAIL bias). The raw per-entry quantity
+   (std across the row queries) is P3's own, unchanged; only the
+   aggregation is re-pinned for the graded setting.
+
+   **Probe sample, pinned (§2.14 MAJOR-1(c)):** `B=64` probe words per
+   (cell, depth); word generation is EXACTLY the archived probe's
+   procedure generalized from its S4-only `n_gens=4`: `tok =
+   torch.randint(0, n_gens, (B, D),
+   generator=torch.Generator().manual_seed(7))` — i.i.d. uniform
+   generator indices over the cell's own pinned generating set, seed 7
+   retained from the archived probe. `B=64` (vs the archived `B=8`) is
+   pinned because the mean-aggregate is a graded statistic and the
+   family's smallest reader is small-sample: at S3, `d_state=4` under
+   §1.4's `d_state=d_min+2` pin, so each per-(item,dim) std is a
+   4-sample statistic — the noisiest in the family — and `B=64` gives
+   `64×h = 2048` aggregate entries per (cell, depth), stabilizing it
+   at zero cost (eval-only forward). [Adjudication note, recorded per
+   the raw-artifact-tiebreak hard rule: §2.14 MAJOR-1(c) cites
+   "`d_state=2`" as the smallest case — `2` is S3's `d_min`; under
+   §1.4's pin the reader has `d_state=4` row queries. The caveat
+   survives in weakened form (4 samples is still small) and the pinned
+   `B=64` is its remedy; tiebreak recorded in §2.15.]
+
+   **Probe depths, pinned: `D∈{1,2,4,8,16,32,64}` (§2.14 MAJOR-2).**
+   Rev 1's `{1,2,4,8}` spanned only the training/low-rank regime
+   (`rank(S_D) ≤ n_h·D`, worst at `D=1`, §2.2.2's registered risk) and
+   never probed the DECISIVE `D=64` read (§2.6 M-D3), where a SECOND
+   degeneracy channel — state-norm accumulation saturating the reader
+   — is live and could MANUFACTURE the pre-registered Arm-2-collapse
+   CONFIRM pattern. All seven depths are eval-only forward passes on
+   the SAME calibration checkpoints: zero new training, ≈0.0 GPU-h
+   (§2.7's diagnostic row).
+
+   **PASS bar, RELATIVE to same-setting anchors (§2.14 MAJOR-1(b) —
+   the instrument-relativity hard rule; Rev 1's absolute `0.04`,
+   imported from a DIFFERENT instrument (trained S4 transformer-token
+   memory) onto raw delta-state rows with unpinned norms, is
+   withdrawn):** the §2.8 2(d) synthetic-injection machinery already
+   generates known-good states in the NEW instrument — extended one
+   free step, it yields a per-(cell, depth) HEALTHY ANCHOR: construct
+   a synthetic known-query-dependent memory by running the pinned
+   recurrence itself (not the trained model) from the pinned `S_0=0`
+   for 32 steps with the columns of a seeded random orthogonal matrix
+   as keys `k_t`, i.i.d. Gaussian values `v_t`, `β_t=1` (seed 7; the
+   resulting `S` is full-rank and well-conditioned — its 32 rows are
+   guaranteed non-collinear), then rescale its rows so the mean row
+   norm MATCHES the real cell's own mean state-row norm at the probed
+   depth `D` (norm-matched: the anchor differs from the probe in row
+   GEOMETRY only, never scale). Feed it through the SAME trained
+   reader with the SAME probe procedure → `T_anchor(D)`; the real
+   memory's statistic is `T(D)`. **Raw bar: `T(D) ≥ 0.25 ×
+   T_anchor(D)` at EVERY probe depth.** The fraction `0.25`,
+   justified: Rev 1's decade-below-healthy generosity existed to
+   absorb unpinned SCALE shift between instruments; Rev 2 handles
+   scale explicitly (norm-matched anchor + the co-decisional
+   normalized ratio below), so the fraction only has to absorb benign
+   GEOMETRY differences — a healthy trained cell's state rows are
+   correlated in learned ways a random-orthogonal anchor's are not,
+   and demanding parity would false-FAIL healthy cells. One quarter of
+   the SAME reader's demonstrated healthy response is deliberately
+   tighter than Rev 1's decade (as it should be, with scale no longer
+   laundered through it) while still refusing to pass any read sitting
+   `4×` closer to degenerate than to healthy in its own instrument;
+   the deliberate FAIL bias and its asymmetric-cost justification
+   carry over from Rev 1 unchanged (false FAIL = one BOS-row fix +
+   one re-run cell, `≤0.054` GPU-h at the §2.7 anchor-rate; false PASS
+   = the sweep's interpretability, the §1.25-§1.30 four-round
+   precedent). **Norm-normalized ratio, PROMOTED from Rev 1's
+   disclosure-only status to CO-DECISIONAL:** `R(D) = T(D) / (mean
+   read-vector L2 norm)`, the norm-mean taken over the same
+   `B×d_state` reads, and
+   identically `R_anchor(D)` on the anchor reads; **second bar:
+   `R(D) ≥ 0.25 × R_anchor(D)` at every probe depth. PASS requires
+   BOTH bars at ALL seven depths; either bar failing at any depth is
+   a FAIL.** Why co-decisional: the raw statistic scales with read
+   magnitude, so large state-row norms can lift a degenerate reader
+   over any absolute (or purely raw-relative) bar — false-PASS — and
+   small norms can sink a healthy one — false-FAIL; `R` is
+   scale-invariant, so a scale artifact cannot fake BOTH bars in the
+   same direction (closing §2.14's "scale can fake either direction"
+   channel).
+
+   **FAIL routing, now TWO-LEVEL (§2.14 MAJOR-1(b)'s launch-deadlock
+   fix):** FIRST level, unchanged from Rev 1 — apply the BOS-row fix
+   uniformly to Arms 2-3 + the last-`K` control (all-arms-or-none,
+   §2.2.2), re-run the failing cell(s), re-measure; the sweep
+   remainder does NOT launch until every calibration cell passes (e).
+   SECOND level, new: a PERSISTENT FAIL after the BOS-row fix (the BOS
+   row restores rank/key-independence, NOT scale or saturation
+   degeneracy — under Rev 1 a scale-caused persistent FAIL had no exit
+   and deadlocked the launch) triggers a MANDATORY §1.30-style
+   mechanism diagnostic, capped at `≤0.1` GPU-h, BEFORE any further
+   action — mirroring §1.7 gate 1(a) rule (c)'s recalibrated
+   diagnostic-before-action rule, with the same three-way routing
+   (instrument defect → targeted fix + re-run; trainable-but-
+   under-budget → one capped escalation; genuine architectural
+   ceiling → demote + disclose + PI-visible design review). A
+   persistent FAIL therefore routes to a diagnosis, never to an
+   undefined state.
 3. **Timing pilot / circuit breaker** — reuses Stage 1's exact
    mechanism (`budget_guard.py`, §2.0), re-keyed to this design's own
    25 GPU-h cap: if the calibration cells' measured rate projects the
@@ -4698,17 +4867,41 @@ Stage 2's own claim requires it.
    fully rule out a bounded-context-window heuristic. **Mitigation,
    pinned as a build item, not left open:** an explicit, disclosed
    "last-`K`-window" control (`K=D_train_max`) — a small architecture
-   that provably only sees the most recent `K` generators (implemented
-   as a truncated-context variant of Arm 2/3, e.g. resetting the
-   recurrent state every `K` steps) — scored at the SAME far-depth
-   points. **Trigger, pinned numerically (Rev 1, attack-round finding
+   that provably only sees the most recent `K` generators — scored at
+   the SAME far-depth points. **Implementation, PINNED (Rev 2, §2.14
+   MODERATE-4 — Rev 1 left trained-vs-eval-truncation open):
+   EVAL-TIME truncation of the EXISTING trained Arm-3 checkpoints** —
+   during the eval forward only, the recurrent state is reset to the
+   pinned `S_0=0` (§2.2.2) at every position `t ≡ 0 (mod K)`, so the
+   terminal read provably depends on at most the last `K` generators.
+   **Zero new training cells, zero ledger delta** (each Arm-3
+   checkpoint yields its own truncated-eval twin). **Seed count for
+   `control_mean`, pinned: the SAME `n=5` Arm-3 seeds per group
+   (§2.5), paired by seed with the contender.** Disclosed weakness +
+   pinned escalation (the choice's honest cost): an eval-truncated
+   composer UNDERSTATES what a TRAINED bounded-window model could
+   score (its readout was never trained on truncated-regime state
+   statistics) — anti-conservative for a control whose job is to
+   bound the shortcut ceiling; therefore, pinned: if the
+   eval-truncated control lands within TWICE the trigger band —
+   `contender_mean − control_mean ≤ 2·max(2·σ_seed, 0.05)` — at the
+   decisive point, a TRAINED last-`K` instance (same recurrence,
+   state reset every `K` steps at train AND eval; 5 groups × 3 seeds
+   = 15 cells, `≈0.27-0.81` GPU-h at §2.7's anchor-rate band,
+   PI-visible, absorbed by the ledger margin) becomes MANDATORY
+   before any CONFIRM is recorded. **Trigger, pinned numerically
+   (Rev 1, attack-round finding
    6, per the exact-thresholds hard rule — Rev 0's "matches or nearly
    matches" was unquantified):** at the decisive far-depth point
    (`~8×`, `D=64`), the downgrade FIRES iff
    `contender_mean − control_mean ≤ max(2·σ_seed, 0.05)`, where both
    means are per-group recovered_frac@0.9 averaged over seeds and
    `σ_seed` is the CONTENDER's own seed-to-seed standard deviation at
-   that same point (`n=5` seeds, §2.5). Justification: `σ_seed` is the
+   that same point (`n=5` seeds, §2.5), **computed as the SAMPLE
+   standard deviation (`ddof=1`, `n=5`) — pinned at Rev 2 (§2.14
+   minor; the population/`ddof=0` form is ~11% smaller at `n=5` and
+   would silently NARROW the trigger band, an anti-conservative drift
+   for a shortcut control)**. Justification: `σ_seed` is the
    design's own measured noise scale at exactly the decisive point, so
    `2σ` approximates a ~95% same-population band — a control within it
    is statistically indistinguishable from the contender; the `0.05`
@@ -4857,20 +5050,26 @@ sweep launchable, but its harvest/verdict is still pending).
 ### 2.11 Sequencing
 
 design (this doc, Rev 0) → attack round 1 (NEEDS-REVISION,
-`CAPABILITY_STAGE2_ATTACK_R1.md`/§2.13) → **Rev 1 (this revision)** →
-fresh micro-attack on Rev 1's delta → DESIGN-CLEARED-FOR-BUILD → build
+`CAPABILITY_STAGE2_ATTACK_R1.md`/§2.13) → Rev 1 → micro-attack round 2
+on Rev 1's delta (NEEDS-REVISION, §2.14) → **Rev 2 (this revision,
+§2.15)** → scoped micro-attack pass on the §2.8 2(e) rewrite
+specifically → DESIGN-CLEARED-FOR-BUILD → build
 (`GroupWordDeltaComposer`: the bespoke fp32 torch per-step recurrence
 (§2.2.2 Rev 1) + `GroupWordEncoder`'s reused readout head, §2.2.2; the
 one-cell torch-vs-fla numerical cross-check, §2.2.2 Rev 1, pinned
 tolerances; the `n_h`/β-range
 config switch reusing `beta_fla_smoke.py`'s existing pattern; the fresh
 blank-out test for the new forward pass; the query-dependence
-diagnostic probe — §1.30's P3 method ported to the composer's reshaped
-memory, §2.8 item 2(e); the per-depth coverage/
+diagnostic probe — §1.30's P3 raw quantity ported to the composer's
+reshaped memory with Rev 2's mean-aggregation, pinned probe sample,
+`D≤64` depths, and same-setting relative bar, §2.8 item 2(e); the
+per-depth coverage/
 diversity-floor extension of `coverage_calibration.py`, §2.4; the
 `D_test` grid evaluation harness, incl. Arm-1's checkpoint-reuse path
 and the prefix-state-fidelity diagnostic, §2.3/§2.6; the last-`K`-window
-shortcut-control variant with its pinned trigger, §2.9 item 4; the 25
+shortcut control — eval-time state-reset truncation of the Arm-3
+checkpoints with its pinned trigger and escalation clause, §2.9 item 4
+Rev 2; the 25
 GPU-h hard-abort
 enforcement wrapper, §2.7/§2.8) → independent build audit (separate
 agent) → **launch gate: Stage 1 CONFIRM or diagnosed-INCONCLUSIVE,
@@ -4925,12 +5124,15 @@ finding to Task D/E and Stage 1 either way, per this program's standing
   Fine Structure of NC¹," JACM 35(4):941-952, 1988 (the
   solvable-monoid side sits in ACC⁰). Used in §2.2.1 item 3 / §2.2.3 /
   §2.9 item 2, with the `TC⁰ ⊊ NC¹` conditionality stated.
-- **Kernel-adjudication convergent evidence (Rev 1, attack-round
-  finding 3):** `NOVEL_ARCH_WATERFALL.md` §2, findings M5 (bespoke
+- **Kernel-adjudication corroborating context (Rev 1, attack-round
+  finding 3; softened Rev 2, §2.14 minor):** `NOVEL_ARCH_WATERFALL.md`
+  §2, findings M5 (bespoke
   fp32 torch endorsed at toy scale, the `3-8×` envelope band
   inapplicable) and M4 (NCR's own GPU work explicitly gated behind
-  Stage 2's calibration readout, "which settles fla-vs-torch") — an
-  independent attack round reaching the same §2.2.2 verdict.
+  Stage 2's calibration readout, "which settles fla-vs-torch") — a
+  same-repo round reaching the same §2.2.2 verdict; convergent
+  context, not independent evidence (§2.2.2 reasons 1-3 carry the
+  adoption).
 - **Rate anchor:** `CAPABILITY_SEPARATION_DESIGN.md` §1.6's Rev-5
   measured-rate table (`0.0179`/`0.04475` GPU-h/cell), the ONLY
   measured anchor this design has (Arms 2-3's own rate is disclosed
@@ -4946,7 +5148,12 @@ finding to Task D/E and Stage 1 either way, per this program's standing
   recurrence + reused readout head, §2.2.2 Rev 1); the one-cell
   torch-vs-fla numerical cross-check (§2.2.2 Rev 1, pinned
   tolerances); the fresh blank-out test for it; the query-dependence
-  diagnostic probe (§2.8 item 2(e), §1.30-P3 port, bar `≥0.04`); the
+  diagnostic probe (§2.8 item 2(e) Rev 2: mean-aggregated §1.30-P3
+  quantity — canonical method source
+  `experiment-runs/2026-07-09_capability_gate1_round7/l1_micro_diag.py:210`
+  — `B=64`/seed-7 probe sample, depths `D∈{1..64}`, relative bar
+  `≥0.25×` the norm-matched same-setting healthy anchor + co-decisional
+  norm ratio, two-level FAIL routing); the
   single-fixed-depth mode of `coverage_calibration.py`; the `D_test`
   grid evaluation harness (incl. Arm-1 checkpoint reuse and the
   prefix-fidelity diagnostic); the last-`K`-window shortcut control
@@ -5193,3 +5400,42 @@ mechanism diagnostic). Discharges MAJOR-1(a-c) and MAJOR-2 together.
 structure, and reconciled criteria NOT reopened). Launch gate §1.11
 unchanged. Security: one system-channel date-change+concealment sighting
 (the recurring ambiguous vector), reported, not tallied as stdout.**
+
+---
+
+### §2.15 REV 2 CHANGES (2026-07-09) — §2.14 finding → resolution map
+
+Scoped strictly to §2/§2.15 (text-only; §1.x byte-untouched; no code).
+Kernel adjudication (§2.2.3), arm structure (§2.2.4), and the
+reconciled decision criteria (§2.1/§2.6 M-D3) are NOT reopened, per
+§2.14's own disposition.
+
+| §2.14 finding | Resolution (Rev 2) | Where |
+|---|---|---|
+| **MAJOR-1(a) — archived P3 statistic is a MAX (`read.std(dim=1).max()`), biasing a graded bar toward FALSE-PASS; Rev 1 never stated max-vs-mean** | 2(e) rewritten with the statistic INLINE: `read.std(dim=1)` per (batch-item, dim), **aggregated as the MEAN over the `B×h` entries**, explicitly REPLACING the archived max-aggregation with the stated reason (max detects EXACT degeneracy — §1.30's infinite-separation setting; mean grades PARTIAL collapse — a max false-PASSES on one outlier coordinate). Canonical method source named with formula quoted: `experiment-runs/2026-07-09_capability_gate1_round7/l1_micro_diag.py:210` (`std_across_queries = float(read.std(dim=1).max().item())`). | §2.8 item 2(e), §2.12 |
+| **MAJOR-1(b) — absolute 0.04 bar violates instrument-relativity (anchors from a trained-S4-transformer instrument; raw delta-state row norms unpinned → false-PASS via large norms, deadlocked false-FAIL via small norms)** | Absolute bar WITHDRAWN. PASS bar now RELATIVE to a same-setting healthy anchor generated by extending the 2(d) synthetic-injection machinery (pinned recurrence from `S_0=0`, 32 orthogonal-key/Gaussian-value β=1 steps, seed 7, rows NORM-MATCHED to the real cell's mean state-row norm at each probed depth): **`T(D) ≥ 0.25 × T_anchor(D)` at every depth**, fraction justified (scale now handled explicitly, so 0.25 absorbs only benign geometry differences; tighter than Rev 1's decade, preserves the FAIL bias + asymmetric-cost rationale). **Norm-normalized ratio `R(D) = T(D)/mean-read-norm` PROMOTED to co-decisional** with its own `≥ 0.25 × R_anchor(D)` bar — both bars required, so a scale artifact cannot fake either direction. Launch deadlock removed via the two-level FAIL routing (next row). | §2.8 item 2(e) |
+| **MAJOR-1(b) routing gap — BOS fix cures rank, not scale; persistent FAIL had no exit** | SECOND-LEVEL routing added: persistent FAIL after the BOS-row fix → MANDATORY §1.30-style mechanism diagnostic, `≤0.1` GPU-h, BEFORE any further action, with §1.7 gate 1(a) rule (c)'s recalibrated three-way routing (instrument→fix; under-budget→one capped escalation; ceiling→demote+disclose+PI review). | §2.8 item 2(e) |
+| **MAJOR-1(c) — probe sample (B, seed, words) unpinned; small-sample std at the smallest reader** | Pinned: `B=64`, seed 7 (retained from the archived probe), word generation = the archived procedure generalized to each group's `n_gens` (`torch.randint(0, n_gens, (B, D), generator=manual_seed(7))`). `B=64` (vs archived `B=8`) pinned specifically for the small-sample caveat: `64×h=2048` aggregate entries stabilize the graded mean at zero cost. **Recorded tiebreak (raw-artifact rule):** §2.14 cites "`d_state=2`" for the smallest case — `2` is S3's `d_min`; §1.2/§1.4's own tables pin `d_state=d_min+2`, so S3's reader has **4** row queries (the caveat survives weakened — 4 samples is still small — and `B=64` is its remedy; a "larger query count" per se is not available without changing the reused reader head, which is held fixed). | §2.8 item 2(e) |
+| **MAJOR-2 — decisive depth D=64 unprobed; a D=64 reader degeneracy (state-norm saturation) could manufacture the Arm-2-collapse CONFIRM** | Probe depths extended to **`D∈{1,2,4,8,16,32,64}`** — includes the §2.6 M-D3 decisive read; stated as free eval-only forwards on the same calibration checkpoints (≈0.0 GPU-h, §2.7 row updated). | §2.8 item 2(e), §2.7 |
+| **MODERATE-3 — step-budget axis omitted from the cost band; stale "2-2.5× escalation rule" citation** | New "Step-budget axis" disclosure block in §2.7: the `0.0179` anchor is the 8K-STEP rate while §1.30's Rev-7 pins are 20K (S4/A5) and 40K (A6) on a comparable bar; per-group-pinned worst case `≈9.6` GPU-h; **JOINT worst case `68×0.054×5+0.24 ≈ 18.4` GPU-h (≈18-19, margin ≈26%, still under the 25 GPU-h cap)**; containment = calibration-first re-derivation at the real per-group budgets + the `budget_guard` breaker. The `84-94%` margin claim re-labeled the ANCHOR-RATE scenario with the honest range (`84-94%` → `≈61%` → `≈26%`) stated beside it; proposed `STATE.md` ledger entry updated to carry the axis. Contingency row's citation fixed to §1.30's recalibrated rule (c) (`≤2` escalations/group), allowance figure unchanged. | §2.7 |
+| **MODERATE-4 — last-`K`-window control trained-vs-eval-truncation unpinned; seed count for `control_mean` unpinned** | **PINNED: eval-time truncation of the EXISTING trained Arm-3 checkpoints** (state reset to the pinned `S_0=0` every `K=D_train_max` positions during eval only) — **zero new cells, zero ledger delta**, stated explicitly. `control_mean` over the SAME `n=5` Arm-3 seeds, paired by seed. The choice's anti-conservative weakness disclosed with a PINNED escalation: control within `2×` the trigger band → a TRAINED last-`K` instance (15 cells, `≈0.27-0.81` GPU-h anchor-rate, PI-visible) becomes mandatory before any CONFIRM. | §2.9 item 4 |
+| **MODERATE-5 — base-calibration `n_h` unpinned (near-duplicate constructible); `n_h` grid's arm unstated** | Pinned: the 10 base calibration cells are ALL `n_h=2` (primary-grid default); the base `(S5, Arm 3)` cell is `(S5, Arm 3, n_h=2)` drawn from the 18-cell grid's `(S5, n_h=2)` row (the primary grid's S5 Arm-3 config is `n_h=4` per §2.2.4), so the promoted 11th cell `(S5, Arm 3, n_h=4)` is DISTINCT, not a near-duplicate; calibration runs use seed index 0 of each row's seed list. **`n_h` grid's arm pinned: Arm 3 (β∈[0,2]) exclusively** (the published sufficiency claims it tests were measured at `allow_neg_eigval=True`; running on Arm 2 would confound `n_h` with the β-range exclusion). | §2.5, §2.8 item 2 |
+| **Minor 6 — M4/M5 "convergent verdict" over-framed** | Softened at both sites: reasons 1-3 carry the kernel adoption; the NCR round is same-repo corroborating CONTEXT, not independent evidence. | §2.2.2 reason 4, §2.12 |
+| **Minor 7 — "cannot be produced by precision alone" overclaims** | Softened with the arithmetic: adversarial LINEAR accumulation `16×3.9e-3 ≈ 6.2e-2 > 5e-2` is not formally excluded; sign-varying rounding accumulates ≈RMS (`√16×3.9e-3 ≈ 1.6e-2`, `>3×` cushion), so a violation is STRONG evidence of semantic mismatch, with the single-step `≤1e-2` leg as the precision-clean discriminator. | §2.2.2 |
+| **Minor 8 — `S_0` never pinned where the rank bound assumes it** | Pinned `S_0 = 0` at the `rank(S_D) ≤ min(32, n_h·D)` bound (no learned/nonzero `S_0` anywhere; the last-`K` control's eval reset uses the same pin). | §2.2.2, §2.9 item 4 |
+| **Minor 9 — `σ_seed` sample-vs-population unpinned** | Pinned: SAMPLE standard deviation, `ddof=1`, `n=5` (the `ddof=0` form is ~11% smaller at `n=5` and would silently narrow the trigger band — anti-conservative). | §2.9 item 4 |
+| **Minor 10 — "`d_state=5` (S4/A5-shaped)" flagged as a mislabel ("d=5 is A6-shaped")** | **Recorded tiebreak (raw-artifact rule, adjudicated against §1.2's group table + §1.4's `d_state=d_min+2` pin):** `d_state=5` IS S4/A5-shaped (`d_min=3+2`); `5` is A6-shaped only as `d_min` (A6: `d_min=5`, `d_state=7`). The flagged sentence was AMBIGUOUS (its `5` invited a `d_min` reading), not wrong — rewritten to state explicitly that `5` is the ambient state dimension, with this tiebreak cross-referenced. | §2.2.2 |
+| **Minor 11 — repo-archived `l1_micro_diag.py` not named canonical, formula not inline** | Done inside the 2(e) rewrite (path + line + quoted formula) and mirrored in §2.12's build-item pointer. | §2.8 item 2(e), §2.12 |
+
+**Ledger/cell arithmetic at Rev 2: UNCHANGED** — 68 new training cells,
+11-cell calibration-first set (10 base `n_h=2` + the promoted
+`(S5, Arm 3, n_h=4)`), 25 GPU-h cap, `1.5-3.9` GPU-h anchor-rate raw
+total; the only new cost content is the DISCLOSURE of the step-budget
+axis (joint worst case `≈18.4` GPU-h, breaker-contained) and the
+zero-cost pins above; the conditional trained last-`K` escalation
+(15 cells) is priced but only spent if its pinned trigger fires.
+
+**STATUS: Rev 2 complete → needs a scoped micro-attack pass on the
+§2.8 2(e) rewrite specifically before DESIGN-CLEARED-FOR-BUILD; launch
+gate §1.11 unchanged; kernel adjudication, arm structure, and the
+reconciled decision criteria NOT reopened.**
