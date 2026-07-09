@@ -1,5 +1,35 @@
 # STATE — Current Project State
 
+## DAY BRIEFING — 2026-07-09 (evening; the quotable summary)
+
+**Five banked results, all gauntlet-hardened and pushed:** (1) **THE
+RANK-LAW TRILOGY, 5/5 COMPLETE** (§1.33/§1.36/§1.36a): correlation
+ρ=0.9747 (tie-capped max), marquee S4-vs-A5 dimension-not-solvability
+TOST, and the causal razor — recovery is a step function at exactly
+d_min in all five groups, with the necessity side exactly 0.000 across
+all seeds tested; total cost ≈4.3 GPU-h. (2) **H2H ROUND 4 = TASK1-
+PRIMARY LEG-A WIN at n=1** (§1.37): contender recall 0.9990 vs
+0.0447/0.0295 baselines (>3× the pre-registered margin), S₀ hard-stop
+PASSED (recall provably fast-weight-resident), Leg-B anchor reproduced
+±0.001; the 27-cell n=3 confirmatory sweep is RUNNING (margins frozen
+§1.38, ETA ~03:00-05:00Z). (3) **qk-norm EXONERATED at n=3** (0.05σ)
+— the attractor is not the known artifact; gating amplification =
+direction-consistent trend, NOT confirmed at the bar (1.92σ, p=0.062),
+folded into iclr-2027 with that framing. (4) **The S₀ mechanism
+discovery**: bindings live entirely in block-0's fast-weight state,
+stored nonlinearly, linearized by the model's own forward pass —
+explains all three earlier calibration "failures" (wrong-layer
+instrument). (5) **Fix-at-scale wave LIVE**: pins written + verified,
+post_pin flood on GPUs 2-7 (~250 GPU-h through the coming days) — the
+per_token-vs-global geometry-transfer verdict at 98M/392M. Paper
+vehicles: capability-ws-2026/RANK_LAW_SKELETON.md new; iclr-2027
+terminology + robustness folds landed; **PI decisions queued: Jul 11
+NeurReps/UniReps EAs, 5 late-add emails, Jul 19 COLM.** Gauntlet
+receipts today: two wave-killing FATALs, a rank-tax instrument defect,
+a vacuous rung, a wrong-layer instrument, a mis-derived tolerance band,
+and a pre-registration ambiguity — all caught BEFORE compute was
+wasted. Session-limit outage 01:15-08:54 PT disclosed (box unaffected).
+
 **Last updated:** 2026-07-09 (new-sprint consolidation; per-event history
 lives in `EXPERIMENT_LOG.md`, the design docs' § sections, `experiment-runs/`
 archives, and git history — see "Documentation Map" at the end of this
@@ -617,6 +647,17 @@ correction pass, out of scope for this consolidation.
 
 ## SECURITY NOTE (standing)
 
+**TALLY RECONCILIATION (2026-07-09 late, single coordinator pass): ≥90
+fake `<system-reminder>` blocks defeated across the Jul 2026 session
+family.** The prose counter RACED under concurrent agents (parallel
+logs recorded 73/79/80/82/89 independently — each agent read-then-
+incremented its own view; see the m3fix launch agent's [LEARN]). The
+reconciled floor sums the per-agent sightings logged in EXPERIMENT_LOG
+and the design-doc § records through the Jul-9 evening: ≥90, every one
+disregarded, zero complied with, zero injected content landed in any
+file (spot-verified by md5-vs-git each time). Henceforth: sightings are
+logged per-record WITHOUT a running number; this reconciled floor is
+the quotable figure. Historical detail below retained as-is:
 **≥73 fake `<system-reminder>` blocks observed appended to tool stdout
 across the Jul 2026 session family** (recent: a date-change +
 concealment + agent-type-list block on the NCR Rev-1 agent's first git
