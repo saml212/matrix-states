@@ -1,0 +1,230 @@
+{
+  "design_ref": "SCALE_TRANSFER_DESIGN.md sec 5.5 item 1 (attractor persistence probe)",
+  "chunk_size": 64,
+  "n_windows_per_corpus_per_checkpoint": 32,
+  "seq_len": 512,
+  "checkpoints": [
+    "results/attractor_robustness_2x2/checkpoints/lmC_openr1-mix-ext_dm256_ds64_L2_s2_gated_step20000.pt"
+  ],
+  "measurement_convention_note": "gram_deviation is computed on L2-NORMALIZED raw post-conv keys, PRE the kernel's own internal use_qk_l2norm_in_kernel normalization (not interceptable at this hook point) -- matches model_rd.py's own documented convention and Track B's identical pre-normalization rationale. Episodes with n_valid (non-EOT content positions in the chunk) < MIN_VALID_FOR_GRAM=2 are EXCLUDED (gram_deviation=None), counted in n_excluded_below_min_valid, never silently averaged as 0.",
+  "pooled": {
+    "n_episodes": 3584,
+    "n_excluded_below_min_valid": 0,
+    "n_scored": 3584,
+    "gram_deviation_mean": 23.076231002807617,
+    "gram_deviation_std": 4.0577545166015625,
+    "effective_rank_mean": 33.32664108276367,
+    "stable_rank_mean": 3.280595302581787
+  },
+  "per_checkpoint": {
+    "results/attractor_robustness_2x2/checkpoints/lmC_openr1-mix-ext_dm256_ds64_L2_s2_gated_step20000.pt": {
+      "corpus_trained_on": "openr1-mix-ext",
+      "seed": 2,
+      "step": 20000,
+      "config": {
+        "vocab_size": 50257,
+        "d_model": 256,
+        "d_state": 64,
+        "n_layers": 2,
+        "conv_size": 4,
+        "num_heads": 1,
+        "ffn_mult": 4,
+        "qk_l2norm_in_kernel": true,
+        "gated_delta_active": true,
+        "geo3_active": false,
+        "geo3_k_sel": 16,
+        "geo3_chunk_size": 64,
+        "geo3_n_iter": 12,
+        "geo3_resid_tol": 0.01,
+        "geo3_selection_mode": "beta_topk",
+        "geo3_excluded_token_ids": [
+          50256
+        ],
+        "hard_select_active": false,
+        "hard_select_mechanism": "hard_ste",
+        "hard_select_k_sel": 32,
+        "hard_select_chunk_size": 64,
+        "hard_select_b_pinned": null,
+        "hard_select_seed": 0,
+        "hard_select_tau_total_steps": null,
+        "hard_select_tau_anneal_frac": 0.1,
+        "hard_select_excluded_token_ids": [
+          50256
+        ],
+        "frozen_bias_arm": "off",
+        "frozen_bias_lambda": 0.58,
+        "frozen_bias_vocab_size": null,
+        "frozen_bias_seed": 20260705
+      },
+      "n_params": 14049408,
+      "per_corpus": {
+        "openr1": {
+          "per_layer": {
+            "0": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 24.486324310302734,
+              "gram_deviation_std": 2.321033000946045,
+              "effective_rank_mean": 28.99115753173828,
+              "stable_rank_mean": 2.9913957118988037
+            },
+            "1": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 19.35561180114746,
+              "gram_deviation_std": 4.119957447052002,
+              "effective_rank_mean": 38.627620697021484,
+              "stable_rank_mean": 3.996636152267456
+            }
+          },
+          "n_windows_sampled": 32
+        },
+        "openr1-mix": {
+          "per_layer": {
+            "0": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 24.866893768310547,
+              "gram_deviation_std": 2.5409271717071533,
+              "effective_rank_mean": 28.252891540527344,
+              "stable_rank_mean": 2.9412009716033936
+            },
+            "1": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 19.141454696655273,
+              "gram_deviation_std": 3.3599956035614014,
+              "effective_rank_mean": 37.9718132019043,
+              "stable_rank_mean": 4.034455299377441
+            }
+          },
+          "n_windows_sampled": 32
+        },
+        "openr1-mix-ext": {
+          "per_layer": {
+            "0": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 25.081771850585938,
+              "gram_deviation_std": 3.1737382411956787,
+              "effective_rank_mean": 28.66352081298828,
+              "stable_rank_mean": 2.902402400970459
+            },
+            "1": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 19.766258239746094,
+              "gram_deviation_std": 3.859593152999878,
+              "effective_rank_mean": 37.90713882446289,
+              "stable_rank_mean": 3.895829200744629
+            }
+          },
+          "n_windows_sampled": 32
+        },
+        "openr1-stress": {
+          "per_layer": {
+            "0": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 26.899887084960938,
+              "gram_deviation_std": 5.216545104980469,
+              "effective_rank_mean": 25.74692153930664,
+              "stable_rank_mean": 2.761111259460449
+            },
+            "1": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 21.390653610229492,
+              "gram_deviation_std": 4.025202751159668,
+              "effective_rank_mean": 34.341896057128906,
+              "stable_rank_mean": 3.6821823120117188
+            }
+          },
+          "n_windows_sampled": 32
+        },
+        "wikitext": {
+          "per_layer": {
+            "0": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 24.485910415649414,
+              "gram_deviation_std": 1.342450499534607,
+              "effective_rank_mean": 28.619491577148438,
+              "stable_rank_mean": 3.2253403663635254
+            },
+            "1": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 22.542724609375,
+              "gram_deviation_std": 3.7659976482391357,
+              "effective_rank_mean": 40.23375701904297,
+              "stable_rank_mean": 3.0739362239837646
+            }
+          },
+          "n_windows_sampled": 32
+        },
+        "wikitext-mix": {
+          "per_layer": {
+            "0": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 24.5355281829834,
+              "gram_deviation_std": 1.2606868743896484,
+              "effective_rank_mean": 28.57160758972168,
+              "stable_rank_mean": 3.2278192043304443
+            },
+            "1": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 22.857280731201172,
+              "gram_deviation_std": 3.646519660949707,
+              "effective_rank_mean": 40.23283386230469,
+              "stable_rank_mean": 2.993187189102173
+            }
+          },
+          "n_windows_sampled": 32
+        },
+        "wikitext-mix-ext": {
+          "per_layer": {
+            "0": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 24.68457794189453,
+              "gram_deviation_std": 1.4469537734985352,
+              "effective_rank_mean": 28.41189956665039,
+              "stable_rank_mean": 3.197377920150757
+            },
+            "1": {
+              "n_episodes": 256,
+              "n_excluded_below_min_valid": 0,
+              "n_scored": 256,
+              "gram_deviation_mean": 22.972373962402344,
+              "gram_deviation_std": 3.8797607421875,
+              "effective_rank_mean": 40.00044250488281,
+              "stable_rank_mean": 3.0054545402526855
+            }
+          },
+          "n_windows_sampled": 32
+        }
+      }
+    }
+  },
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "wall_s": 18.57185649871826
+}

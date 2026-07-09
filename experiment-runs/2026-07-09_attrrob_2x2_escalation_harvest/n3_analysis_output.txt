@@ -1,0 +1,15 @@
+pre-registered rule: |delta vs baseline| > 2 x 2.244355 = 4.48871 (same-corpus floor)
+baseline (qkTrue_gateFalse) n=3: [19.069, 22.7369, 18.7771] mean=20.1943 sd=2.2068
+
+qkTrue_gateTrue: n=3 [25.2322, 25.8615, 22.424] mean=24.5059 sd=1.8302
+    delta vs baseline = +4.3116 (+1.92 sigma_floor)  paired per-seed deltas=[6.1633, 3.1246, 3.647]  same-direction=True  exceeds 2-sigma bar=False
+qkFalse_gateFalse: n=3 [18.1959, 20.8726, 21.2054] mean=20.0913 sd=1.6499
+    delta vs baseline = -0.1030 (-0.05 sigma_floor)  paired per-seed deltas=[-0.8731, -1.8643, 2.4283]  same-direction=False  exceeds 2-sigma bar=False
+qkFalse_gateTrue: n=3 [21.2044, 20.8, 21.9629] mean=21.3225 sd=0.5904
+    delta vs baseline = +1.1281 (+0.50 sigma_floor)  paired per-seed deltas=[2.1354, -1.9369, 3.1859]  same-direction=False  exceeds 2-sigma bar=False
+
+runner escalation.fire=False  recomputed=False  match=True
+rec@0.9 all-zero (PROBE-INVALID floor, NON-DECISIONAL as pre-registered): True
+failed cells: none
+
+written n3_recompute_summary.json

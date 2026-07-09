@@ -144,12 +144,37 @@ design doc's finer group-weighted estimate stays ≈2.51 GPU-h, both
 comfortably under cap), tmux `cap_sweep` on GPU 0 only. First cells
 confirmed healthy: unconstrained-arm cells converge near-zero loss;
 the `S3__k_dmin` force-rank arm (M3's decisive causal test) converges
-to a stable ≈0.293 plateau — the expected capacity-bound signature,
-not a fault. Chained (same supervisor, automatic fallthrough, dry-run
-verified pre-launch): the campaign-3 2×2 n=3 escalation fires
-immediately after the sweep's `STOP` marker lands, same GPU 0.
-Harvest (verify-vs-raws → TOST/M1-M3) is a separate follow-on dispatch,
-not yet run.
+to a stable ≈0.293 plateau — read at launch as the expected
+capacity-bound signature (the harvest showed it was in fact the exact
+√(k/d_state) D-AMB ceiling, below). Chained (same supervisor, automatic
+fallthrough, dry-run verified pre-launch): the campaign-3 2×2 n=3
+escalation fired immediately after the sweep's `STOP` marker landed,
+same GPU 0. **HARVESTED (2026-07-09, §1.33; archive
+`experiment-runs/2026-07-09_capability_sweep_harvest/`, verify-vs-raws
+61/61 md5-exact, all aggregates recomputed from per-cell JSONs via the
+repo's own pre-registered `tost_analysis.py` machinery). STAGE-1
+VERDICT: INCONCLUSIVE — DIAGNOSED (D-AMB).** M1 CONFIRM: restricted
+eff-rank tracks d_min essentially perfectly (1.877/2.852/2.832/3.591/
+4.736 for d_min 2/3/3/4/5; all 19 unconstrained cells in-band per-seed;
+Spearman ρ=0.9747 = the tie-capped maximum). Marquee S4-vs-A5 TOST:
+**DECLARE** (diff +0.019 rank-units, t≈13-14 vs tcrit 1.87) — the pair
+lands together (dimension), not apart (solvability). M3 (the decisive
+causal test): FAILS-TO-CONFIRM at all 5 groups, NO hard falsify —
+k=d_min−1 cleanly near-chance everywhere, but recovery never returns at
+k∈{d_min, d_min+1} either, because `groups.py`'s `eye(d_state)` target
+padding makes the as-built target rank d_state (all σ=1): capped arms
+trained to their exact √(k/d_state) ceiling (37/39 cells within 0.07,
+mean |Δ|=0.028) and spent ~2 ranks on the constant ambient identity
+first (restricted rank ≈ k−2), so NO capped arm ever delivered
+effective rho-rank ≥ d_min — the CONFIRM half of M3 was never
+purchased. Instrument defect (D-AMB, proven five ways in §1.33), not
+evidence against recruitment. M2: build gap (no checkpoints persisted);
+n=1 proxy knees at k*=d_state corroborate D-AMB. Realized 2.5907 GPU-h
+all-58 (campaign ≈3.36/30). **§1.11's diagnosed-INCONCLUSIVE gate arm
+is DISCHARGED — Stage-2 build dispatch formally unblocked (§2.18);
+a cheap tax-free M3 re-run (~28 cells ≈1.3-2.6 GPU-h, two pre-specified
+fix variants in §1.33) is the registered next wave before any Stage-1
+paper claim.**
 
 ### 3. Attractor-Robustness 2×2 (novelty stress-test follow-on, 2026-07-09)
 
@@ -200,9 +225,25 @@ wiring dry-run-verified before launch (`--dry-run` against live box
 state confirmed budget_guard passes at 3.0288/3.03 GPU-h, the 4 existing
 screening cells resume-skip, the 8 new s1/s2 cells carry the correct
 per-combo flags). See `experiment-runs/2026-07-09_capability_sweep_launch/`.
-iclr-2027 fold (angles 4/5, partial discharge of limitations item 2)
-queued for the paper-pass agent; n=1 caveats hold until the n=3 confirm
-lands.
+**n=3 HARVESTED (2026-07-09; archive `experiment-runs/
+2026-07-09_attrrob_2x2_escalation_harvest/`, verify-vs-raws 63/63
+md5-exact, runner AGGREGATE reproduced to <1e-6). VERDICT: gating-
+amplifies NOT CONFIRMED at the pre-registered bar** — the n=1 +6.16
+(2.75σ) shrank to **+4.31 mean = 1.92σ_floor < 4.489** at n=3
+(runner's own `escalation.fire=false` agrees); direction HOLDS in all
+3 paired seeds (+6.16/+3.12/+3.65; exploratory Welch t p=0.062) —
+recorded as a direction-consistent TREND, neither confirmed
+amplification nor null; the n=1 caveats STAND. **qk-norm exoneration
+HOLDS at n=3** (−0.10 = 0.05σ) — the PI's Kimi/Qwen skepticism answer
+is now n=3-solid. qk-off×gated +1.13 = 0.50σ. Gated arms still train
+to lower loss every seed (3.515 vs 3.682). Realized 1.97 GPU-h (8 new
+legs; ≈2.04 wall) vs 2.02 projected / 3.03 ceiling. **iclr-2027
+consequence: the angles-4/5 fold is NOT unblocked in its strong form
+(the "full discharge on the n=3 confirm" condition FAILED); any fold
+must carry the trend-not-confirmed n=3 numbers — the qk-norm
+exoneration remains fully foldable.** Campaign CLOSED unless the
+paper-pass or PI funds an n>3 extension (a ≥2σ-at-n=3-mean effect
+would need either more seeds or a pre-registered paired test).
 
 ### 4. Fix-at-Scale (PI GPU-saturation charter, 2026-07-09)
 
@@ -456,16 +497,19 @@ correction pass, out of scope for this consolidation.
   — gate failed, pilot-only spend (≈0.02 GPU-h), coordinator decision
   pending** (`experiment-runs/2026-07-09_h2h_timing2_launch/`).
 - phase2b: 8.3/66.5.
-- capability-separation Stage 1: **≈0.97/30 realized** (calibration
-  0.0895 + gate-1 diagnosis 0.38 + round-7 L=1 diagnostic 0.30 +
-  2026-07-09 Rev-7 calibration re-check 0.2039); the main 58-cell sweep
-  (≈2.51 GPU-h raw) cleared its last pre-`--sweep` gates this pass (build
-  audit teeth F1-F4 landed + calibration re-check SWEEP-READY, both
-  2026-07-09) but `--sweep` itself has not yet been invoked (its own
-  GPU-h-projection + PI-signoff gates remain, plus PI authorization to
-  launch).
-- attractor-robustness 2×2: **0 realized** / screening ceiling 1.0096,
-  escalation ceiling 3.03 (contingent on a qualitative split).
+- capability-separation Stage 1: **≈3.36/30 realized** (pre-sweep
+  ≈0.97: calibration 0.0895 + gate-1 diagnosis 0.38 + round-7 L=1
+  diagnostic 0.30 + Rev-7 calibration re-check 0.2039; + the 58-cell
+  sweep's 53 new cells 2.3867, HARVESTED 2026-07-09, §1.33 —
+  INCONCLUSIVE-diagnosed(D-AMB), realized 44% under the 4.62 gate
+  projection and within 3% of the ≈2.51 group-weighted estimate). The
+  §1.33-registered tax-free M3 fix wave (~1.3-2.6 GPU-h) is the next
+  claim on this ledger.
+- attractor-robustness 2×2: **≈3.0 realized** (screening 1.03 +
+  escalation 1.97) vs ceilings 1.0096 + 3.03; n=3 escalation HARVESTED
+  2026-07-09 — gating-amplifies NOT CONFIRMED at the pre-registered bar
+  (+4.31 = 1.92σ, trend), qk-norm exoneration holds; campaign closed
+  absent a funded extension.
 - fix-at-scale: **cap 300 GPU-h, RATIFIED-in-effect (the PI's verbatim
   2026-07-09 saturation directive; cited in the launch manifest),
   ≈18.7 GPU-h committed (6.2%)** — gate tier LIVE: timing pilots BOTH

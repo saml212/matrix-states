@@ -5608,3 +5608,168 @@ the sweep is running now (§1.32); build follows its harvest. The
 gauntlet trail for this design: Rev 0 → attack R1 (satellite) → Rev 1
 → §2.14 → Rev 2 → §2.16 → Rev 3 → this verification. Nothing further
 is open at design level.
+
+### §1.33 STAGE-1 SWEEP HARVEST VERDICT (2026-07-09): INCONCLUSIVE — DIAGNOSED (D-AMB, ambient-identity capacity tax); M1 CONFIRM + marquee DECLARE; M3 fails-to-confirm at all 5 groups, no HARD FALSIFY; §1.11's diagnosed-INCONCLUSIVE gate arm DISCHARGED
+
+Recorded per the gauntlet-bookkeeping hard rule. Harvest archive (all
+aggregates recomputed from the 58 per-cell JSONs; decision criteria
+evaluated by the repo's own pre-registered `tost_analysis.py`
+machinery, not re-implemented):
+`experiment-runs/2026-07-09_capability_sweep_harvest/`.
+
+**Verify-vs-raws statement.** 61/61 pulled files md5-match the box.
+Inventory 58/58 (53 new + the 5 resume-skipped calibration cells,
+matching the launch manifest exactly); every cell completed at its
+exact Rev-7 pinned step budget (S3=8K, S4=20K, A5=20K, S5=8K, A6=40K);
+`n_skipped_steps=0` in all 58; zero aborts, zero escalation triggers
+fired (general AND marquee — nothing budget-denied), zero tracebacks in
+the full sweep log. **Realized cost: 2.5907 GPU-h all-58 (2.3867 for
+this launch's 53 new cells + 0.2039 prior calibration) vs the launch
+gate's 4.62 GPU-h projection (44% under) and §1.6's group-weighted
+≈2.51 GPU-h estimate (within 3%)** — wall-clock cross-check
+(06:21:25→08:44:45 UTC on GPU 0) matches the per-cell sum exactly.
+
+**M1 — CONFIRM (corroborating-only, §1.5).** Restricted effective rank
+(unconstrained arm, FULL pinned `L~U{1,8}` sample, decisional):
+
+| G | d_min | mean ± sd (n) | per-seed | band [0.7,1.3]·d_min | in-band |
+|---|---|---|---|---|---|
+| S3 | 2 | 1.877 ± 0.060 (3) | 1.808/1.905/1.919 | [1.4, 2.6] | all seeds |
+| S4 | 3 | 2.852 ± 0.054 (5) | 2.924/2.848/2.884/2.809/2.793 | [2.1, 3.9] | all seeds |
+| A5 | 3 | 2.832 ± 0.062 (5) | 2.882/2.915/2.776/2.785/2.804 | [2.1, 3.9] | all seeds |
+| S5 | 4 | 3.591 ± 0.069 (3) | 3.605/3.652/3.517 | [2.8, 5.2] | all seeds |
+| A6 | 5 | 4.736 ± 0.023 (3) | 4.709/4.748/4.750 | [3.5, 6.5] | all seeds |
+
+Spearman ρ = **0.9747** — the exact tie-capped MAXIMUM achievable
+(§1.5's own enumeration; exact-null P(ρ≥0.8)=6.67%), perfect family
+ordering with S4/A5 landing together. `L≥2` robustness split
+(§1.30 item 5): the as-built harvest schema reports the split on the
+RECOVERY metrics (`l_ge2_mean_cos`/`l_ge2_recovered_frac_90`), not a
+re-restricted rank (per-word Z dumps are not persisted — the
+restricted-rank-on-L≥2 variant is not derivable post-hoc; DISCLOSED
+schema deviation, same check-purpose served): full-sample vs L≥2-only
+readings are near-identical for every group (max |Δ mean_cos| 0.041,
+no group-selective divergence) — the arm-shared-attenuation premise
+HOLDS; the decisional metric is not contaminated group-selectively.
+
+**Marquee (S4 vs A5) — DECLARE equivalence.** Welch TOST on restricted
+effective rank, n=5 vs n=5, margin ±0.5 rank-units (§1.4.2.1): diff
++0.0194, se 0.0368, df 7.83, t1=13.06/t2=14.12 vs tcrit 1.865 →
+**DECLARE** (decisively — both one-sided tests pass by ~7× the
+critical value). No CA3-M1(d) n=7 escalation needed. The marquee pair
+lands TOGETHER (dimension), not apart (solvability) — exactly the
+CONFIRM-side prediction.
+
+**M3 — FAILS-TO-CONFIRM at all 5 groups; NO HARD FALSIFY.** Per-group
+force-rank table (PRIMARY scale-only rec@0.9 / mean_cos; [x·] = full-Q
+Procrustes crosscheck), means over seeds:
+
+| G | ceiling (unconstr.) rec90 [xrec90] | k=d_min−1 rec90 [xrec90] | k=d_min rec90 [xrec90] | k=d_min+1 rec90 [xrec90] | near-chance@k−1 | ≥0.9×ceiling@k,k+1 |
+|---|---|---|---|---|---|---|
+| S3 | 0.267 [0.650] | 0.000 [0.000] | 0.167 [0.167] | 0.075 [0.075] | YES | NO |
+| S4 | 0.130 [0.700] | 0.000 [0.000] | 0.000 [0.000] | 0.000 [0.000] | YES | NO |
+| A5 | 0.130 [0.590] | 0.000 [0.000] | 0.000 [0.000] | 0.000 [0.000] | YES | NO |
+| S5 | 0.100 [0.483] | 0.000 [0.000] | 0.000 [0.000] | 0.000 [0.000] | YES | NO |
+| A6 | 0.100 [0.733] | 0.000 [0.000] | 0.000 [0.000] | 0.000 [0.000] | YES | NO |
+
+`k=d_min−1` is cleanly near-chance everywhere (the FALSIFY boundary
+behaves) and **no group shows the HARD-FALSIFY pattern** (below-minimal
+rank never recovers). But recovery does NOT return at `k=d_min` or
+`k=d_min+1` either — the predicted step is absent because the arms
+never delivered the rank the step needs (next paragraph). Crosscheck
+mean_cos climbs monotonically through the grid at every group (e.g. S4:
+−0.02 → 0.56 → 0.76 → 0.91 unconstrained), i.e. recovery keeps
+improving all the way to d_state — against §1.4.2's sufficiency
+prediction as nominally read, exactly as D-AMB predicts.
+
+**THE DIAGNOSIS — D-AMB (ambient-identity capacity tax), established
+five ways from the raws (§1.30's own probe-count convention):**
+- **P1 (code fact):** `groups.py:157-158` builds the target as
+  `torch.eye(d_state)` with `rho` overwriting only the top-left
+  `d_min×d_min` block → the as-built target = `rho ⊕ I_2`, rank
+  **d_state = d_min+2**, ALL singular values = 1. The design's M3
+  arithmetic ("d_min suffices by definition") holds for `rho` but NOT
+  for the as-built target.
+- **P2 (rank-k ceiling match):** a rank-k model's best achievable
+  DIRECT cosine vs this target is exactly `sqrt(k/d_state)`. Observed
+  (mean-over-L direct cosine, per-cell): 37/39 force-rank cells within
+  0.07 of prediction, mean |Δ| = 0.028 — e.g. S3 k=1: 0.508 vs 0.500;
+  S3 k=2: 0.711 vs 0.707; S4/A5 k=3: 0.764-0.781 vs 0.775; A6 k=5:
+  0.809-0.831 vs 0.845. The force-rank cells trained essentially TO
+  their theoretical rank-constrained optimum — this is not
+  under-training. (Sole outliers: the two S5 k=3 cells at ~0.15 below
+  even the tax-adjusted ceiling — an additional optimization shortfall,
+  disclosed.)
+- **P3 (where the rank went):** the constant `I_2` component is the
+  cheap, always-correct payoff, so capped arms buy it first; the
+  centered covariance (which sees only the w-VARYING part) then shows
+  restricted effective rank ≈ k−2: S4/A5 k=3 → 1.00/1.10; S5 k=4 →
+  2.34; A6 k=5 → 2.97. (S3's d_state=4 case is noisier and not cleanly
+  k−2; disclosed.)
+- **P4 (the k+1 discriminant):** under the pure rank law k=d_min+1 must
+  recover; under the tax its effective rho-rank is d_min−1 and must
+  fail. Observed: xrec90 = 0.000 at k=d_min+1 for S4/A5/S5/A6 — the
+  tax's prediction, not the law's.
+- **P5 (the untaxed arm):** unconstrained cells (rank budget d_state ≥
+  tax+d_min) recover well (xcos 0.75-0.91, xrec90 0.48-0.73) at
+  restricted rank ≈ d_min — when nothing forces the trade, both the
+  identity and the full rho are bought, and M1's tracking is clean.
+
+Under D-AMB the M3 data are CONSISTENT WITH the rank law (every arm
+whose effective rho-rank < d_min failed, exactly as the law predicts)
+— but the sweep purchased no cell with effective rho-rank ≥ d_min
+under a cap, so the causal CONFIRM half of M3 was never actually
+tested. This is an instrument defect of the target construction, not
+evidence against recruitment.
+
+**Metric-health disclosure (flagged for the next attack round):** the
+PRIMARY scale-only degauging (§1.25 pinned item 5's "Q̂≈I on every real
+checkpoint") does NOT generalize across sweep seeds — primary mean_cos
+is basis-brittle (S4 unconstrained per-seed: 0.03-0.69) while the
+full-Q crosscheck is stable (0.86-0.95). M1/marquee are unaffected
+(effective rank is basis-invariant) and M3's verdict is identical on
+either metric (both agree: no recovery at k≥d_min), so no conclusion in
+this section depends on the primary/crosscheck choice — but any future
+wave reading `mean_cos` as a headline number must use the crosscheck or
+fix the U-derivation's rotational freedom first.
+
+**M2 — build gap, DISCLOSED + n=1 proxy.** The sweep persisted no
+checkpoints and never invoked `truncation_curve.py`; the pre-registered
+per-seed M2 knee criterion is NOT computable from the sweep as-run
+(build-audit miss, recorded here). Proxy on the md5-verified round-7
+pinned-budget diagnosis checkpoints (n=1/group, disclosed): knees at
+k\* = d_state for S3/S4/A5/A6 (4/5/5/7; S5 degenerate — its proxy
+ceiling rec90=0 makes the knee rule vacuous) — OUTSIDE the
+[d_min−1, d_min+1] CONFIRM band and exactly where D-AMB puts them
+(tax + d_min = d_state). M2 corroborates the diagnosis, not the
+nominal CONFIRM.
+
+**OVERALL STAGE-1 VERDICT (per §1.5's pre-registered combiner, evaluated
+by `stage1_verdict()`): INCONCLUSIVE** — M1 CONFIRM ✓, marquee DECLARE
+✓, M3 CONFIRM ✗ (all groups), M3 HARD FALSIFY ✗, M1-FALSIFY ✗. Not
+spun: the headline recruitment trend (M1+marquee) is as clean as this
+instrument can express it, and the decisive causal test came back
+undelivered-by-instrument, not passed.
+
+**§1.11 consequence line (Stage 2 launch gate).** §1.5 pins
+"INCONCLUSIVE → diagnose before Stage 2"; §1.11 gates Stage-2
+build on "CONFIRM **or diagnosed-INCONCLUSIVE**". The diagnosis above
+is mechanistic, quantitative (P2's 37/39-cell ceiling match), and made
+from the raws — **the diagnosed-INCONCLUSIVE arm of the gate is
+formally DISCHARGED as of this record; Stage-2 build dispatch is
+unblocked per §2.18's own status line.** REGISTERED FIX WAVE (strongly
+recommended before any Stage-1 result ships in a paper, and as the
+cheaper first claim on the remaining ledger): re-run the M3 arms (and a
+5-cell unconstrained anchor) with the ambient tax removed — EITHER
+zero-padding the target's ambient block (rank(target)=d_min exactly;
+requires re-checking gate-1(b)'s injection figures since the target
+family changes) OR keeping `eye()` and shifting the force-rank grid to
+`k ∈ {d_min+1, d_min+2, d_min+3}` (tax-adjusted straddle, no target
+change, no gate re-validation — the minimal-delta option). ~28 cells ≈
+1.3-2.6 GPU-h at the realized rate, well inside the 30 GPU-h ledger's
+remaining ≈26.4 GPU-h. The choice between fix variants (and whether it
+runs before/parallel-to Stage-2 build) is the coordinator's next
+dispatch decision, not made here.
+
+*(Ledger after this harvest: 0.97 pre-sweep + 2.3867 sweep-new =
+≈3.36/30 GPU-h realized for the campaign.)*

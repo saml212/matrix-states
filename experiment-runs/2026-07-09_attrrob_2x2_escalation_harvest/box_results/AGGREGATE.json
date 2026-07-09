@@ -1,0 +1,142 @@
+{
+  "cells": [
+    "attrrob_qkTrue_gateFalse_s0",
+    "attrrob_qkTrue_gateFalse_s1",
+    "attrrob_qkTrue_gateFalse_s2",
+    "attrrob_qkTrue_gateTrue_s0",
+    "attrrob_qkTrue_gateTrue_s1",
+    "attrrob_qkTrue_gateTrue_s2",
+    "attrrob_qkFalse_gateFalse_s0",
+    "attrrob_qkFalse_gateFalse_s1",
+    "attrrob_qkFalse_gateFalse_s2",
+    "attrrob_qkFalse_gateTrue_s0",
+    "attrrob_qkFalse_gateTrue_s1",
+    "attrrob_qkFalse_gateTrue_s2"
+  ],
+  "gram_dev_mean_by_cell_key": {
+    "qkTrue_gateFalse": 20.194321632385254,
+    "qkTrue_gateTrue": 24.505927403767902,
+    "qkFalse_gateFalse": 20.091279983520508,
+    "qkFalse_gateTrue": 21.322455406188965
+  },
+  "rec_at_09_by_cell_key": {
+    "qkTrue_gateFalse": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkTrue_gateTrue": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkFalse_gateFalse": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkFalse_gateTrue": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      },
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ]
+  },
+  "rec_at_09_note": "PROBE-INVALID / categorical-0.0 floor expected in every arm (zero-shot K-cycle transplant, see module docstring) -- NON-DECISIONAL, not read by should_escalate().",
+  "escalation": {
+    "fire": false,
+    "baseline_gram_deviation_mean": 20.194321632385254,
+    "threshold": 4.48871,
+    "corpus": "openr1-mix-ext",
+    "per_cell": {
+      "qkTrue_gateTrue": {
+        "gram_deviation_mean": 24.505927403767902,
+        "delta_vs_baseline": 4.3116057713826486,
+        "threshold": 4.48871,
+        "exceeds": false
+      },
+      "qkFalse_gateFalse": {
+        "gram_deviation_mean": 20.091279983520508,
+        "delta_vs_baseline": -0.1030416488647461,
+        "threshold": 4.48871,
+        "exceeds": false
+      },
+      "qkFalse_gateTrue": {
+        "gram_deviation_mean": 21.322455406188965,
+        "delta_vs_baseline": 1.128133773803711,
+        "threshold": 4.48871,
+        "exceeds": false
+      }
+    },
+    "rule": {
+      "description": "n=1 screening -> n=3 escalation fires iff ANY non-baseline cell's Gram-deviation (same-corpus, pooled-across-layers gram_deviation_mean) differs from the baseline cell (qk_l2norm_in_kernel=True, gated_delta_active=False) by more than 2.0x the archived cross-seed noise floor at this exact (dm256/ds64/L2) config and corpus.",
+      "trigger_multiple": 2.0,
+      "noise_floor_source": "experiment-runs/2026-07-06_trajectory_probes/reference_finals_archived.json, 'mixcontrol' family, archived4_gram_deviation_mean, cross-seed {0,1,2} population std at the SAME (dm256/ds64/L2) architecture -- see ARCHIVED_SEED_NOISE_GRAM_DEV_STD.",
+      "noise_floor_std": {
+        "openr1-mix-ext": 2.244355,
+        "wikitext-mix-ext": 2.216699
+      },
+      "baseline_cell_key": "qkTrue_gateFalse"
+    }
+  },
+  "failed": []
+}

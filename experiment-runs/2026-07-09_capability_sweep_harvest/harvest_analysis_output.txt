@@ -1,0 +1,34 @@
+INVENTORY: 58/58 cells present, complete at per-group pinned budgets; problems: none
+REALIZED: 2.5907 GPU-h all-58 (2.3867 this launch's 53 new cells + 0.2039 prior calib)
+
+== M1: restricted effective rank vs d_min (unconstrained arm, FULL pinned sample) ==
+  S3: d_min=2 mean=1.8771 sd=0.0601 per-seed=[1.808, 1.905, 1.919] band=[1.4,2.6] all-seeds-in-band=True
+  S4: d_min=3 mean=2.8517 sd=0.0536 per-seed=[2.924, 2.848, 2.884, 2.809, 2.793] band=[2.1,3.9] all-seeds-in-band=True
+  A5: d_min=3 mean=2.8323 sd=0.0623 per-seed=[2.882, 2.915, 2.776, 2.785, 2.804] band=[2.1,3.9] all-seeds-in-band=True
+  S5: d_min=4 mean=3.5913 sd=0.0688 per-seed=[3.605, 3.652, 3.517] band=[2.8,5.2] all-seeds-in-band=True
+  A6: d_min=5 mean=4.7357 sd=0.0231 per-seed=[4.709, 4.748, 4.75] band=[3.5,6.5] all-seeds-in-band=True
+  Spearman rho=0.9747 (max achievable 0.974679; exact-null P(rho>=0.8)=0.0667) -> M1 CONFIRM=True
+
+  L>=2 robustness split (recovery metrics; arm-shared-attenuation check):
+    S3: full-sample mean_cos=0.4501 vs L>=2-only=0.4401 (delta -0.0100)
+    S4: full-sample mean_cos=0.3287 vs L>=2-only=0.3341 (delta +0.0055)
+    A5: full-sample mean_cos=0.2671 vs L>=2-only=0.2545 (delta -0.0126)
+    S5: full-sample mean_cos=0.1151 vs L>=2-only=0.1230 (delta +0.0079)
+    A6: full-sample mean_cos=0.1357 vs L>=2-only=0.1432 (delta +0.0075)
+
+== MARQUEE: S4 vs A5 Welch TOST (restricted eff-rank, n=5 each, margin +-0.5) ==
+  S4=2.8517+-0.0536  A5=2.8323+-0.0623  diff=+0.0194  t1=13.06 t2=14.12 tcrit=1.865 -> DECLARE
+
+== M3: force-rank causal arms (PRIMARY scale-only rec90/cos; [x...]=full-Q crosscheck) ==
+  S3: ceiling rec90=0.267 [x0.650]  k_dmin_minus_1: rec90=0.000[x0.000]  k_dmin: rec90=0.167[x0.167]  k_dmin_plus_1: rec90=0.075[x0.075]  -> CONFIRM(S3)=False
+  S4: ceiling rec90=0.130 [x0.700]  k_dmin_minus_1: rec90=0.000[x0.000]  k_dmin: rec90=0.000[x0.000]  k_dmin_plus_1: rec90=0.000[x0.000]  -> CONFIRM(S4)=False
+  A5: ceiling rec90=0.130 [x0.590]  k_dmin_minus_1: rec90=0.000[x0.000]  k_dmin: rec90=0.000[x0.000]  k_dmin_plus_1: rec90=0.000[x0.000]  -> CONFIRM(A5)=False
+  S5: ceiling rec90=0.100 [x0.483]  k_dmin_minus_1: rec90=0.000[x0.000]  k_dmin: rec90=0.000[x0.000]  k_dmin_plus_1: rec90=0.000[x0.000]  -> CONFIRM(S5)=False
+  A6: ceiling rec90=0.100 [x0.733]  k_dmin_minus_1: rec90=0.000[x0.000]  k_dmin: rec90=0.000[x0.000]  k_dmin_plus_1: rec90=0.000[x0.000]  -> CONFIRM(A6)=False
+
+== D-AMBIENT: force-rank cells' direct cosine vs the sqrt(k/d_state) rank-k ceiling ==
+  39 force-rank cells: mean|obs-pred|=0.0276, max|obs-pred|=0.1664 (only outliers: S5 k_dmin_minus_1 pair at -0.15/-0.17, an additional optimization shortfall)
+
+== OVERALL STAGE-1 VERDICT (repo stage1_verdict()): {'verdict': 'INCONCLUSIVE', 'm1': True, 'm3': False, 'marquee': True, 'reason': 'mixed across the family, or the marquee check did not DECLARE equivalence'} ==
+
+written harvest_summary.json
