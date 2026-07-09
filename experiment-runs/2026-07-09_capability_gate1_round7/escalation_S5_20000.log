@@ -1,0 +1,24 @@
+=== ESCALATION CELL S5@20000 (seed 0, gate1_diag train path) ===
+    [S5 steps=20000] step 1: batch loss=0.9608 (L=6)
+    [S5 steps=20000] step 2000: batch loss=0.2328 (L=4)
+    [S5 steps=20000] step 4000: batch loss=0.2983 (L=8)
+    [S5 steps=20000] step 6000: batch loss=0.1989 (L=7)
+    [S5 steps=20000] step 8000: batch loss=0.0076 (L=2)
+    [S5 steps=20000] step 10000: batch loss=0.0039 (L=2)
+    [S5 steps=20000] step 12000: batch loss=0.1286 (L=7)
+    [S5 steps=20000] step 14000: batch loss=0.0554 (L=6)
+    [S5 steps=20000] step 16000: batch loss=0.1169 (L=1)
+    [S5 steps=20000] step 18000: batch loss=0.0048 (L=4)
+    [S5 steps=20000] step 20000: batch loss=0.1198 (L=8)
+    [S5 steps=20000] trained in 166.5s (skipped=0)
+
+  --- S5 [20000 steps]: per-L direct-cosine curve (512 words/L) ---
+    L: 1:0.879 2:0.998 3:0.996 4:0.995 5:0.984 6:0.959 7:0.917 8:0.884 9:0.579 10:0.546 11:0.451 12:0.424 13:0.393 14:0.392 15:0.398 16:0.388
+    train-range mean (L1-8): 0.9516   eval-range mean (L9-16): 0.4463
+    [train_len U=cov      ] mean_cos=+0.1819 rec90=0.00 restr_rank=3.74 direct_full=0.9545 direct_block=0.9301 distinct=22 split=production
+    [train_len U=canonical] mean_cos=+0.9301 rec90=0.75 restr_rank=3.85 direct_full=0.9545 direct_block=0.9301 distinct=22 split=production
+    [train_len] cov spectrum (norm'd): 1.000 0.938 0.891 0.856 0.760 0.651 | principal cosines (covU vs canonical block): 1.000 1.000 0.040 0.006
+    [eval_len  U=cov      ] mean_cos=+0.1034 rec90=0.00 restr_rank=3.42 direct_full=0.5138 direct_block=0.2116 distinct=34 split=production
+    [eval_len  U=canonical] mean_cos=-0.0025 rec90=0.00 restr_rank=3.14 direct_full=0.5138 direct_block=0.2116 distinct=34 split=production
+    [eval_len ] cov spectrum (norm'd): 1.000 0.989 0.938 0.707 0.497 0.370 | principal cosines (covU vs canonical block): 1.000 1.000 0.030 0.001
+=== DONE S5@20000: min L1-5 mean_cos = 0.8793 -> MISSES the 0.9 bar (gpu_s=166.5) ===

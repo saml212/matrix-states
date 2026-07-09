@@ -1,0 +1,24 @@
+=== ESCALATION CELL S4@20000 (seed 0, gate1_diag train path) ===
+    [S4 steps=20000] step 1: batch loss=1.0678 (L=7)
+    [S4 steps=20000] step 2000: batch loss=0.2705 (L=4)
+    [S4 steps=20000] step 4000: batch loss=0.2428 (L=5)
+    [S4 steps=20000] step 6000: batch loss=0.0078 (L=2)
+    [S4 steps=20000] step 8000: batch loss=0.0069 (L=3)
+    [S4 steps=20000] step 10000: batch loss=0.2081 (L=7)
+    [S4 steps=20000] step 12000: batch loss=0.1695 (L=7)
+    [S4 steps=20000] step 14000: batch loss=0.0126 (L=4)
+    [S4 steps=20000] step 16000: batch loss=0.0305 (L=5)
+    [S4 steps=20000] step 18000: batch loss=0.0844 (L=1)
+    [S4 steps=20000] step 20000: batch loss=0.1323 (L=8)
+    [S4 steps=20000] trained in 162.5s (skipped=0)
+
+  --- S4 [20000 steps]: per-L direct-cosine curve (512 words/L) ---
+    L: 1:0.928 2:0.997 3:0.996 4:0.992 5:0.980 6:0.955 7:0.921 8:0.870 9:0.549 10:0.525 11:0.492 12:0.474 13:0.470 14:0.456 15:0.459 16:0.458
+    train-range mean (L1-8): 0.9550   eval-range mean (L9-16): 0.4854
+    [train_len U=cov      ] mean_cos=+0.1186 rec90=0.10 restr_rank=2.72 direct_full=0.9537 direct_block=0.9165 distinct=21 split=production
+    [train_len U=canonical] mean_cos=+0.9137 rec90=0.90 restr_rank=2.90 direct_full=0.9537 direct_block=0.9165 distinct=21 split=production
+    [train_len] cov spectrum (norm'd): 1.000 0.991 0.932 0.833 0.770 | principal cosines (covU vs canonical block): 1.000 0.037 0.007
+    [eval_len  U=cov      ] mean_cos=-0.0554 rec90=0.10 restr_rank=2.75 direct_full=0.4788 direct_block=0.0164 distinct=21 split=production
+    [eval_len  U=canonical] mean_cos=+0.0401 rec90=0.00 restr_rank=2.49 direct_full=0.4788 direct_block=0.0164 distinct=21 split=production
+    [eval_len ] cov spectrum (norm'd): 1.000 0.995 0.896 0.618 0.400 | principal cosines (covU vs canonical block): 1.000 0.026 0.003
+=== DONE S4@20000: min L1-5 mean_cos = 0.9284 -> CLEARS the 0.9 bar (gpu_s=162.5) ===

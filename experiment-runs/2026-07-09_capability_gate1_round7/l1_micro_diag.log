@@ -1,0 +1,62 @@
+====================================================================================================
+P1 -- per-generator direct cosine at L=1 + block decomposition (all 7 ckpts)
+     [distinct words in any L=1 eval batch == |gens|: S3/S5=3, S4/A5/A6=4]
+====================================================================================================
+[S3@ 8000] per-gen cos_full: 0.9145 0.9806 0.9628   mean=0.9526 min=0.9145 max=0.9806 spread=0.0661
+           per-gen cos_rho_block: 0.8270 0.9924 0.9335  |  cos_compl: 1.000 1.000 1.000
+           fro rho/compl/off (gen-mean): 3.290/3.890/0.555
+[S4@ 8000] per-gen cos_full: 0.9006 0.8905 0.8210 0.8449   mean=0.8642 min=0.8210 max=0.9006 spread=0.0796
+           per-gen cos_rho_block: 0.8577 0.8300 0.6870 0.7268  |  cos_compl: 1.000 1.000 1.000 1.000
+           fro rho/compl/off (gen-mean): 2.006/2.228/0.305
+[A5@ 8000] per-gen cos_full: 0.8038 0.8670 0.8649 0.8788   mean=0.8536 min=0.8038 max=0.8788 spread=0.0750
+           per-gen cos_rho_block: 0.6478 0.7727 0.7684 0.8041  |  cos_compl: 1.000 1.000 1.000 1.000
+           fro rho/compl/off (gen-mean): 1.927/2.189/0.269
+[S5@ 8000] per-gen cos_full: 0.8675 0.8571 0.8348   mean=0.8531 min=0.8348 max=0.8675 spread=0.0328
+           per-gen cos_rho_block: 0.7999 0.7906 0.7504  |  cos_compl: 1.000 1.000 1.000
+           fro rho/compl/off (gen-mean): 2.135/2.021/0.345
+[A6@ 8000] per-gen cos_full: 0.8692 0.8452 0.7369 0.6608   mean=0.7780 min=0.6608 max=0.8692 spread=0.2084
+           per-gen cos_rho_block: 0.8174 0.7790 0.6066 0.4741  |  cos_compl: 1.000 1.000 1.000 1.000
+           fro rho/compl/off (gen-mean): 3.085/3.094/0.442
+[A5@20000] per-gen cos_full: 0.8475 0.9264 0.9033 0.8914   mean=0.8922 min=0.8475 max=0.9264 spread=0.0789
+           per-gen cos_rho_block: 0.7340 0.8827 0.8361 0.8168  |  cos_compl: 1.000 1.000 1.000 1.000
+           fro rho/compl/off (gen-mean): 1.670/1.801/0.138
+[A6@20000] per-gen cos_full: 0.9362 0.9039 0.7620 0.7437   mean=0.8364 min=0.7437 max=0.9362 spread=0.1925
+           per-gen cos_rho_block: 0.9140 0.8663 0.6518 0.6201  |  cos_compl: 1.000 1.000 1.000 1.000
+           fro rho/compl/off (gen-mean): 1.572/1.321/0.157
+
+====================================================================================================
+P2 -- degauging probe: fit INCL vs EXCL L=1 words (same eval set) + L=1 words scored
+====================================================================================================
+[S4@8000] L=1 words in N=50 sample: 6
+  degauged eval mean_cos: fit-INCL-L1 (n=30) +0.7160 | fit-EXCL-L1 (n=27) +0.7158 | delta -0.0003
+  the 4 L=1 words, degauged (L>=2 fit): 0.8504 0.8262 0.6430 0.6767  (mean 0.7491)
+  principal cosines U(all-50) vs U(L>=2 only): 1.0000 1.0000 0.9993
+[A6@20000] L=1 words in N=50 sample: 5
+  degauged eval mean_cos: fit-INCL-L1 (n=30) +0.8477 | fit-EXCL-L1 (n=26) +0.8469 | delta -0.0008
+  the 4 L=1 words, degauged (L>=2 fit): 0.9073 0.8684 0.6486 0.6143  (mean 0.7596)
+  principal cosines U(all-50) vs U(L>=2 only): 1.0000 1.0000 1.0000 1.0000 0.9998
+
+====================================================================================================
+P3 -- reader degeneracy at L=1: read-vector std across the d_state row queries
+====================================================================================================
+  L=1: max std of reader output across the 5 row queries = 0.000e+00  (DEGENERATE (query-independent))
+  L=2: max std of reader output across the 5 row queries = 4.113e-01  (query-dependent)
+
+====================================================================================================
+P4 -- frozen-downstream capacity: optimize a free (1,1,h) embedding per generator
+====================================================================================================
+[S4@8000] best achievable cos per generator (frozen downstream, 400 Adam steps): 0.9161 0.9298 0.8395 0.8590   min=0.8395
+[A6@20000] best achievable cos per generator (frozen downstream, 400 Adam steps): 0.9383 0.9071 0.7654 0.7506   min=0.7506
+
+====================================================================================================
+P5 -- L=1-only fine-tune (300 steps) vs standard-mix control, clones of S4@8K / A6@20K
+====================================================================================================
+[S4@8000][l1_only    ] L=1 equal-weight cos: 0:0.8642 -> 25:0.8905 -> 50:0.8991 -> 100:0.9084 -> 200:0.9277 -> 300:0.9334
+             per-L after L=1-only FT: 1:0.933 2:0.732 3:0.744 4:0.716 5:0.642 6:0.576 7:0.497 8:0.441
+[S4@8000][mix_control] L=1 equal-weight cos: 0:0.8642 -> 25:0.8542 -> 50:0.8689 -> 100:0.8693 -> 200:0.8705 -> 300:0.8594
+[A6@20000][l1_only    ] L=1 equal-weight cos: 0:0.8364 -> 25:0.8436 -> 50:0.8465 -> 100:0.8497 -> 200:0.8525 -> 300:0.8531
+             per-L after L=1-only FT: 1:0.857 2:0.831 3:0.806 4:0.758 5:0.685 6:0.634 7:0.562 8:0.511
+[A6@20000][mix_control] L=1 equal-weight cos: 0:0.8364 -> 25:0.8374 -> 50:0.8369 -> 100:0.8249 -> 200:0.8391 -> 300:0.8319
+
+wall total: 26.5s  -> 0.0074 GPU-h (upper bound; incl CPU-bound degauging)
+report -> /home/nvidia/chapter2/capability_separation/results/gate1_diagnosis/l1_micro_diag.json

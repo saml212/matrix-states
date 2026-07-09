@@ -1,0 +1,34 @@
+=== ESCALATION CELL A6@40000 (seed 0, gate1_diag train path) ===
+    [A6 steps=40000] step 1: batch loss=1.1055 (L=3)
+    [A6 steps=40000] step 2000: batch loss=0.3575 (L=7)
+    [A6 steps=40000] step 4000: batch loss=0.3584 (L=8)
+    [A6 steps=40000] step 6000: batch loss=0.2315 (L=1)
+    [A6 steps=40000] step 8000: batch loss=0.2199 (L=1)
+    [A6 steps=40000] step 10000: batch loss=0.2769 (L=7)
+    [A6 steps=40000] step 12000: batch loss=0.2199 (L=6)
+    [A6 steps=40000] step 14000: batch loss=0.2008 (L=6)
+    [A6 steps=40000] step 16000: batch loss=0.2395 (L=7)
+    [A6 steps=40000] step 18000: batch loss=0.2552 (L=8)
+    [A6 steps=40000] step 20000: batch loss=0.0088 (L=3)
+    [A6 steps=40000] step 22000: batch loss=0.0051 (L=2)
+    [A6 steps=40000] step 24000: batch loss=0.1312 (L=6)
+    [A6 steps=40000] step 26000: batch loss=0.2136 (L=8)
+    [A6 steps=40000] step 28000: batch loss=0.0062 (L=3)
+    [A6 steps=40000] step 30000: batch loss=0.0572 (L=5)
+    [A6 steps=40000] step 32000: batch loss=0.1442 (L=7)
+    [A6 steps=40000] step 34000: batch loss=0.0443 (L=5)
+    [A6 steps=40000] step 36000: batch loss=0.1480 (L=1)
+    [A6 steps=40000] step 38000: batch loss=0.0057 (L=3)
+    [A6 steps=40000] step 40000: batch loss=0.0823 (L=6)
+    [A6 steps=40000] trained in 356.3s (skipped=0)
+
+  --- A6 [40000 steps]: per-L direct-cosine curve (512 words/L) ---
+    L: 1:0.851 2:0.996 3:0.996 4:0.988 5:0.963 6:0.915 7:0.867 8:0.813 9:0.559 10:0.507 11:0.422 12:0.406 13:0.392 14:0.380 15:0.378 16:0.369
+    train-range mean (L1-8): 0.9236   eval-range mean (L9-16): 0.4267
+    [train_len U=cov      ] mean_cos=+0.4511 rec90=0.10 restr_rank=4.44 direct_full=0.9407 direct_block=0.9132 distinct=27 split=production
+    [train_len U=canonical] mean_cos=+0.9131 rec90=0.80 restr_rank=4.73 direct_full=0.9407 direct_block=0.9132 distinct=27 split=production
+    [train_len] cov spectrum (norm'd): 1.000 0.981 0.881 0.848 0.807 0.757 0.664 | principal cosines (covU vs canonical block): 1.000 1.000 1.000 0.043 0.001
+    [eval_len  U=cov      ] mean_cos=-0.0426 rec90=0.00 restr_rank=4.33 direct_full=0.4673 direct_block=0.1669 distinct=45 split=production
+    [eval_len  U=canonical] mean_cos=+0.0418 rec90=0.00 restr_rank=3.87 direct_full=0.4673 direct_block=0.1669 distinct=45 split=production
+    [eval_len ] cov spectrum (norm'd): 1.000 0.995 0.642 0.570 0.456 0.416 0.370 | principal cosines (covU vs canonical block): 1.000 1.000 1.000 0.006 0.003
+=== DONE A6@40000: min L1-5 mean_cos = 0.8509 -> MISSES the 0.9 bar (gpu_s=356.3) ===

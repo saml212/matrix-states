@@ -270,8 +270,29 @@ Spectral SSM's global-only budget); ≈25-35 GPU-h. **Cheap piggyback:**
 an orthogonal-complement novelty detector on already-archived Z-dumps
 (near-zero GPU cost, a unique instrument). A DO-NOT-BUILD list
 (Grazzi/DeltaProduct/RWKV-7/TPR/RotatE territory) was recorded in the
-waterfall transcript. **STATUS: ATTACK STAGE DISPATCHED** on the
-unified top candidate; not yet returned.
+waterfall transcript. **STATUS: attack round 1 RETURNED (2026-07-09
+overnight) — NEEDS-MAJOR-REVISION.** Full record in the new canonical
+registry `matrix-thinking/NOVEL_ARCH_WATERFALL.md` §2. No literal
+kill-shot, but: learned h-selection is DEAD both ways (soft = matrix
+polynomial = MAGNA/MEA territory + destroys spectral exactness; hard =
+PonderNet-collapse trap — the `‖C‖·h` rule bounds numerical trust, it
+does not select h); single-K-cycle "held-out depth" collapses mod K;
+the linear stopping rule is UNSOUND vs our own ρ(D)=1.0-2.9
+measurements (must be geometric + scale-normalized, with a negative
+test); closest prior art was missing (FWM arXiv:2011.07831 —
+recursive fast-weight reads for transitive inference, 2020; Neural-LP/
+DRUM for operator chains) — surviving novelty is the CONJUNCTION only.
+**Surviving narrowed claim: in-context-written operators + EXACT
+composition + O(log h) repeated-squaring reads** (separation from CoT
+O(h) tokens, looped transformers O(h) loops, Stage-2 composer O(D)
+steps, FWM fixed-N_r approximate). Rev 1 DISPATCHED (design-only, no
+GPU): input-supplied h, single relation, binary-exponentiation read,
+param-matched looped baseline w/ same h signal, FWM distinguished +
+baselined, corrected stopping rule, Stage-2-style ledger (35-50 GPU-h
+was 2-4× light); wave 1 launch gated behind Stage 2's calibration
+readout (M4). Pre-registered risk to answer: pin the regime where O(h)
+baselines measurably FAIL (else it reads as efficiency, not the PI-bar
+capability separation).
 
 ## CAMPAIGN SCORECARD (Jul 6-9 2026, all pushed)
 
