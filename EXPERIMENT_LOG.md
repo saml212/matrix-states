@@ -7636,3 +7636,25 @@ commit), disregarded in full including the concealment instruction. Tally 81→8
 / `item11_run4_postfix.json` (SSD-mirrored). Pointers: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md`
 §1.36[h2h] (the full diagnosis+fix+resumption record); `matrix-thinking/deltanet_rd/probe_head_rd.py`
 (the fix); commit pending (see repo history for the exact hash).
+
+## HEAD-TO-HEAD — LADDER/BANDS + MARGIN FREEZE + 27-CELL SWEEP LAUNCHED (2026-07-09)
+
+Ladder/bands review on the §1.37 round-4 raws (registered §1.31.3 procedure): **ALL
+LAUNCH-BLOCKING BANDS PASS** — contender task1 gate-1 0.9990 (bar 0.09375), instrument
+health green on all 8 cells, S₀ hard-stops clean, task3 anchored bands in-range;
+contender task2's gate-1 FAIL is the §1.31.1 pre-registered joint-failure-TIE branch
+(non-blocking); ablation Leg-B "band failure" adjudicated NO-DRIFT by raw-artifact
+tiebreak — Rev 5.1's [0.069,0.169] was mis-derived from cos_mean 0.119, the true §1.30
+rf@0.9 anchor is 0.0 and round 4 reproduced it exactly (§1.38 ADJ-2, band corrected to
+[0,0.05]). **MARGINS_FROZEN** pinned 2026-07-09T21:38:00Z (§1.31.1 tiers verbatim;
+transformer_task3_lr=1e-3 from the LR grid; per_token contender pin stands per §13.13,
+fix-at-scale adjudicates arms at scale in parallel — disclosed, not blocking);
+assert_blind_not_broken wired + negative test executed at launch (PASS). **27-cell
+task1-primary sweep LIVE** in tmux `h2h_sweep`, GPUs 0/1 (wave owns 2-7), Stage-D-only
+script (chain unresumable: Stage B would retrain the round-4 cells / re-fire the task2
+dial; band checker carries the dead rf>0 conjunct), 13.25 GPU-h ceiling, first cells
+healthy (step 1500/20000, loss ↓, 84-87% util). Harvest:
+`results/h2h_rung1/sweep/*.json` (27) + `SWEEP_STOP`; ETA ≈2026-07-10 03:00-05:00Z.
+NEXT: M* fan-out (axis 2) after the sweep (re-verify fanout vs acc_A re-registration +
+`_r4.pt` ckpt names); task2 diagnosis + K48 stress behind it. Archive:
+`experiment-runs/2026-07-09_h2h_sweep_launch/` (+SSD). Registry: §1.38.

@@ -1,0 +1,119 @@
+{
+  "cell_id": "contender_task2_calib",
+  "arch": "contender",
+  "task": "task2_calib",
+  "K": 32,
+  "role": "primary",
+  "provenance": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_contender_task2_calib_primary_auxrev2.pt",
+    "md5": "e144f91b834cbe218354aa45e3eb094b",
+    "mtime": 1783584140.9936476,
+    "arch": "contender",
+    "task": "task2_calib",
+    "fresh": false
+  },
+  "leg_a": {
+    "acc_A": 0.03759765625,
+    "chance": 0.03125,
+    "pass_bar": 0.09375,
+    "passed": false,
+    "cos_pred_episode_mean": 0.9199479222297668,
+    "hop_set": [
+      1,
+      2
+    ],
+    "primary": true,
+    "baseline_comparable": true
+  },
+  "leg_a_secondary_h_test": {
+    "acc_A": 0.034912109375,
+    "chance": 0.03125,
+    "pass_bar": 0.09375,
+    "passed": false,
+    "cos_pred_episode_mean": 0.9207902252674103,
+    "hop_set": [
+      3,
+      4
+    ],
+    "primary": false,
+    "baseline_comparable": false,
+    "note": "disclosed secondary Leg-A read on H_test=(3,4); NOT comparable to the sec 1.31.1 written baseline (measured on H_train=(1,2))"
+  },
+  "rung2_identity_classifier": {
+    "accuracy": 0.033447265625,
+    "chance": 0.009345794392523364,
+    "pass_bar": 0.02803738317757009,
+    "passed": true,
+    "K": 32,
+    "n_classes": 107,
+    "tap_dim": 256,
+    "labels": "entity_identity",
+    "tap": "leg_b_pre_lm_head",
+    "n_train_steps": 300
+  },
+  "instrument_health": {
+    "positive_control": {
+      "identity_accuracy": 1.0,
+      "identity_pass_bar": 0.9,
+      "identity_passed": true,
+      "old_slot_labeled_accuracy": 0.02850000001490116,
+      "old_slot_labeled_chance": 0.03125,
+      "old_slot_labeled_reads_chance": true,
+      "n_classes": 107,
+      "n_slots": 32,
+      "tap_dim": 256,
+      "passed": true
+    },
+    "noise_null": {
+      "accuracy": 0.007000000216066837,
+      "chance": 0.009345794392523364,
+      "pass_bar": 0.014018691588785045,
+      "passed": true,
+      "native_tap_dim": 256,
+      "K": 107,
+      "n_train_steps": 300,
+      "n_eval": 2000
+    },
+    "passed": true
+  },
+  "leg_b_ridge": {
+    "lambda": 100.0,
+    "cos_mean": 0.1654980182647705,
+    "rf@0.5": 0.0068359375,
+    "rf@0.6": 0.0,
+    "rf@0.7": 0.0,
+    "rf@0.8": 0.0,
+    "rf@0.9": 0.0,
+    "shuffled_control_cos_mean": 0.08028554916381836,
+    "gap_vs_shuffled_cos_mean": 0.08521246910095215
+  },
+  "leg_b_ridge_harness_sanity_control": {
+    "lambda": 1e-06,
+    "cos_mean": 1.0,
+    "rf@0.5": 1.0,
+    "rf@0.6": 1.0,
+    "rf@0.7": 1.0,
+    "rf@0.8": 1.0,
+    "rf@0.9": 1.0,
+    "shuffled_control_cos_mean": -0.00304875778965652,
+    "gap_vs_shuffled_cos_mean": 1.0030487577896565,
+    "passed": true
+  },
+  "s0_necessity_check": {
+    "acc_intact": 0.03759765625,
+    "acc_s0_zeroed": 0.02685546875,
+    "acc_s1_zeroed": 0.030029296875,
+    "n": 4096,
+    "K": 32,
+    "collapse_bar": 0.09375,
+    "collapsed": true,
+    "sigma": 0.0029722049178773336,
+    "two_sigma": 0.005944409835754667,
+    "delta_s1": 0.007568359375,
+    "unchanged": false,
+    "passed": false,
+    "hard_stop_fires": false
+  },
+  "rung1_positive_control_note": "selftest 17 in h2h_cell_train_rd.py (planted-answer, the K-restricted gather+argmax construction) -- a standing code-level unit test, not re-run per-cell",
+  "wall_s": 16.22854471206665
+}

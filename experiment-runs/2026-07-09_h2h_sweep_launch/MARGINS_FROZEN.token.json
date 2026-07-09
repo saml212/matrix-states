@@ -1,0 +1,271 @@
+{
+  "what": "MARGINS_FROZEN.token -- HEAD_TO_HEAD_DEMO_DESIGN.md sec 1.31.7 chain step: MARGIN FREEZE (coordinator-only write), releasing the task1-primary 27-cell sweep (Stage D). Freeze record: sec 1.38 of the design registry.",
+  "pinned_at": 1783633080.928859,
+  "pinned_at_utc": "2026-07-09T21:38:00Z",
+  "frozen_by": "MARGIN-FREEZE + SWEEP-LAUNCH agent (coordinator-delegated), on the sec 1.37 ROUND 4 VERDICT (commit 1106055)",
+  "blind_discipline": "sec 13.13-verified pattern: pinned_at must STRICTLY PRECEDE the earliest sweep-cell start (key_anchoring.assert_blind_not_broken, wired at the launch script with its negative test EXECUTED per launch)",
+  "margins_frozen_verbatim_sec_1_31_1": {
+    "metric_of_record": "acc_A(arm, cell) = episode-restricted K-way top-1 accuracy at the query answer position, each arm's own native LM-head route; K-restricted gather+argmax (_rung1_k_restricted_pred_slot); pinned EVAL_SEED set, n=4096 queries/cell; verdict-grade reads = n=3 seeds with paired delta_ci_n CIs (sec 1.8)",
+    "primary_axis1_cell": "task1_calib_K32 (K/d=0.5) -- TASK1-PRIMARY (Rev 5.1 pin; supersedes sec 1.4.1's 'Task 2, primary')",
+    "chance": "1/K (0.03125 at K=32; 0.02083 at K=48)",
+    "demonstration_bar": "acc_A > 3x(1/K) (>0.09375 at K=32); at/below = NO-RECALL; a difference between two NO-RECALL arms is never separation",
+    "axis1_tiers_delta_eq_accA_contender_minus_ablation": {
+      "WIN": "contender clears demonstration bar AND Delta >= 0.30 with paired-seed CI excluding 0.30",
+      "LOSE": "ablation clears demonstration bar AND -Delta >= 0.30 with CI excluding 0.30",
+      "TIE": "Delta CI entirely inside (-0.30, +0.30); ALSO TIE if NEITHER arm clears the demonstration bar (joint task-learning failure)",
+      "INDETERMINATE": "CI straddles +/-0.30 without excluding it -- TIE-adjacent, escalation-eligible, never a WIN"
+    },
+    "margin_rationale": "0.30 ~= 9.6x chance at K=32, ~3x the demonstration bar, < 1/3 of round-3's realized single-seed gap (0.9543)",
+    "data_efficiency_operationalizations": "threshold acc_A >= 0.90; tokens-to-threshold X=50% provisional; sustained CI-separation >= 3 consecutive logged checkpoints; ablation-never-clears => ratio reported as a BOUND, never extrapolated",
+    "axis2_Mstar": "sec 1.4.2 machinery VERBATIM with per-M gap statistic re-registered to acc_A; 0.20 per-point margin; M in {1,2,4,8,16,32}; descending fixed-sequence walk; LOSE M*<=2 / TIE M*=4 / WIN M*>=8 / INDETERMINATE; degenerate-baseline handling (uncapped transformer below demonstration bar => 'baseline non-competitive', never M*=inf); joint-NO-RECALL M-cells scored TIE-equivalent, never LOSE, never set M*",
+    "task2_disposition": "pre-registered joint-failure TIE (contender 0.0376 < 0.09375 bar on the frozen checkpoint); NOT retrained this round; separate post-sweep TASK2 DIAGNOSIS ROUND; disclosed verbatim in any claim mentioning task2",
+    "nichani_caveat": "'recall' = episode-restricted top-1 retrieval under argmax decoding; under argmax a rank-1 state can support ~d associations (Nichani, Lee & Bietti, ICLR 2025, arXiv:2412.06538) -- travels with every Leg-A number",
+    "rf09_status": "NOT a LOSE criterion, NOT a gate conjunct, NOT in any band -- Leg-B diagnostic only (sec 1.31.2)"
+  },
+  "ladder_bands_review": {
+    "verdict": "ALL LAUNCH-BLOCKING BANDS PASS -- task1-primary sweep CLEARED",
+    "computed_at_utc": "2026-07-09T21:35:15Z",
+    "gate1_arm_aware_bands": {
+      "ablation_task1_calib": {
+        "arch": "ablation",
+        "rung1_accuracy": 0.044677734375,
+        "K": 32,
+        "chance": 0.03125,
+        "rung1_pass_bar": 0.09375,
+        "rung1_ok": false,
+        "rung1_blocking": false,
+        "instrument_health_passed": true,
+        "within_band": true
+      },
+      "ablation_task1_stress_K48": {
+        "exempt": true,
+        "reason": "stress_locate_only (sec 1.31.3 / M-NEW-3)"
+      },
+      "ablation_task2_calib": {
+        "arch": "ablation",
+        "rung1_accuracy": 0.027099609375,
+        "K": 32,
+        "chance": 0.03125,
+        "rung1_pass_bar": 0.09375,
+        "rung1_ok": false,
+        "rung1_blocking": false,
+        "instrument_health_passed": true,
+        "within_band": true
+      },
+      "contender_task1_calib": {
+        "arch": "contender",
+        "rung1_accuracy": 0.9990234375,
+        "K": 32,
+        "chance": 0.03125,
+        "rung1_pass_bar": 0.09375,
+        "rung1_ok": true,
+        "rung1_blocking": true,
+        "instrument_health_passed": true,
+        "within_band": true
+      },
+      "contender_task1_stress_K48": {
+        "exempt": true,
+        "reason": "stress_locate_only (sec 1.31.3 / M-NEW-3)"
+      },
+      "contender_task2_calib": {
+        "arch": "contender",
+        "rung1_accuracy": 0.03759765625,
+        "K": 32,
+        "chance": 0.03125,
+        "rung1_pass_bar": 0.09375,
+        "rung1_ok": false,
+        "rung1_blocking": true,
+        "instrument_health_passed": true,
+        "within_band": false
+      },
+      "transformer_task1_calib": {
+        "arch": "transformer",
+        "rung1_accuracy": 0.029541015625,
+        "K": 32,
+        "chance": 0.03125,
+        "rung1_pass_bar": 0.09375,
+        "rung1_ok": false,
+        "rung1_blocking": false,
+        "instrument_health_passed": true,
+        "within_band": true
+      },
+      "transformer_task2_calib": {
+        "arch": "transformer",
+        "rung1_accuracy": 0.030029296875,
+        "K": 32,
+        "chance": 0.03125,
+        "rung1_pass_bar": 0.09375,
+        "rung1_ok": false,
+        "rung1_blocking": false,
+        "instrument_health_passed": true,
+        "within_band": true
+      }
+    },
+    "legb_reproduction": {
+      "contender_task1_calib": {
+        "anchor_rf09_sec130_raw": 0.674,
+        "band": [
+          0.624,
+          0.724
+        ],
+        "measured": 0.67431640625,
+        "within": true
+      },
+      "ablation_task1_calib": {
+        "anchor_rf09_sec130_raw": 0.0,
+        "band_as_pinned_rev51": [
+          0.069,
+          0.169
+        ],
+        "band_honest_pm005_on_rf09_floored": [
+          0.0,
+          0.05
+        ],
+        "measured": 0.0,
+        "within_pinned": false,
+        "within_honest": true,
+        "cos_mean_anchor_sec130_raw": 0.1189,
+        "cos_mean_measured": 0.11890894919633865
+      }
+    },
+    "s0_hard_stops": {
+      "ablation_task1_calib": {
+        "collapsed": true,
+        "unchanged": true,
+        "passed": true,
+        "hard_stop_fires": false,
+        "acc_intact": 0.044677734375,
+        "acc_s0_zeroed": 0.03076171875,
+        "acc_s1_zeroed": 0.043701171875,
+        "two_sigma": 0.006456104368677355
+      },
+      "ablation_task1_stress_K48": {
+        "collapsed": true,
+        "unchanged": true,
+        "passed": true,
+        "hard_stop_fires": false,
+        "acc_intact": 0.01953125,
+        "acc_s0_zeroed": 0.01953125,
+        "acc_s1_zeroed": 0.01953125,
+        "two_sigma": 0.0035309070882025774
+      },
+      "ablation_task2_calib": {
+        "collapsed": true,
+        "unchanged": true,
+        "passed": true,
+        "hard_stop_fires": false,
+        "acc_intact": 0.027099609375,
+        "acc_s0_zeroed": 0.030029296875,
+        "acc_s1_zeroed": 0.027099609375,
+        "two_sigma": 0.005074178326602111
+      },
+      "contender_task1_calib": {
+        "collapsed": true,
+        "unchanged": true,
+        "passed": true,
+        "hard_stop_fires": false,
+        "acc_intact": 0.9990234375,
+        "acc_s0_zeroed": 0.028564453125,
+        "acc_s1_zeroed": 0.9990234375,
+        "two_sigma": 0.0009760855463695969
+      },
+      "contender_task1_stress_K48": {
+        "collapsed": true,
+        "unchanged": true,
+        "passed": true,
+        "hard_stop_fires": false,
+        "acc_intact": 0.018880208333333332,
+        "acc_s0_zeroed": 0.015299479166666666,
+        "acc_s1_zeroed": 0.02099609375,
+        "two_sigma": 0.0034727122702758605
+      },
+      "contender_task2_calib": {
+        "collapsed": true,
+        "unchanged": false,
+        "passed": false,
+        "hard_stop_fires": false,
+        "acc_intact": 0.03759765625,
+        "acc_s0_zeroed": 0.02685546875,
+        "acc_s1_zeroed": 0.030029296875,
+        "two_sigma": 0.005944409835754667
+      }
+    },
+    "task3_anchored_bands": {
+      "ablation_primary": {
+        "lr": 0.0003,
+        "final_val_loss_own": 2.2905286848545074,
+        "band": [
+          1.9,
+          2.6
+        ],
+        "decreased_from_init": true,
+        "within": true
+      },
+      "transformer_lr_grid_0": {
+        "lr": 0.0001,
+        "final_val_loss_own": 3.0245474576950073,
+        "band": [
+          1.9,
+          5.5
+        ],
+        "decreased_from_init": true,
+        "within": true
+      },
+      "transformer_lr_grid_1": {
+        "lr": 0.0003,
+        "final_val_loss_own": 2.41609850525856,
+        "band": [
+          1.9,
+          5.5
+        ],
+        "decreased_from_init": true,
+        "within": true
+      },
+      "transformer_lr_grid_2": {
+        "lr": 0.001,
+        "final_val_loss_own": 2.193118989467621,
+        "band": [
+          1.9,
+          5.5
+        ],
+        "decreased_from_init": true,
+        "within": true
+      }
+    },
+    "adjudications": [
+      {
+        "id": "ADJ-1 (task2 gate-1 failure = the PRE-REGISTERED branch)",
+        "finding": "contender_task2_calib gate-1 band FAILS (acc_A 0.0376 < 0.09375 demonstration bar, rung1_blocking for contender)",
+        "adjudication": "EXPECTED AND PINNED: sec 1.31.1 Rev 5.1 pre-registered exactly this (task2's Leg-A band failure knowable on the frozen round-3 checkpoint, deterministic); pinned branch = sweep proceeds TASK1-PRIMARY, task2 scored joint-failure TIE, separate post-sweep TASK2 DIAGNOSIS ROUND, non-blocking. NOT a launch blocker for the task1-primary sweep.",
+        "disclosed_in_any_claim_mentioning_task2": true
+      },
+      {
+        "id": "ADJ-2 (ablation Leg-B reproduction band: raw-artifact tiebreak)",
+        "finding": "round-4 ablation_task1_calib rf@0.9 = 0.0 sits outside Rev 5.1's pinned [0.069, 0.169] reproduction band",
+        "raw_artifact": "experiment-runs/2026-07-09_h2h_tap_localization/results/tap_localization_ablation.json: tap iv_prelmhead rf@0.9 = 0.0, cos_mean = 0.1189",
+        "adjudication": "The pinned band was MIS-DERIVED: sec 1.31.2's parenthetical 'ablation flat (0.119 / +0.006)' reads (cos_mean / gap-vs-shuffled), not rf@0.9; Rev 5.1 applied +/-0.05 to cos_mean 0.119. The sec 1.30 raw anchor rf@0.9 is 0.0; the honest +/-0.05-on-rf@0.9 band (floored at 0, per the band's own floor clause) is [0, 0.05]; measured 0.0 REPRODUCES the anchor exactly (drift delta 0.000). Cross-checks: cos_mean measured vs anchor agree (per-cell JSON), ckpt md5 matches the sec 1.36 identity table, and the SAME code path reproduces the contender anchor within +/-0.001. Verdict: NO DRIFT -- stale-checkpoint/tap-wiring/loader hypotheses all excluded; the investigation sec 1.31.2 requires is complete. Recorded per the read-the-raw-artifact hard rule (CLAUDE.md).",
+        "verdict": "PASS (anchor reproduced; pinned band corrected in the freeze record, sec 1.38)"
+      },
+      {
+        "id": "ADJ-3 (stress K48 cells: reproduction band does not apply)",
+        "finding": "both stress cells read rf@0.9 = 0.0",
+        "adjudication": "sec 1.30 measured ONLY the K=32 task1_calib primary cells; no anchor exists for K=48 stress cells -- their Leg-B reads are FIRST measurements (data), and both arms sit at ~chance acc_A there (0.0189/0.0195), consistent w/ the sec 1.31.1 round-3 table. Stress cells are band-exempt by the registered text.",
+        "verdict": "DATA, not drift"
+      }
+    ],
+    "full_review_archived_at": "experiment-runs/2026-07-09_h2h_sweep_launch/ladder_bands_review.json"
+  },
+  "transformer_task3_lr": 0.001,
+  "transformer_task3_lr_rationale": "calibration LR grid (5k-step quarter cells): 3.0245@1e-4, 2.4161@3e-4, 2.1931@1e-3 -- best val loss at 1e-3 (M3 / apply_margin_freeze_overrides; the only override this token carries by design)",
+  "contender_pin": {
+    "pin": "per_token (lambda=0.58), sec 1.2 -- STANDS",
+    "verification": "FROZEN_BIAS_LM_DESIGN.md sec 13.13 ATTACK ROUND 1 VERDICT: 'The h2h sec 1.2 pin is NOT a misread ... the margin freeze does not rest on a broken pin' -- the sec 1.24 trailer's adjudication requirement is DISCHARGED",
+    "cross_campaign_disclosure": "per_token is geometry-UNRESOLVED at 14M (Delta-span +0.1955/+0.2273 CI-excludes-zero, destabilizing direction) while global-vector is stabilizing-but-never-scaled; the FIX-AT-SCALE wave (sec 13, incl. the Rev-1 arm_global_probe) adjudicates both arms at scale IN PARALLEL -- disclosed, not blocking this freeze"
+  },
+  "citations": {
+    "round4_verdict": "HEAD_TO_HEAD_DEMO_DESIGN.md sec 1.37 (commit 1106055)",
+    "pre_registration": "sec 1.31/1.31a (Rev 5/5.1)",
+    "freeze_record": "sec 1.38",
+    "sweep_price": "~13.25 GPU-h upper (sec 1.26a re-price)"
+  }
+}

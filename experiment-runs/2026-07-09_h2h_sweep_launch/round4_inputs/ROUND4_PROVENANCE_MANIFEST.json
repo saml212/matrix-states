@@ -1,0 +1,51 @@
+{
+  "contender_task1_calib": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_contender_task1_calib_primary_K32_auxrev2.pt",
+    "md5": "2bd6dbce2f4187f54851f97c0ea5e57e",
+    "mtime": 1783576696.3941922,
+    "arch": "contender",
+    "task": "task1_calib"
+  },
+  "ablation_task1_calib": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_ablation_task1_calib_primary_K32_auxrev2.pt",
+    "md5": "6fa7b6b074252a5b3bb225437cce1689",
+    "mtime": 1783578280.5300133,
+    "arch": "ablation",
+    "task": "task1_calib"
+  },
+  "transformer_task1_calib": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_transformer_task1_calib_primary_K32_auxrev2.pt",
+    "md5": "647de170551253031756c0c4b4040f06",
+    "mtime": 1783581219.2368245,
+    "arch": "transformer",
+    "task": "task1_calib"
+  },
+  "contender_task2_calib": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_contender_task2_calib_primary_auxrev2.pt",
+    "md5": "e144f91b834cbe218354aa45e3eb094b",
+    "mtime": 1783584140.9936476,
+    "arch": "contender",
+    "task": "task2_calib"
+  },
+  "ablation_task2_calib": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_ablation_task2_calib_primary_auxrev2.pt",
+    "md5": "b980097587570799b794f7e8effb3702",
+    "mtime": 1783586602.3088138,
+    "arch": "ablation",
+    "task": "task2_calib"
+  },
+  "contender_task1_stress_K48": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_contender_task1_calib_stress_locate_only_K48_auxrev2.pt",
+    "md5": "6714c5141f8c2baa70a6b77b83deab42",
+    "mtime": 1783576190.830568,
+    "arch": "contender",
+    "task": "task1_calib"
+  },
+  "ablation_task1_stress_K48": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_ablation_task1_calib_stress_locate_only_K48_auxrev2.pt",
+    "md5": "a5f8add0c2e134265ad5ebcfe77aa86e",
+    "mtime": 1783577220.9468024,
+    "arch": "ablation",
+    "task": "task1_calib"
+  }
+}

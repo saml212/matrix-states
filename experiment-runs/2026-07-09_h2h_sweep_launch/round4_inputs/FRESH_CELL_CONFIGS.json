@@ -1,0 +1,26 @@
+{
+  "transformer_task2_calib": {
+    "arch": "transformer",
+    "task": "task2_calib",
+    "role": "primary",
+    "budget_frac": 1.0,
+    "seed": 1500000,
+    "lr": 0.0003,
+    "warmup_steps": 100,
+    "name": "h2h_calib_transformer_task2_calib_primary_auxrev2",
+    "seed_idx": 0
+  },
+  "transformer_task1_stress_K48": {
+    "arch": "transformer",
+    "task": "task1_calib",
+    "kd": 0.75,
+    "K": 48,
+    "role": "stress_locate_only",
+    "budget_frac": 0.25,
+    "seed": 500000,
+    "lr": 0.0003,
+    "warmup_steps": 100,
+    "name": "h2h_calib_transformer_task1_calib_stress_locate_only_K48_auxrev2",
+    "seed_idx": 0
+  }
+}

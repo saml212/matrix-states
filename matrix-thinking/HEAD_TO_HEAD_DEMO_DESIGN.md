@@ -4501,3 +4501,127 @@ pre-registered seed handling.
 MARGIN FREEZE → task1-primary 27-cell sweep ≈13.25 GPU-h upper (GPUs
 0/1 free now; expand as wave cells complete). The task2 diagnosis
 round and the K48 stress cell ride behind the sweep as pre-registered.**
+
+### 1.38 LADDER/BANDS REVIEW + MARGIN FREEZE + 27-CELL SWEEP LAUNCH (2026-07-09 evening): ALL LAUNCH-BLOCKING BANDS PASS — MARGINS_FROZEN pinned 21:38:00Z, sweep LIVE in tmux `h2h_sweep` (GPUs 0/1)
+
+Recorded per the gauntlet-bookkeeping hard rule. Full artifact set:
+`experiment-runs/2026-07-09_h2h_sweep_launch/` (bands review JSON, the
+token verbatim, the exact launch script, round-4 input raws, MANIFEST).
+
+**1) LADDER/BANDS REVIEW (the §1.31.7 chain step between round 4 and the
+freeze), computed on the §1.37 round-4 raws per the registered §1.31.3
+procedure** — arm-aware gate-1 bands via `check_gate1_full_cell_band`
+(the §1.31.4 item-5 re-wire) on the 6 primary task1/task2 cells;
+stress cells exempt; §1.31.2 M1 Leg-B reproduction on the two
+§1.30-anchored reused K=32 task1 cells; §1.31.2/§1.32-F4 S₀ hard-stop
+pins; task3's anchored bands untouched:
+
+| cell | acc_A | gate-1 | instr. health | S₀ hard-stop | rf@0.9 |
+|---|---|---|---|---|---|
+| contender task1_calib | 0.9990 | PASS | PASS | clean (collapse 0.0286≤0.09375; ΔS₁ 0.000≤2σ) | 0.6743 |
+| ablation task1_calib | 0.0447 | PASS (data, non-blocking) | PASS | clean | 0.0 |
+| transformer task1_calib | 0.0295 | PASS (data, non-blocking) | PASS | n/a | 0.0 |
+| contender task2_calib | 0.0376 | **FAIL — the pre-registered branch (ADJ-1)** | PASS | clean | 0.0 |
+| ablation task2_calib | 0.0271 | PASS (data, non-blocking) | PASS | clean | 0.0 |
+| transformer task2_calib (fresh, r4) | 0.0300 | PASS (data, non-blocking) | PASS | n/a | 0.0 |
+| contender/ablation task1_stress_K48 | 0.0189/0.0195 | EXEMPT (locate-only) | PASS | clean | 0.0 |
+| task3: ablation primary 2.2905 ∈ [1.90,2.60]; lr_grid 3.0245/2.4161/2.1931 ∈ [1.90,5.50], all decreased | | PASS | | | |
+
+**VERDICT: ALL LAUNCH-BLOCKING BANDS PASS — task1-primary sweep
+CLEARED.** Three coordinator adjudications, recorded per the
+read-the-raw-artifact hard rule:
+
+- **ADJ-1 (task2 gate-1 FAIL = the pinned branch, non-blocking):**
+  §1.31.1 Rev 5.1 pre-registered exactly this deterministic failure
+  (0.0376 < 0.09375 on the frozen checkpoint); pinned branch = sweep
+  proceeds TASK1-PRIMARY, task2 scored joint-failure TIE, separate
+  post-sweep TASK2 DIAGNOSIS ROUND. Disclosed in any claim naming task2.
+- **ADJ-2 (ablation Leg-B reproduction band: Rev 5.1's pinned [0.069,
+  0.169] found MIS-DERIVED; raw-artifact tiebreak → NO DRIFT):** round
+  4's ablation task1 rf@0.9 = 0.0 sits outside the pinned band — but
+  the raw §1.30 artifact
+  (`experiment-runs/2026-07-09_h2h_tap_localization/results/tap_localization_ablation.json`,
+  tap `iv_prelmhead`) reads **rf@0.9 = 0.0, cos_mean = 0.1189**: the
+  "0.119" in §1.31.2's parenthetical is the COS_MEAN, not rf@0.9, and
+  Rev 5.1 applied ±0.05 to the wrong quantity. The honest
+  ±0.05-on-rf@0.9 band (floored at 0, per the clause's own floor) is
+  [0, 0.05]; measured 0.0 reproduces the anchor EXACTLY (Δ=0.000).
+  Drift hypotheses (stale ckpt / tap wiring / loader) all excluded:
+  ckpt md5 matches the §1.36 identity table, cos_mean matches the
+  anchor, and the same code path reproduces the contender anchor
+  within ±0.001 (0.6743 ∈ [0.624, 0.724], PASS as pinned). The §1.31.2
+  investigation requirement is DISCHARGED; the pinned ablation band is
+  corrected BY THIS RECORD to [0, 0.05].
+- **ADJ-3 (stress-K48 cells carry NO reproduction band):** §1.30
+  measured only the K=32 task1 primaries; the K48 cells' Leg-B reads
+  are first measurements (both arms ≈chance acc_A there, consistent
+  with the §1.31.1 round-3 table) — data, not drift.
+
+**2) MARGIN FREEZE.** `MARGINS_FROZEN.token` (JSON) written
+coordinator-side and deployed to
+`results/h2h_rung1/MARGINS_FROZEN.token`, md5
+`58fe68e7b15728739a5176d7e591e204` verified local==box; **pinned_at =
+1783633080.929 = 2026-07-09T21:38:00Z**, strictly preceding the first
+sweep-cell start (21:39:27Z+). Content: the §1.31.1 tiers VERBATIM
+(acc_A metric of record; 3×-chance demonstration bar; WIN/LOSE at
+|Δ|≥0.30 CI-excluding; TIE incl. joint-failure; INDETERMINATE
+TIE-adjacent; acc_A≥0.90 data-efficiency threshold; axis-2 M*
+machinery re-registered to acc_A at the 0.20 per-point margin, M ∈
+{1,2,4,8,16,32}, LOSE M*≤2 / TIE M*=4 / WIN M*≥8, degenerate-baseline
++ joint-NO-RECALL rules; the Nichani caveat on every Leg-A number),
+the bands table above, the three adjudications, and the ONE
+freeze-time override the code honors
+(`apply_margin_freeze_overrides`): **transformer_task3_lr = 1e-3**
+(calibration LR grid: 3.0245@1e-4, 2.4161@3e-4, 2.1931@1e-3 — best
+final val loss). Blind discipline per the §13.13-verified pattern:
+`key_anchoring.assert_blind_not_broken` is WIRED at the launch script
+(pinned_at must strictly precede launch) with its negative test
+(synthetic future pinned_at must raise) EXECUTED at every launch —
+verified firing in the launch log. **Contender pin:** per_token
+(λ=0.58, §1.2) STANDS — §13.13's independent verdict ("the h2h §1.2
+pin is NOT a misread… the margin freeze does not rest on a broken
+pin") discharges the §1.24 trailer's adjudication requirement; the
+per_token-vs-global cross-campaign question (per_token
+geometry-UNRESOLVED at 14M; global stabilizing-but-never-scaled) is
+adjudicated at scale by §13's fix-at-scale wave IN PARALLEL —
+disclosed, not blocking.
+
+**3) SWEEP LAUNCH.** The 27-cell task1-primary sweep (3 archs × 3
+tasks × 3 seeds, `build_27_cell_manifest`, n=3 seeds per cell matching
+Rev 5.1's verdict-grade claim path; ≈13.25 GPU-h upper, §1.26a) is
+LIVE in tmux **`h2h_sweep`** on the box, GPUs 0/1 (fixscale wave owns
+2-7 — untouched; GPU 7 never used), via
+`h2h_sweep_stage_d.sh` (md5 `5fdb6ed57a05d4e5b3b81cdd3de68937`
+local==box) + self-healing supervisor loop. Stage-D-only extraction
+rationale (recorded): the full chain cannot be resumed as-is — its
+Stage B would RETRAIN the two calib cells whose round-3 results never
+landed (transformer_task2 was retrained in ROUND 4 instead and its
+dial check DialExhausted'ed — a Stage-B re-run would re-fire it), and
+the chain's Stage-B band checker (`h2h_calibration_bands_rd`) still
+enforces the DEAD rf>0 conjunct. The script carries the chain's own
+discipline verbatim: run_cells_par (resume-safe `is_valid_result`,
+per-cell GPU pinning, 3-strike FATAL, never pkill-by-pattern), gate-5
+token probe, code-level `require_margins_frozen` per cell, budget
+ceiling 13.25 GPU-h enforced per wave, `H2H_DIAL_ROUND=4` pinned
+explicitly (round-4 precedent, §1.34 note v — sweep cells never
+evaluate the dial by the role=='sweep' structural guard; the export
+only versions checkpoints `_r4.pt`). The stale round-3 chain FATAL
+(08:25Z, the K48-transformer 3-strike, adjudicated across
+§1.27-§1.37) archived as
+`FATAL_round3_stressK48_3strikes_archived_20260709T213915Z` per the
+round-2 precedent. First cells confirmed healthy post-launch (see
+MANIFEST). Harvest watch-path:
+`results/h2h_rung1/sweep/h2h_{arch}_{task}_s{seed}.json` (27
+expected) + `results/h2h_rung1/SWEEP_STOP` on completion; supervisor
+log `logs/h2h_sweep_supervisor.log`. To expand into freed GPUs:
+`tmux kill-session -t h2h_sweep`, relaunch with `H2H_GPUS="0,1,…"` —
+resume-safety skips completed cells.
+
+**NEXT, pre-registered:** (a) the **M\* protocol (axis 2)** — 90-pass
+fan-out + contender horizon refs — runs AFTER the sweep per §1.31.1;
+its dispatch must first re-verify `h2h_msweep_fanout_rd` against the
+acc_A re-registration AND fix the chain's stale unsuffixed ckpt_map
+names (the sweep saves `_r4.pt` per §1.31.4 item 4); (b) the TASK2
+DIAGNOSIS ROUND + the K48 stress fresh cell ride behind the sweep;
+(c) sweep harvest → verdict-grade n=3 paired CIs → the §1.31.6 claim
+(with its matched-budget + single-seed caveats retired).
