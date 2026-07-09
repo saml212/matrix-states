@@ -87,6 +87,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # pod-safe impor
 
 from fla.modules import RMSNorm, ShortConvolution
 from fla.ops.delta_rule import chunk_delta_rule
+# ATTRACTOR-ROBUSTNESS 2x2 (discharging iclr-2027 09_discussion_limitations.tex limitation #2,
+# "single architecture family... Gated DeltaNet... untested"): the gated-arm's kernel. Verified
+# present in the pinned fla-core==0.5.1 (fla/ops/gated_delta_rule/chunk.py) by direct wheel
+# inspection at build time -- NOT a guess. Imported top-level, matching chunk_delta_rule's own
+# import-time convention above (this file already assumes a real-or-stubbed `fla` is importable
+# before it is imported at all, see h2h_fla_stub_rd.py / smoke_frozen_bias_lm.py's own stub
+# installers) -- never lazily guarded inside the function, for the same reason chunk_delta_rule
+# isn't either.
+from fla.ops.gated_delta_rule import chunk_gated_delta_rule
 
 from model_rd import (_MIN_KERNEL_T, _SAFE_D_STATE, _polar_via_eigh,
                        newton_schulz_orthogonalize)
@@ -592,7 +601,8 @@ class DeltaNetLMMixer(nn.Module):
                  hard_select_tau_anneal_frac: float = 0.10,
                  hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
                  frozen_bias_arm: str = "off", frozen_bias_lambda: float = FROZEN_BIAS_LAMBDA_PRIMARY,
-                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED):
+                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED,
+                 qk_l2norm_in_kernel: bool = True, gated_delta_active: bool = False):
         """geo3_* (SCALE_TRANSFER_DESIGN.md sec 4, Track B): OFF by default
         (geo3_active=False) -- when off, none of this __init__'s new
         parameters are read anywhere in forward(), and forward()'s default
@@ -654,7 +664,48 @@ class DeltaNetLMMixer(nn.Module):
         SEED by default (sec 5's registered construction seed) -- exposed
         so Arm 1'/1'' eval-only retrofits and the Wave -1 code-path-equality
         smoke can force the SAME seed a checkpoint's own training-time table
-        used, never silently redrawing a different table."""
+        used, never silently redrawing a different table.
+
+        qk_l2norm_in_kernel / gated_delta_active (ATTRACTOR-ROBUSTNESS 2x2,
+        discharging iclr-2027 09_discussion_limitations.tex limitation #2 --
+        "vanilla, single-head, single-layer DeltaNet only... Gated DeltaNet
+        (the actual Qwen3-Next production config)... untested"): two
+        INDEPENDENT axes, each defaulting to the CURRENT hardcoded behavior
+        (qk_l2norm_in_kernel=True, gated_delta_active=False) -- when both
+        are left at default, forward()'s kernel call is BYTE-IDENTICAL to
+        the pre-existing line `chunk_delta_rule(..., use_qk_l2norm_in_kernel
+        =True)` (same function, same literal arg value; regression-checked
+        by this build's own bit-identical-default negative test, mirroring
+        geo3_active/hard_select_active/frozen_bias_arm's own off-by-default
+        discipline).
+
+        qk_l2norm_in_kernel: threads DIRECTLY into `use_qk_l2norm_in_kernel`
+        at the kernel boundary (both chunk_delta_rule and, when the gated
+        arm is active, chunk_gated_delta_rule accept this exact kwarg name
+        -- verified against the pinned fla-core==0.5.1 source). False tests
+        whether the write-geometry attractor survives WITHOUT the
+        community-standard qk-l2-norm the base architecture has used
+        throughout every prior chapter.
+
+        gated_delta_active: False (default) keeps the plain
+        `fla.ops.delta_rule.chunk_delta_rule` call path (no `b_alpha_proj`
+        constructed at all -- zero param-count change from today's
+        architecture, matching frozen_bias_table's own conditional-
+        construction convention). True switches the kernel call to
+        `fla.ops.gated_delta_rule.chunk_gated_delta_rule` and additionally
+        constructs `self.b_alpha_proj = nn.Linear(d_model, num_heads,
+        bias=False)` -- mirrors `self.b_proj`'s own init/shape convention
+        exactly (same Linear signature, same "plain learned per-head gate,
+        no bias" pattern). Per Gated DeltaNet's own formulation (arXiv:
+        2412.06464 -- Qwen3-Next's production config): a per-head scalar
+        decay `alpha_t = sigmoid(b_alpha_proj(x_t)) in (0,1)` multiplies
+        the recurrent state each step. `chunk_gated_delta_rule`'s own `g`
+        argument (verified against the pinned fla-core==0.5.1 source, its
+        docstring and worked example: `g = F.logsigmoid(raw)`) is
+        LOG-SPACE decay, not the raw alpha -- so this mixer passes
+        `g = F.logsigmoid(b_alpha_proj(x))`, i.e. `g = log(alpha)`,
+        matching the kernel's own documented convention bit-for-bit (never
+        a hand-derived reformulation)."""
         super().__init__()
         assert d_state % num_heads == 0, \
             f"d_state={d_state} must be divisible by num_heads={num_heads}"
@@ -718,6 +769,13 @@ class DeltaNetLMMixer(nn.Module):
                 "frozen_bias_arm != 'off' requires frozen_bias_vocab_size (the frozen table's row "
                 "count) -- never silently inferred, so a caller cannot build a wrong-sized table.")
             assert 0.0 <= frozen_bias_lambda <= 1.0, f"frozen_bias_lambda={frozen_bias_lambda} outside [0,1]"
+        self.qk_l2norm_in_kernel = bool(qk_l2norm_in_kernel)
+        self.gated_delta_active = bool(gated_delta_active)
+        # ATTRACTOR-ROBUSTNESS 2x2: b_alpha_proj is constructed ONLY when gated_delta_active=True
+        # (mirrors frozen_bias_table's own conditional-construction convention above) -- the
+        # default (gated_delta_active=False) path therefore has ZERO extra parameters, keeping
+        # every existing param-matched comparison in this codebase unaffected by this build.
+        self.b_alpha_proj = (nn.Linear(d_model, num_heads, bias=False) if gated_delta_active else None)
         self.hard_select_active = hard_select_active
         self.hard_select_mechanism = hard_select_mechanism
         self.hard_select_k_sel = hard_select_k_sel
@@ -975,13 +1033,33 @@ class DeltaNetLMMixer(nn.Module):
                 forced_topk_idx=forced_topk_idx)
             self.geo3_last_diag = geo3_diag
 
-        # Kernel boundary: bf16 ONLY here (chunk_delta_rule categorically
-        # rejects float32 -- section 4.3), mirroring model_rd.py's
+        # Kernel boundary: bf16 ONLY here (chunk_delta_rule/chunk_gated_delta_rule categorically
+        # reject float32 -- section 4.3), mirroring model_rd.py's
         # kernel_state_design_layout discipline exactly.
         q_bf, k_bf, v_bf, beta_bf = (t.to(torch.bfloat16) for t in (q, k, v, beta))
         init_bf = initial_state.to(torch.bfloat16) if initial_state is not None else None
-        o, final_state = chunk_delta_rule(q=q_bf, k=k_bf, v=v_bf, beta=beta_bf, initial_state=init_bf,
-                                           output_final_state=True, use_qk_l2norm_in_kernel=True)
+        # ATTRACTOR-ROBUSTNESS 2x2: self.qk_l2norm_in_kernel defaults to True, so
+        # use_qk_l2norm_in_kernel=self.qk_l2norm_in_kernel evaluates to the SAME literal `True`
+        # the pre-existing call used -- byte-identical by construction when unset (this build's
+        # own negative test asserts this at fixed seed, not merely by code inspection).
+        if self.gated_delta_active:
+            # Gated DeltaNet (arXiv:2412.06464, Qwen3-Next's production config): a per-head
+            # scalar decay alpha_t = sigmoid(b_alpha_proj(x_t)) in (0,1) gates the recurrent
+            # state each step. chunk_gated_delta_rule's own `g` arg is LOG-SPACE decay by default
+            # (use_gate_in_kernel=False, the only mode this build uses -- verified against the
+            # pinned fla-core==0.5.1 source/docstring, whose own worked example computes
+            # `g = F.logsigmoid(raw)`), so g = log(alpha) here, matching that convention
+            # bit-for-bit rather than a hand-derived reformulation. Computed from the SAME `x`
+            # (this mixer's normalized input) b_proj(x) itself reads, at the same (B,T,H) shape
+            # as beta -- no reshape needed.
+            g_bf = F.logsigmoid(self.b_alpha_proj(x)).to(torch.bfloat16)
+            o, final_state = chunk_gated_delta_rule(
+                q=q_bf, k=k_bf, v=v_bf, g=g_bf, beta=beta_bf, initial_state=init_bf,
+                output_final_state=True, use_qk_l2norm_in_kernel=self.qk_l2norm_in_kernel)
+        else:
+            o, final_state = chunk_delta_rule(
+                q=q_bf, k=k_bf, v=v_bf, beta=beta_bf, initial_state=init_bf,
+                output_final_state=True, use_qk_l2norm_in_kernel=self.qk_l2norm_in_kernel)
         o = o.float()
         final_state = final_state.float()
 
@@ -1007,7 +1085,8 @@ class DeltaNetLMBlock(nn.Module):
                  hard_select_tau_anneal_frac: float = 0.10,
                  hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
                  frozen_bias_arm: str = "off", frozen_bias_lambda: float = FROZEN_BIAS_LAMBDA_PRIMARY,
-                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED):
+                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED,
+                 qk_l2norm_in_kernel: bool = True, gated_delta_active: bool = False):
         super().__init__()
         self.norm1 = RMSNorm(d_model, eps=1e-5)
         self.mixer = DeltaNetLMMixer(
@@ -1023,7 +1102,8 @@ class DeltaNetLMBlock(nn.Module):
             hard_select_tau_anneal_frac=hard_select_tau_anneal_frac,
             hard_select_excluded_token_ids=hard_select_excluded_token_ids,
             frozen_bias_arm=frozen_bias_arm, frozen_bias_lambda=frozen_bias_lambda,
-            frozen_bias_vocab_size=frozen_bias_vocab_size, frozen_bias_seed=frozen_bias_seed)
+            frozen_bias_vocab_size=frozen_bias_vocab_size, frozen_bias_seed=frozen_bias_seed,
+            qk_l2norm_in_kernel=qk_l2norm_in_kernel, gated_delta_active=gated_delta_active)
         self.norm2 = RMSNorm(d_model, eps=1e-5)
         self.ffn = FFN(d_model, mult=ffn_mult)
 
@@ -1073,7 +1153,8 @@ class DeltaNetLM(nn.Module):
                  hard_select_tau_anneal_frac: float = 0.10,
                  hard_select_excluded_token_ids: tuple = (EOT_TOKEN_ID,),
                  frozen_bias_arm: str = "off", frozen_bias_lambda: float = FROZEN_BIAS_LAMBDA_PRIMARY,
-                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED):
+                 frozen_bias_vocab_size: int | None = None, frozen_bias_seed: int = ANCHOR_INIT_SEED,
+                 qk_l2norm_in_kernel: bool = True, gated_delta_active: bool = False):
         """geo3_* (SCALE_TRANSFER_DESIGN.md sec 4, Track B): threaded to EVERY
         block/mixer uniformly (this build does not support a per-layer geo3
         toggle -- out of sec 4's scope). OFF by default everywhere -- the
@@ -1090,7 +1171,16 @@ class DeltaNetLM(nn.Module):
         always matches the model's own vocabulary); passing a different
         value is supported (never silently overridden) for the rare case a
         caller deliberately wants a mismatched table, but no registered arm
-        in this program's manifest ever does that."""
+        in this program's manifest ever does that.
+
+        qk_l2norm_in_kernel / gated_delta_active (ATTRACTOR-ROBUSTNESS 2x2):
+        same uniform per-layer threading, same off-by-default discipline as
+        every other axis above -- see DeltaNetLMMixer.__init__'s own
+        docstring for the full mechanism contract. Both are also carried
+        into config() so a checkpoint round-trips through DeltaNetLM(
+        **ckpt["config"]) with these two axes preserved exactly (the same
+        contract lm_attractor_probe_rd.py's and reasoning_link_probe.py's
+        own load_checkpoint helpers already rely on for every other axis)."""
         super().__init__()
         if frozen_bias_arm != "off" and frozen_bias_vocab_size is None:
             frozen_bias_vocab_size = vocab_size
@@ -1127,6 +1217,8 @@ class DeltaNetLM(nn.Module):
         self.frozen_bias_lambda = float(frozen_bias_lambda)
         self.frozen_bias_vocab_size = frozen_bias_vocab_size
         self.frozen_bias_seed = frozen_bias_seed
+        self.qk_l2norm_in_kernel = bool(qk_l2norm_in_kernel)
+        self.gated_delta_active = bool(gated_delta_active)
 
         self.embed = nn.Embedding(vocab_size, d_model)
         # AUDIT FIX-2 (2026-07-03): nn.Embedding's PyTorch default init is
@@ -1149,7 +1241,8 @@ class DeltaNetLM(nn.Module):
                 hard_select_tau_anneal_frac=hard_select_tau_anneal_frac,
                 hard_select_excluded_token_ids=hard_select_excluded_token_ids,
                 frozen_bias_arm=frozen_bias_arm, frozen_bias_lambda=frozen_bias_lambda,
-                frozen_bias_vocab_size=frozen_bias_vocab_size, frozen_bias_seed=frozen_bias_seed)
+                frozen_bias_vocab_size=frozen_bias_vocab_size, frozen_bias_seed=frozen_bias_seed,
+                qk_l2norm_in_kernel=qk_l2norm_in_kernel, gated_delta_active=gated_delta_active)
             for _ in range(n_layers)
         ])
         self.norm_f = RMSNorm(d_model, eps=1e-5)
@@ -1158,6 +1251,8 @@ class DeltaNetLM(nn.Module):
         return {"vocab_size": self.vocab_size, "d_model": self.d_model, "d_state": self.d_state,
                 "n_layers": self.n_layers, "conv_size": self.conv_size, "num_heads": self.num_heads,
                 "ffn_mult": self.ffn_mult,
+                "qk_l2norm_in_kernel": self.qk_l2norm_in_kernel,
+                "gated_delta_active": self.gated_delta_active,
                 "geo3_active": self.geo3_active, "geo3_k_sel": self.geo3_k_sel,
                 "geo3_chunk_size": self.geo3_chunk_size, "geo3_n_iter": self.geo3_n_iter,
                 "geo3_resid_tol": self.geo3_resid_tol, "geo3_selection_mode": self.geo3_selection_mode,
@@ -2887,6 +2982,55 @@ def smoke(device: str):
     print("  frozen_bias_arm='off' (explicit) BIT-IDENTICAL to the pre-frozen-bias default construction")
     del m17a, m17b, x17c, out_a, out_b
 
+    print("\n[18] ATTRACTOR-ROBUSTNESS 2x2 (iclr-2027 09_discussion_limitations.tex limitation #2): "
+          "(a) default-path byte-identity regression -- qk_l2norm_in_kernel=True/gated_delta_active="
+          "False (both defaults) must be BIT-IDENTICAL to a model built with NEITHER kwarg passed at "
+          "all; (b) forward/backward/grad-finite for EVERY (qk_l2norm_in_kernel, gated_delta_active) "
+          "cell of the 2x2, including the gated arm's b_alpha_proj; (c) b_alpha_proj is constructed "
+          "ONLY when gated_delta_active=True (zero param-count change on the default path). REQUIRES "
+          "REAL fla (chunk_gated_delta_rule has no CPU path, same as chunk_delta_rule) -- the CPU-stub "
+          "equivalent of this item lives in run_attractor_robustness_2x2.py's own --smoke suite; this "
+          "is the box-smoke checklist item that suite's own docstring registers against.")
+    torch.manual_seed(37)
+    V18 = 500
+    m18a = DeltaNetLM(V18, d_model=64, d_state=64, n_layers=1, conv_size=4).to(device)
+    torch.manual_seed(37)
+    m18b = DeltaNetLM(V18, d_model=64, d_state=64, n_layers=1, conv_size=4,
+                       qk_l2norm_in_kernel=True, gated_delta_active=False).to(device)
+    x18c = torch.randint(0, V18, (4, T17), device=device)
+    with torch.no_grad():
+        out_18a = m18a(x18c)
+        out_18b = m18b(x18c)
+    assert torch.equal(out_18a, out_18b), (
+        "qk_l2norm_in_kernel=True/gated_delta_active=False (explicit defaults) diverges from the "
+        "pre-existing no-kwargs construction -- the default-path byte-identity invariant is BROKEN")
+    print("  defaults (explicit) BIT-IDENTICAL to the pre-existing no-kwargs construction")
+    del m18a, m18b, x18c, out_18a, out_18b
+
+    for qk_off in (False, True):
+        for gated in (False, True):
+            m18 = DeltaNetLM(V18, d_model=64, d_state=64, n_layers=2, conv_size=4,
+                              qk_l2norm_in_kernel=not qk_off, gated_delta_active=gated).to(device)
+            if gated:
+                assert m18.blocks[0].mixer.b_alpha_proj is not None, "gated_delta_active=True must construct b_alpha_proj"
+            else:
+                assert m18.blocks[0].mixer.b_alpha_proj is None, (
+                    "gated_delta_active=False must NOT construct b_alpha_proj (zero param-count change)")
+            x18 = torch.randint(0, V18, (4, T17), device=device)
+            logits18 = m18(x18)
+            assert torch.isfinite(logits18).all(), f"qk_l2norm_in_kernel={not qk_off} gated_delta_active={gated}: non-finite logits"
+            loss18 = F.cross_entropy(logits18.reshape(-1, V18), x18.reshape(-1))
+            loss18.backward()
+            grads_finite18 = all(p.grad is None or torch.isfinite(p.grad).all() for p in m18.parameters())
+            assert grads_finite18, f"qk_l2norm_in_kernel={not qk_off} gated_delta_active={gated}: non-finite gradient somewhere"
+            if gated:
+                assert m18.blocks[0].mixer.b_alpha_proj.weight.grad is not None, (
+                    "gated_delta_active=True: b_alpha_proj must receive a gradient")
+                assert torch.isfinite(m18.blocks[0].mixer.b_alpha_proj.weight.grad).all()
+            print(f"  qk_l2norm_in_kernel={not qk_off!s:>5s} gated_delta_active={gated!s:>5s}: "
+                  f"logits finite, grads finite{', b_alpha_proj gradient finite' if gated else ''}")
+            del m18, x18, logits18, loss18
+
     print("\n" + "=" * 60 + "\n  ALL LM_PRETRAIN_RD SMOKE CHECKS PASSED\n" + "=" * 60)
 
 
@@ -3023,6 +3167,19 @@ def main():
                      help="sec 5's registered construction seed for random_unit_rows_init -- override "
                           "ONLY for an eval-only retrofit that must reuse a SPECIFIC checkpoint's own "
                           "table seed (never for a real training launch, which uses the default).")
+    ap.add_argument("--qk-l2norm-off", action="store_true",
+                     help="ATTRACTOR-ROBUSTNESS 2x2 (iclr-2027 limitation #2): turn OFF the "
+                          "kernel-internal qk-l2-norm (use_qk_l2norm_in_kernel=False), testing whether "
+                          "the write-geometry attractor is an artifact of the community-standard "
+                          "qk-l2-norm choice. Default (flag absent) keeps use_qk_l2norm_in_kernel=True, "
+                          "byte-identical to every prior chapter's own hardcoded behavior.")
+    ap.add_argument("--gated-delta-active", action="store_true",
+                     help="ATTRACTOR-ROBUSTNESS 2x2 (iclr-2027 limitation #2): switch to "
+                          "fla.ops.gated_delta_rule.chunk_gated_delta_rule with a per-head learned "
+                          "decay gate (b_alpha_proj, Gated DeltaNet arXiv:2412.06464 / Qwen3-Next's "
+                          "production config), testing whether the attractor is specific to vanilla "
+                          "DeltaNet. Default (flag absent) keeps the plain chunk_delta_rule path, no "
+                          "b_alpha_proj constructed at all (zero param-count change).")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -3128,7 +3285,9 @@ def main():
                         hard_select_tau_total_steps=hard_select_tau_total_steps,
                         hard_select_tau_anneal_frac=args.hard_select_tau_anneal_frac,
                         frozen_bias_arm=args.frozen_bias_arm, frozen_bias_lambda=args.frozen_bias_lambda,
-                        frozen_bias_seed=args.frozen_bias_seed).to(device)
+                        frozen_bias_seed=args.frozen_bias_seed,
+                        qk_l2norm_in_kernel=not args.qk_l2norm_off,
+                        gated_delta_active=args.gated_delta_active).to(device)
     if args.trackb_selection_probe is not None:
         # F2 audit fix: the read-only implicit-selection probe, set post-construction on every
         # mixer (see DeltaNetLMMixer's selection_probe_k_sel comment).
@@ -3149,10 +3308,12 @@ def main():
     geo3_tag = f"_geo3{args.geo3_selection.replace('_', '')[:8]}k{args.geo3_k_sel}" if args.use_geo3_lm else ""
     hs_tag = f"_hs{args.hard_select_mechanism.replace('_', '')[:8]}k{args.hard_select_k_sel}" \
         if args.hard_select_active else ""
+    qkg_tag = ("_qkoff" if args.qk_l2norm_off else "") + ("_gated" if args.gated_delta_active else "")
     run_name = (f"lmC_{args.corpus}_dm{args.d_model}_ds{args.d_state}_L{args.n_layers}_s{args.seed}"
-                f"{geo3_tag}{hs_tag}")
+                f"{geo3_tag}{hs_tag}{qkg_tag}")
     print(f"run_name={run_name}  d_model={args.d_model} d_state={args.d_state} n_layers={args.n_layers} "
           f"seq_len={args.seq_len} batch_size={args.batch_size} steps={args.steps} params={n_params} "
+          f"qk_l2norm_in_kernel={not args.qk_l2norm_off} gated_delta_active={args.gated_delta_active} "
           f"use_geo3_lm={args.use_geo3_lm} geo3_k_sel={args.geo3_k_sel if args.use_geo3_lm else '-'} "
           f"geo3_selection={args.geo3_selection if args.use_geo3_lm else '-'} "
           f"hard_select_active={args.hard_select_active} "
