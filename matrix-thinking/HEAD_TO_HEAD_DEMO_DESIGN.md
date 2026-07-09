@@ -4276,3 +4276,33 @@ Single file, 258+/24−, §1.32 untouched. **The Rev-5 pre-registration is
 FINAL. BUILD-FIX DISPATCHED (§1.31.4 items 1-6) → scoped audit →
 round 4 (7 re-metric + 2 fresh, ≈1.3 GPU-h) → ladder → margin freeze →
 task1-primary sweep.**
+
+### 1.33 REV-5 BUILD-FIX RECORD (2026-07-09): §1.31.4 items 1-6 ALL LANDED — commit 7c7acd5; scoped audit DISPATCHED
+
+All six items built + CPU-proven: (1) rung-2 = 107-way entity-identity
+at the Leg-B tap via the new _leg_b_tap dispatcher reading the
+pre-LM-head hidden from the SAME continuation call rung 1 uses
+(bit-equivalence confirmed vs the taploc script); capacity null kept.
+(2) Positive controls both directions: planted-identity tap reads
+1.0000 under the relabel vs 0.0305 ≈ chance under the OLD slot labels
+on the SAME plant — the relabel-matters proof; rung-1 plant
+re-verified; Leg-B known-linear-recovery promoted to a standing per-run
+control. (3) OOM fix: return_hidden skips the vocab matmul;
+slice-before-matmul bit-close; M4 analytic gate at the real K=48 shape
+(sliced 0.288 GiB < 2 GiB bound; unsliced 98.35 GiB > bound, 49× —
+teeth without allocation). (4) Save BEFORE the rung-2 fit, filenames
+_r{round}-suffixed, loader asserts manifest md5 (forced-crash proof:
+new order survives, old order loses the checkpoint). (5) Band re-wire:
+rf@0.9 conjunct REMOVED (not even a parameter); arm-aware blocking;
+instrument-health blocking all arms; the round-3 contender case now
+PASSES its band and the OLD formula FATALs it — both directions proven.
+(6) h2h_round4_driver_rd.py (650 ln): 7+2 cell spec, provenance-checked
+loads, Leg A + relabeled rung 2 + Leg B ridge incl. the transformer arm
++ S₀ hard-stop at the honestly-pinned thresholds; chain Stage B3 gated
+behind ROUND4_AUTHORIZED.token (cannot auto-fire pre-audit). Selftests
+64 green across six modules; one test-fixture bug found+fixed en route.
+Box-only disclosed: real-kernel K=48 smoke; the actual re-metric +
+2 fresh cells; FRESH_CELL_CONFIGS.json is coordinator-authored on box.
+**NEXT: scoped worktree audit (re-run the four regression kills +
+new-defect sweep on the delta) → deploy (md5) → identity-table
+pre-flight → ROUND4_AUTHORIZED.token → round 4 (≈1.3 GPU-h).**
