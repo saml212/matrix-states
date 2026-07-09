@@ -1,11 +1,11 @@
 # CAPABILITY-SEPARATION — group-element-recovery rank/representation-dimension test
 
-## §1 DESIGN — Stage 1 (Rev 3, post-attack-round-3 revision, 2026-07-08) —
+## §1 DESIGN — Stage 1 (Rev 4, post-attack-round-4 revision, 2026-07-08) —
 does a from-scratch matrix-state model recruit subspace-restricted state
 rank equal to a group's minimal faithful real representation dimension
 `d_min(G)`, tracking dimension not solvability?
 
-Status: **Rev 3, pre-attack (round 4 pending), zero GPU spent.** Rev 0
+Status: **Rev 4, pre-attack (round 5 pending), zero GPU spent.** Rev 0
 (§1.1-§1.12) was attacked (§1.13: NEEDS-REVISION — 1 FATAL-as-written + 3
 MAJOR + 2 minor); every finding was resolved by Rev 1 (mapped in §1.14).
 Rev 1 was attacked again (§1.15: NEEDS-REVISION — 2 MAJOR + 5 minor,
@@ -14,13 +14,21 @@ in §1.16), including an EXECUTED A5 generator-class verification
 (CA2-M1) that confirms Rev 1's existing numbers were already computed
 from the class-correct generator — no recalibration required. Rev 2 was
 attacked a third time (§1.17: NEEDS-REVISION, narrow — 1 MAJOR + 5 minor);
-every finding is resolved by this Rev 3 (mapped in §1.18), the headline
+every finding is resolved by Rev 3 (mapped in §1.18), the headline
 fix being an EXECUTED power simulation (CA3-M1) that unconditionally
 bumps the marquee S4/A5 comparison to n=5 seeds and replaces bare
 CI-overlap with a pre-registered TOST equivalence test — verified to
 clear a 70% power bar against a real 1.0-rank-unit gap across the entire
-reconstructed noise grid, no further escalation required. This design
-came through the full waterfall (brainstorm →
+reconstructed noise grid, no further escalation required. Rev 3 was
+attacked a fourth time (§1.19: NEEDS-REVISION, narrow — 1 MAJOR,
+one-paragraph fix); the finding is resolved by this Rev 4 (mapped in
+§1.20) — the escalation triggers (general escalation-to-5 and the
+marquee n=7 trigger) were uncosted and the hard-abort only projected the
+BASE 58-cell sweep once upfront, a genuine stop-and-ask gap at literal
+worst case (`19.65 + 2.40 + 12.60 = 34.65 GPU-h > the 30 GPU-h cap`);
+fixed by wiring a live budget re-check into both escalation-trigger code
+paths with a pre-registered yield order (marquee outranks general),
+no design-content change. This design came through the full waterfall (brainstorm →
 research → attack → validation, `STATE.md` "CAPABILITY CAMPAIGN"); the
 hypothesis, group family, readout (Option A), controls, budget, and
 pre-registered verdicts below are **BINDING** per the 2026-07-08
@@ -642,9 +650,12 @@ A6's generating pair is the standard, well-known one (any 3-cycle plus a
 `n`) — not independently re-verified via `bfs_closure` on just these 2
 generators in §1.3, because §1.3 already verified the STRONGER claim (the
 full 360-element representation, built by exhaustively enumerating every
-even permutation directly, not by closing 2 generators); the build step
-will still run the standard closure-order smoke (below) on these two
-specific generators as a cheap, load-bearing sanity check before launch.
+even permutation directly, not by closing 2 generators); the standard
+closure-order smoke on these two specific generators is already
+executed, see §1.3.3 (STEP 0: `[A6] closure size = 360 (expect 360):
+PASS | gen set size = 4`) — a cheap, load-bearing sanity check, not a
+build-time TODO (minor fix, Rev 4, §1.20: STEP 0's executed closure
+check subsumes the earlier "will still run before launch" phrasing).
 
 **Architecture (Task D/E's exact bespoke encoder, THREE required
 extensions — CA1-m1 fix, Rev 1: Rev 0 undercounted this as "ONE"; CA2-M2
@@ -1411,6 +1422,48 @@ cell's measured real rate projects the 58-cell sweep to exceed 30 GPU-h
 before spending it, and this design's cell/seed grid gets re-scoped
 before relaunch, not silently over-spent.
 
+**CA4-M1 fix, Rev 4 — the hard-abort also guards the escalation triggers,
+not just the base sweep.** Attack round 4 (§1.19) found both escalation
+triggers (the GENERAL escalation-to-5 trigger, §1.4.2, inherited since
+Rev 0 and uncaught through 3 rounds; and the marquee-specific `n=7`
+trigger, §1.4.2, CA3-M1(d)) uncosted, with the hard-abort above only
+projecting the BASE 58-cell sweep once upfront — a build agent had no
+instruction to budget-check before launching an escalation-triggered
+cell. **Worst-case arithmetic, disclosed explicitly:** base raw total
+`19.65` + marquee `n=7` escalation (`+2.40`, if TOST returns
+INCONCLUSIVE on both S4 and A5) + general escalation-to-5 at its own
+literal maximum (every remaining ambiguous-eligible cell type escalates:
+`S3`/`S5`/`A6`'s all 4 cell types 3→5/3→5/2→5/2→5 each, plus `S4`/`A5`'s
+2 flanking cell types 2→5 each — `42` extra cells `× 0.3` GPU-h/cell
+`= 12.60`) = `19.65 + 2.40 + 12.60 = **34.65 GPU-h > the 30 GPU-h cap by
+4.65`. **Fix: the hard-abort re-checks actual-spend-to-date + projected
+cost BEFORE launching ANY escalation-triggered cells** (general
+escalation-to-5 OR the marquee `n=7` escalation), not only once upfront
+against the base sweep. If the projection (actual spend so far +
+already-committed escalations + the newly-triggered escalation's cost)
+would exceed the 30 GPU-h cap, the guard converts the overrun into a
+**pre-registered priority allocation** rather than a silent over-spend or
+an undirected stop: the **marquee `n=7` escalation outranks all general
+escalations** (it guards the design's central S4-vs-A5 dissociation
+claim, §1.5 — the one result this design cannot ship without); **general
+escalations are granted in a pinned order — by cell type's group `|G|`
+ascending** (S3 `|G|=6` first, then S4/A5 `|G|=24/60` tied, then S5
+`|G|=120`, then A6 `|G|=360` last; justified as cheapest information
+first — a small-`|G|` group's ambiguous cell is resolved by the fewest
+additional GPU-h per unit of statistical resolution, so exhausting
+remaining budget on it first buys the most de-ambiguation per dollar) —
+until the projection hits the cap. **Anything denied is REPORTED as
+budget-denied in the final harvest** (a distinct status from "ran, came
+back ambiguous" or "skipped by design"), not silently dropped — the
+harvest script must be able to distinguish "this cell's ambiguity was
+never resolved because budget ran out" from "this cell resolved cleanly
+at its base seed count," since the two have different evidentiary
+weight for §1.5's decision criteria. This is a budget-arbitration
+mechanism only — it does not change which cells are ELIGIBLE to
+escalate (§1.4.2's triggers, unchanged) or the decision criteria
+(§1.5, unchanged); it only orders which eligible escalations actually
+launch when the 30 GPU-h cap would otherwise be breached.
+
 **β∈[0,2] fla positive-control smoke, registered, non-load-bearing:**
 **0.90 GPU-h** (CA1-M2 fix, Rev 1 — itemized: ~0.05 GPU-h
 forward/backward/grad-check + ~0.85 GPU-h to actually reach the
@@ -1800,7 +1853,20 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
   require the production eval harness, which does not exist until build,
   §1.11; treat as a real, load-bearing build-time obligation, not
   settled evidence, the same standing caveat §1.14/§1.16 already applied
-  to the synthetic-injection acceptance test and the batching scheme).
+  to the synthetic-injection acceptance test and the batching scheme);
+  **the live escalation-budget guard** (CA4-M1(b) fix, Rev 4 — §1.6's
+  hard-abort re-check wired INTO the escalation-trigger code path for
+  BOTH variants (the general escalation-to-5 trigger, §1.4.2, and the
+  marquee `n=7` trigger, §1.4.2), enforcing the pre-registered yield
+  order (marquee outranks general; general escalations pinned by
+  ascending group `|G|`) and the budget-denied report status, **plus its
+  negative test**: a simulated over-budget projection (actual spend +
+  committed escalations pushed artificially close to the 30 GPU-h cap)
+  must deny the correct escalation(s) in the pinned order and log each
+  denial with a `budget-denied` status, not silently skip or over-spend —
+  this is a real, load-bearing build-time obligation, not settled
+  evidence, until the negative test is executed against the built
+  harness).
 
 ---
 
@@ -2185,3 +2251,33 @@ build-manifest completeness EXCEPT the CA4-M1 item.
 *(End §1 records. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 →
 Rev 3 (§1.18) → §1.19 NEEDS-REVISION (CA4-M1 escalation budget guard).
 Rev 4 in progress — expected one-paragraph class.)*
+
+---
+
+### 1.20 REV 4 CHANGES — finding → resolution map
+
+Every §1.19 finding, mapped to its exact Rev 4 resolution. One-paragraph-
+class scope per the dispatch instruction — nothing below relitigates
+material §1.13/§1.15/§1.17 already verified clean; each row points at
+new or rewritten design text, not a footnote.
+
+| Finding | Resolution (Rev 4) | Where |
+|---|---|---|
+| **CA4-M1** (MAJOR) — the escalation triggers (general escalation-to-5, §1.4.2, inherited since Rev 0; and the marquee `n=7` trigger, §1.4.2, CA3-M1(d)) are uncosted, and §1.6's circuit-breaker only projects the BASE 58-cell sweep once upfront — literal worst case `19.65 + 2.40 + 12.60 = 34.65 GPU-h > the 30 GPU-h cap by 4.65`; no instruction to budget-check before launching an escalation cell | New paragraph appended to §1.6's circuit-breaker discussion: the hard-abort now re-checks actual-spend-to-date + projected escalation cost BEFORE launching ANY escalation-triggered cell (general or marquee), not only once upfront against the base sweep. The worst-case arithmetic is disclosed explicitly (base `19.65` + marquee `n=7` `2.40` + general-max `12.60` `= 34.65`, independently re-derived from the cell table: `42` extra cells at `0.3` GPU-h/cell — `10` each for S3/S5/A6's 4 cell types 3→5/3→5/2→5/2→5, `6` each for S4/A5's 2 flanking cell types 2→5, matching attack round 4's own `12.60` figure). If the projection would breach the cap, a **pre-registered yield order** converts the overrun into a priority allocation instead of a silent over-spend: the marquee `n=7` escalation outranks all general escalations (it guards the central S4-vs-A5 dissociation claim, §1.5); general escalations are granted by ascending group `|G|` (S3 → S4/A5 → S5 → A6 — cheapest information first) until the cap is hit; anything denied is reported with an explicit `budget-denied` status in the final harvest, distinct from "resolved at base seed count." A matching build item — the live guard wired into both escalation-trigger code paths, plus its negative test (a simulated over-budget projection must deny in the pinned order and log the denial) — is added to §1.12's "New, not yet built" list. This is a budget-arbitration mechanism only: it does not change §1.4.2's escalation eligibility rules or §1.5's decision criteria. | §1.6, §1.12 |
+| **MINOR** — stale-wording nit on A6's "will still run before launch" (STEP 0's executed closure check, §1.3.3, already subsumes it) | Reworded in place: the standard closure-order smoke on A6's two pinned generators is "already executed, see §1.3.3," quoting the STEP 0 PASS line, rather than described as a future build-step action. | §1.4 (the A6 generating-set paragraph) |
+
+**Nothing from §1.19's "Verified clean" list was touched** — the TOST
+target quantity, Welch-vs-paired justification, centralizer threshold,
+contingency/bump disjointness, n_fit-floor × seed-bump orthogonality,
+and every §1.13-§1.19 record's byte-integrity all stand as attack round
+4 verified them, unmodified in Rev 4 (verified via `git diff` before
+this commit — see the commit message). This revision touches only
+§1.6 (new paragraph), §1.12 (new build item), §1.4 (one clarifying
+reword), the top-of-doc status block, and adds this §1.20 — no other
+design content changed.
+
+---
+
+*(End §1 records. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 →
+Rev 3 → §1.19 → Rev 4 (§1.20) resolves CA4-M1 (escalation budget guard)
++ 1 minor (A6 wording). Attack round 5 next.)*
