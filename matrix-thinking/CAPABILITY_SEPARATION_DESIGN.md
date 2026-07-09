@@ -2425,3 +2425,68 @@ with a non-tied spectrum so a threshold mutation is falsifiable.
 *(End §1 records. §1.21 CLEARED → build a3defcc → §1.22 NEEDS-FIXES →
 fixes a555012 → **§1.24 FIXES-VERIFIED-CLEARED. DEPLOY ACTIVE** —
 GPUs 0-6 free while h2h is parked on the §1.3.1 instrument redesign.)*
+
+---
+
+### 1.25 GATE-1 DIAGNOSIS (2026-07-09): HARD-STOP FOR DESIGN ROUND — models healthy, TWO instrument defects proven; the M1 signal already visible through the corrected lens
+
+Recorded per the gauntlet-bookkeeping hard rule. The h2h §1.21
+precedent applied and INVERTED: there the objective lacked the
+capability pressure; here the objective provably forces it (direct
+ρ_G supervision) and the models demonstrably have it — the
+instruments could not see it. 0.38 GPU-h spent; artifacts at
+results/gate1_diagnosis/ on box.
+
+**DEFECT 1 (FATAL to M1/M3 as instrumented) — §1.4.1 step 2's
+UNCENTERED covariance-SVD is mathematically degenerate for Option A
+targets:** Z ≈ c·(ρ⊕I) is orthogonal ⇒ ZZᵀ ≈ c²·I — isotropic, zero
+subspace information; the constant identity complement systematically
+outranks the 2 weakest ρ directions (principal cosines always capture
+exactly d_min−2). PROOF: an ambient synthetic injection shows a
+PERFECT model FAILS the production bars (mean_cos 0.711, rec90 0.15);
+the shipped gate-1(b) injection had skipped entity_subspace_from_words
+(disclosed in its docstring) — which is exactly why it passed while
+every real checkpoint read −0.02..0.17. **VALIDATED FIX: CENTER the
+covariance** (group-mean of a nontrivial irrep = 0 cancels the
+constant block): synthetic 0.9996/1.00 = oracle; real checkpoints
+restored w/ razor d_min spectral gaps (A5@20K [1,.95,.80,.007,.003];
+A6@20K gap at exactly 5).
+**DEFECT 2 (FATAL as pinned) — M1/M3's decision surface was pinned
+EXCLUSIVELY to L∈{9..16} words while nn.Embedding positional rows
+8..15 NEVER TRAIN** (zero gradient at L_train≤8): every scored word
+fed N(0,1) rows; causal clamp-probe recovers +0.04..+0.12; ρ-block
+signal at L9-16 ≈ 0 at BOTH 8K and 20K (budget-independent, as the
+defect predicts) — the 58-cell sweep would have produced
+uninterpretable zeros.
+**EXONERATED:** Procrustes/scale degauging (Q̂≈I — §1.9 item 7
+answered: scale-only suffices once U is fixed); training loop;
+fit/eval split; closure (17/17 md5).
+**CONVERGENCE re-read:** the A5/A6 "under-convergence" was largely a
+last-batch-loss logging artifact (per-batch-fixed-L makes final loss
+L-dependent; per-L profiles nearly identical); 20K steps still gives
+genuine, material trained-length improvement → pin 20K for A5/A6.
+
+**M1 PREVIEW (the headline, through the corrected lens, train-length):
+restricted effective rank 1.85/2.74/2.64/3.73/3.91-4.54 vs d_min
+2/3/3/4/5 — Spearman ρ=0.9747 (the achievable max under the S4/A5
+tie); every group inside the [0.7,1.3]·d_min band; the marquee pair
+lands together (2.74 vs 2.77).** CAVEAT (registered): restriction to
+d_min dims partially favors rank≈d_min for near-orthogonal blocks —
+M3's causal force-rank arms remain the decisive test. The campaign is
+healthy.
+
+**PINNED FOR THE DESIGN ROUND (Rev 5, all pre-validated):** (1)
+centered covariance in §1.4.1 step 2 + gate-1(b) injection extended to
+AMBIENT d_state so the U step is inside the acceptance test; (2)
+M1/M3 measurement lengths re-pinned to fresh TRAIN-support words;
+L9-16 becomes the disclosed C5 out-of-support control; (3) 20K steps
+for A5/A6 per the pre-registered escalation rule (cost trivial at the
+measured rate); (4) per-L eval-based convergence reporting replaces
+last-batch loss; (5) scale-only degauging primary, full-Q cross-check.
+
+---
+
+*(End §1 records. ... → §1.24 deploy CLEARED → calibration → **§1.25
+HARD-STOP: two instrument defects proven + fixes pre-validated; M1
+preview POSITIVE (ρ=0.9747)** → Rev 5 design round ACTIVE → micro
+attack → scoped build fix → calibration re-check → sweep.)*
