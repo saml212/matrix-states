@@ -3458,7 +3458,7 @@ trivial); (c) hybrid}, plus the L=1 mechanism micro-diagnostic
 
 ---
 
-## §2 DESIGN — Stage 2 (Rev 0, 2026-07-08/09) — COMPOSITIONAL DEPTH
+## §2 DESIGN — Stage 2 (Rev 1, 2026-07-09; Rev 0 2026-07-08/09) — COMPOSITIONAL DEPTH
 GENERALIZATION: does a matrix-state model trained on group word-products
 of depth ≤ D_train answer held-out depths D_test ≫ D_train in a SINGLE
 forward pass (no CoT), tracking the state's algebraic structure, while
@@ -3484,7 +3484,13 @@ resolution does not touch the M1/M3 measurement sample, the readout
 pipeline, or the group family this design reuses verbatim (§2.0/§2.4
 below); its one piece of forward relevance to THIS design is
 cross-referenced into §2.2.1 below (the Stage-2 BOS-position build
-flag, §1.30 item 6).
+flag, §1.30 item 6). **Attack round 1 (2026-07-09, independent
+fresh-eyes agent, primary sources re-fetched) returned NEEDS-REVISION**
+— recorded in the satellite file `CAPABILITY_STAGE2_ATTACK_R1.md` (the
+main registry was under concurrent Stage-1 Rev-7 edit at record time,
+per the gauntlet-bookkeeping hard rule); **this Rev 1 folds all six
+findings plus both also-noted items** — full finding→resolution map in
+§2.13.
 
 This design's central finding, stated up front because it drives every
 other decision below: **Stage 1's own accumulated evidence — the §1.25
@@ -3584,8 +3590,8 @@ not another recruitment measurement.
 
 | Outcome | Trigger | What it means |
 |---|---|---|
-| **CONFIRM** | The β∈[0,2] recurrent contender (§2.2.4 Arm 3) holds `≥90%` of its own `D_train` recovered_frac@0.9 at BOTH the mid (`4×D_train`) and far (`8×D_train`) pre-registered depth ratios, ACROSS ALL FIVE GROUPS (§2.6 M-D3), AND the two ablation arms (§2.2.4 Arms 1-2) show the pre-registered dissociation — Arm 1 (Transformer+positional-embedding) collapses at or before `D_test > L_max` by construction; Arm 2 (β∈[0,1] recurrent) holds on S3/S4 but drops below 50%-of-ceiling on A5/S5/A6 at the far ratio | This project's first genuine single-pass depth-generalization result, AND a second, independent (architecture-level, not SGD-rank-recruitment-level) demonstration that the solvable/non-solvable split is load-bearing — this time via eigenvalue range rather than minimal representation dimension. Publishable as the capstone capability demo `STATE.md` names it. |
-| **FALSIFY** | The contender (Arm 3) does NOT measurably outperform Arm 2 on the non-solvable groups at the far ratio — β range makes no detectable difference on THIS task/architecture/scale | A genuinely informative negative: Grazzi et al.'s theorem is stated for exact/asymptotic finite-precision LRNNs: this task's small scale (`d_state≤7`, toy word lengths) or this design's specific readout (cosine-loss-supervised recovery, not autoregressive language modeling) may not be where the asymptotic separation bites. Framed honestly as a boundary case, not a refutation of Grazzi et al. |
+| **CONFIRM** | The β∈[0,2] recurrent contender (§2.2.4 Arm 3) holds `≥90%` of its own `D_train` recovered_frac@0.9 at BOTH the mid (`4×D_train`) and far (`8×D_train`) pre-registered depth ratios, ACROSS ALL FIVE GROUPS, AND the two ablation arms (§2.2.4 Arms 1-2) show the pre-registered dissociation — Arm 1 (Transformer+positional-embedding) collapses at or before `D_test > L_max` by construction; Arm 2 (β∈[0,1] recurrent) holds on S3/S4 but drops below 50%-of-ceiling on **S5 and A6 at minimum** at the far ratio, **with A5's own Arm-2 pattern reported as an open, non-predetermined measurement, NOT gating** (§2.2.3's disclosure that A5-at-`β∈[0,1]` is untested in the literature). **The canonical statement of this criterion is §2.6 M-D3 — this row cross-references it and must not be read as an independent, stricter variant** (Rev 1, attack-round finding 2: Rev 0's wording here required all of A5+S5+A6 while M-D3 required S5+A6 only; reconciled to M-D3). | This project's first genuine single-pass depth-generalization result, AND a second, independent (architecture-level, not SGD-rank-recruitment-level) demonstration that the solvable/non-solvable split is load-bearing — this time via eigenvalue range rather than minimal representation dimension. Publishable as the capstone capability demo `STATE.md` names it. |
+| **FALSIFY** | The contender (Arm 3) does NOT measurably outperform Arm 2 on S5/A6 (the canonical §2.6 M-D3 gating pair) at the far ratio — β range makes no detectable difference on THIS task/architecture/scale | A genuinely informative negative: Grazzi et al.'s theorem is stated for exact/asymptotic finite-precision LRNNs: this task's small scale (`d_state≤7`, toy word lengths) or this design's specific readout (cosine-loss-supervised recovery, not autoregressive language modeling) may not be where the asymptotic separation bites. Framed honestly as a boundary case, not a refutation of Grazzi et al. |
 | **INCONCLUSIVE** | Mixed pattern (e.g. contender degrades too, or Arm 2 does NOT dissociate by solvability, or the dissociation appears but doesn't track the theorem's specific group-vs-eigenvalue-range prediction) | Diagnose before scaling — mirrors Stage 1's own §1.25/§1.27/§1.29 "diagnose, don't scale past an unexplained result" discipline, now with three rounds of recent precedent for how fast that discipline finds real instrument defects in THIS exact codebase. |
 
 **What this does NOT show (scope, stated up front):** this is not a
@@ -3699,19 +3705,34 @@ project, all pointing the same direction:
    own LRNN result (quoted in full in §2.2.3): Transformers "can only
    implement an FSA if all groups in its transition monoid are
    solvable, i.e. excluding groups isomorphic to `S_n` with `n≥5`."
-   Three of Stage 1's five pinned groups (A5, S5, A6) are exactly the
-   excluded case. This means the disqualification is not contingent on
+   **Citation scope, corrected Rev 1 (attack-round finding 5):** S5 is
+   exactly the case Grazzi's sentence names (`S_n`, `n≥5` — itself);
+   **A5 and A6 are NOT isomorphic to any `S_n`**, so they fall under
+   the sentence's general clause ("all groups in its transition monoid
+   are solvable" — both are non-solvable; each is a non-abelian simple
+   group), whose classical grounding this design now cites directly:
+   **Barrington 1989** (bounded-width branching programs — word
+   problems of non-solvable groups are NC¹-complete) and
+   **Barrington–Thérien 1988** (finite monoids and the fine structure
+   of NC¹ — the solvable-monoid side sits in ACC⁰). The exclusion of
+   fixed-depth, fixed-precision Transformers (a TC⁰-bounded class)
+   from NC¹-complete word problems is conditional on the standard
+   `TC⁰ ⊊ NC¹` assumption — the same conditionality Grazzi et al.'s
+   own Transformer contrast inherits; stated rather than hidden. Three
+   of Stage 1's five pinned groups (A5, S5, A6) are therefore excluded
+   — S5 by Grazzi's named case, A5/A6 by the non-solvability leg.
+   This means the disqualification is not contingent on
    fixing the `nn.Embedding` issue or training longer — a
    Transformer-encoder architecture, however positioned, cannot in
    principle realize the target computation for the non-solvable half
-   of the family at unbounded depth.
+   of the family at unbounded depth (under the stated assumption).
 
 **Candidates adjudicated (per the task brief's own menu — relative /
 none / ALiBi-style / learned-with-training-support):**
 
 | Option | Verdict | Why |
 |---|---|---|
-| Learned absolute (Stage 1's current scheme) | **REJECTED** | §1.25 proven untrained-row defect; §1.27/§1.29 proven/unresolved length-difficulty anomaly; theoretically excluded for A5/S5/A6 regardless of fix. |
+| Learned absolute (Stage 1's current scheme) | **REJECTED** | §1.25 proven untrained-row defect; §1.27-§1.30 length-difficulty anomaly (resolved as H-ENC, an architectural reader ceiling, §1.30 — the resolution does not rehabilitate the scheme, item 2 above); theoretically excluded for A5/S5/A6 regardless of fix (item 3's corrected citation legs). |
 | Relative (e.g. relative position bias) | **REJECTED as primary, not pursued as a build item** | Fixes the untrained-row defect (a relative offset table can in principle be reused past `L_train` if offsets stay in range, or a continuous/rotary scheme can extrapolate further) — but does NOT touch the theoretical ceiling: a Transformer is still a fixed-depth, fixed-precision parallel computation regardless of HOW position is injected, and Grazzi et al.'s Theorem 3/4 contrast is stated against "Transformers" as a class, not against any specific position scheme. Fixing the instrument without fixing the computational class would produce a cleaner-looking but still-theoretically-doomed non-solvable-group result. |
 | ALiBi-style extrapolatable bias | **REJECTED, same reasoning as relative** | Same class-level ceiling; ALiBi is specifically designed for length extrapolation in AUTOREGRESSIVE generation, a different setting (each new token only needs to attend backward, not realize an unbounded-depth GROUP computation in one shot). |
 | No positional signal at all (bare permutation-invariant encoder) | **REJECTED literally, ADOPTED in spirit** | Group composition is order-sensitive (`CLAUDE.md`'s "hold every other axis fixed" rule already forced Stage 1 to ADD a positional signal to the otherwise order-blind `BindingEncoder`, §1.4). Dropping position information entirely would make the task unsolvable by construction. But "no ABSOLUTE POSITION TABLE, order comes from elsewhere" is exactly right — see below. |
@@ -3734,18 +3755,62 @@ that addition used, not just re-tuning it.
 **Recommended construction (pinned, build-time-verifiable, reuses two
 already-proven components rather than inventing new machinery):**
 
-`GroupWordDeltaComposer` = `fla`'s `chunk_delta_rule` /
-`chunk_gated_delta_rule` kernel (the SAME kernel family
-`deltanet_rd/lm_pretrain_rd.py` and `capability_separation/
-beta_fla_smoke.py` already wrap and box-verify, §1.6/§2.0) run with
-**a single head (`H=1`), `d_head = h = 32`** — Stage 1's own `h=32`
-economization (§1.4) happens to sit exactly at the real kernel's proven
-`head_dim≥32` hard-crash floor (`STATE.md`'s deploy note: *"box smoke
-13/13 on real fla after a REAL kernel-envelope finding (bf16-only,
-head_dim≥32 hard-crash floor, qk-L2-norm)"*) — so this design does not
-need to widen `h` to satisfy the kernel; it inherits Stage 1's own
-economization for free. With `H=1`, the kernel's native per-step state
-IS a single `32×32` matrix `S_t` — no reshape across heads needed.
+`GroupWordDeltaComposer` = **a bespoke fp32 per-step torch recurrence**
+— `S_t = S_{t-1}(I − β_t k_t k_tᵀ) + β_t v_t k_tᵀ` implemented as an
+explicit Python-level scan over the `D` word positions (and, for
+`n_h≥2`, an inner loop over the `n_h` Householder factors per position)
+— run with **a single head (`H=1`), `d_head = h = 32`** (Stage 1's own
+`h=32` economization, §1.4, retained for continuity), so the per-step
+state IS a single `32×32` matrix `S_t`, no reshape across heads needed.
+The per-token projections (`q_proj`/`k_proj`/`v_proj`/`beta_proj`, the
+β-gate formula `β = 2·sigmoid(raw)` for Arm 3) reuse
+`beta_fla_smoke.py`'s existing `DeltaProductLayer` pattern verbatim —
+**only the scan itself is bespoke.**
+
+**KERNEL ADJUDICATION (Rev 1, attack-round finding 3 — Rev 0 defaulted
+to `fla`'s `chunk_delta_rule`/`chunk_gated_delta_rule` without
+adjudicating; adjudicated here, torch ADOPTED):**
+
+1. **No efficiency need exists at this scale.** `D_train_max=8`,
+   `D_test≤64`, `d_head=32`, toy batch sizes: a 64-step fp32 loop of
+   `32×32` rank-1 updates is trivially cheap. `fla`'s chunked Triton
+   kernel exists to make long-sequence, large-batch training fast —
+   none of which applies to any Stage-2 cell.
+2. **The entire disclosed `fla` envelope-risk class disappears:**
+   bf16-only, the `head_dim≥32` hard-crash floor, qk-L2-norm coupling,
+   and Triton dispatch/chunking overhead at tiny sizes (`STATE.md`'s
+   deploy note; the SOURCE of Rev 0's §2.7 `3-8×` planning-band
+   uncertainty). None of these constraints binds a plain torch loop.
+3. **fp32 at exactly the decisive regime.** The PRIMARY decisive
+   checkpoint is the far depth (`~8×`, `D=64`, §2.6 M-D3), where
+   per-step numeric error is compounded and amplified (Task E's own
+   depth-amplification precedent, §2.0/§2.6). bf16 (fla's only mode)
+   carries ~3 significant decimal digits; fp32 removes an entire
+   confound class from the decisive read — a far-depth FAIL must be
+   attributable to architecture/β-range, not accumulated rounding.
+4. **Independent convergent adjudication:** the Novel-Architecture
+   waterfall's NCR attack round (`NOVEL_ARCH_WATERFALL.md` §2, finding
+   M5) independently reached the same conclusion for the adjacent
+   toy-scale regime — *"Bespoke fp32 torch at d=16 is the right call
+   (no fla kernel computes powers; the 3-8× envelope band doesn't
+   apply)"* — and its finding M4 explicitly defers NCR's own GPU work
+   until Stage 2's calibration "settles fla-vs-torch." Two independent
+   attack rounds, same verdict.
+
+**One retained `fla` role — a one-cell numerical cross-check, NEVER a
+decisive-path component:** because `beta_fla_smoke.py`'s fla path is
+the repo's box-verified reference implementation of the delta rule, the
+bespoke scan must be checked against it ONCE at build time to catch
+semantic bugs (sign convention, β placement, transpose). Spec, pinned:
+identical bf16-cast inputs, `B=4`, configs `{(n_h=1, D=1), (n_h=1,
+D=8), (n_h=2, D=8)}` (the `n_h=2` leg runs against
+`beta_fla_smoke.py`'s expanded-sequence construction); PASS iff
+relative Frobenius error `‖S_torch − S_fla‖_F / ‖S_torch‖_F ≤ 5e-2` at
+every checked config AND `≤ 1e-2` for the single-step `(1,1)` config.
+Tolerances are bf16-scale (unit roundoff `≈3.9e-3`, growing with the
+`n_h·D ≤ 16` accumulation steps); a violation at these depths cannot
+be produced by precision alone and indicates a semantic mismatch.
+Wired as a mandatory build-gate item (§2.11), run once, CPU/GPU-cheap.
 
 **Reconciling `S_t` (32×32, kernel-native) with `Z` (`d_state×d_state`,
 Option A's target shape, `d_state≤7`):** reuse `GroupWordEncoder`'s
@@ -3764,13 +3829,41 @@ the ONLY new machinery is the token-to-token recurrence itself
 `beta_fla_smoke.py`'s existing `DeltaProductLayer` pattern, §2.0),
 extended with this matrix-shaped readout on top.
 
+**REGISTERED RISK (Rev 1, attack-round finding 1 — the round's single
+highest-value change): the reshaped state is LOW-RANK at small `D`, a
+plausible re-trigger of the PROVEN §1.30 reader degeneracy via rank
+instead of sequence length.** Mechanism, stated explicitly so the risk
+is registered, not implicit: each per-step update adds at most `n_h`
+rank-1 write terms (and the decay factor `(I − β k kᵀ)` cannot raise
+rank), so `rank(S_D) ≤ min(32, n_h·D)` — at `D=1` that is `n_h∈{2,4}`,
+and even at `D_train_max=8` with the default `n_h=2` it is `≤16`, i.e.
+**the ENTIRE training range feeds the reader a `(B,32,32)` memory whose
+32 rows span a subspace of dimension `≪ 32` (near-collinear rows).** A
+`MultiheadAttention` reader whose keys are near-collinear risks a
+near-query-independent softmax — the SAME failure class §1.30 proved at
+`L=1` for Stage 1 (read-vector std across queries `0.000e+00`,
+query-independence provable with a single key), which cost Stage 1 four
+diagnosis rounds (§1.25/§1.27/§1.29/§1.30). The planned blank-out/P=1
+check (below) tests gradient flow, NOT query-dependence, and would not
+catch this. **Mandatory detection: the query-dependence diagnostic in
+the calibration-first gate, §2.8 item 2(e)** (exactly §1.30's P3
+method, numeric bar pinned there), gated BEFORE the sweep remainder
+launches. Pre-validated fix if it fires: §1.30 item 6's learned-BOS
+fix, transposed to this reader's memory axis — a learned, always-present
+extra memory row ("row 0"/BOS-row) prepended to the 32 reshaped state
+rows before the reader, guaranteeing at least one key linearly
+independent of the state rows; applied uniformly across Arms 2-3 (and
+the last-`K` control) if adopted, with the failing calibration cell
+re-run (hold-axes-fixed: the fix is all-arms-or-none, never per-arm).
+
 **Per-token update, concretely:** at each of the `D` word positions,
 the layer emits `(q_t, k_t, v_t, β_t)` from the current generator-index
 embedding (Stage 1's own `tok_embed = nn.Embedding(n_gens, h)`, reused
 verbatim — **NO positional embedding is added anywhere in this
-pipeline**), and the kernel updates `S_t = S_{t-1}(I − β_t k_t k_tᵀ) +
-β_t v_t k_tᵀ` (the standard/`n_h=1` case) or the `n_h`-fold
-Householder-product generalization for `n_h≥2` (DeltaProduct, §2.2.3).
+pipeline**), and the recurrence updates `S_t = S_{t-1}(I − β_t k_t k_tᵀ)
++ β_t v_t k_tᵀ` (the standard/`n_h=1` case) or the `n_h`-fold
+Householder-product generalization for `n_h≥2` (DeltaProduct, §2.2.3) —
+the bespoke fp32 torch scan pinned above.
 The word's terminal state `S_D` (or, for the free per-step trajectory
 read, EVERY `S_t`, §2.6/§2.9 item 3) is read out via the reused
 `row_queries`/reader head into `Z`. Order-sensitivity is now a
@@ -3780,10 +3873,10 @@ then `g_1`), not an auxiliary signal a separate embedding has to teach
 the model to attend to.
 
 **Blank-out / P=1 bottleneck — MUST be re-verified for this new forward
-pass, not inherited (self-attack item 4, §2.9).** `GroupWordEncoder`'s
+pass, not inherited (self-attack item 6, §2.9).** `GroupWordEncoder`'s
 existing blank-out result (`blank_out.py`) certifies ITS OWN forward
 pass, not this one — a genuinely different computation graph. Build
-item, §2.13.
+item, §2.11.
 
 **Param-matching, disclosed as a build-time obligation, not a
 precomputed number.** An analytical estimate (transformer-encoder-body
@@ -3799,7 +3892,15 @@ until the exact parameter count lands within Stage 1's own convention
 (`HEAD_TO_HEAD_DEMO_DESIGN.md`'s param-matching discipline, cited by
 this design's own house-standard bar, §2.0) — **computed exactly at
 build time**, not asserted here, exactly as `CLAUDE.md`'s "computed on
-paper" pre-experiment checklist item requires.
+paper" pre-experiment checklist item requires. **Tolerance, pinned
+(Rev 1, attack-round also-noted item): arms count as param-matched when
+each arm's total trainable parameter count is within ±15% of Arm 1's**
+— tight enough that a residual capacity delta cannot plausibly explain
+an order-unity capability dissociation (the verdict turns on a
+below-50%-of-ceiling collapse, §2.6 M-D3, far outside what a 15% param
+edge buys at this scale), loose enough to be reachable across
+architecturally-different families by discrete layer/width choices;
+exact per-arm counts reported regardless (§2.9 item 7).
 
 #### 2.2.3 The β∈[0,1] vs β∈[0,2] adjudication — the deepest design question, resolved with a theorem, not a guess
 
@@ -3906,10 +4007,13 @@ to be cheaply `SO(3)`-representable — these two groups, not "the
 non-solvable half" generically, are where Arm 2's predicted collapse
 should be sharpest and Arm 3's predicted rescue most informative.
 A5 (non-solvable but `SO(3)`-cheap) is the genuinely interesting
-BORDERLINE case: Theorem 1's parity-style impossibility argument
-still formally excludes `β∈[0,1]` from representing A5 exactly (its
-transition monoid is not the trivial/cyclic case Theorem 1's positive-
-eigenvalue exception covers), but DeltaProduct's own `n_h=2`-suffices
+BORDERLINE case. **Citation scope, corrected Rev 1 (attack-round
+finding 5): Theorem 1's stated scope is parity/`(11)*` — it does NOT
+itself formally exclude A5** (Rev 0 overstated this). A5's THEORETICAL
+exclusion leg at `β∈[0,1]` runs, like A6's, through non-solvability
+(A5 is the smallest non-abelian simple group; Barrington 1989 /
+Barrington–Thérien 1988, §2.2.1 item 3, with the conditionality stated
+there) — and DeltaProduct's own `n_h=2`-suffices
 finding for A5 was measured on `allow_neg_eigval=True` runs already —
 **this design does not have primary-source evidence for how A5
 behaves specifically AT `β∈[0,1]`** (the published ablation targets
@@ -4183,6 +4287,16 @@ DeltaProduct's own published result already establishes sufficiency
 for these three and this design's own contribution is the untested
 S5/A6 cases, not re-deriving a published result.)
 
+**Calibration promotion (Rev 1, attack-round finding 4):** one
+`(S5, Arm 3, n_h=4)` cell — S5's DECISIVE Arm-3 configuration
+(§2.2.4), and the config where `n_h` multiplies the expanded
+per-position work — is PROMOTED from the 18-cell grid above into the
+mandatory calibration-first set (§2.8 item 2, now 11 cells), so the
+calibration gate exercises `n_h=4` (not just the `n_h=2` default)
+before the sweep remainder launches. Drawn from, not added to, the
+grid: zero incremental cells, zero incremental ledger cost (priced in
+§2.7's calibration row).
+
 **Total new training cells: `50 (primary) + 18 (n_h grid) = 68`.**
 
 **Controls, reused from Stage 1 where the task is unchanged, extended
@@ -4254,12 +4368,14 @@ mirroring the exact demotion pattern Stage 1 now uses twice (`L9-16`→C5,
 `L6-8`→disclosed). **Also pre-registered, learning directly from
 §1.29's own live finding:** the convergence PROFILE (not just the
 bar) is reported at EVERY `D∈{1..D_train_max}`, not just the split
-point, specifically so an anomaly shaped like the unresolved `L=1` dip
-(§1.29 — three live candidate mechanisms, one of which,
-"positional-row-0 interaction," cannot even occur in Arms 2-3's
-positional-embedding-free construction, giving a direct, cheap,
-built-in test of that specific candidate mechanism the moment Stage 2
-data exists) is visible immediately rather than requiring a
+point, specifically so an anomaly shaped like the `L=1` dip
+(since RESOLVED as H-ENC, §1.30 — single-token attention degeneracy;
+the "positional-row-0 interaction" candidate was EXONERATED there, and
+cannot even occur in Arms 2-3's
+positional-embedding-free construction anyway; the resolved
+mechanism's own Stage-2 analog — a query-independent read over a
+low-rank memory — is what §2.8 item 2(e)'s diagnostic now targets
+directly) is visible immediately rather than requiring a
 coordinator tiebreak round to surface, as it did for Stage 1.
 
 **M-D1 — accuracy-vs-depth curve** (per group, per arm, `D_test` grid
@@ -4310,6 +4426,20 @@ a function of ratio-past-training-depth":
 | `~4×` (e.g. `D=32`) | Secondary decisive check | Contender (Arm 3) `≥90%` of its own `D_train` recovered_frac@0.9, per group. |
 | `~8×` (e.g. `D=64`) — **the decisive checkpoint, matching Task E's own `7×` ratio where the ONLY archived genuine dissociation actually appeared** | **PRIMARY decisive check** | Contender (Arm 3) `≥90%` of its own `D_train` recovered_frac@0.9, ACROSS ALL FIVE GROUPS; Arm 2 (β∈[0,1]) drops BELOW 50%-of-ceiling on S5 and A6 at minimum (the theorem-excluded, non-`SO(3)`-cheap cases, §2.2.3), with A5's own pattern reported as an open, non-predetermined measurement (§2.2.3's explicit disclosure that A5-at-`β∈[0,1]` is untested in the literature). |
 
+**This table's `~8×` row is the CANONICAL statement of the Arm-2
+dissociation criterion (Rev 1, attack-round finding 2): S5 AND A6 at
+minimum are gating; A5 is reported as an open, non-predetermined
+measurement, NOT gating. §2.1's CONFIRM row cross-references this
+statement and carries no independent variant.**
+
+**Published length-generalization precedent for the depth-ratio band
+(Rev 1, attack-round also-noted item):** Grazzi et al.'s own Figure 1
+trains at sequence length 40 and reports extrapolation out to length
+256 (a `6.4×` ratio) — the same regime as this design's decisive `~8×`
+checkpoint, so the far-depth ask is within published-extrapolation
+practice for exactly this architecture family, not an untested leap of
+this design's own invention.
+
 **Overall Stage-2 verdict:** CONFIRM if the `~8×` checkpoint clears for
 Arm 3 on all five groups AND the pre-registered Arm-2 dissociation
 pattern (collapse on S5/A6 specifically) is observed. FALSIFY if Arm 3
@@ -4333,72 +4463,85 @@ unmeasured (calibration-pending, not assumed).**
   degauging/scoring, `≈0.0` GPU-h, the SAME "reused, not double-charged"
   convention Stage 1's own cost table already uses for its calibration
   wave (§1.6).
-- **Arms 2-3 (the new `GroupWordDeltaComposer` cells): rate is
-  genuinely UNMEASURED, disclosed honestly rather than guessed
-  precisely.** This is a materially different kernel (real Triton
-  `fla` `chunk_delta_rule`/`chunk_gated_delta_rule`, GPU-only, no
-  meaningful CPU proxy) than Stage 1's plain `nn.TransformerEncoder`
-  — `beta_fla_smoke.py`'s own already-collected box evidence
-  (`STATE.md`'s deploy note: bf16-only, `head_dim≥32` hard-crash floor,
-  qk-L2-norm) shows real kernel-dispatch friction exists at this toy
-  scale that a CPU-only estimate cannot predict. **PLANNING rate: 0.05
-  -0.15 GPU-h/cell** (a `3-8×` band over Stage 1's own MEASURED
-  Transformer rate, `0.0179` GPU-h/cell, disclosed as an uncertainty
-  band reflecting unmeasured Triton dispatch/chunking overhead at tiny
-  batch/sequence sizes, NOT a confident point estimate) — **the
-  mandatory calibration-first gate (§2.8) re-derives this from a real
-  cell BEFORE the 68-cell remainder launches, exactly mirroring Stage
-  1's own 17× calibration correction** (§1.6 Rev 5: `0.3` planned →
-  `0.0179` measured). This design does not pretend to know in advance
-  which direction Stage 1's own calibration surprise will repeat in.
+- **Arms 2-3 (the new `GroupWordDeltaComposer` cells): rate is still
+  genuinely UNMEASURED, but the band NARROWS under Rev 1's kernel
+  adjudication (§2.2.2: bespoke fp32 torch recurrence ADOPTED, `fla`
+  dropped from every decisive path).** Rev 0's `0.05-0.15` GPU-h/cell
+  planning band was a `3-8×` inflation over Stage 1's measured
+  Transformer rate driven ENTIRELY by unmeasured Triton
+  dispatch/chunking overhead at tiny batch/sequence sizes — a risk
+  class that no longer exists in the torch construction. What remains
+  is ordinary Python-loop overhead: `D_train_max=8` scan steps ×
+  `n_h≤4` inner factors of small CUDA ops per training forward, which
+  under-utilizes the GPU but is bounded and familiar, with no
+  compile/dispatch unknowns. **PLANNING rate (Rev 1): 0.018-0.054
+  GPU-h/cell** (a `1-3×` band over Stage 1's own MEASURED Transformer
+  rate, `0.0179` GPU-h/cell — same optimizer/step-count regime as that
+  anchor; the `3×` ceiling honestly covers per-step kernel-launch
+  overhead at tiny sizes, the dominant remaining unknown) — **the
+  mandatory calibration-first gate (§2.8) still re-derives the real
+  rate from real cells BEFORE the 57-cell remainder launches, exactly
+  mirroring Stage 1's own 17× calibration correction** (§1.6 Rev 5:
+  `0.3` planned → `0.0179` measured). This design does not pretend to
+  know in advance which direction Stage 1's own calibration surprise
+  will repeat in.
 
-| Item | Cells | Rate (planning) | GPU-h |
+| Item | Cells | Rate (planning, Rev 1) | GPU-h |
 |---|---|---|---|
 | Arm 1 (reused Stage-1 checkpoints, new `D_test` eval only) | 0 new training | — | ≈0.0 |
-| Arms 2-3 primary grid (5 groups × 2 β-arms × 5 seeds) | 50 | 0.05-0.15 GPU-h/cell | 2.50-7.50 |
-| `n_h` force-arm grid (S5, A6 × `n_h∈{1,2,4}` × 3 seeds) | 18 | 0.05-0.15 GPU-h/cell | 0.90-2.70 |
-| Contingency (Stage 1's own 2-2.5× escalation rule, 1-2 cells) | 2 × 2.25× | 0.15 GPU-h/cell (pricier end) | 0.68 |
-| Calibration-first wave (1 cell/(group,arm) for Arms 2-3, `5×2=10` cells) | reused within the 50 above, not double-charged | — | ≈0.0 |
+| Arms 2-3 primary grid (5 groups × 2 β-arms × 5 seeds) | 50 | 0.018-0.054 GPU-h/cell | 0.90-2.70 |
+| `n_h` force-arm grid (S5, A6 × `n_h∈{1,2,4}` × 3 seeds) | 18 | 0.018-0.054 GPU-h/cell | 0.32-0.97 |
+| Contingency (Stage 1's own 2-2.5× escalation rule, 1-2 cells) | 2 × 2.25× | 0.054 GPU-h/cell (pricier end) | 0.24 |
+| Calibration-first wave (1 cell/(group,arm) for Arms 2-3, `5×2=10` cells, PLUS the promoted `(S5, Arm 3, n_h=4)` cell, §2.5 — 11 cells) | reused within the 50 + 18 above, not double-charged | — | ≈0.0 |
+| Torch-vs-fla one-cell numerical cross-check (§2.2.2, Rev 1) | build-time, one run | — | ≈0.0 |
+| Query-dependence diagnostic, §2.8 item 2(e) (Rev 1) | measured on the 11 calibration cells' own forwards | — | ≈0.0 |
 | Blank-out / P=1 re-verification for the new architecture (§2.2.2) | CPU-only | — | ≈0.0 |
 | Prefix-state-fidelity diagnostic, per-depth rank measurement (§2.5/§2.6) | post-hoc, reuses saved checkpoints | — | ≈0.0 |
-| **Raw total** | 68 new cells | | **≈4.1-10.9 GPU-h** |
+| **Raw total** | 68 new cells | | **≈1.5-3.9 GPU-h** |
 
 **This directly confirms the PI's own prediction in the saturation
 directive** (verbatim, §2.0: *"cost re-derived at measured rates,
 likely far under the old 50-120 sketch"*) **— the honest re-derivation
-lands at roughly `4-11 GPU-h`, a `5-30×` reduction from §1.11's
-pre-rate-measurement `50-120 GPU-h` sketch**, for the same reason
+lands at roughly `1.5-3.9 GPU-h` (Rev 1; Rev 0's fla-band figure was
+`4.1-10.9`), a `~13-80×` reduction from §1.11's pre-rate-measurement
+`50-120 GPU-h` sketch**, for the same reason
 Stage 1's own sketch was `17×` too high: that sketch predates BOTH
 Stage 1's own calibration measurement AND this design's own use of
-Stage 1's already-trained checkpoints for Arm 1's free ablation.
+Stage 1's already-trained checkpoints for Arm 1's free ablation —
+plus, at Rev 1, the removal of the Triton-envelope uncertainty the
+Rev-0 band priced in (§2.2.2's kernel adjudication).
 
 **Per the directive's explicit instruction ("grow seeds/grids to use
 the room"), this design does NOT shrink the grid to match the raw
 estimate — it sets a Stage-2 dedicated ledger with real headroom,
 sized to survive the planning rate being wrong in the SAME direction
-Stage 1's own rate WASN'T (i.e. this design does not assume the fla
-kernel will also turn out to be cheaper than planned; a `3-8×` band is
-already a real disclosed uncertainty, not false modesty), while still
-being honestly justified rather than inflated for its own sake:**
+Stage 1's own rate WASN'T (i.e. this design does not assume the torch
+recurrence will also turn out to be cheaper than planned; the `1-3×`
+band over the measured anchor is a real disclosed uncertainty —
+per-step launch overhead at tiny sizes — not false modesty), while
+still being honestly justified rather than inflated for its own sake:**
 
 **Stage-2 dedicated ledger: 25 GPU-h cap, PI-visible, separate from
 Stage 1's own 30 GPU-h cap and from the concurrently-chartered
-FIX-AT-SCALE (~170 GPU-h) ledger** — raw estimate `4.1-10.9 GPU-h`
-leaves `56-84%` margin under this cap, comfortably inside Stage 1's own
-convention (Stage 1's Rev-5 measured-rate margin was `90.7%`; this
-design's margin is intentionally thinner because its own rate is
-genuinely unmeasured, not because the science needs more room). **New
-`STATE.md` LEDGERS entry, proposed (house format, `§2.0`'s cited
+FIX-AT-SCALE (~170 GPU-h) ledger — CAP UNCHANGED at Rev 1** — raw
+estimate `1.5-3.9 GPU-h` (Rev 1 band) leaves `84-94%` margin under this
+cap, now comfortably inside Stage 1's own
+convention (Stage 1's Rev-5 measured-rate margin was `90.7%`; Rev 0's
+thinner `56-84%` margin priced the fla envelope uncertainty, which the
+§2.2.2 kernel adjudication removed — the cap is deliberately NOT
+shrunk to match, preserving grow-the-grid headroom per the directive).
+**New `STATE.md` LEDGERS entry, proposed (house format, `§2.0`'s cited
 convention):**
 
 ```
 - capability-sep-stage2: 0/25 (dedicated cap, separate from Stage-1's
-  own 30 GPU-h; raw estimate 4.1-10.9 GPU-h at planning rates,
-  calibration-pending; PI 2026-07-09 saturation directive).
+  own 30 GPU-h; raw estimate 1.5-3.9 GPU-h at Rev-1 planning rates
+  (torch recurrence, §2.2.2), calibration-pending; PI 2026-07-09
+  saturation directive).
 ```
 
 **If, once launched, the calibration gate measures a rate materially
-below the `0.05-0.15` planning band (plausible, given Stage 1's own
+below the `0.018-0.054` planning band (plausible, given Stage 1's own
 `17×`-cheaper surprise), this design's OWN instruction is to grow the
 grid further rather than bank the savings** — additional seeds first
 (`n=5→n=8`), then a denser `n_h` sweep across all five groups (not just
@@ -4428,9 +4571,12 @@ Stage 2's own claim requires it.
    INCONCLUSIVE is the default green light this design assumes.
 2. **Calibration-first, mandatory per `CLAUDE.md`, extended to TWO
    new architecture families (Arms 2-3), not one.** One real cell per
-   (group, arm) combination for Arms 2-3 (`5×2=10` cells, already
-   counted inside §2.7's 50-cell primary grid) run to completion
-   BEFORE the remaining 58 cells launch. Duties: (a) M-D0's per-depth
+   (group, arm) combination for Arms 2-3 (`5×2=10` cells) PLUS the
+   promoted `(S5, Arm 3, n_h=4)` cell (§2.5, Rev 1, attack-round
+   finding 4 — S5's decisive Arm-3 config exercises `n_h=4` before the
+   sweep trusts it) — **11 cells total**, all already counted inside
+   §2.7's 50+18-cell grids, run to completion
+   BEFORE the remaining 57 cells launch. Duties: (a) M-D0's per-depth
    convergence profile (§2.6, pre-split bar, RECALIBRATED against real
    data before the main grid trusts it — not assumed uniform, learning
    directly from §1.27/§1.29); (b) the blank-out/P=1 re-verification
@@ -4441,11 +4587,43 @@ Stage 2's own claim requires it.
    UNMODIFIED (the target shape and degauging pipeline are unchanged
    from Stage 1, so the SAME synthetic trajectory and acceptance
    thresholds apply without re-derivation — a genuine "reused, not
-   rebuilt" case, not a hand-wave).
+   rebuilt" case, not a hand-wave); **(e) [Rev 1, attack-round finding
+   1 — LAUNCH-BLOCKING] the QUERY-DEPENDENCE DIAGNOSTIC**, run on
+   EVERY calibration cell: measure the read-vector std across the
+   `d_state` `row_queries` outputs (EXACTLY §1.30's P3 method — the
+   `group_word_encoder.py:96-103` probe, the same raw quantity, ported
+   to the composer's reshaped `(B,32,32)` memory), at every probe
+   depth `D∈{1,2,4,8}` (spanning the low-rank regime: `rank(S_D) ≤
+   n_h·D`, worst at `D=1`, §2.2.2's registered risk). **Numeric bar,
+   pinned: PASS requires read-vector std `≥ 0.04` at EVERY probe
+   depth; any value `< 0.04` at any depth is a FAIL.** Derivation of
+   the bar from §1.30's two measured anchors: the proven-degenerate
+   anchor is `0.000e+00` (exact query-independence, single key) and
+   the healthy anchor is `0.41` (`L=2`); the anchors are separated by
+   an effectively infinite ratio, so the bar's real job is to
+   adjudicate the UNMEASURED middle — partial collapse via near-
+   collinear rows, exactly the §2.2.2 mechanism. `0.04` is one order
+   of magnitude below the healthy anchor: generous room for benign
+   scale shift from the new memory statistics (reshaped fp32 state
+   rows vs transformer token embeddings), while refusing to pass any
+   read sitting a full decade closer to degenerate than to healthy.
+   The bar is deliberately biased toward FAIL because the costs are
+   asymmetric: a false FAIL costs one BOS-row fix (§2.2.2's
+   pre-validated candidate) plus one re-run calibration cell
+   (`≤0.054` GPU-h at the §2.7 planning rate); a false PASS costs the
+   sweep's interpretability — the §1.25-§1.30 four-diagnosis-round
+   precedent. The norm-normalized ratio (std / mean read-vector norm)
+   is REPORTED alongside as disclosure, but the decisional bar stays
+   on the raw §1.30-P3 quantity to remain method-exact. FAIL routing:
+   apply the BOS-row fix uniformly to Arms 2-3 + the last-`K` control
+   (all-arms-or-none, §2.2.2), re-run the failing cell(s), re-measure;
+   the sweep remainder does NOT launch until every calibration cell
+   passes (e).
 3. **Timing pilot / circuit breaker** — reuses Stage 1's exact
    mechanism (`budget_guard.py`, §2.0), re-keyed to this design's own
    25 GPU-h cap: if the calibration cells' measured rate projects the
-   68-cell remainder to exceed the cap, hard-abort before spending it.
+   full 68-cell grid (57 remaining + 11 already-spent calibration
+   cells) to exceed the cap, hard-abort before spending it.
 4. **Sha closure** — standing project convention, unchanged.
 5. **Reference-representation + degauging-pipeline verification** —
    ALREADY discharged by Stage 1 (§1.3, §1.7 gate 6) and reused
@@ -4475,12 +4653,14 @@ Stage 2's own claim requires it.
 2. **The β∈[0,1] arm's composition ceiling — does the delta-rule state
    compose these groups correctly without negative eigenvalues, or
    does Stage 2 need β∈[0,2]?** This IS the design's central question,
-   resolved with a verified theorem (§2.2.3), not asserted: Theorem 1
+   resolved with verified theorems (§2.2.3), not asserted: Theorem 1
    proves `β∈[0,1]` cannot solve parity (`S2`) at any budget in finite
-   precision; the Transformer-contrast sentence proves the SAME
-   exclusion class extends to any `S_n, n≥5`-containing transition
-   monoid regardless of architecture. Both S5 and A6 are exactly this
-   excluded case. A5 is disclosed as a genuine open question — its
+   precision — **its stated scope is parity/`(11)*` only (Rev 1
+   correction, attack-round finding 5)**; S5's exclusion leg is
+   Grazzi's own `S_n, n≥5` contrast sentence (S5 is itself an `S_n`);
+   A6's (and A5's theoretical) leg is non-solvability via Barrington
+   1989 / Barrington–Thérien 1988, with the conditionality stated in
+   §2.2.1 item 3. A5 is disclosed as a genuine open question — its
    `SO(3)`-cheap `n_h=2` sufficiency was measured ONLY at
    `allow_neg_eigval=True` in the published literature; this design's
    own Arm-2-vs-Arm-3 A5 comparison is therefore non-redundant new
@@ -4521,8 +4701,22 @@ Stage 2's own claim requires it.
    that provably only sees the most recent `K` generators (implemented
    as a truncated-context variant of Arm 2/3, e.g. resetting the
    recurrent state every `K` steps) — scored at the SAME far-depth
-   points. If this bounded-context control matches or nearly matches
-   the true contender's far-depth accuracy, that is direct evidence the
+   points. **Trigger, pinned numerically (Rev 1, attack-round finding
+   6, per the exact-thresholds hard rule — Rev 0's "matches or nearly
+   matches" was unquantified):** at the decisive far-depth point
+   (`~8×`, `D=64`), the downgrade FIRES iff
+   `contender_mean − control_mean ≤ max(2·σ_seed, 0.05)`, where both
+   means are per-group recovered_frac@0.9 averaged over seeds and
+   `σ_seed` is the CONTENDER's own seed-to-seed standard deviation at
+   that same point (`n=5` seeds, §2.5). Justification: `σ_seed` is the
+   design's own measured noise scale at exactly the decisive point, so
+   `2σ` approximates a ~95% same-population band — a control within it
+   is statistically indistinguishable from the contender; the `0.05`
+   absolute floor guards against a degenerately tight `σ_seed` making
+   the trigger vacuous (Task E precedent: converged seeds sat at
+   `1.00` with ≈zero variance, under which a `0.99`-scoring shortcut
+   control would otherwise escape a pure-`2σ` trigger). If the trigger
+   fires for ANY group, that is direct evidence the
    task's own mixing structure — not genuine full-depth composition —
    is carrying the result, and the CONFIRM verdict is downgraded to
    INCONCLUSIVE pending a task redesign (e.g. adversarially-chosen
@@ -4573,6 +4767,11 @@ Stage 2's own claim requires it.
    — but a FALSIFY result would need explicit param-count disclosure to
    rule out "the recurrent arms simply had less capacity" as a
    confound, per this project's own param-matching discipline.
+   **Rev 1 pin (attack-round also-noted item): the match tolerance is
+   ±15% of Arm 1's trainable-parameter count, justified in §2.2.2's
+   param-matching paragraph; the build-time layer-vs-width decision
+   stays open, but "matched" now has an exact numeric meaning it must
+   land inside, with per-arm exact counts reported either way.**
 8. **The C2 param-matched flat-VECTOR ablation control — the project's
    own standing hard rule — is explicitly adjudicated here, not
    silently deferred a second time.** `CLAUDE.md`: *"The param-matched
@@ -4613,7 +4812,9 @@ Stage 2's own claim requires it.
 
 **Does:** adjudicates the position-embedding question with THREE
 independent, previously-collected pieces of evidence from this exact
-project (§1.25's proven defect, §1.27/§1.29's unresolved anomaly, and a
+project (§1.25's proven defect, §1.27/§1.29's convergence anomaly —
+since resolved as H-ENC, §1.30, which strengthens rather than weakens
+the adjudication, §2.2.1 item 2 — and a
 primary-source theorem) rather than a single argument; adjudicates the
 β∈[0,1]-vs-β∈[0,2] question by reading Grazzi et al. and DeltaProduct
 directly from their PDFs this session and connecting their exact
@@ -4641,32 +4842,40 @@ control (Stage 2b) rather than deferring it a second time.
 spent — the depth-coverage arithmetic in §2.4 is CPU-only numpy,
 `≈30s` wall-clock, matching Stage 1's own "design-round artifact"
 convention); build or smoke-test `GroupWordDeltaComposer` (pinned
-architecturally, not yet implemented — build-time obligation, §2.13);
+architecturally, not yet implemented — build-time obligation, §2.11);
 resolve the exact parameter-matching arithmetic across arms (§2.9 item
-7, disclosed as a genuine build-time decision); include the C2 vector
+7, disclosed as a genuine build-time decision, tolerance now pinned at
+±15%); include the C2 vector
 ablation in THIS build (deliberately deferred to Stage 2b, §2.9 item
 8, NOT silently dropped); launch (gated on Stage 1's own CONFIRM-or-
 diagnosed-INCONCLUSIVE verdict per §1.11/§2.8 item 1, which has not
-yet been reached as of this writing, §1.29).
+yet been reached as of this writing — §1.30/§1.31 made the Stage-1
+sweep launchable, but its harvest/verdict is still pending).
 
 ---
 
 ### 2.11 Sequencing
 
-design (this doc, Rev 0) → attack round (dispatched separately, per
-this program's standing gauntlet discipline — not run by this design
-agent) → iterate to DESIGN-CLEARED-FOR-BUILD → build
-(`GroupWordDeltaComposer`: the `fla`-kernel recurrence +
-`GroupWordEncoder`'s reused readout head, §2.2.2; the `n_h`/β-range
+design (this doc, Rev 0) → attack round 1 (NEEDS-REVISION,
+`CAPABILITY_STAGE2_ATTACK_R1.md`/§2.13) → **Rev 1 (this revision)** →
+fresh micro-attack on Rev 1's delta → DESIGN-CLEARED-FOR-BUILD → build
+(`GroupWordDeltaComposer`: the bespoke fp32 torch per-step recurrence
+(§2.2.2 Rev 1) + `GroupWordEncoder`'s reused readout head, §2.2.2; the
+one-cell torch-vs-fla numerical cross-check, §2.2.2 Rev 1, pinned
+tolerances; the `n_h`/β-range
 config switch reusing `beta_fla_smoke.py`'s existing pattern; the fresh
-blank-out test for the new forward pass; the per-depth coverage/
+blank-out test for the new forward pass; the query-dependence
+diagnostic probe — §1.30's P3 method ported to the composer's reshaped
+memory, §2.8 item 2(e); the per-depth coverage/
 diversity-floor extension of `coverage_calibration.py`, §2.4; the
 `D_test` grid evaluation harness, incl. Arm-1's checkpoint-reuse path
 and the prefix-state-fidelity diagnostic, §2.3/§2.6; the last-`K`-window
-shortcut-control variant, §2.9 item 4; the 25 GPU-h hard-abort
+shortcut-control variant with its pinned trigger, §2.9 item 4; the 25
+GPU-h hard-abort
 enforcement wrapper, §2.7/§2.8) → independent build audit (separate
 agent) → **launch gate: Stage 1 CONFIRM or diagnosed-INCONCLUSIVE,
-§1.11/§2.8 item 1 — currently OPEN, §1.29** → launch (this design's own
+§1.11/§2.8 item 1 — currently OPEN (§1.30/§1.31: Stage-1 sweep
+launchable, harvest/verdict pending)** → launch (this design's own
 dedicated 25 GPU-h ledger, §2.7) → harvest → Stage-2 verdict (§2.6) →
 **IF CONFIRM: Stage 2b (the mandatory C2 vector-ablation control, §2.9
 item 8) launches immediately, gated through the SAME attack→build→audit
@@ -4708,6 +4917,20 @@ finding to Task D/E and Stage 1 either way, per this program's standing
   Eigenvalues," ICLR 2025 Oral, arXiv:2411.12537; Siems et al.,
   "DeltaProduct: Improving State-Tracking in Linear RNNs via
   Householder Products," NeurIPS 2025, arXiv:2502.10297.
+- **Classical circuit-complexity citations (Rev 1, attack-round
+  finding 5 — the A5/A6 exclusion legs):** Barrington, "Bounded-Width
+  Polynomial-Size Branching Programs Recognize Exactly Those Languages
+  in NC¹," JCSS 38(1):150-164, 1989 (non-solvable group word problems
+  are NC¹-complete); Barrington & Thérien, "Finite Monoids and the
+  Fine Structure of NC¹," JACM 35(4):941-952, 1988 (the
+  solvable-monoid side sits in ACC⁰). Used in §2.2.1 item 3 / §2.2.3 /
+  §2.9 item 2, with the `TC⁰ ⊊ NC¹` conditionality stated.
+- **Kernel-adjudication convergent evidence (Rev 1, attack-round
+  finding 3):** `NOVEL_ARCH_WATERFALL.md` §2, findings M5 (bespoke
+  fp32 torch endorsed at toy scale, the `3-8×` envelope band
+  inapplicable) and M4 (NCR's own GPU work explicitly gated behind
+  Stage 2's calibration readout, "which settles fla-vs-torch") — an
+  independent attack round reaching the same §2.2.2 verdict.
 - **Rate anchor:** `CAPABILITY_SEPARATION_DESIGN.md` §1.6's Rev-5
   measured-rate table (`0.0179`/`0.04475` GPU-h/cell), the ONLY
   measured anchor this design has (Arms 2-3's own rate is disclosed
@@ -4718,20 +4941,62 @@ finding to Task D/E and Stage 1 either way, per this program's standing
 - **Directive citation:** `STATE.md`'s 2026-07-09 GPU SATURATION
   DIRECTIVE paragraph (verbatim, §2.0) — the authorization this
   design's cost table and "grow the grid" instruction both cite.
-- **New, not yet built (consolidated from §2.2.2/§2.4/§2.5/§2.9
-  throughout):** `GroupWordDeltaComposer` (the recurrent composer +
-  reused readout head); the fresh blank-out test for it; the
+- **New, not yet built (consolidated from §2.2.2/§2.4/§2.5/§2.8/§2.9
+  throughout):** `GroupWordDeltaComposer` (the bespoke fp32 torch
+  recurrence + reused readout head, §2.2.2 Rev 1); the one-cell
+  torch-vs-fla numerical cross-check (§2.2.2 Rev 1, pinned
+  tolerances); the fresh blank-out test for it; the query-dependence
+  diagnostic probe (§2.8 item 2(e), §1.30-P3 port, bar `≥0.04`); the
   single-fixed-depth mode of `coverage_calibration.py`; the `D_test`
   grid evaluation harness (incl. Arm-1 checkpoint reuse and the
-  prefix-fidelity diagnostic); the last-`K`-window shortcut control;
-  the 25 GPU-h hard-abort wrapper; Stage 2b's flat-vector analog
+  prefix-fidelity diagnostic); the last-`K`-window shortcut control
+  (pinned trigger, §2.9 item 4); the 25 GPU-h hard-abort wrapper;
+  Stage 2b's flat-vector analog
   (deferred but pre-registered, §2.9 item 8).
 
 ---
 
-*(End §2 Rev 0. Design proceeds in parallel with Stage 1's own
-in-progress gauntlet per the PI's 2026-07-09 saturation directive;
-launch stays gated on §1.11/§2.8 item 1. Attack round next.)*
+### 2.13 ATTACK ROUND 1 VERDICT (pointer) + REV 1 CHANGES — finding → resolution map
+
+**Attack-round record:** `matrix-thinking/CAPABILITY_STAGE2_ATTACK_R1.md`
+(canonical satellite record; recorded there rather than here because
+the main registry was under concurrent Stage-1 Rev-7 edit at record
+time, per the gauntlet-bookkeeping hard rule). **Verdict: NEEDS-
+REVISION** (2 MAJOR launch-blocking, 1 MAJOR recommended, 2 MODERATE,
+1 MINOR, 2 also-noted items; positively-verified list — Grazzi
+transcription, coverage-grid reproduction, prefix-leak resolution, C2
+deferral, ledger arithmetic — recorded there). **This Rev 1 is that
+round's resolution.** (Numbering note: the satellite record designated
+this pointer "§2.10"; that number was already occupied by Rev 0's own
+scope section, so the pointer lands here as §2.13, following §1.13's
+attack-record numbering convention — no content difference.)
+
+| Attack finding | Resolution (Rev 1) | Where |
+|---|---|---|
+| **1 [MAJOR, launch-blocking] — reader query-independence re-trigger risk via low rank** | Low-rank mechanism (`rank(S_D) ≤ min(32, n_h·D)`; entire training range `≪ 32` at default `n_h=2`) REGISTERED in the design text; QUERY-DEPENDENCE DIAGNOSTIC added to the mandatory calibration-first gate as duty (e): §1.30's exact P3 method, probe depths `D∈{1,2,4,8}`, **pinned bar: read-vector std `≥ 0.04` at every probe depth** (derived from §1.30's `0.000e+00` degenerate / `0.41` healthy anchors — one decade below healthy; bias-toward-FAIL justified by asymmetric costs), FAIL routes to the pre-validated BOS-row fix (all-arms-or-none) + re-run; sweep remainder blocked until every calibration cell passes. | §2.2.2 (registered risk), §2.8 item 2(e) |
+| **2 [MAJOR, launch-blocking] — CONFIRM-criterion contradiction (§2.1 A5+S5+A6 vs M-D3 S5+A6)** | Reconciled to M-D3's wording: S5 AND A6 at minimum are gating; A5 reported as an open, non-predetermined measurement, NOT gating. §2.6 M-D3's `~8×` row declared the CANONICAL statement; §2.1's CONFIRM row (and its FALSIFY row, for consistency) now cross-reference it and carry no independent variant. | §2.1, §2.6 |
+| **3 [MAJOR, recommended] — kernel choice unadjudicated (fla defaulted)** | ADJUDICATED: **bespoke fp32 per-step torch recurrence ADOPTED** for every decisive path (4 reasons: no efficiency need at `D≤64`/`d_head=32`/tiny batches; whole fla envelope-risk class eliminated; fp32 at the decisive far depth removes the bf16 compounding confound; `NOVEL_ARCH_WATERFALL.md` §2 M5/M4's independent convergent verdict). fla retained in ONE non-decisive role: a one-cell numerical cross-check vs the box-verified reference (bf16-cast identical inputs, configs `{(1,1),(1,8),(2,8)}`, rel-Frobenius `≤ 5e-2` all / `≤ 1e-2` single-step). **§2.7 cost band recomputed and NARROWED: `0.05-0.15` → `0.018-0.054` GPU-h/cell (`1-3×` over the measured Stage-1 anchor); raw total `4.1-10.9` → `1.5-3.9` GPU-h; margin under the unchanged 25 GPU-h cap `56-84%` → `84-94%`.** | §2.2.2, §2.7 |
+| **4 [MODERATE] — calibration gate misses `n_h=4`** | One `(S5, Arm 3, n_h=4)` cell — S5's decisive Arm-3 config — PROMOTED into the mandatory calibration-first set (now 11 cells); drawn from the existing 18-cell `n_h` grid, zero incremental cells/ledger cost, priced in §2.7's calibration row. | §2.5, §2.7, §2.8 item 2 |
+| **5 [MODERATE] — citation precision (Theorem 1 scope; Grazzi `S_n` sentence stretched to A5/A6)** | Theorem 1 re-scoped to parity/`(11)*` everywhere (no longer claimed to "formally exclude" A5); Grazzi's `S_n≥5` sentence kept for S5 ONLY; A5/A6 exclusion legs now cite Barrington 1989 (non-solvable ⇒ NC¹-complete) / Barrington–Thérien 1988 (solvable ⇒ ACC⁰), with the `TC⁰ ⊊ NC¹` conditionality stated; Grazzi Fig. 1 precedent (trains 40 → tests 256, `6.4×`) added at the length-generalization discussion. | §2.2.1 item 3, §2.2.3, §2.6, §2.9 item 2, §2.12 |
+| **6 [MINOR] — last-`K`-window trigger unquantified** | Pinned: downgrade fires iff `contender_mean − control_mean ≤ max(2·σ_seed, 0.05)` at the `~8×`/`D=64` point (σ_seed = contender's own seed-std there, `n=5`; `0.05` floor guards against a vacuously tight σ, Task-E zero-variance precedent). | §2.9 item 4 |
+| **Also-noted: param-matching tolerance** | Pinned at ±15% of Arm 1's trainable-parameter count (the round's suggested value), with justification and mandatory per-arm exact-count disclosure. | §2.2.2, §2.9 item 7 |
+| **Also-noted: Grazzi Fig. 1 precedent** | Added (see finding-5 row). | §2.6 |
+| **Housekeeping (found during this revision, disclosed):** Rev 0 contained two dangling references to a nonexistent "§2.13" (build items live in §2.11) and one wrong self-attack item number (blank-out is item 6, not 4); both fixed. Stale "§1.29/unresolved" status references updated to §1.30/§1.31 (resolved as H-ENC; Stage-1 harvest still pending). | Cross-reference fixes only, no design-content change | §2.2.2, §2.10, §2.11 |
+| **Verified-sound items (NOT touched, per the attack round's own positive verification):** prefix-leak resolution (§2.3), C2 flat-vector deferral to Stage 2b (§2.9 item 8), §1.11 gate restatement (§2.8 item 1), centered-covariance carry-over (§2.5/§2.6), coverage grid (§2.4). | Unchanged | — |
+
+**§2 REV-1 STATUS (2026-07-09): revision complete.** All six findings
+and both also-noted items are resolved above; per the standing gauntlet
+discipline (multiple independent adversarial rounds, `CLAUDE.md` hard
+rule), **a fresh micro-attack on this Rev-1 delta is REQUIRED before
+DESIGN-CLEARED-FOR-BUILD** — this revision does not self-certify.
+**Launch gate unchanged:** Stage 1 CONFIRM or diagnosed-INCONCLUSIVE
+per §1.11/§2.8 item 1 (currently OPEN — §1.30/§1.31 made the Stage-1
+sweep launchable; its harvest/verdict is pending). **Ledger: cap
+unchanged at 25 GPU-h; the PLANNING BAND is restated per the finding-3
+kernel adjudication — `0.018-0.054` GPU-h/cell, raw total `1.5-3.9`
+GPU-h, margin `84-94%` under the cap** (Rev 0's `0.05-0.15` /
+`4.1-10.9` / `56-84%` figures are superseded; the calibration gate
+still re-derives the real rate before the 57-cell remainder launches).
 
 ---
 
