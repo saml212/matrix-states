@@ -3243,3 +3243,1234 @@ trivial); (c) hybrid}, plus the L=1 mechanism micro-diagnostic
 (authorized, ≤0.1 GPU-h).
 
 ---
+
+## §2 DESIGN — Stage 2 (Rev 0, 2026-07-08/09) — COMPOSITIONAL DEPTH
+GENERALIZATION: does a matrix-state model trained on group word-products
+of depth ≤ D_train answer held-out depths D_test ≫ D_train in a SINGLE
+forward pass (no CoT), tracking the state's algebraic structure, while
+capacity-matched baselines degrade toward chance?
+
+Status: **design Rev 0, dispatched under the PI's 2026-07-09 GPU
+saturation directive** (`STATE.md`, verbatim: *"CAPABILITY STAGE 2
+(depth generalization — the first true capability demo; design NOW,
+launch stays gated on Stage-1 readout per §1.11; cost re-derived at
+measured rates, likely far under the old 50-120 sketch → grow
+seeds/grids to use the room; design agent dispatched, registry =
+CAPABILITY_SEPARATION_DESIGN §2)"*). **Launch is GATED on Stage 1
+reaching CONFIRM or a diagnosed INCONCLUSIVE per §1.11 — this design is
+not.** As of this writing Stage 1 is mid-gauntlet (§1.29: Rev 6's
+narrowed gate-1(a) bar re-verified against real box data, 6/7
+calibration cells miss at `L=1` — a budget-responsive slow-convergence
+mode, mechanism unresolved, adjudication round 7 dispatched) — this
+design proceeds in parallel per the directive's explicit instruction,
+and is written to be launch-ready the moment §1.11's gate opens, not
+contingent on which of round 7's options Stage 1 lands on (none of
+those options touch the M1/M3 measurement sample, the readout pipeline,
+or the group family this design reuses verbatim, §2.0/§2.4 below).
+
+This design's central finding, stated up front because it drives every
+other decision below: **Stage 1's own accumulated evidence — the §1.25
+untrained-positional-row defect, the §1.27/§1.29 length-difficulty/
+convergence anomalies, AND an independently-verified circuit-complexity
+theorem (Grazzi et al., ICLR 2025 oral, arXiv:2411.12537, read directly
+from the PDF this session, §2.2.3) — converge on the SAME conclusion
+from three independent directions: a fixed-depth Transformer with a
+positional embedding is the WRONG architecture for a depth-generalization
+claim, not merely an under-tuned one.** Stage 2 therefore does not just
+extend Stage 1's `GroupWordEncoder` to longer words — it adjudicates a
+genuinely new architecture (a recurrent, per-token state-composition
+layer) and a genuinely new expressivity axis (delta-rule eigenvalue
+range, β∈[0,1] vs β∈[0,2]) that Stage 1 deliberately parked as a
+non-load-bearing smoke test (§1.6's β-smoke row) for exactly this later
+wave to pick up.
+
+---
+
+### 2.0 Reading list this design builds on (context, not repeated here)
+
+- **`CAPABILITY_SEPARATION_DESIGN.md` §1** (this file, above) — the
+  hypothesis, group family, Option A readout, degauging pipeline, and
+  cost/gate discipline this design reuses verbatim wherever the task
+  doesn't force a change (§2.4/§2.6 below cite exact carry-over items).
+  **§1.25** (untrained-positional-row defect) and **§1.27/§1.29**
+  (per-L convergence anomalies, latest box data) are DIRECTLY
+  load-bearing for §2.2's architecture decision — read in full, not
+  paraphrased, before touching §2.2.
+- **`matrix-thinking/chapter2/model_v4.py`**, **`TASK_D_PREREGISTRATION.md`**,
+  **`TASK_E_FINDINGS.md`** §3/§4/§9 — `BindingEncoder`'s ORIGINAL
+  no-positional-embedding, permutation-invariant design (Task D); Task
+  E's `Zʰ` single-fixed-operator self-application as the project's own
+  prior art for "order comes from a recurrence, not a position tag";
+  the K-cycle periodicity confound and its fix (`_permutation_graph`,
+  `TaskEConfig.__post_init__`'s residue guard); the rank-inflation trap
+  (§4) and `analyze_zdump.py`'s subspace-restriction methodology (§9)
+  this design's per-depth rank measurement generalizes again.
+- **`matrix-thinking/capability_separation/group_word_encoder.py`**,
+  **`beta_fla_smoke.py`** — the ACTUAL built Stage-1 architecture (confirms
+  `pos_embed = nn.Embedding(L_max, h)` is Stage 1's own delta-1 addition,
+  not inherited from Task D/E) and the ALREADY-BUILT, ALREADY-BOX-VERIFIED
+  `DeltaProductLayer` (β-gate `[0,2]`, `allow_neg_eigval`, `n_h`
+  Householder-product count) this design extends rather than builds from
+  scratch.
+- **Grazzi et al., "Unlocking State-Tracking in Linear RNNs Through
+  Negative Eigenvalues," ICLR 2025 Oral, arXiv:2411.12537**, and
+  **Siems et al., "DeltaProduct," NeurIPS 2025, arXiv:2502.10297** — both
+  read directly from the primary source this session (not from the
+  repo's own paraphrase) to settle §2.2.3's β-arm question with an exact
+  theorem, not a citation-by-vibes.
+- **`matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` §1.21** — the
+  "objective must make the capability NECESSARY, not merely correlated"
+  lesson (root-caused as "the aux loss converged to the
+  EPISODE-MEMBERSHIP local optimum," fixed by adding answer-token CE
+  that makes recall a precondition for low loss) — directly informs
+  §2.3's depth-entry/supervision design and §2.9 self-attack item 1.
+  Also the source of the β∈[0,2] RESERVATION this design now draws on
+  (`HEAD_TO_HEAD_DEMO_DESIGN.md`, self-attack item 12, verbatim: *"The
+  β∈[0,2] variant is deliberately RESERVED for the separate capability
+  campaign... to protect this design's own frozen-bias evidence
+  provenance"*).
+- **`STATE.md` "LEDGERS"** and the **2026-07-09 GPU SATURATION
+  DIRECTIVE** paragraph — the exact ledger-table convention (§2.7) and
+  the explicit authorization + "grow seeds/grids to use the room"
+  instruction this design's cost table follows literally.
+
+---
+
+### 2.1 The hypothesis, the honest framing, and pre-registered outcomes
+
+**One-sentence hypothesis:** a matrix-state model trained on group
+word-products of depth `D ≤ D_train` (the SAME group family, reference
+representations, and Option A readout Stage 1 pins) answers held-out
+depths `D_test ≫ D_train` in a single forward pass (no chain-of-thought,
+no re-encoding) with recovery accuracy that (a) tracks the group's
+algebraic structure — specifically, that the state-transition
+mechanism's eigenvalue range (not merely its rank) determines whether
+depth generalization survives past a modest ratio, per Grazzi et al.'s
+theorem — and (b) is asymmetric across the family exactly where that
+theorem predicts (solvable S3/S4 tractable at any eigenvalue range;
+non-solvable A5/S5/A6 tractable ONLY with negative eigenvalues), while
+capacity-matched baselines that lack either the recurrent structure or
+the eigenvalue range degrade toward chance well before the true
+contender does.
+
+This is this project's **third** causal capability test, and its first
+that is explicitly framed as a **capability demonstration** rather than
+a rank-recruitment measurement: Task D/E asked "does SGD recruit
+provably-necessary rank" (yes, in two settings); Stage 1 asks "does
+SGD recruit rank equal to a group's minimal faithful dimension" (in
+progress); **Stage 2 asks "can the resulting representation actually DO
+the thing — compose arbitrarily deep, never-seen-length products — or
+does it only work inside the length range it was trained on."** Per
+`STATE.md`'s framing, this is the program's first TRUE capability demo,
+not another recruitment measurement.
+
+| Outcome | Trigger | What it means |
+|---|---|---|
+| **CONFIRM** | The β∈[0,2] recurrent contender (§2.2.4 Arm 3) holds `≥90%` of its own `D_train` recovered_frac@0.9 at BOTH the mid (`4×D_train`) and far (`8×D_train`) pre-registered depth ratios, ACROSS ALL FIVE GROUPS (§2.6 M-D3), AND the two ablation arms (§2.2.4 Arms 1-2) show the pre-registered dissociation — Arm 1 (Transformer+positional-embedding) collapses at or before `D_test > L_max` by construction; Arm 2 (β∈[0,1] recurrent) holds on S3/S4 but drops below 50%-of-ceiling on A5/S5/A6 at the far ratio | This project's first genuine single-pass depth-generalization result, AND a second, independent (architecture-level, not SGD-rank-recruitment-level) demonstration that the solvable/non-solvable split is load-bearing — this time via eigenvalue range rather than minimal representation dimension. Publishable as the capstone capability demo `STATE.md` names it. |
+| **FALSIFY** | The contender (Arm 3) does NOT measurably outperform Arm 2 on the non-solvable groups at the far ratio — β range makes no detectable difference on THIS task/architecture/scale | A genuinely informative negative: Grazzi et al.'s theorem is stated for exact/asymptotic finite-precision LRNNs: this task's small scale (`d_state≤7`, toy word lengths) or this design's specific readout (cosine-loss-supervised recovery, not autoregressive language modeling) may not be where the asymptotic separation bites. Framed honestly as a boundary case, not a refutation of Grazzi et al. |
+| **INCONCLUSIVE** | Mixed pattern (e.g. contender degrades too, or Arm 2 does NOT dissociate by solvability, or the dissociation appears but doesn't track the theorem's specific group-vs-eigenvalue-range prediction) | Diagnose before scaling — mirrors Stage 1's own §1.25/§1.27/§1.29 "diagnose, don't scale past an unexplained result" discipline, now with three rounds of recent precedent for how fast that discipline finds real instrument defects in THIS exact codebase. |
+
+**What this does NOT show (scope, stated up front):** this is not a
+claim that matrix state generically beats a vector state at depth
+generalization — that is Stage 2b's job (§2.9 item 8, mandatory,
+explicitly not bundled into this build). It is also not a claim about
+autoregressive language-model-scale state tracking — the task stays
+Stage 1's exact toy word-recovery setting, extended along the depth
+axis only, per `CLAUDE.md`'s "hold every other axis fixed" rule.
+
+---
+
+### 2.2 The architecture question — position encoding and the β-arm are
+ONE decision, not two
+
+The task brief frames "adjudicate the positional-embedding architecture"
+and "adjudicate β∈[0,1] vs β∈[0,2]" as separate questions. They are not:
+both are symptoms of the same underlying issue (a fixed-depth,
+fixed-precision computation applied in parallel to the whole word cannot
+generalize to unseen depths OR unseen non-solvable-group structure), and
+the SAME fix (a genuine step-wise recurrence with an unrestricted
+eigenvalue range) resolves both simultaneously. §2.2.1-§2.2.3 build the
+case; §2.2.4 pins the resulting three-arm structure.
+
+#### 2.2.1 Why Stage 1's `nn.Embedding(L_max, h)` positional scheme cannot be reused
+
+Three independent lines of evidence, all already collected by THIS
+project, all pointing the same direction:
+
+1. **§1.25 DEFECT 2 (proven, not hypothesized): positional rows beyond
+   `L_train` never receive gradient.** Quoted verbatim: *"M1/M3's
+   decision surface was pinned EXCLUSIVELY to L∈{9..16} words while
+   `nn.Embedding` positional rows 8..15 NEVER TRAIN (zero gradient at
+   `L_train≤8`): every scored word fed N(0,1) rows; causal clamp-probe
+   recovers +0.04..+0.12."* This is not a convergence problem fixable
+   by more steps — it is a structural fact about how a lookup-table
+   positional embedding is trained: index `i` is updated only by
+   gradients from batches containing a token at position `i`. **By
+   construction, an absolute positional embedding CANNOT be evaluated
+   correctly at any depth beyond whatever `L_max` was allocated and
+   trained on** — exactly the regime Stage 2's entire hypothesis lives
+   in (`D_test ≫ D_train`). This is the single most direct reason this
+   architecture is disqualified for Stage 2's specific claim, independent
+   of anything else below.
+2. **§1.27/§1.29 (in progress, latest box data): convergence gets
+   materially harder as a function of position/length even WITHIN
+   train support.** §1.27 (CA6-M1) found the original `≥0.9` bar at
+   every `L∈{1..8}` "falsified by all 7 existing calibration cells...
+   a length-difficulty gradient, not a convergence criterion." §1.29's
+   coordinator re-pull of the real box data (table reproduced in
+   §2.0's reading list) shows the actual anomaly is more specific and
+   still unexplained: a dip specifically at `L=1` (0.78-0.89 for 6/7
+   cells) with near-perfect recovery at `L=2-4` (0.94-0.999) — and
+   §1.29 explicitly lists **"positional row-0 interaction"** as one of
+   three live candidate mechanisms for that dip, alongside single-token
+   attention degeneracy and an eval-diversity-floor artifact. Whichever
+   of those three turns out to be the cause, the fact that the
+   positional-embedding architecture has an UNRESOLVED, position-linked
+   convergence anomaly even inside its own training range is a second,
+   independent reason to distrust it as the vehicle for a
+   depth-EXTRAPOLATION claim — a claim that needs the in-support regime
+   to be unambiguously solid before any held-out reading means anything
+   (Stage 1's own "train-support convergence must gate before
+   extrapolation is read" discipline, which this design inherits as
+   its own Gate 0, §2.8).
+3. **Theoretical (Grazzi et al., verified from the primary source,
+   §2.2.3): fixed-depth Transformers are excluded from solving
+   non-solvable group word problems AT ALL, at any training budget.**
+   This is not a training-difficulty argument — it is a computational-
+   class argument, stated in the paper as a direct contrast to their
+   own LRNN result (quoted in full in §2.2.3): Transformers "can only
+   implement an FSA if all groups in its transition monoid are
+   solvable, i.e. excluding groups isomorphic to `S_n` with `n≥5`."
+   Three of Stage 1's five pinned groups (A5, S5, A6) are exactly the
+   excluded case. This means the disqualification is not contingent on
+   fixing the `nn.Embedding` issue or training longer — a
+   Transformer-encoder architecture, however positioned, cannot in
+   principle realize the target computation for the non-solvable half
+   of the family at unbounded depth.
+
+**Candidates adjudicated (per the task brief's own menu — relative /
+none / ALiBi-style / learned-with-training-support):**
+
+| Option | Verdict | Why |
+|---|---|---|
+| Learned absolute (Stage 1's current scheme) | **REJECTED** | §1.25 proven untrained-row defect; §1.27/§1.29 proven/unresolved length-difficulty anomaly; theoretically excluded for A5/S5/A6 regardless of fix. |
+| Relative (e.g. relative position bias) | **REJECTED as primary, not pursued as a build item** | Fixes the untrained-row defect (a relative offset table can in principle be reused past `L_train` if offsets stay in range, or a continuous/rotary scheme can extrapolate further) — but does NOT touch the theoretical ceiling: a Transformer is still a fixed-depth, fixed-precision parallel computation regardless of HOW position is injected, and Grazzi et al.'s Theorem 3/4 contrast is stated against "Transformers" as a class, not against any specific position scheme. Fixing the instrument without fixing the computational class would produce a cleaner-looking but still-theoretically-doomed non-solvable-group result. |
+| ALiBi-style extrapolatable bias | **REJECTED, same reasoning as relative** | Same class-level ceiling; ALiBi is specifically designed for length extrapolation in AUTOREGRESSIVE generation, a different setting (each new token only needs to attend backward, not realize an unbounded-depth GROUP computation in one shot). |
+| No positional signal at all (bare permutation-invariant encoder) | **REJECTED literally, ADOPTED in spirit** | Group composition is order-sensitive (`CLAUDE.md`'s "hold every other axis fixed" rule already forced Stage 1 to ADD a positional signal to the otherwise order-blind `BindingEncoder`, §1.4). Dropping position information entirely would make the task unsolvable by construction. But "no ABSOLUTE POSITION TABLE, order comes from elsewhere" is exactly right — see below. |
+| **RECOMMENDED: no absolute positional embedding — composition order comes from a genuine per-token RECURRENCE, not a position tag** | **ADOPTED** | This is Task D/E's own original design philosophy, not a novel idea: `BindingEncoder` (Task D) had NO positional embedding at all (confirmed directly from `model_v4.py`, §2.0) because Task D's task was order-independent; Task E's `Zʰ` handled order via literal repeated self-application of a single learned operator — the SAME state, updated step by step, with the STEP COUNT (not a lookup table) carrying "how far along" information. A step-wise recurrent composer generalizes Task E's `Zʰ` from "one fixed operator, self-applied" to "one fixed TRANSITION FUNCTION, applied to each of the `L` distinct input tokens in sequence" — there is no `L_max`-sized parameter table to run out of, so nothing is EVER "untrained" at a held-out depth by construction, and (per §2.2.3) the transition function's eigenvalue range can be chosen to escape the solvable-only ceiling. |
+
+**Justification vs Stage 1's Rev-5-era additions, stated explicitly.**
+Stage 1 added the positional embedding as one of exactly three
+structurally-necessary deltas to `BindingEncoder` (§1.4: order-
+sensitivity, single-token input embedding, per-batch-fixed-`L`
+batching) — a correct, minimal decision FOR STAGE 1's OWN CLAIM (rank
+recruitment on a FIXED, bounded word-length range `L∈{1..16}`, never
+claiming extrapolation past that range). Stage 2's claim is different
+IN KIND (extrapolation is the entire point, not a disclosed side
+control), so the same minimal-delta discipline that correctly kept
+Stage 1's addition small now correctly requires swapping the mechanism
+that addition used, not just re-tuning it.
+
+#### 2.2.2 The recurrent composer — concrete construction
+
+**Recommended construction (pinned, build-time-verifiable, reuses two
+already-proven components rather than inventing new machinery):**
+
+`GroupWordDeltaComposer` = `fla`'s `chunk_delta_rule` /
+`chunk_gated_delta_rule` kernel (the SAME kernel family
+`deltanet_rd/lm_pretrain_rd.py` and `capability_separation/
+beta_fla_smoke.py` already wrap and box-verify, §1.6/§2.0) run with
+**a single head (`H=1`), `d_head = h = 32`** — Stage 1's own `h=32`
+economization (§1.4) happens to sit exactly at the real kernel's proven
+`head_dim≥32` hard-crash floor (`STATE.md`'s deploy note: *"box smoke
+13/13 on real fla after a REAL kernel-envelope finding (bf16-only,
+head_dim≥32 hard-crash floor, qk-L2-norm)"*) — so this design does not
+need to widen `h` to satisfy the kernel; it inherits Stage 1's own
+economization for free. With `H=1`, the kernel's native per-step state
+IS a single `32×32` matrix `S_t` — no reshape across heads needed.
+
+**Reconciling `S_t` (32×32, kernel-native) with `Z` (`d_state×d_state`,
+Option A's target shape, `d_state≤7`):** reuse `GroupWordEncoder`'s
+OWN readout head UNMODIFIED — `row_queries` (`d_state` learned
+"row-reader" latents), the `MultiheadAttention` reader, `row_norm`,
+`row_out`. That head already reads a `(B, T, h)` memory sequence into a
+`d_state×d_state` matrix; feed it `S_t` **reshaped as a `(B, 32, 32)`
+memory sequence** (32 "positions," each a 32-dim row of the raw delta-rule
+state — a lossless relabeling, not a projection) in place of
+`BindingEncoder`'s transformer-encoder output. This reuses a component
+already built, smoke-tested, and blank-out-verified in Stage 1
+(`group_word_encoder.py`'s `row_queries`/`reader`/`row_norm`/`row_out`
+block, lines 74-78 per §2.0) rather than inventing a new readout —
+the ONLY new machinery is the token-to-token recurrence itself
+(`q_proj`/`k_proj`/`v_proj`/`beta_proj` per token, exactly
+`beta_fla_smoke.py`'s existing `DeltaProductLayer` pattern, §2.0),
+extended with this matrix-shaped readout on top.
+
+**Per-token update, concretely:** at each of the `D` word positions,
+the layer emits `(q_t, k_t, v_t, β_t)` from the current generator-index
+embedding (Stage 1's own `tok_embed = nn.Embedding(n_gens, h)`, reused
+verbatim — **NO positional embedding is added anywhere in this
+pipeline**), and the kernel updates `S_t = S_{t-1}(I − β_t k_t k_tᵀ) +
+β_t v_t k_tᵀ` (the standard/`n_h=1` case) or the `n_h`-fold
+Householder-product generalization for `n_h≥2` (DeltaProduct, §2.2.3).
+The word's terminal state `S_D` (or, for the free per-step trajectory
+read, EVERY `S_t`, §2.6/§2.9 item 3) is read out via the reused
+`row_queries`/reader head into `Z`. Order-sensitivity is now a
+structural property of the recurrence (composing `g_1` then `g_2`
+literally computes a different sequence of matrix products than `g_2`
+then `g_1`), not an auxiliary signal a separate embedding has to teach
+the model to attend to.
+
+**Blank-out / P=1 bottleneck — MUST be re-verified for this new forward
+pass, not inherited (self-attack item 4, §2.9).** `GroupWordEncoder`'s
+existing blank-out result (`blank_out.py`) certifies ITS OWN forward
+pass, not this one — a genuinely different computation graph. Build
+item, §2.13.
+
+**Param-matching, disclosed as a build-time obligation, not a
+precomputed number.** An analytical estimate (transformer-encoder-body
+scaling rule, `h²`-dominated terms) puts `GroupWordEncoder` at
+roughly 40-45K parameters for a `d_state=5` (S4/A5-shaped) instance —
+consistent with `model_v4.py`'s own ~171K-at-`h=64` figure scaled by
+`(32/64)²≈0.25`. `GroupWordDeltaComposer`'s per-token projections
+(`q_proj`/`k_proj`/`v_proj`/`beta_proj`, each roughly `h×(h·n_h)`) are
+smaller per layer than a transformer-encoder layer's `≈12h²` at
+matched `h`; matching CAPACITY (not just architecture family) requires
+either stacking multiple delta-rule layers or widening projections
+until the exact parameter count lands within Stage 1's own convention
+(`HEAD_TO_HEAD_DEMO_DESIGN.md`'s param-matching discipline, cited by
+this design's own house-standard bar, §2.0) — **computed exactly at
+build time**, not asserted here, exactly as `CLAUDE.md`'s "computed on
+paper" pre-experiment checklist item requires.
+
+#### 2.2.3 The β∈[0,1] vs β∈[0,2] adjudication — the deepest design question, resolved with a theorem, not a guess
+
+**This question was already partially adjudicated by this project
+BEFORE this design round**, and this design's job is to make that
+prior adjudication load-bearing rather than re-litigate it from
+scratch. Two pre-existing, on-the-record decisions:
+
+- `STATE.md`'s capability-separation scout note (verbatim, §2.0):
+  *"the capability campaign pins β∈[0,2] as its own arm w/ own
+  calibration."*
+- `HEAD_TO_HEAD_DEMO_DESIGN.md`'s self-attack item 12 (verbatim):
+  *"The β∈[0,2] variant is deliberately RESERVED for the separate
+  capability campaign (not built or tested here), to protect this
+  design's own frozen-bias evidence provenance — λ=0.58 was tuned
+  under the sigmoid-β configuration, and swapping the gate here would
+  silently invalidate that tuning."*
+
+**Stage 2 IS the reservation's landing spot.** This design's job is to
+turn that reservation into a concrete, pre-registered, EXECUTED-theory
+arm structure.
+
+**The exact theorem (Grazzi et al., arXiv:2411.12537, read directly
+from the PDF this session, not paraphrased from a secondary source):**
+
+- **Transition-matrix form (their Table 1 / Eq. 2):** DeltaNet's state
+  update is `A(x_t) = I − β_t k_t k_tᵀ` (a generalized Householder
+  matrix). The baseline gate `β_t = sigmoid(...) ∈ [0,1]` confines the
+  "interesting" eigenvalue to `1−β_t ∈ [0,1]` — **never negative**.
+  Their proposed fix parameterizes `β := 2φ(x) ∈ [0,2]`, giving
+  eigenvalue `1−β ∈ [−1,1]` — this repo's own `beta_fla_smoke.py`
+  implements exactly `beta = 2*sigmoid(raw)` for precisely this reason
+  (§2.0).
+- **Theorem 1 (parity):** a finite-precision LRNN can solve parity
+  (equivalently, the `S_2` word problem) **only if** some layer's
+  transition matrix has an eigenvalue outside `{x∈ℝ : x≥0}` — i.e.
+  positive-eigenvalue-only transitions (`β∈[0,1]`) provably cannot
+  solve even the SIMPLEST non-trivial group word problem, at ANY
+  training budget, in ANY number of layers, in finite precision.
+- **Theorem 3 (general group word problems via generalized-Householder
+  products):** any finite-state automaton whose transition monoid is a
+  group isomorphic to a subgroup of `S_n` can be IMPLEMENTED exactly by
+  a one-layer LRNN using Householder-type transitions with eigenvalues
+  in `[−1,1]` (i.e. `β∈[0,2]`) — a CONSTRUCTIVE sufficiency result, not
+  just an impossibility result for the restricted case.
+- **The direct Transformer contrast (quoted verbatim, page 7,
+  immediately following Theorems 3/4 — this is the load-bearing
+  sentence for §2.2.1's item 3 above):** *"The results in Theorems 3
+  and 4 for LRNNs are in sharp contrast with the ones for Transformers
+  ... and diagonal LRNNs, which require either the number of layers or
+  the precision growing with the input sequence length, and **can only
+  implement an FSA if all groups in its transition monoid are
+  solvable, i.e. excluding groups isomorphic to `S_n` with `n≥5`**."*
+- **Their own experiment section explicitly targets S5**: *"We focus
+  on the `S5` group — the first unsolvable symmetric group where
+  current LRNNs and Transformers are known to underperform."* — the
+  SAME group already sitting in Stage 1's own family at `d_min=4`.
+
+**DeltaProduct's own empirical `n_h` numbers (Siems et al.,
+arXiv:2502.10297, Fig. 5, also read directly from the PDF), and their
+DIRECT relevance to Stage 1's already-built reference representations:**
+
+| Group | `n_h` sufficient for robust extrapolation | Layers needed at `n_h=1` | Mechanism (paper's own words) |
+|---|---|---|---|
+| S3 | 2 | 3 | — |
+| S4 | 2 (despite the theorem suggesting 3) | 6 | *"isomorphism to subgroups of SO(3,ℝ) — S4 is isomorphic to the rotation group of the cube"* |
+| A5 | 2 (despite the theorem suggesting 4) | 3 | *"and A5 to the rotation group of the dodecahedron"* |
+| S5 | **4** | (even 10 layers insufficient at `n_h=1`) | — |
+
+This is a striking, directly-checkable coincidence with this project's
+OWN already-executed work: Stage 1's §1.3.1 built and verified S4's and
+A5's reference representations via EXACTLY the cube-rotation and
+icosahedral-rotation `SO(3)` realizations DeltaProduct's paper
+identifies as the reason those two groups are cheap (`n_h=2`
+suffices) despite one being solvable and the other not. **This is
+independent, external confirmation that Stage 1's §1.2 group-family
+design choice (using genuine 3-D rotation realizations for S4/A5
+rather than some other faithful representation) was, unknowingly,
+already the representation-theoretically favorable one for a future
+delta-rule arm — a fortunate alignment, not a coincidence this design
+manufactured.** `A6` is untested in the published paper (its minimal
+faithful real representation is 5-dimensional, NOT an `SO(3)`
+embedding like S4/A5) — **flagged as a genuine open question,
+calibration-pending, not assumed to inherit S4/A5's cheap `n_h=2`
+sufficiency** (§2.5's force-arm grid tests this directly rather than
+assuming it).
+
+**Also worth stating plainly, because Stage 1's own STATE.md record
+already flagged it and this design should not silently re-litigate a
+settled point:** the naive "solvable groups are easy, non-solvable
+groups are hard" story is ALREADY falsified empirically by
+DeltaProduct's own numbers — S4 (solvable) needs MORE layers at
+`n_h=1` (6) than A5 (non-solvable) needs (3). The real predictor in
+their data is `SO(3)`-embeddability, not solvability per se. **What
+Theorem 3's Transformer contrast predicts, and what this design's
+Arm-2-vs-Arm-3 dissociation actually tests, is narrower and sharper
+than "solvable vs non-solvable groups are differently hard":** it is
+specifically "positive-eigenvalue-only transitions cannot represent
+`S_n`, `n≥5`-type groups AT ALL, at any depth, while `SO(3)`-type or
+smaller groups CAN be represented (just possibly less efficiently)."
+S5 and A6 are the two groups in Stage 1's family that are simultaneously
+non-solvable AND (for A6, and for S5 per its own Fig. 5 line) NOT known
+to be cheaply `SO(3)`-representable — these two groups, not "the
+non-solvable half" generically, are where Arm 2's predicted collapse
+should be sharpest and Arm 3's predicted rescue most informative.
+A5 (non-solvable but `SO(3)`-cheap) is the genuinely interesting
+BORDERLINE case: Theorem 1's parity-style impossibility argument
+still formally excludes `β∈[0,1]` from representing A5 exactly (its
+transition monoid is not the trivial/cyclic case Theorem 1's positive-
+eigenvalue exception covers), but DeltaProduct's own `n_h=2`-suffices
+finding for A5 was measured on `allow_neg_eigval=True` runs already —
+**this design does not have primary-source evidence for how A5
+behaves specifically AT `β∈[0,1]`** (the published ablation targets
+`n_h`, not `β`-range, at fixed `allow_neg_eigval=True`) — flagged
+explicitly as untested by the literature and hence a genuine,
+non-redundant measurement this design contributes (§2.6 M-D3's
+per-group breakdown, not just a family-aggregate pass/fail).
+
+#### 2.2.4 The resulting three-arm structure
+
+| Arm | Architecture | β range | `n_h` | Predicted pattern | Role |
+|---|---|---|---|---|---|
+| **Arm 1 — GroupWordEncoder** | Stage 1's exact built architecture (Transformer encoder + `nn.Embedding` positional table) | n/a | n/a | Collapses at or before `D_test` requires an untrained positional row (mechanically guaranteed by §1.25's proven defect); degrades on ALL groups, not just non-solvable ones | **Zero-new-training-cost ablation** — reuses Stage 1's OWN already-trained unconstrained-arm checkpoints (§1.4.2 Arm 1, 5 groups × `n∈{3,5}` seeds), evaluated at NEW held-out depths (§2.4/§2.6) at effectively zero additional GPU-h. Capacity/param-matched to Arms 2-3 by the SAME architecture family Stage 1 already used to make its own claim. |
+| **Arm 2 — GroupWordDeltaComposer, β∈[0,1]** | §2.2.2's recurrent composer | `[0,1]` (plain sigmoid, this repo's baseline/head-to-head configuration) | 2 (default) | Holds on S3/S4 (Theorem 3's `SO(3)`-cheap or small-group case is not formally excluded at this β range for solvable groups); predicted to fail to hold at the far depth ratio on **S5 and A6 specifically** (Theorem 1/3's exclusion), with **A5 as an explicitly untested, non-redundant measurement** (§2.2.3) | Second ablation — isolates the eigenvalue-range axis from the architecture-family axis. This arm's OWN pattern (does it dissociate cleanly by the theorem's prediction, or not at all, or differently than predicted) is itself a genuinely new, publishable finding regardless of Arm 3's outcome. |
+| **Arm 3 — GroupWordDeltaComposer, β∈[0,2]** | Same as Arm 2 | `[0,2]` (`allow_neg_eigval=True`, `beta_fla_smoke.py`'s existing pattern) | 2 default; **4 for S5** (DeltaProduct's own published requirement); **calibration-pending for A6** (§2.5's force-arm grid) | Predicted to hold across the full family at both mid and far depth ratios | **The contender.** This is where the pre-existing β∈[0,2] reservation (§2.2.3) becomes load-bearing. |
+
+**Baselines explicitly adjudicated OUT of scope (per the task brief's
+own "adjudicate which baselines make the claim vs Stage-3 scope"
+instruction):**
+
+- **A generic (non-bespoke) small Transformer** is NOT added as a
+  fourth arm. Arm 1 already IS a Transformer-encoder architecture,
+  already capacity/param-matched to the other arms by Stage 1's own
+  construction, and its ceiling is dictated by the SAME Theorem-3
+  contrast regardless of exactly how it is shaped (relative position,
+  more layers, more heads — none of that changes "excludes `S_n`,
+  `n≥5`"). A second differently-shaped Transformer would add an
+  uncontrolled axis without answering a materially different question.
+  Scoped OUT unless a SPECIFIC alternative (e.g. a decoder-only,
+  chain-of-thought-augmented model, which changes the single-pass
+  premise entirely — Merrill & Sabharwal's own "log-CoT escapes TC0"
+  clause, cited via `STATE.md`'s scout note) becomes independently
+  motivated — that is a fundamentally different claim ("depth
+  generalization WITH reasoning steps") and belongs to a hypothetical
+  Stage 3, not here.
+- **The C2 param-matched flat-VECTOR ablation is MANDATORY but NOT
+  bundled into this build** — see §2.9 item 8 (self-attack) for the
+  full adjudication; it is registered as **Stage 2b**, an immediate,
+  required follow-on, not silently deferred indefinitely the way
+  Stage 1 deferred its own C2.
+
+---
+
+### 2.3 The task — depth entry, training regime, batching
+
+**Task, reused verbatim from Stage 1 (§1.4), extended along exactly one
+axis (word length range):** a word `w = g_{i1}...g_{iD}`, each `i_t`
+drawn i.i.d. from the SAME pinned symmetric generating set per group
+(§1.4's table, unchanged). Target = `rho_G(product(w))`, the SAME
+pinned reference representations (§1.3, numerically verified, not
+re-derived). Option A's readout (block-embedded target, cosine loss,
+Procrustes/scale degauging) is reused VERBATIM — §2.0/§2.8 detail
+exactly what carries over.
+
+**`D_train_max = 8`, pinned, PRESERVING Stage 1's own value rather than
+picking a new one.** This is a deliberate continuity decision, not an
+oversight: it is what makes Arm 1's zero-new-GPU-h checkpoint reuse
+(§2.2.4, §2.7) possible at all — Arm 1 trains on EXACTLY the same
+`D~Uniform{1,8}` regime Stage 1's own unconstrained arm already ran, so
+its existing checkpoints ARE valid Stage-2 Arm-1 cells, only needing new
+`D_test`-grid evaluation, not retraining. Arms 2-3 are trained on the
+SAME `D_train_max=8` for exactly this reason (a matched training regime
+across all three arms is also what makes the cross-arm comparison
+fair — training Arms 2-3 on a different `D_train_max` than Arm 1's
+already-fixed checkpoints would reintroduce the "hold every other axis
+fixed" violation this design otherwise avoids, §2.2.4). The cost this
+choice carries (`D_train_max=8` is a fairly short training range) is
+exactly what makes the depth-generalization claim MEANINGFUL — a small
+`D_train_max` with a deep `D_test` grid is a harder, more informative
+test than starting from an already-long training range.
+
+**Depth entry — pinned decision: FINAL-STATE-ONLY supervision (matches
+Stage 1's own convention), per-batch-fixed-`D`, PLUS a free post-hoc
+prefix-fidelity diagnostic (not a second training arm).**
+
+Self-attack item 1 (§2.9) is "prefix supervision might leak
+depth-generalization into training" — worth resolving here, at the
+design stage, rather than leaving it as an open risk. Two supervision
+schemes were considered:
+
+1. **Every-prefix supervision** (supervise `Z_t` against
+   `rho_G(g_1...g_t)` at EVERY `t=1..D` within one sampled word) —
+   REJECTED as the primary regime. It would introduce a genuinely NEW
+   training-objective axis relative to Stage 1 (Stage 1 supervises
+   exactly one target per sample), violating `CLAUDE.md`'s "hold every
+   other axis fixed when testing a primary hypothesis" rule — Stage 2
+   is already changing the architecture AND the depth range; adding a
+   third simultaneous change (supervision density) would make any
+   result uninterpretable (which change caused it?). It also risks
+   exactly the leak self-attack item 1 names: forcing every intermediate
+   state correct inside `D_train` could make the model's TRAINING
+   objective itself resemble a depth-generalization test, contaminating
+   the independence of the held-out evaluation.
+2. **Final-state-only, per-batch-fixed-`D` sampled from
+   `D~Uniform{1,D_train_max}`** — ADOPTED, identical in structure to
+   Stage 1's own pinned batching scheme (§1.4's delta 3: one `D` per
+   batch, shared by every episode in that batch, varying across
+   batches). This is not merely "the safe default" — it already
+   provides substantial cross-depth pressure for a HOMOGENEOUS
+   recurrence (the SAME transition function is applied at every step,
+   for every batch's `D`, so the function must be simultaneously
+   correct for `D=1,2,...,D_train_max` across different batches, even
+   though within any ONE sample only the terminal state is scored) —
+   structurally the same logic behind Task E's own `Zʰ` training
+   working well with supervision only at `H_train={1,2,3}` and still
+   generalizing cleanly out to `h=7` (§2.6's margin derivation).
+
+**Diagnostic, not a training change: prefix-state fidelity, scored
+post-hoc, zero additional GPU cost.** Because the recurrent arms
+(2-3) compute EVERY intermediate `S_t` as a byproduct of one forward
+pass regardless of what was supervised, this design adds a FREE
+post-hoc metric: for a sample of already-collected `D_train_max`-length
+training words, score `Z_t` (read out via the SAME `row_queries` head,
+applied at every `t≤D`, not just `t=D`) against `rho_G(g_1..g_t)`
+through the SAME degauging pipeline. If final-state-only supervision
+ALREADY induces correct intermediate states (high prefix fidelity),
+that is strong, non-trivial evidence of genuine step-wise composition
+rather than a length-conditioned shortcut — checked, not assumed. If
+prefix fidelity is high only NEAR `t=D_train` and degrades for smaller
+`t`, that is a diagnostic red flag (a "look-ahead"/shortcut risk, §2.9
+item 4) surfaced BEFORE the `D_test` extrapolation numbers are even
+read, mirroring Stage 1's own "diagnose before trusting the headline
+number" discipline (§1.25/§1.27/§1.29's whole recent history).
+
+**Batching, reused verbatim:** per-batch-fixed-`D` (Stage 1's pinned
+scheme, §1.4) — zero new padding/mask code, same justification
+(episodes i.i.d. given `D`; `D`-distribution preserved in expectation).
+
+---
+
+### 2.4 Groups — family reuse, and an EXECUTED depth/mixing arithmetic
+check (S5 at D=20 and beyond)
+
+**Family: Stage 1's exact five groups, unchanged** (S3/S4/A5/S5/A6,
+`d_min` 2/3/3/4/5, §1.2's reference representations reused verbatim —
+no new group construction, no new verification needed, §1.3's five
+PASS results carry over exactly).
+
+**Executed coverage/mixing arithmetic (this design round, CPU-only,
+numpy, ~30s wall-clock; not repo-committed — same "design-round
+artifact" convention as §1.3.5's `rerun_train_length_coverage.py`
+driver).** The task brief specifically asks whether S5 stays
+coverage-feasible at `D=20`; rather than reason about it, this was
+RUN, reusing `coverage_calibration.py`'s exact `sample_word_result`/
+`GROUPS`/`bfs_closure` machinery unmodified (`RNG_SEED=20260714`, the
+next unused seed in this design's own pinned sequence after
+`20260713`; `N=50` words/trial, `20000` trials per (group, depth); a
+grid of FIXED single depths `D∈{4,8,12,16,20,24,32}` rather than a
+length RANGE, since Stage 2's own design question is "how does
+coverage behave AT each specific depth," not "across a range"):
+
+```
+STAGE-2 DEPTH-COVERAGE GRID -- N=50 words/trial, 20000 trials/(group,D)
+Group    |G| d_min         D=4         D=8        D=12        D=16        D=20        D=24        D=32
+------------------------------------------------------------------------------------------------------
+S3         6     2      99.9%     100.0%     100.0%     100.0%     100.0%     100.0%     100.0%
+S4        24     3      74.3%      86.8%      88.0%      88.0%      88.1%      88.2%      88.1%
+A5        60     3      43.1%      54.3%      56.3%      56.7%      56.8%      56.9%      56.8%
+S5       120     4      14.7%      24.9%      30.1%      32.4%      33.5%      33.9%      34.1%
+A6       360     5       8.1%      11.4%      12.5%      12.8%      12.9%      13.0%      13.0%
+
+p1 (1st-percentile floor), same grid:
+Group    |G| d_min         D=4         D=8        D=12        D=16        D=20        D=24        D=32
+------------------------------------------------------------------------------------------------------
+S3         6     2          6           6           6           6           6           6           6
+S4        24     3         14          17          18          18          18          18          18
+A5        60     3         20          27          28          29          29          29          29
+S5       120     4         13          24          30          33          35          35          35
+A6       360     5         23          35          40          42          42          42          42
+
+S5-at-D=20 (task-specified point): mean=40.15 (33.5% of |G|), p1=35.
+Calibrated bar (largest 5%-of-|G| step clearing p1 by >=1 elem, exceeding
+the L=1 undersampled ceiling of 3): frac=0.25, bar_count=30.0, margin=5.0.
+```
+
+**S5 at D=20 IS coverage-feasible, with a comfortable margin.** A
+calibrated bar of `≥25%` of `|G|` (`≥30`, `p1=35`, margin 5) applies
+cleanly — in fact `D=20`'s single-depth coverage (33.5% mean, `p1=35`)
+is BETTER-mixed than either of Stage 1's own two length-range regimes
+at their own respective bars (`L~U{1,8}` bar `≥12`, `p1=18`; `L~U{9,16}`
+bar `≥30`, `p1=31`, §1.3.3/§1.3.5) — so if Stage 2 reuses
+`coverage_calibration.py`'s per-depth diversity-floor machinery
+(§1.4.1 step 4's fit/eval split discipline, extended from a length
+RANGE to a single depth, a small, direct re-parameterization) at
+`D=20`, it is well within feasible territory, not a marginal call.
+
+**A more consequential finding than the D=20 feasibility check itself:
+EVERY group's coverage PLATEAUS by roughly `D≈12-20`, depending on
+group size.** S3 saturates by `D=4` (already `|G|`-complete); S4/A5
+plateau by `D≈8-12`; S5/A6 are still visibly climbing through
+`D≈16-20` before flattening. **This directly quantifies, rather than
+merely asserts, the exact shortcut-risk concern Stage 1's own §1.9 item
+9 flagged qualitatively ("held-out length may be a weak test for small
+groups... a random walk very likely already reaches most or all of the
+group") — and shows it is NOT limited to small groups the way §1.9
+item 9 assumed: it applies to the WHOLE family, just at different
+depths.** Past its own plateau depth, a group's random walk has
+reached its stationary (near-uniform) distribution — coverage stops
+growing with depth, so a `D_test` value deep past the plateau is no
+longer probing "does the model reach NEW group elements it never saw a
+word of that exact length produce," it is probing something else
+entirely: whether the model's per-step computation remains numerically/
+representationally faithful over many MORE steps once the group's
+distinct-element budget is already exhausted — a **compounding-error
+robustness** question, not a **novel-coverage** question. This is
+structurally the SAME distinction Task E's own `h=21` finding drew
+(§2.6's margin derivation): `analyze_zdump.py`'s own framing was that
+raw iteration depth is "a spectral-exactness amplifier," not a
+coverage test, once the entity subspace itself is fixed.
+
+**Design consequence, pinned:** `D_test` values are explicitly split
+into two disclosed regimes rather than treated as one monolithic
+"held-out depth" axis:
+- **Near-plateau depths** (`D∈{D_train_max+1 .. ~2×D_train_max}`, i.e.
+  roughly `D=9..16` for the `D_train_max=8` default, §2.6) — probe
+  GENUINE novel-coverage generalization for S5/A6 specifically (still
+  climbing at this range per the table above), and a MIX of novel
+  coverage and compounding-error for S3/S4/A5 (already at or near
+  plateau by `D=8-12`).
+- **Post-plateau/far depths** (`D≥~4×D_train_max`, i.e. `D=32` and
+  beyond) — probe compounding-error robustness for the WHOLE family,
+  since every group has plateaued well before this point. This is
+  where Task E's own precedent (§2.6) shows genuine capability
+  dissociation actually becomes visible — a real depth-generalization
+  claim needs at least one measurement point out here, not just a
+  "2×/4×" pair that (per the coverage table) may still sit inside the
+  still-mixing, still-easy-looking regime for the smaller groups.
+
+Both regimes are reported on the SAME accuracy-vs-depth curve (§2.6);
+neither is silently dropped.
+
+---
+
+### 2.5 Arms, controls, and the `n_h` grid
+
+**Primary training grid:** 5 groups × 3 arms (§2.2.4) — but **Arm 1
+draws zero new training cells** (reuses Stage 1's own already-trained
+unconstrained-arm checkpoints, §1.4.2). Only Arms 2-3 need new
+training: `5 groups × 2 β-arms = 10 architecture/group combinations`.
+
+**Seed allocation: `n=5` uniformly, not economized by cell type.**
+Per the PI's 2026-07-09 saturation directive's explicit instruction
+("grow seeds/grids to use the room") and Stage 1's own realized-cost
+evidence (§2.7 below: even a generously-sized Stage 2 grid lands at a
+small fraction of the old 50-120 GPU-h sketch), this design does NOT
+replicate Stage 1's seed-count economization by cell type (Stage 1's
+`3` vs `5` split existed specifically to control cost under an
+UNMEASURED 0.3 GPU-h/cell planning rate — that rate has since been
+measured 17× cheaper, §1.6 Rev 5, and this design's own new-arm rate
+is smaller in scale by construction, §2.7). `n=5` per (group, arm)
+combination throughout: `10 combinations × 5 seeds = 50 base training
+cells`.
+
+**`n_h` force-arm grid, scoped to the genuinely open question (§2.2.3):
+does `n_h=2` suffice for S5 and A6, or do they need DeltaProduct's own
+documented `n_h=4` (S5, published) / an untested value (A6)?** Rather
+than assume S4/A5's cheap `n_h=2` sufficiency transfers to S5/A6
+(explicitly NOT assumed, §2.2.3), a flanking grid direct-tests `n_h`
+sufficiency on THIS task's own data/readout (the published Fig. 5 result
+was measured on DeltaProduct's own task formulation, a disclosed,
+unverified-transfer assumption, §2.9 item 7):
+
+| Group | `n_h` values tested | Seeds | Cells |
+|---|---|---|---|
+| S5 | `{1, 2, 4}` (bracketing the published `n_h=4` requirement) | 3 (flanking-cell economization, mirrors Stage 1's own force-rank-grid convention, §1.4.2) | 9 |
+| A6 | `{1, 2, 4}` (untested in the literature; same bracket applied) | 3 | 9 |
+
+(S3/S4/A5's `n_h=2` default is already covered by the primary Arm 3
+grid above at `n=5` seeds; not separately re-tested here, since
+DeltaProduct's own published result already establishes sufficiency
+for these three and this design's own contribution is the untested
+S5/A6 cases, not re-deriving a published result.)
+
+**Total new training cells: `50 (primary) + 18 (n_h grid) = 68`.**
+
+**Controls, reused from Stage 1 where the task is unchanged, extended
+where it is:**
+- **C1 (train-time architecture, the primary causal lever here)** — the
+  three-arm structure itself IS this design's C1 analog: architecture
+  family and β-range are the manipulated variables, exactly as
+  `force_rank_k` was Stage 1's manipulated variable.
+- **C3 (seeds + primary/secondary metric)** — `n=5` (above); primary
+  metric = recovered_frac@0.9 at each `D_test` grid point (§2.6);
+  secondary = restricted effective rank at each `D_test` point (below).
+- **C5-analog — REPURPOSED, not reused literally.** Stage 1's C5
+  ("held-out length, non-gating control") was disclosed-but-non-
+  decisive precisely because Stage 1's claim was about RANK, not depth.
+  Stage 2's ENTIRE claim IS a depth-held-out claim — so what was Stage
+  1's peripheral control is Stage 2's primary decision axis (§2.6).
+  There is no separate "C5" here; it has been promoted to the design's
+  own M-D metrics.
+- **C2-analog (param-matched flat-vector control) — MANDATORY,
+  explicitly NOT deferred past this document, but scoped to Stage 2b,
+  not this build** — see §2.9 item 8 for the full, non-silent
+  adjudication.
+
+**Rank measurement at each depth, generalizing §1.4.1 again (the
+project's now-standard pattern: Task E generalized Task D's subspace
+restriction once already, Stage 1 generalized it a second time,
+this is the third generalization, same discipline, not a new
+invention):** at each `D_test` grid point, dump `Z(w)` for a
+held-out sample of held-out-length words (coverage-guarded per §2.4's
+per-depth bars), derive the model's own restricted subspace via the
+SAME centered-covariance SVD (§1.4.1 step 2, §1.25's proven fix reused
+verbatim — the readout target shape, `rho_G_embedded`, is UNCHANGED
+from Stage 1, so nothing about the centering argument's validity
+changes), restrict, and report restricted effective rank alongside
+recovered_frac@0.9 at every depth — an accuracy-vs-depth AND a
+rank-vs-depth curve, jointly, per group per arm.
+
+---
+
+### 2.6 Measurement and pre-registered decision criteria
+
+**Instrument carry-over from Stage 1, verbatim (§1.25's proof
+directly applies, not re-derived):** Option A's block-embedded target
+(`rho_G_embedded`), the centered-covariance subspace derivation, the
+Procrustes/scale degauging pipeline with scale-only (`Q̂=I`) as PRIMARY
+and full-`Q` as a cross-check (§1.5, §1.9 item 7's empirical closure),
+and the fit/eval diversity-floor discipline (§1.4.1 step 4) are ALL
+reused unmodified. **What does NOT carry over: the per-`L` CONVERGENCE
+gate bar** — that is a NEW instrument axis for Stage 2 (its own
+`D_train_max`, its own depth-graded shape), pinned fresh below rather
+than inherited, precisely because §1.27/§1.29's live experience shows
+this exact bar shape is easy to get wrong and hard to re-derive
+after the fact.
+
+**M-D0 — per-depth TRAIN-support convergence gate (Stage 2's own Gate
+0, designed IN rather than discovered later, directly incorporating
+the §1.27/§1.29 lesson from Rev 0).** Rather than assume a uniform
+`≥0.9` bar holds at every `D∈{1..D_train_max}` (the assumption §1.27
+falsified for Stage 1), this design PRE-SPLITS the bar: a HARD bar at
+`D∈{1..⌈0.6·D_train_max⌉}` (the ~5-of-8 ratio §1.27's own resolution
+empirically landed on, applied here as a provisional starting split,
+explicitly flagged for RECALIBRATION at gate time against real data,
+exactly as Stage 1's own bar had to be — this design does not claim
+foreknowledge of exactly where Stage 2's own difficulty gradient will
+land, only that assuming uniformity across all `D∈{1..D_train_max}`
+is the mistake Stage 1 already made once and this design should not
+repeat); `D` values above that split are reported but non-gating,
+mirroring the exact demotion pattern Stage 1 now uses twice (`L9-16`→C5,
+`L6-8`→disclosed). **Also pre-registered, learning directly from
+§1.29's own live finding:** the convergence PROFILE (not just the
+bar) is reported at EVERY `D∈{1..D_train_max}`, not just the split
+point, specifically so an anomaly shaped like the unresolved `L=1` dip
+(§1.29 — three live candidate mechanisms, one of which,
+"positional-row-0 interaction," cannot even occur in Arms 2-3's
+positional-embedding-free construction, giving a direct, cheap,
+built-in test of that specific candidate mechanism the moment Stage 2
+data exists) is visible immediately rather than requiring a
+coordinator tiebreak round to surface, as it did for Stage 1.
+
+**M-D1 — accuracy-vs-depth curve** (per group, per arm, `D_test` grid
+`{D_train_max+1, ..., ~2×, ~4×, ~8×}`, dense within the near-plateau
+band per §2.4's mixing finding, e.g. `{9,10,12,14,16,20,24,32,48,64}`
+for the `D_train_max=8` default). Reported for all arms, all groups —
+the primary deliverable figure.
+
+**M-D2 — rank-vs-depth curve**, same grid, restricted effective rank
+(§2.5), corroborating (not decisive, mirroring Stage 1's own M1
+corroborating-only precedent, §1.5) evidence for whether a degrading
+arm is failing because of a genuine representational collapse (rank
+drop) or purely a readout/compounding-error issue (rank holds, cosine
+degrades) — a real diagnostic distinction Task E's own `analyze_zdump.py`
+methodology was built to make (§1.4.1 step 5's "whole-matrix-rank
+trivially-full trap," re-flagged here as still relevant).
+
+**M-D3 — PRE-REGISTERED CONFIRM/FALSIFY margins, derived from Task E's
+own archived accuracy-vs-hop-depth numbers, cited exactly (not
+guessed).** Task E's K=8, 40K-step round (`TASK_E_FINDINGS.md` §2/§9,
+quoted in full via §2.0's reading pass) is the closest archived
+precedent this project has for "how does recovered_frac@0.9 behave as
+a function of ratio-past-training-depth":
+
+- **Converged, genuinely-correct seeds (s1-s4)**: `recovered_frac@0.9
+  = 1.00` at every measured hop, `h=1` through `h=21` — a `21/3≈7×`
+  ratio relative to `H_train_max=3`, held with ZERO degradation.
+- **A genuinely rank-DEFICIENT seed (`fr=7`, i.e. `K−1`, the closest
+  archived analog to this design's own predicted-to-fail ablation
+  arms)**: recovered_frac stays HIGH through moderate ratios —
+  `0.97/0.95/0.92/0.88` at `h=4-7` (a `1.3×-2.3×` ratio relative to
+  `H_train_max=3`) — but COLLAPSES to `0.06` at `h=21` (`7×` ratio).
+- **The direct lesson, stated plainly: a 2-3× depth-ratio check is
+  NOT, by itself, decisive.** Task E's own data shows an
+  insufficiently-expressive model can look nearly as good as a correct
+  one at a 2-3× ratio (`0.88` vs `1.00` — both would clear almost any
+  reasonable single bar) and only dissociates sharply at a much deeper
+  ratio (`0.06` vs `1.00` at `7×`). This directly justifies §2.4's
+  two-regime design (near-plateau AND far/post-plateau depths) rather
+  than treating "2×/4× D_train" (the task brief's own suggested
+  starting point) as sufficient on its own.
+
+**Pre-registered margins, adopting this evidence directly:**
+
+| Depth ratio (relative to `D_train_max`) | Role | CONFIRM requires |
+|---|---|---|
+| `~2×` (e.g. `D=16`) | **Corroborating only, NOT independently decisive** (mirrors Stage 1's own M1 statistical-weight disclosure, §1.5, and is directly justified by Task E's own `fr=7` case looking "fine" — `0.88-0.97` — at a comparable ratio) | Reported for all arms/groups; no verdict turns on this point alone. |
+| `~4×` (e.g. `D=32`) | Secondary decisive check | Contender (Arm 3) `≥90%` of its own `D_train` recovered_frac@0.9, per group. |
+| `~8×` (e.g. `D=64`) — **the decisive checkpoint, matching Task E's own `7×` ratio where the ONLY archived genuine dissociation actually appeared** | **PRIMARY decisive check** | Contender (Arm 3) `≥90%` of its own `D_train` recovered_frac@0.9, ACROSS ALL FIVE GROUPS; Arm 2 (β∈[0,1]) drops BELOW 50%-of-ceiling on S5 and A6 at minimum (the theorem-excluded, non-`SO(3)`-cheap cases, §2.2.3), with A5's own pattern reported as an open, non-predetermined measurement (§2.2.3's explicit disclosure that A5-at-`β∈[0,1]` is untested in the literature). |
+
+**Overall Stage-2 verdict:** CONFIRM if the `~8×` checkpoint clears for
+Arm 3 on all five groups AND the pre-registered Arm-2 dissociation
+pattern (collapse on S5/A6 specifically) is observed. FALSIFY if Arm 3
+does NOT measurably separate from Arm 2 on S5/A6 at the `~8×`
+checkpoint. Otherwise INCONCLUSIVE → diagnose (M-D0's per-depth
+convergence profile and M-D2's rank-vs-depth curve are the FIRST two
+things to check, per the pattern §1.25/§1.27/§1.29 have now
+demonstrated three times running in this exact codebase).
+
+---
+
+### 2.7 Cost arithmetic
+
+**Rate anchors — two, both disclosed, one measured, one genuinely
+unmeasured (calibration-pending, not assumed).**
+
+- **Arm 1: draws ZERO new GPU-h.** Reuses Stage 1's own already-trained
+  unconstrained-arm checkpoints (§1.4.2, 5 groups × `n∈{3,5}` seeds,
+  already paid for out of Stage 1's own 30 GPU-h ledger). Only NEW cost
+  is post-hoc evaluation at Stage 2's own `D_test` grid — CPU-side
+  degauging/scoring, `≈0.0` GPU-h, the SAME "reused, not double-charged"
+  convention Stage 1's own cost table already uses for its calibration
+  wave (§1.6).
+- **Arms 2-3 (the new `GroupWordDeltaComposer` cells): rate is
+  genuinely UNMEASURED, disclosed honestly rather than guessed
+  precisely.** This is a materially different kernel (real Triton
+  `fla` `chunk_delta_rule`/`chunk_gated_delta_rule`, GPU-only, no
+  meaningful CPU proxy) than Stage 1's plain `nn.TransformerEncoder`
+  — `beta_fla_smoke.py`'s own already-collected box evidence
+  (`STATE.md`'s deploy note: bf16-only, `head_dim≥32` hard-crash floor,
+  qk-L2-norm) shows real kernel-dispatch friction exists at this toy
+  scale that a CPU-only estimate cannot predict. **PLANNING rate: 0.05
+  -0.15 GPU-h/cell** (a `3-8×` band over Stage 1's own MEASURED
+  Transformer rate, `0.0179` GPU-h/cell, disclosed as an uncertainty
+  band reflecting unmeasured Triton dispatch/chunking overhead at tiny
+  batch/sequence sizes, NOT a confident point estimate) — **the
+  mandatory calibration-first gate (§2.8) re-derives this from a real
+  cell BEFORE the 68-cell remainder launches, exactly mirroring Stage
+  1's own 17× calibration correction** (§1.6 Rev 5: `0.3` planned →
+  `0.0179` measured). This design does not pretend to know in advance
+  which direction Stage 1's own calibration surprise will repeat in.
+
+| Item | Cells | Rate (planning) | GPU-h |
+|---|---|---|---|
+| Arm 1 (reused Stage-1 checkpoints, new `D_test` eval only) | 0 new training | — | ≈0.0 |
+| Arms 2-3 primary grid (5 groups × 2 β-arms × 5 seeds) | 50 | 0.05-0.15 GPU-h/cell | 2.50-7.50 |
+| `n_h` force-arm grid (S5, A6 × `n_h∈{1,2,4}` × 3 seeds) | 18 | 0.05-0.15 GPU-h/cell | 0.90-2.70 |
+| Contingency (Stage 1's own 2-2.5× escalation rule, 1-2 cells) | 2 × 2.25× | 0.15 GPU-h/cell (pricier end) | 0.68 |
+| Calibration-first wave (1 cell/(group,arm) for Arms 2-3, `5×2=10` cells) | reused within the 50 above, not double-charged | — | ≈0.0 |
+| Blank-out / P=1 re-verification for the new architecture (§2.2.2) | CPU-only | — | ≈0.0 |
+| Prefix-state-fidelity diagnostic, per-depth rank measurement (§2.5/§2.6) | post-hoc, reuses saved checkpoints | — | ≈0.0 |
+| **Raw total** | 68 new cells | | **≈4.1-10.9 GPU-h** |
+
+**This directly confirms the PI's own prediction in the saturation
+directive** (verbatim, §2.0: *"cost re-derived at measured rates,
+likely far under the old 50-120 sketch"*) **— the honest re-derivation
+lands at roughly `4-11 GPU-h`, a `5-30×` reduction from §1.11's
+pre-rate-measurement `50-120 GPU-h` sketch**, for the same reason
+Stage 1's own sketch was `17×` too high: that sketch predates BOTH
+Stage 1's own calibration measurement AND this design's own use of
+Stage 1's already-trained checkpoints for Arm 1's free ablation.
+
+**Per the directive's explicit instruction ("grow seeds/grids to use
+the room"), this design does NOT shrink the grid to match the raw
+estimate — it sets a Stage-2 dedicated ledger with real headroom,
+sized to survive the planning rate being wrong in the SAME direction
+Stage 1's own rate WASN'T (i.e. this design does not assume the fla
+kernel will also turn out to be cheaper than planned; a `3-8×` band is
+already a real disclosed uncertainty, not false modesty), while still
+being honestly justified rather than inflated for its own sake:**
+
+**Stage-2 dedicated ledger: 25 GPU-h cap, PI-visible, separate from
+Stage 1's own 30 GPU-h cap and from the concurrently-chartered
+FIX-AT-SCALE (~170 GPU-h) ledger** — raw estimate `4.1-10.9 GPU-h`
+leaves `56-84%` margin under this cap, comfortably inside Stage 1's own
+convention (Stage 1's Rev-5 measured-rate margin was `90.7%`; this
+design's margin is intentionally thinner because its own rate is
+genuinely unmeasured, not because the science needs more room). **New
+`STATE.md` LEDGERS entry, proposed (house format, `§2.0`'s cited
+convention):**
+
+```
+- capability-sep-stage2: 0/25 (dedicated cap, separate from Stage-1's
+  own 30 GPU-h; raw estimate 4.1-10.9 GPU-h at planning rates,
+  calibration-pending; PI 2026-07-09 saturation directive).
+```
+
+**If, once launched, the calibration gate measures a rate materially
+below the `0.05-0.15` planning band (plausible, given Stage 1's own
+`17×`-cheaper surprise), this design's OWN instruction is to grow the
+grid further rather than bank the savings** — additional seeds first
+(`n=5→n=8`), then a denser `n_h` sweep across all five groups (not just
+S5/A6), then, if room remains, a second independent recurrent-composer
+family (e.g. Gated DeltaNet's per-head decay gate, already wired in
+`lm_pretrain_rd.py`'s `gated_delta_active` flag, §2.0) as a fourth,
+exploratory arm — this priority order is pinned here so a build agent
+does not have to re-derive it under saturation pressure.
+
+---
+
+### 2.8 Gates
+
+Reused verbatim where the mechanism is architecture-agnostic; new where
+Stage 2's own claim requires it.
+
+1. **§1.11's launch gate, restated as this design's OWN hard gate,
+   not merely cited:** `CAPABILITY_SEP_STAGE2_PI_SIGNOFF=1` requires,
+   IN ADDITION to Stage 2's own gates below, that Stage 1 has reached
+   **CONFIRM or a diagnosed INCONCLUSIVE** (§1.5's verdict definitions,
+   unchanged) — a bare FALSIFY on Stage 1 does not gate Stage 2 shut
+   automatically (Stage 2's own hypothesis is about depth
+   generalization via eigenvalue range, a genuinely different causal
+   claim than Stage 1's rank-recruitment claim — a Stage-1 FALSIFY
+   would need its own PI review to decide whether Stage 2 still makes
+   sense to run, not an automatic block), but CONFIRM-or-diagnosed-
+   INCONCLUSIVE is the default green light this design assumes.
+2. **Calibration-first, mandatory per `CLAUDE.md`, extended to TWO
+   new architecture families (Arms 2-3), not one.** One real cell per
+   (group, arm) combination for Arms 2-3 (`5×2=10` cells, already
+   counted inside §2.7's 50-cell primary grid) run to completion
+   BEFORE the remaining 58 cells launch. Duties: (a) M-D0's per-depth
+   convergence profile (§2.6, pre-split bar, RECALIBRATED against real
+   data before the main grid trusts it — not assumed uniform, learning
+   directly from §1.27/§1.29); (b) the blank-out/P=1 re-verification
+   for the new forward pass (§2.2.2, mandatory, not inherited); (c) the
+   REAL per-cell wall-clock rate, superseding §2.7's planning band; (d)
+   a synthetic-injection acceptance test on the readout pipeline,
+   reusing §1.7 gate 1(b)'s exact ambient-`d_state` injection machinery
+   UNMODIFIED (the target shape and degauging pipeline are unchanged
+   from Stage 1, so the SAME synthetic trajectory and acceptance
+   thresholds apply without re-derivation — a genuine "reused, not
+   rebuilt" case, not a hand-wave).
+3. **Timing pilot / circuit breaker** — reuses Stage 1's exact
+   mechanism (`budget_guard.py`, §2.0), re-keyed to this design's own
+   25 GPU-h cap: if the calibration cells' measured rate projects the
+   68-cell remainder to exceed the cap, hard-abort before spending it.
+4. **Sha closure** — standing project convention, unchanged.
+5. **Reference-representation + degauging-pipeline verification** —
+   ALREADY discharged by Stage 1 (§1.3, §1.7 gate 6) and reused
+   verbatim; not re-run, since nothing about the group family or
+   readout target changes for Stage 2.
+6. **Blank-out test, NEW forward pass, mandatory pre-training** — see
+   item 2(b) above; this is the one gate that genuinely cannot be
+   inherited, stated explicitly rather than silently assumed to carry
+   over the way items 4-5 correctly do.
+
+---
+
+### 2.9 Self-attack register (minimum 6 per the task brief; 8 here)
+
+1. **Prefix supervision might leak depth-generalization into
+   training.** Resolved by design (§2.3): final-state-only,
+   per-batch-fixed-`D` is PRIMARY (matches Stage 1's own convention,
+   holds every other axis fixed); every-prefix supervision was
+   considered and explicitly REJECTED as a training regime, downgraded
+   to a free, post-hoc, zero-additional-cost diagnostic (prefix-state
+   fidelity) instead. Residual risk, disclosed: even final-state-only
+   supervision across VARYING `D` per batch is not a formal proof that
+   no depth-conditioned shortcut exists — the prefix-fidelity
+   diagnostic is a check, not a guarantee; if it comes back LOW, that
+   is itself a pre-registered INCONCLUSIVE trigger (§2.6), not silently
+   ignored.
+2. **The β∈[0,1] arm's composition ceiling — does the delta-rule state
+   compose these groups correctly without negative eigenvalues, or
+   does Stage 2 need β∈[0,2]?** This IS the design's central question,
+   resolved with a verified theorem (§2.2.3), not asserted: Theorem 1
+   proves `β∈[0,1]` cannot solve parity (`S2`) at any budget in finite
+   precision; the Transformer-contrast sentence proves the SAME
+   exclusion class extends to any `S_n, n≥5`-containing transition
+   monoid regardless of architecture. Both S5 and A6 are exactly this
+   excluded case. A5 is disclosed as a genuine open question — its
+   `SO(3)`-cheap `n_h=2` sufficiency was measured ONLY at
+   `allow_neg_eigval=True` in the published literature; this design's
+   own Arm-2-vs-Arm-3 A5 comparison is therefore non-redundant new
+   evidence, not a re-derivation of a known result.
+3. **Readout at depth: one query at the end vs per-prefix — a cost/
+   fairness asymmetry across arms, disclosed rather than glossed
+   over.** The recurrent arms (2-3) get every intermediate `S_t` for
+   free from one forward pass; Arm 1 (a parallel Transformer encoder)
+   would need a SEPARATE forward pass per prefix length to produce the
+   same trajectory data, a real extra cost Arms 2-3 don't pay. To keep
+   the PRIMARY CONFIRM/FALSIFY comparison fair across all three arms,
+   decisive scoring (M-D3, §2.6) uses ONLY the terminal-state read at
+   each independently-evaluated `D_test` point (directly comparable —
+   every arm is asked "encode this exact `D`-length word, report its
+   terminal state," no arm gets extra queries) — the free per-`t`
+   trajectory read for Arms 2-3 is explicitly SECONDARY/diagnostic-only
+   (M-D0's convergence profile, the prefix-fidelity check), never
+   folded into the decisive metric.
+4. **Shortcut risks — mixing/stationary-distribution shortcuts,
+   quantified this session, not merely speculated about (§2.4).** The
+   EXECUTED depth-coverage grid shows every group's random walk
+   plateaus (reaches its stationary distribution) by `D≈12-20`
+   depending on group size — meaning far `D_test` points are NOT
+   testing "does the model reach a genuinely novel group element," a
+   MODEL COULD IN PRINCIPLE do well past the plateau depth by
+   outputting something correlated with recent tokens only (a bounded-
+   window heuristic) rather than the true full-depth product, IF that
+   heuristic happens to correlate well enough with the group's mixed
+   distribution to clear the cosine threshold. Exact-recovery scoring
+   (Option A, unchanged from Stage 1) already defeats the CRUDEST
+   version of this shortcut (a fixed "guess the stationary average"
+   strategy would score near-zero cosine against a specific per-word
+   target, since the stationary distribution is spread over `|G|`
+   distinct elements, not concentrated at one point) — but does NOT
+   fully rule out a bounded-context-window heuristic. **Mitigation,
+   pinned as a build item, not left open:** an explicit, disclosed
+   "last-`K`-window" control (`K=D_train_max`) — a small architecture
+   that provably only sees the most recent `K` generators (implemented
+   as a truncated-context variant of Arm 2/3, e.g. resetting the
+   recurrent state every `K` steps) — scored at the SAME far-depth
+   points. If this bounded-context control matches or nearly matches
+   the true contender's far-depth accuracy, that is direct evidence the
+   task's own mixing structure — not genuine full-depth composition —
+   is carrying the result, and the CONFIRM verdict is downgraded to
+   INCONCLUSIVE pending a task redesign (e.g. adversarially-chosen
+   words with slower-mixing structure) rather than a false CONFIRM.
+   **Related, weaker risk, also disclosed:** since generators are drawn
+   i.i.d. (not self-applying a single fixed operator), the literal Task
+   E K-cycle periodicity confound (`CLAUDE.md`'s hard rule) does NOT
+   directly apply (Stage 1's own §1.4 already established this for the
+   length axis, and the same argument holds unchanged for depth) — but
+   a much weaker residual concern (whether specific `D_test` values
+   happen to be multiples of small element orders within the generating
+   set, creating mild non-uniformity in which SUBSET of the group a
+   depth-`D` word is likelier to land on) is cheap to check with the
+   SAME coverage-calibration machinery already extended in §2.4; flagged
+   as a build-time disclosed check, not a full redesign, since the
+   i.i.d.-draw structure makes this a second-order effect, not the
+   primary confound Task E's literal self-application case faced.
+5. **The `n_h=2`-sufficiency transfer assumption (S3/S4/A5) is
+   unverified on THIS task's specific readout/loss.** DeltaProduct's
+   published Fig. 5 numbers were measured on their own task
+   formulation (a different data pipeline, likely a different loss);
+   porting the `n_h` sufficiency claim to this design's cosine-loss,
+   block-embedded-target readout is a disclosed, calibration-pending
+   transfer assumption, not independently re-verified for S3/S4/A5 in
+   this design (only S5/A6 get their own direct `n_h` grid, §2.5,
+   because THEIR published numbers are either explicitly documented as
+   requiring more (S5) or simply absent (A6) — S3/S4/A5 are assumed
+   correct per the published result, at real but bounded risk, to keep
+   the grid from tripling in size for a re-derivation of an already-
+   published finding).
+6. **The new architecture's P=1 hard bottleneck is NOT automatically
+   inherited from Stage 1's blank-out result.** Addressed structurally
+   (§2.2.2, §2.8 item 2b/item 6): a fresh blank-out test, gradient-
+   based (not a shape check), is a mandatory pre-training gate for the
+   new forward pass — flagged here explicitly so a build agent cannot
+   skip it under the assumption that "the readout head is reused, so
+   the bottleneck must already hold" (the READOUT head is reused; the
+   ENCODER feeding it is entirely new, and the bottleneck property must
+   hold for the FULL forward pass, encoder included).
+7. **Param-matching across three architecturally-different arms is a
+   real, unresolved design risk, not a solved one.** §2.2.2 discloses
+   the parameter-count estimate is analytical (a scaling-rule guess),
+   not computed exactly, and that matching Arms 2-3's capacity to Arm
+   1's requires a build-time decision (more layers vs wider
+   projections) this design does not pre-make. If Arms 2-3 end up
+   SMALLER than Arm 1 at their natural default sizing, any CONFIRM
+   result would be even more striking (less capacity, more capability)
+   — but a FALSIFY result would need explicit param-count disclosure to
+   rule out "the recurrent arms simply had less capacity" as a
+   confound, per this project's own param-matching discipline.
+8. **The C2 param-matched flat-VECTOR ablation control — the project's
+   own standing hard rule — is explicitly adjudicated here, not
+   silently deferred a second time.** `CLAUDE.md`: *"The param-matched
+   flat-vector ablation blocks ALL downstream decisions. Run it
+   first."* Stage 1 deferred its own C2 to "Stage-1b/Stage-2" (§1.4.2,
+   §1.9 item 6) — reasonable at the time, because Stage 1's claim
+   (SGD recruits matrix rank matching `d_min(G)`) is a narrower,
+   matrix-specific question that doesn't NEED a vector baseline to be
+   answerable on its own terms (the same reasoning Task D used to defer
+   its own C2). **Stage 2's claim is different in kind — it is
+   explicitly framed, per `STATE.md`, as this program's FIRST TRUE
+   CAPABILITY DEMO — and a capability demo that never checks whether a
+   flat-vector state could do the same depth generalization is not
+   actually a "matrix representation" claim at all, it is an
+   "architecture beats architecture" claim with an unlabeled
+   confound.** Per `CLAUDE.md`'s rule being unambiguous that this
+   ablation "blocks ALL downstream decisions," this design does NOT
+   defer it again — but it also does not silently fold it into THIS
+   build, which already crosses two new axes (architecture family,
+   β-range) at once (`CLAUDE.md`'s own "hold every other axis fixed"
+   rule cuts the other way here: adding a THIRD simultaneous axis,
+   matrix-vs-vector state, to an already-two-axis build would make any
+   single result uninterpretable). **Adjudication: Stage 2b, an
+   IMMEDIATE, MANDATORY follow-on, gated on Stage 2's own CONFIRM (not
+   bundled into this build, not deferred indefinitely) — a flat-vector
+   analog of `GroupWordDeltaComposer` (same delta-rule recurrence,
+   vector state instead of matrix state, `d_vec` chosen to param-match
+   Arm 3 exactly), tested at the SAME depth grid, SAME β∈[0,2]
+   configuration. Cost: comparable to Arms 2-3's own new-cell budget
+   (§2.7), since it reuses the identical delta-rule-plus-readout
+   construction with one tensor shape changed. This is a
+   pre-registered, PI-visible commitment made by this design round, not
+   an open question left for later.**
+
+---
+
+### 2.10 What this design does and does NOT do
+
+**Does:** adjudicates the position-embedding question with THREE
+independent, previously-collected pieces of evidence from this exact
+project (§1.25's proven defect, §1.27/§1.29's unresolved anomaly, and a
+primary-source theorem) rather than a single argument; adjudicates the
+β∈[0,1]-vs-β∈[0,2] question by reading Grazzi et al. and DeltaProduct
+directly from their PDFs this session and connecting their exact
+theorem/experiment structure to this project's own already-built group
+family (discovering, not assuming, that S4/A5's existing reference
+representations happen to be the representation-theoretically cheap
+`SO(3)` case); pins a concrete, buildable recurrent-composer
+architecture that reuses Stage 1's own proven readout head rather than
+inventing new machinery; runs the S5-at-D=20 coverage-feasibility
+arithmetic the task brief asked for (and the broader depth/mixing grid
+around it) rather than reasoning about it qualitatively; derives
+CONFIRM/FALSIFY depth-ratio margins from Task E's own archived
+`h=1-21` numbers, showing that a `2-4×` ratio alone is NOT decisive and
+a deeper (`~8×`) checkpoint is required, directly informed by the
+project's own prior data rather than the task brief's own suggested
+`2×/4×` pair taken uncritically; re-derives the cost table honestly at
+Stage 1's own measured rate (with a disclosed, unmeasured-but-bounded
+uncertainty band for the new architecture) and finds the old `50-120
+GPU-h` sketch is indeed `5-30×` too high, per the PI directive's own
+prediction; proposes a new, house-format-conformant ledger entry;
+explicitly, non-silently adjudicates the mandatory C2 vector-ablation
+control (Stage 2b) rather than deferring it a second time.
+
+**Does NOT do:** run any GPU cell (Rev 0 is design-only, zero GPU
+spent — the depth-coverage arithmetic in §2.4 is CPU-only numpy,
+`≈30s` wall-clock, matching Stage 1's own "design-round artifact"
+convention); build or smoke-test `GroupWordDeltaComposer` (pinned
+architecturally, not yet implemented — build-time obligation, §2.13);
+resolve the exact parameter-matching arithmetic across arms (§2.9 item
+7, disclosed as a genuine build-time decision); include the C2 vector
+ablation in THIS build (deliberately deferred to Stage 2b, §2.9 item
+8, NOT silently dropped); launch (gated on Stage 1's own CONFIRM-or-
+diagnosed-INCONCLUSIVE verdict per §1.11/§2.8 item 1, which has not
+yet been reached as of this writing, §1.29).
+
+---
+
+### 2.11 Sequencing
+
+design (this doc, Rev 0) → attack round (dispatched separately, per
+this program's standing gauntlet discipline — not run by this design
+agent) → iterate to DESIGN-CLEARED-FOR-BUILD → build
+(`GroupWordDeltaComposer`: the `fla`-kernel recurrence +
+`GroupWordEncoder`'s reused readout head, §2.2.2; the `n_h`/β-range
+config switch reusing `beta_fla_smoke.py`'s existing pattern; the fresh
+blank-out test for the new forward pass; the per-depth coverage/
+diversity-floor extension of `coverage_calibration.py`, §2.4; the
+`D_test` grid evaluation harness, incl. Arm-1's checkpoint-reuse path
+and the prefix-state-fidelity diagnostic, §2.3/§2.6; the last-`K`-window
+shortcut-control variant, §2.9 item 4; the 25 GPU-h hard-abort
+enforcement wrapper, §2.7/§2.8) → independent build audit (separate
+agent) → **launch gate: Stage 1 CONFIRM or diagnosed-INCONCLUSIVE,
+§1.11/§2.8 item 1 — currently OPEN, §1.29** → launch (this design's own
+dedicated 25 GPU-h ledger, §2.7) → harvest → Stage-2 verdict (§2.6) →
+**IF CONFIRM: Stage 2b (the mandatory C2 vector-ablation control, §2.9
+item 8) launches immediately, gated through the SAME attack→build→audit
+gauntlet, NOT deferred** → **IF FALSIFY or INCONCLUSIVE:** diagnose
+per M-D0/M-D2 first (the pattern §1.25/§1.27/§1.29 have now
+demonstrated three times in this exact codebase finds real instrument
+defects before real negative results); write up as a companion
+finding to Task D/E and Stage 1 either way, per this program's standing
+"both outcomes are decisive and publishable" convention.
+
+---
+
+### 2.12 Reproducibility pointers
+
+- **This design's own executed verification:**
+  `stage2_depth_coverage_grid.py` (this session, `RNG_SEED=20260714`,
+  numpy + stdlib only, `~30s` wall-clock, deterministic — reproduces
+  §2.4's grid exactly on re-run; imports `coverage_calibration.py`'s
+  `GROUPS`/`sample_word_result`/`verify_closure` directly, zero
+  reimplementation, same discipline §1.3.4/§1.3.5 already applied to
+  the A5-generator-class and train-length re-calibrations; NOT
+  repo-committed at design time — the corresponding PRODUCTION change,
+  extending `coverage_calibration.py` to a single-fixed-depth mode
+  alongside its existing length-RANGE mode, is a build item, §2.11).
+- **Reused verbatim, zero re-derivation:** Stage 1's five reference
+  representations and Procrustes/scale degauging pipeline (§1.3,
+  `verify_option_a_readout.py`, `readout.py`); the centered-covariance
+  subspace-restriction fix (§1.25, `readout.py`'s
+  `entity_subspace_from_words`); the coverage-calibration Monte Carlo
+  machinery (`coverage_calibration.py`, extended not replaced);
+  `GroupWordEncoder`'s `row_queries`/`reader`/`row_norm`/`row_out`
+  readout head (`group_word_encoder.py`, reused inside the NEW
+  `GroupWordDeltaComposer`, §2.2.2); `beta_fla_smoke.py`'s
+  `DeltaProductLayer` β-gate/`n_h` pattern (extended with the reused
+  readout head on top, not rebuilt).
+- **Primary-source citations, read directly from the PDF this
+  session (not from a secondary paraphrase):** Grazzi et al.,
+  "Unlocking State-Tracking in Linear RNNs Through Negative
+  Eigenvalues," ICLR 2025 Oral, arXiv:2411.12537; Siems et al.,
+  "DeltaProduct: Improving State-Tracking in Linear RNNs via
+  Householder Products," NeurIPS 2025, arXiv:2502.10297.
+- **Rate anchor:** `CAPABILITY_SEPARATION_DESIGN.md` §1.6's Rev-5
+  measured-rate table (`0.0179`/`0.04475` GPU-h/cell), the ONLY
+  measured anchor this design has (Arms 2-3's own rate is disclosed
+  unmeasured, §2.7).
+- **Archived margin-derivation source:** `TASK_E_FINDINGS.md` §2/§9
+  (K=8, 40K-step round; `h=1..21` recovered_frac@0.9 table, quoted in
+  full in §2.6).
+- **Directive citation:** `STATE.md`'s 2026-07-09 GPU SATURATION
+  DIRECTIVE paragraph (verbatim, §2.0) — the authorization this
+  design's cost table and "grow the grid" instruction both cite.
+- **New, not yet built (consolidated from §2.2.2/§2.4/§2.5/§2.9
+  throughout):** `GroupWordDeltaComposer` (the recurrent composer +
+  reused readout head); the fresh blank-out test for it; the
+  single-fixed-depth mode of `coverage_calibration.py`; the `D_test`
+  grid evaluation harness (incl. Arm-1 checkpoint reuse and the
+  prefix-fidelity diagnostic); the last-`K`-window shortcut control;
+  the 25 GPU-h hard-abort wrapper; Stage 2b's flat-vector analog
+  (deferred but pre-registered, §2.9 item 8).
+
+---
+
+*(End §2 Rev 0. Design proceeds in parallel with Stage 1's own
+in-progress gauntlet per the PI's 2026-07-09 saturation directive;
+launch stays gated on §1.11/§2.8 item 1. Attack round next.)*
