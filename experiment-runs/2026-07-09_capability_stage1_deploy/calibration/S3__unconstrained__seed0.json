@@ -1,0 +1,16 @@
+{
+  "cell_id": "S3__unconstrained__seed0",
+  "group": "S3",
+  "arm": "unconstrained",
+  "seed": 0,
+  "force_rank_k": null,
+  "steps_completed": 8000,
+  "n_skipped_steps": 0,
+  "wall_clock_s": 63.2170307636261,
+  "mean_cos": 0.1142583559259797,
+  "recovered_frac_90": 0.2,
+  "restricted_effective_rank": 1.9976904392242432,
+  "restricted_stable_rank": 1.8477144241333008,
+  "whole_matrix_effective_rank": 3.314702272415161,
+  "c_hat": 1.6546866609374655
+}

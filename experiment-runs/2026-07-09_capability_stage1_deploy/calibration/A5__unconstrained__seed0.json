@@ -1,0 +1,16 @@
+{
+  "cell_id": "A5__unconstrained__seed0",
+  "group": "A5",
+  "arm": "unconstrained",
+  "seed": 0,
+  "force_rank_k": null,
+  "steps_completed": 8000,
+  "n_skipped_steps": 0,
+  "wall_clock_s": 63.900243043899536,
+  "mean_cos": -0.02130695211866583,
+  "recovered_frac_90": 0.0,
+  "restricted_effective_rank": 2.518460750579834,
+  "restricted_stable_rank": 2.118499994277954,
+  "whole_matrix_effective_rank": 4.00360631942749,
+  "c_hat": 1.190436921619755
+}

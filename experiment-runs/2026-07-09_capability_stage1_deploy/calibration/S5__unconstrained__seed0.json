@@ -1,0 +1,16 @@
+{
+  "cell_id": "S5__unconstrained__seed0",
+  "group": "S5",
+  "arm": "unconstrained",
+  "seed": 0,
+  "force_rank_k": null,
+  "steps_completed": 8000,
+  "n_skipped_steps": 0,
+  "wall_clock_s": 64.45874619483948,
+  "mean_cos": 0.01485319083017404,
+  "recovered_frac_90": 0.0,
+  "restricted_effective_rank": 3.5174014568328857,
+  "restricted_stable_rank": 2.4283807277679443,
+  "whole_matrix_effective_rank": 4.966185569763184,
+  "c_hat": 0.758711325050299
+}

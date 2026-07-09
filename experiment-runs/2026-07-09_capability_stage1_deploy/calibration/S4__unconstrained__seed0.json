@@ -1,0 +1,16 @@
+{
+  "cell_id": "S4__unconstrained__seed0",
+  "group": "S4",
+  "arm": "unconstrained",
+  "seed": 0,
+  "force_rank_k": null,
+  "steps_completed": 8000,
+  "n_skipped_steps": 0,
+  "wall_clock_s": 64.02255773544312,
+  "mean_cos": 0.17117889229699074,
+  "recovered_frac_90": 0.0,
+  "restricted_effective_rank": 2.7038350105285645,
+  "restricted_stable_rank": 2.2559456825256348,
+  "whole_matrix_effective_rank": 4.078423023223877,
+  "c_hat": 1.2285815934626527
+}
