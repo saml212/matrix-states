@@ -114,21 +114,26 @@ def calibration_wave() -> list:
 # ---------------------------------------------------------------------------
 
 def _eval_batch_at_L(name: str, L: int, batch_size: int, gen, device="cpu",
-                     dtype=torch.float32) -> dict:
+                     dtype=torch.float32, target_padding: str = "eye") -> dict:
     """Fresh, length-HOMOGENEOUS eval batch at a SPECIFIC L (S1.7 gate
     1(a)'s per-L convergence metric) -- reuses the SAME
     generating_set/batched_targets primitives sample_train_batch/
     sample_eval_batch already wrap (group_task.py), just pinned to one L
-    rather than randomly drawn from a range."""
+    rather than randomly drawn from a range.
+
+    `target_padding` (S1.33 M3 FIX WAVE flag, default UNCHANGED "eye"):
+    threaded through to groups.batched_targets so this diagnostic scores
+    against the SAME target family the cell was actually trained on."""
     n_gens = len(generating_set(name))
     d_state = D_STATE[name]
     token_idx = torch.randint(0, n_gens, (batch_size, L), generator=gen).to(device)
-    target = batched_targets(name, token_idx, d_state, dtype=dtype)
+    target = batched_targets(name, token_idx, d_state, dtype=dtype, target_padding=target_padding)
     return {"token_idx": token_idx, "target": target, "L": L}
 
 
 def per_L_convergence_profile(model, name: str, device: str, seed: int,
-                              batch_size: int = 64, l_lo: int = 1, l_hi: int = 8) -> dict:
+                              batch_size: int = 64, l_lo: int = 1, l_hi: int = 8,
+                              target_padding: str = "eye") -> dict:
     """S1.7 gate 1(a) (Rev 5/7): for each L in {l_lo..l_hi} (default the
     TRAIN-support range, S1.4), draw a FRESH, length-homogeneous eval batch
     (never used for M1/M3 scoring or training) and score the SAME
@@ -138,13 +143,17 @@ def per_L_convergence_profile(model, name: str, device: str, seed: int,
     `rho_G_embedded` target. Returns {L: mean_cosine} for L=l_lo..l_hi --
     an 8-point profile at the default range, replacing reliance on the
     training loop's last logged batch loss (S1.25's own diagnosed
-    per-batch-fixed-L confound)."""
+    per-batch-fixed-L confound).
+
+    `target_padding` (S1.33 M3 FIX WAVE flag, default UNCHANGED "eye"):
+    threaded through to `_eval_batch_at_L` -- see its docstring."""
     model.eval()
     gen = torch.Generator().manual_seed(seed + 555_000 + group_seed_salt(name))
     profile = {}
     with torch.no_grad():
         for L in range(l_lo, l_hi + 1):
-            batch = _eval_batch_at_L(name, L, batch_size, gen, device=device)
+            batch = _eval_batch_at_L(name, L, batch_size, gen, device=device,
+                                     target_padding=target_padding)
             Z = model.encode(batch["token_idx"])
             profile[L] = float(recovery_cosine(Z, batch["target"]).mean().item())
     return profile
@@ -378,12 +387,24 @@ def train_and_eval_cell(cell: dict, device: str, log_every: int = 500,
     """S1.6/S1.7 gate 1(a) Rev 7: trains at the cell's OWN per-group pinned
     step budget (`cell["steps"]`, set by `build_sweep_manifest`/
     `STEP_BUDGET`) unless `steps_override` is given (smoke/testing only --
-    a uniform tiny step count for every cell regardless of group)."""
+    a uniform tiny step count for every cell regardless of group).
+
+    S1.33 M3 FIX WAVE: a cell dict MAY carry its own explicit `force_rank_k`
+    (int or None) and `target_padding` ("eye"/"zero") keys -- when present,
+    these OVERRIDE the base sweep's `force_rank_grid(name)[arm]` lookup and
+    the default "eye" padding, respectively (build_m3fix_manifest's cells
+    always set both explicitly). The base 58-cell manifest's cells NEVER
+    set these keys, so this is byte-identical to the pre-S1.33 behavior for
+    every existing sweep/smoke call site -- checked via `"force_rank_k" in
+    cell` (not `.get(..., default)`) so an EXPLICIT `force_rank_k=None`
+    (the m3fix zero_pad variant's unconstrained anchor) is honored
+    correctly, distinct from "key absent, derive via arm/force_rank_grid"."""
     name = cell["group"]
     arm = cell["arm"]
     seed = cell["seed"]
     steps = steps_override if steps_override is not None else cell["steps"]
-    k = force_rank_grid(name)[arm]
+    k = cell["force_rank_k"] if "force_rank_k" in cell else force_rank_grid(name)[arm]
+    target_padding = cell.get("target_padding", "eye")
 
     # NOTE: the GLOBAL torch seed (model init) is deliberately left UNSALTED --
     # S4/A5 sharing bit-identical init weights at the same cell seed is a KNOWN,
@@ -403,7 +424,7 @@ def train_and_eval_cell(cell: dict, device: str, log_every: int = 500,
     n_skipped = 0
     t0 = time.time()
     for step in range(1, steps + 1):
-        batch = sample_train_batch(name, 256, gen, device=device)
+        batch = sample_train_batch(name, 256, gen, device=device, target_padding=target_padding)
         Z = model.encode(batch["token_idx"], force_rank_k=k)
         loss = cosine_loss(Z, batch["target"])
         opt.zero_grad()
@@ -425,7 +446,8 @@ def train_and_eval_cell(cell: dict, device: str, log_every: int = 500,
 
     # S1.7 gate 1(a) Rev 5/7: per-L convergence profile (diagnostic, NOT the
     # M1/M3 decision metric) + the L in {2..5}/margin HARD-bar check.
-    profile = per_L_convergence_profile(model, name, device=device, seed=eval_seed)
+    profile = per_L_convergence_profile(model, name, device=device, seed=eval_seed,
+                                        target_padding=target_padding)
     gate1a = gate1a_check(profile)
 
     # S1.5 M1 harvest-reporting disclosure (Rev 7, S1.30 item 5): the L>=2
@@ -450,7 +472,11 @@ def train_and_eval_cell(cell: dict, device: str, log_every: int = 500,
                  c_hat=scores["c_hat"],
                  convergence_profile=profile, gate1a=gate1a,
                  l_ge2_mean_cos=l_ge2_mean_cos, l_ge2_recovered_frac_90=l_ge2_recovered_frac_90,
-                 l_ge2_n_eval=len(l_ge2_coses), l_ge2_n_total=len(eval_L))
+                 l_ge2_n_eval=len(l_ge2_coses), l_ge2_n_total=len(eval_L),
+                 # S1.33 M3 FIX WAVE provenance (harmless additions for the base 58-cell sweep,
+                 # whose cells never set "target_padding"/"variant" -- target_padding defaults to
+                 # "eye" and m3fix_variant to None, both cosmetic/disclosure-only, never gating).
+                 target_padding=target_padding, m3fix_variant=cell.get("variant"))
     return result
 
 
@@ -564,6 +590,348 @@ def run_escalations(base_results: list, results_dir: str, device: str,
     # each cell type's own M1/M3 CI, which is downstream analysis, not part
     # of the budget-arbitration mechanism itself.
     return escalation_log
+
+
+# ---------------------------------------------------------------------------
+# S1.33 M3 FIX WAVE -- CAPABILITY_SEPARATION_DESIGN.md S1.33's D-AMB
+# (ambient-identity capacity-tax) diagnosis voided every force-rank arm in
+# the base 58-cell sweep: groups.py:157-158's eye()-padded target has rank
+# d_state (ALL singular values 1), so a rank-k-capped arm's best achievable
+# direct cosine is EXACTLY sqrt(k/d_state) -- 37/39 real force-rank cells
+# sat within 0.07 of that ceiling, and the causal CONFIRM half of M3
+# (recovery returning once the capped rank reaches d_min) was never
+# actually purchased. TWO pre-registered fix variants (S1.33's own text),
+# BOTH built here (the DEPLOY-stage choice of which to launch, or both, is
+# the coordinator's decision, not made by this build):
+#
+#   "zero_pad"     (groups.py target_padding="zero") -- the as-built target
+#                   has rank EXACTLY d_min (no tax); the ORIGINAL untaxed
+#                   grid {d_min-1, d_min, d_min+1} is now the causally-
+#                   correct straddle. Because the target FAMILY changes, a
+#                   fresh 5-cell unconstrained anchor (1/group,
+#                   target_padding="zero") re-verifies M1's clean
+#                   rank<->d_min tracking still holds before trusting the
+#                   capped arms (S1.33's own text: "requires re-checking
+#                   gate-1(b)'s injection figures since the target family
+#                   changes" -- this anchor is the cheap empirical version
+#                   of that re-check, at BUILD-stage scope).
+#   "tax_adjusted" (groups.py target_padding="eye", UNCHANGED) -- no target-
+#                   family change, no gate re-validation needed (S1.33's
+#                   "minimal-delta option"); the grid shifts UP by the
+#                   2-dim ambient tax (D_STATE = D_MIN + 2 always,
+#                   groups.py's uniform-margin rule) to raw k in
+#                   {d_min+1, d_min+2}, delivering EFFECTIVE rho-rank
+#                   {d_min-1, d_min} once the tax is paid first (D-AMB P3:
+#                   capped arms buy the constant I_2 block before the
+#                   genuine rho signal). REACHABILITY CONSTRAINT (found by
+#                   this build's own smoke, not asserted away): the THIRD
+#                   causal point (effective d_min+1) would need raw k =
+#                   d_min+3 = d_state+1 -- IMPOSSIBLE, since force_rank_k
+#                   can never exceed the matrix's own dimension d_state.
+#                   Variant B is therefore a NECESSARY 2-point grid, not 3
+#                   -- a genuine, disclosed structural asymmetry against
+#                   variant A (which has 1 spare dimension of margin and
+#                   fits its full 3-point straddle). No anchor needed for
+#                   variant B -- the ORIGINAL sweep's unconstrained-arm M1
+#                   numbers already cover this variant's (unchanged)
+#                   target family.
+# ---------------------------------------------------------------------------
+
+M3FIX_VARIANT_A = "zero_pad"
+M3FIX_VARIANT_B = "tax_adjusted"
+M3FIX_VARIANTS = (M3FIX_VARIANT_A, M3FIX_VARIANT_B)
+
+# D_STATE = D_MIN + 2 always (groups.py's uniform-margin rule) -- duplicated
+# here as an independent literal (not imported/derived) so the variant-B
+# tax-arithmetic teeth below catch a drift in groups.py's OWN margin rule
+# too, not just a bug local to this module's grid formula.
+M3FIX_AMBIENT_TAX = 2
+
+# S1.33's own "per-cell budget from the measured Rev-7 rates" mandate: the
+# realized Rev-7 sweep rate (EXPERIMENT_LOG.md / CAPABILITY_SEPARATION_DESIGN.md
+# S1.33 harvest record) -- 2.5907 GPU-h realized across the 58-cell sweep's
+# 1,120,000 step-cells (sum over the 5 groups of STEP_BUDGET[group] *
+# n_cells_per_group(group): 10*8000 + 14*20000 + 14*20000 + 10*8000 +
+# 10*40000 = 1,120,000). NOT re-measured here -- no new calibration run,
+# per this build's own BUILD-not-LAUNCH scope; used only for the printed
+# budget projection below.
+M3FIX_RATE_PER_STEP_GPU_H = 2.5907 / 1_120_000   # ~= 2.3131e-6 GPU-h/step
+
+
+def m3fix_force_rank_grid(name: str, variant: str) -> dict:
+    """S1.33's two pre-registered fix grids, keyed by the SAME causal
+    labels the original (voided) M3 grid used -- each label names the
+    EFFECTIVE rho-rank position (d_min-1/d_min/[d_min+1]) the cell tests,
+    not the raw `force_rank_k` passed to the model (which differs between
+    variants: variant A's raw k IS the effective rho-rank; variant B's raw
+    k is the effective rho-rank PLUS the 2-dim ambient tax).
+
+    REACHABILITY CONSTRAINT (found by this build's OWN smoke -- a real
+    AssertionError on first run, not asserted away): D_STATE = D_MIN + 2
+    always (groups.py's uniform-margin rule), so `force_rank_k` can never
+    exceed `d_min+2` (a matrix cannot be truncated to a rank above its own
+    dimension). Variant A (zero_pad, no tax) fits its full 3-point straddle
+    {d_min-1, d_min, d_min+1} comfortably inside [1, d_min+2] (1 spare
+    dimension of margin at the top). Variant B (tax_adjusted) pays that
+    SAME 2-dim margin as its tax, so its raw-k straddle would need to reach
+    d_min+3 = d_state+1 to test the "+1" causal point -- IMPOSSIBLE.
+    Variant B's grid is therefore NECESSARILY 2 points, not 3:
+    "k_dmin_minus_1" (raw k=d_min+1, effective d_min-1, the FALSIFY
+    boundary) and "k_dmin" (raw k=d_min+2=d_state, effective d_min, the
+    CONFIRM point -- note this raw k is numerically IDENTICAL to
+    "unconstrained": truncating a d_state x d_state matrix to rank d_state
+    is a no-op). There is NO raw k under eye-padding that ever delivers
+    effective rank d_min+1 -- a genuine, disclosed STRUCTURAL asymmetry
+    between the two fix variants (variant A can test 1 unit of margin
+    above d_min; variant B categorically cannot), not an implementation
+    gap, flagged prominently for the audit and for §1.33's own record."""
+    assert variant in M3FIX_VARIANTS, f"unknown m3fix variant {variant!r}"
+    d_min = D_MIN[name]
+    d_state = D_STATE[name]
+    if variant == M3FIX_VARIANT_A:
+        grid = {"k_dmin_minus_1": d_min - 1, "k_dmin": d_min, "k_dmin_plus_1": d_min + 1}
+    else:
+        grid = {"k_dmin_minus_1": (d_min - 1) + M3FIX_AMBIENT_TAX,
+                "k_dmin": d_min + M3FIX_AMBIENT_TAX}
+    for label, k in grid.items():
+        assert 1 <= k <= d_state, f"{name}/{variant}/{label}: k={k} outside [1,{d_state}]"
+    return grid
+
+
+def m3fix_target_padding(variant: str) -> str:
+    assert variant in M3FIX_VARIANTS, f"unknown m3fix variant {variant!r}"
+    return "zero" if variant == M3FIX_VARIANT_A else "eye"
+
+
+def build_m3fix_manifest() -> list:
+    """S1.33's fix-wave manifest, BOTH variants, n=1 seed/cell -- a single-
+    seed force-rank step is the established convention for this class of
+    causal diagnostic (EXPERIMENT_LOG.md's own Task D M3 precedent:
+    "force-rank {1,2,3}->0.0 recovery, force-rank 4->0.97. Razor-sharp.").
+
+    Per group: variant A (zero_pad) contributes 4 cells (its full 3-point
+    grid + the 1-cell unconstrained anchor); variant B (tax_adjusted)
+    contributes only 2 cells (its REACHABILITY-CONSTRAINED 2-point grid --
+    see m3fix_force_rank_grid's docstring: the "+1" causal point is
+    mathematically unreachable under eye-padding for every group, since
+    D_STATE = D_MIN + 2 exactly consumes the tax as its own margin). 5
+    groups * (4+2) = 30 cells total -- closely matching S1.33's own rough
+    "~28 cells" estimate. Priced (`price_m3fix_manifest` below) at
+    ~1.33 GPU-h, inside S1.33's own registered 1.3-2.6 GPU-h budget
+    window."""
+    manifest = []
+    for name in GROUP_NAMES:
+        # variant A: 1-cell unconstrained anchor (re-verifies M1 tracking
+        # under the new zero-padded target family) + the full 3-point grid.
+        manifest.append(dict(
+            cell_id=f"{M3FIX_VARIANT_A}__{name}__unconstrained__seed0",
+            group=name, arm="unconstrained", variant=M3FIX_VARIANT_A, seed=0,
+            steps=STEP_BUDGET[name], force_rank_k=None,
+            target_padding=m3fix_target_padding(M3FIX_VARIANT_A), is_anchor=True,
+        ))
+        grid_a = m3fix_force_rank_grid(name, M3FIX_VARIANT_A)
+        for arm_label, k in grid_a.items():
+            manifest.append(dict(
+                cell_id=f"{M3FIX_VARIANT_A}__{name}__{arm_label}__seed0",
+                group=name, arm=arm_label, variant=M3FIX_VARIANT_A, seed=0,
+                steps=STEP_BUDGET[name], force_rank_k=k,
+                target_padding=m3fix_target_padding(M3FIX_VARIANT_A), is_anchor=False,
+            ))
+        # variant B: the reachability-constrained 2-point grid only, no
+        # anchor (target family unchanged -- the original sweep's own
+        # unconstrained-arm M1 numbers already cover this variant).
+        grid_b = m3fix_force_rank_grid(name, M3FIX_VARIANT_B)
+        for arm_label, k in grid_b.items():
+            manifest.append(dict(
+                cell_id=f"{M3FIX_VARIANT_B}__{name}__{arm_label}__seed0",
+                group=name, arm=arm_label, variant=M3FIX_VARIANT_B, seed=0,
+                steps=STEP_BUDGET[name], force_rank_k=k,
+                target_padding=m3fix_target_padding(M3FIX_VARIANT_B), is_anchor=False,
+            ))
+    expected_n = len(GROUP_NAMES) * (4 + 2)   # variant A: 1 anchor + 3 grid; variant B: 2 grid
+    assert len(manifest) == expected_n == 30, (
+        f"S1.33 m3fix manifest: expected 30 cells (5 groups x [4 variant-A + 2 variant-B]), got "
+        f"{len(manifest)}"
+    )
+    assert len({c["cell_id"] for c in manifest}) == len(manifest), "m3fix manifest has duplicate cell_ids"
+    return manifest
+
+
+def price_m3fix_manifest(manifest: list, rate_per_step: float = M3FIX_RATE_PER_STEP_GPU_H) -> dict:
+    """Prices the m3fix manifest from the cell's OWN group step count
+    (`cell["steps"]`, the Rev-7 STEP_BUDGET pin) times the measured Rev-7
+    per-step rate -- "per-cell budget from the measured Rev-7 rates" per
+    this build's own mandate, not a fresh calibration run."""
+    total_steps = sum(c["steps"] for c in manifest)
+    total_gpu_h = total_steps * rate_per_step
+    by_variant: dict = {}
+    for c in manifest:
+        v = by_variant.setdefault(c["variant"], {"n_cells": 0, "steps": 0})
+        v["n_cells"] += 1
+        v["steps"] += c["steps"]
+    for v in by_variant.values():
+        v["gpu_h"] = v["steps"] * rate_per_step
+    return dict(n_cells=len(manifest), total_steps=total_steps, total_gpu_h=total_gpu_h,
+                by_variant=by_variant, rate_per_step=rate_per_step)
+
+
+def run_m3fix(args) -> list:
+    """S1.33 --m3fix: build the BOTH-variant fix-wave manifest, print its
+    priced budget (measured Rev-7 rate, no new calibration run), and launch
+    resume-safe -- gated on the SAME PI-signoff token as --sweep (S1.7 gate
+    5), since it launches real GPU cells.
+
+    BUILD-STAGE SCOPE: this function is fully wired and unit-exercised by
+    `smoke()` below on a tiny CPU slice; it is NOT invoked by any GPU launch
+    in this build pass (build, not launch; independent audit follows, per
+    this build agent's own mandate)."""
+    manifest = build_m3fix_manifest()
+    price = price_m3fix_manifest(manifest)
+    print(f"[m3fix] {price['n_cells']} cells, {price['total_steps']} step-cells, "
+         f"projected {price['total_gpu_h']:.4f} GPU-h (rate={price['rate_per_step']:.4e} "
+         f"GPU-h/step, sourced from the Rev-7 harvest realized rate, S1.33)")
+    for v, stats in price["by_variant"].items():
+        print(f"  [{v}] {stats['n_cells']} cells, {stats['steps']} step-cells, "
+             f"{stats['gpu_h']:.4f} GPU-h")
+    if os.environ.get(PI_SIGNOFF_VAR) != "1":
+        raise RuntimeError(f"{PI_SIGNOFF_VAR}=1 required before any GPU cell (S1.7 gate 5).")
+    results = run_manifest(manifest, args.results_dir, args.device, steps_override=args.steps)
+    return results
+
+
+def _test_m3fix_variant_b_grid_arithmetic():
+    """S1.33 TEETH #3 -- variant B (tax_adjusted, eye-padding UNCHANGED)
+    per-group arithmetic, both directions: (1) the RAW `force_rank_k` grid
+    must be EXACTLY {d_min+1, d_min+2} (TWO points, not three -- the
+    REACHABILITY CONSTRAINT this build's own smoke caught: raw k can never
+    exceed d_state=d_min+2, so the "+1" causal point, which would need raw
+    k=d_min+3=d_state+1, is structurally unreachable and must NOT appear)
+    -- checked against an INDEPENDENT literal `D_MIN` dict (not the
+    imported `D_MIN` from groups.py, so a drift in groups.py's OWN table
+    would be caught, not silently propagated); (2) because eye-padding
+    pays the 2-dim ambient identity block FIRST (D-AMB P3, S1.33), the
+    resulting EFFECTIVE rho-rank (raw k minus the independently-literal-
+    pinned 2-dim tax) must land EXACTLY on {d_min-1, d_min} -- the SAME
+    two lower causal points variant A's zero-padded grid also tests,
+    proving both variants exercise the IDENTICAL causal claim over the
+    range where a comparison is even reachable; (3) a REGRESSION check
+    that a 3rd ("k_dmin_plus_1") entry does NOT reappear in variant B's
+    grid."""
+    print("=" * 88)
+    print("S1.33 TEETH #3 -- m3fix variant B (tax_adjusted): raw-k grid + k-2 effective-rank "
+          "arithmetic, per group (2-point reachability-constrained grid)")
+    print("=" * 88)
+    D_MIN_LITERAL = {"S3": 2, "S4": 3, "A5": 3, "S5": 4, "A6": 5}   # independent of groups.D_MIN
+    AMBIENT_TAX_LITERAL = 2                                        # independent of M3FIX_AMBIENT_TAX
+    assert D_MIN_LITERAL == D_MIN, (
+        f"D_MIN_LITERAL pin mismatch: {D_MIN_LITERAL} != groups.D_MIN {dict(D_MIN)} -- "
+        f"S1.4's per-group d_min table has drifted"
+    )
+    for name in GROUP_NAMES:
+        d_min = D_MIN_LITERAL[name]
+        grid = m3fix_force_rank_grid(name, M3FIX_VARIANT_B)
+        assert "k_dmin_plus_1" not in grid, (
+            f"{name}: variant-B grid contains 'k_dmin_plus_1' -- this causal point is "
+            f"mathematically unreachable under eye-padding (raw k would need to exceed d_state); "
+            f"its reappearance is a regression, not progress (S1.33 TEETH #3)"
+        )
+        raw_ks = sorted(grid.values())
+        expected_raw = [d_min + 1, d_min + 2]
+        assert raw_ks == expected_raw, (
+            f"{name}: variant-B raw k grid {raw_ks} != expected {expected_raw} (S1.33 TEETH #3)"
+        )
+        d_state = D_STATE[name]
+        assert max(raw_ks) == d_state, (
+            f"{name}: variant-B's highest raw k ({max(raw_ks)}) should equal d_state ({d_state}) "
+            f"-- it is the CEILING, one raw-k unit shy of what an unreachable '+1' point would need"
+        )
+        effective_rho_ranks = sorted(k - AMBIENT_TAX_LITERAL for k in raw_ks)
+        expected_effective = [d_min - 1, d_min]
+        assert effective_rho_ranks == expected_effective, (
+            f"{name}: variant-B effective rho-rank {effective_rho_ranks} != expected "
+            f"{expected_effective} (k-2 tax arithmetic, S1.33 TEETH #3)"
+        )
+        # cross-check: variant A's own (untaxed) grid's lower two points ARE the SAME
+        # effective-rank straddle, directly (variant A additionally reaches a 3rd point
+        # variant B categorically cannot).
+        grid_a_lower = sorted(v for k_label, v in m3fix_force_rank_grid(name, M3FIX_VARIANT_A).items()
+                              if k_label != "k_dmin_plus_1")
+        assert grid_a_lower == expected_effective, (
+            f"{name}: variant-A's lower grid points {grid_a_lower} != the shared causal straddle "
+            f"{expected_effective} variant-B's effective rank is supposed to match"
+        )
+        print(f"  [{name}] variant B: raw k grid={raw_ks} (ceiling=d_state={d_state})  "
+              f"effective rho-rank (k-2)={effective_rho_ranks}  == variant-A's lower grid "
+              f"{grid_a_lower}  no 'k_dmin_plus_1' present  PASS")
+    print("\nRESULT: variant-B's 2-point raw-k grid and k-2 effective-rank arithmetic verified "
+          "per group; the unreachable 3rd point is confirmed absent, not silently dropped.\n")
+    return True
+
+
+def _test_m3fix_manifest_literal_pin():
+    """S1.33 TEETH #4 -- manifest teeth, independent-literal assert of the
+    cell list (the STEP_BUDGET-style pin per the audit precedent 27c97a1:
+    self-referential assertions kill zero mutants -- pin decision constants
+    with independent duplicated literals, assert observable properties of
+    drawn data, not just downstream pass/fail). The expected cell_id SET
+    below is constructed from LITERAL group/arm-label lists typed directly
+    in this test (not imported from GROUP_NAMES / m3fix_force_rank_grid's
+    own arm-label dict), so a corruption of either the group roster or the
+    per-variant arm-shape in the production code is caught, not silently
+    mirrored on both sides of the comparison."""
+    print("=" * 88)
+    print("S1.33 TEETH #4 -- m3fix manifest independent-literal pin (cell_id set, per-variant "
+          "counts, per-group steps)")
+    print("=" * 88)
+    GROUPS_LITERAL = ["S3", "S4", "A5", "S5", "A6"]                       # independent of GROUP_NAMES
+    ZERO_PAD_ARMS_LITERAL = ["k_dmin_minus_1", "k_dmin", "k_dmin_plus_1"]  # variant A: full 3-point grid
+    TAX_ADJUSTED_ARMS_LITERAL = ["k_dmin_minus_1", "k_dmin"]               # variant B: reachability-
+                                                                            # constrained 2-point grid
+    STEP_BUDGET_LITERAL = {"S3": 8000, "S4": 20000, "A5": 20000, "S5": 8000, "A6": 40000}
+
+    expected_ids = set()
+    for g in GROUPS_LITERAL:
+        expected_ids.add(f"zero_pad__{g}__unconstrained__seed0")
+        for a in ZERO_PAD_ARMS_LITERAL:
+            expected_ids.add(f"zero_pad__{g}__{a}__seed0")
+        for a in TAX_ADJUSTED_ARMS_LITERAL:
+            expected_ids.add(f"tax_adjusted__{g}__{a}__seed0")
+    assert len(expected_ids) == 30, f"literal pin construction error: {len(expected_ids)} != 30"
+
+    manifest = build_m3fix_manifest()
+    actual_ids = {c["cell_id"] for c in manifest}
+    assert actual_ids == expected_ids, (
+        f"m3fix manifest cell_id set mismatch (S1.33 TEETH #4).\n"
+        f"  missing from manifest: {sorted(expected_ids - actual_ids)}\n"
+        f"  unexpected in manifest: {sorted(actual_ids - expected_ids)}"
+    )
+    print(f"  cell_id SET: {len(actual_ids)} cells == independent-literal-pinned {len(expected_ids)} "
+          f"(5 groups x [1 anchor + 3 zero_pad grid + 2 tax_adjusted grid])  PASS")
+
+    n_zero_pad = sum(1 for c in manifest if c["variant"] == "zero_pad")
+    n_tax_adjusted = sum(1 for c in manifest if c["variant"] == "tax_adjusted")
+    assert (n_zero_pad, n_tax_adjusted) == (20, 10), (
+        f"per-variant cell count {(n_zero_pad, n_tax_adjusted)} != expected (20, 10)"
+    )
+    print(f"  per-variant counts: zero_pad={n_zero_pad} (expect 20)  "
+          f"tax_adjusted={n_tax_adjusted} (expect 10)  PASS")
+
+    assert all(c["steps"] == STEP_BUDGET_LITERAL[c["group"]] for c in manifest), (
+        "m3fix manifest did not thread the Rev-7 STEP_BUDGET pins onto every cell "
+        "(independent-literal check)"
+    )
+    print(f"  per-cell steps match the independent-literal STEP_BUDGET pin "
+          f"{STEP_BUDGET_LITERAL}  PASS")
+
+    n_anchors = sum(1 for c in manifest if c.get("is_anchor"))
+    assert n_anchors == 5, f"expected exactly 5 anchor cells, got {n_anchors}"
+    assert all(c["variant"] == "zero_pad" for c in manifest if c.get("is_anchor")), \
+        "an anchor cell was found outside variant zero_pad"
+    print(f"  anchor cells: {n_anchors} (expect 5, all variant=zero_pad)  PASS")
+
+    print("\nRESULT: m3fix manifest cell list, per-variant counts, per-group steps, and anchor "
+          "placement all verified against INDEPENDENT literals (not self-referential).\n")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -716,6 +1084,13 @@ def smoke():
     r_route = _test_route_second_miss_diagnostic_before_action()
     assert r_gate1a and r_route
 
+    # S1.33 M3 FIX WAVE pure-function teeth (#3/#4) -- no GPU/model needed,
+    # same dependency-ordering convention (cheap, run before the heavier
+    # CPU-model smoke below).
+    r_m3fix_grid = _test_m3fix_variant_b_grid_arithmetic()
+    r_m3fix_pin = _test_m3fix_manifest_literal_pin()
+    assert r_m3fix_grid and r_m3fix_pin
+
     import tempfile
     with tempfile.TemporaryDirectory() as results_dir:
         os.environ[PI_SIGNOFF_VAR] = "1"    # local smoke, not a real launch -- BUILD-scope only
@@ -780,6 +1155,90 @@ def smoke():
     except RuntimeError as e:
         assert PI_SIGNOFF_VAR in str(e)
         print(f"\n  PI-signoff gate: run_manifest() correctly refuses without {PI_SIGNOFF_VAR}=1")
+
+    # -------------------------------------------------------------------
+    # S1.33 M3 FIX WAVE -- manifest/pricing sanity + a REAL tiny end-to-end
+    # CPU run exercising the per-cell force_rank_k/target_padding OVERRIDE
+    # path in train_and_eval_cell (not just the manifest's own shape).
+    # -------------------------------------------------------------------
+    print("\n" + "=" * 88)
+    print("  S1.33 m3fix smoke -- manifest/pricing sanity + tiny end-to-end CPU run (both variants)")
+    print("=" * 88)
+    m3fix_manifest = build_m3fix_manifest()
+    print(f"  build_m3fix_manifest(): {len(m3fix_manifest)} cells (expect 30)")
+    assert len(m3fix_manifest) == 30
+    price = price_m3fix_manifest(m3fix_manifest)
+    in_window = 1.3 <= price["total_gpu_h"] <= 2.6
+    print(f"  price_m3fix_manifest(): {price['n_cells']} cells, {price['total_steps']} step-cells, "
+         f"{price['total_gpu_h']:.4f} GPU-h projected (S1.33's registered 1.3-2.6 GPU-h window: "
+         f"{'INSIDE' if in_window else 'OUTSIDE'})")
+    assert in_window, (
+        f"m3fix manifest priced at {price['total_gpu_h']:.4f} GPU-h, outside S1.33's registered "
+        f"1.3-2.6 GPU-h budget window"
+    )
+
+    with tempfile.TemporaryDirectory() as m3fix_dir:
+        os.environ[PI_SIGNOFF_VAR] = "1"    # local smoke, not a real launch -- BUILD-scope only
+        try:
+            # a tiny cross-variant slice, ONE group (S3): the zero_pad anchor + zero_pad k_dmin +
+            # tax_adjusted k_dmin -- the SAME causal label ("k_dmin") under BOTH variants, which
+            # must train at DIFFERENT raw force_rank_k values (the exact override case that would
+            # silently collapse to the SAME wrong value if train_and_eval_cell's `"force_rank_k"
+            # in cell` sentinel logic regressed to the base sweep's shared
+            # force_rank_grid(name)[arm] lookup for m3fix cells too).
+            tiny_m3fix = [c for c in m3fix_manifest if c["cell_id"] in (
+                "zero_pad__S3__unconstrained__seed0",
+                "zero_pad__S3__k_dmin__seed0",
+                "tax_adjusted__S3__k_dmin__seed0",
+            )]
+            assert len(tiny_m3fix) == 3
+            print(f"\n  running a {len(tiny_m3fix)}-cell m3fix cross-variant slice (group S3) at "
+                  f"steps_override=15 (CPU, smoke only):")
+            m3fix_results = run_manifest(tiny_m3fix, m3fix_dir, device="cpu", steps_override=15)
+            by_id = {r["cell_id"]: r for r in m3fix_results}
+
+            anchor = by_id["zero_pad__S3__unconstrained__seed0"]
+            zp_k = by_id["zero_pad__S3__k_dmin__seed0"]
+            ta_k = by_id["tax_adjusted__S3__k_dmin__seed0"]
+
+            assert anchor["force_rank_k"] is None and anchor["target_padding"] == "zero", \
+                "m3fix anchor cell did not train unconstrained/zero-padded as configured"
+            assert zp_k["force_rank_k"] == D_MIN["S3"] and zp_k["target_padding"] == "zero"
+            assert ta_k["force_rank_k"] == D_MIN["S3"] + M3FIX_AMBIENT_TAX and ta_k["target_padding"] == "eye"
+            assert zp_k["force_rank_k"] != ta_k["force_rank_k"], (
+                "zero_pad and tax_adjusted k_dmin cells trained at the SAME force_rank_k -- "
+                "train_and_eval_cell's per-cell force_rank_k override is NOT being honored"
+            )
+            for r in m3fix_results:
+                assert is_valid_output(cell_output_path(m3fix_dir, r["cell_id"]))
+                assert r["m3fix_variant"] in M3FIX_VARIANTS
+            print(f"  cross-variant override verified: zero_pad k_dmin force_rank_k="
+                 f"{zp_k['force_rank_k']}  tax_adjusted k_dmin force_rank_k={ta_k['force_rank_k']} "
+                 f"(differ, as required)  anchor force_rank_k={anchor['force_rank_k']} "
+                 f"target_padding={anchor['target_padding']}")
+
+            # RESUME-SAFETY for m3fix cells too (same machinery, new cell shape).
+            t_r = time.time()
+            m3fix_results2 = run_manifest(tiny_m3fix, m3fix_dir, device="cpu", steps_override=15)
+            print(f"  m3fix resume pass: {len(m3fix_results2)} results in {time.time()-t_r:.2f}s "
+                 f"(all cells SKIPPED)")
+            for r1, r2 in zip(m3fix_results, m3fix_results2):
+                assert r1["mean_cos"] == r2["mean_cos"], "resumed m3fix result differs -- not truly skipped"
+        finally:
+            del os.environ[PI_SIGNOFF_VAR]
+
+    # PI-signoff gate must block run_m3fix too.
+    class _M3FixArgs:
+        results_dir = "/tmp/should_not_write_m3fix"
+        device = "cpu"
+        steps = 1
+    try:
+        run_m3fix(_M3FixArgs())
+        raise AssertionError("run_m3fix did NOT enforce the PI signoff gate")
+    except RuntimeError as e:
+        assert PI_SIGNOFF_VAR in str(e)
+        print(f"  PI-signoff gate (m3fix path): run_m3fix() correctly refuses without "
+             f"{PI_SIGNOFF_VAR}=1")
 
     # -------------------------------------------------------------------
     # S1.22 BA-F1 -- calibration report + --sweep gate wiring. Before this
@@ -862,7 +1321,10 @@ def smoke():
     print("  on every cell output, gate1a_check/route_second_miss NEGATIVE+POSITIVE tests passed,")
     print("  escalation wiring exercises tost_analysis.py + budget_guard.py end-to-end,")
     print("  BA-F1 calibration-report/--sweep gate verified [over-rate abort / healthy pass /")
-    print("  missing report / per-group stale steps / PI-signoff, all refused or passed correctly])")
+    print("  missing report / per-group stale steps / PI-signoff, all refused or passed correctly],")
+    print("  S1.33 m3fix wave verified [30-cell manifest, both-variant grid arithmetic + literal")
+    print("  cell-list pin, priced inside the 1.3-2.6 GPU-h window, cross-variant force_rank_k")
+    print("  override + resume-safety exercised end-to-end on CPU, PI-signoff gate enforced])")
     print("=" * 88)
 
 
@@ -881,6 +1343,14 @@ def main():
                          "steps_per_group matches the expected pins, (ii) its measured rate "
                          f"projects the base sweep under the 30 GPU-h cap (BaseSweepAbort "
                          f"otherwise), and (iii) {PI_SIGNOFF_VAR}=1 is set.")
+    ap.add_argument("--m3fix", action="store_true",
+                    help="S1.33 M3 FIX WAVE: run the 30-cell, both-variant (zero_pad + "
+                         "tax_adjusted) fix-wave manifest that closes the D-AMB ambient-identity "
+                         "capacity-tax instrument defect (CAPABILITY_SEPARATION_DESIGN.md S1.33) "
+                         "that voided the base 58-cell sweep's M3 force-rank arms. Prices from the "
+                         "measured Rev-7 sweep rate (no new --calibration-only run needed) and "
+                         f"REFUSES to start unless {PI_SIGNOFF_VAR}=1 is set (S1.7 gate 5). "
+                         "Mutually exclusive with --calibration-only/--sweep (a separate launch).")
     ap.add_argument("--steps", type=int, default=None,
                     help="Override: train EVERY cell at this single step count, regardless of "
                          "group (smoke/testing/debugging only). Default (unset) uses the Rev 7 "
@@ -894,9 +1364,12 @@ def main():
         smoke()
         return
 
-    if args.calibration_only and args.sweep:
-        ap.error("--calibration-only and --sweep are mutually exclusive -- S1.22 BA-F1's two-step "
-                "CLI runs calibration first, then sweep as a SEPARATE invocation once the report exists.")
+    modes_set = sum([args.calibration_only, args.sweep, args.m3fix])
+    if modes_set > 1:
+        ap.error("--calibration-only, --sweep, and --m3fix are mutually exclusive -- each is a "
+                "SEPARATE invocation (S1.22 BA-F1's two-step CLI convention, extended by S1.33's "
+                "--m3fix, which reuses the measured Rev-7 rate rather than gating on its own "
+                "calibration report).")
 
     if args.calibration_only:
         run_calibration_only(args)
@@ -906,8 +1379,12 @@ def main():
         run_sweep(args)
         return
 
-    ap.error("specify one of --smoke, --calibration-only, or --sweep -- S1.22 BA-F1 removed the "
-            "old implicit/ungated full-sweep default.")
+    if args.m3fix:
+        run_m3fix(args)
+        return
+
+    ap.error("specify one of --smoke, --calibration-only, --sweep, or --m3fix -- S1.22 BA-F1 "
+            "removed the old implicit/ungated full-sweep default.")
 
 
 if __name__ == "__main__":

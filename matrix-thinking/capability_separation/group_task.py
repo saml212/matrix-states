@@ -75,7 +75,8 @@ N_FIT, N_EVAL_SPLIT = 30, 20       # S1.4.1 step 4's 60/40 split of the N=50 sam
 # ---------------------------------------------------------------------------
 
 def sample_train_batch(name: str, batch_size: int, gen: torch.Generator,
-                       device="cpu", dtype=torch.float32, l_hi: int | None = None) -> dict:
+                       device="cpu", dtype=torch.float32, l_hi: int | None = None,
+                       target_padding: str = "eye") -> dict:
     """ONE batch: ONE L drawn (per-batch-fixed-L) from Uniform{1..l_hi}
     (default `l_hi=L_TRAIN_HI=8`, S1.4's production range), shared by every
     episode in the batch; L varies ACROSS batches, not within one (S1.4's
@@ -87,25 +88,33 @@ def sample_train_batch(name: str, batch_size: int, gen: torch.Generator,
     58-cell sweep (e.g. beta_fla_smoke.py's declared `L<=4` positive-control
     smoke). The real sweep never passes this, so its {1..8} range is
     unchanged -- this keeps the ONE sampler ('the same safe sampler')
-    instead of a second, duplicated implementation."""
+    instead of a second, duplicated implementation.
+
+    `target_padding` (S1.33 M3 FIX WAVE flag, default UNCHANGED "eye"):
+    threaded straight through to groups.batched_targets -- see its
+    docstring. The base 58-cell sweep never passes this, so its behavior is
+    byte-identical to before this flag existed."""
     n_gens = len(generating_set(name))
     d_state = D_STATE[name]
     hi = L_TRAIN_HI if l_hi is None else l_hi
     L = int(torch.randint(L_TRAIN_LO, hi + 1, (1,), generator=gen).item())
     token_idx = torch.randint(0, n_gens, (batch_size, L), generator=gen).to(device)
-    target = batched_targets(name, token_idx, d_state, dtype=dtype)
+    target = batched_targets(name, token_idx, d_state, dtype=dtype, target_padding=target_padding)
     return {"token_idx": token_idx, "target": target, "L": L}
 
 
 def sample_eval_batch(name: str, batch_size: int, gen: torch.Generator,
-                      device="cpu", dtype=torch.float32) -> dict:
+                      device="cpu", dtype=torch.float32, target_padding: str = "eye") -> dict:
     """Held-out generalization batch: per-batch-fixed-L drawn from the
-    HELD-OUT range Uniform{9..16} (S1.4/C5), never seen at train time."""
+    HELD-OUT range Uniform{9..16} (S1.4/C5), never seen at train time.
+
+    `target_padding` (S1.33 M3 FIX WAVE flag, default UNCHANGED "eye"): see
+    sample_train_batch's docstring."""
     n_gens = len(generating_set(name))
     d_state = D_STATE[name]
     L = int(torch.randint(L_EVAL_LO, L_EVAL_HI + 1, (1,), generator=gen).item())
     token_idx = torch.randint(0, n_gens, (batch_size, L), generator=gen).to(device)
-    target = batched_targets(name, token_idx, d_state, dtype=dtype)
+    target = batched_targets(name, token_idx, d_state, dtype=dtype, target_padding=target_padding)
     return {"token_idx": token_idx, "target": target, "L": L}
 
 

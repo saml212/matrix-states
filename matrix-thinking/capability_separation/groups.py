@@ -103,13 +103,30 @@ def generating_set(name: str) -> list[np.ndarray]:
     raise ValueError(f"unknown group {name!r}")
 
 
-def rho_G_embedded(rho: np.ndarray, d_state: int) -> np.ndarray:
-    """Option A (S1.4): the block-embedded target rho_G(g) (+) I_{d_state -
-    d_min} -- block-diagonal, identity on the ambient complement. Fixed,
-    non-learned."""
+TARGET_PADDING_MODES = ("eye", "zero")
+
+
+def rho_G_embedded(rho: np.ndarray, d_state: int, target_padding: str = "eye") -> np.ndarray:
+    """Option A (S1.4): the block-embedded target rho_G(g) (+) pad --
+    block-diagonal, `pad` on the ambient complement. Fixed, non-learned.
+
+    `target_padding` (S1.33 M3 FIX WAVE flag -- CAPABILITY_SEPARATION_DESIGN.md
+    S1.33, groups.py:157-158's D-AMB diagnosis): default UNCHANGED "eye" so
+    NOTHING retroactively shifts for the already-harvested 58-cell sweep.
+    "eye" (original) pads the ambient d_state-d_min complement with I --
+    the as-built target then has rank d_state with EVERY singular value
+    equal to 1, so a rank-k-capped arm's best achievable direct cosine is
+    exactly sqrt(k/d_state) (the "ambient-identity capacity tax" that
+    voided every base-sweep M3 force-rank arm: 37/39 cells landed within
+    0.07 of that ceiling, not evidence of failed recruitment). "zero"
+    (S1.33 fix variant A) pads with 0 instead -- rank(target) = d_min
+    EXACTLY (rho is always a real orthogonal representation, hence always
+    full rank d_min), removing the tax entirely."""
+    assert target_padding in TARGET_PADDING_MODES, \
+        f"target_padding={target_padding!r} not in {TARGET_PADDING_MODES}"
     d_min = rho.shape[0]
     assert d_state >= d_min, f"d_state={d_state} < d_min={d_min}"
-    out = np.eye(d_state)
+    out = np.eye(d_state) if target_padding == "eye" else np.zeros((d_state, d_state))
     out[:d_min, :d_min] = rho
     return out
 
@@ -147,16 +164,116 @@ def batched_word_product(gens_t: torch.Tensor, idx: torch.Tensor) -> torch.Tenso
     return M
 
 
-def batched_targets(name: str, idx: torch.Tensor, d_state: int, dtype=torch.float32) -> torch.Tensor:
+def batched_targets(name: str, idx: torch.Tensor, d_state: int, dtype=torch.float32,
+                    target_padding: str = "eye") -> torch.Tensor:
     """idx: (B, L) generator indices -> (B, d_state, d_state) block-embedded
     targets rho_G_embedded(product(w)) (Option A, S1.4), computed on the
-    same device as idx."""
+    same device as idx.
+
+    `target_padding` (S1.33 M3 FIX WAVE flag, default UNCHANGED "eye"): see
+    rho_G_embedded's docstring -- torch's exact analog, bit-for-bit agreement
+    verified in this module's own self-test."""
+    assert target_padding in TARGET_PADDING_MODES, \
+        f"target_padding={target_padding!r} not in {TARGET_PADDING_MODES}"
     gens_t = gen_tensor(name, device=idx.device, dtype=dtype)
     prod = batched_word_product(gens_t, idx)          # (B, d_min, d_min)
     B, d_min = idx.shape[0], prod.shape[-1]
-    target = torch.eye(d_state, device=idx.device, dtype=dtype).expand(B, d_state, d_state).clone()
+    if target_padding == "eye":
+        target = torch.eye(d_state, device=idx.device, dtype=dtype).expand(B, d_state, d_state).clone()
+    else:
+        target = torch.zeros(B, d_state, d_state, device=idx.device, dtype=dtype)
     target[:, :d_min, :d_min] = prod
     return target
+
+
+# ---------------------------------------------------------------------------
+# S1.33 M3 FIX WAVE teeth (CAPABILITY_SEPARATION_DESIGN.md S1.33) -- both
+# run to completion, both directions, all 5 groups, per the fix wave's own
+# mandate ("never trust a check without running it to completion").
+# ---------------------------------------------------------------------------
+
+def _test_target_rank_under_padding() -> bool:
+    """S1.33 TEETH #1 (the D-AMB [LEARN] rule: verify numerically, not
+    assert by construction) -- rank(as-built target) must equal d_min under
+    target_padding='zero' (S1.33 fix variant A) and d_state under 'eye'
+    (the UNCHANGED default, the D-AMB-tainted original), for EVERY group,
+    run to completion BOTH directions, on several distinct words each (not
+    just one). Also cross-checks numpy rho_G_embedded against torch
+    batched_targets in EACH mode, same convention as _self_test's existing
+    numpy/torch product-agreement check."""
+    print("=" * 88)
+    print("S1.33 TEETH #1 -- target-rank unit test: rank(target)==d_min under 'zero', "
+          "==d_state under 'eye' (both directions, all 5 groups)")
+    print("=" * 88)
+    for name in GROUP_NAMES:
+        gens = generating_set(name)
+        d_min, d_state = D_MIN[name], D_STATE[name]
+        rng = np.random.default_rng(2026)
+        for trial in range(3):    # several distinct words per group, not just one
+            L = 1 + trial * 3
+            idx_np = rng.integers(0, len(gens), size=L)
+            prod = word_product(gens, idx_np)
+            for padding, expected_rank in (("eye", d_state), ("zero", d_min)):
+                target_np = rho_G_embedded(prod, d_state, target_padding=padding)
+                rank = int(np.linalg.matrix_rank(target_np))
+                assert rank == expected_rank, (
+                    f"{name}/{padding}/trial{trial}: rank(target)={rank}, expected "
+                    f"{expected_rank} (S1.33 TEETH #1)"
+                )
+                idx_t = torch.tensor(idx_np, dtype=torch.long).unsqueeze(0)
+                target_t = batched_targets(name, idx_t, d_state, dtype=torch.float64,
+                                           target_padding=padding)[0].numpy()
+                max_diff = float(np.abs(target_np - target_t).max())
+                assert max_diff < 1e-8, (
+                    f"{name}/{padding}: numpy rho_G_embedded vs torch batched_targets mismatch "
+                    f"({max_diff:.2e})"
+                )
+        print(f"  [{name}] rank(target): eye->{d_state} (=d_state)  zero->{d_min} (=d_min)  "
+              f"numpy/torch agree  PASS  (3 trials)")
+    print("\nRESULT: target rank verified numerically in BOTH directions, all 5 groups.\n")
+    return True
+
+
+def _test_eye_padding_ceiling_signature() -> bool:
+    """S1.33 TEETH #2 -- NEGATIVE CONTROL, via a REAL numpy SVD-truncation
+    fit (not symbolically re-derived): under the UNCHANGED 'eye' padding,
+    the as-built target rho (+) I is orthogonal (every singular value
+    exactly 1), so its Eckart-Young-optimal rank-k Frobenius approximation
+    has cosine similarity EXACTLY sqrt(k/d_state) against the full target
+    -- the S1.33 D-AMB diagnosis's P2 ceiling-match signature (37/39 real
+    force-rank cells sat within 0.07 of this). Proves this smoke suite CAN
+    detect the exact defect class the M3 fix wave exists to fix: a
+    regression that silently reverted 'zero' padding back to 'eye', or
+    broke the orthogonality of the eye-padded target, would trip this
+    test's own assertion."""
+    print("=" * 88)
+    print("S1.33 TEETH #2 -- eye-padding sqrt(k/d_state) ceiling signature (NEGATIVE CONTROL, "
+          "real SVD-truncation fit)")
+    print("=" * 88)
+    for name in GROUP_NAMES:
+        gens = generating_set(name)
+        d_state = D_STATE[name]
+        rng = np.random.default_rng(7)
+        idx_np = rng.integers(0, len(gens), size=5)
+        prod = word_product(gens, idx_np)
+        target = rho_G_embedded(prod, d_state, target_padding="eye")
+        U, S, Vt = np.linalg.svd(target)
+        assert np.allclose(S, 1.0, atol=1e-8), \
+            f"{name}: eye-padded target is not orthogonal (singular values {S}, expected all 1)"
+        for k in range(1, d_state + 1):
+            approx = (U[:, :k] * S[:k]) @ Vt[:k, :]     # Eckart-Young rank-k optimum
+            cos = float(np.sum(approx * target) / (np.linalg.norm(approx) * np.linalg.norm(target)))
+            predicted = float(np.sqrt(k / d_state))
+            assert abs(cos - predicted) < 1e-6, (
+                f"{name}: rank-{k} SVD-optimal-fit cosine {cos:.6f} != predicted sqrt(k/d_state)="
+                f"{predicted:.6f} -- the smoke's ability to DETECT the D-AMB ceiling signature "
+                f"is broken (S1.33 TEETH #2)"
+            )
+        print(f"  [{name}] eye-padding ceiling: rank-k SVD-optimal cosine == sqrt(k/{d_state}) "
+              f"for all k in 1..{d_state}  PASS")
+    print("\nRESULT: the sqrt(k/d_state) ceiling signature reproduces exactly via a real "
+          "SVD-truncation fit -- this smoke CAN detect the D-AMB defect class.\n")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +324,12 @@ def _self_test() -> None:
     assert len(set(salts.values())) == len(GROUP_NAMES), \
         f"group_seed_salt collision across groups: {salts}"
     print(f"  group_seed_salt (S1.22 BA-F3): {salts}  all distinct, deterministic  PASS")
+
+    # S1.33 M3 FIX WAVE teeth -- both run to completion, both directions.
+    r1 = _test_target_rank_under_padding()
+    r2 = _test_eye_padding_ceiling_signature()
+    assert r1 and r2
+
     print("\ngroups.py self-test PASSED (all 5 groups).")
 
 
