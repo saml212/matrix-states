@@ -120,11 +120,16 @@ steps — a genuine plateau, not slow convergence after all).
 (S3=8K, S4=20K, A5=20K, S5=8K, A6=40K, all clearing their bar by
 ≥0.02 margin); escalation rule recalibrated (≤2/group, second miss →
 mandatory mechanism diagnostic before any further action, HARD-STOP
-reserved for genuine pathology). **STATUS: all 58 cells now
-LAUNCHABLE (≈2.51 GPU-h raw)**, pending a micro-attack on Rev 7's own
-delta + 4 still-outstanding production build items (centered-covariance
-readout, train-length sampler, ambient injection gate, per-L/per-group
-reporting) + a build audit — sweep not yet authorized.
+reserved for genuine pathology). **STATUS: Rev 7 folded (9245aa4) + all 4
+production items BUILT (f8f503e, 13/13 smoke) → INDEPENDENT BUILD AUDIT
+RETURNED (2026-07-09 overnight): NEEDS-FIXES, narrow — no production
+defect; 3 test-teeth gaps (worst: the §1.25-DEFECT-2 eval-sampler
+regression passes the whole suite silently) + 1 archive-provenance gap.
+Full record: EXPERIMENT_LOG.md 2026-07-09 overnight entry (fold §1.32
+pointer at next registry touch). Teeth fixes F1-F3 + archive pull F4
+dispatched — REQUIRED before --sweep AUTHORIZE, NOT blocking the 5-cell
+calibration re-check, which goes to GPU 0 as soon as the 2×2 screening
+frees it.**
 
 ### 3. Attractor-Robustness 2×2 (novelty stress-test follow-on, 2026-07-09)
 
