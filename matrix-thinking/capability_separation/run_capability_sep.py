@@ -584,6 +584,17 @@ def _test_gate1a_check_bar_and_margin():
     print("=" * 88)
     print("NEGATIVE-then-POSITIVE TEST -- gate1a_check: L in {2..5} bar + >=0.02 margin rule")
     print("=" * 88)
+    # F2 (build-audit fix, 2026-07-09 overnight): pin GATE1A_L_RANGE's exact
+    # membership with an INDEPENDENT duplicated literal -- every check below
+    # calls gate1a_check with the (possibly-mutated) module constant as its
+    # OWN default, so a shrink of GATE1A_L_RANGE itself would silently
+    # relabel what "the bar" means without tripping anything upstream.
+    assert tuple(GATE1A_L_RANGE) == (2, 3, 4, 5), (
+        f"GATE1A_L_RANGE literal-pin mismatch (F2): got {tuple(GATE1A_L_RANGE)}, expected "
+        f"(2, 3, 4, 5) -- S1.7 gate 1(a) Rev 7's L-range has shrunk or otherwise drifted"
+    )
+    print(f"  GATE1A_L_RANGE independent-literal pin (F2): {tuple(GATE1A_L_RANGE)} == (2, 3, 4, 5)  OK")
+
     # (1) bare clearance (A6@20K's real box value) -- FAILS the margin rule.
     bare_profile = {1: 0.8410, 2: 0.9947, 3: 0.9914, 4: 0.9668, 5: 0.9023, 6: 0.90, 7: 0.85, 8: 0.80}
     bare = gate1a_check(bare_profile)
@@ -607,8 +618,27 @@ def _test_gate1a_check_bar_and_margin():
     assert l1_excl["clears"], "gate1a_check incorrectly let a catastrophic L=1 value block the bar"
     assert l1_excl["l1_disclosed"] == 0.05, "L=1 should be disclosed, not silently dropped"
 
+    # (4) F2 (build-audit fix): a profile whose MINIMUM sits AT L=2
+    # specifically -- the build audit found mutation (c2) (L-range shrunk
+    # to (3,4,5) or even (5,)) INVISIBLE, because every profile above has
+    # its min at L>=5. This profile fails the margin rule (0.905 - 0.9 =
+    # 0.005 < 0.02) ONLY if L=2 is actually a member of the active
+    # l_range -- if L=2 were dropped, the remaining L in {3,4,5} (or just
+    # {5}) all clear with margin 0.09, flipping `clears` to True and
+    # tripping the assertion below.
+    l2_min_profile = {2: 0.905, 3: 0.99, 4: 0.99, 5: 0.99}
+    l2_check = gate1a_check(l2_min_profile)
+    print(f"  L=2-min profile (F2 shrinkage tripwire): min_val={l2_check['min_val']:.4f} "
+          f"at L={l2_check['at_L']}, margin_over_tau={l2_check['margin_over_tau']:.4f}, "
+          f"clears={l2_check['clears']}")
+    assert not l2_check["clears"], (
+        "gate1a_check incorrectly CLEARED the L=2-min tripwire profile -- GATE1A_L_RANGE no "
+        "longer includes L=2 (shrunk to (3,4,5) or narrower), the exact (c2) mutation"
+    )
+
     print("\nRESULT: gate1a_check correctly enforces the L in {2..5}/>=0.02-margin bar and "
-          "correctly excludes (but still discloses) L=1.\n")
+          "correctly excludes (but still discloses) L=1; GATE1A_L_RANGE membership independently "
+          "pinned (F2).\n")
     return True
 
 
@@ -654,6 +684,22 @@ def smoke():
     manifest = build_sweep_manifest()
     print(f"  build_sweep_manifest(): {len(manifest)} cells (expect 58)")
     assert len(manifest) == 58
+
+    # F3 (build-audit fix, 2026-07-09 overnight): pin STEP_BUDGET's exact
+    # per-group values with an INDEPENDENT duplicated literal. The check
+    # right below this one (per-cell steps match STEP_BUDGET) is
+    # self-referential -- build_sweep_manifest() reads STEP_BUDGET[name] to
+    # populate cell["steps"] in the first place, so an S4<->S5 swap (or any
+    # other corruption of STEP_BUDGET itself) is invisible to it: both sides
+    # of that comparison would be mutated together.
+    STEP_BUDGET_LITERAL = {"S3": 8000, "S4": 20000, "A5": 20000, "S5": 8000, "A6": 40000}
+    assert STEP_BUDGET == STEP_BUDGET_LITERAL, (
+        f"STEP_BUDGET literal-pin mismatch (F3): got {STEP_BUDGET}, expected "
+        f"{STEP_BUDGET_LITERAL} -- S1.6/S1.7 gate 1(a) Rev 7's per-group step-budget pins have "
+        f"drifted (e.g. an S4<->S5 swap)"
+    )
+    print(f"  STEP_BUDGET independent-literal pin (F3): {STEP_BUDGET} == {STEP_BUDGET_LITERAL}  OK")
+
     print(f"  per-cell steps match STEP_BUDGET pins: "
           f"{all(c['steps'] == STEP_BUDGET[c['group']] for c in manifest)}")
     assert all(c["steps"] == STEP_BUDGET[c["group"]] for c in manifest), \

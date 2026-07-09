@@ -350,12 +350,51 @@ def _test_group_salted_seeds_differ_across_groups_same_within():
     return True
 
 
+def _test_sample_eval_words_defaults_respect_train_support():
+    """NEGATIVE TEST (build-audit F1, 2026-07-09 overnight): draw with
+    `sample_eval_words`'s OWN DEFAULTS (no `L_lo`/`L_hi` passed) and assert
+    every drawn word length lands in the TRAIN-support range 1..8 -- the
+    exact S1.25 DEFECT-2 regime (defaults reverting to the held-out
+    `L in {9..16}` range) that the independent build audit found passes ALL
+    13 smoke sections SILENTLY today, because nothing actually inspects the
+    drawn data's own lengths, only downstream pass/fail booleans.
+
+    Uses an INDEPENDENT literal bound (1, 8), not `L_TRAIN_LO`/`L_TRAIN_HI`
+    themselves: a check against those constants would be self-referential
+    and blind to a mutation that moves both the sampler's effective default
+    AND the constants together (the [LEARN] rule this fix exists to satisfy
+    -- pin decision constants with independent duplicated literals, assert
+    observable properties of drawn data, not just downstream pass/fail).
+    Runs for all 5 groups."""
+    print("=" * 88)
+    print("NEGATIVE TEST -- sample_eval_words() DEFAULTS draw within TRAIN support (L in 1..8)")
+    print("=" * 88)
+    LO_LITERAL, HI_LITERAL = 1, 8   # independent of L_TRAIN_LO/L_TRAIN_HI by design (see docstring)
+    all_ok = True
+    for name in GROUP_NAMES:
+        idx_list, _ = sample_eval_words(name, seed=314_159)   # ALL DEFAULTS -- no L_lo/L_hi
+        lengths = [len(idx) for idx in idx_list]
+        lo_ok, hi_ok = min(lengths) >= LO_LITERAL, max(lengths) <= HI_LITERAL
+        all_ok = all_ok and lo_ok and hi_ok
+        print(f"  [{name}] sample_eval_words(defaults): drawn L range [{min(lengths)}, {max(lengths)}] "
+              f"(must be within [{LO_LITERAL}, {HI_LITERAL}]): {'OK' if lo_ok and hi_ok else 'FAIL'}")
+        assert lo_ok and hi_ok, (
+            f"{name}: sample_eval_words() defaults drew a word of length outside "
+            f"[{LO_LITERAL}, {HI_LITERAL}] -- DEFAULTS have reverted to (or beyond) the "
+            f"held-out regime (the exact S1.25 DEFECT-2 regression)"
+        )
+    print(f"\nRESULT: sample_eval_words() defaults respect TRAIN support (L in "
+          f"[{LO_LITERAL},{HI_LITERAL}]) for all {len(GROUP_NAMES)} groups.\n")
+    return all_ok
+
+
 if __name__ == "__main__":
     r1 = _test_coverage_guard_detects_undersampling()
     r2 = _test_coverage_guard_second_miss_hard_fails()
     r3 = _test_group_salted_seeds_differ_across_groups_same_within()
+    r4 = _test_sample_eval_words_defaults_respect_train_support()
     print("=" * 88)
     print(f"group_task.py negative tests: undersampling_detected={r1}  second_miss_hard_fails={r2}  "
-          f"group_salt_differentiates={r3}")
+          f"group_salt_differentiates={r3}  eval_words_defaults_in_train_support={r4}")
     print("=" * 88)
-    assert r1 and r2 and r3
+    assert r1 and r2 and r3 and r4

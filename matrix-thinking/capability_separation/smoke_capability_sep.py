@@ -72,9 +72,11 @@ def main():
         r1 = gt._test_coverage_guard_detects_undersampling()
         r2 = gt._test_coverage_guard_second_miss_hard_fails()
         r3 = gt._test_group_salted_seeds_differ_across_groups_same_within()
-        assert r1 and r2 and r3
+        r4 = gt._test_sample_eval_words_defaults_respect_train_support()
+        assert r1 and r2 and r3 and r4
     run("4. group_task.py -- query-coverage guard NEGATIVE TESTS (undersampling + second-miss "
-        "hard-fail) + BA-F3 group-salted-seed NEGATIVE-then-POSITIVE TEST", _task)
+        "hard-fail) + BA-F3 group-salted-seed NEGATIVE-then-POSITIVE TEST + F1 "
+        "sample_eval_words()-defaults train-support NEGATIVE TEST", _task)
 
     def _readout_smoke():
         import torch
@@ -151,7 +153,8 @@ def main():
         import run_capability_sep as rcs
         rcs.smoke()
     run("13. run_capability_sep.py -- manifest/resume-safety/escalation wiring + BA-F1 "
-        "calibration-report/--sweep gate smoke", _runner)
+        "calibration-report/--sweep gate smoke + F2/F3 independent-literal pins "
+        "(GATE1A_L_RANGE, STEP_BUDGET)", _runner)
 
     print("\n" + "=" * 100)
     if failures:
