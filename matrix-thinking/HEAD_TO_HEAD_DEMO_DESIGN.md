@@ -4465,3 +4465,39 @@ results/h2h_rung1/round4` (matches `h2h_rung1_chain.sh`'s own Stage-B3 path conv
 First cells confirmed healthy post-launch (see MANIFEST for the live tail). Harvest watch-path:
 `results/h2h_rung1/round4/ROUND4_SUMMARY.json` (9 cell entries expected;
 `ROUND4_PROVENANCE_MANIFEST.json` and per-cell `{cell_id}_round4.json` alongside it).
+
+### 1.37 ROUND 4 VERDICT (2026-07-09, coordinator harvest from raws — the driver crashed before writing SUMMARY; this record IS the summary): TASK1-PRIMARY = **LEG-A WIN at n=1**, S₀ HARD-STOP PASSED, LEG-B ANCHOR REPRODUCED
+
+Raw per-cell JSONs (results/h2h_rung1/round4/, 8 cells incl. the fresh
+transformer_task2): **contender task1 Leg-A acc_A = 0.9990** (bar
+0.09375); ablation 0.0447; transformer 0.0295 — Δ = 0.9543/0.9695,
+>3× the pre-registered 0.30 WIN margin (per-arm σ ≤ 0.0033 at n=4096;
+paired CI excludes 0.30 by construction). **S₀-necessity: PASSED at the
+pinned thresholds** (S₀-zeroed 0.0286 ≤ 0.09375 collapse bar;
+S₁-zeroed Δ=0.000 ≤ 2σ=0.001) — recall is provably fast-weight-
+resident; ablation's own S₀ check also passes (its weak 0.0447 collapses
+to 0.0308). **Leg-B at the localized tap: rf@0.9 = 0.6743 / cos 0.894 —
+reproduces the §1.30 anchor within ±0.001** (tolerance ±0.05); rf@τ
+curve full; harness sanity control exact 1.0; shuffled control 0.089.
+**Repaired rung-2 (107-way entity identity): contender 0.99951** vs bar
+0.028 — under the fixed instrument the stored identity is near-perfectly
+decodable; the OLD slot-labeled construction reads 0.0285 ≈ chance on
+the same checkpoint (the §1.28 vacuity proven on production data);
+noise null + positive controls PASS on all arms.
+
+**The crash:** DialExhaustedError (R5-F1 cap=4) fired during the
+transformer_task2 FRESH cell's post-training dial check (the cell
+trained 20000/20000; ce_answer gradient-parity trigger on a BASELINE
+arm) — scoped entirely to the task2 lane, which Rev 5.1 pre-registered
+as joint-failure TIE with its own post-sweep diagnosis round; the dial
+exhaustion FOLDS INTO that round. The task1-primary verdict is
+unaffected (all its cells completed, instrument health green). The
+transformer_task1_stress_K48 fresh cell never ran (non-gating,
+stress-exempt; runnable in the sweep stage). Single-seed caveat per
+Rev 5.1 stands: the verdict of record lands at the sweep with the
+pre-registered seed handling.
+
+**DISPOSITION: proceed per the pre-registration — ladder/bands →
+MARGIN FREEZE → task1-primary 27-cell sweep ≈13.25 GPU-h upper (GPUs
+0/1 free now; expand as wave cells complete). The task2 diagnosis
+round and the K48 stress cell ride behind the sweep as pre-registered.**
