@@ -3114,3 +3114,64 @@ adopted → **Rev 4 (this doc): three-term objective + diagnostic ladder
 + bands + cost update, §1.22 changes map** → attack round 5 (pending)
 → build fix → calibration round 3 (~2.3 GPU-h) → margins freeze →
 27-cell sweep + 90-pass M-sweep → harvest.)*
+
+---
+
+### 1.23 ATTACK ROUND 5 VERDICT (independent fresh-eyes agent, 2026-07-09): **CLEARED-FOR-BUILD-FIX**
+
+Recorded per the gauntlet-bookkeeping hard rule; the scoped build-fix
+dispatches against THIS verdict. The round verified prose against CODE
+and against fla-org's real ShortConvolution source (fetched live):
+
+- **P=1-by-causality SOUND** — every named leak channel walked and
+  closed: no positional/RoPE machinery exists in the recurrent arms
+  (grep-verified); ShortConvolution is stateless with cache=None
+  (zero-padded starts, verified against the real source); the kernel's
+  only carried state is the explicit initial_state/final_states = S_T.
+- **FAIRNESS ADJUDICATED (the make-or-break): NOT a new asymmetry.**
+  Axis 1 compares ONLY contender vs ablation — both recurrent, both
+  under the identical continuation construction; the transformer isn't
+  in axis 1. For axis 2, CE_answer IMPROVES interpretability (the
+  capped-vs-uncapped comparison now reflects trained retrieval, not the
+  pre-Rev-4 untrained confound). §1.9 item 9 was already the honest
+  disclosure; one clarifying sentence added per the round.
+- **LEDGER GAP RECONCILED** (root cause found): round 1 was ledgered at
+  the flat planning rate (0.2524/cell), the bottom-up uses real
+  arch-differentiated wall-clock — mundane bookkeeping provenance, both
+  margins stay positive; downgraded to explained. The 4.98 figure
+  includes the 0.08 diagnosis (now stated).
+
+**FINDINGS (folded into the scoped build-fix, binding):**
+- **R5-F1 (substantive) — three-loss dial had no termination guarantee:**
+  PINNED per the round: at most ONE contingency dial round (round 4,
+  ≈2.3 GPU-h, absorbed by both margin readings: 4.17→1.87 /
+  2.95→0.65); if round 4's dial still fails on either weight →
+  HARD-STOP into a fresh §1.21-style diagnosis, never a further dial.
+- **R5-F2 (substantive) — rung-2 identity-classifier gets its OWN
+  frozen-random-tap capacity null** (fresh i.i.d. Gaussian per real
+  adapter shape, fresh-per-step, held-out eval, labels independent;
+  pass bar ≤1.5× chance — strictly separated from the real 3× gate);
+  folds into the Wave −1(B) CPU harness.
+- **R5-F3 (textual)** — gate 1a's "EVERY calibration cell" overclaim
+  rescoped to task1_calib/task1_stress/task2_calib (the ladder is
+  grammar_rd-specific; Task 3 keeps its own anchored band).
+- **R5-F4 (non-blocking)** — blank-out companion: fresh-model-instance
+  continuation (only S_T passed) must produce bit-identical logits —
+  closes the hidden-module-cache channel the in-place test can't;
+  registered in the box-smoke checklist.
+- Build precision note: rung-1 = K-restricted gather+argmax (NOT
+  global-vocab top-1 vs a 1/K bar).
+
+**BUILD-FIX ITEM LIST (6 items, §1.23's binding order):** CE_answer
+continuation path per-arm; 3-loss dial + R5-F1 cap; ladder rungs 1-2
+(+R5-F2 null) + attribution logging; bands wired
+(task1_calib/task2_calib only); blank-out in-place + R5-F4 companion
+(box-registered); doc rewordings (R5-F3, 4.98 note, axis-1-immunity
+sentence).
+
+---
+
+*(End §1. ... → §1.21 diagnosis → Rev 4 → **§1.23
+CLEARED-FOR-BUILD-FIX** (2 substantive findings folded into the fix).
+SCOPED BUILD-FIX ACTIVE → scoped audit → calibration round 3 → ladder
++ bands review → margin freeze → sweep.)*
