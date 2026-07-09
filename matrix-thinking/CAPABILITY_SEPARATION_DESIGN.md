@@ -2395,3 +2395,33 @@ fix stage's mandate).
 *(End §1 records. §1.21 CLEARED → build a3defcc → §1.22 audit
 NEEDS-FIXES → **§1.23 FIX STAGE COMPLETE** (all 12 smoke sections green).
 Scoped re-audit next → deploy.)*
+
+---
+
+### 1.24 SCOPED RE-AUDIT VERDICT (2026-07-09): FIXES-VERIFIED-CLEARED (one residual)
+
+Recorded per the gauntlet-bookkeeping hard rule. Fix commit a555012
+(isolated diff: exactly 10 files, no scope creep — the naive
+79ada6a..a555012 range includes an unrelated interleaved h2h commit).
+All six fixes independently re-verified with the re-auditor's own runs:
+BA-F1 real-CLI end-to-end (refusal without report; over-rate 60.25
+aborts; healthy 19.65 clears; mutual-exclusion; PI-signoff env gate);
+BA-F3 salt verified both directions + init-seed deliberately unsalted
+w/ documented adjudication; BA-F4 the 23.70-headroom window
+programmatically derived, old-semantics wrong-grant reproduced, new
+hard-stop verified; BA-F5 cap verified + production path untouched;
+BA-F6 leak caught at 1e-3, dead code gone; float64 explicit; 12/12
+smoke sections green.
+
+**RESIDUAL (fold into deploy): RA-1 — the truncation-curve planted-rank
+test cannot falsify the 0.9 knee-threshold constant** (the tied-
+orthogonal-projector construction makes rf@0.9 a binary step; every
+multiplier 0.01-0.99 yields the same knee). Production constant
+verified correct on disk vs §1.5. → deploy stage adds a companion test
+with a non-tied spectrum so a threshold mutation is falsifiable.
+
+**DEPLOY STAGE AUTHORIZED** per §1.22's 7-item checklist + RA-1.
+
+*(End §1 records. §1.21 CLEARED → build a3defcc → §1.22 NEEDS-FIXES →
+fixes a555012 → **§1.24 FIXES-VERIFIED-CLEARED. DEPLOY ACTIVE** —
+GPUs 0-6 free while h2h is parked on the §1.3.1 instrument redesign.)*
