@@ -40,6 +40,58 @@
     $h$ grows.
 \end{itemize}
 
+\subsection{Approach angles 4/5 (architectural robustness 2$\times$2 at
+the 14M LM rung): not a qk-norm artifact; gating shows a
+trend-not-confirmed amplification}
+% Grounding: EXPERIMENT_LOG.md 2026-07-09 "ATTRACTOR-ROBUSTNESS 2x2"
+% entries (build audit with the corrected same-corpus noise floors; n=1
+% screening harvest; n=3 escalation harvest). Archives:
+% experiment-runs/2026-07-09_attrrob_2x2_harvest/ and
+% experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/.
+% Note the pre-registered escalation rule and its outcome: the n=1
+% trigger fired on the gating axis (+6.16 = 2.75 sigma) but the n=3
+% escalation did NOT confirm (+4.31 = 1.92 sigma < the 2-sigma bar
+% 4.489) -- any use of these numbers must carry the
+% trend-not-confirmed framing, never an amplification claim.
+\begin{itemize}
+  \item Setting shift, stated explicitly: unlike angles 1--3 (train-time
+    soft pushes on the synthetic task above), angles 4/5 are an
+    architectural-robustness 2$\times$2 (qk-l2-norm $\times$
+    Gated-DeltaNet-style decay) at the 14M real-data LM rung of the
+    scale ladder, read with the same-corpus gram-deviation probe
+    against corrected same-corpus cross-seed noise floors
+    (openr1-mix-ext $2.244$, wikitext-mix-ext $2.217$); an $n{=}1$
+    screening plus a pre-registered $n{=}3$ escalation on the one axis
+    whose screening delta exceeded the $2\sigma$ trigger.
+  \item The attractor PERSISTS in all four cells: same-corpus
+    gram-deviation $18.2$--$25.2$, every cell $\geq 8\sigma$ above zero
+    deviation in floor units --- neither axis removes it.
+  \item \textbf{qk-norm EXONERATED ($n{=}3$-solid).} Every run in this
+    program already used the community-standard qk-l2-norm mitigation;
+    turning it OFF is a within-noise null: $\Delta = -0.103 =
+    0.05\sigma$ vs.\ the corrected same-corpus floor. The attractor is
+    cross-key POPULATION geometry, not the single-vector
+    eigenvalue-stability axis qk-norm conditions --- the direct data
+    answer to ``is this just the known qk-norm issue in disguise.''
+  \item \textbf{Gating: a direction-consistent amplification trend that
+    did NOT meet the pre-registered confirmation bar --- reported as a
+    trend, never as a claim.} The $n{=}1$ screening fired the
+    escalation trigger ($+6.16 = 2.75\sigma$); at $n{=}3$ the effect
+    shrank to $+4.31 = 1.92\sigma$, below the pre-registered $2\sigma$
+    bar ($4.489$), with all three paired seeds positive (exploratory
+    Welch $p{=}0.062$). Directionally, gated arms carry MORE deviation
+    while training to LOWER loss in every seed ($3.515$ vs.\ $3.682$
+    final train loss) --- a healthier-looking checkpoint carrying the
+    pathology no better (trend-level: worse), consistent with this
+    section's one-attractor reading and in no tension with angles
+    1--3.
+  \item Consequence for \S\ref{sec:discussion}'s limitations: this
+    PARTIALLY discharges the single-architecture-family item ---
+    qk-norm is exonerated at $n{=}3$ and the Gated-DeltaNet-style
+    decay direction now has a trend-level answer at 14M; DeltaProduct
+    and production-scale gated configs remain untested.
+\end{itemize}
+
 \subsection{Honest conclusion (pre-registered negative branch, not a failed pilot)}
 \begin{itemize}
   \item Verbatim framing to carry into the paper: ``a dominant mechanism

@@ -33,10 +33,23 @@
     on this basis. This item's core claim (untested at production scale
     for compositional recovery, not just geometry) stands regardless of
     that reading.
-  \item \textbf{Single architecture family.} Vanilla, single-head,
-    single-layer DeltaNet only. Gated DeltaNet (the actual Qwen3-Next
-    production config), DeltaProduct's multi-Householder generalization,
-    untested. $H{=}1$/single-layer was a deliberate gate-simplicity
+  \item \textbf{Single architecture family --- now PARTIALLY discharged
+    by a dedicated robustness 2$\times$2 (\S\ref{sec:soft-fixes},
+    approach angles 4/5).} Vanilla, single-head, single-layer DeltaNet
+    for the core causal chapters. A qk-norm $\times$ gating 2$\times$2
+    at the 14M LM rung shows the attractor persists in all four cells
+    (same-corpus gram-deviation $18.2$--$25.2$, every cell $\geq
+    8\sigma$ above zero deviation in corrected-floor units
+    $2.244$/$2.217$): qk-norm-off is a within-noise null at $n{=}3$
+    ($\Delta = -0.103 = 0.05\sigma$) --- the attractor is not an
+    artifact of the community-standard qk-norm mitigation --- and
+    Gated-DeltaNet-style decay shows a direction-consistent
+    amplification trend in all three paired seeds that did NOT meet
+    the pre-registered $2\sigma$ confirmation bar ($+4.31 =
+    1.92\sigma$, exploratory Welch $p{=}0.062$; a trend, not a claim).
+    Still untested: DeltaProduct's multi-Householder generalization,
+    gating at production scale, and the full Qwen3-Next config.
+    $H{=}1$/single-layer was a deliberate gate-simplicity
     decision, not evidence of $H{=}1$-specificity (ReserveMH's
     generality result was run on the SYNTHETIC task only).
   \item \textbf{$h{=}21$ literal-depth decay remains unexplained and
@@ -392,8 +405,25 @@
     frozen-bias blend continuing to fire on every familiarization step,
     inseparable in what these checkpoints are, not an isolated
     familiarization-only contrast), this bounds rather than resolves the
-    keystone causal question: does frozen-bias key-geometry stabilization
-    change in-context multi-hop acquisition? Neither a PERSISTENT/
+    keystone causal question: does the frozen-bias key-bias intervention
+    change in-context multi-hop acquisition?
+    % Terminology guard (FROZEN_BIAS_LM_DESIGN.md \S13.13 attack-round-1
+    % verdict, cross-cutting item; \S13.15 Rev-1 micro-attack clearance):
+    % never phrase this question as "key-geometry stabilization." The
+    % deployed per-token arm (lambda=0.58) is val-loss-neutral and its
+    % own 14M training-mediated geometry read moved span-fraction
+    % +0.1955/+0.2273 (both CIs exclude zero) in the DESTABILIZING
+    % direction; the never-scaled global-vector arm is the variant that
+    % stabilized (-0.3319/-0.2308). The fix-at-scale wave
+    % (FROZEN_BIAS_LM_DESIGN.md \S13) adjudicates both arms at 98M/392M.
+    (A framing caution this paper owes the reader: the deployed
+    per-token arm is val-loss-neutral, and its own 14M geometry
+    evidence moves span-fraction in the \emph{destabilizing} direction
+    ($+0.1955$/$+0.2273$, both CIs excluding zero), while the
+    never-scaled global-vector variant is the arm that stabilized ---
+    both arms' geometry effects are under adjudication at scale. The
+    question is therefore about the intervention's whole causal
+    package, not a presumed stabilization mechanism.) Neither a PERSISTENT/
     LATE-EMERGENT reading (the only registered path to ``yes'') nor a
     CONVERGED-EQUIVALENT reading (the only registered path to a confident
     ``no'') occurred at any of the 4 contrasts --- this is a
