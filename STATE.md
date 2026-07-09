@@ -1202,3 +1202,22 @@ qknorm×gating at 14M (screening 4 cells ≈1.0 GPU-h; n=3 escalation
 ≤3.03 iff qualitative split, pre-registered) — BUILD AGENT DISPATCHED
 (additive flags in lm_pretrain_rd.py, bit-identical defaults
 negative-tested; discharges iclr-2027 limitation #2).
+
+**GPU SATURATION DIRECTIVE (PI, 2026-07-09, verbatim intent: "how will
+[we] ensure that all these 8 gpu's are hot for the next few days. I
+don't want these sitting idle anymore"):** queued science totalled ~20
+GPU-h vs 192 GPU-h/day supply — the pipeline's cells were too small to
+saturate. RESPONSE (recorded as the authorization the never-self-amend
+rule requires): two new compute-heavy waves chartered into the
+gauntlet: (1) **FIX-AT-SCALE** (frozen-bias fix validated at 98M+392M —
+closes the flagship's biggest disclosed caveat; proposed NEW ledger
+~170 GPU-h; design agent dispatched, registry = FROZEN_BIAS_LM_DESIGN
+§2); (2) **CAPABILITY STAGE 2** (depth generalization — the first true
+capability demo; design NOW, launch stays gated on Stage-1 readout per
+§1.11; cost re-derived at measured rates, likely far under the old
+50-120 sketch → grow seeds/grids to use the room; design agent
+dispatched, registry = CAPABILITY_SEPARATION_DESIGN §2). Contingent
+third: 2×2-at-scale (~168 GPU-h) iff tonight's screening splits.
+Standing policy: pre-registered seed extensions exercised liberally.
+Box layout planned per-wave (392M DDP cells + small-cell waves
+interleaved; all 8 GPUs in play — GPU 7 no longer reserved).
