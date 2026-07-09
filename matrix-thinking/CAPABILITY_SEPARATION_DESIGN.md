@@ -3200,3 +3200,46 @@ and its own re-verification against the real box data finds only 1 of
 7 calibration cells (S3) currently clears the narrowed gate-1(a) bar —
 A5/A6 HARD-STOPPED (PI-visible), S4/S5 need an escalation retest,
 §1.13-§1.27 byte-intact.** Attack round 7 next.)*
+
+---
+
+### 1.29 COORDINATOR RAW-DATA TIEBREAK (2026-07-09): round 6 vs Rev 6 factual conflict SETTLED — Rev 6's read correct; the L=1 dip is REAL but BUDGET-RESPONSIVE
+
+Recorded per the verify-vs-raws hard rule. §1.27 (round 6) claimed all
+7 cells clear ≥0.9 at every L∈{1..5}; Rev 6's re-verification claimed
+6 of 7 fail, at L=1. The coordinator read the box artifact directly
+(results/gate1_diagnosis/gate1_diagnosis_report.json, per_L fields):
+
+| cell | L=1 | L=2 | L=3 | L=4 | L=5 |
+|---|---|---|---|---|---|
+| S3@8K | 0.9517 | 0.9946 | 0.9945 | 0.9865 | 0.9649 |
+| S4@8K | **0.8646** | 0.9961 | 0.9938 | 0.9710 | **0.8966** |
+| A5@8K | **0.8532** | 0.9917 | 0.9888 | 0.9673 | **0.8809** |
+| S5@8K | **0.8513** | 0.9939 | 0.9877 | 0.9609 | 0.9213 |
+| A6@8K | **0.7818** | 0.9437 | **0.8849** | **0.8253** | **0.7734** |
+| A5@20K | **0.8915** | 0.9986 | 0.9965 | 0.9921 | 0.9755 |
+| A6@20K | **0.8410** | 0.9947 | 0.9914 | 0.9668 | **0.9023** |
+
+**Round 6's "all clear L1-5" was FALSE** (its min-at-L=8 attribution
+was also wrong for the L=1 mode). **Rev 6's numbers verify exactly.**
+Rev 6's rule (c) then fired mechanically (A5/A6 second miss →
+HARD-STOP) — but the rule was pinned on §1.27's wrong premise, and the
+raw trajectories show the L=1 mode IMPROVING with budget (A5 +0.038,
+A6 +0.059 from 8K→20K), i.e. slow convergence, NOT a plateau — the
+HARD-STOP's "no further silent escalation" rationale (spiral
+prevention) doesn't match a mode that is (i) moving and (ii) costs
+0.02-0.13 GPU-h/cell to chase under the PI's 2026-07-09 saturation
+directive. Also notable: the dip is at the EASIEST word length
+(single generator) while L=2-4 are near-perfect — mechanism unknown
+(candidates: single-token encoder-attention degeneracy; positional
+row-0 interaction; per-L eval sample's 4-distinct-word diversity
+floor) — worth one cheap diagnostic before re-pinning.
+
+**ADJUDICATION ROUND 7 DISPATCHED** with the settled facts: re-pin the
+bar + escalation response from {(a) bar L∈{2..5} + L=1 disclosed w/
+registered mechanism probe; (b) keep L1-5 + explicit PI-visible budget
+re-pins (40K/60K, justified by the improving trajectories, cost
+trivial); (c) hybrid}, plus the L=1 mechanism micro-diagnostic
+(authorized, ≤0.1 GPU-h).
+
+---
