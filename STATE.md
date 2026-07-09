@@ -263,7 +263,24 @@ design gauntlet — design Rev 0 in `matrix-thinking/
 CAPABILITY_SEPARATION_DESIGN.md` (dispatched 2026-07-08) → attack
 rounds → build → audit → launch alongside head-to-head.
 
-**QUEUE:** Design Rev 0 committed (this commit) → attack round 1 next.
+**QUEUE (superseded rounds recorded in the design doc §1.13-§1.24):**
+design CLEARED after 5 rounds (§1.21) → build (a3defcc) → audit
+NEEDS-FIXES (§1.22) → fixes (a555012) → re-audit CLEARED (§1.24) →
+**DEPLOYED (2026-07-09, pushed bfed48b):** RA-1 companion test;
+closure 19 files EMPTY-DIFF; box smoke 13/13 on real fla after a REAL
+kernel-envelope finding (bf16-only, head_dim≥32 hard-crash floor,
+qk-L2-norm — fixed in the non-load-bearing β module); β Fig.5
+directional split reproduced (n_h=2 0.294 < n_h=1 0.349); calibration
+5/5 @8000 steps in 5.4 MIN (0.0179 GPU-h/cell; 58-cell projection
+≈1.04 GPU-h vs 30 cap — trivial budget pass). **GATE-1 SUBSTANTIVE
+REVIEW OPEN — SWEEP NOT AUTHORIZED:** S3/S4/S5 train losses converged
+(0.053/0.0069/0.0076); A5 0.291/A6 0.220 under-converged (escalation
+candidates); degauging on REAL checkpoints LOW everywhere (mean_cos
+−0.02..0.17, rf90 0.0-0.2) while the synthetic injection PASSES.
+DIAGNOSIS AGENT DISPATCHED (length-split eval; A5/A6 at 2.5×; rank
+preview = the M1 headline; train-loss-vs-readout coherence — h2h
+§1.21 precedent applied). Note: h2h_rung1 tmux exited on its own
+band-check FATAL after wave 2 (expected; h2h parked on Rev 4).
 
 **PUBLICATION PIPELINE:** measurement-2026 chop paper DRAFTED (local
 commit 4c7d172; "The Cliff That Wasn't"; compiles clean w/ tectonic,
