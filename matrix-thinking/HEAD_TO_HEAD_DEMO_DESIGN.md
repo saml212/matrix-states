@@ -1,11 +1,13 @@
 # HEAD-TO-HEAD DEMO — the program's capstone question
 
-## §1 DESIGN — HEAD-TO-HEAD DEMO (Rev 3, post-attack-round-3 revision,
-2026-07-08) — does the matrix-native fast-weight model beat a matched
+## §1 DESIGN — HEAD-TO-HEAD DEMO (Rev 4, post-diagnosis revision,
+2026-07-09) — does the matrix-native fast-weight model beat a matched
 conventional baseline on real tasks at meaningful scale, or is its value
 honestly bounded?
 
-Status: **Rev 3, pre-attack (round 4 pending), zero GPU spent.** Rev 0
+Status: **Rev 4, pre-attack (round 5 pending), ≈11.43 GPU-h realized
+to date (build/deploy smoke + calibration rounds 1-2 + §1.21 diagnosis;
+~2.3 GPU-h round-3 re-calibration about to launch, §1.6).** Rev 0
 (§1.1-1.12 below) was independently attacked and returned NEEDS-REVISION
 (§1.13, retained verbatim as the record: 2 FATAL-caliber + 3 MAJOR + 2
 MINOR findings), resolved by Rev 1 (§1.14). Rev 1 was independently
@@ -19,22 +21,47 @@ a third time and ALSO returned NEEDS-REVISION (§1.17, retained verbatim as
 the record: 2 FATAL findings — a mathematically broken tap-expressivity
 diagnostic, numerically proven broken by the attack itself, and an
 underpowered/biased `M*` statistical procedure — + 2 MAJOR + 2 minor).
-**This Rev 3 resolves every §1.17 finding**, replacing the broken
-diagnostic with a K-simultaneous-bindings construction that this revision
-itself numerically executed pre-commit (§1.3.1.5), replacing the `M*`
-search with a DESCENDING fixed-sequence gatekeeping test that actually
-controls axis-2's within-grid FWER (§1.4.2), pinning
-`n_layers_transformer=2` and remapping the verdict tiers onto the
-resulting eligible grid with the WIN bar made HARDER, not easier (§1.4.2),
-and closing the remaining MAJOR/minor findings (§1.7 gate 2's M-sweep
-timing pilot, the `seed_idx` runtime bound, and the `M=1` cost
-double-count) — §1.18 maps each §1.17 finding to its exact Rev 3
-resolution. Ratified by the PI as the program's capstone question. **This
-design absorbs one mid-drafting PI directive** (received during Rev-0
-authorship, before first commit — see the note at the top of §1.3) that
-re-pointed the comparison framing toward the future's binding constraints
-(data/quality scarcity, inference-memory/HBM scarcity) rather than today's
-compute-FLOPs framing; nothing below §1.3 predates that directive.
+Rev 3 resolved every §1.17 finding, replacing the broken diagnostic with a
+K-simultaneous-bindings construction that revision itself numerically
+executed pre-commit (§1.3.1.5), replacing the `M*` search with a
+DESCENDING fixed-sequence gatekeeping test that actually controls axis-2's
+within-grid FWER (§1.4.2), pinning `n_layers_transformer=2` and remapping
+the verdict tiers onto the resulting eligible grid with the WIN bar made
+HARDER, not easier (§1.4.2), and closing the remaining MAJOR/minor
+findings (§1.7 gate 2's M-sweep timing pilot, the `seed_idx` runtime
+bound, and the `M=1` cost double-count) — §1.18 maps each §1.17 finding to
+its exact Rev 3 resolution. Rev 3 was independently attacked a fourth time
+and returned **DESIGN-CLEARED-FOR-BUILD** (§1.19). The design was BUILT
+(§1.20, independently audited, fixed, re-audit FIXES-VERIFIED-CLEARED),
+DEPLOYED and ran on the box: gate-1 calibration round 1 (13 cells) FAILED
+its band on Tasks 1/2 (`recovered_frac@0.9=0` in all 9 task-1/2 cells, all
+arms) with a step-500 gradient-ratio diagnostic pointing at an
+under-weighted aux loss; the pre-registered `aux_weight` dial fired
+(2.0, parity) and round 2 (`_auxrev2`, 9-cell re-run) achieved gradient
+parity but ALL arms plateaued at `probe_cos_mean≈0.12-0.22` —
+`recovered_frac@0.9` still 0 everywhere, an INSTRUMENT-DESIGN-caliber
+HARD-STOP with the pre-registered revision path exhausted. A dedicated
+box diagnosis (§1.21, executed evidence, 0.08 GPU-h) traced the plateau to
+its root cause: the objective (`loss_CE_lm + aux_weight·probe_cosine_loss`)
+contains NO gradient pressure toward the queried answer — `loss_CE_lm` is
+structurally retrieval-blind (each key appears once at bind time; query
+windows never enter it) and the aux loss alone converges to a cheaper
+EPISODE-MEMBERSHIP local optimum whose analytic ceiling, `1/√K`, matches
+every observed plateau exactly. **This Rev 4 adopts §1.21's option (f)**
+— the sole surviving option after five others (longer training, tied-
+embedding targets, an MLP probe, a bar re-pin, K de-load) were each
+REFUTED or found COUNTERPRODUCTIVE with executed evidence: add an
+answer-token cross-entropy term at the query position, symmetric across
+all three arms, making recall NECESSARY rather than merely available.
+§1.3.1's instrument (frozen `T_val`, linear probe, `rf@0.9` decision
+metric) is UNCHANGED; only the training objective and its pre-registered
+diagnostic ladder change — see §1.22 for the full changes map. Ratified by
+the PI as the program's capstone question. **This design absorbs one
+mid-drafting PI directive** (received during Rev-0 authorship, before
+first commit — see the note at the top of §1.3) that re-pointed the
+comparison framing toward the future's binding constraints (data/quality
+scarcity, inference-memory/HBM scarcity) rather than today's compute-FLOPs
+framing; nothing below §1.3 predates that directive.
 
 ---
 
@@ -591,25 +618,125 @@ target, dim=-1)` thresholded at 0.9 (`recovered_frac@0.9`) Rev 0 already
 pinned — the metric formula is unchanged; only the machinery producing
 `pred` and `target` is new.
 
-**1.3.1.3 Training regime — pinned per F1: joint auxiliary loss, from
-step 0, never zero-shot post-hoc.** Every arm's `shared_probe` +
-`adapter_arm` parameters are optimized JOINTLY with the backbone by the
-SAME optimizer, added to the main next-token cross-entropy loss:
+**1.3.1.3 Training regime — REWRITTEN, Rev 4 (§1.21's option (f)): joint
+THREE-term objective, from step 0, never zero-shot post-hoc.** Rev 0-3's
+two-term objective (`loss_CE + aux_weight·probe_cosine_loss`, `aux_weight`
+originally pinned **0.1**, REVISED to **2.0** by the round-2 calibration
+dial firing — both figures retained below as history, §1.21) is
+**superseded**: the box diagnosis (§1.21, executed evidence) proved that
+objective contains no gradient pressure toward the queried answer at all
+— `loss_CE` is structurally retrieval-blind (each key appears exactly
+once at bind time; query windows never enter it) and the aux loss alone
+converges to a cheaper EPISODE-MEMBERSHIP local optimum (`1/√K` ceiling)
+that satisfies `probe_cosine_loss` without ever learning to answer the
+query. Every arm's `shared_probe` + `adapter_arm` parameters, PLUS now
+the backbone's own LM head at the query answer position, are optimized
+JOINTLY with the backbone by the SAME optimizer:
 
 ```
-loss_total = loss_CE + aux_weight * mean_over_queries(1 - cos(pred, target))
+loss_total = loss_CE_lm
+           + ce_answer_weight * CE_answer(logits_at_query_answer_pos, answer_token)
+           + aux_weight       * mean_over_queries(1 - cos(pred, target))
 ```
 
-`aux_weight`: pinned default **0.1**, REVISED by the calibration cell
-(§1.7 item 1, extended) if the two losses' gradient norms at the tap
-point differ by more than 10× at step 500 (mirrors this program's own
-calibration-revises-a-default convention, e.g. axis-1's `X`) — frozen
-before the 27-cell sweep launches, not after. The probe trains
-THROUGHOUT training (from step 0), consistent with §1.4's own
-already-stated premise ("every task below trains the model end-to-end
-WITH the readout as (part of) the actual training objective") — Rev 0
-stated this premise but never built the mechanism; this subsection is
-that mechanism.
+`CE_answer` is standard next-token cross-entropy, scored ONLY at the
+query's designated answer position (`grammar_rd.py`'s existing
+query/answer positional convention, unchanged) against the true answer
+entity's token id — it reads the model's OWN native LM-head logits
+(full-vocab softmax), **not** the §1.3.1.1-1.3.1.2 `shared_probe`/
+`adapter_arm`/`T_val` machinery, which is untouched by this addition and
+continues to produce `probe_cosine_loss` exactly as before. This is
+deliberate: `CE_answer` makes recall NECESSARY for the loss to go down at
+all (closing §1.21's root cause), while `rf@0.9` — read off the SAME,
+unchanged §1.3.1 probe — stays the sole axis-1/axis-2 DECISION metric,
+never promoted or demoted by this change (the Nichani argmax-vs-exact-
+continuous-recovery distinction, `CLAUDE.md`, restated in the diagnostic
+ladder below).
+
+**Per-arm mechanics, pinned exactly — ALL THREE ARMS SYMMETRIC in loss
+term, asymmetric only in how the query-position logits are produced (the
+SAME §1.3.1.2 asymmetry this design already discloses, item 9 below, now
+load-bearing for training rather than only for the probe read):**
+
+- **Recurrent arms (contender, ablation).** The query window runs as a
+  **continuation** from the cached bind-phase state, a SEPARATE forward
+  call from the bind-phase pass:
+  ```
+  S_T = model.forward(bind_tokens, return_states=True).final_states   # bind phase, unchanged
+  logits_query = model.forward(query_tokens, initial_states=S_T)      # NEW, Rev 4: the continuation
+  ```
+  `forward(query_tokens, initial_states=S_T)`'s signature takes ONLY
+  `query_tokens` and `initial_states` — it has no argument, and therefore
+  no computational path, back to `bind_tokens` or any other raw
+  bind-phase tensor. The continuation's output is thus a PURE function of
+  `(S_T, query_tokens)` alone: **P=1 is preserved BY CAUSALITY, not by a
+  vacuous shape check** — the same class of argument §1.3.1.2 already
+  makes for the probe tap's `q_query`, extended one level up (there the
+  query is kept OUT of the recurrence entirely; here it deliberately
+  enters the recurrence, seeded from `S_T`, because next-token prediction
+  at the answer position requires exactly the kernel's own standing
+  `o_t = read(S_t, q_t)` mechanism — what stays protected is only that it
+  can never reach BEHIND `S_T` into raw bind tokens it has not already
+  been causally summarized through).
+  **Blank-out verification, extended (spec'd here per §1.21's own
+  instruction — a negative test, not an assertion, per `CLAUDE.md`'s
+  "run the negative unit test... to completion" rule):** after computing
+  and caching `S_T` from the real `bind_tokens` once, overwrite
+  `bind_tokens` in place with a fresh `torch.randint_like` draw of valid
+  token ids (a hard corruption, not a subtle perturbation), then call
+  `model.forward(query_tokens, initial_states=S_T)` again with the SAME
+  cached `S_T`. `logits_query` (and therefore `CE_answer`) must be
+  numerically IDENTICAL (same `atol` this program's own existing
+  negative tests use) whether or not the corruption happened — because
+  the corrupted tensor is never passed into the continuation call. Wired
+  as its own Wave −1 (A) probe-smoke negative-test row (§1.6, §1.7 gate
+  3), one per recurrent arm, run once at smoke time, not per training
+  step.
+- **Standard Transformer.** §1.3.1.2's existing single forward pass over
+  `[bind-phase tokens (+ filler) ++ query_window]` ALREADY materializes
+  LM-head logits at every position, including the query answer position
+  — `CE_answer` for this arm costs reading out one more position's
+  logits and computing one more cross-entropy term, **near-zero
+  incremental cost**, no second forward pass. The arm's disclosed
+  attend-to-raw asymmetry (item 9) is unchanged by this addition (see
+  the item-9 addendum below): the Transformer's query was already part
+  of its own context for every other purpose; `CE_answer` does not make
+  that asymmetry any better or worse, it only reads out logits the
+  forward pass already computed.
+
+`ce_answer_weight`: **pinned default 1.0**, calibrated by the SAME
+step-500 gradient-ratio dial the original `aux_weight` used, **extended to
+cover all three loss terms.** At step 500 of the calibration cell (§1.7
+gate 1, extended), log each term's OWN isolated backbone-gradient norm —
+`ce_grad_norm_backbone` (from `loss_CE_lm` alone), `aux_grad_norm_backbone`
+(from `aux_weight·probe_cosine_loss` alone, unchanged mechanism), and
+`ce_answer_grad_norm_backbone` (from `ce_answer_weight·CE_answer` alone,
+NEW) — via the same per-loss isolated-backward technique the original
+overshoot guard already used. **Pass condition:** both
+`aux_grad_norm_backbone` and `ce_answer_grad_norm_backbone` sit within
+10× of `ce_grad_norm_backbone` (mirrors the original `exceeds_10x_trigger`
+check, now checked for two auxiliaries instead of one). **Revision rule,
+pinned exactly (closes the "which weight moves" ambiguity a two-
+auxiliary dial introduces that the original one-auxiliary dial never
+had to resolve):** if exactly one auxiliary's ratio exceeds 10×, revise
+that ONE weight toward parity (`new_weight = old_weight × observed_ratio`,
+the same rounding convention the original `aux_weight` 0.1→2.0 revision
+used). **If BOTH auxiliaries exceed 10× simultaneously, revise only the
+LARGER-ratio deviation this round** — the more urgent parity violation —
+**and defer the other to the NEXT calibration round's own one revision**,
+never both in the same round: this is what "one revision per calibration
+round max" means operationally, and it exists so a plateau's cause is
+never confounded by two simultaneous weight changes landing in the same
+re-run. `aux_weight` itself carries forward round 2's already-calibrated
+value (**2.0**, parity achieved at ratios 1.3-3.6, §1.21) into Rev 4's
+round-3 re-calibration as its own starting point — round 3's dial check
+therefore evaluates whether 2.0 STILL holds parity now that a third loss
+term shares the same backward pass, not whether to re-derive it from
+0.1 again. Both weights are frozen before the 27-cell sweep launches, not
+after. The probe and the answer head train THROUGHOUT training (from step
+0), consistent with §1.4's own already-stated premise ("every task below
+trains the model end-to-end WITH the readout as (part of) the actual
+training objective").
 
 **1.3.1.4 Probe-capacity sanity null (the MANDATORY control F1
 requires).** Before the shared probe is trusted for ANY arm's real cells:
@@ -1500,6 +1627,102 @@ at all at the escalation rung, and the FLOP-match tolerance (§1.3, ≤5%)
 cannot be verified against a formula derived at a different regime.
 Escalation is not pre-authorized by this document.
 
+**REV 4 COST UPDATE — round-3 re-calibration + realized-spend
+reconciliation (does NOT touch the main 27-cell sweep's own raw/bracket
+figures, unchanged below).**
+
+**Round-3 re-calibration cost, derived from MEASURED wall-clock (not the
+flat 0.2524 GPU-h/cell planning rate; this is the same 9-cell shape as
+Wave −1 items C+D, re-run under §1.3.1.3's new three-term objective):**
+task1_calib (K/d=0.5, full, 3 arms) + task1_stress (K/d=0.75, quarter, 3
+arms, locate-only) + task2_calib (full, 3 arms) = 9 cells. Per-arm
+FULL-cell wall-clock, box-measured across rounds 1-2: contender ≈10 min
+(0.167 GPU-h), ablation ≈19-20 min (0.325 GPU-h, midpoint), transformer
+≈27 min (0.45 GPU-h); quarter-budget cells scale ≈1/4:
+
+| Cell group | Arms × shape | GPU-h |
+|---|---|---|
+| task1_calib + task2_calib (full) | 2 tasks × (0.167+0.325+0.45) | 1.883 |
+| task1_stress (quarter) | 1 task × (0.167+0.325+0.45)/4 | 0.236 |
+| Base re-run subtotal | | **2.119** |
+| Diagnostic-ladder overhead (rung 1 reuses `CE_answer`'s own logits, near-zero; rung 2 is one small extra linear-classifier fit/cell) | ≈8.5% of base | 0.181 |
+| **Round-3 total** | | **≈2.300 GPU-h** |
+
+Wall-clock to completion: 9 cells over 7 parallel GPU slots (GPU 7 held
+as pool/overflow, §1.11) — worst case 2 sequential batches bounded by the
+slowest cell (~27 min transformer + ladder overhead) → **≈55-60 min**,
+comfortably under an hour.
+
+**Realized spend so far (pulled from `STATE.md`'s own live ledger, not
+re-derived from scratch):** `STATE.md`'s LEDGERS section reads
+**"frozen-bias: 11.43/135 (~123 headroom)"** — **11.43 GPU-h spent,
+123.57 GPU-h headroom**, exact. This figure is the CURRENT authoritative
+realized total: the pre-h2h program baseline (7.672 GPU-h, unchanged
+since Rev 3, `FROZEN_BIAS_LM_DESIGN.md` §12) PLUS the h2h wave's own
+build/deploy smoke (Wave −1 A+B, ≈0.07 GPU-h), calibration round 1
+(13 cells, `aux_weight=0.1`, ≈2.15 GPU-h at the original Wave −1 C/D/E
+raw estimate), calibration round 2 (`_auxrev2`, 9-cell C+D rerun at
+`aux_weight=2.0`), and the §1.21 diagnosis (0.08 GPU-h, explicit).
+
+**Reconciliation flag (disclosed, not resolved here — genuinely
+unresolved, not papered over):** a bottom-up reconstruction using THIS
+revision's own measured per-arch full-cell rates (10/19.5/27 min),
+applied retroactively to rounds 1 (13 cells) and 2 (9 cells) on the
+theory that real per-arch wall-clock is a property of the model/hardware
+and should apply equally regardless of which round or `aux_weight` ran,
+sums to **≈4.98 GPU-h** for the h2h wave's own calibration-phase spend —
+against the **≈3.76 GPU-h** (`11.43−7.672`) the ledger line implies. The
+**≈1.2 GPU-h gap** is most plausibly either (a) `STATE.md`'s ledger line
+not yet reflecting round 2/diagnosis's full cost (a bookkeeping-lag
+pattern this doc's own STATE.md record already flags elsewhere, "Git
+blemish noted"), or (b) round 1 genuinely running faster before some
+instrumentation/checkpointing overhead was added. **Flagged for the next
+attack round or a dedicated ledger-reconciliation pass — it changes the
+MARGIN's size below, not the fits/doesn't-fit verdict (both readings
+clear the bar, see below).**
+
+**Updated margin, primary (ledger-anchored) reading:**
+- Realized-to-date (11.43) + round-3 (2.30) = **13.73/135 GPU-h**,
+  headroom remaining for the still-pending 27-cell sweep + M-sweep:
+  **135 − 13.73 = 121.27 GPU-h.**
+- The still-pending scope's own raw estimate is UPDATED with `STATE.md`'s
+  own already-disclosed timing-pilot revision ("9 pilots PASSED,
+  projected training 11.675 GPU-h... msweep 1.1-1.5 s/pass real vs 5s
+  assumed") — this SUPERSEDES Rev 3's stale planning-rate sub-estimate
+  (10.3472 GPU-h) and **closes Rev 3's own R3-F4-flagged open item**
+  ("the single most likely place a future re-derivation would still move
+  the bracket's fit," §1.6/§1.18): training+eval-overhead ≈11.675 GPU-h
+  (pilot-measured, ~14% over the flat-rate plan — ablation/transformer
+  run slower than the uniform 0.2524 GPU-h/cell rate, contender runs
+  faster, net overrun) + M-sweep ≈0.03-0.04 GPU-h (`90 passes ×
+  1.1-1.5s ≈ 99-135s`, down from the 0.125 GPU-h/5s-per-pass design-time
+  assumption) + MATCH-GATE 0 = **≈11.71 GPU-h revised raw** for the
+  still-pending portion.
+- Enforced 10× circuit-breaker bracket for the still-pending portion
+  (unchanged convention, applied to the portion that has genuinely not
+  launched yet — realized-to-date spend is actual, not re-hedged at 10×,
+  since the 10× multiplier exists specifically to cover cost SURPRISE on
+  cells that have not run, not to re-inflate a cost already measured):
+  **≈117.1 GPU-h.**
+- **Bracket fits: 117.1 < 121.27 GPU-h remaining headroom. Margin ≈4.17
+  GPU-h (≈3.1% of the 135 GPU-h shared ceiling).** Looser in absolute
+  GPU-h than Rev 3's own 1.658 GPU-h margin (against the narrower 127.33
+  pre-h2h-headroom denominator) specifically because the M-sweep's real
+  measured rate (1.1-1.5s/pass) came in far under the 5s/pass design-time
+  assumption — an improvement that more than offsets three rounds of real
+  calibration-phase spend.
+
+**Conservative (bottom-up-anchored) cross-check, using the ≈4.98 GPU-h
+reconstruction instead of the ledger-implied ≈3.76 GPU-h:**
+- Realized-to-date-after-round-3 = `7.672 + 4.98 + 2.30` = **14.95/135
+  GPU-h**, headroom **120.05 GPU-h**.
+- Same still-pending bracket (117.1 GPU-h) → **margin ≈2.95 GPU-h
+  (≈2.2%)** — thinner, comparable in order of magnitude to Rev 1's own
+  2.93 GPU-h margin, but still clearly positive.
+- **Either way, the bracket fits — the reconciliation gap changes the
+  margin's size (4.17 vs 2.95 GPU-h), not the verdict.** No training
+  cell, gate, or seed count was touched to make either reading fit.
+
 ---
 
 ### 1.7 Gates
@@ -1528,6 +1751,90 @@ re-derived:
    K/d=0.5455 cliff measurement, which carries ZERO evidentiary weight
    for these three arms (different architecture, not just different `d`
    — see §1.9's self-attack, restated there per M1).**
+
+   **1a. THE DIAGNOSTIC LADDER (NEW, Rev 4, pre-registered per §1.21's
+   own instruction — a gate-1 extension, run for EVERY calibration cell,
+   not only Tasks 1/2's).** §1.21's diagnosis took a full box-diagnosis
+   pass (0.08 GPU-h, offline probe study) to attribute a `rf@0.9=0`
+   plateau to its root cause, because no cheaper, standing instrument
+   existed to separate "task not learned" from "info not in the tap"
+   from "the continuous-recovery instrument itself is the bottleneck."
+   The ladder makes that attribution immediate and automatic, logged in
+   every calibration cell's own JSON alongside the existing step-500
+   gradient-ratio check:
+   - **Rung 1 — LM-head/native answer top-1 at the query position,
+     EPISODE-RESTRICTED.** "Chance" is `1/K` over the episode's own `K`
+     candidate entities (`1/32 = 3.125%` at the primary load, §1.4's M1
+     re-pin) — **never** a global-vocab or global-entity-pool chance
+     figure (the ad hoc §1.21 diagnosis run used a looser, ~0.93%
+     global-pool baseline; the pre-registered ladder deliberately
+     tightens this, a harder bar to clear, going forward). **PASS bar:
+     `> 3×` episode-restricted chance** (`> 9.375%` at K=32). **This
+     rung is a disclosed GATE — a sanity check that recall is happening
+     ANYWHERE in the model — and is NEVER promoted to the WIN metric.**
+     Argmax/top-1 readout is exactly the decoding mode `CLAUDE.md`'s own
+     hard rule warns inflates apparent capacity (Nichani, Lee & Bietti,
+     ICLR 2025, arXiv:2412.06538 — a rank-1 state can support `≈d`
+     argmax-recoverable associations while supporting far fewer under
+     exact continuous recovery); rung 1 passing does NOT imply `rf@0.9`
+     (rung 3) will pass, and only rung 3 is evidentially load-bearing for
+     the axis-1/axis-2 WIN claims.
+   - **Rung 2 — trained linear identity-classifier on the tap.** A
+     freshly-trained linear classifier (separate from `shared_probe`,
+     which does continuous regression, not classification) predicts
+     WHICH of the episode's `K` entities is being queried, from
+     `state_summary_raw`/`adapter_arm`'s own tap. **PASS bar: `> 3×`
+     episode-restricted chance**, same `1/K` convention as rung 1. This
+     rung answers "is the identifying information in the tap AT ALL,"
+     independent of whether the CONTINUOUS probe machinery can recover
+     it — the same `>` vs `<` chance test as rung 1, applied one layer
+     downstream.
+   - **Rung 3 — `rf@0.9` (UNCHANGED decision metric).** §1.3.1's own
+     cosine-recovery instrument, exactly as pinned since Rev 0-1. This
+     rung, and only this rung, feeds axis-1/axis-2 WIN/TIE/LOSE.
+   - **Attribution table (any rung failing = immediately attributable,
+     no fresh diagnosis pass required):** rung 1 FAILS → the task itself
+     was never learned by ANY channel (a task-learning problem, not an
+     instrument problem). Rung 1 PASSES, rung 2 FAILS → the task is
+     learned somewhere, but this specific tap point does not carry the
+     identifying signal (a tap-placement problem). Rungs 1-2 PASS, rung 3
+     FAILS → the tap carries the signal (rung 2 proves a classifier can
+     extract it beyond chance) but the exact-continuous-recovery probe
+     cannot (a probe-capacity/probe-training problem — the Nichani gap,
+     concretely observed rather than only theoretically flagged). All
+     three PASS → healthy cell, proceed.
+   - **The membership-oracle signature (§1.21's own root cause,
+     recorded as a standing tell).** Log, per cell, BOTH `probe_cos_mean`
+     (rung 3's own raw pre-threshold score) AND `cos(pred,
+     episode_mean_of_T_val_rows)` (NEW this revision — the predicted
+     probe vector's cosine similarity to the mean of the episode's `K`
+     `T_val` target rows, not to the true individual target). A future
+     plateau showing `probe_cos_mean` near the analytic ceiling `1/√K`
+     for that cell's `K` (`0.1768` at K=32, matching every §1.21
+     plateau exactly) **together with** an elevated
+     `cos(pred, episode_mean)` (`≥0.85`, calibrated off §1.21's own
+     measured 0.93-0.94) is diagnosed as the SAME membership-oracle
+     local optimum without a fresh box-diagnosis pass — the model/probe
+     learned "which K-set this episode is," not "which entity was
+     queried," a geometric artifact of `K` i.i.d. random unit targets
+     (`‖episode_mean‖ ≈ 1/√K`, and `cos(episode_mean, t_i) ≈ 1/√K` for
+     any constituent `t_i`), not evidence about the backbone's own
+     recall capability.
+
+   **1b. BANDS UPDATE (NEW, Rev 4) — Tasks 1/2 FULL-cell gate-1 pass bar,
+   made explicit and quantitative for the first time** (STATE.md's own
+   round-1/round-2 record flagged Tasks 1/2 as "SANITY-ONLY," i.e. no
+   hard numeric band existed before this revision; Task 3's own anchored
+   `[1.90,2.60]` val-loss band, `FROZEN_BIAS_LM_DESIGN.md`-derived, is
+   unchanged and not addressed here): **a task-1/2 FULL cell (task1_calib
+   at K/d=0.5, task2_calib) PASSES gate 1 iff BOTH (i) rung-1 answer
+   accuracy `> 3×` episode-restricted chance AND (ii) `rf@0.9 > 0`** —
+   the ladder's rung 1 and rung 3 jointly, rung 2 remaining diagnostic-
+   only (used for attribution on a FAIL, not itself a pass/fail
+   criterion). **Stress/locate-only cells (task1_stress, K/d=0.75) stay
+   EXEMPT from this band, as before** — they are disclosed
+   above-primary-load stress points, not gating cells, and never were
+   (§1.6 Wave −1 item C's own "locate-only" framing, unchanged).
 2. **Timing pilots, mechanical enforced abort.** One real cell per
    arch×task pair measured for wall-clock before its own seed-fan-out
    launches; if the projected cost for that pair exceeds its share of the
@@ -1686,9 +1993,12 @@ itself, not open-ended.
 ---
 
 ### 1.9 Attack-yourself — self-attack round 0 (minimum 5, per house
-convention; 7 in Rev 0, 9 in Rev 1, 11 in Rev 2, now **12 in Rev 3** —
-F-NEW-1's memory sweep and F-NEW-2's sink patch got their own self-attack
-in Rev 2 (items 10-11); Rev 3 folds in a cross-campaign caveat, item 12)
+convention; 7 in Rev 0, 9 in Rev 1, 11 in Rev 2, 12 in Rev 3, now **14 in
+Rev 4** — F-NEW-1's memory sweep and F-NEW-2's sink patch got their own
+self-attack in Rev 2 (items 10-11); Rev 3 folded in a cross-campaign
+caveat (item 12); Rev 4 adds items 8/9's own addenda (§1.21's answer-CE
+mechanics touch both) plus two new items on the DEPLOY-PIN-1 scope
+expansion and the M-NEW-4 sanctioning question (items 13-14))
 
 1. **The escalation-rung budget does not fit the current ceiling at the
    step budget this doc assumes (§1.6).** Tighter at every revision through
@@ -1780,7 +2090,14 @@ in Rev 2 (items 10-11); Rev 3 folds in a cross-campaign caveat, item 12)
    argue a bigger adapter gives the Transformer's probe strictly more
    linear-readout capacity than the matrix-state arms get. Registered as
    a residual, not-fully-closed asymmetry; the null check bounds it, does
-   not eliminate it.
+   not eliminate it. **[Rev 4 addendum]** `CE_answer` (§1.3.1.3) reads the
+   backbone's own native LM-head logits directly — it does **not** route
+   through `shared_probe`/`adapter_arm` at all. This item's adapter-
+   capacity asymmetry is therefore ORTHOGONAL to Rev 4's change: neither
+   worsened nor mitigated by it. Flagged so a future reader does not
+   conflate the two distinct "Transformer gets something extra" concerns
+   in this design (this item's adapter width vs. `CE_answer`'s near-free
+   logit reuse, item 9's addendum below).
 9. **(NEW, Rev 1) The contender/ablation's query never touches their
    recurrence; the Transformer's query IS part of its context — an
    inherent, not incidental, asymmetry in HOW each arch is probed.**
@@ -1799,7 +2116,24 @@ in Rev 2 (items 10-11); Rev 3 folds in a cross-campaign caveat, item 12)
    it would require inventing a non-attention "side-channel read" for the
    Transformer that has no real-world deployment analogue, which this
    design declines to do (a real deployed capped-cache Transformer has
-   this exact same limitation).
+   this exact same limitation). **[Rev 4 addendum]** §1.3.1.3's training
+   continuation makes a related but DISTINCT asymmetry load-bearing for
+   TRAINING, not only for the probe read this item originally described.
+   Precision, to avoid conflating the two: the contender/ablation's query
+   DOES touch their recurrence during the continuation
+   (`forward(query_tokens, initial_states=S_T)` updates state as it
+   processes `query_tokens`, exactly the kernel's own standing
+   `o_t = read(S_t, q_t)` mechanism every normal LM step already uses) —
+   what stays protected, and is what this item and §1.3.1.2 actually
+   guard, is only that the query can never reach BEHIND `S_T` into raw
+   bind-phase tokens it has not already been causally summarized through
+   (verified by the §1.3.1.3 blank-out test, not asserted). The
+   Transformer's own attend-to-raw asymmetry this item describes is
+   otherwise unchanged by Rev 4 — `CE_answer` for that arm reads out
+   logits its existing forward pass already computes (§1.3.1.3), it does
+   not change what the Transformer attends to or when. Axis 2's cap
+   remains the disclosed counterweight for that pre-existing asymmetry,
+   as before.
 10. **(NEW, Rev 2, M-NEW-2) The contender's and the ablation's native taps
     are not expressivity-matched, by construction, and cannot be fully
     repaired by the shared linear probe.** The contender reads via a full
@@ -1875,6 +2209,52 @@ in Rev 2 (items 10-11); Rev 3 folds in a cross-campaign caveat, item 12)
     limitations section regardless of Task 2's outcome — a WIN or LOSE on
     Task 2 is a claim about THIS architecture's actual trained behavior,
     not a claim about matrix-state models' formal expressivity ceiling.
+13. **(NEW, Rev 4) DEPLOY-PIN-1 (`n_query_train=8`) now feeds BOTH the
+    aux loss and `CE_answer`, not just the former — a scope expansion of
+    an already-deployed pin, not a new pin.** The deploy-time wiring
+    (`h2h_cell_train_rd.py` + 3, §1.20's closure record) fixed
+    `n_query_train=8` queries sampled per bind-phase episode, originally
+    to feed `mean_over_queries` in the aux probe loss alone. §1.3.1.3's
+    `CE_answer` is computed at the SAME per-query granularity over the
+    SAME 8 sampled queries — no new data-sampling cost (one shared
+    query-batch draw serves both loss terms), but it means the two
+    losses' gradients are correlated by construction (computed from the
+    identical 8 queries at every step), which is intentional (both terms
+    exist to shape the SAME state for the SAME retrieval purpose) and not
+    a confound this design is trying to avoid — flagged so a future
+    reader does not mistake the correlation for an oversight. No other
+    deploy pin (task3 corpus, vocab size, filler policy, task2
+    K/hop-split) is touched by this revision.
+14. **(NEW, Rev 4) Why a TRAINING-objective change is sanctioned despite
+    M-NEW-4's standing inference-only constraint (item 7, above).**
+    M-NEW-4 bound Rev 1-3's fixes to inference-only specifically because,
+    at the time, a cheaper inference-only alternative existed for the
+    F-NEW-1/F-NEW-2 findings (the sink+FIFO patch) against a genuinely
+    cap-trained Transformer's +7.6 GPU-h bracket cost — more than 4× the
+    remaining margin at every revision so far. Rev 4's situation is
+    categorically different on three counts, stated explicitly so this
+    is not read as a silent erosion of M-NEW-4's discipline: **(a) the
+    wave never launched its 27-cell sweep** — gate 1 (calibration-first)
+    caught the objective defect BEFORE any of the expensive downstream
+    compute ran, which is exactly what `CLAUDE.md`'s "a calibration
+    run... before a big sweep is mandatory, not optional... catches
+    convergence ceilings... before you commit a sweep's compute to it"
+    rule exists for; this is the rule working as designed, not a failure
+    of it. **(b) There is no inference-only fix available** — §1.21's
+    root cause (the objective contains no gradient pressure toward the
+    answer at all) is irreducibly a training-objective defect; an
+    inference-time-only change cannot retroactively teach a model
+    something its training loss never rewarded it for learning, unlike
+    F-NEW-1/F-NEW-2, where the underlying capability (retrieval under a
+    byte budget) was already present and only the EVALUATION protocol
+    needed patching. **(c) The cost is small and disclosed** — ≈2.3
+    GPU-h re-calibration (§1.6's Rev 4 update), nowhere near the +7.6
+    GPU-h bracket cost M-NEW-4 was created to block, and the bracket
+    still fits with a real (if reconciliation-flagged) margin either way.
+    The fix went through the full required gauntlet — diagnosis with
+    executed evidence (§1.21) → this design revision → attack round 5 →
+    build → audit — exactly like every other structural decision in this
+    document, not a shortcut around it.
 
 ---
 
@@ -2682,7 +3062,55 @@ round + ~2.3 GPU-h re-calibration (fits margin). Disclosures touched:
 
 ---
 
+### 1.22 REV 4 CHANGES — diagnosis item → resolution map
+
+Unlike §1.14/§1.16/§1.18, this map's trigger is not an attack-round
+verdict but §1.21's own executed-evidence diagnosis (option (f) adopted
+after five alternatives were REFUTED or found COUNTERPRODUCTIVE). Each
+row maps a §1.21 item to its exact Rev 4 resolution and section.
+
+| §1.21 item | Rev 4 resolution | Section |
+|---|---|---|
+| Root cause: `loss_CE_lm + aux_weight·probe_cosine_loss` has no gradient pressure toward the queried answer (CE structurally retrieval-blind; aux converges to the cheaper episode-membership local optimum, `1/√K` ceiling) | Joint THREE-term objective: `loss_CE_lm + ce_answer_weight·CE_answer + aux_weight·probe_cosine_loss`, `CE_answer` scored at the query answer position off the backbone's own native LM-head logits, symmetric across all three arms | §1.3.1.3 (rewrite) |
+| Recurrent arms must gain answer-position logits WITHOUT breaking the P=1 hard bottleneck (`CLAUDE.md`) | Query runs as a continuation, `forward(query_tokens, initial_states=S_T)` — a function of `(S_T, query_tokens)` only by the call's own signature ("P=1 preserved by causality"); blank-out test spec'd (corrupt `bind_tokens` post-`S_T`-caching, decode must be unchanged) and wired as a Wave −1 (A) negative-test row | §1.3.1.3, §1.7 gate 3 |
+| Transformer's `CE_answer` cost | Near-zero — its existing single forward pass already materializes query-position logits; no second forward | §1.3.1.3 |
+| `ce_answer_weight` needs a pin and a calibration path | Pinned default 1.0; step-500 gradient-ratio dial extended to three losses; "one revision per calibration round max" rule pinned exactly (larger-ratio deviation revised first if both auxiliaries fire; `aux_weight` carries forward round 2's 2.0, re-checked not re-derived) | §1.3.1.3 |
+| §1.3.1's instrument (frozen `T_val`, linear probe, `rf@0.9`) — does it change? | No. Explicitly UNCHANGED; only the training objective and its diagnostics change | §1.3.1.1-1.3.1.2 (untouched) |
+| M-NEW-2's Hadamard-vs-matvec asymmetry becomes a testable prediction under real recall pressure | Restated as the pre-registered prediction: matvec can reach `rf@0.9` per §1.3.1.5's own K-bindings table, Hadamard stays bounded — no new construction needed, §1.3.1.5 stands as-is | §1.3.1.5 (untouched, re-purposed) |
+| "LM-head accuracy = disclosed GATE, never the WIN metric (Nichani rule)" — needs a formal home | THE DIAGNOSTIC LADDER: rung 1 (episode-restricted LM-head/native top-1, `>3×` chance, gate-only) → rung 2 (linear identity-classifier on the tap, `>3×` chance, diagnostic-only) → rung 3 (`rf@0.9`, unchanged decision metric); attribution table + membership-oracle tell (`probe_cos_mean≈1/√K` AND `cos(pred,episode_mean)≥0.85`) logged per cell | §1.7 gate 1, item 1a |
+| Tasks 1/2 had no explicit numeric gate-1 band (STATE.md: "SANITY-ONLY") | FULL-cell band pinned: `rung-1 answer accuracy >3× chance AND rf@0.9>0`; stress/locate-only cells stay exempt | §1.7 gate 1, item 1b |
+| Cost: "~2.3 GPU-h re-calibration (fits margin)" | Derived from measured per-arch full-cell wall-clock (contender/ablation/transformer); realized-to-date pulled from `STATE.md` (11.43/135); updated margin ≈4.17 GPU-h ledger-anchored / ≈2.95 GPU-h bottom-up-anchored, both fit; reconciliation gap between the two readings flagged, not resolved; closes Rev 3's own R3-F4-flagged M-sweep timing-pilot open item using `STATE.md`'s already-measured 1.1-1.5s/pass figure | §1.6 (Rev 4 cost update) |
+| Disclosures touched: §1.3.1.3, §1.9 items 8/9, DEPLOY-PIN-1, M-NEW-4 table | Item 8 addendum (adapter asymmetry orthogonal to `CE_answer`, which bypasses the probe entirely); item 9 addendum (query-touches-recurrence during the continuation is expected and distinct from the probe-tap's own query-isolation, which still holds); new item 13 (DEPLOY-PIN-1 scope expansion, intentional correlation disclosed); new item 14 (why a training-objective change is sanctioned despite M-NEW-4 — calibration-first caught it pre-sweep, no inference-only fix exists, cost is small and disclosed) | §1.9 items 8, 9, 13, 14 |
+
+**What Rev 4 explicitly does NOT touch (kept verbatim, per this
+revision's own mandate):** §1.13-§1.21's gauntlet records stand as
+history, unedited; §1.3.1.1, §1.3.1.2, §1.3.1.4, §1.3.1.5, F1b's
+`rd_episode_seed` schedule; §1.4's task/axis/margin definitions and the
+M* gatekeeping machinery (§1.4.2); §1.5's scale ladder; §1.8's
+pre-registered analysis; §1.10-1.12; the 27-cell sweep's own raw/bracket
+figures (unchanged except the R3-F4 timing-pilot closure folded into the
+Rev 4 cost update, §1.6).
+
+**Unresolved, flagged for attack round 5 (not decided here, per this
+program's own "flag, don't paper over" convention):** (1) the ≈1.2 GPU-h
+ledger-reconciliation gap between `STATE.md`'s live figure and a
+bottom-up per-arch-rate reconstruction of rounds 1-2 (§1.6); (2) whether
+the "one revision per calibration round max" rule's tie-break (larger-
+ratio deviation first) is the right priority if round 3's dial finds
+BOTH `aux_weight` and `ce_answer_weight` out of parity simultaneously —
+untested until round 3 actually runs; (3) the identity-classifier's
+(rung 2) own capacity sanity — unlike `shared_probe` (§1.3.1.4's null),
+no equivalent frozen-random-tap null is specified for the NEW
+classifier, so a rung-2 PASS on real data is not yet distinguishable
+from the classifier itself being oddly well-suited to noise, a gap
+attack round 5 should close before round-3 results are trusted at face
+value.
+
+---
+
 *(End §1. ... → §1.20 build CLEARED → deploy → calibration rounds 1-2
-→ **§1.21 DIAGNOSIS: objective lacked recall pressure; option (f)
-adopted** → Rev 4 revision round ACTIVE → attack → build fix →
-calibration round 3 → margins freeze → sweep.)*
+→ §1.21 DIAGNOSIS: objective lacked recall pressure; option (f)
+adopted → **Rev 4 (this doc): three-term objective + diagnostic ladder
++ bands + cost update, §1.22 changes map** → attack round 5 (pending)
+→ build fix → calibration round 3 (~2.3 GPU-h) → margins freeze →
+27-cell sweep + 90-pass M-sweep → harvest.)*
