@@ -62,42 +62,65 @@ LEG_B_SANITY_SEED_OFFSET = 9_001
 # round 3 entirely; transformer_task2_calib was simply never launched).
 # ---------------------------------------------------------------------------
 
+# Minor iv (sec 1.34, cheap): every cell's diagnostic-stream seed is now EXPLICIT here
+# (seed=0) rather than implicitly falling back through `cell.get("seed", 0)` at each of
+# run_cell_round4's three call sites (rung 2 / instrument-health / Leg-B sanity control) --
+# same value, but now pinned and disclosed in the one place a reader would look for it, not an
+# incidental default.
 ROUND4_CELL_SPEC = (
     {"cell_id": "contender_task1_calib", "arch": "contender", "task": "task1_calib", "K": 32,
-     "role": "primary", "fresh": False},
+     "role": "primary", "fresh": False, "seed": 0},
     {"cell_id": "ablation_task1_calib", "arch": "ablation", "task": "task1_calib", "K": 32,
-     "role": "primary", "fresh": False},
+     "role": "primary", "fresh": False, "seed": 0},
     {"cell_id": "transformer_task1_calib", "arch": "transformer", "task": "task1_calib", "K": 32,
-     "role": "primary", "fresh": False},
+     "role": "primary", "fresh": False, "seed": 0},
     {"cell_id": "contender_task2_calib", "arch": "contender", "task": "task2_calib", "K": 32,
-     "role": "primary", "fresh": False},
+     "role": "primary", "fresh": False, "seed": 0},
     {"cell_id": "ablation_task2_calib", "arch": "ablation", "task": "task2_calib", "K": 32,
-     "role": "primary", "fresh": False},
+     "role": "primary", "fresh": False, "seed": 0},
     {"cell_id": "contender_task1_stress_K48", "arch": "contender", "task": "task1_calib", "K": 48,
-     "role": "stress_locate_only", "fresh": False},
+     "role": "stress_locate_only", "fresh": False, "seed": 0},
     {"cell_id": "ablation_task1_stress_K48", "arch": "ablation", "task": "task1_calib", "K": 48,
-     "role": "stress_locate_only", "fresh": False},
+     "role": "stress_locate_only", "fresh": False, "seed": 0},
     {"cell_id": "transformer_task2_calib", "arch": "transformer", "task": "task2_calib", "K": 32,
-     "role": "primary", "fresh": True},
+     "role": "primary", "fresh": True, "seed": 0},
     {"cell_id": "transformer_task1_stress_K48", "arch": "transformer", "task": "task1_calib",
-     "K": 48, "role": "stress_locate_only", "fresh": True},
+     "K": 48, "role": "stress_locate_only", "fresh": True, "seed": 0},
 )
 assert len(ROUND4_CELL_SPEC) == 9 and sum(1 for c in ROUND4_CELL_SPEC if not c["fresh"]) == 7 \
     and sum(1 for c in ROUND4_CELL_SPEC if c["fresh"]) == 2, \
     "sec 1.31.7: round 4 must be exactly 7 reused + 2 fresh (the corrected 7+2 arithmetic, F2)"
+assert all("seed" in c and c["seed"] == 0 for c in ROUND4_CELL_SPEC), (
+    "minor iv (sec 1.34): every cell must pin an explicit seed (all 0, disclosed) -- never an "
+    "implicit cell.get('seed', 0) fallback")
 
 
-def _round3_ckpt_filename(arch: str, task: str, K: int, role: str) -> str:
+def _round3_ckpt_filename(arch: str, task: str, K: int, role: str,
+                          calib_cells: list[dict] | None = None) -> str:
     """Resolves a reused cell's EXPECTED on-disk filename by cross-referencing
     `calibration_cells()`'s own naming convention (`h2h_calib_{arch}_{task}_{role}[_K{K}]
     [_auxrev2].pt`) -- never re-derives the convention independently (DRY: a second, drifting
     copy of that naming logic would be exactly the kind of duplication that silently goes stale).
     NOTE: round-3 checkpoints predate sec 1.31.4 item 4's `_r{round}` filename-versioning fix,
     so this is deliberately the UNSUFFIXED name -- round 5+'s own re-metric would look for the
-    suffixed name instead, once item 4 has had a chance to fire on a real round boundary."""
-    for cell in calibration_cells():
+    suffixed name instead, once item 4 has had a chance to fire on a real round boundary.
+
+    sec 1.34 F1 (BLOCKING fix): match K ONLY when the `calibration_cells()` entry actually
+    CARRIES a "K" key. `build_task2_calibration_manifest()` (h2h_calibration_wrappers_rd.py)
+    never sets one -- `task_cfg()` pins K=32 internally for every task2 cell regardless of what
+    K argument it is handed, so task2 cells structurally have no K to compare. The pre-fix code
+    compared `cell.get("K") == K`, which is `None == 32` for both task2 reused cells --
+    unconditionally False -- so NEITHER task2 cell could ever resolve, raising KeyError at
+    round-4 pre-flight (demonstrated live by the sec 1.34 audit; masked by driver selftest 3
+    because that test only exercises the missing-*file* branch on an empty ckpt dir, never
+    reaches this per-cell resolution loop with a real calibration_cells() list). `calib_cells`
+    is dependency-injectable (defaults to the real `calibration_cells()`) so this resolution
+    logic itself is unit-testable against a synthetic manifest shape without needing the real
+    13-cell list (selftest 9, below) -- never monkeypatching the imported name."""
+    cells = calibration_cells() if calib_cells is None else calib_cells
+    for cell in cells:
         if (cell["arch"] == arch and cell["task"] == task and cell["role"] == role
-                and cell.get("K") == K):
+                and ("K" not in cell or cell["K"] == K)):
             return cell["name"] + ".pt"
     raise KeyError(f"no calibration_cells() entry matches arch={arch} task={task} K={K} role={role}")
 
@@ -298,11 +321,47 @@ def run_cell_round4(cell: dict, provenance_manifest: dict, device: str, out_dir:
                       load_h2h_checkpoint_with_provenance(ckpt_path, provenance["md5"], device_obj))
 
     cfg_eval = task_cfg(task, K, n_query=None)
-    hop_set = tuple(cfg_eval.H_test) if task.startswith("task2") else tuple(cfg_eval.H_train)
+    # sec 1.34 F2 (MAJOR fix): the PRIMARY hop-set is ALWAYS H_train, for every task. The sec
+    # 1.31.1 written round-3 baseline this round re-meters against was measured on
+    # H_train=(1,2) for task2 (the TRAINING hop set) -- the pre-fix code read H_test=(3,4) (the
+    # held-out hop set) instead, which is outcome-neutral (both sides read ~chance either way)
+    # but makes the pre-registration diff hop-set-INCOMPARABLE. task1 was already unaffected
+    # (its own primary hop-set was always H_train=(1,); `task.startswith("task2")` was False for
+    # it, so the pre-fix ternary already picked H_train there). Pinned by literal assert, not
+    # merely by convention, so a future task_cfg edit cannot silently drift this.
+    hop_set = tuple(cfg_eval.H_train)
+    if task.startswith("task1"):
+        assert hop_set == (1,), "sec 1.34 F2: task1's primary hop-set must stay H_train=(1,)"
+    elif task.startswith("task2"):
+        assert hop_set == (1, 2), ("sec 1.34 F2: task2's primary hop-set must be H_train=(1,2), "
+                                   "matching the sec 1.31.1 written baseline")
     eval_batches = make_eval_episodes(cfg_eval, pools, device_obj, hop_set)
 
     # --- Leg A: episode-restricted discrete recall, the sec 1.31.1 WIN metric ---
     leg_a = eval_diagnostic_rung1_and_tell(arch, model, rig, eval_batches, pools)
+
+    # sec 1.34 F2: task2 ALSO gets a disclosed SECONDARY Leg-A read on H_test=(3,4) -- NEVER
+    # baseline-comparable (the sec 1.31.1 written baseline never measured this hop-set) and
+    # NEVER substituted for the primary read above; reported for completeness only. task1 gets
+    # no secondary read at all (its primary read was never the comparability problem).
+    leg_a_secondary = None
+    if task.startswith("task2"):
+        hop_set_secondary = tuple(cfg_eval.H_test)
+        assert hop_set_secondary == (3, 4), (
+            "sec 1.34 F2: task2's disclosed secondary hop-set must be H_test=(3,4)")
+        eval_batches_secondary = make_eval_episodes(cfg_eval, pools, device_obj, hop_set_secondary)
+        leg_a_secondary_raw = eval_diagnostic_rung1_and_tell(arch, model, rig,
+                                                              eval_batches_secondary, pools)
+        leg_a_secondary = {"acc_A": leg_a_secondary_raw["accuracy"],
+                           "chance": leg_a_secondary_raw["chance"],
+                           "pass_bar": leg_a_secondary_raw["pass_bar"],
+                           "passed": leg_a_secondary_raw["passed"],
+                           "cos_pred_episode_mean": leg_a_secondary_raw["cos_pred_episode_mean"],
+                           "hop_set": hop_set_secondary, "primary": False,
+                           "baseline_comparable": False,
+                           "note": "disclosed secondary Leg-A read on H_test=(3,4); NOT "
+                                   "comparable to the sec 1.31.1 written baseline (measured on "
+                                   "H_train=(1,2))"}
 
     # --- rung 2 (item 1's relabel + retarget) ---
     rung2 = fit_rung2_identity_classifier(arch, model, cfg_eval, hop_set, pools, device_obj, K,
@@ -337,7 +396,9 @@ def run_cell_round4(cell: dict, provenance_manifest: dict, device: str, out_dir:
         "provenance": provenance,
         "leg_a": {"acc_A": leg_a["accuracy"], "chance": leg_a["chance"],
                  "pass_bar": leg_a["pass_bar"], "passed": leg_a["passed"],
-                 "cos_pred_episode_mean": leg_a["cos_pred_episode_mean"]},
+                 "cos_pred_episode_mean": leg_a["cos_pred_episode_mean"],
+                 "hop_set": hop_set, "primary": True, "baseline_comparable": True},
+        "leg_a_secondary_h_test": leg_a_secondary,
         "rung2_identity_classifier": rung2,
         "instrument_health": instrument_health,
         "leg_b_ridge": leg_b,
@@ -591,6 +652,85 @@ def mode_selftest() -> int:
         "native tap (sec 1.31.2's own requirement: Leg B now exercises this arm too)", ok8,
         f"s0_necessity_check={r3['s0_necessity_check']}")
 
+    # 9 (sec 1.34 F1, BLOCKING fix): _round3_ckpt_filename resolves ALL SEVEN reused cell names
+    #    against a SYNTHETIC calib-cell list mirroring calibration_cells()'s own real shape --
+    #    task1 entries CARRY a "K" key, task2 entries deliberately do NOT (task_cfg pins K=32
+    #    internally for task2 regardless of the K argument, sec 1.34's own root-cause text).
+    #    Pre-fix, matching `cell.get("K") == K` against a MISSING key raised KeyError for BOTH
+    #    task2 reused cells (demonstrated live by the audit) -- this must catch that regression
+    #    if it ever returns.
+    synthetic_calib_cells = [
+        {"arch": "contender", "task": "task1_calib", "role": "primary", "K": 32,
+         "name": "h2h_calib_contender_task1_calib_primary_K32_auxrev2"},
+        {"arch": "ablation", "task": "task1_calib", "role": "primary", "K": 32,
+         "name": "h2h_calib_ablation_task1_calib_primary_K32_auxrev2"},
+        {"arch": "transformer", "task": "task1_calib", "role": "primary", "K": 32,
+         "name": "h2h_calib_transformer_task1_calib_primary_K32_auxrev2"},
+        {"arch": "contender", "task": "task2_calib", "role": "primary",              # NO "K" key
+         "name": "h2h_calib_contender_task2_calib_primary_auxrev2"},                 # -- task2
+        {"arch": "ablation", "task": "task2_calib", "role": "primary",               # NO "K" key
+         "name": "h2h_calib_ablation_task2_calib_primary_auxrev2"},                  # -- task2
+        {"arch": "contender", "task": "task1_calib", "role": "stress_locate_only", "K": 48,
+         "name": "h2h_calib_contender_task1_calib_stress_locate_only_K48_auxrev2"},
+        {"arch": "ablation", "task": "task1_calib", "role": "stress_locate_only", "K": 48,
+         "name": "h2h_calib_ablation_task1_calib_stress_locate_only_K48_auxrev2"},
+    ]
+    reused_specs = [c for c in ROUND4_CELL_SPEC if not c["fresh"]]
+    resolved, errors = [], []
+    for c in reused_specs:
+        try:
+            resolved.append(_round3_ckpt_filename(c["arch"], c["task"], c["K"], c["role"],
+                                                   calib_cells=synthetic_calib_cells))
+        except KeyError as e:
+            errors.append((c["cell_id"], str(e)))
+    ok9 = len(reused_specs) == 7 and not errors and len(resolved) == 7
+    rep("selftest 9 (sec 1.34 F1, BLOCKING fix): _round3_ckpt_filename resolves ALL SEVEN "
+        "reused cell names against a synthetic calib-cell list mirroring the real one (task1 "
+        "entries carry a K key, task2 entries deliberately do NOT) -- the audit's demonstrated "
+        "KeyError on the two task2 reused cells is now impossible", ok9,
+        f"n_reused={len(reused_specs)} n_resolved={len(resolved)} errors={errors}")
+
+    # 10 (sec 1.34 F2, MAJOR fix): task2's round-4 Leg-A PRIMARY read uses H_train=(1,2)
+    #     (matching the sec 1.31.1 written baseline) with a DISCLOSED secondary read on
+    #     H_test=(3,4) alongside it, clearly marked non-primary/non-baseline-comparable; task1
+    #     (selftest 6's own fake cell, `r`, still in scope) carries NO secondary read at all.
+    with tempfile.TemporaryDirectory() as td_ckpt, tempfile.TemporaryDirectory() as td_out:
+        import h2h_cell_train_rd as hct
+        saved = (hct.GRAMMAR_EVAL_EVERY, hct.EVAL_EPISODE_BATCHES, hct.GRAMMAR_BATCH,
+                 hct.RUNG2_TRAIN_STEPS, hct.RUNG2_EVAL_BATCHES)
+        saved_n_fit = N_FIT_BATCHES
+        hct.GRAMMAR_EVAL_EVERY, hct.EVAL_EPISODE_BATCHES, hct.GRAMMAR_BATCH = 2, 1, 4
+        hct.RUNG2_TRAIN_STEPS, hct.RUNG2_EVAL_BATCHES = 5, 1
+        N_FIT_BATCHES = 1
+        fake_cell_t2 = {
+            "cell_id": "fake_fresh_ablation_task2", "arch": "ablation", "task": "task2_calib",
+            "K": 32, "role": "primary", "fresh": True, "seed": 9,
+            "cell_config": {"arch": "ablation", "task": "task2_calib", "role": "selftest",
+                            "budget_frac": 1.0, "seed": 9, "lr": 1e-3, "K": 32,
+                            "name": "fake_fresh_task2_cell", "seed_idx": 0},
+        }
+        try:
+            r4 = run_cell_round4(fake_cell_t2, provenance_manifest={}, device=device, out_dir=td_out,
+                                 ckpt_dir=td_ckpt, fresh_steps_override=2)
+        finally:
+            (hct.GRAMMAR_EVAL_EVERY, hct.EVAL_EPISODE_BATCHES, hct.GRAMMAR_BATCH,
+             hct.RUNG2_TRAIN_STEPS, hct.RUNG2_EVAL_BATCHES) = saved
+            N_FIT_BATCHES = saved_n_fit
+    ok10 = (tuple(r4["leg_a"]["hop_set"]) == (1, 2) and r4["leg_a"]["primary"] is True
+           and r4["leg_a"]["baseline_comparable"] is True
+           and r4["leg_a_secondary_h_test"] is not None
+           and tuple(r4["leg_a_secondary_h_test"]["hop_set"]) == (3, 4)
+           and r4["leg_a_secondary_h_test"]["primary"] is False
+           and r4["leg_a_secondary_h_test"]["baseline_comparable"] is False
+           and r["leg_a_secondary_h_test"] is None and tuple(r["leg_a"]["hop_set"]) == (1,))
+    rep("selftest 10 (sec 1.34 F2): task2's PRIMARY Leg-A read uses H_train=(1,2) (matching the "
+        "sec 1.31.1 written baseline), a DISCLOSED secondary read on H_test=(3,4) sits alongside "
+        "it clearly marked non-primary/non-baseline-comparable; task1 carries no secondary read "
+        "at all", ok10,
+        f"task2_primary_hop_set={r4['leg_a']['hop_set']} "
+        f"task2_secondary={r4['leg_a_secondary_h_test']} "
+        f"task1_secondary={r['leg_a_secondary_h_test']}")
+
     print("=" * 70)
     if failures:
         print(f"SELFTEST: {len(failures)} FAILURE(S): {failures}", file=sys.stderr)
@@ -634,7 +774,9 @@ def main() -> int:
         report = run_all_round4(args.ckpt_dir, args.out_dir, args.device,
                                 fresh_cell_configs=fresh_cfgs)
         summary_path = os.path.join(args.out_dir, "ROUND4_SUMMARY.json")
-        _atomic_dump(summary_path, {cid: {"leg_a": r["leg_a"], "s0_necessity_check": r["s0_necessity_check"]}
+        _atomic_dump(summary_path, {cid: {"leg_a": r["leg_a"],
+                                          "leg_a_secondary_h_test": r["leg_a_secondary_h_test"],
+                                          "s0_necessity_check": r["s0_necessity_check"]}
                                     for cid, r in report["cells"].items()})
         print(f"round 4 complete: {len(report['cells'])} cells -> {args.out_dir}, "
               f"summary at {summary_path}")

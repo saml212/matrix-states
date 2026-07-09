@@ -285,8 +285,28 @@ budget_check
 # AUDIT -> round 4. This stage NEVER auto-fires on a chain (re)launch; the token is written only
 # after that audit clears (sec 1.31.7's own STATUS line: "NO training relaunch until the fixes
 # audit clears"). Resume-safe: a valid ROUND4_SUMMARY.json (9 cell entries) short-circuits.
+#
+# sec 1.34 note v (coordinator decision): round-4 fresh cells export H2H_DIAL_ROUND=4 (so their
+# checkpoints save as `_r4.pt`, sec 1.31.4 item 4's versioned filename) -- scoped to ONLY the
+# round-4 driver invocation below (env-var-prefixed on that one command, never a chain-wide
+# export) so Stage B's OWN round-3 calibration cells above stay on H2H_DIAL_ROUND=3 unmodified;
+# no clobber either way since the 7 reused cells load the UNSUFFIXED round-3 filenames
+# (`_round3_ckpt_filename`'s own docstring), but the label must match the round regardless.
 # ---------------------------------------------------------------------------
 if [ -s "$GATES/ROUND4_AUTHORIZED.token" ]; then
+  # sec 1.34 F3(b): the box-smoke item-11 real-kernel K=48 gate token must exist BEFORE this
+  # stage may run at all -- mirrors Stage 0's own `for tok in ...; do if [ ! -s ... ]` token
+  # discipline above. Run once, ahead of time, on the box:
+  #   python h2h_box_smoke_checklist.py --run-item-11 --gates-dir "$GATES" --device cuda
+  for tok in BOX_SMOKE_ITEM_11_K48_REAL_KERNEL_PASSED.token; do
+    if [ ! -s "$GATES/$tok" ]; then
+      echo "REFUSE: $GATES/$tok missing -- run 'python h2h_box_smoke_checklist.py --run-item-11 " >&2
+      echo "         --gates-dir \"$GATES\" --device cuda' first (sec 1.34 F3(b): the real-kernel " >&2
+      echo "         K=48 rung-2-fit gate, closing selftest 21's analytic-only coverage hole)." >&2
+      touch "$RES/FATAL"
+      exit 1
+    fi
+  done
   if $PY -c "
 import json, sys
 try:
@@ -302,7 +322,7 @@ except Exception:
       touch "$RES/FATAL"
       exit 1
     fi
-    CUDA_VISIBLE_DEVICES="${GPU_LIST[0]}" $PY h2h_round4_driver_rd.py --run-all \
+    CUDA_VISIBLE_DEVICES="${GPU_LIST[0]}" H2H_DIAL_ROUND=4 $PY h2h_round4_driver_rd.py --run-all \
         --ckpt-dir "$CKPT_DIR" --out-dir "$RES/round4" \
         --fresh-cell-configs "$RES/round4/FRESH_CELL_CONFIGS.json" --device cuda \
         2>&1 | tee logs/h2h_25_round4.log \
