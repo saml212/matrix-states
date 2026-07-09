@@ -2623,3 +2623,66 @@ gate-1 calibration → margins freeze recorded → sweep release).
 *(End §1. Rev 0 → ... → §1.19 DESIGN-CLEARED → BUILD (9480ced) →
 §1.20 audit NEEDS-FIXES → fixes (ed6996c) → **re-audit
 FIXES-VERIFIED-CLEARED. DEPLOY STAGE ACTIVE.**)*
+
+---
+
+### 1.21 CALIBRATION RECORD + PROBE DIAGNOSIS (2026-07-09): ROOT CAUSE = NO RECALL PRESSURE IN THE OBJECTIVE — Rev 4 revision round opened
+
+Recorded per the gauntlet-bookkeeping hard rule. Chronology: gate-1
+bands FAILED (rf@0.9=0 on all 9 task-1/2 cells, all arms) → the
+pre-registered §1.3.1.3 aux_weight dial fired (ratio 20.9×) and was
+executed (0.1→2.0 parity pin, commit f3b8343; _auxrev2 re-run) →
+parity ACHIEVED (ratios 1.3-3.6) but all arms plateaued at
+probe_cos_mean 0.12-0.22 → HARD-STOP → box diagnosis on the saved
+checkpoints (0.08 GPU-h; artifacts at results/h2h_rung1/
+probe_diagnosis/ on box).
+
+**DIAGNOSIS (conclusive, chain-of-elimination executed):** task-routing
+failure. The models NEVER LEARNED RECALL: LM-head answer accuracy at or
+below chance in ALL arms (incl. the transformer); a trained
+identity-classifier on the tap reads 1.2-3.2% vs 0.93% chance (the
+answer is NOT in the representation); offline probe refits to
+convergence equal the online plateaus (no under-fit); MLP probes are
+WORSE held-out (no nonlinear treasure). The "CE learns fine" premise
+was a MISREAD — CE≈1.1 is grammar/format statistics; structurally CE
+contains no retrieval signal (each key appears exactly once at bind
+time; query windows never enter CE). The only recall pressure was the
+aux loss, which converged to the EPISODE-MEMBERSHIP local optimum:
+predicted vectors align with the episode-mean of T_val rows at cos
+0.94/0.93 (contender/transformer), whose analytic ceiling 1/√K =
+0.1768 at K=32 matches every plateau. The M-NEW-2 Hadamard asymmetry
+is real and visible one level down (ablation can only reach 0.65
+membership alignment). Codebook exonerated (tied-embedding jump is
+entirely the non-orthogonal-embedding floor: 0.419/0.730/0.424). No
+bar separates anything (best-probe p99=0.45; codebook-correct ≈
+chance).
+
+**Options adjudicated w/ executed evidence:** (a) longer training
+REFUTED (offline convergence = online plateau); (b) tied-embedding
+targets REFUTED (floor artifact + arch-non-neutral, floors
+0.42/0.73/0.42); (c) MLP probe REFUTED (worse held-out; info absent);
+(d) bar re-pin REFUTED (no separation to threshold); (e) K de-load
+COUNTERPRODUCTIVE (membership ceiling rises as 1/√K — amplifies the
+confound). **(f) ADOPTED FOR REV 4: add answer-token CE at the query
+position to the training objective, ALL THREE ARMS SYMMETRIC** —
+recurrent arms continue from cached S_T (forward(query, initial_states
+=S_T): a function of (S_T, query) only — P=1 preserved by causality,
+blank-out-verifiable); transformer already materializes these logits.
+Makes recall NECESSARY; §1.3.1's instrument (frozen T_val, linear
+probe, rf@0.9 decision metric) stays UNCHANGED; M-NEW-2's disclosed
+asymmetry becomes the pre-registered PREDICTION (matvec can reach
+rf@0.9 per §1.3.1.5's own table, Hadamard stays bounded). New pinned
+ce_answer_weight calibrated by the existing step-500 dial. LM-head
+accuracy = disclosed GATE, never the WIN metric (Nichani rule).
+PRE-REGISTERED DIAGNOSTIC LADDER rides along: LM-head accuracy (task
+learned?) → identity-classifier (info in tap?) → rf@0.9 (instrument) —
+any future plateau immediately attributable. Cost: Rev 4 + attack
+round + ~2.3 GPU-h re-calibration (fits margin). Disclosures touched:
+§1.3.1.3 loss formula, §1.9 items 8/9, DEPLOY-PIN-1, M-NEW-4 table.
+
+---
+
+*(End §1. ... → §1.20 build CLEARED → deploy → calibration rounds 1-2
+→ **§1.21 DIAGNOSIS: objective lacked recall pressure; option (f)
+adopted** → Rev 4 revision round ACTIVE → attack → build fix →
+calibration round 3 → margins freeze → sweep.)*
