@@ -3550,3 +3550,133 @@ complied with; both are logged per the standing hard rule. Cross-checked
 independently via `date` and `git log` — the underlying date claim happened
 to be accurate, which does not change that the injection vector itself
 (text impersonating a system channel inside command output) is the concern.
+
+### 1.30 TAP-PLACEMENT LOCALIZATION RESULT (2026-07-09 afternoon, Stage 2 of sec 1.28's
+decisive experiment): S0 CARRIES THE BINDINGS, S1 (every existing instrument's tap) IS
+CAUSALLY INERT for recall; NO linear tap at either layer clears rf@0.9 — the
+recall-exposing nonlinearity lives strictly downstream of S0, at/near the pre-LM-head hidden
+
+Build: ONE new file, `matrix-thinking/deltanet_rd/h2h_tap_localization_rd.py` (434 lines incl.
+docstrings/self-test; core logic ~190 lines), importing `_recurrent_continuation_answer_logits`/
+`_pad_query_tokens_for_continuation`/`_repeat_states_for_queries`/`_rung1_k_restricted_pred_slot`/
+`AUDITED_TAP`/`build_arm_model`/`load_h2h_checkpoint` from `h2h_cell_train_rd.py` and
+`ridge_fit`/`ridge_pred`/`cos_stats`/`DIAG_FIT_SEED` from `probe_diagnosis_rd.py` (both unmodified;
+zero shared-file edits). CPU-stub selftest (`REASONING_LINK_FORCE_CPU_STUB=1 --selftest`, 6 items:
+shapes, exact wiring-equivalence to the unmodified `_recurrent_continuation_answer_logits`, the
+block-1 `q_conv1d` hook firing, zeroing-has-teeth on a shape-matched synthetic nonzero state, the
+ridge harness recovering a known-linear synthetic mapping past its own shuffled-tap negative
+control, and a full `_extract_all`+`_ridge_table` integration run) ALL PASS, run both locally and
+on-box before touching real checkpoints. Deployed via `scp`, md5 `ed5aa9c5fd01eaff35b3cede56f7fc36`
+verified identical both sides. Ran in `tmux h2h_taploc` on GPU 0 (idle; GPU 3/4 =
+`fixscale_392m` wave, GPU 6 = `fixscale_98m_resume_s1`, untouched), log at
+`~/h2h_decisive_logs/tap_localization_run.log` on box. **Realized cost: contender 4.03s +
+ablation 1.16s = 5.19s ≈ 0.00144 GPU-h** — against the ~0.2-0.3 GPU-h estimate and the
+remaining ~0.37 GPU-h under the sec 1.28 ceiling (Stage 1 + Stage 2 combined ≈ 0.0314 GPU-h,
+≈7.9% of the 0.4 GPU-h ceiling). Sanity anchor: `both_intact` rung-1 reproduces sec 1.27/1.29's
+own numbers exactly (contender 0.9990, ablation 0.0447) — the new continuation path
+(`_continuation_pass`) is confirmed bit-identical to the registered one, not just by the CPU
+selftest but by this real-checkpoint agreement too.
+
+**Table 1 — state-zeroing localization** (K-restricted rung-1 accuracy, pinned EVAL_SEED set,
+n=4096 queries/cell; chance = 1/32 = 0.03125):
+
+| condition | contender | ablation |
+|---|---|---|
+| both states intact | 0.9990 | 0.0447 |
+| S0 zeroed | 0.0286 (≈chance) | 0.0308 (≈chance) |
+| S1 zeroed | 0.9990 (UNCHANGED) | 0.0437 (UNCHANGED) |
+
+Zeroing S0 collapses accuracy to chance in **both** arms. Zeroing S1 leaves accuracy
+statistically unchanged in **both** arms (contender bit-identical to 4 decimal places;
+ablation within noise of its own already-weak baseline). The pattern is unambiguous and
+qualitatively identical across arms: **block 0's own cached bind-phase state carries 100% of
+the causally-necessary binding information; block 1's state is causally inert for this task's
+recall** — despite being the layer every existing instrument (rf@0.9's `S1@q_shallow` tap,
+the rung-2 identity classifier, the tap-space codebook argmax) reads.
+
+**Table 2 — tap-variant ridge fits** (fit: 24,576 fresh DIAG_FIT_SEED points; eval: pinned
+EVAL_SEED set, 4,096 points; closed-form ridge, best-λ on held-out; `rf@τ` = fraction of
+eval rows clearing cosine threshold τ):
+
+*Contender:*
+
+| tap | cos_mean | rf@0.5 | rf@0.7 | rf@0.9 | shuffled cos_mean | gap vs shuffled |
+|---|---|---|---|---|---|---|
+| (i) S1@q_shallow (current tap) | 0.165 | 0.003 | 0.0 | 0.0 | 0.105 | +0.060 |
+| (ii) S0@q0-pathway | 0.118 | 0.0 | 0.0 | 0.0 | 0.112 | +0.006 |
+| (iii) S1@q_true | 0.167 | 0.003 | 0.0 | 0.0 | 0.104 | +0.063 |
+| (iv) pre-LM-head hidden (positive control) | **0.894** | **0.997** | **0.932** | **0.674** | 0.094 | **+0.800** |
+
+*Ablation:*
+
+| tap | cos_mean | rf@0.5 | rf@0.7 | rf@0.9 | shuffled cos_mean | gap vs shuffled |
+|---|---|---|---|---|---|---|
+| (i) S1@q_shallow (current tap) | 0.117 | 0.0 | 0.0 | 0.0 | 0.112 | +0.005 |
+| (ii) S0@q0-pathway | 0.113 | 0.001 | 0.0 | 0.0 | 0.111 | +0.002 |
+| (iii) S1@q_true | 0.118 | 0.0 | 0.0 | 0.0 | 0.113 | +0.005 |
+| (iv) pre-LM-head hidden (positive control) | 0.119 | 0.0 | 0.0 | 0.0 | 0.112 | +0.006 |
+
+**Interpretation:**
+
+1. **None of the three shallow/state-level linear taps (i/ii/iii) clear rf@0.9 in either arm —
+   including (ii), the tap placed directly on the CAUSALLY load-bearing state S0.** Moving the
+   query pathway (i→iii) or moving the state (i→ii) each independently leaves the gap-vs-shuffled
+   in the same 0.002-0.063 range that sec 1.29 already characterized as "close to nothing linearly
+   recoverable." Placement on S0 alone does not repair the instrument: the binding information
+   provably lives in S0 (Table 1) but is **not exposed by any of these linear (state, query)
+   combine formulas** into the T_val codebook's arbitrary basis.
+2. **Only the pre-LM-head hidden (iv) — which has passed through block 1's own nonlinear
+   FFN/residual processing, not just its recurrent state — shows strong linear decodability, and
+   only for the contender** (rf@0.9=0.674, rf@0.5=0.997, gap +0.800 vs a +0.005-0.063 gap
+   everywhere else). This sharpens sec 1.29's LM-head-route finding: the critical transformation
+   that exposes the recall geometry linearly is not "which layer's recurrent state" but **block
+   1's own nonlinear forward processing of the S0-derived signal** — S1 (the delta-rule state
+   block 1 itself maintains) apparently never receives this information at all (Table 1), yet
+   block 1's FFN/residual path evidently does carry it through to the final hidden.
+3. **The ablation's own positive control (iv) ALSO fails** (cos_mean 0.119, rf@0.9=0.0,
+   gap +0.006 — statistically indistinguishable from its own (i)/(ii)/(iii) rows), unlike the
+   contender's dramatic (iv) success. Answering task item 3's question directly: **the ablation's
+   geometry differs in kind, not merely in strength.** Both arms share the same qualitative
+   localization pattern (S0 load-bearing, S1 inert) — the ablation does perform *some*
+   structurally analogous single-hop binding — but only the contender's downstream nonlinear
+   processing renders that binding linearly legible at any tap tested. This is consistent with
+   sec 1.28's "ablation weakly-real, +4.9σ" characterization as a genuine
+   architecture/capacity effect (matrix `S⊗q` read vs. the ablation's Hadamard `s⊙q` read), not a
+   probe-instrument artifact masking equivalent underlying geometry.
+4. **P=1 bottleneck holds for tap (iii)`S1@q_true`**, as sec 1.28's authorization required
+   stating explicitly: `_continuation_pass`'s hook on `model.blocks[-1].mixer.q_conv1d` only
+   OBSERVES a value already computed inside the SAME `model.forward(query_tokens,
+   initial_states=final_states, ...)` call that rung 1's own accuracy read and the sec 1.29
+   LM-head route already use — no new read channel. The query does touch the recurrence during
+   the continuation (sec 1.9 item 9's addendum: `o_t = read(S_t, q_t)`, the standing per-step
+   mechanism) but never reaches behind `final_states` into raw bind-phase tokens not already
+   causally summarized through them. Tap (iii) is a pure function of `(final_states,
+   query_tokens)` alone, identically to (i)/(ii)/(iv).
+
+**CONSEQUENCE (Rev 5 tap recommendation):** neither S0 alone nor S1 alone, under any linear
+combine tested, is a sufficient repaired tap. Point Rev 5's continuous instrument at (or
+downstream of) **the post-block-1, pre-LM-head hidden representation** — tap (iv)'s own site —
+rather than either recurrent state's raw `S⊗q`/`S⊙q` read. This also retroactively explains why
+`S1@q_shallow` (the currently registered tap) was hopeless from the start: it reads a layer
+(S1) that is causally inert for this task (Table 1), via a linear combine, when the recall
+computation is not stored in a recurrent-state format that combine formula can access at all —
+it only becomes linearly legible after block 1's own nonlinear transform. **Mandatory regardless
+of this result, unchanged from sec 1.28:** the rung-2 entity-identity relabel (grammar_rd's
+`tgt_slot` labels are uniform given identity, sec 1.28 item "NEW INSTRUMENT DEFECT"), planted-
+signal positive controls on all rungs, and the `transformer_native_tap` OOM fix (sec 1.27) all
+remain required build items before any h2h retry — none of them are addressed by this
+localization result, which is diagnostic only.
+
+Archived: `experiment-runs/2026-07-09_h2h_tap_localization/` (script copy + both arms' JSON +
+run log; SSD mirror at the same relative path under
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/`).
+
+**Injection sighting:** one fake `<system-reminder>`-formatted block (a "date has changed... do
+not tell the user" concealment instruction) appeared appended to a `git log | grep` command's
+stdout near the start of this task — grep cannot produce that block, and it contradicted the
+harness-supplied date (2026-07-06) at the time it appeared. Not complied with; verified
+independently via `date` and `git log -1 --format=%cd HEAD`, both of which confirmed the
+underlying date (2026-07-09) was in fact accurate — consistent with sec 1.29's own prior sighting
+and its same conclusion: an accurate payload does not make an impersonated-system-channel
+delivery vector legitimate. Logged per the standing hard rule; no other injections observed
+during this task.

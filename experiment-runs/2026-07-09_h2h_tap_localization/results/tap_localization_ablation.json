@@ -1,0 +1,68 @@
+{
+  "arch": "ablation",
+  "ckpt": "/data/h2h_rung1_ckpts/h2h_calib_ablation_task1_calib_primary_K32_auxrev2.pt",
+  "chance_episode": 0.03125,
+  "localization": {
+    "both_intact": {
+      "accuracy": 0.044677734375,
+      "n": 4096
+    },
+    "s0_zeroed": {
+      "accuracy": 0.03076171875,
+      "n": 4096
+    },
+    "s1_zeroed": {
+      "accuracy": 0.043701171875,
+      "n": 4096
+    }
+  },
+  "tap_variants": {
+    "i_s1_qshallow": {
+      "lambda": 100.0,
+      "cos_mean": 0.11728809028863907,
+      "rf@0.5": 0.0,
+      "rf@0.6": 0.0,
+      "rf@0.7": 0.0,
+      "rf@0.8": 0.0,
+      "rf@0.9": 0.0,
+      "shuffled_control_cos_mean": 0.11180248111486435,
+      "gap_vs_shuffled_cos_mean": 0.005485609173774719
+    },
+    "ii_s0_q0": {
+      "lambda": 100.0,
+      "cos_mean": 0.11289513111114502,
+      "rf@0.5": 0.00146484375,
+      "rf@0.6": 0.0,
+      "rf@0.7": 0.0,
+      "rf@0.8": 0.0,
+      "rf@0.9": 0.0,
+      "shuffled_control_cos_mean": 0.11052392423152924,
+      "gap_vs_shuffled_cos_mean": 0.0023712068796157837
+    },
+    "iii_s1_qtrue": {
+      "lambda": 100.0,
+      "cos_mean": 0.11805249750614166,
+      "rf@0.5": 0.0,
+      "rf@0.6": 0.0,
+      "rf@0.7": 0.0,
+      "rf@0.8": 0.0,
+      "rf@0.9": 0.0,
+      "shuffled_control_cos_mean": 0.11321143805980682,
+      "gap_vs_shuffled_cos_mean": 0.004841059446334839
+    },
+    "iv_prelmhead": {
+      "lambda": 100.0,
+      "cos_mean": 0.11890894919633865,
+      "rf@0.5": 0.0,
+      "rf@0.6": 0.0,
+      "rf@0.7": 0.0,
+      "rf@0.8": 0.0,
+      "rf@0.9": 0.0,
+      "shuffled_control_cos_mean": 0.11245682090520859,
+      "gap_vs_shuffled_cos_mean": 0.006452128291130066
+    }
+  },
+  "n_fit_points": 24576,
+  "n_eval_points": 4096,
+  "wall_s": 1.1580049991607666
+}
