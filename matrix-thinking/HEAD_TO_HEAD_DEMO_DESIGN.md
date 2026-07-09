@@ -3242,3 +3242,49 @@ required pre-launch)**. PRE-LAUNCH FIX ACTIVE → fresh timing pilot →
 calibration round 3. NOTE: margin freeze ALSO blocked on the
 fix-at-scale attack's per_token-vs-global adjudication (§13/660cffc) —
 the contender pin verifies before any freeze.)*
+
+### 1.25 BUILD-FIX VERIFICATION (2026-07-09 overnight): AUD2-F1..F4 ALL LANDED — commit 68e2768; ~1.2-1.5× cost-target closure REGISTERED to the box-side timing pilot
+
+Independent fix agent implemented and tested all four §1.24 findings;
+coordinator verified the commit (4 files, specific-path staging, clean-audit
+sentinel) and records here per gauntlet bookkeeping.
+
+- **AUD2-F1 (LM-head-over-padding, the 4× waste):**
+  `_recurrent_continuation_answer_logits` now forwards with
+  `return_hidden=True` (flag added to `DeltaNetLM.forward` AND
+  `AblationLM.forward`, mirrored) and slices to the answer position BEFORE
+  the vocab matmul. New selftest 16 re-derives the pre-fix computation and
+  asserts bit-identical answer-position logits — PASS both arches.
+  **Op-level result: LM-head matmul 60×/126× faster (1204→20ms contender,
+  1183→9ms ablation; ≈99% FLOP cut, exactly as §1.24 designed).**
+  End-to-end CPU-stub ratio landed at 2.49×/3.55× (vs old 5.47×/7.57×
+  reproduced) — NOT the ~1.2-1.5× target, but the residual is 97.7-98.6%
+  CPU-stub padded-recurrence overhead (the stub is python tensor ops, not
+  the fused Triton kernel), i.e. an instrument confound, not fix failure.
+  **The target's pass/fail is therefore REGISTERED to the box-side fresh
+  timing pilot (real kernel), which was already the §1.24 mandate.**
+  [LEARN] recorded: don't let stub-dominated end-to-end wall-clock stand in
+  for a GPU-kernel-cost claim — decompose and register the box number.
+- **AUD2-F2 (rung-1 gather untested):** logic extracted to
+  `_rung1_k_restricted_pred_slot`; new selftest 17 (planted-answer
+  synthetic: non-candidate holds global max, candidate holds max-among-K).
+  §1.24 mutation (a) run as a REAL negative control against the production
+  function: exactly 1 failure (selftest 17), isolated, exit 1 — the test
+  has teeth.
+- **AUD2-F3:** selftest 13 hardened with `id()`/`data_ptr()` distinctness
+  asserts (aliased-instance weakening can't pass).
+- **AUD2-F4 (chain dial-round mechanics):** `export H2H_DIAL_ROUND=3`
+  before Stage B + documented round-4 invalidation procedure; Stage-D guard
+  fixed STRUCTURALLY — step-500 dial now also requires
+  `cell.get("role") != "sweep"` (sweep cells carry role=="sweep" by
+  construction; can't leak the way an unset env var could).
+
+Full CPU selftest suite 17/17 PASS under the stub. Security: one more
+fake-system-reminder injection sighted in `git pull` stdout (date-change +
+concealment), disregarded/reported — tallied in `STATE.md`.
+
+**NEXT (unchanged §1.24 chain): deploy patch to box (md5) → FRESH timing
+pilot (re-price calibration round 3 + sweep; closes the 1.2-1.5× target on
+the real kernel) → calibration round 3 (9 cells) → ladder+bands → margin
+freeze → token → sweep. GPU note: fix-at-scale gate tier holds GPUs 1-4;
+h2h pilot/calibration go to GPUs 5-7 (and 0 after the 2×2 finishes).**
