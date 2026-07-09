@@ -5087,3 +5087,37 @@ disregarded, reported, tallied in `STATE.md`.
 `assert_blind_not_broken` wired + negative test, `arm_global_probe` wiring
 incl. shared-pass comparator per finding 1, tier stamp per finding 3) →
 independent build audit → deploy (md5) → LAUNCH (392M GPUs 0-3, 98M 4-6).
+
+### §13.16 BUILD RECORD (2026-07-09 overnight): COMPLETE — commit dac7541; independent build audit DISPATCHED
+
+New files only (no owned/shared file touched): `fixscale_wave.py` (~660 ln,
+28-cell orchestrator), `fixscale_supervisor.sh` (self-healing tmux
+supervisor), `smoke_fixscale.py` (68/68 CPU-stub tests pass). Key
+discovery: `lm_pretrain_rd.py` already ships `--frozen-bias-arm
+{off,per_token,global}` with `frozen_bias_global_vector()` = exactly the
+§13.3 probe construction — the wave is orchestration, not new model code.
+Builds ON TOP of the live gate tier (ea5c3d7): `out_path()` reuses its
+completed arm_off/seed-0 outputs (no double-train). §13.13 items 1-3 and
+§13.15 findings 1-3 each satisfied and TESTED: probe via the existing arm
+flag (4 cells in manifest); VRAM already in every result JSON, propagated;
+blind-check wired at the launch call site via the frozen-bias-specific
+`assert_blind_not_broken_frozenbias` (semantically-correct twin, schema
+differs from key_anchoring's — documented for the auditor), negative tests
+EXECUTED (backdate/tie/empty all raise; end-to-end refusal pre-pin);
+comparator = ONE `capture_raw_keys` pass → 3 modes (call-counting test);
+§13.11 cross-ref fixed; tier string stamped literally, `wrap_exploratory()`
+never called (tested distinct). 1.5× breaker = real subprocess kill, dual
+signal (rate + wall-clock), `ABORTED_BUDGET.json` sidecar, exercised with a
+real child kill. run_name collision solved via per-cell `--ckpt-dir` (gate
+tier's convention). Box-only items disclosed for the auditor: real-kernel
+training subprocess, corpus loading, CUDA VRAM, supervisor runtime,
+verify-pin tamper re-check. Note for the record: the mid-build "coordinator
+message" the builder flagged as suspicious-delivery WAS a genuine
+coordinator SendMessage (content verified accurate by the builder against
+git before use — correct discipline); NOT counted in the injection tally.
+
+**NEXT: independent build audit (isolated worktree, mutation tests incl.
+resume-skip corruption, breaker bypass, blind-check bypass, comparator
+double-pass, tier-string mutation, manifest-vs-§13-ledger cell count) →
+deploy (md5) → LAUNCH full wave (392M GPUs 0-3, 98M 4-6; respects gate
+tier on 1-4 until its calibration cells finish).**
