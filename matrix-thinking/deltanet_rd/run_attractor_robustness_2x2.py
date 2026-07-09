@@ -48,8 +48,8 @@ fires iff ANY non-baseline cell's Gram-deviation direction (delta vs the baselin
 corpus reading) exceeds 2x the ARCHIVED cross-seed noise floor at this EXACT (dm256/ds64/L2)
 config and corpus -- cited source: experiment-runs/2026-07-06_trajectory_probes/
 reference_finals_archived.json, "mixcontrol" family, `archived4_gram_deviation_mean` field,
-cross-seed {0,1,2} std at corpus_trained_on="openr1-mix-ext" (std=0.8468224446008585, n=3) /
-"wikitext-mix-ext" (std=2.034374543082436, n=3) -- see ARCHIVED_SEED_NOISE_GRAM_DEV_STD below,
+cross-seed {0,1,2} same-corpus std at "openr1-mix-ext" (std=2.244355, n=3, audit-corrected) /
+"wikitext-mix-ext" (std=2.216699, n=3) -- see ARCHIVED_SEED_NOISE_GRAM_DEV_STD below,
 independently recomputed from that same archive file at build time (not hand-copied from prose).
 
 Hard-abort ceilings (never overridable from the CLI, matching this codebase's own budget_guard
@@ -131,15 +131,20 @@ ESCALATION_CELLS = 12           # 2x2 x 3 seeds
 SCREENING_CEILING_GPU_H = round(SCREENING_CELLS * CALIBRATED_GPU_H_PER_CELL, 4)      # ~1.0096
 ESCALATION_CEILING_GPU_H = 3.03   # task-given hard-abort constant, taken verbatim.
 
-# Archived cross-seed noise floor for the escalation rule's own trigger threshold -- independently
-# RECOMPUTED at build time (not hand-copied) from
-# experiment-runs/2026-07-06_trajectory_probes/reference_finals_archived.json, "mixcontrol" family,
-# `archived4_gram_deviation_mean` field, grouped by corpus_trained_on, seeds {0,1,2}, at the
-# IDENTICAL (dm256/ds64/L2, ~14M param) architecture this build trains at. Population std
-# (ddof=0), matching FROZEN_BIAS_LM_DESIGN.md sec 7.1-real's own "real per-corpus std" derivation.
+# Archived cross-seed noise floor for the escalation rule's own trigger threshold.
+# AUDIT CORRECTION (build audit, 2026-07-09): the build originally cited
+# `archived4_gram_deviation_mean`'s per-corpus stds (0.8468 / 2.0344) -- but that field is
+# POOLED ACROSS 4 out-of-distribution probe corpora (build_tidy.py:22), NOT a same-corpus
+# statistic, and understated openr1-mix-ext's true same-corpus seed noise by 2.65x (biasing
+# the n=1 screening toward false-positive escalation on pure seed noise). The values below
+# are the audit's independent recomputation of the TRUE same-corpus cross-seed std, computed
+# directly from the raw archived probe JSONs
+# (experiment-runs/2026-07-06_trajectory_probes/mixcontrol/{corpus}_s{0,1,2}.json, the exact
+# same 3 checkpoints at the IDENTICAL dm256/ds64/L2 architecture) using the exact aggregation
+# gram_deviation_same_corpus performs. Population std (ddof=0).
 ARCHIVED_SEED_NOISE_GRAM_DEV_STD = {
-    "openr1-mix-ext": 0.8468224446008585,
-    "wikitext-mix-ext": 2.034374543082436,
+    "openr1-mix-ext": 2.244355,
+    "wikitext-mix-ext": 2.216699,
 }
 ESCALATION_TRIGGER_MULTIPLE = 2.0
 
@@ -483,7 +488,10 @@ def aggregate(out_dir: str, cells: list[dict]) -> dict:
 
     gram_dev_mean_by_key = {k: sum(v) / len(v) for k, v in gram_dev_by_key.items() if v}
     report = {"cells": [c["name"] for c in cells], "gram_dev_mean_by_cell_key": gram_dev_mean_by_key,
-              "rec_at_09_by_cell_key": rec_at_09_by_key}
+              "rec_at_09_by_cell_key": rec_at_09_by_key,
+              "rec_at_09_note": ("PROBE-INVALID / categorical-0.0 floor expected in every arm "
+                                 "(zero-shot K-cycle transplant, see module docstring) -- "
+                                 "NON-DECISIONAL, not read by should_escalate().")}
     if BASELINE_CELL_KEY in gram_dev_mean_by_key and len(gram_dev_mean_by_key) == len(
             {c["key"] for c in cells}):
         fire, detail = should_escalate(gram_dev_mean_by_key)
