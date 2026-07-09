@@ -1,0 +1,33 @@
+{
+  "real_rate_per_cell": 0.040787442935837644,
+  "per_cell_rates": [
+    0.016811413102679782,
+    0.04197228531042735,
+    0.041988336245218916,
+    0.016726113226678635,
+    0.08643906679418352
+  ],
+  "n_cells": 5,
+  "steps_per_group": {
+    "S3": 8000,
+    "S4": 20000,
+    "A5": 20000,
+    "S5": 8000,
+    "A6": 40000
+  },
+  "cell_ids": [
+    "A5__unconstrained__seed0",
+    "A6__unconstrained__seed0",
+    "S3__unconstrained__seed0",
+    "S4__unconstrained__seed0",
+    "S5__unconstrained__seed0"
+  ],
+  "groups": [
+    "A5",
+    "A6",
+    "S3",
+    "S4",
+    "S5"
+  ],
+  "written_at": 1783577347.6154609
+}

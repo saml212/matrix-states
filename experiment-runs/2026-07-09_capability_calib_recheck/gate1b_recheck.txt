@@ -1,0 +1,55 @@
+====================================================================================================
+GATE 1(b) -- synthetic-injection acceptance test on the PRODUCTION harness (S4)
+====================================================================================================
+
+[step 1] query-coverage guard (REAL, group_task.check_coverage_with_retry, S4, bar=14, N=50):
+  result=pass  attempts=[{'attempt': 0, 'seed': 17001, 'distinct_count': 18, 'passed': True}]
+
+[step 2] draw the REAL N=50 held-out S4 word sample (seed=17001):
+  drew 50 words; distinct S4 elements reached = 18 (of |S4|=24)
+
+[step 3] REAL fit/eval split with diversity-floor retry (readout._split_with_diversity_retry):
+  result=pass  n_fit=30  n_eval=20  disjoint=True
+
+[ground truth] c_true=1.7, Q_true AMBIENT d_state=5 orthogonal (||QQ^T-I||=3.93e-16), det(Q_true)=-1.0000  (Rev 5: was d_min=3-dimensional pre-Rev-5)
+
+=== honest: exact conjugation + noise(std=0.03) ===
+  on-disk round-trip: /tmp/tmpy3o0ondw/zdump_honest.npz  (Z ambient d_state=5, rho d_min=3, shapes/dtypes/values verified identical)
+  entity_subspace_from_words (CENTERED, production) -> restrict -> degauge -> score
+  EVAL SET (n=20, never used to fit c_hat/Q_hat): mean_cos=0.046011  mean_rel_err=1.319006  recovered_frac@0.9=0.0500  crosscheck(full-Q) mean_cos=0.999594
+
+[negative control] rank(Q_def)=2 (of 3) -- d_min-scale Q_true's last row zeroed (S1.3.2's own construction), embedded into the ambient target with an UNTOUCHED identity complement
+
+=== corrupt: rank-deficient Q_def (NEGATIVE CONTROL) ===
+  on-disk round-trip: /tmp/tmpy3o0ondw/zdump_corrupt.npz  (Z ambient d_state=5, rho d_min=3, shapes/dtypes/values verified identical)
+  entity_subspace_from_words (CENTERED, production) -> restrict -> degauge -> score
+  EVAL SET (n=20, never used to fit c_hat/Q_hat): mean_cos=0.533837  mean_rel_err=0.874750  recovered_frac@0.9=0.3500  crosscheck(full-Q) mean_cos=0.641885
+
+[negative control -- build item (c)] re-deriving U from the IDENTICAL honest ambient Z-dump via the OLD, UNCENTERED covariance (S1.25 DEFECT 1's exact statistic):
+
+=== honest data, UNCENTERED entity_subspace_from_words (NEGATIVE CONTROL -- OLD uncentered entity_subspace_from_words) ===
+  same honest ambient Z-dump, uncentered SVD -> restrict -> degauge -> score
+  EVAL SET (n=20): mean_cos=0.084111  mean_rel_err=1.346670  recovered_frac@0.9=0.0500
+
+[gate 1(b) scoring note] honest scale-only (PRIMARY, real-checkpoint metric) mean_cos=0.0460 vs honest crosscheck (full-Q, THIS test's metric) mean_cos=0.9996 -- the gap confirms Q_true is genuinely non-identity here (as intended), so gate 1(b) grades crosscheck_*, not mean_cos.
+
+====================================================================================================
+GATE 1(b) ACCEPTANCE CHECKS (graded on crosscheck_* / full-Q Procrustes -- see note above)
+====================================================================================================
+  (1) recovery:            mean_cos=0.999594 > 0.95 ?  PASS
+      recovered_frac@0.9=1.0000 >= 0.9 ?  PASS
+  (2) negative NOT rescued: mean_cos gap = 0.357709 >= 0.3 ?  PASS
+      corrupt recovered_frac@0.9=0.2500 < 0.5 ?  PASS
+  (3) UNCENTERED negative control MUST FAIL the honest-recovery bar (S1.25 DEFECT 1, build item (c)): uncentered mean_cos=0.705261 <= 0.95 ?  PASS (correctly fails)
+      centered-vs-uncentered gap on IDENTICAL data: 0.294334 (S1.25 cites 0.9996-0.711=0.2886 on real-checkpoint-derived synthetic data; this instance's exact gap will differ with the RNG draw, sign/direction is what's load-bearing)
+
+====================================================================================================
+GATE 1(b) VERDICT: ALL ACCEPTANCE CHECKS PASSED (incl. build item (c)'s uncentered
+negative control). The production degauging harness (query-coverage guard -> fit/eval
+split w/ diversity-floor retry -> on-disk AMBIENT dump round-trip -> CENTERED
+entity_subspace_from_words -> restrict -> Procrustes/scale degauging -> disjoint-eval
+scoring) correctly recovers a known gauge under noise, correctly FAILS to rescue a
+rank-deficient corruption, AND correctly demonstrates the OLD uncentered subspace
+derivation fails on the SAME data the centered fix passes -- wired through the REAL
+production code path, not a standalone re-run of the toy script.
+====================================================================================================

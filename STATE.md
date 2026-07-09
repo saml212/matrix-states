@@ -124,12 +124,19 @@ reserved for genuine pathology). **STATUS: Rev 7 folded (9245aa4) + all 4
 production items BUILT (f8f503e, 13/13 smoke) → INDEPENDENT BUILD AUDIT
 RETURNED (2026-07-09 overnight): NEEDS-FIXES, narrow — no production
 defect; 3 test-teeth gaps (worst: the §1.25-DEFECT-2 eval-sampler
-regression passes the whole suite silently) + 1 archive-provenance gap.
-Full record: EXPERIMENT_LOG.md 2026-07-09 overnight entry (fold §1.32
-pointer at next registry touch). Teeth fixes F1-F3 + archive pull F4
-dispatched — REQUIRED before --sweep AUTHORIZE, NOT blocking the 5-cell
-calibration re-check, which goes to GPU 0 as soon as the 2×2 screening
-frees it.**
+regression passes the whole suite silently) + 1 archive-provenance gap →
+F1-F4 teeth fixes LANDED (27c97a1) → **DEPLOY + CALIBRATION RE-CHECK
+COMPLETE (2026-07-09): all 5 calibration cells (S3/S4/A5/S5/A6) clear
+gate 1(a)'s HARD bar on the FIRST measurement at the Rev-7 pinned budgets
+(margins 0.0267-0.0825, all ≥0.02), gate-1(b) ambient injection PASSES on
+the deployed production path (centered 0.9996/uncentered 0.7053, matching
+S1.25's cited figures), box smoke 13/13. Realized 0.2039 GPU-h. GATE
+VERDICT: SWEEP-READY — no escalation/routing needed. Full record:
+EXPERIMENT_LOG.md 2026-07-09 entry; archive
+`experiment-runs/2026-07-09_capability_calib_recheck/`.** `--sweep`
+itself still separately gates on the GPU-h projection under the 30 GPU-h
+cap and `CAPABILITY_SEP_PI_SIGNOFF=1` — the 58-cell sweep launch is a
+follow-on dispatch, not yet executed.
 
 ### 3. Attractor-Robustness 2×2 (novelty stress-test follow-on, 2026-07-09)
 
@@ -425,11 +432,14 @@ correction pass, out of scope for this consolidation.
   — gate failed, pilot-only spend (≈0.02 GPU-h), coordinator decision
   pending** (`experiment-runs/2026-07-09_h2h_timing2_launch/`).
 - phase2b: 8.3/66.5.
-- capability-separation Stage 1: **≈0.77/30 realized** (calibration
-  0.0895 + gate-1 diagnosis 0.38 + round-7 L=1 diagnostic 0.30); the
-  main 58-cell sweep (≈2.51 GPU-h raw) is no longer gated (§1.30 lifted
-  the HARD-STOP) but is not yet authorized — pending a micro-attack on
-  Rev 7 + 4 outstanding build items + a build audit (campaign 2).
+- capability-separation Stage 1: **≈0.97/30 realized** (calibration
+  0.0895 + gate-1 diagnosis 0.38 + round-7 L=1 diagnostic 0.30 +
+  2026-07-09 Rev-7 calibration re-check 0.2039); the main 58-cell sweep
+  (≈2.51 GPU-h raw) cleared its last pre-`--sweep` gates this pass (build
+  audit teeth F1-F4 landed + calibration re-check SWEEP-READY, both
+  2026-07-09) but `--sweep` itself has not yet been invoked (its own
+  GPU-h-projection + PI-signoff gates remain, plus PI authorization to
+  launch).
 - attractor-robustness 2×2: **0 realized** / screening ceiling 1.0096,
   escalation ceiling 3.03 (contingent on a qualitative split).
 - fix-at-scale: **cap 300 GPU-h, RATIFIED-in-effect (the PI's verbatim
