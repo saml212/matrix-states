@@ -4625,3 +4625,15 @@ names (the sweep saves `_r4.pt` per §1.31.4 item 4); (b) the TASK2
 DIAGNOSIS ROUND + the K48 stress fresh cell ride behind the sweep;
 (c) sweep harvest → verdict-grade n=3 paired CIs → the §1.31.6 claim
 (with its matched-budget + single-seed caveats retired).
+
+### 1.39 ERRATUM — §1.9's "≈168 GPU-h escalation" figure (recorded correction, per the §13.13 trace)
+
+§1.9 item 1's escalation-rung figure (line ~1607: "6 cells at the SAME
+20,000-step budget would cost ≈168 GPU-h — more than the ledger") was a
+6× ARITHMETIC ERROR, confirmed and traced by the fix-at-scale attack
+round (§13.13 of FROZEN_BIAS_LM_DESIGN.md: 128.3 GPU-h ÷ 91,552 steps —
+a wave-total divided by one cell's steps). The corrected figure is
+**≈28 GPU-h (6 × 4.671 GPU-h/cell at 20k steps, measured)** — the
+escalation is AFFORDABLE and the §1.9 infeasibility conclusion is
+RE-OPENED (already noted in STATE's PENDING PI DECISIONS item 6). The
+original §1.9 text is left in place as history; this erratum governs.
