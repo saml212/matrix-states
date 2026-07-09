@@ -3344,3 +3344,42 @@ charter (≈192 GPU-h/day supply). **Round 3 (9 cells) AUTHORIZED at 3.593
 GPU-h, GPUs 5-7; the ladder/band analysis and margin freeze remain gated
 on its results as before. The §1.6 price row is superseded by the §1.26
 measured rates for all downstream pricing.**
+
+### 1.27 CALIBRATION ROUND 3 VERDICT (2026-07-09 morning): FAIL — two-layer, recorded honestly; a decisive DISSOCIATION found; diagnosis round dispatched
+
+**Mechanical layer:** the round FATAL'd before its own band check.
+`transformer_task1_calib_stress_K48`'s POST-TRAINING rung-2 fit OOM'd
+deterministically ×3 (98.36 GiB alloc: `probe_head_rd.py:173
+transformer_native_tap` → `transformer_baseline_rd.py:218` — an UNSLICED
+full-vocab LM head over the K=48 episode set; a SIBLING of AUD2-F1 in a
+code path the §1.24 fix did not cover) → MAX_CELL_STRIKES → top-level
+`results/h2h_rung1/FATAL` at 08:25Z (outside calib/, which is why early
+marker checks missed it). `transformer_task2_primary` never launched
+(last in pending order). H2H_DIAL_ROUND=3 confirmed in effect from the
+raw JSONs. The training itself was clean (the crashed cell trained
+5000/5000 before the probe-fit OOM).
+
+**Substantive layer (raw numbers, 5 of 6 primary cells with data):** the
+pre-registered gate (`rung1 > 3×chance` AND `rf@0.9 > 0`) FAILS in all 5
+— `final_recovered_frac_*` reads exactly 0.0 everywhere, the same
+continuous-probe plateau as rounds 1-2. **BUT the discrete leg
+DISSOCIATES: contender_task1_primary rung1 accuracy = 0.9990 (chance
+0.03125; ablation 0.0447; transformer 0.0295).** The Rev-4 answer-CE
+objective DID produce recall — near-perfect K-restricted retrieval, arm-
+separated exactly as the capability thesis predicts — while the
+continuous rf@0.9 instrument sees none of it. Given this project's
+record (five instrument defects found across campaigns this week), the
+probe/recovery leg is the prime suspect; alternatively the model stores
+answers in a geometry rf@0.9's cosine bar cannot certify. THIS
+DISSOCIATION, not the 0.0, is the finding.
+
+**DISPOSITION:** (1) DIAGNOSIS ROUND dispatched (read-only: the
+rf@0.9-vs-rung1 dissociation — instrument defect vs storage geometry;
+no GPU). (2) BUILD FIX required before any h2h retry: slice-before-
+matmul in transformer_native_tap (the AUD2-F1 sibling), plus a smoke
+that runs the rung-2 fit at K=48 on real kernels. (3) NO forward motion
+(ladder/bands/margin freeze/sweep) until the diagnosis adjudicates. (4)
+Realized round-3 spend ≈ authorized envelope; the crashed cell's
+training compute is reusable (ckpt on disk). Rounds 1-2 precedent
+honored: failures are data — and this one carries the campaign's first
+positive discrete-recall separation.
