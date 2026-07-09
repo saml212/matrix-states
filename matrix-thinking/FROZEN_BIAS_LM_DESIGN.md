@@ -4849,8 +4849,13 @@ mirrored into this file's own §8.2a.
    98M/392M cells (qk-norm ON throughout, unvaried) would need re-reading against
    that finding, not silently assumed unaffected. Flagged as an open dependency,
    not resolved here.
-   **Rev 1 status (§13.13 BINDING item 4): stays open, by design, not by
-   oversight.** §13.13's own "Open items for the next revision round" list
+   **Rev 1 status (§13.15 finding 2 fix: this item is tracked by §13.13's
+   unnumbered "Open items for the next revision round" bullet, NOT a
+   "BINDING item" — §13.13's own BINDING list has only items (1)-(3);
+   the earlier "BINDING item 4" citation here was a fabricated
+   cross-reference, corrected in-place, substance unchanged): stays open,
+   by design, not by oversight.** §13.13's own "Open items for the next
+   revision round" list
    (immediately above the ATTACK ROUND 1 VERDICT) already carries this exact
    item — "§13.11 item 5 (qk-norm interaction) — resolve once
    `ATTRACTOR-ROBUSTNESS 2×2` reports" — and the binding resolution for this
