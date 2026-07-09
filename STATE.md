@@ -448,7 +448,16 @@ verified). **SECOND TRACK (parallel-able):** rank-budgeted writes
 against arXiv:2602.04852/2602.02195, both descriptive-only, and Elastic
 Spectral SSM's global-only budget); ≈25-35 GPU-h. **Cheap piggyback:**
 an orthogonal-complement novelty detector on already-archived Z-dumps
-(near-zero GPU cost, a unique instrument). A DO-NOT-BUILD list
+(near-zero GPU cost, a unique instrument). **RUN + HARVESTED 2026-07-09
+(0 GPU-h): verdict = architecture-conditional — Task E encoder states
+are Z ≈ c*·(I_d + rank-(K−1) task correction) (complement = c*·I at
+0.3-1.8% Procrustes residual, per-example scale-locked, emergent not
+parameterized; deviation-from-c*·I tracks pathology, ρ=−0.97 vs h21
+recovery → free label-free health probe), but DeltaNet-family keyanchor
+states have an EMPTY complement (fD ≤ 3e-12, 12/12 runs at d=128) — no
+channel for an off-task-storage detector in the production arch. Full
+numbers: EXPERIMENT_LOG 2026-07-09 +
+`experiment-runs/2026-07-09_zdump_complement/`.** A DO-NOT-BUILD list
 (Grazzi/DeltaProduct/RWKV-7/TPR/RotatE territory) was recorded in the
 waterfall transcript. **STATUS: attack round 1 RETURNED (2026-07-09
 overnight) — NEEDS-MAJOR-REVISION.** Full record in the new canonical
