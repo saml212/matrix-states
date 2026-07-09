@@ -2975,3 +2975,44 @@ all five pinned items + coherence sweep into the live design text,
 §1.13-§1.25 byte-intact.** Micro attack round 6 next (scope: Rev 5's
 delta only) → scoped build fix → calibration RE-RUN (A5/A6 at the new
 20K-step rate) → sweep.)*
+
+---
+
+### 1.27 MICRO-ATTACK ROUND 6 VERDICT (2026-07-09): NEEDS-REVISION (narrow — 1 MAJOR in Rev 5's own delta)
+
+Recorded per the gauntlet-bookkeeping hard rule. Round 6 re-ran the
+coverage recalibration byte-identically (md5, twice), re-derived every
+cost figure exactly, and pulled the REAL diagnosis artifacts from the
+box to test Rev 5's new bars against already-collected data.
+
+**CA6-M1 (MAJOR) — gate 1(a)'s per-L convergence bar (≥0.9 at EVERY
+L∈{1..8}) is falsified by all 7 existing calibration cells** (min-L
+cosines 0.67-0.85, every group failing at L≥6-8, incl. the
+already-escalated A5/A6@20K) and contradicts Rev 5's own §1.6 premise
+that S3/S4/S5 stay at 8,000 steps (cited via the very last-batch-loss
+read the same revision deprecates). Linear extrapolation says A6 needs
+~50K+ steps to clear 0.9 at L=8 — a length-difficulty gradient, not a
+convergence criterion; the one-shot 2-2.5× escalation has no fallback
+for a second miss. → Rev 6 (binding): restrict the HARD bar to
+L∈{1..5} (all 7 cells clear it) and demote L∈{6..8} to
+disclosed/non-gating reporting (the exact demotion pattern Rev 5
+applied to L9-16/C5); re-verify the §1.6 step-budget statements
+against the real per-L data; M1/M3 measurement words stay L~U{1..8} as
+pinned (the ρ=0.9747 preview was measured there — the bar gates
+CONVERGENCE, not the measurement sample).
+
+**Verified clean/favorable:** centered-covariance + ambient injection
+faithful (box spectra match exactly); coverage table byte-identical;
+floor-failure MC at N=100,000: S5-fit 0.191%, A6-fit 0.151%, others
+≤0.04% — ALL well under 1%, deferral of the N=400k re-derivation
+ADJUDICATED ACCEPTABLE; post-retry exposure ≈6.6×10⁻⁶ (LOWER than the
+old bars — the stale flag's direction guess corrected); cost
+arithmetic exact (2.784 raw, 90.72% margin); escalation-guard note
+coherent (step-budget vs seed-count = different mechanisms; worst case
+~4.2 GPU-h, budget-immaterial); no stale L9-16 gating language (one
+pre-existing out-of-scope nit at line 2095, fa8b3e3-era).
+
+---
+
+*(End §1 records. Rev 5 → §1.27 NEEDS-REVISION (CA6-M1 per-L bar
+self-contradiction). Rev 6 in progress — one-paragraph class.)*
