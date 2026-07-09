@@ -1,0 +1,465 @@
+
+####################################################################################################
+# 1. groups.py -- generating-set closure + numpy/torch product agreement
+####################################################################################################
+========================================================================================
+groups.py self-test -- generating-set closure (via voa.bfs_closure) + numpy/torch word-product agreement
+========================================================================================
+  [S3] |gens|=3  closure=6 (expect 6): PASS
+         numpy/torch word-product agreement: max_diff=1.11e-16 PASS
+  [S4] |gens|=4  closure=24 (expect 24): PASS
+         numpy/torch word-product agreement: max_diff=0.00e+00 PASS
+  [A5] |gens|=4  closure=60 (expect 60): PASS
+         numpy/torch word-product agreement: max_diff=2.22e-16 PASS
+  [S5] |gens|=3  closure=120 (expect 120): PASS
+         numpy/torch word-product agreement: max_diff=4.44e-16 PASS
+  [A6] |gens|=4  closure=360 (expect 360): PASS
+         numpy/torch word-product agreement: max_diff=1.11e-16 PASS
+  group_seed_salt (S1.22 BA-F3): {'S3': 4918567, 'S4': 3455631, 'A5': 2441397, 'S5': 4228439, 'A6': 5346216}  all distinct, deterministic  PASS
+
+groups.py self-test PASSED (all 5 groups).
+
+[OK] 1. groups.py -- generating-set closure + numpy/torch product agreement
+
+####################################################################################################
+# 2. group_word_encoder.py -- GroupWordEncoder L=1/L=16 forward+backward, force_rank_k
+####################################################################################################
+============================================================
+  GroupWordEncoder SMOKE (L=1 / L=16 forward+backward, force_rank_k)
+============================================================
+  L= 1: forward (8, 5, 5), loss=1.0585, all params finite grad  OK
+  L=16: forward (8, 5, 5), loss=1.1181, all params finite grad  OK
+
+  force_rank_k train-time path (C1):
+  force_rank_k=2: eff_rank=1.173 <= 2, backprops cleanly  OK
+
+============================================================
+  GroupWordEncoder SMOKE PASSED
+============================================================
+
+[OK] 2. group_word_encoder.py -- GroupWordEncoder L=1/L=16 forward+backward, force_rank_k
+
+####################################################################################################
+# 3. blank_out.py -- the P=1 bottleneck gradient-based blank-out test + BA-F6 planted-leak NEGATIVE TEST
+####################################################################################################
+============================================================
+  BLANK-OUT test: scoring path touches the raw word ONLY via Z
+============================================================
+  (a) sanity: grad(score, tok_embed) nonzero (sum|grad|=1.6810) OK
+  (b) leaf-detach: grad(score(Z_leaf), tok_embed) is None -- no path around Z  OK
+  (c) inspect.signature(scoring_fn) = ['Z', 'target'] subset of {'Z','target'}  OK
+
+============================================================
+  BLANK-OUT TEST PASSED
+============================================================
+============================================================
+  NEGATIVE TEST -- blank-out CATCHES a planted tok_embed leak
+============================================================
+  planted leak CAUGHT: grad(leaky_score(Z_leaf), tok_embed) nonzero (sum|grad|=0.0010)  OK
+  honest scoring_fn path (same mechanism, same tensors): grad is still None  OK
+
+============================================================
+  PLANTED-LEAK NEGATIVE TEST PASSED
+============================================================
+
+[OK] 3. blank_out.py -- the P=1 bottleneck gradient-based blank-out test + BA-F6 planted-leak NEGATIVE TEST
+
+####################################################################################################
+# 4. group_task.py -- query-coverage guard NEGATIVE TESTS (undersampling + second-miss hard-fail) + BA-F3 group-salted-seed NEGATIVE-then-POSITIVE TEST
+####################################################################################################
+========================================================================================
+NEGATIVE TEST 1 -- coverage guard detects L=1 undersampling (all 5 groups)
+========================================================================================
+  [S3] L=1 undersampled distinct_count=3 (<= |gens|=3) vs bar=5: DETECTED (count < bar)
+  [S4] L=1 undersampled distinct_count=4 (<= |gens|=4) vs bar=17: DETECTED (count < bar)
+  [A5] L=1 undersampled distinct_count=4 (<= |gens|=4) vs bar=27: DETECTED (count < bar)
+  [S5] L=1 undersampled distinct_count=3 (<= |gens|=3) vs bar=30: DETECTED (count < bar)
+  [A6] L=1 undersampled distinct_count=4 (<= |gens|=4) vs bar=36: DETECTED (count < bar)
+
+RESULT: undersampling DETECTED for all 5 groups.
+
+========================================================================================
+NEGATIVE TEST 2 -- second consecutive coverage-check miss HARD-FAILS
+========================================================================================
+  CoverageGuardError raised as expected:
+    query-coverage guard HARD-FAILED for A5: two independent N=50 draws (seeds 10123, 10124) both scored below bar=27 (counts 4, 4). Full log: {'label': 'query-coverage', 'group': 'A5', 'bar': 27, 'attempts': [{'attempt': 0,...
+  post-teardown sanity: guard passes normally again (seed=10123)  OK
+
+RESULT: second consecutive miss correctly raises CoverageGuardError (hard fail).
+
+========================================================================================
+NEGATIVE-then-POSITIVE TEST -- BA-F3 group-salted seeds: S4 vs A5 now differ,
+same-group reproducibility holds
+========================================================================================
+  |gens(S4)|=4  |gens(A5)|=4  d_state(S4)=5  d_state(A5)=5  -- the exact collision precondition
+  S4 vs A5 generator-index sequences at the SAME nominal seed: DIFFER (fixed)
+  S4 same-(group,seed,N) reproducibility: PASS
+  check_coverage_with_retry -> sample_eval_words reproducibility (S4, final_seed=17001): PASS
+
+RESULT: group-salted seed derivation differentiates S4 from A5 while preserving per-group determinism.
+
+
+[OK] 4. group_task.py -- query-coverage guard NEGATIVE TESTS (undersampling + second-miss hard-fail) + BA-F3 group-salted-seed NEGATIVE-then-POSITIVE TEST
+
+####################################################################################################
+# 5. readout.py -- subspace-restriction + degauging pipeline (untrained-model smoke) + fit/eval diversity-floor NEGATIVE TEST
+####################################################################################################
+========================================================================================
+NEGATIVE TEST -- fit/eval diversity-floor retry HARD-FAILS on a collapsed sample
+========================================================================================
+  CoverageGuardError raised as expected:
+    A5: fit/eval diversity floor HARD-FAILED after 2 reshuffle attempts. Log: {'group': 'A5', 'fit_bar': 9, 'eval_bar': 6, 'attempts': [{'attempt': 0, 'shuffle_seed': 2996397, 'fit_count': 1, 'eval_count': 2, 'passed': False}, {'attempt': 1, 'shuffle_seed': 299639...
+  post-check sanity: a healthy real A5 sample clears the SAME diversity-floor check normally (n_fit=30, n_eval=20)
+
+RESULT: fit/eval diversity-floor retry correctly HARD-FAILS on a collapsed sample after 2 reshuffle attempts, and passes normally on healthy data.
+
+
+[OK] 5. readout.py -- subspace-restriction + degauging pipeline (untrained-model smoke) + fit/eval diversity-floor NEGATIVE TEST
+
+####################################################################################################
+# 6. gate1_synthetic_injection.py -- Gate-1(b) synthetic-injection acceptance test (EXECUTED)
+####################################################################################################
+====================================================================================================
+GATE 1(b) -- synthetic-injection acceptance test on the PRODUCTION harness (S4)
+====================================================================================================
+
+[step 1] query-coverage guard (REAL, group_task.check_coverage_with_retry, S4, bar=17, N=50):
+  result=pass  attempts=[{'attempt': 0, 'seed': 17001, 'distinct_count': 20, 'passed': True}]
+
+[step 2] draw the REAL N=50 held-out S4 word sample (seed=17001):
+  drew 50 words; distinct S4 elements reached = 20 (of |S4|=24)
+
+[step 3] REAL fit/eval split with diversity-floor retry (readout._split_with_diversity_retry):
+  result=pass  n_fit=30  n_eval=20  disjoint=True
+
+[ground truth] c_true=1.7, Q_true orthogonal (||QQ^T-I||=6.53e-16), det(Q_true)=-1.0000
+
+=== honest: exact conjugation + noise(std=0.03) ===
+  on-disk round-trip: /tmp/tmpaw2s18z0/zdump_honest.npz  (Z/rho shapes/dtypes/values verified identical)
+  EVAL SET (n=20, never used to fit c_hat/Q_hat): mean_cos=0.999602  mean_rel_err=0.028644  recovered_frac@0.9=1.0000
+
+[negative control] rank(Q_def)=2 (of 3) -- Q_true's last row zeroed
+
+=== corrupt: rank-deficient Q_def (NEGATIVE CONTROL) ===
+  on-disk round-trip: /tmp/tmpaw2s18z0/zdump_corrupt.npz  (Z/rho shapes/dtypes/values verified identical)
+  EVAL SET (n=20, never used to fit c_hat/Q_hat): mean_cos=0.661016  mean_rel_err=0.805156  recovered_frac@0.9=0.0000
+
+====================================================================================================
+GATE 1(b) ACCEPTANCE CHECKS
+====================================================================================================
+  (1) recovery:            mean_cos=0.999602 > 0.95 ?  PASS
+      recovered_frac@0.9=1.0000 >= 0.9 ?  PASS
+  (2) negative NOT rescued: mean_cos gap = 0.338586 >= 0.3 ?  PASS
+      corrupt recovered_frac@0.9=0.0000 < 0.5 ?  PASS
+
+====================================================================================================
+GATE 1(b) VERDICT: ALL ACCEPTANCE CHECKS PASSED. The production degauging harness
+(query-coverage guard -> fit/eval split w/ diversity-floor retry -> on-disk dump 
+round-trip -> Procrustes/scale degauging -> disjoint-eval scoring) correctly recovers
+a known gauge under noise and correctly FAILS to rescue a rank-deficient corruption,
+wired through the REAL production code path, not a standalone re-run of the toy script.
+====================================================================================================
+
+[OK] 6. gate1_synthetic_injection.py -- Gate-1(b) synthetic-injection acceptance test (EXECUTED)
+
+####################################################################################################
+# 7. force_rank_arms.py -- the 4-arm force-rank grid, 58-cell family total
+####################################################################################################
+========================================================================================
+  force_rank_arms.py SMOKE -- all 4 arms (S4), untrained model
+========================================================================================
+  grid={'unconstrained': None, 'k_dmin_minus_1': 2, 'k_dmin': 3, 'k_dmin_plus_1': 4}
+  [unconstrained   ] k=None restricted_eff_rank=1.657  mean_cos=0.0999  n_fit=30 n_eval=20
+  [k_dmin_minus_1  ] k=2    restricted_eff_rank=1.291  mean_cos=0.1755  n_fit=30 n_eval=20
+  [k_dmin          ] k=3    restricted_eff_rank=1.534  mean_cos=-0.1004  n_fit=30 n_eval=20
+  [k_dmin_plus_1   ] k=4    restricted_eff_rank=1.565  mean_cos=-0.0075  n_fit=30 n_eval=20
+
+  n_cells_per_group('S4') = 14  (expect 14, S1.4.2 CA3-M1(a) bump)
+  n_cells_per_group('S3') = 10  (expect 10, unbumped default)
+  total cells across the 5-group family = 58  (expect 58, S1.4.2/S1.6)
+
+========================================================================================
+  force_rank_arms.py SMOKE PASSED
+========================================================================================
+
+[OK] 7. force_rank_arms.py -- the 4-arm force-rank grid, 58-cell family total
+
+####################################################################################################
+# 8. truncation_curve.py -- BA-F2 M2 post-hoc rank-k truncation curve: planted-rank UNIT TEST + real-pipeline wiring smoke
+####################################################################################################
+========================================================================================
+UNIT TEST -- BA-F2: truncation curve knees at a KNOWN planted rank
+========================================================================================
+  constructed 16 synthetic (d_state=7) rank-4 projector matrices (tied singular values @ 1.0), verified rank == 4 for all 16
+  k=1: mean_cos=0.500000  recovered_frac_90=0.0000
+  k=2: mean_cos=0.707107  recovered_frac_90=0.0000
+  k=3: mean_cos=0.866025  recovered_frac_90=0.0000
+  k=4: mean_cos=1.000000  recovered_frac_90=1.0000
+  k=5: mean_cos=1.000000  recovered_frac_90=1.0000
+  k=6: mean_cos=1.000000  recovered_frac_90=1.0000
+  k=7: mean_cos=1.000000  recovered_frac_90=1.0000
+
+  knee (recovered_frac_90, 0.9x rule) = 4  (expect exactly the planted rank 4)
+
+RESULT: knee correctly lands at the planted rank r_true=4; k>=r_true is lossless, k<r_true measurably degrades.
+
+========================================================================================
+  truncation_curve.py SMOKE -- M2 curve wiring through the real readout pipeline (S4)
+========================================================================================
+  group=S4  d_state=5  acc_d=0.0000  knee=1
+    k=1: recovered_frac_90=0.0000  mean_cos=0.0294
+    k=2: recovered_frac_90=0.0000  mean_cos=0.0304
+    k=3: recovered_frac_90=0.0000  mean_cos=0.0257
+    k=4: recovered_frac_90=0.0000  mean_cos=0.0280
+    k=5: recovered_frac_90=0.0000  mean_cos=0.0281
+
+========================================================================================
+  truncation_curve.py SMOKE PASSED (wiring only -- untrained model, no CONFIRM claim)
+========================================================================================
+
+[OK] 8. truncation_curve.py -- BA-F2 M2 post-hoc rank-k truncation curve: planted-rank UNIT TEST + real-pipeline wiring smoke
+
+####################################################################################################
+# 9. truncation_curve.py -- RA-1 COMPANION TEST: non-tied singular spectrum makes the 0.9 knee-threshold constant falsifiable (a 0.5 mutation flips the knee 5->3)
+####################################################################################################
+========================================================================================
+COMPANION UNIT TEST -- RA-1: knee threshold (0.9) falsifiable on a NON-TIED spectrum
+========================================================================================
+  constructed 8 synthetic (d_state=7) matrices with strictly
+  descending NON-TIED spectra, cos>0.9 crossings planted at k in [2, 3, 4, 5]
+  k=1: mean_cos=0.613694  recovered_frac_90=0.0000
+  k=2: mean_cos=0.792764  recovered_frac_90=0.2500
+  k=3: mean_cos=0.874909  recovered_frac_90=0.5000
+  k=4: mean_cos=0.924958  recovered_frac_90=0.7500
+  k=5: mean_cos=0.958865  recovered_frac_90=1.0000
+  k=6: mean_cos=0.982274  recovered_frac_90=1.0000
+  k=7: mean_cos=1.000000  recovered_frac_90=1.0000
+
+  knee under the PRODUCTION 0.9x rule = 5  (expect 5; a 0.5x-mutated rule would give 3)
+
+RESULT: knee lands at k=5 under the production 0.9x rule on a graded, non-tied-spectrum curve -- the threshold constant is now falsifiable (RA-1 discharged).
+
+
+[OK] 9. truncation_curve.py -- RA-1 COMPANION TEST: non-tied singular spectrum makes the 0.9 knee-threshold constant falsifiable (a 0.5 mutation flips the knee 5->3)
+
+####################################################################################################
+# 10. budget_guard.py -- worst-case arithmetic self-test + NEGATIVE TESTS (near-cap denial ordering + BA-F4 A5-to-S5 hard-stop window)
+####################################################################################################
+========================================================================================
+budget_guard.py self-test -- worst-case arithmetic cross-check vs S1.19-S1.21
+========================================================================================
+  BASE_RAW_TOTAL         = 19.65  (expect 19.65)
+  MARQUEE_ESCALATION_COST = 2.4  (expect 2.40, 8 cells)
+  GENERAL_ESCALATION_MAX_COST = 12.6  (expect 12.60, 42 cells)
+  WORST_CASE_TOTAL       = 34.65  (expect 34.65)
+  WORST_CASE_TOTAL - CAP = 4.65  (expect 4.65)
+  per-group general-escalation cell counts: S3/S5/A6=10 each, S4/A5=6 each (flanking only)  PASS
+
+budget_guard.py self-test PASSED.
+
+========================================================================================
+NEGATIVE TEST -- simulated near-cap projection denies escalations in pinned order
+========================================================================================
+  spend_to_date=19.65  cap=30.0  headroom=10.35
+  triggering: marquee=True, general_units=ALL 16 eligible units
+
+  request                            cost  proj_total          status
+  -------------------------------------------------------------------
+  marquee_n7                         2.40       22.05         granted
+  general_escalation:S3:unconstrained   0.60       22.65         granted
+  general_escalation:S3:k_dmin       0.60       23.25         granted
+  general_escalation:S3:k_dmin_minus_1   0.90       24.15         granted
+  general_escalation:S3:k_dmin_plus_1   0.90       25.05         granted
+  general_escalation:S4:k_dmin_minus_1   0.90       25.95         granted
+  general_escalation:S4:k_dmin_plus_1   0.90       26.85         granted
+  general_escalation:A5:k_dmin_minus_1   0.90       27.75         granted
+  general_escalation:A5:k_dmin_plus_1   0.90       28.65         granted
+  general_escalation:S5:unconstrained   0.60       29.25         granted
+  general_escalation:S5:k_dmin       0.60       29.85         granted
+  general_escalation:S5:k_dmin_minus_1   0.90       30.75   budget-denied
+  general_escalation:S5:k_dmin_plus_1   0.90       29.85   budget-denied
+  general_escalation:A6:unconstrained   0.60       29.85   budget-denied
+  general_escalation:A6:k_dmin       0.60       29.85   budget-denied
+  general_escalation:A6:k_dmin_minus_1   0.90       29.85   budget-denied
+  general_escalation:A6:k_dmin_plus_1   0.90       29.85   budget-denied
+
+  summary: n_granted=11  n_denied=6  total_committed=10.20  final_projected_total=29.85
+  denied requests: ['general_escalation:S5:k_dmin_minus_1', 'general_escalation:S5:k_dmin_plus_1', 'general_escalation:A6:unconstrained', 'general_escalation:A6:k_dmin', 'general_escalation:A6:k_dmin_minus_1', 'general_escalation:A6:k_dmin_plus_1']
+
+RESULT: marquee granted first; general escalations granted in ascending-|G| pinned
+order until the cap bites (S3 fully granted, A6 fully denied); every denial logged
+with status='budget-denied'; final committed spend never exceeds the 30 GPU-h cap.
+========================================================================================
+========================================================================================
+NEGATIVE TEST -- BA-F4 A5-to-S5 window: old skip-and-continue vs new hard-stop
+========================================================================================
+  pinned order: ...idx7=('A5', 'k_dmin_plus_1') (cost 0.9) -> idx8=('S5', 'unconstrained') (cost 0.6)...
+  cumulative committed through idx6 = 5.7
+  spend_to_date=23.7  cap=30.0  headroom=6.3
+
+  OLD (skip-and-continue) semantics: A5:k_dmin_plus_1 -> budget-denied   S5:unconstrained -> granted
+  (test setup CONFIRMED: this is the exact bug window the S1.22 audit flagged)
+
+  NEW (hard-stop) semantics:          A5:k_dmin_plus_1 -> budget-denied   S5:unconstrained -> budget-denied
+  every request from the first denial onward (9 requests, idx7..15) is budget-denied under the new semantics  OK
+
+RESULT: the OLD skip-and-continue allocator's exact bug (granting a cheaper lower-priority
+request immediately after denying a pricier higher-priority one, at the A5->S5 pinned-order
+transition) is reproduced above and shown FIXED under hard-stop-on-first-denial semantics.
+========================================================================================
+
+[OK] 10. budget_guard.py -- worst-case arithmetic self-test + NEGATIVE TESTS (near-cap denial ordering + BA-F4 A5-to-S5 hard-stop window)
+
+####################################################################################################
+# 11. tost_analysis.py -- TOST unit tests (CONFIRM/FALSIFY/INCONCLUSIVE/REJECT/denial/granted)
+####################################################################################################
+========================================================================================
+UNIT TEST 1 -- CONFIRM path (marquee DECLAREs, M1+M3 all pass)
+========================================================================================
+  marquee: verdict=DECLARE  diff=0.0015  final_verdict=DECLARE
+  M1: rho=1.0000  m1_confirm=True
+  STAGE-1 VERDICT: CONFIRM
+  PASS
+
+========================================================================================
+UNIT TEST 2 -- FALSIFY path (M3 HARD FALSIFY outranks everything)
+========================================================================================
+  STAGE-1 VERDICT: FALSIFY  reason=M3 HARD FALSIFY: k=d_min-1 reached >=0.9x ceiling
+  STAGE-1 VERDICT (M1 falsify path): FALSIFY  reason=M1 FALSIFY (flat/non-tracking rank) with a passing blank-out test
+  PASS
+
+========================================================================================
+UNIT TEST 3 -- INCONCLUSIVE path (marquee ambiguous, no budget_guard supplied)
+========================================================================================
+  marquee: verdict=INCONCLUSIVE  diff=0.6896  se=0.2636  escalation_requested=False
+  STAGE-1 VERDICT: INCONCLUSIVE
+  PASS
+
+========================================================================================
+UNIT TEST 4 -- REJECT path (a large real gap correctly REJECTs, not INCONCLUSIVE forever)
+========================================================================================
+  marquee: verdict=REJECT  diff=1.0332
+  STAGE-1 VERDICT: INCONCLUSIVE  (S1.1: a marquee REJECT is INCONCLUSIVE, not FALSIFY)
+  PASS
+
+========================================================================================
+UNIT TEST 5 -- budget-denial path (INCONCLUSIVE marquee, n=7 escalation DENIED)
+========================================================================================
+  marquee verdict=INCONCLUSIVE  escalation_requested=True  escalation_status=budget-denied  final_verdict=INCONCLUSIVE
+  STAGE-1 VERDICT: INCONCLUSIVE  (CONFIRM correctly UNREACHABLE without a declared equivalence, S1.21 note 2)
+  PASS (denial path exercised)
+
+========================================================================================
+UNIT TEST 6 -- escalation GRANTED path (plenty of headroom)
+========================================================================================
+  marquee verdict=INCONCLUSIVE  escalation_status=granted  final_verdict=PENDING_N7_RERUN
+  PASS
+
+
+[OK] 11. tost_analysis.py -- TOST unit tests (CONFIRM/FALSIFY/INCONCLUSIVE/REJECT/denial/granted)
+
+####################################################################################################
+# 12. beta_fla_smoke.py -- forward/backward/grad-check (piece 1) + BA-F5 L_max cap test + Fig.5 reproduction (real-fla) / box-only-skip (CPU stub) (piece 2)
+####################################################################################################
+========================================================================================
+  beta_fla_smoke.py PIECE (1) -- forward/backward/grad-check (allow_neg_eigval, beta in [0,2], n_h in {1,2})
+========================================================================================
+  fla backend: REAL fla
+  n_h=1: forward (4, 6, 64), loss=0.0004, all params + input finite grad  OK
+  n_h=2: forward (4, 6, 64), loss=0.0006, all params + input finite grad  OK
+
+========================================================================================
+  PIECE (1) PASSED (wiring verified; stub numerics are NOT the real kernel's --
+  box-only-verifiable, per module docstring)
+========================================================================================
+========================================================================================/home/nvidia/tdenv/lib/python3.12/site-packages/triton/language/core.py:2284: UserWarning: tl.make_block_ptr is deprecated. Use TensorDescriptor or tl.make_tensor_descriptor instead.
+  warn("tl.make_block_ptr is deprecated. Use TensorDescriptor or tl.make_tensor_descriptor instead.")
+
+NEGATIVE-then-POSITIVE TEST -- BA-F5: FIG5_L_MAX cap actually applied to the sampler
+========================================================================================
+  capped (l_hi=FIG5_L_MAX=4): 200 draws, max(L)=4, min(L)=1, over-cap count=0
+  uncapped (production default, the PRE-FIX behavior reproduce_fig5 actually ran under): 200 draws, max(L)=8, draws with L>4: 94
+
+RESULT: l_hi=4 correctly bounds every draw to the declared L<=4 spec; the production default (what this piece silently ran under pre-fix) reaches L>4 routinely, confirming the cap is not vacuous.
+
+
+========================================================================================
+  beta_fla_smoke.py PIECE (2) -- DeltaProduct Fig.5 reproduction (minimal S4 instance, L<=4, n_h in {1,2})
+========================================================================================
+  n_h=1: final cosine_loss (200 steps, minimal instance) = 0.3488
+  n_h=2: final cosine_loss (200 steps, minimal instance) = 0.2944
+
+  qualitative split: n_h=1 loss=0.3488  n_h=2 loss=0.2944  n_h=2 lower (expected DeltaProduct split)? True
+========================================================================================
+
+[OK] 12. beta_fla_smoke.py -- forward/backward/grad-check (piece 1) + BA-F5 L_max cap test + Fig.5 reproduction (real-fla) / box-only-skip (CPU stub) (piece 2)
+
+####################################################################################################
+# 13. run_capability_sep.py -- manifest/resume-safety/escalation wiring + BA-F1 calibration-report/--sweep gate smoke
+####################################################################################################
+========================================================================================
+  run_capability_sep.py SMOKE -- manifest + resume-safety + escalation wiring
+========================================================================================
+  build_sweep_manifest(): 58 cells (expect 58)
+  calibration_wave(): 5 cells (expect 5, 1/group unconstrained seed=0)
+
+  running a 11-cell tiny slice at steps=20 (CPU, smoke only):
+  [S4__unconstrained__seed0] step 1/20  loss=1.0678
+  [S4__unconstrained__seed1] step 1/20  loss=1.1486
+  [S4__unconstrained__seed2] step 1/20  loss=1.1093
+  [S4__unconstrained__seed3] step 1/20  loss=1.1439
+  [S4__unconstrained__seed4] step 1/20  loss=1.2052
+  [S4__k_dmin__seed0] step 1/20  loss=1.0610
+  [A5__unconstrained__seed0] step 1/20  loss=1.1002
+  [A5__unconstrained__seed1] step 1/20  loss=1.1573
+  [A5__unconstrained__seed2] step 1/20  loss=1.2026
+  [A5__unconstrained__seed3] step 1/20  loss=1.0918
+  [A5__unconstrained__seed4] step 1/20  loss=1.0812
+  first pass: 11 results written in 4.2s
+  [S4__unconstrained__seed0] SKIP (valid output already on disk)
+  [S4__unconstrained__seed1] SKIP (valid output already on disk)
+  [S4__unconstrained__seed2] SKIP (valid output already on disk)
+  [S4__unconstrained__seed3] SKIP (valid output already on disk)
+  [S4__unconstrained__seed4] SKIP (valid output already on disk)
+  [S4__k_dmin__seed0] SKIP (valid output already on disk)
+  [A5__unconstrained__seed0] SKIP (valid output already on disk)
+  [A5__unconstrained__seed1] SKIP (valid output already on disk)
+  [A5__unconstrained__seed2] SKIP (valid output already on disk)
+  [A5__unconstrained__seed3] SKIP (valid output already on disk)
+  [A5__unconstrained__seed4] SKIP (valid output already on disk)
+  second pass (resume): 11 results in 0.00s (should be near-instant -- all cells SKIPPED)
+  corruption test: a truncated JSON at S4__unconstrained__seed0.json correctly detected as INVALID (will be re-run, not skipped)
+  [S4__unconstrained__seed0] step 1/20  loss=1.0678
+  re-run after corruption: cell 'S4__unconstrained__seed0' correctly RE-TRAINED and now valid again
+
+  run_escalations() marquee verdict: DECLARE  final_verdict: DECLARE
+
+  PI-signoff gate: run_manifest() correctly refuses without CAPABILITY_SEP_PI_SIGNOFF=1
+
+========================================================================================
+  BA-F1 smoke -- calibration report + --sweep gate (calibration-only -> gate -> sweep)
+========================================================================================
+  wrote OVER-RATE calibration report: real_rate_per_cell=1.0000 GPU-h/cell
+  NEGATIVE TEST PASSED -- gate_sweep_launch correctly raised BaseSweepAbort:
+    base-sweep projection 60.25 GPU-h exceeds the 30.0 GPU-h cap at real rate 1.0000 GPU-h/cell -- HARD ABORT before spending the remaining sweep. Re-scope the cell/seed grid before relaunch. {'real_rate_per_cell': 1.0, 'projected_total': 60.25, 'cap': 30.0, 'ok': False}
+
+  wrote HEALTHY calibration report: real_rate_per_cell=0.3000 GPU-h/cell
+  POSITIVE TEST PASSED -- gate_sweep_launch cleared: projected_total=19.65 GPU-h (cap 30.0)
+
+  missing-report refusal: no calibration report at /tmp/tmprh1w52w8/calibration_report.json -- run `--calibration-only` first and let it complete (S1.7 gate 1: calibration must run to completion before the sweep).
+  step-mismatch refusal: calibration report at /tmp/tmpnhlx2ulf/calibration_report.json was measured at steps=20, but this launch is requesting steps=21 -- re-run `--calibration-only --steps=21` first (a rate measured at a different step budget does not project this sweep's per-cell cost).
+  PI-signoff gate (sweep path): CAPABILITY_SEP_PI_SIGNOFF=1 required before any GPU cell (S1.7 gate 5).
+
+========================================================================================
+  run_capability_sep.py SMOKE PASSED (manifest=58 cells, calibration=5 cells,
+  resume-safety verified [skip valid / re-run corrupted], PI-signoff gate enforced,
+  escalation wiring exercises tost_analysis.py + budget_guard.py end-to-end,
+  BA-F1 calibration-report/--sweep gate verified [over-rate abort / healthy pass /
+  missing report / stale steps / PI-signoff, all refused or passed correctly])
+========================================================================================
+
+[OK] 13. run_capability_sep.py -- manifest/resume-safety/escalation wiring + BA-F1 calibration-report/--sweep gate smoke
+
+====================================================================================================
+CAPABILITY-SEPARATION SMOKE GATE: ALL 13 SECTIONS PASSED.
+====================================================================================================

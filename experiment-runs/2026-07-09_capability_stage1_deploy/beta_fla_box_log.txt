@@ -1,0 +1,28 @@
+========================================================================================
+  beta_fla_smoke.py PIECE (1) -- forward/backward/grad-check (allow_neg_eigval, beta in [0,2], n_h in {1,2})
+========================================================================================
+  fla backend: REAL fla
+  n_h=1: forward (4, 6, 64), loss=0.0004, all params + input finite grad  OK
+  n_h=2: forward (4, 6, 64), loss=0.0006, all params + input finite grad  OK
+
+========================================================================================
+  PIECE (1) PASSED (wiring verified; stub numerics are NOT the real kernel's --
+  box-only-verifiable, per module docstring)
+========================================================================================
+========================================================================================
+NEGATIVE-then-POSITIVE TEST -- BA-F5: FIG5_L_MAX cap actually applied to the sampler
+========================================================================================
+  capped (l_hi=FIG5_L_MAX=4): 200 draws, max(L)=4, min(L)=1, over-cap count=0
+  uncapped (production default, the PRE-FIX behavior reproduce_fig5 actually ran under): 200 draws, max(L)=8, draws with L>4: 94
+
+RESULT: l_hi=4 correctly bounds every draw to the declared L<=4 spec; the production default (what this piece silently ran under pre-fix) reaches L>4 routinely, confirming the cap is not vacuous.
+
+
+========================================================================================
+  beta_fla_smoke.py PIECE (2) -- DeltaProduct Fig.5 reproduction (minimal S4 instance, L<=4, n_h in {1,2})
+========================================================================================
+  n_h=1: final cosine_loss (200 steps, minimal instance) = 0.3488
+  n_h=2: final cosine_loss (200 steps, minimal instance) = 0.2944
+
+  qualitative split: n_h=1 loss=0.3488  n_h=2 loss=0.2944  n_h=2 lower (expected DeltaProduct split)? True
+========================================================================================
