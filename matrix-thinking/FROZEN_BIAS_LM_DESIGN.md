@@ -5196,3 +5196,37 @@ launch-scale.
 **DISPOSITION: FIXES DISPATCHED (F1, F2, M1-M4, m5-m7 wired or explicitly
 waived) → re-run the audit's two repro scripts + full smoke → scoped
 re-audit of the delta → deploy (md5 + box-only smokes) → LAUNCH.**
+
+### §13.18 FIXES RECORD (2026-07-09 overnight): §13.17 items ALL LANDED — commit bd40ebb; scoped re-audit DISPATCHED
+
+F1: `_post_pin_blind_gate` (fixscale_wave.py:878) — pre-pin failure logs +
+returns 1 retryable, NO .REFUSED write; stale pre-fix markers cleared when
+the pin genuinely lands; shared by do_sweep AND the `cell` subcommand (m5
+folded). F2: `_budget_watchdog` (:363) rate signal gated on step ≥1000
+(§13.8's own ckpt cadence); wall-clock ceiling untouched. **Both audit
+repro scripts re-run post-fix and their bug-confirming asserts now FAIL —
+the bugs are gone** (pre-pin attempt: rc=1 nothing launched → post-pin:
+all slot cells trained, PERMANENTLY SKIPPED []; healthy-at-ref-rate cell
+with startup: completes, no false abort). M1/M2 teeth added (smoke
+[10]/[11]); M3 = `check_off_path_bit_identity` + CPU-stub leg (smoke [12])
++ on-box real-kernel leg as the `wave-minus1-check` CLI subcommand,
+documented as a pre-launch gate in the supervisor; M4 =
+`gpu_occupancy_ok` (:404, injectable, fails open without nvidia-smi) wired
+into run_cell pre-Popen. m6 stop-file between cells (rc=2 through the
+supervisor's STOP check); m7 `disk-check` subcommand WIRED (imports
+run_lm_rd_trackc_sweep's disk_space_check), invocation documented as a
+manual pre-launch step; m8 §13.16 wording corrected + monkeypatched-loader
+wiring test (smoke [18]); l10 `_assert_gate_tier_config_identity` in
+out_path; l11 --with-state fixed; l12 atomic pin write (tmp+rename, the
+only edit outside the three owned files, 3 lines); l9/l13 documented as
+launch-procedure constraints in the supervisor header. Smoke 68→106, all
+green; mutant-kill live-verified for M1 (4 fails), M2 (2), M3 (2), each
+reverted to 106/0; audit's original teeth re-verified (breaker×100 → 4
+fails; TIER_PROBE → 1 fail; corrupt-JSON clean).
+
+**NEXT: scoped RE-AUDIT of the bd40ebb delta (fresh worktree: re-run both
+repros, independently re-kill the new mutants, adversarial read of the
+fixes themselves) → deploy (md5 + the §13.17 box-only smoke list incl.
+wave-minus1-check on real kernels, disk-check, startup-to-step-1000
+re-validation, verify-pin determinism, gate-tier cells terminal + GPUs
+free) → LAUNCH.**
