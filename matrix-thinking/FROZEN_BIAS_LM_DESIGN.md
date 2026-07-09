@@ -4231,3 +4231,590 @@ fraction of the frozen-bias LM program's 135 GPU-h ceiling).
 original framing.** H1 REFUTED, H5 clean, H2 corroborated, H4 consistent
 at one locus, H3 consistent (no sign pre-registered) — no hypothesis in
 §12.2 remains untested; no further stage is registered or gated.
+
+---
+
+## 13. FIX-AT-SCALE WAVE — design Rev 0 (opened 2026-07-09, PI-directed GPU-saturation charter)
+
+**This is the wave the PI's directive text calls "this program's own §2"** (`STATE.md`
+"GPU SATURATION DIRECTIVE (PI, 2026-07-09)": *"FIX-AT-SCALE ... registry =
+FROZEN_BIAS_LM_DESIGN §2"*). It is numbered **§13** in this file's own continuous
+heading scheme instead, because `§2` above (line 374, "The central design decision:
+decouple the frozen bias from geo3/Newton-Schulz") is already load-bearing text from
+the original rung-1 design — reusing the literal number would silently overwrite an
+existing section header. Disambiguated once, here: **"§2" in the PI directive's own
+words = this section, §13, in this file's actual numbering.**
+
+### 13.0 Scope and framing — what this wave is, and what it is NOT
+
+**What it is.** A PI-directed charter (quoted verbatim, `STATE.md` 2026-07-09: *"how
+will [we] ensure that all these 8 gpu's are hot for the next few days. I don't want
+these sitting idle anymore"*) to close this paper's own biggest disclosed 14M-only
+caveat on the frozen-bias fix: `09_discussion_limitations.tex` item 6 states the
+**pathology** (write-geometry attractor WORSENING with scale) is now measured
+14M→98M→392M→1.31B (span-fraction 0.248→0.344→0.389→0.455, `SCALE_TRANSFER_DESIGN.md`
+§5.10 Addendum / Track C Waves 1ext/2/3), but the **fix's own training evidence**
+(does the frozen-bias intervention change that trajectory) exists **only at 14M**
+(this file's own rung-1 VERDICT, above). This wave trains the fix at **98M and 392M**
+to extend that evidence two rungs up the SAME ladder the pathology is already measured
+on.
+
+**What it is NOT — the §6.2 gate distinction, stated once, precisely, so no reader
+conflates the two.** This file already has a formal mechanism for "launch the next
+scale": §6.2's rung-2 (=98M in this file's OWN internal numbering, see §13.1 below)
+gate, which requires rung-1 to read as a **CONFIRM** under the pinned CI formula on
+both corpora, plus the co-primary, plus the Arm-2-exceeds-Arm-2′ licensing check
+(§6.2 conditions 1–3). **Rung-1 did NOT clear that gate** — the VERDICT section
+(above) classifies it as the **FOURTH OUTCOME, "sim-training divergence"**: the
+primary delta is CI-excludes-zero on both corpora, but its **sign is the opposite**
+of every mechanism prediction (per-token training makes `span_frac` WORSE, not
+better). §6.2's own text is explicit: *"No licensed rung-2 launch... Rung-2 remains
+PARKED."* **This wave does not claim to satisfy that gate — it is authorized on a
+DIFFERENT basis entirely** (the PI's saturation directive + the paper's disclosed-caveat
+argument, both independent of whether rung-1 was a mechanism CONFIRM), and it is
+disclosed here, explicitly, as such: **a scale-extension of the FIX's OWN
+literal-transplant training evidence, not a mechanism-confirmation follow-on that
+inherited §6.2's gate.** §6.2's gate itself is untouched and remains formally unmet;
+a future wave that wants to invoke it still needs the fresh design review §6.2's own
+PARK clause requires. This wave's own outcome (§13.6) is pre-registered independent
+of that gate's machinery.
+
+### 13.1 Scale disambiguation (a real, previously-flagged collision — read before anything else)
+
+Three different rung-numbering schemes coexist in this codebase and this wave sits at
+the exact intersection point §6.2 (line 964) already flagged as a collision risk:
+
+| Label used below | Params (measured) | Architecture | This file's OWN rung # | `lm_rd_rung_configs.py` `RUNGS` # |
+|---|---|---|---|---|
+| 14M | 14,048,896 | `d_model=256, n_layers=2, d_state=64` | rung-1 | n/a (Wave-C config) |
+| **98M** | 97,618,176 | `d_model=768, n_layers=12, d_state=64` | rung-2 (PARKED, §6.2) | **1** |
+| **392M** | 391,869,440 | `d_model=1536, n_layers=16, d_state=128` | not assigned a number in this file's OWN scheme (every "rung-3" string in this file refers to Track C's 1.31B rung, not a 392M label) | **2** |
+| 1.31B | (self-terminated, ≈84.7% of budget) | `d_model=2560, n_layers=22, d_state=128` | n/a | 3 |
+
+**This wave uses PARAM-COUNT LABELS ONLY (98M / 392M) throughout**, never bare
+"rung-N," to avoid resurrecting the exact confusion §6.2 already named once.
+
+### 13.2 One-sentence hypothesis
+
+**The per-token frozen-bias fix (λ=0.58, the literal transplant already trained at
+14M as this file's "Arm 2") produces a measurable, CI-distinguishable-from-zero
+change in the write-geometry attractor (`span_frac`, Arm-off′-comparator convention,
+§4.a/§4.a-i, unmodified) at 98M and 392M, with a val-loss cost that stays inside the
+same `k=2·s_ref` gate rung-1 established, and this wave reports the MEASURED SIGN of
+that change plainly — WIN if mechanism-predicted (stabilizing, `span_frac` falls),
+PARTIAL/NULL otherwise — rather than assuming the 14M direction generalizes.**
+
+**Load-bearing disclosure, stated up front, not buried in the self-attack register
+(§13.11 item 1 restates this with the full evidentiary detail):** the 14M evidence
+for THIS EXACT construction (per-token, λ=0.58) is **not** a stabilizing result — it
+is the opposite (`span_frac` +0.1955/+0.2273, CI-excludes-zero, MORE collapsed than
+the artifact-matched control). The hypothesis above is written as a real test of
+transfer, not a foregone conclusion; a repeat of the 14M sign at 98M/392M is itself
+informative (the sim-training-divergence pattern generalizes, not a 14M-only fluke),
+and a REVERSAL toward the mechanism-predicted direction at scale is ALSO informative
+(the fix "turns on" only past some capacity threshold). Both are pre-registered,
+reportable outcomes — see §13.6.
+
+### 13.3 Arms
+
+**Per scale (98M, 392M), same corpora (`openr1-mix-ext`, `wikitext103_mix_eot_extended`
+aka `wikitext-mix-ext` — the SAME extended mixes rung-1 and Track C Waves ≥2 used,
+per the standing same-dataset rule), same tokenization (GPT-2 BPE, `vocab_size=50257`),
+identical checkpoint cadence convention (every 1,000 steps):**
+
+- **`arm_off`** — baseline, `anchor_active=False`. Exactly the plain architecture
+  Track C already trained at both scales (98M: Wave 1ext, ext-mix; 392M: Wave 2) —
+  this wave RE-TRAINS it fresh (not cited from the archive), for the same reason
+  rung-1's own Arm 1 was re-trained fresh rather than reused: every arm in one
+  comparison must come from the identical harness invocation, avoiding cross-session
+  harness-drift risk (§5, Arm 1 rationale, unchanged here).
+- **`arm_per_token`** — the pinned fix, λ=0.58, `B = key_anchoring.random_unit_rows_init(
+  n=50257, d=d_state, seed=ANCHOR_INIT_SEED)`, `k_biased = normalize((1-λ)·k_raw +
+  λ·B[token_id])`, applied post-conv-key, every token, every position, every step.
+  This is the LITERAL transplant of rung-1's own "Arm 2" at the new scales — same
+  construction, same λ, same seed convention, only `d_state` changes (64→64 at 98M,
+  no change; 64→128 at 392M, `B` reshaped to `(50257, 128)` accordingly, per
+  `lm_rd_rung_configs.py` `RUNGS`).
+
+**MANDATORY, near-zero-cost addition — `arm_off′` eval-only retrofit (NOT a third
+training arm, reuses `arm_off`'s own checkpoints, no new training cell):** the SAME
+per-token blend (`λ=0.58`, same table `B`) applied to `arm_off`'s checkpoint ONLY at
+the measurement pass, never during training — exactly rung-1's `Arm 1′` (§5, above).
+**This is not optional.** Comparing `arm_per_token` (post-blend, trained through the
+bias) directly against `arm_off` (never blended at all) reintroduces the EXACT
+auto-pass artifact the round-2 attack killed as FATAL in this file's own history
+(§7.1, "the round-2 attack's FATAL finding"): the blend arithmetic itself, applied
+once at eval time to any static key population, dominates measured `span_frac`
+regardless of what training did. `arm_off′` is the artifact-matched reference that
+makes the comparison mean anything; every one of §13.5/§13.6's bars below is read
+against `arm_off′`, never bare `arm_off`.
+
+**Explicitly excluded this wave, disclosed as a scope decision, not an oversight
+(§13.11 item 2 has the full self-attack): the global-vector control (rung-1's
+"Arm 2′," which was registered "NOT cuttable... core to both rungs" at 14M) is
+NOT trained at 98M or 392M this wave.** Rung-1's own data shows this is the
+construction that actually moved in the mechanism-predicted (stabilizing) direction
+(−0.3319/−0.2308 CI-excludes-zero both corpora) — dropping it here trades away the
+§7.1a "is this about token-identity keying at all" licensing check at scale, purely
+for budget reasons (a third arm at either scale would add another full training
+manifest, §13.7). This is the single most consequential scope cut in this design and
+is flagged, not hidden.
+
+### 13.4 Observables — reused unmodified from §4, no new instrument built
+
+- **Primary + co-primary (§4.a / §4.a-i, `lm_attractor_probe_rd.py`, byte-identical
+  to every prior harvest — md5 `3fb0f80028477d0b1cefe468c81b1da4` per the rung-2/
+  wave-1ext harvests, re-verify at build time, do not assume):** post-blend
+  `span_frac(arm_per_token) − span_frac(arm_off′)` (co-primary: the SAME instrument
+  on pre-blend `k_raw`, both arms, no blend anywhere in that population). This is
+  the SAME cross-scale-comparable `span_frac` convention Track C's own Fig. 9 Panel A
+  already uses across all four ladder points (14M/98M/392M/1.31B) — reusing it here
+  is not a new cross-scale-comparability assumption, it is the SAME one the paper's
+  own headline scaling claim already rests on.
+- **Secondary/gate (§4.b, §7.2 convention, unmodified): val loss**, tolerance
+  `= arm_off`'s own fresh per-seed val-loss mean `+ 2·s_ref` (k=2, this codebase's
+  own house `mean_ref ± k·s_ref` convention, `key_anchoring.derive_engaged_bands`),
+  computed and blind-pinned from THIS wave's own `arm_off` data before `arm_per_token`
+  is inspected — identical mechanical discipline to rung-1's `BANDS_PINNED-FrozenBias.json`
+  pattern, extended to cover both new scales (§13.10).
+
+**Rung-1's own side-effect bound, cited as the standing evidentiary reference
+(the task's own "≤X%" ask):** at 14M, the val-loss gate PASSED in every
+arm/corpus with clear margin under the `k=2·s_ref` ceiling — openr1-mix-ext
+ceiling 2.1935 vs. realized Arm-2 mean 2.1184 (margin 0.0751 nats, ≈3.4% of the
+ceiling value); wikitext-mix-ext ceiling 4.3828 vs. 4.3426 (margin 0.0402, ≈0.9%).
+This wave's own gate (§13.10) re-derives fresh bands from `arm_off`'s OWN 98M/392M
+seed spread — the 14M numbers above are cited as the standing precedent that the
+fix's val-loss cost has, so far, never approached its own gate, not as a number
+this wave inherits directly (a flat percentage import across three different
+model scales would repeat exactly the mistake attack finding 4 already fixed once,
+§7.2).
+
+### 13.5 Instrument comparability — no new confound relative to what §4.a already licenses
+
+`span_frac` is already the cross-scale-comparable convention this program's OWN
+scaling headline (`09_discussion_limitations.tex` item 6, Fig. 9 Panel A) is built
+on — nothing new is being asked of the instrument here that Track C's own 4-point
+ladder didn't already ask of it. What IS new: this wave's `arm_off′`-vs-`arm_per_token`
+comparison has never been run at 98M or 392M before (only at 14M) — the instrument's
+cross-scale comparability is inherited, but the SPECIFIC comparator pair
+(post-blend-vs-eval-only-retrofit) at these two scales is genuinely new data, not a
+citation.
+
+### 13.6 Pre-registered outcomes — WIN / PARTIAL / NULL, both independently reportable and both publishable
+
+Per scale, per corpus, read against the SAME pinned-CI-formula discipline §7.1-real.1
+already established (`mean_delta ± t(2,0.975)·s_ref/√n`, thresholds re-derived from
+THIS wave's own fresh `arm_off′` cross-seed spread at that scale — not inherited from
+14M's 0.0546/0.1064, which are architecture-specific to the 14M cell and have no
+standing claim on a 98M or 392M noise floor):
+
+- **WIN** — primary AND co-primary BOTH clear their own bar in the
+  mechanism-predicted (stabilizing, `span_frac` FALLS) direction, on BOTH corpora,
+  val-loss gate passes. This is the outcome that would REVERSE rung-1's own sign —
+  itself the single most interesting possible result this wave could produce (a
+  scale-dependent mechanism onset), reported with the same "surprising, not spun"
+  register the rung-1 VERDICT used for its own control-contrast finding.
+- **PARTIAL** — primary and co-primary move in the SAME direction as rung-1's own
+  14M reading (destabilizing) on at least one corpus, OR a split between corpora/
+  instruments (mirroring §1.3's uninterpretable-result register) — reported as
+  "the sim-training-divergence pattern persists/attenuates at scale," feeding
+  `09_discussion_limitations.tex` directly (this section already carries the 14M
+  caveat; this wave's job is to extend it, not necessarily resolve it).
+- **NULL** — CI includes zero on both corpora, both instruments, at both scales —
+  the fix's own training-mediated effect (whichever sign) does not replicate outside
+  noise at these larger scales. Reported plainly, per the standing "negative results
+  are data" rule (CLAUDE.md).
+
+**Every one of these three outcomes is publishable and each feeds a specific,
+already-open section of the paper** (07_the_fix's own arc for WIN, 09_discussion
+item 6 for PARTIAL/NULL) — no outcome of this wave is a "failed" wave in the
+budget sense; the wave's job is measurement, not confirmation of a specific sign.
+
+### 13.7 Cost table — REALIZED rates, with a load-bearing correction to the pre-registered figure
+
+**Correction, stated first, because it changes every number below and must not be
+silently inherited.** The PI directive's own recorded planning figure
+(`STATE.md`: *"realized 392M rate: 128.3 GPU-h / 91,552 steps = 0.0014017 GPU-h/step
+→ ≈28.03 GPU-h per 20,000-step-equivalent cell"*, sourced from
+`HEAD_TO_HEAD_DEMO_DESIGN.md:1604-1605`) **divides the 6-CELL WAVE TOTAL by a
+SINGLE cell's own step count — a 6× error, not a per-cell rate.** Verified two
+independent ways this pass: (1) `EXPERIMENT_LOG.md:3937-3948` states "6× rung-2
+(`dm1536/L16/ds128`)... training measured 128.3 GPU-h" in the same sentence
+structure as "6× mixcontrol... 0.46 GPU-h" three clauses later (unambiguously a
+6-cell total there too); (2) `SCALE_TRANSFER_DESIGN.md:751` pre-registers, BEFORE
+any 392M data existed, "0.836 s/step × 91,552 steps ≈ 21.6 h/**run** → ≈129
+GPU-h for **the wave**" — the realized 128.3 matches the ≈129 WAVE estimate almost
+exactly, confirming the per-RUN figure is ≈21.4–21.6 GPU-h, not 128.3. **The
+correct, realized, twice-cross-checked per-step rate is 0.836 s/step
+(≈2.322×10⁻⁴ GPU-h/step), not 0.0014017 GPU-h/step (6× too high).** A second,
+independent error was found and must ALSO not be inherited: this file's own §8.3
+(line 2084) cites a "banked calibration 0.7135 s/step" for its internal
+98M rung — traced this pass to `SCALE_TRANSFER_DESIGN.md:793` /
+`EXPERIMENT_LOG.md:5472`, **this is rung-3's (1.31B, batch=16) SOLO calibration
+constant**, later found itself to be 1.985× optimistic vs. the measured 1.416
+s/step (the exact overrun that caused rung-3's self-termination). **Neither
+mislabeled figure is used below.**
+
+**Verified realized rates actually used (plain-baseline architecture, extended-mix
+corpora, batch=32 both scales, `BATCH_SIZE_BY_RUNG={1:32,2:32,3:16}`,
+`run_lm_rd_trackc_sweep.py:223`):**
+
+| Scale | Source | Cells | Steps/cell | Realized total | Per-cell | Per-step |
+|---|---|---|---|---|---|---|
+| 98M | Wave 1ext (ext-mix), `EXPERIMENT_LOG.md:4001` | 6 | 67,547 | 26.87 GPU-h | 4.478 GPU-h | 0.236 s/step |
+| 392M | Wave 2 (ext-mix), `EXPERIMENT_LOG.md:3937` | 6 | 91,552 | 128.3 GPU-h | 21.38 GPU-h | 0.836 s/step |
+
+**Anchor-blend overhead assumption (flagged, not verified at these scales):** at
+14M, all 20 rung-1 cells (off / per-token / global, every λ) fell in a tight
+899–914s band regardless of arm (VERDICT, "Verification performed this pass") —
+i.e. the frozen-bias blend added no measurable per-step overhead at 14M. This
+wave carries that finding forward as the planning assumption for BOTH arms at
+98M/392M (the gather-scatter-normalize operation is O(batch×seq), independent of
+`d_model`/`n_layers`, so it should become a SMALLER fraction of per-step cost as
+scale grows, not larger) — but this is explicitly UNVERIFIED at 98M/392M and is
+exactly what the mandatory timing pilot (§13.10) exists to confirm before the full
+sweep launches, not to assume.
+
+**Step-budget decision — 98M matches Track C exactly, 392M does NOT, disclosed
+explicitly:**
+
+- **98M: full Track-C-matched step count, 67,547 steps/cell.** Affordable (below),
+  and gives a DIRECT apples-to-apples read against the already-measured Track-C
+  98M baseline (`span_frac=0.344`, Wave 1ext, ext-mix) — no reason to shorten it.
+- **392M: reduced to 20,000 steps/cell, NOT the Track-C-matched 91,552.**
+  Disclosed deviation from "same step budget as Track C" — matching Track C's
+  full 91,552-step 392M budget at even the seed floor (n=2, 8 cells) costs
+  `8 × 21.38 = 171.1 GPU-h` at **1× alone**, before contingency, before 98M's own
+  cost, before eval-only passes — an order of magnitude larger single-scale
+  commitment than any wave this program has run to date (rung-1's own committed
+  ask was ≈11–14 GPU-h, §8.5.1). **20,000 steps is not an arbitrary shrink**: it
+  is THIS SAME PROGRAM'S OWN precedent (§12.5/§12.12, the mechanism-wave's Stage-2
+  H3 gradient-flow probe, "the FULL 20,000-step branch") — a training length
+  already shown, in this exact codebase, to produce clean, non-degenerate,
+  informative training-mediated geometry/gradient signal (H2/H3/H4's own findings
+  are ALL derived from 20,000-step cells at 14M). Using it again here is reuse of
+  a validated convention, not an invented number.
+
+**Cost table (2× contingency, §8.4's rung-3-lesson convention, unchanged — see
+disclosure below on why this stays at 2× despite these being REALIZED, not
+placeholder, base rates):**
+
+| Item | Cells | Steps/cell | GPU-h (1×) | GPU-h (2×) |
+|---|---|---|---|---|
+| 98M training (`arm_off` + `arm_per_token` × 2 corpora × 3 seeds, incl. 1 calibration cell) | 12 | 67,547 | 53.74 | 107.48 |
+| 98M eval-only (`arm_off′` retrofit 6 passes + pre-blend `k_raw` co-primary 12 passes, ESTIMATE scaled from rung-1's realized 0.02 GPU-h/pass × params-ratio ≈6.95×) | 18 passes | n/a | 2.50 | 5.00 |
+| 392M training, n=3 (PRIMARY default) | 12 | 20,000 | 55.73 | 111.47 |
+| 392M eval-only, n=3 (18 passes, ESTIMATE scaled ×27.9×) | 18 passes | n/a | 10.04 | 20.09 |
+| Wave −1 instrument-validity + code-path-equality smoke (both scales, mirrors §8.0/§8.0b) | — | n/a | 0.20 | 0.40 |
+| **Total, n=3/n=3 PRIMARY DEFAULT** | 24 training + 36 eval-only | | **122.21** | **244.44** |
+| *392M training, n=2 (cost-relief fallback, §13.3's task-authorized "if cost demands")* | *8* | *20,000* | *37.16* | *74.31* |
+| *392M eval-only, n=2 (12 passes)* | *12 passes* | *n/a* | *6.70* | *13.39* |
+| **Total, n=3-98M / n=2-392M FALLBACK** | 20 training + 30 eval-only | | **100.30** | **200.58** |
+
+**Why 2× contingency is kept despite realized (not placeholder) base rates:**
+rung-3's own history is the direct counter-example to "measured means safe" — its
+own SOLO calibration (0.7135 s/step) was itself a real, measured number, and still
+undershot the sustained real rate by 1.985× (`EXPERIMENT_LOG.md:5560`), causing a
+self-terminated run at 84.7% of budget. The 98M/392M rates used here ARE more
+trustworthy than rung-3's ever were (both are FULL, completed, non-timed-out waves,
+not single-cell extrapolations) — but the one genuinely new variable at these two
+scales (the anchor-blend's own overhead, verified only at 14M) is exactly the kind
+of unverified-at-this-scale assumption 2× contingency exists to buffer.
+
+### 13.8 Ledger — reconciling the PI's recorded ~170 GPU-h figure with this wave's own arithmetic
+
+The PI directive's own recorded figure is **"~170 GPU-h"** (`STATE.md`, explicitly
+approximate — a pre-design placeholder, the same role §5.6's "±2×" pre-calibration
+table played for Track C before its own Wave −1 revised it). Per §13.7's correction,
+the arithmetic behind that placeholder inherited the 6× per-step error — this
+design's own job is exactly to firm that number up, the same way Track C's Wave −1
+superseded its own brief's placeholder. **Reconciliation:**
+
+- The n=3-98M/n=2-392M FALLBACK (≈200.58 GPU-h, 2×) is the closest fit to the
+  recorded ~170 figure and is fully costed above as the explicit, task-authorized
+  ("n=2 at 392M if cost demands") cost-relief option.
+- **This design's own PRIMARY recommendation is n=3/n=3 (≈244.44 GPU-h, 2×)** —
+  chosen over the fallback because the PI's own directive text argues for MORE
+  spend, not less ("pre-registered seed extensions exercised liberally... grow
+  seeds/grids to use the room," the same directive's own language for the sibling
+  CAPABILITY STAGE 2 wave), the operative grant rate is ≈192 GPU-h/day (this
+  wave's entire 2× committed ask is under 1.3 days of ONE day's supply), and the
+  third 392M seed closes exactly the CI-width self-attack item (§13.11 item 3)
+  a n=2 design would otherwise carry as an open weakness.
+
+**Proposed ledger: `fix-at-scale`, cap = 300 GPU-h** (headroom-cap convention, not
+a target — mirrors rung-1's own 135 GPU-h ceiling against an ≈11–14 GPU-h committed
+ask, §8.1). 300 GPU-h gives ≈23% headroom over the n=3/n=3 primary default
+(≈244.44 GPU-h) and ≈50% over the fallback, while staying a similar order of
+magnitude to Track C's own 300 GPU-h program ceiling (`run_lm_rd_trackc_sweep.py:306`,
+itself already 12.23 GPU-h over-spent and disclosed as such) — a genuinely NEW,
+separate ledger, not a draw against frozen-bias's existing 135 GPU-h ceiling
+(§8.1) or its ≈123.57 GPU-h of unused headroom (`STATE.md` LEDGERS: "frozen-bias:
+11.43/135 (~123 headroom — funds the head-to-head)" — that headroom is EARMARKED
+for the head-to-head demo per STATE.md's own parenthetical, not free for this wave
+to silently draw against).
+
+**Authorization: the PI's 2026-07-09 GPU-saturation directive** (`STATE.md`,
+quoted in full at §13.0) is the recorded authorization for opening this new ledger,
+per this project's own "never-self-amend" rule (`STATE.md`: *"RESPONSE (recorded as
+the authorization the never-self-amend rule requires)"*) — this design registers
+the ledger, it does not self-authorize it.
+
+**Circuit breaker (task-mandated, scoped sanely — NOT the 10× bracket a
+pre-calibration placeholder table uses, since that would exceed this wave's entire
+proposed cap in one cell):** **1.5× measured/calibrated per-step rate, hard-abort
+per cell**, checked live against the cell's OWN calibration constant (not a
+program-wide constant), mirroring the capability campaign's own precedent of
+designing its own enforceable mechanism rather than inheriting one. **This
+threshold is independently validated by rung-3's own failure**: rung-3's real
+overrun was **1.985×** its solo calibration — a 1.5× abort would have FIRED before
+that run burned its full budget, exactly the failure mode this breaker exists to
+catch cheaply instead of expensively. Mechanically: each cell's supervisor script
+checks `wall_s_so_far / steps_so_far` against `1.5 × calibrated_per_step_s` every
+checkpoint (1,000-step cadence); on breach, the cell writes an `ABORT_1.5X.json`
+sentinel with the last-known rate and exits — the sweep's own budget guard
+(`budget_guard`, `run_lm_rd_trackc_sweep.py:794`) is a SEPARATE, program-wide check
+and stays unchanged; this is a NEW, per-cell, real-time check this wave's own
+launcher must add.
+
+### 13.9 GPU allocation — box layout
+
+**Occupancy at design time (this session, verify fresh before any BUILD agent
+executes — standard discipline, §12.0's own precedent):** `STATE.md`'s LEDGERS
+section (this session's snapshot) reads "GPUs 0-7 all currently idle," but the
+LATEST narrative entries (same file, later lines) record the head-to-head rung-1
+wave HARD-STOPPED at its calibration-verdict gate (2026-07-09 box time, an
+instrument-design failure, unrelated to this wave) with "GPUs pass to the
+CAPABILITY campaign in the interim — box stays utilized," and CAPABILITY STAGE 2
+is being designed CONCURRENTLY with this wave, by a separate design agent, under
+the SAME PI directive (`STATE.md`: "registry = CAPABILITY_SEPARATION_DESIGN §2").
+**Net: this design cannot assume a specific live occupancy snapshot; it proposes a
+partition and registers the cross-wave ordering discipline this codebase already
+has a precedent for (§8.2a, the frozen-bias/key-anchoring contention-gate mirror),
+rather than hard-coding a GPU list that will be stale by build time.**
+
+**Proposed partition (all 8 GPUs "in play" per the directive's own text, "GPU 7 no
+longer reserved"):**
+
+- **GPUs 0–3: 392M cells.** Single-GPU per cell (see DDP note below) — up to 4
+  cells run concurrently, the remaining 2–8 (n=3 or n=2) cells queue behind them
+  as slots free, matching Track C's own proven `--gpus N --gpu-offset` sweep
+  pattern (`run_lm_rd_trackc_sweep.py` usage docstring) — no new orchestration
+  code needed.
+- **GPUs 4–6: 98M cells.** Same pattern, up to 3 concurrent.
+- **GPU 7: flex slot** — this wave's own calibration/timing-pilot cell runs here
+  FIRST, alone, before either bank above launches its full manifest (§13.10);
+  after that, GPU 7 is available for whichever concurrent wave (CAPABILITY STAGE
+  2, or a contingent third wave, `STATE.md`'s "2×2-at-scale (~168 GPU-h) iff
+  tonight's screening splits") needs an interleave slot — this design does not
+  claim GPU 7 exclusively, matching the directive's own "small-cell waves
+  interleaved" framing.
+
+**DDP — explicitly NOT used, a disclosed deviation from the directive's own
+planning language.** `STATE.md`'s directive text says "392M DDP cells" as a
+planning sketch, but **zero DDP/`torchrun` code path exists anywhere in
+`run_lm_rd_trackc_sweep.py` or `lm_pretrain_rd.py`** (verified this pass, grep
+clean) — every realized Track C 392M cell to date ran single-GPU
+(`BATCH_SIZE_BY_RUNG[2]=32`, one process per GPU, parallelized ACROSS cells via
+GPU assignment, never within one). §13.7's own corrected cost table shows
+single-GPU 392M cells are already affordable (21.38 GPU-h/cell at full step count,
+4.64 GPU-h/cell at this wave's reduced 20k-step budget) — DDP would only buy
+wall-clock speed, not GPU-h savings, at the cost of building and smoke-testing a
+genuinely new, unvalidated code path in a harness that has never needed one. **This
+design recommends against building DDP for this wave** — single-GPU-per-cell,
+more cells in parallel across the GPU bank, achieves the same "keep GPUs hot"
+saturation goal with zero new engineering risk. If wall-clock time (not GPU-h) is
+later found to be the binding constraint, DDP is a scoped, separate build item —
+not bundled into this wave by default.
+
+**Cross-wave ordering (mirrors §8.2a, registered from THIS side since CAPABILITY
+STAGE 2's own design doc is owned by a different, concurrently-working agent):**
+this wave's own calibration/timing-pilot cell (§13.10) should not launch on a GPU
+bank another wave's OWN first-stage calibration is actively contending for — check
+live queue/tmux state (`tmux list-sessions`, `nvidia-smi`) immediately before
+launch, not assumed from this design pass's own occupancy snapshot. **Cross-reference
+requirement, not performed here:** `CAPABILITY_SEPARATION_DESIGN.md` should mirror
+this same constraint from its own side, exactly as `KEY_ANCHORING_DESIGN.md` §12.2.3
+mirrored into this file's own §8.2a.
+
+### 13.10 Gates
+
+1. **Wave −1 instrument-validity + code-path-equality smoke** (mirrors §8.0/§8.0b,
+   re-run at each new scale's real `d_state` — the pre-blend/post-blend code path
+   must be re-verified bit-identical at `d_state=64` (98M, unchanged from 14M) AND
+   `d_state=128` (392M, genuinely new shape).
+2. **Deploy closure**: scripts on-box byte-verified against this repo's committed
+   copies (md5, mirroring §12.12's own convention) before any cell launches; GPU
+   idle/occupancy re-verified live, not inherited from §13.9's snapshot.
+3. **Timing pilot, per scale (NEW gate, not in rung-1's design — that wave never
+   needed one, since 14M's timing was already banked from Wave C):** a single,
+   short (≤2,000-step) `arm_per_token` cell, run ALONE, before the calibration
+   cell — confirms the §13.7 no-overhead-from-the-blend assumption holds at this
+   scale (real per-step rate within the 1.5× circuit-breaker band of the plain
+   Track-C rate) BEFORE committing to a full-length calibration cell, let alone
+   the full manifest. This is the gate that would have caught rung-3's own
+   1.985× miss two orders of magnitude cheaper than rung-3's own discovery-by-
+   timeout did.
+4. **Calibration-first per scale (CLAUDE.md's standing rule, §6.3's own precedent):**
+   one full-length `arm_per_token` cell (openr1-mix-ext, seed 0), run alone, THEN
+   inspected — loss curve, `span_frac` trajectory, no NaN/divergence, no OOM —
+   against BANDS anchored to Track C's own archived val-loss curves at the
+   matching config: **98M (Wave 1ext, ext-mix) self-loss openr1 1.290 / wikitext
+   3.189; 392M (Wave 2, ext-mix) self-loss openr1 1.135 / wikitext 2.847**
+   (`EXPERIMENT_LOG.md:3980-3984`, `4046-4047`) — a calibration cell landing far
+   outside these bands (accounting for the shorter 20k-step budget at 392M, which
+   should read HIGHER than the full-length 91,552-step reference, not lower) signals
+   a real problem before the remaining 23 cells launch, not after.
+5. **Blind-pin discipline, sequencing FIXED (the process lesson rung-1's own
+   VERDICT names explicitly — "the blind-pin must be written and committed
+   BEFORE the training manifest launches, not after"):** `BANDS_PINNED-FrozenBias-
+   98M.json` / `-392M.json` are written and committed from `arm_off`'s fresh
+   per-seed data IMMEDIATELY after `arm_off`'s cells complete and validate,
+   BEFORE `arm_per_token`'s cells are inspected — and, per rung-1's own
+   post-mortem, this pin's timestamp must be checked (`assert_blind_not_broken`)
+   to strictly precede `arm_per_token`'s own training START times, not merely
+   exist before the measurement script runs. Getting this right is what promotes
+   this wave's own result out of the DESCRIPTIVE TIER rung-1's result was stuck
+   in (§ "The descriptive-tier caveat," above) — the single most avoidable process
+   mistake this design can close relative to its own predecessor.
+6. **Chain + tmux + supervisor**, per-config `try/except`, resume-safe (skip
+   already-completed cells by output validity, not existence) — standing rule,
+   unchanged.
+7. **Harvest with verify-vs-raws**: every headline delta recomputed once, directly
+   from the per-seed raw JSONs, cross-checked against the report to full float
+   precision — mirrors the VERDICT section's own "Verification performed this
+   pass" convention exactly.
+
+### 13.11 Self-attack register — ≥6 items, weakest points first
+
+1. **[MOST CONSEQUENTIAL] The pinned fix's own 14M evidence shows the WRONG-DIRECTION
+   effect for the exact construction this wave commits to re-testing.** `arm_per_token`
+   at 14M made `span_frac` WORSE (+0.1955/+0.2273, CI-excludes-zero, both corpora)
+   — the opposite of "reduces the write-geometry attractor." This wave's own §13.2
+   hypothesis is therefore NOT a safe bet on the 14M data; it is a genuine test of
+   whether that sign generalizes, reverses, or attenuates with scale. **Adjudicated,
+   pinned:** tested as literally specified (per-token, λ=0.58, unchanged) — testing
+   the AS-VALIDATED-AT-14M construction is the honest scale-transfer question the
+   paper's caveat actually asks; silently swapping to the global-vector construction
+   (which DID stabilize at 14M) would answer a different, easier question while
+   still calling it "the fix," which this design explicitly declines to do. The
+   excluded global-vector arm (§13.3) is the disclosed, budget-permitting way to ask
+   the easier question later, not smuggled into this wave's own headline.
+2. **The global-vector control (Arm 2′) is missing at both new scales** — the
+   §7.1a "is this about token identity, or any constant vector" licensing check
+   cannot be run this wave. A WIN outcome (§13.6) at 98M/392M would therefore be
+   reported as "the per-token construction stabilizes at scale," NOT as "the
+   constancy-suffices mechanism transplants at scale" — the two claims are not
+   equivalent, and this design does not have the instrumentation to distinguish
+   them this wave. Flagged as the natural next follow-on if budget allows.
+3. **392M's n=2 fallback (if adopted over the n=3 primary default) has the same CI
+   weakness rung-1 itself never had to face** — rung-1 used n=3 at 14M throughout;
+   an n=2 392M cell has `df=1`, `t(1,0.975)=12.706` (not `t(2,0.975)=4.303`) if the
+   SAME pinned-CI-formula convention is reused verbatim — a materially WIDER
+   interval, harder to CI-exclude-zero even with a real effect present. **This
+   pushes the design toward the n=3/n=3 primary default (§13.8) rather than the
+   fallback** — disclosed here as the actual reason, not merely "more seeds are
+   better in general."
+4. **λ=0.58 was tuned at 14M (§10.13.4's cross-cell mean from the synthetic-grammar
+   mechanism-tier wave) — is re-tuning needed at scale, or is using it as-is the
+   honest test?** **Adjudicated, pinned:** used as-is, unchanged. Re-tuning λ per
+   scale would conflate "does the FIX (as validated) transfer" with "does SOME
+   value of λ work better at this scale" — a different, larger, unbudgeted design
+   (a λ-sweep at two new scales, §5's Arm-2-λ-mini-sweep precedent shows even a
+   RUNG-1-ONLY 2-point mini-sweep already needed its own registered scope). Using
+   λ=0.58 unchanged is the literal transplant this wave is chartered to test, per
+   §13.0's own framing — the CLAUDE.md hard rule ("hold the second axis fixed when
+   testing a primary hypothesis") applies directly: λ is the second axis here,
+   held fixed.
+5. **The fix's known interaction with `use_qk_l2norm_in_kernel=True` is untested
+   this wave.** This flag is ON in every cell this design proposes (the stock,
+   production-matching default, `lm_pretrain_rd.py:984`) — a concurrent,
+   independently-chartered wave (`ATTRACTOR-ROBUSTNESS 2×2`, git history
+   `55f0cfc`, qk-norm × gating) exists specifically to probe this interaction at
+   14M, but its results are not yet available to this design and are NOT folded
+   in. If that wave finds a qualitative qk-norm interaction, this wave's own
+   98M/392M cells (qk-norm ON throughout, unvaried) would need re-reading against
+   that finding, not silently assumed unaffected. Flagged as an open dependency,
+   not resolved here.
+6. **The blind-pin timing fix (§13.10 item 5) is a PROCESS commitment, not yet a
+   verified mechanism** — rung-1's own pin was correctly SEQUENCED relative to
+   Arm 2/Arm 2′ (written after Arm 1 completed, before Arm 2 was inspected) but
+   was, by its own admission, a POST-HOC pin on an already-fully-trained wave
+   (every training cell had already completed before the pin file was written),
+   which is why rung-1 landed in the descriptive tier despite a numerically real
+   CI-excludes-zero result. This design's own §13.10 item 5 commits to writing
+   the pin file the moment `arm_off`'s cells complete — BEFORE `arm_per_token`
+   launches, not merely before `arm_per_token` is inspected — but whether the
+   BUILD agent's actual launcher enforces this via `assert_blind_not_broken`
+   (rather than merely documenting the intent) is unverified until built.
+7. **Eval-only retrofit costs at 98M/392M are an ESTIMATE, scaled from rung-1's
+   own 14M per-pass rate by a linear-in-params heuristic — never independently
+   measured at either new scale** (carries forward rung-1's own still-open §11a
+   item 4, now at checkpoints 7–28× larger, where the near-zero assumption is
+   less obviously safe than it was at 14M). The timing pilot (§13.10 item 3) is
+   scoped to check TRAINING throughput, not eval-only forward-pass cost — a
+   genuine gap; a fresh attack should ask whether the timing pilot needs a
+   companion eval-only-pass timing check before the 36 (n=3) or 30 (n=2)
+   eval-only passes are trusted at their estimated cost.
+8. **The 20,000-step 392M budget is NOT token-matched to the 98M full-length
+   (67,547-step) cell** — 98M trains on ≈1.108B tokens/cell (`67,547 × 32 × 512`),
+   392M on ≈328M tokens/cell (`20,000 × 32 × 512`), roughly a THIRD as many tokens
+   despite 4× the params. This does not confound the WITHIN-scale comparisons
+   (`arm_per_token` vs. `arm_off′`, same corpus, same step budget, same scale) that
+   this wave's own bars (§13.6) are built on, but it DOES mean this wave cannot
+   support a clean CROSS-scale "is the effect bigger or smaller at 392M than 98M"
+   magnitude claim without first controlling for the token-budget mismatch — not
+   this wave's registered claim (§13.6 is per-scale, per-corpus, not a magnitude
+   ranking across scales), but a reader should not be allowed to infer one from
+   the results without this disclosure.
+
+### 13.12 Reproducibility pointers + build list
+
+**Reuse (no new instrument code, verify byte-identity before trusting any number):**
+- `matrix-thinking/deltanet_rd/lm_attractor_probe_rd.py` — attractor probe,
+  unmodified.
+- `matrix-thinking/deltanet_rd/key_anchoring.py` — `anchor_blend_gather_scatter`,
+  `random_unit_rows_init`, `LAMBDA_LOG_CADENCE_STEPS`, `ANCHOR_INIT_SEED`.
+- `matrix-thinking/deltanet_rd/lm_pretrain_rd.py` — `DeltaNetLM` harness,
+  `anchor_active`/`anchor_lambda_mode`/`anchor_table_frozen`/`anchor_table_init_mode`
+  flags (already exist, exercised at rung-1; re-verify they parametrize cleanly at
+  `d_state=128`, untested until now).
+- `matrix-thinking/deltanet_rd/run_lm_rd_trackc_sweep.py` — `budget_guard`,
+  `disk_space_check` (`DISK_SAFETY_FACTOR=1.5`), `derive_timing_constants`,
+  `BATCH_SIZE_BY_RUNG` — the sweep-harness conventions this wave's own launcher
+  inherits.
+- `matrix-thinking/deltanet_rd/lm_rd_rung_configs.py` — `RUNGS[1]` (98M),
+  `RUNGS[2]` (392M), `verify_param_count` — re-run this file's own smoke gate
+  before any GPU time is spent (CPU-only, seconds).
+- `key_anchoring.py`'s `write_bands_pinned` / `validate_bands_pinned` /
+  `assert_blind_not_broken` — the pin mechanism, extended (not rewritten) to
+  two new scale-keyed JSON files.
+
+**New this wave (expect mostly wiring, not new algorithms):**
+- Arm wiring at both new `RUNGS` configs: instantiate `arm_off`/`arm_per_token`
+  at `d_model∈{768,1536}`, `d_state∈{64,128}` — the anchor table `B`'s shape
+  (`(50257, d_state)`) already parametrizes correctly per §2's own design (the
+  central per-scale table-size decision was already made at rung-1's design
+  time); confirm, don't re-derive.
+- The 1.5× per-cell circuit breaker (§13.8) — genuinely new supervisor logic,
+  not present in `run_lm_rd_trackc_sweep.py` today.
+- Two new `BANDS_PINNED-FrozenBias-{98M,392M}.json` writers, reusing the
+  existing `key_anchoring.py` pin machinery with a new file-per-scale key.
+- The timing-pilot short-cell mode (§13.10 item 3) — a `--pilot-steps N` flag
+  on top of the existing calibration-cell code path, not a new training loop.
+- Chain/tmux/supervisor scripts for two concurrent GPU banks (§13.9) — adapt
+  rung-1's own single-bank chain script, not build from scratch.
+
+### 13.13 Open items for the next revision round (not resolved this pass)
+
+- §13.11 item 5 (qk-norm interaction) — resolve once `ATTRACTOR-ROBUSTNESS 2×2`
+  reports.
+- §13.11 item 7 (eval-only cost at scale) — needs its own timing check, not
+  currently in §13.10's pilot scope.
+- The exact `--pilot-steps` value (§13.10 item 3) — proposed ≤2,000 above,
+  not yet justified against a specific circuit-breaker false-positive-rate
+  analysis.
+- Whether GPU 7's "flex slot" role (§13.9) needs its own explicit hand-off
+  protocol with CAPABILITY STAGE 2's concurrently-written design, once that
+  design's own GPU ask is known.
