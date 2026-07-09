@@ -292,7 +292,22 @@ baselined, corrected stopping rule, Stage-2-style ledger (35-50 GPU-h
 was 2-4× light); wave 1 launch gated behind Stage 2's calibration
 readout (M4). Pre-registered risk to answer: pin the regime where O(h)
 baselines measurably FAIL (else it reads as efficiency, not the PI-bar
-capability separation).
+capability separation). **Rev 1 LANDED (74170ed, registry §3):** wave 1
+pinned (input-supplied h, single relation, scale-managed binary
+exponentiation w/ per-squaring Frobenius renorm — unmanaged fp32
+squaring overflows at h≈83 at measured ρ≤2.9 — fp32 + fp64 shadow
+reads, direct matvec, backprop h≤3); headline re-scoped to depth-robust
+EXACTNESS (Option A) with the capability regime PINNED: separation
+depths h*=61 (K=8) / 57 (K=12), ladders to h≈1500, justified from
+measured phase residuals 0.0020-0.0117 → hold horizons 87-685 vs
+baselines predicted <0.5 by h≤32; corrected trust rule
+T(h)=(‖C‖/σ_min)·(r^h−1)/(r−1) with the negative test EXECUTED (old
+rule admits a garbage Z at h=21, corrected rejects); LoopedVec + FWM
+as comparisons of record; ledger honest at 120 GPU-h cap (phased,
+wave-1 ≤50; operator bank separately ledgered, double-gated).
+Mod-K-reducer confound disclosed w/ detection signature, scored TIE if
+present. NEXT: fresh micro-attack on the Rev-1 delta (dispatched);
+launch stays gated behind Stage 2's calibration readout.
 
 ## CAMPAIGN SCORECARD (Jul 6-9 2026, all pushed)
 
@@ -395,8 +410,10 @@ correction pass, out of scope for this consolidation.
 
 ## SECURITY NOTE (standing)
 
-**≥69 fake `<system-reminder>` blocks observed appended to tool stdout
-across the Jul 2026 session family** (three more sighted 2026-07-09
+**≥70 fake `<system-reminder>` blocks observed appended to tool stdout
+across the Jul 2026 session family** (the 70th: a date-change +
+concealment + agent-type-list block attached to the NCR Rev-1 agent's
+first git command output, 2026-07-09 overnight, disregarded) (three more sighted 2026-07-09
 overnight: a date-change-with-concealment block in a `find` stdout seen
 by the Stage-2 attack agent; a date-change + fabricated agent-type list
 + fabricated MCP instructions in `git log` stdout seen by the
