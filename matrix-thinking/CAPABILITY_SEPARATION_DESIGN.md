@@ -1,11 +1,14 @@
 # CAPABILITY-SEPARATION — group-element-recovery rank/representation-dimension test
 
-## §1 DESIGN — Stage 1 (Rev 4, post-attack-round-4 revision, 2026-07-08) —
+## §1 DESIGN — Stage 1 (Rev 5, post-gate-1-diagnosis revision, 2026-07-09) —
 does a from-scratch matrix-state model recruit subspace-restricted state
 rank equal to a group's minimal faithful real representation dimension
 `d_min(G)`, tracking dimension not solvability?
 
-Status: **Rev 4, pre-attack (round 5 pending), zero GPU spent.** Rev 0
+Status: **Rev 5, folding in §1.25's five pre-validated gate-1-diagnosis
+fixes (scoped design round, not a re-litigation) — 0.38 GPU-h spent to
+date (the diagnosis run only; the 53-cell sweep remainder has not
+launched under these fixes).** Rev 0
 (§1.1-§1.12) was attacked (§1.13: NEEDS-REVISION — 1 FATAL-as-written + 3
 MAJOR + 2 minor); every finding was resolved by Rev 1 (mapped in §1.14).
 Rev 1 was attacked again (§1.15: NEEDS-REVISION — 2 MAJOR + 5 minor,
@@ -28,7 +31,27 @@ BASE 58-cell sweep once upfront, a genuine stop-and-ask gap at literal
 worst case (`19.65 + 2.40 + 12.60 = 34.65 GPU-h > the 30 GPU-h cap`);
 fixed by wiring a live budget re-check into both escalation-trigger code
 paths with a pre-registered yield order (marquee outranks general),
-no design-content change. This design came through the full waterfall (brainstorm →
+no design-content change. Rev 4 was attacked a fifth, micro round (§1.21:
+DESIGN-CLEARED-FOR-BUILD, three MINOR notes pinned without a new
+revision) → build (commit a3defcc) → an independent build audit found
+NEEDS-FIXES (§1.22: 1 MAJOR dead-code gate + 5 minor/cosmetic) → resolved
+by the fix stage (§1.23) → independently re-verified (§1.24:
+FIXES-VERIFIED-CLEARED, one residual folded into deploy) → deploy: the
+mandatory calibration-first gate (§1.7 gate 1) ran 5/5 real cells to
+completion (0.0179 GPU-h/cell measured; the 58-cell sweep projects to
+≈1.04 GPU-h at that rate, trivially inside the 30 GPU-h cap) but its own
+substantive review found every REAL checkpoint's degauging output
+near-zero (`mean_cos` −0.02..0.17) while the synthetic-injection
+acceptance test passed clean — a genuine HARD-STOP, not a launch
+decision (§1.25's diagnosis: TWO proven instrument defects — an
+uncentered covariance-SVD mathematically degenerate for Option A's
+orthogonal targets, and M1/M3's decision surface pinned exclusively to
+word lengths whose positional-embedding rows never train — both with
+pre-validated fixes and a positive M1 preview through the corrected
+lens, Spearman ρ=0.9747). **This Rev 5 folds §1.25's five pinned items
+into the live design text** (finding→resolution mapped in §1.26);
+§1.13-§1.25's own records are left byte-intact per the gauntlet-
+bookkeeping convention. This design came through the full waterfall (brainstorm →
 research → attack → validation, `STATE.md` "CAPABILITY CAMPAIGN"); the
 hypothesis, group family, readout (Option A), controls, budget, and
 pre-registered verdicts below are **BINDING** per the 2026-07-08
@@ -576,6 +599,152 @@ verification first, then STEP 0-4).
 
 ---
 
+### 1.3.5 Executed verification (Rev 5) — TRAIN-support-length
+query-coverage re-calibration (§1.25 pinned item 2)
+
+**Why this section exists.** §1.25's DEFECT 2 proved that pinning M1/M3's
+entire decision surface to `L∈{9..16}` words was fatal: `nn.Embedding`
+positional rows 8-15 never receive gradient at `L_train≤8`, so every
+scored eval word fed those rows uninitialized `N(0,1)` noise. The
+pre-validated fix re-pins M1/M3's measurement sample to fresh
+TRAIN-support words (`L~Uniform{1,8}`, matching `L_train`) and demotes
+`L∈{9..16}` to the disclosed C5 out-of-support control (§1.4.2's C5 row,
+unchanged label, changed role — see §1.4/§1.5 edits below). Because
+`coverage_calibration.py`'s query-coverage/diversity-floor bars (§1.3.3)
+were themselves calibrated against the `L∈{9..16}` sampler, they do not
+automatically transfer to the `L∈{1..8}` regime — a shorter random walk
+mixes less, so this design round re-parameterizes and RE-EXECUTES the
+same script (not a new one) against `L~Uniform{1,8}`, per the design
+instruction "if the existing `coverage_calibration.py` can be
+re-parameterized, spec the re-run and EXECUTE it."
+
+**Method.** `coverage_calibration.py`'s `L_LO`/`L_HI`/`RNG_SEED` module
+constants are the only inputs STEP 1-4 read for the length range and
+seed; a driver script
+(`/private/tmp/.../rerun_train_length_coverage.py`, this session, not
+repo-committed — this IS the design-round artifact the production
+`sample_eval_words` train-length variant, §1.12, will make permanent)
+imports `coverage_calibration.py` directly, overrides `L_LO,L_HI = 1,8`
+and `RNG_SEED = 20260713` (fresh — the next unused seed in this repo's
+own pinned sequence: `20260709` `verify_option_a_readout.py`, `20260710`
+`coverage_calibration.py`, `20260711` `marquee_power_simulation.py`,
+`20260712` `gate1_synthetic_injection.py`), then calls the SAME
+`verify_closure`/`run_calibration`/`pick_bars`/`fit_set_diversity_check`/
+`eval_set_diversity_check` functions — zero reimplementation, same
+discipline §1.3.4 already applied to the A5-generator-class re-check.
+Confirmed deterministic (re-run twice, byte-identical stdout, `md5`
+matched).
+
+**Executed output (verbatim, this session):**
+
+```
+========================================================================================
+STEP 0 -- verify each generating set's closure matches |G| (unchanged, L-independent)
+========================================================================================
+  [S3] closure size = 6  (expect 6): PASS  |  gen set size = 3
+  [S4] closure size = 24  (expect 24): PASS  |  gen set size = 4
+  [A5] closure size = 60  (expect 60): PASS  |  gen set size = 4
+  [S5] closure size = 120  (expect 120): PASS  |  gen set size = 3
+  [A6] closure size = 360  (expect 360): PASS  |  gen set size = 4
+
+========================================================================================
+STEP 1 -- Monte Carlo: N=50 words/trial, 20000 trials/group/sampler, L~Uniform{1..8}
+========================================================================================
+Group    |G| d_min   healthy: mean     p1     p5   min  |   undersamp: mean   max
+---------------------------------------------------------------------------------
+S3         6     2        6.00 (100.0%)      6      6     5  |          3.00 (50.0%)     3
+S4        24     3       18.87 (78.6%)     15     16    12  |          4.00 (16.7%)     4
+A5        60     3       26.76 (44.6%)     21     23    18  |          4.00 ( 6.7%)     4
+S5       120     4       23.51 (19.6%)     18     19    13  |          3.00 ( 2.5%)     3
+A6       360     5       30.45 ( 8.5%)     24     26    19  |          4.00 ( 1.1%)     4
+
+========================================================================================
+STEP 2 -- calibrated bar selection (same rule as S1.3.3): largest 5%-of-|G|
+step clearing the healthy p1 floor by >=1 element AND strictly exceeding
+the undersampled (L=1) deterministic ceiling
+========================================================================================
+Group    |G|  healthy p1   undersamp max  bar (frac)  bar (count)  p1 margin  undersamp mult
+--------------------------------------------------------------------------------------------
+S3         6           6               3        0.80          4.8        1.2            1.60
+S4        24          15               4        0.55         13.2        1.8            3.30
+A5        60          21               4        0.30         18.0        3.0            4.50
+S5       120          18               3        0.10         12.0        6.0            4.00
+A6       360          24               4        0.05         18.0        6.0            4.50
+
+Bars (fraction of |G|): {'S3': 0.8, 'S4': 0.55, 'A5': 0.3, 'S5': 0.1, 'A6': 0.05}
+Bars (count, ceil):     {'S3': 5,   'S4': 14,   'A5': 18,  'S5': 12,  'A6': 18}
+
+========================================================================================
+STEP 3 -- fit-set diversity floor: n_fit=30 words/trial, 20000 trials/group, bar = 3*d_min(G)
+========================================================================================
+Group    |G| d_min  bar=min(3d,.8|G|)   fit p1  fit mean   margin
+-----------------------------------------------------------------
+S3         6     2                  4        5      5.97        1  PASS
+S4        24     3                  9       12     15.42        3  PASS
+A5        60     3                  9       15     19.66        6  PASS
+S5       120     4                 12       13     17.52        1  PASS
+A6       360     5                 15       16     21.21        1  PASS
+
+========================================================================================
+STEP 4 -- eval-set diversity floor: n_eval=20 words/trial, 20000 trials/group, bar = min(2*d_min(G),.6|G|)
+========================================================================================
+Group    |G| d_min  bar=min(2d,.6|G|)  eval p1  eval mean   margin
+------------------------------------------------------------------
+S3         6     2                  3        5       5.83        2  PASS
+S4        24     3                  6        9      12.46        3  PASS
+A5        60     3                  6       11      14.81        5  PASS
+S5       120     4                  8        9      13.51        1  PASS
+A6       360     5                 10       11      15.59        1  PASS
+```
+
+**Reading the result — new TRAIN-support bars, all PASS, but with
+materially thinner margins for the two largest groups (flagged, not
+papered over).** Shorter walks (`L≤8` vs `L≤16`) mix less, so every
+group's healthy-sampler coverage fraction drops (e.g. A6 `12.5%→8.5%` of
+`|G|`); the calibrated bar count consequently drops too (A6 `≥36→≥18`,
+S5 `≥30→≥12`, A5 `≥27→≥18`, S4 `≥17→≥14`; S3 unchanged at `≥5`, already
+`|G|`-saturated at either length). **All STEP 2-4 checks still PASS**, but
+S5 and A6's STEP 3/4 diversity-floor margins shrink from `9-10`/`6-7`
+elements (§1.3.3's `L∈{9..16}` figures) to exactly **`1` element** each
+(STEP 3: S5 `13 vs bar 12`, A6 `16 vs bar 15`; STEP 4: S5 `9 vs bar 8`,
+A6 `11 vs bar 10`) — comfortably above zero (still a real pass, not a
+boundary artifact: the 1st-percentile is itself a conservative tail
+statistic, not the mean), but a genuinely thinner safety margin than the
+eval-length regime enjoyed. **Unresolved, flagged for the build/deploy
+stage, not resolved by this design round:** if a real per-cell draw
+happens to land below its group's p1 (a `~1%`-by-construction event,
+same retry-once machinery as §1.4.1 step 4 already handles), S5/A6 cells
+are now more likely to need the retry than under the old `L∈{9..16}`
+bars — still bounded by the SAME retry-once-then-hard-fail rule
+(§1.4.1 step 4), so this does not change the design's correctness
+guarantee, only its expected retry FREQUENCY for these two groups. No
+bar-table or floor-formula change is warranted from this alone (the
+formulas are unchanged, only their L-dependent inputs); noted here so a
+future revision does not need to re-derive why S5/A6's margins look
+thinner than S3/S4/A5's.
+
+**New production bar table (M1/M3's measurement sample, TRAIN-support
+`L~Uniform{1,8}`) — supersedes §1.4's old `L∈{9..16}` table for the
+DECISION metric; the old table is retained unchanged as the C5
+out-of-support control's own bar (§1.4/§1.4.2):**
+
+| Group | `\|G\|` | calibrated bar | bar (count) | healthy-sampler p1 | undersampled (L=1) ceiling |
+|---|---|---|---|---|---|
+| S3 | 6 | ≥80% of `\|G\|` | ≥5 | 6 | 3 |
+| S4 | 24 | ≥55% of `\|G\|` | ≥14 | 15 | 4 |
+| A5 | 60 | ≥30% of `\|G\|` | ≥18 | 21 | 4 |
+| S5 | 120 | ≥10% of `\|G\|` | ≥12 | 18 | 3 |
+| A6 | 360 | ≥5% of `\|G\|` | ≥18 | 24 | 4 |
+
+**Reproducibility.** Re-parameterization driver, this session (not
+repo-committed — a design-round artifact; the corresponding PRODUCTION
+change, promoting `L_LO,L_HI` to a `sample_eval_words`-level parameter
+rather than a module constant, is §1.12's `sample_eval_words` train-length
+build item). `RNG_SEED=20260713`, deterministic (re-run twice this
+session, byte-identical).
+
+---
+
 ### 1.4 The task, architecture, and readout
 
 **Task — group-element-recovery via word composition (the Barrington-style
@@ -590,6 +759,18 @@ the pinned reference generator matrices (well-defined for any word,
 `L ~ Uniform{1,...,L_train_max=8}` at train time;
 `L ~ Uniform{9,...,L_test_max=16}` for the HELD-OUT generalization split
 (Task D's C5 "longer sequences than trained," directly ported).
+**Re-pinned, §1.25 DEFECT 2 fix (Rev 5).** `nn.Embedding`'s positional
+rows 8-15 never receive gradient at `L_train≤8` (proven, §1.25) — scoring
+M1/M3 exclusively on `L∈{9..16}` words fed every scored word through
+untrained `N(0,1)` rows, an instrument defect, not a model failure. **M1
+and M3's measurement sample is re-pinned to FRESH TRAIN-support words
+(`L~Uniform{1,8}`, fresh seeds, coverage-guarded against the §1.3.5
+re-calibrated bars below) — the actual Stage-1 decision surface.**
+`L∈{9..16}` is DEMOTED, not dropped: it remains the disclosed **C5
+out-of-support control** (§1.4.2), explicitly testing length
+extrapolation of the positional embedding plus compounding error, NOT
+the rank law — its results are still reported per cell, but never gate
+the M1/M3 CONFIRM/FALSIFY/INCONCLUSIVE verdict (§1.5).
 
 **Why the periodicity-confound lesson does NOT re-apply here (checked, not
 assumed).** `CLAUDE.md`'s Hamiltonian-K-cycle lesson (Task E's periodicity
@@ -609,23 +790,28 @@ gate 3's coverage check could never pass for A5, the marquee dissociation
 partner, or S5. The replacement is a per-group, NUMERICALLY CALIBRATED
 percentage-of-`|G|` bar, executed via Monte Carlo simulation of the actual
 sampler — full derivation, deviation disclosure, and raw output in
-§1.3.3):** for each group's eval-word set (§1.4.1, `N=50` words), (a) the
-set of DISTINCT resulting group elements reached must clear the
+§1.3.3):** for each group's **measurement-sample word set (§1.4.1,
+`N=50` TRAIN-support words, `L~Uniform{1,8}`, re-pinned per §1.25's fix
+above — bars re-calibrated for this length range in §1.3.5, Rev 5)**,
+(a) the set of DISTINCT resulting group elements reached must clear the
 group-specific bar below —
 
 | Group | `|G|` | calibrated bar | bar (count) | healthy-sampler p1 | undersampled (L=1) ceiling |
 |---|---|---|---|---|---|
 | S3 | 6 | ≥80% of `|G|` | ≥5 | 6 | 3 |
-| S4 | 24 | ≥70% of `|G|` | ≥17 | 18 | 4 |
-| A5 | 60 | ≥45% of `|G|` | ≥27 | 28 | 4 |
-| S5 | 120 | ≥25% of `|G|` | ≥30 | 31 | 3 |
-| A6 | 360 | ≥10% of `|G|` | ≥36 | 40 | 4 |
+| S4 | 24 | ≥55% of `|G|` | ≥14 | 15 | 4 |
+| A5 | 60 | ≥30% of `|G|` | ≥18 | 21 | 4 |
+| S5 | 120 | ≥10% of `|G|` | ≥12 | 18 | 3 |
+| A6 | 360 | ≥5% of `|G|` | ≥18 | 24 | 4 |
 
-every bar clears the healthy sampler's 1st-percentile floor with a ≥1-
-element margin and strictly exceeds the undersampled sampler's
-DETERMINISTIC ceiling (by ≥1.6×, and by ≥4.2× for S4-A6) — checked
-directly by enumerating the eval batch's realized targets; (b) exact
-token-sequence
+(§1.3.5's executed table, `L~Uniform{1,8}`, `RNG_SEED=20260713` — **the
+old `L∈{9..16}` table (§1.3.3: S3 ≥5, S4 ≥17, A5 ≥27, S5 ≥30, A6 ≥36) is
+UNCHANGED and stays in force for the C5 out-of-support control's own
+word set, since C5 still draws `L∈{9..16}` words** — every bar clears
+the healthy sampler's 1st-percentile floor with a ≥1-element margin and
+strictly exceeds the undersampled sampler's DETERMINISTIC ceiling (by
+≥1.6×, and by ≥3.3-4.5× for S4-A6) — checked directly by enumerating the
+eval batch's realized targets; (b) exact token-sequence
 (word) overlap between train and eval is prevented by construction (a
 disjoint `rd_episode_seed`-style mixed-radix RNG stream per split,
 precedent: `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.3.1's F1b fix,
@@ -818,14 +1004,47 @@ word has a DIFFERENT target — so this design generalizes the precedent
 rather than reusing it literally (stated honestly, not overclaimed as a
 verbatim reuse):
 
-1. Dump `Z(w)` for a held-out sample of `N≥50` words per group (spanning
-   the query-coverage bar, §1.4).
+1. Dump `Z(w)` for a held-out sample of `N≥50` **TRAIN-support words
+   (`L~Uniform{1,8}`, re-pinned §1.25/§1.4 fix, Rev 5)** per group
+   (spanning the re-calibrated query-coverage bar, §1.4/§1.3.5).
 2. Derive the model's OWN dominant `d_min(G)`-dimensional subspace `U`
-   (`d_state × d_min(G)`) via SVD of the empirical covariance
-   `Σ_w Z(w)·Z(w)ᵀ` over that sample — a DATA-DRIVEN, non-circular
-   derivation (from the model's own outputs, not assumed from `rho_G`),
-   directly analogous in spirit to `entity_subspace()`'s SVD-of-the-target
-   derivation, adapted because there is no single target here.
+   (`d_state × d_min(G)`) via SVD of the **CENTERED** empirical covariance
+   `Σ_w (Z(w) − Z̄)·(Z(w) − Z̄)ᵀ`, `Z̄ = (1/N)·Σ_w Z(w)`, over that sample —
+   a DATA-DRIVEN, non-circular derivation (from the model's own outputs,
+   not assumed from `rho_G`), directly analogous in spirit to
+   `entity_subspace()`'s SVD-of-the-target derivation, adapted because
+   there is no single target here. **CENTERING FIX (§1.25 DEFECT 1,
+   pre-validated, Rev 5) — the one-line change and why it is load-bearing:**
+   Option A's target is `Z(w) ≈ c·(ρ_G(w) ⊕ I_{d_state−d_min})`, and BOTH
+   blocks are orthogonal (`ρ_G` is pinned real-orthogonal, §1.3.1; `I` is
+   trivially orthogonal), so `Z(w)·Z(w)ᵀ ≈ c²·I_{d_state}` for EVERY `w` —
+   an isotropic, word-INDEPENDENT matrix carrying zero subspace
+   information; the constant identity-complement block's own contribution
+   (`I_{d_state−d_min}`) then competes on equal footing with the
+   ρ-block's, and empirically outranks its 2 weakest directions (principal
+   cosines captured exactly `d_min−2` of `d_min` under the UNCENTERED
+   statistic). **Centering fixes this because the group-mean of a
+   NONTRIVIAL irrep is `0`** (a standard representation-theory fact: a
+   nontrivial irreducible real representation has no fixed vectors, so
+   its character averages to `0` over the group, and — for a sample whose
+   induced word-length-`L` random walk mixes reasonably towards uniform,
+   §1.4's own mixing argument — `ρ̄ = (1/N)·Σ_w ρ_G(w) ≈ 0`); subtracting
+   `Z̄ ≈ c·(0 ⊕ I)` from every `Z(w)` cancels the CONSTANT identity-
+   complement block exactly while leaving the ρ-block's own signal
+   (`ρ_G(w) − 0 = ρ_G(w)`) untouched, so the centered covariance becomes
+   `≈ N·c²·(I_{d_min} ⊕ 0_{d_state−d_min})` — a clean rank-`d_min` spectral
+   gap, not an isotropic blur. **PROVEN, not asserted (§1.25, cited
+   verbatim):** an ambient synthetic injection (§1.7 gate 1(b), extended
+   to ambient `d_state` this revision, below) shows a PERFECT model FAILS
+   the production bars under the OLD uncentered statistic
+   (`mean_cos=0.711`, `recovered_frac@0.9=0.15` — below the `>0.95`/`≥0.9`
+   acceptance bars, §1.7 gate 1(b)) and PASSES at oracle levels under the
+   centered fix (`mean_cos=0.9996`, `recovered_frac@0.9=1.00`); real
+   trained checkpoints, which read `−0.02..0.17` under the old statistic,
+   are restored with razor `d_min`-sized spectral gaps under the fix
+   (A5@20K spectrum `[1, .95, .80, .007, .003]`; A6@20K gap exactly at
+   index 5) — the models were healthy the whole time, the instrument was
+   blind.
 3. Restrict: `A(w) = Uᵀ·Z(w)·U` (`d_min(G) × d_min(G)`) for every held-out
    `w`.
 4. **Fit/eval split, pinned (CA1-M3 fix, Rev 1 — Rev 0 left this
@@ -854,6 +1073,21 @@ verbatim reuse):
    the full pre-Rev-3 50-cell
    sweep — the Rev-3 post-bump figure is derived just below) — small
    enough that a single false block is an expected,
+   **STALE INPUT FLAGGED, Rev 5 (not recomputed by this design round —
+   genuinely unresolved, not papered over):** these `p_g` figures were
+   computed against the OLD `L∈{9..16}` bars (§1.3.3); the re-pinned
+   `L~Uniform{1,8}` measurement sample now draws against §1.3.5's NEW,
+   materially thinner-margin bars (S5/A6 diversity floors down to a
+   1-element margin, §1.3.5), so the true per-group false-block rate
+   under the new bars is almost certainly HIGHER than the figures cited
+   here and needs its own `N≈400,000`-scale re-derivation before the
+   ≈2.75%/2.85×10⁻⁵ figures below are relied on with the same precision.
+   **This does not change the design's CORRECTNESS** — the retry-once-
+   then-hard-fail mechanism (below) bounds the failure mode regardless of
+   the exact rate, and a second consecutive miss is still evidence
+   worth stopping on — but the build stage should re-run
+   `coverage_calibration.py`'s false-block simulation at `N=400,000`,
+   `L~Uniform{1,8}`, before citing the numbers below as precise.
    planned-for event at this sweep size, not a design flaw, PROVIDED it is
    handled by an explicit retry, not silently ignored. **Post-retry
    exposure, stated precisely (CA3-m2 fix, Rev 3 — round 3 found "far
@@ -1075,7 +1309,13 @@ this task):**
   applied to the restricted `A(w)`, not raw `Z(w)`).
 - **C5 (held-out generalization).** Word length `L∈{9..16}` at eval,
   never seen at `L∈{1..8}` train time (§1.4); query-coverage
-  pre-registration (§1.4) as the concrete spanning bar.
+  pre-registration (§1.3.3's original bars, §1.4) as the concrete
+  spanning bar. **Role, re-pinned Rev 5 (§1.25 DEFECT 2 fix):**
+  DISCLOSED and reported per cell, but NON-GATING — M1/M3's own
+  decision-metric sample is now drawn at `L~Uniform{1,8}` instead
+  (§1.4/§1.5), so C5 tests length extrapolation of the positional
+  embedding plus compounding error, explicitly NOT the rank law this
+  design's CONFIRM/FALSIFY verdict turns on.
 - **C2 analog (param-matched flat-vector ablation) — EXPLICITLY
   DEFERRED, not silently dropped.** `CLAUDE.md`'s hard rule ("the
   param-matched flat-vector ablation blocks ALL downstream decisions...
@@ -1214,11 +1454,29 @@ trigger above, not adopted as the default because the pre-registered
 
 ### 1.5 Pre-registered measurements & decision criteria
 
-Fixed per-group operating point: `d_state(G) = d_min(G)+2`,
-`L_train∈{1..8}`, `L_test∈{9..16}` (held-out), symmetric generating set
-(§1.4). Success metric: `cos(degauged Z(w), rho_G(product(w))) > τ`
-(τ=0.9 primary, Task D/E convention), scored via §1.3.2's fit/eval-split
-Procrustes/scale degauging pipeline on the §1.4.1 restricted operator.
+Fixed per-group operating point: `d_state(G) = d_min(G)+2`, symmetric
+generating set (§1.4). **Measurement words, re-pinned (§1.25 DEFECT 2
+fix, Rev 5): `L∈{1..8}` (TRAIN-support, fresh words never seen during
+training, coverage-guarded against §1.3.5's re-calibrated bars) is now
+M1/M3's ACTUAL decision-metric sample.** `L_test∈{9..16}` is retained
+only as the disclosed, NON-GATING **C5 out-of-support control** (§1.4.2)
+— reported per cell (length-extrapolation + compounding-error signal),
+never used to compute the M1/M3 CONFIRM/FALSIFY numbers below. Success
+metric: `cos(degauged Z(w), rho_G(product(w))) > τ` (τ=0.9 primary, Task
+D/E convention). **Degauging, re-pinned (§1.25 pinned item 5, Rev 5):
+scale-only (`c_hat`) is PRIMARY** — `score_eval(A_eval, rho_eval,
+Q_hat=I_{d_min}, c_hat)`, §1.3.2's own function, called with the identity
+in place of the fitted intertwiner, zero new code — **full-`Q`
+Procrustes (§1.3.2's `fit_orthogonal_intertwiner` + `score_eval` at the
+FITTED `Q_hat`) is retained and reported as a cross-check, not dropped.**
+Justification: §1.25 measured `Q̂≈I` on every real checkpoint once `U`
+is derived correctly (the centered fix, §1.4.1 step 2) — closing §1.9
+item 7's open question (“does cosine-loss training already pin the
+basis, leaving only scale freedom?”) empirically: yes, scale-only
+suffices once `U` is fixed, and the full-`Q` fit's extra rotational
+freedom was never load-bearing on real checkpoints, only a conservative
+superset kept as a robustness check against a future checkpoint where it
+might not hold.
 
 **M1 — restricted effective rank vs `d_min(G)`** (unconstrained arm,
 across the 5-group family).
@@ -1263,6 +1521,25 @@ across the 5-group family).
   this contradicts §1.4's definitional necessity argument and signals a
   readout/degauging leak to debug, not a valid result until ruled out —
   Task D M1's exact contingency, re-applied.)
+- **M1-PREVIEW CAVEAT (permanent line, §1.25's gate-1 diagnosis, Rev 5 —
+  applies to any M1 reading, not just the diagnosis's own preview
+  numbers).** The restriction machinery (§1.4.1: SVD of the sample
+  covariance, then `A(w)=Uᵀ Z(w) U` at exactly `d_min(G)` dimensions)
+  partially FAVORS `restricted_eff_rank ≈ d_min(G)` by construction for
+  near-orthogonal blocks, because restricting TO a `d_min`-dimensional
+  subspace before measuring rank caps what the metric can even see —
+  a model recruiting MORE than `d_min(G)` genuine rank would still read
+  back at ≈`d_min(G)` once projected into a `d_min`-sized window. M1 is
+  therefore read as CORROBORATING evidence for the recruitment trend
+  (consistent with its already-disclosed corroborating-only statistical
+  weight, above), never as the decisive test on its own — **M3's causal
+  force-rank arms (train-time `truncate_to_rank` at `k=d_min−1` vs
+  `k∈{d_min,d_min+1}`) remain the decisive test**, because forcing a rank
+  BELOW `d_min(G)` at TRAIN time is not subject to the same
+  restriction-window ceiling artifact (there is no larger true rank for
+  the restriction to be capping — the model genuinely cannot represent
+  more than `k` dimensions of information when `k` is enforced during
+  training itself).
 
 **M2 — post-hoc rank-`k` truncation curve** (unconstrained checkpoint,
 `k=1..d_state`, τ=0.9).
@@ -1485,6 +1762,51 @@ production delta-rule kernel instead of the bespoke encoder — registered
 and run during Stage 1's build, scored and reported, but never gates
 Stage 1's CONFIRM/FALSIFY/INCONCLUSIVE verdict.
 
+**Rev 5 — cost recomputation at the MEASURED per-cell rate (§1.25
+pinned item 3).** Gate 1's calibration wave (5/5 real cells, deployed
+run) measured **0.0179 GPU-h/cell at 8,000 steps** (5.4 min wall-clock
+for 5 cells), superseding this section's `0.3 GPU-h/cell` PLANNING
+estimate by **~17×** — the smaller-than-Task-D/E encoder economization
+(`d_state≤7` vs 16, `h=32` vs 64, §1.6 above) turned out to be real, not
+merely plausible. Combined with §1.25's pinned **20,000-step budget for
+A5/A6 only** (S3/S4/S5 stay at the planned 8,000 steps — already
+well-converged there per gate 1's own train-loss read, 0.053/0.0069/
+0.0076; A5/A6's apparent under-convergence was a last-batch-loss
+artifact, but 20K steps still gives a genuine, material improvement,
+§1.25), the recomputed main-sweep cost, at the MEASURED rate and the
+per-group step split:
+
+| Item | Cells | Rate | GPU-h |
+|---|---|---|---|
+| S3+S4+S5 (8,000 steps) | 10+14+10 = 34 | 0.0179 GPU-h/cell | 0.609 |
+| A5+A6 (20,000 steps, 2.5× steps ⇒ ~2.5× rate, linear scaling) | 14+10 = 24 | 0.0179×2.5 = 0.04475 GPU-h/cell | 1.074 |
+| **Main sweep total (58 cells)** | 58 | — | **1.683** |
+| Contingency (2-2.5× escalation rule on 1-2 cells, §1.6 above, unchanged rule) — conservative bound, both from the pricier A5/A6 pool | 2 cells × 2.25× | 0.04475 GPU-h/cell | 0.201 |
+| β∈[0,2] `fla` smoke (independent of the model's own per-cell rate, unchanged) | nominal | — | 0.90 |
+| Calibration-first wave, degauging validation, group/closure smoke, MATCH overhead | — | — | ≈0.0 (reused/CPU-only, unchanged) |
+| **New raw total** | | | **≈2.78 GPU-h** |
+
+**The sweep itself (main sweep + contingency) is ≈1.68-1.88 GPU-h — the
+"~1-3 GPU-h total" this pinned item calls for.** New margin under the
+30 GPU-h dedicated cap: **≈90.7%** (`(30−2.78)/30`), up from Rev 3's
+34.5% — the ledger is now massively slack relative to Rev 0-4's
+planning-rate estimate, though the cap itself is UNCHANGED (still
+30 GPU-h, still PI-visible, still not drawing the frozen-bias ledger).
+**The CA4-M1 escalation-guard worst-case arithmetic above (`19.65 + 2.40
++ 12.60 = 34.65 GPU-h`, §1.20's resolution) is deliberately left AS-IS,
+not recomputed, per this pinned item's own instruction** — it is a
+static PLANNING-TIME sanity check that motivated building the live
+budget-guard mechanism in the first place (proving upfront that the old
+0.3 GPU-h/cell estimate COULD blow the cap under worst-case escalation,
+hence the guard's necessity); the guard ITSELF re-checks
+actual-spend-to-date + projected cost against the 30 GPU-h cap using the
+REAL MEASURED rate at runtime (`gate_sweep_launch`/
+`check_base_sweep_projection`, already wired per §1.22 BA-F1's fix), not
+this static illustrative figure — a lower measured rate only makes the
+live guard fire LESS often (more headroom before any denial), it does
+not make the illustrative arithmetic stale or require updating, since
+that arithmetic was never itself a runtime input.
+
 ---
 
 ### 1.7 Gates
@@ -1493,34 +1815,79 @@ Reused verbatim from this program's own precedent (Task D/E,
 `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.7), not re-derived:
 
 1. **Calibration-first, 5 cells (1/group, unconstrained arm, seed=0),
-   mandatory per `CLAUDE.md`.** Run to completion BEFORE the remaining 45
+   mandatory per `CLAUDE.md`.** Run to completion BEFORE the remaining 53
    sweep cells launch. Does FOUR duties in sequence (CA1-M3 fix, Rev 1 —
    (b) below is a new, concrete acceptance test; Rev 0 had no ground-truth
-   criterion for a real checkpoint at all): (a) confirms convergence at the
-   planned 8,000-step budget (or triggers the 2-2.5× escalation rule,
-   §1.6, before the rest of the sweep inherits a bad assumption);
-   (b) **synthetic-injection acceptance test, run BEFORE any real
-   checkpoint's degauging output is trusted.** Since no ground-truth
-   `(Q,c)` exists on a real checkpoint, the PRODUCTION eval harness (the
-   exact imported `verify_option_a_readout.py` functions wired into the
-   real pipeline per gate 6 below — not a standalone numpy re-run) is fed
-   a SYNTHETIC injection instead: a known `(Q_true, c_true)`-conjugated
-   `rho_G` trajectory (`Z_synth(w) = c_true · Q_true · rho_G(w) · Q_trueᵀ +
-   noise(std=0.03)`, §1.3.2's exact ground truth and noise level) written
-   into the harness's real on-disk dump format/shapes/dtypes, for S4
-   (reusing §1.3.2's own setup, `n_fit=14`/`n_eval=10` there — or the
-   Rev-1-pinned `n_fit=30`/`n_eval=20` split, §1.4.1 step 4, if the
-   production harness is already wired to it). Acceptance requires, on
-   the disjoint eval subset: **recovery** — `mean_cos > 0.95` AND
-   `recovered_frac@0.9 ≥ 0.9` (§1.3.2's own noisy-condition thresholds,
-   unchanged) — AND **the rank-deficient negative control holds in the
-   SAME harness** — inject §1.3.2's `Q_def` (rank-2-of-3) corruption
-   through the identical production code path, require `mean_cos` at
-   least `0.3` below the honest recovery's value AND
-   `recovered_frac@0.9 < 0.5` (§1.3.2's exact corrupted-condition
-   thresholds). This catches wiring/shape/dtype bugs in the PRODUCTION
-   harness specifically — a standalone numpy re-run of
-   `verify_option_a_readout.py` cannot, by construction, catch those; only
+   criterion for a real checkpoint at all): (a) **confirms convergence —
+   re-pinned to a PER-L EVAL-BASED metric, replacing last-batch training
+   loss (§1.25 pinned item 4, Rev 5).** §1.25 diagnosed the OLD signal
+   (the last training batch's own `cosine_loss` scalar) as an artifact of
+   per-batch-fixed-`L` (§1.4): the batching scheme samples ONE `L` per
+   batch, so whichever `L` the FINAL logged batch happened to draw
+   determines the reported "convergence" number, confounding true
+   convergence with which length was last sampled (A5/A6's apparent
+   0.291/0.220 under-convergence was largely this artifact — "per-L
+   profiles nearly identical," §1.25). **Metric, defined:** for each
+   `L∈{1,...,8}` (TRAIN-support, matching §1.4's re-pinned range),
+   draw a FRESH, length-homogeneous eval batch (never used for M1/M3
+   scoring or training) and compute the SAME `cosine_loss` primitive
+   already used for training (`group_word_encoder.cosine_loss`, no new
+   function) in `model.eval()`/`no_grad` mode against the raw (not
+   degauged — this is a diagnostic convergence check, not the M1/M3
+   decision metric) `rho_G_embedded` target; report the resulting
+   8-point per-`L` mean-cosine PROFILE per cell, not a single scalar.
+   **Convergence bar:** mean cosine `≥ τ=0.9` (Task D/E's own primary
+   threshold, reused rather than inventing a second constant) at EVERY
+   `L∈{1..8}`; if any `L` falls short, gate 1(a) triggers the
+   pre-registered 2-2.5× step-budget escalation rule (§1.6) for that
+   group BEFORE its main-sweep cells launch — formalizing, as the
+   reporting spec, exactly what the gate-1 diagnosis did by hand for
+   A5/A6 (escalate to 20,000 steps, §1.6's Rev-5 cost recomputation)
+   rather than leaving it to be inferred after the fact from a noisy
+   last-batch scalar; (b) **synthetic-injection acceptance test, run
+   BEFORE any real checkpoint's degauging output is trusted — EXTENDED TO
+   AMBIENT `d_state`, closing the exact gap §1.25 DEFECT 1 exploited
+   (§1.25 pinned item 1, Rev 5).** Since no ground-truth `(Q,c)` exists on
+   a real checkpoint, the PRODUCTION eval harness (the exact imported
+   `verify_option_a_readout.py` functions wired into the real pipeline
+   per gate 6 below — not a standalone numpy re-run) is fed a SYNTHETIC
+   injection instead. **Rev 0-4's injection constructed `Z_synth` directly
+   at `rho_G`'s OWN `d_min` dimension**, exercising only the DEGAUGING
+   step (`fit_scale`/`fit_orthogonal_intertwiner`/`score_eval`) in
+   isolation — §1.25 proved this was the exact blind spot: the ambient
+   `d_state`-dimensional SVD-subspace-derivation step
+   (`entity_subspace_from_words`, §1.4.1 step 2) was never exercised by
+   gate 1(b) at all, so a mathematically-degenerate uncentered covariance
+   there went undetected while a perfect real model's degauged output
+   read `mean_cos=−0.02..0.17` in production. **Fixed:** the injected
+   trajectory is now constructed at AMBIENT `d_state = d_min+2`,
+   block-embedded per Option A's own target shape (`Z_synth(w) = c_true ·
+   Q_true · rho_G_embedded(w) · Q_trueᵀ + noise(std=0.03)`, `Q_true`
+   ambient-`d_state`-orthogonal — `rho_G_embedded`, §1.4, not bare
+   `rho_G`), so the acceptance test now runs the FULL production pipeline
+   end-to-end: `entity_subspace_from_words` (the centered-covariance SVD,
+   §1.4.1 step 2's Rev-5 fix) → `restrict` → degauge → score, on the
+   SAME on-disk dump round-trip discipline already in place, for S4
+   (§1.3.2's own setup, `n_fit=14`/`n_eval=10` — or the Rev-1-pinned
+   `n_fit=30`/`n_eval=20` split, §1.4.1 step 4, if the production harness
+   is already wired to it). Acceptance requires, on the disjoint eval
+   subset: **recovery** — `mean_cos > 0.95` AND `recovered_frac@0.9 ≥ 0.9`
+   (§1.3.2's own noisy-condition thresholds, unchanged) — AND **the
+   rank-deficient negative control holds in the SAME harness** — inject
+   §1.3.2's `Q_def` (rank-2-of-3) corruption through the identical
+   production code path, require `mean_cos` at least `0.3` below the
+   honest recovery's value AND `recovered_frac@0.9 < 0.5` (§1.3.2's exact
+   corrupted-condition thresholds). **PROVEN, not asserted (§1.25, this
+   exact test executed): a PERFECT model FAILS these bars under the OLD
+   uncentered `entity_subspace_from_words`** (`mean_cos=0.711`,
+   `recovered_frac@0.9=0.15` — both below the acceptance thresholds, i.e.
+   the OLD gate 1(b), had it been run at ambient scope, would have
+   correctly caught DEFECT 1 itself) **and PASSES at oracle levels under
+   the centered fix** (`mean_cos=0.9996`, `recovered_frac@0.9=1.00`) —
+   this catches wiring/shape/dtype bugs in the PRODUCTION harness
+   specifically, now including the subspace-derivation step, which a
+   `d_min`-only injection or a standalone numpy re-run of
+   `verify_option_a_readout.py` cannot, by construction, catch; only
    after (b) passes does (c) **the Procrustes/scale degauging pipeline
    (§1.3.2) get validated ON the 5 REAL trained checkpoints** — this is
    the single biggest registered risk in this design (§1.9 item 1), and
@@ -1528,7 +1895,10 @@ Reused verbatim from this program's own precedent (Task D/E,
    calibration cell, not deferred; (d) measures the REAL per-cell
    wall-clock rate, superseding §1.6's planning-estimate rate for the
    remaining 53-cell sweep's own go/no-go (Rev 3: `58−5=53`, was `45`
-   pre-Rev-3's 50-cell total).
+   pre-Rev-3's 50-cell total; §1.6's Rev-5 recomputation shows this
+   measured rate — `0.0179 GPU-h/cell` at 8,000 steps — already came in
+   from the FIRST real calibration wave, ~17× cheaper than the planning
+   estimate).
 2. **Timing pilot, mechanical enforced abort.** One real cell per group
    measured for wall-clock (folds into gate 1 above, since the
    calibration cells ARE one real cell per group); if the projected
@@ -1544,14 +1914,18 @@ Reused verbatim from this program's own precedent (Task D/E,
    actually fire before being trusted, per `CLAUDE.md`'s "never trust a
    'proves the check has teeth' test without running it to completion"
    rule. **Re-specified against the corrected per-group bars (CA1-F1 fix,
-   Rev 1, §1.4/§1.3.3):** the negative test plants the `L=1` pathological
-   sampler (§1.4) for EACH of the 5 groups and asserts the coverage check
-   fails every time; this cannot flake, because the undersampled
-   sampler's reach (`|generating set|` ≤ 4 elements, a DETERMINISTIC
-   ceiling) sits strictly below every group's calibrated bar (`≥5` for
-   S3 up to `≥36` for A6, §1.4's table) — proven directly by
-   `coverage_calibration.py`'s `undersampled_trial` (§1.3.3), not merely
-   claimed.
+   Rev 1, §1.4/§1.3.3; re-pinned again, Rev 5, §1.4/§1.3.5, to cover BOTH
+   bar tables now in force):** the negative test plants the `L=1`
+   pathological sampler (§1.4) for EACH of the 5 groups, against BOTH
+   the re-pinned TRAIN-support bar (`≥5` for S3 up to `≥18` for A5/A6,
+   §1.4/§1.3.5's Rev-5 table) and the retained C5 out-of-support bar
+   (`≥5` for S3 up to `≥36` for A6, §1.3.3's original table), and asserts
+   the coverage check fails every time under EITHER table; this cannot
+   flake, because the undersampled sampler's reach (`|generating set|` ≤
+   4 elements, a DETERMINISTIC ceiling) sits strictly below every group's
+   calibrated bar under BOTH tables — proven directly by
+   `coverage_calibration.py`'s `undersampled_trial` (§1.3.3/§1.3.5), not
+   merely claimed.
 4. **Sha closure.** Every shipped script/config gets a sha256 manifest,
    verified against the box copy before launch and re-verified after
    completion (standing project convention).
@@ -1699,6 +2073,19 @@ own additions)
    full-`Q` degauging kept only as a robustness cross-check** — not
    resolved by this Rev 0, explicitly flagged for gate 1 to determine
    empirically rather than assumed either way.
+   **CLOSED (§1.25, Rev 5) — this item's own recommendation is now
+   ADOPTED.** Gate 1's real-checkpoint calibration run (once read through
+   the corrected centered-covariance lens, §1.4.1 step 2) measured
+   `Q̂≈I` on real trained checkpoints (§1.25: "Procrustes/scale degauging
+   — `Q̂≈I` — §1.9 item 7 answered: scale-only suffices once `U` is
+   fixed"), confirming the SAFE-default hypothesis above empirically
+   rather than by assumption: cosine-loss training against a FIXED
+   block-embedded target does already pin the basis, and the full-`Q`
+   fit's extra rotational freedom was never load-bearing on real
+   checkpoints. Per this item's own pre-registered recommendation, §1.5
+   is updated (Rev 5) so scale-only (`c_hat`) degauging is now the
+   PRIMARY decision metric, with full-`Q` Procrustes retained and
+   reported as a robustness cross-check, not dropped.
 8. **`h=32` (halved from Task D/E's `h=64`) is a disclosed,
    calibration-pending economization, not a validated choice (§1.4,
    §1.6).** If the calibration cells (gate 1) show `h=32` cannot reach
@@ -1867,12 +2254,63 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
   this is a real, load-bearing build-time obligation, not settled
   evidence, until the negative test is executed against the built
   harness).
+- **Rev 5 SCOPED-FIX build items (§1.25's five pinned items, folded into
+  the already-deployed harness — small, PRE-VALIDATED changes, not new
+  design; each cites the exact §1.25 evidence that validated it before
+  this design round, so the build stage is confirming/re-verifying a
+  known-good fix, not exploring):**
+  - **Centered SVD in `readout.py`** — `entity_subspace_from_words`
+    (§1.4.1 step 2) subtracts the sample mean `Z̄` before accumulating
+    the covariance (`Σ_w (Z(w)-Z̄)(Z(w)-Z̄)ᵀ` in place of `Σ_w Z(w)Z(w)ᵀ`);
+    same function signature, same call sites, one-line internal change.
+    Also folds in the §1.9-item-7 close: `degauge_and_score` reports
+    scale-only (`Q_hat=I_{d_min}`) as the PRIMARY `mean_cos`/
+    `recovered_frac_90`, with the existing full-`Q`-fitted score
+    relabeled and retained as a `crosscheck_*` field — zero new
+    functions, `score_eval` (already imported) called a second time with
+    a different `Q_hat` argument.
+  - **Ambient injection in `gate1_synthetic_injection.py`** — the
+    injected `Z_synth` moves from `rho_G`'s own `d_min` dimension to
+    ambient `d_state` via `rho_G_embedded` (§1.4, already imported from
+    `groups.py`), so the acceptance test's on-disk round-trip now
+    exercises `entity_subspace_from_words`/`restrict` (§1.4.1 steps 2-3)
+    ahead of the existing degauge/score call, closing the exact gap
+    §1.25 DEFECT 1 exploited (§1.7 gate 1(b), Rev 5).
+  - **`sample_eval_words` train-length variant + re-calibrated bars** —
+    `group_task.py`'s `sample_eval_words`/`check_coverage_with_retry`
+    gain an `L_lo, L_hi` parameter (default `{1,8}`, the new PRIMARY
+    regime; the existing `{9,16}` call becomes the explicit C5-control
+    invocation) and `COVERAGE_BAR`/`FIT_FLOOR`/`EVAL_FLOOR` become
+    per-regime dicts keyed by the same bars §1.3.5 executed this design
+    round (`coverage_calibration.py`'s own `L_LO`/`L_HI` promoted from a
+    module constant to the same parameter, mirroring the design-round
+    driver script used to produce §1.3.5's table).
+  - **Per-`L` reporting in `run_capability_sep.py`** — `train_and_eval_cell`
+    gains a per-`L∈{1..8}` fresh-eval-batch convergence sweep (§1.7 gate
+    1(a), Rev 5), reusing the already-imported `cosine_loss` in
+    `model.eval()`/`no_grad` mode; the cell-result JSON gains an 8-point
+    `convergence_profile` field replacing reliance on the training loop's
+    last logged `loss.item()`, which stays as a print-only diagnostic,
+    not a decision input.
+  - **20K steps for A5/A6 in the manifest** — `DEFAULT_STEPS` becomes a
+    per-group lookup (`{"A5": 20000, "A6": 20000}`, else `8000`) threaded
+    through `build_sweep_manifest`/`run_manifest`/`train_and_eval_cell`/
+    `write_calibration_report`/`load_and_validate_calibration_report`
+    (the calibration report's `steps` field becomes per-GROUP rather than
+    a single scalar, so `--sweep`'s gate still validates the report
+    against the ACTUAL steps each group will run, not a single value that
+    can no longer describe the whole manifest); the calibration-only wave
+    already ran at 8,000 steps uniformly (the deployed run that produced
+    §1.25's diagnosis) and must be RE-RUN once this change lands, since
+    A5/A6's own calibration cells are now supposed to measure the 20K-step
+    rate, not the 8K one (§1.6's Rev-5 cost table already assumes this).
 
 ---
 
-**QUEUE (STATE.md, appended per this design's commit):** Design Rev 3
-committed (this commit, following the CA2-m5-established convention of
-updating this footer every revision) → attack round 4 next.
+**QUEUE (STATE.md, appended per this design's commit):** Design Rev 5
+committed (this commit) → micro attack round 6 (scope: Rev 5's delta
+only, per this program's own narrow-scope-attack convention, §1.21
+precedent) next.
 
 ---
 
@@ -2490,3 +2928,50 @@ last-batch loss; (5) scale-only degauging primary, full-Q cross-check.
 HARD-STOP: two instrument defects proven + fixes pre-validated; M1
 preview POSITIVE (ρ=0.9747)** → Rev 5 design round ACTIVE → micro
 attack → scoped build fix → calibration re-check → sweep.)*
+
+---
+
+### 1.26 REV 5 CHANGES — §1.25 finding → resolution map
+
+Every §1.25 pinned item, mapped to its exact Rev 5 resolution. Scoped
+strictly to the five pinned items plus the coherence sweep their
+adoption requires elsewhere in the live design text (§1.0-§1.12);
+**§1.13-§1.25 are untouched, byte-intact** (verified via `git diff`
+before this commit — every hunk lands at or before original line 1875,
+strictly before §1.13's original line 1879; see the commit message).
+
+| §1.25 pinned item | Resolution (Rev 5) | Where |
+|---|---|---|
+| **(1) Centered covariance in §1.4.1 step 2 + gate-1(b) injection extended to AMBIENT `d_state`** | §1.4.1 step 2 rewritten: `Σ_w (Z(w)-Z̄)(Z(w)-Z̄)ᵀ` replaces `Σ_w Z(w)Z(w)ᵀ`, with the one-line WHY (nontrivial-irrep group-mean `=0` cancels the constant identity-complement block that made the uncentered statistic `≈c²I`, isotropic) and §1.25's exact PROVEN numbers (uncentered synthetic 0.711/0.15 FAIL vs centered 0.9996/1.00 PASS; real checkpoints restored to razor `d_min` spectral gaps). §1.7 gate 1(b) rewritten: the injection moves from `rho_G`'s own `d_min` dimension to ambient `d_state` via `rho_G_embedded`, so `entity_subspace_from_words` is now INSIDE the acceptance test, closing the exact blind spot DEFECT 1 exploited. `readout.py`/`gate1_synthetic_injection.py` SCOPED-FIX build items added, §1.12. | §1.4.1 step 2, §1.7 gate 1(b), §1.12 |
+| **(2) M1/M3 measurement lengths re-pinned to fresh TRAIN-support words; L9-16 becomes the disclosed C5 out-of-support control** | New §1.3.5: `coverage_calibration.py` re-parameterized to `L~Uniform{1,8}`, fresh seed `20260713`, EXECUTED this session (not asserted) — new bar table (S3 ≥5, S4 ≥14, A5 ≥18, S5 ≥12, A6 ≥18), all STEP 2-4 checks PASS but with materially thinner S5/A6 diversity-floor margins (down to 1 element — flagged, not papered over, §1.3.5). §1.4's task description, coverage-bar table, and generating-set intro all updated: M1/M3 draw `L~Uniform{1,8}` against the new bars; `L∈{9..16}` keeps the OLD §1.3.3 bars unchanged and is relabeled the non-gating C5 control. §1.5's "Fixed per-group operating point" line rewritten to match. §1.4.1 step 1 (word sample) and gate 3's negative-test spec (§1.7) updated to cover both bar tables. §1.4.1 step 4's derived false-block-rate arithmetic (`≈2.75%`/`2.85×10⁻⁵`) flagged STALE (computed against the OLD bars) and explicitly NOT re-derived this round — genuinely unresolved, left for the build stage's own `N=400,000` re-run. `group_task.py` `sample_eval_words` train-length-variant SCOPED-FIX build item added, §1.12. | §1.3.5 (new), §1.4, §1.4.1 steps 1/4, §1.5, §1.7 gate 3, §1.12 |
+| **(3) 20K steps for A5/A6 per the pre-registered escalation rule; cost recomputed at the measured rate** | New §1.6 closing subsection: main-sweep cost recomputed at the MEASURED `0.0179 GPU-h/cell` (8K-step groups) / `0.04475 GPU-h/cell` (20K-step A5/A6, linear scaling) rates — main sweep `≈1.68 GPU-h`, raw total incl. contingency + β-smoke `≈2.78 GPU-h`, both squarely inside the "~1-3 GPU-h total" this item calls for; new margin under the 30 GPU-h cap `≈90.7%` (was 34.5%). **The §1.6 CA4-M1/§1.20 escalation-guard worst-case arithmetic (`34.65 GPU-h`) is explicitly left AS-IS**, with a new sentence explaining why: it is a static planning-time sanity check that motivated building the LIVE budget-guard (which keys off the actual measured rate at runtime, not this static figure) — exactly the "keys off projections" instruction. `run_capability_sep.py` per-group step manifest SCOPED-FIX build item added, §1.12 (also flags the calibration wave must be RE-RUN once this lands, since A5/A6's own calibration cells need to measure the 20K rate, not the already-spent 8K one). | §1.6 (new closing subsection), §1.12 |
+| **(4) Per-L eval-based convergence metric replaces last-batch loss in the cell-report spec** | §1.7 gate 1(a) rewritten: defines the metric exactly (fresh, length-homogeneous eval batches at each `L∈{1..8}`, scored with the already-imported `cosine_loss` primitive in eval/no_grad mode, reported as an 8-point per-`L` profile) and the convergence bar (`mean cosine ≥ τ=0.9` at every `L`, reusing the design's own existing threshold rather than inventing a new one), explicitly naming this as formalizing what §1.25's own diagnosis did by hand for A5/A6. `run_capability_sep.py` per-`L` reporting SCOPED-FIX build item added, §1.12. | §1.7 gate 1(a), §1.12 |
+| **(5) Scale-only degauging primary, full-Q Procrustes as cross-check** | §1.5's "Success metric" paragraph rewritten: `score_eval(..., Q_hat=I_{d_min}, c_hat)` (zero new code — the existing function, called with the identity in place of the fitted intertwiner) is PRIMARY; the existing full-`Q`-fitted score is retained and reported as a cross-check. §1.9 item 7 CLOSED with a new paragraph citing §1.25's `Q̂≈I` finding as the empirical confirmation of the item's own pre-registered recommendation. Folded into the `readout.py` SCOPED-FIX build item (same file as the centering fix), §1.12 — no separate build item needed since the change is a different call-site of an already-existing function. | §1.5, §1.9 item 7, §1.12 |
+| **(6) Coherence sweep** — every §1.5/§1.7/§1.9 reference to "eval words"/`L∈{9..16}` as the decision-metric sample, and the M1-preview CAVEAT | §1.5's M1/M2/M3 text and the marquee check now read against the re-pinned measurement sample; a new permanent CAVEAT line added directly under M1's CONFIRM/FALSIFY criteria (restriction-window ceiling partially favors `rank≈d_min` for near-orthogonal blocks; M3's train-time force-rank arms remain the decisive test, since they are not subject to the same ceiling artifact). §1.7's gate list (gates 1(a), 1(b), 3) updated; the sweep-authorization gate (gate 2, the timing-pilot mechanical abort) is UNCHANGED, as instructed — it already keys off the calibration cell's measured rate, which is itself now the Rev-5 8K/20K per-group rate, not a design-text change. | §1.5, §1.7 |
+
+**Header/status block** (top of doc) bumped to Rev 5 and extended with
+one new sentence covering §1.21→§1.24→deploy→calibration→§1.25, per the
+same per-revision-append convention every prior Rev used (Rev 1-4 each
+appended one sentence to the same running paragraph; nothing prior in
+that paragraph was reworded).
+
+**Nothing else in §1.0-§1.12 was touched** beyond the rows above — §1.1
+(hypothesis/outcomes table), §1.2 (reference representations), §1.3/
+§1.3.1-§1.3.2 (verified matrices, degauging toy pipeline), §1.3.3/§1.3.4
+(the original L9-16 calibration and A5-class verification, both now
+correctly cited as "the C5 control's own bars" rather than superseded),
+§1.4.2/§1.4.2.1 (arms, controls, force-rank grid, marquee TOST — C5 was
+ALREADY defined here in Rev 4, §1.4.2's own control list, unchanged;
+only its ROLE — gating vs. disclosed-only — changes, via the §1.5 edit
+above), §1.8 (pre-registered analysis), §1.10 (scope statement), §1.11
+(sequencing) all stand as Rev 4 left them.
+
+*(End §1 records. Rev 0 → four NEEDS-REVISION rounds → Rev 4 → §1.21
+CLEARED → build a3defcc → §1.22 NEEDS-FIXES → fixes a555012 → §1.24
+FIXES-VERIFIED-CLEARED → deploy → calibration (0.0179 GPU-h/cell) →
+**§1.25 HARD-STOP: two instrument defects proven, fixes pre-validated,
+M1 preview POSITIVE (ρ=0.9747)** → **Rev 5 (this revision, §1.26) folds
+all five pinned items + coherence sweep into the live design text,
+§1.13-§1.25 byte-intact.** Micro attack round 6 next (scope: Rev 5's
+delta only) → scoped build fix → calibration RE-RUN (A5/A6 at the new
+20K-step rate) → sweep.)*
