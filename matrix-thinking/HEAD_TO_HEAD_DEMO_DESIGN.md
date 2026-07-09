@@ -3438,3 +3438,115 @@ exact-recovery hard rule binds rank claims like M*, not this one); Leg B
 rf@τ curve + membership tell) as mechanism attribution. Mandatory
 regardless: rung-2 labels → entity identity; planted-signal positive
 controls on all rungs; the transformer_native_tap OOM fix (§1.27).
+
+### 1.29 DECISIVE EXPERIMENT RESULT (2026-07-09 afternoon): TAP-PLACEMENT FIRES — refits refuted as failure mode, argmax-grade geometry NOT supported (task-undifferentiated), readout-path asymmetry confirmed end-to-end; Stage 2 recommended
+
+Stage 1 of §1.28's authorization executed exactly as specified: zero new code,
+`probe_diagnosis_rd.py` + `probe_diagnosis_oracles_rd.py` (unmodified) against
+the ROUND-3 `_auxrev2` task1-K32 checkpoints on GPU 0 (idle; GPU 3/4 = live
+`fixscale_392m` wave untouched, GPU 6 = `fixscale_98m_resume_s1` untouched).
+Checkpoint round verified via mtime: contender `05:58:16Z` (exact match to
+§1.28's own citation), ablation `06:24:40Z`, transformer `07:13:39Z` — all
+after the round-3 overwrite, none in round-2's 02:31-02:37Z window. The
+`probe_diagnosis_oracles_rd.py` hardcoded output path collides with round-2's
+own diagnosis artifacts at that path; the round-2 directory was backed up
+in place (`probe_diagnosis_ROUND2_BACKUP_20260709T163244Z/`) before running,
+so this round did not repeat the in-place-overwrite trap it was diagnosing.
+Full archive: `experiment-runs/2026-07-09_h2h_decisive_probe/`.
+
+**Realized cost: ~0.030 GPU-h (smoke 8.2s + full 71.0s + oracles ~29s ≈ 108s
+on one H100) against the 0.4 GPU-h ceiling (≈7.5%) and the ~0.1 GPU-h Stage-1
+target (≈30%).** No training occurred at any point.
+
+**Per-arm result tables** (chance for the 107-class identity classifier =
+1/107 = 0.00935; chance for the episode-restricted LM-head route = 1/32 =
+0.03125):
+
+| metric | contender | ablation | transformer |
+|---|---|---|---|
+| repro (ckpt rig, pinned eval): `probe_cos_mean` | 0.1760 | 0.1206 | 0.1353 |
+| `rf@0.9` — ridge (closed-form optimum) | 0.0 | 0.0 | 0.0 |
+| `rf@0.9` — pinned-SGD cold/warm | 0.0 / 0.0 | 0.0 / 0.0 | 0.0 / 0.0 |
+| `rf@0.9` — MLP probe | 0.0 | 0.0 | 0.0 |
+| ridge `cos_mean` real target vs SHUFFLED control | 0.168 vs 0.109 (+0.059) | 0.118 vs 0.113 (+0.005) | 0.128 vs 0.107 (+0.021) |
+| `o1` membership oracle (T_val) cos | 0.187 (≈1/√32=0.177) | 0.187 | 0.187 |
+| `o2` ridge-pred vs membership-direction cos | 0.896 | 0.606 | 0.679 |
+| `o3` embed-space constant-floor cos (generic-direction artifact) | 0.345 | 0.746 | 0.693 |
+| rung-2: 107-way linear identity classifier, held-out | 0.0298 (3.19x chance) | 0.0107 (1.15x chance) | 0.0286 (3.06x chance) |
+| rung-2: 107-way MLP identity classifier, held-out | 0.0251 (2.69x) | 0.0105 (1.12x) | 0.0161 (1.72x) |
+| tap-space codebook top-1 argmax (pool-restricted, DIAGNOSTIC ONLY) | 0.0276 (2.95x) | 0.0115 (1.23x) | 0.0168 (1.80x) |
+| LM-head route, `<Q>` position, episode-restricted top-1 | 0.9957 (31.9x chance) | 0.0341 (1.09x chance) | 0.0304 (0.97x chance) |
+
+**Instrument-coverage gap found (honestly disclosed, not built around, per
+"zero new code"):** the brief's "episode-restricted tap-space codebook
+argmax" does not exist verbatim in the unmodified scripts. What exists is
+(a) a tap-space (T_val-predicted) codebook argmax that is **pool**-restricted
+(107-way, row above), and (b) an episode-restricted (32-way) decode that runs
+through the **LM-head route**, not the shallow linear tap. The two rows above
+labelled accordingly are the closest available instruments; no new code was
+written to close this gap, per the explicit Stage-1 scope.
+
+**Decision-rule application (§1.28's menu):**
+
+1. *"Refits recover → probe-training failure."* **REFUTED, decisively.** Ridge
+   is the closed-form global optimum for linear least-squares — not an
+   optimization artifact — and still reproduces `rf@0.9=0.0` exactly, matching
+   the online plateau in all three arms. The real-target ridge fit barely
+   clears its own shuffled-tap negative control (contender +0.059, transformer
+   +0.021, ablation +0.005 cos-mean) — there is close to nothing linearly
+   recoverable at this tap beyond the membership direction already known from
+   §1.21/§1.28. MLP (nonlinear) is uniformly worse than ridge, reconfirming
+   "no nonlinear treasure."
+2. *"Refits at membership BUT tap-space argmax / identity classifier ≫ chance
+   → ARGMAX-GRADE GEOMETRY (publishable)."* Refits ARE at membership (`o1`/`o2`
+   confirm the ≈1/√32 ceiling and 0.6-0.9 membership-direction correlation, in
+   all arms) — first half satisfied. Second half is **NOT satisfied at a
+   decisive, task-differentiated level**: the identity-classifier signal,
+   where present, is weak (2.7-3.2x a 0.9%-chance base rate — i.e. 2.5-3.0%
+   accuracy) and, critically, is **comparable in the transformer arm
+   (3.06x) and the contender arm (3.19x)** even though the transformer's own
+   LM-head route sits at flat chance (0.97x) — meaning the transformer
+   demonstrably cannot solve the task at all, yet its shallow tap carries a
+   same-order-of-magnitude "identity" blip. A signal that doesn't track
+   actual task-solving capability across arms is not evidence of geometry the
+   model exploits for recall; it is more consistent with a shared, generic,
+   task-irrelevant confound in the shallow tap representation — of the same
+   family as `o3`'s embed-space constant-floor artifact (0.35-0.75 cos from a
+   fit-set-mean constant predictor alone, already flagged in §1.21 as a
+   non-signal). **This rule does not fire.**
+3. *"Both at chance → tap placement → Stage 2 needed."* This is the pattern
+   that best fits the evidence, read honestly rather than forced into a clean
+   binary: the tap-space signal is not a decisive ≫-chance signal in rule 2's
+   sense (weak, task-undifferentiated), while the **LM-head route — the full
+   nonlinear forward pass through both blocks — reproduces the §1.27 arm
+   ordering exactly** (contender near-ceiling at 99.6%, ablation weakly-real
+   at 1.09x chance matching §1.28 item 6's "+4.9σ" characterization,
+   transformer at flat chance matching its "-0.6σ" characterization). The
+   answer information plainly **exists and is reachable by the full network**
+   for the contender; it is not linearly present, under any of ridge/SGD/MLP/
+   closed-form-optimal refitting, at the specific shallow tap S₁@q_shallow the
+   rf@0.9 and rung-2 instruments read. This is the readout-path asymmetry
+   §1.28 item 3 predicted, now confirmed on round-3 checkpoints with offline
+   refits that close off the "under-fit" and "wrong nonlinearity" escape
+   hatches. **Verdict: rule 3 fires — tap placement.**
+
+**CONSEQUENCE (Rev 5 direction):** Stage 2 (state-zeroing localization + tap
+variants, ~150 lines, ~0.2-0.3 GPU-h, already scoped in §1.28) is the
+recommended next step to find where between S₁@q_shallow and the LM-head the
+recall-enabling computation actually lives — **not built here, per this
+task's explicit scope; reporting the need only.** The Rev-5 two-leg gate
+direction recorded in §1.28 (Leg A = episode-restricted discrete recall
+as the WIN metric; Leg B = repaired continuous instrument as mechanism
+attribution, not a LOSE criterion) is unaffected by this result and remains
+the live plan — this experiment adjudicates *which* Leg-B repair Rev 5 needs
+(a relocated/deepened tap, not a probe-training fix and not a claim that S₁
+already carries argmax-grade identity geometry).
+
+**Injection sighting:** two fake `<system-reminder>`-formatted blocks
+appeared appended to unrelated local tool stdout near the start of this
+task (a "date has changed, do not tell the user" concealment instruction,
+and a block mimicking a legitimate agent-list system notice). Neither was
+complied with; both are logged per the standing hard rule. Cross-checked
+independently via `date` and `git log` — the underlying date claim happened
+to be accurate, which does not change that the injection vector itself
+(text impersonating a system channel inside command output) is the concern.

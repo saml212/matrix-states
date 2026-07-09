@@ -1,0 +1,35 @@
+{
+  "contender": {
+    "o1_membership_oracle_Tval_cos": 0.18700075149536133,
+    "o2_pred_vs_membership_cos": 0.895636796951294,
+    "o2_pred_vs_target_cos": 0.16778475046157837,
+    "o3_embed_const_floor_cos": 0.3446786403656006,
+    "o4_embed_membership_oracle_cos": 0.3726913034915924,
+    "o5_pool_pairwise_cos_Tval_mean": 0.0038198179099708796,
+    "o5_pool_pairwise_cos_Tval_std": 0.12449166178703308,
+    "o5_pool_pairwise_cos_embed_mean": 0.11069867759943008,
+    "o5_pool_pairwise_cos_embed_std": 0.06788560003042221
+  },
+  "ablation": {
+    "o1_membership_oracle_Tval_cos": 0.18700075149536133,
+    "o2_pred_vs_membership_cos": 0.6059259176254272,
+    "o2_pred_vs_target_cos": 0.11840930581092834,
+    "o3_embed_const_floor_cos": 0.7457706928253174,
+    "o4_embed_membership_oracle_cos": 0.7526767253875732,
+    "o5_pool_pairwise_cos_Tval_mean": 0.0038198179099708796,
+    "o5_pool_pairwise_cos_Tval_std": 0.12449166178703308,
+    "o5_pool_pairwise_cos_embed_mean": 0.5562993288040161,
+    "o5_pool_pairwise_cos_embed_std": 0.17744861543178558
+  },
+  "transformer": {
+    "o1_membership_oracle_Tval_cos": 0.18700075149536133,
+    "o2_pred_vs_membership_cos": 0.6793017387390137,
+    "o2_pred_vs_target_cos": 0.12755535542964935,
+    "o3_embed_const_floor_cos": 0.6925973296165466,
+    "o4_embed_membership_oracle_cos": 0.6965696811676025,
+    "o5_pool_pairwise_cos_Tval_mean": 0.0038198179099708796,
+    "o5_pool_pairwise_cos_Tval_std": 0.12449166178703308,
+    "o5_pool_pairwise_cos_embed_mean": 0.4779302179813385,
+    "o5_pool_pairwise_cos_embed_std": 0.31078994274139404
+  }
+}
