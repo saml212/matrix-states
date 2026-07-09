@@ -4260,3 +4260,19 @@ single-pass reconciliation at the next STATE consolidation.**
 **DISPOSITION: Rev 5.1 amendment dispatched (surgical, prescription
 above); coordinator raw-diff verification per the §2.16/§2.18 precedent;
 build-fix waits on 5.1.**
+
+### 1.32a COORDINATOR RAW-DIFF VERIFICATION (2026-07-09): Rev 5.1 delta MATCHES the §1.32 prescription → REV 5 PRE-REGISTRATION FINAL; build-fix dispatched
+
+Verified against git show 505fbe0 directly: F1 seven-cell table +
+task1-primary pin + enumerated §1.4.1 supersession + task2 disposition
+(joint-failure TIE, post-sweep diagnosis round); F2 7+2 correction +
+identity-table pre-flight + loader provenance pinning; F3 items 5-6
+added; F4 numeric HARD-STOP (collapse ≤0.09375; unchanged ≤2σ at the
+HONESTLY-computed per-arm values 0.00099/0.00646 — the revision agent
+correctly REFUSED the coordinator's own wrong ≈0.0096 figure and
+disclosed the discrepancy, which is the discipline working); F5 8-item
+dead-clause list; F6 the corrected-and-stronger claim sentence; M1-M4.
+Single file, 258+/24−, §1.32 untouched. **The Rev-5 pre-registration is
+FINAL. BUILD-FIX DISPATCHED (§1.31.4 items 1-6) → scoped audit →
+round 4 (7 re-metric + 2 fresh, ≈1.3 GPU-h) → ladder → margin freeze →
+task1-primary sweep.**
