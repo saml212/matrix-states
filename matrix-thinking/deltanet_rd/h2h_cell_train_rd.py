@@ -11,13 +11,15 @@ WHAT THIS FILE OWNS (and the build-stage files deliberately do NOT):
     ablation = AblationLM d_state-pinned, sec 1.3(a); transformer =
     TransformerLM n_layers=2 R3-F3 pin, sec 1.3(b)).
   - train_grammar_cell: tasks 1/2 (grammar_rd episodes) joint training,
-    sec 1.3.1.3's exact loss (loss_CE + 0.1 * mean(1 - cos(pred,target))),
+    sec 1.3.1.3's exact loss (loss_CE + aux_weight * mean(1 - cos(pred,
+    target)); aux_weight REVISED 0.1 -> 2.0 at calibration, see AUX_WEIGHT),
     probe head trained jointly from step 0, recovered_frac@0.9 learning
-    curves logged every EVAL_EVERY steps (axis 1, sec 1.4.1), held-out-hop
+    curves logged every EVAL_EVERY steps (axis 1, sec 1.4.1) alongside
+    probe_cos_mean (pre-threshold diagnosability addition), held-out-hop
     eval for task 2, aux-vs-CE tap-point gradient-norm ratio measured at
     step 500 (sec 1.3.1.3's aux_weight revision trigger -- MEASURED AND
     REPORTED here, never auto-revised; freezing is the coordinator's
-    margin-freeze decision).
+    margin-freeze decision) plus an aux-swamps-CE overshoot guard.
   - train_lm_cell: task 3 (static corpora) arch-generic LM training,
     mirroring lm_pretrain_rd.train()'s own regime (fp32 + set_and_log_tf32,
     AdamW, cosine schedule, grad-clip 1.0, non-finite-grad skip, FIX-1
@@ -122,7 +124,15 @@ TASK3_CORPUS = "openr1-mix-ext"                   # DEPLOY-PIN-2
 HORIZON_TOKENS = {"H2": 454, "H4": 902, "H8": 1798}   # sec 1.4.2 absolute-token horizons
 K_SINK = 4                                        # F-NEW-2 sink+FIFO pin
 GRAD_RATIO_STEP = 500                             # sec 1.3.1.3's aux_weight revision-trigger step
-AUX_WEIGHT = ph.AUX_WEIGHT_DEFAULT                # 0.1, pinned
+# sec 1.3.1.3 CALIBRATION REVISION (2026-07-09, the pre-registered trigger FIRED):
+# the aux_weight=0.1 calibration run measured ce/aux backbone grad-norm ratio ~20.9x
+# at step 500 (ce 0.1375 vs aux 0.0066; exceeds_10x_trigger=True on all nine task-1/2
+# cells, all three arms; recovered_frac@0.9=0.0 probe-wide). The design pinned the
+# TRIGGER (>10x) but left the revision TARGET unpinned; we target GRADIENT PARITY at
+# the tap: 0.1 * 20.93 ~= 2.09, pinned at the round value 2.0 (rounding disclosed).
+# Frozen before the 27-cell sweep. The aux_weight=0.1 run's artifacts stay archived
+# (calib/archive_auxweight0.1/ on box); re-run cells carry the _auxrev2 name suffix.
+AUX_WEIGHT = 2.0                                  # was ph.AUX_WEIGHT_DEFAULT (0.1)
 
 GATE_TOKEN_FILES = ("GATE6_MATCH_GATE_PASSED.token", "GATE7_PROBE_CAPACITY_NULL_PASSED.token")
 
@@ -308,12 +318,19 @@ def _transformer_episode_chunks(b: dict, T_total: int):
 
 @torch.no_grad()
 def eval_recovered_frac(arch: str, model, rig: ProbeRig, eval_batches: list,
-                        attn_mask_fn=None) -> float:
+                        attn_mask_fn=None) -> tuple[float, float]:
     """recovered_frac@0.9 over the FIXED eval episode set, via the AUDITED
     tap functions. attn_mask_fn (transformer only): capped b-primary read.
-    Query-weighted mean; transformer batches are VRAM-chunked."""
+    Query-weighted mean; transformer batches are VRAM-chunked.
+
+    Returns (recovered_frac@0.9, probe_cos_mean). probe_cos_mean is the
+    query-weighted mean cosine between pred and target BEFORE thresholding
+    (diagnosability ADDITION, 2026-07-09 aux revision: distinguishes a
+    learning-but-below-bar probe, cos rising toward 0.9, from a dead one,
+    cos ~= 0). recovered_frac@0.9 stays the pre-registered decision metric;
+    its formula (ph.cosine_recovery_frac) is untouched."""
     model.eval()
-    n_hit, n_tot = 0.0, 0
+    n_hit, n_cos, n_tot = 0.0, 0.0, 0
     for b_full in eval_batches:
         if arch == "transformer":
             T_total = b_full["token_ids"].shape[1] + b_full["query_tokens"].shape[-1]
@@ -326,12 +343,15 @@ def eval_recovered_frac(arch: str, model, rig: ProbeRig, eval_batches: list,
                                                 attn_mask_fn=attn_mask_fn)
             else:
                 tap = AUDITED_TAP[arch](model, b["token_ids"], b["query_tokens"])
-            frac = ph.cosine_recovery_frac(rig.pred(tap), probe_targets(rig, b)).item()
+            pred, tgt = rig.pred(tap), probe_targets(rig, b)
+            frac = ph.cosine_recovery_frac(pred, tgt).item()
+            cos_mean = F.cosine_similarity(pred, tgt, dim=-1).mean().item()
             n_q = b["query_tokens"].shape[0] * b["query_tokens"].shape[1]
             n_hit += frac * n_q
+            n_cos += cos_mean * n_q
             n_tot += n_q
     model.train()
-    return n_hit / max(1, n_tot)
+    return n_hit / max(1, n_tot), n_cos / max(1, n_tot)
 
 
 def make_eval_episodes(cfg_eval: DeltaNetRDTaskConfig, pools, device: str, hop_set: tuple,
@@ -410,6 +430,12 @@ def train_grammar_cell(cell: dict, device: str, ckpt_dir: str | None,
                           "ratio_ce_over_aux": (n_ce / n_aux) if n_aux > 0 else None,
                           "exceeds_10x_trigger": (not (0.1 <= n_ce / n_aux <= 10.0))
                                                  if n_aux > 0 else True}
+            # Overshoot sanity-guard (aux_weight rev 0.1 -> 2.0): fail LOUDLY if the revised
+            # ratio inverts beyond 10x the OTHER way (aux swamping CE) -- the re-run must
+            # self-report if 2.0 overshoots, never train through a swamped CE silently.
+            assert n_aux <= 10.0 * n_ce, (
+                f"sec 1.3.1.3 INVERSE trigger: aux_weight={AUX_WEIGHT} OVERSHOOT -- aux backbone "
+                f"grad norm {n_aux:.6f} > 10x CE {n_ce:.6f}; calibration must re-revise aux_weight")
 
         opt.zero_grad()
         loss.backward()
@@ -423,18 +449,25 @@ def train_grammar_cell(cell: dict, device: str, ckpt_dir: str | None,
         recent_losses = (recent_losses + [loss.item()])[-5:]
 
         if not timing_only and (step % GRAMMAR_EVAL_EVERY == 0 or step == steps):
+            rf_tr, cos_tr = eval_recovered_frac(arch, model, rig, eval_train_hops)
             point = {"step": step, "train_loss": loss.item(),
-                     "recovered_frac_train_hops": eval_recovered_frac(arch, model, rig, eval_train_hops)}
+                     "recovered_frac_train_hops": rf_tr,
+                     "probe_cos_mean_train_hops": cos_tr}
             if eval_heldout is not None:
-                point["recovered_frac_heldout_hops"] = eval_recovered_frac(arch, model, rig, eval_heldout)
+                rf_ho, cos_ho = eval_recovered_frac(arch, model, rig, eval_heldout)
+                point["recovered_frac_heldout_hops"] = rf_ho
+                point["probe_cos_mean_heldout_hops"] = cos_ho
             if arch == "transformer" and task.startswith("task1"):
                 # sec 1.6 item C: the Transformer's own capped-cache (b-primary) behavior at this
                 # K/d, report-only at calibration (M=2, the smallest floor-eligible point).
-                point["recovered_frac_capped_M2"] = eval_recovered_frac(
-                    arch, model, rig, eval_train_hops, attn_mask_fn=capped_mask_fn)
+                rf_m2, cos_m2 = eval_recovered_frac(arch, model, rig, eval_train_hops,
+                                                    attn_mask_fn=capped_mask_fn)
+                point["recovered_frac_capped_M2"] = rf_m2
+                point["probe_cos_mean_capped_M2"] = cos_m2
             curve.append(point)
             print(f"  [{cell['name']}] step {step}/{steps} loss {loss.item():.4f} "
-                  f"rf_train {point['recovered_frac_train_hops']:.4f}", flush=True)
+                  f"rf_train {point['recovered_frac_train_hops']:.4f} "
+                  f"cos_train {point['probe_cos_mean_train_hops']:.4f}", flush=True)
 
     wall_s = time.time() - t0
     result = {"arch": arch, "task": task, "seed_idx": cell.get("seed_idx", 0),
@@ -447,10 +480,12 @@ def train_grammar_cell(cell: dict, device: str, ckpt_dir: str | None,
               "grad_ratio_at_tap_step500": grad_ratio, "curve": curve}
     if curve:
         result["final_recovered_frac_train_hops"] = curve[-1]["recovered_frac_train_hops"]
+        result["final_probe_cos_mean_train_hops"] = curve[-1]["probe_cos_mean_train_hops"]
         result["final_metric"] = curve[-1].get("recovered_frac_heldout_hops",
                                                curve[-1]["recovered_frac_train_hops"])
         if "recovered_frac_heldout_hops" in curve[-1]:
             result["final_recovered_frac_heldout_hops"] = curve[-1]["recovered_frac_heldout_hops"]
+            result["final_probe_cos_mean_heldout_hops"] = curve[-1]["probe_cos_mean_heldout_hops"]
     else:
         result["final_metric"] = float("nan")
     if ckpt_dir and not timing_only:
@@ -556,6 +591,12 @@ def run_one_cell(cell: dict, device: str, ckpt_dir: str | None, **kw) -> dict:
 # Cell naming / manifests (single source of truth for the chain script)
 # ---------------------------------------------------------------------------
 
+AUX_REV_SUFFIX = "_auxrev2"     # aux_weight=2.0 re-run naming (task-1/2 cells only): resume-safety
+                                # re-runs the probe cells WITHOUT clobbering the failed aux_weight=0.1
+                                # artifacts (archived record); task-3 cells have no probe/aux term, so
+                                # their names -- and their PASSED band results -- stand unchanged.
+
+
 def calibration_cells() -> list[dict]:
     cells = []
     for c in build_full_calibration_manifest():
@@ -564,6 +605,8 @@ def calibration_cells() -> list[dict]:
         name = f"h2h_calib_{c['arch']}_{c['task']}_{c['role']}"
         if "K" in c:
             name += f"_K{c['K']}"
+        if not c["task"].startswith("task3"):
+            name += AUX_REV_SUFFIX
         c = {**c, "name": name, "seed_idx": 0}
         cells.append(c)
     names = [c["name"] for c in cells]

@@ -231,7 +231,9 @@ fi
 # Stage B2 -- R3-F4 M-sweep timing pilot (transformer task1 PRIMARY calibration
 # checkpoint, held resident across both pilot passes).
 # ---------------------------------------------------------------------------
-MSWEEP_CKPT="$CKPT_DIR/h2h_calib_transformer_task1_calib_primary_K32.pt"
+# _auxrev2: the aux_weight=2.0 re-run's checkpoint (sec 1.3.1.3 calibration revision;
+# the aux_weight=0.1 run's checkpoint keeps its unsuffixed name, archived).
+MSWEEP_CKPT="$CKPT_DIR/h2h_calib_transformer_task1_calib_primary_K32_auxrev2.pt"
 if [ ! -s "$MSWEEP_CKPT" ]; then
   echo "REFUSE: expected calibration checkpoint $MSWEEP_CKPT missing." >&2
   exit 1
