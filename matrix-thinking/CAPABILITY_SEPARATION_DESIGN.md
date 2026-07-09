@@ -5439,3 +5439,28 @@ zero-cost pins above; the conditional trained last-`K` escalation
 §2.8 2(e) rewrite specifically before DESIGN-CLEARED-FOR-BUILD; launch
 gate §1.11 unchanged; kernel adjudication, arm structure, and the
 reconciled decision criteria NOT reopened.**
+
+### §1.32 CALIBRATION RE-CHECK VERDICT + SWEEP AUTHORIZATION (2026-07-09 overnight): SWEEP-READY → --sweep AUTHORIZED
+
+Deploy (5 files, md5 local=box exact, commit 50c28cc's manifest) → box
+smoke 13/13 → gate-1(b) ambient ON PRODUCTION reproduces exactly
+(centered 0.999594 / uncentered 0.705261, hard-asserts held) → 5-cell
+calibration re-check at the Rev-7 pins, ALL CLEAR gate 1(a) on first
+measurement, no escalations: S3 0.9737/margin .0737, S4 0.9825/.0825,
+A5 0.9812/.0812, S5 0.9267/.0267, A6 0.9650/.0650 (min always at L=5;
+realized 0.2039 GPU-h, no cell past 65% of its abort ceiling). Stale
+pre-Rev-7 box results archived aside pre-run (resume-safety key-subset
+gap — same class as the h2h round-3 catch; noted for a future teeth
+pass). Full record: experiment-runs/2026-07-09_capability_calib_recheck/.
+
+**AUTHORIZATION (coordinator, under the PI's standing full-autonomy +
+saturation directives, every §1.7/§1.30 gate now discharged and recorded
+above):** the 58-cell --sweep is AUTHORIZED — ≈2.51 GPU-h raw + §1.6
+contingency under the 30 GPU-h cap; CAPABILITY_SEP_PI_SIGNOFF=1 is set by
+the launch dispatch citing THIS section as the recorded authorization
+(the env guard existed to force exactly this recorded decision point).
+M3's force-rank causal arms remain the decisive test of the rank law;
+M1 reported on the full pinned sample + L≥2 split per Rev 7. Launch
+plan: GPU 0 (returned idle), tmux + supervisor, resume-safe; the FIRED
+2×2 escalation (8 cells ≈2.02 GPU-h) chains AFTER the sweep on the same
+GPU. Harvest = verify-vs-raws → TOST/M1-M3.
