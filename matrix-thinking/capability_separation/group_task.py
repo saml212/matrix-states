@@ -32,10 +32,31 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from groups import GROUP_NAMES, D_MIN, ORDER, D_STATE, generating_set, gen_tensor, \
     batched_word_product, word_product, batched_targets, group_seed_salt
 
-# S1.4's exact calibrated query-coverage bars (coverage_calibration.py's
-# STEP 2, reproduced verbatim in S1.3.3/S1.4's table). Pinned as constants.
-COVERAGE_BAR = {"S3": 5, "S4": 17, "A5": 27, "S5": 30, "A6": 36}
-COVERAGE_FRAC = {"S3": 0.80, "S4": 0.70, "A5": 0.45, "S5": 0.25, "A6": 0.10}
+# S1.4.1 DEFECT 2 fix / S1.3.5 (Rev 5) -- TWO query-coverage bar tables now
+# coexist, keyed by which L-range regime a sample was drawn from:
+#
+#   COVERAGE_BAR_TRAIN (S1.3.5, L~Uniform{1,8}, RNG_SEED=20260713) -- the
+#   NEW PRIMARY regime: M1/M3's actual Stage-1 decision-metric sample, since
+#   nn.Embedding's positional rows 8..15 never receive gradient at
+#   L_train<=8 (S1.25 DEFECT 2) -- scoring exclusively on L in {9..16} fed
+#   every scored word through untrained N(0,1) rows, an instrument defect.
+#
+#   COVERAGE_BAR_C5 (S1.3.3, L~Uniform{9,16}, RNG_SEED=20260710) -- the
+#   ORIGINAL bars, UNCHANGED since Rev 0. L in {9..16} is DEMOTED, not
+#   dropped: it remains the disclosed C5 out-of-support control (S1.4.2),
+#   never gates the M1/M3 CONFIRM/FALSIFY verdict.
+#
+# `COVERAGE_BAR` is kept as an alias for the TRAIN regime (the new PRIMARY)
+# so every existing `COVERAGE_BAR[name]` call site (readout.py,
+# gate1_synthetic_injection.py) picks up the re-pin with zero code changes
+# there -- callers that explicitly need the C5 control bar use
+# `COVERAGE_BAR_C5` by name (run_capability_sep.py's C5-control pass).
+COVERAGE_BAR_TRAIN = {"S3": 5, "S4": 14, "A5": 18, "S5": 12, "A6": 18}
+COVERAGE_BAR_C5 = {"S3": 5, "S4": 17, "A5": 27, "S5": 30, "A6": 36}
+COVERAGE_BAR = COVERAGE_BAR_TRAIN
+COVERAGE_FRAC_TRAIN = {"S3": 0.80, "S4": 0.55, "A5": 0.30, "S5": 0.10, "A6": 0.05}
+COVERAGE_FRAC_C5 = {"S3": 0.80, "S4": 0.70, "A5": 0.45, "S5": 0.25, "A6": 0.10}
+COVERAGE_FRAC = COVERAGE_FRAC_TRAIN
 
 # S1.4.1 step 4's fit/eval diversity floors (coverage_calibration.py STEP
 # 3/4's exact formulas: fit = min(3*d_min, floor(0.8*|G|)); eval =
@@ -93,12 +114,21 @@ def sample_eval_batch(name: str, batch_size: int, gen: torch.Generator,
 # sample, distinct from batched TRAINING data above; drawn once per cell).
 # ---------------------------------------------------------------------------
 
-def sample_eval_words(name: str, seed: int, n_words: int = N_EVAL_WORDS):
-    """Draw n_words i.i.d. words, L~Uniform{L_EVAL_LO..L_EVAL_HI} PER WORD
-    (matches coverage_calibration.py's own healthy_trial convention exactly,
-    now on the REAL matrix generating set rather than the permutation
-    stand-in). Returns (idx_list: list of (L,) int arrays, prod_list: list
-    of (d_min,d_min) real matrices, product(w) via groups.word_product).
+def sample_eval_words(name: str, seed: int, n_words: int = N_EVAL_WORDS,
+                      L_lo: int | None = None, L_hi: int | None = None):
+    """Draw n_words i.i.d. words, L~Uniform{L_lo..L_hi} PER WORD (matches
+    coverage_calibration.py's own healthy_trial convention exactly, now on
+    the REAL matrix generating set rather than the permutation stand-in).
+    Returns (idx_list: list of (L,) int arrays, prod_list: list of
+    (d_min,d_min) real matrices, product(w) via groups.word_product).
+
+    S1.25 DEFECT 2 fix / S1.3.5 build item (Rev 5): `L_lo, L_hi` default to
+    `(L_TRAIN_LO, L_TRAIN_HI) = (1, 8)` -- the NEW PRIMARY, TRAIN-support
+    regime M1/M3's decision-metric sample now draws from (coverage-guarded
+    against COVERAGE_BAR_TRAIN, S1.3.5). The OLD default, `(L_EVAL_LO,
+    L_EVAL_HI) = (9, 16)`, is still available -- pass it explicitly (as
+    run_capability_sep.py's C5-control pass does, paired with
+    COVERAGE_BAR_C5) for the disclosed, non-gating out-of-support control.
 
     S1.22 BA-F3 fix: `seed` is salted by `name` (group_seed_salt) before
     constructing the RNG. Without this, two groups sharing BOTH |gens| and
@@ -107,12 +137,14 @@ def sample_eval_words(name: str, seed: int, n_words: int = N_EVAL_WORDS):
     channel beyond the adjudicated shared-init-weight one (S1.4.2.1).
     Determinism per (group, seed, N) is preserved exactly, since the salt is
     a pure function of `name`."""
+    lo = L_TRAIN_LO if L_lo is None else L_lo
+    hi = L_TRAIN_HI if L_hi is None else L_hi
     rng = np.random.default_rng(seed + group_seed_salt(name))
     gens = generating_set(name)
     n_gens = len(gens)
     idx_list, prod_list = [], []
     for _ in range(n_words):
-        L = int(rng.integers(L_EVAL_LO, L_EVAL_HI + 1))
+        L = int(rng.integers(lo, hi + 1))
         idx = rng.integers(0, n_gens, size=L)
         idx_list.append(idx)
         prod_list.append(word_product(gens, idx))
@@ -155,7 +187,8 @@ class CoverageGuardError(RuntimeError):
 
 
 def check_coverage_with_retry(name: str, base_seed: int, bar: int, n_words: int = N_EVAL_WORDS,
-                              label: str = "query-coverage", offset: int = 10_000) -> dict:
+                              label: str = "query-coverage", offset: int = 10_000,
+                              L_lo: int | None = None, L_hi: int | None = None) -> dict:
     """S1.4.1 step 4's retry-once rule: if the first N=50 draw (seed =
     base_seed + offset) fails the bar, resample ONCE with a shifted seed
     (base_seed + 1 + offset -- "the same cell seed + 1", S1.4.1's exact
@@ -163,11 +196,17 @@ def check_coverage_with_retry(name: str, base_seed: int, bar: int, n_words: int 
     own seed+10_000 precedent). Logs both attempts; hard-fails (raises
     CoverageGuardError) on a second consecutive miss. Returns a log dict on
     success (with `final_seed`, the seed whose draw the caller should
-    reuse for the actual eval-word sample)."""
-    log = {"label": label, "group": name, "bar": bar, "attempts": []}
+    reuse for the actual eval-word sample).
+
+    `L_lo, L_hi` (S1.3.5 build item, Rev 5) thread straight through to
+    `sample_eval_words` -- default `(1, 8)`, the new PRIMARY TRAIN-support
+    regime, paired with `bar=COVERAGE_BAR[name]`/`COVERAGE_BAR_TRAIN[name]`.
+    Pass `L_lo=L_EVAL_LO, L_hi=L_EVAL_HI` with `bar=COVERAGE_BAR_C5[name]`
+    for the explicit, disclosed C5 out-of-support control invocation."""
+    log = {"label": label, "group": name, "bar": bar, "L_lo": L_lo, "L_hi": L_hi, "attempts": []}
     for attempt, seed_shift in enumerate((0, 1)):
         seed = base_seed + seed_shift + offset
-        _, prod_list = sample_eval_words(name, seed, n_words)
+        _, prod_list = sample_eval_words(name, seed, n_words, L_lo=L_lo, L_hi=L_hi)
         count = _distinct_count(prod_list)
         passed = count >= bar
         log["attempts"].append({"attempt": attempt, "seed": seed, "distinct_count": count,
@@ -191,24 +230,34 @@ def check_coverage_with_retry(name: str, base_seed: int, bar: int, n_words: int 
 
 def _test_coverage_guard_detects_undersampling():
     """NEGATIVE TEST 1: the L=1 pathological sampler must FAIL the
-    calibrated bar for EVERY one of the 5 groups -- proven by actually
-    running the check against REAL matrix words (not merely re-quoting
-    coverage_calibration.py's permutation-stand-in numbers)."""
+    calibrated bar for EVERY one of the 5 groups, under BOTH bar tables now
+    in force (S1.7 gate 3, Rev 5 re-pin) -- proven by actually running the
+    check against REAL matrix words (not merely re-quoting
+    coverage_calibration.py's permutation-stand-in numbers). The
+    undersampled sampler's reach is a DETERMINISTIC ceiling of
+    `|generating set|` (<=4) distinct elements, strictly below every
+    group's calibrated bar under EITHER table -- this cannot flake."""
     print("=" * 88)
-    print("NEGATIVE TEST 1 -- coverage guard detects L=1 undersampling (all 5 groups)")
+    print("NEGATIVE TEST 1 -- coverage guard detects L=1 undersampling (all 5 groups, BOTH bars)")
     print("=" * 88)
     all_detected = True
     for name in GROUP_NAMES:
-        bar = COVERAGE_BAR[name]
         prod_list = _undersampled_words(name, seed=999_000)
         count = _distinct_count(prod_list)
         n_gens = len(generating_set(name))
-        detected = count < bar
-        all_detected = all_detected and detected
-        print(f"  [{name}] L=1 undersampled distinct_count={count} (<= |gens|={n_gens}) "
-              f"vs bar={bar}: {'DETECTED (count < bar)' if detected else 'MISSED'}")
-        assert detected, f"{name}: undersampled L=1 sampler was NOT caught by the coverage bar"
-    print(f"\nRESULT: undersampling DETECTED for all {len(GROUP_NAMES)} groups.\n")
+        for regime, bar_table in (("TRAIN", COVERAGE_BAR_TRAIN), ("C5", COVERAGE_BAR_C5)):
+            bar = bar_table[name]
+            detected = count < bar
+            all_detected = all_detected and detected
+            print(f"  [{name}/{regime}] L=1 undersampled distinct_count={count} "
+                  f"(<= |gens|={n_gens}) vs bar={bar}: "
+                  f"{'DETECTED (count < bar)' if detected else 'MISSED'}")
+            assert detected, (
+                f"{name}/{regime}: undersampled L=1 sampler was NOT caught by the "
+                f"{regime} coverage bar"
+            )
+    print(f"\nRESULT: undersampling DETECTED for all {len(GROUP_NAMES)} groups under BOTH "
+          f"the TRAIN-support and C5 bar tables.\n")
     return all_detected
 
 
@@ -228,7 +277,7 @@ def _test_coverage_guard_second_miss_hard_fails():
     name = "A5"
     bar = COVERAGE_BAR[name]
 
-    def _always_undersampled(name_, seed, n_words=N_EVAL_WORDS):
+    def _always_undersampled(name_, seed, n_words=N_EVAL_WORDS, L_lo=None, L_hi=None):
         return None, _undersampled_words(name_, seed, n_words)
 
     orig = _self.sample_eval_words

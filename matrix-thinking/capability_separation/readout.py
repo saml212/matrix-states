@@ -50,13 +50,46 @@ from rank_utils import effective_rank as torch_effective_rank, stable_rank as to
 
 def entity_subspace_from_words(Z_words: np.ndarray, d_min: int) -> np.ndarray:
     """S1.4.1 step 2: the model's OWN dominant d_min-dim subspace U of
-    d_state x d_state, via SVD of the empirical covariance sum_w Z(w)Z(w)^T
-    over a held-out word sample -- data-driven, NOT derived from rho_G
-    (non-circular). Z_words: (N, d_state, d_state). Returns U: (d_state, d_min)."""
+    d_state x d_state, via SVD of the CENTERED empirical covariance
+    sum_w (Z(w)-Zbar)(Z(w)-Zbar)^T over a held-out word sample --
+    data-driven, NOT derived from rho_G (non-circular).
+
+    CENTERING FIX (S1.25 DEFECT 1, S1.4.1 step 2 / S1.7 gate 1(b), Rev 5)
+    -- load-bearing, not cosmetic. Option A's target is
+    Z(w) ~= c*(rho_G(w) (+) I_{d_state-d_min}), and BOTH blocks are
+    orthogonal, so the UNCENTERED Z(w)@Z(w).T ~= c^2 * I_{d_state} for
+    EVERY w -- an isotropic, word-INDEPENDENT matrix carrying ZERO
+    subspace information. The constant identity-complement block then
+    competes with the rho-block on equal footing and empirically
+    OUTRANKS its 2 weakest directions (principal cosines captured exactly
+    d_min-2 of d_min under the old uncentered statistic). Centering fixes
+    this because the group-mean of a NONTRIVIAL irrep is 0 (a standard
+    representation-theory fact -- rho_bar ~= 0 for a reasonably-mixing
+    word-length sample), so subtracting Zbar ~= c*(0 (+) I) from every
+    Z(w) cancels the constant identity-complement block exactly while
+    leaving the rho-block's own signal (rho_G(w) - 0 = rho_G(w))
+    untouched -- the centered covariance becomes
+    ~= N*c^2*(I_{d_min} (+) 0), a clean rank-d_min spectral gap, not an
+    isotropic blur.
+
+    PROVEN, not asserted (S1.25; re-verified via S1.7 gate 1(b)'s ambient
+    synthetic injection, which now runs this exact function): a PERFECT
+    model FAILS the production bars under the OLD uncentered statistic
+    (mean_cos=0.711, recovered_frac@0.9=0.15 -- both below the
+    >0.95/>=0.9 acceptance bars, S1.7 gate 1(b)) and PASSES at oracle
+    levels under this centered fix (mean_cos=0.9996, recovered_frac@0.9=
+    1.00); real trained checkpoints, which read -0.02..0.17 under the
+    old statistic, are restored with razor d_min-sized spectral gaps
+    under the fix (A5@20K spectrum [1,.95,.80,.007,.003]; A6@20K gap at
+    exactly index 5).
+
+    Z_words: (N, d_state, d_state). Returns U: (d_state, d_min)."""
     d_state = Z_words.shape[-1]
+    Z_bar = Z_words.mean(axis=0)
     cov = np.zeros((d_state, d_state))
     for Z in Z_words:
-        cov += Z @ Z.T
+        Zc = Z - Z_bar
+        cov += Zc @ Zc.T
     U_full, _, _ = np.linalg.svd(cov)
     return U_full[:, :d_min]
 
@@ -95,14 +128,40 @@ def dump_Z(model, gens_words_idx, device, force_rank_k=None) -> np.ndarray:
 def degauge_and_score(A_fit: list, A_eval: list, rho_fit: list, rho_eval: list, d_min: int) -> dict:
     """S1.3.2's pipeline, applied to the RESTRICTED operator A(w) (S1.4.1).
     fit_scale/fit_orthogonal_intertwiner/score_eval are the LITERAL
-    verify_option_a_readout.py functions -- no reimplementation."""
+    verify_option_a_readout.py functions -- no reimplementation.
+
+    Degauging PRIMARY/crosscheck split (S1.25 pinned item 5 / S1.9 item 7
+    CLOSED, Rev 5): S1.25 measured Q_hat ~= I on every real checkpoint
+    once U is derived correctly (the centered fix above) -- cosine-loss
+    training against a FIXED block-embedded target already pins the
+    basis, so SCALE-ONLY degauging (Q_hat=I_{d_min}, score_eval called
+    with the identity in place of the fitted intertwiner -- zero new
+    code, the existing function's own call convention) is PRIMARY. The
+    full-Q Procrustes fit (S1.3.2's fit_orthogonal_intertwiner +
+    score_eval at the FITTED Q_hat) is retained and reported under the
+    `crosscheck_*` keys, not dropped -- a conservative robustness check,
+    not the decision metric.
+    """
     c_hat, ratios = fit_scale(A_fit, rho_fit)
-    Q_hat, sv_min, sv_2nd = fit_orthogonal_intertwiner(A_fit, rho_fit, c_hat, d_min)
-    coses, rel_errs = score_eval(A_eval, rho_eval, Q_hat, c_hat)
+
+    # PRIMARY: scale-only degauging (Q_hat = I_{d_min}).
+    I_dmin = np.eye(d_min)
+    coses, rel_errs = score_eval(A_eval, rho_eval, I_dmin, c_hat)
     rec90 = float(np.mean([c > 0.9 for c in coses]))
+
+    # CROSSCHECK: full orthogonal-Q Procrustes fit (unchanged mechanism).
+    Q_hat, sv_min, sv_2nd = fit_orthogonal_intertwiner(A_fit, rho_fit, c_hat, d_min)
+    coses_q, rel_errs_q = score_eval(A_eval, rho_eval, Q_hat, c_hat)
+    rec90_q = float(np.mean([c > 0.9 for c in coses_q]))
+
     return dict(c_hat=c_hat, Q_hat=Q_hat, sv_min=sv_min, sv_2nd=sv_2nd,
                 mean_cos=float(np.mean(coses)), mean_rel_err=float(np.mean(rel_errs)),
-                recovered_frac_90=rec90, coses=coses, rel_errs=rel_errs)
+                recovered_frac_90=rec90, coses=coses, rel_errs=rel_errs,
+                crosscheck_Q_hat=Q_hat,
+                crosscheck_mean_cos=float(np.mean(coses_q)),
+                crosscheck_mean_rel_err=float(np.mean(rel_errs_q)),
+                crosscheck_recovered_frac_90=rec90_q,
+                crosscheck_coses=coses_q, crosscheck_rel_errs=rel_errs_q)
 
 
 def _split_with_diversity_retry(name: str, prod_list: list, seed: int):
@@ -169,8 +228,13 @@ def run_subspace_restriction_pipeline(model, name: str, base_seed: int, device,
     A_eval = [A_words[i] for i in eval_idx]
     rho_fit = [rho_list[i] for i in fit_idx]
     rho_eval = [rho_list[i] for i in eval_idx]
+    # S1.5 M1 harvest-reporting disclosure (Rev 7, S1.30 item 5): per-eval-word
+    # L, so the caller can compute the disclosed, NON-GATING L>=2 robustness
+    # split alongside the full-sample decisional M1 number.
+    eval_L = [len(idx_list[i]) for i in eval_idx]
 
     scores = degauge_and_score(A_fit, A_eval, rho_fit, rho_eval, d_min)
+    scores["eval_L"] = eval_L
 
     # restricted effective/stable rank on the disjoint eval subset (torch
     # rank_utils applied per-matrix, numpy->torch bridge).
