@@ -366,9 +366,15 @@ conservative-hold; moving to ≤36 would destroy the separation window).
 Exhaustive 9-cell partition + cross-K rule; LoopedVec pinned
 (weight-tied pre-LN residual 2-layer GELU MLP, ±15% params);
 eval_grid_mode {claim, residue_sweep} resolves the assert-crash; loop
-arm per-step renorm, |Δcos|≤5e-4. Scoped micro-attack on the §3.4 rule
-math IN FLIGHT — last pass before DESIGN-CLEARED-FOR-BUILD-QUEUE;
-launch stays double-gated (Stage 2 calibration readout + §3.8).**
+arm per-step renorm, |Δcos|≤5e-4. **Rule-math attack CLEARED (registry
+§5, a0b1336): zero math defects — the bound verified unconditionally
+valid for non-normal A/D (stronger than claimed), N2 verified by exact
+simulation, every restated value reproduced; 3 wording nits binding on
+build. NCR WAVE 1 = DESIGN-CLEARED-FOR-BUILD-QUEUE — the candidate
+SURVIVED the full waterfall (attack → Rev 1 → attack → Rev 2 → cleared).
+Launch double-gated per §3.8 (Stage-2 calibration readout + build audit
++ smoke + Phase-0 + executed N1/N2). Build dispatch waits on the
+Stage-2 readout chain, not on further design work.**
 
 ## CAMPAIGN SCORECARD (Jul 6-9 2026, all pushed)
 
