@@ -2134,3 +2134,54 @@ production harness does not exist until build (§1.11).
 *(End §1 records. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 (§1.16) →
 §1.17 → Rev 3 (§1.18). Rev 3 resolves CA3-M1 (marquee power, EXECUTED)
 + 5 minors + the A5 wording item. Attack round 4 next.)*
+
+---
+
+### 1.19 ATTACK ROUND 4 VERDICT (independent fresh-eyes agent, 2026-07-08): NEEDS-REVISION (narrow — 1 MAJOR, one-paragraph fix)
+
+Recorded per the gauntlet-bookkeeping hard rule before dispatching Rev 4.
+All four companion scripts byte-reproduced; SHA-256 of every working-tree
+script/doc matches the 5852585 blobs; §1.13-§1.17 records byte-intact;
+the TOST power core INDEPENDENTLY re-implemented via a different
+statistical primitive (scipy ttest_ind on margin-shifted samples, 100K
+trials, own seed) — matches the doc's table to ≤0.5pp at every cell
+incl. the n=7 column. Everything §1.18 added verified clean: cell
+recount 58 exact; 19.65/34.5% exact; TOST margin correctly pinned to
+the CONTINUOUS effective_rank metric (discreteness foreclosed); scope
+choice (bump only unconstrained+k=d_min) adjudicated CORRECT; centralizer
+tol=1e-8 verified robust across 8 orders of magnitude (true nulls at
+~1e-16 vs next-smallest 0.61-1.73); exposure figures 2.848e-5/3.258e-5
+re-derived exactly; contingency row disjoint from bump costs (no
+double-count).
+
+**MAJOR (binding on Rev 4):**
+
+- **CA4-M1 — the escalation triggers are uncosted and the hard-abort
+  doesn't guard them.** The marquee n=7 trigger (Rev 3's own addition)
+  costs +2.4 GPU-h (→22.05, 26.5% margin — fits, realistic case); but
+  the GENERAL escalation-to-5 trigger (inherited since Rev 0, uncaught
+  through 3 rounds) is also uncosted, and §1.6's circuit-breaker only
+  projects the BASE 58-cell sweep once upfront. Literal worst case
+  (every ambiguous-eligible cell type escalates + marquee n=7):
+  19.65 + 2.40 + 12.60 = **34.65 GPU-h > the 30 GPU-h cap by 4.65**.
+  A build agent has no instruction on budget-checking before launching
+  escalation cells — a genuine stop-and-ask gap. → Rev 4: one clause
+  in §1.6 (the hard-abort re-checks actual-spend-to-date + projected
+  escalation cost BEFORE launching ANY escalation-triggered cells,
+  general or marquee; pre-registered priority order for which
+  escalations yield if budget is short — marquee outranks general) +
+  one new §1.12 build item + disclose the worst-case arithmetic.
+
+**MINOR:** stale-wording nit on A6's "will still run before launch"
+(subsumed by STEP 0's executed closure check — clarify, don't re-run).
+
+**Verified clean (what round 4 tried and failed to break):** TOST
+target quantity; Welch-vs-paired justification; centralizer threshold;
+contingency/bump disjointness; n_fit-floor × seed-bump orthogonality;
+build-manifest completeness EXCEPT the CA4-M1 item.
+
+---
+
+*(End §1 records. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 →
+Rev 3 (§1.18) → §1.19 NEEDS-REVISION (CA4-M1 escalation budget guard).
+Rev 4 in progress — expected one-paragraph class.)*
