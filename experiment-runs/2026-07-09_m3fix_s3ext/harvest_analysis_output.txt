@@ -1,0 +1,45 @@
+====================================================================================
+A3 CONFIG-MATCH + VERIFY-VS-RAWS (S3, seeds 0/1/2/3, 24 cells total)
+====================================================================================
+cells found: 24/24; independent-literal manifest match: EXACT
+ALL 24 cells: steps==8000, force_rank_k + target_padding per manifest, n_skipped_steps==0, seed matches its own file. CONFIG-MATCH CLEAN.
+
+EXTENSION realized (seeds 1,2,3 only): 144,000 step-cells, wall-clock sum 0.3283 GPU-h vs priced 0.3331 GPU-h
+
+====================================================================================
+PER-SEED C1 DECISIONAL (S3, variant A zero_pad): xrec90 [xcos]
+====================================================================================
+seed  unconstr.               k=d_min-1               k=d_min                 k=d_min+1               
+0     0.550 [0.743]           0.000 [0.610]           0.450 [0.681]           0.550 [0.622]           
+1     0.600 [0.877]           0.000 [0.573]           0.550 [0.841]           0.750 [0.874]           
+2     0.800 [0.881]           0.000 [0.674]           0.600 [0.870]           0.750 [0.917]           
+3     0.600 [0.835]           0.000 [0.685]           0.650 [0.765]           0.600 [0.841]           
+
+k=d_min xrec90 per seed: [0.45, 0.55, 0.6, 0.65]
+seed-mean (all 4: 0,1,2,3): 0.5625
+seed-mean (extension only: 1,2,3): 0.6000
+pre-registered bar (§1.36, 0.9 x seed=0 anchor): 0.495
+
+====================================================================================
+§1.36a VERDICT: S3 CONFIRMED (seed-mean 0.5625 >= bar 0.495)
+====================================================================================
+
+VARIANT B (tax_adjusted, corroboration only) per seed:
+  seed=0 k_dmin_minus_1: xrec90=0.150 [xcos=0.327]
+  seed=0 k_dmin: xrec90=0.500 [xcos=0.621]
+  seed=1 k_dmin_minus_1: xrec90=0.000 [xcos=0.607]
+  seed=1 k_dmin: xrec90=0.700 [xcos=0.916]
+  seed=2 k_dmin_minus_1: xrec90=0.250 [xcos=0.315]
+  seed=2 k_dmin: xrec90=0.650 [xcos=0.856]
+  seed=3 k_dmin_minus_1: xrec90=0.000 [xcos=0.581]
+  seed=3 k_dmin: xrec90=0.550 [xcos=0.652]
+
+GATE1A (min L in {2..5} cos >= 0.9+0.02margin) per seed, zero_pad anchor + k_dmin:
+  seed=0 unconstrained: min_val=0.9144 clears=False
+  seed=0 k_dmin: min_val=0.9002 clears=False
+  seed=1 unconstrained: min_val=0.8731 clears=False
+  seed=1 k_dmin: min_val=0.8069 clears=False
+  seed=2 unconstrained: min_val=0.9325 clears=True
+  seed=2 k_dmin: min_val=0.8999 clears=False
+  seed=3 unconstrained: min_val=0.9150 clears=False
+  seed=3 k_dmin: min_val=0.9217 clears=True

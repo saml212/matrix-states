@@ -190,13 +190,25 @@ climb signature is ABSENT (step function at d_min instead). Variant B
 corroborates the tax mechanism (eff-rank d_min−1 fails at 0.000,
 tax-paid point recovers 0.500-0.850). The scale-only primary diverged
 exactly as the §1.35 oracle injection predicted — the C1 pin was
-load-bearing. **S3 is the one below-bar group (0.450 vs 0.495 bar,
-inside the pre-stated ±0.05 marginality trigger) → a ~0.15 GPU-h 3-seed
-S3 extension is ROUTED before S3 is quoted as a confirm group; the
-overall verdict doesn't depend on it. The Stage-1 rank-law trilogy
-(M1 ρ=0.9747 + marquee DECLARE + M3 causal razor) is now COMPLETE —
-the flagship claim's decisive leg is banked.** Realized 1.4235 GPU-h
-vs 1.3324 priced (+6.8%, eval overhead).
+load-bearing. S3 was the one below-bar group (0.450 vs 0.495 bar,
+inside the pre-stated ±0.05 marginality trigger) → a 3-seed S3
+extension was ROUTED before S3 could be quoted as a confirm group; the
+overall verdict didn't depend on it. The Stage-1 rank-law trilogy
+(M1 ρ=0.9747 + marquee DECLARE + M3 causal razor) is COMPLETE —
+the flagship claim's decisive leg is banked. Realized 1.4235 GPU-h
+vs 1.3324 priced (+6.8%, eval overhead). **S3 SEED-PARAMETERIZATION
+EXTENSION (§1.36a, 2026-07-09): BUILT (`ccd7d39` — parameterized
+`build_m3fix_manifest(seed)` + `--m3fix-groups`, fixing the prior
+attempt's hardcoded-seed0 mislabel bug, mutation-kill-proven) →
+DEPLOYED (md5-exact) → LAUNCHED (tmux `m3fix_s3ext`, GPU 0, seeds
+1/2/3 × S3-only, 18 cells) → HARVESTED: 21/21 md5-exact, A3
+config-match CLEAN vs a 24-cell independent-literal manifest. **S3
+CONFIRMED** — seed-mean (all 4 seeds) `k=d_min` xrec90 = 0.5625 ≥ the
+0.495 bar; `k=d_min−1` reads EXACTLY 0.000 in all 4 independent seeds
+(zero-noise necessity leg). The Stage-1 rank-law causal trilogy now
+holds uniformly at 5/5 groups. Realized 0.3283 GPU-h vs 0.3331 priced
+(−1.4%). Campaign ledger ≈5.11/30 GPU-h. Archive
+`experiment-runs/2026-07-09_m3fix_s3ext/`, SSD-mirrored.**
 
 ### 3. Attractor-Robustness 2×2 (novelty stress-test follow-on, 2026-07-09)
 
