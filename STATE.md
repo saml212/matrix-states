@@ -135,6 +135,25 @@ runs unattended → harvest. Monitor: ssh youthful-indigo-turkey tail -f
 blemish noted: closure-manifest file folded into 3b035b6 by a
 concurrent commit — content correct, ignore.
 
+**CALIBRATION VERDICT (2026-07-09 box time): GATE 1 BAND CHECK FAILED —
+chain hard-aborted the sweep (the gate working as designed; GPUs held).**
+All 13 cells completed. Task 3 HEALTHY: ablation 2.2905 in [1.90,2.60]
+anchored band ✓; transformer LR grid → lr_grid_2 (2.1931) ✓. Tasks 1/2:
+recovered_frac@0.9 = 0.0 on ALL NINE cells — ALL ARMS incl. the
+contender → PROBE-WIDE, not architecture-specific. ROOT CAUSE
+IDENTIFIED from the pre-registered §1.3.1.3 step-500 gradient check
+(recorded in every cell JSON): ce_grad_norm_backbone=0.1375 vs
+aux_grad_norm_backbone=0.0066 — ratio 20.9×, exceeds_10x_trigger=TRUE.
+The probe's aux signal is ~21× too weak; the aux path itself is proven
+live (box smoke: real-kernel k/v/b_proj grads nonzero). THE
+PRE-REGISTERED PATH: §1.3.1.3's calibration-revises-aux_weight rule →
+revise aux_weight to gradient parity (0.1×20.93≈2.09, pin 2.0),
+RE-RUN the 9 task-1/2 calibration cells under the revised pin (~1
+GPU-h; task-3 cells unaffected, no probe), re-check bands, add
+probe_cos_mean reporting for diagnosability (metric ADDITION, no
+threshold change), THEN freeze margins. Fix agent dispatched
+2026-07-09. Loss curves otherwise healthy (10.94→1.16).
+
 **CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
 push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)
 + executed `capability_separation/verify_option_a_readout.py`
