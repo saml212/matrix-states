@@ -1,6 +1,6 @@
 # CAPABILITY-SEPARATION — group-element-recovery rank/representation-dimension test
 
-## §1 DESIGN — Stage 1 (Rev 6, post-micro-attack-round-6 revision, 2026-07-09) —
+## §1 DESIGN — Stage 1 (Rev 7, post-adjudication-round-7 revision, 2026-07-09) —
 does a from-scratch matrix-state model recruit subspace-restricted state
 rank equal to a group's minimal faithful real representation dimension
 `d_min(G)`, tracking dimension not solvability?
@@ -79,6 +79,47 @@ demotion above addresses — exact per-cell numbers and the mechanical
 consequence (S4/S5 escalation retest required, A5/A6 HARD-STOPPED per
 CA6-M1(c)) are in §1.7 gate 1(a) and §1.6 below. §1.13-§1.27's own
 records are left byte-intact per the gauntlet-bookkeeping convention.
+**Rev 6 was independently re-verified by the coordinator against the raw
+`gate1_diagnosis_report.json` (§1.29: round 6 vs Rev 6 factual conflict
+SETTLED — Rev 6's read correct, but the `L=1` dip is REAL yet
+BUDGET-RESPONSIVE** — A5/A6's `L=1` mode improves `+0.038`/`+0.059` from
+8K→20K, not a plateau; mechanism unknown, three live candidates),
+which dispatched **adjudication round 7** with the settled facts.
+**Round 7 (§1.30) found the mechanism (H-ENC, proven five ways): at
+`L=1` the reader's attention is PROVABLY query-independent (softmax
+over a single key; read-vector std across queries `0.000e+00` vs
+`0.41` at `L=2`) — an encoder degeneracy specific to single-generator
+words, not a convergence defect; trained models sit within ~0.02 of
+the frozen-downstream ceiling for order-5-generator groups; and
+§1.29's own budget-extrapolation premise is FALSIFIED at 40K (A5
+`+0.0010`, A6 `+0.0099` per `+20K` steps — a plateau, not continued
+improvement).** **This Rev 7 folds §1.30's six-item BINDING
+prescription into the live design text** (finding→resolution mapped in
+§1.31): narrows gate 1(a)'s HARD bar to `L∈{2,3,4,5}` (`L=1`
+demoted/disclosed with the registered H-ENC mechanism note) and adds a
+`≥0.02`-clearance margin rule; re-pins per-group step budgets exactly
+(`S3=8K, S4=20K, A5=20K, S5=8K, A6=40K`) and recomputes §1.6's 58-cell
+sweep at **≈2.51 GPU-h raw**, ALL 58 cells launchable; LIFTS the
+§1.28/§1.7 A5/A6 HARD-STOP (the premise that motivated it — an
+undiagnosed defect — is dissolved: A5/A6's `L=1` shortfall is a
+diagnosed, arm-shared architectural ceiling that both groups clear at
+their re-pinned budgets, not a pathology); recalibrates rule (c) to a
+`≤2`-escalations/group cap with a mandatory `≤0.1` GPU-h mechanism
+diagnostic BEFORE any further action on a second miss (routed by
+cause: instrument→fix, moving-below-ceiling→one capped escalation,
+ceiling→demote+disclose+Stage-2 flag), reserving HARD-STOP for genuine
+pathology; and adds a harvest-reporting disclosure (M1 scored on the
+full pinned sample, decisional, AND a disclosed `L≥2` robustness split
++ per-`L` profile, since the `L=1` attenuation is arm-shared and drops
+out of the marquee TOST comparison to first order). §1.30's own
+Stage-2 build flag (a learned BOS position would restore
+query-dependent reads at `L=1`, NOT applied mid-campaign per
+hold-axes-fixed) is cross-referenced into §2.2.1's own
+candidate-mechanism discussion below. **§1.13-§1.30's own records are
+left byte-intact per the gauntlet-bookkeeping convention** (this Rev's
+edits land inside §1.0-§1.12 and §2 only, never inside the §1.13-§1.30
+span; new gauntlet history is appended as §1.31, after §1.30).
+
 This design came through the full waterfall (brainstorm →
 research → attack → validation, `STATE.md` "CAPABILITY CAMPAIGN"); the
 hypothesis, group family, readout (Option A), controls, budget, and
@@ -1569,6 +1610,33 @@ across the 5-group family).
   the restriction to be capping — the model genuinely cannot represent
   more than `k` dimensions of information when `k` is enforced during
   training itself).
+- **M1 harvest-reporting disclosure (new, Rev 7, §1.30 item 5).** The
+  sweep harvest reports M1 TWICE per cell: (i) the **DECISIONAL** number
+  — restricted effective rank on the FULL pinned measurement sample
+  (`L~Uniform{1,8}`, unchanged, §1.4/§1.4.1) — is what CONFIRM/FALSIFY
+  above is computed against, exactly as pinned; AND (ii) a disclosed,
+  NON-GATING **`L≥2` robustness split** (the same restricted-rank
+  computation, restricted further to only the held-out words with
+  `L∈{2..8}`) plus the full per-`L` profile, reported alongside (i) but
+  never substituted for it. **Why this does not double-count or dilute
+  the decision:** §1.30's H-ENC diagnosis established the `L=1`
+  attenuation is an ARM-SHARED architectural property of the reader
+  (query-independent single-key attention at the shortest word, gate
+  1(a) above) — it depresses recovery roughly equally across every
+  group and every arm of a given cell, not selectively for some groups'
+  M1 values over others'. A shared, roughly-constant attenuation
+  shifts every group's M1 reading in the SAME direction by a similar
+  amount, which drops out of the marquee TOST equivalence check (§1.5
+  below) TO FIRST ORDER (TOST tests whether TWO groups' distributions
+  are equivalent up to a margin, not their absolute level) and does not
+  change the Spearman-ρ ranking test's own rank-order statistic (a
+  monotone shared shift preserves rank order exactly). The `L≥2` split
+  exists to make this claim CHECKABLE rather than assumed: if the two
+  M1 readings (full-sample vs `L≥2`-only) diverge materially for one
+  group but not others, that is itself evidence the attenuation is NOT
+  arm-shared after all, and the next attack round is expected to
+  re-examine the decisional metric's validity rather than the
+  robustness split being silently ignored.
 
 **M2 — post-hoc rank-`k` truncation curve** (unconstrained checkpoint,
 `k=1..d_state`, τ=0.9).
@@ -1874,6 +1942,46 @@ this changes Stage 1's overall readiness, since the DESIGN role is to
 report the re-verified facts and their mechanical consequence under the
 already-binding CA6-M1(c) rule, not to relitigate the rule itself.
 
+**Rev 7 — budget pins finalized against §1.30's H-ENC diagnostic and
+its `≥0.02`-margin gate 1(a) bar (§1.30 item 2, EXECUTED at the
+recomputed rate, not asserted).** Round 7's own escalation cells
+(`escalation_{A5,A6,S4,S5}_*.json`, archived
+`experiment-runs/2026-07-09_capability_gate1_round7/`) resolve every
+group's pinned step budget: **S3=8,000, S4=20,000, A5=20,000,
+S5=8,000, A6=40,000** (only A6 needed the second, `≤2`-cap escalation;
+derivation and the exact per-group margin numbers are in §1.7 gate
+1(a) above). Recomputed at the same MEASURED linear rate the Rev 5/6
+tables already established (`0.0179 GPU-h/cell` at 8,000 steps, scaled
+linearly with step count):
+
+| Group | pinned steps | cells | rate (GPU-h/cell) | GPU-h |
+|---|---|---|---|---|
+| S3 | 8,000 | 10 | 0.0179×1.0 = 0.0179 | 0.179 |
+| S4 | 20,000 | 14 | 0.0179×2.5 = 0.04475 | 0.627 |
+| A5 | 20,000 | 14 | 0.0179×2.5 = 0.04475 | 0.627 |
+| S5 | 8,000 | 10 | 0.0179×1.0 = 0.0179 | 0.179 |
+| A6 | 40,000 | 10 | 0.0179×5.0 = 0.0895 | 0.895 |
+| **Main sweep total (58 cells, all launchable)** | — | 58 | — | **≈2.51** |
+
+`0.179+0.627+0.627+0.179+0.895 = 2.506 ≈ 2.51` GPU-h, matching §1.30's
+own cited figure exactly (independently re-derived from the per-group
+cell table, not copied). **Contingency, recomputed conservatively at
+the now-pricier A6 rate (the most expensive pool this round
+introduced, replacing Rev 5's A5/A6-pool assumption):** `2 cells ×
+2.25× × 0.0895 GPU-h/cell ≈ 0.403` GPU-h (unchanged "1-2 cells"
+rate-of-occurrence assumption, §1.6 above). β-smoke and CPU-only rows
+unchanged (`0.90` and `≈0.0` respectively). **New raw total: `2.506 +
+0.403 + 0.90 ≈ 3.81` GPU-h** — new margin under the 30 GPU-h dedicated
+cap: **≈87.3%** (`(30−3.81)/30`), still comfortably inside Rev 5's
+already-slack ≈90.7% figure (the small drop from A6's own 40K-budget
+premium, not a material change to the campaign's GPU-boundedness
+finding). **This design is no longer GATE-bound either** — Rev 6's "48
+of 58 cells blocked" finding is fully superseded: all 58 cells clear
+gate 1(a) at the budgets above (§1.7 gate 1(a)'s Rev 7 table), so the
+sweep is authorized to launch subject only to the remaining gates
+(§1.7 gates 2-7) and the sweep-readiness build items (§1.30's own
+list, folded into §1.12 below).
+
 ---
 
 ### 1.7 Gates
@@ -1903,63 +2011,132 @@ Reused verbatim from this program's own precedent (Task D/E,
    degauged — this is a diagnostic convergence check, not the M1/M3
    decision metric) `rho_G_embedded` target; report the resulting
    8-point per-`L` mean-cosine PROFILE per cell, not a single scalar.
-   **Convergence bar, RE-SCOPED (CA6-M1(a) fix, Rev 6 — micro-attack
-   round 6, §1.27, found the `L∈{1..8}`-wide bar falsified by all 7 real
-   calibration cells, min-L cosines 0.67-0.85, every group failing at
-   `L≥6-8` incl. the already-escalated A5/A6@20K).** The HARD bar now
-   applies to `L∈{1..5}` only: mean cosine `≥ τ=0.9` (Task D/E's own
-   primary threshold, unchanged) at EVERY `L∈{1,2,3,4,5}`. `L∈{6..8}` is
-   DEMOTED to disclosed/non-gating reporting — the exact demotion
-   pattern already applied to `L∈{9..16}`/C5 (§1.4/§1.4.2): CA6-M1
-   diagnosed the `L≥6` shortfall as a length-difficulty gradient (linear
-   extrapolation puts A6 at ~50K+ steps to clear 0.9 at `L=8`), not a
-   convergence defect, so `L∈{6..8}` is still reported per cell but never
-   gates.
+   **Convergence bar, RE-SCOPED AGAIN (H-ENC fix, Rev 7 — adjudication
+   round 7, §1.30, found the mechanism behind Rev 6's `L=1` anomaly: a
+   provable encoder degeneracy, not a convergence defect).** The HARD
+   bar now applies to `L∈{2,3,4,5}` only: mean cosine `≥ τ=0.9` (Task
+   D/E's own primary threshold, unchanged) at EVERY `L∈{2,3,4,5}`.
+   `L=1` is DEMOTED to disclosed/non-gating reporting, alongside the
+   already-demoted `L∈{6..8}` (Rev 6) and `L∈{9..16}`/C5 (Rev 5) —
+   **with a REGISTERED MECHANISM, not a bare demotion:** §1.30's H-ENC
+   diagnostic (`l1_micro_diag.py`, box md5 prefixes `e77036e5`/
+   `3716c67c` per the round-7 transcript; this repo's own archived copy
+   at `experiment-runs/2026-07-09_capability_gate1_round7/
+   l1_micro_diag.{py,json,log}`) proves, five independent ways, that at
+   `L=1` the `MultiheadAttention` reader's softmax necessarily
+   degenerates to a query-INDEPENDENT single-key lookup (only one token
+   exists to attend to): the read-vector's std ACROSS QUERIES measures
+   `0.000e+00` at `L=1` vs `0.41` at `L=2`
+   (`group_word_encoder.py:96-103`); the deficit is generator-specific
+   (order-5 generators depressed 0.74-0.86, order-3 fine); degauging/
+   eval-protocol is EXONERATED (`Δ≤0.0008`); trained models sit within
+   `~0.02` of the FROZEN-downstream ceiling for order-5-generator
+   groups (i.e. more training cannot close this gap — architectural,
+   not an optimization shortfall); and dedicated `L=1` fine-tuning
+   destroys `L≥2` recovery (a Pareto ceiling trading `L≥2` accuracy for
+   `L=1` accuracy along an existing frontier, not undertrained
+   capacity). This is structurally distinct from the `L≥6`
+   length-difficulty gradient Rev 6 demoted (training-budget-responsive)
+   and from the `L∈{9..16}` out-of-support control (an untrained-
+   positional-row defect, §1.25): `L=1` is intrinsic to single-token
+   attention at the shortest possible word, present at any step budget,
+   verified by the plateau below.
 
-   **Box re-verification (Rev 6, fresh pull of
-   `results/gate1_diagnosis/gate1_diagnosis_report.json`, all 7 real
-   cells) — the min-`L∈{1..5}` values, EXACT, not last-batch loss:**
+   **Margin rule (new, Rev 7, §1.30 item 1).** A pinned per-group step
+   budget only "clears" gate 1(a) if its min-`L∈{2..5}` mean cosine
+   exceeds `τ=0.9` by AT LEAST `0.02`, not a bare `>0` clearance — a
+   noise-margin discipline anchored to this design's own data: A6@20K
+   clears `0.9` by a `0.0023` margin yet sits materially below its OWN
+   higher-budget ceiling (A6@40K: `0.9633`), i.e. a bare-clearance
+   reading at 20K would have shipped an under-converged cell a slightly
+   noisier eval draw could flip back under `0.9`. `0.02` sits below the
+   loosest genuinely-clear margin already observed in the family
+   (S3@8K's `0.0649`) — a floor under the family's own clean-pass
+   margins, not a number invented independent of the data.
 
-   | Cell | min over L=1-5 | at L= | clears ≥0.9? |
-   |---|---|---|---|
-   | S3@8K | 0.9517 | 1 | YES |
-   | S4@8K | 0.8646 | 1 | no |
-   | A5@8K | 0.8532 | 1 | no |
-   | S5@8K | 0.8513 | 1 | no |
-   | A6@8K | 0.7734 | 5 | no |
-   | A5@20K | 0.8915 | 1 | no |
-   | A6@20K | 0.8410 | 1 | no |
+   **Box re-verification (Rev 7, fresh pull of
+   `results/gate1_diagnosis/gate1_diagnosis_report.json` +
+   `escalation_{A5,A6,S4,S5}_*.json`, archived at
+   `experiment-runs/2026-07-09_capability_gate1_round7/`) — the
+   min-`L∈{2..5}` values at the PINNED per-group step budget, EXACT:**
 
-   **Contrary to §1.27's own summary parenthetical ("all 7 cells clear
-   it"), only S3 clears the narrowed bar as literally read** — every
-   other cell's minimum sits at `L=1` (A6@8K's at `L=5`, by a hair). This
-   is a newly-surfaced anomaly, structurally distinct from the `L≥6`
-   length-difficulty gradient the demotion above addresses: `L=1` is the
-   SHORTEST word, not the longest, and `L=2-4` clear comfortably
-   (0.94-0.999) for every cell including these six — a genuine dip
-   specific to single-generator words, not a monotone difficulty trend.
-   Correcting §1.27's premise here is exactly the "re-verify... against
-   the real per-L data" duty CA6-M1(b) assigns this revision, not a
-   re-litigation of the STRUCTURAL fix (narrowing the range, demoting
-   L6-8), which stands as directed.
+   | Group | pinned steps | min over L=2-5 | at L= | margin over 0.9 | clears (≥0.9 AND ≥0.02 margin)? |
+   |---|---|---|---|---|---|
+   | S3 | 8,000 | 0.9649 | 5 | 0.0649 | YES |
+   | S4 | 20,000 | 0.9796 | 5 | 0.0796 | YES |
+   | A5 | 20,000 | 0.9755 | 5 | 0.0755 | YES |
+   | S5 | 8,000 | 0.9213 | 5 | 0.0213 | YES |
+   | A6 | 40,000 | 0.9633 | 5 | 0.0633 | YES (20,000 rejected: margin only 0.0023 < 0.02) |
 
-   **(c) Second-consecutive-miss rule (new, CA6-M1(c), mirrors
-   `HEAD_TO_HEAD_DEMO_DESIGN.md`'s dial-cap pattern): if a group misses
-   the HARD bar a SECOND time at its own already-escalated pinned
-   budget, HARD-STOP that group's main-sweep cells + a PI-visible flag —
-   never a further silent escalation.** Applied to the box data above:
-   **A5 and A6 are ALREADY at their one permitted escalation (20,000
-   steps, §1.25) and still miss** (0.8915/0.8410, both at `L=1`) — the
-   second-consecutive-miss case, so A5's and A6's 14+10=24 main-sweep
-   cells are **HARD-STOPPED, PI-visible, pending review** (not launched
-   by this design as-is). **S3/S4/S5 are each on their FIRST measurement
-   (8,000 steps)** — S3 clears and stays at 8,000 steps; S4 and S5 miss
-   and get the standard pre-registered 2-2.5× retest (escalate to 20,000
-   steps, matching A5/A6's own multiplier, and re-measure the `L∈{1..5}`
-   bar there) before their 14+10=24 main-sweep cells are authorized to
-   launch (§1.6's Rev-6 cost table, above). If any cell still falls short
-   after a FIRST escalation, gate 1(a) applies rule (c) rather than a
-   further silent escalation.
+   **All five groups now clear gate 1(a) at their re-pinned budgets —
+   all 58 main-sweep cells are launchable**, superseding Rev 6's
+   10-of-58 figure. S3 and S5 needed no escalation beyond their
+   original 8,000-step measurement (their miss under Rev 6's wider bar
+   was entirely the now-demoted `L=1` mode — S5@8K's min-`L∈{1..5}` was
+   `0.8513` at `L=1`, §1.29's table, but its min-`L∈{2..5}` was already
+   `0.9213`, clearing cleanly). S4 required its already-pre-registered
+   FIRST escalation (8K→20K, Rev 6's standard track) and now clears
+   with a `0.0796` margin. A5's already-executed escalation (8K→20K,
+   §1.25) also clears the narrower bar directly (`0.9755`, margin
+   `0.0755`) — no further action needed. A6 alone required the
+   diagnostic-before-action routing in rule (c) below: at its
+   once-escalated 20,000-step budget it exceeds `0.9` numerically
+   (`0.9023`) but MISSES the margin rule (`0.0023 < 0.02`); the
+   mandatory `≤0.1` GPU-h mechanism diagnostic ran BEFORE any further
+   escalation was authorized, found the `L=1` mode still moving (not
+   flat) at 20K, and — per the routing table's "moving-below-ceiling →
+   one capped escalation" branch — authorized ONE further, capped
+   escalation to 40,000 steps, which clears cleanly (`0.9633`, margin
+   `0.0633`); the same diagnostic found the 40K trajectory itself is
+   now a plateau (`+0.0099` per `+20K` steps from 20K→40K, vs `+0.059`
+   from 8K→20K, §1.30), so a third escalation is not warranted and
+   would not be authorized by rule (c)'s `≤2`-escalations/group cap
+   even if requested.
+
+   **(c) Diagnostic-before-action escalation rule (RECALIBRATED, Rev 7,
+   §1.30 item 4 — replaces Rev 6's blanket "second-consecutive-miss →
+   HARD-STOP" rule, whose own premise §1.29/§1.30 dissolved: A5/A6's
+   miss under the OLD wide bar was never a genuine, worsening
+   pathology — it was the now-demoted `L=1` mode dragging the minimum
+   down, diagnosable and fixable within a trivial GPU-h budget).** Each
+   group gets AT MOST `≤2` escalations total (base budget → one retest
+   → one further capped escalation), each one PI-visible and PRICED in
+   the harvest (never a silent re-run). **On a group's SECOND
+   consecutive miss at its own pinned budget** (whether the "miss" is a
+   bare `<0.9` failure or a `<0.02`-margin technical pass, per the
+   margin rule above), **a MANDATORY `≤0.1` GPU-h mechanism diagnostic
+   runs BEFORE any further action is taken** — this round's own
+   `l1_micro_diag.py`/`escalation_cells.py` suite (archived,
+   `experiment-runs/2026-07-09_capability_gate1_round7/`) is the
+   TEMPLATE for that diagnostic, not a one-off. The diagnostic's
+   finding ROUTES the response, pre-registered: **instrument defect
+   found (e.g. a degauging/eval-protocol bug, mirroring §1.25's own
+   DEFECT 1/2 class) → fix the instrument, re-measure, no escalation
+   consumed; group is genuinely MOVING but below its ceiling (the
+   metric is still improving budget-over-budget, not flat) → ONE
+   further capped escalation is authorized (this round's A6 case,
+   above); group has reached an architectural CEILING (the metric is
+   flat/plateaued budget-over-budget, e.g. this round's post-40K A5/A6
+   read confirming `+0.0010`/`+0.0099` per `+20K` is noise-level) →
+   DEMOTE the affected `L` value(s) to disclosed/non-gating reporting
+   (mirroring the `L=1` demotion this round produced) AND flag it for
+   the Stage-2 design (§2.2.1) as an architecture-level constraint, not
+   a Stage-1 per-group failure.** **HARD-STOP is RESERVED for genuine
+   pathology** — a THIRD miss after the `≤2`-escalation cap is
+   exhausted with no ceiling/plateau evidence (i.e. the diagnostic is
+   inconclusive or contradicts the moving/ceiling read), or a
+   diagnostic that surfaces a correctness bug rather than a
+   capacity/mechanism limit. **Applied retroactively to close out this
+   round: A5 and A6's Rev-6-era HARD-STOP (§1.28, triggered by the old
+   rule against the old wide bar) is LIFTED** — the rule that produced
+   it no longer exists in this form; its replacement, applied to the
+   SAME underlying data, produced a clean PASS for both groups at their
+   re-pinned budgets (table above), and the routing's own ceiling /
+   moving-but-below-ceiling read for A5/A6 is now the registered
+   explanation, not an open pathology. **S3/S4/S5 needed no HARD-STOP
+   consideration at all** — S3 and S5 cleared on their first
+   measurement once the demoted `L=1` mode is excluded; S4 cleared on
+   its regular first (and only) escalation.
 
    (b) **synthetic-injection acceptance test, run
    BEFORE any real checkpoint's degauging output is trusted — EXTENDED TO
@@ -2423,13 +2600,50 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
     §1.25's diagnosis) and must be RE-RUN once this change lands, since
     A5/A6's own calibration cells are now supposed to measure the 20K-step
     rate, not the 8K one (§1.6's Rev-5 cost table already assumes this).
+- **Rev 7 SWEEP-READINESS build items (§1.30 item, the four production
+  files this dispatch's JOB 2 builds — SAME four files the Rev 5 list
+  above already itemized, updated with §1.30's exact specifics, not a
+  fifth new file):** (a) **`readout.py`** (Rev 5's centered-covariance
+  fix, `entity_subspace_from_words`, ~line 57-59) — unchanged by Rev 7,
+  cited here only because §1.30's own sweep-readiness checklist
+  re-verifies it is still present on box before `--sweep` is
+  authorized; (b) **`group_task.py`** (Rev 5's train-length
+  `sample_eval_words`/coverage-bar variant, ~lines 37/47) — unchanged
+  mechanism, same re-verification note; (c)
+  **`gate1_synthetic_injection.py`** (Rev 5's ambient-`d_state`
+  injection, ~lines 15-16) — unchanged mechanism, same
+  re-verification note, PLUS a new required negative control (§1.7 gate
+  1(b) is unchanged by Rev 7, but this dispatch's build stage must run
+  it to completion, including asserting the UNCENTERED path still FAILS
+  the acceptance bars — §1.25's own proof, re-run as the negative
+  control every build of this file must reproduce); (d)
+  **`run_capability_sep.py`** (Rev 5's per-`L` convergence-profile
+  reporting) — EXTENDED this revision: the per-`L` sweep now also
+  reports against the Rev 7 `L∈{2,3,4,5}` gate (§1.7 gate 1(a)) with
+  the `≥0.02` margin rule, the per-group step manifest becomes the Rev
+  7 pins (`S3=8000, S4=20000, A5=20000, S5=8000, A6=40000`, replacing
+  Rev 5's `{"A5":20000,"A6":20000}` two-group lookup with the full
+  five-group one), and the harvest schema gains the `L≥2` robustness
+  split field (§1.5's new M1 harvest-disclosure item, above) alongside
+  the existing full-sample decisional M1 number. `smoke_capability_sep.py`
+  gains matching negative tests: undersampling detection re-run against
+  the (unchanged) §1.3.5 bars, the uncentered-injection failure
+  (item (c) above), and a synthetic gate-1(a) check at the new
+  `L∈{2..5}`/`≥0.02`-margin bar. **Sequencing (§1.30's own
+  SWEEP-READINESS list, verbatim):** Rev 7 → micro-attack on its delta
+  → the four production build items verified still present on box →
+  independent build audit → gate-1(b) ambient PASS on production →
+  AUTHORIZE `--sweep`.
 
 ---
 
-**QUEUE (STATE.md, appended per this design's commit):** Design Rev 5
-committed (this commit) → micro attack round 6 (scope: Rev 5's delta
-only, per this program's own narrow-scope-attack convention, §1.21
-precedent) next.
+**QUEUE (STATE.md, appended per this design's commit):** Design Rev 7
+committed (this commit, folds §1.30's six-item prescription into the
+live design text + §1.31's resolution map) → the four Rev 7
+sweep-readiness build items (readout.py, group_task.py,
+gate1_synthetic_injection.py, run_capability_sep.py, this dispatch's
+JOB 2) → independent build audit → gate-1(b) ambient PASS on
+production → `--sweep` AUTHORIZE, per §1.30's own sequencing, next.
 
 ---
 
@@ -3258,15 +3472,19 @@ measured rates, likely far under the old 50-120 sketch → grow
 seeds/grids to use the room; design agent dispatched, registry =
 CAPABILITY_SEPARATION_DESIGN §2)"*). **Launch is GATED on Stage 1
 reaching CONFIRM or a diagnosed INCONCLUSIVE per §1.11 — this design is
-not.** As of this writing Stage 1 is mid-gauntlet (§1.29: Rev 6's
-narrowed gate-1(a) bar re-verified against real box data, 6/7
-calibration cells miss at `L=1` — a budget-responsive slow-convergence
-mode, mechanism unresolved, adjudication round 7 dispatched) — this
-design proceeds in parallel per the directive's explicit instruction,
-and is written to be launch-ready the moment §1.11's gate opens, not
-contingent on which of round 7's options Stage 1 lands on (none of
-those options touch the M1/M3 measurement sample, the readout pipeline,
-or the group family this design reuses verbatim, §2.0/§2.4 below).
+not.** As of this writing (updated post-round-7) Stage 1's gate-1(a)
+gauntlet has RESOLVED (§1.30: MECHANISM FOUND — the `L=1` dip is H-ENC,
+a provable query-independent single-key attention degeneracy at the
+shortest word, arm-shared, not an undiagnosed defect; HARD-STOP lifted;
+bar re-pinned to `L∈{2..5}`; all 58 Stage-1 sweep cells launchable at
+their re-pinned per-group budgets, §1.6/§1.7 Rev 7) — this design
+proceeds in parallel per the directive's explicit instruction, and is
+written to be launch-ready the moment §1.11's gate opens. Round 7's
+resolution does not touch the M1/M3 measurement sample, the readout
+pipeline, or the group family this design reuses verbatim (§2.0/§2.4
+below); its one piece of forward relevance to THIS design is
+cross-referenced into §2.2.1 below (the Stage-2 BOS-position build
+flag, §1.30 item 6).
 
 This design's central finding, stated up front because it drives every
 other decision below: **Stage 1's own accumulated evidence — the §1.25
@@ -3412,27 +3630,67 @@ project, all pointing the same direction:
    in (`D_test ≫ D_train`). This is the single most direct reason this
    architecture is disqualified for Stage 2's specific claim, independent
    of anything else below.
-2. **§1.27/§1.29 (in progress, latest box data): convergence gets
-   materially harder as a function of position/length even WITHIN
-   train support.** §1.27 (CA6-M1) found the original `≥0.9` bar at
-   every `L∈{1..8}` "falsified by all 7 existing calibration cells...
-   a length-difficulty gradient, not a convergence criterion." §1.29's
-   coordinator re-pull of the real box data (table reproduced in
-   §2.0's reading list) shows the actual anomaly is more specific and
-   still unexplained: a dip specifically at `L=1` (0.78-0.89 for 6/7
-   cells) with near-perfect recovery at `L=2-4` (0.94-0.999) — and
-   §1.29 explicitly lists **"positional row-0 interaction"** as one of
-   three live candidate mechanisms for that dip, alongside single-token
-   attention degeneracy and an eval-diversity-floor artifact. Whichever
-   of those three turns out to be the cause, the fact that the
-   positional-embedding architecture has an UNRESOLVED, position-linked
-   convergence anomaly even inside its own training range is a second,
-   independent reason to distrust it as the vehicle for a
-   depth-EXTRAPOLATION claim — a claim that needs the in-support regime
-   to be unambiguously solid before any held-out reading means anything
-   (Stage 1's own "train-support convergence must gate before
-   extrapolation is read" discipline, which this design inherits as
-   its own Gate 0, §2.8).
+2. **§1.27/§1.29/§1.30 (RESOLVED, updated Rev 7 cross-reference):
+   convergence gets materially harder as a function of position/length
+   even WITHIN train support, at `L=1` specifically.** §1.27 (CA6-M1)
+   found the original `≥0.9` bar at every `L∈{1..8}` "falsified by all
+   7 existing calibration cells... a length-difficulty gradient, not a
+   convergence criterion." §1.29's coordinator re-pull of the real box
+   data (table reproduced in §2.0's reading list) narrowed the anomaly
+   to a dip specifically at `L=1` (0.78-0.89 for 6/7 cells) with
+   near-perfect recovery at `L=2-4` (0.94-0.999), and listed three live
+   candidate mechanisms: single-token attention degeneracy, positional
+   row-0 interaction, and an eval-diversity-floor artifact. **§1.30's
+   adjudication-round-7 diagnostic (`l1_micro_diag.py`, five
+   independent probes) SETTLED it: the mechanism is H-ENC (single-token
+   attention degeneracy), not positional row-0 interaction** — at `L=1`
+   the `MultiheadAttention` reader's softmax is PROVABLY
+   query-independent (only one key exists; read-vector std across
+   queries measures `0.000e+00` at `L=1` vs `0.41` at `L=2`), the
+   deficit is generator-specific (order-5 depressed, order-3 fine),
+   degauging/eval-protocol is exonerated, trained models sit within
+   `~0.02` of the frozen-downstream ceiling (architectural, not
+   undertrained), and dedicated `L=1` fine-tuning trades away `L≥2`
+   accuracy along a Pareto frontier rather than fixing a starvation
+   deficit. **This still does not rehabilitate the positional-embedding
+   architecture for Stage 2's purposes** — a length-independent,
+   single-token attention-mechanism artifact confined to the shortest
+   possible word is a DIFFERENT, narrower failure than an unresolved
+   position-linked convergence anomaly would have been, but Stage 1
+   patched around it by DEMOTING `L=1` from its own gate (§1.7 gate
+   1(a), Rev 7) rather than fixing the reader itself — the same
+   structural limitation (a query-independent read whenever the encoder
+   sees exactly one token) would recur at ANY depth in a step-wise
+   recurrent composer's own FIRST step if it reused the same reader
+   head unmodified, so it remains a live design consideration here, not
+   a closed one. **§1.30's Stage-2 build flag, cross-referenced
+   verbatim:** *"a learned BOS position restores query-dependent reads
+   at `L=1` — NOT applied mid-campaign (would invalidate 11 trained
+   cells + the preview; hold-axes-fixed)."* Stage 1 deliberately left
+   this fix un-applied to avoid invalidating its own already-trained
+   calibration/escalation cells (the hold-axes-fixed discipline,
+   `CLAUDE.md`). **Registered here as a build-time consideration for
+   `GroupWordDeltaComposer`'s own reader head (§2.2.2 below, which
+   reuses `GroupWordEncoder`'s `row_queries`/reader/`row_norm`/`row_out`
+   UNMODIFIED): if the recurrent composer's first-step read shows the
+   same query-independent degeneracy Stage 1 diagnosed, a learned BOS
+   position (a fixed, always-present extra "position 0" token/row
+   feeding the reader before the first real generator) is the
+   pre-validated candidate fix, not a novel one to invent at that
+   point** — NOT adopted as a build item in this Rev 0 (Stage 2 has no
+   trained cells yet to invalidate, so the usual reason to defer does
+   not apply, but the underlying reader head, §2.2.2, is unbuilt and
+   unmeasured at this design stage; adopting a fix for a not-yet-observed
+   failure mode would be design-by-anticipation, not verification — left
+   for Stage 2's own gate 0/calibration wave, §2.8, to check for and
+   apply if needed, exactly mirroring Stage 1's own calibration-first
+   discipline). This resolution is a second, independent reason to
+   scrutinize (not blanket-distrust) the reader mechanism as part of
+   the vehicle for a depth-EXTRAPOLATION claim — a claim that needs the
+   in-support regime to be unambiguously solid before any held-out
+   reading means anything (Stage 1's own "train-support convergence
+   must gate before extrapolation is read" discipline, which this
+   design inherits as its own Gate 0, §2.8).
 3. **Theoretical (Grazzi et al., verified from the primary source,
    §2.2.3): fixed-depth Transformers are excluded from solving
    non-solvable group word problems AT ALL, at any training budget.**
@@ -4524,5 +4782,90 @@ bars group_task.py:37,47; ambient injection gate1_synthetic_
 injection.py:15-16; per-L reporting + per-group budgets + robustness
 split in run_capability_sep.py) → independent build audit → gate-1(b)
 ambient PASS on production → AUTHORIZE.
+
+---
+
+### 1.31 REV 7 CHANGES — §1.30 finding → resolution map
+
+Every §1.30 BINDING prescription item, mapped to its exact Rev 7
+resolution, per the same finding→resolution-map convention §1.26/§1.28
+used. Scoped strictly to §1.30's six items plus the JOB-2 build-item
+cross-reference; **§1.13-§1.30 are untouched, byte-intact** (verified
+via `git diff` before this commit — every hunk lands inside §1.0-§1.12
+or inside §2, never inside the §1.13-§1.30 span; §2 is a live Stage-2
+design section, not one of the numbered §1.13-§1.30 gauntlet-record
+subsections, so editing it does not violate the byte-intact
+convention — see the commit message).
+
+| §1.30 prescription item | Resolution (Rev 7) | Where |
+|---|---|---|
+| **(1) HARD bar = `≥0.9` at every `L∈{2,3,4,5}`; `L=1` demoted/disclosed w/ registered mechanism note; margin rule: pinned budget must clear by `≥0.02`** | §1.7 gate 1(a) rewritten: "Convergence bar, RE-SCOPED AGAIN (H-ENC fix, Rev 7)" states the narrowed bar and cites the five-probe H-ENC mechanism verbatim (read-vector std `0.000e+00`/`L=1` vs `0.41`/`L=2`, generator-specificity, degauging exoneration, frozen-ceiling proximity, fine-tune Pareto trade); a new "Margin rule (new, Rev 7)" paragraph states and justifies the `≥0.02` clearance requirement. | §1.7 gate 1(a) |
+| **(2) Budget pins: S3=8K (0.9649), S4=20K (0.9796), A5=20K (0.9755), S5=8K (0.9213), A6=40K (0.9633; 20K cleared by only +0.0023 < margin). §1.6: 58 cells ≈2.51 GPU-h raw; ALL LAUNCHABLE** | §1.7 gate 1(a)'s "Box re-verification (Rev 7...)" table reproduces all five values exactly, independently re-derived from the archived escalation-cell JSONs (`experiment-runs/2026-07-09_capability_gate1_round7/`), not copied from the round-7 transcript. §1.6 gains a new "Rev 7 — budget pins finalized" subsection with the per-group cost table; main-sweep total `0.179+0.627+0.627+0.179+0.895=2.506≈2.51` GPU-h, matching §1.30's cited figure via independent re-derivation from the per-cell table (not copied). | §1.6 (new Rev 7 subsection), §1.7 gate 1(a) |
+| **(3) A5/A6 HARD-STOP LIFTED (premise dissolved: diagnosed arm-shared architectural ceiling, not an undiagnosed defect; both clear the re-pinned bar)** | §1.7 gate 1(a) rule (c)'s rewrite explicitly states the lift and its justification ("A5 and A6's Rev-6-era HARD-STOP... is LIFTED — the rule that produced it no longer exists in this form..."); §1.6's Rev 7 subsection states the sweep is "no longer GATE-bound either," superseding Rev 6's "48 of 58 cells blocked" finding. | §1.7 gate 1(a), §1.6 |
+| **(4) Rule (c) recalibrated: ≤2 escalations/group, each PI-visible + priced; second miss → MANDATORY ≤0.1 GPU-h mechanism diagnostic (this round's suite as template) BEFORE any action, w/ routing (instrument→fix; moving-below-ceiling→one capped escalation; ceiling→demote+disclose+Stage-2 flag); HARD-STOP reserved for genuine pathology** | §1.7 gate 1(a)'s "(c) Diagnostic-before-action escalation rule (RECALIBRATED, Rev 7...)" replaces Rev 6's blanket second-miss/HARD-STOP rule verbatim, with the `≤2`-cap, the mandatory `≤0.1` GPU-h diagnostic, the three-way routing table, and HARD-STOP re-scoped to genuine pathology only; applied mechanically to A6's own second-miss case in this same round (routed to "moving-below-ceiling → one capped escalation," 20K→40K) as the worked example. | §1.7 gate 1(a) |
+| **(5) Harvest reports M1 on the full pinned sample (decisional) AND the L≥2 robustness split + per-L profile; L=1 attenuation is arm-shared, differences out of TOST to first order** | §1.5 gains a new M1 bullet, "M1 harvest-reporting disclosure (new, Rev 7)," pinning the dual-report requirement and the arm-shared-attenuation argument for why it does not double-count or dilute the CONFIRM/FALSIFY decision (a shared shift drops out of TOST to first order and preserves Spearman rank order exactly), plus the falsifiability condition (a group-selective divergence between the two readings would itself be evidence against the arm-shared premise). §1.12's new Rev-7 build-item entry (d) pins the corresponding `run_capability_sep.py` harvest-schema field. | §1.5, §1.12 |
+| **(6) Stage-2 build flag: a learned BOS position restores query-dependent reads at L=1 — NOT applied mid-campaign (hold-axes-fixed)** | §2's opening status paragraph updated to note round 7's resolution and point to §2.2.1 below. §2.2.1 item 2 rewritten: the three-candidate-mechanism discussion is resolved to H-ENC (single-token attention degeneracy, not positional row-0 interaction), the BOS-position fix is quoted verbatim from §1.30 and registered as a build-time consideration for `GroupWordDeltaComposer`'s own reader head (§2.2.2, which reuses Stage 1's reader UNMODIFIED) — explicitly NOT adopted as a Rev 0 build item (no trained Stage-2 cells exist yet to invalidate, but the reader is itself unbuilt/unmeasured at this design stage, so pre-adopting a fix for an unobserved failure mode would be anticipation, not verification) — left for Stage 2's own gate 0/calibration wave (§2.8) to check for and apply if the same degeneracy recurs. | §2 (status paragraph), §2.2.1 item 2 |
+
+**Header/status block** (top of doc) bumped to Rev 7 and extended with
+one new sentence covering §1.29's coordinator tiebreak → adjudication
+round 7 (§1.30) → this Rev 7's six-item fold, per the same
+per-revision-append convention every prior Rev used (Rev 1-6 each
+appended one sentence to the same running paragraph; nothing prior in
+that paragraph was reworded).
+
+**Nothing else in §1.0-§1.12 was touched** beyond the rows above — in
+particular §1.1-§1.3 (hypothesis, group family, verified matrices),
+§1.4/§1.4.2 (task, architecture, arms/controls, C5's own definition),
+§1.4.2.1 (marquee TOST), §1.8 (pre-registered analysis), §1.9 (self-
+attack register), §1.10 (scope statement), and §1.11 (sequencing) all
+stand as Rev 6 left them; §1.12 gains only the two additive entries
+described in row (5)/(2) above (the Rev 7 sweep-readiness build-item
+paragraph and the updated QUEUE line), the pre-existing Rev 5 build-item
+list is untouched. **In §2, only the opening status paragraph and
+§2.2.1 item 2 were touched** (rows (6) above) — §2.1, §2.2.2-§2.2.4,
+§2.3-§2.12 all stand as Stage 2 Rev 0 left them; this design's own
+ADOPTED architecture decision (a recurrent composer, no absolute
+positional embedding, §2.2.1-§2.2.4) is UNCHANGED by this cross-
+reference, which is additive registered context, not a reversal.
+
+**A note on scope, stated plainly, mirroring §1.28's own convention.**
+This revision implements §1.30's BINDING prescription's six items
+exactly as specified in the round-7 transcript's summary, cross-checked
+against the raw archived box artifacts
+(`experiment-runs/2026-07-09_capability_gate1_round7/`) rather than
+copied from the summary alone — every numeric claim in the rows above
+(the five per-group margin figures, the `2.51`/`2.506` GPU-h main-sweep
+total, the H-ENC probe values, the `+0.0010`/`+0.0099` plateau deltas)
+was independently re-derived from the archived JSONs during this
+revision and matches the transcript's own cited figures exactly (no
+discrepancy found, unlike §1.27→§1.28's own CA6-M1 tiebreak, which DID
+surface a factual conflict). One residual, flagged rather than
+resolved here: §1.30's own transcript cites the `l1_micro_diag.{py,json,log}`
+md5 as "`e77036e5`/`3716c67c`" (two prefixes for presumably two of the
+three files); the archived, box-verified md5s as of this commit are
+`l1_micro_diag.py=ad3da7a3...`, `l1_micro_diag.json=e77036e5...`
+(matches the first cited prefix exactly), `l1_micro_diag.log=f5d71128...`
+— no currently-present file's md5 matches the second cited prefix
+`3716c67c`. This is most plausibly explained by `l1_micro_diag.py`
+having been re-run/edited after the transcript's own hash was recorded
+but before this archival pull (the file's on-box mtime, 04:38, precedes
+the later escalation-cell mtimes, 04:39-04:42, consistent with at least
+one in-place edit during the round), not a data-integrity concern for
+the CITED NUMBERS themselves (independently re-derived from the JSON
+outputs above, which DO match). Flagged for the next attack round to
+adjudicate whether this warrants concern; not blocking this revision,
+since every load-bearing NUMBER (not the script's own hash) was
+independently reproduced from the archived JSON this revision.
+
+*(End §1 records. Rev 0 → six NEEDS-REVISION/attack rounds → Rev 6
+(§1.28) → §1.29 coordinator tiebreak (Rev 6's read correct; L=1 real
+but budget-responsive) → adjudication round 7 (§1.30: MECHANISM FOUND,
+H-ENC; HARD-STOP LIFTED; bar L∈{2..5}; per-group budget pins; all 58
+cells launchable) → **Rev 7 (this revision, §1.31) folds §1.30's
+six-item BINDING prescription into the live design text, §1.13-§1.30
+byte-intact.** Next: micro-attack on Rev 7's delta → the four
+sweep-readiness production build items (this dispatch's JOB 2) →
+independent build audit → gate-1(b) ambient PASS on production →
+`--sweep` AUTHORIZE.)*
 
 ---
