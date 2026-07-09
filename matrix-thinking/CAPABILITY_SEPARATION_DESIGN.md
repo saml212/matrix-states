@@ -1,18 +1,25 @@
 # CAPABILITY-SEPARATION — group-element-recovery rank/representation-dimension test
 
-## §1 DESIGN — Stage 1 (Rev 2, post-attack-round-2 revision, 2026-07-08) —
+## §1 DESIGN — Stage 1 (Rev 3, post-attack-round-3 revision, 2026-07-08) —
 does a from-scratch matrix-state model recruit subspace-restricted state
 rank equal to a group's minimal faithful real representation dimension
 `d_min(G)`, tracking dimension not solvability?
 
-Status: **Rev 2, pre-attack (round 3 pending), zero GPU spent.** Rev 0
+Status: **Rev 3, pre-attack (round 4 pending), zero GPU spent.** Rev 0
 (§1.1-§1.12) was attacked (§1.13: NEEDS-REVISION — 1 FATAL-as-written + 3
 MAJOR + 2 minor); every finding was resolved by Rev 1 (mapped in §1.14).
 Rev 1 was attacked again (§1.15: NEEDS-REVISION — 2 MAJOR + 5 minor,
-narrow scope, all cheap); every finding is resolved by this Rev 2 (mapped
+narrow scope, all cheap); every finding is resolved by Rev 2 (mapped
 in §1.16), including an EXECUTED A5 generator-class verification
 (CA2-M1) that confirms Rev 1's existing numbers were already computed
-from the class-correct generator — no recalibration required. This design
+from the class-correct generator — no recalibration required. Rev 2 was
+attacked a third time (§1.17: NEEDS-REVISION, narrow — 1 MAJOR + 5 minor);
+every finding is resolved by this Rev 3 (mapped in §1.18), the headline
+fix being an EXECUTED power simulation (CA3-M1) that unconditionally
+bumps the marquee S4/A5 comparison to n=5 seeds and replaces bare
+CI-overlap with a pre-registered TOST equivalence test — verified to
+clear a 70% power bar against a real 1.0-rank-unit gap across the entire
+reconstructed noise grid, no further escalation required. This design
 came through the full waterfall (brainstorm →
 research → attack → validation, `STATE.md` "CAPABILITY CAMPAIGN"); the
 hypothesis, group family, readout (Option A), controls, budget, and
@@ -378,6 +385,17 @@ S5       120     4                 12       21     25.05        9  PASS
 A6       360     5                 15       25     28.12       10  PASS
 ```
 
+**Non-integer bar clarifying note (CA3-m5 fix, Rev 3).** STEP 2's "bar
+(count)" column above shows the RAW fractional threshold
+(`frac × |G|`, e.g. S3's `0.80×6=4.8`) — since a realized coverage draw
+is always an integer count of distinct group elements, the check
+actually compares against `⌈frac × |G|⌉` (the ceiling), not the raw
+fractional value shown in the table. §1.4's bar table already reports
+the correct integer thresholds (S3 `≥5`, S4 `≥17`, A5 `≥27`, S5 `≥30`,
+A6 `≥36` — each the ceiling of its STEP-2 row above, e.g.
+`⌈4.8⌉=5`, `⌈16.8⌉=17`); this note exists solely to prevent a reader from
+treating STEP 2's raw fractional column as the operative pass/fail cutoff.
+
 **Deviation from the naive "80% for S3/S4/A5" default, disclosed
 explicitly.** The recommended family-consistent starting point (≥80% of
 `|G|` for the three smaller groups) does NOT survive execution for S4
@@ -444,6 +462,23 @@ parenthetical guess at the two classes' trace values (`φ-1` vs `-φ`) as
 rep matrices, and use either an explicit A5-isomorphism or a
 cycle-structure/character comparison — not a repeat of the same
 unverified-guess mistake one level down.
+
+**The correct mechanism, settled by attack round 3 (§1.17's "A5
+mathematical story"), is the JOINT GENERATING PAIR, not conjugacy class in
+isolation.** Round 3 checked, by brute force over all `120` `τ∈S5`
+(A5's outer automorphism group `Out(A5)=Z/2` acts by conjugation by an odd
+permutation), whether any automorphism maps the generating PAIR
+`{g5,g3}` to `{g5²,g3}`: every `τ` with `τg5τ⁻¹=g5²` does exist (the
+5A/5B swap is real) but **NONE of those same `τ` also fixes `g3` up to
+inversion** — so no automorphism carries one generating pair to the other.
+The empirical coverage difference (33.79 vs 31.76 mean, above) is
+therefore a genuine **pair-level Cayley-graph difference** (the two
+generating pairs produce non-isomorphic Cayley graphs with different
+mixing statistics), not merely "wrong conjugacy class" read in isolation
+— the isomorphism check below verifies the right thing (the actual
+generator-matched pair used by the random-walk sampler), and this
+framing sentence names the mechanism precisely rather than leaving
+"class" as a loose stand-in for "pair."
 
 **Method — explicit generator-matched group isomorphism, exhaustively
 checked, not a trusted character-table lookup.** `verify_a5_generator_class()`
@@ -619,7 +654,12 @@ see below).** Reuses `matrix-thinking/chapter2/model_v4.py`'s
 `BindingEncoder` (`d`, `h`, `n_layers`, `n_heads`, `n_refine`
 constructor signature, `nn.TransformerEncoder` + learned `row_queries` +
 `MultiheadAttention` reader + `row_norm` + `row_out` — same class,
-same forward pattern) and `MatrixMemoryModel.encode`'s
+same core module stack, EXTENDED by the three deltas below, not an
+unmodified forward pass — CA3-m5 fix, Rev 3: "same forward pattern" (Rev
+2's wording) overstated the reuse, since delta (1) inserts a new
+positional-embedding addition before the encoder and delta (2) replaces
+the input embedding entirely, both changing what the forward pass
+actually computes) and `MatrixMemoryModel.encode`'s
 `force_rank_k`-via-`rank_utils.truncate_to_rank` path (§1.5 below), with
 **one architectural delta, required because group composition is
 non-abelian and Task D's `BindingEncoder` is otherwise permutation-
@@ -677,8 +717,9 @@ independent design choices stacked on top of it.
   for a benefit that does not apply here: padding's usual motivation is
   packing MULTIPLE distinct sequence lengths into the SAME batch for
   throughput; this design's `L` range is small (`1..16`) and its
-  step-budget cost is already dominated by the 50-cell sweep structure
-  (§1.6), not by batch-packing efficiency. **Consequence, stated
+  step-budget cost is already dominated by the 58-cell sweep structure
+  (§1.4.2, Rev 3's cell count; §1.6), not by batch-packing efficiency.
+  **Consequence, stated
   explicitly:** per-batch `L`-homogeneity is a real deviation from
   literal i.i.d.-per-sample `L` sampling — but it is BENIGN for this
   task specifically, because episodes are i.i.d. GIVEN `L` (the word's
@@ -688,7 +729,15 @@ independent design choices stacked on top of it.
   batch still draws its shared `L` from the same pinned distribution, so
   across the full training run each `L` value is sampled proportionally
   often — only the WITHIN-batch correlation changes, not the marginal
-  distribution any single episode experiences). **Smoke item added (build
+  distribution any single episode experiences). **Loss-scale note (CA3-m4
+  fix, Rev 3 — round 3 adjudicated SAFE, disclosed here in one sentence
+  rather than left implicit):** per-batch-fixed-`L` introduces no
+  loss-scale variation across batches of different `L`, because the
+  training loss (§1.4 below, Task D's cosine-loss primitive) is a SINGLE
+  scalar cosine distance per episode, averaged over the batch — there is
+  no per-token or per-position accumulation term whose magnitude would
+  grow with `L`, unlike e.g. a summed per-step cross-entropy loss would.
+  **Smoke item added (build
   gate, §1.7 gate 7's blank-out/pre-training smoke list):** batches at
   `L=1` and `L=16` (the distribution's two extremes) both forward AND
   backward cleanly through `GroupWordEncoder` before any training cell
@@ -776,24 +825,45 @@ verbatim reuse):
    has teeth, now applied to the real pipeline's exact split ratio).
    **Draw cadence, pinned (CA2-m1 fix, Rev 2 — Rev 1 left "how often is
    this `N=50` sample redrawn" unstated).** **Fresh-per-cell** — every
-   sweep cell (50 cells total, §1.4.2/§1.6) draws its OWN `N=50` held-out
+   sweep cell (58 cells total post-Rev-3, §1.4.2/§1.6) draws its OWN
+   `N=50` held-out
    sample from that cell's own seeded RNG stream, the same
    `rd_episode_seed`-style per-cell seeding this design already pins for
    train/eval word disjointness (§1.4), NOT one shared `N=50` sample reused
-   across all 10 cells/group — following Task D's own `seed+10_000`
+   across all cells in a group (10 for S3/S5/A6, 14 for S4/A5 post-CA3-M1(a))
+   — following Task D's own `seed+10_000`
    precedent (a fixed per-purpose offset from the cell's base seed) rather
    than inventing a new convention. **Consequence, computed exactly (not
    asserted):** attack round 2's own executed false-block-rate figures
    (§1.15 — independently reproduced at `N=400,000`/group, 20× this
    design's own Monte Carlo scale) give a PER-CELL coverage-check false
    -block exposure of **≈2.75%** (the per-group rates — S3≈0%, S4≈0.068%,
-   A5≈0.075%, S5≈0.135%, A6≈0.002% — summed across the 10 cells/group
-   structure, the operative fresh-per-cell exposure over the full 50-cell
-   sweep) — small enough that a single false block is an expected,
+   A5≈0.075%, S5≈0.135%, A6≈0.002% — summed across the ORIGINAL
+   10-cells/group structure, the operative fresh-per-cell exposure over
+   the full pre-Rev-3 50-cell
+   sweep — the Rev-3 post-bump figure is derived just below) — small
+   enough that a single false block is an expected,
    planned-for event at this sweep size, not a design flaw, PROVIDED it is
-   handled by an explicit retry, not silently ignored. **Retry-once rule
+   handled by an explicit retry, not silently ignored. **Post-retry
+   exposure, stated precisely (CA3-m2 fix, Rev 3 — round 3 found "far
+   below the ≈2.75%" too vague for a two-consecutive-miss event).** The
+   probability of a group failing BOTH independent draws (retry-once rule
+   below) is `p_g²` per group; summed over the 10-cells/group structure
+   the ≈2.75% figure's own denominator uses:
+   `Σ_g 10·p_g² = 10·(0² + 0.00068² + 0.00075² + 0.00135² + 0.00002²)
+   ≈ 2.85×10⁻⁵` — **S5-dominated** (`10·0.00135²≈1.82×10⁻⁵` is ~64% of the
+   total, since S5 has both the largest single-draw rate and the biggest
+   group order among the family). **Consistency note with §1.4.2's Rev-3
+   cell-count bump (CA3-M1, below):** the `10` multiplier above is the
+   PRE-Rev-3 uniform per-group cell count this ≈2.85×10⁻⁵ figure was
+   computed against; after S4/A5 bump to 14 cells/group (§1.4.2), the
+   Rev-3-consistent figure is `10·p_S3²+14·p_S4²+14·p_A5²+10·p_S5²+10·p_A6²
+   ≈ 3.26×10⁻⁵` — still S5-dominated, still five orders of magnitude below
+   1, i.e. still an expected-never-to-fire event at this sweep size, not a
+   design flaw. **Retry-once rule
    (CA2-m1 fix, Rev 2, symmetric with the existing fit-set redraw guard
-   below):** if a cell's `N=50` coverage check fails, resample the eval set
+   below; itemized as its own build item, CA3-m1 fix, Rev 3, §1.12):** if a
+   cell's `N=50` coverage check fails, resample the eval set
    ONCE with a shifted seed (the same cell seed `+ 1`), log the retry
    (cell id, both seeds, both realized coverage counts) to the run's
    output, and fail HARD on a second consecutive miss (two independent
@@ -821,7 +891,40 @@ verbatim reuse):
    and — generically — as few as **~2** well-chosen (non-commuting)
    sampled elements already intersect their individual centralizers down
    to that same scalar-only limit, pinning `Q` up to the scale already
-   handled separately by `c_hat` (§1.3.2 step 1). **The floor's actual
+   handled separately by `c_hat` (§1.3.2 step 1). **EXECUTED, not merely
+   asserted (CA3-m3 fix, Rev 3 — round 3 found this claim stated but never
+   run against the actual pinned generators).**
+   `coverage_calibration.py::verify_centralizer_dims` computes, for EACH
+   of the five groups, the null-space dimension of
+   `X ↦ (g₁·X − X·g₁, g₂·X − X·g₂)` over `d_min(G)×d_min(G)` real
+   matrices, where `(g₁,g₂)` are the SAME 2 generators pinned in this
+   design's own generating-set table (§1.4) — not generic/sampled
+   elements — via the stacked-Kronecker/SVD method (`vec(g·X−X·g) =
+   (I⊗g − gᵀ⊗I)·vec(X)`, same convention `fit_orthogonal_intertwiner`
+   already uses, §1.3.2). **Executed output (verbatim, this session):**
+
+   ```
+   ========================================================================================
+   CA3-m3 -- centralizer-dimension check on the 2 PINNED generators per group
+   ========================================================================================
+   Group   dim  null_dim   smallest_sv     next_sv       gap
+   ---------------------------------------------------------
+   S3        2         1      1.90e-16      1.7321    1.7321  PASS
+   S4        3         1      4.89e-16      1.0000    1.0000  PASS
+   A5        3         1      1.01e-16      1.1386    1.1386  PASS
+   S5        4         1      2.62e-16      0.6126    0.6126  PASS
+   A6        5         1      2.95e-16      0.6773    0.6773  PASS
+   ```
+
+   All five groups: null space dimension exactly `1` (spanned by the
+   identity, i.e. scalar matrices only), with a well-separated
+   smallest-vs-next-smallest singular-value gap (0.61-1.73, vs the
+   near-machine-epsilon smallest sv ~1e-16) — a genuine isolated null
+   space, not a numerically ambiguous near-tie. **The 2 pinned generators
+   alone (before any additional fit-set elements are even drawn) already
+   pin `Q` to scale, for all five groups, EXECUTED.** §1.4.1's "~2 generic
+   elements suffice" claim is confirmed on the actual pinned pair, not
+   just on the theoretical "generic element" argument. **The floor's actual
    SIZE is therefore a noise-margin choice, not an equation-counting
    requirement** — `3·d_min(G)` is anchored empirically to §1.3.2's own
    toy verification ratio (14 fit elements for a `d=3` group under
@@ -901,17 +1004,28 @@ attack round 1 wants more resolution; not added by default to keep Stage
 
 **Seed allocation (C3-analog, ≥3 seeds minimum per the validation
 verdict, economized by cell type — justified below, not a uniform-3
-default):**
+default). CA3-M1(a) fix, Rev 3 — S4 and A5 get an UNCONDITIONAL bump to
+5 seeds (default, not contingent on the general escalation trigger below)
+at the two cell types that carry the marquee dissociation claim
+(unconstrained and `k=d_min`), because attack round 3's power simulation
+(§1.4.2.1 below, executed) found the general n=3 escalation trigger
+structurally unable to fire in the marquee's own dangerous regime (both
+groups independently clearing their own within-group bars while
+differing FROM EACH OTHER is not "ambiguous" by either group's own CI —
+it is a genuine two-sample comparison the general trigger was never
+built to catch). S3/S5/A6 are unaffected (unconditional n=3 remains
+correct for them — they are not part of the marquee comparison):**
 
-| Cell type | Seeds | Justification |
-|---|---|---|
-| Unconstrained (M1/M2) | 3 | Needs clean statistics for the family-wide Spearman ρ (§1.5) — the headline recruitment claim. |
-| Force-rank `k = d_min(G)` | 3 | The critical boundary point — this is where the "step at `k=K±1`" claim lives; needs full precision. |
-| Force-rank `k = d_min(G)−1` | 2 | Expected to show a CLEAR near-chance signal (below the definitional minimum, no faithful representation exists at all) — a flanking/sanity cell, not a close call, mirrors `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.6's own quarter-budget-stress-point economization pattern (applied here via seed count, not step-budget, since step-budget is already the primary lever being kept short, §1.6). |
-| Force-rank `k = d_min(G)+1` | 2 | Same reasoning: expected to clear ceiling clearly, a sufficiency check, not the primary boundary. |
+| Cell type | S3 / S5 / A6 seeds | S4 / A5 seeds (CA3-M1(a)) | Justification |
+|---|---|---|---|
+| Unconstrained (M1/M2) | 3 | **5 (unconditional)** | Needs clean statistics for the family-wide Spearman ρ (§1.5) — the headline recruitment claim. S4/A5 additionally carry the marquee's M1 restricted-rank TOST comparison (§1.5), which the power simulation below requires n=5 to clear its pre-registered power bar. |
+| Force-rank `k = d_min(G)` | 3 | **5 (unconditional)** | The critical boundary point — this is where the "step at `k=K±1`" claim lives; needs full precision. S4/A5 additionally carry the marquee's step-location comparison at this exact grid point. |
+| Force-rank `k = d_min(G)−1` | 2 | 2 (unchanged) | Expected to show a CLEAR near-chance signal (below the definitional minimum, no faithful representation exists at all) — a flanking/sanity cell, not a close call, mirrors `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.6's own quarter-budget-stress-point economization pattern (applied here via seed count, not step-budget, since step-budget is already the primary lever being kept short, §1.6). Not part of the marquee comparison (§1.5's marquee check is scoped to the unconstrained arm's restricted rank and the `k=d_min` step, not the flanking cells) — no bump needed. |
+| Force-rank `k = d_min(G)+1` | 2 | 2 (unchanged) | Same reasoning: expected to clear ceiling clearly, a sufficiency check, not the primary boundary; not part of the marquee comparison. |
 
-**Pre-registered escalation-to-5 trigger (per the validation verdict):**
-if any cell type's within-family Spearman ρ or M3 step-margin (§1.5) is
+**Pre-registered escalation-to-5 trigger (per the validation verdict,
+GENERAL case — S3/S5/A6, and S4/A5's own flanking cells):** if any cell
+type's within-family Spearman ρ or M3 step-margin (§1.5) is
 AMBIGUOUS (CI straddles the pre-registered bar), extend THAT cell type to
 5 seeds before drawing a conclusion — mirrors
 `REASONING_LINK_DESIGN.md` §16.19/§16.20's n=3→n=12 precedent and
@@ -919,9 +1033,26 @@ AMBIGUOUS (CI straddles the pre-registered bar), extend THAT cell type to
 (gated the same way: variance-ratio check before pooling old/new
 cohorts, `var_ratio > 4.0` → flag, don't silently pool).
 
-**Cell count per group:** 3 (unconstrained) + 3 (`k=d_min`) + 2
-(`k=d_min−1`) + 2 (`k=d_min+1`) = **10 cells/group**. Five groups: **50
-cells total** (§1.6).
+**Marquee-specific escalation trigger (CA3-M1(d) fix, Rev 3 — a
+`§1.4.2`-style trigger scoped to the marquee comparison itself, not the
+general per-cell-type trigger above, since the marquee's TOST test can be
+independently ambiguous even when neither group's own M1/M3 CI is).** If
+the S4-vs-A5 TOST equivalence test (§1.5) returns NEITHER "declare
+equivalence" NOR "reject equivalence" (i.e. the two one-sided tests split
+— one rejects, one does not, the standard TOST INCONCLUSIVE outcome),
+extend BOTH S4 and A5's unconstrained and `k=d_min` cells to **n=7**
+before drawing a conclusion (the power simulation, §1.4.2.1 below, shows
+n=7 measurably improves the equivalence-declaration side without
+changing the already-saturated dissociation-detection power) — gated by
+the same variance-ratio check (`var_ratio > 4.0` → flag, don't silently
+pool) as the general trigger, applied to the pooled n=5→n=7 cohort.
+
+**Cell count per group.** S3/S5/A6 unchanged: 3 (unconstrained) + 3
+(`k=d_min`) + 2 (`k=d_min−1`) + 2 (`k=d_min+1`) = **10 cells/group**.
+S4/A5 (CA3-M1(a) bump): 5 (unconstrained) + 5 (`k=d_min`) + 2
+(`k=d_min−1`) + 2 (`k=d_min+1`) = **14 cells/group**. Five groups:
+`10+14+14+10+10` = **58 cells total** (was 50 pre-Rev-3; §1.6 derives the
+exact cost delta below).
 
 **Controls (C-analogs, Task D §5's exact numbering scheme, restated for
 this task):**
@@ -948,6 +1079,125 @@ this task):**
   control (Option B/`learned-embedding` case, likewise deferred per the
   validation verdict) is registered as a Stage-1b/Stage-2 follow-on, not
   run here. Flagged again in §1.9 (self-attack item 6).
+
+#### 1.4.2.1 CA3-M1(b)/(c) — the marquee TOST equivalence test, procedure and EXECUTED power simulation
+
+**Why TOST, not bare CI-overlap (CA3-M1(b), replacing §1.5's old
+"overlapping CIs" marquee check).** Attack round 3 found bare CI-overlap
+at `n=3` badly underpowered for the marquee's actual job (disconfirming
+"S4/A5 land together" when they genuinely don't) — CI-overlap is not a
+real hypothesis test, it is a crude heuristic with no controlled error
+rate, and a "no significant difference" reading from two wide, non-
+overlapping-by-little CIs is not evidence FOR equivalence, only an
+absence of evidence against it. **Two One-Sided Tests (TOST) is the
+standard fix**: it directly tests the pre-registered claim ("the true
+gap is small enough to call the same") against an explicit margin,
+rather than testing the uninteresting null ("the true gap is exactly
+zero").
+
+**Equivalence margin, pinned: `±0.5` rank-units.** Justification: half
+the unit spacing of the `d_min(G)` ladder (`[2,3,3,4,5]`, adjacent-rung
+spacing `=1`) — a true S4/A5 gap smaller than half a rung is
+scientifically compatible with "both track dimension 3" (it cannot be
+confused with either group actually sitting at a DIFFERENT rung of the
+ladder), while a gap at or beyond a full rung-spacing would not be.
+
+**Test procedure, pinned exactly: Welch's unpaired TOST (two one-sided
+Welch t-tests, Satterthwaite-approximated degrees of freedom), NOT
+paired-per-seed.** S4 and A5 share literal seed-index labels by this
+project's convention (§1.7 gate 1's "seed=0" example) and IDENTICAL
+architecture dimensions (`d_state=5`, `|S_G|=4` for both, since both have
+`d_min=3`) — so an S4-seed-`k` and an A5-seed-`k` run share bit-identical
+INITIAL weights under the same `torch.manual_seed(k)`. But S4 and A5
+train on entirely DIFFERENT data (distinct Cayley graphs / generating
+sets, different mixing statistics, §1.3.4), and assuming that
+shared-init correlation survives 8,000 steps of divergent-data training,
+without evidence, would be exactly the kind of unverified assumption
+this gauntlet exists to catch. Welch's unpaired test is the conservative
+default that does not require this assumption; if a future build-time
+audit of real checkpoints shows detectable init-correlation surviving
+training (not assumed here), a paired analysis is available as a
+non-load-bearing robustness cross-check, not the primary decision
+procedure.
+
+**Applied to:** (1) M1's restricted effective rank (unconstrained arm,
+`n=5` per group after CA3-M1(a)) — the primary, continuous, rank-unit
+metric the `±0.5` margin is scaled to. (2) M3's step location is, by
+construction, the SAME shared grid point (`k=3`) for both groups (both
+`d_min=3`) — so the marquee's "step locations... indistinguishable"
+clause (§1.5) is satisfied when EACH group independently clears its own
+M3 CONFIRM criterion at that grid point (near-chance at `k=2`, `≥0.9×`
+ceiling at `k=3`); this is already checked per-group and does not need a
+second continuous equivalence test on top of (1).
+
+**EXECUTED power simulation (CA3-M1(c), not asserted).** Script
+(repo-committed): `matrix-thinking/capability_separation/
+marquee_power_simulation.py` (numpy+scipy, deterministic
+`RNG_SEED=20260711`). The original attack-round-3 simulation script is
+not repo-committed (attack rounds are ephemeral agents); this
+INDEPENDENTLY RE-DERIVES a comparable simulation from round 3's own
+reported description (§1.17) — a plausible per-seed noise grid for the
+restricted-rank metric, bracketing the M1 CONFIRM band's width
+(`[0.7,1.3]×d_min`, i.e. `±0.9` rank-units around `d_min=3`) on its
+tighter side, and validated by reproducing round 3's own reported n=3
+bare-CI-overlap miss-rate ranges (a qualitative match, not a byte-exact
+reproduction, since the original script is unavailable):
+
+```
+SANITY CHECK -- bare CI-overlap 'missed' rate at n=3 (ORIGINAL pre-Rev-3 method,
+reconstructed noise grid). Target (attack round 3, S1.17): 0.5-gap missed 71-97%,
+1.0-gap missed 11-80%.
+====================================================================================================
+  sigma    gap=0.5 missed    gap=1.0 missed
+-------------------------------------------
+   0.15             70.9%             11.0%
+   0.20             85.3%             35.6%
+   0.25             91.4%             56.7%
+   0.30             94.5%             70.9%
+   0.35             96.0%             79.6%
+
+Reconstructed grid spans: 0.5-gap missed 70.9-96.0% (target 71-97%); 1.0-gap missed 11.0-79.6% (target 11-80%).
+Qualitative match confirmed -- grid adopted for the production table below.
+```
+
+**Production table (the Rev-3-adopted design: `n=5`, Welch TOST,
+margin=`±0.5`):**
+
+```
+PRODUCTION -- Welch TOST at n=5, margin=+-0.5 rank-units  [Rev-3 ADOPTED design]
+====================================================================================================
+  sigma    P(declare equiv | gap=0)   P(reject equiv | gap=0.5)   P(reject equiv | gap=1.0)
+-------------------------------------------------------------------------------------------
+   0.15                       99.8%                       95.3%                      100.0%
+   0.20                       94.2%                       95.4%                      100.0%
+   0.25                       76.4%                       95.3%                      100.0%
+   0.30                       53.2%                       95.4%                      100.0%
+   0.35                       33.1%                       95.8%                      100.0%
+
+Minimum P(correctly reject equivalence | gap=1.0) across the grid: 100.0%  (CLEARS the pre-registered 70% bar)
+```
+
+**Reading the table.** `P(reject equiv | gap=0.5)` (the margin boundary)
+sits near the nominal `95%` level across the whole grid, as TOST's own
+construction predicts (this column confirms correct test SIZE, not a
+power figure per se). `P(reject equiv | gap=1.0)` — the real power
+figure CA3-M1(c) requires — is **100% across the entire reconstructed
+noise grid**, comfortably clearing the pre-registered 70% bar; **no
+escalation to `n=7` is required on this axis.** `P(declare equiv |
+gap=0)` is noise-sensitive (`~100%` at the low end of the grid down to
+`~33%` at the high end) — **flagged, not papered over**: at the noisy
+end of the plausible grid, TOST's conservative construction means the
+marquee comparison may render INCONCLUSIVE (triggering the CA3-M1(d)
+`n=7` escalation above) even when the true story is "both track
+dimension 3," rather than falsely confirming or falsely denying
+dimension-tracking — a safe failure mode (conservative, not
+misleading), but a real, disclosed possibility this design does not
+eliminate. An `n=7` comparison row (same script, `run_production_table`)
+shows this column measurably improves at `n=7` (`60.8%` at the noisiest
+grid point vs `33.1%` at `n=5`) — the basis for the CA3-M1(d) escalation
+trigger above, not adopted as the default because the pre-registered
+70%-power bar is scoped to the dissociation-detection direction, which
+`n=5` already saturates.
 
 ---
 
@@ -1006,9 +1256,12 @@ across the 5-group family).
 **M2 — post-hoc rank-`k` truncation curve** (unconstrained checkpoint,
 `k=1..d_state`, τ=0.9).
 - Knee `k*` = smallest `k` with `acc(k) ≥ 0.9·acc(k=d_state)`.
-- CONFIRM: `k* ∈ [d_min(G)−1, d_min(G)+1]` in ≥4/5... (n=3 minimum here,
-  so: in ≥2/3 seeds, escalating to 5-seed's ≥4/5 bar only if the
-  escalation trigger fires, §1.4.2).
+- CONFIRM (CA3-m5 fix, Rev 3 — reworded, was a stray sentence fragment):
+  `k* ∈ [d_min(G)−1, d_min(G)+1]` in ≥2/3 seeds at S3/S5/A6's default
+  `n=3` (escalating to the ≥4/5 bar only if the general escalation
+  trigger fires for that group, §1.4.2), OR in ≥4/5 seeds directly at
+  S4/A5's unconditional `n=5` (CA3-M1(a), Rev 3, §1.4.2 — no trigger
+  needed, the larger seed count is the default for these two groups).
 
 **M3 — train-time force-rank-`k` (PRIMARY causal test)** — the force-rank
 grid arm.
@@ -1021,11 +1274,22 @@ grid arm.
   degauging/embedding leak first (§1.9 item 1); if real, this task family
   is rank-blind in the way Task D's premise would have been.
 
-**Marquee dissociation check (S4 vs A5, both `d_min=3`):** the two
-groups' M1 restricted-rank values and M3 step locations must be
-statistically indistinguishable (overlapping CIs) from each other — this
-IS the CONFIRM condition's "land together, not apart" clause, made a
-concrete, checkable comparison, not just prose.
+**Marquee dissociation check (S4 vs A5, both `d_min=3`) — CA3-M1(b)/(d)
+fix, Rev 3: bare CI-overlap REPLACED with a pre-registered TOST
+equivalence test.** The two groups' M1 restricted-rank values (`n=5`
+each, CA3-M1(a)) must PASS a Welch TOST equivalence test against a
+`±0.5` rank-unit margin (§1.4.2.1 — full procedure, justification, and
+the EXECUTED power simulation confirming this design clears a 70% power
+bar against a real 1.0-unit gap) — i.e. TOST must declare equivalence,
+not merely "CIs happen to overlap." M3's step locations are checked via
+each group's own independent M3 CONFIRM criterion at the shared grid
+point `k=3` (§1.4.2.1) — both groups must independently CONFIRM there.
+If TOST returns neither "declare" nor "reject" (an INCONCLUSIVE split
+between the two one-sided tests), the CA3-M1(d) marquee-specific
+escalation trigger (§1.4.2) extends both groups to `n=7` before a
+verdict is drawn. This IS the CONFIRM condition's "land together, not
+apart" clause, made a concrete, checkable, EXECUTED-power comparison,
+not just prose.
 
 **Overall Stage-1 verdict:** CONFIRM if M1 CONFIRM AND M3 CONFIRM (M2
 corroborating) AND the marquee check passes. FALSIFY if M3 HARD FALSIFY OR
@@ -1088,29 +1352,43 @@ costing the first-look budget separately from contingency).
 
 | Item | Cells / basis | GPU-h |
 |---|---|---|
-| Main sweep (50 cells × 0.3 GPU-h) | 5 groups × 10 cells/group (§1.4.2) | 15.0 |
-| Calibration-first wave (§1.7 gate 1) — 5 cells (1/group, unconstrained, seed=0), **reused within the 50 sweep cells above, not double-charged** | 5 cells | 0.0 (already counted) |
+| Main sweep (58 cells × 0.3 GPU-h) — CA3-M1(a) fix, Rev 3: was 50 cells/15.0 GPU-h; S4/A5 bump to 14 cells/group (§1.4.2) | 5 groups: 10+14+14+10+10=58 cells/group (§1.4.2) | 17.4 |
+| Calibration-first wave (§1.7 gate 1) — 5 cells (1/group, unconstrained, seed=0), **reused within the 58 sweep cells above, not double-charged** | 5 cells | 0.0 (already counted) |
 | Degauging-pipeline validation on a REAL trained checkpoint (§1.7 gate 1) | CPU-only, numpy | ≈0.0 |
-| Contingency margin — 2-2.5× escalation rule firing on 1-2 cells | ~2 cells re-run at 2.25× | 1.35 |
+| Contingency margin — 2-2.5× escalation rule firing on 1-2 cells (unchanged from Rev 2: this margin covers "1-2 cells" needing a longer step budget, a rate-of-occurrence assumption independent of total cell count, not proportional to the 50→58 bump) | ~2 cells re-run at 2.25× | 1.35 |
 | **β∈[0,2] fla positive-control smoke** (§1.4.3 below) — forward/backward/grad-check (~0.05) + one reproduced DeltaProduct Fig.5 point on a minimal S4/A5 instance, `L≤4`, `n_h∈{1,2}` (~0.85) | nominal | **0.90** |
 | Group-construction + generator-closure smoke (§1.3, §1.4) — CPU-only, numpy | — | ≈0.0 |
-| MATCH/verification overhead (blank-out test, query-coverage check, injectivity-guard negative test) — CPU-only | — | ≈0.0 |
-| **Raw total** | | **≈17.25 GPU-h** |
+| MATCH/verification overhead (blank-out test, query-coverage check, injectivity-guard negative test, marquee power simulation) — CPU-only | — | ≈0.0 |
+| **Raw total** | | **≈19.65 GPU-h** |
 
 **CA1-M2 fix, Rev 1 — cost ceiling reconciled.** Rev 0's stated raw total
 ("≈17.4-18.3 GPU-h") carried ~1 GPU-h with no itemized source above the
 itemized rows' own sum (§1.13 CA1-M2). Fixed by itemizing the previously-
 vague `<1.0` β-smoke row to a specific **0.90 GPU-h** (forward/backward/
 grad-check plus the actual Fig.5-reproduction training run, not a nominal
-upper bound) — the raw total now equals the itemized sum exactly:
+upper bound) — the Rev-1/Rev-2 raw total equaled the itemized sum exactly:
 `15.0 + 1.35 + 0.90 = 17.25` GPU-h, no unaccounted margin.
+
+**CA3-M1(a) fix, Rev 3 — cost delta from the marquee seed bump, DERIVED
+exactly (not copied from the attack's own estimate).** The main-sweep row
+alone changes: `58 cells × 0.3 GPU-h/cell = 17.4` GPU-h (was `50×0.3=15.0`),
+a delta of exactly **`+2.4` GPU-h** on that row. The contingency and
+β-smoke rows are unchanged (both are rate-of-occurrence estimates over
+"1-2 cells" / a fixed nominal smoke, not row totals that scale with the
+sweep's cell count). New raw total: `17.4 + 1.35 + 0.90 = 19.65` GPU-h —
+exactly `19.65 − 17.25 = +2.4` GPU-h over the Rev-2 raw total, confirming
+attack round 3's own `~2.4 GPU-h` estimate (§1.17, CA3-M1) via independent
+derivation from the cell table rather than by copying it.
 
 **Stage-1 dedicated ledger: 30 GPU-h cap, PI-visible, does NOT draw the
 frozen-bias ledger** (per the validation verdict's explicit instruction —
 this campaign is budgeted separately from the head-to-head demo's 135
-GPU-h program ceiling). Raw ≈17.25 GPU-h leaves **≈42.5% margin**
-(`(30−17.25)/30`) under the 30 GPU-h cap (CA1-M2 fix, Rev 1 — a single
-reconciled figure, not Rev 0's own unreconciled "≈40-42%" range) — comfortably
+GPU-h program ceiling). Raw ≈19.65 GPU-h (Rev 3, was ≈17.25 GPU-h pre-Rev-3)
+leaves **≈34.5% margin** (`(30−19.65)/30`) under the 30 GPU-h cap (Rev 3
+recomputation of CA1-M2's reconciled-figure convention — the marquee
+seed bump's `+2.4` GPU-h costs `8.0` percentage points of margin, `42.5%
+→ 34.5%`, landing inside the pre-bump `12.75` GPU-h margin exactly as
+attack round 3 anticipated, §1.17) — comfortably
 wider than `HEAD_TO_HEAD_DEMO_DESIGN.md`'s
 own razor-thin margins (≈1-2%), appropriate for a first-look Stage-1
 gate at this much smaller scale (`d_state≤7` vs the head-to-head's 14M+
@@ -1121,13 +1399,14 @@ param models).
 `HEAD_TO_HEAD_DEMO_DESIGN.md`'s convention).** That design's 10× bracket
 exists because ITS cells are large (0.25 GPU-h/cell at 14M params,
 scaling to 28 GPU-h/cell at 392M) and a runaway sweep could plausibly
-consume the WHOLE shared 135 GPU-h ceiling; a literal `10×17.25≈172.5 GPU-h`
-bracket here would be nonsensical overkill relative to this campaign's
+consume the WHOLE shared 135 GPU-h ceiling; a literal `10×19.65≈196.5 GPU-h`
+bracket here (Rev 3's raw total; was `10×17.25≈172.5 GPU-h` pre-Rev-3)
+would be nonsensical overkill relative to this campaign's
 own explicitly-stated 30 GPU-h cap. **This design's circuit breaker
 instead mechanically enforces the 30 GPU-h dedicated cap directly**, via
 the same timing-pilot-based abort machinery precedent
 (`phase2b_off_cache.py --time-pilot`, §1.7 gate 2): if the calibration
-cell's measured real rate projects the 50-cell sweep to exceed 30 GPU-h
+cell's measured real rate projects the 58-cell sweep to exceed 30 GPU-h
 (incl. the pre-registered contingency margin), the chain hard-aborts
 before spending it, and this design's cell/seed grid gets re-scoped
 before relaunch, not silently over-spent.
@@ -1195,11 +1474,12 @@ Reused verbatim from this program's own precedent (Task D/E,
    the validation verdict explicitly requires this to happen on the
    calibration cell, not deferred; (d) measures the REAL per-cell
    wall-clock rate, superseding §1.6's planning-estimate rate for the
-   remaining 45-cell sweep's own go/no-go.
+   remaining 53-cell sweep's own go/no-go (Rev 3: `58−5=53`, was `45`
+   pre-Rev-3's 50-cell total).
 2. **Timing pilot, mechanical enforced abort.** One real cell per group
    measured for wall-clock (folds into gate 1 above, since the
    calibration cells ARE one real cell per group); if the projected
-   50-cell sweep cost exceeds the 30 GPU-h dedicated cap (§1.6), the
+   58-cell sweep cost exceeds the 30 GPU-h dedicated cap (§1.6), the
    chain hard-aborts before spending it.
 3. **Enforced aborts with negative tests.** The injectivity-style guard
    this task needs is simpler than Task E's (`_assert_injective`'s
@@ -1463,6 +1743,15 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
   `matrix-thinking/capability_separation/spearman_null_calibration.py`
   (repo-committed, numpy-free stdlib only, exact enumeration, no RNG —
   §1.3.3/§1.5's M1 p-values reproduce on re-run).
+- **CA3-M1(c) fix's own executed verification (Rev 3):**
+  `matrix-thinking/capability_separation/marquee_power_simulation.py`
+  (repo-committed, numpy+scipy, deterministic `RNG_SEED=20260711` —
+  §1.4.2.1's bare-CI sanity check and the `n=5`/`n=7` TOST power tables
+  both reproduce on re-run).
+- **CA3-m3 fix's own executed verification (Rev 3):**
+  `matrix-thinking/capability_separation/coverage_calibration.py`'s
+  `verify_centralizer_dims` (same file/RNG as the CA1-F1/CA1-M3 entry
+  above — §1.4.1's centralizer-dimension table reproduces on re-run).
 - **Reused architecture:** `matrix-thinking/chapter2/model_v4.py`
   (`BindingEncoder`, `MatrixMemoryModel.encode`/`.unbind` pattern —
   `.unbind` itself NOT reused, no query mechanism in this task, §1.4).
@@ -1498,17 +1787,26 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
   the `L=1`/`L=16` forward+backward smoke item, §1.4); the block-diagonal
   `rho_G` embedding; the β∈[0,2] `fla` smoke harness; **the 30 GPU-h
   hard-abort enforcement wrapper** (§1.6's circuit breaker — projects the
-  50-cell sweep's cost from the calibration cell's real per-cell rate and
+  58-cell sweep's cost from the calibration cell's real per-cell rate and
   mechanically hard-aborts before exceeding the dedicated cap; CA1-m2
   fix, Rev 1 — Rev 0 designed this mechanism in §1.6 but never itemized
-  it in this build list).
+  it in this build list); **the retry-once coverage-check orchestration**
+  (CA3-m1 fix, Rev 3 — §1.4.1 step 4 pins the mechanism (resample the
+  `N=50` eval set ONCE with `cell_seed+1` on a coverage-bar miss, log
+  both draws, fail hard on a second consecutive miss) and the
+  eval-set-diversity-floor variant that uses the SAME retry-once
+  machinery (§1.4.1 step 4's `eval_set_diversity_check` floor), but
+  neither was itemized as its own build item before this revision — both
+  require the production eval harness, which does not exist until build,
+  §1.11; treat as a real, load-bearing build-time obligation, not
+  settled evidence, the same standing caveat §1.14/§1.16 already applied
+  to the synthetic-injection acceptance test and the batching scheme).
 
 ---
 
-**QUEUE (STATE.md, appended per this design's commit):** Design Rev 2
-committed (this commit, CA2-m5 fix — Rev 1's footer was stale, still
-reading "Rev 0 committed → attack round 1 next" after two revisions and
-two attack rounds had already landed) → attack round 3 next.
+**QUEUE (STATE.md, appended per this design's commit):** Design Rev 3
+committed (this commit, following the CA2-m5-established convention of
+updating this footer every revision) → attack round 4 next.
 
 ---
 
@@ -1784,6 +2082,55 @@ assertion); gate-5 closure; footer; byte-integrity of all records.
 
 ---
 
+### 1.18 REV 3 CHANGES — finding → resolution map
+
+Every §1.17 finding, mapped to its exact Rev 3 resolution. Narrow scope
+per the dispatch instruction — nothing below relitigates material §1.13/
+§1.15 already verified clean; each row points at new or rewritten design
+text (or a new/extended, executed, repo-committed script), not a
+footnote.
+
+| Finding | Resolution (Rev 3) | Where |
+|---|---|---|
+| **CA3-M1** (MAJOR) — the marquee S4-vs-A5 dissociation check underpowered at `n=3` with no dedicated escalation trigger; simulated a REAL 0.5-unit gap missed 71-97% of the time, a 1.0-unit gap missed 11-80% | (a) UNCONDITIONAL bump to `n=5` for S4/A5's unconstrained and `k=d_min` cells (default, not contingent) — cell count `10→14`/group for S4/A5, `50→58` total, DERIVED cost delta `+2.4` GPU-h (`15.0→17.4` main-sweep row), new raw total `≈19.65` GPU-h, new margin `≈34.5%` (was `≈42.5%`), independently confirming attack round 3's own `~2.4` GPU-h estimate. (b) Bare CI-overlap REPLACED with a pre-registered Welch TOST equivalence test, margin `±0.5` rank-units (half the `d_min` ladder's unit spacing), justified as unpaired (S4/A5 share init-seed labels but train on entirely different data — pairing would require an unverified surviving-correlation assumption). (c) EXECUTED power simulation (`marquee_power_simulation.py`, new script) over a reconstructed noise grid (validated against round 3's own reported n=3 miss-rate ranges): `n=5`+TOST clears **100%** power against a real 1.0-unit gap across the entire grid (≫ the 70% bar) — no escalation to `n=7` required on the power-of-interest axis; the equivalence-DECLARATION side (`gap=0`) is noise-sensitive (`~100%→~33%` across the grid) and flagged, not papered over. (d) A marquee-specific `n=7` escalation trigger added for the case TOST itself returns INCONCLUSIVE (§1.4.2), distinct from the general per-cell-type trigger; §1.5's CONFIRM/marquee text rewritten to reference the TOST procedure directly. | §1.4.2, §1.4.2.1 (new), §1.5, §1.6 |
+| **CA3-m1** (minor) — the retry-once coverage-check orchestration (+ the eval-diversity-floor variant reusing it) not itemized as its own build item | Added to §1.12's "New, not yet built" list, flagged as a real, load-bearing build-time obligation per the same standing convention §1.14/§1.16 already applied to the synthetic-injection test and the batching scheme. | §1.12 |
+| **CA3-m2** (minor) — post-retry exposure stated only as "far below ≈2.75%," not precise | Stated exactly: `Σ_g 10·p_g² ≈ 2.85×10⁻⁵`, S5-dominated (`~64%` of the total) — plus a disclosed Rev-3-consistency note giving the post-cell-bump figure (`≈3.26×10⁻⁵` using 14 for S4/A5), still S5-dominated, still negligible. | §1.4.1 step 4 |
+| **CA3-m3** (minor) — the "~2 generic elements suffice" centralizer claim asserted, never executed against the actual pinned generators | New `coverage_calibration.py::verify_centralizer_dims` (+ `_get_real_generator_pairs`, `_centralizer_null_dim`) computes the null-space dimension of the 2-pinned-generator commutator map for all 5 groups via stacked-Kronecker/SVD; EXECUTED output pasted (all 5 groups: null_dim=1, well-separated singular-value gaps 0.61-1.73 vs ~1e-16). §1.4.1's text updated from asserted to executed. | §1.4.1 step 4, `coverage_calibration.py` |
+| **CA3-m4** (minor) — no explicit note that per-batch-L doesn't introduce loss-scale variation | One-sentence note added: the training loss is a single scalar cosine distance per episode (no per-token/per-position accumulation), so no loss-scale term grows with `L`. | §1.4 |
+| **CA3-m5** (minor) — "same forward pattern" overstatement; non-integer STEP-2 bar column unclarified; §1.5 M2's stray sentence fragment | "Same forward pattern" corrected to "same core module stack, EXTENDED by the three deltas" with the specific reason (new positional-embedding addition + replaced input embedding both change the actual forward computation). Non-integer-bar clarifying note added (STEP 2's raw fractional column vs. the operative integer `⌈·⌉` threshold already used in §1.4's table). M2's CONFIRM criterion reworded into one clean sentence, threading through S4/A5's new `n=5` default alongside S3/S5/A6's `n=3`. | §1.4, §1.3.3, §1.5 |
+| **A5 wording item** (§1.17's own list, folded into Rev 3) — name the joint-generating-pair mechanism in the §1.3.4 framing sentence | New paragraph added: no automorphism of A5 maps `{g5,g3}` to `{g5²,g3}` (verified by round 3 over all 120 `τ∈S5`) — the correct mechanism is the pair-level Cayley-graph difference, not conjugacy class read in isolation; the isomorphism check itself was already verifying the right thing. | §1.3.4 |
+
+**Nothing from §1.17's "Verified clean this round" list was touched** —
+the A5 isomorphism check, per-batch-fixed-L's loss-scale adjudication
+(now additionally given its own one-sentence note per CA3-m4, not
+reversed), the retry-once + n_eval floor re-run, the Schur rewording,
+gate-5 closure, the footer, and byte-integrity of §1.13/§1.14/§1.15/
+§1.16/§1.17 all stand as attack round 3 verified them, unmodified in
+Rev 3 (verified via `git diff` before this commit — see the commit
+message).
+
+**What this revision could not fully close (flagged, not papered
+over):** the equivalence-DECLARATION side of the marquee TOST test
+(`P(declare equivalence | gap=0)`) is genuinely noise-sensitive at
+`n=5` — from `~100%` at the low end of the reconstructed noise grid down
+to `~33%` at the high end (§1.4.2.1) — meaning that if the REAL
+per-checkpoint restricted-rank noise lands toward the high end of this
+design's plausible range, the marquee comparison may render
+INCONCLUSIVE (triggering the CA3-M1(d) `n=7` escalation) even when the
+true underlying story is "S4 and A5 genuinely track dimension together."
+This is a safe (conservative, not misleading) failure mode, not a
+correctness bug, but it is NOT eliminated by this revision — an
+attack-round-4 agent should treat gate 1's calibration cells as the
+first real opportunity to measure the ACTUAL per-checkpoint noise level
+and confirm which end of the grid this design's real runs land on,
+rather than assuming the favorable end. The retry-once orchestration
+(CA3-m1) and the centralizer check's integration into a future
+production eval harness (CA3-m3) remain pinned-but-unexecuted-in-
+production for the same reason CA1-M3/CA2-M2 flagged before them: the
+production harness does not exist until build (§1.11).
+
+---
+
 *(End §1 records. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 (§1.16) →
-§1.17 NEEDS-REVISION (CA3-M1 marquee power; 5 minors). Rev 3 in
-progress.)*
+§1.17 → Rev 3 (§1.18). Rev 3 resolves CA3-M1 (marquee power, EXECUTED)
++ 5 minors + the A5 wording item. Attack round 4 next.)*

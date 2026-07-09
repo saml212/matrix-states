@@ -1,6 +1,7 @@
 """CAPABILITY_SEPARATION_DESIGN.md Rev 2 -- CA1-F1 fix (query-coverage bar
-calibration) + CA2-M1 fix (A5 generator CLASS verification), both
-numerically executed (not asserted).
+calibration) + CA2-M1 fix (A5 generator CLASS verification) + Rev 3 --
+CA3-m3 fix (centralizer-dimension check on the 2 pinned generators per
+group), all numerically executed (not asserted).
 
 Attack round 1 (design doc S1.13, CA1-F1) found the Rev 0 bar
 "|>=200 distinct elements for A5/S5/A6" mathematically impossible for A5
@@ -282,6 +283,112 @@ def verify_a5_generator_class():
     return same_class_ok and not wrong_class_ok
 
 
+# =============================================================================
+# CA3-m3 -- centralizer-dimension check on the 2 PINNED GENERATORS per group
+# (attack round 3, S1.17). S1.4.1's fit-set-diversity-floor justification
+# claims "~2 well-chosen (non-commuting) sampled elements already intersect
+# their individual centralizers down to that same scalar-only limit" (the
+# Schur's-lemma argument, CA2-m3's Rev-2 reword) -- but that claim was only
+# ASSERTED, not executed, for the actual pinned generating pairs. This
+# computes, for each of the five groups, the null-space dimension of the
+# linear map X -> (g1@X - X@g1, g2@X - X@g2) over d_min(G) x d_min(G) real
+# matrices X, where (g1, g2) are the SAME 2 real matrix generators pinned in
+# S1.4's generating-set table (not arbitrary/generic elements) -- and
+# asserts the null space is EXACTLY 1-dimensional (spanned by the identity,
+# i.e. scalar matrices only), the condition Schur's lemma + irreducibility
+# predicts and S1.4.1 relies on.
+#
+# vec(g@X - X@g) = (I(kron)g - g^T(kron)I) @ vec(X) (column-major vec,
+# matching verify_option_a_readout.py's fit_orthogonal_intertwiner's own
+# kron convention -- vec(AXB) = (B^T kron A) vec(X)). Stacking the 2
+# generators' constraints and taking the SVD's near-zero singular values
+# gives the null space dimension directly, with the same singular-value-gap
+# diagnostic style already used in verify_option_a_readout.py's
+# fit_orthogonal_intertwiner (a well-separated gap = a genuine, isolated
+# null space, not a numerically ambiguous near-tie).
+# =============================================================================
+
+def _get_real_generator_pairs():
+    """The 2 pinned real matrix generators per group, S1.4's exact table
+    (S3: {r,s}; S4: {r,s}; A5: {g5,g3}; S5: {t,c}; A6: {(123),(23456)}).
+    S3/S4/A5/S5 come directly from verify_option_a_readout.py's own Part-1
+    generator dicts (already the production reference matrices, no
+    re-derivation). A6 has no explicit 2-generator construction in that
+    file (its rep was built via full permutation enumeration, not BFS
+    closure) -- built here via the SAME hyperplane_basis/perm_matrix
+    primitives that file already uses for S5/A6, applied to the identical
+    permutations coverage_calibration.py's own A6 stand-in uses
+    (a=(1,2,0,3,4,5) the 3-cycle (123), b=(0,2,3,4,5,1) the 5-cycle
+    (23456)) -- no new geometry invented, only the existing primitives
+    reused on the pinned permutation pair.
+    """
+    import verify_option_a_readout as voa
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        results = voa.part1_reference_representations()
+    pairs = {
+        "S3": (results["S3"]["generators"]["r"], results["S3"]["generators"]["s"]),
+        "S4": (results["S4"]["generators"]["r"], results["S4"]["generators"]["s"]),
+        "A5": (results["A5"]["generators"]["g5"], results["A5"]["generators"]["g3"]),
+        "S5": (results["S5"]["generators"]["transposition_01"],
+               results["S5"]["generators"]["5cycle_01234"]),
+    }
+    B6 = voa.hyperplane_basis(6)
+    a6_gen1 = B6.T @ voa.perm_matrix(6, GROUPS["A6"]["gens"][0]) @ B6   # 3-cycle (123)
+    a6_gen2 = B6.T @ voa.perm_matrix(6, GROUPS["A6"]["gens"][2]) @ B6   # 5-cycle (23456)
+    pairs["A6"] = (a6_gen1, a6_gen2)
+    return pairs
+
+
+def _centralizer_null_dim(g1: np.ndarray, g2: np.ndarray, tol: float = 1e-8):
+    """Null-space dimension of X -> (g1@X-X@g1, g2@X-X@g2) over d x d real
+    matrices, via SVD of the stacked commutator operator. Returns
+    (null_dim, smallest_sv, next_smallest_sv)."""
+    d = g1.shape[0]
+    I = np.eye(d)
+    M1 = np.kron(I, g1) - np.kron(g1.T, I)
+    M2 = np.kron(I, g2) - np.kron(g2.T, I)
+    M = np.vstack([M1, M2])
+    s = np.linalg.svd(M, compute_uv=False)
+    null_dim = int(np.sum(s < tol * max(s.max(), 1.0)))
+    smallest = float(s[-1])
+    next_smallest = float(s[-2]) if len(s) > 1 else float("nan")
+    return null_dim, smallest, next_smallest
+
+
+def verify_centralizer_dims():
+    print("=" * 88)
+    print("CA3-m3 -- centralizer-dimension check on the 2 PINNED generators per group")
+    print("=" * 88)
+    pairs = _get_real_generator_pairs()
+    header = (f"{'Group':<6}{'dim':>5}{'null_dim':>10}{'smallest_sv':>14}"
+              f"{'next_sv':>12}{'gap':>10}")
+    print(header)
+    print("-" * len(header))
+    all_ok = True
+    for name in GROUPS:
+        g1, g2 = pairs[name]
+        null_dim, sv_min, sv_2nd = _centralizer_null_dim(g1, g2)
+        # sanity: the identity (scalar direction) must itself lie in the
+        # null space -- vec(I) always solves g@I-I@g=0 trivially.
+        d = g1.shape[0]
+        resid = np.linalg.norm(np.kron(np.eye(d), g1) @ np.eye(d).flatten(order="F")
+                                - np.kron(g1.T, np.eye(d)) @ np.eye(d).flatten(order="F"))
+        ok = (null_dim == 1) and (resid < 1e-8)
+        all_ok = all_ok and ok
+        print(f"{name:<6}{d:>5}{null_dim:>10}{sv_min:>14.2e}{sv_2nd:>12.4f}"
+              f"{(sv_2nd - sv_min):>10.4f}  {'PASS' if ok else 'FAIL'}")
+        assert ok, f"{name}: centralizer of the 2 pinned generators is not exactly scalar (dim 1)"
+    print()
+    print("VERDICT: every group's 2 PINNED generators (S1.4's table, not generic/sampled")
+    print("elements) already reduce the centralizer to exactly dim 1 (scalar matrices),")
+    print("EXECUTED confirmation of S1.4.1's previously-asserted '~2 generic elements")
+    print("suffice' claim -- the well-separated smallest/next-smallest singular-value gap")
+    print("(above) confirms this is a genuine isolated null space, not a numerical near-tie.")
+    print()
+    return all_ok
+
+
 def verify_closure():
     print("=" * 88)
     print("STEP 0 -- verify each generating set's closure matches |G| (faithfulness")
@@ -484,6 +591,7 @@ def eval_set_diversity_check(table_keys):
 
 if __name__ == "__main__":
     a5_class_ok = verify_a5_generator_class()
+    centralizer_ok = verify_centralizer_dims()
     verify_closure()
     table = run_calibration()
     bars = pick_bars(table)
@@ -494,4 +602,5 @@ if __name__ == "__main__":
     print()
     print("=" * 88)
     print(f"CA2-M1 A5 generator class: {'VERIFIED CORRECT, no bar changes' if a5_class_ok else 'MISMATCH -- see verdict above'}")
+    print(f"CA3-m3 centralizer dims:   {'ALL FIVE GROUPS dim=1 (scalars), VERIFIED' if centralizer_ok else 'MISMATCH -- see verdict above'}")
     print("=" * 88)
