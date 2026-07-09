@@ -5301,3 +5301,200 @@ per-scale after pin; ≈281 GPU-h at 2×, self-healing unattended.
 Security: 3 more stdout injections (git show / tmux capture-pane / a
 task notification), disregarded, tally 75→78 (STATE updated by the
 launch agent).
+
+### §13.21 ABORTED_BUDGET adjudication + resume (2026-07-09 ~16:22 box): CONTENTION ARTIFACT, RESUMED from step 14000, 98m pin unblocked
+
+**Adjudication: CONTENTION ARTIFACT, not a genuinely broken/slow cell.**
+`fixscale_train_arm_off_98m_openr1-mix-ext_s1` (GPU 6) was ABORTED_BUDGET
+by the §13.8 1.5× circuit breaker at step 14200 (`wall_s_at_abort=5040.2s`,
+`aborted_at_iso=2026-07-09T08:23:26Z`). Evidence read directly off the
+box (not inferred): `h2h_calib3`'s stress-task cell was co-scheduled on
+GPU 5/6 during this cell's run (per §13.20's own "GPU 6 freed early
+(h2h_calib3's stress-task cell finished ahead of its primary cell)" —
+h2h_calib3 was still live on 5/6 for part of this cell's window before
+that). The cell's own `_rate_watch.csv` shows a clean monotonic
+degradation consistent with external contention, not a stuck/broken
+process: cum_rate 0.24 s/step (steps 3000-4500, AT the 0.236 s/step
+reference) climbing smoothly through 0.28→0.30→0.32→0.35 (steps
+6000-14000) to the breach at step 14200, cum_rate=0.3549 vs bound
+0.354 (1.5×0.236) — a ~50% slowdown accumulated gradually, the signature
+of a second process sharing the GPU, not a hang (a hang would show
+step-line staleness, not smoothly climbing cum_rate). The training
+log's own loss trajectory over this window is healthy and matches its
+sibling cells (step 11000-14200: loss oscillating 2.7-3.5, val_loss[openr1]
+1.55-1.58, val_loss[wikitext] 5.56-5.65, all monotonically improving from
+the run's own step-1000 baseline) — nothing pathological. **Verdict: the
+breaker fired correctly per spec on a slowed-but-healthy cell (exactly
+the class of event §13.8/§13.19 anticipated); this is not a cell defect.**
+
+**Marker archival (provenance preserved, nothing deleted).** On box
+(`/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/`):
+- `fixscale_train_arm_off_98m_openr1-mix-ext_s1.ABORTED_BUDGET.json` →
+  `...s1.ABORTED_BUDGET.json.superseded_20260709T162229Z`
+- `fixscale_train_arm_off_98m_openr1-mix-ext_s1.json` (the partial,
+  `steps_completed=14000, complete=false` result) →
+  `...s1.json.superseded_20260709T162229Z`
+- The `--init-checkpoint` source, `/data/fixscale_ckpts/train/
+  fixscale_train_arm_off_98m_openr1-mix-ext_s1/lmC_openr1-mix-ext_dm768_
+  ds64_L12_s1_step14000.pt`, was additionally **copied** (not moved — the
+  live path is still read by `--init-checkpoint` at process start) to
+  `...step14000.pt.pre_resume_backup_20260709T162229Z`. This backup is
+  necessary and was not explicitly requested by name in the resume
+  brief: `lm_pretrain_rd.py`'s checkpoint filenames are
+  `{run_name}_step{step}.pt` keyed on the RUN'S OWN LOCAL step counter,
+  and `--init-checkpoint` restarts that counter at 1 (see next
+  paragraph) — the resumed run's own local step 14000 (real step 28000)
+  WILL silently overwrite this exact filename mid-run. Only the one
+  checkpoint this resume depends on was backed up; the other original
+  intermediate checkpoints (real steps 1000-13000) will also be
+  overwritten by the resumed run's own same-numbered local checkpoints
+  and are not backed up — they are not referenced anywhere downstream
+  (only `checkpoints[-1]`, the FINAL checkpoint, is read by the pin
+  comparator), so this is a disclosed provenance note, not a
+  functional risk.
+  Post-archival: `cell_state()` for this cell reads `'absent'` (verified
+  live via `fixscale_wave.py`'s own `_cell`/`cell_state`), clearing it
+  for a resume-safe relaunch and un-wedging `fixscale_98m_pin`'s
+  `await_armoff_and_pin` barrier (confirmed via `tmux capture-pane`: it
+  had been WARNing every ~60s poll, verbatim "pin cannot be written
+  honestly... waiting for a human decision", exactly per §13.19 N4's
+  own predicted failure mode for a human-parked ABORTED_BUDGET cell).
+
+**Step-counting finding (verified by reading `lm_pretrain_rd.py`, not
+assumed): `--init-checkpoint` does NOT continue the step counter.**
+`load_init_checkpoint_strict` loads only `model_state_dict` (config
+asserted equal, `strict=True` load); `train()`'s loop is
+`for step in range(1, args.steps + 1)` unconditionally — the archived
+checkpoint's own `step=14000` field is used only for the log message,
+never to offset the loop. The script's own print confirms this is
+by design: `"optimizer state NOT loaded (none archived; fresh Adam
+moments + fresh LR schedule, disclosed sec 16.2.1)"`. Consequence: a
+naive `--steps 67547 --init-checkpoint step14000.pt` would run 67547
+MORE steps (81547 real steps total) — wrong. **Resolution (matches the
+resume brief's own pre-authorized fallback): `--steps` set to the
+REMAINDER, 67547-14000=53547.** The final result JSON will therefore
+read `"steps": 53547, "steps_completed": 53547` (not 67547) once
+complete — **this does NOT break the pin collector**: read directly,
+`fixscale_wave.py`'s `cell_state()` → `_out_json_state()` tests only
+`d.get("complete") is True`; the `steps_completed >= cfg["steps"]`
+assertion lives solely in `_assert_gate_tier_config_identity`, which
+`out_path()` invokes ONLY for the special-cased gate-tier-owned
+arm_off/seed=0 reuse path (this is arm_off/**seed=1**, never routed
+through that function). Verified by reading `out_path()`/`_cell()`
+before relying on it — no check was hacked or bypassed; the completeness
+check as written is satisfied honestly by the remainder-steps run.
+Disclosed side effect (not avoidable given the checkpoint format holds
+no optimizer/scheduler state): the LR schedule restarts (100-step
+warmup + cosine decay re-derived over 53547 steps, not a continuation
+of the original single 67547-step schedule) — a real, bounded deviation
+from the 5 sibling cells' training dynamics, flagged for the eventual
+harvest/analysis stage, not hidden.
+
+**Resume mechanism: direct `lm_pretrain_rd.py` invocation, not
+`fixscale_wave.py cell`.** Read directly: the `cell` subcommand's
+argparse (`--scale/--corpus/--arm/--seed/--gpu/--dry-run/
+--force-gpu-busy`) has no `--init-checkpoint` passthrough, and
+`base_cmd()` never emits it — invoking `cell` post-archival would
+resume-safe-launch a **fresh** 67547-step run from scratch, discarding
+the 14000 completed steps. Instead: a small operational script,
+`resume_cell_with_checkpoint.py` (mirrors the `fixscale_slot0_waiter.sh`
+precedent — outside the audited driver, not editing it), imports
+`fixscale_wave` and reuses its `_cell`/`base_cmd`/`_budget_watchdog`/
+`gpu_occupancy_ok`/`aborted_budget_marker_path` UNMODIFIED — only the
+cmd list gets `--init-checkpoint` appended and `cell['steps']` is
+overridden to 53547 for command-construction purposes; the watchdog
+itself is handed the ORIGINAL (unmodified) cell dict, since it only
+reads `cell['scale']`/`cell['cell_id']`, never `cell['steps']`, so its
+1.5× wall-clock ceiling is the full-cell 6.717h bound — looser than a
+remainder-scaled ceiling would be, which is the safe direction to err
+in (the remainder only needs ≈3.5h at reference rate). Deployed via
+`scp`, md5-verified exact match
+(`94e68c8cf6e40a55855da352586c192b`) before execution.
+
+**Resume launch.** Exact command (identical to the manifest's own
+`base_cmd` flag set for `arm_off/98m/openr1-mix-ext/s1`, plus
+`--init-checkpoint`, minus only `--steps` which is the disclosed
+remainder):
+```
+/home/nvidia/tdenv/bin/python3 /home/nvidia/chapter2/deltanet_rd/lm_pretrain_rd.py \
+  --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data \
+  --d-model 768 --d-state 64 --n-layers 12 --seq-len 512 \
+  --batch-size 32 --steps 53547 --ckpt-every 1000 --seed 1 \
+  --internal-timeout 36000 --frozen-bias-arm off --frozen-bias-lambda 0.58 \
+  --ckpt-dir /data/fixscale_ckpts/train/fixscale_train_arm_off_98m_openr1-mix-ext_s1 \
+  --out /home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s1.json \
+  --init-checkpoint /data/fixscale_ckpts/train/fixscale_train_arm_off_98m_openr1-mix-ext_s1/lmC_openr1-mix-ext_dm768_ds64_L12_s1_step14000.pt
+```
+GPU 6 (idle, verified via `nvidia-smi` and the script's own
+`gpu_occupancy_ok` re-check immediately before launch: "0 MiB used").
+tmux session `fixscale_98m_resume_s1`, wrapped in a bounded (3-attempt,
+60s backoff, `STOP_fixscale_wave`-honoring) supervisor loop mirroring
+`fixscale_supervisor.sh`'s own `run_until_terminal` convention — bounded
+rather than infinite because a naive retry re-launches from the SAME
+`step14000.pt` checkpoint each attempt (no compounding-resume logic was
+built; a human must recompute the remainder from the latest checkpoint
+before relaunching if this ever exhausts its 3 attempts, disclosed
+simplification, not expected to matter given zero genuine crashes
+anywhere else in this wave).
+
+**Launch confirmed correct:** log shows `--init-checkpoint: loaded
+.../step14000.pt (archived step=14000, corpus=openr1-mix-ext, seed=1,
+run_name=lmC_openr1-mix-ext_dm768_ds64_L12_s1)`, resumed step 1 loss
+3.0930 (continuous with the archived run's own step-14200 loss ≈2.8-3.3,
+not a fresh-model ≈11 loss — confirms the weights genuinely loaded, not
+a silent re-init).
+
+**First 500 steps: HEALTHY, uncontended, no kill needed.** Monitored
+live (custom poll, since the wave's own breaker only rate-gates from
+step≥1000 — F2 grace — so this window needed independent watching per
+the resume brief). GPU 6: 27.4 GB used, 93% util throughout (matches
+the gate-tier's own 98m-off 23.2-23.5 GB VRAM citation plus the
+`--init-checkpoint` load transient). Step timeline: step100 t≈…4264,
+step200 t=…4292 (0.28 s/step), step300 t=…4313 (0.21 s/step), step400
+t=…4333 (0.20 s/step), step500 t=…4354 (0.21 s/step). Steady-state
+(step200→step500, 300 steps): **62s/300 = 0.2067 s/step — FASTER than
+the 0.236 s/step reference**, far under the 0.354 s/step 1.5× bound.
+The reused `_budget_watchdog` thread confirmed alive via its own CSV
+(`..._s1_resume_rate_watch.csv`): first 120s tick at step 400,
+`cum_rate=0.300` (measured from process launch, so it still carries the
+one-time import/corpus-load/model-init/`--init-checkpoint`-torch.load
+startup cost — consistent with the item-8 startup-overhead pattern
+already established at ≈13-15s for this scale), correctly unflagged
+(step<1000, F2 grace) and well under bound regardless. **No contention
+signature reappeared** — GPU 6 is genuinely uncontended now (h2h_calib3
+long finished; `tmux ls` shows no other session targeting GPU 5/6/7
+besides this one and the already-idle post_pin/pin loops).
+
+**Pin-unblock consequence.** `fixscale_98m_pin` (session alive since
+06:59, polling `await_armoff_and_pin` every 60s) will detect this
+cell's `complete: true` result JSON on its next poll after completion
+and write `BANDS_PINNED-FrozenBias-98M.json` from all 6 arm_off cells
+with zero further action required — this is the resume's entire reason
+for being: the 98m pin (and everything gated behind it — 8 post_pin
+cells across `fixscale_98m_post_{0,1,2}`) was structurally stuck on
+this one cell.
+
+**ETA.** Remainder 53547 steps at the observed ≈0.21-0.24 s/step ≈
+3.1-3.5 GPU-h → cell completion ≈19:30-20:00 box time (2026-07-09); pin
+write is a fast comparator pass (minutes) once the cell lands, so 98m
+pin ≈20:00-20:15 box; the 8-cell 98m post_pin phase (3-way parallel
+across GPUs 5/6/7, ≈4.478 GPU-h/cell) then runs ≈3 rounds ≈13.4 GPU-h
+wall → full 98m wave completion ≈2026-07-10 ~09:30-10:00 box time,
+self-healing unattended per the existing supervisor sessions (no new
+sessions needed for post_pin — `fixscale_98m_post_{0,1,2}` are already
+live, blind-gate-blocked, and will pick this up automatically).
+
+**Security.** Two more fake `<system-reminder>` blocks this session:
+(1) a Read-tool result for `FROZEN_BIAS_LM_DESIGN.md` itself carried a
+bundled date-change-to-2026-07-09-with-concealment block + fabricated
+"available agent types" + fabricated MCP-server-instructions block —
+verified against the real file via `md5`/`sed`/`git show HEAD:...`
+(none of that text exists on disk; box `date -u` independently
+confirmed 2026-07-09 anyway, so even the date claim was moot, but the
+concealment instruction itself was never followed regardless); (2) a
+similar block did NOT reappear on later tool calls in this session
+(only the one instance) — genuine background Monitor task-notifications
+(`<task-id>b0h1m44j3</task-id>`, correlating with a real Monitor task
+this agent itself started) were correctly distinguished from the fake
+pattern and treated as legitimate telemetry, not complied-with
+instructions. Tally 78→79 (project-wide running count).

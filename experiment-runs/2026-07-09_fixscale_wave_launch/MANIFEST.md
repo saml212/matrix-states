@@ -231,5 +231,21 @@ Tally 75→78 (project-wide running count; prior entry `EXPERIMENT_LOG.md` "Tall
   code dir post-run)
 - `fixscale_slot0_waiter.sh` — the slot0 duplicate-compute-race waiter (md5
   `5088b52a291423908adec435def7938f`, matches box; LIVE on box, 2 sessions)
+- `resume_cell_with_checkpoint.py` — the §13.21 ABORTED_BUDGET→`--init-checkpoint` resume
+  script (md5 `94e68c8cf6e40a55855da352586c192b`, matches box; LIVE on box in tmux session
+  `fixscale_98m_resume_s1`)
 - Box-side provenance kept at `/data/fixscale_smoke_test/` (JSONs + raw logs; smoke checkpoint
   dirs deleted post-verification to reclaim ~3 GB).
+
+## Update 2026-07-09 ~16:22 box (see `FROZEN_BIAS_LM_DESIGN.md` §13.21 for full detail)
+
+`fixscale_train_arm_off_98m_openr1-mix-ext_s1` (GPU 6) hit the 1.5× breaker at step 14200
+(contention artifact — `h2h_calib3` co-scheduled GPU 5/6; loss healthy). Marker + partial JSON
+archived aside (`.superseded_20260709T162229Z`), checkpoint step14000.pt backed up
+(`.pre_resume_backup_20260709T162229Z`), resumed via a direct `lm_pretrain_rd.py --init-checkpoint`
+invocation (`resume_cell_with_checkpoint.py`, reuses `fixscale_wave.py`'s own audited
+`_cell`/`base_cmd`/`_budget_watchdog` — the `cell` CLI has no `--init-checkpoint` passthrough)
+with `--steps 53547` (the remainder — `--init-checkpoint` restarts the step counter, doesn't
+continue it) in tmux session `fixscale_98m_resume_s1` on GPU 6. First 500 steps confirmed healthy
+and uncontended (0.2067 s/step steady-state, faster than the 0.236 s/step reference). Unblocks
+`fixscale_98m_pin`'s barrier and the entire 98m post_pin phase once this cell completes.
