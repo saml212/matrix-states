@@ -4474,3 +4474,55 @@ finding to Task D/E and Stage 1 either way, per this program's standing
 *(End §2 Rev 0. Design proceeds in parallel with Stage 1's own
 in-progress gauntlet per the PI's 2026-07-09 saturation directive;
 launch stays gated on §1.11/§2.8 item 1. Attack round next.)*
+
+---
+
+### 1.30 ADJUDICATION ROUND 7 VERDICT (2026-07-09): MECHANISM FOUND — encoder degeneracy at L=1; HARD-STOP LIFTED; bar L∈{2..5}; per-group budget pins; all 58 cells launchable post-Rev-7
+
+Recorded per the gauntlet-bookkeeping hard rule. Diagnostic artifacts
+on box (l1_micro_diag.{py,json,log} md5 e77036e5/3716c67c; 4
+escalation cells; total 0.30 GPU-h vs 0.4 authorized).
+
+**MECHANISM (H-ENC, proven five ways):** the gate metric is the DIRECT
+cosine (degauging never applied — P0); the deficit is generator-
+specific (order-5 generators depressed 0.74-0.86, order-3 fine — P1);
+degauging/eval-protocol EXONERATED (Δ≤0.0008 — P2); at L=1 the reader
+attention is PROVABLY query-independent (softmax over one key;
+read-vector std across queries = 0.000e+00 vs 0.41 at L=2 —
+group_word_encoder.py:96-103 — P3); trained models sit within ~0.02 of
+the frozen-downstream ceiling for order-5 generators (P4); dedicated
+L=1 fine-tuning destroys L≥2 (Pareto ceiling, not starvation — P5).
+**§1.29's budget extrapolation FALSIFIED at 40K: A5 +0.0010, A6
++0.0099 per +20K steps — plateau.** S4@20K CLEARS even L∈{1..5}
+(0.9284) — the ceiling is group-dependent (order-5-generator groups
+plateau at 0.85-0.89 at L=1).
+
+**BINDING REV 7 PRESCRIPTION (fully specified in the round transcript;
+summary):** (1) HARD bar = ≥0.9 at every L∈{2,3,4,5}; L=1 demoted/
+disclosed w/ the registered mechanism note; margin rule: pinned budget
+must clear by ≥0.02. (2) Budget pins: S3=8K (0.9649), S4=20K (0.9796),
+A5=20K (0.9755), S5=8K (0.9213), A6=40K (0.9633; 20K cleared by only
++0.0023 < margin). §1.6: 58 cells ≈ 2.51 GPU-h raw; ALL LAUNCHABLE.
+(3) A5/A6 HARD-STOP LIFTED (premise dissolved: diagnosed arm-shared
+architectural ceiling, not an undiagnosed defect; both clear the
+re-pinned bar). (4) Rule (c) recalibrated: ≤2 escalations/group, each
+PI-visible + priced; second miss → MANDATORY ≤0.1 GPU-h mechanism
+diagnostic (this round's suite as template) BEFORE any action, w/
+routing (instrument→fix; moving-below-ceiling→one capped escalation;
+ceiling→demote+disclose+Stage-2 flag); HARD-STOP reserved for genuine
+pathology. (5) Harvest reports M1 on the full pinned sample
+(decisional) AND the L≥2 robustness split + per-L profile; L=1
+attenuation is arm-shared, differences out of TOST to first order.
+(6) Stage-2 build flag: a learned BOS position restores
+query-dependent reads at L=1 — NOT applied mid-campaign (would
+invalidate 11 trained cells + the preview; hold-axes-fixed).
+
+**SWEEP-READINESS (before --sweep):** Rev 7 → micro-attack on its
+delta → the FOUR production build items verified still missing on box
+(centered covariance readout.py:57-59; train-length sampler + §1.3.5
+bars group_task.py:37,47; ambient injection gate1_synthetic_
+injection.py:15-16; per-L reporting + per-group budgets + robustness
+split in run_capability_sep.py) → independent build audit → gate-1(b)
+ambient PASS on production → AUTHORIZE.
+
+---
