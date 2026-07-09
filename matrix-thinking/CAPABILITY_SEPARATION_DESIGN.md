@@ -5134,3 +5134,62 @@ independent build audit → gate-1(b) ambient PASS on production →
 `--sweep` AUTHORIZE.)*
 
 ---
+
+### §2.14 MICRO-ATTACK ON REV 1 (2026-07-09 overnight, on 3be2340): NEEDS-REVISION — narrow, 2 MAJOR, text-only
+
+Verified-resolved (attack failed): F2 CONFIRM reconciliation COMPLETE (all
+five passages agree, M-D3 canonical); F5 citations accurate (Barrington
+1989 / Barrington-Thérien 1988 correct refs+claims, TC⁰⊊NC¹ conditionality
+stated correctly, Theorem-1 re-scope at both sites, Grazzi Fig-1 folded);
+F4 promotion arithmetic closes (11 cells, zero incremental, 58→57
+consistent); F6 trigger operational; ledger arithmetic closes EXACTLY
+(1.5-3.9 raw, 84-94% margin); §2.13 numbering/housekeeping verified in the
+diff; §1.x byte-untouched; §1.11 gate unchanged; fla cross-check
+tolerances defensible (semantic bugs produce O(0.3-1.4) rel-Frobenius,
+orders above 5e-2).
+
+**MAJOR-1 (the Rev-1 delta's core defect):** the 0.04 query-dependence bar
+is not transferable as pinned, and the method-exact port INVERTS the
+claimed FAIL bias: (a) the archived P3 statistic (l1_micro_diag.py:210) is
+`read.std(dim=1).max()` over B×h=256 entries — a MAX detects §1.30's exact
+degeneracy but biases a graded bar toward FALSE-PASS on partial collapse
+(one outlier coordinate passes the cell); Rev 1 never states max-vs-mean.
+(b) Instrument-relativity (standing hard rule): the 0.41/0.000 anchors are
+from a trained S4 encoder cell; the probe target is 32 raw delta-state
+rows with unpinned norms — large row norms lift a degenerate reader over
+an absolute 0.04 (false-PASS), small norms produce persistent false-FAIL
+with NO second-level escape in the routing (BOS fixes rank, not scale →
+launch deadlock). (c) Probe sample (B, seed, words) unpinned; at d_state=2
+the std is a 2-sample statistic.
+**MAJOR-2:** the bar never probes the decisive depth — D∈{1,2,4,8} spans
+the training regime, but the decisive read is at D=64 where a SECOND
+degeneracy channel (state-norm accumulation saturating the reader) is
+live; a D=64 reader degeneracy can MANUFACTURE the pre-registered
+Arm-2-collapse CONFIRM pattern. Extending to {1,2,4,8,16,32,64} is a free
+forward pass on the same checkpoints.
+**MODERATE-3:** the cost band omits the step-budget axis (the 0.0179
+anchor is the 8K-step rate; Rev-7 pins 20K-40K for S4/A5/A6 on a
+comparable bar — a known in-repo multiplier LARGER than the named
+"dominant unknown"; joint worst case ≈18-19 GPU-h approaches the cap);
+disclose the axis, keep the breaker. **MODERATE-4:** last-K-window control
+trained-vs-eval-truncation unpinned; if trained, its cells are unledgered
+(margin absorbs; disclose). **MODERATE-5:** base-calibration n_h unpinned
+(S5 Arm-3 base cell constructible at n_h=4, making the promoted 11th cell
+a near-duplicate); β-arm of the n_h grid unstated. Minors 6-11 incl. S_0
+never pinned (rank bound assumes S_0=0); σ_seed sample-vs-population;
+name the repo-archived l1_micro_diag.py as canonical method source with
+the formula inline.
+
+**Single highest-value change (binding on Rev 2):** rewrite §2.8 2(e) as
+setting-calibrated and aggregation-pinned — statistic inline
+(`read.std(dim=1)` aggregated as MEAN or low quantile over batch×dims, B
+and seed pinned), depths {1,2,4,8,16,32,64}, PASS bar RELATIVE to
+same-setting anchors (the §2.8 2(d) synthetic-injection machinery gives a
+free healthy anchor; norm-normalized ratio co-decisional), plus a
+second-level routing clause (persistent FAIL after BOS fix → §1.30-style
+mechanism diagnostic). Discharges MAJOR-1(a-c) and MAJOR-2 together.
+
+**DISPOSITION: Rev 2 dispatched (text-only; kernel adjudication, arm
+structure, and reconciled criteria NOT reopened). Launch gate §1.11
+unchanged. Security: one system-channel date-change+concealment sighting
+(the recurring ambiguous vector), reported, not tallied as stdout.**
