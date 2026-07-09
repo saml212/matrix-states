@@ -1,14 +1,19 @@
 # CAPABILITY-SEPARATION — group-element-recovery rank/representation-dimension test
 
-## §1 DESIGN — Stage 1 (Rev 1, post-attack-round-1 revision, 2026-07-08) —
+## §1 DESIGN — Stage 1 (Rev 2, post-attack-round-2 revision, 2026-07-08) —
 does a from-scratch matrix-state model recruit subspace-restricted state
 rank equal to a group's minimal faithful real representation dimension
 `d_min(G)`, tracking dimension not solvability?
 
-Status: **Rev 1, pre-attack (round 2 pending), zero GPU spent.** Rev 0
+Status: **Rev 2, pre-attack (round 3 pending), zero GPU spent.** Rev 0
 (§1.1-§1.12) was attacked (§1.13: NEEDS-REVISION — 1 FATAL-as-written + 3
-MAJOR + 2 minor); every finding is resolved by this Rev 1 (mapped in
-§1.14). This design came through the full waterfall (brainstorm →
+MAJOR + 2 minor); every finding was resolved by Rev 1 (mapped in §1.14).
+Rev 1 was attacked again (§1.15: NEEDS-REVISION — 2 MAJOR + 5 minor,
+narrow scope, all cheap); every finding is resolved by this Rev 2 (mapped
+in §1.16), including an EXECUTED A5 generator-class verification
+(CA2-M1) that confirms Rev 1's existing numbers were already computed
+from the class-correct generator — no recalibration required. This design
+came through the full waterfall (brainstorm →
 research → attack → validation, `STATE.md` "CAPABILITY CAMPAIGN"); the
 hypothesis, group family, readout (Option A), controls, budget, and
 pre-registered verdicts below are **BINDING** per the 2026-07-08
@@ -421,6 +426,113 @@ in the query-coverage bar and the degauging fit-set split.
 
 ---
 
+### 1.3.4 Executed verification (Rev 2) — A5 order-5 generator CLASS
+verification (CA2-M1 fix)
+
+**Why this section exists.** Attack round 2 (§1.15, CA2-M1) found that
+`coverage_calibration.py`'s A5 permutation stand-in never verified its
+order-5 generator `g5=(1,2,3,4,0)` corresponds to the SAME A5 conjugacy
+class as `verify_option_a_readout.py`'s real icosahedral `2π/5` rotation
+generator `g5_a5` — A5's order-5 elements split into two non-conjugate
+classes (5A/5B, the same fact behind A5 having two inequivalent 3-dim real
+irreps), and the round's own empirical probe showed the choice is NOT
+cosmetic: swapping to the other class drops mean coverage 33.79→31.76 and
+the 1st-percentile floor 28→26 — **below** the pinned bar of 27 (a 16×
+false-block rate increase). The round explicitly flagged its own
+parenthetical guess at the two classes' trace values (`φ-1` vs `-φ`) as
+**unverified** and instructed: derive the correct values from the actual
+rep matrices, and use either an explicit A5-isomorphism or a
+cycle-structure/character comparison — not a repeat of the same
+unverified-guess mistake one level down.
+
+**Method — explicit generator-matched group isomorphism, exhaustively
+checked, not a trusted character-table lookup.** `verify_a5_generator_class()`
+(new function, `coverage_calibration.py`, imports
+`verify_option_a_readout.py`'s own A5 generator construction directly — no
+re-implemented geometry, no drift risk) runs a **simultaneous BFS closure**
+of BOTH the permutation group (`coverage_calibration.py`'s `GROUPS["A5"]`)
+and the matrix group (`verify_option_a_readout.py`'s `g5_a5`/`g3_a5`),
+multiplying by GENERATOR-MATCHED pairs (`perm_gens[i] ↔ matrix_gens[i]`) at
+every step, both left- and right-multiplied (mirroring exactly how each
+script's own `bfs_closure` already builds its group). The map
+permutation→matrix is checked to be a **well-defined function** at every
+one of the 60 elements — the instant the SAME permutation is reached via
+two different generator-words that assign it TWO DIFFERENT matrices, the
+candidate correspondence is refuted. `consistent AND both element counts
+== 60` is a constructive, EXHAUSTIVE proof of a genuine group isomorphism
+(every element checked, not sampled) — strictly stronger evidence than a
+character/trace match alone, which only constrains one invariant.
+
+**Character cross-check, executed first (not trusted from the
+parenthetical).** Direct computation from the real rep matrices:
+`trace(g5_a5) = 1.618034 = φ` and `trace(g5_a5²) = -0.618034 = 1-φ`. **This
+does NOT match attack round 2's own parenthetical guess** (`φ-1≈0.618` vs
+`-φ≈-1.618`) — the guess was checked against the actual matrices and found
+wrong in detail (though correctly flagged as needing verification rather
+than being trusted), confirming the instruction to verify rather than
+inherit the parenthetical was warranted.
+
+**Executed output (verbatim, this session,
+`python3 coverage_calibration.py`):**
+
+```
+========================================================================================
+CA2-M1 -- A5 order-5 generator CLASS verification
+========================================================================================
+  order(g5_a5) = 5   order(g5_a5^2) = 5   order(g3_a5) = 3
+  trace(g5_a5)   = 1.618034   (== phi = 1.618034? True)
+  trace(g5_a5^2) = -0.618034   (== 1-phi = -0.618034? True)
+  [note] the attack's own parenthetical guess ('traces phi-1=0.6180 vs -phi=-1.6180') does NOT match either computed trace above -- computed directly from the rep matrices, not trusted from the parenthetical, per the CA2-M1 instruction.
+
+  Testing candidate generator-matched isomorphisms (full 60-element
+  simultaneous BFS closure, well-definedness checked at every step):
+    [FAIL] g5 <-> g5_a5,    g3 <-> g3_a5   (naive as-labeled pairing)  (perm elems=60, matrix elems=46)
+    [PASS] g5 <-> g5_a5,    g3 <-> g3_a5^-1 (inverse-labeled g3; SAME symmetric set)  (perm elems=60, matrix elems=60)
+    [FAIL] g5 <-> g5_a5^2,  g3 <-> g3_a5   (wrong-class control)  (perm elems=60, matrix elems=33)
+    [FAIL] g5 <-> g5_a5^2,  g3 <-> g3_a5^-1 (wrong-class control, inverse-labeled)  (perm elems=60, matrix elems=31)
+
+  VERDICT: coverage_calibration.py's CURRENT stand-in (g5, unmodified) IS
+  the CORRECT class -- ...
+```
+
+**Reading the result.** Exactly ONE of the four candidates closes to the
+full 60-element group with zero inconsistencies: `g5 ↔ g5_a5` (the
+generator AS ALREADY WRITTEN, unmodified) paired with `g3 ↔ g3_a5⁻¹` — the
+inverse-labeled match is immaterial to the actual random-walk sampler,
+because the SYMMETRIC generating set `{g5,g5⁻¹,g3,g3⁻¹}` already contains
+both `g3_a5` and `g3_a5⁻¹` regardless of which one is internally called
+"primary" (the sampler draws from the full symmetric set, never from `g3`
+alone). Both `g5_a5²` (wrong-class) controls FAIL to close to the full
+group under either labeling of `g3` (46, 33, and 31 elements respectively,
+all `<60`) — cleanly separating the correct class from the incorrect one;
+this is not a near-miss, the wrong-class candidates do not even form a
+valid homomorphism, let alone an isomorphism.
+
+**Verdict: the current stand-in was ALREADY the right class.**
+`coverage_calibration.py`'s `g5` generator, as written before this
+revision, is exhaustively verified (all 60 elements, not sampled) to be
+A5-class-conjugate to the real icosahedral generator it stands in for.
+**No re-calibration is required — §1.3.3's existing numbers stand exactly
+as computed**, now with executed evidence (rather than an unverified
+assumption) that the permutation stand-in used to compute them was the
+class-correct one. A full re-run of `coverage_calibration.py` (STEP 0-3,
+this session, immediately following the class verification above)
+reproduces §1.3.3's table BYTE-IDENTICAL, as expected since the generator
+itself is unchanged — see §1.3.3 for the reproduced STEP 0-3 output
+(unchanged) and §1.4.1 below (§1.4.1 step 4) for the new STEP 4 (CA2-m2
+fix, eval-set diversity floor) added in this same run.
+
+**Script (repo-committed, reproducible):**
+`matrix-thinking/capability_separation/coverage_calibration.py`
+(`verify_a5_generator_class`, `_simultaneous_closure`,
+`_get_real_a5_generators` — new this revision; imports
+`verify_option_a_readout.part1_reference_representations` directly rather
+than re-deriving the icosahedron geometry, avoiding drift between the two
+scripts). Run: `python3 coverage_calibration.py` (runs the class
+verification first, then STEP 0-4).
+
+---
+
 ### 1.4 The task, architecture, and readout
 
 **Task — group-element-recovery via word composition (the Barrington-style
@@ -499,9 +611,11 @@ even permutation directly, not by closing 2 generators); the build step
 will still run the standard closure-order smoke (below) on these two
 specific generators as a cheap, load-bearing sanity check before launch.
 
-**Architecture (Task D/E's exact bespoke encoder, TWO required
-extensions — CA1-m1 fix, Rev 1: Rev 0 undercounted this as "ONE," see
-below).** Reuses `matrix-thinking/chapter2/model_v4.py`'s
+**Architecture (Task D/E's exact bespoke encoder, THREE required
+extensions — CA1-m1 fix, Rev 1: Rev 0 undercounted this as "ONE"; CA2-M2
+fix, Rev 2: pins the third, the variable-length batching scheme, as a
+disclosed extension rather than leaving it for the builder to invent —
+see below).** Reuses `matrix-thinking/chapter2/model_v4.py`'s
 `BindingEncoder` (`d`, `h`, `n_layers`, `n_heads`, `n_refine`
 constructor signature, `nn.TransformerEncoder` + learned `row_queries` +
 `MultiheadAttention` reader + `row_norm` + `row_out` — same class,
@@ -513,24 +627,73 @@ EQUIVARIANT (no positional signal) by construction** (it was correct for
 Task D's genuinely order-INDEPENDENT set-of-bindings task, and would
 silently break here): a learned absolute positional embedding
 (`nn.Embedding(L_max, h)`), added to each generator token's embedding
-before the `nn.TransformerEncoder`, tags word position 1..L. **Two
-deltas total, both structurally required by the task change, not a
+before the `nn.TransformerEncoder`, tags word position 1..L. **Three
+deltas total, all structurally required by the task change, not a
 broader redesign (CA1-m1 fix — Rev 0's "ONLY change" sentence undercounted
 the second, which was already disclosed two bullets below but never
-folded into this count):** (1) this positional embedding
-(order-sensitivity, above), and (2) the input embedding itself — a single
-generator-index embedding (below) replacing Task D's `[key; value]`
-concatenation, because this task has no separate value to bind, the WORD
-is the whole composition. `CLAUDE.md`'s "hold every second axis fixed when
-testing a primary hypothesis" rule is honored because both deltas are
-direct, minimal consequences of the SAME task-family change (word
-composition replacing parallel key-value binding), not two independent
-design choices stacked on top of it.
+folded into this count; CA2-M2 fix — Rev 1 disclosed the third's NEED,
+§1.9 item 9's word-length discussion, but never pinned its concrete
+mechanism, leaving a real methodological choice for the builder to
+invent):** (1) this positional embedding (order-sensitivity, above), (2)
+the input embedding itself — a single generator-index embedding (below)
+replacing Task D's `[key; value]` concatenation, because this task has no
+separate value to bind, the WORD is the whole composition, and (3) the
+variable-per-sample word-length batching scheme (below — CA2-M2 fix).
+`CLAUDE.md`'s "hold every second axis fixed when testing a primary
+hypothesis" rule is honored because all three deltas are direct, minimal
+consequences of the SAME task-family change (word composition replacing
+parallel key-value binding, which is simultaneously non-abelian AND
+variable-length, unlike Task D's fixed-`K` parallel bindings), not
+independent design choices stacked on top of it.
 
 - **Input:** each token is a generator-index one-hot/embedding
   (`nn.Embedding(|S_G|, h)`), NOT Task D's `[key; value]` concatenation
   (there is no separate value here — the task IS the composition; this is
   delta (2) above).
+- **Batching scheme for variable word length (delta (3), CA2-M2 fix,
+  Rev 2 — pinned, not left for the builder to invent).**
+  `BindingEncoder.forward` (`matrix-thinking/chapter2/model_v4.py`) takes
+  fixed-shape `(B, K, h)` tensors and contains no padding or attention-mask
+  logic anywhere — Task D always ran a single fixed `K` per launch and
+  never exercised variable per-sample sequence length. This task samples
+  `L ~ Uniform{1..8}` (train) / `{9..16}` (eval) PER SAMPLE (§1.4 above),
+  so a naive per-sample-variable-`L` batch would require the builder to
+  invent padding + `key_padding_mask` plumbing — landing directly in
+  `CLAUDE.md`'s own hard-rule gotcha class (`nn.MultiheadAttention` in
+  this repo's PyTorch version requires explicit `attn_mask` OR
+  `is_causal`, not both — untested mask code is exactly the kind of
+  silent-footgun surface that rule exists to flag). **Pinned scheme:
+  PER-BATCH-FIXED-`L`** — each batch samples ONE `L` from the pinned
+  distribution (`Uniform{1..8}` train / `{9..16}` eval); every episode
+  within that batch shares it; `L` varies ACROSS batches, not within one.
+  **Justification vs. padding+mask, decided explicitly (not defaulted
+  to):** per-batch-fixed-`L` needs ZERO new padding/mask code — every
+  batch is a plain fixed-shape `(B, L, h)` tensor, `BindingEncoder`'s
+  existing forward pass is reused completely unmodified (no
+  `key_padding_mask` argument threaded through at all), eliminating the
+  mask-gotcha risk outright rather than requiring it to be gotten right.
+  Padding+mask would instead add real, currently-untested plumbing to
+  `BindingEncoder` (a class this design otherwise reuses byte-for-byte)
+  for a benefit that does not apply here: padding's usual motivation is
+  packing MULTIPLE distinct sequence lengths into the SAME batch for
+  throughput; this design's `L` range is small (`1..16`) and its
+  step-budget cost is already dominated by the 50-cell sweep structure
+  (§1.6), not by batch-packing efficiency. **Consequence, stated
+  explicitly:** per-batch `L`-homogeneity is a real deviation from
+  literal i.i.d.-per-sample `L` sampling — but it is BENIGN for this
+  task specifically, because episodes are i.i.d. GIVEN `L` (the word's
+  distinct generator draws, and the target group element they compose to,
+  do not depend on which OTHER episodes share the same batch), and the
+  `L`-distribution is preserved in EXPECTATION across training (every
+  batch still draws its shared `L` from the same pinned distribution, so
+  across the full training run each `L` value is sampled proportionally
+  often — only the WITHIN-batch correlation changes, not the marginal
+  distribution any single episode experiences). **Smoke item added (build
+  gate, §1.7 gate 7's blank-out/pre-training smoke list):** batches at
+  `L=1` and `L=16` (the distribution's two extremes) both forward AND
+  backward cleanly through `GroupWordEncoder` before any training cell
+  launches — a minimal, cheap, direct test of the one legitimately new
+  shape-handling surface this extension introduces.
 - **`d_state(G) = d_min(G) + 2`** (uniform margin rule across the family —
   enough ambient headroom for the force-rank grid `{d_min−1, d_min,
   d_min+1}` (§1.4.2) to fit inside `[1, d_state]`, and for the
@@ -611,19 +774,88 @@ verbatim reuse):
    `(Q_hat, c_hat)`, §1.3.2) / `n_eval=20` (scored ONLY, never used to fit
    either parameter — the same fit/eval discipline §1.3.2 already verified
    has teeth, now applied to the real pipeline's exact split ratio).
-   **Fit-set diversity floor:** the `n_fit=30` subset must realize
-   `≥min(3·d_min(G), ⌊0.8·|G|⌋)` DISTINCT target elements — enough that the
-   `d_min(G)²`-unknown orthogonal-intertwiner linear system (§1.3.2 step 2)
-   is comfortably overdetermined, a deliberately conservative floor
-   relative to §1.3.2's own toy ratio (14 fit elements for a `d=3` group,
-   ≈4.7×`d`). Executed via `coverage_calibration.py::fit_set_diversity_check`
+   **Draw cadence, pinned (CA2-m1 fix, Rev 2 — Rev 1 left "how often is
+   this `N=50` sample redrawn" unstated).** **Fresh-per-cell** — every
+   sweep cell (50 cells total, §1.4.2/§1.6) draws its OWN `N=50` held-out
+   sample from that cell's own seeded RNG stream, the same
+   `rd_episode_seed`-style per-cell seeding this design already pins for
+   train/eval word disjointness (§1.4), NOT one shared `N=50` sample reused
+   across all 10 cells/group — following Task D's own `seed+10_000`
+   precedent (a fixed per-purpose offset from the cell's base seed) rather
+   than inventing a new convention. **Consequence, computed exactly (not
+   asserted):** attack round 2's own executed false-block-rate figures
+   (§1.15 — independently reproduced at `N=400,000`/group, 20× this
+   design's own Monte Carlo scale) give a PER-CELL coverage-check false
+   -block exposure of **≈2.75%** (the per-group rates — S3≈0%, S4≈0.068%,
+   A5≈0.075%, S5≈0.135%, A6≈0.002% — summed across the 10 cells/group
+   structure, the operative fresh-per-cell exposure over the full 50-cell
+   sweep) — small enough that a single false block is an expected,
+   planned-for event at this sweep size, not a design flaw, PROVIDED it is
+   handled by an explicit retry, not silently ignored. **Retry-once rule
+   (CA2-m1 fix, Rev 2, symmetric with the existing fit-set redraw guard
+   below):** if a cell's `N=50` coverage check fails, resample the eval set
+   ONCE with a shifted seed (the same cell seed `+ 1`), log the retry
+   (cell id, both seeds, both realized coverage counts) to the run's
+   output, and fail HARD on a second consecutive miss (two independent
+   `N=50` draws both failing the calibrated bar is far below the ≈2.75%
+   single-draw rate — a second miss is evidence of a real problem, not
+   sampling noise, and must stop the cell rather than retry indefinitely).
+   **Fit-set diversity floor.** The `n_fit=30` subset must realize
+   `≥min(3·d_min(G), ⌊0.8·|G|⌋)` DISTINCT target elements. **Justification,
+   reworded for precision (CA2-m3 fix, Rev 2 — Rev 1's phrasing implied
+   naive linear-equation counting, which is not the actual mechanism).**
+   Rev 1 described this as making the `d_min(G)²`-unknown orthogonal-
+   intertwiner linear system "comfortably overdetermined" — imprecise:
+   raw equation-vs-unknown counting does not, by itself, pin `Q`, because
+   for a SINGLE fit element `g`, the linear constraint
+   `Z(g)·Q = c·Q·ρ(g)` has a solution set of dimension equal to `ρ(g)`'s
+   OWN centralizer (any `Q' = Q_true·C` with `C` commuting with `ρ(g)`
+   also solves that one element's constraint) — a single `g` alone leaves
+   `Q` badly underdetermined regardless of how many "equations" its `d²`
+   entries nominally supply. **The real mechanism is Schur's lemma +
+   irreducibility:** all five pinned reference representations are
+   irreducible AND of real type (verified §1.3.1 — orthogonal, correct
+   order, faithful; standard/deleted-permutation or icosahedral-rotation
+   constructions, none complex- or quaternionic-type), so the centralizer
+   of the FULL group image `ρ(G)` is exactly the scalar matrices (Schur),
+   and — generically — as few as **~2** well-chosen (non-commuting)
+   sampled elements already intersect their individual centralizers down
+   to that same scalar-only limit, pinning `Q` up to the scale already
+   handled separately by `c_hat` (§1.3.2 step 1). **The floor's actual
+   SIZE is therefore a noise-margin choice, not an equation-counting
+   requirement** — `3·d_min(G)` is anchored empirically to §1.3.2's own
+   toy verification ratio (14 fit elements for a `d=3` group under
+   `noise(std=0.03)`, ≈4.7×`d`), chosen conservatively BELOW that ratio
+   (a floor, not a match) while comfortably ABOVE the ~2-element
+   theoretical sufficiency point, giving robustness margin against
+   realistic per-checkpoint noise rather than against a naive
+   equation-counting shortfall. The number itself is unchanged from Rev 1
+   — only the justification is corrected. Executed via
+   `coverage_calibration.py::fit_set_diversity_check`
    (`n_fit=30`, 20,000 trials/group, §1.3.3) — every group clears its floor
    by ≥1 element at the 1st percentile (S3: bar 4, p1 5; S4: bar 9, p1 14;
    A5: bar 9, p1 19; S5: bar 12, p1 21; A6: bar 15, p1 25). If a real
    fit-set draw fails the floor (rare, ≤1% by construction), redraw the
    fit/eval split from the same `N=50` sample before fitting — a redraw
-   guard, not a silent pass/fail toggle. Score `recovered_frac@0.9` and
-   mean cosine on the DISJOINT `n_eval=20` subset — this is the Stage-1
+   guard, not a silent pass/fail toggle. **Eval-set diversity floor (CA2-m2
+   fix, Rev 2 — Rev 1 had no analog on the scoring subset).** The
+   DISJOINT `n_eval=20` scoring subset has no fitting role (it never
+   touches `(Q_hat, c_hat)`), so it needs no equation-sufficiency argument
+   — but an eval draw that happens to collapse onto very few distinct
+   targets would still silently "score," just as a poorly-powered
+   estimate of the checkpoint's real accuracy, not a caught error. A
+   MODEST floor (deliberately weaker than the fit floor, anchored to the
+   same MC machinery): `≥min(2·d_min(G), ⌊0.6·|G|⌋)` distinct elements.
+   Executed via `coverage_calibration.py::eval_set_diversity_check`
+   (`n_eval=20`, 20,000 trials/group, new this revision, §1.3.3-adjacent
+   STEP 4) — every group clears its floor by ≥2 elements at the 1st
+   percentile (S3: bar 3, p1 5, margin 2; S4: bar 6, p1 10, margin 4; A5:
+   bar 6, p1 14, margin 8; S5: bar 8, p1 14, margin 6; A6: bar 10, p1 17,
+   margin 7) — empirically fine, as attack round 2 already noted, now with
+   an enforced floor rather than an unguarded assumption. Score
+   `recovered_frac@0.9` and mean cosine on the DISJOINT `n_eval=20`
+   subset (after its own floor clears, with the SAME retry-once-then-fail
+   rule as the coverage check above if it doesn't) — this is the Stage-1
    decision metric (§1.5 M1/M3).
 5. Report whole-matrix effective rank of raw `Z(w)` too (Task D/E's M1
    convention), but flagged NON-decisive by default — Task E §4's own
@@ -994,8 +1226,18 @@ Reused verbatim from this program's own precedent (Task D/E,
    GPU cell — one token (this campaign's scope is small enough that a
    second, MATCH-GATE-style token is not warranted the way
    `HEAD_TO_HEAD_DEMO_DESIGN.md`'s three-way matched comparison needed
-   one; flagged for attack round 1 to confirm this simplification is
-   safe).
+   one). **Cross-reference closed (CA2-m4 fix, Rev 2 — Rev 1 flagged this
+   for attack round 1 but the round-1 verdict, §1.13, never explicitly
+   adjudicated it, leaving the reference dangling into Rev 1).** Attack
+   round 2 (§1.15) adjudicated the single-token simplification SAFE: the
+   second, MATCH-GATE-style token in `HEAD_TO_HEAD_DEMO_DESIGN.md` exists
+   specifically to gate a three-way PARAMETER/FLOP/BYTE-matched comparison
+   where a silent asymmetry between arms could invalidate the whole
+   comparison; this design has no such matched-comparison invariant at
+   risk — the C2 vector-ablation control is EXPLICITLY DEFERRED (§1.4.2,
+   §1.9 item 6), so there is no second arm whose match-integrity a second
+   token would need to separately gate. One token is sufficient and the
+   simplification stands, closed.
 6. **Reference-representation + degauging-pipeline verification (this
    design's MATCH-GATE analog).** `verify_option_a_readout.py`'s Part 1
    (group construction) and Part 2 (degauging recovery) must both PASS
@@ -1251,18 +1493,22 @@ negative to Task D/E, closing this line, per §1.1's pre-registered framing.
   `allow_neg_eigval`/negative-eigenvalue state-tracking mechanism).
 - **New, not yet built:** `GroupWordEncoder` (positional-embedding
   extension of `BindingEncoder`); the per-group word-sampling grammar +
-  query-coverage guard + its negative test; the block-diagonal `rho_G`
-  embedding; the β∈[0,2] `fla` smoke harness; **the 30 GPU-h hard-abort
-  enforcement wrapper** (§1.6's circuit breaker — projects the 50-cell
-  sweep's cost from the calibration cell's real per-cell rate and
+  query-coverage guard + its negative test **+ the per-batch-fixed-`L`
+  batching sampler** (CA2-M2 fix, Rev 2 — §1.4's third pinned extension;
+  the `L=1`/`L=16` forward+backward smoke item, §1.4); the block-diagonal
+  `rho_G` embedding; the β∈[0,2] `fla` smoke harness; **the 30 GPU-h
+  hard-abort enforcement wrapper** (§1.6's circuit breaker — projects the
+  50-cell sweep's cost from the calibration cell's real per-cell rate and
   mechanically hard-aborts before exceeding the dedicated cap; CA1-m2
   fix, Rev 1 — Rev 0 designed this mechanism in §1.6 but never itemized
   it in this build list).
 
 ---
 
-**QUEUE (STATE.md, appended per this design's commit):** Design Rev 0
-committed (this commit) → attack round 1 next.
+**QUEUE (STATE.md, appended per this design's commit):** Design Rev 2
+committed (this commit, CA2-m5 fix — Rev 1's footer was stale, still
+reading "Rev 0 committed → attack round 1 next" after two revisions and
+two attack rounds had already landed) → attack round 3 next.
 
 ---
 
@@ -1436,6 +1682,46 @@ rotation-sensitivity math verified.
 
 ---
 
+### 1.16 REV 2 CHANGES — finding → resolution map
+
+Every §1.15 finding, mapped to its exact Rev 2 resolution. Narrow scope
+per the dispatch instruction — nothing below relitigates material §1.13
+or §1.15 already verified clean; each row points at new or rewritten
+design text (or a new, executed, repo-committed script change), not a
+footnote.
+
+| Finding | Resolution (Rev 2) | Where |
+|---|---|---|
+| **CA2-M1** (MAJOR) — A5's coverage-calibration generator never verified against the SAME conjugacy class as the real icosahedral generator; attack's own parenthetical trace guess (`φ-1`/`-φ`) explicitly flagged unverified | New `verify_a5_generator_class()` in `coverage_calibration.py` (imports `verify_option_a_readout.py`'s real A5 generators directly, no re-implemented geometry) runs an EXPLICIT, generator-matched simultaneous-BFS isomorphism check across the full 60-element group. Character cross-check computed directly from the rep matrices first (`trace(g5_a5)=φ`, `trace(g5_a5²)=1-φ`) — confirms the attack's own parenthetical guess did NOT match, validating the instruction to verify rather than trust it. Result: the CURRENT stand-in (`g5`, unmodified) IS the correct class — exhaustively proven (all 60 elements, zero inconsistencies) via `g5↔g5_a5`, `g3↔g3_a5⁻¹` (an immaterial inverse-labeling, since the symmetric generating set `{g5,g5⁻¹,g3,g3⁻¹}` already contains both `g3_a5` and `g3_a5⁻¹`); both `g5_a5²` (wrong-class) controls FAIL to close to the full group under either labeling. **§1.3.3's numbers do NOT move** — a full re-run (this session) reproduces STEP 0-3 byte-identical. Executed output pasted in full. | §1.3.4 (new) |
+| **CA2-M2** (MAJOR) — variable-per-sample word length has no batching spec; builder would have to invent padding+mask vs per-batch-fixed-`L`, landing in the `CLAUDE.md` `nn.MultiheadAttention` mask-gotcha class | Pinned as the disclosed THIRD architectural extension: **per-batch-fixed-`L`** (each batch samples one `L` from the pinned distribution; all episodes in that batch share it; `L` varies across batches). Justified explicitly against padding+mask (zero new mask code vs. untested plumbing added to a class this design otherwise reuses byte-for-byte, for a packing-efficiency benefit this design's small `L` range and sweep-dominated cost structure don't need). Consequence disclosed: per-batch `L`-homogeneity is benign because episodes are i.i.d. GIVEN `L`, and the `L`-distribution is preserved in expectation across training. Smoke item added: `L=1` and `L=16` both forward/backward cleanly. | §1.4 |
+| **CA2-m1** (minor) — coverage-check draw cadence unpinned (once-per-group vs fresh-per-cell) | Pinned: **fresh-per-cell** (Task D's own `seed+10_000` precedent). Operative per-cell exposure **≈2.75%** stated from attack round 2's own executed `N=400,000`/group figures (not re-derived — already-executed evidence cited directly). Retry-once rule added, symmetric with the existing fit-set redraw guard: resample once with `cell_seed+1` on failure, log the retry, fail hard on a second consecutive miss. | §1.4.1 step 4 |
+| **CA2-m2** (minor) — no diversity floor on the `n_eval=20` scoring subset | New `eval_set_diversity_check()` in `coverage_calibration.py`, bar `≥min(2·d_min(G), ⌊0.6·|G|⌋)` (deliberately weaker than the fit floor — the eval set does no fitting). Executed: every group clears by ≥2 elements at p1 (S3 margin 2, S4 margin 4, A5 margin 8, S5 margin 6, A6 margin 7). | §1.4.1 step 4 |
+| **CA2-m3** (minor) — fit-floor justification imprecise (implied naive `d²`-equation counting) | Reworded: for a single fit element, the linear system's null space is `ρ(g)`'s own centralizer (not zero) — Schur's lemma + irreducibility (all five reps verified irreducible + real-type, §1.3.1) is the actual mechanism pinning `Q` to scalars over the full group image, with ~2 generic elements generically sufficing. The `3·d_min(G)` floor is reframed as a noise-margin choice anchored to §1.3.2's own 4.7×`d` toy ratio, not an equation-sufficiency requirement. The number is unchanged — only the justification. | §1.4.1 step 4 |
+| **CA2-m4** (minor) — gate 5's "flagged for attack round 1" cross-reference never answered | Closed: attack round 2 (§1.15) adjudicated the single-PI-signoff-token simplification SAFE (the C2 vector-ablation control is explicitly deferred, so there is no second matched-comparison arm needing a second token the way `HEAD_TO_HEAD_DEMO_DESIGN.md`'s three-way comparison does) — written directly into the gate text. | §1.7 gate 5 |
+| **CA2-m5** (minor) — STATE queue footer stale (still read "Rev 0 committed → attack round 1 next" after two revisions and two attack rounds) | Updated to "Rev 2 committed → attack round 3 next." | §1.12 footer |
+
+**Nothing from §1.15's "Verified clean this round" list was touched** —
+all §1.14 resolutions, all three companion scripts' byte-exactness and
+independent reproduction, the cost-anchor citations, the `ρ≥0.8`
+keep-decision, the injection-spec deferral sequencing, the absence of
+stale 200-element/80% leftovers, the `h=32` disclosure's ×4 consistency,
+the chapter2 citations, the S4-vs-A5 coverage-confound reproduction, and
+self-attack item 7's rotation-sensitivity math all stand as attack round
+2 verified them, unmodified in Rev 2.
+
+**What this revision could not fully close (flagged, not papered over):**
+the per-batch-fixed-`L` batching scheme (CA2-M2) is pinned at the DESIGN
+level — mechanism, justification, consequence, and smoke item — but, like
+CA1-M3's synthetic-injection acceptance test before it, has not been RUN;
+it requires `GroupWordEncoder`, which does not exist until build (§1.11).
+An attack-round-3 agent should treat the `L=1`/`L=16` smoke item as a
+real, load-bearing build-time obligation, not settled evidence. The
+CA2-m1 retry-once rule is likewise pinned but unexecuted for the same
+reason (no production coverage-check harness exists yet to run it
+against) — flagged for the same build-time treatment.
+
+---
+
 *(End §1 records. Rev 0 → §1.13 → Rev 1 (§1.14) → §1.15 NEEDS-REVISION
-(CA2-M1 A5 class ambiguity, CA2-M2 batching spec; 5 minors). Rev 2 in
-progress.)*
+(CA2-M1 A5 class ambiguity, CA2-M2 batching spec; 5 minors) → Rev 2
+(§1.16) → attack round 3 pending.)*

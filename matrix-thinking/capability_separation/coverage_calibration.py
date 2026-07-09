@@ -1,5 +1,6 @@
-"""CAPABILITY_SEPARATION_DESIGN.md Rev 1 -- CA1-F1 fix: query-coverage bar
-calibration, numerically executed (not asserted).
+"""CAPABILITY_SEPARATION_DESIGN.md Rev 2 -- CA1-F1 fix (query-coverage bar
+calibration) + CA2-M1 fix (A5 generator CLASS verification), both
+numerically executed (not asserted).
 
 Attack round 1 (design doc S1.13, CA1-F1) found the Rev 0 bar
 "|>=200 distinct elements for A5/S5/A6" mathematically impossible for A5
@@ -29,9 +30,21 @@ elsewhere in this repo).
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import itertools
+import os
+import sys
 
 import numpy as np
+
+# Ensure the sibling script (verify_option_a_readout.py, same directory) is
+# importable regardless of invocation cwd -- CA2-M1 fix imports its A5
+# generator construction directly rather than re-implementing the
+# icosahedron geometry a second time (avoids drift between the two scripts,
+# same "functions imported, not re-implemented" discipline S1.11 already
+# applies to the production eval harness).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 RNG_SEED = 20260710
 N_EVAL_WORDS = 50          # the pinned floor, "N>=50 words per group" (S1.4.1)
@@ -107,6 +120,166 @@ GROUPS["S5"] = dict(n=5, dmin=4, order=120, gens=[t, c, inverse(c)])
 a = (1, 2, 0, 3, 4, 5)
 b = (0, 2, 3, 4, 5, 1)
 GROUPS["A6"] = dict(n=6, dmin=5, order=360, gens=[a, inverse(a), b, inverse(b)])
+
+
+# =============================================================================
+# CA2-M1 -- A5 order-5 generator CLASS verification (attack round 2, S1.15).
+#
+# A5's order-5 elements split into TWO non-conjugate classes in A5 itself
+# (though they fuse into one class of 5-cycles in S5): cycle type "(5)" has a
+# single odd-length part, which is exactly the pattern that splits under the
+# index-2 restriction from S_n to A_n (the same fact behind A5 having two
+# inequivalent 3-dimensional real irreps, rather than one). Attack round 2
+# found this permutation stand-in's g5 was never checked against the SAME
+# class as verify_option_a_readout.py's real icosahedral 2*pi/5 rotation
+# generator g5_a5, and that the choice is NOT cosmetic: swapping to the
+# other class empirically changes the Monte Carlo coverage numbers (S1.15:
+# mean 33.79->31.76, p1 28->26, dropping BELOW the pinned bar of 27).
+#
+# Verified here via an EXPLICIT, generator-matched group isomorphism, not a
+# trusted/recalled character-table value (the attack's own parenthetical
+# guess, "traces phi-1 vs -phi", is checked directly against the REAL
+# rotation matrices below and found NOT to match this representation's
+# actual values -- see the printed trace check).
+# =============================================================================
+
+def _mat_key(M: np.ndarray) -> tuple:
+    return tuple(np.round(M, 6).flatten())
+
+
+def _simultaneous_closure(perm_gens: list, matrix_gens: list):
+    """BFS-close BOTH the permutation group and the matrix group AT ONCE,
+    multiplying by GENERATOR-MATCHED pairs (perm_gens[i] <-> matrix_gens[i])
+    on both sides at every step -- both left- and right-multiplication,
+    mirroring exactly how bfs_closure() above and verify_option_a_readout.py's
+    own bfs_closure() each build their respective groups. Returns
+    (is_consistent, n_perm_elements, n_matrix_elements). `is_consistent`
+    goes False the instant the SAME permutation is reached via two different
+    generator-words that assign it TWO DIFFERENT matrices -- i.e. the
+    generator correspondence is not a well-defined function, hence not a
+    homomorphism. `is_consistent and n_perm==n_matrix==|G|` is a
+    constructive, exhaustive proof of a genuine group isomorphism (every one
+    of the |G| elements checked, not a sample) -- not an assumption from
+    matching orders/traces alone.
+    """
+    ident_p = tuple(range(len(next(iter(perm_gens)))))
+    dim = matrix_gens[0].shape[0]
+    ident_m = np.eye(dim)
+    perm_to_matkey = {ident_p: _mat_key(ident_m)}
+    mat_elements = {_mat_key(ident_m): ident_m}
+    frontier = [(ident_p, ident_m)]
+    consistent = True
+    while frontier:
+        new_frontier = []
+        for p, m in frontier:
+            for gi in range(len(perm_gens)):
+                for cand_p, cand_m in (
+                    (compose(perm_gens[gi], p), matrix_gens[gi] @ m),
+                    (compose(p, perm_gens[gi]), m @ matrix_gens[gi]),
+                ):
+                    mk = _mat_key(cand_m)
+                    if cand_p in perm_to_matkey:
+                        if perm_to_matkey[cand_p] != mk:
+                            consistent = False
+                    else:
+                        perm_to_matkey[cand_p] = mk
+                        mat_elements[mk] = cand_m
+                        new_frontier.append((cand_p, cand_m))
+        frontier = new_frontier
+    return consistent, len(perm_to_matkey), len(mat_elements)
+
+
+def _get_real_a5_generators():
+    """Import the REAL icosahedral A5 generators directly from
+    verify_option_a_readout.py (sibling script, same directory) rather than
+    re-implementing the icosahedron-axis geometry a second time -- avoids
+    drift between the two scripts. Its own Part-1/Part-2 print output
+    (already shown verbatim in S1.3.1/S1.3.2) is captured and discarded
+    here; only the two A5 generator matrices are needed.
+    """
+    import verify_option_a_readout as voa
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        results = voa.part1_reference_representations()
+    gens = results["A5"]["generators"]
+    return gens["g5"], gens["g3"]
+
+
+def verify_a5_generator_class():
+    print("=" * 88)
+    print("CA2-M1 -- A5 order-5 generator CLASS verification")
+    print("=" * 88)
+    g5_a5, g3_a5 = _get_real_a5_generators()
+    g5_a5_sq = g5_a5 @ g5_a5
+
+    def order_of(M):
+        P = np.eye(M.shape[0])
+        for n in range(1, 8):
+            P = P @ M
+            if np.allclose(P, np.eye(M.shape[0]), atol=1e-5):
+                return n
+        raise RuntimeError("order not found")
+
+    phi = (1 + np.sqrt(5)) / 2
+    tr_g5 = float(np.trace(g5_a5))
+    tr_g5sq = float(np.trace(g5_a5_sq))
+    print(f"  order(g5_a5) = {order_of(g5_a5)}   order(g5_a5^2) = {order_of(g5_a5_sq)}"
+          f"   order(g3_a5) = {order_of(g3_a5)}")
+    print(f"  trace(g5_a5)   = {tr_g5:.6f}   (== phi = {phi:.6f}? {abs(tr_g5 - phi) < 1e-6})")
+    print(f"  trace(g5_a5^2) = {tr_g5sq:.6f}   (== 1-phi = {1 - phi:.6f}? {abs(tr_g5sq - (1 - phi)) < 1e-6})")
+    print(f"  [note] the attack's own parenthetical guess ('traces phi-1={phi - 1:.4f} vs "
+          f"-phi={-phi:.4f}') does NOT match either computed trace above -- computed "
+          f"directly from the rep matrices, not trusted from the parenthetical, per "
+          f"the CA2-M1 instruction.")
+
+    info = GROUPS["A5"]
+    g5_perm, g5inv_perm, g3_perm, g3inv_perm = info["gens"]
+
+    print()
+    print("  Testing candidate generator-matched isomorphisms (full 60-element")
+    print("  simultaneous BFS closure, well-definedness checked at every step):")
+    candidates = [
+        ("g5 <-> g5_a5,    g3 <-> g3_a5   (naive as-labeled pairing)",
+         [g5_perm, g5inv_perm, g3_perm, g3inv_perm],
+         [g5_a5, g5_a5.T, g3_a5, g3_a5.T]),
+        ("g5 <-> g5_a5,    g3 <-> g3_a5^-1 (inverse-labeled g3; SAME symmetric set)",
+         [g5_perm, g5inv_perm, g3_perm, g3inv_perm],
+         [g5_a5, g5_a5.T, g3_a5.T, g3_a5]),
+        ("g5 <-> g5_a5^2,  g3 <-> g3_a5   (wrong-class control)",
+         [g5_perm, g5inv_perm, g3_perm, g3inv_perm],
+         [g5_a5_sq, g5_a5_sq.T, g3_a5, g3_a5.T]),
+        ("g5 <-> g5_a5^2,  g3 <-> g3_a5^-1 (wrong-class control, inverse-labeled)",
+         [g5_perm, g5inv_perm, g3_perm, g3inv_perm],
+         [g5_a5_sq, g5_a5_sq.T, g3_a5.T, g3_a5]),
+    ]
+    results = {}
+    for label, pg, mg in candidates:
+        ok, n_p, n_m = _simultaneous_closure(pg, mg)
+        results[label] = ok
+        print(f"    [{'PASS' if ok and n_p == 60 and n_m == 60 else 'FAIL'}] {label}"
+              f"  (perm elems={n_p}, matrix elems={n_m})")
+
+    same_class_ok = results["g5 <-> g5_a5,    g3 <-> g3_a5^-1 (inverse-labeled g3; SAME symmetric set)"]
+    wrong_class_ok = any(v for k, v in results.items() if "g5_a5^2" in k)
+    print()
+    if same_class_ok and not wrong_class_ok:
+        print("  VERDICT: coverage_calibration.py's CURRENT stand-in (g5, unmodified) IS")
+        print("  the CORRECT class -- it forms a genuine, exhaustively-checked group")
+        print("  isomorphism (all 60 elements, zero inconsistencies) with the REAL")
+        print("  production generator g5_a5, matched via g3 <-> g3_a5^-1 (a pure")
+        print("  inverse-labeling artifact, immaterial to the symmetric generating set")
+        print("  {g5,g5^-1,g3,g3^-1} actually used for the random walk, since that set")
+        print("  already contains both g3_a5 and g3_a5^-1 regardless of which one is")
+        print("  called 'primary'). The g5_a5^2 (wrong-class) controls above both FAIL")
+        print("  to close to the full group under the naive as-labeled pairing, cleanly")
+        print("  separating right-class from wrong-class. NO RE-CALIBRATION NEEDED --")
+        print("  S1.3.3's existing A5 numbers (generator = g5, unmodified) already used")
+        print("  the class-correct generator.")
+    else:
+        print("  VERDICT: UNRESOLVED BY THIS CHECK -- see printed PASS/FAIL rows above;")
+        print("  this is a real finding requiring hand inspection, not silently passed.")
+    print()
+    return same_class_ok and not wrong_class_ok
 
 
 def verify_closure():
@@ -268,10 +441,57 @@ def fit_set_diversity_check(table_keys):
         assert ok, f"{name}: fit-set diversity floor 3*d_min not cleared at n_fit={N_FIT}"
 
 
+# =============================================================================
+# CA2-m2 -- eval-set (n_eval=20, the DISJOINT scoring subset, S1.4.1 step 4)
+# diversity floor. Attack round 2 found the fit-set floor above (S1.3.3 STEP
+# 3) has no analog on the SCORING subset: an eval draw that happens to
+# collapse to very few distinct targets would still "score" (mean_cos /
+# recovered_frac@0.9), just as a poorly-powered estimate of the checkpoint's
+# real accuracy, not a correctness bug -- unguarded, though empirically fine
+# per the round-2 finding. A MODEST floor (not the fit set's equation-
+# solving-strength bar; the eval set does no fitting) anchored to the SAME
+# MC machinery: bar = min(2*d_min(G), floor(0.6*|G|)) -- half the fit
+# floor's d_min coefficient (3->2) and cap fraction (0.8->0.6), proportioned
+# roughly to n_eval/n_fit = 20/30 = 2/3 of the fit set's own size.
+# =============================================================================
+
+N_EVAL = 20  # 40% of N_EVAL_WORDS=50, S1.14's pinned 60/40 fit/eval split
+
+
+def eval_set_diversity_check(table_keys):
+    print()
+    print("=" * 88)
+    print(f"STEP 4 -- CA2-m2 eval-set diversity floor: n_eval={N_EVAL} words/trial, "
+          f"{N_TRIALS} trials/group, bar = min(2*d_min(G), floor(0.6*|G|))")
+    print("=" * 88)
+    rng_master = np.random.default_rng(RNG_SEED + 2)
+    header = f"{'Group':<6}{'|G|':>6}{'d_min':>6}{'bar=min(2d,.6|G|)':>19}{'eval p1':>9}{'eval mean':>11}{'margin':>9}"
+    print(header)
+    print("-" * len(header))
+    for name, info in GROUPS.items():
+        results = np.array([
+            len({sample_word_result(rng_master, info["gens"], int(rng_master.integers(L_LO, L_HI + 1)))
+                 for _ in range(N_EVAL)})
+            for _ in range(N_TRIALS)
+        ])
+        bar = min(2 * info["dmin"], int(0.6 * info["order"]))
+        p1 = np.percentile(results, 1)
+        ok = p1 >= bar
+        print(f"{name:<6}{info['order']:>6}{info['dmin']:>6}{bar:>19}{p1:>9.0f}"
+              f"{results.mean():>11.2f}{(p1 - bar):>9.0f}  {'PASS' if ok else 'FAIL'}")
+        assert ok, f"{name}: eval-set diversity floor 2*d_min not cleared at n_eval={N_EVAL}"
+
+
 if __name__ == "__main__":
+    a5_class_ok = verify_a5_generator_class()
     verify_closure()
     table = run_calibration()
     bars = pick_bars(table)
     print()
     print("Bars (fraction of |G|):", {k: v["frac"] for k, v in bars.items()})
     fit_set_diversity_check(table)
+    eval_set_diversity_check(table)
+    print()
+    print("=" * 88)
+    print(f"CA2-M1 A5 generator class: {'VERIFIED CORRECT, no bar changes' if a5_class_ok else 'MISMATCH -- see verdict above'}")
+    print("=" * 88)
