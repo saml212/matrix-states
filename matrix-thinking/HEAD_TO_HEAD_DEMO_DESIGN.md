@@ -3329,3 +3329,18 @@ margin, or accept the 1.562× spend given the fix's own confirmed contender/abla
 pilot: AUD2-F1 target CLOSED (contender 1.244×, ablation 1.487×); round-3 decision gate FAILED
 on the transformer's own newly-measured cost (1.562× vs the 1.5× bar) → round 3 NOT launched,
 coordinator decision pending.**)*
+
+### 1.26a COORDINATOR AUTHORIZATION (2026-07-09 overnight): calibration round 3 AUTHORIZED at the re-priced 3.593 GPU-h
+
+The §1.26 price gate (1.5× tripwire) did its job: it surfaced a real
+pricing drift instead of silently absorbing it. Adjudication: the drift is
+EXPLAINED (the registry's 2.300 was an estimate predating the Rev-4
+three-term objective's real-kernel rates; the newly-measured transformer
+ratio 1.736× was never in the prior price; the AUD2-F1 fix itself is
+CONFIRMED in-band at 1.244×/1.487× contender/ablation), the re-priced
+sweep upper bound (≈13.25 GPU-h vs 11.675 prior) shows no regression at
+sweep scale, and affordability is a non-issue under the saturation
+charter (≈192 GPU-h/day supply). **Round 3 (9 cells) AUTHORIZED at 3.593
+GPU-h, GPUs 5-7; the ladder/band analysis and margin freeze remain gated
+on its results as before. The §1.6 price row is superseded by the §1.26
+measured rates for all downstream pricing.**
