@@ -3383,3 +3383,58 @@ Realized round-3 spend ≈ authorized envelope; the crashed cell's
 training compute is reusable (ckpt on disk). Rounds 1-2 precedent
 honored: failures are data — and this one carries the campaign's first
 positive discrete-recall separation.
+
+### 1.28 DISSOCIATION DIAGNOSIS (2026-07-09 morning): instrument-design mismatch ~55% / argmax-grade geometry ~30% — NOT a threshold artifact; rung 2 found STRUCTURALLY VACUOUS; decisive experiment authorized
+
+Evidence (all traced to code/raws): (1) the probe output IS the membership
+oracle again — final_probe_cos_mean 0.17596 = 99.5% of the analytic 1/√32
+ceiling, cos_pred_episode_mean 0.9415 ≥ the 0.85 tell; cosines cluster at
+~0.17 not 0.85 (threshold artifact REFUTED). (2) Trajectory decoupling:
+rung 1's two phase transitions (0.03→0.69 @3-3.5K; 0.78→0.99 @14-16K)
+leave probe_cos_mean unmoved (0.149→0.144; 0.172→0.173) despite verified
+gradient parity — the recall events bypass the probe leg entirely. (3)
+Readout-path asymmetry: rung 1 = continuation through BOTH blocks + full
+nonlinear query processing + LM head; rf@0.9 = S₁@q_shallow through a
+linear probe — nothing constrains them to coincide; Rev 4's bet that
+CE_answer recall would spill into the bilinear read FAILED as a bet, not
+as a bug (§1.22 deliberately carried the instrument unchanged). (4) The
+Nichani argmax-vs-exact-recovery gap was PRE-REGISTERED in the ladder
+("rung 1 does not imply rf@0.9") — this is that gap, live, plus a
+tap-placement question rung 2 was supposed to separate BUT:
+**NEW INSTRUMENT DEFECT (rung 2): fit_rung2_identity_classifier
+(h2h_cell_train_rd.py:686-727) uses tgt_slot labels, and slots are
+UNIFORM given identity (grammar_rd.py:434-436 draws entity order fresh
+per episode) — a PERFECT tap scores chance; every arm's rung-2≈chance is
+expected under ALL hypotheses; the §1.7 attribution row cannot
+discharge.** R5-F2's capacity null couldn't catch it (noise-direction
+only; no planted-signal positive control — new rule: every ladder rung
+needs a positive control, the positive analog of the negative-test hard
+rule). (5) RECORD GAP: the round-3 checkpoint was never offline-probed —
+probe_diagnosis artifacts (02:31-02:37Z) predate round 3's 05:58Z
+in-place checkpoint overwrite (filename-collision risk noted for future
+rounds); §1.21's offline-refit refutations do NOT transfer. (6) Prose
+correction to §1.27: ablation rung1 0.0447 is +4.9σ above chance (weakly
+real), transformer −0.6σ (chance).
+
+**DECISIVE EXPERIMENT AUTHORIZED (≤0.4 GPU-h ceiling, idle GPUs, no
+training):** Stage 1 (zero new code, ~0.1 GPU-h): run the existing
+probe_diagnosis_rd.py + probe_diagnosis_oracles_rd.py against the
+round-3 _auxrev2 task1-K32 checkpoints — rf@τ curve τ∈{0.5..0.9} +
+cosine quantiles, offline ridge/SGD/MLP refits, the 107-class
+entity-identity classifier (the CORRECT rung 2), episode-restricted
+tap-space codebook argmax (the hard rule's argmax-closure), LM-head
+route. Decision rules: refits recover → probe-training failure (fix =
+offline refit in the metric path); refits at membership BUT tap-space
+argmax / identity classifier ≫ chance → ARGMAX-GRADE GEOMETRY in S₁
+(publishable: the Nichani gap live in a trained fast-weight LM); both at
+chance → tap placement → Stage 2 (state-zeroing localization + tap
+variants, ~150 lines, ~0.2-0.3 GPU-h, separately authorized on Stage-1's
+readout). **Rev-5 gate direction (recorded, not yet adopted):** two legs
+— Leg A WIN metric = episode-restricted discrete recall (rung 1),
+symmetric across arms, Nichani caveat disclosed, rf@0.9 NOT a LOSE
+criterion (the claim is recall capability, not rank-necessity — the
+exact-recovery hard rule binds rank claims like M*, not this one); Leg B
+= repaired continuous instrument (offline-fit probe, localized tap,
+rf@τ curve + membership tell) as mechanism attribution. Mandatory
+regardless: rung-2 labels → entity identity; planted-signal positive
+controls on all rungs; the transformer_native_tap OOM fix (§1.27).
