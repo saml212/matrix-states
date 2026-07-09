@@ -5829,3 +5829,44 @@ Box-only: the fla cross-check. One more stdout injection (tally 80→81).
 aggregation swap, floor removal, untrained-composer regression, planted
 degenerate/healthy both directions) → fixes → deploy (md5) →
 calibration-first gate (11 cells) → sweep per §2 ledger.**
+
+### §1.35 M3 FIX-WAVE AUDIT VERDICT (2026-07-09): CLEARED-FOR-LAUNCH + THE C1 METRIC PIN (pre-registered here, before launch)
+
+Worktree audit on b07d2b6: legacy "eye" default PROVEN byte-identical
+(tensor-level comparison vs b07d2b6^, all groups/lengths — the harvested
+58 cells' reproducibility untouched); variant-B 2-point necessity
+re-derived AND shown load-bearing (truncate_to_rank silently clamps
+k=min(k,d) — the registered-but-unreachable 3rd cell would have run as a
+MISLABELED DUPLICATE of unconstrained, a silent scientific error the
+§1.34 amendment prevented); manifest recount + price re-derivation exact
+(576,000 step-cells × measured rate = 1.33236 GPU-h); pristine 13/13;
+**8/8 mutations CAUGHT** (padding-flag bypass at both levels, planted
+near-zero-σ rank inflation — tolerance proven load-bearing at 1e-15 vs a
+loose 1e-4 that misses it — rank-deficient pad caught twice, unreachable
++ reachable-decoy grid points, steps swap, both per-cell override drops);
+resume-skip rejects truncated/NaN/missing-key results; PI gate enforced
+twice; anchor padding within-family both variants (no cross-padding
+contamination); train/eval padding mismatch NONE (decision metrics score
+raw rho, padding-agnostic by construction).
+
+**C1 (MANDATORY, discharged by this record): the m3fix M3 DECISIONAL
+read is `crosscheck_recovered_frac_90` / `crosscheck_mean_cos` (full-Q
+Procrustes), pre-registered HERE before launch.** Basis: the audit's
+perfect-oracle injection shows the scale-only PRIMARY reads 0.01-0.22
+mean_cos for a FLAWLESS zero-pad model (degenerate rho-block eigenvalues
+→ arbitrary U rotation — §1.33's disclosed brittleness), so the two
+metrics will genuinely diverge in this wave; both stay persisted per
+cell; the primary is reported as disclosed-diagnostic only.
+**Advisories:** A1 no runtime budget abort in run_m3fix (price is a
+compile-time constant 1.3324, smoke-asserted — accepted); A2 variant-B's
+k_dmin cell ≈ base unconstrained re-run (harvest reads it as the
+tax-narrative confirm point, not an independent constrained test); A3
+harvest must verify recorded target_padding/force_rank_k/steps
+per cell against the manifest (config-match, not just health).
+**LAUNCH DISPATCHED per B1-B4:** deploy md5 vs b07d2b6 → 13-section box
+smoke (real-kernel section 12) → `--m3fix` with NO --steps override +
+dedicated results_m3fix/ dir + CUDA_VISIBLE_DEVICES pin to an idle GPU +
+tmux/supervisor → harvest applies C1/A2/A3. Oracle ceilings for the
+harvest: k≥d_min exact (1.0), k=d_min−1 bounded ≤0.894 (A6 thinnest,
+margin 0.0056, upper bound), old defect signature √(k/d_state)
+distinguishable.
