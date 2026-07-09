@@ -5803,3 +5803,29 @@ coordinator — the sighting was the usual appended-stdout class); tally
 79→80. **NEXT: independent worktree audit → deploy (md5) → LAUNCH on an
 idle GPU → harvest = the causal M3 verdict completing §1.33's rank-law
 story.**
+
+### §2.19 STAGE 2 BUILD RECORD (2026-07-09): COMPLETE — commit 51fa11a; independent worktree audit DISPATCHED
+
+Five new modules (stage2_{composer,instrument,task,run}.py + smoke_stage2
+.py; ~2,040 lines; zero shared-module edits — the coverage single-depth
+mode reimplemented importing pick_bars unmodified). 6/6 smoke on CPU:
+composer fwd/bwd at D∈{1,8,64}×n_h∈{1,2,4}×β∈{1,2}; rank(S_D) ≤
+min(32,n_h·D) PROVEN (rank-1 update algebra) and checked per config;
+blank-out + planted-leak; target-rank test w/ planted zero-pad mutant
+caught (§1.33 [LEARN] honored); the 2(e) instrument with the rank-matched
+QR anchor exact at all depths, zeroed-reader trips the 1e-4 floor →
+instrument-defect routing, collinear-row plant fails both bars, healthy
+plant passes, ceiling-demotion discharges launch; grid/budget/resume/
+checkpoint round-trip. Builder findings for the auditor: (1) Arm-1
+checkpoints DON'T EXIST (Stage 1 never torch.saved — load fails loudly);
+(2) Arm-1 hard-capped at D≤16 by L_max (out-of-range depths reported
+structurally, §2.2.1's predicted failure); (3) q_proj deliberately
+omitted (no q-dependence in the recurrence; param-match hygiene); (4)
+SELF-CAUGHT BUG fixed: the calibration gate initially probed a
+freshly-reinitialized composer, not the trained one — now persists and
+reloads the trained checkpoint (the audit must mutation-test this).
+Box-only: the fla cross-check. One more stdout injection (tally 80→81).
+**NEXT: worktree audit (mutations: anchor rank-match break, mean→max
+aggregation swap, floor removal, untrained-composer regression, planted
+degenerate/healthy both directions) → fixes → deploy (md5) →
+calibration-first gate (11 cells) → sweep per §2 ledger.**
