@@ -3973,3 +3973,56 @@ rides the round-4 harvest before margin freeze.
 clauses it supersedes). NEXT: fresh micro-attack on the Rev-5 delta →
 build-fix (§1.31.4) → scoped build audit → round 4. NO training relaunch
 until the fixes audit clears.**
+
+### 1.32 MICRO-ATTACK ON REV 5 (2026-07-09): NEEDS-REVISION — 1 FATAL-class pre-registration hole, 5 MAJOR; the two-leg direction itself is SOUND
+
+Verified clean: Leg-A tier logic is a complete partition; INDETERMINATE
+can't be gamed (pinned EVAL_SEED, one pre-registered n=3→9 extension);
+the MHL walk survives the metric swap; the degenerate-baseline trigger is
+pinned (0.94× was descriptive); price re-derives exactly (≈1.25-1.28
+expected / 1.96 ≤ 2.0 ceiling); fix order coherent; Leg-B split hygiene
+disjoint-seeded; §1.26a chain consistent.
+
+**F1 (FATAL-class, binding):** contender_task2 rung1 = 0.0376 (1.2×
+chance, band FAIL) and both K48-stress cells ≈ chance ON THE FROZEN
+CHECKPOINTS — the dissociation exists ONLY in task1_K32; round 4
+re-meters the same checkpoints, so task2's Leg-A band fails
+DETERMINISTICALLY. Rev 5 records none of this AND leaves §1.4.1's
+"Task 2, primary" designation un-superseded → the axis-1 decisive-cell
+identity is ambiguous while one resolution is already settled by on-disk
+data (the §1.29-precedent trap re-fired). FIX (Rev 5.1): record the full
+round-3 rung-1 table (7 cells); pin the axis-1 aggregation rule with an
+explicit supersession of the "Task 2, primary" sentence; pre-register
+task2's round-4 disposition NOW (its band failure is knowable — name the
+branch: task1-only sweep vs task2 diagnosis vs objective iteration).
+**F2 (MAJOR):** the checkpoint-reuse record is factually wrong —
+torch.save executes AFTER the OOM'd rung-2 fit, so round-3 K48-transformer
+weights were NEVER persisted; the on-disk file is ROUND-2's two-term-
+objective model (mtime 02:03 < launch 05:41). Correct plan: 7 reuse
+(mtimes verified 05:49-08:43) + 2 fresh; STRIKE "reuse may be attempted";
+mandate a per-cell identity table (md5+mtime, all 7) as round-4
+pre-flight; the loader needs pinned provenance, not just versioned saves.
+**F3 (MAJOR):** two build items missing from §1.31.4's binding list:
+(5) re-wire check_gate1_full_cell_band (still enforces rf@0.9>0 — run
+as-is it FATALs every cell) per §1.31.3's bands; (6) the round-4
+re-metric driver itself (3-arm Leg-A continuation eval + Leg-B ridge
+incl. the transformer arm + S₀-zeroing + both-direction controls).
+**F4 (MAJOR):** pin the S₀-HARD-STOP numerically: collapse = S₀-zeroed
+acc ≤ the 3×-chance bar; S₁-unchanged = within ±2 binomial σ at n=4096;
+pin seed-aggregation at verdict grade. **F5 (MAJOR):** replace the prose
+supersession with an ENUMERATED dead-clause list (adds: §1.7's
+"only this rung feeds WIN/TIE/LOSE", §1.4.2's per-M gap statistic,
+§1.4.1 task-primacy, §1.7 gate-7 scope, §1.3.1.2 tap pin). **F6
+(MAJOR):** fix the claim sentence — round-4's transformer is UNCAPPED,
+so the honest (and STRONGER) claim is "cannot reach even with its full
+KV cache at matched params/tokens/budget"; the K-cap/M* tie-in belongs
+to the sweep; add the matched-budget caveat and the seed-fragility
+disclosure w/ extension trigger. Minors M1-M4 (Leg-B anchor status +
+tolerance; 7+2 arithmetic; joint-NO-RECALL rule for the M* walk; K48
+forced-fail spec). **Bookkeeping: the injection tally is RACING under
+concurrent agents (79 vs ≈89 in parallel logs) — treat as ≥80;
+single-pass reconciliation at the next STATE consolidation.**
+
+**DISPOSITION: Rev 5.1 amendment dispatched (surgical, prescription
+above); coordinator raw-diff verification per the §2.16/§2.18 precedent;
+build-fix waits on 5.1.**
