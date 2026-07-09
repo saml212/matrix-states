@@ -4234,7 +4234,7 @@ at one locus, H3 consistent (no sign pre-registered) — no hypothesis in
 
 ---
 
-## 13. FIX-AT-SCALE WAVE — design Rev 0 (opened 2026-07-09, PI-directed GPU-saturation charter)
+## 13. FIX-AT-SCALE WAVE — design Rev 1 (opened 2026-07-09, PI-directed GPU-saturation charter; revised 2026-07-09 per the §13.13 attack-round-1 verdict — see §13.14 for the finding→fix map)
 
 **This is the wave the PI's directive text calls "this program's own §2"** (`STATE.md`
 "GPU SATURATION DIRECTIVE (PI, 2026-07-09)": *"FIX-AT-SCALE ... registry =
@@ -4349,16 +4349,55 @@ regardless of what training did. `arm_off′` is the artifact-matched reference 
 makes the comparison mean anything; every one of §13.5/§13.6's bars below is read
 against `arm_off′`, never bare `arm_off`.
 
-**Explicitly excluded this wave, disclosed as a scope decision, not an oversight
-(§13.11 item 2 has the full self-attack): the global-vector control (rung-1's
-"Arm 2′," which was registered "NOT cuttable... core to both rungs" at 14M) is
-NOT trained at 98M or 392M this wave.** Rung-1's own data shows this is the
-construction that actually moved in the mechanism-predicted (stabilizing) direction
-(−0.3319/−0.2308 CI-excludes-zero both corpora) — dropping it here trades away the
-§7.1a "is this about token-identity keying at all" licensing check at scale, purely
-for budget reasons (a third arm at either scale would add another full training
-manifest, §13.7). This is the single most consequential scope cut in this design and
-is flagged, not hidden.
+**Excluded from the PRIMARY (n=3/n=3, CI-gated) manifest this wave, disclosed
+as a scope decision, not an oversight (§13.11 item 2 has the full
+self-attack; text below is the original Rev 0 rationale, superseded in part
+by the Rev 1 addition immediately after it): the global-vector control
+(rung-1's "Arm 2′," which was registered "NOT cuttable... core to both
+rungs" at 14M) is NOT trained as a full n≥2 arm at 98M or 392M this wave.**
+Rung-1's own data shows this is the construction that actually moved in the
+mechanism-predicted (stabilizing) direction (−0.3319/−0.2308 CI-excludes-zero
+both corpora) — dropping the FULL arm here trades away the §7.1a "is this
+about token-identity keying at all" licensing check at scale as a CI-gated
+result, purely for budget reasons (a third full arm at either scale would
+add another complete training manifest, §13.7). This remains the single
+most consequential scope cut in this design and is flagged, not hidden — the
+Rev 1 addition below narrows, but does not close, the gap.
+
+**Rev 1 addition (§13.13 BINDING item 1) — `arm_global_probe`, an
+exploratory-tier global-vector probe.** n=1 seed (no seed replication —
+exploratory/descriptive tier only, mirroring §12's tier convention: every
+output artifact carries a `"tier": "exploratory-probe — NOT a confirmatory
+bar, n=1"` stamp, the same discipline `mech_schema.wrap_exploratory()`
+enforces in §12), run at BOTH scales (98M at the full Track-C-matched
+67,547-step budget; 392M at the SAME reduced 20,000-step budget
+`arm_per_token` uses, §13.7), BOTH corpora — **4 training cells total**
+(98M×2 corpora + 392M×2 corpora, each ×1 seed). Construction: the LITERAL
+transplant of rung-1's own Arm 2′ (§ "Arm 2′ — Global single frozen vector,
+no token lookup," above) — same frozen table `B`
+(`key_anchoring.random_unit_rows_init(n=50257, d=d_state, seed=ANCHOR_INIT_SEED)`),
+collapsed to a single fixed vector `b_global = normalize(mean_i B[i])`,
+blended at every position/step as `k_biased = normalize((1-λ)·k_raw +
+λ·b_global)`, identical λ=0.58, identical insertion point, identical density
+to `arm_per_token` — only `d_state` (hence `b_global`'s dimension) changes
+per scale, same convention as `arm_per_token`. **Comparator: reuses
+`arm_off`'s own already-scheduled checkpoints** (already being trained in
+the PRIMARY manifest — zero incremental training cost), re-blended at eval
+time with `b_global` instead of the per-token table, mirroring `arm_off′`'s
+own eval-only-retrofit convention (this section, above) and rung-1's own
+Arm 1″ control. No separate training cell is needed for the comparator, and
+no additional eval-only GPU-h line is added beyond the 4 training cells
+below — the eval-only pass itself is the same sub-0.02-GPU-h/pass class
+§13.7's existing eval-only rows already price, immaterial at n=1×2 scales×2
+corpora. **Pre-registered — what this probe informs:** whether the
+geometry-STABILIZING construction (the one that actually worked at 14M)
+transfers to scale, independent of whatever `arm_per_token`'s own primary
+bars (§13.6) read. It is the input to any future "deploy the right arm"
+decision, not a claim this wave resolves — see §13.6's Rev 1 note on how
+this probe's own reading relates to (and does not gate) the WIN/PARTIAL/NULL
+bar, and §13.11 item 2 for the licensing-check gap it narrows without
+closing (n=1, no CI, cannot itself license a transplant claim the way a
+full n≥2 §7.1a comparison would).
 
 ### 13.4 Observables — reused unmodified from §4, no new instrument built
 
@@ -4430,6 +4469,19 @@ standing claim on a 98M or 392M noise floor):
 already-open section of the paper** (07_the_fix's own arc for WIN, 09_discussion
 item 6 for PARTIAL/NULL) — no outcome of this wave is a "failed" wave in the
 budget sense; the wave's job is measurement, not confirmation of a specific sign.
+
+**Rev 1 note (§13.13 BINDING item 1) — `arm_global_probe` does not gate any
+of the three outcomes above.** The WIN/PARTIAL/NULL bar stays exactly as
+specified — `arm_per_token` vs. `arm_off′`, CI-gated, n=3/n=3 — unchanged by
+the probe's existence. The probe's own reading (§13.3) is reported
+descriptively, alongside, at exploratory/descriptive tier (n=1, no CI): it
+answers a different, narrower question ("does the CONSTRUCTION KNOWN TO
+STABILIZE at 14M still stabilize at scale") than §13.6's own primary
+question ("does the DEPLOYED construction's effect transfer/reverse/null
+at scale"). A reader must not treat the probe's sign as evidence for or
+against any of WIN/PARTIAL/NULL above — that would silently promote an n=1
+exploratory reading to gate a CI-pinned bar, exactly the descriptive-tier
+conflation §13.10 gate 5 exists to prevent for the primary arms.
 
 ### 13.7 Cost table — REALIZED rates, with a load-bearing correction to the pre-registered figure
 
@@ -4507,10 +4559,31 @@ placeholder, base rates):**
 | 392M training, n=3 (PRIMARY default) | 12 | 20,000 | 55.73 | 111.47 |
 | 392M eval-only, n=3 (18 passes, ESTIMATE scaled ×27.9×) | 18 passes | n/a | 10.04 | 20.09 |
 | Wave −1 instrument-validity + code-path-equality smoke (both scales, mirrors §8.0/§8.0b) | — | n/a | 0.20 | 0.40 |
-| **Total, n=3/n=3 PRIMARY DEFAULT** | 24 training + 36 eval-only | | **122.21** | **244.44** |
+| **Total, n=3/n=3 PRIMARY DEFAULT (Rev 0)** | 24 training + 36 eval-only | | **122.21** | **244.44** |
+| **`arm_global_probe`, n=1, both scales, both corpora (Rev 1, §13.13 BINDING item 1 — see §13.3)** | 4 | 67,547 (98M) / 20,000 (392M) | **18.30** | **36.60** |
+| **Total, n=3/n=3 PRIMARY DEFAULT + Rev 1 probe** | 28 training + 36 eval-only | | **140.51** | **281.04** |
 | *392M training, n=2 (cost-relief fallback, §13.3's task-authorized "if cost demands")* | *8* | *20,000* | *37.16* | *74.31* |
 | *392M eval-only, n=2 (12 passes)* | *12 passes* | *n/a* | *6.70* | *13.39* |
-| **Total, n=3-98M / n=2-392M FALLBACK** | 20 training + 30 eval-only | | **100.30** | **200.58** |
+| *Total, n=3-98M / n=2-392M FALLBACK (Rev 0)* | *20 training + 30 eval-only* | | *100.30* | *200.58* |
+| *Total, n=3-98M / n=2-392M FALLBACK + Rev 1 probe* | *24 training + 30 eval-only* | | *118.60* | *237.18* |
+
+**Rev 1 probe row, arithmetic shown (§13.13 BINDING item 1):** 2 cells at
+98M's 4.478 GPU-h/cell (openr1 + wikitext, ×1 seed) + 2 cells at 392M's
+4.671 GPU-h/cell (openr1 + wikitext, ×1 seed) = `2×4.478 + 2×4.671 = 8.956 +
+9.342 = 18.298 ≈ 18.30` GPU-h at 1×, `≈ 36.60` at 2× — both rates taken
+directly from this section's own verified per-cell figures above (98M
+4.478, 392M-20k 4.671), no new rate assumption. No incremental eval-only
+line is added (§13.3's Rev 1 addition explains why: the comparator reuses
+`arm_off`'s already-scheduled checkpoints at near-zero eval-only cost,
+already priced inside this table's existing eval-only rows' order of
+magnitude).
+
+**Margin vs. the 300 GPU-h cap, PRIMARY + Rev 1 probe (the binding total for
+this revision):** `300 − 281.04 = 18.96` GPU-h headroom (**≈6.3% of the
+cap**) — down from Rev 0's ≈23% margin (see §13.8), but still positive
+margin, not a breach. The FALLBACK + Rev 1 probe total (237.18 GPU-h, 2×)
+retains a much larger ≈21% margin if the n=2/392M cost-relief option is
+invoked instead.
 
 **Why 2× contingency is kept despite realized (not placeholder) base rates:**
 rung-3's own history is the direct counter-example to "measured means safe" — its
@@ -4545,15 +4618,28 @@ superseded its own brief's placeholder. **Reconciliation:**
 
 **Proposed ledger: `fix-at-scale`, cap = 300 GPU-h** (headroom-cap convention, not
 a target — mirrors rung-1's own 135 GPU-h ceiling against an ≈11–14 GPU-h committed
-ask, §8.1). 300 GPU-h gives ≈23% headroom over the n=3/n=3 primary default
-(≈244.44 GPU-h) and ≈50% over the fallback, while staying a similar order of
-magnitude to Track C's own 300 GPU-h program ceiling (`run_lm_rd_trackc_sweep.py:306`,
-itself already 12.23 GPU-h over-spent and disclosed as such) — a genuinely NEW,
-separate ledger, not a draw against frozen-bias's existing 135 GPU-h ceiling
-(§8.1) or its ≈123.57 GPU-h of unused headroom (`STATE.md` LEDGERS: "frozen-bias:
-11.43/135 (~123 headroom — funds the head-to-head)" — that headroom is EARMARKED
-for the head-to-head demo per STATE.md's own parenthetical, not free for this wave
-to silently draw against).
+ask, §8.1). Rev 0 figure, cited for the record: 300 GPU-h gave ≈23% headroom over
+the n=3/n=3 primary default alone (≈244.44 GPU-h) and ≈50% over the fallback alone,
+while staying a similar order of magnitude to Track C's own 300 GPU-h program
+ceiling (`run_lm_rd_trackc_sweep.py:306`, itself already 12.23 GPU-h over-spent
+and disclosed as such) — a genuinely NEW, separate ledger, not a draw against
+frozen-bias's existing 135 GPU-h ceiling (§8.1) or its ≈123.57 GPU-h of unused
+headroom (`STATE.md` LEDGERS: "frozen-bias: 11.43/135 (~123 headroom — funds
+the head-to-head)" — that headroom is EARMARKED for the head-to-head demo per
+STATE.md's own parenthetical, not free for this wave to silently draw against).
+
+**Rev 1 update (§13.13 BINDING item 1, supersedes the ≈23% figure above as the
+binding number for this revision):** with the `arm_global_probe` addition folded
+in (§13.7's recomputed table), the PRIMARY-default total rises to **281.04 GPU-h
+(2×)**, leaving **18.96 GPU-h headroom (≈6.3% of the 300 GPU-h cap)** — still
+positive margin, the cap is not breached, but the room for further scope growth
+inside this ledger without a cap increase is now materially smaller than Rev 0's
+≈23%. If the n=2/392M FALLBACK is invoked instead, the probe-inclusive total is
+237.18 GPU-h (2×), restoring a ≈21% margin. This tightened margin is disclosed
+here, not silently absorbed — a future BUILD or harvest pass that finds any of
+§13.7's ESTIMATE-tagged eval-only rows running materially over their scaled
+projection should re-check against this narrower 6.3% band, not the Rev 0 23%
+figure.
 
 **Authorization: the PI's 2026-07-09 GPU-saturation directive** (`STATE.md`,
 quoted in full at §13.0) is the recorded authorization for opening this new ledger,
@@ -4655,7 +4741,16 @@ mirrored into this file's own §8.2a.
    Track-C rate) BEFORE committing to a full-length calibration cell, let alone
    the full manifest. This is the gate that would have caught rung-3's own
    1.985× miss two orders of magnitude cheaper than rung-3's own discovery-by-
-   timeout did.
+   timeout did. **(Rev 1 addition, §13.13 BINDING item 2, near-zero cost):** the
+   SAME pilot cell also logs **peak VRAM (GB)** — `torch.cuda.max_memory_allocated()`
+   at pilot completion, per GPU, with an `nvidia-smi --query-gpu=memory.used`
+   cross-check — for both scales. No separate pass is added; this is a logging-only
+   change to the existing pilot cell. This closes a real instrumentation gap: no
+   VRAM figure appears anywhere in §13.7–§13.9 today, and §13.9 proposes running up
+   to 4 concurrent 392M cells and 3 concurrent 98M cells per GPU bank — per-cell
+   VRAM headroom under that concurrent occupancy is exactly the kind of assumption
+   this design should measure once, cheaply, at pilot time rather than discover via
+   OOM once the full 28-cell manifest (§13.7, Rev 1 total) is already running.
 4. **Calibration-first per scale (CLAUDE.md's standing rule, §6.3's own precedent):**
    one full-length `arm_per_token` cell (openr1-mix-ext, seed 0), run alone, THEN
    inspected — loss curve, `span_frac` trajectory, no NaN/divergence, no OOM —
@@ -4701,6 +4796,23 @@ mirrored into this file's own §8.2a.
    still calling it "the fix," which this design explicitly declines to do. The
    excluded global-vector arm (§13.3) is the disclosed, budget-permitting way to ask
    the easier question later, not smuggled into this wave's own headline.
+   **Rev 1 update — this adjudication is now SETTLED by an independent attack round,
+   not merely self-adjudicated (§13.13 ATTACK ROUND 1 VERDICT, cited here in full):**
+   the wrong-direction claim restated above is CONFIRMED TRUE by the round-1
+   attack's own raw-table re-verification (per_token Δspan_frac +0.1955/+0.2273,
+   both CI-exclude-zero = WORSE; global-vector −0.3319/−0.2308 = stabilizing;
+   rung-1 was a FOURTH-OUTCOME descriptive tier, never a clean CONFIRM for either
+   arm). The same attack round independently checked whether the h2h §1.2 pin of
+   `per_token` as the DEPLOYED arm rests on a misread of these numbers — it does
+   not: the pin quotes these exact figures and chooses `per_token` for disclosed
+   engineering reasons (Newton-Schulz/β-uniformity stability + a clean val-loss
+   gate), not a claim that `per_token` is the geometry-stabilizing construction.
+   This wave's primary manifest still tests `per_token` as literally specified,
+   unchanged from the paragraph above. One clause above is superseded by §13.3's
+   Rev 1 addition: "the excluded global-vector arm... disclosed, budget-permitting
+   way to ask the easier question later" — "later" is now THIS wave, via
+   `arm_global_probe` at exploratory/descriptive tier (n=1), not deferred further;
+   see §13.3 and §13.6's Rev 1 note for what that probe does and does not license.
 2. **The global-vector control (Arm 2′) is missing at both new scales** — the
    §7.1a "is this about token identity, or any constant vector" licensing check
    cannot be run this wave. A WIN outcome (§13.6) at 98M/392M would therefore be
@@ -4737,6 +4849,15 @@ mirrored into this file's own §8.2a.
    98M/392M cells (qk-norm ON throughout, unvaried) would need re-reading against
    that finding, not silently assumed unaffected. Flagged as an open dependency,
    not resolved here.
+   **Rev 1 status (§13.13 BINDING item 4): stays open, by design, not by
+   oversight.** §13.13's own "Open items for the next revision round" list
+   (immediately above the ATTACK ROUND 1 VERDICT) already carries this exact
+   item — "§13.11 item 5 (qk-norm interaction) — resolve once
+   `ATTRACTOR-ROBUSTNESS 2×2` reports" — and the binding resolution for this
+   revision explicitly directs leaving it open pending that wave's screening
+   result rather than resolving it here without the data. Cross-reference is
+   now explicit in both directions (this item ↔ §13.13's open-items list); no
+   substantive text in this item has changed.
 6. **The blind-pin timing fix (§13.10 item 5) is a PROCESS commitment, not yet a
    verified mechanism** — rung-1's own pin was correctly SEQUENCED relative to
    Arm 2/Arm 2′ (written after Arm 1 completed, before Arm 2 was inspected) but
@@ -4788,8 +4909,10 @@ mirrored into this file's own §8.2a.
   `RUNGS[2]` (392M), `verify_param_count` — re-run this file's own smoke gate
   before any GPU time is spent (CPU-only, seconds).
 - `key_anchoring.py`'s `write_bands_pinned` / `validate_bands_pinned` /
-  `assert_blind_not_broken` — the pin mechanism, extended (not rewritten) to
-  two new scale-keyed JSON files.
+  `assert_blind_not_broken` — the UNDERLYING FUNCTIONS, reused unmodified,
+  extended (not rewritten) to two new scale-keyed JSON files. **The call
+  site is a separate, NEW item — see below (Rev 1, §13.13 BINDING item 3);
+  do not read this bullet as covering the wiring.**
 
 **New this wave (expect mostly wiring, not new algorithms):**
 - Arm wiring at both new `RUNGS` configs: instantiate `arm_off`/`arm_per_token`
@@ -4797,12 +4920,43 @@ mirrored into this file's own §8.2a.
   (`(50257, d_state)`) already parametrizes correctly per §2's own design (the
   central per-scale table-size decision was already made at rung-1's design
   time); confirm, don't re-derive.
+- `arm_global_probe` wiring at both new `RUNGS` configs (Rev 1, §13.13 BINDING
+  item 1, §13.3): instantiate the collapsed single-vector `b_global` blend at
+  `d_state∈{64,128}`, 1 seed, 2 corpora, both scales — new construction code
+  (the `b_global = normalize(mean_i B[i])` reduction), not present in this
+  wave's Rev 0 arm set; reuses `arm_off`'s checkpoints for the eval-only
+  comparator per §13.3, no new training-side comparator code needed.
+- **`assert_blind_not_broken` WIRING AT THE LAUNCHER CALL SITE (Rev 1,
+  §13.13 BINDING item 3 — elevated from an implicit "reuse" note to its own
+  explicit build-list item with a required negative test).** The underlying
+  function is reused unmodified (Reuse list, above), but the CALL — invoked
+  immediately after each scale's `arm_off` pin-write completes, strictly
+  BEFORE that scale's `arm_per_token` cells reach their training START
+  (§13.10 gate 5) — does not exist anywhere in `run_lm_rd_trackc_sweep.py`
+  today and must be built into the launcher. **Required negative test, must
+  be executed (not merely authored) before the manifest launches:** a
+  synthetic-timestamp unit test that deliberately backdates a fake
+  `arm_per_token` training-start timestamp to precede the pin-write
+  timestamp and asserts `assert_blind_not_broken` RAISES — mirrors the
+  standing hard rule (CLAUDE.md: "run the negative unit test that's
+  supposed to prove the check 'has teeth' to completion — don't just write
+  it"; this exact class of gap is also why an earlier `-1` tolerance-slack
+  bug silently defeated a different structural check in this program's
+  history). **The future BUILD audit must verify two things, not one:** (a)
+  the call site exists at the correct point in the launcher, sequenced
+  before `arm_per_token` start, matching §13.10 gate 5's own sequencing
+  requirement; (b) the negative test above was actually run and its output
+  (a raised exception) captured, not just present as an unexecuted test
+  function in the repo — "wired, not merely intended" is the literal bar
+  §13.13's binding item 3 sets.
 - The 1.5× per-cell circuit breaker (§13.8) — genuinely new supervisor logic,
   not present in `run_lm_rd_trackc_sweep.py` today.
 - Two new `BANDS_PINNED-FrozenBias-{98M,392M}.json` writers, reusing the
   existing `key_anchoring.py` pin machinery with a new file-per-scale key.
 - The timing-pilot short-cell mode (§13.10 item 3) — a `--pilot-steps N` flag
-  on top of the existing calibration-cell code path, not a new training loop.
+  on top of the existing calibration-cell code path, not a new training loop;
+  Rev 1 extends this flag's own output to also log peak VRAM-GB (§13.10 item
+  3's Rev 1 addition), same code path, no new flag needed for that part.
 - Chain/tmux/supervisor scripts for two concurrent GPU banks (§13.9) — adapt
   rung-1's own single-bank chain script, not build from scratch.
 
@@ -4853,5 +5007,36 @@ global arm (geometry-stabilizing, never scaled, never pinned). ALSO:
 h2h §1.9's "≈168 GPU-h escalation unaffordable" descends from the same
 6× error — the 392M escalation is ≈28 GPU-h at reduced steps, i.e.
 AFFORDABLE; correct at the next h2h design touch.
+
+---
+
+### 13.14 Rev 1 changes — finding→fix map (2026-07-09, response to the §13.13
+ATTACK ROUND 1 VERDICT above, which is left completely UNTOUCHED, verbatim,
+by this revision)
+
+| # | §13.13 BINDING item | Fix applied | Landed in |
+|---|---|---|---|
+| 1 | (1) ADD the exploratory-tier global-vector (Arm 2′) probe | New `arm_global_probe` arm registered: n=1 seed, both scales (98M full-step, 392M reduced-20k), both corpora, 4 training cells; literal transplant of rung-1's own Arm 2′ construction (`b_global = normalize(mean_i B[i])`); exploratory/descriptive tier, `"tier": "exploratory-probe — NOT a confirmatory bar, n=1"` stamp, mirrors §12's tier convention; comparator reuses `arm_off`'s own already-scheduled checkpoints at near-zero incremental cost; explicitly does NOT gate the WIN/PARTIAL/NULL bar | §13.3 (new "Rev 1 addition" paragraph, Arms), §13.6 (new "Rev 1 note" on non-gating scope), §13.7 (new cost-table row + recomputed totals), §13.8 (new "Rev 1 update" margin paragraph), §13.11 item 1 (Rev 1 update note), §13.12 (new build-list bullet) |
+| 2 | (2) VRAM peak-GB logging folded into the timing-pilot spec | §13.10 gate 3's existing short pilot cell now also logs peak VRAM (GB) per GPU (`torch.cuda.max_memory_allocated()` + `nvidia-smi` cross-check) at pilot completion, both scales — no new pass, no new flag beyond the existing `--pilot-steps N` | §13.10 gate 3 (in-place addition), §13.12 (cross-referenced in the `--pilot-steps` build-list bullet) |
+| 3 | (3) Elevate `assert_blind_not_broken` wiring to an explicit build-list item with its negative test | Moved from an implicit "reuse" footnote to its own explicit "New this wave" build-list bullet: specifies the exact call-site sequencing (immediately after each scale's `arm_off` pin-write, strictly before that scale's `arm_per_token` training START), mandates a synthetic-timestamp negative unit test that must be EXECUTED (not merely authored) before the manifest launches, and states the two-part BUILD-audit bar ("wired, not merely intended") explicitly | §13.12 ("New this wave" list, new bullet; the Reuse-list bullet is also reworded to disclaim covering the wiring) |
+| 4a | (4a) Wrong-direction adjudication now settled by §13.13 | §13.11 item 1 gets a "Rev 1 update" paragraph citing §13.13's independent raw-table re-verification (wrong-direction TRUE, h2h pin NOT a misread) as the authoritative settlement of the adjudication the item's own Rev 0 text only self-adjudicated; also flags that the item's closing sentence ("the easier question later") is superseded by §13.3's Rev 1 addition | §13.11 item 1 (appended paragraph, original text unchanged above it) |
+| 4b | (4b) qk-norm-interaction item stays open, cross-referenced | §13.11 item 5 gets a short "Rev 1 status" note confirming the item stays open by design (per the binding resolution), pending `ATTRACTOR-ROBUSTNESS 2×2`'s screening result, with an explicit bidirectional cross-reference to §13.13's own "Open items for the next revision round" list (which already carried this exact item) — no substantive change to the item's own analysis | §13.11 item 5 (appended paragraph, original text unchanged above it) |
+| — | Header bump | `## 13.` header retitled Rev 0 → Rev 1, dated, cross-referenced to this section | §13 header (top of section) |
+
+**What did NOT change:** §13.0–13.2, §13.4, §13.5, §13.9, §13.10 gates 1/2/4/5/6/7,
+§13.11 items 2/3/4/6/7/8 (text unchanged; item 2's own "explicitly excluded... at
+BOTH new scales" framing is now read alongside — not contradicted by — the n=1
+exploratory probe, since item 2 is specifically about the FULL, CI-gated licensing
+check, which the probe does not supply), and — binding per this design's own
+task charter — **§13.13 in its entirety (both the "Open items for the next
+revision round" list and the ATTACK ROUND 1 VERDICT block) is unedited, byte-for-
+byte, above this section.**
+
+**Recomputed cost table + margin, single-source-of-truth summary (full derivation
+in §13.7/§13.8):** PRIMARY n=3/n=3 default, Rev 0 = 244.44 GPU-h (2×);
+`arm_global_probe` addition = 36.60 GPU-h (2×); **Rev 1 total = 281.04 GPU-h
+(2×)**; cap = 300 GPU-h; **margin = 18.96 GPU-h (≈6.3% of cap)** — positive,
+cap not breached, materially tighter than Rev 0's ≈23%. FALLBACK n=3-98M/
+n=2-392M + probe = 237.18 GPU-h (2×), margin ≈21%.
 
 ---
