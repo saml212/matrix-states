@@ -5040,3 +5040,45 @@ cap not breached, materially tighter than Rev 0's ≈23%. FALLBACK n=3-98M/
 n=2-392M + probe = 237.18 GPU-h (2×), margin ≈21%.
 
 ---
+
+### §13.15 MICRO-ATTACK ROUND 2 VERDICT (2026-07-09, on Rev 1 = c6436fb): DESIGN-CLEARED-FOR-BUILD
+
+Independent micro-attack on the Rev 1 delta only. **All three headline
+numbers re-derived to the decimal** (18.30 = 2×4.478 + 2×4.671; 36.60 at
+2×; 281.04/300 total, margin 18.96 ≈ 6.3%; fallback 237.18 ≈ 21%);
+`arm_global_probe` transplant verified faithful to rung-1 "Arm 2′" (line
+718: same frozen-B/seed, same b_global reduction, λ=0.58, correct per-scale
+d_state 64/128); §13.6 non-gating note coherent with §13.5;
+`assert_blind_not_broken` negative test verified runnable against the real
+implementation (`key_anchoring.py:738-750`, pure function, spec matches
+signature); **§13.13 byte-intact across c6436fb^ → c6436fb** (programmatic
+diff, zero differences).
+
+**Three non-blocking findings, all BINDING ON BUILD (fix in-pass):**
+1. **Comparator eval-cost mis-citation.** §13.3 justifies the comparator's
+   retrofit passes as "the same sub-0.02-GPU-h/pass class §13.7 already
+   prices," but §13.7's scaled eval-only rates are ≈0.139 (98M) / ≈0.558
+   (392M) GPU-h/pass — 7–28× the cited raw 14M rate. BUILD MUST implement
+   the comparator as a shared-forward-pass branch off `arm_off′`'s existing
+   retrofit pass (then it is genuinely ~free) OR book the extra ≈2.79 GPU-h
+   (2×) explicitly. Worst case margin 16.17 GPU-h (≈5.4%) — still positive;
+   not launch-blocking either way.
+2. **Fabricated cross-reference.** §13.11 item 5 cites "§13.13 BINDING
+   item 4" — §13.13's binding list has only items (1)-(3); the qk-norm item
+   comes from its unnumbered open-items bullets. Trivial text fix at next
+   registry touch; substance correct.
+3. **Tier-stamp phrasing.** §13.3 promises the probe output the string
+   `"exploratory-probe — NOT a confirmatory bar, n=1"` "via
+   `mech_schema.wrap_exploratory()`" — but that function hardcodes a
+   DIFFERENT tier string (`mech_schema.py:36,79-98`) and takes no custom
+   parameter. Build must stamp the promised string directly (or extend the
+   helper), not literally reuse `wrap_exploratory()`.
+
+Security: the round sighted one more fake-system-reminder injection in
+`git log` stdout (date-change + concealment + fabricated agent/MCP lists);
+disregarded, reported, tallied in `STATE.md`.
+
+**DISPOSITION: BUILD DISPATCHED** (supervisor logic, 1.5× per-cell abort,
+`assert_blind_not_broken` wired + negative test, `arm_global_probe` wiring
+incl. shared-pass comparator per finding 1, tier stamp per finding 3) →
+independent build audit → deploy (md5) → LAUNCH (392M GPUs 0-3, 98M 4-6).

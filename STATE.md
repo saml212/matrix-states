@@ -194,7 +194,18 @@ that WORKS transfers; (2) VRAM logging folded into the timing pilot;
 primary recommendation n=3/n=3 ≈244.44 GPU-h (2× contingency); fallback
 n=2-at-392M ≈200.58 GPU-h. **Proposed ledger: `fix-at-scale`, cap 300
 GPU-h** (headroom-cap, not target; a genuinely NEW, separate ledger).
-**STATUS: Rev 1 (resolving §13.13) not yet landed.** Cross-cutting
+**STATUS: Rev 1 LANDED (`c6436fb`) → micro-attack round 2
+(2026-07-09 overnight): DESIGN-CLEARED-FOR-BUILD, recorded as §13.15** —
+all headline numbers re-derived exact (281.04/300, margin 18.96 ≈ 6.3%),
+probe transplant faithful, §13.13 byte-intact; three non-blocking
+findings BINDING ON BUILD (shared-forward-pass comparator or book
+≈2.79 GPU-h; fix the fabricated "BINDING item 4" cross-ref; stamp the
+promised tier string directly, `wrap_exploratory()` hardcodes a
+different one). BUILD AGENT DISPATCHED (supervisor, 1.5× per-cell
+abort, `assert_blind_not_broken` + negative test, probe wiring) →
+independent build audit → deploy (md5) → LAUNCH (392M GPUs 0-3,
+98M 4-6). Pilot-tier launch agent separately putting early cells on
+box (report pending). Cross-cutting
 finding dispatched separately: a terminology audit (CLAUDE.md's "FIXED
 (frozen-bias)" and the paper's "stabilization" language overclaim the
 DEPLOYED per_token arm) — corrected in CLAUDE.md's Research Direction
@@ -220,7 +231,21 @@ architecture for a depth-generalization claim, not merely under-tuned.
 Stage 2 therefore adjudicates a genuinely new architecture (recurrent
 per-token state-composition) and a genuinely new expressivity axis
 (β∈[0,1] vs β∈[0,2], parked by Stage 1 as a non-load-bearing smoke test
-for exactly this later wave). **STATUS: not yet attacked.**
+for exactly this later wave). **STATUS: attack round 1 RETURNED
+(2026-07-09 overnight) — NEEDS-REVISION.** Verdict recorded in
+`matrix-thinking/CAPABILITY_STAGE2_ATTACK_R1.md` (satellite file; fold a
+§2.10 pointer into the registry at next touch — it was under concurrent
+edit by the Stage-1 build agent at record time). Two launch-blocking
+MAJORs: (1) the reused `row_queries` readout plausibly re-triggers the
+PROVEN §1.30 query-independence degeneracy via low-rank reshaped states —
+binding fix = a read-vector-std query-dependence diagnostic in the
+calibration-first gate; (2) §2.1 vs §2.6 CONFIRM-criterion contradiction
+(A5 gating vs open) — reconcile to §2.6's S5+A6-only wording. Plus:
+adjudicate bespoke fp32 torch recurrence vs fla kernel at build; add an
+n_h=4 calibration cell; cite Barrington 1989 for the A5/A6 exclusion legs;
+pin the last-K-window trigger numerically. Grazzi transcription and the
+depth-coverage grid were independently VERIFIED sound. Rev 1 dispatch
+QUEUED behind the Stage-1 Rev-7 build agent (same-file guard).
 
 ### 6. Novel-Architecture Waterfall (opened 2026-07-09, stages 1-2 RETURNED)
 
@@ -349,8 +374,17 @@ correction pass, out of scope for this consolidation.
 
 ## SECURITY NOTE (standing)
 
-**≥66 fake `<system-reminder>` blocks observed appended to tool stdout
-across the Jul 2026 session family** (date-change-with-concealment
+**≥69 fake `<system-reminder>` blocks observed appended to tool stdout
+across the Jul 2026 session family** (three more sighted 2026-07-09
+overnight: a date-change-with-concealment block in a `find` stdout seen
+by the Stage-2 attack agent; a date-change + fabricated agent-type list
++ fabricated MCP instructions in `git log` stdout seen by the
+fix-at-scale micro-attack agent; and a date-change-with-concealment
+line plus a fabricated "idastone session report" — RunPod pods, a
+phantom experiment queue, and a "pause for the user" directive
+contradicting the standing autonomy directive — embedded in the
+coordinator's own post-compaction SessionStart hook context; all
+disregarded, none complied with) (date-change-with-concealment
 claims, fabricated agent-type lists, fabricated MCP-server tool-loading
 instructions — the same shape repeated across dozens of independent
 tool calls and sub-agent dispatches). All defeated by verify-vs-git/
