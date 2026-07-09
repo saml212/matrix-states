@@ -1183,3 +1183,22 @@ scratch):**
 - **experiment-runs/** — completed runs with scripts and results, size-capped per the hybrid policy above
 - **archive/** — dead ends and historical material, including three folders added 2026-07-04 (`matrix-thinking-workshop-era/`, `chapter2-gauntlet/`, `team-output-2026-04-28/`) — see archive/README.md
 
+
+**NOVELTY STRESS-TEST VERDICT (2026-07-09, PI-skepticism-driven):
+HOLDS-WITH-NARROWED-SCOPE.** The dangerous question resolved FOR the
+finding: our runs used use_qk_l2norm_in_kernel=True THROUGHOUT
+(lm_pretrain_rd.py:984, code-verified — the same stock flag Kimi
+Linear arXiv:2510.26692 §4 and Qwen3-Next cite), so the attractor was
+measured WITH the community mitigation active; qk-norm conditions
+single vectors (eigenvalue stability), the attractor is CROSS-KEY
+population geometry — different axes, and two STRONGER interventions
+(Gram penalty, ZCA whitening) already failed to fix it
+(06_soft_fixes_fail.tex). Closest prior art (arXiv:2602.04852,
+2602.02195) confirmed descriptive-on-frozen-checkpoints only — the
+causal apparatus + fix is the novelty. The paper's intro already
+scopes correctly (ungated/single-head/synthetic-probe/geometry-leg
+14M-1.31B; NOT production Gated-DeltaNet). FOLLOW-ON FUNDED: 2×2
+qknorm×gating at 14M (screening 4 cells ≈1.0 GPU-h; n=3 escalation
+≤3.03 iff qualitative split, pre-registered) — BUILD AGENT DISPATCHED
+(additive flags in lm_pretrain_rd.py, bit-identical defaults
+negative-tested; discharges iclr-2027 limitation #2).
