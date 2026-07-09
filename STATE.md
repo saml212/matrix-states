@@ -265,8 +265,20 @@ calibration-first gate; (2) §2.1 vs §2.6 CONFIRM-criterion contradiction
 adjudicate bespoke fp32 torch recurrence vs fla kernel at build; add an
 n_h=4 calibration cell; cite Barrington 1989 for the A5/A6 exclusion legs;
 pin the last-K-window trigger numerically. Grazzi transcription and the
-depth-coverage grid were independently VERIFIED sound. Rev 1 dispatch
-QUEUED behind the Stage-1 Rev-7 build agent (same-file guard).
+depth-coverage grid were independently VERIFIED sound. **Chain since
+(all 2026-07-09 overnight, recorded in §2.13-§2.15): Rev 1 (3be2340 —
+torch kernel adopted, cost band 1.5-3.9 raw, CONFIRM reconciled, bars
+pinned) → micro-attack §2.14 (NEEDS-REVISION narrow: the 0.04 bar's
+max-statistic inverts the claimed FAIL bias; absolute anchor violates
+instrument-relativity; D=64 unprobed) → Rev 2 (08e4d59 — 2(e) rewritten
+setting-calibrated: MEAN aggregation, 0.25× same-setting healthy anchor
+from the 2(d) injection machinery, norm-normalized co-decisional ratio,
+depths {1..64}, B=64/seed 7, two-level FAIL routing; honest cost band
+incl. 18.4 GPU-h joint worst case at 26% margin; last-K = eval-time
+truncation w/ pinned anti-conservatism escalation). Scoped micro-attack
+on the 2(e) rewrite IN FLIGHT — last gate before
+DESIGN-CLEARED-FOR-BUILD; launch stays gated on Stage-1's readout
+(§1.11).**
 
 ### 6. Novel-Architecture Waterfall (opened 2026-07-09, stages 1-2 RETURNED)
 
