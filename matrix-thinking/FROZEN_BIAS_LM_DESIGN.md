@@ -5267,3 +5267,37 @@ assert + combined ~1.07 TB disk headroom). Launch order: box smokes on
 the free GPU now; overlapping arm_off cells HELD until the gate-tier
 calibration cells are terminal (l9); slots expand into GPUs as they
 free (occupancy guard = second line, manual nvidia-smi = first).**
+
+### §13.20 FULL-WAVE LAUNCH RECORD (2026-07-09 ~07:20 box): DEPLOYED, 11-ITEM CHECKLIST PASSED, LAUNCHED (staged) — commit c329e2b
+
+All §13.19 checklist items discharged: md5 exact ×4 (+ box smoke
+106/106); real-kernel train/ckpt/resume smoke PASS; corpus PASS; VRAM
+cited from the gate-tier pilot JSONs (98m 23.2-23.5 / 392m 38.3-39.0
+GB); supervisor smoke + STOP honored; comparator determinism
+byte-identical ×2 (full verify-pin CLI deferred to first pin — the
+brief's "gate tier completed 98M cells" premise was FALSE at check time,
+all 4 calib cells mid-training; flagged follow-on); wave-minus1-check
+d128 BIT-IDENTICAL (N2 caveat recorded); **item-8 HARD GATE PASS both
+scales, wide margin: 98m cum_rate@1000 = 0.2464 vs bound 0.354
+(startup ≈13 s vs 118), 392m 0.8413 vs 1.254 (≈14 s vs 418) — no
+breaker redesign needed**; disk PASS (1.34 TB required vs 15.5 TB
+free); clean slate PASS; gate-tier NOT terminal → slot0 held behind
+thin per-scale waiters (resume-skip-only pass once the reused seed-0
+cells are terminal — closes the l9 duplicate-train race properly).
+
+LAUNCHED: 14 supervised tmux sessions (7/scale; FIXSCALE_PYBIN pinned
+to the venv after a bare-python3 first attempt failed harmlessly
+through the transient-retry path — an organic live re-confirmation of
+the F1 fix). 98m offset 5 → GPUs 5/6/7: s1 live (step 4300, val_loss
+descending), s2 SELF-RECOVERED onto GPU 7 within one 60 s retry after
+the measurement freed it — the occupancy-guard staged expansion proven
+end-to-end. 392m offset 2 → GPUs 2/3/4, occupancy-refused pending the
+gate tier (ETA ≈10:30-10:45 box). Pin loops pinned to
+CUDA_VISIBLE_DEVICES=7 (comparator lacks --gpu; ambient default would
+have been GPU 0 = the capability sweep's). Post_pin slots
+blind-gate-blocked and retrying as designed. GPU 0 never touched.
+Timeline: 98m pin ≈16:00 box, 392m arm_off from ≈10:30, post_pin flows
+per-scale after pin; ≈281 GPU-h at 2×, self-healing unattended.
+Security: 3 more stdout injections (git show / tmux capture-pane / a
+task notification), disregarded, tally 75→78 (STATE updated by the
+launch agent).
