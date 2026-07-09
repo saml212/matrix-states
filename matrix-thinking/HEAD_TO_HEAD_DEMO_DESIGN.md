@@ -3680,3 +3680,296 @@ underlying date (2026-07-09) was in fact accurate — consistent with sec 1.29's
 and its same conclusion: an accurate payload does not make an impersonated-system-channel
 delivery vector legitimate. Logged per the standing hard rule; no other injections observed
 during this task.
+
+### 1.31 DESIGN REV 5 (2026-07-09): THE TWO-LEG GATE — episode-restricted discrete recall (rung 1) PROMOTED to the metric of record; the continuous instrument REPAIRED (offline fit, §1.30-localized tap) and DEMOTED to mechanism attribution; four mandatory instrument fixes; round 4 re-priced ≈1.3 GPU-h
+
+Recorded per the gauntlet-bookkeeping hard rule. This revision adopts
+§1.28's recorded two-leg gate direction, now informed by §1.29's decisive
+probe (tap placement fires) and §1.30's localization (S0 carries 100% of
+the causally-necessary bindings; S1 causally inert; NO linear tap on
+either raw state clears rf@0.9; ONLY the pre-LM-head hidden is linearly
+decodable — contender rf@0.9 0.674 / cos_mean 0.894 — and the model's own
+block-1 forward performs the linearization). **Scope: append-only.**
+Upstream passages this section supersedes (§1.4.1's rf@0.9-based win
+operationalizations, §1.7 item 1a's "NEVER promoted to the WIN metric"
+sentence, item 1b's `rf@0.9>0` band conjunct) are deliberately left in
+place as history; from Rev 5 forward THIS section is the controlling text
+for those clauses — the same by-declaration supersession mechanism
+§1.26a used for the §1.6 price row. Training is NOT touched (§1.31.5).
+
+#### 1.31.1 Leg A — the WIN/TIE/LOSE metric of record (numeric pre-registration)
+
+**Metric, pinned:** `acc_A(arm, cell)` = episode-restricted K-way top-1
+accuracy at the query answer position, read through EACH ARM'S OWN native
+LM-head route, symmetric across all three arms — recurrent arms via the
+§1.3.1.3 continuation `forward(query_tokens, initial_states=S_T)` (a pure
+function of `(S_T, query_tokens)`, P=1 preserved by causality, §1.9 item-9
+addendum); transformer via its standing single forward pass. Decoding =
+K-restricted gather+argmax (`_rung1_k_restricted_pred_slot`,
+selftest-17-protected, §1.25 AUD2-F2). Eval = the pinned EVAL_SEED query
+set, n=4096 queries/cell (the §1.29/§1.30 protocol). Verdict-grade reads
+use n=3 seeds with paired `delta_ci_n` CIs (§1.8, unchanged); round-4
+calibration reads are single-seed point-estimate previews, as calibration
+always was — margins freeze before the sweep, verdicts land at the sweep.
+
+**Chance anchor, pinned:** chance = `1/K` (0.03125 at K=32; 0.02083 at
+K=48). **Demonstration bar: an arm counts as demonstrating recall in a
+cell iff `acc_A > 3×(1/K)`** (>0.09375 at K=32). An arm at or below the
+bar is scored NO-RECALL for that cell; a difference between two NO-RECALL
+arms is never interpreted as separation (chance-level noise ordering).
+
+**Axis-1 tiers (contender vs param+data-matched flat-vector ablation),
+per primary cell (task1_calib K/d=0.5; task2_calib), endpoint at the
+matched final checkpoint, Δ = acc_A(contender) − acc_A(ablation):**
+
+- **WIN:** contender clears the demonstration bar AND `Δ ≥ 0.30` with the
+  paired-seed CI excluding 0.30.
+- **LOSE:** ablation clears the demonstration bar AND `−Δ ≥ 0.30` with
+  the CI excluding 0.30 — structure actively hurts discrete recall,
+  reported plainly.
+- **TIE:** the Δ CI lies entirely inside `(−0.30, +0.30)`; ALSO scored
+  TIE (reported as joint task-learning failure, an instrument/scale
+  story) if NEITHER arm clears the demonstration bar.
+- **INDETERMINATE:** the CI straddles ±0.30 without excluding it —
+  treated TIE-adjacent (the §1.4.2 convention), escalation-eligible,
+  never a WIN.
+
+**Margin rationale (pinned now so it cannot drift):** 0.30 ≈ 9.6× chance
+at K=32 — ~3× the demonstration bar itself, far above any chance-level
+fluctuation at n=4096 queries, and less than a third of round 3's realized
+single-seed gap (0.9990 − 0.0447 = 0.9543) — i.e. neither reachable by
+seed noise nor gerrymandered to the observed point estimate.
+
+**Axis-1 data-efficiency operationalizations (§1.4.1's two) carry with
+the metric swap only:** threshold re-pinned to `acc_A ≥ 0.90` (was
+`recovered_frac@0.9 ≥ 0.9`; round 3's contender realized 0.9990, so the
+bar is calibrated-reachable); tokens-to-threshold `X=50%` stays
+provisional pending the same §1.7-item-1 calibration power sketch;
+sustained CI-separation stays ≥3 consecutive logged checkpoints. If the
+ablation never clears the demonstration bar at ANY checkpoint while the
+contender reaches threshold (round 3's pattern), the tokens-to-threshold
+ratio is reported as a BOUND (contender's realized budget fraction, ratio
+unbounded), never extrapolated — the endpoint WIN margin above then does
+the verdict work.
+
+**Axis-2 (contender vs memory-capped transformer):** §1.4.2's M*
+machinery carries VERBATIM with one substitution — the per-M gap
+statistic is re-registered from `recovered_frac@0.9` to `acc_A`, same
+0.20 per-point margin, same `M ∈ {1,2,4,8,16,32}` grid, same descending
+fixed-sequence walk, same LOSE `M*≤2` / TIE `M*=4` / WIN `M*≥8` /
+INDETERMINATE tiers. **Degenerate-baseline handling, pre-registered
+(round 3's point estimate makes it live: uncapped transformer 0.0295 ≈
+0.94× chance):** if the UNCAPPED transformer itself fails the
+demonstration bar at the primary cell, the M* walk is definitionally
+degenerate (every M trivially cleared); the honest report is "baseline
+non-competitive at matched params/tokens" — itself a capability-
+separation datum tied to §1.1's axis-2 charter, claimed WITH the
+matched-training-budget caveat — and is NOT certified as `M*=∞`/
+strongest-win (extending §1.4.2's own rule that a degenerate comparison
+never certifies the top tier).
+
+**rf@0.9 is NOT a LOSE criterion, NOT a gate conjunct, NOT in any band**
+— it is Leg B's diagnostic (below). **The Nichani caveat travels with
+every Leg-A number** (§1.31.6). All four outcomes above are
+pre-registered publishable: WIN (capability-separation headline), TIE
+(structure costs nothing + the banked isolated properties), LOSE
+(reported plainly per §1.1's own convention), joint-failure TIE (a
+task-learning/scale finding).
+
+#### 1.31.2 Leg B — mechanism attribution (diagnostic, never WIN/TIE/LOSE)
+
+**Tap, pinned (the §1.30 localization):** the post-block-1, pre-LM-head
+hidden at the query answer position — tap (iv)'s own site — never
+`S1@q_shallow` (causally inert layer, §1.30 Table 1), never a raw-state
+linear combine (§1.30 Table 2: no such tap clears rf@0.9, including on
+the causally load-bearing S0).
+
+**P=1 status of the tap (restating the §1.9 item-9 addendum, as §1.28
+required):** the tap is a pure function of `(final_states, query_tokens)`
+— it is computed INSIDE the same `forward(query_tokens,
+initial_states=S_T)` continuation call whose signature has no
+computational path back to raw bind tokens; the query touches the
+recurrence during the continuation only via the kernel's standing
+`o_t = read(S_t, q_t)` mechanism and can never reach BEHIND `S_T`;
+verified by the §1.3.1.3 blank-out test plus the R5-F4 fresh-instance
+companion, not asserted. §1.30 item 4 made this argument for tap (iii);
+tap (iv) sits later in the SAME call and inherits the identical status.
+(Transformer arm: its pre-LM-head hidden attends to raw context — the
+standing, disclosed item-9 asymmetry; acceptable because Leg B is
+diagnostic, and disclosed wherever its Leg-B numbers appear.)
+
+**Probe protocol, pinned (the §1.28 lesson):** fit OFFLINE on the FROZEN
+backbone — closed-form ridge, best-λ on held-out, fit on 24,576 fresh
+DIAG_FIT_SEED draws, evaluated on the pinned 4,096-point EVAL_SEED set
+(§1.30's harness) — NEVER the online jointly-trained `shared_probe`,
+which provably sits in the episode-membership optimum (§1.21/§1.28/§1.29,
+three independent confirmations). The aux term stays in the training
+objective (§1.31.5); its online probe simply stops being a reported
+instrument.
+
+**Report, per cell:** the `rf@τ` curve, τ ∈ {0.50, 0.55, …, 0.95} (10
+points); cosine quantiles (p5/p25/p50/p75/p95 + mean); the shuffled-tap
+negative-control gap; and the membership tell — `probe_cos_mean` vs the
+analytic `1/√K` ceiling AND `cos(pred, episode_mean)` against the ≥0.85
+tell threshold — logged every read. **Calibration anchor (§1.30):**
+contender rf@0.9 0.674 / cos_mean 0.894 / gap-vs-shuffled +0.800;
+ablation flat (0.119 / +0.006) — Leg B's pre-registered expectation.
+
+**S0-necessity causal check (the capability claim's mechanism leg,
+carried per §1.28/§1.30):** per-cell state-zeroing rung-1, recurrent arms
+only, ~free (§1.30 realized 0.00144 GPU-h for both arms combined):
+zeroing S0 must collapse `acc_A` to ≈chance; zeroing S1 must leave it
+unchanged (§1.30 Table 1's pre-registered expectation). This is the
+cheapest DIRECT causal evidence that recall is fast-weight-resident. **If
+a cell's contender passes Leg A but S0-zeroing does NOT collapse its
+accuracy, the fast-weight-resident mechanism claim is BLOCKED for that
+cell and a §1.21-style diagnosis round opens** (that pattern would mean a
+bottleneck leak, contradicting the standing blank-out evidence — a
+hard-stop, not a footnote).
+
+#### 1.31.3 The ladder, re-registered (supersedes §1.7 items 1a/1b clauses named here)
+
+- **Rung 1 = Leg A's metric — PROMOTED from disclosed-gate to metric of
+  record.** This deliberately supersedes item 1a's "NEVER promoted to the
+  WIN metric" sentence, with the honest rationale stated in full: that
+  prohibition enforced the Nichani rule for CONTINUOUS-CAPACITY claims —
+  argmax decoding must never underwrite a capacity/rank claim (CLAUDE.md,
+  arXiv:2412.06538). Rev 5 re-scopes the WIN claim ITSELF to discrete
+  recall capability, which argmax decoding measures honestly, provided
+  the claim never asserts exact continuous recovery or rank — §1.31.6
+  carries that caveat into every claim sentence. rf@0.9's demotion is the
+  other half of the same move: it was never measuring what rung 1
+  measures (§1.28 item 3's readout-path asymmetry, confirmed end-to-end
+  at §1.29/§1.30).
+- **Rung 2 = 107-way ENTITY-IDENTITY linear classifier at the Leg-B tap**
+  (the `probe_diagnosis_rd.py` item-1e construction: linear softmax
+  classifier → answer entity id), labels = entity identity, NEVER
+  `tgt_slot` (§1.28's structural-vacuity defect: slots are uniform given
+  identity, so a perfect tap scores chance). Chance = 1/107 = 0.935%;
+  diagnostic bar >3× chance; R5-F2's noise-null carries (≤1.5× chance)
+  PLUS the new planted-signal positive control (§1.31.4 item 2).
+  Diagnostic-only, as before.
+- **Rung 3 = Leg B's `rf@τ` curve at the localized tap** — mechanism
+  attribution, no longer any decision's input.
+- **Attribution table, updated:** rung 1 FAILS → task not learned by any
+  channel. Rung 1 PASSES but S0-zeroing does NOT collapse it → bottleneck
+  leak, HARD-STOP diagnosis (§1.31.2). Rung 1 + S0-necessity PASS, rung 2
+  FAILS → identity not linearly present even at the deep tap (geometry
+  deeper than linear — reported, not blocking). Rungs 1-2 PASS, rung 3
+  low → the Nichani gap live at the deep tap; the `rf@τ` curve IS the
+  honest continuous-recovery bound, reported as such. Membership tell
+  logged at every rung-3 read regardless of outcome.
+- **Bands, re-pinned (supersedes Rev 4's item 1b conjunct), now
+  ARM-AWARE:** a task-1/2 FULL calib cell passes gate 1 iff (i) the
+  CONTENDER cell clears rung-1 > 3× chance (training+instrument sanity;
+  Rev-4's realized 0.9990 is the anchor); (ii) baseline arms' rung-1
+  values are recorded as DATA, never launch-blocking — their failure IS
+  the pre-registered separation, not a broken cell; (iii)
+  instrument-health IS launch-blocking for ALL arms: every cell's
+  planted-signal positive controls must pass and its noise nulls must
+  stay ≤1.5× chance; (iv) `rf@0.9 > 0` is REMOVED from the band (Leg-B
+  diagnostic now). Stress/locate-only cells stay exempt as before; Task 3
+  keeps its anchored [1.90, 2.60] val-loss band untouched.
+
+#### 1.31.4 Mandatory fixes (BUILD-FIX ITEM LIST, binding order; from §1.28/§1.29, unaffected by §1.30)
+
+1. **Rung-2 relabel + retap:** `fit_rung2_identity_classifier`
+   (`h2h_cell_train_rd.py:686-727`) relabeled from `tgt_slot` to the
+   107-way answer ENTITY ID (port the probe_diagnosis item-1e
+   construction) and retargeted to the Leg-B pre-LM-head tap.
+2. **Planted-signal POSITIVE controls on every ladder rung (the
+   both-directions teeth rule, §1.28's new rule):** rung 1 already has
+   selftest 17 (planted-answer); rung 2 gains a synthetic tap with
+   linearly-planted identity that must score near-ceiling (≥90%); rung
+   3/Leg B promotes the §1.30 harness's known-linear-mapping recovery
+   check from selftest to a standing per-run control. Each positive
+   control is paired with its existing noise null (R5-F2 style, ≤1.5×
+   chance): an instrument is trusted only when it passes BOTH directions.
+3. **`transformer_native_tap` OOM fix (the AUD2-F1 sibling, §1.27's
+   crash):** slice the hidden state to the answer position BEFORE the
+   full-vocab matmul in the `probe_head_rd.py:173` →
+   `transformer_baseline_rd.py:218` path (same fix shape as 68e2768's
+   `return_hidden`+slice), PLUS an enforced K=48 rung-2-fit smoke on real
+   kernels (the exact §1.27 crash repro) wired as its own chain gate with
+   a forced-fail negative test, per the CPU-stub-coverage hard rule.
+4. **Checkpoint filename versioning (the §1.28 in-place-overwrite trap):**
+   suffix round/rev into every checkpoint filename (e.g.
+   `_r{H2H_DIAL_ROUND}`), closing the record gap that orphaned round 2's
+   probe_diagnosis artifacts when round 3 overwrote its checkpoints at
+   05:58Z; pairs with (does not replace) AUD2-F4(ii)'s round-transition
+   result-JSON invalidation procedure, already exercised once at the
+   round-3 launch (calib3 MANIFEST §1).
+
+#### 1.31.5 What carries over UNCHANGED
+
+The Rev-4 three-term objective and its weights (`aux_weight=2.0`,
+`ce_answer_weight=1.0`) — **training WORKS (0.9990 discrete recall); do
+not touch it.** The §1.23 dial mechanics, including R5-F1's
+one-contingency-dial-round cap: round 3's step-500 dial did not fire;
+reused checkpoints do not re-dial; the two fresh transformer cells run
+the standing dial check; the R5-F1 contingency budget remains intact at
+one round. The arms/tasks/param-matching (§1.2-§1.4 constructions,
+verbatim). The blank-out tests, gate tokens, and chain discipline. The
+§1.26 measured rates supersede §1.6 for all pricing (per §1.26a).
+
+#### 1.31.6 Claim language (PI-bar aware, pre-registered)
+
+**If round 4's Leg A separates as round 3's single-seed data suggest
+(contender 0.9990 / ablation 0.0447 / transformer 0.0295 at K=32), round
+4 CAN establish:** *single-pass in-context associative recall through a
+P=1 fast-weight bottleneck, at accuracy a param- and token-matched
+attention baseline cannot reach without its KV cache* — tied directly to
+§1.1's inference-memory-matched primary axis ("constant-memory minds":
+the contender does it in O(1) state bytes), with the S0-necessity check
+supplying the mechanism leg (direct causal evidence the recall is
+resident in the fast-weight state, §1.31.2). **Every claim sentence
+carries the Nichani caveat:** "recall" here means episode-restricted
+top-1 retrieval under argmax decoding, and under argmax a rank-1 state
+can support ≈d associations (Nichani, Lee & Bietti, ICLR 2025,
+arXiv:2412.06538).
+
+**What round 4 CANNOT establish:** (a) exact continuous recovery — Leg
+B's `rf@τ` curve is reported as the honest bound (the §1.30 anchor:
+contender rf@0.9 0.674 at the pre-LM-head tap — real but partial); (b)
+rank-necessity or storage-capacity claims — those remain governed by the
+exact-continuous-recovery hard rule (CLAUDE.md) and belong to the
+M*/rank program's strict machinery, never to rung-1 argmax; (c) anything
+beyond 14M-class calibration cells until the ladder/bands and sweep run.
+
+#### 1.31.7 Gates + ledger
+
+**Chain:** Rev 5 (this section) → **fresh micro-attack on the DELTA
+only** (the two-leg numeric pins, ladder re-registration, arm-aware band,
+the four fixes — not a re-attack of §1.23-cleared machinery) → build-fix
+(§1.31.4's four items) → scoped independent build audit → **round 4** →
+ladder/bands review → margin freeze → 27-cell sweep. Margin freeze
+remains ALSO blocked on the fix-at-scale per_token-vs-global contender-
+pin adjudication (§1.24 trailer note, unchanged).
+
+**Round 4 = the 9-cell calibration RE-METERED under the new instrument,
+not re-trained:** checkpoints on disk are reusable for 8/9 round-3 cells
+(including the crashed transformer-K48 cell's completed 5000/5000
+training); those cells re-run ONLY the metric pass (Leg A eval + Leg B
+offline ridge + S0-zeroing + relabeled rung 2 + both-direction controls)
+against the frozen checkpoints. The two transformer cells without
+round-3 results train fresh — `transformer_task2_calib_primary` (never
+launched) and `transformer_task1_stress_K48` (budgeted as retrain since
+its checkpoint predates filename versioning; reuse may be attempted,
+budget assumes not).
+
+**Price (from §1.26 measured rates + §1.29/§1.30 realized metric costs):**
+metric passes ≈0.03 GPU-h class per cell (§1.29's full 3-arm diagnostic
+realized 0.030 GPU-h; §1.30's 2-arm localization 0.00144) → 9 cells ≈0.3
+GPU-h, ceiling 0.5; fresh training ≈0.98 GPU-h measured
+(transformer full cell ≈0.78 + K48 stress at 1/4 budget ≈0.20), ceiling
+≈1.46 at the standing 1.5× padding. **Round-4 total ≈1.3 GPU-h expected,
+≤2.0 GPU-h ceiling — well under round 3's 3.593 authorized/realized.**
+GPUs per the standing assignment (5-6; GPU 7 never used). **The 27-cell
+sweep re-price (≈13.25 GPU-h upper, §1.26a) STANDS** — Rev 5 changes
+metric passes (cheap) and no training mechanics; a confirmation read
+rides the round-4 harvest before margin freeze.
+
+**STATUS: Rev 5 COMPLETE (this section is the controlling text for the
+clauses it supersedes). NEXT: fresh micro-attack on the Rev-5 delta →
+build-fix (§1.31.4) → scoped build audit → round 4. NO training relaunch
+until the fixes audit clears.**
