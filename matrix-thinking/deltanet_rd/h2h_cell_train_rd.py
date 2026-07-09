@@ -168,6 +168,17 @@ def require_launch_tokens(gates_dir: str) -> None:
         raise SystemExit(3)
 
 
+def require_margins_frozen(margins_token: str) -> None:
+    """CODE-LEVEL sweep-release gate (deploy audit MAJOR-2): the 27-cell
+    sweep, the fan-out, and the horizon references are unreachable until
+    the coordinator writes MARGINS_FROZEN.token -- enforced HERE, not only
+    by the chain script's stage ordering. Hard-refuse: exit 4."""
+    if not os.path.isfile(margins_token):
+        print(f"REFUSE (margin freeze): {margins_token} missing -- the 27-cell sweep / fan-out "
+              f"is NOT released until the coordinator records the margin freeze.", file=sys.stderr)
+        raise SystemExit(4)
+
+
 # ---------------------------------------------------------------------------
 # Arms + probe rig
 # ---------------------------------------------------------------------------
@@ -277,22 +288,50 @@ def assert_fused_tap_matches_audited(arch: str, model, token_ids, query_tokens) 
     return diff
 
 
+EVAL_CHUNK_BUDGET_BYTES = 8e9    # per-chunk transient-tensor target; H100 80GB leaves wide margin
+
+
+def _transformer_episode_chunks(b: dict, T_total: int):
+    """VRAM guard for the transformer tap (context replicated ONCE PER QUERY,
+    B*Q sequences): the dominant transients are the tied-head LOGITS,
+    (B*Q, T, 50259) fp32 -- the house-rule bottleneck -- plus attention
+    scores (B*Q, n_heads, T, T). Yields episode sub-batches sized so both
+    stay within EVAL_CHUNK_BUDGET_BYTES (min 1 episode; at H8 one episode's
+    ~13 GB transient is the floor, well inside 80 GB)."""
+    q = b["query_tokens"].shape[1]
+    per_episode = (q * T_total * (VOCAB_BASE + 2) * 4
+                   + q * TRANSFORMER_KW["n_heads"] * T_total * T_total * 4)
+    chunk = max(1, int(EVAL_CHUNK_BUDGET_BYTES / per_episode))
+    for i in range(0, b["token_ids"].shape[0], chunk):
+        yield {k: (v[i:i + chunk] if isinstance(v, torch.Tensor) else v) for k, v in b.items()}
+
+
 @torch.no_grad()
 def eval_recovered_frac(arch: str, model, rig: ProbeRig, eval_batches: list,
                         attn_mask_fn=None) -> float:
     """recovered_frac@0.9 over the FIXED eval episode set, via the AUDITED
-    tap functions. attn_mask_fn (transformer only): capped b-primary read."""
+    tap functions. attn_mask_fn (transformer only): capped b-primary read.
+    Query-weighted mean; transformer batches are VRAM-chunked."""
     model.eval()
-    fracs = []
-    for b in eval_batches:
+    n_hit, n_tot = 0.0, 0
+    for b_full in eval_batches:
         if arch == "transformer":
-            tap = ph.transformer_native_tap(model, b["token_ids"], b["query_tokens"],
-                                            attn_mask_fn=attn_mask_fn)
+            T_total = b_full["token_ids"].shape[1] + b_full["query_tokens"].shape[-1]
+            chunks = _transformer_episode_chunks(b_full, T_total)
         else:
-            tap = AUDITED_TAP[arch](model, b["token_ids"], b["query_tokens"])
-        fracs.append(ph.cosine_recovery_frac(rig.pred(tap), probe_targets(rig, b)).item())
+            chunks = (b_full,)
+        for b in chunks:
+            if arch == "transformer":
+                tap = ph.transformer_native_tap(model, b["token_ids"], b["query_tokens"],
+                                                attn_mask_fn=attn_mask_fn)
+            else:
+                tap = AUDITED_TAP[arch](model, b["token_ids"], b["query_tokens"])
+            frac = ph.cosine_recovery_frac(rig.pred(tap), probe_targets(rig, b)).item()
+            n_q = b["query_tokens"].shape[0] * b["query_tokens"].shape[1]
+            n_hit += frac * n_q
+            n_tot += n_q
     model.train()
-    return sum(fracs) / len(fracs)
+    return n_hit / max(1, n_tot)
 
 
 def make_eval_episodes(cfg_eval: DeltaNetRDTaskConfig, pools, device: str, hop_set: tuple,
@@ -605,17 +644,31 @@ def capped_eval_pass(model, rig: ProbeRig, arch: str, task: str, K: int | None, 
     if M is not None:
         cl = cap_length_tokens(M, TRANSFORMER_KW["n_layers"], TRANSFORMER_KW["d_model"])
         mask_fn = lambda T: sink_fifo_mask(T, cap_length=cl, k_sink=K_SINK, device=device)  # noqa: E731
-    fracs = []
+
+    def _episode_chunks(b):
+        # VRAM guard (transformer only): see _transformer_episode_chunks -- the recurrent
+        # arms have no per-query replication or T^2 term and run unchunked.
+        if arch != "transformer":
+            yield b
+            return
+        yield from _transformer_episode_chunks(b, H + b["query_tokens"].shape[-1])
+
+    n_hit, n_tot = 0.0, 0
     with torch.no_grad():
-        for b in batches:
-            ctx = extend_context_to_horizon(b["token_ids"], H, pools.buffer_id)
-            if arch == "transformer":
-                tap = ph.transformer_native_tap(model, ctx, b["query_tokens"], attn_mask_fn=mask_fn)
-            else:
-                tap = AUDITED_TAP[arch](model, ctx, b["query_tokens"])
-            fracs.append(ph.cosine_recovery_frac(rig.pred(tap), probe_targets(rig, b)).item())
-    return {"recovered_frac": sum(fracs) / len(fracs), "horizon_tokens": H,
-            "cap_length": (None if M is None else cap_length_tokens(M, 2, 256)),
+        for b_full in batches:
+            for b in _episode_chunks(b_full):
+                ctx = extend_context_to_horizon(b["token_ids"], H, pools.buffer_id)
+                if arch == "transformer":
+                    tap = ph.transformer_native_tap(model, ctx, b["query_tokens"], attn_mask_fn=mask_fn)
+                else:
+                    tap = AUDITED_TAP[arch](model, ctx, b["query_tokens"])
+                frac = ph.cosine_recovery_frac(rig.pred(tap), probe_targets(rig, b)).item()
+                n_q = b["query_tokens"].shape[0] * b["query_tokens"].shape[1]
+                n_hit += frac * n_q
+                n_tot += n_q
+    return {"recovered_frac": n_hit / max(1, n_tot), "horizon_tokens": H,
+            "cap_length": (None if M is None else
+                           cap_length_tokens(M, TRANSFORMER_KW["n_layers"], TRANSFORMER_KW["d_model"])),
             "n_episodes": len(batches) * GRAMMAR_BATCH}
 
 
@@ -637,6 +690,7 @@ def mode_run_cell(args) -> int:
     assert args.run_cell in cells, f"unknown cell {args.run_cell!r} in set {args.set}"
     cell = cells[args.run_cell]
     if args.set == "sweep":
+        require_margins_frozen(args.margins_token)          # audit MAJOR-2: code-level release gate
         cell = apply_margin_freeze_overrides([cell], args.margins_token)[0]
     if is_valid_result(args.out):
         print(f"SKIP (already valid): {args.out}")
@@ -741,6 +795,7 @@ def mode_msweep_pilot(args) -> int:
 
 def mode_fanout_all(args) -> int:
     require_launch_tokens(args.gates_dir)
+    require_margins_frozen(args.margins_token)               # audit MAJOR-2: stage-D-only mode
     device = args.device
     pools = get_pools(device)
     with open(args.ckpt_map) as f:
@@ -769,6 +824,7 @@ def mode_horizon_ref(args) -> int:
     """Contender (uncapped, constant-state) reference passes per (task, seed,
     horizon) -- axis 2's own comparison side (18 passes)."""
     require_launch_tokens(args.gates_dir)
+    require_margins_frozen(args.margins_token)               # audit MAJOR-2: stage-D-only mode
     device = args.device
     pools = get_pools(device)
     with open(args.ckpt_map) as f:

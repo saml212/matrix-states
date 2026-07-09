@@ -43,6 +43,10 @@ CKPT_DIR=/data/h2h_rung1_ckpts
 mkdir -p "$RES" "$GATES" "$RES/calib" "$RES/pilots" "$RES/sweep" "$RES/fanout" "$RES/failcount" logs "$CKPT_DIR"
 
 H2H_GPUS=${H2H_GPUS:-"0,1,2,3,4,5,6"}      # GPU 7 pool-reserved -- never in this list
+if echo ",$H2H_GPUS," | grep -q ",7,"; then
+  echo "REFUSE: H2H_GPUS contains GPU 7 (pool-reserved by the deploy directive)." >&2
+  exit 1
+fi
 IFS=',' read -ra GPU_LIST <<< "$H2H_GPUS"
 N_GPUS=${#GPU_LIST[@]}
 BUDGET_CEILING_GPU_H=125.672                # sec 1.6 enforced circuit-breaker bracket (R3-F6)
@@ -211,6 +215,10 @@ budget_check
 # Stage B -- gate-1 calibration: 13 launchable cells, then the band check.
 # ---------------------------------------------------------------------------
 mapfile -t CALIB_CELLS < <($PY h2h_cell_train_rd.py --list-cells calibration)
+if [ "${#CALIB_CELLS[@]}" -ne 13 ]; then
+  echo "REFUSE: expected 13 launchable calibration cells, got ${#CALIB_CELLS[@]} (list-cells failed?)" >&2
+  exit 1
+fi
 run_cells_par calib "${CALIB_CELLS[@]}"
 budget_check
 if ! $PY h2h_calibration_bands_rd.py --check-dir "$RES/calib" 2>&1 | tee logs/h2h_20_band_check.log; then
@@ -268,6 +276,10 @@ echo "MARGINS_FROZEN.token found -- sweep stage released."
 # Stage D -- 27-cell sweep, then the 90-pass fan-out + contender references.
 # ---------------------------------------------------------------------------
 mapfile -t SWEEP_CELLS < <($PY h2h_cell_train_rd.py --list-cells sweep)
+if [ "${#SWEEP_CELLS[@]}" -ne 27 ]; then
+  echo "REFUSE: expected 27 sweep cells, got ${#SWEEP_CELLS[@]} (list-cells failed?)" >&2
+  exit 1
+fi
 run_cells_par sweep "${SWEEP_CELLS[@]}"
 budget_check
 

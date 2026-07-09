@@ -165,10 +165,13 @@ def main() -> int:
     # the same generator-semantics reason as smoke_1/6 above. ----
     nulls = {}
     gate7_ok = True
+    # Literal per-arm seeds (deploy audit MAJOR-3): NEVER Python's salted hash() -- the same
+    # rule probe_head_rd smoke_6's own docstring pins; literal pins are the reproducible form.
+    gate7_seeds = {"contender": 20260801, "ablation": 20260802, "transformer": 20260803}
     with torch.device("cpu"):
         T_val = ph.build_probe_target_table(VOCAB_TOTAL_GRAMMAR, VALUE_DIM)
         for arch, tap_dim in RUNG1_TAP_DIMS.items():
-            n = ph.run_probe_capacity_null(tap_dim, VALUE_DIM, T_val, seed=hash(arch) % (2 ** 31))
+            n = ph.run_probe_capacity_null(tap_dim, VALUE_DIM, T_val, seed=gate7_seeds[arch])
             nulls[arch] = n
             gate7_ok = gate7_ok and n["passed"]
             print(f"[gate 7] {arch} (tap_dim={tap_dim}): recovered_frac={n['recovered_frac']:.6f} "
