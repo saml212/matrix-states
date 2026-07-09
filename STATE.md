@@ -1221,3 +1221,24 @@ third: 2×2-at-scale (~168 GPU-h) iff tonight's screening splits.
 Standing policy: pre-registered seed extensions exercised liberally.
 Box layout planned per-wave (392M DDP cells + small-cell waves
 interleaved; all 8 GPUs in play — GPU 7 no longer reserved).
+
+**NOVEL-ARCHITECTURE WATERFALL — stages 1-2 RETURNED (2026-07-09):**
+TOP CANDIDATE (to attack stage): **Native Composition Reads** — read
+via query-selected matrix powers/products of the fast-weight state
+(o = read(Z^h, q), generalizing to relation chains Z_rn···Z_r1);
+capability claim = single-pass variable-depth exact relational
+composition, no CoT; novelty OPEN (closest: fast-weight PKM
+2601.00671, MAGNA 2009.14332, DeltaProduct 2502.10297 — all different
+axes); first wave ~35-50 GPU-h on the Task E harness; PonderNet
+kill-shot pre-answered (closed-form ‖C‖·h leakage stopping rule, not
+a learned halting scalar); unified w/ the multi-relation operator-bank
+idea as a GATED second sub-experiment (RotatE 1902.10197 = the prior
+art to distinguish: ours online/in-context/causally-verified).
+SECOND TRACK (parallel-able): rank-budgeted writes (per-context rank
+allocation at the write step; gap verified vs 2602.04852/2602.02195
+descriptive-only + Elastic Spectral SSM's global-only budget); ~25-35
+GPU-h. CHEAP PIGGYBACK: orthogonal-complement novelty detector on
+ARCHIVED Z-dumps (near-zero GPU; unique instrument). DO-NOT-BUILD
+list recorded in the waterfall transcript (Grazzi/DeltaProduct/RWKV-7/
+TPR/RotatE territory). ATTACK STAGE DISPATCHED on the unified top
+candidate.
