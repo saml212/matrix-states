@@ -1,0 +1,272 @@
+WARNING: --ckpt-every=20000 > 2000: violates section 8's build requirement.
+corpus=openr1-mix-ext (train 344,736,296 tok / 230,074 docs, val 2,300,595 tok / 4,659 docs)  other_corpus=wikitext-mix-ext (val 247,349 tok / 60 docs)
+run_name=lmC_openr1-mix-ext_dm256_ds64_L2_s0_qkoff  d_model=256 d_state=64 n_layers=2 seq_len=512 batch_size=32 steps=20000 params=14048896 qk_l2norm_in_kernel=False gated_delta_active=False use_geo3_lm=False geo3_k_sel=- geo3_selection=- hard_select_active=False hard_select_mechanism=- hard_select_k_sel=- hard_select_b_pinned=None device=cuda
+  tf32: {'cuda_matmul_allow_tf32': False, 'cudnn_allow_tf32': True}
+  step      1  loss 10.8798  lr 3.00e-06
+  step    100  loss 7.5714  lr 3.00e-04
+  step    200  loss 6.9544  lr 3.00e-04
+  step    300  loss 6.8088  lr 3.00e-04
+  step    400  loss 6.1371  lr 3.00e-04
+  step    500  loss 5.9757  lr 3.00e-04
+  step    600  loss 5.7806  lr 3.00e-04
+  step    700  loss 5.9628  lr 2.99e-04
+  step    800  loss 5.2284  lr 2.99e-04
+  step    900  loss 5.6458  lr 2.99e-04
+  step   1000  loss 5.3275  lr 2.99e-04
+  step   1100  loss 5.4948  lr 2.98e-04
+  step   1200  loss 5.2598  lr 2.98e-04
+  step   1300  loss 5.5811  lr 2.98e-04
+  step   1400  loss 5.4016  lr 2.97e-04
+  step   1500  loss 4.5702  lr 2.97e-04
+  step   1600  loss 5.1901  lr 2.96e-04
+  step   1700  loss 4.9756  lr 2.96e-04
+  step   1800  loss 5.3477  lr 2.95e-04
+  step   1900  loss 4.7591  lr 2.95e-04
+  step   2000  loss 4.5745  lr 2.94e-04
+  step   2100  loss 4.9768  lr 2.93e-04
+  step   2200  loss 4.4890  lr 2.93e-04
+  step   2300  loss 4.5081  lr 2.92e-04
+  step   2400  loss 4.5800  lr 2.91e-04
+  step   2500  loss 4.8871  lr 2.90e-04
+  step   2600  loss 4.9321  lr 2.90e-04
+  step   2700  loss 4.4844  lr 2.89e-04
+  step   2800  loss 4.3310  lr 2.88e-04
+  step   2900  loss 4.9223  lr 2.87e-04
+  step   3000  loss 4.5285  lr 2.86e-04
+  step   3100  loss 4.7011  lr 2.85e-04
+  step   3200  loss 4.3415  lr 2.84e-04
+  step   3300  loss 4.7124  lr 2.83e-04
+  step   3400  loss 4.7048  lr 2.82e-04
+  step   3500  loss 4.3871  lr 2.81e-04
+  step   3600  loss 4.1899  lr 2.80e-04
+  step   3700  loss 4.5711  lr 2.79e-04
+  step   3800  loss 4.4793  lr 2.78e-04
+  step   3900  loss 4.3033  lr 2.76e-04
+  step   4000  loss 4.6497  lr 2.75e-04
+  step   4100  loss 4.4436  lr 2.74e-04
+  step   4200  loss 4.4783  lr 2.73e-04
+  step   4300  loss 4.0687  lr 2.71e-04
+  step   4400  loss 4.4838  lr 2.70e-04
+  step   4500  loss 4.3084  lr 2.69e-04
+  step   4600  loss 4.4608  lr 2.67e-04
+  step   4700  loss 4.4611  lr 2.66e-04
+  step   4800  loss 4.4398  lr 2.65e-04
+  step   4900  loss 4.5353  lr 2.63e-04
+  step   5000  loss 4.2702  lr 2.62e-04
+  step   5100  loss 4.8456  lr 2.60e-04
+  step   5200  loss 4.0111  lr 2.59e-04
+  step   5300  loss 4.3809  lr 2.57e-04
+  step   5400  loss 4.3218  lr 2.55e-04
+  step   5500  loss 4.2644  lr 2.54e-04
+  step   5600  loss 4.4104  lr 2.52e-04
+  step   5700  loss 4.1346  lr 2.51e-04
+  step   5800  loss 4.3740  lr 2.49e-04
+  step   5900  loss 4.6360  lr 2.47e-04
+  step   6000  loss 4.3122  lr 2.46e-04
+  step   6100  loss 4.4425  lr 2.44e-04
+  step   6200  loss 3.8407  lr 2.42e-04
+  step   6300  loss 4.0883  lr 2.40e-04
+  step   6400  loss 4.5157  lr 2.39e-04
+  step   6500  loss 4.2345  lr 2.37e-04
+  step   6600  loss 4.2785  lr 2.35e-04
+  step   6700  loss 4.5536  lr 2.33e-04
+  step   6800  loss 3.5207  lr 2.31e-04
+  step   6900  loss 4.5437  lr 2.29e-04
+  step   7000  loss 4.1353  lr 2.28e-04
+  step   7100  loss 4.0746  lr 2.26e-04
+  step   7200  loss 4.0903  lr 2.24e-04
+  step   7300  loss 4.1963  lr 2.22e-04
+  step   7400  loss 4.0349  lr 2.20e-04
+  step   7500  loss 3.7887  lr 2.18e-04
+  step   7600  loss 3.9109  lr 2.16e-04
+  step   7700  loss 4.2876  lr 2.14e-04
+  step   7800  loss 3.8051  lr 2.12e-04
+  step   7900  loss 4.2632  lr 2.10e-04
+  step   8000  loss 4.1211  lr 2.08e-04
+  step   8100  loss 3.9696  lr 2.06e-04
+  step   8200  loss 4.0099  lr 2.04e-04
+  step   8300  loss 4.2173  lr 2.02e-04
+  step   8400  loss 4.2524  lr 2.00e-04
+  step   8500  loss 3.9308  lr 1.98e-04
+  step   8600  loss 3.6813  lr 1.96e-04
+  step   8700  loss 3.9824  lr 1.94e-04
+  step   8800  loss 3.6899  lr 1.91e-04
+  step   8900  loss 3.8968  lr 1.89e-04
+  step   9000  loss 4.1929  lr 1.87e-04
+  step   9100  loss 4.0384  lr 1.85e-04
+  step   9200  loss 3.8564  lr 1.83e-04
+  step   9300  loss 3.6018  lr 1.81e-04
+  step   9400  loss 4.2102  lr 1.79e-04
+  step   9500  loss 3.7842  lr 1.77e-04
+  step   9600  loss 4.2516  lr 1.75e-04
+  step   9700  loss 4.0130  lr 1.72e-04
+  step   9800  loss 4.0902  lr 1.70e-04
+  step   9900  loss 4.4585  lr 1.68e-04
+  step  10000  loss 3.9860  lr 1.66e-04
+  step  10100  loss 4.0468  lr 1.64e-04
+  step  10200  loss 4.1502  lr 1.62e-04
+  step  10300  loss 4.0784  lr 1.60e-04
+  step  10400  loss 3.9965  lr 1.58e-04
+  step  10500  loss 4.0967  lr 1.55e-04
+  step  10600  loss 3.7830  lr 1.53e-04
+  step  10700  loss 4.0982  lr 1.51e-04
+  step  10800  loss 4.1053  lr 1.49e-04
+  step  10900  loss 3.6946  lr 1.47e-04
+  step  11000  loss 3.9829  lr 1.45e-04
+  step  11100  loss 3.7998  lr 1.43e-04
+  step  11200  loss 4.2322  lr 1.41e-04
+  step  11300  loss 4.0792  lr 1.39e-04
+  step  11400  loss 3.8603  lr 1.36e-04
+  step  11500  loss 3.9534  lr 1.34e-04
+  step  11600  loss 3.9169  lr 1.32e-04
+  step  11700  loss 4.3498  lr 1.30e-04
+  step  11800  loss 3.9739  lr 1.28e-04
+  step  11900  loss 3.7304  lr 1.26e-04
+  step  12000  loss 3.7422  lr 1.24e-04
+  step  12100  loss 3.6326  lr 1.22e-04
+  step  12200  loss 3.7801  lr 1.20e-04
+  step  12300  loss 4.0002  lr 1.18e-04
+  step  12400  loss 3.9263  lr 1.16e-04
+  step  12500  loss 4.0341  lr 1.14e-04
+  step  12600  loss 3.4819  lr 1.12e-04
+  step  12700  loss 3.9463  lr 1.10e-04
+  step  12800  loss 3.9741  lr 1.08e-04
+  step  12900  loss 3.9720  lr 1.06e-04
+  step  13000  loss 3.5226  lr 1.04e-04
+  step  13100  loss 3.4295  lr 1.02e-04
+  step  13200  loss 4.0809  lr 1.01e-04
+  step  13300  loss 3.8277  lr 9.87e-05
+  step  13400  loss 3.9665  lr 9.69e-05
+  step  13500  loss 3.7020  lr 9.51e-05
+  step  13600  loss 3.9050  lr 9.32e-05
+  step  13700  loss 3.5637  lr 9.14e-05
+  step  13800  loss 3.8844  lr 8.97e-05
+  step  13900  loss 3.9794  lr 8.79e-05
+  step  14000  loss 3.8583  lr 8.62e-05
+  step  14100  loss 3.6296  lr 8.44e-05
+  step  14200  loss 4.0048  lr 8.27e-05
+  step  14300  loss 3.9051  lr 8.11e-05
+  step  14400  loss 4.3055  lr 7.94e-05
+  step  14500  loss 3.9178  lr 7.78e-05
+  step  14600  loss 3.9350  lr 7.62e-05
+  step  14700  loss 3.7406  lr 7.46e-05
+  step  14800  loss 4.0520  lr 7.30e-05
+  step  14900  loss 3.6916  lr 7.14e-05
+  step  15000  loss 3.9467  lr 6.99e-05
+  step  15100  loss 3.4891  lr 6.84e-05
+  step  15200  loss 3.7645  lr 6.69e-05
+  step  15300  loss 3.9728  lr 6.55e-05
+  step  15400  loss 4.0361  lr 6.41e-05
+  step  15500  loss 4.0347  lr 6.27e-05
+  step  15600  loss 4.2030  lr 6.13e-05
+  step  15700  loss 3.8890  lr 5.99e-05
+  step  15800  loss 3.8002  lr 5.86e-05
+  step  15900  loss 3.6405  lr 5.73e-05
+  step  16000  loss 4.0455  lr 5.60e-05
+  step  16100  loss 3.9411  lr 5.48e-05
+  step  16200  loss 3.5167  lr 5.36e-05
+  step  16300  loss 3.3740  lr 5.24e-05
+  step  16400  loss 4.2667  lr 5.12e-05
+  step  16500  loss 3.9151  lr 5.01e-05
+  step  16600  loss 4.1580  lr 4.90e-05
+  step  16700  loss 4.1960  lr 4.79e-05
+  step  16800  loss 3.8481  lr 4.69e-05
+  step  16900  loss 3.6336  lr 4.58e-05
+  step  17000  loss 3.9764  lr 4.49e-05
+  step  17100  loss 3.7932  lr 4.39e-05
+  step  17200  loss 4.0601  lr 4.30e-05
+  step  17300  loss 3.8828  lr 4.21e-05
+  step  17400  loss 3.8789  lr 4.12e-05
+  step  17500  loss 3.7890  lr 4.04e-05
+  step  17600  loss 3.8300  lr 3.96e-05
+  step  17700  loss 4.0134  lr 3.88e-05
+  step  17800  loss 3.6091  lr 3.81e-05
+  step  17900  loss 3.8504  lr 3.74e-05
+  step  18000  loss 4.0791  lr 3.67e-05
+  step  18100  loss 3.9228  lr 3.60e-05
+  step  18200  loss 3.5877  lr 3.54e-05
+  step  18300  loss 4.0612  lr 3.48e-05
+  step  18400  loss 3.8260  lr 3.43e-05
+  step  18500  loss 4.0152  lr 3.38e-05
+  step  18600  loss 3.9684  lr 3.33e-05
+  step  18700  loss 3.7629  lr 3.28e-05
+  step  18800  loss 3.7750  lr 3.24e-05
+  step  18900  loss 4.1488  lr 3.20e-05
+  step  19000  loss 3.9076  lr 3.17e-05
+  step  19100  loss 3.7613  lr 3.14e-05
+  step  19200  loss 4.1507  lr 3.11e-05
+  step  19300  loss 3.7117  lr 3.08e-05
+  step  19400  loss 3.8532  lr 3.06e-05
+  step  19500  loss 4.0013  lr 3.04e-05
+  step  19600  loss 3.8986  lr 3.03e-05
+  step  19700  loss 3.7252  lr 3.02e-05
+  step  19800  loss 3.9156  lr 3.01e-05
+  step  19900  loss 3.6869  lr 3.00e-05
+  step  20000  loss 3.8578  lr 3.00e-05
+  [checkpoint step 20000] val_loss[openr1-mix-ext]=2.1614  val_loss[wikitext-mix-ext]=6.4062  rank_L0_H0_f1.0[openr1-mix-ext]=31.245  eval_digest[openr1-mix-ext]=183997575
+
+RESULT SUMMARY: {
+  "run_name": "lmC_openr1-mix-ext_dm256_ds64_L2_s0_qkoff",
+  "claim_tier": "descriptive+interventional (Wave 2 / RD-2, DELTANET_REALDATA_DESIGN.md section 6.3) -- NOT premise-conditional causal (that tier is Wave 1 / RD-1 only, section 5's C16 premise machinery). No Gram-deviation / salvage-ratio / alignment-cosine premise gating applies to this arm's metrics (section 14.7).",
+  "corpus": "openr1-mix-ext",
+  "other_corpus": "wikitext-mix-ext",
+  "seed": 0,
+  "eval_window_seed_policy": "corpus_fixed (AUDIT FIX-1: crc32(corpus)+step, independent of seed)",
+  "d_model": 256,
+  "d_state": 64,
+  "n_layers": 2,
+  "conv_size": 4,
+  "num_heads": 1,
+  "ffn_mult": 4,
+  "seq_len": 512,
+  "batch_size": 32,
+  "lr": 0.0003,
+  "weight_decay": 0.01,
+  "warmup_steps": 100,
+  "steps": 20000,
+  "steps_completed": 20000,
+  "complete": true,
+  "n_skipped_steps": 0,
+  "skip_rate": 0.0,
+  "train_window_contamination": {
+    "n_train_windows": 640000,
+    "frac_windows_crossing": 0.2693578125,
+    "frac_tokens_cross_doc": 0.14986241760253907
+  },
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "n_params": 14048896,
+  "geo3_lm": {
+    "active": false,
+    "k_sel": 16,
+    "chunk_size": 64,
+    "n_iter": 12,
+    "resid_tol": 0.01,
+    "selection_mode": "beta_topk"
+  },
+  "hard_select": {
+    "active": false,
+    "mechanism": "hard_ste",
+    "k_sel": 32,
+    "chunk_size": 64,
+    "b_pinned": null,
+    "seed": 0,
+    "tau_anneal_frac": 0.1
+  },
+  "nan_probe_positive_control": null,
+  "frozen_bias": {
+    "arm": "off",
+    "lambda": 0.58,
+    "seed": 20260705
+  },
+  "wall_s": 882.1400389671326,
+  "timed_out": false,
+  "peak_memory_allocated_bytes": 16694130176,
+  "peak_memory_reserved_bytes": 19354615808,
+  "gate_override": false,
+  "final_step": 20000,
+  "final_checkpoint_path": "results/attractor_robustness_2x2/checkpoints/lmC_openr1-mix-ext_dm256_ds64_L2_s0_qkoff_step20000.pt"
+}
+wrote results/attractor_robustness_2x2/attrrob_qkFalse_gateFalse_s0_lm.json

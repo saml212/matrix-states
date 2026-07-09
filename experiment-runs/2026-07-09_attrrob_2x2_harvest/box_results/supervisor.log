@@ -1,0 +1,108 @@
+budget_guard: n_seeds=1 (4 cells) projected 1.0096 GPU-h <= ceiling 1.0096 GPU-h -- OK
+[attrrob_qkTrue_gateFalse_s0] leg=lm_pretrain cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_pretrain_rd.py --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data --d-model 256 --d-state 64 --n-layers 2 --conv-size 4 --num-heads 1 --seq-len 512 --batch-size 32 --steps 20000 --ckpt-every 20000 --seed 0 --internal-timeout 3570.0 --ckpt-dir results/attractor_robustness_2x2/checkpoints --out results/attractor_robustness_2x2/attrrob_qkTrue_gateFalse_s0_lm.json
+[attrrob_qkTrue_gateFalse_s0] leg=attractor_probe cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_attractor_probe_rd.py --checkpoints results/attractor_robustness_2x2/checkpoints/lmC_openr1-mix-ext_dm256_ds64_L2_s0_step20000.pt --data-dir /data/deltanet_rd_data --seq-len 512 --out results/attractor_robustness_2x2/attrrob_qkTrue_gateFalse_s0_attractor_probe.json
+[attrrob_qkTrue_gateFalse_s0] leg=rec_at_09 (reasoning_link_probe.run_cell, K=32, hops=(1, 2, 3, 4))
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[attrrob_qkTrue_gateTrue_s0] leg=lm_pretrain cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_pretrain_rd.py --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data --d-model 256 --d-state 64 --n-layers 2 --conv-size 4 --num-heads 1 --seq-len 512 --batch-size 32 --steps 20000 --ckpt-every 20000 --seed 0 --internal-timeout 3570.0 --ckpt-dir results/attractor_robustness_2x2/checkpoints --out results/attractor_robustness_2x2/attrrob_qkTrue_gateTrue_s0_lm.json --gated-delta-active
+[attrrob_qkTrue_gateTrue_s0] leg=attractor_probe cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_attractor_probe_rd.py --checkpoints results/attractor_robustness_2x2/checkpoints/lmC_openr1-mix-ext_dm256_ds64_L2_s0_gated_step20000.pt --data-dir /data/deltanet_rd_data --seq-len 512 --out results/attractor_robustness_2x2/attrrob_qkTrue_gateTrue_s0_attractor_probe.json
+[attrrob_qkTrue_gateTrue_s0] leg=rec_at_09 (reasoning_link_probe.run_cell, K=32, hops=(1, 2, 3, 4))
+/home/nvidia/tdenv/lib/python3.12/site-packages/triton/language/core.py:2284: UserWarning: tl.make_block_ptr is deprecated. Use TensorDescriptor or tl.make_tensor_descriptor instead.
+  warn("tl.make_block_ptr is deprecated. Use TensorDescriptor or tl.make_tensor_descriptor instead.")
+[attrrob_qkFalse_gateFalse_s0] leg=lm_pretrain cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_pretrain_rd.py --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data --d-model 256 --d-state 64 --n-layers 2 --conv-size 4 --num-heads 1 --seq-len 512 --batch-size 32 --steps 20000 --ckpt-every 20000 --seed 0 --internal-timeout 3570.0 --ckpt-dir results/attractor_robustness_2x2/checkpoints --out results/attractor_robustness_2x2/attrrob_qkFalse_gateFalse_s0_lm.json --qk-l2norm-off
+[attrrob_qkFalse_gateFalse_s0] leg=attractor_probe cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_attractor_probe_rd.py --checkpoints results/attractor_robustness_2x2/checkpoints/lmC_openr1-mix-ext_dm256_ds64_L2_s0_qkoff_step20000.pt --data-dir /data/deltanet_rd_data --seq-len 512 --out results/attractor_robustness_2x2/attrrob_qkFalse_gateFalse_s0_attractor_probe.json
+[attrrob_qkFalse_gateFalse_s0] leg=rec_at_09 (reasoning_link_probe.run_cell, K=32, hops=(1, 2, 3, 4))
+[attrrob_qkFalse_gateTrue_s0] leg=lm_pretrain cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_pretrain_rd.py --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data --d-model 256 --d-state 64 --n-layers 2 --conv-size 4 --num-heads 1 --seq-len 512 --batch-size 32 --steps 20000 --ckpt-every 20000 --seed 0 --internal-timeout 3570.0 --ckpt-dir results/attractor_robustness_2x2/checkpoints --out results/attractor_robustness_2x2/attrrob_qkFalse_gateTrue_s0_lm.json --qk-l2norm-off --gated-delta-active
+[attrrob_qkFalse_gateTrue_s0] leg=attractor_probe cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_attractor_probe_rd.py --checkpoints results/attractor_robustness_2x2/checkpoints/lmC_openr1-mix-ext_dm256_ds64_L2_s0_qkoff_gated_step20000.pt --data-dir /data/deltanet_rd_data --seq-len 512 --out results/attractor_robustness_2x2/attrrob_qkFalse_gateTrue_s0_attractor_probe.json
+[attrrob_qkFalse_gateTrue_s0] leg=rec_at_09 (reasoning_link_probe.run_cell, K=32, hops=(1, 2, 3, 4))
+
+======================================================================
+ATTRACTOR-ROBUSTNESS 2x2 WAVE REPORT: {
+  "cells": [
+    "attrrob_qkTrue_gateFalse_s0",
+    "attrrob_qkTrue_gateTrue_s0",
+    "attrrob_qkFalse_gateFalse_s0",
+    "attrrob_qkFalse_gateTrue_s0"
+  ],
+  "gram_dev_mean_by_cell_key": {
+    "qkTrue_gateFalse": 19.068988800048828,
+    "qkTrue_gateTrue": 25.232243537902832,
+    "qkFalse_gateFalse": 18.195853233337402,
+    "qkFalse_gateTrue": 21.204423904418945
+  },
+  "rec_at_09_by_cell_key": {
+    "qkTrue_gateFalse": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkTrue_gateTrue": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkFalse_gateFalse": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkFalse_gateTrue": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ]
+  },
+  "rec_at_09_note": "PROBE-INVALID / categorical-0.0 floor expected in every arm (zero-shot K-cycle transplant, see module docstring) -- NON-DECISIONAL, not read by should_escalate().",
+  "escalation": {
+    "fire": true,
+    "baseline_gram_deviation_mean": 19.068988800048828,
+    "threshold": 4.48871,
+    "corpus": "openr1-mix-ext",
+    "per_cell": {
+      "qkTrue_gateTrue": {
+        "gram_deviation_mean": 25.232243537902832,
+        "delta_vs_baseline": 6.163254737854004,
+        "threshold": 4.48871,
+        "exceeds": true
+      },
+      "qkFalse_gateFalse": {
+        "gram_deviation_mean": 18.195853233337402,
+        "delta_vs_baseline": -0.8731355667114258,
+        "threshold": 4.48871,
+        "exceeds": false
+      },
+      "qkFalse_gateTrue": {
+        "gram_deviation_mean": 21.204423904418945,
+        "delta_vs_baseline": 2.135435104370117,
+        "threshold": 4.48871,
+        "exceeds": false
+      }
+    },
+    "rule": {
+      "description": "n=1 screening -> n=3 escalation fires iff ANY non-baseline cell's Gram-deviation (same-corpus, pooled-across-layers gram_deviation_mean) differs from the baseline cell (qk_l2norm_in_kernel=True, gated_delta_active=False) by more than 2.0x the archived cross-seed noise floor at this exact (dm256/ds64/L2) config and corpus.",
+      "trigger_multiple": 2.0,
+      "noise_floor_source": "experiment-runs/2026-07-06_trajectory_probes/reference_finals_archived.json, 'mixcontrol' family, archived4_gram_deviation_mean, cross-seed {0,1,2} population std at the SAME (dm256/ds64/L2) architecture -- see ARCHIVED_SEED_NOISE_GRAM_DEV_STD.",
+      "noise_floor_std": {
+        "openr1-mix-ext": 2.244355,
+        "wikitext-mix-ext": 2.216699
+      },
+      "baseline_cell_key": "qkTrue_gateFalse"
+    }
+  },
+  "failed": [],
+  "wall_s": 3712.0422825813293
+}
+======================================================================
+
+ESCALATION RULE FIRED -- qualitative split detected, n=3 escalation (ESCALATION_CELLS=12, ceiling=3.03 GPU-h) is now pre-registered-authorized. Re-invoke with --n-seeds 3.

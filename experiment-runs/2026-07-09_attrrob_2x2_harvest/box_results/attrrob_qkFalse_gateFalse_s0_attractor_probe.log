@@ -1,0 +1,29 @@
+
+======================================================================
+ATTRACTOR PROBE RESULT SUMMARY: {
+  "design_ref": "SCALE_TRANSFER_DESIGN.md sec 5.5 item 1 (attractor persistence probe)",
+  "chunk_size": 64,
+  "n_windows_per_corpus_per_checkpoint": 32,
+  "seq_len": 512,
+  "checkpoints": [
+    "results/attractor_robustness_2x2/checkpoints/lmC_openr1-mix-ext_dm256_ds64_L2_s0_qkoff_step20000.pt"
+  ],
+  "measurement_convention_note": "gram_deviation is computed on L2-NORMALIZED raw post-conv keys, PRE the kernel's own internal use_qk_l2norm_in_kernel normalization (not interceptable at this hook point) -- matches model_rd.py's own documented convention and Track B's identical pre-normalization rationale. Episodes with n_valid (non-EOT content positions in the chunk) < MIN_VALID_FOR_GRAM=2 are EXCLUDED (gram_deviation=None), counted in n_excluded_below_min_valid, never silently averaged as 0.",
+  "pooled": {
+    "n_episodes": 3584,
+    "n_excluded_below_min_valid": 0,
+    "n_scored": 3584,
+    "gram_deviation_mean": 18.55264663696289,
+    "gram_deviation_std": 3.384108543395996,
+    "effective_rank_mean": 37.36750030517578,
+    "stable_rank_mean": 4.3496785163879395
+  },
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "wall_s": 18.19462490081787
+}
+======================================================================
+
+wrote results/attractor_robustness_2x2/attrrob_qkFalse_gateFalse_s0_attractor_probe.json

@@ -1,0 +1,86 @@
+{
+  "cells": [
+    "attrrob_qkTrue_gateFalse_s0",
+    "attrrob_qkTrue_gateTrue_s0",
+    "attrrob_qkFalse_gateFalse_s0",
+    "attrrob_qkFalse_gateTrue_s0"
+  ],
+  "gram_dev_mean_by_cell_key": {
+    "qkTrue_gateFalse": 19.068988800048828,
+    "qkTrue_gateTrue": 25.232243537902832,
+    "qkFalse_gateFalse": 18.195853233337402,
+    "qkFalse_gateTrue": 21.204423904418945
+  },
+  "rec_at_09_by_cell_key": {
+    "qkTrue_gateFalse": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkTrue_gateTrue": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkFalse_gateFalse": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ],
+    "qkFalse_gateTrue": [
+      {
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0
+      }
+    ]
+  },
+  "rec_at_09_note": "PROBE-INVALID / categorical-0.0 floor expected in every arm (zero-shot K-cycle transplant, see module docstring) -- NON-DECISIONAL, not read by should_escalate().",
+  "escalation": {
+    "fire": true,
+    "baseline_gram_deviation_mean": 19.068988800048828,
+    "threshold": 4.48871,
+    "corpus": "openr1-mix-ext",
+    "per_cell": {
+      "qkTrue_gateTrue": {
+        "gram_deviation_mean": 25.232243537902832,
+        "delta_vs_baseline": 6.163254737854004,
+        "threshold": 4.48871,
+        "exceeds": true
+      },
+      "qkFalse_gateFalse": {
+        "gram_deviation_mean": 18.195853233337402,
+        "delta_vs_baseline": -0.8731355667114258,
+        "threshold": 4.48871,
+        "exceeds": false
+      },
+      "qkFalse_gateTrue": {
+        "gram_deviation_mean": 21.204423904418945,
+        "delta_vs_baseline": 2.135435104370117,
+        "threshold": 4.48871,
+        "exceeds": false
+      }
+    },
+    "rule": {
+      "description": "n=1 screening -> n=3 escalation fires iff ANY non-baseline cell's Gram-deviation (same-corpus, pooled-across-layers gram_deviation_mean) differs from the baseline cell (qk_l2norm_in_kernel=True, gated_delta_active=False) by more than 2.0x the archived cross-seed noise floor at this exact (dm256/ds64/L2) config and corpus.",
+      "trigger_multiple": 2.0,
+      "noise_floor_source": "experiment-runs/2026-07-06_trajectory_probes/reference_finals_archived.json, 'mixcontrol' family, archived4_gram_deviation_mean, cross-seed {0,1,2} population std at the SAME (dm256/ds64/L2) architecture -- see ARCHIVED_SEED_NOISE_GRAM_DEV_STD.",
+      "noise_floor_std": {
+        "openr1-mix-ext": 2.244355,
+        "wikitext-mix-ext": 2.216699
+      },
+      "baseline_cell_key": "qkTrue_gateFalse"
+    }
+  },
+  "failed": []
+}
