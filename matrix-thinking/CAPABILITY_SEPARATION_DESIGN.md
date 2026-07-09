@@ -5940,3 +5940,28 @@ green (6/6 + legacy 13/13). **NEXT: scoped worktree re-audit (re-run
 §2.20's escaped mutations + the new kill proofs) → deploy (md5) → box
 fla cross-check FIRST → Arm-1 retrain → 11-cell calibration gate (7
 depths) → write the harvest analysis script → sweep (cap 25).**
+
+### §2.22 STAGE 2 SCOPED RE-AUDIT VERDICT (2026-07-09, on a75754f): NEEDS-FIXES narrow — F1-F6 all HOLD (both §2.20 escapes now die, 10-mutation table), 4 NEW defects in the run_real_cell delta
+
+CAUGHT: mean→max escape dies (F2 plant); fresh-reinit escape dies
+(fingerprint); F1 revert dies (scored lengths ≠ D); F5/F6/F3 mutations
+die; originally-caught sample intact; F1 reimplementation proven
+numerically equivalent (≤2.3e-7, fp32 kernel drift); objective/widen
+symmetry/fla-mirror/D_test schema/m4 all conform.
+**NEW: N1 (MAJOR) run_real_cell UNREACHABLE from the production entry —
+main() still routes to the 20-step MSE tiny runner, whose outputs are
+RESUME-VALID → a signed-off calibration run writes 11 poison JSONs a
+real wave silently skips; fix = route production through run_real_cell
++ tag/reject tiny outputs. N2 (MODERATE) unsalted training generator
+regresses the §1.22 BA-F3 fix (S4/A5 byte-identical token streams at
+equal seed — proven; one-line group_seed_salt fix). N3 (MAJOR) batch 32
+vs the pinned 256 + missing clip_grad_norm/finite-skip — an 8× per-step
+data deficit for Arms 2-3 vs Arm-1's checkpoints, violating the §2.3
+fairness pin; set 256 + mirror the recipe (or pin+disclose+re-derive).
+N4 (MODERATE) fingerprint asserted on the adjacent object, not the
+gate's probed argument — assert at the gate boundary.**
+DISPOSITION: fla cross-check + Arm-1 retrain CLEARED to proceed on
+deploy (unaffected); the 11-cell calibration gate BLOCKED on N1-N3;
+N-fixes dispatched → narrow re-check (N1-N4 mutations only) → deploy →
+gate. Harvest analysis script still REQUIRED pre-sweep. Security: +2
+md5-refuted file-modified fakes (racing tally, ≥80 class).
