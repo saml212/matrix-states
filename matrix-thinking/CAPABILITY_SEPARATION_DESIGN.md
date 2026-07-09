@@ -5464,3 +5464,53 @@ M1 reported on the full pinned sample + L≥2 split per Rev 7. Launch
 plan: GPU 0 (returned idle), tmux + supervisor, resume-safe; the FIRED
 2×2 escalation (8 cells ≈2.02 GPU-h) chains AFTER the sweep on the same
 GPU. Harvest = verify-vs-raws → TOST/M1-M3.
+
+### §2.16 SCOPED MICRO-ATTACK ON THE 2(e) REWRITE (2026-07-09 overnight, on 08e4d59): NEEDS-REVISION — narrow, prescriptive, text-only
+
+Verified-resolved: formula provenance character-exact vs the archived
+l1_micro_diag.py:210; the S3 tiebreak CORRECT (d_state=4 queries via
+§1.2/§1.4, §2.14's "d_state=2" was a d_min misread); "free eval-only
+forwards" true; all §-references check; two-level routing executable at
+design level; ledger delta arithmetic closes; up-scaling cannot fake the
+norm-matched bars (the "one direction" claim holds for state-scale).
+
+**B1 (BINDING):** the healthy anchor is norm-matched but NOT
+rank-matched — the same full-rank-32 synthetic state anchors every
+depth, while the probe state's rank is architecturally capped at
+min(32, n_h·D) (rank 2 at D=1). At low D the 0.25 fraction adjudicates
+the ARCHITECTURAL rank gap, not "benign geometry" — a perfectly healthy
+D=1 cell plausibly straddles the bar (mean-of-std scales ≈
+√(eff-dims ratio) ≈ 0.58-0.71 before softmax compression), and the
+predictable consequence chain re-derives Stage 1's §1.30 L=1 demotion
+the expensive way. Same defect class as §2.14 MAJOR-1(b), one level up.
+**FIX (prescribed): rank-match the anchor per (cell, depth) — the SAME
+pinned recurrence run D steps at the cell's own n_h (orthonormal keys
+per Householder block, Gaussian values, β=1, seed 7) → anchor rank =
+min(32, n_h·D); full-rank anchor recovered wherever n_h·D ≥ 32.**
+**B2 (BINDING, one sentence):** the ceiling branch of the two-level
+routing never discharges the launch condition — add: a diagnosed-ceiling
+demotion of a depth leg, once disclosed and PI-acknowledged, discharges
+(e) at that leg for launch purposes.
+**M1 (MODERATE):** no absolute anchor-health floor — a reader
+query-independent for ANY memory (the §1.30 class) gives T≈0 AND
+T_anchor≈0, vacuously passing both ratio bars. FIX: floor
+T_anchor(D) ≥ 1e-4 (cf. the archived probe's 1e-6 threshold); a floor
+violation routes to instrument-defect, not the BOS fix.
+**M2 (MODERATE):** BOS adoption re-runs ALL 11 calibration cells
+(≤0.6 GPU-h), not just the failing ones — otherwise passing cells'
+certifications are stranded on a superseded architecture.
+**Minors:** pin the orthogonal-matrix construction (QR of seed-7
+Gaussian, library named); "single global scalar" norm match (not
+per-row); fix the false B=64-stabilization claim at D=1 (only 3-4
+distinct L=1 words exist); optionally pin ddof (cancels via shared code
+path). Also zero-cost: co-report the median of the B×h entries
+(diagnostic-only, not decisional).
+Mean-vs-quantile adjudicated: mean at 0.25 admits up to 75%
+dim-collapse — DEFENSIBLE as decisional (the readout needs only
+d_state×d_state of the read dims; strictly better than the archived
+max), with the median co-report preserving diagnosability.
+
+**DISPOSITION: Rev 3 dispatched (surgical, the fixes are prescribed
+verbatim above); coordinator verifies the applied delta against this
+prescription directly (raw-diff check) and records the clearance —
+no further attack round needed unless the delta deviates.**
