@@ -853,3 +853,45 @@ implications):**
 hard ALL-of conditions and unchanged. Security: one system-channel
 date-change+concealment sighting (the recurring ambiguous vector),
 reported.**
+
+## §5 SCOPED MICRO-ATTACK ON THE §3.4 RULE MATH (2026-07-09 overnight, on 8972a07): CLEARED → DESIGN-CLEARED-FOR-BUILD-QUEUE
+
+Zero math-level defects. Verified by independent re-derivation +
+numerical simulation: (1) with B=0 the mixed sum is EXACT (block
+lower-triangular Z^h), the telescoping identity checks to 1.2e-16, both
+worst-case path endpoints carried with the right prefactor, and the
+B-feedback neglect holds with margin (recomputed ≤0.0037 per healthy
+seed vs the disclosed 0.006 ceiling). (2) The bound is UNCONDITIONALLY
+VALID for arbitrary non-normal A and D — stronger than the doc claims:
+the signal side needs a LOWER bound and σ_min(A)^h ≤ σ_min(A^h) holds
+for every A; non-normal A only adds reject-safe looseness. Scale
+invariance under Z→cZ verified symbolically. (3) N2 verified by hand AND
+by exact simulation: old rule T=0.0100 (false admit against a genuine
+behavioral failure — junk/signal exactly 1.0, cosine 0.707), corrected
+rule 1.010×10³⁸; the 38-order looseness is entirely in the conceded
+false-refuse direction; the refuse-everything-deep concession is
+arithmetically FORCED even at the absolute-floor constants reading
+(T(61) ≥ 0.231 > τ). (4) Every restated value reproduces (worst 9.6195,
+tightest 1.1896, r→1 1.0647, horizons h≤8/h≤11, conservatism
+8.5/6.9/10.0/3.7×, N1 0.2100/99.74). (5) The 1e-6 evaluation-branch pin
+is sound (cancellation onset at |a−r|~u, not 1/h; limit branch
+overestimates reject-safe by ~6e-5 at the pin; overflow → inf → reject,
+fail-safe). (6) Both negative tests executable, criteria numeric, no
+degenerate divisions.
+
+**Three non-binding nits, BINDING ON THE BUILD AGENT as text-level
+guards (do not code from the flawed prose):** (n1) N2's "occupies e₃
+exactly at step 19" — the trajectory also occupies e₃ after steps 3 and
+11; uniqueness of the surviving term comes from D²=0 annihilating the
+j=4/j=12 injections, NOT unique occupancy — do not assert "C fires only
+once." (n2) N1's old-rule ADMIT must be scored against the s1-calibrated
+threshold (>0.37) as an explicit inequality, since 0.21 > τ=0.2
+literally rejects. (n3) mi1's "4-10× conservative" quantifies T_lin, not
+the σ-form (whose own s1@h=21 conservatism is ~15.6×) — do not quote it
+against the Rev-2 rule.
+
+**STATUS: NCR wave 1 = DESIGN-CLEARED-FOR-BUILD-QUEUE.** Launch remains
+double-gated per §3.8 (Stage-2 calibration readout + build audit + smoke
++ Phase-0 calibration + the executed negative tests N1/N2). Second track
+(rank-budgeted writes) and the Z-dump orthogonal-complement piggyback
+remain unattacked backlog.
