@@ -4306,3 +4306,39 @@ Box-only disclosed: real-kernel K=48 smoke; the actual re-metric +
 **NEXT: scoped worktree audit (re-run the four regression kills +
 new-defect sweep on the delta) → deploy (md5) → identity-table
 pre-flight → ROUND4_AUTHORIZED.token → round 4 (≈1.3 GPU-h).**
+
+### 1.34 BUILD-FIX AUDIT VERDICT (2026-07-09, on 7c7acd5): NEEDS-FIXES — 1 BLOCKING + 2 MAJOR; all six suites green ×2, all four regression kills verified both directions
+
+CLEAN: bit-EXACT tap equivalence (torch.equal, incl. vs the taploc
+script); 107-way relabel round-trips to the right entity, fails closed
+out-of-pool; ROUND4_CELL_SPEC == 7+2 cell-by-cell; provenance fails
+closed at all three layers; S₀ pins computed-not-hardcoded
+(0.09375 / 0.000988 / 0.006458); band re-wire teeth through the REAL
+wiring (unhealthy-ablation blocks, chance-transformer data-only,
+chance-contender blocks); token gate proven on the verbatim Stage-B3
+block, 4 cases.
+**F1 (BLOCKING): round 4 cannot run** — _round3_ckpt_filename matches
+cell.get("K")==K but task2 calibration cells carry NO K key → KeyError
+at pre-flight on both task2 cells (demonstrated live); driver selftest
+3 masked it (FileNotFoundError on cell 1 in an empty dir). Fix: match K
+only when present (or key on arch/task/role) + a selftest resolving ALL
+7 reused names. **F2 (MAJOR):** task2's round-4 Leg-A read uses H_test
+(3,4) but the §1.31.1 written baseline was measured on H_train (1,2) —
+comparability broken (outcome-neutral, both ≈chance, but the
+pre-registration diff is hop-set-incomparable). Fix: read H_train to
+match the baseline (and ideally both, disclosed). **F3 (MAJOR):** the
+§1.31.4-item-3 "wired as its own chain gate" real-kernel K=48 smoke is
+NOT wired — no chain stage, no box-smoke item — and the coverage hole
+is DEMONSTRATED: restoring the exact §1.27 OOM shape at the call site
+leaves all suites green (selftest 21 is pure arithmetic decoupled from
+the code under test). Fix: wire it as a box-smoke checklist item + a
+chain check before Stage B3. Minor notes i-v carried (manifest
+cross-check stays an explicit coordinator pre-flight; mtime recorded
+md5 compared; the chain-level-only token gate; shared diagnostic seeds
+disclosed; **coordinator decision on note v: round-4 fresh cells export
+H2H_DIAL_ROUND=4** — no clobber either way, but the label must match
+the round). Security: 3 more false file-modified fakes, md5-refuted.
+**DISPOSITION: narrow fixes dispatched (F1/F2 one-line-class + F3
+wiring + the note-v label) → scoped re-check → deploy checklist
+(K=48 real-kernel smoke FIRST, identity-table pre-flight,
+FRESH_CELL_CONFIGS.json, THEN the token).**
