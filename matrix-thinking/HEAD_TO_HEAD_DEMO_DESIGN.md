@@ -3681,7 +3681,7 @@ and its same conclusion: an accurate payload does not make an impersonated-syste
 delivery vector legitimate. Logged per the standing hard rule; no other injections observed
 during this task.
 
-### 1.31 DESIGN REV 5 (2026-07-09): THE TWO-LEG GATE — episode-restricted discrete recall (rung 1) PROMOTED to the metric of record; the continuous instrument REPAIRED (offline fit, §1.30-localized tap) and DEMOTED to mechanism attribution; four mandatory instrument fixes; round 4 re-priced ≈1.3 GPU-h
+### 1.31 DESIGN REV 5 (2026-07-09): THE TWO-LEG GATE — episode-restricted discrete recall (rung 1) PROMOTED to the metric of record; the continuous instrument REPAIRED (offline fit, §1.30-localized tap) and DEMOTED to mechanism attribution; four mandatory instrument fixes (six after Rev 5.1, §1.31a); round 4 re-priced ≈1.3 GPU-h
 
 Recorded per the gauntlet-bookkeeping hard rule. This revision adopts
 §1.28's recorded two-leg gate direction, now informed by §1.29's decisive
@@ -3690,14 +3690,96 @@ the causally-necessary bindings; S1 causally inert; NO linear tap on
 either raw state clears rf@0.9; ONLY the pre-LM-head hidden is linearly
 decodable — contender rf@0.9 0.674 / cos_mean 0.894 — and the model's own
 block-1 forward performs the linearization). **Scope: append-only.**
-Upstream passages this section supersedes (§1.4.1's rf@0.9-based win
-operationalizations, §1.7 item 1a's "NEVER promoted to the WIN metric"
-sentence, item 1b's `rf@0.9>0` band conjunct) are deliberately left in
-place as history; from Rev 5 forward THIS section is the controlling text
-for those clauses — the same by-declaration supersession mechanism
+
+**Superseded clauses, enumerated (Rev 5.1 amendment, §1.32 F5 —
+replaces the single prose sentence this subsumes, which named only 3 of
+the 8 actually-dead clauses below):**
+
+1. §1.4.1 (~line 1068), the "(Task 2, primary; Task 1 high-load,
+   secondary bonus at no extra cost)" task-primacy designation —
+   superseded because §1.31.1 pins `task1_calib_K32` as the PRIMARY
+   axis-1 cell (rationale there); it is the only cell with demonstrated
+   recall (round-3 rung-1 table, §1.31.1).
+2. §1.4.1 (~lines 1072-1092), the two `recovered_frac@0.9`-based win-margin
+   operationalizations (tokens-to-threshold, sustained CI-separation) —
+   superseded by §1.31.1's `acc_A`-based re-pin (same structure, metric
+   swapped).
+3. §1.7 item 1a (~line 1784), "This rung is a disclosed GATE ... and is
+   NEVER promoted to the WIN metric" — superseded: rung 1 IS now the WIN
+   metric (§1.31.3).
+4. §1.7 item 1b (~line 1841), the `rf@0.9 > 0` FULL-cell band conjunct —
+   superseded: `rf@0.9` is REMOVED from the band (§1.31.3 bands, item
+   iv).
+5. §1.7 item 1a (~line 1804), "Rung 3 ... and only this rung, feeds
+   axis-1/axis-2 WIN/TIE/LOSE" — superseded: rung 1 (not rung 3) now
+   feeds WIN/TIE/LOSE; rung 3 is Leg B's diagnostic only (§1.31.2).
+6. §1.4.2 (~lines 1279-1287), the per-`M` gap statistic defined over the
+   `recovered_frac@0.9`-based CI test — superseded per §1.31.1's Axis-2
+   paragraph: "the per-`M` gap statistic is re-registered from
+   `recovered_frac@0.9` to `acc_A`," same 0.20 margin, same grid/tiers
+   otherwise unchanged.
+7. §1.7 gate 7 (~lines 1935-1941), the probe-capacity null's scope
+   ("before `HEADTOHEAD_MATCH_GATE_SIGNOFF=1` may be set" — i.e. gating
+   BOTH legs via one signoff token) — superseded: Leg A (rung 1, the WIN
+   metric) does not depend on `shared_probe`/`adapter_arm` at all
+   (§1.31.1's native LM-head route); gate 7's scope narrows to gating
+   Leg B's diagnostic signoff only, never blocking a Leg-A-only launch.
+8. §1.3.1.2 (~lines 564-592), the pinned tap
+   `state_summary_raw = S_T_last @ q_query` (i.e. `S1@q_shallow`) as THE
+   probe/adapter diagnostic READ POINT — superseded for Leg B by §1.30's
+   localization: this tap is causally inert (Table 1) and never clears
+   `rf@0.9` under any linear combine (Table 2); Leg B's tap is the
+   post-block-1, pre-LM-head hidden (§1.31.2). §1.3.1.2's tap remains the
+   correct ARCHITECTURAL description of what the contender/ablation
+   compute internally (unchanged); only its role as the diagnostic read
+   point is dead.
+
+All eight are deliberately left in place in their original sections as
+history; from Rev 5 forward THIS section is the controlling text for
+every one of them — the same by-declaration supersession mechanism
 §1.26a used for the §1.6 price row. Training is NOT touched (§1.31.5).
 
 #### 1.31.1 Leg A — the WIN/TIE/LOSE metric of record (numeric pre-registration)
+
+**Round-3 rung-1 table, full 7-of-9-cells-with-data (Rev 5.1, §1.32
+F1) — recorded here as the written baseline round 4's re-metric diffs
+against (chance = 1/K; K=32 for task1/task2, K=48 for the stress
+cell):**
+
+| cell | contender | ablation | transformer | chance |
+|---|---|---|---|---|
+| task1_calib (K/d=0.5, K=32) | 0.9990 | 0.0447 | 0.0295 | 0.03125 |
+| task2_calib (K=32) | 0.0376 | 0.0271 | — (never launched) | 0.03125 |
+| task1_stress_K48 (K=48) | 0.0189 | 0.0195 | FATAL — OOM'd pre-save, §1.27 | 0.02083 |
+
+**Axis-1 primary-cell pin (Rev 5.1, resolving §1.32 F1's FATAL — the
+axis-1 decisive-cell identity was left ambiguous because §1.4.1's
+original "Task 2, primary; Task 1 high-load, secondary bonus" sentence
+was never superseded even though round-3 data already settles it):**
+**`task1_calib_K32` is the PRIMARY axis-1 cell.** Rationale: it is the
+pre-registered K/d=0.5 load point (§1.4's M1 pin, unchanged) AND, per
+the table above, the ONLY cell with demonstrated recall at all
+(contender 0.9990, 31.9× the demonstration bar below) — task2_calib's
+own contender reading (0.0376, 1.2× chance) fails the demonstration bar
+outright, so it cannot anchor a primary-axis WIN claim. **This
+EXPLICITLY supersedes §1.4.1's "Task 2, primary" sentence** (dead-clause
+list item 1, §1.31 above).
+
+**Task2's round-4 disposition, pre-registered NOW (Rev 5.1, §1.32 F1 —
+naming the branch instead of leaving it to be discovered mid-round):**
+task2's Leg-A band failure is knowable on the FROZEN round-3 checkpoint
+today (0.0376 vs the 0.09375 demonstration bar, below) and round 4
+re-meters that SAME checkpoint, not a retrain — the failure is
+deterministic, not something round 4 might resolve differently.
+**Pinned branch:** the sweep proceeds TASK1-PRIMARY (per the pin above);
+task2 is NOT retrained or re-tuned this round. A separate,
+separately-ledgered **TASK2 DIAGNOSIS ROUND** is opened for AFTER the
+sweep (non-blocking) to determine whether task2's failure is a
+task-difficulty gap, an objective-tuning gap, or a genuine capability
+boundary. **For axis-1 purposes, task2 reads as a joint-failure TIE**
+(neither contender nor ablation clears the demonstration bar, the TIE
+clause below) — this disposition is disclosed verbatim in any claim
+that mentions task2.
 
 **Metric, pinned:** `acc_A(arm, cell)` = episode-restricted K-way top-1
 accuracy at the query answer position, read through EACH ARM'S OWN native
@@ -3768,6 +3850,19 @@ matched-training-budget caveat — and is NOT certified as `M*=∞`/
 strongest-win (extending §1.4.2's own rule that a degenerate comparison
 never certifies the top tier).
 
+**Joint-NO-RECALL rule for the M* walk (Rev 5.1, §1.32 M3 — the
+degenerate-baseline handling above covers the UNCAPPED transformer
+failing; this covers a CAPPED `M` point where the CONTENDER also
+fails):** if, at some grid point `M`, BOTH the contender's `acc_A` AND
+the capped transformer's `acc_A` sit at or below the demonstration bar
+(a joint task-learning/scale failure at that `M`, not a memory-capacity
+separation), that `M`-cell is scored TIE-equivalent for the walk —
+NEVER a LOSE for the contender, and never used to set `M*` in either
+direction. The walk continues past it exactly as the straddle rule
+(§1.4.2(b)) already treats an unresolved CI: it does not finalize a tier
+at that point. This closes off a joint-failure cell being misread as
+"the transformer caught up" when neither arm demonstrated recall.
+
 **rf@0.9 is NOT a LOSE criterion, NOT a gate conjunct, NOT in any band**
 — it is Leg B's diagnostic (below). **The Nichani caveat travels with
 every Leg-A number** (§1.31.6). All four outcomes above are
@@ -3815,6 +3910,16 @@ tell threshold — logged every read. **Calibration anchor (§1.30):**
 contender rf@0.9 0.674 / cos_mean 0.894 / gap-vs-shuffled +0.800;
 ablation flat (0.119 / +0.006) — Leg B's pre-registered expectation.
 
+**Reproduction-check tolerance (Rev 5.1, §1.32 M1):** for the 7 reused
+round-3 checkpoints (§1.31.7), round 4's Leg-B ridge re-fit at this same
+tap on the SAME frozen weights is expected to reproduce the §1.30
+calibration anchor within **±0.05 absolute on `rf@0.9`** (contender
+band: [0.624, 0.724]; ablation band: [0.069, 0.169], floored at 0 since
+`rf@0.9` cannot be negative). A read outside this band on a REUSED cell
+is a drift signal — stale checkpoint, tap-wiring regression, or loader
+bug — and is INVESTIGATED before proceeding to the sweep, not a
+proceed-anyway footnote.
+
 **S0-necessity causal check (the capability claim's mechanism leg,
 carried per §1.28/§1.30):** per-cell state-zeroing rung-1, recurrent arms
 only, ~free (§1.30 realized 0.00144 GPU-h for both arms combined):
@@ -3826,6 +3931,32 @@ accuracy, the fast-weight-resident mechanism claim is BLOCKED for that
 cell and a §1.21-style diagnosis round opens** (that pattern would mean a
 bottleneck leak, contradicting the standing blank-out evidence — a
 hard-stop, not a footnote).
+
+**S0-HARD-STOP, pinned numerically (Rev 5.1, §1.32 F4 — "≈chance" and
+"unchanged" were qualitative until now):**
+
+- **Collapse condition:** `acc_A(S0-zeroed) ≤ 0.09375` — the SAME
+  3×-chance demonstration bar at K=32 (§1.31.1), not a separate ad hoc
+  threshold.
+- **Unchanged condition:** `|acc_A(both-intact) − acc_A(S1-zeroed)| ≤
+  2σ`, `σ = √(p̂(1-p̂)/n)` computed PER ARM from that arm's own observed
+  both-states-intact `acc_A` as `p̂`, at `n=4096` (the pinned EVAL_SEED
+  set). Computed honestly from §1.30's own real numbers: contender
+  `p̂=0.9990` → `σ≈0.000494`, `2σ≈0.00099`; ablation `p̂=0.0447` →
+  `σ≈0.00323`, `2σ≈0.00646`. Both arms' §1.30 observed deltas (contender
+  0.0000, ablation 0.0010) sit inside their own `2σ` band, confirming
+  "UNCHANGED" already met this bar, not just descriptively. **Note on a
+  numeric discrepancy, disclosed rather than silently overwritten:** the
+  dispatch prompt for this amendment cited "≈0.0096 at acc 0.999" for
+  this bound; computing `√(p̂(1-p̂)/n)` honestly at `p̂=0.9990, n=4096`
+  (as this item's own instruction requires) gives `2σ≈0.00099` instead —
+  roughly 10× smaller. The number pinned above is the one that actually
+  derives from the formula; flagged here per this project's standing
+  exact-threshold/honest-computation rule rather than forced to match
+  the dispatch prompt's figure.
+- **Seed aggregation, verdict grade:** report the MEAN of `n=3` seeds
+  (or the extended `n=9`, §1.8), with the full per-seed table disclosed
+  alongside the mean — never the mean alone.
 
 #### 1.31.3 The ladder, re-registered (supersedes §1.7 items 1a/1b clauses named here)
 
@@ -3892,6 +4023,17 @@ hard-stop, not a footnote).
    `return_hidden`+slice), PLUS an enforced K=48 rung-2-fit smoke on real
    kernels (the exact §1.27 crash repro) wired as its own chain gate with
    a forced-fail negative test, per the CPU-stub-coverage hard rule.
+   **Forced-fail negative test, spec'd (Rev 5.1, §1.32 M4):** plant an
+   UNSLICED full-vocab matmul path behind a test-only flag
+   (`FORCE_UNSLICED_LM_HEAD=1`) and assert the K=48 smoke OOMs/raises
+   under it — the negative direction, proving the smoke actually
+   exercises the crash rather than only the happy path — OR, if planting
+   a real OOM in CI is impractical, the analytic alternative: assert the
+   SLICED path's measured peak memory at K=48 stays under a pinned
+   bound, and assert by shape arithmetic alone (no execution needed)
+   that the UNSLICED computation's tensor size at the same K=48 would
+   exceed that bound. Either form satisfies the "has teeth" hard rule
+   (CLAUDE.md); the build stage picks whichever is cheaper to wire.
 4. **Checkpoint filename versioning (the §1.28 in-place-overwrite trap):**
    suffix round/rev into every checkpoint filename (e.g.
    `_r{H2H_DIAL_ROUND}`), closing the record gap that orphaned round 2's
@@ -3899,6 +4041,24 @@ hard-stop, not a footnote).
    05:58Z; pairs with (does not replace) AUD2-F4(ii)'s round-transition
    result-JSON invalidation procedure, already exercised once at the
    round-3 launch (calib3 MANIFEST §1).
+5. **`check_gate1_full_cell_band` re-wire (Rev 5.1, §1.32 F3):** this
+   function still enforces the DEAD `rf@0.9 > 0` conjunct (dead-clause
+   list item 4, §1.31) — run as-is against round-4 output, it FATALs
+   every cell. Re-wire to §1.31.3's bands: (i) contender rung-1 `> 3×`
+   chance; (ii) baseline arms' rung-1 recorded as data, never
+   launch-blocking; (iii) instrument-health (planted-signal positive
+   controls pass, noise nulls `≤1.5×` chance, per fix item 2 above) IS
+   launch-blocking for ALL arms; (iv) the `rf@0.9 > 0` conjunct REMOVED.
+6. **Round-4 re-metric driver (Rev 5.1, §1.32 F3):** the actual script
+   that runs, per reused/fresh cell: the 3-arm Leg-A continuation eval
+   (`acc_A`, §1.31.1); Leg-B offline ridge at the relocated tap,
+   INCLUDING the transformer arm (§1.31.2 — not yet exercised on the
+   transformer's own pre-LM-head hidden by §1.29/§1.30, which ran only
+   the recurrent arms); S0-zeroing (§1.31.2, recurrent arms only); the
+   both-direction planted/noise-null controls (fix item 2 above); and
+   per-cell JSON output including the identity-table fields (§1.31.7).
+   This is the item fix items 1-5 above feed INTO — without it they are
+   unwired checks with nothing driving them.
 
 #### 1.31.5 What carries over UNCHANGED
 
@@ -3916,14 +4076,30 @@ verbatim). The blank-out tests, gate tokens, and chain discipline. The
 
 **If round 4's Leg A separates as round 3's single-seed data suggest
 (contender 0.9990 / ablation 0.0447 / transformer 0.0295 at K=32), round
-4 CAN establish:** *single-pass in-context associative recall through a
-P=1 fast-weight bottleneck, at accuracy a param- and token-matched
-attention baseline cannot reach without its KV cache* — tied directly to
-§1.1's inference-memory-matched primary axis ("constant-memory minds":
-the contender does it in O(1) state bytes), with the S0-necessity check
-supplying the mechanism leg (direct causal evidence the recall is
-resident in the fast-weight state, §1.31.2). **Every claim sentence
-carries the Nichani caveat:** "recall" here means episode-restricted
+4 CAN establish (claim sentence REWRITTEN, Rev 5.1, §1.32 F6 — round 4's
+transformer read is the UNCAPPED baseline, not a KV-capped one; the
+K-cap/`M*` framing is the SWEEP's own claim, not round 4's):** *single-
+pass in-context associative recall through a P=1 fast-weight bottleneck,
+at accuracy a param- and token-matched attention baseline cannot reach
+EVEN WITH ITS FULL KV CACHE, at matched params/tokens/training budget*.
+The K-cap/`M*` "constant-memory minds" tie-in (§1.1's inference-memory-
+matched axis) belongs to the SWEEP's own claim (§1.4.2, unchanged), not
+round 4's — round 4 supplies only the uncapped-baseline half of the
+comparison, plus the S0-necessity check supplying the mechanism leg
+(direct causal evidence the recall is resident in the fast-weight state,
+§1.31.2). **Matched-budget caveat (Rev 5.1):** this claim holds ONLY at
+the calibration cells' own matched param count, token budget, and
+training compute — it does not extend to a differently-scaled or
+differently-trained transformer without its own matched re-run.
+**Seed-fragility disclosure (Rev 5.1):** round 4's calibration reads are
+SINGLE-SEED point estimates (§1.31.1); the claim above is provisional
+until verdict-grade seeds land. **Extension trigger, pinned (Rev 5.1):**
+if the verdict-grade `n=3` CI for `task1_calib_K32`'s
+contender-vs-transformer `acc_A` gap straddles the 0.30 margin
+(§1.31.1) without excluding it, the pre-registered `n=3→9` seed
+extension (§1.8) fires on THIS claim's own cell before the claim is
+finalized either way. **Every claim sentence carries the Nichani
+caveat:** "recall" here means episode-restricted
 top-1 retrieval under argmax decoding, and under argmax a rank-1 state
 can support ≈d associations (Nichani, Lee & Bietti, ICLR 2025,
 arXiv:2412.06538).
@@ -3940,22 +4116,43 @@ beyond 14M-class calibration cells until the ladder/bands and sweep run.
 
 **Chain:** Rev 5 (this section) → **fresh micro-attack on the DELTA
 only** (the two-leg numeric pins, ladder re-registration, arm-aware band,
-the four fixes — not a re-attack of §1.23-cleared machinery) → build-fix
-(§1.31.4's four items) → scoped independent build audit → **round 4** →
+the fixes — not a re-attack of §1.23-cleared machinery) → build-fix
+(§1.31.4's six items, post-Rev-5.1) → scoped independent build audit → **round 4** →
 ladder/bands review → margin freeze → 27-cell sweep. Margin freeze
 remains ALSO blocked on the fix-at-scale per_token-vs-global contender-
 pin adjudication (§1.24 trailer note, unchanged).
 
 **Round 4 = the 9-cell calibration RE-METERED under the new instrument,
-not re-trained:** checkpoints on disk are reusable for 8/9 round-3 cells
-(including the crashed transformer-K48 cell's completed 5000/5000
-training); those cells re-run ONLY the metric pass (Leg A eval + Leg B
+not re-trained:** **checkpoints on disk are reusable for exactly 7 of 9
+round-3 cells (Rev 5.1, §1.32 F2 — corrects the "8/9, reuse may be
+attempted" language, which was factually wrong: `torch.save` executes
+AFTER the rung-2 fit in the training driver, so the crashed
+transformer-K48 cell's round-3 weights were NEVER persisted — the file
+on disk at that path is ROUND-2's stale two-term-objective checkpoint,
+mtime 02:03, predating the round-3 05:41 launch).** The 7 reused
+cells — contender/ablation/transformer × task1_calib, contender/
+ablation × task2_calib, contender/ablation × task1_stress_K48 (mtimes
+verified 05:49-08:43Z) — re-run ONLY the metric pass (Leg A eval + Leg B
 offline ridge + S0-zeroing + relabeled rung 2 + both-direction controls)
-against the frozen checkpoints. The two transformer cells without
-round-3 results train fresh — `transformer_task2_calib_primary` (never
-launched) and `transformer_task1_stress_K48` (budgeted as retrain since
-its checkpoint predates filename versioning; reuse may be attempted,
-budget assumes not).
+against the frozen checkpoints. The 2 cells WITHOUT valid round-3
+weights train fresh, no ambiguity: `transformer_task2_calib_primary`
+(never launched) and `transformer_task1_stress_K48` (its round-3 weights
+never reached disk, per above). **"Reuse may be attempted" is STRUCK for
+the K48-transformer cell; both are pure retrains, budgeted as such.**
+
+**Per-cell identity table, mandatory round-4 pre-flight gate item (Rev
+5.1, §1.32 F2):** before any reused checkpoint is loaded, round 4's
+driver writes a manifest with `{cell_id, arm, task, md5(checkpoint_file),
+mtime}` for all 7 reused checkpoints, cross-checked against the recorded
+mtimes (contender/ablation/transformer task1_K32: 05:58:16Z / 06:24:40Z
+/ 07:13:39Z per §1.29; task2/K48 cells verified in the 05:49-08:43Z
+window per §1.32 F2) — a mismatch on ANY of the 7 blocks that cell's
+re-metric pass with a hard error, not a warning. **Loader-side
+provenance pinning (Rev 5.1):** the checkpoint loader itself asserts the
+manifest's recorded md5 against the file it is about to load, AT LOAD
+TIME, immediately before the re-metric pass runs — not only at
+pre-flight — so a checkpoint swapped or corrupted between the pre-flight
+check and the actual eval cannot silently pass.
 
 **Price (from §1.26 measured rates + §1.29/§1.30 realized metric costs):**
 metric passes ≈0.03 GPU-h class per cell (§1.29's full 3-arm diagnostic
@@ -3973,6 +4170,43 @@ rides the round-4 harvest before margin freeze.
 clauses it supersedes). NEXT: fresh micro-attack on the Rev-5 delta →
 build-fix (§1.31.4) → scoped build audit → round 4. NO training relaunch
 until the fixes audit clears.**
+
+### 1.31a REV 5.1 AMENDMENT (2026-07-09): surgical fixes to §1.31 per the §1.32 micro-attack — F1 FATAL + F2-F6 MAJOR + M1-M4 minors, all applied in place
+
+Recorded per the gauntlet-bookkeeping hard rule (§1.20's own precedent):
+this changelog documents WHERE each §1.32 finding's fix landed, so a
+raw-diff verification can be checked against a written map rather than
+re-deriving intent from the diff alone. **Scope: surgical, in-section
+edits to §1.31's own subsections only — no other section of this file
+was touched.**
+
+| Finding | §1.32 defect (one line) | Fix, where it landed |
+|---|---|---|
+| F1 (FATAL) | axis-1 decisive-cell identity ambiguous; task2's Leg-A failure knowable but unrecorded | §1.31.1: round-3 7-cell rung-1 table; `task1_calib_K32` pinned PRIMARY with rationale; explicit supersession of §1.4.1's "Task 2, primary" sentence (dead-clause list item 1, §1.31); task2's round-4 branch pre-registered (task1-primary sweep proceeds; TASK2 DIAGNOSIS ROUND opens post-sweep, separately ledgered; task2 reads joint-failure TIE for axis-1) |
+| F2 (MAJOR) | "8/9 reuse" wrong; K48-transformer checkpoint never persisted; "reuse may be attempted" factually false | §1.31.7: corrected to 7 reuse + 2 fresh, named explicitly; "reuse may be attempted" struck; per-cell md5+mtime identity table mandated as round-4 pre-flight gate; loader-side provenance pinning added |
+| F3 (MAJOR) | §1.31.4's fix list missing the band re-wire and the driver itself | §1.31.4 items 5 (`check_gate1_full_cell_band` re-wire) and 6 (round-4 re-metric driver) added |
+| F4 (MAJOR) | S0-HARD-STOP thresholds qualitative ("≈chance", "unchanged"), no seed-aggregation rule | §1.31.2: collapse pinned at `acc_A ≤ 0.09375`; unchanged pinned at `|Δacc| ≤ 2σ`, `σ=√(p̂(1-p̂)/n)` computed per arm (contender `2σ≈0.00099`, ablation `2σ≈0.00646` at n=4096 — see the disclosed discrepancy note there re: the dispatch prompt's `≈0.0096` figure); verdict-grade seed aggregation pinned (mean + disclosed per-seed table) |
+| F5 (MAJOR) | prose supersession named only 3 of 8 actually-dead clauses | §1.31's opening: prose replaced with an 8-item enumerated dead-clause list (line-area ref + one-line reason each) |
+| F6 (MAJOR) | claim sentence undersells (ties to a KV-CAPPED baseline round 4 doesn't test) and conflates round-4's claim with the sweep's K-cap/M* framing | §1.31.6: claim rewritten to "...cannot reach even with its full KV cache..."; K-cap/M* tie-in moved to the sweep's own claim; matched-budget caveat and seed-fragility disclosure (with the pinned n=3→9 extension trigger) added to the claim path |
+| M1 | Leg-B anchor has no reproduction tolerance | §1.31.2: ±0.05 absolute on `rf@0.9` for the 7 reused cells; drift outside band → investigate before proceeding |
+| M2 | "8/9" arithmetic wrong | fixed as part of F2's §1.31.7 rewrite (7+2=9) |
+| M3 | M* walk has no rule for a joint contender+transformer failure at one `M` | §1.31.1 Axis-2 paragraph: joint-NO-RECALL rule added — TIE-equivalent, walk continues, never a LOSE from joint failure |
+| M4 | K48 forced-fail negative test unspecified | §1.31.4 item 3: forced-fail spec added (unsliced-path-behind-flag OOM assertion, or the analytic peak-memory-bound alternative) |
+
+**Note on the F4 numeric discrepancy, disclosed rather than silently
+corrected:** the dispatch prompt for this amendment cited "≈0.0096 at
+acc 0.999" for the S1-unchanged `2σ` bound. Computing `√(p̂(1-p̂)/n)`
+honestly at `p̂=0.9990, n=4096` (as the item's own instruction requires)
+gives `σ≈0.000494`, `2σ≈0.00099` — roughly 10× smaller than the cited
+figure. §1.31.2 now pins the mathematically verified number, per this
+project's standing exact-threshold/honest-computation rule; the
+discrepancy is flagged for the coordinator here rather than silently
+overwritten, since a raw-diff check might otherwise read the deviation
+as an error rather than a correction.
+
+**STATUS: Rev 5.1 complete; coordinator raw-diff verification per the
+§2.16/§2.18 precedent is the final design gate; then build-fix (§1.31.4
+items 1-6) → scoped audit → round 4.**
 
 ### 1.32 MICRO-ATTACK ON REV 5 (2026-07-09): NEEDS-REVISION — 1 FATAL-class pre-registration hole, 5 MAJOR; the two-leg direction itself is SOUND
 
