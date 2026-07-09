@@ -36,7 +36,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "chapter2"))
 
 from verify_option_a_readout import fit_scale, fit_orthogonal_intertwiner, score_eval
-from groups import D_MIN, rho_G_embedded
+from groups import D_MIN, rho_G_embedded, group_seed_salt
 from group_task import (
     GROUP_NAMES, sample_eval_words, check_coverage_with_retry, CoverageGuardError,
     COVERAGE_BAR, FIT_FLOOR, EVAL_FLOOR, N_EVAL_WORDS, N_FIT, N_EVAL_SPLIT, _distinct_count,
@@ -79,7 +79,13 @@ def dump_Z(model, gens_words_idx, device, force_rank_k=None) -> np.ndarray:
             t = torch.as_tensor(np.asarray(idx), dtype=torch.long, device=device).unsqueeze(0)
             Z = model.encode(t, force_rank_k=force_rank_k)
             outs.append(Z.squeeze(0).detach().cpu().numpy())
-    return np.stack(outs)
+    # S1.22 non-finding: downstream degauging (fit_scale/fit_orthogonal_intertwiner/
+    # score_eval) has always effectively run in float64, but only via INCIDENTAL
+    # numpy promotion (entity_subspace_from_words' covariance accumulator starts as
+    # float64 zeros, so U ends up float64, and U^T @ Z @ U upcasts this float32
+    # model output implicitly downstream) -- made an EXPLICIT contract at this
+    # torch->numpy readout boundary instead of relying on that promotion chain.
+    return np.stack(outs).astype(np.float64)
 
 
 # ---------------------------------------------------------------------------
@@ -103,11 +109,19 @@ def _split_with_diversity_retry(name: str, prod_list: list, seed: int):
     """S1.4.1 step 4's fit/eval diversity floors, retry-once-then-fail via a
     RESHUFFLE of the already-drawn N=50 sample (distinct from the top-level
     query-coverage guard's fresh-external-redraw retry). Returns
-    (fit_idx, eval_idx), index-disjoint."""
+    (fit_idx, eval_idx), index-disjoint.
+
+    S1.22 BA-F3 fix: `seed` is salted by `name` (group_seed_salt), same
+    convention as group_task.sample_eval_words -- two groups sharing the
+    same nominal seed would otherwise draw the identical fit/eval
+    permutation order (only the underlying word CONTENT would then differ,
+    via sample_eval_words' own salt), an avoidable extra correlation
+    channel closed here for consistency."""
     n = len(prod_list)
     fit_bar, eval_bar = FIT_FLOOR[name], EVAL_FLOOR[name]
+    salted_seed = seed + group_seed_salt(name)
     log = {"group": name, "fit_bar": fit_bar, "eval_bar": eval_bar, "attempts": []}
-    for attempt, shuffle_seed in enumerate((seed, seed + 1)):
+    for attempt, shuffle_seed in enumerate((salted_seed, salted_seed + 1)):
         rng = np.random.default_rng(shuffle_seed)
         perm = rng.permutation(n)
         fit_idx = perm[:N_FIT].tolist()

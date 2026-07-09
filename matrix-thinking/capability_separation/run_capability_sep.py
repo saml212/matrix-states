@@ -27,7 +27,7 @@ import numpy as np
 import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from groups import GROUP_NAMES, D_MIN, D_STATE
+from groups import GROUP_NAMES, D_MIN, D_STATE, group_seed_salt
 from group_task import generating_set, sample_train_batch, sample_eval_batch
 from group_word_encoder import GroupWordModel, cosine_loss
 from force_rank_arms import force_rank_grid, cell_types_for_group, n_cells_per_group
@@ -75,6 +75,119 @@ def calibration_wave() -> list:
 
 
 # ---------------------------------------------------------------------------
+# S1.22 BA-F1 fix -- the two-step CLI's gate: `--calibration-only` writes a
+# calibration report (the REAL measured per-cell rate, S1.7 gate 1 duty d);
+# `--sweep` REFUSES to start unless (i) that report exists and is valid for
+# the requested --steps, (ii) the projection from the MEASURED rate clears
+# the 30 GPU-h cap via budget_guard.check_base_sweep_projection (S1.7 gate
+# 2's mechanical enforced abort), and (iii) the PI-signoff token is present.
+# Before this fix, check_base_sweep_projection/BaseSweepAbort were never
+# called anywhere in this file -- the calibration-first gate did NOT
+# actually block the sweep (S1.22 BA-F1).
+# ---------------------------------------------------------------------------
+
+def calibration_report_path(results_dir: str) -> str:
+    return os.path.join(results_dir, "calibration_report.json")
+
+
+def write_calibration_report(results_dir: str, calib_results: list, steps: int) -> dict:
+    """S1.7 gate 1 duty (d): aggregate the 5 calibration cells' measured
+    wall-clock into a real per-cell GPU-h rate, written to disk so `--sweep`
+    can gate on it without re-running calibration. One GPU trains one cell
+    serially in this harness's execution model (run_manifest processes the
+    manifest sequentially, one cell at a time), so wall_clock_s/3600 IS the
+    GPU-h/cell figure -- the real rate that supersedes S1.6's 0.3 GPU-h/cell
+    planning estimate."""
+    rates = [r["wall_clock_s"] / 3600.0 for r in calib_results]
+    real_rate_per_cell = sum(rates) / len(rates)
+    report = dict(
+        real_rate_per_cell=real_rate_per_cell,
+        per_cell_rates=rates,
+        n_cells=len(calib_results),
+        steps=steps,
+        cell_ids=sorted(r["cell_id"] for r in calib_results),
+        groups=sorted({r["group"] for r in calib_results}),
+        written_at=time.time(),
+    )
+    path = calibration_report_path(results_dir)
+    os.makedirs(results_dir, exist_ok=True)
+    tmp_path = path + ".tmp"
+    with open(tmp_path, "w") as f:
+        json.dump(report, f, indent=2)
+    os.replace(tmp_path, path)   # atomic write, same convention as run_cell_resume_safe
+    return report
+
+
+def load_and_validate_calibration_report(results_dir: str, expected_steps: int) -> dict:
+    """`--sweep` precondition (i): a valid, on-disk calibration report from
+    THIS step budget. Raises RuntimeError (not BaseSweepAbort -- that is
+    reserved for a budget-projection failure, not a missing/invalid report)
+    with a specific, actionable reason."""
+    path = calibration_report_path(results_dir)
+    if not os.path.exists(path):
+        raise RuntimeError(
+            f"no calibration report at {path} -- run `--calibration-only` first and let it "
+            f"complete (S1.7 gate 1: calibration must run to completion before the sweep)."
+        )
+    try:
+        with open(path) as f:
+            report = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        raise RuntimeError(f"calibration report at {path} is corrupt/unreadable: {e}")
+    required = {"real_rate_per_cell", "n_cells", "steps", "cell_ids", "groups"}
+    missing = required - report.keys()
+    if missing:
+        raise RuntimeError(f"calibration report at {path} missing required keys {missing}")
+    if report["n_cells"] != 5 or len(report["cell_ids"]) != 5:
+        raise RuntimeError(
+            f"calibration report at {path} has {report['n_cells']} cells "
+            f"({len(report['cell_ids'])} cell_ids) -- expected the full 5-group calibration wave"
+        )
+    if set(report["groups"]) != set(GROUP_NAMES):
+        raise RuntimeError(f"calibration report groups {report['groups']} != expected {list(GROUP_NAMES)}")
+    if report["steps"] != expected_steps:
+        raise RuntimeError(
+            f"calibration report at {path} was measured at steps={report['steps']}, but this "
+            f"launch is requesting steps={expected_steps} -- re-run `--calibration-only "
+            f"--steps={expected_steps}` first (a rate measured at a different step budget does "
+            f"not project this sweep's per-cell cost)."
+        )
+    rate = report["real_rate_per_cell"]
+    if not isinstance(rate, (int, float)) or not np.isfinite(rate) or rate <= 0:
+        raise RuntimeError(f"calibration report at {path} has an invalid real_rate_per_cell={rate!r}")
+    return report
+
+
+def gate_sweep_launch(results_dir: str, steps: int) -> dict:
+    """The three `--sweep` preconditions (S1.22 BA-F1), in the design's own
+    order: (i) a valid calibration report on disk, (ii) its measured rate
+    projects the base sweep under the 30 GPU-h cap (raises BaseSweepAbort
+    via budget_guard.check_base_sweep_projection if not -- S1.7 gate 2's
+    mechanical enforced abort, now actually wired), (iii) the PI-signoff
+    token. Factored out of run_sweep() so smoke can exercise the gate in
+    isolation without needing a full 58-cell GPU sweep to run."""
+    report = load_and_validate_calibration_report(results_dir, steps)                # (i)
+    projection = bg.check_base_sweep_projection(report["real_rate_per_cell"])          # (ii)
+    if os.environ.get(PI_SIGNOFF_VAR) != "1":                                          # (iii)
+        raise RuntimeError(f"{PI_SIGNOFF_VAR}=1 required before any GPU cell (S1.7 gate 5).")
+    return dict(calibration_report=report, projection=projection)
+
+
+def _synthetic_calibration_results(steps: int, rate_per_cell: float) -> list:
+    """Build cell-shaped result dicts (NOT real training) with `wall_clock_s`
+    set so `write_calibration_report`'s averaged rate equals `rate_per_cell`
+    exactly -- for smoke ONLY, to exercise the report/gate wiring without
+    paying for 5 real training runs on every smoke invocation."""
+    calib = calibration_wave()
+    wall_s = rate_per_cell * 3600.0
+    return [dict(cell_id=c["cell_id"], group=c["group"], arm=c["arm"], seed=c["seed"],
+                force_rank_k=None, steps_completed=steps, n_skipped_steps=0, wall_clock_s=wall_s,
+                mean_cos=0.95, recovered_frac_90=0.95, restricted_effective_rank=3.0,
+                restricted_stable_rank=3.0, whole_matrix_effective_rank=4.0, c_hat=1.0)
+           for c in calib]
+
+
+# ---------------------------------------------------------------------------
 # Resume-safety: output VALIDITY, not mere existence.
 # ---------------------------------------------------------------------------
 
@@ -116,12 +229,20 @@ def train_and_eval_cell(cell: dict, steps: int, device: str, log_every: int = 50
     seed = cell["seed"]
     k = force_rank_grid(name)[arm]
 
+    # NOTE: the GLOBAL torch seed (model init) is deliberately left UNSALTED --
+    # S4/A5 sharing bit-identical init weights at the same cell seed is a KNOWN,
+    # ADJUDICATED channel (S1.4.2.1: exactly why the marquee check uses Welch's
+    # UNPAIRED TOST rather than a paired test that would assume it washes out).
     torch.manual_seed(seed)
     d_state = D_STATE[name]
     n_gens = len(generating_set(name))
     model = GroupWordModel(d_state, n_gens, L_max=16, h=32).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=3e-4)
-    gen = torch.Generator().manual_seed(seed)
+    # S1.22 BA-F3 fix: the TRAINING-BATCH generator IS salted by group name --
+    # unlike model init above, this is an undisclosed, unadjudicated correlation
+    # channel (S4/A5 share |gens|=4 too, so an unsalted seed here would draw
+    # byte-identical training batches, not just byte-identical init weights).
+    gen = torch.Generator().manual_seed(seed + group_seed_salt(name))
 
     n_skipped = 0
     t0 = time.time()
@@ -185,6 +306,39 @@ def run_manifest(manifest: list, results_dir: str, steps: int, device: str,
     for cell in manifest:
         results.append(run_cell_resume_safe(cell, results_dir, steps, device))
     return results
+
+
+def run_calibration_only(args) -> dict:
+    """S1.22 BA-F1's `--calibration-only` step: run the 5 calibration cells
+    to completion and write the measured real per-cell rate to disk -- the
+    precondition `--sweep` gates on below."""
+    manifest = calibration_wave()
+    print(f"[calibration-only] launching {len(manifest)} calibration cells "
+         f"(steps={args.steps}, device={args.device}, results_dir={args.results_dir})")
+    results = run_manifest(manifest, args.results_dir, args.steps, args.device)
+    report = write_calibration_report(args.results_dir, results, args.steps)
+    print(f"[calibration-only] wrote calibration report: real_rate_per_cell="
+         f"{report['real_rate_per_cell']:.4f} GPU-h/cell -> {calibration_report_path(args.results_dir)}")
+    return report
+
+
+def run_sweep(args) -> tuple:
+    """S1.22 BA-F1's `--sweep` step: gated launch. Raises BaseSweepAbort (via
+    gate_sweep_launch -> budget_guard.check_base_sweep_projection) if the
+    calibration-measured rate would blow the 30 GPU-h cap, and RuntimeError
+    if the calibration report is missing/invalid/stale or the PI-signoff
+    token isn't set -- BEFORE building or launching the 58-cell manifest."""
+    gate = gate_sweep_launch(args.results_dir, args.steps)
+    print(f"[sweep] gate PASSED: measured rate {gate['calibration_report']['real_rate_per_cell']:.4f} "
+         f"GPU-h/cell -> base-sweep projection {gate['projection']['projected_total']:.2f} GPU-h "
+         f"(cap {bg.CAP:.1f})")
+    manifest = build_sweep_manifest()
+    print(f"[sweep] launching {len(manifest)} cells (steps={args.steps}, device={args.device}, "
+         f"results_dir={args.results_dir})")
+    results = run_manifest(manifest, args.results_dir, args.steps, args.device)
+    guard = bg.BudgetGuard(cap=bg.CAP, spend_to_date=gate["projection"]["projected_total"])
+    esc_log = run_escalations(results, args.results_dir, args.steps, args.device, guard)
+    return results, esc_log
 
 
 def group_results_by(results: list, group: str, arm: str) -> np.ndarray:
@@ -301,17 +455,94 @@ def smoke():
         assert PI_SIGNOFF_VAR in str(e)
         print(f"\n  PI-signoff gate: run_manifest() correctly refuses without {PI_SIGNOFF_VAR}=1")
 
+    # -------------------------------------------------------------------
+    # S1.22 BA-F1 -- calibration report + --sweep gate wiring. Before this
+    # fix, check_base_sweep_projection/BaseSweepAbort were dead code (never
+    # called from anywhere in this file); the calibration-first gate did NOT
+    # actually block the 53 remaining sweep cells. A synthetic OVER-RATE
+    # calibration report must abort --sweep via BaseSweepAbort (negative
+    # test, run to completion); a HEALTHY rate must pass (positive test).
+    # -------------------------------------------------------------------
+    print("\n" + "=" * 88)
+    print("  BA-F1 smoke -- calibration report + --sweep gate (calibration-only -> gate -> sweep)")
+    print("=" * 88)
+    gate_steps = 20
+    with tempfile.TemporaryDirectory() as gate_dir:
+        os.environ[PI_SIGNOFF_VAR] = "1"
+        try:
+            # Negative: an over-rate calibration report must abort --sweep via BaseSweepAbort.
+            bad_results = _synthetic_calibration_results(gate_steps, rate_per_cell=1.0)
+            bad_report = write_calibration_report(gate_dir, bad_results, gate_steps)
+            print(f"  wrote OVER-RATE calibration report: real_rate_per_cell="
+                 f"{bad_report['real_rate_per_cell']:.4f} GPU-h/cell")
+            try:
+                gate_sweep_launch(gate_dir, gate_steps)
+                raise AssertionError("gate_sweep_launch did NOT abort on an over-rate calibration report")
+            except bg.BaseSweepAbort as e:
+                print(f"  NEGATIVE TEST PASSED -- gate_sweep_launch correctly raised BaseSweepAbort:")
+                print(f"    {e}")
+
+            # Positive: a healthy-rate calibration report must clear the gate cleanly.
+            good_results = _synthetic_calibration_results(gate_steps, rate_per_cell=0.3)
+            good_report = write_calibration_report(gate_dir, good_results, gate_steps)
+            print(f"\n  wrote HEALTHY calibration report: real_rate_per_cell="
+                 f"{good_report['real_rate_per_cell']:.4f} GPU-h/cell")
+            gate = gate_sweep_launch(gate_dir, gate_steps)
+            assert gate["projection"]["ok"]
+            print(f"  POSITIVE TEST PASSED -- gate_sweep_launch cleared: projected_total="
+                 f"{gate['projection']['projected_total']:.2f} GPU-h (cap {bg.CAP})")
+
+            # (i) missing-report refusal.
+            with tempfile.TemporaryDirectory() as empty_dir:
+                try:
+                    gate_sweep_launch(empty_dir, gate_steps)
+                    raise AssertionError("gate_sweep_launch did not refuse with no calibration report on disk")
+                except RuntimeError as e:
+                    assert "no calibration report" in str(e)
+                    print(f"\n  missing-report refusal: {e}")
+            # (i) step-budget-mismatch refusal (a report from a different --steps is stale).
+            try:
+                gate_sweep_launch(gate_dir, gate_steps + 1)
+                raise AssertionError("gate_sweep_launch did not refuse on a step-budget mismatch")
+            except RuntimeError as e:
+                assert "steps=" in str(e)
+                print(f"  step-mismatch refusal: {e}")
+        finally:
+            del os.environ[PI_SIGNOFF_VAR]
+
+    # (iii) PI-signoff must gate --sweep too, even with an otherwise-healthy report.
+    with tempfile.TemporaryDirectory() as gate_dir2:
+        good_results = _synthetic_calibration_results(gate_steps, rate_per_cell=0.3)
+        write_calibration_report(gate_dir2, good_results, gate_steps)
+        try:
+            gate_sweep_launch(gate_dir2, gate_steps)
+            raise AssertionError("gate_sweep_launch did not enforce the PI-signoff token")
+        except RuntimeError as e:
+            assert PI_SIGNOFF_VAR in str(e)
+            print(f"  PI-signoff gate (sweep path): {e}")
+
     print("\n" + "=" * 88)
     print("  run_capability_sep.py SMOKE PASSED (manifest=58 cells, calibration=5 cells,")
     print("  resume-safety verified [skip valid / re-run corrupted], PI-signoff gate enforced,")
-    print("  escalation wiring exercises tost_analysis.py + budget_guard.py end-to-end)")
+    print("  escalation wiring exercises tost_analysis.py + budget_guard.py end-to-end,")
+    print("  BA-F1 calibration-report/--sweep gate verified [over-rate abort / healthy pass /")
+    print("  missing report / stale steps / PI-signoff, all refused or passed correctly])")
     print("=" * 88)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true")
-    ap.add_argument("--calibration-only", action="store_true")
+    ap.add_argument("--calibration-only", action="store_true",
+                    help="S1.7 gate 1: run ONLY the 5 calibration cells and write a calibration "
+                         "report (the real measured per-cell rate) to --results-dir. Must be run "
+                         "to completion, and re-run whenever --steps changes, before --sweep.")
+    ap.add_argument("--sweep", action="store_true",
+                    help="S1.7 gates 1/2/5: run the full 58-cell sweep. REFUSES to start unless "
+                         "(i) a valid calibration report from --calibration-only exists at the "
+                         "matching --steps, (ii) its measured rate projects the base sweep under "
+                         f"the 30 GPU-h cap (BaseSweepAbort otherwise), and (iii) {PI_SIGNOFF_VAR}=1 "
+                         "is set.")
     ap.add_argument("--steps", type=int, default=DEFAULT_STEPS)
     ap.add_argument("--results-dir", type=str, default=RESULTS_DIR_DEFAULT)
     ap.add_argument("--device", type=str, default=("cuda" if torch.cuda.is_available() else "cpu"))
@@ -321,13 +552,20 @@ def main():
         smoke()
         return
 
+    if args.calibration_only and args.sweep:
+        ap.error("--calibration-only and --sweep are mutually exclusive -- S1.22 BA-F1's two-step "
+                "CLI runs calibration first, then sweep as a SEPARATE invocation once the report exists.")
+
     if args.calibration_only:
-        manifest = calibration_wave()
-    else:
-        manifest = build_sweep_manifest()
-    print(f"launching {len(manifest)} cells (steps={args.steps}, device={args.device}, "
-         f"results_dir={args.results_dir})")
-    run_manifest(manifest, args.results_dir, args.steps, args.device)
+        run_calibration_only(args)
+        return
+
+    if args.sweep:
+        run_sweep(args)
+        return
+
+    ap.error("specify one of --smoke, --calibration-only, or --sweep -- S1.22 BA-F1 removed the "
+            "old implicit/ungated full-sweep default.")
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from groups import GROUP_NAMES, D_MIN, ORDER, D_STATE, generating_set, gen_tensor, \
-    batched_word_product, word_product, batched_targets
+    batched_word_product, word_product, batched_targets, group_seed_salt
 
 # S1.4's exact calibrated query-coverage bars (coverage_calibration.py's
 # STEP 2, reproduced verbatim in S1.3.3/S1.4's table). Pinned as constants.
@@ -54,14 +54,23 @@ N_FIT, N_EVAL_SPLIT = 30, 20       # S1.4.1 step 4's 60/40 split of the N=50 sam
 # ---------------------------------------------------------------------------
 
 def sample_train_batch(name: str, batch_size: int, gen: torch.Generator,
-                       device="cpu", dtype=torch.float32) -> dict:
-    """ONE batch: ONE L drawn (per-batch-fixed-L) from Uniform{1..8}, shared
-    by every episode in the batch; L varies ACROSS batches, not within one
-    (S1.4's pinned scheme -- zero new padding/mask code, BindingEncoder's
-    fixed-shape (B,L,h) forward pass is reused completely unmodified)."""
+                       device="cpu", dtype=torch.float32, l_hi: int | None = None) -> dict:
+    """ONE batch: ONE L drawn (per-batch-fixed-L) from Uniform{1..l_hi}
+    (default `l_hi=L_TRAIN_HI=8`, S1.4's production range), shared by every
+    episode in the batch; L varies ACROSS batches, not within one (S1.4's
+    pinned scheme -- zero new padding/mask code, BindingEncoder's
+    fixed-shape (B,L,h) forward pass is reused completely unmodified).
+
+    `l_hi` (S1.22 BA-F5): an optional bounded-sampler override for
+    non-production callers that need a NARROWER L range than the real
+    58-cell sweep (e.g. beta_fla_smoke.py's declared `L<=4` positive-control
+    smoke). The real sweep never passes this, so its {1..8} range is
+    unchanged -- this keeps the ONE sampler ('the same safe sampler')
+    instead of a second, duplicated implementation."""
     n_gens = len(generating_set(name))
     d_state = D_STATE[name]
-    L = int(torch.randint(L_TRAIN_LO, L_TRAIN_HI + 1, (1,), generator=gen).item())
+    hi = L_TRAIN_HI if l_hi is None else l_hi
+    L = int(torch.randint(L_TRAIN_LO, hi + 1, (1,), generator=gen).item())
     token_idx = torch.randint(0, n_gens, (batch_size, L), generator=gen).to(device)
     target = batched_targets(name, token_idx, d_state, dtype=dtype)
     return {"token_idx": token_idx, "target": target, "L": L}
@@ -89,8 +98,16 @@ def sample_eval_words(name: str, seed: int, n_words: int = N_EVAL_WORDS):
     (matches coverage_calibration.py's own healthy_trial convention exactly,
     now on the REAL matrix generating set rather than the permutation
     stand-in). Returns (idx_list: list of (L,) int arrays, prod_list: list
-    of (d_min,d_min) real matrices, product(w) via groups.word_product)."""
-    rng = np.random.default_rng(seed)
+    of (d_min,d_min) real matrices, product(w) via groups.word_product).
+
+    S1.22 BA-F3 fix: `seed` is salted by `name` (group_seed_salt) before
+    constructing the RNG. Without this, two groups sharing BOTH |gens| and
+    d_state (S4, A5 -- both d_min=3) draw BYTE-IDENTICAL generator-index
+    sequences at the same nominal seed -- an undisclosed second correlation
+    channel beyond the adjudicated shared-init-weight one (S1.4.2.1).
+    Determinism per (group, seed, N) is preserved exactly, since the salt is
+    a pure function of `name`."""
+    rng = np.random.default_rng(seed + group_seed_salt(name))
     gens = generating_set(name)
     n_gens = len(gens)
     idx_list, prod_list = [], []
@@ -234,10 +251,62 @@ def _test_coverage_guard_second_miss_hard_fails():
     return raised
 
 
+def _test_group_salted_seeds_differ_across_groups_same_within():
+    """NEGATIVE-then-POSITIVE TEST (S1.22 BA-F3): S4 and A5 share |gens|=4
+    AND d_state=5, so at an UNSALTED (group-name-blind) seed they would draw
+    BYTE-IDENTICAL held-out generator-index sequences -- an undisclosed
+    second correlation channel beyond the adjudicated shared-init-weight one
+    (S1.4.2.1's Welch-unpaired justification covers only the init channel).
+    After the group-salted fix: (1) S4 vs A5 sequences at the SAME nominal
+    seed must now DIFFER; (2) the SAME group at the SAME seed must still
+    reproduce EXACTLY (determinism per (group, seed, N) preserved)."""
+    print("=" * 88)
+    print("NEGATIVE-then-POSITIVE TEST -- BA-F3 group-salted seeds: S4 vs A5 now differ,")
+    print("same-group reproducibility holds")
+    print("=" * 88)
+    base_seed, n_words = 7001, 20
+    n_gens_s4, n_gens_a5 = len(generating_set("S4")), len(generating_set("A5"))
+    print(f"  |gens(S4)|={n_gens_s4}  |gens(A5)|={n_gens_a5}  d_state(S4)={D_STATE['S4']}  "
+          f"d_state(A5)={D_STATE['A5']}  -- the exact collision precondition")
+    assert n_gens_s4 == n_gens_a5, "test precondition: S4/A5 must share |gens| for this to be meaningful"
+
+    idx_s4, _ = sample_eval_words("S4", base_seed + 10_000, n_words)
+    idx_a5, _ = sample_eval_words("A5", base_seed + 10_000, n_words)
+    identical = all(np.array_equal(a, b) for a, b in zip(idx_s4, idx_a5)) and len(idx_s4) == len(idx_a5)
+    print(f"  S4 vs A5 generator-index sequences at the SAME nominal seed: "
+          f"{'IDENTICAL (BUG, unsalted)' if identical else 'DIFFER (fixed)'}")
+    assert not identical, "BA-F3 REGRESSION: S4/A5 eval word-index sequences are still byte-identical"
+
+    # same-group reproducibility: an identical (group, seed, N) call must reproduce exactly.
+    idx_s4_again, _ = sample_eval_words("S4", base_seed + 10_000, n_words)
+    reproducible = (len(idx_s4) == len(idx_s4_again)
+                    and all(np.array_equal(a, b) for a, b in zip(idx_s4, idx_s4_again)))
+    print(f"  S4 same-(group,seed,N) reproducibility: {'PASS' if reproducible else 'FAIL'}")
+    assert reproducible, "BA-F3 fix broke same-group determinism"
+
+    # sanity: check_coverage_with_retry's downstream draw (readout.py's actual call
+    # pattern) is consistent with the salted sample_eval_words -- final_seed reused
+    # by the caller must reproduce the SAME words the coverage check validated.
+    cov_log = check_coverage_with_retry("S4", base_seed, bar=COVERAGE_BAR["S4"], n_words=N_EVAL_WORDS,
+                                        label="query-coverage", offset=10_000)
+    idx_a, rho_a = sample_eval_words("S4", cov_log["final_seed"], N_EVAL_WORDS)
+    idx_b, rho_b = sample_eval_words("S4", cov_log["final_seed"], N_EVAL_WORDS)
+    assert all(np.array_equal(a, b) for a, b in zip(idx_a, idx_b)), \
+        "check_coverage_with_retry's final_seed does not reproduce the same draw on re-sampling"
+    print(f"  check_coverage_with_retry -> sample_eval_words reproducibility (S4, final_seed="
+          f"{cov_log['final_seed']}): PASS")
+
+    print("\nRESULT: group-salted seed derivation differentiates S4 from A5 while preserving "
+          "per-group determinism.\n")
+    return True
+
+
 if __name__ == "__main__":
     r1 = _test_coverage_guard_detects_undersampling()
     r2 = _test_coverage_guard_second_miss_hard_fails()
+    r3 = _test_group_salted_seeds_differ_across_groups_same_within()
     print("=" * 88)
-    print(f"group_task.py negative tests: undersampling_detected={r1}  second_miss_hard_fails={r2}")
+    print(f"group_task.py negative tests: undersampling_detected={r1}  second_miss_hard_fails={r2}  "
+          f"group_salt_differentiates={r3}")
     print("=" * 88)
-    assert r1 and r2
+    assert r1 and r2 and r3

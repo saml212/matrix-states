@@ -173,13 +173,54 @@ class BudgetGuard:
         TRIGGERED units only (S1.4.2's own eligibility rule -- this guard
         never requests an escalation nobody's ambiguity trigger actually
         fired), in the pinned ascending-|G| order. Returns the list of
-        decisions made this pass (each already appended to self.decisions)."""
+        decisions made this pass (each already appended to self.decisions).
+
+        S1.22 BA-F4 fix -- HARD-STOP-ON-FIRST-DENIAL: once ANY request in
+        this pass is denied, EVERY subsequent request (in pinned order) is
+        recorded as budget-denied WITHOUT being evaluated against the live
+        projection. The prior behavior evaluated each request independently
+        ("skip-and-continue"), which could grant a CHEAPER, LOWER-priority
+        item right after denying a pricier, HIGHER-priority one whenever the
+        remaining headroom happened to fit the cheaper item but not the
+        pricier one -- a concrete instance the S1.22 audit found in the
+        A5->S5 pinned-order transition (see budget_guard.py's own
+        `_test_a5_to_s5_hard_stop_window`). A request downstream of an
+        already-denied higher-priority request has, by the pinned order's
+        own construction, LESS claim on the remaining budget than the one
+        just turned down -- granting it anyway would silently invert the
+        priority order the design pins (S1.6/S1.20/S1.21). Every denial,
+        hard-stop or evaluated, still carries status='budget-denied' (the
+        harvest-provenance invariant, S1.6, is unchanged by this fix)."""
         results = []
+        stopped = False
+
+        def _hard_stop_denial(request_label: str, cost: float) -> dict:
+            decision = dict(request=request_label, cost=cost, projected_total=self.projected_total(0.0),
+                            cap=self.cap, granted=False, status="budget-denied",
+                            reason="hard-stop: a higher-priority request was already denied this pass")
+            self.decisions.append(decision)
+            return decision
+
         if marquee_triggered:
-            results.append(self.request_marquee_n7())
+            if stopped:
+                results.append(_hard_stop_denial("marquee_n7", MARQUEE_ESCALATION_COST))
+            else:
+                decision = self.request_marquee_n7()
+                results.append(decision)
+                if not decision["granted"]:
+                    stopped = True
+
         for g, ct in self.pinned_general_order():
-            if (g, ct) in general_triggered_units:
-                results.append(self.request_general_escalation(g, ct))
+            if (g, ct) not in general_triggered_units:
+                continue
+            if stopped:
+                cost = round((GENERAL_ESCALATION_TARGET_N - BASE_SEEDS[g][ct]) * COST_PER_CELL, 4)
+                results.append(_hard_stop_denial(f"general_escalation:{g}:{ct}", cost))
+                continue
+            decision = self.request_general_escalation(g, ct)
+            results.append(decision)
+            if not decision["granted"]:
+                stopped = True
         return results
 
     def summary(self) -> dict:
@@ -281,6 +322,92 @@ def _test_near_cap_denies_in_pinned_order():
     return decisions, summ
 
 
+# ---------------------------------------------------------------------------
+# NEGATIVE TEST (S1.22 BA-F4) -- the EXACT A5-to-S5 pinned-order transition
+# window the audit identified, where the old skip-and-continue allocator
+# granted a CHEAPER, LOWER-priority request right after denying a pricier,
+# HIGHER-priority one (`_test_near_cap_denies_in_pinned_order` above never
+# lands in this window: at BASE_RAW_TOTAL spend, the exhaustion point
+# happens to be tight enough that every later item is ALSO too expensive to
+# fit, so old and new semantics coincidentally agree there). This test picks
+# spend_to_date so the boundary falls exactly between A5's k_dmin_plus_1
+# request (cost 0.9, index 7 in the pinned order) and S5's unconstrained
+# request (cost 0.6, index 8) -- independently re-derived below, not
+# hand-picked without proof.
+# ---------------------------------------------------------------------------
+
+def _test_a5_to_s5_hard_stop_window():
+    print("=" * 88)
+    print("NEGATIVE TEST -- BA-F4 A5-to-S5 window: old skip-and-continue vs new hard-stop")
+    print("=" * 88)
+    order = BudgetGuard.pinned_general_order()
+    all_general_units = set(order)
+
+    # Derive the exact headroom window from the cell table itself (not a magic number):
+    # cumulative committed cost through the item just BEFORE A5's k_dmin_plus_1 request.
+    a5_idx = order.index(("A5", "k_dmin_plus_1"))
+    s5_idx = order.index(("S5", "unconstrained"))
+    assert s5_idx == a5_idx + 1, "test precondition: S5:unconstrained must immediately follow A5:k_dmin_plus_1"
+    cum_before = sum(round((GENERAL_ESCALATION_TARGET_N - BASE_SEEDS[g][ct]) * COST_PER_CELL, 4)
+                     for g, ct in order[:a5_idx])
+    cost_a5 = round((GENERAL_ESCALATION_TARGET_N - BASE_SEEDS["A5"]["k_dmin_plus_1"]) * COST_PER_CELL, 4)
+    cost_s5 = round((GENERAL_ESCALATION_TARGET_N - BASE_SEEDS["S5"]["unconstrained"]) * COST_PER_CELL, 4)
+    # headroom H must satisfy: cum_before + cost_a5 > H (A5 denied) AND cum_before + cost_s5 <= H (S5 would fit).
+    spend_to_date = round(CAP - (cum_before + cost_s5), 4)   # sits at the tight edge of the window; verified below
+    headroom = round(CAP - spend_to_date, 4)
+    print(f"  pinned order: ...idx{a5_idx}={order[a5_idx]} (cost {cost_a5}) -> "
+          f"idx{s5_idx}={order[s5_idx]} (cost {cost_s5})...")
+    print(f"  cumulative committed through idx{a5_idx - 1} = {cum_before}")
+    print(f"  spend_to_date={spend_to_date}  cap={CAP}  headroom={headroom}")
+    assert cum_before + cost_a5 > headroom, "test setup: A5:k_dmin_plus_1 must NOT fit in this headroom"
+    assert cum_before + cost_s5 <= headroom, "test setup: S5:unconstrained MUST fit in this headroom (that's the bug window)"
+
+    # OLD semantics reference: each request evaluated INDEPENDENTLY in pinned
+    # order (exactly what request_general_escalation does when called directly,
+    # without run_escalation_pass's hard-stop wrapper -- i.e. the pre-BA-F4
+    # behavior, reproduced here ONLY for this regression check).
+    old_guard = BudgetGuard(cap=CAP, spend_to_date=spend_to_date)
+    old_decisions = [old_guard.request_general_escalation(g, ct) for g, ct in order if (g, ct) in all_general_units]
+    old_a5 = next(d for d in old_decisions if d["request"] == "general_escalation:A5:k_dmin_plus_1")
+    old_s5 = next(d for d in old_decisions if d["request"] == "general_escalation:S5:unconstrained")
+    print(f"\n  OLD (skip-and-continue) semantics: A5:k_dmin_plus_1 -> {old_a5['status']}   "
+          f"S5:unconstrained -> {old_s5['status']}")
+    assert old_a5["status"] == "budget-denied", "test setup: expected A5's flanking request denied under OLD semantics"
+    assert old_s5["status"] == "granted", (
+        "test setup FAILED to reproduce the audit's bug window -- expected the OLD allocator to WRONGLY "
+        "grant a cheaper lower-priority S5 request immediately after denying a pricier higher-priority A5 one"
+    )
+    print("  (test setup CONFIRMED: this is the exact bug window the S1.22 audit flagged)")
+
+    # NEW (fixed) semantics: hard-stop-on-first-denial.
+    new_guard = BudgetGuard(cap=CAP, spend_to_date=spend_to_date)
+    new_decisions = new_guard.run_escalation_pass(marquee_triggered=False, general_triggered_units=all_general_units)
+    new_a5 = next(d for d in new_decisions if d["request"] == "general_escalation:A5:k_dmin_plus_1")
+    new_s5 = next(d for d in new_decisions if d["request"] == "general_escalation:S5:unconstrained")
+    print(f"\n  NEW (hard-stop) semantics:          A5:k_dmin_plus_1 -> {new_a5['status']}   "
+          f"S5:unconstrained -> {new_s5['status']}")
+    assert new_a5["status"] == "budget-denied"
+    assert new_s5["status"] == "budget-denied", (
+        "BA-F4 REGRESSION: the fixed allocator still granted a lower-priority request right after a "
+        "higher-priority denial -- hard-stop-on-first-denial is not actually wired"
+    )
+    # every request from the first denial onward (all 16 units triggered here, so
+    # new_decisions is index-aligned with `order`) must ALSO be denied.
+    assert len(new_decisions) == len(order), "test precondition: all pinned units were triggered"
+    tail = new_decisions[a5_idx:]
+    assert all(d["status"] == "budget-denied" for d in tail), \
+        f"hard-stop must deny EVERY request from the first denial (idx{a5_idx}) onward, not just the next one"
+    print(f"  every request from the first denial onward ({len(tail)} requests, idx{a5_idx}..{len(order)-1}) "
+          f"is budget-denied under the new semantics  OK")
+
+    print("\nRESULT: the OLD skip-and-continue allocator's exact bug (granting a cheaper lower-priority")
+    print("request immediately after denying a pricier higher-priority one, at the A5->S5 pinned-order")
+    print("transition) is reproduced above and shown FIXED under hard-stop-on-first-denial semantics.")
+    print("=" * 88)
+    return old_decisions, new_decisions
+
+
 if __name__ == "__main__":
     _self_test()
     _test_near_cap_denies_in_pinned_order()
+    _test_a5_to_s5_hard_stop_window()

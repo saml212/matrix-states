@@ -43,6 +43,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 _STUB_MARKER = "_CAPABILITY_SEP_CPU_STUB"
+FIG5_L_MAX = 4   # S1.6's cost table: "a minimal S4/A5 instance, L<=4" -- module-level
+                 # so reproduce_fig5's sampler AND its cap test share one source of truth
+                 # (S1.22 BA-F5: this used to be a local that was never threaded through).
 
 
 def ensure_fla_stub() -> bool:
@@ -210,7 +213,7 @@ def reproduce_fig5(device="cpu", is_stub=True):
 
     torch.manual_seed(0)
     d_model, n_heads = 32, 4
-    L_max = 4
+    L_max = FIG5_L_MAX
     n_gens = len(generating_set("S4"))
     d_state = D_STATE["S4"]
     results = {}
@@ -225,7 +228,13 @@ def reproduce_fig5(device="cpu", is_stub=True):
         gen = torch.Generator().manual_seed(n_h)
         final_loss = None
         for step in range(200):
-            batch = sample_train_batch("S4", 64, gen, device=device)
+            # S1.22 BA-F5 fix: L_max (declared above) was never threaded through
+            # the sampler -- this piece silently ran off-spec at L up to 8 (the
+            # production sweep's range) instead of the declared L<=4. `l_hi`
+            # bounds it without a second sampler implementation.
+            batch = sample_train_batch("S4", 64, gen, device=device, l_hi=L_max)
+            assert batch["L"] <= L_max, \
+                f"BA-F5 regression: sampled L={batch['L']} exceeds the declared cap L_max={L_max}"
             tok = embed(batch["token_idx"])
             enc = layer(tok)
             Z = readout(enc.mean(dim=1)).view(-1, d_state, d_state)
@@ -243,6 +252,47 @@ def reproduce_fig5(device="cpu", is_stub=True):
     return {"status": "ran_real_fla", "box_only": False, "results": results}
 
 
+# ---------------------------------------------------------------------------
+# NEGATIVE-then-POSITIVE TEST (S1.22 BA-F5): the L_max=4 cap was DECLARED
+# but never threaded through reproduce_fig5's sampler (it silently ran
+# off-spec at L up to 8, group_task's production range). CPU-only, does NOT
+# depend on a real fla backend being installed (unlike reproduce_fig5's own
+# training loop, which self-skips without one) -- proves the cap directly.
+# ---------------------------------------------------------------------------
+
+def _test_fig5_l_max_cap_applied():
+    print("=" * 88)
+    print("NEGATIVE-then-POSITIVE TEST -- BA-F5: FIG5_L_MAX cap actually applied to the sampler")
+    print("=" * 88)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from group_task import sample_train_batch
+    n_draws = 200
+
+    gen_capped = torch.Generator().manual_seed(0)
+    Ls_capped = [sample_train_batch("S4", 4, gen_capped, device="cpu", l_hi=FIG5_L_MAX)["L"]
+                for _ in range(n_draws)]
+    over_cap = [L for L in Ls_capped if L > FIG5_L_MAX]
+    print(f"  capped (l_hi=FIG5_L_MAX={FIG5_L_MAX}): {n_draws} draws, max(L)={max(Ls_capped)}, "
+          f"min(L)={min(Ls_capped)}, over-cap count={len(over_cap)}")
+    assert not over_cap, f"BA-F5 REGRESSION: l_hi={FIG5_L_MAX} did not cap L (drew {over_cap})"
+    assert max(Ls_capped) == FIG5_L_MAX, \
+        f"cap looks too tight to be a real Uniform{{1..{FIG5_L_MAX}}} draw (never hit {FIG5_L_MAX})"
+
+    gen_uncapped = torch.Generator().manual_seed(0)
+    Ls_uncapped = [sample_train_batch("S4", 4, gen_uncapped, device="cpu")["L"] for _ in range(n_draws)]
+    over_declared = [L for L in Ls_uncapped if L > FIG5_L_MAX]
+    print(f"  uncapped (production default, the PRE-FIX behavior reproduce_fig5 actually ran under): "
+          f"{n_draws} draws, max(L)={max(Ls_uncapped)}, draws with L>{FIG5_L_MAX}: {len(over_declared)}")
+    assert over_declared, (
+        f"test setup: the UNCAPPED production sampler never drew L>{FIG5_L_MAX} in {n_draws} tries -- "
+        f"cannot demonstrate the cap actually narrows anything"
+    )
+    print(f"\nRESULT: l_hi={FIG5_L_MAX} correctly bounds every draw to the declared L<=4 spec; the "
+          f"production default (what this piece silently ran under pre-fix) reaches L>{FIG5_L_MAX} "
+          f"routinely, confirming the cap is not vacuous.\n")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reproduce-fig5", action="store_true",
@@ -250,6 +300,7 @@ def main():
     args = ap.parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     is_stub = smoke_forward_backward(device=device)
+    _test_fig5_l_max_cap_applied()
     if args.reproduce_fig5:
         reproduce_fig5(device=device, is_stub=is_stub)
     else:

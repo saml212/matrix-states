@@ -58,19 +58,23 @@ def main():
 
     def _blankout():
         import torch
-        from blank_out import run_blank_out_test
+        from blank_out import run_blank_out_test, run_blank_out_planted_leak_test
         from group_word_encoder import GroupWordModel
         torch.manual_seed(0)
         m = GroupWordModel(d_state=5, n_gens=4, L_max=16, h=32)
         run_blank_out_test(m, device="cpu")
-    run("3. blank_out.py -- the P=1 bottleneck gradient-based blank-out test", _blankout)
+        run_blank_out_planted_leak_test(m, device="cpu")
+    run("3. blank_out.py -- the P=1 bottleneck gradient-based blank-out test "
+        "+ BA-F6 planted-leak NEGATIVE TEST", _blankout)
 
     def _task():
         import group_task as gt
         r1 = gt._test_coverage_guard_detects_undersampling()
         r2 = gt._test_coverage_guard_second_miss_hard_fails()
-        assert r1 and r2
-    run("4. group_task.py -- query-coverage guard NEGATIVE TESTS (undersampling + second-miss hard-fail)", _task)
+        r3 = gt._test_group_salted_seeds_differ_across_groups_same_within()
+        assert r1 and r2 and r3
+    run("4. group_task.py -- query-coverage guard NEGATIVE TESTS (undersampling + second-miss "
+        "hard-fail) + BA-F3 group-salted-seed NEGATIVE-then-POSITIVE TEST", _task)
 
     def _readout_smoke():
         import torch
@@ -97,11 +101,20 @@ def main():
         fra.smoke("cpu")
     run("7. force_rank_arms.py -- the 4-arm force-rank grid, 58-cell family total", _force_rank)
 
+    def _truncation_curve():
+        import truncation_curve as tc
+        tc._test_truncation_curve_knees_at_planted_rank()
+        tc.smoke("cpu")
+    run("8. truncation_curve.py -- BA-F2 M2 post-hoc rank-k truncation curve: planted-rank "
+        "UNIT TEST + real-pipeline wiring smoke", _truncation_curve)
+
     def _budget():
         import budget_guard as bgm
         bgm._self_test()
         bgm._test_near_cap_denies_in_pinned_order()
-    run("8. budget_guard.py -- worst-case arithmetic self-test + NEGATIVE TEST (near-cap denial ordering)", _budget)
+        bgm._test_a5_to_s5_hard_stop_window()
+    run("9. budget_guard.py -- worst-case arithmetic self-test + NEGATIVE TESTS (near-cap denial "
+        "ordering + BA-F4 A5-to-S5 hard-stop window)", _budget)
 
     def _tost():
         import tost_analysis as ta
@@ -111,25 +124,28 @@ def main():
         ta._test_reject_path()
         ta._test_budget_denial_path()
         ta._test_budget_granted_path()
-    run("9. tost_analysis.py -- TOST unit tests (CONFIRM/FALSIFY/INCONCLUSIVE/REJECT/denial/granted)", _tost)
+    run("10. tost_analysis.py -- TOST unit tests (CONFIRM/FALSIFY/INCONCLUSIVE/REJECT/denial/granted)", _tost)
 
     def _beta_fla():
         import beta_fla_smoke as bfs
         is_stub = bfs.smoke_forward_backward("cpu")
+        bfs._test_fig5_l_max_cap_applied()           # BA-F5: L_max=4 cap NEGATIVE-then-POSITIVE test
         bfs.reproduce_fig5("cpu", is_stub=is_stub)   # correctly self-skips (box-only) under the CPU stub
-    run("10. beta_fla_smoke.py -- forward/backward/grad-check (piece 1) + Fig.5 box-only-skip (piece 2)", _beta_fla)
+    run("11. beta_fla_smoke.py -- forward/backward/grad-check (piece 1) + BA-F5 L_max cap test "
+        "+ Fig.5 box-only-skip (piece 2)", _beta_fla)
 
     def _runner():
         import run_capability_sep as rcs
         rcs.smoke()
-    run("11. run_capability_sep.py -- manifest/resume-safety/escalation-wiring smoke", _runner)
+    run("12. run_capability_sep.py -- manifest/resume-safety/escalation wiring + BA-F1 "
+        "calibration-report/--sweep gate smoke", _runner)
 
     print("\n" + "=" * 100)
     if failures:
         print(f"CAPABILITY-SEPARATION SMOKE GATE: {len(failures)} FAILURE(S): {failures}")
         print("=" * 100)
         sys.exit(1)
-    print("CAPABILITY-SEPARATION SMOKE GATE: ALL 11 SECTIONS PASSED.")
+    print("CAPABILITY-SEPARATION SMOKE GATE: ALL 12 SECTIONS PASSED.")
     print("=" * 100)
 
 

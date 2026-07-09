@@ -61,8 +61,6 @@ def run_blank_out_test(model: GroupWordModel, device="cpu", B: int = 8, L: int =
     # function of Z back to tok_embed (a real signal exists).
     tok_embed = model.encoder.embed_tokens(token_idx).clone().detach().requires_grad_(True)
     Zg = model.encoder.encode_from_embedding(tok_embed)
-    if model.encoder.d_state:  # no rank forcing here -- raw encoder output
-        pass
     loss_g = scoring_fn(Zg, target)
     g_embed = torch.autograd.grad(loss_g, tok_embed, retain_graph=True, allow_unused=True)[0]
     assert g_embed is not None and g_embed.abs().sum() > 0, \
@@ -85,8 +83,58 @@ def run_blank_out_test(model: GroupWordModel, device="cpu", B: int = 8, L: int =
     print("\n" + "=" * 60 + "\n  BLANK-OUT TEST PASSED\n" + "=" * 60)
 
 
+# ---------------------------------------------------------------------------
+# NEGATIVE TEST (S1.22 BA-F6) -- the blank-out mechanism itself must CATCH a
+# scoring_fn closure that leaks the raw word by reading tok_embed directly
+# (bypassing Z entirely), not just pass silently on the honest scoring_fn.
+# Mirrors CLAUDE.md's "never trust a 'proves the check has teeth' test
+# without running it to completion" -- and group_task.py's/readout.py's own
+# planted-failure negative tests (undersampling, collapsed diversity).
+# ---------------------------------------------------------------------------
+
+def _make_leaky_scoring_fn(tok_embed_ref: torch.Tensor):
+    """Builds a scoring closure that reads `tok_embed_ref` DIRECTLY, bypassing
+    Z -- a planted bottleneck leak, for the negative test below only. Uses a
+    NONZERO coefficient (a zero coefficient, e.g. `0.0 * x`, has zero LOCAL
+    GRADIENT too -- d/dx(0*x)=0 -- and would silently defeat this exact
+    test, not just its forward value)."""
+    def leaky_scoring_fn(Z: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        return cosine_loss(Z, target) + 1e-3 * tok_embed_ref.mean()
+    return leaky_scoring_fn
+
+
+def run_blank_out_planted_leak_test(model: GroupWordModel, device="cpu", B: int = 8, L: int = 4) -> None:
+    print("=" * 60)
+    print("  NEGATIVE TEST -- blank-out CATCHES a planted tok_embed leak")
+    print("=" * 60)
+    torch.manual_seed(1)
+    token_idx = torch.randint(0, model.encoder.n_gens, (B, L), device=device)
+    target = torch.randn(B, model.d_state, model.d_state, device=device)
+
+    tok_embed = model.encoder.embed_tokens(token_idx).clone().detach().requires_grad_(True)
+    Zg = model.encoder.encode_from_embedding(tok_embed)
+    Z_leaf = Zg.detach().clone().requires_grad_(True)
+
+    leaky_fn = _make_leaky_scoring_fn(tok_embed)
+    loss_leak = leaky_fn(Z_leaf, target)
+    g_leak = torch.autograd.grad(loss_leak, tok_embed, allow_unused=True)[0]
+    assert g_leak is not None and g_leak.abs().sum() > 0, \
+        "blank-out FAILED to catch a planted tok_embed leak (no teeth -- g_leak should be nonzero)"
+    print(f"  planted leak CAUGHT: grad(leaky_score(Z_leaf), tok_embed) nonzero "
+          f"(sum|grad|={g_leak.abs().sum().item():.4f})  OK")
+
+    # sanity: the HONEST scoring_fn, run through the IDENTICAL leaf-detach
+    # mechanism, still reports None -- the mechanism doesn't false-positive.
+    loss_honest = scoring_fn(Z_leaf, target)
+    g_honest = torch.autograd.grad(loss_honest, tok_embed, allow_unused=True)[0]
+    assert g_honest is None, "honest scoring_fn path unexpectedly leaks under the same mechanism"
+    print("  honest scoring_fn path (same mechanism, same tensors): grad is still None  OK")
+    print("\n" + "=" * 60 + "\n  PLANTED-LEAK NEGATIVE TEST PASSED\n" + "=" * 60)
+
+
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(0)
     m = GroupWordModel(d_state=5, n_gens=4, L_max=16, h=32).to(device)
     run_blank_out_test(m, device=device)
+    run_blank_out_planted_leak_test(m, device=device)

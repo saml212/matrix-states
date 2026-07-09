@@ -22,6 +22,7 @@ on purpose.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import os
 import sys
@@ -41,6 +42,20 @@ SOLVABLE = {"S3": True, "S4": True, "A5": False, "S5": False, "A6": False}
 D_STATE = {name: D_MIN[name] + 2 for name in GROUP_NAMES}   # S1.4's uniform-margin rule
 
 _RESULTS_CACHE = None
+
+
+def group_seed_salt(name: str) -> int:
+    """S1.22 BA-F3 fix: a deterministic, per-group integer salt for the
+    eval/train word seed derivation. Two groups sharing BOTH |generating
+    set| and d_state (S4, A5 -- both d_min=3, so both |gens|=4, d_state=5)
+    otherwise draw BYTE-IDENTICAL generator-index sequences from the SAME
+    nominal (base_seed, offset) -- an undisclosed second correlation channel
+    beyond the adjudicated shared-init-weight one (S1.4.2.1's Welch-unpaired
+    justification covers ONLY the init-weight channel, not this one).
+    hashlib (not Python's process-randomized str `hash()`) so the salt is
+    stable across processes/runs; callers add this to an existing seed, so
+    determinism per (group, seed, N) is preserved exactly."""
+    return int(hashlib.sha256(name.encode("utf-8")).hexdigest()[:8], 16) % 10_000_000
 
 
 def _get_results() -> dict:
@@ -183,6 +198,15 @@ def _self_test() -> None:
         assert emb.shape == (d_state, d_state)
         assert np.allclose(emb[d_min:, d_min:], np.eye(d_state - d_min))
         assert np.allclose(emb @ emb.T, np.eye(d_state), atol=1e-6), "embedded rep not orthogonal"
+
+    # S1.22 BA-F3: group_seed_salt must be deterministic (repeat calls agree)
+    # and must actually DIFFER between S4/A5 (the exact |gens|=4/d_state=5
+    # collision pair the audit flagged) -- proven here, not merely claimed.
+    salts = {name: group_seed_salt(name) for name in GROUP_NAMES}
+    assert group_seed_salt("S4") == salts["S4"], "group_seed_salt is not deterministic"
+    assert len(set(salts.values())) == len(GROUP_NAMES), \
+        f"group_seed_salt collision across groups: {salts}"
+    print(f"  group_seed_salt (S1.22 BA-F3): {salts}  all distinct, deterministic  PASS")
     print("\ngroups.py self-test PASSED (all 5 groups).")
 
 
