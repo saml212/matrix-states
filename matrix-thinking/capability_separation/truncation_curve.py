@@ -134,6 +134,92 @@ def _test_truncation_curve_knees_at_planted_rank():
 
 
 # ---------------------------------------------------------------------------
+# COMPANION UNIT TEST (S1.24 RA-1): NON-TIED singular spectrum, so the 0.9
+# knee-threshold CONSTANT itself is falsifiable. The tied-projector test
+# above makes recovered_frac_90 a BINARY STEP in k (0 below r_true, 1 at and
+# above it), so EVERY multiplier in (0,1] lands the same knee -- a mutation
+# of knee_from_curve's `0.9 * acc_d` to `0.5 * acc_d` passes it silently
+# (verified: the re-audit's exact residual). This companion plants a batch
+# of strictly-descending, fully NON-TIED spectra chosen so recovered_frac_90
+# is GRADED in k ([0, .25, .5, .75, 1, 1, 1]) -- now the knee is a function
+# of the multiplier (0.9 -> k=5, 0.7 -> k=4, 0.5 -> k=3, 0.25-ish -> k=2),
+# and the single production-constant assertion below (knee == 5) fails
+# under any multiplier mutation that crosses a 0.25 rf-step boundary,
+# including RA-1's named 0.9 -> 0.5.
+# ---------------------------------------------------------------------------
+
+# Per-episode ENERGY profiles (squared singular values, each sums to 1.0,
+# strictly descending => fully non-tied spectrum). For a symmetric Z with
+# energies e_i, truncate_to_rank's top-k projection gives EXACTLY
+# cos(Z_k, Z) = sqrt(sum_{i<=k} e_i) (the spectral-truncation identity the
+# tied test used at the special case e_i = 1/r_true), and recovered_frac_90
+# counts cos > 0.9, i.e. cumulative energy > 0.81. Each profile is built to
+# cross 0.81 at exactly its keyed k (cumulative 0.85 > 0.81 at k_cross, with
+# the k_cross-1 cumulative <= 0.73 < 0.81 -- both with wide float margins:
+# cos 0.922 vs 0.9 at the crossing, <= 0.854 vs 0.9 below it).
+_NONTIED_ENERGY_PROFILES = {
+    # k_cross: [e_1 .. e_7]                                cumulative at k_cross-1 / k_cross
+    2: [0.60, 0.25, 0.05, 0.04, 0.03, 0.02, 0.01],       # 0.60 / 0.85
+    3: [0.40, 0.30, 0.15, 0.06, 0.04, 0.03, 0.02],       # 0.70 / 0.85
+    4: [0.30, 0.25, 0.18, 0.12, 0.06, 0.05, 0.04],       # 0.73 / 0.85
+    5: [0.25, 0.20, 0.15, 0.13, 0.12, 0.08, 0.07],       # 0.73 / 0.85
+}
+
+
+def _test_knee_threshold_falsifiable_on_nontied_spectrum():
+    print("=" * 88)
+    print("COMPANION UNIT TEST -- RA-1: knee threshold (0.9) falsifiable on a NON-TIED spectrum")
+    print("=" * 88)
+    torch.manual_seed(20260723)
+    d_state = 7
+
+    Zs = []
+    for k_cross, energies in sorted(_NONTIED_ENERGY_PROFILES.items()):
+        e = torch.tensor(energies, dtype=torch.float64)
+        # construction checks (teeth on the construction itself, not just the verdict):
+        assert abs(e.sum().item() - 1.0) < 1e-12, f"profile {k_cross} energies must sum to 1"
+        assert (e[:-1] > e[1:]).all(), f"profile {k_cross} spectrum must be STRICTLY descending (non-tied)"
+        cum = torch.cumsum(e, 0)
+        assert cum[k_cross - 1] > 0.81 and cum[k_cross - 2] < 0.81, \
+            f"profile {k_cross} must cross the cos>0.9 energy bar (0.81) at exactly k={k_cross}"
+        for _ in range(2):   # 2 random rotations per profile -> B=8, rf steps of 0.25
+            G = torch.randn(d_state, d_state, dtype=torch.float64)
+            U, _ = torch.linalg.qr(G)
+            Zs.append(U @ torch.diag(e.sqrt()) @ U.T)
+    Z_true = torch.stack(Zs).float()
+    print(f"  constructed {Z_true.shape[0]} synthetic (d_state={d_state}) matrices with strictly")
+    print(f"  descending NON-TIED spectra, cos>0.9 crossings planted at k in {sorted(_NONTIED_ENERGY_PROFILES)}")
+
+    curve = {}
+    for k in range(1, d_state + 1):
+        Z_k = truncate_to_rank(Z_true, k)
+        cos = recovery_cosine(Z_k, Z_true)
+        curve[k] = dict(mean_cos=float(cos.mean()), recovered_frac_90=float((cos > 0.9).float().mean()))
+        print(f"  k={k}: mean_cos={curve[k]['mean_cos']:.6f}  recovered_frac_90={curve[k]['recovered_frac_90']:.4f}")
+
+    expected_rf = [0.0, 0.25, 0.5, 0.75, 1.0, 1.0, 1.0]
+    got_rf = [curve[k]["recovered_frac_90"] for k in range(1, d_state + 1)]
+    assert got_rf == expected_rf, \
+        f"RA-1 construction regression: rf curve {got_rf} != planted graded curve {expected_rf}"
+
+    # THE production-constant assertion: on this graded curve the knee is a
+    # function of the multiplier -- 0.9 (production, S1.5) -> 5; a 0.5 mutation
+    # -> 3; 0.7 -> 4. So this single assertion fails under RA-1's named
+    # 0.9 -> 0.5 mutation (and any other crossing a 0.25 rf-step boundary),
+    # which the tied-projector test above provably cannot do.
+    knee = knee_from_curve(curve, d_state, metric="recovered_frac_90")
+    print(f"\n  knee under the PRODUCTION 0.9x rule = {knee}  (expect 5; a 0.5x-mutated rule would give 3)")
+    assert knee == 5, (
+        f"RA-1 REGRESSION: knee_from_curve returned k={knee} on the graded non-tied curve, expected 5 "
+        f"under the production 0.9 multiplier (S1.5 M2). If this now returns 3 or 4, the knee-threshold "
+        f"constant has been mutated (0.5 -> 3, 0.7 -> 4)."
+    )
+    print(f"\nRESULT: knee lands at k=5 under the production 0.9x rule on a graded, non-tied-spectrum "
+          f"curve -- the threshold constant is now falsifiable (RA-1 discharged).\n")
+    return knee
+
+
+# ---------------------------------------------------------------------------
 # SMOKE: exercises truncation_curve() through the REAL readout.py pipeline
 # on an untrained model (shape/wiring sanity only -- an untrained model has
 # no learned structure to knee correctly at, mirroring force_rank_arms.py's
@@ -164,4 +250,5 @@ def smoke(device="cpu"):
 
 if __name__ == "__main__":
     _test_truncation_curve_knees_at_planted_rank()
+    _test_knee_threshold_falsifiable_on_nontied_spectrum()
     smoke("cuda" if torch.cuda.is_available() else "cpu")

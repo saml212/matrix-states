@@ -108,12 +108,18 @@ def main():
     run("8. truncation_curve.py -- BA-F2 M2 post-hoc rank-k truncation curve: planted-rank "
         "UNIT TEST + real-pipeline wiring smoke", _truncation_curve)
 
+    def _truncation_curve_nontied():
+        import truncation_curve as tc
+        tc._test_knee_threshold_falsifiable_on_nontied_spectrum()
+    run("9. truncation_curve.py -- RA-1 COMPANION TEST: non-tied singular spectrum makes the "
+        "0.9 knee-threshold constant falsifiable (a 0.5 mutation flips the knee 5->3)", _truncation_curve_nontied)
+
     def _budget():
         import budget_guard as bgm
         bgm._self_test()
         bgm._test_near_cap_denies_in_pinned_order()
         bgm._test_a5_to_s5_hard_stop_window()
-    run("9. budget_guard.py -- worst-case arithmetic self-test + NEGATIVE TESTS (near-cap denial "
+    run("10. budget_guard.py -- worst-case arithmetic self-test + NEGATIVE TESTS (near-cap denial "
         "ordering + BA-F4 A5-to-S5 hard-stop window)", _budget)
 
     def _tost():
@@ -124,20 +130,20 @@ def main():
         ta._test_reject_path()
         ta._test_budget_denial_path()
         ta._test_budget_granted_path()
-    run("10. tost_analysis.py -- TOST unit tests (CONFIRM/FALSIFY/INCONCLUSIVE/REJECT/denial/granted)", _tost)
+    run("11. tost_analysis.py -- TOST unit tests (CONFIRM/FALSIFY/INCONCLUSIVE/REJECT/denial/granted)", _tost)
 
     def _beta_fla():
         import beta_fla_smoke as bfs
         is_stub = bfs.smoke_forward_backward("cpu")
         bfs._test_fig5_l_max_cap_applied()           # BA-F5: L_max=4 cap NEGATIVE-then-POSITIVE test
         bfs.reproduce_fig5("cpu", is_stub=is_stub)   # correctly self-skips (box-only) under the CPU stub
-    run("11. beta_fla_smoke.py -- forward/backward/grad-check (piece 1) + BA-F5 L_max cap test "
+    run("12. beta_fla_smoke.py -- forward/backward/grad-check (piece 1) + BA-F5 L_max cap test "
         "+ Fig.5 box-only-skip (piece 2)", _beta_fla)
 
     def _runner():
         import run_capability_sep as rcs
         rcs.smoke()
-    run("12. run_capability_sep.py -- manifest/resume-safety/escalation wiring + BA-F1 "
+    run("13. run_capability_sep.py -- manifest/resume-safety/escalation wiring + BA-F1 "
         "calibration-report/--sweep gate smoke", _runner)
 
     print("\n" + "=" * 100)
@@ -145,7 +151,7 @@ def main():
         print(f"CAPABILITY-SEPARATION SMOKE GATE: {len(failures)} FAILURE(S): {failures}")
         print("=" * 100)
         sys.exit(1)
-    print("CAPABILITY-SEPARATION SMOKE GATE: ALL 12 SECTIONS PASSED.")
+    print("CAPABILITY-SEPARATION SMOKE GATE: ALL 13 SECTIONS PASSED.")
     print("=" * 100)
 
 
