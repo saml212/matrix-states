@@ -1722,6 +1722,68 @@ against) — flagged for the same build-time treatment.
 
 ---
 
-*(End §1 records. Rev 0 → §1.13 → Rev 1 (§1.14) → §1.15 NEEDS-REVISION
-(CA2-M1 A5 class ambiguity, CA2-M2 batching spec; 5 minors) → Rev 2
-(§1.16) → attack round 3 pending.)*
+### 1.17 ATTACK ROUND 3 VERDICT (independent fresh-eyes agent, 2026-07-08): NEEDS-REVISION (narrow — 1 MAJOR)
+
+Recorded per the gauntlet-bookkeeping hard rule before dispatching Rev 3.
+All three companion scripts reproduced BYTE-IDENTICAL on fresh re-run;
+§1.13/§1.14/§1.15 byte-integrity confirmed via git diff; all §1.15
+resolutions verified genuinely resolved.
+
+**THE A5 MATHEMATICAL STORY, settled (round 3's deep item):**
+- `_simultaneous_closure` is a genuine ISOMORPHISM proof, not mere
+  homomorphism-compatibility (inductive well-definedness over the full
+  60-element closure + equal-cardinality bijectivity — the standard
+  coset-enumeration argument). The 5A/5B split is real (g conjugate to
+  g⁻¹ in A5, NOT to g²; traces φ vs 1−φ in the same irrep).
+- The automorphism-invariance objection RESOLVED by brute force over
+  all 120 τ∈S5: every τ with τg5τ⁻¹=g5² is odd (Out(A5)=Z/2 does swap
+  5A/5B) but NONE fixes g3 up to inversion — **no automorphism maps
+  the generating pair {g5,g3} to {g5²,g3}**. So CA2-M1's finding was
+  REAL and the correct mechanism is the JOINT GENERATING PAIR changing
+  the Cayley graph (different mixing statistics, 33.79 vs 31.76 mean
+  coverage), not conjugacy class per se. The doc's fix verifies the
+  right thing; the framing sentence should name the pair-level
+  mechanism (folded into Rev 3 as a wording item).
+
+**MAJOR (binding on Rev 3):**
+
+- **CA3-M1 — the marquee S4-vs-A5 dissociation check is UNDERPOWERED
+  at n=3 with no dedicated escalation trigger.** The check is a
+  required AND-condition for CONFIRM (§1.5) and the design's entire
+  dimension-vs-solvability point — yet simulated power at n=3
+  (t(2)=4.303): a REAL 0.5-rank-unit S4/A5 gap is missed (CIs wrongly
+  overlap) 71-97% of the time; even a 1.0-unit gap missed 11-80%. The
+  §1.4.2 escalation trigger never fires in the dangerous regime (both
+  groups clearing their own bars while differing from each other) —
+  as written the control can almost never disconfirm dimension-tracking
+  even if solvability were the true story. → Rev 3: UNCONDITIONAL n=5
+  seeds for S4 and A5's k=d_min + unconstrained cells (default, not
+  contingent; ~2.4 GPU-h, inside the 12.75 GPU-h margin) AND/OR a
+  TOST-style equivalence test with a pre-registered margin instead of
+  bare CI-overlap; re-run the power simulation at the chosen design
+  and paste the table (executed, not asserted).
+
+**MINOR:** CA3-m1 — §1.12 doesn't itemize the retry-once orchestration
+as its own build item. CA3-m2 — post-retry exposure stated precisely:
+correctly weighted Σ_g 10·p_g² ≈ 2.85×10⁻⁵ (S5-dominated), not just
+"far below". CA3-m3 — fold the executed centralizer check (round 3
+verified: every group's 2 pinned generators already reduce the
+centralizer to exactly dim 1 = scalars) into the companion script —
+converts §1.4.1's asserted "~2 generic elements suffice" into an
+executed claim. CA3-m4 — one-sentence note that per-batch-L loss-scale
+variation doesn't arise (single cosine loss per episode, no
+token-count accumulation; round 3 adjudicated SAFE). CA3-m5 —
+cosmetic: "same forward pattern" overstatement; non-integer bar
+clarifying note; stray sentence fragment in §1.5 M2.
+
+**Verified clean this round:** the A5 isomorphism check (re-proven +
+re-run, wrong-class controls fail); per-batch-fixed-L (loss-scale
+concern adjudicated SAFE); retry-once + n_eval floor (re-run, ≥2
+margins); Schur rewording (numerically EXECUTED beyond the doc's own
+assertion); gate-5 closure; footer; byte-integrity of all records.
+
+---
+
+*(End §1 records. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 (§1.16) →
+§1.17 NEEDS-REVISION (CA3-M1 marquee power; 5 minors). Rev 3 in
+progress.)*
