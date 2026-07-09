@@ -1,0 +1,5 @@
+402f0928cab3b5d2cabc987f22a51f38  fixscale_wave.py
+b931cb4502989de28352fc929e324672  fixscale_supervisor.sh
+c892298c2e74e50ad05ecb2c2e3f49a1  smoke_fixscale.py
+9e12e8b376e2b9c574f2fad594b4ee9f  bands_pinned_frozenbias.py
+5088b52a291423908adec435def7938f  fixscale_slot0_waiter.sh
