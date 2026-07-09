@@ -113,6 +113,33 @@ def _healthy_trial_fixed_depth(rng, info: dict, D: int, n_words: int = cc.N_EVAL
     return len(results)
 
 
+class Stage2DepthOneCoverageUnsupported(NotImplementedError):
+    """S2.20 m4: the FULL subspace-restriction/degauging pipeline
+    (`evaluate_composer_at_depth`/`evaluate_arm1_at_depth`, and
+    `stage2_depth_coverage_bar`'s Monte Carlo auto-calibration beneath it)
+    has NO well-posed answer at D=1 -- this is a STRUCTURAL property of the
+    task at this population size, not merely a calibration edge case: every
+    group's symmetric generating set has only 3-4 distinct elements (S2.8
+    2(e) minor), so a length-1 word's product is drawn from a population of
+    only 3-4 distinct group elements. TWO independent downstream mechanisms
+    both fail at this population size (verified by run, not assumed): (1)
+    `stage2_depth_coverage_bar`'s Monte Carlo bar-picker finds no fraction
+    simultaneously clearing the healthy-sampler p1 floor and exceeding the
+    undersampled ceiling (raw AssertionError in coverage_calibration.py);
+    (2) EVEN WITH an explicit bar override bypassing (1), `readout.py`'s
+    `_split_with_diversity_retry` (FILE OWNERSHIP: shared, not editable
+    here) then hard-fails the fit/eval diversity floor
+    (`CoverageGuardError`), because `FIT_FLOOR`/`EVAL_FLOOR` for every
+    group exceed the 3-4 distinct elements a D=1 sample can ever contain --
+    there is no bar value that fixes this second failure. S2.20 m4's
+    designed triage: D=1 is EXCLUDED from this pipeline entirely (raised
+    clearly, here, rather than left to crash cryptically two call-frames
+    into a shared module) -- D=1's health is instead covered by
+    `stage2_instrument.py`'s query-dependence diagnostic (S2.8 item 2(e)),
+    which probes D=1 via `build_probe_tokens` directly and never touches
+    this degauge/fit-split machinery at all."""
+
+
 @functools.lru_cache(maxsize=None)
 def stage2_depth_coverage_bar(name: str, D: int, n_trials: int = 20000,
                               base_seed: int = 20260714) -> dict:
@@ -124,9 +151,19 @@ def stage2_depth_coverage_bar(name: str, D: int, n_trials: int = 20000,
     (group, D) point is looked up repeatedly across many cells/seeds during
     a real run, and the 20000-trial Monte Carlo is deterministic given its
     inputs -- caching avoids redoing it every call."""
+    if D == 1:
+        raise Stage2DepthOneCoverageUnsupported(
+            f"stage2_depth_coverage_bar({name!r}, D=1): see Stage2DepthOneCoverageUnsupported's "
+            f"class docstring for the full explanation (S2.20 m4) -- coverage_calibration.py's "
+            f"pick_bars finds no fraction simultaneously clearing the healthy-sampler p1 floor and "
+            f"exceeding the undersampled ceiling at this population size (3-4 distinct elements), "
+            f"and this is NOT fixable by an explicit bar override (readout.py's fit/eval diversity "
+            f"floor fails independently downstream) -- D=1 is excluded from this whole pipeline, "
+            f"by design, not merely uncalibrated."
+        )
     info = cc.GROUPS[name]
     rng = np.random.default_rng(base_seed + D)
-    healthy = np.array([_healthy_trial_fixed_depth(rng, info, D, n_words=n_trials and cc.N_EVAL_WORDS)
+    healthy = np.array([_healthy_trial_fixed_depth(rng, info, D, n_words=cc.N_EVAL_WORDS)
                         for _ in range(n_trials)])
     undersamp = np.array([cc.undersampled_trial(rng, info) for _ in range(n_trials)])
     row = dict(order=info["order"], h_p1=float(np.percentile(healthy, 1)),
@@ -234,7 +271,17 @@ def evaluate_composer_at_depth(composer, name: str, D: int, seed: int, device="c
     """One (cell, D) point of the M-D1/M-D2 accuracy-vs-depth /
     rank-vs-depth curves (S2.6). `reset_every`: the last-K-window control
     (S2.9 item 4), eval-time-only truncation of an already-trained Arm-3
-    checkpoint -- zero new training cells."""
+    checkpoint -- zero new training cells.
+
+    Raises `Stage2DepthOneCoverageUnsupported` at `D=1` (S2.20 m4) -- see
+    that class's docstring; not fixable by an explicit `bar`, the failure
+    is downstream in `readout.py`'s fit/eval diversity floor, not just the
+    coverage-bar calibration."""
+    if D == 1:
+        raise Stage2DepthOneCoverageUnsupported(
+            f"evaluate_composer_at_depth({name!r}, D=1): the FULL degauging pipeline is not "
+            f"evaluable at D=1 (S2.20 m4) -- see Stage2DepthOneCoverageUnsupported's docstring."
+        )
     d_min = D_MIN[name]
     cov_log = check_depth_coverage_with_retry(name, seed, D, bar=bar, n_words=n_words)
     idx_list, rho_list = gt.sample_eval_words(name, cov_log["final_seed"], n_words, L_lo=D, L_hi=D)
@@ -285,6 +332,18 @@ def evaluate_composer_at_depth(composer, name: str, D: int, seed: int, device="c
 # S2.2.1 predicts ("Arm 1... collapses at or before D_test requires an
 # untrained positional row"). `evaluate_arm1_at_depth` reports this as an
 # explicit architecturally-excluded result rather than crashing the grid.
+#
+# S2.20 m5 (no code change, DESIGNED TRIAGE -- documented per this dispatch's
+# own instruction; the committed §2.20 audit summary names m1 (value-stream
+# seed+1, stage2_instrument.py) and the D=1 coverage-bar knife-edge (m4,
+# handled above) explicitly but does not spell out m2/m3/m5's exact text --
+# m2/m3 were independently identified and fixed elsewhere in this file/
+# smoke_stage2.py; this comment records the FIXES agent's best-effort
+# judgment call for m5's referent: the out-of-range/D>ARM1_L_MAX handling
+# immediately below is this codebase's other clear pre-existing "designed
+# triage, not a crash" pattern -- reviewed here and left AS-IS, no logic
+# change) -- flagged in the final report for the coordinator to confirm or
+# redirect if a different item was actually meant.
 # ---------------------------------------------------------------------------
 
 ARM1_L_MAX = 16
@@ -310,15 +369,69 @@ def load_arm1_checkpoint(path: str, d_state: int, n_gens: int, device="cpu") -> 
 
 def evaluate_arm1_at_depth(model: GroupWordModel, name: str, D: int, seed: int, device="cpu",
                            n_words: int = gt.N_EVAL_WORDS, bar: int | None = None) -> dict:
+    """S2.20 F1 FIX: mirrors `evaluate_composer_at_depth`'s own per-depth
+    orchestration EXACTLY (same coverage-guard machinery, same `L_lo=L_hi=D`
+    sampling, same subspace/degauge path) instead of delegating to
+    `readout.run_subspace_restriction_pipeline`, whose `sample_eval_words(name,
+    seed, n_words)` call has NO `L_lo`/`L_hi` override and therefore silently
+    defaults to `L` in `[L_TRAIN_LO, L_TRAIN_HI]=[1,8]` REGARDLESS of the
+    requested `D` -- proven by run (S2.20 F1): a requested `D=12` scored
+    `L in [1..8]`, corrupting Arm-1's whole in-range M-D1 leg. `readout.py`
+    is NOT edited (FILE OWNERSHIP) -- this calls its lower-level functions
+    (`entity_subspace_from_words`/`restrict`/`_split_with_diversity_retry`/
+    `degauge_and_score`) directly with an explicit `D`, replicating
+    `run_subspace_restriction_pipeline`'s orchestration rather than calling
+    it. At a fixed `D`, every probe word shares the same length, so (unlike
+    `readout.dump_Z`'s per-word loop, needed only for Stage 1's own mixed-
+    length samples) a single batched `model.encode` call suffices.
+
+    Raises `Stage2DepthOneCoverageUnsupported` at `D=1` (S2.20 m4), same
+    reason and same non-fixability-by-bar-override as
+    `evaluate_composer_at_depth`."""
+    if D == 1:
+        raise Stage2DepthOneCoverageUnsupported(
+            f"evaluate_arm1_at_depth({name!r}, D=1): the FULL degauging pipeline is not evaluable "
+            f"at D=1 (S2.20 m4) -- see Stage2DepthOneCoverageUnsupported's docstring."
+        )
     if D > ARM1_L_MAX:
         return dict(group=name, D=D, out_of_range=True, mean_cos=None, recovered_frac_90=None,
-                   note=f"D={D} exceeds Arm-1's trained L_max={ARM1_L_MAX} positional-embedding "
-                        f"table -- GroupWordEncoder.embed_tokens hard-asserts L<=L_max. This IS "
-                        f"S1.25's proven untrained-row defect manifesting exactly as S2.2.1 "
-                        f"predicts, not a harness bug. Reported as architecturally excluded.")
-    result = readout.run_subspace_restriction_pipeline(model, name, base_seed=seed, device=device)
-    result["group"], result["D"], result["out_of_range"] = name, D, False
-    return result
+                   eval_L=[], note=f"D={D} exceeds Arm-1's trained L_max={ARM1_L_MAX} "
+                        f"positional-embedding table -- GroupWordEncoder.embed_tokens hard-asserts "
+                        f"L<=L_max. This IS S1.25's proven untrained-row defect manifesting exactly "
+                        f"as S2.2.1 predicts, not a harness bug. Reported as architecturally excluded.")
+    d_min = D_MIN[name]
+    cov_log = check_depth_coverage_with_retry(name, seed, D, bar=bar, n_words=n_words)
+    idx_list, rho_list = gt.sample_eval_words(name, cov_log["final_seed"], n_words, L_lo=D, L_hi=D)
+
+    idx_batch = torch.tensor(np.stack(idx_list), dtype=torch.long, device=device)
+    model.eval()
+    with torch.no_grad():
+        Z = model.encode(idx_batch)
+    Z_np = Z.detach().cpu().numpy().astype(np.float64)
+
+    U = readout.entity_subspace_from_words(Z_np, d_min)
+    A_words = np.stack([readout.restrict(Z_np[i], U) for i in range(len(rho_list))])
+
+    fit_idx, eval_idx, split_log = readout._split_with_diversity_retry(
+        name, rho_list, seed=cov_log["final_seed"] + 20_000)
+    A_fit = [A_words[i] for i in fit_idx]
+    A_eval = [A_words[i] for i in eval_idx]
+    rho_fit = [rho_list[i] for i in fit_idx]
+    rho_eval = [rho_list[i] for i in eval_idx]
+    eval_L = [len(idx_list[i]) for i in eval_idx]     # S1.5 M1 harvest-reporting convention
+
+    scores = readout.degauge_and_score(A_fit, A_eval, rho_fit, rho_eval, d_min)
+    A_eval_t = torch.tensor(np.stack(A_eval), dtype=torch.float32)
+    Z_eval_t = torch.tensor(Z_np[eval_idx], dtype=torch.float32)
+    scores["restricted_effective_rank"] = torch_effective_rank(A_eval_t).mean().item()
+    scores["restricted_stable_rank"] = torch_stable_rank(A_eval_t).mean().item()
+    scores["whole_matrix_effective_rank"] = torch_effective_rank(Z_eval_t).mean().item()
+    scores["whole_matrix_stable_rank"] = torch_stable_rank(Z_eval_t).mean().item()
+    scores["group"], scores["D"], scores["out_of_range"] = name, D, False
+    scores["n_fit"], scores["n_eval"] = len(fit_idx), len(eval_idx)
+    scores["coverage_log"], scores["split_log"] = cov_log, split_log
+    scores["eval_L"] = eval_L
+    return scores
 
 
 # ---------------------------------------------------------------------------
@@ -426,6 +539,59 @@ def smoke():
     r_inrange = evaluate_arm1_at_depth(dummy_arm1, "S4", D=8, seed=42, bar=5, n_words=50)
     assert r_inrange["out_of_range"] is False
     print(f"    D=8 (in range): out_of_range={r_inrange['out_of_range']}  mean_cos={r_inrange['mean_cos']:.4f}")
+
+    print("\n  evaluate_arm1_at_depth PROOF-BY-RUN (S2.20 F1): D=12 must score words of length "
+          "EXACTLY 12, not silently fall back to readout.run_subspace_restriction_pipeline's "
+          "unoverridden L~Uniform{1,8} train-support default (the audit's proven-broken behavior "
+          "-- 'requested D=12 scored L in [1..8]'). D=12 is deliberately OUTSIDE the old buggy "
+          "default's [1,8] range so a regression cannot coincidentally pass.")
+    r_d12 = evaluate_arm1_at_depth(dummy_arm1, "S4", D=12, seed=42, bar=5, n_words=50)
+    assert r_d12["out_of_range"] is False
+    assert len(r_d12["eval_L"]) > 0, "evaluate_arm1_at_depth returned zero scored eval words"
+    assert all(L == 12 for L in r_d12["eval_L"]), (
+        f"S2.20 F1 REGRESSION: evaluate_arm1_at_depth(D=12) scored word lengths "
+        f"{sorted(set(r_d12['eval_L']))}, not all == 12 -- it is silently falling back to the "
+        f"train-support default range instead of the requested depth"
+    )
+    print(f"    D=12: out_of_range={r_d12['out_of_range']}  scored eval_L values (all must be 12): "
+          f"{sorted(set(r_d12['eval_L']))}  mean_cos={r_d12['mean_cos']:.4f}")
+
+    print("\n  D=1 guard (S2.20 m4): the FULL degauging pipeline is structurally unevaluable at "
+          "D=1 (2 independent downstream failures, not fixable by an explicit bar -- see "
+          "Stage2DepthOneCoverageUnsupported's docstring) -- every entry point must raise the "
+          "SAME clear, Stage-2-authored exception rather than a cryptic shared-module crash "
+          "(coverage_calibration.py's raw AssertionError, or readout.py's CoverageGuardError two "
+          "frames deeper if a bar override merely dodges the first failure):")
+    raised_bar, raised_composer, raised_arm1 = False, False, False
+    try:
+        stage2_depth_coverage_bar("S4", D=1, n_trials=200, base_seed=999_001)
+    except Stage2DepthOneCoverageUnsupported as e:
+        raised_bar = True
+        print(f"    stage2_depth_coverage_bar(D=1) raised cleanly: {str(e)[:80]}...")
+    try:
+        evaluate_composer_at_depth(composer, "S4", D=1, seed=42, n_words=50)
+    except Stage2DepthOneCoverageUnsupported as e:
+        raised_composer = True
+        print(f"    evaluate_composer_at_depth(D=1) raised cleanly: {str(e)[:80]}...")
+    try:
+        evaluate_arm1_at_depth(dummy_arm1, "S4", D=1, seed=42, n_words=50)
+    except Stage2DepthOneCoverageUnsupported as e:
+        raised_arm1 = True
+        print(f"    evaluate_arm1_at_depth(D=1) raised cleanly: {str(e)[:80]}...")
+    # ALSO: an explicit bar override must NOT be able to smuggle D=1 past the guard and
+    # into the downstream diversity-floor crash (proves the guard fires unconditionally
+    # at D=1, not merely when bar is None).
+    raised_composer_explicit_bar = False
+    try:
+        evaluate_composer_at_depth(composer, "S4", D=1, seed=42, n_words=50, bar=3)
+    except Stage2DepthOneCoverageUnsupported:
+        raised_composer_explicit_bar = True
+    assert raised_bar and raised_composer and raised_arm1 and raised_composer_explicit_bar, (
+        "S2.20 m4: D=1 did not cleanly raise Stage2DepthOneCoverageUnsupported from every entry "
+        "point (stage2_depth_coverage_bar / evaluate_composer_at_depth / evaluate_arm1_at_depth, "
+        "incl. with an explicit bar override) -- guard has a gap"
+    )
+    print("    explicit bar=3 override still raises cleanly (guard is unconditional at D=1)  OK")
 
     print("\n  load_arm1_checkpoint on a missing path -- must fail loudly, not silently:")
     raised = False

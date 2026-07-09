@@ -33,7 +33,9 @@ the exact mechanism, re-keyed" means, S2.8 item 3).
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 import os
 import sys
 import time
@@ -42,10 +44,16 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import readout
+import run_capability_sep as rcs   # Stage 1's own module -- IMPORTED and called, never edited
+                                    # (FILE OWNERSHIP): STEP_BUDGET, calibration_wave, GroupWordModel
+                                    # re-export, force_rank_grid re-export -- see
+                                    # retrain_and_save_arm1_checkpoints's docstring.
 import stage2_composer as sc
 import stage2_instrument as si
 import stage2_task as st
-from groups import GROUP_NAMES, D_STATE, generating_set
+from groups import GROUP_NAMES, D_STATE, generating_set, group_seed_salt
+from group_word_encoder import GroupWordModel, cosine_loss
 
 PI_SIGNOFF_VAR = "CAPABILITY_SEP_STAGE2_PI_SIGNOFF"
 
@@ -186,6 +194,15 @@ def cell_output_path(results_dir: str, cell_id: str) -> str:
 
 
 def is_valid_output(path: str) -> bool:
+    """S2.20 F4: the `D_test_results`-not-None check below was VACUOUS
+    before this fix -- nothing ever wrote that key, so `key in d` was
+    always False and the check was a silent no-op. `run_real_cell` (S2.20
+    F4, below) now always writes a real (non-None) `D_test_results` list,
+    making this check load-bearing for real-runner outputs (a corrupted/
+    truncated write with the key explicitly set to `None` is now actually
+    caught); it stays a harmless no-op for `train_cell_tiny`/calibration-
+    wave outputs, which never set this key at all (by design -- those are
+    NOT the D_test grid evaluation, S2.6)."""
     if not os.path.exists(path):
         return False
     try:
@@ -200,6 +217,53 @@ def is_valid_output(path: str) -> bool:
             if key in d and d[key] is None:
                 return False
     return True
+
+
+# ---------------------------------------------------------------------------
+# Parameter-fingerprint protection (S2.20 F3): the §2.19 self-caught bug --
+# the calibration gate initially probed a FRESHLY-REINITIALIZED composer,
+# not the trained one -- was fixed but left UNPROTECTED (regressing it
+# passes every existing smoke, since nothing ever compares the probed
+# object's actual parameters against the checkpoint on disk). This closes
+# that gap structurally: a per-tensor SHA-256 checksum of a composer's
+# state_dict, asserted equal between "the composer about to be probed" and
+# "what is actually persisted on disk" before any gate result is trusted.
+# ---------------------------------------------------------------------------
+
+def state_dict_fingerprint(state_dict: dict) -> str:
+    """A deterministic (sorted-key) per-tensor SHA-256 checksum of a
+    composer's state_dict (S2.20 F3)."""
+    h = hashlib.sha256()
+    for name in sorted(state_dict.keys()):
+        t = state_dict[name].detach().cpu().contiguous()
+        h.update(name.encode("utf-8"))
+        h.update(t.numpy().tobytes())
+    return h.hexdigest()
+
+
+class ParamFingerprintMismatch(AssertionError):
+    pass
+
+
+def assert_fingerprint_matches(probed_composer: "sc.GroupWordDeltaComposer", ckpt_path: str,
+                               cell_id: str, device="cpu") -> str:
+    """S2.20 F3: hard-fail if the composer about to be probed by the
+    calibration gate does not match what is actually persisted at
+    `ckpt_path` -- protects the EXACT class of the §2.19 self-caught bug
+    (a freshly-reinitialized composer probed instead of the trained one),
+    which passed every prior smoke because nothing ever compared the two.
+    Returns the (matching) fingerprint on success."""
+    on_disk = torch.load(ckpt_path, map_location=device)
+    disk_fp = state_dict_fingerprint(on_disk)
+    probed_fp = state_dict_fingerprint(probed_composer.state_dict())
+    if probed_fp != disk_fp:
+        raise ParamFingerprintMismatch(
+            f"S2.20 F3 PARAMETER-FINGERPRINT MISMATCH for {cell_id!r}: probed={probed_fp[:12]}... "
+            f"disk={disk_fp[:12]}... -- refusing to trust a query-dependence gate result computed "
+            f"against a composer that does not match its own just-persisted checkpoint (the §2.19 "
+            f"fresh-reinit regression class)."
+        )
+    return disk_fp
 
 
 def run_cell_resume_safe(cell: dict, results_dir: str, run_fn) -> dict:
@@ -243,12 +307,16 @@ def checkpoint_path(results_dir: str, cell_id: str) -> str:
 
 def train_cell_tiny(cell: dict, results_dir: str, device="cpu", steps: int = 20,
                     budget_guard: bool = True) -> tuple[dict, sc.GroupWordDeltaComposer]:
-    """A SMOKE-ONLY training loop (tiny step count, tiny batch) exercising
-    the full wire-up (composer -> loss -> backward -> per-cell budget
-    guard -> checkpoint persistence); NOT the real 8K+-step Stage-2
-    training regime (out of BUILD scope). Real launches replace this
-    function's body while keeping the same cell_output_path/checkpoint_path
-    /is_valid_output/run_cell_resume_safe wrapper.
+    """*** SMOKE-ONLY -- DO NOT USE FOR REAL CELLS. *** (S2.20 F4 marks this
+    explicitly; `run_real_cell` below is the real cell runner: cosine_loss
+    not MSE, real per-group step budgets not a uniform tiny `steps`, the
+    M-D0 convergence profile, the full 7-depth 2(e) gate, and the D_test
+    grid -- none of which this function does.) A tiny-step-count/tiny-
+    batch/MSE-loss training loop exercising ONLY the wire-up (composer ->
+    loss -> backward -> per-cell budget guard -> checkpoint persistence);
+    NOT the real 8K+-step Stage-2 training regime, NOT `cosine_loss` (the
+    pinned objective), and NOT evaluated at all (no M-D0/2(e)/D_test).
+    Kept for `smoke_stage2.py`'s own fast wiring checks only.
 
     UNLIKE Stage 1's own convention (`run_capability_sep.py::
     train_and_eval_cell` trains then discards the model, S1.33 M2's own
@@ -324,21 +392,186 @@ def run_calibration_gate_for_cell(cell: dict, composer: sc.GroupWordDeltaCompose
 
 
 # ---------------------------------------------------------------------------
+# THE REAL CELL RUNNER (S2.20 F4). `train_cell_tiny` above is smoke-only;
+# this is what a real 57-cell-remainder launch actually calls.
+# ---------------------------------------------------------------------------
+
+# S2.7's own text: "if Stage 2's cells need the SAME per-group budgets" as
+# Stage 1's Rev-7 pins (S1.30/S1.31) -- reused verbatim from
+# run_capability_sep.STEP_BUDGET (imported, not re-derived) rather than
+# hand-copied, so a future Stage-1 re-pin cannot silently drift out of sync
+# with Stage 2's own runner.
+STEP_BUDGET_BY_GROUP = rcs.STEP_BUDGET
+
+# M-D0 (S2.6): hard/disclosed depth split at ceil(0.6 * D_train_max) -- the
+# "~5-of-8 ratio S1.27's own resolution empirically landed on, applied here
+# as a provisional starting split, explicitly flagged for RECALIBRATION at
+# gate time against real data." This build wires the PROFILE machinery
+# (every D=1..D_train_max reported, hard/disclosed tagged); it does NOT
+# invent a numeric convergence BAR for the hard band -- the design text is
+# explicit that bar VALUE is a post-launch recalibration decision, not a
+# build-time constant to hardcode.
+M_D0_HARD_DEPTH_MAX = math.ceil(0.6 * st.D_TRAIN_MAX)   # = 5
+
+
+def m_d0_convergence_profile(composer: sc.GroupWordDeltaComposer, name: str, seed: int,
+                             device="cpu") -> list[dict]:
+    """S2.6 M-D0: per-depth TRAIN-support convergence profile, D=1..
+    D_train_max, hard/disclosed split. D=1 is structurally unevaluable via
+    the degauging pipeline (S2.20 m4, `Stage2DepthOneCoverageUnsupported`)
+    -- reported as an explicit excluded point (mirrors
+    `evaluate_arm1_at_depth`'s own D>ARM1_L_MAX convention), not silently
+    dropped or crashed on; D=1's own health is covered separately by the
+    2(e) query-dependence gate (which DOES probe D=1, via `build_probe_tokens`,
+    never through this degauging path)."""
+    profile = []
+    for D in range(1, st.D_TRAIN_MAX + 1):
+        gating = "hard" if D <= M_D0_HARD_DEPTH_MAX else "disclosed"
+        if D == 1:
+            profile.append(dict(D=D, gating=gating, excluded=True,
+                                recovered_frac_90=None, mean_cos=None,
+                                note="D=1 structurally unevaluable via the degauging pipeline "
+                                     "(S2.20 m4) -- covered by the 2(e) query-dependence gate instead"))
+            continue
+        s = st.evaluate_composer_at_depth(composer, name, D, seed=seed * 1000 + D, device=device)
+        profile.append(dict(D=D, gating=gating, excluded=False,
+                            recovered_frac_90=s["recovered_frac_90"], mean_cos=s["mean_cos"]))
+    return profile
+
+
+def d_test_grid_eval(composer: sc.GroupWordDeltaComposer, name: str, seed: int,
+                     device="cpu") -> list[dict]:
+    """S2.6 M-D1/M-D2: the actual held-out depth-generalization evaluation
+    over `stage2_task.D_TEST_GRID` (S2.20 F4) -- what `D_test_results`
+    (below) is FOR, making `is_valid_output`'s not-None check on that key
+    real instead of vacuous."""
+    results = []
+    for D in st.D_TEST_GRID:
+        s = st.evaluate_composer_at_depth(composer, name, D, seed=seed * 1000 + D, device=device)
+        results.append(dict(
+            D=D, recovered_frac_90=s["recovered_frac_90"], mean_cos=s["mean_cos"],
+            crosscheck_recovered_frac_90=s["crosscheck_recovered_frac_90"],
+            crosscheck_mean_cos=s["crosscheck_mean_cos"],
+            restricted_effective_rank=s["restricted_effective_rank"],
+            near_plateau=D in st.NEAR_PLATEAU_BAND, far_depth=D in st.FAR_DEPTH_BAND,
+        ))
+    return results
+
+
+def run_real_cell(cell: dict, results_dir: str, device="cpu", steps: int | None = None,
+                  budget_guard: bool = True) -> dict:
+    """S2.20 F4 -- THE REAL cell runner (train_cell_tiny is smoke-only, see
+    its docstring): `cosine_loss` (the pinned objective, S1.4 -- imported
+    from `group_word_encoder` at this module's top, never redefined;
+    `stage2_composer.py::composer_scoring_fn` wraps the identical function),
+    FINAL-STATE-ONLY supervision (`composer(token_idx)` already reads only
+    the terminal state, S2.3), per-batch-fixed-D sampling
+    (`stage2_task.sample_train_batch_stage2`, byte-identical in form to
+    Stage 1's own scheme), REAL per-group step budgets
+    (`STEP_BUDGET_BY_GROUP`, S2.7's Rev-7-pin reuse instruction), the M-D0
+    per-depth convergence profile, parameter-fingerprint-protected
+    persistence (S2.20 F3) before the gate trusts the composer, the full
+    7-depth S2.8 item 2(e) query-dependence gate
+    (`run_calibration_gate_for_cell`'s own `si.PROBE_DEPTHS` default, S2.20
+    F5 -- no override here either), the +-15% param-match check/report
+    (S2.20 F6), and the D_test grid evaluation (writing `D_test_results`,
+    S2.20 F4)."""
+    name = cell["group"]
+    composer = build_cell_composer(cell, device=device)
+    opt = torch.optim.Adam(composer.parameters(), lr=3e-4)
+    gen = torch.Generator().manual_seed(cell["seed"] + 1)
+    steps_total = steps if steps is not None else STEP_BUDGET_BY_GROUP[name]
+
+    t0 = time.time()
+    final_loss = None
+    log_every = max(1, steps_total // 20)
+    for step in range(1, steps_total + 1):
+        batch = st.sample_train_batch_stage2(name, 32, gen, device=device)
+        Z = composer(batch["token_idx"])
+        loss = sc.composer_scoring_fn(Z, batch["target"])   # cosine_loss, pinned objective (S2.20 F4)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+        final_loss = loss.item()
+        if budget_guard and step % log_every == 0:
+            elapsed_h = (time.time() - t0) / 3600.0
+            check_per_cell_projection(elapsed_h, step, steps_total)
+    wall_s = time.time() - t0
+
+    os.makedirs(results_dir, exist_ok=True)
+    ckpt_path = checkpoint_path(results_dir, cell["cell_id"])
+    torch.save(composer.state_dict(), ckpt_path)
+    # S2.20 F3: fingerprint-protect BEFORE the gate/eval trust this composer.
+    disk_fp = assert_fingerprint_matches(composer, ckpt_path, cell["cell_id"], device=device)
+
+    # S2.6 M-D0.
+    m_d0_profile = m_d0_convergence_profile(composer, name, seed=cell["seed"], device=device)
+
+    # S2.8 item 2(e), full 7-depth (S2.20 F5 -- no depths= override).
+    gate_result = run_calibration_gate_for_cell(cell, composer, device=device)
+
+    # S2.2.2/S2.9 item 7 param-match (S2.20 F6): exact counts reported
+    # regardless; assert where the design pins it (every real training cell).
+    arm1_ref = GroupWordModel(D_STATE[name], len(generating_set(name)), L_max=st.ARM1_L_MAX, h=32)
+    param_match = sc.check_param_match(sc.count_params(composer), sc.count_params(arm1_ref))
+    assert param_match["within_tolerance"], (
+        f"S2.2.2/S2.20 F6 param-match FAILED for {cell['cell_id']}: composer="
+        f"{param_match['composer_params']} Arm1={param_match['arm1_params']} "
+        f"delta={param_match['delta_frac'] * 100:+.1f}% (tolerance +-15%)"
+    )
+
+    # S2.6 M-D1/M-D2, S2.20 F4: the D_test grid.
+    D_test_results = d_test_grid_eval(composer, name, seed=cell["seed"], device=device)
+
+    result = dict(cell_id=cell["cell_id"], group=cell["group"], arm=cell["arm"], n_h=cell["n_h"],
+                 seed=cell["seed"], status="completed", steps_completed=steps_total,
+                 final_loss=final_loss, wall_clock_s=wall_s, checkpoint_path=ckpt_path,
+                 param_fingerprint=disk_fp, m_d0_profile=m_d0_profile,
+                 gate_route=gate_result["route"]["route"], gate_report=gate_result["report"],
+                 param_match=param_match, D_test_results=D_test_results)
+    return result
+
+
+# ---------------------------------------------------------------------------
 # CLI.
 # ---------------------------------------------------------------------------
 
-def run_calibration_wave(results_dir: str, device="cpu", steps: int = 20) -> list[dict]:
-    primary, nh_grid = build_primary_grid(), build_nh_grid()
-    calib = build_calibration_set(primary, nh_grid)
+def run_calibration_wave(results_dir: str, device="cpu", steps: int = 20,
+                         cells: list[dict] | None = None) -> list[dict]:
+    """`cells=None` (default, production path): the full 11-cell
+    calibration-first set. `cells=<subset>`: S2.20 F3's own smoke needs a
+    fast end-to-end exercise of THIS function (not a hand-rolled
+    imitation of it) -- a non-breaking optional override lets smoke pass
+    1-2 cells instead of paying for all 11 on every CPU smoke run.
+
+    S2.20 F3: fingerprint-protected -- the gate never runs against a
+    composer that doesn't match its own just-persisted checkpoint (the
+    §2.19 self-caught bug class). S2.20 F5: gates at ALL SEVEN
+    `si.PROBE_DEPTHS` (the Rev-1 `(1,8,64)` override removed -- it silently
+    skipped 4 of 7 pinned depths, incl. the §2.14-MAJOR-2 norm-accumulation
+    band)."""
+    if cells is None:
+        primary, nh_grid = build_primary_grid(), build_nh_grid()
+        cells = build_calibration_set(primary, nh_grid)
     results = []
-    for cell in calib:
+    for cell in cells:
         def _run(c, _results_dir=results_dir):
             train_result, composer = train_cell_tiny(c, _results_dir, device=device, steps=steps)
+            ckpt = train_result["checkpoint_path"]
+            # S2.20 F3: hard-fail if the composer about to be gated doesn't
+            # match its own just-persisted checkpoint.
+            disk_fp = assert_fingerprint_matches(composer, ckpt, c["cell_id"], device=device)
+            train_result["param_fingerprint"] = disk_fp
             # gate runs on the ACTUALLY TRAINED composer (never a fresh
             # reinit -- that was a build-time bug caught and fixed before
-            # this file was committed, see the git history / final report).
-            gate_result = run_calibration_gate_for_cell(c, composer, depths=(1, 8, 64), device=device)
+            # this file was committed, see the git history / final report),
+            # and now at ALL SEVEN pinned depths (S2.20 F5).
+            gate_result = run_calibration_gate_for_cell(c, composer, device=device)
             train_result["gate_route"] = gate_result["route"]["route"]
+            # S2.20 F5 proof-by-run: record how many depths were ACTUALLY
+            # gated, so a regression to the old (1,8,64) override is
+            # directly observable in the result JSON, not just inferable.
+            train_result["n_depths_gated"] = len(gate_result["report"]["per_depth"])
             return train_result
         result = run_cell_resume_safe(cell, results_dir, _run)
         if "gate_route" not in result:
@@ -346,9 +579,103 @@ def run_calibration_wave(results_dir: str, device="cpu", steps: int = 20) -> lis
             # re-run this process -- re-run it against the LOADED (not
             # fresh) composer so a resumed run still reports a gate route.
             composer = load_cell_composer(cell, results_dir, device=device)
-            gate_result = run_calibration_gate_for_cell(cell, composer, depths=(1, 8, 64), device=device)
+            ckpt = checkpoint_path(results_dir, cell["cell_id"])
+            disk_fp = assert_fingerprint_matches(composer, ckpt, cell["cell_id"], device=device)
+            gate_result = run_calibration_gate_for_cell(cell, composer, device=device)
             result["gate_route"] = gate_result["route"]["route"]
+            result["param_fingerprint"] = disk_fp
+            result["n_depths_gated"] = len(gate_result["report"]["per_depth"])
         results.append(result)
+    return results
+
+
+# ---------------------------------------------------------------------------
+# ARM-1 RETRAIN-AND-SAVE UTILITY (S2.20 audit box item 4 / this dispatch's
+# own instruction). Stage 1's 58-cell sweep (S1.33 M2 disclosed gap)
+# trained-then-discarded every model, so `stage2_task.py::load_arm1_checkpoint`
+# has nothing to load. This retrains the 5 unconstrained-arm CALIBRATION
+# cells (`run_capability_sep.calibration_wave()`, one per group, seed=0 --
+# "the 5 Stage-1 unconstrained cells" this dispatch names) at their EXACT
+# Rev-7 pinned per-group step budgets (`run_capability_sep.STEP_BUDGET`),
+# mirroring `train_and_eval_cell`'s own seeding/model-construction/training-
+# loop procedure EXACTLY -- IMPORTED calls (`rcs.GroupWordModel` via
+# `group_word_encoder`, `group_task.sample_train_batch`, `cosine_loss`,
+# `groups.group_seed_salt`, `force_rank_arms.force_rank_grid` via `rcs`),
+# NOT a reimplementation of Stage 1's pinned recipe -- the ONE addition is
+# `torch.save`, the one thing `train_and_eval_cell` never does (it doesn't
+# even return the model object). FILE OWNERSHIP: run_capability_sep.py is
+# NOT edited, only imported from and called.
+#
+# PRICE (reported here, NOT executed by this build/fix pass): 5 cells at
+# Stage 1's own §1.6 measured rate (0.0179 GPU-h/cell at the 8,000-step
+# anchor) scaled by each group's own Rev-7 step-budget multiplier (S3/S5 at
+# 1x = 8,000 steps, S4/A5 at 2.5x = 20,000, A6 at 5x = 40,000):
+#   0.0179 * (1 + 1 + 2.5 + 2.5 + 5) = 0.0179 * 12 = 0.2148 GPU-h (~0.21
+#   GPU-h), comfortably inside this dispatch's own "~0.5 GPU-h class"
+#   ceiling estimate -- cheap enough to fold into any GPU-hot window
+#   without a dedicated ledger line.
+# ---------------------------------------------------------------------------
+
+ARM1_RETRAIN_PRICE_GPU_H = round(0.0179 * sum(rcs.STEP_BUDGET[g] / rcs.STEP_BUDGET["S3"]
+                                              for g in ("S3", "S4", "A5", "S5", "A6")), 4)
+
+
+def arm1_checkpoint_path(results_dir: str, group: str, seed: int) -> str:
+    return os.path.join(results_dir, f"arm1__{group}__seed{seed}.pt")
+
+
+def retrain_and_save_arm1_checkpoints(results_dir: str, device: str = "cpu",
+                                      steps_override: int | None = None) -> list[dict]:
+    """Retrains + persists the 5 Stage-1 unconstrained-arm calibration
+    cells (one per group, seed=0) so `stage2_task.py::load_arm1_checkpoint`
+    has something real to load for the D_test grid. See module-level
+    comment above for the price and the "imported, not reimplemented"
+    provenance of every call below."""
+    cells = rcs.calibration_wave()   # 5 cells: unconstrained arm, seed=0, one per group
+    assert len(cells) == 5, f"expected 5 Stage-1 unconstrained calibration cells, got {len(cells)}"
+    results = []
+    for cell in cells:
+        name = cell["group"]
+        steps = steps_override if steps_override is not None else cell["steps"]
+        k = cell["force_rank_k"] if "force_rank_k" in cell else rcs.force_rank_grid(name)[cell["arm"]]
+        target_padding = cell.get("target_padding", "eye")
+
+        # EXACT mirror of run_capability_sep.py::train_and_eval_cell's own
+        # seeding/model-construction (imported constants/functions, not
+        # re-derived) -- the only addition is CAPTURING `model` so this
+        # pass can persist its state_dict, which train_and_eval_cell itself
+        # never returns or saves.
+        torch.manual_seed(cell["seed"])
+        d_state = D_STATE[name]
+        n_gens = len(generating_set(name))
+        model = GroupWordModel(d_state, n_gens, L_max=st.ARM1_L_MAX, h=32).to(device)
+        opt = torch.optim.Adam(model.parameters(), lr=3e-4)
+        gen = torch.Generator().manual_seed(cell["seed"] + group_seed_salt(name))
+
+        t0 = time.time()
+        for step in range(1, steps + 1):
+            batch = rcs.sample_train_batch(name, 256, gen, device=device, target_padding=target_padding)
+            Z = model.encode(batch["token_idx"], force_rank_k=k)
+            loss = cosine_loss(Z, batch["target"])
+            opt.zero_grad()
+            loss.backward()
+            if all(p.grad is None or torch.isfinite(p.grad).all() for p in model.parameters()):
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                opt.step()
+        wall_s = time.time() - t0
+
+        os.makedirs(results_dir, exist_ok=True)
+        ckpt_path = arm1_checkpoint_path(results_dir, name, cell["seed"])
+        torch.save(model.state_dict(), ckpt_path)
+
+        eval_seed = cell["seed"] + 10_000
+        scores = readout.run_subspace_restriction_pipeline(model, name, base_seed=eval_seed,
+                                                            device=device, force_rank_k=k)
+        results.append(dict(cell_id=cell["cell_id"], group=name, seed=cell["seed"],
+                            steps_completed=steps, wall_clock_s=wall_s, checkpoint_path=ckpt_path,
+                            mean_cos=scores["mean_cos"], recovered_frac_90=scores["recovered_frac_90"]))
+        print(f"  [arm1-retrain] {name} seed={cell['seed']} steps={steps} -> {ckpt_path}  "
+              f"mean_cos={scores['mean_cos']:.4f}")
     return results
 
 
@@ -449,6 +776,108 @@ def smoke():
     print("\n  target-rank unit test (S1.33 [LEARN], invoked as a stage2_run smoke section):")
     st._test_target_rank_matches_necessity()
 
+    print("\n  S2.20 F3 -- parameter-fingerprint protection (positive + NEGATIVE mutation):")
+    with tempfile.TemporaryDirectory() as fp_dir:
+        torch.manual_seed(0)
+        fp_cell = dict(cell_id="fp_test__S3__arm3_beta02__nh2__seed0", group="S3",
+                       arm="arm3_beta02", n_h=2, seed=0)
+        train_result, trained_composer = train_cell_tiny(fp_cell, fp_dir, steps=4)
+        ckpt = train_result["checkpoint_path"]
+        fp = assert_fingerprint_matches(trained_composer, ckpt, fp_cell["cell_id"])
+        print(f"    positive: trained composer fingerprint matches checkpoint ({fp[:12]}...)  OK")
+
+        # NEGATIVE (S2.20 F3 mutation): reproduce the EXACT §2.19 self-caught bug --
+        # probe a FRESH, differently-seeded composer instead of the trained one --
+        # and confirm the fingerprint check now catches it.
+        fresh = build_cell_composer({**fp_cell, "seed": fp_cell["seed"] + 99})
+        raised_fp = False
+        try:
+            assert_fingerprint_matches(fresh, ckpt, fp_cell["cell_id"])
+        except ParamFingerprintMismatch as e:
+            raised_fp = True
+            print(f"    negative (untrained/fresh-composer mutation) CAUGHT: {str(e)[:90]}...")
+        assert raised_fp, (
+            "S2.20 F3 regression: probing a FRESH composer instead of the trained one was NOT "
+            "caught by the parameter-fingerprint check -- no teeth"
+        )
+
+    print("\n  S2.20 F3/F5 -- run_calibration_wave END-TO-END (small subset via the new `cells=` "
+          "override, fingerprint-protected, gates at all 7 si.PROBE_DEPTHS):")
+    with tempfile.TemporaryDirectory() as wave_dir:
+        mini_cell = dict(cell_id="wave_smoke__S3__arm3_beta02__nh2__seed0", group="S3",
+                         arm="arm3_beta02", n_h=2, seed=0)
+        wave_results = run_calibration_wave(wave_dir, steps=4, cells=[mini_cell])
+        assert len(wave_results) == 1
+        assert wave_results[0]["status"] == "completed"
+        assert "param_fingerprint" in wave_results[0], "run_calibration_wave did not report a fingerprint"
+        assert wave_results[0]["gate_route"] in ("pass", "apply_bos_fix_rerun_all_11",
+                                                 "instrument_defect", "mechanism_diagnostic_required")
+        assert wave_results[0]["n_depths_gated"] == len(si.PROBE_DEPTHS) == 7, (
+            f"S2.20 F5 REGRESSION: run_calibration_wave gated {wave_results[0]['n_depths_gated']} "
+            f"depths, not all {len(si.PROBE_DEPTHS)} pinned si.PROBE_DEPTHS -- the (1,8,64) "
+            f"override is back"
+        )
+        print(f"    cell={wave_results[0]['cell_id']}  fingerprint={wave_results[0]['param_fingerprint'][:12]}...  "
+              f"gate_route={wave_results[0]['gate_route']}  n_depths_gated={wave_results[0]['n_depths_gated']}")
+        # resume path must ALSO carry a fingerprint (re-run branch, not just the first-run branch).
+        wave_results_resumed = run_calibration_wave(wave_dir, steps=4, cells=[mini_cell])
+        assert "param_fingerprint" in wave_results_resumed[0], \
+            "resume branch of run_calibration_wave did not report a fingerprint"
+        print(f"    resume pass also reports fingerprint={wave_results_resumed[0]['param_fingerprint'][:12]}...  OK")
+
+    print("\n  S2.20 F4 -- run_real_cell END-TO-END (tiny steps_override, real cosine_loss/M-D0/"
+          "7-depth-gate/param-match/D_test-grid wiring, NOT a real launch):")
+    with tempfile.TemporaryDirectory() as real_dir:
+        real_cell = dict(cell_id="real_smoke__S3__arm3_beta02__nh2__seed0", group="S3",
+                         arm="arm3_beta02", n_h=2, seed=0)
+        real_result = run_real_cell(real_cell, real_dir, steps=6, budget_guard=False)
+        assert real_result["status"] == "completed"
+        assert "param_fingerprint" in real_result
+        assert "m_d0_profile" in real_result and len(real_result["m_d0_profile"]) == st.D_TRAIN_MAX
+        assert real_result["m_d0_profile"][0]["D"] == 1 and real_result["m_d0_profile"][0]["excluded"] is True, \
+            "M-D0 profile's D=1 point must be reported as excluded (S2.20 m4), not crash or silently skip"
+        assert real_result["m_d0_profile"][1]["D"] == 2 and real_result["m_d0_profile"][1]["excluded"] is False
+        assert "param_match" in real_result and real_result["param_match"]["within_tolerance"]
+        assert "D_test_results" in real_result and len(real_result["D_test_results"]) == len(st.D_TEST_GRID)
+        assert real_result["gate_route"] in ("pass", "apply_bos_fix_rerun_all_11",
+                                             "instrument_defect", "mechanism_diagnostic_required")
+        # is_valid_output's D_test_results-not-None check is now REAL (S2.20 F4) -- prove it by
+        # round-tripping this cell's actual JSON-serialized output through the on-disk check.
+        out_path = cell_output_path(real_dir, real_cell["cell_id"])
+        os.makedirs(real_dir, exist_ok=True)
+        tmp_path = out_path + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(real_result, f, indent=2, default=str)
+        os.replace(tmp_path, out_path)
+        assert is_valid_output(out_path), "a genuine run_real_cell output was rejected as invalid"
+        # NEGATIVE: corrupt D_test_results to None and confirm is_valid_output now correctly rejects it.
+        corrupted = dict(real_result)
+        corrupted["D_test_results"] = None
+        with open(tmp_path, "w") as f:
+            json.dump(corrupted, f, indent=2, default=str)
+        os.replace(tmp_path, out_path)
+        assert not is_valid_output(out_path), (
+            "S2.20 F4 REGRESSION: is_valid_output did not reject a D_test_results=None output -- "
+            "the check is vacuous again"
+        )
+        print(f"    status={real_result['status']}  param_match delta={real_result['param_match']['delta_frac'] * 100:+.1f}%  "
+              f"D_test points={len(real_result['D_test_results'])}  gate_route={real_result['gate_route']}  "
+              f"is_valid_output: genuine=True, D_test_results=None-corrupted=False  OK")
+
+    print("\n  S2.20 ARM-1 RETRAIN utility -- WIRING smoke only (tiny steps_override; the REAL "
+          f"~{ARM1_RETRAIN_PRICE_GPU_H} GPU-h launch is NOT run here, per this dispatch):")
+    with tempfile.TemporaryDirectory() as arm1_dir:
+        arm1_results = retrain_and_save_arm1_checkpoints(arm1_dir, steps_override=3)
+        assert len(arm1_results) == 5, f"expected 5 Arm-1 checkpoints, got {len(arm1_results)}"
+        for r in arm1_results:
+            assert os.path.exists(r["checkpoint_path"]), f"{r['cell_id']}: no checkpoint on disk"
+        # the checkpoint stage2_task.py::load_arm1_checkpoint expects must actually load.
+        loaded = st.load_arm1_checkpoint(arm1_results[0]["checkpoint_path"],
+                                         D_STATE[arm1_results[0]["group"]],
+                                         len(generating_set(arm1_results[0]["group"])))
+        print(f"    5/5 checkpoints saved; load_arm1_checkpoint round-trips the first "
+              f"({arm1_results[0]['group']}) OK  |  priced GPU-h={ARM1_RETRAIN_PRICE_GPU_H}")
+
     print("\n" + "=" * 88 + "\n  stage2_run.py SMOKE PASSED\n" + "=" * 88)
 
 
@@ -458,10 +887,30 @@ def main():
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--calibration-only", action="store_true")
     ap.add_argument("--results-dir", default="stage2_results")
+    ap.add_argument("--retrain-arm1", action="store_true",
+                    help="ARM-1 RETRAIN-AND-SAVE utility (S2.20 box item 4 / this dispatch's own "
+                         f"instruction): retrain the 5 Stage-1 unconstrained calibration cells at "
+                         f"their Rev-7 pinned per-group step budgets and SAVE checkpoints (Stage 1 "
+                         f"never persisted them). Priced at ~{ARM1_RETRAIN_PRICE_GPU_H} GPU-h "
+                         f"(0.0179 GPU-h/cell x 12 group-budget-multiplier-units, S1.6 measured "
+                         f"rate). NOT launched by this build/fix pass.")
     args = ap.parse_args()
 
     if args.smoke:
         smoke()
+        return
+
+    if args.retrain_arm1:
+        if os.environ.get(PI_SIGNOFF_VAR) != "1":
+            raise RuntimeError(
+                f"{PI_SIGNOFF_VAR}=1 required before the ARM-1 retrain-and-save pass (same "
+                f"PI-signoff convention as the real cell launch below). Priced at "
+                f"~{ARM1_RETRAIN_PRICE_GPU_H} GPU-h (S2.20 box item 4) -- not launched by this "
+                f"build/fix pass."
+            )
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        results = retrain_and_save_arm1_checkpoints(args.results_dir, device=device)
+        print(f"ARM-1 retrain-and-save: {len(results)} checkpoints -> {args.results_dir}")
         return
 
     if os.environ.get(PI_SIGNOFF_VAR) != "1":

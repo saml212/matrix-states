@@ -100,6 +100,19 @@ def build_probe_tokens(n_gens: int, D: int, B: int = PROBE_B, seed: int = PROBE_
 # The statistic itself.
 # ---------------------------------------------------------------------------
 
+def _aggregate_channel_stat(per_entry_std: torch.Tensor) -> float:
+    """The T(D) AGGREGATION step (S2.8 2(e)/S2.15 MAJOR-1(a)), factored out
+    of `query_dependence_stat` (S2.20 F2) so the partial-collapse negative
+    control below can mutate JUST this function (mean->max) and confirm the
+    exact regression class the design's own comment already narrates: MEAN
+    over the B*h entries catches PARTIAL collapse (some channels dead, some
+    alive) that a MAX would miss by keying on a single surviving-outlier
+    channel. This is the pinned, decisional statistic -- do not swap for
+    `.max()` (see `_test_partial_collapse_mean_catches_max_misses`, which
+    proves by mutation that doing so silently defeats the gate)."""
+    return per_entry_std.mean().item()
+
+
 def query_dependence_stat(row_queries: torch.Tensor, reader: nn.MultiheadAttention,
                           mem: torch.Tensor) -> dict:
     """mem: (B, rows, h), already including a BOS row if the cell's reader
@@ -116,7 +129,7 @@ def query_dependence_stat(row_queries: torch.Tensor, reader: nn.MultiheadAttenti
         per_entry_std = read.std(dim=1, unbiased=True)         # (B, h), ddof=1 (S2.17 minor)
         read_norm = read.norm(dim=-1)                          # (B, d_state)
     return dict(
-        mean=per_entry_std.mean().item(),
+        mean=_aggregate_channel_stat(per_entry_std),
         median=per_entry_std.median().item(),          # diagnostic-only, S2.16/S2.17 minor
         mean_read_norm=read_norm.mean().item(),
     )
@@ -160,6 +173,15 @@ def build_anchor_states(n_h: int, D_max: int, h: int = 32, seed: int = PROBE_SEE
     rank(S_D) = min(h, n_h*D), matching the probe state's own architectural
     cap at every depth by construction."""
     basis = _qr_orthonormal_basis(h, seed, device=device)
+    # S2.20 m1 (RECORDED, not changed -- this dispatch's own "your call,
+    # document" option): deliberately `seed+1`, NOT the literal `seed=7`
+    # the QR key basis above uses. Two independent `torch.Generator()`
+    # instances seeded IDENTICALLY would replay the exact same underlying
+    # PRNG draw sequence into both the key basis and the values, making
+    # them statistically DEPENDENT (correlated) rather than independent --
+    # judged NOT "trivially safe" to align away (that would trade a
+    # deliberate independence property for literal seed-7 text-conformance
+    # with the design's prose), so `seed+1` is kept.
     gen = torch.Generator(device="cpu").manual_seed(seed + 1)      # distinct stream for values
     total_micro = D_max * n_h
     values = torch.randn(total_micro, h, generator=gen).to(device)
@@ -443,6 +465,103 @@ def _test_ceiling_demotion_discharges_launch_condition():
           "diagnosed-ceiling-demoted and PI-acknowledged, discharges (e) at that leg.\n")
 
 
+def _test_partial_collapse_mean_catches_max_misses():
+    """S2.20 F2: the audit found NO negative control demonstrating the
+    mean-vs-max aggregation choice is load-bearing -- a PARTIAL collapse
+    (some read channels dead, one alive) is exactly the class a MAX
+    aggregation false-PASSES by keying on the single surviving outlier
+    channel, while MEAN correctly dilutes it below bar. This plants a
+    GENUINE memory (not a hacked reader) with query-dependent read
+    variation concentrated in EXACTLY 1 of 32 output channels, verified by
+    honest linear algebra: with a single-head reader, the value pathway is
+    exactly linear, so a memory whose 32 rows differ from a shared base
+    ONLY along one direction `u` produces read-output variation confined to
+    exactly `O @ Wv @ u` -- solving `u` so this equals `e0` (channel 0)
+    concentrates ALL query-dependence into that one channel, 31/32 "dead"
+    by construction, not by weight-hacking."""
+    print("=" * 88)
+    print("NEGATIVE TEST -- S2.20 F2: a 31/32-dead partial-collapse plant FAILS under the pinned")
+    print("MEAN aggregation, but WOULD FALSELY PASS under a mean->max mutation (re-applied LIVE")
+    print("and reverted here, not just described)")
+    print("=" * 88)
+    h, d_state = 32, 5
+    torch.manual_seed(3)
+    row_queries = torch.randn(d_state, h) * 0.3
+    # Single-head reader (test-local choice, NOT the production n_heads=4
+    # reader): num_heads=1 makes the value pathway exactly linear (no
+    # per-head softmax split), so the axis-alignment solve below is exact.
+    reader = nn.MultiheadAttention(h, 1, batch_first=True, dropout=0.0)
+    with torch.no_grad():
+        Wv = reader.in_proj_weight[2 * h:3 * h, :].clone()      # value-projection slice, (h,h)
+        O = reader.out_proj.weight.clone()                       # out_proj weight, (h,h)
+        e0 = torch.zeros(h)
+        e0[0] = 1.0
+        u = torch.linalg.solve(O @ Wv, e0)      # (O@Wv) @ u = e0  ->  output varies ONLY on channel 0
+        u = u / u.norm().clamp(min=1e-12)
+
+    def partial_collapse_real_state_fn(D):
+        # 32 memory "rows" differing from a SHARED base ONLY along
+        # direction u -- by the linear-algebra argument above this
+        # concentrates ALL query-dependent read variation into EXACTLY
+        # channel 0 (31/32 dead), a genuine PARTIAL collapse (contrast
+        # `_test_planted_degenerate_reader_fails_both_bars`'s all-32-dead
+        # FULL collapse, a different failure class this control does not
+        # re-test). `base` is scaled SMALL (0.05, not 0) relative to the
+        # unit-variance `u`-direction coefficients: base is broadcast
+        # IDENTICALLY to every row so it inflates row NORM without
+        # contributing any query-dependent SIGNAL -- kept small so nearly
+        # all of the real memory's norm budget is genuine channel-0
+        # signal (empirically tuned, incl. the co-decisional R(D) bar --
+        # not just T(D) -- so MEAN correctly fails BOTH bars while MAX
+        # would falsely pass BOTH; base=0 exactly also works but sits
+        # exactly on the degenerate rank-1-through-the-origin edge case,
+        # avoided here for numerical headroom).
+        gen = torch.Generator().manual_seed(11)
+        base = torch.randn(PROBE_B, 1, h, generator=gen) * 0.02
+        coeffs = torch.randn(PROBE_B, h, generator=gen)
+        return base + coeffs.unsqueeze(-1) * u.view(1, 1, h)     # (B, h, h)
+
+    report = run_query_dependence_gate(row_queries, reader, 2, partial_collapse_real_state_fn,
+                                       depths=(8,), seed=PROBE_SEED, h=h)
+    d0 = report["per_depth"][0]
+    print(f"  MEAN aggregation (pinned, current): T={d0['T']:.3e}  T_anchor={d0['T_anchor']:.3e}  "
+          f"ratio={d0['T'] / max(d0['T_anchor'], 1e-30):.4f}  bar_T_ok={d0['bar_T_ok']}  "
+          f"bar_R_ok={d0['bar_R_ok']}  overall_pass={report['overall_pass']}")
+    assert not report["overall_pass"], (
+        "PARTIAL-COLLAPSE PLANT (1/32 alive, 31/32 dead) WAS NOT CAUGHT under MEAN aggregation "
+        "-- S2.20 F2's negative control has no teeth"
+    )
+    assert not d0["bar_T_ok"] and not d0["bar_R_ok"], (
+        "both bars must fail under MEAN aggregation for a 31/32-dead plant"
+    )
+
+    # Re-apply the audit's mean->max mutation (S2.20 F2) LIVE, confirm the SAME plant now
+    # falsely PASSES, then revert -- proving MEAN (not MAX) is load-bearing here, automatically,
+    # every time this smoke runs (not a one-off manual check done once and forgotten).
+    global _aggregate_channel_stat
+    original_agg = _aggregate_channel_stat
+    _aggregate_channel_stat = lambda per_entry_std: per_entry_std.max().item()
+    try:
+        report_mut = run_query_dependence_gate(row_queries, reader, 2, partial_collapse_real_state_fn,
+                                                depths=(8,), seed=PROBE_SEED, h=h)
+    finally:
+        _aggregate_channel_stat = original_agg
+    assert _aggregate_channel_stat is original_agg, "mean->max mutation was not reverted -- test pollution risk"
+
+    d0m = report_mut["per_depth"][0]
+    print(f"  MAX mutation (S2.20 F2, applied live then reverted): T={d0m['T']:.3e}  "
+          f"T_anchor={d0m['T_anchor']:.3e}  ratio={d0m['T'] / max(d0m['T_anchor'], 1e-30):.4f}  "
+          f"bar_T_ok={d0m['bar_T_ok']}  bar_R_ok={d0m['bar_R_ok']}  "
+          f"overall_pass={report_mut['overall_pass']}")
+    assert d0m["bar_T_ok"] and d0m["bar_R_ok"] and report_mut["overall_pass"], (
+        "the mean->max mutation was supposed to ESCAPE this exact plant on BOTH bars (S2.20 F2) "
+        "-- if it doesn't, this control is not testing what its own comments claim, no teeth"
+    )
+    print("\nRESULT: a 31/32-dead partial-collapse plant FAILS the pinned MEAN-aggregated gate "
+          "(correct) but WOULD FALSELY PASS under the mean->max mutation (S2.20 F2 confirmed both "
+          "directions -- mutation applied live and reverted, not just described).\n")
+
+
 def smoke():
     _test_anchor_rank_exact()
     _test_qr_determinism()
@@ -450,6 +569,7 @@ def smoke():
     _test_planted_healthy_state_passes()
     _test_anchor_health_floor_trips_on_zeroed_reader()
     _test_ceiling_demotion_discharges_launch_condition()
+    _test_partial_collapse_mean_catches_max_misses()
 
 
 if __name__ == "__main__":

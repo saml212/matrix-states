@@ -9,10 +9,23 @@ Run FIRST, before any GPU cell launches:
 
     DRY_RUN_BYPASS=1 .venv/bin/python smoke_stage2.py
 
+(S2.20 m3: this file's own filename starts with "smoke_", but the
+invocation above passes no `--smoke`/`--dry-run`/`--test`/`--quick` FLAG
+literally in the command line -- it IS the smoke gate, not a script that
+takes a smoke flag -- so the repo's `pre-train-gate.sh` hook, which
+pattern-matches ANY `python *.py` invocation and only exempts commands
+containing one of those flag substrings, would otherwise require a
+dry-run sentinel for this file. `DRY_RUN_BYPASS=1` is therefore the
+correct, sanctioned bypass here (same established convention as
+`deltanet_rd/mech_stage05_selftests.py`/`poolmargin_stage_minus1.py`'s own
+docstrings) -- every section below is pure-CPU (box-only items
+self-skip loudly, listed at the bottom), no GPU touched.)
+
 Sections, in dependency order:
   1. stage2_composer.py  -- GroupWordDeltaComposer forward/backward, the
      PROVEN rank bound, n_h in {1,2,4}, beta in {1,2}, use_bos_row,
-     last-K-window truncation, forward_all trajectory.
+     last-K-window truncation, forward_all trajectory, the S2.20 F6
+     +-15%-of-Arm-1 param-match check (all 5 groups x n_h in {1,2,4}).
   2. stage2_composer.py  -- blank-out / P=1 bottleneck (+ planted-leak
      NEGATIVE TEST) -- a genuinely different computation graph from
      GroupWordEncoder's own blank-out result, re-verified here, not
@@ -22,21 +35,36 @@ Sections, in dependency order:
   4. stage2_task.py       -- TARGET RANK UNIT TEST (S1.33 [LEARN], with a
      planted eye-padding-style mutant that must be DETECTED, not silently
      passed), per-fixed-depth coverage bars, the D_test grid evaluation
-     pipeline, Arm-1 L_max-ceiling / missing-checkpoint handling, prefix
-     fidelity.
+     pipeline, the S2.20 F1 Arm-1 depth-eval PROOF-BY-RUN (D=12 must score
+     eval_L==12, not silently fall back to the L~Uniform{1,8} train-support
+     default), the S2.20 m4 D=1 guard (every entry point raises cleanly,
+     incl. with an explicit bar override), Arm-1 L_max-ceiling / missing-
+     checkpoint handling, prefix fidelity.
   5. stage2_instrument.py -- THE QUERY-DEPENDENCE DIAGNOSTIC (S2.8 item
      2(e)): anchor rank EXACTLY min(32,n_h*D) (proven, not just tested),
      QR-basis determinism, POSITIVE CONTROLS (a planted-healthy state must
      PASS) and NEGATIVE CONTROLS (a planted-degenerate reader must FAIL
      both bars; a zeroed anchor must trip the health floor and route to
      instrument-defect, not the BOS fix; a ceiling-demoted depth must
-     discharge the launch condition) -- both directions have teeth, per
-     S1.28's positive-control rule this dispatch cites.
+     discharge the launch condition; the S2.20 F2 partial-collapse control
+     -- a genuine 31/32-dead-channel plant, exact axis-aligned linear
+     algebra, not a hacked reader -- FAILS under the pinned MEAN
+     aggregation and is proven to FALSELY PASS under a mean->max mutation
+     applied live and reverted) -- both directions have teeth, per S1.28's
+     positive-control rule this dispatch cites.
   6. stage2_run.py        -- grid construction (68 cells: 50 primary + 18
      n_h-grid; 11-cell calibration-first set), per-cell + ledger budget
      guards (NEGATIVE-then-POSITIVE), resume-safety (incl. a corrupted-
      output re-run and a checkpoint round-trip reload for the last-K
-     control), one full calibration-cell pipeline end-to-end.
+     control), one full calibration-cell pipeline end-to-end, the S2.20 F3
+     parameter-fingerprint protection (positive + the exact §2.19-class
+     fresh-composer mutation caught), `run_calibration_wave` end-to-end at
+     ALL SEVEN pinned depths (S2.20 F5), `run_real_cell` end-to-end (S2.20
+     F4 -- cosine_loss, M-D0 profile, the 7-depth gate, param-match,
+     D_test_results making `is_valid_output`'s not-None check real, incl.
+     a NEGATIVE corrupted-D_test_results-to-None proof), and a WIRING-only
+     smoke of the ARM-1 retrain-and-save utility (S2.20 box item 4 -- the
+     real ~0.21 GPU-h launch is NOT run here).
 
 BOX-ONLY items, disclosed (not run here, not silently assumed clean):
   - stage2_composer.py::fla_cross_check -- CUDA + real `fla` required.

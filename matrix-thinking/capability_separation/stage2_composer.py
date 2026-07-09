@@ -81,6 +81,40 @@ import torch.nn.functional as F
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from group_word_encoder import cosine_loss  # reused verbatim, not reimplemented (S1.4's loss primitive)
 
+# S2.2.2/S2.9 item 7 param-matching, S2.20 F6 -- see GroupWordDeltaComposer's
+# docstring. Computed exactly (not guessed): d=530 was the smallest tested
+# value landing EVERY (group, n_h in {1,2,4}) combination within the
+# design's pinned +-15% tolerance of Arm 1's own per-group trainable-param
+# count (verified directly via count_params/check_param_match below, not
+# estimated) -- centers closest on n_h=2 (the primary grid's default,
+# delta +0.05%), with n_h=1 at -4.7..-4.8% and n_h=4 at +9.6..+9.7%, both
+# comfortably inside tolerance for all 5 groups.
+WIDEN_HIDDEN = 530
+
+
+def count_params(model: nn.Module) -> int:
+    """Total trainable parameter count (S2.2.2/S2.9 item 7 param-matching;
+    S2.20 F6)."""
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+PARAM_MATCH_TOLERANCE = 0.15   # S2.2.2 Rev 1 pin: arms count as matched within +-15% of Arm 1.
+
+
+def check_param_match(composer_params: int, arm1_params: int,
+                      tol: float = PARAM_MATCH_TOLERANCE) -> dict:
+    """S2.2.2's pinned +-15%-of-Arm-1 param-matching check (S2.20 F6):
+    reports the exact counts and signed delta fraction UNCONDITIONALLY (the
+    design's own "exact per-arm counts reported regardless" instruction,
+    S2.2.2/S2.9 item 7) -- the CALLER decides whether to assert on
+    `within_tolerance` (e.g. `run_real_cell`, where the design pins it;
+    Arm 1 vs itself, or a build-time exploratory config, are not required
+    to assert)."""
+    delta = (composer_params - arm1_params) / arm1_params
+    ok = abs(delta) <= tol
+    return dict(composer_params=composer_params, arm1_params=arm1_params,
+               delta_frac=delta, tolerance=tol, within_tolerance=ok)
+
 
 class RowReadoutHead(nn.Module):
     """d_state learned "row-reader" latents, each reading one row of Z from
@@ -148,11 +182,30 @@ class GroupWordDeltaComposer(nn.Module):
 
     `n_h`: DeltaProduct Householder-product count per macro-token (S2.2.3);
     default 2, force-arm-gridded to {1,2,4} for S5/A6 (S2.5).
+
+    `widen_hidden` (S2.2.2/S2.9 item 7 param-matching, S2.20 F6): a
+    residual MLP applied to `tok_embed` (inside `states_from_embedding`,
+    BEFORE the k/v/beta projections) purely to add trainable capacity --
+    the design's own "widening projections" option (S2.2.2), computed
+    exactly at build/fix time (`WIDEN_HIDDEN` below), not asserted. A bare
+    single-layer delta-rule composer sits ~70-84% BELOW Arm 1
+    (GroupWordEncoder)'s ~43K trainable params at every (group, n_h) in
+    the pinned grid (verified by direct count, not estimated); this residual
+    widen closes that gap to within the design's own pinned +-15% tolerance
+    for every (group, n_h in {1,2,4}) combination (`check_param_match`
+    below, exercised in smoke). Deliberately does NOT touch `h` (the
+    ambient/state dimension every rank-bound/instrument proof is pinned
+    against) or `n_h` (the experimental Householder-count axis, S2.5) --
+    only adds a differentiable detour between the leaf `tok_embed` and the
+    k/v/beta projections, so it changes NEITHER the recurrence formula,
+    NOR the (h,h) state shape, NOR the blank-out test's leaf-detach
+    contract (the leaf is still exactly `embed_tokens`'s output; gradient
+    flows through `widen` like any other differentiable layer in that path).
     """
 
     def __init__(self, d_state: int, n_gens: int, h: int = 32, n_h: int = 2,
                  beta_max: float = 2.0, n_heads_reader: int = 4, n_refine: int = 1,
-                 use_bos_row: bool = False):
+                 use_bos_row: bool = False, widen_hidden: int = WIDEN_HIDDEN):
         super().__init__()
         assert beta_max in (1.0, 2.0), f"beta_max must be 1.0 (Arm 2) or 2.0 (Arm 3), got {beta_max}"
         self.d_state = d_state
@@ -164,6 +217,11 @@ class GroupWordDeltaComposer(nn.Module):
         # Delta 2 (S1.4, reused): single generator-index embedding, no
         # separate value to bind -- the WORD is the whole composition.
         self.tok_embed = nn.Embedding(n_gens, h)
+        # S2.20 F6: param-matching residual widen (see class docstring).
+        # Shape-preserving ((B,D,h) -> (B,D,h)), so nothing downstream
+        # needs to change.
+        self.widen = nn.Sequential(nn.Linear(h, widen_hidden), nn.GELU(),
+                                   nn.Linear(widen_hidden, h)) if widen_hidden > 0 else None
         # k_proj/v_proj/beta_proj: beta_fla_smoke.py's DeltaProductLayer
         # projection pattern (q_proj deliberately omitted, see module
         # docstring). Each macro-token contributes n_h independent
@@ -211,6 +269,13 @@ class GroupWordDeltaComposer(nn.Module):
         starting a new K-sized block), so the terminal read provably
         depends on at most the last K generators. None (default) = no
         truncation, the normal Arm 2/3 forward pass."""
+        if self.widen is not None:
+            # S2.20 F6: param-matching residual widen -- applied to the SAME
+            # `tok_embed` leaf the blank-out test detaches (this function's
+            # own parameter, not a separate re-derivation), BEFORE the
+            # k/v/beta projections. Shape-preserving; does not touch the
+            # recurrence formula or the (h,h) state shape below.
+            tok_embed = tok_embed + self.widen(tok_embed)
         B, D, h = tok_embed.shape
         n_h = self.n_h
         k = self.k_proj(tok_embed).view(B, D, n_h, h)
@@ -392,10 +457,18 @@ def fla_cross_check(device: str = "cpu", h: int = 32, B: int = 4) -> dict:
         states = composer.states_from_embedding(tok_embed)
         S_torch = states[-1]                                        # (B, h, h), fp32
 
-        k = composer.k_proj(tok_embed).view(B, D, n_h, h)
-        v = composer.v_proj(tok_embed).view(B, D, n_h, h)
+        # S2.20 F6: `states_from_embedding` now widens `tok_embed` internally
+        # (param-matching residual, GroupWordDeltaComposer docstring) --
+        # this manual re-derivation of k/v/beta for the fla comparison must
+        # apply the SAME widen step, or S_torch (widened) and this
+        # recomputation (unwidened) would silently diverge, making the
+        # cross-check compare two different computations, not a genuine
+        # torch-vs-fla numerical check of the SAME recurrence.
+        tok_embed_widened = tok_embed + composer.widen(tok_embed) if composer.widen is not None else tok_embed
+        k = composer.k_proj(tok_embed_widened).view(B, D, n_h, h)
+        v = composer.v_proj(tok_embed_widened).view(B, D, n_h, h)
         k = F.normalize(k, dim=-1, eps=1e-8)
-        beta = composer.beta_max * torch.sigmoid(composer.beta_proj(tok_embed).view(B, D, n_h))
+        beta = composer.beta_max * torch.sigmoid(composer.beta_proj(tok_embed_widened).view(B, D, n_h))
         q = torch.zeros_like(k)   # q does not affect final_state (module docstring); a throwaway
                                   # tensor purely to satisfy chunk_delta_rule's input signature.
         q_exp = q.reshape(B, D * n_h, 1, h).to(torch.bfloat16)
@@ -462,6 +535,24 @@ def smoke(device="cpu"):
                 print(f"  n_h={n_h} beta_max={beta_max} D={D:>2}: forward {tuple(Z.shape)}, "
                       f"loss={loss.item():.4f}, rank(S_D)<={bound} (observed {ranks.tolist()}), "
                       f"all params finite grad  OK")
+
+    print("\n  S2.20 F6 -- param-match vs Arm 1 (GroupWordModel), all 5 groups x n_h in {1,2,4}:")
+    from groups import GROUP_NAMES, D_STATE, generating_set
+    from group_word_encoder import GroupWordModel
+    for g_name in GROUP_NAMES:
+        g_d_state, g_n_gens = D_STATE[g_name], len(generating_set(g_name))
+        arm1_ref = GroupWordModel(g_d_state, g_n_gens, L_max=16, h=32)
+        arm1_params = count_params(arm1_ref)
+        for n_h in (1, 2, 4):
+            comp = GroupWordDeltaComposer(g_d_state, g_n_gens, h=32, n_h=n_h, beta_max=2.0)
+            pm = check_param_match(count_params(comp), arm1_params)
+            assert pm["within_tolerance"], (
+                f"S2.20 F6 param-match FAILED for {g_name} n_h={n_h}: composer="
+                f"{pm['composer_params']} Arm1={pm['arm1_params']} delta={pm['delta_frac'] * 100:+.1f}% "
+                f"(tolerance +-{pm['tolerance'] * 100:.0f}%)"
+            )
+            print(f"    {g_name} n_h={n_h}: composer={pm['composer_params']:6d}  Arm1={pm['arm1_params']:6d}  "
+                  f"delta={pm['delta_frac'] * 100:+5.1f}%  within_tolerance={pm['within_tolerance']}")
 
     print("\n  use_bos_row=True path:")
     composer_bos = GroupWordDeltaComposer(d_state, n_gens, h=32, n_h=2, beta_max=2.0,
