@@ -159,9 +159,25 @@ on Hopper/Triton≥3.4 (fla issue #640, wrong-result path) and required
 provisioning the `tilelang` backend on-box (env-only fix, no kernel
 code touched; the default non-gated path stays on the same Triton
 kernels every prior chapter used, unaffected). **STATUS: screening
-wave LAUNCHED** (4 cells, n=1, ceiling ≈1.01 GPU-h; n=3 escalation to
-12 cells, ≤3.03 GPU-h, only if the screen splits qualitatively) —
-harvest not yet returned as of this consolidation pass.
+COMPLETE + HARVESTED (2026-07-09 overnight, commit 634017c; 4/4 cells
+clean, 1.03 GPU-h vs 1.01 ceiling, verify-vs-raws bit-exact). VERDICT:
+SPLITS-ON-AN-AXIS.** The attractor PERSISTS in all 4 cells — no
+soft-fix candidate, no contradiction of 06_soft_fixes_fail. qk-norm-off
+is a within-noise null (−0.87 gram-dev = 0.39σ vs the corrected
+2.244355 floor): **the attractor is NOT a qk-norm artifact — the direct
+data answer to the PI's Kimi/Qwen skepticism.** Gating moves deviation
+UP in both arms — +6.16 (2.75σ, TRIGGER) in the qk-on arm,
+concentrating collapse in layer 0 (stable-rank 4.34→3.14; train
+rank_L0 31.3→5.8) — while IMPROVING val loss (2.15→1.98): gated,
+production-style models carry the pathology WORSE while looking
+healthier on loss. rec@0.9 uniformly at the PROBE-INVALID floor,
+NON-DECISIONAL as pre-registered. **Escalation FIRES per the
+pre-registered rule** (|+6.16| > 2×2.244 = 4.489): 12-cell n=3,
+resume-safe → only 8 new cells ≈2.02 GPU-h incremental, ceiling 3.03.
+**QUEUED behind the capability calibration re-check on GPU 0** —
+coordinator schedules on GPU-0 free. iclr-2027 fold (angles 4/5,
+partial discharge of limitations item 2) queued for the paper-pass
+agent; n=1 caveats hold until the n=3 confirm.
 
 ### 4. Fix-at-Scale (PI GPU-saturation charter, 2026-07-09)
 
