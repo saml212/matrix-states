@@ -2281,3 +2281,36 @@ design content changed.
 *(End §1 records. Rev 0 → §1.13 → Rev 1 → §1.15 → Rev 2 → §1.17 →
 Rev 3 → §1.19 → Rev 4 (§1.20) resolves CA4-M1 (escalation budget guard)
 + 1 minor (A6 wording). Attack round 5 next.)*
+
+---
+
+### 1.21 ATTACK ROUND 5 VERDICT (micro-round, independent fresh-eyes agent, 2026-07-08): **DESIGN-CLEARED-FOR-BUILD**
+
+Recorded per the gauntlet-bookkeeping hard rule; the build stage
+dispatches against THIS verdict. Scope = Rev 4's delta + coherence with
+unchanged sections. All confirmed: the 42-cell/12.60 worst-case
+arithmetic independently re-derived from the cell table (S3/S5/A6:
+10 extra cells/group; S4/A5: 6 each — flanking only, since
+unconstrained+d_min are already unconditionally n=5 and thus not
+general-escalation-eligible); marquee +2.40 re-derived (8 cells);
+34.65 > 30 by 4.65 airtight; yield order TOTAL; the guard is
+arbitration-only with no §1.4.2/§1.5 contradiction (a budget-denied
+marquee escalation falls through to the pre-existing INCONCLUSIVE
+catch-all); §1.12 build item runnable; §1.13-§1.19 byte-intact
+(hunk-boundary verified).
+
+**Three MINOR notes, safe defaults pinned here for the build agent
+(no Rev 5 needed):** (1) S4/A5 "tied" contradicts the ascending-|G|
+wording (24≠60) — pinned tie-break: canonical name order, S4 before A5
+(adjudicated non-consequential in the worst case: 4.95 remains after
+marquee+S3, S4+A5 need 3.6 together). (2) The denied-marquee-escalation
+chain is implicit — made explicit here: **if the marquee n=7 escalation
+is budget-denied, TOST's INCONCLUSIVE stands and the denial is
+disclosed in the harvest; §1.5's CONFIRM cannot be reached without the
+declared equivalence.** (3) Stale QUEUE footer — superseded by this
+section; the operative build-item set is §1.12's "New, not yet built"
+list.
+
+*(End §1 records. Rev 0 → four NEEDS-REVISION rounds → Rev 4 →
+**§1.21 DESIGN-CLEARED-FOR-BUILD**. BUILD STAGE ACTIVE. Stage-1 ledger
+30 GPU-h, budget-guarded; launch sequenced vs the h2h box load.)*
