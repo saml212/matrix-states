@@ -1,14 +1,20 @@
 # CAPABILITY-SEPARATION — group-element-recovery rank/representation-dimension test
 
-## §1 DESIGN — Stage 1 (Rev 5, post-gate-1-diagnosis revision, 2026-07-09) —
+## §1 DESIGN — Stage 1 (Rev 6, post-micro-attack-round-6 revision, 2026-07-09) —
 does a from-scratch matrix-state model recruit subspace-restricted state
 rank equal to a group's minimal faithful real representation dimension
 `d_min(G)`, tracking dimension not solvability?
 
-Status: **Rev 5, folding in §1.25's five pre-validated gate-1-diagnosis
-fixes (scoped design round, not a re-litigation) — 0.38 GPU-h spent to
-date (the diagnosis run only; the 53-cell sweep remainder has not
-launched under these fixes).** Rev 0
+Status: **Rev 6, folding in §1.27's CA6-M1 fix (scoped design round, not
+a re-litigation) — 0.38 GPU-h spent to date (the diagnosis run only,
+unchanged this round: Rev 6 is a read-only re-verification against the
+already-collected box data, zero new GPU spend). Box re-verification
+this round found gate 1(a)'s narrowed bar (§1.7) is currently cleared
+by only 1 of the 7 real calibration cells (S3) — A5/A6 HARD-STOP
+(second consecutive miss at their already-escalated 20,000-step
+budget, CA6-M1(c)) and S4/S5 need a 2-2.5× escalation retest before
+their sweep cells launch; none of the 53-cell sweep remainder has
+launched under any config.** Rev 0
 (§1.1-§1.12) was attacked (§1.13: NEEDS-REVISION — 1 FATAL-as-written + 3
 MAJOR + 2 minor); every finding was resolved by Rev 1 (mapped in §1.14).
 Rev 1 was attacked again (§1.15: NEEDS-REVISION — 2 MAJOR + 5 minor,
@@ -51,7 +57,29 @@ pre-validated fixes and a positive M1 preview through the corrected
 lens, Spearman ρ=0.9747). **This Rev 5 folds §1.25's five pinned items
 into the live design text** (finding→resolution mapped in §1.26);
 §1.13-§1.25's own records are left byte-intact per the gauntlet-
-bookkeeping convention. This design came through the full waterfall (brainstorm →
+bookkeeping convention. Rev 5 was attacked a sixth, micro round (§1.27:
+NEEDS-REVISION, narrow — 1 MAJOR in Rev 5's own delta, CA6-M1) — gate
+1(a)'s per-L bar (`≥0.9` at every `L∈{1..8}`) is falsified by all 7
+real calibration cells. **This Rev 6 folds CA6-M1's five items into the
+live design text** (finding→resolution mapped in §1.28): narrows the
+HARD bar to `L∈{1..5}`, demoting `L∈{6..8}` to disclosed/non-gating
+reporting (the same pattern already applied to `L∈{9..16}`/C5); adds a
+second-consecutive-miss HARD-STOP rule; corrects Rev 5's stale
+exposure-direction guess and folds in round 6's `N=100,000`
+floor-failure MC as the §1.4.1 exposure figures; and fixes one
+pre-existing out-of-scope arithmetic nit (§1.9 item 8's "45-cell
+remainder," stale since Rev 3's 50→58-cell bump, now "53-cell").
+**Re-verifying §1.6's step-budget claim against the exact box data
+(CA6-M1(b)) found Rev 5's own "S3/S4/S5 stay at 8,000 steps" premise
+does not hold** — only S3 clears the narrowed bar as literally read;
+S4/S5 (first measurement, 8,000 steps) and A5/A6 (already-escalated,
+second measurement, 20,000 steps) all miss, driven by a newly-surfaced
+`L=1` dip distinct from the `L≥6` length-difficulty gradient the
+demotion above addresses — exact per-cell numbers and the mechanical
+consequence (S4/S5 escalation retest required, A5/A6 HARD-STOPPED per
+CA6-M1(c)) are in §1.7 gate 1(a) and §1.6 below. §1.13-§1.27's own
+records are left byte-intact per the gauntlet-bookkeeping convention.
+This design came through the full waterfall (brainstorm →
 research → attack → validation, `STATE.md` "CAPABILITY CAMPAIGN"); the
 hypothesis, group family, readout (Option A), controls, budget, and
 pre-registered verdicts below are **BINDING** per the 2026-07-08
@@ -1073,21 +1101,22 @@ verbatim reuse):
    the full pre-Rev-3 50-cell
    sweep — the Rev-3 post-bump figure is derived just below) — small
    enough that a single false block is an expected,
-   **STALE INPUT FLAGGED, Rev 5 (not recomputed by this design round —
-   genuinely unresolved, not papered over):** these `p_g` figures were
-   computed against the OLD `L∈{9..16}` bars (§1.3.3); the re-pinned
-   `L~Uniform{1,8}` measurement sample now draws against §1.3.5's NEW,
-   materially thinner-margin bars (S5/A6 diversity floors down to a
-   1-element margin, §1.3.5), so the true per-group false-block rate
-   under the new bars is almost certainly HIGHER than the figures cited
-   here and needs its own `N≈400,000`-scale re-derivation before the
-   ≈2.75%/2.85×10⁻⁵ figures below are relied on with the same precision.
-   **This does not change the design's CORRECTNESS** — the retry-once-
-   then-hard-fail mechanism (below) bounds the failure mode regardless of
-   the exact rate, and a second consecutive miss is still evidence
-   worth stopping on — but the build stage should re-run
-   `coverage_calibration.py`'s false-block simulation at `N=400,000`,
-   `L~Uniform{1,8}`, before citing the numbers below as precise.
+   **RESOLVED, Rev 6 (CA6-M1(d)/(e) — the Rev-5 STALE flag's direction
+   guess was wrong; corrected here with round 6's own executed
+   re-derivation, §1.27).** Round 6 re-ran the false-block/diversity-floor
+   Monte Carlo at `N=100,000`/group against §1.3.5's actual
+   `L~Uniform{1,8}` bars (not the old `L∈{9..16}` ones the
+   ≈2.75%/2.85×10⁻⁵ figures above were computed against) and found the
+   true exposure **LOWER**, not higher as Rev 5 guessed: per-group
+   floor-failure rates **S5-fit 0.191%, A6-fit 0.151%, all others
+   ≤0.04%** — all comfortably under 1%, ADJUDICATED ACCEPTABLE without
+   the `N=400,000` re-derivation Rev 5 called for. The post-retry
+   (two-consecutive-miss) exposure is **≈6.6×10⁻⁶** — lower than the
+   pre-Rev-3 ≈2.85×10⁻⁵ and Rev-3-consistent ≈3.26×10⁻⁵ figures above,
+   which are retained for their own historical record but are
+   SUPERSEDED as the operative exposure figures by this line. **These
+   replace the stale ≈2.75%/2.85×10⁻⁵ estimates as this design's
+   §1.4.1 exposure figures.** This remains an expected, occasionally-
    planned-for event at this sweep size, not a design flaw, PROVIDED it is
    handled by an explicit retry, not silently ignored. **Post-retry
    exposure, stated precisely (CA3-m2 fix, Rev 3 — round 3 found "far
@@ -1807,6 +1836,44 @@ live guard fire LESS often (more headroom before any denial), it does
 not make the illustrative arithmetic stale or require updating, since
 that arithmetic was never itself a runtime input.
 
+**Rev 6 — step-budget re-verification against the real per-L box data
+(CA6-M1(b)/(c) — corrects the "S3/S4/S5 stay at the planned 8,000
+steps" claim above, which was read off last-batch training loss, not
+the per-L eval metric gate 1(a) now specifies).** Re-checking the exact
+`results/gate1_diagnosis/gate1_diagnosis_report.json` per-L profiles
+(fresh box pull, this revision — full table in §1.7 gate 1(a) below)
+against the narrowed `L∈{1..5}` HARD bar: **only S3 clears at its
+pinned 8,000-step budget** (min-`L1-5` 0.9517). S4 and S5 miss on their
+FIRST measurement (8,000 steps; min-`L1-5` 0.8646/0.8513, both at
+`L=1`) — the standard pre-registered 2-2.5× escalation applies: retest
+at 20,000 steps (matching A5/A6's own multiplier) before their sweep
+cells launch. A5 and A6 miss on their SECOND measurement (already
+escalated to 20,000 steps; min-`L1-5` 0.8915/0.8410, both at `L=1`) —
+CA6-M1(c)'s new second-consecutive-miss rule fires: **HARD-STOP,
+PI-visible flag**, their 24 main-sweep cells do not launch under this
+design as-is (§1.7 gate 1(a) below).
+
+| Item | Cells | Status | Rate | GPU-h |
+|---|---|---|---|---|
+| S3 (8,000 steps, CLEARS `L∈{1..5}`) | 10 | launchable now | 0.0179 GPU-h/cell | 0.179 |
+| S4+S5 (retest @ 20,000 steps required, not yet cleared) | 14+10=24 | BLOCKED pending retest | 0.0179×2.5=0.04475 GPU-h/cell | 1.074 (held, not yet spent) |
+| A5+A6 (HARD-STOPPED — second consecutive miss @ 20,000 steps) | 14+10=24 | BLOCKED, PI-visible, not launched | 0.04475 GPU-h/cell | 1.074 (held, not launched) |
+| **All 58 sweep cells (only 10 currently launchable)** | 58 | — | — | 2.327 raw, if/when S4/S5 clear retest and A5/A6 are PI-cleared |
+
+**This does not change the 30 GPU-h dedicated cap or its ≈90%+ margin
+above** — the campaign was never GPU-bound; it is now GATE-bound: 48 of
+58 cells (S4/S5 pending retest, A5/A6 pending PI review) cannot launch
+until gate 1(a) is satisfied or explicitly waived, per the
+gauntlet-bookkeeping convention (a HARD-STOP is recorded, not silently
+bypassed). This is a NEW finding from this revision's mandatory
+re-verification, not asserted by §1.27's own summary (which read "all 7
+cells clear it, S3/S4/S5 stay at 8,000 steps") — the exact numbers are
+cited, not the summary, per this design's own "verify before claiming"
+discipline; flagged for the next attack round to adjudicate whether
+this changes Stage 1's overall readiness, since the DESIGN role is to
+report the re-verified facts and their mechanical consequence under the
+already-binding CA6-M1(c) rule, not to relitigate the rule itself.
+
 ---
 
 ### 1.7 Gates
@@ -1836,15 +1903,65 @@ Reused verbatim from this program's own precedent (Task D/E,
    degauged — this is a diagnostic convergence check, not the M1/M3
    decision metric) `rho_G_embedded` target; report the resulting
    8-point per-`L` mean-cosine PROFILE per cell, not a single scalar.
-   **Convergence bar:** mean cosine `≥ τ=0.9` (Task D/E's own primary
-   threshold, reused rather than inventing a second constant) at EVERY
-   `L∈{1..8}`; if any `L` falls short, gate 1(a) triggers the
-   pre-registered 2-2.5× step-budget escalation rule (§1.6) for that
-   group BEFORE its main-sweep cells launch — formalizing, as the
-   reporting spec, exactly what the gate-1 diagnosis did by hand for
-   A5/A6 (escalate to 20,000 steps, §1.6's Rev-5 cost recomputation)
-   rather than leaving it to be inferred after the fact from a noisy
-   last-batch scalar; (b) **synthetic-injection acceptance test, run
+   **Convergence bar, RE-SCOPED (CA6-M1(a) fix, Rev 6 — micro-attack
+   round 6, §1.27, found the `L∈{1..8}`-wide bar falsified by all 7 real
+   calibration cells, min-L cosines 0.67-0.85, every group failing at
+   `L≥6-8` incl. the already-escalated A5/A6@20K).** The HARD bar now
+   applies to `L∈{1..5}` only: mean cosine `≥ τ=0.9` (Task D/E's own
+   primary threshold, unchanged) at EVERY `L∈{1,2,3,4,5}`. `L∈{6..8}` is
+   DEMOTED to disclosed/non-gating reporting — the exact demotion
+   pattern already applied to `L∈{9..16}`/C5 (§1.4/§1.4.2): CA6-M1
+   diagnosed the `L≥6` shortfall as a length-difficulty gradient (linear
+   extrapolation puts A6 at ~50K+ steps to clear 0.9 at `L=8`), not a
+   convergence defect, so `L∈{6..8}` is still reported per cell but never
+   gates.
+
+   **Box re-verification (Rev 6, fresh pull of
+   `results/gate1_diagnosis/gate1_diagnosis_report.json`, all 7 real
+   cells) — the min-`L∈{1..5}` values, EXACT, not last-batch loss:**
+
+   | Cell | min over L=1-5 | at L= | clears ≥0.9? |
+   |---|---|---|---|
+   | S3@8K | 0.9517 | 1 | YES |
+   | S4@8K | 0.8646 | 1 | no |
+   | A5@8K | 0.8532 | 1 | no |
+   | S5@8K | 0.8513 | 1 | no |
+   | A6@8K | 0.7734 | 5 | no |
+   | A5@20K | 0.8915 | 1 | no |
+   | A6@20K | 0.8410 | 1 | no |
+
+   **Contrary to §1.27's own summary parenthetical ("all 7 cells clear
+   it"), only S3 clears the narrowed bar as literally read** — every
+   other cell's minimum sits at `L=1` (A6@8K's at `L=5`, by a hair). This
+   is a newly-surfaced anomaly, structurally distinct from the `L≥6`
+   length-difficulty gradient the demotion above addresses: `L=1` is the
+   SHORTEST word, not the longest, and `L=2-4` clear comfortably
+   (0.94-0.999) for every cell including these six — a genuine dip
+   specific to single-generator words, not a monotone difficulty trend.
+   Correcting §1.27's premise here is exactly the "re-verify... against
+   the real per-L data" duty CA6-M1(b) assigns this revision, not a
+   re-litigation of the STRUCTURAL fix (narrowing the range, demoting
+   L6-8), which stands as directed.
+
+   **(c) Second-consecutive-miss rule (new, CA6-M1(c), mirrors
+   `HEAD_TO_HEAD_DEMO_DESIGN.md`'s dial-cap pattern): if a group misses
+   the HARD bar a SECOND time at its own already-escalated pinned
+   budget, HARD-STOP that group's main-sweep cells + a PI-visible flag —
+   never a further silent escalation.** Applied to the box data above:
+   **A5 and A6 are ALREADY at their one permitted escalation (20,000
+   steps, §1.25) and still miss** (0.8915/0.8410, both at `L=1`) — the
+   second-consecutive-miss case, so A5's and A6's 14+10=24 main-sweep
+   cells are **HARD-STOPPED, PI-visible, pending review** (not launched
+   by this design as-is). **S3/S4/S5 are each on their FIRST measurement
+   (8,000 steps)** — S3 clears and stays at 8,000 steps; S4 and S5 miss
+   and get the standard pre-registered 2-2.5× retest (escalate to 20,000
+   steps, matching A5/A6's own multiplier, and re-measure the `L∈{1..5}`
+   bar there) before their 14+10=24 main-sweep cells are authorized to
+   launch (§1.6's Rev-6 cost table, above). If any cell still falls short
+   after a FIRST escalation, gate 1(a) applies rule (c) rather than a
+   further silent escalation.
+
+   (b) **synthetic-injection acceptance test, run
    BEFORE any real checkpoint's degauging output is trusted — EXTENDED TO
    AMBIENT `d_state`, closing the exact gap §1.25 DEFECT 1 exploited
    (§1.25 pinned item 1, Rev 5).** Since no ground-truth `(Q,c)` exists on
@@ -2092,8 +2209,10 @@ own additions)
    the convergence band Task D/E's own precedent predicts (mirroring
    `CLAUDE.md`'s calibration-first rule catching exactly this kind of
    silent-ceiling risk), the design reverts to `h=64` and the cost table
-   (§1.6) is recomputed BEFORE the 45-cell remainder of the sweep
-   launches — not discovered after the fact.
+   (§1.6) is recomputed BEFORE the 53-cell remainder of the sweep
+   launches (fixed, Rev 6: this item's "45-cell" figure was stale since
+   Rev 3's 50→58-cell sweep bump — `58−5=53`, matching gate 1's own
+   already-correct figure, §1.7) — not discovered after the fact.
 9. **Word-length held-out generalization (`L∈{9..16}`) may be a WEAK test
    for the small groups in this family.** For S3 (`|G|=6`) and S4
    (`|G|=24`), a random walk of length `L_train_max=8` over a 3-4-element
@@ -3016,3 +3135,68 @@ pre-existing out-of-scope nit at line 2095, fa8b3e3-era).
 
 *(End §1 records. Rev 5 → §1.27 NEEDS-REVISION (CA6-M1 per-L bar
 self-contradiction). Rev 6 in progress — one-paragraph class.)*
+
+---
+
+### 1.28 REV 6 CHANGES — §1.27 (CA6-M1) finding → resolution map
+
+Every CA6-M1 sub-item, mapped to its exact Rev 6 resolution, plus the
+one out-of-scope nit fixed alongside it. Scoped strictly to CA6-M1's
+five items; **§1.13-§1.27 are untouched, byte-intact** (verified via
+`git diff` before this commit — every hunk lands at or before original
+line 1875 or after original line 3137, never inside the §1.13-§1.27
+span; see the commit message).
+
+| CA6-M1 item | Resolution (Rev 6) | Where |
+|---|---|---|
+| **(a) HARD bar restricted to `L∈{1..5}`; `L∈{6..8}` demoted to disclosed/non-gating (mirrors L9-16/C5)** | §1.7 gate 1(a) rewritten: convergence bar text now reads `≥0.9` at every `L∈{1,2,3,4,5}`, `L∈{6..8}` reported but non-gating, explicitly named as the same demotion pattern as C5. **§1.27's own "(all 7 cells clear it)" parenthetical was re-verified against a fresh box pull of `gate1_diagnosis_report.json` (not asserted) and found NOT to hold** — only S3 clears; the other 6 cells fail at `L=1` (a newly-surfaced anomaly, not the `L≥6` gradient CA6-M1 diagnosed). Exact min-`L1-5` values for all 7 cells, cited verbatim in a new table, §1.7 gate 1(a). | §1.7 gate 1(a) |
+| **(b) Re-verify + rewrite §1.6's step-budget statements against the real per-L data** | §1.6 gets a new "Rev 6" closing subsection: re-checks the same box data and finds Rev 5's "S3/S4/S5 stay at 8,000 steps" claim FALSE for S4/S5 (both miss at `L=1`, first measurement) — corrected to "S3 stays at 8,000 steps; S4/S5 require a 2-2.5× escalation retest (20,000 steps) before their sweep cells launch." A5/A6's "pinned at 20,000 per the escalation already run" is correct as a STEP-BUDGET fact, but they ALSO still miss the (new, narrower) bar at that budget — triggering item (c) below, not a further escalation. New cost/status table (10 launchable, 48 blocked) added. | §1.6 (new Rev 6 subsection) |
+| **(c) One-sentence rule: second consecutive convergence-bar miss at a group's pinned budget → HARD-STOP + PI-visible flag, never further silent escalation** | Added verbatim to §1.7 gate 1(a) (mirrors the h2h dial-cap pattern, cited by name) and MECHANICALLY APPLIED to the box data from (a)/(b): A5/A6 (miss at their already-once-escalated 20,000-step budget) are HARD-STOPPED, PI-visible — their 24 main-sweep cells do not launch under this design as-is. S4/S5 (miss at their FIRST, base 8,000-step budget) get the standard 2-2.5× retest instead, per the rule's own "second consecutive" scoping. | §1.7 gate 1(a), §1.6 |
+| **(d) Corrected exposure direction — post-retry ≈6.6×10⁻⁶, LOWER than old bars, fixing Rev 5's stale-flag guess** | §1.4.1 step 4's "STALE INPUT FLAGGED, Rev 5" paragraph (which guessed the true rate was "almost certainly HIGHER" under the new bars) replaced with a "RESOLVED, Rev 6" paragraph stating the round-6 re-derivation found the opposite: LOWER, at ≈6.6×10⁻⁶ post-retry. | §1.4.1 step 4 |
+| **(e) Fold in §1.27's 'verified favorable' floor-MC numbers as the §1.4.1 exposure figures (cite round 6's N=100,000 MC)** | Same §1.4.1 step 4 paragraph: cites round 6's `N=100,000`/group floor-failure MC verbatim (S5-fit 0.191%, A6-fit 0.151%, others ≤0.04%, all ADJUDICATED ACCEPTABLE) as the new operative exposure figures, superseding (not deleting) the old ≈2.75%/2.85×10⁻⁵ pre-Rev-3 figures and the ≈3.26×10⁻⁵ Rev-3-consistent figure, both retained for historical record. | §1.4.1 step 4 |
+| **Out-of-scope nit — §1.9 item 8's "45-cell remainder," stale since Rev 3's 50→58-cell sweep bump** | Verified the arithmetic in context (`58` total sweep cells `− 5` calibration cells `= 53`, matching gate 1's own already-correct "remaining 53" figure, §1.7) and corrected `45`→`53`, with a one-clause note explaining the staleness (pre-Rev-3 the sweep was 50 cells, so `50−5=45` WAS correct at the time; never updated after Rev 3's bump). | §1.9 item 8 |
+
+**Header/status block** (top of doc) bumped to Rev 6 and extended with
+one new sentence covering §1.27's verdict and this revision's fixes,
+per the same per-revision-append convention every prior Rev used (Rev
+1-5 each appended one sentence to the same running paragraph; nothing
+prior in that paragraph was reworded).
+
+**Nothing else in §1.0-§1.12 was touched** beyond the rows above — in
+particular §1.1-§1.3 (hypothesis, group family, verified matrices),
+§1.4/§1.4.2 (task, architecture, arms/controls, C5's own definition),
+§1.4.2.1 (marquee TOST), §1.5 (M1/M2/M3 criteria — CA6-M1 explicitly
+scopes the fix to gate 1(a)'s CONVERGENCE bar, not M1/M3's measurement
+sample, which "stays L~U{1..8} as pinned," §1.27), §1.8 (pre-registered
+analysis), §1.10 (scope statement), and §1.11 (sequencing) all stand as
+Rev 5 left them.
+
+**A note on scope, stated plainly.** CA6-M1(b)'s "re-verify... against
+the real per-L data" instruction is what surfaced the S4/S5/A5/A6
+shortfall above — this is a re-verification finding, not a
+relitigation of §1.27's STRUCTURAL resolution (narrowing the bar,
+demoting L6-8, adding the HARD-STOP rule), all of which are implemented
+exactly as directed. The one thing this revision declined to do is
+assert §1.27's own "(all 7 cells clear it)" parenthetical as fact
+without checking it against the cited artifact, per this project's
+standing "verify before claiming" rule (`CLAUDE.md`) and its own
+house convention of numerically executing claims rather than accepting
+them asserted (`HEAD_TO_HEAD_DEMO_DESIGN.md` §1.13-§1.17, cited as this
+design's own rigor bar, §1.0). Whether this changes Stage 1's overall
+build/launch readiness is left for the next attack round to
+adjudicate, consistent with the gauntlet-bookkeeping convention that a
+downstream stage records re-verified facts rather than silently
+overriding or silently rubber-stamping the round that produced them.
+
+*(End §1 records. Rev 0 → five NEEDS-REVISION rounds → Rev 4 → §1.21
+CLEARED → build a3defcc → §1.22 NEEDS-FIXES → fixes a555012 → §1.24
+FIXES-VERIFIED-CLEARED → deploy → calibration (0.0179 GPU-h/cell) →
+**§1.25 HARD-STOP: two instrument defects proven, fixes pre-validated,
+M1 preview POSITIVE (ρ=0.9747)** → Rev 5 (§1.26) folds the five pinned
+items into the live design text → micro attack round 6 (§1.27:
+NEEDS-REVISION, CA6-M1 per-L bar self-contradiction) → **Rev 6 (this
+revision, §1.28) folds CA6-M1's five items into the live design text,
+and its own re-verification against the real box data finds only 1 of
+7 calibration cells (S3) currently clears the narrowed gate-1(a) bar —
+A5/A6 HARD-STOPPED (PI-visible), S4/S5 need an escalation retest,
+§1.13-§1.27 byte-intact.** Attack round 7 next.)*
