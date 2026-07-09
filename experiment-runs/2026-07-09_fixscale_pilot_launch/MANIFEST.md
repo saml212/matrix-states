@@ -123,6 +123,27 @@ ssh youthful-indigo-turkey 'ls -la /home/nvidia/chapter2/deltanet_rd/results/fix
 # clean stop (never pkill): ssh youthful-indigo-turkey 'touch /home/nvidia/chapter2/deltanet_rd/STOP_fixscale'
 ```
 
+## ADDENDUM — realized pilot results (gate §13.10 item 3 DISCHARGED, both scales, same session)
+
+Both timing pilots completed and **PASSED**; the four calibration cells auto-launched behind
+their verdicts (verified live: GPUs 1–4 all training, `attrrob_2x2` on GPU 0 undisturbed).
+Verdict JSONs (source of truth, on box): `results/fixscale/pilots/PILOT_{98M,392M}_VERDICT.json`.
+
+| Scale | arm | two-point s/step | vs Track-C ref | 1.5× gate | peak VRAM alloc (GB) |
+|---|---|---|---|---|---|
+| 98M | off | **0.2361** | 0.236 (+0.05%) | PASS | 23.2 |
+| 98M | per_token | **0.2379** | +0.8% over off | PASS | 23.5 |
+| 392M | off | **0.8215** | 0.836 (−1.7%) | PASS | 38.3 |
+| 392M | per_token | **0.8311** | +1.2% over off | PASS | 39.0 |
+
+**§13.7's no-overhead-from-the-blend assumption CONFIRMED at both new scales** (blend overhead
++0.8%/+1.2%, far inside the 1.5× band; VRAM headroom ≥41 GB on 80 GB cards both scales — the
+§13.13 Rev-1 item-2 VRAM mandate is satisfied and batch=32 is nowhere near the memory wall).
+Realized pilot spend: **0.724 GPU-h** (8 runs, sum of trainer `wall_s`). Re-priced calibration
+projection at measured rates: 98M ≈4.43 GPU-h/cell, 392M ≈4.56 GPU-h/cell → this launch's
+committed total ≈ **18.7 GPU-h** (≈6.2% of the 300 cap). Build-stage re-price of the full
+manifest should use the verdict-JSON rates, which slightly UNDERCUT the §13.7 planning rates.
+
 ## Still needs the BUILD stage (not launched, per scope)
 
 1. Scale-parametrized sweep launcher (or frozen_bias_lm_sweep.py generalization) — the 24-cell
