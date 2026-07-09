@@ -146,13 +146,18 @@ IDENTIFIED from the pre-registered §1.3.1.3 step-500 gradient check
 aux_grad_norm_backbone=0.0066 — ratio 20.9×, exceeds_10x_trigger=TRUE.
 The probe's aux signal is ~21× too weak; the aux path itself is proven
 live (box smoke: real-kernel k/v/b_proj grads nonzero). THE
-PRE-REGISTERED PATH: §1.3.1.3's calibration-revises-aux_weight rule →
-revise aux_weight to gradient parity (0.1×20.93≈2.09, pin 2.0),
-RE-RUN the 9 task-1/2 calibration cells under the revised pin (~1
-GPU-h; task-3 cells unaffected, no probe), re-check bands, add
-probe_cos_mean reporting for diagnosability (metric ADDITION, no
-threshold change), THEN freeze margins. Fix agent dispatched
-2026-07-09. Loss curves otherwise healthy (10.94→1.16).
+PRE-REGISTERED PATH EXECUTED (fix pushed f3b8343): aux_weight pinned
+2.0 (parity, 0.1×20.93≈2.09 rounded, disclosed) + overshoot guard
+(assert aux ≤ 10× CE at step 500, fails loudly) + probe_cos_mean added
+to all curves/finals (rf@0.9 stays the decision metric); 9 task-1/2
+cells re-running as _auxrev2 (aux=0.1 record archived at
+calib/archive_auxweight0.1/); task-3 PASSes stand. **RE-RUN LIVE:
+tmux h2h_rung1 recreated (supervisor had exited on FATAL), stages
+−1/0/A clean, wave-1 cells on GPUs 0-6 at 65-97%; probe_cos_mean
+0.11-0.14 AND RISING at step 2000 (vs ≈0 under aux=0.1) — probe is
+LEARNING under the revised weight; overshoot guard did not fire.
+CALIBRATION_COMPLETE expected ~03:00 box time.** Then: bands review →
+margin freeze §1.21 → MARGINS_FROZEN.token → sweep.
 
 **CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
 push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)
