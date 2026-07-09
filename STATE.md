@@ -347,8 +347,21 @@ doesn't bound ‖D^m‖; our own dead seeds measure cond(D) to 1.09e10);
 plus a new-in-Rev-1 assert-crash (residue sweep vs the inherited
 eval-hop guard), the unsupported K=12 h*=57, a non-exhaustive Axis-A
 partition, and a naive-loop cross-check that overflows inside its own
-window. Rev 2 DISPATCHED (design-only); launch stays double-gated
-(Stage 2 calibration readout + §3.8).**
+window. **Rev 2 LANDED (8972a07, registry §3.9): the corrected rule
+T(h)=(‖C‖₂/σ_min(A))·(a^h−r^h)/(a−r) with r→1 limit form and a
+deterministic nilpotent negative case (old rule falsely admits at
+T=0.01, new rejects at ≈10³⁸) — and stated PLAINLY that every reading
+refuses the deep ladder (T(61)≈1.07-9.6 ≫ τ=0.2): the rule is the
+a-priori screen; decisive-depth attribution rides on fp64 shadow +
+locked Axis-C curves. "≥30×" conservatism retracted → shown 3.7-10×.
+K=12 h*=57 KEPT with pre-registered asymmetric confidence (1/3 seeds
+conservative-hold; moving to ≤36 would destroy the separation window).
+Exhaustive 9-cell partition + cross-K rule; LoopedVec pinned
+(weight-tied pre-LN residual 2-layer GELU MLP, ±15% params);
+eval_grid_mode {claim, residue_sweep} resolves the assert-crash; loop
+arm per-step renorm, |Δcos|≤5e-4. Scoped micro-attack on the §3.4 rule
+math IN FLIGHT — last pass before DESIGN-CLEARED-FOR-BUILD-QUEUE;
+launch stays double-gated (Stage 2 calibration readout + §3.8).**
 
 ## CAMPAIGN SCORECARD (Jul 6-9 2026, all pushed)
 
