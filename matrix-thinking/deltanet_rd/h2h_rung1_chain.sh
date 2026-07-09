@@ -213,6 +213,27 @@ budget_check
 
 # ---------------------------------------------------------------------------
 # Stage B -- gate-1 calibration: 13 launchable cells, then the band check.
+#
+# AUD2-F4 fix (sec 1.24 pre-launch build-fix): H2H_DIAL_ROUND makes the three-loss step-500
+# gradient-ratio dial's round EXPLICIT for this wave (h2h_cell_train_rd.current_dial_round()
+# already defaults to DEFAULT_DIAL_ROUND==3 if this is unset, so the export below is a
+# no-op on round-3 BEHAVIOR -- it exists so the round is visible in this script/its logs
+# rather than implicit in a Python constant, and so a round-4 re-run is a ONE-LINE chain-script
+# edit, per R5-F1's own "the orchestrating chain script owns bumping this between re-runs").
+#
+# ROUND-4 RE-RUN PROCEDURE (if the round-3 dial fires DIAL_EXHAUSTED and a round-4 contingency
+# pass is authorized, R5-F1's own "round 4 is the ONE permitted contingency round"):
+#   1. bump the export below to H2H_DIAL_ROUND=4 (and DEFAULT_DIAL_ROUND in
+#      h2h_cell_train_rd.py stays 3 -- this export is the one true round source for reruns);
+#   2. INVALIDATE round-3's calibration outputs before relaunching, or resume-safety
+#      (run_cells_par's is_valid_result check, above) will SKIP every calibration cell as
+#      "already valid" and the round-4 dial will never actually re-fire:
+#        mv results/h2h_rung1/calib results/h2h_rung1/calib_round3_archived_$(date -u +%Y%m%dT%H%M%SZ)
+#        rm -f results/h2h_rung1/CALIBRATION_COMPLETE.json   # Stage C must regenerate it
+#      (checkpoints under $CKPT_DIR are content-addressed by cell name + are safely overwritten
+#      by the re-run; no separate invalidation needed there.)
+#   3. re-launch the chain; Stage B re-runs all 13 calibration cells fresh under round 4.
+export H2H_DIAL_ROUND=3
 # ---------------------------------------------------------------------------
 mapfile -t CALIB_CELLS < <($PY h2h_cell_train_rd.py --list-cells calibration)
 if [ "${#CALIB_CELLS[@]}" -ne 13 ]; then
@@ -276,6 +297,16 @@ echo "MARGINS_FROZEN.token found -- sweep stage released."
 
 # ---------------------------------------------------------------------------
 # Stage D -- 27-cell sweep, then the 90-pass fan-out + contender references.
+#
+# AUD2-F4 fix, part (ii): no H2H_DIAL_ROUND unset/env juggling needed here. The three-loss
+# step-500 gradient-ratio dial (train_grammar_cell, "AUD2-F4 fix" comment at the
+# `cell.get("role") != "sweep"` guard) now reads the CELL'S OWN role and only ever evaluates
+# for calibration-role cells -- every cell sweep_cells() emits carries role=="sweep" by
+# construction (see sweep_cells() above), so it is structurally excluded here regardless of
+# H2H_DIAL_ROUND's value or whether this script remembers to unset it. This was chosen over an
+# env-based guard because it cannot leak across stages/invocations (e.g. a stray --run-cell
+# outside this chain, or a future stage reordering) -- the cell dict is the single source of
+# truth for "is this a calibration cell," not incidental process-environment state.
 # ---------------------------------------------------------------------------
 mapfile -t SWEEP_CELLS < <($PY h2h_cell_train_rd.py --list-cells sweep)
 if [ "${#SWEEP_CELLS[@]}" -ne 27 ]; then

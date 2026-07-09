@@ -1271,7 +1271,8 @@ class DeltaNetLM(nn.Module):
                 "frozen_bias_seed": self.frozen_bias_seed}
 
     def forward(self, token_ids: torch.Tensor, initial_states: list | None = None,
-                return_states: bool = False, step: int | None = None):
+                return_states: bool = False, step: int | None = None,
+                return_hidden: bool = False):
         """token_ids: (B,T) int64. initial_states: None (every layer starts fresh -- the ONLY
         mode training ever uses) or a list of length n_layers, each entry None or a
         (B,H,head_dim,head_dim) state (the intervention script's two-phase context/continuation
@@ -1284,7 +1285,14 @@ class DeltaNetLM(nn.Module):
         step (TRACKB_REDESIGN.md Rev 3): threaded to every block/mixer uniformly -- see
         DeltaNetLMMixer.forward's own docstring for the continuation contract eval-time probes
         must honor. None is a valid value ONLY for mechanisms that do not read it (hard_select
-        inactive, or mechanism in {"hard_ste","entmax"})."""
+        inactive, or mechanism in {"hard_ste","entmax"}).
+
+        return_hidden (AUD2-F1 fix, sec 1.24 pre-launch build-fix): when True, SKIPS the
+        vocab-size LM-head matmul entirely and returns the POST-norm_f hidden state
+        (B,T,d_model) instead of logits (B,T,vocab_size) -- for callers that only need the
+        LM head applied AFTER slicing to a small subset of positions (e.g. one answer
+        position per row), avoiding a full-sequence vocab-size matmul whose output would
+        mostly be discarded. Mutually available with return_states (independent flags)."""
         B, T = token_ids.shape
         x = self.embed(token_ids)
         if initial_states is None:
@@ -1296,8 +1304,11 @@ class DeltaNetLM(nn.Module):
             x, s_final = blk(x, initial_state=s0, token_ids=token_ids, step=step)
             final_states.append(s_final)
         x = self.norm_f(x)
-        logits = F.linear(x, self.embed.weight)                    # tied head, no bias
-        return (logits, final_states) if return_states else logits
+        if return_hidden:
+            out = x                                                 # no LM-head matmul at all
+        else:
+            out = F.linear(x, self.embed.weight)                    # tied head, no bias
+        return (out, final_states) if return_states else out
 
 
 # ---------------------------------------------------------------------------

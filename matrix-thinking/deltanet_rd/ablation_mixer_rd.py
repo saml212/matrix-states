@@ -211,7 +211,12 @@ class AblationLM(nn.Module):
         self.norm_f = RMSNorm(d_model, eps=1e-5)
 
     def forward(self, token_ids: torch.Tensor, initial_states: list | None = None,
-                return_states: bool = False, step: int | None = None):
+                return_states: bool = False, step: int | None = None,
+                return_hidden: bool = False):
+        """return_hidden (AUD2-F1 fix, sec 1.24 pre-launch build-fix, mirrors DeltaNetLM.forward
+        EXACTLY -- same contract, same drop-in-for-the-contender guarantee this class's own
+        docstring already promises): when True, SKIPS the vocab-size LM-head matmul and returns
+        the POST-norm_f hidden state (B,T,d_model) instead of logits."""
         B, T = token_ids.shape
         x = self.embed(token_ids)
         if initial_states is None:
@@ -224,8 +229,11 @@ class AblationLM(nn.Module):
             x, s_final = blk(x, initial_state=s0, token_ids=token_ids, step=step)
             final_states.append(s_final)
         x = self.norm_f(x)
-        logits = F.linear(x, self.embed.weight)
-        return (logits, final_states) if return_states else logits
+        if return_hidden:
+            out = x
+        else:
+            out = F.linear(x, self.embed.weight)
+        return (out, final_states) if return_states else out
 
 
 def count_mixer_params(d_model: int, d_state: int, conv_size: int = 4,

@@ -462,13 +462,25 @@ def _recurrent_continuation_answer_logits(arch: str, model, final_states: list,
     """sec 1.3.1.3 Rev 4's continuation: model.forward(query_tokens, initial_states=S_T),
     padded per the module section docstring above. Returns (B,Q,vocab) answer-position logits
     -- read at index qlen-1 (the <Q> position), which causal masking guarantees is IDENTICAL
-    whether or not the padding is present (verified by this file's own blank-out-style smoke)."""
+    whether or not the padding is present (verified by this file's own blank-out-style smoke).
+
+    AUD2-F1 fix (sec 1.24 pre-launch build-fix): the pre-fix version ran the vocab-size LM
+    head (F.linear against embed.weight) over ALL _MIN_KERNEL_T (128) padded positions via a
+    plain model.forward(...) call, then discarded 127/128 rows -- audited at 6.57x/6.81x added
+    per-step cost (contender/ablation) over the pre-CE_answer baseline (lm_pretrain_rd.py:1298
+    path). This version calls model.forward(..., return_hidden=True) to get the POST-norm_f
+    hidden state (B*Q,T,d_model) -- NO vocab-size matmul yet -- slices to the ANSWER POSITION
+    FIRST, then applies the LM head to ONLY that (B*Q,d_model) slice, cutting the wasted matmul
+    ~99%. Bit-identical to the pre-fix path at the answer position (mode_selftest's own
+    "AUD2-F1 fix verification" item re-derives the pre-fix computation locally and asserts
+    equality -- not merely assumed)."""
     B, Q, qlen = query_tokens.shape
     flat = query_tokens.reshape(B * Q, qlen)
     padded = _pad_query_tokens_for_continuation(flat, buffer_id)
     states_rep = _repeat_states_for_queries(final_states, Q)
-    logits_query = model.forward(padded, initial_states=states_rep)
-    answer_logits = logits_query[:, qlen - 1, :]
+    hidden = model.forward(padded, initial_states=states_rep, return_hidden=True)
+    answer_hidden = hidden[:, qlen - 1, :]                        # slice BEFORE the LM-head matmul
+    answer_logits = F.linear(answer_hidden, model.embed.weight)   # (B*Q,vocab), not (B*Q,128,vocab)
     return answer_logits.view(B, Q, -1)
 
 
@@ -604,6 +616,19 @@ def eval_recovered_frac(arch: str, model, rig: ProbeRig, eval_batches: list,
 # cost accounting), not repeated every eval step.
 # ---------------------------------------------------------------------------
 
+def _rung1_k_restricted_pred_slot(answer_logits: torch.Tensor, entity_ids: torch.Tensor) -> torch.Tensor:
+    """sec 1.23's own 'build precision note': K-RESTRICTED gather+argmax over the episode's OWN
+    K candidate entities' answer-position logits, NEVER a global-vocab top-1 (AUD2-F2 fix, sec
+    1.24 pre-launch build-fix: extracted to its own function so it is independently testable
+    against a planted-answer synthetic -- mode_selftest's own item plants a NON-candidate token
+    at the global-vocab max while a candidate holds the max AMONG the K candidates; this
+    function must still return the candidate, never silently degrade to a global top-1)."""
+    K = entity_ids.shape[1]
+    restricted = torch.gather(
+        answer_logits, 2, entity_ids.unsqueeze(1).expand(-1, answer_logits.shape[1], K))
+    return restricted.argmax(dim=-1)
+
+
 @torch.no_grad()
 def eval_diagnostic_rung1_and_tell(arch: str, model, rig: ProbeRig, eval_batches: list, pools,
                                    attn_mask_fn=None) -> dict:
@@ -636,11 +661,8 @@ def eval_diagnostic_rung1_and_tell(arch: str, model, rig: ProbeRig, eval_batches
                 answer_logits = _recurrent_continuation_answer_logits(
                     arch, model, final_states, b["query_tokens"], pools.buffer_id)
 
-            K = b["entity_ids"].shape[1]
-            K_seen = K
-            restricted = torch.gather(
-                answer_logits, 2, b["entity_ids"].unsqueeze(1).expand(-1, answer_logits.shape[1], K))
-            pred_slot = restricted.argmax(dim=-1)
+            K_seen = b["entity_ids"].shape[1]
+            pred_slot = _rung1_k_restricted_pred_slot(answer_logits, b["entity_ids"])
             n_hit += (pred_slot == b["tgt_slot"]).float().sum().item()
             n_tot += b["tgt_slot"].numel()
 
@@ -779,7 +801,19 @@ def train_grammar_cell(cell: dict, device: str, ckpt_dir: str | None,
         loss = ph.joint_loss(loss_ce, pred, target, aux_weight=AUX_WEIGHT,
                              loss_ce_answer=loss_ce_answer, ce_answer_weight=CE_ANSWER_WEIGHT)
 
-        if step == GRAD_RATIO_STEP and not timing_only:
+        if step == GRAD_RATIO_STEP and not timing_only and cell.get("role") != "sweep":
+            # AUD2-F4 fix (sec 1.24 pre-launch build-fix, Stage-D guard): the dial only ever
+            # fires for CALIBRATION-role cells (every role sweep_cells() emits is "sweep";
+            # every calibration role -- "primary", "stress_locate_only", "reused_not_relaunched",
+            # "lr_grid_*", "pilot", "selftest" -- is calibration-only by construction). This is
+            # STRUCTURAL (reads the cell dict already threaded through this call), not env-based:
+            # the audit's alternative (unset/reset H2H_DIAL_ROUND before Stage D in the chain
+            # script) depends on the chain script remembering to do so at exactly the right
+            # point, is invisible to a cell run outside the chain (e.g. --run-cell by hand), and
+            # a stale/leaked env var would silently re-arm the dial for a noisy sweep-cell
+            # step-500 ratio -> spurious DialExhausted-abort (the exact failure AUD2-F4(ii)
+            # flags). Gating on cell["role"] instead cannot leak across stages or invocations.
+            #
             # sec 1.3.1.3 / sec 1.23 build-fix item 2: THREE isolated backward passes (each
             # loss ALONE) measuring backbone grad norms -- the shared backbone parameters are
             # where the three losses actually MEET (the CE losses structurally never touch the
@@ -1551,6 +1585,12 @@ def mode_selftest() -> int:
     #     probe_head_rd.py smoke_3/smoke_8's own box-only-registration discipline for the
     #     contender arm specifically -- see h2h_box_smoke_checklist.py's
     #     continuation_blankout_fresh_instance item).
+    # AUD2-F3 fix (sec 1.24 pre-launch build-fix, defense-in-depth): the "fresh instance"
+    # claim above is invisible to a shape/equality check alone -- a weakened mutation (e.g.
+    # accidentally aliasing m2 = m1, or a copy that shares storage) would still pass the
+    # logits-equality assertion trivially, since a genuinely fresh instance is not what's being
+    # exercised. Guard it explicitly: m1/m2 must be distinct Python objects (id()) AND every
+    # parameter tensor must be a distinct storage (data_ptr()) -- cheap, and closes mutation (d).
     ok13 = True
     for arch in ("contender", "ablation"):
         torch.manual_seed(52)
@@ -1569,12 +1609,17 @@ def mode_selftest() -> int:
             logits2 = _recurrent_continuation_answer_logits(arch, m2, final_states, query_tokens,
                                                              buffer_id=vocab - 1)
         identical = torch.equal(logits1, logits2)
-        ok13 = ok13 and identical
-        print(f"    arch={arch}: fresh-instance blank-out identical={identical}", flush=True)
+        distinct_objects = (m1 is not m2) and (id(m1) != id(m2))
+        distinct_params = all(p1.data_ptr() != p2.data_ptr()
+                              for p1, p2 in zip(m1.parameters(), m2.parameters()))
+        ok13 = ok13 and identical and distinct_objects and distinct_params
+        print(f"    arch={arch}: fresh-instance blank-out identical={identical} "
+              f"distinct_objects={distinct_objects} distinct_params={distinct_params}", flush=True)
     rep("selftest 13 (blank-out 5b, R5-F4 companion, CPU-provable for ablation + the "
-        "contender's stub-constant case; real-kernel residual BOX-ONLY): a fresh model "
-        "instance loaded with the same weights reproduces BIT-IDENTICAL continuation logits "
-        "from the same cached S_T", ok13)
+        "contender's stub-constant case; real-kernel residual BOX-ONLY; AUD2-F3 hardened with "
+        "id()/data_ptr() distinctness so the test cannot be trivially satisfied by an aliased "
+        "instance): a fresh model instance loaded with the same weights reproduces "
+        "BIT-IDENTICAL continuation logits from the same cached S_T", ok13)
 
     # 14. Padding causal-inertness (supports item 5a/5b's own soundness): the FILLER VALUE used
     #     to satisfy _MIN_KERNEL_T must not affect the answer-position logit at all (causal
@@ -1646,6 +1691,82 @@ def mode_selftest() -> int:
         "bind-dependent on CPU, the expected contrast", ok15,
         f"plumbing_ok={plumbing_ok} stub_degenerate_confirmed={stub_degenerate_confirmed} "
         f"ablation_bind_dependent={ablation_bind_dependent}")
+
+    # 16 (AUD2-F1 fix verification, sec 1.24 pre-launch build-fix): the NEW slice-before-matmul
+    #     continuation (model.forward(..., return_hidden=True), slice, THEN F.linear) must be
+    #     BIT-IDENTICAL at the answer position to the OLD full-position-then-discard path
+    #     (model.forward(...) computing vocab logits at ALL 128 padded positions, then indexing
+    #     one). The OLD path is re-derived HERE ONLY (a local reference, never imported/shipped)
+    #     so this test does not just compare the new code against itself.
+    def _old_recurrent_continuation_answer_logits(arch, model, final_states, query_tokens, buffer_id):
+        B, Q, qlen = query_tokens.shape
+        flat = query_tokens.reshape(B * Q, qlen)
+        padded = _pad_query_tokens_for_continuation(flat, buffer_id)
+        states_rep = _repeat_states_for_queries(final_states, Q)
+        logits_query = model.forward(padded, initial_states=states_rep)   # pre-fix: full LM head, all T
+        answer_logits = logits_query[:, qlen - 1, :]
+        return answer_logits.view(B, Q, -1)
+
+    ok16 = True
+    for arch in ("contender", "ablation"):
+        torch.manual_seed(71)
+        vocab = 300
+        m = (DeltaNetLM(vocab, d_model=32, d_state=64, n_layers=1, conv_size=4) if arch == "contender"
+             else AblationLM(vocab, d_model=32, d_state=16, n_layers=1, conv_size=4))
+        bind_tokens = torch.randint(0, vocab, (2, _MIN_KERNEL_T))
+        query_tokens = torch.randint(0, vocab, (2, 3, 6))
+        with torch.no_grad():
+            _, final_states = m(bind_tokens, return_states=True)
+            logits_new = _recurrent_continuation_answer_logits(arch, m, final_states, query_tokens,
+                                                                buffer_id=vocab - 1)
+            logits_old = _old_recurrent_continuation_answer_logits(arch, m, final_states, query_tokens,
+                                                                    buffer_id=vocab - 1)
+        identical = torch.equal(logits_new, logits_old)
+        ok16 = ok16 and identical
+        print(f"    arch={arch}: old-path vs new-path answer logits bit-identical={identical}",
+              flush=True)
+    rep("selftest 16 (AUD2-F1 fix verification): slice-before-matmul continuation reproduces "
+        "BIT-IDENTICAL answer-position logits vs. the pre-fix full-position-then-discard "
+        "reference (reproduced locally, not imported)", ok16)
+
+    # 17 (AUD2-F2 fix, sec 1.24 pre-launch build-fix): planted-answer test for the K-restricted
+    #     gather+argmax (sec 1.23's own "build precision note") -- a NON-candidate token holds
+    #     the GLOBAL-vocab max while a candidate holds the max AMONG the K candidates; the real
+    #     production function (_rung1_k_restricted_pred_slot) must still return the candidate. A
+    #     deliberately-globalized MUTANT (drops the K-restriction, does a plain global-vocab
+    #     argmax, maps back to a slot ONLY if the winner happens to be a candidate -- else -1,
+    #     a guaranteed miss) must FAIL the identical comparison -- run to completion to prove
+    #     the test has teeth (house hard rule: negative tests must actually be exercised).
+    def _rung1_globalized_mutant(answer_logits, entity_ids):
+        K = entity_ids.shape[1]
+        entity_ids_exp = entity_ids.unsqueeze(1).expand(-1, answer_logits.shape[1], K)  # (B,Q,K)
+        global_top = answer_logits.argmax(dim=-1, keepdim=True)     # (B,Q,1) VOCAB id, unrestricted
+        match = (entity_ids_exp == global_top)                      # (B,Q,K)
+        any_match = match.any(dim=-1)
+        slot = match.float().argmax(dim=-1)
+        return torch.where(any_match, slot, torch.full_like(slot, -1))
+
+    torch.manual_seed(81)
+    B_t, Q_t, K_t, V_t = 2, 3, 5, 50
+    answer_logits_t = torch.randn(B_t, Q_t, V_t) * 0.1
+    entity_ids_t = torch.stack([torch.randperm(V_t)[:K_t] for _ in range(B_t)])    # (B,K), episode-shared
+    tgt_slot_t = torch.randint(0, K_t, (B_t, Q_t))
+    for b in range(B_t):
+        cand_ids = entity_ids_t[b]
+        non_cand_pool = [v for v in range(V_t) if v not in cand_ids.tolist()]
+        for q in range(Q_t):
+            answer_logits_t[b, q, cand_ids[tgt_slot_t[b, q]]] = 5.0     # candidate: max AMONG the K
+            answer_logits_t[b, q, non_cand_pool[q % len(non_cand_pool)]] = 10.0  # NON-candidate: GLOBAL max
+
+    pred_slot_restricted = _rung1_k_restricted_pred_slot(answer_logits_t, entity_ids_t)
+    restricted_correct = torch.equal(pred_slot_restricted, tgt_slot_t)
+    pred_slot_mutant = _rung1_globalized_mutant(answer_logits_t, entity_ids_t)
+    mutant_correct = torch.equal(pred_slot_mutant, tgt_slot_t)
+    ok17 = restricted_correct and not mutant_correct
+    rep("selftest 17 (AUD2-F2, planted-answer): K-restricted gather+argmax returns the "
+        "candidate despite a non-candidate global-vocab max; the deliberately-globalized "
+        "mutant FAILS the identical comparison (proves the test has teeth)", ok17,
+        f"restricted_correct={restricted_correct} mutant_correct={mutant_correct}")
 
     print("=" * 70)
     if failures:
