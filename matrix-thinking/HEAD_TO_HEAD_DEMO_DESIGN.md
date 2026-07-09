@@ -3195,3 +3195,50 @@ sentence).
 CLEARED-FOR-BUILD-FIX** (2 substantive findings folded into the fix).
 SCOPED BUILD-FIX ACTIVE → scoped audit → calibration round 3 → ladder
 + bands review → margin freeze → sweep.)*
+
+---
+
+### 1.24 SCOPED BUILD-FIX AUDIT (2026-07-09): RESIDUAL-FINDINGS — fix logic sound; cost estimate 4× low via an avoidable LM-head waste; one untested precision note
+
+Recorded per the gauntlet-bookkeeping hard rule. Import-chain repair
+(1db9594) confirmed; all baseline suites pass; padding causal-inertness
+INDEPENDENTLY VERIFIED (bit-identical answer logits at min_t 128/256/
+512); mutations (b) dial-cap and (c) band-weakening CAUGHT.
+
+**FINDINGS (binding on the pre-launch fix):**
+- **AUD2-F1 (MAJOR, economics): the CE_answer continuation applies the
+  50,259-way LM head to ALL 128 padded positions then discards 127/128**
+  (lm_pretrain_rd.py:1298 path) — measured added cost 6.57×/6.81×
+  per-step on contender/ablation → corrected round-3 total ≈9.18 GPU-h
+  vs the §1.6 2.300 figure (≈4.0×, past the 1.5× flag bar); the
+  27-cell sweep's 11.675 GPU-h projection is ALSO pre-CE_answer stale.
+  → FIX: slice the hidden state to the answer position BEFORE the
+  LM-head matmul (architecturally clean, cuts the waste ~99%); then a
+  FRESH on-box timing pilot under the real three-term objective
+  re-prices round 3 AND the sweep before any launch; §1.6 cost-note.
+- **AUD2-F2 (substantive): mutation (a) NOT CAUGHT — no test defends
+  the K-restricted gather+argmax** (§1.23's own load-bearing precision
+  note). → FIX: a planted-answer synthetic test where global-vocab and
+  K-restricted argmax provably differ (a non-candidate token gets the
+  max logit; K-restricted must ignore it), run to completion.
+- **AUD2-F3 (defense-in-depth): mutation (d) not caught** (selftest-13
+  weakening invisible) — current code verified correct; add the cheap
+  guard if convenient, else record as accepted residual.
+- **AUD2-F4 (deploy mechanics, binding on the chain patch):** the
+  H2H_DIAL_ROUND export line (exact text in the audit transcript) +
+  TWO caveats: (i) unset/reset the var before Stage D (else a noisy
+  sweep-cell step-500 ratio could spuriously DialExhausted-abort);
+  (ii) a round-4 re-run must invalidate/move round-3's calibration
+  outputs or resume-safety will SKIP the cells entirely.
+
+**Cross-stream:** both commits leave the 2×2 runner + capability_
+separation untouched; CPU-side 2×2 flag grid passes 4/4 post-1db9594.
+
+---
+
+*(End §1. ... → §1.23 CLEARED-FOR-BUILD-FIX → build-fix cc89a4f →
+**§1.24 audit: RESIDUAL-FINDINGS (LM-head slice fix + rung-1 test
+required pre-launch)**. PRE-LAUNCH FIX ACTIVE → fresh timing pilot →
+calibration round 3. NOTE: margin freeze ALSO blocked on the
+fix-at-scale attack's per_token-vs-global adjudication (§13/660cffc) —
+the contender pin verifies before any freeze.)*
