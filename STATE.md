@@ -106,16 +106,34 @@ joint-training grad claim VACUOUS for the contender (CPU stub zero-state
 kills the aux path; pass was confounded by loss_ce)** → aux-only
 isolation test + box-only registration mandated; AUD-F2/F3 smoke gaps;
 AUD-F4 cosmetic; 8-item binding box-smoke checklist produced (§1.20).
-→ fixes ed6996c (all 4 + checklist manifest; negative tests run w/
-teeth) → scoped re-audit **FIXES-VERIFIED-CLEARED** (§1.20 addendum;
-mutations re-run independently; no coverage loss; no scope creep) →
-**DEPLOY STAGE ACTIVE** (agent dispatched): closure checksum box-vs-repo
-→ box smoke per h2h_box_smoke_checklist (items 1-4 direct) → gates 6+7
-on box → signoff tokens → PILOTS+CALIBRATION chain launched in tmux w/
-supervisor (items 5-7; calibration bands populated from archived
-Task-D/E/frozen-bias results w/ citations, flagged for coordinator
-review) → THEN coordinator reviews calibration harvest + RECORDS margin
-freeze in doc → sweep release (27 cells GPUs 0-6, then 90-pass fan-out).
+→ fixes ed6996c → scoped re-audit FIXES-VERIFIED-CLEARED (§1.20
+addendum) → **DEPLOYED AND LIVE ON BOX (2026-07-08, chain in tmux
+`h2h_rung1`)**: closure 27 files md5 EMPTY-DIFF (manifest committed
+under experiment-runs/2026-07-08_h2h_rung1_deploy/); box smoke items
+1-4 ALL PASS on REAL kernels (fla 0.5.1 + triton 3.7.1; AUD-F1
+aux-only grads on real Triton: k_proj 0.949/v_proj 0.752/b_proj 0.0278
+nonzero, detach→0; state bytes 32,768 fp32 exact); gates 6+7 PASSED on
+box + tokens; calibration bands committed (f2fe619; Task-3 ablation
+[1.90,2.60] ANCHORED to FROZEN_BIAS §12.1; Tasks 1/2 SANITY-ONLY
+flagged; 7 negative tests); DEPLOY WIRING (h2h_cell_train_rd.py + 3)
+built at deploy-time, independently audited (FIX-FIRST → 3 MAJORs
+fixed+box-verified pre-launch: H8 logits-aware chunking 11.8GB peak,
+code-level MARGINS_FROZEN refuse, deterministic gate-7 seeds); chain
+progressed: stage −1 + 0 + A DONE (9 pilots PASSED, projected training
+**11.675 GPU-h** — under the 12.5672 estimate; msweep 1.1-1.5 s/pass
+real vs 5s assumed), **stage B calibration MID-FLIGHT (7 cells
+parallel, GPUs 0-6 at 60-98%, GPU 7 free)**. CALIBRATION_COMPLETE.json
+expected ~2-3h from 00:31 box time → COORDINATOR THEN: harvest vs
+raws, verify bands, review the 5 FLAGGED DEPLOY PINS (n_query_train=8;
+task3 corpus=openr1-mix-ext; vocab 50259 symmetric; filler=BUFFER
+right-pad; task2 K=32/H_train=(1,2)/H_test=(3,4)) + the transformer
+task3 LR-grid decision, re-derive bracket w/ measured s/pass, RECORD
+margin freeze in doc+STATE+push, write MARGINS_FROZEN.token (may carry
+transformer_task3_lr) → stage D sweep (27 cells) + 90-pass fan-out
+runs unattended → harvest. Monitor: ssh youthful-indigo-turkey tail -f
+/home/nvidia/chapter2/deltanet_rd/logs/h2h_rung1_supervisor.log. Git
+blemish noted: closure-manifest file folded into 3b035b6 by a
+concurrent commit — content correct, ignore.
 
 **CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
 push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)
