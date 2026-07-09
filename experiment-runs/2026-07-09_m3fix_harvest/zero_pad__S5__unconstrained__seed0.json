@@ -1,0 +1,59 @@
+{
+  "cell_id": "zero_pad__S5__unconstrained__seed0",
+  "group": "S5",
+  "arm": "unconstrained",
+  "seed": 0,
+  "force_rank_k": null,
+  "steps_completed": 8000,
+  "n_skipped_steps": 0,
+  "wall_clock_s": 64.61730551719666,
+  "mean_cos": -0.0015667158815928887,
+  "recovered_frac_90": 0.0,
+  "crosscheck_mean_cos": 0.7371594329525777,
+  "crosscheck_recovered_frac_90": 0.5,
+  "restricted_effective_rank": 3.5045132637023926,
+  "restricted_stable_rank": 2.1462595462799072,
+  "whole_matrix_effective_rank": 3.547370433807373,
+  "c_hat": 0.6106976162559179,
+  "convergence_profile": {
+    "1": 0.7642987966537476,
+    "2": 0.9830396175384521,
+    "3": 0.9681854844093323,
+    "4": 0.9241667985916138,
+    "5": 0.8761385679244995,
+    "6": 0.7936350703239441,
+    "7": 0.6881898045539856,
+    "8": 0.6462618708610535
+  },
+  "gate1a": {
+    "l_range": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "min_val": 0.8761385679244995,
+    "at_L": 5,
+    "margin_over_tau": -0.02386143207550051,
+    "required_margin": 0.02,
+    "tau": 0.9,
+    "clears": false,
+    "l1_disclosed": 0.7642987966537476,
+    "full_profile": {
+      "1": 0.7642987966537476,
+      "2": 0.9830396175384521,
+      "3": 0.9681854844093323,
+      "4": 0.9241667985916138,
+      "5": 0.8761385679244995,
+      "6": 0.7936350703239441,
+      "7": 0.6881898045539856,
+      "8": 0.6462618708610535
+    }
+  },
+  "l_ge2_mean_cos": 0.017567153337524816,
+  "l_ge2_recovered_frac_90": 0.0,
+  "l_ge2_n_eval": 18,
+  "l_ge2_n_total": 20,
+  "target_padding": "zero",
+  "m3fix_variant": "zero_pad"
+}

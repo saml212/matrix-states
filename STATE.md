@@ -174,7 +174,29 @@ all-58 (campaign ≈3.36/30). **§1.11's diagnosed-INCONCLUSIVE gate arm
 is DISCHARGED — Stage-2 build dispatch formally unblocked (§2.18);
 a cheap tax-free M3 re-run (~28 cells ≈1.3-2.6 GPU-h, two pre-specified
 fix variants in §1.33) is the registered next wave before any Stage-1
-paper claim.**
+paper claim.** **M3 FIX WAVE: BUILT (b07d2b6, §1.34 — variant B
+necessarily 2-point, grid amendment recorded) → AUDIT CLEARED (§1.35,
+8/8 mutations caught + the C1 crosscheck-metric pin pre-registered
+before launch) → LAUNCHED (tmux `m3fix_wave`, GPU 0, 30 cells n=1) →
+HARVESTED (2026-07-09, §1.36; archive
+`experiment-runs/2026-07-09_m3fix_harvest/`, 33/33 md5-exact, A3
+config-match CLEAN vs an independent-literal manifest). VERDICT:
+CAUSAL-CONFIRM** — with the ambient tax removed, k=d_min−1 FAILS at
+all 5 groups (xrec90 exactly 0.000, xcos under the 0.894 oracle bound)
+and k=d_min RECOVERS to anchor class in 4/5 groups INCLUDING BOTH
+marquee members (S4 0.800/anchor 0.650; A5 0.700/0.700; S5 0.600/0.500;
+A6 0.650/0.650), k=d_min+1 recovers everywhere; the old √(k/d_state)
+climb signature is ABSENT (step function at d_min instead). Variant B
+corroborates the tax mechanism (eff-rank d_min−1 fails at 0.000,
+tax-paid point recovers 0.500-0.850). The scale-only primary diverged
+exactly as the §1.35 oracle injection predicted — the C1 pin was
+load-bearing. **S3 is the one below-bar group (0.450 vs 0.495 bar,
+inside the pre-stated ±0.05 marginality trigger) → a ~0.15 GPU-h 3-seed
+S3 extension is ROUTED before S3 is quoted as a confirm group; the
+overall verdict doesn't depend on it. The Stage-1 rank-law trilogy
+(M1 ρ=0.9747 + marquee DECLARE + M3 causal razor) is now COMPLETE —
+the flagship claim's decisive leg is banked.** Realized 1.4235 GPU-h
+vs 1.3324 priced (+6.8%, eval overhead).
 
 ### 3. Attractor-Robustness 2×2 (novelty stress-test follow-on, 2026-07-09)
 
@@ -497,14 +519,16 @@ correction pass, out of scope for this consolidation.
   — gate failed, pilot-only spend (≈0.02 GPU-h), coordinator decision
   pending** (`experiment-runs/2026-07-09_h2h_timing2_launch/`).
 - phase2b: 8.3/66.5.
-- capability-separation Stage 1: **≈3.36/30 realized** (pre-sweep
+- capability-separation Stage 1: **≈4.78/30 realized** (pre-sweep
   ≈0.97: calibration 0.0895 + gate-1 diagnosis 0.38 + round-7 L=1
   diagnostic 0.30 + Rev-7 calibration re-check 0.2039; + the 58-cell
   sweep's 53 new cells 2.3867, HARVESTED 2026-07-09, §1.33 —
   INCONCLUSIVE-diagnosed(D-AMB), realized 44% under the 4.62 gate
-  projection and within 3% of the ≈2.51 group-weighted estimate). The
-  §1.33-registered tax-free M3 fix wave (~1.3-2.6 GPU-h) is the next
-  claim on this ledger.
+  projection and within 3% of the ≈2.51 group-weighted estimate; + the
+  M3 fix wave 1.4235, HARVESTED 2026-07-09, §1.36 — **CAUSAL-CONFIRM**,
+  +6.8% over its 1.3324 step-rate price, inside the registered 1.3-2.6
+  window). Next claim: the routed ~0.15 GPU-h S3 3-seed marginality
+  extension (§1.36).
 - attractor-robustness 2×2: **≈3.0 realized** (screening 1.03 +
   escalation 1.97) vs ceilings 1.0096 + 3.03; n=3 escalation HARVESTED
   2026-07-09 — gating-amplifies NOT CONFIRMED at the pre-registered bar

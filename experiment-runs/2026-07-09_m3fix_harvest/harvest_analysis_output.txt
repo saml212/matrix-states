@@ -1,0 +1,77 @@
+==============================================================================
+A3 CONFIG-MATCH + VERIFY-VS-RAWS
+==============================================================================
+cells found: 30/30; independent-literal manifest match: EXACT
+ALL 30 cells: steps == Rev-7 pins, force_rank_k + target_padding per manifest, n_skipped_steps == 0, seed == 0. CONFIG-MATCH CLEAN.
+
+realized: 576,000 step-cells; wall-clock sum 1.4235 h (single GPU => 1.4235 GPU-h) vs registered price 1.3324; pricing-basis check 1.3324
+
+==============================================================================
+C1 DECISIONAL (variant A zero_pad): crosscheck_recovered_frac_90 [xrec90] / crosscheck_mean_cos [xcos]
+==============================================================================
+G   d_min unconstr.             k=d_min-1             k=d_min               k=d_min+1             
+S3  2     0.550 / 0.743      0.000 / 0.610      0.450 / 0.681      0.550 / 0.622      
+S4  3     0.650 / 0.921      0.000 / 0.745      0.800 / 0.936      0.950 / 0.966      
+A5  3     0.700 / 0.880      0.000 / 0.775      0.700 / 0.859      0.750 / 0.890      
+S5  4     0.500 / 0.737      0.000 / 0.655      0.600 / 0.751      0.550 / 0.738      
+A6  5     0.650 / 0.907      0.000 / 0.836      0.650 / 0.903      0.700 / 0.916      
+
+DISCLOSED-DIAGNOSTIC ONLY (scale-only primary rec90/mean_cos; expected to diverge per S1.35 oracle-injection):
+S3  2     0.300 / 0.427      0.000 / 0.190      0.250 / 0.314      0.300 / 0.379      
+S4  3     0.050 / 0.467      0.000 / 0.388      0.100 / 0.163      0.050 / -0.019      
+A5  3     0.150 / 0.370      0.000 / 0.130      0.150 / 0.187      0.200 / 0.182      
+S5  4     0.000 / -0.002      0.000 / -0.082      0.000 / 0.079      0.000 / -0.021      
+A6  5     0.100 / 0.158      0.000 / 0.214      0.150 / 0.139      0.150 / 0.306      
+
+OLD-DEFECT SIGNATURE CHECK (variant-A direct mean_cos vs sqrt(k/d_state) tax ceiling -- should NOT track it now that the tax is removed):
+  S3 k=1: xcos=0.610 vs old-tax-ceiling sqrt(k/d_state)=0.500 (delta +0.110)
+  S3 k=2: xcos=0.681 vs old-tax-ceiling sqrt(k/d_state)=0.707 (delta -0.027)
+  S3 k=3: xcos=0.622 vs old-tax-ceiling sqrt(k/d_state)=0.866 (delta -0.244)
+  S4 k=2: xcos=0.745 vs old-tax-ceiling sqrt(k/d_state)=0.632 (delta +0.112)
+  S4 k=3: xcos=0.936 vs old-tax-ceiling sqrt(k/d_state)=0.775 (delta +0.161)
+  S4 k=4: xcos=0.966 vs old-tax-ceiling sqrt(k/d_state)=0.894 (delta +0.072)
+  A5 k=2: xcos=0.775 vs old-tax-ceiling sqrt(k/d_state)=0.632 (delta +0.143)
+  A5 k=3: xcos=0.859 vs old-tax-ceiling sqrt(k/d_state)=0.775 (delta +0.084)
+  A5 k=4: xcos=0.890 vs old-tax-ceiling sqrt(k/d_state)=0.894 (delta -0.004)
+  S5 k=3: xcos=0.655 vs old-tax-ceiling sqrt(k/d_state)=0.707 (delta -0.052)
+  S5 k=4: xcos=0.751 vs old-tax-ceiling sqrt(k/d_state)=0.816 (delta -0.066)
+  S5 k=5: xcos=0.738 vs old-tax-ceiling sqrt(k/d_state)=0.913 (delta -0.174)
+  A6 k=4: xcos=0.836 vs old-tax-ceiling sqrt(k/d_state)=0.756 (delta +0.080)
+  A6 k=5: xcos=0.903 vs old-tax-ceiling sqrt(k/d_state)=0.845 (delta +0.058)
+  A6 k=6: xcos=0.916 vs old-tax-ceiling sqrt(k/d_state)=0.926 (delta -0.010)
+
+restricted_effective_rank (variant A):
+  S3: unconstrained=1.70  k_dmin_minus_1=1.00  k_dmin=1.68  k_dmin_plus_1=1.76  
+  S4: unconstrained=2.95  k_dmin_minus_1=1.95  k_dmin=2.94  k_dmin_plus_1=2.96  
+  A5: unconstrained=2.86  k_dmin_minus_1=1.99  k_dmin=2.78  k_dmin_plus_1=2.86  
+  S5: unconstrained=3.50  k_dmin_minus_1=2.81  k_dmin=3.46  k_dmin_plus_1=3.52  
+  A6: unconstrained=4.72  k_dmin_minus_1=3.89  k_dmin=4.63  k_dmin_plus_1=4.70  
+
+==============================================================================
+VARIANT B tax_adjusted (A2: corroboration only; k_dmin cell == unconstrained re-run by construction): xrec90 / xcos [direct mean_cos vs sqrt(k/d_state)]
+==============================================================================
+  S3 k_dmin_minus_1 (raw k=3, eff rho-rank=1): 0.150 / 0.327 [direct -0.082 vs tax-ceiling 0.866]
+  S3 k_dmin (raw k=4, eff rho-rank=2): 0.500 / 0.621 [direct 0.436 vs tax-ceiling 1.000]
+  S4 k_dmin_minus_1 (raw k=4, eff rho-rank=2): 0.000 / 0.732 [direct -0.034 vs tax-ceiling 0.894]
+  S4 k_dmin (raw k=5, eff rho-rank=3): 0.850 / 0.939 [direct 0.411 vs tax-ceiling 1.000]
+  A5 k_dmin_minus_1 (raw k=4, eff rho-rank=2): 0.000 / 0.738 [direct 0.176 vs tax-ceiling 0.894]
+  A5 k_dmin (raw k=5, eff rho-rank=3): 0.650 / 0.857 [direct 0.308 vs tax-ceiling 1.000]
+  S5 k_dmin_minus_1 (raw k=5, eff rho-rank=3): 0.000 / 0.692 [direct -0.046 vs tax-ceiling 0.913]
+  S5 k_dmin (raw k=6, eff rho-rank=4): 0.650 / 0.765 [direct -0.029 vs tax-ceiling 1.000]
+  A6 k_dmin_minus_1 (raw k=6, eff rho-rank=4): 0.000 / 0.839 [direct 0.174 vs tax-ceiling 0.926]
+  A6 k_dmin (raw k=7, eff rho-rank=5): 0.650 / 0.892 [direct 0.341 vs tax-ceiling 1.000]
+
+==============================================================================
+PER-GROUP RAZOR-STEP READING (pre-registered S1.33/S1.35): k=d_min-1 FAILS (oracle-bounded <=0.894), k>=d_min RECOVERS (well above bar-class)
+==============================================================================
+S3: below FAILS=True (xrec90 0.000, xcos 0.610) | k=d_min RECOVERS=False (xrec90 0.450 vs 0.9x-anchor 0.495) | k=d_min+1 RECOVERS=True (0.550) | razor step +0.450 => no-confirm
+S4: below FAILS=True (xrec90 0.000, xcos 0.745) | k=d_min RECOVERS=True (xrec90 0.800 vs 0.9x-anchor 0.585) | k=d_min+1 RECOVERS=True (0.950) | razor step +0.800 => RAZOR-STEP CONFIRM
+A5: below FAILS=True (xrec90 0.000, xcos 0.775) | k=d_min RECOVERS=True (xrec90 0.700 vs 0.9x-anchor 0.630) | k=d_min+1 RECOVERS=True (0.750) | razor step +0.700 => RAZOR-STEP CONFIRM
+S5: below FAILS=True (xrec90 0.000, xcos 0.655) | k=d_min RECOVERS=True (xrec90 0.600 vs 0.9x-anchor 0.450) | k=d_min+1 RECOVERS=True (0.550) | razor step +0.600 => RAZOR-STEP CONFIRM
+A6: below FAILS=True (xrec90 0.000, xcos 0.836) | k=d_min RECOVERS=True (xrec90 0.650 vs 0.9x-anchor 0.585) | k=d_min+1 RECOVERS=True (0.700) | razor step +0.650 => RAZOR-STEP CONFIRM
+
+razor step present in 4/5 groups
+marquee-pair coverage (S4 or A5 must be among confirms): True
+
+MARGINALITY TRIGGER (+/-0.05 of a decision boundary) FIRED:
+  S3: k_dmin xrec90 0.450 vs 0.9*anchor 0.495

@@ -5965,3 +5965,114 @@ deploy (unaffected); the 11-cell calibration gate BLOCKED on N1-N3;
 N-fixes dispatched → narrow re-check (N1-N4 mutations only) → deploy →
 gate. Harvest analysis script still REQUIRED pre-sweep. Security: +2
 md5-refuted file-modified fakes (racing tally, ≥80 class).
+
+### §1.36 M3 FIX-WAVE HARVEST VERDICT (2026-07-09): CAUSAL-CONFIRM — the razor step at k=d_min in 4/5 groups INCLUDING BOTH marquee members; k=d_min−1 xrec90 = 0.000 at ALL 5; the rank law's causal leg is IN; S3 marginality trigger FIRED → seed extension routed
+
+Recorded per the gauntlet-bookkeeping hard rule. Harvest archive (30
+JSONs + wave/smoke logs + the analysis script + its output):
+`experiment-runs/2026-07-09_m3fix_harvest/` (SSD-mirrored).
+
+**Verify-vs-raws + A3 statement.** 33/33 pulled files (30 JSONs +
+M3FIX_STAGE_DONE + m3fix_wave.log + box_smoke_m3fix.log) md5-match the
+box. Inventory 30/30 against an INDEPENDENT-LITERAL manifest
+(re-derived in the analysis script from §1.34's spec, not imported from
+run code): cell_id set EXACT; every cell's `steps_completed` == its
+Rev-7 pin (S3/S5=8K, S4/A5=20K, A6=40K); `target_padding` == "zero"
+(all 20 variant-A) / "eye" (all 10 variant-B); `force_rank_k` per
+manifest including variant B's +2 tax offsets and `None` on the 5
+anchors; `n_skipped_steps=0`, seed=0, everywhere. Zero tracebacks/
+aborts in the full wave log; supervisor exited 0; sentinel present.
+**A3 DISCHARGED: config-match CLEAN, not just health.**
+
+**THE C1 DECISIONAL TABLE (variant A zero-pad; xrec90 =
+crosscheck_recovered_frac_90, [xcos] = crosscheck_mean_cos; n=1/cell
+per the Task-D single-seed convention):**
+
+| G | d_min | unconstr. anchor | k=d_min−1 | k=d_min | k=d_min+1 | Δxrec90 step at d_min | razor step |
+|---|---|---|---|---|---|---|---|
+| S3 | 2 | 0.550 [0.743] | 0.000 [0.610] | 0.450 [0.681] | 0.550 [0.622] | +0.450 | below-bar (marginal, see below) |
+| S4 | 3 | 0.650 [0.921] | 0.000 [0.745] | **0.800** [0.936] | 0.950 [0.966] | +0.800 | **CONFIRM** |
+| A5 | 3 | 0.700 [0.880] | 0.000 [0.775] | **0.700** [0.859] | 0.750 [0.890] | +0.700 | **CONFIRM** |
+| S5 | 4 | 0.500 [0.737] | 0.000 [0.655] | **0.600** [0.751] | 0.550 [0.738] | +0.600 | **CONFIRM** |
+| A6 | 5 | 0.650 [0.907] | 0.000 [0.836] | **0.650** [0.903] | 0.700 [0.916] | +0.650 | **CONFIRM** |
+
+The pre-registered reading (§1.33/§1.35) holds at 4/5 groups:
+`k=d_min−1` FAILS — xrec90 EXACTLY 0.000 in all 5 variant-A below
+cells, xcos 0.610-0.836 all under the 0.894 oracle upper bound (A6's
+0.836 sits 0.058 under it, outside the ±0.05 screen) — while `k=d_min`
+RECOVERS to anchor-class values (bar = 0.9×own-anchor xrec90: S4
+0.800 vs 0.585, A5 0.700 vs 0.630, S5 0.600 vs 0.450, A6 0.650 vs
+0.585) and `k=d_min+1` recovers at every group including S3. The OLD
+defect signature is ABSENT: xrec90 is a step function at d_min, not
+the √(k/d_state) monotone climb (direct-cosine deltas vs the old tax
+ceiling now swing −0.244..+0.161, vs §1.33's 37/39-within-0.07 pin to
+it). Restricted effective rank at the unconstrained anchors lands at
+1.70/2.95/2.86/3.50/4.72 — inside M1's [0.7,1.3]·d_min band at all 5
+groups, re-verifying M1's clean tracking under the fixed target family.
+
+**OVERALL: CAUSAL-CONFIRM** per the pre-registered criterion (razor
+step at k=d_min in ≥4/5 groups including ≥1 of the marquee pair — here
+BOTH S4 and A5 confirm). Combined with §1.33's banked M1 CONFIRM
+(ρ=0.9747) and marquee DECLARE, the Stage-1 rank-law story is now
+complete on all three legs: rank tracks d_min observationally, the
+marquee pair separates by dimension not solvability, and d_min rank is
+causally NECESSARY (0.000 below) and SUFFICIENT (recovery at) — the
+flagship claim's decisive leg is IN.
+
+**Marginality assessment (pre-stated ±0.05 trigger).** S3's decisive
+k=d_min cell reads 0.450 vs its 0.495 bar — |Δ|=0.045, INSIDE the
+trigger → **the seed-parameterization routing FIRES for S3**: a 3-seed
+extension of S3's variant-A cells (8 cells × 8K steps ≈ 0.15 GPU-h at
+the realized rate) is warranted before S3 is quoted as a confirm
+group; the overall CAUSAL-CONFIRM does not depend on it (4/5 + both
+marquee members hold without S3). Next-nearest distances, outside the
+trigger and disclosed: A6 +0.065, A5 +0.070 above their bars. S3 is
+also qualitatively step-shaped (0.000 → 0.450 from a hard zero, full
+anchor parity at k=d_min+1); it is the same group §1.33's P3 flagged
+as noisiest (d_state=4).
+
+**Variant B (per A2 — tax-mechanism corroboration ONLY, never an
+independent constrained test).** At every group the eye-padded
+below point (raw k=d_min+1, effective rho-rank d_min−1) FAILS on
+xrec90 (0.000 at S4/A5/S5/A6; S3 leaks 0.150, disclosed) while the
+tax-paid point (raw k=d_state ≡ unconstrained re-run) recovers
+(0.500-0.850, e.g. S4 0.850 [0.939]). The same raw k=d_min+1 that
+§1.33's grid showed failing now carries its mechanistic reading: 2
+dims of the cap buy the ambient identity first (D-AMB P3), leaving
+effective rho-rank d_min−1. Tax narrative CORROBORATED.
+
+**Disclosed-diagnostic (scale-only primary).** Diverges from the
+crosscheck exactly as §1.35's oracle injection predicted (e.g. S4
+k=d_min+1: primary mean_cos −0.019 vs crosscheck 0.966; S5 anchor
+primary rec90 0.000 vs crosscheck 0.500) — the C1 pin was
+load-bearing; no conclusion above reads the primary.
+
+**Health disclosures.** gate-1(a) (min L∈[2..5] cos ≥ 0.92): all 10
+k=d_min−1 cells fail it — that is the measured phenomenon (a
+rank-starved model cannot converge to the target), not an instrument
+defect. Separately, S3's four variant-A cells (anchor min_val 0.9143)
+and S5's anchor/k_dmin/k_dmin+1 (0.876-0.879) sit just under the bar —
+soft convergence under the zero-pad family at the two 8K-step groups,
+disclosed; both groups' razor reading is anchor-relative so the
+comparison stands, and the S3 seed extension above also covers it.
+S4/A5/A6 anchors clear with margin.
+
+**Realized cost: 1.4235 GPU-h** (per-cell wall-clock sum; wave span
+17:09:10→18:34:41 UTC on GPU 0 = 1.4253 h, matches) vs the 1.3324
+compile-time price — +6.8%, eval overhead outside the step-rate
+basis; inside §1.33's registered 1.3-2.6 window. **Ledger: ≈3.36 +
+1.42 = ≈4.78/30 GPU-h campaign-realized.**
+
+**Consequence line.** The capability-separation flagship's Stage-1
+trilogy (M1 observational + marquee equivalence + M3 causal) is now
+fully banked with one routed follow-up (the S3 seed extension) and one
+carried caveat (fix-wave cells are n=1; the Task-D single-seed
+convention HELD everywhere except the S3 trigger above). Stage-2's
+§1.11 gate was already discharged on the diagnosed-INCONCLUSIVE arm;
+this record upgrades the basis to CONFIRM proper. Paper impact: the
+workshop trilogy's rank-law section can now cite a causal razor, not
+just correlation — with the D-AMB diagnosis + fix wave as the
+methodology narrative (instrument defect found from raws, fixed, and
+the pre-registered prediction landing on the repaired instrument).
+Security: ZERO injection sightings in this harvest's tool stream and
+zero fake blocks in the pulled logs (tally unchanged).
