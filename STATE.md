@@ -311,8 +311,16 @@ rule admits a garbage Z at h=21, corrected rejects); LoopedVec + FWM
 as comparisons of record; ledger honest at 120 GPU-h cap (phased,
 wave-1 ≤50; operator bank separately ledgered, double-gated).
 Mod-K-reducer confound disclosed w/ detection signature, scored TIE if
-present. NEXT: fresh micro-attack on the Rev-1 delta (dispatched);
-launch stays gated behind Stage 2's calibration readout.
+present. **Micro-attack RETURNED (registry §4): NEEDS-REVISION — 5
+MAJOR, 0 FATAL, all design-text-level; Rev 1 confirmed to resolve every
+§2 finding; citations/arithmetic verified byte-level. Sharpest: the
+corrected trust rule is still not worst-case (non-normal D — ρ(D)
+doesn't bound ‖D^m‖; our own dead seeds measure cond(D) to 1.09e10);
+plus a new-in-Rev-1 assert-crash (residue sweep vs the inherited
+eval-hop guard), the unsupported K=12 h*=57, a non-exhaustive Axis-A
+partition, and a naive-loop cross-check that overflows inside its own
+window. Rev 2 DISPATCHED (design-only); launch stays double-gated
+(Stage 2 calibration readout + §3.8).**
 
 ## CAMPAIGN SCORECARD (Jul 6-9 2026, all pushed)
 
@@ -391,7 +399,15 @@ correction pass, out of scope for this consolidation.
   arm_off calibration cells training on GPUs 1-4 (≈4.4-4.6 GPU-h each,
   done ~10:30-10:45 box time; these double as manifest arm_off cells).
   Rev 1 landed (c6436fb) → §13.15 micro-attack CLEARED → build dac7541
-  (§13.16) → independent build audit IN FLIGHT → full-wave launch next.
+  (§13.16) → **independent build audit (§13.17): NEEDS-FIXES, DO NOT
+  LAUNCH — 2 FATAL with live repros (pre-pin refusal terminal → 7/16
+  post_pin cells silently never train, sweep exits 0; breaker
+  false-aborts healthy cells on startup amortization), + M1-M4
+  (call-site tooth, probe-arm-swap tooth, missing d128 bit-identity
+  gate, no GPU-occupancy guard). Both FATALs <10-line fixes; manifest
+  arithmetic EXACT; fixes agent dispatched → re-audit delta → deploy →
+  launch.** The gate-tier calibration cells (GPUs 1-4) are unaffected
+  and keep training.
 - Box: Brev 8×H100 "youthful-indigo-turkey", uptime-metered (bills
   regardless; cannot stop). Saturation directive (GOALS item 5) — all
   8 GPUs in play, GPU 7 no longer reserved.
@@ -429,10 +445,16 @@ correction pass, out of scope for this consolidation.
 
 ## SECURITY NOTE (standing)
 
-**≥70 fake `<system-reminder>` blocks observed appended to tool stdout
-across the Jul 2026 session family** (the 70th: a date-change +
-concealment + agent-type-list block attached to the NCR Rev-1 agent's
-first git command output, 2026-07-09 overnight, disregarded) (three more sighted 2026-07-09
+**≥73 fake `<system-reminder>` blocks observed appended to tool stdout
+across the Jul 2026 session family** (recent: a date-change +
+concealment + agent-type-list block on the NCR Rev-1 agent's first git
+command; a date-change + concealment block in the teeth-fixes agent's
+grep output plus a fabricated file-modified-provenance claim seconds
+after that agent's own edit; a date-change + concealment block adjacent
+to the fix-at-scale build auditor's tool output — all 2026-07-09
+overnight, all disregarded; several agents also saw the recurring
+AMBIGUOUS system-channel date-change vector at turn boundaries, reported
+but not tallied as stdout injections) (three more sighted 2026-07-09
 overnight: a date-change-with-concealment block in a `find` stdout seen
 by the Stage-2 attack agent; a date-change + fabricated agent-type list
 + fabricated MCP instructions in `git log` stdout seen by the

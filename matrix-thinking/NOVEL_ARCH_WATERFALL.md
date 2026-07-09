@@ -515,3 +515,53 @@ calibration gates), m1-m4 (folded, §3.7). Micro-attack round on this
 Rev 1 is PENDING (§3.8(b)); launch remains gated behind Stage 2's
 calibration readout (§3.8(a)) and the executed negative test
 (§3.8(c)). No GPU spent; no code written.
+
+## §4 MICRO-ATTACK ON REV 1 (2026-07-09 overnight): NEEDS-REVISION — 5 MAJOR, 0 FATAL; Rev 1 confirmed to resolve every §2 finding
+
+Byte-level citation audit: ALL §3 citations verify against TASK_E_FINDINGS
+(phase residuals, fr7 collapse, K16 s2, ρ(D), c*, the 2.4 GPU-h anchor);
+all arithmetic re-derived exact (mod-K residues, arccos bounds, seed bands,
+T-rule values, the fp32-overflow-at-h≈83 claim, τ floor); the suspected
+h*=61-vs-hold-front-87 inconsistency does NOT land (87-442 is a FAILURE
+front; 61 < every healthy K=8 seed's conservative onset). The
+renormalization-invariance claim CONFIRMED numerically (cos=1.0 at
+h=21/61/125 incl. non-power-of-2 partial products). Ledger closes at 120
+(Phase-0-inside-Phase-1 convention).
+
+**MAJOR findings (binding on Rev 2, all design-text-level, no GPU
+implications):**
+- **MA1 (highest-value fix):** §3.4's rule is NOT worst-case: ρ(D) doesn't
+  bound ‖D^m‖ for non-normal D, and injected growth needs σ_max(A) not
+  σ_min(A). Executed counterexample: D=100·E₀₁ (nilpotent, ρ=0, ‖D‖₂=100),
+  ‖C‖=0.01 → RULE-TRUSTED at every h while actual junk/signal at h=21 is
+  0.29 > τ. Our own dead seeds measure cond(D) up to 1.09e10 — a MEASURED
+  regime. Fix: r := σ_max(D)/σ_min(A), σ_max(A)^{j−1} growth, disclose
+  B-feedback neglect, add a non-normal-D admit-direction case to the
+  §3.8(c) executed negative test, special-case r≈1.
+- **MA2 (new-in-Rev-1):** the pinned residue sweep (h=64/60 identity;
+  57-59/49-51 ≡ train residues) ASSERT-CRASHES against task_e.py:121-132's
+  inherited eval-hop guard. Specify a label-and-exclude eval-grid pathway
+  for the sweep component; keep the assert for claim-feeding paths.
+- **MA3:** h*=57 (K=12) has no supporting arithmetic; §10's K=12 residuals
+  give conservative holds 103/46/36 — only 1/3 archived seeds holds at 57;
+  K=12 tolerance is arccos(−0.2)=1.77 never computed. Publish the K=12
+  arithmetic; move h* or pre-register asymmetric confidence.
+- **MA4:** Axis-A outcome partition non-exhaustive (NCR ≥0.9 with baseline
+  in (0.5,0.9) is neither WIN/TIE/LOSE; cross-K aggregation unstated; P2's
+  "by h≤32" has no grid point at 32). Partition exhaustively with numeric
+  hold/fail bands + a cross-K rule.
+- **MA5:** the naive-loop fp32 cross-check overflows INSIDE its own h≤125
+  window at measured c*=2.843 (2.843^125≈5e56); loop arm needs per-step
+  renorm or window cap ≤61; "fp32 tolerance" unpinned; §3.1 must pin
+  renormalization of the squared BASE, not just the running product.
+- 8 MINOR (mi1-mi8): incl. harmonize the read-vector-std bar (0.05 here vs
+  Stage 2's derived 0.04, same instrument); pin the negative test's
+  construction (seed/norm convention); disclose that decisive far-h points
+  are all RULE-UNTRUSTED and ride on shadow+Axis-C; phase-wrap revivals
+  near ladder point 509; pin the LoopedVec step-map family; K=12
+  calibration gap disclosure; 13.6 GPU-h headroom disclosure.
+
+**DISPOSITION: Rev 2 dispatched (design-only). Gates §3.8 verified as
+hard ALL-of conditions and unchanged. Security: one system-channel
+date-change+concealment sighting (the recurring ambiguous vector),
+reported.**

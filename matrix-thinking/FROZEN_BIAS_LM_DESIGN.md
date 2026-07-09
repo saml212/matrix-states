@@ -5121,3 +5121,70 @@ resume-skip corruption, breaker bypass, blind-check bypass, comparator
 double-pass, tier-string mutation, manifest-vs-§13-ledger cell count) →
 deploy (md5) → LAUNCH full wave (392M GPUs 0-3, 98M 4-6; respects gate
 tier on 1-4 until its calibration cells finish).**
+
+### §13.17 INDEPENDENT BUILD AUDIT VERDICT (2026-07-09 overnight, on dac7541): NEEDS-FIXES — DO NOT LAUNCH
+
+Isolated-worktree audit; pristine 68/68 smoke PASS; manifest-vs-ledger
+EXACT (28 cells enumerate to 281.04 GPU-h at 2×, no cell outside the
+ledger, no training row outside the manifest); builder claims (a)/(b)
+verified (the global arm IS the literal §13.3/Arm-2′ transplant via
+lm_pretrain_rd's existing CLI; the frozen-bias-specific blind-check twin
+is semantically identical to key_anchoring's with the deliberate schema
+difference); pin writers COVERED (write_wave_pin + barrier + verify-pin).
+
+**FATAL (launch-blocking, both reproduced live, both <10-line fixes in
+fixscale_wave.py):**
+- **F1 — pre-pin refusal is TERMINAL:** do_sweep (:711-720) writes
+  `.REFUSED` when check_blind fails pre-pin, but TERMINAL_STATES (:262)
+  never re-runs refused cells, and the supervisor launches post_pin slots
+  BEFORE the pin exists by design → the first post_pin cell of every slot
+  (all three 392M-openr1 per_token seeds + the 392M-openr1 probe + all
+  three 98M-openr1 per_token seeds = 7/16) is silently never trained; the
+  sweep exits 0. Repro: scratchpad repro_refused_terminal.py. Fix: no
+  marker on missing-pin (log + rc 1, retryable); reserve .REFUSED for
+  genuine ordering violations or clear on later pass.
+- **F2 — breaker false-aborts healthy cells:** _budget_watchdog (:326-342)
+  uses CUMULATIVE elapsed/last-step at 120 s ticks; startup (imports,
+  corpus, model init, Triton compile) consumes the whole 1.5× margin at
+  early ticks since realized rates sit AT reference → healthy 392M cell
+  with >36.4 s startup killed at tick 1, ABORTED_BUDGET terminal+silent;
+  plausibly the whole wave "completes" aborted. §13.8 specified
+  1,000-step-cadence checks; the build deviated. Repro:
+  repro_watchdog_false_abort.py. Fix: gate the rate signal on step ≥1000
+  (or interval rate / first-N-ticks grace); wall-clock ceiling is correct
+  as-is.
+
+**MAJOR:** M1 blind-check CALL-SITE untested (removing the do_sweep block
+→ 68/68 still pass; add a monkeypatched do_sweep-level test). M2 probe-arm
+swap invisible (ARM_TO_FROZEN_BIAS_ARM check is self-referential; pin the
+dict literal + assert probe base_cmd carries --frozen-bias-arm global).
+M3 Wave −1 pre/post-blend bit-identity at d_state=128 MISSING entirely
+(gate §13.10 item 1; add CPU-stub leg + on-box real-kernel leg).
+M4 NO GPU-occupancy guard (all 8 GPUs currently busy; a premature launch
+co-schedules 39 GB cells onto live work and F2 converts the slowdown into
+terminal aborts; add nvidia-smi memory check with --force-gpu-busy
+override).
+
+**MEDIUM:** m5 `cell` subcommand bypasses the blind gate (add the same
+check). m6 STOP file not honored between cells in do_sweep. m7 no disk
+guard (~700 GB new checkpoints across 24 cells; wire disk_space_check or
+verify /data headroom pre-launch). m8 comparator call-counting pins the
+pure helper only — production path is box-only; fix §13.16's overclaim
+wording + optional monkeypatched-loader test.
+**LOW:** l9 arm_off double-train window pre-pin (launch-order documented
+but unenforced); l10 gate-tier reuse lacks a runtime config-identity
+assert (constants verified identical today — defense-in-depth); l11
+manifest --with-state no-op; l12 non-atomic pin write (tmp+rename); l13
+deterministically-failing cell blocks its slot.
+
+**Box-only deploy-stage smoke list (builder's + auditor's additions):**
+real-kernel training subprocess; corpus loading; VRAM; supervisor runtime;
+verify-pin determinism (exact float equality across re-runs on real
+kernels); Wave −1 d128 bit-identity on real kernels; measure real
+startup-to-step-1000 (re-validate the fixed breaker against it); /data
+headroom; gate-tier calib cells terminal + GPUs actually free before
+launch-scale.
+
+**DISPOSITION: FIXES DISPATCHED (F1, F2, M1-M4, m5-m7 wired or explicitly
+waived) → re-run the audit's two repro scripts + full smoke → scoped
+re-audit of the delta → deploy (md5 + box-only smokes) → LAUNCH.**
