@@ -5773,3 +5773,33 @@ dispatch decision, not made here.
 
 *(Ledger after this harvest: 0.97 pre-sweep + 2.3867 sweep-new =
 ≈3.36/30 GPU-h realized for the campaign.)*
+
+### §1.34 M3 FIX-WAVE BUILD RECORD + DESIGN AMENDMENT (2026-07-09): built b07d2b6; variant B is NECESSARILY a 2-POINT grid — §1.33's registered 3-point grid was unreachable
+
+**Design amendment (build-stage catch, verified against D_STATE = D_MIN+2):**
+§1.33 registered variant B's grid as k∈{d_min+1..d_min+3}, but
+k = d_min+3 = d_state+1 exceeds d_state for EVERY group — mathematically
+unreachable. Variant B is therefore a 2-point grid (k_dmin_minus_1,
+k_dmin → effective rho-rank {d_min−3?..} — see the in-code arithmetic
+asserts; effective rho-budget = k−2 under eye-padding), a disclosed
+structural asymmetry vs variant A's full 3-point straddle (zero-padding
+frees the tax). The wave's decisive causal reading therefore leans on
+VARIANT A; variant B corroborates the tax mechanism.
+
+**Build (b07d2b6):** target_padding flag ("eye"/"zero", default UNCHANGED
+"eye" — byte-identical legacy behavior verified); --m3fix manifest = 30
+cells n=1 (variant A: 5 groups × [unconstrained anchor + 3-point grid] =
+20; variant B: 5 × 2 = 10), priced 1.3324 GPU-h from the measured Rev-7
+rate (inside the registered 1.3-2.6 window). All 5 teeth RUN TO
+COMPLETION both directions: target-rank unit test (rank==d_min under
+zero / ==d_state under eye, mutation-verified), √(k/d_state) ceiling
+negative control (real SVD-truncation fit reproduces the ceiling all
+groups), variant-B tax arithmetic w/ regression guard, manifest
+independent-literal pin (27c97a1 pattern), 13/13 legacy smoke zero
+regressions, plus an end-to-end cross-variant CPU slice proving the
+per-cell overrides actually fire. Security: one more stdout-vector
+injection sighted (file-content verified CLEAN vs git md5 by the
+coordinator — the sighting was the usual appended-stdout class); tally
+79→80. **NEXT: independent worktree audit → deploy (md5) → LAUNCH on an
+idle GPU → harvest = the causal M3 verdict completing §1.33's rank-law
+story.**
