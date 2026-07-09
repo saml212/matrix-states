@@ -3288,3 +3288,44 @@ pilot (re-price calibration round 3 + sweep; closes the 1.2-1.5× target on
 the real kernel) → calibration round 3 (9 cells) → ladder+bands → margin
 freeze → token → sweep. GPU note: fix-at-scale gate tier holds GPUs 1-4;
 h2h pilot/calibration go to GPUs 5-7 (and 0 after the 2×2 finishes).**
+
+### 1.26 DEPLOY + FRESH TIMING PILOT (2026-07-09, GPU 5, real fla/Triton kernel): AUD2-F1 target CLOSED on contender/ablation; round-3 decision gate FAILED — round 3 NOT launched
+
+Recorded per the gauntlet-bookkeeping hard rule. Full record:
+`experiment-runs/2026-07-09_h2h_timing2_launch/MANIFEST.md`.
+
+**Deploy:** the four §1.24 fix files (`lm_pretrain_rd.py`, `h2h_cell_train_rd.py`,
+`ablation_mixer_rd.py`, `h2h_rung1_chain.sh`, commit `68e2768`) deployed to box, md5-verified
+local=box on all five (incl. the untouched `h2h_box_smoke_checklist.py`).
+
+**Re-smoke (GPU 5, fresh, real kernel — the prior deploy's tokens do not cover this build):**
+items 1-4 + gates 6/7 (`h2h_box_smoke_driver.py`, unmodified) ALL PASS, fresh tokens under
+`results/h2h_rung1/gates_v2_20260709/`. Items 9-10 (sec 1.23's blank-out box-only residual, not
+yet wired into the driver) verified via a throwaway harness replicating `mode_selftest`'s own
+selftest-12/13 construction under a forced CUDA default device (zero logic changes to any
+audited file) — PASS both items, both arches, real nonzero S_T confirmed
+(contender |S_T|=620.6/583.7, ablation |S_T|=6.3/3.9).
+
+**Fresh timing pilot (GPU 5, real fused kernel, task1_calib K=32 production dims):** measured
+FIXED-vs-pre-Rev4-baseline per-step ratio: **contender 1.244×, ablation 1.487×** — both cleanly
+inside the ~1.2-1.5× AUD2-F1 target, both ≤1.6× — the fix is CONFIRMED effective on real
+hardware (the CPU stub's own 2.49×/3.55× was an instrument confound, as diagnosed at §1.25).
+VRAM cross-check: pre-fix variant peaks at ~2.4× the fixed variant's VRAM (16.4GB vs 6.9GB),
+consistent with the eliminated (B·Q,128,vocab) intermediate. **New finding, not an AUD2-F1
+regression:** the transformer's own ratio measured at 1.736× — its fused "no second forward"
+path reprocesses the full context once per query and was never priced under the real Rev4
+three-term objective before now.
+
+**Re-priced round 3 (9 cells, measured rates): 3.593 GPU-h vs the §1.6 registry's 2.300 GPU-h
+prior — ratio 1.562×, past the pre-registered 1.5× gate.** Per the pre-registered decision rule
+(measured ratio ≤1.6× AND round-3 re-price ≤1.5× registry → chain; else stop and report),
+**condition 2 fails → calibration round 3 was NOT launched.** Pilot-only spend (≈0.02 GPU-h).
+Coordinator decision pending: re-scope round 3's transformer budget, widen the pre-registered
+margin, or accept the 1.562× spend given the fix's own confirmed contender/ablation success.
+
+---
+
+*(End §1. ... → §1.25 build-fix VERIFIED (68e2768) → **§1.26 deploy + fresh real-kernel timing
+pilot: AUD2-F1 target CLOSED (contender 1.244×, ablation 1.487×); round-3 decision gate FAILED
+on the transformer's own newly-measured cost (1.562× vs the 1.5× bar) → round 3 NOT launched,
+coordinator decision pending.**)*

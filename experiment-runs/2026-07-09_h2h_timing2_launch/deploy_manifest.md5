@@ -1,0 +1,5 @@
+MD5 (matrix-thinking/deltanet_rd/lm_pretrain_rd.py) = 34addd9d8cc6a3df5a367d0f18a2ee0e
+MD5 (matrix-thinking/deltanet_rd/h2h_cell_train_rd.py) = 77d8d9e2f00ddc70d862c0789f8a14ce
+MD5 (matrix-thinking/deltanet_rd/ablation_mixer_rd.py) = 612cb2d4c6e0022d0ba5801a36c88d28
+MD5 (matrix-thinking/deltanet_rd/h2h_rung1_chain.sh) = 009fbb39b508e99c80f90542f6ada370
+MD5 (matrix-thinking/deltanet_rd/h2h_box_smoke_checklist.py) = 7d42c18b7bfa51e1178132d7d56bab4a

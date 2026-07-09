@@ -360,9 +360,16 @@ correction pass, out of scope for this consolidation.
   reconciliations of the h2h calibration-phase spend (ledger-anchored
   vs. bottom-up-from-wall-clock) disagree by ≈1.2 GPU-h, flagged
   unresolved in `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.9/§1.23 — reported
-  here, not guessed at. Calibration round 3 (pending) will add
-  ≈2.3-9.2 GPU-h depending on the AUD2-F1 LM-head-slice fix's realized
-  savings.
+  here, not guessed at. **Round-3 re-price (2026-07-09, §1.26, fresh
+  real-kernel timing pilot on GPU 5):** measured ≈3.59 GPU-h (contender
+  1.244×/ablation 1.487× vs pre-Rev4 baseline, both cleanly inside the
+  1.2-1.5× AUD2-F1 target — the fix is CONFIRMED working on real
+  hardware, not just the CPU stub) — but this is 1.562× the §1.6
+  registry's 2.300 GPU-h prior, past the pre-registered 1.5× gate
+  (driven by the transformer arm's own previously-unmeasured Rev4
+  cost, 1.736×, not an AUD2-F1 regression). **Round 3 was NOT launched
+  — gate failed, pilot-only spend (≈0.02 GPU-h), coordinator decision
+  pending** (`experiment-runs/2026-07-09_h2h_timing2_launch/`).
 - phase2b: 8.3/66.5.
 - capability-separation Stage 1: **≈0.77/30 realized** (calibration
   0.0895 + gate-1 diagnosis 0.38 + round-7 L=1 diagnostic 0.30); the
