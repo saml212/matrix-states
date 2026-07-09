@@ -137,8 +137,34 @@ class DeltaProductLayer(nn.Module):
         v_exp = v.reshape(B, T * n_h, H, Dh)
         beta_exp = beta.reshape(B, T * n_h, H)
 
-        o, _final_state = chunk_delta_rule(q_exp, k_exp, v_exp, beta_exp,
-                                           allow_neg_eigval=self.allow_neg_eigval)
+        # DEPLOY-STAGE box-smoke fixes (2026-07-09), all invisible to the CPU
+        # stub (the exact stub-vs-real-kernel coverage gap CLAUDE.md's fla
+        # learning warns about), each box-verified by isolated-process probes:
+        #   (a) real fla 0.5.1's Triton kernel ASSERTS q.dtype != float32
+        #       ("Please use bfloat16") -> cast at the kernel boundary, cast
+        #       back, so callers keep float32 semantics on BOTH backends;
+        #   (b) head_dim < 32 triggers a hard CUDA illegal-memory-access
+        #       (probed: Dh=8/16 crash, Dh=32/64/128 OK) -> loud guard below;
+        #   (c) unnormalized q/k overflow bf16 grads at longer T (probed:
+        #       non-finite grads at T=64 without in-kernel L2 norm; finite at
+        #       T<=256 with it) -> use_qk_l2norm_in_kernel=True EXPLICIT, which
+        #       is also DeltaProduct's own semantics (Householder maps require
+        #       unit-norm keys; Siems et al. 2502.10297).
+        if q_exp.is_cuda:
+            assert Dh >= 32, (
+                f"fla 0.5.1 chunk_delta_rule requires head_dim >= 32 on the real CUDA kernel "
+                f"(got d_head={Dh}); below that it dies with an illegal memory access "
+                f"(box-verified 2026-07-09), not a clean error."
+            )
+            o, _final_state = chunk_delta_rule(
+                q_exp.to(torch.bfloat16), k_exp.to(torch.bfloat16),
+                v_exp.to(torch.bfloat16), beta_exp.to(torch.bfloat16),
+                use_qk_l2norm_in_kernel=True, allow_neg_eigval=self.allow_neg_eigval)
+            o = o.to(x.dtype)
+        else:
+            o, _final_state = chunk_delta_rule(q_exp, k_exp, v_exp, beta_exp,
+                                               use_qk_l2norm_in_kernel=True,
+                                               allow_neg_eigval=self.allow_neg_eigval)
         # collapse back to (B, T, ...): the LAST micro-step of each macro-token
         # is that token's output (standard DeltaProduct convention).
         o = o.view(B, T, n_h, H, Dh)[:, :, -1, :, :].reshape(B, T, D)
@@ -156,9 +182,18 @@ def smoke_forward_backward(device="cpu"):
     print("=" * 88)
     is_stub = ensure_fla_stub()
     print(f"  fla backend: {'CPU STUB (real fla unavailable or CAPABILITY_SEP_FORCE_CPU_STUB=1)' if is_stub else 'REAL fla'}")
+    if not is_stub and device == "cpu" and torch.cuda.is_available():
+        # real fla's Triton kernel cannot run on CPU tensors at all -- promote
+        # (box-smoke path: real fla installed but the caller passed the local
+        # CPU-stub convention's device).
+        device = "cuda"
+        print("  real fla backend requires CUDA -- promoting smoke device cpu -> cuda")
 
     torch.manual_seed(0)
-    d_model, n_heads = 32, 4
+    # d_head = d_model/n_heads = 32: the real fla 0.5.1 kernel's minimum head
+    # dim (deploy-stage box-smoke fix, 2026-07-09 -- was 32/4 = d_head 8, which
+    # hard-crashes the CUDA kernel with an illegal memory access).
+    d_model, n_heads = 64, 2
     for n_h in (1, 2):
         layer = DeltaProductLayer(d_model, n_heads, n_h=n_h, allow_neg_eigval=True).to(device)
         x = torch.randn(4, 6, d_model, device=device, requires_grad=True)
@@ -212,7 +247,10 @@ def reproduce_fig5(device="cpu", is_stub=True):
     from group_word_encoder import cosine_loss
 
     torch.manual_seed(0)
-    d_model, n_heads = 32, 4
+    # d_head = d_model/n_heads = 32: the real fla 0.5.1 kernel's minimum head
+    # dim (deploy-stage box-smoke fix, 2026-07-09 -- was 32/4 = d_head 8, which
+    # hard-crashes the CUDA kernel with an illegal memory access).
+    d_model, n_heads = 64, 2
     L_max = FIG5_L_MAX
     n_gens = len(generating_set("S4"))
     d_state = D_STATE["S4"]

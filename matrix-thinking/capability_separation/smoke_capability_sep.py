@@ -133,12 +133,19 @@ def main():
     run("11. tost_analysis.py -- TOST unit tests (CONFIRM/FALSIFY/INCONCLUSIVE/REJECT/denial/granted)", _tost)
 
     def _beta_fla():
+        import torch
         import beta_fla_smoke as bfs
-        is_stub = bfs.smoke_forward_backward("cpu")
+        # device-aware (deploy-stage box-smoke fix, 2026-07-09): real fla's
+        # Triton kernel is CUDA-only + bf16-only -- on the box this section
+        # must exercise the REAL kernel on GPU (piece 2 runs for real there);
+        # locally (no fla, no CUDA) it stays the CPU stub and piece 2
+        # correctly self-skips.
+        dev = "cuda" if torch.cuda.is_available() else "cpu"
+        is_stub = bfs.smoke_forward_backward(dev)
         bfs._test_fig5_l_max_cap_applied()           # BA-F5: L_max=4 cap NEGATIVE-then-POSITIVE test
-        bfs.reproduce_fig5("cpu", is_stub=is_stub)   # correctly self-skips (box-only) under the CPU stub
+        bfs.reproduce_fig5(dev, is_stub=is_stub)     # self-skips (box-only) under the CPU stub
     run("12. beta_fla_smoke.py -- forward/backward/grad-check (piece 1) + BA-F5 L_max cap test "
-        "+ Fig.5 box-only-skip (piece 2)", _beta_fla)
+        "+ Fig.5 reproduction (real-fla) / box-only-skip (CPU stub) (piece 2)", _beta_fla)
 
     def _runner():
         import run_capability_sep as rcs
