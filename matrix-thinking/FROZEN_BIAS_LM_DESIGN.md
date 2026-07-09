@@ -5230,3 +5230,40 @@ fixes themselves) → deploy (md5 + the §13.17 box-only smoke list incl.
 wave-minus1-check on real kernels, disk-check, startup-to-step-1000
 re-validation, verify-pin determinism, gate-tier cells terminal + GPUs
 free) → LAUNCH.**
+
+### §13.19 SCOPED RE-AUDIT VERDICT (2026-07-09 overnight, on bd40ebb): CLEARED-FOR-DEPLOY
+
+Independent worktree re-audit: pristine 106/106 (run twice); both FATAL
+repros INDEPENDENTLY RECONSTRUCTED and confirmed fixed (pre-pin: rc=1,
+no marker, stale pre-fix marker cleared only when the pin lands, all
+post_pin cells train, zero permanently skipped; watchdog: healthy-at-ref
+w/ 45s startup completes, genuinely-slow 2×-ref cell still killed at the
+first step≥1000 tick — the fix did NOT neuter the breaker). Mutations:
+do_sweep gate-removal KILLED (3 fails); probe-arm swap KILLED (2); F2
+gate re-widening KILLED (smoke [14] — the suspected missing tooth
+EXISTS); gpu-guard neutering KILLED. TWO teeth weaker than §13.18
+recorded (neither launch-blocking): N1 the `cell` CLI path's gate has no
+call-site tooth (helper-level only; gate verified present by read+repro);
+N2 `check_off_path_bit_identity` is NEAR-VACUOUS (both constructions
+default-resolve to arm="off" — real off-path purity teeth are smoke [2]
++ the forward's !="off" guard; treat wave-minus1-check as a d128
+construction/determinism check ONLY). N3 exposure quantified: a
+pre-step-1000 hang burns 6.7-7.0 GPU-h to the wall ceiling (≈2.5% of
+ledger per incident, accepted); **residual false-abort bound: startup
+must be <118 s (98m) / <418 s (392m) — box item 8 must MEASURE this;
+if 98m exceeds ~118 s, redesign to interval rate, do not widen the step
+gate.** N4 marker-clearing is condition-blind → box item 10: assert no
+pre-existing .REFUSED/post_pin results before launch; humans park cells
+with ABORTED_BUDGET-style markers, never .REFUSED. N6 disk-check
+live-size path is dead code (flat listing vs per-cell subdirs; fallback
+literals correct today). rc=2 stop routing verified live (clean stop, no
+restart); l12 atomicity verified (same-fs tmp+fsync+os.replace).
+[LEARN] recorded: mutation-test each CALL SITE, and bit-identity between
+two default-identical constructions has no teeth.
+
+**DISPOSITION: DEPLOY+LAUNCH DISPATCHED with the 11-item box checklist
+(§13.17 list + N2 caveat + N3 startup measurement + N4 clean-slate
+assert + combined ~1.07 TB disk headroom). Launch order: box smokes on
+the free GPU now; overlapping arm_off cells HELD until the gate-tier
+calibration cells are terminal (l9); slots expand into GPUs as they
+free (occupancy guard = second line, manual nvidia-smi = first).**
