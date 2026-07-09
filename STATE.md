@@ -151,13 +151,24 @@ PRE-REGISTERED PATH EXECUTED (fix pushed f3b8343): aux_weight pinned
 (assert aux ≤ 10× CE at step 500, fails loudly) + probe_cos_mean added
 to all curves/finals (rf@0.9 stays the decision metric); 9 task-1/2
 cells re-running as _auxrev2 (aux=0.1 record archived at
-calib/archive_auxweight0.1/); task-3 PASSes stand. **RE-RUN LIVE:
-tmux h2h_rung1 recreated (supervisor had exited on FATAL), stages
-−1/0/A clean, wave-1 cells on GPUs 0-6 at 65-97%; probe_cos_mean
-0.11-0.14 AND RISING at step 2000 (vs ≈0 under aux=0.1) — probe is
-LEARNING under the revised weight; overshoot guard did not fire.
-CALIBRATION_COMPLETE expected ~03:00 box time.** Then: bands review →
-margin freeze §1.21 → MARGINS_FROZEN.token → sweep.
+calib/archive_auxweight0.1/); task-3 PASSes stand. **RE-RUN
+VERDICT (round 2, 2026-07-09): GRADIENT PARITY ACHIEVED (ratios now
+1.3-3.6 across all cells — the §1.3.1.3 dial worked mechanically) BUT
+ALL ARMS PLATEAU FAR BELOW THE BAR: final probe_cos_mean ≈ 0.18
+(contender t1), 0.124 (ablation t1, flat), 0.18 (transformer t1),
+0.217-train/0.147-heldout-DECLINING (contender t2 — probe overfits);
+rf@0.9 = 0.0 everywhere; curves plateaued (no budget extension can
+reach 0.9). CE losses healthy — the MODELS learn the task; the PROBE
+INSTRUMENT (frozen-random T_val target + linear probe at 0.9 cosine,
+§1.3.1) cannot decode it in any arm. The pre-registered revision path
+is EXHAUSTED → this is an INSTRUMENT-DESIGN failure caught by
+calibration-first, before the 27-cell sweep burned. HARD-STOP on the
+h2h wave pending a §1.3.1 probe redesign round (fresh gauntlet:
+diagnosis w/ offline probe study on the SAVED _auxrev2 checkpoints —
+what cosine IS reachable post-hoc? — then design revision + attack
+round; PI-VISIBLE, nothing relaxed silently). Chain will band-fail +
+park; GPUs pass to the CAPABILITY campaign (fixes a555012 pushed,
+re-audit dispatched) in the interim — box stays utilized.
 
 **CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
 push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)
