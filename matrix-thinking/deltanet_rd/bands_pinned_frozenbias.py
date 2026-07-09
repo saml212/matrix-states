@@ -165,8 +165,18 @@ def write_bands_pinned_frozenbias(
         "pinned_at_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w") as f:
+    # sec 13.17 l12: atomic write (tmp file in the SAME directory, then os.replace) so a reader
+    # (fixscale_wave.load_pin_doc / validate_bands_pinned_frozenbias, both a plain `open()` +
+    # `json.load()`, no partial-read handling) can never observe a torn/partial write mid-json.dump
+    # -- it sees either the prior file (if any) or this fully-written one, never a truncated one.
+    # Verified no other reader depends on the intermediate path: both readers in this codebase open
+    # `path` directly and only ever run AFTER this function returns.
+    tmp_path = f"{path}.tmp{os.getpid()}"
+    with open(tmp_path, "w") as f:
         json.dump(doc, f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, path)
     return doc
 
 

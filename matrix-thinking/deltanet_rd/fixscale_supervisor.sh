@@ -16,15 +16,49 @@
 # exists.
 #
 # Stop cleanly by touching STOP_fixscale_wave in this directory (NEVER pkill -- CLAUDE.md hard
-# rule: a pattern-matched pkill on a remote box can match the SSH command string itself).
+# rule: a pattern-matched pkill on a remote box can match the SSH command string itself). Since
+# sec 13.17 m6, `sweep` itself checks this file BETWEEN cells (not just at this script's own
+# run_until_terminal retry boundary), so a STOP touched mid-slot is honored promptly instead of
+# only after that slot's current (possibly hours-long) cell finishes.
+#
+# PRE-LAUNCH GATES (sec 13.17 -- run these BEFORE `launch-scale`, not auto-invoked by it, matching
+# this header's own pre-existing "GPU occupancy re-verified live... NOT hardcoded here" discipline
+# -- headroom/kernel checks should be fresh, human-run, right before commit, not baked into an
+# unattended retry loop):
+#   M3  ./fixscale_wave.py wave-minus1-check --d-state 128 --device cuda
+#       Wave -1 pre/post-blend bit-identity on REAL kernels (the CPU-stub leg runs in
+#       smoke_fixscale.py; this is the on-box real-kernel leg -- required before any 392m launch).
+#   m7  ./fixscale_wave.py disk-check --scale <98m|392m>
+#       Live free-space check against this scale's remaining checkpoint volume (1.5x safety
+#       factor, run_lm_rd_trackc_sweep.py's own disk_space_check, reused not reimplemented).
+# (M4's GPU-occupancy guard is DIFFERENT from the above two -- it is auto-wired inside
+# run_cell/do_sweep itself, not a separate pre-launch step; `nvidia-smi` absence fails OPEN.)
+#
+# LAUNCH-PROCEDURE CONSTRAINTS (documented, NOT mechanically enforced -- sec 13.17 l9/l13; a human
+# running this script is responsible for both):
+#   l9  Call `launch-scale <SCALE> ...` at most ONCE per scale per box. A second concurrent
+#       launch-scale for the SAME scale creates a SECOND set of armoff-loop sessions that could
+#       both attempt to train the SAME arm_off cell simultaneously on two different GPUs before
+#       either has produced a result JSON (resume-safe skip only prevents a re-run AFTER a result
+#       exists, not a genuinely concurrent double-launch). Check `tmux ls | grep fixscale_<scale>`
+#       before calling launch-scale again for that scale.
+#   l13 A cell that deterministically fails EVERY attempt (a bad flag combination, a config that
+#       always OOMs, etc.) blocks every cell ordered after it in its own slot indefinitely --
+#       do_sweep restarts from the first non-terminal cell on every retry, so it never "skips
+#       ahead" past a permanently-broken cell on its own. If a slot's tmux pane shows no progress
+#       across several 60s retries, `tmux attach -t fixscale_<scale>_<armoff|post>_<slot>` and
+#       inspect that slot's FIRST non-terminal cell's own log file first; fix or manually mark
+#       that cell (e.g. drop an ABORTED_BUDGET-style terminal marker) rather than expecting this
+#       script to route around it automatically.
 #
 # Usage:
 #   fixscale_supervisor.sh launch-scale <98m|392m> <n_gpus> <gpu_offset>
 #       Fans out into 2*n_gpus + 1 tmux sessions (n_gpus armoff slots, 1 pin leader, n_gpus
-#       post_pin slots), each self-healing. Run once per scale; call with DIFFERENT gpu_offset
-#       values for 98m vs 392m so their GPU ranges don't overlap (sec 13.9's own partition, GPU
-#       occupancy re-verified live before calling this -- `nvidia-smi`/`tmux ls` first, per house
-#       rule, NOT hardcoded here).
+#       post_pin slots), each self-healing. Run once per scale (see l9 above); call with DIFFERENT
+#       gpu_offset values for 98m vs 392m so their GPU ranges don't overlap (sec 13.9's own
+#       partition, GPU occupancy re-verified live before calling this -- `nvidia-smi`/`tmux ls`
+#       first, per house rule, NOT hardcoded here; M4's own per-cell guard is a second, automatic
+#       line of defense, not a substitute for this manual check).
 #   fixscale_supervisor.sh armoff-loop  <scale> <n_gpus> <gpu_offset> <slot>
 #   fixscale_supervisor.sh pin-loop     <scale>
 #   fixscale_supervisor.sh post-loop    <scale> <n_gpus> <gpu_offset> <slot>
@@ -57,8 +91,10 @@ run_until_terminal() {
 armoff_loop() {
   local scale="$1" n_gpus="$2" gpu_offset="$3" slot="$4"
   log "armoff-loop scale=$scale slot=$slot/$n_gpus gpu=$((gpu_offset+slot)) starting"
+  # sec 13.17 m6: --stop-path explicitly passed (also fixscale_wave.py's own default, same file --
+  # explicit here for readability, matching pin_loop's own explicit --stop-path convention below).
   run_until_terminal "$PYBIN" "$DRIVER" sweep --scale "$scale" --phase arm_off \
-      --gpus "$n_gpus" --gpu-offset "$gpu_offset" --slot "$slot"
+      --gpus "$n_gpus" --gpu-offset "$gpu_offset" --slot "$slot" --stop-path "$STOP_FILE"
   log "armoff-loop scale=$scale slot=$slot done rc=$?"
 }
 
@@ -74,7 +110,7 @@ post_loop() {
   local scale="$1" n_gpus="$2" gpu_offset="$3" slot="$4"
   log "post-loop scale=$scale slot=$slot/$n_gpus gpu=$((gpu_offset+slot)) starting (waits on the pin)"
   run_until_terminal "$PYBIN" "$DRIVER" sweep --scale "$scale" --phase post_pin \
-      --gpus "$n_gpus" --gpu-offset "$gpu_offset" --slot "$slot"
+      --gpus "$n_gpus" --gpu-offset "$gpu_offset" --slot "$slot" --stop-path "$STOP_FILE"
   log "post-loop scale=$scale slot=$slot done rc=$?"
   echo "keeping pane alive for inspection"; sleep infinity
 }

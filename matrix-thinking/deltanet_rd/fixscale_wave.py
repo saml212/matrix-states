@@ -157,10 +157,40 @@ def gate_tier_calib_out_path(scale: str, corpus: str) -> str:
     return os.path.join(GATE_TIER_CALIB_ROOT, f"{name}.json")
 
 
+def _assert_gate_tier_config_identity(gate_path: str, scale: str) -> None:
+    """sec 13.17 l10: runtime defense-in-depth -- before silently reusing the gate tier's own
+    arm_off/seed=0 result JSON as this wave's own cell output (out_path's resume-safe convention),
+    assert the reused JSON's OWN recorded config actually matches what this wave expects
+    (frozen_bias.arm=='off', steps_completed>=steps, and this scale's own d_model/d_state/n_layers).
+    Constants are verified identical TODAY (fixscale_gate_tier.py's own SCALES dict, sec 13.16's
+    build record) -- but a future independent edit to either script's SCALES dict could silently
+    drift; this catches that drift at RUNTIME instead of trusting the constants forever. Raises
+    AssertionError (loud REFUSAL, this codebase's own established convention -- see
+    _collect_pin_inputs' PIN REFUSED / check_blind's BLIND CHECK REFUSED) rather than silently
+    falling back to re-training, since a mismatch here means the two scripts' configs have
+    genuinely diverged and a human must look, not that this cell is merely not-ready-yet."""
+    cfg = SCALES[scale]
+    with open(gate_path) as f:
+        d = json.load(f)
+    arm = d.get("frozen_bias", {}).get("arm")
+    assert arm == "off", (
+        f"gate-tier reuse REFUSED: {gate_path} has frozen_bias.arm={arm!r}, expected 'off' "
+        f"(sec 13.17 l10 config-identity check)")
+    steps_completed = d.get("steps_completed", 0)
+    assert steps_completed >= cfg["steps"], (
+        f"gate-tier reuse REFUSED: {gate_path} has steps_completed={steps_completed}, expected "
+        f">= {cfg['steps']} (sec 13.17 l10 config-identity check)")
+    for field in ("d_model", "d_state", "n_layers"):
+        assert d.get(field) == cfg[field], (
+            f"gate-tier reuse REFUSED: {gate_path} has {field}={d.get(field)!r}, expected "
+            f"{cfg[field]!r} (sec 13.17 l10 config-identity check)")
+
+
 def out_path(arm: str, scale: str, corpus: str, seed: int) -> str:
     if arm == "arm_off" and seed == 0:
         gate_path = gate_tier_calib_out_path(scale, corpus)
         if _out_json_state(gate_path) == "complete":
+            _assert_gate_tier_config_identity(gate_path, scale)
             return gate_path
     name = cell_name(arm, scale, corpus, seed)
     return os.path.join(TRAIN_ROOT, f"{name}.json")
@@ -330,7 +360,20 @@ def _budget_watchdog(proc: subprocess.Popen, log_path: str, t_launch: float, cel
             flag = ""
             if elapsed > ceiling_s:
                 flag = f"BREACH:wallclock>{BUDGET_ABORT_FACTOR}x_priced_cell({ceiling_s:.0f}s)"
-            elif step is not None and step > 0:
+            # sec 13.17 F2 fix: the CUMULATIVE rate signal (elapsed_wall / steps_so_far) is gated on
+            # step >= 1000 -- matching sec 13.8's OWN checkpoint-cadence spec (ckpt_every=1000) --
+            # rather than firing at step > 0. lm_pretrain_rd.py logs an unconditional 'step 1' line
+            # ("or step == 1") before any real throughput is established, so a healthy cell whose
+            # startup (imports/corpus-load/model-init/Triton-compile, tens of seconds) delays the
+            # NEXT log line past the first watch tick has step=1 as its last logged line ->
+            # cum_rate = elapsed/1 is dominated by one-time startup cost, not steady-state
+            # per-step rate, and falsely exceeds 1.5x ref (repro: repro_watchdog_false_abort.py).
+            # Chose step>=1000 over an interval-rate/first-N-ticks-grace alternative because it ties
+            # the grace period to a REAL, already-registered constant (ckpt_every=1000) instead of a
+            # NEW magic tick-count this wave would have to separately calibrate and justify. The
+            # wall-clock ceiling above (signal (a)) is UNCHANGED -- it still catches a true hang at
+            # any elapsed time, independent of step count.
+            elif step is not None and step >= 1000:
                 cum_rate = elapsed / step
                 if cum_rate > BUDGET_ABORT_FACTOR * ref_rate:
                     flag = f"BREACH:rate>{BUDGET_ABORT_FACTOR}x_ref({ref_rate}s/step,cum={cum_rate:.4f})"
@@ -355,7 +398,41 @@ def _budget_watchdog(proc: subprocess.Popen, log_path: str, t_launch: float, cel
             csv_f.close()
 
 
-def run_cell(cell: dict, gpu: int, dry_run: bool = False) -> str:
+GPU_BUSY_THRESHOLD_MB = 2048   # sec 13.17 M4: "above ~2GB used" -- refuse to co-schedule
+
+
+def gpu_occupancy_ok(gpu: int, max_used_mb: int = GPU_BUSY_THRESHOLD_MB, force: bool = False,
+                      _run_fn=subprocess.run) -> tuple[bool, str]:
+    """sec 13.17 M4: refuse to launch a 23-39GB training cell onto a GPU that's already busy
+    (>~2GB used, e.g. co-scheduled with live work) unless `force=True` (--force-gpu-busy). Handles
+    `nvidia-smi` absence/failure gracefully -- FAIL-OPEN (permits launch), never fail-closed, so a
+    CPU-only dev box (this machine) or a transient query hiccup never blocks a smoke run or a real
+    launch; the guard is a co-scheduling safety net, not a hard CUDA-presence requirement.
+    `_run_fn` is injectable (defaults to `subprocess.run`) so this is unit-testable without a real
+    `nvidia-smi` binary or a real GPU."""
+    if force:
+        return True, "forced (--force-gpu-busy)"
+    try:
+        out = _run_fn(
+            ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits", "-i", str(gpu)],
+            capture_output=True, text=True, timeout=10)
+    except FileNotFoundError:
+        return True, "nvidia-smi not found -- skipping GPU-occupancy guard (CPU/dev box)"
+    except Exception as e:
+        return True, f"nvidia-smi check failed ({e}) -- skipping GPU-occupancy guard (fail-open)"
+    if out.returncode != 0:
+        return True, f"nvidia-smi rc={out.returncode} -- skipping GPU-occupancy guard (fail-open)"
+    try:
+        used_mb = int(out.stdout.strip().splitlines()[0])
+    except (ValueError, IndexError):
+        return True, "nvidia-smi output unparseable -- skipping GPU-occupancy guard (fail-open)"
+    if used_mb > max_used_mb:
+        return False, (f"GPU {gpu} already has {used_mb} MiB used (> {max_used_mb} MiB threshold) -- "
+                        f"refusing to co-schedule (sec 13.17 M4); pass --force-gpu-busy to override")
+    return True, f"GPU {gpu}: {used_mb} MiB used (<= {max_used_mb} MiB threshold) -- clear to launch"
+
+
+def run_cell(cell: dict, gpu: int, dry_run: bool = False, force_gpu_busy: bool = False) -> str:
     """Resume-safe: returns the terminal state without launching anything if `cell_state` is
     already terminal. Otherwise launches lm_pretrain_rd.py with the 1.5x circuit breaker wired;
     on breach, writes an ABORTED_BUDGET marker (this wave's own per-cell "result", since
@@ -369,6 +446,12 @@ def run_cell(cell: dict, gpu: int, dry_run: bool = False) -> str:
     if dry_run:
         print("DRY-RUN:", " ".join(base_cmd(cell)), flush=True)
         return "absent"
+
+    ok, msg = gpu_occupancy_ok(gpu, force=force_gpu_busy)
+    print(f"GPU occupancy check gpu={gpu}: {msg}", flush=True)
+    if not ok:
+        print(f"cell {cell['cell_id']}: REFUSED (GPU busy, retryable) -- {msg}", flush=True)
+        return "absent"   # transient, NOT terminal -- the supervisor retries once the GPU frees up
 
     os.makedirs(TRAIN_ROOT, exist_ok=True)
     os.makedirs(cell["ckpt_dir"], exist_ok=True)
@@ -408,6 +491,94 @@ def run_cell(cell: dict, gpu: int, dry_run: bool = False) -> str:
         return "absent"
     print(f"cell {cell['cell_id']}: {final} (rc={rc})", flush=True)
     return final
+
+
+# ---------------------------------------------------------------------------
+# Wave -1 pre/post-blend bit-identity gate (sec 13.10 gate 1 / sec 13.17 M3). MISSING entirely at
+# d_state=128 in the audited build: lm_pretrain_rd.py's OWN smoke() item [17] performs this exact
+# check (frozen_bias_arm='off', blend machinery present, vs no frozen_bias_* kwargs at all, blend
+# machinery absent -- must be torch.equal) but hardcodes d_state=64 and takes no parameter; this
+# wave introduces d_state=128 (the 392m scale) and does not own lm_pretrain_rd.py, so this wave
+# carries its OWN parameterized copy of the SAME pattern rather than editing that file. Deferred
+# torch/lm_pretrain_rd import (module-import-time stays torch-free, this file's own convention).
+# ---------------------------------------------------------------------------
+
+def check_off_path_bit_identity(d_state: int, device: str, d_model: int = 64, n_layers: int = 1,
+                                 vocab: int = 500, seq_len: int = 128, batch: int = 4,
+                                 seed: int = 31) -> None:
+    """Raises AssertionError on divergence; returns None (no exception) on a bit-identical pass.
+    Runs equally under the CPU stub (proves the PYTHON construction path is identical regardless of
+    device/kernel backend -- smoke_fixscale.py's own CPU-stub leg calls this with device='cpu') and
+    on real CUDA/fla kernels (the on-box pre-launch gate this module's own `wave-minus1-check`
+    subcommand runs with device='cuda' -- real-kernel coverage a CPU-stub run cannot provide, per
+    this codebase's own CPU-stub-tests-logic-only hard rule)."""
+    import torch
+
+    import h2h_fla_stub_rd   # matches run_shared_comparator_measurement's own convention: a no-op
+    h2h_fla_stub_rd.ensure_fla_stub()   # when real fla is importable, so `wave-minus1-check` works
+    from lm_pretrain_rd import DeltaNetLM   # standalone (no pre-loaded stub needed) on EITHER box
+
+    torch.manual_seed(seed)
+    m_a = DeltaNetLM(vocab, d_model=d_model, d_state=d_state, n_layers=n_layers, conv_size=4).to(device)
+    torch.manual_seed(seed)
+    m_b = DeltaNetLM(vocab, d_model=d_model, d_state=d_state, n_layers=n_layers, conv_size=4,
+                      frozen_bias_arm="off").to(device)
+    x = torch.randint(0, vocab, (batch, seq_len), device=device)
+    with torch.no_grad():
+        out_a = m_a(x)
+        out_b = m_b(x)
+    assert torch.equal(out_a, out_b), (
+        f"frozen_bias_arm='off' (blend machinery present) diverges from the no-frozen_bias-kwargs "
+        f"construction (blend machinery absent) at d_state={d_state} device={device!r} -- Wave -1 "
+        f"pre/post-blend bit-identity is BROKEN (sec 13.10 gate 1 / sec 13.17 M3).")
+
+
+# ---------------------------------------------------------------------------
+# Disk-headroom pre-launch gate (sec 13.17 m7). Reuses run_lm_rd_trackc_sweep.py's OWN
+# disk_space_check / projected_ckpt_bytes / find_ckpt_size_bytes / DISK_SAFETY_FACTOR helpers
+# DIRECTLY (import, never reimplemented -- that file's own "one shared helper... not three copies"
+# convention, restated here rather than re-derived by hand). CHOICE (m7's own "wire OR document"
+# option): WIRED as a real subcommand (`disk-check`) because reuse-by-import made the wiring a few
+# lines, not a reimplementation -- disproportionate would have meant re-deriving disk_space_check's
+# live shutil.disk_usage logic from scratch, which this does not do. Its INVOCATION point is
+# documented (fixscale_supervisor.sh's launch-scale usage header), not auto-run inside
+# launch_scale/do_sweep, matching this same header's existing "GPU occupancy re-verified live before
+# calling this... NOT hardcoded here" convention: headroom should be re-checked fresh, by a human,
+# immediately before committing to a launch, not baked into an unattended retry loop.
+# ---------------------------------------------------------------------------
+
+CKPT_SIZE_BYTES_ESTIMATE = {
+    # sec 13's own literal per-checkpoint estimate (this wave's d_model/d_state/n_layers configs) --
+    # used ONLY as a fallback when no real checkpoint of this exact architecture exists yet on this
+    # box (find_ckpt_size_bytes raises FileNotFoundError in that case -- e.g. before the gate tier's
+    # first calibration checkpoint lands); once a real checkpoint exists, the LIVE measured size is
+    # used instead, never this literal.
+    "98m": int(0.39 * (1024 ** 3)),
+    "392m": int(1.57 * (1024 ** 3)),
+}
+
+
+def projected_disk_bytes(scale: str) -> int:
+    """Mirrors run_lm_rd_trackc_sweep.py's own projected_ckpt_bytes convention exactly (n_runs *
+    n_ckpts * ckpt_size_bytes), scoped to cells NOT YET terminal for `scale` (a resumed/partial
+    launch does not need headroom for cells that will resume-skip)."""
+    from run_lm_rd_trackc_sweep import find_ckpt_size_bytes, projected_ckpt_bytes
+    cfg = SCALES[scale]
+    remaining = [c for c in cells_for(scale=scale) if cell_state(c) not in TERMINAL_STATES]
+    try:
+        ckpt_size = find_ckpt_size_bytes(CKPT_ROOT, cfg["d_model"], cfg["d_state"], cfg["n_layers"])
+    except FileNotFoundError:
+        ckpt_size = CKPT_SIZE_BYTES_ESTIMATE[scale]
+    return projected_ckpt_bytes(len(remaining), cfg["steps"], 1000, ckpt_size)
+
+
+def disk_headroom_check(scale: str) -> dict:
+    """The pre-launch gate itself: live free-space check against ALL remaining cells' projected
+    checkpoint volume for `scale`, at DISK_SAFETY_FACTOR=1.5 (run_lm_rd_trackc_sweep.py's own
+    constant, imported -- never re-declared with a possibly-drifting value)."""
+    from run_lm_rd_trackc_sweep import disk_space_check
+    projected = projected_disk_bytes(scale)
+    return disk_space_check(CKPT_ROOT, projected, f"fixscale {scale}")
 
 
 # ---------------------------------------------------------------------------
@@ -700,7 +871,44 @@ def await_armoff_and_pin(scale: str, poll_s: int = 60, stop_path: str | None = N
 # Static-partition sweep (Track C's own --gpus/--gpu-offset convention, sec 13.9's cited precedent).
 # ---------------------------------------------------------------------------
 
-def do_sweep(scale: str, phase: str, gpus: int, gpu_offset: int, slot: int, dry_run: bool) -> int:
+STOP_FILE_DEFAULT = os.path.join(HERE, "STOP_fixscale_wave")   # matches fixscale_supervisor.sh's own
+                                                                 # STOP_FILE constant (same directory)
+
+
+def _post_pin_blind_gate(cell: dict, scale: str, dry_run: bool = False) -> bool:
+    """sec 13.17 F1/m5: the ONE shared post_pin blind-check gate, called from BOTH `sweep`
+    (do_sweep) and the single-cell `cell` subcommand (m5 -- a human calling `cell` directly on a
+    post_pin cell must not bypass the same gate a sweep slot enforces). Returns True if the cell may
+    proceed to run_cell, False if the caller should treat this as a transient/retryable failure (rc
+    1) -- NOT terminal.
+
+    F1 FIX: on a check_blind failure this function writes NO marker at all (the pre-fix bug: do_sweep
+    wrote a terminal `.REFUSED` marker on the ORDINARY pre-pin race -- the supervisor launches
+    post_pin slots before the pin exists BY DESIGN -- permanently skipping 7/16 cells; see
+    repro_refused_terminal.py). `.REFUSED` is reserved for a genuine ordering violation (a cell whose
+    OWN training subprocess actually started before the pin, which this call site -- checked
+    immediately before launch, every single cell, every attempt -- prevents from ever happening by
+    construction); no code path in this build writes `.REFUSED` automatically now, but a stale one
+    left behind by a PRE-FIX run (or a human's manual intervention) is cleared here, the moment the
+    blind check next passes, so a cell is never permanently stuck on history once the pin genuinely
+    lands (sec 13.17 F1's second acceptable fix option)."""
+    try:
+        check_blind(scale, started_at=time.time())
+    except AssertionError as e:
+        print(f"cell {cell['cell_id']}: blind check not yet satisfied ({e}) -- transient, "
+              f"retryable, NO terminal marker written (sec 13.17 F1 fix)", flush=True)
+        return False
+    if not dry_run:
+        stale = refused_marker_path(cell["out_path"])
+        if os.path.exists(stale):
+            os.remove(stale)
+            print(f"cell {cell['cell_id']}: cleared stale .REFUSED marker (blind check now passes)",
+                  flush=True)
+    return True
+
+
+def do_sweep(scale: str, phase: str, gpus: int, gpu_offset: int, slot: int, dry_run: bool,
+             stop_path: str | None = STOP_FILE_DEFAULT, force_gpu_busy: bool = False) -> int:
     assert 0 <= slot < gpus, f"--slot {slot} must be in [0,{gpus})"
     phase_cells = cells_for(scale=scale, phase=phase)
     my_cells = [c for i, c in enumerate(phase_cells) if i % gpus == slot]
@@ -708,17 +916,21 @@ def do_sweep(scale: str, phase: str, gpus: int, gpu_offset: int, slot: int, dry_
     print(f"sweep scale={scale} phase={phase} slot={slot}/{gpus} gpu={gpu}: "
           f"{len(my_cells)}/{len(phase_cells)} cells assigned", flush=True)
     for cell in my_cells:
+        # sec 13.17 m6: check the STOP file BETWEEN cells, not just at the shell retry boundary --
+        # fixscale_supervisor.sh's run_until_terminal only re-checks STOP_FILE when this process
+        # EXITS non-zero; without this in-loop check, a multi-cell slot mid-way through a LONG
+        # training cell would only honor STOP after that cell (hours) finishes, not promptly. A
+        # non-zero, non-"transient-retry" return here (rc 2) still routes through
+        # run_until_terminal's own already-wired `[ -f "$STOP_FILE" ]` check, so no shell-side
+        # change was needed to make this effective end to end.
+        if stop_path and os.path.exists(stop_path):
+            print(f"sweep {scale}/{phase} slot={slot}: STOP file {stop_path} present -- halting "
+                  f"before cell {cell['cell_id']} (sec 13.17 m6)", flush=True)
+            return 2
         if phase == "post_pin":
-            try:
-                check_blind(scale, started_at=time.time())
-            except AssertionError as e:
-                marker = refused_marker_path(cell["out_path"])
-                os.makedirs(os.path.dirname(marker), exist_ok=True)
-                with open(marker, "w") as f:
-                    f.write(str(e))
-                print(f"cell {cell['cell_id']}: REFUSED ({e}) -- wrote {marker}", flush=True)
+            if not _post_pin_blind_gate(cell, scale, dry_run=dry_run):
                 return 1   # retryable: the pin may not be written yet
-        state = run_cell(cell, gpu, dry_run=dry_run)
+        state = run_cell(cell, gpu, dry_run=dry_run, force_gpu_busy=force_gpu_busy)
         if state == "absent" and not dry_run:
             return 1   # transient failure -- supervisor retries the whole slot loop
     return 0
@@ -744,6 +956,8 @@ def main() -> int:
     c.add_argument("--seed", type=int, required=True)
     c.add_argument("--gpu", type=int, required=True)
     c.add_argument("--dry-run", action="store_true")
+    c.add_argument("--force-gpu-busy", action="store_true",
+                    help="sec 13.17 M4: bypass the GPU-occupancy guard (intentional co-scheduling)")
 
     s = sub.add_parser("sweep")
     s.add_argument("--scale", choices=sorted(SCALES), required=True)
@@ -752,6 +966,24 @@ def main() -> int:
     s.add_argument("--gpu-offset", type=int, default=0)
     s.add_argument("--slot", type=int, required=True)
     s.add_argument("--dry-run", action="store_true")
+    s.add_argument("--stop-path", type=str, default=STOP_FILE_DEFAULT,
+                    help="sec 13.17 m6: checked BETWEEN cells, not just at the shell retry "
+                         "boundary; defaults to fixscale_supervisor.sh's own STOP_FILE")
+    s.add_argument("--force-gpu-busy", action="store_true",
+                    help="sec 13.17 M4: bypass the GPU-occupancy guard (intentional co-scheduling)")
+
+    w1 = sub.add_parser("wave-minus1-check",
+                         help="sec 13.17 M3: Wave -1 pre/post-blend bit-identity gate, "
+                              "parameterized to an arbitrary d_state (392m's new d_state=128 shape "
+                              "is not covered by lm_pretrain_rd.py's own hardcoded-d_state=64 smoke "
+                              "item [17]) -- run on-box with a real device before launching 392m.")
+    w1.add_argument("--d-state", type=int, default=128)
+    w1.add_argument("--device", default=None)
+
+    dk = sub.add_parser("disk-check",
+                         help="sec 13.17 m7: live disk-headroom pre-launch gate for this scale's "
+                              "remaining (not-yet-terminal) cells -- run before launch-scale.")
+    dk.add_argument("--scale", choices=sorted(SCALES), required=True)
 
     pn = sub.add_parser("pin")
     pn.add_argument("--scale", choices=sorted(SCALES), required=True)
@@ -785,17 +1017,22 @@ def main() -> int:
     if args.cmd == "manifest":
         cells = cells_for(scale=args.scale, phase=args.phase)
         if args.with_state:
-            for c in cells:
-                c = dict(c)
-                c["state"] = cell_state(c)
+            # sec 13.17 l11 fix: the pre-fix loop rebound the LOCAL `c` to a copy and mutated that
+            # copy, never writing it back into `cells` -- --with-state was a silent no-op. Rebuild
+            # the list instead of mutating in a loop.
+            cells = [dict(c, state=cell_state(c)) for c in cells]
         print(json.dumps(cells, indent=2))
         return 0
     if args.cmd == "cell":
         cell = _cell(args.arm, args.scale, args.corpus, args.seed)
-        state = run_cell(cell, args.gpu, dry_run=args.dry_run)
+        if cell["phase"] == "post_pin":   # sec 13.17 m5: same gate the `sweep` slot loop enforces
+            if not _post_pin_blind_gate(cell, args.scale, dry_run=args.dry_run):
+                return 1
+        state = run_cell(cell, args.gpu, dry_run=args.dry_run, force_gpu_busy=args.force_gpu_busy)
         return 0 if state in TERMINAL_STATES or args.dry_run else 1
     if args.cmd == "sweep":
-        return do_sweep(args.scale, args.phase, args.gpus, args.gpu_offset, args.slot, args.dry_run)
+        return do_sweep(args.scale, args.phase, args.gpus, args.gpu_offset, args.slot, args.dry_run,
+                         stop_path=args.stop_path, force_gpu_busy=args.force_gpu_busy)
     if args.cmd == "pin":
         write_wave_pin(args.scale)
         return 0
@@ -810,6 +1047,18 @@ def main() -> int:
         check_blind(args.scale)
         print(f"blind OK for {args.scale}", flush=True)
         return 0
+    if args.cmd == "wave-minus1-check":
+        import torch
+        device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+        check_off_path_bit_identity(args.d_state, device)
+        print(f"wave-minus1-check d_state={args.d_state} device={device}: BIT-IDENTICAL "
+              f"(sec 13.10 gate 1 / sec 13.17 M3 satisfied)", flush=True)
+        return 0
+    if args.cmd == "disk-check":
+        report = disk_headroom_check(args.scale)
+        print(json.dumps(report, indent=2))
+        print(f"disk-check {args.scale}: {'OK' if report['ok'] else 'INSUFFICIENT HEADROOM'}", flush=True)
+        return 0 if report["ok"] else 1
     if args.cmd == "probe-report":
         report = build_probe_report(args.scale, args.corpus)
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)

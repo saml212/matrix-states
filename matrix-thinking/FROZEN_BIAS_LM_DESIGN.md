@@ -5104,7 +5104,15 @@ blind-check wired at the launch call site via the frozen-bias-specific
 `assert_blind_not_broken_frozenbias` (semantically-correct twin, schema
 differs from key_anchoring's — documented for the auditor), negative tests
 EXECUTED (backdate/tie/empty all raise; end-to-end refusal pre-pin);
-comparator = ONE `capture_raw_keys` pass → 3 modes (call-counting test);
+comparator's pure-tensor half (`capture_raw_keys` → 3-mode derivation) is
+call-counting-tested, proving ONE forward pass yields all 3 modes — this
+covers `derive_three_modes_from_capture` only, NOT the full production
+path (`run_shared_comparator_measurement`'s own `load_checkpoint`/
+`load_corpus`/`get_batch` calls), which needs a real checkpoint + real
+corpus files and stays box-only (§13.17 m8 fix: the original wording here
+overclaimed production-path coverage; a monkeypatched-loader wiring test
+now covers the branching/threading of the full function under the CPU
+stub — see smoke_fixscale.py's own item [18]);
 §13.11 cross-ref fixed; tier string stamped literally, `wrap_exploratory()`
 never called (tested distinct). 1.5× breaker = real subprocess kill, dual
 signal (rate + wall-clock), `ABORTED_BUDGET.json` sidecar, exercised with a
