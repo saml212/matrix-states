@@ -276,6 +276,45 @@ fi
 budget_check
 
 # ---------------------------------------------------------------------------
+# Stage B3 -- ROUND 4 RE-METRIC (sec 1.31.4 item 6). Rev 5's two-leg gate re-meters the 9-cell
+# task1/task2 calibration set under the REPAIRED instrument (Leg A/Leg B/S0-necessity/relabeled
+# rung 2/both-direction controls) -- 7 checkpoints REUSED (provenance-checked), 2 trained fresh.
+#
+# GATED behind ROUND4_AUTHORIZED.token (coordinator-only write, mirrors MARGINS_FROZEN.token's
+# own discipline below) -- per this build-fix's own chain: build-fix -> SCOPED INDEPENDENT BUILD
+# AUDIT -> round 4. This stage NEVER auto-fires on a chain (re)launch; the token is written only
+# after that audit clears (sec 1.31.7's own STATUS line: "NO training relaunch until the fixes
+# audit clears"). Resume-safe: a valid ROUND4_SUMMARY.json (9 cell entries) short-circuits.
+# ---------------------------------------------------------------------------
+if [ -s "$GATES/ROUND4_AUTHORIZED.token" ]; then
+  if $PY -c "
+import json, sys
+try:
+    d = json.load(open('$RES/round4/ROUND4_SUMMARY.json'))
+    sys.exit(0 if len(d) == 9 else 1)
+except Exception:
+    sys.exit(1)" 2>/dev/null; then
+    echo "SKIP round 4 (already valid): $RES/round4/ROUND4_SUMMARY.json"
+  else
+    if [ ! -s "$RES/round4/FRESH_CELL_CONFIGS.json" ]; then
+      echo "REFUSE: $RES/round4/FRESH_CELL_CONFIGS.json missing (the 2 fresh cells' "
+      echo "         train_grammar_cell-shaped configs -- coordinator-authored, box-only)." >&2
+      touch "$RES/FATAL"
+      exit 1
+    fi
+    CUDA_VISIBLE_DEVICES="${GPU_LIST[0]}" $PY h2h_round4_driver_rd.py --run-all \
+        --ckpt-dir "$CKPT_DIR" --out-dir "$RES/round4" \
+        --fresh-cell-configs "$RES/round4/FRESH_CELL_CONFIGS.json" --device cuda \
+        2>&1 | tee logs/h2h_25_round4.log \
+      || { echo "ROUND 4 DRIVER FAILED." >&2; touch "$RES/FATAL"; exit 1; }
+  fi
+  budget_check
+else
+  echo "SKIP Stage B3 (round 4): $GATES/ROUND4_AUTHORIZED.token not present -- waiting on the "
+  echo "  scoped independent build audit (sec 1.31.7's own chain: build-fix -> audit -> round 4)."
+fi
+
+# ---------------------------------------------------------------------------
 # Stage C -- CALIBRATION_COMPLETE report, then BLOCK on the coordinator's
 # margin freeze. This loop never exits on its own (deploy directive: the
 # 27-cell sweep is NOT released until the coordinator records the freeze).

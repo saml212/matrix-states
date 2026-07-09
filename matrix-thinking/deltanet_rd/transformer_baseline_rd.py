@@ -194,7 +194,22 @@ class TransformerLM(nn.Module):
     hidden states (sec 1.3.1.2's Transformer native tap: "the final-block
     hidden state... from a SINGLE forward pass" -- this build's own
     disclosed choice is post-final-norm, the same representation that
-    directly feeds the tied head, not a pre-norm intermediate)."""
+    directly feeds the tied head, not a pre-norm intermediate).
+
+    return_hidden (sec 1.31.4 item 3 OOM fix, the AUD2-F1 pattern already
+    used by DeltaNetLM.forward/AblationLM.forward -- mirrored here EXACTLY
+    for contract consistency across all three arms): when True, SKIPS the
+    vocab-size LM-head matmul ENTIRELY and returns ONLY the hidden state
+    (B,T,d_model), never a (logits, hidden) tuple. The PRE-FIX version
+    computed `logits = F.linear(x, self.embed.weight)` (a (B,T,vocab_size)
+    tensor over ALL T positions) unconditionally, even when a caller only
+    wanted the hidden state to slice-then-matmul at ONE position (sec
+    1.27's `transformer_native_tap` OOM at K=48: B*Q rows x T~342 x
+    vocab_size~50259 x 4 bytes ~= 98 GiB, computed and then almost
+    entirely discarded). Callers that need answer-position logits now
+    slice the returned hidden FIRST, then apply `F.linear` themselves to
+    ONLY that slice (probe_head_rd.transformer_native_tap,
+    h2h_cell_train_rd._fused_transformer_tap_and_answer_logits)."""
 
     def __init__(self, vocab_size: int, d_model: int = 256, n_layers: int = 2, n_heads: int = 4,
                  ffn_mult: int = 4, rope_base: float = ROPE_BASE_DEFAULT):
@@ -215,8 +230,9 @@ class TransformerLM(nn.Module):
         for blk in self.blocks:
             x = blk(x, attn_mask=attn_mask)
         x = self.norm_f(x)
-        logits = F.linear(x, self.embed.weight)
-        return (logits, x) if return_hidden else logits
+        if return_hidden:
+            return x                                     # no LM-head matmul at all (sec 1.31.4 item 3)
+        return F.linear(x, self.embed.weight)
 
 
 def count_transformer_params(vocab_size: int, d_model: int, n_layers: int, ffn_mult: int = 4) -> int:
@@ -349,6 +365,32 @@ def smoke_8_cap_length_floor_exclusion_negative_test():
             raised)
 
 
+def smoke_9_return_hidden_skips_lm_head_and_slice_then_matmul_matches_full():
+    """sec 1.31.4 item 3 (transformer_native_tap OOM fix): `return_hidden=True` must return
+    ONLY the hidden state (B,T,d_model), NEVER a (logits, hidden) tuple (the pre-fix
+    contract) -- and slicing that hidden to ONE position THEN applying the LM head must be
+    BIT-IDENTICAL to slicing the OLD full-logits tensor at that same position (the AUD2-F1
+    "slice-before-matmul reproduces slice-after-matmul exactly" guarantee, re-verified here
+    for the Transformer arm specifically since lm_pretrain_rd.DeltaNetLM already carries its
+    own version of this proof and this file must not silently diverge from that precedent)."""
+    torch.manual_seed(9)
+    m = TransformerLM(300, d_model=32, n_layers=2, n_heads=4, ffn_mult=2)
+    m.eval()
+    x = torch.randint(0, 300, (3, 24))
+    with torch.no_grad():
+        hidden_only = m(x, return_hidden=True)
+        full_logits = m(x, return_hidden=False)
+    contract_ok = (not isinstance(hidden_only, tuple)) and hidden_only.shape == (3, 24, 32)
+    pos = -1
+    sliced_then_matmul = F.linear(hidden_only[:, pos, :], m.embed.weight)
+    identical = torch.allclose(sliced_then_matmul, full_logits[:, pos, :], atol=1e-5)
+    ok = contract_ok and identical
+    _report("smoke 9 (sec 1.31.4 item 3): return_hidden=True returns hidden ONLY (no tuple, no "
+            "LM-head matmul); slice-then-matmul at one position reproduces the OLD "
+            "full-position-then-slice logits bit-close", ok,
+            f"contract_ok={contract_ok} identical={identical}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--smoke", action="store_true")
@@ -365,6 +407,7 @@ def main() -> int:
     smoke_6_cap_length_table_matches_design_doc()
     smoke_7_param_count_formula_matches_real_instantiation()
     smoke_8_cap_length_floor_exclusion_negative_test()
+    smoke_9_return_hidden_skips_lm_head_and_slice_then_matmul_matches_full()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)

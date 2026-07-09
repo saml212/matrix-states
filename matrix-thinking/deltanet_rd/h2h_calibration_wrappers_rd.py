@@ -110,25 +110,39 @@ def check_calibration_band(measured: float, band_lo: float, band_hi: float, metr
 RUNG1_BAND_MULT = 3.0   # sec 1.7 gate 1a/1b: same >3x episode-restricted-chance bar as the ladder's own rung 1
 
 
-def check_gate1_full_cell_band(rung1_accuracy: float, K: int, recovered_frac_at_09: float,
+def check_gate1_full_cell_band(arch: str, rung1_accuracy: float, K: int,
+                                instrument_health_passed: bool,
                                 rung1_mult: float = RUNG1_BAND_MULT) -> dict:
-    """sec 1.7 gate 1b (NEW, Rev 4): a task1_calib/task2_calib FULL cell (role=='primary')
-    PASSES gate 1 iff BOTH (i) rung-1 answer accuracy > rung1_mult x episode-restricted
-    chance (1/K) AND (ii) recovered_frac@0.9 > 0 -- the ladder's rung 1 and rung 3 jointly;
-    rung 2 stays diagnostic-only (attribution on a FAIL), never itself a pass/fail input here
-    (sec 1.7 gate 1a's own attribution-table text). Stress/locate-only cells (task1_stress,
-    role=='stress_locate_only') are EXEMPT from this band and must never call this function as
-    a gating decision -- callers decide cell eligibility, this function only scores the two
-    numbers it is handed. R5-F3 rescoped the ladder's OWN applicability (which cells log rungs
-    1-3 at all) to task1_calib/task1_stress/task2_calib, distinct from THIS narrower band,
-    which further excludes the stress cell (sec 1.7 gate 1b's own text, unchanged by R5-F3)."""
+    """sec 1.7 gate 1b, RE-WIRED (sec 1.31.4 item 5, Rev 5.1): the pre-Rev-5.1 version below
+    still enforced the DEAD `rf@0.9 > 0` conjunct -- run as-is against round-4 output it FATALs
+    every cell, since rf@0.9 was demoted to a Leg-B diagnostic reading (§1.31's own dead-clause
+    list item 4, §1.30's localization: no linear tap on either raw state clears rf@0.9, so
+    round 4's contender numbers routinely read rf@0.9==0 even on cells rung 1 passes cleanly).
+
+    Now ARM-AWARE per §1.31.3's bands, a task1_calib/task2_calib FULL cell (role=='primary')
+    passes gate 1 iff:
+      (i)   the CONTENDER cell's rung-1 accuracy clears `rung1_mult` x episode-restricted
+            chance (1/K) -- training+instrument sanity, launch-blocking ONLY for this arch;
+      (ii)  baseline arms' (ablation/transformer) rung-1 is recorded as DATA, never
+            launch-blocking -- their failure IS the pre-registered separation, not a broken
+            cell;
+      (iii) instrument-health (planted-signal positive controls pass AND noise nulls stay
+            <=1.5x chance, sec 1.31.4 item 2 / `check_instrument_health`) IS launch-blocking
+            for ALL arms;
+      (iv)  `rf@0.9 > 0` is REMOVED from the band entirely (Leg-B diagnostic now, never a gate
+            conjunct, never a LOSE criterion, per §1.31.1's own text).
+    Stress/locate-only cells (task1_stress, role=='stress_locate_only') stay EXEMPT from this
+    band and must never call this function as a gating decision -- callers decide cell
+    eligibility, this function only scores what it is handed."""
     chance = 1.0 / K
-    rung1_ok = rung1_accuracy > rung1_mult * chance
-    rf_ok = recovered_frac_at_09 > 0.0
-    return {"rung1_accuracy": rung1_accuracy, "K": K, "chance": chance,
-            "rung1_pass_bar": rung1_mult * chance, "rung1_ok": rung1_ok,
-            "recovered_frac_at_09": recovered_frac_at_09, "rf_ok": rf_ok,
-            "within_band": rung1_ok and rf_ok}
+    rung1_pass_bar = rung1_mult * chance
+    rung1_ok = rung1_accuracy > rung1_pass_bar
+    is_contender = (arch == "contender")
+    rung1_blocking = is_contender          # baseline arms' rung1 is data-only, never blocking
+    within_band = (rung1_ok if rung1_blocking else True) and instrument_health_passed
+    return {"arch": arch, "rung1_accuracy": rung1_accuracy, "K": K, "chance": chance,
+            "rung1_pass_bar": rung1_pass_bar, "rung1_ok": rung1_ok, "rung1_blocking": rung1_blocking,
+            "instrument_health_passed": instrument_health_passed, "within_band": within_band}
 
 
 # ---------------------------------------------------------------------------
@@ -303,27 +317,44 @@ def smoke_3_calibration_band_check():
 
 
 def smoke_3b_gate1_full_cell_band():
-    """sec 1.7 gate 1b: BOTH rung-1 (>3x chance) AND rf@0.9>0 required; a synthetic cell
-    result failing EITHER condition must fail the band -- run to completion (CLAUDE.md's own
-    'run the negative unit test... to completion' rule on structural checks)."""
+    """sec 1.31.4 item 5 (Rev 5.1 re-wire): arm-aware bands, rf@0.9 REMOVED entirely.
+    (a) contender, rung-1 well above bar, instrument-health passes -- PASSES.
+    (b) contender, rung-1 AT chance (never learned recall, sec 1.21's own diagnosed failure
+        mode) -- FAILS (contender's rung-1 IS launch-blocking).
+    (c) contender, rung-1 passes, instrument-health FAILS -- FAILS (instrument-health is
+        launch-blocking for every arch).
+    (d) THE ROUND-3 CONTENDER CASE (sec 1.31.4 item 5's own required selftest): rung1=0.999,
+        rf@0.9=0 -- under the PRE-Rev-5.1 band this FATALs; under the re-wired band it must now
+        PASS (rf@0.9 is not read by this function at all any more -- there is no parameter for
+        it), proving the conjunct is actually gone, not merely defaulted-away.
+    (e) BASELINE ARM, rung-1 at chance, instrument-health passes -- PASSES (baseline rung-1 is
+        data-only, never launch-blocking) -- proves (ii)'s asymmetry has teeth.
+    (f) BASELINE ARM, instrument-health FAILS -- FAILS (instrument-health blocks every arch,
+        including baselines) -- proves (iii)'s "ALL arms" scope has teeth.
+    Run to completion (CLAUDE.md's own 'run the negative unit test... to completion' rule)."""
     K = 32
     chance = 1.0 / K
-    # positive: rung-1 well above 3x chance, rf@0.9 > 0 -- PASSES.
-    r_pass = check_gate1_full_cell_band(rung1_accuracy=0.5, K=K, recovered_frac_at_09=0.12)
-    # negative 1: rung-1 EXACTLY at chance (a synthetic cell that never learned recall at all,
-    # sec 1.21's own diagnosed failure mode) -- rung1_ok must be False, and the compound band
-    # must therefore fail even though rf@0.9 alone would look fine.
-    r_fail_rung1 = check_gate1_full_cell_band(rung1_accuracy=chance, K=K, recovered_frac_at_09=0.12)
-    # negative 2: rung-1 passes but rf@0.9 == 0 exactly (the Nichani-gap cell: task learned
-    # somewhere, exact-continuous-recovery probe still can't) -- rf_ok must be False.
-    r_fail_rf = check_gate1_full_cell_band(rung1_accuracy=0.5, K=K, recovered_frac_at_09=0.0)
-    ok = (r_pass["within_band"] and not r_fail_rung1["within_band"] and not r_fail_rf["within_band"]
-          and r_fail_rung1["rung1_ok"] is False and r_fail_rf["rf_ok"] is False)
-    _report("smoke 3b: check_gate1_full_cell_band -- PASS case passes; a synthetic cell "
-            "failing rung-1 alone (chance-level accuracy) fails the band; a synthetic cell "
-            "failing rf@0.9 alone (==0) also fails the band", ok,
+    r_pass = check_gate1_full_cell_band("contender", 0.5, K, instrument_health_passed=True)
+    r_fail_rung1 = check_gate1_full_cell_band("contender", chance, K, instrument_health_passed=True)
+    r_fail_instrument = check_gate1_full_cell_band("contender", 0.5, K, instrument_health_passed=False)
+    r_round3_contender = check_gate1_full_cell_band("contender", 0.999, K, instrument_health_passed=True)
+    r_baseline_low_rung1 = check_gate1_full_cell_band("ablation", chance, K, instrument_health_passed=True)
+    r_baseline_bad_instrument = check_gate1_full_cell_band("transformer", 0.999, K,
+                                                            instrument_health_passed=False)
+    ok = (r_pass["within_band"] and not r_fail_rung1["within_band"]
+          and not r_fail_instrument["within_band"] and r_round3_contender["within_band"]
+          and r_baseline_low_rung1["within_band"] and not r_baseline_bad_instrument["within_band"]
+          and r_fail_rung1["rung1_ok"] is False and "rf_ok" not in r_pass)
+    _report("smoke 3b (sec 1.31.4 item 5): arm-aware band -- contender PASS case passes; "
+            "contender chance-level rung-1 fails; instrument-health failure fails for EITHER "
+            "arch; the round-3 contender case (rung1=0.999/rf@0.9=0, no longer even a "
+            "parameter) now PASSES; a baseline arm at chance-level rung-1 STILL PASSES "
+            "(data-only, never blocking)", ok,
             f"pass={r_pass['within_band']} fail_rung1={r_fail_rung1['within_band']} "
-            f"fail_rf={r_fail_rf['within_band']}")
+            f"fail_instrument={r_fail_instrument['within_band']} "
+            f"round3_contender={r_round3_contender['within_band']} "
+            f"baseline_low_rung1={r_baseline_low_rung1['within_band']} "
+            f"baseline_bad_instrument={r_baseline_bad_instrument['within_band']}")
 
 
 def smoke_4_timing_pilot_projection():

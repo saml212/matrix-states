@@ -163,14 +163,26 @@ def transformer_native_tap(model: TransformerLM, context_token_ids: torch.Tensor
     replicates the context Q times (once per query) since the Transformer
     has no query-free read channel to reuse a single context pass across
     queries -- exactly why R3-F4 gates the M-sweep fan-out behind a REAL
-    timing pilot rather than a design-time assumption."""
+    timing pilot rather than a design-time assumption.
+
+    sec 1.31.4 item 3 (OOM fix): `model(..., return_hidden=True)` now
+    returns hidden ONLY (never a (logits, hidden) tuple -- see
+    transformer_baseline_rd.TransformerLM.forward's own updated
+    docstring), so this function was already computing NO wasted
+    full-vocab matmul once that fix landed -- it reads `hidden[:, -1, :]`
+    directly. This IS, by construction, the §1.31.2-pinned Leg-B tap
+    ("the post-block-1, pre-LM-head hidden") for the Transformer arm: its
+    native tap has always been the pre-LM-head hidden at `<Q>`, unlike the
+    recurrent arms' native tap (S1@q_shallow, found causally inert/
+    linearly dead at §1.30) -- no separate Leg-B extraction path is needed
+    for this arch."""
     B, T_ctx = context_token_ids.shape
     _, Q, qlen = query_tokens.shape
     ctx_rep = context_token_ids.unsqueeze(1).expand(B, Q, T_ctx).reshape(B * Q, T_ctx)
     q_flat = query_tokens.reshape(B * Q, qlen)
     seq = torch.cat([ctx_rep, q_flat], dim=1)
     mask = attn_mask_fn(T_ctx + qlen) if attn_mask_fn is not None else None
-    _, hidden = model(seq, attn_mask=mask, return_hidden=True)
+    hidden = model(seq, attn_mask=mask, return_hidden=True)
     return hidden[:, -1, :].view(B, Q, -1)
 
 
@@ -304,6 +316,72 @@ def run_identity_classifier_capacity_null(native_tap_dim: int, K: int, n_train_s
     pass_bar = RUNG2_NULL_PASS_MULT * chance
     return {"accuracy": acc, "chance": chance, "pass_bar": pass_bar, "passed": acc <= pass_bar,
             "native_tap_dim": native_tap_dim, "K": K, "n_train_steps": n_train_steps, "n_eval": n_eval}
+
+
+# ---------------------------------------------------------------------------
+# sec 1.31.4 item 2 -- rung-2's BOTH-DIRECTIONS teeth: the positive-control half (the negative
+# half is `run_identity_classifier_capacity_null` above, R5-F2, unchanged).
+# ---------------------------------------------------------------------------
+
+RUNG2_PLANTED_SIGNAL_PASS_BAR = 0.90   # sec 1.31.4 item 2: "must score near-ceiling (>=90%)"
+
+
+def rung2_planted_signal_positive_control(tap_dim: int, n_classes: int, n_slots: int = 32,
+                                           n_train_steps: int = 300, batch_size: int = 64,
+                                           lr: float = 1e-3, n_eval: int = 2000,
+                                           seed: int = 0) -> dict:
+    """sec 1.31.4 item 2 (the "both-directions teeth rule"): a SYNTHETIC tap with LINEARLY
+    PLANTED entity identity (`tap = W_plant[identity] + small_noise`, `W_plant` a fixed random
+    projection) that a freshly-trained identity classifier MUST recover near-ceiling
+    (`>=RUNG2_PLANTED_SIGNAL_PASS_BAR`) -- proving the classifier + training loop have the
+    CAPACITY to read an actually-present linear identity signal, the positive-direction
+    complement to `run_identity_classifier_capacity_null`'s negative-direction "no signal
+    present" null. An instrument is trusted only when it passes BOTH directions (sec 1.28's
+    own new rule).
+
+    ALSO returns the sec 1.31.4 item 1 "relabel matters" proof required alongside the relabel
+    itself: on the EXACT SAME planted tap, a classifier trained against the OLD `tgt_slot`
+    labels (drawn uniformly at random, INDEPENDENT of the planted identity -- grammar_rd's own
+    "slots are uniform given identity" property, sec 1.28's diagnosed structural-vacuity
+    defect) must read ~chance, because there is no learnable identity-to-slot relationship in
+    this construction even though identity itself is perfectly linear. This is the single
+    experiment sec 1.31.4 item 1 calls for: "a synthetic tap that encodes identity perfectly
+    must score >>chance; the old slot-labeled construction must read ~chance on the same
+    plant -- proving the relabel matters.\""""
+    torch.manual_seed(seed)
+    W_plant = torch.randn(n_classes, tap_dim) / (tap_dim ** 0.5)
+
+    def _make_batch(n: int):
+        y_identity = torch.randint(0, n_classes, (n,))
+        tap = W_plant[y_identity] + 0.01 * torch.randn(n, tap_dim)
+        y_slot = torch.randint(0, n_slots, (n,))          # uniform, INDEPENDENT of y_identity/tap
+        return tap, y_identity, y_slot
+
+    clf_identity = build_identity_classifier(tap_dim, n_classes)
+    clf_slot = build_identity_classifier(tap_dim, n_slots)     # the OLD (pre-Rev-5.1) label scheme
+    opt_i = torch.optim.Adam(clf_identity.parameters(), lr=lr)
+    opt_s = torch.optim.Adam(clf_slot.parameters(), lr=lr)
+    for _ in range(n_train_steps):
+        tap, y_identity, y_slot = _make_batch(batch_size)
+        loss_i = F.cross_entropy(clf_identity(tap), y_identity)
+        opt_i.zero_grad(); loss_i.backward(); opt_i.step()
+        loss_s = F.cross_entropy(clf_slot(tap), y_slot)
+        opt_s.zero_grad(); loss_s.backward(); opt_s.step()
+
+    with torch.no_grad():
+        tap_e, y_identity_e, y_slot_e = _make_batch(n_eval)
+        acc_identity = (clf_identity(tap_e).argmax(-1) == y_identity_e).float().mean().item()
+        acc_slot = (clf_slot(tap_e).argmax(-1) == y_slot_e).float().mean().item()
+
+    slot_chance = 1.0 / n_slots
+    old_labels_reads_chance = acc_slot <= RUNG2_NULL_PASS_MULT * slot_chance
+    identity_passed = acc_identity >= RUNG2_PLANTED_SIGNAL_PASS_BAR
+    return {"identity_accuracy": acc_identity, "identity_pass_bar": RUNG2_PLANTED_SIGNAL_PASS_BAR,
+            "identity_passed": identity_passed,
+            "old_slot_labeled_accuracy": acc_slot, "old_slot_labeled_chance": slot_chance,
+            "old_slot_labeled_reads_chance": old_labels_reads_chance,
+            "n_classes": n_classes, "n_slots": n_slots, "tap_dim": tap_dim,
+            "passed": identity_passed and old_labels_reads_chance}
 
 
 # ---------------------------------------------------------------------------
@@ -685,6 +763,24 @@ def smoke_9_rung2_identity_classifier_capacity_null_all_three_arm_shapes():
             "real 3x gate)", all_pass)
 
 
+def smoke_10_rung2_planted_signal_positive_control_both_directions():
+    """sec 1.31.4 item 2 (GATE): the positive-control half must actually have teeth in BOTH
+    directions it claims -- (a) a perfectly-linear planted identity signal is recovered
+    near-ceiling, proving the classifier/training loop CAN read a real signal (never trivially
+    weak); (b) the OLD tgt_slot-style labels read ~chance on that SAME tap, proving sec 1.31.4
+    item 1's relabel is not a cosmetic change -- the old construction really was structurally
+    vacuous. Run for a representative tap_dim (256, the Leg-B tap's own d_model) and the real
+    107-ish class count is NOT re-derived here (that requires the real GPT-2 pool, box-decoupled
+    on purpose); a stand-in n_classes=107 is used, matching the design doc's own cited pool size."""
+    result = rung2_planted_signal_positive_control(tap_dim=256, n_classes=107, seed=21)
+    _report("smoke 10 (sec 1.31.4 item 2 GATE): planted-signal positive control passes BOTH "
+            "directions (identity recovered >=90%; OLD slot-labeled construction on the SAME "
+            "plant reads <=1.5x chance)", result["passed"],
+            f"identity_accuracy={result['identity_accuracy']:.4f} "
+            f"old_slot_labeled_accuracy={result['old_slot_labeled_accuracy']:.4f} "
+            f"old_slot_labeled_chance={result['old_slot_labeled_chance']:.4f}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--smoke", action="store_true")
@@ -702,6 +798,7 @@ def main() -> int:
     smoke_7_joint_loss_gradients_flow_to_backbone()
     smoke_8_aux_loss_only_gradient_isolation()
     smoke_9_rung2_identity_classifier_capacity_null_all_three_arm_shapes()
+    smoke_10_rung2_planted_signal_positive_control_both_directions()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)

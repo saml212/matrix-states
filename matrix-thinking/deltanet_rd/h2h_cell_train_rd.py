@@ -457,12 +457,19 @@ def _repeat_states_for_queries(final_states: list, Q: int) -> list:
     return out
 
 
-def _recurrent_continuation_answer_logits(arch: str, model, final_states: list,
-                                          query_tokens: torch.Tensor, buffer_id: int) -> torch.Tensor:
+def _recurrent_continuation_hidden_and_logits(arch: str, model, final_states: list,
+                                              query_tokens: torch.Tensor,
+                                              buffer_id: int) -> tuple[torch.Tensor, torch.Tensor]:
     """sec 1.3.1.3 Rev 4's continuation: model.forward(query_tokens, initial_states=S_T),
-    padded per the module section docstring above. Returns (B,Q,vocab) answer-position logits
-    -- read at index qlen-1 (the <Q> position), which causal masking guarantees is IDENTICAL
-    whether or not the padding is present (verified by this file's own blank-out-style smoke).
+    padded per the module section docstring above. Returns (answer_hidden, answer_logits), each
+    (B,Q,*) -- read at index qlen-1 (the <Q> position), which causal masking guarantees is
+    IDENTICAL whether or not the padding is present (verified by this file's own blank-out-style
+    smoke). `answer_hidden` is the §1.31.2-pinned Leg-B tap for the recurrent arms ("the
+    post-block-1, pre-LM-head hidden" -- §1.30's localization result: NEVER S1@q_shallow, found
+    causally inert / linearly dead) -- exposed here so `fit_rung2_identity_classifier` and the
+    round-4 driver's Leg-B ridge fit can read it from the SAME padded continuation call
+    `_recurrent_continuation_answer_logits` (below) already uses, rather than a second,
+    independently-wired forward pass that could silently drift from rung 1's own accuracy read.
 
     AUD2-F1 fix (sec 1.24 pre-launch build-fix): the pre-fix version ran the vocab-size LM
     head (F.linear against embed.weight) over ALL _MIN_KERNEL_T (128) padded positions via a
@@ -481,25 +488,61 @@ def _recurrent_continuation_answer_logits(arch: str, model, final_states: list,
     hidden = model.forward(padded, initial_states=states_rep, return_hidden=True)
     answer_hidden = hidden[:, qlen - 1, :]                        # slice BEFORE the LM-head matmul
     answer_logits = F.linear(answer_hidden, model.embed.weight)   # (B*Q,vocab), not (B*Q,128,vocab)
-    return answer_logits.view(B, Q, -1)
+    return answer_hidden.view(B, Q, -1), answer_logits.view(B, Q, -1)
+
+
+def _recurrent_continuation_answer_logits(arch: str, model, final_states: list,
+                                          query_tokens: torch.Tensor, buffer_id: int) -> torch.Tensor:
+    """Thin wrapper over `_recurrent_continuation_hidden_and_logits` -- kept as its own name
+    because it is rung 1's own registered accuracy-read entry point (every existing caller/
+    selftest keeps working unmodified, byte-identical computation graph)."""
+    _, answer_logits = _recurrent_continuation_hidden_and_logits(arch, model, final_states,
+                                                                  query_tokens, buffer_id)
+    return answer_logits
+
+
+def _leg_b_tap(arch: str, model, batch: dict, pools) -> torch.Tensor:
+    """The §1.31.2-pinned Leg-B tap ("the post-block-1, pre-LM-head hidden" at the query answer
+    position) -- sec 1.31.4 item 1's retarget for `fit_rung2_identity_classifier`, and the tap
+    the round-4 driver's Leg-B ridge fit reads, symmetric across all three arms. NEVER
+    `AUDITED_TAP[arch]` for the recurrent arms (that is the dead S1@q_shallow native tap,
+    §1.30's localization: causally inert / linearly dead). For the transformer arm this
+    coincides EXACTLY with `AUDITED_TAP['transformer']` (=`ph.transformer_native_tap`): its
+    native tap has always been the pre-LM-head hidden at `<Q>` (sec 1.3.1.2), so no separate
+    extraction path exists or is needed for that arch."""
+    if arch == "transformer":
+        return AUDITED_TAP["transformer"](model, batch["token_ids"], batch["query_tokens"])
+    _, final_states = model(batch["token_ids"], return_states=True)
+    hidden, _ = _recurrent_continuation_hidden_and_logits(
+        arch, model, final_states, batch["query_tokens"], pools.buffer_id)
+    return hidden
 
 
 def _fused_transformer_tap_and_answer_logits(model, context_token_ids: torch.Tensor,
                                              query_tokens: torch.Tensor, attn_mask_fn=None):
     """Mirrors probe_head_rd.transformer_native_tap's internals VERBATIM (equivalence to the
     audited tap is asserted at step 0, see assert_fused_tap_matches_audited) but additionally
-    keeps the SAME forward call's own LM-head logits at the <Q> position -- sec 1.3.1.3's own
-    'reuse its existing single-pass logits, no second forward' for the Transformer arm.
-    Returns (tap, answer_logits), each (B,Q,*)."""
+    derives the SAME forward call's answer-position logits -- sec 1.3.1.3's own 'reuse its
+    existing single-pass logits, no second forward' for the Transformer arm.
+    Returns (tap, answer_logits), each (B,Q,*).
+
+    sec 1.31.4 item 3 (OOM fix): `model(..., return_hidden=True)` now returns hidden ONLY (no
+    full-vocab matmul over all T positions, see transformer_baseline_rd.TransformerLM.forward's
+    updated docstring) -- slice to the answer position (<Q>, the last position of
+    [ctx_rep ++ q_flat]) FIRST, THEN apply the LM head to ONLY that (B*Q,d_model) slice (the
+    AUD2-F1 pattern, now applied to the Transformer arm for the first time -- this fused
+    training-time path was, before this fix, ALSO wastefully computing the full (B*Q,T,vocab)
+    logits tensor every training step, not merely at the K=48 rung-2-fit crash site)."""
     B, T_ctx = context_token_ids.shape
     _, Q, qlen = query_tokens.shape
     ctx_rep = context_token_ids.unsqueeze(1).expand(B, Q, T_ctx).reshape(B * Q, T_ctx)
     q_flat = query_tokens.reshape(B * Q, qlen)
     seq = torch.cat([ctx_rep, q_flat], dim=1)
     mask = attn_mask_fn(T_ctx + qlen) if attn_mask_fn is not None else None
-    logits, hidden = model(seq, attn_mask=mask, return_hidden=True)
-    tap = hidden[:, -1, :].view(B, Q, -1)
-    answer_logits = logits[:, -1, :].view(B, Q, -1)
+    hidden = model(seq, attn_mask=mask, return_hidden=True)
+    answer_hidden = hidden[:, -1, :]                              # slice BEFORE the LM-head matmul
+    tap = answer_hidden.view(B, Q, -1)
+    answer_logits = F.linear(answer_hidden, model.embed.weight).view(B, Q, -1)
     return tap, answer_logits
 
 
@@ -685,17 +728,30 @@ RUNG2_EVAL_BATCHES = 4      # mirrors EVAL_EPISODE_BATCHES's own convention
 
 def fit_rung2_identity_classifier(arch: str, model, cfg_eval: DeltaNetRDTaskConfig, hop_set: tuple,
                                   pools, device: str, K: int, seed: int) -> dict:
-    """Rung 2: a FRESHLY-trained linear identity-classifier (nn.Linear(native_tap_dim, K),
+    """Rung 2 (sec 1.31.4 item 1 relabel + retarget, Rev 5.1): a FRESHLY-trained linear
+    ENTITY-IDENTITY classifier (nn.Linear(Leg-B tap dim, n_train_names),
     probe_head_rd.build_identity_classifier -- SEPARATE from shared_probe, which does
-    continuous regression, not classification), predicting WHICH of the episode's K candidate
-    entities (the SLOT index, tgt_slot) is being queried, from the arm's own native tap
-    (adapter_arm's own INPUT shape -- state_summary_raw, not the post-adapter value_dim).
-    Trained on FRESH episodes (a fresh generator stream), evaluated on a SEPARATE held-out
-    fresh draw never used in training (this program's own standing train/eval-split
-    discipline, sec 1.3.1.4's convention, applied to a real-backbone tap). PASS bar: > 3x
-    episode-restricted chance (1/K), same convention as rung 1. The backbone is FROZEN
-    throughout (torch.no_grad() around every tap call) -- only the classifier trains."""
-    clf = ph.build_identity_classifier(TAP_DIM[arch], K).to(device)
+    continuous regression, not classification), predicting WHICH of the ~107 train-pool
+    entities is the true ANSWER, from the §1.31.2-pinned Leg-B tap (`_leg_b_tap`, the
+    post-block-1 pre-LM-head hidden). Labels are entity IDENTITY (the answer token's fixed
+    position in `pools.train_name_ids`), NEVER `tgt_slot` (sec 1.28's diagnosed
+    structural-vacuity defect: grammar_rd draws entity order fresh per episode, so slots are
+    UNIFORM given identity -- a PERFECT tap scored chance under the old labels;
+    `probe_head_rd.rung2_planted_signal_positive_control` proves this concretely). Retargeted
+    from the dead native tap (`AUDITED_TAP[arch]`, S1@q_shallow for the recurrent arms -- found
+    causally inert / linearly dead at §1.30) to the Leg-B tap, mirroring
+    `probe_diagnosis_rd.py`'s own item-1e construction (`h2h_cell_train_rd.py:686` pre-Rev-5.1 /
+    `probe_diagnosis_rd.py:275`). Trained on FRESH episodes, evaluated on a SEPARATE held-out
+    fresh draw never used in training. PASS bar: > 3x chance over the FULL entity-identity
+    label space (`1/n_train_names`, NOT the per-episode K -- the label space is now global,
+    not episode-local). The backbone is FROZEN throughout -- only the classifier trains."""
+    pool_ids = pools.train_name_ids.to(device)
+    n_classes = pool_ids.numel()
+    id2class = torch.full((int(pool_ids.max()) + 1,), -1, dtype=torch.int64, device=device)
+    id2class[pool_ids] = torch.arange(n_classes, device=device)
+    tap_dim = model.embed.weight.shape[-1]   # Leg-B tap dim = d_model, uniform across all 3 arms
+
+    clf = ph.build_identity_classifier(tap_dim, n_classes).to(device)
     opt = torch.optim.Adam(clf.parameters(), lr=1e-3)
     gen = torch.Generator(device=device)
     gen.manual_seed(seed)
@@ -703,9 +759,13 @@ def fit_rung2_identity_classifier(arch: str, model, cfg_eval: DeltaNetRDTaskConf
     for _ in range(RUNG2_TRAIN_STEPS):
         b = sample_batch_rd(cfg_eval, RUNG2_TRAIN_BATCH, gen, hop_set, pools, device=device)
         with torch.no_grad():
-            tap = AUDITED_TAP[arch](model, b["token_ids"], b["query_tokens"])
+            tap = _leg_b_tap(arch, model, b, pools)
+        y = id2class[answer_token_ids(b)]
+        assert bool((y >= 0).all()), (
+            "rung-2 relabel: an answer token id fell outside pools.train_name_ids -- id2class "
+            "lookup table is stale or the episode drew a held-out/reserved entity")
         logits = clf(tap)
-        loss = F.cross_entropy(logits.reshape(-1, K), b["tgt_slot"].reshape(-1))
+        loss = F.cross_entropy(logits.reshape(-1, n_classes), y.reshape(-1))
         opt.zero_grad()
         loss.backward()
         opt.step()
@@ -716,15 +776,39 @@ def fit_rung2_identity_classifier(arch: str, model, cfg_eval: DeltaNetRDTaskConf
     with torch.no_grad():
         for _ in range(RUNG2_EVAL_BATCHES):
             b = sample_batch_rd(cfg_eval, RUNG2_TRAIN_BATCH, eval_gen, hop_set, pools, device=device)
-            tap = AUDITED_TAP[arch](model, b["token_ids"], b["query_tokens"])
-            pred_slot = clf(tap).argmax(dim=-1)
-            n_hit += (pred_slot == b["tgt_slot"]).float().sum().item()
-            n_tot += b["tgt_slot"].numel()
+            tap = _leg_b_tap(arch, model, b, pools)
+            y = id2class[answer_token_ids(b)]
+            pred = clf(tap).argmax(dim=-1)
+            n_hit += (pred == y).float().sum().item()
+            n_tot += y.numel()
     model.train()
     acc = n_hit / max(1, n_tot)
-    chance = 1.0 / K
+    chance = 1.0 / n_classes
     return {"accuracy": acc, "chance": chance, "pass_bar": ph.RUNG_CHANCE_MULT * chance,
-            "passed": acc > ph.RUNG_CHANCE_MULT * chance, "K": K, "n_train_steps": RUNG2_TRAIN_STEPS}
+            "passed": acc > ph.RUNG_CHANCE_MULT * chance, "K": K, "n_classes": n_classes,
+            "tap_dim": tap_dim, "labels": "entity_identity", "tap": "leg_b_pre_lm_head",
+            "n_train_steps": RUNG2_TRAIN_STEPS}
+
+
+def check_instrument_health(arch: str, model, K: int, seed: int) -> dict:
+    """sec 1.31.4 item 5's band re-wire, instrument-health leg (iii): planted-signal positive
+    controls pass AND noise nulls stay <= 1.5x chance -- launch-blocking for ALL arms
+    (contender AND baselines), unlike rung 1's own accuracy (blocking for the contender only,
+    see `check_gate1_full_cell_band`). Shared by `train_grammar_cell`'s inline gate1_band AND
+    the round-4 re-metric driver so both read the identical instrument-health verdict, never
+    two independently-drifting copies. `n_classes`/`tap_dim` come from the SAME rung-2 tap the
+    real fit uses (`model.embed.weight`'s own d_model), so this check exercises the classifier
+    at its REAL production shape, not an arbitrary stand-in."""
+    tap_dim = model.embed.weight.shape[-1]
+    n_classes = 107   # sec 1.31's own cited pool size; the real count is a build-time GPT-2
+                       # tokenizer-verification artifact (grammar_rd.build_entity_pools) --
+                       # this check is a SYNTHETIC capacity probe, deliberately decoupled from
+                       # any one cell's real pool object so it never needs a live model forward.
+    positive = ph.rung2_planted_signal_positive_control(tap_dim, n_classes, n_slots=max(K, 2),
+                                                         seed=seed + 5_003)
+    null = ph.run_identity_classifier_capacity_null(tap_dim, n_classes, seed=seed + 5_009)
+    return {"positive_control": positive, "noise_null": null,
+            "passed": bool(positive["passed"] and null["passed"])}
 
 
 def ladder_applies(task: str, role: str | None) -> bool:
@@ -885,6 +969,24 @@ def train_grammar_cell(cell: dict, device: str, ckpt_dir: str | None,
                   f"rf_train {point['recovered_frac_train_hops']:.4f} "
                   f"cos_train {point['probe_cos_mean_train_hops']:.4f}", flush=True)
 
+    # sec 1.31.4 item 4 (checkpoint versioning + save-BEFORE-rung2-fit, Rev 5.1): persist the
+    # TRAINED weights to disk BEFORE the rung-2 fit runs, so a rung-2 crash (e.g.
+    # task1_stress_K48's own §1.27 OOM precedent, transformer_task1_stress_K48's round-3
+    # weights NEVER reaching disk per §1.31.7 F2) never loses already-trained weights again.
+    # Filename carries the round suffix (H2H_DIAL_ROUND via current_dial_round()) so a later
+    # round never in-place-overwrites an earlier round's checkpoint (§1.28's own "record gap"
+    # diagnosis: round 3 silently clobbered round 2's probe_diagnosis artifacts at this exact
+    # unsuffixed path). The checkpoint payload itself is unchanged (model/rig/cell only --
+    # rung2 is never part of it, so moving the save earlier changes ONLY ordering, not content).
+    ckpt_path = None
+    if ckpt_dir and not timing_only:
+        os.makedirs(ckpt_dir, exist_ok=True)
+        ckpt_path = os.path.join(ckpt_dir, f"{cell['name']}_r{current_dial_round()}.pt")
+        torch.save({"arch": arch, "task": task, "K": K, "vocab_size_total": vocab_total,
+                    "model": model.state_dict(), "rig": rig.state_dict(), "cell": cell,
+                    "round": current_dial_round()},
+                   ckpt_path)
+
     rung2 = None
     if run_ladder and not timing_only:
         # sec 1.7 gate 1a rung 2 (sec 1.23 item 3): ONE fit at the end of training, on the
@@ -918,18 +1020,17 @@ def train_grammar_cell(cell: dict, device: str, ckpt_dir: str | None,
         result["final_metric"] = float("nan")
 
     if is_full_cell and curve:
-        # sec 1.7 gate 1b (sec 1.23 build-fix item 4): task1_calib/task2_calib FULL cells
-        # (role=='primary') ONLY -- task1_stress stays exempt (run_ladder True, is_full_cell
-        # False). Uses final_metric (heldout-preferring, task2's own convention) for rf@0.9.
+        # sec 1.7 gate 1b, re-wired (sec 1.31.4 item 5, Rev 5.1): task1_calib/task2_calib FULL
+        # cells (role=='primary') ONLY -- task1_stress stays exempt (run_ladder True,
+        # is_full_cell False). ARM-AWARE per §1.31.3's bands: contender rung-1 is
+        # launch-blocking, baseline arms' rung-1 is recorded as data only, instrument-health is
+        # launch-blocking for ALL arms, and rf@0.9 is REMOVED entirely (Leg-B diagnostic now).
+        instrument_health = check_instrument_health(arch, model, K_eff, seed=cell["seed"] + 8_231)
+        result["instrument_health"] = instrument_health
         result["gate1_band"] = check_gate1_full_cell_band(
-            result["final_rung1_accuracy"], K_eff, result["final_metric"])
+            arch, result["final_rung1_accuracy"], K_eff, instrument_health["passed"])
 
-    if ckpt_dir and not timing_only:
-        os.makedirs(ckpt_dir, exist_ok=True)
-        ckpt_path = os.path.join(ckpt_dir, cell["name"] + ".pt")
-        torch.save({"arch": arch, "task": task, "K": K, "vocab_size_total": vocab_total,
-                    "model": model.state_dict(), "rig": rig.state_dict(), "cell": cell},
-                   ckpt_path)
+    if ckpt_path is not None:
         result["ckpt_path"] = ckpt_path
     return result
 
@@ -1767,6 +1868,178 @@ def mode_selftest() -> int:
         "candidate despite a non-candidate global-vocab max; the deliberately-globalized "
         "mutant FAILS the identical comparison (proves the test has teeth)", ok17,
         f"restricted_correct={restricted_correct} mutant_correct={mutant_correct}")
+
+    # 18 (sec 1.31.4 item 4a, checkpoint filename versioning): the saved checkpoint filename
+    #     carries the ROUND suffix (current_dial_round()), and two different rounds produce two
+    #     DIFFERENT files -- never an in-place overwrite (the exact §1.28 "record gap" trap:
+    #     round 3 silently clobbered round 2's checkpoint at an unsuffixed path).
+    global DIAL_ROUND_ENV, RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES
+    with tempfile.TemporaryDirectory() as td:
+        cell18 = {"arch": "ablation", "task": "task1_calib", "role": "selftest", "budget_frac": 1.0,
+                 "seed": 18, "lr": 1e-3, "K": 8, "name": "selftest_versioning", "seed_idx": 0}
+        saved = (GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH,
+                RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES)
+        GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH = 2, 1, 4
+        RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES = 5, 1   # only the CKPT FILENAME matters here,
+                                                        # never rung-2 accuracy -- the item-1
+                                                        # retarget's continuation-padded tap
+                                                        # makes the full 300-step fit real cost
+        saved_env = os.environ.get(DIAL_ROUND_ENV)
+        try:
+            os.environ[DIAL_ROUND_ENV] = "3"
+            r_r3 = train_grammar_cell(cell18, "cpu", td, steps_override=2)
+            os.environ[DIAL_ROUND_ENV] = "4"
+            r_r4 = train_grammar_cell(cell18, "cpu", td, steps_override=2)
+        finally:
+            (GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH,
+             RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES) = saved
+            if saved_env is None:
+                os.environ.pop(DIAL_ROUND_ENV, None)
+            else:
+                os.environ[DIAL_ROUND_ENV] = saved_env
+        # the isfile checks MUST run INSIDE the TemporaryDirectory block -- the directory (and
+        # the checkpoints in it) is deleted the moment the `with` exits.
+        both_files_exist = os.path.isfile(r_r3["ckpt_path"]) and os.path.isfile(r_r4["ckpt_path"])
+    ok18 = (r_r3["ckpt_path"].endswith("_r3.pt") and r_r4["ckpt_path"].endswith("_r4.pt")
+           and r_r3["ckpt_path"] != r_r4["ckpt_path"] and both_files_exist)
+    rep("selftest 18 (sec 1.31.4 item 4a): checkpoint filename carries the round suffix "
+        "(_r{round}); two different H2H_DIAL_ROUND values produce two DISTINCT files, never "
+        "an in-place overwrite", ok18,
+        f"r3_path={os.path.basename(r_r3['ckpt_path'])} r4_path={os.path.basename(r_r4['ckpt_path'])}")
+
+    # 19 (sec 1.31.4 item 4b, save-BEFORE-rung2-fit ordering): fakes a rung-2 crash (mirrors
+    #     selftest 11's DialExhaustedError-wiring pattern) and confirms the checkpoint file
+    #     EXISTS on disk despite the crash -- a probe-fit failure must never lose already-trained
+    #     weights again (the exact task1_stress_K48 §1.27/§1.31.7-F2 precedent: round 3's
+    #     weights for that cell never reached disk because the pre-fix save ran AFTER the rung-2
+    #     fit). Run to completion (CLAUDE.md's own negative-test rule): the exception must
+    #     actually propagate, not be silently swallowed.
+    global fit_rung2_identity_classifier
+
+    def _force_rung2_crash(*_a, **_kw):
+        raise RuntimeError("FORCED rung-2 crash (selftest 19)")
+
+    saved_rung2_fn = fit_rung2_identity_classifier
+    fit_rung2_identity_classifier = _force_rung2_crash
+    with tempfile.TemporaryDirectory() as td:
+        cell19 = {"arch": "ablation", "task": "task1_calib", "role": "selftest", "budget_frac": 1.0,
+                 "seed": 19, "lr": 1e-3, "K": 8, "name": "selftest_save_order", "seed_idx": 0}
+        saved = (GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH)
+        GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH = 2, 1, 4
+        raised19 = False
+        try:
+            train_grammar_cell(cell19, "cpu", td, steps_override=2)
+        except RuntimeError as e:
+            raised19 = "FORCED rung-2 crash" in str(e)
+        finally:
+            GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH = saved
+            fit_rung2_identity_classifier = saved_rung2_fn
+        expected_ckpt = os.path.join(td, f"selftest_save_order_r{current_dial_round()}.pt")
+        ckpt_survived = os.path.isfile(expected_ckpt)
+    ok19 = raised19 and ckpt_survived
+    rep("selftest 19 (sec 1.31.4 item 4b): a forced rung-2-fit crash actually RAISES from "
+        "train_grammar_cell (not swallowed) AND the checkpoint file already exists on disk "
+        "(save happens BEFORE the rung-2 fit -- a probe-fit crash never loses trained weights)",
+        ok19, f"raised={raised19} ckpt_survived={ckpt_survived} expected_ckpt={expected_ckpt}")
+
+    # 20 (sec 1.31.4 item 1, rung-2 relabel + retarget): a real micro-trained cell's rung-2 fit
+    #     must report ENTITY-IDENTITY labels (never tgt_slot) at the Leg-B tap (never the dead
+    #     native tap) -- chance is 1/n_classes over the FULL entity pool (~106/107), NOT 1/K.
+    with tempfile.TemporaryDirectory() as td:
+        cell20 = {"arch": "ablation", "task": "task1_calib", "role": "selftest", "budget_frac": 1.0,
+                 "seed": 20, "lr": 1e-3, "K": 8, "name": "selftest_rung2_relabel", "seed_idx": 0}
+        saved = (GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH,
+                RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES)
+        GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH = 2, 1, 4
+        RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES = 5, 1   # metadata fields only, accuracy irrelevant
+        try:
+            r20 = train_grammar_cell(cell20, "cpu", td, steps_override=2)
+        finally:
+            (GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH,
+             RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES) = saved
+        rung2_20 = r20["rung2_identity_classifier"]
+        pool_size = get_pools("cpu").train_name_ids.numel()
+    ok20 = (rung2_20["labels"] == "entity_identity" and rung2_20["tap"] == "leg_b_pre_lm_head"
+           and rung2_20["n_classes"] == pool_size
+           and abs(rung2_20["chance"] - 1.0 / pool_size) < 1e-9
+           and rung2_20["chance"] != 1.0 / cell20["K"])   # never the old per-episode-K chance
+    rep("selftest 20 (sec 1.31.4 item 1): rung-2's real fit reports entity_identity labels at "
+        "the leg_b_pre_lm_head tap, chance = 1/n_train_names (the FULL pool), never 1/K (the "
+        "old, structurally-vacuous per-episode-slot chance)", ok20,
+        f"labels={rung2_20['labels']} tap={rung2_20['tap']} n_classes={rung2_20['n_classes']} "
+        f"pool_size={pool_size} chance={rung2_20['chance']:.6f}")
+
+    # 21 (sec 1.31.4 item 3, M4 forced-fail spec -- the ANALYTIC alternative): closed-form
+    #     shape-arithmetic peak-memory bound for the transformer's LM-head matmul at the exact
+    #     K=48 rung-2-fit shape that OOM'd pre-fix (sec 1.27). The SLICED (post-fix) path stays
+    #     comfortably under a pinned bound; the UNSLICED (pre-fix) path's analytic requirement
+    #     (~98 GiB, matching this design doc's own §1.31.4 item 3 citation) is asserted to
+    #     EXCEED that same bound by construction -- proving the check has teeth without
+    #     attempting a real ~98 GiB allocation on this dev box.
+    def _sliced_lm_head_peak_bytes(B, Q, vocab_size_total, bytes_per_elt=4):
+        return B * Q * vocab_size_total * bytes_per_elt
+
+    def _unsliced_lm_head_peak_bytes(B, Q, T_total, vocab_size_total, bytes_per_elt=4):
+        return B * Q * T_total * vocab_size_total * bytes_per_elt
+
+    GIB = 1024 ** 3
+    K48 = 48
+    conv_size = 4
+    buf_len = max(1, conv_size - 1)
+    clause_len = buf_len + 4
+    T_bind_k48 = K48 * clause_len                      # grammar_rd.DeltaNetRDTaskConfig.T_bind
+    query_len = buf_len + 3                             # grammar_rd.DeltaNetRDTaskConfig.query_len
+    T_total_k48 = T_bind_k48 + query_len
+    B_rung2, Q_full_k48 = RUNG2_TRAIN_BATCH, K48        # fit_rung2_identity_classifier's own shape
+    vocab_total_est = 50257 + 2                         # DEPLOY-PIN-3, VOCAB_BASE + 2 reserved
+
+    sliced_bytes = _sliced_lm_head_peak_bytes(B_rung2, Q_full_k48, vocab_total_est)
+    unsliced_bytes = _unsliced_lm_head_peak_bytes(B_rung2, Q_full_k48, T_total_k48, vocab_total_est)
+    PINNED_BOUND_BYTES = 2 * GIB    # generous: sliced is ~0.29 GiB; pin well above it, well below any OOM risk
+
+    sliced_under_bound = sliced_bytes < PINNED_BOUND_BYTES
+    unsliced_exceeds_bound = unsliced_bytes > PINNED_BOUND_BYTES
+    unsliced_gib = unsliced_bytes / GIB
+    ok21 = (sliced_under_bound and unsliced_exceeds_bound
+           and 90.0 < unsliced_gib < 105.0)   # sanity: matches this doc's own "~98 GiB" citation
+    rep("selftest 21 (sec 1.31.4 item 3, M4 analytic forced-fail): at the real K=48 rung-2-fit "
+        "shape, the SLICED (post-fix) LM-head matmul stays under a pinned 2 GiB bound; the "
+        "UNSLICED (pre-fix) path's analytic requirement EXCEEDS that bound by ~49x (~98 GiB, "
+        "matching the design doc's own cited figure) -- proving the bound has teeth without "
+        "attempting the real allocation", ok21,
+        f"sliced_bytes={sliced_bytes:,} ({sliced_bytes / GIB:.4f} GiB) "
+        f"unsliced_bytes={unsliced_bytes:,} ({unsliced_gib:.2f} GiB) "
+        f"bound={PINNED_BOUND_BYTES / GIB:.1f} GiB")
+
+    # 22 (sec 1.31.4 item 5, band re-wire wired end-to-end through train_grammar_cell): a
+    #     role=='primary' FULL cell's result now carries "instrument_health" alongside
+    #     "gate1_band", and the band itself is arch-aware (carries "arch"/"rung1_blocking",
+    #     never "recovered_frac_at_09" -- confirms the dead rf@0.9 conjunct is gone from the
+    #     REAL wiring, not just the isolated function selftest already covered in
+    #     h2h_calibration_wrappers_rd.py's own smoke 3b).
+    with tempfile.TemporaryDirectory() as td:
+        cell22 = {"arch": "ablation", "task": "task1_calib", "role": "primary", "budget_frac": 1.0,
+                 "seed": 22, "lr": 1e-3, "K": 8, "name": "selftest_band_rewire", "seed_idx": 0}
+        saved = (GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH,
+                RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES)
+        GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH = 2, 1, 4
+        RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES = 5, 1   # wiring/keys only, accuracy irrelevant
+        try:
+            r22 = train_grammar_cell(cell22, "cpu", td, steps_override=2)
+        finally:
+            (GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH,
+             RUNG2_TRAIN_STEPS, RUNG2_EVAL_BATCHES) = saved
+    band22 = r22.get("gate1_band", {})
+    ok22 = ("instrument_health" in r22 and "passed" in r22["instrument_health"]
+           and band22.get("arch") == "ablation" and "rung1_blocking" in band22
+           and band22["rung1_blocking"] is False       # ablation is a baseline arm, never blocking
+           and "recovered_frac_at_09" not in band22 and "rf_ok" not in band22)
+    rep("selftest 22 (sec 1.31.4 item 5): train_grammar_cell's real FULL-cell result carries "
+        "instrument_health alongside the arch-aware gate1_band; the ablation (baseline) arm's "
+        "band correctly reports rung1_blocking=False; rf@0.9 fields are entirely absent from "
+        "the band, not merely unused", ok22,
+        f"instrument_health_passed={r22.get('instrument_health', {}).get('passed')} "
+        f"band={band22}")
 
     print("=" * 70)
     if failures:
