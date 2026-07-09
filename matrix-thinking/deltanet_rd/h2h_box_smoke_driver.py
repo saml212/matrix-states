@@ -73,14 +73,19 @@ def main() -> int:
     hard_fail = hard_fail or not item1_ok
 
     # ---- full audited probe-head suite on real kernels (covers item 3's smoke_8c BOX branch,
-    # smoke_2/5/6/7, and smoke_3's two CPU-provable halves now on the real kernel) ----
+    # smoke_2/5/7, and smoke_3's two CPU-provable halves now on the real kernel). smoke_1 and
+    # smoke_6 are fla-FREE and use an explicit CPU torch.Generator inside
+    # random_unit_rows_init (which the cuda default-device would break); they are exactly the
+    # items the design calls CPU-feasible/no-backbone (sec 1.3.1.4), so they run under a CPU
+    # device context -- same code, correct device semantics. ----
     ph.FAILURES.clear()
-    ph.smoke_1_target_table_frozen_unit_rows()
+    with torch.device("cpu"):
+        ph.smoke_1_target_table_frozen_unit_rows()
+        ph.smoke_6_probe_capacity_null_all_three_arm_shapes()
     ph.smoke_2_contender_tap_forward_backward()
     ph.smoke_3_contender_tap_p1_bottleneck_blankout()
     ph.smoke_4_ablation_tap_forward_and_bottleneck()
     ph.smoke_5_transformer_tap_uncapped_vs_capped()
-    ph.smoke_6_probe_capacity_null_all_three_arm_shapes()
     ph.smoke_7_joint_loss_gradients_flow_to_backbone()
     ph.smoke_8_aux_loss_only_gradient_isolation()
     probe_suite_ok = not ph.FAILURES
@@ -155,16 +160,19 @@ def main() -> int:
     hard_fail = hard_fail or not (gate6_ok and item4_ok)
 
     # ---- gate 7: probe-capacity null at every arm's REAL rung-1 adapter shape,
-    # vocab_size_total-sized T_val (sec 1.3.1.4 / sec 1.7 gate 7) ----
-    T_val = ph.build_probe_target_table(VOCAB_TOTAL_GRAMMAR, VALUE_DIM)
+    # vocab_size_total-sized T_val (sec 1.3.1.4 / sec 1.7 gate 7). The null is the design's own
+    # CPU-feasible no-backbone harness (no fla anywhere) -- run under the CPU device context for
+    # the same generator-semantics reason as smoke_1/6 above. ----
     nulls = {}
     gate7_ok = True
-    for arch, tap_dim in RUNG1_TAP_DIMS.items():
-        n = ph.run_probe_capacity_null(tap_dim, VALUE_DIM, T_val, seed=hash(arch) % (2 ** 31))
-        nulls[arch] = n
-        gate7_ok = gate7_ok and n["passed"]
-        print(f"[gate 7] {arch} (tap_dim={tap_dim}): recovered_frac={n['recovered_frac']:.6f} "
-              f"{'PASS' if n['passed'] else 'FAIL'} (bar < 0.05)")
+    with torch.device("cpu"):
+        T_val = ph.build_probe_target_table(VOCAB_TOTAL_GRAMMAR, VALUE_DIM)
+        for arch, tap_dim in RUNG1_TAP_DIMS.items():
+            n = ph.run_probe_capacity_null(tap_dim, VALUE_DIM, T_val, seed=hash(arch) % (2 ** 31))
+            nulls[arch] = n
+            gate7_ok = gate7_ok and n["passed"]
+            print(f"[gate 7] {arch} (tap_dim={tap_dim}): recovered_frac={n['recovered_frac']:.6f} "
+                  f"{'PASS' if n['passed'] else 'FAIL'} (bar < 0.05)")
     report["gate7_probe_capacity_null"] = nulls
     hard_fail = hard_fail or not gate7_ok
 
