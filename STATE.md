@@ -383,8 +383,15 @@ correction pass, out of scope for this consolidation.
   Rev 7 + 4 outstanding build items + a build audit (campaign 2).
 - attractor-robustness 2×2: **0 realized** / screening ceiling 1.0096,
   escalation ceiling 3.03 (contingent on a qualitative split).
-- fix-at-scale: **proposed cap 300 GPU-h, 0 realized** — Rev 1
-  (resolving the §13.13 NEEDS-REVISION) not yet landed.
+- fix-at-scale: **cap 300 GPU-h, RATIFIED-in-effect (the PI's verbatim
+  2026-07-09 saturation directive; cited in the launch manifest),
+  ≈18.7 GPU-h committed (6.2%)** — gate tier LIVE: timing pilots BOTH
+  PASS (§13.10 item 3 discharged, 08e8a60: 98M 0.2361/0.2379 s/step,
+  392M 0.8215/0.8311, blend overhead ≤1.2%, VRAM 23.5/39.0 GB), 4
+  arm_off calibration cells training on GPUs 1-4 (≈4.4-4.6 GPU-h each,
+  done ~10:30-10:45 box time; these double as manifest arm_off cells).
+  Rev 1 landed (c6436fb) → §13.15 micro-attack CLEARED → build dac7541
+  (§13.16) → independent build audit IN FLIGHT → full-wave launch next.
 - Box: Brev 8×H100 "youthful-indigo-turkey", uptime-metered (bills
   regardless; cannot stop). Saturation directive (GOALS item 5) — all
   8 GPUs in play, GPU 7 no longer reserved.
