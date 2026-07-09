@@ -2314,3 +2314,61 @@ list.
 *(End §1 records. Rev 0 → four NEEDS-REVISION rounds → Rev 4 →
 **§1.21 DESIGN-CLEARED-FOR-BUILD**. BUILD STAGE ACTIVE. Stage-1 ledger
 30 GPU-h, budget-guarded; launch sequenced vs the h2h box load.)*
+
+---
+
+### 1.22 INDEPENDENT BUILD AUDIT VERDICT (2026-07-08/09): NEEDS-FIXES
+
+Recorded per the gauntlet-bookkeeping hard rule before the fix stage.
+Build commit a3defcc (12 files). All 11 smoke sections re-run green;
+all 4 companion scripts byte-reproduced; the 58-cell/19.65/34.65
+arithmetic re-derived and exact; 5/6 mutations CAUGHT cleanly (coverage
+bars pinned by value; yield order; TOST margin — independently
+Monte-Carlo'd, Type-I ≈0% at null, REJECT power 99.9→64% across σ;
+resume-safety verified at run_manifest level; escalation guard caught
+DOUBLY). Mutation (d) mixed-L NOT caught — adjudicated
+avoidance-by-construction (only safe samplers exist), residual risk
+flagged for future non-sampler batch construction. All 3 builder
+judgment calls SOUND (blank-out leaf adaptation verified with a
+planted-leak test — catches a closure leak the honest path misses;
+TOST REJECT mirror-test statistically well-behaved; gate-1b scope
+faithful to the design's own duty split).
+
+**FINDINGS (binding on the fix stage):**
+- **BA-F1 (MAJOR) — the §1.7 gate-2 circuit-breaker is DEAD CODE:**
+  check_base_sweep_projection/BaseSweepAbort never called by
+  run_manifest()/main()/any smoke. The calibration-first gate does NOT
+  actually block the 53 remaining cells. → wire into the CLI flow
+  (calibration-only → gate → sweep), add smoke section + negative test.
+- **BA-F2 (MODERATE) — M2 (post-hoc rank-k truncation curve) has zero
+  implementation** — pre-registered corroborating measurement, no code.
+  → build the truncation-curve module (unconstrained checkpoint Z,
+  k=1..d_state, knee k*) + unit test.
+- **BA-F3 (MINOR) — S4/A5 share byte-identical eval word-index
+  structure** (eval seed ignores group name; both have |gens|=4) — an
+  undisclosed second correlation channel beyond the adjudicated
+  init-weight one; direction conservative but accidental. → salt the
+  seed derivation by group name.
+- **BA-F4 (MINOR) — escalation allocator is skip-and-continue,** which
+  can grant a cheaper lower-priority item after denying a
+  higher-priority one in a narrow headroom window (A5→S5 transition);
+  the shipped negative test's headroom never lands there. → hard-stop-
+  on-first-denial semantics OR a targeted test pinning the window.
+- **BA-F5 (MINOR) — beta_fla_smoke's declared L_max=4 never used**
+  (Fig.5 reproduction would run off-spec L∈{1..8} on box). → apply cap.
+- **BA-F6 (COSMETIC)** — blank_out.py dead no-op. Also ADD the
+  blank-out planted-leak negative test the audit prototyped (formal
+  test, mirroring the coverage guard's discipline).
+- Non-finding recorded: float64 degauging boundary works via incidental
+  numpy promotion — make the .astype(np.float64) contract EXPLICIT
+  while in there (robustness, not correctness).
+- Deploy-stage checklist (7 items incl. box smoke, real-GPU
+  calibration gate, β-smoke re-run, general-escalation detection
+  before reliance, group-salted seeds, SHA closure) recorded in the
+  audit transcript — binding on deploy.
+
+---
+
+*(End §1 records. §1.21 CLEARED → build a3defcc → **§1.22 audit
+NEEDS-FIXES** (BA-F1 dead breaker; BA-F2 M2 missing; 4 minors).
+FIX STAGE ACTIVE → scoped re-audit → deploy.)*
