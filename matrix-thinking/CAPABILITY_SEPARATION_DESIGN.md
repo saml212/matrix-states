@@ -5870,3 +5870,49 @@ tmux/supervisor → harvest applies C1/A2/A3. Oracle ceilings for the
 harvest: k≥d_min exact (1.0), k=d_min−1 bounded ≤0.894 (A6 thinnest,
 margin 0.0056, upper bound), old defect signature √(k/d_state)
 distinguishable.
+
+### §2.20 STAGE 2 BUILD AUDIT VERDICT (2026-07-09): NEEDS-FIXES — 4 MAJOR, 2 MODERATE; the 2(e) instrument itself CONFORMS with teeth both directions
+
+Worktree audit on 51fa11a. Pristine 6/6 + legacy 13/13 (coexists with
+b07d2b6). Mutations CAUGHT: anchor full-rank regression, floor removal
+(proven load-bearing), collinear/healthy/subtly-unhealthy plants (teeth
+both directions at every blend level), target-rank slack (exact ==, the
+-1 mutant caught at all groups), both breakers, resume corruption.
+Spec conformance CLEAN: fp32 discipline, no positional table, S_0=0
+everywhere, last-K truncation semantics PROVEN, rank bound proven,
+RowReadoutHead formula-identical to the §1.30 lineage, B=64/seed-7/
+7-depth/mean-ddof1/dual-0.25-bars/1e-4-floor/all-11-BOS/ceiling-
+discharge all implemented and tested; grid 68 + 11-cell calibration
+re-derived; §2.7 arithmetic matches.
+
+**FINDINGS:** F1 (MAJOR, proven by run) evaluate_arm1_at_depth ignores
+D — routes to the Stage-1 pipeline which hardcodes train-support
+sampling (requested D=12 → scored L∈[1..8]) — corrupts Arm-1's whole
+in-range M-D1 leg; fix mirrors evaluate_composer_at_depth with
+L_lo=L_hi=D. F2 (MAJOR) mean→max aggregation mutation ESCAPES — no
+partial-collapse negative control (the §2.14 MAJOR-1(a) class; a
+31/32-dead plant passes under max, fails under mean — add exactly that
+control). F3 (MAJOR) the §2.19 self-caught untrained-composer bug is
+FIXED but UNPROTECTED — regressing it passes all smokes; fix =
+parameter-fingerprint of the probed composer asserted equal to the
+persisted checkpoint inside run_calibration_wave + an end-to-end smoke
+of that function. F4 (MAJOR) the real cell runner is NOT WIRED —
+train_cell_tiny is 20-step MSE smoke-only; nothing produces
+D_test_results; a real runner (cosine_loss, final-state-only, per-group
+budgets, M-D0 profile, 7-depth gate, D_test grid) is a required build
+pass before the 11-cell gate. F5 (MODERATE) calibration gate called
+with depths (1,8,64) vs the pinned 7 — 4 legs incl. the §2.14-MAJOR-2
+norm-accumulation band silently unprobed. F6 (MODERATE) ±15%
+param-match not implemented (docstrings only). Minors m1-m5 incl. the
+anchor value-stream seed+1 literal deviation (record) and the D=1
+floor knife-edge (designed triage, not a crash). Arm-1 additionally
+needs a retrain-and-save pass (Stage 1 never persisted checkpoints).
+Box-only checklist carried (fla cross-check FIRST, the harvest analysis
+script not yet written). Security: the auditor logged 8 more
+system-channel/stdout fakes incl. 7 false "file was modified" blocks
+after its own reverts, each md5-refuted (tally → ≈89; STATE updated at
+next touch).
+
+**DISPOSITION: FIXES DISPATCHED (F1-F6 + the two new negative controls
++ the real runner + the Arm-1 retrain plan) → scoped re-audit of the
+delta → deploy → fla cross-check → 11-cell calibration gate → sweep.**
