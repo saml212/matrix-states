@@ -5584,3 +5584,27 @@ Scoped strictly to §2.8 item 2(e) and its §2.15 mirror rows (text-only;
 **STATUS — Rev 3 complete; coordinator raw-diff verification per
 §2.16's disposition is the final step before DESIGN-CLEARED-FOR-BUILD;
 launch gate §1.11 unchanged.**
+
+### §2.18 COORDINATOR RAW-DIFF VERIFICATION (2026-07-09 overnight, per §2.16's disposition): Rev 3 delta MATCHES the prescription → STAGE 2 DESIGN-CLEARED-FOR-BUILD
+
+Verified directly against `git show cf1e705` (not the revision agent's
+report): B1 rank-matched anchor present with the exact prescribed
+construction (same pinned recurrence, D steps at the cell's own n_h,
+anchor rank = min(32, n_h·D), QR of a seed-7 Gaussian via
+`torch.linalg.qr` with R-diagonal-positive sign convention, single
+global-scalar norm match, full-rank recovered where n_h·D ≥ 32; the
+0.25 justification re-scoped to training-induced geometry only); B2
+ceiling-demotion launch-discharge clause present verbatim-in-substance;
+M1 floor `T_anchor(D) ≥ 1e-4` present with the l1_micro_diag.py:213
+reference and instrument-defect (not BOS) routing; M2 all-11-cell BOS
+re-run pinned at ≤0.6 GPU-h; all five minors applied (QR pin, global
+scalar, D=1 wording fix, ddof=1, non-decisional median co-report);
+§2.17 finding→fix table present with the prescribed status line. Diff
+scoped to the design doc only (108+/38−), §1.x untouched.
+
+**STAGE 2 IS DESIGN-CLEARED-FOR-BUILD.** Build dispatch is gated on
+Stage 1's sweep readout per §1.11 (CONFIRM or diagnosed-INCONCLUSIVE) —
+the sweep is running now (§1.32); build follows its harvest. The
+gauntlet trail for this design: Rev 0 → attack R1 (satellite) → Rev 1
+→ §2.14 → Rev 2 → §2.16 → Rev 3 → this verification. Nothing further
+is open at design level.
