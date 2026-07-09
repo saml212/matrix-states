@@ -135,8 +135,21 @@ VERDICT: SWEEP-READY — no escalation/routing needed. Full record:
 EXPERIMENT_LOG.md 2026-07-09 entry; archive
 `experiment-runs/2026-07-09_capability_calib_recheck/`.** `--sweep`
 itself still separately gates on the GPU-h projection under the 30 GPU-h
-cap and `CAPABILITY_SEP_PI_SIGNOFF=1` — the 58-cell sweep launch is a
-follow-on dispatch, not yet executed.
+cap and `CAPABILITY_SEP_PI_SIGNOFF=1`. **LAUNCHED (2026-07-09, §1.32
+authorization, `experiment-runs/2026-07-09_capability_sweep_launch/`):**
+md5 re-verified clean (no redeploy needed), no stale pre-Rev-7 results
+lingered, gate passed (measured rate 0.0408 GPU-h/cell → 4.62 GPU-h
+projection, cap 30.0 — the code's own crude uniform-rate gate; the
+design doc's finer group-weighted estimate stays ≈2.51 GPU-h, both
+comfortably under cap), tmux `cap_sweep` on GPU 0 only. First cells
+confirmed healthy: unconstrained-arm cells converge near-zero loss;
+the `S3__k_dmin` force-rank arm (M3's decisive causal test) converges
+to a stable ≈0.293 plateau — the expected capacity-bound signature,
+not a fault. Chained (same supervisor, automatic fallthrough, dry-run
+verified pre-launch): the campaign-3 2×2 n=3 escalation fires
+immediately after the sweep's `STOP` marker lands, same GPU 0.
+Harvest (verify-vs-raws → TOST/M1-M3) is a separate follow-on dispatch,
+not yet run.
 
 ### 3. Attractor-Robustness 2×2 (novelty stress-test follow-on, 2026-07-09)
 
@@ -181,10 +194,15 @@ healthier on loss. rec@0.9 uniformly at the PROBE-INVALID floor,
 NON-DECISIONAL as pre-registered. **Escalation FIRES per the
 pre-registered rule** (|+6.16| > 2×2.244 = 4.489): 12-cell n=3,
 resume-safe → only 8 new cells ≈2.02 GPU-h incremental, ceiling 3.03.
-**QUEUED behind the capability calibration re-check on GPU 0** —
-coordinator schedules on GPU-0 free. iclr-2027 fold (angles 4/5,
-partial discharge of limitations item 2) queued for the paper-pass
-agent; n=1 caveats hold until the n=3 confirm.
+**CHAINED (2026-07-09) behind the capability-sep 58-cell sweep on GPU 0**
+— same tmux supervisor, automatic fallthrough (no separate dispatch),
+wiring dry-run-verified before launch (`--dry-run` against live box
+state confirmed budget_guard passes at 3.0288/3.03 GPU-h, the 4 existing
+screening cells resume-skip, the 8 new s1/s2 cells carry the correct
+per-combo flags). See `experiment-runs/2026-07-09_capability_sweep_launch/`.
+iclr-2027 fold (angles 4/5, partial discharge of limitations item 2)
+queued for the paper-pass agent; n=1 caveats hold until the n=3 confirm
+lands.
 
 ### 4. Fix-at-Scale (PI GPU-saturation charter, 2026-07-09)
 

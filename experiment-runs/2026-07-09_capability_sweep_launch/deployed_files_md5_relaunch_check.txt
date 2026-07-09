@@ -1,0 +1,30 @@
+## Pre-launch md5 re-verification, 2026-07-09 (box clock), against
+## experiment-runs/2026-07-09_capability_calib_recheck/deployed_files.md5 (commit 50c28cc)
+
+$ ssh youthful-indigo-turkey "cd /home/nvidia/chapter2/capability_separation && md5sum readout.py group_task.py gate1_synthetic_injection.py run_capability_sep.py smoke_capability_sep.py"
+
+1707f3f9e86259fb4977fe82d3f438c8  readout.py
+b016f686c7de726b66dff3e594529899  group_task.py
+90428f43a9367c97dea506a12e1802ab  gate1_synthetic_injection.py
+8c69f8c85d818017e8eacbc810a681c3  run_capability_sep.py
+e3e0c0eb44bc18026e8b47b255666386  smoke_capability_sep.py
+
+## Reference (deployed_files.md5, commit 50c28cc):
+MD5 (readout.py) = 1707f3f9e86259fb4977fe82d3f438c8
+MD5 (group_task.py) = b016f686c7de726b66dff3e594529899
+MD5 (gate1_synthetic_injection.py) = 90428f43a9367c97dea506a12e1802ab
+MD5 (run_capability_sep.py) = 8c69f8c85d818017e8eacbc810a681c3
+MD5 (smoke_capability_sep.py) = e3e0c0eb44bc18026e8b47b255666386
+
+## RESULT: EXACT MATCH, all 5 files. No redeploy performed.
+
+## Bonus: the deltanet_rd 2x2 runner (needed for Part 2 chain) also verified
+## local == box:
+local:  22f426e898b63e4a96cae64f35e44d5c  matrix-thinking/deltanet_rd/run_attractor_robustness_2x2.py
+box:    22f426e898b63e4a96cae64f35e44d5c  /home/nvidia/chapter2/deltanet_rd/run_attractor_robustness_2x2.py
+RESULT: EXACT MATCH.
+
+## git provenance check (no local repo drift):
+git log --oneline -5  ->  0179b73 (S1.32 authorization) HEAD
+git diff --stat matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md  -> (empty)
+git status --short matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md -> (empty)

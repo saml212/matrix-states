@@ -1,0 +1,37 @@
+## Real dry-run of Stage 2 (the chained 2x2 n=3 escalation) against LIVE box
+## state, zero GPU cost (--dry-run --device cpu), run before launch to prove
+## the chain command is correct.
+##
+## $ ssh youthful-indigo-turkey "cd /home/nvidia/chapter2/deltanet_rd && \
+##     /home/nvidia/tdenv/bin/python run_attractor_robustness_2x2.py --run \
+##     --dry-run --n-seeds 3 --out-dir results/attractor_robustness_2x2 \
+##     --data-dir /data/deltanet_rd_data --device cpu"
+
+WARNING: no CUDA available -- lm_pretrain_rd.py / reasoning_link_probe.py's own kernels have no CPU path for a REAL run; this will fail past the launch commands unless a stub is force-installed. Use --smoke for CPU-only verification.
+budget_guard: n_seeds=3 (12 cells) projected 3.0288 GPU-h <= ceiling 3.03 GPU-h -- OK
+[attrrob_qkTrue_gateFalse_s0] leg=lm_pretrain already done, resume-skip
+[attrrob_qkTrue_gateFalse_s1] leg=lm_pretrain cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_pretrain_rd.py --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data --d-model 256 --d-state 64 --n-layers 2 --conv-size 4 --num-heads 1 --seq-len 512 --batch-size 32 --steps 20000 --ckpt-every 20000 --seed 1 --internal-timeout 3570.0 --ckpt-dir results/attractor_robustness_2x2/checkpoints --out results/attractor_robustness_2x2/attrrob_qkTrue_gateFalse_s1_lm.json
+[attrrob_qkTrue_gateFalse_s2] leg=lm_pretrain cmd=/home/nvidia/tdenv/bin/python /home/nvidia/chapter2/deltanet_rd/lm_pretrain_rd.py --corpus openr1-mix-ext --data-dir /data/deltanet_rd_data --d-model 256 --d-state 64 --n-layers 2 --conv-size 4 --num-heads 1 --seq-len 512 --batch-size 32 --steps 20000 --ckpt-every 20000 --seed 2 --internal-timeout 3570.0 --ckpt-dir results/attractor_robustness_2x2/checkpoints --out results/attractor_robustness_2x2/attrrob_qkTrue_gateFalse_s2_lm.json
+[attrrob_qkTrue_gateTrue_s0] leg=lm_pretrain already done, resume-skip
+[attrrob_qkTrue_gateTrue_s1] leg=lm_pretrain cmd=... --seed 1 ... --out results/attractor_robustness_2x2/attrrob_qkTrue_gateTrue_s1_lm.json --gated-delta-active
+[attrrob_qkTrue_gateTrue_s2] leg=lm_pretrain cmd=... --seed 2 ... --out results/attractor_robustness_2x2/attrrob_qkTrue_gateTrue_s2_lm.json --gated-delta-active
+[attrrob_qkFalse_gateFalse_s0] leg=lm_pretrain already done, resume-skip
+[attrrob_qkFalse_gateFalse_s1] leg=lm_pretrain cmd=... --seed 1 ... --out results/attractor_robustness_2x2/attrrob_qkFalse_gateFalse_s1_lm.json --qk-l2norm-off
+[attrrob_qkFalse_gateFalse_s2] leg=lm_pretrain cmd=... --seed 2 ... --out results/attractor_robustness_2x2/attrrob_qkFalse_gateFalse_s2_lm.json --qk-l2norm-off
+[attrrob_qkFalse_gateTrue_s0] leg=lm_pretrain already done, resume-skip
+[attrrob_qkFalse_gateTrue_s1] leg=lm_pretrain cmd=... --seed 1 ... --out results/attractor_robustness_2x2/attrrob_qkFalse_gateTrue_s1_lm.json --qk-l2norm-off --gated-delta-active
+[attrrob_qkFalse_gateTrue_s2] leg=lm_pretrain cmd=... --seed 2 ... --out results/attractor_robustness_2x2/attrrob_qkFalse_gateTrue_s2_lm.json --qk-l2norm-off --gated-delta-active
+
+======================================================================
+ATTRACTOR-ROBUSTNESS 2x2 WAVE REPORT (excerpt): escalation.fire=true,
+baseline_gram_deviation_mean=19.068988800048828, threshold=4.48871,
+per_cell.qkTrue_gateTrue.delta_vs_baseline=6.163254737854004 (exceeds=true),
+per_cell.qkFalse_gateFalse.delta_vs_baseline=-0.8731355667114258 (exceeds=false),
+per_cell.qkFalse_gateTrue.delta_vs_baseline=2.135435104370117 (exceeds=false).
+
+## RESULT: budget_guard passes (3.0288 <= 3.03 GPU-h ceiling, margin 0.0012
+## GPU-h -- tight by pre-registered design). 4 cells correctly resume-skip
+## (the existing n=1 screening results). 8 new cells (s1/s2 x 4 combos)
+## would launch with the correct per-combo qk-norm/gating flags. Escalation
+## rule confirmed fired (qkTrue_gateTrue exceeds threshold). Zero GPU cost
+## incurred by this dry-run (--dry-run, --device cpu, no training launched).
