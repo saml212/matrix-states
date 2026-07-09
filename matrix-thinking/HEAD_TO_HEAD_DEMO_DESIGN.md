@@ -4342,3 +4342,26 @@ the round). Security: 3 more false file-modified fakes, md5-refuted.
 wiring + the note-v label) → scoped re-check → deploy checklist
 (K=48 real-kernel smoke FIRST, identity-table pre-flight,
 FRESH_CELL_CONFIGS.json, THEN the token).**
+
+### 1.35 F1-F3 FIXES + COORDINATOR VERIFICATION (2026-07-09): delta matches the §1.34 prescription — ROUND-4 SOFTWARE COMPLETE; deploy chain dispatched
+
+Commit 5107638, three files, 368+/23−, raw-diff verified: F1 K-match
+guarded on key presence + selftest 9 resolving ALL 7 reused names
+(revert reproduces the audit's KeyError); F2 primary hop-set = H_train
+pinned by literal assert, H_test as a disclosed non-primary secondary in
+cell JSONs + summary (selftest 10); F3 box-smoke item [11] = the one
+executable checklist entry (real fit_rung2_identity_classifier at the
+K=48 shape on CUDA, measured peak < 2 GiB, device-guarded never-PASS on
+CPU, token BOX_SMOKE_ITEM_11_K48_REAL_KERNEL_PASSED) + Stage-B3
+pre-flight refuses without it (extracted-block proof: FATAL without,
+proceeds with); note v H2H_DIAL_ROUND=4 scoped to the driver invocation;
+minor iv explicit seed pins. All suites green (driver 10/10, checklist
+10/10, cell_train 22/22, wrappers 9/9, sweep/fanout/bands 5/5/5/7).
+Kill proofs run by the fixes agent and verified in the delta — per the
+§2.16/§2.18 precedent no further audit round is needed for
+one-line-class F1/F2; F3's wiring is proven by the extracted-block
+token-gate test. **DEPLOY CHAIN DISPATCHED: md5 deploy → box item [11]
+K=48 real-kernel smoke FIRST → identity-table pre-flight (7 ckpts,
+md5+mtime vs the recorded manifest) → coordinator-authored
+FRESH_CELL_CONFIGS.json → ROUND4_AUTHORIZED.token → ROUND 4
+(≈1.3 GPU-h, task1-primary per Rev 5.1).**
