@@ -75,6 +75,23 @@ on the fix-at-scale campaign's escalation-cost correction and its
 global-vector-arm probe (item 4 below) before the contender pin is
 final — see PENDING PI DECISIONS.
 
+**UPDATE (2026-07-09, later same day):** round 3 completed → the
+two-leg gate (Rev 5, §1.31) → §1.32 micro-attack (Rev 5.1 fix) →
+build-fix (§1.31.4 items 1-6, `7c7acd5`) → audit (§1.34: 1 BLOCKING +
+2 MAJOR, narrow fixes `5107638`) → deploy chain dispatched (§1.35) →
+**HALTED at box-smoke item [11]** (real K=48 peak 6.14 GiB vs the
+pre-registered 2 GiB bound, 3.07x over, `experiment-runs/
+2026-07-09_h2h_round4_launch/`) → **diagnosed+fixed same day**:
+`transformer_native_tap`'s B*Q mega-batch (32 episodes x 48 full-K
+queries at eval) drove the Transformer's own FFN/RoPE forward
+activations, not the LM head (§1.33/§1.35 had mis-cited the LM-head-only
+figure as covering the whole call); row-chunked the tap
+(bit-identical, proven via `smoke_11`) → item 11 now passes at 1.05 GiB
+(1.9x headroom, deterministic x2) → identity-table pre-flight verified
+→ **ROUND 4 LAUNCHED** (tmux `h2h_round4`, GPU 0, `H2H_DIAL_ROUND=4`);
+watch `results/h2h_rung1/round4/ROUND4_SUMMARY.json` on the box. Full
+record: `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.36[h2h].
+
 ### 2. Capability Separation — Stage 1 (PI capability-first directive, 2026-07-08)
 
 Does causal rank↔representation-dimension recruitment separate

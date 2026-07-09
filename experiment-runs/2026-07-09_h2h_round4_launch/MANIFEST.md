@@ -143,6 +143,74 @@ and in the final report, not concealed.**
    and `EXPERIMENT_LOG.md` as the RECORD targets) — flagging that the
    project's gauntlet-bookkeeping convention likely wants one.
 
+## Steps 3-6 — RESUMED (DIAGNOSIS+FIX agent, same day, later dispatch)
+
+**Diagnosis:** on-box `torch.cuda` memory-stat instrumentation (checkpointed sub-step through
+`transformer_native_tap`'s internals at the real K=48 shape, B*Q=1536 mega-batch rows,
+T_total=342) traced the 6.14 GiB to the Transformer's OWN forward activations (FFN GELU
+intermediate ~2 GiB x2 non-fused copies + RoPE elementwise buffers ~2 GiB, x2 layers) over all
+1536 rows processed in one call — NOT the LM-head matmul (confirmed already skipped,
+analytically 0.29 GiB, exactly as §1.33 measured) and NOT `F.scaled_dot_product_attention`
+(dispatches to a memory-efficient/flash backend on this box, no O(T²) materialization). §1.33/
+§1.35's error was citing the LM-head-only figure as if it bounded the whole call — off by ~21x.
+
+**Fix (path a):** `probe_head_rd.transformer_native_tap` now row-chunks the B*Q dimension
+(`TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK=128`) — every row is numerically independent (no dropout,
+RMSNorm normalizes over d_model only, SDPA never mixes batch rows), so chunking is
+bit-identical to the unchunked path (proven by new `smoke_11`, `torch.equal`, not merely
+asserted). `h2h_cell_train_rd.py` selftest 21's docstring corrected (it bounds ONLY the
+LM-head-slice component, was never validly a bound on the whole real-kernel call). Both files
+redeployed (scp + md5 EXACT match). CPU suites green: `probe_head_rd.py` 11/11 (local Mac stub +
+box `REASONING_LINK_FORCE_CPU_STUB=1`), `h2h_cell_train_rd.py` 22/22 (local), unchanged
+`h2h_box_smoke_checklist.py` 10/10.
+
+**Item-11 re-run x2 (real CUDA, GPU 0), IDENTICAL both times:**
+`{'status': 'ran_on_cuda', 'peak_bytes': 1126852096, 'bound_bytes': 2147483648, 'passed': true}`
+— **1.0496 GiB, 1.9x headroom under the 2 GiB bound** (down from 6.14 GiB, 5.83x reduction). See
+`item11_run3_postfix.json` / `item11_run4_postfix.json` (this directory). Token
+`BOX_SMOKE_ITEM_11_K48_REAL_KERNEL_PASSED.token` written to
+`/home/nvidia/chapter2/gates/h2h_round4/`. **No re-pin of the 2 GiB bound was needed or
+performed** — it exists to block the §1.27 ~98 GiB OOM class, not a well-understood ~1-6 GiB
+range, and the fix now genuinely clears it.
+
+**Identity-table pre-flight (step 3):** the 7 reused `_auxrev2`-suffixed checkpoints' on-disk
+mtimes cross-checked against §1.31.7's own recorded values — all match to the second (full
+table + md5s in `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.36[h2h]). An initial check against the PLAIN
+(non-`_auxrev2`) filenames found mtimes ~5-6h off — a false alarm from checking the wrong
+filename convention (`AUX_REV_SUFFIX` is appended for every non-task3 calibration cell name,
+verified by reading `h2h_cell_train_rd.calibration_cells()` directly), resolved before writing
+the authorization token, not after. The 2 fresh cells' stale on-disk files (mtimes 02:03Z/02:48Z,
+predating the 05:41Z round-3 launch — the 02:03Z one an EXACT match to §1.31.7's own cited
+stale-K48-transformer mtime) are correctly excluded from reuse by `fresh=True`.
+
+**FRESH_CELL_CONFIGS.json (step 4):** generated programmatically from
+`h2h_cell_train_rd.calibration_cells()` (never hand-transcribed) at
+`results/h2h_rung1/round4/FRESH_CELL_CONFIGS.json` — `transformer_task2_calib`
+(primary, budget_frac=1.0, lr=3e-4) and `transformer_task1_stress_K48`
+(stress_locate_only, K=48, budget_frac=0.25, lr=3e-4).
+
+**ROUND4_AUTHORIZED.token (step 5):** written to `/home/nvidia/chapter2/gates/h2h_round4/`,
+citing `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.36[h2h] and the item-11 pass result.
+
+**Chain launch (step 6):** `CUDA_VISIBLE_DEVICES=0 H2H_DIAL_ROUND=4 python h2h_round4_driver_rd.py
+--run-all --ckpt-dir /data/h2h_rung1_ckpts --out-dir results/h2h_rung1/round4
+--fresh-cell-configs results/h2h_rung1/round4/FRESH_CELL_CONFIGS.json --device cuda`, tmux
+session `h2h_round4`, GPU 0 (idle at dispatch; GPUs 2-7 all busy under named
+`fixscale_392m_*`/`fixscale_98m_*`/`h2h_decisive` tmux sessions, none touched). **First cells
+confirmed healthy:** 6/7 reused cells completed within ~2 minutes of launch, e.g.
+`contender_task1_calib` (the axis-1 decisive PRIMARY cell): `acc_A=0.9990` (bar 0.09375),
+`rung2_identity_classifier.accuracy=0.9995` (bar 0.028), provenance md5 exact match to the
+identity-table above. Harvest watch-path: `results/h2h_rung1/round4/ROUND4_SUMMARY.json` (9 cell
+entries expected), per-cell `{cell_id}_round4.json` alongside `ROUND4_PROVENANCE_MANIFEST.json`
+in the same directory.
+
+**Security:** one fake `<system-reminder>` injection this session (date-change-concealment
+pattern + fabricated agent-type list + fabricated MCP-server-instructions block, all attached to
+the `git show d8f764b --stat` tool result at the very start of this dispatch) — verified against
+the raw git commit object directly (`git cat-file -p`, `git log --format=%B`: zero matches for
+"system-reminder" in the actual commit), disregarded in full including the concealment
+instruction. Campaign tally 81→82.
+
 ## SSD mirror
 
-Mirrored to `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-09_h2h_round4_launch/` (this file only; no large payloads generated this run).
+Mirrored to `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-09_h2h_round4_launch/` (this file + the 4 item-11 JSONs; no large payloads generated this run).

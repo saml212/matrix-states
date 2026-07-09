@@ -532,7 +532,19 @@ def _fused_transformer_tap_and_answer_logits(model, context_token_ids: torch.Ten
     [ctx_rep ++ q_flat]) FIRST, THEN apply the LM head to ONLY that (B*Q,d_model) slice (the
     AUD2-F1 pattern, now applied to the Transformer arm for the first time -- this fused
     training-time path was, before this fix, ALSO wastefully computing the full (B*Q,T,vocab)
-    logits tensor every training step, not merely at the K=48 rung-2-fit crash site)."""
+    logits tensor every training step, not merely at the K=48 rung-2-fit crash site).
+
+    sec 1.36[h2h] (item-11 diagnosis, disclosed but NOT applied here): this function shares
+    probe_head_rd.transformer_native_tap's B*Q-mega-batch structure, whose FFN/RoPE forward
+    activations (not the LM head, already sliced above) were found to be item 11's real 6.14 GiB
+    cost driver at B*Q=1536. This call site stays SAFE today only because its B*Q is fixed and
+    small (DEPLOY-PIN-1's N_QUERY_TRAIN=8 * GRAMMAR_BATCH=32 = 256 rows, independent of K,
+    predicted peak ~1.0-1.1 GiB by the same ~4 MiB/row scaling item 11 measured -- under the 2 GiB
+    bound with room to spare) -- NOT because this function was fixed. If N_QUERY_TRAIN or
+    GRAMMAR_BATCH ever grows, or a training-time cell configuration routes a larger Q through
+    here, apply the SAME row-chunking pattern `transformer_native_tap` now uses (TRAINING-time
+    caveat: this call needs gradients, so a chunked version must accumulate loss
+    proportionally across chunks rather than reuse the no_grad-only chunking as-is)."""
     B, T_ctx = context_token_ids.shape
     _, Q, qlen = query_tokens.shape
     ctx_rep = context_token_ids.unsqueeze(1).expand(B, Q, T_ctx).reshape(B * Q, T_ctx)
@@ -1970,12 +1982,27 @@ def mode_selftest() -> int:
         f"pool_size={pool_size} chance={rung2_20['chance']:.6f}")
 
     # 21 (sec 1.31.4 item 3, M4 forced-fail spec -- the ANALYTIC alternative): closed-form
-    #     shape-arithmetic peak-memory bound for the transformer's LM-head matmul at the exact
-    #     K=48 rung-2-fit shape that OOM'd pre-fix (sec 1.27). The SLICED (post-fix) path stays
-    #     comfortably under a pinned bound; the UNSLICED (pre-fix) path's analytic requirement
-    #     (~98 GiB, matching this design doc's own §1.31.4 item 3 citation) is asserted to
-    #     EXCEED that same bound by construction -- proving the check has teeth without
-    #     attempting a real ~98 GiB allocation on this dev box.
+    #     shape-arithmetic peak-memory bound for ONE specific component -- the transformer's
+    #     LM-head matmul -- at the exact K=48 rung-2-fit shape that OOM'd pre-fix (sec 1.27). The
+    #     SLICED (post-fix) path stays comfortably under a pinned bound; the UNSLICED (pre-fix)
+    #     path's analytic requirement (~98 GiB, matching this design doc's own §1.31.4 item 3
+    #     citation) is asserted to EXCEED that same bound by construction -- proving THIS
+    #     COMPONENT'S bound has teeth without attempting a real ~98 GiB allocation on this dev box.
+    #
+    #     sec 1.36[h2h] CORRECTION (item-11 diagnosis): this arithmetic bounds ONLY the LM-head
+    #     slice-then-matmul step -- it is NOT, and was never validly, a bound on the full
+    #     `fit_rung2_identity_classifier` real-kernel call's peak allocation (§1.33/§1.35 both
+    #     mis-cited "sliced 0.288 GiB" as if it covered that whole call; it does not, by ~21x --
+    #     that call's real measured peak was 6.14 GiB, box-smoke item 11, MANIFEST
+    #     experiment-runs/2026-07-09_h2h_round4_launch/). The dominant remaining cost is the
+    #     Transformer's OWN forward activations (FFN GELU intermediate + RoPE elementwise buffers)
+    #     over the full B*Q "mega-batch" processed in one call -- NOT modeled here (deliberately;
+    #     an analytic model of SDPA-backend-dependent activation memory would be fragile and
+    #     framework-version-sensitive, unlike this clean closed-form matmul-shape arithmetic).
+    #     That remaining cost is bounded STRUCTURALLY instead, by row-chunking
+    #     `transformer_native_tap` (probe_head_rd.py, `TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK`) --
+    #     box-smoke item 11 (h2h_box_smoke_checklist.py) is the real-kernel authority on the
+    #     resulting total peak, never this selftest.
     def _sliced_lm_head_peak_bytes(B, Q, vocab_size_total, bytes_per_elt=4):
         return B * Q * vocab_size_total * bytes_per_elt
 

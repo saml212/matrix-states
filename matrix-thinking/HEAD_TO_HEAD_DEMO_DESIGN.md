@@ -4365,3 +4365,103 @@ K=48 real-kernel smoke FIRST → identity-table pre-flight (7 ckpts,
 md5+mtime vs the recorded manifest) → coordinator-authored
 FRESH_CELL_CONFIGS.json → ROUND4_AUTHORIZED.token → ROUND 4
 (≈1.3 GPU-h, task1-primary per Rev 5.1).**
+
+### 1.36[h2h] ITEM-11 DIAGNOSIS+FIX (2026-07-09): 6.14 GiB traced to transformer_native_tap's own forward activations, NOT the LM head — row-chunking FIXED it to 1.05 GiB; deploy chain RESUMED, round 4 launched
+
+**Diagnosis.** The deploy halt (commit `d8f764b`, `experiment-runs/2026-07-09_h2h_round4_launch/`)
+measured `fit_rung2_identity_classifier`'s real-kernel peak at 6.14 GiB (3.07x the 2 GiB bound),
+reproducible x2. On-box `torch.cuda` memory-stat instrumentation (checkpointed sub-step by
+sub-step through `transformer_native_tap`'s internals, K=48 real shape: B=32 episodes, Q=48
+full-K eval queries, B*Q=1536 "mega-batch" rows, T_total=342) traced the cost: the LM-head
+matmul is confirmed NOT the driver (`return_hidden=True` already skips it, analytically
+0.29 GiB — §1.33/§1.35 correctly measured THIS component, then incorrectly cited it as if it
+covered the whole call, off by ~21x). `F.scaled_dot_product_attention` is also NOT the driver
+(dispatches to a memory-efficient/flash backend on this box, no O(T²) score matrix
+materialized). The real driver is the Transformer's OWN forward activations over all 1536 rows
+processed in one Python-level batch: the FFN's (B*Q,T,4·d_model) GELU intermediate (~2 GiB
+tensor, 2 non-fused copies alive simultaneously = ~4-4.5 GiB spike per layer,
+`lm_pretrain_rd.FFN.forward` = `fc2(gelu(fc1(x)))`, no dropout) and RoPE's per-head elementwise
+intermediates (~2 GiB spike), x2 layers — a genuine, shape-driven cost of the B*Q mega-batch
+design, not a bug in what gets computed.
+
+**Resolution taken: FIX (path a), not re-pin.** More than half the allocation is avoidable:
+`fit_rung2_identity_classifier` runs `model.eval()` before its loop (no dropout anywhere in this
+model), RMSNorm normalizes over `d_model` only (no batch statistics), and SDPA never mixes
+across the batch dimension — every one of the B*Q rows is numerically INDEPENDENT of every other
+row. `probe_head_rd.transformer_native_tap` now row-chunks the B*Q dimension at
+`TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK=128` (sized from the measured ~4.09 MiB/row scaling,
+6.14 GiB / 1536 rows), concatenating chunk outputs — bit-identical to the unchunked computation
+by construction, proven (not merely asserted) by new `smoke_11` (`torch.equal`, both
+uncapped/capped mask modes, chunk boundary genuinely exercised, both single-shot and >=6-chunk
+branches forced). `h2h_cell_train_rd._fused_transformer_tap_and_answer_logits` (the
+TRAINING-time twin, same B*Q-mega-batch structure) is DISCLOSED but deliberately left unfixed —
+it stays safe today only because `N_QUERY_TRAIN=8` is fixed regardless of K (B*Q=256, predicted
+peak ~1.0-1.1 GiB), never because it was patched; a comment there points to the same fix pattern
+if that assumption ever changes (training needs gradient accumulation across chunks, not the
+no_grad-only chunking used here). Selftest 21 (`h2h_cell_train_rd.py`, the M4 analytic
+forced-fail) had its own docstring corrected — it is honestly rescoped to bound ONLY the
+LM-head-slice component (still true, still useful), no longer implying it bounds the whole
+real-kernel call; item 11 remains the sole real-kernel authority on total peak.
+
+**Files changed (commit pending):** `probe_head_rd.py` (chunking fix + `smoke_11`, now 11/11),
+`h2h_cell_train_rd.py` (selftest 21 docstring correction + disclosure comment on the training
+twin, still 22/22). `h2h_box_smoke_checklist.py` UNCHANGED (`ITEM_11_BOUND_BYTES=2 GiB` stays —
+the fix now genuinely clears it, no re-pin needed). CPU suites green locally (Mac, stub) and
+on-box (`REASONING_LINK_FORCE_CPU_STUB=1`, since real fla's RMSNorm has no CPU fallback).
+Deployed via scp + md5-verified EXACT local==box on both changed files.
+
+**Item-11 re-run (real CUDA, GPU 0, K=48 production shape), x2 for reproducibility:**
+`{'status': 'ran_on_cuda', 'peak_bytes': 1126852096, 'bound_bytes': 2147483648, 'passed': True}`
+— **1.0496 GiB, deterministic both runs, 1.9x headroom under the 2 GiB bound** (down from
+6.14 GiB, a 5.83x reduction). Token `BOX_SMOKE_ITEM_11_K48_REAL_KERNEL_PASSED.token` written to
+`/home/nvidia/chapter2/gates/h2h_round4/`.
+
+**Amendment, pre-registered before resuming, per the dispatch brief's own instruction:** the
+2 GiB bound exists to block the §1.27 ~98 GiB OOM class, not a well-understood ~1-6 GiB range —
+no re-pin was needed or performed; the bound stands at 2 GiB, now genuinely met (not
+mis-measured) by the fixed code.
+
+**Identity-table pre-flight (resumed deploy chain step 3), verified before authorizing round 4:**
+the 7 reused `_auxrev2`-suffixed checkpoints' on-disk mtimes (UTC) were cross-checked against
+this design doc's own §1.31.7-recorded values — all match essentially to the second:
+
+| cell | recorded mtime (§1.31.7) | on-disk mtime | md5 |
+|---|---|---|---|
+| contender_task1_calib (K32) | 05:58:16Z | 05:58:16.394Z | `2bd6dbce2f4187f54851f97c0ea5e57e` |
+| ablation_task1_calib (K32) | 06:24:40Z | 06:24:40.530Z | `6fa7b6b074252a5b3bb225437cce1689` |
+| transformer_task1_calib (K32) | 07:13:39Z | 07:13:39.236Z | `647de170551253031756c0c4b4040f06`|
+| contender_task1_stress_K48 | in 05:49-08:43Z | 05:49:50.830Z | `6714c5141f8c2baa70a6b77b83deab42` |
+| ablation_task1_stress_K48 | in 05:49-08:43Z | 06:07:00.946Z | `a5f8add0c2e134265ad5ebcfe77aa86e` |
+| contender_task2_calib | in 05:49-08:43Z | 08:02:20.993Z | `e144f91b834cbe218354aa45e3eb094b` |
+| ablation_task2_calib | in 05:49-08:43Z | 08:43:22.308Z | `b980097587570799b794f7e8effb3702` |
+
+(An initial pass checked the PLAIN, non-`_auxrev2` filenames and found mtimes ~5-6h earlier than
+recorded — a false alarm, resolved by reading `h2h_cell_train_rd.calibration_cells()` directly:
+`AUX_REV_SUFFIX="_auxrev2"` is appended for every non-task3 cell name, so `_round3_ckpt_filename`
+never resolves to the plain names; those are leftover pre-`_auxrev2` artifacts, not what round 4
+loads. Recorded here per this project's own "read the raw artifact, don't average two
+contradictory claims" precedent, since the false alarm could otherwise resurface.) The 2 fresh
+cells' on-disk files (`transformer_task2_calib_primary_auxrev2.pt` mtime 02:48Z,
+`transformer_task1_calib_stress_locate_only_K48_auxrev2.pt` mtime 02:03Z — the LATTER an EXACT
+match to §1.31.7's own cited stale-K48-transformer mtime "02:03") are correctly excluded from
+reuse by `ROUND4_CELL_SPEC`'s `fresh=True` flag (`build_provenance_manifest` skips them by
+construction) — they will train fresh under `H2H_DIAL_ROUND=4`, saving to newly-versioned
+`_r4.pt`-suffixed files, no clobber of the stale files or of each other.
+
+**FRESH_CELL_CONFIGS.json** generated programmatically from `h2h_cell_train_rd.calibration_cells()`
+(never hand-transcribed — matched by (arch,task,role,K) against the real 13-cell manifest), at
+`results/h2h_rung1/round4/FRESH_CELL_CONFIGS.json`: `transformer_task2_calib`
+(role=primary, budget_frac=1.0, lr=3e-4) and `transformer_task1_stress_K48`
+(role=stress_locate_only, K=48, budget_frac=0.25, lr=3e-4) — matching the dispatch brief's exact
+spec.
+
+**ROUND4_AUTHORIZED.token** written to `/home/nvidia/chapter2/gates/h2h_round4/`, citing this
+section and the item-11 pass result verbatim.
+
+**LAUNCHED:** `h2h_round4_driver_rd.py --run-all` (H2H_DIAL_ROUND=4), tmux session `h2h_round4`,
+GPU 0 (idle at dispatch; GPUs 2-7 all busy with named fixscale_392m/98m post-processing waves +
+`h2h_decisive`, none touched), `--ckpt-dir /data/h2h_rung1_ckpts --out-dir
+results/h2h_rung1/round4` (matches `h2h_rung1_chain.sh`'s own Stage-B3 path convention exactly).
+First cells confirmed healthy post-launch (see MANIFEST for the live tail). Harvest watch-path:
+`results/h2h_rung1/round4/ROUND4_SUMMARY.json` (9 cell entries expected;
+`ROUND4_PROVENANCE_MANIFEST.json` and per-cell `{cell_id}_round4.json` alongside it).

@@ -78,6 +78,30 @@ RUNG2_NULL_PASS_MULT = 1.5        # R5-F2: the rung-2 classifier's OWN capacity 
 # a context >= this length; used only inside this file's own smoke suite (not re-exported).
 _CONTENDER_SMOKE_CTX_LEN = 128
 
+# sec 1.36[h2h] (item-11 diagnosis+fix): `transformer_native_tap` replicates the context Q times
+# (B*Q "mega-batch" rows, one per query) and runs them ALL through the Transformer in a single
+# forward call. On-box memory profiling of the real K=48 rung-2-fit shape (B=32, Q=48 ->
+# B*Q=1536, T_total=342) found the 6.14 GiB item-11 measured peak is NOT the vocab-size LM-head
+# matmul (that step is already skipped by `return_hidden=True`, confirmed 0.29 GiB analytically
+# AND empirically negligible in the profile) -- it is the Transformer's OWN forward activations
+# over all 1536 rows at once: the FFN's (B*Q,T,4*d_model) GELU intermediate (~2 GiB/tensor, 2
+# non-fused copies alive simultaneously = ~4-4.5 GiB spike) and RoPE's per-head elementwise
+# intermediates (~2 GiB spike), each x2 layers. `F.scaled_dot_product_attention` itself is
+# well-behaved (dispatches to a memory-efficient/flash backend, no O(T^2) score matrix
+# materialized) -- NOT the driver. This is a genuine, shape-driven cost of processing all B*Q
+# rows in one Python-level batch, not a bug in what gets computed -- and it is AVOIDABLE:
+# `model.eval()` is the only mode this function is ever called in for the rung-2 fit
+# (`fit_rung2_identity_classifier` sets it before its loop), the FFN has no dropout (verified,
+# `lm_pretrain_rd.FFN.forward` = `fc2(gelu(fc1(x)))`, no `nn.Dropout`), RMSNorm normalizes over
+# `d_model` only, and SDPA never mixes across the batch dimension -- so every one of the B*Q rows
+# is numerically INDEPENDENT of every other row. Chunking the B*Q dimension and concatenating the
+# results is therefore bit-identical to the unchunked computation (proven by smoke_11 below via
+# torch.equal, not merely assumed), never a numerical approximation. Sizing: measured peak scales
+# ~linearly in B*Q (no row-cross-terms) at ~4.0 MB/row for this shape
+# (6.14 GiB / 1536 rows ~= 4.09 MiB/row); 128 rows/chunk -> ~0.52 GiB predicted peak, ~4x
+# headroom under the 2 GiB bound even before allowing for cross-shape variation.
+TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK = 128
+
 
 # ---------------------------------------------------------------------------
 # sec 1.3.1.1 -- frozen ground-truth target table
@@ -175,15 +199,32 @@ def transformer_native_tap(model: TransformerLM, context_token_ids: torch.Tensor
     native tap has always been the pre-LM-head hidden at `<Q>`, unlike the
     recurrent arms' native tap (S1@q_shallow, found causally inert/
     linearly dead at §1.30) -- no separate Leg-B extraction path is needed
-    for this arch."""
+    for this arch.
+
+    sec 1.36[h2h] (item-11 diagnosis+fix): the real remaining cost at the K=48 rung-2-fit shape
+    is NOT the LM-head matmul (already skipped above) but the Transformer's OWN forward
+    activations (FFN GELU intermediate + RoPE elementwise buffers) over the FULL B*Q "mega-batch"
+    processed in one call. Chunks the B*Q dimension at `TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK` rows
+    per forward call -- bit-identical to the unchunked path (every row is numerically independent:
+    no dropout, RMSNorm normalizes over d_model only, SDPA never mixes across the batch dim; proof:
+    smoke_11 below) -- bounding peak activation memory to ~(chunk_rows/B*Q) of the unchunked peak
+    regardless of how large B*Q grows."""
     B, T_ctx = context_token_ids.shape
     _, Q, qlen = query_tokens.shape
     ctx_rep = context_token_ids.unsqueeze(1).expand(B, Q, T_ctx).reshape(B * Q, T_ctx)
     q_flat = query_tokens.reshape(B * Q, qlen)
     seq = torch.cat([ctx_rep, q_flat], dim=1)
     mask = attn_mask_fn(T_ctx + qlen) if attn_mask_fn is not None else None
-    hidden = model(seq, attn_mask=mask, return_hidden=True)
-    return hidden[:, -1, :].view(B, Q, -1)
+    n_rows = seq.shape[0]
+    if n_rows <= TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK:
+        hidden = model(seq, attn_mask=mask, return_hidden=True)
+        return hidden[:, -1, :].view(B, Q, -1)
+    chunks = []
+    for start in range(0, n_rows, TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK):
+        seq_chunk = seq[start:start + TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK]
+        hidden_chunk = model(seq_chunk, attn_mask=mask, return_hidden=True)
+        chunks.append(hidden_chunk[:, -1, :])
+    return torch.cat(chunks, dim=0).view(B, Q, -1)
 
 
 # ---------------------------------------------------------------------------
@@ -781,6 +822,48 @@ def smoke_10_rung2_planted_signal_positive_control_both_directions():
             f"old_slot_labeled_chance={result['old_slot_labeled_chance']:.4f}")
 
 
+def smoke_11_transformer_tap_chunking_bit_identical():
+    """sec 1.36[h2h] (item-11 diagnosis+fix): `transformer_native_tap`'s row-chunking (added to
+    bound peak activation memory at large B*Q, see the function's own docstring + the
+    TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK module constant's derivation) must be BIT-IDENTICAL to the
+    unchunked computation, never a numerical approximation -- proven here with torch.equal, not
+    merely asserted in a docstring (mirrors this project's own 'has teeth' discipline for every
+    other OOM-fix claim in this file). Forces chunking with a deliberately tiny
+    max_rows_per_chunk (2) against a real B*Q=12 (B=4,Q=3) case so the loop path is actually
+    exercised (a chunk size >= B*Q would silently take the single-shot branch and prove
+    nothing), then compares against the SAME model/inputs run through the single-shot branch
+    (chunk size forced above B*Q) -- both directions of the boundary exercised, both capped-mask
+    and uncapped-mask modes checked (sink+FIFO mask construction has its own T-dependence that a
+    naive per-chunk mask slice could silently break)."""
+    from transformer_baseline_rd import sink_fifo_mask
+    torch.manual_seed(37)
+    m = TransformerLM(300, d_model=32, n_layers=2, n_heads=4, ffn_mult=2)
+    m.eval()
+    ctx = torch.randint(0, 300, (4, _CONTENDER_SMOKE_CTX_LEN))
+    q_tok = torch.randint(0, 300, (4, 3, 5))                # B*Q = 12
+
+    global TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK
+    saved = TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK
+    ok = True
+    try:
+        for mask_fn, label in ((None, "uncapped"),
+                               (lambda t: sink_fifo_mask(t, cap_length=10, k_sink=4), "capped")):
+            TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK = 10 ** 9      # forces the single-shot branch
+            tap_unchunked = transformer_native_tap(m, ctx, q_tok, attn_mask_fn=mask_fn)
+            TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK = 2            # forces >=6 chunk iterations (12/2)
+            tap_chunked = transformer_native_tap(m, ctx, q_tok, attn_mask_fn=mask_fn)
+            identical = torch.equal(tap_unchunked, tap_chunked)
+            shape_ok = tap_chunked.shape == (4, 3, 32)
+            ok = ok and identical and shape_ok
+            print(f"    mode={label:>8s}: chunked==unchunked (torch.equal)={identical} "
+                  f"shape={tuple(tap_chunked.shape)}")
+    finally:
+        TRANSFORMER_TAP_MAX_ROWS_PER_CHUNK = saved
+    _report("smoke 11 (sec 1.36[h2h] item-11 fix): transformer_native_tap's row-chunking is "
+            "BIT-IDENTICAL to the unchunked path (torch.equal, both uncapped+capped mask modes, "
+            "chunk boundary genuinely exercised)", ok)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--smoke", action="store_true")
@@ -799,6 +882,7 @@ def main() -> int:
     smoke_8_aux_loss_only_gradient_isolation()
     smoke_9_rung2_identity_classifier_capacity_null_all_three_arm_shapes()
     smoke_10_rung2_planted_signal_positive_control_both_directions()
+    smoke_11_transformer_tap_chunking_bit_identical()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)
