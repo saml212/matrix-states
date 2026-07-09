@@ -103,19 +103,42 @@ def ensure_fla_stub() -> bool:
         final_state = torch.zeros(B, H, Dh, Dh, dtype=q.dtype, device=q.device)
         return o, final_state
 
+    def _stub_chunk_gated_delta_rule(q, k, v, g, beta, initial_state=None,
+                                     output_final_state=True,
+                                     use_qk_l2norm_in_kernel=True,
+                                     use_beta_sigmoid_in_kernel=False):
+        """CPU-safe stand-in for fla 0.5.1's chunk_gated_delta_rule (CUDA-only), mirroring
+        _stub_chunk_delta_rule's disclosed limitations verbatim. `g` is the log-space decay
+        gate (logsigmoid convention per the pinned wheel); the stub applies exp(g) as a cheap
+        multiplicative dependence so gradient/plumbing checks exercise the g path. final_state
+        is deliberately zero -- value-level claims are box-only, same as the ungated stub."""
+        B, T, H, Dh = q.shape
+        if use_qk_l2norm_in_kernel:
+            q = F.normalize(q, dim=-1)
+            k = F.normalize(k, dim=-1)
+        b = torch.sigmoid(beta) if use_beta_sigmoid_in_kernel else beta
+        qk_gate = torch.sigmoid((q * k).sum(dim=-1, keepdim=True))
+        o = v * b.unsqueeze(-1) * qk_gate * torch.exp(g).unsqueeze(-1)
+        final_state = torch.zeros(B, H, Dh, Dh, dtype=q.dtype, device=q.device)
+        return o, final_state
+
     fla_mod = types.ModuleType("fla")
     fla_modules = types.ModuleType("fla.modules")
     fla_ops = types.ModuleType("fla.ops")
     fla_ops_delta_rule = types.ModuleType("fla.ops.delta_rule")
+    fla_ops_gated_delta_rule = types.ModuleType("fla.ops.gated_delta_rule")
     fla_modules.ShortConvolution = _StubShortConvolution
     fla_modules.RMSNorm = _StubRMSNorm
     fla_ops_delta_rule.chunk_delta_rule = _stub_chunk_delta_rule
+    fla_ops_gated_delta_rule.chunk_gated_delta_rule = _stub_chunk_gated_delta_rule
     fla_mod.modules = fla_modules
     fla_mod.ops = fla_ops
     fla_ops.delta_rule = fla_ops_delta_rule
+    fla_ops.gated_delta_rule = fla_ops_gated_delta_rule
     setattr(fla_mod, _STUB_MARKER, True)
     sys.modules["fla"] = fla_mod
     sys.modules["fla.modules"] = fla_modules
     sys.modules["fla.ops"] = fla_ops
     sys.modules["fla.ops.delta_rule"] = fla_ops_delta_rule
+    sys.modules["fla.ops.gated_delta_rule"] = fla_ops_gated_delta_rule
     return True
