@@ -4818,3 +4818,40 @@ mirrored into this file's own §8.2a.
 - Whether GPU 7's "flex slot" role (§13.9) needs its own explicit hand-off
   protocol with CAPABILITY STAGE 2's concurrently-written design, once that
   design's own GPU ask is known.
+
+---
+
+### §13.13 ATTACK ROUND 1 VERDICT (2026-07-09): NEEDS-REVISION (1 scope change; both fear-cases resolved favorably)
+
+Recorded per the gauntlet-bookkeeping hard rule. Raw-table verification:
+the wrong-direction claim is TRUE (per_token Δspan +0.1955/+0.2273 both
+CI-exclude-zero = WORSE; global-vector −0.3319/−0.2308 = stabilizing;
+rung-1 was a FOURTH-OUTCOME descriptive tier, never a clean CONFIRM for
+either arm). **The h2h §1.2 pin is NOT a misread** — it quotes these
+exact numbers and pins per_token for disclosed engineering reasons
+(Newton-Schulz/β-uniformity stability + clean val-loss gate); the
+margin freeze does not rest on a broken pin. The 6× rate error
+CONFIRMED and traced to HEAD_TO_HEAD_DEMO_DESIGN.md:1604 (wave total ÷
+one cell's steps); real rates 98M 4.478 / 392M 21.383 (full) / 4.671
+(20k) GPU-h/cell, independently corroborated; the 2× contingency
+justified by rung-3's realized 1.985× overrun precedent. No-DDP
+verified (zero hits; Track C single-GPU 392M proven). n=3/20k-step/
+bands all verified byte-for-byte.
+
+**BINDING ON REV 1:** (1) ADD the exploratory-tier global-vector
+(Arm 2′) probe — n=1, both scales, 2 corpora ≈4 cells ≈18-37 GPU-h,
+inside the 300 cap: without it the wave only re-tests the construction
+known to WORSEN the pathology and never learns whether the arm that
+WORKS transfers; (2) VRAM logging folded into the timing pilot; (3)
+build-audit item: assert_blind_not_broken must be wired, not intended.
+
+**CROSS-CUTTING (dispatched separately): terminology audit** —
+CLAUDE.md's "FIXED (frozen-bias)" and 09_discussion_limitations.tex's
+"stabilization" overclaim the per_token arm (val-loss-neutral,
+geometry-UNRESOLVED/destabilizing, the arm actually deployed) vs the
+global arm (geometry-stabilizing, never scaled, never pinned). ALSO:
+h2h §1.9's "≈168 GPU-h escalation unaffordable" descends from the same
+6× error — the 392M escalation is ≈28 GPU-h at reduced steps, i.e.
+AFFORDABLE; correct at the next h2h design touch.
+
+---
