@@ -2,10 +2,18 @@
 REGISTERED BOX-SMOKE CHECKLIST, as a machine-readable manifest the deploy
 stage can consume (sec 1.20's own "binding" checklist language). Deliberately
 dumb and declarative -- a flat list of dicts, no logic beyond structural
-self-validation; this file does NOT run any of the 8 items itself (every one
+self-validation; this file does NOT run any of the 10 items itself (every one
 of them needs real fla/Triton on the H100 box, per each item's own
 `source_finding`), it only records WHAT the deploy stage owes before
 HEADTOHEAD_MATCH_GATE_SIGNOFF / launch can be considered box-verified.
+
+Items (9)-(10) (NEW, sec 1.23 scoped build-fix, item 5) are the Rev 4
+CE_answer continuation's own blank-out negative tests -- see
+h2h_cell_train_rd.py's `mode_selftest` for the CPU-provable halves (both
+items ARE exercised meaningfully on CPU, unlike items 2/3's stub-vacuity
+limitation: neither test depends on S_T being nonzero, only on the
+CONTINUATION CALL's own signature/determinism, which the CPU stub does not
+disconnect) and the box-only real-kernel residual each one still owes.
 
 Each entry:
   id            -- short, stable slug (never renumbered/reused across edits).
@@ -101,6 +109,43 @@ CHECKLIST: tuple[dict, ...] = (
                            "(14 cells) + check_calibration_band",
     },
     {
+        "id": "continuation_blankout_inplace",
+        "description": "[NEW, sec 1.23 build-fix item 5a] CE_answer continuation in-place "
+                        "blank-out: corrupt bind_tokens IN PLACE (fresh torch.randint_like draw) "
+                        "AFTER caching S_T, re-run model.forward(query_tokens, initial_states=S_T) "
+                        "with the SAME cached S_T -- logits_query must be numerically IDENTICAL. "
+                        "CPU-PROVABLE IN FULL (unlike items 2/3): the claim is purely structural "
+                        "(the continuation call's own signature has no argument, and therefore no "
+                        "path, back to bind_tokens), true identically whether S_T is the CPU "
+                        "stub's zero constant or a real nonzero Triton-kernel state -- this box "
+                        "item only re-confirms the SAME claim holds on the real kernel path, no "
+                        "new plumbing.",
+        "blocking": True,
+        "source_finding": "sec 1.3.1.3 Rev 4 (blank-out, extended); sec 1.23 item 5a; "
+                           "h2h_cell_train_rd.py mode_selftest continuation blank-out item",
+    },
+    {
+        "id": "continuation_blankout_fresh_instance",
+        "description": "[NEW, sec 1.23 build-fix item 5b, R5-F4] Fresh-model-instance blank-out "
+                        "companion: load the SAME trained weights (state_dict) into a FRESH model "
+                        "instance and re-run the continuation from the SAME cached S_T and query "
+                        "tokens -- logits must be BIT-IDENTICAL to the original instance's own "
+                        "run, closing the hidden-module-cache channel the in-place test above "
+                        "cannot (any per-instance cache/buffer not captured by state_dict() would "
+                        "show up here as a divergence). CPU-PROVABLE for the ablation and "
+                        "transformer arms (real, differentiable recurrence/attention, no stub "
+                        "disconnect) and for the contender's OWN stub-constant case (S_T=0 "
+                        "regardless of instance, so CPU proves determinism-given-equal-inputs); "
+                        "BOX-ONLY residual is specifically whether the REAL Triton kernel harbors "
+                        "any instance-level nondeterminism (e.g. a compiled-kernel/memory-pool "
+                        "cache) invisible to state_dict() -- CPU cannot exercise a real kernel at "
+                        "all, mirrors probe_head_rd.py smoke_3/smoke_8's own box-only-registration "
+                        "discipline for the contender arm specifically.",
+        "blocking": True,
+        "source_finding": "R5-F4 (attack round 5, sec 1.23); sec 1.3.1.3 Rev 4 (blank-out); "
+                           "h2h_cell_train_rd.py mode_selftest fresh-instance blank-out item",
+    },
+    {
         "id": "d128_diagnostic_deferred",
         "description": "d=128 diagnostic -- ONLY if the escalation decision (sec 1.5, mechanical, "
                         "NOT pre-authorized) actually authorizes the escalation rung; this item is "
@@ -130,9 +175,9 @@ def _report(item: str, ok: bool, detail: str = "") -> None:
 
 
 def smoke_1_checklist_shape():
-    ok = len(CHECKLIST) == 8
-    _report("smoke 1: checklist has exactly 8 items (sec 1.20's own registered count)", ok,
-            f"n_items={len(CHECKLIST)}")
+    ok = len(CHECKLIST) == 10
+    _report("smoke 1: checklist has exactly 10 items (sec 1.20's own registered 8 + sec 1.23 "
+            "build-fix item 5's new items 9-10)", ok, f"n_items={len(CHECKLIST)}")
 
 
 def smoke_2_every_entry_has_required_keys():
@@ -166,13 +211,14 @@ def smoke_4_blocking_is_bool_and_matches_sec_1_20():
 
 def smoke_5_aud_f1_item_present_and_positioned():
     """The fix stage's own addition (AUD-F1, checklist item 3) must be present, tagged, and
-    sit at the documented position (sec 1.20's own numbered list: item 3 of 8)."""
+    sit at the documented position (sec 1.20's own numbered list: item 3 of 10, unmoved by
+    sec 1.23's items 9-10, which are appended at the END, never renumbered past it)."""
     ids = [row["id"] for row in CHECKLIST]
     idx = ids.index("aux_only_grad_isolation_contender") if "aux_only_grad_isolation_contender" in ids else -1
     tagged = idx >= 0 and "[NEW, AUD-F1]" in CHECKLIST[idx]["description"]
-    positioned = idx == 2   # 0-indexed -> 3rd of 8
+    positioned = idx == 2   # 0-indexed -> 3rd of 10
     ok = tagged and positioned
-    _report("smoke 5: AUD-F1's new item is present, tagged '[NEW, AUD-F1]', at position 3 of 8",
+    _report("smoke 5: AUD-F1's new item is present, tagged '[NEW, AUD-F1]', at position 3 of 10",
             ok, f"idx0based={idx} tagged={tagged}")
 
 
@@ -180,6 +226,23 @@ def smoke_6_descriptions_nonempty():
     ok = all(isinstance(row["description"], str) and len(row["description"]) > 10
              for row in CHECKLIST)
     _report("smoke 6: every description is a real, non-trivial string", ok)
+
+
+def smoke_7_sec_1_23_items_present_and_positioned():
+    """sec 1.23 build-fix item 5's new items (9)-(10) must be present, tagged '[NEW, sec 1.23',
+    blocking, and sit immediately before the pre-existing d128 deferred item (never renumbered
+    past it -- this file's own house convention, mirrored from smoke_5's AUD-F1 check)."""
+    ids = [row["id"] for row in CHECKLIST]
+    idx9 = ids.index("continuation_blankout_inplace") if "continuation_blankout_inplace" in ids else -1
+    idx10 = ids.index("continuation_blankout_fresh_instance") if "continuation_blankout_fresh_instance" in ids else -1
+    tagged = (idx9 >= 0 and "[NEW, sec 1.23" in CHECKLIST[idx9]["description"]
+              and idx10 >= 0 and "[NEW, sec 1.23" in CHECKLIST[idx10]["description"])
+    positioned = idx9 == 7 and idx10 == 8 and ids[9] == "d128_diagnostic_deferred"
+    both_blocking = CHECKLIST[idx9]["blocking"] is True and CHECKLIST[idx10]["blocking"] is True
+    ok = tagged and positioned and both_blocking
+    _report("smoke 7: sec 1.23 items 9-10 (continuation blank-out, in-place + fresh-instance) "
+            "present, tagged, positioned immediately before the d128 deferred item, both blocking",
+            ok, f"idx9={idx9} idx10={idx10} tagged={tagged} both_blocking={both_blocking}")
 
 
 def print_checklist_table() -> None:
@@ -210,6 +273,7 @@ def main() -> int:
     smoke_4_blocking_is_bool_and_matches_sec_1_20()
     smoke_5_aud_f1_item_present_and_positioned()
     smoke_6_descriptions_nonempty()
+    smoke_7_sec_1_23_items_present_and_positioned()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)

@@ -1670,8 +1670,11 @@ revision's own measured per-arch full-cell rates (10/19.5/27 min),
 applied retroactively to rounds 1 (13 cells) and 2 (9 cells) on the
 theory that real per-arch wall-clock is a property of the model/hardware
 and should apply equally regardless of which round or `aux_weight` ran,
-sums to **≈4.98 GPU-h** for the h2h wave's own calibration-phase spend —
-against the **≈3.76 GPU-h** (`11.43−7.672`) the ledger line implies. The
+sums to **≈4.98 GPU-h** for the h2h wave's own calibration-phase spend
+(this figure INCLUDES the §1.21 diagnosis pass's own 0.08 GPU-h, stated
+here explicitly per attack round 5's own instruction, §1.23 — it is not
+an additional, separately-hidden cost) — against the **≈3.76 GPU-h**
+(`11.43−7.672`) the ledger line implies. The
 **≈1.2 GPU-h gap** is most plausibly either (a) `STATE.md`'s ledger line
 not yet reflecting round 2/diagnosis's full cost (a bookkeeping-lag
 pattern this doc's own STATE.md record already flags elsewhere, "Git
@@ -1753,8 +1756,15 @@ re-derived:
    — see §1.9's self-attack, restated there per M1).**
 
    **1a. THE DIAGNOSTIC LADDER (NEW, Rev 4, pre-registered per §1.21's
-   own instruction — a gate-1 extension, run for EVERY calibration cell,
-   not only Tasks 1/2's).** §1.21's diagnosis took a full box-diagnosis
+   own instruction — a gate-1 extension).** **Scope, corrected (R5-F3,
+   attack round 5, §1.23 — the original "EVERY calibration cell" phrasing
+   overclaimed):** the ladder runs for the `grammar_rd` calibration cells
+   only — `task1_calib` (both the primary K/d=0.5 load and the
+   stress/locate-only K/d=0.75 load) and `task2_calib` — never for
+   `task3_calib`, which has no query/answer-position structure for the
+   ladder's rungs to read and keeps its OWN anchored `[1.90,2.60]`
+   val-loss band (§1.7 gate 1's opening paragraph, unchanged) instead.
+   §1.21's diagnosis took a full box-diagnosis
    pass (0.08 GPU-h, offline probe study) to attribute a `rf@0.9=0`
    plateau to its root cause, because no cheaper, standing instrument
    existed to separate "task not learned" from "info not in the tap"
@@ -2133,7 +2143,17 @@ expansion and the M-NEW-4 sanctioning question (items 13-14))
    logits its existing forward pass already computes (§1.3.1.3), it does
    not change what the Transformer attends to or when. Axis 2's cap
    remains the disclosed counterweight for that pre-existing asymmetry,
-   as before.
+   as before. **[Attack round 5 clarification, §1.23 — fairness
+   adjudicated, NOT a new asymmetry]** Axis 1 (§1.4.1) is IMMUNE to
+   `CE_answer`'s own continuation mechanics regardless: axis 1 compares
+   ONLY the contender against the flat-vector ablation, both recurrent,
+   both under the IDENTICAL continuation construction described above —
+   the Transformer is not a party to axis 1 at all. For axis 2 (§1.4.2),
+   `CE_answer` IMPROVES rather than worsens the comparison's
+   interpretability: the capped-vs-uncapped Transformer contrast now
+   reflects genuinely TRAINED retrieval behavior, closing the pre-Rev-4
+   confound where `rf@0.9` plateaued at the untrained episode-membership
+   optimum (§1.21) regardless of which side of axis 2 was being read.
 10. **(NEW, Rev 2, M-NEW-2) The contender's and the ablation's native taps
     are not expressivity-matched, by construction, and cannot be fully
     repaired by the shared linear probe.** The contender reads via a full

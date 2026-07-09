@@ -68,6 +68,11 @@ from transformer_baseline_rd import TransformerLM                       # noqa: 
 RECOVERY_THRESHOLD = 0.9
 AUX_WEIGHT_DEFAULT = 0.1
 NULL_PASS_BAR = 0.05
+CE_ANSWER_WEIGHT_DEFAULT = 1.0    # sec 1.3.1.3 Rev 4: pinned default (h2h_cell_train_rd.py's own
+                                    # CE_ANSWER_WEIGHT mirrors this; calibrated by the step-500 dial)
+RUNG_CHANCE_MULT = 3.0            # sec 1.7 gate 1a: rungs 1/2 PASS bar, > 3x episode-restricted chance
+RUNG2_NULL_PASS_MULT = 1.5        # R5-F2: the rung-2 classifier's OWN capacity null, strictly
+                                    # SEPARATED from the real 3x gate -- a looser <=1.5x bar
 # lm_pretrain_rd._MIN_KERNEL_T (128): the real chunk_delta_rule kernel's own backward-crash floor
 # (F15-LM measurement) -- every smoke item below that instantiates a REAL DeltaNetLM must feed it
 # a context >= this length; used only inside this file's own smoke suite (not re-exported).
@@ -188,10 +193,20 @@ def probe_aux_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
 
 
 def joint_loss(loss_ce: torch.Tensor, pred: torch.Tensor, target: torch.Tensor,
-                aux_weight: float = AUX_WEIGHT_DEFAULT) -> torch.Tensor:
-    """loss_total = loss_CE + aux_weight * mean(1 - cos(pred,target)) --
-    sec 1.3.1.3's exact formula."""
-    return loss_ce + aux_weight * probe_aux_loss(pred, target)
+                aux_weight: float = AUX_WEIGHT_DEFAULT,
+                loss_ce_answer: torch.Tensor | None = None,
+                ce_answer_weight: float = CE_ANSWER_WEIGHT_DEFAULT) -> torch.Tensor:
+    """sec 1.3.1.3, Rev 4: loss_total = loss_CE_lm + ce_answer_weight * CE_answer +
+    aux_weight * mean(1 - cos(pred,target)). `loss_ce_answer=None` (the default) reproduces
+    the ORIGINAL Rev 0-3 two-term formula EXACTLY -- smoke_7's own still-valid joint-loss
+    sanity check passes an unmodified call here, deliberately never silently promoted to a
+    three-term loss it wasn't written to exercise. CE_answer participates in loss_total ONLY
+    when the caller explicitly supplies `loss_ce_answer` (h2h_cell_train_rd.py's own
+    train_grammar_cell, every step, Rev 4)."""
+    total = loss_ce + aux_weight * probe_aux_loss(pred, target)
+    if loss_ce_answer is not None:
+        total = total + ce_answer_weight * loss_ce_answer
+    return total
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +247,63 @@ def run_probe_capacity_null(native_tap_dim: int, value_dim: int, T_val: torch.Te
 
     return {"recovered_frac": frac, "passed": frac < NULL_PASS_BAR, "native_tap_dim": native_tap_dim,
             "value_dim": value_dim, "n_train_steps": n_train_steps, "n_eval": n_eval}
+
+
+# ---------------------------------------------------------------------------
+# sec 1.7 gate 1a rung 2 -- identity classifier factory + its OWN R5-F2 capacity null
+# ---------------------------------------------------------------------------
+
+def build_identity_classifier(native_tap_dim: int, K: int) -> nn.Linear:
+    """Rung 2's classifier: SEPARATE from `shared_probe` (which does continuous cosine
+    regression against T_val, not classification) -- a plain linear map from the arm's own
+    native tap (`adapter_arm`'s own INPUT shape, native_tap_dim -- NOT the post-adapter
+    value_dim) to K SLOT logits, predicting which of the episode's K candidate entities is
+    being queried (sec 1.7 gate 1a rung 2). Trained fresh per calibration cell in
+    h2h_cell_train_rd.py on REAL episodes; this factory is reused by both that real-data
+    trainer and this file's own R5-F2 synthetic capacity null below, so the two share
+    byte-identical class/init/shape."""
+    return nn.Linear(native_tap_dim, K, bias=True)
+
+
+def run_identity_classifier_capacity_null(native_tap_dim: int, K: int, n_train_steps: int = 300,
+                                           batch_size: int = 64, lr: float = 1e-3, n_eval: int = 2000,
+                                           seed: int = 0) -> dict:
+    """R5-F2 (attack round 5, sec 1.23): rung 2's OWN frozen-random-tap capacity null --
+    unlike `shared_probe`, rung 2 is a NEW classifier introduced by Rev 4, so a rung-2 PASS on
+    real data would not otherwise be distinguishable from "the classifier itself is oddly
+    well-suited to noise." Mirrors `run_probe_capacity_null`'s protocol (fresh i.i.d. Gaussian
+    `state_summary_raw` every step, never a fixed pool; held-out fresh eval draws never seen
+    in training) with ONE deliberate difference required by R5-F2's own spec: LABELS
+    INDEPENDENT -- the K-class label is drawn uniformly at random, INDEPENDENT of the (already
+    label-free) Gaussian input, so there is no learnable input-to-label relationship at all for
+    the classifier to memorize even in principle. Pass bar, STRICTLY SEPARATED from the real
+    rung-2 gate's `> 3x chance` bar (sec 1.7 gate 1a): `accuracy <= RUNG2_NULL_PASS_MULT (1.5) x
+    chance (1/K)` -- looser than the real gate on purpose (R5-F2's own text), because this null
+    has zero signal to find and must not spuriously fail from ordinary finite-sample noise at a
+    tight bar."""
+    torch.manual_seed(seed)
+    clf = build_identity_classifier(native_tap_dim, K)
+    opt = torch.optim.Adam(clf.parameters(), lr=lr)
+
+    for _ in range(n_train_steps):
+        x = torch.randn(batch_size, native_tap_dim)
+        y = torch.randint(0, K, (batch_size,))
+        logits = clf(x)
+        loss = F.cross_entropy(logits, y)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+
+    with torch.no_grad():
+        x_eval = torch.randn(n_eval, native_tap_dim)
+        y_eval = torch.randint(0, K, (n_eval,))
+        pred = clf(x_eval).argmax(dim=-1)
+        acc = (pred == y_eval).float().mean().item()
+
+    chance = 1.0 / K
+    pass_bar = RUNG2_NULL_PASS_MULT * chance
+    return {"accuracy": acc, "chance": chance, "pass_bar": pass_bar, "passed": acc <= pass_bar,
+            "native_tap_dim": native_tap_dim, "K": K, "n_train_steps": n_train_steps, "n_eval": n_eval}
 
 
 # ---------------------------------------------------------------------------
@@ -596,6 +668,23 @@ def smoke_8_aux_loss_only_gradient_isolation():
             "(ablation+transformer CPU-proven; contender box-only-registered)", ok_all)
 
 
+def smoke_9_rung2_identity_classifier_capacity_null_all_three_arm_shapes():
+    """R5-F2 (GATE, sec 1.7 gate 1a rung 2): the identity-classifier's OWN capacity null MUST
+    pass (bar <= 1.5x chance) for every arm's REAL rung-1 adapter shape, at the primary load
+    K=32, before a real rung-2 PASS is trusted at face value."""
+    shapes = {"contender": (64, 11), "ablation": (64, 12), "transformer": (256, 13)}
+    K = 32
+    all_pass = True
+    for arm, (dim, seed_offset) in shapes.items():
+        result = run_identity_classifier_capacity_null(dim, K, n_train_steps=300, seed=seed_offset)
+        print(f"    arm={arm:>11s}: native_tap_dim={dim:>3d} K={K} accuracy={result['accuracy']:.4f} "
+              f"pass_bar={result['pass_bar']:.4f} passed={result['passed']}")
+        all_pass = all_pass and result["passed"]
+    _report("smoke 9 (R5-F2 GATE): rung-2 identity-classifier capacity null PASSES for all 3 "
+            "arms' real rung-1 adapter shapes (bar <= 1.5x chance, strictly separated from the "
+            "real 3x gate)", all_pass)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--smoke", action="store_true")
@@ -612,6 +701,7 @@ def main() -> int:
     smoke_6_probe_capacity_null_all_three_arm_shapes()
     smoke_7_joint_loss_gradients_flow_to_backbone()
     smoke_8_aux_loss_only_gradient_isolation()
+    smoke_9_rung2_identity_classifier_capacity_null_all_three_arm_shapes()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)

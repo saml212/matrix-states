@@ -107,6 +107,30 @@ def check_calibration_band(measured: float, band_lo: float, band_hi: float, metr
     return {"metric": metric_name, "measured": measured, "band": (band_lo, band_hi), "within_band": ok}
 
 
+RUNG1_BAND_MULT = 3.0   # sec 1.7 gate 1a/1b: same >3x episode-restricted-chance bar as the ladder's own rung 1
+
+
+def check_gate1_full_cell_band(rung1_accuracy: float, K: int, recovered_frac_at_09: float,
+                                rung1_mult: float = RUNG1_BAND_MULT) -> dict:
+    """sec 1.7 gate 1b (NEW, Rev 4): a task1_calib/task2_calib FULL cell (role=='primary')
+    PASSES gate 1 iff BOTH (i) rung-1 answer accuracy > rung1_mult x episode-restricted
+    chance (1/K) AND (ii) recovered_frac@0.9 > 0 -- the ladder's rung 1 and rung 3 jointly;
+    rung 2 stays diagnostic-only (attribution on a FAIL), never itself a pass/fail input here
+    (sec 1.7 gate 1a's own attribution-table text). Stress/locate-only cells (task1_stress,
+    role=='stress_locate_only') are EXEMPT from this band and must never call this function as
+    a gating decision -- callers decide cell eligibility, this function only scores the two
+    numbers it is handed. R5-F3 rescoped the ladder's OWN applicability (which cells log rungs
+    1-3 at all) to task1_calib/task1_stress/task2_calib, distinct from THIS narrower band,
+    which further excludes the stress cell (sec 1.7 gate 1b's own text, unchanged by R5-F3)."""
+    chance = 1.0 / K
+    rung1_ok = rung1_accuracy > rung1_mult * chance
+    rf_ok = recovered_frac_at_09 > 0.0
+    return {"rung1_accuracy": rung1_accuracy, "K": K, "chance": chance,
+            "rung1_pass_bar": rung1_mult * chance, "rung1_ok": rung1_ok,
+            "recovered_frac_at_09": recovered_frac_at_09, "rf_ok": rf_ok,
+            "within_band": rung1_ok and rf_ok}
+
+
 # ---------------------------------------------------------------------------
 # sec 1.7 gate 2 -- per-arch x task timing pilots (phase2b_off_cache.py's own
 # time_one_..._pass / project_and_gate_... pattern).
@@ -278,6 +302,30 @@ def smoke_3_calibration_band_check():
     _report("smoke 3: check_calibration_band correctly passes/fails against a band", ok)
 
 
+def smoke_3b_gate1_full_cell_band():
+    """sec 1.7 gate 1b: BOTH rung-1 (>3x chance) AND rf@0.9>0 required; a synthetic cell
+    result failing EITHER condition must fail the band -- run to completion (CLAUDE.md's own
+    'run the negative unit test... to completion' rule on structural checks)."""
+    K = 32
+    chance = 1.0 / K
+    # positive: rung-1 well above 3x chance, rf@0.9 > 0 -- PASSES.
+    r_pass = check_gate1_full_cell_band(rung1_accuracy=0.5, K=K, recovered_frac_at_09=0.12)
+    # negative 1: rung-1 EXACTLY at chance (a synthetic cell that never learned recall at all,
+    # sec 1.21's own diagnosed failure mode) -- rung1_ok must be False, and the compound band
+    # must therefore fail even though rf@0.9 alone would look fine.
+    r_fail_rung1 = check_gate1_full_cell_band(rung1_accuracy=chance, K=K, recovered_frac_at_09=0.12)
+    # negative 2: rung-1 passes but rf@0.9 == 0 exactly (the Nichani-gap cell: task learned
+    # somewhere, exact-continuous-recovery probe still can't) -- rf_ok must be False.
+    r_fail_rf = check_gate1_full_cell_band(rung1_accuracy=0.5, K=K, recovered_frac_at_09=0.0)
+    ok = (r_pass["within_band"] and not r_fail_rung1["within_band"] and not r_fail_rf["within_band"]
+          and r_fail_rung1["rung1_ok"] is False and r_fail_rf["rf_ok"] is False)
+    _report("smoke 3b: check_gate1_full_cell_band -- PASS case passes; a synthetic cell "
+            "failing rung-1 alone (chance-level accuracy) fails the band; a synthetic cell "
+            "failing rf@0.9 alone (==0) also fails the band", ok,
+            f"pass={r_pass['within_band']} fail_rung1={r_fail_rung1['within_band']} "
+            f"fail_rf={r_fail_rf['within_band']}")
+
+
 def smoke_4_timing_pilot_projection():
     def _fake_train_fn(sleep_s=0.01):
         time.sleep(sleep_s)
@@ -356,6 +404,7 @@ def main() -> int:
     smoke_1_manifest_shapes()
     smoke_2_seeds_come_from_rd_episode_seed()
     smoke_3_calibration_band_check()
+    smoke_3b_gate1_full_cell_band()
     smoke_4_timing_pilot_projection()
     smoke_5_msweep_pilot_checkpoint_residency()
     smoke_6_msweep_residency_violation_negative_test()
