@@ -703,11 +703,12 @@ def m3fix_target_padding(variant: str) -> str:
     return "zero" if variant == M3FIX_VARIANT_A else "eye"
 
 
-def build_m3fix_manifest() -> list:
-    """S1.33's fix-wave manifest, BOTH variants, n=1 seed/cell -- a single-
-    seed force-rank step is the established convention for this class of
-    causal diagnostic (EXPERIMENT_LOG.md's own Task D M3 precedent:
-    "force-rank {1,2,3}->0.0 recovery, force-rank 4->0.97. Razor-sharp.").
+def build_m3fix_manifest(seed: int = 0) -> list:
+    """S1.33's fix-wave manifest, BOTH variants, n=1 seed/cell PER CALL -- a
+    single-seed force-rank step is the established convention for this
+    class of causal diagnostic (EXPERIMENT_LOG.md's own Task D M3
+    precedent: "force-rank {1,2,3}->0.0 recovery, force-rank 4->0.97.
+    Razor-sharp.").
 
     Per group: variant A (zero_pad) contributes 4 cells (its full 3-point
     grid + the 1-cell unconstrained anchor); variant B (tax_adjusted)
@@ -718,22 +719,35 @@ def build_m3fix_manifest() -> list:
     groups * (4+2) = 30 cells total -- closely matching S1.33's own rough
     "~28 cells" estimate. Priced (`price_m3fix_manifest` below) at
     ~1.33 GPU-h, inside S1.33's own registered 1.3-2.6 GPU-h budget
-    window."""
+    window.
+
+    `seed` (S1.36 S3 SEED-PARAMETERIZATION EXTENSION build item #1,
+    2026-07-09): threaded into EVERY cell's `seed=` field AND its `cell_id`
+    f-string (`...__seed{seed}`), so a non-default call produces a manifest
+    of cells whose seed differs from the original single-seed fix wave's --
+    used by the pre-registered 3-seed S3 extension (§1.36) to train
+    genuinely different-seeded replicates rather than resume-skip-colliding
+    with the seed=0 cells already on disk (`is_valid_output` keys off
+    `cell_id`, so a seed-less cell_id would silently alias). Default `seed=0`
+    reproduces the ORIGINAL manifest byte-identically (same cell_ids, same
+    seed field) -- verified against the independent-literal pin in
+    `_test_m3fix_manifest_literal_pin` and the seed-threading teeth in
+    `_test_m3fix_seed_parameterization`."""
     manifest = []
     for name in GROUP_NAMES:
         # variant A: 1-cell unconstrained anchor (re-verifies M1 tracking
         # under the new zero-padded target family) + the full 3-point grid.
         manifest.append(dict(
-            cell_id=f"{M3FIX_VARIANT_A}__{name}__unconstrained__seed0",
-            group=name, arm="unconstrained", variant=M3FIX_VARIANT_A, seed=0,
+            cell_id=f"{M3FIX_VARIANT_A}__{name}__unconstrained__seed{seed}",
+            group=name, arm="unconstrained", variant=M3FIX_VARIANT_A, seed=seed,
             steps=STEP_BUDGET[name], force_rank_k=None,
             target_padding=m3fix_target_padding(M3FIX_VARIANT_A), is_anchor=True,
         ))
         grid_a = m3fix_force_rank_grid(name, M3FIX_VARIANT_A)
         for arm_label, k in grid_a.items():
             manifest.append(dict(
-                cell_id=f"{M3FIX_VARIANT_A}__{name}__{arm_label}__seed0",
-                group=name, arm=arm_label, variant=M3FIX_VARIANT_A, seed=0,
+                cell_id=f"{M3FIX_VARIANT_A}__{name}__{arm_label}__seed{seed}",
+                group=name, arm=arm_label, variant=M3FIX_VARIANT_A, seed=seed,
                 steps=STEP_BUDGET[name], force_rank_k=k,
                 target_padding=m3fix_target_padding(M3FIX_VARIANT_A), is_anchor=False,
             ))
@@ -743,8 +757,8 @@ def build_m3fix_manifest() -> list:
         grid_b = m3fix_force_rank_grid(name, M3FIX_VARIANT_B)
         for arm_label, k in grid_b.items():
             manifest.append(dict(
-                cell_id=f"{M3FIX_VARIANT_B}__{name}__{arm_label}__seed0",
-                group=name, arm=arm_label, variant=M3FIX_VARIANT_B, seed=0,
+                cell_id=f"{M3FIX_VARIANT_B}__{name}__{arm_label}__seed{seed}",
+                group=name, arm=arm_label, variant=M3FIX_VARIANT_B, seed=seed,
                 steps=STEP_BUDGET[name], force_rank_k=k,
                 target_padding=m3fix_target_padding(M3FIX_VARIANT_B), is_anchor=False,
             ))
@@ -754,7 +768,42 @@ def build_m3fix_manifest() -> list:
         f"{len(manifest)}"
     )
     assert len({c["cell_id"] for c in manifest}) == len(manifest), "m3fix manifest has duplicate cell_ids"
+    assert all(c["seed"] == seed for c in manifest), "seed field did not thread onto every cell"
     return manifest
+
+
+def filter_m3fix_manifest(manifest: list, groups: list | None = None) -> list:
+    """S1.36 S3 SEED-PARAMETERIZATION EXTENSION build item #2: restrict an
+    m3fix manifest to the requested `groups` only (subset of GROUP_NAMES),
+    preserving manifest order. `groups=None` or `[]` is a no-op (returns
+    `manifest` unchanged, i.e. "all groups" -- the pre-extension default
+    behavior). Used to launch a seed extension for JUST the group whose
+    marginality trigger fired (S3: 4 variant-A + 2 variant-B = 6 cells)
+    instead of re-running the full 30-cell both-variant manifest at each
+    new seed. Rejects unknown group names loudly (a typo'd --m3fix-groups
+    value must not silently filter to an empty/wrong manifest)."""
+    if not groups:
+        return manifest
+    unknown = set(groups) - set(GROUP_NAMES)
+    assert not unknown, (
+        f"filter_m3fix_manifest: unknown group(s) {sorted(unknown)} -- expected a subset of "
+        f"{list(GROUP_NAMES)}"
+    )
+    return [c for c in manifest if c["group"] in groups]
+
+
+def _parse_m3fix_groups(groups_arg) -> list | None:
+    """Parses `--m3fix-groups`' comma-separated CLI string (e.g. "S3" or
+    "S3,A6") into a list, or `None` for "all groups" (the default/unset
+    case). Also accepts an already-parsed list/tuple directly (so smoke's
+    args stand-ins can pass one without round-tripping through a string)."""
+    if groups_arg is None:
+        return None
+    if isinstance(groups_arg, (list, tuple)):
+        parsed = list(groups_arg)
+    else:
+        parsed = [g.strip() for g in str(groups_arg).split(",") if g.strip()]
+    return parsed or None
 
 
 def price_m3fix_manifest(manifest: list, rate_per_step: float = M3FIX_RATE_PER_STEP_GPU_H) -> dict:
@@ -781,15 +830,26 @@ def run_m3fix(args) -> list:
     resume-safe -- gated on the SAME PI-signoff token as --sweep (S1.7 gate
     5), since it launches real GPU cells.
 
+    S1.36 S3 SEED-PARAMETERIZATION EXTENSION: `args.m3fix_seed` (default 0,
+    byte-identical legacy manifest) threads through to
+    `build_m3fix_manifest`; `args.m3fix_groups` (default None = all groups)
+    threads through `_parse_m3fix_groups` to `filter_m3fix_manifest`, so a
+    seed-extension launch can target e.g. just S3's 6 cells at seed=1/2/3
+    instead of the full 30-cell both-variant manifest.
+
     BUILD-STAGE SCOPE: this function is fully wired and unit-exercised by
     `smoke()` below on a tiny CPU slice; it is NOT invoked by any GPU launch
     in this build pass (build, not launch; independent audit follows, per
     this build agent's own mandate)."""
-    manifest = build_m3fix_manifest()
+    seed = args.m3fix_seed
+    groups = _parse_m3fix_groups(args.m3fix_groups)
+    manifest = build_m3fix_manifest(seed=seed)
+    manifest = filter_m3fix_manifest(manifest, groups=groups)
     price = price_m3fix_manifest(manifest)
-    print(f"[m3fix] {price['n_cells']} cells, {price['total_steps']} step-cells, "
-         f"projected {price['total_gpu_h']:.4f} GPU-h (rate={price['rate_per_step']:.4e} "
-         f"GPU-h/step, sourced from the Rev-7 harvest realized rate, S1.33)")
+    print(f"[m3fix] seed={seed} groups={groups or 'ALL'} -- {price['n_cells']} cells, "
+         f"{price['total_steps']} step-cells, projected {price['total_gpu_h']:.4f} GPU-h "
+         f"(rate={price['rate_per_step']:.4e} GPU-h/step, sourced from the Rev-7 harvest "
+         f"realized rate, S1.33)")
     for v, stats in price["by_variant"].items():
         print(f"  [{v}] {stats['n_cells']} cells, {stats['steps']} step-cells, "
              f"{stats['gpu_h']:.4f} GPU-h")
@@ -931,6 +991,136 @@ def _test_m3fix_manifest_literal_pin():
 
     print("\nRESULT: m3fix manifest cell list, per-variant counts, per-group steps, and anchor "
           "placement all verified against INDEPENDENT literals (not self-referential).\n")
+    return True
+
+
+def _test_m3fix_seed_parameterization():
+    """S1.36 S3 SEED-PARAMETERIZATION EXTENSION TEETH #1 -- build_m3fix_manifest(seed=N)
+    threading, both directions: (1) seed=0 (the default, and an explicit
+    seed=0 call) reproduces the ORIGINAL manifest byte-identically (same
+    cell_id LIST, in order); (2) for seed in {1,2,3}, EVERY cell's cell_id
+    ends with the literal substring `__seed{seed}` AND `cell["seed"] ==
+    seed`, checked INDEPENDENTLY of each other -- the prior extension
+    attempt's exact bug (agent report, S1.36) was `build_m3fix_manifest()`
+    hardcoding `seed=0` baked into the cell_id f-strings with no seed
+    threading at all; if the cell_id interpolation regresses back to a
+    hardcoded "seed0" while the `seed=` dict field is still threaded
+    correctly (or vice versa), THIS test must fail -- a mutation that only
+    reverts one of the two checks below (e.g. dropping the f-string
+    interpolation but leaving `seed=seed` in the dict) must NOT pass
+    silently; (3) the resulting cell_id SET at seed=N is disjoint from
+    seed=0's set (no accidental string-collision aliasing that would make
+    `is_valid_output`'s resume-skip treat a new-seed cell as already done)."""
+    print("=" * 88)
+    print("S1.36 S3 SEED-PARAMETERIZATION TEETH #1 -- build_m3fix_manifest(seed=N) threading")
+    print("=" * 88)
+
+    # (1) seed=0 legacy-identical -- bare-default call vs an explicit seed=0 call, AND vs the
+    # §1.34 independent-literal pin (re-derived here, not reused, so a drift in either this
+    # test's own construction or _test_m3fix_manifest_literal_pin's is caught independently).
+    m_default = build_m3fix_manifest()
+    m_seed0 = build_m3fix_manifest(seed=0)
+    ids_default = [c["cell_id"] for c in m_default]
+    ids_seed0 = [c["cell_id"] for c in m_seed0]
+    assert ids_default == ids_seed0, (
+        "build_m3fix_manifest(seed=0) diverges from the bare-default call -- the default must "
+        "be seed=0 (legacy byte-identical behavior)"
+    )
+    assert all("__seed0" in cid for cid in ids_seed0), "seed=0 cell_ids must all contain '__seed0'"
+    assert all(c["seed"] == 0 for c in m_seed0), "seed=0 cells must all have seed field == 0"
+    print(f"  seed=0 (default == explicit): {len(m_seed0)} cells, all cell_ids contain '__seed0' "
+          f"and cell['seed']==0  PASS")
+
+    # (2) mutation-catching: seed threads into BOTH cell_id AND cell["seed"], checked
+    # independently -- neither check is a proxy for the other.
+    ids_seed0_set = set(ids_seed0)
+    for test_seed in (1, 2, 3):
+        m = build_m3fix_manifest(seed=test_seed)
+        assert len(m) == 30, f"seed={test_seed}: manifest length {len(m)} != 30"
+        expected_suffix = f"__seed{test_seed}"
+        cellid_ok = all(c["cell_id"].endswith(expected_suffix) for c in m)
+        seedfield_ok = all(c["seed"] == test_seed for c in m)
+        assert cellid_ok, (
+            f"MUTATION CAUGHT (cell_id interpolation): at least one cell_id at seed={test_seed} "
+            f"does not end with {expected_suffix!r} -- e.g. {[c['cell_id'] for c in m if not c['cell_id'].endswith(expected_suffix)][:3]} "
+            f"-- the cell_id f-string interpolation has been dropped/hardcoded (this IS the "
+            f"mislabel bug the prior extension attempt found)"
+        )
+        assert seedfield_ok, (
+            f"MUTATION CAUGHT (seed field): at least one cell at seed={test_seed} has "
+            f"seed != {test_seed} even though its cell_id may look correct (checked "
+            f"INDEPENDENTLY of the cell_id assert above) -- "
+            f"e.g. {[(c['cell_id'], c['seed']) for c in m if c['seed'] != test_seed][:3]}"
+        )
+        ids_n = {c["cell_id"] for c in m}
+        assert ids_n.isdisjoint(ids_seed0_set), (
+            f"seed={test_seed} cell_id set OVERLAPS seed=0's set -- resume-skip aliasing risk: "
+            f"{sorted(ids_n & ids_seed0_set)[:3]}"
+        )
+        print(f"  seed={test_seed}: {len(m)} cells, every cell_id ends {expected_suffix!r} AND "
+              f"cell['seed']=={test_seed} (checked independently), disjoint from seed=0's set  PASS")
+
+    print("\nRESULT: build_m3fix_manifest(seed=N) threads N into both cell_id and cell['seed'] "
+          "correctly for N in {0,1,2,3}; default N=0 stays byte-identical to the pre-"
+          "parameterization manifest; no cross-seed cell_id aliasing.\n")
+    return True
+
+
+def _test_m3fix_groups_filter():
+    """S1.36 S3 SEED-PARAMETERIZATION EXTENSION TEETH #2 -- filter_m3fix_manifest
+    restricts the manifest to the requested groups only. S3 alone must
+    yield EXACTLY 6 cells (4 variant-A: 1 anchor + 3-point grid; 2
+    variant-B: 2-point grid) -- the exact per-seed cell count the S3
+    extension launch uses (3 seeds x 6 cells = 18 cells total, per §1.36's
+    routed trigger). `groups=None`/`[]` must be a no-op (all 30 cells,
+    unchanged pre-extension behavior); an unknown group name must be
+    rejected loudly, not silently filtered to empty/wrong."""
+    print("=" * 88)
+    print("S1.36 S3 SEED-PARAMETERIZATION TEETH #2 -- filter_m3fix_manifest group filter")
+    print("=" * 88)
+    full = build_m3fix_manifest(seed=0)
+    assert len(full) == 30
+
+    no_filter = filter_m3fix_manifest(full, groups=None)
+    empty_filter = filter_m3fix_manifest(full, groups=[])
+    assert no_filter == full, "filter_m3fix_manifest(groups=None) must be a no-op"
+    assert empty_filter == full, "filter_m3fix_manifest(groups=[]) must be a no-op"
+    print(f"  groups=None/[] no-op: {len(no_filter)}/{len(empty_filter)} cells (expect 30/30)  PASS")
+
+    s3_only = filter_m3fix_manifest(full, groups=["S3"])
+    assert len(s3_only) == 6, f"S3-only filter: expected 6 cells, got {len(s3_only)}"
+    assert all(c["group"] == "S3" for c in s3_only)
+    n_a = sum(1 for c in s3_only if c["variant"] == M3FIX_VARIANT_A)
+    n_b = sum(1 for c in s3_only if c["variant"] == M3FIX_VARIANT_B)
+    assert (n_a, n_b) == (4, 2), f"S3-only variant split {(n_a, n_b)} != expected (4, 2)"
+    print(f"  groups=['S3']: {len(s3_only)} cells (4 variant-A + 2 variant-B, matches §1.36's "
+          f"per-seed S3 cell count)  PASS")
+
+    two_groups = filter_m3fix_manifest(full, groups=["S3", "A6"])
+    assert len(two_groups) == 12, f"S3+A6 filter: expected 12 cells, got {len(two_groups)}"
+    assert {c["group"] for c in two_groups} == {"S3", "A6"}
+    print(f"  groups=['S3','A6']: {len(two_groups)} cells (6+6)  PASS")
+
+    # _parse_m3fix_groups: comma-string parsing + list passthrough + None/empty -> None.
+    assert _parse_m3fix_groups("S3") == ["S3"]
+    assert _parse_m3fix_groups("S3,A6") == ["S3", "A6"]
+    assert _parse_m3fix_groups(" S3 , A6 ") == ["S3", "A6"]
+    assert _parse_m3fix_groups(None) is None
+    assert _parse_m3fix_groups("") is None
+    assert _parse_m3fix_groups(["S3", "A6"]) == ["S3", "A6"]
+    print("  _parse_m3fix_groups: comma-string/list/None parsing all verified  PASS")
+
+    raised = False
+    try:
+        filter_m3fix_manifest(full, groups=["NOPE"])
+    except AssertionError as e:
+        raised = True
+        print(f"  unknown-group rejection: {e}")
+    assert raised, "filter_m3fix_manifest did not reject an unknown group name"
+
+    print("\nRESULT: filter_m3fix_manifest correctly restricts to requested groups (S3-only = 6 "
+          "cells) and rejects unknown group names; _parse_m3fix_groups handles comma-strings, "
+          "lists, and None/empty correctly.\n")
     return True
 
 
@@ -1091,6 +1281,12 @@ def smoke():
     r_m3fix_pin = _test_m3fix_manifest_literal_pin()
     assert r_m3fix_grid and r_m3fix_pin
 
+    # S1.36 S3 seed-parameterization extension teeth (#1/#2) -- same
+    # dependency-ordering convention (pure functions, no GPU/model needed).
+    r_m3fix_seed = _test_m3fix_seed_parameterization()
+    r_m3fix_groups = _test_m3fix_groups_filter()
+    assert r_m3fix_seed and r_m3fix_groups
+
     import tempfile
     with tempfile.TemporaryDirectory() as results_dir:
         os.environ[PI_SIGNOFF_VAR] = "1"    # local smoke, not a real launch -- BUILD-scope only
@@ -1232,6 +1428,8 @@ def smoke():
         results_dir = "/tmp/should_not_write_m3fix"
         device = "cpu"
         steps = 1
+        m3fix_seed = 0
+        m3fix_groups = None
     try:
         run_m3fix(_M3FixArgs())
         raise AssertionError("run_m3fix did NOT enforce the PI signoff gate")
@@ -1239,6 +1437,49 @@ def smoke():
         assert PI_SIGNOFF_VAR in str(e)
         print(f"  PI-signoff gate (m3fix path): run_m3fix() correctly refuses without "
              f"{PI_SIGNOFF_VAR}=1")
+
+    # -------------------------------------------------------------------
+    # S1.36 S3 seed-parameterization extension -- end-to-end run_m3fix() smoke: --m3fix-seed
+    # + --m3fix-groups threaded together through the REAL CLI-facing entry point (not just
+    # build_m3fix_manifest()/filter_m3fix_manifest() called directly above), the exact call
+    # shape the S3 seed-extension launch uses (seed=N, groups="S3").
+    # -------------------------------------------------------------------
+    print("\n" + "=" * 88)
+    print("  S1.36 S3 seed-extension smoke -- run_m3fix() with --m3fix-seed + --m3fix-groups")
+    print("=" * 88)
+    with tempfile.TemporaryDirectory() as seedext_dir:
+        os.environ[PI_SIGNOFF_VAR] = "1"
+        try:
+            class _SeedExtArgs:
+                results_dir = seedext_dir
+                device = "cpu"
+                steps = 12
+                m3fix_seed = 7
+                m3fix_groups = "S3"
+            seedext_results = run_m3fix(_SeedExtArgs())
+            assert len(seedext_results) == 6, (
+                f"run_m3fix(seed=7, groups='S3'): expected 6 results, got {len(seedext_results)}"
+            )
+            assert all(r["group"] == "S3" for r in seedext_results), \
+                "run_m3fix groups filter leaked a non-S3 cell through"
+            assert all(r["seed"] == 7 for r in seedext_results), \
+                "run_m3fix seed did not thread through to the trained cell results"
+            assert all(r["cell_id"].endswith("__seed7") for r in seedext_results), \
+                "run_m3fix seed did not thread into the cell_id of the trained cell results"
+            print(f"  run_m3fix(seed=7, groups='S3'): {len(seedext_results)} results, all "
+                  f"group==S3, seed==7, cell_id ends '__seed7'  PASS")
+
+            # resume-safety carries through the seed+groups path too: re-invoking must SKIP
+            # every cell (same results_dir, same seed/groups) rather than re-train.
+            t_r = time.time()
+            seedext_results2 = run_m3fix(_SeedExtArgs())
+            dt_r = time.time() - t_r
+            for r1, r2 in zip(seedext_results, seedext_results2):
+                assert r1["cell_id"] == r2["cell_id"] and r1["mean_cos"] == r2["mean_cos"], \
+                    "resumed seed-extension result differs -- not truly skipped"
+            print(f"  resume pass: {len(seedext_results2)} results in {dt_r:.2f}s (all SKIPPED)  PASS")
+        finally:
+            del os.environ[PI_SIGNOFF_VAR]
 
     # -------------------------------------------------------------------
     # S1.22 BA-F1 -- calibration report + --sweep gate wiring. Before this
@@ -1324,7 +1565,11 @@ def smoke():
     print("  missing report / per-group stale steps / PI-signoff, all refused or passed correctly],")
     print("  S1.33 m3fix wave verified [30-cell manifest, both-variant grid arithmetic + literal")
     print("  cell-list pin, priced inside the 1.3-2.6 GPU-h window, cross-variant force_rank_k")
-    print("  override + resume-safety exercised end-to-end on CPU, PI-signoff gate enforced])")
+    print("  override + resume-safety exercised end-to-end on CPU, PI-signoff gate enforced],")
+    print("  S1.36 S3 seed-parameterization extension verified [seed=0 byte-identical to the")
+    print("  original manifest, seed threads into cell_id AND cell['seed'] independently for")
+    print("  N in {1,2,3}, --m3fix-groups filters to just S3's 6 cells, run_m3fix(seed,groups)")
+    print("  end-to-end + resume-safety on CPU, PI-signoff gate enforced])")
     print("=" * 88)
 
 
@@ -1356,6 +1601,18 @@ def main():
                          "group (smoke/testing/debugging only). Default (unset) uses the Rev 7 "
                          f"per-group STEP_BUDGET pins {STEP_BUDGET} (S1.6/S1.7 gate 1(a)), the "
                          "production behavior.")
+    ap.add_argument("--m3fix-seed", type=int, default=0, dest="m3fix_seed",
+                    help="S1.36 S3 seed-parameterization extension (--m3fix only): the seed used "
+                         "for EVERY cell in the m3fix manifest. Default 0 reproduces the original "
+                         "single-seed fix wave's manifest byte-identically (same cell_ids, same "
+                         "seed field). Set to 1/2/3 etc. for a seed-extension launch (pair with "
+                         "--m3fix-groups to scope it to just the marginal group).")
+    ap.add_argument("--m3fix-groups", type=str, default=None, dest="m3fix_groups",
+                    help="S1.36 S3 seed-parameterization extension (--m3fix only): comma-separated "
+                         "list of group names (subset of S3/S4/A5/S5/A6) to restrict the m3fix "
+                         "manifest to, e.g. 'S3' for just S3's 6 cells (4 variant-A + 2 variant-B) "
+                         "instead of the full 30-cell both-variant manifest. Default (unset) = all "
+                         "groups, unchanged behavior.")
     ap.add_argument("--results-dir", type=str, default=RESULTS_DIR_DEFAULT)
     ap.add_argument("--device", type=str, default=("cuda" if torch.cuda.is_available() else "cpu"))
     args = ap.parse_args()
