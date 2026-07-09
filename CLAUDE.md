@@ -208,6 +208,18 @@ Only build what survives all four stages.
   but not K=90), and admission legs can swap failure modes across
   recalibrations. Never carry an admission profile derived at one K/d to
   another without re-validating.
+- When two agent rounds make contradictory factual claims about the same
+  artifact (e.g. one round says "all N cells clear the bar," the next
+  says most fail), the coordinator reads the raw artifact directly and
+  RECORDS the tiebreak before dispatching any dependent stage — never
+  average, split the difference, or default to the more recent claim.
+  Verified precedent: `CAPABILITY_SEPARATION_DESIGN.md` §1.29 — a
+  micro-attack round's "all 7 cells clear L1-5" claim was FALSE against
+  the raw JSON; the following revision's contradicting claim was
+  correct, but the HARD-STOP rule it triggered had itself fired on a
+  wrong mechanistic premise (assumed plateau vs. the true budget-
+  responsive slow convergence) that only reading the raw per-L
+  trajectories, not either round's prose, resolved.
 
 ## Research Direction
 
@@ -223,29 +235,64 @@ vs KV-cache-capped baseline at equal bytes on long-horizon tasks —
 "constant-memory minds"); FLOP-matched is a disclosed control only; the
 param-matched flat-vector ablation stays mandatory; WIN/TIE/LOSE all
 pre-registered publishable per axis; rung escalation only on win-or-tie.
-Budget: frozen-bias ledger (~123 GPU-h headroom).
+Status (2026-07-09): Rev 4's three-term recall objective is built; the
+scoped build-fix audit (§1.24) found the fix logically sound but ~4×
+over-priced by an avoidable LM-head cost; a pre-launch fix is active and
+calibration round 3 is PENDING. See `STATE.md` ACTIVE CAMPAIGNS for the
+full status paragraph and cross-campaign dependencies.
+
+**CAPABILITY SEPARATION (PI capability-first directive, 2026-07-08):**
+the world-changing headline is capability SEPARATION — things current
+architectures cannot do functionally or as observed/tested (state
+tracking, compositional depth generalization) — not efficiency. Matched
+comparisons stay as grounding. Modality (language/bytes/other) is an open
+question settled by the waterfall, never bundled. Stage 1 (rank↔
+representation-dimension across solvable/non-solvable groups): calibration
+surfaced two instrument defects (both fixed; corrected-lens rank preview
+Spearman ρ=0.9747), then a convergence-bar false alarm the coordinator
+settled by reading the raw artifact (§1.29, the precedent behind the new
+Hard Rule above); the root cause was then found five independent ways
+(§1.30) and the resulting HARD-STOP lifted — the 58-cell sweep is
+launchable pending one more build audit. Stage 2 (compositional depth
+generalization) is designed in parallel, gated on Stage 1's own readout.
+See `STATE.md` ACTIVE CAMPAIGNS.
+
+**GPU SATURATION (PI, verbatim, 2026-07-09):** *"how will [we] ensure
+that all these 8 gpu's are hot for the next few days. I don't want these
+sitting idle anymore."* Chartered two compute-heavy waves — FIX-AT-SCALE
+(the frozen-bias fix at 98M+392M, `FROZEN_BIAS_LM_DESIGN.md` §13,
+proposed 300 GPU-h ledger, currently NEEDS-REVISION post-attack) and
+CAPABILITY STAGE 2 (above) — plus liberal pre-registered seed extensions;
+all 8 GPUs in play, none reserved. See `STATE.md` GOALS item 5 and
+LEDGERS.
+
+**NOVEL-ARCHITECTURE WATERFALL (opened 2026-07-09):** a fresh
+brainstorm→research→attack→validate pass (this file's own waterfall
+process) on candidate architectures beyond the current DeltaNet-family
+contender — top candidate is Native Composition Reads (query-selected
+matrix powers/products of the fast-weight state for single-pass exact
+relational composition, no CoT); attack stage dispatched. See `STATE.md`
+ACTIVE CAMPAIGNS.
 
 **Matrix Thinking (foundation results, closed lanes):** bolt-on
 matrix-CODI dead (rank-blind — **published** at the ICML 2026 MI workshop:
 "The Gradient Does Not See Rank"); matrix-native-from-scratch alive (SGD
 recruits provably-necessary rank; exact composition — the NeurIPS-ws
 draft). Real-data LM program: write-geometry attractor diagnosed,
-mechanism'd, FIXED (frozen-bias), and shown to worsen monotonically with
-scale 14M→1.31B (span 0.248→0.455) — the ICLR 2027 full-paper draft.
-Capacity: super-linear (x0 0.5455@d64 → 0.6779@d80; NO cliff at d=96 to
-K/d=0.94; ceiling fine-structure instrument-limited, §15.27 escalations
-PI-gated). Reasoning-link lane CLOSED as a multiply-bounded null (80/80
-geometric-readout nulls at all scales; causal effect bounded; the n=3
-transient did not replicate at n=12). Full scorecard: EXPERIMENT_LOG +
-the memory file campaign-2026-07-record.
-
-**CAPABILITY-FIRST directive (PI, 2026-07-08):** the world-changing
-headline is capability SEPARATION — things current architectures cannot
-do functionally or as observed/tested (state tracking, compositional
-depth generalization) — not efficiency. Matched comparisons stay as
-grounding. Modality (language/bytes/other) is an open question settled
-by the waterfall, never bundled. Research wave dispatched; see STATE.md
-and the memory file capability-first-directive.
+mechanism'd, and a geometry-stabilizing construction identified
+(global-vector arm, 14M-only, never scaled, val-loss-neutral); the
+DEPLOYED per_token arm (λ=0.58) is ALSO val-loss-neutral but
+geometry-UNRESOLVED — its own 14M evidence moves the attractor in the
+destabilizing direction (+0.1955/+0.2273 span_frac, CI-excludes-zero) —
+the fix-at-scale wave (above) adjudicates both arms at scale before
+either is called "the fix." The pathology itself worsens monotonically
+with scale 14M→1.31B (span 0.248→0.455) — the ICLR 2027 full-paper
+draft. Capacity: super-linear (x0 0.5455@d64 → 0.6779@d80; NO cliff at
+d=96 to K/d=0.94; ceiling fine-structure instrument-limited, §15.27
+escalations PI-gated). Reasoning-link lane CLOSED as a multiply-bounded
+null (80/80 geometric-readout nulls at all scales; causal effect
+bounded; the n=3 transient did not replicate at n=12). Full scorecard:
+`EXPERIMENT_LOG.md` + `STATE.md` CAMPAIGN SCORECARD.
 
 **Publications:** 1 PUBLISHED (ICML 2026 MI workshop, above); 3 drafts —
 `neurips-ws-2026/` (positive rank results; venue+cut decision pending,
@@ -258,8 +305,8 @@ Berkeley/Stanford collaboration; the flagship needs a POSITIVE result
 to matter.
 
 **Byte-Agnostic (on hold):** Raw byte input for domain-general processing.
-Partially validated. Explicitly out of scope for the head-to-head (never
-bundle two unproven axes); revisit after its verdict.
+Partially validated. Explicitly out of scope for every active campaign
+(never bundle two unproven axes); revisit after a campaign's verdict.
 
 ## User Context
 

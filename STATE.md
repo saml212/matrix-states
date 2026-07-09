@@ -1,406 +1,381 @@
 # STATE — Current Project State
 
-**Last updated:** 2026-07-08 (post-campaign consolidation; per-event history
+**Last updated:** 2026-07-09 (new-sprint consolidation; per-event history
 lives in `EXPERIMENT_LOG.md`, the design docs' § sections, `experiment-runs/`
-archives, and git history — the superseded event-block stack that used to
-live here was removed in this consolidation, content preserved in those
-records).
+archives, and git history — see "Documentation Map" at the end of this
+file. This pass compressed the prior event-stack narrative into the
+ACTIVE CAMPAIGNS section below; nothing was deleted — every compressed
+block still has a pointer to its canonical design-doc record.)
 
 ## GOALS
 
-1. **Publish the drafted material** — one paper is already PUBLISHED
-   ("The Gradient Does Not See Rank", ICML 2026 MI workshop). Drafts:
-   `neurips-ws-2026/` (positive rank results; PI venue + 10pp→4pp cut
-   decision pending, ~Jul 11 CFP), `workshop-2026/` (capacity trilogy,
-   current), `iclr-2027/` (the FULL main-conference paper — complete
-   draft, deadline ~late Sept 2026).
+1. **Publish the drafted material.** One paper PUBLISHED ("The Gradient
+   Does Not See Rank", ICML 2026 MI workshop). Drafts: `neurips-ws-2026/`
+   (positive rank results; venue+cut decision pending, ~Jul 11 CFP —
+   IMMINENT), `workshop-2026/` (capacity trilogy), `iclr-2027/` (the
+   full main-conference paper, complete draft, deadline ~late Sept 2026).
 2. **Multi-workshop strategy (PI, 2026-07-08):** chop the result
-   inventory into MANY workshop submissions (ground-level credibility)
-   beyond the two dated ones — chop candidates: the reasoning-link null
-   program (80/80 + methodology), the instrument-calibration/fake-cliff
+   inventory into many workshop submissions beyond the two dated ones
+   (reasoning-link null program, instrument-calibration/fake-cliff
    methodology story, the coming M* memory result, the coming
-   capability-separation result. A venue-scout agent maintains the CFP
-   pipeline (dispatched 2026-07-08; re-scan Aug 2026 for NeurIPS-2026
-   workshop CFPs).
-3. **Land a full (main-conference) publication** — the ICLR 2027 draft is
-   the vehicle; PI wants to collaborate with Berkeley/Stanford professors
-   on the flagship; PI publishes it regardless, but it needs a POSITIVE
-   result to matter.
-4. **The overall research goal (PI, verbatim intent, sharpened
-   2026-07-08):** demonstrate CAPABILITIES current architectures are
-   incapable of, functionally or as observed/tested — capability
-   SEPARATION, not efficiency, is the world-changing headline. Matched
-   comparisons (the head-to-head) remain the grounding. Modality is an
-   open research question (language / bytes / other), settled by the
-   waterfall, never bundled two-unproven-axes-at-once. A
-   capability-separation research wave was dispatched 2026-07-08 (TC0
-   limits of transformers AND diagonal SSMs vs delta-rule state-tracking
-   expressivity; sharpest unclaimed demo reachable by our stack).
+   capability-separation result). A venue-scout agent maintains the CFP
+   pipeline.
+3. **Land a full (main-conference) publication.** The ICLR 2027 draft is
+   the vehicle; PI wants Berkeley/Stanford collaboration; PI publishes it
+   regardless, but it needs a POSITIVE result to matter.
+4. **The overall research goal (PI, verbatim intent, 2026-07-08):**
+   demonstrate CAPABILITIES current architectures are incapable of,
+   functionally or as observed/tested — capability SEPARATION, not
+   efficiency, is the world-changing headline. Matched comparisons (the
+   head-to-head) remain the grounding. Modality (language/bytes/other)
+   is an open question, settled by the waterfall, never bundled
+   two-unproven-axes-at-once.
+5. **GPU saturation (PI, verbatim, 2026-07-09):** *"how will [we]
+   ensure that all these 8 gpu's are hot for the next few days. I
+   don't want these sitting idle anymore."* Queued science totalled
+   ~20 GPU-h against ≈192 GPU-h/day supply — the pipeline's cells were
+   too small to saturate. Response (the authorization the
+   never-self-amend rule requires): two compute-heavy waves chartered
+   (FIX-AT-SCALE, CAPABILITY STAGE 2, both below) plus liberal
+   pre-registered seed extensions; all 8 GPUs in play, GPU 7 no longer
+   reserved.
 
-## ACTIVE CAMPAIGN — HEAD-TO-HEAD DEMO (PI-ratified 2026-07-08)
+## ACTIVE CAMPAIGNS
+
+### 1. Head-to-Head Demo (PI-ratified 2026-07-08)
 
 Does a matrix-native fast-weight model (frozen-bias fix + recruitable
-rank + super-linear capacity + exact composition) beat matched baselines?
-Design registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md` (**Rev 2
-committed+pushed 48778bb; attack round 3 running** — see QUEUE below).
-PI comparison
-framing — we research for the FUTURE's constraints (compute grows
-fastest; quality data and HBM are the coming walls):
-- PRIMARY 1: data-efficiency (param+data-matched learning curves on
-  relational/compositional tasks; binding as native relational bias).
-- PRIMARY 2: inference-memory-matched (fixed matrix state vs
-  KV-cache-capped baseline at equal bytes, long-horizon tasks —
-  "constant-memory minds", backed by the super-linear capacity result).
-- FLOP-matched = disclosed control only. Param-matched flat-vector
-  ablation stays mandatory (CLAUDE.md hard rule).
-- WIN/TIE/LOSE pre-registered publishable per axis; escalate rungs only
-  on win-or-tie. Rung 1 ≤15 GPU-h raw at the 14-98M tier (realized
-  Rev 0 arithmetic: ≈11.23 GPU-h raw, ≈112.3 GPU-h at the 10× enforced
-  ceiling).
-- Byte-level input explicitly OUT of scope (never bundle two unproven
-  axes).
+rank + super-linear capacity + exact composition) beat matched
+baselines on data-efficiency (primary 1) and inference-memory-matched
+long-horizon tasks (primary 2), FLOP-matched as a disclosed control
+only? Registry: `matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md`. Design
+cleared after 4 attack-round/revision cycles (§1.13-§1.19,
+DESIGN-CLEARED-FOR-BUILD) → build → audit → deploy → calibration
+rounds 1-2, both FAILED (gate-1 `rf@0.9`=0 all arms; the pre-registered
+`aux_weight` dial [0.1→2.0] achieved gradient parity but every arm
+plateaued) → **§1.21 diagnosis: the objective had no recall pressure**
+— CE is structurally retrieval-blind (each key appears once at bind
+time, queries never enter CE) and the aux loss converged to an
+episode-membership local optimum (predicted-vector cosine matches the
+analytic `1/√K` ceiling exactly in every arm — the "membership-oracle"
+finding) → **Rev 4** adopted a three-term objective (answer-token CE at
+the query position, all three arms symmetric, P=1 bottleneck preserved
+by causality via the continuation construction) → **§1.23 attack round
+5: CLEARED-FOR-BUILD-FIX** (fairness adjudicated axis-1-immune; ledger
+gap reconciled) → build-fix (`cc89a4f`; an import-chain bug found and
+fixed, `1db9594`) → **§1.24 scoped build-fix audit: RESIDUAL-FINDINGS**
+— fix logic sound, but the CE_answer continuation wastefully runs the
+50,259-way LM head over all 128 padded positions before discarding
+127/128 (AUD2-F1, MAJOR, ≈4× the priced round-3 cost), and one
+precision test is missing (AUD2-F2, K-restricted-argmax not defended).
+**STATUS: PRE-LAUNCH FIX ACTIVE** (LM-head slice-before-matmul + a
+fresh on-box timing pilot to re-price round 3 and the 27-cell sweep);
+**calibration round 3 PENDING**. Margin freeze is additionally blocked
+on the fix-at-scale campaign's escalation-cost correction and its
+global-vector-arm probe (item 4 below) before the contender pin is
+final — see PENDING PI DECISIONS.
 
-**QUEUE:** design Rev 0 → attack round 1 (NEEDS-REVISION, §1.13: F1
-neutral-probe-head gap → Wave −1; M1 above-cliff load; M2 byte ambiguity;
-M3 tuning parity) → Rev 1 (resolved all, §1.14; raw 12.44 GPU-h, bracket
-124.4 vs 127.33) → attack round 2 (NEEDS-REVISION, §1.15: F-NEW-1
-cap_length DEGENERATE at rung-1 — 8-16 tokens vs 224-token bind phase →
-fix = memory-multiplier sweep reporting crossover M*, inference-only;
-F-NEW-2 train/eval mismatch → attention-sink patch, partial, disclosed;
-M-NEW-1 TASK_BASE missing keys; M-NEW-2 Hadamard-vs-matvec tap asymmetry
-undisclosed; M-NEW-3 eval-time-axis prose; M-NEW-4 budget margin 2.93
-GPU-h load-bearing — fixes MUST stay inference-only) → Rev 2 (done,
-§1.16, pushed 48778bb: M-sweep M∈{1..32} w/ crossover M* re-registered
-WIN M*≥4/TIE 2/LOSE ≤1; absolute horizons H4=902 primary; sink patch
-k_sink=4; TASK_BASE 5 keys; raw 12.59, bracket 125.88, margin 1.45
-GPU-h — thinnest yet, flagged) → attack round 3 (done, NEEDS-REVISION
-§1.17: R3-F1 FATAL — Rev 2's cross-dim diagnostic numerically PROVEN
-broken (cosine scale-invariance → step function; needs K-simultaneous-
-bindings redesign + pre-commit numeric verification); R3-F2 FATAL — M*
-underpowered at n=3 AND biased toward strongest-WIN default (fixed-
-sequence procedure + straddle→seed-extension + split M*=∞ into
-CONFIRMED vs INDETERMINATE); R3-F3 LOSE unreachable at n_layers=2 (pin
-+ remap tiers to eligible grid); R3-F4 M-sweep timing-pilot gate +
-de-scope order; + β∈[0,1] caveat fold-in) → Rev 3 (done, §1.18, pushed:
-executed K-bindings diagnostic matches theory exactly — Hadamard mean
-cos ~1/√K; DESCENDING fixed-sequence M* gatekeeping (Maurer-Hothorn-
-Lehmacher) w/ full-grid requirement for CONFIRMED M*=∞; n_layers=2
-pinned, tiers remapped LOSE≤2/TIE 4/WIN≥8; 90 passes; raw 12.5672,
-bracket 125.672, margin 1.658 GPU-h) → attack round 4 (done:
-**DESIGN-CLEARED-FOR-BUILD**, §1.19 — diagnostic independently
-re-implemented and CONFIRMED; all gatekeeping edge cases hand-walked;
-4 MINOR doc-precision findings patched in place per the round's exact
-prescriptions, incl. the monotonicity-sentence correction (FWER holds
-unconditionally) and the bracket-vs-straddle mutual-exclusivity note)
-→ BUILD COMPLETE (5 commits 8d55f17..9480ced, pushed: 12 files in
-deltanet_rd/; MATCH-GATE PASSED w/ real numbers — contender 14,048,896
-params/32,768 bytes exact, ablation 14,047,872 = 0.0073% off, Transformer
-14,439,936 params/86,639,616 FLOPs/token = 2.78% off, cap_length table
-exact, floor 13 live; gate 7 null PASSED all 3 arms at 0.0000; negative
-tests run w/ teeth; 7 limitations precisely flagged incl. CPU-stub-only
-coverage — real-kernel box smoke REGISTERED as deploy-stage gate) →
-BUILD AUDIT done (§1.20, NEEDS-FIXES): every builder number confirmed
-exact; 6-mutation protocol run (5 caught cleanly, 1 partial — TASK_BASE
-smoke blind for seed_idx∈[12,49], inert); **AUD-F1 substantive: smoke_7's
-joint-training grad claim VACUOUS for the contender (CPU stub zero-state
-kills the aux path; pass was confounded by loss_ce)** → aux-only
-isolation test + box-only registration mandated; AUD-F2/F3 smoke gaps;
-AUD-F4 cosmetic; 8-item binding box-smoke checklist produced (§1.20).
-→ fixes ed6996c → scoped re-audit FIXES-VERIFIED-CLEARED (§1.20
-addendum) → **DEPLOYED AND LIVE ON BOX (2026-07-08, chain in tmux
-`h2h_rung1`)**: closure 27 files md5 EMPTY-DIFF (manifest committed
-under experiment-runs/2026-07-08_h2h_rung1_deploy/); box smoke items
-1-4 ALL PASS on REAL kernels (fla 0.5.1 + triton 3.7.1; AUD-F1
-aux-only grads on real Triton: k_proj 0.949/v_proj 0.752/b_proj 0.0278
-nonzero, detach→0; state bytes 32,768 fp32 exact); gates 6+7 PASSED on
-box + tokens; calibration bands committed (f2fe619; Task-3 ablation
-[1.90,2.60] ANCHORED to FROZEN_BIAS §12.1; Tasks 1/2 SANITY-ONLY
-flagged; 7 negative tests); DEPLOY WIRING (h2h_cell_train_rd.py + 3)
-built at deploy-time, independently audited (FIX-FIRST → 3 MAJORs
-fixed+box-verified pre-launch: H8 logits-aware chunking 11.8GB peak,
-code-level MARGINS_FROZEN refuse, deterministic gate-7 seeds); chain
-progressed: stage −1 + 0 + A DONE (9 pilots PASSED, projected training
-**11.675 GPU-h** — under the 12.5672 estimate; msweep 1.1-1.5 s/pass
-real vs 5s assumed), **stage B calibration MID-FLIGHT (7 cells
-parallel, GPUs 0-6 at 60-98%, GPU 7 free)**. CALIBRATION_COMPLETE.json
-expected ~2-3h from 00:31 box time → COORDINATOR THEN: harvest vs
-raws, verify bands, review the 5 FLAGGED DEPLOY PINS (n_query_train=8;
-task3 corpus=openr1-mix-ext; vocab 50259 symmetric; filler=BUFFER
-right-pad; task2 K=32/H_train=(1,2)/H_test=(3,4)) + the transformer
-task3 LR-grid decision, re-derive bracket w/ measured s/pass, RECORD
-margin freeze in doc+STATE+push, write MARGINS_FROZEN.token (may carry
-transformer_task3_lr) → stage D sweep (27 cells) + 90-pass fan-out
-runs unattended → harvest. Monitor: ssh youthful-indigo-turkey tail -f
-/home/nvidia/chapter2/deltanet_rd/logs/h2h_rung1_supervisor.log. Git
-blemish noted: closure-manifest file folded into 3b035b6 by a
-concurrent commit — content correct, ignore.
+### 2. Capability Separation — Stage 1 (PI capability-first directive, 2026-07-08)
 
-**CALIBRATION VERDICT (2026-07-09 box time): GATE 1 BAND CHECK FAILED —
-chain hard-aborted the sweep (the gate working as designed; GPUs held).**
-All 13 cells completed. Task 3 HEALTHY: ablation 2.2905 in [1.90,2.60]
-anchored band ✓; transformer LR grid → lr_grid_2 (2.1931) ✓. Tasks 1/2:
-recovered_frac@0.9 = 0.0 on ALL NINE cells — ALL ARMS incl. the
-contender → PROBE-WIDE, not architecture-specific. ROOT CAUSE
-IDENTIFIED from the pre-registered §1.3.1.3 step-500 gradient check
-(recorded in every cell JSON): ce_grad_norm_backbone=0.1375 vs
-aux_grad_norm_backbone=0.0066 — ratio 20.9×, exceeds_10x_trigger=TRUE.
-The probe's aux signal is ~21× too weak; the aux path itself is proven
-live (box smoke: real-kernel k/v/b_proj grads nonzero). THE
-PRE-REGISTERED PATH EXECUTED (fix pushed f3b8343): aux_weight pinned
-2.0 (parity, 0.1×20.93≈2.09 rounded, disclosed) + overshoot guard
-(assert aux ≤ 10× CE at step 500, fails loudly) + probe_cos_mean added
-to all curves/finals (rf@0.9 stays the decision metric); 9 task-1/2
-cells re-running as _auxrev2 (aux=0.1 record archived at
-calib/archive_auxweight0.1/); task-3 PASSes stand. **RE-RUN
-VERDICT (round 2, 2026-07-09): GRADIENT PARITY ACHIEVED (ratios now
-1.3-3.6 across all cells — the §1.3.1.3 dial worked mechanically) BUT
-ALL ARMS PLATEAU FAR BELOW THE BAR: final probe_cos_mean ≈ 0.18
-(contender t1), 0.124 (ablation t1, flat), 0.18 (transformer t1),
-0.217-train/0.147-heldout-DECLINING (contender t2 — probe overfits);
-rf@0.9 = 0.0 everywhere; curves plateaued (no budget extension can
-reach 0.9). CE losses healthy — the MODELS learn the task; the PROBE
-INSTRUMENT (frozen-random T_val target + linear probe at 0.9 cosine,
-§1.3.1) cannot decode it in any arm. The pre-registered revision path
-is EXHAUSTED → this is an INSTRUMENT-DESIGN failure caught by
-calibration-first, before the 27-cell sweep burned. HARD-STOP on the
-h2h wave pending a §1.3.1 probe redesign round (fresh gauntlet:
-diagnosis w/ offline probe study on the SAVED _auxrev2 checkpoints —
-what cosine IS reachable post-hoc? — then design revision + attack
-round; PI-VISIBLE, nothing relaxed silently). Chain will band-fail +
-park; GPUs pass to the CAPABILITY campaign (fixes a555012 pushed,
-re-audit dispatched) in the interim — box stays utilized.
+Does causal rank↔representation-dimension recruitment separate
+solvable/non-solvable finite groups at matched dims (S4-vs-A5
+dissociation, both dim 3)? Registry:
+`matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md`. Design cleared after
+5 attack rounds (§1.21) → build → audit → deploy → calibration (5/5
+cells, 0.0179 GPU-h/cell) → a gate-1 review found A5/A6 apparently
+under-converged and real-checkpoint degauging near-zero (mean_cos
+−0.02..0.17) while a synthetic injection PASSED → **§1.25 diagnosis:
+TWO instrument defects proven, models healthy.** Defect 1 (FATAL): the
+uncentered covariance-SVD is mathematically degenerate for Option A
+targets (`Z≈c·(ρ⊕I)` orthogonal ⇒ `ZZᵀ≈c²·I`, isotropic) — a PERFECT
+model fails the production bars; fixed by centering (group-mean of a
+nontrivial irrep cancels the constant block). Defect 2 (FATAL): M1/M3's
+scored words fell exclusively on `nn.Embedding` positional rows that
+never train at the pinned lengths. **Corrected-lens rank preview: rank
+tracks `d_min` at Spearman ρ=0.9747** (restricted effective rank
+1.85/2.74/2.64/3.73/3.91-4.54 vs `d_min` 2/3/3/4/5, every group inside
+`[0.7,1.3]·d_min`, the marquee S4/A5 pair landing together). **CAVEAT**
+(standing): the restriction window partially favors rank≈`d_min` for
+near-orthogonal blocks; M3's causal force-rank arms remain the decisive
+test. → Rev 5 (fixes folded in) → micro attack round 6 (§1.27,
+NEEDS-REVISION: the new per-L convergence bar is self-contradicted by
+the real calibration data) → Rev 6 (§1.28: bar narrowed to `L∈{1..5}`,
+`L∈{6..8}` demoted to disclosed-only, a second-consecutive-miss
+HARD-STOP rule added) → **§1.29 coordinator raw-data tiebreak: round
+6's "all 7 cells clear L1-5" claim is FALSE against the raw JSON;
+Rev 6's structural fix is correct, but the HARD-STOP it triggered fired
+on a wrong premise** — the L=1 dip is real but IMPROVING with budget
+(A5 +0.038, A6 +0.059, 8K→20K steps), i.e. slow convergence, not a
+plateau → adjudication round 7 dispatched (bar re-pin options + a
+≤0.1 GPU-h L=1 mechanism micro-diagnostic). **§1.30 ROUND 7 VERDICT
+(2026-07-09): MECHANISM FOUND, proven five independent ways — at L=1
+the reader's attention is PROVABLY query-independent (softmax over a
+single key; read-vector std across queries = exactly 0.0 vs 0.41 at
+L=2); the deficit is generator-order-specific (order-5 depressed
+0.74-0.86, order-3 fine); §1.29's own budget-extrapolation is
+FALSIFIED at 40K (A5/A6 gains collapse to +0.001/+0.010 per +20K
+steps — a genuine plateau, not slow convergence after all).
+**HARD-STOP LIFTED.** Rev 7 (binding): HARD bar → `L∈{2..5}` only
+(L=1 demoted/disclosed with the mechanism note); per-group budget pins
+(S3=8K, S4=20K, A5=20K, S5=8K, A6=40K, all clearing their bar by
+≥0.02 margin); escalation rule recalibrated (≤2/group, second miss →
+mandatory mechanism diagnostic before any further action, HARD-STOP
+reserved for genuine pathology). **STATUS: all 58 cells now
+LAUNCHABLE (≈2.51 GPU-h raw)**, pending a micro-attack on Rev 7's own
+delta + 4 still-outstanding production build items (centered-covariance
+readout, train-length sampler, ambient injection gate, per-L/per-group
+reporting) + a build audit — sweep not yet authorized.
 
-**CAPABILITY design Rev 0 COMMITTED (fa8b3e3, coordinator review then
-push):** `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` (992 lines)
-+ executed `capability_separation/verify_option_a_readout.py`
-(degauging verified: exact recovery under noise 0.9996 mean-cos;
-rank-deficient negative control NOT rescued, 0.6161/rec@0.9=0); family
-pinned to 5 groups (PSL(2,7) DROPPED w/ reasoning); all 5 reference
-reps constructed + numerically verified (orthogonal/faithful/correct
-order); raw 17.4-18.3 GPU-h vs the NEW 30 GPU-h Stage-1 ledger. Agent
-CORRECTED a false brief figure: Task D's realized total is ~76 GPU-h
-(EXPERIMENT_LOG:1556), not the validator's 11.9 (that number belongs
-to the coherence-dose-response program) — cost anchors re-verified.
-Attack round 1 (done, NEEDS-REVISION, §1.13 of that doc): CA1-F1
-FATAL-as-written — the query-coverage bar "≥200 distinct elements for
-A5/S5/A6" is IMPOSSIBLE (|A5|=60, |S5|=120; contradicts the doc's own
-table; would silently block the C5 control for the marquee groups) →
-percentage-of-|G| bar; CA1-M1 Spearman exact null P(ρ≥0.8)=8/120≈6.67%
-undisclosed (M1 corroborating-only, M3+marquee = the workhorse);
-CA1-M2 cost ceiling ~1 GPU-h unreconciled; CA1-M3 n_fit/n_eval +
-gate-1 acceptance test unpinned. Reps verified clean via INDEPENDENT
-constructions (quaternion A5, char-theory minimality); S4-vs-A5
-coverage confound EMPIRICALLY CLEARED; own 30 GPU-h hard-abort breaker
-CLEARED. → Rev 1 (done, §1.14, pushed 93b2964: executed per-group coverage
-bars — naive 80% FAILED execution for S4/A5; ρ≥0.8 kept w/ exact
-p=6.67% disclosed; cost 17.25 exact/42.5% margin; 60/40 split +
-diversity floor; injection spec pinned-unrun) → attack round 2 (done,
-NEEDS-REVISION §1.15: CA2-M1 A5 generator CLASS-unverified — other
-class drops p1 below bar, 16× false-block; CA2-M2 variable-length
-batching unspec'd — BindingEncoder fixed-shape, Task D never exercised
-variable L; 5 minors incl. draw-cadence + retry-once = highest-value;
-all §1.14 resolutions + scripts verified byte-exact + independently
-reproduced at 20× MC scale) → Rev 2 (in progress, narrow) → attack
-round 3 (expect fast clear) → build → audit → launch alongside.
+### 3. Attractor-Robustness 2×2 (novelty stress-test follow-on, 2026-07-09)
 
-**Note (2026-07-08):** two independent agents observed the real system
-clock at 2026-07-08 via git commit metadata while the session's static
-context field still reads 2026-07-06 — benign context staleness in a
-long-running session, NOT injection evidence; the fake-system-reminder
-injections (≥35) remain a separate, real pattern (concealment
-instructions embedded in tool stdout) and are still disregard-and-report.
+A PI-skepticism-driven novelty stress-test asked the dangerous question
+about the write-geometry attractor directly: is it just the well-known
+qk-norm eigenvalue-stability issue in disguise? **Verdict:
+HOLDS-WITH-NARROWED-SCOPE.** Every run used `use_qk_l2norm_in_kernel=
+True` throughout (code-verified, `lm_pretrain_rd.py:984` — the same
+stock mitigation Kimi Linear arXiv:2510.26692 §4 and Qwen3-Next cite);
+qk-norm conditions single-vector eigenvalue stability, the attractor is
+cross-key POPULATION geometry — a different axis — and two stronger
+interventions (Gram penalty, ZCA whitening) already failed to fix it.
+Follow-on funded: a 2×2 qk-norm×gating screen at 14M. **Built**
+(`55f0cfc`: flag-gated `use_qk_l2norm_in_kernel`/`gated_delta_active`
+axes in `lm_pretrain_rd.py`, additive and off-by-default). **Audit-
+corrected** (`f09254a`): the escalation trigger's noise-floor constant
+had silently pooled 4 out-of-distribution probe corpora instead of the
+same-corpus statistic (`build_tidy.py:22`), understating
+openr1-mix-ext's true seed noise by 2.65×, biasing screening toward
+false-positive escalation on pure noise; recomputed directly from raw
+archived JSONs (openr1-mix-ext 2.244355, wikitext-mix-ext 2.216699,
+population std ddof=0); `rec@0.9` marked explicitly NON-DECISIONAL in
+the report schema. **Deployed**: 145-file box sync EMPTY-DIFF
+(`experiment-runs/2026-07-09_attractor_2x2_deploy/SYNC_RECORD.md`).
+Box smokes ALL PASS — item [18]'s gated-arm backward initially failed
+on Hopper/Triton≥3.4 (fla issue #640, wrong-result path) and required
+provisioning the `tilelang` backend on-box (env-only fix, no kernel
+code touched; the default non-gated path stays on the same Triton
+kernels every prior chapter used, unaffected). **STATUS: screening
+wave LAUNCHED** (4 cells, n=1, ceiling ≈1.01 GPU-h; n=3 escalation to
+12 cells, ≤3.03 GPU-h, only if the screen splits qualitatively) —
+harvest not yet returned as of this consolidation pass.
 
-**CAPABILITY CAMPAIGN — waterfall ATTACK stage RETURNED (2026-07-08):**
-#3 KILLED (2601.15158 is an RL-dynamics single-layer paper, NOT a
-fixed-depth impossibility bound — scout mischaracterized it; also
-redundant w/ head-to-head axis 1). #1 KILLED AS FRAMED — the
-solvable-vs-non-solvable prediction is falsified by representation
-theory BEFORE any GPU: corrected minimal faithful dims Z_m=1c/2r, S3=2,
-S4=3, A5=3 (!), S5=4, A6=5 — S4 (solvable) and A5 (non-solvable) TIE at
-dim 3; DeltaProduct's own published n_h numbers confirm (S4 n_h=2, A5
-n_h=2, S5 n_h=4 — the hard/easy split straddles solvability). SURVIVES
-AS CLAIM B: causal rank↔representation-dimension recruitment
-(subspace-RESTRICTED rank per Task E's analyze_zdump methodology —
-whole-matrix rank is trivially full for invertible group elements;
-continuous group-element-MATRIX readout mandatory, never
-softmax-over-|G| — the Nichani argmax shortcut), across a group family
-interleaving solvability at matched dims (S4-vs-A5 = marquee
-dissociation control). Claim tier: descriptive+causal-interventional
-(Task D/E tier), NOT provable-necessity — labeled as such. Est. 20-35
-GPU-h. #4 SURVIVES-WITH-MODIFICATIONS: replication-first gate mandatory
-(2605.30233 characterized 2B-70B pretrained LMs; the suppression-tag
-failure may not exist at 14-98M from-scratch — verify on their released
-battery, github.com/PootieT/entity-tracking-mi, ~5-10 GPU-h, BEFORE
-funding the full 15-25). fla allow_neg_eigval verified low-risk (β×2
-pre-scale, pretrained to 1.3B in Grazzi).
+### 4. Fix-at-Scale (PI GPU-saturation charter, 2026-07-09)
 
-**VALIDATION stage (waterfall 4) RETURNED (2026-07-08): BUILD-WITH-CHANGES
-— waterfall COMPLETE, Claim B survives all four stages.** Validator
-independently confirmed: the rep-theory table (with ONE load-bearing
-correction — PSL(2,7) minimal faithful REAL dim = 6, not 3; its 3-dim
-irreps are a complex-conjugate pair, and delta-rule states are real
-matrices → re-slot to dim 6 or drop); DeltaProduct n_h numbers exact
-(S3=2,S4=2,A5=2,S5=4, primary source) + novelty absence CONFIRMED (no
-force-rank causal ablation or subspace-restricted state-rank work found
-anywhere 2025-26); #3 kill DOUBLY confirmed (2601.15158 never
-establishes the claimed bound); #4 gate confirmed (2B-70B only; battery
-repo live; ~5-10 GPU-h = port-their-probes-to-our-checkpoints
-interpretation; rides along w/ own short pre-registration). REQUIRED
-CHANGES pinned: (1) PSL(2,7)→dim 6 or drop; (2) readout Option A
-PRIMARY = fixed reference representation ρ + continuous full-MATRIX
-readout + PROCRUSTES/scale degauging (new O(d)×R+ gauge freedom — the
-single biggest remaining risk, validate on the calibration cell first);
-Option B (emergent embedding) secondary/exploratory only; (3) Stage 1 =
-Task D/E's exact bespoke architecture, end-of-sequence-only force-rank
-(mid-trajectory rank-forcing on a production delta-rule kernel =
-explicitly a LATER wave — two-axes rule); (4) budget re-derived: Stage 1
-~20-30 GPU-h (incl. ~5 calibration+contingency + <1 β∈[0,2] smoke vs
-DeltaProduct Fig.5 as positive control); Stage 2 (multi-hop word
-problems) ~50-120 GPU-h GATED on Stage 1 — original 20-35 estimate was
-2-4× low for the multi-hop interpretation (Task E rates). Pre-registered
-CONFIRM/FALSIFY/INCONCLUSIVE incl. publishable negative. NEXT: campaign
-design gauntlet — design Rev 0 in `matrix-thinking/
-CAPABILITY_SEPARATION_DESIGN.md` (dispatched 2026-07-08) → attack
-rounds → build → audit → launch alongside head-to-head.
+Trains the frozen-bias fix (per-token, λ=0.58, literal transplant of
+rung-1's construction) at 98M and 392M, extending its ONLY training
+evidence (14M-only today) up the same ladder the write-geometry
+pathology is already measured on (span_frac 0.248→0.344→0.389→0.455,
+14M→1.31B). Registry: `matrix-thinking/FROZEN_BIAS_LM_DESIGN.md` §13.
+**Wrong-direction-fix flag, stated up front by the design itself:** the
+per-token fix's own 14M evidence is NOT stabilizing — it moved OPPOSITE
+the mechanism prediction (span_frac +0.1955/+0.2273, CI-excludes-zero,
+MORE collapsed than the artifact-matched control); only the
+never-scaled GLOBAL-VECTOR arm actually stabilized it (−0.3319/−0.2308,
+CI-excludes-zero). Three pre-registered, equally-publishable outcomes
+(WIN = per-token reverses to the mechanism-predicted direction at
+scale; PARTIAL = the destabilizing pattern persists on ≥1 corpus; NULL
+= CI includes zero both scales) — a repeat of the 14M sign is itself
+informative, not assumed away. Explicitly does NOT invoke §6.2's formal
+rung-2 gate (rung-1 read as the FOURTH OUTCOME, "sim-training
+divergence," never a CONFIRM) — authorized on a separate basis (the
+saturation directive + the paper's own disclosed 14M-only caveat).
+**Design Rev 0 (`660cffc`) → §13.13 attack round 1: NEEDS-REVISION**
+(2026-07-09) — the wrong-direction claim verified TRUE against the raw
+tables; the h2h contender pin (per_token) is confirmed SOUND, not a
+misread (it was chosen for disclosed engineering reasons — Newton-
+Schulz/β-uniformity stability + a clean val-loss gate — not because
+anyone missed the sign); the original ≈170 GPU-h planning figure's
+6× per-step rate error CONFIRMED and traced (`HEAD_TO_HEAD_DEMO_DESIGN.
+md:1604`, wave-total ÷ one cell's steps). **BINDING on Rev 1:** (1) add
+an exploratory-tier global-vector (Arm 2′) probe, n=1 both scales, ≈4
+cells ≈18-37 GPU-h — without it the wave only re-tests the construction
+already known to worsen the pathology and never learns whether the arm
+that WORKS transfers; (2) VRAM logging folded into the timing pilot;
+(3) wire `assert_blind_not_broken`, not just intend it. Cost (Rev 0):
+primary recommendation n=3/n=3 ≈244.44 GPU-h (2× contingency); fallback
+n=2-at-392M ≈200.58 GPU-h. **Proposed ledger: `fix-at-scale`, cap 300
+GPU-h** (headroom-cap, not target; a genuinely NEW, separate ledger).
+**STATUS: Rev 1 (resolving §13.13) not yet landed.** Cross-cutting
+finding dispatched separately: a terminology audit (CLAUDE.md's "FIXED
+(frozen-bias)" and the paper's "stabilization" language overclaim the
+DEPLOYED per_token arm) — corrected in CLAUDE.md's Research Direction
+and this file's Campaign Scorecard, below.
 
-**QUEUE (superseded rounds recorded in the design doc §1.13-§1.24):**
-design CLEARED after 5 rounds (§1.21) → build (a3defcc) → audit
-NEEDS-FIXES (§1.22) → fixes (a555012) → re-audit CLEARED (§1.24) →
-**DEPLOYED (2026-07-09, pushed bfed48b):** RA-1 companion test;
-closure 19 files EMPTY-DIFF; box smoke 13/13 on real fla after a REAL
-kernel-envelope finding (bf16-only, head_dim≥32 hard-crash floor,
-qk-L2-norm — fixed in the non-load-bearing β module); β Fig.5
-directional split reproduced (n_h=2 0.294 < n_h=1 0.349); calibration
-5/5 @8000 steps in 5.4 MIN (0.0179 GPU-h/cell; 58-cell projection
-≈1.04 GPU-h vs 30 cap — trivial budget pass). **GATE-1 SUBSTANTIVE
-REVIEW OPEN — SWEEP NOT AUTHORIZED:** S3/S4/S5 train losses converged
-(0.053/0.0069/0.0076); A5 0.291/A6 0.220 under-converged (escalation
-candidates); degauging on REAL checkpoints LOW everywhere (mean_cos
-−0.02..0.17, rf90 0.0-0.2) while the synthetic injection PASSES.
-DIAGNOSIS AGENT DISPATCHED (length-split eval; A5/A6 at 2.5×; rank
-preview = the M1 headline; train-loss-vs-readout coherence — h2h
-§1.21 precedent applied). Note: h2h_rung1 tmux exited on its own
-band-check FATAL after wave 2 (expected; h2h parked on Rev 4).
+### 5. Capability Separation — Stage 2 (design in progress, 2026-07-08/09)
 
-**PUBLICATION PIPELINE:** measurement-2026 chop paper DRAFTED (local
-commit 4c7d172; "The Cliff That Wasn't"; compiles clean w/ tectonic,
-~4.6pp body; every number provenance-commented to §15.NN anchors; claim
-boundary vs workshop-2026 trilogy stated in-text) — coordinator review
-then push.
+Compositional depth generalization: does a matrix-state model trained
+on group word-products of depth ≤ D_train answer held-out depths
+D_test ≫ D_train in a single forward pass (no CoT), tracking algebraic
+structure, while capacity-matched baselines degrade toward chance?
+Registry: `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` §2,
+**design Rev 0 (`d8d71d9`), dispatched under the saturation directive
+to proceed IN PARALLEL with Stage 1's gauntlet** — launch stays gated
+on Stage 1 reaching CONFIRM or a diagnosed INCONCLUSIVE (§1.11),
+unaffected by which way Stage 1's round 7 (above) resolves. Central
+finding driving the design: three independent lines — §1.25's
+untrained-positional-row defect, §1.27/§1.29's convergence anomalies,
+and an independently re-read circuit-complexity theorem (Grazzi et al.,
+ICLR 2025 oral, arXiv:2411.12537) — converge on the same conclusion: a
+fixed-depth Transformer with positional embeddings is the WRONG
+architecture for a depth-generalization claim, not merely under-tuned.
+Stage 2 therefore adjudicates a genuinely new architecture (recurrent
+per-token state-composition) and a genuinely new expressivity axis
+(β∈[0,1] vs β∈[0,2], parked by Stage 1 as a non-load-bearing smoke test
+for exactly this later wave). **STATUS: not yet attacked.**
 
-**PARALLEL RESEARCH WAVES (dispatched + RETURNED 2026-07-08, PI
-capability-first directive):**
+### 6. Novel-Architecture Waterfall (opened 2026-07-09, stages 1-2 RETURNED)
 
-(1) **Capability-separation scout — RETURNED.** Verified landscape:
-fixed-depth transformers TC0-bounded (Merrill-Sabharwal line, holds
-through log-CoT; only linear CoT escapes — so all claims must be
-single-pass/no-CoT); diagonal SSMs ALSO TC0 (Illusion of State,
-2404.08819); delta-rule models escape ONLY with negative eigenvalues
-(Grazzi 2411.12537 ICLR'25 oral; DeltaProduct 2502.10297: S3 needs
-n_h=2, S5 n_h=4; RWKV-7 2503.14456). ⚠️ **BLOCKING: our
-`lm_pretrain_rd.py` uses plain sigmoid β∈[0,1] everywhere, zero
-`allow_neg_eigval` hits in repo → contender AS CONFIGURED is
-TC0-bounded, no separation property. One-line fix (β×2) but the fix
-itself is published prior art (DeltaProduct at LM scale) — our novelty
-must be built ON TOP.** Bare "recurrent beats transformer at state
-tracking" is FORECLOSED (Chess-World-Model 2605.30100 at 3M-40M; code
-traces 2602.14814 by the Grazzi group; M²RNN 2603.14360 matrix-state at
-7B). THE UNCLAIMED GAP: causally-verified rank↔representation-complexity
-correspondence (force-rank methodology, our asset) + inference-memory-
-matched accounting — no 2026 paper measures either. Top candidates:
-#1 rank↔minimal-faithful-rep-dim across solvable/non-solvable groups
-(~20-40 GPU-h); #3 single-pass exact composition on the provably-
-CoT-required task class (2601.15158 inverted, ~10-20 GPU-h); #4 exact
-unbind vs the published "global suppression tag" failure taxonomy
-(2605.30233, ~15-25 GPU-h); #2 = head-to-head axis 2 (already in
-gauntlet). Bytes: CONFOUND for this campaign, stays parked (sequenced
-follow-on only). "Abstract thinking" claim ceiling: systematic
-compositional generalization + causal state tracking w/ extrapolation.
-HEAD-TO-HEAD CROSS-IMPLICATION: contender stays β∈[0,1] there (frozen-
-bias λ=0.58 evidence was collected under sigmoid β; changing mid-
-gauntlet invalidates provenance) — Task-2 held-out-depth results are
-empirical-only, disclose in the design's caveats register; the
-capability campaign pins β∈[0,2] as its own arm w/ own calibration.
-NEXT (waterfall): ATTACK stage on candidates #1/#3/#4 (dispatched
-2026-07-08) — esp. verify the representation-theory dims (S5 minimal
-faithful = 4-dim standard rep; A5 has 3-dim faithful irreps — the
-scout's "5 for S5/A5" is suspect) and whether delta-rule state rank ↔
-rep dimension is well-posed (state update S(I-βkk^T)+βvk^T IS a
-Householder-product recurrence, so plausibly yes — needs rigor).
+A fresh brainstorm→research waterfall (CLAUDE.md process) on candidate
+architectures beyond the current DeltaNet-family contender. **TOP
+CANDIDATE (to attack stage): Native Composition Reads** — read via
+query-selected matrix powers/products of the fast-weight state
+(`o = read(Z^h, q)`, generalizing to relation chains `Z_rn···Z_r1`);
+capability claim = single-pass variable-depth exact relational
+composition, no CoT; novelty OPEN (closest prior art on different axes:
+fast-weight PKM arXiv:2601.00671, MAGNA arXiv:2009.14332, DeltaProduct
+arXiv:2502.10297); first wave ≈35-50 GPU-h on the Task E harness;
+PonderNet-style halting-collapse kill-shot pre-answered (a closed-form
+`‖C‖·h` leakage stopping rule, not a learned halting scalar); unified
+with a multi-relation operator-bank idea as a gated second
+sub-experiment (RotatE arXiv:1902.10197 is the prior art to
+distinguish — theirs offline/static, ours online/in-context/causally-
+verified). **SECOND TRACK (parallel-able):** rank-budgeted writes
+(per-context rank allocation at the write step; novelty gap verified
+against arXiv:2602.04852/2602.02195, both descriptive-only, and Elastic
+Spectral SSM's global-only budget); ≈25-35 GPU-h. **Cheap piggyback:**
+an orthogonal-complement novelty detector on already-archived Z-dumps
+(near-zero GPU cost, a unique instrument). A DO-NOT-BUILD list
+(Grazzi/DeltaProduct/RWKV-7/TPR/RotatE territory) was recorded in the
+waterfall transcript. **STATUS: ATTACK STAGE DISPATCHED** on the
+unified top candidate; not yet returned.
 
-(2) **Venue scout — RETURNED.** Full table + email drafts appended to
-`neurips-ws-2026/VENUE_DECISION.md`. Headlines: NeurIPS-2026 workshop
-list drops **Jul 11** (both pre-built EAs → NeurReps/UniReps, deadline
-~Aug 29); COLM Efficient Reasoning open to **Jul 19** (capacity trilogy
-candidate); 5 late-add emails recommended THIS WEEK (MOSS best scope
-match; AIMS/Sci-FM ≈ purpose-built for the instrument-methodology
-story); ICBINB (reasoning-link null) re-scan Nov-Dec; NeSy is ARCHIVAL —
-avoid. Instrument-methodology chop paper DRAFTING NOW
-(`submissions/measurement-2026/`, agent dispatched). PI ACTIONS NEEDED:
-approve/send the late-add emails (author/affiliation pending), Jul 11
-submissions.
-iterate to DESIGN-CLEARED-FOR-BUILD → build (new code: flat-vector
-ablation mixer, switchable uncapped/capped-KV Transformer,
-`verify_match_gate.py`, calibration/timing-pilot wrappers) →
-independent build audit → launch rung-1 (14M). **GPU allocation for this
-campaign: GPUs 0-6 available for rung-1 launch; GPU 7 held as
-pool/overflow.** Escalation to 392M gated on rung-1 win-or-tie only
-(§1.5/§1.9 item 1 — the escalation rung's own GPU-h budget does not yet
-fit the shared 135 GPU-h ceiling at rung-1's step count; flagged, not
-resolved, in Rev 0).
-
-## CAMPAIGN SCORECARD (Jul 6-8 2026, all pushed)
+## CAMPAIGN SCORECARD (Jul 6-9 2026, all pushed)
 
 **FOR the approach:** SGD recruits provably-necessary rank (causal);
 super-linear capacity (x0 0.5455@d64 → 0.6779@d80; NO cliff at d=96 to
-K/d=0.94); exact composition; the write-geometry attractor is FIXABLE
-(frozen-bias, side-effects bounded ≈0).
+K/d=0.94); exact composition; the write-geometry attractor's mechanism
+is diagnosed and **a geometry-stabilizing construction is identified —
+the global-vector arm, 14M-only, never scaled, val-loss-neutral**
+(disambiguated 2026-07-09, see below); the mechanism survives a direct
+novelty stress-test (qk-norm confound ruled out, campaign 3).
 **AGAINST / bounds:** the attractor WORSENS with scale (4-pt monotonic
-ladder 0.248→0.344→0.389→0.455, 14M→1.31B); reasoning-link geometric
-readout dead everywhere (80/80 nulls, triple-null + vocab/geometry
-dissociation); causal keystone multiply-bounded null (the n=3 transient
-did NOT replicate at n=12 — BATCH-EFFECT-FLAGGED, new-cohort CI spans 0);
-NO demonstrated end-to-end win yet (the head-to-head's job).
-**Instrument escalations (PI-gated, §15.28-class):** C17
-TOLERANCE-MISCALIBRATION (n_iter 20→28 unlocked 11 cells); the admission
-frontier moves with K/d (K=90 inadmissible even at 28); admission
-leg-swap at K=84; K=90's exact-1.0 ceiling did not replicate fresh
-(0.9725); pool-restriction shift +0.033 ≈ 12× measured noise.
+ladder 0.248→0.344→0.389→0.455, 14M→1.31B); **the DEPLOYED per_token
+arm (λ=0.58) is val-loss-neutral but geometry-UNRESOLVED — it moves the
+attractor in the destabilizing direction at 14M (+0.1955/+0.2273
+span_frac, CI-excludes-zero)**, confirmed by an independent attack
+round (§13.13) as a real finding, not a misread; fix-at-scale (campaign
+4) adjudicates whether either arm's behavior transfers to 98M/392M;
+reasoning-link geometric readout dead everywhere (80/80 nulls,
+triple-null + vocab/geometry dissociation); causal keystone
+multiply-bounded null (the n=3 transient did NOT replicate at n=12);
+NO demonstrated end-to-end win yet (the head-to-head's job, currently
+blocked on its own instrument fix, campaign 1).
+**Instrument escalations (PI-gated):** C17 TOLERANCE-MISCALIBRATION
+(n_iter 20→28 unlocked 11 cells); the admission frontier moves with
+K/d (K=90 inadmissible even at 28); K=90's exact-1.0 ceiling did not
+replicate fresh (0.9725); pool-restriction shift +0.033 ≈12× measured
+noise; the capability campaign's own instrument required a two-defect
+fix before its first trustworthy readout (§1.25) — distrust-the-first-
+instrument-reading is now a repeated, load-bearing pattern in this
+project's own history, not a one-off.
 
-## PENDING PI DECISIONS
-
-1. Venue/author/title for the ~Jul 11 CFP (`neurips-ws-2026/`
-   VENUE_DECISION.md; needs the 10pp→4pp cut call).
-2. Retroactive ratification: Phase-2b vocab-space pivot + seedext
-   restructure-to-B (both ran under gauntlet authority, fully recorded).
-3. Fund or park the §15.28-class admission-frontier design round
-   (KEY_ANCHORING_SCALING_DRAFT.md §15.27 escalations).
+**Terminology correction (2026-07-09, cross-cutting audit):** prior
+drafts of this scorecard and of `CLAUDE.md`'s Research Direction said
+the attractor was "FIXED (frozen-bias)." The raw rung-1 tables do not
+support that for the arm actually deployed — see AGAINST, above, and
+`FROZEN_BIAS_LM_DESIGN.md` §13.2/§13.13. The val-loss-neutrality claim
+and the global arm's stabilization are both real and are stated as
+such; only the blanket "FIXED" attribution to the deployed arm is
+withdrawn. The iclr-2027 `.tex` files are a separate, already-queued
+correction pass, out of scope for this consolidation.
 
 ## LEDGERS (GPU-h, realized/ceiling)
 
-- keyanchor-scaling: 20.46/21 (authorized +5 extension NEVER drawn) —
+- keyanchor-scaling: 20.46/21 (authorized +5 extension never drawn) —
   CLOSED for new waves pending PI.
-- frozen-bias: 11.43/135 (~123 headroom — funds the head-to-head).
+- frozen-bias (shared by rung-1 + the head-to-head's calibration-phase
+  spend): **11.43/135 realized** as of the last verified figure
+  (≈123.5 GPU-h headroom, earmarked for the head-to-head — not free for
+  fix-at-scale, see PENDING PI DECISIONS). Two independent
+  reconciliations of the h2h calibration-phase spend (ledger-anchored
+  vs. bottom-up-from-wall-clock) disagree by ≈1.2 GPU-h, flagged
+  unresolved in `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.9/§1.23 — reported
+  here, not guessed at. Calibration round 3 (pending) will add
+  ≈2.3-9.2 GPU-h depending on the AUD2-F1 LM-head-slice fix's realized
+  savings.
 - phase2b: 8.3/66.5.
+- capability-separation Stage 1: **≈0.77/30 realized** (calibration
+  0.0895 + gate-1 diagnosis 0.38 + round-7 L=1 diagnostic 0.30); the
+  main 58-cell sweep (≈2.51 GPU-h raw) is no longer gated (§1.30 lifted
+  the HARD-STOP) but is not yet authorized — pending a micro-attack on
+  Rev 7 + 4 outstanding build items + a build audit (campaign 2).
+- attractor-robustness 2×2: **0 realized** / screening ceiling 1.0096,
+  escalation ceiling 3.03 (contingent on a qualitative split).
+- fix-at-scale: **proposed cap 300 GPU-h, 0 realized** — Rev 1
+  (resolving the §13.13 NEEDS-REVISION) not yet landed.
 - Box: Brev 8×H100 "youthful-indigo-turkey", uptime-metered (bills
-  regardless; cannot stop). GPUs 0-7 all currently idle.
+  regardless; cannot stop). Saturation directive (GOALS item 5) — all
+  8 GPUs in play, GPU 7 no longer reserved.
+
+## PENDING PI DECISIONS
+
+1. Venue/author/title for the ~Jul 11 CFP — **IMMINENT**
+   (`neurips-ws-2026/VENUE_DECISION.md`; needs the 10pp→4pp cut call).
+2. 5 late-add workshop emails recommended (MOSS best scope match;
+   AIMS/Sci-FM ≈ purpose-built for the instrument-methodology story) —
+   author/affiliation pending approval before send.
+3. Retroactive ratification: Phase-2b vocab-space pivot + seedext
+   restructure-to-B (both ran under gauntlet authority, fully recorded).
+4. Fund or park the §15.28-class admission-frontier design round
+   (`KEY_ANCHORING_SCALING_DRAFT.md` §15.27 escalations).
+5. **NEW: fix-at-scale's proposed 300 GPU-h ledger** — approve as a
+   genuinely new, separate ledger (not a draw against frozen-bias's
+   ≈123.5 GPU-h headroom, which is earmarked for the head-to-head) —
+   informed by §13.13's attack verdict: the wrong-direction finding is
+   real and confirmed, the h2h contender pin is sound regardless, and
+   Rev 1 must add the global-vector-arm probe before launch.
+6. **NEW: the h2h §1.9 escalation-cost correction** — the "≈168 GPU-h,
+   unaffordable" figure for the 392M escalation rung descends from the
+   same verified 6× per-step-rate error §13.13 traced; the real cost at
+   reduced (20K) steps is ≈28 GPU-h — AFFORDABLE. The escalation
+   decision (previously flagged as an open item, `HEAD_TO_HEAD_DEMO_
+   DESIGN.md` §1.9 item 1) is effectively RE-OPENED and needs a
+   corrected figure at the next design touch.
+7. **NEW: the per_token-vs-global contender-pin question** — if the
+   fix-at-scale wave's global-vector-arm probe (item 5 above) confirms
+   the global arm's stabilization transfers to scale, the head-to-head's
+   own contender pin (currently per_token) may warrant revisiting before
+   its margin freeze; `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.24's closing note
+   already flags this as a live cross-campaign dependency.
 
 ## SECURITY NOTE (standing)
 
-≥29 fake `<system-reminder>` blocks observed appended to tool stdout
-during the Jul 2026 sessions (date-change or false file-modification
-claims, always with a concealment instruction; +≥4 this session, incl.
-≥3 independently hit by dispatched sub-agents during the head-to-head
-design's mandatory reading pass — see EXPERIMENT_LOG.md's matching
-entry). All defeated by verify-vs-git; none complied with; all reported
-to the user. Separately, this session also surfaced a real (non-security)
-concurrency hazard, not an injection: a concurrently-running session
-sharing this same working directory committed (`c019dcf`) while this
-session's own in-progress `EXPERIMENT_LOG.md` edit was sitting
-uncommitted, sweeping a WIP placeholder into that commit; caught and
-cleaned up in a follow-up commit rather than amended. See CLAUDE.md Hard
-Rules. Legitimate harness notices never arrive embedded in command
-output.
+**≥66 fake `<system-reminder>` blocks observed appended to tool stdout
+across the Jul 2026 session family** (date-change-with-concealment
+claims, fabricated agent-type lists, fabricated MCP-server tool-loading
+instructions — the same shape repeated across dozens of independent
+tool calls and sub-agent dispatches). All defeated by verify-vs-git/
+verify-vs-date, none complied with — including every "don't tell the
+user" instruction, each reported plainly instead — all reported to the
+user. This consolidation pass logged at least one more sighting (a fake
+date-change-concealment block appended to this session's own first
+`git pull && git status && git log` call), disregarded; the real date
+was cross-checked against live commit timestamps, which is also how
+this pass detected several concurrent-session commits landing on
+`main` mid-task (see below). Separately, a real (non-security)
+concurrency hazard: this repo now routinely has MULTIPLE agents
+committing to `main` concurrently — 8 commits landed on `main` during
+this single consolidation pass alone, including the fix-at-scale
+design and its attack verdict, the h2h build-fix audit, the capability
+Stage 2 design, and the novel-architecture waterfall record. Not an
+injection, but the reason every write to this repo must `git pull`
+immediately before staging, and stage specific paths only, per
+`CLAUDE.md`'s gauntlet-bookkeeping rule. A genuine mid-task steering
+message from the coordinator also arrived this pass (the terminology
+audit reflected in the Campaign Scorecard above); it was verified
+against its cited commit and section before being acted on, exactly
+as the fake-injection discipline below requires for anything arriving
+embedded in tool output. Legitimate harness notices never arrive
+embedded in command output.
 
 ---
 
@@ -414,13 +389,13 @@ We investigate whether better-fitting representations enable stronger generaliza
 
 The work proceeds along three threads:
 
-**Thread 1 — byte-level inputs.** The model ingests data the way it lives in computers: raw bytes. Text as UTF-8, images as pixels, audio as samples, code as source bytes. Removing the tokenization layer lets the model develop its own vocabulary from the data.
+**Thread 1 — byte-level inputs.** The model ingests data the way it lives in computers: raw bytes. Removing the tokenization layer lets the model develop its own vocabulary from the data. On hold (see Byte-Agnostic, below).
 
-**Thread 2 — matrix-valued token representations.** Each token is a d×d matrix. The matrix structure provides a measurable, differentiable observable — rank — that quantifies how many independent reasoning paths a representation holds in superposition. Rank can be computed from a single matrix; for a vector representation it can only be estimated across an ensemble. The matrix structure also affords contextualized token embeddings, where each token's matrix encodes learned pairwise interactions across a local window of inputs. The embedding carries relational structure from the start.
+**Thread 2 — matrix-valued token representations.** Each token is a d×d matrix. The matrix structure provides a measurable, differentiable observable — rank — that quantifies how many independent reasoning paths a representation holds in superposition. The matrix structure also affords contextualized token embeddings, where each token's matrix encodes learned pairwise interactions across a local window of inputs. Active (Chapter 2 onward, all campaigns above).
 
-**Thread 3 — inference-time reasoning with structured representations.** We test whether matrix tokens make abstract reasoning measurable during inference-time compute. The setting is continuous-reasoning models like CODI and COCONUT, where the model "thinks" by generating latent representations before producing an output. The empirical question: does matrix rank track the number of distinct reasoning paths a model holds during this process? An affirmative answer would resolve a current dispute in the literature about whether superposition of reasoning paths is a structural property or a phenomenological description.
+**Thread 3 — inference-time reasoning with structured representations.** Does matrix rank track the number of distinct reasoning paths a model holds during continuous-reasoning inference? The bolt-on matrix-CODI test of this (Thread 3's original vehicle) answered FALSE and is closed/published; the capability-separation campaigns (above) are the current vehicle for the underlying question, reframed around causal rank-necessity rather than bolt-on correlation.
 
-The unifying question: can structured representations enable stronger experience and generalization than language-shaped baselines, in a way that scales to inference-time reasoning?
+The unifying question: can structured representations enable stronger generalization than language-shaped baselines, in a way that scales to inference-time reasoning?
 
 ---
 
@@ -428,817 +403,92 @@ The unifying question: can structured representations enable stronger experience
 
 ### Outer products and rank-1 matrices
 
-For vectors `u, v ∈ ℝ^d`, the outer product `u ⊗ v` is the `d × d` matrix with entries `(u ⊗ v)[i, j] = u[i] · v[j]`. Every outer product has rank 1: every row is a scalar multiple of `v`, every column is a scalar multiple of `u`. Outer products have `d²` entries but only `2d` degrees of freedom.
-
-Our byte embedding is a rank-1 outer product: `byte_b → u_b ⊗ v_b` with `u_b, v_b ∈ ℝ^16`, producing a 16×16 matrix.
+For vectors `u, v ∈ ℝ^d`, the outer product `u ⊗ v` is the `d × d` matrix with entries `(u ⊗ v)[i, j] = u[i] · v[j]`. Every outer product has rank 1. Outer products have `d²` entries but only `2d` degrees of freedom. Our byte embedding is a rank-1 outer product: `byte_b → u_b ⊗ v_b`.
 
 ### Rank as sum of rank-1 components
 
-A matrix `M` of rank `r` can be written as a sum of `r` outer products:
-
-```
-M = Σᵢ₌₁ʳ uᵢ ⊗ vᵢ
-```
-
-The rank is the smallest such `r`. Equivalently, via the Singular Value Decomposition `M = UΣV^T`, the rank is the number of nonzero singular values.
+A matrix `M` of rank `r` can be written `M = Σᵢ₌₁ʳ uᵢ ⊗ vᵢ`. Equivalently, via the SVD `M = UΣV^T`, the rank is the number of nonzero singular values.
 
 ### Continuous (differentiable) rank
 
-Discrete rank is non-differentiable. For training and measurement, three continuous proxies:
-
-**Stable rank:** `‖M‖_F² / ‖M‖_2² = (Σᵢ σᵢ²) / σ₁²`. Always between 1 and `rank(M)`.
-
-**Participation ratio:** `(Σᵢ σᵢ)² / Σᵢ σᵢ²`.
-
-**Effective rank (entropy of singular values):** `effective_rank(M) = exp(H(p))` where `pᵢ = σᵢ / Σⱼ σⱼ` and `H(p) = -Σᵢ pᵢ log pᵢ`.
-
-All three measure how spread out the singular value distribution is. We use stable rank as the primary metric.
+Discrete rank is non-differentiable. Three continuous proxies: **stable rank** `‖M‖_F² / ‖M‖_2²`; **participation ratio** `(Σᵢ σᵢ)² / Σᵢ σᵢ²`; **effective rank** `exp(H(p))` where `pᵢ = σᵢ / Σⱼ σⱼ`. We use stable rank as the primary metric.
 
 ### Superposition encoding
 
-Suppose a continuous reasoning model holds `r` distinct hypotheses. If each hypothesis `hᵢ` corresponds to a (row-pattern, column-pattern) pair `(uᵢ, vᵢ)`, the matrix encoding all hypotheses simultaneously is:
+If a continuous reasoning model holds `r` distinct hypotheses `hᵢ ↔ (uᵢ, vᵢ)`, the matrix encoding all of them simultaneously is `M = Σᵢ αᵢ (uᵢ ⊗ vᵢ)`. By construction `rank(M) ≤ r`; if the pairs are linearly independent in matrix space, `rank(M) = r` exactly. A bilinear probe reads `logit(w) = u_w^T M v_w`. The matrix can hold up to `d` linearly independent hypothesis encodings before they interfere — the CoT2 paper's (arXiv 2505.23648) parallelism-vs-embedding-dimension argument, generalized to rank.
 
-```
-M = Σᵢ αᵢ (uᵢ ⊗ vᵢ)
-```
+### Why "low rank" ≠ "low capacity" — the load-bearing correction (Hard Rules, `CLAUDE.md`)
 
-where `αᵢ` is the confidence weight on hypothesis `i`. By construction, `rank(M) ≤ r`. If the `(uᵢ, vᵢ)` pairs are linearly independent in matrix space, `rank(M) = r` exactly.
-
-A bilinear probe `(u_w, v_w)` reads from this matrix as:
-
-```
-logit(w) = u_w^T M v_w = Σᵢ αᵢ ⟨u_w, uᵢ⟩ ⟨v_w, vᵢ⟩
-```
-
-The matrix can hold up to `d` linearly independent hypothesis encodings before they interfere. **The hypothesis is that this is the number we should be measuring during reasoning.**
-
-### Why rank is the relevant capacity
-
-The CoT2 paper (arXiv 2505.23648) argues that parallelism in continuous-vector reasoning is bounded by embedding dimension `d`. The matrix analog: parallelism in continuous-matrix reasoning is bounded by matrix rank, which can range from 1 to `d`. Rank gives a measurable structural property that vectors can only approximate via ensemble statistics.
+A rank-1 matrix `Z = u⊗v₀` (`v₀` fixed) stores `d` independent items via its free vector side, recoverable by a linear read. Rank is only the binding constraint when the readout requires EXACT recovery of K independent key→value mappings through a matrix-vector product, and even then, in a full-attention model, "hold K items" is trivially satisfiable via K *positions* at rank-1 each. Every rank-necessity experiment in this project (Task D onward) is built to close this shortcut by construction (a hard single-state P=1 bottleneck + a provable lower bound + exact-continuous-recovery readout, never argmax/nearest-neighbor) — see `chapter2/TASK_D_PREREGISTRATION.md` for the canonical design pattern every later campaign reuses.
 
 ---
 
-## What We've Built and Shown
+## What We've Built and Shown (foundation era, pre-Chapter-2)
 
-### Findings that survived attack
+**Findings that survived attack:** outer-product matrix embedding gives better per-parameter representations at T=1 (BPB 2.12 matrix d=32 vs 4.29 vector, matched params); rank enrichment during iterative refinement is a novel emergent phenomenon (effective rank 5.02→6.12 across 8 iterations); the output head determines representation dynamics (MultiProbeHead → enrichment; vector-collapse → solidification); 130× parameter efficiency per layer at d=16; thought interleaving works mechanically when toggled at inference time (10.6% benefit at N=4).
 
-- **Outer-product matrix embedding gives better per-parameter representations at T=1.** Reproduced across every configuration tested. T=1 BPB 2.12 (matrix d=32) vs 4.29 (vector LoopFormer baseline) at matched parameters. Held in Round 1, Round 2, byte-level d=16, and the partial param-matched ablation (Run 22).
+**Honest negative results:** matrix ops lose at genuinely matched FLOPs (Stage G's properly-matched baseline: matrix 3.5552 vs vector 3.2511 BPB; extended budget widens, not closes, the gap) — but Stage G later named the mechanism (Kronecker-separable projection restriction) and found relaxing it recovers ~64% of the gap at matched params, though the per-FLOP tax survives everywhere measured (≈16.5× even at the cheapest matrix winner; full table `STAGE_G_DESIGN.md` §14). Thought interleaving does not beat adding layers at 288K params (BPB 3.535 vs 3.524). 3D matrix attention drives solidification and worse BPB — dead end. PonderNet halting collapses at small scale — use fixed iterations. Cross-domain generalization via matrix structure was killed by 6 fatal arguments before any experiment ran (reshape equivalence). The original PHM + learned-byte-segmentation project (Runs 1-7) died at 26 experiments — archived to `archive/byte-agnostic/`.
 
-- **Rank enrichment is an emergent novel phenomenon.** With MultiProbeHead output, effective rank rises during iterative refinement (5.02 → 6.12 across 8 iterations in Round 2). Not reported in any prior literature.
-
-- **The output head determines representation dynamics.** MultiProbeHead drives enrichment (rank rises). Vector-collapse output drives solidification (rank falls). 3D matrix-product attention drives solidification with worse BPB. Same backbone, different output head, different rank trajectory. Novel empirical finding.
-
-- **130× parameter efficiency per layer** for matrix operations versus standard vector layers at d=16.
-
-- **Thought interleaving works mechanically.** When toggled at inference time, thoughts contribute (Run 25 sweep: 10.6% benefit at N=4 with toggle ablation).
-
-### Honest negative results
-
-- **Matrix operations lose at matched FLOPs.** LoopFormer FLOPs-matched: BPB 0.87 vs Matrix d=32: BPB 1.67. The quality gap is algorithmic, not a speed problem. Confirmed by the cheap-ops waterfall (22 ideas brainstormed, 5 validated, none close the gap). **[CORRECTION 2026-07-02]** An independent FLOPs-accounting audit found this was never FLOPs-matched in either direction — LoopFormer's cited best (BPB 0.87) occurred at step 21,500 (not "~step 40K") and used only ~0.5-0.6× of Matrix Thinker's total compute, while Matrix Thinker was itself undertrained relative to its own budget. The converged, genuinely FLOPs-matched gap is unmeasured; this does not mean matrix ops secretly win, but the "2× at matched FLOPs" framing is not supported by the runs as executed. See EXPERIMENT_LOG.md, "FLOPs-accounting audit of Runs 12-15 (2026-07-02)." Stage G (`matrix-thinking/STAGE_G_DESIGN.md`) is designed to measure the matched-FLOPs gap properly. **[UPDATE 2026-07-02, Stage G Wave A/B]** Stage G's Wave 0-R2 gap baseline (byte vocab, d=32, matched 3,000-step budget) measured a genuine, properly matched-tokens gap (matrix 3.5552 vs vector 3.2511 BPB, G=0.3040) and separately FALSIFIED the undertraining hypothesis (H_d) at this regime — extended 3× budget widens the gap, it does not close it (`STAGE_G_DESIGN.md` §13). The follow-on Wave A/B component-swap screen (§14) then found the gap **has a named mechanism**: none of 5 training-setup/plumbing axes (init scale, embedding rank, iteration conditioning, depth structure, output-head tying) recover any of it (all ≤+0.006 `recovered_frac`), but relaxing the Kronecker-separable `RowThenColProjection` restriction on the attention/thinking projections to a dense rank-swept bottleneck recovers ~64% of G at matched params (3/3 seeds ≥0.5) — while using *fewer* FLOPs than what it replaces. A capacity-matched vector control shows most of the apparent "inversion" seen at higher rank is extra parameters, not the projection swap (vector wins by 0.115 BPB at matched capacity), and the per-FLOP tax survives everywhere measured (≈16.5× even at the cheapest matrix winner). See `STAGE_G_DESIGN.md` §14 for the full table.
-
-- **Thought interleaving does not beat adding layers.** Run 25 sweep at 288K params: thought config A scored BPB 3.535, no-thought config E (just more layers) scored BPB 3.524. The thoughts are dead weight at this scale.
-
-- **3D matrix attention drives solidification and worse BPB.** Confirmed dead end. Drop it.
-
-- **PonderNet halting collapses at small scale.** Run 8 expected_steps converged to 1.0. Use fixed iterations or LoopFormer-style consistency training instead.
-
-- **Cross-domain generalization via matrix structure** was attacked by 6 fatal arguments before any experiment ran (research/hypothesis-attack-april2026.md). The hypothesis as originally stated is wrong (reshape equivalence, distribution mismatch).
-
-- **The original PHM + learned-byte-segmentation project (Phase 1-2)** died at 26 experiments. PHM converges to nilpotent algebra rather than learning meaningful structure. Learned segmentation loses to fixed-stride at the scales tested. Archived to `archive/byte-agnostic/`.
-
-### Complete experiment record (26 experiments)
-
-| Era | Count | Outcome |
-|---|---|---|
-| Runs 1-7: PHM + Byte-Agnostic | 7 | Dead end. Archived. |
-| Runs 8-9: First H100 | 2 | PonderNet collapsed; iterative refinement helps (9.8% benefit) |
-| Runs 10-11: 8×H100 Round 1 | 2 | Matrix T=1 wins 175× over vector T=1; vector T=8 wins on iteration |
-| Run 12: Round 2 (MultiProbeHead) | 1 | **Rank enrichment discovered: 5.02 → 6.12 — novel finding** |
-| Runs 13-14: LoopFormer comparison | 2 | We lose 2× at matched FLOPs — **[CORRECTION 2026-07-02] not actually matched; see "Honest negative results" above** |
-| Run 15: Optimized matrix thinker | 1 | Marginal speedup, marginal quality drop |
-| Runs 16-17: d=16 experiments | 2 | First byte-level matrix model, BPB 1.91 |
-| Run 18: Critical ablation (not param-matched) | 1 | Flat 24M vs Matrix 2.4M — unfair comparison |
-| Run 19: Byte-level d=16 | 1 | 218K params, BPB 3.560, 33% thinking |
-| Runs 20-21: 3D attention | 2 | Solidification confirmed dead end |
-| Run 22: Param-matched ablation (still not clean) | 1 | 5.66M flat vs 2.55M matrix — still mismatched |
-| Runs 23-24: Thought interleaving | 2 | BPB 3.535 (no thoughts) vs 3.538 (with thoughts) — depth wins |
-| Run 25: Full sweep (5 configs) | 5 | "Just add layers" beats every thought config |
-
-Full details with exact numbers: [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md).
+**Complete experiment record (26 experiments, Runs 1-25):** full table and exact numbers in `EXPERIMENT_LOG.md`. Headline arc: PHM/byte-agnostic dead end → matrix T=1 wins 175× over vector T=1 → rank enrichment discovered → LoopFormer comparison (later found not actually FLOPs-matched, corrected 2026-07-02) → byte-level d=16 → 3D attention solidification confirmed dead → thought interleaving loses to "just add layers."
 
 ---
 
 ## What the Field Has Shown Us
 
-A multi-agent research session (April 9, 2026) investigated 11 topics in parallel. Key findings that bear on the project:
+A multi-agent research session (April 2026) surveyed the field; full detail in `references.md` and `research/`. Headlines still load-bearing for current campaigns:
 
-### Continuous reasoning research is maturing
-
-- **CODI** (Feb 2025, EMNLP 2025, arXiv 2502.21074) hits 43.7% on GSM8K with simpler training than COCONUT (34.1%). Joint teacher-student via shared weights, L1 distillation at the `:` token across all layers. Complete public code at github.com/zhenyi4/codi. **Strongest baseline for our matrix-CODI experiment.**
-
-- **CoT2** (May 2025, ICLR 2026, arXiv 2505.23648) proposes parallelism-vs-dimension theoretical framework. Argues parallelism in continuous reasoning scales with embedding dimension, but only proves this via existence constructions and accuracy curves. **Never measures rank or any structural property.** Closest published prior art for the rank-superposition argument.
-
-- **The Illusion of Superposition** (2026, arXiv 2604.06374) is a rebuttal: argues fine-tuned COCONUT reaches 96.6% without latent tokens, entity-probes show no stepwise computation. Superposition is contested. **The matrix-CODI experiment can adjudicate this dispute.**
-
-- **Reasoning by Superposition** (May 2025, arXiv 2505.12514) hand-designs continuous thoughts as `t_c = (1/√|V_c|) Σ u_v` over BFS frontier vertices. Rank equals frontier size by construction, but the paper never measures whether trained models actually realize this rank.
-
-### JEPA is gaining momentum
-
-- LeCun left Meta in February 2026 and raised ~$1B for AMI Labs to pursue JEPA exclusively.
-- LeJEPA (Nov 2025) finally solved collapse via SIGReg — single hyperparameter, no stop-gradient, no EMA. 20 lines of code, drops in.
-- LLM-JEPA (Sep 2025) added JEPA aux losses to standard LLMs with statistically significant gains on GSM8K and other benchmarks.
-- V-JEPA 2, V-JEPA 2.1, VL-JEPA — scaled video and vision-language JEPA.
-- **No byte-level JEPA exists** as of April 2026. Confirmed gap.
-
-### Pure-sensor models match language-supervised models at scale
-
-- **DINOv3** (Aug 2025, ViT-7B, no text, 1.7B images): first SSL model to beat weakly-supervised peers across the board.
-- **Web-SSL** (Apr 2025, Meta): controlled comparison shows CLIP's prior advantage was data, not language.
-- **Object Binding paper** (Oct 2025): object binding emerges in DINOv2/MAE but NOT in supervised ViTs. Self-supervision specifically.
-
-### Discrete vocabularies have lost the text race
-
-- **Meta abandoned Chameleon** (VQ multimodal) for **BLT** (byte-level, tokenizer-free). Most important data point against learned vocabularies for text.
-- VQ won vision/video, lost text, contested for audio.
-- Emu3.5 (34.1B, Oct 2025) is the largest native discrete-token multimodal model, but uses separate text BPE + visual VQ codebooks.
-
-### Structure-vs-scale debate is unresolved at language-modeling scale
-
-- **HELM** (May 2025, NeurIPS 2025): first billion-parameter fully hyperbolic LLM. Reports +0.5-2.3 points over Euclidean baselines on MMLU/ARC. The architecture commits hyperbolic everywhere — no half measures. **Existence proof that pervasive structured architecture works at scale.**
-- **Brehmer et al.** (TMLR 2025): often misread as pro-scaling. Actually shows equivariant models maintain ~2x compute-efficiency advantage at every budget tested across 10^16-10^19 FLOPs.
-- The pattern: structure wins when pervasive (HELM), loses when bolted on. Half-commitments do not work.
-
-### Neuroscience case for non-linguistic cognition is mainstream
-
-- **Fedorenko et al. 2024 *Nature*:** "Language is primarily a tool for communication rather than thought." fMRI dissociates language network from reasoning, math, theory of mind.
-- Zaslavsky 2018 *PNAS*: languages near information bottleneck optimum for **communication** between brains. Channel-capacity argument: language is optimized for ~50 bit/s inter-brain channel; machines have no such constraint.
-- Grid cells, sparse coding, predictive coding: well-established neural primitives that compute below language.
-
-### Critical gap nobody has filled
-
-**Nobody has measured rank as a structural correlate of reasoning capacity in continuous-reasoning models.** Three lines of work have come within one step of this question and none have taken it. The theorists define superposition but never measure it. The dimensional-collapse work measures rank but not in reasoning models. The interpretability folks study reasoning but use feature dictionaries, not geometric rank. **This is the unfilled gap the matrix-CODI experiment targets.**
+- **CODI** (arXiv 2502.21074) and **CoT2** (arXiv 2505.23648) are the closest published prior art for rank-superposition reasoning, but neither measures rank directly — the gap this project's Chapter 2 onward fills.
+- **JEPA** is gaining momentum (LeJEPA solved collapse via SIGReg); no byte-level JEPA exists — a standing gap, relevant only if Byte-Agnostic reopens.
+- **Discrete vocabularies have lost the text race** (Meta abandoned Chameleon for byte-level BLT) — the standing argument for eventually testing byte-level input, still deliberately sequenced after the matrix axis (never bundled).
+- **Structure wins when pervasive, loses when bolted on** (HELM vs. half-measure baselines) — the standing argument for matrix-native-from-scratch over the killed bolt-on matrix-CODI approach.
+- **Fedorenko et al. 2024 *Nature*:** language is dissociable from reasoning/math/theory-of-mind in the brain — the thesis's neuroscience anchor.
+- **Nobody has measured rank as a structural correlate of reasoning capacity in continuous-reasoning models** — still the field-level gap the capability-separation campaigns (above) are built to fill, now via causal force-rank rather than bolt-on correlation.
 
 ---
 
-## The Narrowed Hypothesis — STATUS (April 2026)
+## Closed Programs — Bolt-On Matrix-CODI (published) and Chapter 2 (real-data confirmation)
 
-After the matrix-CODI experiments (Rounds 1-9 + positive-control Round PC) the
-narrowed hypothesis has been tested and the relevant sub-claims have failed:
+**Bolt-on matrix-CODI (Rounds 1-9 + positive control, closed April 2026):** H1 (rank↔reasoning-paths correlation) FAILED — four flat rank-k curves; the flatten-then-project readout has a constant Jacobian in Z, so gradients can't distinguish rank-1 from full-rank Z. A nonlinear positive control (bilinear+GELU) also produced a flat curve (Spearman r=-0.13) — the failure is in the CODI distillation objective itself, not readout linearity. **Published**, ICML MI Workshop 2026, "The Gradient Does Not See Rank." Does NOT decide the broader matrix-thinking thesis — all of it was a bolt-on matrix bottleneck on a vector-pretrained model with a vector teacher signal. Full record: `matrix-thinking/chapter2/` era docs + `submissions/icml-mi-workshop-2026/`.
 
-- **H1 (correlation rank ↔ reasoning paths):** FAILED. Four flat rank-k curves
-  (Rounds 1, 2, 3, 6). 3-seed replication of flatten readout: accuracy tight
-  at 81.5 ± 1.2pp but Z_rank varies by 3× (seeds 42 → rank 4, 7 → rank 12, 1337
-  → rank 13). Rank is decoupled from accuracy.
-- **H2 (capacity bound):** Not meaningfully testable given H1 failure. Rank is
-  not being used, so there is no capacity bound to observe.
-- **H3 (causation via rank truncation):** FAILED. Rank-k truncation has no
-  effect on accuracy for k ≥ 1 in all tested configurations.
+**Chapter 2 — six programs run, attacked, built, audited, and CLOSED on real data (2026-07-01→07), ~600+ GPU-h total.** Headline: when a task provably requires `rank(Z) ≥ K`, gradient descent trained from scratch develops effective rank ≈ K AND makes rank causally necessary (Task D, d=8/16, Spearman ρ=1.0; sharp causal step at k≈K via train-time force-rank). Task E then confirmed the rank-K matrix **composes** correctly under repeated self-application at held-out hop-depths (`recovered_frac@0.9`=1.00 through h=21). Canonical specs: `chapter2/TASK_D_PREREGISTRATION.md`, `TASK_D_WRITEUP.md`, `NEXT_EXPERIMENT_DESIGN.md`, `TASK_E_FINDINGS.md`.
 
-The bolt-on matrix-CODI configuration does not use rank structure to encode
-reasoning. Mechanism: the flatten-then-project readout has a constant Jacobian
-in Z, so the gradient cannot distinguish rank-1 from full-rank Z during
-training. This has been verified with a positive control — a nonlinear-in-Z
-readout (bilinear+GELU) that breaks the constant-Jacobian property.
+1. **Task D/E** — CLOSED, CONFIRMED (above).
+2. **Stage 0** (d-frontier) — CLOSED: the d≥32 "wall" was substantially a step-budget artifact; the real frontier is EXACTNESS, not trainability (best observed `recovered_frac@0.9` plateaus at 0.65 even at 100K steps). `chapter2/STAGE0_DESIGN.md` §12-14.
+3. **DeltaNet causal-rank** (production kernel, synthetic) — CLOSED, CONFIRMED. `DELTANET_CAUSAL_RANK_DESIGN.md`.
+4. **DeltaNet real-data** (production kernel, real tokenized text) — CLOSED, CONFIRMED: rank causally load-bearing at K∈{8,16,24,32}, graded across a multi-rank window (non-orthonormal keys, pre-registered). Reasoning-dense text is more truncation-sensitive than narrative text; layer-0 rank *falls* as training proceeds (a general LM dynamic). `DELTANET_REALDATA_DESIGN.md` §14-19.
+5. **Stage G** (matrix-vs-vector per-FLOP gap) — CLOSED, named mechanism (above). `STAGE_G_DESIGN.md` §14.
+6. **Exactness-mechanism study** — CLOSED (Wave 0/1/F/geo3): effective-key geometry is the whole attribution story (a surgical orthonormal-key pin achieves PERFECT K=32 composition, proving the exact solution is architecturally reachable — SGD just doesn't find it); the trainable geo3 fix HITS its bar at K=16 (h=4 0.98 vs ≥0.8) but narrowly misses at K=32 (0.44 vs ≥0.5, attributed to a named, predicted-then-confirmed mechanism). `DELTANET_RD_EXACTNESS_DESIGN.md` §16.
 
-Positive-control result: **bilinear+GELU also produces a flat rank-k curve**
-(Spearman r = -0.13, p = 0.14). The failure is deeper than readout linearity
-alone; the CODI distillation objective itself produces rank-indifferent
-gradients regardless of how Z is consumed.
+**Follow-on programs, also CLOSED:**
+- **Key-Anchoring** — PROGRAM COMPLETE: works behaviorally at K/d≤0.5 (9+ seed-runs), but a frozen, never-trained random anchor table matches the learned one (confirmed-by-ablation — constancy in the key-blend arithmetic, not learned entity alignment); does NOT transplant to K/d=0.75 (a capacity cliff, ~1.00→~0.65→~0.02 at K=16/32/48). ≈55.83/80 GPU-h. `KEY_ANCHORING_DESIGN.md` §9-§11.
+- **Scale-Transfer Track C** — the write-geometry attractor worsens monotonically with scale alone (0.248→0.344→0.389→0.455, 14M→1.31B, mix-axis confound closed). `SCALE_TRANSFER_DESIGN.md` §5.9-5.10.
+- **Scale-Transfer Track D** — the signature is larger in production fixed-state models, but a matched no-fixed-state control shows the same magnitude — not specifically attributable to delta-rule writes at this tier.
+- **Scale-Transfer Track B** — double-barred by its own pre-registered bars; main effects INCONCLUSIVE (corpus-dependent).
+- **Pool-margin / admission-frontier diagnostics (§15.26-27)** — the C17 n_iter-sufficiency frontier MOVES with K/d; K=90's archived exact ceiling did NOT replicate fresh (0.9725); escalated to a §15.28-class design round, PI-gated (PENDING PI DECISIONS above).
+- **Reasoning-link keystone** — CLOSED as a multiply-bounded null: 80/80 geometric-readout nulls at every scale; the n=3 transient did NOT replicate at n=12 (new-cohort CI spans zero, BATCH-EFFECT-FLAGGED). `REASONING_LINK_DESIGN.md` §16.19-20.
 
-**Publication status:** workshop paper written for ICML MI Workshop 2026
-(deadline May 8) documenting the negative result + diagnosis + positive-control
-falsification test — **submitted and accepted** (see "Workshop paper outcome"
-below and `matrix-thinking/submissions/icml-mi-workshop-2026/`). The
-now-superseded writing brief and results-consolidation scratch that fed the
-paper are archived at `archive/matrix-thinking-workshop-era/PAPER_WRITER_BRIEF.md`
-and `archive/matrix-thinking-workshop-era/PAPER_RESULTS_SUMMARY.md`.
+No further waves are scheduled inside any of these closed designs; opening a new one requires a fresh brainstorm/research/attack/validate waterfall (`CLAUDE.md`), exactly as every ACTIVE CAMPAIGN above was opened.
 
-**What the failure does NOT imply:** the broader matrix-thinking thesis is NOT
-decided by these experiments. All experiments here bolt a matrix bottleneck
-onto a vector-pretrained model with a vector teacher signal (CODI distillation
-from a vector-output teacher). The failure modes are specific to this bolt-on
-setup. A matrix-native architecture trained end-to-end on a task that rewards
-rank-K structure has not been tested. That is Chapter 2.
-
-**Workshop paper outcome:** *The Gradient Does Not See Rank* was submitted to
-ICML MI Workshop 2026 and **accepted**. Position-decomposition follow-up work
-(`rank_aware_v1`, 2026-04-29) independently reproduced the mechanism from a
-different angle: even on a constructed multi-target task, matrix-CODI composes
-via **position** (one rank-1 value per latent slot), not within-position
-spectral rank — forcing Z to rank-1 throughout training did not hurt accuracy.
-Consistent finding, two routes: bolt-on matrix-CODI never uses rank.
-
----
-
-## Chapter 2 — STATUS (2026-07-04): CONFIRMED through real data; six programs closed (exactness-mechanism study, Wave 0/1/F/geo3, now closed)
-
-> **[2026-07-08 note: historical snapshot.** Everything below was true at
-> 2026-07-04; the Jul 6-8 campaign since closed the reasoning-link lane,
-> resolved d=96, completed the 4-pt scale ladder, and ratified the
-> head-to-head demo campaign — see the CURRENT STATE header at the top of
-> this file and `EXPERIMENT_LOG.md`.]**
-
-Chapter 2 ran and gave the field's first positive result for matrix-native
-rank: **when a task provably requires `rank(Z) ≥ K`, gradient descent trained
-from scratch both develops effective rank ≈ K and makes rank causally
-necessary.** This resolves the open question left by the workshop paper — the
-earlier rank-blindness was **task-specific (ProsQA was rank-1-solvable), not a
-property of the gradient.**
-
-**What got built and why the original Chapter 2 plan changed:** the original
-synthetic-task plan (Task A, K-parallel-entity-tracking with a single-entity
-query) was killed by a design-gauntlet attack *before any GPU ran*: in a
-full-attention model, "hold K items" is trivially satisfiable via K
-*positions* at rank-1 each (the same position-decomposition escape
-`rank_aware_v1` found empirically), and a rank-1 matrix `Z=u⊗v₀` is not
-low-capacity — its free vector side already holds `d` items. So the naive
-K≈P crossover prediction was mathematically wrong (the real threshold would
-have been K≈P·d, i.e. a flat curve everywhere testable). The gauntlet
-produced **Task D** instead: a from-scratch matrix-native transformer trained
-under a **hard single-Z bottleneck** on K key→value bindings, with a
-**provable** `rank(Z) ≥ K` lower bound for exact continuous recovery (proof:
-stacking K independent keys/values, `rank(V) = rank(Z·K_mat) ≤ rank(Z)`).
-Critical design decision: the readout must be the **pinned linear unbind**
-`Z·key`, scored by absolute cosine — **never argmax over a codebook** — because
-under argmax decoding a rank-1 matrix can recover ≈d bindings (Nichani, Lee &
-Bietti, ICLR 2025, arXiv:2412.06538), which would silently collapse the
-provable bound. Full spec, proof, and audit trail:
-`matrix-thinking/chapter2/TASK_D_PREREGISTRATION.md`.
-
-**Results (d=8, d=16 — the confirmed regime):** effective rank tracks K almost
-exactly (d=16: K=1→2.4, 4→4.7, 8→8.2, 12→11.8, 16→15.1; Spearman ρ=1.0). The
-causal test (train-time `force_rank_k`, the primary test — not post-hoc
-truncation, which was uninformative in the CODI work) shows a sharp step at
-k≈K: at d=8,K=4, force-rank ≤3 gives 0.0 recovery, force-rank=4 gives 0.97.
-Full write-up with citations: `matrix-thinking/chapter2/TASK_D_WRITEUP.md`.
-
-**Honest limitation, corrected (2026-07-03) — the d≥32 "trainability
-frontier" was a step-budget artifact; the real frontier is exactness:**
-Stage 0 (`matrix-thinking/chapter2/STAGE0_DESIGN.md` §12-14, closed
-2026-07-03) ran a full diagnostic and found the original d≥32 wall
-(effective rank ≈1, recovery ≈0 at Task D's 8K-step budget) is
-substantially a step-budget artifact — every d=32 baseline seed tested
-(17/17 across Wave 0, an extended-budget arm, and a 100K-step probe)
-transitions reliably, onset 6-16K steps, and effective rank recruits to K
-once budget suffices (final eff. rank 3.7/7.3-7.8/14.6 at K=4/8/16 — Task
-D's M1 pattern holds at d=32). But even at 100K steps (10x Task D's
-original budget), with trajectories confirmed flat/plateaued rather than
-climbing, the formal pass bar (`recovered_frac@0.9 > 0.7`) still FAILS —
-best observed is 0.65 (K=8), a genuine converged plateau (cos 0.83-0.91),
-not undertraining. Contrast: d=16 reaches genuinely exact solutions
-(`recovered_frac@0.9` = 1.00 at every tested hop including h=21, Task E's
-40K round). So the honest frontier is not trainability (transitions are
-reliable) — it's exactness, and it degrades with `d`. *Why* the d≥32
-write plateaus sub-exact rather than reaching 1.0 is open, named Stage
-0.5, and is explicitly NOT answered by Stage 0. Full data and
-hypothesis-by-hypothesis verdicts: `STAGE0_DESIGN.md` §12-14.
-
-**Chapter 2.5 — Task E (reasoning transfer, launched 2026-07-01, running on
-Brev 8×H100):** Task D is associative memory (one lookup, no composition) —
-the open question is whether the causally-necessary rank-K matrix *composes*
-correctly under repeated self-application (`Zʰ`) at hop-depths never seen in
-training, i.e. whether SGD's Z has genuine operator/eigenstructure, not just a
-rank-sufficient lookup table. Design + full attack trail:
-`matrix-thinking/chapter2/NEXT_EXPERIMENT_DESIGN.md`. Two build-time FATALs
-were caught and fixed by the audit gauntlet before any compute ran: (1) the
-injectivity check on the key→value mapping had a `-1` tolerance that couldn't
-detect a single merge — "K edges" silently stopped implying rank≥K (the same
-miscounting trap that killed MNNS); (2) the permutation-based hop-depth
-generator sampled a *general* random permutation rather than a single
-Hamiltonian K-cycle, so short cycles made "held-out" hop depths periodically
-collapse into in-distribution or trivial queries (measured: 100% collapse at
-K=4, the `H_extra=8` probe was 100% dead at K=8). Both fixed; re-audited clean;
-smoke-passed on the H100. Primary decision metric M3_E: held-out-hop recovery
-vs. the C_MLP shortcut floor vs. the analytic ideal-Z ceiling. CONFIRM = matrix
-thinking's compositional-reasoning premise survives its first reasoning test;
-FALSIFY = rank is causally necessary for recall but functionally inert for
-reasoning (still a clean, publishable negative).
-
-**Sequencing decided:** if Task E CONFIRMs → real-data reasoning transfer
-(matrix-native on OpenR1-Math, already tokenized on the H100 side) is next,
-sequenced *after* Task E specifically to avoid reintroducing every confound
-Task D was built to eliminate. If it FALSIFIES → publish as a companion
-negative to the workshop paper.
-
-**Real-data link — Wave 1 CLOSED, CONFIRMED on all three legs (2026-07-03):**
-a parallel thread (`matrix-thinking/DELTANET_REALDATA_DESIGN.md`) asks the
-same rank-necessity question as Chapter 2, but on a production fast-weight
-kernel (DeltaNet's `chunk_delta_rule`) with real GPT-2-tokenized text
-instead of a bespoke encoder or constructed vector grammar. Its Wave 0
-originally value-collapsed 10/10 seeds (caught clean at zero premise-valid
-checkpoints, never reported as a finding); a mini-audit traced it to a
-hop-index gather bug, and the fix + a pre-registered anti-collapse NCE loss
-produced a rerun that is 10/10 collapse-free (K=16: rec@0.9 0.996–0.999,
-entity-subspace rank 15.6–15.7/16). Wave A then found a graded K-exactness
-frontier at fixed d_state=64 (K=8 near-exact through several held-out hops,
-K=16 partial, K=24/32 collapsed beyond h=1), rank recruited 94–99% of
-target at every K. **Causal close (2026-07-03, §17):** Bprobe's train-time
-force-rank arm reproduced the train-time-forcing-breaks-SGD failure a
-**third** time (fr16 at `k=K=16`, a provable no-op, collapsed 3/3 —
-entity-subspace rank 9.85–10.41 vs. the unconstrained arm's own 15.6–15.7),
-so the full Wave B grid was correctly judged moot and never launched
-(mirroring `DELTANET_CAUSAL_RANK_DESIGN.md`'s identical decision). The
-pre-registered fallback — eval-time SVD truncation of the archived
-`Z_dump` states (`--save-z` is on by default in this harness, so no
-retrain was needed) — closed the causal question instead: **CONFIRMED,
-rank causally load-bearing at K∈{8,16,24,32}** (a hard ceiling reached
-exactly at k=K, never before or after, at every cell) **but graded across
-a multi-rank window, not the synthetic design's razor cliff at
-k=K−1→K** — the pre-registered caveat (trained rank sits slightly under K;
-keys are non-orthonormal, unlike the synthetic construction) landing
-exactly as predicted, not a hedge that never fired. This is the project's
-first demonstration of genuine, causally-verified rank-K relational
-binding in a production architecture on real tokenized surface forms.
-Full arc, exact numbers, and the closing verdict:
-`matrix-thinking/DELTANET_REALDATA_DESIGN.md` §14–§17.
-
-**Wave 2 (Waves C+D, CLOSED 2026-07-04, §19):** real-corpus LM pretrain
-(OpenR1-Math vs. WikiText, d_state=64, seeds{0,1,2}) plus inference-time
-rank-truncation grid, 12/12 cells. Headline: reasoning-dense text
-(OpenR1-Math) is measurably more truncation-damage-sensitive than
-narrative text (WikiText) at low-to-moderate k (8/16/24), converging to
-the same noise floor by k≈48 of d_state=64 — consistent in direction
-across every cell tested, including a within-token-class check that
-partially rules out a symbol-density confound. Counter-intuitive finding:
-layer-0 effective rank *falls* (not rises) as training proceeds in BOTH
-corpora (Pearson r vs. val-loss trajectory: +0.92 openr1, +0.91 wikitext —
-both decreasing together), the opposite of the "SGD recruits more rank as
-it learns" intuition from the controlled causal-rank chain; read as a
-general LM training dynamic, not reasoning-specific, since it doesn't
-replicate cleanly at layer 1. Wave 2 closes the DeltaNet real-data
-program's record — no further waves are pre-registered beyond §7's
-manifest Reserve row.
-
-**Exactness mechanism study (living, NOT one of the five closed
-programs — the active follow-on) — why does real-text composition fall
-short of the synthetic razor cliff, and can the gap be closed?**
-`matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md`. Wave 0/1 (CLOSED
-2026-07-04): effective-key geometry is the whole attribution story — three
-independent arms (frozen orthonormal, GPT-2 span, gram-matched) all
-converge to the *same* non-orthonormal write-geometry attractor regardless
-of input geometry (raw embedding geometry is causally irrelevant), and a
-surgical orthonormal-key pin (i-strong) achieves **PERFECT K=32
-composition** (1.00/1.00/1.00 recovery at h=1/2/3) — proving the exact
-solution is architecturally reachable; SGD just doesn't find it under the
-current objective. Wave F (soft fix attempt, CLOSED 2026-07-04): an
-orthogonality penalty and ZCA whitening both move recovery in the right
-direction but land 20-25× short of the pre-registered bars (K=32 h=4:
-0.014-0.026 vs. bar ≥0.5) — an honest negative that motivated the next,
-structural attempt. **K=48 rider (CLOSED):** the frontier extends past
-d/2 (gram deviation keeps growing, composition gone by h≥2); the
-i-strong pin's own dimensional guard correctly refuses K=48 (train+
-held-out identity vectors exceed d_state=64), fencing that boundary as
-designed. **F-geo-3 (differentiable per-episode key orthogonalization, the
-trainable version of i-strong) — fix wave CLOSED, program CLOSED.** A
-first 6-cell Wave 1 batch (K∈{16,32}×3 seeds, `geo3_n_iter=12`,
-20,000/20,000 steps each) landed 2026-07-04: **K=16 clears the
-pre-registered minimum-publishable bar on all 3 seeds** (h=4 recovery
-0.95-1.00 vs. a bar of ≥0.8, baseline was 0.42-0.47), but **K=32,
-despite a ~50× headline improvement (h=4 recovery 0.39-0.50 vs.
-baseline 0.009), failed the admissibility criterion on all 3 seeds** (a
-numerical eigh fallback triggered on a small fraction of steps). The
-follow-on escalation (K=32 ×3 seeds at `geo3_n_iter=20`) closed the
-admissibility gap cleanly — **0/3 → 3/3 admissible, zero fallback steps
-at any seed — and the behavioral numbers did not move** (largest
-per-seed delta 0.0042), confirming the fallback steps never degraded
-training. **Final verdict: K=16 bar HIT 3/3 (h=4 0.98 mean vs. bar
-≥0.8); K=32 improves ~43-56× over baseline (mean ≈48×) but narrowly
-misses its ≥0.5 headline bar on the mean (0.4368)**, with the residual
-attributed to the pre-registered **outcome F** (stable-not-just-
-orthogonal geometry: measured cross-episode key drift 0.90-0.94, HIGH
-band, predicted and confirmed via the §14.6 gating diagnostic before
-the wave ran, not fit after the fact) — a named mechanism, not an
-unexplained shortfall. h=1 no-sacrifice holds at both K (K=32 h=1
-actually exceeds baseline by +0.21); h=21 literal-depth collapse is
-unchanged (orthogonalization fixes write interference, not iteration
-compounding). Full verdict in `EXPERIMENT_LOG.md` ("F-geo-3 WAVE
-VERDICT" + "F-geo-3 escalation VERDICT", both 2026-07-04) and the full
-per-cell write-up in `matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md`
-§16. **This closes the exactness-mechanism study (Wave 0/1/F/geo3) in
-its entirety** — the next step is a stability-targeted follow-on
-design (named as a direction in §14.8, not yet designed) or the
-already-gated Chapter 3 scale-up (see "Then" below), not a further
-iteration inside this design (no fix-fishing, per the anti-Goodhart
-rule this program held to throughout).
-
----
-
-## Path Forward (updated 2026-07-04)
-
-> **[2026-07-08 note: SUPERSEDED by the GOALS + ACTIVE CAMPAIGN sections
-> at the top of this file** — the current path is the head-to-head demo
-> campaign (`matrix-thinking/HEAD_TO_HEAD_DEMO_DESIGN.md`) plus the
-> publication pipeline. Kept for the historical record.]**
-
-### Now — Saturation campaign (2-month uptime-metered window)
-
-**The grant meters UPTIME, not utilization**: the box bills while RUNNING and
-cannot be stopped (`brev stop` unsupported on this instance type; only
-delete). The user confirmed 2026-07-03: hardware is granted for two months,
-use-it-or-lose-it. Effective budget ≈ 192 GPU-h/day × window ≈ 10,000+ GPU-h,
-not the 1.6k previously assumed. **Strategy: keep the box saturated with
-audited experiments for the whole window; idle time is the only true waste.**
-Discipline unchanged: no un-audited work launches just to fill GPUs — the
-pipeline (design → adversarial attack → build → independent audit → bounded
-waves) has enough parallel workstreams to stay ahead of the hardware.
-
-**Campaign ledger (2026-07-01 → 07-04): five programs designed, attacked,
-built, audited, run, and closed** — Task D/E (bespoke synthetic causal rank +
-composition), Stage 0 (d-frontier), DeltaNet synthetic (production
-architecture causal rank), Stage G (matrix-vs-vector gap mechanism named),
-DeltaNet real-data (rank-K binding + composition on real tokenized text,
-causal close via eval-truncation, plus a closed Wave 2 real-corpus-LM
-follow-on). Two threads opened by those closures were active as of 2026-07-04
-early — the exactness mechanism study (why real-text composition
-undershoots the synthetic razor cliff) and Stage G's gated H_e
-task-swap check (below). **The exactness mechanism study is now fully
-CLOSED** (Wave 0/1/F/geo3, including the geo3 escalation, see above);
-**Stage G's H_e check is now also CLOSED** on its primary question (below;
-one small anomaly left open, not a blocker). ~600+ GPU-h total
-across the campaign. Full verdicts in EXPERIMENT_LOG.md (dated
-2026-07-01..04, table of contents at the start of that date range) and the
-five design docs (`DELTANET_REALDATA_DESIGN.md`,
-`DELTANET_CAUSAL_RANK_DESIGN.md`, `STAGE_G_DESIGN.md`,
-`chapter2/STAGE0_DESIGN.md`, `DELTANET_RD_EXACTNESS_DESIGN.md`). Workshop
-paper drafted at `matrix-thinking/submissions/neurips-ws-2026/` (awaiting
-user review: author block, venue, figures, title, appendix).
-
-**Other closures (2026-07-04):**
-- **Stage-G H_e Wave C — CLOSED on its primary question.**
-20K showed neither arm composing (flagged then as not-yet-triaged); 40K
-calibration (seed 0) resolved that as a genuine late-transition budget
-effect, not a bug — vector fully composes at 40K (h1/h2/h3 chance-adjusted
-1.0/1.0/1.0) while matrix does not (1.0/0.027/0.013), firing the
-pre-registered decision rule for the full 6-cell manifest (4 more cells:
-matrix baseline s1, matrix `h_b_factored_r4` s0+s1 — the H_b Wave-B
-projection winner — vector baseline s1). All 6 cells complete, no
-timeouts/NaN/crashes, 27.5 GPU-h total on GPU 7 alone (no contention with
-GPUs 0-6's concurrent waves). **Verdict: `h_b_factored_r4` does NOT rescue
-matrix composition** (`recovered_frac` on the seed-stable h=3 metric: +0.5%
-seed 0, −0.6% seed 1 — both ≈0, an order of magnitude below the `≥0.5`
-dominant-site bar — despite running at 2.69× the baseline's params). **The
-vector-composes/matrix-cannot inversion is seed-stable at hop-depth 3**
-(4/4 matrix-family cells flat at chance across the full 40K trajectory;
-both vector seeds clear matrix by 30+ points, seed 1 still climbing at
-cutoff so 0.661 is a lower bound). **Held-out hop generalization (h=4/5/7)
-is at chance for ALL 6 cells, matrix and vector alike** — a separate,
-uniformly negative axis. **Open, unresolved anomaly (not a blocker):**
-matrix baseline's hop-depth-2 result is NOT seed-stable — seed 0 stays flat
-at chance through 40K, seed 1 undergoes a sharp, clean phase transition to
-full composition at steps 18K–22K with no proposed mechanism; any h=2-
-specific claim (either direction) is unsupported pending more seeds. Full
-table, verdict derivation, and the anomaly write-up:
-`EXPERIMENT_LOG.md`, "Stage-G H_e 40K MANIFEST VERDICT" (2026-07-04);
-design-doc results section: `STAGE_G_DESIGN.md` §15. Archive:
-`experiment-runs/2026-07-05_stageg_he40k/` + SSD mirror.
-- **ReserveMH (DeltaNet multi-head causal-rank generality) — CLOSED, not
-  in flight**: every attention head independently recruits full rank K=32
-  at H∈{2,4}; the H=1 qualifier on the synthetic causal-rank claim is
-  lifted (`EXPERIMENT_LOG.md`, 2026-07-04 early).
-- The deeper-hop training probe and the RD Wave 2 instrumented-LM builder
-  (both listed as in-flight as of 2026-07-03) are **now CLOSED** — see the
-  DeltaNet real-data paragraphs above and `EXPERIMENT_LOG.md`'s
-  "deephop program CLOSED" and "Wave 2 (Waves C+D) results" entries.
-- **F-geo-3 escalation (listed as in-flight as of 2026-07-04 early) is now
-  CLOSED**, and with it the entire exactness-mechanism study (Wave
-  0/1/F/geo3): K=32 admissibility fixed 0/3→3/3 with zero behavioral
-  change; K=16 bar HIT, K=32 bar narrowly missed and attributed to the
-  pre-registered outcome F. See the exactness-mechanism paragraph above,
-  `EXPERIMENT_LOG.md`'s "F-geo-3 escalation VERDICT" entry, and
-  `DELTANET_RD_EXACTNESS_DESIGN.md` §16.
-- **SCALE-TRANSFER / KEY-ANCHORING — compact current picture (consolidated
-  2026-07-05; supersedes the separate per-wave narrative bullets this entry
-  replaces — see `EXPERIMENT_LOG.md`'s dated entries and the design docs
-  below for full derivations, tables, and attack trails).**
-
-  **CLOSED:**
-  - *KEY-ANCHORING campaign — PROGRAM COMPLETE (2026-07-07 final
-    verdicts)* (`KEY_ANCHORING_DESIGN.md` §9/§9.6/§9.7/§10/§10.13/§10.14/
-    §11/§11.12; `KEYANCHOR_REV6_ATTACK.md`, `KEYANCHOR_REV7_ATTACK.md`).
-    Five waves plus a rejected rescore attempt, **≈55.83/80 GPU-h**
-    against the exactness program's own cap (≈24.17 GPU-h reserve
-    remaining, untouched):
-    - Wave 1 + confirmatory wave (10.98 + ~0 new GPU-h): K=32 h=4
-      `rec@0.9` 0.4105 (fresh reference) → 0.556–0.665, 3/3 seeds ≥0.5
-      bar, same seed integers both waves (reproduction, not independent
-      replication); λ interior 0.55–0.58, 6/6; per-entity `engaged_frac`
-      <14% every leg → literal **Outcome C**.
-    - Rev 6 λ-scaled-threshold rescore: independently attacked and
-      **REJECTED** (`KEYANCHOR_REV6_ATTACK.md`: bar-preserving z≈3.76–4.03
-      sits outside the offered {2,3} menu; unverified anchor-norm
-      m≈1.34 would make the signal chance-level).
-    - Mechanism-tier wave (2026-07-06, `KEY_ANCHORING_DESIGN.md`
-      §10/§10.13, 1.50 GPU-h realized). Fresh instrumentation (`r_e`
-      measured directly, pre-blend, norm-invariant by construction;
-      hash-locked BH-FDR test; `REV7_THRESHOLD_PINNED.json` verified
-      byte-identical in a fresh empty sandbox) + a new per-entity-λ arm
-      (d′). **Behavioral: independently replicated** — 6 genuinely
-      fresh seeds, 2 architecture variants, K=32 h4 0.6141–0.7141, all
-      ≥0.5 bar; K=16 s10 = 0.9998. **Mechanism: Outcome C reconfirmed,
-      3/3 seeds, both arms** — engaged_frac_v3 3.7–41.1% at K=32, median
-      `r_e` 0.15–0.23 (below the 0.25 partial floor), immune to every
-      Rev-6 objection. Candidate (d′) → **Inconclusive/mixed**.
-      **Synthesis: the anchor blend stabilizes by construction** (the
-      λ·anchor term is episode-constant) — registered with a ~1 GPU-h
-      falsification probe (candidate (e)).
-    - **Candidate (e) verdict (2026-07-07, §10.14, 1.231 GPU-h
-      realized) — CONFIRMED BY ABLATION.** Both registered arms ran:
-      **e** (frozen `random_unit_rows`, never trained, seeds 60/61/62,
-      h4 0.6663/0.7619/0.7540, mean 0.7274) and **e-fp** (frozen
-      `frame_potential_init`, never trained, seeds 70/71/72, h4
-      0.7603/0.7123/0.7512, mean 0.7413) — both at fixed λ=0.58. **Both
-      arms match/slightly exceed candidate (d)'s own learned-table K=32
-      mean (0.6669)** — no seed of either frozen arm falls below (d)'s
-      own minimum. Per the registered joint outcome map, this routes to
-      **"constancy alone suffices"** — bulk geometry is not the
-      carrier (arm e, pure random init, performs the same as e-fp).
-      **r_e negative control passes at the strongest null in this
-      design's history**: arm e's median r_e is **negative**
-      (−0.2431/−0.1345/−0.2098, engaged_frac_v3 = 0.000 all 3 seeds) —
-      the instrument correctly reports no alignment when the anchor is
-      pure noise with nothing to align to. **Full implication chain**:
-      this supersedes the "learned anchoring" framing entirely — the
-      deployable fix is a frozen random key-bias at matched λ; SGD's
-      role reduces to (at most) tuning λ; the 2×2's stability
-      ingredient is satisfiable by construction (the episode-constant
-      term need not be derived from data). The primary entity-alignment
-      hypothesis (§1) stays **Outcome C**, unchanged; the
-      construction-stabilization *account* moves from
-      descriptive/interpretive to **confirmed-by-ablation**.
-    - **K=48 capacity-curve verdict (2026-07-07, §11.12, 1.597 GPU-h
-      realized) — bar MISSED 0/3.** Candidate (d), K=48, learned λ:
-      h4 0.02295/0.02287/0.01872 (mean 0.0215) vs. the registered bar
-      ≥0.024434 (transplanted 1.494× relative-gain factor from K=32
-      onto K=48's own collapsed baseline) — every seed misses, margins
-      0.0015–0.0057. Fresh reference (bare geo3): h4 mean 0.0167
-      (reproduces the archived 0.0164). Candidate (d) is **fully
-      admissible 3/3** (value-salvage 0.105–0.115, clears the 0.1
-      floor) while the fresh reference **fails value-salvage 3/3**
-      (0.071–0.087) — a cleaner split than the falsification map's two
-      adjacent rows anticipated. Item 5 (pre-NS drift) passes cleanly
-      (0.99999+) → routes to **"packing ceiling reached, wasn't
-      enough,"** not "mechanism didn't engage": post-NS drift (mean
-      0.8870) closes ≈81% of the gap between the fresh reference
-      (0.8382) and the independently-reproduced λ=1 ceiling (0.8987);
-      value-Gram-relief is also present (0.626× the reference's
-      deviation at the h4 leg) — both of the design's own pre-registered
-      explanatory channels are measurably active, neither dormant, yet
-      still insufficient to cross the bar. **The capacity curve
-      completes as a cliff, not a smooth decline: ~1.00 (K=16) → ~0.65
-      (K=32) → ~0.02 (K=48)**, while the λ=1 ceiling declines gently
-      (0.9745 → 0.9423 → 0.8987) over the same three points. **Binding
-      survives (h=1 guard 1.0000 at every cell, every K, this design's
-      entire history), composition collapses.** Reported as an
-      informative negative per §11.6's own discipline — bounds the
-      fix's regime (K/d ≤0.5, not 0.75) and sharpens the open theory
-      question (value-crowding, the design's own named candidate) —
-      never pooled or averaged across K.
-    - Archive: `experiment-runs/2026-07-05_keyanchor_wave/` +
-      `experiment-runs/2026-07-05_keyanchor_confirm/` +
-      `experiment-runs/2026-07-06_keyanchor_mech/` +
-      `experiment-runs/2026-07-07_keyanchor_e/` +
-      `experiment-runs/2026-07-07_keyanchor_k48/` + SSD mirrors.
-    - **Full story, one paragraph:** key-anchoring behaviorally works at
-      K/d≤0.5 (independently replicated, 9+ seed-runs across waves), but
-      not because the anchor table learns anything — a frozen random
-      table at the right blend weight does the same job
-      (confirmed-by-ablation), so the mechanism is "constancy in the
-      key-blend arithmetic," not "learned entity alignment" (Outcome C
-      throughout). That mechanism does not transplant to K/d=0.75: the
-      capacity curve is a cliff, not a gradual decline, and the two
-      pre-registered explanatory channels (drift-space stabilization,
-      value-Gram relief) are both measurably active at K=48 yet
-      insufficient — pointing at value-crowding as the next open
-      question, not yet tested. Program formally complete at
-      ≈55.83/80 GPU-h; no further waves scheduled.
-  - *SCALE-TRANSFER Track C — pure-scale attractor ladder*
-    (`SCALE_TRANSFER_DESIGN.md` §5.9/§5.10/Addendum). The mix-axis
-    confound is closed at both tested scales (14M mixcontrol Δ−0.004
-    span vs. control; 98M wave-1ext Δ−0.014 span vs. rung-1, both inside
-    seed noise), yielding a clean, single-(extended)-mix, 3-point
-    monotone ladder: span-fraction 0.248 (14M) → 0.344 (98M) → 0.389
-    (392M, rung-2) — upgraded from a joint scale+mix claim to a
-    **pure-scale** claim. Geometry-leg-only; no compositional-recovery
-    cross-check at any rung. Archive: `experiment-runs/2026-07-04_trackc_rung1/`,
-    `experiment-runs/2026-07-05_trackc_rung2/`,
-    `experiment-runs/2026-07-05_wave1ext/` + SSD.
-  - *SCALE-TRANSFER Track D Phase 1* (`SCALE_TRANSFER_DESIGN.md` §6.8).
-    The write-geometry signature is measurable, and larger, in production
-    fixed-state models (RWKV-7 1.5B, Falcon-Mamba-7B) but a matched
-    no-fixed-state negative control (Qwen2.5-1.5B) shows the same
-    magnitude — **NOT attributable** to the delta-rule write mechanism
-    specifically at this measurement tier. Archive:
-    `experiment-runs/2026-07-04_track_d/` + SSD.
-  - *SCALE-TRANSFER Track B* (`TRACKB_REDESIGN.md` §14) —
-    **double-barred**: the original β-uniformity no-launch (write-mass
-    0.431 vs. ≤0.40 bar) plus a duplicate-key stability smoke
-    (`skip_rate=0.6319` vs. ≤0.01 bar, PROBATIVE positive control,
-    196/326 calls ≥6-duplicated, max 32/32) refused Cells 3/4 and Wave 2
-    before further spend. The selectivity main effects that did run
-    (fix mechanism inactive) are **INCONCLUSIVE** (val-loss fails on
-    openr1 for all 3 arms, passes on wikitext; Gram deviation splits
-    disjoint-on-openr1 vs. overlapping-on-wikitext — a registered
-    split-verdict rule). Archive: `experiment-runs/2026-07-05_trackb_wave/` + SSD.
-
-  **RUNNING:**
-  - *SCALE-TRANSFER Track C rung-3* (1.31B params, token-matched to
-    rung-2 at 1.5B tok/run per the user-signed-off Rev 2.2 amendment).
-    Launched on GPUs 0–1, tmux session `trackc3`. `ALL_DONE` expected
-    ≈05:00 UTC 2026-07-08 (corrected 2026-07-06 from ~19:00 UTC Jul 6:
-    measured 1.416 s/step is 2× the banked calibration — see the SESSION
-    HANDOFF block at top for the full dated correction and the disclosed
-    ≈334/300 GPU-h budget overrun). At-launch guard printed 266.47/300
-    using the banked constants, in good faith at the time.
-    Completes §5.7's literal 3-rung criterion (98M/392M/1.3B).
-
-  **DECISION-PENDING (user call):**
-  - The key-anchoring program is now fully CLOSED end to end (mechanism
-    question, candidate (e) falsification probe, and the K=48
-    capacity-curve extension all resolved — see the CLOSED bullet
-    above). No open decision remains on this campaign; no wave is
-    scheduled. Next direction on this thread, if any, is a fresh
-    brainstorm/research/attack/validate waterfall (e.g. investigating
-    value-crowding at K/d=0.75, per §11.12's own named-not-yet-tested
-    candidate), not a continuation of the existing design.
-
-**Scale-up doctrine (user directive 2026-07-03):** deploy plenty of
-adversarial design/attack teams and independent code audits on everything;
-max out ALL levers — data (more corpora beyond the 43.7M-token OpenR1 slice +
-WikiText already on box), memory (80GB/GPU is barely touched by probe-scale
-models; scale d_state/batch/model where the question warrants), compute
-(8×H100 continuous). Sonnet subs do the work; orchestrator stays top-level
-and verifies key claims itself.
-
-**Constructive-demonstration mandate (user directive 2026-07-03):** don't
-just map failures — demonstrate positive capability. Every attribution
-program carries a pre-registered FIX/demo wave as its deliverable (the
-exactness program's Wave F: once the mechanism is named, demonstrate the
-intervention that moves the K-frontier — headline target: K=32 held-out-hop
-recovery from ≈0.05 floor to ≥0.5). Findings docs and papers frame the
-demonstrated path forward, with failure maps as supporting evidence.
-
-### Then — Chapter 3: matrix-native on real data (Task E gate PASSED; exactness-mechanism study now CLOSED — scale program not yet designed)
-
-Byte-level input, matrix tokens throughout, multi-modal training. A dedicated
-research pass (`research/bytes-vs-tokens-matrix-native-june2026.md`, cross-
-checked by an external deep-research pass) settled a design question that was
-previously just an assumption: **hold the tokenizer standard (GPT-2/BPE) for
-the primary scaled matrix-native experiment; treat byte-level input as a
-separate, high-priority follow-on ablation, not bundled with the matrix
-change.** Reasoning: (1) bundling two unproven architectural changes (matrix
-representation + byte input) makes any result uninterpretable — this is the
-same discipline the byte-level LM field uses on itself (BLT holds architecture
-fixed and varies only the tokenizer); (2) byte-level models do not currently
-beat BPE on math/reasoning benchmarks at matched compute; (3) matrix-native-on-
-BPE is *already* a novel, unoccupied combination, so there's no novelty
-pressure to rush bytes in. The counter-evidence that keeps bytes a
-**high-priority**, not "someday," follow-on: 2025-2026 literature (Tokenization
-Counts, arXiv:2402.14903; BitTokens, arXiv:2510.06824) shows number/token
-granularity causally changes arithmetic reasoning, so tokenization is a held-
-fixed confound with an **open interaction**, not a proven-orthogonal one — do
-not claim it as inert in any write-up. When the byte ablation is designed, use
-a TPR-style outer-product byte-window embedding (Smolensky 1990; TP-Transformer,
-arXiv:1910.06611), not a naive tokenizer swap, since a structured byte-window
-construction is the principled way rank could plausibly interact with byte
-granularity.
-
-### Backup — Pivot direction
-
-If Task E falsifies, publish that as the decisive result and reassess before
-committing further compute to matrix-thinking. Candidate pivots (unordered):
-- Byte-level JEPA with LeJEPA SIGReg (Thread 1 of the original thesis, no
-  matrix commitment required)
-- Continuous-reasoning extensions without matrix structure (e.g. SIM-CoT-style
-  step-level supervision done properly)
-- Other mech-interp directions surfaced by the workshop paper reviews
+**Byte-Agnostic (on hold):** raw byte input for domain-general processing, partially validated pre-Chapter-2. Explicitly out of scope for every active campaign (never bundle two unproven axes); revisit only after a campaign's verdict, per the standing tokenization-held-fixed hard rule.
 
 ---
 
 ## Hardware
 
-- **Brev 8×H100 80GB (active, 2026-07-01 onward)** — "nvidia-pebble /
-  youthful-indigo-turkey", GCP asia-southeast1-c, via an NVIDIA Brev
-  accelerator-lab grant. **[CORRECTED 2026-07-03]** The grant is a 2-month
-  uptime-metered hardware window, not a 1.6k GPU-h utilization budget; the
-  instance cannot be stopped (`brev stop` unsupported — delete only) and
-  bills while RUNNING, so the operative budget is ~192 GPU-h/day for the
-  window (~10k+ GPU-h) and the strategy is full saturation with audited
-  work. SSH via the Brev CLI alias
-  `youthful-indigo-turkey` (see `matrix-thinking/H100_SETUP.md`). Python
-  venv at `/home/nvidia/tdenv` (torch 2.12+cu13; the base image ships no
-  torch/conda). Task D used ~76 GPU-h (~5% of budget) for a complete,
-  decisive, written-up result — this experiment class is cheap; do not
-  over-provision compute before proving the code, per the audit discipline
-  below.
-- Prior/legacy: single H100 80GB HBM3 pods (cloud rental, `/toy_story_slam/`
-  volume) — used through the matrix-CODI workshop-paper era. Endpoint in
-  `matrix-thinking/H100_SETUP.md` is stale; superseded by the Brev cluster.
-- Local SSD at `/Volumes/1TB_SSD/learned-representations/` holds large data and checkpoints (not in repo)
-  - `data/` — 2.3GB (WikiText-103, CIFAR-10)
-  - `checkpoints/` — 219MB (model checkpoints from completed experiments)
+- **Brev 8×H100 80GB (active, 2026-07-01 onward)** — "youthful-indigo-turkey", GCP asia-southeast1-c, NVIDIA Brev accelerator-lab grant. Uptime-metered (bills while running, `brev stop` unsupported — delete only); operative budget ≈192 GPU-h/day for the 2-month window. SSH via the Brev CLI alias; Python venv `/home/nvidia/tdenv` (torch 2.12+cu13). Saturation directive (GOALS item 5): all 8 GPUs in play. Full setup + perpetual-sweep pattern: `matrix-thinking/H100_SETUP.md`.
+- **M4 Mac Mini 32GB** — dev machine, <15M params.
+- **M4 Ultra Mac Studio 256GB** — available for 50-100M param experiments.
+- Local SSD `/Volumes/1TB_SSD/learned-representations/` — data + checkpoints, not in repo (2.3GB data, 219MB+ checkpoints).
 
 ---
 
 ## Documentation Map
 
-*(Refreshed 2026-07-04 during a documentation consolidation pass — see
-`consolidation-manifest.md` at repo root, temporary, for the full
-file-by-file move/merge record of that pass.)*
+**Root (kept ≤8 files by design):** `README.md` (public summary); `STATE.md` (this file); `EXPERIMENT_LOG.md` (chronological, append-only, exact numbers); `references.md` (bibliography); `CLAUDE.md` (workflow + hard rules + `[LEARN]` convention); `AGENTS.md` (same content, Codex CLI mirror); `AUTOPILOT_HANDOFF.md` (agentic harness spec).
 
-**Root (this repo's top level, kept ≤8 files by design):**
-- **README.md** — public-facing 1-page summary
-- **STATE.md** (this file) — project dashboard, single source of truth
-- **EXPERIMENT_LOG.md** — chronological, append-only history of every
-  experiment with exact numbers; the 2026-07-01→04 campaign section has its
-  own table-of-contents header grouping entries by program thread
-- **references.md** — bibliography organized by topic
-- **CLAUDE.md** — workflow rules, hard rules learned from prior experiments, and the `[LEARN]` block convention for the learnings DB
-- **AGENTS.md** — the same content as CLAUDE.md, kept in sync, for the Codex CLI harness (`.codex/`)
-- **AUTOPILOT_HANDOFF.md** — agentic harness (hooks, skills, notification layer); setup + phase roadmap
+**matrix-thinking/ (living docs; closed-program docs carry their own verdict inline rather than being archived — they're the primary source, not disposable scratch):**
+- **Currently active registries** — `HEAD_TO_HEAD_DEMO_DESIGN.md`, `CAPABILITY_SEPARATION_DESIGN.md` (§1 Stage 1 + §2 Stage 2), `FROZEN_BIAS_LM_DESIGN.md` (§13 fix-at-scale), `deltanet_rd/run_attractor_robustness_2x2.py` + its build/audit commits — see ACTIVE CAMPAIGNS above for current status of each.
+- **Closed-program records** — `KILL_LIST.md`, `CONTROL_A_HISTORY.md`, `DELTANET_CAUSAL_RANK_DESIGN.md`, `DELTANET_REALDATA_DESIGN.md`, `STAGE_G_DESIGN.md`, `chapter2/STAGE0_DESIGN.md`, `chapter2/TASK_D_PREREGISTRATION.md`, `chapter2/TASK_D_WRITEUP.md`, `chapter2/NEXT_EXPERIMENT_DESIGN.md`, `chapter2/TASK_E_FINDINGS.md`, `DELTANET_RD_EXACTNESS_DESIGN.md`, `KEY_ANCHORING_DESIGN.md` + its `KEYANCHOR_REV6/7_ATTACK.md` satellites, `KEY_ANCHORING_SCALING_DRAFT.md`, `SCALE_TRANSFER_DESIGN.md`, `REASONING_LINK_DESIGN.md` — see "Closed Programs" above for the current-facing summary of each.
+- **`H100_SETUP.md`** — pod environment + unattended-sweep pattern. **`QUEUE.md`** — banner + pointer table only (historical body in `archive/`). **`src/`, `chapter2/*.py`, `deltanet_rd/`** — model/training code. **`submissions/`** — `icml-mi-workshop-2026/` (accepted), `neurips-ws-2026/` (drafting), plus the paper trees for `workshop-2026/` and `iclr-2027/`.
 
-**matrix-thinking/ (living docs; closed-program docs carry a `STATUS:
-CLOSED` header with a one-paragraph verdict rather than being archived,
-since they're the primary source for a closed finding, not disposable
-scratch):**
-- **matrix-thinking/QUEUE.md** — engineering queue; trimmed to a banner +
-  pointer table (2026-07-04) — the ~570-line pre-2026-07 body moved to
-  `archive/matrix-thinking-workshop-era/QUEUE_historical.md`
-- **matrix-thinking/KILL_LIST.md** — experiments killed by attack-agent review with recorded fatal flaws; still actively cited by current Chapter 2 design docs
-- **matrix-thinking/CONTROL_A_HISTORY.md** — consolidated history + the
-  previously-undocumented 2026-04-28 result for the Control A null-baseline
-  experiment (added 2026-07-04; supersedes 6 archived design/audit docs)
-- **matrix-thinking/H100_SETUP.md** — pod environment + the perpetual/unattended sweep pattern
-- **matrix-thinking/DELTANET_CAUSAL_RANK_DESIGN.md**, **DELTANET_REALDATA_DESIGN.md**, **STAGE_G_DESIGN.md**, **chapter2/STAGE0_DESIGN.md**, **chapter2/TASK_D_PREREGISTRATION.md**, **chapter2/TASK_D_WRITEUP.md**, **chapter2/NEXT_EXPERIMENT_DESIGN.md** (Task E design), **chapter2/TASK_E_FINDINGS.md** — the five closed 2026-07-01→03 programs; each carries a `STATUS: CLOSED` header
-- **matrix-thinking/DELTANET_RD_EXACTNESS_DESIGN.md** — CLOSED through §16 (Wave 0/1/F/geo3, including the geo3 escalation); the stability-targeted follow-on (§14.8) is now `KEY_ANCHORING_DESIGN.md` (below), run
-- **matrix-thinking/KEY_ANCHORING_DESIGN.md** — **PROGRAM COMPLETE (2026-07-07)**, §10.14 + §11.12 are the final verdicts. Full arc: Wave 1 + confirm wave (§9/§9.6) → Rev 6 rescore REJECTED (`KEYANCHOR_REV6_ATTACK.md`) → mechanism-tier wave (§10/§10.13, Outcome C reconfirmed both arms, construction-stabilization account registered) → candidate (e) falsification probe (§10.14, CONFIRMED BY ABLATION — a frozen, never-trained anchor table matches/exceeds the learned one) → K=48 capacity-curve extension (§11/§11.12, bar missed 0/3, capacity cliff K/d 0.5→0.75). Literal §3.5 outcome for the entity-alignment hypothesis is **C** throughout, never revisited; the *mechanistic account* for the real, reproducible behavioral gain moved from descriptive to confirmed-by-ablation. See STATE.md's key-anchoring bullet above and `EXPERIMENT_LOG.md`'s dated verdict entries (mechanism-tier, candidate-(e), K=48-capacity-curve)
-- **matrix-thinking/stageg/** — Stage G's H_e task-swap harness (built, calibration run, Wave C gated open — see "In flight" above)
-- **matrix-thinking/scripts/** — runnable training scripts
-- **matrix-thinking/src/**, **chapter2/*.py** — model code
-- **matrix-thinking/submissions/** — `icml-mi-workshop-2026/` (accepted; checklist and 5-round review are closed historical records) and `neurips-ws-2026/` (draft in progress, no figures yet)
-
-**Elsewhere:**
-- **experiment-runs/_auto_sync/WORKFLOW_FOR_AGENTS.md** — how the autonomous pod monitor, wakeup poll, and pull loop operate (agent-facing runbook for continuous GPU utilization)
-- **experiment-runs/README.md** — the hybrid archive policy (≤25MB tracked in git; full archive, including large payloads, on the SSD) — source of truth also mirrored in `CLAUDE.md`'s Data section
-- **research/** — individual research notes (see research/README.md for index; well-organized, no restructuring needed as of 2026-07-04)
-- **experiment-runs/** — completed runs with scripts and results, size-capped per the hybrid policy above
-- **archive/** — dead ends and historical material, including three folders added 2026-07-04 (`matrix-thinking-workshop-era/`, `chapter2-gauntlet/`, `team-output-2026-04-28/`) — see archive/README.md
-
-
-**NOVELTY STRESS-TEST VERDICT (2026-07-09, PI-skepticism-driven):
-HOLDS-WITH-NARROWED-SCOPE.** The dangerous question resolved FOR the
-finding: our runs used use_qk_l2norm_in_kernel=True THROUGHOUT
-(lm_pretrain_rd.py:984, code-verified — the same stock flag Kimi
-Linear arXiv:2510.26692 §4 and Qwen3-Next cite), so the attractor was
-measured WITH the community mitigation active; qk-norm conditions
-single vectors (eigenvalue stability), the attractor is CROSS-KEY
-population geometry — different axes, and two STRONGER interventions
-(Gram penalty, ZCA whitening) already failed to fix it
-(06_soft_fixes_fail.tex). Closest prior art (arXiv:2602.04852,
-2602.02195) confirmed descriptive-on-frozen-checkpoints only — the
-causal apparatus + fix is the novelty. The paper's intro already
-scopes correctly (ungated/single-head/synthetic-probe/geometry-leg
-14M-1.31B; NOT production Gated-DeltaNet). FOLLOW-ON FUNDED: 2×2
-qknorm×gating at 14M (screening 4 cells ≈1.0 GPU-h; n=3 escalation
-≤3.03 iff qualitative split, pre-registered) — BUILD AGENT DISPATCHED
-(additive flags in lm_pretrain_rd.py, bit-identical defaults
-negative-tested; discharges iclr-2027 limitation #2).
-
-**GPU SATURATION DIRECTIVE (PI, 2026-07-09, verbatim intent: "how will
-[we] ensure that all these 8 gpu's are hot for the next few days. I
-don't want these sitting idle anymore"):** queued science totalled ~20
-GPU-h vs 192 GPU-h/day supply — the pipeline's cells were too small to
-saturate. RESPONSE (recorded as the authorization the never-self-amend
-rule requires): two new compute-heavy waves chartered into the
-gauntlet: (1) **FIX-AT-SCALE** (frozen-bias fix validated at 98M+392M —
-closes the flagship's biggest disclosed caveat; proposed NEW ledger
-~170 GPU-h; design agent dispatched, registry = FROZEN_BIAS_LM_DESIGN
-§2); (2) **CAPABILITY STAGE 2** (depth generalization — the first true
-capability demo; design NOW, launch stays gated on Stage-1 readout per
-§1.11; cost re-derived at measured rates, likely far under the old
-50-120 sketch → grow seeds/grids to use the room; design agent
-dispatched, registry = CAPABILITY_SEPARATION_DESIGN §2). Contingent
-third: 2×2-at-scale (~168 GPU-h) iff tonight's screening splits.
-Standing policy: pre-registered seed extensions exercised liberally.
-Box layout planned per-wave (392M DDP cells + small-cell waves
-interleaved; all 8 GPUs in play — GPU 7 no longer reserved).
-
-**NOVEL-ARCHITECTURE WATERFALL — stages 1-2 RETURNED (2026-07-09):**
-TOP CANDIDATE (to attack stage): **Native Composition Reads** — read
-via query-selected matrix powers/products of the fast-weight state
-(o = read(Z^h, q), generalizing to relation chains Z_rn···Z_r1);
-capability claim = single-pass variable-depth exact relational
-composition, no CoT; novelty OPEN (closest: fast-weight PKM
-2601.00671, MAGNA 2009.14332, DeltaProduct 2502.10297 — all different
-axes); first wave ~35-50 GPU-h on the Task E harness; PonderNet
-kill-shot pre-answered (closed-form ‖C‖·h leakage stopping rule, not
-a learned halting scalar); unified w/ the multi-relation operator-bank
-idea as a GATED second sub-experiment (RotatE 1902.10197 = the prior
-art to distinguish: ours online/in-context/causally-verified).
-SECOND TRACK (parallel-able): rank-budgeted writes (per-context rank
-allocation at the write step; gap verified vs 2602.04852/2602.02195
-descriptive-only + Elastic Spectral SSM's global-only budget); ~25-35
-GPU-h. CHEAP PIGGYBACK: orthogonal-complement novelty detector on
-ARCHIVED Z-dumps (near-zero GPU; unique instrument). DO-NOT-BUILD
-list recorded in the waterfall transcript (Grazzi/DeltaProduct/RWKV-7/
-TPR/RotatE territory). ATTACK STAGE DISPATCHED on the unified top
-candidate.
+**Elsewhere:** `experiment-runs/README.md` (hybrid archive policy: ≤25MB tracked in git, larger payloads SSD-only); `experiment-runs/` (per-run scripts + results, dated directories); `research/` (literature surveys, see `research/README.md`); `archive/` (dead ends + historical material, see `archive/README.md`).
