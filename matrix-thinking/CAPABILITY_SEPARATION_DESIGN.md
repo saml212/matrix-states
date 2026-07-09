@@ -5916,3 +5916,27 @@ next touch).
 **DISPOSITION: FIXES DISPATCHED (F1-F6 + the two new negative controls
 + the real runner + the Arm-1 retrain plan) → scoped re-audit of the
 delta → deploy → fla cross-check → 11-cell calibration gate → sweep.**
+
+### §2.21 STAGE 2 FIXES RECORD (2026-07-09): §2.20 F1-F6 + minors + Arm-1 retrain utility ALL LANDED — commit a75754f; scoped re-audit DISPATCHED
+
+Every fix mutation-kill-proven: F1 per-depth Arm-1 eval (L_lo=L_hi=D;
+reverting scored L∈[1..8] and the new smoke assert caught it); F2
+partial-collapse plant (31/32-dead via exact axis-aligned algebra —
+mean→max mutation now dies); F3 SHA-256 per-tensor fingerprint wired
+into run_calibration_wave AND run_real_cell (fresh-composer regression
+fires ParamFingerprintMismatch); F4 run_real_cell wired (cosine_loss,
+real budgets, M-D0 profile, 7-depth gate, D_test_results — the
+None-check now real); F5 the (1,8,64) override removed, n_depths_gated=7
+proven; F6 param-match via computed WIDEN_HIDDEN=530 residual MLP (all
+arms within ±15%, deltas −4.8% to +9.7%; WIDEN=0 → −84.5% caught);
+m1-m4 (m1 seed+1 documented as deliberate — literal seed-7 would
+correlate keys/values; m4 Stage2DepthOneCoverageUnsupported); m5 =
+best-effort judgment (Arm-1 out-of-range handling, stage2_task.py:
+335-348) — coordinator CONFIRMS it here (the §2.20 m5 note was the D=1
+floor knife-edge observation, no code change required; the agent's
+addition is harmless and kept). Arm-1 retrain utility --retrain-arm1
+priced 0.2148 GPU-h, PI-signoff-gated, wiring-smoked only. Both suites
+green (6/6 + legacy 13/13). **NEXT: scoped worktree re-audit (re-run
+§2.20's escaped mutations + the new kill proofs) → deploy (md5) → box
+fla cross-check FIRST → Arm-1 retrain → 11-cell calibration gate (7
+depths) → write the harvest analysis script → sweep (cap 25).**
