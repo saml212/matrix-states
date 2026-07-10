@@ -1,0 +1,63 @@
+\section{Limitations}
+\label{sec:limitations}
+
+\paragraph{Scope.} All results use a single-head, single-layer DeltaNet,
+one synthetic 107-entity recall grammar, sub-million-parameter models, and
+$d_{\mathrm{state}} \in \{64, 80, 96, 128\}$
+($d_{\mathrm{state}} = 32$ is excluded by a kernel-level failure in the
+underlying library, measured independently of this program). No claim
+transfers to production-scale gated variants
+\citep{siems2025deltaproduct, grazzi2025negative}, to matrix-state models
+at language-model scale \citep{mishra2026m2rnn}, or to natural language.
+The per-byte conservation reading of Table~\ref{tab:bytes} rests on two
+located points plus one in-window bound; it is a measured regularity over
+$d_{\mathrm{state}} \in [64, 96]$, not a law.
+
+\paragraph{The frontier's functional form is open.} Four dimensions
+constrain the growth of $x_0(d)$ but do not pin its form: the two located
+fits refute ratio invariance, yet the absolute-slack and power-law
+accounts both remain live at $d_{\mathrm{state}}=96$, where the fit is
+$100\%$ bootstrap-degenerate from real per-seed scatter. % evidence: C11
+Discriminating them requires either variance reduction at the noisiest
+loads or a window that brackets the $d_{\mathrm{state}}=96$ transition
+from above, and a registered analysis found the present grid underpowered
+for that discrimination; we therefore make no functional-form claim.
+% evidence: C13
+
+\paragraph{Near-ceiling fine structure at $d_{\mathrm{state}}=96$ is
+instrument-limited.} The unlocked grid's non-monotonic dip-and-recovery
+pattern, including the exact-ceiling reading at $K{=}90$, sits close to
+the admission instrument's own resolution. A registered two-cell
+fresh-seed diagnostic aimed at this fine structure routed to its
+pre-registered degenerate outcome: neither cell produced an admissible
+reading at the recalibrated gate, and the failing admissibility leg
+differed from the one the original grid failed, so the diagnostic's
+adjudication triggers were never licensed to fire. % evidence: C14
+We therefore scope the $d_{\mathrm{state}}=96$ claim strictly as the
+absence of a monotonic collapse through $K/d = 0.9375$, and we treat the
+per-load ordering near ceiling as unresolved. The admission gate episode
+itself (Section~\ref{sec:frontier}) cuts both ways: it shows the
+measurement pipeline can manufacture an apparent collapse, and it is
+disclosed precisely so that the reported transitions are read against
+that risk; the located $d_{\mathrm{state}} \in \{64, 80\}$ fits pass
+their gates without any recalibration.
+
+\paragraph{The dose test bounds the tested variable only.} The
+exoneration of Section~\ref{sec:dose} covers scalar coherence dose under
+two frozen injection structures (rank-4 and rank-48). It does not cover
+coherence that co-evolves with training: a non-frozen
+$d_{\mathrm{state}}=128$ reference point whose table coherence drifted to
+$[0.127, 0.202]$ under ordinary training also recovers at $h4 = 1.0$,
+% evidence: C3
+but such a point confounds the coherence level with how the level was
+reached, and is reported as context, not as part of the controlled sweep.
+Mechanistic accounts below the level of the disclosed comparison axes
+(for example, optimization dynamics through the larger eval-time
+Newton--Schulz block) are untested here.
+
+\paragraph{One architecture family.} Whether the same three-part
+structure, a sharp transition, its dissolution with scale, and a
+coherence exoneration, appears in other fast-weight update rules or
+state-space families is untested; the measurement recipe (pre-registered
+logistic localization, degenerate-fit disclosure, saturation checks,
+admission gates) is the transferable artifact.

@@ -1,0 +1,43 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Fast-weight and linear-attention architectures.}
+\citet{katharopoulos2020linear} identify linear attention with a
+recurrent state; \citet{schlag2021linear} connect it to fast weight
+programmers and introduce the delta-rule update this testbed trains;
+\citet{yang2024deltanet} give the parallel kernel used here. DeltaProduct
+\citep{siems2025deltaproduct} and negative-eigenvalue variants
+\citep{grazzi2025negative} extend the family's expressivity, and
+matrix-state RNNs push it to language-model scale \citep{mishra2026m2rnn};
+state-space models make the same constant-memory trade
+\citep{gu2023mamba}, with known expressivity limits
+\citep{merrill2024illusion}. None of these works locates a trained
+capacity transition or measures its movement with state dimension, which
+is this paper's object.
+
+\paragraph{Capacity of associative memories.} Classical correlation-matrix
+memories establish the $K \lesssim d$ regime for linear reads
+\citep{kohonen1972correlation, anderson1972simple};
+\citet{barnfield2026sharp} prove sharp thresholds for linear associative
+recall across retrieval rules. \citet{nichani2025factual} show that under
+argmax decoding a rank-one state recovers on the order of $d$
+associations: the readout, not the state alone, sets the accounting. This
+paper's contribution is empirical and complementary: a located frontier
+for a \emph{trained} delta-rule memory under an exact continuous readout,
+the regime where within-state capacity is load-bearing.
+
+\paragraph{Memory management for long-context inference.} KV-cache
+eviction and compression manage a memory footprint that grows with
+context \citep{xiao2024streamingllm, zhang2023h2o}, and recall-throughput
+trade-offs in efficient architectures are measured by
+\citet{arora2023zoology}. This paper addresses the fixed-size endpoint of
+that trade-off: not how much a growing cache can be shrunk, but how much
+a state of constant byte size can be trusted to hold.
+
+\paragraph{Rank in trained linear-attention states.}
+\citet{nazari2026rank} and \citet{sun2026staterank} describe effective-rank
+dynamics of linear-attention states in trained LLMs. Those are
+descriptive accounts of what rank trained states occupy; the present
+work measures where task recall collapses as bound load approaches the
+state's dimension, with pre-registered fits and a causal dose-response
+test on the leading confound.

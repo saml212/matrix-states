@@ -1,0 +1,116 @@
+\section{The Capacity Frontier Grows Super-Linearly}
+\label{sec:frontier}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig3_frontier}
+  \caption{The load frontier $x_0 = K^{*}/d_{\mathrm{state}}$ versus
+  state dimension. Filled circles with error bars: located transition
+  midpoints with 95\% bootstrap CIs at $d_{\mathrm{state}}=64$ and $80$.
+  Open squares with arrows: window-limited lower bounds where no
+  transition appears anywhere in the measured window
+  ($d_{\mathrm{state}}=96$ through $K/d=0.9375$;
+  $d_{\mathrm{state}}=128$ through $0.71875$). Grey band: the
+  pre-registered ratio-invariance band $[0.4745, 0.6165]$, which the
+  $d_{\mathrm{state}}=80$ CI excludes entirely. Green and orange
+  patches at $d_{\mathrm{state}}=96$: the two registered rival
+  predictions for $x_0(96)$ (absolute-slack $[0.718, 0.739]$; power-law
+  $[0.768, 0.837]$), neither excluded by the degenerate fit. Takeaway:
+  the safe load ratio itself grows with state dimension.}
+  \label{fig:frontier}
+\end{figure}
+
+If the transition of Section~\ref{sec:act1} were a property of the ratio
+$K/d_{\mathrm{state}}$, its location would be invariant across scales. The
+invariance band $[0.4745, 0.6165]$, centered on the
+$d_{\mathrm{state}}=64$ midpoint, was registered before any larger-scale
+cell ran. % evidence: C10
+
+\paragraph{The frontier at $d_{\mathrm{state}}=80$.} With loads
+$K \in \{20, 43, 48, 53, 58\}$ at three seeds each, escalated to five
+seeds at the two mid-transition loads, the refit locates
+$x_0(80) = 0.6779$ (95\% CI $[0.6683, 0.6867]$, $w = 0.0479$, 0 of
+4{,}000 bootstrap fits degenerate). % evidence: C10
+The CI excludes the invariance band entirely, on the high side: in ratio
+terms the frontier moved up by $+0.13$ as $d_{\mathrm{state}}$ grew from
+64 to 80. % evidence: C10
+Ratio invariance is refuted, in the direction of \emph{more} usable load
+per dimension at larger scale (Figure~\ref{fig:frontier}).
+
+\paragraph{No transition through $K/d = 0.9375$ at
+$d_{\mathrm{state}}=96$.} The registered $d_{\mathrm{state}}=96$ grid
+($K = 24/51/57/63/69$, three seeds) is flat near ceiling across
+$K/d \in [0.25, 0.71875]$, with per-load means
+$1.0/1.0/0.9974/0.9805/0.9839$; its sigmoid fit is degenerate ($98.5\%$
+of bootstrap resamples) and is disclosed as such, never quoted as a
+location. % evidence: C16
+A wider grid ($K = 69/72/78/84/90$, three seeds) initially returned 11 of
+its 12 new cells inadmissible at the standing admission gate. An
+independent diagnostic instrument traced the failures to a tolerance
+miscalibration in the gate's convergence check, not to the cells: every
+one of the 4{,}608 flagged evaluation episodes resolves by
+$n_{\mathrm{iter}} \le 28$ against the production setting of 20.
+% evidence: C12
+Only the admission flag was recalibrated (11 cells flipped); no $h4$
+measurement changed and no cell re-ran. % evidence: C12
+On the unlocked grid the per-load means are
+$0.9592/0.9216/0.9326/0.9581/1.0000$ across
+$K/d \in [0.71875, 0.9375]$: no monotonic collapse anywhere in the
+window, a non-monotonic dip-and-recovery instead, and a fit that is
+$100\%$ bootstrap-degenerate from genuine per-seed scatter (the noisiest
+load, $K{=}72$, spans $0.8426$--$0.9904$ across seeds). % evidence: C11
+The honest summary is a window-limited bound: at
+$d_{\mathrm{state}}=96$, no transition through $K/d = 0.9375$, with the
+fine structure near ceiling left unresolved
+(Section~\ref{sec:limitations}).
+
+\paragraph{Scaling in bytes, not width.} Writing
+$K^{*} = x_0 \cdot d_{\mathrm{state}}$ for the located midpoint load in
+raw bindings, the two located frontiers give $K^{*} = 34.9$ at
+$d_{\mathrm{state}}=64$ and $K^{*} = 54.2$ at $d_{\mathrm{state}}=80$.
+% evidence: C15
+The two-point growth exponent is
+$p = \ln(54.23/34.91)/\ln(80/64) = 1.97$, with CI-propagated range
+$[1.86, 2.09]$ from the two fits' bootstrap intervals: % evidence: C15
+consistent with $p = 2$, capacity proportional to state \emph{bytes}
+($4d^2$ at fp32), and excluding $p = 1$, capacity proportional to state
+width. Table~\ref{tab:bytes} states the same arithmetic per byte. Two
+registered functional forms for the growth remain live and undiscriminated
+at $d_{\mathrm{state}}=96$, where the fit is degenerate: an
+absolute-slack account predicting $x_0(96) \in [0.718, 0.739]$ and a
+power-law account predicting $[0.768, 0.837]$. % evidence: C13
+Both bands sit inside the flat measured window, so neither is excluded;
+discriminating them is registered follow-on work, not claimed here.
+
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{rrllr}
+    \toprule
+    $d_{\mathrm{state}}$ & state bytes (fp32) & frontier $x_0$ & $K^{*}$ (bindings) & bindings/KiB \\
+    \midrule
+    64  & 16{,}384 (16 KiB) & $0.5455$ (CI $[0.5385, 0.5513]$) & $34.9$ & $2.18$ \\
+    80  & 25{,}600 (25 KiB) & $0.6779$ (CI $[0.6683, 0.6867]$) & $54.2$ & $2.17$ \\
+    96  & 36{,}864 (36 KiB) & $> 0.9375$ (window-limited bound) & $\ge 90$ & $\ge 2.50$ \\
+    128 & 65{,}536 (64 KiB) & $> 0.71875$ (window-limited bound) & $\ge 92$ & $\ge 1.44$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Provisioning arithmetic for a $d \times d$ delta-rule state on
+  this testbed. $K^{*} = x_0 \cdot d_{\mathrm{state}}$ is the located
+  half-recovery load in raw bindings (rows 1--2) % evidence: C15
+  or the largest load measured at or near ceiling within the tested
+  window (rows 3--4, bounds only). % evidence: C15
+  Bindings per KiB is $K^{*}$ divided by state size at 32-bit precision.
+  Between the two located rows, capacity per dimension rises
+  ($x_0$: $0.5455 \to 0.6779$) while capacity per byte is approximately
+  conserved ($2.18 \to 2.17$ bindings/KiB). % evidence: C15
+  The $d_{\mathrm{state}}=128$ row's bound is loose because its measured
+  window stops at $K/d = 0.71875$.}
+  \label{tab:bytes}
+\end{table}
+
+For a deployment engineer the reading is direct: over the measured range,
+spending bytes on a larger fast-weight state buys bindings at an
+approximately constant per-byte rate, and the safe load \emph{ratio}
+tuned at a small state under-provisions a larger one by a CI-excluding
+margin. % evidence: C15

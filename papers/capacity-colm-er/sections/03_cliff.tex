@@ -1,0 +1,71 @@
+\section{The Transition, Located and Dissolved}
+\label{sec:cliff}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.98\textwidth]{fig1_cliff}
+  \caption{Held-out 4-hop recovery $h4$ ($\mathrm{rec}@0.9$, exact
+  continuous cosine, never argmax) versus load ratio
+  $K/d_{\mathrm{state}}$ in a single-layer DeltaNet on the 107-entity
+  recall grammar. \textbf{Left:} at $d_{\mathrm{state}}=64$, seed-mean
+  recovery over the measured loads ($K=16$ saturation anchor, archived
+  $K=32/48$, new $K=34/38/42/46$ at three seeds each; open circles are
+  per-seed cells) transitions sharply; the logistic fit locates the
+  midpoint at $x_0=0.5455$ with 95\% bootstrap CI $[0.5385, 0.5513]$
+  (shaded band). \textbf{Right:} the identical $K/d_{\mathrm{state}}$
+  window re-run at $d_{\mathrm{state}}=128$ ($K=68/76/84/92$, three seeds
+  each) is flat at exact ceiling, $h4=1.0$ in 12 of 12 cells; the sigmoid
+  fit on this flat data is degenerate by construction (bootstrap
+  degenerate fraction $1.0$) and no curve is drawn, per the
+  pre-registered disclosure rule. Takeaway: the same load ratio that
+  collapses recall at $d_{\mathrm{state}}=64$ is loss-free at
+  $d_{\mathrm{state}}=128$.}
+  \label{fig:cliff}
+\end{figure*}
+
+\subsection{A Sharp Transition at $d_{\mathrm{state}}=64$}
+\label{sec:act1}
+
+At $d_{\mathrm{state}}=64$, seed-mean $h4$ over the measured loads falls
+$1.000$ ($K{=}16$) $\to 0.6669$ ($K{=}32$) $\to 0.5676$ ($K{=}34$) $\to
+0.3316$ ($K{=}38$) $\to 0.1177$ ($K{=}42$) $\to 0.0434$ ($K{=}46$) $\to
+0.0215$ ($K{=}48$): % evidence: C1
+a collapse concentrated in a narrow band of load, not a graceful decline
+(Figure~\ref{fig:cliff}, left). A logistic fit with a 4{,}000-trial
+seed-level parametric bootstrap (0 of 4{,}000 fits degenerate) locates
+the midpoint at $x_0 = 0.5455$ (95\% CI $[0.5385, 0.5513]$, width
+$0.0127$) with characteristic width $w = 0.0597$ (CI $[0.0557, 0.0642]$);
+% evidence: C2
+the band $x_0 \pm w$ spans $K/d_{\mathrm{state}} \approx [0.486, 0.605]$,
+or $K \approx 31$--$39$ raw bindings. % evidence: C2
+Before this wave, the transition was known only to lie somewhere between
+the two archived flanking loads, a bracket $0.25$ wide in ratio terms;
+the fit tightens that bracket by a factor of roughly $20$.
+% evidence: C2
+This is a statement about \emph{where} the transition sits, not \emph{why}
+it occurs; Sections~\ref{sec:dose} and~\ref{sec:frontier} test candidate
+mechanisms directly.
+
+\subsection{The Same Window, Flat at $d_{\mathrm{state}}=128$}
+\label{sec:act2}
+
+Re-running the identical $K/d_{\mathrm{state}}$ window at
+$d_{\mathrm{state}}=128$, with matched loads $K = 68, 76, 84, 92$ at three
+seeds each, produces $h4 = 1.0$ in every one of the 12 cells
+(Figure~\ref{fig:cliff}, right). % evidence: C3
+Per the pre-registered outcome semantics this is the strong form of a
+shifted transition: not a moved midpoint, but a transition that exits the
+measured window entirely. At $d_{\mathrm{state}}=128$ the state supports
+at least $92$ of the $107$ entities through held-out 4-hop composition,
+in the exact ratio band where $d_{\mathrm{state}}=64$ had collapsed from
+$0.667$ to $0.022$. % evidence: C3
+
+Two checks rule out a broken or saturated instrument. Hop-21 recovery,
+the far harder extrapolation, spans $0.9900$--$1.0$ across the 12 cells
+rather than sitting uniformly at $1.0$, % evidence: C4
+and the state's measured effective rank tracks the load almost exactly
+(at $K{=}84$: $83.7/83.6/83.4$ across the three seeds). % evidence: C4
+The state is using its permitted rank, and the readout retains headroom;
+the flat $h4$ row is a real ceiling of the measured quantity. The
+immediate consequence: the capacity ratio $K/d_{\mathrm{state}}$ alone
+does not determine where recall collapses.

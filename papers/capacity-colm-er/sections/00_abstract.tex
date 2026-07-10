@@ -1,0 +1,29 @@
+% 00_abstract — target 200-230 words (styleguide band)
+How many independent bindings does a fixed-size fast-weight state hold
+before recall collapses? We measure this directly in a single-layer
+DeltaNet trained on a synthetic associative-recall grammar, grading
+recovery by exact continuous cosine similarity rather than argmax over a
+codebook, and we report three results and one provisioning law. First, at
+state dimension $d_{\mathrm{state}}=64$ the held-out recall frontier is a
+sharp transition, not a graceful decline: a logistic fit over the measured
+loads locates the midpoint at $K/d_{\mathrm{state}} = 0.5455$ (95\%
+bootstrap CI $[0.5385, 0.5513]$). % evidence: C2
+Second, the ratio is not the law: the identical $K/d_{\mathrm{state}}$
+window is flat at ceiling at $d_{\mathrm{state}}=128$ (12 of 12 cells at
+$h4=1.0$), % evidence: C3
+the $d_{\mathrm{state}}=80$ frontier sits at $0.6779$ (CI
+$[0.6683, 0.6867]$), excluding a pre-registered ratio-invariance band,
+% evidence: C10
+and $d_{\mathrm{state}}=96$ shows no transition anywhere through
+$K/d_{\mathrm{state}}=0.9375$. % evidence: C11
+Between the two located frontiers, capacity in raw bindings grows as
+$d^{1.97}$ (CI-propagated range $[1.86, 2.09]$): proportional to state
+bytes, not state width. % evidence: C15
+Third, the leading single-variable account of the growth, anchor-table
+coherence, fails a direct test: frozen coherence injected at and above the
+collapsing scale's own realized training band leaves recall at exact
+ceiling in 19 of 19 cells, under both concentrated and diffuse injection
+structures. % evidence: C6
+Fixed-size states are the constant-memory endpoint of the KV-cache
+trade-off; these measurements give their capacity a located,
+pre-registered frontier.

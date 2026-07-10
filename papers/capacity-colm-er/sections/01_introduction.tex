@@ -1,0 +1,81 @@
+\section{Introduction}
+\label{sec:intro}
+
+The memory cost of transformer inference grows with context: every decoded
+token appends to a key--value cache, and long-horizon reasoning workloads
+pay for that growth in high-bandwidth memory. One line of work manages the
+growing cache by evicting or compressing entries
+\citep{xiao2024streamingllm, zhang2023h2o}. A second line removes the
+growth altogether: linear-attention and fast-weight architectures carry a
+fixed $d_{\mathrm{state}} \times d_{\mathrm{state}}$ matrix state that is
+updated in place as the sequence streams
+\citep{katharopoulos2020linear, schlag2021linear, yang2024deltanet,
+gu2023mamba}. A fixed-size state is the constant-memory endpoint of the
+cache trade-off, and it turns a scheduling question into a provisioning
+question: for a state of a given byte size, how many independent bindings
+can it be trusted to hold, and how does that number move when the byte
+budget changes?
+
+Existing answers do not settle the provisioning question. Classical linear
+associative memories have information-theoretic ceilings near
+$K \approx d$ for $K$ independent bindings under exact linear reads
+\citep{kohonen1972correlation, anderson1972simple}, and recent theory
+sharpens such thresholds for linear associative recall
+\citep{barnfield2026sharp}. Under argmax decoding the accounting changes
+in kind: a rank-one state can recover on the order of $d$ associations
+\citep{nichani2025factual}, so any capacity number is meaningful only
+relative to its readout. Descriptive studies track the effective rank of
+trained linear-attention states at scale
+\citep{nazari2026rank, sun2026staterank}. What none of these supply is a
+\emph{located} frontier for a \emph{trained} delta-rule memory under an
+exact continuous readout: the load at which recall collapses, measured
+with a confidence interval, and its scaling in $d_{\mathrm{state}}$.
+
+This paper supplies that frontier on a controlled testbed, with three
+results and one provisioning law.
+
+\textbf{First, the transition, located.} At $d_{\mathrm{state}}=64$,
+held-out compositional recall does not decline gracefully with load: it
+transitions sharply, and a logistic fit over the measured loads places the
+midpoint at $x_0 = K/d_{\mathrm{state}} = 0.5455$ (95\% seed-level
+bootstrap CI $[0.5385, 0.5513]$, width $0.0127$), % evidence: C2
+a roughly $20\times$ tightening over the prior bracket between the two
+flanking archived loads. % evidence: C2
+
+\textbf{Second, the ratio is not the law.} The identical
+$K/d_{\mathrm{state}}$ window that collapses at $d_{\mathrm{state}}=64$ is
+flat at exact ceiling at $d_{\mathrm{state}}=128$: $h4=1.0$ in 12 of 12
+cells. % evidence: C3
+The frontier at $d_{\mathrm{state}}=80$ sits at $x_0 = 0.6779$ (CI
+$[0.6683, 0.6867]$), excluding a pre-registered ratio-invariance band
+$[0.4745, 0.6165]$ entirely, % evidence: C10
+and $d_{\mathrm{state}}=96$ shows no transition anywhere in a window
+reaching $K/d_{\mathrm{state}} = 0.9375$. % evidence: C11
+Between the two located frontiers, capacity in raw bindings grows as
+$d^{1.97}$ (CI-propagated two-point range $[1.86, 2.09]$): consistent with
+proportional to state \emph{bytes} ($d^2$), excluding proportional to
+state \emph{width} ($d^1$). % evidence: C15
+A load rule calibrated at one scale therefore mis-provisions another;
+the safe load ratio itself grows with $d_{\mathrm{state}}$.
+
+\textbf{Third, the leading confound, tested and exonerated.} The collapsing
+and non-collapsing scales differ in more than size: with $n=107$ entities,
+the $d=64$ anchor table is forced non-orthogonal by the Welch bound while
+the $d=128$ table is exactly orthogonal, making table coherence the most
+natural single-variable account. Injecting controlled, frozen coherence
+into the flat $d=128$ geometry, at and above the $d=64$ table's own
+realized training band, leaves recall at exact ceiling in 19 of 19 cells
+under both a concentrated (rank-4) and a diffuse (rank-48) injection
+structure. % evidence: C6
+Scalar table coherence, at matched dose and matched geometry, does not
+reproduce the transition.
+
+Every wave reported here was pre-registered before its cells ran, with
+outcome semantics fixed in advance, including the rule that a degenerate
+sigmoid fit on flat data must be disclosed as such and never quoted as a
+located transition; instrument saturation is checked at every wave rather
+than assumed. The scope is disclosed up front: a single-head, single-layer
+DeltaNet, a 107-entity synthetic grammar, sub-million-parameter models,
+and $d_{\mathrm{state}} \in \{64, 80, 96, 128\}$. No claim is made about
+production-scale models; Section~\ref{sec:limitations} states the
+boundaries.

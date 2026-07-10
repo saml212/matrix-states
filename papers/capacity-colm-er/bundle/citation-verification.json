@@ -1,0 +1,188 @@
+{
+ "schlag2021linear": {
+  "id": "2102.11174",
+  "title": "Linear Transformers Are Secretly Fast Weight Programmers",
+  "authors": [
+   "Imanol Schlag",
+   "Kazuki Irie",
+   "J\u00fcrgen Schmidhuber"
+  ],
+  "published": "2021-02-22"
+ },
+ "nichani2025factual": {
+  "id": "2412.06538",
+  "title": "Understanding Factual Recall in Transformers via Associative Memories",
+  "authors": [
+   "Eshaan Nichani",
+   "Jason D. Lee",
+   "Alberto Bietti"
+  ],
+  "published": "2024-12-09"
+ },
+ "siems2025deltaproduct": {
+  "id": "2502.10297",
+  "title": "DeltaProduct: Improving State-Tracking in Linear RNNs via Householder Products",
+  "authors": [
+   "Julien Siems",
+   "Timur Carstensen",
+   "Arber Zela",
+   "Frank Hutter",
+   "Massimiliano Pontil",
+   "Riccardo Grazzi"
+  ],
+  "published": "2025-02-14"
+ },
+ "grazzi2025negative": {
+  "id": "2411.12537",
+  "title": "Unlocking State-Tracking in Linear RNNs Through Negative Eigenvalues",
+  "authors": [
+   "Riccardo Grazzi",
+   "Julien Siems",
+   "Arber Zela",
+   "J\u00f6rg K. H. Franke",
+   "Frank Hutter",
+   "Massimiliano Pontil"
+  ],
+  "published": "2024-11-19"
+ },
+ "katharopoulos2020linear": {
+  "id": "2006.16236",
+  "title": "Transformers are RNNs: Fast Autoregressive Transformers with Linear Attention",
+  "authors": [
+   "Angelos Katharopoulos",
+   "Apoorv Vyas",
+   "Nikolaos Pappas",
+   "Fran\u00e7ois Fleuret"
+  ],
+  "published": "2020-06-29"
+ },
+ "yang2024deltanet": {
+  "id": "2406.06484",
+  "title": "Parallelizing Linear Transformers with the Delta Rule over Sequence Length",
+  "authors": [
+   "Songlin Yang",
+   "Bailin Wang",
+   "Yu Zhang",
+   "Yikang Shen",
+   "Yoon Kim"
+  ],
+  "published": "2024-06-10"
+ },
+ "gu2023mamba": {
+  "id": "2312.00752",
+  "title": "Mamba: Linear-Time Sequence Modeling with Selective State Spaces",
+  "authors": [
+   "Albert Gu",
+   "Tri Dao"
+  ],
+  "published": "2023-12-01"
+ },
+ "xiao2024streamingllm": {
+  "id": "2309.17453",
+  "title": "Efficient Streaming Language Models with Attention Sinks",
+  "authors": [
+   "Guangxuan Xiao",
+   "Yuandong Tian",
+   "Beidi Chen",
+   "Song Han",
+   "Mike Lewis"
+  ],
+  "published": "2023-09-29"
+ },
+ "zhang2023h2o": {
+  "id": "2306.14048",
+  "title": "H$_2$O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models",
+  "authors": [
+   "Zhenyu Zhang",
+   "Ying Sheng",
+   "Tianyi Zhou",
+   "Tianlong Chen",
+   "Lianmin Zheng",
+   "Ruisi Cai",
+   "Zhao Song",
+   "Yuandong Tian",
+   "Christopher R\u00e9",
+   "Clark Barrett",
+   "Zhangyang Wang",
+   "Beidi Chen"
+  ],
+  "published": "2023-06-24"
+ },
+ "arora2023zoology": {
+  "id": "2312.04927",
+  "title": "Zoology: Measuring and Improving Recall in Efficient Language Models",
+  "authors": [
+   "Simran Arora",
+   "Sabri Eyuboglu",
+   "Aman Timalsina",
+   "Isys Johnson",
+   "Michael Poli",
+   "James Zou",
+   "Atri Rudra",
+   "Christopher R\u00e9"
+  ],
+  "published": "2023-12-08"
+ },
+ "merrill2024illusion": {
+  "id": "2404.08819",
+  "title": "The Illusion of State in State-Space Models",
+  "authors": [
+   "William Merrill",
+   "Jackson Petty",
+   "Ashish Sabharwal"
+  ],
+  "published": "2024-04-12"
+ },
+ "barnfield2026sharp": {
+  "id": "2605.05189",
+  "title": "Sharp Capacity Thresholds in Linear Associative Memory: From Winner-Take-All to Listwise Retrieval",
+  "authors": [
+   "Nicholas Barnfield",
+   "Juno Kim",
+   "Eshaan Nichani",
+   "Jason D. Lee",
+   "Yue M. Lu"
+  ],
+  "published": "2026-05-06"
+ },
+ "nazari2026rank": {
+  "id": "2602.04852",
+  "title": "The Key to State Reduction in Linear Attention: A Rank-based Perspective",
+  "authors": [
+   "Philipp Nazari",
+   "T. Konstantin Rusch"
+  ],
+  "published": "2026-02-04"
+ },
+ "sun2026staterank": {
+  "id": "2602.02195",
+  "title": "State Rank Dynamics in Linear Attention LLMs",
+  "authors": [
+   "Ao Sun",
+   "Hongtao Zhang",
+   "Heng Zhou",
+   "Yixuan Ma",
+   "Yiran Qin",
+   "Tongrui Su",
+   "Yan Liu",
+   "Zhanyu Ma",
+   "Jun Xu",
+   "Jiuchong Gao",
+   "Jinghua Hao",
+   "Renqing He"
+  ],
+  "published": "2026-02-02"
+ },
+ "mishra2026m2rnn": {
+  "id": "2603.14360",
+  "title": "M$^2$RNN: Non-Linear RNNs with Matrix-Valued States for Scalable Language Modeling",
+  "authors": [
+   "Mayank Mishra",
+   "Shawn Tan",
+   "Ion Stoica",
+   "Joseph Gonzalez",
+   "Tri Dao"
+  ],
+  "published": "2026-03-15"
+ }
+}

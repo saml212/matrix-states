@@ -1,0 +1,63 @@
+\section{The Coherence Confound, Exonerated Twice}
+\label{sec:dose}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig2_dose}
+  \caption{Coherence dose-response at $d_{\mathrm{state}}=128$, $K=68$,
+  the geometry Section~\ref{sec:act2} measured flat. Blue circles:
+  frozen coherence injected under a concentrated (rank-4) structure;
+  orange triangles: the same doses under a diffuse (rank-48) structure;
+  the two marker families are offset horizontally by $\pm 0.006$ for
+  visibility because all 19 cells coincide at $h4 = 1.0$. Vermillion
+  crosses: the $d_{\mathrm{state}}=64$ cliff cells plotted against their
+  own final-checkpoint table coherence, collapsing across the same
+  coherence range. Grey band: the range of $d_{\mathrm{state}}=64$
+  per-load mean final coherence, $[0.373, 0.385]$. Takeaway: directly
+  injected coherence at and above the collapsing scale's own training
+  band does not move recall off ceiling.}
+  \label{fig:dose}
+\end{figure}
+
+The two scales of Section~\ref{sec:cliff} differ in more than raw size.
+With $n = 107$ entities, the $d_{\mathrm{state}}=64$ anchor table is
+forced non-orthogonal by the Welch bound: it measures
+$\max\lvert\cos\rvert = 0.2842$ at construction and drifts under ordinary
+training to a final-checkpoint band of per-load means $[0.373, 0.385]$
+(recomputed from the archived cliff cells). % evidence: C5
+The $d_{\mathrm{state}}=128$ table is exactly orthogonal at construction.
+% evidence: C5
+Table coherence is therefore the single most natural remaining
+single-variable account of why the transition vanished, and it is testable
+directly rather than by inference across scales.
+
+\paragraph{Design.} Holding $d_{\mathrm{state}}=128$, $n=107$, and
+$K=68$ fixed at exactly the geometry measured flat in
+Section~\ref{sec:act2}, we inject controlled coherence into the anchor
+table, freeze the table, and sweep the dose: $0.130$, $0.284$ (matching
+the $d=64$ construction value), and $0.40$, the last exceeding the
+$d=64$ table's entire realized training band. % evidence: C6
+The injection structure is a registered co-primary axis: a
+\emph{concentrated} variant confines the injected overlap to a rank-4
+subspace, and a \emph{diffuse} variant spreads the same scalar dose across
+a rank-48 subspace. Freezing is verified, not assumed: the pre-launch gate
+requires the table's gradient path to be severed, and the recorded
+coherence is bit-identical across all 10 checkpoints of every dosed cell
+(a single distinct value per cell across the full 20{,}000-step run).
+% evidence: C8
+
+\paragraph{Result.} Recall stays at exact ceiling everywhere: $h4 = 1.0$
+in 10 of 10 concentrated cells % evidence: C6
+and 9 of 9 diffuse cells, % evidence: C7
+at every dose, with no exception (Figure~\ref{fig:dose}). Hop-21
+recovery across the 19 dosed cells spans $0.9963$--$1.0$, not uniformly
+$1.0$, so the flat $h4$ row is a genuine ceiling of the measured quantity
+rather than a saturated instrument. % evidence: C9
+Per the pre-registered outcome semantics this is the strongest
+exoneration the design can produce: directly injected anchor-table
+coherence, at matched $K/d_{\mathrm{state}}$ and matched entity count,
+held frozen for the full run, does not reproduce the
+$d_{\mathrm{state}}=64$ collapse under either injection structure. What
+this does not rule out is stated in Section~\ref{sec:limitations}: a
+coherence profile that co-evolves with training, rather than being frozen
+at initialization, remains a disclosed open variant.

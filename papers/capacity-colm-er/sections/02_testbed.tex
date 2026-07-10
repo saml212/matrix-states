@@ -1,0 +1,61 @@
+\section{Testbed and Measurement Process}
+\label{sec:testbed}
+
+\paragraph{Architecture and task.} All experiments use a vanilla
+single-head, single-layer DeltaNet with the production
+\texttt{chunk\_delta\_rule} kernel \citep{yang2024deltanet}, whose state
+update is
+$S_t = S_{t-1}\left(I - \beta_t k_t k_t^{\top}\right) + \beta_t v_t
+k_t^{\top}$ \citep{schlag2021linear}. The task is synthetic-grammar
+associative recall over a pool of 107 trainable entities: within an
+episode, each queried entity must be bound to a value through the delta
+rule and recovered later through multi-hop composition. Models are trained
+for 20{,}000 steps per cell; each (load, seed) pair is one cell.
+
+\paragraph{Readout.} Recovery is graded by \emph{exact continuous} cosine
+similarity against the true value vector at threshold $0.9$, written
+$\mathrm{rec}@0.9$, never by argmax over a codebook. The distinction is
+load-bearing: under argmax decoding a rank-one state can recover on the
+order of $d$ associations \citep{nichani2025factual}, so a capacity
+measurement that permits codebook lookup measures the codebook, not the
+state. The paper's single load-bearing quantity is $h4$, the
+$\mathrm{rec}@0.9$ fraction on \emph{held-out} entities and bindings at
+hop depth 4, so every reported recovery is a compositional generalization,
+not a memorized pair.
+
+\paragraph{The load parameter.} $K$ is the number of independent entity
+bindings the state must support simultaneously within one episode;
+$K/d_{\mathrm{state}}$ is the capacity ratio. The frontier statistic
+$x_0$ is the fitted midpoint of a logistic
+$h4(x) = L / (1 + \exp((x - x_0)/w))$ in $x = K/d_{\mathrm{state}}$: the
+load at which recall crosses half of its ceiling. $x_0$ is a well-defined
+transition location, not the largest load with perfect recall; the fitted
+width $w$ reports how sharp the crossing is.
+
+\paragraph{The anchor table and coherence.} A per-entity key-anchoring
+table (established in companion work on this testbed as improving held-out
+recovery, and treated here as part of the fixed architecture) is the
+object whose geometry differs across scales. Its coherence is
+$\max\lvert\cos\rvert$ over the table's 107 row vectors. The Welch bound
+\citep{welch1974lower} forces this strictly positive whenever
+$n = 107 > d_{\mathrm{state}}$, as at $d_{\mathrm{state}}=64$, and permits
+exact orthogonality when $n \le d_{\mathrm{state}}$, as at
+$d_{\mathrm{state}}=128$ where the constructed table measures
+$\max\lvert\cos\rvert = 0.000000$. % evidence: C5
+This single structural difference motivates the dose-response test of
+Section~\ref{sec:dose}.
+
+\paragraph{Pre-registration and instrument discipline.} Each wave's
+hypothesis and outcome semantics were fixed before its cells ran. Three
+rules matter downstream. (i) \emph{Degenerate-fit disclosure:} a sigmoid
+fitted to flat-at-ceiling data is degenerate by construction; the
+registered rule is to report the degenerate bootstrap fraction and refuse
+to quote the point estimate as a located transition. (ii)
+\emph{Instrument saturation is checked, not assumed:} hop-21 recovery, a
+far harder extrapolation than $h4$, is recorded at every wave; a flat
+$h4$ result is reportable only when hop-21 is not uniformly $1.0$, ruling
+out a globally ceilinged readout. (iii) \emph{Admission gates:} every cell
+passes mechanical admissibility checks (convergence of the eval-time
+Newton--Schulz block, value-salvage floors, finite loss) before its $h4$
+enters any fit; Section~\ref{sec:frontier} reports the one place where the
+gate itself, not the measurement, required recalibration.
