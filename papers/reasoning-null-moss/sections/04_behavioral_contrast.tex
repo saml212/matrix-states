@@ -1,0 +1,40 @@
+\section{The Behavioral Contrast Is Power-Bounded}
+\label{sec:behavioral}
+
+Wave 5 promotes the vocabulary-space contrast to the primary instrument:
+all three arms are familiarized under identical recipes (18 cells), and
+the arm effect is the held-out query-loss difference, control minus arm,
+so positive means the intervention helps.
+
+\textbf{The registered power floor.} Before unblinding, the three-seed
+detection floor was derived from the control cells' between-seed spread: a
+$\sigma$ proxy of 0.43 to 0.48 loss units gives a 95-percent half-width of
+roughly 1.5 to 1.7. % evidence: C5-power
+For calibration, the entire familiarization effect is about 1.69 loss
+units: % evidence: C5-power
+the instrument can detect only an arm effect about as large as everything
+the model learns in the whole phase. The registration says in advance that
+unresolved is the most likely outcome for any modest effect, to be read as
+a measurement bound, never as evidence of no effect.
+
+\textbf{Results.} Three of four (corpus, arm) contrasts classify as
+unresolved. % evidence: C5-power
+The fourth (encyclopedic corpus, per-token arm) classifies as transient:
+at checkpoint 2{,}500 the $K{=}32$ effect is determinate at $-0.500$,
+interval $[-0.624, -0.376]$, while $K{=}20$ is not (mean $-0.252$,
+interval $[-0.920, +0.416]$), and by checkpoint 5{,}000 it dissolves
+(mean $-0.795$, interval $[-2.513, +0.923]$)
+% evidence: C6-transient
+(Figure~\ref{fig:transient}, left, Appendix~\ref{app:figs}). A
+held-out-hop secondary readout fires at the same cell and checkpoint, same
+direction, % evidence: C6-transient
+consistent with one coherent mid-training deviation.
+
+\textbf{Sign discipline.} The intervention arm's loss sits \emph{above}
+control: the one determinate signal points in the harm direction, and
+every determinate high-load reading in the primary table is negative.
+% evidence: C6-transient
+Two registered-forbidden misreadings loom: ``the intervention matters''
+ignores that transients were registered as training-dynamics artifacts;
+``no effect'' ignores the power floor. The wave delivers a bound plus one
+real, bounded, harm-direction transient.

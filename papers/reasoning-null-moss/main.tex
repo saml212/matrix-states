@@ -1,0 +1,146 @@
+\documentclass{article} % COLM 2026 template (official kit, tag 2026)
+\usepackage[submission]{colm2026_conference}
+
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{lineno}
+
+\definecolor{darkblue}{rgb}{0, 0, 0.5}
+\hypersetup{colorlinks=true, citecolor=darkblue, linkcolor=darkblue, urlcolor=darkblue}
+
+\title{Three Bounds on a Null: Testing the Link Between Fast-Weight Write
+Geometry and In-Context Composition}
+
+% Anonymized for double-blind review; the submission option suppresses this
+% block regardless.
+\author{Anonymous authors}
+
+\begin{document}
+
+\ifcolmsubmission
+\linenumbers
+\fi
+
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_setting}
+\input{sections/03_geometric_null}
+\input{sections/04_behavioral_contrast}
+\input{sections/05_replication}
+\input{sections/06_related}
+\input{sections/07_discussion}
+
+\bibliography{refs}
+\bibliographystyle{colm2026_conference}
+
+\appendix
+
+\section{Registered Gates and Routing Rules}
+\label{app:gates}
+
+This appendix reproduces, in compact form, the pre-registered gates and
+mechanical routing rules the main text relies on. Each was fixed in the
+program's design registry before the corresponding data existed.
+
+\textbf{Geometric-readout validity gates (waves 1--4).} A cell's readout is
+valid only if all of the following hold. (a) \emph{$h{=}1$ sanity floor:}
+the one-hop recovered fraction must exceed the upper edge of a
+shuffled-pairing null by more than the null's width, and must also exceed
+an absolute floor of 0.10. (b) \emph{Premise (iii):} the median cosine
+between an entity's query projection and the same entity's key projection
+must exceed the 95th percentile of a shuffled-entity null. (c)
+\emph{Premise (iv):} the median cosine between the key and value
+projections of the same token must exceed the same null percentile.
+\emph{Routing:} failure of any gate routes the cell to probe-invalid; the
+registered rule states that gate failure never routes to refutation.
+
+\textbf{Behavioral-contrast classification (wave 5).} The per-checkpoint
+arm effect is $\Delta(c) = L_q(\text{control}, c) - L_q(\text{arm}, c)$,
+with three-seed 95-percent intervals ($t(2, .975) = 4.303$). A checkpoint
+satisfies the differential condition when the $K{=}32$ interval excludes
+zero, the $K{=}20$ interval does not, and $|\Delta_{32}| > |\Delta_{20}|$.
+Trajectories classify into six registered outcomes: persistent, transient
+(the condition holds at an interior checkpoint and fails at the terminal
+one), late-emergent, converged-equivalent, unresolved, and a
+familiarization-null exclusion. The three-seed power floor (a detectable
+effect of roughly 1.5 to 1.7 loss units, derived from the control cells'
+between-seed spread) was registered together with the instruction that
+unresolved outcomes be reported as measurement bounds.
+
+\textbf{Replication integrity gates (wave 6).} Archived seeds load from
+stored values only; a runtime guard raises on any live re-scoring of an
+archived seed. Before pooling, a batch-effect gate requires (a) cohort
+mean shift below twice the pooled standard error (Welch form) and (b)
+cohort variance ratio below a pinned 4.0. On gate failure the registered
+routing reports both cohorts separately, produces no decision-grade pooled
+interval, and classifies the wave as batch-effect-flagged, outside the
+four-outcome partition (confirmed at magnitude, confirmed smaller,
+refuted, new pattern) that a passing gate would have entered.
+
+\section{Supplementary Figures}
+\label{app:figs}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/fig1_validity_gates.pdf}
+\caption{Validity-gate failure at every cell of every instrument. Each
+point is one cell's same-entity median cosine for premise (iii)
+(query--key, left) or premise (iv) (key--value, right) against that cell's
+shuffled-entity null p95; passing requires a median above the dashed
+identity line. All 90 cells across the four geometric-readout waves fall
+on or below the line, at every scale from 14M to 1.31B and under every
+surface form and training regime.}
+\label{fig:gates}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/fig2_dissociation.pdf}
+\caption{Vocabulary/geometry dissociation under task familiarization
+(wave 4). Left: held-out in-context query loss $L_q$ for all six
+control-arm cells (two corpora, three seeds) falls by 21.8 to 46.4 percent
+over 5{,}000 familiarization steps. Right: the geometric gate's recovered
+fraction at the same five checkpoints of the same cells is exactly 0.0 at
+all 30 readings, never approaching its 0.10 validity floor (dashed). The
+model learns the task through one readout while the other stays at floor.}
+\label{fig:dissoc}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/fig3_transient_replication.pdf}
+\caption{The transient and its stopped replication. Left: per-checkpoint
+arm effect $\Delta L_q$ (control minus per-token arm, encyclopedic corpus)
+with three-seed 95-percent intervals at both loads; the single reading
+satisfying the registered differential condition is at checkpoint 2{,}500,
+$K{=}32$, in the harm direction, and dissolves by checkpoint 5{,}000.
+Right: the same anchor cell at $n{=}12$; the archived three-seed cohort
+(circles, interval $[-0.624,-0.376]$) and the new nine-seed cohort
+(squares, interval $[-0.506,+0.357]$) fail the pre-registered
+variance-ratio gate (4.47 against a pinned 4.0), so the naive pooled
+interval (gray, dotted) is diagnostic only and no decision-grade pooled
+verdict exists.}
+\label{fig:transient}
+\end{figure}
+
+\section{Reproducibility}
+\label{app:repro}
+
+Every number in this paper is computed from archived raw result files
+(per-cell JSON records written by the experiment chains at run time), not
+from summaries. All figures regenerate from one versioned script that
+loads only those archived files and asserts the md5 checksum of every file
+it reads against a recorded manifest, so a changed or substituted artifact
+fails the build rather than silently altering a panel. The archived raw
+files, the figure script with its checksum manifest, the experiment
+chains, and the full pre-registration text will be released with the
+camera-ready version.
+
+\end{document}
