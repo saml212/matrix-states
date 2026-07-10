@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A 14M fast-weight model holds K=32 episodic recall at acc 0.998-1.000 with a fixed 32,768-byte recurrent state out to 1,798 tokens (8x the binding window). The param/token-matched transformer never leaves chance even with an uncapped KV cache, so the pre-registered degenerate-baseline clause fired: no memory-multiplier number is claimed.">
+<meta property="og:title" content="Constant-memory recall: a fixed 32 KB state holds at 8× the binding window — pebble">
+<meta property="og:description" content="Research note: episodic recall stays at 0.998+ at every seed and every tested horizon on a fixed 32,768-byte state, while the matched transformer baseline reads chance uncapped AND at every KV-cache cap. The comparative memory-multiplier instrument came back degenerate — the verdict of record is 'baseline non-competitive at matched params/tokens,' not a multiplier.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/constant-memory-recall.html">
+<meta property="og:image" content="https://pebbleml.com/assets/plots/constant_memory_horizon_x.png">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-10">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://pebbleml.com/assets/plots/constant_memory_horizon_x.png">
+<link rel="canonical" href="https://pebbleml.com/findings/constant-memory-recall.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Constant-memory recall: a fixed 32 KB state holds episodic recall at 8× the binding window",
+  "name": "Constant-memory recall",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-10",
+  "url": "https://pebbleml.com/findings/constant-memory-recall.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "A 14M-parameter fast-weight matrix-state model that binds K=32 key-value pairs reads episode-restricted top-1 recall of 0.998-1.000 at every training seed when the episode is embedded in contexts of 454, 902, and 1,798 tokens — 2x, 4x, and 8x the binding window — with a recurrent state fixed at 32,768 bytes regardless of context length. A param/token/compute-matched transformer reads chance (~0.03) at every horizon with an UNCAPPED KV cache, and capping its cache at M in {1,2,4,8,16,32} slots does not change that. Because the baseline never demonstrates the task even uncapped, the pre-registered degenerate-baseline clause fired: the planned memory-multiplier (M*) walk is reported as informative data only, and the verdict of record is 'baseline non-competitive at matched params/tokens' — explicitly NOT a memory-multiplier or infinite-crossover claim. Eval-only run, 0.26 GPU-h. Unpublished.",
+  "keywords": "fast weights, DeltaNet, associative recall, constant memory, KV cache, long context, linear attention, inference memory",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>Constant-memory recall: a fixed 32 KB state holds at 8× the binding window — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── ascii plot ────── */
+.ascii-plot {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 24px 32px;
+    margin: 24px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    .ascii-plot { font-size: 0.68rem; padding: 18px 20px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 11 &nbsp;·&nbsp; pre-registered protocol, verdict of record 2026-07-10</div>
+        <h1 class="paper-title">Constant-memory recall: a fixed 32 KB state holds at 8× the binding window, and the matched baseline never got off the floor</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 10, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>The <a href="fast-weight-recall.html">fast-weight recall separation</a> was measured at the binding window itself. This note asks what happens to that recall as the context grows while the model's memory does not. A 14M-parameter fast-weight matrix-state model whose entire recurrent memory is a <strong>fixed 32,768 bytes</strong> — two 64×64 fp32 matrices, constant in context length — binds K = 32 key→value pairs, then answers a query after the episode is embedded in progressively longer contexts. Result: episode-restricted top-1 recall <span class="mono">acc_A ≥ 0.998</span> at <em>every</em> training seed at <em>every</em> tested horizon — 454, 902, and 1,798 tokens, i.e. 2×, 4×, and 8× the binding window. The param/token/compute-matched transformer reads chance (<span class="mono">≈0.03</span>) at every horizon with an <em>uncapped</em> KV cache, and capping its cache at M ∈ {1, 2, 4, 8, 16, 32} slots does not move it. Because the baseline never demonstrates the task even uncapped, the pre-registered degenerate-baseline clause fired: <strong>no memory-multiplier number is claimed</strong>. The verdict of record is "baseline non-competitive at matched params/tokens." Unpublished.</p>
+        </div>
+
+        <h2><span class="num">01</span>Setup: the memory-matched question</h2>
+
+        <p>The head-to-head campaign's second pre-registered axis asks an inference-memory question: at equal memory bytes, how far can each architecture carry an episodic binding? The two arms come from the same frozen 27-cell sweep as the <a href="fast-weight-recall.html">recall-separation verdict</a> — three fresh training seeds each, matched at 14M parameters, identical token/step budgets, identical pinned eval episodes:</p>
+
+        <ul>
+            <li><strong>Contender:</strong> the two-block DeltaNet-family fast-weight LM. Its recurrent state is two <span class="mono">64×64</span> fp32 matrices — <span class="mono">32,768 bytes, fixed</span>, no growth with context length.</li>
+            <li><strong>Transformer:</strong> the GPT-2-style matched baseline. Its KV cache grows linearly with context; the protocol evaluates it both <em>uncapped</em> (full attention over everything) and with a sink+FIFO cache cap at <span class="mono">M ∈ {1, 2, 4, 8, 16, 32}</span> retained positions — the M* walk, designed to find the cache size at which the transformer's recall crosses below the fast-weight arm's.</li>
+        </ul>
+
+        <p>Each eval episode binds K = 32 pairs, then continues with distributionally-matched filler before the query, so the query arrives at a context of 454 / 902 / 1,798 tokens (2× / 4× / 8× the binding window). The metric is the same <span class="mono">acc_A</span> as the recall verdict: episode-restricted K-way top-1 through each arm's own LM head — the model's own continuation, no probe. Chance = 1/32 ≈ 0.031; demonstration bar = 3× chance. This stage was eval-only (0.26 GPU-h): all checkpoints come from the already-verified sweep, loaded under md5 provenance pinning.</p>
+
+        <h2><span class="num">02</span>The horizon table</h2>
+
+        <figure>
+            <img src="../assets/plots/constant_memory_horizon.svg" alt="recall vs context length: contender flat at 0.999 out to 1798 tokens, transformer at chance uncapped and at every KV-cache cap" style="width: 100%; max-width: 820px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>Recall <span class="mono">acc_A</span> vs context length at query time. Vermillion: the fast-weight contender (fixed 32,768-byte state) — seed mean line with per-seed points, ≥ 0.998 everywhere. Blue squares: the matched transformer with an uncapped KV cache. Light-blue triangles: the same transformer with its cache capped at M ∈ {2…32} retained positions (five lines, one per M; the pre-registered descriptive-only M=1 row is excluded). Dashed line: demonstration bar (3× chance); dotted: chance. n = 4096 queries per cell, 3 seeds per arm. Data: <span class="mono">experiment-runs/2026-07-10_h2h_mstar/MSTAR_VERDICT.json</span>, regenerated directly from the archived verdict JSON (fan-out raws md5-verified 96/96).</figcaption>
+        </figure>
+
+        <table>
+            <thead>
+                <tr><th>arm (per-seed acc_A, s0/s1/s2)</th><th>454 tok (2×)</th><th>902 tok (4×)</th><th>1,798 tok (8×)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>contender — fixed 32,768-byte state</strong></td><td class="num">1.000 / 0.998 / 0.999</td><td class="num">1.000 / 0.998 / 0.999</td><td class="num">1.000 / 0.998 / 0.999</td></tr>
+                <tr><td>transformer, uncapped KV cache</td><td class="num">0.029 / 0.030 / 0.029</td><td class="num">0.031 / 0.033 / 0.030</td><td class="num">0.036 / 0.031 / 0.034</td></tr>
+                <tr><td>transformer, capped M = 32</td><td class="num">0.029 / 0.030 / 0.031</td><td class="num">0.022 / 0.021 / 0.032</td><td class="num">0.022 / 0.025 / 0.029</td></tr>
+                <tr><td>transformer, capped M = 2</td><td class="num">0.021 / 0.024 / 0.030</td><td class="num">0.026 / 0.027 / 0.033</td><td class="num">0.022 / 0.026 / 0.029</td></tr>
+            </tbody>
+        </table>
+
+        <p>The recall demonstrated at the binding window does not decay when the episode is buried in a context 8× longer — at any seed. The per-M paired gap CIs at the decision horizon (902 tokens) all have lower bounds ≥ 0.958 against a pre-registered 0.20 crossover margin; no straddle anywhere, no seed extension triggered. M = 4, 8, 16 rows sit between the two capped rows shown and are in the archived table.</p>
+
+        <div class="takeaway">
+            <span class="label">key observation</span>
+            The interesting number here is not a comparison — it is the contender's own row. A 32 KB memory that never grows holds a 32-item episodic binding essentially losslessly across an 8× context extension. That is the "constant-memory minds" property this axis was designed to probe, demonstrated on the contender side even though the comparative instrument came back degenerate.
+        </div>
+
+        <h2><span class="num">03</span>Why there is no memory-multiplier number</h2>
+
+        <p>The pre-registered plan was a crossover walk: cap the transformer's KV cache at shrinking M and find M* — the cache size where its recall drops below the fast-weight arm's, yielding a "the fixed state is worth an M*-slot cache" multiplier. The walk's arithmetic lands on the strongest possible tier (every capped M is cleanly non-rejected; the bare walk reads M* = ∞). <strong>We do not claim that.</strong> The registration carried a degenerate-baseline clause for exactly this outcome: if the uncapped transformer itself fails the demonstration bar at the primary cell, the walk is vacuous — every cap is "cleared" trivially because there was never any recall to lose — and no M* tier, no "confirmed no-crossover," and no multiplier may be certified. The clause fired: the uncapped reads are 0.027/0.029/0.029. The harvest code applies the clause mechanically; its own negative test confirms the same data <em>without</em> the clause would have certified a (spurious) strongest-win.</p>
+
+        <p><strong>The verdict of record is therefore: baseline non-competitive at matched params/tokens.</strong> That is itself a capability-separation datum — at this matched budget, full attention did not learn the task at all — but it is a statement about this budget and training recipe, not about transformers in general, and not a memory-capacity ratio.</p>
+
+        <h2><span class="num">04</span>Forced locality does not rescue the baseline</h2>
+
+        <p>One live hypothesis from the sweep harvest was that capping might <em>help</em> the transformer — a hard cache cap forces attention onto recent positions, which could act as a locality prior on a task where full attention diffuses. The answer is no: at every M ∈ {1, 2, 4, 8, 16, 32} and every horizon, the capped reads sit at or below the uncapped read, and all are NO-RECALL. Per the frozen rule, differences between NO-RECALL arms are chance-level noise ordering and are never interpreted as separation.</p>
+
+        <h2><span class="num">05</span>Caveats — read before citing</h2>
+
+        <ul>
+            <li><strong>No multiplier, by design.</strong> Anyone quoting this note should quote the verdict of record — "baseline non-competitive at matched params/tokens" — never an M* value or an "infinite memory advantage." The comparative instrument was degenerate; section 03 is the whole story.</li>
+            <li><strong>The matched-budget caveat.</strong> The transformer read is at matched params, tokens, and compute at 14M scale, with an LR grid frozen at calibration. A larger, longer-trained, or differently-tuned transformer learns MQAR-style tasks; this result does not extend beyond its matched setting without a matched re-run.</li>
+            <li><strong>The Nichani caveat.</strong> "Recall" is episode-restricted K-way top-1 under argmax decoding through the model's own continuation, and under argmax a rank-1 state can support ≈d associations (Nichani, Lee &amp; Bietti, ICLR 2025, arXiv:2412.06538). Nothing here is a storage-capacity, rank, or continuous-recovery claim.</li>
+            <li><strong>Single-hop recall only (task 1).</strong> The campaign's multi-hop task 2 is disclosed wherever it is named: it is a trainability/seed-variance problem, not a demonstrated capability — 3 of 9 contender seeds reach 10–15× chance while 6 sit at chance and 0 of 9 ablation seeds ever leave it, and all three bar-clearing seeds collapse back to ≈0.01 under the horizon extension used here. Task 2 contributes nothing to this note's claim.</li>
+            <li><strong>Horizons tested to 1,798 tokens.</strong> "Holds at 8×" is the measured envelope, not an asymptote. Longer horizons are future work.</li>
+            <li><strong>Fixed-state bytes are architecture-native, not equalized.</strong> The 32,768-byte figure is the contender's own state size. The capped-transformer arm varies its cache from below to well above that byte count; the comparison the protocol licenses is the crossover walk, which section 03 explains is vacuous here.</li>
+        </ul>
+
+        <h2><span class="num">06</span>Reproducibility</h2>
+
+        <p>The full artifact set is archived under <span class="mono">experiment-runs/2026-07-10_h2h_mstar/</span>: 90 fan-out eval JSONs, the contender/uncapped/M=1 reference JSONs, <span class="mono">MSTAR_VERDICT.json</span> (every number above), checkpoint maps, all stage logs, and the md5 manifest (96/96 verified at publication). Checkpoints are the audited 27-cell sweep's <span class="mono">_r4.pt</span> files (<span class="mono">experiment-runs/2026-07-10_h2h_sweep_harvest/</span>), loaded under md5 provenance pinning. The figure-generation script is <span class="mono">assets/plots/generate_constant_memory_recall.py</span>, which reads the archived verdict JSON directly. Realized compute: 0.26 GPU-h, eval-only.</p>
+
+        <div class="references">
+            <h2>References</h2>
+            <ol>
+                <li>Nichani, E., Lee, J. D., &amp; Bietti, A. (2025). <em>Understanding Factual Recall in Transformers via Associative Memories.</em> ICLR 2025, arXiv:2412.06538</li>
+                <li>Yang, S., Kautz, J., &amp; Hatamizadeh, A. (2024). <em>Gated Delta Networks: Improving Mamba2 with Delta Rule.</em> arXiv:2412.06464</li>
+            </ol>
+        </div>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

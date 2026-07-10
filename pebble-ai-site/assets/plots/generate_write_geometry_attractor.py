@@ -128,3 +128,103 @@ plt.savefig(f"{OUT_DIR}/write_geometry_2x2.svg", format="svg",
             facecolor=BG, bbox_inches="tight")
 plt.close(fig)
 print("wrote write_geometry_2x2.svg")
+
+# ---------------------------------------------------------------- figure 3
+# (added 2026-07-10, fix-at-scale harvest)
+# write_geometry_fixscale.svg: the fix-at-scale wave verdict. Left panel:
+# the deployed per_token frozen-bias arm's post-blend span_frac delta vs the
+# arm_off reference (positive = destabilizing = the 14M sign), with pinned
+# 95% CIs, at 14M / 98M / 392M on both corpora. Right panel: the
+# global-vector construction (the arm that STABILIZED at 14M): n=3 CI at
+# 14M; n=1 exploratory probe (no CI, per the pre-registration) at 98M/392M.
+# Data sources (both read at generation time, never hardcoded):
+#   experiment-runs/2026-07-06_frozen_bias_rung1/results/frozen_bias_lm/
+#     PHASE_D_FULL_REPORT.json          (md5 b12a9e376805ff91aa08c270df15b539)
+#   experiment-runs/2026-07-10_fixscale_harvest/fixscale_harvest_verdict.json
+#                                       (md5 f2f0aae84908c0db0a42b13c76a85158;
+#      archive md5 manifest verified 132/132)
+# Cross-scale magnitude caveat: 392M ran a reduced 20k-step budget vs 98M's
+# Track-C-matched budget — the 98M->392M attenuation is confounded with
+# token budget by design; within-scale readings are the registered claims.
+import json
+from pathlib import Path
+
+_REPO = Path(OUT_DIR).resolve().parents[2]
+with open(_REPO / "experiment-runs/2026-07-06_frozen_bias_rung1/results/"
+                  "frozen_bias_lm/PHASE_D_FULL_REPORT.json") as f:
+    _rung1 = json.load(f)
+with open(_REPO / "experiment-runs/2026-07-10_fixscale_harvest/"
+                  "fixscale_harvest_verdict.json") as f:
+    _fx = json.load(f)
+
+CORPORA = [("openr1-mix-ext", "openr1"), ("wikitext-mix-ext", "wikitext")]
+
+# per_token rows: (label, delta, ci_lo, ci_hi)
+pt_rows, gl_rows = [], []
+for corpus, short in CORPORA:
+    p = _rung1["primary_and_coprimary"]["post_blend_primary"][corpus]
+    pt_rows.append((f"14M · {short}", p["mean_delta"], p["ci_lower"],
+                    p["ci_upper"]))
+    g = _rung1["arm2prime_vs_arm1double"][corpus]
+    gl_rows.append((f"14M · {short}", g["mean_delta"], g["ci_lower"],
+                    g["ci_upper"]))
+for scale in ["98m", "392m"]:
+    for corpus, short in CORPORA:
+        c = _fx["scales"][scale]["corpora"][corpus]
+        pt_rows.append((f"{scale.upper()} · {short}", c["PRIMARY_delta"],
+                        c["PRIMARY_ci"][0], c["PRIMARY_ci"][1]))
+        gl_rows.append((f"{scale.upper()} · {short}",
+                        c["probe_exploratory_n1_no_CI"]
+                        ["probe_delta_vs_arm_off_double_mean"], None, None))
+
+fig, (axL, axR) = plt.subplots(1, 2, figsize=(9.8, 4.6), facecolor=BG,
+                               sharey=True)
+for ax, rows, color, panel in ((axL, pt_rows, OI_VERMILLION, "per_token"),
+                               (axR, gl_rows, OI_GREEN, "global")):
+    ax.set_facecolor(BG)
+    ys = np.arange(len(rows))[::-1]
+    for y, (label, d, lo, hi) in zip(ys, rows):
+        if lo is not None:
+            ax.plot([lo, hi], [y, y], color=color, linewidth=2.0, zorder=3)
+            ax.plot([lo, lo], [y - 0.14, y + 0.14], color=color,
+                    linewidth=2.0, zorder=3)
+            ax.plot([hi, hi], [y - 0.14, y + 0.14], color=color,
+                    linewidth=2.0, zorder=3)
+            ax.plot(d, y, "o", color=color, markersize=7.5, zorder=4,
+                    markeredgecolor=TEXT, markeredgewidth=0.6)
+        else:
+            ax.plot(d, y, "D", color=color, markersize=7.5, zorder=4,
+                    markeredgecolor=TEXT, markeredgewidth=0.6)
+        ax.annotate(f"{d:+.3f}", (d, y), textcoords="offset points",
+                    xytext=(0, 8), ha="center", fontsize=8, color=TEXT,
+                    fontweight="bold")
+    ax.axvline(0.0, color=TEXT, linewidth=0.9, linestyle="--", alpha=0.7,
+               zorder=1)
+    ax.set_yticks(ys)
+    ax.set_yticklabels([r[0] for r in rows], fontsize=8.5)
+    ax.set_xlim(-0.70, 0.42)
+    ax.set_ylim(-0.6, len(rows) - 0.2)
+    ax.grid(True, axis="x", linestyle="-", linewidth=0.5, alpha=0.22,
+            color=TEXT)
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.0)
+        spine.set_color(TEXT)
+
+axL.set_xlabel("Δ span_frac (per_token − off)  ·  positive = destabilizing",
+               fontsize=9, labelpad=8)
+axR.set_xlabel("Δ span_frac (global-vector − off)  ·  negative = stabilizing",
+               fontsize=9, labelpad=8)
+axL.annotate("deployed per_token arm:\nsign persists at scale",
+             (-0.67, 0.0), fontsize=8.5, color=OI_VERMILLION, ha="left",
+             fontweight="bold")
+axR.annotate("global-vector arm: the 14M\nstabilization decays to ≈0,\n"
+             "sign flips at 392M · wikitext", (-0.67, 1.4), fontsize=8.5,
+             color=OI_GREEN, ha="left", fontweight="bold")
+axR.annotate("diamonds = n=1 exploratory\nprobe, no CI (pre-registered)",
+             (0.38, 4.6), fontsize=7.5, color=MUTED, ha="right")
+
+plt.tight_layout()
+plt.savefig(f"{OUT_DIR}/write_geometry_fixscale.svg", format="svg",
+            facecolor=BG, bbox_inches="tight")
+plt.close(fig)
+print("wrote write_geometry_fixscale.svg")

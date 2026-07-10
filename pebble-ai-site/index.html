@@ -599,6 +599,24 @@ footer a { color: var(--accent); }
         <p class="lede">Click any title for the full note.</p>
 
         <div class="results">
+            <a class="result" href="findings/broken-lens.html">
+                <div class="body">
+                    <div class="result-date">no. 12 &nbsp;·&nbsp; july 10, 2026</div>
+                    <h4>When the instrument is the failure: a 0-vs-1.0 readout contradiction on perfectly converged models</h4>
+                    <p>A 62-cell compositional-depth sweep read FALSIFY — then the instrument-health pass found the primary readout and its pre-registered crosscheck contradicting each other at 0-vs-1.0 magnitude on exactly the perfectly converged cells, while agreeing on every non-converged one. The primary lens's identity-gauge assumption had been validated on a <em>different</em> architecture and silently failed on this one. The tiebreak survived a shuffled-target falsifier pinned in advance (0.00/0.00/0.05, all far below the void bar). The corrected endpoint is INCONCLUSIVE — one gating group now shows full far-depth separation (crosscheck 1.000 vs baseline 0.0), the other misses on a single trainability-outlier seed. No capability win claimed; the dissociation and the audit trail are the finding. Read the research note →</p>
+                </div>
+                <span class="meta">methodology · endpoint inconclusive</span>
+            </a>
+
+            <a class="result" href="findings/constant-memory-recall.html">
+                <div class="body">
+                    <div class="result-date">no. 11 &nbsp;·&nbsp; july 10, 2026</div>
+                    <h4>Constant-memory recall: a fixed 32 KB state holds at 8× the binding window</h4>
+                    <p>A 14M fast-weight model binds K=32 pairs and answers at <span class="mono">acc_A ≥ 0.998</span> — every seed, every horizon — with the episode embedded in contexts of 454, 902, and 1,798 tokens, on a recurrent state fixed at <span class="mono">32,768 bytes</span>. The param/token-matched transformer reads chance at every horizon with an <em>uncapped</em> KV cache, and capping it at M ∈ {1…32} slots changes nothing. The pre-registered degenerate-baseline clause fired: no memory-multiplier number is claimed — the verdict of record is "baseline non-competitive at matched params/tokens." Read the research note →</p>
+                </div>
+                <span class="meta">n=3 · no multiplier claimed</span>
+            </a>
+
             <a class="result" href="findings/superlinear-capacity.html">
                 <div class="body">
                     <div class="result-date">no. 10 &nbsp;·&nbsp; july 9, 2026</div>
@@ -610,20 +628,20 @@ footer a { color: var(--accent); }
 
             <a class="result" href="findings/write-geometry-attractor.html">
                 <div class="body">
-                    <div class="result-date">no. 09 &nbsp;·&nbsp; july 9, 2026</div>
-                    <h4>The write-geometry attractor grows with scale, and it is not a qk-norm artifact</h4>
-                    <p>Key-write geometry in DeltaNet-family LMs collapses more with scale, not less: <span class="mono">span_frac</span> 0.248 at 14M → 0.455 at 1.31B. A pre-registered 2×2 exonerates the community-standard qk-l2-norm mitigation (Δ 0.05σ, clean null at n=3); decay gating shows a direction-consistent worsening trend that did <em>not</em> confirm at the pre-registered 2σ bar (1.92σ). Gated arms reach lower loss while carrying the pathology no better. Read the research note →</p>
+                    <div class="result-date">no. 09 &nbsp;·&nbsp; july 9, 2026 &nbsp;·&nbsp; updated july 10 (fix-at-scale verdict)</div>
+                    <h4>The write-geometry attractor grows with scale, it is not a qk-norm artifact — and the tested fixes do not survive scale</h4>
+                    <p>Key-write geometry in DeltaNet-family LMs collapses more with scale, not less: <span class="mono">span_frac</span> 0.248 at 14M → 0.455 at 1.31B. A pre-registered 2×2 exonerates the community-standard qk-l2-norm mitigation (Δ 0.05σ, clean null at n=3); decay gating trends worse without confirming at the 2σ bar. Now updated with the fix-at-scale wave (28 cells, 98M + 392M): <em>no tested frozen-bias construction stabilizes the attractor at scale</em> — the deployed per_token arm stays destabilizing (CI-excludes-zero at 98M on both corpora), and the one construction that worked at 14M decays to ≈zero and sign-flips by 392M. Val-loss neutrality is the half that transfers (8/8 gates). Read the research note →</p>
                 </div>
-                <span class="meta">diagnosis · preprint in prep</span>
+                <span class="meta">diagnosis · fix falsified at scale</span>
             </a>
 
             <a class="result" href="findings/fast-weight-recall.html">
                 <div class="body">
-                    <div class="result-date">no. 08 &nbsp;·&nbsp; july 9, 2026</div>
+                    <div class="result-date">no. 08 &nbsp;·&nbsp; july 9, 2026 &nbsp;·&nbsp; updated july 10 (n=3 verdict)</div>
                     <h4>Fast-weight recall separation at matched budgets, and where the binding actually lives</h4>
-                    <p>At 14M parameters on K=32 associative recall, a fast-weight matrix-state model reads <span class="mono">0.999</span> where a param-matched flat-vector ablation reads <span class="mono">0.045</span> and a FLOP/data-matched transformer reads <span class="mono">0.030</span> (chance 0.031). Zeroing the block-0 state alone collapses recall to chance, yet no linear tap on the raw state can read the binding — it becomes legible only after downstream nonlinear processing. Single seed; the n=3 confirmatory sweep is running. Read the research note →</p>
+                    <p>At 14M parameters on K=32 associative recall, a fast-weight matrix-state model reads <span class="mono">0.999</span> where a param-matched flat-vector ablation reads <span class="mono">0.045</span> and a FLOP/data-matched transformer reads <span class="mono">0.030</span> (chance 0.031). Zeroing the block-0 state alone collapses recall to chance, yet no linear tap on the raw state can read the binding — it becomes legible only after downstream nonlinear processing. The pre-registered 27-cell sweep has since CONFIRMED the separation at n=3 fresh seeds: paired CIs on both gaps exclude the frozen 0.30 margin. Read the research note →</p>
                 </div>
-                <span class="meta">n=1 · sweep running</span>
+                <span class="meta">confirmed at n=3</span>
             </a>
 
             <a class="result" href="findings/rank-law.html">
@@ -705,7 +723,7 @@ footer a { color: var(--accent); }
             <div class="phase">
                 <div class="step">done →</div>
                 <h4>Matrix-native from scratch on a rank-K task</h4>
-                <p>The matrix-CODI negative result localized the failure to the linear-in-<span class="mono">Z</span> readout. This experiment removed that readout entirely: fast-weight matrix-state models trained from scratch on tasks with provable rank requirements. Result: SGD recruits exactly the provably-necessary rank, and the recruitment is causal — recovery is exactly zero one dimension below the group-theoretic minimum (<a href="findings/rank-law.html">Finding no. 07</a>). The same model family separates from param-matched flat-vector and FLOP-matched transformer baselines on high-load recall (<a href="findings/fast-weight-recall.html">Finding no. 08</a>, single-seed, sweep running).</p>
+                <p>The matrix-CODI negative result localized the failure to the linear-in-<span class="mono">Z</span> readout. This experiment removed that readout entirely: fast-weight matrix-state models trained from scratch on tasks with provable rank requirements. Result: SGD recruits exactly the provably-necessary rank, and the recruitment is causal — recovery is exactly zero one dimension below the group-theoretic minimum (<a href="findings/rank-law.html">Finding no. 07</a>). The same model family separates from param-matched flat-vector and FLOP-matched transformer baselines on high-load recall (<a href="findings/fast-weight-recall.html">Finding no. 08</a>, confirmed at n=3) and holds that recall on a fixed 32 KB state out to 8× the binding window (<a href="findings/constant-memory-recall.html">Finding no. 11</a>).</p>
                 <div class="budget">~30 H100-hours</div>
             </div>
 

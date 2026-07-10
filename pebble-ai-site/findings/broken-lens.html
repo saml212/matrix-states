@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="On a 62-cell compositional-depth sweep, the primary readout and its pre-registered crosscheck contradicted each other at 0-vs-1.0 magnitude on exactly the perfectly converged cells. The tiebreak: the primary lens's identity-gauge assumption, validated on one architecture, silently failed on another. The corrected read survived its own shuffled-target falsifier; the endpoint is INCONCLUSIVE, not a win.">
+<meta property="og:title" content="When the instrument is the failure: a 0-vs-1.0 readout contradiction on perfectly converged models — pebble">
+<meta property="og:description" content="Research note: a readout that was provably fine on one architecture read exactly 0.0 on another architecture's perfectly converged checkpoints while the pre-registered crosscheck read 1.0 on the same states. How the contradiction was caught, adjudicated with a pinned falsifier, and what the corrected lens does and does not change.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/broken-lens.html">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-10">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/broken-lens.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "When the instrument is the failure: a 0-vs-1.0 readout contradiction on perfectly converged models",
+  "name": "When the instrument is the failure",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-10",
+  "url": "https://pebbleml.com/findings/broken-lens.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "A 62-cell sweep testing compositional depth generalization in a recurrent composer completed cleanly and the pre-registered mechanical endpoint read FALSIFY. Instrument-health adjudication found the primary readout (a scale-only 'degauge' recovery metric) and the pre-registered crosscheck (an orthogonal intertwiner fit on a fit split, scored on a disjoint eval split) contradicting each other at 0-vs-1.0 magnitude on exactly the cells that had converged to final_loss ~1e-4, while agreeing (both ~0) on every non-converged cell. The coordinator tiebreak found the primary lens broken on this architecture: its identity-gauge assumption had been validated on a different architecture's states and does not transfer — a perfect model in a rotated basis reads 0 under that assumption by construction. The tiebreak was given teeth: a shuffled-target negative control pinned in advance (crosscheck reads 0.00/0.00/0.05 on shuffled targets, far below the 0.5 void-bar). Under the corrected lens the mechanical endpoint is still FALSIFY under as-built pins, for more informative reasons (one group's decisive config never converges under either lens; another is dragged below its bar by a single pre-classified trainability-outlier seed). Discharging two pre-registered pin ambiguities (A6's decisive n_h to 4; S5 seed extension to n=5) moves the endpoint to INCONCLUSIVE: A6 then shows the full pre-registered separation pattern (far-depth crosscheck recovery 1.000 at 100% of its own ceiling vs the restricted baseline at exactly 0.0), S4 separates as a non-gating corroboration, and S5/A5 still miss their bars on trainability grounds. No capability win is claimed. Unpublished.",
+  "keywords": "measurement, instrumentation, mechanistic interpretability, Procrustes, gauge freedom, readout validation, negative controls, pre-registration, DeltaProduct, Householder, compositional generalization",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>When the instrument is the failure: a 0-vs-1.0 readout contradiction — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── ascii plot ────── */
+.ascii-plot {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 24px 32px;
+    margin: 24px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    .ascii-plot { font-size: 0.68rem; padding: 18px 20px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 12 &nbsp;·&nbsp; methodology — endpoint inconclusive, dissociation replicated 4×</div>
+        <h1 class="paper-title">When the instrument is the failure: a 0-vs-1.0 readout contradiction on perfectly converged models</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 10, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>A 62-cell sweep testing whether a recurrent composer generalizes exact composition to 8× its training depth completed cleanly, and the pre-registered mechanical endpoint read FALSIFY. Then the instrument-health pass found something worse than a failed hypothesis: the primary readout and its pre-registered crosscheck <strong>contradicted each other at 0-vs-1.0 magnitude on exactly the cells that had converged perfectly</strong> (training loss ≈ 10⁻⁴), while agreeing — both ≈ 0 — on every cell that hadn't. The tiebreak localized the defect: the primary lens assumes the model's state basis sits in the identity gauge, an assumption <em>validated on a different architecture</em> and silently false on this one — a perfect model in a rotated basis reads exactly 0 under it, by construction. The corrected read was not taken on faith: a shuffled-target falsifier, pinned before any number was trusted, would have voided the tiebreak had the crosscheck read ≥ 0.5 on permuted targets; it read 0.00 / 0.00 / 0.05. Under the corrected lens the endpoint is still FALSIFY under the as-built pins — for more informative reasons — and moves to <strong>INCONCLUSIVE</strong> after two pre-registered pin ambiguities discharge. No capability win is claimed; the dissociation and the audit trail are the finding. Unpublished.</p>
+        </div>
+
+        <h2><span class="num">01</span>The experiment underneath</h2>
+
+        <p>The composer is a delta-rule fast-weight model whose state update is a product of <span class="mono">n_h</span> Householder-like factors per step (DeltaProduct-style). Five task groups (S3, S4, S5 — symmetric groups; A5, A6 — alternating groups) each define an exact-composition task: train on operator sequences of depth ≤ 8, evaluate recovery of the composed operator at depths 16 / 32 / 64 — up to 8× the training support. The pre-registered contrast: a contender arm with extended step size β ∈ [0, 2] (which makes genuine reflections reachable) against an otherwise-identical baseline restricted to β ∈ [0, 1]. The endpoint asks whether the contender measurably separates from the baseline at the far checkpoint on the two gating groups, S5 and A6.</p>
+
+        <p>Recovery is scored by two pre-registered readouts. The <strong>primary lens</strong> reconstructs the composed operator from the state through a scale-only "degauge" pipeline — it assumes the model's internal basis matches the task basis up to scale. The <strong>crosscheck lens</strong> makes no such assumption: it fits an orthogonal intertwiner (full-Q Procrustes) on a fit split of items and scores recovery on an index-disjoint eval split. The crosscheck was in the registration from the start, because an earlier stage of this program had already caught the primary's class of failure once.</p>
+
+        <h2><span class="num">02</span>The contradiction</h2>
+
+        <figure>
+            <img src="../assets/plots/broken_lens_dissociation.svg" alt="scatter of primary vs crosscheck recovery at 8x depth: converged contender cells read 0 on primary and 1 on crosscheck; all non-converged cells agree near 0" style="width: 100%; max-width: 760px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>All 62 sweep cells at the far (8×) depth: primary-lens recovery (x) vs crosscheck-lens recovery (y). Points jittered ±0.014 and clipped to [0, 1] for visibility of coincident cells. Wherever training converged (vermillion; final_loss ≤ 0.012 — the grid is bimodal, next-worst 0.069), the two lenses disagree at up to 0-vs-1.0; wherever it did not (orange = contender, blue = baseline), the lenses agree near zero. A readout that "reads high on junk" would sit high on the blue squares too; it never does. Data: <span class="mono">experiment-runs/2026-07-10_stage2_calibration/remetric_2p32/crosscheck_lens_verdict_output.json</span> (62-cell flat table).</figcaption>
+        </figure>
+
+        <p>The pattern's alignment with convergence is the tell. The lenses agree on all 25 baseline cells (which fit training poorly everywhere, loss 0.11–0.35) and on every non-converged contender cell. They disagree <em>only</em> where the model actually solved training — the S4 family is the cleanest case: five out of five seeds at loss &lt; 5×10⁻⁴, primary reads 0.05–0.15 at far depth, crosscheck reads 1.00. Both readings cannot be right about the same states. Either the primary is blind to converged solutions, or the crosscheck is trivially satisfiable and reads high on anything.</p>
+
+        <h2><span class="num">03</span>The tiebreak — and the falsifier it had to survive</h2>
+
+        <p>The tiebreak was adjudicated from raw artifacts and code, on four independent grounds: (1) the crosscheck is leakage-guarded by construction — the intertwiner is fit on the fit split only and scored on a disjoint eval split, so "trivial satisfiability" would require it to overfit data it never saw; (2) the crosscheck demonstrably discriminates — it reads ≈ 0 on every non-converged cell in the grid (fig 1's blue squares); (3) the primary's failure mode was already documented in this program's own records: its scale-only degauging is basis-brittle, and the empirical basis for trusting the identity-gauge assumption ("Q̂ ≈ I on every real checkpoint") had been measured on the <em>previous</em> architecture's states. The composer is a different architecture with no entitlement to that gauge — <strong>a perfect model in a rotated basis reads 0 under Q̂ = I by construction</strong>; (4) a synthetic-injection precedent where ground truth was known resolved the same class of contradiction to the crosscheck.</p>
+
+        <p>An argument, however layered, is not evidence — so the tiebreak pinned its own falsifier before the corrected read was trusted: re-run the crosscheck on converged checkpoints with the <em>targets shuffled</em> (correspondence between states and targets broken, same shapes and marginals). If the crosscheck read ≥ 0.5 on shuffled targets, the tiebreak was pre-declared wrong and the whole contradiction would escalate to an instrument rebuild.</p>
+
+        <table>
+            <thead>
+                <tr><th>converged control cell</th><th>real targets</th><th>shuffled targets</th><th>falsifier (≥ 0.5) fires?</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>A6 · n_h=4 · seed 0</td><td class="num">1.000</td><td class="num">0.000</td><td>no</td></tr>
+                <tr><td>S5 · n_h=4 · seed 0</td><td class="num">0.800</td><td class="num">0.000</td><td>no</td></tr>
+                <tr><td>S4 · n_h=2 · seed 2</td><td class="num">1.000</td><td class="num">0.050</td><td>no</td></tr>
+            </tbody>
+        </table>
+
+        <p>The "real" column also reproduced the committed sweep values bit-for-bit, confirming the recompute harness runs the production pipeline rather than a reimplementation of it. The re-metric itself needed one genuinely new number per cell (the crosscheck reading at the training-depth ceiling, which the sweep had computed but not persisted); the recompute was validated by reproducing all 62 cells' committed primary readings to &lt; 10⁻⁹ before any new number was used.</p>
+
+        <div class="takeaway">
+            <span class="label">key observation</span>
+            The instrument that failed here had passed its validation — on a different architecture. Gauge-type assumptions ("the model's basis matches the task basis") are architecture-relative, and a readout carrying one must be re-validated per architecture or replaced with a gauge-free construction. The only reason this was caught is that a second, independently-constructed readout was pre-registered alongside the first — and the only reason the correction is trustworthy is that it survived a falsifier pinned in advance.
+        </div>
+
+        <h2><span class="num">04</span>What the corrected lens changes — and what it does not</h2>
+
+        <p>Honesty cuts both ways: re-reading the full grid under the crosscheck lens does <strong>not</strong> flip the verdict. The mechanical endpoint under the as-built pins is still FALSIFY — but the reason changes from "no detectable signal anywhere" (the broken lens's face-value reading) to two specific, disclosed confounds: <strong>A6's decisive configuration (n_h = 2) never converges under either lens</strong> — a lens-independent trainability fact, and itself a previously-untested n_h-sufficiency measurement (identically-budgeted n_h = 4 cells converge 3/3 on the same task) — and <strong>S5's decisive triad is dragged below its bar by one pre-classified trainability-outlier seed</strong> that reads zero under both lenses despite converged training loss, while its other seeds clear 65–80% of their own ceiling against a baseline pinned at exactly 0.0.</p>
+
+        <p>Two pin ambiguities then discharge along routes quoted from the pre-registration itself, not invented post hoc: A6's decisive n_h was registered as "calibration-pending," and its own flanking grid answers it (n_h = 4: 3/3 converged, far-depth crosscheck 1.00/1.00/1.00, zero seed variance); S5's ambiguous triad (CI straddling its bar) triggers the pre-registered seed extension to n = 5 — and both new seeds land the best S5 training losses in the grid, read crosscheck 1.00 at every depth, and read ≈ 0 under the primary lens: <em>the dissociation reproduced a third and fourth time, out-of-sample</em>. The pooled S5 quintet still fails its own far bar (0.690 vs 0.801) because the outlier seed stays in the aggregation — the pre-registered remedy is more seeds, never exclusion.</p>
+
+        <figure>
+            <img src="../assets/plots/broken_lens_endpoint.svg" alt="per-group far-depth crosscheck recovery, contender vs restricted baseline, with each group's pre-registered bar" style="width: 100%; max-width: 780px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 2</span>The endpoint under the discharged pins (A6 decisive n_h = 4; S5 at n = 5, pooled with its variance-gate flag disclosed), crosscheck lens decisional: per-group far-depth (D = 64, 8× train) recovery for the contender (vermillion) vs the β-restricted baseline (blue), with each group's own pre-registered bar (dashes; 90% of its own D = 8 ceiling). A6 — the theorem's strongest exclusion case — now shows the full pre-registered pattern: 1.00 at 100% of its own ceiling vs a baseline at exactly 0.0. S4 shows the same as a non-gating corroboration. S5 and A5 miss their bars on trainability grounds; S3's baseline fails to collapse. Mechanical verdict: INCONCLUSIVE (mixed pattern). Data: <span class="mono">experiment-runs/2026-07-10_stage2_calibration/route_2p33/route_2p33_verdict_output.json</span>.</figcaption>
+        </figure>
+
+        <p><strong>The endpoint of record.</strong> Under the as-built pins: FALSIFY (both lenses, recorded). Under the discharged pins: INCONCLUSIVE — separation present at one gating group (A6) and absent at the other (S5), which the pre-registration routes to diagnosis, not to a verdict. Whether the discharged-pin reading supersedes the as-built one as the stage verdict is an explicitly-pending promotion call. What is <em>not</em> claimed anywhere: a compositional-depth capability win.</p>
+
+        <h2><span class="num">05</span>Caveats — read before citing</h2>
+
+        <ul>
+            <li><strong>This is a methodology finding, not a capability result.</strong> The citable claims are: (a) the primary/crosscheck dissociation on converged cells — 13 of the grid's 17 converged contender cells show a ≥ 0.5 far-depth gap, plus 2 out-of-sample extension seeds; (b) the shuffled-target control passing 3/3; (c) the endpoint status exactly as stated in section 04. Anyone quoting a "depth-generalization win" from this page is misquoting it.</li>
+            <li><strong>The A6 n_h = 2 non-convergence and S5 seed-1 outlier are model facts, not instrument artifacts</strong> — both lenses agree on them. "Trainability variance" labels, not explains, them; the same bimodal pattern appears in a sibling campaign's multi-hop task.</li>
+            <li><strong>The primary lens is not yet repaired.</strong> The identity-gauge defect on converged composer cells is an open instrument-repair item; until fixed, no future wave in this program may read the primary lens as a headline number on this architecture.</li>
+            <li><strong>The seed-extension variance gate fired</strong> (zero variance in the new cohort vs 0.18 in the old, a degenerate ratio) — disclosed, both pooled and unpooled reads reported; the pooling decision is verdict-irrelevant here since S5 fails its bar under either.</li>
+            <li><strong>Scale and scope.</strong> Small task-specific models on five finite groups; depth tested to 8× training support; conclusions are about this composer and these readouts.</li>
+        </ul>
+
+        <h2><span class="num">06</span>Reproducibility</h2>
+
+        <p>Everything is recomputable from committed raws: <span class="mono">experiment-runs/2026-07-10_stage2_calibration/sweep_results/</span> (all 62 cell JSONs + the harvest report), <span class="mono">…/remetric_2p32/</span> (the ceiling-recompute and teeth-control script + outputs, the shadow-cell verdict harness that calls the production verdict function unmodified, and the 62-cell flat table behind fig 1), and <span class="mono">…/route_2p33/</span> (the two S5 extension-cell JSONs, the routing harness, and the four-verdict output behind fig 2). The re-metric and routing stages were CPU-only re-reads plus two 8,000-step training cells (≈ 0.05 GPU-h); the sweep itself was ≈ 2.6 GPU-h. Figure script: <span class="mono">assets/plots/generate_broken_lens.py</span>, which reads the archived verdict JSONs directly.</p>
+
+        <div class="references">
+            <h2>References</h2>
+            <ol>
+                <li>Siems, J., et al. (2025). <em>DeltaProduct: Improving State-Tracking in Linear RNNs via Householder Products.</em> arXiv:2502.10297</li>
+                <li>Grazzi, R., et al. (2025). <em>Unlocking State-Tracking in Linear RNNs Through Negative Eigenvalues.</em> ICLR 2025, arXiv:2411.12537</li>
+            </ol>
+        </div>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

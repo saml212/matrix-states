@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="The write-geometry attractor in fast-weight LMs worsens monotonically from 14M to 1.31B parameters (span_frac 0.248 to 0.455). A pre-registered 2x2 shows it is not a qk-norm artifact; decay gating shows a direction-consistent trend that did NOT confirm at the pre-registered bar.">
-<meta property="og:title" content="The write-geometry attractor: scale trend and a qk-norm exoneration — pebble">
-<meta property="og:description" content="Research note: key-write geometry in DeltaNet-family LMs collapses more, not less, with scale. Turning the community-standard qk-l2-norm mitigation off changes nothing (n=3 null); gating trends worse but misses the 2-sigma pre-registered bar (1.92 sigma).">
+<meta name="description" content="The write-geometry attractor in fast-weight LMs worsens monotonically from 14M to 1.31B parameters (span_frac 0.248 to 0.455), is not a qk-norm artifact, and now: resists the tested frozen-bias mitigations at scale. The deployed per_token arm stays destabilizing at 98M (CI-excludes-zero, both corpora) and 392M-wikitext; the 14M global-vector stabilization decays to ~zero and sign-flips by 392M. Val-loss neutrality is the half that transfers (8/8 gates).">
+<meta property="og:title" content="The write-geometry attractor: scale trend, qk-norm exoneration, and a failed fix at scale — pebble">
+<meta property="og:description" content="Research note: key-write geometry in DeltaNet-family LMs collapses more, not less, with scale — and no tested frozen-bias construction stabilizes it at scale. The fix-at-scale wave (28 cells, 98M + 392M, ~130 GPU-h) came back PARTIAL: the destabilizing 14M sign persists attenuated, the one construction that stabilized at 14M decays to ~zero and loses its sign by 392M, and every arm stays val-loss-neutral.">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://pebbleml.com/findings/write-geometry-attractor.html">
 <meta property="article:author" content="Sam Larson">
@@ -29,13 +29,13 @@
   "url": "https://pebbleml.com/findings/write-geometry-attractor.html",
   "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
   "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
-  "abstract": "In DeltaNet-family language models, the geometry of what gets written into the fast-weight state collapses toward a low-effective-rank basin, and the collapse worsens monotonically with scale: span_frac 0.248 at 14M, 0.344 at 98M, 0.389 at 392M, 0.455 at 1.31B parameters. A pre-registered 2x2 factorial at 14M (qk-l2-norm on/off crossed with decay gating on/off, n=3 seeds per cell) shows the attractor is not the published qk-norm eigenvalue-stability issue in disguise: turning qk-norm off moves the metric by -0.103 (0.05 sigma), a clean null. Decay gating shows a direction-consistent worsening trend (+4.31, 1.92 sigma; all three paired per-seed deltas positive) that did not confirm at the pre-registered 2-sigma bar. Gated arms reach lower loss while carrying the pathology no better. Preprint in preparation.",
+  "abstract": "In DeltaNet-family language models, the geometry of what gets written into the fast-weight state collapses toward a low-effective-rank basin, and the collapse worsens monotonically with scale: span_frac 0.248 at 14M, 0.344 at 98M, 0.389 at 392M, 0.455 at 1.31B parameters. A pre-registered 2x2 factorial at 14M (qk-l2-norm on/off crossed with decay gating on/off, n=3 seeds per cell) shows the attractor is not the published qk-norm eigenvalue-stability issue in disguise: turning qk-norm off moves the metric by -0.103 (0.05 sigma), a clean null. Decay gating shows a direction-consistent worsening trend (+4.31, 1.92 sigma; all three paired per-seed deltas positive) that did not confirm at the pre-registered 2-sigma bar. Gated arms reach lower loss while carrying the pathology no better. UPDATE (fix-at-scale wave, 28 cells at 98M and 392M): no tested frozen-bias construction stabilizes the attractor at scale. The deployed per_token arm reads destabilizing with CI-excluding-zero on both instruments at 98M on both corpora (+0.113, +0.101) and at 392M-wikitext (+0.019); 392M-openr1 is null; no cell reverses to the mechanism-predicted direction. The global-vector construction that stabilized at 14M (-0.332/-0.231) decays to about -0.058/-0.034 at 98M and to -0.012/+0.019 at 392M (sign flip on wikitext; n=1 exploratory). Val-loss neutrality passes in all 8 gates - the free-of-cost half of the 14M result transfers; the geometry half does not. Preprint in preparation.",
   "keywords": "fast weights, DeltaNet, linear attention, key geometry, rank collapse, qk normalization, gated DeltaNet, scaling",
   "license": "https://creativecommons.org/licenses/by/4.0/",
   "inLanguage": "en"
 }
 </script>
-<title>The write-geometry attractor: scale trend and a qk-norm exoneration — pebble</title>
+<title>The write-geometry attractor: scale trend, qk-norm exoneration, and a failed fix at scale — pebble</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
@@ -428,11 +428,11 @@ footer a { color: var(--accent); }
 
 <section class="title-block">
     <div class="container">
-        <div class="paper-meta">research note &nbsp;·&nbsp; finding 09 &nbsp;·&nbsp; preprint in preparation</div>
-        <h1 class="paper-title">The write-geometry attractor grows with scale, and it is not a qk-norm artifact</h1>
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 09 &nbsp;·&nbsp; preprint in preparation &nbsp;·&nbsp; updated with the fix-at-scale verdict 2026-07-10</div>
+        <h1 class="paper-title">The write-geometry attractor grows with scale, it is not a qk-norm artifact — and the tested fixes do not survive scale</h1>
         <p class="authors"><span class="author">Sam Larson</span></p>
         <p class="affil">pebble, San Francisco</p>
-        <p class="date">July 9, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+        <p class="date">July 9, 2026 &nbsp;·&nbsp; updated July 10, 2026 (fix-at-scale wave) &nbsp;·&nbsp; sam@pebbleml.com</p>
     </div>
 </section>
 
@@ -441,7 +441,7 @@ footer a { color: var(--accent); }
 
         <div class="abstract">
             <span class="label">abstract</span>
-            <p>In DeltaNet-family language models, the geometry of what gets written into the fast-weight state — the per-layer key Gram matrix — collapses toward a low-effective-rank basin during training. We call this the <strong>write-geometry attractor</strong>. It is not a small-model artifact: on a four-point scale ladder it worsens monotonically, <span class="mono">span_frac</span> 0.248 at 14M → 0.344 at 98M → 0.389 at 392M → 0.455 at 1.31B parameters. A natural deflationary reading is that this is the published qk-norm eigenvalue-stability issue in disguise, since every run trains with the community-standard <span class="mono">qk-l2-norm</span> mitigation on. A pre-registered 2×2 factorial at the 14M rung (qk-norm on/off × decay gating on/off, n = 3 seeds per cell) rules that out: turning qk-norm <em>off</em> moves the collapse metric by <span class="mono">−0.103</span> (0.05σ against the same-corpus noise floor) — a clean null. Decay gating (the Gated-DeltaNet mechanism used in production stacks) shows a direction-consistent worsening trend — <span class="mono">+4.31</span>, all three paired per-seed deltas positive — that did <strong>not</strong> confirm at the pre-registered 2σ bar (1.92σ; exploratory Welch p = 0.062). Gated arms reach <em>lower</em> loss while carrying the pathology no better. Preprint in preparation.</p>
+            <p>In DeltaNet-family language models, the geometry of what gets written into the fast-weight state — the per-layer key Gram matrix — collapses toward a low-effective-rank basin during training. We call this the <strong>write-geometry attractor</strong>. It is not a small-model artifact: on a four-point scale ladder it worsens monotonically, <span class="mono">span_frac</span> 0.248 at 14M → 0.344 at 98M → 0.389 at 392M → 0.455 at 1.31B parameters. A natural deflationary reading is that this is the published qk-norm eigenvalue-stability issue in disguise, since every run trains with the community-standard <span class="mono">qk-l2-norm</span> mitigation on. A pre-registered 2×2 factorial at the 14M rung (qk-norm on/off × decay gating on/off, n = 3 seeds per cell) rules that out: turning qk-norm <em>off</em> moves the collapse metric by <span class="mono">−0.103</span> (0.05σ against the same-corpus noise floor) — a clean null. Decay gating (the Gated-DeltaNet mechanism used in production stacks) shows a direction-consistent worsening trend — <span class="mono">+4.31</span>, all three paired per-seed deltas positive — that did <strong>not</strong> confirm at the pre-registered 2σ bar (1.92σ; exploratory Welch p = 0.062). Gated arms reach <em>lower</em> loss while carrying the pathology no better. <strong>Update (July 10): the fix-at-scale wave landed, and no tested frozen-bias construction stabilizes the attractor at scale</strong> — the deployed per_token arm stays sign-destabilizing at 98M on both corpora and at 392M-wikitext (CI-excludes-zero, both instruments; 392M-openr1 null; zero cells in the mechanism-predicted direction), and the one construction that stabilized at 14M decays to ≈zero and loses its sign on one corpus by 392M. Every arm stays val-loss-neutral at every tested scale (8/8 gates): the free-of-cost half of the 14M result transfers; the geometry half does not. Preprint in preparation.</p>
         </div>
 
         <h2><span class="num">01</span>The attractor</h2>
@@ -475,18 +475,41 @@ footer a { color: var(--accent); }
             Gated arms train to <em>lower</em> loss (3.515 vs 3.682 final train loss in the qk-on pair) while carrying more Gram deviation. A healthier-looking checkpoint carries the pathology no better — loss curves do not surface this failure mode, which is part of why it matters.
         </div>
 
-        <h2><span class="num">03</span>Limitations</h2>
+        <h2><span class="num">03</span>The fix-at-scale wave: no tested construction stabilizes the attractor at scale</h2>
+
+        <p>The 14M diagnosis run had produced two frozen-bias candidate mitigations: the <span class="mono">per_token</span> arm (deployed in the sibling head-to-head campaign; val-loss-neutral at 14M but with its own 14M geometry evidence pointing the <em>wrong</em> way, +0.196/+0.227 Δ<span class="mono">span_frac</span> destabilizing, CI-excludes-zero) and the <span class="mono">global-vector</span> arm, which genuinely stabilized at 14M (−0.332/−0.231, CI-excludes-zero). Neither had ever been run above 14M. The fix-at-scale wave adjudicated both: 28 cells at 98M and 392M on both corpora (openr1-mix-ext, wikitext-mix-ext), n = 3 seeds per confirmatory cell, reference bands pinned from fresh same-scale <span class="mono">arm_off</span> runs <em>before</em> any treated cell trained (blind discipline enforced mechanically and tamper-verified at harvest), two instruments per cell (post-blend primary + pre-blend co-primary). ≈130 GPU-h realized.</p>
+
+        <figure>
+            <img src="../assets/plots/write_geometry_fixscale.svg" alt="delta span_frac with CIs across 14M, 98M, 392M for the per_token arm (left, persistently positive/destabilizing) and the global-vector arm (right, stabilization decaying to zero and sign-flipping)" style="width: 100%; max-width: 820px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 3</span>The fix-at-scale verdict. Left: the deployed <span class="mono">per_token</span> arm's Δ<span class="mono">span_frac</span> vs the same-scale <span class="mono">arm_off</span> reference (positive = destabilizing = the 14M sign), pinned 95% CIs. Right: the <span class="mono">global-vector</span> construction — n = 3 CIs at 14M; diamonds at 98M/392M are the pre-registered n = 1 exploratory probe (no CI, never a confirmatory bar). Data: <span class="mono">experiment-runs/2026-07-06_frozen_bias_rung1/…/PHASE_D_FULL_REPORT.json</span> and <span class="mono">experiment-runs/2026-07-10_fixscale_harvest/fixscale_harvest_verdict.json</span> (archive md5 manifest verified 132/132), both read directly by the figure script.</figcaption>
+        </figure>
+
+        <p><strong>The per_token arm: the destabilizing sign persists at scale.</strong> 98M reads +0.113 [+0.054, +0.172] on openr1 and +0.101 [+0.054, +0.148] on wikitext — CI-excludes-zero positive on the primary AND the pre-blend co-primary (which rules out a static blend artifact: the effect is training-mediated, exactly as at 14M). 392M-wikitext reads +0.019 [+0.011, +0.027], still positive; 392M-openr1 is a null (+0.007 [−0.036, +0.049]). Zero of four scale×corpus cells move in the mechanism-predicted (stabilizing) direction on either instrument. Descriptively the magnitude attenuates up the ladder (+0.20 → +0.11 → +0.01/+0.02), but this is <em>not</em> a registered claim: the 392M cells ran a reduced 20k-step token budget vs 98M's Track-C-matched budget, so the 98M→392M attenuation is confounded with token budget by design. The within-scale readings are the registered claims.</p>
+
+        <p><strong>The global-vector arm: the 14M stabilization does not survive transfer.</strong> Under the pre-registered n = 1 exploratory probe (no CI, never confirmatory), the construction that read −0.332/−0.231 at 14M reads −0.058/−0.034 at 98M — sign preserved, magnitude ≈1/6th–1/10th — and −0.012/+0.019 at 392M: essentially zero on one corpus and <em>sign-flipped to destabilizing</em> on the other. A curious mechanism datum for any future pass: the probe cells' pre-blend raw-key geometry is consistently <em>worse</em> than arm_off's own (98M +0.061/+0.055) — training through a constant bias degrades raw-key geometry even where the post-blend population reads better.</p>
+
+        <p><strong>Val-loss neutrality is the half that transfers.</strong> All 8 gates pass (4 scale×corpus cells × per_token arm-mean + probe): both constructions remain free at the loss level at every tested scale, exactly as at 14M. One disclosed single-seed excursion (98M-wikitext per_token s0 = 3.2038 vs ceiling 3.2020; the arm mean passes) and thin 392M margins (0.001–0.003 nats, because arm_off's cross-seed spreads are tiny) are in the archived verdict.</p>
+
+        <div class="takeaway">
+            <span class="label">key observation</span>
+            This strengthens the pathology story on both ends: the attractor grows with scale (section 01), and it now also resists the mitigations that looked promising at small scale — including the one that genuinely worked at 14M. "Val-loss-neutral" and "geometry-fixing" dissociate cleanly at scale. Any claimed fix for this class of pathology needs to be validated at scale on the geometry itself, not at 14M and not on loss.
+        </div>
+
+        <h2><span class="num">04</span>Limitations</h2>
 
         <ul>
             <li><strong>The 2×2 is one architecture point.</strong> 14M scale, <span class="mono">dm256/L2/ds64</span>, single-head vanilla-DeltaNet family. Not tested at production scale, on DeltaProduct-style multi-Householder generalizations, or on the full Qwen3-Next configuration. The 2×2 partially — not fully — discharges the "single architecture family" limitation of the scale-ladder work.</li>
             <li><strong>Two instruments, two metrics.</strong> The scale ladder reports <span class="mono">span_frac</span>; the 2×2's probe reports Gram deviation/effective-rank/stable-rank. Directionally aligned, not interchangeable.</li>
             <li><strong>n=1 sub-readings were not re-validated at n=3.</strong> Per-cell details from the screen (e.g., collapse concentrating in layer 0: baseline L0 17.10/L1 21.03 vs gated L0 30.90/L1 19.56) stand as single-seed observations only.</li>
             <li><strong>Behavioral leg non-decisional.</strong> A secondary recall probe wired into the 2×2 was disclosed probe-invalid up front (a known zero-shot transplant floor; it reads 0.0 in every cell by design) and was never read for decisions.</li>
+            <li><strong>The 392M budget confound (fix-at-scale).</strong> The 392M cells trained ≈328M tokens vs 98M's ≈1.1B; cross-scale magnitude comparisons in section 03 are descriptive only. A full-budget 392M test could in principle read differently — disclosed, unbudgeted, no wave proposed.</li>
+            <li><strong>The global-vector reads at 98M/392M are n = 1</strong>, by pre-registration (exploratory probe tier). The 14M-only qualifier on "a geometry-stabilizing construction was identified" is permanent: the scaled test came back negative.</li>
+            <li><strong>One resumed cell.</strong> An <span class="mono">arm_off_98m_openr1</span> seed was resumed after a contention abort (fresh optimizer over the remainder) and landed as the low val outlier; this widens that cell's reference CI — conservative for the primary reading, which clears it anyway. Disclosed in the archive.</li>
         </ul>
 
-        <h2><span class="num">04</span>Reproducibility</h2>
+        <h2><span class="num">05</span>Reproducibility</h2>
 
-        <p>Raw probe JSONs, aggregate files, MD5 manifests, and the independent recompute script (matches the runner's aggregates to &lt;1e-6) are archived under <span class="mono">experiment-runs/2026-07-09_attrrob_2x2_harvest/</span> and <span class="mono">experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/</span> in the project repository. Realized compute: ≈1.0 GPU-h (screen) + ≈2.0 GPU-h (escalation; the four seed-0 cells resume-skipped). The figure-generation script for this page is at <span class="mono">assets/plots/generate_write_geometry_attractor.py</span>.</p>
+        <p>Raw probe JSONs, aggregate files, MD5 manifests, and the independent recompute script (matches the runner's aggregates to &lt;1e-6) are archived under <span class="mono">experiment-runs/2026-07-09_attrrob_2x2_harvest/</span> and <span class="mono">experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/</span> in the project repository. The fix-at-scale wave is archived under <span class="mono">experiment-runs/2026-07-10_fixscale_harvest/</span> (train/calib/pins/pilots/measure trees, <span class="mono">fixscale_harvest_verdict.json</span>, the independent <span class="mono">analyze_fixscale_harvest.py</span> recompute — identical numbers — and the md5 manifest, 132/132 verified at publication); its 14M reference numbers come from <span class="mono">experiment-runs/2026-07-06_frozen_bias_rung1/</span>. Realized compute: ≈1.0 GPU-h (screen) + ≈2.0 GPU-h (escalation) + ≈130.2 GPU-h (fix-at-scale wave). The figure-generation script for this page is at <span class="mono">assets/plots/generate_write_geometry_attractor.py</span>.</p>
 
         <div class="references">
             <h2>References</h2>
