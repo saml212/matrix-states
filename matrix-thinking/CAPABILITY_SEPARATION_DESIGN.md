@@ -7251,3 +7251,65 @@ SSD-mirrored. Pointers: `stage2_harvest.py::expected_full_grid_cell_ids`
 `instrument_health_adjudication.log` (the full 14-config table).
 **NEXT: the coordinator tiebreak on primary-vs-crosscheck; every
 §2.31 number is recomputable from the committed raws.**
+
+### §2.31a COORDINATOR TIEBREAK (2026-07-10): THE PRIMARY LENS IS THE BROKEN INSTRUMENT ON CONVERGED CELLS — THE CROSSCHECK (FIT/EVAL-SPLIT FULL-Q PROCRUSTES) IS DECISIONAL FOR THE M-D3 ENDPOINT. THE MECHANICAL "FALSIFY" IS VOID AS A MODEL VERDICT; A CROSSCHECK-LENS RE-METRIC OF THE FULL GRID IS THE ROUTED NEXT STAGE.
+
+Adjudicated by the coordinator directly from raws + code + this
+registry's own pre-registrations, per the conflicting-claims hard rule
+(precedent: §1.29 tiebreak). Four independent grounds, none of them
+"the more recent claim wins":
+
+**1. The crosscheck is leakage-guarded BY CONSTRUCTION.**
+`readout.py::degauge_and_score` fits the orthogonal intertwiner on the
+FIT split only (`fit_orthogonal_intertwiner(A_fit, rho_fit, …)`) and
+scores on the index-disjoint EVAL split (`score_eval(A_eval, rho_eval,
+Q_hat, c_hat)`), behind the §1.4.1 step-4 60/40 split with diversity
+floors (`_split_with_diversity_retry`, retry-once-then-fail). The
+"crosscheck leakage / trivial satisfiability" hypothesis (§2.31
+hypothesis b) requires Q̂ to overfit an eval set it never saw — ruled
+out mechanically.
+
+**2. The crosscheck demonstrably discriminates.** On every
+non-converged cell in the grid (all Arm-2: final_loss 0.11-0.35) BOTH
+lenses read ≈0 (§2.31's 14-config table,
+`instrument_health_adjudication.log`). A trivially-satisfiable lens
+reads high on junk; this one does not. The lenses disagree ONLY where
+final_loss ≈ 1e-4 — the broken-primary signature.
+
+**3. The primary's failure mode is already documented and
+pre-registered against.** The Stage-1 sweep's metric-health disclosure
+(this file, ~line 5725): primary scale-only degauging is basis-brittle
+across seeds (S4 per-seed mean_cos 0.03-0.69) while the full-Q
+crosscheck is stable (0.86-0.95), with the standing instruction that
+"any future wave reading mean_cos as a headline number must use the
+crosscheck or fix the U-derivation's rotational freedom first." The
+M-D3 endpoint (rf90/mean_cos-class recovery through the same degauge
+pipeline) is exactly that readout class. §1.25's "Q̂≈I on every real
+checkpoint" — the sole empirical basis for trusting scale-only as
+primary — was measured on Stage-1 DeltaNet states; the Stage-2
+composer (Householder-expanded, different architecture) has no
+entitlement to the identity gauge, and a perfect model in a rotated
+basis reads 0 under Q̂=I by construction.
+
+**4. Project precedent, validated by oracle injection.** Gate 1(b)
+itself grades `crosscheck_*` where Q_true is non-identity
+(`gate1_synthetic_injection.py` lines ~281-304), and the Stage-1
+causal-confirm table resolved this same 0-vs-1 contradiction to the
+crosscheck (the C1 pin, load-bearing, §1.35/§1.36).
+
+**VERDICT: hypothesis (a) — primary-degauge defect on converged
+Stage-2 cells. The §2.31 mechanical FALSIFY is VOID as a model
+verdict.** No model-level claim (CONFIRM or FALSIFY) is made here:
+the M-D3 endpoint must be RE-READ under the crosscheck lens across
+the full committed grid (pure re-metric from
+`experiment-runs/2026-07-10_stage2_calibration/sweep_results/`, no
+GPU), recorded as §2.32 with per-cell tables.
+
+**Teeth pinned for the re-metric (falsifier for THIS tiebreak):** the
+re-metric must include a shuffled-target negative control on at least
+one converged checkpoint per group — if the crosscheck reads ≥0.5
+rf90 on shuffled targets, this tiebreak is WRONG, §2.31a is void, and
+the contradiction escalates to a full instrument rebuild. Also carried:
+the S5-seed-1 both-lenses-zero cell stays classified
+trainability-variance (mirrors h2h task-2, §1.40); the 3/62 A5
+isolated-depth 2(e) deferrals route per §2.8 after §2.32.
