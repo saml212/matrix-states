@@ -9,10 +9,11 @@ computed in closed form before training. The word problem of a finite
 group $G$, mapping a sequence of generators to its composed product,
 admits an exact algebraic description of the minimal structure any
 faithful solution must carry: $\dmin(G)$, the dimension of $G$'s smallest
-faithful real linear representation. If trained models converge to the
-task's algebra, states trained on different groups should recruit
-representational dimension tracking $\dmin$; if instead the difficulty
-axis governs, dimension should sort with the group's computational class,
+faithful real linear representation. The loss target already fixes
+$\dmin$ as the informative rank; the open question is whether the model's
+own recruited capacity, two ambient dimensions wider than $\dmin$,
+settles there too, tracking the group's algebra, or instead sorts with
+the group's computational class,
 solvable versus non-solvable, the divide at which word problems become
 $\mathrm{NC}^1$-complete \citep{barrington1989} and at which
 state-tracking expressivity results separate recurrent architectures
@@ -22,17 +23,18 @@ We train one architecture, a Transformer-encoded single-matrix-state
 model under a hard bottleneck, on five groups spanning that divide, and
 measure the learned state's restricted effective rank against $\dmin$.
 Three results. First, convergence to the algebraic minimum: per-group
-mean rank lands within 4--8\% of $\dmin$, all 19 seeds inside a
+mean rank lands within 11\% of $\dmin$, all 19 seeds inside a
 pre-registered band, with Spearman $\rho = 0.9747$, the design's
 tie-capped maximum (Section~\ref{sec:convergence}). Second, the designed
 head-to-head at matched dimension: $S_4$ (solvable) and $A_5$
 (non-solvable) share $\dmin = 3$, and a pre-registered equivalence test
 declares their learned ranks statistically equivalent, so the pair
 coincides on dimension rather than separating on complexity class
-(Section~\ref{sec:equivalence}). Third, the converged dimension is
-causally load-bearing, not a correlate: capping rank at $\dmin{-}1$
-during training zeroes exact recovery in every group while $\dmin$
-restores it (Section~\ref{sec:causal}). A measurement lesson runs
+(Section~\ref{sec:equivalence}). Third, the converged
+dimension is causally load-bearing: capping rank at $\dmin{-}1$ pins
+recovery below the readout's own geometric ceiling in every group, and
+at $\dmin$ that ceiling lifts and recovery empirically returns
+(Section~\ref{sec:causal}). A measurement lesson runs
 through all three: two instrument defects each produced a plausible
 wrong reading before being caught against raw run artifacts
 (Appendix~\ref{app:instrument}), and the convergence law above is what

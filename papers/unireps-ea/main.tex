@@ -32,6 +32,7 @@
 \usepackage{url}
 
 \graphicspath{{figures/}}
+\raggedbottom
 
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\dmin}{d_{\min}}
@@ -71,10 +72,12 @@ computational complexity class the pair should separate, and if set by
 representation dimension it should coincide. A pre-registered Welch
 equivalence test at $\pm 0.5$ rank-units declares equivalence decisively
 (difference 0.019, both one-sided tests near seven times the critical
-value). A pre-registered causal force-rank razor then confirms the
-converged dimension is load-bearing rather than a correlate of training:
-capping rank one below $\dmin$ zeroes exact recovery in every group, and
-restoring $\dmin$ restores recovery. Learned
+value). A pre-registered causal force-rank razor adds a third leg:
+capping rank one below $\dmin$ pins recovery under 0.9 by the metric's
+own geometry ($\sqrt{(\dmin{-}1)/\dmin} < 0.9$ for every group tested),
+a floor no capped cell violates, and restoring $\dmin$ lifts it:
+recovery empirically returns, past the single-seed anchor in most
+groups. Learned
 representational dimension follows the task's algebra, not its
 complexity class.
 \end{abstract}

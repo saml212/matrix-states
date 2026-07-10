@@ -13,14 +13,23 @@ causal leg. \citet{nichani2025factual} prove associative-memory capacity
 under argmax decoding, the loophole our exact-continuous-recovery
 scoring closes; \citet{mishra2026m2rnn} train matrix-state RNNs on $S_3$
 composition but measure no state rank and run no rank intervention.
+\citet{chughtai2023toy} reverse-engineer which representation-theoretic
+structure networks recruit on finite-group composition tasks; this work
+asks a narrower question on the same substrate, at what dimension, with
+a pre-registered causal intervention absent there.
+\citet{huh2024platonic} propose that models trained on different tasks
+converge to a shared representation; the present law is a narrower,
+algebra-driven instance of that convergence.
 
 \textbf{Limitations.} All results are on sub-1M-parameter synthetic
 models under a deliberate single-state bottleneck; nothing here is a
 claim about pretrained networks, and the family is five groups with
 $\dmin \in \{2,\dots,5\}$ at $\dstate = \dmin + 2$. Causal cells are
 single-seed except $S_3$ (four seeds), with the necessity zeros exact
-wherever seeds exist; two groups at the shortest pinned budget show
-soft convergence, disclosed in the run records, with the causal reading
-anchor-relative and unaffected. The observational readout partially
+wherever seeds exist; two groups at the shortest pinned budget ($S_3$,
+$S_5$) show soft convergence and are also the two with the largest
+observational deviation and the one marginal causal cell, a
+pre-registered rather than post hoc budget schedule but a caveat on
+cross-group comparison strength. The observational readout partially
 favors rank $\approx \dmin$ by construction, which is why it was
 pre-registered as corroborating and the causal wave carries the claim.

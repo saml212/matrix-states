@@ -18,28 +18,35 @@ recovering falsifies necessity.
 crosscheck $\recninety$ on held-out words at train-time force-rank
 $k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$ (one seed per cell), vs.\ the
 unconstrained anchor (dashed) and the pre-registered $0.9\times$anchor
-bar (dotted). Recovery is exactly 0.000 at $\dmin{-}1$ in every group
-and returns at $\dmin$. $S_3$ overlays its four seeds (thin lines; bold
+bar (dotted). Recovery is exactly 0.000 at $\dmin{-}1$ in every group,
+the readout's geometric floor (Appendix~\ref{app:instrument}), and
+returns at $\dmin$. $S_3$ overlays its four seeds (thin lines; bold
 mean); its below-$\dmin$ zero is unanimous.}
 % <!-- evidence: U3 -->
 \label{fig:razor}
 \end{figure}
 
-Figure~\ref{fig:razor} shows a step function at $\dmin$. Necessity is
-exact and noiseless: $k = \dmin{-}1$ yields $\recninety = 0.000$ in all
-five groups
+Figure~\ref{fig:razor} shows a necessity floor at $\dmin$, not a
+plateau. The floor is set by the readout's own geometry, not discovered
+by training: $k = \dmin{-}1$ yields $\recninety = 0.000$ in all five
+groups
 % <!-- evidence: U3 -->
 and in all four independent seeds of the $S_3$ extension,
 % <!-- evidence: U4 -->
-while the same cells' recovery cosines (0.61--0.84) show the zero is a
-threshold, not a training collapse. Sufficiency holds at $\dmin$: $S_4$,
-$A_5$, $S_5$, $A_6$ recover past their bars outright (0.800/0.700/0.600/
-0.650 against 0.585/0.630/0.450/0.585),
+exactly as the bound $\sqrt{(\dmin{-}1)/\dmin} < 0.9$ requires
+(Appendix~\ref{app:instrument}); the same cells' recovery cosines
+(0.61--0.84) sit under that ceiling, evidence the capped models reached
+their rank-constrained optimum rather than collapsing. Sufficiency is
+the empirical result: $S_4$, $A_5$, $S_5$, $A_6$ clear their
+pre-registered bars (0.800/0.700/0.600/0.650 against
+0.585/0.630/0.450/0.585),
 % <!-- evidence: U3 -->
-and $S_3$, whose decisive cell landed inside a pre-stated $\pm 0.05$
-marginality trigger, was extended to four seeds under the trigger's
-pre-registered routing: seed-mean 0.5625 against the fixed 0.495 bar
-confirms the fifth group.
+in a majority of groups against a single noisy anchor seed rather than a
+stable ceiling, and $S_3$, whose decisive cell landed inside a
+pre-stated $\pm 0.05$ marginality trigger, was extended to four seeds
+under the trigger's pre-registered routing: the seed-mean (0.5625)
+clears the fixed 0.495 bar, though only 2 of 4 seeds individually
+(Table~\ref{tab:s3seeds}).
 % <!-- evidence: U4 -->
 An earlier 58-cell sweep of this grid nulled through an instrument
 defect, an ambient identity block in the eye-padded target that taxed

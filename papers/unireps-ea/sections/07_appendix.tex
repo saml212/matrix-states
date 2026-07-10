@@ -66,6 +66,84 @@ demand at raw $k = \dmin{+}1$ (effective budget $\dmin{-}1$) while the
 tax-paid point recovers.
 % <!-- evidence: U3 -->
 
+\textbf{The observational band's non-binding upper half.}
+\texttt{entity\_subspace\_from\_words} returns the top-$\dmin$ left
+singular vectors of the centered covariance by construction, so the
+restricted state $U^{\top} Z U$ is always $\dmin \times \dmin$, and the
+entropy effective rank of a $\dmin \times \dmin$ input has range
+$[1, \dmin]$. Restricted effective rank therefore cannot exceed $\dmin$,
+and so cannot exceed $1.3 \cdot \dmin$, for any seed of any group; only
+the band's lower half, $\geq 0.7 \cdot \dmin$, is a test the data could
+fail. Every group mean lands in $[0.895, 0.951] \cdot \dmin$.
+% <!-- evidence: U1 -->
+
+\textbf{The rank-constrained cosine ceiling.} The causal wave's target
+is $\rho_G(\cdot) \oplus 0$, of rank exactly $\dmin$ with all $\dmin$
+informative singular values equal to 1 (the reference representation is
+orthogonal by construction, Appendix~\ref{app:groups}). For any matrix
+$M$ of rank $\leq k \leq \dmin$, von Neumann's trace inequality gives
+$\langle M, T\rangle_F \leq \sum_{i=1}^{k} \sigma_i(M)\,\sigma_i(T) =
+\sum_{i=1}^{k} \sigma_i(M)$, and Cauchy--Schwarz bounds
+$\sum_{i=1}^{k} \sigma_i(M) \leq \sqrt{k}\,\lVert M \rVert_F$, so
+$\cos(M, T) \leq \sqrt{k/\dmin}$. At $k = \dmin{-}1$ this ceiling is
+$0.707/0.816/0.816/0.866/0.894$ for $S_3/S_4/A_5/S_5/A_6$, below the
+$\recninety$ threshold of 0.9 in every case: no rank-$(\dmin{-}1)$
+state, however trained, can register a single word above cosine 0.9
+against this target. The necessity result ($\recninety = 0.000$ at
+$\dmin{-}1$, all groups, all seeds) is this bound realized, not an
+independent discovery about what SGD finds; the corresponding empirical
+content is that the observed cosines at $\dmin{-}1$ (0.61--0.84) sit
+under their respective rank-constrained optima, evidence optimization
+reaches the geometry's own ceiling. At $k \geq \dmin$ the ceiling is
+1.0 (exact recovery is representable), so recovery above 0 at $\dmin$
+is not guaranteed by the metric and is the paper's genuine causal
+finding (sufficiency).
+% <!-- evidence: U3 -->
+
+\textbf{Primary and crosscheck degauging.} The design record's default
+pipeline treats scale-only degauging ($\hat{Q} = I$) as the primary
+metric, with the fitted-$(c, Q)$ Procrustes score retained as a
+robustness cross-check, after calibration on unconstrained checkpoints
+found $\hat{Q} \approx I$ empirically. Under the force-rank grid's
+zero-padded target this equivalence breaks: the informative block's
+degenerate singular spectrum makes the scale-only fit's basis
+arbitrary, so the pre-registration for the causal wave specifically
+pins the fitted-$(c, Q)$ score, denoted $\recninety$ throughout
+Section~\ref{sec:causal} and Figure~\ref{fig:razor}, as decisional; no
+conclusion in this paper reads the scale-only score. The two diverge
+sharply on this grid, which is why the distinction is disclosed here.
+
+\section{$S_3$ Per-Seed Causal Detail}
+\label{app:s3causal}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+seed & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & own bar & clears \\
+\midrule
+0 & 0.550 & 0.000 & 0.450 & 0.550 & 0.495 & no ($-0.045$) \\
+1 & 0.600 & 0.000 & 0.550 & 0.750 & 0.540 & yes ($+0.010$) \\
+2 & 0.800 & 0.000 & 0.600 & 0.750 & 0.720 & no ($-0.120$) \\
+3 & 0.600 & 0.000 & 0.650 & 0.600 & 0.540 & yes ($+0.110$) \\
+\bottomrule
+\end{tabular}
+\caption{$S_3$ four-seed causal detail (crosscheck $\recninety$) behind
+the seed-mean confirmation in Section~\ref{sec:causal}; the own bar is
+$0.9 \times$ each seed's anchor. $k = \dmin{-}1$ reads exactly 0.000 in
+all four seeds; $k = \dmin$ clears each seed's own bar in 2 of 4 (seeds
+1, 3), missing in the other 2 because the anchor itself ranges
+0.550--0.800 across seeds. The pre-registered criterion compares the
+seed-mean $k = \dmin$ value (0.5625) against the bar fixed before the
+extension ran (0.495, from seed 0's anchor), specifically to avoid
+computing the bar from the same noisy seeds it is judged against;
+recomputing the bar from the four-seed anchor mean (0.574) would put
+the seed-mean value 0.011 below it.}
+% <!-- evidence: U4 -->
+\label{tab:s3seeds}
+\end{table}
+
 \section{Per-Seed Observational Rank}
 \label{app:m1}
 
