@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Single-seed preview: a 14M fast-weight (DeltaNet-family) model reaches 0.999 recall on K=32 associative recall where a param-matched flat-vector ablation reads 0.045 and a FLOP/data-matched transformer reads 0.030 — and zeroing the block-0 state alone collapses recall to chance.">
+<meta property="og:title" content="Fast-weight recall separation, and where the binding lives — pebble">
+<meta property="og:description" content="Research note (n=1 seed, confirmatory n=3 sweep in progress): a matched-budget recall separation of 0.95+ over both baselines, plus a state-zeroing and tap-localization result — the binding is causally in S0 but only linearly readable after downstream nonlinear processing.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/fast-weight-recall.html">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-09">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/fast-weight-recall.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Fast-weight recall separation at matched budgets, and where the binding actually lives",
+  "name": "Fast-weight recall separation",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-09",
+  "url": "https://pebbleml.com/findings/fast-weight-recall.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "On K=32 single-hop associative recall at 14M parameters, a fast-weight matrix-state model reads episode-restricted top-1 recall of 0.999 where a param-matched flat-vector ablation reads 0.045 and a FLOP/data-matched transformer reads 0.030 (chance 0.031). Zeroing the block-0 fast-weight state S0 collapses recall to 0.029; zeroing the block-1 state S1 changes nothing. No linear tap on either raw state clears rf@0.9 — the binding is causally in S0 but only becomes linearly decodable after the model's own downstream nonlinear processing (pre-LM-head rf@0.9 = 0.674, contender only). Single seed; a pre-registered 27-cell n=3 confirmatory sweep is in progress. Unpublished.",
+  "keywords": "fast weights, DeltaNet, associative recall, MQAR, state zeroing, tap localization, linear probes, mechanistic interpretability",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>Fast-weight recall separation, and where the binding lives — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── ascii plot ────── */
+.ascii-plot {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 24px 32px;
+    margin: 24px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    .ascii-plot { font-size: 0.68rem; padding: 18px 20px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 08 &nbsp;·&nbsp; single seed — confirmatory sweep in progress</div>
+        <h1 class="paper-title">Fast-weight recall separation at matched budgets, and where the binding actually lives</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 9, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>On high-load associative recall (K = 32 key→value bindings per episode, GPT-2 token entities) at 14M parameters, a fast-weight matrix-state model reads episode-restricted top-1 recall of <span class="mono">0.999</span> where a param-matched flat-vector ablation reads <span class="mono">0.045</span> and a FLOP/data-matched transformer reads <span class="mono">0.030</span> — chance is <span class="mono">0.031</span>. The separation over both baselines exceeds 0.95, more than three times the pre-registered 0.30 win margin. A state-zeroing localization then asks <em>where</em> the binding lives: zeroing the block-0 fast-weight state <span class="mono">S₀</span> alone collapses recall to <span class="mono">0.029</span>; zeroing the block-1 state <span class="mono">S₁</span> changes nothing (<span class="mono">Δ = 0.000</span>). Yet no linear tap on either raw state clears the strict recovery threshold — including a tap on <span class="mono">S₀</span> itself. The binding is causally in <span class="mono">S₀</span> but only becomes linearly decodable after the model's own downstream nonlinear processing (pre-LM-head <span class="mono">rf@0.9 = 0.674</span>, contender only; the ablation reads 0.0 at the same tap). <strong>These are single-seed calibration numbers.</strong> A pre-registered 27-cell n=3 confirmatory sweep is running; the verdict of record lands there. Unpublished.</p>
+        </div>
+
+        <h2><span class="num">01</span>Setup</h2>
+
+        <p>Task 1 of the head-to-head campaign is MQAR-style single-hop recall: bind K = 32 entity key→value pairs (real GPT-2 token IDs), then query one key. The pre-registered load point is <span class="mono">K/d_state = 0.5</span> at <span class="mono">d_state = 64</span>. Three arms, matched at 14M-parameter scale:</p>
+
+        <ul>
+            <li><strong>Contender:</strong> a two-block DeltaNet-family LM (frozen-bias construction, per-token arm, λ = 0.58) whose mixer carries a <span class="mono">d_state × d_state</span> fast-weight matrix state per block, updated by the delta rule <span class="mono">S<sub>t</sub> = S<sub>t−1</sub>(I − β k<sub>t</sub> k<sub>t</sub><sup>⊤</sup>) + β v<sub>t</sub> k<sub>t</sub><sup>⊤</sup></span>. Config <span class="mono">d_model 256, 2 layers, d_state 64</span>; 14,048,896 params; total recurrent state 32 KB, constant in context length.</li>
+            <li><strong>Ablation:</strong> param-matched (≤1%) flat-vector recurrence — same embedding, head, and FFN, but the outer-product state update is replaced by a gated elementwise vector update with a Hadamard read. Same <span class="mono">d_state = 64</span>.</li>
+            <li><strong>Transformer:</strong> GPT-2-style causal decoder with RoPE, FLOP-matched within 5%, same corpora/token/step budget, LR grid frozen at calibration, evaluated here with full uncapped attention.</li>
+        </ul>
+
+        <p>The metric of record, <span class="mono">acc_A</span>, is episode-restricted K-way top-1 accuracy at the query position, read through each arm's own LM head with K-restricted decoding. Chance = 1/32; the demonstration bar is 3× chance. Eval is a pinned query set, n = 4096 queries per cell.</p>
+
+        <h2><span class="num">02</span>The separation</h2>
+
+        <figure>
+            <img src="../assets/plots/fast_weight_recall_sep.svg" alt="recall separation across three matched arms, and the S0-necessity check" style="width: 100%; max-width: 820px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>Left: <span class="mono">acc_A</span> at K = 32 for the three matched arms — fast-weight contender 0.999, param-matched flat-vector ablation 0.045, FLOP/data-matched transformer 0.030. Dotted line = chance (1/32 = 0.031); dashed line = the pre-registered demonstration bar (3× chance). Right: the S₀-necessity check on the contender — recall with both states intact (0.999), with the block-0 state zeroed (0.029, at chance), and with the block-1 state zeroed (0.999, unchanged). Single seed, n = 4096 queries per cell. Data: round-4 calibration JSONs archived under <span class="mono">experiment-runs/2026-07-09_h2h_sweep_launch/round4_inputs/</span>.</figcaption>
+        </figure>
+
+        <p>Both baselines sit below the demonstration bar; the contender is 0.95+ above both. The pre-registered win margin for this comparison was 0.30. The transformer failure is a within-budget result: at this matched param count, token budget, and training compute, full attention did not learn the task — the claim does not extend to a differently-scaled or differently-trained transformer without its own matched re-run.</p>
+
+        <h2><span class="num">03</span>Where the binding lives: the S₀ mechanism</h2>
+
+        <p>Earlier instrument calibration in this campaign repeatedly failed to decode bindings from the fast-weight state, which looked like a capability problem. The localization experiment shows it was a wrong-layer, wrong-format instrument problem.</p>
+
+        <p><strong>Causal necessity.</strong> Zeroing <span class="mono">S₀</span> (block 0's cached state) at the end of the bind phase collapses contender recall from 0.999 to 0.029 — chance. Zeroing <span class="mono">S₁</span> (block 1's state, the layer every prior instrument had tapped) leaves recall exactly unchanged. All of the causally necessary binding information lives in <span class="mono">S₀</span>.</p>
+
+        <p><strong>Linear legibility.</strong> A closed-form ridge tap (24,576 fit points, 4,096 held-out) at four placements:</p>
+
+        <figure>
+            <img src="../assets/plots/fast_weight_tap.svg" alt="rf@tau for four tap placements on the contender" style="width: 100%; max-width: 640px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 2</span>Recovered fraction <span class="mono">rf@τ</span> (ridge-decoded vector clears cosine τ against the true target) for four tap placements on the contender. The three taps on raw recurrent state — including the tap directly on <span class="mono">S₀</span>, the state the zeroing proves is causally necessary — recover essentially nothing at any threshold. Only the post-block-1, pre-LM-head hidden state is linearly decodable (<span class="mono">rf@0.9 = 0.674</span>). On the ablation arm, the same pre-LM-head tap reads 0.0 at every threshold. Single seed. Data: <span class="mono">experiment-runs/2026-07-09_h2h_tap_localization/results/</span>.</figcaption>
+        </figure>
+
+        <div class="takeaway">
+            <span class="label">key observation</span>
+            The binding is causally stored in <span class="mono">S₀</span> in a format no linear (state, query) read can extract; it becomes linearly legible only after block 1's own nonlinear forward pass has processed the <span class="mono">S₀</span>-derived signal. Probing the "obvious" state location — or assuming linear decodability of a causally necessary representation — both fail here.
+        </div>
+
+        <h2><span class="num">04</span>Caveats — read before citing</h2>
+
+        <ul>
+            <li><strong>n = 1 seed.</strong> Every number on this page is a single-seed round-4 calibration read. The pre-registered protocol is explicit: "round-4 calibration reads are single-seed point-estimate previews … verdicts land at the sweep." A 27-cell confirmatory sweep (3 architectures × 3 tasks × 3 seeds, ≈13 GPU-h) is running as this page is published; if the n=3 CI for the contender-vs-transformer gap straddles the 0.30 margin, a pre-registered n=3→9 extension fires before the claim is finalized either way. This page will be updated with the sweep verdict.</li>
+            <li><strong>The Nichani caveat.</strong> "Recall" here is episode-restricted top-1 retrieval under argmax decoding, and under argmax a rank-1 state can support ≈d associations (Nichani, Lee &amp; Bietti, ICLR 2025, arXiv:2412.06538). Nothing on this page is a rank-necessity or storage-capacity claim; the strict continuous-recovery machinery lives in a separate program. The honest continuous-recovery bound is fig 2's pre-LM-head curve: <span class="mono">rf@0.9 = 0.674</span> — real but partial.</li>
+            <li><strong>Multi-hop is unresolved.</strong> Task 2 (multi-hop recall) is a joint-failure tie at this calibration round — the contender fails its own demonstration bar there (<span class="mono">acc_A = 0.038</span>). A diagnosis round is pending. Task 1 is the pre-registered primary; task 2's status is disclosed whenever it is named.</li>
+            <li><strong>Scale.</strong> 14M-parameter calibration cells only. Nothing here extends beyond this rung until the ladder runs.</li>
+            <li><strong>The contender's construction is itself under adjudication.</strong> The per-token frozen-bias arm used here is validation-loss-neutral at 14M but its write-geometry effects at scale are an open question in a parallel campaign (see the <a href="write-geometry-attractor.html">write-geometry attractor</a> note). It is one configuration under test, not a resolved fix.</li>
+        </ul>
+
+        <h2><span class="num">05</span>Reproducibility</h2>
+
+        <p>Raw result JSONs and manifests are archived in the project repository under <span class="mono">experiment-runs/2026-07-09_h2h_tap_localization/</span> (tap and zeroing legs) and <span class="mono">experiment-runs/2026-07-09_h2h_sweep_launch/round4_inputs/</span> (the three calibration cells; SSD archive). The figure-generation script for this page is at <span class="mono">assets/plots/generate_fast_weight_recall.py</span>.</p>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

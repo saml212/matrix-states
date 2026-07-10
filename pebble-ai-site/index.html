@@ -539,7 +539,7 @@ footer a { color: var(--accent); }
         <p class="kicker">let them eat bytes<span class="period">.</span></p>
         <h1 class="pull">Modern language models work around the medium they compute on — subword tokens for input, flat vectors for representation, and discrete-token chain-of-thought for reasoning. I'm replacing all three.</h1>
         <p class="thesis">Three parallel threads. <strong>Bytes</strong> replace the tokenizer, so the model sees the same stream the hardware does. <strong>Matrix-valued tokens</strong> replace flat vectors, giving every representation differentiable structural observables — rank, singular values — that a <span class="mono">d</span>-dimensional vector cannot expose. <strong>Continuous reasoning with matrix-tracked superposition</strong> replaces discrete chain-of-thought, so the number of reasoning paths a model holds at inference is measurable from a single sample rather than estimated across an ensemble. Early evidence: outer-product matrix embeddings cut per-parameter perplexity <span class="mono">11×</span> against flat vectors at matched parameters; a matrix transformer layer at <span class="mono">d = 16</span> uses <span class="mono">130×</span> fewer parameters than vector attention at matched capacity. The first matrix-CODI experiment falsified one operationalization of rank-tracked superposition under a distillation objective and shipped a mechanism explaining why; the next runs the test on a matrix-native model trained from scratch.</p>
-        <p class="status-line">matrix-CODI complete &nbsp;·&nbsp; findings being published</p>
+        <p class="status-line">matrix-CODI published (ICML 2026 MI workshop) &nbsp;·&nbsp; fast-weight capability program running</p>
     </div>
 </section>
 
@@ -583,7 +583,7 @@ footer a { color: var(--accent); }
                 <div>
                     <h3>Make the number of reasoning paths a single-sample observable.</h3>
                     <p>Continuous chain-of-thought models — COCONUT (Meta, 2024), CODI (Meta, 2025) — feed back continuous latent vectors instead of discrete tokens, letting the model perform inference-time compute internally. The theoretical claim (<em>Reasoning by Superposition</em>, <em>CoT2</em>, 2025) is that these latents hold multiple reasoning paths in superposition, exploring a search tree in parallel. A 2026 rebuttal (<em>Illusion of Superposition</em>, arXiv 2604.06374) showed that on ProsQA the latent feedback is not doing measurable work in some fine-tuned settings.</p>
-                    <p>The dispute is empirical and the obstacle is measurement: superposition is a property of the representation, but a flat vector exposes no single-sample structure to probe. A matrix does. If a <span class="mono">d × d</span> thought <span class="mono">Z</span> holds <span class="mono">k</span> linearly independent patterns, its rank is <span class="mono">k</span> by construction, and rank is computable from a single sample via SVD. The matrix-CODI experiment built that probe and ran the falsification. The result: rank-<span class="mono">k</span> ablation curves are flat across two tasks and four readout designs, and best ProsQA accuracy decouples from final effective rank across seeds (<span class="mono">81.51 ± 1.2pp</span> at ranks <span class="mono">{4, 12, 13}</span>). The CODI training objective produces rank-indifferent gradients through the full chain rule. The next experiment moves the test off CODI distillation onto a matrix-native model trained from scratch on a synthetic task with provably <span class="mono">K</span>-path structure.</p>
+                    <p>The dispute is empirical and the obstacle is measurement: superposition is a property of the representation, but a flat vector exposes no single-sample structure to probe. A matrix does. If a <span class="mono">d × d</span> thought <span class="mono">Z</span> holds <span class="mono">k</span> linearly independent patterns, its rank is <span class="mono">k</span> by construction, and rank is computable from a single sample via SVD. The matrix-CODI experiment built that probe and ran the falsification. The result: rank-<span class="mono">k</span> ablation curves are flat across two tasks and four readout designs, and best ProsQA accuracy decouples from final effective rank across seeds (<span class="mono">81.51 ± 1.2pp</span> at ranks <span class="mono">{4, 12, 13}</span>). The CODI training objective produces rank-indifferent gradients through the full chain rule. The follow-up moved the test off CODI distillation onto fast-weight models trained from scratch on tasks with provable rank structure — and there, SGD recruits exactly the provably-necessary rank, causally (<a href="findings/rank-law.html">Finding no. 07</a>).</p>
                     <p class="aside">Supporting framing: Fedorenko et al. (<em>Nature</em>, 2024) dissociates the human language network from reasoning, math, and theory of mind — evidence that reasoning can run on representations that are not language-shaped.</p>
                 </div>
             </div>
@@ -599,13 +599,49 @@ footer a { color: var(--accent); }
         <p class="lede">Click any title for the full note.</p>
 
         <div class="results">
+            <a class="result" href="findings/superlinear-capacity.html">
+                <div class="body">
+                    <div class="result-date">no. 10 &nbsp;·&nbsp; july 9, 2026</div>
+                    <h4>Fast-weight memory capacity is super-linear in state dimension</h4>
+                    <p>For a single-layer DeltaNet on associative recall, the capacity ratio at which held-out 4-hop recall collapses rises with state dimension: logistic midpoint <span class="mono">x₀ = 0.5455</span> at <span class="mono">d = 64</span> vs <span class="mono">0.6779</span> at <span class="mono">d = 80</span>, CI-excluding the pre-registered ratio-invariance band. At <span class="mono">d = 96</span> no cliff is measurable through <span class="mono">K/d = 0.94</span>; the near-ceiling fine structure is instrument-limited. Read the research note →</p>
+                </div>
+                <span class="meta">positive · preprint in prep</span>
+            </a>
+
+            <a class="result" href="findings/write-geometry-attractor.html">
+                <div class="body">
+                    <div class="result-date">no. 09 &nbsp;·&nbsp; july 9, 2026</div>
+                    <h4>The write-geometry attractor grows with scale, and it is not a qk-norm artifact</h4>
+                    <p>Key-write geometry in DeltaNet-family LMs collapses more with scale, not less: <span class="mono">span_frac</span> 0.248 at 14M → 0.455 at 1.31B. A pre-registered 2×2 exonerates the community-standard qk-l2-norm mitigation (Δ 0.05σ, clean null at n=3); decay gating shows a direction-consistent worsening trend that did <em>not</em> confirm at the pre-registered 2σ bar (1.92σ). Gated arms reach lower loss while carrying the pathology no better. Read the research note →</p>
+                </div>
+                <span class="meta">diagnosis · preprint in prep</span>
+            </a>
+
+            <a class="result" href="findings/fast-weight-recall.html">
+                <div class="body">
+                    <div class="result-date">no. 08 &nbsp;·&nbsp; july 9, 2026</div>
+                    <h4>Fast-weight recall separation at matched budgets, and where the binding actually lives</h4>
+                    <p>At 14M parameters on K=32 associative recall, a fast-weight matrix-state model reads <span class="mono">0.999</span> where a param-matched flat-vector ablation reads <span class="mono">0.045</span> and a FLOP/data-matched transformer reads <span class="mono">0.030</span> (chance 0.031). Zeroing the block-0 state alone collapses recall to chance, yet no linear tap on the raw state can read the binding — it becomes legible only after downstream nonlinear processing. Single seed; the n=3 confirmatory sweep is running. Read the research note →</p>
+                </div>
+                <span class="meta">n=1 · sweep running</span>
+            </a>
+
+            <a class="result" href="findings/rank-law.html">
+                <div class="body">
+                    <div class="result-date">no. 07 &nbsp;·&nbsp; july 9, 2026</div>
+                    <h4>The rank law: recruited state dimension tracks the group-theoretic minimum, causally</h4>
+                    <p>Across five finite groups with provable minimum representation dimensions <span class="mono">d_min ∈ {2,3,3,4,5}</span>, a fast-weight model's recruited effective rank tracks <span class="mono">d_min</span> (Spearman <span class="mono">ρ = 0.9747</span>, tie-capped maximum); the S4-vs-A5 pair lands on dimension, not solvability; and force-capping rank at <span class="mono">d_min − 1</span> drives basis-invariant recovery to exactly zero in all five groups while <span class="mono">d_min</span> recovers anchor-level performance. Read the research note →</p>
+                </div>
+                <span class="meta">causal · preprint in prep</span>
+            </a>
+
             <a class="result" href="findings/matrix-codi-rank-blindness.html">
                 <div class="body">
-                    <div class="result-date">no. 05 &nbsp;·&nbsp; april 21, 2026</div>
+                    <div class="result-date">no. 05 &nbsp;·&nbsp; april 21, 2026 &nbsp;·&nbsp; published, ICML 2026 MI workshop</div>
                     <h4>The gradient does not see rank: rank-indifference in matrix-CODI on ProsQA</h4>
                     <p>A fork of CODI with a 16×16 matrix bottleneck at each latent reasoning step. Four flat rank-<span class="mono">k</span> projection curves across two tasks and two distillation regimes; a three-seed replication shows accuracy tight at <span class="mono">81.51 ± 1.2</span>pp while the final effective rank of <span class="mono">Z</span> spans <span class="mono">{4, 12, 13}</span>. A four-readout positive control — bilinear, bilinear+GELU, SVD-augmented, quadratic — was designed to falsify the hypothesis that readout linearity causes the flat curves; all four readouts produce flat curves regardless. A negative control on vanilla GPT-2 SFT (no matrix bottleneck, no <span class="mono">Z</span>) reproduces a flat curve under the same intervention paradigm and demonstrates the rank-<span class="mono">k</span> probe alone conflates rank-blindness with position-irrelevance. The model-level distinguisher is the seed-decoupling result, which the negative control cannot produce by construction. Read the research note →</p>
                 </div>
-                <span class="meta">negative · structural</span>
+                <span class="meta">negative · published</span>
             </a>
 
             <a class="result" href="findings/parameter-efficiency.html">
@@ -667,9 +703,9 @@ footer a { color: var(--accent); }
 
         <div class="roadmap">
             <div class="phase">
-                <div class="step">now →</div>
+                <div class="step">done →</div>
                 <h4>Matrix-native from scratch on a rank-K task</h4>
-                <p>The matrix-CODI negative result localized the failure to the linear-in-<span class="mono">Z</span> readout. The next experiment removes that readout entirely. A small (~10M parameter) fully matrix-native transformer — matrix <span class="mono">Q/K/V</span> with true matrix composition, no flatten anywhere in the forward pass, matrix LM head — trained from scratch on a synthetic task whose ground truth provably requires <span class="mono">K</span> independent scalars of state. If matrix structure is functional, this is the experiment that demonstrates it.</p>
+                <p>The matrix-CODI negative result localized the failure to the linear-in-<span class="mono">Z</span> readout. This experiment removed that readout entirely: fast-weight matrix-state models trained from scratch on tasks with provable rank requirements. Result: SGD recruits exactly the provably-necessary rank, and the recruitment is causal — recovery is exactly zero one dimension below the group-theoretic minimum (<a href="findings/rank-law.html">Finding no. 07</a>). The same model family separates from param-matched flat-vector and FLOP-matched transformer baselines on high-load recall (<a href="findings/fast-weight-recall.html">Finding no. 08</a>, single-seed, sweep running).</p>
                 <div class="budget">~30 H100-hours</div>
             </div>
 

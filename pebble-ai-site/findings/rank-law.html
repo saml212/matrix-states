@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The rank law: a fast-weight model's recruited state dimension tracks the group-theoretic minimum d_min across five finite groups, and a forced-rank causal test steps from zero recovery at k=d_min-1 to anchor-level recovery at k=d_min in all five.">
+<meta property="og:title" content="The rank law: recruited dimension tracks d_min, causally — pebble">
+<meta property="og:description" content="Research note: correlational tracking (Spearman rho 0.9747, tie-capped maximum), a marquee S4-vs-A5 equivalence on dimension rather than solvability, and a causal razor — recovery is exactly zero one dimension below d_min and returns at d_min, in all five groups.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/rank-law.html">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-09">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/rank-law.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "The rank law: recruited state dimension tracks the group-theoretic minimum, causally",
+  "name": "The rank law",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-09",
+  "url": "https://pebbleml.com/findings/rank-law.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "Across five finite groups (S3, S4, A5, S5, A6) with minimum faithful representation dimensions d_min of 2, 3, 3, 4, 5, a fast-weight model trained on group-word recovery recruits restricted effective rank that tracks d_min (Spearman rho 0.9747, the tie-capped maximum). The marquee pair S4 vs A5 — same dimension, opposite solvability — lands together on dimension (Welch TOST equivalence at margin 0.5). A forced-rank causal test steps from exactly zero basis-invariant recovery at k=d_min-1 to anchor-level recovery at k=d_min in all five groups. Single-seed cells for four groups' causal arms; S3 seed-extended to n=4. Preprint in preparation.",
+  "keywords": "fast weights, DeltaNet, effective rank, group representations, capability separation, causal ablation, matrix-valued state",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>The rank law: recruited dimension tracks d_min, causally — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── ascii plot ────── */
+.ascii-plot {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 24px 32px;
+    margin: 24px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    .ascii-plot { font-size: 0.68rem; padding: 18px 20px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 07 &nbsp;·&nbsp; preprint in preparation</div>
+        <h1 class="paper-title">The rank law: recruited state dimension tracks the group-theoretic minimum, causally</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 9, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>Every finite group <span class="mono">G</span> has a minimum dimension <span class="mono">d_min(G)</span> below which no faithful orthogonal representation exists — a theorem-grade lower bound on how much state a model needs to represent the group's elements. We trained a fast-weight model on group-word recovery for five groups spanning <span class="mono">d_min ∈ {2, 3, 3, 4, 5}</span> and asked whether SGD recruits exactly that much rank. Three results. <strong>Correlation:</strong> the unconstrained model's restricted effective rank tracks <span class="mono">d_min</span> (Spearman <span class="mono">ρ = 0.9747</span>, the maximum achievable given a designed tie; all 19 cells inside the pre-registered <span class="mono">[0.7, 1.3]·d_min</span> band). <strong>Dissociation:</strong> the marquee pair S4 vs A5 — same <span class="mono">d_min = 3</span>, opposite solvability — lands together on dimension (Welch TOST declares equivalence at margin ±0.5; difference <span class="mono">+0.019</span>). <strong>Causation:</strong> force-capping the model's rank at <span class="mono">k = d_min − 1</span> drives basis-invariant recovery to exactly <span class="mono">0.000</span> in all five groups, while <span class="mono">k = d_min</span> recovers anchor-level performance — a step, not a ramp. The causal cells are single-seed for four groups (S3, the marginal one, was seed-extended to <span class="mono">n = 4</span> and confirmed). Preprint in preparation.</p>
+        </div>
+
+        <h2><span class="num">01</span>Why finite groups</h2>
+
+        <p>Claims of the form "the model uses rank <span class="mono">k</span>" are easy to get wrong. A rank-1 matrix can smuggle <span class="mono">d</span> items past an argmax readout; a full-attention model can satisfy "hold K items" with K positions at rank 1 each. To make within-representation rank load-bearing, the task's rank requirement has to be a theorem, not an assumption.</p>
+
+        <p>Finite groups give exactly that. Representation theory fixes, for each group <span class="mono">G</span>, the minimum dimension <span class="mono">d_min(G)</span> of a faithful real orthogonal representation: no matrix family of smaller dimension can represent all of <span class="mono">G</span>'s elements distinctly while composing correctly. We use five groups:</p>
+
+        <figure>
+            <table>
+                <thead>
+                    <tr><th>group</th><th>|G|</th><th>d_min</th><th>solvable</th><th>realization</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>S3</td><td><span class="num">6</span></td><td><span class="num">2</span></td><td>yes</td><td>triangle symmetries</td></tr>
+                    <tr><td>S4</td><td><span class="num">24</span></td><td><span class="num">3</span></td><td>yes</td><td>cube rotations</td></tr>
+                    <tr><td>A5</td><td><span class="num">60</span></td><td><span class="num">3</span></td><td><strong>no</strong></td><td>icosahedral rotations</td></tr>
+                    <tr><td>S5</td><td><span class="num">120</span></td><td><span class="num">4</span></td><td>no</td><td>zero-sum hyperplane in ℝ⁵</td></tr>
+                    <tr><td>A6</td><td><span class="num">360</span></td><td><span class="num">5</span></td><td>no</td><td>zero-sum hyperplane in ℝ⁶</td></tr>
+                </tbody>
+            </table>
+            <figcaption><span class="fig-label">table 1</span>The five-group family. Every group's ambient state dimension is fixed at <span class="mono">d_min + 2</span> — two slack dimensions the model is free to waste. The designed dissociation pair is S4 vs A5: same minimum dimension, opposite solvability. There is no dimension-2 non-solvable group (A5 is the smallest non-solvable group and needs 3 dimensions), so the dissociation exists only at <span class="mono">d_min = 3</span> — a structural limit of finite group theory, not of the design.</figcaption>
+        </figure>
+
+        <p>The model learns per-word operators for group elements; recovery is scored on held-out evaluation words against the true representation matrices. The decisional metric throughout is <strong>basis-invariant</strong>: an orthogonal Procrustes rotation is fitted on a disjoint fit set before scoring, and we report the fraction of evaluation words whose corrected readout exceeds cosine 0.9 against the true matrix (written <span class="mono">xrec90</span> below). The naive scale-only variant of this metric was proven brittle by an oracle-injection test — a mathematically perfect model can score as low as 0.01 on it — and is never used for decisions.</p>
+
+        <h2><span class="num">02</span>Correlation: recruited rank tracks d_min</h2>
+
+        <figure>
+            <img src="../assets/plots/rank_law_m1.svg" alt="restricted effective rank vs d_min for five groups, with the pre-registered band" style="width: 100%; max-width: 640px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>Restricted effective rank of the unconstrained model vs <span class="mono">d_min(G)</span>, five groups, per-seed points (open circles) with mean ± sd (diamonds). Blue = solvable, vermillion = non-solvable; S4 and A5 are offset horizontally for legibility (both sit at <span class="mono">d_min = 3</span>). Shaded region is the pre-registered <span class="mono">[0.7, 1.3]·d_min</span> acceptance band; dotted line is <span class="mono">rank = d_min</span>. All 19 cells land inside the band per-seed. Spearman <span class="mono">ρ = 0.9747</span> — the exact maximum achievable given the S4/A5 tie. Data: <span class="mono">experiment-runs/2026-07-09_capability_sweep_harvest/</span>.</figcaption>
+        </figure>
+
+        <p>Seed-level means: S3 <span class="mono">1.877 ± 0.060</span> (n=3), S4 <span class="mono">2.852 ± 0.054</span> (n=5), A5 <span class="mono">2.832 ± 0.062</span> (n=5), S5 <span class="mono">3.591 ± 0.069</span> (n=3), A6 <span class="mono">4.736 ± 0.023</span> (n=3). The model has <span class="mono">d_min + 2</span> dimensions available in every case and consistently declines to use the slack.</p>
+
+        <p>This leg is pre-registered as corroborating-only: restricting the readout to <span class="mono">d_min</span> dimensions partially favors rank ≈ <span class="mono">d_min</span> by construction for near-orthogonal blocks. The causal weight sits in §04.</p>
+
+        <h2><span class="num">03</span>Dissociation: dimension, not solvability</h2>
+
+        <p>S4 (solvable) and A5 (non-solvable) share <span class="mono">d_min = 3</span>. If recruited rank were tracking computational difficulty — solvable groups admit decompositions that non-solvable groups provably do not — the pair should split. It does not: the Welch TOST on restricted effective rank (n=5 per side, pre-registered margin ±0.5 rank-units) declares equivalence with a difference of <span class="mono">+0.0194</span> (se 0.0368; both one-sided tests ~7× past the critical value).</p>
+
+        <div class="takeaway">
+            <span class="label">result 1</span>
+            The marquee pair lands together on dimension, not apart on solvability. What the model recruits is the representation-theoretic minimum dimension of the task, not a difficulty proxy.
+        </div>
+
+        <h2><span class="num">04</span>Causation: the razor</h2>
+
+        <p>Correlation admits deflationary readings. The causal test force-caps the model's per-word operator rank at exactly <span class="mono">k = d_min − 1</span>, <span class="mono">d_min</span>, and <span class="mono">d_min + 1</span> during training, per group, holding everything else fixed. If <span class="mono">d_min</span> is genuinely the binding constraint, recovery should be impossible one dimension below it and unimpaired at it — a step function.</p>
+
+        <figure>
+            <img src="../assets/plots/rank_law_razor.svg" alt="causal razor: xrec90 at forced ranks d_min-1, d_min, d_min+1 for each of five groups" style="width: 100%; max-width: 900px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 2</span>The causal razor. Basis-invariant recovery (<span class="mono">xrec90</span>) at forced rank <span class="mono">k = d_min − 1, d_min, d_min + 1</span> per group; dashed line is each group's own unconstrained anchor. Recovery is <em>exactly</em> 0.000 at <span class="mono">k = d_min − 1</span> in all five groups (zero across all seeds where multi-seed) and returns to anchor-class values at <span class="mono">k = d_min</span>. S3 is the seed-extended group (n=4, error bars = population sd); S4, A5, S5, A6 are single-seed cells. Data: <span class="mono">experiment-runs/2026-07-09_m3fix_harvest/</span> and <span class="mono">…_m3fix_s3ext/</span> (corrected zero-pad target family only — see §05).</figcaption>
+        </figure>
+
+        <p>At <span class="mono">k = d_min</span>: S4 reads 0.800 (anchor 0.650), A5 0.700 (0.700), S5 0.600 (0.500), A6 0.650 (0.650). S3's <span class="mono">k = d_min</span> cell at seed 0 (0.450) fell inside the pre-registered ±0.05 marginality window against its bar (0.9 × anchor = 0.495), which triggered the pre-registered seed extension: seeds 1–3 read 0.550, 0.600, 0.650, for a 4-seed mean of 0.5625 — above the bar. The necessity leg is noiseless: 0.000 at <span class="mono">k = d_min − 1</span> in every seed of every group. Verdict: causal confirmation in 5/5 groups; the headline never depended on the S3 extension (it moved S3 from "marginal, routed" to "confirmed").</p>
+
+        <div class="takeaway">
+            <span class="label">result 2</span>
+            One dimension below the group-theoretic minimum, recovery is exactly zero. At the minimum, it is back at anchor level. The step is sharp in all five groups — rank recruited by SGD is causally load-bearing at exactly the dimension representation theory says it must be.
+        </div>
+
+        <h2><span class="num">05</span>What went wrong first (and why the archive matters)</h2>
+
+        <p>The original 58-cell sweep could not have detected this result: an instrument bug (the "ambient-identity capacity tax") padded the training target with an identity block, so every rank-capped arm paid two dimensions of its budget before touching the group representation, and 37 of 39 force-rank cells tracked the resulting <span class="mono">√(k/d_state)</span> ceiling to within 0.07. That sweep's causal verdict was recorded as inconclusive-diagnosed, the padding was fixed (zeros instead of identity, making the target rank exactly <span class="mono">d_min</span>), and every causal number above comes exclusively from the post-fix archives. The correlation leg (§02) is unaffected — the unconstrained arm was never rank-capped.</p>
+
+        <h2><span class="num">06</span>Limitations</h2>
+
+        <ul>
+            <li><strong>Single-seed causal cells.</strong> S4, A5, S5, A6 razor cells are n=1 (the campaign's flanking-cell convention); only S3 is n=4. The zero at <span class="mono">k = d_min − 1</span> is categorical and replicated wherever seeds exist, but the recovery-side values carry single-seed uncertainty for four groups.</li>
+            <li><strong>S3 is noisier than its mean.</strong> Per-seed, S3's <span class="mono">k = d_min</span> cell clears its own seed's 0.9×anchor bar in only 2 of 4 seeds — driven by anchor noise (S3's anchor swings 0.550–0.800 across seeds). The pre-registered decision uses the fixed launch-time bar (0.495); recomputing the bar from the 4-seed mean anchor would put the mean marginally below it (−0.011). Both readings are disclosed in the design record.</li>
+            <li><strong>Convergence health.</strong> All ten <span class="mono">k = d_min − 1</span> cells fail the convergence health gate — expected (a rank-starved model cannot converge to the target), but it means the zeros are "cannot represent," not "converged elsewhere." Two groups' anchor-side cells sit just under the health bar (soft convergence at the 8K-step groups), disclosed as non-blocking because the razor reading is anchor-relative.</li>
+            <li><strong>Scope.</strong> This is single-episode associative recovery of group structure, not multi-hop reasoning over held-out relational structure. The reasoning-transfer stage this gates is designed but not run.</li>
+        </ul>
+
+        <h2><span class="num">07</span>Reproducibility</h2>
+
+        <p>Raw per-cell JSONs, harvest analysis scripts, and MD5 manifests are archived in the project repository under <span class="mono">experiment-runs/2026-07-09_capability_sweep_harvest/</span> (correlation + equivalence legs), <span class="mono">experiment-runs/2026-07-09_m3fix_harvest/</span> (post-fix causal cells), and <span class="mono">experiment-runs/2026-07-09_m3fix_s3ext/</span> (S3 seed extension). The figure-generation scripts for this page are at <span class="mono">assets/plots/generate_rank_law.py</span>. Total realized compute for the numbers on this page: ≈4.3 H100-hours.</p>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

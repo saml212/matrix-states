@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Fast-weight memory capacity is super-linear in state dimension: the recall-collapse midpoint x0 rises from 0.5455 at d=64 to 0.6779 at d=80 (CI excludes the ratio-invariance band), and d=96 shows no cliff through K/d=0.94.">
+<meta property="og:title" content="Super-linear capacity in trained fast-weight memories — pebble">
+<meta property="og:description" content="Research note: the capacity ratio a trained DeltaNet state tolerates before held-out recall collapses grows with state dimension — x0 0.5455 at d=64, 0.6779 at d=80, and no measurable cliff at d=96 through K/d=0.9375.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/superlinear-capacity.html">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-09">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/superlinear-capacity.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Fast-weight memory capacity is super-linear in state dimension",
+  "name": "Super-linear capacity",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-09",
+  "url": "https://pebbleml.com/findings/superlinear-capacity.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "For a single-layer DeltaNet trained on associative recall with K bindings per episode and a d x d fast-weight state, held-out 4-hop recall collapses along a logistic curve in the capacity ratio K/d. The collapse midpoint x0 is 0.5455 (CI 0.5385-0.5513) at d=64 and 0.6779 (CI 0.6683-0.6867) at d=80 — the d=80 interval excludes the pre-registered ratio-invariance band around the d=64 value, so tolerated capacity grows faster than linearly in d. At d=96 no monotonic decline appears anywhere through K/d=0.9375; the midpoint is unlocalizable with this instrument (100% bootstrap degeneracy), and the near-ceiling fine structure is instrument-limited. Preprint in preparation.",
+  "keywords": "fast weights, DeltaNet, associative memory, capacity, linear attention, state dimension, scaling law",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>Super-linear capacity in trained fast-weight memories — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── ascii plot ────── */
+.ascii-plot {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 24px 32px;
+    margin: 24px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    .ascii-plot { font-size: 0.68rem; padding: 18px 20px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 10 &nbsp;·&nbsp; preprint in preparation</div>
+        <h1 class="paper-title">Fast-weight memory capacity is super-linear in state dimension</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 9, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>How many key→value bindings can a trained <span class="mono">d × d</span> fast-weight state actually support? For a single-layer DeltaNet trained on associative recall with K bindings per episode, held-out 4-hop recall collapses along a clean logistic curve in the capacity ratio <span class="mono">K/d</span>. The collapse midpoint <span class="mono">x₀</span> is <span class="mono">0.5455</span> (CI <span class="mono">[0.5385, 0.5513]</span>) at <span class="mono">d = 64</span> and <span class="mono">0.6779</span> (CI <span class="mono">[0.6683, 0.6867]</span>) at <span class="mono">d = 80</span>. The pre-registered null was ratio-invariance — the same midpoint recurring at every <span class="mono">d</span>, band <span class="mono">[0.4745, 0.6165]</span>; the <span class="mono">d = 80</span> interval sits entirely above it. Tolerated capacity per state dimension <em>rises</em> with dimension: raw capacity grows faster than linearly in <span class="mono">d</span>. At <span class="mono">d = 96</span> there is no measurable cliff anywhere in the tested window — recall stays near ceiling through <span class="mono">K/d = 0.9375</span> — and the midpoint is unlocalizable with this instrument (100% of bootstrap fits degenerate). The near-ceiling fine structure at <span class="mono">d = 96</span> is instrument-limited, not settled. Preprint in preparation.</p>
+        </div>
+
+        <h2><span class="num">01</span>Setup</h2>
+
+        <p>The model is a single-head, single-layer DeltaNet (chunked delta-rule kernel) whose entire memory is one <span class="mono">d_state × d_state</span> matrix updated as <span class="mono">S<sub>t</sub> = S<sub>t−1</sub>(I − β<sub>t</sub> k<sub>t</sub> k<sub>t</sub><sup>⊤</sup>) + β<sub>t</sub> v<sub>t</sub> k<sub>t</sub><sup>⊤</sup></span>. Episodes draw K entity bindings from a pool of 107 trainable entities — more entities than state dimensions, so the anchor table is non-orthogonal by the Welch bound at every <span class="mono">d</span> tested. The metric is <span class="mono">rec@0.9</span> on held-out compositional legs at hop depth 4: the fraction of recoveries whose continuous cosine similarity against the true value exceeds 0.9. Recovery is graded continuously, never by argmax over a codebook — the strictness matters, because argmax decoding lets a rank-1 state fake ≈d associations.</p>
+
+        <p><span class="mono">x₀</span> is the midpoint of a logistic fit <span class="mono">h4(x) = L / (1 + exp((x − x₀)/w))</span> to the (K/d, recall) points at fixed <span class="mono">d</span> — the capacity ratio at which held-out recall crosses half its ceiling. Fits carry 4,000-resample bootstrap CIs with a ≤10% degeneracy admission bar.</p>
+
+        <h2><span class="num">02</span>The result</h2>
+
+        <figure>
+            <img src="../assets/plots/superlinear_capacity.svg" alt="held-out 4-hop recall vs K/d for d=64, 80, 96 with logistic fits" style="width: 100%; max-width: 680px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>Held-out 4-hop recall (<span class="mono">rec@0.9</span>) vs capacity ratio <span class="mono">K/d_state</span>. Circles: <span class="mono">d = 64</span> measured points with the logistic fit (midpoint <span class="mono">x₀ = 0.5455</span>, CI [0.5385, 0.5513]). Squares: <span class="mono">d = 80</span> with its fit (<span class="mono">x₀ = 0.6779</span>, CI [0.6683, 0.6867]; K = 48 and K = 53 cells escalated to n = 5 seeds after a pre-registered range trigger fired). Triangles: <span class="mono">d = 96</span> — no valid fit exists (100% bootstrap degeneracy); recall stays near ceiling through <span class="mono">K/d = 0.9375</span>, including two disjoint measurement windows that overlap at K = 69. Dashed verticals mark the two resolved midpoints. 3 seeds per point unless noted. Data: <span class="mono">experiment-runs/2026-07-06_keyanchor_cliff/</span>, <span class="mono">…_keyanchor_scaling/</span>, <span class="mono">…_keyanchor_scaling_wide/</span>, <span class="mono">2026-07-08_c17_repro/</span>.</figcaption>
+        </figure>
+
+        <p>The pre-registered null was <em>ratio-invariance</em>: if capacity is linear in <span class="mono">d</span>, the collapse midpoint should recur at the same ratio, band <span class="mono">[0.4745, 0.6165]</span> around the <span class="mono">d = 64</span> value. The <span class="mono">d = 80</span> confidence interval excludes that band entirely. A <span class="mono">d = 80</span> state does not just hold 25% more bindings than a <span class="mono">d = 64</span> state — it holds 25% more <em>per unit of ratio</em>, i.e. critical capacity <span class="mono">K<sub>crit</sub></span> grows super-linearly in <span class="mono">d</span> in this regime.</p>
+
+        <div class="takeaway">
+            <span class="label">key result</span>
+            <span class="mono">x₀ = 0.5455</span> at <span class="mono">d = 64</span> → <span class="mono">x₀ = 0.6779</span> at <span class="mono">d = 80</span>, CI-separated from the ratio-invariance prediction. At <span class="mono">d = 96</span>, no cliff is measurable anywhere up to <span class="mono">K/d = 0.9375</span>.
+        </div>
+
+        <h2><span class="num">03</span>The d = 96 window, honestly</h2>
+
+        <p>The <span class="mono">d = 96</span> reading is <em>no monotonic decline through K/d = 0.9375</em> — not "flat at ceiling, confirmed." Per-K means: 1.0, 1.0, 0.9974, 0.9805 (low window), then 0.9592, 0.9216, 0.9326, 0.9581, 1.0000 (unlocked high window). The curve is non-monotonic near ceiling (dips at K = 72/78, recovery at K = 84, an exact 1.0 at K = 90), and the sigmoid fit is genuinely degenerate — 4,000 of 4,000 bootstrap resamples fail. A 360,000-trial power analysis concluded this scatter is analytically expected at n = 3–5 seeds and unresolvable without ~100 seeds per point, so the seed-escalation grid was killed as not worth the compute. Two further honest wrinkles from a follow-up pool-margin diagnostic (whose own adjudication came back degenerate — both cells inadmissible on eval-time convergence gates): the archived exact 1.0 at K = 90 did <em>not</em> replicate at a fresh seed (0.9725), and the eval-admissibility frontier itself moves with <span class="mono">K/d</span>. The coarse no-cliff claim stands; the fine structure of the near-ceiling regime is limited by the measurement instrument, not by training.</p>
+
+        <h2><span class="num">04</span>Limitations</h2>
+
+        <ul>
+            <li><strong>x₀ is resolved at exactly two dimensions.</strong> Super-linearity rests on d = 64 vs d = 80; d = 96's midpoint is unlocalizable (it sits above the tested window, which is itself consistent with the super-linear direction but not a third fitted point). A separate, earlier result at d = 128 — where the entity pool is smaller than the state dimension and the anchor table becomes exactly orthogonal — is a different regime and is not pooled with these curves.</li>
+            <li><strong>Seed counts.</strong> 3 seeds per point, except d = 80's K = 48/53 at n = 5 (pre-registered escalation) and the single-seed pool-margin diagnostic cells (both inadmissible).</li>
+            <li><strong>One architecture, one task family.</strong> Single-layer, single-head DeltaNet on synthetic associative recall. No claim about multi-layer stacks or natural data.</li>
+            <li><strong>Follow-ups are gated.</strong> The next instrument-side design round (admission-frontier vs K/d, value-salvage calibration) is queued behind a PI check-in and has not run.</li>
+        </ul>
+
+        <h2><span class="num">05</span>Reproducibility</h2>
+
+        <p>Raw fit JSONs (including full bootstrap diagnostics) are archived in the project repository under <span class="mono">experiment-runs/2026-07-06_keyanchor_cliff/</span>, <span class="mono">experiment-runs/2026-07-07_keyanchor_scaling/</span>, <span class="mono">experiment-runs/2026-07-07_keyanchor_scaling_wide/</span>, and <span class="mono">experiment-runs/2026-07-08_c17_repro/</span>. The figure-generation script for this page is at <span class="mono">assets/plots/generate_superlinear_capacity.py</span>.</p>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

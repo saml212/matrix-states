@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="The Gradient Does Not See Rank: rank-indifference in matrix-CODI on ProsQA. Four flat rank-k curves across readout variants, three-seed accuracy-rank decoupling at effective ranks {4, 12, 13}, four nonlinear-in-Z positive controls that also produce flat curves, and a vanilla GPT-2 SFT negative control that reproduces a flat rank-k curve under the same intervention paradigm.">
 <meta property="og:title" content="The Gradient Does Not See Rank — pebble">
-<meta property="og:description" content="An ICML 2026 Mechanistic Interpretability Workshop submission. Rank-indifference in matrix-CODI on ProsQA, tested with four nonlinear-in-Z readouts and a vanilla GPT-2 SFT negative control.">
+<meta property="og:description" content="Published at the ICML 2026 Mechanistic Interpretability Workshop. Rank-indifference in matrix-CODI on ProsQA, tested with four nonlinear-in-Z readouts and a vanilla GPT-2 SFT negative control.">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://pebbleml.com/findings/matrix-codi-rank-blindness.html">
 <meta property="article:author" content="Sam Larson">
@@ -51,7 +51,12 @@
     "mechanistic interpretability"
   ],
   "license": "https://creativecommons.org/licenses/by/4.0/",
-  "inLanguage": "en"
+  "inLanguage": "en",
+  "encoding": {
+    "@type": "MediaObject",
+    "contentUrl": "https://pebbleml.com/assets/papers/the-gradient-does-not-see-rank.pdf",
+    "encodingFormat": "application/pdf"
+  }
 }
 </script>
 <title>The Gradient Does Not See Rank — pebble</title>
@@ -456,11 +461,11 @@ footer a { color: var(--accent); }
 
 <section class="title-block">
     <div class="container">
-        <div class="paper-meta">paper preprint &nbsp;·&nbsp; finding 06 &nbsp;·&nbsp; ICML 2026 MI workshop submission</div>
+        <div class="paper-meta">published paper &nbsp;·&nbsp; finding 06 &nbsp;·&nbsp; ICML 2026 mechanistic interpretability workshop</div>
         <h1 class="paper-title">The gradient does not see rank: rank-indifference in matrix-CODI on ProsQA.</h1>
         <p class="authors"><span class="author">Samuel Larson</span></p>
         <p class="affil">Pebble Machine Learning</p>
-        <p class="date">April 29, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+        <p class="date">April 29, 2026 &nbsp;·&nbsp; sam@pebbleml.com &nbsp;·&nbsp; <a href="../assets/papers/the-gradient-does-not-see-rank.pdf">paper PDF</a></p>
     </div>
 </section>
 
@@ -950,6 +955,8 @@ footer a { color: var(--accent); }
         <p>The matrix-bottleneck training objective in CODI does not reward rank: the readout Jacobian carries no rank information through the chain rule, the flat rank-<span class="mono">k</span> curves are insensitive to nonlinear readouts that escape the linear-Jacobian shortcut, and three seeds under matched hyperparameters land at effective ranks <span class="mono">{4, 12, 13}</span> with statistically indistinguishable accuracy. The rank-<span class="mono">k</span> probe alone could not distinguish rank-blindness from position-irrelevance; the seed-level rank spread does.</p>
 
         <h2><span class="num">12</span>Reproducibility</h2>
+
+        <p>The paper as published at the ICML 2026 Mechanistic Interpretability Workshop: <a href="../assets/papers/the-gradient-does-not-see-rank.pdf">the-gradient-does-not-see-rank.pdf</a> (213 KB).</p>
 
         <p>All training, evaluation, and probe code is released at <a href="https://github.com/saml212/learned-representations"><span class="mono">github.com/saml212/learned-representations</span></a>. The release includes:</p>
 

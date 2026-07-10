@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The write-geometry attractor in fast-weight LMs worsens monotonically from 14M to 1.31B parameters (span_frac 0.248 to 0.455). A pre-registered 2x2 shows it is not a qk-norm artifact; decay gating shows a direction-consistent trend that did NOT confirm at the pre-registered bar.">
+<meta property="og:title" content="The write-geometry attractor: scale trend and a qk-norm exoneration — pebble">
+<meta property="og:description" content="Research note: key-write geometry in DeltaNet-family LMs collapses more, not less, with scale. Turning the community-standard qk-l2-norm mitigation off changes nothing (n=3 null); gating trends worse but misses the 2-sigma pre-registered bar (1.92 sigma).">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/write-geometry-attractor.html">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-09">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/write-geometry-attractor.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "The write-geometry attractor grows with scale, and it is not a qk-norm artifact",
+  "name": "The write-geometry attractor",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-09",
+  "url": "https://pebbleml.com/findings/write-geometry-attractor.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "In DeltaNet-family language models, the geometry of what gets written into the fast-weight state collapses toward a low-effective-rank basin, and the collapse worsens monotonically with scale: span_frac 0.248 at 14M, 0.344 at 98M, 0.389 at 392M, 0.455 at 1.31B parameters. A pre-registered 2x2 factorial at 14M (qk-l2-norm on/off crossed with decay gating on/off, n=3 seeds per cell) shows the attractor is not the published qk-norm eigenvalue-stability issue in disguise: turning qk-norm off moves the metric by -0.103 (0.05 sigma), a clean null. Decay gating shows a direction-consistent worsening trend (+4.31, 1.92 sigma; all three paired per-seed deltas positive) that did not confirm at the pre-registered 2-sigma bar. Gated arms reach lower loss while carrying the pathology no better. Preprint in preparation.",
+  "keywords": "fast weights, DeltaNet, linear attention, key geometry, rank collapse, qk normalization, gated DeltaNet, scaling",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>The write-geometry attractor: scale trend and a qk-norm exoneration — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── ascii plot ────── */
+.ascii-plot {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 24px 32px;
+    margin: 24px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    .ascii-plot { font-size: 0.68rem; padding: 18px 20px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 09 &nbsp;·&nbsp; preprint in preparation</div>
+        <h1 class="paper-title">The write-geometry attractor grows with scale, and it is not a qk-norm artifact</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 9, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>In DeltaNet-family language models, the geometry of what gets written into the fast-weight state — the per-layer key Gram matrix — collapses toward a low-effective-rank basin during training. We call this the <strong>write-geometry attractor</strong>. It is not a small-model artifact: on a four-point scale ladder it worsens monotonically, <span class="mono">span_frac</span> 0.248 at 14M → 0.344 at 98M → 0.389 at 392M → 0.455 at 1.31B parameters. A natural deflationary reading is that this is the published qk-norm eigenvalue-stability issue in disguise, since every run trains with the community-standard <span class="mono">qk-l2-norm</span> mitigation on. A pre-registered 2×2 factorial at the 14M rung (qk-norm on/off × decay gating on/off, n = 3 seeds per cell) rules that out: turning qk-norm <em>off</em> moves the collapse metric by <span class="mono">−0.103</span> (0.05σ against the same-corpus noise floor) — a clean null. Decay gating (the Gated-DeltaNet mechanism used in production stacks) shows a direction-consistent worsening trend — <span class="mono">+4.31</span>, all three paired per-seed deltas positive — that did <strong>not</strong> confirm at the pre-registered 2σ bar (1.92σ; exploratory Welch p = 0.062). Gated arms reach <em>lower</em> loss while carrying the pathology no better. Preprint in preparation.</p>
+        </div>
+
+        <h2><span class="num">01</span>The attractor</h2>
+
+        <p>A fast-weight layer writes rank-1 updates <span class="mono">β v k<sup>⊤</sup></span> into a fixed <span class="mono">d × d</span> state. How much of the state those writes can address depends on the geometry of the keys: orthonormal keys span the state; collapsed keys pile writes into a shrinking subspace. We track this with the deviation of the per-layer key Gram matrix from orthonormality, summarized on the scale ladder as <span class="mono">span_frac</span> — the fraction of the gap between random-init geometry and full collapse that a trained checkpoint has traversed.</p>
+
+        <figure>
+            <img src="../assets/plots/write_geometry_scale.svg" alt="span_frac vs parameter count, 14M to 1.31B" style="width: 100%; max-width: 640px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>Write-geometry collapse vs scale: <span class="mono">span_frac</span> at 14M (0.248), 98M (0.344), 392M (0.389), and 1.31B (0.455) parameters, same corpus family and probe instrument at every rung. The trend is monotonic — the attractor grows more pronounced with scale. The 1.31B run self-terminated at ~85% of its token budget (a disclosed calibration miss, not a crash); its reading was flat-to-declining over the final 25K steps, so the shortfall does not threaten the monotonic read. Data: scale-ladder archives referenced in the project experiment log.</figcaption>
+        </figure>
+
+        <h2><span class="num">02</span>The 2×2: is it just qk-norm? does gating change it?</h2>
+
+        <p>Every run in this program trains with <span class="mono">use_qk_l2norm_in_kernel=True</span> — the stock mitigation for the known eigenvalue-stability issue in delta-rule kernels (adopted by Kimi Linear and Qwen3-Next, among others). If the attractor were that issue in disguise, toggling the mitigation should move the metric. And Gated DeltaNet's decay gating is the actual production mechanism in modern stacks — if it dissolves the attractor, the pathology is an artifact of the vanilla architecture. So: a 2×2 factorial at the 14M rung, baseline cell byte-identical to the scale ladder's own configuration, outcome = same-corpus layer-pooled Gram deviation, n = 1 screen then n = 3 seeds per cell. The pre-registered confirmation bar: a cell's delta against baseline must exceed 2× the same-corpus cross-seed noise floor (2 × 2.244 = 4.489). The noise floor itself was corrected mid-build after an audit found the original had been pooled across out-of-distribution probe corpora, understating the true floor 2.65×.</p>
+
+        <figure>
+            <img src="../assets/plots/write_geometry_2x2.svg" alt="2x2 cell means with per-seed points, gram deviation" style="width: 100%; max-width: 640px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 2</span>The 2×2 at n = 3 seeds per cell: layer-pooled <span class="mono">gram_deviation_mean</span> (openr1-mix-ext corpus), bars = cell means, whiskers = sd, open circles = individual seeds. Baseline (qk-norm on, gating off) 20.19 ± 2.21; qk-norm off 20.09 ± 1.65 (Δ −0.103, 0.05σ — null); gating on 24.51 ± 1.83 (Δ +4.31, 1.92σ — below the pre-registered 2σ = 4.489 bar); both off/on 21.32 ± 0.59. Note this instrument reports Gram deviation, not <span class="mono">span_frac</span> — figs 1 and 2 use different metrics and are not comparable on one axis. Data: <span class="mono">experiment-runs/2026-07-09_attrrob_2x2_harvest/</span> and <span class="mono">…_attrrob_2x2_escalation_harvest/</span>.</figcaption>
+        </figure>
+
+        <h3>qk-norm: exonerated</h3>
+
+        <p>Turning the qk-l2-norm mitigation off does essentially nothing to the attractor: Δ = −0.873 (0.39σ) at the n=1 screen, Δ = −0.103 (0.05σ) at n=3, mixed sign across seeds. The attractor is not the published qk-norm stability issue wearing a costume. This is the load-bearing null of the experiment, and it held at both stages.</p>
+
+        <h3>Gating: a direction-consistent trend, not confirmed at the pre-registered bar</h3>
+
+        <p>The gated cell fired the escalation trigger at the n=1 screen (Δ +6.16, 2.75σ). At n=3 the effect shrank to Δ +4.31 — 1.92σ, below the 2σ bar the design itself set. The runner's own escalation logic reads <span class="mono">fire = false</span>. What survives honest scrutiny: all three paired per-seed deltas are positive (+6.16, +3.13, +3.65), and an exploratory (non-pre-registered) Welch t-test gives p = 0.062. We report this exactly as it is: a direction-consistent trend that did not confirm at the pre-registered bar — neither a confirmed amplification nor a null.</p>
+
+        <div class="takeaway">
+            <span class="label">key observation</span>
+            Gated arms train to <em>lower</em> loss (3.515 vs 3.682 final train loss in the qk-on pair) while carrying more Gram deviation. A healthier-looking checkpoint carries the pathology no better — loss curves do not surface this failure mode, which is part of why it matters.
+        </div>
+
+        <h2><span class="num">03</span>Limitations</h2>
+
+        <ul>
+            <li><strong>The 2×2 is one architecture point.</strong> 14M scale, <span class="mono">dm256/L2/ds64</span>, single-head vanilla-DeltaNet family. Not tested at production scale, on DeltaProduct-style multi-Householder generalizations, or on the full Qwen3-Next configuration. The 2×2 partially — not fully — discharges the "single architecture family" limitation of the scale-ladder work.</li>
+            <li><strong>Two instruments, two metrics.</strong> The scale ladder reports <span class="mono">span_frac</span>; the 2×2's probe reports Gram deviation/effective-rank/stable-rank. Directionally aligned, not interchangeable.</li>
+            <li><strong>n=1 sub-readings were not re-validated at n=3.</strong> Per-cell details from the screen (e.g., collapse concentrating in layer 0: baseline L0 17.10/L1 21.03 vs gated L0 30.90/L1 19.56) stand as single-seed observations only.</li>
+            <li><strong>Behavioral leg non-decisional.</strong> A secondary recall probe wired into the 2×2 was disclosed probe-invalid up front (a known zero-shot transplant floor; it reads 0.0 in every cell by design) and was never read for decisions.</li>
+        </ul>
+
+        <h2><span class="num">04</span>Reproducibility</h2>
+
+        <p>Raw probe JSONs, aggregate files, MD5 manifests, and the independent recompute script (matches the runner's aggregates to &lt;1e-6) are archived under <span class="mono">experiment-runs/2026-07-09_attrrob_2x2_harvest/</span> and <span class="mono">experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/</span> in the project repository. Realized compute: ≈1.0 GPU-h (screen) + ≈2.0 GPU-h (escalation; the four seed-0 cells resume-skipped). The figure-generation script for this page is at <span class="mono">assets/plots/generate_write_geometry_attractor.py</span>.</p>
+
+        <div class="references">
+            <h2>References</h2>
+            <ol>
+                <li>Yang, S., Kautz, J., &amp; Hatamizadeh, A. (2024). <em>Gated Delta Networks: Improving Mamba2 with Delta Rule.</em> arXiv:2412.06464</li>
+                <li>Kimi Team (2025). <em>Kimi Linear: An Expressive, Efficient Attention Architecture.</em> arXiv:2510.26692 (§4, qk-norm eigenvalue stability)</li>
+            </ol>
+        </div>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>
