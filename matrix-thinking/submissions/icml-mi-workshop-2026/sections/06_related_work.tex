@@ -6,8 +6,12 @@
 ProsQA \emph{without} latent feedback, against $99.0\%$ with it.
 Our vanilla SFT at GPT-2 small reaches $81.77\%$, roughly $15$pp
 below that; we did not close the gap. The qualitative phenomenon
-replicates at our operating point: matrix-CODI at $82.03\%$ vs.\
-pure SFT at $81.77\%$ ($0.26$pp, within three-seed noise). Our
+replicates at our operating point: matrix-CODI at $82.03\%$ and
+pure SFT at $81.77\%$ differ by less than the three-seed standard
+deviation. The scale sweep in \S\ref{sec:depth-scale} places
+matrix-CODI a comparable margin below this baseline instead; in
+either direction the difference is within seed noise, which is the
+substantive point: latent feedback does not move accuracy beyond it. Our
 contribution relative to that work is a structural argument about
 the training objective: the matrix-bottleneck produces
 rank-indifferent gradients, and four nonlinear-in-$\Z$ readouts
@@ -41,9 +45,9 @@ heads bifurcate into persistently low-rank and high-rank groups.
 Both papers measure rank in the \emph{fast-weight memory} inside
 an attention layer (a $d \times d$ accumulator), and both make
 \emph{descriptive} claims about what trained networks end up with.
-The object of study here is different --- the explicit per-position
+The object of study here is different (the explicit per-position
 matrix latents $\Z$ on the matrix-CODI feedback path, not a
-fast-weight memory inside attention --- and the claim is a
+fast-weight memory inside attention), and the claim is a
 mechanism claim about the training objective
 (Proposition~\ref{prop:jac}) that we test by constructing four
 nonlinear-in-$\Z$ positive controls.
@@ -52,8 +56,8 @@ nonlinear-in-$\Z$ positive controls.
 \citet{anonymous2026dynamics} run multiple intervention protocols
 on latent CoT hidden states (zero, mean, step-wise mean, Gaussian
 noise) and an early-stop decoding that truncates latent
-computation after step $k$. Their early-stop decoding is a cousin
-of our rank-$k$ ablation on a different axis --- step depth vs.\
+computation after step $k$. Their early-stop decoding is analogous
+to our rank-$k$ ablation on a different axis: step depth vs.\
 spectral truncation. Their step-wise causal structure is consistent
 with our linear-probe decay $\Z[1]\to\Z[5]$ (early positions carry
 information).
@@ -74,7 +78,7 @@ superposition picture.
 \paragraph{Rank decay and token uniformity in stacked attention.}
 \citet{dong2021attention} showed that pure attention loses rank
 doubly exponentially with depth. \citet{yan2022uniformity}
-characterise the related token-uniformity phenomenon in
+characterize the related token-uniformity phenomenon in
 BERT-family encoders via the singular-value distribution of layer
 outputs and propose a transformation that flattens the spectrum.
 Both lines measure rank in the activations of a stack of
@@ -97,6 +101,6 @@ the vocabulary column space, not in hidden-state SVD directions;
 if so, rank-$k$ truncation targets the wrong observable.
 \citet{li2024optimal} note that zero/resample ablations (rank-$k$
 truncation is one) overestimate component importance vs.\ optimal
-ablation --- which would only flatten our curves further. The
+ablation, which would only flatten our curves further. The
 negative control in \S\ref{sec:pc-negctrl} is the empirical
 counterpart.

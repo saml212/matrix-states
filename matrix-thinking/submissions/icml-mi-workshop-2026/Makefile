@@ -1,35 +1,36 @@
 # ICML MI Workshop 2026 build
 #
-# Two builds from one source:
-#   make anon    -> paper-anon.pdf (workshop submission, double-blind)
-#   make pub     -> paper.pdf      (arXiv + share-with-friends, real authors)
-#   make         -> both
+# Requirements: pdflatex, bibtex (texlive-latex-base, texlive-bibtex-extra).
+# Generate figures first (requires matplotlib):
 #
-# Build engine: tectonic (single binary, auto-fetches packages, no sudo).
-# Install: brew install tectonic
+#   make figures
 #
-# Generate figures first (requires matplotlib): make figures
+# Then build the PDF:
+#
+#   make
+#
+# The paper uses a stand-in preamble. Before submission, download
+# icml2026.sty from https://icml.cc/Conferences/2026/CallForPapers
+# and swap it into main.tex (see comment block at top of main.tex).
 
-all: paper-anon.pdf paper.pdf
+TEX = main
 
-paper-anon.pdf: paper-anon.tex main.tex sections/*.tex refs.bib figures/*.pdf
-	tectonic --keep-intermediates paper-anon.tex
+all: $(TEX).pdf
 
-paper.pdf: paper.tex main.tex sections/*.tex refs.bib figures/*.pdf
-	tectonic --keep-intermediates paper.tex
-
-anon: paper-anon.pdf
-pub: paper.pdf
+$(TEX).pdf: $(TEX).tex sections/*.tex refs.bib figures/*.pdf
+	pdflatex $(TEX).tex
+	bibtex $(TEX)
+	pdflatex $(TEX).tex
+	pdflatex $(TEX).tex
 
 figures:
 	cd figures && python3 generate_figures.py
 
 clean:
-	rm -f paper.aux paper.log paper.bbl paper.blg paper.out paper.toc
-	rm -f paper-anon.aux paper-anon.log paper-anon.bbl paper-anon.blg paper-anon.out paper-anon.toc
+	rm -f $(TEX).aux $(TEX).log $(TEX).bbl $(TEX).blg $(TEX).out $(TEX).toc
 	rm -f sections/*.aux
 
 distclean: clean
-	rm -f paper.pdf paper-anon.pdf
+	rm -f $(TEX).pdf
 
-.PHONY: all anon pub figures clean distclean
+.PHONY: all figures clean distclean

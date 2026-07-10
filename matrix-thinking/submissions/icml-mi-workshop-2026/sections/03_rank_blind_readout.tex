@@ -60,7 +60,7 @@ W_{\text{down}}^{\top}\,
 The pullback factor $W_{\text{down}}^{\top}$ is independent of
 $\Z$. Any $\Z$-dependence of the gradient enters only through the
 upstream factor $\partial\mathcal{L}/\partial\phi$, which depends
-on $\Z$ only through the value $\phi(\Z)$ --- not through any
+on $\Z$ only through the value $\phi(\Z)$, not through any
 explicit factor of $\Z$'s SVD basis.
 
 \begin{proposition}[Linear readout has constant Jacobian]
@@ -96,7 +96,7 @@ gradients. What is ruled out is an SVD-basis-dependent term in
 the chain rule itself. Whether the absence of an explicit rank
 preference yields rank-blind behavior in practice is an empirical
 question; \S\ref{sec:pc} tests it by replacing $\phi$ with
-non-linear functions, and the flat curves persist --- suggesting
+nonlinear functions, and the flat curves persist, suggesting
 at least part of the explanation lies elsewhere.
 
 The four training conditions in Table~\ref{tab:four-flat} are
@@ -126,7 +126,7 @@ $\Z$ toward any particular rank.}
 
 \subsection{Linear probe on $\Z$}
 
-If rank is decoration, what \emph{does} $\Z$ carry? A 5-fold
+If rank is vestigial, what \emph{does} $\Z$ carry? A 5-fold
 cross-validated multi-class logistic regression predicts the ProsQA
 target class from a flattened $\Z$ on $500$ held-out test problems.
 Controls: the same prompt's hidden state from a pretrained GPT-2
@@ -139,8 +139,8 @@ initialization.
 \caption{Linear probe AUC for ProsQA target class prediction.
 Pre-registered threshold for a positive result was
 $\max(\text{vanilla},\text{random})+0.05=0.896$. The matrix $\Z$
-concat AUC of $0.673$ does not exceed it. Vanilla GPT-2 --- never
-trained on ProsQA --- predicts the target class better than the
+concat AUC of $0.673$ does not exceed it. Vanilla GPT-2, never
+trained on ProsQA, predicts the target class better than the
 trained matrix-CODI bottleneck.}
 \label{fig:probe}
 \end{figure}

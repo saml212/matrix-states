@@ -66,5 +66,7 @@ is functionally used.
 entailment task: a diamond-shaped directed acyclic graph of
 entities and a question \emph{which leaf entity has property $P$?}.
 Each problem has a unique positive answer and a single distractor.
-We use the training split from the original COCONUT release; the
-test set has 128 problems, matching the original CODI release.
+We use the training split from the original COCONUT release. Rank-$k$
+ablations use the 128-problem test split from the original CODI
+release; the linear probe and negative control draw on a larger
+held-out set of 500 problems, noted where used.
