@@ -1,5 +1,10 @@
 # Paper brief — Flagship: The Matrix State Is Real (rank law + capability separation + the scale-worsening write-geometry attractor)
 
+**[WORKING TITLE — PI]** — the title above is a drafting placeholder; the
+final title is a PI decision. Drafting proceeds under thesis **T1** (the
+PI-recommended candidate, the drafting thesis of record; final thesis
+selection also remains with the PI).
+
 Stage 0 of the `paper` skill (`/paper-draft`, repo mode). Per the skill's own
 rule, **no section is drafted until this brief exists and every planned
 numerical claim has a three-field evidence row** (pre-registered verdict
@@ -11,8 +16,13 @@ experiment-runs archives) are read-only; every paper artifact lands under
 
 ## Venue
 
+Drawn from `papers/flagship/venue-requirements.md` (Stage-0 artifact,
+recorded 2026-07-10 from the live-verified `papers/VENUE_MAP.md`, commit
+52eca3a): the ICLR 2027 CFP is NOT live (404 verified 2026-07-10); the
+dates below are PROJECTED; the `iclr2026/` kit is the sanctioned stand-in.
+
 - **Name:** arXiv preprint (~end July 2026), then ICLR 2027 (deadline ~late
-  Sept 2026).
+  Sept 2026, PROJECTED — abstract ~Sep 19 / full ~Sep 24 per aggregators).
 - **Format:** 9 pages main text (excluding references and appendix), ICLR
   LaTeX kit. Per `skills/ml-paper-writing/templates/VENUE_STATUS.md`, ICLR has
   not released a 2027 style file — draft in the `iclr2026/` kit as the
@@ -157,6 +167,32 @@ TIE branch pending its diagnosis round — now seeded with §1.41's
 horizon-collapse fact) are out of this brief until their records exist; the
 M\* axis LANDED as R10 above (2026-07-10).
 
+**K48 stress table — IN FLIGHT, not a claim (checked 2026-07-10):** the
+K/d=0.75 stress cell's transformer arm has NO landed verdict record —
+`HEAD_TO_HEAD_DEMO_DESIGN.md` §1.42 is a PRE-RUN record (the verdict is
+specified to land as §1.43), and
+`experiment-runs/2026-07-10_h2h_task2diag/results/` is empty. What EXISTS
+claim-grade at K48: the contender (0.0189) and ablation (0.0195) round-4
+re-metric reads, both ≈ chance 0.02083 (§1.42's A6 restates them; the
+transformer's round-3 K48 attempt OOM'd pre-save, §1.27). "Transformer at
+chance at K48" is §1.42's pre-registered HYPOTHESIS, not a result — the
+draft must not carry it as a number. If §1.43 lands before freeze, add it
+as a row with its artifact + md5; until then the K48 table appears (if at
+all) as the two-arm read with the third arm disclosed as in-flight.
+
+**Instrument-validity methodology citations (qualitative, no numbers →
+no evidence rows needed):** the §2 instruments paragraph and the §7
+methodology sentence may cite, as process precedent, (a) the wrong-layer
+instrument diagnosis in the recall program
+(`HEAD_TO_HEAD_DEMO_DESIGN.md` §1.27–§1.30: three "failure" rounds were a
+wrong-tap linear probe; the repaired §1.30-localized tap is what R5
+reports) and (b) the Stage-2 primary-vs-crosscheck lens tiebreak
+(`CAPABILITY_SEPARATION_DESIGN.md` §2.31a coordinator tiebreak: the
+primary Procrustes lens is broken on converged cells, 0-vs-1.0
+contradiction on 4 independent grounds; §2.32 crosscheck re-metric with
+shuffled-target teeth 3/3). These are cited as records, qualitatively; no
+Stage-2 model verdict is claimed (Stage 2 remains future work in §7).
+
 ## Figures to generate
 
 All from the single versioned `figures/figure-gen.py` (filled from the
@@ -225,6 +261,18 @@ inventory, per the PI's 2026-07-08 many-workshops-one-flagship strategy):
   decision flagged:** whether the flagship ABSORBS `iclr-2027/` (one ICLR
   submission) or the two stay separate submissions — they cannot both go to
   ICLR 2027 with the same §5 evidence.
+
+  **DRAFTING ASSUMPTION OF RECORD (2026-07-10, per the flagship charter —
+  the PI decides absorb-vs-separate; this only fixes how drafting
+  proceeds until then): treat the two as SEPARATE.** The flagship is
+  written self-contained: §5 cites the attractor results as evidence rows
+  (R6–R8, from the raw archives) WITHOUT copying any paragraph from the
+  `matrix-thinking/submissions/iclr-2027/` tree, and that tree stays
+  untouched. §5 is structured as a self-contained module (its own
+  figures, its own evidence citations, no forward/backward dependencies
+  beyond the thesis sentence) so that if the PI later picks ABSORB, the
+  section can be swapped to a short cross-reference without rewriting
+  §§1–4, 6–8.
 - **`neurips-ws-2026/` (Task D/E rank recruitment, NeurReps/UniReps EA
   target):** distinct evidence base (synthetic Task D/E archives) — zero
   row overlap with this map; adjacent narrative (rank recruitment) only.
