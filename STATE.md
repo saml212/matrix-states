@@ -425,7 +425,24 @@ incl. 18.4 GPU-h joint worst case at 26% margin; last-K = eval-time
 truncation w/ pinned anti-conservatism escalation). Scoped micro-attack
 on the 2(e) rewrite IN FLIGHT — last gate before
 DESIGN-CLEARED-FOR-BUILD; launch stays gated on Stage-1's readout
-(§1.11).**
+(§1.11).** **UPDATE (2026-07-10): the build gauntlet since ran
+§2.18→§2.24 (DESIGN-CLEARED → build → four audit rounds →
+CLEARED-FOR-DEPLOY); the deploy chain then HALTED at the box-only fla
+cross-check gate (§2.25 — a deterministic 1.40/1.36/1.38 rel-Frobenius
+disagreement at all three pinned configs plus two invocation defects),
+and a dedicated diagnosis+fix dispatch ADJUDICATED it analytically
+(§2.26): the composer matches the hand-computed single-step closed form
+`S_1 = β v kᵀ` at 4.5e-08 — the pinned recurrence is EXONERATED; fla
+0.5.1's final_state is the TRANSPOSE (`[N,H,K,V]` = k⊗v layout), so the
+cross-check's own comparison was the wrong side (and Arm-3's β∈[0,2]
+cross-check IS possible in 0.5.1 — β is consumed raw, no flag needed).
+Fixed (invocation + transpose + device-keyed self-skip + a permanent
+mutation-tested analytic smoke section), redeployed (md5 `858e3230…`),
+cross-check now PASSES 3/3, box smoke 6/6, and the §2.25 chain RESUMED:
+Arm-1 retrain + the 11-cell calibration gate LAUNCHED (tmux
+`stage2_calib`, GPU 0, self-healing supervisor, signoff citing
+§2.24/§2.26). Next: harvest the calibration readout (separate
+dispatch); the 57-cell sweep stays gated on it (§2.8 items 2-3).**
 
 ### 6. Novel-Architecture Waterfall (opened 2026-07-09, stages 1-2 RETURNED)
 

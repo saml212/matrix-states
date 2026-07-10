@@ -1,7 +1,36 @@
-# 2026-07-10 Stage 2 deploy + calibration chain — HALTED at the fla cross-check gate
+# 2026-07-10 Stage 2 deploy + calibration chain — HALTED at the fla cross-check gate, then ADJUDICATED + FIXED + RESUMED (§2.26)
 
-Registry: `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` §2.25 (full record).
-EXPERIMENT_LOG.md: "CAPABILITY SEPARATION STAGE 2 — DEPLOY+CALIBRATION CHAIN HALTED..." entry.
+Registry: `matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` §2.25 (the halt) + §2.26 (the analytic adjudication, fix, re-run, and chain resume — full record).
+EXPERIMENT_LOG.md: "CAPABILITY SEPARATION STAGE 2 — DEPLOY+CALIBRATION CHAIN HALTED..." entry, then the "§2.26 ANALYTIC ADJUDICATION..." entry.
+
+## §2.26 UPDATE (2026-07-10, the fix dispatch)
+
+The single-step closed form (`S_1 = β v kᵀ` at D=1, S_0=0) adjudicated the
+§2.25 disagreement: the composer matches the hand-computed analytic truth at
+rel-Fro 4.5e-08 (CPU fp32); fla 0.5.1's final_state matches the analytic
+TRANSPOSE (`β k vᵀ`) at 3.0e-03 (bf16 noise) — fla's state is `[N,H,K,V]`
+(k⊗v), the exact transpose of the pinned v⊗k convention. BOTH sides
+faithful to their own conventions; the cross-check's comparison was the bug.
+Fix (all in `fla_cross_check` + one new permanent smoke section, composer
+untouched): `output_final_state=True`, nonexistent `allow_neg_eigval` kwarg
+removed, final_state transposed before comparison, device-arg-keyed
+self-skip guard, new `analytic_closed_form_check` (D=1 + hand-expanded D=2,
+mutation-tested). Fixed `stage2_composer.py` md5
+`858e32301ab0067d8cd29d22ee50f720`, deployed byte-exact. Cross-check now
+PASSES 3/3: (1,1) 2.8008e-03 ≤ 1e-2, (1,8) 3.8678e-03 ≤ 5e-2, (2,8)
+4.5237e-03 ≤ 5e-2 (deterministic across two runs). Box smoke 6/6
+(`box_smoke_stage2_rerun.log`). Chain RESUMED: Arm-1 retrain + 11-cell
+calibration gate launched in tmux `stage2_calib` on GPU 0 via
+`stage2_calib_supervisor.sh`.
+
+New §2.26 files in this archive:
+
+- `analytic_step1_cpu.py` / `analytic_step1_cpu_composer_vs_closed_form.log` — local composer-vs-closed-form adjudication (Step 1)
+- `analytic_step2_box.py` / `analytic_step2_box_fla_vs_closed_form.log` — box fla-vs-closed-form adjudication incl. the l2norm-flag probe (Step 2)
+- `negative_teeth_test.py` / `analytic_check_negative_teeth_test.log` — the transposed-update mutant KILL proof for the new permanent smoke section
+- `fla_cross_check_fixed_pass.log` — the passing 3/3 re-run + the `device="cpu"` self-skip regression check
+- `box_smoke_stage2_rerun.log` — the full 6/6 box smoke on the fixed file
+- `stage2_calib_supervisor.sh` — the launched supervisor (tmux `stage2_calib`, GPU 0)
 
 ## What happened
 
@@ -65,7 +94,7 @@ e3e0c0eb44bc18026e8b47b255666386  smoke_capability_sep.py     (already current)
 07402b61a4b73926903580bfd9745865  truncation_curve.py         (already current)
 4590bb77260ba2c251c200f08d89e85c  verify_option_a_readout.py  (already current)
 6ce5689a8d35bf46054f072d5fc848f6  smoke_stage2.py             (NEWLY DEPLOYED)
-39c7f5f476e67e75a622feaa9d33cdfd  stage2_composer.py          (NEWLY DEPLOYED)
+39c7f5f476e67e75a622feaa9d33cdfd  stage2_composer.py          (NEWLY DEPLOYED; superseded by the §2.26 fix 858e32301ab0067d8cd29d22ee50f720)
 6b26ee7004602ae2fc2d5a29e84e12fe  stage2_instrument.py        (NEWLY DEPLOYED)
 18db11ac2caf6551bc02f19b84bd2132  stage2_run.py               (NEWLY DEPLOYED)
 9c0a7de45c6006faf354bdec52a4e725  stage2_task.py              (NEWLY DEPLOYED)
@@ -73,9 +102,8 @@ e3e0c0eb44bc18026e8b47b255666386  smoke_capability_sep.py     (already current)
 
 ## Next
 
-A build/fix + independent-audit round on `stage2_composer.py::fla_cross_check`
-(two defects: the self-skip guard's device-blindness, and the
-`output_final_state`/`allow_neg_eigval` kwarg mismatch that unmasks a
-≥28x real numerical disagreement), then re-attempt
-deploy→box-smoke→cross-check→retrain→calibration-gate from
-`CAPABILITY_SEPARATION_DESIGN.md` §2.25's registry pointer.
+~~A build/fix + independent-audit round on `stage2_composer.py::fla_cross_check`~~
+DONE (§2.26, above): adjudicated analytically, fixed, re-verified
+(cross-check 3/3 PASS, box smoke 6/6), chain resumed. Next: harvest the
+11-cell calibration gate's readout (a separate dispatch), then the 57-cell
+sweep authorization decision per §2.8 items 2-3.

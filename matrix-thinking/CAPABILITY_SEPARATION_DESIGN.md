@@ -6477,3 +6477,130 @@ Pointers: `matrix-thinking/capability_separation/stage2_composer.py`
 `fla_cross_check`'s self-skip guard and its real-kernel invocation
 (both defects), THEN re-attempt deploy→box-smoke→cross-check→retrain→
 calibration-gate from this same registry.**
+
+### §2.26 ANALYTIC ADJUDICATION + FIX (2026-07-10): THE COMPOSER IS
+EXONERATED — fla 0.5.1 RETURNS THE TRANSPOSE; THE CROSS-CHECK'S OWN
+REFERENCE INVOCATION WAS THE WRONG SIDE. CROSS-CHECK NOW PASSES 3/3,
+BOX SMOKE 6/6, THE §2.25 CHAIN RESUMED.
+
+**1. THE DECISIVE METHOD (single step is closed-form).** At D=1, n_h=1,
+S_0=0, the pinned §2.2 recurrence gives exactly `S_1 = β v kᵀ` — no
+accumulation, no numerics, a pure convention adjudicator. The analytic
+truth was computed BY HAND (explicit scalar-index triple loops,
+`S_1[b,i,j] = β_b · v_b[i] · k_b[j]` — an independent literal, no
+matmul, no reuse of the recurrence code) for the EXACT seed-0 test
+inputs `fla_cross_check` uses, then compared against each side:
+
+| comparison | rel-Frobenius | verdict |
+|---|---|---|
+| composer `states_from_embedding` vs analytic `β v kᵀ` (CPU fp32, local) | **4.504e-08** | composer FAITHFUL to the pinned equation |
+| composer vs analyticᵀ (`β k vᵀ`) | 1.405e+00 | = the §2.25 failure signature (observed 1.4008) |
+| fla `chunk_delta_rule` final_state vs analytic `β v kᵀ` (box GPU 0, bf16) | 1.4054e+00 | fla is NOT in the composer's convention |
+| fla final_state vs analyticᵀ (`β k vᵀ`) | **3.024e-03** | fla FAITHFUL to its OWN documented convention |
+
+For generic near-orthogonal unit k and random v, ||vkᵀ − kvᵀ||_F/||vkᵀ||_F
+≈ √2 ≈ 1.414 — the 1.40/1.36/1.38 triple §2.25 measured is exactly a
+pure-transpose signature, and the transposed comparison collapses ALL
+THREE configs to bf16 noise (below). **Root cause (verified from the
+installed source on the box, `fla/ops/delta_rule/naive.py` +
+`chunk.py`'s docstring, not assumed): fla's state is `[N, H, K, V]`
+with update `S_t = (I − β k kᵀ) S_{t-1} + β k vᵀ` — the exact TRANSPOSE
+of the pinned `S_t = S_{t-1}(I − β k kᵀ) + β v kᵀ` (same mathematical
+object, k⊗v vs v⊗k ordering). The §2.25 candidate mechanism (ii) — "a
+genuine sign/transpose/β-placement bug in the bespoke recurrence" — is
+REFUTED on the composer side and located in the cross-check's
+comparison instead.** Suspects (a)/(b) cleared: fla 0.5.1 consumes beta
+RAW (no in-op sigmoid/clamp anywhere in the wrapper or kernel path;
+its own docstring example has the caller sigmoid beta), and
+`use_qk_l2norm_in_kernel` was box-probed True-vs-False BIT-IDENTICAL
+on the final state (k is already unit-normalized fp32-side;
+idempotent). Suspect (c) RESOLVED as a non-problem: `allow_neg_eigval`
+is a LAYER-level flag in later fla versions (β=2·sigmoid at the layer),
+never an op-level semantic switch — in 0.5.1 the op accepts β∈[0,2]
+directly and the (1,8)/(2,8) configs (which contain β>1 micro-steps)
+match at bf16 noise, so **the Arm-3 β∈[0,2] cross-check IS possible in
+this fla version, no flag needed** (the §2.25 hypothesis that β>1 might
+be "silently clamped/normalized inside the kernel" is refuted by
+direct measurement).
+
+**2. THE FIX (reference call + disclosure, composer UNTOUCHED — per
+charter, the pinned §2.2 recurrence is the pre-registered object and
+the composer provably implements it).** All in
+`stage2_composer.py::fla_cross_check` + one new permanent smoke
+section; md5 after fix `858e32301ab0067d8cd29d22ee50f720`, deployed +
+box-verified byte-exact: (i) `output_final_state=True` passed (0.5.1
+defaults False → `final_state=None` crash, §2.25 Defect A); (ii) the
+nonexistent `allow_neg_eigval=True` kwarg REMOVED (silently swallowed
+by `**kwargs` in 0.5.1 — the same no-op kwarg remains, disclosed and
+harmless, in `beta_fla_smoke.py`'s reference layer, whose β=2·sigmoid
+is computed at the layer as later-fla does; NOT edited here, out of
+this fix's file ownership); (iii) the returned state TRANSPOSED before
+comparison (`final_state.squeeze(1).transpose(-1,-2)`), with the
+convention note in the docstring; (iv) the self-skip guard now keys on
+the CALLER's `device` argument (`torch.device(device).type == "cuda"`)
+so an explicit `device="cpu"` call self-skips on a CUDA box instead of
+feeding CPU tensors to a Triton kernel (§2.25's smoke-sections-1/3
+regression). (v) NEW permanent CPU smoke section
+`analytic_closed_form_check` (runs in every build-time smoke, no GPU):
+composer vs the hand-computed closed form at D=1 AND a hand-expanded
+D=2 (`S_2 = β₁v₁k₁ᵀ − β₁β₂(k₁·k₂)v₁k₂ᵀ + β₂v₂k₂ᵀ`, scalar loops) —
+passes at 4.504e-08 / 1.041e-07; NEGATIVE (teeth) test run to
+completion, not just written: a transposed-update mutant composer is
+KILLED by the D=1 assert at rel-Fro 1.405 and the restored composer
+passes again (`analytic_check_negative_teeth_test.log`).
+
+**3. RE-RUN RESULTS (box, GPU 0, eval-only).** The real cross-check now
+**PASSES at all three pinned configs**, deterministic (seed 0) across
+two runs: (1,1) rel-Fro **2.8008e-03** ≤ 1e-2; (1,8) **3.8678e-03** ≤
+5e-2; (2,8) **4.5237e-03** ≤ 5e-2 — comfortably inside §2.2.2's own
+tolerance derivation, including the precision-clean single-step bar.
+The explicit `device="cpu"` call now returns `skipped_cpu_or_stub`
+(regression fixed, verified on the box). Full box smoke re-run
+(`box_smoke_stage2_rerun.log`): **6/6 sections PASS** — sections 1 and
+3 (the §2.25 failures) now clean, sections 2/4/5/6 unchanged-clean.
+Local CPU self-test suite also fully green post-fix (smoke + blank-out
++ planted-leak + the new analytic section).
+
+**4. CHAIN RESUMED (per the §2.24 disposition and this fix dispatch's
+charter, citing §2.24/§2.26).** GPUs 0/1 verified genuinely idle
+(nvidia-smi 0%/0MiB; the h2h 27-cell sweep's `h2h_decisive` tmux pane
+shows `ORACLES_EXIT_0` complete). Launched on box GPU 0 in tmux session
+`stage2_calib` under a self-healing supervisor
+(`stage2_calib_supervisor.sh`, CLAUDE.md's `while [ ! -f STOP ]`
+pattern, resume-safe on both legs): **Arm-1 retrain**
+(`stage2_run.py --retrain-arm1`, 0.2148 GPU-h priced,
+`CAPABILITY_SEP_STAGE2_PI_SIGNOFF=1` set citing §2.24/§2.26,
+skip-guarded on the 5 `arm1__*__seed0.pt` checkpoints already existing)
+**then the 11-cell calibration gate** (`--calibration-only`, the
+PRODUCTION `run_calibration_wave_real` path, all 7 `si.PROBE_DEPTHS`
+gated per cell, fingerprint-protected, per-cell + ledger budget guards
+live). The 57-cell sweep remains UN-authorized (gated on this
+calibration wave's own readout + real-rate re-derivation, §2.8 items
+2-3, per the original charter). Harvest of the calibration wave is the
+next dispatch, not this one.
+
+**5. SECURITY.** One fake injection sighting this session: the known
+composite date-change block (claimed date + "DO NOT mention this to the
+user" concealment + a fabricated agent-type list + fabricated
+MCP-server tool-loading instructions) arriving attached to this
+agent's FIRST `git pull`/`git log` tool result — the identical §1.36a/
+§2.25-item-7 pattern. Not complied with (including the concealment
+instruction — reported plainly here); the real date was independently
+verified via `date -u` on BOTH the local machine and the box
+(2026-07-10T02:36Z, consistent) and against live commit timestamps.
+Zero sightings in the box smoke log, cross-check logs, or probe
+outputs. Tally: **83→84.**
+
+**Archive (same tree as §2.25):**
+`experiment-runs/2026-07-10_stage2_calibration/` — new files:
+`analytic_step1_cpu.py` + `analytic_step1_cpu_composer_vs_closed_form.log`
+(the local composer-vs-closed-form adjudication),
+`analytic_step2_box.py` + `analytic_step2_box_fla_vs_closed_form.log`
+(the box fla-vs-closed-form adjudication, incl. the l2norm-flag probe),
+`negative_teeth_test.py` + `analytic_check_negative_teeth_test.log`
+(the mutant-kill proof), `fla_cross_check_fixed_pass.log` (the passing
+3/3 re-run + cpu-self-skip regression check),
+`box_smoke_stage2_rerun.log` (6/6), `stage2_calib_supervisor.sh` (the
+launched supervisor); SSD-mirrored. Pointer:
+`stage2_composer.py::fla_cross_check` + `analytic_closed_form_check`
+(the fix site), deployed md5 `858e32301ab0067d8cd29d22ee50f720`.

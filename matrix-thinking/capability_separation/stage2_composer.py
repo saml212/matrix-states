@@ -416,6 +416,66 @@ def run_composer_blank_out_planted_leak_test(composer: GroupWordDeltaComposer, d
 
 
 # ---------------------------------------------------------------------------
+# Analytic closed-form check (S2.26, permanent smoke section, CPU-safe) --
+# the single-step recurrence is closed-form: with S_0 = 0,
+#   D=1:  S_1 = beta_1 v_1 k_1^T
+#   D=2:  S_2 = S_1 (I - beta_2 k_2 k_2^T) + beta_2 v_2 k_2^T
+#            = beta_1 v_1 k_1^T - beta_1 beta_2 (k_1 . k_2) v_1 k_2^T
+#              + beta_2 v_2 k_2^T                     (hand-expanded)
+# Both are evaluated below with EXPLICIT SCALAR-INDEX LOOPS (an independent
+# literal -- no matmul, no reuse of the recurrence code), so a sign/
+# transpose/beta-placement slip in states_from_embedding cannot hide. This
+# is the check that adjudicated the S2.25 cross-check failure (the composer
+# matched at 4.5e-08; fla 0.5.1's state was the transpose).
+# ---------------------------------------------------------------------------
+
+
+def analytic_closed_form_check(device: str = "cpu", h: int = 32, B: int = 4) -> None:
+    print("=" * 88)
+    print("  ANALYTIC CLOSED-FORM CHECK (S2.26) -- composer vs hand-computed S_1, S_2 (n_h=1)")
+    print("=" * 88)
+    torch.manual_seed(0)
+    for D in (1, 2):
+        composer = GroupWordDeltaComposer(d_state=5, n_gens=4, h=h, n_h=1, beta_max=2.0).to(device)
+        token_idx = torch.randint(0, 4, (B, D), device=device)
+        with torch.no_grad():
+            tok_embed = composer.embed_tokens(token_idx)
+            S_torch = composer.states_from_embedding(tok_embed)[-1].cpu()   # (B, h, h)
+            # same manual (k, v, beta) re-derivation as fla_cross_check:
+            tok_w = tok_embed + composer.widen(tok_embed) if composer.widen is not None else tok_embed
+            k = F.normalize(composer.k_proj(tok_w).view(B, D, 1, h), dim=-1, eps=1e-8).cpu()
+            v = composer.v_proj(tok_w).view(B, D, 1, h).cpu()
+            beta = (composer.beta_max * torch.sigmoid(composer.beta_proj(tok_w).view(B, D, 1))).cpu()
+
+            S_an = torch.zeros(B, h, h)
+            for b in range(B):
+                k1, v1, b1 = k[b, 0, 0], v[b, 0, 0], beta[b, 0, 0].item()
+                if D == 1:
+                    for i in range(h):
+                        for j in range(h):
+                            S_an[b, i, j] = b1 * v1[i].item() * k1[j].item()
+                else:
+                    k2, v2, b2 = k[b, 1, 0], v[b, 1, 0], beta[b, 1, 0].item()
+                    dot12 = sum(k1[m].item() * k2[m].item() for m in range(h))
+                    for i in range(h):
+                        for j in range(h):
+                            S_an[b, i, j] = (b1 * v1[i].item() * k1[j].item()
+                                             - b1 * b2 * dot12 * v1[i].item() * k2[j].item()
+                                             + b2 * v2[i].item() * k2[j].item())
+
+            rel = ((S_torch - S_an).norm() / S_an.norm().clamp(min=1e-12)).item()
+            # fp32 forward vs float-accumulated scalar arithmetic: agreement
+            # must be at rounding-noise level, orders below any semantic slip
+            # (a pure transpose registers at ~1.4).
+            assert rel < 1e-5, f"D={D}: composer deviates from the hand-computed closed form (rel-Fro={rel:.3e})"
+            rel_T = ((S_torch - S_an.transpose(-1, -2)).norm() / S_an.norm().clamp(min=1e-12)).item()
+            print(f"  D={D}: composer vs hand-computed closed form: rel-Fro={rel:.3e}  OK"
+                  f"   (vs its transpose: {rel_T:.3e} -- the S2.25 failure signature)")
+    print("  ANALYTIC CLOSED-FORM CHECK PASSED")
+    print("=" * 88)
+
+
+# ---------------------------------------------------------------------------
 # One-cell fla numerical cross-check (S2.2.2 Rev 1's kernel adjudication) --
 # CUDA+real-fla only, box-only-verifiable (fla's Triton kernel is CUDA/
 # bf16-only, and the CPU stub's simplified recurrence has no genuine
@@ -431,14 +491,34 @@ FLA_CROSS_CHECK_TOL_SINGLE_STEP = 1e-2
 def fla_cross_check(device: str = "cpu", h: int = 32, B: int = 4) -> dict:
     """PASS iff rel-Frobenius ||S_torch - S_fla||_F / ||S_torch||_F <= 5e-2
     at every config in FLA_CROSS_CHECK_CONFIGS AND <= 1e-2 for the
-    single-step (n_h=1, D=1) config (S2.2.2 Rev 1, pinned tolerances)."""
+    single-step (n_h=1, D=1) config (S2.2.2 Rev 1, pinned tolerances).
+
+    S2.26 CONVENTION NOTE (analytically adjudicated, 2026-07-10): fla 0.5.1's
+    `chunk_delta_rule` state is `[N, H, K, V]` with update
+    `S_t = (I - beta k k^T) S_{t-1} + beta k v^T` (verified from the
+    installed `fla/ops/delta_rule/naive.py` + the chunk docstring) -- the
+    exact TRANSPOSE of this module's pinned S2.2 recurrence
+    `S_t = S_{t-1}(I - beta k k^T) + beta v k^T` (state rows = value dim).
+    The two are the same mathematical object; the returned final_state must
+    be transposed before comparison. Also fla-0.5.1-specific:
+    `output_final_state` defaults False (must be passed True or final_state
+    is None), `allow_neg_eigval` does NOT exist at the op level (a
+    layer-level flag in later fla versions; here it would be silently
+    swallowed by **kwargs) -- beta is consumed RAW with no in-op
+    sigmoid/clamp, so the Arm-3 beta in [0,2] negative-eigenvalue regime is
+    realized by beta magnitude alone, no flag needed."""
     print("=" * 88)
     print("  stage2_composer.py -- ONE-CELL fla NUMERICAL CROSS-CHECK (S2.2.2 Rev 1)")
     print("=" * 88)
     import beta_fla_smoke as bfs
     is_stub = bfs.ensure_fla_stub()
-    if is_stub or not torch.cuda.is_available():
-        print("  *** SKIPPED (CPU stub and/or no CUDA) ***")
+    # S2.25 regression fix: key the self-skip on the DEVICE THE CALLER ASKED
+    # FOR, not just global availability -- on a CUDA box an explicit
+    # device="cpu" call must skip (fla's Triton kernel cannot take CPU
+    # tensors), exactly like a CPU-only machine.
+    wants_cuda = torch.device(device).type == "cuda"
+    if is_stub or not wants_cuda or not torch.cuda.is_available():
+        print("  *** SKIPPED (CPU stub, CPU device requested, and/or no CUDA) ***")
         print("  fla's Triton kernel is CUDA/bf16-only and the CPU stub's recurrence has no")
         print("  genuine negative-eigenvalue dynamics -- a comparison against it would not be")
         print("  evidence about the real kernel (mirrors beta_fla_smoke.py's own box-only-skip")
@@ -475,9 +555,21 @@ def fla_cross_check(device: str = "cpu", h: int = 32, B: int = 4) -> dict:
         k_exp = k.reshape(B, D * n_h, 1, h).to(torch.bfloat16)
         v_exp = v.reshape(B, D * n_h, 1, h).to(torch.bfloat16)
         beta_exp = beta.reshape(B, D * n_h, 1).to(torch.bfloat16)
+        # S2.26 fixed invocation: output_final_state=True is REQUIRED in fla
+        # 0.5.1 (defaults False -> final_state None); the former
+        # allow_neg_eigval=True kwarg does not exist at the op level in this
+        # version (silently swallowed by **kwargs) and is removed -- beta in
+        # [0,2] is passed raw and consumed raw (docstring above).
+        # use_qk_l2norm_in_kernel: k is already unit-normalized fp32-side
+        # (idempotent in-kernel; box-probed identical True vs False), kept
+        # True to match beta_fla_smoke.py's disclosed convention.
         _o, final_state = chunk_delta_rule(q_exp, k_exp, v_exp, beta_exp,
-                                           use_qk_l2norm_in_kernel=True, allow_neg_eigval=True)
-        S_fla = final_state.squeeze(1).to(torch.float32)             # (B, h, h)
+                                           output_final_state=True,
+                                           use_qk_l2norm_in_kernel=True)
+        # S2.26 convention fix: fla returns [N, H, K, V] (k (x) v ordering);
+        # the pinned S2.2 state is v (x) k -- transpose before comparing
+        # (docstring above; adjudicated against the closed form S_1 = beta v k^T).
+        S_fla = final_state.squeeze(1).transpose(-1, -2).to(torch.float32)   # (B, h, h), v (x) k
 
         rel_fro = (S_torch - S_fla).norm() / S_torch.norm().clamp(min=1e-12)
         tol = FLA_CROSS_CHECK_TOL_SINGLE_STEP if (n_h, D) == (1, 1) else FLA_CROSS_CHECK_TOL_ALL
@@ -494,8 +586,9 @@ def fla_cross_check(device: str = "cpu", h: int = 32, B: int = 4) -> dict:
 # ---------------------------------------------------------------------------
 # Smoke: forward/backward at D=1 and D=64 (train/decisive extremes), rank
 # bound (proven exact, checked structurally), n_h in {1,2,4}, use_bos_row,
-# last-K-window truncation, blank-out (+ planted-leak negative), fla
-# cross-check (box-only, self-skips here).
+# last-K-window truncation, blank-out (+ planted-leak negative), analytic
+# closed-form check (S2.26, CPU-safe, always runs), fla cross-check
+# (box-only, self-skips here).
 # ---------------------------------------------------------------------------
 
 def smoke(device="cpu"):
@@ -591,6 +684,9 @@ def smoke(device="cpu"):
     assert len(all_Z) == 8
     assert all(z.shape == (4, d_state, d_state) for z in all_Z)
     print(f"  forward_all returned {len(all_Z)} intermediate states, all correctly shaped  OK")
+
+    print("\n  analytic closed-form check (S2.26, CPU-safe, always runs):")
+    analytic_closed_form_check(device=device)
 
     print("\n  fla cross-check (box-only -- expect self-skip in this CPU build):")
     fla_result = fla_cross_check(device=device)
