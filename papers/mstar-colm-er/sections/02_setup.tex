@@ -1,0 +1,86 @@
+\section{Experimental setup}
+\label{sec:setup}
+
+\subsection{Task: episode-restricted associative recall}
+
+Each training and evaluation sequence is an \emph{episode}: $K = 32$ bind
+clauses followed by a query. A bind clause is a 7-token statement linking a
+key entity to a value entity, both drawn without replacement from a pool of
+real GPT-2 token identifiers \citep{radford2019language}, so the binding
+span is $T_{\mathrm{bind}} = K \times 7 = 224$
+tokens. % <!-- evidence: C10 -->
+The query names one key; the model must produce the bound value at the
+answer position. Keys and values are re-drawn every episode, so the map is
+in-context and cannot be memorized in slow weights. The primary task is
+single-hop; a multi-hop variant appears in Section~\ref{sec:scope}.
+
+\textbf{Metric.} We score \emph{episode-restricted recall accuracy}: the
+argmax over the model's own LM-head logits restricted to the episode's $K$
+bound values, read at the answer position of the model's own continuation.
+Chance is $1/K = 0.03125$, and an arm counts as demonstrating recall in a
+cell only above the pre-registered demonstration bar of $3/K = 0.09375$;
+readings at or below the bar are scored no-recall, and differences between
+two no-recall arms are treated as chance-level noise ordering, never as
+separation. One caveat travels with every accuracy in this paper: under
+argmax decoding, an associative state of rank one can already support on
+the order of $d$ associations \citep{nichani2024understanding}, so recall
+accuracy here never establishes rank, continuous recovery, or storage
+capacity. Section~\ref{sec:mechanism} reports the continuous-readout
+diagnostics separately.
+
+\subsection{Three arms, matched budget}
+
+\textbf{Matrix fast-weight model (the contender).} A two-block
+decoder-style LM (residual width 256, one head per mixer) whose mixer holds
+a $64 \times 64$ matrix state $S_t$ per block, updated by a delta rule
+\citep{schlag2021linear, yang2024parallelizing}:
+$S_t = S_{t-1}(I - \beta_t k_t k_t^{\top}) + \beta_t v_t k_t^{\top}$, with
+per-token read $o_t = S_t q_t$. Its total recurrent state is
+$2 \times 64 \times 64$ fp32 values, or 32{,}768 bytes, constant in context
+length. % <!-- evidence: C10 -->
+
+\textbf{Flat-vector recurrence (the structure control).} Identical
+embedding table, output head, and feed-forward blocks; only the mixer
+changes, to a gated elementwise vector recurrence
+$s_t = s_{t-1} \odot g_t + v_t$ with read $o_t = s_t \odot q_t$, at matched
+total parameter count via mixer width and $d_{\mathrm{state}} = 64$ pinned
+equal to the contender's. This arm removes the multiplicative
+outer-product update while preserving everything else, rather than
+reshaping the same operator, since any $d^2$-dimensional vector can encode
+a $d \times d$ matrix and structure matters only if the operations use it.
+Its state is 512 bytes, reported for completeness. % <!-- evidence: C10 -->
+
+\textbf{Transformer.} A two-layer GPT-2-style causal decoder with the same
+tokenizer and width, evaluated in two roles: uncapped (its full KV cache),
+and KV-capped with attention-sink-plus-FIFO eviction
+\citep{xiao2023efficient} at a total cache budget pinned to
+$M \times 32{,}768$ bytes across all layers and heads, swept over
+$M \in \{1, 2, 4, 8, 16, 32\}$. % <!-- evidence: C10 -->
+
+Parameter counts are \nparamscontender{} (contender), \nparamsablation{}
+(flat-vector, $-0.007\%$), and \nparamstransformer{} (transformer,
+$+2.8\%$). % <!-- evidence: C9 -->
+All arms train from scratch for 20{,}000 steps at learning rate
+$3 \times 10^{-4}$ with the same optimizer, batch schedule, auxiliary
+losses, and episode stream; sampling seeds are paired across arms, so the
+three arms of a given seed index see identical
+episodes. % <!-- evidence: C9 -->
+
+\subsection{Analysis protocol, frozen before the runs}
+
+Margins, tiers, and analysis rules were registered in the project's
+experiment registry and frozen before the multi-seed runs. The primary
+comparison is contender versus flat-vector at the matched final
+checkpoint: a win requires the contender to clear the demonstration bar
+and the paired-seed 95\% $t$-interval on the accuracy difference (three
+seeds, $\mathrm{df}=2$) to exclude a 0.30 margin. Two clauses matter for
+reading this paper. First, the registry pins a \emph{degenerate-baseline}
+rule: if the uncapped transformer itself fails the demonstration bar at
+the primary cell, the capped-budget walk is definitionally degenerate,
+every cap is trivially cleared, and the registered outcome is ``baseline
+non-competitive at matched params/tokens,'' with no memory-multiplier tier
+certified. Second, a joint-no-recall rule scores any cell where both
+compared arms sit at the bar as a tie, never as a separation. Evaluation
+uses a pinned held-out query set of 4{,}096 queries over 128 episodes per
+cell, % <!-- evidence: C3 -->
+identical across arms and seeds.

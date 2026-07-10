@@ -230,22 +230,22 @@ def emit_tables(repo, out_dir):
     A(r"\newcommand{\tableone}{")
     A(r"\begin{tabular}{lccccc}")
     A(r"\toprule")
-    A(r"arm & seed 0 & seed 1 & seed 2 & mean & clears bar $3/K$? \\")
+    A(r"arm & seed 0 & seed 1 & seed 2 & mean & clears bar? \\")
     A(r"\midrule")
-    for a, label in [("contender", "matrix fast-weight (contender)"),
+    for a, label in [("contender", "matrix fast-weight"),
                      ("ablation", "flat-vector recurrence"),
-                     ("transformer", "transformer (uncapped KV)")]:
+                     ("transformer", "transformer (uncapped)")]:
         row = acc[a]
         clears = "every seed" if min(row) > BAR_K32 else "never"
         A(f"{label} & " + " & ".join(f"{v:.4f}" for v in row) +
           f" & {sum(row)/3:.4f} & {clears} " + r"\\")
     A(r"\midrule")
-    A(r"\multicolumn{6}{l}{$\Delta$(contender $-$ flat-vector): mean "
-      f"{m_abl:.4f}, 95\\% paired $t$-CI ({lo_abl:.4f}, {hi_abl:.4f})"
-      r" --- excludes the 0.30 margin} \\")
-    A(r"\multicolumn{6}{l}{$\Delta$(contender $-$ transformer): mean "
-      f"{m_tra:.4f}, 95\\% paired $t$-CI ({lo_tra:.4f}, {hi_tra:.4f})"
-      r" --- excludes the 0.30 margin} \\")
+    A(r"\multicolumn{6}{l}{$\Delta$ vs flat-vector: mean "
+      f"{m_abl:.4f}, 95\\% paired CI ({lo_abl:.4f}, {hi_abl:.4f});"
+      r" excludes 0.30} \\")
+    A(r"\multicolumn{6}{l}{$\Delta$ vs transformer: mean "
+      f"{m_tra:.4f}, 95\\% paired CI ({lo_tra:.4f}, {hi_tra:.4f});"
+      r" excludes 0.30} \\")
     A(r"\bottomrule")
     A(r"\end{tabular}}")
 

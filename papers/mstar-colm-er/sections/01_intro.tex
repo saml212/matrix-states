@@ -1,0 +1,69 @@
+\section{Introduction}
+
+Serving a transformer over a long context is a memory problem before it is a
+compute problem. The KV cache of a decoder-only model
+\citep{vaswani2017attention} grows linearly with context length, and at
+deployment scale that growth, not arithmetic throughput, sets the limit on
+batch size, context window, and cost. A substantial literature therefore
+compresses or evicts cache entries \citep{xiao2023efficient, zhang2023h2o},
+trading recall fidelity for bytes held.
+
+Fast-weight recurrences occupy the opposite corner of this trade. A model
+whose mixer maintains a matrix state updated by an outer-product rule
+\citep{schmidhuber1992learning, ba2016using, schlag2021linear,
+katharopoulos2020transformers, yang2024parallelizing, gu2023mamba} carries a
+memory of fixed byte size regardless of context length. The architecture
+promises constant-memory inference, but the promise rests on an empirical
+premise that is rarely tested head to head: that the fixed state, trained
+under the same budget an attention model receives, in fact retains the
+bindings a long-horizon task queries. Prior diagnostic work has, if
+anything, pointed the other way; on multi-query associative recall,
+attention models dominate efficient recurrent alternatives when both are
+trained well \citep{arora2023zoology}.
+
+We report a matched-budget comparison in which the fixed state wins, and
+wins at ceiling. On episode-restricted 32-way associative recall, a
+two-block matrix fast-weight model whose entire recurrent state occupies
+32{,}768 bytes % <!-- evidence: C10 -->
+answers queries at 0.9995 mean accuracy over three seeds, % <!-- evidence: C1 -->
+while a parameter-matched flat-vector recurrence and a parameter-matched
+transformer, trained on identical data for identical steps, both sit at
+chance. % <!-- evidence: C1 -->
+The paired-seed confidence intervals exclude the pre-registered 0.30
+separation margin with lower bounds above 0.95. % <!-- evidence: C2 -->
+The separation survives context extension: with the state fixed at
+32{,}768 bytes, accuracy stays at or above 0.998 for every seed as the same
+episode is embedded at 454, 902, and 1{,}798 tokens, % <!-- evidence: C3 -->
+and the transformer stays at chance both uncapped and under every KV-cache
+byte budget from $1\times$ to $32\times$ the fast-weight state. % <!-- evidence: C4 -->
+
+Because the baseline never demonstrates recall at any cache budget, the
+comparison licenses no ``$M\times$ less memory'' headline. We follow the
+pre-registered analysis rule for this case and report the registered
+outcome verbatim: \emph{baseline non-competitive at matched
+params/tokens}. % <!-- evidence: C4 -->
+The informative results are the contender's own horizon curve and the
+failure of every cache cap to change the baseline's reading.
+
+Our contributions:
+\begin{itemize}
+\item \textbf{A matched three-arm separation on recall.} Parameters matched
+  within 2.8\%, % <!-- evidence: C9 -->
+  identical tokens, steps, optimizer, and paired episode seeds; the
+  fast-weight arm clears the demonstration bar in every seed, the baselines
+  never do (Section~\ref{sec:recall}).
+\item \textbf{A constant-memory demonstration.} Recall accuracy is flat in
+  context length out to eight times the binding span at a fixed
+  32{,}768-byte state, while no KV budget up to $32\times$ those bytes
+  rescues the transformer (Section~\ref{sec:horizon}).
+\item \textbf{A causal mechanism read.} Zeroing the first block's
+  fast-weight state collapses recall to chance in every seed; zeroing the
+  second block's leaves it unchanged; no linear probe on either raw state
+  decodes the bindings, so the storage is nonlinear and the model's own
+  forward pass is its decoder (Section~\ref{sec:mechanism}).
+\item \textbf{Scope, disclosed.} A multi-hop variant of the task is a
+  trainability finding, not a capability separation (3 of 9 contender
+  seeds learn it; 0 of 9 baseline seeds), % <!-- evidence: C7 -->
+  and at load $K/d = 0.75$ every arm reads chance % <!-- evidence: C8 -->
+  (Section~\ref{sec:scope}).
+\end{itemize}

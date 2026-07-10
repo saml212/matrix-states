@@ -1,0 +1,26 @@
+\begin{abstract}
+Long-horizon inference is increasingly bound by memory rather than
+arithmetic: a transformer's key--value (KV) cache grows linearly with
+context length, while fast-weight recurrences carry a state of fixed size.
+Whether such a state retains the bindings a recall task depends on, under a
+training budget an attention model also receives, is an empirical question.
+We compare three models matched in parameters, data, and training schedule
+on episode-restricted 32-way associative recall: a two-block matrix
+fast-weight model holding 32{,}768 bytes of recurrent state, a flat-vector
+recurrence, and a transformer. The fast-weight model answers recall queries
+at 0.9995 mean accuracy over three seeds; % <!-- evidence: C1 -->
+both baselines sit at chance, and paired-seed confidence intervals exclude
+the pre-registered 0.30 separation margin with lower bounds above
+0.95. % <!-- evidence: C2 -->
+Accuracy stays at or above 0.998 for every seed when the same episode is
+embedded in contexts of 454 to 1{,}798 tokens, eight times the binding
+span, with the state fixed at 32{,}768 bytes; % <!-- evidence: C3 -->
+the transformer reads chance uncapped and at every KV-cache budget from one
+to thirty-two times those bytes, % <!-- evidence: C4 -->
+so no memory multiplier is claimed and the baseline is reported as
+non-competitive at the matched budget. Zeroing the first block's state
+collapses recall to chance; zeroing the second block's changes
+nothing. % <!-- evidence: C5 -->
+A multi-hop variant separates only as seed variance, and at higher load
+every arm reads chance. % <!-- evidence: C7 -->
+\end{abstract}

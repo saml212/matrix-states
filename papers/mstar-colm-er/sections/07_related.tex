@@ -1,0 +1,42 @@
+\section{Related work}
+\label{sec:related}
+
+\textbf{Fast-weight memory.} Writing transient associations into
+multiplicative weights dates to \citet{schmidhuber1992learning}, revived
+for attention-era models by \citet{ba2016using}. \citet{schlag2021linear}
+identified linear attention \citep{katharopoulos2020transformers} as a
+fast-weight programmer and introduced the delta-rule update our contender
+uses; \citet{yang2024parallelizing} made that rule trainable at scale.
+Selective state-space models \citep{gu2023mamba} pursue the same
+constant-state property with a different recurrence. None of these works
+reports a parameter- and token-matched comparison against both a
+transformer and a structure-removed vector control on episode-restricted
+recall, with a causal state intervention and a byte-pinned cache-cap
+protocol; that combination is this paper's contribution.
+
+\textbf{Recall as the diagnostic.} \citet{arora2023zoology} established
+multi-query associative recall as the axis separating attention from
+efficient alternatives, with the opposite headline: in their regime,
+attention wins and recurrent models lag. Our result is not a
+contradiction but a different operating point: a small matched budget
+(14M-class models, 20{,}000 steps from scratch), higher load per state
+dimension ($K/d = 0.5$), an episode-restricted argmax metric, and a task
+distribution built for exact matched-budget control. We also report where
+our separation dies ($K/d = 0.75$, Section~\ref{sec:scope}), which their
+framing predicts it must somewhere.
+
+\textbf{KV-cache reduction.} Sink-plus-window eviction
+\citep{xiao2023efficient} and heavy-hitter selection \citep{zhang2023h2o}
+compress the cache of a model that already performs the task, asking how
+few bytes preserve its behavior. We use the sink-plus-FIFO mechanism of
+\citet{xiao2023efficient} in the opposite role, as an evaluation
+instrument that pins the baseline's cache to a byte budget matched against
+a fixed-size state, and our question is prior to theirs: whether the
+matched attention model learns the behavior at all.
+
+\textbf{Associative-memory capacity.} \citet{nichani2024understanding}
+analyze factual recall in transformers via associative memories and prove
+that under argmax decoding a rank-one outer-product store supports on the
+order of $d$ associations. We import their result as a standing caveat on
+what accuracy metrics can claim (Section~\ref{sec:setup}); our
+contribution is empirical and comparative, not a capacity bound.

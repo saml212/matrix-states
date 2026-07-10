@@ -1,0 +1,41 @@
+\documentclass{article}
+\usepackage[submission]{colm2026_conference}
+
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{url}
+
+\input{math_commands.tex}
+\input{figures/tables_generated.tex}
+
+\title{Constant-Memory Recall: A Fixed 32\,kB Fast-Weight State Retains
+In-Context Bindings That a Matched Transformer Does Not Learn}
+
+\author{Anonymous authors}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_intro}
+\input{sections/02_setup}
+\input{sections/03_recall}
+\input{sections/04_horizon}
+\input{sections/05_mechanism}
+\input{sections/06_scope}
+\input{sections/07_related}
+\input{sections/08_limitations}
+\input{sections/09_conclusion}
+
+\bibliography{refs}
+\bibliographystyle{colm2026_conference}
+
+\appendix
+\input{sections/10_appendix}
+
+\end{document}

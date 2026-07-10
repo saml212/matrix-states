@@ -2,14 +2,14 @@
 \newcommand{\tableone}{
 \begin{tabular}{lccccc}
 \toprule
-arm & seed 0 & seed 1 & seed 2 & mean & clears bar $3/K$? \\
+arm & seed 0 & seed 1 & seed 2 & mean & clears bar? \\
 \midrule
-matrix fast-weight (contender) & 0.9995 & 1.0000 & 0.9990 & 0.9995 & every seed \\
+matrix fast-weight & 0.9995 & 1.0000 & 0.9990 & 0.9995 & every seed \\
 flat-vector recurrence & 0.0322 & 0.0327 & 0.0369 & 0.0339 & never \\
-transformer (uncapped KV) & 0.0271 & 0.0293 & 0.0286 & 0.0283 & never \\
+transformer (uncapped) & 0.0271 & 0.0293 & 0.0286 & 0.0283 & never \\
 \midrule
-\multicolumn{6}{l}{$\Delta$(contender $-$ flat-vector): mean 0.9656, 95\% paired $t$-CI (0.9582, 0.9729) --- excludes the 0.30 margin} \\
-\multicolumn{6}{l}{$\Delta$(contender $-$ transformer): mean 0.9712, 95\% paired $t$-CI (0.9685, 0.9738) --- excludes the 0.30 margin} \\
+\multicolumn{6}{l}{$\Delta$ vs flat-vector: mean 0.9656, 95\% paired CI (0.9582, 0.9729); excludes 0.30} \\
+\multicolumn{6}{l}{$\Delta$ vs transformer: mean 0.9712, 95\% paired CI (0.9685, 0.9738); excludes 0.30} \\
 \bottomrule
 \end{tabular}}
 \newcommand{\tablecapped}{

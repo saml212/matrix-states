@@ -1,0 +1,48 @@
+\section{Recall separation at matched budget}
+\label{sec:recall}
+
+\begin{table}[t]
+\centering
+\small
+\tableone
+\caption{Episode-restricted recall accuracy on the primary cell ($K=32$,
+$K/d=0.5$, binding span 224 tokens), per seed and mean, at the matched
+final checkpoint (20{,}000 steps, identical data and optimizer; chance
+$1/32 = 0.031$, demonstration bar $3/32 = 0.094$). The matrix fast-weight
+model clears the bar in every seed; neither the parameter-matched
+flat-vector recurrence nor the parameter-matched uncapped transformer ever
+does. Both paired-seed 95\% $t$-intervals ($\mathrm{df}=2$) exclude the
+pre-registered 0.30 margin. Accuracy is argmax-decoded and
+episode-restricted, so it carries the capacity caveat of
+Section~\ref{sec:setup}.}
+\label{tab:main}
+\end{table}
+
+Table~\ref{tab:main} reports the primary comparison. The contender reads
+0.9995, 1.0000, and 0.9990 across the three seeds, % <!-- evidence: C1 -->
+at least $10\times$ the demonstration bar in every seed; the flat-vector
+arm reads 0.0322 to 0.0369 and the transformer 0.0271 to 0.0293, all
+within noise of chance and below the bar in every
+seed. % <!-- evidence: C1 -->
+The paired difference against the flat-vector arm is 0.9656 with a 95\%
+interval of $(0.9582,\, 0.9729)$; against the transformer, 0.9712 with
+$(0.9685,\, 0.9738)$. % <!-- evidence: C2 -->
+Both intervals exclude the frozen 0.30 margin with more than 0.65 to spare
+at the interval floor, and no seed straddle fires the registered
+seed-extension trigger. % <!-- evidence: C2 -->
+
+Two readings of this table are licensed, and one is not. Licensed: the
+outer-product state update is doing task-critical work its
+parameter-matched additive counterpart does not do, since the flat-vector
+arm differs only in the mixer recurrence. Also licensed, with its
+registered phrasing: the transformer baseline is \emph{non-competitive at
+matched params/tokens}; at this scale and budget it does not learn the
+task at all, which is itself the axis-2 datum, claimed only at this
+matched training budget and never extrapolated to differently-scaled or
+differently-trained attention models. Not licensed: any claim that a
+transformer \emph{cannot} perform this task. Attention solves associative
+recall well in other regimes \citep{arora2023zoology,
+nichani2024understanding}; what the matched budget shows is that under
+this task distribution, tokenizer, parameter count, and step count, the
+attention arm did not get there while the fast-weight arm reached ceiling
+in every seed.

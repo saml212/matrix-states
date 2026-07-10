@@ -1,0 +1,56 @@
+\section{Where the recall lives}
+\label{sec:mechanism}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig2_szero.pdf}
+\caption{Causal state-zeroing on the matrix fast-weight model, per seed on
+the primary cell (4{,}096 pinned queries per read; chance $1/32$). Zeroing
+the first block's fast-weight state $S_0$ before the query continuation
+collapses recall to chance; zeroing the second block's state $S_1$ leaves
+it within noise of intact. The bindings are causally resident in $S_0$.}
+\label{fig:szero}
+\end{figure}
+
+A separation on accuracy alone leaves open where the winning arm keeps the
+bindings. We intervene directly: after the bind phase, the recurrent
+states are frozen, one block's state is replaced with zeros, and the query
+continuation runs as a pure function of the remaining state and the query
+tokens (the decoder reads only the state, never the raw bind tokens, and a
+blank-out test on the continuation path enforces this by construction).
+
+\textbf{The first block's state is causally necessary; the second block's
+is inert.} Zeroing $S_0$ collapses per-seed accuracy from 0.9995, 1.0000,
+0.9990 to 0.0339, 0.0012, 0.0002; % <!-- evidence: C5 -->
+zeroing $S_1$ leaves 0.9995, 0.9949, 0.9990. % <!-- evidence: C5 -->
+The same intervention on the flat-vector arm collapses its already-chance
+reading no further, and the pattern replicated in all twelve recurrent
+cells of the multi-seed run without a single localization
+failure. % <!-- evidence: C5 -->
+One instrument note: at a seed reading exactly 1.0 intact, the binomial
+band used for the ``unchanged'' check degenerates to zero width, so the
+0.0051 dip at seed 1 under $S_1$-zeroing is disclosed as an edge case of
+the check rather than adjudicated by it. % <!-- evidence: C5 -->
+
+\textbf{The storage is nonlinear; the model's own forward pass is the
+decoder.} Ridge probes fit offline on 24{,}576 fresh draws and evaluated
+on the pinned query set recover the bound value's target vector from
+\emph{no} linear read-out of either raw state: every $(S, q)$ combine
+tested, including one placed directly on the causally necessary $S_0$,
+reads within a $+0.06$ cosine gap of its shuffled control and passes a 0.9
+cosine threshold on 0.0\% of queries. % <!-- evidence: C6 -->
+Only the post-second-block, pre-LM-head hidden state is linearly
+decodable, and only in the fast-weight arm: cosine mean 0.894, threshold
+pass rate 0.674, gap $+0.800$ over its shuffled
+control. % <!-- evidence: C6 -->
+The flat-vector arm's same site reads 0.119, pass rate
+0.0. % <!-- evidence: C6 -->
+The bindings therefore live in $S_0$ in a format no tested linear map
+exposes; the second block's own forward computation, not its recurrent
+state (which Figure~\ref{fig:szero} shows is causally inert), transforms
+the $S_0$-derived signal into a linearly legible code. Consistent with a
+nonlinear store read through a learned decoder, the pass rate of the
+pre-LM-head probe varies across seeds (0.686, 0.771, 0.951) while
+task accuracy is flat at ceiling; % <!-- evidence: C6b -->
+probe legibility is a property of the instrument, not of the recall.
+Appendix Table~\ref{tab:taps} lists all read-out sites.

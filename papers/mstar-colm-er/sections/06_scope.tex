@@ -1,0 +1,62 @@
+\section{Scope: what does not separate}
+\label{sec:scope}
+
+Two further results bound the claim, and we report both at the same
+evidentiary standard as the wins.
+
+\begin{table}[t]
+\centering
+\small
+\tabletasktwo
+\caption{Multi-hop variant, nine seeds per compared arm, accuracy at the
+matched final checkpoint (chance 0.031, demonstration bar 0.094; readings
+above the bar in bold). Three of nine matrix fast-weight seeds learn the
+task; zero of nine flat-vector seeds do. The pooled paired interval
+straddles zero and is additionally flagged non-decision-grade by a
+pre-registered batch-effect gate, so this table is a trainability
+disclosure, not a capability claim.}
+\label{tab:task2}
+\end{table}
+
+\textbf{Multi-hop recall separates only as seed variance.} On the
+multi-hop variant (compositional queries over a single Hamiltonian
+$K$-cycle, trained at hop depths 1--2), the contender clears the
+demonstration bar in 3 of 9 seeds (0.334, 0.479, 0.391) and reads chance
+in the other six; the flat-vector arm reads chance in all
+nine. % <!-- evidence: C7 -->
+The registered adjudication rule scores this as
+trainability/seed-variance: the hypothesis that multi-hop recall is a hard
+capability boundary for this architecture at this scale is rejected (some
+seeds reach it), but the pooled paired interval $(-0.020,\, 0.268)$
+straddles zero and the pre-registered batch-effect gate flags the pooled
+cohort (variance ratio 6.14 against a 4.0 bound), so no capability
+separation is claimed in either direction. % <!-- evidence: C7 -->
+The bar-clearing seeds also do not generalize: held-out hop depths 3--4
+read chance, and the first bar-clearing seed's partial recall collapses to
+0.010 when its episode is embedded at any extended
+horizon. % <!-- evidence: C7 -->
+Multi-hop composition at this scale is an open training problem, not a
+demonstrated capability.
+
+\begin{table}[t]
+\centering
+\small
+\tablekstress
+\caption{Stress cell at $K{=}48$ bindings on the same $d{=}64$ state
+($K/d = 0.75$; chance 0.021). Every arm, including the matrix fast-weight
+model, reads chance: the recall separation of Table~\ref{tab:main} is
+load-bounded and does not extend to this operating point at this scale
+and budget.}
+\label{tab:k48}
+\end{table}
+
+\textbf{The separation is load-bounded.} At $K = 48$ bindings on the same
+64-dimensional state ($K/d = 0.75$), all three arms read chance: 0.0189
+(contender), 0.0195 (flat-vector), 0.0218
+(transformer). % <!-- evidence: C8 -->
+This cell was registered as locate-only, so it carries no tier
+arithmetic; what it establishes is that the ceiling-level recall at
+$K/d = 0.5$ does not come for free at higher load under the same training
+budget. Where between the two load points the capability degrades, and
+whether more training moves the boundary, are open questions this paper
+does not answer.
