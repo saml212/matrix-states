@@ -24,8 +24,8 @@ recall at accuracy 0.9995 <!-- evidence: R4 --> while a
 parameter-matched vector-state ablation and a compute-matched
 transformer read chance; the capability resides causally in the first
 layer's state, is linearly legible only after downstream nonlinear
-processing <!-- evidence: R5 -->, and holds at 0.998 or higher out to
-1798 tokens on a fixed 32,768-byte state while cache-capped transformers
+processing <!-- evidence: R5 -->, and holds at 0.998 or higher to 1798
+tokens on a fixed 32,768-byte state while cache-capped transformers
 read chance at every budget <!-- evidence: R10 -->. Third, the
 same write mechanism drives a population-geometry pathology that worsens
 monotonically from 14M to 1.31B parameters <!-- evidence: R6 -->, is not
