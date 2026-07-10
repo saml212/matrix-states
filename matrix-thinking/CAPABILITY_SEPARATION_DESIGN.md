@@ -6604,3 +6604,122 @@ outputs. Tally: **83→84.**
 launched supervisor); SSD-mirrored. Pointer:
 `stage2_composer.py::fla_cross_check` + `analytic_closed_form_check`
 (the fix site), deployed md5 `858e32301ab0067d8cd29d22ee50f720`.
+
+### §2.27 CALIBRATION-WAVE FAILURE TIEBREAK + INSTRUMENT DEVICE-FIX AUDIT (2026-07-10): FIX PASSES — CPU BIT-IDENTITY + BOX-CUDA KILL PROOF; THE 11-CELL WAVE RELAUNCHED (tmux `stage2_calib2`); THE 57-CELL SWEEP REMAINS CORRECTLY UN-AUTHORIZED
+
+**0. COORDINATOR TIEBREAK, RECORDED FIRST (the §1.29-precedent duty: when
+a dispatch premise contradicts the repo, read the raws and RECORD the
+tiebreak before any dependent stage).** This audit agent was dispatched
+(post-machine-crash, prior gate-harvester and device-fix auditor
+transcripts lost) on the premise that "§2.27 = SWEEP-READY was already
+recorded" and the 57-cell sweep was pre-authorized. That premise is
+FALSE against the raws, confirmed independently by this agent AND by the
+coordinator's own mid-task correction (verbatim points, all re-verified
+here): (1) this registry ended at §2.26 — no §2.27 existed; the
+SWEEP-READY at `STATE.md` ~line 240 is the STAGE-1 gate of 2026-07-09
+(it cites §1.25 figures), not Stage 2. (2) The 11-cell calibration wave
+NEVER COMPLETED: the box `stage2_results/` is frozen at a 2026-07-10
+04:01Z failure snapshot — 5 `arm1__*__seed0.pt` ckpts + 1 partial
+`S3__arm2_beta01__nh2__seed0.pt` + a zero-byte `CALIB_WAVE_FAILED`
+sentinel (the v1 supervisor's 20-consecutive-failure bail,
+`stage2_calib_supervisor.log`; listing archived as
+`stage2_results_listing_at_failure.txt`). (3) Failure signature, 20/20
+identical (`stage2_calib_wave.log`): `RuntimeError: Expected all tensors
+to be on the same device... mat1 is on cpu, different from other tensors
+on cuda:0` at `stage2_instrument.py:128` (`query_dependence_stat`'s
+`reader(q, mem, mem)`) reached from `run_query_dependence_gate`'s ANCHOR
+branch — the rank-matched anchor is built on CPU while the trained
+reader lives on cuda:0. The REAL-memory branch (4 lines earlier) is
+unaffected. (4) `stage2_run.py::main` has NO 57-cell entry point at all
+("real 57-cell remainder launch is NOT wired in this build"), consistent
+with §2.26 item 4's explicit reservation. Consequence: the sweep is not
+launched by this dispatch under any outcome below; the §2.26-authorized
+action is fix → independent audit → relaunch the CALIBRATION wave.
+
+**1. THE FIX UNDER AUDIT (uncommitted at dispatch; the dead device-fix
+auditor's target).** One line + comment in
+`stage2_instrument.py::run_query_dependence_gate`:
+`anchor_raw = norm_match_scale(...).unsqueeze(0)` gains
+`.to(real_raw.device)`. Anchors stay DELIBERATELY CPU-built (the pinned
+seed-7 construction all §2.19-§2.24 rank/QR-determinism proofs certify —
+`build_anchor_states` is called device-default; its generators are
+CPU-pinned) and move to the real memory's device only at the comparison
+boundary. Audit reading: correct by construction — (a) construction
+bit-identical to every prior certification (no CUDA matmul drift in the
+recurrence); (b) apples-to-apples PRESERVED on GPU (real and anchor
+memories now both traverse `prepare_mem` + the reader on the SAME
+device — evaluating the anchor on CPU instead would have BROKEN
+apples-to-apples); (c) covers both `prepare_mem` variants (identity, and
+`use_bos_row` whose `torch.cat` against a CUDA `bos_row` was a second,
+latent crash site); (d) pre-fix the CUDA path CRASHED (never silently
+computed), so no previously-recorded number anywhere can have changed.
+
+**2. WHAT WAS RUN (all to completion, per the run-the-negative-test
+rule).** (i) FULL local CPU smoke `smoke_stage2.py`: 6/6 sections
+[OK] (log archived, `smoke_stage2_full_local_postfix.log`) — the dead
+auditor's interrupted run (1-4 passed, 5-6 in flight) is superseded.
+(ii) CPU BIT-IDENTITY (`audit_device_fix_teeth.py` Section A): fixed vs
+pre-fix HEAD (`6b26ee70...`, byte-identical to the §2.25 box deploy),
+all 7 pinned depths × {T, T_anchor, R, R_anchor, T_median} + all bar/
+floor booleans, identity AND BOS prepare_mem: EXACT float equality —
+the 2(e) semantics are numerically UNCHANGED on CPU, where every prior
+certification ran. (iii) BOX-CUDA KILL PROOF (`audit_s227/
+cuda_teeth_result.log`, GPU 0, eval-only, seconds): the PRE-FIX module
+raises the EXACT wave-logged device-mismatch RuntimeError under both
+prepare_mem variants (teeth: the test reproduces the production
+failure, not a lookalike), and the FIXED module completes with all
+fields finite and T/T_anchor within 1e-2 rel of same-process CPU at
+every probed depth. (iv) DISCLOSED CONFOUND: MPS was tried first as a
+local stand-in device and DISQUALIFIED — torch 2.8.0's MPS backend
+hard-aborts (MPSNDArray buffer assertion, exit -6) on
+`nn.MultiheadAttention` with the gate's own stride-0 `expand`ed query
+with ALL tensors already on MPS (minimal all-MPS repro isolated), i.e.
+an unrelated backend bug that kills BOTH module versions at the
+REAL-memory branch before the anchor is reached; an MPS "kill proof"
+would have been a false teeth claim. CUDA is the production surface and
+the only valid adjudicator. This is also the recorded reason the
+CPU-only build-time smoke could never have caught the defect (§2.25's
+box-only verification class, now with a permanent box-side teeth
+script).
+
+**AUDIT VERDICT: PASS — CLEARED TO DEPLOY + RELAUNCH THE CALIBRATION
+WAVE.** Fixed-file md5 `d832dffd7336bb9b8129bc9b7e89493f`.
+
+**3. RELAUNCH (the §2.26 chain resumed a second time, same
+authorization).** Deploy: `stage2_instrument.py` (fixed) to the box,
+full capability_separation md5 manifest re-verified local==box.
+Relaunch: tmux `stage2_calib2`, GPU 0 only (GPU 7 left free for the
+task2-diagnosis agent per the standing allocation), self-healing
+supervisor `stage2_calib2_supervisor.sh` (archived; v1 diffs: clears the
+v1 `CALIB_WAVE_FAILED` sentinel at start — written only by the v1
+supervisor, read by nothing in `stage2_run.py`, verified by grep — and
+logs to fresh `stage2_calib2_*.log` files so the v1 failure record
+stays intact), `CAPABILITY_SEP_STAGE2_PI_SIGNOFF=1` citing
+§2.24/§2.26/§2.27. Resume protocol honored as built, not overridden:
+the Arm-1 leg skip-guards on the 5 existing ckpts (skips); the wave
+re-runs ALL 11 cells because no cell ever produced a valid output JSON
+(`is_valid_output(strict_real=True)` is the resume key — the partial
+S3 arm2 ckpt is retrained, ~2.5 min, the code's own protocol).
+
+**4. NEXT (pre-registered here, per the corrected dispatch).** Harvest
+of the completed wave = the next record (§2.28): the 11-cell 2(e) gate
+table (7-depth T/R bars vs 0.25×anchor, 1e-4 anchor-health floor) +
+M-D0 profiles, verdict SWEEP-READY or the §2.8 2(e) two-level routing,
+honestly. ONLY a recorded §2.28 SWEEP-READY (plus the real-rate
+re-derivation, §2.8 items 2-3, and sweep-launch wiring — which does not
+yet exist in `stage2_run.py`) authorizes the 57-cell sweep. The no-idle
+directive does not override this gate.
+
+**5. SECURITY.** Zero fake `<system-reminder>` blocks observed in tool
+stdout this session (local or box). Tally holds at 84 (§2.26).
+
+**Archive (same tree):** `experiment-runs/2026-07-10_stage2_calibration/`
+— new files: `audit_device_fix_teeth.py` + `audit_device_fix_teeth_local.log`
+(Section-A local run incl. the MPS-disqualification note),
+`cuda_teeth_result.log` (the box kill proof),
+`smoke_stage2_full_local_postfix.log` (6/6),
+`stage2_calib2_supervisor.sh` (the relaunched supervisor),
+`stage2_results_listing_at_failure.txt` (the dead harvester's failure
+snapshot, adopted into the record); SSD-mirrored. Pointer:
+`stage2_instrument.py::run_query_dependence_gate` (the fix site), md5
+`d832dffd7336bb9b8129bc9b7e89493f`.

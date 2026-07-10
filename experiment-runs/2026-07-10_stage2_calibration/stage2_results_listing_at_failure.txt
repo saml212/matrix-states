@@ -1,0 +1,10 @@
+total 1128
+drwxrwxr-x 2 nvidia nvidia   4096 Jul 10 04:01 .
+drwxrwxr-x 8 nvidia nvidia   4096 Jul 10 03:06 ..
+-rw-rw-r-- 1 nvidia nvidia      0 Jul 10 04:01 CALIB_WAVE_FAILED
+-rw-rw-r-- 1 nvidia nvidia 180429 Jul 10 03:59 S3__arm2_beta01__nh2__seed0.pt
+-rw-rw-r-- 1 nvidia nvidia 191742 Jul 10 02:58 arm1__A5__seed0.pt
+-rw-rw-r-- 1 nvidia nvidia 192254 Jul 10 03:06 arm1__A6__seed0.pt
+-rw-rw-r-- 1 nvidia nvidia 191358 Jul 10 02:53 arm1__S3__seed0.pt
+-rw-rw-r-- 1 nvidia nvidia 191742 Jul 10 02:56 arm1__S4__seed0.pt
+-rw-rw-r-- 1 nvidia nvidia 191870 Jul 10 02:59 arm1__S5__seed0.pt

@@ -235,7 +235,16 @@ def run_query_dependence_gate(row_queries: torch.Tensor, reader: nn.MultiheadAtt
         real_mem = prepare_mem(real_raw)
         real_stat = query_dependence_stat(row_queries, reader, real_mem)
 
-        anchor_raw = norm_match_scale(anchor_states[D], real_mean_row_norm).unsqueeze(0)  # (1,h,h)
+        # Device boundary move (2026-07-10 instrument-defect fix, S2.8 2(e)
+        # three-way routing "instrument defect -> targeted fix + re-run"; see
+        # S2.27): anchors are DELIBERATELY built on CPU above (the pinned
+        # seed-7 construction all rank/QR-determinism proofs certify) and only
+        # moved to the real memory's device here at the comparison boundary --
+        # bit-identical construction, no CPU-vs-CUDA matmul drift. Without
+        # this, a CUDA reader crashes on the CPU-resident anchor (the
+        # 2026-07-10 calibration-wave 20-consecutive-failure halt; the box
+        # smoke ran this path CPU-only and could not have caught it).
+        anchor_raw = norm_match_scale(anchor_states[D], real_mean_row_norm).unsqueeze(0).to(real_raw.device)  # (1,h,h)
         anchor_mem = prepare_mem(anchor_raw)
         anchor_stat = query_dependence_stat(row_queries, reader, anchor_mem)
 
