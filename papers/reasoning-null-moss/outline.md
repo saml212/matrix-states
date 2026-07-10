@@ -10,8 +10,8 @@ Page budgets from `brief.md`; venue limit 4.0 pages main content
 | 1 | Introduction | 0.70 | C1-phase1, C5-power, C7-replication (headline versions) | — | keystone question; why bounded nulls; contribution bullets |
 | 2 | Setting and instruments | 0.65 | C0-ladder, C9-compute | — | ladder, grammar, three readouts, pre-registration/gates |
 | 3 | Bound 1: the geometric readout never fires | 0.90 | C1-phase1, C2-rung3, C3-phase1b, C4-dissoc, C8-teeth | Fig 1, Fig 2, Table 1 | triple null; scale series; dissociation; enforcement arc |
-| 4 | Bound 2: the behavioral contrast is power-bounded | 0.60 | C5-power, C6-transient | Fig 3 (left), Table 2 | 3/4 UNRESOLVED at the registered floor; the transient, sign-disciplined |
-| 5 | Bound 3: the replication gate | 0.60 | C7-replication | Fig 3 (right), Table 2 | batch-effect flag; cohort CIs; what stands at what weight |
+| 4 | Bound 2: the behavioral contrast is power-bounded | 0.60 | C5-power, C6-transient | Fig 3 (left) | 3/4 UNRESOLVED at the registered floor; the transient, sign-disciplined |
+| 5 | Bound 3: the replication gate | 0.60 | C7-replication | Fig 3 (right) | batch-effect flag; cohort CIs; what stands at what weight |
 | 6 | Related work | 0.20 | — | — | Based, Zoology, Okpekpe–Orvieto, Nichani et al., by name |
 | 7 | What is and is not bounded | 0.35 | C5-power, C9-compute (restated scope) | — | scope, alternatives, small-scale lessons, one-paragraph close |
 |   | **Total** | **4.00** | | | equals venue limit |
@@ -23,7 +23,7 @@ Page budgets from `brief.md`; venue limit 4.0 pages main content
       restatements in §1/§7 cite the same rows; the primary carrier is
       marked above).
 - [x] Every figure in the brief is placed (Fig 1, 2 → §3; Fig 3 → §4/§5
-      split by panel; Tables 1–2 → §3/§4).
+      split by panel; Table 1 → §3).
 - [x] Related work distinguishes nearest neighbors by name (four named).
 - [x] No section carries a claim with a missing or pending evidence row.
 
@@ -79,7 +79,7 @@ Page budgets from `brief.md`; venue limit 4.0 pages main content
   Δ(K=32,c=2500) = −0.500 CI [−0.624,−0.376], gone by c=5000; every
   determinate reading in the primary table is negative; the held-out-hop
   readout fires at the same cell, same direction. <C6-transient>
-  [Fig 3 left, Table 2]
+  [Fig 3 left]
 - Sign discipline: why this cannot be read as "the intervention helps",
   and why TRANSIENT cannot be read as durable.
 
