@@ -7823,3 +7823,41 @@ obligation discharged.** Instrument health 12/12; sanity 12/12. Ledger: 3.875 (1
 0.105 (K48) + 0.057 (re-metric) + ≈0.02 (horizon) + 0.011 (smoke) ≈ 4.07 GPU-h vs 8.0 ceiling.
 Archive: `experiment-runs/2026-07-10_h2h_task2diag/` (+SSD; md5 manifest 47/47 local==box).
 Security: zero fake system-reminder blocks in tool stdout this round (tally holds).
+
+## 2026-07-10 — CAPABILITY SEP STAGE 2 §2.33: the three §2.32 carry-forwards ROUTED PER PRE-REGISTERED CLAUSES and executed — the M-D3 endpoint under the discharged pins moves FALSIFY → INCONCLUSIVE-mixed: A6 (the theorem's strongest exclusion case) shows the FULL CONFIRM-direction dissociation at its discharged n_h=4 decisive config (far-64 X 1.00 vs Arm-2 at exactly 0.0); S5 blocked solely by its lone trainability-outlier seed; ≈0.053 GPU-h
+
+**Hypothesis (routing charter):** the three items §2.32 flagged (A6 n_h-sufficiency, S5
+seed-1 outlier, 3/62 A5 2(e) deferrals) have pre-registered routes; execute them, never
+invent one. **Routes taken + licenses (full clause quotes in
+`matrix-thinking/CAPABILITY_SEPARATION_DESIGN.md` §2.33):** (1) A6's decisive n_h was
+never pinned at 2 — §2.2.4 says "calibration-pending for A6 (§2.5's force-arm grid)";
+the completed grid answers it (n_h staircase at identical 40K budget: nh1 loss
+0.21-0.40 3/3 fail, nh2 0.07-0.29 5/5 fail both lenses, nh4 3e-5–8e-5 3/3 converge,
+far-64 X=1.00 each) → pin discharged to n_h=4, zero new cells; ceiling-branch demotion
+of A6-at-nh2 disclosed (itself a new, previously-unmeasured n_h-sufficiency result).
+(2) S5's decisive triad {0.80, 0.00, 0.65} straddles its 0.735 bar → §1.4.2's
+escalation-to-5 trigger (imported by §2.5's flanking-economization citation) → seeds
+3/4 trained (tmux stage2_route_2p33, GPU 0, 8m05s wall): losses 0.000956/0.001213
+(grid-best for the config), 2(e) pass 7/7 depths, far-64 X = 1.00 BOTH — the 0-vs-1
+primary/crosscheck dissociation on converged cells reproduces a 3rd and 4th time
+out-of-sample. Var-ratio pooling gate FIRED (new cohort zero-variance → ratio ∞) —
+not silently pooled; verdict-irrelevant (S5 clears under neither read: triad 0.483 <
+0.735, quintet 0.690 < 0.801). Seed-1 stays the lone catastrophic non-generalizer
+(now 1-in-5). (3) The A5 2(e) deferrals: level-1 BOS is a calibration-wave launch
+gate (discharged at §2.30, inapplicable post-sweep; all-arms-or-none would invalidate
+the grid); §2.30-4a(v)'s harvest-governance clause routes them through the three-way
+diagnostic: all 4 failing legs fail ONLY the raw T-bar (T/Tₐ 0.16-0.22) with the
+co-decisional scale-invariant R-bar PASSING (0.64-1.25) and floors healthy; zero
+converged cells fail 2(e) grid-wide → model-training property of non-converged cells
+→ demote+disclose (B2 shape; PI ack pending); BOS/instrument-defect branches
+unlicensed. **Endpoint (crosscheck decisional per §2.31a, m_d3_verdict unmodified,
+§2.31+§2.32 verdicts reproduced first):** INCONCLUSIVE (mixed) — A6 separates
+(ceil/far X 1.000/1.000, arm2 0.0), S4 separates (disclosed), S5 misses own bar
+(seed-1), A5 misses (3/5 seeds non-converged); not FALSIFY (A6's separation), not
+CONFIRM (S5/A5). §2.32's as-built-pins FALSIFY stands as that record's verdict;
+promotion of the discharged-pin INCONCLUSIVE is the coordinator/PI's call. Per §2.6
+INCONCLUSIVE → diagnosis round (M-D0/M-D2 first) — routed to coordinator. Ledger:
+0.053 GPU-h training (0.135 GPU-h GPU-0 wall occupancy); Stage-2 ≈3.16/25. Archive:
+`experiment-runs/2026-07-10_stage2_calibration/route_2p33/` (+SSD). Security: zero
+fake system-reminder blocks (tally holds at 84); one session-limit outage mid-route,
+state reconciled from git+box, nothing lost.

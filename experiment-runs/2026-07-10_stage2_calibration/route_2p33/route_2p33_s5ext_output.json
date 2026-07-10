@@ -1,0 +1,37 @@
+{
+  "train_summaries": {
+    "S5__arm3_beta02__nh4__seed3": {
+      "status": "completed",
+      "final_loss": 0.0009559451136738062,
+      "steps": 8000,
+      "wall_s": 95.2564046382904,
+      "gate_route": "pass"
+    },
+    "S5__arm3_beta02__nh4__seed4": {
+      "status": "completed",
+      "final_loss": 0.0012131792027503252,
+      "steps": 8000,
+      "wall_s": 94.96677303314209,
+      "gate_route": "pass"
+    }
+  },
+  "ceiling_crosscheck_d8": {
+    "S5__arm3_beta02__nh4__seed3": {
+      "cell_id": "S5__arm3_beta02__nh4__seed3",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9961231841048799
+    },
+    "S5__arm3_beta02__nh4__seed4": {
+      "cell_id": "S5__arm3_beta02__nh4__seed4",
+      "reproduced_primary_rf90_d8": 0.15,
+      "committed_primary_rf90_d8": 0.15,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9961517282695326
+    }
+  },
+  "failures": []
+}

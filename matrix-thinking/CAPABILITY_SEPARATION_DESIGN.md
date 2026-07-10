@@ -7725,4 +7725,127 @@ at n=5 per §1.4.2's trigger), crosscheck decisional per §2.31a, primary
 disclosed. Promotion of the §2.33 endpoint to program verdict-of-record
 is the coordinator/PI's call at check-in, not this record's.
 
-*(Results appended below after the runs.)*
+---
+
+**§2.33 RESULTS (appended post-run, 2026-07-10 ~23:17Z).**
+
+**Harness fidelity, checked before any discharged-pin number was read:**
+the §2.33 harness (`route_2p33_verdict.py`, calling
+`stage2_harvest.m_d3_verdict` UNMODIFIED via §2.32's exact shadow-cell
+construction) reproduces §2.31's committed FALSIFY (as-built pins,
+primary lens) AND §2.32's committed FALSIFY (as-built pins, crosscheck
+lens) exactly; 62-cell manifest clean; both extension cells
+config-verified with zero aliasing against the committed grid.
+
+**ITEM 2 EXECUTED — both extension cells clean (tmux
+`stage2_route_2p33`, GPU 0 only, 23:09:15→23:17:20Z, one supervisor
+pass, zero retries):**
+
+| cell | final_loss | steps | train wall | 2(e) | ceil D=8 (P/X) | mid32 (P/X) | far64 (P/X) |
+|---|---|---|---|---|---|---|---|
+| S5 arm3 nh4 seed3 | 0.000956 | 8000 | 95.3 s | pass, all 7 depths | 0.00 / **1.00** | 0.00 / **1.00** | 0.00 / **1.00** |
+| S5 arm3 nh4 seed4 | 0.001213 | 8000 | 95.0 s | pass, all 7 depths | 0.15 / **1.00** | 0.00 / **1.00** | 0.00 / **1.00** |
+
+Both new seeds post the two best S5-nh4 training losses in the grid and
+read crosscheck 1.00 at ceiling, mid, AND far — while the primary lens
+reads ≈0 on the same converged cells: the §2.31/§2.31a 0-vs-1
+primary/crosscheck dissociation on converged contenders reproduces a
+third and fourth time, out-of-sample. D=8 ceiling recomputes:
+bit-identical primary reproduction on both (the §2.32 harness-fidelity
+check, passed again).
+
+**The §1.4.2 var-ratio pooling gate FIRED — not silently pooled, per its
+own text:** old-cohort far-64 X variance 0.1808 (ddof=1) vs new-cohort
+0.0 (both new seeds exactly 1.00) → `var_ratio = ∞ > 4.0` (a degenerate
+zero-variance-new-cohort firing, not evidence of a batch effect — same
+code, budget, pipeline, box; disclosed as such). Both reads reported:
+triad far-mean 0.483 vs bar 0.735 (fails); pooled quintet far-mean
+0.690 vs bar 0.801 (fails). **The pooling decision is verdict-irrelevant
+— S5 clears its own bar under NEITHER read;** its far_clears=False row
+stands either way. The decisive quintet far-64 X = {0.80, 0.00, 0.65,
+1.00, 1.00}: FOUR of five seeds individually hold ≥65% of their own
+ceiling at 8× train depth against an Arm-2 baseline at exactly 0.0;
+only the pre-classified seed-1 trainability outlier (now 1-in-5, was
+1-in-3) reads zero. The trainability-variance classification (§2.31a,
+h2h §1.40 mirror) is REINFORCED, not revised: converged-by-loss seeds
+of this exact config generalize at 0.65-1.00 in 4/4 cases; seed 1
+remains the lone catastrophic non-generalizer.
+
+**ITEM 1 EXECUTED — the M-D3 endpoint under the DISCHARGED pins (A6
+decisive `n_h=4`; S5 at n=5 pooled-with-flag), crosscheck DECISIONAL
+per §2.31a:**
+
+| group | decisive n_h | ceiling (X) | far64 (X) | far_bar | far_clears | arm2 far (X) | arm2_bar | arm2_collapses | separates |
+|---|---|---|---|---|---|---|---|---|---|
+| S3 | 2 | 0.920 | 0.900 | 0.828 | True | 0.150 | 0.125 | False | False |
+| S4 | 2 | 1.000 | 1.000 | 0.900 | True | 0.000 | 0.020 | True | **True** |
+| A5 | 2 (disclosed, not gating) | 0.490 | 0.390 | 0.441 | False | 0.000 | 0.000 | False | False |
+| S5 | 4 (gating) | 0.890 | 0.690 | 0.801 | False | 0.000 | 0.045 | True | False |
+| A6 | 4 (gating, pin discharged) | **1.000** | **1.000** | 0.900 | **True** | 0.000 | 0.015 | **True** | **True** |
+
+**Mechanical endpoint: INCONCLUSIVE** (`m_d3_verdict`'s mixed-pattern
+branch, verbatim: separation present at one gating group but not the
+other / family doesn't clear everywhere). NOT FALSIFY: A6 — the
+theorem's strongest exclusion case — now shows the full pre-registered
+CONFIRM-direction pattern (contender at 100% of own ceiling at 8× depth,
+Arm-2 at exactly 0.0) under its discharged decisive config. NOT
+CONFIRM: S5 misses its own far bar (seed-1, above) and A5 misses
+(0.390 vs 0.441; 3/5 seeds non-converged — trainability again, not
+lens). Primary-lens disclosure at the same discharged pins: also
+INCONCLUSIVE; A6 reads separates=True even under the primary lens
+(far 0.017 ≥ bar 0.015 — near-zero numbers, disclosed, not leaned on).
+Per §2.6, INCONCLUSIVE routes to diagnosis (M-D0 profile + M-D2 rank
+curves first) — that routing belongs to the coordinator, not this
+record. §2.32's FALSIFY under the AS-BUILT pins remains that record's
+verdict; whether the discharged-pin INCONCLUSIVE supersedes it as the
+Stage-2 verdict of record is the coordinator/PI's promotion call
+(§2.33 pre-run pin, above).
+
+**ITEM 3 EXECUTED — diagnostic table confirms the pre-stated routing:**
+all four failing depth-legs fail ONLY the raw T-bar (T/Tₐ
+0.162/0.215/0.200/0.181) with the co-decisional R-bar PASSING
+(R/Rₐ 1.033/1.248/1.083/0.643) and anchor floors healthy; ZERO
+converged cells fail 2(e) anywhere in the 62-cell grid (the flagged
+three are all final_loss 0.077-0.253). Route confirmed: model-training
+property of non-converged cells → DEMOTE + DISCLOSE at those (cell,
+depth) legs; BOS and instrument-defect branches unlicensed (pre-run
+record, above); PI acknowledgment of the B2-style demotion pending at
+next check-in. Sensitivity disclosure (never decisional): dropping the
+flagged `A5__arm3_beta02__nh2__seed3` cell would flip A5's far_clears
+False→True by +0.4pp (0.4875 vs bar 0.48375) — disclosed because A5
+participates in family_clears, but ENDPOINT-IRRELEVANT here: the
+verdict is INCONCLUSIVE with or without it (S5 blocks family_clears;
+A6's separation blocks FALSIFY), and the pre-registered all-seeds
+aggregation stands.
+
+**LEDGER.** Item 2: training-ledger 0.053 GPU-h (Σ wall_clock_s
+190.3 s); GPU-0 occupancy 8m05s ≈ 0.135 GPU-h wall (uptime-metered
+box); GPUs 1-5 untouched, GPUs 6/7 never visible
+(`CUDA_VISIBLE_DEVICES=0`). Items 1+3: 0 GPU-h (committed raws + CPU).
+Stage-2 running total ≈3.16 of 25 GPU-h. Against the §2.33 pre-run
+plan (~0.06 GPU-h): training-ledger on plan; wall overhead is the
+known fresh-process Monte-Carlo bar re-derivation (§2.32's own
+disclosure), pre-priced in kind.
+
+**SECURITY.** Zero fake system-reminder blocks in tool stdout this
+segment (SSH/box output clean; the only system notifications were
+legitimate harness task-completion events, correctly tagged). One
+session-limit outage (~16:00-16:20 PT) interrupted the agent BETWEEN
+the pre-run commit and the box launch; state was reconciled from
+git + box before proceeding (nothing had launched; no artifacts lost).
+Tally holds at 84.
+
+**Archive:** `experiment-runs/2026-07-10_stage2_calibration/route_2p33/`
+— `route_2p33_s5ext_box.py` + `route_2p33_supervisor.sh` (the box
+runner, md5-verified on deploy), `route_2p33_s5ext.log` (box run log),
+`route_2p33_s5ext_output.json` (train summaries + D=8 ceiling
+recomputes), `S5__arm3_beta02__nh4__seed{3,4}.json` (the two extension
+cell results; checkpoints stay on box/SSD per policy),
+`route_2p33_verdict.py` + `route_2p33_verdict_output.json` (the
+four-verdict harness output — the source for every number above).
+SSD-mirrored. **NEXT (coordinator):** (a) the §2.6 INCONCLUSIVE
+diagnosis round (M-D0/M-D2 first) and the verdict-of-record promotion
+call; (b) PI acknowledgment of the item-3 B2 demotion at check-in;
+(c) the primary-lens degauge defect on converged composer cells
+(§2.31a ground 3, now reproduced 4×) remains an open instrument-repair
+item for any future wave that would read the primary lens as headline.
