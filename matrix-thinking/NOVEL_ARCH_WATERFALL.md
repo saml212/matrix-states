@@ -1156,3 +1156,34 @@ record):
 
 No injection sightings during the audit. Scoped re-audit of the three fixes
 dispatched to the same auditor before the box smoke.
+
+**SCOPED RE-AUDIT (same auditor, on c2b9533): CLEARED.** All three fixes
+verified BY EXECUTION: t14 genuinely wired into `--smoke` (14/14; kill
+proof — a transposed-squaring mutant monkeypatched into `binexp_read` made
+t14 raise, clean restore passed); the `in_window` filters proven
+structurally no-op on today's grid (all ladder/h\*/sweep points in-window,
+sweep sets 8/8 and 12/12, the `min()` cannot go empty); the sign-exactness
+docstrings match code exactly (−1/+1 alternation, err < 1e-9). Commit
+scope confirmed: 4 files, every hunk one of the three fixes or the §7a
+record. Two nits settled before §7b: **(A)** the box-layout defaults in
+`launch_phase0.sh` (`NCR_DIR=$HOME/ncr`, `PY=$HOME/tdenv/bin/python` —
+matching the live box recon: Task-E lineage at `~/chapter2/` top level
+md5-identical to local, `~/tdenv` torch 2.12.1+cu130) were a working-tree
+edit pending at re-audit time; substance reviewed against `H100_SETUP.md`'s
+own deploy convention, committed with this record so the tree matches an
+audited commit before deploy; box deploy must also ship
+`chapter2/analyze_zdump.py` + `test_trust_rule_negative.py` + its
+`results.json` archive (t09/ns self-tests read them). **(B)** post-fix
+manifest appended as §7.1a below (never edited in place — fresh agents
+tamper-check against these rows).
+
+### 7.1a Post-§7a file manifest (md5 at c2b9533 + the NIT-A launcher commit)
+
+| File | md5 |
+|---|---|
+| `ncr/ncr_task.py` | `3c664c0c0571fc361692edd220ab21d2` (unchanged) |
+| `ncr/ncr_models.py` | `1e1a76a0b79301bef13f6ab133f49f98` (unchanged) |
+| `ncr/ncr_spectral.py` | `b95c4cd988bdd5bb758c54144f32af64` |
+| `ncr/ncr_selftest.py` | `a0d80c07a2496ed364f617f7395d3250` |
+| `ncr/run_ncr.py` | `01d975673d6c9b714a292d35fe1e99df` |
+| `ncr/launch_phase0.sh` | `cc6991ec3be1508bad66c4afc2574c9b` |

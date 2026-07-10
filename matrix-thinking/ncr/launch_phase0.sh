@@ -19,11 +19,14 @@ set -euo pipefail
 
 GPU_ID="${1:?usage: launch_phase0.sh <GPU_ID> [STEPS]}"
 STEPS="${2:-40000}"
-REPO="${NCR_REPO:-$HOME/learned-representations}"
-NCR_DIR="$REPO/matrix-thinking/ncr"
+# Box layout (H100_SETUP.md convention): code is scp'd per-directory, not a
+# git clone -- the Task-E lineage lives at ~/chapter2/ and this directory
+# deploys as its SIBLING ~/ncr/ (so ncr_task.py's ../chapter2 relative
+# import resolves identically on the box and in the repo).
+NCR_DIR="${NCR_DIR:-$HOME/ncr}"
 RESULTS="$NCR_DIR/results"
 SESSION="ncr_phase0"
-PY="${NCR_PYTHON:-$REPO/.venv/bin/python}"
+PY="${NCR_PYTHON:-$HOME/tdenv/bin/python}"
 [ -x "$PY" ] || PY=python3
 
 mkdir -p "$RESULTS"
