@@ -56,6 +56,24 @@ because it is the only candidate all nine evidence rows load onto; its
 formerly weakest leg (recall) is now verdict-grade — the n=3 sweep WIN
 (R4, §1.40) with paired CIs excluding the margin at both comparisons.
 
+**T1 WORDING FLAG (2026-07-10, drafting-time verification — PI decision,
+flagged not decided):** T1's opening clause attributes the rank law to
+"delta-rule fast-weight matrices," but R1–R3's substrate is the Stage-1
+MATRIX-STATE ENCODER family (`model_v4.py` BindingEncoder — an
+nn.TransformerEncoder writing a single d_state×d_state matrix Z under the
+hard P=1 single-state bottleneck; `CAPABILITY_SEPARATION_DESIGN.md` §1.4),
+NOT a delta-rule model. The delta-rule substrate carries R4/R5/R10
+(capability) and R6–R8 (pathology); R9 itself records the two families as
+architecture-conditional (encoder-family c*·I scaffold EMPTY in
+DeltaNet-family states). The draft therefore words the thesis with
+per-leg substrate scoping ("matrix-valued state representations" as the
+unifying object; the rank law on the matrix-state encoder family; the
+capability and pathology legs on the delta-rule family) so that every
+clause is supported by its own evidence row as written. If the PI wants
+T1's literal "delta-rule" attribution for the rank law, that requires NEW
+evidence (a rank-law replication on a delta-rule substrate), which no row
+provides today.
+
 **T2 (capability-first, per the PI's 2026-07-08 capability directive):**
 
 > A two-layer delta-rule fast-weight model performs single-pass episodic
