@@ -30,6 +30,8 @@ jobs:
             --exclude='SAM-ACTION-LIST.md' \
             --exclude='pitch-materials.md' \
             --exclude='researcher-outreach-list.md' \
+            --exclude='PUBLIC_PRESENCE_BRIEF.md' \
+            --exclude='_drafts/' \
             pebble-ai-site/ deploy/
 
       - name: Commit and push to deploy repo
