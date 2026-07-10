@@ -67,16 +67,29 @@ the rank the task's algebra demands. On $K$-pair associative binding, where
 exact recovery provably requires state rank at least $K$, trained states
 develop effective rank tracking $K$ (8.20 at $K{=}8$, 15.08 at $K{=}16$ for
 $d{=}16$), and train-time rank caps confirm the bound causally: at $d{=}8$,
-$K{=}4$, rank 3 yields zero exact recovery while rank 4 yields 0.94. On
-group-composition state tracking over five groups spanning the
+$K{=}4$, rank 3 yields zero exact recovery while rank 4 yields 0.94.
+% <!-- evidence: N6 -->
+On
+group-composition state tracking over five finite groups spanning the
 solvable/non-solvable divide, the recruited rank equals the group's minimal
 faithful real representation dimension $\dmin$ (Spearman $\rho = 0.9747$,
-the design's tie-capped maximum), the dimension-matched solvable/non-solvable
+the design's tie-capped maximum),
+% <!-- evidence: N4 -->
+the dimension-matched solvable/non-solvable
 pair $S_4$/$A_5$ is statistically equivalent under a pre-registered
-equivalence test, and a force-rank razor lands a step function at $\dmin$ in
-all five groups: one rank below, exact recovery is 0.000 everywhere,
-including every seed of a four-seed extension, while at $\dmin$ recovery
-returns to unconstrained-anchor levels. Representation theory, not
+test,
+% <!-- evidence: N5 -->
+and a pre-registered force-rank razor is exact in both
+directions: one rank below $\dmin$, recovery is capped by the target's
+tied unit spectrum at $\sqrt{(\dmin{-}1)/\dmin} \le 0.894$, below the
+$0.9$ threshold in every group by construction, with observed cells
+at 76--95\% (mean 88\%) of that ceiling;
+% <!-- evidence: N12 -->
+at $\dmin$, not
+guaranteed a priori, recovery clears the
+anchor-relative bar in all five groups.
+% <!-- evidence: N1 -->
+Representation theory, not
 computational complexity class, sets what gradient descent buys.
 \end{abstract}
 
@@ -109,16 +122,18 @@ supplies the ground truth: across five finite groups spanning the
 solvable/non-solvable divide, the minimal faithful real representation
 dimension $\dmin$ predicts the recruited rank almost perfectly, a
 matched-dimension solvable/non-solvable pair lands statistically
-equivalent (Section~\ref{sec:observed}), and a pre-registered force-rank
-razor finds recovery exactly 0.000 one rank below $\dmin$ in every group,
-returning at $\dmin$ (Section~\ref{sec:razor}): $\dmin{-}1$ is fatal,
-$\dmin$ suffices. An earlier razor sweep nulled through an instrument
-defect, an ambient identity block taxing every rank-capped arm; the
-raw-artifact diagnosis, the registered inconclusive verdict, and the
-repaired wave that landed the pre-registered prediction are part of the
-result (Appendix~\ref{app:damb}).
+equivalent (Section~\ref{sec:observed}),
+% <!-- evidence: N4, N5 -->
+and a pre-registered force-rank
+razor is exact in both directions (Section~\ref{sec:razor}): $\dmin{-}1$
+is analytically incapable of exact recovery under the $0.9$ threshold
+($\sqrt{(\dmin{-}1)/\dmin} \le 0.894$), and $\dmin$ suffices, which is not
+guaranteed a priori.
+% <!-- evidence: N1, N12 -->
+Correcting the target's padding (Appendix~\ref{app:damb}) recovers the
+razor's sufficiency result.
 
-\section{Tasks, Models, and the Rank Instrument}
+\section{Tasks, Models, Instrument, and the Binding Foundation}
 \label{sec:setup}
 
 \textbf{Tasks.} In the binding task, each episode presents $K$
@@ -133,7 +148,8 @@ representation of dimension $\dmin(G)$, the minimal faithful real
 representation dimension. The groups are $S_3, S_4, A_5, S_5, A_6$ with
 $\dmin = 2, 3, 3, 4, 5$ (Appendix~\ref{app:groups}); the first two are
 solvable, the rest are not, and non-solvable word problems are
-$\mathrm{NC}^1$-complete \citep{barrington1989}. $\dmin$ is a different,
+$\mathrm{NC}^1$-complete \citep{barrington1989,barringtontherien1988}.
+$\dmin$ is a different,
 representation-theoretic axis; $S_4$/$A_5$, matched at $\dmin = 3$ with
 opposite solvability, are the designed dissociation pair.
 
@@ -141,11 +157,14 @@ opposite solvability, are the designed dissociation pair.
 queries maps each word to a single state
 $Z(w) \in \R^{\dstate \times \dstate}$, $\dstate = \dmin + 2$, leaving
 spare dimensions so over-recruitment is expressible. The target embeds
-the reference block-diagonally ($\rho_G(\cdot) \oplus I_2$ in the first
-sweep, $\rho_G(\cdot) \oplus 0$ in the repaired wave); the loss is cosine
+the reference block-diagonally ($\rho_G(\cdot) \oplus I_2$ in the
+observational arm, $\rho_G(\cdot) \oplus 0$ in the causal-razor arm;
+Appendix~\ref{app:damb}); the loss is cosine
 distance, the readout is fixed with no learned weights that could launder
 rank, and the decoder reads only $Z$ (blank-out verified). Per-group
-step budgets (8k--40k) were pinned by pre-registered convergence bars.
+step budgets (8k--40k, recorded in the design document's
+pre-registration) were pinned by convergence bars before any decisional
+cell ran.
 
 \textbf{Instrument.} The learned state is defined only up to scale and an
 orthogonal change of basis (a Schur intertwiner):
@@ -157,9 +176,10 @@ $U^{\top} Z(w) U$), and score \textbf{degauged recovery}: cosine after
 fitting $(c, Q)$ on a fitting split, evaluated on a disjoint split,
 reported as $\recninety$. Centering is load-bearing
 (Appendix~\ref{app:m1}); rank is invariant under the fitted gauge, so a
-rank-deficient state cannot be degauged into a full-rank one. For force-rank cells the decisional readout was pinned, before
-the razor wave ran, to the conservative full-$Q$ Procrustes variant
-(\emph{crosscheck} $\recninety$).
+rank-deficient state cannot be degauged into a full-rank one. For
+force-rank cells the decisional readout was pinned in advance to the
+conservative full-$Q$ Procrustes variant (\emph{crosscheck}
+$\recninety$).
 
 
 \textbf{The provable foundation (binding).}
@@ -171,23 +191,25 @@ $K = \rank(V_{\mathrm{mat}}) \leq \rank(Z)$.
 \end{fact}
 
 The bound is classical \citep{kohonen1972correlation,
-anderson1972simple} and holds only under exact continuous recovery.
-Gradient descent recruits the rank: at $d = 16$ the trained state's
-effective rank reaches 8.20 at $K = 8$ and 15.08 at $K = 16$,
+anderson1972simple}, holding only under exact continuous recovery.
+Gradient descent recruits the rank: at $d = 16$ effective rank reaches
+8.20 at $K = 8$ and 15.08 at $K = 16$,
 % <!-- evidence: N6 -->
 and the recruited rank is causally necessary: a spectral rank cap at
-$d = 8$, $K = 4$ leaves exact recovery at or below 0.0004 for every cap
+$d = 8$, $K = 4$ leaves exact recovery $\leq 0.0004$ for every cap
 $k \leq 3$ and restores it to 0.940 at $k = 4$,
 % <!-- evidence: N6 -->
-a step exactly at the provable bound; the same operator composes
-exactly ($Z^h$, held-out depths to 21) in four of five seeds.
+a step exactly at the provable bound; the same operator composes exactly
+($Z^h$, 21 self-applications) in four of five seeds, a
+composition-stability probe periodicity-equivalent to depth 5 under the
+single 8-cycle target \citep{liu2023shortcuts} (Appendix~\ref{app:period}).
 % <!-- evidence: N9 -->
 
 \section{The Rank Law on Group Composition, Observed}
 \label{sec:observed}
 
 Figure~\ref{fig:tracking} (left) gives the observational leg: per-group mean
-restricted effective rank lands within 4--8\% of $\dmin$ at every group,
+restricted effective rank lands within 4.9--10.2\% of $\dmin$ at every group,
 and all 19 seeds sit inside the pre-registered $[0.7, 1.3] \cdot \dmin$
 band (means and per-seed values in Appendix~\ref{app:m1}).
 % <!-- evidence: N4 -->
@@ -197,7 +219,8 @@ $\rho = 0.9747$,
 % <!-- evidence: N4 -->
 the maximum this design can express, since the $S_4$/$A_5$ tie caps
 $\rho$ below 1; under the exact permutation null,
-$P(\rho \geq 0.8) = 8/120 \approx 6.7\%$,
+$P(\rho \geq 0.8) = 8/120 \approx 6.7\%$ (0.8 is pre-registered, below the
+next achievable level 0.87),
 % <!-- evidence: N4 -->
 so by pre-registration this leg is corroborating rather than independently
 decisive (a disclosed length-robustness split is in
@@ -207,8 +230,7 @@ Appendix~\ref{app:m1}).
 computational class, the marquee pair should separate; if by
 representation dimension, coincide. A pre-registered Welch two-one-sided
 equivalence test on restricted effective rank (margin $\pm 0.5$
-rank-units, half the $\dmin$ ladder spacing; $n = 5$ per group; simulated
-power 100\% to reject at a 1.0 rank-unit gap) observes a difference of
+rank-units; $n = 5$ per group) observes a difference of
 $+0.019$ rank-units (se 0.037, df 7.8), with both one-sided tests passing
 at roughly seven times the critical value ($t = 13.06$ and $14.12$
 against $t_{\mathrm{crit}} = 1.865$): equivalence is declared decisively.
@@ -222,20 +244,23 @@ The decisive test intervenes on rank: the encoder's output is
 spectrally truncated to rank $k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$
 throughout training, against the zero-padded target
 $\rho_G(\cdot) \oplus 0$ of rank exactly $\dmin$, alongside an
-unconstrained anchor from the same family. Pre-registered reading: if
-$\dmin$ is load-bearing, $k = \dmin{-}1$ must fail and $k \geq \dmin$
-must recover past $0.9\times$ the anchor's crosscheck $\recninety$; a
-single below-$\dmin$ cell recovering falsifies necessity.
+unconstrained anchor from the same family. Pre-registered reading:
+below $\dmin$, a sound readout pins recovery to zero by geometry,
+making that arm an integrity control whose registered trigger (any
+recovery there) would indicate an instrument leak; the live prediction
+is that $k \geq \dmin$ recovers past $0.9\times$ the anchor's
+crosscheck $\recninety$.
 
 \begin{figure}[t]
 \centering
-\begin{minipage}[c]{0.44\textwidth}
+\begin{minipage}[c]{0.40\textwidth}
 \centering
 \includegraphics[width=\textwidth]{fig2_rank_tracking.pdf}
 \end{minipage}\hfill
-\begin{minipage}[c]{0.53\textwidth}
+\begin{minipage}[c]{0.57\textwidth}
 \centering
-\small
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lccccc}
 \toprule
 $G$ & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & bar \\
@@ -250,27 +275,28 @@ $A_6$ & 0.650 & 0.000 & \textbf{0.650} & 0.700 & 0.585 \\
 \end{minipage}
 \caption{Left: recruited rank follows representation dimension, not
 solvability. Each point is one seed's restricted effective rank vs.\ its
-group's $\dmin$ (filled: solvable; open: non-solvable) with the
-pre-registered $[0.7, 1.3] \cdot \dmin$ band and the identity line; all
+group's $\dmin$ (filled: solvable; open: non-solvable); all
 19 seeds are in band, and $S_4$/$A_5$ coincide at $\dmin = 3$.
 % <!-- evidence: N4 -->
-Right: the causal razor on the repaired rank-$\dmin$ target (crosscheck
+Right: the causal razor on the zero-padded rank-$\dmin$ target (crosscheck
 $\recninety$ by force-rank $k$, one seed per cell, unconstrained anchor,
 pre-registered $0.9\times$anchor bar): exactly 0.000 one rank below
-$\dmin$ everywhere, anchor-class at $\dmin$ (bold: clears the bar).
+$\dmin$ everywhere (the forced ceiling is $\le 0.894$), clears the
+$0.9\times$anchor bar at $\dmin$ in all five groups (bold; $S_3$ via
+seed-mean, asterisked).
 $^{\ast}$extended to four seeds under the pre-stated $\pm 0.05$ trigger:
 seed-mean 0.5625 clears the fixed 0.495 bar.}
-% <!-- evidence: N1 -->
+% <!-- evidence: N1, N12 -->
 \label{fig:tracking}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{fig1_razor_step.pdf}
+\includegraphics[width=0.80\textwidth]{fig1_razor_step.pdf}
 \caption{Exact recovery is a step function at $\dmin$: per group,
 crosscheck $\recninety$ on held-out words at force-rank
-$k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$ (one seed per cell), vs.\ the
-unconstrained anchor (dashed) and the $0.9\times$anchor bar (dotted).
+$k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$, vs.\ the unconstrained anchor
+(dashed) and the $0.9\times$anchor bar (dotted).
 $S_3$ overlays its four seeds (thin lines; bold mean); its
 below-$\dmin$ zero is unanimous.}
 % <!-- evidence: N1 -->
@@ -278,57 +304,60 @@ below-$\dmin$ zero is unanimous.}
 \end{figure}
 
 Figure~\ref{fig:tracking} (right) and Figure~\ref{fig:razor} show the result on the
-pre-pinned crosscheck readout. Necessity is exact and noiseless:
-$k = \dmin{-}1$ yields $\recninety = 0.000$ in all five groups,
+pre-pinned crosscheck readout. Necessity below $\dmin$ is an analytically
+forced floor: against a $\dmin$-tied-unit-singular-value target, the
+maximum cosine any rank-$(\dmin{-}1)$ operator can reach is
+$\sqrt{(\dmin{-}1)/\dmin} \le 0.894$, below the $0.9$ threshold in every
+group by construction, so $\recninety = 0.000$ at $k = \dmin{-}1$ follows
+regardless of training quality; observed cells still reach 76--95\% of
+that ceiling (mean 88\%; Appendix~\ref{app:m1}), evidence of
+near-optimal training under the cap.
+% <!-- evidence: N12 -->
+The zero is noiseless in all five groups
 % <!-- evidence: N1 -->
-and in all four independent seeds of the $S_3$ extension,
+and all four $S_3$ seeds.
 % <!-- evidence: N2 -->
-while the same cells' recovery cosines (0.61--0.84) show the zero is a
-threshold phenomenon, not a training collapse. Sufficiency holds at
-$\dmin$: $S_4$, $A_5$, $S_5$, $A_6$ clear their bars outright,
+Sufficiency at $\dmin$ carries the causal claim, since no such bound
+guarantees a rank-exactly-$\dmin$ solution is reachable: $S_4$, $A_5$,
+$S_5$, $A_6$ clear their bars outright,
 % <!-- evidence: N1 -->
-and $S_3$, whose decisive cell landed inside the pre-stated $\pm 0.05$
-marginality trigger, was extended to four seeds under the trigger's
-pre-registered routing: seed-mean 0.5625 against the fixed 0.495 bar
-(the literal fixed before the extension ran, avoiding a self-referential
-bar) confirms the fifth group.
+and $S_3$'s decisive cell, inside the pre-stated $\pm 0.05$ marginality
+trigger, was extended to four seeds: seed-mean 0.5625 against the fixed
+0.495 bar confirms the fifth group (per-seed detail in
+Appendix~\ref{app:m1}).
 % <!-- evidence: N3 -->
-Both marquee groups confirm; the pre-registered causal criterion is met.
+Both marquee groups confirm at $\dmin$, meeting the causal criterion.
 
-An earlier 58-cell sweep of this grid nulled through an instrument
-defect: its eye-padded target ($\rho_G(\cdot) \oplus I_2$, rank $\dstate$)
-taxed every capped arm, whose 39 cells sat at their rank-$k$ optimum
-$\sqrt{k/\dstate}$ (mean deviation 0.028);
+Identity-padding the target confounds the razor by handing every capped
+arm a free rank-2 loss reduction (Appendix~\ref{app:damb});
 % <!-- evidence: N7 -->
-that verdict was registered as inconclusive with the tax as mechanism,
-and the zero-padded wave above is the registered fix
-(Appendix~\ref{app:damb}).
+the zero-padded target above removes the confound.
 % <!-- evidence: N8 -->
 
 \section{Related Work and Limitations}
 \label{sec:related}
 
+\citet{chughtai2023universality} reverse-engineers group multiplication
+via representation theory; here, rank itself, not an irrep decomposition,
+is the measured and manipulated quantity.
 \citet{nazari2026rank} and \citet{sun2026staterank} measure
 effective-rank dynamics in pretrained linear-attention models,
 observationally, with no task algebra fixing a required dimension;
-\citet{mishra2026m2rnn} train matrix-state RNNs on $S_3$ composition but
-measure no state rank and run no rank intervention.
-\citet{grazzi2025negative}, \citet{siems2025deltaproduct}, and
-\citet{merrill2024illusion} characterize which word problems recurrent
-architectures can express, the solvability axis; the marquee equivalence
-shows the \emph{learned geometry} sorts by representation dimension, not
-that axis. A negative result on bolt-on matrix latents
-\citep{larson2026gradient}, where a flatten-then-project readout makes
-rank invisible to the gradient, is this result's negative counterpart.
+\citet{mishra2026m2rnn} train matrix-state RNNs on $S_3$ composition
+without a rank intervention. \citet{grazzi2025negative},
+\citet{siems2025deltaproduct}, and \citet{merrill2024illusion}
+characterize which word problems recurrent architectures can express,
+and \citet{deletang2023chomsky} benchmark sequence architectures across
+the formal-language hierarchy; the marquee equivalence instead sorts by
+representation dimension.
 
 
 \textbf{Limitations.} All results are on sub-1M-parameter synthetic
-testbeds; nothing here is a claim about pretrained language models.
-Over-recruitment beyond two spare dimensions is not expressible in this
-state window; razor cells are single-seed except $S_3$ (four seeds;
-necessity zeros exact wherever seeds exist); two groups at the shortest
-pinned budget show soft convergence (disclosed; the razor reading is
-anchor-relative and unaffected).
+testbeds, not claims about pretrained language models. Razor cells are
+single-seed except $S_3$ (four seeds); $S_4$/$S_5$'s anchor-bar margins
+and $S_3$/$S_5$'s soft convergence at the shortest pinned budget
+(Appendices~\ref{app:m1}, \ref{app:gate1a}) both read directionally, not
+as an unqualified 5/5.
 
 \appendix
 
@@ -382,6 +411,24 @@ dimension-matched pair $S_4$/$A_5$ differs by 0.019 rank-units.}
 \label{tab:m1}
 \end{table}
 
+As a fraction of the geometrically forced ceiling
+$\sqrt{(\dmin{-}1)/\dmin}$, the below-$\dmin$ crosscheck cosines read
+$S_3$ 86.3\%, $S_4$ 91.2\%, $A_5$ 94.9\%, $S_5$ 75.7\%, and $A_6$
+93.5\% (mean 88.3\%). $S_5$ is the outlier, consistent with its
+soft-convergence flag (Appendix~\ref{app:gate1a}).
+% <!-- evidence: N12 -->
+
+Per-group deviation of the mean from $\dmin$ (Table~\ref{tab:m1}):
+$S_3$ 6.1\%, $S_4$ 4.9\%, $A_5$ 5.6\%, $S_5$ 10.2\%, $A_6$ 5.3\%.
+% <!-- evidence: N4 -->
+
+$S_4$ and $S_5$'s razor $k{=}\dmin$ cells (Figure~\ref{fig:tracking},
+main text) numerically exceed their own unconstrained anchor by 0.10--0.15;
+plausibly the capped arm skips the ambient dimensions the zero-padded
+anchor must still learn to null under the same fixed step budget, an
+unconfirmed hypothesis.
+% <!-- evidence: N14 -->
+
 The instrument's centering step is load-bearing: an uncentered lens
 scores a flawless synthetic model 0.705 where the centered production
 lens scores 0.9996 on identical data.
@@ -392,17 +439,24 @@ $L = 1$ read is attention-degenerate and was demoted with a mechanism
 note in the run records): it moves per-group mean recovery cosine by at
 most 0.013 (per-seed at most 0.041), with no group-selective divergence.
 % <!-- evidence: N10 -->
+Per-seed, $S_3$'s $k{=}\dmin$ cell clears its own seed's $0.9\times$anchor
+bar in 2 of 4 seeds (seed 1: $+0.010$; seed 3: $+0.110$; seed 0: $-0.045$;
+seed 2: $-0.120$); the self-referential bar ($0.9\times$ the seed-mean
+anchor, 0.574) narrowly fails the seed-mean $k{=}\dmin$ value (0.5625),
+which is why the main text uses the fixed pre-registered literal (0.495)
+rather than a self-referential recompute.
+% <!-- evidence: N3 -->
 
 \section{The Ambient-Identity Tax in Detail}
 \label{app:damb}
 
-The first sweep's force-rank target was the eye-padded
-$\rho_G(\cdot) \oplus I_2$, whose rank is $\dstate = \dmin + 2$ for every
+The identity-padded force-rank target
+$\rho_G(\cdot) \oplus I_2$ has rank $\dstate = \dmin + 2$ for every
 group. Because the identity block is constant across words, it is the
 cheapest reliable loss reduction available, and a rank-capped arm buys it
 before the group representation; the residual budget for $\rho_G$ is
-$k - 2$, below $\dmin$ at every grid point, so no capped cell in the
-original sweep ever tested the law's confirm direction. Three raw-artifact
+$k - 2$, below $\dmin$ at every grid point, so no capped cell under
+identity-padding ever tested the law's confirm direction. Three raw-artifact
 signatures established this: (i) force-rank cells' direct cosine matched
 the rank-$k$ optimum $\sqrt{k/\dstate}$ with mean absolute deviation 0.028
 across all 39 cells (maximum 0.166; the two $S_5$ below-$\dmin$ cells are
@@ -410,14 +464,58 @@ the only outliers, an additional disclosed optimization shortfall), so the
 arms trained to their rank-constrained ceiling rather than under-training;
 % <!-- evidence: N7 -->
 (ii) centered restricted rank of capped arms landed near $k - 2$, the
-residual budget; (iii) in the repaired wave, an eye-padded corroboration
-arm reproduces the failure on demand at raw $k = \dmin{+}1$ (effective
-budget $\dmin{-}1$) while the tax-paid point recovers.
+residual budget; (iii) in the zero-padded grid, a deliberately
+eye-padded corroboration arm reproduces the failure on demand at raw
+$k = \dmin{+}1$ (effective budget $\dmin{-}1$) while the tax-paid point
+recovers.
 % <!-- evidence: N1 -->
-The repaired wave's 30 cells were configuration-verified one-by-one
+The zero-padded grid's 30 cells were configuration-verified one-by-one
 against a manifest re-derived independently from the design record (steps,
 padding mode, and force-rank value per cell; zero skipped steps).
 % <!-- evidence: N8 -->
+
+\section{Soft Convergence at the Shortest Pinned Budgets}
+\label{app:gate1a}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+$G$ & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & bar (0.92) \\
+\midrule
+$S_3$ & 0.914 & 0.665 & 0.900 & 0.903 & fail (all 4) \\
+$S_5$ & 0.876 & 0.801 & 0.879 & 0.877 & fail (all 4) \\
+\bottomrule
+\end{tabular}
+\caption{Convergence health (gate1a, min validation cosine over
+$L \in [2, 5]$) for every $S_3$/$S_5$ razor cell at the shortest pinned
+step budget. All eight cells fall short of the 0.92 margin; $S_5$'s
+0.876--0.879 range is a larger shortfall than $S_3$'s 0.900--0.914. The
+necessity leg (Section~\ref{sec:razor}) is unaffected by construction; the
+sufficiency leg for these two groups should be read as directionally
+consistent under disclosed soft convergence.}
+% <!-- evidence: N13 -->
+\label{tab:gate1a}
+\end{table}
+
+\section{Depth-21 Periodicity Under the Single $K$-Cycle}
+\label{app:period}
+
+The binding task's held-out composition probe (Section~\ref{sec:setup})
+uses a single Hamiltonian $K$-cycle, chosen because a general permutation
+decomposes into short disjoint cycles that collapse held-out hops into
+trivial or in-distribution queries. Under a single 8-cycle, $\pi^{21} =
+\pi^{21 \bmod 8} = \pi^5$ exactly, so nominal depth 21 shares its target
+with the already-tested depth 5; the two are not distinct group-theoretic
+targets. What depth 21 measures instead is numerical stability under 21
+sequential self-applications of the trained operator: in the four
+converged seeds, $\recninety$ at $h=5$ and $h=21$ both read $\approx 1.0$,
+a non-trivial statement that repeated self-application does not amplify
+error; the fifth (still-transitioning) seed reads 0.303 at $h=5$ and
+0.0001 at $h=21$, the same underlying imperfection compounding under
+repetition.
+% <!-- evidence: N9 -->
 
 
 \bibliography{refs}

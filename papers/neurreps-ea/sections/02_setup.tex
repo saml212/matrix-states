@@ -1,4 +1,4 @@
-\section{Tasks, Models, and the Rank Instrument}
+\section{Tasks, Models, Instrument, and the Binding Foundation}
 \label{sec:setup}
 
 \textbf{Tasks.} In the binding task, each episode presents $K$
@@ -22,11 +22,14 @@ opposite solvability, are the designed dissociation pair.
 queries maps each word to a single state
 $Z(w) \in \R^{\dstate \times \dstate}$, $\dstate = \dmin + 2$, leaving
 spare dimensions so over-recruitment is expressible. The target embeds
-the reference block-diagonally ($\rho_G(\cdot) \oplus I_2$ in the first
-sweep, $\rho_G(\cdot) \oplus 0$ in the repaired wave); the loss is cosine
+the reference block-diagonally ($\rho_G(\cdot) \oplus I_2$ in the
+observational arm, $\rho_G(\cdot) \oplus 0$ in the causal-razor arm;
+Appendix~\ref{app:damb}); the loss is cosine
 distance, the readout is fixed with no learned weights that could launder
 rank, and the decoder reads only $Z$ (blank-out verified). Per-group
-step budgets (8k--40k) were pinned by pre-registered convergence bars.
+step budgets (8k--40k, recorded in the design document's
+pre-registration) were pinned by convergence bars before any decisional
+cell ran.
 
 \textbf{Instrument.} The learned state is defined only up to scale and an
 orthogonal change of basis (a Schur intertwiner):
@@ -38,7 +41,8 @@ $U^{\top} Z(w) U$), and score \textbf{degauged recovery}: cosine after
 fitting $(c, Q)$ on a fitting split, evaluated on a disjoint split,
 reported as $\recninety$. Centering is load-bearing
 (Appendix~\ref{app:m1}); rank is invariant under the fitted gauge, so a
-rank-deficient state cannot be degauged into a full-rank one. For force-rank cells the decisional readout was pinned, before
-the razor wave ran, to the conservative full-$Q$ Procrustes variant
-(\emph{crosscheck} $\recninety$).
+rank-deficient state cannot be degauged into a full-rank one. For
+force-rank cells the decisional readout was pinned in advance to the
+conservative full-$Q$ Procrustes variant (\emph{crosscheck}
+$\recninety$).
 

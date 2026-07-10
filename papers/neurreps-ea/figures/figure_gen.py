@@ -185,7 +185,10 @@ def fig1_razor_step(repo, out_dir):
                     zorder=3)
             ax.set_title(f"{g}  ($d_{{\\min}}$={dm})", pad=2)
         ax.axhline(anchor, color="#555555", ls="--", lw=0.8, zorder=1)
-        ax.axhline(bar, color="#555555", ls=":", lw=0.8, zorder=1)
+        # Coarse dot pitch so dotted reads distinctly from dashed at print
+        # size (round-2 render-inspection finding, mirrored from the
+        # unireps twin figure).
+        ax.axhline(bar, color="#555555", ls=(0, (1, 2)), lw=1.0, zorder=1)
         ax.axvline(dm, color="#bbbbbb", lw=0.6, zorder=0)
         ax.set_xticks(xs)
         ax.set_xticklabels([f"$d_{{\\min}}$$-$1", "$d_{\\min}$",
@@ -196,7 +199,7 @@ def fig1_razor_step(repo, out_dir):
     # shared key for the two reference lines, drawn once
     axes[-1].plot([], [], color="#555555", ls="--", lw=0.8,
                   label="unconstrained anchor")
-    axes[-1].plot([], [], color="#555555", ls=":", lw=0.8,
+    axes[-1].plot([], [], color="#555555", ls=(0, (1, 2)), lw=1.0,
                   label="0.9 $\\times$ anchor bar")
     axes[-1].legend(loc="lower right", frameon=False, handlelength=1.6,
                     borderaxespad=0.1)
@@ -232,16 +235,20 @@ def fig2_rank_tracking(repo, out_dir):
             assert d["group"] == g and d["arm"] == "unconstrained"
             vals.append(d["restricted_effective_rank"])
         x = [DMIN[g] + jitter[g]] * len(vals)
-        face = COLOR[g] if SOLVABLE[g] else "none"
-        ax.scatter(x, vals, s=22, marker=MARKER[g], facecolors=face,
-                   edgecolors=COLOR[g], linewidths=1.1, zorder=3)
+        # White (not transparent) faces on the open markers: stacked seeds
+        # occlude instead of blending, so the open/filled encoding stays
+        # legible at print size (round-2 render-inspection finding).
+        face = COLOR[g] if SOLVABLE[g] else "white"
+        ax.scatter(x, vals, s=30, marker=MARKER[g], facecolors=face,
+                   edgecolors=COLOR[g], linewidths=0.9, zorder=3)
         lab_y = max(vals) + 0.22 if g != "S4" else min(vals) - 0.34
         ax.annotate(g, (DMIN[g] + jitter[g] * 3.2, lab_y), color=COLOR[g],
                     ha="center", fontsize=7.5, fontweight="bold")
-    ax.scatter([], [], s=22, marker="o", facecolors="#333333",
+    ax.scatter([], [], s=30, marker="o", facecolors="#333333",
                edgecolors="#333333", label="solvable (filled)")
-    ax.scatter([], [], s=22, marker="^", facecolors="none",
-               edgecolors="#333333", label="non-solvable (open)")
+    ax.scatter([], [], s=30, marker="^", facecolors="white",
+               edgecolors="#333333", linewidths=0.9,
+               label="non-solvable (open)")
     ax.set_xlabel("minimal faithful real representation dimension $d_{\\min}$")
     ax.set_ylabel("restricted effective rank")
     ax.set_xticks([2, 3, 4, 5])

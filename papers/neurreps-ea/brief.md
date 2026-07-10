@@ -78,7 +78,7 @@ the fix-wave grid ran against that criterion.
 |---|---|---|
 | 1 Introduction | 0.65 | rank as the geometric currency of matrix memories; the question; contribution bullets |
 | 2 Tasks, models, instrument | 0.85 | binding task + group word task; encoder; P=1 bottleneck; exact continuous recovery; restricted effective rank; degauging + C1 crosscheck pin |
-| 3 Provable and recruited rank (binding) | 0.50 | Fact 1 (rank ≥ K); recruited rank tracks K; the d=8,K=4 causal step |
+| 3 Provable and recruited rank (binding) | 0.50 | Fact 1 (rank ≥ K); recruited rank tracks K; the d=8,K=4 causal step. *Amended 2026-07-10: folded into §2's flow as a bold-lead paragraph (no own `\section`), adjudicating the round-2 format audit's S3 finding while holding the 4pp budget; cross-references point at §2. Second amendment (round-2 v2 audit S-B): §2 retitled "Tasks, Models, Instrument, and the Binding Foundation" so the fold-in is announced in the paper's own structure, not only here.* |
 | 4 The rank law, observed (groups) | 0.50 | M1 table + ρ=0.9747; S4-vs-A5 TOST |
 | 5 The causal razor | 1.00 | the C1 decisional table + figure; S3 seed extension; the D-AMB tax + fix-wave narrative |
 | 6 Related work | 0.30 | by-name distinctions (nichani2025factual, nazari2026rank/sun2026staterank, mishra2026m2rnn, grazzi/siems, merrill2024illusion) |
@@ -101,7 +101,7 @@ the fix-wave grid ran against that criterion.
 | N10 | L≥2 robustness split: per-group mean_cos deltas ≤0.013 (max per-seed \|Δ\| 0.041), no group-selective divergence | §1.33 (disclosed schema deviation) | the 19 unconstrained JSONs (N4 row; `l_ge2_*` fields) + `harvest_analysis_output.txt` md5:854a4bd7c46e626badcc0fbf05d0e07a | §4 text |
 | N11 | Centering defect: uncentered lens scores a flawless synthetic model 0.705261 on identical data the centered production lens scores 0.999594 | design doc §1.25 (Defect 1) + gate-1(b) recheck (`EXPERIMENT_LOG.md` 2026-07-09 SWEEP-READY entry) | `experiment-runs/2026-07-09_capability_calib_recheck/gate1b_recheck.txt` md5:2d170cc03011cc56105adeae9929e481 | §2 text |
 | N12 | Below-$\dmin$ cells land at 76–95% (mean 88.3%) of their own geometrically forced ceiling $\sqrt{(\dmin{-}1)/\dmin}$: S3 86.3%, S4 91.2%, A5 94.9%, S5 75.7%, A6 93.5% | This gauntlet round, `04_rebuttal_report.md` §"Independent verification" | `experiment-runs/2026-07-09_m3fix_harvest/zero_pad__{S3,S4,A5,S5,A6}__k_dmin_minus_1__seed0.json` (`crosscheck_mean_cos` field, divided by $\sqrt{(\dmin{-}1)/\dmin}$ per group) | Figure 1 caption, §5 text |
-| N14 | $S_4$/$S_5$ razor $k{=}\dmin$ cells exceed their own unconstrained anchor by 0.10 ($S_4$: 0.65$\to$0.80) and 0.10 ($S_5$: 0.50$\to$0.60) respectively | This gauntlet round | `experiment-runs/2026-07-09_m3fix_harvest/zero_pad__{S4,S5}__{unconstrained,k_dmin}__seed0.json` | Appendix B text |
+| N14 | $S_4$/$S_5$ razor $k{=}\dmin$ cells exceed their own unconstrained anchor by 0.15 ($S_4$: 0.65$\to$0.80) and 0.10 ($S_5$: 0.50$\to$0.60) respectively | This gauntlet round | `experiment-runs/2026-07-09_m3fix_harvest/zero_pad__{S4,S5}__{unconstrained,k_dmin}__seed0.json` | Appendix B text |
 | N13 | $S_3$/$S_5$ gate1a (min val over $L\in[2,5]$, bar $\ge 0.92$) fails for all 8 razor cells: $S_3$ 0.665/0.900/0.903/anchor 0.914; $S_5$ 0.801/0.879/0.877/anchor 0.876 | `CAPABILITY_SEPARATION_DESIGN.md:6050-6058` | `experiment-runs/2026-07-09_m3fix_harvest/zero_pad__{S3,S5}__*__seed0.json` (`gate1a.min_val` field) | Appendix D table |
 
 Numbers N1–N5, N7, N9 and N10 were independently recomputed from the raw JSONs
@@ -149,6 +149,13 @@ palette; loads only the raw JSONs named above):
   dimension, not by that complexity divide.
 
 ## Anonymization surface (anon build only)
+
+*Amended 2026-07-10 (round-2 stage-03/stage-05 C1):* the Related-Work
+self-citation to the ICML 2026 MI-workshop bolt-on-latent negative
+result was CUT from the review build (sentence and bib entry) — it
+rendered the real author name into the double-blind bibliography.
+Restore both at camera-ready.
+
 
 Tokens: `larson`, `samlarson`, `saml212`, `pebble`, `pebbleml`,
 `rockie`, `github.com/`, `huggingface.co/`, `.pebbleml.com`,

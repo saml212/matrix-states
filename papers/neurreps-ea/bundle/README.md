@@ -22,7 +22,7 @@ their recorded md5s are pinned in that script's `SOURCE_MD5` dict:
   `experiment-runs/2026-07-09_capability_sweep_harvest/results/`
   (field `restricted_effective_rank`).
 
-Non-figure numerical claims trace to evidence rows N1–N11 in
+Non-figure numerical claims trace to evidence rows N1–N14 in
 `../brief.md`, each carrying its verdict record, raw artifact path, and
 md5. Additional single-file artifacts quoted in the text:
 

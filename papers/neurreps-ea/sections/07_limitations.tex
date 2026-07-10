@@ -58,10 +58,11 @@ dimension-matched pair $S_4$/$A_5$ differs by 0.019 rank-units.}
 \label{tab:m1}
 \end{table}
 
-Below-$\dmin$ crosscheck cosines as a fraction of the geometrically
-forced ceiling $\sqrt{(\dmin{-}1)/\dmin}$: $S_3$ 86.3\%, $S_4$ 91.2\%,
-$A_5$ 94.9\%, $S_5$ 75.7\%, $A_6$ 93.5\% (mean 88.3\%). $S_5$ is the
-outlier, consistent with its soft-convergence flag (Appendix~\ref{app:gate1a}).
+As a fraction of the geometrically forced ceiling
+$\sqrt{(\dmin{-}1)/\dmin}$, the below-$\dmin$ crosscheck cosines read
+$S_3$ 86.3\%, $S_4$ 91.2\%, $A_5$ 94.9\%, $S_5$ 75.7\%, and $A_6$
+93.5\% (mean 88.3\%). $S_5$ is the outlier, consistent with its
+soft-convergence flag (Appendix~\ref{app:gate1a}).
 % <!-- evidence: N12 -->
 
 Per-group deviation of the mean from $\dmin$ (Table~\ref{tab:m1}):
@@ -96,13 +97,13 @@ rather than a self-referential recompute.
 \section{The Ambient-Identity Tax in Detail}
 \label{app:damb}
 
-The first sweep's force-rank target was the eye-padded
-$\rho_G(\cdot) \oplus I_2$, whose rank is $\dstate = \dmin + 2$ for every
+The identity-padded force-rank target
+$\rho_G(\cdot) \oplus I_2$ has rank $\dstate = \dmin + 2$ for every
 group. Because the identity block is constant across words, it is the
 cheapest reliable loss reduction available, and a rank-capped arm buys it
 before the group representation; the residual budget for $\rho_G$ is
-$k - 2$, below $\dmin$ at every grid point, so no capped cell in the
-original sweep ever tested the law's confirm direction. Three raw-artifact
+$k - 2$, below $\dmin$ at every grid point, so no capped cell under
+identity-padding ever tested the law's confirm direction. Three raw-artifact
 signatures established this: (i) force-rank cells' direct cosine matched
 the rank-$k$ optimum $\sqrt{k/\dstate}$ with mean absolute deviation 0.028
 across all 39 cells (maximum 0.166; the two $S_5$ below-$\dmin$ cells are
@@ -110,11 +111,12 @@ the only outliers, an additional disclosed optimization shortfall), so the
 arms trained to their rank-constrained ceiling rather than under-training;
 % <!-- evidence: N7 -->
 (ii) centered restricted rank of capped arms landed near $k - 2$, the
-residual budget; (iii) in the repaired wave, an eye-padded corroboration
-arm reproduces the failure on demand at raw $k = \dmin{+}1$ (effective
-budget $\dmin{-}1$) while the tax-paid point recovers.
+residual budget; (iii) in the zero-padded grid, a deliberately
+eye-padded corroboration arm reproduces the failure on demand at raw
+$k = \dmin{+}1$ (effective budget $\dmin{-}1$) while the tax-paid point
+recovers.
 % <!-- evidence: N1 -->
-The repaired wave's 30 cells were configuration-verified one-by-one
+The zero-padded grid's 30 cells were configuration-verified one-by-one
 against a manifest re-derived independently from the design record (steps,
 padding mode, and force-rank value per cell; zero skipped steps).
 % <!-- evidence: N8 -->
@@ -129,7 +131,7 @@ padding mode, and force-rank value per cell; zero skipped steps).
 \toprule
 $G$ & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & bar (0.92) \\
 \midrule
-$S_3$ & 0.914 & 0.665 & 0.900 & 0.903 & fail (all 4, by margin) \\
+$S_3$ & 0.914 & 0.665 & 0.900 & 0.903 & fail (all 4) \\
 $S_5$ & 0.876 & 0.801 & 0.879 & 0.877 & fail (all 4) \\
 \bottomrule
 \end{tabular}
@@ -147,7 +149,7 @@ consistent under disclosed soft convergence.}
 \section{Depth-21 Periodicity Under the Single $K$-Cycle}
 \label{app:period}
 
-The binding task's held-out composition probe (Section~\ref{sec:binding})
+The binding task's held-out composition probe (Section~\ref{sec:setup})
 uses a single Hamiltonian $K$-cycle, chosen because a general permutation
 decomposes into short disjoint cycles that collapse held-out hops into
 trivial or in-distribution queries. Under a single 8-cycle, $\pi^{21} =

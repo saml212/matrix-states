@@ -5,19 +5,23 @@ The decisive test intervenes on rank: the encoder's output is
 spectrally truncated to rank $k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$
 throughout training, against the zero-padded target
 $\rho_G(\cdot) \oplus 0$ of rank exactly $\dmin$, alongside an
-unconstrained anchor from the same family. Pre-registered reading: if
-$\dmin$ is load-bearing, $k = \dmin{-}1$ must fail and $k \geq \dmin$
-must recover past $0.9\times$ the anchor's crosscheck $\recninety$.
+unconstrained anchor from the same family. Pre-registered reading:
+below $\dmin$, a sound readout pins recovery to zero by geometry,
+making that arm an integrity control whose registered trigger (any
+recovery there) would indicate an instrument leak; the live prediction
+is that $k \geq \dmin$ recovers past $0.9\times$ the anchor's
+crosscheck $\recninety$.
 
 \begin{figure}[t]
 \centering
-\begin{minipage}[c]{0.44\textwidth}
+\begin{minipage}[c]{0.40\textwidth}
 \centering
 \includegraphics[width=\textwidth]{fig2_rank_tracking.pdf}
 \end{minipage}\hfill
-\begin{minipage}[c]{0.53\textwidth}
+\begin{minipage}[c]{0.57\textwidth}
 \centering
-\small
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lccccc}
 \toprule
 $G$ & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & bar \\
@@ -35,11 +39,12 @@ solvability. Each point is one seed's restricted effective rank vs.\ its
 group's $\dmin$ (filled: solvable; open: non-solvable); all
 19 seeds are in band, and $S_4$/$A_5$ coincide at $\dmin = 3$.
 % <!-- evidence: N4 -->
-Right: the causal razor on the repaired rank-$\dmin$ target (crosscheck
+Right: the causal razor on the zero-padded rank-$\dmin$ target (crosscheck
 $\recninety$ by force-rank $k$, one seed per cell, unconstrained anchor,
 pre-registered $0.9\times$anchor bar): exactly 0.000 one rank below
 $\dmin$ everywhere (the forced ceiling is $\le 0.894$), clears the
-$0.9\times$anchor bar at $\dmin$ in all five groups (bold).
+$0.9\times$anchor bar at $\dmin$ in all five groups (bold; $S_3$ via
+seed-mean, asterisked).
 $^{\ast}$extended to four seeds under the pre-stated $\pm 0.05$ trigger:
 seed-mean 0.5625 clears the fixed 0.495 bar.}
 % <!-- evidence: N1, N12 -->
@@ -48,7 +53,7 @@ seed-mean 0.5625 clears the fixed 0.495 bar.}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{fig1_razor_step.pdf}
+\includegraphics[width=0.80\textwidth]{fig1_razor_step.pdf}
 \caption{Exact recovery is a step function at $\dmin$: per group,
 crosscheck $\recninety$ on held-out words at force-rank
 $k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$, vs.\ the unconstrained anchor
@@ -66,9 +71,8 @@ maximum cosine any rank-$(\dmin{-}1)$ operator can reach is
 $\sqrt{(\dmin{-}1)/\dmin} \le 0.894$, below the $0.9$ threshold in every
 group by construction, so $\recninety = 0.000$ at $k = \dmin{-}1$ follows
 regardless of training quality; observed cells still reach 76--95\% of
-that ceiling (mean 88\%, per-group breakdown in
-Appendix~\ref{app:m1}), evidence of near-optimal training under the cap
-rather than collapse.
+that ceiling (mean 88\%; Appendix~\ref{app:m1}), evidence of
+near-optimal training under the cap.
 % <!-- evidence: N12 -->
 The zero is noiseless in all five groups
 % <!-- evidence: N1 -->
@@ -83,11 +87,10 @@ trigger, was extended to four seeds: seed-mean 0.5625 against the fixed
 0.495 bar confirms the fifth group (per-seed detail in
 Appendix~\ref{app:m1}).
 % <!-- evidence: N3 -->
-Both marquee groups confirm at $\dmin$; the causal criterion is met on
-the sufficiency leg.
+Both marquee groups confirm at $\dmin$, meeting the causal criterion.
 
-An earlier 58-cell sweep nulled through an instrument defect (an
-eye-padded target taxing every capped arm; Appendix~\ref{app:damb});
+Identity-padding the target confounds the razor by handing every capped
+arm a free rank-2 loss reduction (Appendix~\ref{app:damb});
 % <!-- evidence: N7 -->
-the zero-padded wave above is the registered fix.
+the zero-padded target above removes the confound.
 % <!-- evidence: N8 -->

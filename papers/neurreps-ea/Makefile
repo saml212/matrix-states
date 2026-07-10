@@ -1,17 +1,20 @@
 # NeurReps 2026 EA build (house scaffold pending official style file)
-#   make          -> main.pdf (single-blind placeholder-author build)
-#   make anon     -> main-anon.pdf (double-blind build)
+#   make          -> main.pdf (anonymized submission build; style default)
 #   make figures  -> regenerate figures/*.pdf from archived experiment JSONs
 #                    (md5-asserted; requires the repo venv's python)
 # Build engine: tectonic (brew install tectonic)
 
 all: main.pdf
 
+# NOTE (round-2 v2 audit S-A, verified 2026-07-10): a clean-tree build
+# transits a mis-paginated 12pp layout (aux fixed-point transient; blank
+# stretches in the bibliography) and converges to the correct dense 8pp
+# layout on the THIRD tectonic pass; incremental rebuilds are stable.
+# Three passes make the build deterministic from any starting state.
 main.pdf: main.tex sections/*.tex refs.bib figures/*.pdf
 	tectonic --keep-intermediates main.tex
-
-anon: main-anon.tex main.tex sections/*.tex refs.bib figures/*.pdf
-	tectonic --keep-intermediates main-anon.tex
+	tectonic --keep-intermediates main.tex
+	tectonic --keep-intermediates main.tex
 
 # NeurReps CFP asks for a SINGLE .tex file at submission: flatten the
 # modular source by inlining every \input{sections/...}.
@@ -31,6 +34,5 @@ figures: figures/figure_gen.py
 
 clean:
 	rm -f main.aux main.log main.bbl main.blg main.out main.toc
-	rm -f main-anon.aux main-anon.log main-anon.bbl main-anon.blg main-anon.out main-anon.toc
 
-.PHONY: all anon figures clean bundle
+.PHONY: all figures clean bundle
