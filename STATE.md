@@ -1,5 +1,29 @@
 # STATE — Current Project State
 
+## DAY BRIEFING — 2026-07-10 (the quotable summary; supersedes 07-09's below)
+
+**Verdicts of record landed:** (1) **H2H AXIS-1 WIN AT n=3** (§1.40) —
+contender recall 0.9995-1.0 every seed vs baselines at chance, CIs
+exclude the 0.30 margin 3×+, single-seed caveat RETIRED; task2 =
+trainability-variance (one fresh seed cleared — diagnosis round
+pre-registered); M* (axis 2) in flight. (2) **Stage-2 composer
+EXONERATED** (§2.26) — the fla cross-check's 140× failure was fla's
+transpose state convention (composer matches the closed form at
+4.5e-08); Arm-1 retrained 5/5; the 11-cell calibration gate RAN
+overnight (harvest in flight → the 57-cell sweep decision). (3) **The
+fix-at-scale wave COMPLETED end-to-end** (~281 GPU-h ledger; §13.22
+harvest = the per_token-vs-global geometry-transfer verdict, in
+flight). **Outage disclosure:** session limits knocked the coordinator
+out twice (net Thu ~8:20pm PT → Fri ~9:15am PT); the box finished its
+queues unattended (tmux isolation working as designed); one agent
+transcript was lost and its work reconstructed from the on-disk
+papers/ state (the paper skill's repo-mode doing its job). **Paper
+program:** Jul-11 EAs in final fixes (submission package = the PI's
+titles/authors call); flagship brief evidence-complete except row R8
+(awaits the wave harvest); paper skill v2 portable + live on
+platform-skills main 054d7bf; pebbleml.com carries the ICML paper + 5
+findings pages incl. the n=3 recall verdict.
+
 ## DAY BRIEFING — 2026-07-09 (evening; the quotable summary)
 
 **Five banked results, all gauntlet-hardened and pushed:** (1) **THE

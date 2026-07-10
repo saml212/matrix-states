@@ -235,44 +235,75 @@ vs KV-cache-capped baseline at equal bytes on long-horizon tasks —
 "constant-memory minds"); FLOP-matched is a disclosed control only; the
 param-matched flat-vector ablation stays mandatory; WIN/TIE/LOSE all
 pre-registered publishable per axis; rung escalation only on win-or-tie.
-Status (2026-07-09): Rev 4's three-term recall objective is built; the
-scoped build-fix audit (§1.24) found the fix logically sound but ~4×
-over-priced by an avoidable LM-head cost; a pre-launch fix is active and
-calibration round 3 is PENDING. See `STATE.md` ACTIVE CAMPAIGNS for the
-full status paragraph and cross-campaign dependencies.
+Status (2026-07-10): **AXIS-1 WIN AT n=3, the verdict of record**
+(§1.40): contender recall acc_A 0.9995-1.0 in every seed vs both
+matched baselines at chance; paired CIs exclude the pre-registered
+0.30 margin by 3×+; recall is provably fast-weight-resident (S₀-zeroing
+collapses it, S₁-zeroing changes nothing — §1.30's localization) and
+stored NONLINEARLY (no linear probe reads it; the model's own forward
+decodes — the round-1-3 "failures" were a wrong-layer instrument,
+§1.27-§1.29). Rev 5/5.1 is the frozen pre-registration (§1.31 + the
+enumerated dead-clause list). Task 2 = trainability-variance (one fresh
+seed cleared the bar — §1.40's surprise); its pre-registered diagnosis
+round + the K48 stress cell are queued. The M* memory-multiplier walk
+(axis 2) is in flight. See `STATE.md` ACTIVE CAMPAIGNS.
 
 **CAPABILITY SEPARATION (PI capability-first directive, 2026-07-08):**
 the world-changing headline is capability SEPARATION — things current
 architectures cannot do functionally or as observed/tested (state
 tracking, compositional depth generalization) — not efficiency. Matched
 comparisons stay as grounding. Modality (language/bytes/other) is an open
-question settled by the waterfall, never bundled. Stage 1 (rank↔
-representation-dimension across solvable/non-solvable groups): calibration
-surfaced two instrument defects (both fixed; corrected-lens rank preview
-Spearman ρ=0.9747), then a convergence-bar false alarm the coordinator
-settled by reading the raw artifact (§1.29, the precedent behind the new
-Hard Rule above); the root cause was then found five independent ways
-(§1.30) and the resulting HARD-STOP lifted — the 58-cell sweep is
-launchable pending one more build audit. Stage 2 (compositional depth
-generalization) is designed in parallel, gated on Stage 1's own readout.
+question settled by the waterfall, never bundled. **Stage 1 =
+THE RANK-LAW TRILOGY, COMPLETE 5/5 (§1.33/§1.36/§1.36a):** trained
+state rank tracks minimal faithful representation dimension at
+ρ=0.9747 (tie-capped max, 19/19 in-band); the marquee S4-vs-A5 TOST
+declares dimension-not-solvability; and the CAUSAL razor — recovery is
+a step function at exactly d_min, with the necessity side reading
+0.000 in all five groups and all seeds tested (the first sweep's M3
+arms were voided by an eye-padding rank tax the harvest caught —
+§1.33's D-AMB — and the zero-pad fix wave purchased the causal test;
+the C1 crosscheck-metric pre-registration was load-bearing). Total
+≈4.3 GPU-h. Stage 2 (compositional depth generalization, the recurrent
+composer — a genuinely NEW architecture): design cleared through three
+attack rounds (§2.13-§2.24); the composer was EXONERATED analytically
+against fla's transpose state convention (§2.26 — the cross-check gate
+fired correctly and the pinned equation stands); the 11-cell
+calibration gate has RUN and its harvest decides the 57-cell sweep.
 See `STATE.md` ACTIVE CAMPAIGNS.
 
 **GPU SATURATION (PI, verbatim, 2026-07-09):** *"how will [we] ensure
 that all these 8 gpu's are hot for the next few days. I don't want these
-sitting idle anymore."* Chartered two compute-heavy waves — FIX-AT-SCALE
-(the frozen-bias fix at 98M+392M, `FROZEN_BIAS_LM_DESIGN.md` §13,
-proposed 300 GPU-h ledger, currently NEEDS-REVISION post-attack) and
-CAPABILITY STAGE 2 (above) — plus liberal pre-registered seed extensions;
-all 8 GPUs in play, none reserved. See `STATE.md` GOALS item 5 and
-LEDGERS.
+sitting idle anymore."* The FIX-AT-SCALE wave (frozen-bias arms at
+98M+392M, `FROZEN_BIAS_LM_DESIGN.md` §13, ~281/300 GPU-h ledger) ran
+END TO END — gauntlet receipts: two launch-losing FATALs caught by
+audit BEFORE launch (§13.17), a contention false-abort adjudicated and
+resumed (§13.21), pins written + tamper-verified — and COMPLETED
+2026-07-10; its §13.22 harvest (the per_token-vs-global
+geometry-transfer verdict, the iclr-2027 draft's missing chapter and
+flagship row R8) is in flight. All 8 GPUs in play, none reserved;
+refill priority when idle: Stage-2 sweep, M*, task2 diagnosis, NCR.
 
-**NOVEL-ARCHITECTURE WATERFALL (opened 2026-07-09):** a fresh
-brainstorm→research→attack→validate pass (this file's own waterfall
-process) on candidate architectures beyond the current DeltaNet-family
-contender — top candidate is Native Composition Reads (query-selected
-matrix powers/products of the fast-weight state for single-pass exact
-relational composition, no CoT); attack stage dispatched. See `STATE.md`
-ACTIVE CAMPAIGNS.
+**NOVEL-ARCHITECTURE WATERFALL (opened 2026-07-09, registry
+`matrix-thinking/NOVEL_ARCH_WATERFALL.md`):** Native Composition Reads
+SURVIVED the full waterfall (attack → Rev 1 → attack → Rev 2 →
+rule-math verification with ZERO defects, §1-§5) with a NARROWED claim:
+in-context-written operators + EXACT composition + O(log h)
+repeated-squaring reads, in a pre-registered regime (h*=61/57) where
+O(h) baselines are predicted to measurably fail — learned depth
+selection is DEAD (both ways), single-cycle "held-out depth" collapses
+mod K, and the corrected trust rule is an a-priori screen only.
+DESIGN-CLEARED-FOR-BUILD-QUEUE; build double-gated on Stage-2's
+calibration readout + §3.8 (120 GPU-h phased ledger, wave-1 ≤50). The
+Z-dump complement finding (c*·I conformal scaffold, 64c59d9) defuses
+the §9(d) ρ(D)≥1 worry for converged models — cite in the build.
+**PAPER PROGRAM (2026-07-10):** the portable `paper` skill v2 lives on
+platform-skills main (054d7bf — repo-mode, 3-field evidence rows,
+verify-vs-raws attack stage, venue-acquisition Stage 0, render-inspector
+gate; Rockie inherits); the flagship brief is at `papers/flagship/
+brief.md` (thesis T1 recommended); the Jul-11 EAs are in
+`papers/neurreps-ea/` + `papers/unireps-ea/` (gauntlet state on disk —
+reconstructable by a fresh agent); pebbleml.com (= `pebble-ai-site/` in
+THIS repo, deploys on push) carries the ICML paper + 5 findings pages.
 
 **Matrix Thinking (foundation results, closed lanes):** bolt-on
 matrix-CODI dead (rank-blind — **published** at the ICML 2026 MI workshop:
