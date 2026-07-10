@@ -1,0 +1,104 @@
+# 3 The Rank Law
+
+This section establishes that the trained matrix state's dimensionality
+is set by the task's representation theory: observationally (the
+recruited rank tracks $d_{\min}$), dissociatively (a designed pair
+separates dimension from solvability), and causally (forcing rank below
+$d_{\min}$ destroys the task; restoring $d_{\min}$ restores it).
+
+## 3.1 Recruited Rank Tracks Minimal Faithful Dimension
+
+Figure 1 shows recruited restricted effective rank against $d_{\min}$
+for the five groups, per seed. The per-group means are 1.877 ($S_3$),
+2.852 ($S_4$), 2.832 ($A_5$), 3.591 ($S_5$), and 4.736 ($A_6$) against
+$d_{\min} = 2, 3, 3, 4, 5$ <!-- evidence: R1 -->. Spearman correlation
+across the family is $\rho = 0.9747$ <!-- evidence: R1 -->. Two
+properties of this number matter. First, it is the maximum the family
+permits: the $S_4$/$A_5$ tie at $d_{\min}=3$ caps the achievable
+midrank-adjusted $\rho$ at exactly 0.9747, and the observed ordering
+attains that cap <!-- evidence: R1 -->. Second, the family has only five
+members, so we report the exact permutation null rather than an
+asymptotic one: under the null, $P(\rho \ge 0.8) = 8/120 \approx 6.67\%$
+<!-- evidence: R1 -->. The correlation is therefore suggestive on its
+own and is not asked to carry the section; the band criterion and the
+causal test below carry it. All 19 unconstrained-arm cells in the sweep
+land inside the pre-registered $[0.7, 1.3] \cdot d_{\min}$ band
+<!-- evidence: R1 -->, so the tracking is per-cell, not only on average.
+
+## 3.2 Dimension, Not Solvability
+
+$S_4$ is solvable; $A_5$ is the smallest non-solvable group. Both have
+$d_{\min}=3$. If recruited rank were driven by computational difficulty
+in the Krohn-Rhodes sense, the pair should separate; if by
+representation dimension, the pair should land together. We
+pre-registered a two-one-sided-tests equivalence procedure (Welch, $n=5$
+per group, margin $\pm 0.5$ rank-units, half the ladder's adjacent-rung
+spacing). The result is a declaration of equivalence: mean difference
+0.0194 rank-units (2.852 versus 2.832), standard error 0.0368, $df =
+7.83$, with both one-sided statistics ($t_1 = 13.06$, $t_2 = 14.12$)
+exceeding the critical value 1.865 by a factor of seven
+<!-- evidence: R2 -->. Recruited rank follows the representation
+dimension of the task, not the group's algebraic complexity class.
+
+## 3.3 An Instrument Defect, Its Diagnosis, and the Repaired Causal Test
+
+The first force-rank sweep produced a mechanically valid FALSIFY reading
+that we voided on diagnosis, and the episode changes what the causal
+test means, so we report it. The training target had been embedded as
+$\rho(g) \oplus I_{d_{state}-d_{\min}}$: an eye-padded block matrix of
+full rank $d_{state}$ with all singular values equal to one. For such a
+target, a rank-$k$ model's optimal direct cosine is $\sqrt{k/d_{state}}$
+independent of which subspace it spends its rank on, and the harvest
+matched this prediction: 37 of 39 force-rank cells sat within 0.07 of
+the predicted ceiling <!-- evidence: R1b -->. Rank-capped models were
+buying cosine from the identity padding, so the causal boundary at
+$d_{\min}$ was never tested. The fix replaced the padding with zeros,
+making the target rank exactly $d_{\min}$, and the decisional metric was
+pre-registered before the re-run as the Procrustes-aligned crosscheck
+($\mathrm{xrec90}$), because the scale-only primary metric reads cosine
+0.01 to 0.22 on a flawless oracle when the target's rho-block
+eigenvalues are degenerate <!-- evidence: R1b -->.
+
+## 3.4 Recovery Is a Step Function at Exactly $d_{\min}$
+
+Figure 2 shows the repaired force-rank staircase. At $k = d_{\min}-1$,
+held-out recovery $\mathrm{xrec90}$ is 0.000 in all five groups
+<!-- evidence: R3 -->: not degraded, zero. At $k = d_{\min}$, recovery
+returns and clears the pre-registered bar of 0.9 times each group's own
+unconstrained anchor in four of five groups directly ($S_4$ 0.800
+against bar 0.585; $A_5$ 0.700 against 0.630; $S_5$ 0.600 against 0.450;
+$A_6$ 0.650 against 0.585) <!-- evidence: R3 -->. $S_3$ landed within
+the pre-stated marginality window (0.450 against bar 0.495) and was
+routed to its pre-registered seed extension: across four independent
+seeds the seed-mean at $k = d_{\min}$ is 0.5625, clearing the bar, and
+$k = d_{\min}-1$ reads exactly 0.000 in all four seeds
+<!-- evidence: R3 -->. The pre-registered confirmation criterion (a
+razor step at $d_{\min}$ in at least four of five groups, including at
+least one of the marquee pair) is met with both marquee groups
+confirming <!-- evidence: R3 -->.
+
+Together the three readings close the loop in both directions:
+$d_{\min}$ ranks are recruited when available (Section 3.1), the
+recruitment tracks dimension rather than solvability (Section 3.2), and
+$d_{\min}$ is causally necessary and sufficient (this section). The
+whole trilogy cost approximately 4.3 GPU-hours <!-- evidence: R0 -->;
+the phenomenon is small-scale and cheap to reproduce.
+
+**Figure 1 caption.** Recruited restricted effective rank versus minimal
+faithful representation dimension $d_{\min}$ for five permutation groups
+($S_3$, $S_4$, $A_5$, $S_5$, $A_6$; unconstrained arms, per-seed points,
+group means marked). The shaded region is the pre-registered
+$[0.7, 1.3] \cdot d_{\min}$ band; all 19 cells land inside it. Spearman
+$\rho = 0.9747$ equals the tie-capped maximum for this family. The
+$S_4$/$A_5$ pair (both $d_{\min}=3$, opposite solvability) lands
+together; the equivalence test in Section 3.2 declares them equivalent
+within $\pm 0.5$ rank-units.
+
+**Figure 2 caption.** Held-out recovery ($\mathrm{xrec90}$,
+Procrustes-aligned cosine threshold 0.9) versus forced train-time rank
+$k$, per group, on the zero-padded (repaired) target. Recovery is 0.000
+at $k = d_{\min}-1$ in every group and returns at $k = d_{\min}$; dashed
+lines mark each group's bar of 0.9 times its own unconstrained anchor.
+The $S_3$ panel overlays all four extension seeds: every seed reads
+0.000 at $k = d_{\min}-1$, and the seed-mean at $k = d_{\min}$ (0.5625)
+clears the bar (0.495).
