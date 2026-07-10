@@ -1,0 +1,27 @@
+============================================================
+  NCR BOX SMOKE (real CUDA)
+============================================================
+  device: NVIDIA H100 80GB HBM3
+
+[1] device-placement teeth (real-CUDA, incl. negative)
+  all arms fully on-device; CPU-into-CUDA negative raises as expected
+
+[2] closed-form analytic checks ON CUDA (S2.26 discipline)
+  closed-form checks: shift-matrix bin-exp exact to h=1021; v*k^T convention confirmed; transposed [K,V] layout DETECTED as wrong
+
+[3] forward/backward/grad for every trainable param, every arm
+  every parameter of every arm receives a finite gradient
+
+[4] short real training + checkpoint/resume equivalence (ncr)
+  100-step train, checkpoint, resume: params bit-identical, step=100
+
+[5] trained-Z read agreement: binexp vs loop vs fp64 (h<=125)
+    h=   5  max|binexp-loop|=1.79e-07  min cos(binexp,loop)=0.99999988  min cos(binexp,fp64)=0.99999991
+    h=  21  max|binexp-loop|=1.49e-07  min cos(binexp,loop)=0.99999988  min cos(binexp,fp64)=0.99999990
+    h=  61  max|binexp-loop|=1.94e-07  min cos(binexp,loop)=0.99999982  min cos(binexp,fp64)=0.99999991
+    h= 125  max|binexp-loop|=2.38e-07  min cos(binexp,loop)=0.99999988  min cos(binexp,fp64)=0.99999992
+
+[6] blank-out ON CUDA (m3 executed, not shape-checked)
+  {'bit_identical': True, 'grad_exactly_zero': True, 'write_path_alive': True, 'passed': True}
+
+ALL BOX-SMOKE CHECKS PASSED

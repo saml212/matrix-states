@@ -1,0 +1,65 @@
+fatal: not a git repository (or any of the parent directories): .git
+============================================================
+  NCR SMOKE (logic suite)
+============================================================
+
+[1/14] t01_module_self_tests
+ncr_task self-test PASSED (28 K=8 points, 28 K=12 points)
+  params: ncr=170896 fwm=170928 loopedvec=170881 (ratios 1.0002/0.9999) cmlp=311456 (weak control, unmatched by design)
+  binexp_read/loop_read agree with the literal fp64 power at h<=125 (cos>1-1e-9)
+  scale-managed reads stay finite at h=1021 with c*=2.843 (MA5 overflow regime)
+ncr_models self-test PASSED
+  deep probe recovers c*=2.843 exact cycle; predicted curve ~1.0 to h=1021 (renormalized power stays finite where literal fp64 power would overflow)
+  far-power curve == lineage literal-matrix-power curve at h<=21 (<1e-9)
+  trust screen reproduces the DISCHARGED N2 archive value T_sigma(21)=1.0101e+38 exactly and REJECTS it (wiring check vs chapter2/test_trust_rule_negative/results.json)
+ncr_spectral self-test PASSED
+  [permutation] shapes, injectivity, and Z_ideal exact composition all OK
+  [chain] shapes, injectivity, and Z_ideal exact composition all OK (query validity checked+asserted at generation time, not assumed)
+  injectivity guard correctly REJECTS a merged (non-injective) edge set
+task_e self-test PASSED
+
+[2/14] t02_grid_guard_teeth
+  grid guards kill identity/train-residue claim points; h* passes both K
+
+[3/14] t03_label_schema_teeth
+  residue-sweep label schema refuses missing/invalid labels
+
+[4/14] t04_label_reduction_equality
+  reduced-label eval batches == full-h batches (h=13/21/61); models see raw h
+
+[5/14] t05_binexp_mutation_killed
+  bin-exp exact vs literal power (h=5/13/21); MUTATED bit-order read killed at non-palindromic h=13/19
+
+[6/14] t06_renorm_invariance_teeth
+  per-step renorm is cosine-exact; NON-scalar (mean-subtract) mutation killed
+
+[7/14] t07_shadow_and_agreement_teeth
+  fp64 shadow clean=1.7e-06 <= 0.005, perturbed fires; MA5 agreement clean=6.0e-07 <= 0.0005, perturbed fires
+
+[8/14] t08_blank_out_teeth
+  blank-out passes on the clean read and KILLS a leaky read (grad non-None)
+
+[9/14] t09_trust_archive_crosscheck
+  trust screen reproduces archived N1 T(21)=99.7377 exactly and rejects
+
+[10/14] t10_lock_teeth
+  far-h eval refuses without a lock; tampered lock detected by hash
+
+[11/14] t11_param_match_teeth
+  +-15% param gate passes the real arms and kills a hidden=3000 mutant (ratio 1.48)
+
+[12/14] t12_grad_coverage_all_arms
+  every trainable parameter of every arm receives a finite gradient (CPU)
+
+[13/14] t13_micro_end_to_end
+  [ncr_ncr_K8_s0] step      1  cosine_loss 0.9981  elapsed 0s
+  [ncr_ncr_K8_s0] COMPLETED in 2s -> /tmp/tmp6naz4rwq/ncr_ncr_K8_s0.json
+  [ncr_ncr_K8_s0] already COMPLETED -- skipping (resume-safe)
+  micro end-to-end cell (30 steps, reduced grid): train -> lock -> blank-out -> labeled eval -> atomic JSON -> resume-skip
+
+[14/14] t14_closed_form_checks
+  closed-form checks: shift-matrix bin-exp exact to h=1021; v*k^T convention confirmed; transposed [K,V] layout DETECTED as wrong
+
+ncr_selftest: 14/14 sections PASSED
+
+ALL NCR SMOKE CHECKS PASSED
