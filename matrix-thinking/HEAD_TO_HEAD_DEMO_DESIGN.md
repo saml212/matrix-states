@@ -4866,3 +4866,134 @@ horizon-collapse fact above) + the transformer_K48 stress cell; (c)
 §1.31.6 claim language — axis-1 WIN (§1.40) + axis-2 "baseline
 non-competitive" (this section) compose into the §1.1 charter's
 capability-separation headline with the matched-budget caveat.
+
+### 1.42 TASK2 DIAGNOSIS ROUND + transformer_K48 STRESS CELL — PRE-RUN RECORD (2026-07-10): raw-artifact TIEBREAK on §1.37's DialExhausted attribution (it was the K48 cell, NOT transformer_task2) + all pre-registration ambiguities resolved least-favorable BEFORE launch
+
+Recorded BEFORE any GPU work per the dispatch rule ("record the ambiguity
+in the registry BEFORE running") and the read-the-raw-artifact hard rule.
+Pre-registration lineage this round executes: §1.31.1 (the separately-
+ledgered TASK2 DIAGNOSIS ROUND, opened post-sweep, question = task-
+difficulty gap vs objective-tuning gap vs genuine capability boundary),
+§1.37 (dial-exhaustion folds into this round; K48 cell "runnable in the
+sweep stage"), §1.40 (opening fact: contender s2 acc_A=0.33447 clears the
+bar; strict tiers INDETERMINATE), §1.41 (s2's partial recall collapses to
+0.010 at every horizon), §1.8 (the pre-registered seed-extension template:
+6 more seeds × BOTH compared arms = 12 cells, pinned t-table, batch-effect
+gate), §1.31.7/ROUND4_CELL_SPEC + the §1.36[h2h] round-4 launch record
+(the K48 fresh-cell config, FRESH_CELL_CONFIGS.json, generated
+programmatically from `calibration_cells()`).
+
+**TIEBREAK OF RECORD (raw artifacts vs §1.37/§1.38 prose).** The box's
+`results/h2h_rung1/DIAL_EXHAUSTED.token` reads `cell_name =
+h2h_calib_transformer_task1_calib_stress_locate_only_K48_auxrev2` — the
+**K48 STRESS cell**, not transformer_task2. Round-4 mtime sequence (box,
+2026-07-09Z): 7 reused-cell JSONs 20:05:03–20:07:20 →
+`transformer_task2_calib_round4.json` **20:24:07 (COMPLETE, acc_A=0.0300
+— its dial passed; a dial trigger fires at GRAD_RATIO_STEP=500, ~30 s in,
+and would have crashed it long before its ~17-min full training)** →
+`DIAL_EXHAUSTED.token` **20:24:41, 34 s later — exactly one
+GRAD_RATIO_STEP into the NEXT spec cell**, transformer_task1_stress_K48
+(quarter budget, fresh). §1.37's sentence "fired during the
+transformer_task2 FRESH cell's post-training dial check (the cell trained
+20000/20000...)" is FALSE on the cell identity (and the dial is a
+mid-training step-500 check, not post-training); §1.38's stage-D header
+repeats the misattribution. §1.37's parenthetical "(ce_answer
+gradient-parity trigger on a BASELINE arm)" was correct. Consequences,
+pinned: (a) **the task2 lane carries NO dial-exhaustion datum** — its
+diagnosis facts are the frozen-checkpoint deterministic 0.0376 (§1.31.1),
+the s2=0.33447 sweep surprise (§1.40), the s2 horizon collapse (§1.41),
+and the H_test=(3,4) failures; (b) the dial exhaustion is a **K48-lane
+instrument datum**: at K=48, step 500, the frozen weights (aux 2.0,
+ce_answer 1.0) put the transformer's ce_answer backbone grad-norm 10.7×
+its LM CE (ratio_ce_over_ce_answer=0.0936, token verbatim) — disclosed
+with the K48 cell's results and interpreted no further; (c) the §1.37
+crash therefore cost the round NOTHING but the K48 cell itself, which
+this round now runs.
+
+**AMBIGUITY RESOLUTIONS (pinned before data, least-favorable-to-us):**
+
+- **A1 — protocol (the §1.31.1 pre-registration names a question, not a
+  protocol):** adopt the §1.8 seed-extension template EXACTLY — 6 fresh
+  seeds × BOTH compared arms = **12 cells** (contender+ablation ×
+  task2_sweep × seed_idx 3–8, `rd_episode_seed("task2_sweep", i, 0)`,
+  seeds identical across arms per seed_idx), trained IDENTICALLY to the
+  §1.38 sweep cohort (budget_frac=1.0, lr=3e-4, role="sweep" — the
+  AUD2-F4 structural dial guard, dial never evaluated, exactly like all
+  27 verdict cells — `H2H_DIAL_ROUND=4` filename versioning,
+  MARGINS_FROZEN + gate-5 tokens enforced in code). acc_A via the
+  §1.31.4-item-6 audited `run_cell_round4` re-metric applied VERBATIM
+  (the §1.40 harvest protocol: loader-side md5 provenance pinning, pinned
+  EVAL_SEED episode set, task2 primary hop-set H_train=(1,2) with the
+  disclosed H_test=(3,4) secondary). NO metric or threshold changes: bar
+  0.09375, chance 0.03125, §1.31.1 tiers frozen. The transformer arm is
+  NOT extended (the §1.8 template is "BOTH compared arms" = the ablation
+  comparison that carries axis-1; §1.40's transformer task2 reads sit at
+  chance and stay disclosed as-is).
+- **A2 — pooling:** pooled n=9 paired Δ CI (df=8, t=2.306, pinned table)
+  is computed ONLY behind the §16.19.5 `batch_effect_gate` (mean-shift
+  AND var-ratio>4.0, per-arm acc_A cohorts AND the paired-delta cohort;
+  ANY flag → the pooled reading is still reported but marked
+  NON-DECISION-GRADE) — strictly stricter than §1.8's var-ratio-only
+  clause.
+- **A3 — adjudication map (pinned NOW).** Let m = # of the 6 new
+  contender seeds with acc_A > 0.09375, b = same for ablation:
+  m≥1 ∧ b=0 → trainability/seed-variance CONFIRMED at pooled rate
+  (1+m)/9; the hard-capability-boundary hypothesis is REJECTED for task2
+  at this scale/budget; task-difficulty-vs-objective-tuning stays open
+  (training-curve reads are descriptive only, no new thresholds).
+  m=0 → NO replication: the trainability-variance reframing rests on a
+  single seed (1/9 ≈ 11%); the capability-boundary hypothesis is NOT
+  rejected; recorded as the least-favorable reading (diagnosis
+  UNRESOLVED-toward-unfavorable, never spun).
+  b≥1 → the s2 datum is NOT contender-specific; any contender-advantage
+  story on task2 is DEAD; disclosed first in any task2 claim.
+- **A4 — verdict scope:** task2 remains NON-verdict-bearing for axis 1
+  (§1.31.1 task1-primary pin unchanged); this round can never upgrade the
+  §1.40 axis-1 WIN; the pooled strict-tier reading is computed
+  mechanically and disclosed, nothing more.
+- **A5 — conditional horizon read:** any NEW bar-clearing contender seed
+  gets the §1.41 horizon-ref read (uncapped `capped_eval_pass` acc_A at
+  H2/H4/H8), mechanism-descriptive, non-gating — mirroring where §1.41
+  filed the s2 fact.
+- **A6 — the K48 training path:** the pre-registered dial-armed
+  calibration path deterministically re-fires at step 500 (same seed,
+  same config — the token above IS that run) and can never produce the
+  cell's data; §1.37's own disposition already named the resolution:
+  "runnable in the sweep stage." So the fresh transformer_task1_stress_K48
+  cell trains with **role="sweep" in the training config ONLY** (the same
+  audited structural guard every §1.40 verdict cell used), all other
+  knobs the box's FRESH_CELL_CONFIGS.json entry VERBATIM (task1_calib,
+  K=48, budget_frac=0.25, lr=3e-4, seed=500000, warmup 100, the
+  `_auxrev2` name; checkpoint saves as `..._auxrev2_r4.pt` — no collision
+  with the stale round-2 unsuffixed file, §1.31.7 F2). The re-metric spec
+  keeps `role="stress_locate_only"` per ROUND4_CELL_SPEC. The cell stays
+  locate-only and gate-EXEMPT (§1.31.1/§1.38 ADJ-3): chance 1/48=0.02083,
+  demonstration bar 0.0625, NO tier arithmetic, completes the 3-arm
+  K/d=0.75 stress table (round-4 re-metric reads: contender 0.0189,
+  ablation 0.0195). This round is ALSO the R5-F1 hard-stop's
+  pre-registered fresh diagnosis for the K48 lane: resolution = the
+  tiebreak + this path, with the dial datum disclosed above.
+
+**Cost (pre-experiment checklist paper math):** 12 task2 cells × 0.326
+GPU-h (sweep realized rate) ≈ 3.91 + K48 fresh train ≈ 0.25 × the
+transformer's realized ~0.28 GPU-h/full-cell × ~1.5 K48 token factor
+≈ 0.13 + 13 re-metric passes ≈ 0.08 (harvest realized 0.112/18) +
+conditional horizon reads ≈ 0.01 → **≈4.1 GPU-h expected; ceiling 8.0
+GPU-h enforced mechanically in the stage script.** GPU 7 ONLY (this
+dispatch's assignment; GPUs 0-6 are the Stage-2 sweep's — the round's own
+stage script pins GPU 7 and never claims another; the stage-D script's
+GPU-7 refusal was that script's own directive, superseded for THIS
+round's script by the dispatch).
+
+**Hypotheses (one sentence each, pre-registered):** (task2) task2's
+contender failure is trainability/seed-variance — fresh seeds clear the
+frozen bar at a nonzero rate while ablation seeds never do; (K48) at the
+disclosed above-cliff stress load K/d=0.75, the transformer baseline
+reads ≈chance like both recurrent arms.
+
+**Artifacts plan:** box `results/h2h_rung1/task2diag/` (12 training
+JSONs + `remetric/` re-metric JSONs + `transformer_task1_stress_K48_
+round4.json` + `TASK2DIAG_VERDICT.json` + logs), tmux `h2h_task2diag`
+with the standing self-healing supervisor + STOP sentinel; archive to
+`experiment-runs/2026-07-10_h2h_task2diag/` (repo ≤25MB + SSD mirror).
+Verdict record lands as §1.43 BEFORE any dependent claim.
