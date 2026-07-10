@@ -1185,5 +1185,45 @@ tamper-check against these rows).
 | `ncr/ncr_models.py` | `1e1a76a0b79301bef13f6ab133f49f98` (unchanged) |
 | `ncr/ncr_spectral.py` | `b95c4cd988bdd5bb758c54144f32af64` |
 | `ncr/ncr_selftest.py` | `a0d80c07a2496ed364f617f7395d3250` |
-| `ncr/run_ncr.py` | `01d975673d6c9b714a292d35fe1e99df` |
+| `ncr/run_ncr.py` | `01d975673d6c9b714a292d35fe1e99df` *(superseded by §7b's one-line resume fix: `77545140b59295121f7f55afbe1c7b6a`)* |
 | `ncr/launch_phase0.sh` | `cc6991ec3be1508bad66c4afc2574c9b` |
+
+### §7b BOX SMOKE (2026-07-10, youthful-indigo-turkey, GPU 6): PASS after one real-CUDA resume fix
+
+**Deploy:** `~/ncr/` (sibling of the md5-identical `~/chapter2/` Task-E
+lineage — task_e/task_d/model_v4/model_e/rank_utils/eigen_utils all match
+local exactly) + `analyze_zdump.py`, `test_trust_rule_negative.py`, and its
+`results.json`/`run.log`/`MANIFEST.md` archive shipped to `~/chapter2/`;
+all 9 deployed files md5-verified on the box against §7.1a and the §6
+archive pins. venv `~/tdenv` (torch 2.12.1+cu130, numpy 2.5.0) vs local
+(torch 2.8.0, numpy 2.0.2) — the CPU logic suite passed 14/14 on BOTH
+(cross-version robustness, `results/box_cpu_smoke.log`), CPU run pinned via
+`CUDA_VISIBLE_DEVICES=""` (no GPU claim).
+
+**Real-CUDA smoke, first run: FAILED at [4] (checkpoint/resume)** —
+`TypeError: RNG state must be a torch.ByteTensor` in `try_resume`:
+`torch.load(map_location="cuda")` moves the saved generator-state
+ByteTensor to CUDA and `Generator.set_state` requires CPU. Exactly the
+device-placement bug class the §2.27 lesson says CPU smokes structurally
+cannot catch (the §7a auditor's CPU resume test was bit-exact; only real
+CUDA exposes it), introduced by this builder's own "simplification" of the
+defensive `.cpu()` during the build. **Fix: one line**
+(`gen.set_state(state["gen_state"].cpu())`, run_ncr.py md5 →
+`77545140b59295121f7f55afbe1c7b6a`), local suite re-run 14/14, redeployed
+md5-verified.
+
+**Re-run: PASS, all 6 sections** (GPU 6, idle-verified at launch; GPU 7's
+task2 round untouched): [1] device teeth incl. the CPU-into-CUDA negative;
+[2] closed forms ON CUDA (shift-matrix bin-exp exact to h=1021, v·kᵀ
+convention, transposed-layout tooth fires); [3] every param of every arm
+gets a finite grad; [4] 100-step train → checkpoint → fresh resume, params
+bit-identical; [5] trained-Z read agreement — max|binexp−loop| 1.5-2.4e-07
+across h∈{5,21,61,125} (MA5 bar 5e-4: ≈2000× margin), min cos(binexp,fp64)
+≥ 0.9999999; [6] blank-out on CUDA bit_identical + grad_exactly_zero +
+write_path_alive. Log: `results/box_cuda_smoke.log` (archived at Phase-0
+harvest). GPU draw: ~2 min on one H100 ≈ 0.03 GPU-h. The one-line fix's
+diff sent to the §7a auditor for a scoped confirm (runs in parallel; the
+box smoke's own re-run is the prescribed instrument for this bug class and
+it passed).
+
+**STATUS: §7b PASS → Phase 0 (§7c) launch next.**

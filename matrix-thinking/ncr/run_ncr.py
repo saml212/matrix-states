@@ -173,7 +173,11 @@ def try_resume(path: str, model, opt, gen, csha: str, device: str) -> int:
         f"refusing a mismatched resume")
     model.load_state_dict(state["model"])
     opt.load_state_dict(state["opt"])
-    gen.set_state(state["gen_state"])
+    # .cpu() is load-bearing: torch.load(map_location="cuda") moves the saved
+    # ByteTensor RNG state to CUDA, and Generator.set_state requires a CPU
+    # ByteTensor (caught by box-smoke [4] on real CUDA -- exactly the
+    # device-placement bug class CPU smokes cannot see, S2.27 lesson).
+    gen.set_state(state["gen_state"].cpu())
     torch.set_rng_state(state["torch_rng"].cpu())
     if device == "cuda" and "cuda_rng" in state:
         torch.cuda.set_rng_state(state["cuda_rng"].cpu())
