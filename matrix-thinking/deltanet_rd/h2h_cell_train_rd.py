@@ -1227,13 +1227,33 @@ def capped_eval_pass(model, rig: ProbeRig, arch: str, task: str, K: int | None, 
     """ONE axis-2 inference pass: fixed eval episodes at the task's own eval
     hop set, context extended to the horizon; transformer capped via
     sink+FIFO at cap_length(M) (M=None -> uncapped: contender reference /
-    b-control)."""
+    b-control).
+
+    sec 1.31.1 M* re-registration (sec 1.38 pre-flight item 1): the DECISION
+    metric here is `acc_A` -- episode-restricted K-way top-1 at the query
+    answer position through each arm's own native LM-head route, the SAME
+    audited rung-1 machinery every other Leg-A read uses
+    (`_rung1_k_restricted_pred_slot`, selftest-17-protected;
+    `_fused_transformer_tap_and_answer_logits` for the transformer,
+    `_recurrent_continuation_answer_logits` for the recurrent arms) -- only
+    the context is horizon-extended (and, transformer-only, sink+FIFO-capped
+    at cap_length(M)). `recovered_frac` (the rf-era decision metric this
+    function returned pre-fix) is RETAINED as a report-only diagnostic
+    column, never a decision input (sec 1.31.1: rf is Leg B's diagnostic,
+    not in any band/gate). The tap for that rf column comes from
+    `_recurrent_tap_from_states` / the fused transformer call -- numerically
+    equivalent to the audited probe_head_rd taps (asserted at step 0 of
+    every trained cell via assert_fused_tap_matches_audited) while sharing
+    ONE context forward with the acc_A read."""
     cfg_eval = task_cfg(task, K, n_query=None)
     hop_set = tuple(cfg_eval.H_test) if task.startswith("task2") else tuple(cfg_eval.H_train)
     batches = make_eval_episodes(cfg_eval, pools, device, hop_set)
     H = HORIZON_TOKENS[horizon]
     mask_fn = None
     if M is not None:
+        assert arch == "transformer", (
+            f"KV-cache capping (M={M}) applies only to the (b-primary) transformer arm, "
+            f"got arch={arch!r} -- a capped recurrent read is not a defined quantity (sec 1.4.2)")
         cl = cap_length_tokens(M, TRANSFORMER_KW["n_layers"], TRANSFORMER_KW["d_model"])
         mask_fn = lambda T: sink_fifo_mask(T, cap_length=cl, k_sink=K_SINK, device=device)  # noqa: E731
 
@@ -1245,20 +1265,34 @@ def capped_eval_pass(model, rig: ProbeRig, arch: str, task: str, K: int | None, 
             return
         yield from _transformer_episode_chunks(b, H + b["query_tokens"].shape[-1])
 
-    n_hit, n_tot = 0.0, 0
+    n_hit, n_rf, n_tot = 0.0, 0.0, 0
+    K_seen = None
     with torch.no_grad():
         for b_full in batches:
             for b in _episode_chunks(b_full):
                 ctx = extend_context_to_horizon(b["token_ids"], H, pools.buffer_id)
                 if arch == "transformer":
-                    tap = ph.transformer_native_tap(model, ctx, b["query_tokens"], attn_mask_fn=mask_fn)
+                    tap, answer_logits = _fused_transformer_tap_and_answer_logits(
+                        model, ctx, b["query_tokens"], attn_mask_fn=mask_fn)
                 else:
-                    tap = AUDITED_TAP[arch](model, ctx, b["query_tokens"])
+                    _, final_states = model(ctx, return_states=True)
+                    q_last = _q_last_pathway(model, b["query_tokens"])
+                    tap = _recurrent_tap_from_states(arch, final_states, q_last)
+                    answer_logits = _recurrent_continuation_answer_logits(
+                        arch, model, final_states, b["query_tokens"], pools.buffer_id)
+                K_seen = b["entity_ids"].shape[1]
+                pred_slot = _rung1_k_restricted_pred_slot(answer_logits, b["entity_ids"])
+                n_hit += (pred_slot == b["tgt_slot"]).float().sum().item()
                 frac = ph.cosine_recovery_frac(rig.pred(tap), probe_targets(rig, b)).item()
                 n_q = b["query_tokens"].shape[0] * b["query_tokens"].shape[1]
-                n_hit += frac * n_q
+                n_rf += frac * n_q
                 n_tot += n_q
-    return {"recovered_frac": n_hit / max(1, n_tot), "horizon_tokens": H,
+    chance = 1.0 / K_seen if K_seen else float("nan")
+    return {"acc_A": n_hit / max(1, n_tot),                      # THE decision metric (sec 1.31.1)
+            "chance": chance,
+            "demonstration_bar": ph.RUNG_CHANCE_MULT * chance,
+            "recovered_frac": n_rf / max(1, n_tot),              # report-only diagnostic, never decision
+            "horizon_tokens": H, "n_queries": n_tot,
             "cap_length": (None if M is None else
                            cap_length_tokens(M, TRANSFORMER_KW["n_layers"], TRANSFORMER_KW["d_model"])),
             "n_episodes": len(batches) * GRAMMAR_BATCH}
@@ -1413,23 +1447,30 @@ def mode_fanout_all(args) -> int:
 
 
 def mode_horizon_ref(args) -> int:
-    """Contender (uncapped, constant-state) reference passes per (task, seed,
-    horizon) -- axis 2's own comparison side (18 passes)."""
+    """Reference passes per (task, seed, horizon) -- axis 2's own comparison
+    side. Default (--capped-m unset): uncapped (contender references, 18
+    passes; also reusable for the uncapped transformer b-control at the same
+    horizons, a disclosed diagnostic read). With --capped-m M: the capped
+    transformer at that single M -- used ONLY for the floor-excluded M=1
+    descriptive row (R3-F6: priced in the eval-overhead line, never in the
+    90-pass fan-out, never M*-eligible)."""
     require_launch_tokens(args.gates_dir)
     require_margins_frozen(args.margins_token)               # audit MAJOR-2: stage-D-only mode
     device = args.device
     pools = get_pools(device)
+    M = args.capped_m                                        # None -> uncapped
     with open(args.ckpt_map) as f:
         ckpt_map = {tuple(k.split("|")): v for k, v in json.load(f).items()}
     out = {}
     for (task, seed_idx), path in sorted(ckpt_map.items()):
         model, rig, doc = load_h2h_checkpoint(path, device)
         for horizon in HORIZON_TOKENS:
-            r = capped_eval_pass(model, rig, doc["arch"], task, doc.get("K", 32), None, horizon,
+            r = capped_eval_pass(model, rig, doc["arch"], task, doc.get("K", 32), M, horizon,
                                  pools, device)
             out[f"{task}|s{seed_idx}|{horizon}"] = r
-            print(f"HORIZON-REF {doc['arch']} {task} s{seed_idx} {horizon}: "
-                  f"rf={r['recovered_frac']:.4f}")
+            print(f"HORIZON-REF {doc['arch']} {task} s{seed_idx} {horizon} "
+                  f"M={'uncapped' if M is None else M}: acc_A={r['acc_A']:.4f} "
+                  f"(rf={r['recovered_frac']:.4f}, report-only)")
     _atomic_dump(args.out, out)
     return 0
 
@@ -2068,6 +2109,55 @@ def mode_selftest() -> int:
         f"instrument_health_passed={r22.get('instrument_health', {}).get('passed')} "
         f"band={band22}")
 
+    # 23 (sec 1.38 pre-flight item 1, the M*-walk acc_A re-registration): capped_eval_pass's
+    #     DECISION metric is now acc_A (the sec 1.31.1 Leg-A discrete read, through the SAME
+    #     selftest-17-protected _rung1_k_restricted_pred_slot), never the rf-era recovered_frac
+    #     (retained report-only). Exercised end-to-end on CPU: (a) an UNCAPPED ablation pass and
+    #     (b) a CAPPED (M=2) transformer pass (sink+FIFO mask live at the H2 horizon) both return
+    #     acc_A/chance/demonstration_bar with the right chance anchor; (c) NEGATIVE TEETH, run to
+    #     completion: a capped read on a RECURRENT arm must raise (a capped recurrent read is not
+    #     a defined quantity, sec 1.4.2 -- silently returning one would fabricate an M-sweep arm).
+    saved = (GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH)
+    GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH = 2, 1, 2
+    try:
+        pools23 = get_pools("cpu")
+        K23 = 8
+        results23 = {}
+        for arch23, m23 in (("ablation", None), ("transformer", 2)):
+            model23 = build_arm_model(arch23, pools23.vocab_size_total, seed=23, device="cpu")
+            rig23 = ProbeRig(arch23, pools23.vocab_size_total, "cpu")
+            model23.eval()
+            results23[arch23] = capped_eval_pass(model23, rig23, arch23, "task1_calib", K23,
+                                                 m23, "H2", pools23, "cpu")
+        raised23 = False
+        try:
+            model23 = build_arm_model("ablation", pools23.vocab_size_total, seed=23, device="cpu")
+            rig23 = ProbeRig("ablation", pools23.vocab_size_total, "cpu")
+            capped_eval_pass(model23, rig23, "ablation", "task1_calib", K23, 2, "H2",
+                             pools23, "cpu")
+            print("NEGATIVE FAILED TO FAIL: capped M on a recurrent arm did not raise",
+                  file=sys.stderr)
+        except AssertionError:
+            raised23 = True
+    finally:
+        GRAMMAR_EVAL_EVERY, EVAL_EPISODE_BATCHES, GRAMMAR_BATCH = saved
+    ok23 = all(
+        ("acc_A" in r and 0.0 <= r["acc_A"] <= 1.0
+         and abs(r["chance"] - 1.0 / K23) < 1e-9
+         and abs(r["demonstration_bar"] - ph.RUNG_CHANCE_MULT / K23) < 1e-9
+         and "recovered_frac" in r)                    # report-only column still present
+        for r in results23.values()
+    ) and results23["transformer"]["cap_length"] == cap_length_tokens(
+        2, TRANSFORMER_KW["n_layers"], TRANSFORMER_KW["d_model"]) \
+      and results23["ablation"]["cap_length"] is None and raised23
+    rep("selftest 23 (sec 1.38 pre-flight item 1): capped_eval_pass returns acc_A as the "
+        "decision metric (chance=1/K, bar=3/K) for an uncapped recurrent pass AND a capped "
+        "M=2 transformer pass; recovered_frac demoted to report-only; capped-M on a recurrent "
+        "arm RAISES (negative run to completion)", ok23,
+        f"ablation_acc_A={results23['ablation']['acc_A']:.4f} "
+        f"transformer_capped_acc_A={results23['transformer']['acc_A']:.4f} "
+        f"cap_len={results23['transformer']['cap_length']} raised={raised23}")
+
     print("=" * 70)
     if failures:
         print(f"SELFTEST: {len(failures)} FAILURE(S): {failures}", file=sys.stderr)
@@ -2102,6 +2192,9 @@ def main() -> int:
     ap.add_argument("--gates-dir", type=str, default="results/h2h_rung1/gates")
     ap.add_argument("--margins-token", type=str, default="results/h2h_rung1/MARGINS_FROZEN.token")
     ap.add_argument("--headroom-gpu-h", type=float, default=100.0)
+    ap.add_argument("--capped-m", type=int, default=None,
+                    help="--horizon-ref only: cap the transformer at this M (the floor-excluded "
+                         "M=1 descriptive row); default None = uncapped")
     args = ap.parse_args()
 
     if args.selftest or args.smoke:

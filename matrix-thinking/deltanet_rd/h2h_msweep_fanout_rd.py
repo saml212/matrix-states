@@ -39,7 +39,12 @@ ELIGIBLE_M_VALUES = (2, 4, 8, 16, 32)         # R3-F3: M=1 floor-excluded, never
 HORIZONS = ("H2", "H4", "H8")
 TASKS = ("task1_sweep", "task2_sweep")         # Task 1 primary, Task 2 secondary (sec 1.4.2)
 N_SEEDS = 3
-REQUIRED_RESULT_KEYS = ("M", "horizon", "task", "seed_idx", "recovered_frac")
+# sec 1.31.1 / sec 1.38 pre-flight item 1: the M* walk reads the Leg-A DISCRETE metric (acc_A,
+# episode-restricted K-way top-1 via the continuation/native LM head), NEVER an rf-based read --
+# `acc_A` (not the rf-era `recovered_frac`) is therefore the validity-defining result key: an
+# rf-era result doc without acc_A is INVALID and gets re-run, never silently resumed past
+# (smoke 6's negative teeth below).
+REQUIRED_RESULT_KEYS = ("M", "horizon", "task", "seed_idx", "acc_A")
 EXPECTED_TOTAL_PASSES = 90                     # R3-F6-corrected: 5 x 3 x 2 x 3
 
 
@@ -162,7 +167,7 @@ def smoke_2_checkpoint_residency_across_full_fanout():
             return {"ckpt_for": cell["ckpt_key"]}
 
         def _fake_eval(ckpt, m, horizon):
-            return {"recovered_frac": 0.5}
+            return {"acc_A": 0.5, "recovered_frac": 0.5}
 
         summary = run_msweep_fanout(manifest, _fake_eval, _fake_loader, tmp)
         n_distinct_keys = len(set(c["ckpt_key"] for c in manifest))
@@ -185,7 +190,7 @@ def smoke_3_resume_skips_completed_passes():
             return {}
 
         def _fake_eval(ckpt, m, horizon):
-            return {"recovered_frac": 0.7}
+            return {"acc_A": 0.7, "recovered_frac": 0.7}
 
         run_msweep_fanout(manifest, _fake_eval, _fake_loader, tmp)
         first_pass_loads = calls["n"]
@@ -208,7 +213,7 @@ def smoke_4_exception_isolation_one_bad_pass():
         def _flaky_eval(ckpt, m, horizon):
             if m == 8:
                 raise RuntimeError("simulated poisoned pass")
-            return {"recovered_frac": 0.6}
+            return {"acc_A": 0.6, "recovered_frac": 0.6}
 
         summary = run_msweep_fanout(manifest, _flaky_eval, _fake_loader, tmp)
         ok = summary["failed"] >= 1 and summary["completed"] == len(manifest) - summary["failed"]
@@ -225,6 +230,46 @@ def smoke_5_r3f6_pass_count_excludes_m1():
     _report("smoke 5: M=1 is EXCLUDED from the 90-pass manifest (R3-F6's own double-count fix)", ok)
 
 
+def smoke_6_rf_era_result_doc_is_invalid_and_reruns():
+    """NEGATIVE TEETH for the sec 1.31.1 acc_A re-registration (sec 1.38
+    pre-flight item 1), run to completion per the house rule: a
+    pre-planted RF-ERA result doc (carries `recovered_frac`, LACKS
+    `acc_A`) must be judged INVALID by `is_valid_result` and the pass
+    RE-RUN (never silently skipped as already-valid), and the re-run's
+    fresh doc must carry acc_A. A planted acc_A-era doc alongside it must
+    still be skipped -- proving the check discriminates, not that it
+    blanket-invalidates."""
+    with tempfile.TemporaryDirectory() as tmp:
+        manifest = build_90_pass_manifest()[:2]   # two passes, same (task,seed) group
+        rf_era_cell, acc_era_cell = manifest[0], manifest[1]
+        # plant an rf-era doc for pass 0, an acc_A-era doc for pass 1
+        with open(os.path.join(tmp, rf_era_cell["name"] + ".json"), "w") as f:
+            json.dump({**rf_era_cell, "recovered_frac": 0.5}, f)          # NO acc_A: rf-era residue
+        with open(os.path.join(tmp, acc_era_cell["name"] + ".json"), "w") as f:
+            json.dump({**acc_era_cell, "acc_A": 0.4, "recovered_frac": 0.5}, f)
+
+        rf_doc_invalid = not is_valid_result(os.path.join(tmp, rf_era_cell["name"] + ".json"))
+        acc_doc_valid = is_valid_result(os.path.join(tmp, acc_era_cell["name"] + ".json"))
+
+        def _fake_loader(cell):
+            return {}
+
+        def _fake_eval(ckpt, m, horizon):
+            return {"acc_A": 0.9, "recovered_frac": 0.9}
+
+        summary = run_msweep_fanout(manifest, _fake_eval, _fake_loader, tmp)
+        with open(os.path.join(tmp, rf_era_cell["name"] + ".json")) as f:
+            rerun_doc = json.load(f)
+        ok = (rf_doc_invalid and acc_doc_valid
+              and summary["completed"] == 1 and summary["skipped_already_valid"] == 1
+              and rerun_doc.get("acc_A") == 0.9)
+    _report("smoke 6 (NEGATIVE TEETH, sec 1.38 pre-flight item 1): an rf-era result doc "
+            "(recovered_frac, no acc_A) is INVALID and re-runs; an acc_A-era doc is skipped "
+            "(the validity check discriminates)", ok,
+            f"rf_doc_invalid={rf_doc_invalid} acc_doc_valid={acc_doc_valid} "
+            f"completed={summary['completed']} skipped={summary['skipped_already_valid']}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--smoke", action="store_true")
@@ -237,6 +282,7 @@ def main() -> int:
     smoke_3_resume_skips_completed_passes()
     smoke_4_exception_isolation_one_bad_pass()
     smoke_5_r3f6_pass_count_excludes_m1()
+    smoke_6_rf_era_result_doc_is_invalid_and_reruns()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)

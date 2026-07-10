@@ -375,20 +375,26 @@ fi
 run_cells_par sweep "${SWEEP_CELLS[@]}"
 budget_check
 
-# checkpoint maps for the fan-out (b-primary transformer) + references (contender)
+# checkpoint maps for the fan-out (b-primary transformer) + references (contender).
+# sec 1.38 pre-flight item 2: the sweep's checkpoint export carries the sec 1.31.4 item-4
+# _r{round} filename-versioning suffix (H2H_DIAL_ROUND=4 was pinned at the sweep launch, so
+# the files on disk are h2h_{arch}_{task}_s{seed}_r4.pt) -- the pre-fix UNSUFFIXED names here
+# predated that fix and matched no file. Suffix resolved from the same env pin the sweep used
+# (default 4 = the round that actually saved the sweep checkpoints, sec 1.38/sec 1.40).
 $PY - <<'PYEOF'
 import json, os
 ckpt_dir = "/data/h2h_rung1_ckpts"
+suffix = f"_r{os.environ.get('H2H_DIAL_ROUND', '4')}"
 tr, ref = {}, {}
 for task in ("task1_sweep", "task2_sweep"):
     for s in range(3):
-        tr[f"{task}|{s}"] = os.path.join(ckpt_dir, f"h2h_transformer_{task}_s{s}.pt")
-        ref[f"{task}|{s}"] = os.path.join(ckpt_dir, f"h2h_contender_{task}_s{s}.pt")
+        tr[f"{task}|{s}"] = os.path.join(ckpt_dir, f"h2h_transformer_{task}_s{s}{suffix}.pt")
+        ref[f"{task}|{s}"] = os.path.join(ckpt_dir, f"h2h_contender_{task}_s{s}{suffix}.pt")
 for m, path in (list(tr.items()) + list(ref.items())):
     assert os.path.exists(path), f"missing sweep checkpoint {path}"
 json.dump(tr, open("results/h2h_rung1/fanout/ckpt_map_transformer.json", "w"), indent=2)
 json.dump(ref, open("results/h2h_rung1/fanout/ckpt_map_contender.json", "w"), indent=2)
-print("checkpoint maps written")
+print(f"checkpoint maps written (suffix {suffix})")
 PYEOF
 
 CUDA_VISIBLE_DEVICES="${GPU_LIST[0]}" $PY h2h_cell_train_rd.py --fanout-all \

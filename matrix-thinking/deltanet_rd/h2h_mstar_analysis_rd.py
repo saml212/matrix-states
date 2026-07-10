@@ -48,7 +48,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from reasoning_link_probe import delta_ci_n   # no fla dep -- pure math, safe pre-stub
+from h2h_fla_stub_rd import ensure_fla_stub   # noqa: E402
+
+_STUB_INSTALLED = ensure_fla_stub()           # reasoning_link_probe's module-level import chain
+                                              # reaches lm_pretrain_rd -> fla; the stub makes the
+                                              # pure-math delta_ci_n import CPU-safe (no-op on box)
+from reasoning_link_probe import delta_ci_n   # noqa: E402 -- only pure math is USED here
 
 MARGIN_DEFAULT = 0.20
 ELIGIBLE_M_DESCENDING = (32, 16, 8, 4, 2)   # R3-F3: M=1 floor-excluded, never in this grid
@@ -57,9 +62,20 @@ ELIGIBLE_M_DESCENDING = (32, 16, 8, 4, 2)   # R3-F3: M=1 floor-excluded, never i
 def compute_ci_from_raw_seed_values(contender_vals: list[float], baseline_vals: list[float]) -> dict:
     """Wraps `delta_ci_n` DIRECTLY on RAW per-seed arrays -- "analysis must
     read raw artifacts, never intermediate summaries" (this design's own
-    binding instruction): a caller must pass the actual per-seed
-    `recovered_frac@0.9` readings, never a pre-averaged number."""
-    return delta_ci_n(contender_vals, baseline_vals)
+    binding instruction): a caller must pass the actual per-seed `acc_A`
+    readings (sec 1.31.1's re-registration of the per-M gap statistic from
+    the rf-era `recovered_frac@0.9` to acc_A, same 0.20 margin), never a
+    pre-averaged number.
+
+    `zero_seed_variance` disclosure (the sec 1.40 sigma=0-at-ceiling note's
+    analog for THIS machinery): if every paired per-seed delta is identical
+    (e.g. all seeds at exact ceiling acc_A=1.0 against identical baseline
+    readings), the t-CI degenerates to zero width and classify_cell becomes
+    a point-classification -- flagged for the harvest to disclose, never
+    silently passed through."""
+    ci = delta_ci_n(contender_vals, baseline_vals)
+    ci["zero_seed_variance"] = len(set(ci["deltas"])) == 1
+    return ci
 
 
 def classify_cell(ci: dict, margin: float = MARGIN_DEFAULT) -> str:
@@ -74,17 +90,33 @@ def classify_cell(ci: dict, margin: float = MARGIN_DEFAULT) -> str:
     return "straddle"
 
 
-def descending_walk(cis_by_m: dict, margin: float = MARGIN_DEFAULT) -> dict:
+def descending_walk(cis_by_m: dict, margin: float = MARGIN_DEFAULT,
+                    tie_equivalent_ms: frozenset | set = frozenset()) -> dict:
     """cis_by_m: {M: delta_ci_n-shaped dict}, covering a PREFIX of
     ELIGIBLE_M_DESCENDING starting at 32 (the cost-saving shortcut may omit
     smaller M's below a clean stop -- see the grid-endpoint rule, sec
     1.4.2). Returns {'chain': [M,...] in test order (every REJECTED M),
     'stop_m': the M the walk stopped at (None if the tested prefix was
     exhausted without stopping), 'stop_classification':
-    'clean_non_reject'|'straddle'|None}."""
+    'clean_non_reject'|'straddle'|None, 'skipped_tie_equivalent': [M,...]}.
+
+    `tie_equivalent_ms` -- the sec 1.31.1 joint-NO-RECALL rule (Rev 5.1,
+    sec 1.32 M3, part of the frozen MARGINS_FROZEN registration): a grid
+    point where BOTH the contender's acc_A AND the capped transformer's
+    acc_A sit at or below the demonstration bar is scored TIE-EQUIVALENT
+    for the walk -- NEVER a LOSE for the contender, never used to set M* in
+    either direction (never appended to the rejection chain, never a stop);
+    the walk continues past it, exactly as the straddle rule treats an
+    unresolved CI (it does not finalize a tier at that point). The caller
+    (harvest) computes the joint-failure classification from the raw
+    per-seed acc_A readings; this walk only honors it."""
     chain: list[int] = []
+    skipped: list[int] = []
     stop_m, stop_class = None, None
     for m in ELIGIBLE_M_DESCENDING:
+        if m in tie_equivalent_ms:
+            skipped.append(m)
+            continue   # joint-NO-RECALL: walk continues past, cell can never set M*
         if m not in cis_by_m:
             break   # cost-saving shortcut: untested smaller M's below a clean stop
         cls = classify_cell(cis_by_m[m], margin)
@@ -93,7 +125,8 @@ def descending_walk(cis_by_m: dict, margin: float = MARGIN_DEFAULT) -> dict:
             continue
         stop_m, stop_class = m, cls
         break
-    return {"chain": chain, "stop_m": stop_m, "stop_classification": stop_class}
+    return {"chain": chain, "stop_m": stop_m, "stop_classification": stop_class,
+            "skipped_tie_equivalent": skipped}
 
 
 def _tier_for_finite_m_star(m_star: int) -> str:
@@ -111,33 +144,53 @@ def finalize_verdict(walk: dict, tested_full_grid: bool) -> dict:
     strongest `CONFIRMED no-crossover` sub-claim's own requirement --
     checked explicitly here, never inferred from an empty chain alone)."""
     chain, stop_m, stop_class = walk["chain"], walk["stop_m"], walk["stop_classification"]
+    skipped = walk.get("skipped_tie_equivalent", [])
 
     if stop_class == "straddle":
         return {"m_star": None, "tier": "INDETERMINATE", "stop_m": stop_m,
-                "lower_bound_m_star": chain[-1] if chain else None, "chain": chain}
+                "lower_bound_m_star": chain[-1] if chain else None, "chain": chain,
+                "skipped_tie_equivalent": skipped}
 
     if not chain:
+        if skipped and stop_m is None:
+            # EVERY eligible point the walk saw was joint-NO-RECALL (sec 1.31.1's Rev 5.1 M3
+            # rule) -- a joint task-learning/scale failure across the grid, NOT the M*=inf
+            # strongest-win pathway (no rejection was ever tested and confirmed).
+            return {"m_star": None, "tier": "TIE", "stop_m": None, "chain": chain,
+                    "skipped_tie_equivalent": skipped, "confirmed_no_crossover": False,
+                    "note": "joint-NO-RECALL at every walked grid point -- TIE-equivalent "
+                            "(a task-learning/scale finding, never a memory-capacity verdict)"}
         # Immediate clean non-rejection at the very first tested M (32) -- the M*=inf pathway.
         return {"m_star": float("inf"), "tier": "WIN", "stop_m": stop_m, "chain": chain,
+                "skipped_tie_equivalent": skipped,
                 "confirmed_no_crossover": bool(tested_full_grid and stop_class == "clean_non_reject")}
 
     m_star = chain[-1]
     result = {"m_star": m_star, "tier": _tier_for_finite_m_star(m_star), "stop_m": stop_m,
-              "chain": chain, "confirmed_no_crossover": False}
+              "chain": chain, "skipped_tie_equivalent": skipped, "confirmed_no_crossover": False}
     if stop_class is None:
         result["note"] = "every tested M was rejected -- crossover held down to the smallest tested M"
     return result
 
 
-def run_mstar_procedure(cis_by_m: dict, margin: float = MARGIN_DEFAULT) -> dict:
-    """Top-level entry point: walk + finalize, in one call."""
-    walk = descending_walk(cis_by_m, margin)
-    tested_full_grid = all(m in cis_by_m for m in ELIGIBLE_M_DESCENDING)
+def run_mstar_procedure(cis_by_m: dict, margin: float = MARGIN_DEFAULT,
+                        tie_equivalent_ms: frozenset | set = frozenset()) -> dict:
+    """Top-level entry point: walk + finalize, in one call. A joint-NO-RECALL
+    (tie-equivalent) grid point never counts toward -- nor against -- the
+    full-grid requirement of the CONFIRMED-no-crossover sub-claim: that
+    claim requires every eligible point individually confirmed CLEAN, and a
+    joint-failure point is by definition not a clean non-rejection, so any
+    skip disqualifies the strongest sub-claim (handled below by requiring
+    an empty tie_equivalent_ms for full-grid status)."""
+    walk = descending_walk(cis_by_m, margin, tie_equivalent_ms)
+    tested_full_grid = (all(m in cis_by_m for m in ELIGIBLE_M_DESCENDING)
+                        and not walk.get("skipped_tie_equivalent"))
     return finalize_verdict(walk, tested_full_grid)
 
 
 def resolve_mstar_with_extension(cis_by_m_n3: dict, margin: float = MARGIN_DEFAULT,
-                                  extended_ci_for_boundary: dict | None = None) -> dict:
+                                  extended_ci_for_boundary: dict | None = None,
+                                  tie_equivalent_ms: frozenset | set = frozenset()) -> dict:
     """Sec 1.8's straddle-triggered extension hook. Runs the n=3 walk; if
     it stops on a STRADDLE and an extended (n=9) CI for that EXACT
     boundary M is supplied, re-runs the walk with ONLY that cell's CI
@@ -146,7 +199,7 @@ def resolve_mstar_with_extension(cis_by_m_n3: dict, margin: float = MARGIN_DEFAU
     fixed-sequence structure stops testing beyond the first non-rejection
     by construction). If still a straddle (or no extension supplied),
     returns the n=3 verdict unresolved (INDETERMINATE)."""
-    verdict = run_mstar_procedure(cis_by_m_n3, margin)
+    verdict = run_mstar_procedure(cis_by_m_n3, margin, tie_equivalent_ms)
     if verdict["tier"] != "INDETERMINATE":
         verdict["extension_used"] = False
         return verdict
@@ -156,7 +209,7 @@ def resolve_mstar_with_extension(cis_by_m_n3: dict, margin: float = MARGIN_DEFAU
         return verdict
     cis_extended = dict(cis_by_m_n3)
     cis_extended[boundary_m] = extended_ci_for_boundary
-    resolved = run_mstar_procedure(cis_extended, margin)
+    resolved = run_mstar_procedure(cis_extended, margin, tie_equivalent_ms)
     resolved["extension_used"] = True
     resolved["extended_at_m"] = boundary_m
     return resolved
@@ -272,6 +325,55 @@ def smoke_6_classify_cell_boundary_exactness_negative_test():
             "(strict inequalities, not <=/>=)", ok, f"exact_high={exact_high} exact_low={exact_low}")
 
 
+def smoke_8_joint_no_recall_skip_and_all_skip_tie():
+    """The sec 1.31.1 joint-NO-RECALL rule (Rev 5.1 M3), two cases:
+    (a) MID-WALK skip -- M=16 is tie-equivalent; the walk continues past
+    it (never a stop, never in the chain, never M*): 32/8 reject, clean
+    stop at 4 -> M*=8 -> WIN, skipped=[16]; the skip also DISQUALIFIES
+    the CONFIRMED-no-crossover sub-claim by construction.
+    (b) ALL-SKIP -- every eligible point joint-fails -> TIE (a joint
+    task-learning/scale finding), NEVER the M*=inf strongest-win pathway
+    an empty chain would otherwise trigger (negative teeth: the same
+    empty-chain input WITHOUT the skips returns WIN, proving the guard,
+    not the input, does the work)."""
+    cis = {32: _ci(-0.05, 0.10), 16: _ci(0.25, 0.35), 8: _ci(0.02, 0.15),
+           4: _ci(0.25, 0.35), 2: _ci(0.30, 0.40)}
+    v = run_mstar_procedure(cis, tie_equivalent_ms={16})
+    a_ok = (v["m_star"] == 8 and v["tier"] == "WIN" and v["chain"] == [32, 8]
+            and v["stop_m"] == 4 and v["skipped_tie_equivalent"] == [16]
+            and v["confirmed_no_crossover"] is False)
+
+    cis_all = {m: _ci(0.25, 0.35) for m in ELIGIBLE_M_DESCENDING}
+    v_all = run_mstar_procedure(cis_all, tie_equivalent_ms=set(ELIGIBLE_M_DESCENDING))
+    b_ok = (v_all["tier"] == "TIE" and v_all["m_star"] is None
+            and v_all["skipped_tie_equivalent"] == [32, 16, 8, 4, 2])
+    v_noskip = run_mstar_procedure(cis_all)                     # same CIs, no skips -> WIN
+    teeth_ok = v_noskip["tier"] == "WIN" and v_noskip["m_star"] == float("inf")
+
+    ok = a_ok and b_ok and teeth_ok
+    _report("smoke 8 (sec 1.31.1 joint-NO-RECALL): a tie-equivalent M is walked PAST (never "
+            "chain/stop/M*, disqualifies CONFIRMED); all-points-joint-fail -> TIE, never the "
+            "M*=inf WIN an empty chain alone would give (teeth run to completion)", ok,
+            f"mid={v} all={v_all} noskip_tier={v_noskip['tier']}")
+
+
+def smoke_9_zero_seed_variance_disclosed():
+    """The sigma=0-at-ceiling analog for the M* machinery (sec 1.40's
+    instrument note): identical paired deltas (all seeds at exact ceiling
+    vs identical baseline reads) must be FLAGGED zero_seed_variance=True
+    (zero-width CI disclosed, not silently point-classified); a normal
+    varying-seed input must flag False."""
+    degenerate = compute_ci_from_raw_seed_values([1.0, 1.0, 1.0], [0.5, 0.5, 0.5])
+    normal = compute_ci_from_raw_seed_values([1.0, 0.999, 0.998], [0.5, 0.5, 0.5])
+    ok = (degenerate["zero_seed_variance"] is True
+          and degenerate["ci_low"] == degenerate["ci_high"] == 0.5
+          and normal["zero_seed_variance"] is False)
+    _report("smoke 9 (sigma=0 analog): identical paired deltas -> zero_seed_variance=True with "
+            "a zero-width CI (disclosed); varying deltas -> False", ok,
+            f"degenerate=({degenerate['ci_low']:.4f},{degenerate['ci_high']:.4f},"
+            f"flag={degenerate['zero_seed_variance']}) normal_flag={normal['zero_seed_variance']}")
+
+
 def smoke_7_raw_seed_values_never_a_summary():
     """compute_ci_from_raw_seed_values must reject an obviously-summarized
     (length-1) input the same way delta_ci_n itself does (n>=2 required) --
@@ -303,6 +405,8 @@ def main() -> int:
     smoke_5_descending_order_enforced_negative_test()
     smoke_6_classify_cell_boundary_exactness_negative_test()
     smoke_7_raw_seed_values_never_a_summary()
+    smoke_8_joint_no_recall_skip_and_all_skip_tie()
+    smoke_9_zero_seed_variance_disclosed()
     print("=" * 70)
     if FAILURES:
         print(f"SMOKE SUITE: {len(FAILURES)} FAILURE(S): {FAILURES}", file=sys.stderr)
