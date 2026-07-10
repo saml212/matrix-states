@@ -8,12 +8,12 @@ Page budgets from `brief.md`; venue limit 4.0 pages main content
 | # | Section | Pages | Claims (ids) | Figures | Notes |
 |---|---|---|---|---|---|
 | 1 | Introduction | 0.70 | C1-phase1, C5-power, C7-replication (headline versions) | — | keystone question; why bounded nulls; contribution bullets |
-| 2 | Setting and instruments | 0.65 | C0-ladder, C9-compute | — | ladder, grammar, three readouts, pre-registration/gates |
+| 2 | Setting and instruments | 0.65 | C0-ladder | — | ladder, grammar, three readouts, pre-registration/gates (C9-compute carried in Appendix B) |
 | 3 | Bound 1: the geometric readout never fires | 0.90 | C1-phase1, C2-rung3, C3-phase1b, C4-dissoc, C8-teeth | Fig 1, Fig 2, Table 1 | triple null; scale series; dissociation; enforcement arc |
 | 4 | Bound 2: the behavioral contrast is power-bounded | 0.60 | C5-power, C6-transient | Fig 3 (left) | 3/4 UNRESOLVED at the registered floor; the transient, sign-disciplined |
 | 5 | Bound 3: the replication gate | 0.60 | C7-replication | Fig 3 (right) | batch-effect flag; cohort CIs; what stands at what weight |
 | 6 | Related work | 0.20 | — | — | Based, Zoology, Okpekpe–Orvieto, Nichani et al., by name |
-| 7 | What is and is not bounded | 0.35 | C5-power, C9-compute (restated scope) | — | scope, alternatives, small-scale lessons, one-paragraph close |
+| 7 | What is and is not bounded | 0.35 | C5-power (restated scope) | — | scope, alternatives, small-scale lessons, one-paragraph close |
 |   | **Total** | **4.00** | | | equals venue limit |
 
 ## Outline sanity checks
@@ -51,8 +51,8 @@ Page budgets from `brief.md`; venue limit 4.0 pages main content
   premises iii/iv vs shuffled nulls) and a probe-invalid routing rule.
 - Instrument 2 (behavioral): vocabulary-space L_query contrast (off − arm)
   with a pre-registered six-bucket trajectory classification.
-- Discipline: every wave gate-first, verdicts routed mechanically;
-  compute footprint. <C9-compute>
+- Discipline: every wave gate-first, verdicts routed mechanically
+  (compute disclosure carried in Appendix B). <C9-compute>
 
 ### 3. Bound 1: the geometric readout never fires
 - Phase 1 (zero-shot, marker template): 312/312 readings exactly 0.0;
