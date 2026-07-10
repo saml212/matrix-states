@@ -117,7 +117,11 @@ def run_msweep_fanout(manifest: list[dict], eval_pass_fn, checkpoint_loader_fn, 
         for cell in cells:
             outcomes.append(run_pass_exception_isolated(cell, eval_pass_fn, checkpoint_loader_fn,
                                                           cache, out_dir))
-        load_counts[ckpt_key] = cache.load_count.get(ckpt_key, 0)
+        # string key, never the raw (task, seed_idx) tuple: mode_fanout_all json.dump's this
+        # summary (FANOUT_SUMMARY.json) and tuple keys crash the encoder -- found LIVE on the
+        # first production fan-out (2026-07-10, after all 90 passes completed; results were
+        # unharmed, only the summary write crash-looped). Smoke 2 now asserts serializability.
+        load_counts["|".join(str(p) for p in ckpt_key)] = cache.load_count.get(ckpt_key, 0)
 
     summary = {"completed": 0, "skipped_already_valid": 0, "failed": 0, "failures": []}
     for o in outcomes:
@@ -172,12 +176,19 @@ def smoke_2_checkpoint_residency_across_full_fanout():
         summary = run_msweep_fanout(manifest, _fake_eval, _fake_loader, tmp)
         n_distinct_keys = len(set(c["ckpt_key"] for c in manifest))
         all_loaded_once = all(v == 1 for v in summary["checkpoint_load_counts"].values())
+        # the summary MUST be json-serializable end-to-end (mode_fanout_all dumps it);
+        # tuple-keyed load_counts crashed the first production fan-out's summary write.
+        try:
+            json.dumps(summary)
+            serializable = True
+        except TypeError:
+            serializable = False
         ok = (summary["completed"] == 90 and load_calls["n"] == n_distinct_keys == 6
-              and all_loaded_once)
+              and all_loaded_once and serializable)
         _report("smoke 2: EVERY checkpoint loaded exactly once across the full 90-pass fan-out "
-                "(6 distinct (task,seed) keys, 15 passes each)", ok,
+                "(6 distinct (task,seed) keys, 15 passes each); summary json-serializable", ok,
                 f"n_distinct_keys={n_distinct_keys} load_calls={load_calls['n']} "
-                f"load_counts={summary['checkpoint_load_counts']}")
+                f"serializable={serializable} load_counts={summary['checkpoint_load_counts']}")
 
 
 def smoke_3_resume_skips_completed_passes():
