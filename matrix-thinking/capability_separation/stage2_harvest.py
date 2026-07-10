@@ -121,10 +121,29 @@ def expected_calibration_cell_ids() -> set[str]:
     return calib
 
 
+# S2.30 item 5 (the S2.29 audit's incidental finding, twice independently
+# verified): the S2.5 "68 new training cells" figure counts 68 grid OBJECTS,
+# but the primary grid (n_h=2 for ALL groups/arms) and the n_h-grid
+# ({S5,A6} x n_h {1,2,4} x Arm 3) OVERLAP at exactly these six ids -- the
+# same experiment listed in both grids -- so the distinct-experiment
+# manifest is 62. Pinned literally so any OTHER shrinkage still trips.
+EXPECTED_GRID_COLLISION_IDS = {
+    f"{g}__arm3_beta02__nh2__seed{s}" for g in ("S5", "A6") for s in range(3)
+}
+
+
 def expected_full_grid_cell_ids() -> set[str]:
-    """Total 68 new training cells (S2.5): 50 primary + 18 n_h-grid."""
-    full = expected_primary_cell_ids() | expected_nh_grid_cell_ids()
-    assert len(full) == 68, f"independent-literal full grid: expected 68, got {len(full)}"
+    """Total 68 grid objects == 62 DISTINCT cells (S2.5 as adjudicated at
+    S2.30 item 5): 50 primary + 18 n_h-grid, overlapping at exactly
+    `EXPECTED_GRID_COLLISION_IDS` (6 ids)."""
+    primary, nh = expected_primary_cell_ids(), expected_nh_grid_cell_ids()
+    overlap = primary & nh
+    assert overlap == EXPECTED_GRID_COLLISION_IDS, (
+        f"independent-literal full grid: primary/nh-grid overlap {sorted(overlap)} != the "
+        f"S2.30-adjudicated collision set {sorted(EXPECTED_GRID_COLLISION_IDS)}"
+    )
+    full = primary | nh
+    assert len(full) == 62, f"independent-literal full grid: expected 62 distinct, got {len(full)}"
     return full
 
 

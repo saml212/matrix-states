@@ -7161,3 +7161,93 @@ SSD-mirrored. Pointers: `stage2_sweep_worker.py` (the launch wiring),
 sweep completion → the FULL-GRID harvest (M-D1/M-D2/M-D3 at
 registered seed counts) = §2.31, honoring the §2.28 exclusions and
 the arm1-exposure scope note in any Arm-1 depth comparison.
+
+### §2.31 FULL-GRID HARVEST (2026-07-10): SWEEP COMPLETE 62/62 CLEAN — MECHANICAL M-D3 READS FALSIFY, BUT THE VERDICT IS **CONTESTED**: A SYSTEMATIC PRIMARY-vs-CROSSCHECK READOUT CONTRADICTION (0 vs 1.0) SITS EXACTLY ON THE PERFECTLY-CONVERGED CONTENDER CELLS — THE §1.25 WRONG-LENS CLASS. STOPPED FOR THE COORDINATOR TIEBREAK; NO MODEL VERDICT IS CLAIMED.
+
+**1. SWEEP COMPLETE.** `SWEEP_DONE` 21:20:45Z; 7/7 shards, 51/51 new
+cells, ZERO cell failures and zero supervisor retries (shard logs
+archived); wall 20:31→21:20 (~49 min across GPUs 0-6, as §2.30
+projected). Full-grid manifest: **62/62 loaded, clean** — after one
+disclosed harvest-instrument correction:
+`expected_full_grid_cell_ids`'s independent literal asserted the
+pre-collision "68" count and crashed on its own (correct) set
+arithmetic; fixed to the §2.30-adjudicated truth with STRONGER teeth
+(the primary/nh overlap must equal the exact pinned 6-id collision
+set — any OTHER shrinkage still trips; mutation-tested; 7/7 harvest
+self-tests pass; the underlying counts were independently certified
+by both the §2.29 and §2.30 auditors, cited here as the audit basis
+for this one literal).
+
+**2. THE MECHANICAL ENDPOINT (the pre-registered M-D3 machinery, run
+as built on the PRIMARY metric): FALSIFY** — "the contender does NOT
+measurably separate from Arm 2 at EITHER S5 or A6 at the far (~8×)
+checkpoint." Multi-seed primary ceilings: S3 0.51, S4 0.29, A5 0.09,
+S5 0.10, A6 0.02. (`stage2_harvest_report.json`, committed.)
+
+**3. INSTRUMENT-HEALTH ADJUDICATION (coordinator-required BEFORE any
+model reading; from the raw per-cell artifacts, archived table
+`instrument_health_adjudication.log`).** Healthy: 2(e) anchor floors
+0 violations in 62/62; gate routes 59× `pass`. Convergence
+(final_loss, cosine): Arm 3 fits training essentially PERFECTLY on
+S3/S4/S5-nh4/A6-nh4 (0.000-0.012); Arm 2 fits POORLY everywhere
+(0.11-0.35). **THE FINDING: on exactly the perfectly-converged
+contender cells, the PRIMARY readout (recovered_frac_90, the degauge
+pipeline) and the pre-registered CROSSCHECK readout (C1) contradict
+each other at 0-vs-1.0 magnitude at the far depth D=64:**
+
+| decisive/near-decisive cell | final_loss | primary rf90@64 | XCHECK rf90@64 | XCHECK mean_cos@64 |
+|---|---|---|---|---|
+| A6 arm3 nh4 seed0 | 0.0001 | 0.050 | **1.000** | 0.995 |
+| A6 arm3 nh4 seed1 | 0.0001 | 0.000 | **1.000** | 0.999 |
+| S4 arm3 nh2 seed2 | 0.0002 | 0.050 | **1.000** | 0.999 |
+| S5 arm3 nh4 seed0 (S5's DECISIVE config) | 0.0019 | 0.000 | **0.800** | 0.933 |
+| S5 arm3 nh4 seed2 | 0.0117 | 0.000 | **0.650** | 0.920 |
+| S5 arm3 nh4 seed1 | 0.0064 | 0.000 | 0.000 | −0.02 |
+
+The two lenses agree (both ≈0) wherever the model did NOT converge
+(all Arm-2 cells; A6-nh2; A5) and DISAGREE catastrophically wherever
+it did. The M-D3 endpoint FLIPS on the metric choice at S5's decisive
+n_h=4 config: by the crosscheck, the contender holds 0.65-0.93 far
+recovery at 8× train depth against an Arm-2 baseline at 0 —
+CONFIRM-direction separation; by the primary, FALSIFY. Both cannot be
+right. Precedents cited, not decided: §1.25 (a PERFECT model failed
+the production degauge readout — two instrument defects, models
+healthy) and h2h §1.27-§1.29 (three "failure" rounds were a
+wrong-layer instrument). The mirror hypothesis is ALSO recorded: if
+the CROSSCHECK is the broken lens (target leakage /
+trivial-satisfiability), FALSIFY stands — adjudicating WHICH lens is
+broken requires a mechanistic read of both constructions
+(`readout.py` degauge_and_score vs the C1 crosscheck path), which is
+the tiebreak, not this record.
+
+**4. VERDICT: CONTESTED (FALSIFY-by-primary vs
+instrument-defect-with-CONFIRM-direction-signal-by-crosscheck).
+STOPPED** per the coordinator's pre-registered instruction — no model
+verdict is claimed, nothing downstream is dispatched, the coordinator
+reads the raws and records the tiebreak. Also queued for the tiebreak
+(recorded, not routed): 3/62 cells (all A5, seeds 3-4) fail the 2(e)
+bar at isolated depths with healthy floors — the pre-registered
+level-1 routing (BOS fix + re-run all 11 calibration cells) is NOT
+triggered here pending the tiebreak, since the routing was designed
+for the calibration wave and the affected group (A5) sits in the
+non-converging regime where both lenses already agree.
+
+**5. LEDGER.** Sweep spend: 51 cells, ≈2.63 GPU-h training-ledger
+(0.0516 GPU-h/cell — in-band; slightly above the calibration 0.0433
+from the sweep's higher A6-40K share, and above the §2.30 2.47
+projection by 6% — well inside the breaker envelope); Stage-2 total
+≈3.11 of 25 GPU-h.
+
+**6. SECURITY.** Zero fake system-reminder blocks in tool stdout this
+segment. Tally holds at 84.
+
+**Archive:** `experiment-runs/2026-07-10_stage2_calibration/` — new:
+`sweep_results/` (all 62 cell JSONs + the full-grid
+`stage2_harvest_report.json`, committed),
+`instrument_health_adjudication.log`, `stage2_sweep_shard0-6.log` +
+`stage2_sweep_supervisor.log` (SSD; logs gitignored per policy);
+SSD-mirrored. Pointers: `stage2_harvest.py::expected_full_grid_cell_ids`
+(the manifest literal fix + `EXPECTED_GRID_COLLISION_IDS`),
+`instrument_health_adjudication.log` (the full 14-config table).
+**NEXT: the coordinator tiebreak on primary-vs-crosscheck; every
+§2.31 number is recomputable from the committed raws.**
