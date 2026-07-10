@@ -1,0 +1,63 @@
+\section{Introduction}
+\label{sec:intro}
+
+Continuous chain-of-thought (CoT) models replace explicit textual
+reasoning steps with continuous latent tokens fed back into the
+transformer's residual stream. COCONUT \citep{hao2024coconut} and
+CODI \citep{shen2025codi} are representative instances: both
+compress an explicit rationale into a small number of continuous
+latent positions and decode the answer from the resulting state.
+Theoretical work \citep{zhu2025superposition,gozeten2025cot2} argues
+that these latents can hold multiple reasoning paths in
+\emph{superposition}, so continuous CoT could explore a search tree
+in parallel.
+
+\citet{rizvi2026illusion} challenged this: a fine-tuned COCONUT model
+reaches 96.6\% on ProsQA \emph{without} feeding back any latent
+tokens, against 99.0\% with latents and 85.3\% for explicit CoT. They
+named this the \emph{Illusion of Superposition}.
+
+Matrix-valued latents \citep[e.g.,][]{shen2025codi} make the
+measurement concrete: a $d\times d$ thought $\Z$ has a computable
+rank via its SVD. If each singular direction encodes a separate
+reasoning path, truncating $\Z$ to rank $k$ at inference should
+degrade accuracy when the task needs more than $k$ paths, making
+the rank-$k$ ablation curve a natural probe.
+
+But rank counts parallel paths only under conditions the matrix
+parametrization does not guarantee: the stored features must align
+with the singular directions of $\Z=\mathrm{reshape}(W_{\text{up}}h)$,
+and the training objective must reward that alignment. Superposition,
+moreover, need not be orthogonal: features packed at small mutual
+angles need not raise the rank, so the number of superposed features
+need not equal the rank. We therefore test directly whether
+matrix-CODI training makes rank a functional readout of reasoning. It
+does not.
+
+\subsection{Contributions}
+
+We report five results on a matrix-CODI bottleneck (GPT-2 small,
+$d{=}16$, six latent positions, ProsQA):
+
+\begin{itemize}
+\setlength\itemsep{2pt}
+\item Rank-$k$ ablation is flat at two distillation weights, with
+the multiplicative thinker on or off, and on GSM8K-Aug as well as
+ProsQA. Range across $k\!\in\!\{1,2,4,8,16\}$ is $\leq 0.6$pp.
+\item Three seeds at otherwise identical hyperparameters land at
+effective ranks $\{4, 12, 13\}$ and accuracy of
+$81.51\!\pm\!1.2$pp.
+\item Four nonlinear-in-$\Z$ readouts (bilinear, bilinear+GELU,
+SVD-augmented, quadratic in $\Z\Z^\top$) also give flat curves;
+Spearman $p$ in $[0.14,\,0.82]$.
+\item A linear probe on $\Z$ (1536 features across six positions)
+reaches AUC $0.673$ on ProsQA target prediction; a pretrained
+GPT-2 hidden state at 768 features reaches $0.846$ on the same
+task.
+\item Rank-$k$ on vanilla GPT-2 SFT (no $\Z$, three seeds)
+reproduces a flat curve under the same intervention paradigm;
+pooled range $0.20$pp.
+\end{itemize}
+
+The seed-level rank spread is what distinguishes the rank-blindness
+reading from position-irrelevance.

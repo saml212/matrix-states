@@ -1,0 +1,72 @@
+\section{Background}
+\label{sec:background}
+
+\subsection{The matrix-CODI bottleneck}
+
+\paragraph{CODI distillation.} CODI \citep{shen2025codi} trains a
+student to compress an explicit chain-of-thought into a fixed number
+of continuous latent positions by matching a hidden-state target
+from a teacher pass. The teacher pass consumes prompt $+$ CoT $+$
+answer and produces a reference hidden state at a designated
+colon-token position. The student pass consumes prompt $+\;n$ latent
+positions $+$ answer, where each latent position is produced by
+feeding the previous step's hidden state back as the next input
+embedding. A hidden-state L1 loss (the \emph{distillation} loss)
+aligns the student's state at the answer colon to the teacher's,
+and a standard next-token cross-entropy loss trains the answer
+prediction. The total loss is $\mathcal{L}=\gamma\mathcal{L}_{\text{kd}}+\mathcal{L}_{\text{ce}}$.
+
+\paragraph{Why matrix latents.} A vector of dimension $D$ has no
+single-sample notion of how many independent components it
+superposes; a $d\times d$ matrix has rank as a structural observable.
+Matrix-valued memory has a long lineage \emph{inside} attention and
+SSM layers (\S\ref{sec:related}). Matrix-CODI is different in
+placement: the matrix sits on the explicit chain-of-thought
+feedback path, one $d\times d$ thought per latent reasoning
+position. We test whether the rank of that matrix behaves as a
+per-step count of reasoning paths under CODI-style training.
+
+\paragraph{Matrix bottleneck.} We extend CODI with a
+\emph{matrix bottleneck} on the latent feedback path. Given the
+previous latent hidden state $h\in\R^{D}$ (here $D=768$ for GPT-2
+small):
+\begin{align*}
+\text{flat} &= W_{\text{up}}\,h,\qquad W_{\text{up}}\in\R^{d^2\times D}\\
+\Z &= \text{reshape}(\text{flat};\,d,d)\in\R^{d\times d}\\
+\Z &\leftarrow (I+\Delta(\Z))\,\Z\,(I+\Gamma(\Z)) \quad\text{(optional thinker)}\\
+h_{\text{out}} &= \text{LayerNorm}(\phi(\Z)),
+\end{align*}
+where $\phi:\R^{d\times d}\to\R^{D}$ is the \emph{readout}. The
+default readout is $\phi(\Z)=W_{\text{down}}\vecop(\Z)$, which we
+call the \emph{flatten-then-project} readout. $W_{\text{down}}\in
+\R^{D\times d^2}$. We use $d=16$ throughout.
+
+\subsection{Probing rank}
+
+\paragraph{Rank-$k$ ablation.} At inference, compute the SVD
+$\Z = U\Sigma V^\top$ and replace $\Z$ by its rank-$k$ truncation
+\[
+\Z_k \;=\; U_{:,\,:k}\,\Sigma_{:k,\,:k}\,V_{:,\,:k}^\top
+\]
+before the readout. If rank is functional, accuracy should drop
+as $k$ decreases to 1. If rank is vestigial, the curve is flat.
+
+\paragraph{Effective rank.} The numerical rank of $\Z$ is always
+$d$ since it is a dense trained matrix. For training curves we
+report \emph{effective rank}, a smooth spectral proxy:
+\begin{align*}
+H_{\text{eff}}(\Z) &\;=\; \exp\!\left(-\sum_i \tilde\sigma_i \log \tilde\sigma_i\right),\\
+\tilde\sigma_i &\;=\; \sigma_i \big/ \textstyle\sum_j \sigma_j.
+\end{align*}
+The ablation itself uses hard top-$k$ truncation. The question of
+interest is whether the structural capacity offered by rank $>1$
+is functionally used.
+
+\paragraph{ProsQA.} ProsQA \citep{hao2024coconut} is a synthetic
+entailment task: a diamond-shaped directed acyclic graph of
+entities and a question \emph{which leaf entity has property $P$?}.
+Each problem has a unique positive answer and a single distractor.
+We use the training split from the original COCONUT release. Rank-$k$
+ablations use the 128-problem test split from the original CODI
+release; the linear probe and negative control draw on a larger
+held-out set of 500 problems, noted where used.

@@ -1,0 +1,138 @@
+\begin{thebibliography}{18}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Arora et~al.(2019)Arora, Cohen, Hu, and Luo]{arora2019implicit}
+Arora, S., Cohen, N., Hu, W., and Luo, Y.
+\newblock Implicit regularization in deep matrix factorization.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2019.
+\newblock arXiv:1905.13655.
+
+\bibitem[Deng et~al.(2025)Deng, Pang, Wei, Xu, Duan, Xu, Song, Shen, and
+  Cheng]{wang2025latentvocab}
+Deng, J., Pang, L., Wei, Z., Xu, S., Duan, Z., Xu, K., Song, Y., Shen, H., and
+  Cheng, X.
+\newblock {LLM} latent reasoning as chain of superposition.
+\newblock \emph{arXiv preprint arXiv:2510.15522}, 2025.
+
+\bibitem[Dong et~al.(2021)Dong, Cordonnier, and Loukas]{dong2021attention}
+Dong, Y., Cordonnier, J.-B., and Loukas, A.
+\newblock Attention is not all you need: Pure attention loses rank doubly
+  exponentially with depth.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2021.
+\newblock arXiv:2103.03404.
+
+\bibitem[Gozeten et~al.(2025)Gozeten, Ildiz, Zhang, Harutyunyan, Rawat, and
+  Oymak]{gozeten2025cot2}
+Gozeten, A., Ildiz, M.~E., Zhang, Y., Harutyunyan, H., Rawat, A.~S., and Oymak,
+  S.
+\newblock Continuous chain of thought enables parallel exploration and
+  reasoning.
+\newblock \emph{arXiv preprint arXiv:2505.23648}, 2025.
+
+\bibitem[Gunasekar et~al.(2017)Gunasekar, Woodworth, Bhojanapalli, Neyshabur,
+  and Srebro]{gunasekar2017implicit}
+Gunasekar, S., Woodworth, B., Bhojanapalli, S., Neyshabur, B., and Srebro, N.
+\newblock Implicit regularization in matrix factorization.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2017.
+\newblock arXiv:1705.09280.
+
+\bibitem[Hao et~al.(2024)Hao, Sukhbaatar, Su, Li, Hu, Weston, and
+  Tian]{hao2024coconut}
+Hao, S., Sukhbaatar, S., Su, D., Li, X., Hu, Z., Weston, J., and Tian, Y.
+\newblock Training large language models to reason in a continuous latent
+  space.
+\newblock \emph{arXiv preprint arXiv:2412.06769}, 2024.
+
+\bibitem[Kobayashi et~al.(2024)Kobayashi, Akram, and von
+  Oswald]{kobayashi2024weightdecay}
+Kobayashi, S., Akram, Y., and von Oswald, J.
+\newblock Weight decay induces low-rank attention layers.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2024.
+\newblock arXiv:2410.23819.
+
+\bibitem[Li \& Janson(2024)Li and Janson]{li2024optimal}
+Li, M. and Janson, L.
+\newblock Optimal ablation for interpretability.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2024.
+\newblock arXiv:2409.09951.
+
+\bibitem[Li et~al.(2026)Li, Bai, Chen, Li, Yang, Lin, and
+  Zhang]{anonymous2026dynamics}
+Li, Z., Bai, X., Chen, K., Li, Y., Yang, J., Lin, C., and Zhang, M.
+\newblock Dynamics within latent chain-of-thought: An empirical study of causal
+  structure.
+\newblock \emph{arXiv preprint arXiv:2602.08783}, 2026.
+
+\bibitem[Lu et~al.(2025)Lu, Yang, Lee, Li, and Liu]{lu2025huginn}
+Lu, W., Yang, Y., Lee, K., Li, Y., and Liu, E.
+\newblock Latent chain-of-thought? decoding the depth-recurrent transformer.
+\newblock \emph{arXiv preprint arXiv:2507.02199}, 2025.
+
+\bibitem[Nazari \& Rusch(2026)Nazari and Rusch]{nazari2026rank}
+Nazari, P. and Rusch, T.~K.
+\newblock The key to state reduction in linear attention: A rank-based
+  perspective.
+\newblock \emph{arXiv preprint arXiv:2602.04852}, 2026.
+
+\bibitem[Razin \& Cohen(2020)Razin and Cohen]{razin2020implicit}
+Razin, N. and Cohen, N.
+\newblock Implicit regularization in deep learning may not be explainable by
+  norms.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2020.
+\newblock arXiv:2005.06398.
+
+\bibitem[Rizvi-Martel et~al.(2026)Rizvi-Martel, Rabusseau, and
+  Mosbach]{rizvi2026illusion}
+Rizvi-Martel, M., Rabusseau, G., and Mosbach, M.
+\newblock The illusion of superposition? a principled analysis of latent
+  thinking in language models.
+\newblock \emph{arXiv preprint arXiv:2604.06374}, 2026.
+
+\bibitem[Shen et~al.(2025)Shen, Yan, Zhang, Hu, Du, and He]{shen2025codi}
+Shen, Z., Yan, H., Zhang, L., Hu, Z., Du, Y., and He, Y.
+\newblock {CODI}: Compressing chain-of-thought into continuous space via
+  self-distillation.
+\newblock In \emph{Proceedings of the Conference on Empirical Methods in
+  Natural Language Processing (EMNLP)}, 2025.
+\newblock arXiv:2502.21074.
+
+\bibitem[Shen et~al.(2026)]{shen2025simcot}
+Shen, Z. et~al.
+\newblock {SIM-CoT}: Step-level implicit supervision for continuous chain of
+  thought.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2026.
+\newblock arXiv:2509.20317.
+
+\bibitem[Sun et~al.(2026)Sun, Zhang, Zhou, Ma, Qin, Su, Liu, Ma, Xu, Gao, Hao,
+  and He]{anonymous2026staterank}
+Sun, A., Zhang, H., Zhou, H., Ma, Y., Qin, Y., Su, T., Liu, Y., Ma, Z., Xu, J.,
+  Gao, J., Hao, J., and He, R.
+\newblock State rank dynamics in linear attention {LLMs}.
+\newblock \emph{arXiv preprint arXiv:2602.02195}, 2026.
+
+\bibitem[Yan et~al.(2022)Yan, Gui, Li, and He]{yan2022uniformity}
+Yan, H., Gui, L., Li, W., and He, Y.
+\newblock Addressing token uniformity in transformers via singular value
+  transformation.
+\newblock \emph{arXiv preprint arXiv:2208.11790}, 2022.
+
+\bibitem[Zhu et~al.(2025)Zhu, Hao, Hu, Jiao, Russell, and
+  Tian]{zhu2025superposition}
+Zhu, H., Hao, S., Hu, Z., Jiao, J., Russell, S., and Tian, Y.
+\newblock Reasoning by superposition: A theoretical perspective on chain of
+  continuous thought.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2025.
+\newblock arXiv:2505.12514.
+
+\end{thebibliography}

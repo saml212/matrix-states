@@ -1,0 +1,57 @@
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+\paragraph{Single task, single architecture family.} All core
+experiments run on ProsQA \citep{hao2024coconut} on GPT-2
+$\{$small, medium, large$\}$. The GSM8K-Aug result in
+Table~\ref{tab:four-flat} is at a $6\%$ operating point where the
+model is barely learning the task; it is not strong evidence on
+its own. The structural argument
+(Proposition~\ref{prop:jac}) is stated in terms of the readout
+$\phi$ and is therefore architecture-agnostic, but the empirical
+evidence covers only this scale family. Cross-dataset replication
+on GSM8K at a higher-accuracy operating point is pending.
+
+\paragraph{Seed-dependent $\Z$ rank.} The three-seed decoupling
+(Fig.~\ref{fig:seed-decoupling}) is a separate finding: the same
+configuration, varying only the seed, produces models at effective
+ranks $\{4, 12, 13\}$ with accuracies $\{81.25, 82.81, 80.47\}$.
+Three seeds do not give statistical power to claim the rank
+distribution is flat or uniform; the narrower claim is that seeds
+at otherwise identical hyperparameters converge to materially
+different effective ranks, inconsistent with a strong loss-side
+preference for a specific rank. Implicit regularization from the
+optimizer (Adam $+$ weight decay; \S\ref{sec:related}) may still
+shape rank through channels outside $\mathcal{L}$. An $n\!=\!10$
+replication is pending.
+
+\paragraph{One seed per positive control.} The four
+positive-control variants in \S\ref{sec:pc} were each trained once
+(compute-bounded). Spearman $p$-values are computed on $128$ test
+problems per checkpoint, which limits power for small effects. A
+three-seed replication per variant ($\sim\!42$ H100-hours) and
+re-running the four positive-control rank-$k$ evaluations on the
+full $500$-problem ProsQA test set are both pending; the
+$500$-problem eval raises power to detect $|r_s|\!\geq\!0.15$ from
+$\sim\!40\%$ to $\sim\!80\%$ at $\alpha\!=\!0.05$.
+
+\paragraph{Alternative explanation: the task is rank-1-solvable.}
+ProsQA has a unique positive answer and a single distractor. If
+all answer-predictive information lives in one singular direction
+of $\Z$, every architecture would converge to a rank-1 functional
+solution and rank-$k$ truncation would be flat. Our data are
+consistent with that. What the strong reading does not explain
+is that the trained $\Z$ reaches effective rank $12$--$13$ at
+$\gamma=0$ instead of collapsing to 1, and three seeds spread to
+$\{4,12,13\}$ rather than concentrating. The model builds rank it
+does not functionally use, and the rank it builds is
+seed-dependent. A reasoning task whose ground truth provably
+requires $k>1$ independent quantities at the answer position would
+disambiguate; we do not have one at this scale.
+
+A result that would revise our reading: a readout that bends the
+rank-$k$ curve on ProsQA (or a comparable structured task) under a
+matrix-bottleneck objective. The four readouts in \S\ref{sec:pc}
+were chosen to maximize the chance of seeing one. A different
+training objective that explicitly rewards rank is a separate
+direction we do not address.

@@ -1,0 +1,192 @@
+\section{Positive Control: Nonlinear Readouts Also Produce Flat Curves}
+\label{sec:pc}
+
+Proposition~\ref{prop:jac} gives a sufficient condition for the
+readout Jacobian to be constant in $\Z$. We test the prediction by
+training four readouts that violate it and measuring the rank-$k$
+curve on each.
+
+\subsection{Four readout variants}
+
+We replace only $\phi:\R^{d\times d}\to\R^D$ in the matrix bottleneck
+and leave all other training hyperparameters fixed (gpt2-small,
+ProsQA, $\gamma=0$, six latent positions, $d=16$, 25 epochs, batch
+16, seed $1337$, AdamW at $\text{lr}=10^{-4}$). All four are trained
+at $\gamma=0$ (no CODI L1-at-colon term), so the flat curves below
+are about the cross-entropy loss through the matrix bottleneck, not
+specifically the CODI distillation loss.
+
+\paragraph{Bilinear.} $\phi(\Z) = W\,\operatorname{probes}(\Z)$
+where $\operatorname{probes}(\Z)_k = u_k^\top \Z v_k$ for $K=d^2$
+learned probe pairs $(u_k,v_k)\in\R^d\times\R^d$. Each probe is a
+Frobenius inner product $\langle u_k v_k^\top,\Z\rangle_F$, linear
+in $\Z$. A reparametrization control: it checks that the low-rank
+factoring of $W_{\text{down}}$ does not change the curve.
+
+\paragraph{Bilinear+GELU.} $\phi(\Z) = W\,\operatorname{GELU}(
+\operatorname{probes}(\Z))$. The GELU gates each probe by a scalar
+that depends on $\Z$, making $\phi$ nonlinear in $\Z$. The Jacobian
+is not constant, but its column space in $\R^{d\times d}$ is fixed
+(the span of the $u_k v_k^\top$); only column magnitudes vary with
+$\Z$. A mild violation of Proposition~\ref{prop:jac}; SVD-augmented
+(next) is a stronger one.
+
+\paragraph{SVD-augmented.} $\phi(\Z) = W_{\text{down}}\vecop(\Z) +
+\operatorname{MLP}(\sigma(\Z))$, where $\sigma(\Z)\in\R^d$ is the
+vector of singular values fed through two dense layers with GELU.
+We compute $\sigma(\Z)$ via \texttt{torch.linalg.svdvals}, whose
+backward is documented as unconditionally numerically stable (in
+contrast to full \texttt{torch.linalg.svd}, whose backward is
+unstable at near-coincident singular values). This variant
+explicitly exposes rank to the optimizer. SVD-augmented's best
+accuracy ($78.12\%$) is below the flatten baseline ($80.47\%$), so
+the optimizer is not zeroing the \texttt{sigma\_proj} branch and
+falling back to flatten alone.
+
+\paragraph{Quadratic.} $\phi(\Z) = W_{\text{down}}\vecop
+\operatorname{concat}(\Z\Z^\top,\Z^\top\Z)$. Quadratic in $\Z$ and
+linear in the second-moment tensor. The gradient with respect to
+$\Z$ depends on $\Z$ itself.
+
+\subsection{All four rank-$k$ curves are flat}
+
+We computed the rank-$k$ ablation on each trained checkpoint at
+$k\in\{1,2,4,8,16\}$ on $128$ ProsQA test problems (the standard
+CODI eval split).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig1_rank_curves.pdf}
+\caption{Rank-$k$ projection ablation for five readouts on ProsQA.
+The flatten (linear) baseline is the Round 3 $\gamma=0$ run. All
+four positive-control readouts, including the explicitly
+nonlinear-in-$\Z$ Bilinear+GELU, the SVD-augmented readout that
+feeds singular values through an MLP, and the quadratic readout in
+$\Z\Z^\top$, produce curves flat to within $\sim\!0.8$pp. The
+Quadratic readout is perfectly flat at $79.69\%$ across all five
+$k$.}
+\label{fig:pc}
+\end{figure}
+
+\begin{table}[t]
+\caption{Rank-$k$ ablation accuracies (\%) by readout on $128$
+ProsQA test problems. Spearman $r_s$ of per-sample effective rank
+against correctness; $p$ is two-sided. None significant.}
+\label{tab:pc}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccccccl}
+\toprule
+Readout & k{=}1 & k{=}2 & k{=}4 & k{=}8 & k{=}16 & $r_s$ & $p$ \\
+\midrule
+flatten       & 79.0 & 79.0 & 79.0 & 79.0 & 79.0 & $\sim\!0$ & --- \\
+bilinear      & 78.1 & 78.9 & 78.9 & 78.1 & 78.1 & $+0.04$ & $0.63$ \\
+bilinear+GELU & 78.9 & 79.7 & 79.7 & 79.7 & 79.7 & $-0.13$ & $0.14$ \\
+svd-aug       & 77.3 & 78.1 & 78.1 & 77.3 & 78.1 & $+0.02$ & $0.82$ \\
+quadratic     & 79.7 & 79.7 & 79.7 & 79.7 & 79.7 & $+0.07$ & $0.46$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All four $p$-values are above $0.14$; the Quadratic readout is
+identical across all five $k$. The SVD-augmented readout, which
+exposes singular values directly to the optimizer, does not produce
+a rank-dependent curve.
+
+\subsection{The mechanism is not just readout linearity}
+
+Readouts with non-constant Jacobians still produce flat rank-$k$
+curves. Proposition~\ref{prop:jac} is sufficient but not necessary
+to cause them.
+
+A plausible refinement: the trained readout's Jacobian at test
+inputs has an effectively rank-1 active subspace in $\Z$ regardless
+of whether the readout is in-principle nonlinear. In the absence of
+an objective term that rewards rank, every readout family tested
+admits a rank-1 shortcut and the optimizer takes it. We have not
+yet measured $\mathrm{erank}(J(\Z))$ on these checkpoints to test
+this directly.
+
+Combined with the three-seed decoupling (effective ranks
+$\{4,12,13\}$ at matched accuracy, Fig.~\ref{fig:seed-decoupling}),
+the rank of $\Z$ in matrix-CODI is a free direction in the loss
+landscape, and the four readouts above do not constrain it.
+Candidates that might (we do not test them): an explicit rank reward
+in the loss, tasks with verifiable multi-rank ground truth, or
+step-level supervision in the spirit of SIM-CoT
+\citep{shen2025simcot}.
+
+\subsection{Negative control: rank-$k$ ablation on vanilla GPT-2 SFT}
+\label{sec:pc-negctrl}
+
+If the flat rank-$k$ curves were specific to the matrix-bottleneck
+objective, running the same probe on a model with no bottleneck
+should bend them. We run that test on a vanilla GPT-2 small
+fine-tuned for ProsQA via standard supervised fine-tuning
+(\textsc{pure-sft}; no latent tokens, no $\Z$, no distillation).
+Three seeds $\{1337, 42, 7\}$ trained to $\sim\!79$pp ProsQA accuracy
+matching the paper's vanilla baseline. We then \emph{construct} a
+fake $\Z$ at inference by reshaping the first $256$ dimensions of
+$h$ into a $16\!\times\!16$ matrix at the six token positions
+immediately preceding the answer-prefix colon (the analog of
+matrix-CODI's six latent positions), apply rank-$k$ truncation to
+the fake $\Z$ via SVD, and propagate the modified residual through
+the remaining transformer blocks. Decoding uses no KV cache, so the
+intervention re-fires at every step.
+
+\begin{table}[t]
+\caption{Negative control: rank-$k$ ablation on vanilla GPT-2 SFT
+(no matrix bottleneck, no $\Z$). Fake $\Z$ built from
+$h[:\!256]$ reshaped to $16\!\times\!16$ at the six analog-latent
+positions. Pooled-mean range across $k$ is $0.20$pp. Per-seed
+Spearman $r_s$: $+0.32, -0.16, +0.71$ ($n\!=\!500$ test problems
+each).}
+\label{tab:pc-negctrl}
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+seed & $k=1$ & $k=2$ & $k=4$ & $k=8$ & $k=16$ \\
+\midrule
+$1337$ & $79.80$ & $80.20$ & $80.00$ & $80.20$ & $80.00$ \\
+$42$   & $79.00$ & $78.80$ & $78.60$ & $78.60$ & $79.00$ \\
+$7$    & $78.00$ & $78.00$ & $78.00$ & $78.00$ & $78.20$ \\
+\midrule
+pooled & $78.93$ & $79.00$ & $78.87$ & $78.93$ & $79.07$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pooled-mean range across $k$ is $0.20$pp
+(Table~\ref{tab:pc-negctrl}; Fig.~\ref{fig:pc-negctrl} overlays
+per-seed and pooled curves on the matrix-CODI flatten reference).
+As a sensitivity floor, replacing $h$ at the same six positions with
+i.i.d.\ Gaussian noise matched in mean and standard deviation
+produces seed accuracies $\{79.6, 79.2, 78.2\}$pp, statistically
+indistinguishable from the unablated $\{80.0, 78.8, 78.0\}$pp. The
+intervention paradigm is uninformative on this model.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig6_negative_control.pdf}
+\caption{Negative control: rank-$k$ ablation on vanilla GPT-2 SFT
+(no matrix bottleneck, no $\Z$). Each gray dotted line is one seed
+of the vanilla model; the heavy black line is the pooled mean
+across the three seeds. The matrix-CODI flatten curve from
+\S\ref{sec:flat} is overlaid in red as the reference. Both curves
+are flat to within a fraction of a percentage point.}
+\label{fig:pc-negctrl}
+\end{figure}
+
+A flat rank-$k$ curve is consistent with two states: a rank-blind
+objective, or positions that do not carry the task's information.
+Vanilla SFT is in the second by construction. The rank-$k$ ablation
+alone cannot distinguish them.
+
+In matrix-CODI, the bottleneck forces information through $\Z$ at
+those positions during training, and the trained $\Z$ reaches
+effective rank $12$--$13$ at $\gamma=0$. The seed-decoupling result
+(Fig.~\ref{fig:seed-decoupling}) is a model-level property a
+position-irrelevance reading would not predict.

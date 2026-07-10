@@ -1,0 +1,106 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Latent CoT and the Illusion of Superposition.}
+\citet{rizvi2026illusion}'s fine-tuned COCONUT reaches $96.6\%$ on
+ProsQA \emph{without} latent feedback, against $99.0\%$ with it.
+Our vanilla SFT at GPT-2 small reaches $81.77\%$, roughly $15$pp
+below that; we did not close the gap. The qualitative phenomenon
+replicates at our operating point: matrix-CODI at $82.03\%$ and
+pure SFT at $81.77\%$ differ by less than the three-seed standard
+deviation. The scale sweep in \S\ref{sec:depth-scale} places
+matrix-CODI a comparable margin below this baseline instead; in
+either direction the difference is within seed noise, which is the
+substantive point: latent feedback does not move accuracy beyond it. Our
+contribution relative to that work is a structural argument about
+the training objective: the matrix-bottleneck produces
+rank-indifferent gradients, and four nonlinear-in-$\Z$ readouts
+fail to bend the rank-$k$ curve.
+
+\paragraph{SIM-CoT.}
+\citet{shen2025simcot} diagnose latent CoT instability as
+insufficient step-level supervision and propose injecting per-step
+targets. Our diagnosis is at a different layer (the matrix
+bottleneck's objective produces rank-indifferent gradients,
+adjudicated by four positive-control readouts). The two diagnoses
+are consistent with both mechanisms operating simultaneously.
+
+\paragraph{Reasoning by Superposition and CoT2.}
+\citet{zhu2025superposition} prove that a two-layer transformer
+with $D$ steps of continuous thought can solve directed graph
+reachability, with each thought encoding a parallel BFS frontier.
+\citet{gozeten2025cot2} show similar parallel-exploration behavior
+under a GRPO-style training regime. Both are theoretical capacity
+results with small empirical demonstrations. Capacity and
+what-gets-learned are distinct; our result is about what CODI
+distillation shapes, not whether transformers can in principle
+encode superposition.
+
+\paragraph{February 2026 rank measurements (direct adjacency).}
+\citet{nazari2026rank} measure the effective rank of linear
+attention hidden states and propose post-training rank pruning of
+$K$ and $Q$ matrices. \citet{anonymous2026staterank} report
+``state-rank stratification'' during pretraining: linear-attention
+heads bifurcate into persistently low-rank and high-rank groups.
+Both papers measure rank in the \emph{fast-weight memory} inside
+an attention layer (a $d \times d$ accumulator), and both make
+\emph{descriptive} claims about what trained networks end up with.
+The object of study here is different (the explicit per-position
+matrix latents $\Z$ on the matrix-CODI feedback path, not a
+fast-weight memory inside attention), and the claim is a
+mechanism claim about the training objective
+(Proposition~\ref{prop:jac}) that we test by constructing four
+nonlinear-in-$\Z$ positive controls.
+
+\paragraph{Dynamics within latent CoT.}
+\citet{anonymous2026dynamics} run multiple intervention protocols
+on latent CoT hidden states (zero, mean, step-wise mean, Gaussian
+noise) and an early-stop decoding that truncates latent
+computation after step $k$. Their early-stop decoding is analogous
+to our rank-$k$ ablation on a different axis: step depth vs.\
+spectral truncation. Their step-wise causal structure is consistent
+with our linear-probe decay $\Z[1]\to\Z[5]$ (early positions carry
+information).
+
+\paragraph{Rank-trajectory probing in depth-recurrent latent CoT.}
+\citet{lu2025huginn} probe rank trajectories across recurrent
+blocks in Huginn-3.5B, a depth-recurrent transformer that reuses
+layers at inference. They find limited evidence of interpretable
+latent CoT via rank-trajectory analysis. Our setting differs in
+both model class (decoder-only GPT-2 with explicit per-position
+$\Z$, not depth-recurrent shared-weight blocks) and observable
+(rank-$k$ truncation of the trained $\Z$, not the rank trajectory
+across recurrent depth), but the two papers reach a kindred
+negative reading: rank-based probing of latent CoT does not, in
+either setting, straightforwardly reveal a multi-path
+superposition picture.
+
+\paragraph{Rank decay and token uniformity in stacked attention.}
+\citet{dong2021attention} showed that pure attention loses rank
+doubly exponentially with depth. \citet{yan2022uniformity}
+characterize the related token-uniformity phenomenon in
+BERT-family encoders via the singular-value distribution of layer
+outputs and propose a transformation that flattens the spectrum.
+Both lines measure rank in the activations of a stack of
+attention layers; ours measures the rank of an explicit matrix
+latent on a feedback path. The two objects of study are distinct.
+
+\paragraph{Implicit low-rank bias.}
+Gradient descent on matrix-factorization losses has an implicit
+bias toward low-rank solutions
+\citep{gunasekar2017implicit,arora2019implicit,razin2020implicit};
+\citet{kobayashi2024weightdecay} attribute this specifically to
+weight decay. These concern bias through the parameter space, not
+the readout. Our three-seed rank spread $\{4,12,13\}$ is consistent
+with a weak attractor and inconsistent with strong collapse, which
+would concentrate all seeds at the same low rank.
+
+\paragraph{Alternative substrates and probe critique.}
+\citet{wang2025latentvocab} argue that latent reasoning lives in
+the vocabulary column space, not in hidden-state SVD directions;
+if so, rank-$k$ truncation targets the wrong observable.
+\citet{li2024optimal} note that zero/resample ablations (rank-$k$
+truncation is one) overestimate component importance vs.\ optimal
+ablation, which would only flatten our curves further. The
+negative control in \S\ref{sec:pc-negctrl} is the empirical
+counterpart.

@@ -1,0 +1,123 @@
+% arXiv package for "The Gradient Does Not See Rank: Rank-Indifference in
+% Matrix-CODI on ProsQA" — accepted (virtual poster) at the ICML 2026
+% Mechanistic Interpretability Workshop (OpenReview submission #572,
+% non-archival). Camera-ready content, de-anonymized, [accepted] style.
+
+\documentclass{article}
+
+% T1 fontenc must load before icml2026's \RequirePackage{times}: without it,
+% this toolchain's default Unicode (TU) font encoding has no .fd file for
+% PostScript Times, so every bold/italic Times shape request (running-title
+% header, bold headings, italics) silently falls back to upright medium
+% weight with a "Font shape ... undefined" warning -- and the substituted
+% metrics are just large enough to trip icml2026.sty's running-title
+% box-height check, replacing the header with "Title Suppressed Due to
+% Excessive Size" on every page. Forcing T1 restores real Times bold/italic
+% throughout and the running title header renders correctly.
+\usepackage[T1]{fontenc}
+
+% Recommended typesetting / figure packages (all loaded BEFORE icml2026)
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Official ICML 2026 style file — handles geometry, two columns, fonts,
+% line numbers, abstract layout, top rule, section heading style.
+% [accepted] switches off the anonymization/line-numbering machinery and
+% prints the camera-ready "appearing in" footer (patched below to the
+% workshop's non-archival footer text).
+\usepackage[accepted]{icml2026}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Layout: prevent single-line widows/orphans at page/column breaks
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
+
+% Theorem environments
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+% Shortcut macros
+\newcommand{\vecop}{\operatorname{vec}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{Z}
+
+% Short running title for the page header
+\icmltitlerunning{The Gradient Does Not See Rank}
+
+\begin{document}
+
+\twocolumn[
+\icmltitle{The Gradient Does Not See Rank:\\
+Rank-Indifference in Matrix-CODI on ProsQA}
+
+\begin{icmlauthorlist}
+\icmlauthor{Sam Larson}{pebble}
+\end{icmlauthorlist}
+
+\icmlaffiliation{pebble}{Pebble AI}
+
+\icmlcorrespondingauthor{Sam Larson}{sam@pebbleml.com}
+
+\icmlkeywords{continuous chain-of-thought, matrix-valued latents,
+mechanistic interpretability, rank, superposition}
+
+\vskip 0.3in
+]
+
+\printAffiliationsAndNotice{}  % required even if empty
+
+\begin{abstract}
+Continuous chain-of-thought models compress reasoning into latent
+tokens. Matrix-valued variants introduce rank as a single-sample
+structural observable on the latent matrix $\Z$. If matrix latents
+carry parallel reasoning paths via superposition, rank should track
+them, and truncating $\Z$ to low rank should hurt accuracy on tasks
+whose solutions plausibly require multiple components. Across four
+training regimes of a matrix-CODI model (three on ProsQA, one on
+GSM8K-Aug below the learning threshold), the rank-$k$ projection
+ablation curve is flat to within 0.6 percentage points. A three-seed
+replication yields $81.5 \pm 1.2$pp accuracy while the final
+effective rank of $\Z$ spans $\{4, 12, 13\}$; the loss does not
+reward any particular rank. To test whether rank-blindness arises
+from the flatten-then-project readout alone, we trained four
+readouts: a bilinear reparametrization, a bilinear-plus-GELU readout
+nonlinear in $\Z$, an SVD-augmented readout feeding singular values
+through an MLP, and a quadratic readout in $\Z\Z^\top$. All four
+rank-$k$ curves remain flat (Spearman $p$-values $0.63, 0.14, 0.82,
+0.46$). The flat curves persist for readouts nonlinear in $\Z$. A
+linear probe on $\Z$ underperforms a raw pretrained hidden state
+at target prediction (AUC $0.673$ vs.\ $0.846$). A negative control
+on vanilla GPT-2 SFT (no matrix bottleneck, no $\Z$, three seeds,
+$n\!=\!500$) reproduces a flat rank-$k$ curve under the same
+intervention paradigm with pooled-mean range $0.20$pp, and a
+random-$h$ sensitivity floor lands at the same accuracy: the
+rank-$k$ ablation alone conflates rank-blindness with
+position-irrelevance.
+\end{abstract}
+
+\input{sections/01_intro}
+\input{sections/02_background}
+\input{sections/03_rank_blind_readout}
+\input{sections/04_depth_scale}
+\input{sections/05_positive_control}
+\input{sections/06_related_work}
+\input{sections/07_discussion}
+\input{sections/08_conclusion}
+\input{sections/09_reproducibility}
+\input{sections/10_impact}
+
+\bibliographystyle{icml2026}
+\bibliography{refs}
+
+\end{document}
