@@ -1,0 +1,97 @@
+%%%% NeurReps Extended Abstract track — OFFICIAL template (jmlr.cls from
+%%%% the NeurReps style zip; see VENUE_REQUIREMENTS.md). This build is the
+%%%% ANONYMIZED review version: per the template instructions no author
+%%%% block appears at all during review; camera-ready uncomments it.
+%%%%
+%%%% TITLE: PENDING-USER (PI decision). Candidate (A) typeset; candidate
+%%%% (B) in brief.md.
+%%%% AUTHOR BLOCK: PENDING-USER — commented camera-ready placeholder below.
+%%%%
+%%%% The CFP asks for a single .tex file at submission: `make bundle`
+%%%% writes the flattened bundle/neurreps-ea-submission.tex from this
+%%%% modular source.
+\documentclass[mlabstract,onecolumn]{jmlr}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% Watermark (review builds only; remove for camera-ready)
+% (the sample zip writes hpos=300px,vpos=70px; px is a pdfTeX-only unit and
+% this build engine runs XeTeX, so the equivalent bp values are used --
+% 1px = 1bp at pdfTeX's default \pdfpxdimen)
+\usepackage[hpos=300bp,vpos=70bp]{draftwatermark}
+\SetWatermarkText{\test}
+\SetWatermarkScale{1}
+\SetWatermarkAngle{0}
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+% The class auto-loads: amsmath, amssymb, natbib, graphicx, url, algorithm2e.
+\usepackage{booktabs}
+
+\graphicspath{{figures/}}
+
+\theorembodyfont{\itshape}
+\theoremheaderfont{\bfseries}
+\newtheorem{fact}{Fact}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\dmin}{d_{\min}}
+\newcommand{\dstate}{d_{\mathrm{state}}}
+\newcommand{\recninety}{\mathrm{rec}@0.9}
+
+%%%% DON'T CHANGE %%%%%%%%%
+\jmlrvolume{}
+\firstpageno{1}
+\editors{Under Review for the NeurReps Workshop}
+\jmlryear{2026}
+\jmlrworkshop{Symmetry and Geometry in Neural Representations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title[A Causal Rank Law for Matrix Memories]{The Rank the Task Demands:
+A Causal Rank Law for Matrix Memories Trained on Group Composition}
+
+% CAMERA-READY ONLY (PENDING-USER): uncomment and fill after acceptance.
+% \author{\Name{Author Name(s) TBD} \Email{email@TBD}\\
+% \addr Affiliation TBD}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Matrix-valued memories make rank the natural budget of a learned
+representation: the number of independent directions a state spans bounds
+what it can bind, compose, and track. We report causal evidence, from two
+synthetic testbeds trained under a hard single-state bottleneck with an
+exact-continuous-recovery readout, that gradient descent recruits precisely
+the rank the task's algebra demands. On $K$-pair associative binding, where
+exact recovery provably requires state rank at least $K$, trained states
+develop effective rank tracking $K$ (8.20 at $K{=}8$, 15.08 at $K{=}16$ for
+$d{=}16$), and train-time rank caps confirm the bound causally: at $d{=}8$,
+$K{=}4$, rank 3 yields zero exact recovery while rank 4 yields 0.94. On
+group-composition state tracking over five groups spanning the
+solvable/non-solvable divide, the recruited rank equals the group's minimal
+faithful real representation dimension $\dmin$ (Spearman $\rho = 0.9747$,
+the design's tie-capped maximum), the dimension-matched solvable/non-solvable
+pair $S_4$/$A_5$ is statistically equivalent under a pre-registered
+equivalence test, and a force-rank razor lands a step function at $\dmin$ in
+all five groups: one rank below, exact recovery is 0.000 everywhere,
+including every seed of a four-seed extension, while at $\dmin$ recovery
+returns to unconstrained-anchor levels. Representation theory, not
+computational complexity class, sets what gradient descent buys.
+\end{abstract}
+
+\begin{keywords}
+effective rank, fast weights, group representations, state tracking
+\end{keywords}
+
+\input{sections/01_intro}
+\input{sections/02_setup}
+\input{sections/03_binding}
+\input{sections/04_ranklaw_observed}
+\input{sections/05_causal_razor}
+\input{sections/06_related}
+\input{sections/07_limitations}
+
+\bibliography{refs}
+
+\end{document}

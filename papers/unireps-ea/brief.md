@@ -98,6 +98,7 @@ reject equivalence at a 1.0 rank-unit gap) before the sweep ran.
 | U4 | S3 necessity zero-noise: k=d_min−1 exactly 0.000 in all 4 independent seeds; per-seed k=d_min 0.450/0.550/0.600/0.650 | §1.36a | s3ext `zero_pad__S3__k_dmin*__seed{1,2,3}.json` + m3fix seed0 files | §5 text |
 | U5 | L≥2 robustness: full-sample vs L≥2-only recovery near-identical per group (max \|Δ mean_cos\| 0.041 family-wide; per-group deltas ≤0.013) | §1.33 (schema deviation disclosed) | `harvest_analysis_output.txt` md5:854a4bd7c46e626badcc0fbf05d0e07a | §3 footnote |
 | U6 | D-AMB tax (first sweep): 39 force-rank cells mean \|obs−√(k/d_state)\| = 0.028, max 0.166; first-sweep k≥d_min xrec90 = 0.000 everywhere | §1.33 (five-way diagnosis; INCONCLUSIVE registered) | `harvest_summary.json` md5:7dce77dc… + `harvest_analysis_output.txt` md5:854a4bd7… | §5 text |
+| U7 | Centering defect: uncentered lens scores a flawless synthetic model 0.705261 on identical data the centered production lens scores 0.999594 | design doc §1.25 (Defect 1) + gate-1(b) recheck (`EXPERIMENT_LOG.md` 2026-07-09 SWEEP-READY entry) | `experiment-runs/2026-07-09_capability_calib_recheck/gate1b_recheck.txt` md5:2d170cc03011cc56105adeae9929e481 | Appendix B text |
 
 U1–U3 and U5–U6 were independently recomputed from the raw JSONs during
 this brief's preparation (Spearman enumeration 120-permutation exact

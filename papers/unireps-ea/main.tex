@@ -1,0 +1,94 @@
+% UniReps Extended Abstract track — official NeurIPS LaTeX template per the
+% UniReps CFP (see VENUE_REQUIREMENTS.md; neurips.sty 2025 kit as the
+% sanctioned stand-in until the 2026 styles ship). Default (no-option)
+% mode is the ANONYMIZED submission build: anonymous author block + line
+% numbers, exactly what the CFP requires at review time.
+%
+% TITLE: PENDING-USER (PI decision). Candidate (A) typeset; candidate (B)
+% in brief.md.
+% AUTHOR BLOCK: PENDING-USER — the style file prints "Anonymous Author(s)"
+% in submission mode; fill \author only for the camera-ready.
+
+\documentclass{article}
+
+\usepackage{neurips}
+
+% Workshop submission: blank the main-conference notice line (the 2025 kit
+% prints a NeurIPS-2025 submission notice by default; the workshop CFP
+% names its own venue on OpenReview).
+\makeatletter
+\renewcommand{\@noticestring}{}
+\makeatother
+
+\usepackage{float}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+\graphicspath{{figures/}}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\dmin}{d_{\min}}
+\newcommand{\dstate}{d_{\mathrm{state}}}
+\newcommand{\recninety}{\mathrm{rec}@0.9}
+
+\title{Dimension, Not Solvability: Trained Matrix States Converge to the
+Minimal Faithful Representation Dimension}
+
+% CAMERA-READY ONLY (PENDING-USER): the submission build prints the
+% style file's anonymous block automatically.
+\author{%
+  Anonymous Author(s)\\
+  Affiliation\\
+  \texttt{email@example.com}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+When do differently structured tasks drive a learner to the same
+representation? We train identical matrix-state sequence models
+end-to-end on the word problems of five finite groups, $S_3$, $S_4$,
+$A_5$, $S_5$, $A_6$, spanning the solvable/non-solvable divide, and
+measure the effective rank of the learned state against each group's
+minimal faithful real representation dimension $\dmin$, the exact
+dimensionality representation theory assigns the task. The learned rank
+converges onto the algebraic minimum: group means
+1.88/2.85/2.83/3.59/4.74 against $\dmin = 2/3/3/4/5$, all 19 seeds
+inside the pre-registered $[0.7, 1.3] \cdot \dmin$ band, Spearman
+$\rho = 0.9747$, the maximum this design permits under the $S_4$/$A_5$
+tie. The designed head-to-head is that tie: $S_4$ (solvable) and $A_5$
+(non-solvable) share $\dmin = 3$, so if learned dimension were set by
+computational complexity class the pair should separate, and if set by
+representation dimension it should coincide. A pre-registered Welch
+equivalence test at $\pm 0.5$ rank-units declares equivalence decisively
+(difference 0.019, both one-sided tests near seven times the critical
+value). A pre-registered causal force-rank razor then confirms the
+converged dimension is load-bearing rather than a correlate of training:
+capping rank one below $\dmin$ zeroes exact recovery in every group, and
+restoring $\dmin$ restores recovery. Learned
+representational dimension follows the task's algebra, not its
+complexity class.
+\end{abstract}
+
+\input{sections/01_intro}
+\input{sections/02_setup}
+\input{sections/03_convergence}
+\input{sections/04_equivalence}
+\input{sections/05_causal}
+\input{sections/06_related_limits}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\input{sections/07_appendix}
+
+\end{document}

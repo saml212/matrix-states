@@ -1,0 +1,20 @@
+\textbf{The provable foundation (binding).}
+\begin{fact}
+\label{fact:bound}
+If $Z k_j = v_j$ exactly for $K$ bindings with linearly independent keys
+and values, then $Z K_{\mathrm{mat}} = V_{\mathrm{mat}}$, so
+$K = \rank(V_{\mathrm{mat}}) \leq \rank(Z)$.
+\end{fact}
+
+The bound is classical \citep{kohonen1972correlation,
+anderson1972simple} and holds only under exact continuous recovery.
+Gradient descent recruits the rank: at $d = 16$ the trained state's
+effective rank reaches 8.20 at $K = 8$ and 15.08 at $K = 16$,
+% <!-- evidence: N6 -->
+and the recruited rank is causally necessary: a spectral rank cap at
+$d = 8$, $K = 4$ leaves exact recovery at or below 0.0004 for every cap
+$k \leq 3$ and restores it to 0.940 at $k = 4$,
+% <!-- evidence: N6 -->
+a step exactly at the provable bound; the same operator composes
+exactly ($Z^h$, held-out depths to 21) in four of five seeds.
+% <!-- evidence: N9 -->

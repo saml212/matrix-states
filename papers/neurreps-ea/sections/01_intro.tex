@@ -1,0 +1,33 @@
+\section{Introduction}
+\label{sec:intro}
+
+A matrix-valued memory represents by spanning: whatever a $d \times d$
+state binds or tracks, it holds in the geometry of its column space, and
+rank is the budget it spends. Prior work treats this budget
+descriptively \citep{nazari2026rank, sun2026staterank} or through
+hand-built constructions \citep{nichani2025factual}; neither answers
+what a geometric account of learned representations needs answered:
+when a task's algebra fixes a minimal representational dimension, does
+gradient descent recruit exactly that dimension, and is it causally
+load-bearing?
+
+We answer both halves affirmatively under one discipline: a hard
+single-state bottleneck (the decoder reads only one matrix $Z$, verified
+by a gradient blank-out test) and exact-continuous-recovery scoring
+(cosine against the true continuous target, never argmax over a codebook,
+which would let a rank-1 state recover on the order of $d$ associations
+\citep{nichani2025factual}). Section~\ref{sec:setup} includes the
+provable $K$-pair-binding foundation. The headline is
+group-composition state tracking, where representation theory
+supplies the ground truth: across five finite groups spanning the
+solvable/non-solvable divide, the minimal faithful real representation
+dimension $\dmin$ predicts the recruited rank almost perfectly, a
+matched-dimension solvable/non-solvable pair lands statistically
+equivalent (Section~\ref{sec:observed}), and a pre-registered force-rank
+razor finds recovery exactly 0.000 one rank below $\dmin$ in every group,
+returning at $\dmin$ (Section~\ref{sec:razor}): $\dmin{-}1$ is fatal,
+$\dmin$ suffices. An earlier razor sweep nulled through an instrument
+defect, an ambient identity block taxing every rank-capped arm; the
+raw-artifact diagnosis, the registered inconclusive verdict, and the
+repaired wave that landed the pre-registered prediction are part of the
+result (Appendix~\ref{app:damb}).

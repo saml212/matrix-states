@@ -1,0 +1,49 @@
+\section{The Causal Check}
+\label{sec:causal}
+
+Convergence and equivalence are observational; the third leg intervenes.
+The encoder's output is spectrally truncated to rank
+$k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$ throughout training against the
+zero-padded target $\rho_G(\cdot) \oplus 0$ of rank exactly $\dmin$,
+alongside an unconstrained anchor from the same family. Pre-registered
+reading: if $\dmin$ is load-bearing, $k = \dmin{-}1$ must fail and
+$k \geq \dmin$ must recover past $0.9\times$ the anchor's $\recninety$
+on the pre-pinned conservative readout; one below-$\dmin$ cell
+recovering falsifies necessity.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fig2_razor_step.pdf}
+\caption{The converged dimension is causally load-bearing: per group,
+crosscheck $\recninety$ on held-out words at train-time force-rank
+$k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$ (one seed per cell), vs.\ the
+unconstrained anchor (dashed) and the pre-registered $0.9\times$anchor
+bar (dotted). Recovery is exactly 0.000 at $\dmin{-}1$ in every group
+and returns at $\dmin$. $S_3$ overlays its four seeds (thin lines; bold
+mean); its below-$\dmin$ zero is unanimous.}
+% <!-- evidence: U3 -->
+\label{fig:razor}
+\end{figure}
+
+Figure~\ref{fig:razor} shows a step function at $\dmin$. Necessity is
+exact and noiseless: $k = \dmin{-}1$ yields $\recninety = 0.000$ in all
+five groups
+% <!-- evidence: U3 -->
+and in all four independent seeds of the $S_3$ extension,
+% <!-- evidence: U4 -->
+while the same cells' recovery cosines (0.61--0.84) show the zero is a
+threshold, not a training collapse. Sufficiency holds at $\dmin$: $S_4$,
+$A_5$, $S_5$, $A_6$ recover past their bars outright (0.800/0.700/0.600/
+0.650 against 0.585/0.630/0.450/0.585),
+% <!-- evidence: U3 -->
+and $S_3$, whose decisive cell landed inside a pre-stated $\pm 0.05$
+marginality trigger, was extended to four seeds under the trigger's
+pre-registered routing: seed-mean 0.5625 against the fixed 0.495 bar
+confirms the fifth group.
+% <!-- evidence: U4 -->
+An earlier 58-cell sweep of this grid nulled through an instrument
+defect, an ambient identity block in the eye-padded target that taxed
+every rank-capped arm; the verdict was registered as inconclusive with
+the tax established from the raw artifacts, and the zero-padded wave
+above is the registered fix (Appendix~\ref{app:instrument}).
+% <!-- evidence: U6 -->

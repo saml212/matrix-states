@@ -1,0 +1,39 @@
+\section{Task, Model, and Instrument}
+\label{sec:setup}
+
+\textbf{Task.} A word $w = g_{i_1} \cdots g_{i_L}$ is drawn as a random
+walk on $G$'s Cayley graph over a symmetric generating set
+($L \sim \mathrm{U}\{1,\dots,8\}$) and must map to
+$\rho_G(g_{i_1} \cdots g_{i_L})$, the composed product's image under a
+pinned orthogonal reference representation of dimension $\dmin(G)$. The
+five groups are $S_3, S_4, A_5, S_5, A_6$ with $\dmin = 2, 3, 3, 4, 5$
+(realizations in Appendix~\ref{app:groups}); $S_3$ and $S_4$ are
+solvable, the rest are not.
+
+\textbf{Model.} A Transformer encoder with $\dstate$ learned row-reader
+queries writes each word into a single state
+$Z(w) \in \R^{\dstate \times \dstate}$, with $\dstate = \dmin + 2$ per
+group so that over-recruitment is expressible. The loss is cosine
+distance to the block-diagonal embedding of the reference
+($\rho_G(\cdot) \oplus I_2$ in the observational sweep,
+$\rho_G(\cdot) \oplus 0$ in the causal wave); the readout is fixed, with
+no learned weights that could launder rank, and the decoder reads only
+$Z$, verified by a gradient blank-out test with a planted-leak negative
+control. Per-group step budgets (8k--40k) were pinned by pre-registered
+convergence bars before the decisional sweep ran.
+
+\textbf{Instrument.} The learned state is defined only up to scale and
+an orthogonal change of basis (a Schur intertwiner):
+$Z(w) \approx c\,Q\,[\rho_G(w) \oplus \cdot\,]\,Q^{\top}$. We estimate
+the model's own dominant $\dmin$-subspace $U$ from the SVD of the
+\emph{centered} covariance of $Z(w)$ over held-out words, measure
+\textbf{restricted effective rank}, the entropy effective rank of
+$U^{\top} Z(w) U$, and score \textbf{degauged recovery}, cosine to the
+reference after fitting $(c, Q)$ on a fitting split and evaluating on a
+disjoint split, reported as $\recninety$ (the fraction of eval words
+above cosine 0.9). Rank is invariant under the fitted gauge, so a
+rank-deficient state cannot be degauged into a full-rank one; centering
+is load-bearing (Appendix~\ref{app:instrument}). The observational band
+$[0.7, 1.3] \cdot \dmin$, the equivalence margin and sample size, the
+force-rank grid and its recovery bar, and every falsifier were fixed
+before the decisive runs.

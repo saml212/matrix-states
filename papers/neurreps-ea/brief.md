@@ -97,8 +97,11 @@ the fix-wave grid ran against that criterion.
 | N6 | Binding foundation: d=16 eff-rank K=8→8.198, K=16→15.083; d=8,K=4 force-rank ≤3→ ≤0.0004, 4→0.940 | base draft §3 SOURCE traces (2026-07-03 integrity pass); `EXPERIMENT_LOG.md` Task D entries | `matrix-thinking/chapter2/results/overnight_snapshots/AGGREGATE_1234.json` md5:0134495e42e7549dd7d13a5753e69ce6 | text §3 |
 | N7 | D-AMB: 39 force-rank cells mean \|obs−√(k/d_state)\|=0.028 (max 0.166; only the two S5 below-cells outliers); first-sweep M3 xrec90 0.000 at k≥d_min everywhere | §1.33 (five-way diagnosis) | `harvest_summary.json` (d_ambient fields, m3 block) md5:7dce77dc… + `harvest_analysis_output.txt` md5:854a4bd7c46e626badcc0fbf05d0e07a | text §5 |
 | N8 | Fix-wave config integrity: 30/30 cells config-matched vs an independent-literal manifest; steps at Rev-7 pins; zero skipped steps | §1.36 (A3 discharge) | `experiment-runs/2026-07-09_m3fix_harvest/harvest_analysis_output.txt` md5:77be9c3b092c70e83ff08a0261575815 | reproducibility note |
+| N9 | Composition: unconstrained K=8 operator reaches rec@0.9 = 1.0 at every held-out hop incl. depth 21 in 4/5 seeds (seed 0 the still-transitioning outlier, 0.0 at h=21) | base draft §4 (Task E); `EXPERIMENT_LOG.md` 2026-07-02 Task E entries | `experiment-runs/2026-07-02_task_e_40k/task_e_40k/t1_matrix_permutation_K8_frN_s{0..4}.json` md5s: f61f18b6…/5e70bb74…/1d54d016…/b80c6424…/02c0920b… (full values in reproducibility README) | text §3 |
+| N10 | L≥2 robustness split: per-group mean_cos deltas ≤0.013 (max per-seed \|Δ\| 0.041), no group-selective divergence | §1.33 (disclosed schema deviation) | the 19 unconstrained JSONs (N4 row; `l_ge2_*` fields) + `harvest_analysis_output.txt` md5:854a4bd7c46e626badcc0fbf05d0e07a | §4 text |
+| N11 | Centering defect: uncentered lens scores a flawless synthetic model 0.705261 on identical data the centered production lens scores 0.999594 | design doc §1.25 (Defect 1) + gate-1(b) recheck (`EXPERIMENT_LOG.md` 2026-07-09 SWEEP-READY entry) | `experiment-runs/2026-07-09_capability_calib_recheck/gate1b_recheck.txt` md5:2d170cc03011cc56105adeae9929e481 | §2 text |
 
-Numbers N1–N5 and N7 were independently recomputed from the raw JSONs
+Numbers N1–N5, N7, N9 and N10 were independently recomputed from the raw JSONs
 during this brief's preparation (Spearman enumeration, Welch TOST, and
 per-cell means re-derived; all matched the verdict records exactly).
 

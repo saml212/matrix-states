@@ -1,0 +1,43 @@
+\section{Tasks, Models, and the Rank Instrument}
+\label{sec:setup}
+
+\textbf{Tasks.} In the binding task, each episode presents $K$
+key--value pairs, the encoder writes one state $Z \in \R^{d \times d}$,
+prediction is the literal unbind $Z k_j$, and $\recninety$ is the
+fraction of queries with cosine to the true value above 0.9. The group
+task is the word problem of a finite group $G$: a word
+$w = g_{i_1} \cdots g_{i_L}$, drawn as a random walk on $G$'s Cayley
+graph ($L \sim \mathrm{U}\{1,\dots,8\}$), must map to
+$\rho_G(g_{i_1} \cdots g_{i_L})$ under a pinned orthogonal reference
+representation of dimension $\dmin(G)$, the minimal faithful real
+representation dimension. The groups are $S_3, S_4, A_5, S_5, A_6$ with
+$\dmin = 2, 3, 3, 4, 5$ (Appendix~\ref{app:groups}); the first two are
+solvable, the rest are not, and non-solvable word problems are
+$\mathrm{NC}^1$-complete \citep{barrington1989}. $\dmin$ is a different,
+representation-theoretic axis; $S_4$/$A_5$, matched at $\dmin = 3$ with
+opposite solvability, are the designed dissociation pair.
+
+\textbf{Model.} A Transformer encoder with $\dstate$ learned row-reader
+queries maps each word to a single state
+$Z(w) \in \R^{\dstate \times \dstate}$, $\dstate = \dmin + 2$, leaving
+spare dimensions so over-recruitment is expressible. The target embeds
+the reference block-diagonally ($\rho_G(\cdot) \oplus I_2$ in the first
+sweep, $\rho_G(\cdot) \oplus 0$ in the repaired wave); the loss is cosine
+distance, the readout is fixed with no learned weights that could launder
+rank, and the decoder reads only $Z$ (blank-out verified). Per-group
+step budgets (8k--40k) were pinned by pre-registered convergence bars.
+
+\textbf{Instrument.} The learned state is defined only up to scale and an
+orthogonal change of basis (a Schur intertwiner):
+$Z(w) \approx c\,Q\,[\rho_G(w) \oplus \cdot\,]\,Q^{\top}$. We estimate the
+model's own dominant $\dmin$-subspace $U$ from the SVD of the
+\emph{centered} covariance of $Z(w)$ over held-out words, measure
+\textbf{restricted effective rank} (entropy effective rank of
+$U^{\top} Z(w) U$), and score \textbf{degauged recovery}: cosine after
+fitting $(c, Q)$ on a fitting split, evaluated on a disjoint split,
+reported as $\recninety$. Centering is load-bearing
+(Appendix~\ref{app:m1}); rank is invariant under the fitted gauge, so a
+rank-deficient state cannot be degauged into a full-rank one. For force-rank cells the decisional readout was pinned, before
+the razor wave ran, to the conservative full-$Q$ Procrustes variant
+(\emph{crosscheck} $\recninety$).
+
