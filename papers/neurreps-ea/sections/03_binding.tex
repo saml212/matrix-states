@@ -1,3 +1,4 @@
+\label{sec:binding}
 \textbf{The provable foundation (binding).}
 \begin{fact}
 \label{fact:bound}
@@ -7,14 +8,16 @@ $K = \rank(V_{\mathrm{mat}}) \leq \rank(Z)$.
 \end{fact}
 
 The bound is classical \citep{kohonen1972correlation,
-anderson1972simple} and holds only under exact continuous recovery.
-Gradient descent recruits the rank: at $d = 16$ the trained state's
-effective rank reaches 8.20 at $K = 8$ and 15.08 at $K = 16$,
+anderson1972simple}, holding only under exact continuous recovery.
+Gradient descent recruits the rank: at $d = 16$ effective rank reaches
+8.20 at $K = 8$ and 15.08 at $K = 16$,
 % <!-- evidence: N6 -->
 and the recruited rank is causally necessary: a spectral rank cap at
-$d = 8$, $K = 4$ leaves exact recovery at or below 0.0004 for every cap
+$d = 8$, $K = 4$ leaves exact recovery $\leq 0.0004$ for every cap
 $k \leq 3$ and restores it to 0.940 at $k = 4$,
 % <!-- evidence: N6 -->
-a step exactly at the provable bound; the same operator composes
-exactly ($Z^h$, held-out depths to 21) in four of five seeds.
+a step exactly at the provable bound; the same operator composes exactly
+($Z^h$, 21 self-applications) in four of five seeds, a
+composition-stability probe periodicity-equivalent to depth 5 under the
+single 8-cycle target \citep{liu2023shortcuts} (Appendix~\ref{app:period}).
 % <!-- evidence: N9 -->

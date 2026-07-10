@@ -100,6 +100,9 @@ the fix-wave grid ran against that criterion.
 | N9 | Composition: unconstrained K=8 operator reaches rec@0.9 = 1.0 at every held-out hop incl. depth 21 in 4/5 seeds (seed 0 the still-transitioning outlier, 0.0 at h=21) | base draft §4 (Task E); `EXPERIMENT_LOG.md` 2026-07-02 Task E entries | `experiment-runs/2026-07-02_task_e_40k/task_e_40k/t1_matrix_permutation_K8_frN_s{0..4}.json` md5s: f61f18b6…/5e70bb74…/1d54d016…/b80c6424…/02c0920b… (full values in reproducibility README) | text §3 |
 | N10 | L≥2 robustness split: per-group mean_cos deltas ≤0.013 (max per-seed \|Δ\| 0.041), no group-selective divergence | §1.33 (disclosed schema deviation) | the 19 unconstrained JSONs (N4 row; `l_ge2_*` fields) + `harvest_analysis_output.txt` md5:854a4bd7c46e626badcc0fbf05d0e07a | §4 text |
 | N11 | Centering defect: uncentered lens scores a flawless synthetic model 0.705261 on identical data the centered production lens scores 0.999594 | design doc §1.25 (Defect 1) + gate-1(b) recheck (`EXPERIMENT_LOG.md` 2026-07-09 SWEEP-READY entry) | `experiment-runs/2026-07-09_capability_calib_recheck/gate1b_recheck.txt` md5:2d170cc03011cc56105adeae9929e481 | §2 text |
+| N12 | Below-$\dmin$ cells land at 76–95% (mean 88.3%) of their own geometrically forced ceiling $\sqrt{(\dmin{-}1)/\dmin}$: S3 86.3%, S4 91.2%, A5 94.9%, S5 75.7%, A6 93.5% | This gauntlet round, `04_rebuttal_report.md` §"Independent verification" | `experiment-runs/2026-07-09_m3fix_harvest/zero_pad__{S3,S4,A5,S5,A6}__k_dmin_minus_1__seed0.json` (`crosscheck_mean_cos` field, divided by $\sqrt{(\dmin{-}1)/\dmin}$ per group) | Figure 1 caption, §5 text |
+| N14 | $S_4$/$S_5$ razor $k{=}\dmin$ cells exceed their own unconstrained anchor by 0.10 ($S_4$: 0.65$\to$0.80) and 0.10 ($S_5$: 0.50$\to$0.60) respectively | This gauntlet round | `experiment-runs/2026-07-09_m3fix_harvest/zero_pad__{S4,S5}__{unconstrained,k_dmin}__seed0.json` | Appendix B text |
+| N13 | $S_3$/$S_5$ gate1a (min val over $L\in[2,5]$, bar $\ge 0.92$) fails for all 8 razor cells: $S_3$ 0.665/0.900/0.903/anchor 0.914; $S_5$ 0.801/0.879/0.877/anchor 0.876 | `CAPABILITY_SEPARATION_DESIGN.md:6050-6058` | `experiment-runs/2026-07-09_m3fix_harvest/zero_pad__{S3,S5}__*__seed0.json` (`gate1a.min_val` field) | Appendix D table |
 
 Numbers N1–N5, N7, N9 and N10 were independently recomputed from the raw JSONs
 during this brief's preparation (Spearman enumeration, Welch TOST, and
@@ -151,7 +154,12 @@ Tokens: `larson`, `samlarson`, `saml212`, `pebble`, `pebbleml`,
 `rockie`, `github.com/`, `huggingface.co/`, `.pebbleml.com`,
 `acknowledg`, `self-funded`, `funded by`. Expected matches in
 `main-anon.pdf` source closure: zero. Code link in anon build:
-`https://anonymous.4open.science/` placeholder.
+`https://anonymous.4open.science/` placeholder. Deferred, not a
+submission blocker (gauntlet round 1, FIX-15): swap for a real
+anonymized snapshot of `readout.py` and `group_word_encoder.py` (the
+degauging/rank-truncation/metric pipeline, no training infra required)
+before submission if time allows; otherwise this placeholder stands as
+an explicit camera-ready deferral.
 
 ## Project DO-NOT list (carried from the house reference brief)
 

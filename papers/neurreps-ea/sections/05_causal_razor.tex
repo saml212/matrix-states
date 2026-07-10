@@ -7,8 +7,7 @@ throughout training, against the zero-padded target
 $\rho_G(\cdot) \oplus 0$ of rank exactly $\dmin$, alongside an
 unconstrained anchor from the same family. Pre-registered reading: if
 $\dmin$ is load-bearing, $k = \dmin{-}1$ must fail and $k \geq \dmin$
-must recover past $0.9\times$ the anchor's crosscheck $\recninety$; a
-single below-$\dmin$ cell recovering falsifies necessity.
+must recover past $0.9\times$ the anchor's crosscheck $\recninety$.
 
 \begin{figure}[t]
 \centering
@@ -33,17 +32,17 @@ $A_6$ & 0.650 & 0.000 & \textbf{0.650} & 0.700 & 0.585 \\
 \end{minipage}
 \caption{Left: recruited rank follows representation dimension, not
 solvability. Each point is one seed's restricted effective rank vs.\ its
-group's $\dmin$ (filled: solvable; open: non-solvable) with the
-pre-registered $[0.7, 1.3] \cdot \dmin$ band and the identity line; all
+group's $\dmin$ (filled: solvable; open: non-solvable); all
 19 seeds are in band, and $S_4$/$A_5$ coincide at $\dmin = 3$.
 % <!-- evidence: N4 -->
 Right: the causal razor on the repaired rank-$\dmin$ target (crosscheck
 $\recninety$ by force-rank $k$, one seed per cell, unconstrained anchor,
 pre-registered $0.9\times$anchor bar): exactly 0.000 one rank below
-$\dmin$ everywhere, anchor-class at $\dmin$ (bold: clears the bar).
+$\dmin$ everywhere (the forced ceiling is $\le 0.894$), clears the
+$0.9\times$anchor bar at $\dmin$ in all five groups (bold).
 $^{\ast}$extended to four seeds under the pre-stated $\pm 0.05$ trigger:
 seed-mean 0.5625 clears the fixed 0.495 bar.}
-% <!-- evidence: N1 -->
+% <!-- evidence: N1, N12 -->
 \label{fig:tracking}
 \end{figure}
 
@@ -52,8 +51,8 @@ seed-mean 0.5625 clears the fixed 0.495 bar.}
 \includegraphics[width=\textwidth]{fig1_razor_step.pdf}
 \caption{Exact recovery is a step function at $\dmin$: per group,
 crosscheck $\recninety$ on held-out words at force-rank
-$k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$ (one seed per cell), vs.\ the
-unconstrained anchor (dashed) and the $0.9\times$anchor bar (dotted).
+$k \in \{\dmin{-}1, \dmin, \dmin{+}1\}$, vs.\ the unconstrained anchor
+(dashed) and the $0.9\times$anchor bar (dotted).
 $S_3$ overlays its four seeds (thin lines; bold mean); its
 below-$\dmin$ zero is unanimous.}
 % <!-- evidence: N1 -->
@@ -61,29 +60,34 @@ below-$\dmin$ zero is unanimous.}
 \end{figure}
 
 Figure~\ref{fig:tracking} (right) and Figure~\ref{fig:razor} show the result on the
-pre-pinned crosscheck readout. Necessity is exact and noiseless:
-$k = \dmin{-}1$ yields $\recninety = 0.000$ in all five groups,
+pre-pinned crosscheck readout. Necessity below $\dmin$ is an analytically
+forced floor: against a $\dmin$-tied-unit-singular-value target, the
+maximum cosine any rank-$(\dmin{-}1)$ operator can reach is
+$\sqrt{(\dmin{-}1)/\dmin} \le 0.894$, below the $0.9$ threshold in every
+group by construction, so $\recninety = 0.000$ at $k = \dmin{-}1$ follows
+regardless of training quality; observed cells still reach 76--95\% of
+that ceiling (mean 88\%, per-group breakdown in
+Appendix~\ref{app:m1}), evidence of near-optimal training under the cap
+rather than collapse.
+% <!-- evidence: N12 -->
+The zero is noiseless in all five groups
 % <!-- evidence: N1 -->
-and in all four independent seeds of the $S_3$ extension,
+and all four $S_3$ seeds.
 % <!-- evidence: N2 -->
-while the same cells' recovery cosines (0.61--0.84) show the zero is a
-threshold phenomenon, not a training collapse. Sufficiency holds at
-$\dmin$: $S_4$, $A_5$, $S_5$, $A_6$ clear their bars outright,
+Sufficiency at $\dmin$ carries the causal claim, since no such bound
+guarantees a rank-exactly-$\dmin$ solution is reachable: $S_4$, $A_5$,
+$S_5$, $A_6$ clear their bars outright,
 % <!-- evidence: N1 -->
-and $S_3$, whose decisive cell landed inside the pre-stated $\pm 0.05$
-marginality trigger, was extended to four seeds under the trigger's
-pre-registered routing: seed-mean 0.5625 against the fixed 0.495 bar
-(the literal fixed before the extension ran, avoiding a self-referential
-bar) confirms the fifth group.
+and $S_3$'s decisive cell, inside the pre-stated $\pm 0.05$ marginality
+trigger, was extended to four seeds: seed-mean 0.5625 against the fixed
+0.495 bar confirms the fifth group (per-seed detail in
+Appendix~\ref{app:m1}).
 % <!-- evidence: N3 -->
-Both marquee groups confirm; the pre-registered causal criterion is met.
+Both marquee groups confirm at $\dmin$; the causal criterion is met on
+the sufficiency leg.
 
-An earlier 58-cell sweep of this grid nulled through an instrument
-defect: its eye-padded target ($\rho_G(\cdot) \oplus I_2$, rank $\dstate$)
-taxed every capped arm, whose 39 cells sat at their rank-$k$ optimum
-$\sqrt{k/\dstate}$ (mean deviation 0.028);
+An earlier 58-cell sweep nulled through an instrument defect (an
+eye-padded target taxing every capped arm; Appendix~\ref{app:damb});
 % <!-- evidence: N7 -->
-that verdict was registered as inconclusive with the tax as mechanism,
-and the zero-padded wave above is the registered fix
-(Appendix~\ref{app:damb}).
+the zero-padded wave above is the registered fix.
 % <!-- evidence: N8 -->

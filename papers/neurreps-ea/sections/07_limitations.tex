@@ -1,11 +1,10 @@
 
 \textbf{Limitations.} All results are on sub-1M-parameter synthetic
-testbeds; nothing here is a claim about pretrained language models.
-Over-recruitment beyond two spare dimensions is not expressible in this
-state window; razor cells are single-seed except $S_3$ (four seeds;
-necessity zeros exact wherever seeds exist); two groups at the shortest
-pinned budget show soft convergence (disclosed; the razor reading is
-anchor-relative and unaffected).
+testbeds, not claims about pretrained language models. Razor cells are
+single-seed except $S_3$ (four seeds); $S_4$/$S_5$'s anchor-bar margins
+and $S_3$/$S_5$'s soft convergence at the shortest pinned budget
+(Appendices~\ref{app:m1}, \ref{app:gate1a}) both read directionally, not
+as an unqualified 5/5.
 
 \appendix
 
@@ -59,6 +58,23 @@ dimension-matched pair $S_4$/$A_5$ differs by 0.019 rank-units.}
 \label{tab:m1}
 \end{table}
 
+Below-$\dmin$ crosscheck cosines as a fraction of the geometrically
+forced ceiling $\sqrt{(\dmin{-}1)/\dmin}$: $S_3$ 86.3\%, $S_4$ 91.2\%,
+$A_5$ 94.9\%, $S_5$ 75.7\%, $A_6$ 93.5\% (mean 88.3\%). $S_5$ is the
+outlier, consistent with its soft-convergence flag (Appendix~\ref{app:gate1a}).
+% <!-- evidence: N12 -->
+
+Per-group deviation of the mean from $\dmin$ (Table~\ref{tab:m1}):
+$S_3$ 6.1\%, $S_4$ 4.9\%, $A_5$ 5.6\%, $S_5$ 10.2\%, $A_6$ 5.3\%.
+% <!-- evidence: N4 -->
+
+$S_4$ and $S_5$'s razor $k{=}\dmin$ cells (Figure~\ref{fig:tracking},
+main text) numerically exceed their own unconstrained anchor by 0.10--0.15;
+plausibly the capped arm skips the ambient dimensions the zero-padded
+anchor must still learn to null under the same fixed step budget, an
+unconfirmed hypothesis.
+% <!-- evidence: N14 -->
+
 The instrument's centering step is load-bearing: an uncentered lens
 scores a flawless synthetic model 0.705 where the centered production
 lens scores 0.9996 on identical data.
@@ -69,6 +85,13 @@ $L = 1$ read is attention-degenerate and was demoted with a mechanism
 note in the run records): it moves per-group mean recovery cosine by at
 most 0.013 (per-seed at most 0.041), with no group-selective divergence.
 % <!-- evidence: N10 -->
+Per-seed, $S_3$'s $k{=}\dmin$ cell clears its own seed's $0.9\times$anchor
+bar in 2 of 4 seeds (seed 1: $+0.010$; seed 3: $+0.110$; seed 0: $-0.045$;
+seed 2: $-0.120$); the self-referential bar ($0.9\times$ the seed-mean
+anchor, 0.574) narrowly fails the seed-mean $k{=}\dmin$ value (0.5625),
+which is why the main text uses the fixed pre-registered literal (0.495)
+rather than a self-referential recompute.
+% <!-- evidence: N3 -->
 
 \section{The Ambient-Identity Tax in Detail}
 \label{app:damb}
@@ -95,3 +118,46 @@ The repaired wave's 30 cells were configuration-verified one-by-one
 against a manifest re-derived independently from the design record (steps,
 padding mode, and force-rank value per cell; zero skipped steps).
 % <!-- evidence: N8 -->
+
+\section{Soft Convergence at the Shortest Pinned Budgets}
+\label{app:gate1a}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+$G$ & anchor & $k{=}\dmin{-}1$ & $k{=}\dmin$ & $k{=}\dmin{+}1$ & bar (0.92) \\
+\midrule
+$S_3$ & 0.914 & 0.665 & 0.900 & 0.903 & fail (all 4, by margin) \\
+$S_5$ & 0.876 & 0.801 & 0.879 & 0.877 & fail (all 4) \\
+\bottomrule
+\end{tabular}
+\caption{Convergence health (gate1a, min validation cosine over
+$L \in [2, 5]$) for every $S_3$/$S_5$ razor cell at the shortest pinned
+step budget. All eight cells fall short of the 0.92 margin; $S_5$'s
+0.876--0.879 range is a larger shortfall than $S_3$'s 0.900--0.914. The
+necessity leg (Section~\ref{sec:razor}) is unaffected by construction; the
+sufficiency leg for these two groups should be read as directionally
+consistent under disclosed soft convergence.}
+% <!-- evidence: N13 -->
+\label{tab:gate1a}
+\end{table}
+
+\section{Depth-21 Periodicity Under the Single $K$-Cycle}
+\label{app:period}
+
+The binding task's held-out composition probe (Section~\ref{sec:binding})
+uses a single Hamiltonian $K$-cycle, chosen because a general permutation
+decomposes into short disjoint cycles that collapse held-out hops into
+trivial or in-distribution queries. Under a single 8-cycle, $\pi^{21} =
+\pi^{21 \bmod 8} = \pi^5$ exactly, so nominal depth 21 shares its target
+with the already-tested depth 5; the two are not distinct group-theoretic
+targets. What depth 21 measures instead is numerical stability under 21
+sequential self-applications of the trained operator: in the four
+converged seeds, $\recninety$ at $h=5$ and $h=21$ both read $\approx 1.0$,
+a non-trivial statement that repeated self-application does not amplify
+error; the fifth (still-transitioning) seed reads 0.303 at $h=5$ and
+0.0001 at $h=21$, the same underlying imperfection compounding under
+repetition.
+% <!-- evidence: N9 -->
