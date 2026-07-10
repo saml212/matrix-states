@@ -1302,3 +1302,50 @@ awaits the coordinator's fresh go/no-go against the ledger and GPU load
 (§3.6). The standing chain §3.8(d) is now fully discharged: build (§7) →
 independent audit + re-audit (§7a) → box smoke + scoped fix audit (§7b) →
 Phase-0 calibration (§7c).**
+
+### §7d COORDINATOR WAVE-1 GO/NO-GO (2026-07-10): **GO** — recorded verbatim before launch
+
+> COORDINATOR WAVE-1 GO/NO-GO: **GO.** Grounds and the two decisions, to
+> be recorded verbatim as §7d (RECORD FIRST, commit+push, then launch):
+>
+> (1) 80K STEPS: APPROVED for all wave-1 trained cells. Grounds: Phase-0's
+> NCR seed-0 reproduced the archived frN-s0 late-transition profile at
+> 40K — an endpoint read at 40K would confound trainability with
+> capability (the budget-artifact precedent this project has been burned
+> by twice); your measured 1.12 GPU-h/80K-equiv rate projects the wave-1
+> core at ≈20 GPU-h, inside the 50 sub-cap with margin, and the 120
+> ledger is at 0.73.
+>
+> (2) COMPARISON SET: UNCHANGED per the pre-registration. mi6 forbids
+> baseline swaps; §3.2a scoring absorbs a FAIL-band baseline as-is.
+> LoopedVec's in-distribution failure (0.002) is recorded as the M3
+> strawman-risk disclosure — quote it prominently in any eventual claim —
+> and FWM (converged, decay front h=13, 0.079 at h\*=61, exactly the
+> pre-registered O(h) failure regime) is the load-bearing baseline. No
+> swap, no addition.
+>
+> LAUNCH TERMS: wave-1 core per §3's Phase-1 grid (3 trained arms × 5
+> seeds + C_MLP × 3 seeds), 80K steps, sub-cap 50 GPU-h hard. GPU
+> allocation: check nvidia-smi first — the §2.33 routing agent may hold
+> cells on GPUs 0-5; take genuinely idle devices only (GPU 6 + 7 should
+> be free; task2 completed its GPU work) and leave at least one idle GPU
+> for the routing agent if its cells are still queued. tmux ncr_wave1 +
+> self-healing supervisor, resume-by-validity, STOP-file support,
+> per-cell fingerprints — your own §7 machinery. Monitor + report on
+> completion sentinel; harvest per the §3 endpoint spec with the
+> crosscheck-lens discipline where applicable (§2.31a precedent: any
+> degauged readout needs its basis-invariant crosscheck reported
+> alongside). Ledger every GPU-h.
+
+**Launch mechanics (this builder's implementation of the terms):** 18
+cells (ncr/loopedvec/fwm × seeds 0-4 + cmlp × seeds 0-2), K=8, 80K steps,
+in a FRESH results dir (`results_wave1/` — wave-1 seed-0 cells at 80K are
+distinct experiments from Phase-0's 40K seed-0 cells; a shared dir would
+false-skip them via the COMPLETED check). Breaker rate = the Phase-0
+measured 1.1185 GPU-h/80K (itself measured under 3-way co-location, so no
+extra contention allowance is needed or taken). Two workers (one per idle
+GPU), each running its 9-cell shard in chunks of 3 co-located cells (the
+Phase-0-proven concurrency), tmux `ncr_wave1`, self-healing supervisor per
+worker, STOP file, `WAVE1_DONE` sentinel when 18/18 cell JSONs read
+COMPLETED. Projection: serial-sum ≈ 20.1 GPU-h; device draw ≈ 2 GPUs ×
+~3.5-5 h wall ≈ 7-10 GPU-h; hard sub-cap 50.
