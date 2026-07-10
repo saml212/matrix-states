@@ -1226,4 +1226,17 @@ diff sent to the §7a auditor for a scoped confirm (runs in parallel; the
 box smoke's own re-run is the prescribed instrument for this bug class and
 it passed).
 
-**STATUS: §7b PASS → Phase 0 (§7c) launch next.**
+**Scoped audit of the resume fix (FRESH agent — the first scoped confirm
+died on an API error mid-response and never returned; re-dispatched per
+coordinator instruction): CLEARED.** Verified by execution: the 7a79712
+delta is exactly the one line + comment + the registry record; CPU
+round-trip through the repo's own `save_ckpt`/`try_resume` post-fix is
+bit-exact (47/47 parameter tensors, generator byte-state identical,
+`.cpu()` proven a literal no-op on CPU-loaded checkpoints by direct device
+inspection); the only other `torch.load` consumer (`eval_only_ckpt` →
+`load_state_dict`) is device-agnostic; the two pre-existing `.cpu()` calls
+(`torch.set_rng_state`, `torch.cuda.set_rng_state`) verified correct
+against PyTorch source (RNG state is always a CPU byte blob); CPU suite
+re-run 14/14. No injection sightings.
+
+**STATUS: §7b PASS, resume-fix audit CLEARED → Phase 0 (§7c) running.**
