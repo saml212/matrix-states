@@ -7551,3 +7551,178 @@ Monte Carlo bar-derivation console output). SSD-mirrored. **NEXT: the
 coordinator routes the A6 n_h-sufficiency question and the S5-seed-1
 diagnosis (both disclosed at item 6-7, neither resolved by this
 record); the 3/62 A5 deferrals route per §2.8.**
+
+### §2.33 ROUTING OF THE THREE §2.32 CARRY-FORWARDS (2026-07-10): EVERY ROUTE TAKEN IS QUOTED FROM PRE-REGISTERED TEXT, NONE INVENTED — (1) A6's "CALIBRATION-PENDING" DECISIVE-n_h PIN DISCHARGES TO n_h=4 PER §2.2.4's OWN CLAUSE + THE FORCE-ARM GRID'S COMPLETED ANSWER (zero new cells); (2) S5's DECISIVE TRIAD IS AMBIGUOUS UNDER §1.4.2's ESCALATION-TO-5 TRIGGER → SEEDS 3/4 EXTENSION ROUTED (2 cells, ≈0.06 GPU-h); (3) THE 3 A5 2(e) DEFERRALS ROUTE THROUGH §2.30 item 4a(v)'s HARVEST-GOVERNANCE CLAUSE → MECHANISM DIAGNOSTIC (0 GPU-h, from committed raws) → MODEL-PROPERTY DEMOTE+DISCLOSE, NOT BOS, NOT INSTRUMENT-DEFECT
+
+**PRE-RUN ROUTING RECORD (committed BEFORE any cell launches, per the
+gauntlet-bookkeeping hard rule; results appended below after the runs).**
+Charter: execute the pre-registered routes for §2.32 item 6-7's three
+flagged items; the crosscheck lens is DECISIONAL for any recovery number
+per §2.31a, primary reported alongside as disclosure. Budget envelope
+≤2-3 GPU-h (actual plan ≈0.06 GPU-h — item 2's two cells at the measured
+S5-nh4 sweep rate ~105 s/cell; items 1 and 3 are zero-GPU re-reads of
+committed artifacts).
+
+**ITEM 1 — A6 n_h-SUFFICIENCY (A6's decisive n_h=2 config never
+converges under either lens, §2.32 item 6). ROUTE: discharge the
+pending decisive-config pin to n_h=4; zero new training.**
+
+*Licensing clauses, quoted verbatim:*
+- §2.2.4 (Arm 3 row, the `n_h` column): *"2 default; **4 for S5**
+  (DeltaProduct's own published requirement); **calibration-pending for
+  A6** (§2.5's force-arm grid)"* — A6's decisive contender `n_h` was
+  never pinned at 2; the design itself pins that the force-arm grid's
+  measurement decides it.
+- §2.5: *"`n_h` force-arm grid, scoped to the genuinely open question
+  (§2.2.3): does `n_h=2` suffice for S5 and A6, or do they need
+  DeltaProduct's own documented `n_h=4` (S5, published) / an untested
+  value (A6)? … a flanking grid direct-tests `n_h` sufficiency on THIS
+  task's own data/readout"* — the instrument that answers the pending
+  pin, already run (its 9 A6 cells are in the committed 62).
+- §2.30 item 4a(v): *"§2.8's three-way routing (instrument-defect →
+  fix+re-run) governs the harvest"* — with §1.30 rule (4)'s recalibrated
+  three-way routing: *"MANDATORY ≤0.1 GPU-h mechanism diagnostic … BEFORE
+  any action, w/ routing (instrument→fix; moving-below-ceiling→one capped
+  escalation; ceiling→demote+disclose+Stage-2 flag)"*.
+- Precedent: §2.5's Rev-1 promotion (attack-round finding 4) of S5's
+  decisive Arm-3 config to `n_h=4`.
+
+*Mechanism diagnostic (0 GPU-h spent of the ≤0.1 cap — computed from the
+committed cell JSONs, table in the §2.33 harness output):* the A6 `n_h`
+staircase at the IDENTICAL pinned 40K budget, task, and seed policy:
+`n_h=1` final_loss 0.209–0.400 (3/3 seeds fail); `n_h=2` 0.073–0.293
+(5/5 seeds fail, both lenses ≈0 at every D_test depth — lens-independent,
+so NOT the §1.25 instrument class); `n_h=4` 3.2e-5–8.1e-5 (3/3 seeds
+converge) with far-64 crosscheck 1.00/1.00/1.00. Budget cannot be the
+binding constraint at `n_h=2` (the identically-budgeted `n_h=4` cells
+converge 3/3, and A6's 40K pin already carries Stage-1 §1.30's
+plateau-verified margin); a further budget escalation is unlicensed
+(no evidence of budget-responsiveness; §1.30's ≤2-escalations cap).
+→ the CEILING branch at `n_h=2`: demote + disclose (A6-at-`n_h=2` is
+architecturally insufficient on this task — itself a publishable,
+previously-untested `n_h`-sufficiency measurement, §2.5's own framing),
+and the decisive-config pin discharges to `n_h=4` exactly as §2.2.4
+wrote it. Seed policy for the discharged leg: the as-built decisive-leg
+convention for a flanking-grid config is the 3-seed triad (S5's own
+precedent, §2.31/§2.32); §1.4.2's escalation-to-5 trigger fires only on
+ambiguity — A6's `n_h=4` triad reads far-64 X = 1.00/1.00/1.00 vs its
+0.90 bar with zero seed variance, no CI straddle → NO extension.
+*Execution:* re-read the M-D3 endpoint with the ONE constant
+`DECISIVE_CONTENDER_NH["A6"] = 4` discharged (m_d3_verdict itself
+UNMODIFIED, §2.32's shadow-cell convention), crosscheck decisional.
+
+**ITEM 2 — S5-SEED-1 (the pre-classified trainability-variance outlier
+dragging S5's decisive triad below its bar, §2.32 item 6-7). ROUTE:
+pre-registered seed extension of the decisive cell type to n=5.**
+
+*Licensing clauses, quoted verbatim:*
+- §2.5 (S5 flanking-grid row, Seeds column): *"3 (flanking-cell
+  economization, mirrors Stage 1's own force-rank-grid convention,
+  §1.4.2)"* — the economization imports §1.4.2's convention, which
+  includes its trigger:
+- §1.4.2: *"Pre-registered escalation-to-5 trigger (per the validation
+  verdict, GENERAL case …): if any cell type's … [metric] is AMBIGUOUS
+  (CI straddles the pre-registered bar), extend THAT cell type to 5
+  seeds before drawing a conclusion — … gated the same way:
+  variance-ratio check before pooling old/new cohorts, `var_ratio > 4.0`
+  → flag, don't silently pool"* (restated at §1.8: *"extend the
+  AMBIGUOUS cell type only"*). Disclosed reading: §1.4.2's trigger is
+  worded on Stage-1's M1/M3 metrics; it is applied here metric-generically
+  ("CI straddles the pre-registered bar") to Stage 2's OWN decisive
+  metric — M-D3's far-depth ≥90%-of-own-ceiling bar under the
+  §2.31a-decisional crosscheck lens. Precedent for a routed,
+  recorded-then-run seed extension: §1.36 → §1.36a.
+- §2.32 item 7's carry: S5-seed-1 stays classified trainability-variance
+  (mirrors h2h task-2 §1.40); no reclassification is made here — the
+  outlier seed is NOT excluded (the pre-registered group-MEAN aggregation
+  over ALL seeds, §2.6/§2.9-item-4's `σ_seed` machinery, stands); the
+  remedy the text licenses is more seeds, never exclusion.
+
+*Trigger arithmetic (fires):* decisive triad far-64 X = {0.80, 0.00,
+0.65}, mean 0.4833, σ(ddof=1) 0.4253, 95% CI [0.00, 0.96] straddles the
+0.735 bar (0.9 × X-ceiling 0.8167) → AMBIGUOUS → extend
+`(S5, arm3_beta02, n_h=4)` to n=5: seeds 3 and 4.
+*Execution:* 2 cells via the AUDITED sweep machinery unmodified
+(`run_cell_resume_safe(strict_real=True)` + `run_real_cell`, cell dicts
+shaped exactly as `build_nh_grid` emits them, seed threaded into BOTH
+`seed` and `cell_id` — the §1.36a seed-aliasing lesson; fresh cell_ids
+`S5__arm3_beta02__nh4__seed{3,4}`, no resume-collision, verified absent
+from the box results dir). Box tmux `stage2_route_2p33` + self-healing
+supervisor, `CUDA_VISIBLE_DEVICES=0` (GPUs 6/7 — NCR Phase-0,
+task2-diagnosis — never visible to the process). D=8 crosscheck ceilings
+for the new cells by §2.32's exact recompute convention
+(`ceiling_crosscheck_at_d8`, CPU, bit-identical primary reproduction
+asserted). Then the var-ratio pooling gate, and S5's M-D3 row at n=5
+(pooled only if unflagged; both pooled and unpooled reported either way).
+
+**ITEM 3 — THE 3/62 A5 2(e) DEFERRALS (`A5__arm2_beta01__nh2__seed3`
+fails D∈{1,2}; `…seed4` fails D=4; `A5__arm3_beta02__nh2__seed3` fails
+D=64; all anchor floors healthy; §2.31 item 4 + §2.32 item 7). ROUTE:
+§2.30-4a(v) harvest governance → mechanism diagnostic (0 GPU-h) →
+model-property demote+disclose. Neither BOS level-1 nor instrument-defect
+triage is licensed, for the quoted reasons.**
+
+*The routing machinery, quoted verbatim (§2.8 item 2(e), Rev 3 text):*
+- Anchor-floor route (§2.16 M1): *"A floor violation means the READER
+  ITSELF is degenerate … this routes to INSTRUMENT-DEFECT triage, NOT
+  the BOS-row fix"* — NOT triggered: `floor_violated=false` on all three
+  cells, `T_anchor` healthy at every failing leg.
+- Level 1: *"apply the BOS-row fix uniformly to Arms 2-3 + the last-`K`
+  control (all-arms-or-none, §2.2.2), then re-run ALL 11 calibration
+  cells, not just the failing ones … the sweep remainder does NOT launch
+  until every calibration cell passes (e)"* — level 1 is, by its own
+  discharge condition, a CALIBRATION-WAVE LAUNCH GATE (§2.31 item 4
+  already recorded this reading: "the routing was designed for the
+  calibration wave"). It was discharged at §2.30 (route=pass 11/11, all
+  7 depths) and the launch it gates has already happened. The 2(e) gate's
+  presence on all 62 SWEEP cells is the build's stricter instrument
+  (run_real_cell runs it per cell, §2.20's audited conformance); a
+  sweep-cell FAIL post-launch has no level-1 application — and applying
+  the BOS architecture change post-hoc would supersede all 62 trained
+  cells under the same clause's own all-arms-or-none pin (the exact
+  mid-campaign invalidation §1.30 item 6 / §1.31 row 6 prohibit under
+  hold-axes-fixed).
+- Level 2 / the governing pre-registration for harvest-time anomalies,
+  §2.30 item 4a(v): *"§2.8's three-way routing (instrument-defect →
+  fix+re-run) governs the harvest"* — entered via §1.30 rule (4)'s
+  mandatory ≤0.1 GPU-h mechanism diagnostic BEFORE any action.
+- Exit clause (§2.16 B2): *"a diagnosed-ceiling demotion of a depth leg,
+  once disclosed and PI-acknowledged, discharges (e) at that leg for
+  launch purposes."*
+
+*Mechanism diagnostic (0 GPU-h spent of the ≤0.1 cap; per-leg table in
+the §2.33 harness output):* (i) all four failing depth-legs fail ONLY the
+raw `T ≥ 0.25·T_anchor` bar (T/Tₐ 0.162–0.215); the CO-DECISIONAL
+scale-invariant `R` bar PASSES at every failing leg (R/Rₐ 0.643–1.248,
+i.e. per-unit-norm query-dependence is HEALTHY — what is depressed is
+read MAGNITUDE on the trained states). The BOS fix is definitionally the
+wrong tool: §2.8's own text — *"the BOS row restores rank/key-
+independence, NOT scale or saturation degeneracy"* — and the observed
+failure class is scale, not key-independence. (ii) Perfect one-directional
+co-location with non-convergence: the three flagged cells are all
+non-converged (final_loss 0.077–0.253); ZERO converged cells anywhere in
+the 62-cell grid fail 2(e); the same instrument passes 59/62 including
+every converged cell — instrument exonerated. (iii) No decisional number
+is at risk: A5 is non-gating (§2.6's canonical statement); the two arm-2
+cells' far-64 reads are 0.0 under BOTH lenses consistent with their own
+non-convergence; a disclosure-only sensitivity row (A5's group row with
+vs without the flagged arm-3 cell) is computed and reported, never
+substituted for the pre-registered all-seeds aggregation.
+→ ROUTING: genuine model-training property of non-converged cells (the
+"ceiling" branch) → DEMOTE + DISCLOSE at those (cell, depth) legs, per
+§2.16 B2's discharge shape; PI-visible at the next check-in for the B2
+acknowledgment. RESIDUAL GAP, recorded not improvised: if the
+coordinator/PI instead judges level-1 BOS to bind post-sweep, its own
+all-arms-or-none pin prices a full-grid re-run (~62 cells ≈ 3.2 GPU-h +
+architecture change) — a PI-visible design decision, deferred, not taken
+here.
+
+**Verdict-status pin, stated before results:** §2.32's mechanical
+FALSIFY under the AS-BUILT pins remains the recorded verdict of that
+record. The §2.33 re-read below is the M-D3 endpoint under the
+DISCHARGED pins (A6 decisive `n_h=4` per §2.2.4's own pending clause; S5
+at n=5 per §1.4.2's trigger), crosscheck decisional per §2.31a, primary
+disclosed. Promotion of the §2.33 endpoint to program verdict-of-record
+is the coordinator/PI's call at check-in, not this record's.
+
+*(Results appended below after the runs.)*
