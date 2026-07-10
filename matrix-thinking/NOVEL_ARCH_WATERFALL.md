@@ -990,3 +990,122 @@ readout, (b) the Rev-1 micro-attack — already satisfied by §4/§5, (d) the
 standing chain: independent build audit, real-path smoke test, Phase-0
 calibration) are unaffected by this discharge and remain open where not yet
 separately closed.
+
+## §7 WAVE-1 BUILD (2026-07-10): `matrix-thinking/ncr/` — CPU logic suite 13/13; awaiting independent audit (§7a)
+
+Gate state verified against the repo before building: §3.8(a) =
+`CAPABILITY_SEPARATION_DESIGN.md` §2.30 (SWEEP-READY, on disk), §3.8(b) =
+§4+§3.9+§5, §3.8(c) = §6 (commit 007ea05; archive + md5s re-verified by
+this agent, including the SSD mirror). No GPU touched by this build.
+
+### 7.1 File manifest (md5 at record time)
+
+| File | md5 | Role |
+|---|---|---|
+| `ncr/ncr_task.py` | `3c664c0c0571fc361692edd220ab21d2` | pinned h-grids, residue labels, two-mode eval pathway (MA2), label-schema guard |
+| `ncr/ncr_models.py` | `1e1a76a0b79301bef13f6ab133f49f98` | arms (NCR/FWM-read/LoopedVec/C_MLP) + scale-managed reads (bin-exp, renormed loop) |
+| `ncr/ncr_spectral.py` | `0ce6fde1cd7a246925baa6dc6db909bf` | Axis-C locked-curve machinery, deep probe (m4), §3.4 trust screen |
+| `ncr/ncr_selftest.py` | `657043cb8e7013294d57f2094513108d` | 13-section enforced suite incl. executed negative tests (kill proofs) |
+| `ncr/run_ncr.py` | `2067ccc09cfa6315b73c70838a3c8bff` | per-cell pipeline, Phase-0 orchestration, smoke + box-smoke, CLI |
+| `ncr/launch_phase0.sh` | `990dfdc69f920f16ebd8ba7ac2bee50d` | box launcher: idle-GPU guard, tmux+supervisor, STOP file, co-location |
+
+### 7.2 Build decisions (each traceable to a pin; audit checklist)
+
+1. **Harness inherited by IMPORT, not copy** (`task_e`/`task_d`/`model_v4`/
+   `model_e` from `chapter2/`): the mod-K guard, `_permutation_graph`,
+   injectivity teeth, `BindingEncoder`, `compose`, and C_MLP run verbatim —
+   zero drift by construction (§3.1 "inherited verbatim").
+2. **MA2 two-mode pathway implemented NCR-side** (`ncr_task.py`), not by
+   editing `task_e.py` (another lane's file): claim mode bakes every claim
+   point into a literal `TaskEConfig` so the INHERITED `__post_init__`
+   assert runs verbatim over all of them (h\*(K=12)=57 added to `H_extra`
+   explicitly — it is not a K=12 ladder point; both h\* pass); the residue
+   sweep never enters a config hop set and its results schema REFUSES
+   unlabeled entries. Negative-tested both directions.
+3. **Far-h ground truth via the exact single-cycle identity**
+   `pi^h == pi^(h mod K)` on the LABEL path only; the batch's `hops` is
+   overwritten with the RAW h before any model sees it (§3.1 depth-signal
+   pin). Label-reduction == full-h equality PROVEN by self-test at
+   h=13/21/61, not assumed. (Flagged for audit as the subtlest seam.)
+4. **Reads per §3.1/MA5:** square-and-multiply with per-squaring Frobenius
+   renorm of the base AND per-multiply renorm of the running product,
+   log-scales tracked separately; naive-loop arm renormed per step;
+   agreement bar |Δcos| ≤ 5e-4 applied to the MAX per-item diff (stricter
+   than the mean; the MA5 rounding derivation bounds every item) at h ≤ 125;
+   fp64 shadows computed on the SAME batches; bar 0.005.
+5. **Trust rule reused from the DISCHARGED implementation** (`ttrn.trust_rule`
+   import): the deployed screen is bit-identical to the one N1/N2 proved has
+   teeth; self-tests reproduce the archived N1 T(21)=99.7377 and N2
+   T(21)=1.0101e38 through this build's block-extraction path and REJECT
+   both. Per-h verdict = worst over Z-dump examples (bias-toward-refuse).
+   §5 nits honored: n2's s1-calibrated 0.37 lives in the archived script
+   (reused, not re-scored); n3's 4-10× figure appears nowhere in this build.
+6. **LoopedVec (mi6 pinned family)**: hidden width 529 DERIVED (not tuned):
+   NCR arm = 170,896 params; LoopedVec = 153,424 + 33H ⇒ H=529 → 170,881
+   (Δ 0.009%); FWM-read = 170,928 (+0.02%); C_MLP = 311,456 (disclosed weak
+   control, unmatched by design). ±15% gate asserted in code with an
+   executed out-of-band kill (hidden=3000 mutant, ratio 1.48). Episode
+   conditioning enters ONLY via the encoder-produced x₀ (the pinned step map
+   admits no other channel); its convergence profile is a Phase-0 READOUT,
+   pre-registered here as possibly poor — never a family swap (mi6).
+7. **Axis-C locks**: per-cell predicted decay curves (S9(e) machinery
+   imported from `analyze_zdump.py`; far-h extension via renormalized fp64
+   powers, cross-checked ≡ the lineage's literal `matrix_power` at h ≤ 21 to
+   <1e-9; reference side uses exact Π-periodicity) written + sha256-hashed
+   BEFORE far-h behavioral eval; the eval path REFUSES far-h points without
+   a verified lock (negative-tested, incl. hash tamper detection). K=12
+   locks carry the MA3 PREDICTED-HOLD/STRADDLE/PREDICTED-FAIL class.
+8. **Blank-out (m3) executed per trained arm** (bit-identical + grad-exactly-
+   zero + write-path-alive), wired into every cell AND smoke; leaky-read
+   kill proof executed. **Read-vector-std** for deviating arms (FWM-read,
+   LoopedVec — more coverage than §3.3's minimum, bias-toward-FAIL): std
+   across queries, mean-aggregated (Stage-2 MAJOR-1(a) statistic, max
+   co-reported), bar 0.04 at every probe depth {1,2,3,5,13,21} (mi4).
+9. **C_MLP h-signal**: keeps its INHERITED one-hot(h) (§3.3's own row);
+   the §3.1 raw-integer pin governs the comparisons of record — disclosed
+   in code and here, not silently reconciled.
+10. **fp64-shadow scope**: wraps the h-iteration reads (NCR bin-exp/loop,
+    FWM recursive, LoopedVec loop). C_MLP's O(1) read has no h-fold fp32
+    accumulation — shadow recorded as null with the reason (disclosed).
+11. **Closed-form checks (§2.26 discipline)**: standard-basis shift-matrix
+    bin-exp exact to h=1021; single-binding v·kᵀ maps k→v; the TRANSPOSED
+    [K,V] layout (k·vᵀ / inverse shift) is DETECTED as wrong — hand-computed
+    zero-accumulation configs, run in smoke and again ON CUDA in box-smoke.
+12. **Ops hygiene**: resume-safety by VALIDITY (config-sha-checked
+    checkpoints; corrupt/mismatched checkpoints refused loudly); atomic
+    JSON writes; per-cell runner tags + git commit + config sha + host
+    fingerprints; STOP-file support; per-cell breaker at 1.5× the
+    anchor-scaled rate (§2.29: scales with the step-budget axis;
+    CUDA-only, disclosed); tmux launcher refuses busy GPUs (mem ≥ 2 GiB or
+    util ≥ 5%) and existing sessions; exact-kill instructions only.
+
+### 7.3 Self-test verdict (executed, CPU, torch 2.8.0)
+
+13/13 sections PASSED via `run_ncr.py --smoke`, including the executed
+negative tests: grid-guard kills (h=64/57@K=8, h=60@K=12, poisoned
+`H_extra` through the inherited assert), label-schema refusals, bit-order
+mutation killed at non-palindromic h=13/19 (palindromic h would falsely
+pass a bit-reversal mutant — documented), non-scalar renorm mutation
+killed, shadow + agreement flags fire on perturbation, leaky-read blank-out
+kill, lock-refusal + lock-tamper kills, param-gate kill, full-arm gradient
+coverage, and a micro end-to-end cell (train → lock → blank-out → labeled
+eval → atomic JSON → resume-skip).
+
+### 7.4 Phase-0 cost (on paper, pre-experiment checklist)
+
+Params: 170,896 / 170,881 / 170,928 (matched arms; d=16 fp32, <1 GiB/cell).
+Basis = the MEASURED 2.4 GPU-h/80K anchor (§3.6): Phase-0 cells at 40K
+steps (§3.6's own "K=8 converges by 40K"; §9's converged-at-40K dumps) ≈
+1.2 GPU-h each → serial-sum 3.6. The launcher CO-LOCATES all three cells on
+the one granted GPU (tiny, Python-bound), projecting device draw ≈ 1.2-2.0
+GPU-h against the coordinator's ≤2 GPU-h Phase-0 cap (the registry's 7.2
+was the conservative 80K serial pricing); the co-located breaker allowance
+is widened 2× (§2.21 contention-false-abort lesson) while TRUE per-cell
+rates are measured and recorded in `phase0_rate.json` for wave-1 planning.
+Eval-only far-h grids (shadows + cost probe to 2^20+5) priced <1 GPU-h
+combined (§3.6), inside the same cap. If realized draw threatens the 2.0
+cap, the overage is reported, never silently absorbed.
+
+**STATUS: BUILD RECORDED; independent audit (§7a) dispatched next per the
+standing chain. No GPU work performed. Wave 1 (Phase 1) remains gated on
+Phase-0 PASS + a fresh coordinator go/no-go (§3.6).**
