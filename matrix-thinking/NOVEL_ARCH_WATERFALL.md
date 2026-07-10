@@ -1240,3 +1240,65 @@ against PyTorch source (RNG state is always a CPU byte blob); CPU suite
 re-run 14/14. No injection sightings.
 
 **STATUS: §7b PASS, resume-fix audit CLEARED → Phase 0 (§7c) running.**
+
+### §7c PHASE 0 — CALIBRATION GATE (2026-07-10, GPU 6, tmux `ncr_phase0`): **PASS** (instrument duties 3/3); convergence readouts recorded; realized ≈0.73 GPU-h total vs the ≤2 cap
+
+Three co-located 40K-step cells (K=8, seed 0) ran to completion + the gate
+pass, launch 21:59Z → supervisor done 22:42:28Z (wall ≈42.5 min on ONE
+GPU ≈ **0.70 GPU-h device draw**; per-cell serial-sum notional 2.00; box
+smoke ≈0.03 → **§7b+§7c realized ≈0.73 GPU-h** against the coordinator's
+≤2 Phase-0 cap and the 120 ledger). One outage note: the local
+coordinator-side session died mid-run (session limit) — the on-box
+tmux+supervisor process was unaffected and finished on its own, the
+intended failure isolation. Archive:
+`experiment-runs/2026-07-10_ncr_phase0/` (repo, 14 files + md5_manifest,
+ckpts excluded per policy) + full SSD mirror incl. the 3 checkpoints.
+
+**Gate table (`phase0_gate_table.json`, md5 `9083807c…`):**
+
+| duty | ncr | loopedvec | fwm |
+|---|---|---|---|
+| completed / n_skipped | ✓ / 0 | ✓ / 0 | ✓ / 0 |
+| rate GPU-h per 80K-equiv (supersedes the 2.4 anchor) | 1.116 | 1.118 | 1.122 |
+| blank-out (m3, executed) | PASS | PASS | PASS |
+| read-vector-std ≥0.04 @ every probe depth | n/a (direct read) | PASS (0.55-6.99) | PASS (0.28-0.41) |
+| Axis-C lock (sha256) | `3bbd2c70…` | n/a (no Z) | `542450a0…` |
+| fp64 shadow wired | ✓ (all Δ ≤ 4e-6) | ✓ | ✓ |
+| bin-exp/loop agreement (h≤125) | ✓ max 3.2e-06 vs 5e-4 bar | — | — |
+| in-dist min recovered@0.9 (READOUT) | 0.582 | 0.002 | **0.940** |
+| ladder failure front / revivals / reducer | 5 / none / no | 5 / none / no | 13 / none / no |
+| **gate_pass (instrument duties)** | **✓** | **✓** | **✓** |
+
+**Convergence readouts (never auto-gates; the coordinator's wave-1
+inputs):** (i) **fwm CONVERGED** (0.940 in-dist; ladder decay 0.919@5 →
+0.685@13 → 0.546@21 → 0.416@29 → 0.079@61 → 0.000@125+ — a clean
+drifting-nonlinear-read front in exactly P2's direction, already below the
+0.5 P2 bar AT h=29, the pinned grid point, and deep in FAIL band at
+h\*=61). (ii) **ncr seed-0 PARTIAL at 40K** — mid-transition (loss 0.997 →
+0.078 over the run, still falling; in-dist 0.582; locked phase residuals
+0.032-0.099, one order above the archived converged seeds' 0.002-0.012;
+eff_rank(A) 7.6-7.8 climbing toward 8; c\* 1.59-1.76 coherent) — this is
+the archived frN-s0 40K "late-phase transition" profile reproduced, i.e.
+the known budget artifact, NOT a new failure mode; wave-1 cells should run
+the ledger's own 80K pricing (at the measured 1.12 rate, wave-1 core ≈ 20
+GPU-h, well under the 50 sub-cap). (iii) **loopedvec cannot fit even
+in-distribution** (0.002 at h∈{1,2,3}; loss plateau 0.36) — the §7.2 item
+6 pre-registered structural bottleneck of the mi6-pinned family confirmed
+(episode information cannot reach the weight-tied step map beyond x₀);
+rvstd passes (state is query-dependent, just not task-solving); per mi6 no
+family swap — flagged to the coordinator as the M3 strawman-risk readout
+for the wave-1 go/no-go.
+
+**Axis-B preview (measured, standardized B=32 probes):** at h=1021 —
+bin-exp **1.7 ms** vs naive loop 64.4 ms (38×), fwm 36.2 ms, loopedvec
+63.8 ms; at h=2^20+5 — bin-exp **2.6 ms** vs loop **61.3 s** (≈23,600×),
+fwm 33.5 s, loopedvec 64.1 s. The O(log h)-vs-O(h) wall-clock separation
+already exceeds the Axis-B ≥10× WIN bar on Phase-0 hardware; the claimed
+read stays SHADOW-VERIFIED (fp64 Δ ≈ 0) at every ladder point.
+
+**STATUS: §7c PASS → STOPPED per charter. Wave 1 (Phase 1: 3 arms × 5
+seeds + C_MLP × 3 at K=8, ≈20 GPU-h at the measured rate at 80K steps)
+awaits the coordinator's fresh go/no-go against the ledger and GPU load
+(§3.6). The standing chain §3.8(d) is now fully discharged: build (§7) →
+independent audit + re-audit (§7a) → box smoke + scoped fix audit (§7b) →
+Phase-0 calibration (§7c).**
