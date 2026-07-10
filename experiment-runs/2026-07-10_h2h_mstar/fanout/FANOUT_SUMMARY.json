@@ -1,0 +1,15 @@
+{
+  "completed": 0,
+  "skipped_already_valid": 90,
+  "failed": 0,
+  "failures": [],
+  "n_total": 90,
+  "checkpoint_load_counts": {
+    "task1_sweep|0": 0,
+    "task1_sweep|1": 0,
+    "task1_sweep|2": 0,
+    "task2_sweep|0": 0,
+    "task2_sweep|1": 0,
+    "task2_sweep|2": 0
+  }
+}

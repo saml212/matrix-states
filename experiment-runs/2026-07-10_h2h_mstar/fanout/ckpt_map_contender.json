@@ -1,0 +1,8 @@
+{
+  "task1_sweep|0": "/data/h2h_rung1_ckpts/h2h_contender_task1_sweep_s0_r4.pt",
+  "task1_sweep|1": "/data/h2h_rung1_ckpts/h2h_contender_task1_sweep_s1_r4.pt",
+  "task1_sweep|2": "/data/h2h_rung1_ckpts/h2h_contender_task1_sweep_s2_r4.pt",
+  "task2_sweep|0": "/data/h2h_rung1_ckpts/h2h_contender_task2_sweep_s0_r4.pt",
+  "task2_sweep|1": "/data/h2h_rung1_ckpts/h2h_contender_task2_sweep_s1_r4.pt",
+  "task2_sweep|2": "/data/h2h_rung1_ckpts/h2h_contender_task2_sweep_s2_r4.pt"
+}

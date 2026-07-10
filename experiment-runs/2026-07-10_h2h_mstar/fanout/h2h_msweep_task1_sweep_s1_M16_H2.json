@@ -1,0 +1,1 @@
+{"M": 16, "horizon": "H2", "task": "task1_sweep", "seed_idx": 1, "seed": 1010000, "ckpt_key": ["task1_sweep", 1], "name": "h2h_msweep_task1_sweep_s1_M16_H2", "acc_A": 0.0244140625, "chance": 0.03125, "demonstration_bar": 0.09375, "recovered_frac": 0.0, "horizon_tokens": 454, "n_queries": 4096, "cap_length": 128, "n_episodes": 128}

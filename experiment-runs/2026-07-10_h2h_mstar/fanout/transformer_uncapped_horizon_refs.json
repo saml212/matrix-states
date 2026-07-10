@@ -1,0 +1,182 @@
+{
+  "task1_sweep|s0|H2": {
+    "acc_A": 0.029052734375,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 454,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task1_sweep|s0|H4": {
+    "acc_A": 0.03125,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 902,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task1_sweep|s0|H8": {
+    "acc_A": 0.035888671875,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 1798,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task1_sweep|s1|H2": {
+    "acc_A": 0.029541015625,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 454,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task1_sweep|s1|H4": {
+    "acc_A": 0.03271484375,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 902,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task1_sweep|s1|H8": {
+    "acc_A": 0.03125,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 1798,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task1_sweep|s2|H2": {
+    "acc_A": 0.029296875,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 454,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task1_sweep|s2|H4": {
+    "acc_A": 0.0302734375,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 902,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task1_sweep|s2|H8": {
+    "acc_A": 0.034423828125,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 1798,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s0|H2": {
+    "acc_A": 0.03125,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 454,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s0|H4": {
+    "acc_A": 0.02880859375,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 902,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s0|H8": {
+    "acc_A": 0.030029296875,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 1798,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s1|H2": {
+    "acc_A": 0.029296875,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 454,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s1|H4": {
+    "acc_A": 0.02880859375,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 902,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s1|H8": {
+    "acc_A": 0.026123046875,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 1798,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s2|H2": {
+    "acc_A": 0.027587890625,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 454,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s2|H4": {
+    "acc_A": 0.033447265625,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 902,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s2|H8": {
+    "acc_A": 0.028076171875,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 1798,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  }
+}

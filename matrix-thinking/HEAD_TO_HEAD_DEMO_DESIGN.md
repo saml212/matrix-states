@@ -4739,3 +4739,130 @@ sweep saved `_r4.pt`); plus the σ=0-at-ceiling note above. (b) the TASK2
 DIAGNOSIS ROUND (now seeded with the s2 partial-recall fact) + the
 transformer_K48 stress cell. (c) claim language per §1.31.6 with the
 single-seed caveat retired and the matched-budget caveat kept.
+
+### 1.41 AXIS-2 M* PROTOCOL RUN + VERDICT (2026-07-10): the walk is DEGENERATE exactly as pre-registered — **VERDICT OF RECORD: BASELINE NON-COMPETITIVE AT MATCHED PARAMS/TOKENS** (task1 primary; the informative datum is the CONTENDER'S OWN horizon table: acc_A ≥0.998 out to H8=1798 tokens at a fixed 32,768-byte state); capping does NOT rescue the transformer (no forced-locality effect); realized 0.26 GPU-h
+
+Full artifact set: `experiment-runs/2026-07-10_h2h_mstar/` (90 fan-out
+JSONs + FANOUT_SUMMARY + 3 reference JSONs (contender refs, uncapped-
+transformer refs, M=1 descriptive row) + ckpt maps + `MSTAR_VERDICT.json`
++ all 10 stage logs + md5 manifest, per-file local==box verified; SSD
+mirror). Stage ran eval-only on GPU 1 in tmux `h2h_mstar` (supervisor
+loop), 16:31:19Z→16:46:51Z ≈ **0.259 GPU-h** vs the 3.0 ceiling.
+
+**Pre-flight discharge (the three §1.38/§1.40 items), commits `8f825f4`
++ `be8cd3f`:**
+
+1. **acc_A re-registration (rf-era residue removed):** `capped_eval_pass`
+   was still rf-only (the §1.38 note's "recovered_frac_capped_M2 is
+   rf-based and report-only" generalized: the WHOLE capped/horizon eval
+   path returned only `recovered_frac`). Fixed: the pass now returns
+   **acc_A** (episode-restricted K-way top-1 through each arm's own
+   native LM-head route — the SAME audited rung-1 machinery as Leg A:
+   `_fused_transformer_tap_and_answer_logits` / `_recurrent_continuation_
+   answer_logits` + selftest-17-protected `_rung1_k_restricted_pred_slot`
+   — with horizon-extended context and, transformer-only, the sink+FIFO
+   cap) as THE decision metric; rf demoted to a report-only column. The
+   fan-out's validity key flipped `recovered_frac`→`acc_A` (an rf-era
+   result doc is INVALID and re-runs — smoke-6 negative teeth); the
+   harvest hard-refuses any doc without acc_A (its own smoke-4 teeth).
+   New selftest 23: capped acc_A wiring end-to-end on CPU + a capped-M
+   read on a recurrent arm REFUSES (run-to-completion negative).
+2. **ckpt_map `_r4` fix:** the chain's map builder (and the new stage
+   script's) now writes `h2h_{arch}_{task}_s{seed}_r4.pt` names (suffix
+   from `H2H_DIAL_ROUND`, default 4); verified against the box's actual
+   sweep files at launch (`checkpoint maps written (suffix _r4)`).
+3. **σ=0 guard adjudication:** the M* walk inherits NO binomial-σ
+   construction — its per-M statistic is the paired seed-level t-CI
+   (`delta_ci_n`), and the §1.31.2 S₀ "unchanged" leg is not re-run in
+   this protocol. The analog degeneracy (identical paired deltas → a
+   zero-width CI) is now DISCLOSED by a `zero_seed_variance` flag on
+   every CI (smoke 9); realized run: flagged FALSE at every (task, M) —
+   no degenerate CI entered the walk.
+
+Also fixed live (the one crash of the run): `FANOUT_SUMMARY.json`'s
+`checkpoint_load_counts` was tuple-keyed and crashed `json.dump` AFTER
+all 90 passes completed (results unharmed; supervisor crash-looped at
+the dump; resume-safety re-validated all 90 on the fixed retry pass —
+`skipped_already_valid: 90, failed: 0`). String-keyed + smoke-2
+serializability assert, commit `be8cd3f`.
+
+**Machinery added for the frozen clauses (both smoke-protected before
+use):** the walk now honors the Rev-5.1 **joint-NO-RECALL** rule
+mechanically (`tie_equivalent_ms`: a both-arms-below-bar M is walked
+PAST — never chain, never stop, never M*, disqualifies the CONFIRMED
+sub-claim; an ALL-skip grid returns the joint-failure TIE, never the
+M*=∞ WIN an empty chain alone would give — smoke 8 incl. teeth);
+`h2h_mstar_harvest_rd.py` applies the **degenerate-baseline** clause
+(smoke 2 incl. teeth: the same data WITHOUT the clause would certify
+CONFIRMED-no-crossover).
+
+**THE M-BY-M TABLE (task1_sweep primary, acc_A per-seed s0/s1/s2, bar
+0.09375, chance 0.03125; from `MSTAR_VERDICT.json`):**
+
+| arm | H2 (454) | H4 (902, decision) | H8 (1798) |
+|---|---|---|---|
+| **contender (uncapped, fixed 32,768-B state)** | 1.000/0.998/0.999 | 1.000/0.998/0.999 | 1.000/0.998/0.999 |
+| transformer uncapped (b-control) | 0.029/0.030/0.029 | 0.031/0.033/0.030 | 0.036/0.031/0.034 |
+| transformer M=1 (descriptive, floor-excluded) | 0.021/0.027/0.028 | 0.022/0.024/0.030 | 0.021/0.024/0.028 |
+| transformer M=32 | 0.029/0.030/0.031 | 0.022/0.021/0.032 | 0.022/0.025/0.029 |
+| transformer M=16 | 0.026/0.024/0.033 | 0.020/0.021/0.031 | 0.024/0.024/0.028 |
+| transformer M=8 | 0.021/0.025/0.031 | 0.025/0.022/0.032 | 0.022/0.025/0.029 |
+| transformer M=4 | 0.021/0.024/0.029 | 0.027/0.023/0.033 | 0.022/0.024/0.029 |
+| transformer M=2 | 0.021/0.024/0.030 | 0.026/0.027/0.033 | 0.022/0.026/0.029 |
+
+Per-M paired gap CIs at H4 (Δ = contender − capped): M=32
+(0.95864, 0.98911); M=16 (0.95886, 0.99101); M=8 (0.96103, 0.98396);
+M=4 (0.96025, 0.98230); M=2 (0.95970, 0.98089) — every eligible point's
+CI lower bound sits ≥0.958, i.e. **4.8× the 0.20 crossover margin at
+its FLOOR**; no straddle anywhere, no extension triggered.
+
+**THE MHL WALK (task1):** M=32 is an immediate CLEAN non-rejection
+(ci_low 0.959 > 0.20) → chain empty → the bare walk lands on the M*=∞
+pathway (and factually every one of the 5 eligible CIs is individually
+clean). **The DEGENERATE-BASELINE clause FIRES exactly as §1.40
+anticipated** — the uncapped transformer's own primary-cell reads
+[0.02710, 0.02930, 0.02856] are below the demonstration bar — so per
+the frozen §1.31.1 registration this is **NOT certified as
+M*=∞/CONFIRMED-no-crossover/strongest-win. VERDICT OF RECORD: "baseline
+non-competitive at matched params/tokens"** — itself a capability-
+separation datum (§1.1's axis-2 charter), claimed WITH the
+matched-training-budget caveat, alongside two REAL informative reads:
+
+- **The contender's horizon table stands on its own:** acc_A ≥0.998 at
+  every seed at every horizon out to H8=1798 tokens (8× T_bind) with a
+  FIXED 32,768-byte state — the recall demonstrated at T_bind (§1.40)
+  does not decay when the episode is embedded in a context 8× longer.
+  The "constant-memory minds" property is DEMONSTRATED on the contender
+  side even though the comparative M* instrument is degenerate.
+- **Forced locality does NOT rescue the transformer:** capped reads at
+  every M ∈ {1,2,4,8,16,32} sit at/below the uncapped read (all
+  NO-RECALL; per the frozen rule, differences between NO-RECALL arms are
+  chance-level noise ordering, never interpreted as separation). The
+  §1.40 "capping might HELP" hypothesis is answered: no.
+
+**Task2 (secondary, non-gating, disclosed):** BOTH clauses fire — the
+uncapped transformer is below bar (degenerate baseline) AND every grid
+point is joint-NO-RECALL (contender H4 mean 0.024 ≤ bar) → the walk
+returns the joint-failure TIE with all five points skipped; never a
+LOSE. **New diagnosis-round fact:** contender s2 — the §1.40 surprise
+seed, 0.33447 at T_bind — reads 0.010 at EVERY horizon (H2/H4/H8): its
+partial recall does not survive horizon extension (buffer-filler
+continuation), consistent with §1.40's held-out-hop fragility; goes
+into the TASK2 DIAGNOSIS ROUND file.
+
+**Instrument disclosures:** rf report-only column on the contender refs
+reads 0.007/0.467/0.951-adjacent per-seed at flat acc_A≈0.999 —
+§1.40's Leg-B legibility variance reproduced at horizons (mechanism
+data, no decision input). `zero_seed_variance` FALSE everywhere. The
+Nichani caveat travels with every acc_A number here, as always.
+
+**Ledger:** 0.259 GPU-h realized (vs 3.0 stage ceiling; the §1.6 item-F
+90-pass budget line is closed 10× under). Cumulative axis-2 cost is
+eval-only — no training was ever attributed to this axis.
+
+**NEXT, unchanged from §1.40:** (b) the TASK2 DIAGNOSIS ROUND (now
+seeded with BOTH the s2 T_bind partial-recall fact and its
+horizon-collapse fact above) + the transformer_K48 stress cell; (c)
+§1.31.6 claim language — axis-1 WIN (§1.40) + axis-2 "baseline
+non-competitive" (this section) compose into the §1.1 charter's
+capability-separation headline with the matched-budget caveat.
