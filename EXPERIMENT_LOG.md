@@ -7763,3 +7763,31 @@ qualifier PERMANENTLY. Archive: `experiment-runs/2026-07-10_fixscale_harvest/` (
 md5 manifest local==box; verdict JSON md5 f2f0aae84908c0db0a42b13c76a85158; analysis =
 `analyze_fixscale_harvest.py`, recomputed-from-raws twice). Security: zero fake
 system-reminder blocks in tool stdout this harvest (tally holds).
+
+## 2026-07-10 — H2H AXIS-2 M* PROTOCOL (§1.41): the walk is degenerate exactly as pre-registered — VERDICT OF RECORD: BASELINE NON-COMPETITIVE AT MATCHED PARAMS/TOKENS; the contender holds acc_A ≥0.998 out to H8=1798 tokens at a fixed 32,768-byte state; capping never rescues the transformer; 0.259 GPU-h
+
+Pre-flight (commits 8f825f4 + be8cd3f): (1) acc_A re-registration executed in code —
+`capped_eval_pass` now returns acc_A via the audited rung-1 machinery (horizon-extended ctx,
+sink+FIFO cap), rf demoted report-only; fan-out validity key flipped to acc_A (rf-era docs
+re-run; smoke-6 teeth); selftest 23 added. (2) ckpt_map names fixed to the sweep's actual
+`_r4.pt` files. (3) σ=0 adjudication: the walk carries NO binomial-σ check (paired seed t-CIs
+only); zero_seed_variance disclosure flag added — FALSE at every (task,M) this run. One live
+bug found+fixed post-launch: FANOUT_SUMMARY tuple-keyed load_counts crashed json.dump AFTER
+all 90 passes completed (results unharmed; supervisor crash-looped; fixed, smoke-2 assert).
+Run: eval-only, GPU 1, tmux h2h_mstar, 90 fan-out passes + 18 contender refs + 18 uncapped-
+transformer refs + 18 M=1 descriptive passes; 16:31:19Z→16:46:51Z ≈ 0.259 GPU-h (ceiling 3.0).
+**Task1 (primary): contender 1.000/0.998/0.999 per-seed at EVERY horizon H2/H4/H8; capped
+transformer at chance at every M∈{1,2,4,8,16,32} (0.020-0.033); uncapped transformer at chance
+(0.029-0.036). Every per-M H4 gap CI floor ≥0.958 (4.8× the 0.20 margin); walk = immediate
+clean non-rejection at M=32 (M*=∞ pathway) — but the DEGENERATE-BASELINE clause fires (uncapped
+transformer below the 0.09375 bar at the primary cell, §1.40's own numbers), so per the frozen
+§1.31.1 registration this is NOT certified M*=∞/strongest-win; VERDICT OF RECORD = baseline
+non-competitive at matched params/tokens (matched-budget caveat attached).** Informative reads
+that stand: the contender's constant-memory recall does not decay to 8× T_bind; forced locality
+(capping) does NOT help the transformer (the §1.40 hypothesis answered: no). Task2 (secondary):
+both clauses fire — joint-NO-RECALL at all five grid points (walked past per Rev-5.1 M3,
+smoke-8-protected) → joint-failure TIE; NEW diagnosis-round fact: contender s2 (0.334 at
+T_bind) collapses to 0.010 at every horizon — its partial recall does not survive horizon
+extension. Nichani caveat on every acc_A number. Archive:
+`experiment-runs/2026-07-10_h2h_mstar/` (+SSD; 96 fan-out files + MSTAR_VERDICT.json + 10 logs;
+per-file md5 local==box). Security: zero fake system-reminder blocks in tool stdout this run.

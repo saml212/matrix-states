@@ -1,0 +1,161 @@
+{
+  "arch": "ablation",
+  "task": "task1_calib",
+  "kd": 0.75,
+  "K": 48,
+  "role": "stress_locate_only",
+  "budget_frac": 0.25,
+  "seed": 500000,
+  "lr": 0.0003,
+  "warmup_steps": 100,
+  "name": "h2h_calib_ablation_task1_calib_stress_locate_only_K48_auxrev2",
+  "seed_idx": 0,
+  "step_count": 5000,
+  "wall_s": 514.9695937633514,
+  "s_per_step": 0.10299391875267029,
+  "n_params": 14048384,
+  "vocab_size_total": 50259,
+  "n_query_train": 8,
+  "aux_weight": 2.0,
+  "ce_answer_weight": 1.0,
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "loss_first": 23.57608413696289,
+  "loss_final_mean5": 7.7803778648376465,
+  "grad_ratio_at_tap_step500": {
+    "step": 500,
+    "round_idx": 3,
+    "max_dial_rounds": 4,
+    "ce_grad_norm_backbone": 0.13304868340492249,
+    "aux_grad_norm_backbone": 0.052372999489307404,
+    "ce_answer_grad_norm_backbone": 1.2508647441864014,
+    "ratio_ce_over_aux": 2.540406024140092,
+    "ratio_ce_over_ce_answer": 0.1063653636600504,
+    "aux_fires": false,
+    "ce_answer_fires": false,
+    "old_aux_weight": 2.0,
+    "old_ce_answer_weight": 1.0,
+    "status": "PASS",
+    "revise": null,
+    "new_aux_weight": 2.0,
+    "new_ce_answer_weight": 1.0
+  },
+  "curve": [
+    {
+      "step": 500,
+      "train_loss": 7.8295207023620605,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11546220071613789,
+      "rung1_accuracy": 0.024088541666666668,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7227307359377543
+    },
+    {
+      "step": 1000,
+      "train_loss": 7.851884365081787,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11531754769384861,
+      "rung1_accuracy": 0.019694010416666668,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7219093441963196
+    },
+    {
+      "step": 1500,
+      "train_loss": 7.781408786773682,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11560109443962574,
+      "rung1_accuracy": 0.02099609375,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7245862483978271
+    },
+    {
+      "step": 2000,
+      "train_loss": 7.803100109100342,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11560716666281223,
+      "rung1_accuracy": 0.020182291666666668,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7241093317667643
+    },
+    {
+      "step": 2500,
+      "train_loss": 7.788710594177246,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1158312987536192,
+      "rung1_accuracy": 0.0224609375,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7245470881462097
+    },
+    {
+      "step": 3000,
+      "train_loss": 7.7970290184021,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11599304713308811,
+      "rung1_accuracy": 0.023274739583333332,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7259049614270529
+    },
+    {
+      "step": 3500,
+      "train_loss": 7.800207614898682,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11595495045185089,
+      "rung1_accuracy": 0.017903645833333332,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7256583571434021
+    },
+    {
+      "step": 4000,
+      "train_loss": 7.8072190284729,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11584821715950966,
+      "rung1_accuracy": 0.021809895833333332,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7251898248990377
+    },
+    {
+      "step": 4500,
+      "train_loss": 7.782305717468262,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1158428955823183,
+      "rung1_accuracy": 0.021321614583333332,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7251270214716593
+    },
+    {
+      "step": 5000,
+      "train_loss": 7.787698745727539,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1158699169754982,
+      "rung1_accuracy": 0.01953125,
+      "rung1_chance": 0.020833333333333332,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7254125873247782
+    }
+  ],
+  "rung2_identity_classifier": {
+    "accuracy": 0.025227864583333332,
+    "chance": 0.020833333333333332,
+    "pass_bar": 0.0625,
+    "passed": false,
+    "K": 48,
+    "n_train_steps": 300
+  },
+  "final_recovered_frac_train_hops": 0.0,
+  "final_probe_cos_mean_train_hops": 0.1158699169754982,
+  "final_metric": 0.0,
+  "final_rung1_accuracy": 0.01953125,
+  "final_cos_pred_episode_mean": 0.7254125873247782,
+  "ckpt_path": "/data/h2h_rung1_ckpts/h2h_calib_ablation_task1_calib_stress_locate_only_K48_auxrev2.pt"
+}

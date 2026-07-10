@@ -1,0 +1,471 @@
+{
+  "arch": "contender",
+  "task": "task1_calib",
+  "kd": 0.5,
+  "K": 32,
+  "role": "primary",
+  "budget_frac": 1.0,
+  "seed": 0,
+  "lr": 0.0003,
+  "warmup_steps": 100,
+  "name": "h2h_calib_contender_task1_calib_primary_K32_auxrev2",
+  "seed_idx": 0,
+  "step_count": 20000,
+  "wall_s": 767.9252328872681,
+  "s_per_step": 0.038396261644363404,
+  "n_params": 14049408,
+  "vocab_size_total": 50259,
+  "n_query_train": 8,
+  "aux_weight": 2.0,
+  "ce_answer_weight": 1.0,
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "loss_first": 23.68528938293457,
+  "loss_final_mean5": 2.7687016487121583,
+  "grad_ratio_at_tap_step500": {
+    "step": 500,
+    "round_idx": 3,
+    "max_dial_rounds": 4,
+    "ce_grad_norm_backbone": 0.1892322301864624,
+    "aux_grad_norm_backbone": 0.11078272014856339,
+    "ce_answer_grad_norm_backbone": 1.7829759120941162,
+    "ratio_ce_over_aux": 1.7081385069142152,
+    "ratio_ce_over_ce_answer": 0.10613280241358279,
+    "aux_fires": false,
+    "ce_answer_fires": false,
+    "old_aux_weight": 2.0,
+    "old_ce_answer_weight": 1.0,
+    "status": "PASS",
+    "revise": null,
+    "new_aux_weight": 2.0,
+    "new_ce_answer_weight": 1.0
+  },
+  "curve": [
+    {
+      "step": 500,
+      "train_loss": 7.690698623657227,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11445078440010548,
+      "rung1_accuracy": 0.028564453125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.612885907292366
+    },
+    {
+      "step": 1000,
+      "train_loss": 7.450222969055176,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.11939411796629429,
+      "rung1_accuracy": 0.032470703125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.6384259462356567
+    },
+    {
+      "step": 1500,
+      "train_loss": 7.268650531768799,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.13317836076021194,
+      "rung1_accuracy": 0.029296875,
+      "rung1_chance": 0.03125,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7050902098417282
+    },
+    {
+      "step": 2000,
+      "train_loss": 7.0981526374816895,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.14205775037407875,
+      "rung1_accuracy": 0.03271484375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7526189535856247
+    },
+    {
+      "step": 2500,
+      "train_loss": 7.108552932739258,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.14778199419379234,
+      "rung1_accuracy": 0.02880859375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": false,
+      "cos_pred_episode_mean": 0.7838045060634613
+    },
+    {
+      "step": 3000,
+      "train_loss": 6.6786699295043945,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.14887549355626106,
+      "rung1_accuracy": 0.159912109375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.7846207022666931
+    },
+    {
+      "step": 3500,
+      "train_loss": 4.151608943939209,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1436258852481842,
+      "rung1_accuracy": 0.689697265625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.756785660982132
+    },
+    {
+      "step": 4000,
+      "train_loss": 3.902462959289551,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.15100838616490364,
+      "rung1_accuracy": 0.70751953125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.797537699341774
+    },
+    {
+      "step": 4500,
+      "train_loss": 3.8146016597747803,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.15425996109843254,
+      "rung1_accuracy": 0.7265625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.8164849579334259
+    },
+    {
+      "step": 5000,
+      "train_loss": 3.822932720184326,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1580793373286724,
+      "rung1_accuracy": 0.728759765625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.833586260676384
+    },
+    {
+      "step": 5500,
+      "train_loss": 3.726325273513794,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.15957900509238243,
+      "rung1_accuracy": 0.73486328125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.8469677418470383
+    },
+    {
+      "step": 6000,
+      "train_loss": 3.6096229553222656,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.16251662001013756,
+      "rung1_accuracy": 0.74609375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.8588190376758575
+    },
+    {
+      "step": 6500,
+      "train_loss": 3.601302146911621,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.16229597106575966,
+      "rung1_accuracy": 0.7412109375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.8721415102481842
+    },
+    {
+      "step": 7000,
+      "train_loss": 3.4837284088134766,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.16427235305309296,
+      "rung1_accuracy": 0.75634765625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.8744074106216431
+    },
+    {
+      "step": 7500,
+      "train_loss": 3.5142288208007812,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.165415920317173,
+      "rung1_accuracy": 0.75537109375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.8862801194190979
+    },
+    {
+      "step": 8000,
+      "train_loss": 3.5056886672973633,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.16849851608276367,
+      "rung1_accuracy": 0.76171875,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.8962682783603668
+    },
+    {
+      "step": 8500,
+      "train_loss": 3.5119357109069824,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.16832998767495155,
+      "rung1_accuracy": 0.770263671875,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9004189819097519
+    },
+    {
+      "step": 9000,
+      "train_loss": 3.3894717693328857,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.16994013264775276,
+      "rung1_accuracy": 0.769287109375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9060527384281158
+    },
+    {
+      "step": 9500,
+      "train_loss": 3.3402812480926514,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.16898072883486748,
+      "rung1_accuracy": 0.767822265625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9058579206466675
+    },
+    {
+      "step": 10000,
+      "train_loss": 3.3633065223693848,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.16991393268108368,
+      "rung1_accuracy": 0.775146484375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9105692356824875
+    },
+    {
+      "step": 10500,
+      "train_loss": 3.526442050933838,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17120570689439774,
+      "rung1_accuracy": 0.777099609375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9178249835968018
+    },
+    {
+      "step": 11000,
+      "train_loss": 3.560659885406494,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1708282306790352,
+      "rung1_accuracy": 0.780029296875,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9173361957073212
+    },
+    {
+      "step": 11500,
+      "train_loss": 3.4421324729919434,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17191240191459656,
+      "rung1_accuracy": 0.776611328125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.923411637544632
+    },
+    {
+      "step": 12000,
+      "train_loss": 3.4440698623657227,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1728884093463421,
+      "rung1_accuracy": 0.78369140625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9248339980840683
+    },
+    {
+      "step": 12500,
+      "train_loss": 3.5376899242401123,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1725834421813488,
+      "rung1_accuracy": 0.781005859375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9263342767953873
+    },
+    {
+      "step": 13000,
+      "train_loss": 3.357923746109009,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1731482520699501,
+      "rung1_accuracy": 0.791259765625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9278373569250107
+    },
+    {
+      "step": 13500,
+      "train_loss": 3.3347325325012207,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17337441816926003,
+      "rung1_accuracy": 0.802001953125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9290341436862946
+    },
+    {
+      "step": 14000,
+      "train_loss": 3.2729883193969727,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17214596271514893,
+      "rung1_accuracy": 0.847412109375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9231259822845459
+    },
+    {
+      "step": 14500,
+      "train_loss": 3.01279616355896,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17051059752702713,
+      "rung1_accuracy": 0.947265625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.91456238925457
+    },
+    {
+      "step": 15000,
+      "train_loss": 2.89689564704895,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17145316302776337,
+      "rung1_accuracy": 0.979248046875,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9160413295030594
+    },
+    {
+      "step": 15500,
+      "train_loss": 2.8136587142944336,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17146512120962143,
+      "rung1_accuracy": 0.987548828125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.919376328587532
+    },
+    {
+      "step": 16000,
+      "train_loss": 2.8282063007354736,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.172555573284626,
+      "rung1_accuracy": 0.994140625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9239135235548019
+    },
+    {
+      "step": 16500,
+      "train_loss": 2.8246874809265137,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17240975052118301,
+      "rung1_accuracy": 0.996337890625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9269999116659164
+    },
+    {
+      "step": 17000,
+      "train_loss": 2.8100287914276123,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17367546260356903,
+      "rung1_accuracy": 0.9970703125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9307469129562378
+    },
+    {
+      "step": 17500,
+      "train_loss": 2.7500689029693604,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1738235242664814,
+      "rung1_accuracy": 0.998291015625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9314200282096863
+    },
+    {
+      "step": 18000,
+      "train_loss": 2.798168182373047,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17423701286315918,
+      "rung1_accuracy": 0.99755859375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9337032288312912
+    },
+    {
+      "step": 18500,
+      "train_loss": 2.7517223358154297,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1751573123037815,
+      "rung1_accuracy": 0.999267578125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9363701045513153
+    },
+    {
+      "step": 19000,
+      "train_loss": 2.767364978790283,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17536917328834534,
+      "rung1_accuracy": 0.999267578125,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9380404949188232
+    },
+    {
+      "step": 19500,
+      "train_loss": 2.786846876144409,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.1755015142261982,
+      "rung1_accuracy": 0.998291015625,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.9403012692928314
+    },
+    {
+      "step": 20000,
+      "train_loss": 2.780813217163086,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.17595944926142693,
+      "rung1_accuracy": 0.9990234375,
+      "rung1_chance": 0.03125,
+      "rung1_passed": true,
+      "cos_pred_episode_mean": 0.941491037607193
+    }
+  ],
+  "rung2_identity_classifier": {
+    "accuracy": 0.0322265625,
+    "chance": 0.03125,
+    "pass_bar": 0.09375,
+    "passed": false,
+    "K": 32,
+    "n_train_steps": 300
+  },
+  "final_recovered_frac_train_hops": 0.0,
+  "final_probe_cos_mean_train_hops": 0.17595944926142693,
+  "final_metric": 0.0,
+  "final_rung1_accuracy": 0.9990234375,
+  "final_cos_pred_episode_mean": 0.941491037607193,
+  "gate1_band": {
+    "rung1_accuracy": 0.9990234375,
+    "K": 32,
+    "chance": 0.03125,
+    "rung1_pass_bar": 0.09375,
+    "rung1_ok": true,
+    "recovered_frac_at_09": 0.0,
+    "rf_ok": false,
+    "within_band": false
+  },
+  "ckpt_path": "/data/h2h_rung1_ckpts/h2h_calib_contender_task1_calib_primary_K32_auxrev2.pt"
+}
