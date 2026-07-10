@@ -91,9 +91,9 @@ written state deletes the capability in the delta-rule contender. This
 section shows the same write, iterated over a corpus at scale, drags
 its own key population toward collapse, and that the one construction
 known to stabilize the geometry at 14M buys nothing at 98M and 392M
-while costing nothing in loss. We do not offer a fix; we report that
-the community's stock mitigation is orthogonal to the phenomenon and
-that the obvious portable construction fails to port. The pathology is
+while costing nothing in loss. No fix is offered here: the community's
+stock mitigation is orthogonal to the phenomenon, and the obvious
+portable construction fails to port. The pathology is
 a property of the storage mechanism as scaled, not of a particular
 stabilizer choice, and it is currently unaddressed.
 

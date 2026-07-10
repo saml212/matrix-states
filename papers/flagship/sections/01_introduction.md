@@ -80,7 +80,6 @@ Concretely, we contribute:
 
 Every numerical claim in this paper traces to a pre-registered verdict
 record and an archived, checksummed raw artifact; the figures regenerate
-from those artifacts under checksum assertion. Where an instrument broke
-during the program, the paper reports the break, the diagnosis, and the
-repaired reading rather than the broken one; Section 2 summarizes this
-discipline and Section 7 discusses its scope limits.
+from those artifacts under checksum assertion. Each repaired instrument
+reading appears together with the defect it corrected; Section 2
+summarizes this discipline and Section 7 discusses its scope limits.

@@ -92,8 +92,8 @@ Higher is closer to collapse.
 ## 2.5 Instrument Validity as a First-Class Method
 
 Each leg of this program survived at least one
-instrument-defect-found-and-fixed round, and the paper reports repaired
-readings only. Three examples set the pattern. In the rank program, the
+instrument-defect-found-and-fixed round; only repaired readings appear
+below. Three examples set the pattern. In the rank program, the
 first causal sweep was voided by a target-padding defect that let
 rank-capped models buy cosine from an ambient identity block; the
 diagnosis, fix, and re-run are described in Section 3.3. In the recall
@@ -103,7 +103,7 @@ Section 4.3 reports. In a separate composition program (not claimed
 here), a primary lens read zero on converged models while a
 pre-registered crosscheck lens read one; the contradiction was resolved
 by a recorded tiebreak against the raw artifacts, and the affected
-endpoint is excluded from this paper entirely. We treat these episodes
-as part of the method: a verdict is only as good as the instrument that
-reads it, so every verdict-bearing instrument here carries either a
-negative control, an analytic anchor, or a pre-registered crosscheck.
+endpoint is excluded from this paper entirely. A verdict is only as
+good as the instrument that reads it, so every verdict-bearing
+instrument here carries either a negative control, an analytic anchor,
+or a pre-registered crosscheck.

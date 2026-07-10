@@ -33,13 +33,12 @@ is at the design-and-calibration stage with a pre-registered lens
 question resolved but no model verdict; we claim neither. Depth
 generalization is future work, stated as such.
 
-**What we take from the instrument episodes.** Three times in this
+**Instrument validity as a recurring risk.** Three times in this
 program (Sections 2.5, 3.3, 4.3), the first instrument pointed at a
 true phenomenon read false. In each case the repair was cheaper than
 the conclusion it prevented: a zero-pad flag, a tap relocation, a
-pre-registered crosscheck. We draw a methodological conclusion rather
-than a rhetorical one: representational claims about matrix states need
-analytic anchors, negative controls, and pre-registered crosschecks,
-because both false negatives (a linear probe at the wrong tap) and
-false positives (an identity block sold as recovery) arise from
-instrument choice alone at this scale.
+pre-registered crosscheck. Representational claims about matrix states
+need analytic anchors, negative controls, and pre-registered
+crosschecks, because both false negatives (a linear probe at the wrong
+tap) and false positives (an identity block sold as recovery) arise
+from instrument choice alone at this scale.

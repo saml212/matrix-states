@@ -86,11 +86,10 @@ The ablation's pre-LM-head tap, its own positive control, fails
 ($\mathrm{rf@0.9} = 0.0$, cosine 0.119) <!-- evidence: R5 -->: its
 geometry differs in kind, not merely in strength. The stored binding is
 therefore real but linearly illegible at the state; it becomes linearly
-decodable only after the downstream block's nonlinear processing. Three
-earlier probe rounds that read uniform zeros were a wrong-layer,
-wrong-route instrument, and we note that a state-level linear probe
-would have falsified this capability that the model's own forward pass
-decodes at 0.9995.
+decodable only after the downstream block's nonlinear processing. A
+state-level linear probe alone would have read this capability as
+absent, while the model's own forward pass decodes it at 0.9995
+<!-- evidence: R5 -->.
 
 ## 4.4 Constant-Memory Recall Horizon
 

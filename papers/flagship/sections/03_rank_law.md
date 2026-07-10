@@ -42,9 +42,9 @@ dimension of the task, not the group's algebraic complexity class.
 
 ## 3.3 An Instrument Defect, Its Diagnosis, and the Repaired Causal Test
 
-The first force-rank sweep produced a mechanically valid FALSIFY reading
-that we voided on diagnosis, and the episode changes what the causal
-test means, so we report it. The training target had been embedded as
+An early force-rank sweep produced a mechanically valid FALSIFY reading
+that a target-embedding defect later voided, and the defect changes
+what the causal test means. The training target had been embedded as
 $\rho(g) \oplus I_{d_{state}-d_{\min}}$: an eye-padded block matrix of
 full rank $d_{state}$ with all singular values equal to one. For such a
 target, a rank-$k$ model's optimal direct cosine is $\sqrt{k/d_{state}}$
@@ -81,8 +81,8 @@ Together the three readings close the loop in both directions:
 $d_{\min}$ ranks are recruited when available (Section 3.1), the
 recruitment tracks dimension rather than solvability (Section 3.2), and
 $d_{\min}$ is causally necessary and sufficient (this section). The
-whole trilogy cost approximately 4.3 GPU-hours <!-- evidence: R0 -->;
-the phenomenon is small-scale and cheap to reproduce.
+substrate is small and every reading reproduces from the archived
+artifacts (Appendix B).
 
 **Figure 1 caption.** Recruited restricted effective rank versus minimal
 faithful representation dimension $d_{\min}$ for five permutation groups

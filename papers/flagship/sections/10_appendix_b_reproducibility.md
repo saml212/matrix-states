@@ -59,5 +59,5 @@ confirmatory run: the rank-law sweep and its instrument repair
 margins freeze and sweep verdict (§1.31–§1.41 of the head-to-head
 design), the ladder and mitigation waves (the scale-transfer design and
 §13 of the frozen-bias design). The records fix scope, seeds, bars, and
-tiers; where a record and an artifact ever disagreed, the paper reports
-the raw-artifact reading and the recorded tiebreak.
+tiers; where a record and an artifact ever disagreed, the raw-artifact
+reading and the recorded tiebreak stand in place of the record's prose.
