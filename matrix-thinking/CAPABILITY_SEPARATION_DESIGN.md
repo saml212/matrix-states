@@ -6250,3 +6250,29 @@ re-check (N1-N4 mutations ONLY) → deploy (md5) → box fla cross-check →
 Arm-1 retrain 0.2148 → 11-cell calibration gate (7 depths) → WRITE the
 harvest analysis script (still outstanding, required pre-sweep) → sweep
 (cap 25, PI_SIGNOFF citing §1.33-discharge) → NCR build unblocks.**
+
+### §2.24 NARROW RE-CHECK VERDICT (2026-07-10, on 0ab7e3c): CLEARED-FOR-DEPLOY
+
+Worktree re-check, scope held to N1-N4: pristine 6/6 + legacy 13/13
+(suite failure exits 1 — process-level teeth); ALL FOUR mutations
+killed with exact asserts (strict_real drop → tiny-tagged AND
+untagged-tiny plants poison undetected → section-6 kill fires; salt
+drop → byte-identical S4/A5 streams caught; batch→32 caught; gate-entry
+fingerprint drop → the §2.22 mutation-3 escape returns → caught); every
+revert md5-verified. main() routing traced live 4/4 (no-signoff raises
+pre-wave; post-signoff → run_calibration_wave_real with per-group
+budgets; tiny wave unreachable without --smoke-tiny; pre-fix contrast
+confirmed the old bug). New-defect sweep CLEAN: strict_real forwarding
+is the only resume gate; salt arithmetic sound (the +1 is the
+documented train-gen offset — disclosed); n_skipped_steps persisted;
+ckpt_path required at all 6 call sites. Carried observation
+(pre-existing): the Arm-1 retrain utility doesn't persist a skip count
+— fold into a future config-match pass, not a blocker. Security: +2
+stdout fakes (≥90-class floor).
+
+**DISPOSITION: DEPLOY CHAIN DISPATCHED — deploy (md5) → box fla
+cross-check {(1,1),(1,8),(2,8)} FIRST → Arm-1 retrain 0.2148 GPU-h →
+11-cell calibration gate (7 depths, fingerprint-protected) → WRITE the
+harvest analysis script (required pre-sweep) → sweep authorization
+(cap 25, PI_SIGNOFF citing §1.33-discharge + §2.18/§2.24). NCR build
+unblocks on the calibration readout.**
