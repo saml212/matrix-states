@@ -1,0 +1,127 @@
+{
+  "arch": "ablation",
+  "task": "task3_sweep",
+  "seed_idx": 2,
+  "seed": 2020000,
+  "name": "h2h_ablation_task3_sweep_s2",
+  "budget_frac": 1.0,
+  "role": "sweep",
+  "lr": 0.0003,
+  "corpus": "openr1-mix-ext",
+  "step_count": 20000,
+  "wall_s": 2318.991306066513,
+  "s_per_step": 0.11594956530332565,
+  "n_params": 14047872,
+  "skip_rate": 0.0,
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "init_val_loss_own": 10.866917371749878,
+  "curve": [
+    {
+      "step": 1000,
+      "train_loss": 5.218019008636475,
+      "val_loss_own": 3.4330539405345917
+    },
+    {
+      "step": 2000,
+      "train_loss": 4.823770999908447,
+      "val_loss_own": 2.9531480967998505
+    },
+    {
+      "step": 3000,
+      "train_loss": 4.4897565841674805,
+      "val_loss_own": 2.761724680662155
+    },
+    {
+      "step": 4000,
+      "train_loss": 4.509283065795898,
+      "val_loss_own": 2.6372751593589783
+    },
+    {
+      "step": 5000,
+      "train_loss": 4.456418514251709,
+      "val_loss_own": 2.560887634754181
+    },
+    {
+      "step": 6000,
+      "train_loss": 4.296475410461426,
+      "val_loss_own": 2.5059135258197784
+    },
+    {
+      "step": 7000,
+      "train_loss": 4.019898891448975,
+      "val_loss_own": 2.4804092347621918
+    },
+    {
+      "step": 8000,
+      "train_loss": 4.278499603271484,
+      "val_loss_own": 2.4390020668506622
+    },
+    {
+      "step": 9000,
+      "train_loss": 4.0196638107299805,
+      "val_loss_own": 2.416588544845581
+    },
+    {
+      "step": 10000,
+      "train_loss": 4.010700225830078,
+      "val_loss_own": 2.386915236711502
+    },
+    {
+      "step": 11000,
+      "train_loss": 4.166037559509277,
+      "val_loss_own": 2.369511693716049
+    },
+    {
+      "step": 12000,
+      "train_loss": 4.307315826416016,
+      "val_loss_own": 2.3577771186828613
+    },
+    {
+      "step": 13000,
+      "train_loss": 4.169983863830566,
+      "val_loss_own": 2.3408543467521667
+    },
+    {
+      "step": 14000,
+      "train_loss": 3.7669270038604736,
+      "val_loss_own": 2.3296473622322083
+    },
+    {
+      "step": 15000,
+      "train_loss": 4.043341159820557,
+      "val_loss_own": 2.32250440120697
+    },
+    {
+      "step": 16000,
+      "train_loss": 3.533924102783203,
+      "val_loss_own": 2.313086748123169
+    },
+    {
+      "step": 17000,
+      "train_loss": 3.9100899696350098,
+      "val_loss_own": 2.304595947265625
+    },
+    {
+      "step": 18000,
+      "train_loss": 4.238263130187988,
+      "val_loss_own": 2.298116981983185
+    },
+    {
+      "step": 19000,
+      "train_loss": 3.8976519107818604,
+      "val_loss_own": 2.2976075410842896
+    },
+    {
+      "step": 20000,
+      "train_loss": 3.655815839767456,
+      "val_loss_own": 2.290429472923279
+    }
+  ],
+  "final_val_loss_own": 2.290429472923279,
+  "final_val_loss_other": 6.736138343811035,
+  "final_metric": 2.290429472923279,
+  "ckpt_path": "/data/h2h_rung1_ckpts/h2h_ablation_task3_sweep_s2.pt"
+}

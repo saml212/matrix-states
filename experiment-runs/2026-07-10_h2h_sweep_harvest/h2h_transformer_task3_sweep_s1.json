@@ -1,0 +1,127 @@
+{
+  "arch": "transformer",
+  "task": "task3_sweep",
+  "seed_idx": 1,
+  "seed": 2010000,
+  "name": "h2h_transformer_task3_sweep_s1",
+  "budget_frac": 1.0,
+  "role": "sweep",
+  "lr": 0.001,
+  "corpus": "openr1-mix-ext",
+  "step_count": 20000,
+  "wall_s": 867.2972252368927,
+  "s_per_step": 0.043364861261844634,
+  "n_params": 14439936,
+  "skip_rate": 0.0,
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "init_val_loss_own": 10.89359712600708,
+  "curve": [
+    {
+      "step": 1000,
+      "train_loss": 4.548615455627441,
+      "val_loss_own": 2.702745407819748
+    },
+    {
+      "step": 2000,
+      "train_loss": 4.185630798339844,
+      "val_loss_own": 2.3997332751750946
+    },
+    {
+      "step": 3000,
+      "train_loss": 4.320781230926514,
+      "val_loss_own": 2.240136504173279
+    },
+    {
+      "step": 4000,
+      "train_loss": 3.531031608581543,
+      "val_loss_own": 2.102808028459549
+    },
+    {
+      "step": 5000,
+      "train_loss": 3.4618844985961914,
+      "val_loss_own": 2.017407566308975
+    },
+    {
+      "step": 6000,
+      "train_loss": 3.591848850250244,
+      "val_loss_own": 1.9870576560497284
+    },
+    {
+      "step": 7000,
+      "train_loss": 3.2118139266967773,
+      "val_loss_own": 1.9453593790531158
+    },
+    {
+      "step": 8000,
+      "train_loss": 3.4971976280212402,
+      "val_loss_own": 1.9188560247421265
+    },
+    {
+      "step": 9000,
+      "train_loss": 3.192343235015869,
+      "val_loss_own": 1.897506132721901
+    },
+    {
+      "step": 10000,
+      "train_loss": 3.542839527130127,
+      "val_loss_own": 1.8792648017406464
+    },
+    {
+      "step": 11000,
+      "train_loss": 3.841262102127075,
+      "val_loss_own": 1.8626114279031754
+    },
+    {
+      "step": 12000,
+      "train_loss": 3.387451410293579,
+      "val_loss_own": 1.8427582681179047
+    },
+    {
+      "step": 13000,
+      "train_loss": 3.1553549766540527,
+      "val_loss_own": 1.830994427204132
+    },
+    {
+      "step": 14000,
+      "train_loss": 3.4043679237365723,
+      "val_loss_own": 1.8165954649448395
+    },
+    {
+      "step": 15000,
+      "train_loss": 3.8688178062438965,
+      "val_loss_own": 1.8131273090839386
+    },
+    {
+      "step": 16000,
+      "train_loss": 3.3590588569641113,
+      "val_loss_own": 1.7995391935110092
+    },
+    {
+      "step": 17000,
+      "train_loss": 3.2820446491241455,
+      "val_loss_own": 1.7903998643159866
+    },
+    {
+      "step": 18000,
+      "train_loss": 3.3751916885375977,
+      "val_loss_own": 1.7871699333190918
+    },
+    {
+      "step": 19000,
+      "train_loss": 3.39558744430542,
+      "val_loss_own": 1.780199095606804
+    },
+    {
+      "step": 20000,
+      "train_loss": 3.4745993614196777,
+      "val_loss_own": 1.7800047248601913
+    }
+  ],
+  "final_val_loss_own": 1.7800047248601913,
+  "final_val_loss_other": 5.78875058889389,
+  "final_metric": 1.7800047248601913,
+  "ckpt_path": "/data/h2h_rung1_ckpts/h2h_transformer_task3_sweep_s1.pt"
+}

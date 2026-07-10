@@ -1,0 +1,105 @@
+{
+  "cell_id": "h2h_contender_task1_sweep_s0",
+  "arch": "contender",
+  "task": "task1_sweep",
+  "K": 32,
+  "role": "sweep_remetric",
+  "provenance": {
+    "path": "/data/h2h_rung1_ckpts/h2h_contender_task1_sweep_s0_r4.pt",
+    "md5": "b996846304cce20b2776df168824e3bd",
+    "mtime": 1783633943.7005253,
+    "arch": "contender",
+    "task": "task1_sweep",
+    "fresh": false
+  },
+  "leg_a": {
+    "acc_A": 0.99951171875,
+    "chance": 0.03125,
+    "pass_bar": 0.09375,
+    "passed": true,
+    "cos_pred_episode_mean": 0.20049667730927467,
+    "hop_set": [
+      1
+    ],
+    "primary": true,
+    "baseline_comparable": true
+  },
+  "leg_a_secondary_h_test": null,
+  "rung2_identity_classifier": {
+    "accuracy": 1.0,
+    "chance": 0.009345794392523364,
+    "pass_bar": 0.02803738317757009,
+    "passed": true,
+    "K": 32,
+    "n_classes": 107,
+    "tap_dim": 256,
+    "labels": "entity_identity",
+    "tap": "leg_b_pre_lm_head",
+    "n_train_steps": 300
+  },
+  "instrument_health": {
+    "positive_control": {
+      "identity_accuracy": 1.0,
+      "identity_pass_bar": 0.9,
+      "identity_passed": true,
+      "old_slot_labeled_accuracy": 0.030500000342726707,
+      "old_slot_labeled_chance": 0.03125,
+      "old_slot_labeled_reads_chance": true,
+      "n_classes": 107,
+      "n_slots": 32,
+      "tap_dim": 256,
+      "passed": true
+    },
+    "noise_null": {
+      "accuracy": 0.009499999694526196,
+      "chance": 0.009345794392523364,
+      "pass_bar": 0.014018691588785045,
+      "passed": true,
+      "native_tap_dim": 256,
+      "K": 107,
+      "n_train_steps": 300,
+      "n_eval": 2000
+    },
+    "passed": true
+  },
+  "leg_b_ridge": {
+    "lambda": 100.0,
+    "cos_mean": 0.9096689224243164,
+    "rf@0.5": 1.0,
+    "rf@0.6": 0.999267578125,
+    "rf@0.7": 0.99609375,
+    "rf@0.8": 0.966552734375,
+    "rf@0.9": 0.685791015625,
+    "shuffled_control_cos_mean": 0.0923154279589653,
+    "gap_vs_shuffled_cos_mean": 0.8173534944653511
+  },
+  "leg_b_ridge_harness_sanity_control": {
+    "lambda": 1e-06,
+    "cos_mean": 1.0,
+    "rf@0.5": 1.0,
+    "rf@0.6": 1.0,
+    "rf@0.7": 1.0,
+    "rf@0.8": 1.0,
+    "rf@0.9": 1.0,
+    "shuffled_control_cos_mean": 0.0011133389780297875,
+    "gap_vs_shuffled_cos_mean": 0.9988866610219702,
+    "passed": true
+  },
+  "s0_necessity_check": {
+    "acc_intact": 0.99951171875,
+    "acc_s0_zeroed": 0.033935546875,
+    "acc_s1_zeroed": 0.99951171875,
+    "n": 4096,
+    "K": 32,
+    "collapse_bar": 0.09375,
+    "collapsed": true,
+    "sigma": 0.00034518267901195124,
+    "two_sigma": 0.0006903653580239025,
+    "delta_s1": 0.0,
+    "unchanged": true,
+    "passed": true,
+    "hard_stop_fires": false
+  },
+  "rung1_positive_control_note": "selftest 17 in h2h_cell_train_rd.py (planted-answer, the K-restricted gather+argmax construction) -- a standing code-level unit test, not re-run per-cell",
+  "wall_s": 35.35734176635742
+}

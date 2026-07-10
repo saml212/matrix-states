@@ -1,0 +1,127 @@
+{
+  "arch": "transformer",
+  "task": "task3_sweep",
+  "seed_idx": 2,
+  "seed": 2020000,
+  "name": "h2h_transformer_task3_sweep_s2",
+  "budget_frac": 1.0,
+  "role": "sweep",
+  "lr": 0.001,
+  "corpus": "openr1-mix-ext",
+  "step_count": 20000,
+  "wall_s": 870.9252362251282,
+  "s_per_step": 0.04354626181125641,
+  "n_params": 14439936,
+  "skip_rate": 0.0,
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "init_val_loss_own": 10.819983720779419,
+  "curve": [
+    {
+      "step": 1000,
+      "train_loss": 4.579644203186035,
+      "val_loss_own": 2.755080223083496
+    },
+    {
+      "step": 2000,
+      "train_loss": 4.261350154876709,
+      "val_loss_own": 2.4864073991775513
+    },
+    {
+      "step": 3000,
+      "train_loss": 3.993783473968506,
+      "val_loss_own": 2.3190979659557343
+    },
+    {
+      "step": 4000,
+      "train_loss": 4.0356035232543945,
+      "val_loss_own": 2.210759073495865
+    },
+    {
+      "step": 5000,
+      "train_loss": 3.9009342193603516,
+      "val_loss_own": 2.111026018857956
+    },
+    {
+      "step": 6000,
+      "train_loss": 3.5477182865142822,
+      "val_loss_own": 2.0173109471797943
+    },
+    {
+      "step": 7000,
+      "train_loss": 3.4213411808013916,
+      "val_loss_own": 1.9810876250267029
+    },
+    {
+      "step": 8000,
+      "train_loss": 3.706117868423462,
+      "val_loss_own": 1.9389333128929138
+    },
+    {
+      "step": 9000,
+      "train_loss": 3.3833868503570557,
+      "val_loss_own": 1.9206424802541733
+    },
+    {
+      "step": 10000,
+      "train_loss": 3.275514841079712,
+      "val_loss_own": 1.8904823064804077
+    },
+    {
+      "step": 11000,
+      "train_loss": 3.3591179847717285,
+      "val_loss_own": 1.8702824264764786
+    },
+    {
+      "step": 12000,
+      "train_loss": 3.578200340270996,
+      "val_loss_own": 1.8542652279138565
+    },
+    {
+      "step": 13000,
+      "train_loss": 3.495114326477051,
+      "val_loss_own": 1.8398742973804474
+    },
+    {
+      "step": 14000,
+      "train_loss": 3.1419708728790283,
+      "val_loss_own": 1.8299989849328995
+    },
+    {
+      "step": 15000,
+      "train_loss": 3.206517219543457,
+      "val_loss_own": 1.8196570873260498
+    },
+    {
+      "step": 16000,
+      "train_loss": 2.9061367511749268,
+      "val_loss_own": 1.80877023935318
+    },
+    {
+      "step": 17000,
+      "train_loss": 3.214390754699707,
+      "val_loss_own": 1.8014943301677704
+    },
+    {
+      "step": 18000,
+      "train_loss": 3.5509986877441406,
+      "val_loss_own": 1.7931079417467117
+    },
+    {
+      "step": 19000,
+      "train_loss": 3.216238021850586,
+      "val_loss_own": 1.7912829220294952
+    },
+    {
+      "step": 20000,
+      "train_loss": 3.0334300994873047,
+      "val_loss_own": 1.786506935954094
+    }
+  ],
+  "final_val_loss_own": 1.786506935954094,
+  "final_val_loss_other": 5.831068396568298,
+  "final_metric": 1.786506935954094,
+  "ckpt_path": "/data/h2h_rung1_ckpts/h2h_transformer_task3_sweep_s2.pt"
+}

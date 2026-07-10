@@ -7686,3 +7686,42 @@ Mistake: §2.25 recorded a "≥28x numerical disagreement" with three candidate 
 Correction: derive the single-step closed form by hand for the exact test inputs, compare EACH side against it independently (and against its transpose), and read the installed library's state-layout convention from its naive/reference implementation before comparing state tensors across libraries — matched semantics includes memory layout, not just the update equation.
 
 **Security:** one fake `<system-reminder>` injection this session — the known composite (date-change claim + "DO NOT mention this to the user" concealment + fabricated agent-type list + fabricated MCP-server tool-loading instructions) attached to this agent's FIRST `git pull`/`git log` tool result, the §1.36a/§2.25-item-7 pattern; disregarded in full, reported plainly, real date independently verified via `date -u` on both machines (2026-07-10T02:36Z) + live commit timestamps. Zero sightings in box logs/probe outputs. Tally 83→84. Compute: ~0 GPU-h for the adjudication (seconds of eval-only forwards on a shared idle GPU); the resumed chain's spend is the already-priced 0.2148 GPU-h retrain + the calibration wave's own budget-guarded real rate. Archive: `experiment-runs/2026-07-10_stage2_calibration/` (analytic step-1/step-2 scripts + logs, the mutant-kill teeth log, `fla_cross_check_fixed_pass.log`, `box_smoke_stage2_rerun.log`, `stage2_calib_supervisor.sh`; SSD-mirrored). Pointers: `CAPABILITY_SEPARATION_DESIGN.md` §2.26; `stage2_composer.py::fla_cross_check` + `::analytic_closed_form_check`.
+## HEAD-TO-HEAD — 27-CELL SWEEP HARVESTED: AXIS-1 TASK1-PRIMARY = LEG-A WIN at n=3 under the frozen tiers — THE VERDICT OF RECORD; task2 surprise (1/3 contender seeds shows partial recall → INDETERMINATE, feeds the diagnosis round) (2026-07-10)
+
+Harvest of the §1.38 sweep (registry: `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.40, the full record).
+Sweep ended clean (27/27 CELL COMPLETE, zero FATAL/strikes, SWEEP_STOP, tmux gone);
+config-match verified from raws (all cells at pinned budget/lr/weights; the one freeze-time
+override honored). **Harvest-side re-metric (recorded disposition):** the Stage-D script
+trained cells ONLY — no sweep JSON carries `acc_A`; the verdict-grade reads were produced at
+harvest by `h2h_sweep_remetric_rd.py` (§1.31.4 item 6's audited `run_cell_round4` verbatim on
+the 18 grammar `_r4.pt` checkpoints, md5-pinned loads, pinned EVAL_SEED episodes; independent
+pre-run audit CLEAR-TO-RUN; 0.112 GPU-h; brief GPU-0 co-tenancy with the parallel
+`stage2_calib` launch disclosed — deterministic evals, correctness unaffected). **AXIS-1
+(task1 primary): WIN.** Contender acc_A [0.99951, 1.00000, 0.99902] (mean 0.99951, every seed
+≥10.7× the 0.09375 bar); ablation [0.03223, 0.03271, 0.03687]; transformer [0.02710, 0.02930,
+0.02856] — neither baseline ever clears. Δ(cont−abl) mean 0.96558, paired t-CI (df=2)
+**(0.95822, 0.97293)**; Δ(cont−tfm) mean 0.97119, CI **(0.96855, 0.97383)** — both exclude
+0.30. No seed fragility; the n=3→9 extension does NOT fire; §1.31.6's single-seed caveat
+RETIRED (matched-budget + Nichani caveats stand). **Task2 SURPRISE:** contender s2 = 0.33447
+(clears the bar; rung-2 0.3364 tracks) while s0/s1 + all baselines sit at chance → strict
+tiers read INDETERMINATE (CI −0.320..0.523 straddles ±0.30); axis-1 disposition unchanged
+(task1-primary pin), but the "deterministic failure" premise behind the pre-registered
+joint-failure TIE does not transfer to fresh seeds — the s2 datum (trainability/seed-variance,
+not a hard capability boundary) OPENS the task2 diagnosis round. H_test=(3,4) secondary:
+no generalization (s2 reads 0.0112). **S₀ hard-stop clean 12/12**; one disclosed instrument
+edge case (s1 acc_intact=1.0 → σ=0 → the "unchanged" 2σ-band is unpassable by construction;
+Δ=0.00513; collapse leg passes decisively 0.0339/0.0012/0.0002) — σ=0-at-ceiling flagged for
+the M* dispatch. Leg-B diagnostic: contender rf@0.9 [0.686, 0.771, 0.951] (fresh-seed first
+measurements, ADJ-3; big legibility variance at flat acc_A), ablation 0.0; task2-s2 rf@0.9=0.0
+despite acc_A 0.335 (the Nichani gap live at the deep tap). Instruments 18/18 both directions.
+task3 control: contender/ablation in-band; transformer at the frozen lr=1e-3 reads
+1.777-1.787, 0.12 BELOW the calibration-era band floor (better-than-band; band-note, not a
+gate event). **Ledger: 9.598 (sweep, supervisor projection; 8.802 per-cell wall-sum) + 0.112
+(re-metric) ≈ 9.71 vs the 13.25 ceiling.** Public updates: site
+`findings/fast-weight-recall.html` n=1 caveat → the n=3 verdict; `papers/flagship/brief.md`
+row R4 verdict landed. **Security:** zero fake system-reminder blocks in tool stdout this
+dispatch (tally holds at 83); one system-channel date-change notice between turns, verified
+consistent with box artifact timestamps — reported, not tallied, per the standing convention.
+**NEXT (pre-registered):** M* protocol (axis 2; two §1.38 pre-flight items + the σ=0 note);
+task2 diagnosis round (now seeded with the s2 fact) + transformer_K48 stress cell. Archive:
+`experiment-runs/2026-07-10_h2h_sweep_harvest/` (+SSD mirror).

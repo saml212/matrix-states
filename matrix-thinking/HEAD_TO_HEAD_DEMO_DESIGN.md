@@ -4637,3 +4637,105 @@ a wave-total divided by one cell's steps). The corrected figure is
 escalation is AFFORDABLE and the §1.9 infeasibility conclusion is
 RE-OPENED (already noted in STATE's PENDING PI DECISIONS item 6). The
 original §1.9 text is left in place as history; this erratum governs.
+
+### 1.40 27-CELL SWEEP HARVEST (2026-07-10, coordinator harvest): AXIS-1 TASK1-PRIMARY = **LEG-A WIN at n=3** under the frozen §1.31.1 tiers — THE VERDICT OF RECORD; task2 surprise (1/3 contender seeds demonstrates partial recall → INDETERMINATE, folds into the diagnosis round); S₀ hard-stop clean 12/12; 9.71/13.25 GPU-h
+
+Full artifact set: `experiment-runs/2026-07-10_h2h_sweep_harvest/` (27
+training JSONs + 18 verdict-grade re-metric JSONs + both logs +
+MARGINS_FROZEN copy + the exact eval/verdict scripts + md5 manifest,
+local==box verified; SSD mirror). Sweep session ended clean: 27/27 CELL
+COMPLETE, zero FATAL/strike lines, SWEEP_STOP written, tmux `h2h_sweep`
+gone. Config-match verified from raws: all 27 cells at step_count=20000,
+budget_frac=1.0, lr=3e-4 (transformer task3 at the one freeze-time
+override 1e-3), K=32, aux/ce weights pinned — no deviations; seeds
+identical across arms per (task, seed_idx).
+
+**Harvest-side re-metric disposition (recorded):** the §1.38 Stage-D
+extraction ran the 27 TRAINING cells only (its own header); the sweep
+training JSONs carry the demoted online-probe fields, never `acc_A`. The
+verdict-grade reads were produced at harvest by `h2h_sweep_remetric_rd.py`
+(archived; md5 e47d69fabdd51ba24896e76c5d13a3ab local==box): §1.31.4 item
+6's audited `run_cell_round4` applied VERBATIM to the sweep's 18 grammar
+`_r4.pt` checkpoints — loader-side md5 provenance pinning, pinned
+EVAL_SEED episodes identical across arms/seeds, task3 exempt (LM control,
+no Leg-A). Independent pre-run audit: CLEAR-TO-RUN (7/7 checks). Cost
+0.112 GPU-h.
+
+**AXIS-1 VERDICT (task1_calib-equivalent `task1_sweep` primary, frozen
+tiers, mean-of-seeds with per-seed disclosure): WIN.**
+
+| arm | s0 | s1 | s2 | mean | clears 0.09375 bar? |
+|---|---|---|---|---|---|
+| contender | 0.99951 | 1.00000 | 0.99902 | 0.99951 | every seed (≥10.7× bar) |
+| ablation | 0.03223 | 0.03271 | 0.03687 | 0.03394 | never |
+| transformer | 0.02710 | 0.02930 | 0.02856 | 0.02832 | never |
+
+Δ(contender−ablation) per-seed [0.96729, 0.96729, 0.96216]: mean 0.96558,
+paired t-CI (df=2, t=4.303) **(0.95822, 0.97293) — excludes 0.30** with
+0.658 to spare at the CI floor. Δ(contender−transformer) per-seed
+[0.97241, 0.97070, 0.97046]: mean 0.97119, CI **(0.96855, 0.97383) —
+excludes 0.30**. No seed fails the demonstration bar, no CI straddle →
+the pre-registered n=3→9 extension trigger does NOT fire; the §1.31.6
+single-seed caveat is RETIRED. Confirms §1.37's n=1 preview. The Nichani
+caveat travels with every number here (argmax episode-restricted recall,
+never a rank/continuous-capacity claim); the matched-budget caveat
+stands (the transformer read is at matched params/tokens/compute — a
+degenerate-baseline datum per §1.31.1, so the axis-1 WIN is carried by
+the ablation comparison with the transformer's non-competitiveness
+disclosed alongside).
+
+**TASK2 — the pre-registered joint-failure TIE does NOT describe the
+sweep data exactly; recorded as a SURPRISE, not spun either way.**
+Contender per-seed [0.03955, 0.02905, **0.33447**]: seed 2 clears the
+demonstration bar (10.7× chance; rung-2 identity 0.3364 tracks it),
+seeds 0/1 and ALL baseline arms sit at chance. Strict frozen-tier
+arithmetic: Δ(contender−ablation) mean 0.10164, CI (−0.32001, 0.52330)
+— straddles ±0.30 → **INDETERMINATE** (TIE-adjacent, never a WIN).
+Axis-1 disposition unchanged (task1-primary pin; task2 non-verdict-
+bearing this round), but the Rev-5.1 rationale ("deterministic failure
+on the frozen checkpoint") is now known to not transfer to fresh seeds:
+the s2 datum is direct evidence the task2 failure mode is
+trainability/seed-variance, NOT a hard capability boundary — this goes
+INTO the pre-registered TASK2 DIAGNOSIS ROUND as its opening fact.
+Secondary H_test=(3,4) reads (disclosed, non-comparable): contender
+[0.0332, 0.0339, 0.0112] — the s2 partial recall does NOT generalize to
+held-out hops.
+
+**S₀ hard-stop: clean 12/12 recurrent cells** (`hard_stop_fires` False
+everywhere). Contender task1 S₀-zeroed collapses to 0.0339/0.0012/0.0002
+(bar 0.09375); S₁-zeroed unchanged at s0/s2 (Δ=0.000). One disclosed
+instrument edge case, NOT a hard-stop: contender_task1_s1's "unchanged"
+leg fails by construction because acc_intact=1.0 exactly → the pinned
+σ=√(p̂(1−p̂)/n)=0 → 2σ=0, so its Δ(S₁-zeroed)=0.00513 (21/4096 queries;
+recall still 0.99487) cannot pass any nonzero reading. The §1.31.2
+formula is degenerate at p̂=1.0 — flagged for the M* dispatch to carry
+(use an exact-binomial or +0.5-continuity band if a future cell sits at
+ceiling), per the standing exact-threshold honesty rule.
+
+**Leg-B (diagnostic) + instruments + task3:** contender task1 rf@0.9 =
+[0.6858, 0.7710, 0.9512] (large per-seed legibility variance at flat
+acc_A — mechanism data, no decision input); ablation 0.0 at every seed.
+§1.38's reproduction bands bound only REUSED round-3 checkpoints; all
+sweep cells are fresh seeds → first measurements (ADJ-3 logic).
+contender_task2_s2 reads rf@0.9=0.0 despite acc_A 0.335 — the Nichani
+gap live at the deep tap, as §1.31.3's attribution table anticipates.
+Instrument health 18/18 both directions; ridge harness sanity 18/18.
+task3 (control lane): contender [2.1529, 2.1077, 2.1659] and ablation
+[2.2920, 2.2851, 2.2904] inside the anchored [1.90, 2.60] band;
+transformer at the frozen lr=1e-3 [1.7769, 1.7800, 1.7865] — 0.12 BELOW
+the calibration-era band floor (better-than-band at full budget vs its
+2.1931 calibration point; a band-note, not a gate event — task3 bands
+were launch-gating only).
+
+**Ledger:** sweep realized **9.598 GPU-h** (supervisor mechanical
+projection at completion, 17,276 s × 2 GPUs; per-cell wall-sum 8.802) +
+harvest re-metric **0.112** → ≈9.71 vs the 13.25 ceiling (3.5 under).
+
+**NEXT, per the pre-registration:** (a) the **M\* protocol (axis 2)** —
+90-pass fan-out + contender horizon refs — with §1.38's two pre-flight
+items live: re-verify `h2h_msweep_fanout_rd` against the acc_A
+re-registration AND fix the chain's stale unsuffixed ckpt_map names (the
+sweep saved `_r4.pt`); plus the σ=0-at-ceiling note above. (b) the TASK2
+DIAGNOSIS ROUND (now seeded with the s2 partial-recall fact) + the
+transformer_K48 stress cell. (c) claim language per §1.31.6 with the
+single-seed caveat retired and the matched-budget caveat kept.

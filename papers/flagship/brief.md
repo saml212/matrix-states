@@ -42,8 +42,9 @@ repaired instrument (R3); S₀-zeroing not collapsing recall / S₁-zeroing
 changing it (R5); a matched baseline closing the recall gap at equal budget
 (R4, the n=3 sweep is exactly this test); the span-fraction ladder breaking
 monotonicity or qk-norm removing the attractor (R6, R7). T1 is recommended
-because it is the only candidate all nine evidence rows load onto, and its
-weakest leg (recall, n=1) has its verdict-grade test already running.
+because it is the only candidate all nine evidence rows load onto; its
+formerly weakest leg (recall) is now verdict-grade — the n=3 sweep WIN
+(R4, §1.40) with paired CIs excluding the margin at both comparisons.
 
 **T2 (capability-first, per the PI's 2026-07-08 capability directive):**
 
@@ -91,8 +92,10 @@ draft; weakest fit to the capability-first directive.
    fast-weight-resident (S₀-zeroing collapses it to chance; S₁-zeroing
    changes nothing), with the recall geometry exposed only downstream of
    nonlinear processing (rf@0.9 = 0.674 at the pre-LM-head tap vs 0.0 at
-   every state-level linear tap). n=1 at this writing; the n=3 verdict row
-   is reserved below.
+   every state-level linear tap). CONFIRMED at n=3 (2026-07-10): per-seed
+   contender [0.99951, 1.00000, 0.99902], paired CIs (0.958, 0.973) vs the
+   ablation and (0.969, 0.974) vs the transformer, both excluding the 0.30
+   margin — row R4 below is claim-grade.
 3. **A scale-worsening pathology standard mitigations do not fix:** the
    write-geometry attractor's span-fraction climbs 0.248→0.344→0.389→0.455
    across a held-fixed-mix 14M→98M→392M→1.31B ladder (pure scale), was
@@ -129,14 +132,15 @@ instrument-repair records, reproducibility pointers.
 One row per numerical claim. Every row names the pre-registered verdict
 record AND the raw artifact (path + md5, computed 2026-07-09 with `md5 -q`).
 A number with no raw artifact is a CRITICAL finding, not a claim. Reserved
-rows (R4-sweep, R8) carry NO claim until their verdicts land.
+row R8 carries NO claim until its verdict lands (R4's sweep verdict LANDED
+2026-07-10 — the row below is now claim-grade).
 
 | Id | Claim (with the number) | Verdict record (§ / log entry) | Raw artifact (path + md5) | Figure / table |
 |---|---|---|---|---|
 | R1 | Restricted effective rank tracks d_min across 5 groups: 1.877/2.852/2.832/3.591/4.736 vs d_min 2/3/3/4/5; Spearman ρ=0.9747 (tie-capped max, exact-null P(ρ≥0.8)=6.67%); 19/19 unconstrained cells in the [0.7,1.3]·d_min band | `CAPABILITY_SEPARATION_DESIGN.md` §1.33; `EXPERIMENT_LOG.md` 2026-07-09 capability-sweep entries | `experiment-runs/2026-07-09_capability_sweep_harvest/harvest_summary.json` md5:7dce77dcba724cd1004419ac71fe5f2f (+ `results/` 58 per-cell JSONs, `md5_local.txt` vs box verified 61/61) | fig1_rank_vs_dmin.pdf |
 | R2 | Marquee S4-vs-A5 TOST DECLARE: diff +0.0194 rank-units, se 0.0368, df 7.83, t1=13.06/t2=14.12 vs t_crit=1.865 at margin ±0.5 — the pair lands together on dimension, not apart on solvability | §1.33 (same record; evaluated by the repo's pre-registered `tost_analysis.py`) | same archive as R1 (`harvest_summary.json` + `harvest_analysis_output.txt`) | table in §3 (or fig1 inset) |
 | R3 | Causal razor 5/5: k=d_min−1 xrec90 = 0.000 in all 5 groups (and 0.000 in all 4 independent S3 seeds); k=d_min recovers past the fixed 0.9×anchor bar (S4 0.800/0.585, A5 0.700/0.630, S5 0.600/0.450, A6 0.650/0.585; S3 seed-mean 0.5625 ≥ 0.495) | §1.36 (CAUSAL-CONFIRM) + §1.36a (S3 seed extension CONFIRMED) | `experiment-runs/2026-07-09_m3fix_harvest/` (30 per-cell JSONs; `harvest_analysis_output.txt` md5:77be9c3b092c70e83ff08a0261575815) + `experiment-runs/2026-07-09_m3fix_s3ext/` (18 per-cell JSONs; `harvest_analysis_output.txt` md5:d4413385f9f45b71ff9707354ed6b055) | fig2_forcerank_staircase.pdf |
-| R4 | Head-to-head recall, round 4 (n=1): contender acc_A = 0.9990 vs ablation 0.0447 vs transformer 0.0295 (bar 0.09375; Δ = 0.9543/0.9695, >3× the pre-registered 0.30 WIN margin; per-arm σ ≤ 0.0033 at n=4096) — LEG-A WIN at n=1. **VERDICT INCOMING — the 27-cell n=3 sweep is RUNNING (margins frozen 21:38:00Z pre-launch); the verdict-grade claim row (§1.40-to-be) is RESERVED and the paper's claim language waits for it.** Nichani caveat carried on every acc_A number per `MARGINS_FROZEN` | `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.37 (round-4 verdict) + §1.38 (bands review, margin freeze, sweep launch) | `experiment-runs/2026-07-09_h2h_sweep_launch/round4_inputs/` — contender md5:5f47b81fd7132fb08d6a9d6f35b36372, ablation md5:388f5b9e3f60b821363c3a292cf6b7e7, transformer md5:fcdd63670317c0c8e76d89187fa4cefe (+ `MARGINS_FROZEN.token.json`, `ladder_bands_review.json`; launch record `experiment-runs/2026-07-09_h2h_round4_launch/`) | fig3_recall_separation.pdf |
+| R4 | **Head-to-head recall — THE n=3 VERDICT OF RECORD (frozen §1.31.1 tiers): AXIS-1 TASK1-PRIMARY LEG-A WIN.** Contender acc_A per-seed [0.99951, 1.00000, 0.99902] (mean 0.99951, every seed ≥10.7× the 0.09375 bar) vs ablation [0.03223, 0.03271, 0.03687] vs transformer [0.02710, 0.02930, 0.02856] (neither baseline ever clears); Δ(cont−abl) mean 0.96558, paired t-CI (df=2) (0.95822, 0.97293); Δ(cont−tfm) mean 0.97119, CI (0.96855, 0.97383) — both exclude the frozen 0.30 margin; n=3→9 extension trigger silent. Confirms the round-4 n=1 preview (0.9990/Δ 0.9543). DISCLOSED alongside: task2 = INDETERMINATE with a surprise (contender s2 = 0.33447 clears the bar, s0/s1 + all baselines at chance; no held-out-hop generalization, 0.0112) → diagnosis round; transformer read = degenerate-baseline datum (matched-budget caveat). Nichani caveat on every acc_A number per `MARGINS_FROZEN` | `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.40 (verdict of record) + §1.37/§1.38 (n=1 preview, freeze+launch) | `experiment-runs/2026-07-10_h2h_sweep_harvest/` — 27 training JSONs + 18 verdict-grade re-metric JSONs + `MARGINS_FROZEN.token` md5:58fe68e7b15728739a5176d7e591e204 + `md5_manifest.txt` (50 files, local==box) + exact eval script md5:e47d69fabdd51ba24896e76c5d13a3ab + `compute_verdict.py` (the CI arithmetic) | fig3_recall_separation.pdf (add per-seed panel at build) |
 | R5 | S₀ localization + nonlinear storage: zeroing S₀ collapses contender recall 0.9990→0.0286 (≈chance 0.03125) while zeroing S₁ leaves it at 0.9990; no state-level linear tap clears rf@0.9 in either arm; the pre-LM-head tap reads rf@0.9=0.674 / cos 0.894 (contender only; ablation 0.0/0.119) | `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.30 (Tables 1-2) | `experiment-runs/2026-07-09_h2h_tap_localization/results/tap_localization_contender.json` md5:362333c89f4223c427fe8daf54f50fce; `tap_localization_ablation.json` md5:ff8e352a13c2bc1e177f53f8cef47c01 | fig4_tap_localization.pdf (zeroing table + tap bars) |
 | R6 | Attractor scaling ladder, pure scale, held-fixed extended mix: span-fraction 0.248 (14M) → 0.344 (98M) → 0.389 (392M) → 0.455 (1.31B), monotone; PROMINENT DISCLOSURE: the 1.31B rung self-terminated at ~84.7% of the token-matched budget with span-frac flat-to-declining over the final window (0.4584→0.4554) | `EXPERIMENT_LOG.md` 2026-07-07 "Track C Wave 3 (rung-3, 1.31B) harvest" (line ~5463); `iclr-2027/NARRATIVE.md` Fig-9 spec + `sections/09/10.tex` | `experiment-runs/2026-07-06_trackc_rung3/probe_analysis_rung3.json` md5:6a627c315b0c8e35e084bbbe7730a2f8 + `rung3_final_pooled.json` md5:96597f682a0b972d4a1ad7922828efcc; lower rungs `experiment-runs/2026-07-04_trackc_rung1/`, `2026-07-05_trackc_rung2/`, `2026-07-05_wave1ext/`; dense per-seed regeneration `experiment-runs/2026-07-06_trajectory_probes/trajectories_tidy.json` md5:0fe53d8b40285b93fe81219fa6ff9606 (plot `archived4_span_frac`, the cross-scale convention) | fig5_attractor_ladder.pdf |
 | R7 | Mitigation exoneration (14M, 2×2 qk-norm × gating): qk-norm OFF is a within-noise null at n=3 (Δ=−0.103 = 0.05σ vs the corrected same-corpus floor 2.244355) — the attractor is not a qk-norm artifact; gating reads +4.312 = 1.92σ, BELOW the pre-registered 2σ=4.489 bar — a direction-consistent trend (3/3 paired seeds positive; exploratory Welch p=0.062), NOT a confirmed amplification and NOT a null | `EXPERIMENT_LOG.md` 2026-07-09 "ATTRACTOR-ROBUSTNESS 2×2" entries: build-audit (noise-floor correction), n=1 screening harvest, n=3 escalation harvest | `experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/box_results/AGGREGATE.json` md5:d7e4d6b45c7a23d5b2a661257dca2c82 + `n3_recompute_summary.json` md5:b4bdffdf25bf85f84945a40b9170a467 (n=1 screening: `experiment-runs/2026-07-09_attrrob_2x2_harvest/`) | fig6_2x2_mitigations.pdf |
@@ -162,8 +166,8 @@ skill's template; asserts input md5s against the map above).
   step at d_min (0.000 below, anchor-class at/above); S3's 4-seed extension
   shown per-seed.
 - `fig3_recall_separation.pdf` — acc_A for contender/ablation/transformer
-  vs the 0.09375 demonstration bar and the 0.30 WIN margin; n=1 flagged
-  until R4's sweep verdict; S₀/S₁-zeroing inset.
+  vs the 0.09375 demonstration bar and the 0.30 WIN margin; UPDATE at build:
+  add the n=3 per-seed panel from R4's landed verdict (§1.40); S₀/S₁-zeroing inset.
 - `fig4_tap_localization.pdf` — Table-1 zeroing results + Table-2 tap-variant
   rf@0.9 bars, both arms; takeaway: storage in S₀, legibility only
   post-nonlinearity.
@@ -242,6 +246,6 @@ collaborator names once added. URL and acknowledgment patterns per
   real reproducibility pointers into `experiment-runs/`)
 
 Both consume this same evidence map; a number fixed in one is fixed in the
-other. The arXiv build precedes the ICLR build; R4's sweep verdict and R8's
-harvest must land (or their sections carry the reserved-row language) before
-the arXiv freeze.
+other. The arXiv build precedes the ICLR build; R4's sweep verdict LANDED
+(WIN, §1.40); R8's harvest must land (or its section carries the
+reserved-row language) before the arXiv freeze.

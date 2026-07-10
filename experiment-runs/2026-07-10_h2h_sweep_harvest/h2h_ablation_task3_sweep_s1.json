@@ -1,0 +1,127 @@
+{
+  "arch": "ablation",
+  "task": "task3_sweep",
+  "seed_idx": 1,
+  "seed": 2010000,
+  "name": "h2h_ablation_task3_sweep_s1",
+  "budget_frac": 1.0,
+  "role": "sweep",
+  "lr": 0.0003,
+  "corpus": "openr1-mix-ext",
+  "step_count": 20000,
+  "wall_s": 2315.237254858017,
+  "s_per_step": 0.11576186274290085,
+  "n_params": 14047872,
+  "skip_rate": 0.0,
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "init_val_loss_own": 10.863588809967041,
+  "curve": [
+    {
+      "step": 1000,
+      "train_loss": 5.260790824890137,
+      "val_loss_own": 3.3893505930900574
+    },
+    {
+      "step": 2000,
+      "train_loss": 4.787504196166992,
+      "val_loss_own": 2.943153589963913
+    },
+    {
+      "step": 3000,
+      "train_loss": 5.006747245788574,
+      "val_loss_own": 2.7536911964416504
+    },
+    {
+      "step": 4000,
+      "train_loss": 4.158580780029297,
+      "val_loss_own": 2.6304965019226074
+    },
+    {
+      "step": 5000,
+      "train_loss": 4.105578422546387,
+      "val_loss_own": 2.5478123128414154
+    },
+    {
+      "step": 6000,
+      "train_loss": 4.303214073181152,
+      "val_loss_own": 2.4989565014839172
+    },
+    {
+      "step": 7000,
+      "train_loss": 3.8927254676818848,
+      "val_loss_own": 2.458137482404709
+    },
+    {
+      "step": 8000,
+      "train_loss": 4.109466075897217,
+      "val_loss_own": 2.4307669699192047
+    },
+    {
+      "step": 9000,
+      "train_loss": 3.931732177734375,
+      "val_loss_own": 2.3996079862117767
+    },
+    {
+      "step": 10000,
+      "train_loss": 4.19209098815918,
+      "val_loss_own": 2.3792253732681274
+    },
+    {
+      "step": 11000,
+      "train_loss": 4.4735212326049805,
+      "val_loss_own": 2.3612886667251587
+    },
+    {
+      "step": 12000,
+      "train_loss": 4.096944808959961,
+      "val_loss_own": 2.3439576029777527
+    },
+    {
+      "step": 13000,
+      "train_loss": 3.864555835723877,
+      "val_loss_own": 2.3368411660194397
+    },
+    {
+      "step": 14000,
+      "train_loss": 4.064095497131348,
+      "val_loss_own": 2.3198414742946625
+    },
+    {
+      "step": 15000,
+      "train_loss": 4.514367580413818,
+      "val_loss_own": 2.31313493847847
+    },
+    {
+      "step": 16000,
+      "train_loss": 4.021069049835205,
+      "val_loss_own": 2.3052490651607513
+    },
+    {
+      "step": 17000,
+      "train_loss": 4.013208389282227,
+      "val_loss_own": 2.2991280555725098
+    },
+    {
+      "step": 18000,
+      "train_loss": 4.115115165710449,
+      "val_loss_own": 2.293360650539398
+    },
+    {
+      "step": 19000,
+      "train_loss": 4.1478986740112305,
+      "val_loss_own": 2.284981280565262
+    },
+    {
+      "step": 20000,
+      "train_loss": 4.256621360778809,
+      "val_loss_own": 2.28507724404335
+    }
+  ],
+  "final_val_loss_own": 2.28507724404335,
+  "final_val_loss_other": 6.771583080291748,
+  "final_metric": 2.28507724404335,
+  "ckpt_path": "/data/h2h_rung1_ckpts/h2h_ablation_task3_sweep_s1.pt"
+}

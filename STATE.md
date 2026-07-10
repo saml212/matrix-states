@@ -11,8 +11,13 @@ all seeds tested; total cost ≈4.3 GPU-h. (2) **H2H ROUND 4 = TASK1-
 PRIMARY LEG-A WIN at n=1** (§1.37): contender recall 0.9990 vs
 0.0447/0.0295 baselines (>3× the pre-registered margin), S₀ hard-stop
 PASSED (recall provably fast-weight-resident), Leg-B anchor reproduced
-±0.001; the 27-cell n=3 confirmatory sweep is RUNNING (margins frozen
-§1.38, ETA ~03:00-05:00Z). (3) **qk-norm EXONERATED at n=3** (0.05σ)
+±0.001; **HARVESTED 2026-07-10: the 27-cell n=3 sweep CONFIRMS — AXIS-1
+TASK1-PRIMARY LEG-A WIN at n=3 under the frozen tiers** (contender
+0.9995 mean, every seed ≥10.7× the bar; Δ vs ablation CI (0.958, 0.973),
+Δ vs transformer CI (0.969, 0.974), both exclude the 0.30 margin; no
+seed fragility, extension trigger silent; task2 surprise: 1/3 contender
+seeds shows partial recall 0.334 → INDETERMINATE, opens the diagnosis
+round; §1.40 = the verdict of record). (3) **qk-norm EXONERATED at n=3** (0.05σ)
 — the attractor is not the known artifact; gating amplification =
 direction-consistent trend, NOT confirmed at the bar (1.92σ, p=0.062),
 folded into iclr-2027 with that framing. (4) **The S₀ mechanism
@@ -121,6 +126,31 @@ figure as covering the whole call); row-chunked the tap
 → **ROUND 4 LAUNCHED** (tmux `h2h_round4`, GPU 0, `H2H_DIAL_ROUND=4`);
 watch `results/h2h_rung1/round4/ROUND4_SUMMARY.json` on the box. Full
 record: `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.36[h2h].
+
+**UPDATE (2026-07-10, harvest — THE VERDICT OF RECORD, §1.40):** round 4
+= Leg-A WIN at n=1 (§1.37) → ladder/bands PASS + MARGINS_FROZEN
+21:38:00Z + 27-cell sweep launched (§1.38) → sweep completed clean
+(27/27, no FATALs, 9.598 GPU-h vs 13.25 ceiling) → harvested. The
+Stage-D script trained cells only, so the verdict-grade `acc_A` reads
+were produced at harvest via the audited round-4 re-metric driver on
+the 18 grammar `_r4.pt` checkpoints (independent pre-run audit
+CLEAR-TO-RUN; 0.112 GPU-h). **AXIS-1 TASK1-PRIMARY = LEG-A WIN at
+n=3:** contender [0.99951, 1.00000, 0.99902] vs ablation
+[0.03223, 0.03271, 0.03687] vs transformer [0.02710, 0.02930, 0.02856];
+Δ(cont−abl) CI (0.95822, 0.97293), Δ(cont−tfm) CI (0.96855, 0.97383) —
+both exclude the frozen 0.30 margin; every contender seed ≥10.7× the
+demonstration bar; the n=3→9 extension trigger does NOT fire; the
+single-seed caveat is RETIRED (Nichani + matched-budget caveats stand).
+S₀ hard-stop clean 12/12 (one disclosed σ=0-at-ceiling instrument edge
+case at s1). **Task2 SURPRISE:** contender s2 = 0.33447 clears the bar
+(s0/s1 + all baselines at chance) → strict tiers read INDETERMINATE;
+the pre-registered joint-failure-TIE rationale doesn't transfer to
+fresh seeds — the s2 datum opens the TASK2 DIAGNOSIS ROUND
+(trainability/seed-variance, not a hard capability boundary). Public
+caveat page + flagship brief R4 updated with the verdict. **NEXT
+(pre-registered): the M\* protocol (axis 2, two §1.38 pre-flight items
++ the σ=0 note), task2 diagnosis round, transformer_K48 stress cell.**
+Archive: `experiment-runs/2026-07-10_h2h_sweep_harvest/` (+SSD).
 
 ### 2. Capability Separation — Stage 1 (PI capability-first directive, 2026-07-08)
 
@@ -603,6 +633,10 @@ correction pass, out of scope for this consolidation.
   cost, 1.736×, not an AUD2-F1 regression). **Round 3 was NOT launched
   — gate failed, pilot-only spend (≈0.02 GPU-h), coordinator decision
   pending** (`experiment-runs/2026-07-09_h2h_timing2_launch/`).
+  **Later same arc (see §1.26a-§1.40):** round 3 authorized+run at the
+  re-priced 3.593; round 4 ≈1.3-class; **27-cell sweep realized 9.598
+  (supervisor mechanical projection; per-cell wall-sum 8.802) + harvest
+  re-metric 0.112 ≈ 9.71 vs the 13.25 ceiling — 3.5 under** (§1.40).
 - phase2b: 8.3/66.5.
 - capability-separation Stage 1: **≈4.78/30 realized** (pre-sweep
   ≈0.97: calibration 0.0895 + gate-1 diagnosis 0.38 + round-7 L=1
