@@ -6225,3 +6225,28 @@ number in this record was independently reconstructed from raw JSON/
 log files (`analyze_m3fix_s3ext_harvest.py`), not from an intermediate
 tool-output summary. Tally (this campaign's own thread, §1.34's
 78→79 / §1.36's "unchanged"): **79→80.**
+
+### §2.23 N-FIXES RECORD (2026-07-09 late): §2.22's N1-N4 ALL LANDED — commit 0ab7e3c; narrow re-check DISPATCHED
+
+All four in stage2_run.py, two-layer kill proofs run to completion:
+N1 runner tags ("tiny"/"real") + is_valid_output(strict_real) rejecting
+tiny-tagged AND untagged-tiny-shaped outputs + run_calibration_wave_real
+as the production path (main() routes post-signoff there; tiny wave only
+via explicit --smoke-tiny) — planted poison artifacts rejected and
+RE-RUN. N2 training generator salted with group_seed_salt (S4-vs-A5
+streams proven distinct). N3 batch 256 + finite-grad skip +
+clip_grad_norm(1.0) mirroring the Stage-1 recipe exactly;
+n_skipped_steps persisted. N4 gate REQUIRES ckpt_path and fingerprints
+its OWN composer argument at entry (the §2.22 mutation-3 escape now
+raises ParamFingerprintMismatch). Re-introduction mutations 5/5 KILLED;
+suites 6/6 + legacy 13/13 green. **Budget note (charter): the §2.7 band
+was priced against the batch-256 Stage-1 anchor — batch 32 was an
+out-of-band cheap-direction deviation, so N3 RESTORES the priced regime;
+all arithmetic stands (abort ceiling 0.081/cell, joint worst ≈18.4
+under cap 25, ≈26% margin); residual launch-bound risk inside the 3×
+ceiling, contained by both breakers + calibration-first re-derivation.**
+Security: +3 stdout fakes (≥90-class floor). **NEXT: narrow worktree
+re-check (N1-N4 mutations ONLY) → deploy (md5) → box fla cross-check →
+Arm-1 retrain 0.2148 → 11-cell calibration gate (7 depths) → WRITE the
+harvest analysis script (still outstanding, required pre-sweep) → sweep
+(cap 25, PI_SIGNOFF citing §1.33-discharge) → NCR build unblocks.**
