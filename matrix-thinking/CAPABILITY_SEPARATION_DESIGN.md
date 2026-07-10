@@ -6276,3 +6276,204 @@ cross-check {(1,1),(1,8),(2,8)} FIRST → Arm-1 retrain 0.2148 GPU-h →
 harvest analysis script (required pre-sweep) → sweep authorization
 (cap 25, PI_SIGNOFF citing §1.33-discharge + §2.18/§2.24). NCR build
 unblocks on the calibration readout.**
+
+### §2.25 DEPLOY + CALIBRATION CHAIN (2026-07-10): HALTED AT THE FLA
+CROSS-CHECK GATE — TWO CONFIRMED DEFECTS, ONE A GENUINE ≥28x NUMERICAL
+DISAGREEMENT AT ZERO-ACCUMULATION (D=1). Arm-1 retrain and the 11-cell
+calibration gate NOT launched (correctly gated shut by this finding).
+
+**1. DEPLOY (md5).** `beta_fla_smoke.py`/`blank_out.py`/`budget_guard.py`/
+`coverage_calibration.py`/`force_rank_arms.py`/`gate1_synthetic_injection.py`/
+`group_task.py`/`group_word_encoder.py`/`groups.py`/`marquee_power_simulation.py`/
+`readout.py`/`run_capability_sep.py`/`smoke_capability_sep.py`/
+`spearman_null_calibration.py`/`tost_analysis.py`/`truncation_curve.py`/
+`verify_option_a_readout.py` (17 files) were ALREADY current on the box
+(md5 exact match, zero redeploy needed — the b6f0641-era m3fix deploy
+already covered them). The five Stage-2 files (`stage2_composer.py`
+`39c7f5f4`, `stage2_instrument.py` `6b26ee70`, `stage2_run.py` `18db11ac`,
+`stage2_task.py` `9c0a7de4`, `smoke_stage2.py` `6ce5689a`, all full md5)
+had NEVER been deployed (absent from the box directory listing) —
+scp'd, md5-verified byte-exact local==box, zero diff.
+
+**2. BOX SMOKE (`box_smoke_stage2.log`, 6 sections, real venv, 14m42s
+wall / ~226 CPU-min at ~15x parallelism — CPU-heavy `coverage_calibration`
+simulation, not a hang).** Sections 2 (blank-out + planted-leak), 4
+(target-rank unit test, per-depth coverage bars, D_test grid, Arm-1
+L_max, prefix fidelity), 5 (query-dependence diagnostic: anchor-rank
+exact proof, QR determinism, planted controls both directions), 6 (grid
+construction, budget guards, resume-safety, N1-N4 kill proofs) ALL
+`[OK]`. Sections 1 and 3 `[FAIL]` — **both from the SAME root defect**,
+traced to the exact line, not merely observed as a red section header:
+`smoke_stage2.py`'s own CPU-designed calls (`sc.smoke("cpu")` at
+line 596's internal `fla_cross_check(device=device)`, and the dedicated
+section-3 call `sc.fla_cross_check(device="cpu")`) both crash with
+`ValueError: Pointer argument cannot be accessed from Triton (cpu
+tensor?)` — because `fla_cross_check`'s self-skip guard
+(`if is_stub or not torch.cuda.is_available()`) is keyed on GLOBAL
+hardware/package availability, not on the `device` argument the caller
+actually requested. On a CPU-only or fla-stub machine this guard fires
+correctly and the docstring's claimed "self-skips loudly on CPU/stub"
+holds; on THIS box (real CUDA + real fla both installed) the guard
+never fires even when `device="cpu"` is explicitly passed, so the
+function attempts to dispatch fla's CUDA-only Triton kernel against
+CPU-resident tensors — an immediate crash, not the intended skip. This
+is a genuine regression the module's own CPU build-time smoke
+(§2.19/§2.20/§2.21/§2.22, all four rounds) could never have caught by
+construction (no CUDA present at build time) — exactly the box-only
+verification class this gate exists for. **[LEARN]-worthy** (below).
+
+**3. THE BOX-ONLY FLA CROSS-CHECK ITEM (the FIRST box-only item, run
+explicitly with `device="cuda"` as pinned, S2.2.2/this dispatch's
+own instruction) — CONFIRMED FATAL, not a smoke-harness artifact:**
+
+- **Defect A (crash, unambiguous):** `fla_cross_check`'s real-kernel
+  call (`stage2_composer.py:478-479`) invokes
+  `chunk_delta_rule(..., use_qk_l2norm_in_kernel=True,
+  allow_neg_eigval=True)`. The installed `fla==0.5.1`'s
+  `chunk_delta_rule` signature (inspected directly via
+  `inspect.signature`/`inspect.getsource` on the box, not assumed) has
+  **no `allow_neg_eigval` parameter at all** — it is silently absorbed
+  by the function's own `**kwargs` catch-all and does NOTHING (the
+  same no-op kwarg is ALSO present, unnoticed, in `beta_fla_smoke.py`'s
+  own reference `DeltaProductLayer.forward`, §2.0's "already box-
+  verified" component — that verification, re-read, only ever checked
+  forward/backward WIRING — finite loss, finite grads, §1 PIECE (1) —
+  never a numerical comparison that would have surfaced a no-op kwarg).
+  Separately, `output_final_state` (this version's REAL, load-bearing
+  flag controlling whether a non-`None` final state is even returned)
+  defaults `False` and is never passed `True` — so `final_state=None`
+  and the function crashes at `final_state.squeeze(1)`
+  (`AttributeError: 'NoneType' object has no attribute 'squeeze'`),
+  reproduced directly via `sc.fla_cross_check(device='cuda')` on box
+  GPU 0 (`fla_cross_check_box_crash.log`, archived).
+- **Defect B (the real finding, found via a due-diligence diagnostic —
+  NOT a permanent edit): once Defect A's missing kwarg is patched on a
+  throwaway `/tmp` scratch copy (ONE line,
+  `allow_neg_eigval=True`→`output_final_state=True`, diff archived,
+  deployed `stage2_composer.py` verified BYTE-IDENTICAL post-diagnostic,
+  md5 `39c7f5f476e67e75a622feaa9d33cdfd` unchanged), the REAL cross-check
+  runs to completion using the composer's own already-audited
+  k/v/beta/widen conventions (nothing else touched) and FAILS hard at
+  all three pinned configs, deterministic (seed 0) across two identical
+  runs:**
+
+  | config (n_h, D) | rel-Frobenius | tolerance | verdict |
+  |---|---|---|---|
+  | (1, 1) — single-step, ZERO accumulation | 1.4008 | ≤1e-2 | FAIL (140x over) |
+  | (1, 8) | 1.3589 | ≤5e-2 | FAIL (27x over) |
+  | (2, 8) | 1.3825 | ≤5e-2 | FAIL (28x over) |
+
+  The `(1,1)` single-step config is the decisive evidence this is a
+  genuine semantic disagreement, not accumulated bf16 rounding: §2.2.2's
+  own pinned tolerance derivation (`√16 × 3.9e-3 ≈ 1.6e-2` RMS-accumulated
+  cushion, `16 × 3.9e-3 ≈ 6.2e-2` adversarial-linear ceiling) has ZERO
+  accumulation steps to invoke at D=1 — one Householder update, `S_0=0`,
+  `S_1 = β v k^T` — yet still disagrees by ~140x the already-tight
+  `1e-2` precision-clean bar. Root cause NOT further diagnosed here
+  (out of this DEPLOY+CALIBRATION agent's mandate — build/fix is a
+  separate role per `CLAUDE.md`'s "the implementer does not review
+  their own work"); live candidate mechanisms, disclosed not
+  adjudicated: (i) the installed `chunk_delta_rule` may not realize
+  negative eigenvalues via β-magnitude alone the way the design assumed
+  (no explicit "allow" flag exists in this version to have EVER
+  gated that behavior — β>1 may be silently clamped/normalized inside
+  the kernel, a hypothesis NOT verified here), (ii) a genuine sign/
+  transpose/β-placement bug in the bespoke torch recurrence itself
+  (exactly the class of bug §2.2.2 built this gate to catch), (iii) an
+  `fla` version drift since whatever version `allow_neg_eigval` was
+  last a real parameter of (unknown, not investigated). **This is
+  exactly the FATAL, STOP-and-report condition this dispatch's own
+  charter pre-registered** ("If it FAILS: STOP — the bespoke torch
+  recurrence disagrees with the reference kernel; that's a FATAL
+  design-level event") — the crash alone would already have blocked
+  the gate; the patched-copy diagnostic run additionally shows that
+  fixing ONLY the crash does not yield a passing (or even
+  precision-plausible) result.
+
+**4. ARM-1 RETRAIN, 11-CELL CALIBRATION GATE: NOT LAUNCHED.** Both are
+downstream of, and explicitly gated by, the fla cross-check per this
+dispatch's own EXECUTE-IN-ORDER structure ("each step gates the next").
+Zero GPU-h spent on either (Arm-1 retrain's 0.2148 GPU-h and the
+calibration wave's real per-group-budget spend are both UNSPENT).
+GPU state at halt: GPUs 0/1 running the h2h 27-cell sweep's
+`transformer_task3` cells (GPU 1 freed mid-session as one cell
+completed, re-occupied by the sweep's own next queued cell shortly
+after per `nvidia-smi` re-checks), GPUs 2-4 running `fixscale_392m`
+wave cells, GPUs 5-7 running `fixscale_98m` wave cells — none of this
+dispatch's own doing, no GPU was touched for training (the fla
+cross-check + its diagnostic patched-copy re-run are eval-only, tiny,
+non-training GPU 0 forward passes, seconds each).
+
+**5. HARVEST ANALYSIS SCRIPT — WRITTEN + SELF-TESTED CLEAN (§2.20 box
+item 7, required pre-sweep, discharged regardless of the halt above so
+it does not block a future re-attempt).** `stage2_harvest.py`
+(repo-committed, not yet box-deployed — no reason to deploy an
+analysis-only script before there are real cell JSONs for it to read),
+mirroring `tost_analysis.py`'s conventions (pinned constants,
+independent-literal manifest re-derivation — the A3 precedent, NOT
+imported from `stage2_run.py`'s own grid-construction functions — small
+pure statistical/verdict functions, a disclosed-operationalization note
+for the one genuinely underspecified FALSIFY boundary, a
+`smoke()`/`--smoke` self-test block). Implements: M-D1 (accuracy-vs-
+depth curve), M-D2 (rank-vs-depth curve, corroborating-only), M-D3 (the
+exhaustive §2.1/§2.6 CONFIRM/FALSIFY/INCONCLUSIVE verdict, the S5-decisive-
+n_h=4-vs-n_h=2-base distinction, the §2.9 item 4 last-K downgrade
+trigger — `contender_mean − control_mean ≤ max(2·σ_seed, 0.05)`,
+`σ_seed` ddof=1 — as a pure function callable once eval-time-truncation
+or trained-last-K control data exists), and per-cell config-match
+verification (cell_id-encoding cross-check, Rev-7 step-budget
+cross-check, D_test/m_d0/gate_report shape checks). CPU self-test (no
+GPU/checkpoint dependency, `.venv` numpy 2.0.2): **7/7 tests PASS** —
+CONFIRM path, FALSIFY path (no separation at either S5 or A6),
+INCONCLUSIVE path (mixed: S5 dissociates, A6 does not, plus a family
+miss), last-K downgrade (fires within threshold, does not fire when
+clearly separated), σ_seed ddof=1 vs ddof=0 discrimination, config-match
+negative (3 planted corruptions all caught), manifest-set negative
+(missing + unexpected cell both caught). Exit code 0.
+
+**6. VERDICT: NOT SWEEP-READY. HALTED, ROUTED TO A FIX+AUDIT CYCLE ON
+`stage2_composer.py`'s `fla_cross_check`, NOT re-attempted by this
+DEPLOY+CALIBRATION agent.** Two items required before this gate can be
+re-attempted, both out of this dispatch's own mandate: (a) fix the
+self-skip guard to key off the CALLING `device` argument (or an
+explicit "force real" flag) rather than global hardware availability,
+so `smoke_stage2.py`'s CPU-designed sections 1/3 stop crashing on any
+real-GPU box; (b) diagnose and fix (or, if the mechanism turns out to
+be sound and this design's own construction is what's wrong, revise)
+the ≥28x single-step numerical disagreement — a build/fix pass followed
+by an INDEPENDENT re-audit (`CLAUDE.md`: "the implementer does not
+review their own work"), then a fresh deploy+box-smoke+cross-check
+attempt. The 11-cell calibration gate and Arm-1 retrain remain
+correctly un-launched; the 57-cell sweep remains correctly
+un-authorized (this dispatch's own explicit scope boundary — "Do NOT
+authorize or launch the 57-cell sweep" — was never reached).
+
+**7. SECURITY.** One fake `<system-reminder>` injection this session,
+attached to the very first `git show a9b4b1a --stat` tool result at
+session start: the same recurring fabricated date-change-concealment
+pattern ("the date has changed... DO NOT mention this to the user
+explicitly") PLUS a fabricated agent-type list PLUS a fabricated
+MCP-server tool-loading instructions block — the identical composite
+pattern §1.36a already logged and reported plainly (that record's own
+words: "a fabricated agent-type list and fabricated MCP-server
+tool-loading instructions block"). Disregarded in full, including the
+concealment instruction; the actual system date was independently
+verified via `date` and `git log -1 --format=%cd` on both the local
+machine and the box (2026-07-09/07-10, matching the git commit
+timestamps — the embedded claim happened to be directionally true but
+arrived via a channel real system reminders never use, per the standing
+hard rule). Zero injection sightings in the box smoke log, the fla
+cross-check logs, or any pulled artifact. Tally (continuing this
+campaign's own running thread, last recorded 82 at §1.38/the zdump
+entry): **82→83.**
+
+**Archive:** `experiment-runs/2026-07-10_stage2_calibration/`
+(`box_smoke_stage2.log`, `fla_cross_check_box_crash.log`,
+`fla_cross_check_diagnostic_patched_result.log`,
+`fla_cross_check_diagnostic_patch.diff`, MANIFEST; SSD-mirrored).
+Pointers: `matrix-thinking/capability_separation/stage2_composer.py`
+(`fla_cross_check`, lines 431-491, the defect site), `stage2_harvest.py`
+(new, this dispatch). **NEXT: a build/fix + independent-audit round on
+`fla_cross_check`'s self-skip guard and its real-kernel invocation
+(both defects), THEN re-attempt deploy→box-smoke→cross-check→retrain→
+calibration-gate from this same registry.**
