@@ -6888,3 +6888,119 @@ table), `m_d0_real_profiles_postfix.log` (S5/A6 end-to-end profiles),
 Pointers: `stage2_run.py::M_D0_STRUCTURAL_EXCLUSIONS` +
 `m_d0_convergence_profile` (the fix), `stage2_run.smoke()` S2.28
 section (the teeth).
+
+### §2.29 THIRD IN-FLIGHT HALT (2026-07-10): THE PER-CELL BUDGET BREAKER STRUCTURALLY ABORTS A HEALTHY A6 CELL — THE UNIFORM CEILING NEVER CARRIED §2.7 REV 2'S OWN STEP-BUDGET AXIS; ANCHOR-SCALED CEILING FIX, INDEPENDENTLY AUDITED; WAVE RELAUNCHED. HARVEST VERDICT MOVES TO §2.30.
+
+**1. THE EVENT.** After the §2.28 relaunch, cells 7-8 (S5 × both arms)
+completed cleanly (gate `pass` all 7 depths, m_d0 excluded exactly
+[1,2,3] as pinned, full D_test, wall ~65 s — the §2.28 fix proven on
+the box). Cell 9 (`A6__arm2`, the 40K-step group) then hard-aborted at
+its FIRST guard check, every retry:
+`PerCellBudgetAbort: cell projected 0.0932 GPU-h exceeds the per-cell
+abort ceiling 0.081 GPU-h ... at 2000/40000 steps`. The per-STEP rate
+was HEALTHY (~8.5 ms/step, identical to every completed cell) — the
+projection is simply the honest cost of 40K steps. This coordinator
+STOPPED the supervisor at fail ~6-9 (churn ≈ 2000 steps × ~9 attempts
+≈ 3-4 GPU-min, ledger-trivial) and diagnosed.
+
+**2. DIAGNOSIS — an implementation/registry INCONSISTENCY, not a new
+unknown.** The registry already knew this axis: §2.14 MODERATE-3's fix
+(Rev 2) added §2.7's step-budget-axis disclosure — *"the 0.0179 anchor
+is the 8K-STEP rate while §1.30's Rev-7 pins are 20K (S4/A5) and 40K
+(A6)"*, per-group worst case ≈9.6 GPU-h, declared "breaker-contained."
+But `check_per_cell_projection` was built with a UNIFORM ceiling
+`1.5 × band-high = 0.081 GPU-h` — the 8K-anchor number applied to every
+cell regardless of its pinned budget. Arithmetic consequence, verifiable
+from the pinned constants alone: an A6 cell at the anchor per-step rate
+costs (40000/8000) × 0.0179 ≈ 0.0895 GPU-h > 0.081 — the guard can
+NEVER pass a healthy A6 cell at its own Rev-7 budget. The §2.24 audit's
+budget-guard checks proved the breaker's TEETH (negative-then-positive)
+but never its consistency with the per-group budgets at realistic
+rates; the calibration wave — §2.8 duty (c), "the REAL per-cell
+wall-clock rate, superseding §2.7's planning band" — is exactly the
+instrument that catches this, and did.
+
+**3. THE FIX (stage2_run.py only; the pinned semantic PRESERVED, not
+weakened).** `ANCHOR_STEPS = 8000`;
+`ceiling = PER_CELL_ABORT_CEILING × max(steps_total, ANCHOR_STEPS) /
+ANCHOR_STEPS` — i.e. the same pinned rule (1.5× the band's pricier end
+== 4.5× the anchor per-step rate) applied PER ANCHOR-STEP UNIT,
+uniformly for every cell: 8K cells keep the exact certified 0.081
+(the max() floor makes ≤8K behavior byte-identical), 20K → 0.2025,
+40K → 0.405. The breaker still bounds the per-step rate at 4.5× anchor
+(runaway/hang detection, its purpose); ABSOLUTE cost remains governed
+by the pinned per-group budgets and the untouched ledger breaker
+(`check_stage2_sweep_projection`, 25 GPU-h cap at real measured rates —
+§2.8 item 3). Not a threshold relaxation: no cell that the old ceiling
+would legitimately have caught (per-step rate > 4.5× anchor) escapes
+the new one.
+
+**4. TEETH (run to completion) + SMOKE.** New permanent S2.29 smoke
+block: (i) the EXACT live-abort reproduction (elapsed 0.004661 h at
+2000/40000 → projected 0.0932) must PASS under the scaled ceiling
+0.405; (ii) a genuinely runaway 40K cell (projected 0.41 > 0.405) must
+still ABORT — the scaling re-anchored the breaker, it did not remove
+it; (iii) the ≤8K ceiling asserted EXACTLY 0.081 (byte-identical
+certified behavior). Full local smoke suite 6/6 post-fix (log
+archived).
+
+**5. TAINT ADJUDICATION FOR THE 8 COMPLETED CELLS: NOT TAINTED.** The
+guard is ABORT-ONLY: its return value is discarded by `run_real_cell`
+(control flow only — verified at the call site in its training loop);
+no value it computes flows into any recorded result. For every
+completed cell the guard passed silently (max projection ≈0.047 GPU-h
+for the 20K cells < 0.081), and both A6 cells never wrote outputs. The
+fix changes the guard's pass/abort boundary only for budgets >8K —
+where no completed cell's recorded values depend on it in any way.
+
+**5a. INDEPENDENT AUDIT VERDICT (fresh-context auditor, on the
+uncommitted diff): CLEARED.** (a) Derivation confirmed from the
+registry's own text (the §2.7 "Step-budget axis, disclosed" block +
+line-5472 sentence) and `run_capability_sep.STEP_BUDGET`: the pre-fix
+guard structurally can never pass a healthy A6 cell. (b) Kill proof via
+a detached HEAD worktree (byte-faithful pre-fix env): the exact live
+halt reproduces pre-fix and returns ok/ceiling-0.405 post-fix; runaway
+teeth hold; ≤8K behavior bit-identical across an 8-case grid including
+the certified smoke cases. (c) Guard-weakening judgment: NOT a
+weakening — per-group sensitivity is IDENTICAL pre/post
+(ceiling/anchor-rate ≈ 4.525× for every group; the fix recalibrates
+units, `steps_total` being pinned a priori, not the alarm bar); the
+untouched ledger breaker keeps absolute-cost control; the new admitted
+worst case (all 68 cells at their exact ceilings, correct per-group
+distribution) is 14.33 GPU-h — 42.7% margin under the 25 GPU-h cap and
+INSIDE the registry's own already-priced ≈18.4 GPU-h joint worst case;
+the "1.5× honest expected cost" alternative is circular for a
+first-run calibration (the honest cost is what calibration measures)
+and was rightly rejected; check cadence (`steps_total // 20`) scales
+with budget, so a hung A6 is still caught at ~5-10% fractional
+progress. (d) Import compiles clean; the S2.29 smoke block passes
+standalone. **Incidental pre-existing finding (not this fix, flagged
+for the §2.30 harvest and any sweep-launch build):**
+`build_primary_grid()` and `build_nh_grid()` produce 6 cell_id STRING
+COLLISIONS — (S5/A6, arm3_beta02, n_h=2, seed 0-2) appear as distinct
+dict objects in BOTH grids under identical cell_ids — pre-existing
+grid-construction behavior; a cell_id-keyed resume/manifest would
+conflate them (the 68-cell count is 62 distinct cell_ids). Auditor
+security note: zero injection sightings.
+
+**6. RELAUNCH.** `stage2_run.py` redeployed (md5-verified), STOP
+cleared, `stage2_calib2` supervisor relaunched; the 8 completed cells
+SKIP; cells 9-11 (A6 × 2 arms, S5-promoted-nh4) run to completion.
+**The harvest verdict — §2.28's item 6 renumbered it to §2.29 — moves
+to §2.30** (this defect record consumed the number). The 57-cell sweep
+remains un-authorized pending §2.30. Observed pattern, disclosed for
+the harvest: each wave leg peels exactly one latent defect
+(§2.27 device boundary → §2.28 large-group coverage → §2.29 large-
+budget breaker), all three in box-only or scale-dependent regimes the
+CPU build smokes could not reach by construction; all three now carry
+permanent regression tests.
+
+**7. SECURITY.** Zero fake system-reminder blocks in tool stdout this
+segment. Tally holds at 84.
+
+**Archive (same tree):** `experiment-runs/2026-07-10_stage2_calibration/`
+— new: `smoke_stage2_full_local_s229.log` (6/6 post-fix); the live
+abort is recorded in the box's `stage2_calib2_wave.log` (pulled at
+harvest). Pointers: `stage2_run.py::ANCHOR_STEPS` +
+`check_per_cell_projection` (the fix), `stage2_run.smoke()` S2.29
+block (the teeth).

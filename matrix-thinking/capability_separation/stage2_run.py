@@ -138,21 +138,43 @@ class Stage2BudgetAbort(RuntimeError):
     pass
 
 
+# S2.29: the S2.7 planning band (0.018-0.054 GPU-h/cell) is ANCHORED at the
+# 8K-step S1.6 measured rate (0.0179 GPU-h per 8K-step cell) -- the registry's
+# own Rev-2 step-budget-axis disclosure (S2.14 MODERATE-3 / S2.7 "step-budget
+# axis" block): the Rev-7 per-group budgets run to 20K (S4/A5) and 40K (A6)
+# steps, i.e. 2.5-5x the anchor unit, with the per-group-pinned worst case
+# priced at ~9.6 GPU-h and declared "breaker-contained." The per-cell breaker
+# below therefore scales its ceiling by the cell's OWN pinned budget in
+# anchor-step units -- preserving the pinned semantic (1.5x the band's pricier
+# end == 4.5x the anchor PER-STEP rate) uniformly for every cell. Without
+# this, an A6 cell at its honest, healthy measured rate (~0.094 GPU-h for 40K
+# steps == the anchor per-step rate x5) can NEVER complete: the uniform
+# 0.081 ceiling structurally aborts it at the first check (observed live,
+# 2026-07-10 -- the wave's third in-flight halt). max(steps_total, ANCHOR)
+# floors the scaling so cells at or below the anchor budget keep the exact
+# certified 0.081 ceiling, byte-for-byte.
+ANCHOR_STEPS = 8000   # S1.6's measured-rate anchor unit (the 0.0179 GPU-h cell)
+
+
 def check_per_cell_projection(elapsed_h: float, steps_done: int, steps_total: int) -> dict:
     """Per-cell circuit breaker: if the IN-PROGRESS cell's wall-clock rate
-    projects past 1.5x the pricier end of the S2.7 planning band, hard-
-    abort THIS cell before it burns further budget."""
+    projects past 1.5x the pricier end of the S2.7 planning band -- scaled
+    to the cell's own pinned step budget in ANCHOR_STEPS units (S2.29; the
+    band is an 8K-step anchor rate, S2.7 Rev 2's step-budget axis) --
+    hard-abort THIS cell before it burns further budget."""
     if steps_done <= 0:
         return dict(ok=True, projected=0.0)
     projected = round(elapsed_h * (steps_total / steps_done), 6)
-    ok = projected <= PER_CELL_ABORT_CEILING
+    ceiling = round(PER_CELL_ABORT_CEILING * max(steps_total, ANCHOR_STEPS) / ANCHOR_STEPS, 6)
+    ok = projected <= ceiling
     result = dict(elapsed_h=elapsed_h, steps_done=steps_done, steps_total=steps_total,
-                 projected=projected, ceiling=PER_CELL_ABORT_CEILING, ok=ok)
+                 projected=projected, ceiling=ceiling, anchor_ceiling=PER_CELL_ABORT_CEILING, ok=ok)
     if not ok:
         raise PerCellBudgetAbort(
             f"cell projected {projected:.4f} GPU-h exceeds the per-cell abort ceiling "
-            f"{PER_CELL_ABORT_CEILING} GPU-h (1.5x the {PLANNING_RATE_HI} GPU-h/cell planning-"
-            f"band ceiling, S2.7) at {steps_done}/{steps_total} steps -- HARD ABORT this cell. {result}"
+            f"{ceiling} GPU-h (1.5x the {PLANNING_RATE_HI} GPU-h/cell planning-band ceiling "
+            f"scaled by {steps_total}/{ANCHOR_STEPS} anchor-step units, S2.7/S2.29) at "
+            f"{steps_done}/{steps_total} steps -- HARD ABORT this cell. {result}"
         )
     return result
 
@@ -850,6 +872,10 @@ def smoke():
     ok = check_per_cell_projection(elapsed_h=0.001, steps_done=10, steps_total=20)
     print(f"    small elapsed_h -> ok={ok['ok']} projected={ok['projected']}")
     assert ok["ok"]
+    assert ok["ceiling"] == PER_CELL_ABORT_CEILING, (
+        "S2.29 REGRESSION: at/below the 8K anchor budget the ceiling must stay EXACTLY the "
+        "certified 0.081 (max() floor) -- the scaling must not touch small-budget cells"
+    )
     raised = False
     try:
         check_per_cell_projection(elapsed_h=1.0, steps_done=1, steps_total=20)
@@ -857,6 +883,31 @@ def smoke():
         raised = True
         print(f"    huge elapsed_h at 1/20 steps -> PerCellBudgetAbort raised as expected: {str(e)[:90]}...")
     assert raised, "PerCellBudgetAbort has no teeth"
+
+    print("\n  S2.29 -- per-cell ceiling scales with the cell's pinned step budget (anchor-step "
+          "units; the A6-40K live-abort class):")
+    # POSITIVE: the EXACT live-abort reproduction (2026-07-10: A6 at its honest,
+    # healthy per-step rate -- elapsed 0.004661 h at 2000/40000 -> projected
+    # 0.0932 GPU-h) must now PASS under the budget-scaled ceiling (0.405).
+    ok_a6 = check_per_cell_projection(elapsed_h=0.004661191569434272, steps_done=2000, steps_total=40000)
+    assert ok_a6["ok"] and abs(ok_a6["ceiling"] - PER_CELL_ABORT_CEILING * 5) < 1e-9, (
+        f"S2.29: the live A6 abort reproduction did not pass under the scaled ceiling: {ok_a6}"
+    )
+    print(f"    live A6 repro (projected {ok_a6['projected']} vs scaled ceiling {ok_a6['ceiling']}) "
+          f"now PASSES  OK")
+    # NEGATIVE (teeth): the SAME 40K budget at a genuinely runaway per-step rate
+    # (> 4.5x anchor) must still hard-abort -- the scaling widened the ceiling
+    # for bigger budgets, it did NOT remove the breaker.
+    raised_a6 = False
+    try:
+        check_per_cell_projection(elapsed_h=0.0205, steps_done=2000, steps_total=40000)  # -> 0.41 > 0.405
+    except PerCellBudgetAbort as e:
+        raised_a6 = True
+        print(f"    runaway 40K cell (projected 0.41 > 0.405) still ABORTS: {str(e)[:80]}...")
+    assert raised_a6, (
+        "S2.29 TEETH FAILURE: a genuinely runaway 40K-step cell was not aborted -- the "
+        "budget-scaled ceiling removed the breaker instead of re-anchoring it"
+    )
 
     print("\n  resume-safety (tiny synthetic cell, CPU, steps=6):")
     import tempfile
