@@ -188,12 +188,23 @@ def check_stage2_sweep_projection(real_rate_per_cell: float,
 
 REQUIRED_OUTPUT_KEYS = {"cell_id", "group", "arm", "n_h", "seed", "status"}
 
+# S2.22 N1: every cell-runner output is tagged with WHICH runner produced it
+# -- `train_cell_tiny` (SMOKE-ONLY, 20-step MSE wiring loop) writes
+# `RUNNER_TINY`, `run_real_cell` (the real cosine_loss/M-D0/7-depth-gate/
+# D_test-grid runner) writes `RUNNER_REAL`. A tiny-tagged artifact must NEVER
+# be trusted as a completed real cell -- see `is_valid_output`'s
+# `strict_real` parameter below, the fix for the §2.22 N1 finding
+# ("a signed-off calibration run writes 11 poison JSONs a real wave silently
+# skips").
+RUNNER_TINY = "tiny"
+RUNNER_REAL = "real"
+
 
 def cell_output_path(results_dir: str, cell_id: str) -> str:
     return os.path.join(results_dir, f"{cell_id}.json")
 
 
-def is_valid_output(path: str) -> bool:
+def is_valid_output(path: str, strict_real: bool = False) -> bool:
     """S2.20 F4: the `D_test_results`-not-None check below was VACUOUS
     before this fix -- nothing ever wrote that key, so `key in d` was
     always False and the check was a silent no-op. `run_real_cell` (S2.20
@@ -202,7 +213,16 @@ def is_valid_output(path: str) -> bool:
     truncated write with the key explicitly set to `None` is now actually
     caught); it stays a harmless no-op for `train_cell_tiny`/calibration-
     wave outputs, which never set this key at all (by design -- those are
-    NOT the D_test grid evaluation, S2.6)."""
+    NOT the D_test grid evaluation, S2.6).
+
+    `strict_real` (S2.22 N1, default False so existing tiny/smoke callers
+    are byte-identical): when True, an output is valid ONLY if it is
+    `runner:"real"` AND actually carries a non-None `D_test_results` --
+    this rejects BOTH an explicitly `runner:"tiny"`-tagged artifact AND any
+    untagged/older artifact shaped like a tiny-runner output (no `runner`
+    key at all, since `d.get("runner") != "real"` catches the missing-key
+    case too), so a real wave can never resume-skip a smoke artifact
+    regardless of whether it predates this fix's tagging."""
     if not os.path.exists(path):
         return False
     try:
@@ -216,6 +236,15 @@ def is_valid_output(path: str) -> bool:
         for key in ("D_test_results",):
             if key in d and d[key] is None:
                 return False
+    if strict_real:
+        # S2.22 N1: a real wave must reject tiny-tagged OR untagged/
+        # tiny-shaped outputs -- both conditions collapse to "runner is not
+        # explicitly 'real'" plus a shape backstop (D_test_results missing
+        # or None), belt-and-suspenders against either signal alone drifting.
+        if d.get("runner") != RUNNER_REAL:
+            return False
+        if d.get("D_test_results") is None:
+            return False
     return True
 
 
@@ -266,13 +295,15 @@ def assert_fingerprint_matches(probed_composer: "sc.GroupWordDeltaComposer", ckp
     return disk_fp
 
 
-def run_cell_resume_safe(cell: dict, results_dir: str, run_fn) -> dict:
+def run_cell_resume_safe(cell: dict, results_dir: str, run_fn, strict_real: bool = False) -> dict:
     """`run_fn(cell) -> dict` performs the actual (build-time: synthetic;
     launch-time: real GPU) work. Atomic write via a .tmp + os.replace, the
     SAME crash-safety convention `run_capability_sep.py::run_cell_resume_safe`
-    uses."""
+    uses. `strict_real` (S2.22 N1): forwarded to `is_valid_output` -- pass
+    True from a REAL wave so a tiny-tagged (or untagged tiny-shaped) output
+    already on disk is never trusted as a completed real cell."""
     path = cell_output_path(results_dir, cell["cell_id"])
-    if is_valid_output(path):
+    if is_valid_output(path, strict_real=strict_real):
         with open(path) as f:
             print(f"  [{cell['cell_id']}] SKIP (valid output already on disk)")
             return json.load(f)
@@ -353,7 +384,8 @@ def train_cell_tiny(cell: dict, results_dir: str, device="cpu", steps: int = 20,
 
     result = dict(cell_id=cell["cell_id"], group=cell["group"], arm=cell["arm"], n_h=cell["n_h"],
                  seed=cell["seed"], status="completed", steps_completed=steps,
-                 final_loss=final_loss, wall_clock_s=wall_s, checkpoint_path=ckpt_path)
+                 final_loss=final_loss, wall_clock_s=wall_s, checkpoint_path=ckpt_path,
+                 runner=RUNNER_TINY)   # S2.22 N1: SMOKE-ONLY tag -- UN-resume-valid for a real wave
     return result, composer
 
 
@@ -369,10 +401,25 @@ def load_cell_composer(cell: dict, results_dir: str, device="cpu") -> sc.GroupWo
     return composer.to(device)
 
 
-def run_calibration_gate_for_cell(cell: dict, composer: sc.GroupWordDeltaComposer,
+def run_calibration_gate_for_cell(cell: dict, composer: sc.GroupWordDeltaComposer, ckpt_path: str,
                                   depths=si.PROBE_DEPTHS, device="cpu") -> dict:
     """S2.8 item 2(e): the query-dependence diagnostic on a trained (or, in
-    smoke, an untrained-but-forward-capable) composer's own reader."""
+    smoke, an untrained-but-forward-capable) composer's own reader.
+
+    S2.22 N4: `ckpt_path` is now a REQUIRED argument, and this function
+    fingerprints `composer` -- THIS call's own actual argument, not an
+    "adjacent" object a caller checked earlier and then (by a typo/refactor/
+    stale-variable bug) failed to actually pass in here -- against
+    `ckpt_path` BEFORE running the gate. The §2.20 F3 fix protected exactly
+    the §2.19 fresh-reinit bug class, but only at whichever call site
+    remembered to invoke `assert_fingerprint_matches` itself; the §2.22
+    audit's mutation-3 escape shows a caller can fingerprint one composer
+    reference correctly and then still pass a DIFFERENT, unverified
+    composer into this function, which the pre-N4 code accepted silently.
+    Moving the check to this function's own entry makes that structurally
+    impossible: the gate can never trust a composer it has not itself
+    checked against the checkpoint on disk."""
+    disk_fp = assert_fingerprint_matches(composer, ckpt_path, cell["cell_id"], device=device)
     n_gens = composer.n_gens
 
     def real_state_fn(D):
@@ -388,7 +435,7 @@ def run_calibration_gate_for_cell(cell: dict, composer: sc.GroupWordDeltaCompose
         prepare_mem=composer.readout.prepare_mem, depths=depths, seed=si.PROBE_SEED, h=composer.h,
     )
     route = si.route_gate_result(report, bos_already_applied=composer.use_bos_row)
-    return dict(cell_id=cell["cell_id"], report=report, route=route)
+    return dict(cell_id=cell["cell_id"], report=report, route=route, param_fingerprint=disk_fp)
 
 
 # ---------------------------------------------------------------------------
@@ -479,19 +526,38 @@ def run_real_cell(cell: dict, results_dir: str, device="cpu", steps: int | None 
     name = cell["group"]
     composer = build_cell_composer(cell, device=device)
     opt = torch.optim.Adam(composer.parameters(), lr=3e-4)
-    gen = torch.Generator().manual_seed(cell["seed"] + 1)
+    # S2.22 N2: salted by group_seed_salt (mirrors retrain_and_save_arm1_checkpoints's
+    # and run_capability_sep.py::train_and_eval_cell's own convention, S1.22 BA-F3) --
+    # without this, two groups sharing BOTH |gens| and d_state (S4, A5) would draw
+    # BYTE-IDENTICAL training-batch token streams at the same nominal cell seed. The
+    # pre-existing `+ 1` offset (distinct from the model-init global seed set inside
+    # `build_cell_composer`) is kept, salt is additive on top of it.
+    gen = torch.Generator().manual_seed(cell["seed"] + 1 + group_seed_salt(name))
     steps_total = steps if steps is not None else STEP_BUDGET_BY_GROUP[name]
 
     t0 = time.time()
     final_loss = None
+    n_skipped = 0
     log_every = max(1, steps_total // 20)
     for step in range(1, steps_total + 1):
-        batch = st.sample_train_batch_stage2(name, 32, gen, device=device)
+        # S2.22 N3: batch 256, matching Stage 1's own anchor regime
+        # (`run_capability_sep.py::train_and_eval_cell`/`sample_train_batch`) and the
+        # §2.3 fairness pin -- batch 32 was an undisclosed 8x per-step data deficit
+        # for Arms 2-3 relative to what Arm-1's checkpoints trained on.
+        batch = st.sample_train_batch_stage2(name, 256, gen, device=device)
         Z = composer(batch["token_idx"])
         loss = sc.composer_scoring_fn(Z, batch["target"])   # cosine_loss, pinned objective (S2.20 F4)
         opt.zero_grad()
         loss.backward()
-        opt.step()
+        # S2.22 N3: finite-grad skip + clip_grad_norm(1.0), mirroring the Stage-1
+        # recipe exactly (run_capability_sep.py::train_and_eval_cell /
+        # retrain_and_save_arm1_checkpoints's own identical pattern).
+        finite = all(p.grad is None or torch.isfinite(p.grad).all() for p in composer.parameters())
+        if finite:
+            torch.nn.utils.clip_grad_norm_(composer.parameters(), 1.0)
+            opt.step()
+        else:
+            n_skipped += 1
         final_loss = loss.item()
         if budget_guard and step % log_every == 0:
             elapsed_h = (time.time() - t0) / 3600.0
@@ -507,8 +573,10 @@ def run_real_cell(cell: dict, results_dir: str, device="cpu", steps: int | None 
     # S2.6 M-D0.
     m_d0_profile = m_d0_convergence_profile(composer, name, seed=cell["seed"], device=device)
 
-    # S2.8 item 2(e), full 7-depth (S2.20 F5 -- no depths= override).
-    gate_result = run_calibration_gate_for_cell(cell, composer, device=device)
+    # S2.8 item 2(e), full 7-depth (S2.20 F5 -- no depths= override). S2.22 N4:
+    # ckpt_path passed through so the gate fingerprints ITS OWN `composer` argument
+    # at its own boundary, not just the (possibly-divergent) object checked above.
+    gate_result = run_calibration_gate_for_cell(cell, composer, ckpt_path, device=device)
 
     # S2.2.2/S2.9 item 7 param-match (S2.20 F6): exact counts reported
     # regardless; assert where the design pins it (every real training cell).
@@ -525,10 +593,11 @@ def run_real_cell(cell: dict, results_dir: str, device="cpu", steps: int | None 
 
     result = dict(cell_id=cell["cell_id"], group=cell["group"], arm=cell["arm"], n_h=cell["n_h"],
                  seed=cell["seed"], status="completed", steps_completed=steps_total,
-                 final_loss=final_loss, wall_clock_s=wall_s, checkpoint_path=ckpt_path,
-                 param_fingerprint=disk_fp, m_d0_profile=m_d0_profile,
+                 n_skipped_steps=n_skipped, final_loss=final_loss, wall_clock_s=wall_s,
+                 checkpoint_path=ckpt_path, param_fingerprint=disk_fp, m_d0_profile=m_d0_profile,
                  gate_route=gate_result["route"]["route"], gate_report=gate_result["report"],
-                 param_match=param_match, D_test_results=D_test_results)
+                 param_match=param_match, D_test_results=D_test_results,
+                 runner=RUNNER_REAL)   # S2.22 N1: the REAL-cell tag, resume-valid for a real wave
     return result
 
 
@@ -566,7 +635,7 @@ def run_calibration_wave(results_dir: str, device="cpu", steps: int = 20,
             # reinit -- that was a build-time bug caught and fixed before
             # this file was committed, see the git history / final report),
             # and now at ALL SEVEN pinned depths (S2.20 F5).
-            gate_result = run_calibration_gate_for_cell(c, composer, device=device)
+            gate_result = run_calibration_gate_for_cell(c, composer, ckpt, device=device)
             train_result["gate_route"] = gate_result["route"]["route"]
             # S2.20 F5 proof-by-run: record how many depths were ACTUALLY
             # gated, so a regression to the old (1,8,64) override is
@@ -581,10 +650,40 @@ def run_calibration_wave(results_dir: str, device="cpu", steps: int = 20,
             composer = load_cell_composer(cell, results_dir, device=device)
             ckpt = checkpoint_path(results_dir, cell["cell_id"])
             disk_fp = assert_fingerprint_matches(composer, ckpt, cell["cell_id"], device=device)
-            gate_result = run_calibration_gate_for_cell(cell, composer, device=device)
+            gate_result = run_calibration_gate_for_cell(cell, composer, ckpt, device=device)
             result["gate_route"] = gate_result["route"]["route"]
             result["param_fingerprint"] = disk_fp
             result["n_depths_gated"] = len(gate_result["report"]["per_depth"])
+        results.append(result)
+    return results
+
+
+def run_calibration_wave_real(results_dir: str, device="cpu", steps: int | None = None,
+                              cells: list[dict] | None = None) -> list[dict]:
+    """S2.22 N1 -- THE PRODUCTION calibration wave. `main()`'s post-PI-
+    signoff path (below) calls THIS function, never `run_calibration_wave`
+    above (the `train_cell_tiny` 20-step MSE wiring loop, `runner:"tiny"`,
+    reachable only via `smoke()`'s own direct calls or the explicit CLI
+    `--smoke-tiny` flag). Every cell is routed through `run_real_cell`
+    (cosine_loss, real per-group step budgets unless `steps` overrides them,
+    batch 256, finite-grad-skip + clip_grad_norm(1.0), the full 7-depth
+    S2.8 item 2(e) gate, param-match, D_test grid) and tagged `runner:"real"`.
+
+    `run_cell_resume_safe(..., strict_real=True)`: an already-on-disk output
+    is trusted ONLY if it is itself `runner:"real"` with a real
+    `D_test_results` -- a tiny-tagged (or untagged, older-shaped) artifact
+    from a `train_cell_tiny`/`run_calibration_wave` smoke pass is NEVER
+    silently accepted as a completed real cell (the §2.22 N1 finding: "a
+    signed-off calibration run writes 11 poison JSONs a real wave silently
+    skips")."""
+    if cells is None:
+        primary, nh_grid = build_primary_grid(), build_nh_grid()
+        cells = build_calibration_set(primary, nh_grid)
+    results = []
+    for cell in cells:
+        def _run(c, _results_dir=results_dir):
+            return run_real_cell(c, _results_dir, device=device, steps=steps)
+        result = run_cell_resume_safe(cell, results_dir, _run, strict_real=True)
         results.append(result)
     return results
 
@@ -767,7 +866,8 @@ def smoke():
     cell = dict(cell_id="smoke__S3__arm3_beta02__nh2__seed0", group="S3", arm="arm3_beta02", n_h=2, seed=0)
     with tempfile.TemporaryDirectory() as results_dir2:
         train_result, trained_composer = train_cell_tiny(cell, results_dir2, steps=6)
-        gate_result = run_calibration_gate_for_cell(cell, trained_composer, depths=(1, 8))
+        gate_result = run_calibration_gate_for_cell(cell, trained_composer, train_result["checkpoint_path"],
+                                                     depths=(1, 8))
     print(f"    train status={train_result['status']}  gate route={gate_result['route']['route']}")
     assert train_result["status"] == "completed"
     assert gate_result["route"]["route"] in ("pass", "apply_bos_fix_rerun_all_11",
@@ -832,6 +932,7 @@ def smoke():
                          arm="arm3_beta02", n_h=2, seed=0)
         real_result = run_real_cell(real_cell, real_dir, steps=6, budget_guard=False)
         assert real_result["status"] == "completed"
+        assert real_result["runner"] == RUNNER_REAL, "run_real_cell did not tag its output runner='real'"
         assert "param_fingerprint" in real_result
         assert "m_d0_profile" in real_result and len(real_result["m_d0_profile"]) == st.D_TRAIN_MAX
         assert real_result["m_d0_profile"][0]["D"] == 1 and real_result["m_d0_profile"][0]["excluded"] is True, \
@@ -864,6 +965,185 @@ def smoke():
               f"D_test points={len(real_result['D_test_results'])}  gate_route={real_result['gate_route']}  "
               f"is_valid_output: genuine=True, D_test_results=None-corrupted=False  OK")
 
+    print("\n  S2.22 N1 -- run_calibration_wave_real is the PRODUCTION path; a tiny-tagged (or "
+          "untagged tiny-shaped) output on disk is UN-resume-valid and gets RE-RUN for real "
+          "(KILL PROOF):")
+    with tempfile.TemporaryDirectory() as n1_dir:
+        n1_cell = dict(cell_id="n1_test__S3__arm3_beta02__nh2__seed0", group="S3",
+                       arm="arm3_beta02", n_h=2, seed=0)
+        # Plant a TINY-tagged output on disk, as if a --smoke-tiny run had produced it.
+        tiny_result, _tiny_composer = train_cell_tiny(n1_cell, n1_dir, steps=3)
+        assert tiny_result.get("runner") == RUNNER_TINY, "train_cell_tiny did not tag its output runner='tiny'"
+        tiny_path = cell_output_path(n1_dir, n1_cell["cell_id"])
+        os.makedirs(n1_dir, exist_ok=True)
+        tmp_path = tiny_path + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(tiny_result, f, indent=2, default=str)
+        os.replace(tmp_path, tiny_path)
+        assert is_valid_output(tiny_path), "sanity: a tiny output must be valid for a non-strict (tiny) wave"
+        assert not is_valid_output(tiny_path, strict_real=True), (
+            "S2.22 N1 REGRESSION: a tiny-tagged output was accepted as valid for a REAL (strict_real) "
+            "wave -- a signed-off real calibration run would silently poison-skip a smoke artifact"
+        )
+        # THE KILL PROOF: the real wave must actually RE-RUN this cell, not silently skip it.
+        real_wave_results = run_calibration_wave_real(n1_dir, steps=4, cells=[n1_cell])
+        assert real_wave_results[0]["runner"] == RUNNER_REAL, "the real wave did not tag its output runner='real'"
+        assert real_wave_results[0]["status"] == "completed"
+        assert "D_test_results" in real_wave_results[0], "the real wave's output is missing D_test_results"
+        # ALSO: an UNTAGGED (pre-fix-shaped) tiny output must be rejected the same way.
+        untagged = dict(tiny_result)
+        untagged.pop("runner", None)
+        with open(tmp_path, "w") as f:
+            json.dump(untagged, f, indent=2, default=str)
+        os.replace(tmp_path, tiny_path)
+        assert not is_valid_output(tiny_path, strict_real=True), (
+            "S2.22 N1 REGRESSION: an UNTAGGED tiny-shaped output was accepted as valid for a REAL wave"
+        )
+        print("    tiny-tagged AND untagged tiny-shaped outputs both correctly REJECTED by a REAL "
+              "(strict_real) wave; run_calibration_wave_real re-ran the planted cell for real "
+              f"(runner={real_wave_results[0]['runner']!r}, D_test_results present)  OK")
+
+    print("\n  S2.22 N2 -- the training generator is salted by group_seed_salt: S4 vs A5 token "
+          "streams at equal seed must DIFFER (KILL PROOF, the exact S1.22 BA-F3 collision pair):")
+    captured_batches = {}
+    orig_sample_train = st.sample_train_batch_stage2
+
+    def _capture_sample_train(name_, batch_size, gen_, **kw):
+        batch = orig_sample_train(name_, batch_size, gen_, **kw)
+        captured_batches.setdefault(name_, []).append(batch["token_idx"].clone())
+        return batch
+
+    st.sample_train_batch_stage2 = _capture_sample_train
+    try:
+        n2_s4_cell = dict(cell_id="n2_S4__arm3_beta02__nh2__seed0", group="S4",
+                          arm="arm3_beta02", n_h=2, seed=0)
+        n2_a5_cell = dict(cell_id="n2_A5__arm3_beta02__nh2__seed0", group="A5",
+                          arm="arm3_beta02", n_h=2, seed=0)
+        with tempfile.TemporaryDirectory() as n2_s4_dir:
+            run_real_cell(n2_s4_cell, n2_s4_dir, steps=1, budget_guard=False)
+        with tempfile.TemporaryDirectory() as n2_a5_dir:
+            run_real_cell(n2_a5_cell, n2_a5_dir, steps=1, budget_guard=False)
+    finally:
+        st.sample_train_batch_stage2 = orig_sample_train
+    s4_tok, a5_tok = captured_batches["S4"][0], captured_batches["A5"][0]
+    identical = (s4_tok.shape == a5_tok.shape) and bool(torch.equal(s4_tok, a5_tok))
+    assert not identical, (
+        "S2.22 N2 REGRESSION: S4 and A5 (both |gens|=4, d_state=5 -- the exact S1.22 BA-F3 "
+        "collision pair) drew BYTE-IDENTICAL first training-batch token streams at the same "
+        "nominal seed=0 -- the training generator is unsalted again"
+    )
+    print(f"    S4 shape={tuple(s4_tok.shape)}  A5 shape={tuple(a5_tok.shape)}  streams DIFFER "
+          f"(group_seed_salt is load-bearing on run_real_cell's training generator)  OK")
+
+    print("\n  S2.22 N3 -- batch 256 / clip_grad_norm(1.0) / finite-grad skip, observed behavior "
+          "inside run_real_cell's training loop (KILL PROOFS, not source-reading):")
+    observed_batch_sizes = []
+    orig_sample_n3 = st.sample_train_batch_stage2
+
+    def _spy_batch_size(name_, batch_size, gen_, **kw):
+        observed_batch_sizes.append(batch_size)
+        return orig_sample_n3(name_, batch_size, gen_, **kw)
+
+    st.sample_train_batch_stage2 = _spy_batch_size
+    try:
+        with tempfile.TemporaryDirectory() as n3a_dir:
+            n3a_cell = dict(cell_id="n3_batch_test__S3__arm3_beta02__nh2__seed0", group="S3",
+                            arm="arm3_beta02", n_h=2, seed=0)
+            run_real_cell(n3a_cell, n3a_dir, steps=3, budget_guard=False)
+    finally:
+        st.sample_train_batch_stage2 = orig_sample_n3
+    assert observed_batch_sizes and all(b == 256 for b in observed_batch_sizes), (
+        f"S2.22 N3 REGRESSION: run_real_cell's own training batch size(s) were "
+        f"{sorted(set(observed_batch_sizes))}, not {{256}} -- the 8x per-step data deficit vs "
+        f"Stage 1's own anchor regime (batch 256) is back"
+    )
+    print(f"    training batch size on every step: {sorted(set(observed_batch_sizes))} (must be [256])  OK")
+
+    clip_calls = []
+    orig_clip = torch.nn.utils.clip_grad_norm_
+
+    def _spy_clip(params, max_norm, *a, **kw):
+        clip_calls.append(max_norm)
+        return orig_clip(params, max_norm, *a, **kw)
+
+    torch.nn.utils.clip_grad_norm_ = _spy_clip
+    try:
+        with tempfile.TemporaryDirectory() as n3b_dir:
+            n3b_cell = dict(cell_id="n3_clip_test__S3__arm3_beta02__nh2__seed0", group="S3",
+                            arm="arm3_beta02", n_h=2, seed=0)
+            run_real_cell(n3b_cell, n3b_dir, steps=5, budget_guard=False)
+    finally:
+        torch.nn.utils.clip_grad_norm_ = orig_clip
+    assert clip_calls and all(c == 1.0 for c in clip_calls), (
+        "S2.22 N3 REGRESSION: clip_grad_norm_(..., max_norm=1.0) was never invoked (or invoked at "
+        "the wrong max_norm) inside run_real_cell's training loop"
+    )
+    print(f"    clip_grad_norm_(max_norm=1.0) invoked {len(clip_calls)}/5 steps  OK")
+
+    orig_sample_n3c = st.sample_train_batch_stage2
+
+    def _poison_sample(name_, batch_size, gen_, **kw):
+        # forces EVERY step's loss (hence gradient) non-finite -- a batch with a NaN target
+        batch = orig_sample_n3c(name_, batch_size, gen_, **kw)
+        batch["target"] = batch["target"] * float("nan")
+        return batch
+
+    st.sample_train_batch_stage2 = _poison_sample
+    try:
+        with tempfile.TemporaryDirectory() as n3c_dir:
+            n3c_cell = dict(cell_id="n3_finiteskip_test__S3__arm3_beta02__nh2__seed0", group="S3",
+                            arm="arm3_beta02", n_h=2, seed=0)
+            poisoned_result = run_real_cell(n3c_cell, n3c_dir, steps=5, budget_guard=False)
+            # loaded INSIDE the TemporaryDirectory scope -- the .pt is deleted at `with` exit.
+            poisoned_state = torch.load(poisoned_result["checkpoint_path"], map_location="cpu")
+    finally:
+        st.sample_train_batch_stage2 = orig_sample_n3c
+    assert poisoned_result["status"] == "completed", "run_real_cell crashed on a poisoned (all-NaN) batch"
+    assert poisoned_result["n_skipped_steps"] == 5, (
+        f"S2.22 N3 REGRESSION: with EVERY step's gradient forced non-finite, n_skipped_steps="
+        f"{poisoned_result['n_skipped_steps']} (expected 5/5) -- the finite-grad skip has no teeth"
+    )
+    assert all(torch.isfinite(t).all() for t in poisoned_state.values()), (
+        "S2.22 N3 REGRESSION: the persisted checkpoint contains non-finite weights -- a poisoned "
+        "(non-finite-gradient) step was APPLIED instead of skipped"
+    )
+    print(f"    poisoned (all-NaN-target) 5-step run: n_skipped_steps=5/5, composer weights stayed "
+          f"finite -- opt.step() correctly SKIPPED every time  OK")
+
+    print("\n  S2.22 N4 -- fingerprint asserted AT THE GATE'S OWN BOUNDARY (mutation-3 escape "
+          "reproduction -- KILL PROOF):")
+    with tempfile.TemporaryDirectory() as n4_dir:
+        torch.manual_seed(0)
+        n4_cell = dict(cell_id="n4_test__S3__arm3_beta02__nh2__seed0", group="S3",
+                       arm="arm3_beta02", n_h=2, seed=0)
+        n4_train_result, n4_composer = train_cell_tiny(n4_cell, n4_dir, steps=4)
+        n4_ckpt = n4_train_result["checkpoint_path"]
+        # positive: the gate accepts its own correctly-fingerprinted argument.
+        n4_gate_ok = run_calibration_gate_for_cell(n4_cell, n4_composer, n4_ckpt, depths=(1, 8))
+        assert "param_fingerprint" in n4_gate_ok, "run_calibration_gate_for_cell did not report a fingerprint"
+        print("    positive: the gate accepts the correctly-fingerprinted composer  OK")
+
+        # NEGATIVE (§2.22 mutation-3 reproduction): the exact escape the audit found -- a caller
+        # correctly fingerprints ONE composer reference (n4_composer, above) elsewhere, but then
+        # a DIFFERENT, unverified composer (e.g. a stale variable / refactor typo / fresh reinit)
+        # is what actually gets passed into the gate. Pre-N4, run_calibration_gate_for_cell took
+        # no ckpt_path and never checked its OWN argument, so this call would have silently
+        # "succeeded" against the wrong composer.
+        n4_mismatched = build_cell_composer({**n4_cell, "seed": n4_cell["seed"] + 99})
+        raised_n4 = False
+        try:
+            run_calibration_gate_for_cell(n4_cell, n4_mismatched, n4_ckpt, depths=(1, 8))
+        except ParamFingerprintMismatch as e:
+            raised_n4 = True
+            print(f"    negative (mutation-3: gate's own argument mismatches ckpt_path) CAUGHT: "
+                  f"{str(e)[:90]}...")
+        assert raised_n4, (
+            "S2.22 N4 REGRESSION: run_calibration_gate_for_cell did not fingerprint its OWN "
+            "composer argument against ckpt_path -- the mutation-3 escape (gate called with an "
+            "unverified/mismatched composer while a DIFFERENT, correctly-fingerprinted composer "
+            "existed elsewhere in the caller) is back"
+        )
+
     print("\n  S2.20 ARM-1 RETRAIN utility -- WIRING smoke only (tiny steps_override; the REAL "
           f"~{ARM1_RETRAIN_PRICE_GPU_H} GPU-h launch is NOT run here, per this dispatch):")
     with tempfile.TemporaryDirectory() as arm1_dir:
@@ -894,6 +1174,12 @@ def main():
                          f"never persisted them). Priced at ~{ARM1_RETRAIN_PRICE_GPU_H} GPU-h "
                          f"(0.0179 GPU-h/cell x 12 group-budget-multiplier-units, S1.6 measured "
                          f"rate). NOT launched by this build/fix pass.")
+    ap.add_argument("--smoke-tiny", action="store_true",
+                    help="S2.22 N1: run the SMOKE-ONLY `train_cell_tiny`-based calibration wave "
+                         "(runner:'tiny', a 20-step MSE wiring loop) instead of the real "
+                         "run_calibration_wave_real wave. Outputs are tagged runner:'tiny' and are "
+                         "NOT resume-valid for a real wave (is_valid_output(strict_real=True) "
+                         "rejects them) -- never use this flag for a real calibration decision.")
     args = ap.parse_args()
 
     if args.smoke:
@@ -920,8 +1206,16 @@ def main():
             f"real cells -- an independent audit follows before any real dispatch."
         )
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    results = run_calibration_wave(args.results_dir, device=device, steps=20)
-    print(f"calibration wave: {len(results)} cells run/skipped -> {args.results_dir}")
+    if args.smoke_tiny:
+        results = run_calibration_wave(args.results_dir, device=device, steps=20)
+        print(f"SMOKE-TINY calibration wave (runner='tiny', NOT resume-valid for a real wave): "
+              f"{len(results)} cells run/skipped -> {args.results_dir}")
+    else:
+        # S2.22 N1: the production path. run_real_cell's own per-group STEP_BUDGET_BY_GROUP
+        # is used (steps=None) -- no uniform tiny override here.
+        results = run_calibration_wave_real(args.results_dir, device=device)
+        print(f"REAL calibration wave (runner='real'): {len(results)} cells run/skipped -> "
+              f"{args.results_dir}")
     if not args.calibration_only:
         print("real 57-cell remainder launch is NOT wired in this build -- gated on the "
               "calibration wave's own query-dependence PASS + real-rate re-derivation, "

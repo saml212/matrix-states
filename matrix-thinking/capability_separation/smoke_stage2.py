@@ -62,9 +62,22 @@ Sections, in dependency order:
      ALL SEVEN pinned depths (S2.20 F5), `run_real_cell` end-to-end (S2.20
      F4 -- cosine_loss, M-D0 profile, the 7-depth gate, param-match,
      D_test_results making `is_valid_output`'s not-None check real, incl.
-     a NEGATIVE corrupted-D_test_results-to-None proof), and a WIRING-only
+     a NEGATIVE corrupted-D_test_results-to-None proof), a WIRING-only
      smoke of the ARM-1 retrain-and-save utility (S2.20 box item 4 -- the
-     real ~0.21 GPU-h launch is NOT run here).
+     real ~0.21 GPU-h launch is NOT run here), and the S2.22 N1-N4 FIXES
+     kill proofs: N1 a tiny-tagged (and an untagged tiny-shaped) output is
+     UN-resume-valid for `run_calibration_wave_real` and gets RE-RUN for
+     real; N2 the training generator's `group_seed_salt` is load-bearing
+     (S4 vs A5 token streams at equal seed DIFFER, observed via a spy on
+     `sample_train_batch_stage2`); N3 batch 256 / `clip_grad_norm_(1.0)` /
+     the finite-grad skip are all OBSERVED as executed inside
+     `run_real_cell`'s own training loop (spies + an all-NaN-target
+     poisoned-batch negative proof that `opt.step()` is actually skipped);
+     N4 `run_calibration_gate_for_cell` fingerprints its OWN `composer`
+     argument against `ckpt_path` at its own boundary (the §2.22
+     mutation-3 escape -- a caller fingerprinting one composer reference
+     while passing a DIFFERENT, unverified one into the gate -- is
+     reproduced and shown to now raise `ParamFingerprintMismatch`).
 
 BOX-ONLY items, disclosed (not run here, not silently assumed clean):
   - stage2_composer.py::fla_cross_check -- CUDA + real `fla` required.
@@ -146,7 +159,7 @@ def main():
         sr.smoke()
     run("6. stage2_run.py -- grid construction (68/11), per-cell + ledger budget guards, "
         "resume-safety (+ corrupted-output re-run, checkpoint round-trip reload), "
-        "one full calibration-cell pipeline", _run_cli)
+        "one full calibration-cell pipeline, S2.22 N1-N4 FIXES kill proofs", _run_cli)
 
     print("\n" + "=" * 100)
     if box_only:
