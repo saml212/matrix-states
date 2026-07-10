@@ -1,0 +1,556 @@
+{
+  "ceiling_crosscheck_d8": {
+    "A5__arm2_beta01__nh2__seed0": {
+      "cell_id": "A5__arm2_beta01__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.018121207638543534
+    },
+    "A5__arm2_beta01__nh2__seed1": {
+      "cell_id": "A5__arm2_beta01__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.04069917835389779
+    },
+    "A5__arm2_beta01__nh2__seed2": {
+      "cell_id": "A5__arm2_beta01__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.03442293587476759
+    },
+    "A5__arm2_beta01__nh2__seed3": {
+      "cell_id": "A5__arm2_beta01__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.05526335004394607
+    },
+    "A5__arm2_beta01__nh2__seed4": {
+      "cell_id": "A5__arm2_beta01__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": -0.050105962114069834
+    },
+    "A5__arm3_beta02__nh2__seed0": {
+      "cell_id": "A5__arm3_beta02__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.2,
+      "committed_primary_rf90_d8": 0.2,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9993671811263134
+    },
+    "A5__arm3_beta02__nh2__seed1": {
+      "cell_id": "A5__arm3_beta02__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9989633265034371
+    },
+    "A5__arm3_beta02__nh2__seed2": {
+      "cell_id": "A5__arm3_beta02__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.05,
+      "committed_primary_rf90_d8": 0.05,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.05,
+      "crosscheck_mean_cos_d8": 0.1789134806532206
+    },
+    "A5__arm3_beta02__nh2__seed3": {
+      "cell_id": "A5__arm3_beta02__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.05,
+      "committed_primary_rf90_d8": 0.05,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.3,
+      "crosscheck_mean_cos_d8": 0.6576419935359727
+    },
+    "A5__arm3_beta02__nh2__seed4": {
+      "cell_id": "A5__arm3_beta02__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.05,
+      "committed_primary_rf90_d8": 0.05,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.1,
+      "crosscheck_mean_cos_d8": 0.5409415665641593
+    },
+    "A6__arm2_beta01__nh2__seed0": {
+      "cell_id": "A6__arm2_beta01__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.210164173912732
+    },
+    "A6__arm2_beta01__nh2__seed1": {
+      "cell_id": "A6__arm2_beta01__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.05,
+      "committed_primary_rf90_d8": 0.05,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.05,
+      "crosscheck_mean_cos_d8": 0.29315198688902405
+    },
+    "A6__arm2_beta01__nh2__seed2": {
+      "cell_id": "A6__arm2_beta01__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.15320622401100642
+    },
+    "A6__arm2_beta01__nh2__seed3": {
+      "cell_id": "A6__arm2_beta01__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.2315387376578973
+    },
+    "A6__arm2_beta01__nh2__seed4": {
+      "cell_id": "A6__arm2_beta01__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.1,
+      "crosscheck_mean_cos_d8": 0.2125339360307858
+    },
+    "A6__arm3_beta02__nh1__seed0": {
+      "cell_id": "A6__arm3_beta02__nh1__seed0",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.2256869395313207
+    },
+    "A6__arm3_beta02__nh1__seed1": {
+      "cell_id": "A6__arm3_beta02__nh1__seed1",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.06292091953390591
+    },
+    "A6__arm3_beta02__nh1__seed2": {
+      "cell_id": "A6__arm3_beta02__nh1__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.14036710185845164
+    },
+    "A6__arm3_beta02__nh2__seed0": {
+      "cell_id": "A6__arm3_beta02__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.2,
+      "crosscheck_mean_cos_d8": 0.6058551094992053
+    },
+    "A6__arm3_beta02__nh2__seed1": {
+      "cell_id": "A6__arm3_beta02__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.4488469552847677
+    },
+    "A6__arm3_beta02__nh2__seed2": {
+      "cell_id": "A6__arm3_beta02__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.15,
+      "crosscheck_mean_cos_d8": 0.4502548170344851
+    },
+    "A6__arm3_beta02__nh2__seed3": {
+      "cell_id": "A6__arm3_beta02__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.25,
+      "crosscheck_mean_cos_d8": 0.585500407047573
+    },
+    "A6__arm3_beta02__nh2__seed4": {
+      "cell_id": "A6__arm3_beta02__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.35,
+      "crosscheck_mean_cos_d8": 0.6377907025872658
+    },
+    "A6__arm3_beta02__nh4__seed0": {
+      "cell_id": "A6__arm3_beta02__nh4__seed0",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9997613121560788
+    },
+    "A6__arm3_beta02__nh4__seed1": {
+      "cell_id": "A6__arm3_beta02__nh4__seed1",
+      "reproduced_primary_rf90_d8": 0.05,
+      "committed_primary_rf90_d8": 0.05,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9999065659467125
+    },
+    "A6__arm3_beta02__nh4__seed2": {
+      "cell_id": "A6__arm3_beta02__nh4__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9999746581335872
+    },
+    "S3__arm2_beta01__nh2__seed0": {
+      "cell_id": "S3__arm2_beta01__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.35,
+      "committed_primary_rf90_d8": 0.35,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.35,
+      "crosscheck_mean_cos_d8": 0.165093728529286
+    },
+    "S3__arm2_beta01__nh2__seed1": {
+      "cell_id": "S3__arm2_beta01__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.25,
+      "committed_primary_rf90_d8": 0.25,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.25,
+      "crosscheck_mean_cos_d8": 0.10080237882766482
+    },
+    "S3__arm2_beta01__nh2__seed2": {
+      "cell_id": "S3__arm2_beta01__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.2,
+      "committed_primary_rf90_d8": 0.2,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.2,
+      "crosscheck_mean_cos_d8": 0.0011086032499060432
+    },
+    "S3__arm2_beta01__nh2__seed3": {
+      "cell_id": "S3__arm2_beta01__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.4,
+      "committed_primary_rf90_d8": 0.4,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.4,
+      "crosscheck_mean_cos_d8": 0.3742332605181079
+    },
+    "S3__arm2_beta01__nh2__seed4": {
+      "cell_id": "S3__arm2_beta01__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.05,
+      "committed_primary_rf90_d8": 0.05,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.05,
+      "crosscheck_mean_cos_d8": -0.1276505903188091
+    },
+    "S3__arm3_beta02__nh2__seed0": {
+      "cell_id": "S3__arm3_beta02__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.7,
+      "committed_primary_rf90_d8": 0.7,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9999836002804198
+    },
+    "S3__arm3_beta02__nh2__seed1": {
+      "cell_id": "S3__arm3_beta02__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.55,
+      "committed_primary_rf90_d8": 0.55,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9999869587618685
+    },
+    "S3__arm3_beta02__nh2__seed2": {
+      "cell_id": "S3__arm3_beta02__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.6,
+      "committed_primary_rf90_d8": 0.6,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9999805018650625
+    },
+    "S3__arm3_beta02__nh2__seed3": {
+      "cell_id": "S3__arm3_beta02__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.3,
+      "committed_primary_rf90_d8": 0.3,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.6,
+      "crosscheck_mean_cos_d8": 0.8575255240283497
+    },
+    "S3__arm3_beta02__nh2__seed4": {
+      "cell_id": "S3__arm3_beta02__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.4,
+      "committed_primary_rf90_d8": 0.4,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9999847118758762
+    },
+    "S4__arm2_beta01__nh2__seed0": {
+      "cell_id": "S4__arm2_beta01__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.08678493844581069
+    },
+    "S4__arm2_beta01__nh2__seed1": {
+      "cell_id": "S4__arm2_beta01__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.21586840174070812
+    },
+    "S4__arm2_beta01__nh2__seed2": {
+      "cell_id": "S4__arm2_beta01__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.06378504558105084
+    },
+    "S4__arm2_beta01__nh2__seed3": {
+      "cell_id": "S4__arm2_beta01__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.2,
+      "committed_primary_rf90_d8": 0.2,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.2,
+      "crosscheck_mean_cos_d8": 0.1396509729091996
+    },
+    "S4__arm2_beta01__nh2__seed4": {
+      "cell_id": "S4__arm2_beta01__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": -0.04834198755402567
+    },
+    "S4__arm3_beta02__nh2__seed0": {
+      "cell_id": "S4__arm3_beta02__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9997652351843735
+    },
+    "S4__arm3_beta02__nh2__seed1": {
+      "cell_id": "S4__arm3_beta02__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.999755000636984
+    },
+    "S4__arm3_beta02__nh2__seed2": {
+      "cell_id": "S4__arm3_beta02__nh2__seed2",
+      "reproduced_primary_rf90_d8": 1.0,
+      "committed_primary_rf90_d8": 1.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9998833292770607
+    },
+    "S4__arm3_beta02__nh2__seed3": {
+      "cell_id": "S4__arm3_beta02__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.2,
+      "committed_primary_rf90_d8": 0.2,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9998493133909404
+    },
+    "S4__arm3_beta02__nh2__seed4": {
+      "cell_id": "S4__arm3_beta02__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.05,
+      "committed_primary_rf90_d8": 0.05,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.999817726892568
+    },
+    "S5__arm2_beta01__nh2__seed0": {
+      "cell_id": "S5__arm2_beta01__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.1,
+      "crosscheck_mean_cos_d8": 0.20236872607409123
+    },
+    "S5__arm2_beta01__nh2__seed1": {
+      "cell_id": "S5__arm2_beta01__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.2,
+      "committed_primary_rf90_d8": 0.2,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.2,
+      "crosscheck_mean_cos_d8": 0.2918804442304185
+    },
+    "S5__arm2_beta01__nh2__seed2": {
+      "cell_id": "S5__arm2_beta01__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.3483599092362789
+    },
+    "S5__arm2_beta01__nh2__seed3": {
+      "cell_id": "S5__arm2_beta01__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.26237331211882564
+    },
+    "S5__arm2_beta01__nh2__seed4": {
+      "cell_id": "S5__arm2_beta01__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.15,
+      "committed_primary_rf90_d8": 0.15,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.15,
+      "crosscheck_mean_cos_d8": 0.30607397036215594
+    },
+    "S5__arm3_beta02__nh1__seed0": {
+      "cell_id": "S5__arm3_beta02__nh1__seed0",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.1,
+      "crosscheck_mean_cos_d8": 0.18964086562921428
+    },
+    "S5__arm3_beta02__nh1__seed1": {
+      "cell_id": "S5__arm3_beta02__nh1__seed1",
+      "reproduced_primary_rf90_d8": 0.2,
+      "committed_primary_rf90_d8": 0.2,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.2,
+      "crosscheck_mean_cos_d8": 0.3017489016891853
+    },
+    "S5__arm3_beta02__nh1__seed2": {
+      "cell_id": "S5__arm3_beta02__nh1__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.2248005996808559
+    },
+    "S5__arm3_beta02__nh2__seed0": {
+      "cell_id": "S5__arm3_beta02__nh2__seed0",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.1,
+      "crosscheck_mean_cos_d8": 0.23076827422467622
+    },
+    "S5__arm3_beta02__nh2__seed1": {
+      "cell_id": "S5__arm3_beta02__nh2__seed1",
+      "reproduced_primary_rf90_d8": 0.2,
+      "committed_primary_rf90_d8": 0.2,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.2,
+      "crosscheck_mean_cos_d8": 0.3423973383070105
+    },
+    "S5__arm3_beta02__nh2__seed2": {
+      "cell_id": "S5__arm3_beta02__nh2__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.20403806807926647
+    },
+    "S5__arm3_beta02__nh2__seed3": {
+      "cell_id": "S5__arm3_beta02__nh2__seed3",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.0,
+      "crosscheck_mean_cos_d8": 0.23389349221878425
+    },
+    "S5__arm3_beta02__nh2__seed4": {
+      "cell_id": "S5__arm3_beta02__nh2__seed4",
+      "reproduced_primary_rf90_d8": 0.15,
+      "committed_primary_rf90_d8": 0.15,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.15,
+      "crosscheck_mean_cos_d8": 0.31592876600271236
+    },
+    "S5__arm3_beta02__nh4__seed0": {
+      "cell_id": "S5__arm3_beta02__nh4__seed0",
+      "reproduced_primary_rf90_d8": 0.1,
+      "committed_primary_rf90_d8": 0.1,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9922638205755895
+    },
+    "S5__arm3_beta02__nh4__seed1": {
+      "cell_id": "S5__arm3_beta02__nh4__seed1",
+      "reproduced_primary_rf90_d8": 0.2,
+      "committed_primary_rf90_d8": 0.2,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 0.45,
+      "crosscheck_mean_cos_d8": 0.8259934222876447
+    },
+    "S5__arm3_beta02__nh4__seed2": {
+      "cell_id": "S5__arm3_beta02__nh4__seed2",
+      "reproduced_primary_rf90_d8": 0.0,
+      "committed_primary_rf90_d8": 0.0,
+      "reproduction_bit_identical": true,
+      "crosscheck_rf90_d8": 1.0,
+      "crosscheck_mean_cos_d8": 0.9890522620529438
+    }
+  },
+  "teeth_shuffled_control": {
+    "A6__arm3_beta02__nh4__seed0": {
+      "cell_id": "A6__arm3_beta02__nh4__seed0",
+      "committed_primary_rf90_d64": 0.05,
+      "committed_crosscheck_rf90_d64": 1.0,
+      "reproduction_bit_identical_primary": true,
+      "reproduction_bit_identical_crosscheck": true,
+      "real_recovered_frac_90": 0.05,
+      "real_mean_cos": 0.01459196396228748,
+      "real_crosscheck_recovered_frac_90": 1.0,
+      "real_crosscheck_mean_cos": 0.994998625751353,
+      "shuffled_recovered_frac_90": 0.0,
+      "shuffled_mean_cos": -0.03417779343991876,
+      "shuffled_crosscheck_recovered_frac_90": 0.0,
+      "shuffled_crosscheck_mean_cos": -0.03417779343991876,
+      "perm_seed": 110063,
+      "n_fixed_points_in_permutation": 3,
+      "n_items": 50
+    },
+    "S5__arm3_beta02__nh4__seed0": {
+      "cell_id": "S5__arm3_beta02__nh4__seed0",
+      "committed_primary_rf90_d64": 0.0,
+      "committed_crosscheck_rf90_d64": 0.8,
+      "reproduction_bit_identical_primary": true,
+      "reproduction_bit_identical_crosscheck": true,
+      "real_recovered_frac_90": 0.0,
+      "real_mean_cos": 0.12912168937420365,
+      "real_crosscheck_recovered_frac_90": 0.8,
+      "real_crosscheck_mean_cos": 0.9327368261373632,
+      "shuffled_recovered_frac_90": 0.0,
+      "shuffled_mean_cos": 0.02350494095292529,
+      "shuffled_crosscheck_recovered_frac_90": 0.0,
+      "shuffled_crosscheck_mean_cos": 0.02350494095292529,
+      "perm_seed": 110063,
+      "n_fixed_points_in_permutation": 3,
+      "n_items": 50
+    },
+    "S4__arm3_beta02__nh2__seed2": {
+      "cell_id": "S4__arm3_beta02__nh2__seed2",
+      "committed_primary_rf90_d64": 0.05,
+      "committed_crosscheck_rf90_d64": 1.0,
+      "reproduction_bit_identical_primary": true,
+      "reproduction_bit_identical_crosscheck": true,
+      "real_recovered_frac_90": 0.05,
+      "real_mean_cos": 0.03096673484598133,
+      "real_crosscheck_recovered_frac_90": 1.0,
+      "real_crosscheck_mean_cos": 0.9992443889358051,
+      "shuffled_recovered_frac_90": 0.0,
+      "shuffled_mean_cos": 0.03795827314872147,
+      "shuffled_crosscheck_recovered_frac_90": 0.05,
+      "shuffled_crosscheck_mean_cos": 0.03795827314872147,
+      "perm_seed": 112063,
+      "n_fixed_points_in_permutation": 0,
+      "n_items": 50
+    }
+  }
+}

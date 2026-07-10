@@ -7313,3 +7313,241 @@ the contradiction escalates to a full instrument rebuild. Also carried:
 the S5-seed-1 both-lenses-zero cell stays classified
 trainability-variance (mirrors h2h task-2, §1.40); the 3/62 A5
 isolated-depth 2(e) deferrals route per §2.8 after §2.32.
+
+### §2.32 CROSSCHECK-LENS RE-METRIC (2026-07-10): TEETH PASS 3/3 (shuffled xcheck 0.00/0.00/0.05, all ≪0.5) — §2.31a's TIEBREAK SURVIVES ITS OWN FALSIFIER. THE MECHANICAL CROSSCHECK-LENS M-D3 ENDPOINT IS STILL **FALSIFY**, BUT FOR A DIFFERENT AND MORE INFORMATIVE REASON THAN THE PRIMARY LENS: A6's DECISIVE (n_h=2) CONFIG NEVER REACHES TRAIN-SUPPORT CONVERGENCE UNDER EITHER LENS (a lens-independent, open n_h-sufficiency question), AND S5's DECISIVE TRIAD IS DRAGGED BELOW ITS OWN BAR BY THE PRE-CLASSIFIED SEED-1 TRAINABILITY OUTLIER WHILE ITS OTHER TWO SEEDS INDIVIDUALLY CLEAR 65-80% OF THEIR OWN CEILING AGAINST AN ARM-2 BASELINE PINNED AT EXACTLY 0.0. EVERY OTHER CONVERGED ARM-3 CELL IN THE FULL 62-CELL GRID (S3 4/5, S4 5/5, A5 2/5 SEEDS) REPRODUCES THE SAME 0-vs-1 PRIMARY/CROSSCHECK CONTRADICTION §2.31 FIRST FLAGGED ON 6 CELLS — CONFIRMING GROUND 3 OF §2.31a GENERALIZES TO THE FULL GRID.
+
+**1. THE PRE-REGISTRATION, QUOTED VERBATIM (§2.6, the M-D3 table and
+its governing sentence — this record computes against this text, not a
+re-derived variant):**
+
+> | Depth ratio (relative to `D_train_max`) | Role | CONFIRM requires |
+> |---|---|---|
+> | `~2×` (e.g. `D=16`) | Corroborating only, NOT independently decisive | Reported for all arms/groups; no verdict turns on this point alone. |
+> | `~4×` (e.g. `D=32`) | Secondary decisive check | Contender (Arm 3) `≥90%` of its own `D_train` recovered_frac@0.9, per group. |
+> | `~8×` (e.g. `D=64`) — the decisive checkpoint | **PRIMARY decisive check** | Contender (Arm 3) `≥90%` of its own `D_train` recovered_frac@0.9, ACROSS ALL FIVE GROUPS; Arm 2 (β∈[0,1]) drops BELOW 50%-of-ceiling on S5 and A6 at minimum, with A5's own pattern reported as an open, non-predetermined measurement. |
+>
+> Overall Stage-2 verdict: CONFIRM if the `~8×` checkpoint clears for
+> Arm 3 on all five groups AND the pre-registered Arm-2 dissociation
+> pattern (collapse on S5/A6 specifically) is observed. FALSIFY if
+> Arm 3 does NOT measurably separate from Arm 2 on S5/A6 at the `~8×`
+> checkpoint. Otherwise INCONCLUSIVE → diagnose.
+
+The design's own bands are exactly three: **CONFIRM / FALSIFY /
+INCONCLUSIVE** — there is no "PARTIAL" band in this design (that term
+belongs to a different registry, `FROZEN_BIAS_LM_DESIGN.md` §13.22; not
+invented here). `stage2_harvest.py::m_d3_verdict` operationalizes this
+sentence exactly (S2.9 item 4's disclosed-but-unpinned edge aside); this
+record calls that function UNMODIFIED, feeding it SHADOW cell dicts
+(§3 below), per S2.31a's own instruction ("using the existing
+degauge_and_score / harvest machinery, no new metric").
+
+**2. TEETH CONTROL (S2.31a's pinned falsifier for the tiebreak itself)
+— PASS 3/3, checked BEFORE any endpoint number was trusted.** Three
+converged checkpoints (A6 `arm3_beta02, n_h=4, seed0`; S5
+`arm3_beta02, n_h=4, seed0`; S4 `arm3_beta02, n_h=2, seed2`, standing in
+for the "any converged S3/S4/A5 cell" slot), CPU-only box forward
+passes (`CUDA_VISIBLE_DEVICES=""`, GPUs 6/7's running jobs — NCR
+Phase-0, task2-diagnosis — never touched, verified via `nvidia-smi`
+before and unaffected after), `readout.degauge_and_score` re-run at
+`D=64` with `rho_list` permuted across the full N=50 item pool
+(same shapes/marginals, correspondence to the model's own states
+broken) before the SAME fit/eval index split:
+
+| control cell | real xcheck rf90@64 | committed xcheck rf90@64 | real bit-identical | shuffled xcheck rf90@64 | falsifier (≥0.5) fires |
+|---|---|---|---|---|---|
+| A6 arm3 nh4 seed0 | 1.0000 | 1.0000 | yes | **0.0000** | NO |
+| S5 arm3 nh4 seed0 | 0.8000 | 0.8000 | yes | **0.0000** | NO |
+| S4 arm3 nh2 seed2 | 1.0000 | 1.0000 | yes | **0.0500** | NO |
+
+Every shuffled read is ≪0.5 — **§2.31a's tiebreak survives its own
+falsifier.** The "real" (unpermuted) column reproduces the committed
+`D_test_results` D=64 crosscheck fields bit-for-bit at all three
+controls (a permutation with 0-3 accidental fixed points out of 50
+items, reported per-cell — not a resampled/degenerate shuffle),
+independently confirming the recompute harness (below) executes the
+SAME pipeline the production sweep ran, not a re-implementation.
+
+**3. RECOMPUTE METHOD — no new metric, one genuinely missing field.**
+`D_test_results` (the mid-32/far-64 depths) already carries
+`crosscheck_recovered_frac_90`/`crosscheck_mean_cos` in every committed
+cell JSON (§2.31's own 6-cell table sampled this field; it is present
+on all 62×10 rows) — no recompute needed there, only a field-swap.
+The ONE field the committed JSON never persisted is the crosscheck
+reading at `D=D_train_max=8` (the ceiling denominator every
+"X%-of-own-ceiling" bar divides by): `m_d0_convergence_profile` only
+ever extracted `recovered_frac_90`/`mean_cos` from
+`evaluate_composer_at_depth`'s return dict, discarding the
+`crosscheck_*` keys that function ALSO computes on every call. Fixed
+by a box-side CPU recompute (`remetric_2p32/remetric_2p32_box.py`):
+load each of the 62 checkpoints via the UNMODIFIED
+`stage2_run.load_cell_composer`, re-invoke the UNMODIFIED
+`stage2_task.evaluate_composer_at_depth` at `D=8` with the SAME seed
+convention `m_d0_convergence_profile` uses (`seed=cell_seed*1000+8`),
+and keep the crosscheck fields. **Reproduction proof, run to completion
+before any downstream number was trusted: 62/62 cells' recomputed
+PRIMARY `recovered_frac_90` at D=8 is bit-identical (`<1e-9`) to the
+committed `m_d0_profile` D=8 row** — the harness is proven to reproduce
+the production pipeline exactly, not a new implementation with its own
+drift. `crosscheck_lens_verdict.py` then builds SHADOW cell dicts —
+deep copies with `D_test_results[*].recovered_frac_90` overwritten by
+`D_test_results[*].crosscheck_recovered_frac_90` (already-present field,
+pure swap) and the `m_d0_profile` D=8 row's `recovered_frac_90`
+overwritten by the box-recomputed crosscheck ceiling (the one genuinely
+new number) — and feeds them to `stage2_harvest.m_d3_verdict`
+UNMODIFIED. Fed the REAL (primary-field) cells through the same
+pipeline first as a harness check: reproduces the committed
+`stage2_harvest_report.json` verdict (`FALSIFY`) and all five
+per-group rows exactly.
+
+**4. FULL PER-CELL TABLE — decisive contender legs (Arm 3 at each
+group's `DECISIVE_CONTENDER_NH`: S3/S4/A5/A6 = n_h2, S5 = n_h4),
+ceiling(D=8)/mid(32)/far(64), primary vs crosscheck:**
+
+| group | seed | final_loss | ceil (P) | ceil (X) | mid32 (P) | mid32 (X) | far64 (P) | far64 (X) |
+|---|---|---|---|---|---|---|---|---|
+| S3 | 0 | 0.000001 | 0.70 | 1.00 | 0.20 | 1.00 | 0.60 | 1.00 |
+| S3 | 1 | 0.000022 | 0.55 | 1.00 | 0.70 | 1.00 | 0.65 | 1.00 |
+| S3 | 2 | 0.000009 | 0.60 | 1.00 | 1.00 | 1.00 | 0.65 | 1.00 |
+| S3 | 3 | 0.073499 | 0.30 | 0.60 | 0.15 | 0.50 | 0.35 | 0.50 |
+| S3 | 4 | 0.000011 | 0.40 | 1.00 | 0.75 | 1.00 | 0.45 | 1.00 |
+| S4 | 0 | 0.000098 | 0.10 | 1.00 | 0.15 | 1.00 | 0.15 | 1.00 |
+| S4 | 1 | 0.000311 | 0.10 | 1.00 | 0.00 | 1.00 | 0.05 | 1.00 |
+| S4 | 2 | 0.000174 | 1.00 | 1.00 | 0.15 | 1.00 | 0.05 | 1.00 |
+| S4 | 3 | 0.000138 | 0.20 | 1.00 | 0.10 | 1.00 | 0.05 | 1.00 |
+| S4 | 4 | 0.000490 | 0.05 | 1.00 | 0.15 | 1.00 | 0.10 | 1.00 |
+| A5 | 0 | 0.000370 | 0.20 | 1.00 | 0.10 | 1.00 | 0.05 | 0.95 |
+| A5 | 1 | 0.000714 | 0.10 | 1.00 | 0.05 | 1.00 | 0.05 | 1.00 |
+| A5 | 2 | 0.156826 | 0.05 | 0.05 | 0.00 | 0.00 | 0.00 | 0.00 |
+| A5 | 3 | 0.077214 | 0.05 | 0.30 | 0.00 | 0.00 | 0.00 | 0.00 |
+| A5 | 4 | 0.069032 | 0.05 | 0.10 | 0.00 | 0.00 | 0.00 | 0.00 |
+| S5 | 0 | 0.001895 | 0.10 | 1.00 | 0.00 | 0.85 | 0.00 | **0.80** |
+| S5 | 1 | 0.006408 | 0.20 | 0.45 | 0.00 | 0.00 | 0.00 | 0.00 |
+| S5 | 2 | 0.011748 | 0.00 | 1.00 | 0.00 | 1.00 | 0.00 | **0.65** |
+| A6 | 0 | 0.072892 | 0.00 | 0.20 | 0.00 | 0.00 | 0.00 | 0.00 |
+| A6 | 1 | 0.293049 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| A6 | 2 | 0.259362 | 0.00 | 0.15 | 0.00 | 0.00 | 0.00 | 0.00 |
+| A6 | 3 | 0.170681 | 0.00 | 0.25 | 0.00 | 0.00 | 0.00 | 0.00 |
+| A6 | 4 | 0.240226 | 0.10 | 0.35 | 0.00 | 0.00 | 0.00 | 0.00 |
+
+Arm-2 baseline cells (all 5 groups × 5 seeds, n_h=2, 30 values checked
+at ceiling and far): **crosscheck equals primary EXACTLY on every one
+of the 30 baseline cells, zero divergence anywhere** — a trivially-
+satisfiable crosscheck lens would read high on Arm-2's un-converged
+junk too; it does not, at any seed, in any group. Reconfirms §2.31a
+ground 2 on the FULL grid, not just the calibration sample.
+
+**5. THE PER-GROUP CROSSCHECK-LENS M-D3 ENDPOINT (the S2.6 table,
+computed by `m_d3_verdict` from the shadow cells):**
+
+| group | decisive n_h | ceiling (X) | far64 (X) | far_bar (90%) | far_clears | arm2 far (X) | arm2_bar (50%) | arm2_collapses | separates |
+|---|---|---|---|---|---|---|---|---|---|
+| S3 | 2 | 0.920 | 0.900 | 0.828 | **True** | 0.150 | 0.125 | False | False |
+| S4 | 2 | 1.000 | 1.000 | 0.900 | **True** | 0.000 | 0.020 | **True** | **True** |
+| A5 | 2 (disclosed, not gating) | 0.490 | 0.390 | 0.441 | False | 0.000 | 0.000 | False | False |
+| S5 | 4 (gating) | 0.817 | 0.483 | 0.735 | False | 0.000 | 0.045 | **True** | False |
+| A6 | 2 (gating) | 0.190 | 0.000 | 0.171 | False | 0.000 | 0.015 | **True** | False |
+
+**6. VERDICT: crosscheck-lens mechanical M-D3 = FALSIFY** — computed
+by the unmodified `m_d3_verdict`'s `gating_no_separation_anywhere`
+branch (neither S5 nor A6 shows `separates_from_arm2=True`), reading
+verbatim: "the contender does NOT measurably separate from Arm 2 at
+EITHER S5 or A6 at the far (~8×) checkpoint." **This is the SAME
+top-line verdict as the primary lens (§2.31) — the tiebreak does NOT
+flip the model verdict — but the reason is qualitatively different and
+must not be conflated with "beta range makes no detectable difference,"
+the primary lens's literal reading:**
+
+- **A6's decisive config (n_h=2) never reaches train-support
+  convergence under EITHER lens** (crosscheck ceiling 0.00-0.35, far
+  0.00 for all 5 seeds — primary and crosscheck agree here, both near
+  zero) — a genuine, lens-independent model result, not a §1.25-class
+  wrong-instrument artifact. A6's OWN n_h=4 flanking cells (not gating,
+  §2.2.4/§2.5) DO converge (final_loss ≈8e-05/7e-05, §2.31's table) and
+  DO show the dramatic crosscheck dissociation (0.05→1.00 primary vs
+  crosscheck) — meaning A6's decisive-config failure is an open,
+  already-disclosed n_h-sufficiency question (§2.2.3: A6-at-n_h=2 is
+  untested in the literature, unlike S5), not something this re-metric
+  resolves either way.
+- **S5's decisive triad (n_h=4) is dragged below its own far_bar by
+  the PRE-CLASSIFIED seed-1 trainability-variance outlier** (§2.31a,
+  mirrors h2h task-2 §1.40): seed1 reads 0.00 far under BOTH lenses
+  despite training-support loss 0.0064 (converged by the loss
+  criterion, catastrophically non-generalizing by the depth criterion —
+  a genuine model failure, not an instrument artifact, since crosscheck
+  does not rescue it either). The OTHER TWO seeds individually clear
+  65-80% of their OWN D=8 ceiling at 8× depth (seed0: 0.80/1.00=80%;
+  seed2: 0.65/1.00=65%) against an Arm-2 baseline pinned at EXACTLY 0.0
+  across all 3 seeds — the qualitative CONFIRM pattern holds
+  individually for 2/3 of S5's decisive seeds; only the PRE-REGISTERED
+  group-MEAN aggregation (S2.6's own formula, not overridden here) plus
+  the seed-1 outlier keeps the mechanical bar (0.483 vs 0.735) from
+  clearing.
+- **Every other converged Arm-3 cell in the full grid reproduces the
+  identical 0-vs-1 primary/crosscheck contradiction §2.31 first flagged
+  on 6 cells**: S3 (4/5 seeds, all final_loss<0.0001, crosscheck
+  ceiling/mid/far = 1.00/1.00/1.00), S4 (**5/5 seeds**, all
+  final_loss<0.0005, crosscheck ceiling/mid/far = 1.00/1.00/1.00 —
+  the single cleanest full-family dissociation in the grid, though S4
+  is disclosed/corroborating, not a gating group — `separates_from_arm2
+  = True` for S4 under the crosscheck lens), A5 (2/5 seeds,
+  final_loss<0.001, crosscheck ceiling ≈1.00). This generalizes ground
+  3 of §2.31a (the primary-degauge-defect-on-converged-cells hypothesis)
+  from the 6 originally-sampled cells to the full 62-cell grid.
+
+**Net reading, stated plainly and without spin:** the mechanical,
+pre-registered M-D3 criterion reads FALSIFY under both lenses — that is
+the recorded verdict of record, not overridden here. But the crosscheck
+lens shows this is NOT "no detectable signal, beta range doesn't
+matter" (the primary lens's face-value reading): wherever the contender
+actually reaches training-support convergence, it shows large, precise,
+repeated 8×-depth generalization (S3/S4/A5's converged seeds, S5's
+seeds 0/2) against an Arm-2 baseline that reads exactly 0.0 in every
+one of 30 checked baseline cells regardless of lens. The FALSIFY
+verdict at the two pre-registered gating groups is driven by two
+disclosed, orthogonal, NON-instrument confounds — A6's decisive-config
+convergence failure and S5's single trainability-outlier seed — neither
+of which this re-metric is chartered to resolve.
+
+**7. CARRIED FORWARD, NOT RE-ADJUDICATED HERE (per this record's own
+charter — routing is the coordinator's, not this agent's):**
+- The S5-seed-1 both-lenses-zero cell stays classified
+  trainability-variance (§2.31a, mirrors h2h task-2 §1.40) — confirmed
+  again here (crosscheck 0.00 at mid AND far, ceiling only 0.45 vs the
+  other two seeds' 1.00).
+- **3/62 A5 isolated-depth 2(e) deferrals, re-verified against the raw
+  `gate_report`, not merely re-cited:** `A5__arm2_beta01__nh2__seed3`
+  (`gate_route=apply_bos_fix_rerun_all_11`, fails at D∈{1,2}, anchor
+  floor OK), `A5__arm2_beta01__nh2__seed4` (same route, fails at D=4),
+  `A5__arm3_beta02__nh2__seed3` (same route, fails at D=64) — exactly
+  the "3/62, all A5, seeds 3-4" §2.31 disclosed. These route per §2.8
+  after this record, not routed here.
+
+**8. LEDGER.** Zero new training cells, zero new training GPU-h. Box
+CPU-only eval-only forward passes (`CUDA_VISIBLE_DEVICES=""`,
+`torch.cuda.is_available` hard-overridden False as a second guard):
+65 checkpoint loads (62 ceiling recomputes + 3 teeth controls),
+`nvidia-smi` confirmed GPUs 6 (NCR Phase-0, 3 processes, 99% util) and
+7 (task2-diagnosis, idle at poll time) untouched before AND after —
+never preempted, never allocated. Wall time ≈4 min box-side (the bulk
+of it re-deriving `coverage_calibration.py`'s `lru_cache`d Monte Carlo
+bars for `D=8`/`D=64`, printed verbatim in the box log, a one-time
+per-(group,D) cost this fresh process had not cached yet — not new
+randomness in the decisive numbers themselves).
+
+**9. SECURITY.** Zero fake system-reminder blocks in tool stdout this
+segment (SSH/box output, `Monitor` task-completion notifications — the
+latter correctly tagged by the harness itself, not spoofed). Tally
+holds at 84.
+
+**Archive:** `experiment-runs/2026-07-10_stage2_calibration/remetric_2p32/`
+— `remetric_2p32_box.py` (the box-side ceiling-recompute + teeth-control
+script), `remetric_2p32_box_output.json` (62-cell ceiling recompute +
+3-cell teeth control, raw), `crosscheck_lens_verdict.py` (the
+shadow-cell harness calling `stage2_harvest.m_d3_verdict` unmodified),
+`crosscheck_lens_verdict_output.json` (manifest, teeth table, both
+verdicts, the full 62-cell flat table — the source for every number in
+this record), `remetric_2p32_box.log` (the box run log, incl. the
+Monte Carlo bar-derivation console output). SSD-mirrored. **NEXT: the
+coordinator routes the A6 n_h-sufficiency question and the S5-seed-1
+diagnosis (both disclosed at item 6-7, neither resolved by this
+record); the 3/62 A5 deferrals route per §2.8.**

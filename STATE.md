@@ -567,6 +567,52 @@ registration, launch decision recorded at §2.30 item 4a, and the
 §1.25 instrument-defect precedent is a first-class §2.31 harvest
 question. Next: sweep completion → full-grid harvest = §2.31.
 
+**UPDATE (2026-07-10, §2.31→§2.32 — HARVEST CONTESTED, TIEBREAK,
+CROSSCHECK-LENS RE-METRIC — MODEL VERDICT STILL FALSIFY, REASON
+MATERIALLY DIFFERENT):** the 51-cell remainder sweep completed clean
+(62/62 manifest, zero failures/retries, §2.31). The pre-registered
+PRIMARY-metric M-D3 mechanical read: FALSIFY (S3 0.51/S4 0.29/A5
+0.09/S5 0.10/A6 0.02 far-depth ceilings). But instrument-health
+adjudication found a systematic 0-vs-1.0 primary-vs-crosscheck
+contradiction sitting exactly on the perfectly-converged contender
+cells (the §1.25 wrong-lens class) — verdict CONTESTED, stopped for a
+coordinator tiebreak, no model verdict claimed (§2.31). **Tiebreak
+(§2.31a):** four independent grounds (leakage-guarded-by-construction,
+discriminates on Arm-2 junk, the primary's pre-registered basis-
+brittleness precedent, oracle-injection project precedent) — the
+PRIMARY lens is the broken instrument on converged Stage-2 cells; the
+mechanical FALSIFY is VOID as a model verdict; routed to a
+crosscheck-lens re-metric of the full grid, teeth-gated (a
+shuffled-target negative control must read <0.5 or the tiebreak is
+itself wrong). **§2.32 re-metric: TEETH PASS 3/3** (shuffled crosscheck
+rf90 = 0.00/0.00/0.05 at A6-nh4-seed0/S5-nh4-seed0/S4-nh2-seed2, all
+≪0.5) — CPU-only box eval (checkpoint forward passes, zero training
+GPU-h, GPUs 6/7's running jobs never touched), 62/62 D=8-ceiling
+crosscheck recomputes bit-identical to committed primary values
+(harness-fidelity proof). **The crosscheck-lens mechanical M-D3
+endpoint is STILL FALSIFY** — same top-line verdict as primary — but
+for a materially different reason: A6's decisive (n_h=2) config never
+reaches train-support convergence under EITHER lens (a lens-independent,
+open n_h-sufficiency question, not resolved here); S5's decisive triad
+is dragged below its own 90%-of-ceiling far bar by the pre-classified
+seed-1 trainability outlier (mirrors h2h task2, §1.40) while its other
+two seeds individually clear 65-80% of their own ceiling against an
+Arm-2 baseline pinned at exactly 0.0. Every other converged Arm-3 cell
+in the full grid (S3 4/5, S4 5/5 — full-family, disclosed/corroborating
+not gating —, A5 2/5 seeds) reproduces the same 0-vs-1 contradiction
+§2.31 first flagged on 6 cells, generalizing the tiebreak's ground 3 to
+the whole grid. Net: FALSIFY is the recorded verdict of record, NOT
+"beta range makes no detectable difference" (the primary lens's
+face-value reading) — it is two disclosed, orthogonal, non-instrument
+confounds (A6 n_h-sufficiency, S5 seed-1 variance) neither resolved
+nor overridden by this record. Carried forward for the coordinator:
+the A6 n_h-sufficiency question, the S5-seed-1 diagnosis, and the 3/62
+A5 isolated-depth 2(e) deferrals (re-verified against raw gate_report:
+`A5 arm2 nh2 seed3/seed4`, `A5 arm3 nh2 seed3`) routing per §2.8 — none
+routed by this record. Archive:
+`experiment-runs/2026-07-10_stage2_calibration/remetric_2p32/`
+(script + raw outputs, SSD-mirrored).
+
 ### 6. Novel-Architecture Waterfall (opened 2026-07-09, stages 1-2 RETURNED)
 
 A fresh brainstorm→research waterfall (CLAUDE.md process) on candidate
