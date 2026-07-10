@@ -1,0 +1,83 @@
+\begin{thebibliography}{10}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Barrington(1989)]{barrington1989}
+David A.~Mix Barrington.
+\newblock Bounded-width polynomial-size branching programs recognize exactly
+  those languages in {NC}$^1$.
+\newblock \emph{Journal of Computer and System Sciences}, 38\penalty0
+  (1):\penalty0 150--164, 1989.
+
+\bibitem[Chughtai et~al.(2023)Chughtai, Chan, and Nanda]{chughtai2023toy}
+Bilal Chughtai, Lawrence Chan, and Neel Nanda.
+\newblock A toy model of universality: Reverse engineering how networks learn
+  group operations.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2023.
+\newblock arXiv:2302.03025.
+
+\bibitem[Grazzi et~al.(2025)Grazzi, Siems, Zela, Franke, Hutter, and
+  Pontil]{grazzi2025negative}
+Riccardo Grazzi, Julien Siems, Arber Zela, J{\"o}rg K.~H. Franke, Frank Hutter,
+  and Massimiliano Pontil.
+\newblock Unlocking state-tracking in linear {RNN}s through negative
+  eigenvalues.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2025.
+\newblock arXiv:2411.12537.
+
+\bibitem[Huh et~al.(2024)Huh, Cheung, Wang, and Isola]{huh2024platonic}
+Minyoung Huh, Brian Cheung, Tongzhou Wang, and Phillip Isola.
+\newblock Position: The platonic representation hypothesis.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2024.
+\newblock arXiv:2405.07987.
+
+\bibitem[Merrill et~al.(2024)Merrill, Petty, and
+  Sabharwal]{merrill2024illusion}
+William Merrill, Jackson Petty, and Ashish Sabharwal.
+\newblock The illusion of state in state-space models.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2024.
+\newblock arXiv:2404.08819.
+
+\bibitem[Mishra et~al.(2026)Mishra, Tan, Stoica, Gonzalez, and
+  Dao]{mishra2026m2rnn}
+Mayank Mishra, Shawn Tan, Ion Stoica, Joseph Gonzalez, and Tri Dao.
+\newblock {M\textsuperscript{2}RNN}: Non-linear {RNN}s with matrix-valued
+  states for scalable language modeling.
+\newblock \emph{arXiv preprint arXiv:2603.14360}, 2026.
+
+\bibitem[Nazari and Rusch(2026)]{nazari2026rank}
+Philipp Nazari and T.~Konstantin Rusch.
+\newblock The key to state reduction in linear attention: A rank-based
+  perspective.
+\newblock \emph{arXiv preprint arXiv:2602.04852}, 2026.
+
+\bibitem[Nichani et~al.(2025)Nichani, Lee, and Bietti]{nichani2025factual}
+Eshaan Nichani, Jason~D. Lee, and Alberto Bietti.
+\newblock Understanding factual recall in transformers via associative
+  memories.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2025.
+\newblock arXiv:2412.06538, Spotlight.
+
+\bibitem[Siems et~al.(2025)Siems, Carstensen, Zela, Hutter, Pontil, and
+  Grazzi]{siems2025deltaproduct}
+Julien Siems, Timur Carstensen, Arber Zela, Frank Hutter, Massimiliano Pontil,
+  and Riccardo Grazzi.
+\newblock {DeltaProduct}: Improving state-tracking in linear {RNN}s via
+  householder products.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2025.
+\newblock arXiv:2502.10297.
+
+\bibitem[Sun et~al.(2026)Sun, Zhang, Zhou, Ma, Qin, Su, Liu, Ma, Xu, Gao, Hao,
+  and He]{sun2026staterank}
+Ao~Sun, Hongtao Zhang, Heng Zhou, Yixuan Ma, Yiran Qin, Tongrui Su, Yan Liu,
+  Zhanyu Ma, Jun Xu, Jiuchong Gao, Jinghua Hao, and Renqing He.
+\newblock State rank dynamics in linear attention {LLMs}.
+\newblock \emph{arXiv preprint arXiv:2602.02195}, 2026.
+
+\end{thebibliography}
