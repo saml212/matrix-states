@@ -70,14 +70,17 @@ passes and is deterministic from any starting state. The submission
 artifact is the pinned `bundle/neurreps-ea-submission.pdf` (8 pages) —
 upload that file; do not recompile with a single-pass command.
 
+### Decisions of record (coordinator-adjudicated; PI delegated via impact-first directive 2026-07-10)
+
+- [x] **Final title: CANDIDATE A** (as typeset): "The Rank the Task
+  Demands: A Causal Rank Law for Matrix Memories Trained on Group
+  Composition". Candidate B retired to `neurreps-ea/brief.md`.
+- [x] **Authors: Sam Larson, Pebble AI (pebbleml.com) — solo;**
+  corresponding: samlarson16@gmail.com.
+- [x] **License (arXiv): CC BY 4.0** recommended.
+
 ### Remaining human-only steps (PI)
 
-- [ ] **PI DECISION — final title:** candidate A is typeset; candidate
-  B in `neurreps-ea/brief.md`. Sign off or swap before upload.
-- [ ] **PI DECISION — author list:** placeholders only in the tree
-  (review build is anonymous by template design; the camera-ready
-  author block is commented in `main.tex`). The PI decides authors;
-  corresponding author: samlarson@pebbleml.com.
 - [ ] Re-verify the 2026 CFP when it drops (the live page still serves
   the 2025 edition; the NeurIPS 2026 workshop list lands 2026-07-11) —
   page limit, template, deadline, dual-submission policy.
@@ -139,14 +142,18 @@ upload that file; do not recompile with a single-pass command.
   **PASS, 0 critical / 0 serious / 0 minor, all 7 pages read**
   (`gauntlet/round-2/06_render_inspection_v4.md`). **ACCEPT-READY.**
 
+### Decisions of record (coordinator-adjudicated; PI delegated via impact-first directive 2026-07-10)
+
+- [x] **Final title: CANDIDATE A** (as typeset): "Dimension, Not
+  Solvability: Trained Matrix States Converge to the Minimal Faithful
+  Representation Dimension". Candidate B retired to
+  `unireps-ea/brief.md`.
+- [x] **Authors: Sam Larson, Pebble AI (pebbleml.com) — solo;**
+  corresponding: samlarson16@gmail.com.
+- [x] **License (arXiv): CC BY 4.0** recommended.
+
 ### Remaining human-only steps (PI)
 
-- [ ] **PI DECISION — final title:** candidate A is typeset; candidate
-  B in `unireps-ea/brief.md`. Sign off or swap before upload.
-- [ ] **PI DECISION — author list:** the submission build prints the
-  template's anonymous block; camera-ready `\author` is a placeholder.
-  The PI decides authors; corresponding author:
-  samlarson@pebbleml.com.
 - [ ] Re-verify the 2026 CFP (the acquired requirements are from the
   2025 edition site; `unireps-<year>.netlify.app` pattern) — page
   limit, template file, deadline; swap in the NeurIPS 2026 style file
@@ -156,6 +163,24 @@ upload that file; do not recompile with a single-pass command.
   limit per the 2025 CFP).
 
 ---
+
+## 3. arXiv release packages (named builds, assembled 2026-07-10)
+
+Upload-ready NAMED arXiv source packages for both EAs live in
+`papers/neurreps-ea/arxiv/` and `papers/unireps-ea/arxiv/`
+(`<slug>-arxiv-v1.zip` + compiled PDF + `metadata.md` each; Desktop
+copies at `~/Desktop/arxiv-neurreps/`, `~/Desktop/arxiv-unireps/`, flow
+in `~/Desktop/ARXIV_UPLOAD_STEPS.md`). Each named tex is the pinned
+anonymized bundle with ONLY de-anonymization applied — neurreps:
+watermark removed + jmlr author block filled; unireps: `[preprint]`
+style mode (author block renders, line numbers drop) + author block
+filled; body text diff-verified identical to the bundles. Both compile
+clean standalone from the zips (3-pass; 8pp / 7pp, matching the review
+builds) and were render-inspected page-by-page: named author block
+correct, no watermark, no "Anonymous", no line numbers, no `??` refs,
+figures intact. The neurreps cut self-citation stays cut in v1 (frozen
+gauntleted text); restore at camera-ready / arXiv v2. The anonymized
+`bundle/` artifacts remain pristine for the workshop submissions.
 
 ## Provenance notes
 
