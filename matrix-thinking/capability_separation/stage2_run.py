@@ -460,6 +460,29 @@ STEP_BUDGET_BY_GROUP = rcs.STEP_BUDGET
 # build-time constant to hardcode.
 M_D0_HARD_DEPTH_MAX = math.ceil(0.6 * st.D_TRAIN_MAX)   # = 5
 
+# S2.28: PINNED structural-exclusion set for the M-D0 profile -- the exact
+# (group, D) points where the FIXED-DEPTH coverage/degauge instrument, run at
+# its pinned constants (base_seed=20260714, n_trials=20000, N_EVAL_WORDS=50,
+# FIT_FLOOR/EVAL_FLOOR, pick_bars' 0.05-floored fraction-of-|G| candidate
+# list), CANNOT calibrate -- the same two-mechanism structural class the
+# design already excludes at D=1 for ALL groups (S2.20 m4), extended to
+# D in {2,3} for the two LARGE groups only: at fixed small depth, achievable
+# coverage is capped near |gens|^D (9-16 elements, INDEPENDENT of |G|), so
+# (mechanism 1) pick_bars' smallest expressible bar 0.05*|G| (6 for S5, 18
+# for A6) exceeds the healthy-sampler p1-1 headroom -> raw AssertionError;
+# (mechanism 2, S5@D=3) even where a bar exists, FIT_FLOOR=3*d_min exceeds
+# the sample's total distinct-element count -> CoverageGuardError in the
+# fit/eval diversity split. Every point below was reproduced by running the
+# EXACT production path (production seeds, full n_trials) to completion, and
+# every OTHER (group, D=2..8) point was verified to PASS the same way --
+# S2.28's recorded 14-point table. NOT a tolerance/threshold edit: no bar is
+# weakened; unevaluable points are DISCLOSED as excluded, mirroring D=1.
+M_D0_STRUCTURAL_EXCLUSIONS = {("S5", 2), ("S5", 3), ("A6", 2), ("A6", 3)}
+
+# The two exception signatures the exclusion is allowed to absorb (narrow on
+# the pick_bars assertion text so an UNRELATED AssertionError still raises).
+_PICK_BARS_ASSERT_TEXT = "no candidate fraction satisfies both conditions"
+
 
 def m_d0_convergence_profile(composer: sc.GroupWordDeltaComposer, name: str, seed: int,
                              device="cpu") -> list[dict]:
@@ -470,7 +493,12 @@ def m_d0_convergence_profile(composer: sc.GroupWordDeltaComposer, name: str, see
     `evaluate_arm1_at_depth`'s own D>ARM1_L_MAX convention), not silently
     dropped or crashed on; D=1's own health is covered separately by the
     2(e) query-dependence gate (which DOES probe D=1, via `build_probe_tokens`,
-    never through this degauging path)."""
+    never through this degauging path). S2.28: the SAME structural
+    unevaluability extends to `M_D0_STRUCTURAL_EXCLUSIONS` (S5/A6 at
+    D in {2,3}) -- absorbed ONLY at those pinned points and ONLY for the two
+    recorded exception signatures; any failure outside the pinned set (or
+    with an unrecognized signature) re-raises, so the exclusion cannot mask
+    a genuine regression elsewhere in the eval pipeline."""
     profile = []
     for D in range(1, st.D_TRAIN_MAX + 1):
         gating = "hard" if D <= M_D0_HARD_DEPTH_MAX else "disclosed"
@@ -480,7 +508,18 @@ def m_d0_convergence_profile(composer: sc.GroupWordDeltaComposer, name: str, see
                                 note="D=1 structurally unevaluable via the degauging pipeline "
                                      "(S2.20 m4) -- covered by the 2(e) query-dependence gate instead"))
             continue
-        s = st.evaluate_composer_at_depth(composer, name, D, seed=seed * 1000 + D, device=device)
+        try:
+            s = st.evaluate_composer_at_depth(composer, name, D, seed=seed * 1000 + D, device=device)
+        except (AssertionError, st.gt.CoverageGuardError) as e:
+            recognized = isinstance(e, st.gt.CoverageGuardError) or _PICK_BARS_ASSERT_TEXT in str(e)
+            if (name, D) not in M_D0_STRUCTURAL_EXCLUSIONS or not recognized:
+                raise
+            profile.append(dict(D=D, gating=gating, excluded=True,
+                                recovered_frac_90=None, mean_cos=None,
+                                note=f"structurally unevaluable via the fixed-depth coverage/degauge "
+                                     f"instrument at its pinned constants ({type(e).__name__}, S2.28 "
+                                     f"pinned exclusion; same class as the S2.20-m4 D=1 exclusion)"))
+            continue
         profile.append(dict(D=D, gating=gating, excluded=False,
                             recovered_frac_90=s["recovered_frac_90"], mean_cos=s["mean_cos"]))
     return profile
@@ -1157,6 +1196,86 @@ def smoke():
                                          len(generating_set(arm1_results[0]["group"])))
         print(f"    5/5 checkpoints saved; load_arm1_checkpoint round-trips the first "
               f"({arm1_results[0]['group']}) OK  |  priced GPU-h={ARM1_RETRAIN_PRICE_GPU_H}")
+
+    print("\n  S2.28 -- M-D0 pinned structural-exclusion set (S5/A6 at D in {2,3}):")
+    # (1) REAL one-point reproduction at FULL production constants (n_trials=20000,
+    #     base_seed pinned, production per-cell seed 0*1000+D=2): the (S5, D=2)
+    #     bar-picker point genuinely fails inside the shared pick_bars -- proving
+    #     the exclusion set describes a REAL structural property, not a stale pin.
+    raised_s228 = False
+    try:
+        st.check_depth_coverage_with_retry("S5", 2, 2)
+    except AssertionError as e:
+        raised_s228 = _PICK_BARS_ASSERT_TEXT in str(e)
+    assert raised_s228, (
+        "S2.28: the pinned (S5, D=2) exclusion point did NOT reproduce its recorded pick_bars "
+        "failure at full production constants -- the exclusion set is stale; re-derive it "
+        "(and re-record) before trusting any M-D0 profile that uses it"
+    )
+    print("    (S5, D=2) reproduces its pick_bars failure at full production constants  OK")
+
+    # (2) catch-logic + allowlist TEETH (monkeypatched evaluate, restored in finally):
+    orig_eval_s228 = st.evaluate_composer_at_depth
+
+    def _fake_eval_pinned(composer, name_, D, seed=None, device="cpu", **kw):
+        if (name_, D) in M_D0_STRUCTURAL_EXCLUSIONS:
+            raise st.gt.CoverageGuardError(f"synthetic structural failure at ({name_},{D})")
+        return dict(recovered_frac_90=0.5, mean_cos=0.5)
+
+    try:
+        st.evaluate_composer_at_depth = _fake_eval_pinned
+        for gname, n_excl in (("S5", 3), ("A6", 3)):   # D=1 (m4) + D=2,3 (S2.28)
+            prof = m_d0_convergence_profile(None, gname, seed=0)
+            assert [row["D"] for row in prof] == list(range(1, st.D_TRAIN_MAX + 1)), \
+                f"{gname}: M-D0 profile D-set broken by the exclusion path"
+            excl = [row["D"] for row in prof if row["excluded"]]
+            assert excl == [1, 2, 3], f"{gname}: excluded D-set {excl} != [1, 2, 3]"
+            assert all(row["recovered_frac_90"] == 0.5 for row in prof if not row["excluded"])
+            print(f"    {gname}: profile completes, D-set 1..8 intact, excluded == [1,2,3] "
+                  f"(m4 + S2.28), D=4..8 evaluated  OK")
+
+        # TEETH 1: the SAME failure at a NON-pinned point must re-raise, not absorb.
+        def _fake_eval_nonpinned(composer, name_, D, seed=None, device="cpu", **kw):
+            if (name_, D) == ("S4", 2):
+                raise st.gt.CoverageGuardError("synthetic NON-pinned failure")
+            return dict(recovered_frac_90=0.5, mean_cos=0.5)
+
+        st.evaluate_composer_at_depth = _fake_eval_nonpinned
+        raised_np = False
+        try:
+            m_d0_convergence_profile(None, "S4", seed=0)
+        except st.gt.CoverageGuardError:
+            raised_np = True
+        assert raised_np, (
+            "S2.28 TEETH FAILURE: a CoverageGuardError at a NON-pinned point (S4, D=2) was "
+            "silently absorbed as an exclusion -- the allowlist is not load-bearing and the "
+            "exclusion path can mask genuine regressions"
+        )
+        print("    TEETH 1: the same failure at NON-pinned (S4, D=2) re-raises (not absorbed)  OK")
+
+        # TEETH 2: an UNRECOGNIZED AssertionError at a pinned point must re-raise
+        # (the absorb path is narrowed to the recorded pick_bars signature).
+        def _fake_eval_odd(composer, name_, D, seed=None, device="cpu", **kw):
+            if (name_, D) == ("S5", 2):
+                raise AssertionError("some unrelated assertion, not the pick_bars signature")
+            if (name_, D) in M_D0_STRUCTURAL_EXCLUSIONS:
+                raise st.gt.CoverageGuardError("synthetic structural failure")
+            return dict(recovered_frac_90=0.5, mean_cos=0.5)
+
+        st.evaluate_composer_at_depth = _fake_eval_odd
+        raised_odd = False
+        try:
+            m_d0_convergence_profile(None, "S5", seed=0)
+        except AssertionError as e:
+            raised_odd = "unrelated assertion" in str(e)
+        assert raised_odd, (
+            "S2.28 TEETH FAILURE: an AssertionError WITHOUT the recorded pick_bars signature was "
+            "absorbed at a pinned point -- the signature narrowing is not load-bearing"
+        )
+        print("    TEETH 2: an unrecognized AssertionError at pinned (S5, D=2) re-raises  OK")
+    finally:
+        st.evaluate_composer_at_depth = orig_eval_s228
+    assert st.evaluate_composer_at_depth is orig_eval_s228, "S2.28 monkeypatch not restored"
 
     print("\n" + "=" * 88 + "\n  stage2_run.py SMOKE PASSED\n" + "=" * 88)
 

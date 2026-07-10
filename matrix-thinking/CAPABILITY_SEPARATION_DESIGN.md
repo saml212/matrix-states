@@ -6723,3 +6723,168 @@ stdout this session (local or box). Tally holds at 84 (§2.26).
 snapshot, adopted into the record); SSD-mirrored. Pointer:
 `stage2_instrument.py::run_query_dependence_gate` (the fix site), md5
 `d832dffd7336bb9b8129bc9b7e89493f`.
+
+### §2.28 SECOND IN-FLIGHT INSTRUMENT DEFECT (2026-07-10): THE FIXED-DEPTH COVERAGE INSTRUMENT CANNOT CALIBRATE S5/A6 AT D∈{2,3} — STRUCTURAL (THE S2.20-m4 CLASS, EXTENDED), NOT A CODE BUG; PINNED-EXCLUSION FIX LANDED WITH THREE TEETH PROOFS; WAVE RELAUNCHED. HARVEST VERDICT MOVES TO §2.29.
+
+**1. THE EVENT.** The §2.27-relaunched wave (tmux `stage2_calib2`)
+completed cells 1-6 cleanly (S3/S4/A5 × both arms, every gate route
+`pass` at all 7 depths, wall_s 65-174 s tracking the pinned budgets),
+then crash-looped on cell 7 (`S5__arm2`):
+`AssertionError: S5: no candidate fraction satisfies both conditions`
+(`coverage_calibration.py:503 pick_bars`), reproduced identically on
+supervisor retries (3 tracebacks, deterministic — the bar MC is seeded
+`default_rng(20260714+D)`). This coordinator STOPPED the loop via
+`STOP_stage2_calib2` at fail 3 of the 20-fail bail (the §2.26 supervisor
+teeth working as designed) and diagnosed before any further GPU spend.
+The failure is in the m_d0 profile's depth-coverage bar construction —
+UPSTREAM of the §2.27 device fix, which is not implicated (the 2(e)
+gate itself passed in all 6 completed cells; the §2.27 audit stands).
+
+**2. DIAGNOSIS (exact, local, deterministic — the bar MC is fully
+seeded, so the box failure reproduces bit-for-bit on the Mac).** At
+fixed depth D, achievable coverage is capped near |gens|^D — 9-16
+elements for the pinned 3-4-generator sets — INDEPENDENT of |G|.
+`pick_bars`' candidate bars are FRACTIONS of |G| floored at 0.05
+(designed for Stage 1's L~Uniform{9,16} regime, where coverage scales
+with |G|): for large groups the smallest expressible bar (0.05·120=6
+for S5, 0.05·360=18 for A6) exceeds the healthy sampler's p1−1
+headroom at small D — the (u_max, h_p1−1] window is EMPTY. Separately,
+at (S5, D=3) a bar exists but `FIT_FLOOR = 3·d_min = 12` exceeds the
+sample's total distinct count (~8-15, p1=10) → `CoverageGuardError` in
+the fit/eval diversity split. These are the SAME two mechanisms the
+design itself already documents for the D=1 exclusion (S2.20 m4,
+`Stage2DepthOneCoverageUnsupported`'s docstring) — the m4 boundary was
+drawn at D=1 for ALL groups when the true boundary is group-dependent.
+**The full defect surface, established by running the EXACT production
+path (production per-cell seeds `0·1000+D`, full n_trials=20000, the
+real `check_depth_coverage_with_retry` → `sample_eval_words` →
+`_split_with_diversity_retry` chain) at every (S5/A6, D=2..8) point:**
+
+| point | verdict | mechanism |
+|---|---|---|
+| S5 D=2 | FAILS | pick_bars empty window (h_p1=6.0, u_max=3, |G|=120: no frac) |
+| S5 D=3 | FAILS | diversity floor (fit_bar=12 > total distinct, hard-fail after retries) |
+| S5 D=4..8 | PASS | bars 12/12/18/18/18, coverage+split clean |
+| A6 D=2 | FAILS | pick_bars empty window (h_p1=11.0, u_max=4, |G|=360) |
+| A6 D=3 | FAILS | pick_bars empty window |
+| A6 D=4..8 | PASS | bar 18, coverage+split clean |
+
+S3/S4/A5 at D=2..8: all evaluable (proven by the 6 completed cells +
+A5's viable window [0.15, 0.10] at D=2 verified directly). D_TEST_GRID
+(9..64) is unaffected — only the M-D0 profile touches D<9. Why no
+earlier gate caught this: the §2.19-§2.24 build smokes exercise the
+coverage-bar path on S3-class cells and reduced n_trials; the §2.25/
+§2.26 box smoke likewise; the v1 wave died at cell 1's 2(e) gate
+(§2.27's defect) before any S5 cell ran — each wave peels one layer.
+
+**3. THE FIX (Stage-2-owned file only, `stage2_run.py`; no shared file
+touched, no bar weakened, no threshold changed).** A pinned exclusion
+set `M_D0_STRUCTURAL_EXCLUSIONS = {(S5,2),(S5,3),(A6,2),(A6,3)}` +
+narrow absorb in `m_d0_convergence_profile`: those exact points, and
+ONLY for the two recorded signatures (`CoverageGuardError`, or
+AssertionError containing pick_bars' own message text), are reported
+`excluded=True` with an S2.28 note — mirroring the accepted D=1/m4
+convention. ANY failure outside the pinned set, or with an unrecognized
+signature, re-raises. Consequences, disclosed: S5/A6's M-D0 HARD band
+(D≤5) shrinks to D∈{4,5} (D=1 was already excluded); D=2/3 health for
+those groups is carried by the 2(e) query-dependence gate (which probes
+D=2 directly, never through this machinery) exactly as D=1 already is.
+`stage2_harvest.py`'s config-match accepts excluded rows at D≥2
+(verified against its m_d0 checks before landing).
+
+**4. TEETH (all run to completion).** New permanent smoke section in
+`stage2_run.smoke()`: (i) REAL reproduction — (S5, D=2) must fail
+inside the genuine pick_bars at FULL production constants every smoke
+run (a stale exclusion set fails the smoke); (ii) TEETH-1 — the same
+CoverageGuardError planted at NON-pinned (S4, D=2) RE-RAISES (the
+allowlist is load-bearing); (iii) TEETH-2 — an AssertionError without
+the pick_bars signature at pinned (S5, D=2) RE-RAISES (signature
+narrowing is load-bearing). Plus: REAL end-to-end
+`m_d0_convergence_profile` on untrained S5 and A6 composers completes
+with excluded == [1,2,3] and D=4..8 evaluated (local run, archived);
+FULL local smoke suite 6/6 post-fix.
+
+**5. TAINT ADJUDICATION FOR THE 6 COMPLETED CELLS (coordinator-required
+before relaunch; answered from code paths + raw per-cell artifacts, not
+plausibility): NOT TAINTED — all six stand; no re-run needed.**
+(i) BY CONSTRUCTION, the SWEEP-READY-feeding object — each cell's 2(e)
+`gate_route`/`gate_report` — cannot touch the defective machinery:
+`stage2_instrument.py` imports ONLY `torch`/`torch.nn` (no coverage
+module), and `run_calibration_gate_for_cell`'s body (stage2_run.py
+404-438) contains zero references to
+`stage2_depth_coverage_bar`/`check_depth_coverage_with_retry`/
+`pick_bars` — the gate probes via `build_probe_tokens` directly (the
+same isolation the m4 D=1 exclusion already relies on). (ii) The
+coverage machinery WAS exercised by the completed cells (m_d0 D=2..8,
+D_test 9..64), but the defect's ONLY manifestation is a RAISED
+EXCEPTION (empty-window assertion / diversity hard-fail) — `pick_bars`
+numerically checks both pinned conditions on any frac it returns, so a
+returned bar always conforms to the spec; there is no silent-wrong-bar
+mode. (iii) The raw artifacts prove no such exception fired for these
+cells: all six JSONs carry COMPLETE m_d0 profiles (D-set 1..8,
+`excluded == [1]` only, every non-excluded value non-null) and the full
+10-point D_test grid — a fired assertion would have crashed the cell
+before its JSON was written (the S5 crash-loop is the demonstration).
+(iv) The fix changes no code on the non-exception path — bar selection
+for every completed (group, D) point is bit-identical pre/post fix.
+Interrogation transcript archived (`taint_adjudication.log`).
+
+**5a. PROCESS.** This fix was diagnosed and implemented by the §2.27
+audit-finisher agent; per the coordinator's mid-flight requirement
+(CLAUDE.md: the implementer does not review their own work), an
+INDEPENDENT fresh-context audit round was dispatched on the diff before
+relaunch — scope: root-cause-vs-masking, pre-fix kill proof run to
+completion, no-semantic-change at evaluable points, exception-swallowing
+/ lru_cache / harvest-compat checks. Verdict recorded below; the
+relaunch was gated on it.
+
+**5b. INDEPENDENT AUDIT VERDICT (fresh-context auditor, on the
+uncommitted diff): CLEARED — with findings STRONGER than the fix's own
+record.** (a) Root cause confirmed and SHARPENED: for (S5,2) the raw
+(u_max, h_p1−1] window is (3,5] — non-empty in integers — so the
+assertion is pick_bars' 0.05-floor fraction QUANTIZATION overshooting
+it (count 6 > 5); decisive extra check: bypassing pick_bars entirely
+with explicit bar overrides (4, 5, 9) STILL fails downstream at
+`_split_with_diversity_retry` for BOTH (S5,2) and (S5,3) — no bar
+value, chosen any way, fixes these points; exclusion is the correct
+class regardless of quantization. The auditor independently regenerated
+the FULL 35-point grid (5 groups × D=2..8, production constants):
+exactly the four pinned points fail, all 31 others pass — the pin set
+is neither over- nor under-inclusive (and corroborates the archived
+repro log). (b) Kill proof run to completion: pre-fix (HEAD) m_d0 for
+S5 raises at D=2; post-fix completes with excluded==[1,2,3], D=4..8
+real values; both smoke teeth genuinely re-raise. (c) Zero diff outside
+stage2_run.py; bar values and a no-exclusion group's (S3) profile
+byte-identical pre/post fix at matched seeds. Extras:
+`CoverageGuardError` has exactly two raise sites tree-wide (both
+legitimate mechanisms); `_PICK_BARS_ASSERT_TEXT` occurs exactly once in
+the codebase (no collision); lru_cache never caches exceptions (no
+poisoning — re-execution cost only); `verify_config_match` accepts an
+excluded=[1,2,3] S5 profile (no complaints). Scope note (pre-existing,
+not this fix's defect): `evaluate_arm1_at_depth` carries the identical
+structural exposure at (S5/A6, D∈{2,3}) but is NOT called anywhere in
+this wave's path — flagged into the §2.29 harvest scope (any Arm-1
+depth comparison must respect the same exclusions). Auditor security
+note: zero injection sightings.
+
+**6. RELAUNCH.** `stage2_run.py` redeployed (md5-verified), STOP
+sentinel cleared, same `stage2_calib2` supervisor pattern relaunched;
+the 6 completed cells SKIP via `is_valid_output(strict_real=True)`;
+cells 7-11 (S5 × 2 arms, A6 × 2 arms, S5-promoted-nh4) run to
+completion. **The harvest verdict — pre-registered at §2.27 item 4 as
+"§2.28" — moves to §2.29** (this defect record consumed the number).
+The 57-cell sweep remains un-authorized pending §2.29.
+
+**7. SECURITY.** Zero fake system-reminder blocks in tool stdout this
+segment. Tally holds at 84. (One legitimate-format harness notice about
+a background-task output file was received and treated as routine; not
+counted — it matched the harness's own file-change notice format, not
+the injection pattern's concealment-plus-fabricated-tooling composite.)
+
+**Archive (same tree):** `experiment-runs/2026-07-10_stage2_calibration/`
+— new: `s5_a6_defect_surface_repro.log` (the 14-point exact-production
+table), `m_d0_real_profiles_postfix.log` (S5/A6 end-to-end profiles),
+`smoke_stage2_full_local_s228.log` (6/6 post-fix); SSD-mirrored.
+Pointers: `stage2_run.py::M_D0_STRUCTURAL_EXCLUSIONS` +
+`m_d0_convergence_profile` (the fix), `stage2_run.smoke()` S2.28
+section (the teeth).
