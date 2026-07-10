@@ -11,16 +11,21 @@ EXONERATED** (§2.26) — the fla cross-check's 140× failure was fla's
 transpose state convention (composer matches the closed form at
 4.5e-08); Arm-1 retrained 5/5; the 11-cell calibration gate RAN
 overnight (harvest in flight → the 57-cell sweep decision). (3) **The
-fix-at-scale wave COMPLETED end-to-end** (~281 GPU-h ledger; §13.22
-harvest = the per_token-vs-global geometry-transfer verdict, in
-flight). **Outage disclosure:** session limits knocked the coordinator
+fix-at-scale wave COMPLETED + HARVESTED — §13.22 VERDICT: PARTIAL at
+both scales** (realized ≈130.2 GPU-h of the 281 committed): the
+per_token arm's destabilizing 14M sign PERSISTS (attenuated) at 98M
+both corpora + 392M-wikitext, nulls at 392M-openr1, reverses NOWHERE;
+the global-vector probe's 14M stabilization does NOT transfer (weak at
+98M, ≈zero/sign-flipped at 392M); val-loss neutrality PASSES everywhere
+— **no tested frozen-bias construction stabilizes the attractor at
+scale**; flagship row R8 landed. **Outage disclosure:** session limits knocked the coordinator
 out twice (net Thu ~8:20pm PT → Fri ~9:15am PT); the box finished its
 queues unattended (tmux isolation working as designed); one agent
 transcript was lost and its work reconstructed from the on-disk
 papers/ state (the paper skill's repo-mode doing its job). **Paper
 program:** Jul-11 EAs in final fixes (submission package = the PI's
-titles/authors call); flagship brief evidence-complete except row R8
-(awaits the wave harvest); paper skill v2 portable + live on
+titles/authors call); flagship brief now evidence-complete INCLUDING
+row R8 (§13.22 verdict landed 2026-07-10); paper skill v2 portable + live on
 platform-skills main 054d7bf; pebbleml.com carries the ICML paper + 5
 findings pages incl. the n=3 recall verdict.
 
@@ -432,6 +437,25 @@ finding dispatched separately: a terminology audit (CLAUDE.md's "FIXED
 (frozen-bias)" and the paper's "stabilization" language overclaim the
 DEPLOYED per_token arm) — corrected in CLAUDE.md's Research Direction
 and this file's Campaign Scorecard, below.
+**CLOSED 2026-07-10 — HARVESTED, VERDICT OF RECORD = §13.22: PARTIAL
+at both scales.** Full chain ran: audit FATALs fixed (bd40ebb, §13.18)
+→ scoped re-audit CLEARED (§13.19) → launched c329e2b (§13.20) → one
+breaker incident adjudicated as GPU-contention artifact + resumed
+(§13.21) → 28/28 cells complete, blind discipline verified with hard
+timestamps (pin precedes first post_pin launch by 2 s at 98M), harvest
+2026-07-10. THE ANSWER: per_token's destabilizing 14M sign persists —
+98M +0.1133/+0.1011 (openr1/wikitext, both instruments CI-exclude-zero),
+392M-wikitext +0.0189/+0.0140, 392M-openr1 null; reverses NOWHERE. The
+global probe (n=1, exploratory): 98M keeps the stabilizing sign at
+~1/6-1/10 the 14M magnitude (−0.058/−0.034), 392M ≈zero/sign-flips
+(−0.012/+0.019) — **no tested frozen-bias construction stabilizes the
+attractor at scale; val-loss neutrality is the half that DOES transfer
+(PASS all 8 arm×scale×corpus gates).** Cross-scale attenuation is
+descriptive only (392M = 20k-step budget, token-confounded, §13.11
+item 8). Realized ≈130.2/300 GPU-h. Archive:
+`experiment-runs/2026-07-10_fixscale_harvest/`. Row R8 landed;
+09_discussion item 6's "under adjudication" passages can now cite the
+verdict (queued for the paper-pass agent, .tex untouched this pass).
 
 ### 5. Capability Separation — Stage 2 (design in progress, 2026-07-08/09)
 
@@ -602,7 +626,9 @@ Stage-2 readout chain, not on further design work.**
 super-linear capacity (x0 0.5455@d64 → 0.6779@d80; NO cliff at d=96 to
 K/d=0.94); exact composition; the write-geometry attractor's mechanism
 is diagnosed and **a geometry-stabilizing construction is identified —
-the global-vector arm, 14M-only, never scaled, val-loss-neutral**
+the global-vector arm, 14M-ONLY (scaled 2026-07-10 and it did NOT
+transfer: −0.058/−0.034 at 98M, ≈zero/sign-flip at 392M, §13.22 —
+the 14M-only qualifier is now permanent), val-loss-neutral**
 (disambiguated 2026-07-09, see below); the mechanism survives a direct
 novelty stress-test (qk-norm confound ruled out, campaign 3).
 **AGAINST / bounds:** the attractor WORSENS with scale (4-pt monotonic
@@ -610,8 +636,12 @@ ladder 0.248→0.344→0.389→0.455, 14M→1.31B); **the DEPLOYED per_token
 arm (λ=0.58) is val-loss-neutral but geometry-UNRESOLVED — it moves the
 attractor in the destabilizing direction at 14M (+0.1955/+0.2273
 span_frac, CI-excludes-zero)**, confirmed by an independent attack
-round (§13.13) as a real finding, not a misread; fix-at-scale (campaign
-4) adjudicates whether either arm's behavior transfers to 98M/392M;
+round (§13.13) as a real finding, not a misread; **fix-at-scale
+(campaign 4) HAS adjudicated (2026-07-10, §13.22 = PARTIAL): the
+per_token destabilizing sign persists at 98M both corpora
+(+0.1133/+0.1011) and 392M-wikitext (+0.0189), nulls at 392M-openr1,
+reverses nowhere — no tested frozen-bias construction stabilizes the
+attractor at scale (val-loss neutrality is the half that transfers)**;
 reasoning-link geometric readout dead everywhere (80/80 nulls,
 triple-null + vocab/geometry dissociation); causal keystone
 multiply-bounded null (the n=3 transient did NOT replicate at n=12);
@@ -677,23 +707,21 @@ correction pass, out of scope for this consolidation.
   2026-07-09 — gating-amplifies NOT CONFIRMED at the pre-registered bar
   (+4.31 = 1.92σ, trend), qk-norm exoneration holds; campaign closed
   absent a funded extension.
-- fix-at-scale: **cap 300 GPU-h, RATIFIED-in-effect (the PI's verbatim
-  2026-07-09 saturation directive; cited in the launch manifest),
-  ≈18.7 GPU-h committed (6.2%)** — gate tier LIVE: timing pilots BOTH
-  PASS (§13.10 item 3 discharged, 08e8a60: 98M 0.2361/0.2379 s/step,
-  392M 0.8215/0.8311, blend overhead ≤1.2%, VRAM 23.5/39.0 GB), 4
-  arm_off calibration cells training on GPUs 1-4 (≈4.4-4.6 GPU-h each,
-  done ~10:30-10:45 box time; these double as manifest arm_off cells).
-  Rev 1 landed (c6436fb) → §13.15 micro-attack CLEARED → build dac7541
-  (§13.16) → **independent build audit (§13.17): NEEDS-FIXES, DO NOT
-  LAUNCH — 2 FATAL with live repros (pre-pin refusal terminal → 7/16
-  post_pin cells silently never train, sweep exits 0; breaker
-  false-aborts healthy cells on startup amortization), + M1-M4
-  (call-site tooth, probe-arm-swap tooth, missing d128 bit-identity
-  gate, no GPU-occupancy guard). Both FATALs <10-line fixes; manifest
-  arithmetic EXACT; fixes agent dispatched → re-audit delta → deploy →
-  launch.** The gate-tier calibration cells (GPUs 1-4) are unaffected
-  and keep training.
+- fix-at-scale: **CLOSED 2026-07-10 — realized ≈130.2/300 GPU-h (43%
+  of cap; 46% of the 281.04 committed 2× ask; ≈93% of the 140.51 1×
+  estimate — the 2× contingency was never drawn).** Breakdown: 24
+  train cells 109.19 + 4 calib 18.31 + pilots 0.72 + the §13.21
+  aborted-then-superseded partial 1.36 + eval-only ≈0.6 MEASURED (12
+  pin passes ≈0.18 + the harvest's 16 comparators + verify-pin ×2 +
+  probe-reports in one 26-min GPU-7 window ≈0.44 — the §13.7 eval rows
+  had priced ≈12.5 GPU-h at 1×, over-estimated ≈20×). Per-cell rates
+  landed within ~4% of §13.7's predictions (98M ≈4.51 vs 4.478; 392M
+  ≈4.66 vs 4.671). One breaker incident (contention artifact, §13.21).
+  Verdict §13.22 = PARTIAL both scales (see ACTIVE CAMPAIGNS item 4 /
+  DAY BRIEFING). Gate-tier history for the record: timing pilots BOTH
+  PASS (08e8a60: 98M 0.2361/0.2379 s/step, 392M 0.8215/0.8311, blend
+  overhead ≤1.2%, VRAM 23.5/39.0 GB); build audit chain §13.16-§13.19
+  (2 FATALs found pre-launch, fixed, re-audited CLEARED).
 - Box: Brev 8×H100 "youthful-indigo-turkey", uptime-metered (bills
   regardless; cannot stop). Saturation directive (GOALS item 5) — all
   8 GPUs in play, GPU 7 no longer reserved.
@@ -709,12 +737,13 @@ correction pass, out of scope for this consolidation.
    restructure-to-B (both ran under gauntlet authority, fully recorded).
 4. Fund or park the §15.28-class admission-frontier design round
    (`KEY_ANCHORING_SCALING_DRAFT.md` §15.27 escalations).
-5. **NEW: fix-at-scale's proposed 300 GPU-h ledger** — approve as a
-   genuinely new, separate ledger (not a draw against frozen-bias's
-   ≈123.5 GPU-h headroom, which is earmarked for the head-to-head) —
-   informed by §13.13's attack verdict: the wrong-direction finding is
-   real and confirmed, the h2h contender pin is sound regardless, and
-   Rev 1 must add the global-vector-arm probe before launch.
+5. **fix-at-scale's 300 GPU-h ledger (retroactive ratification now)** —
+   the wave ran to completion under the PI's verbatim saturation
+   directive (RATIFIED-in-effect) and CLOSED 2026-07-10 at ≈130.2
+   GPU-h realized (43% of cap; §13.22 verdict = PARTIAL both scales;
+   the Rev-1 global-vector probe ran and did NOT transfer) — the
+   remaining decision is retroactive ratification of the ledger, same
+   class as item 3, no further spend proposed.
 6. **NEW: the h2h §1.9 escalation-cost correction** — the "≈168 GPU-h,
    unaffordable" figure for the 392M escalation rung descends from the
    same verified 6× per-step-rate error §13.13 traced; the real cost at
@@ -722,12 +751,13 @@ correction pass, out of scope for this consolidation.
    decision (previously flagged as an open item, `HEAD_TO_HEAD_DEMO_
    DESIGN.md` §1.9 item 1) is effectively RE-OPENED and needs a
    corrected figure at the next design touch.
-7. **NEW: the per_token-vs-global contender-pin question** — if the
-   fix-at-scale wave's global-vector-arm probe (item 5 above) confirms
-   the global arm's stabilization transfers to scale, the head-to-head's
-   own contender pin (currently per_token) may warrant revisiting before
-   its margin freeze; `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.24's closing note
-   already flags this as a live cross-campaign dependency.
+7. **RESOLVED 2026-07-10: the per_token-vs-global contender-pin
+   question** — the fix-at-scale probe answered NO: the global arm's
+   stabilization does NOT transfer (−0.058/−0.034 at 98M, ≈zero/
+   sign-flip at 392M, §13.22). The head-to-head's per_token contender
+   pin stands unchallenged on geometry grounds (it was pinned for
+   engineering reasons and remains val-loss-neutral at scale); the
+   §1.24 cross-campaign dependency is CLOSED, no pin revisit needed.
 
 ## SECURITY NOTE (standing)
 

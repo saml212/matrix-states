@@ -1,0 +1,223 @@
+{
+  "formula_version": "FROZEN_BIAS_LM_DESIGN.md sec 7.1-real.1 (pinned, ROUND-5 fix 1): two-sided mean_delta +/- t(n-1,0.975)*s/sqrt(n), n=3, t(2,0.975)=4.303, for the span_frac bands below; sec 7.2 (UNCHANGED, one-sided): mean_ref + 2*s_ref for the val-loss tolerance -- a DELIBERATELY DIFFERENT statistical object, not unified with the pinned formula (sec 7.2's own ROUND-5 disclosure).",
+  "arm1_val_loss_tolerance": {
+    "openr1-mix-ext": {
+      "mean": 1.2640401770671208,
+      "s": 0.04632705560094798,
+      "n": 3,
+      "k": 2.0,
+      "tolerance_abs": 0.09265411120189596,
+      "pass_ceiling": 1.3566942882690167,
+      "per_seed": [
+        1.2974662631750107,
+        1.2111578285694122,
+        1.2834964394569397
+      ]
+    },
+    "wikitext-mix-ext": {
+      "mean": 3.188711722691854,
+      "s": 0.006656794691634729,
+      "n": 3,
+      "k": 2.0,
+      "tolerance_abs": 0.013313589383269459,
+      "pass_ceiling": 3.2020253120751234,
+      "per_seed": [
+        3.1953864991664886,
+        3.1886756122112274,
+        3.1820730566978455
+      ]
+    }
+  },
+  "arm1prime_span_frac_bands": {
+    "openr1-mix-ext": {
+      "mean": 0.2516574121670225,
+      "s": 0.02374442719189971,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.05898918770757909,
+      "ci_lower": 0.19266822445944337,
+      "ci_upper": 0.3106465998746016,
+      "per_seed": [
+        0.22752599577839805,
+        0.27499493831499894,
+        0.2524513024076704
+      ]
+    },
+    "wikitext-mix-ext": {
+      "mean": 0.3365018341311921,
+      "s": 0.018945858113668237,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.04706791920125156,
+      "ci_lower": 0.28943391492994053,
+      "ci_upper": 0.3835697533324437,
+      "per_seed": [
+        0.3564000106159133,
+        0.3186792162419441,
+        0.33442627553571885
+      ]
+    }
+  },
+  "arm1double_span_frac_bands": {
+    "openr1-mix-ext": {
+      "mean": 0.4206858176472301,
+      "s": 0.008115042523937951,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.020160510204384637,
+      "ci_lower": 0.4005253074428455,
+      "ci_upper": 0.44084632785161476,
+      "per_seed": [
+        0.41769819296843247,
+        0.4298711505937196,
+        0.4144881093795382
+      ]
+    },
+    "wikitext-mix-ext": {
+      "mean": 0.4689080877927901,
+      "s": 0.018488828353988518,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.04593250270693858,
+      "ci_lower": 0.42297558508585154,
+      "ci_upper": 0.5148405904997286,
+      "per_seed": [
+        0.486248399713568,
+        0.4494526659214073,
+        0.47102319774339513
+      ]
+    }
+  },
+  "arm1_kraw_span_frac_bands": {
+    "openr1-mix-ext": {
+      "mean": 0.2978837775993199,
+      "s": 0.015478483839083068,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.03845378880834352,
+      "ci_lower": 0.25942998879097634,
+      "ci_upper": 0.33633756640766344,
+      "per_seed": [
+        0.28508611663512895,
+        0.31508762392318873,
+        0.29347759223964204
+      ]
+    },
+    "wikitext-mix-ext": {
+      "mean": 0.38744199703834536,
+      "s": 0.019615518803461237,
+      "n": 3,
+      "t_mult": 4.303,
+      "pinned_ci_half_width": 0.048731582839516216,
+      "ci_lower": 0.33871041419882914,
+      "ci_upper": 0.4361735798778616,
+      "per_seed": [
+        0.40809672996976465,
+        0.36906447010356747,
+        0.38516479104170404
+      ]
+    }
+  },
+  "result_paths": {
+    "arm1": {
+      "openr1-mix-ext": [
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/calib/fixscale_calib_off_98m_openr1-mix-ext_s0.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s1.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/calib/fixscale_calib_off_98m_wikitext-mix-ext_s0.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_wikitext-mix-ext_s1.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_wikitext-mix-ext_s2.json"
+      ]
+    },
+    "arm1prime": {
+      "openr1-mix-ext": [
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/calib/fixscale_calib_off_98m_openr1-mix-ext_s0.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s1.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/calib/fixscale_calib_off_98m_wikitext-mix-ext_s0.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_wikitext-mix-ext_s1.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_wikitext-mix-ext_s2.json"
+      ]
+    },
+    "arm1double": {
+      "openr1-mix-ext": [
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/calib/fixscale_calib_off_98m_openr1-mix-ext_s0.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s1.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/calib/fixscale_calib_off_98m_wikitext-mix-ext_s0.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_wikitext-mix-ext_s1.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_wikitext-mix-ext_s2.json"
+      ]
+    },
+    "arm1_kraw": {
+      "openr1-mix-ext": [
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/calib/fixscale_calib_off_98m_openr1-mix-ext_s0.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s1.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_openr1-mix-ext_s2.json"
+      ],
+      "wikitext-mix-ext": [
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/calib/fixscale_calib_off_98m_wikitext-mix-ext_s0.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_wikitext-mix-ext_s1.json",
+        "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_off_98m_wikitext-mix-ext_s2.json"
+      ]
+    }
+  },
+  "result_sha256": {
+    "arm1": {
+      "openr1-mix-ext": [
+        "1a5c26a08009e460baa4f5d3869378aacc44960b73e8de626d8c477dc4cfa275",
+        "a413b32aa099c7ea7a2ecd2455f7bc95ef5f5a6bf10c6d7e0391fd81137426b0",
+        "ed073eb42e060cb8aa6e15681baa91de674d24054c946045eed3c736362ccd61"
+      ],
+      "wikitext-mix-ext": [
+        "67cd5c9558ee2e192affd743945abf6c0721450ee5709ca613cf83efeed672bc",
+        "eaf01437efa17977137e5bee733eb7c104331c4b06f8efe0b7eec6e5321769d9",
+        "3533fa1e4dbc1b0842213e2b0f9405b0696e117fe7d4665fae4f3aa464518070"
+      ]
+    },
+    "arm1prime": {
+      "openr1-mix-ext": [
+        "1a5c26a08009e460baa4f5d3869378aacc44960b73e8de626d8c477dc4cfa275",
+        "a413b32aa099c7ea7a2ecd2455f7bc95ef5f5a6bf10c6d7e0391fd81137426b0",
+        "ed073eb42e060cb8aa6e15681baa91de674d24054c946045eed3c736362ccd61"
+      ],
+      "wikitext-mix-ext": [
+        "67cd5c9558ee2e192affd743945abf6c0721450ee5709ca613cf83efeed672bc",
+        "eaf01437efa17977137e5bee733eb7c104331c4b06f8efe0b7eec6e5321769d9",
+        "3533fa1e4dbc1b0842213e2b0f9405b0696e117fe7d4665fae4f3aa464518070"
+      ]
+    },
+    "arm1double": {
+      "openr1-mix-ext": [
+        "1a5c26a08009e460baa4f5d3869378aacc44960b73e8de626d8c477dc4cfa275",
+        "a413b32aa099c7ea7a2ecd2455f7bc95ef5f5a6bf10c6d7e0391fd81137426b0",
+        "ed073eb42e060cb8aa6e15681baa91de674d24054c946045eed3c736362ccd61"
+      ],
+      "wikitext-mix-ext": [
+        "67cd5c9558ee2e192affd743945abf6c0721450ee5709ca613cf83efeed672bc",
+        "eaf01437efa17977137e5bee733eb7c104331c4b06f8efe0b7eec6e5321769d9",
+        "3533fa1e4dbc1b0842213e2b0f9405b0696e117fe7d4665fae4f3aa464518070"
+      ]
+    },
+    "arm1_kraw": {
+      "openr1-mix-ext": [
+        "1a5c26a08009e460baa4f5d3869378aacc44960b73e8de626d8c477dc4cfa275",
+        "a413b32aa099c7ea7a2ecd2455f7bc95ef5f5a6bf10c6d7e0391fd81137426b0",
+        "ed073eb42e060cb8aa6e15681baa91de674d24054c946045eed3c736362ccd61"
+      ],
+      "wikitext-mix-ext": [
+        "67cd5c9558ee2e192affd743945abf6c0721450ee5709ca613cf83efeed672bc",
+        "eaf01437efa17977137e5bee733eb7c104331c4b06f8efe0b7eec6e5321769d9",
+        "3533fa1e4dbc1b0842213e2b0f9405b0696e117fe7d4665fae4f3aa464518070"
+      ]
+    }
+  },
+  "pinned_at": 1783627215.8979316,
+  "pinned_at_iso": "2026-07-09T20:00:15Z"
+}

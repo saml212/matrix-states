@@ -5498,3 +5498,144 @@ similar block did NOT reappear on later tool calls in this session
 this agent itself started) were correctly distinguished from the fake
 pattern and treated as legitimate telemetry, not complied-with
 instructions. Tally 78→79 (project-wide running count).
+
+### §13.22 HARVEST + VERDICT (2026-07-10): **PARTIAL at both scales — the destabilizing 14M sign PERSISTS (attenuated) at 98M on both corpora and at 392M on wikitext; 392M-openr1 is null; NO cell reverses to the mechanism-predicted direction. The global-vector probe's 14M stabilization does NOT survive transfer (weak at 98M, ≈zero/sign-flipped at 392M). Val-loss neutrality PASSES everywhere.**
+
+**Inventory: 28/28 cells complete, zero gaps.** All 6 post_pin tmux slots +
+the §13.21 resume session report `done rc=0`; every result JSON validates
+`complete: true`, config-matched to the manifest (arm/corpus/seed/λ=0.58/
+fb_seed=20260705/d_model/d_state/n_layers/n_params, 28/28, zero problems),
+`timed_out=false`, `n_skipped_steps=0` throughout. The §13.21
+ABORTED→resumed cell (`arm_off_98m_openr1_s1`) finished its remainder run
+(steps 53547 = 67547−14000, `complete: true`) — its result is folded in
+with the disclosed LR-schedule deviation (below). Deploy closure re-verified
+at harvest: md5 exact ×4 (fixscale_wave.py, lm_pretrain_rd.py,
+frozen_bias_retrofit_eval_rd.py, key_anchoring.py, box == repo).
+
+**Blind discipline held (the promotion out of rung-1's descriptive tier,
+§13.10 gate 5, verified with hard timestamps at harvest):** 98M pin
+`pinned_at` 2026-07-09T20:00:15Z, first 98M post_pin launch 20:00:17 UTC
+(+2 s); 392M pin 19:43Z, first 392M post_pin rate-tick 19:45:55. Pins were
+written from arm_off's own fresh data BEFORE any per_token/probe cell
+started training — the launcher's `check_blind` gate did this
+mechanically, not procedurally. Tamper-evidence: `verify-pin` re-ran the
+full comparator chain over all 6 arm_off checkpoints per scale at harvest
+and re-derived every band to value-identity — **VALID at both scales**
+(`measure_harvest.log`, archived).
+
+**Measurement (the §13.7-budgeted eval-only passes, executed at harvest):**
+16 shared-forward-pass comparator runs (`fixscale_wave.py comparator`, one
+`capture_raw_keys` pass per cell, §13.15-finding-1 discipline) over the 12
+arm_per_token + 4 arm_global_probe FINAL checkpoints, each on its own
+corpus → `results/fixscale/measure/`. For a per_token-trained checkpoint
+the comparator's `per_token` mode reproduces the model's own realized
+post-blend keys exactly (hook = k_conv1d output = pre-blend by
+construction; blend re-applied arithmetically with the identical
+table/seed — the same convention rung-1's Arm-2 measurement used); `kraw`
+= its pre-blend co-primary; `global` mode = the probe's own post-blend.
+
+**THE TABLE (per §13.6: Δ = arm mean − arm_off-retrofit reference mean
+from this scale's OWN pin; CI = Δ ± pinned t(2,0.975)·s_ref/√3 half-width;
+POSITIVE = destabilizing = the 14M sign; NEGATIVE = mechanism-predicted):**
+
+| Scale | Corpus | PRIMARY Δspan_frac (per_token − off′) [95% CI] | CO-PRIMARY Δ (pre-blend k_raw) [95% CI] | Reading |
+|---|---|---|---|---|
+| 98M | openr1 | **+0.1133 [+0.0543, +0.1723]** | **+0.0796 [+0.0411, +0.1180]** | destabilizing, CI-excludes-zero, BOTH instruments |
+| 98M | wikitext | **+0.1011 [+0.0541, +0.1482]** | **+0.0606 [+0.0119, +0.1094]** | destabilizing, CI-excludes-zero, BOTH instruments |
+| 392M | openr1 | +0.0065 [−0.0356, +0.0486] | +0.0037 [−0.0406, +0.0480] | null (CI includes zero, both) |
+| 392M | wikitext | **+0.0189 [+0.0112, +0.0266]** | **+0.0140 [+0.0053, +0.0228]** | destabilizing, CI-excludes-zero, BOTH instruments |
+
+Per-seed post-blend span_frac (per_token): 98M-openr1 [0.3821, 0.3372,
+0.3757] vs off′ mean 0.2517; 98M-wikitext [0.4237, 0.4305, 0.4588] vs
+0.3365; 392M-openr1 [0.3807, 0.3297, 0.3567] vs 0.3492; 392M-wikitext
+[0.4121, 0.4376, 0.3958] vs 0.3963. (Full float precision: the harvest
+archive's `fixscale_harvest_verdict.json`, recomputed directly from the
+per-seed raw comparator JSONs + pins — §13.10 gate 7's verify-vs-raws,
+performed twice independently: inline during harvest and by the committed
+`analyze_fixscale_harvest.py`, identical numbers.)
+
+**VERDICT (§13.6, mechanical): PARTIAL at both scales; overall PARTIAL.**
+No WIN anywhere (zero cells move in the mechanism-predicted direction on
+either instrument); not NULL (3 of 4 scale×corpus cells CI-exclude-zero
+positive on BOTH instruments). Per §13.6's own pre-registration this reads:
+**"the sim-training-divergence pattern PERSISTS at scale"** — and, as a
+descriptive observation across the ladder, ATTENUATES monotonically in
+magnitude (14M +0.1955/+0.2273 → 98M +0.1133/+0.1011 → 392M
++0.0065ns/+0.0189). **Cross-scale magnitude caveat, mandatory (§13.11 item
+8):** 392M ran the reduced 20,000-step budget (≈328M tokens/cell) vs 98M's
+Track-C-matched 67,547 (≈1.108B tokens/cell) — the 98M→392M attenuation is
+confounded with token budget by design and is NOT a registered claim; the
+within-scale readings above are the registered claims. The co-primary
+agreeing with the primary in every non-null cell again rules out the §1.3
+static-blend-artifact pattern: the effect is training-mediated at scale,
+exactly as it was at 14M.
+
+**Val-loss neutrality (§13.4 gate): PASS in all 4 scale×corpus cells, by
+the rung-1 arm-mean convention** — per_token means 1.2993/3.1961 (98M) and
+1.3449/3.1432 (392M) vs ceilings 1.3567/3.2020 and 1.3481/3.1446; probe
+1.3046/3.1999/1.3400/3.1421 all under. One disclosed single-seed
+excursion: 98M-wikitext per_token s0 = 3.2038 > ceiling 3.2020 (the arm
+mean passes; the ceiling is tight because arm_off's wikitext spread is
+tiny, s=0.0067). Margins at 392M are thin in absolute terms (0.0031/
+0.0014 nats) for the same reason — spreads of 0.003-0.004 across seeds.
+
+**`arm_global_probe` — the exploratory reading (n=1, no CI, NEVER a
+confirmatory bar, §13.6 Rev 1 note):** the construction that stabilized at
+14M (−0.3319/−0.2308) reads: 98M −0.0580 (openr1) / −0.0338 (wikitext) —
+sign preserved, magnitude ≈1/6-1/10 of 14M; 392M −0.0124 (openr1) /
+**+0.0190 (wikitext — sign FLIPPED, destabilizing)**. Read plainly: **the
+global-vector arm's stabilization does not survive transfer to scale** —
+it decays toward zero and loses even its sign on one corpus at 392M.
+Curious descriptive datum for any future mechanism pass: the probe cells'
+PRE-blend k_raw geometry is consistently WORSE than arm_off's own kraw
+(98M +0.0613/+0.0554; 392M +0.0031/+0.0274) — training THROUGH a constant
+bias degrades raw-key geometry even where the post-blend population reads
+better. Probe val-loss stays neutral everywhere, matching 14M.
+
+**What this means (the paper-facing sentence, for 09_discussion item 6 and
+the flagship's R8):** as of this wave, **NO tested frozen-bias construction
+stabilizes the write-geometry attractor at scale** — the deployed per_token
+arm destabilizes (98M, 392M-wikitext) or nulls (392M-openr1), and the 14M
+global-vector success attenuates to ≈zero/sign-flip by 392M. Both arms
+remain val-loss-neutral at every tested scale — the "free-of-cost" half of
+the 14M result DOES transfer; the geometry half does not. The
+"under adjudication at scale" passages can now cite this verdict; the
+"a geometry-stabilizing construction is identified (14M-only, never
+scaled)" formulation must keep its 14M-only qualifier permanently — the
+scaled test came back negative. Attack-surface note for the paper pass:
+the 392M probe/primary cells are 20k-step; a full-budget 392M test could
+in principle read differently (disclosed, unbudgeted, no wave proposed).
+
+**Resumed-cell disclosure folded into the bands (§13.21's flagged
+deviation):** the resumed `arm_off_98m_openr1_s1` (fresh Adam + restarted
+cosine over the 53,547-step remainder) landed val 1.2112 vs siblings
+1.2975/1.2835 — the LOW outlier; it inflates arm_off-98M-openr1's spread
+(s=0.0463 vs wikitext's 0.0067), which WIDENS that cell's pinned CI
+half-width (0.0590) and val ceiling. Direction of bias: conservative for
+the primary (a wider CI makes CI-excludes-zero HARDER; the 98M-openr1
+primary clears it anyway) and lenient for that one val ceiling (moot —
+the arm passes the other three, tighter, gates too).
+
+**Ledger (realized vs committed):** training side 129.58 GPU-h (24 train
+109.19 + 4 calib 18.31 + pilots 0.72 + the aborted-then-superseded partial
+1.36) + eval-only ≈0.6 GPU-h measured, not estimated (12 pin-time passes
+≈0.18; the harvest's 16 comparators + BOTH verify-pin re-runs + 4
+probe-reports = one 26-min single-GPU window, 16:21→16:47:08Z ≈0.44 —
+§13.11 item 7's open eval-cost-at-scale worry resolves as OVER-estimated:
+the §13.7 eval rows priced ≈12.5 GPU-h at 1× for what realized at ≈0.6)
+≈ **130.2 GPU-h realized ≈ 43% of the 300 cap, ≈46% of the 281.04
+committed 2× ask, ≈93% of the 140.51 1× estimate** — the 2× contingency
+was never drawn; realized
+per-cell rates landed within ~4% of §13.7's predictions (98M ≈4.51 vs
+4.478 predicted; 392M-20k ≈4.66 vs 4.671). One breaker incident total
+(§13.21, contention artifact, resumed, ≈1.4 GPU-h burned) — the §13.19 N3
+exposure bound held with room to spare.
+
+**Archive:** `experiment-runs/2026-07-10_fixscale_harvest/` (train/ calib/
+pins/ pilots/ measure/ + `fixscale_harvest_verdict.json` +
+`analyze_fixscale_harvest.py` + md5 manifest, local==box verified; SSD
+mirror at `/Volumes/1TB_SSD/learned-representations/experiment-runs/`).
+Checkpoints stay on the box/SSD only (>25MB rule). Downstream updates this
+harvest: STATE campaign 4 + LEDGERS + flagship brief row R8 +
+EXPERIMENT_LOG + a queued NARRATIVE.md note for the iclr-2027 paper-pass
+agent (the .tex itself deliberately untouched, per the harvest charter).

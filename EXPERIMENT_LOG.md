@@ -7727,3 +7727,39 @@ task2 diagnosis round (now seeded with the s2 fact) + transformer_K48 stress cel
 `experiment-runs/2026-07-10_h2h_sweep_harvest/` (+SSD mirror).
 
 - 2026-07-10 (coordinator): **Session-limit outage record + recovery.** Two limit windows (Thu ~8:20pm PT and overnight, net coordinator downtime to Fri ~9:15am PT). Box impact: NONE — the fix-at-scale wave ran to completion (all post_pin slots rc=0), the Stage-2 11-cell calibration gate completed, and the M* pre-flight survived in its agent transcript. One agent transcript (the Jul-11 EA gauntlet) was LOST; its full working state persisted in papers/neurreps-ea/ + papers/unireps-ea/ (briefs, sections, per-round gauntlet artifacts) and a fresh agent reconstructed from disk — the paper skill's repo-mode persistence pattern validated under real failure. Recovery dispatches @16:18-16:20Z: M* resumed; Stage-2 gate harvester (→ §2.27 + sweep decision); wave harvester (→ §13.22); fresh EA finisher (deadline Jul 11). Docs consolidated for compaction: CLAUDE.md Research Direction refreshed (h2h WIN-at-n=3, trilogy 5/5, wave complete, NCR cleared, paper program), STATE DAY BRIEFING 07-10 added, memory anchor rewritten.
+
+- 2026-07-10: **FIX-AT-SCALE WAVE HARVEST (`FROZEN_BIAS_LM_DESIGN.md` §13.22 = the verdict of
+record): PARTIAL at both scales — the deployed per_token frozen-bias arm's destabilizing 14M
+sign PERSISTS at scale (attenuated); the global-vector arm's 14M stabilization does NOT
+transfer; val-loss neutrality passes everywhere. No tested frozen-bias construction stabilizes
+the write-geometry attractor at 98M/392M.** Inventory 28/28 cells complete (24 fresh train + 4
+gate-tier calib reused per design), zero gaps; the §13.21 ABORTED→resumed 98m cell finished its
+53,547-step remainder cleanly (val 1.2112, the low outlier among siblings 1.2975/1.2835 —
+LR-restart deviation disclosed, widens that cell's CI conservatively). Config-match 28/28
+exact (arm/λ/fb_seed/arch/steps); deploy md5 ×4 exact; blind discipline verified with hard
+timestamps (98M pin 20:00:15Z → first post_pin launch 20:00:17; 392M 19:43 → 19:45:55);
+verify-pin tamper re-check VALID at both scales. Measurement = 16 shared-forward-pass comparator
+runs on the per_token/probe final checkpoints (the §13.7-budgeted eval-only passes).
+**PRIMARY (per_token − arm_off′, post-blend span_frac, pinned t(2,.975)·s_ref/√3 CI):** 98M
+openr1 **+0.1133 [+0.0543,+0.1723]**, 98M wikitext **+0.1011 [+0.0541,+0.1482]**, 392M openr1
++0.0065 [−0.0356,+0.0486] (null), 392M wikitext **+0.0189 [+0.0112,+0.0266]**. **CO-PRIMARY
+(pre-blend k_raw):** +0.0796/+0.0606/+0.0037(null)/+0.0140 — agrees with the primary in every
+non-null cell (training-mediated, not blend-arithmetic, same as 14M). Ladder of the effect:
+14M +0.1955/+0.2273 → 98M +0.1133/+0.1011 → 392M +0.0065ns/+0.0189 (cross-scale attenuation
+DESCRIPTIVE only — 392M ran the 20k-step reduced budget, token-confounded, §13.11 item 8).
+**Probe (n=1, exploratory, non-gating):** global-blend delta vs arm_off″: 98M −0.0580/−0.0338
+(sign preserved, ~1/6-1/10 of 14M's −0.3319/−0.2308), 392M −0.0124/**+0.0190 (sign flip)**.
+Curious datum: probe cells' PRE-blend kraw reads consistently WORSE than arm_off's (98M
++0.061/+0.055). **Val-loss gate: PASS 8/8** (arm-mean convention; one disclosed single-seed
+excursion 98M-wikitext s0 3.2038 vs ceiling 3.2020). **Ledger: realized ≈130.2 GPU-h** (train
+109.19 + calib 18.31 + pilots 0.72 + aborted partial 1.36 + eval ≈0.6 measured — the harvest's
+16 comparators + verify-pin ×2 + probe-reports all ran in one 26-min GPU-7 window; §13.7's eval
+rows were ≈20× over-priced) = 43% of the 300 cap, 46% of the 281.04 committed 2× ask —
+contingency never drawn; per-cell rates within ~4% of §13.7's predictions. **Paper consequences:** flagship row R8 LANDED ("no tested fix
+transfers; the free-of-cost half does"); iclr-2027 09_discussion item 6 / 07_the_fix folds
+QUEUED in `matrix-thinking/submissions/iclr-2027/NARRATIVE.md` (.tex untouched, paper-pass
+agent's job); the "geometry-stabilizing construction identified" claim keeps its 14M-only
+qualifier PERMANENTLY. Archive: `experiment-runs/2026-07-10_fixscale_harvest/` (+SSD mirror;
+md5 manifest local==box; verdict JSON md5 f2f0aae84908c0db0a42b13c76a85158; analysis =
+`analyze_fixscale_harvest.py`, recomputed-from-raws twice). Security: zero fake
+system-reminder blocks in tool stdout this harvest (tally holds).

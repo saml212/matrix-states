@@ -1,0 +1,31 @@
+{
+  "tier": "exploratory-probe \u2014 NOT a confirmatory bar, n=1",
+  "wave": "fix-at-scale sec 13, arm_global_probe (sec 13.3 Rev 1 addition)",
+  "non_gating": "does NOT gate the WIN/PARTIAL/NULL bar (sec 13.6 Rev 1 note) -- descriptive/exploratory only, n=1, no CI.",
+  "scale": "98m",
+  "corpus": "openr1-mix-ext",
+  "seed": 0,
+  "lambda": 0.58,
+  "probe_cell_id": "fixscale_train_arm_global_probe_98m_openr1-mix-ext_s0",
+  "probe_state": "complete",
+  "probe_result_path": "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_train_arm_global_probe_98m_openr1-mix-ext_s0.json",
+  "probe_val_loss": 1.3046241849660873,
+  "probe_peak_memory_allocated_bytes": 25038387712,
+  "probe_peak_memory_reserved_bytes": 27617394688,
+  "probe_run_name": "lmC_openr1-mix-ext_dm768_ds64_L12_s0",
+  "comparator_arm_off_prime_global_blend_span_frac_band": {
+    "mean": 0.4206858176472301,
+    "s": 0.008115042523937951,
+    "n": 3,
+    "t_mult": 4.303,
+    "pinned_ci_half_width": 0.020160510204384637,
+    "ci_lower": 0.4005253074428455,
+    "ci_upper": 0.44084632785161476,
+    "per_seed": [
+      0.41769819296843247,
+      0.4298711505937196,
+      0.4144881093795382
+    ]
+  },
+  "comparator_source": "this scale's BANDS_PINNED-FrozenBias pin, arm1double (global-blend eval-only retrofit of arm_off's own checkpoints)"
+}

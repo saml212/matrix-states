@@ -1,0 +1,334 @@
+{
+  "wave": "fix-at-scale (FROZEN_BIAS_LM_DESIGN.md sec 13)",
+  "harvest_date": "2026-07-10",
+  "ci_formula": "mean_delta +/- t(2,0.975)*s_ref/sqrt(3), s_ref = reference-arm (arm_off eval-retrofit) cross-seed std from this scale's own pin",
+  "scales": {
+    "98m": {
+      "corpora": {
+        "openr1-mix-ext": {
+          "per_token_post_blend_span_frac_per_seed": [
+            0.3821131360121528,
+            0.3371690835579268,
+            0.37565789026819124
+          ],
+          "per_token_post_blend_mean": 0.36498003661275696,
+          "per_token_post_blend_own_std": 0.024300295919334153,
+          "arm_off_prime_band": {
+            "mean": 0.2516574121670225,
+            "s": 0.02374442719189971,
+            "pinned_ci_half_width": 0.05898918770757909,
+            "per_seed": [
+              0.22752599577839805,
+              0.27499493831499894,
+              0.2524513024076704
+            ]
+          },
+          "PRIMARY_delta": 0.11332262444573449,
+          "PRIMARY_ci": [
+            0.0543334367381554,
+            0.1723118121533136
+          ],
+          "PRIMARY_reading": "CI-excludes-zero POSITIVE (destabilizing = the 14M sign)",
+          "per_token_kraw_span_frac_per_seed": [
+            0.3953174770043071,
+            0.3491834724469223,
+            0.3878154670493233
+          ],
+          "per_token_kraw_mean": 0.3774388055001842,
+          "arm_off_kraw_band": {
+            "mean": 0.2978837775993199,
+            "s": 0.015478483839083068,
+            "pinned_ci_half_width": 0.03845378880834352,
+            "per_seed": [
+              0.28508611663512895,
+              0.31508762392318873,
+              0.29347759223964204
+            ]
+          },
+          "COPRIMARY_delta": 0.07955502790086433,
+          "COPRIMARY_ci": [
+            0.04110123909252081,
+            0.11800881670920785
+          ],
+          "COPRIMARY_reading": "CI-excludes-zero POSITIVE (destabilizing = the 14M sign)",
+          "val_loss_gate": {
+            "per_token_per_seed": [
+              1.2985173463821411,
+              1.3031685203313828,
+              1.2962204664945602
+            ],
+            "per_token_mean": 1.2993021110693614,
+            "arm_off_mean": 1.2640401770671208,
+            "pass_ceiling": 1.3566942882690167,
+            "PASS_by_arm_mean": true,
+            "per_seed_over_ceiling": [],
+            "probe_val_loss": 1.3046241849660873,
+            "probe_PASS": true
+          },
+          "probe_exploratory_n1_no_CI": {
+            "tier": "exploratory-probe -- NOT a confirmatory bar, n=1",
+            "probe_post_blend_global_span_frac": 0.3626984512784559,
+            "arm_off_double_band": {
+              "mean": 0.4206858176472301,
+              "s": 0.008115042523937951,
+              "pinned_ci_half_width": 0.020160510204384637,
+              "per_seed": [
+                0.41769819296843247,
+                0.4298711505937196,
+                0.4144881093795382
+              ]
+            },
+            "probe_delta_vs_arm_off_double_mean": -0.05798736636877422,
+            "probe_kraw_span_frac": 0.3592272852622304,
+            "probe_kraw_delta_vs_arm_off_kraw_mean": 0.061343507662910524
+          }
+        },
+        "wikitext-mix-ext": {
+          "per_token_post_blend_span_frac_per_seed": [
+            0.4237170163781474,
+            0.4304722450830254,
+            0.4587515040527927
+          ],
+          "per_token_post_blend_mean": 0.43764692183798853,
+          "per_token_post_blend_own_std": 0.01858657638081511,
+          "arm_off_prime_band": {
+            "mean": 0.3365018341311921,
+            "s": 0.018945858113668237,
+            "pinned_ci_half_width": 0.04706791920125156,
+            "per_seed": [
+              0.3564000106159133,
+              0.3186792162419441,
+              0.33442627553571885
+            ]
+          },
+          "PRIMARY_delta": 0.10114508770679642,
+          "PRIMARY_ci": [
+            0.054077168505544865,
+            0.14821300690804798
+          ],
+          "PRIMARY_reading": "CI-excludes-zero POSITIVE (destabilizing = the 14M sign)",
+          "per_token_kraw_span_frac_per_seed": [
+            0.43376201354563265,
+            0.4419491369060225,
+            0.4685328212282684
+          ],
+          "per_token_kraw_mean": 0.44808132389330785,
+          "arm_off_kraw_band": {
+            "mean": 0.38744199703834536,
+            "s": 0.019615518803461237,
+            "pinned_ci_half_width": 0.048731582839516216,
+            "per_seed": [
+              0.40809672996976465,
+              0.36906447010356747,
+              0.38516479104170404
+            ]
+          },
+          "COPRIMARY_delta": 0.06063932685496248,
+          "COPRIMARY_ci": [
+            0.011907744015446267,
+            0.1093709096944787
+          ],
+          "COPRIMARY_reading": "CI-excludes-zero POSITIVE (destabilizing = the 14M sign)",
+          "val_loss_gate": {
+            "per_token_per_seed": [
+              3.2037888169288635,
+              3.192900389432907,
+              3.1915389001369476
+            ],
+            "per_token_mean": 3.1960760354995728,
+            "arm_off_mean": 3.188711722691854,
+            "pass_ceiling": 3.2020253120751234,
+            "PASS_by_arm_mean": true,
+            "per_seed_over_ceiling": [
+              3.2037888169288635
+            ],
+            "probe_val_loss": 3.1998678743839264,
+            "probe_PASS": true
+          },
+          "probe_exploratory_n1_no_CI": {
+            "tier": "exploratory-probe -- NOT a confirmatory bar, n=1",
+            "probe_post_blend_global_span_frac": 0.43513696489175974,
+            "arm_off_double_band": {
+              "mean": 0.4689080877927901,
+              "s": 0.018488828353988518,
+              "pinned_ci_half_width": 0.04593250270693858,
+              "per_seed": [
+                0.486248399713568,
+                0.4494526659214073,
+                0.47102319774339513
+              ]
+            },
+            "probe_delta_vs_arm_off_double_mean": -0.03377112290103035,
+            "probe_kraw_span_frac": 0.4428170153054831,
+            "probe_kraw_delta_vs_arm_off_kraw_mean": 0.055375018267137754
+          }
+        }
+      }
+    },
+    "392m": {
+      "corpora": {
+        "openr1-mix-ext": {
+          "per_token_post_blend_span_frac_per_seed": [
+            0.3806640044348224,
+            0.3297360680816671,
+            0.35672671527930144
+          ],
+          "per_token_post_blend_mean": 0.3557089292652636,
+          "per_token_post_blend_own_std": 0.025479218818000235,
+          "arm_off_prime_band": {
+            "mean": 0.34920382018230506,
+            "s": 0.016950371954722536,
+            "pinned_ci_half_width": 0.042110456692403125,
+            "per_seed": [
+              0.3576776076330028,
+              0.32968748588854063,
+              0.36024636702537166
+            ]
+          },
+          "PRIMARY_delta": 0.006505109082958538,
+          "PRIMARY_ci": [
+            -0.03560534760944459,
+            0.04861556577536166
+          ],
+          "PRIMARY_reading": "CI includes zero (null)",
+          "per_token_kraw_span_frac_per_seed": [
+            0.3893571155533434,
+            0.338313242385142,
+            0.36452272445099554
+          ],
+          "per_token_kraw_mean": 0.3640643607964937,
+          "arm_off_kraw_band": {
+            "mean": 0.3603804735525021,
+            "s": 0.01782856677144923,
+            "pinned_ci_half_width": 0.04429218962994844,
+            "per_seed": [
+              0.36996787176606766,
+              0.33980960297092977,
+              0.3713639459205089
+            ]
+          },
+          "COPRIMARY_delta": 0.0036838872439916015,
+          "COPRIMARY_ci": [
+            -0.04060830238595684,
+            0.047976076873940045
+          ],
+          "COPRIMARY_reading": "CI includes zero (null)",
+          "val_loss_gate": {
+            "per_token_per_seed": [
+              1.3467934727668762,
+              1.341592475771904,
+              1.3463542759418488
+            ],
+            "per_token_mean": 1.3449134081602097,
+            "arm_off_mean": 1.3413906743129094,
+            "pass_ceiling": 1.3480527336693653,
+            "PASS_by_arm_mean": true,
+            "per_seed_over_ceiling": [],
+            "probe_val_loss": 1.34003184735775,
+            "probe_PASS": true
+          },
+          "probe_exploratory_n1_no_CI": {
+            "tier": "exploratory-probe -- NOT a confirmatory bar, n=1",
+            "probe_post_blend_global_span_frac": 0.3742792935061939,
+            "arm_off_double_band": {
+              "mean": 0.386631668007992,
+              "s": 0.017018382237967696,
+              "pinned_ci_half_width": 0.042279417237627945,
+              "per_seed": [
+                0.39565579931198935,
+                0.367001761086363,
+                0.39723744362562347
+              ]
+            },
+            "probe_delta_vs_arm_off_double_mean": -0.012352374501798102,
+            "probe_kraw_span_frac": 0.3634828157132922,
+            "probe_kraw_delta_vs_arm_off_kraw_mean": 0.003102342160790139
+          }
+        },
+        "wikitext-mix-ext": {
+          "per_token_post_blend_span_frac_per_seed": [
+            0.4121199669245154,
+            0.437598671112747,
+            0.3957729944182969
+          ],
+          "per_token_post_blend_mean": 0.4151638774851864,
+          "per_token_post_blend_own_std": 0.021078326578815254,
+          "arm_off_prime_band": {
+            "mean": 0.3962532113587555,
+            "s": 0.003106066578441634,
+            "pinned_ci_half_width": 0.007716519878417515,
+            "per_seed": [
+              0.3968743236269059,
+              0.39900179141852277,
+              0.39288351903083785
+            ]
+          },
+          "PRIMARY_delta": 0.018910666126430886,
+          "PRIMARY_ci": [
+            0.011194146248013372,
+            0.0266271860048484
+          ],
+          "PRIMARY_reading": "CI-excludes-zero POSITIVE (destabilizing = the 14M sign)",
+          "per_token_kraw_span_frac_per_seed": [
+            0.4226349447801727,
+            0.4473955610920133,
+            0.4052993219151289
+          ],
+          "per_token_kraw_mean": 0.4251099425957716,
+          "arm_off_kraw_band": {
+            "mean": 0.41107388617550256,
+            "s": 0.0035330913255455783,
+            "pinned_ci_half_width": 0.008777393773547294,
+            "per_seed": [
+              0.41190888599118236,
+              0.41411468292866593,
+              0.4071980896066594
+            ]
+          },
+          "COPRIMARY_delta": 0.01403605642026906,
+          "COPRIMARY_ci": [
+            0.005258662646721767,
+            0.022813450193816354
+          ],
+          "COPRIMARY_reading": "CI-excludes-zero POSITIVE (destabilizing = the 14M sign)",
+          "val_loss_gate": {
+            "per_token_per_seed": [
+              3.1436506509780884,
+              3.1436736583709717,
+              3.142394542694092
+            ],
+            "per_token_mean": 3.1432396173477173,
+            "arm_off_mean": 3.1361495157082877,
+            "pass_ceiling": 3.144604532118478,
+            "PASS_by_arm_mean": true,
+            "per_seed_over_ceiling": [],
+            "probe_val_loss": 3.1420753598213196,
+            "probe_PASS": true
+          },
+          "probe_exploratory_n1_no_CI": {
+            "tier": "exploratory-probe -- NOT a confirmatory bar, n=1",
+            "probe_post_blend_global_span_frac": 0.4509168500583007,
+            "arm_off_double_band": {
+              "mean": 0.4318691372730032,
+              "s": 0.004849042880495056,
+              "pinned_ci_half_width": 0.01204666250181029,
+              "per_seed": [
+                0.4313522054117476,
+                0.4369559365542804,
+                0.42729926985298144
+              ]
+            },
+            "probe_delta_vs_arm_off_double_mean": 0.019047712785297488,
+            "probe_kraw_span_frac": 0.43849273442003844,
+            "probe_kraw_delta_vs_arm_off_kraw_mean": 0.027418848244535887
+          }
+        }
+      }
+    }
+  },
+  "verdict_per_scale": {
+    "98m": "PARTIAL (destabilizing 14M sign persists on >=1 corpus/instrument)",
+    "392m": "PARTIAL (destabilizing 14M sign persists on >=1 corpus/instrument)"
+  },
+  "verdict_overall_sec13_6": "PARTIAL"
+}

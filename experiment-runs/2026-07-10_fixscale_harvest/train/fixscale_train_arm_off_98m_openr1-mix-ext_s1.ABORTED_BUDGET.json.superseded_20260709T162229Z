@@ -1,0 +1,6 @@
+{
+  "cell_id": "fixscale_train_arm_off_98m_openr1-mix-ext_s1",
+  "reason": "1.5x circuit breaker (sec 13.8)",
+  "wall_s_at_abort": 5040.232518672943,
+  "aborted_at_iso": "2026-07-09T08:23:26Z"
+}

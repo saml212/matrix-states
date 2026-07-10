@@ -1,0 +1,40 @@
+{
+  "wave": "fix-at-scale sec13 GATE TIER",
+  "gate": "sec 13.10 item 3 (timing pilot) + sec 13.13 Rev-1 item 2 (VRAM logging)",
+  "tier": "timing-measurement only -- outputs EXCLUDED from every span_frac/val-loss analysis",
+  "scale": "392m",
+  "config": {
+    "d_model": 1536,
+    "d_state": 128,
+    "n_layers": 16,
+    "batch_size": 32
+  },
+  "corpus": "openr1-mix-ext",
+  "seed": 0,
+  "lambda": 0.58,
+  "method": "two-point (wall_1000 - wall_200)/800, run_lm_rd_trackc_sweep.py --wave calibration's own convention -- startup overhead cancels",
+  "ref_per_step_s_trackc": 0.836,
+  "gate_factor": 1.5,
+  "arms": {
+    "off": {
+      "per_step_s_two_point": 0.821519523859024,
+      "wall_s_short": 175.17657351493835,
+      "wall_s_long": 832.3921926021576,
+      "peak_vram_alloc_gb": 38.34545850753784,
+      "peak_vram_reserved_gb": 41.9765625,
+      "within_1p5x_ref": true
+    },
+    "per_token": {
+      "per_step_s_two_point": 0.8311435467004776,
+      "wall_s_short": 175.43548965454102,
+      "wall_s_long": 840.3503270149231,
+      "peak_vram_alloc_gb": 38.98171377182007,
+      "peak_vram_reserved_gb": 42.6328125,
+      "within_1p5x_ref": true
+    }
+  },
+  "blend_overhead_ratio_pt_over_off": 1.0117149045907583,
+  "verdict": "PASS",
+  "written_unix": 1783575410.5312715,
+  "written_utc": "2026-07-09 05:36:50"
+}

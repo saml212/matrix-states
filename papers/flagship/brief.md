@@ -118,7 +118,7 @@ draft; weakest fit to the capability-first directive.
 | 2 Background & setup | 1.0 | Delta-rule fast-weight models; the group-composition and episodic-recall tasks; the instruments (restricted effective rank, force-rank arms, acc_A, span-fraction) and their repair history in one paragraph |
 | 3 The rank law | 2.0 | M1 observational (R1) + marquee TOST (R2) + the causal razor (R3), with the D-AMB instrument-defect-found-and-fixed methodology narrative |
 | 4 Capability separation | 2.0 | Head-to-head recall WIN (R4) + S₀ localization / nonlinear storage (R5); the Nichani caveat carried on every Leg-A number |
-| 5 The pathology at scale | 1.75 | The 4-point ladder (R6) + qk-norm exoneration & gating trend (R7) + fix-at-scale adjudication (R8, reserved) |
+| 5 The pathology at scale | 1.75 | The 4-point ladder (R6) + qk-norm exoneration & gating trend (R7) + fix-at-scale adjudication (R8, LANDED: no tested fix transfers) |
 | 6 Related work | 0.5 | Distinguish BY NAME: Nichani-Lee-Bietti, the descriptive linear-attention rank papers, the qk-norm stability line, DeltaNet/Gated-DeltaNet |
 | 7 Discussion & limitations | 0.5 | Scale limits of the capability result; geometry-leg-only scope of the ladder; synthetic-task scope; Stage-2 depth generalization explicitly flagged future work |
 | 8 Conclusion | 0.25 | One paragraph |
@@ -131,9 +131,10 @@ instrument-repair records, reproducibility pointers.
 
 One row per numerical claim. Every row names the pre-registered verdict
 record AND the raw artifact (path + md5, computed 2026-07-09 with `md5 -q`).
-A number with no raw artifact is a CRITICAL finding, not a claim. Reserved
-row R8 carries NO claim until its verdict lands (R4's sweep verdict LANDED
-2026-07-10 — the row below is now claim-grade).
+A number with no raw artifact is a CRITICAL finding, not a claim. All nine
+rows are now claim-grade: R4's sweep verdict LANDED 2026-07-10, and R8's
+fix-at-scale harvest verdict LANDED 2026-07-10 (§13.22 — formerly the
+reserved row).
 
 | Id | Claim (with the number) | Verdict record (§ / log entry) | Raw artifact (path + md5) | Figure / table |
 |---|---|---|---|---|
@@ -144,7 +145,7 @@ row R8 carries NO claim until its verdict lands (R4's sweep verdict LANDED
 | R5 | S₀ localization + nonlinear storage: zeroing S₀ collapses contender recall 0.9990→0.0286 (≈chance 0.03125) while zeroing S₁ leaves it at 0.9990; no state-level linear tap clears rf@0.9 in either arm; the pre-LM-head tap reads rf@0.9=0.674 / cos 0.894 (contender only; ablation 0.0/0.119) | `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.30 (Tables 1-2) | `experiment-runs/2026-07-09_h2h_tap_localization/results/tap_localization_contender.json` md5:362333c89f4223c427fe8daf54f50fce; `tap_localization_ablation.json` md5:ff8e352a13c2bc1e177f53f8cef47c01 | fig4_tap_localization.pdf (zeroing table + tap bars) |
 | R6 | Attractor scaling ladder, pure scale, held-fixed extended mix: span-fraction 0.248 (14M) → 0.344 (98M) → 0.389 (392M) → 0.455 (1.31B), monotone; PROMINENT DISCLOSURE: the 1.31B rung self-terminated at ~84.7% of the token-matched budget with span-frac flat-to-declining over the final window (0.4584→0.4554) | `EXPERIMENT_LOG.md` 2026-07-07 "Track C Wave 3 (rung-3, 1.31B) harvest" (line ~5463); `iclr-2027/NARRATIVE.md` Fig-9 spec + `sections/09/10.tex` | `experiment-runs/2026-07-06_trackc_rung3/probe_analysis_rung3.json` md5:6a627c315b0c8e35e084bbbe7730a2f8 + `rung3_final_pooled.json` md5:96597f682a0b972d4a1ad7922828efcc; lower rungs `experiment-runs/2026-07-04_trackc_rung1/`, `2026-07-05_trackc_rung2/`, `2026-07-05_wave1ext/`; dense per-seed regeneration `experiment-runs/2026-07-06_trajectory_probes/trajectories_tidy.json` md5:0fe53d8b40285b93fe81219fa6ff9606 (plot `archived4_span_frac`, the cross-scale convention) | fig5_attractor_ladder.pdf |
 | R7 | Mitigation exoneration (14M, 2×2 qk-norm × gating): qk-norm OFF is a within-noise null at n=3 (Δ=−0.103 = 0.05σ vs the corrected same-corpus floor 2.244355) — the attractor is not a qk-norm artifact; gating reads +4.312 = 1.92σ, BELOW the pre-registered 2σ=4.489 bar — a direction-consistent trend (3/3 paired seeds positive; exploratory Welch p=0.062), NOT a confirmed amplification and NOT a null | `EXPERIMENT_LOG.md` 2026-07-09 "ATTRACTOR-ROBUSTNESS 2×2" entries: build-audit (noise-floor correction), n=1 screening harvest, n=3 escalation harvest | `experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/box_results/AGGREGATE.json` md5:d7e4d6b45c7a23d5b2a661257dca2c82 + `n3_recompute_summary.json` md5:b4bdffdf25bf85f84945a40b9170a467 (n=1 screening: `experiment-runs/2026-07-09_attrrob_2x2_harvest/`) | fig6_2x2_mitigations.pdf |
-| R8 | **RESERVED — fix-at-scale span_frac at 98M/392M (both arms: per_token deployed λ=0.58 vs global-vector).** Wave LIVE (launched 2026-07-09, 28 cells, self-healing, ≈281 GPU-h at 2× contingency). NO claim until harvest; this row adjudicates whether either arm's 14M geometry behavior transfers to scale and whether §5 can say "a geometry-stabilizing construction exists" or must say "no tested fix transfers" | `FROZEN_BIAS_LM_DESIGN.md` §13.16-§13.19 (launch authorization + record); `EXPERIMENT_LOG.md` 2026-07-09 fix-at-scale deploy+launch entry | launch record `experiment-runs/2026-07-09_fixscale_wave_launch/` (MANIFEST + smoke/startup JSONs); harvest archive TBD | fig7 (TBD at harvest) |
+| R8 | **Fix-at-scale VERDICT (LANDED 2026-07-10): no tested frozen-bias construction stabilizes the attractor at scale — §5 must say "no tested fix transfers."** Deployed per_token arm (λ=0.58, n=3, vs artifact-matched arm_off′, pinned t(2,.975) CI): 98M Δspan_frac **+0.1133 [+0.0543,+0.1723]** openr1 / **+0.1011 [+0.0541,+0.1482]** wikitext (destabilizing, the 14M sign, both instruments incl. pre-blend co-primary +0.0796/+0.0606); 392M **+0.0189 [+0.0112,+0.0266]** wikitext (co-primary +0.0140), openr1 null [+0.0065, CI straddles 0]; reverses NOWHERE. Global-vector probe (n=1 exploratory, never a confirmatory bar): 14M's −0.33/−0.23 decays to −0.058/−0.034 at 98M and −0.012/**+0.019 (sign flip)** at 392M. Val-loss neutrality PASSES all 8 gates — the free-of-cost half transfers; the geometry half does not. Caveat: 392M = 20k-step budget (token-confounded vs 98M; within-scale claims only) | `FROZEN_BIAS_LM_DESIGN.md` §13.22 (verdict of record; §13.6 pre-registration = PARTIAL both scales); `EXPERIMENT_LOG.md` 2026-07-10 fix-at-scale harvest entry | `experiment-runs/2026-07-10_fixscale_harvest/fixscale_harvest_verdict.json` md5:f2f0aae84908c0db0a42b13c76a85158 (+ 16 comparator JSONs in `measure/`, 2 pins in `pins/`, 28 train/calib JSONs, `md5_manifest.txt` local==box) | fig7_fixscale_transfer.pdf (per-scale delta forest plot, TBD at build) |
 | R9 | c*·I complement scaffold (appendix/mechanism candidate): in the Task-E encoder family the trained state obeys Z ≈ c*·I_d + rank-(K−1) task correction at 0.5-2.9% Frobenius residual (τ_identity ≥ 0.9997; per-example conformal lock ~0.5%); deviation-from-c*I is a loss-blind health signal (Spearman ρ=−0.973 all-11 runs); the complement channel is EMPTY (fD ≤ 3.2e-12) in DeltaNet-family delta-rule states — architecture-conditional | `EXPERIMENT_LOG.md` 2026-07-09 "Z-DUMP ORTHOGONAL-COMPLEMENT PIGGYBACK" entry (commit 64c59d9) | `experiment-runs/2026-07-09_zdump_complement/complement_results.json` md5:03208edab7adc7e433f2cad46ee975bb (+ `report.txt`, `complement_analysis.py`) | appendix figA1_complement_scaffold.pdf |
 
 **Rows the paper does NOT yet have (flagged, not claimed):** Stage-2
@@ -216,8 +217,9 @@ inventory, per the PI's 2026-07-08 many-workshops-one-flagship strategy):
 - **`iclr-2027/` (the existing attractor full-paper draft):** uses R6 (its
   Fig 9 / §9-§10 already carry 0.248→0.455) and has R7 QUEUED as a fold
   into `06_soft_fixes_fail` (the n=3 gating fold must carry
-  trend-not-confirmed; qk-norm exoneration is fully foldable); R8 will land
-  there too. The flagship's §5 compresses that draft's Tier-2 spine. **PI
+  trend-not-confirmed; qk-norm exoneration is fully foldable); R8's landed
+  verdict (§13.22, no-tested-fix-transfers) is QUEUED for its
+  07_the_fix/09_discussion folds via `NARRATIVE.md`. The flagship's §5 compresses that draft's Tier-2 spine. **PI
   decision flagged:** whether the flagship ABSORBS `iclr-2027/` (one ICLR
   submission) or the two stay separate submissions — they cannot both go to
   ICLR 2027 with the same §5 evidence.
@@ -247,5 +249,6 @@ collaborator names once added. URL and acknowledgment patterns per
 
 Both consume this same evidence map; a number fixed in one is fixed in the
 other. The arXiv build precedes the ICLR build; R4's sweep verdict LANDED
-(WIN, §1.40); R8's harvest must land (or its section carries the
-reserved-row language) before the arXiv freeze.
+(WIN, §1.40); R8's harvest LANDED (PARTIAL, §13.22 — §5's fix passage
+reads "no tested fix transfers; val-loss neutrality does") — the evidence
+map is freeze-ready.

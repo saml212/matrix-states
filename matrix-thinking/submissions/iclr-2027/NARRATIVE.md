@@ -1803,3 +1803,39 @@ item remains genuinely open.**
    reports before the actual submission deadline, only §9 item 3, Fig. 9
    Panel A, and the handful of "fourth rung running" phrases in §0/§1/§6
    need updating; no other section's substance depends on that number.
+
+---
+
+## QUEUED FOLD (2026-07-10, from the fix-at-scale harvest agent — for the next paper-pass; .tex deliberately untouched by the harvester per the harvest charter)
+
+**The fix-at-scale verdict LANDED** (`FROZEN_BIAS_LM_DESIGN.md` §13.22,
+the verdict of record; raw archive
+`experiment-runs/2026-07-10_fixscale_harvest/`, verdict JSON md5
+f2f0aae84908c0db0a42b13c76a85158). Every "under adjudication at scale" /
+"14M-only" passage about the frozen-bias fix can now cite a resolved,
+pre-registered outcome — **PARTIAL at both scales**:
+
+1. **`09_discussion_limitations.tex` item 6** (the fix's-own-evidence-is-
+   14M-only caveat): now resolved AGAINST transfer. The deployed per_token
+   arm (λ=0.58) moves span_frac in the DESTABILIZING direction at 98M on
+   both corpora (+0.1133 [+0.0543,+0.1723] openr1; +0.1011
+   [+0.0541,+0.1482] wikitext; co-primary pre-blend agrees:
+   +0.0796/+0.0606) and at 392M on wikitext (+0.0189 [+0.0112,+0.0266];
+   co-primary +0.0140); 392M-openr1 is null. It reverses NOWHERE.
+2. **`07_the_fix.tex`**: the "a geometry-stabilizing construction is
+   identified (global-vector arm, 14M-only, never scaled)" formulation
+   must KEEP its 14M-only qualifier permanently and gains the scaled
+   ending: the global probe (n=1, exploratory tier, non-gating) decays to
+   −0.058/−0.034 at 98M and ≈zero/sign-flip (−0.012/+0.019) at 392M —
+   **no tested frozen-bias construction stabilizes the attractor at
+   scale.** The half that DOES transfer: val-loss neutrality (8/8 gates
+   pass, both arms, both scales, both corpora).
+3. **Framing guard:** the 14M→98M→392M attenuation of the per_token
+   effect (+0.20 → +0.11 → +0.02/ns) is DESCRIPTIVE ONLY — 392M ran a
+   reduced 20k-step budget (≈328M tokens vs 98M's ≈1.108B), so cross-scale
+   magnitude comparison is token-confounded (§13.11 item 8's disclosed
+   limit). Within-scale readings are the claims.
+4. Useful sentence for the discussion: the destabilizing effect is
+   training-mediated at every scale where it is nonzero (co-primary
+   pre-blend k_raw agrees with the post-blend primary in all three
+   non-null cells) — the same §1.3 artifact-exclusion logic rung-1 used.
