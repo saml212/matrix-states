@@ -28,12 +28,15 @@ rank law of Section 3 and the capability of Section 4 do not share
 their complement structure, and mechanism stories that depend on an
 identity scaffold cannot port across that boundary.
 
-**Figure A1 caption.** The complement scaffold in the encoder family.
-Left: Frobenius residual of the fit $Z \approx c^{*} I + $
-rank-$(K{-}1)$ correction per archived run (0.5 to 2.9 percent for
-converged runs; the Gaussian-null residual is 0.53 to 0.54). Right:
-complement Procrustes residual versus held-out task cosine across all
-eleven runs (Spearman $\rho = -0.973$): deviation from the scaffold is
-a loss-blind convergence signal. In delta-rule states the complement
-channel is empty by construction (energy fraction $\le 3.2 \times
-10^{-12}$), so the scaffold is architecture-conditional.
+**Figure A1 caption.** The complement scaffold is architecture-
+conditional. Left: complement Procrustes residual per archived Task-E
+encoder run (sorted; log scale). Converged runs sit at 0.003 to 0.018,
+two orders of magnitude below the Gaussian-null band (0.53 to 0.54,
+shaded); the high-residual runs are the archive's non-converged
+members, which is the separation behind the loss-blind health signal
+(Spearman $\rho = -0.973$ against held-out task cosine, all eleven
+runs). Right: complement energy fraction $f_D$ by architecture family
+(log scale): the encoder family carries measurable complement energy,
+while delta-rule production states read at most $3.2 \times 10^{-12}$,
+numerically empty, because outer-product writes confine the state to
+the span of observed keys and values.
