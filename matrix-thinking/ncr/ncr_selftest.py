@@ -384,12 +384,25 @@ def t13_micro_end_to_end(device):
           "blank-out -> labeled eval -> atomic JSON -> resume-skip")
 
 
+# ---------------------------------------------------------------------------
+# 10. closed-form zero-accumulation checks (S2.26 discipline) -- CPU wiring
+# ---------------------------------------------------------------------------
+
+def t14_closed_form_checks(device):
+    """S7a audit MAJOR-1 fix: closed_form_checks has no CUDA dependency and
+    MUST run in the CPU suite too (previously wired only into box-smoke, so
+    the '13/13' record carried zero executed evidence for the transpose
+    tooth). box-smoke still re-runs it ON CUDA for device coverage."""
+    import run_ncr as rn
+    rn.closed_form_checks(device)
+
+
 ALL_TESTS = [t01_module_self_tests, t02_grid_guard_teeth, t03_label_schema_teeth,
              t04_label_reduction_equality, t05_binexp_mutation_killed,
              t06_renorm_invariance_teeth, t07_shadow_and_agreement_teeth,
              t08_blank_out_teeth, t09_trust_archive_crosscheck, t10_lock_teeth,
              t11_param_match_teeth, t12_grad_coverage_all_arms,
-             t13_micro_end_to_end]
+             t13_micro_end_to_end, t14_closed_form_checks]
 
 
 def run_all(device="cpu"):

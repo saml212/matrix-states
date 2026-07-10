@@ -491,14 +491,20 @@ def eval_cell(model, cfg, device: str, seed: int, K: int,
         points_out.append(entry)
 
     prim = primary_read_name(model.arm)
-    ladder = [e for e in points_out if e["component"] in ("ladder", "h_star")]
+    # aggregates honor in_window structurally (S7a audit MINOR-2: today the
+    # cost probes are the only out-of-window points and carry their own
+    # component, but the field is the schema's contract -- filter on it, not
+    # only on component names)
+    ladder = [e for e in points_out
+              if e["component"] in ("ladder", "h_star") and e["in_window"]]
     ladder.sort(key=lambda e: e["h"])
     front = next((e["h"] for e in ladder
                   if e["reads"][prim]["recovered_frac@0.9"] < 0.9), None)
     revivals = [e["h"] for e in ladder
                 if front is not None and e["h"] > front
                 and e["reads"][prim]["recovered_frac@0.9"] >= 0.9]
-    sweep = [e for e in points_out if e["component"] == "residue_sweep"]
+    sweep = [e for e in points_out
+             if e["component"] == "residue_sweep" and e["in_window"]]
     sweep_min = min(e["reads"][prim]["recovered_frac@0.9"] for e in sweep)
     reducer = bool(sweep_min >= 0.9 and front is None)
     return dict(points=points_out, agreement_checks=agreement,

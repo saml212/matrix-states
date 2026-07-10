@@ -1070,7 +1070,10 @@ this agent, including the SSD mirror). No GPU touched by this build.
 11. **Closed-form checks (§2.26 discipline)**: standard-basis shift-matrix
     bin-exp exact to h=1021; single-binding v·kᵀ maps k→v; the TRANSPOSED
     [K,V] layout (k·vᵀ / inverse shift) is DETECTED as wrong — hand-computed
-    zero-accumulation configs, run in smoke and again ON CUDA in box-smoke.
+    zero-accumulation configs. *(§7a correction: as first recorded this item
+    overclaimed — the checks were wired into box-smoke ONLY, so the 13/13
+    CPU record carried no executed evidence for them; fixed as suite section
+    t14, now 14/14, and still re-run ON CUDA in box-smoke.)*
 12. **Ops hygiene**: resume-safety by VALIDITY (config-sha-checked
     checkpoints; corrupt/mismatched checkpoints refused loudly); atomic
     JSON writes; per-cell runner tags + git commit + config sha + host
@@ -1109,3 +1112,47 @@ cap, the overage is reported, never silently absorbed.
 **STATUS: BUILD RECORDED; independent audit (§7a) dispatched next per the
 standing chain. No GPU work performed. Wave 1 (Phase 1) remains gated on
 Phase-0 PASS + a fresh coordinator go/no-go (§3.6).**
+
+### §7a INDEPENDENT BUILD AUDIT (2026-07-10, fresh agent, on 42a87e6): NEEDS-FIXES → fixes applied, scoped re-audit dispatched
+
+Verdict on the build as committed: **NEEDS-FIXES — 1 MAJOR, 2 MINOR, 1 NIT,
+0 FATAL.** Every correctness property was independently re-verified by the
+auditor's own from-scratch reimplementations (never by trusting the build's
+self-tests): bin-exp exactness vs an exact integer-oracle across the FULL
+pinned h-union at both K (208+324 checks) incl. power-of-2 edges, negative-
+c\* and complex-eigenvalue operators vs literal fp64 `matrix_power` to
+1e-16; renorm per-item independence (mixed 1e-6/1e6-scale batch bit-
+identical to items-alone, 0.00e+00); FWM/LoopedVec h-purity + zero cross-
+query/cross-batch grad leakage + finite-difference-vs-autograd 2.13e-08;
+checkpoint/resume BIT-EXACT vs straight-through (60 vs 27+resume, fresh
+process, 47/47 tensors 0.000e+00); the label-reduction seam at the identity
+edges h=64/h=60 the build's own t04 did not cover (targets, query_keys, AND
+generator post-call state all exactly equal; `hop_set=(0,)` correct); all
+56 grid labels recomputed from scratch; params recounted by hand
+(170,896/170,928/170,881/311,456 — exact match); the packaged suite 13/13
+re-run PLUS three auditor-constructed mutations (per-row renorm, transposed
+squaring operand, swapped residue-label map) — all three killed by existing
+checks; trust screen re-verified against a fresh 29/29 run of the §6 script
+(archive md5s re-confirmed after `git checkout --` of that script's
+documented rewrite side effect); §5 nit n3 compliance grep-verified.
+
+Findings → dispositions (fixes applied in the follow-up commit, this
+record):
+- **MAJOR-1 (record-vs-reality):** `closed_form_checks` (the §2.26
+  zero-accumulation suite incl. the transpose tooth) was wired into
+  box-smoke ONLY; §7.2 item 11 claimed it ran in the CPU smoke — so the
+  recorded 13/13 carried ZERO executed evidence for it. The auditor ran it
+  directly on CPU (PASSED — the math is correct; defect was wiring +
+  record). **FIX:** new suite section t14 (suite now 14/14, re-executed);
+  §7.2 item 11 corrected in place with the overclaim disclosed.
+- **MINOR-2:** `EvalPoint.in_window` was schema-only (never consulted).
+  **FIX:** front/reducer aggregates now filter on it structurally.
+- **MINOR-3:** `predicted_cos_curve_far` (and bin-exp) are SIGN-exact — a
+  negative c\* yields cos = −1 at odd h, mathematically correct but
+  potentially misread as an instrument bug. **FIX:** docstring documents the
+  behavior + why it cannot arise post-convergence (auditor verified the
+  behavior identical in both code paths, errors 0.00e+00).
+- **NIT-4:** box-smoke still pending — expected; it is the next chain step.
+
+No injection sightings during the audit. Scoped re-audit of the three fixes
+dispatched to the same auditor before the box smoke.

@@ -70,7 +70,12 @@ K12_STRADDLE_DELTA = 0.0311                   # = 1.772/57
 
 def _scaled_power_apply(A: np.ndarray, x: np.ndarray, h: int) -> np.ndarray:
     """Direction of A^h x via square-and-multiply with per-squaring Frobenius
-    renorm + per-multiply vector renorm (positive scalars only)."""
+    renorm + per-multiply vector renorm (positive scalars only). SIGN-EXACT
+    (S7a audit MINOR-3): a negative isotropic scale c* < 0 survives renorm
+    exactly -- e.g. A = -1.7*Pi yields predicted cos = -1 at odd h, +1 at
+    even h. That is the mathematically correct answer (binexp_read behaves
+    identically), not an instrument bug; it cannot arise for a model passing
+    the Phase-0 convergence readout (cosine training at h<=3 pins c* > 0)."""
     assert h >= 0
     if h == 0:
         n = np.linalg.norm(x)
