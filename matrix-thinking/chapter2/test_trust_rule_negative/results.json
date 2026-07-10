@@ -1,0 +1,215 @@
+{
+  "script": "matrix-thinking/chapter2/test_trust_rule_negative.py",
+  "timestamp_utc": "2026-07-10T20:48:24.182198+00:00",
+  "seed": 20260709,
+  "K": 8,
+  "d_total": 16,
+  "h": 21,
+  "tau": 0.2,
+  "s1_calibrated_threshold": 0.37,
+  "shared": {
+    "sigma_min_A": 1.0,
+    "sigma_max_A": 1.0,
+    "a": 1.0
+  },
+  "N1": {
+    "description": "amplifying near-normal D (C Gaussian ||C||_2=0.01, D=1.5*Q orthogonal)",
+    "sigma_max_D": 1.5000000000000009,
+    "rho_D": 1.5000000000000002,
+    "r": 1.5000000000000009,
+    "C_norm": 0.010000000000000002,
+    "T_lin_21": 0.21000000000000005,
+    "T_corrected_21": 99.73770190239061,
+    "old_rule_admits_vs_s1_calibrated_0.37": true,
+    "old_rule_rejects_vs_literal_tau_0.2": true,
+    "corrected_rule_rejects_at_tau": true,
+    "junk_signal_ratio": 22.83060202452675,
+    "cosine": 0.04375890391869591,
+    "recovery_at_0.9": 0.0,
+    "expected_ref_S5": {
+      "T_lin_21": 0.21,
+      "T_corrected_21": 99.7377
+    }
+  },
+  "N2": {
+    "description": "non-normal nilpotent D=100*E01, C=0.01*e1perp e3^T, deterministic (no RNG)",
+    "sigma_max_D": 100.0,
+    "rho_D": 0.0,
+    "r_rho": 0.0,
+    "r_sigma": 100.0,
+    "C_norm": 0.01,
+    "e3_occupancy_steps_3_11_19": {
+      "3": true,
+      "11": true,
+      "19": true
+    },
+    "D_squared_is_zero": true,
+    "max_abs_D_squared": 0.0,
+    "injection_term_j4_norm": 0.0,
+    "injection_term_j12_norm": 0.0,
+    "injection_term_j20_norm": 1.0,
+    "T_rho_21_OLD": 0.01,
+    "T_sigma_21_corrected": 1.0101010101010102e+38,
+    "rho_rule_falsely_admits_at_tau": true,
+    "sigma_rule_rejects_at_tau": true,
+    "junk_signal_ratio": 1.0,
+    "cosine": 0.7071067811865475,
+    "recovery_at_0.9": 0.0,
+    "expected_ref_S5": {
+      "T_rho_21": 0.01,
+      "T_sigma_21": 1.01e+38,
+      "junk_signal_ratio": 1.0,
+      "cosine": 0.7071
+    }
+  },
+  "checks": [
+    {
+      "name": "shared: A is exact 8-cycle, sigma_min=sigma_max=1",
+      "passed": true,
+      "detail": "sigma_min(A)=1.0, sigma_max(A)=1.0, a=1.0"
+    },
+    {
+      "name": "N1 construction: ||C||_2 == 0.01 exactly",
+      "passed": true,
+      "detail": "0.010000000000000002"
+    },
+    {
+      "name": "N1 construction: D=1.5*Q near-normal, rho(D)=sigma_max(D)=1.5",
+      "passed": true,
+      "detail": "rho(D)=1.5000000000000002, sigma_max(D)=1.5000000000000009"
+    },
+    {
+      "name": "N1 Z^21 fast (binary-exp) matches naive h-fold loop, both finite",
+      "passed": true,
+      "detail": "max|diff|=4.547473508864641e-12, finite=True (Accelerate-BLAS spurious matmul RuntimeWarning verified benign)"
+    },
+    {
+      "name": "N1 T_lin(21) in [0.20, 0.22] (pinned pass criterion)",
+      "passed": true,
+      "detail": "0.21000000000000005"
+    },
+    {
+      "name": "N1 T_lin(21) matches \u00a75 recorded 0.2100 (cross-check)",
+      "passed": true,
+      "detail": "0.21000000000000005"
+    },
+    {
+      "name": "N1 (n2) old rule ADMITS under s1-calibrated threshold 0.37",
+      "passed": true,
+      "detail": "T_lin=0.2100 < 0.37"
+    },
+    {
+      "name": "N1 corrected T(21) > 10 (pinned pass criterion)",
+      "passed": true,
+      "detail": "99.73770190239061"
+    },
+    {
+      "name": "N1 corrected T(21) matches \u00a75 recorded 99.74 (cross-check, precise 99.7377)",
+      "passed": true,
+      "detail": "99.73770190239061"
+    },
+    {
+      "name": "N1 corrected rule REJECTS at tau=0.2 (T(21) > tau)",
+      "passed": true,
+      "detail": "99.73770190239061 > 0.2"
+    },
+    {
+      "name": "N1 measured junk/signal > 1 (pinned pass criterion)",
+      "passed": true,
+      "detail": "22.83060202452675"
+    },
+    {
+      "name": "N2 construction: ||C||_2 == 0.01 exactly",
+      "passed": true,
+      "detail": "0.01"
+    },
+    {
+      "name": "N2 construction: D nilpotent, rho(D)=0, sigma_max(D)=100",
+      "passed": true,
+      "detail": "rho(D)=0.0, sigma_max(D)=100.0"
+    },
+    {
+      "name": "N2 (n1) e3 occupancy at steps 3, 11, AND 19 (all three)",
+      "passed": true,
+      "detail": "occupancy={3: True, 11: True, 19: True}"
+    },
+    {
+      "name": "N2 D^2 = 0 (nilpotent -- the actual annihilation mechanism)",
+      "passed": true,
+      "detail": "max|D^2|=0.0"
+    },
+    {
+      "name": "N2 j=4 injection term annihilated by D^17=0 (D^2=0 mechanism)",
+      "passed": true,
+      "detail": "term=[0. 0. 0. 0. 0. 0. 0. 0.]"
+    },
+    {
+      "name": "N2 j=12 injection term annihilated by D^9=0 (D^2=0 mechanism)",
+      "passed": true,
+      "detail": "term=[0. 0. 0. 0. 0. 0. 0. 0.]"
+    },
+    {
+      "name": "N2 j=20 injection term SURVIVES (D^1 . C . A^19 q)",
+      "passed": true,
+      "detail": "term=[1. 0. 0. 0. 0. 0. 0. 0.]"
+    },
+    {
+      "name": "N2 Z^21 fast (binary-exp) matches naive h-fold loop, both finite",
+      "passed": true,
+      "detail": "max|diff|=0.0, finite=True (Accelerate-BLAS spurious matmul RuntimeWarning verified benign)"
+    },
+    {
+      "name": "N2 analytic recursion (3-term sum) matches direct Z^21 q E-perp component",
+      "passed": true,
+      "detail": "max|diff|=0.0"
+    },
+    {
+      "name": "N2 rho-based (OLD) T(21) <= 0.011 (pinned pass criterion)",
+      "passed": true,
+      "detail": "0.01"
+    },
+    {
+      "name": "N2 rho-based T(21) matches \u00a75 recorded 0.0100 -- falsely ADMITS (cross-check)",
+      "passed": true,
+      "detail": "0.01"
+    },
+    {
+      "name": "N2 rho-based rule falsely ADMITS at tau=0.2 (T(21) <= tau)",
+      "passed": true,
+      "detail": "0.01 <= 0.2"
+    },
+    {
+      "name": "N2 corrected (sigma) T(21) > 1e30 (pinned pass criterion)",
+      "passed": true,
+      "detail": "1.010101e+38"
+    },
+    {
+      "name": "N2 corrected T(21) matches \u00a75 recorded 1.010e38 (cross-check)",
+      "passed": true,
+      "detail": "1.010101e+38"
+    },
+    {
+      "name": "N2 corrected rule REJECTS at tau=0.2 (T(21) > tau)",
+      "passed": true,
+      "detail": "1.010101e+38 > 0.2"
+    },
+    {
+      "name": "N2 measured junk/signal in [0.9, 1.1] (pinned pass criterion)",
+      "passed": true,
+      "detail": "1.0"
+    },
+    {
+      "name": "N2 measured junk/signal == 1.0 exactly (deterministic construction, cross-check)",
+      "passed": true,
+      "detail": "1.0"
+    },
+    {
+      "name": "N2 cosine matches \u00a75 recorded 0.7071 = 1/sqrt(2) (cross-check)",
+      "passed": true,
+      "detail": "0.7071067811865475"
+    }
+  ],
+  "n_checks_passed": 29,
+  "n_checks_total": 29,
+  "overall_pass": true
+}

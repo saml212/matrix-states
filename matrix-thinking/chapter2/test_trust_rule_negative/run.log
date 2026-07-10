@@ -1,0 +1,160 @@
+§3.8(c) NEGATIVE-TEST EXECUTION RECORD — matrix-thinking/chapter2/test_trust_rule_negative.py
+Repo commit at execution time: 1a2fee94c8d1b6c3065b4e39e7c9ebf5eb415dbf
+Interpreter: /Users/samuellarson/Experiments/learned-representations/.venv/bin/python3 (numpy 2.0.2, fp64 default)
+Invocation: DRY_RUN_BYPASS=1 .venv/bin/python3 matrix-thinking/chapter2/test_trust_rule_negative.py
+  (DRY_RUN_BYPASS=1 is the repo's own documented bypass for the pre-train-gate
+  hook, which fires on any `python ... .py` invocation regardless of whether
+  it launches training; this script is a CPU-only numeric verification with
+  no model, no gradients, no training loop, so the bypass is the correct,
+  legitimate use of that mechanism, not a workaround of a real safety gate.)
+
+NOTE ON THIS FILE'S HISTORY: the script itself rewrites run.log (and
+results.json) as a side effect of every invocation of the script at its
+pinned path. This means each of the three runs below actually clobbered
+this file with its own bare output when it ran; what you are reading now was
+manually reassembled AFTER all three runs completed, from the captured
+stdout of each (saved to /tmp during execution), specifically so the final
+archived file preserves all three instead of only the last. The three runs'
+outputs (below) were independently diffed byte-for-byte against each other
+outside this file to confirm reproducibility; see the "TEETH CONFIRMED" and
+"byte-for-byte" notes inline. This file records THREE runs, in order: (1)
+the canonical clean run (results.json is this run's output, since it was
+last to write results.json and RUN 3 below is byte-identical to it anyway);
+(2) a THROWAWAY-COPY mutation run that breaks the D^2=0 pin (adds
+D_n2[1,0]=5.0, alongside the pinned D_n2[0,1]=100.0) to verify the suite has
+teeth; (3) a clean re-run of the UNMODIFIED script confirming restoration
+and byte-for-byte reproducibility of the canonical result. Step (2) ran
+against a copy in the scratchpad, never against this archived script, and
+was deleted after use — this repo's committed test_trust_rule_negative.py
+was never mutated.
+
+================================================================================
+RUN 1 — CANONICAL (clean, unmodified script; the archived run of record)
+================================================================================
+==============================================================================
+NCR waterfall §3.8(c) negative test -- N1 (amplifying near-normal D)
+                                    + N2 (non-normal nilpotent D)
+seed=20260709  K=8  d=16  h=21  tau=0.2
+==============================================================================
+[PASS] shared: A is exact 8-cycle, sigma_min=sigma_max=1: sigma_min(A)=1.0, sigma_max(A)=1.0, a=1.0
+
+------------------------------------------------------------------------------
+N1: amplifying near-normal D (C Gaussian rescaled to ||C||_2=0.01;
+    D = 1.5*Q, Q = QR-orthogonalization of a Gaussian draw)
+------------------------------------------------------------------------------
+[PASS] N1 construction: ||C||_2 == 0.01 exactly: 0.010000000000000002
+[PASS] N1 construction: D=1.5*Q near-normal, rho(D)=sigma_max(D)=1.5: rho(D)=1.5000000000000002, sigma_max(D)=1.5000000000000009
+[PASS] N1 Z^21 fast (binary-exp) matches naive h-fold loop, both finite: max|diff|=4.547473508864641e-12, finite=True (Accelerate-BLAS spurious matmul RuntimeWarning verified benign)
+  T_lin(21)      = 0.210000
+  T_corrected(21)= 99.737702
+  junk/signal    = 22.830602   cosine=0.043759  recovery@0.9=0.0
+  [n2] old-rule vs s1-calibrated threshold: T_lin(21)=0.2100 < 0.37 -> ADMIT
+  [n2] old-rule vs literal tau=0.2: T_lin(21)=0.2100 > 0.2 -> REJECT (literal reading)
+[PASS] N1 T_lin(21) in [0.20, 0.22] (pinned pass criterion): 0.21000000000000005
+[PASS] N1 T_lin(21) matches §5 recorded 0.2100 (cross-check): 0.21000000000000005
+[PASS] N1 (n2) old rule ADMITS under s1-calibrated threshold 0.37: T_lin=0.2100 < 0.37
+[PASS] N1 corrected T(21) > 10 (pinned pass criterion): 99.73770190239061
+[PASS] N1 corrected T(21) matches §5 recorded 99.74 (cross-check, precise 99.7377): 99.73770190239061
+[PASS] N1 corrected rule REJECTS at tau=0.2 (T(21) > tau): 99.73770190239061 > 0.2
+[PASS] N1 measured junk/signal > 1 (pinned pass criterion): 22.83060202452675
+
+------------------------------------------------------------------------------
+N2: non-normal nilpotent D = 100*E01 (matrix unit e0 e1^T on the
+    E-perp block); C = 0.01*e1^perp e3^T -- fully deterministic, no RNG
+------------------------------------------------------------------------------
+[PASS] N2 construction: ||C||_2 == 0.01 exactly: 0.01
+[PASS] N2 construction: D nilpotent, rho(D)=0, sigma_max(D)=100: rho(D)=0.0, sigma_max(D)=100.0
+[PASS] N2 (n1) e3 occupancy at steps 3, 11, AND 19 (all three): occupancy={3: True, 11: True, 19: True}
+[PASS] N2 D^2 = 0 (nilpotent -- the actual annihilation mechanism): max|D^2|=0.0
+[PASS] N2 j=4 injection term annihilated by D^17=0 (D^2=0 mechanism): term=[0. 0. 0. 0. 0. 0. 0. 0.]
+[PASS] N2 j=12 injection term annihilated by D^9=0 (D^2=0 mechanism): term=[0. 0. 0. 0. 0. 0. 0. 0.]
+[PASS] N2 j=20 injection term SURVIVES (D^1 . C . A^19 q): term=[1. 0. 0. 0. 0. 0. 0. 0.]
+[PASS] N2 Z^21 fast (binary-exp) matches naive h-fold loop, both finite: max|diff|=0.0, finite=True (Accelerate-BLAS spurious matmul RuntimeWarning verified benign)
+  T_rho(21) [OLD, Rev-1]     = 0.010000
+  T_sigma(21) [corrected]    = 1.010101e+38
+  junk/signal = 1.000000   cosine=0.707107  recovery@0.9=0.0
+[PASS] N2 analytic recursion (3-term sum) matches direct Z^21 q E-perp component: max|diff|=0.0
+[PASS] N2 rho-based (OLD) T(21) <= 0.011 (pinned pass criterion): 0.01
+[PASS] N2 rho-based T(21) matches §5 recorded 0.0100 -- falsely ADMITS (cross-check): 0.01
+[PASS] N2 rho-based rule falsely ADMITS at tau=0.2 (T(21) <= tau): 0.01 <= 0.2
+[PASS] N2 corrected (sigma) T(21) > 1e30 (pinned pass criterion): 1.010101e+38
+[PASS] N2 corrected T(21) matches §5 recorded 1.010e38 (cross-check): 1.010101e+38
+[PASS] N2 corrected rule REJECTS at tau=0.2 (T(21) > tau): 1.010101e+38 > 0.2
+[PASS] N2 measured junk/signal in [0.9, 1.1] (pinned pass criterion): 1.0
+[PASS] N2 measured junk/signal == 1.0 exactly (deterministic construction, cross-check): 1.0
+[PASS] N2 cosine matches §5 recorded 0.7071 = 1/sqrt(2) (cross-check): 0.7071067811865475
+
+==============================================================================
+RESULT: 29/29 checks passed. Overall: PASS
+==============================================================================
+Process exit code: 0
+
+================================================================================
+RUN 2 — TEETH VERIFICATION (THROWAWAY COPY, MUTATED: added D_n2[1,0]=5.0
+        alongside the pinned D_n2[0,1]=100.0, breaking D^2=0). Script ran
+        at /private/tmp/.../scratchpad/test_trust_rule_negative_MUTATED.py,
+        never against the archived/committed script. Expected: suite FAILS.
+================================================================================
+[PASS] shared: A is exact 8-cycle, sigma_min=sigma_max=1: sigma_min(A)=1.0, sigma_max(A)=1.0, a=1.0
+[PASS] N1 construction: ||C||_2 == 0.01 exactly: 0.010000000000000002
+[PASS] N1 construction: D=1.5*Q near-normal, rho(D)=sigma_max(D)=1.5: rho(D)=1.5000000000000002, sigma_max(D)=1.5000000000000009
+[PASS] N1 Z^21 fast (binary-exp) matches naive h-fold loop, both finite: max|diff|=4.547473508864641e-12, finite=True
+[PASS] N1 T_lin(21) in [0.20, 0.22] (pinned pass criterion): 0.21000000000000005
+[PASS] N1 T_lin(21) matches §5 recorded 0.2100 (cross-check): 0.21000000000000005
+[PASS] N1 (n2) old rule ADMITS under s1-calibrated threshold 0.37: T_lin=0.2100 < 0.37
+[PASS] N1 corrected T(21) > 10 (pinned pass criterion): 99.73770190239061
+[PASS] N1 corrected T(21) matches §5 recorded 99.74 (cross-check, precise 99.7377): 99.73770190239061
+[PASS] N1 corrected rule REJECTS at tau=0.2 (T(21) > tau): 99.73770190239061 > 0.2
+[PASS] N1 measured junk/signal > 1 (pinned pass criterion): 22.83060202452675
+[PASS] N2 construction: ||C||_2 == 0.01 exactly: 0.01
+[FAIL] N2 construction: D nilpotent, rho(D)=0, sigma_max(D)=100: rho(D)=22.360679774997898, sigma_max(D)=100.0
+[PASS] N2 (n1) e3 occupancy at steps 3, 11, AND 19 (all three): occupancy={3: True, 11: True, 19: True}
+[FAIL] N2 D^2 = 0 (nilpotent -- the actual annihilation mechanism): max|D^2|=500.0
+[FAIL] N2 j=4 injection term annihilated by D^17=0 (D^2=0 mechanism): term=[3.90625e+21 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00]
+[FAIL] N2 j=12 injection term annihilated by D^9=0 (D^2=0 mechanism): term=[6.25e+10 0.00e+00 0.00e+00 0.00e+00 0.00e+00 0.00e+00 0.00e+00 0.00e+00]
+[PASS] N2 j=20 injection term SURVIVES (D^1 . C . A^19 q): term=[1. 0. 0. 0. 0. 0. 0. 0.]
+[FAIL] N2 Z^21 fast (binary-exp) matches naive h-fold loop, both finite: max|diff|=268435456.0, finite=True
+  T_rho(21) [OLD, Rev-1]     = 10222802632119676947136512.000000
+  T_sigma(21) [corrected]    = 1.010101e+38
+  junk/signal = 3906250000062499782656.000000   cosine=0.000000  recovery@0.9=0.0
+[FAIL] N2 analytic recursion (3-term sum) matches direct Z^21 q E-perp component: max|diff|=524288.0
+[FAIL] N2 rho-based (OLD) T(21) <= 0.011 (pinned pass criterion): 1.0222802632119677e+25
+[FAIL] N2 rho-based T(21) matches §5 recorded 0.0100 -- falsely ADMITS (cross-check): 1.0222802632119677e+25
+[FAIL] N2 rho-based rule falsely ADMITS at tau=0.2 (T(21) <= tau): 1.0222802632119677e+25 <= 0.2
+[PASS] N2 corrected (sigma) T(21) > 1e30 (pinned pass criterion): 1.010101e+38
+[PASS] N2 corrected T(21) matches §5 recorded 1.010e38 (cross-check): 1.010101e+38
+[PASS] N2 corrected rule REJECTS at tau=0.2 (T(21) > tau): 1.010101e+38 > 0.2
+[FAIL] N2 measured junk/signal in [0.9, 1.1] (pinned pass criterion): 3.9062500000625e+21
+[FAIL] N2 measured junk/signal == 1.0 exactly (deterministic construction, cross-check): 3.9062500000625e+21
+[FAIL] N2 cosine matches §5 recorded 0.7071 = 1/sqrt(2) (cross-check): 2.55999999995904e-22
+
+==============================================================================
+RESULT: 17/29 checks passed. Overall: FAIL
+==============================================================================
+Process exit code: 1
+
+TEETH CONFIRMED: breaking the pinned D^2=0 construction (D=100*E01) by adding
+a second off-diagonal element (D[1,0]=5.0) causes 12/29 checks to fail
+(D-nilpotency, D^2=0, both annihilation checks, the fast-vs-naive matrix_power
+cross-check, the analytic-vs-direct recursion cross-check, both rho-based
+pass criteria, and all three junk/signal / cosine checks) and the process to
+exit nonzero (1). The mutated copy and its output directory
+(test_trust_rule_negative_MUTATED.py, test_trust_rule_negative_MUTATED_out/)
+were deleted from the scratchpad after this run; nothing mutated was ever
+written into this repo.
+
+================================================================================
+RUN 3 — RESTORED CLEAN RE-RUN (unmodified, committed script; two independent
+        re-invocations after the mutation was discarded, both diffed
+        byte-for-byte against RUN 1's captured stdout: IDENTICAL in both
+        cases, including all floating-point values to full repr precision)
+================================================================================
+Diff 1 (RUN 1 stdout vs first restored re-run stdout): no differences.
+Diff 2 (RUN 1 stdout vs second restored re-run stdout, captured last,
+        immediately before this file was reassembled): no differences.
+RESULT: 29/29 checks passed. Overall: PASS (both re-runs). Process exit
+code: 0 (both re-runs).
+
+================================================================================
+END OF RECORD
+================================================================================

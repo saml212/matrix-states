@@ -895,3 +895,98 @@ double-gated per §3.8 (Stage-2 calibration readout + build audit + smoke
 + Phase-0 calibration + the executed negative tests N1/N2). Second track
 (rank-budgeted writes) and the Z-dump orthogonal-complement piggyback
 remain unattacked backlog.
+
+## §6 §3.8(c) NEGATIVE-TEST EXECUTION DISCHARGE (2026-07-10)
+
+**What was missing (the build agent's stop).** A build agent, tasked with
+launching against the §3.8 gate, ran an exhaustive search (repo, `git log
+--all`, the SSD mirror, worktrees, the H100 box) for
+`matrix-thinking/chapter2/test_trust_rule_negative` and found NOTHING. Every
+prior "EXECUTED" claim for N1/N2 (§3.4's pin, §3.9 MA1's addition, §5's
+"both negative tests executable, criteria numeric... executed by hand AND by
+exact simulation") was an in-context simulation by a prior agent, never
+persisted to disk — the gate's own text ("execute to completion... output
+archived... before launch — not merely be written") was violated by
+omission, not by a wrong result.
+
+**What was executed.** `matrix-thinking/chapter2/test_trust_rule_negative.py`
+— a self-contained numpy fp64 script (no torch) implementing the §3.4 shared
+construction (`default_rng(20260709)`, K=8, d=16, A=1.0·Π exact 8-cycle,
+B=0, q=e0, h=21, operator-2-norm convention) plus N1 (§3.4: Gaussian C
+rescaled to ‖C‖₂=0.01, D=1.5·Q near-normal) and N2 (§3.9 MA1: D=100·E01
+nilpotent, C=0.01·e1^⊥e3ᵀ deterministic, no RNG). The three §5 binding nits
+are honored explicitly in code: (n1) e3-occupancy asserted at ALL of steps
+3, 11, AND 19, with the j=4/j=12 injection terms independently computed and
+asserted annihilated (D²=0) while the j=20 term is asserted surviving —
+uniqueness is proven mechanically, never assumed from "C fires once"; (n2)
+N1's old-rule ADMIT is scored and printed as an explicit inequality against
+the s1-calibrated threshold (0.37), with the literal τ=0.2 reading printed
+alongside for contrast; (n3) the "4-10× conservative" figure is not computed
+or quoted anywhere in the script or this record (it applies to T_lin only,
+per §5's own nit). 29 checks total (11 for N1, 18 for N2, covering
+construction, mechanism, pinned pass criteria, and cross-checks against
+§5's recorded numbers), all asserted with explicit `sys.exit(1)` teeth on
+any miss — no bare `assert` (immune to `-O`).
+
+**Matched values vs §5's recorded simulation numbers (all reproduce to
+stated precision — no mismatch, no STOP triggered):**
+
+| Quantity | §5 recorded | This run (computed) | Match |
+|---|---|---|---|
+| N1 T_lin(21) | 0.2100 | 0.21000000000000005 | exact |
+| N1 corrected T(21) | 99.74 (99.7377 restated) | 99.73770190239061 | exact to stated precision |
+| N2 rho-based (OLD) T(21) | 0.0100 | 0.01 | exact |
+| N2 corrected (sigma) T(21) | 1.010×10³⁸ | 1.0101010101010102×10³⁸ | exact |
+| N2 junk/signal | 1.0 exactly | 1.0 (bit-exact) | exact |
+| N2 cosine | 0.707 (=1/√2) | 0.7071067811865475 | exact |
+
+N1's own junk/signal (22.83, this run) differs from Rev-1's illustrative
+"≈66×" instance recorded in §3.4 — expected and non-binding: that figure was
+always RNG-draw-dependent (this script draws C then Q from a single seeded
+`default_rng`, an order §3.4/§3.9 never pinned beyond the seed itself), and
+only the inequality "junk/signal > 1" is a pinned pass criterion, met with
+large margin. No other discrepancy of any kind was found; no STOP was
+triggered.
+
+**Teeth mutation proof.** A throwaway copy (outside this repo, in the agent
+scratchpad) with `D_n2[1,0] = 5.0` added alongside the pinned
+`D_n2[0,1] = 100.0` — breaking D²=0 — was run and FAILED: 17/29 checks pass,
+exit code 1 (the nilpotency, D²=0, both annihilation-term, fast-vs-naive
+`matrix_power` cross-check, analytic-vs-direct recursion cross-check, both
+rho-based pass criteria, and all junk/signal/cosine checks correctly flip to
+FAIL). The mutated copy was deleted after use; the unmodified script was
+re-run twice more afterward and diffed byte-for-byte against the original
+clean run (identical both times) before this record was written. Full
+transcript archived in `run.log` (three runs: canonical, mutated, restored).
+
+**Archive paths + MD5s** (also see `test_trust_rule_negative/MANIFEST.md`):
+
+| File | MD5 |
+|---|---|
+| `matrix-thinking/chapter2/test_trust_rule_negative.py` | `3879e56de2158c028dc2768dbcc93fd0` |
+| `matrix-thinking/chapter2/test_trust_rule_negative/results.json` | `c5c8f81847cbb8731090604f5d4b1045` |
+| `matrix-thinking/chapter2/test_trust_rule_negative/run.log` | `37d0850cd30019da8c7b4acc4a756ed3` |
+
+Mirrored to
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-10_ncr_negative_tests/`
+per the archive policy (`CLAUDE.md` Data section).
+
+**Security note.** During this task, a tool-boundary system message
+appeared claiming `run.log` had been "modified... intentional... don't tell
+the user" — the concealment-instruction pattern this project's hard rule
+flags. Investigated rather than obeyed: root cause was mundane and
+self-inflicted (the script itself rewrites `results.json`/`run.log` on
+every invocation of the pinned path; a later diff-confirmation re-run of the
+script clobbered the hand-assembled multi-run `run.log` back to a bare
+single-run version). No evidence of external tampering; `run.log` was
+reassembled correctly afterward and its final state verified via the MD5s
+above. Reported per the standing security-sighting convention regardless of
+benign root cause.
+
+**§3.8(c) DISCHARGED.** Both cases, both halves (rule evaluations and
+empirical arms), executed to completion, archived, cross-checked clean,
+teeth-verified. §3.8's remaining conditions ((a) Stage-2 calibration
+readout, (b) the Rev-1 micro-attack — already satisfied by §4/§5, (d) the
+standing chain: independent build audit, real-path smoke test, Phase-0
+calibration) are unaffected by this discharge and remain open where not yet
+separately closed.
