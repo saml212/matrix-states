@@ -1,0 +1,89 @@
+{
+  "cell_id": "transformer_task1_stress_K48",
+  "arch": "transformer",
+  "task": "task1_calib",
+  "K": 48,
+  "role": "stress_locate_only",
+  "provenance": {
+    "path": "/data/h2h_rung1_ckpts/h2h_calib_transformer_task1_calib_stress_locate_only_K48_auxrev2_r4.pt",
+    "md5": "277653b0ba1693e644b14c6f431b9bc2",
+    "fresh": true,
+    "round": 4
+  },
+  "leg_a": {
+    "acc_A": 0.021809895833333332,
+    "chance": 0.020833333333333332,
+    "pass_bar": 0.0625,
+    "passed": false,
+    "cos_pred_episode_mean": 0.7410534831384817,
+    "hop_set": [
+      1
+    ],
+    "primary": true,
+    "baseline_comparable": true
+  },
+  "leg_a_secondary_h_test": null,
+  "rung2_identity_classifier": {
+    "accuracy": 0.0166015625,
+    "chance": 0.009345794392523364,
+    "pass_bar": 0.02803738317757009,
+    "passed": false,
+    "K": 48,
+    "n_classes": 107,
+    "tap_dim": 256,
+    "labels": "entity_identity",
+    "tap": "leg_b_pre_lm_head",
+    "n_train_steps": 300
+  },
+  "instrument_health": {
+    "positive_control": {
+      "identity_accuracy": 1.0,
+      "identity_pass_bar": 0.9,
+      "identity_passed": true,
+      "old_slot_labeled_accuracy": 0.019500000402331352,
+      "old_slot_labeled_chance": 0.020833333333333332,
+      "old_slot_labeled_reads_chance": true,
+      "n_classes": 107,
+      "n_slots": 48,
+      "tap_dim": 256,
+      "passed": true
+    },
+    "noise_null": {
+      "accuracy": 0.007000000216066837,
+      "chance": 0.009345794392523364,
+      "pass_bar": 0.014018691588785045,
+      "passed": true,
+      "native_tap_dim": 256,
+      "K": 107,
+      "n_train_steps": 300,
+      "n_eval": 2000
+    },
+    "passed": true
+  },
+  "leg_b_ridge": {
+    "lambda": 100.0,
+    "cos_mean": 0.11326658725738525,
+    "rf@0.5": 0.0,
+    "rf@0.6": 0.0,
+    "rf@0.7": 0.0,
+    "rf@0.8": 0.0,
+    "rf@0.9": 0.0,
+    "shuffled_control_cos_mean": 0.11278502643108368,
+    "gap_vs_shuffled_cos_mean": 0.0004815608263015747
+  },
+  "leg_b_ridge_harness_sanity_control": {
+    "lambda": 1e-06,
+    "cos_mean": 1.0,
+    "rf@0.5": 1.0,
+    "rf@0.6": 1.0,
+    "rf@0.7": 1.0,
+    "rf@0.8": 1.0,
+    "rf@0.9": 1.0,
+    "shuffled_control_cos_mean": -0.00304875778965652,
+    "gap_vs_shuffled_cos_mean": 1.0030487577896565,
+    "passed": true
+  },
+  "s0_necessity_check": null,
+  "rung1_positive_control_note": "selftest 17 in h2h_cell_train_rd.py (planted-answer, the K-restricted gather+argmax construction) -- a standing code-level unit test, not re-run per-cell",
+  "wall_s": 379.72379207611084
+}

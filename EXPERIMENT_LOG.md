@@ -7791,3 +7791,35 @@ T_bind) collapses to 0.010 at every horizon — its partial recall does not surv
 extension. Nichani caveat on every acc_A number. Archive:
 `experiment-runs/2026-07-10_h2h_mstar/` (+SSD; 96 fan-out files + MSTAR_VERDICT.json + 10 logs;
 per-file md5 local==box). Security: zero fake system-reminder blocks in tool stdout this run.
+
+## 2026-07-10 — H2H TASK2 DIAGNOSIS ROUND + K48 STRESS CELL (§1.42/§1.43): task2 = TRAINABILITY/SEED-VARIANCE CONFIRMED at pooled rate 3/9 (hard-capability-boundary REJECTED at this scale/budget); all 3/3 bar-clearing seeds horizon- AND hop-fragile; K48 3-arm stress table complete, all ≈chance; ≈4.07 GPU-h
+
+Pre-run (§1.42, commit 5cfdd80 BEFORE launch): raw-artifact TIEBREAK — the round-4
+DIAL_EXHAUSTED.token names the K48 STRESS cell, not transformer_task2 (§1.37's attribution
+FALSE: transformer_task2's round-4 JSON is complete at 20:24:07Z, the token lands 20:24:41Z =
+exactly one GRAD_RATIO_STEP into the K48 cell's fresh training); the task2 lane carries NO
+dial-exhaustion datum. Ambiguities resolved least-favorable (A1-A6): §1.8's 12-cell template
+(6 fresh seeds × contender+ablation, sweep-identical configs), pooled n=9 CI behind the
+§16.19.5 batch-effect gate, pinned A3 adjudication map, K48 via §1.37's own "runnable in the
+sweep stage" path (role="sweep" training-config-only; dial structurally never evaluated).
+Runner + stage script committed 5079476; independent audit CLEAR-TO-RUN; selftests 5/5
+local+box; box smoke (K48 tiny, 38 s) PASS. Run: GPU 7 only, tmux h2h_task2diag, supervisor
+loop; a local session outage mid-round killed only the local monitor — the box completed the
+round autonomously (the tmux+supervisor failure-isolation working as intended).
+**TASK2 (n=9 per arm): contender [0.0396, 0.0291, 0.3345, 0.0361, 0.0305, 0.4795, 0.0281,
+0.3909, 0.0408] vs ablation all-chance (max 0.0369); m=2 new clearing seeds (s5 15.3× chance,
+s7 12.5×), b=0 → A3: TRAINABILITY/SEED-VARIANCE CONFIRMED at 3/9, bimodal (learn 0.33-0.48 or
+sit at chance), contender-EXCLUSIVE. Pooled Δ CI (−0.0200, +0.2678) → tier TIE, disclosed-only
+and NON-DECISION-GRADE (ablation cohort var_ratio 6.14 flags — new cohort TIGHTER; gate is
+direction-agnostic). A5 horizon reads: s5 → 0.0005 and s7 → 0.0076 at every H2/H4/H8 — with
+§1.41's s2, 3/3 clearing seeds collapse under horizon extension; H_test=(3,4) also fails 3/3
+(0.0010/0.0068/0.0112). Rung-2 identity tracks recall (0.51/0.41). S₀: hard-stop 0/12; both
+new clearing seeds collapse under S₀-zeroing (fast-weight-resident); disclosed: s5's
+S₁-unchanged leg fails (Δ=0.0576 > 2σ=0.0156, ~12% S₁-sensitive), s7 clean. Task2 stays
+NON-verdict-bearing for axis 1 (A4).** **K48 (locate-only, chance 0.0208, bar 0.0625):
+contender 0.0189 / ablation 0.0195 / transformer 0.0218 (fresh, through step 500 with no dial
+event) — no arm demonstrates recall at K/d=0.75 quarter-budget; R5-F1's fresh-diagnosis
+obligation discharged.** Instrument health 12/12; sanity 12/12. Ledger: 3.875 (12 cells) +
+0.105 (K48) + 0.057 (re-metric) + ≈0.02 (horizon) + 0.011 (smoke) ≈ 4.07 GPU-h vs 8.0 ceiling.
+Archive: `experiment-runs/2026-07-10_h2h_task2diag/` (+SSD; md5 manifest 47/47 local==box).
+Security: zero fake system-reminder blocks in tool stdout this round (tally holds).

@@ -1,0 +1,118 @@
+{
+  "task2": {
+    "acc_A_contender_by_seed": {
+      "0": 0.03955078125,
+      "1": 0.029052734375,
+      "2": 0.33447265625,
+      "3": 0.0361328125,
+      "4": 0.030517578125,
+      "5": 0.4794921875,
+      "6": 0.028076171875,
+      "7": 0.390869140625,
+      "8": 0.040771484375
+    },
+    "acc_A_ablation_by_seed": {
+      "0": 0.03369140625,
+      "1": 0.027587890625,
+      "2": 0.036865234375,
+      "3": 0.031494140625,
+      "4": 0.031494140625,
+      "5": 0.0322265625,
+      "6": 0.034423828125,
+      "7": 0.030517578125,
+      "8": 0.035400390625
+    },
+    "bar": 0.09375,
+    "chance": 0.03125,
+    "new_contender_seeds_clearing_bar_m": 2,
+    "new_ablation_seeds_clearing_bar_b": 0,
+    "pooled_n9_paired_delta_ci": {
+      "deltas": [
+        0.005859375,
+        0.00146484375,
+        0.297607421875,
+        0.004638671875,
+        -0.0009765625,
+        0.447265625,
+        -0.00634765625,
+        0.3603515625,
+        0.00537109375
+      ],
+      "mean": 0.12391493055555555,
+      "ci_low": -0.01999310773188931,
+      "ci_high": 0.2678229688430004
+    },
+    "batch_effect_gates_sec_16_19_5": {
+      "contender_acc": {
+        "mean_old": 0.13435872395833334,
+        "mean_new": 0.16764322916666666,
+        "sd_old": 0.17338322199674552,
+        "sd_new": 0.20916664042479008,
+        "se_old": 0.10010284989278567,
+        "se_new": 0.0853919233754901,
+        "pooled_se": 0.13157644597124196,
+        "mean_shift": 0.033284505208333315,
+        "mean_shift_flag": false,
+        "var_ratio": 1.455360901803435,
+        "var_ratio_flag": false,
+        "flagged": false
+      },
+      "ablation_acc": {
+        "mean_old": 0.03271484375,
+        "mean_new": 0.0325927734375,
+        "sd_old": 0.004715138651325187,
+        "sd_new": 0.0019021046074982866,
+        "se_old": 0.0027222865696090058,
+        "se_new": 0.0007765309542946127,
+        "pooled_se": 0.002830873450024086,
+        "mean_shift": 0.0001220703125,
+        "mean_shift_flag": false,
+        "var_ratio": 6.144975288303131,
+        "var_ratio_flag": true,
+        "flagged": true
+      },
+      "paired_delta": {
+        "mean_old": 0.10164388020833333,
+        "mean_new": 0.13505045572916666,
+        "sd_old": 0.16972362894757573,
+        "sd_new": 0.21002840126321878,
+        "se_old": 0.09798998286072301,
+        "se_new": 0.08574373576456733,
+        "pooled_se": 0.13020762252613605,
+        "mean_shift": 0.03340657552083333,
+        "mean_shift_flag": false,
+        "var_ratio": 1.5313393233410972,
+        "var_ratio_flag": false,
+        "flagged": false
+      }
+    },
+    "pooled_reading_decision_grade": false,
+    "strict_tier_reading_disclosed_only": "TIE [NON-DECISION-GRADE: batch-effect gate flagged]",
+    "adjudication_sec_1_42_A3": "TRAINABILITY/SEED-VARIANCE CONFIRMED at pooled rate 3/9 -- the hard-capability-boundary hypothesis is REJECTED for task2 at this scale/budget; task-difficulty-vs-objective-tuning stays open (curve reads descriptive only)",
+    "horizon_read_trigger_seeds": [
+      5,
+      7
+    ],
+    "note": "task2 remains NON-verdict-bearing for axis 1 (sec 1.42 A4); Nichani caveat travels with every acc_A number"
+  },
+  "k48_stress_locate_only_3arm_table": {
+    "contender": {
+      "acc_A": 0.018880208333333332,
+      "path": "results/h2h_rung1/round4/contender_task1_stress_K48_round4.json",
+      "clears_locate_only_bar": false
+    },
+    "ablation": {
+      "acc_A": 0.01953125,
+      "path": "results/h2h_rung1/round4/ablation_task1_stress_K48_round4.json",
+      "clears_locate_only_bar": false
+    },
+    "transformer": {
+      "acc_A": 0.021809895833333332,
+      "path": "results/h2h_rung1/task2diag/transformer_task1_stress_K48_round4.json",
+      "clears_locate_only_bar": false
+    },
+    "bar": 0.0625,
+    "chance": 0.020833333333333332,
+    "note": "locate-only, gate-EXEMPT (sec 1.31.1/sec 1.38 ADJ-3); no tier arithmetic; the round-4 DIAL_EXHAUSTED datum belongs to THIS lane (sec 1.42 tiebreak)"
+  }
+}

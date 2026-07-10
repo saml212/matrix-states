@@ -1,0 +1,62 @@
+{
+  "task2_sweep|s5|H2": {
+    "acc_A": 0.00048828125,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 454,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s5|H4": {
+    "acc_A": 0.00048828125,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 902,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s5|H8": {
+    "acc_A": 0.00048828125,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 1798,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s7|H2": {
+    "acc_A": 0.007080078125,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 454,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s7|H4": {
+    "acc_A": 0.007568359375,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 902,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  },
+  "task2_sweep|s7|H8": {
+    "acc_A": 0.007568359375,
+    "chance": 0.03125,
+    "demonstration_bar": 0.09375,
+    "recovered_frac": 0.0,
+    "horizon_tokens": 1798,
+    "n_queries": 4096,
+    "cap_length": null,
+    "n_episodes": 128
+  }
+}

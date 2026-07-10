@@ -4997,3 +4997,108 @@ round4.json` + `TASK2DIAG_VERDICT.json` + logs), tmux `h2h_task2diag`
 with the standing self-healing supervisor + STOP sentinel; archive to
 `experiment-runs/2026-07-10_h2h_task2diag/` (repo ≤25MB + SSD mirror).
 Verdict record lands as §1.43 BEFORE any dependent claim.
+
+### 1.43 TASK2 DIAGNOSIS ROUND + K48 STRESS CELL — VERDICT OF RECORD (2026-07-10): **TRAINABILITY/SEED-VARIANCE CONFIRMED at pooled rate 3/9 (A3 map, m=2, b=0) — the hard-capability-boundary hypothesis is REJECTED for task2 at this scale/budget**; all 3/3 bar-clearing seeds are horizon-fragile AND held-out-hop-fragile; K48 3-arm stress table complete (all ≈chance); realized ≈4.07/8.0 GPU-h
+
+Full artifact set: `experiment-runs/2026-07-10_h2h_task2diag/` (12 training
+JSONs + 12 verdict-grade re-metric JSONs + the K48 cell JSON +
+`TASK2DIAG_VERDICT.json` + the s5/s7 horizon refs + all logs + md5
+manifest, **47/47 files local==box verified**; SSD mirror). Ran per the
+§1.42 pre-registration on GPU 7 in tmux `h2h_task2diag` (supervisor
+loop), launched 17:55:54Z 2026-07-10 (§1.42 committed `5cfdd80` BEFORE
+launch; runner `5079476`, independent audit CLEAR-TO-RUN, box smoke 38 s).
+A local session outage mid-round killed the local monitor only — the
+on-box tmux+supervisor ran the round to completion autonomously
+(TASK2DIAG_STOP written 15:00Z box time), the intended failure isolation.
+
+**TASK2 — the §1.42 A1 12-cell seed extension (pooled n=9, frozen
+§1.31.1 metric/bar/tiers, audited `run_cell_round4` re-metric, md5
+provenance pinned, EVAL_SEED episodes identical across arms/seeds):**
+
+| seed_idx | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| contender acc_A | 0.0396 | 0.0291 | **0.3345** | 0.0361 | 0.0305 | **0.4795** | 0.0281 | **0.3909** | 0.0408 |
+| ablation acc_A | 0.0337 | 0.0276 | 0.0369 | 0.0315 | 0.0315 | 0.0322 | 0.0344 | 0.0305 | 0.0354 |
+
+(s0-2 = the §1.40 sweep cohort, re-read from its own archived re-metric;
+s3-8 = this round, fresh. Bar 0.09375 = 3× chance.)
+
+- **A3 adjudication (the pinned decision output): m=2 of 6 new contender
+  seeds clear the bar (s5=0.4795 at 15.3× chance, s7=0.3909 at 12.5×);
+  b=0 of 6 new ablation seeds** (all nine ablation seeds sit at chance,
+  max 0.0369) → **"TRAINABILITY/SEED-VARIANCE CONFIRMED at pooled rate
+  3/9 — the hard-capability-boundary hypothesis is REJECTED for task2 at
+  this scale/budget; task-difficulty-vs-objective-tuning stays open."**
+  The pattern is bimodal, not graded: seeds either learn substantial
+  partial recall (0.33-0.48) or sit exactly at chance (0.028-0.041) —
+  an optimization/basin story, and it is contender-EXCLUSIVE (0/9
+  ablation seeds ever leave chance).
+- **Pooled n=9 paired Δ CI (t=2.306 pinned): mean 0.1239, CI (−0.0200,
+  +0.2678)** → strict-tier reading TIE (CI inside ±0.30) — **disclosed
+  only and NON-DECISION-GRADE per the §1.42 A2 gate:** the ablation-arm
+  acc cohort flags var_ratio=6.14>4.0 (old sd 0.0047 vs new sd 0.0019 —
+  the new cohort is TIGHTER; the gate is direction-agnostic and fires
+  regardless, so the pooled tier is reported but never decision-grade).
+  contender/paired-delta cohorts unflagged (var_ratio 1.46/1.53, mean
+  shifts inside 2×pooled-SE). Task2 remains NON-verdict-bearing for
+  axis 1 (§1.42 A4; the §1.40 task1-primary WIN is untouched).
+- **A5 horizon reads (uncapped, H2/H4/H8): s5 → 0.0005/0.0005/0.0005;
+  s7 → 0.0071/0.0076/0.0076.** With §1.41's s2 (0.334→0.010), **all 3/3
+  bar-clearing seeds collapse under buffer-filler horizon extension** —
+  the learned partial recall is T_bind-local, now a replicated mechanism
+  finding, not a one-seed anecdote.
+- **Held-out hops (disclosed secondary, H_test=(3,4)): s5=0.0010,
+  s7=0.0068** (s2 was 0.0112) — 3/3 also fail hop generalization. The
+  partial recall is train-hop-local as well.
+- **Rung-2 identity decode tracks Leg-A recall** (s5: 0.5066, s7:
+  0.4072, vs chance 0.028), reproducing §1.40's s2 pattern (0.3364).
+- **S₀-necessity: hard-stop fires in 0/12 cells (clean).** Both
+  bar-clearing new seeds COLLAPSE under S₀-zeroing (s5: 0.4795→0.0337;
+  s7: 0.3909→0.0271 — the recall is fast-weight-resident). Honest
+  instrument disclosure: **s5's S₁-unchanged leg FAILS** — Δ(S₁-zeroed)
+  = 0.0576 > 2σ=0.0156 (acc 0.4795→0.4219): ~12% of s5's recall is
+  S₁-sensitive; s7 is clean (Δ=0.0020). Not a hard-stop event (collapse
+  is what the §1.31.2 hard-stop keys on), recorded as mechanism data.
+- Instrument health 12/12 both directions; ridge harness sanity 12/12.
+- Training config identity: 20000 steps, budget_frac=1.0, lr=3e-4,
+  K=32(task_cfg-pinned), aux 2.0/ce_answer 1.0, seeds
+  `rd_episode_seed("task2_sweep", i, 0)` identical across arms per
+  seed_idx — byte-identical knobs to the §1.38 sweep cohort (§1.42 A1).
+
+**K48 STRESS CELL (locate-only, gate-EXEMPT, chance 0.02083, bar
+0.0625): the 3-arm K/d=0.75 table is COMPLETE — no arm demonstrates
+recall at the stress load:**
+
+| arm | acc_A | source |
+|---|---|---|
+| contender | 0.0189 | round-4 re-metric (frozen round-3 ckpt) |
+| ablation | 0.0195 | round-4 re-metric (frozen round-3 ckpt) |
+| transformer | **0.0218** | THIS round (fresh, §1.42 A6 sweep-stage path) |
+
+The fresh cell trained 5000 steps (quarter budget) straight through
+step 500 with NO dial event (the AUD2-F4 role="sweep" structural guard,
+exactly as every §1.40 verdict cell trained) — the §1.42 tiebreak
+stands: the round-4 DIAL_EXHAUSTED was this lane's instrument datum and
+is now discharged (R5-F1's fresh-diagnosis obligation met by
+§1.42+§1.43). K48 rung-2 identity 0.0166 ≈ chance; instrument health
+PASS; the item-[11] row-chunked tap ran the real K=48 fit without
+incident. Interpretation stays locate-only: at K/d=0.75, 1/4 budget,
+NO arm (matrix, flat-vector, or transformer) demonstrates recall — a
+disclosed stress boundary for ALL arms, never a separation claim.
+
+**Ledger:** 12 training cells 13,950.4 s (3.875 GPU-h; contender ≈759
+s/cell, ablation ≈1567 s/cell) + K48 cell 379.7 s (0.105) + re-metric
+205.0 s (0.057) + horizon refs ≈0.02 + box smoke 38 s (0.011) →
+**≈4.07 GPU-h realized vs the 8.0 ceiling** (§1.42's ≈4.1 estimate, on
+the nose). GPU 7 only, as assigned.
+
+**What this changes (claim-language input, per A4 nothing upgrades):**
+the §1.31.1/§1.38 task2 joint-failure-TIE rationale ("deterministic
+failure") is now REPLACED by the diagnosis: task2 is a HIGH-VARIANCE
+TRAINABILITY problem for the contender (3/9 seeds reach 10-15× chance;
+0/9 ablation seeds ever do) whose learned solution is local to the
+trained binding window and trained hop depths. Any future task2 claim
+must quote the 3/9 rate with the bimodal table, the horizon/hop
+fragility, and the Nichani caveat. The natural follow-on (NOT run here,
+not pre-registered): a curriculum/objective iteration targeting the
+basin-entry rate — PI-gated, outside this round's §1.42 scope.
