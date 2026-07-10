@@ -544,6 +544,29 @@ Arm-1 retrain + the 11-cell calibration gate LAUNCHED (tmux
 §2.24/§2.26). Next: harvest the calibration readout (separate
 dispatch); the 57-cell sweep stays gated on it (§2.8 items 2-3).**
 
+**UPDATE (2026-07-10, §2.27-§2.30 — CALIBRATION COMPLETE, SWEEP
+LAUNCHED):** the wave crash-looped THREE times, each halt one latent
+defect, each fixed + independently audited + regression-tested +
+recorded before relaunch: §2.27 the 2(e) anchor's CPU-vs-CUDA device
+boundary (audit PASS: CPU bit-identity + box-CUDA kill proof); §2.28
+the fixed-depth coverage instrument structurally cannot calibrate
+S5/A6 at D∈{2,3} (the S2.20-m4 class extended — pinned exclusions,
+teeth both ways, 35-point grid audit-verified; completed cells
+adjudicated NOT tainted); §2.29 the per-cell budget breaker's uniform
+ceiling never carried §2.7 Rev 2's own step-budget axis and
+structurally aborted healthy A6-40K cells (anchor-scaled ceiling,
+audit CLEARED, ≤8K behavior byte-identical). **GATE VERDICT (§2.30):
+SWEEP-READY — 2(e) route=pass 11/11 at all 7 depths, rate 0.0433
+GPU-h/cell in-band, projection 2.47 vs cap 25 — and the remainder
+sweep is LAUNCHED (51 distinct cells after the §2.29-found cell_id
+collision dedupe; tmux `stage2_sweep`, 7 shards on GPUs 0-6, GPU 7
+left for task2-diagnosis; `stage2_sweep_worker.py` audited).**
+DISCLOSED: the 1-seed M-D3 preview is FALSIFY-shaped with anomalously
+low M-D0 ceilings (A6 0.00, S5 0.10) — non-decisional by
+registration, launch decision recorded at §2.30 item 4a, and the
+§1.25 instrument-defect precedent is a first-class §2.31 harvest
+question. Next: sweep completion → full-grid harvest = §2.31.
+
 ### 6. Novel-Architecture Waterfall (opened 2026-07-09, stages 1-2 RETURNED)
 
 A fresh brainstorm→research waterfall (CLAUDE.md process) on candidate

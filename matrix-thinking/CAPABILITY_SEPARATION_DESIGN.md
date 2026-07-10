@@ -7004,3 +7004,160 @@ abort is recorded in the box's `stage2_calib2_wave.log` (pulled at
 harvest). Pointers: `stage2_run.py::ANCHOR_STEPS` +
 `check_per_cell_projection` (the fix), `stage2_run.smoke()` S2.29
 block (the teeth).
+
+### §2.30 CALIBRATION-WAVE GATE VERDICT (2026-07-10): SWEEP-READY — 2(e) route=pass 11/11 AT ALL 7 DEPTHS, RATE 0.0433 GPU-h/CELL IN-BAND, PROJECTION 2.47 vs CAP 25; THE REMAINDER SWEEP IS AUTHORIZED AND LAUNCHED (51 DISTINCT CELLS, tmux `stage2_sweep`, GPUs 0-6)
+
+**1. WAVE COMPLETE.** `CALIB_WAVE_DONE` written 2026-07-10T19:35:50Z;
+11/11 cell JSONs, `stage2_harvest.py --calibration-only` manifest
+verification CLEAN (expected=11, loaded=11, zero config-match
+problems). Total training ledger ≈0.476 GPU-h (sum of wall_clock_s);
+wave wall 17:41→19:35Z on GPU 0 including the §2.28/§2.29 halts and
+CPU-side evals. The three-leg history: leg 1 (§2.27) cells 1-6, leg 2
+(§2.28) cells 7-8, leg 3 (§2.29) cells 9-11 — each leg's halt peeled
+one latent defect, each fixed + independently audited + regression-
+tested before relaunch.
+
+**2. THE 2(e) DECISION TABLE (the §2.8 item-2 gate object).** ALL 11
+cells: `gate_route = pass`, all 7 pinned probe depths gated, anchor
+floor healthy everywhere. Worst-depth bar ratios (min over depths of
+T/T_anchor and R/R_anchor; bar = 0.25):
+
+| cell | worst D | T/Tₐ | R/Rₐ |
+|---|---|---|---|
+| S3 arm2 | 32 | 4.457 | 1.292 |
+| S3 arm3 | 1 | 4.666 | 7.422 |
+| S4 arm2 | 8 | 0.632 | 1.170 |
+| S4 arm3 | 8 | 2.950 | 1.898 |
+| A5 arm2 | 16 | 0.410 | 0.633 |
+| A5 arm3 | 2 | 1.156 | 1.492 |
+| S5 arm2 | 64 | 1.130 | 1.352 |
+| S5 arm3 (n_h=2) | 2 | 1.481 | 0.850 |
+| S5 arm3 (n_h=4, promoted) | 1 | 1.774 | 2.551 |
+| A6 arm2 | 8 | 0.722 | 0.872 |
+| A6 arm3 | 4 | 0.810 | 0.899 |
+
+Every ratio ≥ 0.41 vs the 0.25 bar — no BOS-row routing, no mechanism
+diagnostics, no ceiling demotions needed. The §1.30-class degeneracy
+this gate exists to catch is ABSENT in every trained cell.
+
+**3. REAL-RATE RE-DERIVATION (§2.8 item 3, superseding §2.7's planning
+band).** Measured 0.0433 GPU-h/cell (11-cell wall_clock_s basis) —
+INSIDE the 0.018-0.054 band (no grid-growing trigger; no re-scope).
+Remainder projection 57 × 0.0433 = 2.47 GPU-h vs the 25 GPU-h cap
+(`check_stage2_sweep_projection` re-run at launch by every worker, its
+`Stage2BudgetAbort` teeth untouched).
+
+**4. M-D0 RECALIBRATION READOUT + THE M-D3 SINGLE-SEED PREVIEW,
+DISCLOSED (not decisional).** The real M-D0 ceilings at D=8 are LOW:
+S3 0.70, S4 0.10, A5 0.20, S5 0.10, A6 0.00 (recovered_frac_90;
+seed-0 single cells). Consequently the harvest's M-D3 machinery, run
+on the calibration cells alone, previews FALSIFY-shaped (no
+contender-vs-Arm-2 separation at S5/A6's far checkpoint — largely
+vacuous at near-zero ceilings). PINNED HERE: this is a 1-seed preview
+on 11 cells; the M-D3 endpoint is PRE-REGISTERED on the full grid at
+its pinned seed counts (§2.1/§2.6) and is NOT decided by this
+preview in either direction. FALSIFY is itself a registered,
+publishable verdict; the sweep is the instrument that measures it
+properly. The design deliberately declined to pin an M-D0 numeric bar
+pre-launch ("bar VALUE is a post-launch recalibration decision") —
+the recalibration decision recorded here is: PROCEED, ceilings
+disclosed, the hard/disclosed band split unchanged, with the §2.28
+exclusions in force (S5/A6 hard band effectively D∈{4,5}).
+
+**4a. THE LAUNCH DECISION ON THE FALSIFY-SHAPED PREVIEW (recorded
+explicitly — the launcher auditor's Finding 2, resolved here, not
+waved through).** Decision: PROCEED. Basis: (i) the sweep's
+pre-registered launch gate is §2.8 items 2-3 (instrument health +
+budget) — both pass; the M-D3 read was never a launch-gate input, by
+design (the auditor's own reading concurs: "the worker isn't
+violating the letter of the pre-registered process"). (ii) The M-D3
+endpoint is registered on the FULL grid at pinned seed counts; a
+1-seed preview deciding it — in EITHER direction — would be exactly
+the single-seed inference this project's rules prohibit. (iii)
+FALSIFY is a pre-registered, publishable verdict; the sweep is the
+instrument that measures it at evidentiary strength. (iv) Marginal
+cost 2.47 GPU-h against an otherwise-idle uptime-metered box under
+the PI's standing no-idle directive. (v) The anomalous ceilings
+(A6 0.00, S5 0.10) are FLAGGED as a first-class §2.31 harvest
+question with the §1.25 precedent explicitly cited: near-zero
+recovered_frac at healthy 2(e) gates is exactly the signature that
+was once an INSTRUMENT defect, not a model failure — the full grid's
+seed variance + M-D2 rank curves are the diagnosis data, and §2.8's
+three-way routing (instrument-defect → fix+re-run) governs the
+harvest. (vi) The coordinator's standing directive authorizes launch
+conditional solely on SWEEP-READY; the sweep is resume-safe and
+STOP-able (`STOP_stage2_sweep`) at any moment if the PI overrides at
+check-in.
+
+**5. CELL-COUNT ADJUDICATION (the §2.29 auditor's incidental
+finding, resolved before launch).** `build_primary_grid` +
+`build_nh_grid` emit 68 cell OBJECTS but 62 DISTINCT cell_ids — the 6
+collisions are (S5/A6, arm3_beta02, n_h=2, seed 0-2), verified
+IDENTICAL configs listed in both grids. They are the same experiment;
+they run ONCE. The registry's "57-cell remainder" is therefore 51
+distinct runs (62 − 11 calibration). The ledger projection
+conservatively still prices 57. `stage2_harvest.py`'s expected-id
+manifest is set-based (62) and unaffected.
+
+**6. VERDICT: SWEEP-READY → THE REMAINDER SWEEP IS AUTHORIZED,
+citing §2.24 (build chain CLEARED) + §2.26 (composer exonerated, fla
+cross-check 3/3) + §2.28/§2.29 (in-flight fixes independently
+audited) + this record's items 2-3.** Launch wiring (the §2.24-era
+deferral now discharged): NEW `stage2_sweep_worker.py` — a minimal
+composition of EXCLUSIVELY audited components (grids,
+`run_cell_resume_safe(strict_real=True)`, `run_real_cell`,
+`check_stage2_sweep_projection`, the PI-signoff gate), deduping by
+cell_id, deterministic 7-way sharding (disjoint, race-free: per-cell
+atomic outputs + per-cell checkpoints), per-cell try/except so one
+crash never kills a shard (CLAUDE.md sweep rule), nonzero exit on any
+failure so the supervisor retries with resume-safety. Box supervisor
+`stage2_sweep_supervisor.sh`: ONE tmux session `stage2_sweep`, 7
+self-healing shard loops on GPUs 0-6 (GPU 7 left free for the
+task2-diagnosis agent; 7 concurrent cells ≪ the 25-cell concurrency
+cap), per-shard 20-fail bail, `STOP_stage2_sweep` sentinel,
+`SWEEP_DONE`/`SWEEP_FAILED` markers.
+`CAPABILITY_SEP_STAGE2_PI_SIGNOFF=1` set citing the §§ above. Local
+structural smoke run to completion: 62/11/51 arithmetic verified,
+shards partition disjointly [8,8,7,7,7,7,7], rate re-derivation from
+the pulled wave results reproduces 0.0433, projection 2.4673 OK,
+signoff-refusal teeth, missing-calibration-basis refusal teeth (one
+launch-blocking bug — a wrong projection dict key that would have
+crashed every worker at startup — was caught BY this smoke and fixed
+before commit).
+
+**6a. INDEPENDENT LAUNCHER AUDIT (fresh-context, on the two
+uncommitted files): code CLEARED on every mechanical check;
+NEEDS-FIXES on two PROCESS findings, both resolved in this record
+before launch.** What the auditor ran, all PASS: grid dedupe (68
+objects → 62 distinct, the 6 collisions verified byte-identical
+configs), sharding (disjoint, complete, 51), signoff refusal,
+loud rate-re-derivation failure on a missing basis, independent
+reproduction of 0.0433/2.4673, Stage2BudgetAbort teeth at over-cap
+AND at the exact boundary, a monkeypatched mid-shard-failure drive
+proving no cell is skipped after a failure + nonzero exit,
+resume-safety (real output skipped; tiny-tagged rejected under
+strict_real), shared-state/file-collision sweep (per-cell paths only;
+process-local lru_cache), and the supervisor shell (bash -n clean,
+shellcheck info-only, GPU 7 never referenced, no pkill, correct
+pids/wait/bail/sentinel semantics). Finding 1 (BLOCKING): the files
+cite a §2.30 record that did not yet exist in the repo — CURED BY
+ORDERING: this §2.30 record is committed BEFORE the launch (the
+record-first rule; the auditor independently re-derived every number
+this record certifies from the raw wave outputs and found them
+true). Finding 2 (material): the FALSIFY-shaped calibration preview
+deserved an explicit recorded launch decision — RESOLVED at item 4a
+above. Auditor security note: zero injection sightings.
+
+**7. SECURITY.** Zero fake system-reminder blocks in tool stdout this
+segment. Tally holds at 84.
+
+**Archive:** `experiment-runs/2026-07-10_stage2_calibration/` — new:
+`wave_results/` (all 11 cell JSONs + `stage2_harvest_report.json`,
+committed — the gate's raw basis), `gate_verdict_table.log`,
+`stage2_calib2_wave.log` + `stage2_calib2_supervisor.log` (the full
+three-leg history incl. both halts), `stage2_sweep_supervisor.sh`;
+SSD-mirrored. Pointers: `stage2_sweep_worker.py` (the launch wiring),
+`stage2_harvest.py --calibration-only` (the manifest verifier). NEXT:
+sweep completion → the FULL-GRID harvest (M-D1/M-D2/M-D3 at
+registered seed counts) = §2.31, honoring the §2.28 exclusions and
+the arm1-exposure scope note in any Arm-1 depth comparison.
