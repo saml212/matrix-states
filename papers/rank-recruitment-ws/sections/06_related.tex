@@ -11,9 +11,10 @@ effective-rank dynamics in pretrained linear-attention models
 observationally (an \emph{upper} bound $\rank(S_t) \leq t$); here the
 write count is controlled and necessity is causal. \citet{mishra2026m2rnn} train matrix-state RNNs on $S_3$ with no rank
 measurement or intervention (their own vector-state control matches);
-\citet{grazzi2025negative} and \citet{siems2025deltaproduct}
-characterize the per-token \emph{transition} operator, not the trained
-\emph{state's} own rank, the quantity here. Continuous-CoT capacity
+\citet{grazzi2025negative} and \citet{siems2025deltaproduct} (the
+Householder extension of \citealp{yang2024deltanet}) characterize the
+per-token \emph{transition} operator, not the trained \emph{state's}
+own rank, the quantity here. Continuous-CoT capacity
 results are existence constructions, not measurements
 \citep{zhu2025superposition,gozeten2025cot2}; the
 compositional-generalization caution
@@ -21,11 +22,18 @@ compositional-generalization caution
 eigenstructure match.
 
 \textbf{Limitations.} Every experiment is synthetic and under 1M
-parameters; generality at scale is untested.
+parameters; generality at scale, and across state-writing architectures
+(recurrent fast-weight, attention-readout, associative-memory), is
+untested.
 % <!-- evidence: R9 -->
-The force-rank contrast rests on one converged rank-starved seed, the
-$d \geq 48$ frontier cells on single seeds. Registered falsifiers:
-force-rank-$(K{-}1)$ at $\geq 0.9\times$ ceiling at multiple $(d, K)$
-points, or a $d \geq 32$ cell clearing the 0.7 bar. A concurrent
-companion submission covers group-composition state tracking, sharing
-no figures or headline claims.
+The depth-amplification contrast rests on the single converged
+force-rank-$(K{-}1)$ seed; the other two at that cell collapsed under
+a documented numerical instability in the spectral-projection backward
+pass, so it is a case study consistent with the spectral prediction,
+not an $n{>}1$ mechanism; the $d \geq 48$ frontier cells rest on
+single seeds. The registered falsifiers stand
+(Appendix~\ref{app:repro}). A concurrent companion submission
+(group-composition state tracking) shares no figures or tables but
+restates this paper's recruitment, causal-necessity, and composition
+numbers as background for its distinct contribution, a group-dimension
+rank law this paper does not make.

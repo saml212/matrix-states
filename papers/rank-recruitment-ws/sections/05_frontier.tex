@@ -22,8 +22,8 @@ pre-registered bar.
 \textbf{The frontier that survives} is not a trainability wall but an
 \emph{exactness} frontier. Fixing $K = d/4$ at encoder width $h = 64$
 (every cell confirmed flat before being read as converged), mean
-recovery cosine falls monotonically
-from $\approx 1.00$ at $d{=}16$ to 0.877/0.909/0.915 at $d{=}32$ (three
+recovery cosine falls monotonically across $d$:
+0.877/0.909/0.915 at $d{=}32$ (three
 seeds, 100K steps), 0.7196 at $d{=}48$ (100K), and 0.3882 at $d{=}64$
 (150K); the exact-match metric is harsher, with $\recninety$
 0.413/0.632/0.653 at $d{=}32$ (all below the pre-registered 0.7 pass

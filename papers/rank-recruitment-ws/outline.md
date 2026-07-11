@@ -48,6 +48,29 @@ exactly 4pp:
 - The depth-curve table moved to Appendix A (as previously noted).
 - Both figures regenerated at onecolumn-native size (5.6in wide).
 
+## Gauntlet round-1 amendments (2026-07-10, FIX-1..8 applied)
+
+All eight rebuttal fixes applied (see `gauntlet/round-1/04_rebuttal_report.md`)
+plus the MUST-CITE (DeltaNet, `yang2024deltanet`, verified vs arXiv + DBLP —
+the rebuttal's from-memory author list was wrong and corrected during
+verification). Page-fit consequences, all content-preserving at the claim
+level:
+
+- The rebuttal's designated reserve cut applied: the §4
+  `sqrt(1-1/8)` intuition sentence (restated the figure + Appendix-A table).
+- The registered-falsifiers sentence moved from the §7 Limitations body to
+  Appendix C (`app:repro`) with a one-line body pointer; the two new
+  transparency notes (M3 aggregate diagnostics; benign BLAS warnings) land in
+  Appendix C per the fix list.
+- Both figures regenerated with reduced native heights (fig_forcerank
+  1.38in -> 1.12in; fig_depth 1.65in -> 1.30in; width and all font sizes
+  unchanged) to hold the 4pp body boundary.
+- Small prose compressions with no claim content: §1 contribution-list tail,
+  §2 registration parenthetical (statement lives in Appendix C), §3
+  paragraph openers, §6 Limitations wording ("documented" retained, the
+  "source design record" locution shortened).
+- Body confirmed to end at the bottom of p.4 exactly; abstract 209 words.
+
 ## Per-section beat sheet
 
 ### 1. Introduction

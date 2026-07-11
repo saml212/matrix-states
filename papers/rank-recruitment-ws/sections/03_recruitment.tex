@@ -1,8 +1,8 @@
 \section{Rank Tracks $K$ and Is Causally Necessary}
 \label{sec:recruit}
 
-\textbf{Recruitment.} The observational half: without any rank term in
-the loss, the trained $d{=}16$ state's effective rank rises one-for-one
+\textbf{Recruitment.} Without any rank term in the loss, the trained
+$d{=}16$ state's effective rank rises one-for-one
 with binding count across a ten-point grid from $K{=}1$ to $K{=}16$
 (Spearman $\rho = 1.0$; 2.42 at $K{=}1$, 8.20 at $K{=}8$, 15.09 at
 $K{=}16$), leaving the pre-registered $[0.7K, 1.3K]$ band only at
@@ -15,16 +15,16 @@ A subsequent, larger replication sweep is directionally identical.
 \centering
 \includegraphics[width=0.92\textwidth]{fig_forcerank.pdf}
 \caption{The primary, pre-registered causal test: $\recninety$ under
-train-time force-rank $k$, regenerated from the archived pre-registered
-sweep (dashed line at $k = K$). The step lands at $k \approx K$ in
-every cell.}
+train-time force-rank $k$, regenerated from the archived sweep (dashed
+line at $k = K$). The step lands at $k \approx K$ in every cell whose
+unconstrained model reaches exact recovery.}
 % <!-- evidence: R2 -->
 \label{fig:forcerank}
 \end{figure}
 
-\textbf{Causal necessity.} The causal test trains with $Z$ constrained
-to rank $k$ throughout (Figure~\ref{fig:forcerank}). At $d{=}8, K{=}4$
-the step is exact: $k \leq 3$ yields $\recninety \leq 0.0004$ and
+\textbf{Causal necessity.} Training with $Z$ constrained to rank $k$
+throughout (Figure~\ref{fig:forcerank}): at $d{=}8, K{=}4$
+the step is exact, $k \leq 3$ yields $\recninety \leq 0.0004$ and
 $k = 4$ yields 0.97, a discontinuity at the provable bound.
 % <!-- evidence: R2 -->
 The $d{=}16$ cells show the same knee near $k \approx K$ with mild

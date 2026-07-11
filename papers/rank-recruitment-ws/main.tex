@@ -65,7 +65,8 @@ construction: the readout is pinned to exact continuous recovery, since
 argmax decoding lets a rank-$m$ memory store roughly $md$ associations; a
 single-matrix-state bottleneck forecloses position decomposition; and no
 cell is called dead without re-testing at 2--2.5$\times$ budget. Under
-these conditions gradient descent recruits the rank the task demands:
+these conditions gradient descent recruits the rank the task demands in
+this architecture family:
 learned effective rank tracks $K$ across the tested grid (Spearman
 $\rho = 1.0$ at $d = 16$),
 % <!-- evidence: R1 -->
@@ -78,8 +79,8 @@ in four of five seeds.
 An entity-subspace decomposition supplies the mechanism, restricted rank
 exactly $K$ on the key subspace,
 % <!-- evidence: R5 -->
-and a rank-starved operator's depth-decay curve is predicted from its
-eigenspectrum alone.
+and in the single converged rank-starved seed, the depth-decay curve is
+predicted from its eigenspectrum alone.
 % <!-- evidence: R4 -->
 \end{abstract}
 

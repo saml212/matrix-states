@@ -22,8 +22,8 @@ unbind itself, $\mathrm{pred} = Z \cdot k_j$, scored by an absolute bar
 argmax and never a learned readout that could launder rank.
 
 \textbf{Tooth 2: a single-state bottleneck, verified behaviorally.}
-In a full-attention model, ``hold $K$ items'' is satisfiable by
-attending to $K$ raw-input positions at rank~1 each, so all information
+``Hold $K$ items'' is satisfiable in full attention by attending to
+$K$ raw-input positions at rank~1 each, so all information
 funnels through one $d \times d$ state and the decoder is a pure
 function of $(Z, \mathrm{query})$: after the encoder writes $Z$, the
 raw-input cache is corrupted and the decode is confirmed bit-for-bit
@@ -39,5 +39,4 @@ is under 1M parameters (the $d = 16$ composition model: 170{,}896).
 Effective rank (entropy of the normalized singular-value spectrum) is
 the pre-registered primary metric; the primary causal control
 constrains $Z$ to rank $k$ at \emph{every training step} (spectral
-projection), not post hoc; hypotheses, metrics, and decision bands were
-registered before training.
+projection), not post hoc.

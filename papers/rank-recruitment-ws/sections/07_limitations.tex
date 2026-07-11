@@ -84,4 +84,16 @@ the build rather than silently plotting stale data. Hypotheses, metrics,
 force-rank controls, and decision bands were registered in design
 documents before training, and every deviation (one metric
 re-registration, logged before the affected sweep) is recorded inline
-in those documents.
+in those documents. The registered falsifiers stand open:
+force-rank-$(K{-}1)$ at $\geq 0.9\times$ ceiling at multiple $(d, K)$
+points, or a $d \geq 32$ cell clearing the 0.7 bar, would overturn the
+causal claim.
+The force-rank staircase aggregate retains one recovery figure per
+$(d, K, k)$ cell, not per-seed instability diagnostics; the necessity
+direction (recovery $\approx 0$ below $K$) is robust to the cause of
+any individual sub-$K$ collapse, while the smoothness of the post-knee
+approach should be read at the aggregate level only.
+The analysis pipeline emits benign BLAS \texttt{RuntimeWarning}s from
+near-singular intermediate products on some platforms; every
+decomposition output is asserted finite before use, so these do not
+affect any reported number.

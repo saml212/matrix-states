@@ -112,7 +112,7 @@ def fig_forcerank(repo, outdir):
         ("d16_K8", 16, 8, C_VERMILLION, "s"),
         ("d16_K12", 16, 12, C_GREEN, "^"),
     ]
-    fig, axes = plt.subplots(1, 3, figsize=(5.6, 1.38), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(5.6, 1.12), sharey=True)
     for ax, (key, d, K, color, marker) in zip(axes, cells):
         curve = m3[key]
         ks = sorted(int(k) for k in curve)
@@ -159,7 +159,7 @@ def fig_depth(repo, outdir):
 
     xpos = np.arange(len(hops))
     labels = [str(h) for h in hops]
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(5.6, 1.65))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(5.6, 1.30))
 
     ax1.plot(xpos, [predicted[h] for h in hops], color=C_BLACK, marker="o",
              markersize=4, linewidth=1.3, label="predicted (eigenspectrum only)")
