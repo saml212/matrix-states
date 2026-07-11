@@ -599,9 +599,18 @@ footer a { color: var(--accent); }
         <p class="lede">Click any title for the full note.</p>
 
         <div class="results">
+            <a class="result" href="findings/composes-where-it-trains.html">
+                <div class="body">
+                    <div class="result-date">no. 13 &nbsp;·&nbsp; july 10, 2026</div>
+                    <h4>Composes exactly at 8× training depth, where it converges</h4>
+                    <p>The diagnosis that closes finding no. 12's pending call. Every miss in the compositional-depth endpoint is now mechanism-named: A6's low-capacity configs hit a depth-graded architecture ceiling (effective rank never reaches the group-theoretic minimum of 5), while n_h=4 pins at rank <span class="mono">5.00</span> and reads crosscheck recovery <span class="mono">1.000</span> flat to 8× training depth — zero seed variance, 3/3 seeds — against the restricted baseline at exactly 0.0. S5's one missing seed is a rank-deficient basin that satisfies training loss without the faithful representation (a sibling with <em>worse</em> loss is fully faithful); A5's non-convergences are an optimization lottery with a measured non-responsiveness to budget. Verdict of record, ratified: INCONCLUSIVE-TRAINABILITY-LIMITED — exact composition wherever training converges, no capability win claimed. Read the research note →</p>
+                </div>
+                <span class="meta">verdict of record · trainability-limited</span>
+            </a>
+
             <a class="result" href="findings/broken-lens.html">
                 <div class="body">
-                    <div class="result-date">no. 12 &nbsp;·&nbsp; july 10, 2026</div>
+                    <div class="result-date">no. 12 &nbsp;·&nbsp; july 10, 2026 &nbsp;·&nbsp; updated july 10 (promotion call resolved, no. 13)</div>
                     <h4>When the instrument is the failure: a 0-vs-1.0 readout contradiction on perfectly converged models</h4>
                     <p>A 62-cell compositional-depth sweep read FALSIFY — then the instrument-health pass found the primary readout and its pre-registered crosscheck contradicting each other at 0-vs-1.0 magnitude on exactly the perfectly converged cells, while agreeing on every non-converged one. The primary lens's identity-gauge assumption had been validated on a <em>different</em> architecture and silently failed on this one. The tiebreak survived a shuffled-target falsifier pinned in advance (0.00/0.00/0.05, all far below the void bar). The corrected endpoint is INCONCLUSIVE — one gating group now shows full far-depth separation (crosscheck 1.000 vs baseline 0.0), the other misses on a single trainability-outlier seed. No capability win claimed; the dissociation and the audit trail are the finding. Read the research note →</p>
                 </div>

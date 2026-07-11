@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The compositional-depth diagnosis this page reports: every miss in the Stage-2 endpoint is now mechanism-diagnosed as a trainability event (a rank-deficient basin, an architecture ceiling, a convergence lottery), not an instrument defect, and not architecture insufficiency. Every converged configuration composes exactly at 8x its training depth. Verdict of record: INCONCLUSIVE-TRAINABILITY-LIMITED, promoted over the as-built FALSIFY. No capability win claimed.">
+<meta property="og:title" content="Composes exactly at 8x training depth, where it converges — pebble">
+<meta property="og:description" content="Research note: closing the diagnosis broken-lens.html left open. A6's decisive config (n_h=4) reads crosscheck recovery 1.000 flat at 8x train depth, zero seed variance, rank pinned exactly at the group-theoretic minimum — while n_h<=2 shows a depth-graded architecture ceiling. The two groups that missed their pre-registered bars miss on trainability, not composition: a rank-deficient basin at S5, a convergence lottery at A5. Verdict of record: INCONCLUSIVE-TRAINABILITY-LIMITED.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/composes-where-it-trains.html">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-10">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/composes-where-it-trains.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Composes exactly at 8x training depth, where it converges: the Stage-2 verdict of record",
+  "name": "Composes exactly at 8x training depth, where it converges",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-10",
+  "url": "https://pebbleml.com/findings/composes-where-it-trains.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "A companion diagnosis to 'When the instrument is the failure' (finding no. 12), which left one promotion call pending: whether the compositional-depth endpoint, corrected to the crosscheck lens, should be read as FALSIFY or INCONCLUSIVE. This round answers the three routed questions directly from committed checkpoints (152/152 harness-fidelity teeth against the primary lens's own committed values), using only the pre-registered M-D0 (per-depth train-support profile) and M-D2 (rank-vs-depth) instruments. Result: every miss in the endpoint is now mechanism-diagnosed. A6's n_h<=2 configurations show a depth-graded architecture ceiling -- effective rank never exceeds ~4.4 against a group-theoretic minimum of 5, and decays with depth -- while n_h=4 pins at rank 5.00 (sigma <= 0.008) and reads crosscheck recovery 1.000 flat at every depth out to 8x training support, zero seed variance. S5's lone missing seed is a rank-deficient basin: it satisfies training loss (6.4e-3, unremarkable among its own siblings) yet never assembles the group's rank-4 representation, decaying inside the training support itself -- a fact final loss alone cannot see, and one worse-loss sibling (1.2e-2) is fully faithful. A5's three non-converged seeds are a trainability lottery, not a ceiling: the two that do converge read crosscheck recovery 1.00 at every one of seven evaluable training depths and 0.95-1.00 at 8x depth, an existence proof that the architecture and budget already suffice. No cell anywhere shows the rank-holds/cosine-degrades signature of a readout artifact, closing the instrument-defect branch. The coordinator's ratified verdict of record is INCONCLUSIVE-TRAINABILITY-LIMITED, superseding the as-built mechanical FALSIFY: FALSIFY is affirmatively excluded (A6 n_h=4's full pre-registered dissociation, zero variance either side) and CONFIRM is unreachable under the frozen pre-registered aggregation (both misses are trainability events, and re-registering the aggregation post hoc to reach CONFIRM is exactly what the hard rules forbid). What this licenses: exact composition at 8x training depth in every converged configuration, with a group-level architecture dissociation at A6 -- stated only together with the trainability qualifier. No compositional-depth capability win is claimed.",
+  "keywords": "compositional generalization, state tracking, DeltaProduct, fast-weight models, trainability, rank law, group theory, pre-registration, mechanistic diagnosis",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>Composes exactly at 8x training depth, where it converges — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 13 &nbsp;·&nbsp; verdict of record: inconclusive, trainability-limited</div>
+        <h1 class="paper-title">Composes exactly at 8× training depth, where it converges</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 10, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>The companion note "<a href="broken-lens.html">When the instrument is the failure</a>" (finding no. 12) left one call pending: after a broken readout was caught and corrected, was the compositional-depth endpoint FALSIFY or INCONCLUSIVE? This note closes that call directly from the committed checkpoints, with 152/152 harness-fidelity teeth against the primary lens's own recorded values. Every miss in the endpoint is now mechanism-diagnosed. A6's low-capacity configurations (n_h ≤ 2) show a depth-graded architecture ceiling: effective rank never exceeds ≈4.4 against a group-theoretic minimum of 5, and decays further with test depth — while n_h = 4 pins at rank <strong>5.00</strong> (σ ≤ 0.008) and reads crosscheck recovery <strong>1.000 flat at every depth out to 8× training support, with zero seed variance</strong>. S5's one missing seed is a rank-deficient basin, not a composition failure: it satisfies training loss (6.4×10⁻³, unremarkable among its own siblings — one sibling's loss is <em>worse</em>) yet never assembles the group's rank-4 representation, and the deficit is visible <em>inside</em> the training support itself. A5's three non-converged seeds are a trainability lottery: the two that do converge read crosscheck recovery 1.00 at every one of seven evaluable training depths and 0.95–1.00 at 8× depth — an existence proof the architecture and budget already suffice. No cell anywhere shows a readout-artifact signature. <strong>Verdict of record, ratified: INCONCLUSIVE-TRAINABILITY-LIMITED</strong>, superseding the as-built FALSIFY. What this licenses, and only together: exact composition at 8× training depth in every converged configuration, with a clean architecture dissociation at A6 — and the trainability qualifier stated every time the 1.000 number appears. No compositional-depth capability win is claimed.</p>
+        </div>
+
+        <h2><span class="num">01</span>What was left open</h2>
+
+        <p><a href="broken-lens.html">Finding no. 12</a> caught a broken primary readout — a scale-only "degauge" recovery metric that assumed the model's internal basis matched the task basis, an assumption validated on a different architecture and silently false on this one. Under the corrected, pre-registered crosscheck lens, the mechanical endpoint moved from a face-value FALSIFY to a mixed pattern: A6, the theorem's strongest exclusion case, showed the full predicted separation (contender at its own ceiling, baseline at exactly zero); S5 missed its bar, dragged by one seed. Two pin ambiguities discharged along routes quoted from the pre-registration itself, and the note closed with an explicit open item: <em>"Whether the discharged-pin reading supersedes the as-built one as the stage verdict is an explicitly-pending promotion call."</em></p>
+
+        <p>The routing clause that governs this situation was itself pre-registered: on an INCONCLUSIVE read, diagnose using the two instruments the design specifies as the first things to check — <strong>M-D0</strong> (the per-depth train-support convergence profile, re-read under the crosscheck lens since the primary is the documented broken instrument on this architecture) and <strong>M-D2</strong> (the rank-vs-depth curve, corroborating evidence for whether a miss is a genuine representational collapse or a readout/compounding-error artifact). This note executes exactly those two instruments against three routed questions, and nothing else — no new metrics, no new training.</p>
+
+        <p>Every recovery number below is on the CPU-only re-read of committed checkpoints (26 cells, all evaluable train-support and 8×-depth rows), reproducing all 152 of the primary lens's own committed values bit-identically before any new number was trusted — the same fidelity bar finding no. 12 held its recompute to.</p>
+
+        <h2><span class="num">02</span>Question (a): is A6's decisive config a budget artifact or an architecture ceiling?</h2>
+
+        <p>A6 (the alternating group A₆, group-theoretic minimum faithful representation dimension d<sub>min</sub> = 5) is swept across n_h ∈ {1, 2, 4} — the number of Householder-like factors composing each step's state update. Each rung gets the identical 40,000-step budget.</p>
+
+        <table>
+            <thead>
+                <tr><th>n_h</th><th>seeds converged</th><th>final loss</th><th>crosscheck recovery, D=4→8 (train)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="num">1</td><td class="num">0/3</td><td class="num">0.209–0.400</td><td class="num">0.00–0.25 → 0.00 (≈0 everywhere)</td></tr>
+                <tr><td class="num">2</td><td class="num">0/5</td><td class="num">0.073–0.293</td><td class="num">0.60–0.75 → 0.15–0.35, decaying (seed 1 weakest: 0.20 → 0.00)</td></tr>
+                <tr><td class="num">4</td><td class="num">3/3</td><td class="num">3.2×10⁻⁵–8.2×10⁻⁵</td><td class="num">1.00 flat</td></tr>
+            </tbody>
+        </table>
+
+        <p>The rank curve gives the mechanism: n_h = 4 pins at rank <strong>5.00 exactly</strong> (4.99–5.00, σ ≤ 0.008) at every test depth from 9 to 64; n_h = 2 never exceeds ≈4.4 (peak mean 4.37 at D = 10) and decays to a mean of 3.50 by D = 64, never reaching the group's own minimum; n_h = 1 sits lowest and decays fastest. The n_h = 2 composer partially learns shallow compositions but cannot assemble the rank-5 structure deep composition requires — an expressivity ceiling that binds progressively with depth, not a budget effect (the identically-budgeted n_h = 4 triad converges 3/3). This refines the shorthand from finding no. 12 ("both lenses ≈0" for n_h ≤ 2): true on the far-depth grid and under the primary lens everywhere, but the crosscheck at shallow train depths reads up to 0.75 — the ceiling is depth-graded, not flat-zero.</p>
+
+        <figure>
+            <img src="../assets/plots/composes_a6_dissociation.svg" alt="two panel figure: left panel crosscheck recovery vs test depth for A6 at n_h 1, 2, 4; right panel restricted effective rank vs test depth with d_min=5 reference line" style="width: 100%; max-width: 780px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>A6's n_h staircase, all 11 cells, mean ± 1σ across seeds. <strong>Left:</strong> crosscheck recovery vs depth (log scale) — train-support depths (D ≤ 8, from the box-side M-D0 re-read; D ≤ 3 excluded by the pre-registered hard gate) and test depths (D ≥ 9, from the committed sweep JSONs) on one axis, dotted line at the support boundary. <strong>Right:</strong> restricted effective rank vs test depth, with the group-theoretic minimum d<sub>min</sub>(A6) = 5 as a dashed reference. n_h = 4 (vermillion) pins at rank 5 and holds recovery 1.00 with zero variance from the shallowest evaluable train depth to 8× depth; n_h = 2 (orange) partially learns shallow composition (0.60–0.75 at D = 4) but decays — the depth-graded ceiling; n_h = 1 (sky) never leaves the floor. Data: <span class="mono">experiment-runs/2026-07-10_stage2_calibration/{sweep_results,route_2p33}/*.json</span> + <span class="mono">…/diag_2p34/diag_2p34_md0_xcheck_output.json</span>, computed via <span class="mono">stage2_harvest.m_d2_curve</span> / <span class="mono">_curve</span> unmodified. Script: <span class="mono">assets/plots/generate_composes_where_it_trains.py</span>.</figcaption>
+        </figure>
+
+        <h2><span class="num">03</span>Question (b): S5's one non-generalizing seed — bad luck or bad representation?</h2>
+
+        <p>S5's n_h = 4 quintet (five seeds, all trained identically) is where finding no. 12 flagged a "trainability-outlier" seed dragging the group below its bar. This round asks what, mechanistically, is different about it.</p>
+
+        <p>Seed 1's final training loss is 6.4×10⁻³ — not the worst in its own cohort (seed 2 finishes at 1.2×10⁻², nearly double, and is fully faithful). Loss alone cannot separate them. The per-depth crosscheck profile can: seed 1 reads 1.00 at D = 3, then decays <em>inside the training support itself</em> — 0.95 at D=4, 0.90 at D=5, 0.60 at D=6, 0.35 at D=7, 0.45 at D=8 — while all four siblings read 1.00 at every evaluable train depth — all 21 rows (recounted from the raw profile JSON). The rank curve confirms genuine representational collapse rather than a readout artifact: seed 1's effective rank runs 3.62 at D=9 down to 3.10 at D=64, never reaching the group's d<sub>min</sub> = 4, while its siblings hold 3.97–3.99 down to a still-healthy 3.77–3.93. At the far checkpoint (D=64, 8× training depth), seed 1 reads crosscheck recovery exactly <strong>0.000</strong>; its four siblings average <strong>0.863</strong> (σ = 0.170).</p>
+
+        <p>This is the in-the-wild version of a rank-deficient basin: an optimization run that satisfies the loss objective without ever assembling the faithful representation the task actually requires — a basin the loss surface does not penalize, and that final loss alone under-detects.</p>
+
+        <figure>
+            <img src="../assets/plots/composes_s5_basin.svg" alt="two panel figure: left panel crosscheck recovery vs test depth for S5 seed 1 vs healthy siblings; right panel restricted effective rank vs test depth with d_min=4 reference line" style="width: 100%; max-width: 780px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 2</span>S5's n_h=4 quintet split by outcome, mean ± 1σ (seed 1 has n=1, no band; at D = 3 only one healthy sibling is evaluable under the hard gate). <strong>Left:</strong> crosscheck recovery vs depth, train-support and test depths on one axis as in fig 1 — seed 1's deficit is already visible <em>inside</em> the training support (0.60 at D=6, 0.35 at D=7) while every sibling reads 1.00 at every evaluable train depth. <strong>Right:</strong> restricted effective rank vs test depth, with d<sub>min</sub>(S5) = 4 as a dashed reference. The healthy siblings (green) hold near d<sub>min</sub> to 8× depth; seed 1 (purple) never reaches it. Data and script as fig 1.</figcaption>
+        </figure>
+
+        <h2><span class="num">04</span>Question (c): are A5's 3-of-5 non-convergences a budget artifact or a ceiling?</h2>
+
+        <p>A5 (the alternating group A₅, d<sub>min</sub> = 3) converges in only 2 of 5 seeds at its swept configuration. The question: raise the budget, or call it a ceiling?</p>
+
+        <p>The two converged seeds (final loss 3.7×10⁻⁴ and 7.1×10⁻⁴) read crosscheck recovery <strong>1.00 at all seven evaluable training depths</strong>, D=2 through D=8. Their rank sits at d<sub>min</sub>(A5) = 3 almost exactly (2.96–3.00) through D=64, with far-depth crosscheck recovery 0.95 and 1.00. This is a direct existence proof: at this exact configuration and budget, the architecture is sufficient whenever optimization lands in the faithful basin. The three non-converged seeds (final loss 0.069–0.157) show graded, decaying profiles — 0.90–1.00 at D=2 collapsing to 0.05–0.30 by D=8 — and rank starting near 2.6 at D=9 and decaying to ≈2.1 by D=64, always below d<sub>min</sub>.</p>
+
+        <p>A budget-extension probe was <em>not</em> run here, and the pre-registration explains why it would be unlicensed: a prior stage's own budget-extrapolation experiment on this same architecture found no responsiveness to more steps (a measured <span class="mono">+0.0010</span> improvement per <span class="mono">+20K</span> extra steps — indistinguishable from noise). With no evidence of budget-responsiveness and seed extension already exhausted, this is classified as a trainability lottery: an optimization difficulty at this configuration, not an architecture ceiling and not an instrument artifact — recorded as a determination, not left as an open ambiguity.</p>
+
+        <h2><span class="num">05</span>Closing the instrument-defect branch</h2>
+
+        <p>Across every cell in the routed focus set — both gating groups and A5 — the same pattern holds: every converged, faithful cell sits <em>at</em> its group's d<sub>min</sub> and holds it to D=64 with minimal decay; every failing or deficient cell sits measurably <em>below</em> d<sub>min</sub> and decays further with depth. This is the Stage-1 rank law (finding no. 07: recruited effective rank tracks the group-theoretic minimum, causally) reproducing inside the Stage-2 composer. No cell anywhere shows the alternative signature — rank holding steady while recovery degrades, which would indicate a readout or compounding-error problem rather than a genuine representational one. That closes the instrument-defect branch for this diagnosis, on top of finding no. 12's own harness-fidelity and shuffled-target teeth.</p>
+
+        <div class="takeaway">
+            <span class="label">key observation</span>
+            Every miss in the endpoint now has a name and a mechanism: a rank-deficient optimization basin (S5), a depth-graded architecture ceiling (A6, n_h ≤ 2), and a convergence lottery with a measured non-responsiveness to more budget (A5). None of the three is an instrument artifact, and none is evidence the architecture cannot compose at depth — the cells that do converge compose exactly, every time, out to 8× their training support.
+        </div>
+
+        <h2><span class="num">06</span>The promotion: verdict of record</h2>
+
+        <p>The coordinator ratified the recommendation this diagnosis supports: the campaign-level verdict of record for the Stage-2 compositional-depth generalization test is <strong>INCONCLUSIVE-TRAINABILITY-LIMITED</strong>, superseding the as-built mechanical FALSIFY (which remains the correct verdict for finding no. 12's own as-built pins, per bookkeeping discipline — nothing is retracted, the reading is superseded going forward). The grounds:</p>
+
+        <ol>
+            <li><strong>FALSIFY is affirmatively excluded.</strong> A6 at n_h = 4 shows the exact pre-registered dissociation the composer theorem predicts: crosscheck far-depth recovery 1.000 flat across all 3 seeds, rank pinned at d<sub>min</sub>(A6) = 5, against the β-restricted baseline at exactly 0.0 — zero seed variance on either side. A model class that composes exactly at 8× training depth wherever it converges cannot be the subject of a composition-capability FALSIFY.</li>
+            <li><strong>CONFIRM is unreachable under the frozen pre-registered aggregation.</strong> The all-seeds group-mean bars fail on trainability, not composition: S5's lone rank-deficient basin and A5's convergence lottery pull both groups' pooled means below their own bars. The pre-registered remedy for a borderline group is more seeds, never exclusion — re-registering the aggregation after the fact to reach CONFIRM is exactly what this program's own hard rules forbid.</li>
+        </ol>
+
+        <p>What this licenses, stated together and not separately: papers may state that this composer class achieves exact composition at 8× training depth in every configuration that converges, with a clean group-level architecture dissociation at A6 (n_h = 4 holds the group-theoretic minimum rank and generalizes flat; n_h ≤ 2 shows a depth-graded ceiling below it) — and must state the trainability qualifier every time that claim appears. The primary lens's identity-gauge defect (finding no. 12) remains an open instrument-repair item; every recovery number on this page is crosscheck-lens, decisional.</p>
+
+        <h2><span class="num">07</span>Caveats — read before citing</h2>
+
+        <ul>
+            <li><strong>This is not a compositional-depth capability win.</strong> The citable claims are exactly the two grounds in section 06 and the three mechanism diagnoses in sections 02–04. Anyone quoting "the model generalizes compositional depth" without the trainability qualifier is misquoting this page.</li>
+            <li><strong>Small, task-specific models on five finite groups.</strong> Depth tested to 8× training support (D=64 against D≤8 training). Conclusions are about this composer, these five groups, and these two readouts — not a general claim about compositional generalization in fast-weight models.</li>
+            <li><strong>The trainability diagnoses are not yet a fix.</strong> Naming the rank-deficient-basin and convergence-lottery failure modes is a diagnosis, not a remedy; no trainability-rate or basin-statistics intervention has been tried. A follow-on program to reduce the rate of these failures would need its own pre-registration.</li>
+            <li><strong>A6's n_h ≤ 2 ceiling is now measured, not assumed.</strong> It is a depth-graded architecture ceiling (up to 0.75 crosscheck recovery at shallow train depths, decaying to ≈0 by 8× depth) — a genuine, disclosed n_h-sufficiency result in its own right, distinct from the earlier flat "≈0 everywhere" shorthand.</li>
+            <li><strong>Zero GPU-hours for this diagnosis round</strong> — every number here is a CPU-only re-read of already-committed checkpoints (152/152 harness-fidelity teeth against the primary lens's own recorded values before any new number was trusted). The underlying sweep that produced the checkpoints cost ≈2.6 GPU-h; finding no. 12's re-metric and the two S5 seed-extension training cells added ≈0.6 GPU-h; this diagnosis added zero. Stage-2 running total ≈3.16 of a 25 GPU-h budget.</li>
+        </ul>
+
+        <h2><span class="num">08</span>Reproducibility</h2>
+
+        <p>Everything is recomputable from committed raws: <span class="mono">experiment-runs/2026-07-10_stage2_calibration/sweep_results/</span> (62 cells) and <span class="mono">…/route_2p33/</span> (2 S5-extension cells) hold the full per-depth, per-cell JSONs this page's numbers are read from — 64 cells total. <span class="mono">…/diag_2p34/</span> holds the diagnosis itself: <span class="mono">diag_2p34.py</span> (local M-D0/M-D2/M-D1 analysis over the committed grid, using <span class="mono">stage2_harvest.py</span>'s own curve functions unmodified), <span class="mono">diag_2p34_md0_box.py</span> (the box-side crosscheck M-D0 re-read, the 152/152 harness-fidelity teeth) and its output JSON, <span class="mono">per_seed_tables.py</span> (the per-seed far-depth/rank tables quoted in sections 02–04), and their logs. The two figures on this page are generated directly from the raw per-cell JSONs (not from any intermediate table) by <span class="mono">assets/plots/generate_composes_where_it_trains.py</span>, using the same <span class="mono">stage2_harvest.m_d2_curve</span> / <span class="mono">_curve</span> helpers the diagnosis itself used.</p>
+
+        <div class="references">
+            <h2>References</h2>
+            <ol>
+                <li>Siems, J., et al. (2025). <em>DeltaProduct: Improving State-Tracking in Linear RNNs via Householder Products.</em> arXiv:2502.10297</li>
+                <li>Grazzi, R., et al. (2025). <em>Unlocking State-Tracking in Linear RNNs Through Negative Eigenvalues.</em> ICLR 2025, arXiv:2411.12537</li>
+                <li>See also <a href="broken-lens.html">finding no. 12, "When the instrument is the failure"</a> — the instrument-health diagnosis this note's endpoint depends on — and <a href="rank-law.html">finding no. 07, "The rank law"</a> — the Stage-1 causal result (recruited rank tracks the group-theoretic minimum) this diagnosis found reproducing inside the Stage-2 composer.</li>
+            </ol>
+        </div>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

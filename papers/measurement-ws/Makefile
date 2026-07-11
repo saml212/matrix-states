@@ -14,11 +14,11 @@ main.pdf: main.tex sections/*.tex refs.bib figures/*.pdf
 	tectonic --keep-intermediates main.tex
 	tectonic --keep-intermediates main.tex
 
+# flatten_bundle.py inlines \input and strips unescaped % comments so
+# source-only annotations never reach a source upload (audit M1).
 bundle: main.pdf
 	mkdir -p bundle/figures
-	python3 -c "import re; src=open('main.tex').read(); \
-	  flat=re.sub(r'\\\\input\{(sections/[^}]+)\}', lambda m: open(m.group(1)+'.tex').read(), src); \
-	  open('bundle/measurement-ws-submission.tex','w').write(flat)"
+	python3 flatten_bundle.py
 	cp main.pdf bundle/measurement-ws-submission.pdf
 	cp refs.bib neurips.sty bundle/
 	cp figures/fig1_lens_contradiction.pdf figures/fig2_tap_localization.pdf bundle/figures/
