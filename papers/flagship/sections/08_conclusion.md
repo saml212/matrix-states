@@ -2,12 +2,12 @@
 
 A $d \times d$ state written by outer products is a measurable
 representational medium. Its trained rank is set causally by the
-task's representation theory in the encoder family; in the delta-rule
+task's representation theory in the encoder family. In the delta-rule
 family, the first layer's state causally carries recall that a matched
 vector-state ablation lacks (the compute-matched transformer, a
-degenerate baseline, also fails), and the write keys of language
-models at scale drift toward collapse regardless of the stock
-normalizer. The storage and the drift come from one mechanism, and
+degenerate baseline, also fails); the write keys of its language
+models drift toward collapse at every larger scale, stock normalizer
+or no. The storage and the drift come from one mechanism, and
 that is the design constraint this paper leaves behind: interventions
 aimed at the geometry must operate on the write rule itself rather
 than on its normalizers, with the Section 5 negative transfer result

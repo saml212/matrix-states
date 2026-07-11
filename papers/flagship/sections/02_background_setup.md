@@ -103,16 +103,16 @@ as unconfirmed.
 
 Each leg of this program survived at least one
 instrument-defect-found-and-fixed round; only repaired readings appear
-below. In the rank program, the
-first causal sweep was voided by a target-padding defect that let
-rank-capped models buy cosine from an ambient identity block; the
-diagnosis, fix, and re-run are described in Section 3.3. In the recall
-program, three consecutive probe "failures" were traced to a
-wrong-layer, wrong-route linear instrument; the repaired tap is what
-Section 4.3 reports. In a separate composition program (not claimed
-here), a primary lens read zero on converged models while a
-pre-registered crosscheck lens read one; the contradiction was resolved
-by a recorded tiebreak against the raw artifacts, and the affected
-endpoint is excluded from this paper entirely. Every verdict-bearing instrument here therefore carries an analytic
+below. The rank program's first causal sweep was voided by a
+target-padding defect that let rank-capped models buy cosine from an
+ambient identity block; the diagnosis, fix, and re-run are described
+in Section 3.3. The recall program lost three consecutive probe rounds
+to a wrong-layer, wrong-route linear instrument before the repaired
+tap of Section 4.3 read what the model's own forward pass had decoded
+all along. A third case came from a separate composition program (not
+claimed here): a primary lens read zero on converged models while a
+pre-registered crosscheck lens read one, the contradiction was
+resolved by a recorded tiebreak against the raw artifacts, and the
+affected endpoint is excluded from this paper entirely. Every verdict-bearing instrument here therefore carries an analytic
 anchor or a negative control, with a pre-registered crosscheck wherever
 a verdict hangs on a single metric.

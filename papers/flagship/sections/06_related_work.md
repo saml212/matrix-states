@@ -13,10 +13,10 @@ claim depends on it.
 **Associative recall in transformers.** Multi-query associative recall
 is a regime where softmax attention is documented as strong: Arora et
 al. (2023) introduce the MQAR benchmark and show attention solves it
-where sub-quadratic models struggle; Jelassi et al. (2024) show
-transformers outperform state-space models at copying; Olsson et al.
-(2022) show that two-layer transformers reliably develop induction
-circuitry from scratch. Our transformer baseline's chance-level reading
+where sub-quadratic models struggle, Jelassi et al. (2024) report the
+same advantage for copying over state-space models, and even two-layer
+from-scratch transformers reliably develop induction circuitry
+(Olsson et al., 2022). Our transformer baseline's chance-level reading
 therefore runs against the expectation this literature sets, and we do
 not interpret it as an architectural inability. The leading candidate
 explanation is optimization: the arm trained at the shared default

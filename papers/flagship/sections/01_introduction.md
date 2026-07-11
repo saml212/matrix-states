@@ -28,10 +28,10 @@ state causally carries an episodic-recall capability that a
 parameter-matched vector-state ablation lacks at equal training budget
 (a compute-matched transformer also fails, disclosed as a degenerate
 baseline), and the stored content is linearly legible only after
-downstream nonlinear processing. And in delta-rule language
-models, the same write mechanism drives a population-geometry pathology
-that worsens monotonically across a two-decade parameter ladder and
-survives the community's stock mitigation.
+downstream nonlinear processing. The same write mechanism, run at language-model scale, drives a
+population-geometry pathology that worsens monotonically across a
+two-decade parameter ladder and survives the community's stock
+mitigation.
 
 Concretely, we contribute:
 

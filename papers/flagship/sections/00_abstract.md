@@ -32,5 +32,5 @@ mechanism drives a population-geometry pathology that worsens
 monotonically from 14M to 1.31B parameters <!-- evidence: R6 -->.
 Removing qk-normalization leaves it unchanged
 <!-- evidence: R7 -->, and a frozen-key-bias mitigation fails to
-remove it: the loss neutrality transfers to scale; the geometric
-benefit does not <!-- evidence: R8 -->.
+remove it: only the mitigation's loss neutrality survives the move to
+scale <!-- evidence: R8 -->.
