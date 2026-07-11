@@ -1365,11 +1365,20 @@ crash; GPUs idle ~6 min). Fix `9b4b71a`: `CMLPModel` subclass adding ONLY
 the class attributes (zero behavior; state-dict-compatible with the
 crashed runs' checkpoints — they resumed and completed in seconds);
 regression teeth: t12 arm-protocol asserts on every builder + t13 now runs
-ALL FOUR arms end-to-end (suite 14/14 re-executed). Scoped audit of the
-fix dispatched (fresh agent); verdict appended below on landing — it gates
-trusting the C_MLP rows only (the disclosed weak control; no decision
-reads them). Cosmetic: box cell fingerprints carry `git_commit=UNKNOWN`
-(no .git on the box; md5-verified deploys are the provenance there).
+ALL FOUR arms end-to-end (suite 14/14 re-executed). **Scoped audit of the
+fix (fresh agent): CLEARED** — by execution: subclass adds zero
+methods/params (53 state-dict keys, names/shapes/weights bit-identical to
+the plain class; strict=True cross-load of a plain-class checkpoint into
+the subclass succeeds — the exact resume path the crashed cells used);
+forward output bit-identical; t12 kill proof executed (attribute hidden
+in-process → AssertionError('cmlp', None), restored → clean); exhaustive
+`model.<attr>` sweep across run_ncr.py found every arm-specific attribute
+read gated behind its own arm branch (no latent same-class gap);
+wave1_harvest.py's cmlp/loopedvec handling verified (never enters Axis-A/
+P1/P2; crosscheck-lens guards on deep_probe presence). It gated trusting
+the C_MLP rows only (the disclosed weak control; no decision reads them).
+Cosmetic: box cell fingerprints carry `git_commit=UNKNOWN` (no .git on the
+box; md5-verified deploys are the provenance there).
 
 **Verdict of record (`wave1_verdict.json`, produced by the committed
 `wave1_harvest.py` against the archived cells; archive:
