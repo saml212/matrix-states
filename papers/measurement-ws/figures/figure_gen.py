@@ -73,7 +73,7 @@ def fig1_lens_contradiction(repo: str, out: str) -> None:
     conv = [r for r in rows if r["final_loss"] < 0.02]
     nonconv = [r for r in rows if r["final_loss"] >= 0.02]
 
-    fig, ax = plt.subplots(figsize=(4.4, 3.4))
+    fig, ax = plt.subplots(figsize=(4.8, 2.6))
     ax.plot([0, 1], [0, 1], color="0.8", lw=0.8, zorder=1)
     ax.scatter(
         [r["primary_rf90_far64"] for r in nonconv],
@@ -93,8 +93,9 @@ def fig1_lens_contradiction(repo: str, out: str) -> None:
         label=f"converged (final loss $<$ 0.02), n={len(conv)}",
         zorder=3,
     )
-    ax.set_xlabel("primary lens: recovered fraction @0.9, depth 64")
-    ax.set_ylabel("crosscheck lens: recovered\nfraction @0.9, depth 64")
+    ax.set_xlabel("primary lens: recovered fraction @0.9, depth 64", fontsize=8)
+    ax.set_ylabel("crosscheck lens: recovered\nfraction @0.9, depth 64", fontsize=8)
+    ax.tick_params(labelsize=7)
     ax.set_xlim(-0.05, 1.05)
     ax.set_ylim(-0.05, 1.05)
     ax.legend(loc="center right", fontsize=7, frameon=False)

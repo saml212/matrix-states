@@ -1,0 +1,77 @@
+% measurement-ws: the instrument-methodology paper.
+% VENUE: NeurIPS 2026 measurement/evaluation/science-of-DL workshop,
+% PENDING the Jul-11 accepted-workshop list (venue-requirements.md;
+% neurips.sty 2025 kit as the flagged UNVERIFIED stand-in). Default
+% build is the ANONYMIZED submission build.
+%
+% PROVENANCE DISCIPLINE: every numerical claim carries an evidence
+% comment "% <!-- evidence: <id> -->" naming its row in brief.md's
+% claims-to-evidence map; each row names the pre-registered verdict
+% record (design-doc section) and the raw artifact (path + md5). No
+% number below was written from memory; all were re-verified against
+% the raw artifacts on 2026-07-10 (see brief.md).
+%
+% SCOPE BOUNDARY (inherited from the base draft at
+% matrix-thinking/submissions/measurement-2026/): this paper claims the
+% measurement failure modes and the adjudication process, never the
+% substantive capacity/capability results (companion papers').
+
+\documentclass{article}
+
+\usepackage{neurips}
+
+% Workshop submission: blank the main-conference notice line.
+\makeatletter
+\renewcommand{\@noticestring}{}
+\makeatother
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+\graphicspath{{figures/}}
+\raggedbottom
+
+\newcommand{\dstate}{d_{\mathrm{state}}}
+\newcommand{\dmin}{d_{\min}}
+\newcommand{\niter}{n_{\mathrm{iter}}}
+\newcommand{\rf}{\mathrm{rf}@0.9}
+
+\title{The Instrument Is the First Suspect: Six Broken Lenses in One
+Empirical Program}
+
+% The submission build prints the style file's anonymous block.
+\author{%
+  Anonymous Author(s)\\
+  Affiliation\\
+  \texttt{email@example.com}
+}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/00_abstract}
+
+\input{sections/01_intro}
+\input{sections/02_discipline}
+\input{sections/03_case_tolerance}
+\input{sections/04_case_wronglayer}
+\input{sections/05_case_gauge}
+\input{sections/06_three_lenses}
+\input{sections/07_not_flipped}
+\input{sections/08_related_limits}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\input{sections/09_appendix}
+
+\end{document}

@@ -1,0 +1,41 @@
+\section{Case I: The Tolerance That Manufactured a Cliff}
+\label{sec:tolerance}
+
+A fast-weight associative memory's recall capacity is measured by
+exact continuous recovery (cosine $\geq0.9$, never argmax; Rule 5)
+across a load sweep $K/\dstate$; an eval-time admission gate decides
+which trained cells may enter a capacity fit, one leg checking that a
+Newton--Schulz orthogonalization inside the scoring path converges to
+residual $<0.01$ within $\niter=20$ iterations. A wide-grid sweep at
+$\dstate=96$ trained cleanly at every cell (the training guard read
+exactly $1.0$ throughout), yet of 12 new cells only one was
+admissible, with $K{=}78$, $84$, and $90$ failing on all three seeds
+each: the shape of a capacity cliff, contradicting the same
+architecture's established super-linear growth at lower state
+sizes~\citep{companion2026capacity}.
+% <!-- evidence: I1 -->
+
+The first mechanistic diagnosis blamed the trained anchor table's
+convergence at high load; a follow-up refuted it with margins
+(residuals near $1.2\times10^{-6}$, roughly $7{,}800\times$ below
+tolerance, identical between failing and passing cells, failures
+confined to one pool the anchor table architecturally bypasses) and
+the claim was formally retracted.
+% <!-- evidence: I2 -->
+
+\looseness=-1 A purpose-built repro instrument then recovered the true failing
+tensor: the pool's raw keys, never saved by the original checkpoint
+writer. Its decision rule was pre-registered as a strict precedence
+order and walked mechanically (Table~\ref{tab:walk}); every
+instrument-bug branch failed to fire, and an iteration sweep resolved
+every one of the 4{,}608 flagged episodes by $\niter\le28$.
+% <!-- evidence: I3 -->
+A wall keeps failing as the budget grows; a miscalibrated tolerance
+resolves at a fixed bump, and did. Root cause: a
+tolerance calibrated against anchor-stabilized \emph{blended} keys,
+silently applied to the structurally different \emph{raw} key
+population this one pool queries. Only the admission flag was
+recalibrated, only for the 11 cells verified to share the identical
+signature, at zero additional GPU cost; the re-fit found no cliff
+through $K/\dstate=0.9375$ (per-load mean recovery $0.92$ to $1.00$).
+% <!-- evidence: I4 -->

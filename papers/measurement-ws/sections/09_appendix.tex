@@ -1,0 +1,230 @@
+\section{The Three Brief Lenses, in Full}
+\label{app:threelenses}
+
+\textbf{The covariance that could not see.} An acceptance test for a
+representation-recovery pipeline injected a synthetic \emph{perfect}
+model and failed it. The subspace step estimated an uncentered
+covariance, degenerate on the task's own targets: for near-orthogonal
+states $Z\approx c(\rho\oplus I)$, $ZZ^{\top}\approx c^{2}I$ is
+isotropic and carries no subspace information. On the production
+harness, an oracle injection scored mean cosine $0.084$ and recovery
+$0.05$ under the uncentered lens versus $0.9996$ and $1.00$ once the
+covariance was centered; the same artifact records the scale-only
+primary reading $0.046$ on data whose true gauge is non-identity while
+the full-intertwiner crosscheck reads $0.9996$, the pre-echo of
+\S\ref{sec:gauge}.
+% <!-- evidence: B1 -->
+The fix (centering) cancels the constant identity block because the
+group mean of a nontrivial representation vanishes; the acceptance
+injection was extended so the previously skipped subspace step now
+sits inside the test.
+
+\textbf{The target that taxed every budget.} A causal test of a
+rank-recruitment law capped model rank at $k$ around the predicted
+minimum $\dmin$ and expected recovery to return at $k=\dmin$. Every
+capped arm returned zero, at every group, on both lenses. The target
+had been constructed as $\rho\oplus I$: the ambient identity block
+inflates the as-built target rank by two, so every rank budget buys
+the constant block first. The diagnosis is quantitative: a rank-$k$
+model's best achievable cosine against this target is exactly
+$\sqrt{k/\dstate}$, and 37 of 39 force-rank cells sat within $0.07$ of
+that ceiling (mean absolute deviation $0.028$); the arms had trained
+to their theoretical optimum against the wrong target.
+% <!-- evidence: B2 -->
+The causal test was undelivered by the instrument, not failed by the
+model; a zero-padded re-run subsequently delivered
+it~\citep{companion2026capacity}.
+
+\textbf{The reference on the wrong side.} A bespoke recurrence was
+cross-checked against a reference kernel and disagreed at relative
+Frobenius residual $1.40$; the recurrence was the initial suspect. At
+depth one the update is closed-form ($S_1=\beta vk^{\top}$), so a hand
+computation with scalar loops adjudicates conventions with no
+numerics: the composer matched the closed form at $4.5\times10^{-8}$
+and its \emph{transpose} at $1.405$, and for near-orthogonal unit $k$
+the transpose signature is exactly
+$\|vk^{\top}-kv^{\top}\|_F/\|vk^{\top}\|_F\approx\sqrt{2}$. The
+reference library's documented state convention is the transpose of
+the pinned equation; the cross-check's own reference invocation was
+the defect. With the returned state transposed before comparison, the
+cross-check passes all three pinned configurations (residuals
+$2.8\times10^{-3}$ to $4.5\times10^{-3}$), and a permanent negative
+test confirms a transposed-update mutant is killed at $1.405$.
+% <!-- evidence: B3 -->
+
+\section{The Catalogue and Per-Incident Detail Tables}
+\label{app:tables}
+
+Table~\ref{tab:catalogue} is the six-incident catalogue in one view;
+the remaining tables and Figure~\ref{fig:taploc} carry the
+per-incident numbers the body summarizes. Every value traces to the
+same evidence rows (and raw artifacts, with checksums) recorded in the
+paper's claims-to-evidence map.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{@{}p{2.5cm}p{3.4cm}p{3.5cm}p{2.5cm}@{}}
+\toprule
+Apparent model failure & Actual instrument defect & Diagnostic signature & Resolution \\
+\midrule
+Capacity collapse, 11/12 cells quarantined (\S\ref{sec:tolerance}) &
+admission tolerance calibrated on blended keys, applied to raw keys &
+every flagged episode resolves under a modest iteration bump &
+flag-only recalibration; no cliff \\
+\addlinespace[2pt]
+Three failed evaluation rounds (\S\ref{sec:wronglayer}) &
+probe tap on a causally inert layer; storage not linearly decodable
+at any state &
+task metric near ceiling while probe reads zero; state-zeroing
+localization &
+metric of record re-registered; tap relocated \\
+\addlinespace[2pt]
+Generalization endpoint falsified with no signal anywhere
+(\S\ref{sec:gauge}) &
+identity-gauge assumption from one architecture carried to another &
+primary/crosscheck contradiction of full magnitude, only on
+converged cells &
+crosscheck decisional; verdict re-read (still falsified, different
+reason) \\
+\addlinespace[2pt]
+Perfect synthetic model fails acceptance (\S\ref{sec:threelenses}) &
+uncentered covariance, degenerate on near-orthogonal targets &
+oracle injection scores near zero; centering restores it &
+estimator centered; injection extended \\
+\addlinespace[2pt]
+Causal rank test returns zeros at every rank
+(\S\ref{sec:threelenses}) &
+target built with an ambient identity block, taxing every rank
+budget &
+capped cells sit at the exact ceiling $\sqrt{k/\dstate}$ &
+target zero-padded; test re-run \\
+\addlinespace[2pt]
+Recurrence contradicted by reference kernel
+(\S\ref{sec:threelenses}) &
+reference invoked on the transposed side of a state convention &
+relative residual $\approx\sqrt{2}$; closed-form hand computation &
+reference transposed; mutant-kill check added \\
+\bottomrule
+\end{tabular}
+\caption{The six incidents. In each, the model was initially the
+suspect and the instrument was the finding; every row was adjudicated
+against raw artifacts before any model-level conclusion was recorded.
+Sections named per row.}
+\label{tab:catalogue}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{fig2_tap_localization}
+\caption{Case II, the wrong-layer instrument adjudicated causally.
+(a)~Episode-restricted recall accuracy under state zeroing, contender
+(blue) and ablation baseline (gray), chance $=1/32$ dashed: zeroing
+$S_0$ collapses recall to chance in both arms; zeroing $S_1$, the
+layer every deployed probe tapped, changes nothing. (b)~Linear
+(ridge) probe recovery $\rf$ by tap site: both recurrent states read
+zero in both arms, including the causally load-bearing $S_0$; only
+the post-nonlinearity pre-LM-head hidden exposes the recall, and only
+in the arm that can perform the task. The figure regenerates from the
+archived localization summary under an asserted checksum.}
+\label{fig:taploc}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}llll@{}}
+\toprule
+Step (pre-registered order) & Outcome & Reading & Rules out \\
+\midrule
+entity-set reconstruction gate & pass & $107/107$ set-equal & wrong-partition analysis \\
+pool-membership precheck & pass & $0$ violations / 36 events & instrument bug (structural) \\
+reproduction-count floor & pass & $12\times$ the minimum & fluke event \\
+live/offline agreement & pass & $0$ disagreements & instrument bug (numerical) \\
+iteration sweep & resolves & $4{,}313$ @ $\niter{=}24$; $295$ @ $\niter{=}28$ & structural wall \\
+\bottomrule
+\end{tabular}
+\caption{Case I, the repro instrument's decision-rule walk on the real
+cell ($K{=}84$): each step ran in its pre-registered precedence order,
+and the terminal verdict (tolerance miscalibration) was reachable only
+after every instrument-bug branch failed to fire. All 4{,}608 flagged
+episodes resolve by $\niter=28$; none remained at larger budgets.
+Evidence row I3.}
+% <!-- evidence: I3 -->
+\label{tab:walk}
+\end{table}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{contender} & \multicolumn{2}{c}{ablation} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+tap site & $\rf$ & gap & $\rf$ & gap \\
+\midrule
+(i) $S_1$, shallow query (deployed) & $0.0$ & $+0.060$ & $0.0$ & $+0.005$ \\
+(ii) $S_0$, bind pathway & $0.0$ & $+0.006$ & $0.0$ & $+0.002$ \\
+(iii) $S_1$, true query pathway & $0.0$ & $+0.063$ & $0.0$ & $+0.005$ \\
+(iv) pre-LM-head hidden & $\mathbf{0.674}$ & $\mathbf{+0.800}$ & $0.0$ & $+0.006$ \\
+\bottomrule
+\end{tabular}
+\caption{Case II, ridge-probe recovery by tap site; ``gap'' is each
+fit's cosine-mean margin over its own shuffled-tap control. No
+state-level linear tap recovers anything in either arm, including (ii)
+on the causally load-bearing state; the post-nonlinearity tap (iv)
+recovers strongly and only in the arm that performs the task. Evidence
+row W4.}
+% <!-- evidence: W4 -->
+\label{tab:taps}
+\end{table}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+group & ceiling (X) & far (X) & bar & clears & baseline far (X) & separates \\
+\midrule
+S3 & $0.920$ & $0.900$ & $0.828$ & yes & $0.150$ & no \\
+S4 & $1.000$ & $1.000$ & $0.900$ & yes & $0.000$ & yes \\
+A5 & $0.490$ & $0.390$ & $0.441$ & no & $0.000$ & no \\
+S5 (decisive) & $0.817$ & $0.483$ & $0.735$ & no & $0.000$ & no \\
+A6 (decisive) & $0.190$ & $0.000$ & $0.171$ & no & $0.000$ & no \\
+\bottomrule
+\end{tabular}
+\caption{Case III, the re-metric: the pre-registered endpoint computed
+under the crosscheck lens (X) per group, by the unmodified verdict
+machinery on shadow cells; ``far'' is depth 64 and ``bar'' is $90\%$
+of each group's own ceiling. The endpoint remains \textsc{falsify}
+(neither decisive group separates), but the failure geometry is now
+informative: A6 never converges at its decisive configuration under
+either lens, and S5 is held under its bar by one non-generalizing
+seed. Evidence row X5.}
+% <!-- evidence: X5 -->
+\label{tab:remetric}
+\end{table}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+converged control checkpoint & real & shuffled & falsifier ($\geq0.5$) fires \\
+\midrule
+A6, $n_h{=}4$, seed 0 & $1.000$ (bit-identical) & $0.000$ & no \\
+S5, $n_h{=}4$, seed 0 & $0.800$ (bit-identical) & $0.000$ & no \\
+S4, $n_h{=}2$, seed 2 & $1.000$ (bit-identical) & $0.050$ & no \\
+\bottomrule
+\end{tabular}
+\caption{Case III, the tiebreak's own pre-registered falsifier: on
+three converged checkpoints, the crosscheck re-scored with targets
+shuffled across the item pool reads far below the $0.5$ void
+threshold, while the unshuffled reads reproduce the committed values
+exactly (``bit-identical''). Had any shuffled read cleared $0.5$, the
+tiebreak was pre-registered to be wrong and the adjudication void.
+Evidence row X4.}
+% <!-- evidence: X4 -->
+\label{tab:teeth}
+\end{table}

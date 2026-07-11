@@ -1,0 +1,32 @@
+\section{Related Work and Limitations}
+\label{sec:related}
+
+\looseness=-1 \textbf{Related work.} \citet{silberzahn2018many} and
+\citet{damour2020underspecification} document divergent conclusions
+from underspecified analysis pipelines; here the models are fixed and
+the \emph{measurement pipeline} is the component being adjudicated,
+with a per-incident decision procedure rather than a variance
+demonstration. \citet{henderson2018deep} and
+\citet{bouthillier2021accounting} quantify seed and tuning variance;
+none of the six defects here is sampling variance (a transposed
+convention or a wrong-population tolerance is bit-stable across
+seeds), so variance accounting would have caught none. REFORMS
+\citep{kapoor2023reforms}, \citet{sculley2018winners}, and
+\citet{lipton2018troubling} prescribe what a trustworthy paper
+discloses; this paper supplies the in-flight machinery such checklists
+presume exists. \citet{nichani2025factual} prove the
+argmax/exact-recovery gap of Rule 5; we report it firing live, on both
+sides (\S\ref{sec:wronglayer}); the fast-weight testbeds follow
+\citet{schlag2021linear}.
+
+\looseness=-1 \textbf{Limitations.} All six incidents come from one program, one
+team, one architecture family; we cannot report the rate a lighter
+process would miss, and six incidents support no prevalence claim.
+The catalogue is survivor-biased in one stated direction: a defect
+that both the crosscheck and the falsifier battery miss would appear
+in no record we could write. The economics
+still favor adoption: Case I's two decisive diagnostic instruments
+together cost under 2 GPU-hours against the 6.33 GPU-hours of training
+their uncorrected readings would have discredited; auditing the lens
+is cheap relative to the compute, and the claims, it protects.
+% <!-- evidence: I6 -->
