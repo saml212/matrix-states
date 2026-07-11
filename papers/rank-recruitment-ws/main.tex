@@ -1,0 +1,100 @@
+%%%% NeurReps Extended Abstract track — OFFICIAL template (jmlr.cls from
+%%%% the NeurReps style zip; see venue-requirements.md). This build is the
+%%%% ANONYMIZED review version: per the template instructions no author
+%%%% block appears at all during review; camera-ready uncomments it.
+%%%%
+%%%% TITLE: default per PAPER_SPRINT_PLAN.md §4 Decision 2 (PI-backed).
+%%%% AUTHOR BLOCK: PENDING-USER — commented camera-ready placeholder below.
+%%%%
+%%%% The CFP asks for a single .tex file at submission: `make bundle`
+%%%% writes the flattened bundle/rank-recruitment-ws-submission.tex from
+%%%% this modular source.
+\documentclass[mlabstract,onecolumn]{jmlr}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% Watermark (review builds only; remove for camera-ready)
+% (the sample zip writes hpos=300px,vpos=70px; px is a pdfTeX-only unit and
+% this build engine runs XeTeX, so the equivalent bp values are used --
+% 1px = 1bp at pdfTeX's default \pdfpxdimen)
+\usepackage[hpos=300bp,vpos=70bp]{draftwatermark}
+\SetWatermarkText{\test}
+\SetWatermarkScale{1}
+\SetWatermarkAngle{0}
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+% The class auto-loads: amsmath, amssymb, natbib, graphicx, url, algorithm2e.
+\usepackage{booktabs}
+
+\graphicspath{{figures/}}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\recninety}{\mathrm{rec}@0.9}
+\newcommand{\Kmat}{K_{\mathrm{mat}}}
+\newcommand{\Vmat}{V_{\mathrm{mat}}}
+
+%%%% DON'T CHANGE %%%%%%%%%
+\jmlrvolume{}
+\firstpageno{1}
+\editors{Under Review for the NeurReps Workshop}
+\jmlryear{2026}
+\jmlrworkshop{Symmetry and Geometry in Neural Representations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title[When the Gradient Sees Rank]{When the Gradient Sees Rank: Provable
+Necessity, Causal Recruitment, and Exact Composition in Trained Matrix
+Memories}
+
+% CAMERA-READY ONLY (PENDING-USER): uncomment and fill after acceptance.
+% \author{\Name{Author Name(s) TBD} \Email{email@TBD}\\
+% \addr Affiliation TBD}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Matrix-valued fast-weight memories make rank a structural budget: the
+directions a state spans bound what it can bind and compose. A recent
+negative result reported that a matrix latent bolted onto a
+vector-pretrained reasoner never uses its rank, but the probed task admits
+a rank-1 solution, leaving the general question open. We answer it on
+testbeds where the exact solution provably requires
+$\rank(Z) \geq K$ and where every rank-evading shortcut is closed by
+construction: the readout is pinned to exact continuous recovery, since
+argmax decoding lets a rank-$m$ memory store roughly $md$ associations; a
+single-matrix-state bottleneck forecloses position decomposition; and no
+cell is called dead without re-testing at 2--2.5$\times$ budget. Under
+these conditions gradient descent recruits the rank the task demands:
+learned effective rank tracks $K$ across the tested grid (Spearman
+$\rho = 1.0$ at $d = 16$),
+% <!-- evidence: R1 -->
+train-time rank caps show a causal step at $k \approx K$ (at $d = 8$,
+$K = 4$: rank 3 gives at most 0.0004 recovery, rank 4 gives 0.97),
+% <!-- evidence: R2 -->
+and the trained operator composes exactly through 21-fold self-application
+in four of five seeds.
+% <!-- evidence: R3 -->
+An entity-subspace decomposition supplies the mechanism, restricted rank
+exactly $K$ on the key subspace,
+% <!-- evidence: R5 -->
+and a rank-starved operator's depth-decay curve is predicted from its
+eigenspectrum alone.
+% <!-- evidence: R4 -->
+\end{abstract}
+
+\begin{keywords}
+effective rank, fast weights, associative memory, composition
+\end{keywords}
+
+\input{sections/01_intro}
+\input{sections/02_setup}
+\input{sections/03_recruitment}
+\input{sections/04_composition}
+\input{sections/05_frontier}
+\input{sections/06_related}
+\input{sections/07_limitations}
+
+\bibliography{refs}
+
+\end{document}

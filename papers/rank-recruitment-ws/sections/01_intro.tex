@@ -1,0 +1,26 @@
+\section{Introduction}
+\label{sec:intro}
+
+Matrix-valued latents, in continuous chain-of-thought models
+\citep{hao2024coconut} and fast-weight architectures broadly
+\citep{schlag2021linear}, carry a structural observable a vector does
+not have: the \emph{rank} of the state, which should track how many
+items the state holds and, when constrained below what the task needs,
+should destroy performance.
+A recent negative result tested this on a matrix-CODI model (a
+$d \times d$ latent bolted onto a vector-pretrained GPT-2) and found
+rank-$k$ truncation curves flat across four training regimes and four
+readouts \citep{larson2026gradient}; its own stated confound is that
+ProsQA admits a rank-1 solution, so flatness says nothing about tasks
+that provably require rank. We close the confound,
+training matrix-native models from scratch on tasks whose exact
+solutions carry a provable $\rank(Z) \geq K$ lower bound, under a
+readout and an architecture built so that nothing short of genuine rank
+recruitment can pass. The contributions: the \emph{teeth} that keep the
+bound a necessity result (\S\ref{sec:setup}); recruitment of rank
+tracking $K$ and its causal necessity under train-time caps
+(\S\ref{sec:recruit}); exact composition to depth 21, its
+invariant-subspace mechanism, and the depth-amplification signature
+that exposes rank starvation (\S\ref{sec:compose}); and an exactness
+frontier in $d$ with a budget-extension rule for dead cells
+(\S\ref{sec:frontier}).

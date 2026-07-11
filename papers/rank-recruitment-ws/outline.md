@@ -10,7 +10,7 @@ limit 4pp excluding references/appendices (projected, flagged).
 | 1 | Introduction (`01_intro.tex`) | 0.60 | (frames R1--R8) | — | the published negative result, third person; the question; five contribution bullets |
 | 2 | The bound and the teeth (`02_setup.tex`) | 0.90 | R9, R10 | — | task; Fact 1 (rank >= K); exact-readout pin vs argmax; P=1 bottleneck + blank-out; architecture + pre-registered controls |
 | 3 | Recruitment and causal necessity (`03_recruitment.tex`) | 0.70 | R1, R1b, R2, R2b | Table 1 (M1 grid); fig_forcerank.pdf | observation (M1) -> causal test (M3) -> resolution of the companion's open confound |
-| 4 | Exact composition and the mechanism (`04_composition.tex`) | 1.00 | R3, R4, R5 | fig_depth.pdf; Table 2 (depth curve) | headline depth-21; spectral prediction; subspace decomposition (per-seed table -> Appendix B) |
+| 4 | Exact composition and the mechanism (`04_composition.tex`) | 1.00 | R3, R4, R5 | fig_depth.pdf | headline depth-21; spectral prediction; subspace decomposition (per-seed table -> Appendix B). *Amended at drafting: the depth-curve table moved to Appendix A (the figure's left panel already carries it in the body; holds the 4pp budget).* |
 | 5 | The exactness frontier and when to trust a dead cell (`05_frontier.tex`) | 0.35 | R6, R7, R8 | Table 3 (frontier) | K-wall reversal; frontier numbers; the 2--2.5x rule + counter-caution |
 | 6 | Related work (`06_related.tex`) | 0.30 | — | — | seven by-name distinctions from the brief |
 | 7 | Limitations and outlook (`07_limitations.tex`) | 0.15 | R9 | — | scope; falsification recap; anonymous companion pointer |
@@ -30,6 +30,23 @@ limit 4pp excluding references/appendices (projected, flagged).
 - [x] No section carries a claim without an evidence row.
 - [x] Zero overlap with the sibling EA's figures/tables/headline claims
       (checked against `papers/neurreps-ea/` sections and brief).
+
+## Drafting amendments (2026-07-10, page-fit pass)
+
+The first compiled draft ran ~5.5pp body against the 4pp limit; the
+following structural amendments (all content-preserving at the claim
+level, recorded per the repo-mode discipline) brought the body to
+exactly 4pp:
+
+- Table 1 (M1 grid) folded into §3 prose (grid endpoints + rho quoted;
+  full grid remains in evidence row R1).
+- Table 3 (frontier) folded into §5 prose (all cell values quoted).
+- §6 Related work and §7 Limitations merged into one section
+  ("Related Work, Limitations, and Outlook"); appendices unchanged.
+- Intro contribution list compressed from five roman items to one
+  sentence; the claim-level numbers moved wholly into §§3--5.
+- The depth-curve table moved to Appendix A (as previously noted).
+- Both figures regenerated at onecolumn-native size (5.6in wide).
 
 ## Per-section beat sheet
 

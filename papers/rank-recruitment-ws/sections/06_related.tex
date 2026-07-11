@@ -1,0 +1,31 @@
+\section{Related Work, Limitations, and Outlook}
+\label{sec:related}
+
+\citet{nichani2025factual} is the nearest neighbor: a hand-built
+existence construction under interference-tolerant argmax decoding;
+this work pins the readout so that construction cannot pass, then
+measures and intervenes on the rank SGD recruits
+(\citealp{barnfield2026sharp} give static-memory thresholds).
+\citet{nazari2026rank} and \citet{sun2026staterank} measure
+effective-rank dynamics in pretrained linear-attention models
+observationally (an \emph{upper} bound $\rank(S_t) \leq t$); here the
+write count is controlled and necessity is causal. \citet{mishra2026m2rnn} train matrix-state RNNs on $S_3$ with no rank
+measurement or intervention (their own vector-state control matches);
+\citet{grazzi2025negative} and \citet{siems2025deltaproduct}
+characterize the per-token \emph{transition} operator, not the trained
+\emph{state's} own rank, the quantity here. Continuous-CoT capacity
+results are existence constructions, not measurements
+\citep{zhu2025superposition,gozeten2025cot2}; the
+compositional-generalization caution
+\citep{dziri2023faithfate,wang2024grokked} is met with an exact
+eigenstructure match.
+
+\textbf{Limitations.} Every experiment is synthetic and under 1M
+parameters; generality at scale is untested.
+% <!-- evidence: R9 -->
+The force-rank contrast rests on one converged rank-starved seed, the
+$d \geq 48$ frontier cells on single seeds. Registered falsifiers:
+force-rank-$(K{-}1)$ at $\geq 0.9\times$ ceiling at multiple $(d, K)$
+points, or a $d \geq 32$ cell clearing the 0.7 bar. A concurrent
+companion submission covers group-composition state tracking, sharing
+no figures or headline claims.

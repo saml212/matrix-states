@@ -1,0 +1,87 @@
+\appendix
+
+\section{Depth 21 Under the Single $K$-Cycle}
+\label{app:period}
+
+Under a single 8-cycle, $\pi^{21} = \pi^{21 \bmod 8} = \pi^{5}$, so the
+nominal depth-21 probe shares its \emph{target} with the already-tested
+depth 5; the two are not distinct group-theoretic queries. What depth 21
+measures is numerical stability under 21 sequential self-applications of
+the trained operator. In the four converged seeds $\recninety$ reads
+$\geq 0.9996$ at both $h{=}5$ and $h{=}21$, so repeated self-application
+does not amplify their residual error;
+% <!-- evidence: R3 -->
+in the rank-starved operator the same 16 additional applications
+compound a passing shallow-hop cosine into collapse (0.947 at $h{=}5$
+to 0.060 at $h{=}21$ in recovered fraction),
+% <!-- evidence: R4 -->
+which is exactly the amplification claim of \S\ref{sec:compose}, not a
+generalization claim to unseen permutation targets.
+
+\begin{table}[!htb]
+\centering
+\small
+\begin{tabular}{cccc}
+\toprule
+$h$ & predicted $\cos$ & measured $\overline{\cos}$ & measured $\recninety$ \\
+\midrule
+1  & 0.9317 & 0.9303 & 0.996 \\
+3  & 0.9258 & 0.9259 & 0.986 \\
+5  & 0.9181 & 0.9212 & 0.947 \\
+7  & 0.9089 & 0.9163 & 0.881 \\
+21 & 0.7536 & 0.8206 & 0.060 \\
+\bottomrule
+\end{tabular}
+\caption{The rank-starved ($k = 7 = K - 1$) operator's depth-decay
+curve: cosine predicted from the trained operator's own eigenspectrum
+(no raw keys) against the measured values, with the recovered fraction
+alongside. Every hop through $h = 7$ matches within 0.008; at $h = 21$
+the per-item distribution widens and the exact-match metric collapses
+while mean cosine moves little.}
+% <!-- evidence: R4 -->
+\label{tab:depthcurve}
+\end{table}
+
+\section{Per-Seed Subspace Decomposition}
+\label{app:subspace}
+
+\begin{table}[!htb]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+seed & $\mathrm{effrank}(A)$ & residual & leakage (\% of $\|Z\|$) & $\mathrm{effrank}(D)$ & $\rho(D)$ \\
+\midrule
+s1 & 8.000 & 0.7\% & 0.44\% & 8.000 & 1.38 \\
+s2 & 7.999 & 1.9\% & 1.06\% & 8.000 & 1.27 \\
+s3 & 7.999 & 1.5\% & 0.87\% & 8.000 & 2.86 \\
+s4 & 7.999 & 2.4\% & 1.45\% & 7.999 & 1.02 \\
+\bottomrule
+\end{tabular}
+\caption{Entity-subspace block decomposition of the four converged
+$K{=}8$ composition seeds (means over four evaluation episodes),
+recomputed from the archived $Z$-dumps. $A$ is the operator restricted
+to the $K$-dimensional entity subspace; residual is the scale-corrected
+Frobenius distance to the ideal cycle after fitting the single isotropic
+scale that cosine scoring cannot see; leakage is the cross-block norm
+$\|C\|$ as a fraction of $\|Z\|$; $D$ is the complement block, full-rank
+and non-contractive ($\rho(D) \geq 1$) yet never visited by a query
+trajectory that starts in the entity subspace.}
+% <!-- evidence: R5 -->
+\label{tab:subspace}
+\end{table}
+
+\section{Reproducibility}
+\label{app:repro}
+
+Training, evaluation, and analysis code is available at
+\url{https://anonymous.4open.science/} (anonymized for review). Raw
+per-run JSON archives (dense training-step checkpoints, not summary
+rollups) back every number in this abstract; each figure regenerates
+from those archives through a single versioned script that asserts an
+md5 checksum for every source file it loads, so a changed artifact fails
+the build rather than silently plotting stale data. Hypotheses, metrics,
+force-rank controls, and decision bands were registered in design
+documents before training, and every deviation (one metric
+re-registration, logged before the affected sweep) is recorded inline
+in those documents.

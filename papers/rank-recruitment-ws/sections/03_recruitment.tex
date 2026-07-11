@@ -1,0 +1,35 @@
+\section{Rank Tracks $K$ and Is Causally Necessary}
+\label{sec:recruit}
+
+\textbf{Recruitment.} The observational half: without any rank term in
+the loss, the trained $d{=}16$ state's effective rank rises one-for-one
+with binding count across a ten-point grid from $K{=}1$ to $K{=}16$
+(Spearman $\rho = 1.0$; 2.42 at $K{=}1$, 8.20 at $K{=}8$, 15.09 at
+$K{=}16$), leaving the pre-registered $[0.7K, 1.3K]$ band only at
+$K{=}1, 2$, by overshoot; beyond $K = d$ rank saturates and declines.
+% <!-- evidence: R1 -->
+A 1{,}234-run replication is directionally identical.
+% <!-- evidence: R1b -->
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_forcerank.pdf}
+\caption{The primary, pre-registered causal test: $\recninety$ under
+train-time force-rank $k$ (archived 991-run sweep; dashed line at
+$k = K$). The step lands at $k \approx K$ in every cell.}
+% <!-- evidence: R2 -->
+\label{fig:forcerank}
+\end{figure}
+
+\textbf{Causal necessity.} The causal test trains with $Z$ constrained
+to rank $k$ throughout (Figure~\ref{fig:forcerank}). At $d{=}8, K{=}4$
+the step is exact: $k \leq 3$ yields $\recninety \leq 0.0004$ and
+$k = 4$ yields 0.97, a discontinuity at the provable bound.
+% <!-- evidence: R2 -->
+The $d{=}16$ cells show the same knee near $k \approx K$ with mild
+post-knee non-monotonicity from seed noise; the replication resolves
+the $K{=}12$ transition into a ragged ramp, not a clean step.
+% <!-- evidence: R2b -->
+The two halves answer \citet{larson2026gradient}: the earlier
+rank-blindness was a property of a rank-1-solvable task, not of the
+gradient.
