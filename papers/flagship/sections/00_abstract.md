@@ -26,8 +26,8 @@ also reads chance, disclosed as a degenerate baseline)
 <!-- evidence: R4 -->; the capability resides causally in the first
 layer's state, is linearly legible only after downstream nonlinear
 processing <!-- evidence: R5 -->, and holds at 0.998 or higher to 1798
-tokens on a fixed 32,768-byte state while cache-capped transformers
-read chance at every budget <!-- evidence: R10 -->. Third, the
+tokens on a fixed 32,768-byte state while that transformer,
+cache-capped, reads chance at every cap <!-- evidence: R10 -->. Third, the
 same write mechanism drives a population-geometry pathology worsening
 monotonically from 14M to 1.31B parameters <!-- evidence: R6 -->, not
 explained by qk-normalization <!-- evidence: R7 --> and not removed by

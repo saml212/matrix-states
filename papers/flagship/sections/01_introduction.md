@@ -52,9 +52,9 @@ Concretely, we contribute:
    single-pass episodic recall, the delta-rule contender reads accuracy
    0.99951 <!-- evidence: R4 --> against 0.03394 for its vector-state
    ablation <!-- evidence: R4 -->; the paired confidence interval
-   excludes the pre-registered 0.30 margin at more than three times its
-   width <!-- evidence: R4 -->, and this ablation comparison carries
-   the verdict. A compute-matched transformer also reads chance
+   excludes the pre-registered 0.30 margin, its floor sitting at more
+   than three times the margin <!-- evidence: R4 -->, and this ablation
+   comparison carries the verdict. A compute-matched transformer also reads chance
    (0.02832) <!-- evidence: R4 -->; because its learning rate was never
    searched on this task and its training loss is near flat, it is
    recorded as a degenerate-baseline datum, not a second verdict

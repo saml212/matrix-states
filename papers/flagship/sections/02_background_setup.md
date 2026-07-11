@@ -96,8 +96,8 @@ the nine-seed diagnosis pool of Section 4.5, stated there. Per-seed
 values are tabulated in Appendix B so any alternative construction can
 be applied; the verdicts that rest on these intervals clear their
 margins by multiples of the interval width, and the one
-threshold-adjacent reading (Section 5.2) is reported as an unconfirmed
-trend.
+threshold-adjacent reading claimed as a trend (Section 5.2) is reported
+as unconfirmed.
 
 ## 2.5 Instrument Validity as a First-Class Method
 

@@ -28,7 +28,7 @@ token-matched budget <!-- evidence: R6 -->. The shortfall does not
 rescue the trend: over the final 25,000 recorded steps the rung's span
 fraction is flat to mildly declining (0.4584 to 0.4554)
 <!-- evidence: R6 -->, so completing the budget would move the endpoint
-by roughly 0.003, two orders of magnitude smaller than the 0.066
+by roughly 0.003, more than twenty times smaller than the 0.066
 increment from the previous rung.
 
 ## 5.2 The Stock Mitigation Is Not the Cause, and Gating Is Not the Cure

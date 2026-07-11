@@ -112,7 +112,7 @@ with distance: at horizons of 2, 4, and 8 times the bind phase (454,
 <!-- evidence: R10 -->. The pre-registered memory-matched comparison
 caps the transformer's KV cache at $M$ times the contender's state
 bytes with sink-plus-FIFO eviction in the style of streaming attention
-caches (Xiao et al., 2023), $M \in \{1, 2, 4, 8, 16, 32\}$;
+caches (Xiao et al., 2024), $M \in \{1, 2, 4, 8, 16, 32\}$;
 every capped read at the decision horizon lies between 0.020 and 0.033,
 at or below chance, as does the uncapped read <!-- evidence: R10 -->.
 Every per-$M$ paired-gap confidence interval has a floor of at least
