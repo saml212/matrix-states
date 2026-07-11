@@ -5138,8 +5138,11 @@ the "11 quarantined d=96 cells" §15.22 named (that count is exactly the
 K=72/seed=1741), and the task's own K-grid spec pins K=69 at `n≈3`
 (1731/1732/1733), not `n=4`. Had s1730 also been flipped, K=69 would
 carry a 4th seed and its own group mean would shift from 0.9592 to
-0.9423 — a small, disclosed, non-load-bearing difference (verified by
-hand, not applied) that would not change any conclusion below.
+0.9673 (up, not down — s1730's own h4=0.9918 is a high performer) — a
+small, disclosed, non-load-bearing difference that would not change any
+conclusion below. [CORRECTED 2026-07-10: hand-calc 0.9423/direction
+error; raw-derived 0.9673 UP — caught by capacity-colm-er format audit,
+see papers/capacity-colm-er/gauntlet/round-1/05_format_audit.md]
 
 **Mechanical execution, verified byte-clean.** A one-off offline script
 (archived below) built a RECALIBRATED copy of the wide-grid cells'
