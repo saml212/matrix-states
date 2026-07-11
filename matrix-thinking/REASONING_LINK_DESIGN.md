@@ -10697,3 +10697,199 @@ uncommitted `reasoning_link_poscontrol.py` is folded into the tree with
 this section's commit; `reasoning_link_layout_adjudication.py` and
 `reasoning_link_remetric_chain.sh` are committed alongside as the
 section's executable evidence.
+
+### §17.6 VALIDATION PRE-REGISTRATION (2026-07-11) — the §17.4 follow-on questions, hypotheses/metrics/thresholds recorded BEFORE any GPU pass
+
+**Trigger.** §17.4's FIXED-LENS SIGNAL verdict (78/320 nonzero (cell,h)
+readings) explicitly named three follow-on questions it does NOT answer
+(§17.4's closing paragraph): (1) whether the h=1/h≥2 signal survives a
+label-shuffle null (not re-run at Stage 1 — Stage-0-only in the original
+chain), (2) what explains the seed/corpus bimodality, (3) whether the
+per_token arm's h≥2 concentration replicates/generalizes. This section
+pre-registers all three BEFORE any GPU pass, per the standing "record
+before dispatch" discipline (§17.5). This is a dedicated validation
+dispatch (a Sonnet-tier signal validator, independent opus audit before
+any lane-reopening claim is trusted) — separate from the §17.4 re-metric
+dispatch and from any future confirmation-program design.
+
+**Scope discipline.** All three items are forward-pass re-metrics on the
+SAME already-archived checkpoints (zero new training); this dispatch's own
+budget ceiling is ≤1.5 GPU-h total. §17.4's 80-cell grid cost 0.288 GPU-h
+for one pass; this validation runs TWO passes per cell (original-seed +
+a fresh resampled-seed, each carrying its own label-shuffle null grading
+fused into the SAME forward-A/forward-B call via `measure_cell_all_h`'s
+existing `null_seed` mechanism — no extra forward cost per null grading,
+only per seed variant) → realized-cost estimate ≈2×0.29 ≈ 0.58 GPU-h,
+well under budget. Item 3 is pure analysis over already-archived JSONs
+(§17.4's `04_remetric/`), zero GPU cost. If realized cost exceeds the 1.5
+GPU-h ceiling at any checkpoint, STOP and record rather than continue.
+
+**Reused, NOT reimplemented, machinery** (mechanical fact, checked against
+the file directly, `reasoning_link_probe.py`). `build_null_labeling`
+(L912-919) already implements the exact label-shuffle null the design
+registers (module docstring point 3, L42-55) — an independently-drawn
+Hamiltonian K-cycle (`grammar_rd._permutation_graph`, verified L262-271 to
+draw a genuine single K-cycle per row, not a general permutation —
+satisfies this project's own hop-depth-task discipline, `CLAUDE.md`'s
+"single full K-cycle" rule) used to grade the SAME real forward pass's
+`pred(a,h)` against a deliberately wrong target. `measure_cell_all_h`
+already threads `null_seed` through to compute `null_recovered_frac_mean`
+at every h and applies the null-relative + absolute-floor gate
+(`h1_sanity_floor`) at h=1 only. `run_cell`/the CLI's `--mode cell` do NOT
+expose `null_seed` (only `run_stage0`/`run_stage0_natural` do, for the
+single pinned calibration cell) — this is the gap this validation closes
+with a NEW script, not a rebuild of the null machinery itself.
+
+**ONE additive edit to `reasoning_link_probe.py` (the shared, just-fixed,
+just-audited production instrument), disclosed here BEFORE it is made:**
+generalize `measure_cell_all_h`'s `if h == 1: result.update(h1_sanity_floor(...))`
+guard to apply at EVERY tested h (currently h∈{1,2,3,4}), not only h=1.
+This is a pure boundary-condition widening — h=1's own computed values
+are BYTE-IDENTICAL (same call, same inputs, same code path), and
+h∈{2,3,4} simply gain the SAME null-relative-CI/absolute-floor fields
+that were already being silently discarded (only the undifferentiated
+`null_recovered_frac_mean` scalar survived for h≥2 previously). Verified
+no existing caller reads h≥2's `probe_valid`/`null_relative_pass`/
+`absolute_pass`/`null_ci_lower`/`null_ci_upper`/`null_width` keys (grepped
+`reasoning_link_stage_minus1.py`, `reasoning_link_gate_enforce.py`,
+`phase2_familiarization_train.py`, `phase2_gate_enforce.py`,
+`phase2_trajectory_analysis.py`, `phase2_stage_minus1.py`,
+`phase2_smoke_gpu.py`, `lm_pretrain_rd.py` — every hit reads `per_h[1]`/
+`per_h["1"]` only, confirmed by direct grep this session). This edit +
+the new validation script both go through the independent opus audit
+before any result is trusted (charter requirement) — the audit is
+directed at this diff FIRST, since it touches the shared instrument.
+
+**Item 1 — LABEL-SHUFFLE NULL (the decisive falsifier, run first).**
+
+*Hypothesis under test.* H_null: the §17.4 fixed-lens signal is trivially
+satisfiable by ANY (state, wrong-target) pairing — an artifact of readout
+geometry/state magnitude, not genuine state↔target correspondence.
+H_signal: the real target is required — grading against an
+independently-drawn wrong target collapses recovery.
+
+*Construction.* For every one of the 80 committed grid cells (identical
+enumeration to `reasoning_link_remetric_chain.sh`), at the cell's own
+ALREADY-REGISTERED eval seed (`episode_seed("eval", ...)`, bit-identical
+episode to §17.4's own harvest), compute BOTH `recovered_frac` (real
+target) and `null_recovered_frac` (target graded against `succ_null`,
+seed = `episode_seed("null_shuffle", leg, condition_idx, corpus_idx,
+ckpt_seed_idx, k_idx)` — extending the `null_shuffle` purpose from its
+single previously-exercised combo (Stage-0's pinned calibration cell) to
+all 80 grid combos; collision-free by the SAME mixed-radix proof (Stage
+-1 item 10) since `purpose` is an outer additive block offset, unaffected
+by which condition/corpus/seed/k combo is requested within it) — in the
+SAME forward-A/forward-B pass, at every h∈{1,2,3,4}.
+
+*Noise floor (derived from the §17.4 re-metric's own zero-cells, per the
+charter).* Of the 320 (cell,h) readings, 242 read EXACTLY 0.0 under
+real-target grading (verified directly against the 80 archived JSONs this
+session: 242 zero / 78 nonzero / 320 total) — this IS the instrument's
+own empirical floor for "nothing recovered." Both real and null readings
+are literal boolean means over B×Q≈512 rows at threshold 0.9, so the
+finest achievable nonzero step is ~1/512≈0.00195 — several of §17.4's
+"nonzero" readings (e.g. 0.0018/0.0031/0.0059) sit AT or near this
+single-row floor and are pre-registered here as indistinguishable from
+exact zero (noise), regardless of the null-comparison outcome.
+
+*Pre-registered per-(cell,h) decision rule (BOTH conditions required for
+"NULL-CLEARS"):*
+(a) **Charter's explicit trivial-artifact bar:** `null_recovered_frac <
+0.5 × real_recovered_frac` (shuffled reproduces LESS than half the real
+reading) — the ≥50%-reproduction bar from the dispatch charter, applied
+as its complement.
+(b) **Null-relative statistical test** — the existing `h1_sanity_floor`
+formula (§8.4) generalized to every h (the one additive edit above):
+`real_recovered_frac > null_ci_upper + null_width` (bootstrap 95% CI over
+the null-recovered boolean vector, 2000 resamples, seed 0) AND
+`real_recovered_frac >= 0.10` (`H1_ABSOLUTE_FLOOR`, reused verbatim, not
+re-derived, applied at every h) — a cell reading e.g. 0.02 real vs 0.00
+null technically satisfies (a) vacuously but is BELOW the registered
+absolute floor and does NOT count as NULL-CLEARS.
+A (cell,h) NULL-CLEARS only if both (a) and (b) hold. Cell-level verdict
+= NULL-CLEARS if ANY of its tested h's individually NULL-CLEARS (mirrors
+§17.4's own "≥1 nonzero h" cell-coherence framing).
+
+*Outcome mapping (recorded BEFORE running):*
+- If ≥50% of the §17.4-identified 38 signal-bearing cells NULL-CLEAR at
+  their strongest h → the signal is NOT explained by instrument noise at
+  the cell level; proceed toward GENUINE-CORRESPONDENCE-SIGNAL (pending
+  items 2-3).
+- If <50% NULL-CLEAR, or the aggregate null distribution's own mean/max
+  converges toward the real distribution's → TRIVIAL-ARTIFACT, lane
+  re-closes.
+- MIXED (e.g. h=1 clears but h≥2 does not, or per_token clears but
+  off/global don't) is reported exactly as observed, never rounded to one
+  of the two poles.
+
+**Item 2 — SEED-BIMODALITY CHARACTERIZATION (episode-resampling
+stability).**
+
+*Hypothesis under test.* H_state-property: a cell's ON/OFF status
+(§17.4's per-cell nonzero-h pattern) is a property of the TRAINED STATE
+(should reproduce under a fresh episode draw on the identical
+checkpoint). H_episode-artifact: ON/OFF status is a property of the
+SPECIFIC deterministic `episode_seed` draw (a "lucky"/"unlucky" synthetic
+episode), and would flip under resampling.
+
+*Construction.* For the SAME 80 cells, a SECOND forward-A/forward-B pass
+per cell at a freshly-resampled seed: `seed_resample = seed_eval +
+RESAMPLE_OFFSET`, `null_seed_resample = null_seed + RESAMPLE_OFFSET`,
+`RESAMPLE_OFFSET = 10**9`. Verified safe against collision with any
+`episode_seed()`-derived value under the CURRENT schema: max
+representable value = `PURPOSE_BASE[calibration]=20,000,000 +
+LEG_BASE[leg_b]=5,000,000 + 3×STRIDE_CONDITION=3,000,000 +
+1×STRIDE_CORPUS=100,000 + 11×STRIDE_SEED=88,000 + 5×STRIDE_K=5,000 =
+28,193,000` ≪ `10**9` — a >35× margin. This is a LOCAL convention scoped
+to the new validation script only (never edits `PURPOSE_BASE`/
+`episode_seed` itself, the shared already-audited formula), deliberately
+avoiding a second touch to the seed-allocation registry mid-validation.
+
+*Cell classification (registered floor, reused from item 1:
+`H1_ABSOLUTE_FLOOR`=0.10, applied per h).* A cell is "coherently ON"
+under a given seed variant if ≥1 of its 4 h's reads `recovered_frac >=
+0.10` (the same registered absolute floor, not the raw >0-nonzero
+criterion, which item 1 flags as noise-contaminated at the ~1/512
+single-row level).
+
+*Decision rule.* Per cell: STABLE if ON/OFF status agrees between
+original-seed and resampled-seed passes (both ON or both OFF); FLIPPED if
+it disagrees. Report the flip-rate over the §17.4-identified 38
+nonzero-at-original-seed cells specifically (the ones item 2 is actually
+about), plus the full 80-cell table for completeness. A flip-rate
+majority (>50% of the 38) FLIPPED routes toward episode-specificity
+(H_episode-artifact); a flip-rate minority (<50%) with STABLE cells
+concentrated in the same (arm,corpus) combinations §17.4 already flagged
+as bimodal routes toward H_state-property (a real, if heterogeneous,
+on/off structure).
+
+**Item 3 — PER_TOKEN h≥2 CONCENTRATION TABLE (pure analysis, zero GPU
+cost).**
+
+Tabulate, from the ALREADY-ARCHIVED `04_remetric/` 80 JSONs (no new pass
+needed): for each of Leg-A's 3 arms (off/per_token/global) × 2 corpora ×
+applicable surgery, the count and magnitude of h≥2 (cell,h) readings
+clearing `H1_ABSOLUTE_FLOOR`=0.10 (the SAME registered floor, reused for
+cross-item consistency), out of the applicable cell×h denominator.
+§17.4's own prose already asserts per_token's concentration ("the arm
+with the most multi-hop signal") — this item turns that into an
+exhaustive table across ALL arms (not just the two prose-cited ones) so
+the concentration claim itself is checked, not merely illustrated.
+
+**GPU-h ledger (pre-registered estimate, box GPU 1, co-located with the
+FIX-5 LR-grid on GPUs 0-1 per this dispatch's own charter — GPUs 2-7 =
+NCR Phase-2, verified untouched).** Item 1+2 fused (two full passes over
+80 cells): ≈0.58 GPU-h. Item 3: 0.0 (analysis only). Total ≈0.58 GPU-h
+against the ≤1.5 GPU-h ceiling (39%).
+
+**What each final outcome means (§17.7 will select one).**
+- GENUINE-CORRESPONDENCE-SIGNAL: item 1's NULL-CLEARS majority AND item
+  2's STABLE majority (on the 38-cell subset) both hold → the lane
+  reopens for a full pre-registered confirmation program (a SEPARATE
+  waterfall, not designed here).
+- TRIVIAL-ARTIFACT: item 1 fails (null reproduces the signal) OR item 2
+  fails (on/off is episode-specific, not state-specific) → lane
+  re-closes, now doubly instrument-validated (first the transpose bug,
+  now the null/resampling check).
+- MIXED: exactly what held and what didn't, stated plainly, no rounding
+  to either pole.
