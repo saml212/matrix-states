@@ -118,9 +118,9 @@ def fig_forcerank(repo, outdir):
         ks = sorted(int(k) for k in curve)
         ax.plot(ks, [curve[str(k)] for k in ks], color=color, marker=marker,
                 markersize=4, linewidth=1.3, clip_on=False, zorder=3)
+        # The dashed k=K line is identified in the caption; no in-plot text
+        # (a prior render pass found the annotation crowding the panel title).
         ax.axvline(K, color=C_GREY, linestyle="--", linewidth=1.0, zorder=1)
-        ax.text(K, 1.04, r"$k{=}K$", color=C_GREY, fontsize=7, ha="center",
-                va="bottom")
         ax.set_title(f"$d{{=}}{d}$, $K{{=}}{K}$", fontsize=8.5)
         ax.set_xlabel(r"train-time force-rank $k$")
         ax.set_xlim(1, d)
@@ -161,32 +161,41 @@ def fig_depth(repo, outdir):
     labels = [str(h) for h in hops]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(5.6, 1.30))
 
+    # No panel titles and no legend-over-data: the caption carries the
+    # takeaway, labels are short, and the legend sits in the empty
+    # lower-left band under an explicit ylim (prior render pass findings).
     ax1.plot(xpos, [predicted[h] for h in hops], color=C_BLACK, marker="o",
-             markersize=4, linewidth=1.3, label="predicted (eigenspectrum only)")
+             markersize=4, linewidth=1.3, label="predicted")
     ax1.plot(xpos, [meas_cos[h] for h in hops], color=C_VERMILLION, marker="s",
              markersize=4, linewidth=1.3, linestyle="--", label="measured")
     ax1.set_xticks(xpos)
     ax1.set_xticklabels(labels)
     ax1.set_xlabel(r"hop $h$")
-    ax1.set_ylabel(r"mean $\cos(Z^h k_i,\ v_{\pi^h(i)})$")
-    ax1.set_title(r"force-rank $k{=}7{=}K{-}1$: spectrum predicts decay",
-                  fontsize=8)
-    ax1.legend(loc="lower left", frameon=False)
+    ax1.set_ylabel("mean cosine")
+    ax1.set_ylim(0.64, 0.97)
+    ax1.legend(loc="lower left", frameon=False, fontsize=7,
+               borderaxespad=0.2, labelspacing=0.25, handlelength=1.6)
 
     ax2.plot(xpos, suff_mean, color=C_BLUE, marker="^", markersize=4,
-             linewidth=1.3, label="rank-sufficient (4/5 seeds)")
+             linewidth=1.3)
     ax2.plot(xpos, [meas_rec[h] for h in hops], color=C_VERMILLION, marker="s",
-             markersize=4, linewidth=1.3, linestyle="--",
-             label=r"force-rank $K{-}1$")
+             markersize=4, linewidth=1.3, linestyle="--")
     ax2.plot(xpos, outlier, color=C_GREY, marker="x", markersize=4,
-             linewidth=1.0, linestyle=":", label="still-transitioning seed")
+             linewidth=1.0, linestyle=":")
     ax2.set_xticks(xpos)
     ax2.set_xticklabels(labels)
     ax2.set_xlabel(r"hop $h$")
     ax2.set_ylabel(r"rec@0.9")
-    ax2.set_ylim(-0.03, 1.08)
-    ax2.set_title("exact-match recovery collapses under depth", fontsize=8)
-    ax2.legend(loc="lower left", frameon=False)
+    ax2.set_ylim(-0.03, 1.20)
+    # Direct series labels instead of a legend: every free band a legend
+    # box could occupy is crossed by a series in this panel (prior render
+    # pass), and color-matched direct labels also read without color.
+    ax2.text(3.5, 1.045, "rank-sufficient (4/5)", color=C_BLUE, fontsize=7,
+             ha="center", va="bottom")
+    ax2.text(5.0, 0.80, r"force-rank $K{-}1$", color=C_VERMILLION,
+             fontsize=7, ha="center", va="top")
+    ax2.text(2.4, 0.33, "still-transitioning", color=C_GREY, fontsize=7,
+             ha="center", va="top")
 
     fig.tight_layout()
     out = os.path.join(outdir, "fig_depth.pdf")
