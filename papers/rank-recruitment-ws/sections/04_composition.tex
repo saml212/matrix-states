@@ -35,8 +35,8 @@ still-transitioning seed.}
 \textbf{Depth amplification.} At force-rank $k = K - 1$ (provably
 insufficient), the one converged seed passes shallow hops at mean
 cosine 0.92--0.93 ($h \leq 5$), above the 0.9 bar, and collapses only
-under depth: $\recninety$ falls 0.996 $\to$ 0.881 $\to$ 0.060 at
-$h = 1/7/21$.
+under depth (Figure~\ref{fig:depth}): $\recninety$ falls 0.996 $\to$
+0.881 $\to$ 0.060 at $h = 1/7/21$.
 % <!-- evidence: R4 -->
 The mechanism is spectral and predictable: from the operator's
 eigenspectrum alone, predicted cosine matches the measured curve within
@@ -55,7 +55,8 @@ has effective rank 7.999--8.000 (maximum 8), matching the ideal scaled
 cycle to a scale-corrected residual of 0.7--2.4\%; leakage out of
 $\mathcal{E}$ is below 1.5\% of the state norm; the complement block is
 full-rank and non-contractive yet dynamically invisible: a query
-starting in $\mathcal{E}$ never leaves it (Appendix~\ref{app:subspace}).
+starting in $\mathcal{E}$ never leaves it (Table~\ref{tab:subspace},
+Appendix~\ref{app:subspace}).
 % <!-- evidence: R5 -->
 Restricted to the subspace the task uses, ``rank tracks $K$'' holds
 exactly; dead force-rank seeds fail the same restricted test, so their
