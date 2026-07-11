@@ -5102,3 +5102,165 @@ must quote the 3/9 rate with the bimodal table, the horizon/hop
 fragility, and the Nichani caveat. The natural follow-on (NOT run here,
 not pre-registered): a curriculum/objective iteration targeting the
 basin-entry rate — PI-gated, outside this round's §1.42 scope.
+
+### 1.44 FIX-5 LR-GRID — PRE-RUN RECORD (2026-07-11): the flagship rebuttal's transformer-task1 learning-rate search, pre-registered BEFORE launch
+
+Recorded per the gauntlet-bookkeeping hard rule (record before dispatch)
+and the standing pre-registration discipline. **Charter:** flagship
+rebuttal FIX-5 (`papers/flagship/gauntlet/round-1/04_rebuttal_report.md`,
+lines 83-93), the pre-specified measurement resolving A1's SERIOUS
+residual — the round-3/4 sweep's transformer arm on Task 1 (episodic
+recall) trained at the untuned shared default `lr=3e-4`; no
+architecture-specific learning-rate search was ever performed for the
+transformer on the recall task itself (only on the LM control task,
+§1.31's `task3_calib` `TRANSFORMER_LR_GRID`). FIX-5's own text, quoted
+verbatim: *"a re-run of the transformer arm under the identical frozen
+protocol at a grid of at least four learning rates spanning 10⁻⁴ to
+3×10⁻³, three seeds, 20,000 matched steps, with training curves
+reported. A tuned transformer that still reads below the demonstration
+bar would strengthen the separation to a two-baseline result; a tuned
+transformer that clears it would confine the separation to the
+vector-state comparison, which is the comparison the frozen
+registration designates as the verdict carrier in either case."*
+Classification per the rebuttal report: not a submission blocker for
+the arXiv build, strongly recommended before ICLR. This round runs it
+now (GPU capacity available, PI directive to keep GPUs 0-1 saturated).
+**Does NOT touch `papers/flagship/`** — the paper's own §7 disclosure
+update routes on this round's verdict via a separate dispatch.
+
+**Grid, pinned:** `{1e-4, 3e-4, 1e-3, 3e-3}` × seed_idx `{0,1,2}` ×
+20,000 steps (`FULL_STEPS`, the frozen sweep's own full budget) — 12
+`(lr, seed)` cells, exactly meeting FIX-5's "at least four learning
+rates ... three seeds ... 20,000 matched steps" text.
+
+**Deliberate reuse (cost-saving, disclosed rather than silent):** the
+`lr=3e-4` × `{s0,s1,s2}` column is NOT relaunched — it is READ VERBATIM
+from the already-completed round-4 27-cell sweep's own
+`transformer × task1_sweep × s{0,1,2}` cells, which are byte-identical
+in every dimension FIX-5 asks to be held fixed (task=`task1_sweep`,
+`K=32`, `role="sweep"`, `budget_frac=1.0`→20,000 steps, `lr=3e-4`,
+identical seed schedule below). Cited artifacts (repo-relative, all
+four already committed):
+- raw (training curve): `experiment-runs/2026-07-10_h2h_sweep_harvest/h2h_transformer_task1_sweep_s{0,1,2}.json`
+- re-metric (`leg_a.acc_A`): `experiment-runs/2026-07-10_h2h_sweep_harvest/sweep_remetric/h2h_transformer_task1_sweep_s{0,1,2}_round4.json`
+- md5 (re-metric files, s0/s1/s2): `988fdae364ad1cb6cd41e6c28ff9b564` /
+  `dc57f209053ae9245492724cf9024e17` / `0d715323ffd03c020ddf759a4579d065`
+- prior acc_A readings (§1.31.1's own "transformer 0.0295" row is the
+  round-3 single-seed calibration number; THESE are the round-4/§1.40
+  sweep's own n=3 numbers): 0.02710 / 0.02930 / 0.02856
+
+Only the other **3 LR columns × 3 seeds = 9 fresh cells** train on the
+box this round. This is a legitimate, disclosed efficiency choice
+(mirrors §1.31.7's own reused-checkpoint convention), not a scope cut —
+FIX-5's own text is satisfied by the union of 9 fresh + 3 reused
+`(lr, seed)` points under the identical protocol.
+
+**Frozen-protocol identity (what "identical" means, made mechanical):**
+same task string (`task1_sweep`, so `task_cfg` resolves the identical
+`K=32`, `H_train=(1,)` config the reused cells used), same `WARMUP_STEPS
+=100`, same `WEIGHT_DECAY=0.01`, `GRAMMAR_BATCH=32`, `AUX_WEIGHT=2.0`,
+`CE_ANSWER_WEIGHT=1.0`, `N_QUERY_TRAIN=8`, same pinned `EVAL_SEED
+=20260710` eval episodes, same `role="sweep"` (the AUD2-F4 structural
+dial guard — the ONLY role that skips the step-500 three-loss dial
+check; using any other role here would risk a spurious `DialExhausted`
+abort on what is a plain LR-grid cell, an artifact of the dial
+machinery, not a real training-instability finding — §1.42's
+`task2diag` round hit and solved this exact issue first, this round
+inherits that fix by construction). Two-stage measurement, IDENTICAL to
+how every other h2h acc_A number in this campaign was produced (§1.31.4
+item 6 / §1.42 precedent): **(1) TRAIN** via `h2h_cell_train_rd.
+train_grammar_cell` — persists the raw JSON with its training curve
+(loss + `recovered_frac` every 500 steps, §1.4.1's own axis-1
+learning-curve resolution) and the checkpoint (save-before-rung2-fit
+ordering, §1.31.4 item 4); **(2) RE-METRIC** via `h2h_round4_driver_rd.
+run_cell_round4` (`fresh=False`, loading the just-trained,
+provenance-md5-pinned checkpoint) for the audited `acc_A` —
+episode-restricted K-way top-1 through `eval_diagnostic_rung1_and_tell`
+/ `_rung1_k_restricted_pred_slot`, the SAME selftest-17-protected
+function that produced every other acc_A number in this design doc,
+including the reused 3e-4 column. This makes the 12-cell table
+apples-to-apples comparable by construction, not by convention.
+
+**Seed schedule (deliberate, not incidental):** `rd_episode_seed
+("task1_sweep", seed_idx, ckpt_idx=0)` for `seed_idx ∈ {0,1,2}` — the
+SAME seed per `seed_idx` across ALL FOUR learning rates (identical to
+the reused 3e-4 cells' own seeds: 1,000,000 / 1,010,000 / 1,020,000).
+This holds model init AND the data stream fixed and isolates learning
+rate as the sole treatment variable within each seed lane — a paired
+grid, strictly stronger than an independently-reseeded one, and the
+correct design for what is fundamentally a hyperparameter search, not a
+new seed-variance measurement.
+
+**Decision rule, pinned NOW (least-favorable-resolution discipline —
+no ambiguity left for the harvest to resolve after seeing numbers):**
+for each LR in the grid, compute `mean_acc_A` = the mean of `acc_A`
+over its 3 seeds (all via the audited `run_cell_round4` route). An LR
+point **clears** iff `mean_acc_A > 0.09375` (the frozen §1.31.1
+demonstration bar, `3× chance` at `K=32`, verbatim — no new threshold
+invented for this round). Per-seed `acc_A` and the count clearing the
+bar individually are disclosed alongside the mean in every report;
+the mean is never reported alone.
+- **Outcome A — TUNED_TRANSFORMER_STILL_BELOW_BAR:** if NO LR's
+  `mean_acc_A` clears the bar. Per FIX-5's own pre-stated consequence:
+  the separation strengthens to a two-baseline result — the transformer
+  joins the vector-state ablation as a second baseline that fails to
+  demonstrate recall even after an explicit 4-point LR search on the
+  recall task itself.
+- **Outcome B — TUNED_TRANSFORMER_CLEARS:** if AT LEAST ONE LR's
+  `mean_acc_A` clears the bar. Per FIX-5's own pre-stated consequence:
+  the transformer datum is retracted as evidence of a chance-level
+  baseline; the capability-separation claim is confined to the
+  parameter+data-matched vector-state ablation comparison — which
+  §1.31.1 already designates as the sole WIN/TIE/LOSE verdict carrier,
+  so this branch changes NO registered tier, only the transformer's own
+  disclosed status.
+- **Either branch leaves the §1.31.1/§1.40 axis-1 WIN verdict of
+  record standing unchanged** (FIX-5's own point, restated here as the
+  binding consequence): this round is diagnostic/disclosure-grade for
+  the transformer datum, never a re-open of the ablation-comparison
+  verdict.
+- **Tie-break, pinned:** if outcome B fires at more than one LR, report
+  ALL clearing LRs and their means; the "best LR" for prose purposes is
+  `argmax(mean_acc_A)`, disclosed with its full per-seed table, never a
+  cherry-picked single seed from a non-best LR.
+
+**Execution plan:** box `youthful-indigo-turkey`, GPUs 0-1 only (GPUs
+2-7 are NCR Phase-2, untouched; confirmed idle via `nvidia-smi` before
+launch). New file `h2h_fix5_lrgrid_rd.py` (manifest + two-stage
+train/remetric runner + harvest, mirrors `h2h_task2diag_rd.py`'s own
+structure) + `h2h_fix5_stage.sh` (2-way parallel cell launcher, mirrors
+`h2h_rung1_chain.sh`'s `run_cells_par`), deployed via scp + md5-verified
+EXACT local==box. Same launch-token discipline as every prior stage
+(`require_launch_tokens` + `require_margins_frozen` — both already
+satisfied on box from the standing campaign: `GATE6_MATCH_GATE_PASSED.
+token`, `GATE7_PROBE_CAPACITY_NULL_PASSED.token`, `MARGINS_FROZEN.
+token` all present, verified 2026-07-11). tmux session `h2h_fix5_grid`
++ self-healing supervisor loop (resume-safe: a cell counts done only on
+a validity-checked output JSON, never file-existence alone). ONE tiny
+real-CUDA smoke cell (`steps_override=3`, one of the 9 real cell names,
+so the smoke exercises the actual production path before the full
+launch) runs first; its checkpoint is harmlessly overwritten by that
+same cell's real 20,000-step run immediately after.
+
+**Cost projection (bottom-up, from the reused cells' own measured
+rate):** the reused `transformer×task1_sweep` cells realized
+941-952 s/cell at 20,000 steps (≈0.264 GPU-h/cell); re-metric realized
+≈24 s/cell (≈0.0067 GPU-h). 9 fresh cells → **≈2.38 GPU-h train +
+≈0.06 GPU-h re-metric ≈ 2.44 GPU-h projected**, run in ≤5 sequential
+waves across 2 GPUs (≈1.2-1.3h wall-clock). Budget ceiling set at 6.0
+GPU-h (≈2.5× the projection, mechanical circuit-breaker per house
+convention). Realized figures replace this projection in §1.45 (the
+results record) once the round completes — never left as the
+projection.
+
+**What this round does NOT do:** it does not touch Leg B (offline-ridge
+mechanism attribution) or the S0-necessity check (transformer has no
+fast-weight state to zero, §1.31.2) — those are diagnostic machinery
+the round4_driver computes as a side effect of `run_cell_round4` and
+which get persisted for completeness but are not decision-bearing here;
+FIX-5's own text asks only for `acc_A` + training curves. It does not
+retrain or re-read the contender/ablation arms (unaffected by this
+fix — A1's residual is transformer-specific). It does not edit
+`papers/flagship/` (a separate, PI-gated dispatch applies whichever
+outcome lands to §7's disclosure language once this round's §1.45
+verdict is recorded).
