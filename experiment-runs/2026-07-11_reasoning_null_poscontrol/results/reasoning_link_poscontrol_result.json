@@ -1,0 +1,116 @@
+{
+  "ckpt_path": "/data/deltanet_rd_frozenbias_ckpts/frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0/lmC_openr1-mix-ext_dm256_ds64_L2_s0_step20000.pt",
+  "device": "cuda",
+  "seed": 20260711,
+  "K": 32,
+  "T_seq": 128,
+  "B_trials": 8,
+  "H_list": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "fla_stub_installed": false,
+  "fla_version": "0.5.1",
+  "torch_version": "2.12.1+cu130",
+  "cuda_device_name": "NVIDIA H100 80GB HBM3",
+  "ckpt_config": {
+    "vocab_size": 50257,
+    "d_model": 256,
+    "d_state": 64,
+    "n_layers": 2,
+    "conv_size": 4,
+    "num_heads": 1,
+    "ffn_mult": 4,
+    "geo3_active": false,
+    "geo3_k_sel": 16,
+    "geo3_chunk_size": 64,
+    "geo3_n_iter": 12,
+    "geo3_resid_tol": 0.01,
+    "geo3_selection_mode": "beta_topk",
+    "geo3_excluded_token_ids": [
+      50256
+    ],
+    "hard_select_active": false,
+    "hard_select_mechanism": "hard_ste",
+    "hard_select_k_sel": 32,
+    "hard_select_chunk_size": 64,
+    "hard_select_b_pinned": null,
+    "hard_select_seed": 0,
+    "hard_select_tau_total_steps": null,
+    "hard_select_tau_anneal_frac": 0.1,
+    "hard_select_excluded_token_ids": [
+      50256
+    ],
+    "frozen_bias_arm": "off",
+    "frozen_bias_lambda": 0.58,
+    "frozen_bias_vocab_size": null,
+    "frozen_bias_seed": 20260705
+  },
+  "config_guard_passed": true,
+  "readout_layer_index": 1,
+  "n_layers": 2,
+  "d_state": 64,
+  "key_orthonormality_max_abs_dev": 3.5762786865234375e-07,
+  "forward_wall_s": 0.448,
+  "hook_consistency": {
+    "k_capture_vs_injected_max_abs_dev": 0.0,
+    "v_capture_vs_injected_max_abs_dev": 0.0,
+    "k_filler_positions_max_abs_value": 0.0
+  },
+  "beta_items_min": 0.3216187357902527,
+  "beta_items_max": 0.6928655505180359,
+  "beta_items_mean": 0.4678853750228882,
+  "n_beta_near_zero_of": "0 / 256",
+  "per_h": {
+    "1": {
+      "production_cos_mean": 1.219719706568867e-05,
+      "production_cos_min": -0.001158144325017929,
+      "production_recovered_frac": 0.0,
+      "deliberately_transposed_cos_mean": 0.9999969005584717,
+      "deliberately_transposed_recovered_frac": 1.0,
+      "wrong_hop_target_cos_mean_negative_control": 8.196886483347043e-06,
+      "wrong_hop_target_recovered_frac_negative_control": 0.0,
+      "n_scored": 256
+    },
+    "2": {
+      "production_cos_mean": 1.7014874174492434e-05,
+      "production_cos_min": -0.0015450865030288696,
+      "production_recovered_frac": 0.0,
+      "deliberately_transposed_cos_mean": 0.9999951124191284,
+      "deliberately_transposed_recovered_frac": 1.0,
+      "wrong_hop_target_cos_mean_negative_control": 2.8669925086433068e-05,
+      "wrong_hop_target_recovered_frac_negative_control": 0.0,
+      "n_scored": 256
+    },
+    "3": {
+      "production_cos_mean": -2.372511698922608e-05,
+      "production_cos_min": -0.001585058867931366,
+      "production_recovered_frac": 0.0,
+      "deliberately_transposed_cos_mean": 0.999993085861206,
+      "deliberately_transposed_recovered_frac": 1.0,
+      "wrong_hop_target_cos_mean_negative_control": -1.3823035260429606e-05,
+      "wrong_hop_target_recovered_frac_negative_control": 0.0,
+      "n_scored": 256
+    },
+    "4": {
+      "production_cos_mean": -0.00011960455594817176,
+      "production_cos_min": -0.0026398636400699615,
+      "production_recovered_frac": 0.0,
+      "deliberately_transposed_cos_mean": 0.9999905824661255,
+      "deliberately_transposed_recovered_frac": 1.0,
+      "wrong_hop_target_cos_mean_negative_control": -5.8476107369642705e-05,
+      "wrong_hop_target_recovered_frac_negative_control": 0.0,
+      "n_scored": 256
+    }
+  },
+  "kernel_vs_independent_reference_S_rel_fro_err": 0.0017095579532906413,
+  "kernel_vs_independent_reference_note": "diagnostic only, NOT part of overall_pass -- a second, independently-implemented ground truth for S_T (f15_lm_checkpoint.py's own audited reference), cross-checked here for extra rigor; excluded from the blocking verdict since a mismatch here could also reflect this script's own normalize/cast-order choices rather than the production readout under test. reported for transparency; expect < 2e-2 relative Frobenius error per F15's own precedent.",
+  "recovery_cos_threshold": 0.9,
+  "verdict": {
+    "production_readout_recovers_known_signal": false,
+    "negative_controls_have_teeth": true,
+    "overall_pass": false
+  }
+}
