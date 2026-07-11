@@ -1,0 +1,52 @@
+
+== A6 arm3_beta02 nh1 ==
+A6__arm3_beta02__nh1__seed0            loss=2.09e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.35 rank@64=3.27
+A6__arm3_beta02__nh1__seed1            loss=4.00e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=3.42 rank@64=3.36
+A6__arm3_beta02__nh1__seed2            loss=3.63e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.43 rank@64=3.21
+
+== A6 arm3_beta02 nh2 ==
+A6__arm3_beta02__nh2__seed0            loss=7.29e-02 xck@9=0.20 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.21 rank@64=3.84
+A6__arm3_beta02__nh2__seed1            loss=2.93e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.14 rank@64=1.79
+A6__arm3_beta02__nh2__seed2            loss=2.59e-01 xck@9=0.15 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.26 rank@64=4.01
+A6__arm3_beta02__nh2__seed3            loss=1.71e-01 xck@9=0.20 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.28 rank@64=4.01
+A6__arm3_beta02__nh2__seed4            loss=2.40e-01 xck@9=0.20 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.21 rank@64=3.84
+
+== A6 arm3_beta02 nh4 ==
+A6__arm3_beta02__nh4__seed0            loss=8.15e-05 xck@9=1.00 xck@16=1.00 xck@32=1.00 xck@64=1.00 rank@9=5.00 rank@64=4.99
+A6__arm3_beta02__nh4__seed1            loss=7.14e-05 xck@9=1.00 xck@16=1.00 xck@32=1.00 xck@64=1.00 rank@9=5.00 rank@64=5.00
+A6__arm3_beta02__nh4__seed2            loss=3.20e-05 xck@9=1.00 xck@16=1.00 xck@32=1.00 xck@64=1.00 rank@9=5.00 rank@64=5.00
+
+== S5 arm3_beta02 nh4 ==
+S5__arm3_beta02__nh4__seed0            loss=1.90e-03 xck@9=1.00 xck@16=0.95 xck@32=0.85 xck@64=0.80 rank@9=3.98 rank@64=3.83
+S5__arm3_beta02__nh4__seed1            loss=6.41e-03 xck@9=0.55 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=3.62 rank@64=3.10
+S5__arm3_beta02__nh4__seed2            loss=1.17e-02 xck@9=1.00 xck@16=1.00 xck@32=1.00 xck@64=0.65 rank@9=3.97 rank@64=3.77
+S5__arm3_beta02__nh4__seed3            loss=9.56e-04 xck@9=1.00 xck@16=1.00 xck@32=1.00 xck@64=1.00 rank@9=3.99 rank@64=3.92
+S5__arm3_beta02__nh4__seed4            loss=1.21e-03 xck@9=1.00 xck@16=1.00 xck@32=1.00 xck@64=1.00 rank@9=3.99 rank@64=3.93
+
+== A5 arm3_beta02 nh2 ==
+A5__arm3_beta02__nh2__seed0            loss=3.70e-04 xck@9=1.00 xck@16=1.00 xck@32=1.00 xck@64=0.95 rank@9=3.00 rank@64=2.94
+A5__arm3_beta02__nh2__seed1            loss=7.14e-04 xck@9=1.00 xck@16=1.00 xck@32=1.00 xck@64=1.00 rank@9=3.00 rank@64=2.98
+A5__arm3_beta02__nh2__seed2            loss=1.57e-01 xck@9=0.15 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=2.61 rank@64=1.82
+A5__arm3_beta02__nh2__seed3            loss=7.72e-02 xck@9=0.35 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=2.61 rank@64=2.36
+A5__arm3_beta02__nh2__seed4            loss=6.90e-02 xck@9=0.00 xck@16=0.05 xck@32=0.00 xck@64=0.00 rank@9=2.59 rank@64=2.25
+
+== A5 arm2_beta01 nh2 ==
+A5__arm2_beta01__nh2__seed0            loss=1.40e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=2.37 rank@64=1.97
+A5__arm2_beta01__nh2__seed1            loss=3.48e-01 xck@9=0.05 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=2.39 rank@64=2.28
+A5__arm2_beta01__nh2__seed2            loss=3.30e-01 xck@9=0.05 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=2.52 rank@64=2.17
+A5__arm2_beta01__nh2__seed3            loss=2.53e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=2.54 rank@64=2.08
+A5__arm2_beta01__nh2__seed4            loss=1.91e-01 xck@9=0.00 xck@16=0.05 xck@32=0.00 xck@64=0.00 rank@9=2.43 rank@64=2.13
+
+== A6 arm2_beta01 nh2 ==
+A6__arm2_beta01__nh2__seed0            loss=1.83e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.40 rank@64=3.55
+A6__arm2_beta01__nh2__seed1            loss=3.20e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.15 rank@64=2.75
+A6__arm2_beta01__nh2__seed2            loss=3.50e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=3.82 rank@64=3.88
+A6__arm2_beta01__nh2__seed3            loss=3.00e-01 xck@9=0.05 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.41 rank@64=3.43
+A6__arm2_beta01__nh2__seed4            loss=3.28e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=4.33 rank@64=2.67
+
+== S5 arm2_beta01 nh2 ==
+S5__arm2_beta01__nh2__seed0            loss=1.77e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=3.64 rank@64=3.07
+S5__arm2_beta01__nh2__seed1            loss=1.12e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=3.66 rank@64=2.80
+S5__arm2_beta01__nh2__seed2            loss=3.43e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=3.66 rank@64=3.43
+S5__arm2_beta01__nh2__seed3            loss=1.29e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=3.71 rank@64=2.84
+S5__arm2_beta01__nh2__seed4            loss=2.45e-01 xck@9=0.00 xck@16=0.00 xck@32=0.00 xck@64=0.00 rank@9=3.74 rank@64=3.17

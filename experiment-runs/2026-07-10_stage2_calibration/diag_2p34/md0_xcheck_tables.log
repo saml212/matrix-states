@@ -1,0 +1,39 @@
+teeth: {'n_rows_evaluated': 152, 'n_bit_identical': 152}
+
+== A6__arm3_beta02__nh1 ==
+seed0 loss=2.09e-01 D1=EXCL D2=EXCL D3=EXCL D4=0.00 D5=0.00 D6=0.05 D7=0.00 D8=0.00  [teeth 5/5]
+seed1 loss=4.00e-01 D1=EXCL D2=EXCL D3=EXCL D4=0.25 D5=0.00 D6=0.00 D7=0.00 D8=0.00  [teeth 5/5]
+seed2 loss=3.63e-01 D1=EXCL D2=EXCL D3=EXCL D4=0.00 D5=0.10 D6=0.10 D7=0.00 D8=0.00  [teeth 5/5]
+
+== A6__arm3_beta02__nh2 ==
+seed0 loss=7.29e-02 D1=EXCL D2=EXCL D3=EXCL D4=0.60 D5=0.50 D6=0.35 D7=0.10 D8=0.20  [teeth 5/5]
+seed1 loss=2.93e-01 D1=EXCL D2=EXCL D3=EXCL D4=0.20 D5=0.10 D6=0.10 D7=0.00 D8=0.00  [teeth 5/5]
+seed2 loss=2.59e-01 D1=EXCL D2=EXCL D3=EXCL D4=0.75 D5=0.55 D6=0.30 D7=0.25 D8=0.15  [teeth 5/5]
+seed3 loss=1.71e-01 D1=EXCL D2=EXCL D3=EXCL D4=0.75 D5=0.40 D6=0.75 D7=0.55 D8=0.25  [teeth 5/5]
+seed4 loss=2.40e-01 D1=EXCL D2=EXCL D3=EXCL D4=0.65 D5=0.40 D6=0.50 D7=0.30 D8=0.35  [teeth 5/5]
+
+== A6__arm3_beta02__nh4 ==
+seed0 loss=8.15e-05 D1=EXCL D2=EXCL D3=EXCL D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 5/5]
+seed1 loss=7.14e-05 D1=EXCL D2=EXCL D3=EXCL D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 5/5]
+seed2 loss=3.20e-05 D1=EXCL D2=EXCL D3=EXCL D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 5/5]
+
+== S5__arm3_beta02__nh4 ==
+seed0 loss=1.90e-03 D1=EXCL D2=EXCL D3=EXCL D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 5/5]
+seed1 loss=6.41e-03 D1=EXCL D2=EXCL D3=1.00 D4=0.95 D5=0.90 D6=0.60 D7=0.35 D8=0.45  [teeth 6/6]
+seed2 loss=1.17e-02 D1=EXCL D2=EXCL D3=EXCL D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 5/5]
+seed3 loss=9.56e-04 D1=EXCL D2=EXCL D3=EXCL D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 5/5]
+seed4 loss=1.21e-03 D1=EXCL D2=EXCL D3=1.00 D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 6/6]
+
+== A5__arm2_beta01__nh2 ==
+seed0 loss=1.40e-01 D1=EXCL D2=0.95 D3=0.20 D4=0.05 D5=0.00 D6=0.05 D7=0.00 D8=0.00  [teeth 7/7]
+seed1 loss=3.48e-01 D1=EXCL D2=1.00 D3=0.35 D4=0.20 D5=0.05 D6=0.05 D7=0.00 D8=0.00  [teeth 7/7]
+seed2 loss=3.30e-01 D1=EXCL D2=0.80 D3=0.35 D4=0.00 D5=0.10 D6=0.00 D7=0.00 D8=0.00  [teeth 7/7]
+seed3 loss=2.53e-01 D1=EXCL D2=0.85 D3=0.50 D4=0.05 D5=0.00 D6=0.00 D7=0.00 D8=0.00  [teeth 7/7]
+seed4 loss=1.91e-01 D1=EXCL D2=1.00 D3=0.50 D4=0.15 D5=0.00 D6=0.00 D7=0.00 D8=0.00  [teeth 7/7]
+
+== A5__arm3_beta02__nh2 ==
+seed0 loss=3.70e-04 D1=EXCL D2=1.00 D3=1.00 D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 7/7]
+seed1 loss=7.14e-04 D1=EXCL D2=1.00 D3=1.00 D4=1.00 D5=1.00 D6=1.00 D7=1.00 D8=1.00  [teeth 7/7]
+seed2 loss=1.57e-01 D1=EXCL D2=0.90 D3=0.75 D4=0.55 D5=0.30 D6=0.55 D7=0.05 D8=0.05  [teeth 7/7]
+seed3 loss=7.72e-02 D1=EXCL D2=1.00 D3=0.85 D4=0.75 D5=0.75 D6=0.55 D7=0.05 D8=0.30  [teeth 7/7]
+seed4 loss=6.90e-02 D1=EXCL D2=1.00 D3=0.95 D4=0.75 D5=0.00 D6=0.05 D7=0.15 D8=0.10  [teeth 7/7]
