@@ -8,7 +8,11 @@ identified linear attention \citep{katharopoulos2020transformers} as a
 fast-weight programmer and introduced the delta-rule update our contender
 uses; \citet{yang2024parallelizing} made that rule trainable at scale.
 Selective state-space models \citep{gu2023mamba} pursue the same
-constant-state property with a different recurrence. None of these works
+constant-state property with a different recurrence, gated delta rules
+refine the contender's own update \citep{yang2024gated}, and test-time
+memorization modules \citep{behrouz2024titans} share this paper's
+motivating contrast between a fixed-size memory and a growing KV cache.
+None of these works
 reports a parameter- and token-matched comparison against both a
 transformer and a structure-removed vector control on episode-restricted
 recall, with a causal state intervention and a byte-pinned cache-cap

@@ -31,18 +31,32 @@ Both intervals exclude the frozen 0.30 margin with more than 0.65 to spare
 at the interval floor, and no seed straddle fires the registered
 seed-extension trigger. % <!-- evidence: C2 -->
 
-Two readings of this table are licensed, and one is not. Licensed: the
-outer-product state update is doing task-critical work its
-parameter-matched additive counterpart does not do, since the flat-vector
-arm differs only in the mixer recurrence. Also licensed, with its
-registered phrasing: the transformer baseline is \emph{non-competitive at
-matched params/tokens}; at this scale and budget it does not learn the
-task at all, which is itself the axis-2 datum, claimed only at this
-matched training budget and never extrapolated to differently-scaled or
-differently-trained attention models. Not licensed: any claim that a
-transformer \emph{cannot} perform this task. Attention solves associative
-recall well in other regimes \citep{arora2023zoology,
-nichani2024understanding}; what the matched budget shows is that under
-this task distribution, tokenizer, parameter count, and step count, the
-attention arm did not get there while the fast-weight arm reached ceiling
-in every seed.
+Three readings of this table are licensed; two are not. Licensed: under
+this shared training budget, the matrix fast-weight update reaches
+ceiling while the additive control's training loss barely moves past its
+first-500-step value for the remaining 97.5\% of the run
+(Appendix~\ref{app:traincurve}); learning rate, warmup, and
+auxiliary-loss weighting were shared across three architecturally
+distinct mixers, not independently tuned per arm, so this paper does not
+claim the additive update is \emph{architecturally incapable} of the
+task, only that it does not reach it under this matched budget. Licensed,
+and narrower than a ``matrix beats vector'' claim: because the additive
+control also holds $64\times$ less raw state and a write with no
+dependence on the query key (Section~\ref{sec:setup}), the comparison
+supports \emph{a matrix state with a multiplicative, key-conditioned
+write outperforms a smaller, non-key-conditioned vector state under a
+shared training budget}; capacity and write-conditioning are not
+disentangled by this ablation, and no resized or key-conditioned vector
+control was run. Also licensed, with its registered phrasing: the
+transformer baseline is \emph{non-competitive at matched params/tokens};
+at this scale and budget it does not learn the task at all, which is
+itself the axis-2 datum, claimed only at this matched training budget and
+never extrapolated to differently-scaled or differently-trained attention
+models. Not licensed: any claim that a transformer \emph{cannot} perform
+this task, or that outer-product structure specifically, rather than
+capacity and key-conditioning together, is what the additive control's
+failure isolates. Attention solves associative recall well in other
+regimes \citep{arora2023zoology, nichani2024understanding}; what the
+matched budget shows is that under this task distribution, tokenizer,
+parameter count, and step count, the attention arm did not get there
+while the fast-weight arm reached ceiling in every seed.

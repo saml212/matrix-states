@@ -88,8 +88,17 @@ All paths relative to repo root `experiment-runs/`. `HTH` =
 | C9 | Param match: contender 14,049,408; ablation 14,048,384 (−0.007%); transformer 14,440,448 (+2.78%); all arms 20,000 steps, lr 3e-4 (task1/task2), K=32, identical episode seeds across arms per (task, seed) | HTH §1.40 (config-match verified from raws) | `2026-07-10_h2h_sweep_harvest/h2h_{contender,ablation,transformer}_task1_sweep_s0.json`, md5s 15c817f203bd7243165f953d3a6600a5 / 159687a5fbcfba334fb622c30704d553 / 427de1aaf3330f6f6d407fb12a49652a | setup table (§2) |
 | C10 | State accounting: contender/ablation state constant in context length (contender 2 layers x 64x64 fp32 = 32,768 bytes; ablation 2 x 64 fp32 = 512 bytes, reported); transformer KV cache grows O(T), capped runs pin total KV bytes to M x 32,768 | HTH §1.2/§1.3 accounting table (~lines 423-465) + §1.41 (cap machinery) | derived arithmetic from pinned config (d_state=64, n_layers=2, fp32) recorded in the § record; cap wiring evidenced in `MSTAR_VERDICT.json` (cap keys) md5 4f115ad55d5301122f387df504efa35c | setup table (§2) |
 
+| C11 | Training-loss trajectories (task1 seed 0, 40-point logged curve): contender 7.77 at step 500 falling to 1.38 at step 20,000; flat-vector 7.83 to 7.69; transformer 7.84 to 7.51 | HTH §1.40 (sweep record; curves are the archived training logs of the same cells) | `2026-07-10_h2h_sweep_harvest/h2h_{contender,ablation,transformer}_task1_sweep_s0.json` (`curve` field), md5s as C9 | fig3_traincurve.pdf (appendix) |
+
 No other numerical claims are planned. Any number not in this table does not
 enter the draft.
+
+Round-1 gauntlet amendment (FIX-1): the flat-vector arm's role is renamed
+"the additive control"; the licensed structural reading is narrowed to
+"matrix state with a multiplicative, key-conditioned write outperforms a
+smaller, non-key-conditioned vector state under a shared training budget"
+(capacity and write-conditioning disclosed as not disentangled). C11 added
+for the training-curve appendix figure.
 
 ## Figures to generate (single script `figures/figure-gen.py`, md5-asserted sources)
 

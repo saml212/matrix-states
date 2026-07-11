@@ -130,22 +130,27 @@ def fig1_horizon(repo, out_dir, plt):
         ax.plot(xs, ys, color=STYLE["ink"], lw=1.4, marker="o", ms=4,
                 zorder=5, label="contender (fixed 32,768 B state)" if s == 0 else None)
 
-    # Transformer uncapped, per seed.
+    # Transformer uncapped, per seed. alpha<1 so the capped-M crosses
+    # (plotted above, higher zorder) remain visible through the dashed
+    # line where they overlap in the near-chance band.
     unc = verdict["transformer_uncapped_refs_acc_A"]
     for s in range(3):
         ys = [unc[h][s] for h, _ in horizons]
         ax.plot(xs, ys, color=STYLE["accent"], lw=1.4, ls="--", marker="s",
-                ms=4, zorder=4,
+                ms=4, zorder=4, alpha=0.6,
                 label="transformer, uncapped KV cache" if s == 0 else None)
 
     # Transformer capped, every M in the walk grid, every seed: gray crosses.
+    # zorder=6, above both the dashed uncapped line (4) and the solid
+    # contender line (5) -- round-1 gauntlet (A3) found these markers
+    # rendering invisible beneath the dashed line at the previous zorder=3.
     capped = verdict["capped_transformer_acc_A"]
     first = True
     for m_key, by_h in capped.items():
         for h, t in horizons:
             for s in range(3):
-                ax.plot(t, by_h[h][s], color=STYLE["gray"], marker="x", ms=4,
-                        ls="none", zorder=3,
+                ax.plot(t, by_h[h][s], color=STYLE["gray"], marker="x", ms=5,
+                        mew=1.2, ls="none", zorder=6,
                         label=(r"transformer, KV capped at $M\times$32,768 B, "
                                r"$M\in\{2,\ldots,32\}$") if first else None)
                 first = False
@@ -202,6 +207,28 @@ def fig2_szero(repo, out_dir, plt):
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     fig.savefig(os.path.join(out_dir, "fig2_szero.pdf"))
+    plt.close(fig)
+
+
+def fig3_traincurve(repo, out_dir, plt):
+    """Training-loss trajectories, all three arms, task1 seed 0 (round-1
+    gauntlet FIX-1c). Same archived configs already used for the
+    parameter-count row (C9); no new sources."""
+    arms = [("contender", "matrix fast-weight", STYLE["ink"], "-"),
+            ("ablation", "flat-vector recurrence", STYLE["accent"], "--"),
+            ("transformer", "transformer", STYLE["gray"], ":")]
+    fig, ax = plt.subplots(figsize=(4.2, 2.6))
+    for a, label, color, ls in arms:
+        curve = _load(repo, f"train_{a}")["curve"]
+        steps = [row["step"] for row in curve]
+        losses = [row["train_loss"] for row in curve]
+        ax.plot(steps, losses, color=color, lw=1.3, ls=ls, label=label)
+    ax.set_xlabel("training step")
+    ax.set_ylabel("train loss")
+    ax.legend(loc="center right", fontsize=7, frameon=False)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "fig3_traincurve.pdf"))
     plt.close(fig)
 
 
@@ -360,6 +387,7 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     fig1_horizon(args.repo, args.out, plt)
     fig2_szero(args.repo, args.out, plt)
+    fig3_traincurve(args.repo, args.out, plt)
     emit_tables(args.repo, args.out)
     print("figures + tables written to", args.out)
 

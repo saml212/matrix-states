@@ -18,4 +18,10 @@ configuration; the multi-hop variant does not separate
 (Section~\ref{sec:scope}); and the recall ceiling is load-bounded, with
 every arm at chance at $K/d = 0.75$. Horizon evaluation extends context
 with filler continuation, not with distractor bindings, which is the
-easier long-context condition and is disclosed as such.
+easier long-context condition and is disclosed as such. The longest
+tested context is 1{,}798 tokens, eight times the binding
+span: % <!-- evidence: C3 -->
+this paper demonstrates the constant-memory \emph{mechanism} as a
+small-scale existence result, not a claim that it holds at the context
+lengths (tens of thousands to millions of tokens) where KV-cache cost is
+a practical deployment constraint.

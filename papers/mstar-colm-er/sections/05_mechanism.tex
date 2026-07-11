@@ -16,8 +16,11 @@ A separation on accuracy alone leaves open where the winning arm keeps the
 bindings. We intervene directly: after the bind phase, the recurrent
 states are frozen, one block's state is replaced with zeros, and the query
 continuation runs as a pure function of the remaining state and the query
-tokens (the decoder reads only the state, never the raw bind tokens, and a
-blank-out test on the continuation path enforces this by construction).
+tokens. The decoder reads only the state, never the raw bind tokens, and
+this is checked rather than assumed: a fresh model instance given only
+the cached state (no raw bind-phase tokens) reproduces bit-identical
+continuation logits to the original run, closing the channel by which a
+hidden cache of the raw tokens could otherwise leak into the query pass.
 
 \textbf{The first block's state is causally necessary; the second block's
 is inert.} Zeroing $S_0$ collapses per-seed accuracy from 0.9995, 1.0000,
@@ -27,10 +30,19 @@ The same intervention on the flat-vector arm collapses its already-chance
 reading no further, and the pattern replicated in all twelve recurrent
 cells of the multi-seed run without a single localization
 failure. % <!-- evidence: C5 -->
-One instrument note: at a seed reading exactly 1.0 intact, the binomial
-band used for the ``unchanged'' check degenerates to zero width, so the
-0.0051 dip at seed 1 under $S_1$-zeroing is disclosed as an edge case of
-the check rather than adjudicated by it. % <!-- evidence: C5 -->
+One instrument note: at seed 1 (intact accuracy exactly 1.0),
+$S_1$-zeroing produces a small, reproducible change on 21 of 4{,}096
+queries (0.51\%, $\Delta = 0.0051$). % <!-- evidence: C5 -->
+The binomial standard-error band used elsewhere in this check assumes a
+sampling process and is ill-posed at $p = 1$ (it evaluates to zero
+width); because both the intact and $S_1$-zeroed readings are
+deterministic argmax decodes of the same frozen checkpoint on the same
+fixed query set, this is a real, deterministic behavior change under the
+intervention rather than measurement noise, so the band is not used to
+adjudicate this cell. The effect does not touch the $S_0$-necessity
+result; whether those 21 queries reflect a small, consistent causal
+contribution from $S_1$ or near-tied logits is not established by this
+instrument. % <!-- evidence: C5 -->
 
 \textbf{The storage is nonlinear; the model's own forward pass is the
 decoder.} Ridge probes fit offline on 24{,}576 fresh draws and evaluated

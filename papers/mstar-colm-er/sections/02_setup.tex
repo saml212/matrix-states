@@ -39,7 +39,7 @@ per-token read $o_t = S_t q_t$. Its total recurrent state is
 $2 \times 64 \times 64$ fp32 values, or 32{,}768 bytes, constant in context
 length. % <!-- evidence: C10 -->
 
-\textbf{Flat-vector recurrence (the structure control).} Identical
+\textbf{Flat-vector recurrence (the additive control).} Identical
 embedding table, output head, and feed-forward blocks; only the mixer
 changes, to a gated elementwise vector recurrence
 $s_t = s_{t-1} \odot g_t + v_t$ with read $o_t = s_t \odot q_t$, at matched
@@ -48,7 +48,17 @@ equal to the contender's. This arm removes the multiplicative
 outer-product update while preserving everything else, rather than
 reshaping the same operator, since any $d^2$-dimensional vector can encode
 a $d \times d$ matrix and structure matters only if the operations use it.
-Its state is 512 bytes, reported for completeness. % <!-- evidence: C10 -->
+This control differs from the contender on three axes, not one: mixer
+recurrence, raw state capacity (512 bytes versus 32{,}768,
+% <!-- evidence: C10 -->
+reported for completeness), and write conditioning; its update has no
+dependence on the key $k_t$ at all, so it cannot perform content-addressed
+binding under any training outcome, unlike vector-native binding schemes
+that use a key-dependent operation such as circular convolution
+\citep{plate1995holographic} or tensor-product binding
+\citep{smolensky1990tensor}. Section~\ref{sec:recall} states which
+reading of the resulting comparison the capacity and write-conditioning
+gaps license.
 
 \textbf{Transformer.} A two-layer GPT-2-style causal decoder with the same
 tokenizer and width, evaluated in two roles: uncapped (its full KV cache),
@@ -83,4 +93,17 @@ certified. Second, a joint-no-recall rule scores any cell where both
 compared arms sit at the bar as a tie, never as a separation. Evaluation
 uses a pinned held-out query set of 4{,}096 queries over 128 episodes per
 cell, % <!-- evidence: C3 -->
-identical across arms and seeds.
+identical across arms and seeds. Three seeds is the registered count for
+the primary comparison; the protocol includes a seed-extension trigger
+for any cell whose paired gap approaches the 0.30 margin, and none did
+(Table~\ref{tab:main}), % <!-- evidence: C2 -->
+so the count was not extended for this comparison. The multi-hop
+variant's later nine-seed table (Section~\ref{sec:scope}) reflects a
+different, seed-variance-driven extension under the same protocol, not a
+change in standard. The protocol treats the primary
+contender-versus-additive-control comparison as the single
+pre-registered decision rule; the remaining reported intervals in this
+paper (the per-$M$ capped-budget gaps, the pooled multi-hop interval,
+per-seed bar comparisons) are descriptive and diagnostic rather than
+additional hypothesis tests, so no multiple-comparison correction is
+applied to them.

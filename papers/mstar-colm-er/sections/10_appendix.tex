@@ -37,6 +37,27 @@ only in the matrix fast-weight arm.} % <!-- evidence: C6 -->
 \label{tab:taps}
 \end{table}
 
+\section{Training-loss trajectories, all three arms}
+\label{app:traincurve}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig3_traincurve.pdf}
+\caption{Training loss (primary task, seed 0) over the full
+20{,}000-step run, all three arms, from the same archived configs used
+for the parameter counts in Section~\ref{sec:setup}. The flat-vector and
+transformer arms drop to 7.83 and 7.84 by step 500 and move only to 7.69
+and 7.51 over the remaining 19{,}500 steps; the matrix fast-weight arm
+keeps falling for the entire run, reaching
+1.38. % <!-- evidence: C11 -->
+Learning rate ($3\times10^{-4}$), warmup, and auxiliary-loss weighting
+were shared across the three architecturally distinct mixers and were not
+independently tuned per arm; a per-architecture learning-rate sensitivity
+sweep was not run. The claim in Section~\ref{sec:recall} is scoped to
+this shared training budget accordingly.}
+\label{fig:traincurve}
+\end{figure}
+
 \section{Reproducibility of every number}
 \label{app:repro}
 
