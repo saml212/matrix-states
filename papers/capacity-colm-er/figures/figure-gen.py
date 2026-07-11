@@ -158,7 +158,7 @@ def fig1_cliff():
     ax.axvspan(ci["lo"], ci["hi"], color=BLUE, alpha=0.15, lw=0, zorder=1)
     ax.text(0.24, 0.33, f"$x_0={fit['x0']:.4f}$\n95% CI [{ci['lo']:.4f}, {ci['hi']:.4f}]",
             fontsize=7)
-    ax.set_title("$d_{\\mathrm{state}}=64$: a sharp transition")
+    ax.set_title("$d_{\\mathrm{state}}=64$")
     ax.set_xlabel("load ratio $K/d_{\\mathrm{state}}$")
     ax.set_ylabel("held-out 4-hop recovery $h4$")
     ax.set_xlim(0.22, 0.78); ax.set_ylim(-0.04, 1.06)
@@ -171,7 +171,7 @@ def fig1_cliff():
                 mec=BLUE, mew=0.7, ls="none", zorder=3)
     x2 = np.array(f128["curve_points"]["x"]); y2 = np.array(f128["curve_points"]["h4"])
     ax.plot(x2, y2, marker="o", ms=4.5, color=BLUE, ls="none", zorder=4)
-    ax.set_title("$d_{\\mathrm{state}}=128$: the same window, flat")
+    ax.set_title("$d_{\\mathrm{state}}=128$, identical $K/d$ window")
     ax.set_xlabel("load ratio $K/d_{\\mathrm{state}}$")
     ax.set_xlim(0.50, 0.75)
     ax.text(0.625, 0.5, "12/12 cells at $h4=1.0$\n(fit degenerate by\nconstruction; no curve drawn)",

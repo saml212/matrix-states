@@ -28,8 +28,10 @@ numbers.
 ## Citations
 
 Every `refs.bib` entry was verified programmatically against the arXiv
-API (or CrossRef for Welch 1974) on 2026-07-10; the verification record
-is `citation-verification.json` in this directory. Two author-list errors
+API (or CrossRef for Welch 1974 and the two 1972 classics, Kohonen and
+Anderson, whose DOIs were fetched and added at the round-1 format-audit
+stage) on 2026-07-10; the verification record is
+`citation-verification.json` in this directory. Two author-list errors
 inherited from the base draft's bib were caught and corrected
 (`nazari2026rank`, `sun2026staterank`).
 
