@@ -27,7 +27,17 @@ a typo'd string comparison that would silently fall through to the marker
 branch) and decodes the actual window content (catching a KEY/REL order
 swap inside the builder, which no shape/causality/hook check can see).
 
-CPU-runnable throughout. Items needing "a real checkpoint" (5, 6, 11, 13,
+PLUS item 20 (REASONING-LINK INSTRUMENT VERIFIER fix, REASONING_LINK_DESIGN.md
+sec 17.1/17.2, 2026-07-11): a permanent, hand-computed closed-form regression
+guard on `squeeze_state_head` + `apply_state_power` together, closing the
+`reasoning_link_poscontrol.py` real-checkpoint positive-control FAILURE (a
+[K,V]-vs-[V,K] state-layout transpose bug, the same defect class as
+`model_rd.py`'s audit round-1 FATAL-0). Mutation-tested: the pre-fix
+untransposed layout is proven, by an executed kill-proof (not just written),
+to fail the identical assertion.
+
+CPU-runnable throughout (item 20 additionally needs no kernel/model/CUDA at
+all -- identical behavior under the CPU stub or real fla). Items needing "a real checkpoint" (5, 6, 11, 13,
 14, 17, 18, 19) use a small, freshly-initialized `DeltaNetLM` instance (via this
 repo's own CPU fla-stub, see `reasoning_link_probe.py`'s module docstring)
 as a stand-in "checkpoint" -- mirrors `lm_attractor_probe_rd.py`'s own
@@ -894,6 +904,73 @@ def test_item_19_natural_query_semantic_content_verification():
 
 
 # ---------------------------------------------------------------------------
+# Item 20 -- PERMANENT analytic closed-form layout regression (REASONING-LINK
+# INSTRUMENT VERIFIER fix, REASONING_LINK_DESIGN.md sec 17.1/17.2, 2026-07-11).
+# ---------------------------------------------------------------------------
+
+def test_item_20_squeeze_state_head_layout_closed_form():
+    """Closes the reasoning_link_poscontrol.py real-checkpoint positive-
+    control FAILURE (production readout recovered 0/256 at every h while a
+    manually-transposed S_T recovered 1.0000 through the identical scoring
+    path -- experiment-runs/2026-07-11_reasoning_null_poscontrol/).
+    Root-caused at REASONING_LINK_DESIGN.md sec 17.1 via a zero-accumulation
+    (single-write) real-kernel closed-form probe: `squeeze_state_head` was
+    returning fla's RAW [K,V] (key-major) state layout untransposed, while
+    `apply_state_power`'s own einsum requires the DESIGN [V,K] (value-major)
+    layout -- BYTE-FOR-BYTE the same defect class as `model_rd.py`'s audit
+    round-1 FATAL-0 (`kernel_state_design_layout`), which this file's own
+    independent `squeeze_state_head` never inherited.
+
+    This is a PURE hand-computed closed-form check on `squeeze_state_head` +
+    `apply_state_power` TOGETHER, using a synthetic `final_state`-shaped
+    tensor -- no model, no `chunk_delta_rule`, no CUDA, no dependence on
+    whether the CPU stub or real fla is installed (identical behavior
+    either way, since this test never touches the kernel) -- so it is a
+    genuine STANDING regression guard, not a box-only disclosure like items
+    6/11/13/14/17/18/19.
+
+    Construction: `final_state` (B=1,H=1,Dh=4,Dh=4) with EXACTLY ONE nonzero
+    entry at fla's own documented [N,H,K,V] slot [key=0,value=1]=1.0
+    (`model_rd.py`'s `kernel_state_design_layout` docstring: "k=e0, v=e1,
+    beta=1 gives final_state[0,1]=1.0 -- KEY axis FIRST", reproduced here
+    verbatim as the single-write closed form). Under the CORRECT (post-fix)
+    design convention, querying with the key that was written (`k=e0`) at
+    h=1 must recover the value that was written (`v=e1`) EXACTLY."""
+    Dh = 4
+    final_state = torch.zeros(1, 1, Dh, Dh)
+    final_state[0, 0, 0, 1] = 1.0   # fla-native [K,V]: key=0, value=1 (the single-write closed form)
+
+    S_T = rlp.squeeze_state_head(final_state)
+    k_query = torch.tensor([[1.0, 0.0, 0.0, 0.0]]).unsqueeze(1)          # e0 -- the key that was written
+    pred = rlp.apply_state_power(S_T, k_query, 1)
+    expected_value = torch.tensor([0.0, 1.0, 0.0, 0.0]).view(1, 1, Dh)   # e1 -- the value that was written
+    assert torch.allclose(pred, expected_value, atol=1e-6), (
+        f"squeeze_state_head + apply_state_power do not recover the written value under the "
+        f"pinned design convention: pred={pred.tolist()}, expected={expected_value.tolist()} -- "
+        f"the [K,V]-vs-[V,K] layout defect (REASONING_LINK_DESIGN.md sec 17.1/17.2) has REGRESSED")
+
+    # NEGATIVE (teeth) test -- run to completion, not just written: the PRE-FIX behavior
+    # (squeeze_state_head WITHOUT the transpose) must FAIL this exact assertion, proving the
+    # check actually discriminates correct-vs-buggy layout rather than passing vacuously.
+    S_T_prefix_bug = final_state[:, 0, :, :]   # squeeze_state_head's own PRE-FIX implementation, inlined
+    pred_bug = rlp.apply_state_power(S_T_prefix_bug, k_query, 1)
+    assert not torch.allclose(pred_bug, expected_value, atol=1e-6), (
+        "mutation/kill-proof INVERTED: the pre-fix (untransposed) layout ALSO recovers the "
+        "correct value at this config -- this test does not have teeth, needs a different probe")
+    cos_bug = F.cosine_similarity(pred_bug, expected_value, dim=-1)
+    assert abs(cos_bug.item()) < 1e-6, (
+        f"pre-fix layout should score exactly orthogonal (uninformative) at this config -- matches "
+        f"the real poscontrol run's own signature (cos_mean~0, not a confidently-wrong answer), "
+        f"got cos={cos_bug.item()}")
+
+    _report(20, "squeeze_state_head+apply_state_power closed-form layout check (REASONING_LINK "
+                "sec 17 fix) -- post-fix design-convention retrieval recovers the written value "
+                "exactly (atol 1e-6); the pre-fix untransposed layout is proven, by an executed "
+                "mutation/kill-proof, to fail the identical assertion (cos~0, matching the real "
+                "poscontrol signature)", True)
+
+
+# ---------------------------------------------------------------------------
 # Extra (non-numbered) checks: the sec-12 outcome-routing gates have teeth.
 # Not part of the official 14 items, but cheap and worth exercising since
 # they are pure functions this build also delivers (sec 12's own
@@ -948,13 +1025,14 @@ ALL_ITEMS = [
     test_item_15_candidate_b_verb_verification, test_item_16_natural_template_floor_rederivation,
     test_item_17_natural_query_causality_assertion, test_item_18_natural_q_conv1d_hook_equivalence,
     test_item_19_natural_query_semantic_content_verification,
+    test_item_20_squeeze_state_head_layout_closed_form,
 ]
 
 
 def run_all_selftests() -> bool:
     print("=" * 70)
     print("REASONING-LINK Stage -1 SELF-TESTS (14 items, sec 9, + items 15-18, sec 16.1 Phase-1b, "
-          "+ item 19, mini-audit FIX-1)")
+          "+ item 19, mini-audit FIX-1, + item 20, sec 17 layout fix)")
     print(f"fla_stub_installed={rlp.FLA_STUB_INSTALLED}")
     print("=" * 70)
     t0 = time.time()

@@ -845,17 +845,37 @@ def gather_at_positions(raw: torch.Tensor, positions: torch.Tensor) -> torch.Ten
 
 
 def squeeze_state_head(final_state: torch.Tensor) -> torch.Tensor:
-    """fla's own (B,H,head_dim,head_dim) layout -> (B,d_state,d_state) for
-    num_heads==1 (every registered checkpoint in this design, sec 0/sec 6.1).
-    Hard-asserts num_heads==1 rather than silently summing/averaging heads
-    -- a future num_heads>1 checkpoint needs an explicit, examined decision
-    about per-head vs pooled state, not a silent default."""
+    """fla's own (B,H,head_dim,head_dim) layout -> (B,d_state,d_state) DESIGN
+    layout for num_heads==1 (every registered checkpoint in this design, sec
+    0/sec 6.1). Hard-asserts num_heads==1 rather than silently summing/
+    averaging heads -- a future num_heads>1 checkpoint needs an explicit,
+    examined decision about per-head vs pooled state, not a silent default.
+
+    FIX (REASONING_LINK_DESIGN.md sec 17.1/17.2, 2026-07-11 -- closes the
+    reasoning_link_poscontrol.py real-checkpoint positive-control FAILURE:
+    production recovered 0/256 while a manually-transposed S_T recovered
+    1.0000 at every h through the identical scoring path). This function
+    used to return `final_state[:, 0, :, :]` UNTRANSPOSED -- fla's own
+    [N,H,K,V] layout, KEY axis first (verified by a real-kernel,
+    zero-accumulation single-write closed-form probe, sec 17.1: k=e0, v=e1,
+    beta=1 gives final_state[0,0,0,1]=1.0, exact). `apply_state_power`'s own
+    einsum ('bij,bqj->bqi', contracting a KEY vector against S_T's LAST
+    axis) requires the DESIGN convention S[value_dim,key_dim] instead --
+    BYTE-FOR-BYTE the same [K,V]-vs-[V,K] defect class this project already
+    found and fixed once in `model_rd.py`'s `kernel_state_design_layout`
+    (audit round-1 FATAL-0), which this file's own INDEPENDENT
+    `squeeze_state_head` never inherited (it never calls that helper). The
+    one-line fix mirrors `kernel_state_design_layout`'s own
+    `S_kv.squeeze(1).float().transpose(-1, -2)` exactly. Covered by
+    `reasoning_link_stage_minus1.py` item 20 (closed-form check,
+    mutation-tested -- the pre-fix untransposed layout is proven to FAIL the
+    identical assertion, run to completion)."""
     B, H, Dh, _ = final_state.shape
     assert H == 1, (
         f"squeeze_state_head: num_heads={H} != 1 -- every checkpoint this design registers "
         f"(sec 0/6.1) uses num_heads=1; a genuine multi-head checkpoint needs an explicit "
         f"per-head-vs-pooled decision before this function can handle it.")
-    return final_state[:, 0, :, :]
+    return final_state[:, 0, :, :].transpose(-1, -2)
 
 
 def apply_state_power(S_T: torch.Tensor, q_eff: torch.Tensor, h: int) -> torch.Tensor:

@@ -1,0 +1,26 @@
+{
+  "d_state": 64,
+  "T": 128,
+  "B": 1,
+  "fla_version": "0.5.1",
+  "torch_version": "2.12.1+cu130",
+  "cuda_device_name": "NVIDIA H100 80GB HBM3",
+  "S_design_vs_closed_form_design_rel_fro": 0.0,
+  "S_design_vs_closed_form_fla_rel_fro": 1.4142135381698608,
+  "S_squeeze_vs_closed_form_design_rel_fro": 0.0,
+  "S_squeeze_vs_closed_form_fla_rel_fro": 1.4142135381698608,
+  "S_design_vs_S_squeeze_transposed_rel_fro": 1.4142135381698608,
+  "S_squeeze_raw_entries": {
+    "[0,0,1] (key=0,value=1 slot)": 0.0,
+    "[0,1,0] (value=1,key=0 slot)": 1.0
+  },
+  "S_design_raw_entries": {
+    "[0,0,1] (key=0,value=1 slot)": 0.0,
+    "[0,1,0] (value=1,key=0 slot)": 1.0
+  },
+  "verdict": {
+    "kernel_state_design_layout_matches_closed_form_design (sanity: reference is correct)": true,
+    "squeeze_state_head_returns_RAW_fla_[K,V]_layout (the defect)": false,
+    "squeeze_state_head_returns_DESIGN_[V,K]_layout (no defect)": true
+  }
+}

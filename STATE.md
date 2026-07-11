@@ -733,9 +733,17 @@ per_token destabilizing sign persists at 98M both corpora
 (+0.1133/+0.1011) and 392M-wikitext (+0.0189), nulls at 392M-openr1,
 reverses nowhere — no tested frozen-bias construction stabilizes the
 attractor at scale (val-loss neutrality is the half that transfers)**;
-reasoning-link geometric readout dead everywhere (80/80 nulls,
-triple-null + vocab/geometry dissociation); causal keystone
-multiply-bounded null (the n=3 transient did NOT replicate at n=12);
+reasoning-link geometric readout: **the 80/80 null is RETRACTED as an
+instrument artifact (2026-07-11, `REASONING_LINK_DESIGN.md` §17)** — a
+[K,V]-vs-[V,K] transpose bug in `squeeze_state_head` (caught by the
+pre-submission positive control, fixed + independently audited); the
+FIXED-lens re-metric of all 80 cells reads 78/320 (cell,h) nonzero
+(h=1 up to 0.87, h≥2 up to 0.64, strongly seed/arm-heterogeneous;
+premise gates still 0/320 → no registered CONFIRM — the lane REOPENS
+as SIGNAL-BEARING-UNRESOLVED); the vocab-side behavioral results and
+the n=3→n=12 non-replication are S_T-independent and stand; causal
+keystone bounds unaffected in themselves but the "multiply-bounded
+null" framing no longer has the geometric leg;
 NO demonstrated end-to-end win yet (the head-to-head's job, currently
 blocked on its own instrument fix, campaign 1).
 **Instrument escalations (PI-gated):** C17 TOLERANCE-MISCALIBRATION
@@ -1002,7 +1010,7 @@ A multi-agent research session (April 2026) surveyed the field; full detail in `
 - **Scale-Transfer Track D** — the signature is larger in production fixed-state models, but a matched no-fixed-state control shows the same magnitude — not specifically attributable to delta-rule writes at this tier.
 - **Scale-Transfer Track B** — double-barred by its own pre-registered bars; main effects INCONCLUSIVE (corpus-dependent).
 - **Pool-margin / admission-frontier diagnostics (§15.26-27)** — the C17 n_iter-sufficiency frontier MOVES with K/d; K=90's archived exact ceiling did NOT replicate fresh (0.9725); escalated to a §15.28-class design round, PI-gated (PENDING PI DECISIONS above).
-- **Reasoning-link keystone** — CLOSED as a multiply-bounded null: 80/80 geometric-readout nulls at every scale; the n=3 transient did NOT replicate at n=12 (new-cohort CI spans zero, BATCH-EFFECT-FLAGGED). `REASONING_LINK_DESIGN.md` §16.19-20.
+- **Reasoning-link keystone** — **REOPENED 2026-07-11 (`REASONING_LINK_DESIGN.md` §17): the 80/80 geometric-readout null was an instrument artifact** (squeeze_state_head [K,V]-vs-[V,K] transpose, caught by the pre-submission positive control; fixed, independently audited, re-controlled at 1.0000). Fixed-lens re-metric of all 80 cells: 78/320 (cell,h) readings nonzero — FIXED-LENS SIGNAL, SIGNAL-BEARING-UNRESOLVED (premise gates still 0/320, no registered CONFIRM; strong seed/arm heterogeneity; per_token carries the most h≥2 signal). The S_T-independent halves stand: the n=3 transient did NOT replicate at n=12 (new-cohort CI spans zero, BATCH-EFFECT-FLAGGED, §16.19-20). Next-wave routing + the reasoning-null-moss paper revision are SEPARATE dispatches, not self-launched.
 
 No further waves are scheduled inside any of these closed designs; opening a new one requires a fresh brainstorm/research/attack/validate waterfall (`CLAUDE.md`), exactly as every ACTIVE CAMPAIGN above was opened.
 

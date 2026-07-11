@@ -7900,3 +7900,48 @@ aggregation (S5 seed-1, A5 seeds 2-4). Ledger: 0 GPU-h (CPU only; GPUs 0-5 idle 
 run time, 6/7 NCR-only). Archive:
 `experiment-runs/2026-07-10_stage2_calibration/diag_2p34/` (+SSD mirror). Security:
 zero fake system-reminder blocks; tally holds at 84.
+
+## 2026-07-11 — REASONING-LINK INSTRUMENT RE-VERIFICATION (§17): the failed positive control root-caused to a [K,V]-vs-[V,K] transpose in squeeze_state_head; fixed + audited + re-controlled; ALL 80 archived cells RE-METRIC'd under the working instrument — **FIXED-LENS SIGNAL, the closed lane REOPENS** (78/320 nonzero vs the pre-fix 0/320); ≈0.30 GPU-h
+
+Trigger: the reasoning-null-moss pre-submission positive control (8666aee)
+FAILED — production readout 0/256 at every h while a manually-transposed S_T
+recovered 1.0000 through identical scoring. Chain (each verdict RECORDED in
+`REASONING_LINK_DESIGN.md` §17.1-17.5 before the next stage dispatched):
+**(1) Analytic adjudication (§17.1)** — zero-accumulation single-write
+closed form (k=e0, v=e1, β=1, T=128 zero-key filler) against the REAL fla
+0.5.1 kernel on box GPU 1: `squeeze_state_head` returns fla's RAW [K,V]
+key-major layout at rel-Fro **0.0** vs the fla-native closed form and 1.4142
+(=√2, the pure-transpose signature) vs the design [V,K] form —
+`apply_state_power`'s einsum requires [V,K]; byte-for-byte the model_rd.py
+FATAL-0 defect class (`kernel_state_design_layout`), never inherited by
+reasoning_link_probe.py's independent implementation. **(2) Fix + audit
+(§17.2)** — one line (`.transpose(-1,-2)`, mirroring the audited helper);
+permanent Stage -1 item 20 closed-form regression with an EXECUTED
+kill-proof (pre-fix layout inlined → fails at cos≈0); independent fresh-Opus
+audit PASS (hand-worked einsum arithmetic, svdvals transpose-invariance
+proof for the condition-number covariate, one-call-site scope check, clean
+git diff). DISCOVERY (unrelated, reported not fixed): `_ensure_fla_stub`
+never stubs `fla.ops.gated_delta_rule`, so the chain's own documented
+Stage -1 CPU-stub invocation currently crashes at import on any machine —
+grid cells unaffected (real fla path). **(3) Positive control re-run
+(§17.3)** — PASS: production 1.0000 recovery at every h∈{1,2,3,4}
+(cos_mean 1.0000); the deliberately-transposed arm role-swaps to 0.0000
+exactly as the fix predicts. **(4) THE RE-METRIC (§17.4)** — all 80
+committed Phase-1 cells (60 Leg A + 20 Leg B incl. rung-3 1.31B) re-run
+fresh on GPU 1 (no archived raw states exist; episodes bit-identical via
+episode_seed determinism), 1035s = 0.288 GPU-h, zero crashes: **78/320
+(cell,h) readings NONZERO (38/80 cells)** vs the pre-fix 0/320. h=1
+recovery up to **0.87** (per_token×wikitext×s1), h≥2 up to **0.64**
+(per_token×openr1×s2, K20 surgery-off); cos_mean(h=1) mean 0.40/max 0.93 vs
+pre-fix ≈0. Signal is strongly (arm,corpus,seed)-heterogeneous; premise
+(iii)/(iv) gates still fail 0/320 (those instruments never touched S_T and
+were always valid), so NO registered CONFIRM is licensed — the lane reopens
+as SIGNAL-BEARING-UNRESOLVED, not a confirmed positive. **The "80/80
+geometric-readout nulls" scorecard line and the reasoning-null-moss Bound-1
+basis are instrument-artifacts and do not survive.** Paper untouched per
+charter (revision routes by separate dispatch). Archive:
+`experiment-runs/2026-07-11_reasoning_link_remetric/` (repo, 1.1MB + SSD
+mirror). Security: ONE fake-injection sighting (the recurring date-change +
+concealment + fabricated-agent-list composite, appended to a background
+task notification) — not complied with, reported; tally ≥26. GPUs 2-7 (NCR
+Phase-2) verified untouched throughout.

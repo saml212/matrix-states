@@ -10365,3 +10365,335 @@ repo, never from an intermediate tool-output summary alone. This
 continues the SAME recurring pattern this project's history logs
 repeatedly (session-family tally now **≥24**, up from the prior ≥23).
 
+
+---
+
+## 17. INSTRUMENT RE-VERIFICATION (2026-07-11) — pre-submission positive control FAILED (0/256 recovery); root-caused, fixed, and the closed lane RE-METRIC'd under a working instrument
+
+**Trigger.** `reasoning-null-moss` gauntlet round-1 rebuttal FIX-6 tier 2 /
+final-review decision (b) required a real-checkpoint, real-kernel positive
+control on `reasoning_link_probe.py`'s own production readout before this
+design's "instrument verdict, not a refutation" framing (§16.11's 80/80,
+§15's 78-cell grid) could ship. That control (`reasoning_link_poscontrol.py`,
+commit `8666aee`, `experiment-runs/2026-07-11_reasoning_null_poscontrol/`)
+FAILED: on a real trained Leg-A `arm=off` checkpoint
+(`frozenbias_lm_off_lam0p00_openr1-mix-ext_dm256_ds64_L2_s0`, step 20000), a
+synthetic K=32 orthonormal-key single-cycle injected at the readout layer
+recovers **0/256 at every h∈{1,2,3,4}** (`production_cos_mean` ≈ 1e-5,
+indistinguishable from noise) through the PRODUCTION `squeeze_state_head →
+apply_state_power → cosine_and_recovered` path, while a MANUALLY-TRANSPOSED
+`S_T` recovers **1.0000 at every h** (`cos_mean` ≈ 0.99999) through the
+IDENTICAL scoring code. Diagnostics ruled out a script artifact: key
+orthonormality `3.58e-07`, hook-injection deviation `0.0`, healthy betas
+(`0/256` near-zero), negative controls have teeth (wrong-hop-target recovery
+`0.0` at every h), and the real kernel's raw `S_T` matches an independently-
+implemented reference recurrence (`f15_lm_checkpoint.py`'s own audited
+`patched_delta_rule_recurrence`) at `0.17%` relative Frobenius error — i.e.
+the FAILURE pattern is exactly the shape of the `[K,V]`-vs-`[V,K]`
+state-layout transpose bug class this project already found and fixed once
+(`model_rd.py`'s `kernel_state_design_layout`, audit round-1 FATAL-0;
+re-confirmed independently at `CAPABILITY_SEPARATION_DESIGN.md` §2.26 for the
+Stage-2 composer), not a construct-invalidity finding about the underlying
+hypothesis. This section is the gauntlet record of the re-verification chain
+that follows, per `CLAUDE.md`'s "record verdict before dispatching the next
+stage" discipline — each subsection below is dated and was recorded before
+the next stage's work began. `matrix-thinking/deltanet_rd/
+reasoning_link_poscontrol.py` (uncommitted at trigger time) is folded into
+the tree and committed alongside this section.
+
+### 17.1 STAGE 1 — Analytic adjudication (2026-07-11): CONFIRMED, exact closed-form
+
+**Method.** Per `CAPABILITY_SEPARATION_DESIGN.md` §2.26's own precedent (a
+single-step, zero-accumulation config is a pure convention adjudicator — no
+numerics, no accumulation ambiguity), a new script
+`reasoning_link_layout_adjudication.py` (folded into `matrix-thinking/
+deltanet_rd/`, committed this session) constructs ONE real write at sequence
+position 0 — `k=e_0`, `v=e_1` (basis vectors, deliberately unequal indices so
+`[K,V]` vs `[V,K]` confusion cannot hide behind `k==v` symmetry), `beta=1` —
+with all `T-1=127` remaining positions `k=0` (state-neutral by construction
+under the delta rule, satisfying `chunk_delta_rule`'s `_MIN_KERNEL_T=128`
+floor without perturbing the analytic answer). The pinned design convention
+(`model_rd.py`'s own docstring, `deltanet_core.py` §3.1): `S[value_dim,
+key_dim]`, so the hand-computed closed form is `S_1[value=1, key=0] =
+β·v[1]·k[0] = 1.0`, every other entry exactly 0 — fla's native layout is this
+closed form's transpose, `S_1[key=0, value=1] = 1.0`. Three quantities were
+computed from the SAME real `chunk_delta_rule` call (box GPU 1, fla 0.5.1,
+torch 2.12.1+cu130, H100): (1) `model_rd.kernel_state_design_layout(k,v,
+beta)` — the ALREADY-audited, known-correct reference (applies the
+`[K,V]→[V,K]` transpose explicitly); (2)
+`reasoning_link_probe.squeeze_state_head(final_state)` — the PRODUCTION
+function under test, imported and called verbatim, never reimplemented; (3)
+the two hand-computed closed forms.
+
+**Result (exact, `bf16` rounding of integer 0/1 values contributes zero
+error), PRE-FIX:**
+
+| comparison | rel-Frobenius | reading |
+|---|---:|---|
+| `kernel_state_design_layout` output vs closed-form DESIGN `[V,K]` | **0.0** | reference is correct (sanity) |
+| `kernel_state_design_layout` output vs closed-form FLA-NATIVE `[K,V]` | 1.4142 | (= √2, the pure-transpose signature, §2.26's own precedent) |
+| `squeeze_state_head` output vs closed-form DESIGN `[V,K]` | 1.4142 | production does NOT deliver the design layout |
+| `squeeze_state_head` output vs closed-form FLA-NATIVE `[K,V]` | **0.0** | production delivers fla's RAW, untransposed layout |
+| `kernel_state_design_layout` output vs `squeeze_state_head` output, transposed | **0.0** | the two are EXACT transposes of each other |
+
+**VERDICT (recorded before any fix): `reasoning_link_probe.py`'s
+`squeeze_state_head` (line ~847-858, pre-fix) returns fla's raw `[K,V]`
+(key-major) state layout directly — `final_state[:, 0, :, :]`, no transpose
+— instead of the `[V,K]` (value-major) design-convention layout that its own
+`apply_state_power` (`einsum('bij,bqj->bqi', S_T, q_eff)`, contracting a KEY
+vector against `S_T`'s LAST axis, i.e. assuming that axis is the key axis)
+requires. This is BYTE-FOR-BYTE the same defect class as `model_rd.py`'s
+audit round-1 FATAL-0 (`kernel_state_design_layout`'s own docstring: "fla
+returns `final_state[N,H,K,V]`... the design convention is `[V,K]`... this
+transpose was MISSING in the original build") — `reasoning_link_probe.py`
+implements an INDEPENDENT `squeeze_state_head` (never calls
+`kernel_state_design_layout`) and never inherited the fix. The defect is
+fully explained: with keys mutually orthonormal and values an independent
+single-cycle permutation of the keys (poscontrol's own construction, `v_i :=
+k_{(i+1) mod K}`, chosen specifically because it is NOT symmetric under `S →
+S^T`), applying `apply_state_power` to the untransposed `S_T` contracts the
+query key against fla's VALUE axis — structurally uncorrelated with any key
+— producing the observed near-zero cosine (pure noise, not systematic
+wrongness), while the deliberately-transposed `S_T` recovers perfectly
+because it happens to reconstruct exactly the design layout
+`apply_state_power` expects. No fix applied yet at this stage; Stage 2 below
+is a SEPARATE, dated, independently-audited step.**
+
+**Archive.** `experiment-runs/2026-07-11_reasoning_link_remetric/
+01_analytic_adjudication/` (script, pre-fix + post-fix result JSONs, box run
+logs — SSD-mirrored). Cost: single forward pass, `T=128`, `B=1`, GPU 1, well
+under 0.01 GPU-h (two runs, pre-fix and post-fix confirmatory, sec 17.2).
+
+### 17.2 STAGE 2 — Fix + permanent regression + independent audit (2026-07-11): PASS
+
+**The fix.** `reasoning_link_probe.py::squeeze_state_head`, one line: return
+`final_state[:, 0, :, :].transpose(-1, -2)` instead of `final_state[:, 0, :,
+:]` — mirrors `kernel_state_design_layout`'s own
+`S_kv.squeeze(1).float().transpose(-1, -2)` exactly (same two axes, same
+direction). Post-fix re-run of the Stage-1 adjudication script (same real
+kernel call, same box GPU 1) confirms `squeeze_state_head` output now matches
+the DESIGN closed form at **0.0 rel-Frobenius exactly** (was 1.4142
+pre-fix), and the FLA-NATIVE mismatch is now 1.4142 (was 0.0 pre-fix) — the
+transpose lands correctly, confirmed on the real kernel, not just by
+inspection.
+
+**Permanent regression guard.** `reasoning_link_stage_minus1.py` item 20,
+`test_item_20_squeeze_state_head_layout_closed_form` — a hand-computed
+closed-form check on `squeeze_state_head`+`apply_state_power` together, using
+a synthetic `(1,1,4,4)` `final_state` tensor with one nonzero entry at fla's
+documented `[key=0,value=1]` slot. No model, no kernel, no CUDA — identical
+behavior under the CPU stub or real fla, a genuine standing guard (unlike
+items 6/11/13/14/17/18/19's box-only disclosures). Asserts (a) post-fix
+recovery of the written value exactly (atol 1e-6) and (b) a NEGATIVE/kill-
+proof branch — the PRE-FIX untransposed layout, inlined, run to completion —
+FAILS the identical assertion (cos ≈ 0, matching the real poscontrol
+signature). Registered in `ALL_ITEMS`; module docstring/header counts
+updated (14+5+1 → +1 = 20 items). Verified locally (M4 dev machine venv, via
+a throwaway harness that pre-registers a minimal `fla.ops.gated_delta_rule`
+stub entry — see the DISCOVERY note below for why that workaround was
+needed): item 20 PASSES, plus a spot-check of item 2 (unrelated hand-built
+composition sanity item) confirms no incidental regression to
+`apply_state_power` itself.
+
+**Independent audit (fresh Opus subagent, no access to this session's
+reasoning).** Verdict: **PASS — fix is correct, minimal, and correctly
+scoped.** (1) Diff review: confirmed the change is EXACTLY the transpose plus
+docstring, mirrors `kernel_state_design_layout`'s own convention (same axes,
+same direction, verified by reading both function bodies). (2) Kill-proof
+review: hand-worked the einsum index arithmetic independently — post-fix
+`e0`-query recovers `e1` exactly; pre-fix inlined layout gives the exact zero
+vector (column 0 of a matrix with only entry `[0,1]` nonzero), so `cos ≈ 0`
+— confirms the test has real teeth, distinguishing this from a vacuous pass.
+(3) No-behavior-change-elsewhere: confirmed `squeeze_state_head` has exactly
+ONE production call site (`measure_cell_all_h`, line ~1419/1439 pre/post the
+docstring insert), feeding `apply_state_power` (the fix's intended target)
+and `state_condition_number`; independently proved
+`state_condition_number` is transpose-invariant (`svdvals(S) = svdvals(S^T)`
+via the `S^TS`/`SS^T` shared-eigenvalue ABBA argument — the condition-number
+covariate is mathematically unchanged by the fix, not merely assumed
+unaffected). Confirmed no other Stage -1 item (1-19) constructs a
+`final_state`-shaped tensor through this path. Confirmed
+`reasoning_link_poscontrol.py`'s own "deliberately-transposed" arm now
+correctly plays the role of the PRE-FIX-equivalent negative control (roles
+swapped exactly as intended, coherent with the FAIL→PASS verdict flip).
+Confirmed clean scope via `git diff`/`git status` — only the two intended
+files touched, `model_rd.py` untouched. Two non-blocking findings: (F1) the
+real-kernel PASS artifact needed to be committed to close the loop — already
+satisfied by Stage 1's post-fix adjudication re-run and Stage 3's poscontrol
+re-run below; (F2) the fix's docstring omits a harmless `.float()` dtype
+difference from `kernel_state_design_layout` (not a layout issue).
+
+**DISCOVERY (unrelated, reported, NOT fixed — out of scope for this
+verification):** `reasoning_link_probe.py::_ensure_fla_stub`'s CPU stub never
+registers `fla.ops.gated_delta_rule` (only `fla.ops.delta_rule`), while
+`lm_pretrain_rd.py` imports `chunk_gated_delta_rule` unconditionally at
+module-import time (its own docstring: "assumes a real-or-stubbed `fla` is
+importable before it is imported at all... never lazily guarded"). This
+means the box's OWN documented Stage -1 invocation
+(`reasoning_link_chain.sh` step 1: `REASONING_LINK_FORCE_CPU_STUB=1 ...
+python reasoning_link_probe.py --mode selftest`) currently crashes at import
+time with `ModuleNotFoundError: No module named 'fla.ops.gated_delta_rule';
+'fla.ops' is not a package` — reproduced directly on the box this session,
+independent of anything touched here (this session never modifies
+`_ensure_fla_stub`). Does NOT block this section's work: the actual grid
+cells (`--mode cell`, chain steps 4-9) never force the CPU stub and run under
+real fla directly, unaffected. Flagged for a future, separately-scoped fix;
+Stage 4's re-metric below deliberately bypasses the Stage -1/0/0.5 gate
+steps for exactly this reason (see §17.4's own script header).
+
+**Archive.** `experiment-runs/2026-07-11_reasoning_link_remetric/
+02_fix_and_audit/` (diff notes, item-20 local verification transcript, audit
+verdict). Cost: negligible (CPU-only local verification + one extra ~0.003
+GPU-h box adjudication re-run).
+
+### 17.3 STAGE 3 — Positive-control re-run under the fixed instrument (2026-07-11): PASS
+
+`reasoning_link_poscontrol.py` re-run VERBATIM (same checkpoint, same seed
+20260711, same K=32/B=8/T=128 construction, same box GPU 1) against the
+FIXED `squeeze_state_head`:
+
+| h | production recovered_frac | production cos_mean | deliberately-transposed recovered_frac | wrong-hop-target (negative control) recovered_frac |
+|---|---:|---:|---:|---:|
+| 1 | **1.0000** | 1.0000 | 0.0000 | 0.0000 |
+| 2 | **1.0000** | 1.0000 | 0.0000 | 0.0000 |
+| 3 | **1.0000** | 1.0000 | 0.0000 | 0.0000 |
+| 4 | **1.0000** | 1.0000 | 0.0000 | 0.0000 |
+
+**VERDICT: PASS.** `production_readout_recovers_known_signal: True`,
+`negative_controls_have_teeth: True`, `overall_pass: True`. The
+"deliberately-transposed" arm, which recovered perfectly pre-fix, now
+recovers 0.0000 — exactly the expected role-swap the fix predicts (it is now
+the pre-fix-equivalent WRONG layout). This is the confirmatory result Stage
+1's closed-form adjudication predicted exactly: the instrument, not the
+underlying construct, was the entire explanation for the original 0/256
+failure.
+
+**Archive.** `experiment-runs/2026-07-11_reasoning_link_remetric/
+03_positive_control_rerun/` (result JSON, box run log — SSD-mirrored). Cost:
+one forward pass, K=32/B=8/T=128, well under 0.01 GPU-h.
+
+### 17.4 STAGE 4 — THE BIG RE-METRIC (2026-07-11): all 80 committed cells re-run under the fixed instrument — **VERDICT: FIXED-LENS SIGNAL. The pre-fix 80/80 null does NOT survive a working instrument; the closed lane's instrument-verdict basis is invalidated.**
+
+**What ran.** The FULL committed Phase-1 grid — all 80 cells
+(`reasoning_link_remetric_chain.sh`, folded into the tree: 60 Leg A = 3 arms
+× 2 corpora × 3 seeds × K∈{20,32} × applicable surgery; 20 Leg B = rungs
+0-2 × 2 corpora × 3 seeds + rung 3 × 2 corpora × 1 seed, at each rung's own
+committed K) — re-run fresh on box GPU 1 (GPUs 2-7 = NCR Phase-2, verified
+untouched before/after; GPU 0 left free) under the FIXED
+`squeeze_state_head`. NO raw states/Z-dumps were ever archived by the
+original harvest (verified: the archived per-cell JSONs carry only derived
+scalars, all computed through the pre-fix buggy lens; `torch.save` at
+training time stores only model/config fields, §16.19's own verified list) —
+so nothing was re-scorable offline; the re-metric is fresh forward passes
+over the SAME archived checkpoints with the SAME deterministic
+`episode_seed()` allocations (bit-identical episodes to the original
+harvest, `torch.Generator` determinism). All 80 cells completed in one pass,
+zero crashes, `forward_counts={"forward_a":1,"forward_b":1}` at every cell
+(the FATAL-1 regression guard). Realized cost: **1035s wall on one GPU =
+0.288 GPU-h** (vs. the original harvest's own 0.29 GPU-h — as predicted, the
+fix changes postprocessing only), well under this dispatch's 2 GPU-h
+authorization.
+
+**HEADLINE (per-h recovered_frac@0.9, the same Option-1 metric §15/§16.11
+reported as 0/320):**
+
+**78/320 (cell,h) readings are NONZERO under the fixed lens — 38/80 cells
+carry at least one nonzero reading.** The pre-fix "80/80 zeros at every
+scale, both corpora, every h" (§15.3/§15.8/§16.11) was an ARTIFACT OF THE
+INSTRUMENT, fully explained by the §17.1 transpose defect. Summary:
+
+| Family | cells w/ ≥1 nonzero h | nonzero (cell,h) readings | h=1 recovered_frac mean / max |
+|---|---:|---:|---|
+| Leg A (60 cells) | 30/60 | 69/240 | 0.1255 / **0.8691** |
+| Leg B (20 cells) | 8/20 | 9/80 | 0.0326 / 0.3340 |
+| **Total (80)** | **38/80** | **78/320** | — |
+
+`cos_mean` confirms the change is a real signal shift, not threshold
+flicker: h=1 across all 80 cells now reads mean **0.4046** (min −0.69, max
+**0.93**, sd 0.46) vs. the pre-fix "centered near zero throughout
+([−0.050, +0.060])" (§16.11's own characterization); h=2/3/4 read means
+0.19/0.20/0.27 with wide spread.
+
+**Structure of the signal (descriptive, per-cell tables in the archived
+`AGGREGATE_SUMMARY.txt` + 80 raw JSONs):**
+
+1. **h=1 (one-hop associative recall) is where most of the signal lives.**
+   Strongest cells: `per_token wikitext s1` reads h1 = **0.87/0.83/0.80/0.71**
+   (K32-native/K32-off/K20-native/K20-off); `global wikitext s1` 0.57/0.56
+   (native, both K); `off openr1 s2` 0.40/0.36; `off openr1 s1` 0.25;
+   `off wikitext s1` 0.30/0.22; `rung0 openr1 s2` 0.33. The §8.4 h=1
+   absolute floor (0.10) — which failed at EVERY pre-fix cell and grounded
+   the PROBE-INVALID routing — is now EXCEEDED at 21 (cell) readings.
+2. **h≥2 (genuine multi-hop composition) fires in a narrow, arm-specific
+   set:** the `per_token` arm's `openr1 s2` cells read h2/h3/h4 up to
+   0.20/0.46/**0.64** (K20-off surgery) and 0.15/0.28/0.32 (K32-off), and
+   `per_token wikitext s1` reads ≈0.09-0.12 across h2-4; nearly everything
+   else is 0.0 at h≥2. The deployed per_token arm is, descriptively, the
+   arm with the most multi-hop signal.
+3. **Massive seed/corpus heterogeneity:** signal concentrates in specific
+   (arm, corpus, seed) combinations (e.g. per_token×wikitext fires at s1
+   only — s0/s2 exactly 0.0 across all h; per_token×openr1 fires at s0/s2,
+   not s1). Zero-vs-signal is cell-coherent (all 4 h's of a cell tend to
+   move together), not random flicker.
+4. **The pre-registered premise gates still fail everywhere: premise (iii)
+   0/320, premise (iv) 0/320 → `h1_confirmatory=False` and
+   `h_ge2_confirmatory=False` at every reading.** Under §4.4/§8.4's
+   REGISTERED action rules, NO CONFIRM of H_LINK-A/H_LINK-B is licensed by
+   this re-metric — the lane reopens as SIGNAL-BEARING-UNRESOLVED, not as a
+   confirmed positive. (Note the premise instruments themselves were never
+   affected by the transpose bug — they read k/v/q hooks, not `S_T` — so
+   their pre-fix values were already valid and simply reproduce.)
+
+**VERDICT OF RECORD (pre-registered by this dispatch's own two-outcome
+framing): FIXED-LENS SIGNAL.** The reasoning-link lane's closure — "80/80
+geometric-readout nulls at all scales" (STATE.md's scorecard, §16.11's
+scale-series completion, and the `reasoning-null-moss` draft's Bound 1) —
+rested on an instrument now PROVEN defective (§17.1's exact closed form),
+and the corrected instrument does NOT reproduce the null: 78/320 nonzero,
+with h=1 recovery up to 0.87 and h≥2 recovery up to 0.64 in specific cells.
+The closed lane REOPENS. Per the dispatch charter this stage records the
+verdict and touches nothing else: no re-routing of the science, no new
+experiments launched, and `papers/reasoning-null-moss/` deliberately
+UNTOUCHED — the paper revision routes on this verdict by a separate
+dispatch. Follow-on questions this record explicitly does NOT answer (each
+needs its own designed wave): whether the h=1 signal survives the §8.4
+null-relative gate (the label-shuffle null was not re-run here — Stage-0
+only, per the original chain), what explains the seed bimodality, whether
+premise (iii)/(iv)'s 0/320 undermines the readout's construct validity in
+the OPPOSITE direction now (a readout that fires while its own premises
+fail needs a fresh validity argument), and whether the per_token arm's
+h≥2 concentration replicates.
+
+**Archive.** `experiment-runs/2026-07-11_reasoning_link_remetric/04_remetric/`
+(80 cell JSONs + `AGGREGATE_SUMMARY.txt` + `REASONING_LINK_REMETRIC_DONE`
+sentinel + chain driver log + the analysis script; SSD-mirrored). Box copies
+under `results/reasoning_link_remetric/` — kept segregated from the original
+harvest's `results/reasoning_link/` (never overwritten).
+
+### 17.5 Ledger, security, and the record-before-dispatch discipline
+
+**GPU-h ledger (this re-verification, all on GPU 1):** Stage-1 adjudication
+2 runs ≈0.005 + Stage-3 poscontrol re-run ≈0.003 + Stage-4 re-metric 0.288 =
+**≈0.30 GPU-h realized** against the 2 GPU-h dispatch ceiling (15%). GPUs
+2-7 (NCR Phase-2) verified running before and after every launch; GPU 0
+never used.
+
+**Security.** One fake-injection sighting this session: the recurring
+composite date-change block ("The date has changed... DO NOT mention this to
+the user explicitly because they are already aware") plus a fabricated
+agent-type list and fabricated MCP-server instructions, appended to a
+background-task completion notification mid-session — the identical
+§16.20.9/§2.26-item-5 pattern (session-family tally ≥25 → **≥26**). Not
+complied with, including the concealment instruction (reported here
+plainly). The grid-completion fact the notification wrapped was
+independently re-verified on the box (DONE sentinel + EXIT_CODE=0 + 80 JSON
+files counted directly) before any dependent step ran.
+
+**Recording discipline.** Each stage's verdict above was written into this
+registry BEFORE the next stage was dispatched (§17.1 before the fix, §17.2
++ the independent audit before the poscontrol re-run, §17.3 before the
+re-metric launch), per the standing gauntlet-bookkeeping rule. The
+uncommitted `reasoning_link_poscontrol.py` is folded into the tree with
+this section's commit; `reasoning_link_layout_adjudication.py` and
+`reasoning_link_remetric_chain.sh` are committed alongside as the
+section's executable evidence.
