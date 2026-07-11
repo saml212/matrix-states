@@ -1436,3 +1436,49 @@ or WIN-PARTIAL. The operator bank stays separately ledgered and
 double-gated (M4). LoopedVec's in-distribution failure (0.002) travels
 with any claim as the M3 strawman-risk disclosure (§7d), with FWM as the
 load-bearing baseline.**
+
+### §7f COORDINATOR PHASE-2 GO/NO-GO (2026-07-11): **GO** — recorded verbatim before launch
+
+> Coordinator PHASE-2 GO/NO-GO: **GO.** Record as §7f (RECORD FIRST,
+> commit+push, then launch): grounds — (1) K=8 verdict of record is
+> WIN/WIN/TIE with zero open defects and the D-1 fix audited CLEARED;
+> (2) MA3's asymmetric pre-registration (K=12, h\*=57) is the cross-K half
+> of the Axis-A claim — without it the WIN is single-K and the paper claim
+> stays capped; (3) ledger: ~19.1/120 spent, Phase-2 projects 18-20 GPU-h
+> at the measured rate → ~39/120 after, inside every cap; (4) the box is
+> fully idle (all 8 GPUs) — PI no-idle directive. LAUNCH TERMS: K=12 grid
+> per the MA3 pre-registration exactly (no metric or bar changes; the
+> asymmetric-confidence WIN-or-WIN-PARTIAL scoring as pinned), 80K steps
+> per §7d precedent, your own §7 machinery (tmux ncr_phase2 + supervisor,
+> resume-safe, STOP-file, fingerprints), GPUs 6-7 primary — and since the
+> box is idle you may co-locate additional cells on GPUs 0-5 to shorten
+> wall-clock (leave 2 GPUs free for possible coordinator dispatches).
+> Per-arm end-to-end micro test BEFORE launch this time (your own
+> [LEARN]: all arms, not one representative). On completion: harvest →
+> §7g verdict (crosscheck-lens discipline) → report. The operator bank
+> stays double-gated and out of scope.
+
+**Launch mechanics:** 18 cells (§3.6 Phase-2 row: same structure at K=12
+— ncr/loopedvec/fwm × seeds 0-4 + cmlp × 0-2), 80K steps, fresh
+`results_phase2/` dir, GPUs 2-7 (six devices, 3 co-located cells each →
+ONE chunk round; GPUs 0-1 left free per the terms), tmux `ncr_phase2`.
+**Breaker rate scaled on the K cost axis (the §2.29 lesson, applied
+a-priori this time):** the 1.1185 GPU-h/80K rate was measured at K=8;
+K=12 carries 1.5× the encoder tokens (K bindings per episode) and 1.5×
+the eval queries, so the per-cell breaker rate is set to 1.1185 × 1.5 =
+**1.678** (ceiling ≈ 9,060 s vs ~6,000 s expected train wall — healthy
+margin instead of the near-certain false abort the unscaled ceiling would
+have produced). The realized K=12 rate gets measured and recorded in §7g.
+**mi7 calibration-duty discharge:** every cell's pipeline already locks
+Axis-C curves from its own Z-dump BEFORE any far-h behavioral eval and
+prices itself against the breaker — the first-K=12-cell-per-arm duty is
+satisfied by construction, and the MA3 asymmetric-confidence class
+(PREDICTED-HOLD δ≤0.0079 / STRADDLE ≤0.0311 / PREDICTED-FAIL) is stamped
+into every K=12 lock at write time (`ncr_spectral.k12_confidence_class`).
+**Axis-B note:** the ≥10× WIN bar is pinned at h=1021, a K=8 grid point;
+K=12 has no cost-probe row (pinned K=8-only) and its ladder carries no
+1021 — K=12 timing at 765/1533 is recorded as supplementary, and the
+Axis-B label of record remains K=8's WIN (no bar is moved). **Pre-launch
+gate (the coordinator's term + this builder's own [LEARN]): the all-four-
+arms end-to-end micro test is executed at K=12 BEFORE launch** — recorded
+below with its output.
