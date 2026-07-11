@@ -471,7 +471,7 @@ footer a { color: var(--accent); }
 
         <h2><span class="num">04</span>Axis B: the O(log h) read is 20.9× faster where it counts, and the gap only grows</h2>
 
-        <p>Axis B only becomes claimable as a capability result because Axis A cleared at least a TIE — a fast-but-wrong read is not a result. With Axis A a clean WIN, the timing comparison stands on its own.</p>
+        <p>Axis B only becomes claimable as a capability result because Axis A cleared at least a TIE — a fast-but-wrong read is not a result. With Axis A already a clean WIN, the timing comparison stands on its own.</p>
 
         <figure>
             <img src="../assets/plots/ncr_axis_b_timing.svg" alt="log-log line chart: median read wall-clock in seconds vs composition depth h, for NCR's binary-exponentiation read against three O(h) baselines and one O(1) disclosed control" style="width: 100%; max-width: 780px; display: block; margin: 0 auto;">
@@ -521,7 +521,7 @@ footer a { color: var(--accent); }
             <ol>
                 <li>Schlag, I., Munkhdalai, T., &amp; Schmidhuber, J. (2021). <em>Learning Associative Inference Using Fast Weight Memory.</em> ICLR 2021, arXiv:2011.07831 — the closest prior art (FWM): in-context fast-weight relational composition at read time, with hop count fixed at 3 and LN-nonlinear, approximate reads. Cited and distinguished as this wave's load-bearing baseline.</li>
                 <li>Guu, K., Miller, J., &amp; Liang, P. (2015). <em>Traversing Knowledge Graphs in Vector Space.</em> arXiv:1506.01094 — documents composition error-cascading in trained embedding-space path queries; the motivating failure mode the exactness axis addresses.</li>
-                <li>Fan, Y., et al. (2024). <em>Looped Transformers for Length Generalization.</em> arXiv:2409.15647; and the depth-recurrent composer line, arXiv:2603.21676 — existence of variable-depth single-pass composition architectures, which is exactly why "current architectures cannot do this at all" was retired as this program's claim; motivates the LoopedVec comparison arm.</li>
+                <li>Fan, Y., Du, Y., Ramchandran, K., &amp; Lee, K. (2025). <em>Looped Transformers for Length Generalization.</em> ICLR 2025, arXiv:2409.15647; and the depth-recurrent composer line, arXiv:2603.21676 — existence of variable-depth single-pass composition architectures, which is exactly why "current architectures cannot do this at all" was retired as this program's claim; motivates the LoopedVec comparison arm.</li>
                 <li>See also <a href="constant-memory-recall.html">finding no. 11, "Constant-memory recall"</a> and <a href="composes-where-it-trains.html">finding no. 13, "Composes exactly at 8× training depth, where it converges"</a> — the memory-axis and compositional-depth-generalization legs of the same capability-separation program.</li>
             </ol>
         </div>
