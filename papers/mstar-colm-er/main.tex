@@ -6,7 +6,7 @@
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{amsmath,amssymb}
-\usepackage{hyperref}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
 \usepackage{url}
 
 \input{math_commands.tex}
@@ -20,6 +20,12 @@ In-Context Bindings That a Matched Transformer Does Not Learn}
 \begin{document}
 
 \maketitle
+% Running head: the official COLM kit's submission mode prints "Under
+% review as a conference paper at COLM 2026"; this submission targets the
+% Efficient Reasoning workshop, which mandates the COLM format but is not
+% the main conference. Header text only; no format rule (margins, fonts,
+% title block) is altered.
+\lhead{Under review at the Workshop on Efficient Reasoning, COLM 2026}
 
 \input{sections/00_abstract}
 \input{sections/01_intro}
