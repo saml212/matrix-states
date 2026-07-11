@@ -338,13 +338,20 @@ def t12_grad_coverage_all_arms(device):
     for arm in nm.ALL_ARMS:
         torch.manual_seed(8)
         m = nm.ARM_BUILDERS[arm]().to(device)
+        # arm-protocol teeth (the wave-1 cmlp crash class: nn.Module raises
+        # AttributeError on a missing attribute only at ACCESS time, so
+        # every builder must be asserted to carry the protocol)
+        assert getattr(m, "arm", None) == arm, (arm, getattr(m, "arm", None))
+        assert isinstance(getattr(m, "deviating_read", None), bool), arm
+        assert rn.primary_read_name(m.arm), arm
         b = te.sample_batch(cfg, 16, gen, hop_set=cfg.H_train, device=device)
         pred, _ = m(b)
         rn.cosine_loss(pred, b["targets"]).backward()
         for name, p in m.named_parameters():
             assert p.grad is not None, (arm, name)
             assert torch.isfinite(p.grad).all(), (arm, name)
-    print("  every trainable parameter of every arm receives a finite gradient (CPU)")
+    print("  every arm carries the arm protocol (arm/deviating_read/primary read) "
+          "and every trainable parameter receives a finite gradient (CPU)")
 
 
 # ---------------------------------------------------------------------------
@@ -364,24 +371,32 @@ def t13_micro_end_to_end(device):
         try:
             nt.eval_points = tiny_points
             rn.EVAL_BATCHES, rn.EVAL_BATCH_SIZE = 2, 32
-            rec = rn.run_cell("ncr", 8, 0, steps=30, device=device, outdir=td_)
-            assert rec["status"] == "COMPLETED"
-            assert rec["axis_c_lock_sha256"]
-            assert rec["blank_out"]["passed"]
-            assert rec["eval"]["points"], "no eval points"
-            for e in rec["eval"]["points"]:
-                if e["mode"] == "residue_sweep":
-                    nt.require_residue_label(e)
+            # EVERY arm end-to-end (§7e regression: the original ncr-only
+            # coverage let the cmlp eval crash reach the box -- per-arm
+            # pipeline branches only execute per arm)
+            for arm in nm.ALL_ARMS:
+                rec = rn.run_cell(arm, 8, 0, steps=30, device=device, outdir=td_)
+                assert rec["status"] == "COMPLETED", (arm, rec["status"])
+                assert rec["eval"]["points"], (arm, "no eval points")
+                for e in rec["eval"]["points"]:
+                    if e["mode"] == "residue_sweep":
+                        nt.require_residue_label(e)
+                if arm in ("ncr", "fwm"):
+                    assert rec["axis_c_lock_sha256"], arm
+                if arm in ("ncr", "fwm", "loopedvec"):
+                    assert rec["blank_out"]["passed"], arm
+                if arm in ("fwm", "loopedvec"):
+                    assert "read_vector_std" in rec, arm
             # resume-safety: a second call must SKIP (COMPLETED)
             rec2 = rn.run_cell("ncr", 8, 0, steps=30, device=device, outdir=td_)
-            assert rec2["cell_id"] == rec["cell_id"]
+            assert rec2["cell_id"] == "ncr_ncr_K8_s0"
             out = json.load(open(os.path.join(td_, "ncr_ncr_K8_s0.json")))
             assert out["status"] == "COMPLETED"
         finally:
             nt.eval_points = real_pts
             rn.EVAL_BATCHES, rn.EVAL_BATCH_SIZE = real_batches, real_bs
-    print("  micro end-to-end cell (30 steps, reduced grid): train -> lock -> "
-          "blank-out -> labeled eval -> atomic JSON -> resume-skip")
+    print("  micro end-to-end cells for ALL FOUR ARMS (30 steps, reduced grid): "
+          "train -> instruments -> labeled eval -> atomic JSON -> resume-skip")
 
 
 # ---------------------------------------------------------------------------

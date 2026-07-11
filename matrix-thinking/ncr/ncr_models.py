@@ -281,10 +281,21 @@ class LoopedVecModel(nn.Module):
         return self.decode(xh), x0
 
 
-def make_cmlp(d: int = D_PIN) -> MLPShortcutModel:
-    """Task E's inherited C_MLP, verbatim (disclosed weak control)."""
-    return MLPShortcutModel(d, ENC_H, ENC_LAYERS, ENC_HEADS, ENC_REFINE,
-                            h_train_max=max((1, 2, 3)), h_train=(1, 2, 3))
+class CMLPModel(MLPShortcutModel):
+    """Task E's inherited C_MLP (disclosed weak control) carrying the arm
+    protocol attributes every runner path reads (`model.arm`). The subclass
+    adds ZERO behavior -- forward/one-hot/encoder are the inherited class
+    verbatim. Without this, `model.arm` raises AttributeError via
+    nn.Module.__getattr__ -- the wave-1 cmlp-cell eval crash (§7e): the CPU
+    suite's end-to-end micro cell ran only the ncr arm, so the gap stayed
+    invisible until the box. Regression teeth now in ncr_selftest t12/t13."""
+    arm = "cmlp"
+    deviating_read = True   # an MLP read is definitionally not the direct matvec
+
+
+def make_cmlp(d: int = D_PIN) -> CMLPModel:
+    return CMLPModel(d, ENC_H, ENC_LAYERS, ENC_HEADS, ENC_REFINE,
+                     h_train_max=max((1, 2, 3)), h_train=(1, 2, 3))
 
 
 ARM_BUILDERS = {
