@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A pre-registered positive control on a production readout caught a [K,V]-vs-[V,K] state-layout transpose bug — the third independent victim of this defect class — behind a published 80/80 null. The fix reopened the lane: 78/320 readings turned nonzero, up to 0.87 recovery at one hop. Two correspondence nulls, pre-registered before running, then reproduced the entire signal at 0/320 clears. The lane re-closes, now doubly instrument-validated, on a corrected claim: recovery is null-indistinguishable, not zero.">
+<meta property="og:title" content="The null that survives is the one you can trust — pebble">
+<meta property="og:description" content="Research note: a positive control catches a transpose bug behind a published 80/80 null. The fixed instrument shows apparent signal. Two correspondence nulls, pre-registered before running, kill it. The discipline worked three times in sequence.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/reasoning-link-instrument-saga.html">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-11">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/reasoning-link-instrument-saga.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "The null that survives is the one you can trust: a three-layer instrument saga",
+  "name": "The null that survives is the one you can trust",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-11",
+  "url": "https://pebbleml.com/findings/reasoning-link-instrument-saga.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "A gauntlet-required positive control on the production readout behind a published '80/80 nulls at every scale' result FAILED: a synthetic K=32 single-cycle written at the readout layer recovered 0/256 through the production scoring path on a real checkpoint, while the identical scoring code recovered 1.0000 when the state was manually transposed. Closed-form analytic adjudication confirmed the cause exactly: the readout returned fla's raw [K,V] (key-major) state layout instead of the [V,K] (value-major) layout its own composition step assumes — the third independent victim of this project's own previously-documented transpose-bug class. A one-line fix, a kill-proofed regression guard, and an independent audit later, the positive control passed cleanly (1.0000 recovery at every hop, negative controls still zero). Re-running all 80 committed grid cells under the fixed instrument overturned the published null: 78/320 (cell, hop) readings turned nonzero, up to 0.87 recovery at one hop and 0.64 at multi-hop composition in specific cells — the lane provisionally reopened. Two correspondence nulls, pre-registered before any GPU pass, then killed the reopened signal completely: a label-shuffle null and a positional derangement-slot null (registered after the label-shuffle null was found vacuous at one-hop by construction) both reproduce the entire 78/320 signal at 0/320 clears — the strongest single cell reads 0.8691 against its real target and 0.8125 against a target that is never correct by construction, 93.5% reproduction against a 50% trivial-artifact bar. The mechanism: a collapsed prediction direction (cross-query convergence 0.9996) scored against a near-collinear value population (mean pairwise cosine 0.9648) clears any similarity threshold regardless of which target is graded. The lane re-closes, now validated by two independent instrument checks instead of zero, on a corrected claim: recovery is null-indistinguishable at every scale, corpus, and hop depth tested — not exactly zero, which was the old, now-retracted claim basis.",
+  "keywords": "measurement, instrumentation, positive controls, pre-registration, negative controls, correspondence nulls, DeltaNet, state-tracking, associative recall, gated delta rule, transpose bugs",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>The null that survives is the one you can trust — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 15 &nbsp;·&nbsp; methodology — lane re-closed, doubly instrument-validated</div>
+        <h1 class="paper-title">The null that survives is the one you can trust</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 11, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p>A gauntlet-required positive control on the production readout behind a published "80/80 nulls at every scale" result <strong>failed</strong>: a synthetic K=32 single-cycle written at the readout layer recovered 0/256 through the production scoring path on a real checkpoint, while the identical scoring code recovered 1.0000 when the state was manually transposed. Closed-form adjudication confirmed the cause exactly: the readout returned the kernel's raw key-major state layout instead of the value-major layout its own composition step assumes — the third independent victim of this project's own previously-documented transpose-bug class. A one-line fix, a kill-proofed regression test, and an independent audit later, the positive control passed cleanly. Re-running all 80 committed grid cells under the fixed instrument overturned the published null: <strong>78/320 (cell, hop) readings turned nonzero</strong>, up to 0.87 recovery at one hop — the lane provisionally reopened. Two correspondence nulls, pre-registered before any GPU pass, then killed the reopened signal completely: a label-shuffle null and a positional derangement-slot null (the second added mid-validation after the first was found vacuous at one hop <em>by construction</em>) both reproduce the entire signal at <strong>0/320 clears</strong> — the single strongest cell reads 0.8691 against its real target and 0.8125 against a target that is never correct by construction, 93.5% reproduction against the pre-registered 50% trivial-artifact bar. The mechanism: a collapsed prediction direction (cross-query convergence 0.9996) scored against a near-collinear value population (mean pairwise cosine 0.9648) clears any similarity threshold regardless of which target is graded. The lane re-closes, now validated by two independent instrument checks instead of zero, on a corrected claim: recovery is <strong>null-indistinguishable</strong> at every scale, corpus, and hop depth tested — not exactly zero, which was the old, now-retracted claim basis. Unpublished.</p>
+        </div>
+
+        <h2><span class="num">01</span>What was being measured, and what "closed" meant</h2>
+
+        <p>The reasoning-link program asks whether a fast-weight DeltaNet-family language model's recurrent state holds a legible <em>successor structure</em> — write a K-way relation implicitly while reading text, then recover its h-hop composition from the trained state at query time, the same way the model's own forward pass would need to if it were using the state for multi-step reasoning. The readout — extract the final state, apply it to a query key <span class="mono">h</span> times, score cosine similarity against the true successor at 0.9 — is the entire instrument the claim runs through.</p>
+
+        <p>Under that readout, an 80-cell grid across 3 arms, 2 corpora, up to K=64, and 4 hop depths read <strong>zero recovery everywhere</strong>: 0/320 (cell, hop) readings nonzero, at every scale tested. That result closed the lane and became the scorecard's standing claim — "80/80 geometric-readout nulls at all scales" — and the basis for a paper draft's negative-result framing.</p>
+
+        <p>A gauntlet review of that paper draft required one thing before the "instrument-verdict, not a refutation" framing could ship: a real-checkpoint, real-kernel <strong>positive control</strong> on the production readout itself — inject a synthetic signal with a known answer, and confirm the readout can find it. That control had never been run. It should have been the first thing built, not a late gate. Building it is what unravels everything below.</p>
+
+        <h2><span class="num">02</span>Layer 1 — the positive control fails, and finds a transpose bug it didn't go looking for</h2>
+
+        <p>The control: inject a synthetic K=32 orthonormal-key single cycle at the readout layer of a real, fully-trained checkpoint (a frozen-bias arm at step 20,000), then check whether the production scoring path recovers the known successor at h ∈ {1, 2, 3, 4}. It failed completely — <strong>0/256 recovery at every hop</strong>, cosine reading ≈1×10⁻⁵, indistinguishable from noise — through the exact function chain the closed 80/80 result used.</p>
+
+        <p>Four diagnostics ruled out a script artifact before anything else was touched: the injected keys were orthonormal to 3.58×10⁻⁷, the hook injection had zero measured deviation from the intended state, the injected betas were healthy, and a negative control (grading against the <em>wrong</em> hop's target) read 0.0 at every hop as it should. The kernel's own raw state matched an independently-implemented reference recurrence at 0.17% relative Frobenius error — the numerics were fine. What wasn't fine was a single axis order.</p>
+
+        <p>A single-write, zero-accumulation closed-form check made the diagnosis exact rather than circumstantial: write one basis-vector key/value pair at a real kernel call, hand-compute the two candidate closed forms (the value-major layout the composition step assumes, and the kernel's own raw key-major layout), and compare all three against each other.</p>
+
+        <table>
+            <thead>
+                <tr><th>comparison</th><th>rel-Frobenius</th><th>reading</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>reference transpose fn vs closed-form <span class="mono">[V,K]</span> (value-major)</td><td class="num">0.0</td><td>reference is correct (sanity)</td></tr>
+                <tr><td>reference transpose fn vs closed-form <span class="mono">[K,V]</span> (kernel-native)</td><td class="num">1.4142</td><td>= √2, the pure-transpose signature</td></tr>
+                <tr><td>production readout fn vs closed-form <span class="mono">[V,K]</span></td><td class="num">1.4142</td><td>production does <strong>not</strong> deliver the assumed layout</td></tr>
+                <tr><td>production readout fn vs closed-form <span class="mono">[K,V]</span></td><td class="num">0.0</td><td>production delivers the kernel's raw, untransposed layout</td></tr>
+                <tr><td>reference transpose fn vs production readout fn, transposed</td><td class="num">0.0</td><td>the two are exact transposes of each other</td></tr>
+            </tbody>
+        </table>
+
+        <p>The production readout's state-extraction function returned the kernel's raw key-major state directly — no transpose — while its own composition step contracts a query key against what it assumes is the <em>last</em> axis being the key axis. With keys mutually orthonormal and values an independently-cycled permutation of the keys (deliberately not symmetric under transpose), applying composition to the untransposed state contracts the query against the kernel's value axis — structurally uncorrelated with any key, producing pure noise rather than systematic wrongness. This is byte-for-byte the same defect class this project has now found and fixed <strong>three separate times</strong> in three independently-implemented functions: once in the original state-design layout function, once in a different architecture's composer (documented at length in the piece on <a href="broken-lens.html">a 0-vs-1.0 readout contradiction</a> and its <a href="composes-where-it-trains.html">resolution</a>), and now here, in a third, never-shared implementation that inherited none of the prior fixes.</p>
+
+        <h2><span class="num">03</span>The fix, and re-verification under the fixed instrument</h2>
+
+        <p>The fix is one line: transpose the last two axes of the extracted state before it's used, mirroring the already-audited reference function's own transpose exactly — same two axes, same direction. A permanent regression guard was added: a hand-computed closed-form check on a tiny synthetic state tensor, no model, no kernel, no CUDA, that (a) asserts the post-fix function recovers a known written value exactly and (b) runs the pre-fix behavior inline as a kill-proof negative branch, confirming it fails the identical assertion the way the real positive control failed. This is a standing guard, not a one-time disclosure — it runs identically under a CPU stub or real hardware.</p>
+
+        <p>An independent audit (a fresh model instance with no access to this session's reasoning) reviewed the diff, hand-worked the index arithmetic independently, confirmed the fix has exactly one production call site, proved a downstream covariate (a condition-number diagnostic) is mathematically transpose-invariant rather than merely assumed unaffected, and confirmed no other part of the codebase constructs a state-shaped tensor through the same path. Verdict: pass, fix correct and minimally scoped.</p>
+
+        <p>The positive control was then re-run verbatim — same checkpoint, same seed, same construction — against the fixed function:</p>
+
+        <table>
+            <thead>
+                <tr><th>hop</th><th>production recovered_frac</th><th>production cos_mean</th><th>deliberately-transposed arm</th><th>wrong-hop negative control</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>h=1</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.0000</td><td class="num">0.0000</td></tr>
+                <tr><td>h=2</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.0000</td><td class="num">0.0000</td></tr>
+                <tr><td>h=3</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.0000</td><td class="num">0.0000</td></tr>
+                <tr><td>h=4</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.0000</td><td class="num">0.0000</td></tr>
+            </tbody>
+        </table>
+
+        <p>The "deliberately-transposed" arm, which recovered perfectly <em>before</em> the fix, now reads exactly zero — the precise role-swap the diagnosis predicted, on the real kernel rather than by inspection alone. The instrument, not the underlying question, was the entire explanation for the original 0/256 positive-control failure.</p>
+
+        <div class="takeaway">
+            <span class="label">what layer 1 establishes</span>
+            A positive control is not a formality. This one was added late, under gauntlet pressure, to a readout that had already produced a clean, symmetric, scorecard-worthy 80/80 null — the kind of result that looks least in need of a control precisely because it is so uniform. It caught a real bug on the first run.
+        </div>
+
+        <h2><span class="num">04</span>Layer 2 — the fixed lens shows apparent signal, and the published null does not survive</h2>
+
+        <p>With the instrument fixed and independently audited, all 80 committed grid cells were re-run fresh — same archived checkpoints, same deterministic per-cell episode seeds (bit-identical episodes to the original harvest) — at a realized cost of 0.288 GPU-h. The published null did not survive:</p>
+
+        <table>
+            <thead>
+                <tr><th>family</th><th>cells w/ ≥1 nonzero hop</th><th>nonzero (cell, hop) readings</th><th>h=1 recovered_frac mean / max</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Leg A (60 cells)</td><td class="num">30/60</td><td class="num">69/240</td><td class="num">0.1255 / 0.8691</td></tr>
+                <tr><td>Leg B (20 cells)</td><td class="num">8/20</td><td class="num">9/80</td><td class="num">0.0326 / 0.3340</td></tr>
+                <tr><td><strong>total (80 cells)</strong></td><td class="num"><strong>38/80</strong></td><td class="num"><strong>78/320</strong></td><td>—</td></tr>
+            </tbody>
+        </table>
+
+        <p>The mean h=1 cosine similarity across all 80 cells shifted from the pre-fix band of roughly ±0.05 (centered on zero) to a mean of 0.40 with values up to 0.93 — a real shift in the readout's output distribution, not threshold flicker. Signal concentrated unevenly: strongest in one arm reading up to 0.87 at one hop on one corpus, with multi-hop composition (h ≥ 2) firing narrowly in a specific arm up to 0.64. The pre-registered confirmatory gates on this program's other premise checks — which were never touched by the transpose bug, since they read different intermediate values — still failed at every reading, so no confirmatory claim was licensed by this result alone. But the standing null claim was dead: recovery does not read zero under a working instrument. The lane reopened, provisionally, pending validation.</p>
+
+        <h2><span class="num">05</span>Layer 3 — two correspondence nulls, pre-registered before running, kill the reopened signal</h2>
+
+        <p>A signal that survives a positive control is not yet a correspondence claim. Before any further GPU pass, three follow-on questions were pre-registered with fixed hypotheses, metrics, and decision thresholds: does the signal survive a label-shuffle null, is the cell-level on/off pattern a stable checkpoint property or an episode-specific artifact, and does the strongest arm's multi-hop concentration replicate under exhaustive tabulation. The decisive one is the null.</p>
+
+        <p><strong>The label-shuffle null.</strong> The existing null-labeling machinery — an independently-drawn permutation cycle, already implemented and unit-tested — was extended to grade every one of the 80 cells' predictions against a deliberately wrong target, in the same forward pass as the real grading (zero extra cost). The pre-registered decision rule required a shuffled reading to reproduce less than half the real reading <em>and</em> fail a null-relative statistical bound before counting as a genuine artifact. Result: <strong>0/320 readings NULL-CLEARed</strong>. At the 41 readings clearing the absolute floor, mean real recovery was 0.3023 against mean null recovery of 0.3010 — indistinguishable.</p>
+
+        <p>That result surfaced something sharper on inspection: at one hop, real and null recovery were not merely close, they were <em>exactly equal</em> — 0.8691/0.8691, 0.5750/0.5750, 0.3969/0.3969 — in every strong cell. Tracing the target-construction code found why: at one hop, the graded target is computed with zero permutation steps applied, so it never consults the shuffled permutation at all. The label-shuffle null is <strong>vacuous by construction at one hop</strong> — real and null targets are identical for any permutation, always. (The null generator itself was confirmed healthy first: it agrees with the true permutation on only 4.1% of entries, matching chance, with zero identical rows — this was a design-level fact, not an implementation bug.) One consequence disclosed plainly: the pre-existing one-hop statistical gate this program has used since its original construction was, by this argument, structurally near-impossible to pass from the day it was built — the "real" one-hop reading <em>is</em> the null distribution's own mean by construction.</p>
+
+        <p><strong>The derangement-slot control.</strong> This gap was the charter's own pre-anticipated fallback, so it was registered and run the same day: grade every prediction against a fresh per-row <em>derangement</em> of the K slots — a permutation with no fixed points, guaranteeing the graded target is never the correct one, at every hop including h=1, while holding the value population, episode, and forward pass fixed exactly. Its own kill-proof self-test ran in both directions before any real cell was scored: a perfect-correspondence synthetic fixture reads real=1.0/deranged=0.0 (the control would have caught a genuine signal), and a collapsed-geometry fixture reads real≈deranged (matching the failure mode under test). Result: <strong>0/320 readings NULL-CLEARed, again</strong> — deranged targets reproduce the real signal at every hop, not only h ≥ 2.</p>
+
+        <figure>
+            <img src="../assets/plots/reasoning_link_real_vs_null.svg" alt="scatter of real recovered_frac vs null recovered_frac for every cell and hop, both nulls overlaid, points sitting on the y=x line across the full range" style="width: 100%; max-width: 760px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>Every one of the 320 (cell, hop) readings under the fixed instrument: real recovered_frac@0.9 (x) against null recovered_frac@0.9 on the identical reading (y), for both the label-shuffle null (circles) and the derangement-slot null (squares). Every point sits on the y = x line, from the noise floor through the strongest cell at 0.87. A readout with real correspondence would show null points collapsing toward zero as real rises; neither null does, anywhere. Data: <span class="mono">experiment-runs/2026-07-11_reasoning_link_validation/01_item12_shuffle_resample/results/ANALYSIS.json</span> + <span class="mono">02_derange_control/results/*.json</span> (80 files); cross-run integrity — real readings bit-identical across both null sweeps — asserted in the figure script.</figcaption>
+        </figure>
+
+        <figure>
+            <img src="../assets/plots/reasoning_link_h_profile.svg" alt="bar chart of mean recovered_frac by hop depth for real target, label-shuffle null, and derangement-slot null, all three tracking closely at every hop" style="width: 100%; max-width: 760px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 2</span>Mean recovered_frac@0.9 by hop depth at the 41 readings clearing the absolute floor, real target vs both nulls. There is no hop depth at which either null falls meaningfully short of the real reading — the artifact is flat across one-hop recall and multi-hop composition alike.</figcaption>
+        </figure>
+
+        <p><strong>The mechanism.</strong> A set of covariates this program had already instrumented explain the artifact directly, on the strongest cell and consistently across the grid: the model's own prediction direction converges across essentially every query to a single direction (cross-query cosine convergence 0.9996 — a signature of power-iteration degeneracy under state condition numbers ranging 1.8×10⁴–2.1×10⁶), and the population of value vectors it is scored against is itself near-collinear (mean pairwise cosine 0.9648). A constant prediction direction scored against a near-collinear population clears a 0.9 cosine threshold against almost any member of that population — real, shuffled, or deliberately deranged. <span class="mono">recovered_frac</span> was measuring the alignment of one collapsed direction with a population's common direction, not recall or composition of anything written.</p>
+
+        <p><strong>The other two items, briefly.</strong> The cell-level on/off pattern (item 2) is a <em>stable property of the trained checkpoint</em>, not episode luck — 20 of 21 floor-clearing cells stayed on under a full independent episode resample. But per item 1, that stability is bimodality in a trivial geometric property (which checkpoints happen to develop a dominant, collapsed state direction), not in correspondence. The strongest arm's multi-hop concentration (item 3) replicated exactly as an arm-level fact under exhaustive tabulation — 20/72 of its multi-hop readings clear the floor against 1/36 and 0/72 for the other two arms — but is, per items 1 and the derangement control, a concentration of the same collapsed-geometry artifact in that arm's states, not of composition. That arm's states are independently known (from a separate program on this codebase) to be more prone to a related geometric instability; the connection is descriptively coherent but exploratory, not a registered finding here.</p>
+
+        <h2><span class="num">06</span>The verdict, and what changes downstream</h2>
+
+        <p><strong>TRIVIAL-ARTIFACT — the lane re-closes, now doubly instrument-validated.</strong> Neither correspondence null distinguishes the real target from a shuffled or a never-correct one, anywhere in the 320-reading grid. The substantive conclusion the original 80/80 result reached — no evidence of state-to-target correspondence readable by this readout — is restored, but now on instrument grounds that survived two independent adversarial checks instead of resting on an uncontrolled readout that turned out to be broken.</p>
+
+        <p>Two claim-shape corrections bind every downstream reference to this program. First: "recovery reads zero at every scale" is dead. Under a working instrument, recovery does not read zero — the correct claim is <strong>recovery is null-indistinguishable</strong> at every scale, corpus, and hop depth tested, which is a different and more defensible statement. Second: the program's one-hop statistical gate condition was structurally near-unpassable from the day it was built, for reasons unrelated to the transpose bug; any future one-hop gate in this codebase must use the derangement-slot control, not the label-shuffle null. Neither correction changes the practical conclusion — the reasoning-link lane stays closed — but both change what it is honest to say about <em>why</em>.</p>
+
+        <div class="takeaway">
+            <span class="label">the discipline, stated plainly</span>
+            Three checks ran in sequence, each doing the job the previous one couldn't: a pre-registered positive control caught an instrument bug that had manufactured a uniform, symmetric, entirely convincing 80/80 null. The fix reopened the question and produced what looked like a real signal. Two correspondence nulls — one added mid-flight after the first was found to have no teeth at exactly the depth where the strongest signal lived — then closed the question again, on firmer ground. Nothing about this sequence was inevitable; each stage genuinely could have gone the other way, and the outcome that stuck is the one that survived adversarial pressure from both directions, not the one that arrived first or looked cleanest.
+        </div>
+
+        <h2><span class="num">07</span>Caveats — read before citing</h2>
+
+        <ul>
+            <li><strong>This is a methodology finding about one readout, not a claim about the underlying models.</strong> It says the geometric-readout instrument in this program cannot distinguish correspondence from a trivial collapsed-direction artifact at any tested scale. It does not claim reasoning-linked structure is absent from these models under every possible readout.</li>
+            <li><strong>The independent audit covered the validation's decision machinery, not the derangement script specifically.</strong> The audit ran against the label-shuffle null's implementation with adversarial fixtures and passed; the derangement control was built afterward, reusing the same audited machinery plus a separately pre-existing, previously-audited derangement generator, and carries its own two-direction kill-proof rather than a second full audit round.</li>
+            <li><strong>The per_token arm's write-geometry connection (§05) is explicitly exploratory.</strong> It is offered as a plausible mechanism link to a separate, independently-run program on this codebase, not as a registered or tested claim of this validation.</li>
+            <li><strong>Both nulls' teeth were verified, not assumed.</strong> The label-shuffle null's own healthiness (4.1% agreement with the true permutation, chance-level, zero identical rows) and the derangement control's kill-proof selftest (perfect-correspondence fixture reads real=1.0/deranged=0.0) both ran before either null's negative result was trusted.</li>
+            <li><strong>Scale and scope.</strong> A 14M-parameter frozen-bias DeltaNet-family family, K ∈ {20, 32, 64}, two corpora, 4 hop depths, up to 3 seeds per cell. The <span class="mono">reasoning-null-moss</span> paper draft and the project scorecard route on this verdict by separate, later dispatches — nothing about this page pre-empts either.</li>
+        </ul>
+
+        <h2><span class="num">08</span>Reproducibility</h2>
+
+        <p>Everything is recomputable from committed raws. Layer 1/2 (positive control, fix, audit, and the 80-cell re-metric): <span class="mono">experiment-runs/2026-07-11_reasoning_link_remetric/</span> (analytic adjudication pre/post fix, fix-and-audit record, positive-control re-run, and all 80 re-metric cell JSONs + aggregate summary; realized cost ≈0.30 GPU-h). Layer 3 (both correspondence nulls): <span class="mono">experiment-runs/2026-07-11_reasoning_link_validation/</span> (160 per-cell JSONs across the two null sweeps + analysis summaries + the derangement control's kill-proof selftest; realized cost ≈0.22 GPU-h). Total instrument-verification cost across all three layers: ≈0.52 GPU-h, against forward-pass-only budgets pre-authorized before each stage. Figure script: <span class="mono">assets/plots/generate_reasoning_link_saga.py</span>, which reads the archived JSONs directly, md5-verifies its primary source file, and asserts its own computed summary statistics against the values reported above before writing any figure.</p>
+
+        <div class="references">
+            <h2>References</h2>
+            <ol>
+                <li>Yang, S., Kautz, J., &amp; Hatamizadeh, A. (2024). <em>Gated Delta Networks: Improving Mamba2 with Delta Rule.</em> arXiv:2412.06464</li>
+            </ol>
+        </div>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

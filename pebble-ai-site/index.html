@@ -599,13 +599,22 @@ footer a { color: var(--accent); }
         <p class="lede">Click any title for the full note.</p>
 
         <div class="results">
+            <a class="result" href="findings/reasoning-link-instrument-saga.html">
+                <div class="body">
+                    <div class="result-date">no. 15 &nbsp;·&nbsp; july 11, 2026</div>
+                    <h4>The null that survives is the one you can trust</h4>
+                    <p>A gauntlet-required positive control on a published "80/80 nulls at every scale" readout failed outright — a synthetic K=32 signal recovered 0/256 through the production path, the third independent victim of this codebase's own [K,V]-vs-[V,K] transpose-bug class. The fix reopened the lane: 78/320 readings turned nonzero, up to <span class="mono">0.87</span> recovery at one hop. Two correspondence nulls, pre-registered before running, then reproduced the entire signal at <span class="mono">0/320</span> clears — the strongest cell reads <span class="mono">0.8691</span> real vs <span class="mono">0.8125</span> against a target that is never correct by construction. Mechanism: a collapsed prediction direction (cross-query cosine <span class="mono">0.9996</span>) against a near-collinear value population (mean pairwise cosine <span class="mono">0.9648</span>). Lane re-closes, doubly instrument-validated; the corrected claim is "null-indistinguishable," not "zero." Read the research note →</p>
+                </div>
+                <span class="meta">methodology · lane re-closed</span>
+            </a>
+
             <a class="result" href="findings/native-composition-reads.html">
                 <div class="body">
                     <div class="result-date">no. 14 &nbsp;·&nbsp; july 11, 2026</div>
                     <h4>O(log h) reads: 20.9× faster at depth 1,021 — and it composes exactly</h4>
-                    <p>Native Composition Reads writes a relation operator in context and reads its <em>h</em>-fold composition exactly at query time via binary exponentiation — O(log <em>h</em>) sequential cost — against O(<em>h</em>) baselines that must apply their step <em>h</em> times. Wave-1 (K=8, 5 seeds/arm): Axis A (exact composition) <strong>WIN</strong> — median recovered@0.9 = <span class="mono">1.0</span> at the pre-registered depth h*=61 (5/5 seeds hold) vs <span class="mono">0.158</span> for the best baseline and <span class="mono">0.0</span> for the param-matched vector baseline. Axis B (read cost) <strong>WIN</strong> — <span class="mono">20.9×</span> faster than the best O(<em>h</em>) arm at h=1,021 (bar 10×), ≈13,000–25,000× at h≈2²⁰. Axis C (calibration-locked trust curves) <strong>TIE</strong>. K=8 only — the cross-K claim awaits the K=12 replication, launched and pending. Read the research note →</p>
+                    <p>Native Composition Reads writes a relation operator in context and reads its <em>h</em>-fold composition exactly at query time via binary exponentiation — O(log <em>h</em>) sequential cost — against O(<em>h</em>) baselines that must apply their step <em>h</em> times. K=8 (wave-1, 5 seeds/arm): Axis A <strong>WIN</strong> — median recovered@0.9 = <span class="mono">1.0</span> at the pre-registered depth h*=61 (5/5 seeds hold) vs <span class="mono">0.158</span> for the best baseline. K=12 (Phase 2, replication): Axis A <strong>SEP-PARTIAL</strong> — median <span class="mono">0.753</span> at h*=57 (2/5 seeds hold, one seed never trained), still clearing both baselines (<span class="mono">0.270</span>/<span class="mono">0.0</span>). Per the pre-registered cross-K table, WIN + SEP-PARTIAL = <strong>WIN-PARTIAL</strong> — the claim ceiling. Axis B (read cost) <strong>WIN</strong> — <span class="mono">20.9×</span> faster than the best O(<em>h</em>) arm at h=1,021 (bar 10×, K=8 label of record), ≈13,000–25,000× at h≈2²⁰; K=12 supplementary timing (33.7–63.8× at h=1,533) replicates it. Axis C (calibration-locked trust curves) <strong>TIE</strong> at both K. Read the research note →</p>
                 </div>
-                <span class="meta">axis A win · axis B win · axis C tie · K=8</span>
+                <span class="meta">axis A win-partial · axis B win · axis C tie · K=8 + K=12</span>
             </a>
 
             <a class="result" href="findings/composes-where-it-trains.html">
