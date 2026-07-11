@@ -43,6 +43,15 @@ GPU-h ledger. Every reported h carries (h, h mod K); aggregates never pool
 across residues.
 
 Usage: python wave1_harvest.py --dir results_wave1 [--k 8] [--out FILE]
+
+Pooled seed-extension harvests (NOVEL_ARCH_WATERFALL.md §7h/§7i): pass
+--expect-seeds-ncr to admit a different ncr-arm seed count than
+loopedvec/fwm (baselines are never re-run in an extension, so their
+count stays at --expect-seeds while ncr grows). Omitting the flag
+reproduces every prior invocation byte-for-byte (--selftest exercises
+this as a regression, see below).
+
+Self-test (offline, no fixtures needed): python wave1_harvest.py --selftest
 """
 from __future__ import annotations
 
@@ -285,21 +294,84 @@ def hygiene(cells: dict) -> dict:
                 serial_sum_gpu_h=gpu_h)
 
 
+def resolve_expected_seeds(expect_seeds: int, expect_seeds_ncr: int | None) -> dict:
+    """Per-arm expected COMPLETED-cell count for the harvest's admission
+    gate (S7h). ncr may be overridden independently of loopedvec/fwm --
+    a seed-extension grows only the contender arm, never the settled
+    comparisons-of-record. expect_seeds_ncr=None reproduces the original
+    uniform-count behavior exactly (every pre-S7h invocation unaffected)."""
+    ncr_n = expect_seeds_ncr if expect_seeds_ncr is not None else expect_seeds
+    return {"ncr": ncr_n, "loopedvec": expect_seeds, "fwm": expect_seeds}
+
+
+def check_seed_counts(cells: dict, expected: dict) -> None:
+    """Refuse a partial or miscounted grid -- exact-threshold admission
+    gate (CLAUDE.md: structural checks need exact thresholds, and the
+    negative test proving it has teeth must actually be executed)."""
+    for arm, exp_n in expected.items():
+        n = len(cells.get(arm, {}))
+        assert n == exp_n, (
+            f"{arm}: {n}/{exp_n} COMPLETED cells -- harvest refuses "
+            f"a partial grid (rerun the wave or pass "
+            f"--expect-seeds/--expect-seeds-ncr explicitly)")
+
+
+def _selftest() -> None:
+    """Offline kill-proof teeth for resolve_expected_seeds/check_seed_counts
+    (S7h harvest-code change). No fixtures, no GPU, no torch."""
+    # 1. Old-style default (no --expect-seeds-ncr) is unchanged: uniform 5.
+    assert resolve_expected_seeds(5, None) == {"ncr": 5, "loopedvec": 5, "fwm": 5}
+    cells_5 = {"ncr": {i: {} for i in range(5)},
+               "loopedvec": {i: {} for i in range(5)},
+               "fwm": {i: {} for i in range(5)}}
+    check_seed_counts(cells_5, resolve_expected_seeds(5, None))  # must not raise
+    # 2. New pooled override: ncr=10, baselines stay 5.
+    assert resolve_expected_seeds(5, 10) == {"ncr": 10, "loopedvec": 5, "fwm": 5}
+    cells_10 = {"ncr": {i: {} for i in range(10)},
+                "loopedvec": {i: {} for i in range(5)},
+                "fwm": {i: {} for i in range(5)}}
+    check_seed_counts(cells_10, resolve_expected_seeds(5, 10))  # must not raise
+    # 3. KILL PROOFS (executed, not just written) -- each must raise AssertionError.
+    killed = 0
+    for bad_cells, bad_expected, tag in [
+        (cells_10, resolve_expected_seeds(5, 5), "ncr under-count (10 present, 5 expected, no override)"),
+        ({**cells_10, "ncr": {i: {} for i in range(9)}}, resolve_expected_seeds(5, 10), "ncr short by 1 (9/10)"),
+        ({**cells_10, "loopedvec": {i: {} for i in range(4)}}, resolve_expected_seeds(5, 10), "loopedvec short by 1 (baselines never silently absorb an extension)"),
+    ]:
+        try:
+            check_seed_counts(bad_cells, bad_expected)
+        except AssertionError:
+            killed += 1
+        else:
+            raise RuntimeError(f"KILL-PROOF FAILED TO FIRE: {tag}")
+    assert killed == 3
+    print(f"_selftest: 5/5 checks PASSED (2 positive, 3 kill-proofs executed and fired)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dir", required=True)
+    ap.add_argument("--dir", default=None)
     ap.add_argument("--k", type=int, default=8, choices=(8, 12))
     ap.add_argument("--out", default=None)
     ap.add_argument("--expect-seeds", type=int, default=5,
                     help="trained-arm seed count the grid promises (teeth)")
+    ap.add_argument("--expect-seeds-ncr", type=int, default=None,
+                    help="override --expect-seeds for the ncr arm only "
+                         "(pooled seed-extension harvests, e.g. K=12 5+5=10; "
+                         "S7h). Omit to reproduce prior behavior exactly.")
+    ap.add_argument("--selftest", action="store_true",
+                    help="offline kill-proof teeth for the per-arm count gate, no --dir needed")
     args = ap.parse_args()
 
+    if args.selftest:
+        _selftest()
+        return
+    if not args.dir:
+        ap.error("--dir is required unless --selftest")
+
     cells = load_cells(args.dir, args.k)
-    for arm in ("ncr",) + COMPARISONS_OF_RECORD:
-        n = len(cells.get(arm, {}))
-        assert n == args.expect_seeds, (
-            f"{arm}: {n}/{args.expect_seeds} COMPLETED cells -- harvest refuses "
-            f"a partial grid (rerun the wave or pass --expect-seeds explicitly)")
+    expected = resolve_expected_seeds(args.expect_seeds, args.expect_seeds_ncr)
+    check_seed_counts(cells, expected)
 
     result = dict(K=args.k, dir=args.dir,
                   n_cells={a: len(s) for a, s in cells.items()})
