@@ -157,15 +157,24 @@ appears in the sibling `papers/neurreps-ea/` submission.
 - **`papers/neurreps-ea/` (same venue, different EA):** headline = the
   group-composition causal rank law (d_min tracking, TOST equivalence,
   the five-group razor). Zero shared figures or tables with this paper.
-  Its §"binding foundation" paragraph cites four numbers from the same
-  Task D/E archives this paper is the primary carrier of (its N6/N9
-  rows quote the 1,234-run replication values 8.198/15.083/<=0.0004/
-  0.940 and the 4/5-seed depth-21 sentence); this paper reports the
+  Its §"binding foundation" paragraph and abstract used to restate four
+  numbers from the same Task D/E archives this paper is the primary
+  carrier of (its N6/N9 rows quote the 1,234-run replication values
+  8.198/15.083/<=0.0004/0.940 and the 4/5-seed depth-21 sentence); the
+  final review (`gauntlet/round-1/07_final_review.md` §4, ESCALATION-1)
+  found this substantive-at-the-surface and ordered de-dup edits S1-S3
+  on the sibling, applied 2026-07-11 (see
+  `../neurreps-ea/gauntlet/round-2/07_decision_record.md`): S1 replaced
+  both restatements with a pointer to this paper as a companion
+  submission (numbers dropped), S2 cut its parallel periodicity
+  appendix to a pointer at this paper's Appendix A, and S3 added a
+  mirror companion-disclosure to its Limitations (it previously had
+  none — the final review's finding, now fixed). This paper reports the
   full grids from the 991-run pre-registered snapshot (0.9675 at the
   d=8,K=4 step; the full staircase and per-hop tables), reports the
   replication as a robustness note, and does NOT state any group-task
   claim (no d_min, no TOST, no five-group razor). The sibling
-  relationship is disclosed in both briefs and in each paper's
+  relationship is now disclosed in both briefs and in each paper's
   related-work/limitations pointer, phrased anonymously
   ("a concurrent companion submission").
 - **The 13pp base draft** remains the arXiv/source version; it is not

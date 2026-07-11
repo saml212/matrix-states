@@ -48,13 +48,21 @@ numbers against those raws (`../gauntlet/round-1/05_format_audit.md`).
 - [ ] Re-verify the 2026 CFP against `../venue-requirements.md` when it
       drops (accepted-workshop list ~Jul 11; all format fields are
       2025-pattern projections)
-- [ ] ESCALATION-1 (`../gauntlet/round-1/04_rebuttal_report.md`): the
-      companion `papers/neurreps-ea/` submission restates this paper's
-      headline numbers in its binding paragraph and carries a
-      near-duplicate depth-21 appendix — de-duplicate the sibling (or
-      accept the disclosed overlap) BEFORE submitting both EAs to the
-      same venue
+- [x] ESCALATION-1 (`../gauntlet/round-1/04_rebuttal_report.md`,
+      adjudicated in `07_final_review.md` §4): PRIMARY path ratified —
+      both EAs stay at NeurReps; the companion `papers/neurreps-ea/`
+      received the de-dup edits (S1 pointer replaces the restated
+      headline numbers in its abstract + binding paragraph, S2 cuts its
+      depth-21 appendix to a pointer, S3 adds the missing mirror
+      disclosure), applied and render-verified 2026-07-11 — see
+      `08_decision_record.md` and
+      `../../neurreps-ea/gauntlet/round-2/07_decision_record.md`.
 - [ ] Swap the `https://anonymous.4open.science/` placeholder for a real
       anonymized snapshot, or defer to camera-ready (same convention as
-      the sibling EA)
+      the sibling EA) — waits on the CFP drop
+- [ ] Post-2026-07-11 CFP re-verification against `../venue-requirements.md`
+      (page limit, template zip, dual-EA policy, real deadline) — waits
+      on the accepted-workshop list drop
+- [x] Detector gate: DISCHARGED round 1 (both judges 100% human, zero
+      cited tells) — see `../detector/round-1.md`
 - [ ] Submit via the workshop's OpenReview venue
