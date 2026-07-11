@@ -29,7 +29,8 @@ rescue the trend: over the final 25,000 recorded steps the rung's span
 fraction is flat to mildly declining (0.4584 to 0.4554)
 <!-- evidence: R6 -->, so completing the budget would move the endpoint
 by roughly 0.003, more than twenty times smaller than the 0.066
-increment from the previous rung.
+increment from the previous rung <!-- evidence: R6 (derived:
+0.4584-0.4554 and 0.455-0.389) -->.
 
 ## 5.2 The Stock Mitigation Is Not the Cause, and Gating Is Not the Cure
 
@@ -38,7 +39,7 @@ in-kernel key normalization that production linear-attention stacks
 cite as their stability mitigation. A 2-by-2 factorial at 14M
 (qk-norm on/off crossed with delta-rule gating on/off, $n{=}3$ seeds,
 pre-registered same-corpus noise floor 2.244355 raw Gram-deviation
-units) gives both answers. Removing qk normalization changes the
+units <!-- evidence: R7 -->) gives both answers. Removing qk normalization changes the
 geometry reading by $-0.103$, which is $0.05\sigma$ against the floor:
 a within-noise null <!-- evidence: R7 -->. The attractor is measured
 with the mitigation active and is unchanged without it; it is not an
@@ -54,7 +55,8 @@ toward amplification: not a confirmed effect, and not a null.
 At 14M, a frozen-key-bias construction had moved the geometry: blending
 each key with a frozen per-token random unit anchor,
 $k \leftarrow \mathrm{normalize}((1-\lambda) k + \lambda B[\mathrm{tok}])$
-at $\lambda = 0.58$, with zero new trainable parameters. A
+at $\lambda = 0.58$ <!-- evidence: R8 -->, with zero new trainable
+parameters. A
 pre-registered transfer wave tested it at 98M and 392M against an
 eval-retrofitted comparator (the baseline checkpoint measured through
 the identical blend, which removes the mechanical pinning artifact a

@@ -8,11 +8,11 @@ transformer, on single-pass episodic recall.
 ## 4.1 Arms, Matching, and Frozen Margins
 
 The contender is a two-block DeltaNet-family LM ($d_{model}=256$,
-$d_{state}=64$, 14,048,896 parameters <!-- evidence: R0 -->). The
+$d_{state}=64$, 14,049,408 parameters <!-- evidence: R0 -->). The
 ablation keeps the embedding table, output head, and feed-forward
 blocks identical and replaces only the fast-weight mixer with an
 elementwise-gated vector recurrence at the same $d_{state}$
-(14,048,384 parameters, a 0.004 percent difference
+(14,048,384 parameters, a 0.007 percent difference
 <!-- evidence: R0 -->); it is constructed as a recurrence, not a
 reshape, so matrix structure and not merely parameter count is the
 manipulated variable. The transformer baseline is a two-layer pre-norm

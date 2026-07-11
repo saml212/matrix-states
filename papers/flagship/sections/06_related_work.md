@@ -1,7 +1,7 @@
 # 6 Related Work
 
 **Associative capacity of fast-weight states.** Nichani, Lee, and
-Bietti (2025) prove that under argmax decoding a rank-one matrix can
+Bietti (2024) prove that under argmax decoding a rank-one matrix can
 recover on the order of $d$ associations, which is why no result in
 this paper derives a rank or capacity claim from argmax recall: the
 rank law of Section 3 forces exact continuous recovery through a

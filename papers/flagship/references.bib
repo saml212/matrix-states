@@ -4,10 +4,14 @@
 % programmatic-BibTeX-only rule); entries are verbatim arXiv exports.
 % MUST-CITE (rebuttal FIX-4/FIX-15): zoology, repeat-after-me, induction
 % heads, attention sinks. SHOULD-CITE (optional strengtheners): based,
-% mamba, hopfield. The existing draft citations (Nichani-Lee-Bietti, the
-% Feb-2026 rank papers, Kimi Linear, DeltaNet/Gated-DeltaNet, the ICML-ws
-% companion) are added at LaTeX-assembly time from the same programmatic
-% route.
+% mamba, hopfield. CORE (format-audit S1, fetched 2026-07-10 same route):
+% nichani, the two Feb-2026 rank papers, kimi linear,
+% deltanet/gated-deltanet.
+% STILL DEFERRED TO ASSEMBLY TIME (format-audit S2): Qwen3-Next (no
+% arXiv paper; needs a canonical release citation, not fabricated here)
+% and the program's own ICML 2026 MI-workshop companion ("The Gradient
+% Does Not See Rank"; self-citation, anonymization-sensitive for the
+% ICLR build).
 
 % ---- MUST-CITE ----
 
@@ -81,4 +85,66 @@
       archivePrefix={arXiv},
       primaryClass={cs.NE},
       url={https://arxiv.org/abs/2008.02217},
+}
+
+% ---- CORE (format-audit S1; verbatim arXiv exports, fetched 2026-07-10) ----
+
+@misc{nichani2024understandingfactualrecalltransformers,
+      title={Understanding Factual Recall in Transformers via Associative Memories},
+      author={Eshaan Nichani and Jason D. Lee and Alberto Bietti},
+      year={2024},
+      eprint={2412.06538},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2412.06538},
+}
+
+@misc{nazari2026keystatereductionlinear,
+      title={The Key to State Reduction in Linear Attention: A Rank-based Perspective},
+      author={Philipp Nazari and T. Konstantin Rusch},
+      year={2026},
+      eprint={2602.04852},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2602.04852},
+}
+
+@misc{sun2026staterankdynamicslinear,
+      title={State Rank Dynamics in Linear Attention LLMs},
+      author={Ao Sun and Hongtao Zhang and Heng Zhou and Yixuan Ma and Yiran Qin and Tongrui Su and Yan Liu and Zhanyu Ma and Jun Xu and Jiuchong Gao and Jinghua Hao and Renqing He},
+      year={2026},
+      eprint={2602.02195},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2602.02195},
+}
+
+@misc{kimiteam2025kimilinearexpressiveefficient,
+      title={Kimi Linear: An Expressive, Efficient Attention Architecture},
+      author={Kimi Team and Yu Zhang and Zongyu Lin and Xingcheng Yao and Jiaxi Hu and Fanqing Meng and Chengyin Liu and Xin Men and Songlin Yang and Zhiyuan Li and Wentao Li and Enzhe Lu and Weizhou Liu and Yanru Chen and Weixin Xu and Longhui Yu and Yejie Wang and Yu Fan and Longguang Zhong and Enming Yuan and Dehao Zhang and Yizhi Zhang and T. Y. Liu and Haiming Wang and Shengjun Fang and Weiran He and Shaowei Liu and Yiwei Li and Jianlin Su and Jiezhong Qiu and Bo Pang and Junjie Yan and Zhejun Jiang and Weixiao Huang and Bohong Yin and Jiacheng You and Chu Wei and Zhengtao Wang and Chao Hong and Yutian Chen and Guanduo Chen and Yucheng Wang and Huabin Zheng and Feng Wang and Yibo Liu and Mengnan Dong and Zheng Zhang and Siyuan Pan and Wenhao Wu and Yuhao Wu and Longyu Guan and Jiawen Tao and Guohong Fu and Xinran Xu and Yuzhi Wang and Guokun Lai and Yuxin Wu and Xinyu Zhou and Zhilin Yang and Yulun Du},
+      year={2025},
+      eprint={2510.26692},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2510.26692},
+}
+
+@misc{yang2025parallelizinglineartransformersdelta,
+      title={Parallelizing Linear Transformers with the Delta Rule over Sequence Length},
+      author={Songlin Yang and Bailin Wang and Yu Zhang and Yikang Shen and Yoon Kim},
+      year={2025},
+      eprint={2406.06484},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2406.06484},
+}
+
+@misc{yang2025gateddeltanetworksimproving,
+      title={Gated Delta Networks: Improving Mamba2 with Delta Rule},
+      author={Songlin Yang and Jan Kautz and Ali Hatamizadeh},
+      year={2025},
+      eprint={2412.06464},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2412.06464},
 }
