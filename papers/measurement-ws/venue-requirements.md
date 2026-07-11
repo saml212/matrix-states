@@ -24,6 +24,17 @@ accepted-workshop list, due tomorrow.
   evaluation/benchmarking and science-of-DL workshops
   (`papers/VENUE_MAP.md` assignment 3), making a matching 2026 slot
   likely but not confirmable today.
+- **Refresh attempt [LIVE 2026-07-11, gauntlet session]:**
+  `https://neurips.cc/Conferences/2026/Workshops` still returns **404**
+  (the notification date is Jul 11 AoE — not yet elapsed at fetch
+  time); the Dates page re-confirms Jul 11 AoE notifications / Aug 29
+  AoE suggested submissions / Dec 11–12 workshops. Every format
+  assumption below therefore still stands as-is. NOTE for the refresh
+  pass: the gauntlet's FIX-4 fallback left the six-incident catalogue
+  table in the appendix under the 4pp working limit; if the chosen
+  workshop's CFP allows ≥5pp main text, move `tab:catalogue` back into
+  the body (reversal condition recorded in a `sections/01_intro.tex`
+  comment).
 - **Refresh obligation:** when the Jul-11 list lands, run
   `papers/VENUE_MAP.md` § "Refresh checklist" item 2 (enumerate the list
   for a measurement/evaluation/science-of-DL slot), pull the chosen
