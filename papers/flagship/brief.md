@@ -187,18 +187,16 @@ TIE branch pending its diagnosis round — now seeded with §1.41's
 horizon-collapse fact) are out of this brief until their records exist; the
 M\* axis LANDED as R10 above (2026-07-10).
 
-**K48 stress table — IN FLIGHT, not a claim (checked 2026-07-10):** the
-K/d=0.75 stress cell's transformer arm has NO landed verdict record —
-`HEAD_TO_HEAD_DEMO_DESIGN.md` §1.42 is a PRE-RUN record (the verdict is
-specified to land as §1.43), and
-`experiment-runs/2026-07-10_h2h_task2diag/results/` is empty. What EXISTS
-claim-grade at K48: the contender (0.0189) and ablation (0.0195) round-4
-re-metric reads, both ≈ chance 0.02083 (§1.42's A6 restates them; the
-transformer's round-3 K48 attempt OOM'd pre-save, §1.27). "Transformer at
-chance at K48" is §1.42's pre-registered HYPOTHESIS, not a result — the
-draft must not carry it as a number. If §1.43 lands before freeze, add it
-as a row with its artifact + md5; until then the K48 table appears (if at
-all) as the two-arm read with the third arm disclosed as in-flight.
+**K48 stress table + task2 diagnosis — LANDED as §1.43 (2026-07-10,
+superseding this brief's earlier IN-FLIGHT flag; verified against the
+raws by the writer AND independently by the round-1 gauntlet's attack and
+defense agents):** row R11 below carries the record. The earlier flag
+("the draft must not carry it as a number") is DISCHARGED by R11; the
+gauntlet's A5 fix updates the draft's stale "in flight" language.
+
+| Id | Claim (with the number) | Verdict record (§ / log entry) | Raw artifact (path + md5) | Figure / table |
+|---|---|---|---|---|
+| R11 | Task2 diagnosis + K48 stress — §1.43 VERDICT OF RECORD: task2 trainability/seed-variance CONFIRMED at pooled rate 3/9 (contender seeds clearing the 0.09375 bar: 0.33447/0.47949/0.39087, i.e. 10.7–15.3× chance; ablation 0/9 ever); the hard-capability-boundary hypothesis REJECTED for task2 at this scale/budget; pooled n=9 reading NON-DECISION-GRADE (batch-effect gate flagged, ablation var-ratio 6.14>4.0); strict-tier disclosed-only TIE; all bar-clearing seeds horizon- and held-out-hop-fragile; task2 stays NON-verdict-bearing for axis 1. K48 (K/d=0.75, chance 0.02083, locate-only bar 0.0625): contender 0.01888 / ablation 0.01953 / transformer 0.02181 (fresh cell) — all ≈chance, none clears; three-arm stress table COMPLETE | `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.43 (verdict of record; §1.42 pre-run record) | `experiment-runs/2026-07-10_h2h_task2diag/results/TASK2DIAG_VERDICT.json` md5:66d2291d8e65932d368d8978bfd16bdc + `transformer_task1_stress_K48_round4.json` md5:14e0c93f56c2a55983f929b7313eb5ac (+ 12 training and 12 re-metric JSONs, md5 manifest) | §4.5/§7 prose (no figure) |
 
 **Instrument-validity methodology citations (qualitative, no numbers →
 no evidence rows needed):** the §2 instruments paragraph and the §7
