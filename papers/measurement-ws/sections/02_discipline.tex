@@ -1,34 +1,38 @@
 \section{The Adjudication Discipline}
 \label{sec:discipline}
 
-None of the five rules below is novel in isolation; applied together,
+None of the five rules is novel in isolation; applied together,
 \emph{before} any model verdict is recorded, they form a lens-failure
-detector with a measured record.
+detector with a measured record. Two clauses were codified
+mid-catalogue by the incidents that exposed them (Rule 3's
+positive-control clause, \S\ref{sec:wronglayer}; Rule 2's graded
+crosscheck, Appendix~\ref{app:threelenses}); all five rules were in
+force before the decisive adjudication of \S\ref{sec:gauge}.
 
 \textbf{Rule 1: instrument-health adjudication precedes model
-verdicts.} Before a sweep's pre-registered endpoint may be read, the
-harvest walks a health checklist over the raw per-cell artifacts: gate
-violations, convergence, and a contradiction scan between independent
-readouts (the rule that fired in \S\ref{sec:gauge}).
+verdicts.} Before a sweep's pre-registered endpoint may be read, a
+health checklist walks the raw per-cell artifacts: gate violations,
+convergence, a contradiction scan between independent readouts (the
+rule that fired in \S\ref{sec:gauge}).
 
 \textbf{Rule 2: pre-register a crosscheck that removes the primary
 lens's strongest assumption}, graded wherever that assumption provably
-fails, with the switching rule written down in advance.
+fails, the switching rule fixed in advance.
 
 \textbf{Rule 3: falsifier teeth, run to completion.} Every negative
 control is executed, not merely written; guards are mutation-tested;
-every probe rung carries a planted-signal positive control; and the
+every probe rung carries a planted-signal positive control; the
 adjudication itself carries a pre-registered falsifier whose firing
 voids it.
 
 \textbf{Rule 4: contradictions are resolved against raw artifacts.}
-When two reads disagree, neither recency nor authority decides; the
-adjudicator recomputes both from the committed raw files and records
-the tiebreak before anything downstream runs.
+When two reads disagree, neither recency nor authority decides: both
+are recomputed from the committed raw files and the tiebreak is
+recorded before anything downstream runs.
 
 \textbf{Rule 5: argmax closure.} Wherever a claim requires exact
 continuous recovery, the grading path must not be satisfiable by
-argmax decoding: under argmax a rank-1 matrix can recover on the order
-of $d$ associations \citep{nichani2025factual}. The converse gap was
+argmax decoding, under which a rank-1 matrix can recover on the order
+of $d$ associations \citep{nichani2025factual}; the converse gap was
 pre-registered before it fired (\S\ref{sec:wronglayer}).
 % <!-- evidence: N1 -->

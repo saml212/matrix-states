@@ -7,12 +7,16 @@ model and failed it. The subspace step estimated an uncentered
 covariance, degenerate on the task's own targets: for near-orthogonal
 states $Z\approx c(\rho\oplus I)$, $ZZ^{\top}\approx c^{2}I$ is
 isotropic and carries no subspace information. On the production
-harness, an oracle injection scored mean cosine $0.084$ and recovery
-$0.05$ under the uncentered lens versus $0.9996$ and $1.00$ once the
-covariance was centered; the same artifact records the scale-only
-primary reading $0.046$ on data whose true gauge is non-identity while
-the full-intertwiner crosscheck reads $0.9996$, the pre-echo of
-\S\ref{sec:gauge}.
+harness, the headline rescue of the oracle injection (mean cosine
+$0.084$ to $0.9996$) folds in two registered lens changes: centering
+\emph{and} a switch from the scale-only primary to the
+full-intertwiner crosscheck. Isolating centering under a matched
+full-intertwiner metric moves mean cosine $0.705$ to $0.9996$; under
+the scale-only lens the centered pipeline reads $0.046$, no better
+than the uncentered $0.084$, because the injection's true gauge is
+non-identity, the pre-echo of \S\ref{sec:gauge}. Centering is a
+genuine fix, but the full rescue is centering plus a full-intertwiner
+degauge, not centering alone.
 % <!-- evidence: B1 -->
 The fix (centering) cancels the constant identity block because the
 group mean of a nontrivial representation vanishes; the acceptance
@@ -22,7 +26,9 @@ sits inside the test.
 \textbf{The target that taxed every budget.} A causal test of a
 rank-recruitment law capped model rank at $k$ around the predicted
 minimum $\dmin$ and expected recovery to return at $k=\dmin$. Every
-capped arm returned zero, at every group, on both lenses. The target
+capped arm returned near-chance recovery on both lenses: zero in four
+of the five groups, and $0.17$/$0.08$ in the fifth (S3), far below
+that group's ceiling. The target
 had been constructed as $\rho\oplus I$: the ambient identity block
 inflates the as-built target rank by two, so every rank budget buys
 the constant block first. The diagnosis is quantitative: a rank-$k$
@@ -32,8 +38,8 @@ that ceiling (mean absolute deviation $0.028$); the arms had trained
 to their theoretical optimum against the wrong target.
 % <!-- evidence: B2 -->
 The causal test was undelivered by the instrument, not failed by the
-model; a zero-padded re-run subsequently delivered
-it~\citep{companion2026capacity}.
+model; a corrected-target, zero-padded re-run subsequently delivered
+the test (companion work, anonymized)~\citep{companion2026capacity}.
 
 \textbf{The reference on the wrong side.} A bespoke recurrence was
 cross-checked against a reference kernel and disagreed at relative
@@ -64,37 +70,32 @@ paper's claims-to-evidence map.
 \begin{table}[H]
 \centering
 \scriptsize
-\renewcommand{\arraystretch}{1.1}
-\begin{tabular}{@{}p{2.5cm}p{3.4cm}p{3.5cm}p{2.5cm}@{}}
+\begin{tabular}{@{}p{2.4cm}p{3.3cm}p{3.4cm}p{2.7cm}@{}}
 \toprule
 Apparent model failure & Actual instrument defect & Diagnostic signature & Resolution \\
 \midrule
 Capacity collapse, 11/12 cells quarantined (\S\ref{sec:tolerance}) &
-admission tolerance calibrated on blended keys, applied to raw keys &
-every flagged episode resolves under a modest iteration bump &
-flag-only recalibration; no cliff \\
+tolerance calibrated on blended keys, applied to raw keys &
+every flagged episode resolves under an iteration bump &
+flag recalibrated; no cliff \\
 \addlinespace[2pt]
 Three failed evaluation rounds (\S\ref{sec:wronglayer}) &
-probe tap on a causally inert layer; storage not linearly decodable
-at any state &
-task metric near ceiling while probe reads zero; state-zeroing
-localization &
-metric of record re-registered; tap relocated \\
+probe tap on a causally inert layer; storage not linearly decodable &
+task metric near ceiling, probe zero; state-zeroing localization &
+metric re-registered; tap relocated \\
 \addlinespace[2pt]
-Generalization endpoint falsified with no signal anywhere
+Generalization endpoint falsified
 (\S\ref{sec:gauge}) &
-identity-gauge assumption from one architecture carried to another &
-primary/crosscheck contradiction of full magnitude, only on
-converged cells &
-crosscheck decisional; verdict re-read (still falsified, different
-reason) \\
+identity gauge from one architecture carried to another &
+primary/crosscheck contradiction, only on converged cells &
+crosscheck decisional; verdict re-read (still falsified) \\
 \addlinespace[2pt]
 Perfect synthetic model fails acceptance (\S\ref{sec:threelenses}) &
 uncentered covariance, degenerate on near-orthogonal targets &
 oracle injection scores near zero; centering restores it &
 estimator centered; injection extended \\
 \addlinespace[2pt]
-Causal rank test returns zeros at every rank
+Causal rank test near-chance at every rank
 (\S\ref{sec:threelenses}) &
 target built with an ambient identity block, taxing every rank
 budget &
@@ -108,10 +109,10 @@ relative residual $\approx\sqrt{2}$; closed-form hand computation &
 reference transposed; mutant-kill check added \\
 \bottomrule
 \end{tabular}
-\caption{The six incidents. In each, the model was initially the
-suspect and the instrument was the finding; every row was adjudicated
-against raw artifacts before any model-level conclusion was recorded.
-Sections named per row.}
+\caption{The six incidents: in each, the model was initially the
+suspect and the instrument was the finding, and every row was
+adjudicated against raw artifacts before any model-level conclusion
+was recorded. Sections named per row.}
 \label{tab:catalogue}
 \end{table}
 
@@ -134,6 +135,7 @@ archived localization summary under an asserted checksum.}
 \begin{table}[H]
 \centering
 \footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}llll@{}}
 \toprule
 Step (pre-registered order) & Outcome & Reading & Rules out \\
@@ -199,9 +201,14 @@ under the crosscheck lens (X) per group, by the unmodified verdict
 machinery on shadow cells; ``far'' is depth 64 and ``bar'' is $90\%$
 of each group's own ceiling. The endpoint remains \textsc{falsify}
 (neither decisive group separates), but the failure geometry is now
-informative: A6 never converges at its decisive configuration under
-either lens, and S5 is held under its bar by one non-generalizing
-seed. Evidence row X5.}
+readable: A6 never converges at its decisive configuration under
+either lens, and S5 misses its bar lens-independently (one seed
+generalizes at $0.00$; its two siblings reach only $80\%$ and $65\%$
+of their own ceilings, both below the $90\%$ bar). Separation
+requires the contender to clear its bar \emph{and} the Arm-2 baseline
+to collapse below $50\%$ of its own ceiling; S3 clears its bar but
+its baseline does not collapse ($0.15>0.125$), hence no separation.
+Evidence row X5.}
 % <!-- evidence: X5 -->
 \label{tab:remetric}
 \end{table}

@@ -3,30 +3,43 @@
 
 \looseness=-1 \textbf{Related work.} \citet{silberzahn2018many} and
 \citet{damour2020underspecification} document divergent conclusions
-from underspecified analysis pipelines; here the models are fixed and
-the \emph{measurement pipeline} is the component being adjudicated,
-with a per-incident decision procedure rather than a variance
-demonstration. \citet{henderson2018deep} and
+from underspecified pipelines; here the models are fixed and
+the \emph{measurement pipeline} is the adjudicated object.
+\citet{henderson2018deep} and
 \citet{bouthillier2021accounting} quantify seed and tuning variance;
-none of the six defects here is sampling variance (a transposed
-convention or a wrong-population tolerance is bit-stable across
-seeds), so variance accounting would have caught none. REFORMS
+none of the six defects is sampling variance, so variance
+accounting catches none. REFORMS
 \citep{kapoor2023reforms}, \citet{sculley2018winners}, and
 \citet{lipton2018troubling} prescribe what a trustworthy paper
-discloses; this paper supplies the in-flight machinery such checklists
-presume exists. \citet{nichani2025factual} prove the
-argmax/exact-recovery gap of Rule 5; we report it firing live, on both
-sides (\S\ref{sec:wronglayer}); the fast-weight testbeds follow
-\citet{schlag2021linear}.
+discloses; we supply the in-flight machinery such checklists
+presume exists. The probing literature supplies the
+instrument-hygiene checks the wrong-layer case rediscovers at
+evaluation scale: control tasks and
+selectivity~\citep{hewitt2019control}, the probe-versus-behavior
+dissociation~\citep{belinkov2022probing}, amnesic
+probing~\citep{elazar2021amnesic}, and randomization-based sanity
+checks~\citep{adebayo2018sanity}. \citet{schaeffer2023emergent}
+argue the inverse of our thesis (an apparent model \emph{property},
+emergence, as metric artifact) from the same
+instrument-first stance; each diagnoses one instrument
+class, where this catalogue is a serial, pre-registered,
+cross-instrument adjudication record with falsifier teeth.
+\citet{nichani2025factual} prove Rule 5's argmax/exact-recovery gap;
+we report it firing live (\S\ref{sec:wronglayer}); the fast-weight
+testbeds follow \citet{schlag2021linear}.
 
 \looseness=-1 \textbf{Limitations.} All six incidents come from one program, one
-team, one architecture family; we cannot report the rate a lighter
-process would miss, and six incidents support no prevalence claim.
-The catalogue is survivor-biased in one stated direction: a defect
-that both the crosscheck and the falsifier battery miss would appear
-in no record we could write. The economics
-still favor adoption: Case I's two decisive diagnostic instruments
-together cost under 2 GPU-hours against the 6.33 GPU-hours of training
-their uncorrected readings would have discredited; auditing the lens
-is cheap relative to the compute, and the claims, it protects.
+team, one architecture family: they support no prevalence claim, and
+we cannot report the rate a lighter process would miss.
+The catalogue is survivor-biased: a defect missed by both crosscheck
+and falsifier battery appears in no record we could write. It is
+biased by trigger too: the discipline fires on apparent model
+failure, so defects flattering the model are under-represented; five
+of six fixes moved results in the program-favorable direction. In the
+one incident costed, the two diagnostic instruments took $0.50$ and
+$1.10$ GPU-hours (archived wall-clock) against the $6.33$ GPU-hours
+of training the uncorrected readings would have discredited. We
+report no false-alarm rate: the records do not tally escalations
+against clean instrument-health passes, so the precision of
+``suspect the instrument first'' is unmeasured.
 % <!-- evidence: I6 -->

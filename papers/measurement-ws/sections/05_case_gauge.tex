@@ -1,46 +1,63 @@
 \section{Case III: The Gauge That Did Not Transfer}
 \label{sec:gauge}
 
-A recurrent composer is trained on the word problems of five finite
+\looseness=-1 A recurrent composer is trained on the word problems of five finite
 groups and scored for compositional depth generalization: trained at
-depth $\le8$, tested at depth 64. Two
-pre-registered lenses score recovery of the group representation from
-the state: the \emph{primary} de-gauges with a scale-only correction,
-valid when the learned basis matches the target basis up to scale
-($\hat{Q}\approx I$), measured to hold on every checkpoint of the
-\emph{previous} architecture; the \emph{crosscheck}
-fits a full orthogonal intertwiner by Procrustes on a fit split and
-scores on a disjoint eval split, assuming nothing about the gauge.
+depth $\le8$, tested at depth 64. Two pre-registered lenses score
+recovery of the group representation from the state: the
+\emph{primary} de-gauges with a scale-only correction, valid when the
+learned basis matches the target up to scale
+($\hat{Q}\approx I$, measured on every checkpoint of the
+\emph{previous} architecture); the \emph{crosscheck} fits a full
+orthogonal intertwiner by Procrustes, fit and scored on disjoint
+splits, assuming nothing about the gauge.
 
-\looseness=-1 \textbf{The signature.} The 62-cell sweep completed cleanly, and the
-endpoint machinery, run as built on the primary lens, returned
+\looseness=-1 \textbf{The signature.} The 62-cell sweep completed cleanly; run as
+built on the primary lens, the endpoint machinery returned
 \textsc{falsify}: no measurable separation from the baseline at the
 decisive groups.
 % <!-- evidence: X1 -->
-The mandatory instrument-health pass (Rule 1) then surfaced a
+The mandatory instrument-health pass (Rule 1) surfaced a
 contradiction (Figure~\ref{fig:lens}): wherever training had
 \emph{not} converged, both lenses read near zero; wherever it
 converged, they contradicted each other at full magnitude (one
-converged cell: final loss $0.0001$, primary recovery $0.050$,
-crosscheck $1.000$). All 13 cells with a lens disagreement of at least
-$0.5$ are converged cells; on all 30 baseline cells the lenses agree
-exactly. The harvest stopped for adjudication with no model verdict
-recorded.
+converged cell: loss $0.0001$, primary $0.050$,
+crosscheck $1.000$). All 13 cells with a lens disagreement of at
+least $0.5$ are converged cells (threshold-robust: every cell with a
+disagreement above $0.3$ is converged, 16 of 16); on all 25 Arm-2
+baseline cells (5 groups $\times$ 5 seeds, 50 checkpoint values) the
+lenses agree exactly. The harvest stopped for adjudication with no
+model verdict recorded.
 % <!-- evidence: X2 -->
 
+\begin{figure}[t]
+\centering
+\begin{minipage}[c]{0.40\linewidth}
+\includegraphics[width=\linewidth]{fig1_lens_contradiction}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.56\linewidth}
+\caption{Primary versus crosscheck recovery (fraction recovered at
+cosine $\geq0.9$, depth 64), all 62 cells.
+Non-converged cells (open orange) sit near the origin under both
+lenses; every cell with disagreement $\geq0.5$ is converged (filled
+blue). A lens defect that activates exactly where the model succeeds
+is the inverse of noise.}
+\label{fig:lens}
+\end{minipage}
+\end{figure}
+
 \looseness=-1 \textbf{The tiebreak.} A leaky crosscheck reading high on junk would
-leave the falsification standing, so either lens could be the broken
-one. The adjudication, performed against raw artifacts and code
+leave the falsification standing. The adjudication, against raw
+artifacts and code
 (Rule 4), rested on four grounds:
-(1)~the crosscheck is leakage-guarded by construction (fit on the fit
-split, scored on the disjoint eval split); (2)~it
-demonstrably discriminates, reading near zero on every non-converged
+(1)~the crosscheck is leakage-guarded by construction (fit and eval
+on disjoint splits); (2)~it
+discriminates, reading near zero on every non-converged
 cell; (3)~the primary's scale-only correction was already flagged as
 basis-brittle across seeds (per-seed mean cosine $0.03$ to $0.69$
-where the crosscheck read $0.86$ to $0.95$), and its
-$\hat{Q}\approx I$ evidence came from a different architecture; a
-perfect model in a rotated basis reads zero under an identity gauge by
-construction;
+where the crosscheck read $0.86$ to $0.95$) and its
+$\hat{Q}\approx I$ evidence came from a different architecture (a
+perfect model in a rotated basis reads zero under an identity gauge);
 % <!-- evidence: X3 -->
 (4)~the synthetic acceptance test already grades the crosscheck when
 the injected gauge is non-identity (Rule 2).
@@ -48,11 +65,13 @@ Verdict: the primary lens is broken on converged cells; the mechanical
 falsification is void \emph{as a model verdict}.
 
 \looseness=-1 \textbf{Teeth.} The tiebreak carried its own pre-registered falsifier
-(Rule 3): re-scoring with shuffled targets must read near zero, or the
+(Rule 3): shuffled-target re-scoring must read near zero, or the
 tiebreak is wrong and the contradiction escalates to an instrument
-rebuild. On three converged checkpoints the shuffled crosscheck read
-$0.00$, $0.00$, and $0.05$, far below the $0.5$ void threshold, while
-the unshuffled reads reproduced the committed values bit-identically
+rebuild. On three pre-registered converged checkpoints spanning
+three groups (among them the converged exemplar above), the shuffled
+crosscheck read $0.00$, $0.00$, and
+$0.05$, far below the $0.5$ void threshold, while the unshuffled
+reads reproduced the committed values bit-identically
 (Table~\ref{tab:teeth}).
 % <!-- evidence: X4 -->
 
@@ -61,20 +80,12 @@ lens through the unmodified verdict machinery, which first reproduced
 the committed primary verdict and all 62 recomputed ceilings to within
 $10^{-9}$.
 % <!-- evidence: X5 -->
-The corrected endpoint is \emph{still} \textsc{falsify}, for a more
-informative reason (\S\ref{sec:notflipped}, Table~\ref{tab:remetric}):
-not ``no signal anywhere'' but ``two specific, lens-independent
-failures at the two decisive groups.'' Fixing the instrument changed
-the reason, not the verdict.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.48\linewidth]{fig1_lens_contradiction}
-\caption{Primary versus crosscheck recovery (fraction of items
-recovered at cosine $\geq0.9$, depth 64), all 62 sweep cells.
-Non-converged cells (open orange) sit near the origin under both
-lenses; every cell with a lens disagreement of at least $0.5$ is a
-converged cell (filled blue). A lens defect that activates exactly
-where the model succeeds is the inverse of noise.}
-\label{fig:lens}
-\end{figure}
+The corrected endpoint keeps the same \textsc{falsify} verdict
+\emph{and the same machine-emitted reason}
+(\S\ref{sec:notflipped}, Table~\ref{tab:remetric}); what the fix
+changes is the readable geometry: the primary was not a blanket
+null (S3 cleared its bar, $0.54$ against $0.459$) but masked which
+groups fail, while under the crosscheck the two decisive
+failures, an S5 near-miss and an A6 non-convergence, stand out
+lens-independently. Fixing the instrument changed what the verdict
+means, not the verdict.

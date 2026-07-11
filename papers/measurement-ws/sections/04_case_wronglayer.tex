@@ -1,53 +1,52 @@
 \section{Case II: The Instrument at the Wrong Layer}
 \label{sec:wronglayer}
 
-A two-block fast-weight model is trained on an associative binding
+\looseness=-1 A two-block fast-weight model is trained on an associative binding
 task ($K=32$ bindings per episode) against matched baselines, with two
 registered readouts: a discrete task metric (episode-restricted recall
-through the model's own continuation and LM head) and a continuous
+through the model's own LM head) and a continuous
 probe metric $\rf$ (the fraction of targets a linear probe on a
 tapped state recovers at cosine $\geq0.9$). In the third of three
 consecutive rounds recorded as failures at $\rf=0.0$, the discrete
 metric dissociated: recall accuracy $0.9990$ against chance $0.03125$
 (baselines $0.0447$ and $0.0295$), the probe still exactly $0.0$ in
-every arm.
+every arm; the dissociation, not the zero, is the finding (Rule 5).
 % <!-- evidence: W1 -->
-The dissociation, not the zero, is the finding (Rule 5).
 
 \looseness=-1 An offline re-fit battery removed the probe-training explanations:
-closed-form ridge regression, the global optimum for the linear probe
-class, reproduced $\rf=0.0$ exactly, as did pinned SGD and MLP probes;
-the trained probe's output was the analytically known
+closed-form ridge regression, pinned SGD, and MLP probes all
+reproduced $\rf=0.0$ exactly (over-regularization ruled out by the
+rig's post-nonlinearity recovery below); the trained probe's
+output was the analytically known
 episode-membership direction (mean cosine $0.176$ against the
 $1/\sqrt{32}\approx0.177$ ceiling; membership cosine $0.896$); the
-ridge fit cleared its shuffled-tap control by at most $+0.059$
+ridge fit cleared its shuffled-tap control~\citep{hewitt2019control}
+by at most $+0.059$
 cosine.
 % <!-- evidence: W2 -->
 Meanwhile the full forward pass decodes the answer at $0.9957$
 accuracy ($31.9\times$ chance) for the contender, both baselines at or
-near chance: the information exists in the network and is not linearly
-present at the tapped state.
+near chance: the answer exists in the network.
 % <!-- evidence: W3 -->
 
-\looseness=-1 A state-zeroing experiment located the storage
+\looseness=-1 A state-zeroing experiment~\citep{elazar2021amnesic} located the
+storage
 (Figure~\ref{fig:taploc}): zeroing the
 first block's state $S_0$ collapses recall to chance ($0.0286$);
 zeroing $S_1$, the layer every deployed instrument tapped, leaves it
-bit-unchanged at $0.9990$: the probed layer is causally inert for the
-probed behavior. Placement alone is not the whole defect: a ridge
-probe on the load-bearing $S_0$ \emph{also} reads $\rf=0.0$ (gaps over
-shuffled controls $+0.002$ to $+0.063$ across all state-level taps),
+bit-unchanged at $0.9990$: the probed layer is causally inert.
+Placement alone is not the whole defect: a ridge
+probe on the load-bearing $S_0$ \emph{also} reads $\rf=0.0$
+(shuffled-control gaps $+0.002$ to $+0.063$),
 and only the post-block-1, pre-LM-head hidden exposes the recall
-linearly ($\rf=0.674$, gap $+0.800$), only in the arm that can perform
-the task (the ablation's same tap reads $0.0$; Table~\ref{tab:taps}).
+($\rf=0.674$, gap $+0.800$), only in the arm that performs
+the task (ablation: $0.0$; Table~\ref{tab:taps}).
 % <!-- evidence: W4 -->
-The bindings are stored in a format no tested linear read on either
-state exposes; the model's own downstream nonlinearity is the only
-decoder found.
+The bindings are stored in a format no tested linear read exposes;
+the model's own downstream nonlinearity is the only decoder found.
 
 The same diagnosis exposed a second defect in passing: an auxiliary
-classifier whose labels were, by construction, uniform given the
-decoded quantity, so a perfect tap scores chance; its expected-null
-had been read as confirmation for a round, hence Rule 3's
-positive-control clause.
+classifier whose labels were uniform given the decoded quantity, so a
+perfect tap scores chance; its expected-null had been read as
+confirmation for a round, hence Rule 3's positive-control clause.
 % <!-- evidence: W5 -->

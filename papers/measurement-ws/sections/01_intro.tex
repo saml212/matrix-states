@@ -1,24 +1,25 @@
 \section{Introduction}
 \label{sec:intro}
 
-A measurement-heavy empirical program breaks its instruments more
-often than its models. Within five days, one research program on
-fast-weight sequence models produced six apparent headline model
-failures: a capacity collapse (\S\ref{sec:tolerance}); three consecutive failed evaluation rounds
-(\S\ref{sec:wronglayer}); a falsified generalization endpoint
-(\S\ref{sec:gauge}); a perfect synthetic model rejected by its
-acceptance test; a causal rank test reading zero at every rank; and a
-recurrence contradicted by a reference kernel
-(\S\ref{sec:threelenses}). In every one, a fixed adjudication
-procedure traced the failure to the instrument, not the model
-(Table~\ref{tab:catalogue}); in two further readings the same
-procedure confirmed the model, not the lens, had failed. The asymmetry
-is the point: an evaluation pipeline that never suspects its own
+\looseness=-1 In one research program's five-day window on fast-weight sequence
+models, six apparent headline model failures traced, under the same
+adjudication procedure, to broken instruments rather than models
+(Table~\ref{tab:catalogue}); in two further readings it confirmed
+the model, not the lens, had failed. An incident
+here is a pre-registered endpoint or evaluation round read as a model
+verdict; defects caught outside such a reading (the
+auxiliary-classifier null of \S\ref{sec:wronglayer}) are noted, not
+counted. An evaluation pipeline that never suspects its own
 instruments will publish lens artifacts as model results.
 
-Our contributions: (1)~the catalogue, each incident with its mechanism
-and a reusable diagnostic signature; (2)~an explicit five-rule
+Our contributions: (1)~the catalogue (Table~\ref{tab:catalogue}), each
+incident with its mechanism
+and a reusable diagnostic signature; (2)~a five-rule
 adjudication discipline (\S\ref{sec:discipline}) that caught all six
 before publication; (3)~the discipline's boundary: it did not flip the
 pre-registered endpoint verdict, and two genuine model failures
 survived every instrument fix (\S\ref{sec:notflipped}).
+
+% FIX-4 hard fallback exercised (gauntlet r1): the catalogue table
+% lives in the appendix under the 4pp working limit. If the Jul-11
+% venue confirms >=5pp main text, move tab:catalogue back here.
