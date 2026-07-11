@@ -2,11 +2,8 @@
 
 The same write mechanism that Sections 3 and 4 show storing task
 structure also reshapes the population geometry of its own keys, for
-the worse, and more so at larger scale. What follows reports the
-phenomenon, rules out the obvious instrument-level and
-mitigation-level explanations, and reports the negative transfer
-result for the one construction that removed it at small scale, on
-evidence independent of Sections 3 and 4.
+the worse, and more so at larger scale. The evidence here is
+independent of Sections 3 and 4.
 
 ## 5.1 The Write-Geometry Attractor Worsens Monotonically with Scale
 
@@ -89,13 +86,11 @@ registered claims <!-- evidence: R8 -->.
 
 ## 5.4 The Storage Mechanism as Common Factor
 
-Sections 3 and 4 show the matrix state is what stores: recruited
-rank sits at the task minimum in the encoder family, and in the
-delta-rule contender, zeroing the written state deletes the capability. This
-section shows the same write, iterated over a corpus at scale, drags
-its own key population toward collapse, and that the one construction
-known to stabilize the geometry at 14M buys nothing at 98M and 392M
-while costing nothing in loss. No fix is offered here: the community's
+The write that Sections 3 and 4 show storing task structure is the
+write that, iterated over a corpus at scale, drags its own key
+population toward collapse; the one construction known to stabilize
+the geometry at 14M buys nothing at 98M and 392M while costing nothing
+in loss. No fix is offered here: the community's
 stock mitigation is orthogonal to the phenomenon, and the obvious
 portable construction fails to port. The pathology belongs
 to the storage mechanism as scaled; no stabilizer choice tested here

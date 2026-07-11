@@ -9,8 +9,8 @@ samlarson@pebbleml.com (named build only) -->
 Fast-weight and linear-attention models maintain a matrix-valued state,
 written by an outer-product update and evaluated mainly as an
 efficiency substitute for attention. We ask instead what the matrix
-state stores, at what dimensionality, and at what cost: three
-pre-registered findings. First, a rank law: in a matrix-state encoder
+state stores, at what dimensionality, and what the storage costs at
+scale: three pre-registered findings. First, a rank law: in a matrix-state encoder
 family trained on five permutation-group word problems (minimal
 faithful representation dimension 2 to 5), recruited effective rank
 tracks $d_{\min}$ (Spearman $\rho=0.9747$ <!-- evidence: R1 -->, the
