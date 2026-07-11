@@ -6,8 +6,9 @@ Whether such a state retains the bindings a recall task depends on, under a
 training budget an attention model also receives, is an empirical question.
 We compare three models matched in parameters, data, and training schedule
 on episode-restricted 32-way associative recall: a two-block matrix
-fast-weight model holding 32{,}768 bytes of recurrent state, a flat-vector
-recurrence, and a transformer. The fast-weight model answers recall queries
+fast-weight model holding 32{,}768 bytes of recurrent
+state, % <!-- evidence: C10 -->
+a flat-vector recurrence, and a transformer. The fast-weight model answers recall queries
 at 0.9995 mean accuracy over three seeds; % <!-- evidence: C1 -->
 both baselines sit at chance, and paired-seed confidence intervals exclude
 the pre-registered 0.30 separation margin with lower bounds above

@@ -53,9 +53,13 @@ Our contributions:
   fast-weight arm clears the demonstration bar in every seed, the baselines
   never do (Section~\ref{sec:recall}).
 \item \textbf{A constant-memory demonstration.} Recall accuracy is flat in
-  context length out to eight times the binding span at a fixed
-  32{,}768-byte state, while no KV budget up to $32\times$ those bytes
-  rescues the transformer (Section~\ref{sec:horizon}).
+  context length out to eight times the binding
+  span % <!-- evidence: C3 -->
+  at a fixed 32{,}768-byte
+  state, % <!-- evidence: C10 -->
+  while no KV budget up to $32\times$ those bytes
+  rescues the transformer % <!-- evidence: C4 -->
+  (Section~\ref{sec:horizon}).
 \item \textbf{A causal mechanism read.} Zeroing the first block's
   fast-weight state collapses recall to chance in every seed; zeroing the
   second block's leaves it unchanged; no linear probe on either raw state

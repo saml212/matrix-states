@@ -24,10 +24,11 @@ medium. In a matrix-state encoder family trained on group word problems,
 stochastic gradient descent recruits exactly the task-minimal state rank,
 and forcing one rank fewer destroys the task while restoring that rank
 restores it. In a two-layer delta-rule model, the first layer's matrix
-state causally carries an episodic-recall capability that
-parameter-matched vector-state and compute-matched transformer baselines
-lack at equal training budget, and the stored content is linearly legible
-only after downstream nonlinear processing. And in delta-rule language
+state causally carries an episodic-recall capability that a
+parameter-matched vector-state ablation lacks at equal training budget
+(a compute-matched transformer also fails, disclosed as a degenerate
+baseline), and the stored content is linearly legible only after
+downstream nonlinear processing. And in delta-rule language
 models, the same write mechanism drives a population-geometry pathology
 that worsens monotonically across a two-decade parameter ladder and
 survives the community's stock mitigation.
@@ -50,10 +51,14 @@ Concretely, we contribute:
 2. **A capability separation at matched budget** (Section 4). On
    single-pass episodic recall, the delta-rule contender reads accuracy
    0.99951 <!-- evidence: R4 --> against 0.03394 for its vector-state
-   ablation and 0.02832 for a compute-matched transformer
-   <!-- evidence: R4 -->; paired confidence intervals exclude the
-   pre-registered 0.30 margin at more than three times its width
-   <!-- evidence: R4 -->. Zeroing the first layer's state collapses
+   ablation <!-- evidence: R4 -->; the paired confidence interval
+   excludes the pre-registered 0.30 margin at more than three times its
+   width <!-- evidence: R4 -->, and this ablation comparison carries
+   the verdict. A compute-matched transformer also reads chance
+   (0.02832) <!-- evidence: R4 -->; because its learning rate was never
+   searched on this task and its training loss is near flat, it is
+   recorded as a degenerate-baseline datum, not a second verdict
+   (Sections 4.1 and 6). Zeroing the first layer's state collapses
    recall to chance while zeroing the second layer's changes nothing
    <!-- evidence: R5 -->, and no state-level linear probe reads the
    content that the model's own forward pass decodes

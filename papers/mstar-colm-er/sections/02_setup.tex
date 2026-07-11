@@ -31,7 +31,7 @@ diagnostics separately.
 \subsection{Three arms, matched budget}
 
 \textbf{Matrix fast-weight model (the contender).} A two-block
-decoder-style LM (residual width 256, one head per mixer) whose mixer holds
+decoder-style LM whose mixer holds
 a $64 \times 64$ matrix state $S_t$ per block, updated by a delta rule
 \citep{schlag2021linear, yang2024parallelizing}:
 $S_t = S_{t-1}(I - \beta_t k_t k_t^{\top}) + \beta_t v_t k_t^{\top}$, with

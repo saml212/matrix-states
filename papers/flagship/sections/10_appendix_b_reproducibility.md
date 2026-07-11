@@ -13,7 +13,10 @@
 
 The camera-ready appendix carries the full per-seed tables regenerated
 from the archived artifacts named in Section B.3: the 19-cell
-unconstrained rank table with band edges (R1), the 30-cell force-rank
+unconstrained rank table with band edges (R1), the 39-cell first-sweep
+force-rank diagnostic with each cell's deviation from the
+$\sqrt{k/d_{state}}$ ceiling, the three cells outside 0.07 named
+(R1b), the 30-cell force-rank
 grid plus the 24-cell $S_3$ extension (R3), the 27-cell head-to-head
 sweep with all re-metric readings and hard-stop legs (R4), the
 localization and tap tables for both arms (R5), the per-rung ladder

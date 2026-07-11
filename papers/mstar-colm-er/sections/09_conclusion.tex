@@ -4,9 +4,14 @@ Under a fully matched training budget, a two-block matrix fast-weight
 model stores and retrieves in-context bindings that neither a
 parameter-matched flat-vector recurrence nor a parameter-matched
 transformer learns at all, and it does so from a state whose size does not
-grow with context: recall stays at ceiling to eight times the binding span
-at a constant 32{,}768 bytes, while no KV-cache budget up to thirty-two
-times those bytes changes the baseline's chance-level reading. The
+grow with context: recall stays at ceiling to eight times the binding
+span % <!-- evidence: C3 -->
+at a constant 32{,}768
+bytes, % <!-- evidence: C10 -->
+while no KV-cache budget up to thirty-two
+times those bytes changes the baseline's chance-level
+reading. % <!-- evidence: C4 -->
+The
 bindings are causally localized to the first block's fast-weight matrix
 and stored in a form only the model's own forward pass decodes. Because
 the baseline never becomes competent, the comparison yields no memory

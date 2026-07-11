@@ -89,6 +89,16 @@ analytic anchors, the expectation for $K$ i.i.d. random unit vectors
 <!-- evidence: R0 -->, making readings comparable across state widths.
 Higher is closer to collapse.
 
+**Confidence intervals.** Paired confidence intervals in this paper
+are Student-$t$ intervals on $n{=}3$ per-seed paired differences (two
+degrees of freedom, $t_{.975} = 4.303$) <!-- evidence: R4 -->, except
+the nine-seed diagnosis pool of Section 4.5, stated there. Per-seed
+values are tabulated in Appendix B so any alternative construction can
+be applied; the verdicts that rest on these intervals clear their
+margins by multiples of the interval width, and the one
+threshold-adjacent reading (Section 5.2) is reported as an unconfirmed
+trend.
+
 ## 2.5 Instrument Validity as a First-Class Method
 
 Each leg of this program survived at least one

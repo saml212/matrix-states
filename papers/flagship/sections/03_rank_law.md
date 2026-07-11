@@ -49,8 +49,11 @@ $\rho(g) \oplus I_{d_{state}-d_{\min}}$: an eye-padded block matrix of
 full rank $d_{state}$ with all singular values equal to one. For such a
 target, a rank-$k$ model's optimal direct cosine is $\sqrt{k/d_{state}}$
 independent of which subspace it spends its rank on, and the harvest
-matched this prediction: 37 of 39 force-rank cells sat within 0.07 of
-the predicted ceiling <!-- evidence: R1b -->. Rank-capped models were
+matched this prediction: 36 of 39 force-rank cells sat within 0.07 of
+the predicted ceiling, one further cell sat marginally outside at
+0.072, and the two remaining outliers (0.15 and 0.17, both in one
+group's below-$d_{\min}$ arm) reflect an additional optimization
+shortfall <!-- evidence: R1b -->. Rank-capped models were
 buying cosine from the identity padding, so the causal boundary at
 $d_{\min}$ was never tested. The fix replaced the padding with zeros,
 making the target rank exactly $d_{\min}$, and the decisional metric was

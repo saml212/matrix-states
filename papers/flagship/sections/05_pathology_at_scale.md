@@ -76,7 +76,10 @@ and $+0.019$, a sign flip, on the other <!-- evidence: R8 -->: the
 stabilization it bought at small scale decays toward zero and loses
 its sign. Meanwhile the constructions are free at the loss level:
 validation-loss neutrality passes its blind-pinned ceiling in all
-eight gate cells <!-- evidence: R8 -->. What transfers to scale is the
+eight gate cells under the pre-registered arm-mean criterion; one
+individual seed in the 98M narrative-mix cell reads 3.2038 against the
+3.2020 ceiling while its arm mean (3.1961) passes
+<!-- evidence: R8 -->. What transfers to scale is the
 neutrality; what does not transfer is the fix. One caveat bounds the
 cross-scale comparison: the 392M cells ran a reduced token budget, so
 the apparent 98M-to-392M attenuation is confounded with tokens by
@@ -85,9 +88,9 @@ registered claims <!-- evidence: R8 -->.
 
 ## 5.4 Two Faces of One Mechanism
 
-Sections 3 and 4 show the delta-rule write is what stores: recruited
-rank sits at the task minimum in the encoder family, and zeroing the
-written state deletes the capability in the delta-rule contender. This
+Sections 3 and 4 show the matrix state is what stores: recruited
+rank sits at the task minimum in the encoder family, and in the
+delta-rule contender, zeroing the written state deletes the capability. This
 section shows the same write, iterated over a corpus at scale, drags
 its own key population toward collapse, and that the one construction
 known to stabilize the geometry at 14M buys nothing at 98M and 392M

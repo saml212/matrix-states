@@ -18,10 +18,19 @@ reshape, so matrix structure and not merely parameter count is the
 manipulated variable. The transformer baseline is a two-layer pre-norm
 decoder with rotary position embeddings and the contender's own MLP
 class, FLOP-matched to the contender within 5 percent
-<!-- evidence: R0 -->; its learning rate was selected on a calibration
-cell from a three-point grid and frozen at $10^{-3}$ before the sweep
-<!-- evidence: R0 -->. All arms train 20,000 steps at matched tokens
-with seeds identical across arms per cell <!-- evidence: R0 -->.
+<!-- evidence: R0 -->. On this task its learning rate was the shared
+default $3 \times 10^{-4}$, identical to the contender's and the
+ablation's <!-- evidence: R0 -->; the calibration record's three-point
+learning-rate grid was run on the language-modeling control task, and
+no architecture-specific learning-rate search was performed for the
+transformer on the recall task <!-- evidence: R0 -->. Its recall-task
+training loss is near flat across the run (7.81 to 7.84 at step 500,
+7.45 to 7.51 at step 20,000, across the three seeds)
+<!-- evidence: R4a -->, a signature consistent with an under-optimized
+arm; Sections 6 and 7 state the resulting interpretive limit and the
+measurement that would resolve it. All arms train 20,000 steps at
+matched tokens with seeds identical across arms per cell
+<!-- evidence: R0 -->.
 Verdict tiers, margins, and the primary task were frozen and checksummed
 before the confirmatory sweep launched (a WIN requires the paired
 per-seed difference's 95 percent confidence interval to exclude 0.30);
@@ -78,8 +87,10 @@ inert for this task.
 Where the content becomes readable is a separate question with an
 instructive answer. Ridge probes at three state-level taps, including
 directly on the causally load-bearing $S_0$, recover nothing at the
-strict threshold ($\mathrm{rf@0.9} = 0.0$ at every state-level tap, with
-shuffled-control gaps of at most 0.063) <!-- evidence: R5 -->. The same
+strict threshold ($\mathrm{rf@0.9} = 0.0$ at every state-level tap; the
+accompanying shuffled-control gaps of at most 0.063 are mean-cosine
+gaps, a separate continuous sanity check on a different scale from
+$\mathrm{rf@0.9}$) <!-- evidence: R5 -->. The same
 probe at the post-block-1, pre-LM-head hidden state reads
 $\mathrm{rf@0.9} = 0.674$ with mean cosine 0.894 <!-- evidence: R5 -->.
 The ablation's pre-LM-head tap, its own positive control, fails
@@ -100,7 +111,8 @@ with distance: at horizons of 2, 4, and 8 times the bind phase (454,
 902, and 1798 tokens), every seed reads $\mathrm{acc}_A \ge 0.998$
 <!-- evidence: R10 -->. The pre-registered memory-matched comparison
 caps the transformer's KV cache at $M$ times the contender's state
-bytes with sink-plus-FIFO eviction, $M \in \{1, 2, 4, 8, 16, 32\}$;
+bytes with sink-plus-FIFO eviction in the style of streaming attention
+caches (Xiao et al., 2023), $M \in \{1, 2, 4, 8, 16, 32\}$;
 every capped read at the decision horizon lies between 0.020 and 0.033,
 at or below chance, as does the uncapped read <!-- evidence: R10 -->.
 Every per-$M$ paired-gap confidence interval has a floor of at least
@@ -124,10 +136,18 @@ seeds read chance), the paired interval straddles the margin
 <!-- evidence: R4 -->, the bar-clearing seed's partial recall does not
 generalize to held-out hop depths (0.0112) <!-- evidence: R4 --> and
 collapses to 0.010 at every extended horizon <!-- evidence: R10 -->.
-The single bar-clearing seed shows the failure mode is at least partly
-trainability variance rather than a hard capability boundary; a
-pre-registered diagnosis round is in flight and nothing beyond
-single-hop recall is claimed here.
+The single bar-clearing seed suggested the failure mode is at least
+partly trainability variance rather than a hard capability boundary,
+and the pre-registered diagnosis round confirmed this: across nine
+pooled seeds, three contender seeds clear the demonstration bar (0.334,
+0.391, 0.479) while zero of nine ablation seeds do; the
+hard-capability-boundary hypothesis is rejected for this task at this
+scale and budget <!-- evidence: R11 -->. The pooled paired interval
+$(-0.020, +0.268)$ sits below the 0.30 margin and the strict-tier
+reading is a TIE, flagged non-decision-grade by a pre-registered
+batch-effect gate <!-- evidence: R11 -->; every bar-clearing seed
+remains fragile at held-out hop depths and extended horizons. Nothing
+beyond single-hop recall is claimed here.
 
 **Figure 3 caption.** Left: episodic recall $\mathrm{acc}_A$ per seed
 and arm at matched parameters, tokens, and compute ($K{=}32$ bindings;

@@ -6,10 +6,15 @@ matrix-state encoder family (the Section 3 substrate's sibling trained
 on parallel key-value binding), the trained state decomposes as
 $Z \approx c^{*} I_d + \Delta$, where $\Delta$ is a rank-$(K{-}1)$ task
 correction: the whole-state law holds at 0.5 to 2.9 percent Frobenius
-residual, with per-example identity alignment $\tau \ge 0.9997$ and
-effective rank of $Z - c^{*} I$ within 0.3 of the $K{-}1$ target at
-both tested loads <!-- evidence: R9 -->. The scaffold is emergent: the
-architecture has no identity path or output gain that parameterizes it.
+residual, with per-example identity alignment $\tau \ge 0.9997$
+<!-- evidence: R9 -->. The effective rank of $Z - c^{*} I$ sits within
+0.3 of the $K{-}1$ target at the $K{=}8$ load (deviations 0.03 to
+0.26); at the $K{=}12$ load the three converged runs read 10.22 to
+10.41 against the target of 11, deviations of 0.59 to 0.78
+<!-- evidence: R9 -->. The rank-$(K{-}1)$ characterization is therefore
+exact-order at the lighter load and approximate at the heavier one. The
+scaffold is emergent: the architecture has no identity path or output
+gain that parameterizes it.
 
 Two properties make it useful and bound it. First, deviation from the
 scaffold is a loss-blind health signal: the Procrustes residual of the
