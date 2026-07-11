@@ -11,7 +11,11 @@ transfers to production-scale gated variants
 at language-model scale \citep{mishra2026m2rnn}, or to natural language.
 The per-byte conservation reading of Table~\ref{tab:bytes} rests on two
 located points plus one in-window bound; it is a measured regularity over
-$d_{\mathrm{state}} \in [64, 96]$, not a law.
+$d_{\mathrm{state}} \in [64, 96]$, not a law. Every cell is trained for a
+fixed budget of $20{,}000$ steps; whether the located transitions move
+under a substantially larger training budget is untested, so the reported
+frontier is a trained-at-fixed-budget capacity frontier, not a storage
+bound.
 
 \paragraph{The held-out axis is hop depth, not entity identity.} Every
 $h4$ measurement in this paper draws its queried entities from the same
