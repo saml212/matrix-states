@@ -1,0 +1,52 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2026_conference,times}
+% ICLR 2026 kit as the sanctioned stand-in for ICLR 2027 (papers/flagship/
+% venue-requirements.md); swap in the official iclr2027 kit when it ships.
+
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+
+\graphicspath{{../figures/}}
+
+\title{[WORKING TITLE --- PI] The Matrix State Is Real: Minimal-Rank
+Recruitment, a Recall Capability Baselines Lack, and a Scale-Worsening
+Write-Geometry Pathology}
+
+% [AUTHORS --- PI decision pending]. The named (arXiv) build sets
+% \iclrfinalcopy and fills the author block; the ICLR submission build
+% leaves it anonymized (kit default).
+\author{Anonymous authors\\
+Paper under double-blind review}
+
+\iclrfinalcopy % named arXiv build; COMMENT OUT for the ICLR submission
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+\input{sections/01_introduction}
+\input{sections/02_background_setup}
+\input{sections/03_rank_law}
+\input{sections/04_capability_separation}
+\input{sections/05_pathology_at_scale}
+\input{sections/06_related_work}
+\input{sections/07_discussion_limitations}
+\input{sections/08_conclusion}
+
+\bibliography{../references}
+\bibliographystyle{iclr2026_conference}
+
+\appendix
+\input{sections/09_appendix_a_complement}
+\input{sections/10_appendix_b_reproducibility}
+
+\end{document}

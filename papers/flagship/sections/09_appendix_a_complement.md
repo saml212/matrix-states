@@ -16,13 +16,13 @@ exact-order at the lighter load and approximate at the heavier one. The
 scaffold is emergent: the architecture has no identity path or output
 gain that parameterizes it.
 
-Two properties make it useful and bound it. First, deviation from the
-scaffold is a loss-blind health signal: the Procrustes residual of the
-complement correlates with held-out task cosine at Spearman
-$\rho = -0.973$ across all eleven archived runs <!-- evidence: R9 -->,
-read entirely from a subspace the loss never constrains, so it can
-grade convergence without labels. Second, the scaffold does not exist
-where Sections 4 and 5 live: in delta-rule states the orthogonal
+The scaffold earns its keep as a loss-blind health signal: the
+Procrustes residual of the complement correlates with held-out task
+cosine at Spearman $\rho = -0.973$ across all eleven archived runs
+<!-- evidence: R9 -->, read entirely from a subspace the loss never
+constrains, so it can grade convergence without labels. Its boundary
+is architectural, because the scaffold does not exist where Sections 4
+and 5 live: in delta-rule states the orthogonal
 complement channel is numerically empty (complement energy fraction at
 most $3.2 \times 10^{-12}$ across 12 of 12 production-family runs
 <!-- evidence: R9 -->), because outer-product writes confine the state

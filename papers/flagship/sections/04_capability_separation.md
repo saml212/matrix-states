@@ -13,9 +13,9 @@ ablation keeps the embedding table, output head, and feed-forward
 blocks identical and replaces only the fast-weight mixer with an
 elementwise-gated vector recurrence at the same $d_{state}$
 (14,048,384 parameters, a 0.007 percent difference
-<!-- evidence: R0 -->); it is constructed as a recurrence, not a
-reshape, so matrix structure and not merely parameter count is the
-manipulated variable. The transformer baseline is a two-layer pre-norm
+<!-- evidence: R0 -->); it is constructed as a recurrence rather than a
+reshape, which makes matrix structure the manipulated variable at
+near-identical parameter count. The transformer baseline is a two-layer pre-norm
 decoder with rotary position embeddings and the contender's own MLP
 class, FLOP-matched to the contender within 5 percent
 <!-- evidence: R0 -->. On this task its learning rate was the shared
@@ -61,13 +61,12 @@ first by more than three times the margin at its floor
 below bar, or any interval straddling the margin) did not fire
 <!-- evidence: R4 -->.
 
-Two caveats are part of the claim. First, the Nichani caveat stated in
-Section 2.3: recall means episode-restricted top-1 retrieval under
-argmax decoding, under which a rank-one state can support on the order
-of $d$ associations; nothing here is a rank or continuous-capacity
-claim. Second, the matched-budget caveat: the transformer read holds
-only at this matched parameter count, token budget, and training
-compute. Because the transformer sits below its own demonstration bar,
+The Nichani caveat of Section 2.3 is part of the claim: recall means
+episode-restricted top-1 retrieval under argmax decoding, under which a
+rank-one state can support on the order of $d$ associations, so nothing
+here is a rank or continuous-capacity claim. So is the matched-budget
+caveat: the transformer read holds only at this matched parameter
+count, token budget, and training compute. Because the transformer sits below its own demonstration bar,
 it is recorded as a degenerate-baseline datum, and the separation
 verdict is carried by the ablation comparison with the transformer's
 non-competitiveness disclosed alongside <!-- evidence: R4 -->.
@@ -84,8 +83,8 @@ bar, and the hard-stop criterion is clean in 12 of 12 recurrent cells
 <!-- evidence: R4 -->. The binding lives in $S_0$; $S_1$ is causally
 inert for this task.
 
-Where the content becomes readable is a separate question with an
-instructive answer. Ridge probes at three state-level taps, including
+Where the content becomes readable is a separate question. Ridge
+probes at three state-level taps, including
 directly on the causally load-bearing $S_0$, recover nothing at the
 strict threshold ($\mathrm{rf@0.9} = 0.0$ at every state-level tap; the
 accompanying shuffled-control gaps of at most 0.063 are mean-cosine

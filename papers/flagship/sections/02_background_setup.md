@@ -46,8 +46,8 @@ injectivity-guarded) over a 224-token bind phase, then queries one key
 episode-restricted 32-way top-1 accuracy at the answer position, read
 through each model's own LM-head route; chance is $1/32 = 0.03125$ and
 the pre-registered demonstration bar is three times chance, 0.09375
-<!-- evidence: R0 -->. One caveat travels with every $\mathrm{acc}_A$
-number in this paper: recall here means episode-restricted top-1
+<!-- evidence: R0 -->. Every $\mathrm{acc}_A$ number in this paper
+carries the same caveat: recall here means episode-restricted top-1
 retrieval under argmax decoding, and under argmax a rank-one state can
 support on the order of $d$ associations (Nichani et al., 2024); no
 rank or continuous-capacity claim is made from $\mathrm{acc}_A$.

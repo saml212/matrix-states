@@ -1,10 +1,11 @@
 # 3 The Rank Law
 
 This section establishes that the trained matrix state's dimensionality
-is set by the task's representation theory: observationally (the
-recruited rank tracks $d_{\min}$), dissociatively (a designed pair
-separates dimension from solvability), and causally (forcing rank below
-$d_{\min}$ destroys the task; restoring $d_{\min}$ restores it).
+is set by the task's representation theory. The evidence runs from
+observation (recruited rank tracks $d_{\min}$) through a designed
+dissociation (the $S_4$/$A_5$ pair separates dimension from
+solvability) to causation: forcing rank below $d_{\min}$ destroys the
+task, and restoring $d_{\min}$ restores it.
 
 ## 3.1 Recruited Rank Tracks Minimal Faithful Dimension
 
@@ -12,13 +13,12 @@ Figure 1 shows recruited restricted effective rank against $d_{\min}$
 for the five groups, per seed. The per-group means are 1.877 ($S_3$),
 2.852 ($S_4$), 2.832 ($A_5$), 3.591 ($S_5$), and 4.736 ($A_6$) against
 $d_{\min} = 2, 3, 3, 4, 5$ <!-- evidence: R1 -->. Spearman correlation
-across the family is $\rho = 0.9747$ <!-- evidence: R1 -->. Two
-properties of this number matter. First, it is the maximum the family
-permits: the $S_4$/$A_5$ tie at $d_{\min}=3$ caps the achievable
-midrank-adjusted $\rho$ at exactly 0.9747, and the observed ordering
-attains that cap <!-- evidence: R1 -->. Second, the family has only five
-members, so we report the exact permutation null rather than an
-asymptotic one: under the null, $P(\rho \ge 0.8) = 8/120 \approx 6.67\%$
+across the family is $\rho = 0.9747$ <!-- evidence: R1 -->. This number
+is the maximum the family permits: the $S_4$/$A_5$ tie at $d_{\min}=3$
+caps the achievable midrank-adjusted $\rho$ at exactly 0.9747, and the
+observed ordering attains that cap <!-- evidence: R1 -->. Because the
+family has only five members, we report the exact permutation null
+rather than an asymptotic one: under the null, $P(\rho \ge 0.8) = 8/120 \approx 6.67\%$
 <!-- evidence: R1 -->. The correlation is therefore suggestive on its
 own and is not asked to carry the section; the band criterion and the
 causal test below carry it. All 19 unconstrained-arm cells in the sweep
@@ -37,8 +37,9 @@ spacing). The result is a declaration of equivalence: mean difference
 0.0194 rank-units (2.852 versus 2.832), standard error 0.0368, $df =
 7.83$, with both one-sided statistics ($t_1 = 13.06$, $t_2 = 14.12$)
 exceeding the critical value 1.865 by a factor of seven
-<!-- evidence: R2 -->. Recruited rank follows the representation
-dimension of the task, not the group's algebraic complexity class.
+<!-- evidence: R2 -->. Recruited rank tracks the representation
+dimension of the task; the group's algebraic complexity class
+contributes nothing detectable.
 
 ## 3.3 An Instrument Defect, Its Diagnosis, and the Repaired Causal Test
 

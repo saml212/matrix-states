@@ -1,16 +1,18 @@
 # 8 Conclusion
 
-Matrix-valued state representations are a representational medium with
-measurable laws, not an implementation detail of efficient attention.
-In a matrix-state encoder family, recruited dimensionality equals the
-task's minimal faithful representation dimension, causally in both
-directions. In a two-layer delta-rule model, the first layer's state
-carries an episodic-recall capability that a parameter-matched
-vector-state ablation lacks at equal budget, stored nonlinearly and
-read out only downstream, with a compute-matched transformer disclosed
-as a degenerate baseline. And in delta-rule language models, the writes
-that store also drag the key population toward collapse, more at every
-scale tested, unmoved by the stock normalization and unrescued at scale
-by the one construction that worked small. Capability and pathology are two faces of one storage
-mechanism, and any future architecture that keeps the medium will
-inherit both faces until the geometry is addressed directly.
+A $d \times d$ state written by outer products is a measurable
+representational medium, and its laws come with explicit substrates.
+Recruited dimensionality equals the task's minimal faithful
+representation dimension in the matrix-state encoder family, causally
+in both directions. Episodic recall lives, nonlinearly, in the first
+layer's state of a two-layer delta-rule model, where a
+parameter-matched vector-state ablation reads chance at equal budget
+and a compute-matched transformer stands as a degenerate baseline.
+Collapse of the write-key population grows with every scale tested in
+delta-rule language models, indifferent to qk normalization and
+unrescued at scale by the one construction that worked small.
+Capability and pathology are two faces of one storage mechanism. The
+design consequence is that interventions aimed at the geometry must
+operate on the write rule itself rather than on its normalizers, and
+the negative transfer result of Section 5 is the first measured
+constraint on that search.

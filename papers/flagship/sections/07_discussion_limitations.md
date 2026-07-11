@@ -53,9 +53,10 @@ generalization is future work, stated as such.
 **Instrument validity as a recurring risk.** Three times in this
 program (Sections 2.5, 3.3, 4.3), the first instrument pointed at a
 true phenomenon read false. In each case the repair was cheaper than
-the conclusion it prevented: a zero-pad flag, a tap relocation, a
-pre-registered crosscheck. Representational claims about matrix states
-need analytic anchors, negative controls, and pre-registered
-crosschecks, because both false negatives (a linear probe at the wrong
-tap) and false positives (an identity block sold as recovery) arise
-from instrument choice alone at this scale.
+the conclusion it prevented: a zero-pad flag in the first, a tap
+relocation in the second, a pre-registered crosscheck in the third.
+Representational claims about matrix states need analytic anchors,
+negative controls, and pre-registered crosschecks, because both false
+negatives (a linear probe at the wrong tap) and false positives (an
+identity block sold as recovery) arise from instrument choice alone at
+this scale.

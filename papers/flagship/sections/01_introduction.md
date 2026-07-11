@@ -12,9 +12,9 @@ exclusively on one axis: quality per unit of compute or memory relative
 to attention. The state itself is treated as an implementation detail.
 
 We take the opposite view. A $d \times d$ state is not a cheaper cache;
-it is a representational medium with its own capacity structure, its own
-causal role, and its own failure modes, none of which appear on a
-perplexity leaderboard. This paper measures all three, under
+it is a representational medium with its own capacity structure, causal
+role, and failure modes, none of which appear on a perplexity
+leaderboard. This paper measures all three, under
 pre-registered verdict criteria, across three experimental programs that
 share one object of study: what the matrix state stores.
 

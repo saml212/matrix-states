@@ -7,7 +7,8 @@ this paper derives a rank or capacity claim from argmax recall: the
 rank law of Section 3 forces exact continuous recovery through a
 Procrustes-aligned cosine readout, and every argmax recall number in
 Section 4 carries their caveat explicitly. Their analysis is the reason
-our causal razor is decode-proof rather than decode-laundered.
+the causal razor of Section 3 refuses argmax decoding anywhere a rank
+claim depends on it.
 
 **Associative recall in transformers.** Multi-query associative recall
 is a regime where softmax attention is documented as strong: Arora et

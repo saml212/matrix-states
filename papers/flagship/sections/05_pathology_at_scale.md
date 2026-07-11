@@ -22,7 +22,7 @@ the largest model halfway to collapse. Because the data mixes are held
 fixed across rungs, scale is the only moving axis
 <!-- evidence: R6 -->.
 
-One disclosure attaches to the top rung. The 1.31B cells self-terminated
+The top rung carries a disclosure: the 1.31B cells self-terminated
 at their internal timeout at approximately 84.7 percent of the
 token-matched budget <!-- evidence: R6 -->. The shortfall does not
 rescue the trend: over the final 25,000 recorded steps the rung's span
@@ -32,7 +32,7 @@ by roughly 0.003, more than twenty times smaller than the 0.066
 increment from the previous rung <!-- evidence: R6 (derived:
 0.4584-0.4554 and 0.455-0.389) -->.
 
-## 5.2 The Stock Mitigation Is Not the Cause, and Gating Is Not the Cure
+## 5.2 Removing qk Normalization Changes Nothing; Gating Trends Toward Amplification
 
 The entire ladder was trained with qk normalization active, the same
 in-kernel key normalization that production linear-attention stacks
@@ -81,14 +81,14 @@ validation-loss neutrality passes its blind-pinned ceiling in all
 eight gate cells under the pre-registered arm-mean criterion; one
 individual seed in the 98M narrative-mix cell reads 3.2038 against the
 3.2020 ceiling while its arm mean (3.1961) passes
-<!-- evidence: R8 -->. What transfers to scale is the
-neutrality; what does not transfer is the fix. One caveat bounds the
-cross-scale comparison: the 392M cells ran a reduced token budget, so
+<!-- evidence: R8 -->. The neutrality transfers to
+scale. The fix does not. The 392M token budget bounds the
+cross-scale comparison: those cells ran a reduced budget, so
 the apparent 98M-to-392M attenuation is confounded with tokens by
 design and is not a registered claim; the within-scale readings are the
 registered claims <!-- evidence: R8 -->.
 
-## 5.4 Two Faces of One Mechanism
+## 5.4 The Same Write Stores and Collapses
 
 Sections 3 and 4 show the matrix state is what stores: recruited
 rank sits at the task minimum in the encoder family, and in the
@@ -98,9 +98,9 @@ its own key population toward collapse, and that the one construction
 known to stabilize the geometry at 14M buys nothing at 98M and 392M
 while costing nothing in loss. No fix is offered here: the community's
 stock mitigation is orthogonal to the phenomenon, and the obvious
-portable construction fails to port. The pathology is
-a property of the storage mechanism as scaled, not of a particular
-stabilizer choice, and it is currently unaddressed.
+portable construction fails to port. The pathology belongs
+to the storage mechanism as scaled; no stabilizer choice tested here
+explains it away, and it is currently unaddressed.
 
 **Figure 5 caption.** Write-key span fraction versus model scale
 (14M, 98M, 392M, 1.31B parameters; log-scale abscissa) on held-fixed
