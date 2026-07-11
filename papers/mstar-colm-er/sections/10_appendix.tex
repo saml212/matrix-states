@@ -50,11 +50,10 @@ transformer arms drop to 7.83 and 7.84 by step 500 and move only to 7.69
 and 7.51 over the remaining 19{,}500 steps; the matrix fast-weight arm
 keeps falling for the entire run, reaching
 1.38. % <!-- evidence: C11 -->
-Learning rate ($3\times10^{-4}$), warmup, and auxiliary-loss weighting
-were shared across the three architecturally distinct mixers and were not
-independently tuned per arm; a per-architecture learning-rate sensitivity
-sweep was not run. The claim in Section~\ref{sec:recall} is scoped to
-this shared training budget accordingly.}
+Hyperparameters are the shared settings of Section~\ref{sec:setup}; no
+per-architecture learning-rate sensitivity sweep was run, and
+Section~\ref{sec:recall} scopes its claim to this shared budget
+accordingly.}
 \label{fig:traincurve}
 \end{figure}
 
