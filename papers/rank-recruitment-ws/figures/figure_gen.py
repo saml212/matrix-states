@@ -14,7 +14,7 @@ Usage (from the repo root, local machine — archives are local):
         --out papers/rank-recruitment-ws/figures --repo .
 
 Figures:
-    fig_forcerank.pdf — evidence row R2 (991-run Task D snapshot, M3 grid)
+    fig_forcerank.pdf — evidence row R2 (archived Task D snapshot, M3 grid)
     fig_depth.pdf     — evidence rows R3/R4 (Task E zdump archive)
 """
 
@@ -41,7 +41,7 @@ TASKD_AGG = "matrix-thinking/chapter2/results/overnight_snapshots/AGGREGATE_late
 ZDUMP = "experiment-runs/2026-07-02_task_e_zdump/task_e_40k_zdump"
 
 SOURCE_MD5 = {
-    # --- R1/R2: 991-run Task D snapshot (M1 + M3 grids) ---
+    # --- R1/R2: archived pre-registered Task D snapshot (M1 + M3 grids) ---
     TASKD_AGG: "c0a7d27e33a606d81e1babfc5d674edb",
     # --- R3: five unconstrained Task E seeds (per-hop recovery) ---
     f"{ZDUMP}/t1_matrix_permutation_K8_frN_s0.json": "5ecaaeb8fe649f209cd41c35ba95c082",
@@ -104,7 +104,7 @@ def per_hop(run_json, field):
 def fig_forcerank(repo, outdir):
     """R2: the causal force-rank staircase, three (d, K) cells."""
     agg = load_checked(repo, TASKD_AGG)
-    assert agg.get("n_runs") == 991, "expected the 991-run pre-registered snapshot"
+    assert agg.get("n_runs") == 991, "wrong snapshot: n_runs mismatch vs the pre-registered archive"
     m3 = agg["M3_recovered_frac@0.9_vs_forcerank"]
 
     cells = [
@@ -185,7 +185,7 @@ def fig_depth(repo, outdir):
     ax2.set_xlabel(r"hop $h$")
     ax2.set_ylabel(r"rec@0.9")
     ax2.set_ylim(-0.03, 1.08)
-    ax2.set_title("recovered fraction is the sharper depth probe", fontsize=8)
+    ax2.set_title("exact-match recovery collapses under depth", fontsize=8)
     ax2.legend(loc="lower left", frameon=False)
 
     fig.tight_layout()
