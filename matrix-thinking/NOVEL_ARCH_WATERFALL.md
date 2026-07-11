@@ -1579,3 +1579,161 @@ confirmed at both K and P1 5/5 at K=8 / P1-K12's straddle leg refuted in
 favor of the conservative bound. The wave-2/operator-bank go/no-go
 returns to the coordinator with this record; the operator bank remains
 separately ledgered and double-gated (M4), untouched.**
+
+### §7h K=12 SEED-EXTENSION — PRE-REGISTRATION (2026-07-11, before any
+GPU touched)
+
+§7g's own text names the path: "a future K=12 seed-extension moves the
+K=12 band." This section pre-registers that extension exactly, per the
+`h2h` §1.8 seed-extension template (extension seeds only, cost disclosed
+up front, outcome map fixed BEFORE the readout — never re-argued
+post-hoc) and MA3's asymmetric-confidence machinery (§3.2, classify each
+seed from its own locked calibration residual BEFORE any far-h eval,
+score leg-by-leg).
+
+**(1) Scope.** N=5 fresh NCR-arm seeds at K=12 — seeds **5, 6, 7, 8, 9**
+(never used at K=12; seeds 0-4 are the archived §7g pool) — 80,000
+steps, the IDENTICAL frozen config §7f/§7g ran (`ncr_task.py` md5
+`3c664c0c0571fc361692edd220ab21d2`, `run_ncr.py` md5
+`77545140b59295121f7f55afbe1c7b6a`, `ncr_models.py`/`ncr_spectral.py`
+unchanged — re-verified byte-identical against the box, this session,
+before writing this section). **NCR arm only.** LoopedVec and FWM are
+settled per §7g (`fwm` median 0.270, `loopedvec` median 0.0 at h\*=57,
+both FAIL band) and are explicitly NOT re-run — mi6/§7d's own
+no-baseline-swap-or-addition rule extends here by the same logic: an
+already-scored comparison-of-record arm does not get a second sample
+just because the contender is being extended.
+
+**(2) Per-seed locked prediction, scored leg-by-leg (MA3 machinery,
+reused verbatim).** Every trained ncr cell's pipeline (`run_ncr.py`
+`run_cell`, lines 578-618) writes the Axis-C lock —
+`mean_predicted_curve`, `phase_resid_max_mean`, and (K=12 only)
+`k12_confidence_class` via the pinned `ncr_spectral.k12_confidence_class`
+thresholds (`K12_PREDICTED_HOLD_DELTA=0.0079`, `K12_STRADDLE_DELTA=
+0.0311`, unchanged) — BEFORE `eval_cell` runs the far-h ladder/h\*
+behavioral eval, and the lock is hash-verified (`verify_axis_c_lock`) on
+read. This satisfies MA3's "locked before far-h eval" duty **by
+construction**, exactly as §7f recorded for the original 5. The scoring
+procedure, fixed now: for each of the 5 new seeds, read
+`k12_confidence_class` + `phase_resid_max_mean` from its `.axis_c_lock.
+json` and RECORD the class (PREDICTED-HOLD / STRADDLE / PREDICTED-FAIL)
+as the seed's locked prediction; only then read `recovered_frac@0.9` at
+h\*=57 from `eval.points` and classify HOLD (≥0.9) / not-hold (<0.9).
+Score three legs, both for the 5 new seeds alone and pooled with the 5
+archived seeds into a 10-seed tally: **(i)** every PREDICTED-HOLD seed
+holds; **(ii)** no PREDICTED-FAIL seed holds; **(iii)** at least
+`ceil(n_STRADDLE / 2)` STRADDLE seeds hold. The archived pool's own
+locked classes (re-stated, never re-scored): s0 STRADDLE (δ=0.0125,
+FAILED to hold, 0.149), s1 PREDICTED-HOLD (δ=0.0044, held, 1.000), s2
+STRADDLE (δ=0.0099, held, 0.753 ≥0.9? **no** — 0.753 < 0.9, so s2 is
+scored not-hold for THIS leg-tally even though its DEGRADED-band value
+feeds Axis-A's median differently; leg-scoring uses the 0.9 threshold
+directly, band assignment is a separate downstream step), s3
+PREDICTED-FAIL (δ=1.41, dead/not-hold, 0.000), s4 PREDICTED-HOLD
+(δ=0.0028, held, 1.000).
+
+**(3) Pooled Axis-A outcome map, on the frozen §3.2a text, quoted
+verbatim.** "Per-arm numeric band at h\*, on median recovered_frac@0.9
+across seeds: **HOLD ≥ 0.9; DEGRADED ∈ (0.5, 0.9); FAIL ≤ 0.5**" and the
+9-cell (NCR band, best-baseline band) table: `(HOLD,FAIL)=WIN`,
+`(DEGRADED,FAIL)=SEP-PARTIAL`, `(FAIL,FAIL)=TIE` (the three cells
+reachable here, since best-baseline stays FAIL — see below). Cross-K
+rule, also quoted verbatim: `WIN+WIN=WIN`, `WIN+SEP-PARTIAL=WIN-PARTIAL`,
+`WIN+TIE=WIN-PARTIAL`. K=8 is frozen at WIN (§7e). The pooled ncr median
+is computed over all 10 seeds' recovered_frac@0.9 at h\*=57 (order
+statistics: for n=10, median = mean of the 5th and 6th ascending
+values); best_baseline_band is recomputed by the SAME extended harvest
+against the SAME 5 archived loopedvec/fwm cells (unmodified, unrerun) —
+it is mathematically fixed at **FAIL** (0.0 and 0.270, both ≤0.5;
+nothing about extending the ncr arm can move it) unless the harvest
+code has a defect, which the audit below checks.
+
+Derivation (order-statistics, not invented — the archived 5 raw values
+are 0.000, 0.149, 0.753, 1.000, 1.000; 2 already HOLD, 3 already
+sub-0.9):
+
+- **Pooled HOLD, guaranteed** (→ K=12 label **WIN** → cross-K
+  **WIN+WIN=WIN**, the full unqualified capability headline, upgrading
+  from WIN-PARTIAL): if **≥4 of the 5 new seeds** hold (recovered_frac@
+  0.9 ≥ 0.9 at h\*=57) — this leaves at most 4 of the pooled 10 below
+  0.9, which forces both the 5th and 6th ascending order statistics
+  into the ≥0.9 group, so the median is guaranteed ≥0.9 regardless of
+  the exact sub-0.9 values. Sufficient, not necessary — the literal
+  computed median is the scoring rule of record, this is a planning
+  aid.
+- **Pooled FAIL, guaranteed** (→ K=12 label **TIE** → cross-K
+  **WIN+TIE=WIN-PARTIAL**, SAME overall label as today, even though the
+  per-K band itself moved down): if **≥4 of the 5 new seeds** fail
+  (recovered_frac@0.9 ≤ 0.5 — i.e. more dead/stuck seeds, the archived
+  trainability-variance class, K=16 precedent 2/5 stuck) — this pushes
+  ≥6 of 10 pooled values to ≤0.5, forcing both middle order statistics
+  ≤0.5.
+- **Otherwise (the modal expectation** — MA3's own text: "archived
+  analogs predict a seed mix of roughly 1/3 PREDICTED-HOLD, 2/3
+  STRADDLE," i.e. most new seeds land DEGRADED-ish, not clean holds or
+  clean fails): pooled median stays in (0.5, 0.9) → K=12 label stays
+  **SEP-PARTIAL** → cross-K stays **WIN-PARTIAL**, UNCHANGED from
+  §7g's recorded verdict, but now resting on n=10 instead of n=5 —
+  reported as a firmed-up, not moved, verdict.
+
+**Explicit statement per the charter: cross-K moves to the full WIN
+headline ONLY in the guaranteed-pooled-HOLD case above; every other
+reachable outcome (stays SEP-PARTIAL, or drops to TIE) leaves the
+recorded cross-K label at WIN-PARTIAL — §7g's WIN-PARTIAL is NOT at
+risk of downgrading to TIE or LOSE from this extension, because the
+best-baseline band cannot move (it is not re-run) and NCR's band can
+only move within {FAIL, DEGRADED, HOLD}, none of which pairs with a
+frozen FAIL baseline to anything worse than SEP-PARTIAL.** **NO K=8
+number changes:** K=8's 18/18 cells (§7e, `experiment-runs/
+2026-07-11_ncr_wave1/wave1_verdict.json`) are untouched, unread, and
+unrerun by this extension; the K=8 label stays WIN, closed, not part of
+this wave's scope.
+
+**(4) Cost.** Conservative (breaker-ceiling) projection, matching the
+§7f-pinned rate exactly (identical config ⇒ identical breaker):
+5 × 1.678 ≈ **8.4 GPU-h** ceiling. Informed projection from the
+MEASURED §7g ncr-arm-specific realized rate (this session, read from
+the 5 archived `ncr_ncr_K12_s*.json` `gpu_h` fields: 1.1422, 1.1422,
+1.1422, 1.1642, 1.1643 — mean ≈ **1.151 GPU-h/cell**): serial-sum ≈
+**5.76 GPU-h**; device draw ≈ the same (one cell per GPU, no
+co-location contention planned — see §7i launch mechanics) ⇒ wall
+≈ 1.15 h. Ledger: 120 GPU-h cap, §7g realized ≈40.2 serial-sum / ≈18.9
+device; after this extension ≈46.0-48.6 serial-sum / ≈24.7-27.3 device
+— inside the cap with more than 70 GPU-h of headroom untouched, and
+this wave is NOT charged against either closed wave-1/wave-2 50-GPU-h
+sub-cap (both already closed at their own totals; this is a new,
+separately-ledgered Phase-2-extension line item against the overall
+120 only).
+
+**Harvest-code note, pre-registered (audited before use, per CLAUDE.md
+"the implementer does not review their own work"):** the committed
+`wave1_harvest.py` requires a UNIFORM `--expect-seeds` across ncr/
+loopedvec/fwm; the pooled read needs ncr=10 against loopedvec=fwm=5. The
+planned change is a minimal, additive `--expect-seeds-ncr` override
+(defaults to `--expect-seeds`, so every EXISTING invocation — the K=8
+and K=12 wave harvests already on record — is byte-for-byte unchanged);
+teeth = (a) replay the modified script against the two ALREADY-ARCHIVED
+result directories (`experiment-runs/2026-07-11_ncr_wave1/`,
+`experiment-runs/2026-07-11_ncr_phase2/`) with the OLD-style invocation
+and diff the output against the archived `wave1_verdict.json`/
+`phase2_verdict.json` byte-for-byte (regression: proves the change
+altered nothing for existing call sites); (b) an executed positive +
+negative (kill-proof) unit test of the new per-arm count-resolution
+function in isolation. An independent (opus-tier) agent audits the diff
++ executed test output before the harvest is trusted for the real
+pooled read.
+
+**EXECUTION (this section commits BEFORE any of it runs):** per-arm
+(ncr-only, since baselines don't re-run) micro end-to-end test at K=12,
+reduced steps, one fresh seed, mirroring §7f's own pre-launch gate;
+launch via a new `launch_k12ext.sh` (the §7f/launch_phase2.sh worker +
+supervisor + tmux + STOP-file + DONE-sentinel pattern, unmodified
+architecture), tmux session `ncr_k12ext`, GPUs 2-7 (this wave uses 5
+cells on 5 of the 6 idle GPUs — 2,3,4,5,6 — one cell per GPU, no
+co-location needed or planned since cell count < GPU count; GPU 7 held
+idle as spare/reserve capacity, satisfying "GPUs 2-7" as the available
+pool without forcing artificial contention); resume-safe by construction
+(`run_cell`'s existing COMPLETED-status skip, unchanged). GPUs 0-1 (the
+FIX-5 grid + reasoning-link validation) are never touched. On
+completion: harvest (per the audited extension above) → §7i (RECORD
+FIRST) → archive → EXPERIMENT_LOG → commits.
