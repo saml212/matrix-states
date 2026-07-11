@@ -13,6 +13,24 @@ The per-byte conservation reading of Table~\ref{tab:bytes} rests on two
 located points plus one in-window bound; it is a measured regularity over
 $d_{\mathrm{state}} \in [64, 96]$, not a law.
 
+\paragraph{The held-out axis is hop depth, not entity identity.} Every
+$h4$ measurement in this paper draws its queried entities from the same
+107-entity pool used in training; the held-out axis is hop depth alone
+(Section~\ref{sec:testbed}). A separate disjoint-entity-pool diagnostic,
+recorded at every checkpoint under a pre-registered scope limit (the
+anchoring mechanism claims no held-out-entity gains, and held-out
+entities bypass the anchor blend by construction), collapses at hop
+depth 2 and above: recovered fraction at threshold $0.9$ is $1.0$ at
+hop 1 in all 24 archived cells behind
+Figure~\ref{fig:cliff}, and at hop depths 2 and 3 it reads exactly
+$0.0$ in 23 of those 24 cells (the remaining cell reads $0.0002$),
+while the same checkpoints' trained-pool readouts stay at or near
+ceiling. % evidence: C17
+The located frontier and its scaling with $d_{\mathrm{state}}$ are
+therefore claims about capacity for entities the model has trained on,
+not about generalization to unfamiliar entities; the latter is a
+substantially harder, unresolved question on this testbed.
+
 \paragraph{The frontier's functional form is open.} Four dimensions
 constrain the growth of $x_0(d)$ but do not pin its form: the two located
 fits refute ratio invariance, yet the absolute-slack and power-law
@@ -33,6 +51,14 @@ pre-registered degenerate outcome: neither cell produced an admissible
 reading at the recalibrated gate, and the failing admissibility leg
 differed from the one the original grid failed, so the diagnostic's
 adjudication triggers were never licensed to fire. % evidence: C14
+One of the two cells, at $K{=}90$, read $h4 = 0.9725$ before its
+inadmissibility was determined; the archived $K{=}90$ ceiling
+($h4 = 1.0000$ in each of three seeds, Table~\ref{tab:bytes}) did not
+replicate at this fresh seed. % evidence: C14
+Per the diagnostic's own pre-registered routing this reading cannot be
+promoted to a positive finding, because the cell is inadmissible, but we
+disclose it here as a caveat that discounts confidence in the archived
+$K{=}90$ reading.
 We therefore scope the $d_{\mathrm{state}}=96$ claim strictly as the
 absence of a monotonic collapse through $K/d = 0.9375$, and we treat the
 per-load ordering near ceiling as unresolved. The admission gate episode

@@ -53,6 +53,11 @@ $n_{\mathrm{iter}} \le 28$ against the production setting of 20.
 % evidence: C12
 Only the admission flag was recalibrated (11 cells flipped); no $h4$
 measurement changed and no cell re-ran. % evidence: C12
+A thirteenth examined cell, a pre-existing $K{=}69$ seed from an earlier
+wave with the identical failing signature, was deliberately excluded per
+the recalibration's declared 11-cell scope; including it would add a
+fourth $K{=}69$ seed and shift that load's mean from $0.9592$ to
+$0.9423$, changing no conclusion. % evidence: C20
 On the unlocked grid the per-load means are
 $0.9592/0.9216/0.9326/0.9581/1.0000$ across
 $K/d \in [0.71875, 0.9375]$: no monotonic collapse anywhere in the
@@ -85,13 +90,14 @@ discriminating them is registered follow-on work, not claimed here.
 \begin{table}[t]
   \centering
   \small
+  \setlength{\tabcolsep}{4.5pt}
   \begin{tabular}{rrllr}
     \toprule
     $d_{\mathrm{state}}$ & state bytes (fp32) & frontier $x_0$ & $K^{*}$ (bindings) & bindings/KiB \\
     \midrule
     64  & 16{,}384 (16 KiB) & $0.5455$ (CI $[0.5385, 0.5513]$) & $34.9$ & $2.18$ \\
     80  & 25{,}600 (25 KiB) & $0.6779$ (CI $[0.6683, 0.6867]$) & $54.2$ & $2.17$ \\
-    96  & 36{,}864 (36 KiB) & $> 0.9375$ (window-limited bound) & $\ge 90$ & $\ge 2.50$ \\
+    96  & 36{,}864 (36 KiB) & $> 0.9375$ (window-limited bound) & $\ge 90^{\dagger}$ & $\ge 2.50^{\dagger}$ \\
     128 & 65{,}536 (64 KiB) & $> 0.71875$ (window-limited bound) & $\ge 92$ & $\ge 1.44$ \\
     \bottomrule
   \end{tabular}
@@ -105,7 +111,11 @@ discriminating them is registered follow-on work, not claimed here.
   ($x_0$: $0.5455 \to 0.6779$) while capacity per byte is approximately
   conserved ($2.18 \to 2.17$ bindings/KiB). % evidence: C15
   The $d_{\mathrm{state}}=128$ row's bound is loose because its measured
-  window stops at $K/d = 0.71875$.}
+  window stops at $K/d = 0.71875$. $^{\dagger}$Rests on a three-seed
+  $K{=}90$ reading ($h4 = 1.0000$ in each seed); a fresh-seed
+  replication attempt did not confirm the ceiling and was itself
+  inadmissible at the recalibrated gate
+  (Section~\ref{sec:limitations}).}
   \label{tab:bytes}
 \end{table}
 

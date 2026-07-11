@@ -9,8 +9,11 @@ $S_t = S_{t-1}\left(I - \beta_t k_t k_t^{\top}\right) + \beta_t v_t
 k_t^{\top}$ \citep{schlag2021linear}. The task is synthetic-grammar
 associative recall over a pool of 107 trainable entities: within an
 episode, each queried entity must be bound to a value through the delta
-rule and recovered later through multi-hop composition. Models are trained
-for 20{,}000 steps per cell; each (load, seed) pair is one cell.
+rule and recovered later through multi-hop composition. The model width
+$d_{\mathrm{model}} = 256$ is held fixed across the entire
+$d_{\mathrm{state}}$ sweep, so the state dimension is the sole varied
+architectural axis in every comparison below. Models are trained for
+20{,}000 steps per cell; each (load, seed) pair is one cell.
 
 \paragraph{Readout.} Recovery is graded by \emph{exact continuous} cosine
 similarity against the true value vector at threshold $0.9$, written
@@ -19,9 +22,14 @@ load-bearing: under argmax decoding a rank-one state can recover on the
 order of $d$ associations \citep{nichani2025factual}, so a capacity
 measurement that permits codebook lookup measures the codebook, not the
 state. The paper's single load-bearing quantity is $h4$, the
-$\mathrm{rec}@0.9$ fraction on \emph{held-out} entities and bindings at
-hop depth 4, so every reported recovery is a compositional generalization,
-not a memorized pair.
+$\mathrm{rec}@0.9$ fraction at hop depth 4, with the queried entities
+drawn from the same 107-entity pool used in training; the held-out axis
+is \emph{hop depth} (models train on hop depths 1--3 and are evaluated
+at depth 4), not entity identity. Every reported recovery is therefore a
+held-out-depth compositional generalization over familiar entities, not
+a memorized pair; it is not a test of generalization to unfamiliar
+entities, which Section~\ref{sec:limitations} reports separately and
+finds does not hold on this testbed.
 
 \paragraph{The load parameter.} $K$ is the number of independent entity
 bindings the state must support simultaneously within one episode;
@@ -33,8 +41,9 @@ transition location, not the largest load with perfect recall; the fitted
 width $w$ reports how sharp the crossing is.
 
 \paragraph{The anchor table and coherence.} A per-entity key-anchoring
-table (established in companion work on this testbed as improving held-out
-recovery, and treated here as part of the fixed architecture) is the
+table (established in companion work on this testbed as improving
+held-out-depth recovery, and treated here as part of the fixed
+architecture) is the
 object whose geometry differs across scales. Its coherence is
 $\max\lvert\cos\rvert$ over the table's 107 row vectors. The Welch bound
 \citep{welch1974lower} forces this strictly positive whenever
@@ -44,6 +53,22 @@ $d_{\mathrm{state}}=128$ where the constructed table measures
 $\max\lvert\cos\rvert = 0.000000$. % evidence: C5
 This single structural difference motivates the dose-response test of
 Section~\ref{sec:dose}.
+
+\paragraph{Anchor-table byte footprint.} The anchor table is
+$n \times d_{\mathrm{state}}$ at fp32, $428 \cdot d_{\mathrm{state}}$
+bytes: $26.75$ KiB at $d_{\mathrm{state}}=64$, exceeding the $16$ KiB
+state itself by $67\%$, and $53.5$ KiB at $d_{\mathrm{state}}=128$,
+$84\%$ of the $64$ KiB state. % evidence: C18
+The table's footprint is $O(n \cdot d_{\mathrm{state}})$, linear in
+state dimension, against the state's own $O(d_{\mathrm{state}}^2)$; the
+ratio of table to state bytes is $n/d_{\mathrm{state}}$, which is why
+the table dominates at the smallest tested scale and falls below the
+state's own size by $d_{\mathrm{state}}=128$. Because the table's size
+is fixed by the entity count $n$ and does not scale with the load $K$,
+we exclude it from the bindings-per-KiB accounting of
+Table~\ref{tab:bytes}, which reports marginal capacity per byte of
+load-bearing state; a deployment budget that provisions this
+architecture must add the table's bytes to the state's.
 
 \paragraph{Pre-registration and instrument discipline.} Each wave's
 hypothesis and outcome semantics were fixed before its cells ran. Three

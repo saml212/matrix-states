@@ -6,14 +6,18 @@
 recurrent state; \citet{schlag2021linear} connect it to fast weight
 programmers and introduce the delta-rule update this testbed trains;
 \citet{yang2024deltanet} give the parallel kernel used here. DeltaProduct
-\citep{siems2025deltaproduct} and negative-eigenvalue variants
-\citep{grazzi2025negative} extend the family's expressivity, and
+\citep{siems2025deltaproduct}, negative-eigenvalue variants
+\citep{grazzi2025negative}, and gated delta rules
+\citep{yang2024gateddelta} extend the family's expressivity, and
 matrix-state RNNs push it to language-model scale \citep{mishra2026m2rnn};
 state-space models make the same constant-memory trade
 \citep{gu2023mamba}, with known expressivity limits
-\citep{merrill2024illusion}. None of these works locates a trained
-capacity transition or measures its movement with state dimension, which
-is this paper's object.
+\citep{merrill2024illusion}. Titans \citep{behrouz2025titans} and
+Infini-attention \citep{munkhdalai2024infiniattention} add a bounded,
+test-time-updated memory module alongside or in place of attention,
+targeting the same fixed-memory budget this paper measures. None of
+these works locates a trained capacity transition or measures its
+movement with state dimension, which is this paper's object.
 
 \paragraph{Capacity of associative memories.} Classical correlation-matrix
 memories establish the $K \lesssim d$ regime for linear reads
@@ -30,7 +34,9 @@ the regime where within-state capacity is load-bearing.
 eviction and compression manage a memory footprint that grows with
 context \citep{xiao2024streamingllm, zhang2023h2o}, and recall-throughput
 trade-offs in efficient architectures are measured by
-\citet{arora2023zoology}. This paper addresses the fixed-size endpoint of
+\citet{arora2023zoology} and \citet{arora2024based}, whose
+linear-attention models are architecturally adjacent to the single-head
+DeltaNet measured here. This paper addresses the fixed-size endpoint of
 that trade-off: not how much a growing cache can be shrunk, but how much
 a state of constant byte size can be trusted to hold.
 

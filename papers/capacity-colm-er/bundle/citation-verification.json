@@ -184,5 +184,51 @@
    "Tri Dao"
   ],
   "published": "2026-03-15"
+ },
+ "behrouz2025titans": {
+  "id": "2501.00663",
+  "title": "Titans: Learning to Memorize at Test Time",
+  "authors": [
+   "Ali Behrouz",
+   "Peilin Zhong",
+   "Vahab Mirrokni"
+  ],
+  "published": "2024-12-31"
+ },
+ "yang2024gateddelta": {
+  "id": "2412.06464",
+  "title": "Gated Delta Networks: Improving Mamba2 with Delta Rule",
+  "authors": [
+   "Songlin Yang",
+   "Jan Kautz",
+   "Ali Hatamizadeh"
+  ],
+  "published": "2024-12-09"
+ },
+ "arora2024based": {
+  "id": "2402.18668",
+  "title": "Simple linear attention language models balance the recall-throughput tradeoff",
+  "authors": [
+   "Simran Arora",
+   "Sabri Eyuboglu",
+   "Michael Zhang",
+   "Aman Timalsina",
+   "Silas Alberti",
+   "Dylan Zinsley",
+   "James Zou",
+   "Atri Rudra",
+   "Christopher R\u00e9"
+  ],
+  "published": "2024-02-28"
+ },
+ "munkhdalai2024infiniattention": {
+  "id": "2404.07143",
+  "title": "Leave No Context Behind: Efficient Infinite Context Transformers with Infini-attention",
+  "authors": [
+   "Tsendsuren Munkhdalai",
+   "Manaal Faruqui",
+   "Siddharth Gopal"
+  ],
+  "published": "2024-04-10"
  }
 }

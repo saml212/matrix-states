@@ -70,6 +70,20 @@ structure. % evidence: C6
 Scalar table coherence, at matched dose and matched geometry, does not
 reproduce the transition.
 
+\paragraph{A binding count as a reasoning-memory proxy.} Multi-step
+reasoning traces carry intermediate results as sub-goals or variable
+bindings that later steps must retrieve: a chain that derives seven
+intermediate quantities before its answer holds seven bindings in
+working memory at once, the same simultaneous-binding load this testbed
+isolates directly. A fixed-size fast-weight state that keeps
+intermediate reasoning state in place, rather than replaying it through
+a growing key--value cache, inherits exactly the load limit measured
+here: the located frontier converts a state's byte budget into a
+concrete bound on how many sub-goals it can hold before recall
+degrades. The synthetic grammar does not model any particular reasoning
+task, but the binding-count abstraction it isolates is the quantity a
+constant-memory reasoning architecture would need to provision.
+
 Every wave reported here was pre-registered before its cells ran, with
 outcome semantics fixed in advance, including the rule that a degenerate
 sigmoid fit on flat data must be disclosed as such and never quoted as a
