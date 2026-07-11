@@ -10893,3 +10893,97 @@ against the ≤1.5 GPU-h ceiling (39%).
   now the null/resampling check).
 - MIXED: exactly what held and what didn't, stated plainly, no rounding
   to either pole.
+
+### §17.6a ADDENDUM (2026-07-11, recorded BEFORE the control it registers ran): the registered succ-shuffle null is VACUOUS AT h=1 by construction — the charter-anticipated positional (derangement-slot) control is hereby registered and run
+
+**Discovery (mid-validation, empirical + closed-form).** After item 1's
+first pass returned real ≈ null at every strong cell — EXACTLY equal at
+h=1 (0.8691/0.8691, 0.5750/0.5750, 0.3969/0.3969, 0.1875/0.1875) — a
+bug-vs-degeneracy adjudication on the strongest cell
+(per_token×wikitext×s1×K32) established BOTH of the following, each
+verified on the box against the real checkpoint this session:
+
+1. **The null draw itself is healthy:** `succ_null` agrees with
+   `succ_true` on only 4.10% of entries (chance = 1/K = 3.1%), zero rows
+   identical — `build_null_labeling` is NOT accidentally reproducing the
+   real permutation.
+2. **But at h=1 the null is vacuous BY CONSTRUCTION:**
+   `compute_prev_slot_and_target` computes `prev_slot =
+   _iterate_permutation(succ, a_slot, h-1)`, and at h=1 that is ZERO
+   iterations — `prev_slot = a_slot` identically, for ANY permutation.
+   The h=1 graded target never consults `succ` at all (empirically: real
+   vs null target slots differ at 0.0000 of (row,query) pairs despite
+   the 4.1% permutation agreement). The §4.5/§8.4 succ-shuffle null
+   therefore has teeth ONLY at h≥2; at h=1, real == null EXACTLY,
+   always, in every cell — including in the ORIGINAL Stage-0
+   calibration.
+
+**Standing-instrument implication (recorded as a finding, not fixed
+here):** §8.4's h=1 null-relative gate condition (`real > null_hi +
+null_width`) was structurally near-unpassable from the day it was built
+— the "real" h=1 reading IS the null distribution's own mean by the
+argument above, so it can never exceed the null CI's upper edge by the
+band's own width (bootstrap-noise margins aside). The absolute 0.10
+floor (MAJOR-2's backstop) was the only h=1 gate condition with teeth.
+This does not retroactively change any recorded verdict (every §15/§16
+h=1 gate failure was ALSO a genuine absolute-floor failure under the
+then-broken lens), but any future h=1 gate must use the positional
+control below, not the succ-shuffle null.
+
+**Mechanism evidence already in hand (descriptive, from the same
+adjudication):** the strongest cell's predictions are collapsed —
+cross-a prediction convergence (the §8.3 M1 power-iteration-degeneracy
+covariate) reads **0.9996** (every query's prediction is essentially ONE
+direction), the v_eff population's mean pairwise |cos| is **0.9648**
+(the value vectors are themselves near-collinear), and state condition
+numbers across the grid read 1.8e4-2.1e6. A constant prediction
+direction against a near-collinear value population recovers "any"
+target at cos>0.9 — exactly the trivial-geometry pattern the charter's
+positional-control clause anticipated.
+
+**The registered control (positional/derangement-slot null — the
+charter's own named fallback, invoked because the pre-registration
+finds it needed).** For every one of the 80 cells, same checkpoints,
+same eval seeds (bit-identical episodes), at every h∈{1,2,3,4}: grade
+`pred(a,h)` against `v_eff[δ(prev_slot)]` where δ is a fresh random
+per-row derangement of the K slots (no fixed points — reuses
+`reasoning_link_probe._random_derangement` verbatim), drawn from a
+dedicated generator seeded `null_seed + DERANGE_OFFSET`,
+`DERANGE_OFFSET = 2_000_000_000` (same collision-safety argument as
+RESAMPLE_OFFSET, >70× above the schema's 28,193,000 max; disjoint from
+RESAMPLE_OFFSET's 1e9 block). This breaks the state↔target
+correspondence at EVERY h including h=1 (the graded slot is never the
+correct one, by the derangement's no-fixed-point property), while
+holding the value population, episode surface, and forward pass fixed.
+
+*Decision rule (identical to item 1's, with the derangement null in the
+null role):* per (cell,h), NULL-CLEARS iff (a) deranged <
+0.5 × real AND (b) real > deranged_ci_upper + deranged_width (bootstrap
+95%, 2000 resamples, seed 0) AND real ≥ 0.10. Aggregation identical to
+item 1 (cell clears if any h clears; headline = fraction of the 38
+signal-bearing cells clearing).
+
+*Outcome mapping:* if the derangement control ALSO fails everywhere
+(deranged ≈ real) → h=1's apparent recall is the same trivial-geometry
+artifact as h≥2's, and §17.7 = TRIVIAL-ARTIFACT cleanly. If h=1
+readings CLEAR the derangement control in ≥50% of the signal-bearing
+cells while h≥2 stays trivial → §17.7 = MIXED (genuine h=1 recall
+correspondence, trivial h≥2 composition), stated exactly so.
+
+*Cost:* one additional forward-pass sweep over the 80 cells ≈0.14
+GPU-h; running ledger ≈0.45 GPU-h against the 1.5 ceiling.
+
+**Independent-audit status at this addendum's recording:** the opus
+audit of items 1-3's implementation returned PASS-WITH-MINOR-FINDINGS
+(decisive machinery verified with teeth both ways; its one MODERATE
+finding — the item-3 archive-filename parser — had already been
+independently caught and fixed this session before the item-3 table was
+produced [TypeError forced it; regex parser committed with this
+addendum]; its MINOR finding on item 2's denominator is discharged by
+reporting BOTH denominators in §17.7). The audit did not and could not
+have caught the h=1 vacuity (it audited the new code against §17.6's
+spec; the vacuity is a property of the DESIGN's own §4.5 registered
+null construction, inherited faithfully by the implementation) — caught
+instead by this session's real==null exact-equality anomaly follow-up,
+which is the "read the raw artifact before trusting an aggregate"
+discipline working.

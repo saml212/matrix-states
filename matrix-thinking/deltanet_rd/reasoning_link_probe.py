@@ -1542,8 +1542,20 @@ def measure_cell_all_h(model: DeltaNetLM, episode_cfg: grammar_rd.DeltaNetRDTask
             _, v_eff_target_null = compute_prev_slot_and_target(succ_null, batch["a_slot"], hops_h, v_eff_items)
             _, recovered_null = cosine_and_recovered(pred, v_eff_target_null)
             result["null_recovered_frac_mean"] = recovered_null.float().mean().item()
+            # sec 17.6 (validation charter, 2026-07-11): generalize the h1_sanity_floor bootstrap-CI
+            # null-relative test from h==1-only to EVERY tested h -- SAME formula (bootstrap_ci_95 over
+            # the null-recovered boolean vector, null_relative_pass = real > null_hi + null_width,
+            # absolute_pass = real >= H1_ABSOLUTE_FLOOR), applied uniformly. Pure boundary-condition
+            # widening: h==1's own output is BYTE-IDENTICAL to pre-fix (same call, same inputs, same
+            # code path); h in {2,3,4} simply now ALSO receive a formal null-relative pass/fail read
+            # that previously existed only as the undifferentiated null_recovered_frac_mean scalar.
+            # Verified (sec 17.6) no existing caller reads h>=2's probe_valid/null_relative_pass/
+            # absolute_pass/null_ci_lower/null_ci_upper/null_width keys -- every hit greps to per_h[1]/
+            # per_h["1"] only (reasoning_link_stage_minus1.py, reasoning_link_gate_enforce.py,
+            # phase2_familiarization_train.py, phase2_gate_enforce.py, phase2_trajectory_analysis.py,
+            # phase2_stage_minus1.py, phase2_smoke_gpu.py, lm_pretrain_rd.py).
+            result.update(h1_sanity_floor(recovered_frac, recovered_null))
             if h == 1:
-                result.update(h1_sanity_floor(recovered_frac, recovered_null))
                 result["recovered_frac_h1_real"] = recovered_frac
 
         per_h[h] = result
