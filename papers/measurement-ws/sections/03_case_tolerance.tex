@@ -3,10 +3,10 @@
 
 A fast-weight associative memory's recall capacity is measured by
 exact continuous recovery (cosine $\geq0.9$, never argmax; Rule 5)
-across a load sweep $K/\dstate$; an eval-time admission gate decides
-which trained cells enter a capacity fit; one leg checks that a
-Newton--Schulz orthogonalization in the scoring path converges to
-residual $<0.01$ within $\niter=20$ iterations. A wide-grid sweep at
+across a load sweep $K/\dstate$. An eval-time admission gate decides
+which trained cells enter a capacity fit. One leg of that gate checks
+that a Newton--Schulz orthogonalization in the scoring path converges
+to residual $<0.01$ within $\niter=20$ iterations. A wide-grid sweep at
 $\dstate=96$ trained cleanly at every cell (training guard $1.0$
 throughout), yet only one of 12 new cells was admissible
 ($K{=}78$, $84$, $90$: all three seeds
@@ -18,9 +18,10 @@ re-fit below.
 
 The first mechanistic diagnosis blamed the trained anchor table's
 convergence at high load; a follow-up refuted it with margins
-(residuals at most $1.4\times10^{-6}$, over $7{,}000\times$ below
+(residuals at most $1.6\times10^{-6}$, over $6{,}000\times$ below
 tolerance,
-identical across failing and passing cells; failures confined to a
+indistinguishable across failing and passing cells; failures confined
+to a
 pool the anchor table bypasses) and the claim was formally
 retracted.
 % <!-- evidence: I2 -->

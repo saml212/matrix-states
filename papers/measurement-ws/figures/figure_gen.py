@@ -136,8 +136,8 @@ def fig2_tap_localization(repo: str, out: str) -> None:
     tap_labels = [
         "(i) $S_1$ tap\n(deployed)",
         "(ii) $S_0$ tap",
-        "(iii) $S_1$, true\nquery path",
-        "(iv) pre-LM-head\nhidden",
+        "(iii) $S_1$ query",
+        "(iv) pre-LM-head",
     ]
     chance = data["contender"]["chance_episode"]
 
