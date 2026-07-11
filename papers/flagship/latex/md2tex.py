@@ -88,6 +88,11 @@ def convert(md, is_appendix):
     # bold spans line breaks inside md list items; convert on the whole
     # text before line-splitting so no literal ** survives (render S2)
     md = re.sub(r'\*\*([^*]+)\*\*', r'\\textbf{\1}', md)
+    # single-star italics (render v2): whole-text, math-safe — the content
+    # class excludes $ so asterisks inside two different math spans can
+    # never pair up across the text between them
+    md = re.sub(r'(?<![\w$*])\*([A-Za-z][^*$]{0,80}?)\*(?![\w*])',
+                r'\\emph{\1}', md, flags=re.S)
 
     lines, out, i = md.split('\n'), [], 0
     while i < len(lines):

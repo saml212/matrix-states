@@ -16,14 +16,14 @@ measurable objects, and both are studied here.
 
 \subsection{Model Families}
 
-Three model families appear, one per result leg. (i) The *matrix-state
-encoder* family (Section 3): a transformer encoder that emits a single
+Three model families appear, one per result leg. (i) The \emph{matrix-state
+encoder} family (Section 3): a transformer encoder that emits a single
 $d_{state} \times d_{state}$ matrix $Z$ per input word under a hard
 single-state bottleneck; the decoder reads only $Z$, never the raw
 inputs, so the task load must reside within the one matrix. (ii) The
-*two-layer delta-rule contender* (Section 4): a DeltaNet-family language
+\emph{two-layer delta-rule contender} (Section 4): a DeltaNet-family language
 model with $d_{model}=256$, two blocks, $d_{state}=64$, and its two matched baselines, described in
-Section 4.1. (iii) *Delta-rule language models* at scale (Section 5):
+Section 4.1. (iii) \emph{Delta-rule language models} at scale (Section 5):
 the same architecture family trained as causal LMs at 14M, 98M, 392M,
 and 1.31B parameters on held-fixed data mixes.
 
