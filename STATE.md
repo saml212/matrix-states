@@ -737,13 +737,18 @@ reasoning-link geometric readout: **the 80/80 null is RETRACTED as an
 instrument artifact (2026-07-11, `REASONING_LINK_DESIGN.md` §17)** — a
 [K,V]-vs-[V,K] transpose bug in `squeeze_state_head` (caught by the
 pre-submission positive control, fixed + independently audited); the
-FIXED-lens re-metric of all 80 cells reads 78/320 (cell,h) nonzero
-(h=1 up to 0.87, h≥2 up to 0.64, strongly seed/arm-heterogeneous;
-premise gates still 0/320 → no registered CONFIRM — the lane REOPENS
-as SIGNAL-BEARING-UNRESOLVED); the vocab-side behavioral results and
+FIXED-lens re-metric read 78/320 (cell,h) nonzero, BUT the §17.6/§17.6a
+validation (2026-07-11, same day) returned **§17.7 TRIVIAL-ARTIFACT: the
+fixed-lens signal fails BOTH correspondence nulls everywhere** (succ-
+shuffle 0/320 NULL-CLEARS; derangement-slot positional control 0/320 —
+deranged reproduces real at every h incl. the strongest cell 0.87→0.81;
+mechanism: collapsed predictions [cross-a convergence 0.9996] × near-
+collinear values [|cos| 0.965]) — **the lane RE-CLOSES doubly
+instrument-validated**, with a claim-shape correction binding downstream:
+the valid claim is "recovery is null-indistinguishable at every scale,"
+NEVER "recovery reads zero"; the vocab-side behavioral results and
 the n=3→n=12 non-replication are S_T-independent and stand; causal
-keystone bounds unaffected in themselves but the "multiply-bounded
-null" framing no longer has the geometric leg;
+keystone bounds unaffected;
 NO demonstrated end-to-end win yet (the head-to-head's job, currently
 blocked on its own instrument fix, campaign 1).
 **Instrument escalations (PI-gated):** C17 TOLERANCE-MISCALIBRATION
@@ -1010,7 +1015,7 @@ A multi-agent research session (April 2026) surveyed the field; full detail in `
 - **Scale-Transfer Track D** — the signature is larger in production fixed-state models, but a matched no-fixed-state control shows the same magnitude — not specifically attributable to delta-rule writes at this tier.
 - **Scale-Transfer Track B** — double-barred by its own pre-registered bars; main effects INCONCLUSIVE (corpus-dependent).
 - **Pool-margin / admission-frontier diagnostics (§15.26-27)** — the C17 n_iter-sufficiency frontier MOVES with K/d; K=90's archived exact ceiling did NOT replicate fresh (0.9725); escalated to a §15.28-class design round, PI-gated (PENDING PI DECISIONS above).
-- **Reasoning-link keystone** — **REOPENED 2026-07-11 (`REASONING_LINK_DESIGN.md` §17): the 80/80 geometric-readout null was an instrument artifact** (squeeze_state_head [K,V]-vs-[V,K] transpose, caught by the pre-submission positive control; fixed, independently audited, re-controlled at 1.0000). Fixed-lens re-metric of all 80 cells: 78/320 (cell,h) readings nonzero — FIXED-LENS SIGNAL, SIGNAL-BEARING-UNRESOLVED (premise gates still 0/320, no registered CONFIRM; strong seed/arm heterogeneity; per_token carries the most h≥2 signal). The S_T-independent halves stand: the n=3 transient did NOT replicate at n=12 (new-cohort CI spans zero, BATCH-EFFECT-FLAGGED, §16.19-20). Next-wave routing + the reasoning-null-moss paper revision are SEPARATE dispatches, not self-launched.
+- **Reasoning-link keystone** — **RE-CLOSED 2026-07-11 (`REASONING_LINK_DESIGN.md` §17.7): TRIVIAL-ARTIFACT, doubly instrument-validated.** The §17 transpose fix stands (the 80/80 null WAS an instrument artifact), and the fixed-lens 78/320 "signal" the re-metric found was then validated the same day (§17.6 pre-registered → §17.6a addendum → §17.7): it fails BOTH correspondence nulls at every (cell,h) — succ-shuffle 0/320 NULL-CLEARS (and proven VACUOUS at h=1 by construction: prev_slot@h1 never consults the permutation — §8.4's h1 null-relative gate was structurally near-unpassable since birth) and the derangement-slot positional control 0/320 (kill-proofed both directions; deranged reproduces real, strongest cell 0.8691→0.8125). Mechanism: collapsed predictions (cross-a convergence 0.9996, condition numbers 1.8e4-2.1e6) against a near-collinear v_eff population (|cos| 0.9648). The (arm,corpus,seed) bimodality is a STABLE checkpoint property (20/21 floor / 35/38 raw stable under episode resample) — real bimodality, but in the trivial geometry; per_token's h≥2 concentration (20/72 vs 1/36 vs 0/72) is concentration of the artifact. CLAIM-SHAPE CORRECTION binding all downstream consumers (incl. the reasoning-null-moss revision, separate dispatch): the valid claim is "recovery is null-indistinguishable at every scale/corpus/h," NEVER "recovery reads zero." The S_T-independent halves stand: the n=3 transient did NOT replicate at n=12 (new-cohort CI spans zero, BATCH-EFFECT-FLAGGED, §16.19-20). Archive: `experiment-runs/2026-07-11_reasoning_link_validation/`; ≈0.22 GPU-h.
 
 No further waves are scheduled inside any of these closed designs; opening a new one requires a fresh brainstorm/research/attack/validate waterfall (`CLAUDE.md`), exactly as every ACTIVE CAMPAIGN above was opened.
 

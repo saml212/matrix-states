@@ -1,0 +1,93 @@
+{
+  "design_ref": "REASONING_LINK_DESIGN.md sec 17.6a (2026-07-11 derangement-control addendum)",
+  "program": "REASONING-LINK sec 17.6a derangement control",
+  "stage": "derange-control-cell",
+  "timestamp": 1783808012.965805,
+  "cell": {
+    "leg": "leg_a",
+    "arm": "per_token",
+    "corpus": "wikitext-mix-ext",
+    "ckpt_seed": 1,
+    "K": 20,
+    "surgery": "off",
+    "batch_size": 16,
+    "cell_name": "leg_a_per_token_wikitext-mix-ext_s1_k20_off"
+  },
+  "ckpt_path": "/data/deltanet_rd_frozenbias_ckpts/frozenbias_lm_per_token_lam0p58_wikitext-mix-ext_dm256_ds64_L2_s1/lmC_wikitext-mix-ext_dm256_ds64_L2_s1_step20000.pt",
+  "seeds": {
+    "seed_eval": 1108000,
+    "null_seed": 11108000,
+    "seed_resample": 1001108000,
+    "null_seed_resample": 1011108000
+  },
+  "derange_seed": 2011108000,
+  "derange_offset": 2000000000,
+  "readout_layer": 1,
+  "pool_report_marker": "\u00a7",
+  "per_h": {
+    "1": {
+      "h": 1,
+      "K": 20,
+      "surgery": "off",
+      "recovered_frac": 0.706250011920929,
+      "cos_mean": 0.9164272546768188,
+      "deranged_recovered_frac": 0.753125011920929,
+      "deranged_cos_mean": 0.9205806851387024,
+      "n_scored": 320,
+      "deranged_ci_lower": 0.706250011920929,
+      "deranged_ci_upper": 0.7969532012939453,
+      "deranged_width": 0.09070318937301636,
+      "null_relative_pass": false,
+      "absolute_pass": true
+    },
+    "2": {
+      "h": 2,
+      "K": 20,
+      "surgery": "off",
+      "recovered_frac": 0.109375,
+      "cos_mean": 0.6608728766441345,
+      "deranged_recovered_frac": 0.11250000447034836,
+      "deranged_cos_mean": 0.6521981358528137,
+      "n_scored": 320,
+      "deranged_ci_lower": 0.08124999701976776,
+      "deranged_ci_upper": 0.14687499403953552,
+      "deranged_width": 0.06562499701976776,
+      "null_relative_pass": false,
+      "absolute_pass": true
+    },
+    "3": {
+      "h": 3,
+      "K": 20,
+      "surgery": "off",
+      "recovered_frac": 0.11562500149011612,
+      "cos_mean": 0.4700563848018646,
+      "deranged_recovered_frac": 0.10000000149011612,
+      "deranged_cos_mean": 0.473052978515625,
+      "n_scored": 320,
+      "deranged_ci_lower": 0.06875000149011612,
+      "deranged_ci_upper": 0.13437500596046448,
+      "deranged_width": 0.06562500447034836,
+      "null_relative_pass": false,
+      "absolute_pass": true
+    },
+    "4": {
+      "h": 4,
+      "K": 20,
+      "surgery": "off",
+      "recovered_frac": 0.09687500447034836,
+      "cos_mean": 0.4032346308231354,
+      "deranged_recovered_frac": 0.10312499850988388,
+      "deranged_cos_mean": 0.4073047637939453,
+      "n_scored": 320,
+      "deranged_ci_lower": 0.07492188364267349,
+      "deranged_ci_upper": 0.13750000298023224,
+      "deranged_width": 0.06257811933755875,
+      "null_relative_pass": false,
+      "absolute_pass": false
+    }
+  },
+  "forward_counts": {
+    "forward_a": 1,
+    "forward_b": 1
+  }
+}

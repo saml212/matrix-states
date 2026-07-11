@@ -7945,3 +7945,59 @@ mirror). Security: ONE fake-injection sighting (the recurring date-change +
 concealment + fabricated-agent-list composite, appended to a background
 task notification) — not complied with, reported; tally ≥26. GPUs 2-7 (NCR
 Phase-2) verified untouched throughout.
+
+## 2026-07-11 — REASONING-LINK SIGNAL VALIDATION (§17.6/§17.6a/§17.7): the §17.4 fixed-lens signal fails BOTH correspondence nulls everywhere — **TRIVIAL-ARTIFACT, the lane RE-CLOSES doubly instrument-validated**; ≈0.22 GPU-h
+
+Charter: validate §17.4's FIXED-LENS SIGNAL (78/320 nonzero) via the three
+§17.4-named follow-on questions, pre-registered FIRST (§17.6, commit c3de797,
+BEFORE any GPU pass). **Item 1 (label-shuffle null):** all 80 cells re-run
+with the registered succ-shuffle null fused into the same forward pass —
+0/320 (cell,h) readings NULL-CLEAR (pre-registered rule: null <0.5×real AND
+null-relative CI + 0.10 floor); at the 41 floor-clearing readings, mean real
+0.3023 vs mean null 0.3010. Mid-run anomaly follow-up (real==null EXACTLY at
+h=1 in every strong cell) exposed a construction-level fact: **the §4.5
+succ-shuffle null is VACUOUS at h=1** (prev_slot@h=1 = a_slot — zero
+permutation iterations; empirically 0.0000 target-slot difference vs 4.1%
+permutation agreement), and §8.4's h=1 null-relative gate condition was
+therefore structurally near-unpassable since birth (the 0.10 absolute floor
+was its only toothed half). **§17.6a addendum** (recorded+committed BEFORE
+running, 895e0f1) registered the charter-anticipated positional control:
+derangement-slot null (grade pred against v_eff[δ(prev_slot)], δ a
+no-fixed-point derangement — never the correct slot, teeth at EVERY h;
+selftest kill-proofed both directions: perfect-correspondence fixture reads
+real=1.0/deranged=0.0). Result: **0/320 NULL-CLEARS — deranged reproduces
+real at every h** (floor readings: h1 0.3898/0.3772, h2 0.1508/0.1570, h3
+0.2112/0.2110, h4 0.2990/0.2921; strongest cell 0.8691 real vs 0.8125
+deranged = 94% reproduction). Mechanism (the design's own §8.3 M1
+covariates): cross-a prediction convergence 0.9996 × v_eff pairwise |cos|
+0.9648 under state condition numbers 1.8e4-2.1e6 — recovered_frac measured a
+collapsed prediction direction's alignment with a near-collinear value
+population, not recall or composition. **Item 2 (bimodality):** the ON/OFF
+cell structure is a STABLE checkpoint property, not episode luck — 20/21
+floor-ON cells stable under full episode resample (raw-denominator 35/38;
+both denominators agree); ON set = exactly §17.4's flagged (arm,corpus,seed)
+combos. Real bimodality, but in the trivial geometry. **Item 3 (per_token
+concentration):** confirmed exhaustively — per_token 20/72 h≥2 readings
+≥0.10 vs off 1/36 vs global 0/72 — a concentration of the artifact.
+Cross-run integrity: real readings bit-identical across all three sweeps
+(§17.4 re-metric = item-1 pass = derange pass, 320/320 twice). Independent
+opus audit of the implementation: PASS-WITH-MINOR-FINDINGS (decisive
+machinery has teeth both ways, 7 adversarial fixtures; its item-3 parser
+finding convergently caught+fixed pre-table; item-2 denominator finding
+discharged by reporting both). **§17.7 VERDICT: TRIVIAL-ARTIFACT — lane
+re-closes.** Claim-shape corrections binding downstream: "recovery reads
+zero" is DEAD (it doesn't, under the working lens) — the valid claim is
+"recovery is null-indistinguishable at every scale/corpus/h"; future h=1
+gates must use the derangement control, not the succ-shuffle null. Paper
+(reasoning-null-moss) + scorecard/pebbleml routing = separate dispatches,
+untouched here. Probe edit: h1_sanity_floor generalized to every h (the one
+§17.6-disclosed additive edit; h=1 byte-identical, no caller reads h≥2's new
+keys). Archive: `experiment-runs/2026-07-11_reasoning_link_validation/`
+(170 files, 1.5MB repo + SSD mirror verified identical). Ledger: 0.140
+(item-1/2 sweep, 80 cells × 2 passes, 504.7s) + 0.075 (derange sweep,
+268.3s) + ≈0.006 smoke/adjudication = **≈0.22 GPU-h** vs the 1.5 ceiling.
+GPU 1 only, queued behind the FIX-5 grid; GPUs 2-7 never touched (NCR's own
+session/processes ended independently mid-dispatch — observed, not acted
+on). Security: ONE fake-injection sighting (date-change + concealment +
+fabricated-agent-list composite on a background-task notification) — not
+complied with, reported; tally ≥27.

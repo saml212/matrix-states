@@ -1,0 +1,93 @@
+{
+  "design_ref": "REASONING_LINK_DESIGN.md sec 17.6a (2026-07-11 derangement-control addendum)",
+  "program": "REASONING-LINK sec 17.6a derangement control",
+  "stage": "derange-control-cell",
+  "timestamp": 1783808072.1575193,
+  "cell": {
+    "leg": "leg_b",
+    "rung": 0,
+    "corpus": "openr1-mix-ext",
+    "ckpt_seed": 1,
+    "K": 32,
+    "surgery": "native",
+    "batch_size": 16,
+    "cell_name": "leg_b_rung0_openr1-mix-ext_s1_k32"
+  },
+  "ckpt_path": "/data/lm_rd_trackc_ckpts/mixcontrol/lmC_openr1-mix-ext_dm256_ds64_L2_s1_step6103.pt",
+  "seeds": {
+    "seed_eval": 5009000,
+    "null_seed": 15009000,
+    "seed_resample": 1005009000,
+    "null_seed_resample": 1015009000
+  },
+  "derange_seed": 2015009000,
+  "derange_offset": 2000000000,
+  "readout_layer": 1,
+  "pool_report_marker": "\u00a7",
+  "per_h": {
+    "1": {
+      "h": 1,
+      "K": 32,
+      "surgery": "native",
+      "recovered_frac": 0.12890625,
+      "cos_mean": 0.8382353782653809,
+      "deranged_recovered_frac": 0.119140625,
+      "deranged_cos_mean": 0.8381071090698242,
+      "n_scored": 512,
+      "deranged_ci_lower": 0.09174805134534836,
+      "deranged_ci_upper": 0.1484375,
+      "deranged_width": 0.05668944865465164,
+      "null_relative_pass": false,
+      "absolute_pass": true
+    },
+    "2": {
+      "h": 2,
+      "K": 32,
+      "surgery": "native",
+      "recovered_frac": 0.0,
+      "cos_mean": 0.6306807994842529,
+      "deranged_recovered_frac": 0.0,
+      "deranged_cos_mean": 0.6327147483825684,
+      "n_scored": 512,
+      "deranged_ci_lower": 0.0,
+      "deranged_ci_upper": 0.0,
+      "deranged_width": 0.0,
+      "null_relative_pass": false,
+      "absolute_pass": false
+    },
+    "3": {
+      "h": 3,
+      "K": 32,
+      "surgery": "native",
+      "recovered_frac": 0.0,
+      "cos_mean": 0.642141580581665,
+      "deranged_recovered_frac": 0.0,
+      "deranged_cos_mean": 0.6387488842010498,
+      "n_scored": 512,
+      "deranged_ci_lower": 0.0,
+      "deranged_ci_upper": 0.0,
+      "deranged_width": 0.0,
+      "null_relative_pass": false,
+      "absolute_pass": false
+    },
+    "4": {
+      "h": 4,
+      "K": 32,
+      "surgery": "native",
+      "recovered_frac": 0.0,
+      "cos_mean": 0.5378055572509766,
+      "deranged_recovered_frac": 0.0,
+      "deranged_cos_mean": 0.543875515460968,
+      "n_scored": 512,
+      "deranged_ci_lower": 0.0,
+      "deranged_ci_upper": 0.0,
+      "deranged_width": 0.0,
+      "null_relative_pass": false,
+      "absolute_pass": false
+    }
+  },
+  "forward_counts": {
+    "forward_a": 1,
+    "forward_b": 1
+  }
+}

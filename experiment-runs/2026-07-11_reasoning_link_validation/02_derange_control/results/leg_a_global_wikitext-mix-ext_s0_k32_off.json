@@ -1,0 +1,93 @@
+{
+  "design_ref": "REASONING_LINK_DESIGN.md sec 17.6a (2026-07-11 derangement-control addendum)",
+  "program": "REASONING-LINK sec 17.6a derangement control",
+  "stage": "derange-control-cell",
+  "timestamp": 1783808053.839591,
+  "cell": {
+    "leg": "leg_a",
+    "arm": "global",
+    "corpus": "wikitext-mix-ext",
+    "ckpt_seed": 0,
+    "K": 32,
+    "surgery": "off",
+    "batch_size": 16,
+    "cell_name": "leg_a_global_wikitext-mix-ext_s0_k32_off"
+  },
+  "ckpt_path": "/data/deltanet_rd_frozenbias_ckpts/frozenbias_lm_global_lam0p58_wikitext-mix-ext_dm256_ds64_L2_s0/lmC_wikitext-mix-ext_dm256_ds64_L2_s0_step20000.pt",
+  "seeds": {
+    "seed_eval": 2101000,
+    "null_seed": 12101000,
+    "seed_resample": 1002101000,
+    "null_seed_resample": 1012101000
+  },
+  "derange_seed": 2012101000,
+  "derange_offset": 2000000000,
+  "readout_layer": 1,
+  "pool_report_marker": "\u00a7",
+  "per_h": {
+    "1": {
+      "h": 1,
+      "K": 32,
+      "surgery": "off",
+      "recovered_frac": 0.0,
+      "cos_mean": -0.49303269386291504,
+      "deranged_recovered_frac": 0.0,
+      "deranged_cos_mean": -0.4878281354904175,
+      "n_scored": 512,
+      "deranged_ci_lower": 0.0,
+      "deranged_ci_upper": 0.0,
+      "deranged_width": 0.0,
+      "null_relative_pass": false,
+      "absolute_pass": false
+    },
+    "2": {
+      "h": 2,
+      "K": 32,
+      "surgery": "off",
+      "recovered_frac": 0.001953125,
+      "cos_mean": 0.5114202499389648,
+      "deranged_recovered_frac": 0.005859375,
+      "deranged_cos_mean": 0.5124819874763489,
+      "n_scored": 512,
+      "deranged_ci_lower": 0.0,
+      "deranged_ci_upper": 0.013671875,
+      "deranged_width": 0.013671875,
+      "null_relative_pass": false,
+      "absolute_pass": false
+    },
+    "3": {
+      "h": 3,
+      "K": 32,
+      "surgery": "off",
+      "recovered_frac": 0.0,
+      "cos_mean": -0.3348068594932556,
+      "deranged_recovered_frac": 0.0,
+      "deranged_cos_mean": -0.3358047902584076,
+      "n_scored": 512,
+      "deranged_ci_lower": 0.0,
+      "deranged_ci_upper": 0.0,
+      "deranged_width": 0.0,
+      "null_relative_pass": false,
+      "absolute_pass": false
+    },
+    "4": {
+      "h": 4,
+      "K": 32,
+      "surgery": "off",
+      "recovered_frac": 0.0,
+      "cos_mean": 0.4283331632614136,
+      "deranged_recovered_frac": 0.0,
+      "deranged_cos_mean": 0.42626792192459106,
+      "n_scored": 512,
+      "deranged_ci_lower": 0.0,
+      "deranged_ci_upper": 0.0,
+      "deranged_width": 0.0,
+      "null_relative_pass": false,
+      "absolute_pass": false
+    }
+  },
+  "forward_counts": {
+    "forward_a": 1,
+    "forward_b": 1
+  }
+}

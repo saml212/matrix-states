@@ -1,0 +1,34 @@
+====================================================================================================
+REASONING-LINK sec 17.6 VALIDATION -- ANALYSIS SUMMARY
+====================================================================================================
+
+ITEM 1 -- LABEL-SHUFFLE NULL
+  320 (cell,h) readings; real>0: 78; real>=0.10 floor: 41
+  readings that NULL-CLEAR: 0
+  cells (of 80) with >=1 NULL-CLEARing h: 0
+  sec 17.4 signal-bearing cells (38 expected): 38, of which NULL-CLEAR: 0 (0.0)
+  mean real recovered_frac (readings >=0.10 floor): 0.3023056415159528
+  mean null recovered_frac (SAME readings): 0.30095274546524375
+  OUTCOME: TRIVIAL-ARTIFACT
+
+ITEM 2 -- SEED-BIMODALITY / EPISODE-RESAMPLING STABILITY
+  cells coherently ON at original seed (>=0.10 floor, any h): 21 / 80
+  of those: STABLE under resample = 20, FLIPPED = 1 (frac flipped = 0.047619047619047616)
+  OUTCOME: STATE-PROPERTY-DOMINATES
+
+ITEM 3 -- PER_TOKEN h>=2 CONCENTRATION (by arm, corpus, surgery)
+  arm=global     corpus=openr1-mix-ext       surgery=native  n_cells=6 h>=2 clearing 0.10: 0/18 (0.0) mean=0.0000 max=0.0000
+  arm=global     corpus=openr1-mix-ext       surgery=off     n_cells=6 h>=2 clearing 0.10: 0/18 (0.0) mean=0.0000 max=0.0000
+  arm=global     corpus=wikitext-mix-ext     surgery=native  n_cells=6 h>=2 clearing 0.10: 0/18 (0.0) mean=0.0000 max=0.0000
+  arm=global     corpus=wikitext-mix-ext     surgery=off     n_cells=6 h>=2 clearing 0.10: 0/18 (0.0) mean=0.0012 max=0.0188
+  arm=off        corpus=openr1-mix-ext       surgery=native  n_cells=6 h>=2 clearing 0.10: 0/18 (0.0) mean=0.0012 max=0.0219
+  arm=off        corpus=wikitext-mix-ext     surgery=native  n_cells=6 h>=2 clearing 0.10: 1/18 (0.05555555555555555) mean=0.0143 max=0.1656
+  arm=per_token  corpus=openr1-mix-ext       surgery=native  n_cells=6 h>=2 clearing 0.10: 6/18 (0.3333333333333333) mean=0.1001 max=0.3625
+  arm=per_token  corpus=openr1-mix-ext       surgery=off     n_cells=6 h>=2 clearing 0.10: 6/18 (0.3333333333333333) mean=0.1224 max=0.6375
+  arm=per_token  corpus=wikitext-mix-ext     surgery=native  n_cells=6 h>=2 clearing 0.10: 5/18 (0.2777777777777778) mean=0.0360 max=0.1187
+  arm=per_token  corpus=wikitext-mix-ext     surgery=off     n_cells=6 h>=2 clearing 0.10: 3/18 (0.16666666666666666) mean=0.0326 max=0.1156
+
+  by-arm summary (all corpora/surgeries pooled):
+    global: 0/72 clearing (frac=0.0)
+    off: 1/36 clearing (frac=0.027777777777777776)
+    per_token: 20/72 clearing (frac=0.2777777777777778)
