@@ -35,11 +35,11 @@ $S_1$-zeroing produces a small, reproducible change on 21 of 4{,}096
 queries (0.51\%, $\Delta = 0.0051$). % <!-- evidence: C5 -->
 The binomial standard-error band used elsewhere in this check assumes a
 sampling process and is ill-posed at $p = 1$ (it evaluates to zero
-width); because both the intact and $S_1$-zeroed readings are
-deterministic argmax decodes of the same frozen checkpoint on the same
-fixed query set, this is a real, deterministic behavior change under the
-intervention rather than measurement noise, so the band is not used to
-adjudicate this cell. The effect does not touch the $S_0$-necessity
+width); both the intact and $S_1$-zeroed readings are deterministic
+argmax decodes of the same frozen checkpoint on the same fixed query
+set, so there is no sampling process for the band to characterize, the
+21-query change is a real and repeatable effect of the intervention,
+and the band is not used to adjudicate this cell. The effect does not touch the $S_0$-necessity
 result; whether those 21 queries reflect a small, consistent causal
 contribution from $S_1$ or near-tied logits is not established by this
 instrument. % <!-- evidence: C5 -->
@@ -58,11 +58,11 @@ control. % <!-- evidence: C6 -->
 The flat-vector arm's same site reads 0.119, pass rate
 0.0. % <!-- evidence: C6 -->
 The bindings therefore live in $S_0$ in a format no tested linear map
-exposes; the second block's own forward computation, not its recurrent
-state (which Figure~\ref{fig:szero} shows is causally inert), transforms
-the $S_0$-derived signal into a linearly legible code. Consistent with a
-nonlinear store read through a learned decoder, the pass rate of the
-pre-LM-head probe varies across seeds (0.686, 0.771, 0.951) while
+exposes; what transforms the $S_0$-derived signal into a linearly
+legible code is the second block's own forward computation, since its
+recurrent state is causally inert (Figure~\ref{fig:szero}). Consistent
+with a nonlinear store read through a learned decoder, the pass rate of
+the pre-LM-head probe varies across seeds (0.686, 0.771, 0.951) while
 task accuracy is flat at ceiling; % <!-- evidence: C6b -->
-probe legibility is a property of the instrument, not of the recall.
+probe legibility is a property of the instrument.
 Appendix Table~\ref{tab:taps} lists all read-out sites.

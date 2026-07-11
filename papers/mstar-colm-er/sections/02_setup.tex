@@ -51,14 +51,14 @@ a $d \times d$ matrix and structure matters only if the operations use it.
 This control differs from the contender on three axes, not one: mixer
 recurrence, raw state capacity (512 bytes versus 32{,}768,
 % <!-- evidence: C10 -->
-reported for completeness), and write conditioning; its update has no
-dependence on the key $k_t$ at all, so it cannot perform content-addressed
-binding under any training outcome, unlike vector-native binding schemes
-that use a key-dependent operation such as circular convolution
-\citep{plate1995holographic} or tensor-product binding
-\citep{smolensky1990tensor}. Section~\ref{sec:recall} states which
-reading of the resulting comparison the capacity and write-conditioning
-gaps permit.
+reported for completeness), and write conditioning. Its update has no
+dependence on the key $k_t$ at all, so it cannot perform
+content-addressed binding under any training outcome. Vector-native
+schemes that do bind from a vector state use a key-dependent operation,
+circular convolution \citep{plate1995holographic} or tensor-product
+binding \citep{smolensky1990tensor}; this control has none.
+Section~\ref{sec:recall} states which reading of the resulting
+comparison the capacity and write-conditioning gaps permit.
 
 \textbf{Transformer.} A two-layer GPT-2-style causal decoder with the same
 tokenizer and width, evaluated in two roles: uncapped (its full KV cache),
