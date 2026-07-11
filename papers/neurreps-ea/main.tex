@@ -60,15 +60,15 @@ A Causal Rank Law for Matrix Memories Trained on Group Composition}
 \begin{abstract}
 Matrix-valued memories make rank the natural budget of a learned
 representation: the number of independent directions a state spans bounds
-what it can bind, compose, and track. We report causal evidence, from two
-synthetic testbeds trained under a hard single-state bottleneck with an
-exact-continuous-recovery readout, that gradient descent recruits precisely
-the rank the task's algebra demands. On $K$-pair associative binding, where
-exact recovery provably requires state rank at least $K$, trained states
-develop effective rank tracking $K$ (8.20 at $K{=}8$, 15.08 at $K{=}16$ for
-$d{=}16$), and train-time rank caps confirm the bound causally: at $d{=}8$,
-$K{=}4$, rank 3 yields zero exact recovery while rank 4 yields 0.94.
-% <!-- evidence: N6 -->
+what it can bind, compose, and track. We report causal evidence, on a
+group-composition testbed trained under a hard single-state bottleneck
+with a fixed decoder that cannot launder rank, that gradient descent
+recruits precisely the rank the task's algebra demands. A concurrent
+companion submission establishes the analogous recruitment and causal
+necessity pattern on a $K$-pair associative-binding testbed, where exact
+recovery provably requires state rank at least $K$; this paper inherits
+that instrument and extends the rank law from a scalar capacity bound to
+a representation-theoretic one.
 On
 group-composition state tracking over five finite groups spanning the
 solvable/non-solvable divide, the recruited rank equals the group's minimal

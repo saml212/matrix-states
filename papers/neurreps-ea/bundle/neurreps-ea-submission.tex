@@ -60,15 +60,15 @@ A Causal Rank Law for Matrix Memories Trained on Group Composition}
 \begin{abstract}
 Matrix-valued memories make rank the natural budget of a learned
 representation: the number of independent directions a state spans bounds
-what it can bind, compose, and track. We report causal evidence, from two
-synthetic testbeds trained under a hard single-state bottleneck with an
-exact-continuous-recovery readout, that gradient descent recruits precisely
-the rank the task's algebra demands. On $K$-pair associative binding, where
-exact recovery provably requires state rank at least $K$, trained states
-develop effective rank tracking $K$ (8.20 at $K{=}8$, 15.08 at $K{=}16$ for
-$d{=}16$), and train-time rank caps confirm the bound causally: at $d{=}8$,
-$K{=}4$, rank 3 yields zero exact recovery while rank 4 yields 0.94.
-% <!-- evidence: N6 -->
+what it can bind, compose, and track. We report causal evidence, on a
+group-composition testbed trained under a hard single-state bottleneck
+with a fixed decoder that cannot launder rank, that gradient descent
+recruits precisely the rank the task's algebra demands. A concurrent
+companion submission establishes the analogous recruitment and causal
+necessity pattern on a $K$-pair associative-binding testbed, where exact
+recovery provably requires state rank at least $K$; this paper inherits
+that instrument and extends the rank law from a scalar capacity bound to
+a representation-theoretic one.
 On
 group-composition state tracking over five finite groups spanning the
 solvable/non-solvable divide, the recruited rank equals the group's minimal
@@ -191,19 +191,16 @@ $K = \rank(V_{\mathrm{mat}}) \leq \rank(Z)$.
 \end{fact}
 
 The bound is classical \citep{kohonen1972correlation,
-anderson1972simple}, holding only under exact continuous recovery.
-Gradient descent recruits the rank: at $d = 16$ effective rank reaches
-8.20 at $K = 8$ and 15.08 at $K = 16$,
-% <!-- evidence: N6 -->
-and the recruited rank is causally necessary: a spectral rank cap at
-$d = 8$, $K = 4$ leaves exact recovery $\leq 0.0004$ for every cap
-$k \leq 3$ and restores it to 0.940 at $k = 4$,
-% <!-- evidence: N6 -->
-a step exactly at the provable bound; the same operator composes exactly
-($Z^h$, 21 self-applications) in four of five seeds, a
-composition-stability probe periodicity-equivalent to depth 5 under the
-single 8-cycle target \citep{liu2023shortcuts} (Appendix~\ref{app:period}).
-% <!-- evidence: N9 -->
+anderson1972simple}, holding only under exact continuous recovery. A
+concurrent companion submission establishes on this binding testbed
+that gradient descent recruits effective rank tracking $K$, that the
+recruited rank is causally necessary (a train-time force-rank step at
+the provable bound), and that the trained operator composes exactly
+under repeated self-application, a composition-stability probe
+periodicity-equivalent to depth 5 under the single 8-cycle target
+\citep{liu2023shortcuts} (Appendix~\ref{app:period}); this paper
+inherits that instrument and carries only the group-composition
+program.
 
 \section{The Rank Law on Group Composition, Observed}
 \label{sec:observed}
@@ -357,7 +354,10 @@ testbeds, not claims about pretrained language models. Razor cells are
 single-seed except $S_3$ (four seeds); $S_4$/$S_5$'s anchor-bar margins
 and $S_3$/$S_5$'s soft convergence at the shortest pinned budget
 (Appendices~\ref{app:m1}, \ref{app:gate1a}) both read directionally, not
-as an unqualified 5/5.
+as an unqualified 5/5. A concurrent companion submission carries the
+binding-task program (the recruitment grid, force-rank staircase, and
+composition mechanism) in full; this paper shares no figures or tables
+with it.
 
 \appendix
 
@@ -502,20 +502,13 @@ consistent under disclosed soft convergence.}
 \section{Depth-21 Periodicity Under the Single $K$-Cycle}
 \label{app:period}
 
-The binding task's held-out composition probe (Section~\ref{sec:setup})
-uses a single Hamiltonian $K$-cycle, chosen because a general permutation
-decomposes into short disjoint cycles that collapse held-out hops into
-trivial or in-distribution queries. Under a single 8-cycle, $\pi^{21} =
-\pi^{21 \bmod 8} = \pi^5$ exactly, so nominal depth 21 shares its target
-with the already-tested depth 5; the two are not distinct group-theoretic
-targets. What depth 21 measures instead is numerical stability under 21
-sequential self-applications of the trained operator: in the four
-converged seeds, $\recninety$ at $h=5$ and $h=21$ both read $\approx 1.0$,
-a non-trivial statement that repeated self-application does not amplify
-error; the fifth (still-transitioning) seed reads 0.303 at $h=5$ and
-0.0001 at $h=21$, the same underlying imperfection compounding under
-repetition.
-% <!-- evidence: N9 -->
+The binding task's held-out composition probe uses a single Hamiltonian
+$K$-cycle, under which nominal depth 21 shares its target with the
+already-tested depth 5 ($\pi^{21} = \pi^{21 \bmod 8} = \pi^5$ exactly).
+The concurrent companion submission's Appendix A performs this
+periodicity analysis and the associated depth-decay measurement in full
+on the binding testbed; see that appendix for the derivation and the
+per-hop predicted-vs-measured table.
 
 
 \bibliography{refs}

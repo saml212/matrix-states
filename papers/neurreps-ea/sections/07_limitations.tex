@@ -4,7 +4,10 @@ testbeds, not claims about pretrained language models. Razor cells are
 single-seed except $S_3$ (four seeds); $S_4$/$S_5$'s anchor-bar margins
 and $S_3$/$S_5$'s soft convergence at the shortest pinned budget
 (Appendices~\ref{app:m1}, \ref{app:gate1a}) both read directionally, not
-as an unqualified 5/5.
+as an unqualified 5/5. A concurrent companion submission carries the
+binding-task program (the recruitment grid, force-rank staircase, and
+composition mechanism) in full; this paper shares no figures or tables
+with it.
 
 \appendix
 
@@ -149,17 +152,10 @@ consistent under disclosed soft convergence.}
 \section{Depth-21 Periodicity Under the Single $K$-Cycle}
 \label{app:period}
 
-The binding task's held-out composition probe (Section~\ref{sec:setup})
-uses a single Hamiltonian $K$-cycle, chosen because a general permutation
-decomposes into short disjoint cycles that collapse held-out hops into
-trivial or in-distribution queries. Under a single 8-cycle, $\pi^{21} =
-\pi^{21 \bmod 8} = \pi^5$ exactly, so nominal depth 21 shares its target
-with the already-tested depth 5; the two are not distinct group-theoretic
-targets. What depth 21 measures instead is numerical stability under 21
-sequential self-applications of the trained operator: in the four
-converged seeds, $\recninety$ at $h=5$ and $h=21$ both read $\approx 1.0$,
-a non-trivial statement that repeated self-application does not amplify
-error; the fifth (still-transitioning) seed reads 0.303 at $h=5$ and
-0.0001 at $h=21$, the same underlying imperfection compounding under
-repetition.
-% <!-- evidence: N9 -->
+The binding task's held-out composition probe uses a single Hamiltonian
+$K$-cycle, under which nominal depth 21 shares its target with the
+already-tested depth 5 ($\pi^{21} = \pi^{21 \bmod 8} = \pi^5$ exactly).
+The concurrent companion submission's Appendix A performs this
+periodicity analysis and the associated depth-decay measurement in full
+on the binding testbed; see that appendix for the derivation and the
+per-hop predicted-vs-measured table.
