@@ -71,7 +71,8 @@ the same uniform pattern.
 
 \textbf{Behavioral-contrast classification (wave 5).} The per-checkpoint
 arm effect is $\Delta(c) = L_q(\text{control}, c) - L_q(\text{arm}, c)$,
-with three-seed 95-percent intervals ($t(2, .975) = 4.303$). A checkpoint
+with three-seed 95-percent intervals ($t(2, .975) = 4.303$). % evidence: C5-power
+A checkpoint
 satisfies the differential condition when the $K{=}32$ interval excludes
 zero, the $K{=}20$ interval does not, and $|\Delta_{32}| > |\Delta_{20}|$.
 Trajectories classify into six registered outcomes: persistent, transient
@@ -80,11 +81,12 @@ one), late-emergent, converged-equivalent, unresolved, and a
 familiarization-null exclusion. The three-seed power floor (a detectable
 effect of roughly 1.5 to 1.7 loss units, derived from the control cells'
 between-seed spread) was registered together with the instruction that
-unresolved outcomes be reported as measurement bounds.
+unresolved outcomes be reported as measurement bounds. % evidence: C5-power
 
 The registered pipeline computed one classification per corpus, using the
 global arm as that corpus's representative signal, and classified both
-corpora unresolved. The four-way (corpus, arm) breakdown reported in the
+corpora unresolved. % evidence: C5-power
+The four-way (corpus, arm) breakdown reported in the
 main text and Table~\ref{tab:program} applies the same registered
 classification primitives to each arm's own trajectory. This finer split
 was a build-time re-derivation performed after the corpus-level output was
@@ -102,7 +104,8 @@ encyclopedic$\times$per-token at checkpoint 1{,}000 ($K{=}32$:
 $\Delta{=}{-}0.168$, $[-0.301,-0.036]$; $K{=}20$: $\Delta{=}{-}0.109$,
 $[-0.211,-0.006]$), and the $K{=}32$ interval of
 encyclopedic$\times$per-token at checkpoint 2{,}500 ($\Delta{=}{-}0.500$,
-$[-0.624,-0.376]$, the reported transient). Only the last also satisfies
+$[-0.624,-0.376]$, the reported transient). % evidence: C6-transient
+Only the last also satisfies
 the compound differential condition above and is corroborated by the
 independent held-out-hop readout at the same cell and checkpoint; that
 compound condition, not any single interval exclusion, is what the main
@@ -117,6 +120,7 @@ mean shift below twice the pooled standard error (Welch form) and (b)
 cohort variance ratio below a pre-registered heuristic 4.0 (not a
 calibrated $F$-test; the one-sided 5-percent $F(2,8)$ critical value for
 the archived three-seed versus new nine-seed cohorts is $\approx 4.46$).
+% evidence: C7-replication
 On gate failure the registered
 routing reports both cohorts separately, produces no decision-grade pooled
 interval, and classifies the wave as batch-effect-flagged, outside the
@@ -136,6 +140,7 @@ shuffled-entity null p95; passing requires a median above the dashed
 identity line. All 90 cells across the four geometric-readout waves fall
 on or below the line, at every scale from 14M to 1.31B and under every
 surface form and training regime.}
+% evidence: C1-phase1, C2-rung3, C3-phase1b, C4-dissoc
 \label{fig:gates}
 \end{figure}
 
@@ -150,6 +155,7 @@ between checkpoint 250 (the first post-warmup reading) and checkpoint
 fraction at the same five checkpoints of the same cells is exactly 0.0 at
 all 30 readings, never approaching its 0.10 validity floor (dashed). The
 model learns the task through one readout while the other stays at floor.}
+% evidence: C4-dissoc
 \label{fig:dissoc}
 \end{figure}
 
@@ -170,6 +176,7 @@ pre-registered variance-ratio gate (4.47 against a pre-registered
 heuristic cutoff of 4.0; a calibrated one-sided 5-percent $F(2,8)$ test
 would itself require $\approx 4.46$), so the naive pooled interval (gray,
 dotted) is diagnostic only and no decision-grade pooled verdict exists.}
+% evidence: C6-transient, C7-replication
 \label{fig:transient}
 \end{figure}
 

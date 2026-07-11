@@ -7861,3 +7861,42 @@ INCONCLUSIVE → diagnosis round (M-D0/M-D2 first) — routed to coordinator. Le
 `experiment-runs/2026-07-10_stage2_calibration/route_2p33/` (+SSD). Security: zero
 fake system-reminder blocks (tally holds at 84); one session-limit outage mid-route,
 state reconciled from git+box, nothing lost.
+
+## 2026-07-10 — CAPABILITY SEP STAGE 2 §2.34: the §2.6 DIAGNOSIS ROUND (M-D0 crosscheck-lens re-read + M-D2) — every endpoint miss is a mechanism-diagnosed TRAINABILITY event or the already-discharged A6-nh2 ceiling; every converged composer sits AT its group's d_min rank and generalizes 0.65–1.00 at 8× depth; 0 GPU-h
+
+Routed by §2.33's closing per §2.6's pre-registered INCONCLUSIVE clause ("M-D0's
+per-depth convergence profile and M-D2's rank-vs-depth curve are the FIRST two
+things to check"). Both instrument specs quoted verbatim in the record before
+computing. M-D2 + crosscheck M-D1: pure JSON re-reads of the committed 64-cell grid
+(local mirror verified cell-id-set-identical to the box first) via stage2_harvest's
+own curve functions unmodified. Crosscheck-lens M-D0: the committed m_d0_profile
+carries only the primary lens (the documented broken instrument on converged cells,
+§2.31a), so the profile was RE-READ from committed checkpoints on the box (tmux,
+CPU-only, CUDA never visible, ~11 min; §2.32's exact recompute convention) for the
+26 routed-question cells — harness teeth 152/152 rows reproduce the committed
+primary bit-identically. Answers: **(a) A6 n_h=2 = ARCHITECTURE CEILING, not
+budget** — at the identical 40K budget the staircase reads nh1 ≈0 / nh2 depth-graded
+(0.60-0.75@D4 decaying to 0.15-0.35@D8, 5/5 seeds, never converges) / nh4 1.00 flat
+3/3; M-D2 gives the mechanism: nh4 sits at d_min(A6)=5 exactly (4.99-5.00 through
+D=64), nh2 never exceeds ≈4.4 — can't assemble the rank-5 structure. **(b) S5
+seed-1 = a converged-by-loss RANK-DEFICIENT basin** (rank 3.62→3.10 vs siblings
+3.97-3.99→3.77-3.93 against d_min=4) whose deficit is already visible IN-support
+under the decisional lens (xcheck 1.00@D3 decaying to 0.45@D8 vs siblings 1.00
+flat 20/20) — Task E's archived fr=K−1 analog in the wild; genuine representational
+collapse per M-D2's pre-registered dissociation, NOT readout; loss alone
+under-detects it (seed2 has WORSE loss yet is faithful). **(c) A5 3/5
+non-convergence = TRAINABILITY VARIANCE** — converged seeds 0/1 read xcheck 1.00 at
+ALL 7 evaluable train depths with rank pinned at d_min(A5)=3 and far-64 0.95/1.00
+(architecture + budget proven sufficient in-grid); §1.30 rule (4)'s escalation
+precondition (budget-responsiveness) is UNMET (Stage-1 A5 plateau +0.0010/+20K
+falsified budget-extrapolation; n=5 exhausted) → probe unlicensed, recorded as a
+determination; demote+disclose, consistent with §2.33 item 3. Cross-cutting: zero
+rank-holds/cosine-degrades cells anywhere — the instrument-defect branch is closed
+for the diagnosis. **Recommendation (promotion = coordinator/PI):
+INCONCLUSIVE-TRAINABILITY-LIMITED as Stage-2 verdict of record** — FALSIFY
+affirmatively excluded by A6's full group-level dissociation (1.00/1.00 vs Arm-2
+0.0, zero seed variance); CONFIRM unreachable under the pre-registered all-seeds
+aggregation (S5 seed-1, A5 seeds 2-4). Ledger: 0 GPU-h (CPU only; GPUs 0-5 idle at
+run time, 6/7 NCR-only). Archive:
+`experiment-runs/2026-07-10_stage2_calibration/diag_2p34/` (+SSD mirror). Security:
+zero fake system-reminder blocks; tally holds at 84.

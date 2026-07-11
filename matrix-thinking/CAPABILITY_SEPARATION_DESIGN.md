@@ -7849,3 +7849,186 @@ call; (b) PI acknowledgment of the item-3 B2 demotion at check-in;
 (c) the primary-lens degauge defect on converged composer cells
 (§2.31a ground 3, now reproduced 4×) remains an open instrument-repair
 item for any future wave that would read the primary lens as headline.
+
+### §2.34 THE §2.6 DIAGNOSIS ROUND (2026-07-10): M-D0 (CROSSCHECK-LENS, RE-READ FROM COMMITTED CHECKPOINTS) + M-D2 EXECUTED ON THE 26 ROUTED-QUESTION CELLS — EVERY MISS IN THE ENDPOINT IS A TRAINABILITY EVENT OR THE ALREADY-DISCHARGED A6-nh2 CEILING; EVERY CONVERGED COMPOSER SITS AT ITS GROUP'S d_min RANK EXACTLY AND GENERALIZES 0.65–1.00 AT 8× DEPTH; NO INSTRUMENT DEFECT CONTRIBUTES; RECOMMENDATION (NOT PROMOTION): INCONCLUSIVE-TRAINABILITY-LIMITED AS THE VERDICT OF RECORD
+
+**Charter (routed by §2.33's closing per §2.6's own INCONCLUSIVE
+clause):** execute the two pre-registered FIRST instruments of the
+diagnosis routing and answer §2.33's three routed questions. Crosscheck
+lens DECISIONAL for every recovery number per §2.31a; primary reported
+as disclosure. Zero training; zero GPU (all reads CPU-only,
+`CUDA_VISIBLE_DEVICES=""` + a hard `torch.cuda.is_available` override,
+the §2.32 convention — GPUs 0-5 untouched, 6/7 [NCR] never visible).
+
+**The instrument specs, quoted verbatim before computing (per charter):**
+
+- **M-D0** (§2.6): *"per-depth TRAIN-support convergence gate (Stage
+  2's own Gate 0, designed IN rather than discovered later,
+  directly incorporating the §1.27/§1.29 lesson from Rev 0). Rather
+  than assume a uniform `≥0.9` bar holds at every
+  `D∈{1..D_train_max}` … this design PRE-SPLITS the bar: a HARD bar
+  at `D∈{1..⌈0.6·D_train_max⌉}` … explicitly flagged for
+  RECALIBRATION at gate time against real data … Also
+  pre-registered, learning directly from §1.29's own live finding:
+  the convergence PROFILE (not just the bar) is reported at EVERY
+  `D∈{1..D_train_max}`, not just the split point, specifically so an
+  anomaly shaped like the `L=1` dip … is visible immediately rather
+  than requiring a coordinator tiebreak round to surface."*
+- **M-D2** (§2.6): *"rank-vs-depth curve, same grid, restricted
+  effective rank (§2.5), corroborating (not decisive, mirroring
+  Stage 1's own M1 corroborating-only precedent, §1.5) evidence for
+  whether a degrading arm is failing because of a genuine
+  representational collapse (rank drop) or purely a
+  readout/compounding-error issue (rank holds, cosine degrades)."*
+- The routing clause executed (§2.6): *"Otherwise INCONCLUSIVE →
+  diagnose (M-D0's per-depth convergence profile and M-D2's
+  rank-vs-depth curve are the FIRST two things to check, per the
+  pattern §1.25/§1.27/§1.29 have now demonstrated three times running
+  in this exact codebase)."*
+
+**Execution.** (i) M-D2 + crosscheck M-D1 curves: pure JSON re-reads of
+the committed 64-cell grid (62 sweep + 2 §2.33 extension cells; local
+mirror verified cell-id-set-IDENTICAL to the box before any read),
+via `stage2_harvest.py`'s own `m_d2_curve`/`_curve` UNMODIFIED.
+(ii) Crosscheck-lens M-D0: the committed `m_d0_profile` persisted ONLY
+primary-lens fields — the documented broken instrument on converged
+composer cells (§2.31a ground 3) — so the profile was RE-READ from the
+committed checkpoints on the box (tmux `stage2_diag_2p34`, CPU-only,
+~11 min wall) for the 26 cells the routed questions name, using the
+EXACT §2.32 recompute convention (`evaluate_composer_at_depth`
+unmodified, seed = `cell_seed*1000+D`, each cell's own committed
+evaluable D-set, §2.28 exclusions honored by construction).
+**Harness-fidelity teeth: 152/152 evaluated rows reproduce the
+committed primary-lens value bit-identically.** Box script md5-verified
+on deploy; output md5-verified on pull.
+
+**QUESTION (a) — A6's decisive-config n_h: budget artifact or
+architecture ceiling? ANSWER: ARCHITECTURE CEILING at n_h≤2, with a
+sharper signature than §2.32/§2.33 recorded — the ceiling is
+DEPTH-GRADED, not flat-zero.** Crosscheck M-D0 (identical pinned 40K
+budget across the staircase):
+
+| config | seeds | final_loss | xcheck M-D0 profile (D4→D8) |
+|---|---|---|---|
+| n_h=1 | 3/3 fail | 0.209–0.400 | 0.00–0.25 → 0.00 (≈0 everywhere) |
+| n_h=2 | 5/5 fail | 0.073–0.293 | 0.60–0.75 @D4 decaying to 0.15–0.35 @D8 (seed1 weakest: 0.20→0.00) |
+| n_h=4 | 3/3 converge | 3.2e-5–8.2e-5 | **1.00 flat at every train depth** |
+
+M-D2 corroborates with the mechanism: n_h=4 sits at d_min(A6)=5
+EXACTLY (4.99–5.00, σ≤0.008) at every D_test depth 9→64; n_h=2 never
+exceeds ≈4.4 and decays (mean 3.50 @64); n_h=1 ≈3.3–4.1. The n_h=2
+composer partially learns SHALLOW compositions but cannot assemble the
+rank-5 structure deep composition requires — an expressivity ceiling
+that binds progressively with depth, NOT a budget effect (the
+identically-budgeted n_h=4 triad converges 3/3; §1.30's Stage-1 A6
+plateau verification and §2.33's no-budget-responsiveness finding
+stand). §2.33's ceiling-branch demotion and n_h=4 pin discharge are
+CORROBORATED by both routed instruments. Disclosed refinement of the
+§2.32/§2.33 shorthand ("both lenses ≈0"): true on the D_test grid
+(D≥9) and under the primary lens everywhere, but the crosscheck M-D0
+at shallow train depths reads up to 0.75 — the publishable
+n_h-sufficiency measurement is depth-graded.
+
+**QUESTION (b) — S5 seed-1 vs its 4 healthy siblings. ANSWER: a
+CONVERGED-BY-LOSS RANK-DEFICIENT BASIN whose deficit is already
+visible INSIDE the train support under the decisional lens — the
+in-the-wild realization of Task E's archived fr=K−1 analog (§2.6's own
+precedent table).** Crosscheck M-D0: seed1 reads 1.00@D3, 0.95@D4,
+0.90@D5, 0.60@D6, 0.35@D7, 0.45@D8 (in-support depth decay); all four
+siblings read 1.00 at every evaluable train depth (20/20 rows). M-D2:
+seed1's restricted effective rank is 3.62@D9 → 3.10@D64 vs siblings
+3.97–3.99@D9 → 3.77–3.93@D64, against d_min(S5)=4 — seed1 never
+assembled the full rank-4 representation; per M-D2's pre-registered
+dissociation this is GENUINE REPRESENTATIONAL COLLAPSE (rank drop),
+not a readout/compounding-error issue. Its far-64 zero is the
+extrapolation of an in-support deficit, exactly the anomaly class
+M-D0 was pre-registered to surface "immediately rather than requiring
+a coordinator tiebreak round." Classification REINFORCED with
+mechanism: trainability-variance (§2.31a, h2h §1.40 mirror) — a
+rank-deficient basin satisfying train loss (6.4e-3) without the
+faithful representation; the loss ALONE under-detects it (seed2's loss
+is WORSE at 1.2e-2 yet seed2 is faithful: M-D0 1.00 flat, rank 3.97,
+far-64 0.65 — M-D0+M-D2 jointly dissociate "marginal but faithful"
+from "rank-deficient," which final_loss cannot).
+
+**QUESTION (c) — A5's 3/5 non-converged seeds: budget artifact or
+ceiling? ANSWER: TRAINABILITY VARIANCE (optimization lottery);
+the architecture is PROVEN sufficient at this exact config and
+budget; a budget-extension probe is UNLICENSED, recorded as a
+determination (not an ambiguity).** Crosscheck M-D0: converged seeds
+0/1 (final_loss 3.7e-4/7.1e-4) read **1.00 at ALL SEVEN evaluable
+train depths** D2–D8; non-converged seeds 2/3/4 (0.069–0.157) read
+graded decaying profiles (0.90–1.00@D2 → 0.05–0.30@D8). M-D2: the
+converged pair sits at d_min(A5)=3 exactly (2.96–3.00 through D=64,
+far-64 crosscheck 0.95/1.00); non-converged 2.4–2.6, decaying. The
+20K budget demonstrably suffices when optimization lands in the
+faithful basin — 2/5 direct in-grid existence proofs. License check
+against the pinned escalation rule (§1.30 rule (4), quoted at §2.33:
+*"instrument→fix; moving-below-ceiling→one capped escalation;
+ceiling→demote+disclose+Stage-2 flag"*): the moving-below-ceiling
+branch's precondition — evidence of budget-responsiveness — is UNMET
+(no committed loss trajectory exists; Stage-1's A5 budget-extrapolation
+premise was affirmatively FALSIFIED at 40K, `+0.0010` per `+20K` steps,
+§1.30); seed extension under §1.4.2 is exhausted (A5 already at n=5).
+→ ceiling/trainability branch: demote + disclose at the group level,
+consistent with §2.33 item 3's routing of the same cells' 2(e) legs.
+No training probe was run (charter: record rather than improvise).
+Arm-2 disclosure: A5's baseline reads 0.80–1.00 at D=2 collapsing by
+D=4-5 — shallow-composition-only competence; its far-depth zeros are
+genuine.
+
+**Cross-cutting M-D2 finding (corroborating, both gating groups + A5):
+the Stage-1 rank law reproduces in the Stage-2 composer.** Every
+converged contender cell sits AT its group's d_min (A5→3.00, S5→3.97,
+A6→5.00) and HOLDS it to D=64 with minimal decay; every failing cell
+sits measurably BELOW d_min and decays. No cell anywhere in the focus
+set shows the rank-holds/cosine-degrades pattern — zero evidence for a
+readout/compounding-error account of any endpoint miss, closing the
+instrument-defect branch for the diagnosis (on top of the 152/152
+reproduction teeth and §2.32's shuffled-target teeth).
+
+**RECOMMENDATION on §2.33's pending promotion call (recommendation
+only — promotion itself is the coordinator/PI's):** promote the
+discharged-pin endpoint to the Stage-2 verdict of record as
+**INCONCLUSIVE-TRAINABILITY-LIMITED**, superseding §2.32's as-built
+FALSIFY (which §2.33's pin already scopes to that record). Grounds:
+(1) FALSIFY is affirmatively excluded — A6, the theorem's strongest
+exclusion case, shows the full pre-registered group-level dissociation
+(contender 1.00 ceiling AND far, Arm-2 at exactly 0.0) with zero seed
+variance at its discharged decisive config; (2) CONFIRM is not
+reachable by this diagnosis — the pre-registered all-seeds group-mean
+aggregation stands (§2.33: "the remedy the text licenses is more
+seeds, never exclusion"), S5's n=5 quintet misses its far bar on the
+seed-1 outlier and A5 misses on 3/5 non-convergence; (3) both misses
+are now mechanism-diagnosed trainability events (rank-deficient basin;
+optimization lottery), not lens artifacts and not architecture
+insufficiency — converged seeds generalize 0.65–1.00 at 8× depth in
+EVERY group including both gating groups. The un-pre-registered
+follow-on this diagnosis naturally motivates (a trainability-rate /
+basin-statistics program, mirroring h2h task-2's §1.42) is a NEW
+pre-registration decision, PI-visible, not routed here.
+
+**LEDGER.** 0 GPU-h (local JSON analysis + box CPU-only eval re-reads;
+GPU query at run time confirmed GPUs 0-5 at 0% / 0 MiB, GPUs 6-7
+carrying NCR only). Stage-2 running total unchanged ≈3.16 of 25 GPU-h.
+
+**SECURITY.** Zero fake system-reminder blocks in tool stdout this
+segment (box/SSH output clean; the only system notifications were
+legitimate harness task-completion events, correctly tagged; one
+mid-segment API-error restart recovered from transcript with state
+intact). Tally holds at 84.
+
+**Archive:** `experiment-runs/2026-07-10_stage2_calibration/diag_2p34/`
+— `diag_2p34.py` + `diag_2p34_output.log` (local M-D0/M-D2/M-D1
+analysis over the committed grid), `per_seed_tables.py` +
+`per_seed_tables.log` (per-seed far-depth/rank tables),
+`diag_2p34_md0_box.py` (the box-side crosscheck M-D0 re-read,
+md5-verified on deploy) + `diag_2p34_md0.log` (box log) +
+`diag_2p34_md0_xcheck_output.json` (the 26-cell × per-depth crosscheck
+profiles + 152/152 teeth), `format_md0_xcheck.py` +
+`md0_xcheck_tables.log` (the formatted tables quoted above).
+SSD-mirrored. **NEXT (coordinator/PI):** (a) the promotion call on the
+recommendation above; (b) the §2.33 item-3 B2 demotion acknowledgment
+(unchanged, still pending); (c) the primary-lens degauge defect
+instrument-repair item (unchanged, §2.33); (d) if the PI wants the
+trainability-rate follow-on, it needs its own pre-registration.
