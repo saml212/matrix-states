@@ -249,8 +249,11 @@ def fig3():
     axL.set_xticklabels([str(c) for c in CKPTS])
     axL.set_xlabel("familiarization step")
     axL.set_ylabel(r"$\Delta L_\mathrm{query}$ (off $-$ arm)")
-    axL.legend(frameon=False, loc="upper right", handlelength=1.0,
-               borderaxespad=0.2)
+    # legend above the axes: the c=5000 whisker caps reach the top of the
+    # data region, so an in-axes legend collides with an error-bar cap
+    axL.legend(frameon=False, loc="lower left", bbox_to_anchor=(0.0, 1.01),
+               ncol=2, handlelength=1.0, borderaxespad=0.0,
+               columnspacing=1.2)
 
     # right: anchor cell per-seed deltas, two cohorts + naive pool
     anchor = t12["primary"]["2500"]["delta_k32"]

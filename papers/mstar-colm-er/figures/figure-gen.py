@@ -194,6 +194,14 @@ def fig2_szero(repo, out_dir, plt):
         xpos = [s + (j - 1) * (width + 0.02) for s in range(3)]
         ax.bar(xpos, vals[key], width=width, color=color, hatch=hatch,
                edgecolor="white", linewidth=0.8, label=lab)
+        # round-1 gauntlet minor: the S0-zeroed bars collapse to near-zero
+        # height at seeds 1-2 and can read as missing data at print size;
+        # print the value above each bar in this condition so absence
+        # reads as a measurement, not a gap.
+        if key == "acc_s0_zeroed":
+            for x, v in zip(xpos, vals[key]):
+                ax.text(x, v + 0.025, f"{v:.4f}", ha="center", va="bottom",
+                        fontsize=5.5, color=color, rotation=90)
     ax.axhline(CHANCE_K32, color=STYLE["lightgray"], lw=1.0, ls=":")
     ax.set_xlim(-0.85, 2.55)
     ax.text(-0.82, CHANCE_K32 + 0.02, "chance", ha="left", fontsize=7,

@@ -313,7 +313,7 @@ transformer reads chance at every horizon, both uncapped (dashed) and
 under sink-plus-FIFO KV caps at $M \times 32{,}768$ bytes for
 $M \in \{2, \ldots, 32\}$ (crosses; $M{=}1$ is excluded from the walk
 because its 8-token cap sits below the query length and is reported
-descriptively in Table~\ref{tab:capped}). Reference lines mark chance
+descriptively in Table~\ref{tab:capped}'s caption). Reference lines mark chance
 ($1/32$) and the pre-registered demonstration bar ($3/32$).}
 \label{fig:horizon}
 \end{figure}
@@ -336,15 +336,16 @@ curve. % <!-- evidence: C10 -->
 \textbf{No cache budget rescues the baseline.} The uncapped transformer
 reads 0.029 to 0.036 across seeds and horizons; % <!-- evidence: C4 -->
 capped at every budget $M \times 32{,}768$ bytes for
-$M \in \{2, \ldots, 32\}$ it reads 0.020 to 0.033, at or below its own
-uncapped reading everywhere. % <!-- evidence: C4 -->
+$M \in \{2, \ldots, 32\}$ it reads 0.020 to
+0.033. % <!-- evidence: C4 -->
 Per the frozen no-recall rule, these differences are chance-level
 orderings. Two registered hypotheses die here at once. A larger cache
 does not eventually hold the bindings: $M{=}32$ grants the cache more
 bytes than the episode needs and the reading does not move. Forced
 locality, which might have \emph{helped} by concentrating attention on
-recent tokens, does not either; every capped reading sits at or below
-uncapped.
+recent tokens, does not either: no capped cell clears the bar, and no cap
+moves the reading beyond chance-level noise in either direction
+(Table~\ref{tab:capped}).
 
 \textbf{What is not claimed.} The registered degenerate-baseline clause
 fires on this data exactly as written: the uncapped baseline itself fails
