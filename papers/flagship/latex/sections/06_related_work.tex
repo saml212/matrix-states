@@ -33,7 +33,7 @@ differs in both directions of inference: the force-rank arms intervene
 at train time, and the necessity/sufficiency step at $d_{\min}$ is a
 causal result a descriptive measurement cannot license.
 
-\textbf{Key normalization and stability.} The qk-normalization line (Kimi Linear, \citealp{kimiteam2025kimilinearexpressiveefficient}; Qwen3-Next) conditions
+\textbf{Key normalization and stability.} The qk-normalization line (Kimi Linear, \citealp{kimiteam2025kimilinearexpressiveefficient}; Qwen3-Next, \citealp{qwenteam2025qwen3next}) conditions
 single-vector eigenvalue stability of the state update. The attractor
 of Section 5 is a different object, cross-key population geometry. It
 was measured with qk normalization active throughout, and removing the
@@ -50,7 +50,7 @@ axis reappears here only as a measured factor in Section 5.2, where it
 trends toward amplifying the attractor without confirming.
 
 \textbf{Prior negative result in this program.} A published companion study
-("The Gradient Does Not See Rank," ICML 2026 MI workshop) showed that
+("The Gradient Does Not See Rank," ICML 2026 MI workshop; \citealp{larson2026the}) showed that
 bolting a matrix state onto a pretrained backbone through a
 flatten-then-project readout leaves the gradient rank-blind. The
 present paper is the from-scratch counterpart: when the state is native

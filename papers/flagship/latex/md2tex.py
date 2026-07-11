@@ -23,16 +23,19 @@ SRC = os.path.join(HERE, '..', 'sections')
 DST = os.path.join(HERE, 'sections')
 
 # width fraction chosen from each PDF's natural size (238pt-wide panels
-# sit at ~0.62\linewidth; 490pt-wide multi-panel rows take the full line)
+# sit at ~0.62\linewidth; 490pt-wide multi-panel rows take the full line).
+# 4th field: float placement. A1 uses '!htb' (final-review C7): with the
+# kit's default 't' it floated above Appendix A's own \section heading,
+# opening p.14 under its figure with two stretched white gaps.
 FIGMAP = {
-    '1': ('fig1_rank_vs_dmin.pdf', 'fig:rank-vs-dmin', 0.62),
-    '2': ('fig2_forcerank_staircase.pdf', 'fig:forcerank', 1.0),
-    '3': ('fig3_recall_separation.pdf', 'fig:recall', 1.0),
-    '4': ('fig4_tap_localization.pdf', 'fig:taps', 1.0),
-    '5': ('fig5_attractor_ladder.pdf', 'fig:ladder', 0.62),
-    '6': ('fig6_2x2_mitigations.pdf', 'fig:mitigations', 0.62),
-    '7': ('fig7_fixscale_transfer.pdf', 'fig:fixscale', 0.62),
-    'A1': ('figA1_complement_scaffold.pdf', 'fig:complement', 1.0),
+    '1': ('fig1_rank_vs_dmin.pdf', 'fig:rank-vs-dmin', 0.62, 't'),
+    '2': ('fig2_forcerank_staircase.pdf', 'fig:forcerank', 1.0, 't'),
+    '3': ('fig3_recall_separation.pdf', 'fig:recall', 1.0, 't'),
+    '4': ('fig4_tap_localization.pdf', 'fig:taps', 1.0, 't'),
+    '5': ('fig5_attractor_ladder.pdf', 'fig:ladder', 0.62, 't'),
+    '6': ('fig6_2x2_mitigations.pdf', 'fig:mitigations', 0.62, 't'),
+    '7': ('fig7_fixscale_transfer.pdf', 'fig:fixscale', 0.62, 't'),
+    'A1': ('figA1_complement_scaffold.pdf', 'fig:complement', 1.0, '!htb'),
 }
 
 # Order matters: longer literals first.
@@ -57,9 +60,14 @@ CITEMAP = [
     ('(arXiv:2602.04852; arXiv:2602.02195)',
      r'\citep{nazari2026keystatereductionlinear,sun2026staterankdynamicslinear}'),
     ('(Kimi\nLinear, Section 4 of arXiv:2510.26692; Qwen3-Next)',
-     r'(Kimi Linear, \citealp{kimiteam2025kimilinearexpressiveefficient}; Qwen3-Next)'),
+     r'(Kimi Linear, \citealp{kimiteam2025kimilinearexpressiveefficient}; Qwen3-Next, \citealp{qwenteam2025qwen3next})'),
     ('(Kimi Linear, Section 4 of arXiv:2510.26692; Qwen3-Next)',
-     r'(Kimi Linear, \citealp{kimiteam2025kimilinearexpressiveefficient}; Qwen3-Next)'),
+     r'(Kimi Linear, \citealp{kimiteam2025kimilinearexpressiveefficient}; Qwen3-Next, \citealp{qwenteam2025qwen3next})'),
+    # C5(a), final review 07: the ICML-ws companion self-cite. Named-build
+    # mapping only in effect here; the ICLR build's anonymization pass
+    # must strip/replace it (self-citation is anonymization-sensitive).
+    ('("The Gradient Does Not See Rank," ICML 2026 MI workshop)',
+     r'("The Gradient Does Not See Rank," ICML 2026 MI workshop; \citealp{larson2026the})'),
 ]
 
 def esc_text(s):
@@ -114,10 +122,10 @@ def convert(md, is_appendix):
             i += 1
             while i < len(lines) and lines[i].strip() != '':
                 cap.append(lines[i]); i += 1
-            fname, label, wfrac = FIGMAP[fignum]
+            fname, label, wfrac, place = FIGMAP[fignum]
             body = esc_text(inline(' '.join(cap)))
             width = r'\linewidth' if wfrac >= 1.0 else str(wfrac) + r'\linewidth'
-            out += [r'\begin{figure}[t]', r'\centering',
+            out += [r'\begin{figure}[' + place + ']', r'\centering',
                     r'\includegraphics[width=' + width + ']{' + fname + '}',
                     r'\caption{' + body + '}', r'\label{' + label + '}',
                     r'\end{figure}', '']
@@ -161,6 +169,25 @@ def convert(md, is_appendix):
                 env += [r'\bottomrule', r'\end{tabular}', '}']
             out += env + ['']
             i = j; continue
+        # top-level markdown numbered lists -> enumerate (final-review C6:
+        # the contribution list rendered as one run-on paragraph). Items
+        # start '<n>. '; continuation lines are indented. Only the intro's
+        # contribution list matches across all section sources.
+        if re.match(r'^\d+\.\s+', ln):
+            items = []
+            while i < len(lines):
+                m = re.match(r'^\d+\.\s+(.*)', lines[i])
+                if m:
+                    items.append([m.group(1)]); i += 1
+                elif items and lines[i].startswith('   ') and lines[i].strip():
+                    items[-1].append(lines[i].strip()); i += 1
+                else:
+                    break
+            out.append(r'\begin{enumerate}')
+            for it in items:
+                out.append(r'\item ' + esc_text(inline(' '.join(it))))
+            out += [r'\end{enumerate}', '']
+            continue
         out.append(esc_text(inline(ln)))
         i += 1
     tex = '\n'.join(out)

@@ -29,6 +29,14 @@ Paper under double-blind review}
 \begin{document}
 
 \maketitle
+% C1 (gauntlet/round-1/07_final_review.md): the kit's \iclrfinalcopy header
+% ("Published as a conference paper at ICLR 2026", set via \lhead inside
+% \maketitle) is false for the named arXiv build. Override it through the
+% same fancyhdr interface the kit itself uses — after \maketitle, before
+% any page ships, so every page carries it. \iclrfinalcopy stays (it also
+% suppresses the review ruler). The ICLR submission build deletes this
+% override and reverts to the kit default under anonymization.
+\lhead{Preprint.}
 
 \begin{abstract}
 \input{sections/00_abstract}

@@ -7,11 +7,17 @@
 % mamba, hopfield. CORE (format-audit S1, fetched 2026-07-10 same route):
 % nichani, the two Feb-2026 rank papers, kimi linear,
 % deltanet/gated-deltanet.
-% STILL DEFERRED TO ASSEMBLY TIME (format-audit S2): Qwen3-Next (no
-% arXiv paper; needs a canonical release citation, not fabricated here)
-% and the program's own ICML 2026 MI-workshop companion ("The Gradient
-% Does Not See Rank"; self-citation, anonymization-sensitive for the
-% ICLR build).
+% DEFERRALS RESOLVED 2026-07-11 (final-review C5, named arXiv build):
+% (a) the ICML 2026 MI-workshop companion self-cite fetched verbatim from
+% the OpenReview API (api2.openreview.net/notes/search, venueid
+% ICML.cc/2026/Workshop/Mech_Interp, forum Spof4PusVI) — the paper has no
+% arXiv record yet; self-citation stays anonymization-sensitive for the
+% ICLR build (strip/replace there). (b) Qwen3-Next has no arXiv/DBLP
+% record (arXiv API title+all-field search and DBLP publ API both null,
+% 2026-07-11); the canonical release artifact is the Hugging Face model
+% card (fields verified via the HF API: author Qwen, createdAt
+% 2025-09-09; the qwen.ai blog is a client-side SPA and unverifiable
+% programmatically, so the card is the citable record).
 
 % ---- MUST-CITE ----
 
@@ -147,4 +153,25 @@
       archivePrefix={arXiv},
       primaryClass={cs.CL},
       url={https://arxiv.org/abs/2412.06464},
+}
+
+% ---- C5 resolutions (final review 07, fetched/verified 2026-07-11) ----
+
+% Verbatim OpenReview _bibtex export (self-cite; see header note).
+@inproceedings{larson2026the,
+title={The Gradient Does Not See Rank: Rank-Indifference in Matrix-{CODI} on Pros{QA}},
+author={Samuel Larson},
+booktitle={Mechanistic Interpretability Workshop at ICML 2026},
+year={2026},
+url={https://openreview.net/forum?id=Spof4PusVI}
+}
+
+% Canonical release artifact for Qwen3-Next (no arXiv/DBLP record exists;
+% fields verified against the HF API 2026-07-11 — see header note).
+@misc{qwenteam2025qwen3next,
+      title={{Qwen3-Next-80B-A3B-Instruct}},
+      author={{Qwen Team}},
+      year={2025},
+      url={https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct},
+      note={Model release and card, Hugging Face, September 9, 2025},
 }

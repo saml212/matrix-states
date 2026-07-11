@@ -1,0 +1,23 @@
+# ARTIFACT_MANIFEST.txt — flagship paper, Appendix B.3 verdict-bearing artifacts.
+# Full 32-character MD5 checksums for every entry in the B.3 manifest table
+# (including the entries abbreviated there). Generated programmatically from
+# the archived files on 2026-07-11 (applier stage, gauntlet/round-1/07 C3);
+# cross-checked against the B.3 table and figures/figure-gen.py SOURCE_MD5.
+# Format: <md5>  <path relative to the repository root>.
+# R4's 27 training + 18 re-metric JSONs carry their own per-file manifest at
+# experiment-runs/2026-07-10_h2h_sweep_harvest/md5_manifest.txt; the margins
+# token is listed here.
+#
+7dce77dcba724cd1004419ac71fe5f2f  experiment-runs/2026-07-09_capability_sweep_harvest/harvest_summary.json
+77be9c3b092c70e83ff08a0261575815  experiment-runs/2026-07-09_m3fix_harvest/harvest_analysis_output.txt
+d4413385f9f45b71ff9707354ed6b055  experiment-runs/2026-07-09_m3fix_s3ext/harvest_analysis_output.txt
+58fe68e7b15728739a5176d7e591e204  experiment-runs/2026-07-10_h2h_sweep_harvest/MARGINS_FROZEN.token
+362333c89f4223c427fe8daf54f50fce  experiment-runs/2026-07-09_h2h_tap_localization/results/tap_localization_contender.json
+ff8e352a13c2bc1e177f53f8cef47c01  experiment-runs/2026-07-09_h2h_tap_localization/results/tap_localization_ablation.json
+6a627c315b0c8e35e084bbbe7730a2f8  experiment-runs/2026-07-06_trackc_rung3/probe_analysis_rung3.json
+0fe53d8b40285b93fe81219fa6ff9606  experiment-runs/2026-07-06_trajectory_probes/trajectories_tidy.json
+d7e4d6b45c7a23d5b2a661257dca2c82  experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/box_results/AGGREGATE.json
+b4bdffdf25bf85f84945a40b9170a467  experiment-runs/2026-07-09_attrrob_2x2_escalation_harvest/n3_recompute_summary.json
+f2f0aae84908c0db0a42b13c76a85158  experiment-runs/2026-07-10_fixscale_harvest/fixscale_harvest_verdict.json
+03208edab7adc7e433f2cad46ee975bb  experiment-runs/2026-07-09_zdump_complement/complement_results.json
+4f115ad55d5301122f387df504efa35c  experiment-runs/2026-07-10_h2h_mstar/MSTAR_VERDICT.json

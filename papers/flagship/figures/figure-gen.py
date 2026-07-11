@@ -406,8 +406,11 @@ def fig5_attractor_ladder(out_dir):
     ins.set_ylim(0.450, 0.462)
     ins.set_xticks([130, 155])
     ins.set_xticklabels(["130k", "155k"])
-    ins.set_title("1.31B final window", fontsize=5.5, pad=1.5)
-    ins.tick_params(labelsize=5)
+    # final-review C9: inset tick labels were below legibility at print
+    # size (render-inspection v3's cosmetic minor); values restated in
+    # the caption regardless.
+    ins.set_title("1.31B final window", fontsize=6, pad=1.5)
+    ins.tick_params(labelsize=6)
     ins.grid(False)
     fig.tight_layout()
     fig.savefig(os.path.join(out_dir, "fig5_attractor_ladder.pdf"))
@@ -430,6 +433,7 @@ def fig6_2x2_mitigations(out_dir):
     gt = d["verdicts"]["qkTrue_gateTrue"]
     sigma_floor = gt["delta"] / gt["sigma_floor"]  # = 2.244355 (corrected floor)
     fig, ax = plt.subplots(figsize=SINGLE)
+    ann_top = -np.inf
     for i, cell in enumerate(order):
         seeds = [d["per_seed"][cell][str(s)] for s in range(3)]
         mean, sd = float(np.mean(seeds)), float(np.std(seeds, ddof=1))
@@ -440,8 +444,10 @@ def fig6_2x2_mitigations(out_dir):
                    edgecolors=color, linewidths=0.7)
         if cell != "qkTrue_gateFalse":
             delta = mean - base_mean
-            ax.annotate(f"$\\Delta$={delta:+.2f}", (i, mean + sd + 0.9),
+            ann_y = mean + sd + 0.9
+            ax.annotate(f"$\\Delta$={delta:+.2f}", (i, ann_y),
                         ha="center", fontsize=6.5)
+            ann_top = max(ann_top, ann_y)
     ax.axhline(base_mean, ls="--", lw=0.8, color=PALETTE["gray"])
     ax.axhline(base_mean + 2 * sigma_floor, ls=":", lw=1.0, color=PALETTE["ink"])
     ax.text(3.45, base_mean + 2 * sigma_floor + 0.25,
@@ -449,6 +455,10 @@ def fig6_2x2_mitigations(out_dir):
     ax.set_xticks(range(4))
     ax.set_xticklabels(labels, fontsize=6)
     ax.set_ylabel("key-Gram deviation (raw)")
+    # final-review C8: autoscale ignores annotations, which clipped the
+    # qk-norm-on/gating cell's +4.31 delta (the number the caption leads
+    # with) above the axes top. Give every delta annotation headroom.
+    ax.set_ylim(top=max(ann_top + 0.7, ax.get_ylim()[1]))
     fig.tight_layout()
     fig.savefig(os.path.join(out_dir, "fig6_2x2_mitigations.pdf"))
     plt.close(fig)
