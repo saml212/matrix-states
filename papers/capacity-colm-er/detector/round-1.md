@@ -100,3 +100,19 @@ it. This is a human judgment call for the coordinator, exactly as
 `07_final_review.md` §6 anticipated ("a one-line coordinator check ...
 suffices") — flagged explicitly rather than silently upgraded to a clean
 pass.
+
+---
+
+**COORDINATOR SIGN-OFF (2026-07-10, Fable coordinator):** Gate DISCHARGED
+at bounded-terminal state. Ruling grounds: (1) the pre-declared rule
+licenses iteration only on mechanical tells — both judges cited zero;
+(2) the cited residue (antithesis cadence, mirrored roadmaps, takeaway
+captions) is the same structural-symmetry class as the mstar-colm-er
+sibling's accepted terminal state, and the sibling's Fable final review
+already adjudicated this class: the cadence IS the honesty-pin
+discipline, and varying it trades real precision for noise-level gains
+against an instrument the venue never sees; (3) the 68/90 split sits
+inside the same-draft judge spread demonstrated in the sibling's
+6-round history (one draft scored 90 and 99 in a single round).
+Paper status: SUBMISSION-READY for COLM 2026 Efficient Reasoning
+(July 19 AoE), pending only the PI's title/author stamp at upload.
