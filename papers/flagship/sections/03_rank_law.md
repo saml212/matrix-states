@@ -16,12 +16,12 @@ observed ordering attains that cap <!-- evidence: R1 -->. Because the
 family has only five members, we report the exact permutation null
 rather than an asymptotic one: under the null, $P(\rho \ge 0.8) = 8/120 \approx 6.67\%$
 <!-- evidence: R1 -->. The correlation is therefore suggestive on its
-own and is not asked to carry the section; the band criterion and the
-causal test below carry it. All 19 unconstrained-arm cells in the sweep
-land inside the pre-registered $[0.7, 1.3] \cdot d_{\min}$ band
-<!-- evidence: R1 -->, so the tracking is per-cell, not only on average.
+own; the band criterion and the causal test below do the deciding. The
+tracking also holds cell by cell: all 19 unconstrained-arm cells in the
+sweep land inside the pre-registered $[0.7, 1.3] \cdot d_{\min}$ band
+<!-- evidence: R1 -->.
 
-## 3.2 Dimension, Not Solvability
+## 3.2 The Designed Dissociation: $S_4$ versus $A_5$
 
 $S_4$ is solvable; $A_5$ is the smallest non-solvable group. Both have
 $d_{\min}=3$. If recruited rank were driven by computational difficulty

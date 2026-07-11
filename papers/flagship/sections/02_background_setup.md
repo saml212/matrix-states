@@ -103,7 +103,7 @@ as unconfirmed.
 
 Each leg of this program survived at least one
 instrument-defect-found-and-fixed round; only repaired readings appear
-below. Three examples set the pattern. In the rank program, the
+below. In the rank program, the
 first causal sweep was voided by a target-padding defect that let
 rank-capped models buy cosine from an ambient identity block; the
 diagnosis, fix, and re-run are described in Section 3.3. In the recall

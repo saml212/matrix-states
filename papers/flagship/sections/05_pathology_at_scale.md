@@ -18,9 +18,9 @@ the largest model halfway to collapse. Because the data mixes are held
 fixed across rungs, scale is the only moving axis
 <!-- evidence: R6 -->.
 
-The top rung carries a disclosure: the 1.31B cells self-terminated
-at their internal timeout at approximately 84.7 percent of the
-token-matched budget <!-- evidence: R6 -->. The shortfall does not
+The 1.31B cells self-terminated at their internal timeout at
+approximately 84.7 percent of the token-matched budget
+<!-- evidence: R6 -->. The shortfall does not
 rescue the trend: over the final 25,000 recorded steps the rung's span
 fraction is flat to mildly declining (0.4584 to 0.4554)
 <!-- evidence: R6 -->, so completing the budget would move the endpoint
@@ -102,8 +102,8 @@ data mixes; 0 is the random-unit-vector anchor and 1 is full collapse,
 computed per state width so rungs are comparable. The climb 0.248 to
 0.455 is monotone. The 1.31B rung stopped at approximately 84.7 percent
 of its token budget with span fraction flat to declining over its final
-window (0.4584 to 0.4554), so the shortfall does not account for the
-trend.
+window (0.4584 to 0.4554); the missing budget cannot supply the
+0.066-scale increment.
 
 **Figure 6 caption.** The 2-by-2 mitigation factorial at 14M ($n{=}3$;
 raw key-Gram deviation, cell means with per-seed points; dashed line:

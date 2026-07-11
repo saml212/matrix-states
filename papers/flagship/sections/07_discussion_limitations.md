@@ -21,7 +21,7 @@ steps, with training curves reported. A tuned transformer that still
 reads below the demonstration bar would strengthen the separation to a
 two-baseline result; a tuned transformer that clears it would confine
 the separation to the vector-state comparison, which is the comparison
-the frozen registration designates as the verdict carrier in either
+the frozen registration designates as decisive in either
 case.
 
 **One stress point is a locate-only null.** At the disclosed

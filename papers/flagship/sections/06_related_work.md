@@ -22,7 +22,7 @@ not interpret it as an architectural inability. The leading candidate
 explanation is optimization: the arm trained at the shared default
 learning rate with no architecture-specific search on the recall task,
 and its training loss is near flat across the run (Section 4.1). The
-separation verdict is accordingly carried by the vector-state ablation
+separation verdict accordingly rests on the vector-state ablation
 comparison alone, with the transformer reading disclosed as a
 degenerate-baseline datum; Section 7 states the measurement that would
 resolve the question.
@@ -39,8 +39,7 @@ Linear, Section 4 of arXiv:2510.26692; Qwen3-Next) conditions
 single-vector eigenvalue stability of the state update. The attractor
 of Section 5 is a different object, cross-key population geometry. It
 was measured with qk normalization active throughout, and removing the
-normalization is a within-noise null at $n{=}3$ <!-- evidence: R7 -->,
-so the two phenomena are empirically as well as conceptually distinct.
+normalization is a within-noise null at $n{=}3$ <!-- evidence: R7 -->.
 
 **DeltaNet and gated variants.** DeltaNet and Gated DeltaNet (Yang et
 al.) supply the architecture substrate for the capability and pathology

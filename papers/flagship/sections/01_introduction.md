@@ -11,9 +11,9 @@ with the incoming key. The literature evaluates these models almost
 exclusively on one axis: quality per unit of compute or memory relative
 to attention. The state itself is treated as an implementation detail.
 
-We take the opposite view. A $d \times d$ state is not a cheaper cache;
-it is a representational medium, with a capacity structure and a causal
-role of its own, and with failure modes that never appear on a
+We take the opposite view: the $d \times d$ state itself is the object
+of study, a representational medium with a capacity structure and a
+causal role of its own, and with failure modes that never appear on a
 perplexity leaderboard. This paper measures all three, under
 pre-registered verdict criteria, across three experimental programs that
 share one object of study: what the matrix state stores.
@@ -43,7 +43,7 @@ Concretely, we contribute:
    pre-registered band <!-- evidence: R1 -->. A designed pair, $S_4$
    versus $A_5$, shares $d_{\min}=3$ but differs in solvability; an
    equivalence test declares their recruited ranks equivalent
-   <!-- evidence: R2 -->, so rank follows dimension, not solvability.
+   <!-- evidence: R2 -->; solvability leaves no signature.
    Train-time rank forcing closes the causal loop: recovery is 0.000 at
    $k = d_{\min}-1$ in all five groups and in all four seeds of the
    extension group, and returns at $k = d_{\min}$ in five of five

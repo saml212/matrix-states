@@ -19,17 +19,18 @@ follows dimension, not solvability <!-- evidence: R2 -->, and
 forcing rank one below $d_{\min}$ zeroes recovery while $d_{\min}$
 restores it <!-- evidence: R3 -->. Second, a
 capability separation: a two-layer delta-rule model performs episodic
-recall at accuracy 0.9995 <!-- evidence: R4 --> while a
-parameter-matched vector-state ablation reads chance, the comparison
-carrying the pre-registered verdict (a compute-matched transformer
-also reads chance, disclosed as a degenerate baseline)
-<!-- evidence: R4 -->; the capability resides causally in the first
-layer's state, is linearly legible only after downstream nonlinear
-processing <!-- evidence: R5 -->, and holds at 0.998 or higher to 1798
-tokens on a fixed 32,768-byte state while that transformer,
-cache-capped, reads chance everywhere <!-- evidence: R10 -->. Third, the
-same write mechanism drives a population-geometry pathology worsening
-monotonically from 14M to 1.31B parameters <!-- evidence: R6 -->, not
-explained by qk-normalization <!-- evidence: R7 --> and not removed by
-a frozen-key-bias mitigation whose loss neutrality, but not its
-geometric benefit, transfers to scale <!-- evidence: R8 -->.
+recall at accuracy 0.9995 <!-- evidence: R4 --> against a
+parameter-matched vector-state ablation at chance, the pre-registered
+decisive comparison; a compute-matched transformer also reads chance
+and is disclosed as a degenerate baseline <!-- evidence: R4 -->. The
+capability resides causally in the first layer's state, is linearly
+legible only after downstream nonlinear processing
+<!-- evidence: R5 -->, and holds at 0.998 or higher to 1798 tokens on
+a fixed 32,768-byte state while that transformer, cache-capped, reads
+chance everywhere <!-- evidence: R10 -->. Third, the same write
+mechanism drives a population-geometry pathology that worsens
+monotonically from 14M to 1.31B parameters <!-- evidence: R6 -->.
+Removing qk-normalization leaves it unchanged
+<!-- evidence: R7 -->, and a frozen-key-bias mitigation fails to
+remove it: the loss neutrality transfers to scale; the geometric
+benefit does not <!-- evidence: R8 -->.

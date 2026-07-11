@@ -3,11 +3,8 @@
 
 The same write mechanism that Sections 3 and 4 show storing task
 structure also reshapes the population geometry of its own keys, for
-the worse, and more so at larger scale. What follows reports the
-phenomenon, rules out the obvious instrument-level and
-mitigation-level explanations, and reports the negative transfer
-result for the one construction that removed it at small scale, on
-evidence independent of Sections 3 and 4.
+the worse, and more so at larger scale. The evidence here is
+independent of Sections 3 and 4.
 
 \subsection{The Write-Geometry Attractor Worsens Monotonically with Scale}
 
@@ -89,13 +86,11 @@ registered claims \% evidence: R8.
 
 \subsection{The Storage Mechanism as Common Factor}
 
-Sections 3 and 4 show the matrix state is what stores: recruited
-rank sits at the task minimum in the encoder family, and in the
-delta-rule contender, zeroing the written state deletes the capability. This
-section shows the same write, iterated over a corpus at scale, drags
-its own key population toward collapse, and that the one construction
-known to stabilize the geometry at 14M buys nothing at 98M and 392M
-while costing nothing in loss. No fix is offered here: the community's
+The write that Sections 3 and 4 show storing task structure is the
+write that, iterated over a corpus at scale, drags its own key
+population toward collapse; the one construction known to stabilize
+the geometry at 14M buys nothing at 98M and 392M while costing nothing
+in loss. No fix is offered here: the community's
 stock mitigation is orthogonal to the phenomenon, and the obvious
 portable construction fails to port. The pathology belongs
 to the storage mechanism as scaled; no stabilizer choice tested here
@@ -103,21 +98,21 @@ explains it away, and it is currently unaddressed.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{fig5_attractor_ladder.pdf}
+\includegraphics[width=0.62\linewidth]{fig5_attractor_ladder.pdf}
 \caption{Write-key span fraction versus model scale (14M, 98M, 392M, 1.31B parameters; log-scale abscissa) on held-fixed data mixes; 0 is the random-unit-vector anchor and 1 is full collapse, computed per state width so rungs are comparable. The climb 0.248 to 0.455 is monotone. The 1.31B rung stopped at approximately 84.7 percent of its token budget with span fraction flat to declining over its final window (0.4584 to 0.4554), so the shortfall does not account for the trend.}
 \label{fig:ladder}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{fig6_2x2_mitigations.pdf}
+\includegraphics[width=0.62\linewidth]{fig6_2x2_mitigations.pdf}
 \caption{The 2-by-2 mitigation factorial at 14M ($n{=}3$; raw key-Gram deviation, cell means with per-seed points; dashed line: the pre-registered $2\sigma$ bar over the corrected same-corpus noise floor). Removing qk normalization is a within-noise null ($-0.103$, $0.05\sigma$): the attractor is not a qk-normalization artifact. Gating reads $+4.312$ ($1.92\sigma$, all three paired seeds positive), a direction-consistent trend below the confirmation bar: neither a confirmed amplification nor a null.}
 \label{fig:mitigations}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{fig7_fixscale_transfer.pdf}
+\includegraphics[width=0.62\linewidth]{fig7_fixscale_transfer.pdf}
 \caption{Transfer of the frozen-key-bias mitigation to scale: per-scale, per-corpus span-fraction deltas (deployed arm minus eval-retrofitted comparator, $n{=}3$, 95 percent intervals; negative would be stabilizing). At 98M both corpora read destabilizing with intervals excluding zero; at 392M one corpus reads destabilizing and one is null; no cell reverses. Validation-loss neutrality passes in all eight gate cells (not shown), so the construction's cost neutrality transfers while its geometric benefit does not. The 392M rung ran a reduced token budget; cross-scale attenuation is therefore not a registered claim.}
 \label{fig:fixscale}
 \end{figure}

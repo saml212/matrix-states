@@ -22,15 +22,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, '..', 'sections')
 DST = os.path.join(HERE, 'sections')
 
+# width fraction chosen from each PDF's natural size (238pt-wide panels
+# sit at ~0.62\linewidth; 490pt-wide multi-panel rows take the full line)
 FIGMAP = {
-    '1': ('fig1_rank_vs_dmin.pdf', 'fig:rank-vs-dmin'),
-    '2': ('fig2_forcerank_staircase.pdf', 'fig:forcerank'),
-    '3': ('fig3_recall_separation.pdf', 'fig:recall'),
-    '4': ('fig4_tap_localization.pdf', 'fig:taps'),
-    '5': ('fig5_attractor_ladder.pdf', 'fig:ladder'),
-    '6': ('fig6_2x2_mitigations.pdf', 'fig:mitigations'),
-    '7': ('fig7_fixscale_transfer.pdf', 'fig:fixscale'),
-    'A1': ('figA1_complement_scaffold.pdf', 'fig:complement'),
+    '1': ('fig1_rank_vs_dmin.pdf', 'fig:rank-vs-dmin', 0.62),
+    '2': ('fig2_forcerank_staircase.pdf', 'fig:forcerank', 1.0),
+    '3': ('fig3_recall_separation.pdf', 'fig:recall', 1.0),
+    '4': ('fig4_tap_localization.pdf', 'fig:taps', 1.0),
+    '5': ('fig5_attractor_ladder.pdf', 'fig:ladder', 0.62),
+    '6': ('fig6_2x2_mitigations.pdf', 'fig:mitigations', 0.62),
+    '7': ('fig7_fixscale_transfer.pdf', 'fig:fixscale', 0.62),
+    'A1': ('figA1_complement_scaffold.pdf', 'fig:complement', 1.0),
 }
 
 # Order matters: longer literals first.
@@ -100,10 +102,11 @@ def convert(md, is_appendix):
             i += 1
             while i < len(lines) and lines[i].strip() != '':
                 cap.append(lines[i]); i += 1
-            fname, label = FIGMAP[fignum]
+            fname, label, wfrac = FIGMAP[fignum]
             body = esc_text(inline(' '.join(cap)))
+            width = r'\linewidth' if wfrac >= 1.0 else str(wfrac) + r'\linewidth'
             out += [r'\begin{figure}[t]', r'\centering',
-                    r'\includegraphics[width=\linewidth]{' + fname + '}',
+                    r'\includegraphics[width=' + width + ']{' + fname + '}',
                     r'\caption{' + body + '}', r'\label{' + label + '}',
                     r'\end{figure}', '']
             continue
@@ -116,19 +119,34 @@ def convert(md, is_appendix):
                 j += 1
             ncol = len(hdr)
             is_seed_table = hdr and hdr[0] == 'arm'
-            colspec = 'l' + 'c' * (ncol - 1) if is_seed_table else 'l' * ncol
-            env = []
             if is_seed_table:
-                env += [r'\begin{table}[t]', r'\centering',
-                        r'\caption{Episodic recall $\mathrm{acc}_A$ per seed and arm at matched parameters, tokens, and compute; chance $1/32=0.03125$, demonstration bar $0.09375$.}',
-                        r'\label{tab:recall}']
-            env += [r'\begin{tabular}{' + colspec + '}', r'\toprule',
-                    ' & '.join(esc_text(inline(h)) for h in hdr) + r' \\', r'\midrule']
-            for r in rows:
-                env.append(' & '.join(esc_text(inline(c)) for c in r) + r' \\')
-            env += [r'\bottomrule', r'\end{tabular}']
-            if is_seed_table:
-                env.append(r'\end{table}')
+                colspec = 'l' + 'c' * (ncol - 1)
+                cell = lambda c: esc_text(inline(c))
+                env = [r'\begin{table}[t]', r'\centering',
+                       r'\caption{Episodic recall $\mathrm{acc}_A$ per seed and arm at matched parameters, tokens, and compute; chance $1/32=0.03125$, demonstration bar $0.09375$.}',
+                       r'\label{tab:recall}',
+                       r'\begin{tabular}{' + colspec + '}', r'\toprule',
+                       ' & '.join(cell(h) for h in hdr) + r' \\', r'\midrule']
+                for r in rows:
+                    env.append(' & '.join(cell(c) for c in r) + r' \\')
+                env += [r'\bottomrule', r'\end{tabular}', r'\end{table}']
+            else:
+                # long-prose config/manifest tables: ragged p-columns, small font,
+                # \path{} for code tokens so long identifiers break at punctuation
+                widths = {2: [0.16, 0.76], 3: [0.10, 0.52, 0.30]}.get(
+                    ncol, [round(0.92 / ncol, 2)] * ncol)
+                colspec = ''.join(r'>{\raggedright\arraybackslash}p{%.2f\linewidth}' % w
+                                  for w in widths)
+                def cell(c):
+                    c = re.sub(r'`([^`]+)`', lambda m: r'\path{' + m.group(1) + '}', c)
+                    c = re.sub(r'\*\*([^*]+)\*\*', r'\\textbf{\1}', c)
+                    return esc_text(c)
+                env = ['{\\scriptsize',
+                       r'\begin{tabular}{' + colspec + '}', r'\toprule',
+                       ' & '.join(cell(h) for h in hdr) + r' \\', r'\midrule']
+                for r in rows:
+                    env.append(' & '.join(cell(c) for c in r) + r' \\')
+                env += [r'\bottomrule', r'\end{tabular}', '}']
             out += env + ['']
             i = j; continue
         out.append(esc_text(inline(ln)))
@@ -156,7 +174,9 @@ def main():
         with open(os.path.join(DST, stem + '.tex'), 'w') as f:
             f.write('% GENERATED by md2tex.py from sections/' + fn + ' - edit the .md, not this file\n')
             if fn.startswith('09_'):
-                f.write('\\renewcommand{\\thefigure}{A\\arabic{figure}}\n\\setcounter{figure}{0}\n')
+                f.write('\\renewcommand{\\thefigure}{A\\arabic{figure}}\n'
+                        '\\renewcommand{\\theHfigure}{A\\arabic{figure}}\n'
+                        '\\setcounter{figure}{0}\n')
             f.write(tex + '\n')
         print('wrote', stem + '.tex')
 
