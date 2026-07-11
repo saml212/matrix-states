@@ -1,11 +1,11 @@
 # 3 The Rank Law
 
-This section establishes that the trained matrix state's dimensionality
-is set by the task's representation theory. The evidence runs from
-observation (recruited rank tracks $d_{\min}$) through a designed
-dissociation (the $S_4$/$A_5$ pair separates dimension from
-solvability) to causation: forcing rank below $d_{\min}$ destroys the
-task, and restoring $d_{\min}$ restores it.
+The trained matrix state's dimensionality is set by the task's
+representation theory. The evidence runs from observation (recruited
+rank tracks $d_{\min}$) through a designed dissociation (the
+$S_4$/$A_5$ pair separates dimension from solvability) to causation:
+forcing rank below $d_{\min}$ destroys the task, and restoring
+$d_{\min}$ restores it.
 
 ## 3.1 Recruited Rank Tracks Minimal Faithful Dimension
 
@@ -82,11 +82,9 @@ least one of the marquee pair) is met with both marquee groups
 confirming <!-- evidence: R3 -->.
 
 Together the three readings close the loop in both directions:
-$d_{\min}$ ranks are recruited when available (Section 3.1), the
-recruitment tracks dimension rather than solvability (Section 3.2), and
-$d_{\min}$ is causally necessary and sufficient (this section). The
-substrate is small and every reading reproduces from the archived
-artifacts (Appendix B).
+$d_{\min}$ is recruited when available and is causally necessary and
+sufficient when forced. The substrate is small and every reading
+reproduces from the archived artifacts (Appendix B).
 
 **Figure 1 caption.** Recruited restricted effective rank versus minimal
 faithful representation dimension $d_{\min}$ for five permutation groups

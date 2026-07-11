@@ -33,11 +33,10 @@ capability claim is made at this load, and it bounds the single-hop
 recall separation to loads below this stress point at this training
 budget.
 
-**Scope of the pathology leg.** The ladder result is a geometry claim,
-not (yet) a capability claim: span fraction worsens monotonically with
-scale, but this paper does not tie the drift to a downstream
-performance cost, and validation loss is neutral in every mitigation
-cell measured <!-- evidence: R8 -->. The tie between the geometric
+**Scope of the pathology leg.** The ladder result is a geometry claim:
+span fraction worsens monotonically with scale, but this paper does not
+tie the drift to a downstream performance cost, and validation loss is
+neutral in every mitigation cell measured <!-- evidence: R8 -->. The tie between the geometric
 drift and any behavioral cost is the outstanding scientific question,
 and the 392M token-budget confound (Section 5.3) caps what the
 transfer wave can say across scales.
@@ -53,10 +52,8 @@ generalization is future work, stated as such.
 **Instrument validity as a recurring risk.** Three times in this
 program (Sections 2.5, 3.3, 4.3), the first instrument pointed at a
 true phenomenon read false. In each case the repair was cheaper than
-the conclusion it prevented: a zero-pad flag in the first, a tap
-relocation in the second, a pre-registered crosscheck in the third.
-Representational claims about matrix states need analytic anchors,
-negative controls, and pre-registered crosschecks, because both false
-negatives (a linear probe at the wrong tap) and false positives (an
-identity block sold as recovery) arise from instrument choice alone at
-this scale.
+the conclusion it prevented. Representational claims about matrix
+states need independent checks of the kind Section 2.5 catalogs,
+because errors in either direction arise from instrument choice alone
+at this scale: the wrong-tap probe read a real capability as absent,
+and the identity-padded target sold ambient structure as recovery.

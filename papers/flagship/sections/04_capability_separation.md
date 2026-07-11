@@ -1,6 +1,6 @@
 # 4 Capability Separation
 
-This section reports a head-to-head comparison designed, margined, and
+The head-to-head comparison reported here was designed, margined, and
 frozen before its confirmatory sweep ran: a two-layer delta-rule model
 against a parameter-matched vector-state ablation and a compute-matched
 transformer, on single-pass episodic recall.
@@ -94,7 +94,7 @@ probe at the post-block-1, pre-LM-head hidden state reads
 $\mathrm{rf@0.9} = 0.674$ with mean cosine 0.894 <!-- evidence: R5 -->.
 The ablation's pre-LM-head tap, its own positive control, fails
 ($\mathrm{rf@0.9} = 0.0$, cosine 0.119) <!-- evidence: R5 -->: its
-geometry differs in kind, not merely in strength. The stored binding is
+pre-LM-head geometry is different in kind. The stored binding is
 therefore real but linearly illegible at the state; it becomes linearly
 decodable only after the downstream block's nonlinear processing. A
 state-level linear probe alone would have read this capability as

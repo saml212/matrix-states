@@ -2,12 +2,11 @@
 
 The same write mechanism that Sections 3 and 4 show storing task
 structure also reshapes the population geometry of its own keys, for
-the worse, and more so at larger scale. This section reports the
+the worse, and more so at larger scale. What follows reports the
 phenomenon, rules out the obvious instrument-level and
 mitigation-level explanations, and reports the negative transfer
-result for the one construction that removed it at small scale. The
-section is self-contained; its evidence is independent of Sections 3
-and 4.
+result for the one construction that removed it at small scale, on
+evidence independent of Sections 3 and 4.
 
 ## 5.1 The Write-Geometry Attractor Worsens Monotonically with Scale
 
@@ -88,7 +87,7 @@ the apparent 98M-to-392M attenuation is confounded with tokens by
 design and is not a registered claim; the within-scale readings are the
 registered claims <!-- evidence: R8 -->.
 
-## 5.4 The Same Write Stores and Collapses
+## 5.4 The Storage Mechanism as Common Factor
 
 Sections 3 and 4 show the matrix state is what stores: recruited
 rank sits at the task minimum in the encoder family, and in the

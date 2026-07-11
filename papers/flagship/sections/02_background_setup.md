@@ -113,7 +113,5 @@ Section 4.3 reports. In a separate composition program (not claimed
 here), a primary lens read zero on converged models while a
 pre-registered crosscheck lens read one; the contradiction was resolved
 by a recorded tiebreak against the raw artifacts, and the affected
-endpoint is excluded from this paper entirely. A verdict is only as
-good as the instrument that reads it, so every verdict-bearing
-instrument here carries either a negative control, an analytic anchor,
-or a pre-registered crosscheck.
+endpoint is excluded from this paper entirely. Every verdict-bearing instrument here therefore carries a negative
+control, an analytic anchor, or a pre-registered crosscheck.

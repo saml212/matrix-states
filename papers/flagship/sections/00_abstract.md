@@ -32,5 +32,4 @@ same write mechanism drives a population-geometry pathology worsening
 monotonically from 14M to 1.31B parameters <!-- evidence: R6 -->, not
 explained by qk-normalization <!-- evidence: R7 --> and not removed by
 a frozen-key-bias mitigation whose loss neutrality, but not its
-geometric benefit, transfers to scale <!-- evidence: R8 -->. The capability
-and the pathology enter through one write rule.
+geometric benefit, transfers to scale <!-- evidence: R8 -->.
