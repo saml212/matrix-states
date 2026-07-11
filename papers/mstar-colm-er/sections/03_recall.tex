@@ -31,7 +31,7 @@ Both intervals exclude the frozen 0.30 margin with more than 0.65 to spare
 at the interval floor, and no seed straddle fires the registered
 seed-extension trigger. % <!-- evidence: C2 -->
 
-The readings this table licenses are narrower than the raw gap suggests.
+The readings this table supports are narrower than the raw gap suggests.
 Under the shared training budget, the matrix fast-weight update reaches
 ceiling while the additive control's training loss barely moves past its
 first-500-step value for the remaining 97.5\% of the run
@@ -40,10 +40,10 @@ auxiliary-loss weighting were shared across three architecturally
 distinct mixers, not independently tuned per arm, so this paper does not
 claim the additive update is \emph{architecturally incapable} of the
 task, only that it does not reach it under this budget. A second reading
-is licensed but narrower than ``matrix beats vector'': the additive
+holds but is narrower than ``matrix beats vector'': the additive
 control also holds $64\times$ less raw state and a write with no
 dependence on the query key (Section~\ref{sec:setup}), so the comparison
-supports \emph{a matrix state with a multiplicative, key-conditioned
+shows \emph{a matrix state with a multiplicative, key-conditioned
 write outperforms a smaller, non-key-conditioned vector state under a
 shared training budget}; capacity and write-conditioning are not
 disentangled by this ablation, and no resized or key-conditioned vector

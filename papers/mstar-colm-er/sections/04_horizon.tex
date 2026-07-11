@@ -39,11 +39,12 @@ capped at every budget $M \times 32{,}768$ bytes for
 $M \in \{2, \ldots, 32\}$ it reads 0.020 to 0.033, at or below its own
 uncapped reading everywhere. % <!-- evidence: C4 -->
 Per the frozen no-recall rule, these differences are chance-level
-orderings. Two registered hypotheses die here at once: that a larger cache
-would eventually hold the bindings (it does not; $M{=}32$ grants the cache
-more bytes than the episode needs and the reading does not move), and that
-forced locality might \emph{help} by concentrating attention on recent
-tokens (it does not; every capped reading sits at or below uncapped).
+orderings. Two registered hypotheses die here at once. A larger cache
+does not eventually hold the bindings: $M{=}32$ grants the cache more
+bytes than the episode needs and the reading does not move. Forced
+locality, which might have \emph{helped} by concentrating attention on
+recent tokens, does not either; every capped reading sits at or below
+uncapped.
 
 \textbf{What is not claimed.} The registered degenerate-baseline clause
 fires on this data exactly as written: the uncapped baseline itself fails
