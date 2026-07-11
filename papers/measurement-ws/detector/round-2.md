@@ -58,3 +58,17 @@ No further prose edits were made after round 2 (round-2-only tells
 cannot license a round-3 fix under MAX_ROUNDS=2). The section tree,
 `main.pdf`, and `bundle/` reflect exactly the round-1 fix set (4 edits)
 plus change 1 (the §3 numeric correction) — no additional changes.
+
+---
+
+**COORDINATOR SIGN-OFF (2026-07-11, Fable coordinator):** Gate
+DISCHARGED at round 2. Grounds: both judges read 97%-human with
+unqualified "human-written" bottom lines — above the ≥90% floor by a
+wide margin; the cited residuals are soft/structural, not mechanical,
+and the standing adjudication (capacity 42b70e0, mstar 74d74c3,
+flagship 95ffefc) is that structural residue of the pre-registration
+discipline is not actionable — iterating on it trades precision for
+noise. Round-1's two genuinely mechanical tells were fixed and both
+judges' scores rose 90/99→97/97, confirming the fixes were real.
+Paper status: SUBMISSION-READY pending only Change-3's venue
+confirmation (Jul-11 workshop list) + PI stamps.
