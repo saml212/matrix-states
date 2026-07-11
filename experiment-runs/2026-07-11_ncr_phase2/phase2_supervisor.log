@@ -1,0 +1,4 @@
+[supervisor] launch GPUs=(2 3 4 5 6 7) K=12 steps=80000 rate=1.678 2026-07-11T20:33:28Z
+[supervisor] pass complete: 18/18 cells COMPLETED 2026-07-11T21:45:39Z
+[supervisor] PHASE2_DONE written 2026-07-11T21:45:39Z
+[supervisor] supervisor exiting 2026-07-11T21:45:39Z

@@ -1482,3 +1482,100 @@ Axis-B label of record remains K=8's WIN (no bar is moved). **Pre-launch
 gate (the coordinator's term + this builder's own [LEARN]): the all-four-
 arms end-to-end micro test is executed at K=12 BEFORE launch** — recorded
 below with its output.
+
+**Pre-launch gate EXECUTED (2026-07-11, local CPU):** all four arms ran the
+end-to-end micro cell AT K=12 (30 steps, reduced grid keeping the full
+12-residue sweep + h\*=57): 4/4 COMPLETED, sweep 12/12 labeled with all
+three label classes present, h\*=57 claim-eligible on the claim path,
+blank-outs PASS, K=12 locks written with the MA3 class stamped (untrained
+→ PREDICTED-FAIL, as expected). Launch followed: tmux `ncr_phase2`, GPUs
+2-7 (all idle-verified), 18 cells in one 3-per-GPU chunk round, launched
+20:33:28Z.
+
+### §7g PHASE-2 READOUT + CROSS-K VERDICT (2026-07-11, 18/18 K=12 cells, `PHASE2_DONE` 21:45:39Z): **K=12 AXIS A = SEP-PARTIAL → CROSS-K OVERALL = WIN-PARTIAL (the pre-registered publishable-with-caveat outcome)**
+
+Archive: `experiment-runs/2026-07-11_ncr_phase2/` (repo tier + SSD full
+mirror incl. 18 checkpoints); verdict `phase2_verdict.json` from the same
+committed scorer (`--k 12`).
+
+**AXIS A (K=12): SEP-PARTIAL.** NCR band DEGRADED — median recovered@0.9
+at h\*=57 = **0.753** (per-seed 0.149 / 1.000 / 0.753 / 0.000 / 1.000),
+uniform DEGRADED across all eight novel residue strata (52-59, no band
+drop); best baseline FAIL (fwm 0.270, loopedvec 0.0). Cross-K per the
+pinned §3.2a 10-pair table: **WIN (K=8, §7e) + SEP-PARTIAL (K=12) =
+WIN-PARTIAL** — MA3's own pre-registered sentence realized verbatim ("a
+K=12 SEP-PARTIAL alongside a K=8 WIN scores WIN-PARTIAL
+(publishable-with-caveat), pre-registered here, not negotiated after the
+readout").
+
+**P1-K12 (the MA3 asymmetric-confidence prediction of record): 2/3 legs
+PASS, 1 leg FAIL — scored via the LOCKED classes, never post-hoc.**
+(i) Every PREDICTED-HOLD seed held: 2/2 (s1 δ=0.0044 → 1.000; s4
+δ=0.0028 → 1.000). (ii) No PREDICTED-FAIL seed held: 0/1 (s3, a DEAD
+seed — below). (iii) ≥half the STRADDLE seeds hold: **0/2 — FAILED**
+(s0 δ=0.0125 → 0.149; s2 δ=0.0099 → 0.753). The directional claim ("truth
+sits nearer the single-mode bound") is REFUTED at K=12 — and the sharper
+instrument finding is that the CONSERVATIVE all-modes bound alone called
+every seed exactly: conservative horizons 0.451/δ = 36 (s0), 103 (s1), 46
+(s2), 161 (s4) → hold-at-57 iff horizon ≥ 57 predicts 5/5 outcomes
+(including both STRADDLE misses, whose fronts landed at 45 and 57 — at
+their conservative horizons, not their single-mode ones). K=8's
+h=21-era evidence had suggested the single-mode reading; K=12 says the
+conservative bound is the operative predictor. Pre-registered fronts:
+s1/s4 at 189 (inside [87,442]); s0/s2 at 45/57 (before h\*, consistent
+with their conservative horizons); zero post-front revivals (mi5's
+predicted wrap points for these residuals sit at ≈714+/π-wrap, beyond the
+trusted window — consistent).
+
+**Dead seed s3 (1/5), disclosed:** never transitioned at 80K (in-dist
+0.000, eff_rank(A) ≈ 1.3, locked δ = 1.41 → PREDICTED-FAIL, c\*
+incoherent) — the archived dead/stuck-seed trainability-variance class
+(K=16 precedent: 2/5 stuck), NOT a new failure mode; the locked
+instrument classified it correctly before any far-h eval ran. **The 16
+agreement-divergent points (first nonzero tally) sit EXCLUSIVELY on this
+dead seed:** per-item |cos_binexp − cos_loop| 0.0007-0.008 over the 5e-4
+bar while BOTH reads match their own fp64 shadows to ~1e-7 and mean_cos ≈
+0 — the renormalized direction of a near-zero vector under a
+rank-collapsed operator is ill-conditioned, so the two operation orders
+legitimately diverge per item; MA5's pinned arbitration (fp64 shadow)
+resolves it as an operator-degeneracy property, not an instrument defect.
+Flagged, never dropped; ZERO flags on any converged seed at either K.
+
+**P2 (K=12): PASS** — at the pinned h=45: loopedvec 0.0, fwm 0.4125
+(margin 8.8pp — wider than K=8's 1.1pp). **AXIS C (K=12): TIE again** —
+4/5 seeds ≤0.05 through h≤125 (0.0064/0.0085/0.0095/0.0101; the dead s3
+0.0955), 0/5 to 509. **AXIS B (supplementary at K=12; the label of
+record stays K=8's WIN per §7f):** binexp flat 1.6 ms at h=765/1533 vs
+loop 49/101 ms, fwm 26/53 ms — the log-vs-linear separation replicates.
+**Crosscheck-lens:** converged seeds eff_rank(A) = 12.00 with degauged
+residuals 0.008-0.039 beside phase residuals 0.002-0.018; s3's degauged
+column is meaningless (c\* sign-flipping) and is reported only with its
+basis-invariant crosscheck per the §2.31a discipline. **Hygiene:** 0
+shadow-divergent points; 0 reducer signatures; n_skipped 0.
+
+**GPU-h ledger:** Phase-2 serial-sum **21.12** (rate ≈ realized within the
+K-scaled allowance; wall 20:33→21:45 ≈ 1.20 h × 6 GPUs ≈ **7.2 device**).
+Program totals: ≈ **40.2 serial-sum / ≈ 18.9 device** of the 120 cap;
+wave-1+2 combined 39.5 serial vs the two 50 sub-caps.
+
+**§7e ERRATUM (recorded per the finding-14 publisher's re-verification;
+each value re-verified against the archived raws by this agent before
+recording; §7e itself left untouched):** (1) §7e's quoted fwm decay curve
+blended Phase-0 single-seed calibration values with wave-1 5-seed
+medians; the wave-1 raw-derived median curve is 0.923@5 → 0.748@13 →
+0.611@21 → 0.489@29 → 0.158@61 → 0.014@125 → 0.001@253 → 0.000@509.
+(2) The P2 margin is 1.147pp → "1.1pp under the bar", not 1.2pp. (3) The
+extreme-depth timing quoted Phase-0 preview values; wave-1's own archive
+reads binexp 2.64 ms vs O(h) arms 34.69-66.10 s at h=2^20+5 → ≈
+13,155-25,064×. **Claim-language note (binding on any write-up):** learned
+depth selection was killed ANALYTICALLY at design review (§2 F1/§3.1 —
+matrix-polynomial phase-mixing + the PonderNet-cousin argument), never
+empirically tried; phrase as a design exclusion, not an experimental
+result.
+
+**STATUS: the NCR wave-1+2 program verdict of record is CROSS-K
+WIN-PARTIAL (Axis A), WIN (Axis B, K=8 bar), TIE (Axis C), with P2
+confirmed at both K and P1 5/5 at K=8 / P1-K12's straddle leg refuted in
+favor of the conservative bound. The wave-2/operator-bank go/no-go
+returns to the coordinator with this record; the operator bank remains
+separately ledgered and double-gated (M4), untouched.**
