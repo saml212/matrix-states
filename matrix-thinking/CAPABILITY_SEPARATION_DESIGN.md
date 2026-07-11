@@ -8032,3 +8032,39 @@ recommendation above; (b) the §2.33 item-3 B2 demotion acknowledgment
 (unchanged, still pending); (c) the primary-lens degauge defect
 instrument-repair item (unchanged, §2.33); (d) if the PI wants the
 trainability-rate follow-on, it needs its own pre-registration.
+
+### §2.35 COORDINATOR PROMOTION DECISION (2026-07-10): STAGE-2 VERDICT OF RECORD = **INCONCLUSIVE-TRAINABILITY-LIMITED** (ratifying §2.34's recommendation), WITH THE A6 n_h=4 GROUP-LEVEL DISSOCIATION AS THE POSITIVE CARRY-FORWARD.
+
+Ratified by the coordinator per the §2.33/§2.34 chain, superseding
+§2.32's as-built mechanical FALSIFY (which stands as that record's
+verdict, per bookkeeping discipline) as the campaign-level verdict of
+record. Grounds, all §-recorded:
+
+1. **FALSIFY is affirmatively excluded.** A6 at n_h=4 exhibits the
+   exact pre-registered dissociation the composer theorem predicts:
+   crosscheck far-64 recovery 1.000 flat across 3/3 seeds with rank
+   pinned at d_min(A6)=5 (M-D2, §2.34), against Arm-2 at exactly 0.0 —
+   zero seed variance on either side (§2.33). A model class that
+   composes exactly at 8x train depth where it converges cannot be
+   the subject of a composition-capability FALSIFY.
+2. **CONFIRM is unreachable under the frozen aggregation.** The
+   pre-registered all-seeds bars fail on trainability, not
+   composition: S5's lone rank-deficient basin (1-in-5, §2.34(b)),
+   A5's convergence lottery (§2.34(c)), and the now-discharged A6
+   n_h pin. Re-registering aggregation post hoc to reach CONFIRM is
+   exactly what the hard rules forbid.
+3. Instrument caveat carried: all recovery numbers crosscheck-lens
+   per §2.31a; the primary-lens degauge defect remains an open
+   instrument-repair item (§2.33 item c).
+
+**What this licenses:** (a) papers may state "exact composition at 8x
+training depth in every converged configuration, with a group-level
+architecture dissociation at A6 (n_h=4 vs n_h=2 ceiling)" — and must
+state the trainability qualifier alongside; (b) the trainability-rate
+follow-on (if pursued) needs its own pre-registration (§2.34 NEXT
+item d); (c) NCR wave-1 (in flight) is unaffected — its gates were
+discharged on §2.30's calibration readout, not on this endpoint.
+**Queue disposition:** §2.33 item-3 B2 demotion ACKNOWLEDGED by this
+record (the 2(e) raw-T-bar scale deficit is a disclosed model
+property, not an instrument defect; no BOS re-run purchased — the
+~3.2 GPU-h full-grid re-run stays declined absent a PI override).
