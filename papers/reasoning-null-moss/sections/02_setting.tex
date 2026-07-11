@@ -24,10 +24,10 @@ with the target value vector. Continuous recovery, rather than argmax over
 candidates, follows \citet{nichani2024understanding}, under which argmax
 decoding can succeed without the state carrying the claimed structure.
 Registered validity gates accompany the readout: an $h{=}1$ sanity floor
-(one-hop recovery must beat a shuffled-pairing null and an absolute 0.10
-floor) and two alignment premises, (iii) query--key and (iv) key--value,
-each requiring a same-entity median cosine above a shuffled-entity null's
-95th percentile. Gate failure routes to probe-invalid, never to refutation.
+and two alignment premises, (iii) query--key and (iv) key--value, each
+requiring a same-entity median cosine above a shuffled-entity null's 95th
+percentile (Appendix~\ref{app:gates}); gate failure routes to
+probe-invalid, never to refutation.
 
 \textbf{Instrument 2: a behavioral contrast.} A familiarization phase
 trains checkpoints for 5{,}000 steps on the bind/query task mixed into the
@@ -37,5 +37,4 @@ machinery disjoint from Instrument 1), differenced control minus arm at
 five checkpoints. A six-outcome trajectory classification and a
 differential condition (the $K{=}32$ effect determinate while $K{=}20$ is
 not) were fixed before unblinding. Every wave ran gate-first, with
-verdicts routed mechanically (Appendix~\ref{app:gates} reproduces all
-gates and routing rules).
+verdicts routed mechanically (Appendix~\ref{app:gates}).

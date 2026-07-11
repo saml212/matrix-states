@@ -2,38 +2,30 @@
 \label{sec:replication}
 
 Wave 6 extends the transient's anchor cell (encyclopedic corpus, per-token
-arm, $K{=}32$, checkpoint 2{,}500) to twelve seeds, with three integrity
-mechanisms registered before launch: nine fresh pretraining seeds for both
-arms (18 new cells); an archived-values loader with a runtime guard so the
-original three seeds are never re-scored live (their deltas appear
-byte-identical in the new harvest); % evidence: C7-replication
-and a batch-effect gate requiring, before any pooling, cohort means within
-twice the pooled standard error and a variance ratio below a pinned 4.0.
+arm, $K{=}32$, checkpoint 2{,}500) to twelve seeds with three registered
+integrity mechanisms: nine fresh pretraining seeds per arm (18 cells), an
+archived-values loader whose runtime guard forbids live re-scoring,
+% evidence: C7-replication
+and a pre-pooling batch-effect gate (means within twice the pooled
+standard error; variance ratio below 4.0).
 
 \textbf{The gate fired.} The archived cohort's between-seed standard
 deviation (1.154) is 2.1 times the new cohort's (0.546): variance ratio
-4.47, twelve percent past the cutoff, while the means agree comfortably
-(shift 0.364 against a 1.382 threshold). % evidence: C7-replication
-The registered routing reports the cohorts separately and classifies the
-wave batch-effect-flagged, with no decision-grade pooled interval. The
-archived cohort reproduces its original interval
-$[-0.624, -0.376]$ by construction; the new nine-seed cohort's own
-interval is $[-0.506, +0.357]$, spanning zero. % evidence: C7-replication
-The naive twelve-seed pool, diagnostic only, would read
-$[-0.509, +0.147]$ and would have classified the transient as refuted;
-% evidence: C7-replication
-the gate exists because pooling a high-variance three-seed cohort with a
-lower-variance nine-seed cohort without a variance check assumes exactly
-what a replication is supposed to test
+4.47, past the heuristic 4.0 cutoff (a routing threshold, not a calibrated
+test; the one-sided 5-percent $F(2,8)$ value is ${\approx}4.46$); the
+means agree (shift 0.364, threshold 1.382). % evidence: C7-replication
+The registered routing reports the cohorts separately, batch-effect-flagged,
+with no decision-grade pooled interval: the archived cohort reproduces its
+original $[-0.624, -0.376]$ by construction; the new nine-seed cohort's own
+interval, $[-0.506, +0.357]$, spans zero; % evidence: C7-replication
+and the naive twelve-seed pool, diagnostic only, reads $[-0.509, +0.147]$,
+a refutation absent the gate % evidence: C7-replication
 (Figure~\ref{fig:transient}, right, Appendix~\ref{app:figs}).
 
 \textbf{What stands.} The transient is neither confirmed nor refuted; it
-keeps its original three-seed weight, no more. The evidence leans one way:
-7 of 10 primary and 7 of 10 held-out (checkpoint, load) pairs are
-computable, and every computable pooled interval contains zero.
+keeps its three-seed weight. Every computable pooled interval, at 7 of 10
+primary and 7 of 10 held-out (checkpoint, load) pairs, contains zero.
 % evidence: C7-replication
-The variance mismatch is not established as a systematic between-wave
-shift; its direction flips across checkpoints, most consistent with
-small-$n$ variance imprecision in the archived cohort. A replication wave
-whose own integrity gate can refuse produces a well-defined result even
-without a verdict.
+The variance mismatch is not established as systematic; its direction
+flips across checkpoints, consistent with small-$n$ imprecision in the
+archived cohort.
