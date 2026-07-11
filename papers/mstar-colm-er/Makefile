@@ -27,6 +27,7 @@ bundle: main.pdf
 	  math_commands.tex fancyhdr.sty natbib.sty bundle/
 	mkdir -p bundle/figures
 	cp figures/fig1_horizon.pdf figures/fig2_szero.pdf \
+	  figures/fig3_traincurve.pdf figures/figure-gen.py \
 	  figures/tables_generated.tex bundle/figures/
 
 clean:
