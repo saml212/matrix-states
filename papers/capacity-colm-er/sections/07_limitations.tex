@@ -24,8 +24,10 @@ depth 2 and above: recovered fraction at threshold $0.9$ is $1.0$ at
 hop 1 in all 24 archived cells behind
 Figure~\ref{fig:cliff}, and at hop depths 2 and 3 it reads exactly
 $0.0$ in 23 of those 24 cells (the remaining cell reads $0.0002$),
-while the same checkpoints' trained-pool readouts stay at or near
-ceiling. % evidence: C17
+while the same checkpoints' trained-pool readouts stay at ceiling at
+hops 1 and 2 and remain well above the held-out collapse at hop 3,
+where they decline under the highest tested loads (as low as $0.56$
+at $d_{\mathrm{state}}=64$, $K{=}46$). % evidence: C17
 The located frontier and its scaling with $d_{\mathrm{state}}$ are
 therefore claims about capacity for entities the model has trained on,
 not about generalization to unfamiliar entities; the latter is a
