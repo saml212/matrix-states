@@ -44,8 +44,8 @@ result; whether those 21 queries reflect a small, consistent causal
 contribution from $S_1$ or near-tied logits is not established by this
 instrument. % <!-- evidence: C5 -->
 
-\textbf{The storage is nonlinear; the model's own forward pass is the
-decoder.} Ridge probes fit offline on 24{,}576 fresh draws and evaluated
+\textbf{The storage is nonlinear, and the model's own forward pass is
+its decoder.} Ridge probes fit offline on 24{,}576 fresh draws and evaluated
 on the pinned query set recover the bound value's target vector from
 \emph{no} linear read-out of either raw state: every $(S, q)$ combine
 tested, including one placed directly on the causally necessary $S_0$,
