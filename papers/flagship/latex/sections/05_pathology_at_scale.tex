@@ -14,19 +14,16 @@ collapsed, low-dimensional configuration. Span fraction (Section 2.4)
 locates each model between the random anchor (0) and full collapse (1).
 Across a four-rung ladder trained on held-fixed data mixes, at 14M,
 98M, 392M, and 1.31B parameters, pooled span fraction reads 0.248,
-0.344, 0.389, and 0.455 \% evidence: R6: monotone in scale, with
+0.344, 0.389, and 0.455: monotone in scale, with
 the largest model halfway to collapse. Because the data mixes are held
-fixed across rungs, scale is the only moving axis
-\% evidence: R6.
+fixed across rungs, scale is the only moving axis.
 
 The 1.31B cells self-terminated at their internal timeout at
-approximately 84.7 percent of the token-matched budget
-\% evidence: R6. The shortfall does not
+approximately 84.7 percent of the token-matched budget. The shortfall does not
 rescue the trend: over the final 25,000 recorded steps the rung's span
-fraction is flat to mildly declining (0.4584 to 0.4554)
-\% evidence: R6, so completing the budget would move the endpoint
+fraction is flat to mildly declining (0.4584 to 0.4554), so completing the budget would move the endpoint
 by roughly 0.003, more than twenty times smaller than the 0.066
-increment from the previous rung \% evidence: R6 (derived: 0.4584-0.4554 and 0.455-0.389).
+increment from the previous rung.
 
 \subsection{Removing qk Normalization Changes Nothing; Gating Trends Toward Amplification}
 
@@ -35,15 +32,14 @@ in-kernel key normalization that production linear-attention stacks
 cite as their stability mitigation. A 2-by-2 factorial at 14M
 (qk-norm on/off crossed with delta-rule gating on/off, $n{=}3$ seeds,
 pre-registered same-corpus noise floor 2.244355 raw Gram-deviation
-units \% evidence: R7) gives both answers. Removing qk normalization changes the
+units) gives both answers. Removing qk normalization changes the
 geometry reading by $-0.103$, which is $0.05\sigma$ against the floor:
-a within-noise null \% evidence: R7. The attractor is measured
+a within-noise null. The attractor is measured
 with the mitigation active and is unchanged without it; it is not an
 artifact of the stabilizer. Turning on gating reads $+4.312$, which is
 $1.92\sigma$, below the pre-registered $2\sigma$ confirmation bar of
-4.489 \% evidence: R7; all three paired seeds move in the
-amplifying direction and an exploratory Welch test gives $p = 0.062$
-\% evidence: R7. We record gating as a direction-consistent trend
+4.489; all three paired seeds move in the
+amplifying direction and an exploratory Welch test gives $p = 0.062$. We record gating as a direction-consistent trend
 toward amplification: not a confirmed effect, and not a null.
 
 \subsection{The Small-Scale Fix Does Not Transfer}
@@ -51,7 +47,7 @@ toward amplification: not a confirmed effect, and not a null.
 At 14M, a frozen-key-bias construction had moved the geometry: blending
 each key with a frozen per-token random unit anchor,
 $k \leftarrow \mathrm{normalize}((1-\lambda) k + \lambda B[\mathrm{tok}])$
-at $\lambda = 0.58$ \% evidence: R8, with zero new trainable
+at $\lambda = 0.58$, with zero new trainable
 parameters. A
 pre-registered transfer wave tested it at 98M and 392M against an
 eval-retrofitted comparator (the baseline checkpoint measured through
@@ -59,30 +55,29 @@ the identical blend, which removes the mechanical pinning artifact a
 naive comparison introduces), on both corpora, with a pre-blend
 co-primary instrument that measures the raw keys and is immune to the
 blend arithmetic by construction. The outcome is the pre-registered
-PARTIAL verdict at both scales \% evidence: R8. At 98M the
+PARTIAL verdict at both scales. At 98M the
 deployed arm is destabilizing, the 14M sign, on both corpora and both
 instruments: span-fraction deltas $+0.1133$ with interval
 $(+0.0543, +0.1723)$ on the reasoning mix and $+0.1011$ with interval
-$(+0.0541, +0.1482)$ on the narrative mix \% evidence: R8. At
+$(+0.0541, +0.1482)$ on the narrative mix. At
 392M the narrative-mix delta is $+0.0189$ with interval
 $(+0.0112, +0.0266)$, still destabilizing, while the reasoning-mix
-interval includes zero \% evidence: R8. The effect reverses
+interval includes zero. The effect reverses
 nowhere. A single-seed exploratory probe of the alternative
 global-vector construction decays from $-0.33$ and $-0.23$ at 14M to
 $-0.058$ and $-0.034$ at 98M, and at 392M reads $-0.012$ on one corpus
-and $+0.019$, a sign flip, on the other \% evidence: R8: the
+and $+0.019$, a sign flip, on the other: the
 stabilization it bought at small scale decays toward zero and loses
 its sign. Meanwhile the constructions are free at the loss level:
 validation-loss neutrality passes its blind-pinned ceiling in all
 eight gate cells under the pre-registered arm-mean criterion; one
 individual seed in the 98M narrative-mix cell reads 3.2038 against the
-3.2020 ceiling while its arm mean (3.1961) passes
-\% evidence: R8. The neutrality transfers to
+3.2020 ceiling while its arm mean (3.1961) passes. The neutrality transfers to
 scale. The fix does not. The 392M token budget bounds the
 cross-scale comparison: those cells ran a reduced budget, so
 the apparent 98M-to-392M attenuation is confounded with tokens by
 design and is not a registered claim; the within-scale readings are the
-registered claims \% evidence: R8.
+registered claims.
 
 \subsection{The Storage Mechanism as Common Factor}
 

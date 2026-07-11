@@ -39,48 +39,43 @@ Concretely, we contribute:
 1. \textbf{A rank law, causally closed} (Section 3). Across five permutation
    groups whose minimal faithful representation dimensions $d_{\min}$
    span 2 to 5, recruited effective rank tracks $d_{\min}$ at Spearman
-   $\rho = 0.9747$ \% evidence: R1, the maximum the family's tie
+   $\rho = 0.9747$, the maximum the family's tie
    structure permits, with 19 of 19 unconstrained cells inside the
-   pre-registered band \% evidence: R1. A designed pair, $S_4$
+   pre-registered band. A designed pair, $S_4$
    versus $A_5$, shares $d_{\min}=3$ but differs in solvability; an
-   equivalence test declares their recruited ranks equivalent
-   \% evidence: R2; solvability leaves no signature.
+   equivalence test declares their recruited ranks equivalent; solvability leaves no signature.
    Train-time rank forcing closes the causal loop: recovery is 0.000 at
    $k = d_{\min}-1$ in all five groups and in all four seeds of the
-   extension group, and returns at $k = d_{\min}$ in five of five
-   \% evidence: R3.
+   extension group, and returns at $k = d_{\min}$ in five of five.
 2. \textbf{A capability separation at matched budget} (Section 4). On
    single-pass episodic recall, the delta-rule contender reads accuracy
-   0.99951 \% evidence: R4 against 0.03394 for its vector-state
-   ablation \% evidence: R4; the paired confidence interval
+   0.99951 against 0.03394 for its vector-state
+   ablation; the paired confidence interval
    excludes the pre-registered 0.30 margin, its floor sitting at more
-   than three times the margin \% evidence: R4, and this ablation
+   than three times the margin, and this ablation
    comparison carries the verdict. A compute-matched transformer also reads chance
-   (0.02832) \% evidence: R4; because its learning rate was never
+   (0.02832); because its learning rate was never
    searched on this task and its training loss is near flat, it is
    recorded as a degenerate-baseline datum, not a second verdict
    (Sections 4.1 and 6). Zeroing the first layer's state collapses
-   recall to chance while zeroing the second layer's changes nothing
-   \% evidence: R5, and no state-level linear probe reads the
-   content that the model's own forward pass decodes
-   \% evidence: R5. The capability is also memory-stable: accuracy
+   recall to chance while zeroing the second layer's changes nothing, and no state-level linear probe reads the
+   content that the model's own forward pass decodes. The capability is also memory-stable: accuracy
    0.998 or higher out to 1798 tokens on a fixed 32,768-byte state,
    while a transformer whose cache is capped at 1 to 32 times that
-   budget reads chance everywhere \% evidence: R10.
-3. **A pathology that scale makes worse and the stock fix does not
-   remove** (Section 5). The write keys of delta-rule language models
+   budget reads chance everywhere.
+3. \textbf{A pathology that scale makes worse and the stock fix does not
+   remove} (Section 5). The write keys of delta-rule language models
    drift toward a collapsed population geometry; the span fraction of
    that drift climbs 0.248 to 0.455 across a 14M-to-1.31B ladder at
-   held-fixed data mixes \% evidence: R6. Removing qk
-   normalization changes nothing (0.05$\sigma$ at $n{=}3$)
-   \% evidence: R7, so the attractor is not an artifact of the
+   held-fixed data mixes. Removing qk
+   normalization changes nothing (0.05$\sigma$ at $n{=}3$), so the attractor is not an artifact of the
    standard stabilizer, and a frozen-key-bias mitigation that is
    loss-neutral at every scale fails to transfer its 14M geometric
-   benefit to 98M or 392M \% evidence: R8.
+   benefit to 98M or 392M.
 4. \textbf{A mechanism scaffold} (Appendix A). In the encoder family the
    trained state decomposes as $Z \approx c^{*} I + $ a rank-$(K{-}1)$
    task correction at 0.5 to 2.9 percent residual, and deviation from
-   this scaffold is a loss-blind health signal \% evidence: R9;
+   this scaffold is a loss-blind health signal;
    the corresponding channel is empty by construction in delta-rule
    states, which bounds how far the scaffold generalizes.
 

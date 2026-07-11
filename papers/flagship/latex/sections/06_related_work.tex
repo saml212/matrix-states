@@ -15,7 +15,7 @@ is a regime where softmax attention is documented as strong: \citet{arora2023zoo
 where sub-quadratic models struggle, \citet{jelassi2024repeatmetransformersbetter} report the
 same advantage for copying over state-space models, and even two-layer
 from-scratch transformers reliably develop induction circuitry
-(Olsson et al., 2022). Our transformer baseline's chance-level reading
+\citep{olsson2022incontextlearninginductionheads}. Our transformer baseline's chance-level reading
 therefore runs against the expectation this literature sets, and we do
 not interpret it as an architectural inability. The leading candidate
 explanation is optimization: the arm trained at the shared default
@@ -37,7 +37,7 @@ causal result a descriptive measurement cannot license.
 single-vector eigenvalue stability of the state update. The attractor
 of Section 5 is a different object, cross-key population geometry. It
 was measured with qk normalization active throughout, and removing the
-normalization is a within-noise null at $n{=}3$ \% evidence: R7.
+normalization is a within-noise null at $n{=}3$.
 
 \textbf{DeltaNet and gated variants.} DeltaNet \citep{yang2025parallelizinglineartransformersdelta} and Gated DeltaNet \citep{yang2025gateddeltanetworksimproving} supply the architecture substrate for the capability and pathology
 legs (Sections 4 and 5) and benchmark it for quality and throughput.

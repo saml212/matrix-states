@@ -9,35 +9,31 @@ transformer, on single-pass episodic recall.
 \subsection{Arms, Matching, and Frozen Margins}
 
 The contender is a two-block DeltaNet-family LM ($d_{model}=256$,
-$d_{state}=64$, 14,049,408 parameters \% evidence: R0). The
+$d_{state}=64$, 14,049,408 parameters). The
 ablation keeps the embedding table, output head, and feed-forward
 blocks identical and replaces only the fast-weight mixer with an
 elementwise-gated vector recurrence at the same $d_{state}$
-(14,048,384 parameters, a 0.007 percent difference
-\% evidence: R0); it is constructed as a recurrence rather than a
+(14,048,384 parameters, a 0.007 percent difference); it is constructed as a recurrence rather than a
 reshape, which makes matrix structure the manipulated variable at
 near-identical parameter count. The transformer baseline is a two-layer pre-norm
 decoder with rotary position embeddings and the contender's own MLP
-class, FLOP-matched to the contender within 5 percent
-\% evidence: R0. On this task its learning rate was the shared
+class, FLOP-matched to the contender within 5 percent. On this task its learning rate was the shared
 default $3 \times 10^{-4}$, identical to the contender's and the
-ablation's \% evidence: R0; the calibration record's three-point
+ablation's; the calibration record's three-point
 learning-rate grid was run on the language-modeling control task, and
 no architecture-specific learning-rate search was performed for the
-transformer on the recall task \% evidence: R0. Its recall-task
+transformer on the recall task. Its recall-task
 training loss is near flat across the run (7.81 to 7.84 at step 500,
-7.45 to 7.51 at step 20,000, across the three seeds)
-\% evidence: R4a, a signature consistent with an under-optimized
+7.45 to 7.51 at step 20,000, across the three seeds), a signature consistent with an under-optimized
 arm; Sections 6 and 7 state the resulting interpretive limit and the
 measurement that would resolve it. All arms train 20,000 steps at
-matched tokens with seeds identical across arms per cell
-\% evidence: R0.
+matched tokens with seeds identical across arms per cell.
 Verdict tiers, margins, and the primary task were frozen and checksummed
 before the confirmatory sweep launched (a WIN requires the paired
 per-seed difference's 95 percent confidence interval to exclude 0.30);
 the sweep's evaluation applied the audited round protocol verbatim to
 its 18 checkpoints with checksum-pinned loading and a fixed evaluation
-episode set \% evidence: R4.
+episode set.
 
 \subsection{The Verdict at $n{=}3$}
 
@@ -58,18 +54,13 @@ transformer & 0.02710 & 0.02930 & 0.02856 & 0.02832 \\
 \end{tabular}
 \end{table}
 
-\% evidence: R4 (whole table)
-
 Every contender seed exceeds the demonstration bar by a factor of at
-least 10.7; neither baseline clears it in any seed
-\% evidence: R4. The paired contender-minus-ablation difference is
+least 10.7; neither baseline clears it in any seed. The paired contender-minus-ablation difference is
 0.96558 with 95 percent confidence interval (0.95822, 0.97293), and the
 contender-minus-transformer difference is 0.97119 with interval
 (0.96855, 0.97383); both intervals exclude the frozen 0.30 margin, the
-first by more than three times the margin at its floor
-\% evidence: R4. The pre-registered extension trigger (any seed
-below bar, or any interval straddling the margin) did not fire
-\% evidence: R4.
+first by more than three times the margin at its floor. The pre-registered extension trigger (any seed
+below bar, or any interval straddling the margin) did not fire.
 
 The Nichani caveat of Section 2.3 is part of the claim: recall means
 episode-restricted top-1 retrieval under argmax decoding, under which a
@@ -79,18 +70,16 @@ caveat: the transformer read holds only at this matched parameter
 count, token budget, and training compute. Because the transformer sits below its own demonstration bar,
 it is recorded as a degenerate-baseline datum, and the separation
 verdict is carried by the ablation comparison with the transformer's
-non-competitiveness disclosed alongside \% evidence: R4.
+non-competitiveness disclosed alongside.
 
 \subsection{The Capability Is Fast-Weight-Resident and Nonlinearly Stored}
 
 Causal attribution by state zeroing localizes the capability. On the
 frozen round checkpoint, zeroing the first block's state before the
 query collapses contender recall from 0.9990 to 0.0286, at chance,
-while zeroing the second block's state leaves it at 0.9990, unchanged
-\% evidence: R5. The sweep replicates this on all fresh seeds:
+while zeroing the second block's state leaves it at 0.9990, unchanged. The sweep replicates this on all fresh seeds:
 first-state zeroing reads 0.0339, 0.0012, and 0.0002 against the 0.09375
-bar, and the hard-stop criterion is clean in 12 of 12 recurrent cells
-\% evidence: R4. The binding lives in $S_0$; $S_1$ is causally
+bar, and the hard-stop criterion is clean in 12 of 12 recurrent cells. The binding lives in $S_0$; $S_1$ is causally
 inert for this task.
 
 Where the content becomes readable is a separate question. Ridge
@@ -99,41 +88,38 @@ directly on the causally load-bearing $S_0$, recover nothing at the
 strict threshold ($\mathrm{rf@0.9} = 0.0$ at every state-level tap; the
 accompanying shuffled-control gaps of at most 0.063 are mean-cosine
 gaps, a separate continuous sanity check on a different scale from
-$\mathrm{rf@0.9}$) \% evidence: R5. The same
+$\mathrm{rf@0.9}$). The same
 probe at the post-block-1, pre-LM-head hidden state reads
-$\mathrm{rf@0.9} = 0.674$ with mean cosine 0.894 \% evidence: R5.
+$\mathrm{rf@0.9} = 0.674$ with mean cosine 0.894.
 The ablation's pre-LM-head tap, its own positive control, fails
-($\mathrm{rf@0.9} = 0.0$, cosine 0.119) \% evidence: R5; its
+($\mathrm{rf@0.9} = 0.0$, cosine 0.119); its
 pre-LM-head geometry is different in kind. The stored binding is
 therefore real but linearly illegible at the state; it becomes linearly
 decodable only after the downstream block's nonlinear processing. A
 state-level linear probe alone would have read this capability as
-absent, while the model's own forward pass decodes it at 0.9995
-\% evidence: R5.
+absent, while the model's own forward pass decodes it at 0.9995.
 
 \subsection{Constant-Memory Recall Horizon}
 
 The contender's two states occupy $2 \times 64 \times 64$ float32
-entries, 32,768 bytes, independent of context length
-\% evidence: R0. Holding those bytes fixed, recall does not decay
+entries, 32,768 bytes, independent of context length. Holding those bytes fixed, recall does not decay
 with distance: at horizons of 2, 4, and 8 times the bind phase (454,
-902, and 1798 tokens), every seed reads $\mathrm{acc}_A \ge 0.998$
-\% evidence: R10. The pre-registered memory-matched comparison
+902, and 1798 tokens), every seed reads $\mathrm{acc}_A \ge 0.998$. The pre-registered memory-matched comparison
 caps the transformer's KV cache at $M$ times the contender's state
 bytes with sink-plus-FIFO eviction in the style of streaming attention
 caches \citep{xiao2024efficientstreaminglanguagemodels}, $M \in \{1, 2, 4, 8, 16, 32\}$;
 every capped read at the decision horizon lies between 0.020 and 0.033,
-at or below chance, as does the uncapped read \% evidence: R10.
+at or below chance, as does the uncapped read.
 Every per-$M$ paired-gap confidence interval has a floor of at least
-0.958 against the 0.20 crossover margin \% evidence: R10. Because
+0.958 against the 0.20 crossover margin. Because
 the uncapped transformer itself fails the demonstration bar, the
 pre-registered degenerate-baseline clause fires: the verdict of record
 is that the baseline is non-competitive at matched parameters and
 tokens, not a strongest-possible-baseline result, and no
-crossover-point value is certified \% evidence: R10. The two
+crossover-point value is certified. The two
 informative readings are the contender's own flat horizon table and the
 answer to the forced-locality question: capping never helps the
-transformer \% evidence: R10.
+transformer.
 
 \subsection{Scope Disclosure: the Multi-Hop Task}
 
@@ -141,20 +127,19 @@ A second task in the frozen registry, two-hop compositional recall, is
 verdict-INDETERMINATE and is not claimed. Its data are disclosed
 because they constrain interpretation: one of three contender seeds
 clears the demonstration bar (0.33447; the other two and all baseline
-seeds read chance), the paired interval straddles the margin
-\% evidence: R4, the bar-clearing seed's partial recall does not
-generalize to held-out hop depths (0.0112) \% evidence: R4 and
-collapses to 0.010 at every extended horizon \% evidence: R10.
+seeds read chance), the paired interval straddles the margin, the bar-clearing seed's partial recall does not
+generalize to held-out hop depths (0.0112) and
+collapses to 0.010 at every extended horizon.
 The single bar-clearing seed suggested the failure mode is at least
 partly trainability variance rather than a hard capability boundary,
 and the pre-registered diagnosis round confirmed this: across nine
 pooled seeds, three contender seeds clear the demonstration bar (0.334,
 0.391, 0.479) while zero of nine ablation seeds do; the
 hard-capability-boundary hypothesis is rejected for this task at this
-scale and budget \% evidence: R11. The pooled paired interval
+scale and budget. The pooled paired interval
 $(-0.020, +0.268)$ sits below the 0.30 margin and the strict-tier
 reading is a TIE, flagged non-decision-grade by a pre-registered
-batch-effect gate \% evidence: R11; every bar-clearing seed
+batch-effect gate; every bar-clearing seed
 remains fragile at held-out hop depths and extended horizons. Nothing
 beyond single-hop recall is claimed here.
 

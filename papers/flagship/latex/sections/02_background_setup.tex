@@ -22,11 +22,10 @@ $d_{state} \times d_{state}$ matrix $Z$ per input word under a hard
 single-state bottleneck; the decoder reads only $Z$, never the raw
 inputs, so the task load must reside within the one matrix. (ii) The
 *two-layer delta-rule contender* (Section 4): a DeltaNet-family language
-model with $d_{model}=256$, two blocks, $d_{state}=64$
-\% evidence: R0, and its two matched baselines, described in
+model with $d_{model}=256$, two blocks, $d_{state}=64$, and its two matched baselines, described in
 Section 4.1. (iii) *Delta-rule language models* at scale (Section 5):
 the same architecture family trained as causal LMs at 14M, 98M, 392M,
-and 1.31B parameters \% evidence: R0 on held-fixed data mixes.
+and 1.31B parameters on held-fixed data mixes.
 
 \subsection{Tasks}
 
@@ -35,19 +34,17 @@ is drawn over a symmetric generating set of a permutation group $G$; the
 target is the image of the composed element under a fixed faithful
 orthogonal representation. Five groups are used: $S_3$, $S_4$, $A_5$,
 $S_5$, $A_6$, with minimal faithful real representation dimensions
-$d_{\min} = 2, 3, 3, 4, 5$ \% evidence: R1. The pair
+$d_{\min} = 2, 3, 3, 4, 5$. The pair
 $S_4$/$A_5$ is the designed dissociation control: equal $d_{\min}$,
 opposite solvability. Train words have length $L \le 8$; held-out
 evaluation words are fresh draws.
 
 \textbf{Episodic recall} (Section 4). Each episode binds $K{=}32$
 key-entity/value-entity pairs (real GPT-2 token identities,
-injectivity-guarded) over a 224-token bind phase, then queries one key
-\% evidence: R0. The metric of record, $\mathrm{acc}_A$, is
+injectivity-guarded) over a 224-token bind phase, then queries one key. The metric of record, $\mathrm{acc}_A$, is
 episode-restricted 32-way top-1 accuracy at the answer position, read
 through each model's own LM-head route; chance is $1/32 = 0.03125$ and
-the pre-registered demonstration bar is three times chance, 0.09375
-\% evidence: R0. Every $\mathrm{acc}_A$ number in this paper
+the pre-registered demonstration bar is three times chance, 0.09375. Every $\mathrm{acc}_A$ number in this paper
 carries the same caveat: recall here means episode-restricted top-1
 retrieval under argmax decoding, and under argmax a rank-one state can
 support on the order of $d$ associations \citep{nichani2024understandingfactualrecalltransformers}; no
@@ -86,13 +83,12 @@ against a shuffled control.
 keys $E$, the raw instrument is the key-Gram deviation
 $\lVert E^{\top}E - I \rVert_F$; span fraction rescales it between two
 analytic anchors, the expectation for $K$ i.i.d. random unit vectors
-(value 0) and full collapse onto one direction (value 1)
-\% evidence: R0, making readings comparable across state widths.
+(value 0) and full collapse onto one direction (value 1), making readings comparable across state widths.
 Higher is closer to collapse.
 
 \textbf{Confidence intervals.} Paired confidence intervals in this paper
 are Student-$t$ intervals on $n{=}3$ per-seed paired differences (two
-degrees of freedom, $t_{.975} = 4.303$) \% evidence: R4, except
+degrees of freedom, $t_{.975} = 4.303$), except
 the nine-seed diagnosis pool of Section 4.5, stated there. Per-seed
 values are tabulated in Appendix B so any alternative construction can
 be applied; the verdicts that rest on these intervals clear their

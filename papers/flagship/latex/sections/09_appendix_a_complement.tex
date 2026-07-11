@@ -10,26 +10,22 @@ matrix-state encoder family (the Section 3 substrate's sibling trained
 on parallel key-value binding), the trained state decomposes as
 $Z \approx c^{*} I_d + \Delta$, where $\Delta$ is a rank-$(K{-}1)$ task
 correction: the whole-state law holds at 0.5 to 2.9 percent Frobenius
-residual, with per-example identity alignment $\tau \ge 0.9997$
-\% evidence: R9. The effective rank of $Z - c^{*} I$ sits within
+residual, with per-example identity alignment $\tau \ge 0.9997$. The effective rank of $Z - c^{*} I$ sits within
 0.3 of the $K{-}1$ target at the $K{=}8$ load (deviations 0.03 to
 0.26); at the $K{=}12$ load the three converged runs read 10.22 to
-10.41 against the target of 11, deviations of 0.59 to 0.78
-\% evidence: R9. The rank-$(K{-}1)$ characterization is therefore
+10.41 against the target of 11, deviations of 0.59 to 0.78. The rank-$(K{-}1)$ characterization is therefore
 exact-order at the lighter load and approximate at the heavier one. The
 scaffold is emergent: the architecture has no identity path or output
 gain that parameterizes it.
 
 The scaffold earns its keep as a loss-blind health signal: the
 Procrustes residual of the complement correlates with held-out task
-cosine at Spearman $\rho = -0.973$ across all eleven archived runs
-\% evidence: R9, read entirely from a subspace the loss never
+cosine at Spearman $\rho = -0.973$ across all eleven archived runs, read entirely from a subspace the loss never
 constrains, so it can grade convergence without labels. Its boundary
 is architectural, because the scaffold does not exist where Sections 4
 and 5 live: in delta-rule states the orthogonal
 complement channel is numerically empty (complement energy fraction at
-most $3.2 \times 10^{-12}$ across 12 of 12 production-family runs
-\% evidence: R9), because outer-product writes confine the state
+most $3.2 \times 10^{-12}$ across 12 of 12 production-family runs), because outer-product writes confine the state
 to the span of observed keys and values by construction. The scaffold
 is therefore an encoder-family instrument and a delta-rule
 impossibility, which is itself a datum: the two families that share the

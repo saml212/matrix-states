@@ -9,18 +9,16 @@ state's dimensionality.
 Figure 1 shows recruited restricted effective rank against $d_{\min}$
 for the five groups, per seed. The per-group means are 1.877 ($S_3$),
 2.852 ($S_4$), 2.832 ($A_5$), 3.591 ($S_5$), and 4.736 ($A_6$) against
-$d_{\min} = 2, 3, 3, 4, 5$ \% evidence: R1. Spearman correlation
-across the family is $\rho = 0.9747$ \% evidence: R1. This number
+$d_{\min} = 2, 3, 3, 4, 5$. Spearman correlation
+across the family is $\rho = 0.9747$. This number
 is the maximum the family permits: the $S_4$/$A_5$ tie at $d_{\min}=3$
 caps the achievable midrank-adjusted $\rho$ at exactly 0.9747, and the
-observed ordering attains that cap \% evidence: R1. Because the
+observed ordering attains that cap. Because the
 family has only five members, we report the exact permutation null
-rather than an asymptotic one: under the null, $P(\rho \ge 0.8) = 8/120 \approx 6.67\%$
-\% evidence: R1. The correlation is therefore suggestive on its
+rather than an asymptotic one: under the null, $P(\rho \ge 0.8) = 8/120 \approx 6.67\%$. The correlation is therefore suggestive on its
 own; the band criterion and the causal test below do the deciding. The
 tracking also holds cell by cell: all 19 unconstrained-arm cells in the
-sweep land inside the pre-registered $[0.7, 1.3] \cdot d_{\min}$ band
-\% evidence: R1.
+sweep land inside the pre-registered $[0.7, 1.3] \cdot d_{\min}$ band.
 
 \subsection{The Designed Dissociation: $S_4$ versus $A_5$}
 
@@ -33,8 +31,7 @@ per group, margin $\pm 0.5$ rank-units, half the ladder's adjacent-rung
 spacing). The result is a declaration of equivalence: mean difference
 0.0194 rank-units (2.852 versus 2.832), standard error 0.0368, $df =
 7.83$, with both one-sided statistics ($t_1 = 13.06$, $t_2 = 14.12$)
-exceeding the critical value 1.865 by a factor of seven
-\% evidence: R2. Recruited rank tracks the representation
+exceeding the critical value 1.865 by a factor of seven. Recruited rank tracks the representation
 dimension of the task; the group's algebraic complexity class
 contributes nothing detectable.
 
@@ -51,32 +48,30 @@ matched this prediction: 36 of 39 force-rank cells sat within 0.07 of
 the predicted ceiling, one further cell sat marginally outside at
 0.072, and the two remaining outliers (0.15 and 0.17, both in one
 group's below-$d_{\min}$ arm) reflect an additional optimization
-shortfall \% evidence: R1b. Rank-capped models were
+shortfall. Rank-capped models were
 buying cosine from the identity padding, so the causal boundary at
 $d_{\min}$ was never tested. The fix replaced the padding with zeros,
 making the target rank exactly $d_{\min}$, and the decisional metric was
 pre-registered before the re-run as the Procrustes-aligned crosscheck
 ($\mathrm{xrec90}$), because the scale-only primary metric reads cosine
 0.01 to 0.22 on a flawless oracle when the target's rho-block
-eigenvalues are degenerate \% evidence: R1b.
+eigenvalues are degenerate.
 
 \subsection{Recovery Is a Step Function at Exactly $d_{\min}$}
 
 Figure 2 shows the repaired force-rank staircase. At $k = d_{\min}-1$,
-held-out recovery $\mathrm{xrec90}$ is 0.000 in all five groups
-\% evidence: R3: not degraded, zero. At $k = d_{\min}$, recovery
+held-out recovery $\mathrm{xrec90}$ is 0.000 in all five groups: not degraded, zero. At $k = d_{\min}$, recovery
 returns and clears the pre-registered bar of 0.9 times each group's own
 unconstrained anchor in four of five groups directly ($S_4$ 0.800
 against bar 0.585; $A_5$ 0.700 against 0.630; $S_5$ 0.600 against 0.450;
-$A_6$ 0.650 against 0.585) \% evidence: R3. $S_3$ landed within
+$A_6$ 0.650 against 0.585). $S_3$ landed within
 the pre-stated marginality window (0.450 against bar 0.495) and was
 routed to its pre-registered seed extension: across four independent
 seeds the seed-mean at $k = d_{\min}$ is 0.5625, clearing the bar, and
-$k = d_{\min}-1$ reads exactly 0.000 in all four seeds
-\% evidence: R3. The pre-registered confirmation criterion (a
+$k = d_{\min}-1$ reads exactly 0.000 in all four seeds. The pre-registered confirmation criterion (a
 razor step at $d_{\min}$ in at least four of five groups, including at
 least one of the marquee pair) is met with both marquee groups
-confirming \% evidence: R3.
+confirming.
 
 Together the three readings close the loop in both directions:
 $d_{\min}$ is recruited when available and is causally necessary and

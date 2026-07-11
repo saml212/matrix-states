@@ -8,10 +8,10 @@
 \toprule
 Setting & Value \\
 \midrule
-Stage-1 encoder (Section 3) & $h{=}32$, 3 layers, $d_{state} = d_{\min}+2$ per group; single-state bottleneck; step budgets 8K/20K/20K/8K/40K for $S_3$/$S_4$/$A_5$/$S_5$/$A_6$ \% evidence: R0 \\
-Head-to-head arms (Section 4) & contender $d_{model}{=}256$, 2 blocks, $d_{state}{=}64$, 14,049,408 params; ablation 14,048,384 params; transformer depth 2, FLOP-matched $\le 5\%$; all arms 20,000 steps, matched tokens, seeds identical across arms \% evidence: R0 \\
-Ladder rungs (Section 5) & 14M/98M/392M/1.31B = $(d_{model}, L, d_{state})$ of (256, 2, 64) / (768, 12, 64) / (1536, 16, 128) / (2560, 22, 128); measured 14,048,896 / 97,618,176 / 391,869,440 / 1,311,135,488 params \% evidence: R0 \\
-Span-fraction anchors & random $\sqrt{K(K{-}1)/d}$, collapse $\sqrt{K(K{-}1)}$; at $K{=}64$: 7.94/63.50 ($d{=}64$), 5.61/63.50 ($d{=}128$) \% evidence: R0 \\
+Stage-1 encoder (Section 3) & $h{=}32$, 3 layers, $d_{state} = d_{\min}+2$ per group; single-state bottleneck; step budgets 8K/20K/20K/8K/40K for $S_3$/$S_4$/$A_5$/$S_5$/$A_6$ \\
+Head-to-head arms (Section 4) & contender $d_{model}{=}256$, 2 blocks, $d_{state}{=}64$, 14,049,408 params; ablation 14,048,384 params; transformer depth 2, FLOP-matched $\le 5\%$; all arms 20,000 steps, matched tokens, seeds identical across arms \\
+Ladder rungs (Section 5) & 14M/98M/392M/1.31B = $(d_{model}, L, d_{state})$ of (256, 2, 64) / (768, 12, 64) / (1536, 16, 128) / (2560, 22, 128); measured 14,048,896 / 97,618,176 / 391,869,440 / 1,311,135,488 params \\
+Span-fraction anchors & random $\sqrt{K(K{-}1)/d}$, collapse $\sqrt{K(K{-}1)}$; at $K{=}64$: 7.94/63.50 ($d{=}64$), 5.61/63.50 ($d{=}128$) \\
 \bottomrule
 \end{tabular}
 }

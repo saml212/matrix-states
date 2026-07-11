@@ -45,6 +45,8 @@ CITEMAP = [
     ('Jelassi et al. (2024)', r'\citet{jelassi2024repeatmetransformersbetter}'),
     ('Olsson et al.\n(2022)', r'\citet{olsson2022incontextlearninginductionheads}'),
     ('Olsson et al. (2022)', r'\citet{olsson2022incontextlearninginductionheads}'),
+    ('(Olsson et al.,\n2022)', r'\citep{olsson2022incontextlearninginductionheads}'),
+    ('(Olsson et al., 2022)', r'\citep{olsson2022incontextlearninginductionheads}'),
     ('(Xiao et al., 2024)', r'\citep{xiao2024efficientstreaminglanguagemodels}'),
     ('DeltaNet and Gated DeltaNet (Yang et\nal.)',
      r'DeltaNet \citep{yang2025parallelizinglineartransformersdelta} and Gated DeltaNet \citep{yang2025gateddeltanetworksimproving}'),
@@ -79,8 +81,13 @@ def inline(s):
 def convert(md, is_appendix):
     for lit, mac in CITEMAP:
         md = md.replace(lit, mac)
-    # evidence comments -> tex comments (single line)
-    md = re.sub(r'<!--\s*(.*?)\s*-->', lambda m: '% ' + ' '.join(m.group(1).split()), md, flags=re.S)
+    # evidence comments: STRIP from the .tex output (a mid-line % comment
+    # would eat the rest of its line; render-inspection C1 showed escaping
+    # them prints them as body text). Traceability lives in the .md source.
+    md = re.sub(r'\s*<!--.*?-->', '', md, flags=re.S)
+    # bold spans line breaks inside md list items; convert on the whole
+    # text before line-splitting so no literal ** survives (render S2)
+    md = re.sub(r'\*\*([^*]+)\*\*', r'\\textbf{\1}', md)
 
     lines, out, i = md.split('\n'), [], 0
     while i < len(lines):
@@ -166,7 +173,7 @@ def main():
         if fn.startswith('00_'):
             # abstract: body only, no \section
             body = re.sub(r'^# Abstract\s*', '', md)
-            body = re.sub(r'<!--.*?-->', '', body, flags=re.S)
+            body = re.sub(r'\s*<!--.*?-->', '', body, flags=re.S)
             tex = esc_text(inline(body)).strip() + '\n'
         else:
             tex = convert(md, is_appendix)
