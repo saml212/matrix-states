@@ -183,9 +183,15 @@ def fig2():
         assert 0.53 < ratio < 0.79  # the 21.8-46.4% fall band
         corpus = "openr1" if "openr1" in d["corpus"] else "wikitext"
         color = BLUE if corpus == "openr1" else VERM
-        axL.plot(CKPTS, ys, marker="o", ms=3, lw=1.2, color=color, alpha=0.85)
-    axL.plot([], [], color=BLUE, lw=1.2, label="openr1 cells (3 seeds)")
-    axL.plot([], [], color=VERM, lw=1.2, label="wikitext cells (3 seeds)")
+        # shape+linestyle redundancy so series separate without color
+        marker = "o" if corpus == "openr1" else "s"
+        ls = "-" if corpus == "openr1" else "--"
+        axL.plot(CKPTS, ys, marker=marker, ms=3, lw=1.2, ls=ls, color=color,
+                 alpha=0.85)
+    axL.plot([], [], color=BLUE, lw=1.2, marker="o", ms=3, ls="-",
+             label="openr1 cells (3 seeds)")
+    axL.plot([], [], color=VERM, lw=1.2, marker="s", ms=3, ls="--",
+             label="wikitext cells (3 seeds)")
     axL.set_xscale("log")
     axL.set_xticks(CKPTS)
     axL.set_xticklabels([str(c) for c in CKPTS])
@@ -227,7 +233,8 @@ def fig3():
     fig.subplots_adjust(wspace=0.45)
     axL, axR = axes
 
-    for K, color, off in (("32", BLUE, 0.93), ("20", VERM, 1.075)):
+    # marker shapes differ per load so the series separate without color
+    for K, color, off, mk in (("32", BLUE, 0.93, "o"), ("20", VERM, 1.075, "s")):
         means, los, his = [], [], []
         for c in CKPTS:
             blk = pt["raw"][str(c)][f"delta_k{K}"]
@@ -235,7 +242,7 @@ def fig3():
             los.append(blk["mean"] - blk["ci_low"])
             his.append(blk["ci_high"] - blk["mean"])
         xs = [c * off for c in CKPTS]
-        axL.errorbar(xs, means, yerr=[los, his], fmt="o", ms=3, lw=1.0,
+        axL.errorbar(xs, means, yerr=[los, his], fmt=mk, ms=3, lw=1.0,
                      capsize=2, color=color, label=f"K={K}")
     blk = pt["raw"]["2500"]["delta_k32"]
     assert blk["ci_high"] < 0  # the transient: CI excludes zero, harm direction
@@ -277,8 +284,13 @@ def fig3():
     half = 2.201 * sd / n ** 0.5  # t(11, .975)
     axR.errorbar([0.5], [mean], yerr=[[half], [half]], fmt="_", ms=7, lw=1.1,
                  capsize=3, color="0.5", ls=":")
-    axR.text(0.5, mean + half + 0.07, "naive n=12 pool\n(not decision-grade)",
-             ha="center", va="bottom", fontsize=6.0, color="0.4")
+    # annotation in the empty upper-left region (above the archived cohort's
+    # tight cluster), arrowed to the pool bar: centered text overlapped the
+    # new cohort's positive-delta markers
+    axR.annotate("naive n=12 pool\n(not decision-grade)",
+                 xy=(0.44, mean + half), xytext=(-0.35, 0.62),
+                 ha="left", va="bottom", fontsize=6.0, color="0.4",
+                 arrowprops=dict(arrowstyle="-", lw=0.7, color="0.6"))
     axR.set_ylim(-1.4, 1.05)
     assert mean - half < 0 < mean + half  # spans zero
     assert new["ci_low"] < 0 < new["ci_high"]  # new cohort spans zero
