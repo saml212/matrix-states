@@ -40,7 +40,7 @@ auxiliary-loss weighting were shared across three architecturally
 distinct mixers, not independently tuned per arm, so this paper does not
 claim the additive update is \emph{architecturally incapable} of the
 task, only that it does not reach it under this budget. A second reading
-holds but is narrower than ``matrix beats vector'': the additive
+holds but is more modest than ``matrix beats vector'': the additive
 control also holds $64\times$ less raw state and a write with no
 dependence on the query key (Section~\ref{sec:setup}), so the comparison
 shows \emph{a matrix state with a multiplicative, key-conditioned

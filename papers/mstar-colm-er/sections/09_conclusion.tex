@@ -5,8 +5,8 @@ model stores and retrieves in-context bindings that neither matched
 baseline learns at all, from a state whose size does not grow with
 context. The bindings are causally localized to the first block's
 fast-weight matrix and stored in a form only the model's own forward
-pass decodes. Because the baseline never becomes competent, the
-comparison yields no memory multiplier; the registered outcome of
+pass decodes. A baseline that never becomes competent anchors no ratio,
+so no memory multiplier is on offer; the registered outcome of
 Section~\ref{sec:horizon} is the paper's only comparative claim. For the
 workshop's question, whether long-horizon reasoning must pay a memory
 cost that grows with context, this is a small-scale existence result on
