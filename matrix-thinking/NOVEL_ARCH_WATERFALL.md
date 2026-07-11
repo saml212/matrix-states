@@ -1349,3 +1349,81 @@ Phase-0-proven concurrency), tmux `ncr_wave1`, self-healing supervisor per
 worker, STOP file, `WAVE1_DONE` sentinel when 18/18 cell JSONs read
 COMPLETED. Projection: serial-sum ≈ 20.1 GPU-h; device draw ≈ 2 GPUs ×
 ~3.5-5 h wall ≈ 7-10 GPU-h; hard sub-cap 50.
+
+### §7e WAVE-1 READOUT (2026-07-11, 18/18 cells, K=8): **AXIS A = WIN. P1 5/5, P2 PASS, AXIS B = WIN (20.9×), AXIS C = TIE.** One mid-wave defect (C_MLP eval crash), fixed + regression-toothed; verdict of record below
+
+**Run record.** tmux `ncr_wave1`, GPUs 6+7, launch 23:18:13Z →
+`WAVE1_DONE` 04:49:17Z. Survived a coordinator-side session outage
+untouched (the tmux+supervisor isolation again). **Defect (D-1):** the
+three C_MLP cells crashed deterministically at EVAL (training completed
+and checkpointed at 80K): `model.arm` AttributeError — the inherited
+`MLPShortcutModel` never carried the arm-protocol attribute the three arm
+classes define, and the CPU suite's end-to-end micro cell ran ONLY the ncr
+arm, so the per-arm pipeline branch was never executed pre-box. The
+supervisor looped harmlessly (each pass: instant 80K resume → seconds-fast
+crash; GPUs idle ~6 min). Fix `9b4b71a`: `CMLPModel` subclass adding ONLY
+the class attributes (zero behavior; state-dict-compatible with the
+crashed runs' checkpoints — they resumed and completed in seconds);
+regression teeth: t12 arm-protocol asserts on every builder + t13 now runs
+ALL FOUR arms end-to-end (suite 14/14 re-executed). Scoped audit of the
+fix dispatched (fresh agent); verdict appended below on landing — it gates
+trusting the C_MLP rows only (the disclosed weak control; no decision
+reads them). Cosmetic: box cell fingerprints carry `git_commit=UNKNOWN`
+(no .git on the box; md5-verified deploys are the provenance there).
+
+**Verdict of record (`wave1_verdict.json`, produced by the committed
+`wave1_harvest.py` against the archived cells; archive:
+`experiment-runs/2026-07-11_ncr_wave1/` repo tier 2.5MB + SSD full mirror
+44MB incl. the 18 checkpoints):**
+
+- **AXIS A (K=8): WIN** — the §3.2a full-separation cell. NCR band HOLD:
+  median recovered@0.9 at h\*=61 = **1.0** (per-seed 1.0/1.0/1.0/0.995/1.0
+  — P1's ≥3/5 bar passed **5/5**), uniform HOLD across all four novel
+  residue strata (h=60-63), no strata band-drop. Best baseline band FAIL:
+  fwm 0.158, loopedvec 0.0 at h\*. Per-seed NCR failure fronts
+  125/253/253/125/253 — median 253, **inside the pre-registered [87, 442]
+  band**; zero post-front revivals; zero reducer signatures anywhere (the
+  disclosed confound did not materialize).
+- **P2: PASS** — both comparisons of record below median 0.5 at the pinned
+  h=29: loopedvec 0.0; fwm **0.4885** (narrow, 1.2pp under the bar —
+  reported as such; its full front: 0.919@5 → 0.546@21 → 0.489@29 →
+  0.158@61 → 0.002@125, the drifting-nonlinear-read decay P2 predicted
+  from fr7/Guu/FWM-N_r=3 grounds).
+- **AXIS B: WIN** — bin-exp **20.9× faster** than the best O(h) arm at
+  h=1021 (bar ≥10×); scaling fits: every O(h) arm linear-in-h at R² ≥
+  0.998 (loop 0.999999, fwm 0.999999, loopedvec 0.998) vs bin-exp flat at
+  ~1-3 ms from h=61 to h=2^20+5 (kernel-launch-bound; at 2^20+5 the
+  measured gap is ≈13,000-25,000×: 2.6 ms vs 34-64 s). C_MLP O(1) flat,
+  disclosed control. Axis-B is claimable as capability because Axis A ≥
+  TIE (§3.2 table's own condition).
+- **AXIS C: TIE** (a pre-registered outcome row, publishable as instrument
+  methodology under every A outcome) — 4/5 seeds' locked-curve deviation ≤
+  0.05 through h ≤ 125 (0.0055/0.0060/0.0079/0.0191; s3 = 0.0585 just
+  over), 0/5 through h ≤ 509 (max dev 0.082-0.233): beyond each seed's
+  failure front the A-only locked prediction under-tracks compounding
+  C-leakage — exactly the §3.4/mi3 disclosed division of labor (the rule
+  screens, the lock predicts the trusted window, the shadow certifies
+  rounding). WIN needed ≤0.05 to h=509 on ≥3/5.
+- **Crosscheck-lens table (§2.31a discipline, degauged readout never
+  alone):** all 5 NCR seeds eff_rank(A) = **8.000** exactly; degauged
+  (c\*-corrected) residuals 0.003-0.009 WITH basis-invariant phase
+  residuals 0.0006-0.0053 alongside; c\* 3.1-5.2 (larger than the 40K-era
+  1.0-2.8 — longer training grows the cosine-invisible isotropic scale).
+- **Hygiene:** 0 NUMERIC-DIVERGENT points (shadow AND agreement bars) over
+  all 420 trust-labeled (cell, h, read) points (92 RULE-TRUSTED shallow /
+  328 SHADOW-VERIFIED deep — the mi3 label logic operating as designed);
+  0 aborted cells; n_skipped_steps = 0 everywhere.
+
+**GPU-h ledger:** wave-1 serial-sum (per-cell elapsed) **18.38** vs 20.1
+projected, vs the 50 hard sub-cap; device draw ≈ 2 GPUs × 5.5 h ≈ **11.0**.
+Program total realized (smoke + Phase 0 + wave 1): ≈ **11.7 device /
+19.1 serial-sum** of the 120 cap.
+
+**Standing per §3.2a/§3.6: the K=8 label is WIN. The overall Axis-A claim
+is cross-K — Phase 2 (K=12 replication, 43.2 GPU-h priced, own gate on
+THIS readout, never autopilot) is the coordinator's next go/no-go; under
+P1-K12's asymmetric pre-registration the expected overall outcome is WIN
+or WIN-PARTIAL. The operator bank stays separately ledgered and
+double-gated (M4). LoopedVec's in-distribution failure (0.002) travels
+with any claim as the M3 strawman-risk disclosure (§7d), with FWM as the
+load-bearing baseline.**
