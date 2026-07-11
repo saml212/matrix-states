@@ -1,6 +1,6 @@
 \begin{abstract}
-Long-horizon inference is increasingly bound by memory rather than
-arithmetic: a transformer's key--value (KV) cache grows linearly with
+Long-horizon inference is increasingly memory-bound: a transformer's
+key--value (KV) cache grows linearly with
 context length, while fast-weight recurrences carry a state of fixed size.
 Whether such a state retains the bindings a recall task depends on, under a
 training budget an attention model also receives, is an empirical question.
@@ -19,9 +19,8 @@ span, with the state fixed at 32{,}768 bytes; % <!-- evidence: C3 -->
 the transformer reads chance uncapped and at every KV-cache budget from one
 to thirty-two times those bytes, % <!-- evidence: C4 -->
 so no memory multiplier is claimed and the baseline is reported as
-non-competitive at the matched budget. Recall collapses to chance when
-the first block's state is zeroed, while zeroing the second block's
-leaves it unchanged. % <!-- evidence: C5 -->
+non-competitive at the matched budget. State-zeroing localizes the recall
+to the first block's fast-weight state. % <!-- evidence: C5 -->
 A multi-hop variant separates only as seed variance, and at higher load
 every arm reads chance. % <!-- evidence: C7 -->
 \end{abstract}
