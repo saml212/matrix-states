@@ -94,16 +94,21 @@ disclosed here as a re-derivation, not presented as the registered
 corpus-level verdict.
 
 The primary table computes 40 uncorrected 95-percent intervals (4
-contrasts $\times$ 5 checkpoints $\times$ 2 loads); three $K{=}32$
-intervals exclude zero: encyclopedic$\times$global at checkpoint 1{,}000
-($\Delta{=}{-}0.203$, $[-0.402,-0.004]$), encyclopedic$\times$per-token at
-checkpoint 1{,}000 ($\Delta{=}{-}0.168$, $[-0.301,-0.036]$), and
+contrasts $\times$ 5 checkpoints $\times$ 2 loads); five exclude zero:
+both loads of reasoning-dense$\times$global at checkpoint 1{,}000
+($K{=}32$: $\Delta{=}{-}0.203$, $[-0.402,-0.004]$; $K{=}20$:
+$\Delta{=}{-}0.199$, $[-0.325,-0.074]$), both loads of
+encyclopedic$\times$per-token at checkpoint 1{,}000 ($K{=}32$:
+$\Delta{=}{-}0.168$, $[-0.301,-0.036]$; $K{=}20$: $\Delta{=}{-}0.109$,
+$[-0.211,-0.006]$), and the $K{=}32$ interval of
 encyclopedic$\times$per-token at checkpoint 2{,}500 ($\Delta{=}{-}0.500$,
-$[-0.624,-0.376]$, the reported transient). Only the third also satisfies
+$[-0.624,-0.376]$, the reported transient). Only the last also satisfies
 the compound differential condition above and is corroborated by the
 independent held-out-hop readout at the same cell and checkpoint; that
-compound condition, not any single CI exclusion, is what the main text
-calls the one determinate signal.
+compound condition, not any single interval exclusion, is what the main
+text calls the one determinate signal. The checkpoint-1{,}000 cells fail
+the differential condition precisely because their $K{=}20$ intervals
+also exclude zero.
 
 \textbf{Replication integrity gates (wave 6).} Archived seeds load from
 stored values only; a runtime guard raises on any live re-scoring of an
