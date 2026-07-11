@@ -1,0 +1,395 @@
+fatal: not a git repository (or any of the parent directories): .git
+  [ncr_ncr_K8_s4] step      1  cosine_loss 0.9924  elapsed 1s
+  [ncr_ncr_K8_s4] step    500  cosine_loss 0.9988  elapsed 26s
+  [ncr_ncr_K8_s4] step   1000  cosine_loss 1.0048  elapsed 51s
+  [ncr_ncr_K8_s4] step   1500  cosine_loss 0.9963  elapsed 76s
+  [ncr_ncr_K8_s4] step   2000  cosine_loss 0.9944  elapsed 101s
+  [ncr_ncr_K8_s4] step   2500  cosine_loss 1.0021  elapsed 126s
+  [ncr_ncr_K8_s4] step   3000  cosine_loss 1.0003  elapsed 151s
+  [ncr_ncr_K8_s4] step   3500  cosine_loss 0.9946  elapsed 176s
+  [ncr_ncr_K8_s4] step   4000  cosine_loss 0.9945  elapsed 200s
+  [ncr_ncr_K8_s4] step   4500  cosine_loss 1.0030  elapsed 225s
+  [ncr_ncr_K8_s4] step   5000  cosine_loss 0.9922  elapsed 250s
+  [ncr_ncr_K8_s4] step   5500  cosine_loss 0.9970  elapsed 275s
+  [ncr_ncr_K8_s4] step   6000  cosine_loss 1.0036  elapsed 299s
+  [ncr_ncr_K8_s4] step   6500  cosine_loss 1.0143  elapsed 325s
+  [ncr_ncr_K8_s4] step   7000  cosine_loss 0.9896  elapsed 350s
+  [ncr_ncr_K8_s4] step   7500  cosine_loss 1.0004  elapsed 375s
+  [ncr_ncr_K8_s4] step   8000  cosine_loss 0.9906  elapsed 400s
+  [ncr_ncr_K8_s4] step   8500  cosine_loss 1.0004  elapsed 425s
+  [ncr_ncr_K8_s4] step   9000  cosine_loss 0.9972  elapsed 450s
+  [ncr_ncr_K8_s4] step   9500  cosine_loss 1.0056  elapsed 474s
+  [ncr_ncr_K8_s4] step  10000  cosine_loss 0.9877  elapsed 499s
+  [ncr_ncr_K8_s4] step  10500  cosine_loss 1.0011  elapsed 524s
+  [ncr_ncr_K8_s4] step  11000  cosine_loss 1.0019  elapsed 549s
+  [ncr_ncr_K8_s4] step  11500  cosine_loss 1.0004  elapsed 573s
+  [ncr_ncr_K8_s4] step  12000  cosine_loss 1.0071  elapsed 598s
+  [ncr_ncr_K8_s4] step  12500  cosine_loss 1.0081  elapsed 623s
+  [ncr_ncr_K8_s4] step  13000  cosine_loss 1.0024  elapsed 648s
+  [ncr_ncr_K8_s4] step  13500  cosine_loss 0.9959  elapsed 673s
+  [ncr_ncr_K8_s4] step  14000  cosine_loss 0.9957  elapsed 698s
+  [ncr_ncr_K8_s4] step  14500  cosine_loss 0.9959  elapsed 722s
+  [ncr_ncr_K8_s4] step  15000  cosine_loss 1.0065  elapsed 747s
+  [ncr_ncr_K8_s4] step  15500  cosine_loss 0.9893  elapsed 772s
+  [ncr_ncr_K8_s4] step  16000  cosine_loss 0.9928  elapsed 797s
+  [ncr_ncr_K8_s4] step  16500  cosine_loss 1.0092  elapsed 822s
+  [ncr_ncr_K8_s4] step  17000  cosine_loss 0.9953  elapsed 846s
+  [ncr_ncr_K8_s4] step  17500  cosine_loss 1.0074  elapsed 871s
+  [ncr_ncr_K8_s4] step  18000  cosine_loss 1.0057  elapsed 896s
+  [ncr_ncr_K8_s4] step  18500  cosine_loss 1.0100  elapsed 921s
+  [ncr_ncr_K8_s4] step  19000  cosine_loss 0.9927  elapsed 945s
+  [ncr_ncr_K8_s4] step  19500  cosine_loss 0.9959  elapsed 970s
+  [ncr_ncr_K8_s4] step  20000  cosine_loss 0.9897  elapsed 995s
+  [ncr_ncr_K8_s4] step  20500  cosine_loss 0.9986  elapsed 1020s
+  [ncr_ncr_K8_s4] step  21000  cosine_loss 0.9938  elapsed 1045s
+  [ncr_ncr_K8_s4] step  21500  cosine_loss 0.9905  elapsed 1069s
+  [ncr_ncr_K8_s4] step  22000  cosine_loss 0.9840  elapsed 1094s
+  [ncr_ncr_K8_s4] step  22500  cosine_loss 0.9987  elapsed 1119s
+  [ncr_ncr_K8_s4] step  23000  cosine_loss 0.9927  elapsed 1143s
+  [ncr_ncr_K8_s4] step  23500  cosine_loss 0.9850  elapsed 1168s
+  [ncr_ncr_K8_s4] step  24000  cosine_loss 0.9899  elapsed 1193s
+  [ncr_ncr_K8_s4] step  24500  cosine_loss 0.9760  elapsed 1218s
+  [ncr_ncr_K8_s4] step  25000  cosine_loss 0.9745  elapsed 1242s
+  [ncr_ncr_K8_s4] step  25500  cosine_loss 0.9739  elapsed 1267s
+  [ncr_ncr_K8_s4] step  26000  cosine_loss 0.9707  elapsed 1292s
+  [ncr_ncr_K8_s4] step  26500  cosine_loss 0.9693  elapsed 1317s
+  [ncr_ncr_K8_s4] step  27000  cosine_loss 0.9807  elapsed 1341s
+  [ncr_ncr_K8_s4] step  27500  cosine_loss 0.9588  elapsed 1366s
+  [ncr_ncr_K8_s4] step  28000  cosine_loss 0.9782  elapsed 1391s
+  [ncr_ncr_K8_s4] step  28500  cosine_loss 0.9643  elapsed 1416s
+  [ncr_ncr_K8_s4] step  29000  cosine_loss 0.9610  elapsed 1440s
+  [ncr_ncr_K8_s4] step  29500  cosine_loss 0.9484  elapsed 1465s
+  [ncr_ncr_K8_s4] step  30000  cosine_loss 0.9361  elapsed 1490s
+  [ncr_ncr_K8_s4] step  30500  cosine_loss 0.9159  elapsed 1515s
+  [ncr_ncr_K8_s4] step  31000  cosine_loss 0.9061  elapsed 1539s
+  [ncr_ncr_K8_s4] step  31500  cosine_loss 0.8132  elapsed 1564s
+  [ncr_ncr_K8_s4] step  32000  cosine_loss 0.6879  elapsed 1589s
+  [ncr_ncr_K8_s4] step  32500  cosine_loss 0.5005  elapsed 1614s
+  [ncr_ncr_K8_s4] step  33000  cosine_loss 0.3178  elapsed 1638s
+  [ncr_ncr_K8_s4] step  33500  cosine_loss 0.1739  elapsed 1663s
+  [ncr_ncr_K8_s4] step  34000  cosine_loss 0.0932  elapsed 1688s
+  [ncr_ncr_K8_s4] step  34500  cosine_loss 0.0338  elapsed 1713s
+  [ncr_ncr_K8_s4] step  35000  cosine_loss 0.0128  elapsed 1738s
+  [ncr_ncr_K8_s4] step  35500  cosine_loss 0.0071  elapsed 1763s
+  [ncr_ncr_K8_s4] step  36000  cosine_loss 0.0056  elapsed 1788s
+  [ncr_ncr_K8_s4] step  36500  cosine_loss 0.0035  elapsed 1813s
+  [ncr_ncr_K8_s4] step  37000  cosine_loss 0.0028  elapsed 1838s
+  [ncr_ncr_K8_s4] step  37500  cosine_loss 0.0023  elapsed 1863s
+  [ncr_ncr_K8_s4] step  38000  cosine_loss 0.0020  elapsed 1887s
+  [ncr_ncr_K8_s4] step  38500  cosine_loss 0.0014  elapsed 1912s
+  [ncr_ncr_K8_s4] step  39000  cosine_loss 0.0015  elapsed 1937s
+  [ncr_ncr_K8_s4] step  39500  cosine_loss 0.0028  elapsed 1961s
+  [ncr_ncr_K8_s4] step  40000  cosine_loss 0.0008  elapsed 1986s
+  [ncr_ncr_K8_s4] step  40500  cosine_loss 0.0009  elapsed 2011s
+  [ncr_ncr_K8_s4] step  41000  cosine_loss 0.0007  elapsed 2036s
+  [ncr_ncr_K8_s4] step  41500  cosine_loss 0.0005  elapsed 2060s
+  [ncr_ncr_K8_s4] step  42000  cosine_loss 0.0008  elapsed 2085s
+  [ncr_ncr_K8_s4] step  42500  cosine_loss 0.0004  elapsed 2110s
+  [ncr_ncr_K8_s4] step  43000  cosine_loss 0.0004  elapsed 2135s
+  [ncr_ncr_K8_s4] step  43500  cosine_loss 0.0003  elapsed 2160s
+  [ncr_ncr_K8_s4] step  44000  cosine_loss 0.0006  elapsed 2184s
+  [ncr_ncr_K8_s4] step  44500  cosine_loss 0.0004  elapsed 2209s
+  [ncr_ncr_K8_s4] step  45000  cosine_loss 0.0004  elapsed 2234s
+  [ncr_ncr_K8_s4] step  45500  cosine_loss 0.0003  elapsed 2259s
+  [ncr_ncr_K8_s4] step  46000  cosine_loss 0.0005  elapsed 2283s
+  [ncr_ncr_K8_s4] step  46500  cosine_loss 0.0004  elapsed 2308s
+  [ncr_ncr_K8_s4] step  47000  cosine_loss 0.0003  elapsed 2333s
+  [ncr_ncr_K8_s4] step  47500  cosine_loss 0.0003  elapsed 2358s
+  [ncr_ncr_K8_s4] step  48000  cosine_loss 0.0003  elapsed 2383s
+  [ncr_ncr_K8_s4] step  48500  cosine_loss 0.0002  elapsed 2408s
+  [ncr_ncr_K8_s4] step  49000  cosine_loss 0.0002  elapsed 2433s
+  [ncr_ncr_K8_s4] step  49500  cosine_loss 0.0008  elapsed 2457s
+  [ncr_ncr_K8_s4] step  50000  cosine_loss 0.0002  elapsed 2482s
+  [ncr_ncr_K8_s4] step  50500  cosine_loss 0.0003  elapsed 2507s
+  [ncr_ncr_K8_s4] step  51000  cosine_loss 0.0002  elapsed 2532s
+  [ncr_ncr_K8_s4] step  51500  cosine_loss 0.0002  elapsed 2556s
+  [ncr_ncr_K8_s4] step  52000  cosine_loss 0.0002  elapsed 2581s
+  [ncr_ncr_K8_s4] step  52500  cosine_loss 0.0002  elapsed 2606s
+  [ncr_ncr_K8_s4] step  53000  cosine_loss 0.0002  elapsed 2631s
+  [ncr_ncr_K8_s4] step  53500  cosine_loss 0.0001  elapsed 2656s
+  [ncr_ncr_K8_s4] step  54000  cosine_loss 0.0001  elapsed 2681s
+  [ncr_ncr_K8_s4] step  54500  cosine_loss 0.0001  elapsed 2706s
+  [ncr_ncr_K8_s4] step  55000  cosine_loss 0.0001  elapsed 2731s
+  [ncr_ncr_K8_s4] step  55500  cosine_loss 0.0002  elapsed 2755s
+  [ncr_ncr_K8_s4] step  56000  cosine_loss 0.0003  elapsed 2781s
+  [ncr_ncr_K8_s4] step  56500  cosine_loss 0.0001  elapsed 2805s
+  [ncr_ncr_K8_s4] step  57000  cosine_loss 0.0001  elapsed 2830s
+  [ncr_ncr_K8_s4] step  57500  cosine_loss 0.0001  elapsed 2855s
+  [ncr_ncr_K8_s4] step  58000  cosine_loss 0.0001  elapsed 2880s
+  [ncr_ncr_K8_s4] step  58500  cosine_loss 0.0001  elapsed 2904s
+  [ncr_ncr_K8_s4] step  59000  cosine_loss 0.0001  elapsed 2929s
+  [ncr_ncr_K8_s4] step  59500  cosine_loss 0.0001  elapsed 2954s
+  [ncr_ncr_K8_s4] step  60000  cosine_loss 0.0001  elapsed 2979s
+  [ncr_ncr_K8_s4] step  60500  cosine_loss 0.0001  elapsed 3004s
+  [ncr_ncr_K8_s4] step  61000  cosine_loss 0.0001  elapsed 3029s
+  [ncr_ncr_K8_s4] step  61500  cosine_loss 0.0001  elapsed 3054s
+  [ncr_ncr_K8_s4] step  62000  cosine_loss 0.0002  elapsed 3079s
+  [ncr_ncr_K8_s4] step  62500  cosine_loss 0.0001  elapsed 3104s
+  [ncr_ncr_K8_s4] step  63000  cosine_loss 0.0005  elapsed 3129s
+  [ncr_ncr_K8_s4] step  63500  cosine_loss 0.0001  elapsed 3154s
+  [ncr_ncr_K8_s4] step  64000  cosine_loss 0.0001  elapsed 3179s
+  [ncr_ncr_K8_s4] step  64500  cosine_loss 0.0001  elapsed 3204s
+  [ncr_ncr_K8_s4] step  65000  cosine_loss 0.0001  elapsed 3228s
+  [ncr_ncr_K8_s4] step  65500  cosine_loss 0.0000  elapsed 3253s
+  [ncr_ncr_K8_s4] step  66000  cosine_loss 0.0000  elapsed 3278s
+  [ncr_ncr_K8_s4] step  66500  cosine_loss 0.0001  elapsed 3303s
+  [ncr_ncr_K8_s4] step  67000  cosine_loss 0.0001  elapsed 3327s
+  [ncr_ncr_K8_s4] step  67500  cosine_loss 0.0001  elapsed 3353s
+  [ncr_ncr_K8_s4] step  68000  cosine_loss 0.0000  elapsed 3378s
+  [ncr_ncr_K8_s4] step  68500  cosine_loss 0.0001  elapsed 3402s
+  [ncr_ncr_K8_s4] step  69000  cosine_loss 0.0001  elapsed 3427s
+  [ncr_ncr_K8_s4] step  69500  cosine_loss 0.0001  elapsed 3453s
+  [ncr_ncr_K8_s4] step  70000  cosine_loss 0.0000  elapsed 3478s
+  [ncr_ncr_K8_s4] step  70500  cosine_loss 0.0001  elapsed 3503s
+  [ncr_ncr_K8_s4] step  71000  cosine_loss 0.0001  elapsed 3528s
+  [ncr_ncr_K8_s4] step  71500  cosine_loss 0.0000  elapsed 3553s
+  [ncr_ncr_K8_s4] step  72000  cosine_loss 0.0000  elapsed 3577s
+  [ncr_ncr_K8_s4] step  72500  cosine_loss 0.0000  elapsed 3602s
+  [ncr_ncr_K8_s4] step  73000  cosine_loss 0.0000  elapsed 3627s
+  [ncr_ncr_K8_s4] step  73500  cosine_loss 0.0000  elapsed 3652s
+  [ncr_ncr_K8_s4] step  74000  cosine_loss 0.0000  elapsed 3678s
+  [ncr_ncr_K8_s4] step  74500  cosine_loss 0.0000  elapsed 3703s
+  [ncr_ncr_K8_s4] step  75000  cosine_loss 0.0001  elapsed 3727s
+  [ncr_ncr_K8_s4] step  75500  cosine_loss 0.0000  elapsed 3752s
+  [ncr_ncr_K8_s4] step  76000  cosine_loss 0.0000  elapsed 3777s
+  [ncr_ncr_K8_s4] step  76500  cosine_loss 0.0000  elapsed 3802s
+  [ncr_ncr_K8_s4] step  77000  cosine_loss 0.0000  elapsed 3827s
+  [ncr_ncr_K8_s4] step  77500  cosine_loss 0.0000  elapsed 3852s
+  [ncr_ncr_K8_s4] step  78000  cosine_loss 0.0000  elapsed 3876s
+  [ncr_ncr_K8_s4] step  78500  cosine_loss 0.0000  elapsed 3901s
+  [ncr_ncr_K8_s4] step  79000  cosine_loss 0.0000  elapsed 3926s
+  [ncr_ncr_K8_s4] step  79500  cosine_loss 0.0000  elapsed 3950s
+  [ncr_ncr_K8_s4] step  80000  cosine_loss 0.0000  elapsed 3976s
+  [ncr_ncr_K8_s4] COMPLETED in 4430s -> /home/nvidia/ncr/results_wave1/ncr_ncr_K8_s4.json
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
+  [ncr_ncr_K8_s4] already COMPLETED -- skipping (resume-safe)
