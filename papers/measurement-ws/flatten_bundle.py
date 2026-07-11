@@ -11,11 +11,16 @@ import re
 src = open("main.tex").read()
 flat = re.sub(r"\\input\{(sections/[^}]+)\}",
               lambda m: open(m.group(1) + ".tex").read(), src)
-stripped = "\n".join(
-    re.sub(r"(?<!\\)%.*", "", line).rstrip() for line in flat.splitlines()
-)
-# Collapse runs of blank lines left by removed comment blocks (3+ -> 2)
-# so paragraph breaks (blank lines) are preserved exactly.
-stripped = re.sub(r"\n{3,}", "\n\n", stripped)
-open("bundle/measurement-ws-submission.tex", "w").write(stripped + "\n")
+out_lines = []
+for line in flat.splitlines():
+    stripped = re.sub(r"(?<!\\)%.*", "", line).rstrip()
+    if stripped == "" and line.strip() != "":
+        # Comment-only line: drop it entirely. Leaving a blank line here
+        # would insert a paragraph break mid-paragraph and reflow the
+        # body (LaTeX treats a blank line as \par; a comment line is
+        # layout-neutral, so its removal must be too).
+        continue
+    out_lines.append(stripped)
+open("bundle/measurement-ws-submission.tex", "w").write(
+    "\n".join(out_lines) + "\n")
 print("flattened: bundle/measurement-ws-submission.tex")

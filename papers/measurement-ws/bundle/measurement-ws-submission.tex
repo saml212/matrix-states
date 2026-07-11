@@ -1,0 +1,632 @@
+
+\documentclass{article}
+
+\usepackage{neurips}
+
+\makeatletter
+\renewcommand{\@noticestring}{}
+\makeatother
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+\graphicspath{{figures/}}
+\raggedbottom
+
+\newcommand{\dstate}{d_{\mathrm{state}}}
+\newcommand{\dmin}{d_{\min}}
+\newcommand{\niter}{n_{\mathrm{iter}}}
+\newcommand{\rf}{\mathrm{rf}@0.9}
+
+\title{The Instrument Is the First Suspect: Six Broken Lenses in One
+Empirical Program}
+
+\author{
+  Anonymous Author(s)\\
+  Affiliation\\
+  \texttt{email@example.com}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Empirical claims about learned systems inherit the health of the
+instruments that measure them. We report six pre-publication incidents from one
+measurement-heavy research program
+on fast-weight sequence models in which a model, in one case a
+synthetic oracle, appeared to
+fail and the failure traced instead to the instrument: an admission
+tolerance calibrated on the wrong key population; a probe reading a
+layer that causal state-zeroing later proved inert; an identity-gauge
+assumption measured on one architecture and carried to another; an
+uncentered covariance estimator degenerate on the task's
+near-orthogonal targets; a target whose ambient identity block taxed
+every rank budget; and a cross-check reference invoked on the
+transposed side of a state convention. The same discipline adjudicated every incident,
+assembled across the catalogue and in full force before the final,
+decisive one:
+instrument-health adjudication before any model verdict,
+pre-registered crosschecks graded where the primary lens's assumptions
+fail, falsifier controls run to completion, and raw-artifact
+tiebreaks. The discipline is itself falsifiable; its decisive
+crosscheck survived a pre-registered shuffled-target control that
+would have voided the adjudication. It does not launder results: the
+corrected lens left the endpoint verdict standing and
+two genuine model failures intact. We argue the discipline transfers
+to any empirical evaluation gated by numerical checks, learned probes,
+or basis-dependent readouts.
+\end{abstract}
+
+
+\section{Introduction}
+\label{sec:intro}
+
+\looseness=-1 In one research program's five-day window on fast-weight sequence
+models, six apparent model failures traced, under the same
+adjudication procedure, to broken instruments rather than models
+(Table~\ref{tab:catalogue}); in two further readings it confirmed
+the model, not the lens, had failed. An incident
+here is a pre-registered endpoint or evaluation round read as a model
+verdict; defects caught outside such a reading (the
+auxiliary-classifier null of \S\ref{sec:wronglayer}) are noted, not
+counted. An evaluation pipeline that never suspects its own
+instruments will publish lens artifacts as model results.
+
+Our contributions: (1)~the catalogue (Table~\ref{tab:catalogue}), each
+incident with its mechanism
+and a reusable diagnostic signature; (2)~a five-rule
+adjudication discipline (\S\ref{sec:discipline}) that caught all six
+before publication; (3)~the discipline's boundary: it did not flip the
+pre-registered endpoint verdict, and two genuine model failures
+survived every instrument fix (\S\ref{sec:notflipped}).
+
+
+\section{The Adjudication Discipline}
+\label{sec:discipline}
+
+None of the five rules is novel in isolation; applied together,
+\emph{before} any model verdict is recorded, they form a lens-failure
+detector with a measured record. Two clauses were codified
+mid-catalogue by the incidents that exposed them (Rule 3's
+positive-control clause, \S\ref{sec:wronglayer}; Rule 2's graded
+crosscheck, Appendix~\ref{app:threelenses}); all five rules were in
+force before the decisive adjudication of \S\ref{sec:gauge}.
+
+\textbf{Rule 1: instrument-health adjudication precedes model
+verdicts.} Before a sweep's pre-registered endpoint may be read, a
+health checklist walks the raw per-cell artifacts: gate violations,
+convergence, a contradiction scan between independent readouts (the
+rule that fired in \S\ref{sec:gauge}).
+
+\textbf{Rule 2: pre-register a crosscheck that removes the primary
+lens's strongest assumption}, graded wherever that assumption provably
+fails, the switching rule fixed in advance.
+
+\textbf{Rule 3: falsifier teeth, run to completion.} Every negative
+control is executed, not merely written; guards are mutation-tested;
+every probe rung carries a planted-signal positive control; the
+adjudication itself carries a pre-registered falsifier whose firing
+voids it.
+
+\textbf{Rule 4: contradictions are resolved against raw artifacts.}
+When two reads disagree, neither recency nor authority decides: both
+are recomputed from the committed raw files and the tiebreak is
+recorded before anything downstream runs.
+
+\textbf{Rule 5: argmax closure.} Wherever a claim requires exact
+continuous recovery, the grading path must not be satisfiable by
+argmax decoding, under which a rank-1 matrix can recover on the order
+of $d$ associations \citep{nichani2025factual}; the converse gap was
+pre-registered before it fired (\S\ref{sec:wronglayer}).
+
+\section{Case I: The Tolerance That Manufactured a Cliff}
+\label{sec:tolerance}
+
+A fast-weight associative memory's recall capacity is measured by
+exact continuous recovery (cosine $\geq0.9$, never argmax; Rule 5)
+across a load sweep $K/\dstate$; an eval-time admission gate decides
+which trained cells enter a capacity fit; one leg checks that a
+Newton--Schulz orthogonalization in the scoring path converges to
+residual $<0.01$ within $\niter=20$ iterations. A wide-grid sweep at
+$\dstate=96$ trained cleanly at every cell (training guard $1.0$
+throughout), yet only one of 12 new cells was admissible
+($K{=}78$, $84$, $90$: all three seeds
+failing): the shape of a capacity cliff, contradicting the same
+architecture's established super-linear growth at lower state
+sizes~\citep{companion2026capacity} and the same grid's own post-fix
+re-fit below.
+
+The first mechanistic diagnosis blamed the trained anchor table's
+convergence at high load; a follow-up refuted it with margins
+(residuals at most $1.4\times10^{-6}$, over $7{,}000\times$ below
+tolerance,
+identical across failing and passing cells; failures confined to a
+pool the anchor table bypasses) and the claim was formally
+retracted.
+
+\looseness=-1 A purpose-built repro instrument recovered the true failing
+tensor: the pool's raw keys, never saved by the original checkpoint
+writer. Its decision rule, a pre-registered strict precedence order,
+was walked mechanically (Table~\ref{tab:walk}): every
+instrument-bug branch failed to fire, and an iteration sweep resolved
+all 4{,}608 flagged episodes by $\niter\le28$.
+A wall keeps failing as the budget grows; a miscalibrated tolerance
+resolves at a bump, and did. Root cause: a
+tolerance calibrated on anchor-stabilized \emph{blended} keys,
+silently applied to the structurally different \emph{raw} keys this
+one pool queries. Only the admission flag was
+recalibrated, only for the 11 cells verified to share the identical
+signature; the re-fit found no cliff
+through $K/\dstate=0.9375$ (per-load mean recovery $0.92$ to $1.00$).
+
+\section{Case II: The Instrument at the Wrong Layer}
+\label{sec:wronglayer}
+
+\looseness=-1 A two-block fast-weight model is trained on an associative binding
+task ($K=32$ bindings per episode) against matched baselines, with two
+registered readouts: a discrete task metric (episode-restricted recall
+through the model's own LM head) and a continuous
+probe metric $\rf$ (the fraction of targets a linear probe on a
+tapped state recovers at cosine $\geq0.9$). In the third of three
+consecutive rounds recorded as failures at $\rf=0.0$, the discrete
+metric dissociated: recall accuracy $0.9990$ against chance $0.03125$
+(baselines $0.0447$ and $0.0295$), the probe still exactly $0.0$ in
+every arm; the dissociation, not the zero, is the finding (Rule 5).
+
+\looseness=-1 An offline re-fit battery removed the probe-training explanations:
+closed-form ridge regression, pinned SGD, and MLP probes all
+reproduced $\rf=0.0$ exactly (over-regularization ruled out by the
+rig's post-nonlinearity recovery below); the trained probe's
+output was the analytically known
+episode-membership direction (mean cosine $0.176$ against the
+$1/\sqrt{32}\approx0.177$ ceiling; membership cosine $0.896$); the
+ridge fit cleared its shuffled-tap control~\citep{hewitt2019control}
+by at most $+0.059$
+cosine.
+Meanwhile the full forward pass decodes the answer at $0.9957$
+accuracy ($31.9\times$ chance) for the contender, both baselines at or
+near chance: the answer exists in the network.
+
+\looseness=-1 A state-zeroing experiment~\citep{elazar2021amnesic} located the
+storage
+(Figure~\ref{fig:taploc}): zeroing the
+first block's state $S_0$ collapses recall to chance ($0.0286$);
+zeroing $S_1$, the layer every deployed instrument tapped, leaves it
+bit-unchanged at $0.9990$: the probed layer is causally inert.
+Placement alone is not the whole defect: a ridge
+probe on the load-bearing $S_0$ \emph{also} reads $\rf=0.0$
+(shuffled-control gaps $+0.002$ to $+0.063$),
+and only the post-block-1, pre-LM-head hidden exposes the recall
+($\rf=0.674$, gap $+0.800$), only in the arm that performs
+the task (ablation: $0.0$; Table~\ref{tab:taps}).
+The bindings are stored in a format no tested linear read exposes;
+the model's own downstream nonlinearity is the only decoder found.
+
+The same diagnosis exposed a second defect in passing: an auxiliary
+classifier whose labels were uniform given the decoded quantity, so a
+perfect tap scores chance; its expected-null had been read as
+confirmation for a round, hence Rule 3's positive-control clause.
+
+\section{Case III: The Gauge That Did Not Transfer}
+\label{sec:gauge}
+
+\looseness=-1 A recurrent composer is trained on the word problems of five finite
+groups and scored for compositional depth generalization: trained at
+depth $\le8$, tested at depth 64. Two pre-registered lenses score
+recovery of the group representation from the state: the
+\emph{primary} de-gauges with a scale-only correction, valid when the
+learned basis matches the target up to scale
+($\hat{Q}\approx I$, measured on every checkpoint of the
+\emph{previous} architecture); the \emph{crosscheck} fits a full
+orthogonal intertwiner by Procrustes, fit and scored on disjoint
+splits, assuming nothing about the gauge.
+
+\looseness=-1 \textbf{The signature.} The 62-cell sweep completed cleanly; run as
+built on the primary lens, the endpoint machinery returned
+\textsc{falsify}: no measurable separation from the baseline at the
+decisive groups.
+The mandatory instrument-health pass (Rule 1) surfaced a
+contradiction (Figure~\ref{fig:lens}): wherever training had
+\emph{not} converged, both lenses read near zero; wherever it
+converged, they contradicted each other at full magnitude (one
+converged cell: loss $0.0001$, primary $0.050$,
+crosscheck $1.000$). All 13 cells with a lens disagreement of at
+least $0.5$ are converged cells (threshold-robust: every cell with a
+disagreement above $0.3$ is converged, 16 of 16); on all 25 Arm-2
+baseline cells (5 groups $\times$ 5 seeds, 50 checkpoint values) the
+lenses agree exactly. The harvest stopped for adjudication with no
+model verdict recorded.
+
+\begin{figure}[t]
+\centering
+\begin{minipage}[c]{0.40\linewidth}
+\includegraphics[width=\linewidth]{fig1_lens_contradiction}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.56\linewidth}
+\caption{Primary versus crosscheck recovery (fraction recovered at
+cosine $\geq0.9$, depth 64), all 62 cells.
+Non-converged cells (open orange) sit near the origin under both
+lenses; every cell with disagreement $\geq0.5$ is converged (filled
+blue). A lens defect that activates exactly where the model succeeds
+is the inverse of noise.}
+\label{fig:lens}
+\end{minipage}
+\end{figure}
+
+\looseness=-1 \textbf{The tiebreak.} A leaky crosscheck reading high on junk would
+leave the falsification standing. The adjudication, against raw
+artifacts and code
+(Rule 4), rested on four grounds:
+(1)~the crosscheck is leakage-guarded by construction (fit and eval
+on disjoint splits); (2)~it
+discriminates, reading near zero on every non-converged
+cell; (3)~the primary's scale-only correction was already flagged as
+basis-brittle across seeds (per-seed mean cosine $0.03$ to $0.69$
+where the crosscheck read $0.86$ to $0.95$) and its
+$\hat{Q}\approx I$ evidence came from a different architecture (a
+perfect model in a rotated basis reads zero under an identity gauge);
+(4)~the synthetic acceptance test already grades the crosscheck when
+the injected gauge is non-identity (Rule 2).
+Verdict: the primary lens is broken on converged cells; the mechanical
+falsification is void \emph{as a model verdict}.
+
+\looseness=-1 \textbf{Teeth.} The tiebreak carried its own pre-registered falsifier
+(Rule 3): shuffled-target re-scoring must read near zero, or the
+tiebreak is wrong and the contradiction escalates to an instrument
+rebuild. On three pre-registered converged checkpoints spanning
+three groups (among them the converged exemplar above), the shuffled
+crosscheck read $0.00$, $0.00$, and
+$0.05$, far below the $0.5$ void threshold, while the unshuffled
+reads reproduced the committed values bit-identically
+(Table~\ref{tab:teeth}).
+
+\textbf{The re-metric.} The full grid was re-read under the crosscheck
+lens through the unmodified verdict machinery, which first reproduced
+the committed primary verdict and all 62 recomputed ceilings to within
+$10^{-9}$.
+The corrected endpoint keeps the same \textsc{falsify} verdict
+\emph{and the same machine-emitted reason}
+(\S\ref{sec:notflipped}, Table~\ref{tab:remetric}); what the fix
+changes is the readable geometry: the primary was not a blanket
+null (S3 cleared its bar, $0.54$ against $0.459$) but masked which
+groups fail, while under the crosscheck the two decisive
+failures, an S5 near-miss and an A6 non-convergence, stand out
+lens-independently. Fixing the instrument changed what the verdict
+means, not the verdict.
+
+\section{Three More Lenses, Briefly}
+\label{sec:threelenses}
+
+\looseness=-1 Three further incidents (rows 4--6 of Table~\ref{tab:catalogue};
+numbers in Appendix~\ref{app:threelenses}): an
+\textbf{uncentered covariance}, degenerate on the task's own
+near-orthogonal targets, that failed a synthetic \emph{perfect} model
+(the rescue de-confounds into centering plus a full-intertwiner
+degauge);
+a \textbf{target with an ambient identity block}, under which a
+causal rank experiment returned near-chance
+recovery at every rank (zero in four of five groups; $0.17$ and
+$0.08$ in the fifth) while the capped arms sat at the exact rank-$k$
+ceiling $\sqrt{k/\dstate}$: undelivered by the
+instrument, not failed by the model;
+and a \textbf{reference kernel invoked on the transposed side} of a
+state convention, ``contradicting'' a correct recurrence at the
+$\sqrt{2}$ signature of a transposed outer product, exonerated by a
+closed-form hand computation.
+
+\section{The Boundary: What the Discipline Did Not Flip}
+\label{sec:notflipped}
+
+\looseness=-1 A lens-repair procedure that only rescued the preferred hypothesis
+would be a laundering machine; under the corrected
+lens, Case III's endpoint remained
+\textsc{falsify}, held there by two lens-independent model results:
+one decisive configuration never reaches training-support convergence
+(recovery $0.00$ at depth 64, all five seeds, both
+lenses), and the other decisive group sits below its pre-registered
+bar ($0.483$ against $0.735$) lens-independently: one seed
+generalizes at $0.00$ under both lenses despite low training loss,
+and even its siblings reach only $80\%$ and $65\%$ of their own
+ceilings, under the $90\%$ criterion, so the group misses its bar
+with or without the outlier, against a baseline pinned at $0.0$.
+
+Case I shows the same refusal: a diagnosed pool-margin confound
+($+0.0330$, $12\times$ the $0.0028$ noise floor) was withheld because
+the diagnostic's own cells never cleared admission, and an archived
+exact-ceiling reading ($1.0000$, three seeds) that did not replicate
+at a fresh seed ($0.9725$) was re-scoped to the seeds measured; the
+machinery that unlocked eleven quarantined cells declined, twice, to
+promote findings it could not support.
+
+\section{Related Work and Limitations}
+\label{sec:related}
+
+\looseness=-1 \textbf{Related work.} \citet{silberzahn2018many} and
+\citet{damour2020underspecification} document divergent conclusions
+from underspecified pipelines; here the models are fixed and
+the \emph{measurement pipeline} is the adjudicated object.
+\citet{henderson2018deep} and
+\citet{bouthillier2021accounting} quantify seed and tuning variance;
+none of the six defects is sampling variance, so variance
+accounting catches none. REFORMS
+\citep{kapoor2023reforms}, \citet{sculley2018winners}, and
+\citet{lipton2018troubling} prescribe what a trustworthy paper
+discloses; we supply the in-flight machinery such checklists
+presume exists. The probing literature supplies the
+instrument-hygiene checks the wrong-layer case rediscovers at
+evaluation scale: control tasks and
+selectivity~\citep{hewitt2019control}, the probe-versus-behavior
+dissociation~\citep{belinkov2022probing}, amnesic
+probing~\citep{elazar2021amnesic}, and randomization-based sanity
+checks~\citep{adebayo2018sanity}. \citet{schaeffer2023emergent}
+argue the inverse of our thesis (an apparent model \emph{property},
+emergence, as metric artifact) from the same
+instrument-first stance; each diagnoses one instrument
+class, where this catalogue is a serial, pre-registered,
+cross-instrument adjudication record with falsifier teeth.
+\citet{nichani2025factual} prove Rule 5's argmax/exact-recovery gap;
+we report it firing live (\S\ref{sec:wronglayer}); the fast-weight
+testbeds follow \citet{schlag2021linear}.
+
+\looseness=-1 \textbf{Limitations.} All six incidents come from one program, one
+team, one architecture family: they support no prevalence claim, and
+we cannot report the rate a lighter process would miss.
+The catalogue is survivor-biased: a defect missed by both crosscheck
+and falsifier battery appears in no record we could write. It is
+biased by trigger too: the discipline fires on apparent model
+failure, so defects flattering the model are under-represented; five
+of six fixes moved results in the program-favorable direction. In the
+one incident costed, the two diagnostic instruments took $0.50$ and
+$1.10$ GPU-hours (archived wall-clock) against the $6.33$ GPU-hours
+of training the uncorrected readings would have discredited. We
+report no false-alarm rate: the records do not tally escalations
+against clean instrument-health passes, so the precision of
+``suspect the instrument first'' is unmeasured.
+
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{The Three Brief Lenses, in Full}
+\label{app:threelenses}
+
+\textbf{The covariance that could not see.} An acceptance test for a
+representation-recovery pipeline injected a synthetic \emph{perfect}
+model and failed it. The subspace step estimated an uncentered
+covariance, degenerate on the task's own targets: for near-orthogonal
+states $Z\approx c(\rho\oplus I)$, $ZZ^{\top}\approx c^{2}I$ is
+isotropic and carries no subspace information. On the production
+harness, the headline rescue of the oracle injection (mean cosine
+$0.084$ to $0.9996$) folds in two registered lens changes: centering
+\emph{and} a switch from the scale-only primary to the
+full-intertwiner crosscheck. Isolating centering under a matched
+full-intertwiner metric moves mean cosine $0.705$ to $0.9996$; under
+the scale-only lens the centered pipeline reads $0.046$, no better
+than the uncentered $0.084$, because the injection's true gauge is
+non-identity, the pre-echo of \S\ref{sec:gauge}. Centering is a
+genuine fix, but the full rescue is centering plus a full-intertwiner
+degauge, not centering alone.
+The fix (centering) cancels the constant identity block because the
+group mean of a nontrivial representation vanishes; the acceptance
+injection was extended so the previously skipped subspace step now
+sits inside the test.
+
+\textbf{The target that taxed every budget.} A causal test of a
+rank-recruitment law capped model rank at $k$ around the predicted
+minimum $\dmin$ and expected recovery to return at $k=\dmin$. Every
+capped arm returned near-chance recovery on both lenses: zero in four
+of the five groups, and $0.17$/$0.08$ in the fifth (S3), far below
+that group's ceiling. The target
+had been constructed as $\rho\oplus I$: the ambient identity block
+inflates the as-built target rank by two, so every rank budget buys
+the constant block first. The diagnosis is quantitative: a rank-$k$
+model's best achievable cosine against this target is exactly
+$\sqrt{k/\dstate}$, and 37 of 39 force-rank cells sat within $0.07$ of
+that ceiling (mean absolute deviation $0.028$); the arms had trained
+to their theoretical optimum against the wrong target.
+The causal test was undelivered by the instrument, not failed by the
+model; a corrected-target, zero-padded re-run subsequently delivered
+the test (companion work, anonymized)~\citep{companion2026capacity}.
+
+\textbf{The reference on the wrong side.} A bespoke recurrence was
+cross-checked against a reference kernel and disagreed at relative
+Frobenius residual $1.40$; the recurrence was the initial suspect. At
+depth one the update is closed-form ($S_1=\beta vk^{\top}$), so a hand
+computation with scalar loops adjudicates conventions with no
+numerics: the composer matched the closed form at $4.5\times10^{-8}$
+and its \emph{transpose} at $1.405$, and for near-orthogonal unit $k$
+the transpose signature is exactly
+$\|vk^{\top}-kv^{\top}\|_F/\|vk^{\top}\|_F\approx\sqrt{2}$. The
+reference library's documented state convention is the transpose of
+the pinned equation; the cross-check's own reference invocation was
+the defect. With the returned state transposed before comparison, the
+cross-check passes all three pinned configurations (residuals
+$2.8\times10^{-3}$ to $4.5\times10^{-3}$), and a permanent negative
+test confirms a transposed-update mutant is killed at $1.405$.
+
+\section{The Catalogue and Per-Incident Detail Tables}
+\label{app:tables}
+
+Table~\ref{tab:catalogue} is the six-incident catalogue in one view;
+the remaining tables and Figure~\ref{fig:taploc} carry the
+per-incident numbers the body summarizes. Every value traces to the
+same evidence rows (and raw artifacts, with checksums) recorded in the
+paper's claims-to-evidence map.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabular}{@{}p{2.4cm}p{3.3cm}p{3.4cm}p{2.7cm}@{}}
+\toprule
+Apparent model failure & Actual instrument defect & Diagnostic signature & Resolution \\
+\midrule
+Capacity collapse, 11/12 cells quarantined (\S\ref{sec:tolerance}) &
+tolerance calibrated on blended keys, applied to raw keys &
+every flagged episode resolves under an iteration bump &
+flag recalibrated; no cliff \\
+\addlinespace[2pt]
+Three failed evaluation rounds (\S\ref{sec:wronglayer}) &
+probe tap on a causally inert layer; storage not linearly decodable &
+task metric near ceiling, probe zero; state-zeroing localization &
+metric re-registered; tap relocated \\
+\addlinespace[2pt]
+Generalization endpoint falsified
+(\S\ref{sec:gauge}) &
+identity gauge from one architecture carried to another &
+primary/crosscheck contradiction, only on converged cells &
+crosscheck decisional; verdict re-read (still falsified) \\
+\addlinespace[2pt]
+Perfect synthetic model fails acceptance (\S\ref{sec:threelenses}) &
+uncentered covariance, degenerate on near-orthogonal targets &
+oracle injection scores near zero; centering restores it &
+estimator centered; injection extended \\
+\addlinespace[2pt]
+Causal rank test near-chance at every rank
+(\S\ref{sec:threelenses}) &
+target built with an ambient identity block, taxing every rank
+budget &
+capped cells sit at the exact ceiling $\sqrt{k/\dstate}$ &
+target zero-padded; test re-run \\
+\addlinespace[2pt]
+Recurrence contradicted by reference kernel
+(\S\ref{sec:threelenses}) &
+reference invoked on the transposed side of a state convention &
+relative residual $\approx\sqrt{2}$; closed-form hand computation &
+reference transposed; mutant-kill check added \\
+\bottomrule
+\end{tabular}
+\caption{The six incidents: in each, the model was initially the
+suspect and the instrument was the finding, and every row was
+adjudicated against raw artifacts before any model-level conclusion
+was recorded. Sections named per row.}
+\label{tab:catalogue}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{fig2_tap_localization}
+\caption{Case II, the wrong-layer instrument adjudicated causally.
+(a)~Episode-restricted recall accuracy under state zeroing, contender
+(blue) and ablation baseline (gray), chance $=1/32$ dashed: zeroing
+$S_0$ collapses recall to chance in both arms; zeroing $S_1$, the
+layer every deployed probe tapped, changes nothing. (b)~Linear
+(ridge) probe recovery $\rf$ by tap site: both recurrent states read
+zero in both arms, including the causally load-bearing $S_0$; only
+the post-nonlinearity pre-LM-head hidden exposes the recall, and only
+in the arm that can perform the task. The figure regenerates from the
+archived localization summary under an asserted checksum.}
+\label{fig:taploc}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Step (pre-registered order) & Outcome & Reading & Rules out \\
+\midrule
+entity-set reconstruction gate & pass & $107/107$ set-equal & wrong-partition analysis \\
+pool-membership precheck & pass & $0$ violations / 36 events & instrument bug (structural) \\
+reproduction-count floor & pass & $12\times$ the minimum & fluke event \\
+live/offline agreement & pass & $0$ disagreements & instrument bug (numerical) \\
+iteration sweep & resolves & $4{,}313$ @ $\niter{=}24$; $295$ @ $\niter{=}28$ & structural wall \\
+\bottomrule
+\end{tabular}
+\caption{Case I, the repro instrument's decision-rule walk on the real
+cell ($K{=}84$): each step ran in its pre-registered precedence order,
+and the terminal verdict (tolerance miscalibration) was reachable only
+after every instrument-bug branch failed to fire. All 4{,}608 flagged
+episodes resolve by $\niter=28$; none remained at larger budgets.
+Evidence row I3.}
+\label{tab:walk}
+\end{table}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{contender} & \multicolumn{2}{c}{ablation} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+tap site & $\rf$ & gap & $\rf$ & gap \\
+\midrule
+(i) $S_1$, shallow query (deployed) & $0.0$ & $+0.060$ & $0.0$ & $+0.005$ \\
+(ii) $S_0$, bind pathway & $0.0$ & $+0.006$ & $0.0$ & $+0.002$ \\
+(iii) $S_1$, true query pathway & $0.0$ & $+0.063$ & $0.0$ & $+0.005$ \\
+(iv) pre-LM-head hidden & $\mathbf{0.674}$ & $\mathbf{+0.800}$ & $0.0$ & $+0.006$ \\
+\bottomrule
+\end{tabular}
+\caption{Case II, ridge-probe recovery by tap site; ``gap'' is each
+fit's cosine-mean margin over its own shuffled-tap control. No
+state-level linear tap recovers anything in either arm, including (ii)
+on the causally load-bearing state; the post-nonlinearity tap (iv)
+recovers strongly and only in the arm that performs the task. Evidence
+row W4.}
+\label{tab:taps}
+\end{table}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+group & ceiling (X) & far (X) & bar & clears & baseline far (X) & separates \\
+\midrule
+S3 & $0.920$ & $0.900$ & $0.828$ & yes & $0.150$ & no \\
+S4 & $1.000$ & $1.000$ & $0.900$ & yes & $0.000$ & yes \\
+A5 & $0.490$ & $0.390$ & $0.441$ & no & $0.000$ & no \\
+S5 (decisive) & $0.817$ & $0.483$ & $0.735$ & no & $0.000$ & no \\
+A6 (decisive) & $0.190$ & $0.000$ & $0.171$ & no & $0.000$ & no \\
+\bottomrule
+\end{tabular}
+\caption{Case III, the re-metric: the pre-registered endpoint computed
+under the crosscheck lens (X) per group, by the unmodified verdict
+machinery on shadow cells; ``far'' is depth 64 and ``bar'' is $90\%$
+of each group's own ceiling. The endpoint remains \textsc{falsify}
+(neither decisive group separates), but the failure geometry is now
+readable: A6 never converges at its decisive configuration under
+either lens, and S5 misses its bar lens-independently (one seed
+generalizes at $0.00$; its two siblings reach only $80\%$ and $65\%$
+of their own ceilings, both below the $90\%$ bar). Separation
+requires the contender to clear its bar \emph{and} the Arm-2 baseline
+to collapse below $50\%$ of its own ceiling; S3 clears its bar but
+its baseline does not collapse ($0.15>0.125$), hence no separation.
+Evidence row X5.}
+\label{tab:remetric}
+\end{table}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+converged control checkpoint & real & shuffled & falsifier ($\geq0.5$) fires \\
+\midrule
+A6, $n_h{=}4$, seed 0 & $1.000$ (bit-identical) & $0.000$ & no \\
+S5, $n_h{=}4$, seed 0 & $0.800$ (bit-identical) & $0.000$ & no \\
+S4, $n_h{=}2$, seed 2 & $1.000$ (bit-identical) & $0.050$ & no \\
+\bottomrule
+\end{tabular}
+\caption{Case III, the tiebreak's own pre-registered falsifier: on
+three converged checkpoints, the crosscheck re-scored with targets
+shuffled across the item pool reads far below the $0.5$ void
+threshold, while the unshuffled reads reproduce the committed values
+exactly (``bit-identical''). Had any shuffled read cleared $0.5$, the
+tiebreak was pre-registered to be wrong and the adjudication void.
+Evidence row X4.}
+\label{tab:teeth}
+\end{table}
+
+
+\end{document}
