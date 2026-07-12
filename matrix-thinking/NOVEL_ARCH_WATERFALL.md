@@ -4614,3 +4614,148 @@ JSONs + 20 axis_c_lock JSONs + `SUMMARY.md` + md5 manifest, repo tier;
 SSD mirror at
 `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-12_ncr_nextlever_wave/`
 if mounted).
+
+### §11.4a Q3 MECHANISM ANALYSIS — why d=2K kills far-depth/trainability while d=K+1 works (2026-07-12, CPU-only, zero GPU): recomputed from z_dump.Z/z_ideal per `NCR_MAPPING_LAW_DESIGN.md` (d90abff) §Q3; independent opus audit CLEAN with bit-for-bit numerical replication; numbers-only record, observational language throughout (n=4/K,d, no significance test computed or implied)
+
+**Provenance.** Design: `matrix-thinking/NCR_MAPPING_LAW_DESIGN.md`
+(d90abff), §Q3 (its own H1/H2/H3, and its "Data-provenance correction"
+establishing that `deep_probe` does NOT carry `normB`/`normC`/`normD` on
+disk — everything here is recomputed from `z_dump.Z`/`z_dump.z_ideal`).
+Script: `matrix-thinking/ncr/analyze_dratio_blocks.py` (the design's own
+proposed name), calling `ncr_spectral.analyze_zdump_arrays` (verbatim,
+audited elsewhere in this program) plus a local recompute of
+`Pi = U.T @ z_ideal @ U` (same `U` `analyze_zdump_arrays` uses
+internally, via `analyze_zdump.entity_subspace`) for `normA_ref =
+|c*|·‖Pi‖_F`, the design's own H1 denominator convention. Data: the
+exact 16-cell set the design names, no more, no less — K16@d17 (K+1) x4
+seeds and K24@d25 (K+1) x4 seeds from
+`experiment-runs/2026-07-12_ncr_nextlever_wave/dratio/` (the same cells
+as §11.4 Table 2, above); K16@d32 (2K) x4 seeds and K24@d48 (2K) x4
+seeds from `experiment-runs/2026-07-11_ncr_earlyln_scale/` (§11.2's own
+main cells). **Cross-verify: 0 mismatches / 256 element-wise
+comparisons** (16 cells × 4 fields [`c_star`, `phase_resid_max`,
+`scale_corrected_residual`, `A_eff_rank`] × 4 examples, tol 1e-6) against
+each cell's own recorded `deep_probe` scalars — exact reproduction on
+every cell, not just the one spot-check the design round's own attack
+pass ran.
+
+**Table — leakage magnitude/shape by (K,d), per-seed-mean (n=4
+independent trained seeds; each seed's own 4 eval examples are pooled
+first — they share trained weights, confirmed numerically non-identical
+but NOT independent draws, so n=4 not n=16 is the honest unit):**
+
+| K | d | ratio | s=(d−K)/d | leak_ratio | D_share_of_leak | normB | normC | normD | D_cond# | D_eff_rank | phase_resid_max |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 16 | 17 | K+1 | 0.059 | 0.254 ±0.000 | 0.985 | 0.015 | 0.019 | 2.172 | 1.00 | 1.00 | 0.0037 |
+| 16 | 32 | 2K  | 0.500 | 1.797 ±0.214 | 0.551 | 2.580 | 1.248 | 5.121 | 24.5 | 14.30 | 0.1040 |
+| 24 | 25 | K+1 | 0.040 | 0.215 ±0.005 | 0.929 | 0.104 | 0.096 | 2.062 | 1.00 | 1.00 | 0.0129 |
+| 24 | 48 | 2K  | 0.500 | 3.023 ±0.287 | 0.270 | 7.027 | 3.449 | 3.847 | 354.7 | 17.29 | 0.6589 |
+
+`D_cond#`/`D_eff_rank` are structurally degenerate at both K+1 rows
+(`D` is genuinely `(d−K)×(d−K)` = 1×1 there — condition number and
+effective rank of any 1×1 matrix are mechanically 1.0, not evidence of a
+"flat spectrum" by itself; flagged, not overclaimed). `D` is 16×16
+(K=16@2K) / 24×24 (K=24@2K) at the 2K rows, where these numbers are
+genuinely informative.
+
+**H1 (over-parameterized write space → diffuse operators): DISCRIMINATED
+FOR, both K.** `leak_ratio` is **7.1×** larger at d=2K than d=K+1 at
+K=16 (1.797 vs 0.254) and **14.1×** larger at K=24 (3.023 vs 0.215) —
+same sign, same direction, both K's, matching the design's prediction.
+Cannot speak to the "grows with spare fraction s" sub-claim beyond two
+s-points per K (K+1's s≈0.04–0.06 vs 2K's fixed s=0.5) — the s-sweep
+(d ∈ {1.25K, 1.5K}) that would establish a monotonic-in-s trend is
+`NCR_MAPPING_LAW_DESIGN.md`'s own Q1 (WAVE-1), not yet run (see
+Coverage below).
+
+**H2 (eye-padding vs diffuse corruption): DISCRIMINATED — favors
+"leakage becomes more diffuse/corrupting at 2K", with an instrument
+caveat on the shape metrics.** At d=K+1, `D` captures nearly all the
+(small) leak (`D_share` 0.93–0.98) while cross-terms `normB`/`normC`
+stay tiny in absolute terms (0.02–0.10) — consistent with the lone
+spare dimension behaving as a near-self-contained mode. At d=2K the
+picture shifts materially: at K=24, `normB+normC = 10.48` **exceeds**
+`normD = 3.85` (`D_share` drops to 0.27 — most of the now-14×-larger
+leak has moved OUT of the complement-only block and INTO the
+entity↔complement cross-terms, i.e. signal that actually touches the
+K-dim entity subspace the readout depends on); K=16 is more balanced
+(`D_share` 0.55). `D`'s own condition number also jumps from the
+K+1 side's mechanically-forced 1.0 to 24.5 (K16@2K) and 354.7
+(K24@2K, seed-std 274 — highly variable) — a genuinely peaked, non-flat
+spectrum, the opposite of a near-isometry "eye-padding" signature.
+Caveat: because the K+1-side `D_cond#`/`D_eff_rank` are structurally
+degenerate (1×1), the SHAPE contrast (flat vs peaked) is only
+meaningfully read in absolute terms at d=2K, not as a K+1-vs-2K
+comparison; the MAGNITUDE contrast (`D_share`, `normB+normC` growing to
+rival/exceed `normD`) is not degenerate and is the load-bearing H2
+evidence here.
+
+**H3 (LN-anneal/dimension interaction): DOES NOT DISCRIMINATE via
+`loss_history` — inconclusive, exactly the design's own pre-registered
+low-confidence flag.** `loss_std_anneal` per-seed mean during the anneal
+window (step ≤ `anneal_frac`·total_steps; `anneal_frac`=0.5 recorded on
+the 2026-07-12-vintage cells, assumed-and-independently-verified 0.5 on
+the 2026-07-11-vintage cells, which predate the `anneal_frac` field but
+whose archived script snapshot hardcodes a first-half anneal): K16 K+1
+0.137 vs K16 2K 0.182 (2K somewhat noisier); K24 K+1 0.179 vs K24 2K
+0.176 (essentially identical, direction flips). No consistent
+d-correlated pattern across both K's in this coarse loss-channel
+statistic. Per the design's own disclosed precedent (§11.4's own §1.8
+post-anneal watch-item, above: a geometrically-measured write-residual
+regression with **no** visible loss-curve signature, already observed
+once in this exact program), this null is **not** informative against
+the LN-dimension mechanism — only a clean positive would have been (the
+design's own pre-registered asymmetry). H3 remains untested at the
+mechanism level; a definitive test needs the disclosed out-of-scope
+build flag (disable the LN blend at fixed d=2K), not run here.
+
+**Single most mechanistically informative number:** K=24's `D_share`
+flip, 0.929 (K+1) → 0.270 (2K) — at K+1, 93% of a small leak sits
+harmlessly in the one spare dimension; at 2K, 73% of a leak that is
+ALSO 14× larger has moved into the cross-terms that touch the entity
+subspace directly. This is the sharpest available discriminator between
+"d=2K is merely wasteful" and "d=2K is actively corrupting", and offers
+a candidate mechanistic explanation for why far-depth composition
+specifically breaks at 2K (§11.2/§11.3/§11.4: `rec@h*` reads
+0.0000–0.0001 in every d=2K cell run to date) — read query the K
+subspace and its content is contaminated via C/B, not just diluted.
+
+**Coverage.** All three hypotheses' data needs were fully met by the
+archived 16-cell set the design names — no cell class was missing, no
+substitute data was improvised. No K=32/K=48 NCR z-dumps exist yet
+anywhere (repo, or box `~/ncr/results_earlyln_dratio/`, read-only
+checked this session) — `NCR_MAPPING_LAW_DESIGN.md`'s own WAVE-1/
+WAVE-1b (Q1) have not launched — so this analysis is scoped to K ∈
+{16,24} only, exactly the design's own 16-cell list; it does not speak
+to whether the H1/H2 pattern holds at higher K.
+
+**n discipline.** n=4 independent trained seeds per (K,d) cell is the
+honest unit throughout; every ratio/mean above is a per-seed-mean
+statistic. No significance test is computed or implied anywhere in this
+record. The H1/H2 effect size (7–14×) is large relative to observed
+seed-to-seed std, but this is descriptive, not a formal significance
+claim at n=4.
+
+**Audit.** Independent opus auditor (fresh context, box-independent, this
+session): read the script plus both imported modules
+(`ncr_spectral.analyze_zdump_arrays`, `analyze_zdump.entity_subspace`/
+`block_decompose`/`effective_rank`/`stable_rank`) and raw cell JSONs
+directly; ran the script itself; independently re-derived every
+load-bearing number via a from-scratch reimplementation sharing no code
+with the script beyond numpy, confirming bit-for-bit agreement; verified
+the K/d shape-guard asserts have teeth (fed a deliberately wrong K/d,
+got `AssertionError`); verified determinism (two independent runs,
+byte-identical output, same md5 `2870ccb1...`); verified the
+`anneal_frac=0.5` assumption for the pre-Probe-B cells against the
+archived old script snapshot directly (not just the new script's
+comment). **Verdict: CLEAN.** Two cosmetic nits (a dead-code line, a
+mismatched stdout comparison-count phrasing) fixed post-audit; neither
+touched any reported number — the post-fix re-run reproduced the
+identical md5.
+
+**Archive.** `experiment-runs/2026-07-12_ncr_q3_mechanism/` (script +
+`q3_mechanism_results.json` + stdout log + md5 manifest, repo tier; SSD
+mirror at
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-12_ncr_q3_mechanism/`
+if mounted). Script also lives at
+`matrix-thinking/ncr/analyze_dratio_blocks.py`.

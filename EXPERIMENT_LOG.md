@@ -8539,3 +8539,82 @@ collision, + `SUMMARY.md` + `md5_manifest.txt`; SSD mirror verified
 identical). Pointers: `matrix-thinking/NCR_NEXT_LEVER_DESIGN.md`,
 `matrix-thinking/ncr/ncr_earlyln_scale.py`, `NOVEL_ARCH_WATERFALL.md`
 §11.4.
+
+## 2026-07-12 — NCR Q3 MECHANISM ANALYSIS (`NOVEL_ARCH_WATERFALL.md` §11.4a): **CPU-only, zero GPU — why d=2K kills far-depth/trainability while d=K+1 works. H1 (leakage magnitude) DISCRIMINATED FOR at both K (leak_ratio 7.1x/14.1x larger at 2K); H2 (leakage shape) DISCRIMINATED — cross-terms rival/exceed the complement block at 2K; H3 (LN-anneal loss signature) INCONCLUSIVE, no d-correlated pattern. Independent opus audit: CLEAN, bit-for-bit replication.**
+
+Pre-registered design `matrix-thinking/NCR_MAPPING_LAW_DESIGN.md`
+(d90abff), §Q3, executed exactly as pre-registered: recompute from
+`z_dump.Z`/`z_dump.z_ideal` (the design's own corrected data-provenance
+basis — `deep_probe` does NOT carry `normB`/`normC`/`normD` on disk;
+an earlier draft's claim to the contrary was already caught by the
+design's own attack round). Script: `matrix-thinking/ncr/
+analyze_dratio_blocks.py` (the design's own proposed name), calling
+`ncr_spectral.analyze_zdump_arrays` (verbatim) plus a local recompute
+of `normA_ref = |c*|·‖Pi‖_F` (H1's own denominator). Data: the exact
+16-cell set the design names — K16@d17 (K+1) x4, K16@d32 (2K) x4,
+K24@d25 (K+1) x4, K24@d48 (2K) x4 — no substitutes, no cells added.
+**Cross-verify: 0 mismatches / 256 element-wise comparisons** against
+each cell's own recorded `deep_probe` scalars (all 16 cells, not just
+one spot-check).
+
+**H1 (over-parameterized write space → diffuse operators):
+DISCRIMINATED FOR, both K.** Normalized leakage `(normB+normC+normD)/
+normA` is **7.1×** larger at d=2K than d=K+1 at K=16 (1.797 vs 0.254)
+and **14.1×** larger at K=24 (3.023 vs 0.215) — same sign both K's,
+matching the design's prediction. Cannot speak to the "grows with
+spare fraction s" sub-claim beyond two s-points per K (the s-sweep is
+`NCR_MAPPING_LAW_DESIGN.md`'s own untouched Q1/WAVE-1).
+
+**H2 (eye-padding vs diffuse corruption): DISCRIMINATED**, favoring
+"leakage becomes more diffuse/corrupting at 2K" — at K=25→K+1, D
+captures 93-98% of a small leak (cross-terms normB/normC tiny, 0.02-
+0.10); at d=2K, normB+normC grows to RIVAL OR EXCEED normD (K24:
+10.48 vs 3.85 — D's share of the leak drops from 0.929 to 0.270), and
+D's own condition number jumps from a (structurally degenerate, 1x1)
+1.0 to 24.5 (K16) / 354.7±274 (K24, highly seed-variable) — genuinely
+peaked, not flat. The single most informative number: K24's D_share
+flip 0.929→0.270 — at K+1 the leak is small and self-contained; at 2K
+it's 14x bigger AND has moved into the cross-terms that touch the
+entity subspace the readout depends on.
+
+**H3 (LN-anneal/dimension interaction): does NOT discriminate** via
+`loss_history` during the anneal window — no consistent d-correlated
+pattern (K16: 2K somewhat noisier, 0.182 vs 0.137; K24: essentially
+identical, 0.176 vs 0.179, direction flipped). Per the design's own
+pre-registered asymmetry (a real in-house precedent, §11.4's §1.8,
+already showed a write-geometry regression can be loss-invisible),
+this null is NOT informative against the LN-dimension mechanism — only
+a clean positive would have been. H3 remains untested at the mechanism
+level; a definitive test needs a new build flag, out of scope here.
+
+**Coverage.** All three hypotheses' data needs fully met by the
+archived 16-cell set; no substitutes. No K=32/K=48 NCR z-dumps exist
+anywhere yet (repo or box `~/ncr/results_earlyln_dratio/`, read-only
+checked) — `NCR_MAPPING_LAW_DESIGN.md`'s own Q1 (WAVE-1/WAVE-1b) has
+not launched — so this analysis is scoped to K∈{16,24} only.
+
+**n discipline.** n=4 independent trained seeds per (K,d), the honest
+unit (each seed's 4 eval examples are correlated through shared
+weights, confirmed non-identical but not independent draws). No
+significance test computed or implied.
+
+**Audit.** Independent opus auditor (fresh context): read the script +
+both imported modules + raw JSONs directly, ran the script, and
+independently re-derived every reported number via a from-scratch
+reimplementation sharing no code beyond numpy — bit-for-bit agreement.
+Verified the K/d shape-guard asserts have teeth (fed wrong K/d, got
+`AssertionError`); verified determinism (2 runs, identical md5
+`2870ccb1...`); verified the `anneal_frac=0.5` assumption for the
+pre-Probe-B-vintage cells against the archived old script snapshot
+directly. **Verdict: CLEAN.** Two cosmetic-only nits fixed post-audit
+(dead-code line, a mismatched stdout comparison-count phrasing);
+neither changed a number — the post-fix re-run reproduced the same
+md5. Ledger: **0.00 GPU-h** (zero new GPU, exactly as designed).
+Archive: `experiment-runs/2026-07-12_ncr_q3_mechanism/` (repo tier:
+script + `q3_mechanism_results.json` + stdout log + md5 manifest; SSD
+mirror ATTEMPTED, not completed — `/Volumes/1TB_SSD/
+learned-representations/` was unresponsive to `ls`/`mkdir`, EINTR/hang,
+during this session despite `mount`/`df` showing it mounted; retry when
+responsive). Pointers: `matrix-thinking/NCR_MAPPING_LAW_DESIGN.md`
+§Q3, `matrix-thinking/ncr/analyze_dratio_blocks.py`,
+`NOVEL_ARCH_WATERFALL.md` §11.4a.
