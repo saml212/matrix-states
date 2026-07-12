@@ -941,6 +941,262 @@ def ncr_next_lever_probe_ab_jobs() -> list[dict]:
             + ncr_next_lever_probe_b24_jobs())
 
 
+# ---------------------------------------------------------------------------
+# NCR MAPPING-LAW WAVE, 2026-07-12d -- WAVE-1 ONLY (K=32 d(K) grid, K=48
+# rate-probe citation-cell, Q2 K24@d25 seed extension to n=12).
+# NCR_MAPPING_LAW_DESIGN.md (commit d90abff) S1.2/S1.4/S1.5/S1.6/S2.1/S5 is
+# the pre-registration; matrix-thinking/queue/regate_2026-07-12.md S8 for
+# this build round's own record. WAVE-1b (K=48's own d(K) grid; the design's
+# own S5 proposes IDs 513-524 for it, RESERVED, NOT generated here) is
+# DELIBERATELY NOT built by this round -- it auto-fires only after (a)
+# K=32's own S1.6 verdict is recorded as not CLOSED-AT-THIS-K, and (b) the
+# K=48 rate probe's budget-fit check clears (per this build's own finding
+# below, it does NOT clear as measured -- disclosed, not resolved by this
+# build). The 108-111 (parked_k24plus, K=48 2K-reference) unpark stays
+# gated identically; not moved by this round.
+#
+# Job-ID BAND, deliberately DIFFERENT from the design's own S5-proposed
+# 500-536: the design chose 500-536 purely for COLLISION avoidance ("new
+# band... verified collision-free against the live box"; S5's own text
+# gives no priority rationale). This build's own dispatch separately
+# requires deploy priority "at the FRONT (below current lowest pending)" --
+# the live box's lowest currently-pending prefix at deploy time was 215
+# (215-451 pending: ~356 GPU-h of already-queued Lane-B seed-extension
+# work, ~44.5 GPU-h wall-clock across 8 GPUs). Since this queue's ONLY
+# priority mechanism IS the filename/id numeric prefix (ascending =
+# claimed first, generate_jobs.py's own docstring; QUEUE_README.md
+# "filename = priority order"), landing at 500-536 would place WAVE-1
+# BEHIND that entire Lane-B backlog, not "at the front" -- the opposite of
+# what was asked. Mirrors this exact program's own precedent
+# (lane_a_budget2x_probe_jobs, IDs 050-057: "front of pending, priority
+# below the current lowest remaining Lane-A pending prefix at the time",
+# regate_2026-07-12.md S2). Band 008-028 (21 jobs) is independently
+# verified collision-free across pending/claimed/completed/failed/
+# parked_k24plus on the live box this build round (used: 000-007, 050-057,
+# 060-063, 066-081 [064-065 correctly excluded -- reserved by
+# NCR_NEXT_LEVER_DESIGN.md's own conditional 8x recon], 100-127, 200-214;
+# 008-049 is the largest genuinely free gap below the 215 front). The
+# design's own S5 job-ID citations (500/501-512/513-524/525-532/533-536)
+# remain valid as SEMANTIC labels for cross-referencing this design
+# document's own tables; they are not the on-box filenames this build
+# deploys. A future WAVE-1b build round should make its own front-of-queue
+# ID choice at ITS OWN deploy time, not assume 513-524 is still the front.
+# ---------------------------------------------------------------------------
+DRATIO125_OUTDIR = f"{NCR_DIR}/results_earlyln_dratio125"   # Q1 K32 1.25K arm --
+        # NEW, separate from DRATIO_OUTDIR/results_earlyln_scale/: within one
+        # outdir the skip-if-COMPLETED check keys on (K,seed) only, so a
+        # SECOND non-default d at the same (K,seed) in an outdir already
+        # holding a different d's COMPLETED record would silently return the
+        # WRONG-d record unrun (NCR_MAPPING_LAW_DESIGN.md S1.2's own outdir-
+        # collision discipline, identical reasoning to DRATIO_OUTDIR itself).
+DRATIO150_OUTDIR = f"{NCR_DIR}/results_earlyln_dratio150"   # Q1 K32 1.5K arm -- same reasoning.
+
+
+def ncr_mapping_law_k48_probe_citation_job() -> list[dict]:
+    """S1.4's mandatory K=48 rate probe (K=48, seed 0, d=96 mapping default,
+    --steps 500). NOT a fresh measurement -- an IDENTICAL cell (same K, seed,
+    steps, outdir, hence same on-disk filename earlyln_K48_s0.json) already
+    ran to completion under job 002_laneA_probe_K48_s0 (lane_a_jobs()'s own
+    000-block, predating this wave -- the design's own S0 evidence table did
+    not cross-check this). Verified this build round by reading the real
+    completed record on box: status=COMPLETED, train.step=500,
+    gpu_h=0.014541613790724012, train.elapsed_s=10.9191 (the top-level
+    elapsed_s is 52.35s -- the full cell including post-train eval/deep-probe
+    overhead; train.elapsed_s is the sub-field measuring training alone). Per
+    run_earlyln_cell's own skip-if-COMPLETED resume check (keyed on (K,seed)
+    only, ncr_earlyln_scale.py:238-245), deploying this job with this
+    BYTE-IDENTICAL cmd is safe and idempotent: it returns the SAME existing
+    record instantly (zero incremental GPU-h), giving this wave its own
+    canonical completed/ record for the design's own semantic label (S5:
+    '500: K48 rate probe... generate + deploy now' -- deployed here at ID
+    008, a different front-of-queue band; see the module comment above)
+    rather than silently citing an untracked-by-this-wave job number.
+
+    S1.4's re-derivation trigger, applied to the REAL measured number (not
+    formula-extrapolated): naive x160 step-scale = 0.014541613790724012 *
+    160 = 2.3267 GPU-h vs the design's own 0.55 GPU-h planning value ->
+    ratio 4.23, far above the 1.25 disagreement bar -- THE TRIGGER FIRES.
+    Exactly the failure mode S1.4's own prose predicted (fixed post-train
+    eval/deep-probe overhead -- here ~41s against only 10.9s of actual
+    500-step training -- dominates a 500-step cell's wall-clock and inverts
+    at 80,000 steps, so the naive linear scale-up overstates true K=48
+    main-cell cost). Disclosed here, NOT resolved: per S1.4, WAVE-1b's K=48
+    arms' --ceiling-gpuh and total GPU-h MUST be re-derived from a real
+    80K-equivalent K=48 rate before any K=48 main cell (WAVE-1b's new-build
+    513-524 or the unparked 108-111 2K-reference) launches -- a hard
+    pre-condition on WAVE-1b's own future build/deploy, unrelated to
+    WAVE-1's own K=32 cells (no WAVE-1 cell is a K=48 main cell)."""
+    jid = "008_laneA_mappinglaw_probe_K48_s0"
+    cmd = (
+        f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K 48 --seed 0 "
+        f"--steps {STEPS_PROBE} --outdir {EARLYLN_PROBE_OUTDIR} "
+        f"--ceiling-gpuh 0.5"
+    )
+    vcheck = (
+        f"{PY} -c \""
+        f"import json; d=json.load(open('{EARLYLN_PROBE_OUTDIR}/earlyln_K48_s0.json')); "
+        f"assert d.get('status')=='COMPLETED'; "
+        f"assert d.get('train',{{}}).get('step')=={STEPS_PROBE}; "
+        f"assert 'eval' in d and 'deep_probe' in d\""
+    )
+    return [dict(
+        id=jid, lane="A",
+        hypothesis=("S1.4's mandatory pre-K48-main-cell rate probe (K=48, d=96 mapping "
+                    "default, 500 steps) -- de-risks WAVE-1b's K=48 planning rate BEFORE "
+                    "any 80,000-step K=48 main cell commits budget, mirroring S9.9's own "
+                    "Phase-0a discipline. An identical cell already completed as job "
+                    "002_laneA_probe_K48_s0 -- this job's own cmd is byte-identical and "
+                    "resolves via the script's own skip-if-COMPLETED path (verified this "
+                    "build round: real gpu_h=0.014541613790724012 at 500 steps), not a "
+                    "fresh measurement. Not itself a trainability readout."),
+        cmd=cmd, gpu_h_estimate=0.0145,
+        output_dir=EARLYLN_PROBE_OUTDIR, validity_check=vcheck,
+        notes=("MEASURED, not estimated -- cites the pre-existing completed record "
+               "(002_laneA_probe_K48_s0), byte-identical cmd, expected to skip-if-"
+               "COMPLETED at zero incremental GPU-h. Re-derivation trigger FIRES "
+               "(naive x160 scale 2.3267 GPU-h vs 0.55 planning value, ratio 4.23 > "
+               "1.25) -- flagged for the WAVE-1b gate, not resolved by WAVE-1."),
+    )]
+
+
+def ncr_mapping_law_k32_grid_jobs() -> list[dict]:
+    """Q1 WAVE-1 -- K=32 d(K) grid (d=33 K+1, d=40 1.25K, d=48 1.5K), n=4
+    seeds each, 1x/80K steps. NCR_MAPPING_LAW_DESIGN.md S1.2/S1.4/S1.5. The
+    d=64 (2K) reference arm is NOT built -- ALREADY MEASURED (S0, mean
+    gpu_h/cell 0.4795, mean delta 0.803-1.05, 0/4 DEAD) -- cited, not
+    relaunched, exactly the design's own S1.2 ledger treatment (0 cells,
+    'reused'). ID band 009-020, not the design's own S5 semantic label
+    (501-512) -- see the module comment above this section."""
+    jobs = []
+    seq = 9
+    ceiling = 1.0   # S1.5: 2.0x planning rate, floor 1.0 GPU-h -- every K32
+                     # arm's planning rate below is <0.5, so the floor binds
+                     # for all three (2x0.443=0.886, 2x0.46=0.92, 2x0.47=0.94,
+                     # all < 1.0).
+    specs = [
+        (33, "K+1", 0.443, DRATIO_OUTDIR),
+        (40, "1.25K", 0.46, DRATIO125_OUTDIR),
+        (48, "1.5K", 0.47, DRATIO150_OUTDIR),
+    ]
+    for d_ov, ratio_label, per_cell, outdir in specs:
+        if outdir == DRATIO_OUTDIR:
+            outdir_note = ("shared with the existing K16/K24 d=K+1 Probe-A records -- "
+                            "zero-collision, K32 is a new (K,seed) key there")
+        else:
+            outdir_note = (f"NEW ({outdir}), required: within-outdir skip-if-COMPLETED "
+                            "keys on (K,seed) only, not d, so a second non-default d at "
+                            "this (K,seed) in an already-occupied outdir would silently "
+                            "return the wrong-d record unrun")
+        for seed in (0, 1, 2, 3):
+            jid = f"{seq:03d}_laneA_mappinglaw_K32_d{d_ov}_s{seed}"
+            cmd = (
+                f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K 32 --seed {seed} "
+                f"--steps {STEPS_MAIN} --outdir {outdir} --d-override {d_ov} "
+                f"--ceiling-gpuh {ceiling} --stop-file {outdir}/STOP"
+            )
+            vcheck = (
+                f"{PY} -c \""
+                f"import json; d=json.load(open('{outdir}/earlyln_K32_s{seed}.json')); "
+                f"assert d.get('status')=='COMPLETED'; "
+                f"assert d.get('train',{{}}).get('step')=={STEPS_MAIN}; "
+                f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True; "
+                f"assert d.get('d')=={d_ov}\""
+            )
+            jobs.append(dict(
+                id=jid, lane="A",
+                hypothesis=(
+                    f"Q1 WAVE-1 (K=32@d={d_ov}, ratio {ratio_label}): does K=32 converge/"
+                    f"compose at this spare-convention, extending Probe A's own K=16/K=24 "
+                    f"tight-spare win one K rung further, against K=32's own ALREADY-"
+                    f"MEASURED d=2K=64 reference (0/4 DEAD, mean delta 0.803-1.05)? Feeds "
+                    f"S1.6's REOPENS/CONVERGES-ONLY/CLOSED-AT-THIS-K verdict map and the "
+                    f"mechanical optimal-d(K) ranking (NCR_MAPPING_LAW_DESIGN.md S1.2/S1.6)."
+                ),
+                cmd=cmd, gpu_h_estimate=per_cell,
+                output_dir=outdir, validity_check=vcheck,
+                notes=(
+                    f"Planning-rate cost basis (S1.4, measured-basis interpolation from "
+                    f"K32's own real d=2K=64 rate 0.4795 GPU-h/cell, S0): d=K+1 priced ~7.6% "
+                    f"below the 2K anchor (the twice-replicated K16/K24 discount), 1.25K/1.5K "
+                    f"priced at the anchor rate (conservative, disclosed interpolation not a "
+                    f"measurement). Ceiling {ceiling} GPU-h/cell (S1.5: 2.0x planning rate, "
+                    f"floor 1.0 -- floor binds for every K32 arm). Outdir {outdir_note}. "
+                    f"Validity check additionally asserts the record's own 'd' field equals "
+                    f"the override ({d_ov}), per S5's own pinned validity-check addendum."
+                ),
+            ))
+            seq += 1
+    return jobs
+
+
+def ncr_mapping_law_q2_seedext_jobs() -> list[dict]:
+    """Q2 WAVE-1 primary -- K=24@d=25 seed extension n=4->n=12 (8 NEW seeds,
+    {4..11}), SAME cell/outdir/budget as the already-CONFIRMED Probe-A
+    K24@d25 cohort (seeds 0-3). NCR_MAPPING_LAW_DESIGN.md S2.1/S5. Zero new
+    confound: identical K, d, steps, anneal to the existing 4/4 CONVERGED
+    cohort -- purely a seed-count deepening for the far-depth
+    seed-variance/covariate (Spearman rho(delta, front)) read. ID band
+    021-028, not the design's own S5 semantic label (525-532) -- see the
+    module comment above this section."""
+    jobs = []
+    seq = 21
+    ceiling = 1.0      # S2.1's own pinned breaker, matches the existing
+                        # Probe-A K24 cells' own ceiling exactly.
+    per_cell = 0.468    # K24@d25's own measured rate (S0 table, 0.4680)
+    d_ov = 25
+    for seed in range(4, 12):
+        jid = f"{seq:03d}_laneA_mappinglaw_Q2_K24_d25_s{seed}"
+        cmd = (
+            f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K 24 --seed {seed} "
+            f"--steps {STEPS_MAIN} --outdir {DRATIO_OUTDIR} --d-override {d_ov} "
+            f"--ceiling-gpuh {ceiling} --stop-file {DRATIO_OUTDIR}/STOP"
+        )
+        vcheck = (
+            f"{PY} -c \""
+            f"import json; d=json.load(open('{DRATIO_OUTDIR}/earlyln_K24_s{seed}.json')); "
+            f"assert d.get('status')=='COMPLETED'; "
+            f"assert d.get('train',{{}}).get('step')=={STEPS_MAIN}; "
+            f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True; "
+            f"assert d.get('d')=={d_ov}\""
+        )
+        jobs.append(dict(
+            id=jid, lane="A",
+            hypothesis=(
+                "Q2 WAVE-1 primary (K=24@d=25 seed extension, n=4->n=12): is the far-depth "
+                "seed-variance already observed in the n=4 cohort (fronts {21,93,189,189}, "
+                "sweep_min_rec max 0.0511) genuinely bimodal/unreliable, or would more seeds "
+                "reveal a graded (Spearman rho(delta,front)) relationship -- n=4 cannot "
+                "structurally distinguish these (NCR_MAPPING_LAW_DESIGN.md S2.1). No new "
+                "confound vs the existing 4/4 CONVERGED cohort (identical K/d/steps/anneal)."
+            ),
+            cmd=cmd, gpu_h_estimate=per_cell,
+            output_dir=DRATIO_OUTDIR, validity_check=vcheck,
+            notes=(
+                "MEASURED cost basis (S0/S2.1: K24@d25's own real rate, 0.468 GPU-h/cell). "
+                "Ceiling 1.0 GPU-h/cell (S2.1's own pinned figure, matches the existing "
+                "Probe-A K24 cells' ceiling exactly). Shared outdir (results_earlyln_dratio/, "
+                "zero-collision: seeds 4-11 are new (K,seed) keys, the existing seeds 0-3 "
+                "records at this same K/d are untouched). Validity check additionally "
+                f"asserts the record's own 'd' field equals the override ({d_ov}), per S5's "
+                "own pinned validity-check addendum."
+            ),
+        ))
+        seq += 1
+    return jobs
+
+
+def ncr_mapping_law_wave1_jobs() -> list[dict]:
+    """WAVE-1 -- all NCR mapping-law cells committed unconditionally this
+    round (21 cells nominal: 1 K48-probe-citation + 12 K32-grid + 8
+    Q2-seedext, 9.2505 ~= 9.25 GPU-h, matches NCR_MAPPING_LAW_DESIGN.md
+    S1.5's own '9.246 ~= 9.25' ledger). WAVE-1b (K48's own d(K) grid, IDs
+    513-524) is DELIBERATELY NOT included -- see the module comment above
+    this section and NCR_MAPPING_LAW_DESIGN.md S1.2/S1.6/S5."""
+    return (ncr_mapping_law_k48_probe_citation_job()
+            + ncr_mapping_law_k32_grid_jobs()
+            + ncr_mapping_law_q2_seedext_jobs())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outdir", default=os.path.join(HERE, "jobs", "pending"))
@@ -949,7 +1205,7 @@ def main():
 
     all_jobs = (lane_a_jobs() + lane_b_jobs() + lane_c_jobs()
                 + regate_20260712_jobs() + ncr_next_lever_q1_jobs()
-                + ncr_next_lever_probe_ab_jobs())
+                + ncr_next_lever_probe_ab_jobs() + ncr_mapping_law_wave1_jobs())
 
     total_by_lane = {}
     for j in all_jobs:

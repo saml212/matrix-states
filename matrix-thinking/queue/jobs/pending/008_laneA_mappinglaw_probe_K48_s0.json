@@ -1,0 +1,10 @@
+{
+ "id": "008_laneA_mappinglaw_probe_K48_s0",
+ "lane": "A",
+ "hypothesis": "S1.4's mandatory pre-K48-main-cell rate probe (K=48, d=96 mapping default, 500 steps) -- de-risks WAVE-1b's K=48 planning rate BEFORE any 80,000-step K=48 main cell commits budget, mirroring S9.9's own Phase-0a discipline. An identical cell already completed as job 002_laneA_probe_K48_s0 -- this job's own cmd is byte-identical and resolves via the script's own skip-if-COMPLETED path (verified this build round: real gpu_h=0.014541613790724012 at 500 steps), not a fresh measurement. Not itself a trainability readout.",
+ "cmd": "cd /home/nvidia/ncr && /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell --K 48 --seed 0 --steps 500 --outdir /home/nvidia/ncr/results_earlyln_scale_probe --ceiling-gpuh 0.5",
+ "gpu_h_estimate": 0.0145,
+ "output_dir": "/home/nvidia/ncr/results_earlyln_scale_probe",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr/results_earlyln_scale_probe/earlyln_K48_s0.json')); assert d.get('status')=='COMPLETED'; assert d.get('train',{}).get('step')==500; assert 'eval' in d and 'deep_probe' in d\"",
+ "notes": "MEASURED, not estimated -- cites the pre-existing completed record (002_laneA_probe_K48_s0), byte-identical cmd, expected to skip-if-COMPLETED at zero incremental GPU-h. Re-derivation trigger FIRES (naive x160 scale 2.3267 GPU-h vs 0.55 planning value, ratio 4.23 > 1.25) -- flagged for the WAVE-1b gate, not resolved by WAVE-1."
+}
