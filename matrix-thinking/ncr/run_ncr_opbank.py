@@ -86,7 +86,8 @@ def stop_requested(stop_file: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def train_cell_bank(model, cfg: ot.BankConfig, device: str, steps: int, seed: int,
-                    stop_file: str, ceiling_s: float, log_every: int = 200) -> dict:
+                    stop_file: str, ceiling_s: float, log_every: int = 200,
+                    train_batch: int = TRAIN_BATCH) -> dict:
     gen = torch.Generator(device=device).manual_seed(seed)
     opt = torch.optim.Adam(model.parameters(), lr=TRAIN_LR)
     model.train()
@@ -94,7 +95,7 @@ def train_cell_bank(model, cfg: ot.BankConfig, device: str, steps: int, seed: in
     loss_hist = []
     t0 = time.time()
     for step in range(1, steps + 1):
-        b = ot.sample_train_batch(cfg, TRAIN_BATCH, gen, device)
+        b = ot.sample_train_batch(cfg, train_batch, gen, device)
         for k in ("keys", "values", "rel_ids", "query_keys", "r1", "h1", "r2", "h2", "targets"):
             b[k] = b[k].to(device)
         pred, _ = model(b)
@@ -340,7 +341,8 @@ def eval_cell_bank_small(model, cfg: ot.BankConfig, device: str, seed: int,
 # ---------------------------------------------------------------------------
 
 def run_cell_bank(arm: str, seed: int, steps: int, device: str, outdir: str,
-                  stop_file: str = "", ceiling_gpuh: float = 2.0) -> dict:
+                  stop_file: str = "", ceiling_gpuh: float = 2.0,
+                  train_batch: int = TRAIN_BATCH) -> dict:
     os.makedirs(outdir, exist_ok=True)
     cid = cell_id(arm)
     out_path = os.path.join(outdir, f"{cid}.json")
@@ -354,13 +356,14 @@ def run_cell_bank(arm: str, seed: int, steps: int, device: str, outdir: str,
     torch.manual_seed(seed)
     model = om.ARM_BUILDERS[arm]().to(device)
     rec = dict(cell_id=cid, arm=arm, seed=seed, runner_tag=RUNNER_TAG,
-              git_commit=git_commit(), params=om.n_params(model),
+              git_commit=git_commit(), params=om.n_params(model), train_batch=train_batch,
               host=socket.gethostname(), device=device, torch_version=torch.__version__,
               started_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
     ceiling_s = ceiling_gpuh * 3600.0 if device == "cuda" else float("inf")
     t0 = time.time()
 
-    tr = train_cell_bank(model, cfg, device, steps, seed, stop_file, ceiling_s)
+    tr = train_cell_bank(model, cfg, device, steps, seed, stop_file, ceiling_s,
+                         train_batch=train_batch)
     rec["train"] = tr
     if tr["status"] != "COMPLETED":
         rec["status"] = tr["status"]
@@ -467,6 +470,10 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--steps", type=int, default=2000)
     ap.add_argument("--ceiling-gpuh", type=float, default=2.0)
+    ap.add_argument("--train-batch", type=int, default=TRAIN_BATCH,
+                    help="train batch size (default 48; the single-relation proven "
+                         "recipe is 256 -- §8.5's re-calibration uses 256 to match the "
+                         "20.5M-example budget the contender converged under there)")
     ap.add_argument("--outdir", type=str, default=os.path.join(_HERE, "results_opbank_phase0"))
     ap.add_argument("--stop-file", type=str, default="")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
@@ -476,7 +483,7 @@ def main():
         return
     if args.cell:
         rec = run_cell_bank(args.cell, args.seed, args.steps, args.device, args.outdir,
-                            args.stop_file, args.ceiling_gpuh)
+                            args.stop_file, args.ceiling_gpuh, train_batch=args.train_batch)
         print(f"CELL {args.cell} status={rec.get('status')}")
         return
     if args.phase0:
