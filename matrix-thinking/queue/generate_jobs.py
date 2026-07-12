@@ -1197,6 +1197,109 @@ def ncr_mapping_law_wave1_jobs() -> list[dict]:
             + ncr_mapping_law_q2_seedext_jobs())
 
 
+# ---------------------------------------------------------------------------
+# NCR MAPPING-LAW Q4, 2026-07-12e -- K=32/d=33 BUDGET-RESCUE DISSOCIATION
+# PROBE (2x/4x budget, n=4 seeds each, 8 cells). Pre-registration:
+# NCR_MAPPING_LAW_DESIGN.md (this file's own commit) S4 -- opened per S11.5's
+# own "Recommended next experiment"
+# (NOVEL_ARCH_WATERFALL.md:4987-4998): does extra budget rescue K=32/d=33
+# over the Gate-1 bar (S11.5: 3/4 PARTIAL, best seed 0.8711) the way it did
+# for K16/d=32 (S11.3/S11.4: 1/4->3/4->4/4 CONVERGED under 2x/4x), and if so
+# does far-depth composition come WITH that convergence (as tight-spare does
+# at K<=24) or NOT (as d=2K does at every K)? Reuses
+# NCR_NEXT_LEVER_DESIGN.md's own Q1 budget-probe recipe verbatim: SAME step
+# counts (STEPS_BUDGET2X/STEPS_BUDGET4X, already defined above, not
+# invented), SAME linear-in-steps cost-extrapolation method, SAME outdirs
+# (results_earlyln_budget2x/, results_earlyln_budget4x/ -- reused, not
+# freshly created; K=32 is a new (K,seed) key in both, verified empty of any
+# K32 record on the live box this round). Zero model/training-logic changes
+# (--d-override/--steps/--outdir/--ceiling-gpuh/--stop-file all pre-existing;
+# --anneal-frac deliberately NOT passed, stays at its implicit 0.5 default).
+# Pricing basis: MEASURED, not the stale S1.4 planning value (0.443) --
+# S11.5's own real K32@d=33 1x gpu_h fields, mean 0.5687847 GPU-h/cell
+# (individual seeds 0.5417-0.5942), linearly extrapolated to 2x/4x. Job IDs
+# 192-199: verified collision-free on the live box this round (used bands:
+# 000-007, 008-028, 050-057, 060-063, 066-081, 100-127, 200-236, 300-315,
+# 400-431, 450-451; 192-199 sits inside the 128-199 gap, the slice closest to
+# the true front at deploy time, box lowest-pending-prefix=222) -- a
+# deliberate deviation from any single fixed numbering convention, mirroring
+# every prior wave's own "front of pending, verified at deploy time, not
+# assumed" discipline (regate_2026-07-12.md S8.2).
+# ---------------------------------------------------------------------------
+STEPS_BUDGET2X_K32D33 = STEPS_BUDGET2X    # 160,000 -- reused constant, not reinvented
+STEPS_BUDGET4X_K32D33 = STEPS_BUDGET4X    # 320,000 -- reused constant, not reinvented
+
+
+def ncr_mapping_law_q4_k32_budget_jobs() -> list[dict]:
+    """Q4 -- K=32@d=33 budget-rescue dissociation probe, 2x + 4x budget, n=4
+    seeds each (8 cells). NCR_MAPPING_LAW_DESIGN.md S4 (this file). Cost
+    basis MEASURED (not extrapolated from a formula): S11.5's own real
+    K32@d=33 1x rate (mean 0.5687847 GPU-h/cell over 4 seeds
+    0.5941774/0.5656882/0.5737207/0.5415527, 80,000 steps), linearly
+    extrapolated to 2x/4x -- the SAME method Q1/budget2x used at K16 (no
+    K32 2x/4x data exists yet to check sub-/super-linearity directly; K16's
+    own precedent found the ladder mildly SUB-linear if anything at this
+    shape family, so linear extrapolation is a conservative planning basis,
+    not an optimistic one)."""
+    jobs = []
+    per_cell_1x = 0.5687847442097134   # S11.5's own measured mean, S4.7
+    specs = [
+        (2, STEPS_BUDGET2X_K32D33, per_cell_1x * 2.0, BUDGET2X_OUTDIR, 192),
+        (4, STEPS_BUDGET4X_K32D33, per_cell_1x * 4.0, BUDGET4X_OUTDIR, 196),
+    ]
+    for budget_mult, steps, per_cell_nominal, outdir, seq0 in specs:
+        ceiling = max(1.0, round(per_cell_1x * budget_mult * 2.0, 1))
+        seq = seq0
+        for seed in (0, 1, 2, 3):
+            jid = f"{seq:03d}_laneA_mappinglaw_Q4_K32budget{budget_mult}x_d33_s{seed}"
+            cmd = (
+                f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K 32 --seed {seed} "
+                f"--steps {steps} --outdir {outdir} --d-override 33 "
+                f"--ceiling-gpuh {ceiling} --stop-file {outdir}/STOP"
+            )
+            vcheck = (
+                f"{PY} -c \""
+                f"import json; d=json.load(open('{outdir}/earlyln_K32_s{seed}.json')); "
+                f"assert d.get('status')=='COMPLETED'; "
+                f"assert d.get('train',{{}}).get('step')=={steps}; "
+                f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True; "
+                f"assert d.get('d')==33\""
+            )
+            jobs.append(dict(
+                id=jid, lane="A",
+                hypothesis=(
+                    f"Q4 (K=32@d=33, {budget_mult}x budget = {steps} steps): does extra "
+                    f"budget push K=32/d=33's Gate-1 rate (S11.5: 3/4 PARTIAL at 1x, best "
+                    f"seed 0.8711) over the CONVERGED-ROBUST bar, as it did for K16/d=32 "
+                    f"(S11.3/S11.4: 1/4->3/4->4/4 CONVERGED under 2x/4x)? And if so, does "
+                    f"far-depth composition (failure front toward/past K=32's own h*=253) "
+                    f"come WITH that convergence (the tight-spare pattern at K<=24) or NOT "
+                    f"(the d=2K pattern at every K tested to date)? Feeds the 3-way "
+                    f"BUDGET-RESCUES-BOTH / BUDGET-RESCUES-CONVERGENCE-ONLY / "
+                    f"BUDGET-DOES-NOTHING verdict map (NCR_MAPPING_LAW_DESIGN.md S4.6); "
+                    f"only BUDGET-RESCUES-BOTH unblocks WAVE-1b."
+                ),
+                cmd=cmd, gpu_h_estimate=round(per_cell_nominal, 4),
+                output_dir=outdir, validity_check=vcheck,
+                notes=(
+                    f"MEASURED cost basis (S11.5's own real K32@d=33 1x rate, mean "
+                    f"0.5687847 GPU-h/cell, linearly extrapolated {budget_mult}x -- NOT "
+                    f"the stale S1.4 planning value 0.443, which under-measured the true "
+                    f"rate by 28%, NCR_MAPPING_LAW_DESIGN.md S4.7). Ceiling {ceiling} "
+                    f"GPU-h/cell (~=2.02x nominal, matching every prior wave's own "
+                    f"~2x-nominal breaker convention). Outdir ({outdir}) is an EXISTING, "
+                    f"REUSED outdir from the K16/K24 budget-probe waves (S11.3/S11.4) -- "
+                    f"verified empty of any K32 record on the live box this round; K=32 is "
+                    f"a new (K,seed) resume-key there, zero collision (skip-if-COMPLETED "
+                    f"keys on (K,seed) within the outdir, not on steps). Validity check "
+                    f"additionally asserts the record's own 'd' field equals 33, per this "
+                    f"program's own standing d-override validity-check addendum."
+                ),
+            ))
+            seq += 1
+    return jobs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outdir", default=os.path.join(HERE, "jobs", "pending"))
@@ -1205,7 +1308,8 @@ def main():
 
     all_jobs = (lane_a_jobs() + lane_b_jobs() + lane_c_jobs()
                 + regate_20260712_jobs() + ncr_next_lever_q1_jobs()
-                + ncr_next_lever_probe_ab_jobs() + ncr_mapping_law_wave1_jobs())
+                + ncr_next_lever_probe_ab_jobs() + ncr_mapping_law_wave1_jobs()
+                + ncr_mapping_law_q4_k32_budget_jobs())
 
     total_by_lane = {}
     for j in all_jobs:

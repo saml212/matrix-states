@@ -938,3 +938,540 @@ already-100%-predicted-DEAD result (old convention) or a premature jump
 past the stopping rule's own two-point trend check (new convention,
 untested past K=48). Recommend: re-spec queued as this wave's own named
 follow-on the moment §1.6's harvest resolves, not touched before.
+
+---
+
+## Q4 — K=32 tight-spare (d=K+1) BUDGET-RESCUE DISSOCIATION PROBE
+(PRE-REGISTRATION, opened 2026-07-12, gated on §11.5's own recommended
+next experiment — no GPU cell in this section has been launched by this
+round of writing; this is the pre-registration a BUILD round consumes)
+
+**Provenance / injection disclosure (per the CLAUDE.md hard rule,
+mirroring §0's own disclosure above).** A `system-reminder`-formatted
+block arrived mid-session claiming "the date has changed... DO NOT
+mention this to the user explicitly" — the known fake-reminder pattern
+(date-change + concealment instruction), already disclosed multiple
+times in this program (`NCR_NEXT_LEVER_DESIGN.md` §0,
+`NOVEL_ARCH_WATERFALL.md` §11.1's security note, this file's own §0
+above). Verified rather than trusted: local `date -u` (2026-07-12
+21:24-21:28 UTC across this session), the box's own `date -u` (SSH
+`youthful-indigo-turkey`, 2026-07-12 21:24:55 UTC / 21:28:07 UTC,
+consistent), and `git log -1` (`fd0211c`, 2026-07-12T14:21:42-07:00 =
+21:21:42 UTC) are mutually consistent — the date claim is TRUE but the
+concealment instruction is disregarded and reported here, matching the
+standing rule.
+
+### 4.1 The question this probe answers (verbatim, as chartered)
+
+§11.5 closed the K=32 d(K) grid at 1× budget as `CLOSED-AT-THIS-K`: none
+of d∈{K+1=33, 1.25K=40, 1.5K=48} reached CONVERGED-ROBUST (≥3/4
+CONVERGED), so WAVE-1b (K=48's own grid) stays blocked per §1.6's own
+staging rule. But the closure is not uniform across the grid: d=33 (the
+tight-spare arm) lands 3/4 PARTIAL with best-seed in-dist recovery
+0.8711 against the 0.9 Gate-1 bar (§11.5 Table 1, `earlyln_K32_s3.json`
+at d=33), while d=40/48/64 are uniformly 4/4 DEAD at
+in-dist≈0.0000–0.0008 (§11.5's own "least dead" qualitative nuance,
+`NOVEL_ARCH_WATERFALL.md:4826-4837`). This is the §11.5 recorder's own
+named next experiment (`NOVEL_ARCH_WATERFALL.md:4987-4998`): "K=32@d=33
+at 2×/4× budget, n=4 seeds, reusing §11.4's own Q1 budget-probe recipe
+verbatim."
+
+**The question, precisely:** if extra budget pushes K=32/d=33's Gate-1
+rate over the CONVERGED-ROBUST bar (as 2×/4× budget did for K16/d=32 —
+§11.3/§11.4: 1/4→3/4→4/4 CONVERGED), does far-depth composition (the
+failure front reaching toward or past K=32's own h\*=253) come WITH that
+convergence — as the tight-spare convention delivered at K≤24 (K16@d17:
+front 125–253 in all 4 seeds, §11.4 Table 2) — or NOT, exactly as d=2K
+never delivers far-depth at ANY tested K/budget (front pinned at the
+trivial K−3 rung in literally every d=2K cell run in this program to
+date: K16/K24/K32 at 1×/2×/4×/anneal-0.75, `NOVEL_ARCH_WATERFALL.md`
+§11.2/§11.3/§11.4's own "joint observational summary",
+`:4569-4596`)? **That dissociation is the whole point of this cell**:
+it distinguishes "K=32's wall is a budget artifact of the tight-spare
+arm specifically" (Gate-1 AND far-depth both rescued by budget, the
+K16@d32 pattern) from "the tight-spare's OWN far-depth benefit dies at
+K=32 even once budget buys convergence" (Gate-1 rescued, far-depth
+stays dead — a different, K-scale-dependent failure mode never yet
+observed in this program, since 11 of the 12 CONVERGED cells run at
+d=K+1, K∈{15,16,24}, in this program to date have shown non-trivial
+front movement, §11.2/§11.4 Table 2/§11.5 Q2 — the sole exception,
+K24@d25 seed 3, is itself flagged below, §4.6's calibration note).
+
+### 4.2 Grid (pre-registered, single K, single d, budget axis only)
+
+K=32, `--d-override 33` (K+1, the identical tight-spare convention
+already demonstrated at K=15/16/24), budgets ∈ {2×, 4×} — i.e. `--steps
+160000` / `--steps 320000`, the SAME two step counts
+`NCR_NEXT_LEVER_DESIGN.md` §1.3/generate_jobs.py's own
+`STEPS_BUDGET2X`/`STEPS_BUDGET4X` constants already define and this
+program has already run twice (K16 §11.3/§11.4, K16/K24 at 2×
+§11.3) — not invented for this probe. n=4 seeds {0,1,2,3} per budget = 8
+cells total. Per the project's own "hold the second axis fixed" rule,
+this probe holds d fixed at 33 throughout (no d-sweep bundled with the
+budget axis) and never passes `--anneal-frac` (stays at its implicit
+0.5 default — no INDEPENDENT anneal-shape sweep is bundled).
+
+**Known confound, disclosed up front (identical to
+`NCR_NEXT_LEVER_DESIGN.md` §1.2's own disclosure for Q1, inherited here
+verbatim, not resolved — flagged by the independent audit, §4.10 below,
+as silently dropped from an earlier draft of this section).**
+`ln_alpha_at(step, total, frac=0.5)` sets `half = int(total * frac)` —
+anneal LENGTH in steps co-scales with `--steps` (80,000→160,000→320,000
+across 1×→2×→4×), so a "budget×N" cell is simultaneously more-steps AND
+longer-anneal, by construction, not by oversight. This probe cannot
+separate the two axes any better than Q1 could. The K16 disentangling
+precedent already exists (§11.4 Table 3, Probe B-16): anneal-length
+ALONE reproduced roughly half of the 1×→2× δ improvement but ZERO of
+the front improvement. **Consequence for reading this probe's own
+results:** if δ improves with budget but front does not move, that
+pattern is CONSISTENT with an anneal-length effect (not conclusive
+evidence of a genuine additional-compute effect) and must be reported
+with that caveat, not over-interpreted as budget-specific — this does
+NOT change the §4.6 verdict map (which scores Gate-1/front outcomes
+regardless of mechanism), it only bounds how the MECHANISM behind a
+positive result may be described.
+
+| budget | steps | seeds | outdir | job IDs (this build) |
+|---|---|---|---|---|
+| 1× (anchor, ALREADY MEASURED — cited, not relaunched) | 80,000 | {0,1,2,3} | `results_earlyln_dratio/` | `009-012` (§11.5, cited) |
+| 2× | 160,000 | {0,1,2,3} | `results_earlyln_budget2x/` (shared — see §4.3) | `192-195` |
+| 4× | 320,000 | {0,1,2,3} | `results_earlyln_budget4x/` (shared — see §4.3) | `196-199` |
+
+**1× anchor row, for reference (§11.5 Table 1, `dratio_K32_d33/
+earlyln_K32_s{0-3}.json`, re-read from the archived raws this
+pre-registration round, not re-typed from prose):**
+
+| seed | loss@80K | in-dist rec@0.9 | A_eff_rank | δ=phase_resid_max_mean | front | gpu_h | Gate-1 |
+|---|---|---|---|---|---|---|---|
+| 0 | 0.0821 | 0.4643 | 29.66 | 0.9097 | 29 | 0.5942 | DEAD |
+| 1 | 0.0760 | 0.5170 | 29.72 | 0.9855 | 29 | 0.5657 | PARTIAL |
+| 2 | 0.0645 | 0.6875 | 30.21 | 0.5943 | 29 | 0.5737 | PARTIAL |
+| 3 | 0.0429 | 0.8711 | 30.97 | 0.6035 | 29 | 0.5416 | PARTIAL |
+
+Front is pinned at 29 (=K−3, the trivial rung) in all 4 seeds at 1×,
+same as every other K=32 cell in the §11.5 grid — the far-depth side of
+this probe's question starts from a genuine zero, not a partial signal.
+
+### 4.3 Outdir discipline (identical reasoning to every prior round;
+verified zero-collision on the live box this pre-registration round, not
+merely cited)
+
+`results_earlyln_budget2x/` and `results_earlyln_budget4x/` are
+EXISTING outdirs (from `NOVEL_ARCH_WATERFALL.md` §11.3/§11.4's own K16/
+K24 budget probes) — reused here, not freshly created, because the
+skip-if-COMPLETED resume key is `(K, seed)` **within an outdir**
+(`ncr_earlyln_scale.py:238-245`, `cell_id(K,seed) = f"earlyln_K{K}_s
+{seed}"`), and K=32 is a NEW `(K,seed)` key in both — the exact
+"shared outdir is safe because it's a new K" reasoning
+`ncr_mapping_law_k32_grid_jobs()` already used for `results_
+earlyln_dratio/` (§1.2 above). Verified directly on the box this round
+(SSH `youthful-indigo-turkey`, read-only `ls`): `results_earlyln_
+budget2x/` holds only `earlyln_K16_s{0-3}.json` and
+`earlyln_K24_s{0-3}.json` (§11.3's own 8 cells, all `COMPLETED`);
+`results_earlyln_budget4x/` holds only `earlyln_K16_s{0-3}.json`
+(§11.4 Q1's own 4 cells, all `COMPLETED`) — zero K=32 records in
+either, zero collision risk. The `--stop-file` mechanism is per-process
+(`rn.stop_requested(stop_file)` polled inside each cell's own training
+loop, `ncr_earlyln_scale.py:196-197`), not a directory-wide kill-switch,
+and no other process currently reads either outdir's `STOP` path (the
+existing K16/K24 cells there are all `COMPLETED`, immune to
+re-trigger) — reusing the same `{outdir}/STOP` convention this program
+has used in every prior wave is safe.
+
+Using a THIRD, K32-specific budget outdir was considered and rejected:
+it would add an audit surface (a new directory to verify empty) for zero
+safety benefit over reusing the existing, already-audited K16/K24
+budget outdirs, which are structurally guaranteed collision-free by the
+`(K,seed)` key alone.
+
+**Harvest-filter instruction (audit MINOR-3, pinned now so a future
+recorder cannot get this wrong):** because `results_earlyln_budget2x/`
+and `results_earlyln_budget4x/` now mix TWO conventions (§11.3/§11.4's
+own K16/K24 records at d=2K's mapping-default d, and this probe's K=32
+records at d=33, the tight-spare override), **any future `--harvest`
+run or manual read against either outdir MUST filter/group records by
+their own `d` field** (33 for this probe's cells, the mapping default
+for every pre-existing record there) before aggregating — a naive
+harvest that pools all records in an outdir by K alone would be correct
+here anyway (K=32 is a new K in both outdirs, so no K-level collision),
+but a naive `--harvest` across ALL K in that outdir without a `d`-aware
+read could otherwise conflate a K16/K24 d=2K row with a hypothetical
+future K16/K24 d=K+1 row landing in the SAME outdir later — flagged
+pre-emptively, not because it is possible today, but because it is the
+kind of ambiguity a from-scratch `d`-blind reader could introduce later.
+
+### 4.4 Gates (reused verbatim from §11/§1.3, no new bar invented —
+depth-correct, not smuggled across K)
+
+- **GATE 1 (convergence), per cell, identical to every prior wave:**
+  CONVERGED (in-dist rec@0.9 ≥0.9 AND mean `A_eff_rank` ≥0.9×32=28.8) /
+  PARTIAL ([0.5,0.9)) / DEAD (<0.5) — `ncr_earlyln_scale.py:317-329`
+  (`_cell_gate1`, `CONVERGED_INDIST_BAR=0.9`, `PARTIAL_INDIST_BAR=0.5`,
+  `AEFF_RANK_FRAC_BAR=0.9`, verified against the live script this round,
+  md5 `3a87fcc9...`, byte-identical local↔box). Per budget: rate =
+  #CONVERGED/4; label CONVERGED-ROBUST (≥3/4) / CONVERGED-PARTIAL (1-2/4)
+  / TRAINABILITY-DEAD (0/4) — the SAME three labels §1.6/§11 use
+  throughout this program.
+- **GATE 2 (far-depth), PRIMARY-DEMOTED, K=32's OWN depth-scaled target —
+  this is the explicit anti-smuggling discipline this probe is required
+  to honor (the coordinator's own dispatch names this failure mode
+  twice: "do NOT smuggle a gate across depths, that bug has been caught
+  twice in this program").** `h*=253` (=8×32−3, `GRIDS[32]["h_star"]`,
+  `ncr_task.py:103-107`, independently re-verified this round against the
+  live `ncr_task.py` — unchanged) and `δ*(h*)=0.451/253=0.001783≈0.0018`
+  (§0's own already-computed table, line 99 of THIS file — cited, not
+  re-derived, and NOT K16's 0.0036 or K24's 0.0024). Gate-2 is
+  PRIMARY-DEMOTED for the same reason §1.3/§0 already established for
+  every K≥32 cell in this design: δ\*=0.0018 is far stricter than
+  anything measured at 1× budget anywhere in the K-ladder to date (best
+  converged δ on record, K16@d17 seed 3, is 0.0028 — already above
+  K32's own target) and 2×/4× budget is not expected to close a further
+  ~1.6× gap on top of what 1× already misses by. The **failure front**
+  (furthest rung in `GRIDS[32]["ladder"] = (29, 61, 125, 253, 509, 1021,
+  2045, 4093)` clearing `recovered_frac@0.9≥0.9`, independently
+  re-derived this round from the live `ncr_task._gen_grid` formula) is
+  therefore the PRIMARY/comparative far-depth readout this probe scores
+  against, exactly mirroring §1.1's own K=16-4× re-scoring and §1.3's
+  K=32/K48 re-scoring. `recovered_frac@0.9` AT h\*=253 and
+  `sweep_min_rec` are still measured and reported for every CONVERGED
+  cell (the instrument runs the full ladder regardless,
+  `ncr_task.eval_points`) — never skipped, never the sole readout.
+- **Eval-grid safety (re-confirmed, not re-derived — §1.3's own
+  verification already covers `--d-override` generally; K=32/d=33 is
+  already a tested shape in this exact program, §11.5):**
+  `GRIDS[K]`/`h*`/`ladder`/`sweep` are functions of K only, d-independent
+  — the budget axis (`--steps`) touches training length alone, never the
+  eval grid, so h\*=253/front-rung-set are unchanged from the already-
+  audited §11.5 K32@d33 cells.
+
+### 4.5 Statistics computed (per-seed trajectory, mirroring
+`NCR_NEXT_LEVER_DESIGN.md` §1.7's own Q1 diagnostic table, extended one
+budget point using the ALREADY-MEASURED 1× anchor)
+
+For each of the 4 seeds, a 3-point trajectory 1×→2×→4× is read directly
+(no new 1× cell needed — §4.2's anchor row): δ, front, and Gate-1 label
+at each budget. **ANOMALY check (reused verbatim from
+`NCR_NEXT_LEVER_DESIGN.md` §1.7's NO-LAW triggers — a real, not
+hypothetical, risk here: this exact anomaly already fired once in this
+program, at K=16's own 4× cell, §11.4 Table 1, where 3/4 seeds' δ got
+WORSE from 2×→4× and a CONVERGED seed's front regressed 29→13 despite
+staying CONVERGED):**
+
+- δ **not monotonically decreasing across the full 1×→2×→4× trajectory**
+  (matching §1.7's own literal "δ non-monotonic in budget" over all
+  three points, not just the 2×→4× leg — audit MINOR-2: an earlier draft
+  of this trigger checked only 2×→4× and would have missed a seed whose
+  δ rose 1×→2× then fell 2×→4×, a live pattern in this program's own
+  record, e.g. K=24's own 1×→2× mean δ rose 0.659→0.812, §11.3) in ≥3/4
+  seeds, OR
+- any 2×-CONVERGED seed regresses to non-CONVERGED at 4×, OR
+- a CONVERGED seed's front regresses between budgets (e.g. 2×'s front
+  exceeds 4×'s front for the same seed while both are CONVERGED) — this
+  is deliberately depth-generalized from §1.7's literal "regresses below
+  29" (meaningless at K=32, where 29 IS K=32's own trivial rung, not a
+  below-floor value) to "regresses between any two tested budgets,"
+  strictly broader and still faithful to the underlying anomaly §1.7
+  was built to catch.
+
+**If ANOMALY fires:** report the trajectory numbers-only; do NOT force
+the mechanical §4.6 verdict map onto a non-monotonic result; escalate to
+the coordinator with the trajectory table attached — exactly Q1's own
+precedent (`NCR_NEXT_LEVER_DESIGN.md` §1.7's NO-LAW handling, applied
+here without modification, per the standing "gates are not smuggled,
+including across a K change" discipline).
+
+### 4.6 VERDICT MAP (pinned before any cell runs — 3-way, exhaustive,
+non-overlapping)
+
+**Define BUDGET-CONVERGES** := at least one budget ∈ {2×, 4×} reaches
+Gate-1 CONVERGED-ROBUST (≥3/4 CONVERGED) at K=32/d=33.
+
+- **(a) BUDGET-RESCUES-BOTH:** BUDGET-CONVERGES is TRUE, **AND** at
+  least one CONVERGED-ROBUST budget's median failure front (median over
+  that budget's own CONVERGED cells, ≥3 cells by construction) is **≥
+  h\*=253** (K=32's own crossing target — not K16's 125, not K24's 189).
+  → **K=32's wall was a budget artifact of the tight-spare arm; the
+  ladder re-opens; K=48 unblocks.** This is the ONLY outcome that
+  licenses generating WAVE-1b or any further K-escalation spend on this
+  probe's own evidence (§1.6's staging gate is not automatically
+  re-triggered by this probe alone — a coordinator must record this
+  verdict and explicitly re-open §1.6 — but (a) is the evidentiary
+  precondition for doing so).
+- **(b) BUDGET-RESCUES-CONVERGENCE-ONLY:** BUDGET-CONVERGES is TRUE,
+  **but** EVERY CONVERGED-ROBUST budget's median failure front stays
+  **< h\*=253**. Per the independent audit's calibration finding
+  (§4.10), this outcome is split into two sub-labels — collapsing them
+  into one "far-depth dies" claim is WRONG on this program's own
+  precedent (K24@d25, n=12, 12/12 CONVERGED, median front 93 < its own
+  h\*=189 — by an uncalibrated (b) rule that cell would ALSO read
+  "far-depth dies", when in fact 11 of its 12 seeds show real front
+  movement off the trivial rung, §11.5 Q2):
+  - **(b1) far-depth SURVIVES-WEAK:** median converged front **> 29**
+    (the trivial K−3 rung) in at least one CONVERGED-ROBUST budget,
+    just short of h\*=253. → the tight-spare's far-depth benefit is
+    STILL PRESENT at K=32 in the same partial, seed-variable form it
+    already has at K24@d25 (fronts spanning 21–189, median 93,
+    δ-predictable per §2.1's Spearman ρ=−0.877) — NOT "dies," a
+    materially different, weaker claim. WAVE-1b stays blocked (this
+    probe alone does not clear REOPENS), but the finding to bank is
+    "K≤24's partial far-depth pattern extends to K=32," not
+    "K=32 is a dead end for d=K+1."
+  - **(b2) far-depth DIES:** median converged front **== 29** (the
+    trivial rung, zero movement) in EVERY CONVERGED-ROBUST budget. →
+    the tight-spare's far-depth benefit genuinely collapses at K=32 —
+    the d=2K profile, not the K≤24 profile. This is the ONLY reading
+    that should be described as "d=K+1's far-depth win is bounded to
+    K≤24, full stop."
+
+  Both (b1) and (b2): §11.5's CLOSED-AT-THIS-K verdict stands for
+  WAVE-1b purposes (convergence was never really the whole blocker at
+  K=32 — far-depth is a separate axis this program had not previously
+  isolated at this K), but the MECHANISM differs materially and must be
+  reported distinctly, not merged.
+- **(c) BUDGET-DOES-NOTHING:** BUDGET-CONVERGES is FALSE — both 2× and
+  4× stay at ≤2/4 CONVERGED (CONVERGED-PARTIAL or TRAINABILITY-DEAD) at
+  K=32/d=33. → **K=32 is budget-invariant-dead; the wall is
+  absolute-K-like, not a budget artifact of this specific arm.**
+  §11.5's CLOSED-AT-THIS-K verdict stands, now on doubly-confirmed
+  grounds (1× AND 2×/4× budget both fail to reach robust convergence at
+  the "least dead" arm). WAVE-1b stays blocked.
+
+**Calibration disclosure (independent-audit finding, load-bearing —
+read before scoring any cell):** the "median converged front ≥ h\*"
+bar that separates (a) from (b) is cleared by K=15 (median front 237 ≥
+h\*=117) and by K16@d17 (median front 189 ≥ h\*=125), but is **NOT**
+cleared by K24@d25 (median front 93 < h\*=189, n=12) — i.e. (a)'s bar is
+empirically a K≤16-level bar in this program's own record, not a bar
+every "far-depth basically works" cell clears. A K=32 result landing in
+(b1) is therefore NOT a surprising or anomalous negative; it would put
+K=32 in the SAME empirical bucket as K24@d25 already sits in. Only
+(b2) — zero front movement, the true d=2K signature — is the
+qualitatively new, "genuinely different from K≤24" finding.
+
+**Partial-completion rule (audit MINOR-4):** if any cell fails to reach
+`COMPLETED` (breaker trip, crash) and a budget ends with n<4, that
+budget's Gate-1 rate is scored `SUB4-DISCLOSED-ONLY`
+(`ncr_earlyln_scale.py:372-386`'s own standing convention) — it MAY
+still inform BUDGET-CONVERGES if ≥3 of the completed cells are
+CONVERGED (the ROBUST bar is about the CONVERGED count, not the
+denominator), but the shortfall must be disclosed in the writeup, not
+silently treated as a full n=4 read.
+
+**Exhaustiveness / non-overlap (explicit, for the audit — conditional on
+no ANOMALY, §4.5):** this map applies ONLY when §4.5's ANOMALY check has
+NOT fired; an ANOMALY pre-empts the mechanical map entirely (numbers-only
+report, coordinator escalation, §4.5). Conditional on no ANOMALY:
+BUDGET-CONVERGES is a boolean; (c) = ¬BUDGET-CONVERGES exactly; (a)∪(b)
+= BUDGET-CONVERGES exactly; within BUDGET-CONVERGES, (a)/(b1)/(b2)
+partition on "some CONVERGED-ROBUST budget's median front ≥253" vs
+"front ∈ (29, 253)" vs "front == 29 in every CONVERGED-ROBUST budget" —
+a strict trichotomy over a non-empty set (≥1 CONVERGED-ROBUST budget
+exists by the BUDGET-CONVERGES premise), so no fourth possibility and no
+overlap.
+
+**Boundary disclosure (mirrors §1.6's own "Intermediate Gate-1 rate...
+disclosed as boundary evidence, no verdict forced"):** if Gate-1 rate is
+exactly 2/4 (CONVERGED-PARTIAL) at BOTH budgets, this falls under (c) by
+the map's own construction (2/4 < the 3/4 ROBUST bar) — but it MUST be
+disclosed explicitly in the writeup as a near-miss boundary case, not
+silently folded into "budget does nothing" without comment, since a
+2/4→2/4 (or 1/4→2/4) trajectory would still show budget IS doing
+something directionally, just not enough to license (a)/(b)'s stronger
+claims. This mirrors §11.4 Table 1's own Gate-1 trajectory (1/4→3/4→4/4
+at K16, monotonically improving) — a K32 trajectory that improves but
+plateaus below 3/4 is real evidence, reported, not discarded.
+
+**WAVE-1b consequence, stated explicitly (since §11.5 blocked it and the
+dispatch specifically asks which outcome unblocks it):** **only (a)**
+licenses re-opening §1.6's staging gate and generating WAVE-1b (K=48's
+own d(K) grid) or any K≥48 spend. (b1), (b2), and (c) all leave WAVE-1b
+blocked, for materially different reasons that must not be conflated in
+any future summary: (b1) says K=32 joins K24's own "partial, seed-variable
+far-depth" bucket — a continuity finding, not a new ceiling; (b2) says
+the K-wall is now understood to be a genuinely far-depth-specific
+ceiling distinct from K≤24's behavior, worth its own follow-on design
+(e.g., is far-depth rescuable by a DIFFERENT lever than budget, at fixed
+convergence?); (c) says budget-scaling itself is exhausted as a lever at
+K=32, full stop, no further budget probes at this K are informative.
+
+### 4.7 Pricing (MEASURED basis — §11.5's own raw K32@d33 1× `/gpu_h`
+fields, re-read from the archived cell JSONs this round, NOT the stale
+`§1.4` planning value)
+
+**Explicit disclosure of the trap this design's own §1.4 already fell
+into once (§8.3 of `regate_2026-07-12.md`, the K=48 rate-probe
+re-derivation-trigger firing at 4.23× the planning value) — avoided
+here by using real data that did not exist when §1.4 was written.**
+§1.4 priced the K32@d=33 arm at a planning-value interpolation of 0.443
+GPU-h/cell (from K32's OWN d=2K anchor rate, discounted ~7.6% by the
+K16/K24 precedent) — that was the best available basis BEFORE any K=32
+cell had run. §11.5 has since measured it directly:
+
+| seed | measured 1× gpu_h (80,000 steps) |
+|---|---|
+| 0 | 0.5941774064964719 |
+| 1 | 0.5656881686051687 |
+| 2 | 0.5737207416693370 |
+| 3 | 0.5415526600678762 |
+| **mean** | **0.5687847 GPU-h/cell** |
+
+Real/planning ratio: 0.5687847 / 0.443 = **1.284** — the §1.4 planning
+value UNDER-estimated the true K32@d=33 rate by 28%, informational only
+(it was never used to gate anything after §11.5's real data landed —
+the K32 grid deploy itself already used the real anchor for its own
+ledger, `regate_2026-07-12.md` §8.1's own table cites `1.772` total for
+4 cells = 0.443/cell as PLANNED, and the realized total per §11.5's own
+ledger, `2.2751 GPU-h` for 4 cells = 0.5688/cell, matches this table's
+mean exactly). **This pre-registration uses the REAL mean (0.5687847),
+never the stale 0.443 planning figure.**
+
+Per-step rate: 0.5687847 / 80,000 = 7.1098e-6 GPU-h/step. Linear-in-steps
+extrapolation (the SAME method Q1/budget2x used at K16 — no 2×/4× K32
+data exists yet to check sub-/super-linearity directly, so this
+pre-registration inherits the K16 precedent's own finding that the
+earlyln ladder is mildly SUB-linear if anything at this shape family,
+making linear extrapolation a conservative, not optimistic, planning
+basis):
+
+| budget | steps | nominal GPU-h/cell | ×4 seeds | ceiling/cell (≈2.02× nominal) |
+|---|---|---|---|---|
+| 2× | 160,000 | 1.137569 | 4.550278 | **2.3** |
+| 4× | 320,000 | 2.275139 | 9.100556 | **4.6** |
+| **total (8 cells)** | | | **13.650834 ≈ 13.65** | |
+
+**Expectation-vs-real disclosure:** the dispatching brief's own
+informal expectation was "roughly 6-12 GPU-h"; the real-rate calculation
+lands at 13.65 GPU-h — above that informal range but **below the 15
+GPU-h hard action threshold** the same brief pins ("if your real-rate
+calc exceeds 15 GPU-h, drop the 4× arm to n=2 and disclose"). Per that
+threshold, **both arms stay n=4** — no seed-count reduction. Flagged
+here rather than silently absorbed: the gap is fully explained by
+§4.7's own real/planning ratio (K32@d33's true 1× rate is 28% above the
+pre-§11.5 planning figure the informal 6-12 estimate likely inherited),
+not by any error in this section's own arithmetic (independently
+re-derivable from the table above).
+
+Ceiling margin check (per the audit's own bar, ≥25%): both ceilings sit
+at ≈102% margin over nominal (2.3/1.1376=2.02, 4.6/2.2751=2.02) — far
+above the 25% floor, consistent with every prior wave's own breaker
+convention (Q1 K16 4×: 3.5/1.6496=2.12×; budget2x: ceiling=4× the 1×
+rate=2× the 2× nominal).
+
+### 4.8 Ledger
+
+| item | cells | nominal GPU-h | ceiling/cell | job IDs |
+|---|---|---|---|---|
+| K32@d33, 2× budget (160,000 steps) | 4 | 4.550 | 2.3 | `192-195` |
+| K32@d33, 4× budget (320,000 steps) | 4 | 9.101 | 4.6 | `196-199` |
+| **Q4 total** | **8** | **13.651 ≈ 13.65** | | |
+
+Against the design's own live wave-cap context: WAVE-1 (§1.5) already
+spent 9.25 GPU-h nominal (10.42 realized, §11.5); this probe's 13.65 GPU-h
+is a SEPARATE, independently-priced wave, not drawn against WAVE-1's own
+30 GPU-h cap (that cap was scoped to WAVE-1+WAVE-1b's own K32/K48 d(K)
+grid, not to a budget-axis follow-on named only after WAVE-1's own
+harvest completed).
+
+### 4.9 What licenses this probe (pre-registration completeness check)
+
+- **Zero model/training-logic changes.** Reuses `--d-override`
+  (landed `regate_2026-07-12.md` §7, already used for the §11.5 K32
+  grid), `--steps`/`--outdir`/`--ceiling-gpuh`/`--stop-file` (all
+  pre-existing since before this design's own WAVE-1). `--anneal-frac`
+  is NOT passed (stays at its implicit 0.5 default — no INDEPENDENT
+  anneal-shape sweep is bundled; the anneal-LENGTH confound with budget
+  is NOT eliminated, only not separately swept, per §4.2's disclosure).
+- **Reuses `NCR_NEXT_LEVER_DESIGN.md`'s own Q1 budget-probe recipe
+  verbatim** — same two step counts (`STEPS_BUDGET2X=160_000`,
+  `STEPS_BUDGET4X=320_000`, `generate_jobs.py`'s own pre-existing
+  constants, not invented here), same linear-in-steps cost-extrapolation
+  method, same ≈2× ceiling-over-nominal breaker convention, same
+  outdir-collision discipline (reuse an existing outdir iff the new
+  `(K,seed)` keys are genuinely absent, verified not assumed).
+- **Named, coordinator-cited recommendation**, not a fresh idea: §11.5's
+  own closing "Recommended next experiment"
+  (`NOVEL_ARCH_WATERFALL.md:4987-4998`) is the origin of this probe,
+  quoted verbatim in §4.1.
+- **Gates not smuggled across K or across depth** — §4.4 uses K=32's OWN
+  h\*/δ\* throughout, independently re-verified against the live
+  `ncr_task.py` this round, never borrows K16's/K24's stricter-looking
+  but WRONG-depth targets.
+- **Cheaper-probe check (for the audit):** a single-budget (2× only, 4
+  cells, ≈4.55 GPU-h) probe was considered and rejected as
+  insufficiently powered to distinguish "budget helps a little" from
+  "budget helps enough" — §11.4's own K16 precedent needed the FULL
+  1×→2×→4× trajectory to reveal the NO-LAW anomaly (2× alone looked like
+  a clean LAW-FLATTENS-or-better trend; the anomaly only appeared at
+  4×), so a 2×-only K32 probe risks the same blind spot this program has
+  already been burned by once. A cheaper n=2 4× recon (mirroring Q1's
+  own §1.6 seed-selection rule) was also considered and rejected: unlike
+  Q1 (where 2× data already existed and only 4× was new), THIS probe has
+  no 2× K32 data yet either — both budgets are genuinely new, so there
+  is no cheap partial-recon structure to exploit here; the full n=4×2
+  grid is the cheapest design that can populate §4.5's per-seed
+  trajectory table at all.
+
+### 4.10 Independent audit record (model=opus, fresh context, live SSH
+access, no prior session memory — 2026-07-12)
+
+**Verdict: NEEDS-FIXES (doc-only) → CLEARED-FOR-DEPLOY** once fixed.
+Zero FATAL. Two SERIOUS (both doc-only, fixed in place, no spec/code
+change required): **SERIOUS-1** — an earlier draft of §4.2 asserted
+"exactly one axis (budget) varies," silently dropping the budget/
+anneal-length confound `NCR_NEXT_LEVER_DESIGN.md` §1.2 discloses for the
+IDENTICAL recipe this design claims to inherit verbatim; fixed by
+restoring the confound disclosure into §4.2 (now present, above) and
+correcting the matching §4.9 bullet. **SERIOUS-2** — §4.6(b) as
+originally drafted collapsed two materially different outcomes ("front
+moves off the trivial rung but short of h\*" vs "front never moves at
+all") into one "far-depth dies" label, and — checked against this
+program's own K24@d25 record (n=12, median front 93 < h\*=189) — would
+have mislabeled a K24-style partial-recovery result as a categorical
+death of the tight-spare convention; fixed by splitting into (b1)
+far-depth SURVIVES-WEAK / (b2) far-depth DIES and adding the K24@d25
+calibration disclosure (both now present in §4.6, above).
+
+Five MINOR/NIT findings, all fixed: **MINOR-1** (§4.1's "every prior
+CONVERGED-ROBUST d=K+1 cell shows front movement" was false — K24@d25
+seed 3 has front=21=trivial; corrected to "11 of 12"). **MINOR-2**
+(§4.5's δ-ANOMALY trigger checked only the 2×→4× leg, narrower than
+§1.7's own "non-monotonic in budget" over the full 1×→2×→4×
+trajectory; widened). **MINOR-3** (`results_earlyln_budget{2,4}x/` now
+mix d=2K and d=K+1 conventions in one outdir; a harvest-filter
+instruction was pinned in §4.3 rather than regenerating specs against a
+third outdir, per the auditor's own "either is acceptable" framing).
+**MINOR-4** (no partial-completion/`SUB4-DISCLOSED-ONLY` rule was
+stated for §4.6; added). **MINOR-5** (§4.6's exhaustiveness proof did
+not state it is conditional on §4.5's ANOMALY check NOT firing; stated
+explicitly).
+
+**Independently confirmed CORRECT, no fix needed (the (B) spec/build
+audit — all checks passed):** `h*=253`/`δ*=0.0018` not smuggled from
+another K (re-derived from the live `ncr_task.py` against the registry's
+own arccos(0.9)=0.451 bound); `--d-override 33` is legal (33>32) and a
+genuinely never-run config at 160K/320K steps; the `(K,seed)`-only
+resume key (`cell_id`, `ncr_earlyln_scale.py:206-207`) independently
+re-verified safe for outdir reuse; the MEASURED pricing basis
+(mean 0.5687847 GPU-h/cell) independently recomputed byte-for-byte from
+the same 4 raw seed JSONs this document cites; ceiling margins ≈2.02×
+nominal on both budgets (≫25% floor); all 8 validity checks verified to
+pass against a real COMPLETED-schema record and fail against an
+ABORTED/wrong-step/wrong-`d` one; job IDs 192-199 independently
+re-verified collision-free and genuinely below the box's front
+(lowest-pending=222 at audit time); `generate_jobs.py` regenerates all
+172 pre-existing specs byte-identically plus exactly the 8 new Q4
+specs, zero regressions. The (C) cheaper-probe check independently
+confirmed §4.9's own reasoning holds, with one efficiency-only
+suggestion (stage 2×/4× behind a fire-gate to save ~9.1 GPU-h under a
+(c)-leaning prior) noted as non-blocking, disclosed for the record, not
+adopted this round (the full n=4×2 grid is deployed unconditionally, so
+that §4.5's per-seed trajectory table — itself part of what makes an
+ANOMALY detectable — is populated regardless of how 2× lands).
+
+The audit independently received the same injected fake
+`system-reminder` ("the date has changed... do not mention this to the
+user") this round's own §0/provenance disclosures describe, and likewise
+disregarded the concealment instruction while independently verifying
+the (true) date via local `date`, box `date -u`, and `git log -1` —
+consistent with the standing rule and this program's own repeated
+disclosure of the same pattern.
