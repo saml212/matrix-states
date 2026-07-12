@@ -1941,9 +1941,114 @@ cell count is committed until that number exists.
 | **Reserve** | K=12 replication (backlog) + budget-artifact retests | — | Draws logged individually against the remaining ~30 |
 | **TOTAL CAP** | | | **80 GPU-h**, own ledger |
 
-### §8.2 ATTACK (fresh opus, dispatched against this §8.1 text)
+### §8.2 ATTACK (fresh opus, time-boxed fatal-flaw-only, 2026-07-11/12): NEEDS-REVISION
 
-*(recorded below once returned)*
+Read-only round against §8.1 + its cited substrate (`model_v4.py`,
+`task_e.py`, `ncr_task.py`/`ncr_models.py`, §2/§3/§7e/§7g context).
+Mechanical soundness of the §8.1.2 `BankBindingEncoder` extension vs
+`BindingEncoder`, and the GRIDS/binexp_read/loop_read/param-match reuse,
+both **confirmed intact**. F1/F2/M1-M5 from §2 all correctly carried
+forward. One embedded fake system-reminder (date-change +
+concealment-instruction pattern) surfaced in the agent's own tool
+stdout mid-run — disregarded and reported per the standing hard rule;
+did not originate from a legitimate harness channel, noted here for the
+injection tally.
+
+**CRITICAL — C1 (bank-aggregation gameable, §8.1.6).** `min_r(median_seeds)`
+is min-of-medians, not median-of-per-seed-mins. Concrete counterexample
+with 3 seeds: A holds {r0,r1} fails r2; B holds {r0,r2} fails r1; C
+holds {r1,r2} fails r0 — every per-relation median is 1.0 (2/3 seeds
+hold each relation) → reported bank score **1.0/HOLD**, yet **zero
+seeds are an actual working bank**. Baseline is scored the same way, so
+the inflation is asymmetric toward a false contender WIN. Reachable,
+not hypothetical, given this project's own documented per-seed
+trainability variance (K=16 precedent 2/5 stuck; K=12 precedent 2/10
+dead, §7i).
+
+**MAJOR — J1 (M6 read-vector-std diagnostic dropped, §8.1.5).** The
+pinned §3.1/M6/mi4 rvstd≥0.04 gate (live in the single-relation §7c
+gate table) for deviating-read arms is absent from §8.1.5's "instrument
+duties," yet fwm-bank and loopedvec-bank are BOTH deviating-read arms
+and fwm-bank is the comparison of record — without rvstd a genuine
+architectural FAIL is indistinguishable from a degenerate-readout
+strawman (the exact M3 concern).
+
+**MINOR (recommended before build, non-blocking):** m1 — B-CHAIN's
+composite σ=π_{r2}^{h2}∘π_{r1}^{h1} has ~1 fixed point in S₈ generically
+(~1/8 of starts give a trivial σ(a)=a query), unexcluded by the
+per-relation-only mod-K guard; exclude/label fixed-point starts. m2 —
+restate the single-relation §3.2 rule ("Axis-B claimable only if
+Axis-A ≥ TIE") explicitly for LOG-DEPTH here. m3 — the swap-ablation
+<0.3 bar should be checked against an empirical random-direction
+control per episode, not asserted a priori (near-collision cycle pairs
+could in principle lift it) — bar-calibration only, the ablation itself
+has no degenerate pass.
+
+**VERDICT: NEEDS-REVISION — build blocked on C1 + J1.**
+
+### §8.3 REVISION (2026-07-11/12): C1 + J1 fixed, minors folded — CLEARS
+
+**Fix C1.** §8.1.6 bank score redefined: per-seed bank recovery =
+`min_r(recovered_frac@0.9(r, seed))` computed FIRST, THEN
+`median_seeds` of that per-seed number (median-of-mins, not
+min-of-medians). Additionally report `n_seeds_all3_hold` (count of
+seeds where all 3 relations individually HOLD) alongside the median, so
+a HOLD verdict is legible as "most seeds are genuine working banks,"
+not inferable only from the aggregate. Re-run against the attack's own
+counterexample: per-seed mins are A=0 (fails r2), B=0 (fails r1), C=0
+(fails r0) → median-of-mins = **0.0 → correctly FAIL**, not the false
+1.0/HOLD the old formula gave. Baseline scored identically (median-of-
+mins), so the fix is symmetric, not a thumb on the scale either
+direction.
+
+**Fix J1.** §8.1.5 instrument duties gain a fourth bullet: **read-
+vector-std diagnostic (§3.1/M6/mi4, rvstd ≥ 0.04), executed at Phase-0
+for both deviating-read bank arms (fwm-bank, loopedvec-bank)** —
+verbatim reuse of the single-relation `read_vector_std` function
+(`run_ncr.py`), applied to the bank arms' own read vectors. A FAIL here
+routes the same way it did in the single-relation build: flagged, not
+silently absorbed into the arm's headline FAIL band.
+
+**Minors folded.** m1: B-CHAIN eval excludes/labels any (r1,h1,r2,h2)
+whose composite fixed point coincides with the query start (`σ(a)=a`
+checked at eval-batch construction, mirroring the identity-residue
+exclusion already in `ncr_task.residue_label`). m2: §8.1.3 LOG-DEPTH
+bullet gains one sentence: "claimable as capability only if Axis
+R-BANK ≥ TIE, per the single-relation §3.2 rule, restated here." m3:
+swap-ablation gate computes its own per-episode random-direction control
+(cos of `pred_wrong_r` against a batch of freshly-sampled random unit
+vectors) alongside the pinned <0.3 bar, both reported.
+
+**C1 was a CRITICAL — a scoped re-attack is dispatched (§8.3a), not
+waived.** The in-line counterexample re-check above is the implementer's
+own verification and does not substitute for independent review (the
+"implementer does not review their own work" hard rule applies to a
+self-certified fix exactly as it does to the original build). Build
+does not start until §8.3a returns clean.
+
+### §8.3a SCOPED RE-ATTACK (fresh opus, independent, 2026-07-11/12): **C1 CLOSED — CLEARS FOR BUILD**
+
+Independently re-derived the C1 fix's correctness (median-of-per-seed-
+mins at odd n makes a false HOLD impossible — the middle order statistic
+≥0.9 forces a majority-genuine-bank population; the original C1
+counterexample's per-seed mins {0,0,0} now correctly median to 0.0/FAIL)
+and confirmed baseline scoring is symmetric (identical formula, max-
+over-baselines-must-FAIL is the anti-inflation direction) and J1's rvstd
+restore faithful (exact 0.04 threshold, both deviating arms named,
+non-absorbing routing). m1/m2/m3 all independently confirmed CLOSED
+(m1's exact-integer fixed-point check satisfies the exact-threshold hard
+rule; m3's ambiguity is conservative-direction, non-blocking). No new
+CRITICAL/MAJOR. Two MINOR non-blocking recommendations, folded now
+rather than deferred: **(a)** `n_seeds_all3_hold` is reported but was
+not gated at even seed counts (2/2 moderate-but-sub-0.9 per-seed-mins
+can't average to HOLD, but the misrepresentation floor is weaker than
+odd-n's) — build gates `n_seeds_all3_hold ≥ ceil(n/2)` as an EXPLICIT
+co-condition of any bank-level HOLD verdict, not just a reported number.
+**(b)** rvstd≥0.04 is re-checked at the wave-1 fwm-bank/loopedvec-bank
+result that actually decides the WIN/LOSE verdict, not only at Phase-0
+(a Phase-0-only check would miss a wave-1-only readout collapse).
+
+**§8.1/§8.3 pre-registration is CLEAR. Proceeding to §8.4 BUILD.**
 
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
