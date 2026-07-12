@@ -2535,6 +2535,67 @@ verdict-first → archive (repo ≤25MB + SSD) → EXPERIMENT_LOG → pathspec
 commit → push → **STOP for coordinator routing (do NOT launch an
 operator-bank wave off this)**.
 
+### §8.8 BUILD (2026-07-11, `ncr_opbank_recover.py`, additive-only) — CPU selftest + independent opus audit CLEARED
+
+Additive file only: imports `ncr_opbank_{task,models}.py` verbatim,
+modifies neither (shared-tree single-writer safety with the concurrent
+§9 diagnostic on GPUs 2/3/4/5). CPU self-test with executed mutation
+kill-proofs, including the α=0 bit-identity closed-form smoke (at
+α=0 the `earlyln` forward is bit-identical to the plain contender —
+proves the LN crutch cannot leak into the exactness axis); per-arm
+end-to-end micro test across all 4 arms (baseline/warmup/earlyln/
+curriculum — the §7e "test every arm" lesson). Independent opus
+build-audit ran its own executed mutation kill-proof (LN-leak
+injected → t1 fails → reverted) and CLEARED. md5-verified deploy;
+real-CUDA smoke 4/4. tmux `ncr_opbank_recover` + supervisor,
+resume-safe; GPUs 0/1/6/7 only (2/3/4/5 confirmed untouched,
+§9's diagnostic).
+
+### §8.9 CONVERGENCE-RECOVERY READOUT (2026-07-11, 4/4 cells, GPUs 0/1/6/7, one seed each): **VERDICT = RECOVERED — `earlyln` unsticks the R=3 exact-composition contender; the other 3 arms (baseline/warmup/curriculum) FAILED**
+
+Full record: `EXPERIMENT_LOG.md` (2026-07-11, "NCR OPERATOR BANK
+§8.7-§8.9 CONVERGENCE-RECOVERY DIAGNOSIS"). Summary, cited verbatim
+from that entry:
+
+| arm | train loss | in-dist rec@0.9 (min-over-r, h=1/2/3) | A_eff_rank | swap gap | verdict |
+|---|---|---|---|---|---|
+| **earlyln** | **0.0052** | **1.0 / 1.0 / 1.0** | **7.98–7.99** | **+0.5526** | **RECOVERED** |
+| baseline (control) | 0.884 | 0.0 / 0.0 / 0.0 | 2.44–3.50 | +0.0009 | FAIL (reproduces §8.5a) |
+| warmup | 0.982 | 0.0 / 0.0 / 0.0 | 1.70–2.42 | +0.0011 | FAIL |
+| curriculum | 0.986 | 0.0 / 0.0 / 0.0 | 1.67–2.48 | −0.0020 | FAIL |
+
+**§8.7's pinned RECOVERED gate — all 3 legs met by earlyln:** in-dist
+min-over-r recovered@0.9 = 1.0 ≥ 0.9; `A_eff_rank` → 7.98–7.99 (≈8,
+operators formed to near-full rank, phase_resid collapsed 0.93–1.47 →
+0.016–0.020); swap gap 0.553 > 0.3 (relation-selective reading, not a
+blur). Control valid — baseline/warmup/curriculum all reproduce
+non-convergence, isolating the fix to the early-LN intervention
+specifically. **Exactness preserved:** the LN is a train-time-only
+crutch on weight α annealed 1→0; at α=0 the forward is bit-identical
+to the plain contender (closed-form-tested, §8.8); EVAL always uses
+the inherited pure-matmul exact read; blank-out P=1 passes.
+
+**Honest caveats carried forward (binding on any scale-up):** (1)
+**n=1** — one seed per arm; robustness across seeds is UNTESTED here.
+(2) **Far-depth NOT established** — in-distribution (h=1,2,3) is
+perfect, but at h\*=61 earlyln recovers only **0.004–0.049@0.9**
+(mean_cos 0.63–0.74 — well above chance, not clearing the 0.9 bar);
+the converged operators' residual phase_resid ≈0.018 compounds over
+61 hops. RECOVERED = trainability/convergence unblocked; far-depth
+precision is a separate, still-open gate.
+
+**Cross-cutting lead (flagged, not established):** §9's write-capacity
+diagnostic (§9.10) independently found K=15/16 also fail to converge
+on the plain recipe (discrete trainability collapse, not a
+write-quality degradation) — mechanistically the same class of
+raw-matmul training-dynamics failure earlyln fixed here on the R=3
+(operator-count) axis. UNTESTED on the K (entity-count) axis at the
+time of this record — exactly the question §9.10 named as its
+decisive next test and that this runner's §11 pre-registration opens.
+
+**Ledger:** 4 cells × ≈0.46 GPU-h ≈ 1.85 GPU-h. Pointer:
+`matrix-thinking/ncr/ncr_opbank_recover.py`.
+
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
 (median 0.8704, DEGRADED — moved UP within band from §7g's 0.753) →
