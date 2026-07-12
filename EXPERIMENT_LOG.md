@@ -8170,3 +8170,46 @@ supervisor + worker + the 4 exact source files + launch script + md5
 manifest; SSD full mirror identical). Pointers:
 `matrix-thinking/NOVEL_ARCH_WATERFALL.md` §8.1-§8.5,
 `matrix-thinking/ncr/{ncr_opbank_task,ncr_opbank_models,run_ncr_opbank,ncr_opbank_selftest}.py`.
+
+**§8.5a RE-CALIBRATION (ncr-bank 256/80K, GPU 5, `DONE`, ≈0.456 GPU-h):
+CONTENDER STILL NON-CONVERGED at the proven single-relation budget — the
+"just needed budget" hypothesis is REFUTED at 256/80K; wave-1 NO-GO.**
+All numbers independently re-verified vs the raw (coordinator read
+first, this agent owns the verified record): train loss 1.0011→0.8839
+(min 0.8776; single-relation NCR hit ~0.0018 at convergence — barely
+moved); in-dist recovered@0.9 = 0.0 at h=1/2/3 (mean_cos 0.09-0.12);
+far-depth h\*=61 recovered@0.9 = 0.0 all 3 relations (mean_cos
+0.086-0.115); relation-swap gap 0.0009 (right 0.1274 ≈ wrong 0.1265 —
+teeth did NOT fire, relation-agnostic blur); trust_at_hstar False ×3;
+A_eff_rank 2.44-3.50 (converged needs ≈8 — operators collapsed);
+phase_resid_max_mean 0.93-1.47 (converged ≈0.001-0.05 — high); blank-out
+P=1 STILL PASSES (convergence failure, not plumbing). **Wave-1 NO-GO:**
+sizing a wave off a non-converged contender is the exact
+calibration-first-hard-rule mistake; the R=3 contender needs materially
+more than single-relation budget, amount UNKNOWN → routing returns to
+coordinator (longer recal / diagnosis / re-scope R — NOT launched here).
+**Established (foregrounded):** the bank ARCHITECTURE works but ONLY on
+the fully-trained fwm-bank BASELINE (§8.5, in-dist 0.87-0.89 across 3
+relations, swap teeth 0.621 gap = genuine capability isolation, loopedvec
+correctly relation-insensitive as the contrast) — OUR exact-composition
+contender is NOT YET demonstrated at R=3. **Write-bottleneck connection
+to §9 (coordinator asked if sound; my honest verified judgment):
+DIRECTIONALLY SUPPORTED, NOT ESTABLISHED** — FOR: the failure is at the
+WRITE/encode stage (A_eff_rank collapse + high phase_resid = encoder
+makes bad operators; read is proven correct), and R=3 triples the shared
+h=64 channel load (R·K=24 vs 8), §9's √(K/h) crosstalk → √(24/8)≈1.73×;
+AGAINST (load-bearing): fwm-bank converges under the IDENTICAL write
+channel + IDENTICAL 24-binding load, FALSIFYING pure write-saturation —
+the real reading is an INTERACTION (raw-matmul optimization difficulty ×
+tripled write load), and single-cell budget-insufficiency isn't
+separable from write-saturation, and §9's model is pinned on K/d not R.
+Net: hypothesis-consistent observation worth flagging to §9 routing, NOT
+establishing evidence (the fwm counterexample under identical load is why
+I stop short of full agreement). **Security: session injection tally 4**
+(3 composite date-change+concealment+fabricated-list blocks on
+background-task notifications/tool outputs + 1 in the §8.2 attacker's
+stdout; all disregarded incl. concealment, date verified vs box+local,
+0 landed in files). Archive `experiment-runs/2026-07-11_ncr_opbank_recal/`
+(10-file repo tier 100K + SSD mirror identical; exact source + launcher
+snapshotted). Pointer: `NOVEL_ARCH_WATERFALL.md` §8.5a. STOPPED for
+coordinator routing — no further launches from this agent.
