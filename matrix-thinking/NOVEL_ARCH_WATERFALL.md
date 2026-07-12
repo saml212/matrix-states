@@ -2400,6 +2400,60 @@ landed in any committed file. Reported per the standing hard rule.
 **STOP. No further launches from this agent — the wave-1 / longer-recal /
 diagnosis routing is the coordinator's call against this NO-GO readout.**
 
+### §8.6 ROUTING NOTE (coordinator decision, 2026-07-11): option (b) convergence diagnosis QUEUED — on HOLD behind the §9 write-capacity diagnostic; do NOT launch until the `ncr/` tree is clear
+
+**Coordinator adjudication of §8.5a, recorded verbatim-in-substance:**
+the write-bottleneck framing is corrected to the **optimization-landscape ×
+write-load INTERACTION** reading (the §8.5a pushback adopted) — the
+fwm-bank-converges-under-identical-24-binding-load fact falsifies pure
+write-saturation, so the operator bank is **NOT clean evidence for the §9
+scaling story**; §9's own fixed-vs-proportional-capacity experiment (pinned
+on the K/d axes, not R = operator count) carries that claim independently.
+
+**Routing = option (b), the cheap convergence DIAGNOSIS, NOT option (a)
+more raw budget** (budget-alone is the wrong spend given the fwm
+counterexample: the write channel is not the hard wall — the raw-matmul
+contender's optimization landscape is). **QUEUED, NOT LAUNCHED** — two
+explicit HOLD reasons: (1) a separate agent is building the §9
+write-capacity diagnostic in the SHARED `matrix-thinking/ncr/` tree right
+now; two concurrent `ncr/` build-agents risk the import-collision the §9
+attack flagged — single-writer discipline on that tree. (2) the PI's
+priority is the SCALING answer; the §9 diagnostic is the direct test and
+gets the box first.
+
+**The queued diagnosis, three pre-scoped sub-options (ready to fire the
+instant §9 clears the `ncr/` tree and the coordinator routes back):**
+- **(b-i) warmup / LR schedule:** the raw-matmul contender plateaus long
+  before transitioning (single-relation transitions ≈40K; the R=3 bank
+  had not by 80K). A linear-warmup + cosine-decay LR (or a larger warmup
+  than the flat Adam 3e-4 used here) may unstick the plateau; cheapest
+  first probe.
+- **(b-ii) LN-during-early-training (curriculum on the read):** fwm-bank
+  (inter-hop LN) converges where the raw-matmul contender does not —
+  train WITH an inter-hop LN for the first N steps, then anneal it OUT so
+  the final model is the pure-matmul exact-composition contender the
+  claim requires (the exactness axis is preserved at eval; LN is a
+  training-time crutch only, removed before any capability measurement).
+  Directly targets the diagnosed optimization-landscape gap.
+- **(b-iii) curriculum on `axis_b_frac` / R-scope:** start at
+  `axis_b_frac=0` (single-block only) and/or R=2, converge, then ramp to
+  the mixed 2-block / R=3 target — a standard curriculum for a hard
+  compositional objective; also yields the clean R=2-vs-R=3 contrast that
+  would (partially) probe the operator-count axis §9 does not cover.
+
+**Ledger:** the diagnosis is cheap (each probe is one ncr-bank cell,
+≈0.3–0.5 GPU-h at the measured rate); the operator-bank own-cap is 80
+GPU-h, ≈0.68 spent (Phase-0 0.22 + recal 0.456), ≈79.3 untouched — budget
+is not the constraint, the `ncr/`-tree single-writer hold is.
+
+**STATUS: operator bank PAUSED at a clean, fully-recorded checkpoint.**
+Architecture proven on the fwm-bank baseline (§8.5); the exact-composition
+contender's R=3 convergence is the open question, with a pre-scoped cheap
+diagnosis queued (this §8.6) behind the §9 diagnostic. This agent launches
+NOTHING further and does not touch the `ncr/` tree while §9 builds there;
+the coordinator routes option (b) back when §9 reports and the tree is
+clear.
+
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
 (median 0.8704, DEGRADED — moved UP within band from §7g's 0.753) →
