@@ -8213,3 +8213,89 @@ stdout; all disregarded incl. concealment, date verified vs box+local,
 (10-file repo tier 100K + SSD mirror identical; exact source + launcher
 snapshotted). Pointer: `NOVEL_ARCH_WATERFALL.md` §8.5a. STOPPED for
 coordinator routing — no further launches from this agent.
+
+
+## 2026-07-11 — NCR OPERATOR BANK §8.7-§8.9 CONVERGENCE-RECOVERY DIAGNOSIS (`NOVEL_ARCH_WATERFALL.md` §8.7 pre-reg / §8.8 build / **§8.9 readout**): **VERDICT = RECOVERED — `earlyln` (LayerNorm annealed 1→0 during training) UNSTICKS the R=3 exact-composition contender's convergence; the other 3 arms FAILED. The trainability blocker is SOLVED (with n=1 + far-depth caveats). ≈1.85 GPU-h.**
+
+**Verdict-first.** The raw-matmul exact-composition contender that would
+NOT converge at R=3 (§8.5a: flat chance even at 256/80K) DOES converge
+when an inter-hop **parameter-free LayerNorm is blended into the TRAIN
+read with weight α annealed 1.0→0.0 over the first half of training**,
+then removed — `earlyln` arm. All 4 arms verdict-first (one seed each,
+GPUs 0/1/6/7, 80K/256; earlyln raw INDEPENDENTLY re-verified by this
+agent, coordinator read first):
+
+| arm | train loss | in-dist rec@0.9 (min-over-r, h=1/2/3) | A_eff_rank | swap gap | verdict |
+|---|---|---|---|---|---|
+| **earlyln** | **0.0052** | **1.0 / 1.0 / 1.0** | **7.98–7.99** | **+0.5526** | **RECOVERED** |
+| baseline (control) | 0.884 | 0.0 / 0.0 / 0.0 | 2.44–3.50 | +0.0009 | FAIL (reproduces §8.5a) |
+| warmup | 0.982 | 0.0 / 0.0 / 0.0 | 1.70–2.42 | +0.0011 | FAIL |
+| curriculum | 0.986 | 0.0 / 0.0 / 0.0 | 1.67–2.48 | −0.0020 | FAIL |
+
+**§8.7 pinned RECOVERED gate — all three legs cleanly met by earlyln:**
+in-dist min-over-r recovered@0.9 = **1.0 ≥ 0.9** ✓; A_eff_rank climbs to
+**≈7.99 → 8** (operators formed to near-full rank; phase_resid collapsed
+0.93–1.47 → **0.016–0.020**, near-roots-of-unity permutation operators)
+✓; swap gap **0.553 > 0.3** (right-r 0.666 vs wrong-r 0.113, control
+−0.009 — the capability teeth FIRE, genuine relation-selective reading,
+not a blur) ✓. Control valid: baseline reproduces non-convergence (0.0),
+and warmup+curriculum ALSO fail — so the recovery is SPECIFICALLY the
+early-LN intervention, not a schedule or a spontaneous transition.
+
+**Exactness preserved — the recovery is NOT an LN artifact.** The LN is a
+TRAIN-time crutch on weight α; at α=0 the forward is bit-identical to the
+plain contender (closed-form-tested), and EVAL always uses the inherited
+pure-matmul EXACT read (binexp/loop vs fp64 power). earlyln's blank-out
+P=1 PASSES (bit-identical, grad-zero). So this is genuine convergence of
+the exact-composition contender.
+
+**HONEST CAVEATS (foregrounded, not spun):** (1) **n=1** — one seed per
+arm; a seed-replication confirm (≥3 seeds on earlyln + baseline) is the
+pre-registered next step before the fix is called robust (the trainability-
+variance precedent: K=12 had 2/10 dead seeds). (2) **Far-depth NOT yet
+established** — earlyln converged IN-DISTRIBUTION (h=1,2,3 perfect) and
+formed genuine operators, but at the far-depth **h\*=61 it recovers only
+0.004–0.049 @0.9** (mean_cos 0.63–0.74 — well above chance, composing
+largely correctly, but not clearing the strict 0.9 bar). RECOVERED =
+**trainability/convergence unblocked**; the ULTIMATE exact-composition-
+beats-fwm-at-far-depth capability head-to-head is a SEPARATE gate this
+diagnosis did not close (the converged operators' phase_resid 0.018 vs the
+single-relation's ~0.0055 compounds over 61 hops). Convergence is the
+blocker that's now solved; far-depth precision is the next gate.
+
+**Cross-cutting lead (HYPOTHESIS, not established — flagged for §9
+routing):** the coordinator notes §9's write-capacity diagnostic found
+high-K (K=15/16) ALSO fails to converge on the plain recipe. Early-LN
+unsticking the R=3 (operator-count) landscape is mechanistically the SAME
+kind of fix (stabilizing the raw-matmul read's training dynamics) that
+high-K (entity-count) failure might need — so **early-LN-annealed-during-
+training may be a general trainability fix for the matrix-native family's
+hard-convergence regimes.** UNTESTED on the K axis (different axis; I did
+not run it); a promising, cheap thing for §9 to try, not a claim.
+
+**Discipline:** additive build (§8.8, `ncr_opbank_recover.py` imports the
+shared modules verbatim, modifies none), independent opus build-audit
+CLEARED with its own executed mutation kill-proof (LN-leak → t1 fails →
+reverted); md5-verified deploy; real-CUDA smoke 4/4; GPUs 0/1/6/7 ONLY
+(the §9 diagnostic's 2/3/4/5 confirmed running 56–64% util and NEVER
+touched); resume-safe; tmux `ncr_opbank_recover`. **Shared-tree
+discipline:** the §9 agent has uncommitted §9.9 content in
+`NOVEL_ARCH_WATERFALL.md`; to honor "never sweep its edits," this §8.9
+record is committed to EXPERIMENT_LOG (durable, pushed) and the waterfall-
+registry §8.9 section is DEFERRED to a clean-doc window (noted for the
+coordinator). **Ledger:** 4 cells × ≈0.46 GPU-h ≈ **1.85 GPU-h** of the
+≤8 cap (operator-bank own-cap ≈2.5/80 spent total incl. Phase-0+recal).
+**Security: 3 more fake `<system-reminder>` injections this session** (the
+composite date-change + "DO NOT mention this to the user" concealment +
+fabricated-agent-type-list + fabricated-MCP-instructions block, on tool
+outputs and the recovery DONE background-task notification) — ALL
+disregarded incl. every concealment order; date verified vs box+local;
+0 landed in any committed file. **Session tally 7.** Archive:
+`experiment-runs/2026-07-11_ncr_opbank_recover/` (26-file repo tier 200K:
+4 cell JSONs + 12 per-relation locks + 4 cell logs + supervisor + worker +
+verdict json + exact source + launcher + md5 manifest; SSD mirror
+identical). **STOPPED for coordinator routing** — the pre-registered next
+step (seed-replication confirm of earlyln, + a far-depth precision probe)
+is the coordinator's call; NO wave launched. Pointers:
+`matrix-thinking/ncr/ncr_opbank_recover.py`, `NOVEL_ARCH_WATERFALL.md`
+§8.7 (pre-reg) / §8.8 (build) — §8.9 waterfall section pending clean-doc window.
