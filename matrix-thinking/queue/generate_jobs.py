@@ -471,13 +471,188 @@ def lane_c_jobs() -> list[dict]:
     return jobs
 
 
+# ---------------------------------------------------------------------------
+# REGATE 2026-07-12 -- §11.2-driven re-gate of the K-scaling ladder. See
+# matrix-thinking/queue/regate_2026-07-12.md for the full before/after
+# ledger and audit record. Two purely-additive pieces (no existing job ID
+# above is touched or renumbered):
+#
+#   (1) lane_a_budget2x_probe_jobs() -- the two probes §11.2 priced but did
+#       NOT launch ("(i) K=16 budget/anneal probe ... 2x-steps/longer-anneal
+#       variant at K=16 x 4 seeds ~=3.5 GPU-h ... (ii) [same] at K=24 ...
+#       ~=4 GPU-h"). ln_alpha_at(step, total) anneals over `total // 2`
+#       where `total` IS the --steps value passed on the CLI
+#       (ncr_earlyln_scale.py:147-152) -- so a single --steps 160000 call
+#       is simultaneously 2x budget AND 2x anneal length. No new CLI knob
+#       needed; no model/training code touched.
+#
+#   (2) lane_b_seedext_increment_jobs() / lane_c_k20_increment_jobs() --
+#       refill for the GPU-h removed by parking K>=24 Lane A/C cells
+#       (§11.2: K=16 1/4 converged-partial, K=24 0/4 dead -- both
+#       TRAINABILITY-STILL-LIMITED under the CURRENT flat-80K recipe, so
+#       K>=24 MAIN cells at that recipe would burn GPU-h re-measuring a
+#       now-known-dead result). Reuses _fixscale_cell() / the Lane C K=20
+#       deepen loop verbatim, just the next seeds in sequence -- same
+#       already-audited machinery, same validity checks, same cost model.
+# ---------------------------------------------------------------------------
+BUDGET2X_OUTDIR = f"{NCR_DIR}/results_earlyln_budget2x"   # separate from
+        # EARLYLN_OUTDIR on purpose -- see the notes field below (resume-skip
+        # collision if reused).
+STEPS_BUDGET2X = 160_000   # 2x STEPS_MAIN=80_000; §11.2's own priced probe
+
+
+def lane_a_budget2x_probe_jobs() -> list[dict]:
+    jobs = []
+    seq = 50
+    # (K, measured per-cell GPU-h at 80K steps == §11.2's own per-K 4-seed
+    # main-run total / 4: K16 1.705/4, K24 2.015/4 -- MEASURED, not
+    # formula-extrapolated.)
+    specs = [(16, 1.705 / 4), (24, 2.015 / 4)]
+    for K, per_cell_80k in specs:
+        est = round(per_cell_80k * 2.0, 4)                  # linear-in-steps
+        ceiling = max(1.0, round(per_cell_80k * 4.0, 1))    # >=100% margin over est
+        for seed in (0, 1, 2, 3):
+            jid = f"{seq:03d}_laneA_budget2x_K{K}_s{seed}"
+            cmd = (
+                f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K {K} --seed {seed} "
+                f"--steps {STEPS_BUDGET2X} --outdir {BUDGET2X_OUTDIR} "
+                f"--ceiling-gpuh {ceiling} --stop-file {BUDGET2X_OUTDIR}/STOP"
+            )
+            vcheck = (
+                f"{PY} -c \""
+                f"import json; d=json.load(open('{BUDGET2X_OUTDIR}/earlyln_K{K}_s{seed}.json')); "
+                f"assert d.get('status')=='COMPLETED'; "
+                f"assert d.get('train',{{}}).get('step')=={STEPS_BUDGET2X}; "
+                f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True\""
+            )
+            jobs.append(dict(
+                id=jid, lane="A",
+                hypothesis=(f"§11.2's priced next-rung question: is K={K}'s trainability "
+                            f"wall (K16: 1/4 converged, recovery stuck at 0.60-0.97 with "
+                            f"dirty writes; K24: 0/4, partial-formation profile, loss "
+                            f"1.0->0.36, A_eff_rank->17.7/24) BUDGET-limited rather than a "
+                            f"hard architecture ceiling? --steps {STEPS_BUDGET2X} doubles "
+                            f"BOTH total budget AND anneal length in one call (anneal = "
+                            f"first half of --steps) -- no new knob, no code change."),
+                cmd=cmd, gpu_h_estimate=est,
+                output_dir=BUDGET2X_OUTDIR, validity_check=vcheck,
+                notes=(f"MEASURED cost basis (§11.2 K={K} 80K-step 4-seed total "
+                       f"{per_cell_80k * 4:.3f} GPU-h / 4 = {per_cell_80k:.4f}/cell), "
+                       f"linearly doubled for {STEPS_BUDGET2X} steps = {est} GPU-h/cell "
+                       f"({est * 4:.2f} GPU-h/4 seeds, matches §11.2's own disclosed "
+                       f"'~3.5'/'~4' GPU-h estimate). Separate outdir "
+                       f"({BUDGET2X_OUTDIR}) is REQUIRED, not cosmetic: reusing "
+                       f"EARLYLN_OUTDIR would hit the script's own whole-cell "
+                       f"skip-if-COMPLETED check (ncr_earlyln_scale.py:217-222) against "
+                       f"the ALREADY-COMPLETED 80K-step record at this exact (K,seed), "
+                       f"returning it unrun -- the vcheck's step=={STEPS_BUDGET2X} "
+                       f"assertion would then correctly route the job to failed/, "
+                       f"silently burning the slot rather than measuring anything. "
+                       f"Ceiling is 4x the 80K per-cell rate (>=100% margin over the "
+                       f"2x-linear estimate)."),
+            ))
+            seq += 1
+    return jobs
+
+
+def lane_b_seedext_increment_jobs(start_seq: int = 400) -> list[dict]:
+    jobs = []
+    seq = start_seq
+    dm392, ds392, L392 = 1536, 128, 16
+    steps_392 = 20_000
+    for seed in (8, 9, 10, 11):
+        for arm in ("off", "per_token"):
+            for corpus in CORPORA:
+                name = f"fixscale_seedext_arm_{arm}_392m_{corpus}_s{seed}"
+                cmd, vcheck, ckpt_dir, out = _fixscale_cell(
+                    name, corpus, dm392, ds392, L392, steps_392, seed, arm)
+                jid = f"{seq:03d}_laneB_392m_seedext_{arm}_{corpus}_s{seed}"
+                jobs.append(dict(
+                    id=jid, lane="B",
+                    hypothesis=(f"Regate-2026-07-12 refill: further tightens the n=7->"
+                                f"n=11 CI on FROZEN_BIAS_LM_DESIGN.md S13.22's "
+                                f"392M-{corpus} reading (arm={arm}) -- identical cell/"
+                                f"protocol to the original seedext block (seeds 4-7), "
+                                f"next seeds in sequence, does not reopen the recorded "
+                                f"verdict."),
+                    cmd=cmd, gpu_h_estimate=4.671,
+                    output_dir=FIXSCALE_RESULTS_ROOT, validity_check=vcheck,
+                    notes=("identical cost basis to the original seedext block "
+                           "(S13.22 ref_per_step_s=0.836, per_cell_gpuh=4.671)."),
+                ))
+                seq += 1
+
+    dm98, ds98, L98 = 768, 64, 12
+    steps_98 = 67_547
+    for seed in (7, 8, 9, 10):
+        for arm in ("off", "per_token"):
+            for corpus in CORPORA:
+                name = f"fixscale_seedext_arm_{arm}_98m_{corpus}_s{seed}"
+                cmd, vcheck, ckpt_dir, out = _fixscale_cell(
+                    name, corpus, dm98, ds98, L98, steps_98, seed, arm)
+                jid = f"{seq:03d}_laneB_98m_seedext_{arm}_{corpus}_s{seed}"
+                jobs.append(dict(
+                    id=jid, lane="B",
+                    hypothesis=(f"Regate-2026-07-12 refill: further tightens the n=7->"
+                                f"n=11 CI on S13.22's 98M-{corpus} reading (arm={arm}) -- "
+                                f"identical cell/protocol to the original seedext block "
+                                f"(seeds 3-6), next seeds in sequence."),
+                    cmd=cmd, gpu_h_estimate=4.478,
+                    output_dir=FIXSCALE_RESULTS_ROOT, validity_check=vcheck,
+                    notes=("identical cost basis to the original seedext block "
+                           "(S13.22 ref_per_step_s=0.236, per_cell_gpuh=4.478)."),
+                ))
+                seq += 1
+    return jobs
+
+
+def lane_c_k20_increment_jobs(start_seq: int = 450) -> list[dict]:
+    jobs = []
+    seq = start_seq
+    K = 20
+    est = f_cost(K)
+    ceiling = max(1.0, round(est * 2.0, 1))
+    for seed in (6, 7):
+        jid = f"{seq:03d}_laneC_deepen_K{K}_s{seed}"
+        cmd = (
+            f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K {K} --seed {seed} "
+            f"--steps {STEPS_MAIN} --outdir {EARLYLN_OUTDIR} "
+            f"--ceiling-gpuh {ceiling} --stop-file {EARLYLN_OUTDIR}/STOP"
+        )
+        vcheck = (
+            f"{PY} -c \""
+            f"import json; d=json.load(open('{EARLYLN_OUTDIR}/earlyln_K{K}_s{seed}.json')); "
+            f"assert d.get('status')=='COMPLETED'; "
+            f"assert d.get('train',{{}}).get('step')=={STEPS_MAIN}; "
+            f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True\""
+        )
+        jobs.append(dict(
+            id=jid, lane="C",
+            hypothesis=(f"Regate-2026-07-12 refill: K=20 is the one rung §11.2 leaves "
+                        f"genuinely open (the K-scaling ladder was pinned at "
+                        f"K in {{14,15,16,24}}; K=20 has never been measured under "
+                        f"earlyln). Deepens n=6->n=8 on the SAME already-registered "
+                        f"cell -- house fallback, not new science."),
+            cmd=cmd, gpu_h_estimate=round(est, 3),
+            output_dir=EARLYLN_OUTDIR, validity_check=vcheck,
+            notes="same formula-extrapolated estimate + ceiling convention as Lane A/C.",
+        ))
+        seq += 1
+    return jobs
+
+
+def regate_20260712_jobs() -> list[dict]:
+    return (lane_a_budget2x_probe_jobs() + lane_b_seedext_increment_jobs()
+            + lane_c_k20_increment_jobs())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outdir", default=os.path.join(HERE, "jobs", "pending"))
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)
 
-    all_jobs = lane_a_jobs() + lane_b_jobs() + lane_c_jobs()
+    all_jobs = lane_a_jobs() + lane_b_jobs() + lane_c_jobs() + regate_20260712_jobs()
 
     total_by_lane = {}
     for j in all_jobs:

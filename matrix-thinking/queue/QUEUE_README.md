@@ -26,6 +26,15 @@ database, no cleverness.
                 (filename suffixed .g<N> — which GPU/worker claimed it)
   completed/    validity-checked successes
   failed/       validity-check failures (log preserved, NOT auto-retried)
+  parked_*/     job specs pulled OUT of pending/ by a re-gate (never
+                claimed by a worker, never deleted — a park is reversible:
+                mv back into pending/ to re-activate). Each parked_*/ dir
+                carries its own reason at park time; see e.g.
+                `parked_k24plus/` (opened 2026-07-12, re-gate note
+                `matrix-thinking/queue/regate_2026-07-12.md` — the
+                §11.2 K-scaling verdict TRAINABILITY-STILL-LIMITED made
+                K≥24 main/deepen cells under the then-current flat-80K
+                recipe a known-dead re-measurement, not new information).
   logs/         one <job_id>.log per job (full stdout+stderr)
   worker_g<N>.log   per-worker heartbeat/decision log
   PAUSE         if present: no worker claims a NEW job (running jobs finish)
@@ -137,6 +146,19 @@ hand-edited JSON): edit `matrix-thinking/queue/generate_jobs.py`, run
 `python3 generate_jobs.py`, then `scp` the new files in `jobs/pending/`
 into `~/queue/pending/` on the box (workers pick them up automatically —
 no restart needed, they poll `pending/` every 15s when a GPU is free).
+
+**Against a LIVE queue** (some jobs already claimed/completed/parked),
+add new job-generating functions to `generate_jobs.py` rather than
+editing existing ones (keeps IDs 000-N byte-identical on re-generation —
+verify with a diff/md5 check before deploying), then `scp` ONLY the new
+files by name — do not run `deploy.sh` or blanket-`scp` all of
+`jobs/pending/*.json`, since `deploy.sh`'s own count/md5 guard assumes a
+fully-static `pending/` and will correctly refuse once the box's real
+`pending/` has diverged from the repo's full generated set (some already
+claimed, completed, or parked). See
+`matrix-thinking/queue/regate_2026-07-12.md` for a worked example
+(re-gate + refill against a live queue, park reversibly instead of
+deleting, surgical delta-scp).
 
 ## What NOT to do
 

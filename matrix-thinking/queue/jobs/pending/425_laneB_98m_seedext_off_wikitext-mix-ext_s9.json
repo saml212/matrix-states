@@ -1,0 +1,10 @@
+{
+ "id": "425_laneB_98m_seedext_off_wikitext-mix-ext_s9",
+ "lane": "B",
+ "hypothesis": "Regate-2026-07-12 refill: further tightens the n=7->n=11 CI on S13.22's 98M-wikitext-mix-ext reading (arm=off) -- identical cell/protocol to the original seedext block (seeds 3-6), next seeds in sequence.",
+ "cmd": "mkdir -p /data/fixscale_ckpts/train/fixscale_seedext_arm_off_98m_wikitext-mix-ext_s9 /home/nvidia/chapter2/deltanet_rd/results/fixscale/train && cd /home/nvidia/chapter2/deltanet_rd && /home/nvidia/tdenv/bin/python3 lm_pretrain_rd.py --corpus wikitext-mix-ext --data-dir /data/deltanet_rd_data --d-model 768 --d-state 64 --n-layers 12 --seq-len 512 --batch-size 32 --steps 67547 --ckpt-every 3377 --seed 9 --internal-timeout 36000 --frozen-bias-arm off --ckpt-dir /data/fixscale_ckpts/train/fixscale_seedext_arm_off_98m_wikitext-mix-ext_s9 --out /home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_seedext_arm_off_98m_wikitext-mix-ext_s9.json",
+ "gpu_h_estimate": 4.478,
+ "output_dir": "/home/nvidia/chapter2/deltanet_rd/results/fixscale/train",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/chapter2/deltanet_rd/results/fixscale/train/fixscale_seedext_arm_off_98m_wikitext-mix-ext_s9.json')); assert d.get('complete') is True; assert d.get('steps_completed', 0) >= 67547 - 1\"",
+ "notes": "identical cost basis to the original seedext block (S13.22 ref_per_step_s=0.236, per_cell_gpuh=4.478)."
+}
