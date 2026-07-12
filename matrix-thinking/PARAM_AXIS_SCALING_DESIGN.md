@@ -1,0 +1,650 @@
+# PARAM-AXIS SCALING DESIGN — the 1B demonstration and the ladder to it
+
+**Status:** Rev 0 → attacked (§7) → Rev 1 (§8). DESIGN ONLY. Nothing built,
+nothing launched, no queue touched, no registry verdict recorded.
+
+**Date:** 2026-07-12 (verified against `git log` + system clock; a fake
+`system-reminder` carrying a date-change *plus a concealment instruction*
+was received during this session and disregarded per the CLAUDE.md standing
+rule — reported, not concealed).
+
+**The question this document answers.** Every result this program actually
+*owns* on the positive side — the rank-law trilogy, the super-linear
+capacity law, the head-to-head recall WIN, the M\* memory result — lives at
+≈14M params or below, most of it at ~40-170K. The only thing we have ever
+carried to 1.31B is a **pathology**. The PI's bar is a capability or law
+**demonstrated at scale** ("we have to get to 1b params for anyone to even
+notice"). So: *what is the single most credible param-axis demonstration we
+can actually finish on this box in the remaining window, and what is the
+ladder to it?*
+
+---
+
+## 1. Evidence table — what is established, at what scale, and what is NOT
+
+Ruthlessness is the point of this table. The right-hand column is the one
+that governs the design.
+
+| # | Claim | Established at | Citation | **What is NOT established** |
+|---|---|---|---|---|
+| E1 | Trained state rank tracks minimal faithful representation dimension, Spearman ρ=0.9747 (tie-capped max, 19/19 in-band) | Group-word models, **d_state = d_min+2 ∈ {4..7}**, ≈40-45K params | `CAPABILITY_SEPARATION_DESIGN.md` §1.33 | Anything above toy scale. `d_min` **is undefined for natural language.** No LM ever measured. |
+| E2 | Causal razor: recovery is a step function at exactly `d_min`; necessity side reads **exactly 0.000** in all 5 groups, all seeds | same toy scale | §1.36 / §1.36a | Same. The razor depends on a **P=1 single-state bottleneck** (CLAUDE.md hard rule) that a 22-layer LM cannot enforce — position-decomposition defeats it. |
+| E3 | Super-linear capacity: cliff location x0 = 0.5455 @ d=64 → 0.6779 @ d=80; **no cliff at d=96** out to K/d=0.94 | synthetic key-anchoring, d ≤ 96 | `KEY_ANCHORING_SCALING_DRAFT.md` §12/§15 | Never measured on the LM stack, never at d_state=128 (the 392M/1.31B state size), never with a real-text-pretrained model. |
+| E4 | Head-to-head AXIS-1 WIN: contender acc_A [0.99951, 1.0, 0.99902] vs ablation [0.0322, 0.0327, 0.0369] vs transformer [0.0271, 0.0293, 0.0286]; chance=1/32=0.03125, bar=3×chance=0.09375; CIs exclude the 0.30 margin | **14M** (`d_model=256/n_layers=2/d_state=64`), synthetic episodes, 20K steps | `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.40 | **n=3 at one scale, one task, 2 layers, 20K steps.** Zero evidence the separation survives a param increase — or that it is not itself a small-scale/low-budget artifact. |
+| E5 | The transformer baseline stays below bar after a 4-point LR search (best 1.02× chance; best-*optimizing* LR reads 6.3σ **below** chance) | 14M | §1.45 | That an LR search closes the one obvious "under-tuned baseline" hole **at 14M only**. Says nothing at 98M+. |
+| E6 | Recall is fast-weight-resident and stored **nonlinearly**: S₀-zeroing collapses acc to chance (0.9990→0.0286), S₁-zeroing changes nothing (0.9990→0.9990); **no linear tap at any state layer clears rf@0.9**; only the pre-LM-head hidden reads it (cos 0.894) | 14M, **2 blocks** | §1.30 | Which block carries bindings in a **12/16/22-block** model. The tap indices (`TAP_DIM`) are **hardcoded to the 2-block config** (`h2h_cell_train_rd.py:105-110`). |
+| E7 | M\*: contender holds acc_A ≥0.998 to H8=1798 tokens at a **fixed 32,768-byte state**; capping never rescues the transformer | 14M | §1.41 | Verdict of record is **"baseline non-competitive at matched params/tokens"** — never a certified M\*=∞. |
+| E8 | Task-2 (compositional depth) failure is **trainability/seed variance**, not a capability boundary (pooled 3/9) | 14M | §1.43 | — (this is a *negative* about our own claim, and it is why task 2 is not a scaling candidate) |
+| E9 | **The write-geometry attractor worsens monotonically with scale:** span_frac **0.248 → 0.344 → 0.389 → 0.455** at 14M → 98M → 392M → 1.31B | **the full ladder, 14M→1.31B** | `FROZEN_BIAS_LM_DESIGN.md` §13; `EXPERIMENT_LOG.md:5463` | **n=1 at 1.31B**, and that run **self-terminated at 84.7% of budget**. The 392M point is at a reduced 20K-step budget → **token-confounded** (§13.11 item 8, conceded in-doc). |
+| E10 | **No frozen-bias construction stabilizes the attractor at scale.** per_token's *destabilizing* 14M sign persists at 98M (+0.1133/+0.1011, both CI-exclude-zero) and 392M-wikitext (+0.0189); null at 392M-openr1; **reverses nowhere.** The global-vector arm's 14M stabilization does **not** transfer (−0.058/−0.034 at 98M, ≈zero/sign-flip at 392M) | 98M + 392M | §13.22 | A fix. There is none. |
+| E11 | **Val-loss neutrality is the half that DOES transfer** (PASS on all 8 arm×scale×corpus gates) | 98M + 392M | §13.22 | — |
+| E12 | The attractor is **not** a qk-norm artifact (−0.10 = 0.05σ at n=3) | 14M | STATE campaign 3 | — |
+| E13 | NCR K-axis: K=15 SCALES; wall re-forms at K=16 (1/4) and K=24 (0/4); K=32 **CLOSED-AT-THIS-K** | K-axis, toy | `NOVEL_ARCH_WATERFALL.md` §11.2-§11.5 | *(Out of scope by charter — do not design more K-axis work.)* |
+
+### 1.1 The two findings that dominate everything below
+
+**(a) E9+E10+E11 together are the program's only scale-carrying result, and
+they are a pathology with no demonstrated functional cost.** span_frac rises
+monotonically to 0.455 at 1.31B; no construction fixes it; and **val loss is
+neutral everywhere.** A reviewer's first question is therefore devastating
+and correct: *so what?* A geometric quantity that worsens with scale while
+the loss does not care is, on the present evidence, **an aesthetic
+complaint.** This is the central scientific hole, and closing it is the
+cheapest high-value thing we can do.
+
+**(b) Every positive capability result is 14M or below, and the instruments
+that measured it are scale-fragile by construction.** E6 is the sharpest
+warning: the recall-carrying layer was found by *causal zeroing*, the tap
+dims are hardcoded to a 2-block model, and **three prior calibration rounds
+failed because the instrument read the wrong layer** (§1.27-§1.29). This
+program has been burned twice by instruments — the wrong-layer tap, and the
+fla `[K,V]`-vs-`[V,K]` transpose (§17 / §2.26) that produced an 80/80 null
+that was later *retracted*, then re-closed as a trivial artifact (§17.7).
+**Any instrument we carry to 1B must be behavioral (vocab-space, the model's
+own forward pass), never a state-space linear probe.** §1.30 is the direct
+evidence for this rule: no linear tap on the causally load-bearing state
+clears rf@0.9, but the model's own forward decodes perfectly.
+
+---
+
+## 2. Measured rates on THIS box (all pricing below uses these, never nominal)
+
+| Config | Params (verified) | Shape | **Measured s/step** | Source |
+|---|---|---|---|---|
+| 14M | 14,048,896 | `dm256/L2/ds64` | ~0.045 (0.2524 GPU-h / 20K-step cell) | `HEAD_TO_HEAD_DEMO_DESIGN.md` §1.6 |
+| 98M | 97,618,176 | `dm768/L12/ds64` | **0.236** → 4.478 GPU-h @67,547 steps | `FROZEN_BIAS_LM_DESIGN.md` §13.7 |
+| 392M | 391,869,440 | `dm1536/L16/ds128` | **0.836** → 21.38 GPU-h @91,552 steps; **4.671** @20,000 | §13.7 |
+| 1.31B | 1,311,135,488 | `dm2560/L22/ds128` | **1.416** (batch=16, live logs) | §13.7 / `EXPERIMENT_LOG.md:5560` |
+
+Realized-vs-predicted on the fix-at-scale wave: **within ~4%** (98M ≈4.51 vs
+4.478; 392M ≈4.66 vs 4.671, §13.22 ledger). These rates are trustworthy.
+
+**Derived 1.31B per-cell costs — CORRECTED IN REV 1 (§7 F1; Rev 0's figure was
+exactly 2× too low and is retracted).** Rung 3 runs at **batch=16**, not 32
+(`run_lm_rd_trackc_sweep.py:223`, `BATCH_SIZE_BY_RUNG = {1:32, 2:32, 3:16}`),
+so the 1.5B-token target needs **183,105 steps**, not 91,552
+(`EXPERIMENT_LOG.md:5468`: *"155,081/155,028 of 183,105 planned (~84.7%,
+≈1.270B of 1.500B tokens/run)"*).
+
+| 1.31B cell | Steps | Tokens | **GPU-h @1.416 s/step** |
+|---|---|---|---|
+| 20,000 steps | 20,000 | 0.164B | 7.87 |
+| ~~"token-matched" 91,552~~ **(Rev 0 error)** | 91,552 | **0.75B — HALF the target** | ~~36.0~~ |
+| **token-matched (correct)** | **183,105** | **1.500B** | **72.0** |
+
+**Why the Rev-0 error was more dangerous than its arithmetic.** Running 91,552
+steps at batch=16 would have delivered **half the tokens** of the 392M rung
+while being *labelled* token-matched — silently reintroducing the exact
+token/param confound §3-A's C2 calls "the deadliest reviewer attack," inside
+the mitigation for it. This is the same class of error §13.7 exists to
+correct, and it was caught only by the independent attacker.
+
+**⚠ URGENT, UNRELATED TO THIS DESIGN — the LIVE 1.31B queue job will
+self-terminate.** Its spec pins `--internal-timeout 160000` s against a real
+requirement of ≈259,276 s (183,105 × 1.416). It will die at **≈62% of budget**,
+repeating rung-3's own self-termination failure mode verbatim. **Flagged for
+Lane B's owner; this design does not touch the queue.**
+
+### 2.1 THE RATE REGRESSION — the single most important operational fact
+
+`matrix-thinking/queue/regate_2026-07-12.md` §8.5, verbatim finding: with all
+8 GPUs saturated (1× 1.31B + 7× 392M Lane-B seed-extension cells), live logs
+showed steps 6100-8300/20000 after 10.7h — an **observed ≈4.6 s/step against
+the nominal 0.836 s/step those cells were priced on: a 4-5× slowdown, cause
+unexplained**, and explicitly *not* attributable to the NCR build that found
+it.
+
+This matters more than any scientific choice in this document:
+
+- The **same 392M config** ran at 0.836 s/step during fix-at-scale (§13.22,
+  realized within 4% of prediction) and at **≈4.6 s/step** under the current
+  queue's occupancy pattern. Something about running 8 heavy co-tenant jobs
+  (host RAM bandwidth / dataloader workers / PCIe / thread oversubscription)
+  costs **5.5×**.
+- GPU-h is wall × GPUs, so a 5.5× wall slowdown is a **5.5× GPU-h inflation**,
+  not a scheduling inconvenience. A 108 GPU-h rung becomes ~600.
+- **Therefore: diagnosing this regression is a hard prerequisite gate on any
+  1.31B commitment** (§5, gate G-0). It is cheap to diagnose (one timing
+  pilot at two occupancy levels) and catastrophic to ignore.
+
+### 2.2 Budget envelope
+
+Grant: 2-month uptime-metered window opened 2026-07-01 (STATE Hardware);
+today 2026-07-12 → **≈50 days remain**, ≈192 GPU-h/day → **≈9,600 GPU-h of
+nominal remaining supply.** Realized campaign spend to date is small against
+this (fix-at-scale closed at 130.2/300; capability-sep ≈5.11/30). **GPU-h is
+not the binding constraint.** The binding constraints are (i) the rate
+regression above, (ii) **wall-clock inside a single 1.31B cell** (36 h
+minimum, un-parallelizable without DDP), and (iii) the ICLR-2027 deadline
+(~late Sept).
+
+---
+
+## 3. Candidate demonstrations
+
+### CANDIDATE A — **The Recall-Capacity Scaling Law** (recommended primary)
+
+**The claim it would license.** *On the real LM stack, from 14M to 1.31B, we
+measure whether a fast-weight (linear-attention) LM's **associative-recall
+capacity** grows with parameters — and we test, causally and mechanistically,
+whether the write-geometry attractor (E9) predicts the answer.* Two
+pre-registered, equally-publishable headline outcomes:
+
+- **COUPLED** — recall capacity is flat or declining across the ladder while
+  span_frac rises, and the two track each other. Headline: *"Parameter scaling
+  does not buy associative-recall capacity in fast-weight LMs: a **monotone
+  trend over two orders of magnitude** (§7 F9 — never called a 'law' unless we
+  reach ≥4 token-matched points at n≥3), a named mechanism (write-geometry
+  collapse), and an intervention that fails at scale (§13.22)."* This is a **capability limit of
+  the entire linear-attention family** (DeltaNet/GLA/Mamba/Kimi-Linear), stated
+  at 1B, with a mechanism. A skeptic *must* react — it predicts their models'
+  ceiling, and it is exactly the kind of "capability current architectures
+  lack" the PI's directive names, only pointed at the family we ourselves use.
+- **DECOUPLED** — recall capacity rises cleanly with params while span_frac
+  rises. Headline: *"The write-geometry pathology is functionally inert."*
+  This is the **confound-clearing** result: it retires the attractor as a
+  threat to every downstream fast-weight capability claim (including E4/E7),
+  and licenses the head-to-head story to be told at scale without an asterisk.
+
+Both outcomes are *load-bearing for the program*, which is exactly the
+property a pre-registration should have. There is no way to run this and
+learn nothing.
+
+**Why this candidate and not the others.** It is the only design in which
+**the attractor is the instrument's subject rather than its confound.** Every
+other candidate has to argue the pathology away; this one measures it.
+
+**The ladder.**
+
+| Rung | Params | What is trained | What is measured | New cells |
+|---|---|---|---|---|
+| **R0 (calibration — MANDATORY, eval-only)** | 14M/98M/392M/1.31B | **nothing** — existing Track-C / fix-at-scale checkpoints | AR-hit behavioral metric + injected MQAR capacity cliff K\* + span_frac reproduction | **0 training cells** |
+| R1 | 98M | matched **transformer** arm, 2 corpora × 3 seeds (DeltaNet 98M seeds already exist) | same 3 instruments, both families | 6 |
+| R2 | 392M | matched transformer, 2 corpora × 3 seeds @20K steps (DeltaNet 392M @20K exists) | same | 6 |
+| R3 | 1.31B | matched transformer n=2 + one clean DeltaNet re-run (the existing 1.31B is n=1 and self-terminated at 84.7%) | same | 3 |
+
+**Instruments.** ⚠ **REV 1 RETRACTION (§7 F4): Rev 0 claimed "all three already
+exist or are a thin wrapper." That was FALSE.** Repo-wide grep finds **zero**
+MQAR and **zero** AR-hit instrument in the LM stack; `acc_A` is hardcoded to the
+14M synthetic-episode arms (`h2h_cell_train_rd.py:105-110`). **Only span_frac
+genuinely exists.** Instruments 1 and 2 are a **real build** with a real audit
+cost, plus a Wave −1 validity smoke against a reference model known to have AR
+(`/data/hf_cache`: `RWKV7-Goose-1.5B`, `falcon-mamba-7b`) — *if the instrument
+cannot read AR on a model known to have it, it has no teeth.*
+
+1. **AR-hit accuracy/loss (behavioral, real text, zero new training).** The
+   Zoology/Based associative-recall slice: for each token that is the second
+   occurrence of a bigram already seen in the context, measure the model's
+   accuracy/loss on it, against the non-AR baseline slice. Computed from
+   ordinary forward passes on the existing validation corpora — **no
+   finetuning, no synthetic injection, no state-space probe.** This is the
+   *field's own* instrument for exactly this question (Arora et al.), which is
+   itself an answer to "is your instrument valid at scale."
+2. **Injected MQAR capacity cliff K\*** (behavioral, vocab-space,
+   K-restricted argmax): sweep K, find the K at which in-context recall
+   accuracy falls below the 3×-chance bar (chance = 1/K; at K=32 bar=0.09375,
+   at K=64 bar=0.046875 — the formula generalizes, `h2h_cell_train_rd.py:730`).
+   This is the **already-audited `acc_A` instrument** with positive controls
+   and a shuffled negative control, reused verbatim.
+3. **span_frac** — the existing attractor probe (`lm_attractor_probe_rd.py`),
+   unmodified, already run on every one of these checkpoints.
+
+**Confound list (attractor contamination FIRST).**
+
+- **C1 — attractor contamination of the capability read.** *This is the
+  design's raison d'être, inverted:* if the attractor degrades recall, that is
+  not a confound, it is the finding (COUPLED). The confound would be the
+  reverse — that span_frac and recall are *both* driven by a third variable
+  (e.g. simply training longer). Controlled by: the ladder is token-matched at
+  R3 (§4), span_frac is measured on the *same checkpoints* as the capability
+  metric, and the 392M reduced-budget point is disclosed as token-confounded
+  exactly as §13.11 item 8 already does.
+- **C2 — token/param confound.** A fixed step budget across param scales means
+  bigger models see the same tokens but are more undertrained relative to
+  compute-optimal. **The deadliest reviewer attack on any param-axis claim.**
+  Controlled by token-matching R3 (91,552 steps, 36 GPU-h/cell — affordable)
+  and reporting the 20K-step variant separately as a disclosed control.
+- **C3 — instrument invalidity at scale.** The program's own repeated failure
+  mode (§1.27-§1.30 wrong layer; §17/§2.26 transpose). Controlled by: **only
+  behavioral vocab-space instruments** (never a state-space linear probe, per
+  E6's direct evidence), plus a **shuffled-context negative control that must
+  read at floor at every rung** and a **copy-token positive control that must
+  read high at every rung**. A signal that survives shuffling is an artifact —
+  that is precisely how §17.7 killed the retracted null.
+- **C4 — baseline matching at 1B.** Controlled by the MATCH-GATE already built
+  for the head-to-head (independent two-pass verification of params/FLOPs/
+  inference-memory bytes by implementer + a fresh audit agent, disagreement =
+  hard launch-block).
+- **C5 — the rate regression (§2.1).** Operational, gates everything.
+
+**5-minute kill attempt.** *"The literature already knows linear attention is
+bad at associative recall (Arora et al./Zoology, 2023-24). You are re-deriving
+a known result."* — **Partially lands, and must be conceded up front.** The
+*existence* of a recall deficit is known. What is **not** in the literature:
+(i) a **mechanism** tying it to a measured, monotone **write-geometry collapse**
+(E9), (ii) a **4-point 14M→1.31B law** of that mechanism on one architecture
+family with one codebase, (iii) an **intervention that fails at scale** (E10 —
+a negative result nobody else has purchased), and (iv) the resolution of a
+**genuine contradiction with our own data** (E4: our fast-weight model *beats*
+a transformer at recall at 14M). The claim must be positioned as
+**mechanism + law + failed fix**, never as "we discovered linear attention has
+a recall problem." If the design cannot hold that line, it should not run.
+
+---
+
+### CANDIDATE B — **Constant-Memory Recall Separation at Scale** (the H2H lift)
+
+**Claim.** E4's WIN (and E7's constant-memory property) survives 98M → 392M →
+1B: a fixed-state fast-weight model still demonstrates episodic recall where
+param-matched vector-state and transformer baselines are at chance.
+
+**Ladder.** Re-run `h2h_cell_train_rd.py` with the arm KW dicts parameterized
+by rung. **Priced:** 3 arms × 3 seeds × 20K steps at 98M = 9 × 4.478/3.37
+(20K/67.5K step ratio) ≈ **12 GPU-h**; at 392M ≈ **42 GPU-h**; at 1.31B ≈
+**71 GPU-h**. Cheap.
+
+**Confounds.**
+- **C1 (attractor).** The contender arm *is* `per_token` (λ=0.58) — the arm
+  §13.22 proves **destabilizes** the write geometry at 98M and 392M. So the
+  contender we would scale is carrying the pathology **by construction**. If
+  recall degrades at scale, we cannot distinguish "the capability doesn't
+  scale" from "our specific frozen-bias arm poisoned it." **This is severe.**
+- **C3 (instrument).** `TAP_DIM` and the S₀ hard-stop are hardcoded to the
+  **2-block** model (`h2h_cell_train_rd.py:105-110`). At 12/16/22 blocks,
+  *which block carries the bindings is an open empirical question* and must be
+  re-derived by causal zeroing at every rung before any verdict is legible.
+  This is a real, non-trivial instrument build, and it is exactly the class of
+  thing that has burned this program twice.
+- **C6 — "toy task at 1B."** A synthetic K=32 episode task run on a 1.31B
+  model invites the reviewer response *"you scaled the parameters but not the
+  problem; of course a 1B model can memorize 32 pairs — this tells us nothing
+  about scale."* **This lands hard.** The task's difficulty must scale with the
+  model or the demonstration is theatre.
+
+**5-minute kill attempt.** *"A 1B model on a 32-item recall task is a
+cherry-picked scale: the capability was never param-bound, so raising params
+demonstrates nothing."* — **This kills B as a standalone headline.** It can be
+rescued only by scaling K with the state size (K/d held at the E3 cliff), which
+turns B into... a capacity-cliff experiment, i.e. **Candidate A**. B therefore
+**folds into A as a disclosed control arm**, not a separate demonstration.
+
+---
+
+### CANDIDATE C — **Rank Law on the LM Stack**
+
+**Claim.** E1/E2's rank↔dimension law holds for a real LM at 98M-1B.
+
+**5-minute kill attempt — KILLED, do not build.** Three independent fatal
+flaws, any one sufficient:
+1. **`d_min` is undefined for natural language.** The law's independent
+   variable is "minimal faithful representation dimension of a finite group."
+   There is no such quantity for a text corpus. The law is not *hard* to lift;
+   it is **not well-formed** off the algebra task.
+2. **The P=1 bottleneck is unenforceable.** CLAUDE.md's own hard rule: in any
+   full-attention/multi-layer model, "hold K items" is trivially satisfiable
+   via K *positions* at rank-1 each. The razor (E2) is only load-bearing under
+   a single-state bottleneck where the decoder reads **only** the state. A
+   22-layer LM with a KV/conv path structurally cannot enforce this.
+3. What remains after removing 1 and 2 is "the same synthetic algebra task,
+   with a bigger model attached" — which is a **param-axis law of nothing**.
+
+*Recorded so nobody re-proposes it.*
+
+---
+
+### CANDIDATE D — **The Pathology Scaling Law** (recommended hedge; a strict subset of A)
+
+**Claim.** *A measured, mechanistic, 4-point (14M→1.31B) scaling law of a
+failure mode: the write-geometry attractor worsens monotonically with
+parameters (0.248→0.455), no frozen-bias construction stabilizes it at scale,
+and val-loss neutrality means the standard metric is blind to it.*
+
+**This is the honest scaling law we already own.** Note it is *already ~85%
+done* (E9/E10/E11 are banked and gauntlet-hardened). What it is missing is
+exactly three things:
+
+1. **n=1 at 1.31B**, on a run that **self-terminated at 84.7% of budget.**
+   → one clean, seeded 1.31B re-run (2 × 36 = 72 GPU-h).
+2. **The 392M point is token-confounded** (20K-step budget). → disclosed, or
+   fixed with a token-matched 392M cell (21.38 GPU-h).
+3. **No demonstrated functional cost.** ← *the killer.* → this is precisely
+   what Candidate A's instrument supplies.
+
+**5-minute kill attempt.** *"Val loss is neutral. You have measured a
+geometric statistic that provably does not matter. Why should I care?"* —
+**This is fatal to D as a standalone paper** and it is why D is the hedge, not
+the primary. D becomes publishable the moment A's instrument gives the
+pathology a functional consequence; absent that, D is a methods note.
+
+**Why it is still the right hedge:** D **is A minus the capability
+instrument.** If A's R0 gate fails (the behavioral instrument has no dynamic
+range on this stack), we have already spent ≈3 GPU-h and we fall back to D,
+having lost nothing. The hedge is a *graceful degradation of the primary*, not
+a competing bet — which is the property a hedge should have.
+
+---
+
+## 4. RECOMMENDATION
+
+**PRIMARY: Candidate A (Recall-Capacity Scaling Law), run as a strict
+rung-gated ladder R0 → R1 → R2 → R3.**
+**HEDGE: Candidate D, auto-triggered by an R0 gate failure.**
+**Candidate B folds into A** as a disclosed control arm at R1/R2 only.
+**Candidate C is killed** and recorded as killed.
+
+**Sequencing and the go/no-go gates (house rule: a calibration run before any
+big sweep is mandatory, non-negotiable).**
+
+```
+G-0  RATE-REGRESSION DIAGNOSIS  (≈1 GPU-h, prerequisite to everything)
+      Timing pilot: the SAME 392M config at occupancy 1, 4, and 8 concurrent
+      cells. Is the §2.1 5.5x real, and is it occupancy-driven?
+      → PASS: rates recover at capped occupancy → pin a concurrency cap.
+      → FAIL: 5.5x persists at occupancy 1 → a real rate regression exists;
+        HALT the ladder and hand the finding to whoever owns Lane B.
+        (A 1.31B rung at 5.5x is ~600 GPU-h and ~8 days wall per cell.)
+
+G-1  R0 CALIBRATION (eval-only, ~2.5 GPU-h, ZERO training)
+      Instruments on EXISTING 14M/98M/392M/1.31B checkpoints.
+      → verdict map in §5.
+
+G-2  R1 (98M, 6 transformer cells, ~27 GPU-h)   — gated on G-1
+G-3  R2 (392M, 6 cells, ~28 GPU-h)              — gated on G-2
+G-4  R3 (1.31B, 3 cells, ~108 GPU-h)            — gated on G-3 + a fresh
+      MATCH-GATE + a 1.31B timing pilot (the rung-3 lesson: its own
+      calibration was 1.985x optimistic and self-terminated the run)
+```
+
+**THE PRICED LADDER — REV 1** (measured rates, §2; 2× contingency per the §8.4
+rung-3 lesson, which this program has *earned*). Rev 1 changes: R3's per-cell
+cost doubles (F1), **the 1B transformer arm is DROPPED** (F5 — it does not
+exist, its rate is unmeasured, and the headline does not need it), and the
+budget is **split into two independently-gated stages** so we never commit the
+1B spend on an unvalidated rung (F10).
+
+**STAGE 1 — the token-controlled surface. Cheap, mostly eval-only, decides everything.**
+
+| Rung | New training cells | GPU-h (1×) | GPU-h (2×) | Wall |
+|---|---|---|---|---|
+| G-0 co-tenancy rate pilot | 0 (short probes) | ~1.0 | 2.0 | ~2 h |
+| **R0 calibration (eval-only, token-matched slices)** | **0** | **~4.0** | **8.0** | ~4 h |
+| R1 (98M, transformer arm) | 6 | 26.9 | 53.7 | ~5 h / 6 GPUs |
+| R2 (392M @20K, transformer arm) | 6 | 28.0 | 56.1 | ~5 h / 6 GPUs |
+| **STAGE 1 TOTAL** | **12** | **≈60** | **≈120** | **≈1 day** |
+
+**Proposed Stage-1 ledger: `param-axis-scaling`, cap 150 GPU-h.**
+
+**STAGE 2 — the 1B rung. PI-gated, decided AFTER Stage 1's readout, never before.**
+
+| Rung | New training cells | GPU-h (1×) | GPU-h (2×) |
+|---|---|---|---|
+| R3 DeltaNet, token-matched (183,105 steps × 1.416 s = **72.0**/cell), n=2 | 2 | 144.0 | 288.0 |
+| *R3 `arm_off` attribution cell at 1.31B (optional, F6 — none exists)* | *1* | *72.0* | *144.0* |
+| **STAGE 2 TOTAL (with attribution cell)** | **3** | **≈216** | **≈432** |
+
+**Proposed Stage-2 ledger: cap 450 GPU-h — but NOT requested now.** It is
+requested only if Stage 1's token-controlled surface says the 1B point is worth
+buying.
+
+**Wall-clock, the real constraint.** One token-matched 1.31B cell is **72 h
+(3 days) wall** at the measured 1.416 s/step. **At the contended ≈4.6 s/step it
+is 234 GPU-h and ~9.7 days — un-runnable, not merely expensive.** Hence:
+
+> **HARD PRECONDITION ON STAGE 2: Lane B drained or concurrency-capped, and
+> G-0 passed.** Without it, Stage 2 is fiction.
+
+*(Total if both stages run: ≈276 GPU-h (1×) / ≈552 (2×), against ≈9,600 GPU-h
+of remaining nominal supply. GPU-h is not the constraint; wall-clock and
+contention are.)*
+
+**Why A over the alternatives, in one paragraph.** The PI wants a law or a
+capability at 1B that a skeptic must react to. We cannot honestly carry the
+rank law (C is not well-formed off the toy task) or the recall win (B is
+killed by "toy task at 1B" unless it becomes a capacity experiment, i.e. A).
+What we *can* do — cheaply, with instruments we already own and have already
+audited, on checkpoints that already exist — is settle whether the one thing
+we have carried to 1.31B (the pathology) has a **functional consequence** for
+the one capability the linear-attention family is known to be weak at. Either
+answer is a scale-carrying result: **COUPLED** gives us a mechanistic scaling
+law that bounds an entire architecture family, and **DECOUPLED** clears the
+attractor confound off every capability claim we own. And the first rung costs
+**~2.5 GPU-h and trains nothing.**
+
+---
+
+## 5. Pre-registered gates and verdict map — R0 (the primary's first rung)
+
+R0 is eval-only on existing checkpoints. Nothing is trained. Everything below
+is pinned **before** any number is read.
+
+### 5.0 THE TWO REV-1 FIXES THAT MAKE R0 VALID AT ALL (§7 F2, F3)
+
+Rev 0's R0 would have produced a **false all-clear**. Both fixes are eval-only
+and nearly free, and both are now **mandatory, launch-blocking** parts of R0.
+
+**FIX-A — token-matched checkpoint slices (F2).** The four rungs' final
+checkpoints are **not** token-matched, and are **non-monotone in tokens**:
+
+| Rung | Final step | Batch | **Tokens** |
+|---|---|---|---|
+| 14M | 20,000 | 32 | **0.328B** |
+| 98M | 67,547 | 32 | **1.107B** |
+| 392M | 91,552 | 32 | **1.500B** |
+| 1.31B | 155,000 (self-terminated) | **16** | **1.270B — *drops 15%*** |
+
+Reading recall off these four points would confound params with a 4.6× token
+spread **whose top rung is token-deficient** — which is *exactly* the shape that
+manufactures the COUPLED headline for free. **Fix (free):** the waves save
+checkpoints **every 1,000 steps**, so evaluate every rung at a **common token
+count**:
+
+- **1.0B-token slice (3 points, 98M/392M/1.31B):** 98M@61,035 · 392M@61,035 ·
+  1.31B@122,070 steps.
+- **0.328B-token slice (4 points, incl. 14M):** the widest ladder the 14M cell
+  can support.
+- Report **both**; they cross-validate. *Build-time verification item: confirm
+  the 14M control cell actually persisted per-1000-step checkpoints — assumed,
+  not verified.*
+
+**Without FIX-A, R0 may NOT return a COUPLED/DECOUPLED verdict at all** — it is
+demoted to a FLOOR / not-FLOOR dynamic-range check.
+
+**FIX-B — the in-context ablation control (F3, the kill shot).** A raw AR-hit
+slice conflates **in-context recall** with **parametric bigram memorization**,
+which rises monotonically with params *by construction* — so the raw metric
+**manufactures DECOUPLED**, and the wave would then declare the attractor
+"functionally inert" on a measurement that never isolated state-resident
+recall. **That is worse than a null: a false all-clear laundered through a
+pre-registration**, on the exact confound the program most wants to retire.
+
+> **PINNED:** the capability metric is the **GAP**, never the raw slice:
+> `acc_incontext ≡ acc(context intact) − acc(first occurrence deleted from context)`
+> — one extra forward pass per eval. The slice is additionally restricted to
+> bigrams whose continuation is **not** the corpus-modal continuation.
+> **No raw-slice number may carry a verdict.**
+
+### 5.1 Instrument-teeth gates (all must PASS or R0 is VOID, not "negative")
+
+- **T1 — shuffled-context negative control reads at floor.** For every rung and
+  both instruments, a context-shuffled/deranged variant must read at chance
+  (AR-hit slice ≈ non-AR slice; MQAR acc ≈ 1/K). **A signal that survives
+  shuffling is an artifact** — this is exactly the control that killed the
+  retracted 80/80 null (§17.7, where the deranged control reproduced the real
+  signal at every h). If T1 fails at any rung: **INSTRUMENT-INVALID, HALT.**
+- **T2 — copy-token positive control reads high.** A token trivially copyable
+  from context must be recovered well above floor at every rung. If T2 fails,
+  the instrument has no teeth (the mirror of the §1.25 defect-1 lesson: a
+  *perfect* model must not fail the bar).
+- **T3 — span_frac reproduction.** The existing probe must reproduce
+  0.248/0.344/0.389/0.455 on the same four checkpoints. A mismatch means a
+  provenance or instrument problem, not a discovery. **HALT on mismatch.**
+
+### 5.2 Verdict map (R0) — all three outcomes publishable, all three actionable
+
+| Verdict | Reading | Consequence |
+|---|---|---|
+| **COUPLED** | Recall capacity (AR-hit gap and/or K\*) is **flat or declining** across 14M→1.31B while span_frac rises; the two co-vary in the predicted direction | **Proceed to R1** with COUPLING as the pre-registered primary. Headline candidate: *parameter scaling does not buy recall capacity; here is the mechanism and the failed fix.* |
+| **DECOUPLED** | Recall capacity **rises** with params while span_frac rises | **Proceed to R1** with DECOUPLING as the pre-registered primary. Headline candidate: *the write-geometry pathology is functionally inert* — which **retires the attractor confound** from E4/E7 and licenses the capability story at scale. |
+| **FLOOR** | All four rungs read at the shuffled floor on **both** capability instruments (no dynamic range) | **Do NOT proceed to R1.** Fall back to **hedge D**. Total spend at this point: ≈3.5 GPU-h. |
+| **VOID** | Any of T1/T2/T3 fails | HALT, diagnose the instrument, re-run R0. No verdict claimed. (Precedent: §1.25, §2.25, §17 — the first instrument reading is distrusted **by policy** in this program.) |
+
+**Pinned before the read:** the AR-hit slice definition (second occurrence of a
+bigram whose first occurrence is in-context), the MQAR K grid
+(K ∈ {8,16,32,64,128}), chance = 1/K, the demonstration bar = 3× chance
+(`h2h_cell_train_rd.py:730`'s existing convention), the corpora
+(wikitext-mix-ext + openr1-mix-ext, both, always), and the noise floors already
+computed from raw archived JSONs (openr1-mix-ext 2.244355, wikitext-mix-ext
+2.216699, ddof=0 — the corrected constants from campaign 3's audit).
+
+**Directionality is pre-registered, not chosen after the fact:** COUPLED
+requires the recall metric to move *in the predicted direction* (worse with
+scale) — a recall metric that *improves* while span_frac worsens is DECOUPLED,
+and we say so, rather than reaching for a post-hoc story.
+
+---
+
+## 6. What would make this fail / what a reviewer will say
+
+**Brutal, in the order a reviewer will reach for them.**
+
+1. **"Your 1B model is undertrained. You've confounded parameters with
+   tokens-per-parameter."** — The single most likely rejection. Our own §13.11
+   item 8 *already concedes* this for the 392M point. **Mitigation:** R3 is
+   token-matched (91,552 steps, 36 GPU-h/cell — we can afford it); the 20K
+   variant is reported as a separate disclosed control. **Residual risk: real.**
+   If we cannot token-match every rung, the law is a law about *this training
+   recipe*, and must be labelled as such.
+2. **"n=1 at 1.31B."** The existing 1.31B point is a single seed **that
+   self-terminated at 84.7% of its budget.** No amount of prose fixes this.
+   **Mitigation:** R3 buys a clean re-run; seeds at the lower rungs establish
+   the noise floor. **Residual: 1.31B will still be n≤2. Disclose, don't spin.**
+3. **"The recall deficit of linear attention is known (Zoology/Based)."** —
+   Lands unless we position on **mechanism + 4-point law + failed intervention**
+   (§3-A's kill attempt). If a reviewer reads our contribution as "linear
+   attention is bad at recall," we lose. This is a *writing* risk as much as a
+   science risk, and it must be settled in the abstract's first two sentences.
+4. **"You contradict yourselves: §1.40 says your fast-weight model *beats* a
+   transformer at recall."** — **Correct, and we must say so first.** The
+   regimes differ (2 layers / 20K steps / P=1 state-only bottleneck / synthetic
+   episodes vs. standard LM with full KV on real text). The wave's *value* is
+   that it measures both under one protocol and settles it. If we hide this
+   tension, a reviewer will find it and it will look like cherry-picking.
+5. **"1B is not scale."** — Concede immediately. Frontier scale is explicitly
+   out of reach and not the goal (PI). The claim is a **4-point measured law
+   with a stated extrapolation caveat**, never an asymptotic claim. A law that
+   is monotone over 2 orders of magnitude is a real datum; pretending it
+   extrapolates to 70B is how we get rejected.
+6. **"Your transformer baseline isn't matched / isn't tuned."** — MATCH-GATE at
+   every rung (params/FLOPs/memory, two independent passes). And note E5: we
+   have *already* run a 4-point LR search on the transformer arm at 14M and it
+   stayed below bar — the "under-tuned baseline" hole is one we have a
+   precedent for closing, and we should close it again at ≥98M.
+7. **"The instrument is broken."** — Our own history says this is the *most
+   likely single failure*: three calibration rounds lost to a wrong-layer tap
+   (§1.27-§1.29), an 80/80 null retracted for a transpose bug (§17), a
+   Stage-2 primary lens voided on converged cells (§2.31a). **Mitigation:**
+   behavioral vocab-space only (never a state-space linear probe); teeth-gates
+   T1/T2/T3 at *every* rung, not just R0; and a shuffled negative control that
+   must read at floor or the rung is VOID.
+8. **"span_frac is your own invented metric."** — True. It must be reported
+   alongside at least one metric the field already uses (the AR-hit slice is
+   chosen partly for this reason), and the mechanistic link must be argued from
+   the causal interventions we already have (§13.22's arm contrasts), not from
+   correlation across four points. **Four points is not a scaling law by
+   itself** — it is a monotone trend with a mechanism attached, and we should
+   use that phrasing.
+9. **The quiet one: what if COUPLED is true and it is *our own* per_token arm
+   causing it?** §13.22 shows the deployed contender arm *destabilizes* the
+   geometry. If R0 reads COUPLED, we must run the `arm_off` contrast (which
+   exists, and whose checkpoints exist) before attributing the coupling to
+   *linear attention* rather than to *our frozen-bias construction*. **This
+   contrast is free (eval-only on existing checkpoints) and is hereby folded
+   into R0 as a fourth mandatory read.**
+
+**What would make the whole thing fail, in one line:** the behavioral
+instrument has no dynamic range on real-text-pretrained checkpoints (all rungs
+at floor) — in which case we learn that for ≈3 GPU-h and fall back to the
+hedge.
+
+---
+
+## 7. INDEPENDENT ATTACK ROUND 1 (fresh-context opus agent, 2026-07-12)
+
+**VERDICT: NEEDS-REVISION** — 3 FATAL, 4 SERIOUS, 2 MINOR, **1 leg explicitly
+CLEARED**. Not KILL: the strategic frame (make the attractor the *subject*, not
+the confound) survived, and the behavioral-only instrument rule was attacked
+directly and **held**.
+
+**Coordinator note on adjudication.** Per the house raw-artifact tiebreak rule,
+the load-bearing findings were **re-verified independently against code and raw
+logs before being folded in** — F1 against `run_lm_rd_trackc_sweep.py:223` +
+`EXPERIMENT_LOG.md:5468`; F2 against the checkpoint token arithmetic; F5 against
+`lm_pretrain_rd.py` (only `DeltaNetLM`) and `transformer_baseline_rd.py`
+(pinned `n_layers=2/d_model=256`); F6 against the live box
+(`/data/fixscale_ckpts/train/` carries `arm_off` at **98m and 392m only**).
+**All four confirmed.** The attacker was right on every count.
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| **F1** | **FATAL** | 1.31B priced at **half** its true cost: rung 3 is **batch=16**, so token-matching needs **183,105 steps**, not 91,552 → **72.0 GPU-h/cell**, not 36.0. Worse: 91,552 steps at batch=16 = **0.75B tokens vs the 392M rung's 1.5B**, silently reintroducing the token confound *inside its own mitigation* | **ACCEPTED, VERIFIED.** §2 repriced; retraction stated in-line. Stage-2 total → 216/432. Timeout pin added. **Spun out: the LIVE queue's 1.31B job (`--internal-timeout 160000`) will self-terminate at ≈62% — flagged to Lane B's owner.** |
+| **F2** | **FATAL** | R0's checkpoints are **not token-matched and are non-monotone in tokens** (0.33→1.11→1.50→**1.27B**, dropping 15% at the top rung). A token-deficient top rung **manufactures the COUPLED headline on its own** | **ACCEPTED.** §5.0 **FIX-A**: evaluate at a **common token count** using the per-1000-step checkpoints already on disk (1.0B slice ×3 rungs; 0.328B slice ×4). **Free.** Absent it, R0 may not return COUPLED/DECOUPLED at all. |
+| **F3** | **FATAL** | The AR-hit slice **conflates parametric bigram memorization with in-context recall**. Memorization rises with params by construction → the instrument **manufactures DECOUPLED** → the wave declares the attractor "functionally inert" having never isolated state-resident recall. **A false all-clear, laundered through a pre-registration** | **ACCEPTED.** §5.0 **FIX-B**: the metric is now the **ablation GAP** (`intact − first-occurrence-deleted`), never the raw slice. Modal-continuation bigrams excluded. |
+| **F4** | SERIOUS | "All three instruments already exist or are a thin wrapper" is **false** — repo-wide grep finds **zero** MQAR and **zero** AR-hit instrument in the LM stack. `acc_A` is hardcoded to the 14M synthetic-episode arms. **Only span_frac genuinely exists** | **ACCEPTED.** §3-A's claim retracted. Two of three instruments are a **real build**. Wave −1 validity smoke added against a reference model known to have AR (`/data/hf_cache` carries `RWKV7-Goose-1.5B`, `falcon-mamba-7b`) — if the instrument can't read AR on a model known to have it, it has no teeth. |
+| **F5** | SERIOUS | The matched transformer at 98M/392M/1.31B **does not exist** (`lm_pretrain_rd.py` is DeltaNet-only; `transformer_baseline_rd.py` is the 2-layer/d256 episode baseline). Its per-step rate at d2560/L22 is **unmeasured** — the exact unmeasured-rate mistake that self-terminated rung-3 | **ACCEPTED — design changed.** **The 1B transformer arm is DROPPED.** R3 is a **within-family DeltaNet params×recall law**; the cross-family contrast lives at 98M/392M only. The headline is about the *linear-attention family's ceiling* and does not need a 1B transformer. (Saves budget **and** removes the weakest leg.) |
+| **F6** | SERIOUS | The attractor-attribution control (`arm_off`) **does not exist at 1.31B** — box-verified. The design's own answer to the contamination attack is unavailable exactly where the headline lives | **ACCEPTED.** The arm contrast is now stated as a **98M/392M result**; 1.31B is excluded from the attribution claim unless the optional +72 GPU-h `arm_off` cell is funded (priced in Stage 2). |
+| **F7** | SERIOUS | G-0 is un-runnable as written — the box is **8/8 saturated right now**; occupancy=1 requires *draining* Lane B, which this design cannot authorize. At ≈4.6 s/step a 1.31B cell = **234 GPU-h / 9.7 days** | **ACCEPTED.** G-0 → a **co-tenancy pilot** run as the queue naturally drains, testing the suspects Rev 0 never named (dataloader workers, `OMP_NUM_THREADS` oversubscription, host-RAM/PCIe contention). **"Lane B drained or capped" is now a HARD PRECONDITION on Stage 2.** |
+| **F8** | MINOR — **CLEARED** | *"I attacked the teeth-gates expecting theatre and found the opposite."* **T1 would have caught §17.4** (the derangement null reproduced the real signal: 0.3023 vs 0.2960; strongest cell 0.8691 vs 0.8125). **T2 is the control that *actually did* catch the §17 transpose bug** (positive control failed, 0/256). Behavioral-only **structurally eliminates** the §1.27-1.29 wrong-layer class — *there is no layer to get wrong in the model's own forward.* All cited §§ check out | **PRESERVED VERBATIM.** One weakness accepted: **T2's copy-token control is too easy** (reachable via induction/n-gram without AR capacity) → strengthened to a positive control at the measured task's true difficulty. |
+| **F9** | MINOR | §3-A still says "4-point measured law" while §6 item 8 concedes it is a trend. **Pick one** | **ACCEPTED.** The claim language is **"a monotone trend over 2 orders of magnitude with a mechanism attached,"** never "a scaling law," unless we reach ≥4 token-matched points at n≥3. |
+| **F10** | — | **A cheaper demonstration exists and it changes the sequencing.** With F2's fix, **R0 alone — eval-only, zero training — licenses most of the claim**; the params×tokens×recall×span_frac surface is *already on disk*. The design's cost is concentrated in its **worst-supported rung** | **ACCEPTED — this is now the spine of §4.** Budget **split into two independently-gated stages**; Stage 2 (the 1B rung) is *not requested now* and is decided only on Stage 1's readout. |
+
+**The attacker's kill shot, quoted, because it is the thing to keep in mind:**
+
+> *"The AR-hit metric rises with params because bigger models memorize more
+> bigrams, and the R0 checkpoints aren't token-matched — so the wave reads
+> DECOUPLED, declares the attractor 'functionally inert,' and clears a confound
+> off E4/E7 that was never actually cleared. That is worse than a null: a false
+> all-clear, laundered through a pre-registration, on the exact confound the
+> program most wants to retire."*
+
+Both fixes (FIX-A, FIX-B) are eval-only and nearly free. **They land before
+anything trains.**
+
+---
+
+## 8. REV 1 — status
+
+All 10 findings dispositioned above and folded into §2 (pricing + the retracted
+36.0 figure + the live-queue timeout flag), §4 (two-stage gated ladder, 1B
+transformer dropped), and §5.0 (FIX-A token-matched slices, FIX-B ablation
+gap). §5's teeth-gates T1/T2/T3 stand as written, with T2 strengthened.
+
+**STATUS: DESIGN-CLEARED-FOR-BUILD-QUEUE (Stage 1 only).** Stage 2 (the 1B
+rung, ≈216-432 GPU-h) is **explicitly not requested** and is gated on Stage 1's
+token-controlled readout plus a PI decision.
+
+**What must be true before a single GPU-h is spent:**
+1. G-0 co-tenancy rate pilot passes (or the 5.5× regression is diagnosed).
+2. The two non-existent instruments (AR-hit gap, injected MQAR) are **built and
+   audited**, with the Wave −1 reference-model validity smoke passing.
+3. FIX-A's per-1000-step checkpoint availability is **verified, not assumed**
+   (esp. the 14M control cell).
