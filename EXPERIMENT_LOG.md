@@ -8484,3 +8484,58 @@ verified identical). **Next step (in progress, not described here):**
 `matrix-thinking/ncr/ncr_earlyln_scale.py`,
 `matrix-thinking/queue/regate_2026-07-12.md`, `NOVEL_ARCH_WATERFALL.md`
 §11.3.
+
+## 2026-07-12 — NCR NEXT-LEVER PROBE WAVE (`NOVEL_ARCH_WATERFALL.md` §11.4, queue jobs 060-063+066-081): **20/20 cells — Q1 4× budget lands NO-LAW (anomaly, not a slowing law); Probe A's tight-spare d=K+1 CONFIRMS at both K=16 and K=24 (Gate-1 4/4 CONVERGED, was 1/4 and 0/4 at d=2K); Probe B's anneal-shape CONFIRMS partially at K=16, FALSIFIES at K=24. ≈13.61 GPU-h.**
+
+Pre-registered design `matrix-thinking/NCR_NEXT_LEVER_DESIGN.md`
+(a8e848d) executed end to end; this agent re-derived every gate from
+the raw JSONs on `youthful-indigo-turkey` (all 20: `status=COMPLETED`,
+`blank_out/passed=True`, `axis_c_lock_sha256` matches its lock
+sibling's own hash, `reducer_signature/flagged=False`). **Q1 (K=16,
+d=32, 320K steps, n=4):** Gate-1 convergence keeps improving (1/4→3/4→
+4/4 CONVERGED across 1×/2×/4×), but the operator write-residual (δ) and
+failure front do not track it — 3/4 seeds show δ *increasing* from 2×
+to 4× (non-monotonic in budget, the §1.7 anomaly trigger), and one
+seed CONVERGED at 2× with front=29 regresses to front=13 at 4×
+(the front-regression trigger). Per the pinned verdict-map: **NO-LAW**
+— do not extrapolate, escalate. This differs from this recorder's own
+pre-harvest informal read (LAW-FLATTENS); the raw won. The §1.8
+post-anneal loss-trajectory watch-item found no visible loss regression
+explaining the anomaly — loss/in-dist recovery stayed flat-to-improving
+over the same window δ/front got worse. The conditional 8× recon (jobs
+064-065, never deployed) is therefore MOOT — doubly so, since realized
+wave spend (13.61 GPU-h) also leaves only 6.39 GPU-h headroom under the
+20 cap, short of the 6.60 the recon would need even under a
+counterfactual LAW-HOLDS reading. **Probe A (d=K+1 tight-spare, K=16
+d=17 + K=24 d=25, 80K steps, n=4 each):** Gate-1 rate 4/4 CONVERGED at
+BOTH K (vs 1/4 at K16/d=32, 0/4 at K24/d=48) — clears the design's
+≥3/4 bar at both rungs, jointly falsifying Story S1 (Mechanism-1 sign,
+predicted tight-spare WORSE) and the pure absolute-K-cliff story;
+confirms Story S2 (spare-fraction/convention-confound). K16@d17's
+write-quality also lands in S2's predicted 0.002-0.005 δ band (measured
+0.0028-0.0058), not S1's predicted ≈0.35 (60-125× apart, decisive).
+K16@d17 reaches genuine far-depth recovery no d=32 cell at any budget
+ever touched (0.80-0.99 at h\*=125 in 2/4 seeds, one rung past h\* in
+2/4); K24@d25's far-depth is real but weak and highly seed-variable
+(fronts 21-189, sweep_min≤0.051 in all 4) despite full Gate-1
+convergence — flagged, not smoothed over. **Probe B (anneal_frac=0.75,
+same K/d as the d=2K mains, 80K steps, n=4 each):** B-16 **CONFIRMED
+(partial)** — Gate-1 1/4→2/4 CONVERGED, δ mean −38.5%, but
+`failure_front_h` stays flat at 13 in all 4 seeds (zero far-depth gain,
+unlike 2×-budget's front=29 in 3/4) — anneal-length alone buys roughly
+half the 1×→2× δ improvement but none of the front improvement, which
+needs the extra raw step count. B-24 **FALSIFIED** — every gate stays
+indistinguishable from the frac=0.5 baseline (0/4 CONVERGED, front
+pinned at 21, δ shift within pre-existing seed noise). The design's own
+named-backup trigger (candidate (d), curriculum warm-start) requires
+BOTH Probe A and Probe B negative at K=24 to fire — Probe A landed
+positive there, so it does NOT fire; the live K=24 lever stays the
+tight-spare convention line. **Ledger:** Q1 6.6089 + Probe A 3.4388 +
+Probe B 3.5617 ≈ **13.6094 GPU-h** (96.9% of the 14.05 mandatory
+nominal). Archive: `experiment-runs/2026-07-12_ncr_nextlever_wave/`
+(repo tier 5.7M: 20 cell JSONs + 20 axis_c_lock JSONs, organized
+`budget4x/`/`dratio/`/`annealshape/` to avoid the 3-outdir filename
+collision, + `SUMMARY.md` + `md5_manifest.txt`; SSD mirror verified
+identical). Pointers: `matrix-thinking/NCR_NEXT_LEVER_DESIGN.md`,
+`matrix-thinking/ncr/ncr_earlyln_scale.py`, `NOVEL_ARCH_WATERFALL.md`
+§11.4.

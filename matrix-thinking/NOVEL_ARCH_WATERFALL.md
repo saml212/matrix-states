@@ -4370,3 +4370,247 @@ cell JSONs + 8 axis_c_lock JSONs + `SUMMARY.md` + `md5_manifest.txt`,
 repo tier, 3.3M; SSD mirror at
 `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-12_ncr_earlyln_budget2x/`
 if mounted).
+
+### §11.4 NEXT-LEVER PROBE WAVE — Q1 4× budget, Probe A (d=K+1 tight-spare), Probe B (anneal_frac=0.75) (2026-07-12 UTC, 20/20 cells, queue jobs 060-063 + 066-081): numbers-only record, verdict-map applied mechanically per `NCR_NEXT_LEVER_DESIGN.md` (a8e848d)
+
+**Provenance.** All 20 cells pulled fresh from `youthful-indigo-turkey`
+(`~/ncr/results_earlyln_budget4x/`, `~/ncr/results_earlyln_dratio/`,
+`~/ncr/results_earlyln_annealshape/`) and re-derived from the raw JSONs
+by this agent using the SAME `_cell_gate1`/`_cell_gate2` logic as
+`ncr_earlyln_scale.py:317-348` (re-implemented read-only, not imported,
+to keep this a pure verification pass). All 20: `status=COMPLETED`,
+`blank_out/passed=True`, `axis_c_lock_sha256` matches its
+`.axis_c_lock.json` sibling's own `lock_sha256` byte-for-byte (20/20),
+`eval/reducer_signature/flagged=False` (20/20) — zero instrument-
+integrity anomalies. `git_commit=UNKNOWN` on every cell — the
+pre-existing, already-disclosed cosmetic box artifact (no `.git` on the
+box, `:1380`), not new. Queue check on the box (`~/queue/completed/`):
+jobs `060-063` (Q1 4×), `066-073` (Probe A), `074-081` (Probe B) all
+present COMPLETED; jobs `064-065` (the conditional 8× recon) are absent
+from `completed/`, `pending/`, AND `failed/` — never deployed, correctly
+held per the design's own gating (§1.7/§4).
+
+**Table 1 — Q1: K=16, d=32, 4× steps (320,000), seeds 0-3**
+(`results_earlyln_budget4x/`)
+
+| K | d | seed | loss@320K | in-dist rec@0.9 (min h=1..3) | A_eff_rank (mean) | δ=phase_resid_max_mean | rec@h\*(h=125) | front | sweep_min_rec | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 16 | 32 | 0 | 0.0403 | 0.9374 | 15.63 | 0.0524 | 0.0000 | 13 | 0.0 | CONVERGED | 1.5967 |
+| 16 | 32 | 1 | 0.0344 | 0.9517 | 15.67 | 0.0444 | 0.0001 | 29 | 0.0 | CONVERGED | 1.7122 |
+| 16 | 32 | 2 | 0.0279 | 0.9753 | 15.71 | 0.0640 | 0.0000 | 13 | 0.0 | CONVERGED | 1.5053 |
+| 16 | 32 | 3 | 0.0033 | 0.9999 | 15.99 | 0.0137 | 0.0000 | 61 | 0.0 | CONVERGED | 1.7946 |
+
+Reference (already in registry): 1× (§11.2, `:4176`) δ = 0.1099 / 0.1383
+/ 0.0441 / 0.1237, Gate-1 1/4 CONVERGED (s2 only), front=13 all 4. 2×
+(§11.3 Table 1) δ = 0.0419 / 0.0149 / 0.0217 / 0.0378, Gate-1 3/4
+CONVERGED + 1/4 PARTIAL (s0), front = 13 / 29 / 29 / 29.
+
+**Per-seed 3-point trajectory, matched by seed (1×→2×→4×) — the
+diagnostic that decides the verdict:**
+
+| seed | δ@1× | δ@2× | δ@4× | δ pattern | front@1× | front@2× | front@4× | front pattern | Gate-1 @1×/2×/4× |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 0.1099 | 0.0419 | 0.0524 | ↓ then ↑ (NON-MONOTONIC) | 13 | 13 | 13 | flat | PARTIAL/PARTIAL/CONVERGED |
+| 1 | 0.1383 | 0.0149 | 0.0444 | ↓ then ↑ (NON-MONOTONIC) | 13 | 29 | 29 | flat at 2× level | PARTIAL/CONVERGED/CONVERGED |
+| 2 | 0.0441 | 0.0217 | 0.0640 | ↓ then ↑, 4× exceeds even 1× (NON-MONOTONIC) | 13 | 29 | 13 | **REGRESSED** (CONVERGED seed's front fell 29→13) | CONVERGED/CONVERGED/CONVERGED |
+| 3 | 0.1237 | 0.0378 | 0.0137 | ↓ then ↓ (MONOTONIC — only improving seed) | 13 | 29 | 61 | kept improving | PARTIAL/CONVERGED/CONVERGED |
+
+Gate-1 (convergence) rate itself keeps improving monotonically with
+budget — 1/4 → 3/4 → 4/4 CONVERGED, no regression there. But 3 of 4
+seeds (s0, s1, s2) show δ **increasing** from 2× to 4× — non-monotonic
+in budget — and seed 2, CONVERGED at 2× with front=29, **regresses to
+front=13** at 4× despite staying CONVERGED and despite its δ having
+gotten worse, not better. Supporting ratio check (reported, not used to
+extrapolate — see verdict below): r₃ = δ@2×/δ@4× per seed = 0.7996 /
+0.3356 / 0.3391 / 2.7591, median r₃ ≈ 0.569, vs 0.7·r₂(median 2.945) =
+2.0615 — median r₃ sits far below even the LAW-FLATTENS threshold, i.e.
+this is not merely a slowing law, it is a majority-of-seeds reversal.
+
+**Q1 verdict, §1.7's pinned map applied mechanically: NO-LAW.** Two of
+the map's three independent anomaly triggers fire: (i) "δ non-monotonic
+in budget for ≥3/4 seeds" — TRUE (s0, s1, s2, exactly 3/4); (ii) "a
+converged seed's front regresses below 29" — TRUE (s2: CONVERGED at 2×
+front=29 → CONVERGED at 4× front=13). Per the pinned rule: **do not
+extrapolate; escalate to the coordinator with the §1.8 post-anneal
+trajectory read attached** (below). This differs from this recorder's
+own pre-harvest informal read (LAW-FLATTENS candidate) — the gate wins
+per the standing tiebreak rule; LAW-FLATTENS presumes a still-coherent,
+merely-slowing law, but 3/4 seeds got worse in absolute terms, which the
+design's own map treats as a distinct anomaly category, not a slow law.
+
+**§1.8 post-anneal trajectory watch-item (read-only, as pinned).**
+Inspected the last 10% of each cell's `loss_history` (steps 288,000-
+320,000; anneal completes at `total//2` = 160,000, so this window is
+pure post-crutch raw-matmul training) for all 4 seeds: no catastrophic
+post-anneal loss regression in any seed — s0 stays in 0.038-0.083
+(ends 0.0403), s1 has one brief spike to 0.0576 at step 290K then
+recovers to 0.0344, s2 trends down 0.049→0.028, s3 stays flat-low
+0.0024-0.0064. Train loss and in-distribution recovery both stay
+flat-to-improving across the exact window where δ and front got worse
+for 3/4 seeds — the watch-item does **not** find a visible loss-based
+explanation for the anomaly; whatever is driving the geometric
+write-residual regression is not showing up in the training loss the
+model is actually optimized on. Reported as a negative diagnostic, not
+resolved.
+
+**8× recon (jobs 064-065) stopping-rule assessment: MOOT**, on two
+independent grounds. Primary: §1.7's only firing condition is
+LAW-HOLDS-CROSSING-IN-REACH; the realized verdict is NO-LAW, so the
+recon does not fire — consistent with 064-065 never having been
+deployed (verified absent from the box's `completed/`, `pending/`,
+`failed/`). Secondary (would also have blocked it under a counterfactual
+LAW-HOLDS reading): the §4 wave-cap rule requires the mandatory set's
+realized spend to leave ≥6.60 GPU-h headroom under the 20 cap before the
+recon may fire in-wave; realized wave total is 13.6094 GPU-h (below),
+leaving only 6.3906 headroom — short of 6.60 by 0.2094 GPU-h — so the
+recon would have been deferred to a follow-on wave on this ground too.
+
+**Table 2 — Probe A: K=16 @ d=17 and K=24 @ d=25 (tight-spare, d=K+1),
+1× steps (80,000), seeds 0-3** (`results_earlyln_dratio/`)
+
+| K | d | seed | loss@80K | in-dist rec@0.9 (min h=1..3) | A_eff_rank (mean) | δ=phase_resid_max_mean | rec@h\* | front | sweep_min_rec | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 16 | 17 | 0 | 0.0001 | 1.0000 | 16.00 | 0.0058 | 0.1318 (h\*=125) | 125 | 0.1043 | CONVERGED | 0.4065 |
+| 16 | 17 | 1 | 0.0002 | 1.0000 | 16.00 | 0.0030 | 0.7952 | 125 | 0.7566 | CONVERGED | 0.3835 |
+| 16 | 17 | 2 | 0.0001 | 1.0000 | 16.00 | 0.0030 | 0.9471 | 253 | 0.9251 | CONVERGED | 0.3966 |
+| 16 | 17 | 3 | 0.0001 | 1.0000 | 16.00 | 0.0028 | 0.9877 | 253 | 0.9797 | CONVERGED | 0.3802 |
+| 24 | 25 | 0 | 0.0003 | 1.0000 | 24.00 | 0.0041 | 0.0577 (h\*=189) | 189 | 0.0511 | CONVERGED | 0.4977 |
+| 24 | 25 | 1 | 0.0011 | 1.0000 | 23.99 | 0.0124 | 0.0000 | 93 | 0.0000 | CONVERGED | 0.4717 |
+| 24 | 25 | 2 | 0.0003 | 1.0000 | 24.00 | 0.0035 | 0.0538 | 189 | 0.0448 | CONVERGED | 0.4421 |
+| 24 | 25 | 3 | 0.0098 | 1.0000 | 23.92 | 0.0314 | 0.0000 | 21 | 0.0000 | CONVERGED | 0.4606 |
+
+Full ladder confirms K=16@d17 is not a marginal pass: rungs 13/29/61
+recover 1.000 in every one of the 4 seeds; at h\*=125 recovery is
+0.1318 / 0.7952 / 0.9471 / 0.9877 — 2 of 4 seeds are AT/ABOVE the 0.9
+HOLD band at the primary crossing target on **1× budget alone**, and 2
+seeds reach one ladder rung past h\* (front=253). No d=32 cell at ANY
+budget/anneal tried this wave or in §11.2/§11.3 (1×, 2×, 4×, anneal
+0.75 — 16 cells total) ever produced a nonzero `rec@h*` above 0.0001.
+
+**Probe A verdict, §2.1's falsification map applied jointly over both
+K exactly as pinned: CONFIRM at both K=16 and K=24.** Gate-1 rate = 4/4
+CONVERGED at K16@d17 (vs 1/4 at d=32) and 4/4 CONVERGED at K24@d25 (vs
+0/4 at d=48) — both clear the "≥3/4" branch of the map independently.
+Per the pinned consequence: **Story S1 (Mechanism-1 sign / dead-rate
+floor, predicting tight-spare is WORSE) and the pure absolute-K-cliff
+story are FALSIFIED at both K=16 and K=24; the convention jump (s: 0.5→
+tight) is implicated; escalate the tight-spare convention question to
+the ladder level before any further K-rung spend** (both K land in the
+same branch — a CONFIRM licenses the named follow-on s-sweep,
+d ∈ {K+1, 1.25K, 1.5K, 2K}, priced then, not committed here). The
+disclosed write-quality discriminator is also decisive at K=16: S1
+predicted a converged δ ≈ 0.35 (δ∝1/s, ~8× the d=32 converged seed's
+0.0441); the measured converged δ range is 0.0028-0.0058 — squarely in
+S2/the K=15 precedent's predicted 0.002-0.005 band, ~60-125× lower than
+S1's prediction, not merely "not S1" but decisively S2.
+
+**K=24 far-depth seed-variance (flagged plainly, not smoothed over).**
+All 4 K24@d25 seeds are Gate-1 CONVERGED, but far-depth recovery is
+highly seed-variable and mostly weak: fronts {21, 93, 189, 189},
+sweep_min_rec {0.0511, 0.0000, 0.0448, 0.0000} (max 0.0511 — none clear
+any meaningful bar). Contrast K16@d17's much tighter, much higher band:
+fronts {125, 125, 253, 253}, sweep_min_rec {0.1043, 0.7566, 0.9251,
+0.9797}. Convergence (Gate-1) is solved uniformly by d=K+1 at both K;
+far-depth exact-composition holding is NOT — it is strong-and-seed-
+variable at K=16, weak-and-seed-variable at K=24. This distinction must
+not be collapsed: the CONFIRM above is a convention/Gate-1 finding, not
+a claim that K=24 far-depth is solved.
+
+**Table 3 — Probe B: anneal_frac=0.75 (vs the implicit 0.5 baseline),
+K=16 d=32 and K=24 d=48, 80,000 steps, seeds 0-3**
+(`results_earlyln_annealshape/`)
+
+| K | d | seed | loss@80K | in-dist rec@0.9 (min h=1..3) | A_eff_rank (mean) | δ=phase_resid_max_mean | rec@h\* | front | sweep_min_rec | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 16 | 32 | 0 | 0.0512 | 0.8822 | 15.30 | 0.0708 | 0.0000 (h\*=125) | 13 | 0.0 | PARTIAL | 0.4347 |
+| 16 | 32 | 1 | 0.0234 | 0.9831 | 15.85 | 0.0332 | 0.0000 | 13 | 0.0 | CONVERGED | 0.4281 |
+| 16 | 32 | 2 | 0.0378 | 0.9284 | 15.73 | 0.0599 | 0.0000 | 13 | 0.0 | CONVERGED | 0.4023 |
+| 16 | 32 | 3 | 0.0678 | 0.7383 | 15.32 | 0.0919 | 0.0000 | 13 | 0.0 | PARTIAL | 0.3863 |
+| 24 | 48 | 0 | 0.3860 | 0.0000 | 17.73 | 0.7478 | 0.0000 (h\*=189) | 21 | 0.0 | DEAD | 0.4767 |
+| 24 | 48 | 1 | 0.3355 | 0.0000 | 18.21 | 0.3796 | 0.0000 | 21 | 0.0 | DEAD | 0.4636 |
+| 24 | 48 | 2 | 0.3848 | 0.0000 | 17.75 | 0.5643 | 0.0000 | 21 | 0.0 | DEAD | 0.4998 |
+| 24 | 48 | 3 | 0.3899 | 0.0000 | 17.11 | 0.6241 | 0.0000 | 21 | 0.0 | DEAD | 0.4703 |
+
+**Probe B verdict, §2.2's falsification map applied per K:**
+
+- **B-16: CONFIRMED (partial/directional).** Gate-1 rate 1/4→2/4
+  CONVERGED vs the frac=0.5 baseline; δ mean 0.1040→0.0640 (−38.5%,
+  roughly half of the 2×-budget cell's −72% at the same K); 3 of 4
+  seeds improve paired by seed (s0 −36%, s1 −76%, s2 **+36% worse**, s3
+  −26%). But `failure_front_h` stays pinned at 13 in **all 4** B-16
+  seeds — zero far-depth movement — unlike the 2×-budget cell, which
+  moved front to 29 in 3/4 seeds. Read together with Q1: anneal-length
+  alone reproduces roughly half of the 1×→2× δ improvement (materially
+  confirming §1.2's "material part of the drop" framing — the budget
+  law is *partly* an anneal-length effect on write-residual) but
+  reproduces **none** of the far-depth front improvement, which appears
+  to need the extra raw step count specifically, not just a longer
+  anneal at fixed steps.
+- **B-24: FALSIFIED (indistinguishable-or-worse).** Gate-1 stays 0/4
+  CONVERGED (identical to both the 1× and 2× frac=0.5 baselines);
+  in-dist recovery stays 0.0000 in all 4 (identical); `failure_front_h`
+  stays pinned at 21 (=K−3, trivial) in all 4 (identical at every
+  budget/anneal tried to date); A_eff_rank_mean ≈17.70 (flat, no
+  material rise toward the 21.6 bar). δ mean 0.579 vs the frac=0.5
+  1× baseline's 0.659 is a mild ~12% dip that sits entirely inside the
+  pre-existing K=24 seed-to-seed noise band (recall the 2× budget cell
+  alone spanned 0.511-1.238) — not a material drop by the same standard
+  that flagged K16's −38.5% as material. The LN-crutch-withdrawal-
+  schedule lever, at this specific parameterization (frac 0.75), closes
+  negative at K=24.
+- **Named-backup trigger check (candidate (d), curriculum warm-start):**
+  the design's own rule fires it only "if BOTH (a) [Probe A] and (e)
+  [Probe B] land negative at K=24." Probe A landed **positive**
+  (CONFIRM) at K=24; Probe B landed negative. The joint condition is
+  NOT met — candidate (d) is not triggered by this wave's own rule; the
+  live K=24 lever remains the tight-spare convention line (Probe A),
+  not curriculum warm-start.
+
+**Joint observational summary (numbers-first; corrects an imprecise
+framing in this recorder's own dispatch prompt — the gate/raw wins).**
+"d=2K fails at every budget/anneal tried" is true for **far-depth**
+(`rec@h*` reads 0.0000-0.0001 in literally every one of the 16 d=32/
+d=48 cells run across §11.2, §11.3, and this wave — 1×, 2×, 4×, and
+anneal 0.75, all K=16 AND K=24) but is **not** true for **Gate-1
+convergence** at K=16: d=32 DOES eventually converge given enough
+budget (1/4→3/4→4/4 CONVERGED at 1×/2×/4×). At K=24, d=48 fails BOTH
+gates at every budget/anneal combination tried (0/4 CONVERGED, always).
+Meanwhile d=K+1 (tight-spare) reaches 4/4 Gate-1 CONVERGED at **1×
+budget alone**, at BOTH K=16 and K=24 — a categorically cheaper route
+to convergence than budget-scaling d=2K — and at K=16 specifically also
+reaches far-depth recovery (0.80-0.99 in 2 of 4 seeds at h\*=125,
+holding one rung further in 2 seeds) that no d=32 cell at any tested
+budget ever came close to. **What is NOT established:** (1) the d(K)
+mapping law's shape — whether d=K+1 is optimal or whether d∈{1.25K,
+1.5K} would do better/worse at either K is untested; the design's own
+s-sweep follow-on is priced but not run. (2) K>24 behavior under the
+corrected/tight-spare mapping — zero cells beyond K=24 have been run
+under d=K+1. (3) **Why** d=2K hurts far-depth specifically — mechanism
+unproven; K=24@d=48's failure across every budget/anneal tried is
+suggestive that d=48's problem is not purely budget-limited the way
+K=16@d=32's convergence gate was, but no controlled test isolates "d=2K
+per se" from "this particular K/d combination" as the causal factor.
+(4) K=24's far-depth reliability even under the corrected d=K+1 mapping
+— Gate-1 convergence is solved, but the fronts {21,93,189,189} span the
+full range from trivial to h\* within one 4-seed cohort, an unexplained
+variance this wave does not resolve.
+
+**GPU-h ledger** (summed from each cell's own `/gpu_h` field): Q1 4×
+1.5967+1.7122+1.5053+1.7946 = **6.6089** (nominal 6.60, 100.1%); Probe A
+K16 1.5668 + K24 1.8721 = **3.4388** (nominal 3.72, 92.4%); Probe B K16
+1.6514 + K24 1.9104 = **3.5617** (nominal 3.73, 95.5%). **Wave total
+13.6094 GPU-h** against the design's 14.05 mandatory nominal (96.9% of
+nominal — realized-below-nominal again, consistent with prior waves).
+Wave-cap headroom used above (§ the moot 8× recon assessment).
+
+**Provenance.** Design: `matrix-thinking/NCR_NEXT_LEVER_DESIGN.md`
+(a8e848d). Queue jobs: `060-063` (Q1 4×, 4 jobs), `066-073` (Probe A, 8
+jobs), `074-081` (Probe B, 8 jobs) — 20/20 COMPLETED; `064-065` (8×
+recon) never deployed, correctly held per §1.7/§4. Reference rows: §11.2
+(`:4164-4181`, 1× mains), §11.3 (`:4245-4372`, 2× budget/anneal probes).
+
+**Archive.** `experiment-runs/2026-07-12_ncr_nextlever_wave/` (20 cell
+JSONs + 20 axis_c_lock JSONs + `SUMMARY.md` + md5 manifest, repo tier;
+SSD mirror at
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-12_ncr_nextlever_wave/`
+if mounted).
