@@ -4759,3 +4759,247 @@ mirror at
 `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-12_ncr_q3_mechanism/`
 if mounted). Script also lives at
 `matrix-thinking/ncr/analyze_dratio_blocks.py`.
+
+### §11.5 NCR MAPPING-LAW WAVE-1 HARVEST — K=32 d(K) grid CLOSES the ladder at this K (WAVE-1b BLOCKED); Q2 n=12 finds far-depth δ-PREDICTABLE (2026-07-12, 21/21 cells, queue jobs 008-028): numbers-only record, verdict-map applied mechanically per `NCR_MAPPING_LAW_DESIGN.md` (d90abff) §1.6/§2.1
+
+**Provenance.** Design: `NCR_MAPPING_LAW_DESIGN.md` (d90abff). Build:
+`matrix-thinking/queue/regate_2026-07-12.md` §8 (jobs `008`-`028`,
+deployed at the true front of the live queue; independent opus audit
+CLEAR, 0 FATAL/0 SERIOUS/1 NIT, fixed pre-deploy). All 21 cells pulled
+fresh this session from `youthful-indigo-turkey`
+(`~/ncr/results_earlyln_dratio/`, `~/ncr/results_earlyln_dratio125/`,
+`~/ncr/results_earlyln_dratio150/`, `~/ncr/results_earlyln_scale_probe/`)
+plus the already-measured K32@d64 2K-reference re-pulled from
+`~/ncr/results_earlyln_scale/` for independent verification (cited in
+the design, not part of this wave's own spend). Gate-1 re-derived using
+the SAME logic as `ncr_earlyln_scale.py:317-329` (`_cell_gate1`,
+re-implemented read-only against the raw JSONs, byte-verified against
+the source: `CONVERGED_INDIST_BAR=0.9`, `PARTIAL_INDIST_BAR=0.5`,
+`AEFF_RANK_FRAC_BAR=0.9`, lines 95-97/322 of that file). `h_star = 8K-3`
+independently re-derived from `ncr_task.py:142` (`_gen_grid`): K=32 →
+253, K=48 → 381, matching the design's own citation exactly.
+**Integrity, all 25 cells pulled this session (21 WAVE-1 cells + the 4
+K32@d64 2K-reference cells): 0 axis_c_lock sha256 mismatches, 0
+`status`/`train.status`/`blank_out.passed`/`reducer_signature.flagged`
+anomalies.**
+
+**Table 1 — K=32 full d(K) grid, 1× steps (80,000), seeds 0-3, all four
+d-arms** (`results_earlyln_dratio/`, `results_earlyln_dratio125/`,
+`results_earlyln_dratio150/`, `results_earlyln_scale/` [2K ref, cited,
+re-verified not relaunched]):
+
+| K | d | seed | loss@80K | in-dist rec@0.9 (min h=1..3) | A_eff_rank (mean) | δ=phase_resid_max_mean | rec@h\*(h=253) | front | sweep_min_rec | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 32 | 33 | 0 | 0.0821 | 0.4643 | 29.66 | 0.9097 | 0.0000 | 29 | 0.0000 | DEAD | 0.5942 |
+| 32 | 33 | 1 | 0.0760 | 0.5170 | 29.72 | 0.9855 | 0.0000 | 29 | 0.0000 | PARTIAL | 0.5657 |
+| 32 | 33 | 2 | 0.0645 | 0.6875 | 30.21 | 0.5943 | 0.0000 | 29 | 0.0000 | PARTIAL | 0.5737 |
+| 32 | 33 | 3 | 0.0429 | 0.8711 | 30.97 | 0.6035 | 0.0000 | 29 | 0.0000 | PARTIAL | 0.5416 |
+| 32 | 40 | 0 | 0.2321 | 0.0008 | 25.88 | 0.7469 | 0.0000 | 29 | 0.0000 | DEAD | 0.5284 |
+| 32 | 40 | 1 | 0.2326 | 0.0002 | 25.64 | 0.4020 | 0.0000 | 29 | 0.0000 | DEAD | 0.5285 |
+| 32 | 40 | 2 | 0.2618 | 0.0000 | 25.15 | 0.4911 | 0.0000 | 29 | 0.0000 | DEAD | 0.5288 |
+| 32 | 40 | 3 | 0.2354 | 0.0003 | 25.90 | 1.3051 | 0.0000 | 29 | 0.0000 | DEAD | 0.4901 |
+| 32 | 48 | 0 | 0.4444 | 0.0000 | 20.70 | 0.9908 | 0.0000 | 29 | 0.0000 | DEAD | 0.4897 |
+| 32 | 48 | 1 | 0.4179 | 0.0000 | 21.24 | 0.8912 | 0.0000 | 29 | 0.0000 | DEAD | 0.5211 |
+| 32 | 48 | 2 | 0.3368 | 0.0000 | 23.27 | 0.7084 | 0.0000 | 29 | 0.0000 | DEAD | 0.4943 |
+| 32 | 48 | 3 | 0.3667 | 0.0000 | 22.61 | 0.7173 | 0.0000 | 29 | 0.0000 | DEAD | 0.5176 |
+| 32 | 64 | 0 | 0.5320 | 0.0000 | 18.78 | 0.9206 | 0.0000 | 29 | 0.0000 | DEAD | 0.5195 |
+| 32 | 64 | 1 | 0.5732 | 0.0000 | 18.72 | 1.3307 | 0.0000 | 29 | 0.0000 | DEAD | 0.4746 |
+| 32 | 64 | 2 | 0.5384 | 0.0000 | 20.04 | 0.4670 | 0.0000 | 29 | 0.0000 | DEAD | 0.4549 |
+| 32 | 64 | 3 | 1.0015 | 0.0000 | 2.38 | 1.4857 | 0.0000 | 29 | 0.0000 | DEAD | 0.4691 |
+
+**Per-(K,d) Gate-1 aggregate** (rate = #CONVERGED/4, per §1.6's own
+labels — CONVERGED-ROBUST ≥3/4, CONVERGED-PARTIAL 1-2/4,
+TRAINABILITY-DEAD 0/4; note this counts fully-CONVERGED cells only,
+not PARTIAL):
+
+| d | ratio | CONVERGED | PARTIAL | DEAD | label | front (all 4 seeds) |
+|---|---|---|---|---|---|---|
+| 33 | K+1 | 0/4 | 3/4 | 1/4 | **TRAINABILITY-DEAD** | 29, 29, 29, 29 |
+| 40 | 1.25K | 0/4 | 0/4 | 4/4 | **TRAINABILITY-DEAD** | 29, 29, 29, 29 |
+| 48 | 1.5K | 0/4 | 0/4 | 4/4 | **TRAINABILITY-DEAD** | 29, 29, 29, 29 |
+| 64 | 2K (ref) | 0/4 | 0/4 | 4/4 | **TRAINABILITY-DEAD** | 29, 29, 29, 29 |
+
+**front is pinned at 29 (= K−3, the trivial rung) in literally all 16
+K=32 cells, every d, every seed** — zero far-depth signal anywhere in
+this grid; `rec@h*` reads 0.0000 in every one of the 16 cells.
+
+**A real, qualitative nuance the aggregate label hides (reported, not
+smoothed over): d=K+1 is NOT uniformly dead at the per-cell level the
+way d=1.25K/1.5K/2K are.** 3 of 4 d=33 seeds land PARTIAL (in-dist
+rec@0.9 0.517–0.871, `A_eff_rank` already clearing the 0.9×32=28.8 bar
+in all 4 seeds, 29.7–31.0), with seed 3 at 0.8711 — close to but short
+of the 0.9 CONVERGED bar. By contrast d=40/d=48/d=64 are 4/4 DEAD with
+in-dist recovery ≈0.0000–0.0008 in every seed — no seed at any of those
+three d's shows meaningful Gate-1 progress at all. The tight-spare
+convention's *relative* advantage over wider d therefore still holds
+directionally at K=32 (exactly as it did at K=16/K=24), it simply does
+not clear the CONVERGED-ROBUST bar this design's own §1.6 requires for
+REOPENS/CONVERGES-ONLY — see the "next experiment" note below.
+
+**K=48 rate probe (job `008`, citing the pre-existing `002` record,
+byte-identical cmd, zero incremental GPU-h):**
+
+| K | d | seed | steps | loss | in-dist rec@0.9 | A_eff_rank (mean) | δ | front | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 48 | 96 | 0 | 500 | 0.9978 | 0.0000 | 1.12 | 1.3449 | 45 (=K−3) | DEAD | 0.01454 |
+
+Confirms `regate_2026-07-12.md` §8.3's citation exactly
+(`gpu_h=0.014541613790724012`, `train.elapsed_s=10.9191`, top-level
+`elapsed_s=52.35s`) — a 500-step probe at the mapping-default d=96, not
+gate-relevant on its own (too short to read Gate-1), included only for
+the re-derivation-trigger record already resolved in that addendum
+(naive-scaled rate 2.33 GPU-h/cell vs the 0.55 planning value, ratio
+4.23, trigger FIRES — moot here since WAVE-1b never fires, below).
+
+**§1.6 verdict for K=32, applied mechanically: CLOSED-AT-THIS-K.**
+REOPENS and CONVERGES-ONLY both require CONVERGED-ROBUST (≥3/4 fully
+CONVERGED) at *some* d ∈ {K+1, 1.25K, 1.5K} — none of the three tested
+d-arms reaches even a single fully-CONVERGED cell (all three: 0/4
+CONVERGED). Per the design's own literal rule: "no d in {K+1, 1.25K,
+1.5K} reaches CONVERGED-ROBUST" → CLOSED-AT-THIS-K. The 2K reference
+(also 0/4, front pinned at 29 in all 4) is reported alongside per the
+design's own convention but is explicitly not decision-relevant to this
+verdict.
+
+**WAVE-1b (K=48's own d(K) grid) is thereby BLOCKED — per §1.6's
+staging rule, it must NOT be generated.** "K=32 lands
+`CLOSED-AT-THIS-K`" is exactly the design's own pre-registered
+stop-condition: "WAVE-1b... is never generated; the K-escalation stops
+entirely at this wave; K=48 (and the rest of `parked_k24plus`) stays
+parked." No further job-generation, no unparking of `108`-`111`, is
+authorized by this harvest. This gate was pre-registered before any
+WAVE-1 cell ran (§1.2/§1.6 of the design), so this is the mechanical
+discharge of that pre-registration, not a fresh judgment call.
+
+**Q2 — K=24 far-depth seed-variance, seed extension to n=12 (jobs
+`021`-`028`, seeds 4-11, joined to the original n=4 seeds 0-3 from
+§11.4 Table 2):**
+
+| K | d | seed | loss@80K | in-dist rec@0.9 (min h=1..3) | A_eff_rank (mean) | δ=phase_resid_max_mean | rec@h\*(h=189) | front | sweep_min_rec | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 24 | 25 | 0 | 0.0003 | 1.0000 | 24.00 | 0.0041 | 0.0636 | 189 | 0.0511 | CONVERGED | 0.4977 |
+| 24 | 25 | 1 | 0.0011 | 1.0000 | 23.99 | 0.0124 | 0.0000 | 93 | 0.0000 | CONVERGED | 0.4717 |
+| 24 | 25 | 2 | 0.0003 | 1.0000 | 24.00 | 0.0035 | 0.0448 | 189 | 0.0448 | CONVERGED | 0.4421 |
+| 24 | 25 | 3 | 0.0098 | 1.0000 | 23.92 | 0.0314 | 0.0000 | 21 | 0.0000 | CONVERGED | 0.4606 |
+| 24 | 25 | 4 | 0.0012 | 1.0000 | 23.99 | 0.0095 | 0.0000 | 93 | 0.0000 | CONVERGED | 0.5190 |
+| 24 | 25 | 5 | 0.0004 | 1.0000 | 24.00 | 0.0063 | 0.0026 | 93 | 0.0005 | CONVERGED | 0.5250 |
+| 24 | 25 | 6 | 0.0003 | 1.0000 | 24.00 | 0.0038 | 0.0632 | 189 | 0.0527 | CONVERGED | 0.4906 |
+| 24 | 25 | 7 | 0.0005 | 1.0000 | 24.00 | 0.0058 | 0.0014 | 93 | 0.0003 | CONVERGED | 0.4887 |
+| 24 | 25 | 8 | 0.0016 | 1.0000 | 23.99 | 0.0103 | 0.0000 | 93 | 0.0000 | CONVERGED | 0.5199 |
+| 24 | 25 | 9 | 0.0001 | 1.0000 | 24.00 | 0.0034 | 0.8734 | 189 | 0.8591 | CONVERGED | 0.4857 |
+| 24 | 25 | 10 | 0.0011 | 1.0000 | 23.99 | 0.0103 | 0.0000 | 93 | 0.0000 | CONVERGED | 0.5028 |
+| 24 | 25 | 11 | 0.0013 | 1.0000 | 23.99 | 0.0060 | 0.0000 | 93 | 0.0000 | CONVERGED | 0.5032 |
+
+**12/12 Gate-1 CONVERGED** — Probe A's convergence result holds at
+n=12, not just n=4. Front distribution: 4/12 reach `front=189` (=h\*,
+seeds 0, 2, 6, 9), 7/12 plateau at `front=93` (seeds 1, 4, 5, 7, 8, 10,
+11), 1/12 stays at the trivial `front=21` (=K−3, seed 3 — also the
+worst-δ seed in the cohort, 0.0314).
+
+**Q2 covariate result: Spearman ρ(δ, front) = −0.8771 (n=12); Spearman
+ρ(δ, sweep_min_rec) = −0.8734 (n=12).** Both far exceed the design's
+own |ρ|≳0.6 "materially large" bar, both negative (lower write-residual
+↔ further/more-reliable far-depth recovery), same sign as required by
+the falsification map → **δ-PREDICTABLE**, not δ-INDEPENDENT. The
+seed-to-seed far-depth variance at K=24@d=25 is substantially
+write-quality-driven, not an orthogonal stochastic degree of freedom —
+this is the trigger condition for the design's *primary* covariate
+story, not the fallback (§2.2's d=28 probe is therefore not triggered
+by this result on the δ-INDEPENDENT ground, though it may still be
+motivated by the reliability rate below).
+
+**Reliability rate (n=12, materially narrower than n=4 could support):**
+`sweep_min_rec` (the strict, whole-sweep-window metric) clears HOLD
+(≥0.9) in 0/12, DEGRADED (0.5,0.9) in 1/12 (seed 9, 0.8591 — just under
+HOLD), FAIL (≤0.5) in 11/12. The looser single-point `front≥h*` metric
+clears in 4/12 (33%). Plainly: K=24@d=25's far-depth composition is
+**not reliable** under either metric at 1× budget — the n=12 cohort
+narrows this from n=4's genuinely bimodal-looking `{21,93,189,189}`
+down to a real, graded, δ-correlated distribution with a low absolute
+success rate, not a coin-flip-reliable regime.
+
+**GPU-h ledger.** K48 probe (cited) 0.0145; K32@d33 (n=4) 2.2751;
+K32@d40 (n=4) 2.0759; K32@d48 (n=4) 2.0227; Q2 new seeds 4-11 (n=8)
+4.0349. **WAVE-1 realized total (21 cells, jobs 008-028): 10.4231
+GPU-h** (112.7% of the design's own 9.2505 nominal — within normal
+per-cell variance, no breaker tripped anywhere).
+
+**Raw-vs-design-doc discrepancy, flagged per the standing rule (raw
+wins).** The design's own §0 evidence table cites the K32@d64
+2K-reference mean δ as "0.803 (excl. seed3 collapse) / 1.05 (all 4)".
+The all-4 figure re-verifies exactly (mean of 0.9206/1.3307/0.4670/
+1.4857 = 1.0510 ≈ "1.05"). The excl-seed3 figure does **not**
+reproduce: the arithmetic mean of the remaining three seeds
+(0.9206/1.3307/0.4670) is **0.9061**, not 0.803 — verified against the
+raw JSONs, which themselves match `NOVEL_ARCH_WATERFALL.md`'s own
+already-recorded §11.3 context-row numbers (`:4335-4338`) to 4 decimal
+places. No combination of trimmed/geometric/harmonic mean of these
+three values reproduces 0.803 either. **This is immaterial to every
+verdict in this record** — the design's own §1.6 explicitly states the
+2K reference "is not what CLOSED depends on", and the corrected 0.9061
+figure changes no label (still 0/4 DEAD, front still pinned at 29) —
+but it is a real, uncorrected arithmetic error in the design document's
+own citation, disclosed here rather than silently propagated.
+
+**Honest scope correction this forces on §11.4 (stated plainly, not
+softened).** §11.4's own closing "joint observational summary"
+concluded the tight-spare (d=K+1) convention was implicated as the
+active variable, having CONFIRMED at both K=16 and K=24 — correct as
+far as it went, but that conclusion was drawn from exactly two K's,
+both ≤24. **This wave shows the convention does NOT generalize past
+K=24: at K=32, the identical tight-spare convention (d=K+1=33) fails to
+reach CONVERGED-ROBUST, landing in the same TRAINABILITY-DEAD bucket as
+every wider d tested at K=32 (1.25K, 1.5K, 2K) — even though it remains
+the qualitatively "least dead" arm (3/4 PARTIAL vs 0/4 PARTIAL
+elsewhere, above).** §11.4's convention-confound conclusion — "the
+convention jump (s: 0.5→tight) is implicated" as *the* explanation for
+the K-wall — is therefore **bounded to K≤24**, not established as a
+general d(K) law. An absolute-K component (some K-dependent factor
+beyond the ambient/entity spare-fraction `s` alone) is back in play for
+K≥32; this wave does not identify what it is, only that d=K+1 alone no
+longer suffices to clear Gate-1 at K=32 the way it did at K≤24.
+
+**Cross-reference to §11.4a (Q3 mechanism, `b97e006`).** That analysis
+found leakage magnitude/shape (`leak_ratio`, `D_share`) discriminate
+cleanly between d=K+1 and d=2K at K=16/K=24 — the mechanism explaining
+*why* d=2K underperforms d=K+1 within the regime where d=K+1 itself
+still converges. It does not explain, and was explicitly scoped not to
+speak to (its own "Coverage" note: "no K=32/K=48 NCR z-dumps exist
+yet... this analysis is scoped to K∈{16,24} only"), why d=K+1 itself
+stops clearing Gate-1 at K=32. §11.4a's mechanism and this wave's
+K=32 failure are compatible, not contradictory: leakage-shape may still
+explain relative differences *among* d's at a fixed K, while a separate,
+unidentified factor determines whether *any* d at that K clears Gate-1
+at all under the 1×/80K recipe.
+
+**What this wave establishes and does not.** Established: the
+tight-spare mapping law, as tested (three ratios × 4 seeds × 1×
+budget), does not reopen the K-ladder at K=32 — Gate-1 convergence
+itself is the blocker, not merely far-depth quality. Established: K=24
+far-depth seed-variance is substantially δ-predictable at n=12, with a
+low absolute success rate under the strict metric. Not established:
+whether K=32 is budget-limited (as K=16@d=32 was, before 4× budget
+took it from 1/4→4/4 CONVERGED, §11.4 Table 1) or genuinely
+budget-invariant at this K — no budget axis was tested here, by design
+(the mapping-law wave held budget fixed at 1× throughout, per the
+project's own "hold the second axis fixed" rule).
+
+**Recommended next experiment (disclosed as a read, not committed
+here).** K=32's own d=K+1 arm is the only cell class in this grid
+showing partial Gate-1 progress (3/4 PARTIAL, best seed at 0.871 —
+short of, not far from, the 0.9 bar), unlike d=1.25K/1.5K/2K which show
+essentially zero in-dist recovery in every seed. The cheapest test of
+whether K=32's wall is a budget artifact (like K16@d32 was) or a
+genuine absolute-K trainability ceiling is a single-arm budget probe —
+K=32@d=33 at 2×/4× budget, n=4 seeds, reusing §11.4's own Q1 budget-probe
+recipe verbatim — rather than a further d-ratio sweep (already
+exhausted at three points, all TRAINABILITY-DEAD) or a premature jump
+to K=48 (blocked by this record's own verdict). This is named as a
+recommendation, not pre-registered or launched by this recorder.
+
+**Archive.** `experiment-runs/2026-07-12_ncr_mappinglaw_wave1/` (all 25
+pulled cell JSONs + axis_c_lock siblings + `SUMMARY.md` + md5 manifest,
+repo tier; SSD mirror at
+`/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-12_ncr_mappinglaw_wave1/`
+if mounted — mount tested responsive this session, unlike the transient
+hang reported earlier the same day).
