@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paper Review Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23B3311A'/%3E%3Cpath d='M9 22 L21 10 M21 10 L23 12 L11 24 L7 25 L8 21 Z' stroke='%23fff' stroke-width='1.6' fill='none' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E" />
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #F1F3F1;
+    --surface: #FFFFFF;
+    --surface-2: #EAECE7;
+    --ink: #1B1F1D;
+    --muted: #5C635A;
+    --faint: #8B9088;
+    --border: #DBDED6;
+    --border-strong: #C4C8BE;
+    --accent: #B3311A;       /* editor's-pen red */
+    --accent-ink: #7A2112;
+    --accent-soft: #F3DAD3;
+    --accent-2: #2C5F72;     /* carbon-copy ink blue */
+    --accent-2-soft: #DCE7EA;
+    --ok: #3F7D4F;
+    --ok-soft: #DEEEDF;
+    --warn: #9A6A17;
+    --warn-soft: #F3E6C9;
+    --info: #52607E;
+    --info-soft: #E2E5EE;
+    --shadow: 0 1px 2px rgba(20,24,18,0.05), 0 6px 20px -8px rgba(20,24,18,0.12);
+
+    --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171A;
+      --surface: #1C2024;
+      --surface-2: #232823;
+      --ink: #E9EAE5;
+      --muted: #A2A89D;
+      --faint: #767C71;
+      --border: #2E332E;
+      --border-strong: #3B413A;
+      --accent: #E2825F;
+      --accent-ink: #F3B79C;
+      --accent-soft: #3A241D;
+      --accent-2: #7FB8CB;
+      --accent-2-soft: #1E2E33;
+      --ok: #7FBE8C;
+      --ok-soft: #1F2E22;
+      --warn: #D8AE5C;
+      --warn-soft: #33290F;
+      --info: #A7B2CE;
+      --info-soft: #232A3A;
+      --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 8px 24px -10px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171A; --surface: #1C2024; --surface-2: #232823; --ink: #E9EAE5;
+    --muted: #A2A89D; --faint: #767C71; --border: #2E332E; --border-strong: #3B413A;
+    --accent: #E2825F; --accent-ink: #F3B79C; --accent-soft: #3A241D;
+    --accent-2: #7FB8CB; --accent-2-soft: #1E2E33;
+    --ok: #7FBE8C; --ok-soft: #1F2E22; --warn: #D8AE5C; --warn-soft: #33290F;
+    --info: #A7B2CE; --info-soft: #232A3A;
+    --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 8px 24px -10px rgba(0,0,0,0.55);
+  }
+  :root[data-theme="light"] {
+    --bg: #F1F3F1; --surface: #FFFFFF; --surface-2: #EAECE7; --ink: #1B1F1D;
+    --muted: #5C635A; --faint: #8B9088; --border: #DBDED6; --border-strong: #C4C8BE;
+    --accent: #B3311A; --accent-ink: #7A2112; --accent-soft: #F3DAD3;
+    --accent-2: #2C5F72; --accent-2-soft: #DCE7EA;
+    --ok: #3F7D4F; --ok-soft: #DEEEDF; --warn: #9A6A17; --warn-soft: #F3E6C9;
+    --info: #52607E; --info-soft: #E2E5EE;
+    --shadow: 0 1px 2px rgba(20,24,18,0.05), 0 6px 20px -8px rgba(20,24,18,0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); color: var(--accent-ink); }
+  a { color: var(--accent-2); }
+  button, input, textarea { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- header ---------- */
+  header.top {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .top-row1 {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; padding: 18px 0 10px;
+  }
+  .brand h1 {
+    font-family: var(--font-display);
+    font-size: 1.7rem; font-weight: 600; margin: 0; letter-spacing: 0.2px;
+    text-wrap: balance;
+  }
+  .brand .sub {
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--faint);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px;
+  }
+  .btn {
+    font-family: var(--font-body); font-size: 0.84rem; font-weight: 600;
+    border-radius: 7px; padding: 9px 14px; border: 1px solid transparent;
+    cursor: pointer; white-space: nowrap; transition: transform 0.06s ease, background 0.15s ease;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--accent-2); color: #fff; }
+  .btn-primary:hover { background: color-mix(in srgb, var(--accent-2) 85%, black); }
+  .btn-ghost { background: transparent; border-color: var(--border-strong); color: var(--ink); }
+  .btn-ghost:hover { background: var(--surface-2); }
+  .btn-stamp {
+    background: var(--surface); color: var(--accent-2); border: 1.5px solid var(--accent-2);
+  }
+  .btn-stamp:hover { background: var(--accent-2-soft); }
+
+  .stat-row {
+    display: flex; gap: 10px; flex-wrap: wrap; padding: 4px 0 12px;
+  }
+  .stat-tile {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+    padding: 8px 13px; min-width: 92px;
+  }
+  .stat-tile .n {
+    font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-tile .l {
+    font-family: var(--font-mono); font-size: 0.66rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px;
+  }
+  .stat-tile.deadline { border-color: var(--accent); background: var(--accent-soft); }
+  .stat-tile.deadline .n { color: var(--accent-ink); font-size: 1.02rem; }
+
+  .decisions-strip {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .decisions-strip .dt {
+    font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--accent-ink); font-weight: 700; margin-bottom: 6px;
+  }
+  .decisions-strip ol {
+    margin: 0; padding-left: 1.15em; font-size: 0.83rem; color: var(--muted);
+  }
+  .decisions-strip li { margin: 2px 0; }
+  .decisions-strip li strong { color: var(--ink); font-weight: 600; }
+
+  nav.jump {
+    display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 12px;
+  }
+  nav.jump a {
+    text-decoration: none; font-family: var(--font-mono); font-size: 0.72rem;
+    color: var(--ink); background: var(--surface); border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  nav.jump a:hover { border-color: var(--border-strong); background: var(--surface-2); }
+  nav.jump .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .dot-ready { background: var(--ok); }
+  .dot-arxiv { background: var(--accent-2); }
+  .dot-drafting { background: var(--info); }
+
+  /* ---------- main ---------- */
+  main { padding: 24px 0 80px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 22px 24px 20px; margin-bottom: 22px;
+    scroll-margin-top: 190px;
+  }
+  .card-head {
+    display: flex; justify-content: space-between; gap: 18px; align-items: flex-start;
+    flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 14px;
+  }
+  .card-head h2 {
+    font-family: var(--font-display); font-size: 1.36rem; font-weight: 600; line-height: 1.28;
+    margin: 0 0 6px; text-wrap: balance; max-width: 62ch;
+  }
+  .card-head h2 .working-title-flag {
+    display: block; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700;
+    color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
+  }
+  .card-head .slug {
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--faint);
+  }
+  .badges { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 200px; }
+  .pill {
+    font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em;
+    padding: 4px 10px; border-radius: 999px; white-space: nowrap; text-transform: uppercase;
+  }
+  .pill-ready { background: var(--ok-soft); color: var(--ok); }
+  .pill-arxiv { background: var(--accent-2-soft); color: var(--accent-2); }
+  .pill-drafting { background: var(--info-soft); color: var(--info); }
+  .pill-blocker { background: var(--warn-soft); color: var(--warn); }
+  .pill-venue { background: var(--surface-2); color: var(--muted); text-transform: none; font-weight: 600; }
+  .pill-deadline { background: transparent; color: var(--muted); border: 1px solid var(--border-strong); text-transform: none; }
+  .pill-deadline.urgent { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+
+  .abstract {
+    font-family: var(--font-display); font-size: 0.98rem; line-height: 1.62; color: var(--ink);
+    max-width: 68ch; margin: 0 0 16px;
+  }
+
+  h3.label {
+    font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--muted); margin: 18px 0 8px; font-weight: 700;
+  }
+  ul.claims { margin: 0; padding-left: 1.2em; max-width: 68ch; }
+  ul.claims li { margin: 6px 0; font-size: 0.88rem; }
+  ul.claims li b { color: var(--ink); }
+
+  .pi-decisions {
+    background: var(--accent-soft); border: 1px dashed var(--accent);
+    border-radius: 8px; padding: 10px 13px; margin-top: 14px; max-width: 68ch;
+  }
+  .pi-decisions .dt {
+    font-family: var(--font-mono); font-size: 0.66rem; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--accent-ink); font-weight: 700; margin-bottom: 4px;
+  }
+  .pi-decisions ul { margin: 0; padding-left: 1.1em; font-size: 0.82rem; color: var(--accent-ink); }
+  .pi-decisions li { margin: 2px 0; }
+
+  .sources {
+    font-family: var(--font-mono); font-size: 0.68rem; color: var(--faint);
+    margin-top: 14px; word-break: break-word;
+  }
+  .sources b { color: var(--muted); font-weight: 600; }
+
+  .card-actions {
+    display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center;
+  }
+
+  .notes-block { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .notes-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .notes-head label {
+    font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--accent-ink); font-weight: 700;
+    border-bottom: 2px solid var(--accent); padding-bottom: 2px;
+  }
+  .notes-status { font-family: var(--font-mono); font-size: 0.68rem; color: var(--faint); }
+  .notes-status.saved { color: var(--ok); }
+  textarea.notes {
+    width: 100%; min-height: 92px; resize: vertical;
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 10px 12px; font-family: var(--font-mono); font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  textarea.notes::placeholder { color: var(--faint); }
+  .notes-foot { display: flex; justify-content: flex-end; margin-top: 6px; }
+  .link-btn {
+    background: none; border: none; color: var(--faint); font-family: var(--font-mono);
+    font-size: 0.68rem; cursor: pointer; text-decoration: underline; padding: 2px;
+  }
+  .link-btn:hover { color: var(--accent); }
+
+  footer.page {
+    text-align: center; font-family: var(--font-mono); font-size: 0.7rem;
+    color: var(--faint); padding: 10px 0 50px;
+  }
+
+  /* ---------- modal ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(10,12,10,0.55);
+    display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-panel {
+    background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px;
+    max-width: 720px; width: 100%; max-height: 82vh; display: flex; flex-direction: column;
+    box-shadow: var(--shadow);
+  }
+  .modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+  }
+  .modal-head h3 { font-family: var(--font-display); font-size: 1.1rem; margin: 0; }
+  .modal-close {
+    background: none; border: none; font-size: 1.3rem; line-height: 1; cursor: pointer;
+    color: var(--muted); padding: 4px 8px; border-radius: 6px;
+  }
+  .modal-close:hover { background: var(--surface-2); }
+  .modal-body { padding: 14px 20px; overflow-y: auto; }
+  .modal-status { font-family: var(--font-mono); font-size: 0.76rem; color: var(--muted); margin: 0 0 10px; }
+  .modal-status.ok { color: var(--ok); }
+  textarea#exportText {
+    width: 100%; height: 46vh; background: var(--surface-2); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 7px; padding: 12px; font-family: var(--font-mono);
+    font-size: 0.78rem; line-height: 1.5; white-space: pre; overflow: auto;
+  }
+  .modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+  @media (max-width: 640px) {
+    .card-head { flex-direction: column; }
+    .badges { align-items: flex-start; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row1">
+      <div class="brand">
+        <h1>Paper Review Dashboard</h1>
+        <div class="sub">Private · local only · 8 papers · Pebble AI research program</div>
+      </div>
+      <button class="btn btn-primary" id="exportBtn">Export all notes</button>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-tile"><div class="n">8</div><div class="l">Papers</div></div>
+      <div class="stat-tile"><div class="n">5</div><div class="l">Submission-ready</div></div>
+      <div class="stat-tile"><div class="n">2</div><div class="l">arXiv-ready</div></div>
+      <div class="stat-tile"><div class="n">1</div><div class="l">Drafting</div></div>
+      <div class="stat-tile" id="notesTile"><div class="n">0/8</div><div class="l">Have notes</div></div>
+      <div class="stat-tile deadline"><div class="n">Jul 19, 2026</div><div class="l">Nearest deadline · COLM Efficient Reasoning</div></div>
+    </div>
+
+    <div class="decisions-strip">
+      <div class="dt">Open PI decisions</div>
+      <ol>
+        <li><strong>Titles</strong> — approved for all seven data papers; flagship's is still a working title, PI reasoning in progress.</li>
+        <li><strong>Identity / authors</strong> — author name(s) and affiliation block are unset on all eight review builds (placeholder or "Anonymous").</li>
+        <li><strong>Flagship</strong> — absorb the existing <code>iclr-2027/</code> attractor draft into the flagship, or keep them as two separate submissions (they cannot both carry the same §5 evidence to ICLR 2027); plus a repo-publicize decision.</li>
+        <li><strong>arXiv uploads</strong> — neurreps-ea and unireps-ea named arXiv packages are built and sitting on disk, waiting on an upload go-ahead.</li>
+        <li><strong>MOSS late-add email</strong> — reasoning-null-moss needs a late-entry email sent to the organizers before it can be submitted; not yet sent.</li>
+      </ol>
+    </div>
+
+    <nav class="jump">
+      <a href="#capacity-colm-er"><span class="dot dot-ready"></span>Capacity cliff</a>
+      <a href="#mstar-colm-er"><span class="dot dot-ready"></span>Constant-memory recall</a>
+      <a href="#measurement-ws"><span class="dot dot-ready"></span>Instrument is the suspect</a>
+      <a href="#reasoning-null-moss"><span class="dot dot-ready"></span>Three bounds on a null</a>
+      <a href="#neurreps-ea"><span class="dot dot-arxiv"></span>Causal rank law (NeurReps)</a>
+      <a href="#unireps-ea"><span class="dot dot-arxiv"></span>Dimension not solvability (UniReps)</a>
+      <a href="#rank-recruitment-ws"><span class="dot dot-ready"></span>Gradient sees rank</a>
+      <a href="#flagship"><span class="dot dot-drafting"></span>Flagship</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ 1. capacity-colm-er ============ -->
+  <section class="card" id="capacity-colm-er">
+    <div class="card-head">
+      <div>
+        <h2>The Capacity of a Fixed-Size Fast-Weight State: A Located Frontier That Grows Super-Linearly with Dimension</h2>
+        <div class="slug">capacity-colm-er</div>
+      </div>
+      <div class="badges">
+        <span class="pill pill-ready">Submission-ready</span>
+        <span class="pill pill-venue">2nd Workshop on Efficient Reasoning @ COLM 2026</span>
+        <span class="pill pill-deadline urgent">Jul 19, 2026 AoE</span>
+      </div>
+    </div>
+
+    <p class="abstract">How many independent bindings does a fixed-size fast-weight state hold before recall collapses? We measure this directly in a single-layer DeltaNet trained on a synthetic associative-recall grammar, grading recovery by exact continuous cosine similarity rather than argmax over a codebook, and report three results and one provisioning law. First, at state dimension d<sub>state</sub>&nbsp;=&nbsp;64, the held-out 4-hop recall frontier is a sharp transition, not a graceful decline: a logistic fit locates the midpoint at K/d<sub>state</sub>&nbsp;=&nbsp;0.5455 (95% CI [0.5385, 0.5513]). Second, the ratio is not the law: the identical K/d<sub>state</sub> window is flat at ceiling at d<sub>state</sub>&nbsp;=&nbsp;128 (12 of 12 cells at 1.0), the d<sub>state</sub>&nbsp;=&nbsp;80 frontier sits at 0.6779 (CI [0.6683, 0.6867]), excluding the pre-registered ratio-invariance band, and d<sub>state</sub>&nbsp;=&nbsp;96 shows no transition anywhere through K/d<sub>state</sub>&nbsp;=&nbsp;0.9375. Between the two located frontiers, raw-binding capacity grows as a two-point d<sup>1.97</sup> exponent (CI [1.86, 2.09]) — consistent with state bytes, not state width. Third, the leading rival account of the growth, anchor-table coherence, fails a direct dose-response test: frozen coherence injected above the natural training band leaves recall at exact ceiling in 19 of 19 cells, under both concentrated and diffuse injection structures. Fixed-size states are the constant-memory endpoint of the KV-cache trade-off; these measurements give their capacity a located, pre-registered frontier.</p>
+
+    <h3 class="label">Headline claims</h3>
+    <ul class="claims">
+      <li>The recall frontier at d=64 is a <b>sharp transition</b>, not a decline — located at K/d = 0.5455, a ~20&times; tightening over the prior bracket.</li>
+      <li><b>The ratio is not the law:</b> d=128 stays flat at ceiling through the same window; d=80's frontier (0.6779) excludes the pre-registered invariance band entirely; d=96 shows no transition through K/d=0.9375.</li>
+      <li>Raw binding capacity grows <b>super-linearly with dimension</b> (~d<sup>1.97</sup>) — roughly proportional to state bytes, not state width.</li>
+      <li>The leading rival explanation (anchor-table coherence) is <b>killed twice</b>: frozen, above-band coherence injection leaves recall at ceiling in 19/19 cells under both concentrated and diffuse structures.</li>
+    </ul>
+
+    <div class="pi-decisions">
+      <div class="dt">Open PI decisions</div>
+      <ul>
+        <li>Author identity / affiliation block (currently the COLM kit's anonymized placeholder).</li>
+        <li>OpenReview upload at the Jul 19 AoE deadline.</li>
+      </ul>
+    </div>
+
+    <div class="sources"><b>Sourced from:</b> bundle/main.tex, sections/00_abstract.tex, brief.md, venue-requirements.md, detector/round-1.md (bounded-terminal, coordinator sign-off).</div>
+
+    <div class="card-actions">
+      <a class="btn btn-stamp" href="capacity-colm-er/bundle/main.pdf" target="_blank" rel="noopener">Open PDF &rarr;</a>
+    </div>
+
+    <div class="notes-block">
+      <div class="notes-head">
+        <label for="notes-capacity-colm-er">Your notes</label>
+        <span class="notes-status" data-status-for="capacity-colm-er"></span>
+      </div>
+      <textarea class="notes" id="notes-capacity-colm-er" data-slug="capacity-colm-er" placeholder="Edit requests for this paper — what to change, cut, or tighten..."></textarea>
+      <div class="notes-foot"><button class="link-btn" data-clear="capacity-colm-er">clear</button></div>
+    </div>
+  </section>
+
+  <!-- ============ 2. mstar-colm-er ============ -->
+  <section class="card" id="mstar-colm-er">
+    <div class="card-head">
+      <div>
+        <h2>Constant-Memory Recall: A Fixed 32&nbsp;kB Fast-Weight State Retains In-Context Bindings That a Matched Transformer Does Not Learn</h2>
+        <div class="slug">mstar-colm-er</div>
+      </div>
+      <div class="badges">
+        <span class="pill pill-ready">Submission-ready</span>
+        <span class="pill pill-venue">2nd Workshop on Efficient Reasoning @ COLM 2026</span>
+        <span class="pill pill-deadline urgent">Jul 19, 2026 AoE</span>
+      </div>
+    </div>
+
+    <p class="abstract">Long-horizon inference is increasingly memory-bound: a transformer's key&ndash;value (KV) cache grows linearly with context length, while fast-weight recurrences carry a state of fixed size. Whether such a state retains the bindings a recall task depends on, under a training budget an attention model also receives, is an empirical question. We compare three models matched in parameters, data, and training schedule on episode-restricted 32-way associative recall: a two-block matrix fast-weight model holding 32,768 bytes of recurrent state, a flat-vector recurrence, and a transformer. The fast-weight model answers recall queries at 0.9995 mean accuracy over three seeds; both baselines sit at chance, and paired-seed confidence intervals exclude the pre-registered 0.30 separation margin with lower bounds above 0.95. Accuracy stays at or above 0.998 for every seed when the same episode is embedded in contexts of 454 to 1,798 tokens — eight times the binding span — with the state fixed at 32,768 bytes; the transformer reads chance uncapped and at every KV-cache budget from one to thirty-two times those bytes, so no memory multiplier is claimed and the baseline is reported as non-competitive at the matched budget. State-zeroing localizes the recall to the first block's fast-weight state. A multi-hop variant separates only as seed variance, and at higher load every arm reads chance.</p>
+
+    <h3 class="label">Headline claims</h3>
+    <ul class="claims">
+      <li>At matched params/data, the contender reads <b>0.9995 mean recall accuracy</b> (3 seeds) against two baselines at chance; paired CIs exclude the pre-registered 0.30 margin with room to spare.</li>
+      <li><b>Constant-memory demonstration:</b> accuracy stays &ge;0.998 out to 8&times; the binding span on a state fixed at 32,768 bytes, while the transformer stays at chance uncapped <i>and</i> at every KV-cache budget from 1&times; to 32&times; that size — reported as "baseline non-competitive," never as a memory multiplier.</li>
+      <li><b>Causal localization:</b> zeroing the first block's fast-weight state collapses recall to chance; zeroing the second block's state changes nothing.</li>
+      <li>Honest scope: a multi-hop variant is a <b>seed-variance finding, not a capability claim</b>; at stress load (K/d=0.75) all three arms read chance.</li>
+    </ul>
+
+    <div class="pi-decisions">
+      <div class="dt">Open PI decisions</div>
+      <ul>
+        <li>Author identity / affiliation block.</li>
+        <li>One optional, non-blocking prose fix flagged by final review (Fig. 1 caption's table cross-reference) — apply or ship as-is.</li>
+      </ul>
+    </div>
+
+    <div class="sources"><b>Sourced from:</b> bundle/mstar-colm-er-submission.tex, sections/00_abstract.tex, brief.md, venue-requirements.md, detector/round-6.md + gauntlet/round-1/07_final_review.md (human-reviewed, "submit as-is").</div>
+
+    <div class="card-actions">
+      <a class="btn btn-stamp" href="mstar-colm-er/bundle/mstar-colm-er-submission.pdf" target="_blank" rel="noopener">Open PDF &rarr;</a>
+    </div>
+
+    <div class="notes-block">
+      <div class="notes-head">
+        <label for="notes-mstar-colm-er">Your notes</label>
+        <span class="notes-status" data-status-for="mstar-colm-er"></span>
+      </div>
+      <textarea class="notes" id="notes-mstar-colm-er" data-slug="mstar-colm-er" placeholder="Edit requests for this paper — what to change, cut, or tighten..."></textarea>
+      <div class="notes-foot"><button class="link-btn" data-clear="mstar-colm-er">clear</button></div>
+    </div>
+  </section>
+
+  <!-- ============ 3. measurement-ws ============ -->
+  <section class="card" id="measurement-ws">
+    <div class="card-head">
+      <div>
+        <h2>The Instrument Is the First Suspect: Six Broken Lenses in One Empirical Program</h2>
+        <div class="slug">measurement-ws</div>
+      </div>
+      <div class="badges">
+        <span class="pill pill-ready">Submission-ready</span>
+        <span class="pill pill-blocker">Venue pending</span>
+        <span class="pill pill-venue">NeurIPS 2026 measurement/eval workshop (backup: MOSS late window)</span>
+        <span class="pill pill-deadline">~Aug 29, 2026 AoE (suggested; unconfirmed)</span>
+      </div>
+    </div>
+
+    <p class="abstract">Empirical claims about learned systems inherit the health of the instruments that measure them. We report six pre-publication incidents from one measurement-heavy research program on fast-weight sequence models in which a model — in one case a synthetic oracle — appeared to fail, and the failure traced instead to the instrument: an admission tolerance calibrated on the wrong key population; a probe reading a layer that causal state-zeroing later proved inert; an identity-gauge assumption measured on one architecture and carried to another; an uncentered covariance estimator degenerate on the task's near-orthogonal targets; a target whose ambient identity block taxed every rank budget; and a cross-check reference invoked on the transposed side of a state convention. The same discipline adjudicated every incident: instrument-health adjudication before any model verdict, pre-registered crosschecks graded where the primary lens's assumptions fail, falsifier controls run to completion, and raw-artifact tiebreaks. The discipline is itself falsifiable; its decisive crosscheck survived a pre-registered shuffled-target control that would have voided the adjudication. It does not launder results: the corrected lens left the endpoint verdict standing and two genuine model failures intact. We argue the discipline transfers to any empirical evaluation gated by numerical checks, learned probes, or basis-dependent readouts.</p>
+
+    <h3 class="label">Headline claims</h3>
+    <ul class="claims">
+      <li>Six pre-publication incidents where a model <b>appeared to fail and the failure traced to the instrument</b> — a wrong-population tolerance, a probe on a causally inert layer, a gauge that didn't transfer architectures, a degenerate covariance estimator, an ambient-identity rank tax, and a transposed reference convention.</li>
+      <li>One adjudication discipline caught all six: <b>instrument-health checked before any model verdict</b>, pre-registered crosschecks, falsifier controls, raw-artifact tiebreaks.</li>
+      <li>The discipline is <b>itself falsifiable</b> — its decisive crosscheck survived a pre-registered shuffled-target control that would have voided it had it failed.</li>
+      <li>It does not launder results: the corrected lens left the <b>pre-registered endpoint verdict standing</b> and two genuine model failures intact.</li>
+    </ul>
+
+    <div class="pi-decisions">
+      <div class="dt">Open PI decisions</div>
+      <ul>
+        <li>Author identity / affiliation block.</li>
+        <li>Final venue selection — pending today's (Jul 11) NeurIPS 2026 accepted-workshop list; MOSS late window is the live fallback.</li>
+      </ul>
+    </div>
+
+    <div class="sources"><b>Sourced from:</b> bundle/measurement-ws-submission.tex, sections/00_abstract.tex, brief.md, venue-requirements.md.</div>
+
+    <div class="card-actions">
+      <a class="btn btn-stamp" href="measurement-ws/bundle/measurement-ws-submission.pdf" target="_blank" rel="noopener">Open PDF &rarr;</a>
+    </div>
+
+    <div class="notes-block">
+      <div class="notes-head">
+        <label for="notes-measurement-ws">Your notes</label>
+        <span class="notes-status" data-status-for="measurement-ws"></span>
+      </div>
+      <textarea class="notes" id="notes-measurement-ws" data-slug="measurement-ws" placeholder="Edit requests for this paper — what to change, cut, or tighten..."></textarea>
+      <div class="notes-foot"><button class="link-btn" data-clear="measurement-ws">clear</button></div>
+    </div>
+  </section>
+
+  <!-- ============ 4. reasoning-null-moss ============ -->
+  <section class="card" id="reasoning-null-moss">
+    <div class="card-head">
+      <div>
+        <h2>Three Bounds on a Null: Testing the Link Between Fast-Weight Write Geometry and In-Context Composition</h2>
+        <div class="slug">reasoning-null-moss</div>
+      </div>
+      <div class="badges">
+        <span class="pill pill-ready">Submission-ready</span>
+        <span class="pill pill-blocker">Pending MOSS email</span>
+        <span class="pill pill-venue">MOSS @ COLM 2026, Small-Scale Frontier Track (late window)</span>
+        <span class="pill pill-deadline">Original Jul 3 passed &mdash; late-add only</span>
+      </div>
+    </div>
+
+    <p class="abstract">Fixed-state sequence models bind in-context associations in a matrix-valued fast-weight state; geometric observables have been proposed as lenses on composition. We test whether this observable predicts, or causally improves, in-context multi-hop composition in DeltaNet-family language models spanning 14M to 1.31B parameters, and find a null bounded three ways. First, a state-space composition readout, deployed three structurally different ways, returned a recovered fraction of exactly zero at 366 of 366 readings, gates failing at every cell. A pre-submission positive control caught a state-layout defect in the readout; after the fix, the 320-reading marker-template sub-grid no longer reads zero, but two pre-registered correspondence nulls reproduce the signal at every one of those readings: recovery there is indistinguishable from a broken correspondence; the other two deployments keep their pre-fix zero unconfirmed. Second, a vocabulary-space behavioral contrast bounds any causal effect of a write-geometry intervention below its pre-registered three-seed detection floor of 1.5 to 1.7 loss units; the sole reading meeting the pre-registered differential condition is a transient, harm-direction deviation. Third, a twelve-seed replication of the transient was stopped by its pre-registered batch-effect gate (cohort variance ratio 4.47 against a cutoff of 4.0), and the new cohort's interval spans zero. Each bound names the observation that would overturn it. The result is a null with visible assumptions and closed escape routes.</p>
+
+    <h3 class="label">Headline claims</h3>
+    <ul class="claims">
+      <li>A geometric write-composition readout, run three structurally different ways across 14M&ndash;1.31B-param models, reads <b>near-zero recovery everywhere its own validity gates hold</b>; a pre-submission positive control caught and fixed a real state-layout bug in the instrument.</li>
+      <li>After the fix, the largest sub-grid no longer reads exactly zero &mdash; but <b>two independent correspondence nulls reproduce the same signal</b> at every one of those readings: it is indistinguishable from a broken correspondence, not confirmed as real.</li>
+      <li>A behavioral (vocabulary-space) test <b>bounds any causal effect below a pre-registered detection floor</b>; the one signal that clears it is a transient that fades by the end of training.</li>
+      <li>A 12-seed replication of that transient <b>trips its own pre-registered batch-effect gate</b>; the new cohort's interval spans zero.</li>
+    </ul>
+
+    <div class="pi-decisions">
+      <div class="dt">Open PI decisions</div>
+      <ul>
+        <li>Author identity / affiliation block.</li>
+        <li><b>Blocker:</b> send (or decline to send) the MOSS late-add email to <code>colm2026-moss-workshop@googlegroups.com</code> — the package is ready to go the moment it gets a yes.</li>
+      </ul>
+    </div>
+
+    <div class="sources"><b>Sourced from:</b> bundle/reasoning-null-moss-submission.tex, sections/00_abstract.tex, brief.md, venue-requirements.md (2026-07-11 claim-shape-corrected revision).</div>
+
+    <div class="card-actions">
+      <a class="btn btn-stamp" href="reasoning-null-moss/bundle/reasoning-null-moss-submission.pdf" target="_blank" rel="noopener">Open PDF &rarr;</a>
+    </div>
+
+    <div class="notes-block">
+      <div class="notes-head">
+        <label for="notes-reasoning-null-moss">Your notes</label>
+        <span class="notes-status" data-status-for="reasoning-null-moss"></span>
+      </div>
+      <textarea class="notes" id="notes-reasoning-null-moss" data-slug="reasoning-null-moss" placeholder="Edit requests for this paper — what to change, cut, or tighten..."></textarea>
+      <div class="notes-foot"><button class="link-btn" data-clear="reasoning-null-moss">clear</button></div>
+    </div>
+  </section>
+
+  <!-- ============ 5. neurreps-ea ============ -->
+  <section class="card" id="neurreps-ea">
+    <div class="card-head">
+      <div>
+        <h2>The Rank the Task Demands: A Causal Rank Law for Matrix Memories Trained on Group Composition</h2>
+        <div class="slug">neurreps-ea</div>
+      </div>
+      <div class="badges">
+        <span class="pill pill-arxiv">arXiv-ready</span>
+        <span class="pill pill-venue">NeurReps 2026 (NeurIPS workshop) &mdash; Extended Abstract</span>
+        <span class="pill pill-deadline">~Late Aug 2026 (2025-pattern; 2026 CFP pending)</span>
+      </div>
+    </div>
+
+    <p class="abstract">Matrix-valued memories make rank the natural budget of a learned representation: the number of independent directions a state spans bounds what it can bind, compose, and track. We report causal evidence, on a group-composition testbed trained under a hard single-state bottleneck with a fixed decoder that cannot launder rank, that gradient descent recruits precisely the rank the task's algebra demands. A concurrent companion submission establishes the analogous recruitment and causal-necessity pattern on a K-pair associative-binding testbed, where exact recovery provably requires state rank at least K; this paper inherits that instrument and extends the rank law from a scalar capacity bound to a representation-theoretic one. On group-composition state tracking over five finite groups spanning the solvable/non-solvable divide, the recruited rank equals the group's minimal faithful real representation dimension d<sub>min</sub> (Spearman &rho;&nbsp;=&nbsp;0.9747, the design's tie-capped maximum), the dimension-matched solvable/non-solvable pair S<sub>4</sub>/A<sub>5</sub> is statistically equivalent under a pre-registered test, and a pre-registered force-rank razor is exact in both directions: one rank below d<sub>min</sub>, recovery is capped near zero by construction, with observed cells at 76&ndash;95% (mean 88%) of that ceiling; at d<sub>min</sub>, not guaranteed a priori, recovery clears the anchor-relative bar in all five groups. Representation theory, not computational complexity class, sets what gradient descent buys.</p>
+
+    <h3 class="label">Headline claims</h3>
+    <ul class="claims">
+      <li>Trained on group-composition tasks spanning the solvable/non-solvable divide, SGD recruits exactly the group's <b>minimal faithful representation dimension d<sub>min</sub></b> (Spearman &rho;=0.9747, the design's tie-capped maximum).</li>
+      <li>The matched-dimension solvable/non-solvable pair (S<sub>4</sub> vs A<sub>5</sub>) is <b>statistically equivalent</b> (pre-registered TOST) &mdash; rank tracks dimension, not complexity class.</li>
+      <li>A <b>causal force-rank razor</b> is exact in both directions: one rank below d<sub>min</sub>, recovery is pinned near zero by construction; at d<sub>min</sub>, recovery clears the bar in all five groups.</li>
+      <li>Foundation leg: on K-pair associative binding, rank(Z)&ge;K is provably necessary and SGD recruits effective rank tracking K.</li>
+    </ul>
+
+    <div class="pi-decisions">
+      <div class="dt">Open PI decisions</div>
+      <ul>
+        <li>Author identity / affiliation block (title is decided &mdash; Candidate A, above).</li>
+        <li>Create/log into an OpenReview account and upload the bundle.</li>
+        <li>arXiv upload &mdash; the named package is built at <code>arxiv/neurreps-ea-arxiv-v1.zip</code>.</li>
+      </ul>
+    </div>
+
+    <div class="sources"><b>Sourced from:</b> bundle/neurreps-ea-submission.tex, brief.md, VENUE_REQUIREMENTS.md, ../SUBMISSION_PACKAGE.md (render inspection: 0 critical / 0 serious / 0 minor, ACCEPT-READY).</div>
+
+    <div class="card-actions">
+      <a class="btn btn-stamp" href="neurreps-ea/bundle/neurreps-ea-submission.pdf" target="_blank" rel="noopener">Open PDF &rarr;</a>
+      <a class="btn btn-ghost" href="neurreps-ea/arxiv/neurreps-ea-arxiv.pdf" target="_blank" rel="noopener">Open arXiv build</a>
+    </div>
+
+    <div class="notes-block">
+      <div class="notes-head">
+        <label for="notes-neurreps-ea">Your notes</label>
+        <span class="notes-status" data-status-for="neurreps-ea"></span>
+      </div>
+      <textarea class="notes" id="notes-neurreps-ea" data-slug="neurreps-ea" placeholder="Edit requests for this paper — what to change, cut, or tighten..."></textarea>
+      <div class="notes-foot"><button class="link-btn" data-clear="neurreps-ea">clear</button></div>
+    </div>
+  </section>
+
+  <!-- ============ 6. unireps-ea ============ -->
+  <section class="card" id="unireps-ea">
+    <div class="card-head">
+      <div>
+        <h2>Dimension, Not Solvability: Trained Matrix States Converge to the Minimal Faithful Representation Dimension</h2>
+        <div class="slug">unireps-ea</div>
+      </div>
+      <div class="badges">
+        <span class="pill pill-arxiv">arXiv-ready</span>
+        <span class="pill pill-venue">UniReps 2026 (NeurIPS workshop) &mdash; Extended Abstract</span>
+        <span class="pill pill-deadline">TBD AoE (2026 CFP live, dates not posted)</span>
+      </div>
+    </div>
+
+    <p class="abstract">When do differently structured tasks drive a learner to the same representation? We train identical matrix-state sequence models end-to-end on the word problems of five finite groups &mdash; S<sub>3</sub>, S<sub>4</sub>, A<sub>5</sub>, S<sub>5</sub>, A<sub>6</sub> &mdash; spanning the solvable/non-solvable divide, and measure the effective rank of the learned state against each group's minimal faithful real representation dimension d<sub>min</sub>. The learned rank converges onto the algebraic minimum: group means 1.88/2.85/2.83/3.59/4.74 against d<sub>min</sub>&nbsp;=&nbsp;2/3/3/4/5, all 19 seeds inside the pre-registered [0.7,&nbsp;1.3]&middot;d<sub>min</sub> band, Spearman &rho;&nbsp;=&nbsp;0.9747, the maximum this design permits under the S<sub>4</sub>/A<sub>5</sub> tie. The designed head-to-head is that tie: S<sub>4</sub> (solvable) and A<sub>5</sub> (non-solvable) share d<sub>min</sub>&nbsp;=&nbsp;3, so if learned dimension were set by computational complexity class the pair should separate, and if set by representation dimension it should coincide. A pre-registered Welch equivalence test at &plusmn;0.5 rank-units declares equivalence decisively. A pre-registered causal force-rank razor adds a third leg: capping rank one below d<sub>min</sub> pins recovery under the metric's own geometric ceiling in every group, and restoring d<sub>min</sub> lifts it past the pre-registered bar in every group. Learned representational dimension follows the task's algebra, not its complexity class.</p>
+
+    <h3 class="label">Headline claims</h3>
+    <ul class="claims">
+      <li>Across five groups spanning the solvable/non-solvable divide, <b>learned rank converges onto the algebraic minimum d<sub>min</sub></b> (Spearman &rho;=0.9747; 19/19 seeds inside the pre-registered band).</li>
+      <li>The designed head-to-head (S<sub>4</sub> solvable vs A<sub>5</sub> non-solvable, same d<sub>min</sub>=3) is a pre-registered equivalence test that <b>DECLAREs equivalence decisively</b>.</li>
+      <li>A causal force-rank razor adds a third leg: one below d<sub>min</sub> the recovery ceiling is pinned by the metric's own geometry; at d<sub>min</sub> it clears the bar in every group.</li>
+      <li>Two instrument defects (an isotropic covariance lens; an ambient-identity rank tax) were <b>caught and fixed before this result was trusted</b>.</li>
+    </ul>
+
+    <div class="pi-decisions">
+      <div class="dt">Open PI decisions</div>
+      <ul>
+        <li>Author identity / affiliation block (title is decided &mdash; Candidate A, above).</li>
+        <li>Create/log into an OpenReview account and upload the bundle; camera-ready limit is 5pp.</li>
+        <li>arXiv upload &mdash; the named package is built at <code>arxiv/unireps-ea-arxiv-v1.zip</code>.</li>
+      </ul>
+    </div>
+
+    <div class="sources"><b>Sourced from:</b> bundle/unireps-ea-submission.tex, brief.md, VENUE_REQUIREMENTS.md, ../SUBMISSION_PACKAGE.md (render inspection v4: 0 critical / 0 serious / 0 minor, ACCEPT-READY).</div>
+
+    <div class="card-actions">
+      <a class="btn btn-stamp" href="unireps-ea/bundle/unireps-ea-submission.pdf" target="_blank" rel="noopener">Open PDF &rarr;</a>
+      <a class="btn btn-ghost" href="unireps-ea/arxiv/unireps-ea-arxiv.pdf" target="_blank" rel="noopener">Open arXiv build</a>
+    </div>
+
+    <div class="notes-block">
+      <div class="notes-head">
+        <label for="notes-unireps-ea">Your notes</label>
+        <span class="notes-status" data-status-for="unireps-ea"></span>
+      </div>
+      <textarea class="notes" id="notes-unireps-ea" data-slug="unireps-ea" placeholder="Edit requests for this paper — what to change, cut, or tighten..."></textarea>
+      <div class="notes-foot"><button class="link-btn" data-clear="unireps-ea">clear</button></div>
+    </div>
+  </section>
+
+  <!-- ============ 7. rank-recruitment-ws ============ -->
+  <section class="card" id="rank-recruitment-ws">
+    <div class="card-head">
+      <div>
+        <h2>When the Gradient Sees Rank: Provable Necessity, Causal Recruitment, and Exact Composition in Trained Matrix Memories</h2>
+        <div class="slug">rank-recruitment-ws</div>
+      </div>
+      <div class="badges">
+        <span class="pill pill-ready">Submission-ready</span>
+        <span class="pill pill-venue">NeurReps 2026 (NeurIPS workshop) &mdash; Extended Abstract</span>
+        <span class="pill pill-deadline">~Late Aug 2026 (2025-pattern; 2026 CFP pending)</span>
+      </div>
+    </div>
+
+    <p class="abstract">Matrix-valued fast-weight memories make rank a structural budget: the directions a state spans bound what it can bind and compose. A recent negative result reported that a matrix latent bolted onto a vector-pretrained reasoner never uses its rank, but the probed task admits a rank-1 solution, leaving the general question open. We answer it on testbeds where the exact solution provably requires rank(Z)&nbsp;&ge;&nbsp;K and where every rank-evading shortcut is closed by construction: the readout is pinned to exact continuous recovery, since argmax decoding lets a rank-m memory store roughly md associations; a single-matrix-state bottleneck forecloses position decomposition; and no cell is called dead without re-testing at 2&ndash;2.5&times; budget. Under these conditions gradient descent recruits the rank the task demands in this architecture family: learned effective rank tracks K across the tested grid (Spearman &rho;&nbsp;=&nbsp;1.0 at d&nbsp;=&nbsp;16), train-time rank caps show a causal step at k&nbsp;&asymp;&nbsp;K (at d=8, K=4: rank 3 gives at most 0.0004 recovery, rank 4 gives 0.97), and the trained operator composes exactly through 21-fold self-application in four of five seeds. An entity-subspace decomposition supplies the mechanism &mdash; restricted rank exactly K on the key subspace &mdash; and in the single converged rank-starved seed, the depth-decay curve is predicted from its eigenspectrum alone.</p>
+
+    <h3 class="label">Headline claims</h3>
+    <ul class="claims">
+      <li>On testbeds where exact solution provably needs rank(Z)&ge;K and every shortcut is closed by construction, SGD <b>recruits the rank the task demands</b> (Spearman &rho;=1.0 at d=16).</li>
+      <li>Train-time rank caps show a <b>causal step at k&asymp;K</b> (d=8, K=4: rank 3 gives &le;0.0004 recovery, rank 4 gives 0.97).</li>
+      <li>The trained operator <b>composes exactly through 21-fold self-application</b> in 4 of 5 seeds; an entity-subspace decomposition supplies the mechanism.</li>
+      <li>In the one converged rank-starved seed, the <b>depth-decay curve is predicted from its own eigenspectrum alone</b>.</li>
+    </ul>
+
+    <div class="pi-decisions">
+      <div class="dt">Open PI decisions</div>
+      <ul>
+        <li>Author identity / affiliation block (title is decided &mdash; PI-backed default).</li>
+        <li>OpenReview upload, same venue/window as neurreps-ea (disjoint evidence, sibling submission).</li>
+      </ul>
+    </div>
+
+    <div class="sources"><b>Sourced from:</b> bundle/rank-recruitment-ws-submission.tex, brief.md, venue-requirements.md, detector/round-1.md (100%/100% clean, no fix cycle), gauntlet/round-1/08_decision_record.md.</div>
+
+    <div class="card-actions">
+      <a class="btn btn-stamp" href="rank-recruitment-ws/bundle/rank-recruitment-ws-submission.pdf" target="_blank" rel="noopener">Open PDF &rarr;</a>
+    </div>
+
+    <div class="notes-block">
+      <div class="notes-head">
+        <label for="notes-rank-recruitment-ws">Your notes</label>
+        <span class="notes-status" data-status-for="rank-recruitment-ws"></span>
+      </div>
+      <textarea class="notes" id="notes-rank-recruitment-ws" data-slug="rank-recruitment-ws" placeholder="Edit requests for this paper — what to change, cut, or tighten..."></textarea>
+      <div class="notes-foot"><button class="link-btn" data-clear="rank-recruitment-ws">clear</button></div>
+    </div>
+  </section>
+
+  <!-- ============ 8. flagship ============ -->
+  <section class="card" id="flagship">
+    <div class="card-head">
+      <div>
+        <h2><span class="working-title-flag">[Title pending — PI reasoning in progress]</span>The Matrix State Is Real: Minimal-Rank Recruitment, a Recall Capability Baselines Lack, and a Scale-Worsening Write-Geometry Pathology in Matrix-State Sequence Models</h2>
+        <div class="slug">flagship &middot; working title</div>
+      </div>
+      <div class="badges">
+        <span class="pill pill-drafting">Drafting</span>
+        <span class="pill pill-venue">arXiv &rarr; ICLR 2027</span>
+        <span class="pill pill-deadline">arXiv ~Jul 31, 2026 &middot; ICLR ~late Sept 2026 (projected, CFP not live)</span>
+      </div>
+    </div>
+
+    <p class="abstract">Fast-weight and linear-attention models maintain a matrix-valued state, written by an outer-product update and evaluated mainly as an efficiency substitute for attention. We ask instead what the matrix state stores, at what dimensionality, and what the storage costs at scale: three pre-registered findings. First, a rank law: in a matrix-state encoder family trained on five permutation-group word problems (minimal faithful representation dimension 2 to 5), recruited effective rank tracks d<sub>min</sub> (Spearman &rho;&nbsp;=&nbsp;0.9747, the tie-capped maximum), a designed S<sub>4</sub>-versus-A<sub>5</sub> test shows rank follows dimension, not solvability, and forcing rank one below d<sub>min</sub> zeroes recovery while d<sub>min</sub> restores it. Second, a capability separation: a two-layer delta-rule model performs episodic recall at accuracy 0.9995 against a parameter-matched vector-state ablation at chance, the pre-registered decisive comparison; a compute-matched transformer also fails at or below chance after an explicit four-point learning-rate search. The capability resides causally in the first layer's state, is linearly legible only after downstream nonlinear processing, and holds at 0.998 or higher to 1,798 tokens on a fixed 32,768-byte state while that transformer, cache-capped, reads chance everywhere. Third, the same write mechanism drives a population-geometry pathology that worsens monotonically from 14M to 1.31B parameters. Removing qk-normalization leaves it unchanged, and a frozen-key-bias mitigation fails to remove it: only the mitigation's loss neutrality survives the move to scale.</p>
+
+    <h3 class="label">Headline claims (thesis T1, PI-recommended of three candidates)</h3>
+    <ul class="claims">
+      <li><b>The rank law, causally closed:</b> recruited rank tracks d<sub>min</sub> across five groups (&rho;=0.9747), the S<sub>4</sub>-vs-A<sub>5</sub> pair is equivalence-tested, and d<sub>min</sub> is causally necessary <i>and</i> sufficient.</li>
+      <li><b>A capability separation matched baselines lack:</b> the contender reads 0.9995 recall vs baselines at chance (paired CIs exclude the pre-registered margin 3&times;+ over); recall is causally fast-weight-resident, stored nonlinearly, and holds to 8&times; the binding horizon on a fixed 32&nbsp;kB state while a KV-capped transformer never recovers.</li>
+      <li><b>A scale-worsening pathology standard fixes don't remove:</b> the write-geometry attractor's span-fraction climbs monotonically 0.248&rarr;0.455 from 14M&rarr;1.31B params; qk-norm removal is a null (not the cause); the tested frozen-bias mitigation's geometry effect does not transfer to scale &mdash; only its loss-neutrality does.</li>
+      <li><b>A mechanism scaffold</b> ties the legs together: nonlinear S&#8320; storage, plus a c&middot;I complement law that is a loss-blind health signal (&rho;=&minus;0.973).</li>
+    </ul>
+
+    <div class="pi-decisions">
+      <div class="dt">Open PI decisions</div>
+      <ul>
+        <li><b>Final title</b> &mdash; the bracketed line above is a drafting placeholder only.</li>
+        <li><b>Thesis selection</b> &mdash; T1 (unified mechanism, shown above) is recommended over T2 (capability-first) and T3 (pathology-first); brief.md carries all three candidates and their falsifiers.</li>
+        <li>Author list.</li>
+        <li><b>Absorb-or-separate</b> &mdash; fold the existing <code>iclr-2027/</code> attractor draft into this paper, or keep the two as separate submissions (they cannot both carry the same §5 evidence to ICLR 2027).</li>
+        <li>Repo-publicize decision.</li>
+      </ul>
+    </div>
+
+    <div class="sources"><b>Sourced from:</b> sections/00_abstract.md (working title/authors in HTML comments), brief.md (thesis T1/T2/T3, evidence rows R0&ndash;R12), venue-requirements.md. All nine sections (00&ndash;08) + two appendices are drafted and compiled at latex/main.pdf; the evidence map is frozen. "Drafting" reflects that title, thesis, authors, and the absorb-or-separate call are still open, not that content is missing.</div>
+
+    <div class="card-actions">
+      <a class="btn btn-stamp" href="flagship/latex/main.pdf" target="_blank" rel="noopener">Open PDF &rarr;</a>
+    </div>
+
+    <div class="notes-block">
+      <div class="notes-head">
+        <label for="notes-flagship">Your notes</label>
+        <span class="notes-status" data-status-for="flagship"></span>
+      </div>
+      <textarea class="notes" id="notes-flagship" data-slug="flagship" placeholder="Edit requests for this paper — what to change, cut, or tighten..."></textarea>
+      <div class="notes-foot"><button class="link-btn" data-clear="flagship">clear</button></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="page">Notes are stored only in this browser's local storage (key prefix <code>prd_notes_</code>) &middot; nothing here is uploaded or shared</footer>
+
+<!-- ============ export modal ============ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">Export all notes</h3>
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-status" id="modalStatus">Compiling notes&hellip;</p>
+      <textarea id="exportText" readonly></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="modalClose2">Close</button>
+      <button class="btn btn-primary" id="copyBtn">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var PREFIX = "prd_notes_";
+  var PAPERS = [
+    { slug: "capacity-colm-er", title: "The Capacity of a Fixed-Size Fast-Weight State" },
+    { slug: "mstar-colm-er", title: "Constant-Memory Recall" },
+    { slug: "measurement-ws", title: "The Instrument Is the First Suspect" },
+    { slug: "reasoning-null-moss", title: "Three Bounds on a Null" },
+    { slug: "neurreps-ea", title: "The Rank the Task Demands (NeurReps EA)" },
+    { slug: "unireps-ea", title: "Dimension, Not Solvability (UniReps EA)" },
+    { slug: "rank-recruitment-ws", title: "When the Gradient Sees Rank" },
+    { slug: "flagship", title: "Flagship [title pending]" }
+  ];
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function loadNotes(slug) {
+    try { return window.localStorage.getItem(PREFIX + slug) || ""; }
+    catch (e) { return ""; }
+  }
+  function saveNotes(slug, value) {
+    try { window.localStorage.setItem(PREFIX + slug, value); return true; }
+    catch (e) { return false; }
+  }
+  function clearNotes(slug) {
+    try { window.localStorage.removeItem(PREFIX + slug); return true; }
+    catch (e) { return false; }
+  }
+
+  function updateNotesTile() {
+    var count = PAPERS.filter(function (p) { return loadNotes(p.slug).trim().length > 0; }).length;
+    var tile = $("#notesTile .n");
+    if (tile) tile.textContent = count + "/" + PAPERS.length;
+  }
+
+  // ---- init textareas from localStorage ----
+  $all("textarea.notes").forEach(function (ta) {
+    var slug = ta.getAttribute("data-slug");
+    ta.value = loadNotes(slug);
+
+    var statusEl = document.querySelector('[data-status-for="' + slug + '"]');
+    var saveTimer = null;
+
+    function flashSaved() {
+      if (!statusEl) return;
+      statusEl.textContent = "Saved";
+      statusEl.classList.add("saved");
+      window.clearTimeout(flashSaved._t);
+      flashSaved._t = window.setTimeout(function () {
+        statusEl.textContent = "";
+        statusEl.classList.remove("saved");
+      }, 1400);
+    }
+
+    ta.addEventListener("input", function () {
+      window.clearTimeout(saveTimer);
+      if (statusEl) { statusEl.textContent = "Editing…"; statusEl.classList.remove("saved"); }
+      saveTimer = window.setTimeout(function () {
+        saveNotes(slug, ta.value);
+        flashSaved();
+        updateNotesTile();
+      }, 400);
+    });
+
+    // save on blur immediately too (covers quick edits + tab-away)
+    ta.addEventListener("blur", function () {
+      window.clearTimeout(saveTimer);
+      saveNotes(slug, ta.value);
+      flashSaved();
+      updateNotesTile();
+    });
+  });
+
+  $all("[data-clear]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var slug = btn.getAttribute("data-clear");
+      if (!window.confirm("Clear notes for this paper? This cannot be undone.")) return;
+      clearNotes(slug);
+      var ta = document.getElementById("notes-" + slug);
+      if (ta) ta.value = "";
+      updateNotesTile();
+    });
+  });
+
+  updateNotesTile();
+
+  // ---- export modal ----
+  var overlay = $("#modalOverlay");
+  var exportText = $("#exportText");
+  var modalStatus = $("#modalStatus");
+
+  function buildExport() {
+    var lines = [];
+    lines.push("# Paper review notes — exported " + new Date().toISOString().slice(0, 10));
+    lines.push("");
+    var any = false;
+    PAPERS.forEach(function (p) {
+      var notes = loadNotes(p.slug).trim();
+      lines.push("## " + p.title + " (" + p.slug + ")");
+      if (notes) {
+        any = true;
+        lines.push(notes);
+      } else {
+        lines.push("_(no notes)_");
+      }
+      lines.push("");
+    });
+    if (!any) {
+      lines.push("(No notes recorded on any paper yet.)");
+    }
+    return lines.join("\n");
+  }
+
+  function openModal() {
+    var text = buildExport();
+    exportText.value = text;
+    overlay.classList.add("open");
+    modalStatus.textContent = "Compiled from this browser's saved notes.";
+    modalStatus.classList.remove("ok");
+
+    // try clipboard API (may be unavailable on file:// origins)
+    var copied = false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        modalStatus.textContent = "Copied to clipboard. Also shown below — edit or re-copy anytime.";
+        modalStatus.classList.add("ok");
+      }).catch(function () {
+        modalStatus.textContent = "Clipboard blocked in this context — select the text below and copy manually (⌘/Ctrl+C).";
+        exportText.focus();
+        exportText.select();
+      });
+    } else {
+      modalStatus.textContent = "Clipboard API unavailable for local files — select the text below and copy manually (⌘/Ctrl+C).";
+      exportText.focus();
+      exportText.select();
+    }
+    document.addEventListener("keydown", onEsc);
+  }
+
+  function closeModal() {
+    overlay.classList.remove("open");
+    document.removeEventListener("keydown", onEsc);
+  }
+
+  function onEsc(e) {
+    if (e.key === "Escape") closeModal();
+  }
+
+  $("#exportBtn").addEventListener("click", openModal);
+  $("#modalClose").addEventListener("click", closeModal);
+  $("#modalClose2").addEventListener("click", closeModal);
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) closeModal();
+  });
+
+  $("#copyBtn").addEventListener("click", function () {
+    exportText.focus();
+    exportText.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(exportText.value).then(function () {
+        modalStatus.textContent = "Copied to clipboard.";
+        modalStatus.classList.add("ok");
+      }).catch(function () {
+        if (ok) {
+          modalStatus.textContent = "Copied to clipboard.";
+          modalStatus.classList.add("ok");
+        } else {
+          modalStatus.textContent = "Copy blocked — text is selected, press ⌘/Ctrl+C.";
+        }
+      });
+    } else if (ok) {
+      modalStatus.textContent = "Copied to clipboard.";
+      modalStatus.classList.add("ok");
+    } else {
+      modalStatus.textContent = "Copy blocked — text is selected, press ⌘/Ctrl+C.";
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
