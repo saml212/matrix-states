@@ -3776,3 +3776,226 @@ the K∈{…256} ladder, and it explicitly recommends the early-LN + multi-
 seed K=15/16 re-test as the prerequisite before ANY further write-capacity
 ladder spend (a plain-recipe ladder would keep measuring trainability
 collapse, not the write).
+
+## §11 EARLY-LN K-SCALING — PRE-REGISTRATION (opened 2026-07-11, before any GPU touched; the decisive re-test §9.10 and §8.9 both named)
+
+**Charter, verbatim decision this section answers.** §9.10 left the
+write-capacity question OPEN because its 3 dead cells (K=15, K=16
+Cond-A, K=16 Cond-B) never trained on the PLAIN recipe, at n=1 —
+"only a cell that TRAINS can measure whether the write breaks or
+capacity rescues it." §8.9 independently RECOVERED convergence at
+R=3 (operator bank) via a parameter-free inter-hop LayerNorm annealed
+1.0→0.0 over the first half of training (EVAL always the inherited
+pure-matmul exact read) and flagged, untested, that the SAME recipe
+might be the general trainability fix for the K axis. This section
+runs that cross-cutting test: **does earlyln extend K=14's single-relation
+success up the K axis, and — for whichever rungs converge — does the
+exact-composition capability survive to far depth?** Two independent
+gates, scored separately per K, no averaging:
+
+- **GATE 1 (CONVERGENCE).** Per K, over 4 seeds: does earlyln reach
+  in-distribution (h=1,2,3) `recovered_frac@0.9` (min over the 3
+  depths) ≥ 0.9, with `A_eff_rank` climbing toward K (bar: mean
+  `A_eff_rank` ≥ 0.9·K — the K-generalized form of §8.7's own "→8"
+  bar for an 8-relation operator bank)? Per-cell verdict:
+  **CONVERGED** (both legs clear) / **PARTIAL** (in-dist ∈ [0.5,0.9))
+  / **DEAD** (in-dist < 0.5, mirrors §9.10's exact profile — flat
+  loss, `A_eff_rank` collapsed to O(1)). Per-K rate = (#CONVERGED)/4.
+  Per-K gate-1 label: **CONVERGED-ROBUST** (≥3/4 CONVERGED) /
+  **CONVERGED-PARTIAL** (1–2/4) / **TRAINABILITY-DEAD** (0/4) — the
+  ≥3/4 robustness bar is deliberately the same shape as this
+  project's other seed-robustness bars (e.g. §7h/§7i's "guaranteed
+  branch needed ≥4/5 fresh holds"), not invented fresh.
+- **GATE 2 (FAR-DEPTH), scored ONLY on CONVERGED cells.** At each
+  cell's own pinned `h*` (`ncr_task.GRIDS[K]["h_star"]`, not a
+  literal borrowed h=53–61 — those numbers are precedent readings
+  from §8.9 (R=3, K=8-fixed, h*=61) and §9.10 (K=14's own observed
+  failure front, h=53), cited as calibration priors below, never as
+  this section's own target depth), and at the ladder points up to
+  `h*`: `recovered_frac@0.9`, banded per the standing §3.2a bands
+  (HOLD ≥0.9 / DEGRADED (0.5,0.9) / FAIL ≤0.5). Reused verbatim — no
+  new bar invented.
+
+**THE GRID (16 cells, ≥4 seeds/K — kills the n=1 caveat that made
+every §9.10 dead cell unscoreable).**
+
+| K | convention | d | h (encoder) | seeds | why this convention |
+|---|---|---|---|---|---|
+| 14 | spare-probe | 16 | 64 | {0,1,2,3} | continuity/regression check — K=14 ALREADY converges on the plain recipe at n=1 (§9.10); earlyln must not break it, now at n=4 |
+| 15 | spare-probe | 16 | 64 | {0,1,2,3} | the first plain-recipe DEAD rung (§9.10, n=1) — does earlyln rescue it? |
+| 16 | Condition A | 32 | 64 | {0,1,2,3} | the second plain-recipe DEAD rung (§9.10, both Cond-A AND Cond-B died at n=1) — Condition A only; Condition B is priced OUT of this budget (§9.3: `F_B(16)` alone costs ≈13.4 GPU-h for one seed, ≫ this section's 8 GPU-h cap) |
+| 24 | Condition A | 48 | 64 | {0,1,2,3} | a NEW rung, never tested on either recipe — tests whether earlyln's fix (if any) extends past the one rung §9.10 measured, or is itself K-limited |
+
+d=2K (proportional-headroom convention, §9.2) for K=16/24 so the
+spare FRACTION stays frozen at 0.5 exactly as it was at K=8/12
+(Mechanism-1-controlled); K=14/15 keep the d=16 spare-probe
+convention verbatim from §9.10 for direct comparability to its
+already-measured plain-recipe numbers. Condition B (proportional
+capacity) is explicitly OUT OF SCOPE here on cost grounds alone — the
+charter's own "≤8 GPU-h hard" instruction and §9.3's K³ Condition-B
+formula are incompatible at any K≥16; §9's own 150-GPU-h Wave-1 core
+prices ONE Condition-B K=16 cell at 35.8 GPU-h for n=4. This section
+answers "does earlyln rescue trainability on the FIXED-capacity axis"
+only — the capacity-rescue question (Condition B) stays gated behind
+§9's own separately-ledgered 150-GPU-h program, untouched by this run.
+
+**`GRIDS[24]` — new, additive entry required in `ncr_task.py`
+(EXTEND, never replace — the same §9.5-prereq-#1 discipline that
+protects `ncr_opbank_task.py`'s live `nt.GRIDS[8]` import applies to
+every existing key; this section's regression test re-snapshots
+GRIDS[8]/[12]/[14]/[15]/[16] byte-identical, not just [8]/[12]).**
+Derived from §9.7's own documented closed form (`ladder_residue=K-3`;
+`ladder[m] = m·K-3` for `m ∈ {1,2,4,8,16,32,64,128}`; `h_star =
+8·K-3`, the m=8 rung; `sweep` = K consecutive residues ending at the
+identity point `h_star+3`; `cost_probe=()`):
+
+```
+GRIDS[24] = dict(
+    ladder=(21, 45, 93, 189, 381, 765, 1533, 3069),
+    h_star=189,
+    sweep=tuple(range(169, 193)),   # 169..192 incl. identity 192
+    cost_probe=(),
+    ladder_residue=21,
+)
+```
+
+Verified by hand: `21 % 24 == 21` (novel, not a train residue {1,2,3}
+mod 24), `189 % 24 == 21` (on-ladder, m=8), `192 % 24 == 0`
+(identity), `len(sweep)==24` covering residues 0..23 exactly once —
+the exact same invariants `ncr_task._self_test`/`ncr_wcap_selftest.t03`
+already check for K=14/15/16, generalized here.
+
+**FLOP / param / memory — on paper, verified by direct computation
+against the §9.3-corrected formulas (`P(d,h)=40h²+4dh+46h+d`,
+`F(K,d,h)=76Kh²+4dh²+12K²h+4Kdh+4d²h`), no new formula invented:**
+
+| K,d,h | params `P(d,h)` | FLOP `F(K,d,h)` | ratio vs K=8 anchor (2,899,968) |
+|---|---|---|---|
+| 14,16,64 | 170,896 | 4,893,696 | 1.688× |
+| 15,16,64 | 170,896 | 5,231,360 | 1.804× |
+| 16,32,64 | 175,008 | 6,094,848 | 2.102× (matches §9.3's own F_A(16) exactly) |
+| 24,48,64 | 179,120 | 9,584,640 | 3.305× |
+
+Params grow only 4.8% end-to-end (170,896→179,120); memory stays
+kilobytes-per-example throughout (§9.3's own "never the constraint"
+finding applies unchanged — nothing here is Condition B). The FLOP
+ratio alone would predict a 3.3× wall-clock spread K=14→K=24 — but
+§9.10's OWN measured rates directly REFUTE naive FLOP-scaling at this
+size: the 4 already-run cells (0.415, 0.447, 0.390, 0.427 GPU-h for
+K=14/15/16-CondA/16-CondB respectively, pulled from the archived JSONs
+on `youthful-indigo-turkey`) are FLAT within noise despite FLOP ratios
+spanning 1.688×–2.102× and a 4× param spread (CondB) — confirming
+§9.4's own disclosure that these small cells are kernel-launch/
+small-batch overhead-bound, not compute-bound. **Planning rate:
+0.50 GPU-h/cell for K∈{14,15,16} (a 10-15% margin over the measured
+0.39-0.45 band, covering earlyln's extra per-hop `F.layer_norm` op
+during the annealed first half); 0.60 GPU-h/cell for K=24 (untested
+rung, larger margin, still far below its own 3.3× FLOP-ratio
+extrapolation given the demonstrated overhead-bound regime).**
+
+**GPU-h ledger + mandatory cheap rate-probe gate (the same Phase-0a
+discipline §9.4 already established for this ladder, applied here
+before committing the full 16-cell budget).**
+
+1. **Rate probe** (500 steps/cell, ALL 16 planned cells, one seed
+   each of K — i.e. seed 0 only — projected ≈1/160 of the full-run
+   cost ≈0.05 GPU-h aggregate, negligible): measures REAL per-(K,seed)
+   wall-clock before any full-budget cell launches.
+2. **Budget-fit rule (pinned, not decided post-hoc):**
+   `projected_total = Σ_K (measured_rate_K × 4 seeds)`.
+   - If `projected_total ≤ 8.0` GPU-h: run the full 16-cell grid as
+     tabled above.
+   - Else: trim **K=24 only** (the newest, least-precedented rung,
+     never the two decisive already-DEAD-on-plain rungs K=15/16) from
+     n=4 to n=3, recompute.
+   - Still over 8.0: drop K=24 to n=1 (confirmatory-only, mirroring
+     §9.4's own precedent for downgrading a low-seed rung to "checked
+     against the trend, not independently scored" — its convergence
+     rate is then reported as a disclosed single-cell observation,
+     never as a CONVERGED-ROBUST/DEAD label per §9.5-hard-rule-bakein
+     item 6 (sub-4-seed rungs never gate)), and the freed budget stays
+     with K=15/16 at full n=4 — the two cells this section exists to
+     answer.
+   Per-cell abort breaker: 1.5× the rate-probe-measured rate for that
+   K (not a blind toy anchor — the §9.4/§7f precedent).
+3. **Planning total at nominal rates: 4×0.50 (K14) + 4×0.50 (K15) +
+   4×0.50 (K16) + 4×0.60 (K24) = 8.4 GPU-h** — over the 8.0 cap on
+   the conservative K=24 estimate alone; the rate probe (step 1) is
+   what decides whether the trim in step 2 actually fires, so the
+   number committed to GPU is whichever of {8.4 nominal, trimmed}
+   the REAL probe supports, never assumed.
+
+**Ladder-level verdict map (pinned, verdict-first, matches the
+charter's three named outcomes exactly — reported per-K AND
+pooled; the pooled label takes the WORST (most limited) per-K label
+among K∈{15,16,24} so a single good rung can never be cherry-picked
+into an overall claim — K=14 is a continuity check, not scored into
+the pooled label):**
+
+- **SCALES** (this K): CONVERGED-ROBUST (≥3/4) AND the converged
+  cells' median `recovered_frac@0.9` at `h*` is HOLD (≥0.9).
+- **CONVERGES-BUT-FAR-DEPTH-LIMITED** (this K): CONVERGED-ROBUST
+  (trainability fix holds) BUT the converged cells' median at `h*` is
+  DEGRADED or FAIL — earlyln fixes Gate 1, the residual-compounding
+  problem (§8.9's own open caveat: converged operators' phase_resid
+  ≈0.018 at R=3 already failed to clear 0.9 at h*=61) still kills
+  Gate 2, and — the specific prediction worth checking — this residual
+  is expected to WORSEN as K grows (more entities sharing the same
+  d=2K ambient space at fixed relative headroom), so a K=24 cell
+  landing here while K=15/16 land at SCALES would itself be a
+  reportable finding (far-depth limit tightening with K).
+- **TRAINABILITY-STILL-LIMITED** (this K): CONVERGED-PARTIAL or
+  TRAINABILITY-DEAD (<3/4) — earlyln does not reliably extend past
+  K=14 at this rung; Gate 2 is not reached/scored (§9.5 hard-rule
+  bakein: a rung's far-depth number from 1-2 lucky seeds is disclosed,
+  never banded).
+
+**Discipline (charter, all pinned before build).** Additive build
+ONLY: a NEW file `matrix-thinking/ncr/ncr_earlyln_scale.py` (mirrors
+the audited `ncr_opbank_recover.py` pattern — an `NCREarlyLNModel`
+subclass of `ncr_models.NCRModel` overriding ONLY `forward()` with the
+per-hop LN blend at weight α annealed 1.0→0.0 over the first training
+half, `encode()`/`eval_read()`/`arm` inherited unchanged so every
+existing `run_ncr.py` instrument — `z_dump`, `ncr_spectral` deep
+probe, Axis-C lock, trust screen, `blank_out_check`, `eval_cell` —
+runs against it verbatim, exactly as `ncr_opbank_recover.py` reused
+`run_ncr_opbank.py`'s instruments); the ONE shared-file edit is the
+additive `GRIDS[24]` entry in `ncr_task.py` (extend, never restructure
+— regression-tested against a byte-identical snapshot of the OTHER
+four keys, mirroring `ncr_wcap_selftest.t01`). CPU self-test with
+EXECUTED mutation kill-proofs, at minimum: (a) α=0 closed-form
+bit-identity to the plain `NCRModel.forward()` (the §8.8 t1 pattern);
+(b) the **§8.8 EVAL-PURITY safeguard, re-verified for this forward
+pass, not inherited** — after training, `model._ln_alpha` forced to
+0.0 and the eval read (`binexp_read`/`loop_read`, inherited
+UNMODIFIED) must match the fp64 literal power exactly, so "recovery"
+at any depth cannot be an LN artifact; (c) per-cell micro test at ALL
+FOUR (K,d,h) shapes (§9.5 hard-rule bakein: no shape licenses skipping
+another's own micro test); (d) blank-out P=1 re-executed per shape
+(gradient-based, not a shape check). Independent OPUS build-audit,
+fresh agent, with its OWN executed mutation kill-proof (the §8.8
+precedent: inject an LN leak into eval, confirm the eval-purity test
+catches it, then revert) — required BEFORE deploy, and its verdict
+recorded in this file before launch. md5-verified deploy; real-CUDA
+box smoke (device teeth, forward/backward/grad, the eval-purity check
+ON CUDA); launch inside `tmux ncr_earlyln_scale` + a self-healing
+supervisor + `STOP`/`DONE` sentinels, resume-safe (whole-cell
+skip-if-COMPLETED, the `ncr_opbank_recover.py` precedent — cells are
+short enough that mid-cell checkpointing is not needed); all 8 idle
+GPUs in play (confirmed via `nvidia-smi` immediately before launch,
+0% util / 0 MiB used on every device — no concurrent NCR work is
+running this session, unlike §8.9/§9's earlier GPU-split discipline).
+
+**Launch gate.** Fires only after: (a) this pre-registration is
+committed (this section, before any GPU touched); (b) the additive
+build + CPU selftest (incl. the eval-purity mutation kill-proof) is
+green; (c) the independent opus audit clears (or its fixes land and a
+scoped re-audit clears); (d) the rate probe has run and the
+budget-fit rule (above) has resolved the final seed count for K=24;
+(e) md5-verified deploy + real-CUDA box smoke pass. On completion:
+harvest → this section's verdict-first continuation, recorded here →
+archive (`experiment-runs/2026-07-11_ncr_earlyln_scale/`, repo ≤25MB +
+SSD mirror) → `EXPERIMENT_LOG.md` → pathspec commit → push → **STOP
+for the coordinator** (this run does not authorize launching §9's
+150-GPU-h full ladder — that stays a separate PI-gated decision, even
+if this section's verdict is SCALES).
