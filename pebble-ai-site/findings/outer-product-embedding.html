@@ -9,7 +9,7 @@
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://pebbleml.com/findings/outer-product-embedding.html">
 <meta property="article:author" content="Sam Larson">
-<meta property="article:published_time" content="2026-02-28">
+<meta property="article:published_time" content="2026-03-27">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://pebbleml.com/findings/outer-product-embedding.html">
 <link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
@@ -25,7 +25,7 @@
     "email": "sam@pebbleml.com",
     "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
   },
-  "datePublished": "2026-02-28",
+  "datePublished": "2026-04-01",
   "url": "https://pebbleml.com/findings/outer-product-embedding.html",
   "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
   "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
@@ -432,7 +432,7 @@ footer a { color: var(--accent); }
         <p style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 18px;">single-seed observations · three comparisons</p>
         <p class="authors"><span class="author">Sam Larson</span></p>
         <p class="affil">pebble, San Francisco</p>
-        <p class="date">February 28, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+        <p class="date">April 1, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
     </div>
 </section>
 
@@ -472,7 +472,7 @@ M = u ⊗ v                     # (d, d), rank-1
         <p>We ran three comparisons that bear on the embedding question. None is a clean three-way ablation; the three together bound the effect from several directions. One is a true param-matched ablation (Run 22). One is a tokens-matched comparison on a larger reasoning corpus (Round 2: Run 12 vs Run 13). One is param-asymmetric and we flag it.</p>
 
         <ul>
-            <li><strong>Run 22 param-matched ablation (headline).</strong> Matrix model: <span class="mono">d = 16</span>, 12 layers, 2,552,788 parameters. Flat-vector model: <span class="mono">d<sub>model</sub> = 256</span>, 12 layers, standard attention, 5,658,428 parameters. The flat model has <span class="mono">2.2×</span> more parameters than the matrix model. Same data pipeline, same optimizer, same byte tokenization, same step count. Matrix T=1 BPB <span class="mono">2.117</span>, Flat T=1 BPB <span class="mono">2.872</span>. The flat model wins at T=8 (iteration helps it more) but loses at T=1 by 26% BPB <em>despite</em> the parameter advantage. Param-matching at <span class="mono">d = 16</span> is structurally hard: a standard 256-dim attention layer costs ~262K params, a matrix 16×16 layer costs ~2K params, a ~130× per-layer gap. There is no way to match both the per-layer FLOPs and the total param count cleanly without changing something else — so Run 22 takes the version of the test where the flat model is <em>over</em>-parameterized relative to the matrix model.</li>
+            <li><strong>Run 22 param-matched ablation (headline).</strong> Matrix model: <span class="mono">d = 16</span>, 12 layers, 2,552,788 parameters. Flat-vector model: <span class="mono">d<sub>model</sub> = 256</span>, 12 layers, standard attention, 5,658,428 parameters. The flat model has <span class="mono">2.2×</span> more parameters than the matrix model. Same data pipeline, same optimizer, same byte tokenization, same step count. Matrix T=1 BPB <span class="mono">2.117</span>, Flat T=1 BPB <span class="mono">2.872</span>. The flat model wins at T=8 (iteration helps it more) but loses at T=1 by 26% BPB <em>despite</em> the parameter advantage. Param-matching at <span class="mono">d = 16</span> is structurally hard: a standard 256-dim attention layer costs ~262K params, a matrix 16×16 layer costs ~2K params, a ~128× per-layer gap. There is no way to match both the per-layer FLOPs and the total param count cleanly without changing something else — so Run 22 takes the version of the test where the flat model is <em>over</em>-parameterized relative to the matrix model.</li>
             <li><strong>Round 2 (Run 12 vs Run 13): tokens-matched reasoning corpus.</strong> Matrix Thinker <span class="mono">d = 32</span>, 8 thinking layers, MultiProbeHead output (no vector collapse), 5,155,960 parameters, against a LoopFormer vector baseline at 5,330,400 parameters, on 2.19B tokens of OpenR1-Math reasoning traces plus WikiText-103. Same data, same batch (96/GPU × 8 GPUs = 768 effective), same optimizer, same 3000-step budget. Matrix Thinker reached T=1 PPL <span class="mono">140.6</span> → BPB <span class="mono">2.12</span>; LoopFormer reached L=1 PPL <span class="mono">24,587.7</span> → BPB <span class="mono">4.29</span>. That is a <span class="mono">175×</span> gap in PPL and a <span class="mono">2×</span> gap in BPB at the single-step evaluation. LoopFormer then closes and reverses at L=8 (PPL <span class="mono">26.0</span>, beating Matrix Thinker's T=8 PPL 72.4 by <span class="mono">2.8×</span>) — iteration is how the vector baseline becomes competitive. The T=1 gap is the embedding-layer observation; the L=8 reversal is the reason we confine the claim to the single-step setting.</li>
             <li><strong>Run 18 param-asymmetric ablation (flagged).</strong> Matrix model: <span class="mono">d = 16</span>, 2.4M parameters. Flat model: outer-product embedding then flatten to a 256-dim vector, standard transformer stack, 24M parameters (<span class="mono">10×</span> the matrix). Same embedding <em>source</em>. Same data. Matrix T=1 BPB <span class="mono">2.18</span>, Flat T=1 BPB <span class="mono">3.22</span>. The flat model wins at T=8 due to its parameter advantage but loses at T=1 even with 10× the parameters. We flag the comparison as unfair on params and treat it as a supporting data point. It is included because the embedding <em>source</em> is held fixed (same outer-product lookup), so the only difference is whether downstream layers see the structured matrix or a flattened vector.</li>
         </ul>

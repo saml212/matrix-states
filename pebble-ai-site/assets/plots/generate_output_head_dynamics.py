@@ -1,65 +1,112 @@
 """
 Generate output_head_dynamics.svg for the output-head-dynamics findings page.
 
-Data source: three runs from EXPERIMENT_LOG.md that share the Matrix Thinker
-backbone but vary in output mechanism. The runs are not FLOPs-matched; they
-differ in training corpus, step count, and (for the 3D matrix-product run)
-attention mechanism. See the paper for caveats.
+All three series below are loaded at runtime from the project's raw
+experiment archives under experiment-runs/8xh100-session1/ -- no plotted
+number in this script is hand-typed or fabricated.
 
-  - Run 12, Round 2 MultiProbeHead: val-time per-iteration effective rank from
-    the step-3000 *BEST* eval checkpoint (round2_full_train.log line 125).
-    Measured values at every iteration.
-    [5.05, 5.45, 5.71, 5.86, 5.99, 6.06, 6.11, 6.13]. T=8 BPB 1.670.
-  - Run 10, Frobenius attention + vector-collapse output head: reported as
-    solidification (falling) during iterative refinement. No per-iteration
-    numbers were logged for this run. Drawn as a two-point line from an
-    illustrative higher starting point down to an illustrative lower end —
-    direction only, no intermediate markers.
-  - Run 21, 3D matrix-product attention: endpoints 2.75 -> 2.66 are reported
-    in EXPERIMENT_LOG.md. Intermediate points were never measured. Drawn as a
-    two-point line with markers only at the endpoints.
+  1. MultiProbeHead (bilinear output head), n=1, d=32, Run 12 (Round 2).
+     Source: round2_matrix_results_FULL.json, training_curve entry for
+     step=3000, evals.T8.ranks. This is the specific eval call the
+     output-head-dynamics.html page cites (round2_full_train.log line
+     125, "T= 8: PPL 72.4 | Rank [5.05, 5.45, 5.71, 5.86, 5.99, 6.06,
+     6.11, 6.13] *BEST*"). Real per-iteration measurement, 8 points.
+     (Note: the JSON's top-level "final_evals" block is a *different*,
+     slightly later re-evaluation logged after training ends -- line 132,
+     no *BEST* tag -- and does not match the numbers the HTML cites, so
+     we deliberately select the step=3000 training_curve entry instead.)
 
-The MultiProbeHead series keeps its per-iteration markers because every
-value is real. The two control series are drawn as straight two-point lines
-so the plot does not visually imply intermediate measurements that do not
-exist.
+  2. Vector-collapse output head (Run 10, Round 1, WikiText-103).
+     Source: round1_matrix_results.json, final_evals.T8.ranks.
+     IMPORTANT CORRECTION vs the April-2026 version of this script: the
+     vector-collapse head is *not* the "model_type": "vector" run
+     (round1_vector_*, which never measured rank -- its log prints
+     "Rank [-]" at every step and round1_vector_results.json is empty).
+     It is round1_matrix_script.py, whose forward pass does exactly the
+     "vec = (collapse_W * M).sum(dim=-1); logits = output_head(vec)"
+     operation the HTML describes as the vector-collapse head, on a
+     matrix-native backbone that DOES log rank. Real per-iteration
+     measurement exists (round1_matrix_train.log line 120, step 3000,
+     "*BEST*") and is plotted here in full -- previously this script
+     claimed "no per-iteration numbers were logged for this run" and drew
+     a fabricated two-point illustrative line instead.
+
+  3. 3D matrix-product attention (Run 21, d=16, OpenR1-Math).
+     Source: exp_3d_attn_full_train.log, parsed at runtime for the final
+     "T= 8: BPB ... | Rank [...] *BEST*" line (step 1000). Real
+     per-iteration measurement exists here too -- the April-2026 version
+     of this script claimed "intermediate points were not measured" for
+     this run, which is false; only the two endpoints (2.75, 2.66) had
+     previously been surfaced in EXPERIMENT_LOG.md/STATE.md prose.
+
+No number in this figure is interpolated or invented. Palette is
+Okabe-Ito (colorblind-safe). No in-figure title -- the caption lives in
+the HTML <figcaption>.
 
 Output: SVG at pebble-ai-site/assets/plots/output_head_dynamics.svg
 """
+import json
+import re
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
-# Brand palette
 BG = "#FAF5E7"
 TEXT = "#1a1a1a"
-ACCENT = "#8B2E1F"
-ACCENT_SOFT = "#c4826b"
 MUTED = "#5a5a5a"
 
+# Okabe-Ito
+OI_BLUE = "#0072B2"
+OI_VERMILLION = "#D55E00"
+OI_ORANGE = "#E69F00"
+
+RUN_DIR = "/Users/samuellarson/Experiments/learned-representations/experiment-runs/8xh100-session1"
+
+
+def load_multiprobe_step3000():
+    """Real per-iteration rank at the step-3000 (final) eval call
+    (T8, *BEST*), round2_full_train.log line 125. This is the specific
+    series the output-head-dynamics.html page's table and prose cite
+    (5.05 -> 6.13)."""
+    with open(f"{RUN_DIR}/round2_matrix_results_FULL.json") as f:
+        text = f.read()
+    data = json.loads(text[text.index("{"):])
+    entry = [c for c in data["training_curve"] if c["step"] == 3000][0]
+    return entry["evals"]["T8"]["ranks"]
+
+
+def load_vector_collapse():
+    """Real per-iteration rank, final eval (step 3000, T8, *BEST*),
+    round1_matrix_train.log line 120. round1_matrix_script.py implements
+    the vector-collapse readout the HTML describes."""
+    with open(f"{RUN_DIR}/round1_matrix_results.json") as f:
+        data = json.load(f)
+    return data["final_evals"]["T8"]["ranks"]
+
+
+def load_3d_matprod():
+    """Real per-iteration rank, final eval (step 1000, T8, *BEST*),
+    parsed from exp_3d_attn_full_train.log. Endpoints (2.75, 2.66) match
+    the numbers previously reported in EXPERIMENT_LOG.md; the
+    intermediate points were logged but not previously surfaced."""
+    with open(f"{RUN_DIR}/exp_3d_attn_full_train.log") as f:
+        log_text = f.read()
+    matches = re.findall(
+        r"T=\s*8: BPB [\d.]+ \| Rank \[([\d.,\s]+)\] \*BEST\*", log_text
+    )
+    if not matches:
+        raise RuntimeError("no T=8 *BEST* eval line found in exp_3d_attn_full_train.log")
+    return [float(x) for x in matches[-1].split(",")]
+
+
+multiprobe = load_multiprobe_step3000()
+vector_collapse = load_vector_collapse()
+matprod_3d = load_3d_matprod()
+
 iterations = list(range(1, 9))
-
-# Measured Round 2 MultiProbeHead val-time rank trajectory.
-# Source: experiment-runs/8xh100-session1/round2_full_train.log line 125
-# ("T= 8: PPL 72.4 | Rank [5.05, 5.45, 5.71, 5.86, 5.99, 6.06, 6.11, 6.13] *BEST*")
-# This is the final step-3000 BEST eval checkpoint, val-time per-iteration
-# rank at T=8, averaged over 512 held-out positions.
-multiprobe = [5.05, 5.45, 5.71, 5.86, 5.99, 6.06, 6.11, 6.13]
-
-# Vector-collapse head: no per-iteration numbers were logged for this run.
-# Draw a two-point direction line from an illustrative start to an illustrative
-# end, with markers ONLY at the endpoints. The absolute height is illustrative;
-# the axis is shared with the other series to make the direction reversal
-# legible but NOT to imply a matched comparison.
-vector_collapse_x = [iterations[0], iterations[-1]]
-vector_collapse_y = [4.80, 4.07]  # illustrative endpoints, direction only
-
-# 3D matrix-product attention endpoints: measured in Run 21 (2.75 -> 2.66).
-# Intermediate points were not measured. Draw as a two-point line with
-# markers only at the endpoints.
-matprod_3d_x = [iterations[0], iterations[-1]]
-matprod_3d_y = [2.75, 2.66]
+assert len(multiprobe) == len(vector_collapse) == len(matprod_3d) == 8
 
 plt.rcParams["font.family"] = "DejaVu Sans"
 plt.rcParams["text.color"] = TEXT
@@ -71,36 +118,25 @@ plt.rcParams["axes.edgecolor"] = TEXT
 fig, ax = plt.subplots(figsize=(7.2, 4.6), facecolor=BG)
 ax.set_facecolor(BG)
 
-# MultiProbeHead (measured at every iteration — primary series, solid line
-# with per-iteration circle markers)
+# MultiProbeHead (measured at every iteration -- primary series)
 ax.plot(iterations, multiprobe,
-        color=ACCENT, linewidth=2.5, marker="o", markersize=6,
-        label="MultiProbeHead (Run 12, val-time, measured)", zorder=3)
+        color=OI_BLUE, linewidth=2.5, marker="o", markersize=6,
+        label="MultiProbeHead (Run 12, step 3000, measured)", zorder=3)
 for x, y in zip(iterations, multiprobe):
     ax.annotate(f"{y:.2f}", (x, y), textcoords="offset points",
-                xytext=(6, 6), fontsize=8, color=ACCENT, fontweight="bold")
+                xytext=(6, 6), fontsize=8, color=OI_BLUE, fontweight="bold")
 
-# Vector-collapse head: two-point dashed line, markers only at endpoints
-ax.plot(vector_collapse_x, vector_collapse_y,
-        color=ACCENT_SOFT, linewidth=1.8, marker="s", markersize=6,
-        linestyle="--",
-        label="Vector-collapse (Run 10, direction only, illustrative)",
+# Vector-collapse head (measured, real per-iteration data)
+ax.plot(iterations, vector_collapse,
+        color=OI_VERMILLION, linewidth=1.8, marker="s", markersize=6,
+        label="Vector-collapse (Run 10, measured)",
         zorder=2)
 
-# 3D matrix-product attention: two-point dotted line, markers only at endpoints
-ax.plot(matprod_3d_x, matprod_3d_y,
-        color=MUTED, linewidth=1.5, marker="^", markersize=6,
-        linestyle=":",
-        label="3D matrix-product (Run 21, endpoints measured)",
+# 3D matrix-product attention (measured, real per-iteration data)
+ax.plot(iterations, matprod_3d,
+        color=OI_ORANGE, linewidth=1.5, marker="^", markersize=6,
+        label="3D matrix-product (Run 21, measured)",
         zorder=1)
-
-# Annotate the 3D matrix-product endpoints (real numbers)
-ax.annotate("2.75", (matprod_3d_x[0], matprod_3d_y[0]),
-            textcoords="offset points", xytext=(-22, -4),
-            fontsize=8, color=MUTED)
-ax.annotate("2.66", (matprod_3d_x[1], matprod_3d_y[1]),
-            textcoords="offset points", xytext=(8, -4),
-            fontsize=8, color=MUTED)
 
 ax.set_xlabel("refinement iteration", fontsize=10, labelpad=8)
 ax.set_ylabel("effective rank", fontsize=10, labelpad=8)
@@ -117,9 +153,6 @@ for spine in ax.spines.values():
 legend = ax.legend(loc="center right", frameon=True, fontsize=8.0,
                    facecolor=BG, edgecolor=TEXT)
 legend.get_frame().set_linewidth(1.0)
-
-ax.set_title("rank trajectory under three output mechanisms", fontsize=11,
-             color=TEXT, fontweight="bold", pad=14, loc="left")
 
 plt.tight_layout()
 

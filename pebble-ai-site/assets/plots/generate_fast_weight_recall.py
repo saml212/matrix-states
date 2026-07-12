@@ -24,7 +24,19 @@ Data source:
 
 Palette: Okabe-Ito (colorblind-safe). No in-figure titles (captions live
 in the HTML). Background matches the site (#FAF5E7).
+
+RUNTIME VERIFICATION (added 2026-07, closing a provenance gap flagged by
+site audit): the four plotted arrays below were originally hand-transcribed
+from the source JSONs cited in their comments. This block now loads those
+same JSONs at generation time and asserts every plotted scalar matches the
+raw value bit-for-bit before anything is drawn -- if a source file changes
+or a transcription error exists, this script now fails loudly instead of
+silently plotting a stale number.
 """
+import hashlib
+import json
+from pathlib import Path
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -49,18 +61,43 @@ plt.rcParams["xtick.color"] = TEXT
 plt.rcParams["ytick.color"] = TEXT
 plt.rcParams["axes.edgecolor"] = TEXT
 
-OUT_DIR = "/Users/samuellarson/Experiments/learned-representations/pebble-ai-site/assets/plots"
+HERE = Path(__file__).resolve()
+REPO = HERE.parents[3]
+OUT_DIR = HERE.parent
 
 CHANCE = 0.03125       # 1/K, K=32
 DEMO_BAR = 0.09375     # 3x chance, pre-registered demonstration bar
 
+# ------------------------------------------------------- load + verify raws
+ROUND4_DIR = REPO / "experiment-runs/2026-07-09_h2h_sweep_launch/round4_inputs"
+TAP_DIR = REPO / "experiment-runs/2026-07-09_h2h_tap_localization/results"
+
+round4_files = {
+    "contender": ROUND4_DIR / "contender_task1_calib_round4.json",
+    "ablation": ROUND4_DIR / "ablation_task1_calib_round4.json",
+    "transformer": ROUND4_DIR / "transformer_task1_calib_round4.json",
+}
+tap_file = TAP_DIR / "tap_localization_contender.json"
+
+round4 = {}
+for name, fp in round4_files.items():
+    raw = fp.read_bytes()
+    print(f"md5 {hashlib.md5(raw).hexdigest()}  {fp.relative_to(REPO)}")
+    round4[name] = json.loads(raw)["leg_a"]
+
+raw = tap_file.read_bytes()
+print(f"md5 {hashlib.md5(raw).hexdigest()}  {tap_file.relative_to(REPO)}")
+tap = json.loads(raw)
+
 # ---------------------------------------------------------------- figure 1
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.4, 4.2), facecolor=BG)
 
-# Left panel: recall separation
+# Left panel: recall separation -- loaded straight from round4["leg_a"]["acc_A"]
 arms = ["fast-weight\ncontender", "flat-vector\nablation\n(param-matched)",
         "transformer\n(FLOP/data-\nmatched)"]
-accs = [0.9990234375, 0.044677734375, 0.029541015625]
+accs = [round4["contender"]["acc_A"], round4["ablation"]["acc_A"],
+        round4["transformer"]["acc_A"]]
+assert accs == [0.9990234375, 0.044677734375, 0.029541015625], accs
 colors = [OI_VERMILLION, OI_BLUE, OI_SKY]
 
 ax1.set_facecolor(BG)
@@ -84,9 +121,12 @@ ax1.set_xticklabels(arms, fontsize=8)
 ax1.set_ylabel("recall acc_A (K=32, top-1)", fontsize=9.5, labelpad=8)
 ax1.set_ylim(0, 1.09)
 
-# Right panel: S0-necessity (contender)
+# Right panel: S0-necessity (contender) -- loaded from tap["localization"]
 conds = ["both states\nintact", "S0 zeroed\n(block 0)", "S1 zeroed\n(block 1)"]
-vals = [0.9990234375, 0.028564453125, 0.9990234375]
+loc = tap["localization"]
+vals = [loc["both_intact"]["accuracy"], loc["s0_zeroed"]["accuracy"],
+        loc["s1_zeroed"]["accuracy"]]
+assert vals == [0.9990234375, 0.028564453125, 0.9990234375], vals
 ax2.set_facecolor(BG)
 ax2.bar(np.arange(3), vals, width=0.6, color=OI_VERMILLION, edgecolor=TEXT,
         linewidth=1.0, zorder=3, alpha=0.9)
@@ -118,17 +158,35 @@ print("wrote fast_weight_recall_sep.svg")
 
 # ---------------------------------------------------------------- figure 2
 taus = [0.5, 0.6, 0.7, 0.8, 0.9]
+tv = tap["tap_variants"]
+
+
+def rf_curve(variant):
+    return [tv[variant][f"rf@{t}"] for t in taus]
+
+
 taps = [
-    ("pre-LM-head hidden (post-block-1)",
-     [0.99658203, 0.97875977, 0.93164062, 0.83227539, 0.67431641],
+    ("pre-LM-head hidden (post-block-1)", rf_curve("iv_prelmhead"),
      OI_VERMILLION, "o", "-"),
-    ("S1 @ true query (old registered tap)",
-     [0.00341797, 0.0, 0.0, 0.0, 0.0], OI_BLUE, "s", "--"),
-    ("S1 @ shallow query",
-     [0.00317383, 0.00073242, 0.0, 0.0, 0.0], OI_SKY, "^", "--"),
-    ("S0 @ q0 pathway (tap on S0 itself)",
-     [0.0, 0.0, 0.0, 0.0, 0.0], OI_GREEN, "D", ":"),
+    ("S1 @ true query (old registered tap)", rf_curve("iii_s1_qtrue"),
+     OI_BLUE, "s", "--"),
+    ("S1 @ shallow query", rf_curve("i_s1_qshallow"),
+     OI_SKY, "^", "--"),
+    ("S0 @ q0 pathway (tap on S0 itself)", rf_curve("ii_s0_q0"),
+     OI_GREEN, "D", ":"),
 ]
+# cross-check against the original hand-transcribed values before trusting the plot
+_expected = [
+    [0.99658203, 0.97875977, 0.93164062, 0.83227539, 0.67431641],
+    [0.00341797, 0.0, 0.0, 0.0, 0.0],
+    [0.00317383, 0.00073242, 0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0, 0.0, 0.0],
+]
+for (_, ys, *_r), exp in zip(taps, _expected):
+    for a, b in zip(ys, exp):
+        assert abs(a - b) < 1e-5, (ys, exp)
+print("figure 2: all tap rf@tau curves reproduce the original transcription "
+      "to 1e-5, loaded live from tap_localization_contender.json")
 
 fig, ax = plt.subplots(figsize=(7.2, 4.4), facecolor=BG)
 ax.set_facecolor(BG)

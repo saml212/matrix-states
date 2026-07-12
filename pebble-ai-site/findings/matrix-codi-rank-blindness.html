@@ -9,7 +9,7 @@
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://pebbleml.com/findings/matrix-codi-rank-blindness.html">
 <meta property="article:author" content="Sam Larson">
-<meta property="article:published_time" content="2026-04-17">
+<meta property="article:published_time" content="2026-04-12">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://pebbleml.com/findings/matrix-codi-rank-blindness.html">
 <link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
@@ -29,7 +29,7 @@
       "url": "https://pebbleml.com"
     }
   },
-  "datePublished": "2026-04-17",
+  "datePublished": "2026-04-12",
   "url": "https://pebbleml.com/findings/matrix-codi-rank-blindness.html",
   "isPartOf": {
     "@type": "Periodical",
@@ -461,11 +461,11 @@ footer a { color: var(--accent); }
 
 <section class="title-block">
     <div class="container">
-        <div class="paper-meta">published paper &nbsp;·&nbsp; finding 06 &nbsp;·&nbsp; ICML 2026 mechanistic interpretability workshop</div>
+        <div class="paper-meta">published paper &nbsp;·&nbsp; finding no. 05 &nbsp;·&nbsp; ICML 2026 mechanistic interpretability workshop</div>
         <h1 class="paper-title">The gradient does not see rank: rank-indifference in matrix-CODI on ProsQA.</h1>
         <p class="authors"><span class="author">Samuel Larson</span></p>
         <p class="affil">Pebble Machine Learning</p>
-        <p class="date">April 29, 2026 &nbsp;·&nbsp; sam@pebbleml.com &nbsp;·&nbsp; <a href="../assets/papers/the-gradient-does-not-see-rank.pdf">paper PDF</a></p>
+        <p class="date">April 12, 2026 &nbsp;·&nbsp; sam@pebbleml.com &nbsp;·&nbsp; <a href="../assets/papers/the-gradient-does-not-see-rank.pdf">paper PDF</a></p>
     </div>
 </section>
 
@@ -623,84 +623,8 @@ footer a { color: var(--accent); }
         </ul>
 
         <figure>
-            <svg viewBox="0 0 680 360" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: 640px; display: block; margin: 0 auto; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
-                <rect x="0" y="0" width="680" height="360" fill="#FAF5E7"/>
-                <g transform="translate(70, 30)">
-                    <rect x="0" y="0" width="550" height="260" fill="none" stroke="#1a1a1a" stroke-width="1"/>
-                    <!-- y range: 75.5 to 80.5 -->
-                    <text x="-8" y="5" text-anchor="end" fill="#5a5a5a">80.5%</text>
-                    <text x="-8" y="70" text-anchor="end" fill="#5a5a5a">79.25%</text>
-                    <text x="-8" y="135" text-anchor="end" fill="#5a5a5a">78.0%</text>
-                    <text x="-8" y="200" text-anchor="end" fill="#5a5a5a">76.75%</text>
-                    <text x="-8" y="260" text-anchor="end" fill="#5a5a5a">75.5%</text>
-                    <!-- x ticks log scale k in {1,2,4,8,16}; pixel positions 0, 137.5, 275, 412.5, 550 -->
-                    <text x="0"     y="280" text-anchor="middle" fill="#5a5a5a">k=1</text>
-                    <text x="137.5" y="280" text-anchor="middle" fill="#5a5a5a">2</text>
-                    <text x="275"   y="280" text-anchor="middle" fill="#5a5a5a">4</text>
-                    <text x="412.5" y="280" text-anchor="middle" fill="#5a5a5a">8</text>
-                    <text x="550"   y="280" text-anchor="middle" fill="#5a5a5a">16</text>
-
-                    <!-- helpers: acc_to_y: y = (80.5 - acc)/5 * 260 -->
-                    <!-- flatten: 79.0 at each k -->
-                    <!-- bilinear: 78.125, 78.906, 78.906, 78.125, 78.125 -->
-                    <!-- bilinear+GELU: 78.906, 79.688, 79.688, 79.688, 79.688 -->
-                    <!-- svd_aug: 77.344, 78.125, 78.125, 77.344, 78.125 -->
-                    <!-- quadratic: 79.688, 79.688, 79.688, 79.688, 79.688 -->
-
-                    <!-- flatten line: y = (80.5-79)/5*260 = 78 -->
-                    <polyline points="0,78 137.5,78 275,78 412.5,78 550,78" fill="none" stroke="#1a1a1a" stroke-width="1.8"/>
-                    <circle cx="0" cy="78" r="3.5" fill="#1a1a1a"/>
-                    <circle cx="137.5" cy="78" r="3.5" fill="#1a1a1a"/>
-                    <circle cx="275" cy="78" r="3.5" fill="#1a1a1a"/>
-                    <circle cx="412.5" cy="78" r="3.5" fill="#1a1a1a"/>
-                    <circle cx="550" cy="78" r="3.5" fill="#1a1a1a"/>
-
-                    <!-- bilinear: y = (80.5-acc)/5*260 -->
-                    <!-- 78.125→123.5, 78.906→82.9, 78.125→123.5, 78.125→123.5 -->
-                    <polyline points="0,123.5 137.5,82.9 275,82.9 412.5,123.5 550,123.5" fill="none" stroke="#2E5E8B" stroke-width="1.8"/>
-                    <circle cx="0" cy="123.5" r="3.5" fill="#2E5E8B"/>
-                    <circle cx="137.5" cy="82.9" r="3.5" fill="#2E5E8B"/>
-                    <circle cx="275" cy="82.9" r="3.5" fill="#2E5E8B"/>
-                    <circle cx="412.5" cy="123.5" r="3.5" fill="#2E5E8B"/>
-                    <circle cx="550" cy="123.5" r="3.5" fill="#2E5E8B"/>
-
-                    <!-- bilinear+GELU: 78.906→82.9, 79.688→42.2 -->
-                    <polyline points="0,82.9 137.5,42.2 275,42.2 412.5,42.2 550,42.2" fill="none" stroke="#8B2E1F" stroke-width="1.8"/>
-                    <circle cx="0" cy="82.9" r="3.5" fill="#8B2E1F"/>
-                    <circle cx="137.5" cy="42.2" r="3.5" fill="#8B2E1F"/>
-                    <circle cx="275" cy="42.2" r="3.5" fill="#8B2E1F"/>
-                    <circle cx="412.5" cy="42.2" r="3.5" fill="#8B2E1F"/>
-                    <circle cx="550" cy="42.2" r="3.5" fill="#8B2E1F"/>
-
-                    <!-- svd_aug: 77.344→164.2, 78.125→123.5 -->
-                    <polyline points="0,164.2 137.5,123.5 275,123.5 412.5,164.2 550,123.5" fill="none" stroke="#2E8B57" stroke-width="1.8"/>
-                    <circle cx="0" cy="164.2" r="3.5" fill="#2E8B57"/>
-                    <circle cx="137.5" cy="123.5" r="3.5" fill="#2E8B57"/>
-                    <circle cx="275" cy="123.5" r="3.5" fill="#2E8B57"/>
-                    <circle cx="412.5" cy="164.2" r="3.5" fill="#2E8B57"/>
-                    <circle cx="550" cy="123.5" r="3.5" fill="#2E8B57"/>
-
-                    <!-- quadratic: 79.688→42.2 -->
-                    <polyline points="0,42.2 137.5,42.2 275,42.2 412.5,42.2 550,42.2" fill="none" stroke="#8B6F2E" stroke-width="1.8"/>
-                    <circle cx="0" cy="42.2" r="3.5" fill="#8B6F2E"/>
-                    <circle cx="137.5" cy="42.2" r="3.5" fill="#8B6F2E"/>
-                    <circle cx="275" cy="42.2" r="3.5" fill="#8B6F2E"/>
-                    <circle cx="412.5" cy="42.2" r="3.5" fill="#8B6F2E"/>
-                    <circle cx="550" cy="42.2" r="3.5" fill="#8B6F2E"/>
-
-                    <!-- axis labels -->
-                    <text x="275" y="305" text-anchor="middle" font-size="11" fill="#1a1a1a">rank-k SVD truncation of Z at inference</text>
-                    <text x="-52" y="130" text-anchor="middle" font-size="11" fill="#1a1a1a" transform="rotate(-90, -52, 130)">ProsQA accuracy</text>
-                </g>
-            </svg>
-            <div class="legend">
-                <div class="item"><span class="swatch" style="background:#1a1a1a"></span>flatten (linear)</div>
-                <div class="item"><span class="swatch" style="background:#2E5E8B"></span>bilinear</div>
-                <div class="item"><span class="swatch" style="background:#8B2E1F"></span>bilinear + GELU</div>
-                <div class="item"><span class="swatch" style="background:#2E8B57"></span>SVD-augmented</div>
-                <div class="item"><span class="swatch" style="background:#8B6F2E"></span>quadratic</div>
-            </div>
-            <figcaption><span class="fig-label">figure 2</span>Rank-<span class="mono">k</span> ablation curves for five readouts on 128 ProsQA test problems. The four positive-control readouts — bilinear reparametrization, bilinear+GELU (explicitly nonlinear in <span class="mono">Z</span>), SVD-augmented (feeds singular values through an MLP), and quadratic (second moment) — all produce curves flat to within ~0.8 pp. Quadratic is perfectly flat at 79.69% across all five <span class="mono">k</span>.</figcaption>
+            <img src="../assets/plots/matrix_codi_rank_ablation.svg" alt="rank-k ablation curves for four readouts nonlinear in Z (bilinear, bilinear+GELU, SVD-augmented, quadratic) on 128 ProsQA test problems, all flat, with the flatten baseline shown as a reference line" style="width: 100%; max-width: 780px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">figure 2</span>Rank-<span class="mono">k</span> ablation curves for four readouts on 128 ProsQA test problems. The four positive-control readouts — bilinear reparametrization, bilinear+GELU (explicitly nonlinear in <span class="mono">Z</span>), SVD-augmented (feeds singular values through an MLP), and quadratic (second moment) — all produce curves flat to within ~0.8 pp. Quadratic is perfectly flat at 79.69% across all five <span class="mono">k</span>. The dashed reference line is the flatten baseline (79.0%, from Table 2). Data: <span class="mono">experiment-runs/2026-04-17_round_pc/rank_evals/{bilinear,bilinear_gelu,svd_aug,quadratic}_rankeval.json</span>, md5-verified, accuracy recomputed from per-problem records. Script: <span class="mono">assets/plots/generate_matrix_codi_rank_ablation.py</span>.</figcaption>
         </figure>
 
         <figure>
@@ -725,7 +649,7 @@ footer a { color: var(--accent); }
                     <tr><td>quadratic</td><td><span class="num">79.69%</span></td><td><span class="num">79.69%</span></td><td><span class="num">79.69%</span></td><td><span class="num">79.69%</span></td><td><span class="num">79.69%</span></td><td><span class="num">+0.07</span></td><td><span class="num">0.46</span></td></tr>
                 </tbody>
             </table>
-            <figcaption><span class="fig-label">table 2</span>Rank-<span class="mono">k</span> ablation on 128 ProsQA problems, by readout. All four positive-control Spearman <span class="mono">p</span>-values are above 0.14. Quadratic is identical across all five <span class="mono">k</span>.</figcaption>
+            <figcaption><span class="fig-label">table 2</span>Rank-<span class="mono">k</span> ablation on 128 ProsQA problems, by readout. All four positive-control Spearman <span class="mono">p</span>-values are above 0.14. Quadratic is identical across all five <span class="mono">k</span>. The <span class="mono">bilinear</span>, <span class="mono">bilinear + GELU</span>, <span class="mono">SVD-augmented</span>, and <span class="mono">quadratic</span> rows are independently reproduced from raw per-problem records at <span class="mono">experiment-runs/2026-04-17_round_pc/rank_evals/</span> (md5-verified; see fig 2). The <span class="mono">flatten</span> row is carried as originally reported; a 2026-07 site audit could not locate a raw 128-problem eval archive reproducing it exactly, and <span class="mono">79.0% × 128 = 101.12</span> is not an integer number of problems, unlike the four verified rows — the value is very likely a rounded restatement of an eval run under slightly different conditions (the archived <span class="mono">rankeval.json</span> files log <span class="mono">epochs=10</span>, while this section's prose states 25) rather than an error, but it has not been re-verified bit-for-bit and is flagged here rather than silently treated as equally certain.</figcaption>
         </figure>
 
         <div class="takeaway">

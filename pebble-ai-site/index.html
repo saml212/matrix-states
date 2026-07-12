@@ -524,10 +524,10 @@ footer a { color: var(--accent); }
             pebble
         </a>
         <nav class="main">
-            <a href="#progression">research</a>
-            <a href="#current">running</a>
+            <a href="#progression">the arc</a>
             <a href="#findings">findings</a>
-            <a href="#roadmap">roadmap</a>
+            <a href="#roadmap">active now</a>
+            <a href="#dead-ends">dead ends</a>
             <a href="#contact">contact</a>
         </nav>
     </div>
@@ -537,18 +537,18 @@ footer a { color: var(--accent); }
 <section class="hero">
     <div class="container">
         <p class="kicker">let them eat bytes<span class="period">.</span></p>
-        <h1 class="pull">Modern language models work around the medium they compute on — subword tokens for input, flat vectors for representation, and discrete-token chain-of-thought for reasoning. I'm replacing all three.</h1>
-        <p class="thesis">Three parallel threads. <strong>Bytes</strong> replace the tokenizer, so the model sees the same stream the hardware does. <strong>Matrix-valued tokens</strong> replace flat vectors, giving every representation differentiable structural observables — rank, singular values — that a <span class="mono">d</span>-dimensional vector cannot expose. <strong>Continuous reasoning with matrix-tracked superposition</strong> replaces discrete chain-of-thought, so the number of reasoning paths a model holds at inference is measurable from a single sample rather than estimated across an ensemble. Early evidence: outer-product matrix embeddings cut per-parameter perplexity <span class="mono">11×</span> against flat vectors at matched parameters; a matrix transformer layer at <span class="mono">d = 16</span> uses <span class="mono">130×</span> fewer parameters than vector attention at matched capacity. The first matrix-CODI experiment falsified one operationalization of rank-tracked superposition under a distillation objective and shipped a mechanism explaining why; the next runs the test on a matrix-native model trained from scratch.</p>
-        <p class="status-line">matrix-CODI published (ICML 2026 MI workshop) &nbsp;·&nbsp; fast-weight capability program running</p>
+        <h1 class="pull">Modern language models work around the medium they compute on — flat vectors for state, and O(<span class="mono">h</span>) sequential steps for anything that composes. I'm building the version that doesn't.</h1>
+        <p class="thesis">The program has one representational commitment: model state as a <span class="mono">d × d</span> matrix, never a flat vector, and never flatten it back. A matrix has rank, so "how much has this model actually memorized" is a number you can compute from one forward pass instead of estimating from behavior. It's a fast-weight, so it can be written to and read from in-context, at inference time, with no gradient step. Four results now hang off that one commitment: a fixed <span class="mono">32,768</span>-byte state holds K=32 recall at <span class="mono">acc ≥ 0.998</span> across an 8× growing context while a matched transformer with an <em>uncapped</em> KV cache reads chance the whole time (<a href="findings/constant-memory-recall.html">no. 11</a>); an in-context-written relation composes to depth 1,021 in O(log <span class="mono">h</span>) time — <span class="mono">20.9×</span> faster than the best O(<span class="mono">h</span>) baseline, growing to <span class="mono">~20,000×</span> at depth 2²⁰ (<a href="findings/native-composition-reads.html">no. 14</a>); across five finite groups with provable minimum representation dimensions, the rank SGD recruits tracks that minimum exactly, and forcing it one dimension short drives recovery to zero in all five (<a href="findings/rank-law.html">no. 07</a>). None of that would be trustworthy without the fourth thread: three separate times, a result that looked like a capability win turned out to be an instrument bug, and the fix — not the cover-up — is published alongside the number (<a href="findings/reasoning-link-instrument-saga.html">no. 15</a>).</p>
+        <p class="status-line">ICML 2026 MI workshop paper published &nbsp;·&nbsp; capability-separation program active &nbsp;·&nbsp; 15 research notes, 3 self-caught instrument bugs, 0 swept under the rug</p>
     </div>
 </section>
 
 <!-- ────── progression ────── -->
 <section id="progression">
     <div class="container">
-        <div class="eyebrow">the three threads</div>
-        <h2 class="section-title">Three parallel threads. The lab is built on the claim that they compose.</h2>
-        <p class="lede">Each thread is independently testable and has its own near-term experiment. The compound claim is that bytes give a substrate, matrices give a representation with single-sample structural observables, and continuous reasoning over those matrices yields inference-time compute whose internals are directly measurable rather than inferred.</p>
+        <div class="eyebrow">the arc</div>
+        <h2 class="section-title">One representational commitment, four stages.</h2>
+        <p class="lede">The program started as three parallel threads — bytes, matrices, and matrix-tracked reasoning — in February 2026. Two of those threads resolved. Byte-level input is on hold (Stage 01, below): a real cost worth paying eventually, never bundled with the matrix question. The bolt-on version of matrix-tracked reasoning was tested and falsified in April, cleanly enough to publish. What survived, and is now the whole program, is narrower and stronger than the original pitch: model state as a matrix, never flattened, trained from scratch rather than bolted onto a vector-pretrained model. Stages 03 and 04 below are where the last four months of work actually happened.</p>
 
         <div class="stages">
             <div class="stage">
@@ -571,20 +571,31 @@ footer a { color: var(--accent); }
                 <div>
                     <h3>Replace flat vectors with <span class="mono">d × d</span> matrices.</h3>
                     <p>A matrix has rank, condition number, and singular values; a flat vector of the same dimension has none of these as differentiable observables. A <span class="mono">d²</span>-dim vector and a <span class="mono">d × d</span> matrix carry the same number of scalars, but only the matrix exposes structure that downstream operations can preserve or destroy. The architectural commitment: every primitive in the model — embedding, attention, FFN, output head — operates on matrices without flattening. Composition is matrix multiplication, attention scores are Frobenius inner products, the output head is a bilinear probe.</p>
-                    <p>Two findings make this load-bearing. Outer-product matrix embeddings beat flat-vector embeddings by <span class="mono">11×</span> in per-parameter perplexity at matched parameters (<a href="findings/outer-product-embedding.html">Finding no. 01</a>). A matrix transformer layer at <span class="mono">d = 16</span> uses <span class="mono">130×</span> fewer parameters than a standard vector attention layer at matched capacity (<a href="findings/parameter-efficiency.html">Finding no. 04</a>), shifting the parameter budget from embeddings to thinking layers.</p>
+                    <p>Two findings make this load-bearing. Outer-product matrix embeddings beat flat-vector embeddings by <span class="mono">11×</span> in per-parameter perplexity at matched parameters (<a href="findings/outer-product-embedding.html">Finding no. 01</a>). A matrix transformer layer at <span class="mono">d = 16</span> uses <span class="mono">128×</span> fewer parameters than a standard vector attention layer at matched capacity (<a href="findings/parameter-efficiency.html">Finding no. 04</a>), shifting the parameter budget from embeddings to thinking layers.</p>
                 </div>
             </div>
 
             <div class="stage">
                 <div class="num-block">
                     <span class="big">03</span>
-                    superposition
+                    capability
                 </div>
                 <div>
-                    <h3>Make the number of reasoning paths a single-sample observable.</h3>
-                    <p>Continuous chain-of-thought models — COCONUT (Meta, 2024), CODI (Meta, 2025) — feed back continuous latent vectors instead of discrete tokens, letting the model perform inference-time compute internally. The theoretical claim (<em>Reasoning by Superposition</em>, <em>CoT2</em>, 2025) is that these latents hold multiple reasoning paths in superposition, exploring a search tree in parallel. A 2026 rebuttal (<em>Illusion of Superposition</em>, arXiv 2604.06374) showed that on ProsQA the latent feedback is not doing measurable work in some fine-tuned settings.</p>
-                    <p>The dispute is empirical and the obstacle is measurement: superposition is a property of the representation, but a flat vector exposes no single-sample structure to probe. A matrix does. If a <span class="mono">d × d</span> thought <span class="mono">Z</span> holds <span class="mono">k</span> linearly independent patterns, its rank is <span class="mono">k</span> by construction, and rank is computable from a single sample via SVD. The matrix-CODI experiment built that probe and ran the falsification. The result: rank-<span class="mono">k</span> ablation curves are flat across two tasks and four readout designs, and best ProsQA accuracy decouples from final effective rank across seeds (<span class="mono">81.51 ± 1.2pp</span> at ranks <span class="mono">{4, 12, 13}</span>). The CODI training objective produces rank-indifferent gradients through the full chain rule. The follow-up moved the test off CODI distillation onto fast-weight models trained from scratch on tasks with provable rank structure — and there, SGD recruits exactly the provably-necessary rank, causally (<a href="findings/rank-law.html">Finding no. 07</a>).</p>
+                    <h3>Bolt-on superposition was falsified. Trained-from-scratch capability separation is what replaced it.</h3>
+                    <p>Continuous chain-of-thought models — COCONUT (Meta, 2024), CODI (Meta, 2025) — feed back continuous latent vectors instead of discrete tokens, letting the model perform inference-time compute internally. The theoretical claim (<em>Reasoning by Superposition</em>, <em>CoT2</em>, 2025) is that these latents hold multiple reasoning paths in superposition, exploring a search tree in parallel. A <span class="mono">d × d</span> thought <span class="mono">Z</span> that holds <span class="mono">k</span> linearly independent patterns has rank <span class="mono">k</span> by construction — computable from a single sample via SVD, unlike a flat vector. The matrix-CODI experiment (<a href="findings/matrix-codi-rank-blindness.html">Finding no. 05</a>, ICML 2026 MI workshop) built that probe and ran the test on a bolt-on matrix bottleneck inside a vector-pretrained, vector-teacher CODI pipeline. Result: rank-<span class="mono">k</span> ablation curves are flat across two tasks and four readout designs, and best ProsQA accuracy decouples from final effective rank across seeds (<span class="mono">81.51 ± 1.2pp</span> at ranks <span class="mono">{4, 12, 13}</span>) — the CODI training objective produces rank-indifferent gradients through the full chain rule. Published, and does not decide the broader question.</p>
+                    <p>The broader question moved off bolt-on distillation entirely: train a matrix-state model from scratch, on tasks where rank is a provable, not assumed, requirement. Across five finite groups with known minimum representation dimensions, recruited rank tracks the minimum exactly (Spearman <span class="mono">ρ = 0.9747</span>), and forcing rank one dimension short drives recovery to exactly zero in all five (<a href="findings/rank-law.html">no. 07</a>). The same fast-weight family separates cleanly from param-matched and FLOP-matched baselines on high-load recall (<a href="findings/fast-weight-recall.html">no. 08</a>), holds that recall on a state fixed at 32 KB out to 8× the binding window while a growing KV cache does not help a matched transformer at all (<a href="findings/constant-memory-recall.html">no. 11</a>), and composes an in-context-written relation exactly at O(log <span class="mono">h</span>) cost against O(<span class="mono">h</span>) baselines that must apply their step <span class="mono">h</span> times (<a href="findings/native-composition-reads.html">no. 14</a>) — a result that so far is a clean WIN at K=8, a partial win at K=12, and, extended to a bank of three relations, converges only after a targeted trainability fix and remains untested at far depth (<a href="findings/ncr-operator-bank.html">no. 16</a>). Compositional-depth generalization on a different architecture (a recurrent composer over the same finite groups) holds everywhere the model actually converges but does not yet clear as a general capability claim (<a href="findings/composes-where-it-trains.html">no. 13</a>) — the honest state of that thread, not a result to round up.</p>
                     <p class="aside">Supporting framing: Fedorenko et al. (<em>Nature</em>, 2024) dissociates the human language network from reasoning, math, and theory of mind — evidence that reasoning can run on representations that are not language-shaped.</p>
+                </div>
+            </div>
+
+            <div class="stage">
+                <div class="num-block">
+                    <span class="big">04</span>
+                    measurement
+                </div>
+                <div>
+                    <h3>Every capability claim above survived an attempt to break the instrument that measured it.</h3>
+                    <p>Three separate times this program built a readout, got a result that looked like a capability win or a clean null, and then found the instrument itself was wrong before publishing. A 62-cell compositional-depth sweep read as an outright failure until its own pre-registered crosscheck contradicted the primary readout by a full 0-vs-1.0 margin on exactly the cells that had actually converged — the primary lens's identity-gauge assumption, validated on a different architecture, silently failed on this one (<a href="findings/broken-lens.html">no. 12</a>). The diagnosis that followed traced every remaining miss to a named trainability mechanism rather than an architecture limit, and the promotion call landed as a qualified positive, not a capability win rounded up from a null (<a href="findings/composes-where-it-trains.html">no. 13</a>). Most strikingly, a published "recovery reads zero at every scale" null — the reasoning-link result, closed once already — turned out to rest on the same class of state-layout transpose bug three separate times across the codebase; fixing it reopened a real, nonzero signal, and then two independent correspondence-null controls, pre-registered before either ran, showed that signal itself was trivial (a collapsed prediction direction against near-collinear values). The corrected, now doubly-validated claim is "null-indistinguishable," never "reads zero" — a more precise finding than either the original null or the naive reopening (<a href="findings/reasoning-link-instrument-saga.html">no. 15</a>). None of this is a caveat bolted on after the fact. It is the actual discipline the capability numbers in Stage 03 were produced under, and it is published with the same care as the wins.</p>
                 </div>
             </div>
         </div>
@@ -596,9 +607,18 @@ footer a { color: var(--accent); }
     <div class="container">
         <div class="eyebrow">research notes</div>
         <h2 class="section-title">Findings.</h2>
-        <p class="lede">Click any title for the full note.</p>
+        <p class="lede">Click any title for the full note. Numbers run 01–05, then 07–16 — no. 06 was a duplicate label caught and merged into no. 05 during a 2026-07 numbering cleanup, not a retracted finding.</p>
 
         <div class="results">
+            <a class="result" href="findings/ncr-operator-bank.html">
+                <div class="body">
+                    <div class="result-date">no. 16 &nbsp;·&nbsp; july 11, 2026</div>
+                    <h4>The operator bank: architecture proven, exact contender convergence-recovered, far depth still open</h4>
+                    <p>Extending finding no. 14 from one relation to a bank of three. The exact contender wouldn't train at R=3 at all — flat chance even at 3× the proven single-relation budget — but the bank <em>architecture</em> is proven regardless by a fully-trained baseline (fwm-bank: in-dist recovered@0.9 <span class="mono">0.87-0.89</span>, relation-swap ablation gap <span class="mono">0.621</span>, genuine capability isolation). A targeted diagnosis then recovered convergence: annealing an inter-hop LayerNorm out during training unsticks it where three other fixes fail — in-dist recovery goes <span class="mono">0.0</span> to <span class="mono">1.0/1.0/1.0</span> (n=1). Far depth is still open: at h*=61 the recovered contender clears only <span class="mono">0.004-0.049</span> at the strict bar. A related probe confirms exact composition extends to K=14 before hitting the same trainability cliff at K=15/16. Read the research note →</p>
+                </div>
+                <span class="meta">convergence-recovered · far-depth open</span>
+            </a>
+
             <a class="result" href="findings/reasoning-link-instrument-saga.html">
                 <div class="body">
                     <div class="result-date">no. 15 &nbsp;·&nbsp; july 11, 2026</div>
@@ -628,7 +648,7 @@ footer a { color: var(--accent); }
 
             <a class="result" href="findings/broken-lens.html">
                 <div class="body">
-                    <div class="result-date">no. 12 &nbsp;·&nbsp; july 10, 2026 &nbsp;·&nbsp; updated july 10 (promotion call resolved, no. 13)</div>
+                    <div class="result-date">no. 12 &nbsp;·&nbsp; july 10, 2026 &nbsp;·&nbsp; updated july 10 (promotion call resolved, no. 13) &nbsp;·&nbsp; updated july 11 (same transpose-bug class recurred a third time, no. 15)</div>
                     <h4>When the instrument is the failure: a 0-vs-1.0 readout contradiction on perfectly converged models</h4>
                     <p>A 62-cell compositional-depth sweep read FALSIFY — then the instrument-health pass found the primary readout and its pre-registered crosscheck contradicting each other at 0-vs-1.0 magnitude on exactly the perfectly converged cells, while agreeing on every non-converged one. The primary lens's identity-gauge assumption had been validated on a <em>different</em> architecture and silently failed on this one. The tiebreak survived a shuffled-target falsifier pinned in advance (0.00/0.00/0.05, all far below the void bar). The corrected endpoint is INCONCLUSIVE — one gating group now shows full far-depth separation (crosscheck 1.000 vs baseline 0.0), the other misses on a single trainability-outlier seed. No capability win claimed; the dissociation and the audit trail are the finding. Read the research note →</p>
                 </div>
@@ -682,7 +702,7 @@ footer a { color: var(--accent); }
 
             <a class="result" href="findings/matrix-codi-rank-blindness.html">
                 <div class="body">
-                    <div class="result-date">no. 05 &nbsp;·&nbsp; april 21, 2026 &nbsp;·&nbsp; published, ICML 2026 MI workshop</div>
+                    <div class="result-date">no. 05 &nbsp;·&nbsp; april 12, 2026 &nbsp;·&nbsp; published, ICML 2026 MI workshop</div>
                     <h4>The gradient does not see rank: rank-indifference in matrix-CODI on ProsQA</h4>
                     <p>A fork of CODI with a 16×16 matrix bottleneck at each latent reasoning step. Four flat rank-<span class="mono">k</span> projection curves across two tasks and two distillation regimes; a three-seed replication shows accuracy tight at <span class="mono">81.51 ± 1.2</span>pp while the final effective rank of <span class="mono">Z</span> spans <span class="mono">{4, 12, 13}</span>. A four-readout positive control — bilinear, bilinear+GELU, SVD-augmented, quadratic — was designed to falsify the hypothesis that readout linearity causes the flat curves; all four readouts produce flat curves regardless. A negative control on vanilla GPT-2 SFT (no matrix bottleneck, no <span class="mono">Z</span>) reproduces a flat curve under the same intervention paradigm and demonstrates the rank-<span class="mono">k</span> probe alone conflates rank-blindness with position-irrelevance. The model-level distinguisher is the seed-decoupling result, which the negative control cannot produce by construction. Read the research note →</p>
                 </div>
@@ -691,16 +711,16 @@ footer a { color: var(--accent); }
 
             <a class="result" href="findings/parameter-efficiency.html">
                 <div class="body">
-                    <div class="result-date">no. 04 &nbsp;·&nbsp; april 7, 2026</div>
-                    <h4>Matrix operations are 130× more parameter-efficient per layer</h4>
-                    <p>At <span class="mono">d = 16</span>, a matrix transformer layer uses 130× fewer parameters than a standard vector attention layer at matched capacity. This changes the parameter allocation of the whole model: where embeddings used to dominate, thinking layers can. Read the research note →</p>
+                    <div class="result-date">no. 04 &nbsp;·&nbsp; april 2, 2026</div>
+                    <h4>Matrix operations are 128× more parameter-efficient per layer</h4>
+                    <p>At <span class="mono">d = 16</span>, a matrix transformer layer uses 128× fewer parameters than a standard vector attention layer at matched capacity. This changes the parameter allocation of the whole model: where embeddings used to dominate, thinking layers can. Read the research note →</p>
                 </div>
                 <span class="meta">proven</span>
             </a>
 
             <a class="result" href="findings/output-head-dynamics.html">
                 <div class="body">
-                    <div class="result-date">no. 03 &nbsp;·&nbsp; april 5, 2026</div>
+                    <div class="result-date">no. 03 &nbsp;·&nbsp; march 31, 2026</div>
                     <h4>Output mechanism shapes rank trajectory in matrix-valued refinement</h4>
                     <p>Across three runs that share the Matrix Thinker backbone but vary in output mechanism, the direction of the rank trajectory tracks the output mechanism. Bilinear probes see rank rise across 8 iterations; vector-collapse and 3D matrix-product runs see rank fall. The runs are not FLOPs-matched and this is an observational single-seed finding, not a causal claim. Read the research note →</p>
                 </div>
@@ -709,7 +729,7 @@ footer a { color: var(--accent); }
 
             <a class="result" href="findings/rank-enrichment.html">
                 <div class="body">
-                    <div class="result-date">no. 02 &nbsp;·&nbsp; april 2, 2026</div>
+                    <div class="result-date">no. 02 &nbsp;·&nbsp; march 27, 2026</div>
                     <h4>Rank enrichment is an emergent, novel phenomenon</h4>
                     <p>With a bilinear output head, the effective rank of matrix token representations rises during iterative refinement (<span class="mono">5.02 → 6.12</span>). This runs counter to the prior literature's assumption that depth drives rank collapse. Not reported in any prior work. Read the research note →</p>
                 </div>
@@ -718,9 +738,9 @@ footer a { color: var(--accent); }
 
             <a class="result" href="findings/outer-product-embedding.html">
                 <div class="body">
-                    <div class="result-date">no. 01 &nbsp;·&nbsp; february 28, 2026</div>
+                    <div class="result-date">no. 01 &nbsp;·&nbsp; march 27, 2026</div>
                     <h4>Outer-product matrix embeddings outperform flat vectors per parameter</h4>
-                    <p>At single-step processing, a matrix token produced by outer-product embedding beats a flat-vector baseline by <span class="mono">11×</span> in perplexity at matched parameters. Reproduced across every configuration tested. Read the research note →</p>
+                    <p>At single-step processing, a matrix token produced by outer-product embedding beats a flat-vector baseline in three independent comparisons: <span class="mono">26%</span> lower BPB even when the flat model has <span class="mono">2.2×</span> more parameters (the param-matched headline), and up to <span class="mono">175×</span> lower perplexity on a larger reasoning corpus. Mechanism (matrix structure vs. factored parameterization) is unresolved. Read the research note →</p>
                 </div>
                 <span class="meta">proven</span>
             </a>
@@ -742,65 +762,44 @@ footer a { color: var(--accent); }
 <!-- ────── roadmap ────── -->
 <section id="roadmap">
     <div class="container">
-        <div class="eyebrow">roadmap</div>
-        <h2 class="section-title">Where this goes after matrix-CODI.</h2>
-        <p class="lede">Each item is hypothesis-driven, compute-estimated, and falsifiable. Compute estimates are conservative.</p>
+        <div class="eyebrow">active now</div>
+        <h2 class="section-title">What's actually running.</h2>
+        <p class="lede">This replaces an older, more speculative roadmap (byte-level JEPA, cross-modality transfer at scale) that got superseded by the capability-separation pivot — that speculative material is preserved in the repo but is not what the GPUs are doing. Everything below is a live campaign with its own pre-registered decision gate.</p>
 
         <div class="roadmap">
             <div class="phase">
                 <div class="step">done →</div>
                 <h4>Matrix-native from scratch on a rank-K task</h4>
-                <p>The matrix-CODI negative result localized the failure to the linear-in-<span class="mono">Z</span> readout. This experiment removed that readout entirely: fast-weight matrix-state models trained from scratch on tasks with provable rank requirements. Result: SGD recruits exactly the provably-necessary rank, and the recruitment is causal — recovery is exactly zero one dimension below the group-theoretic minimum (<a href="findings/rank-law.html">Finding no. 07</a>). The same model family separates from param-matched flat-vector and FLOP-matched transformer baselines on high-load recall (<a href="findings/fast-weight-recall.html">Finding no. 08</a>, confirmed at n=3) and holds that recall on a fixed 32 KB state out to 8× the binding window (<a href="findings/constant-memory-recall.html">Finding no. 11</a>).</p>
-                <div class="budget">~30 H100-hours</div>
+                <p>The matrix-CODI negative result localized the failure to the linear-in-<span class="mono">Z</span> readout. This experiment removed that readout entirely: fast-weight matrix-state models trained from scratch on tasks with provable rank requirements. Result: SGD recruits exactly the provably-necessary rank, and the recruitment is causal — recovery is exactly zero one dimension below the group-theoretic minimum (<a href="findings/rank-law.html">Finding no. 07</a>). The same model family separates from param-matched flat-vector and FLOP-matched transformer baselines on high-load recall (<a href="findings/fast-weight-recall.html">Finding no. 08</a>, confirmed at n=3), holds that recall on a fixed 32 KB state out to 8× the binding window (<a href="findings/constant-memory-recall.html">Finding no. 11</a>), and composes exactly at O(log h) read cost (<a href="findings/native-composition-reads.html">Finding no. 14</a>). The full M×H fanout behind no. 11 (90 cells) has also completed: 0 of 90 clear the demonstration bar at any KV-cache cap or horizon — the transformer baseline never engages, at any setting, so the "no memory-multiplier number claimed" verdict holds down to the seed level.</p>
+                <div class="budget">~85 H100-hours realized</div>
             </div>
 
             <div class="phase">
-                <div class="step">next →</div>
-                <h4>Contextualized matrix embeddings</h4>
-                <p>Test four embedding designs: k-bigram outer products, conv encoder, local attention contextualization, and pairwise interaction matrices. The current rank-1 outer-product embedding is information-equivalent to storing two vectors. Higher-rank starting embeddings give the matrix meaningful structure from the input layer.</p>
-                <div class="budget">~30 H100-hours</div>
+                <div class="step">active →</div>
+                <h4>Operator-bank seed replication and far-depth precision</h4>
+                <p>Finding no. 16 recovered convergence for a 3-relation operator bank at n=1 and left two things open: whether the fix (annealed inter-hop LayerNorm) holds across seeds, and why in-distribution-perfect operators still miss the strict recovery bar at far depth. Both are pre-registered next steps, not yet run.</p>
+                <div class="budget">queued</div>
             </div>
 
             <div class="phase">
-                <div class="step">next →</div>
-                <h4>Byte-level JEPA with LeJEPA SIGReg</h4>
-                <p>Machine-native representations from raw bytes, no tokenizer, no language scaffolding. Translates WavJEPA (raw audio waveforms) to byte streams with a conv byte patcher, using LeJEPA's sketched isotropic Gaussian regularization to prevent collapse. No published byte-level JEPA exists as of April 2026.</p>
-                <div class="budget">~80 H100-hours</div>
+                <div class="step">done →</div>
+                <h4>Stage-2 compositional depth: the full 62-cell grid</h4>
+                <p>The 11-cell calibration gate plus its 51-cell remainder — together the full compositional-depth grid — completed and reached a ratified verdict: INCONCLUSIVE-TRAINABILITY-LIMITED (findings no. 12–13). Exact composition holds wherever training converges; no general capability win is claimed. The mechanical primary-lens readout said FALSIFY, but instrument-health adjudication found it was reading a broken instrument on exactly the perfectly-converged cells (finding no. 12) — the corrected diagnosis (finding no. 13) named every remaining miss as a trainability event, not an architecture limit.</p>
+                <div class="budget">complete</div>
             </div>
 
             <div class="phase">
-                <div class="step">next →</div>
-                <h4>Hierarchical long-context byte model</h4>
-                <p>Combines MBLM-style hierarchy (Mamba for long-range patch processing, transformer for local byte processing) with matrix-valued patch representations. Extends the matrix architecture to 1M+ byte context windows. Required infrastructure for multi-domain training.</p>
-                <div class="budget">~250 H100-hours</div>
+                <div class="step">gated →</div>
+                <h4>Native Composition Reads at scale (post-waterfall build queue)</h4>
+                <p>The full novel-architecture waterfall (brainstorm → research → attack → validate) cleared for finding no. 14's design with a narrowed, pre-registered claim. A build phase beyond the current wave-1/Phase-2/operator-bank results was double-gated on Stage-2's calibration readout (now available, above) plus a separate coordinator go/no-go; not yet launched. (Not to be confused with finding no. 14's own "wave-1," which already ran — the earlyln K-scaling build, cleared for launch but not yet run, is the specific next item here.)</p>
+                <div class="budget">≤50 H100-hours (of a 120 H100-hour phased ledger)</div>
             </div>
 
             <div class="phase">
-                <div class="step">scale →</div>
-                <h4>Transfer learning across byte-level modalities</h4>
-                <p>Train a single model on raw bytes from text, code, raw pixel images, and raw audio samples. Measure cross-domain transfer coefficients and representation alignment. Test whether matrix structure specifically enables transfer that flat-vector baselines can't match. Requires 10M+ parameters and a mixed-modality byte corpus, which has to be constructed first.</p>
-                <div class="budget">~1,000 H100-hours</div>
-            </div>
-
-            <div class="phase">
-                <div class="step">scale →</div>
-                <h4>Inference-time matrix reasoning at competitive scale</h4>
-                <p>Matrix-CODI at 10-50M parameters on real benchmarks (GSM8K, MATH, ProsQA, MNNS). Where the toy-scale rank experiment tells <em>if</em> the phenomenon exists, this tells <em>how much it matters</em> when the model is actually competent. Published comparison against CODI, CoT2, CoLaR, and MarCos.</p>
-                <div class="budget">~1,500 H100-hours</div>
-            </div>
-
-            <div class="phase">
-                <div class="step">scale →</div>
-                <h4>Synthetic reasoning datasets with exact frontier measurement</h4>
-                <p>Generate a calibrated benchmark suite where the number of reasoning paths at each step is analytically computable (subset-sum variants, graph reachability, rule composition). This lets rank correlations be tested against ground truth rather than annotator-inferred step counts. Datasets released publicly.</p>
-                <div class="budget">~200 H100-hours (generation + validation)</div>
-            </div>
-
-            <div class="phase">
-                <div class="step">stretch →</div>
-                <h4>Fully matrix-native architecture at scale</h4>
-                <p>HELM showed a fully hyperbolic billion-parameter LLM can match Euclidean baselines when every operation commits to the structured space. Replicate the approach with matrix-valued tokens: matrix attention, matrix FFN, matrix normalization, no flatten anywhere. Compute-intensive, only justified if the smaller experiments produce strong signal.</p>
-                <div class="budget">~5,000 H100-hours</div>
+                <div class="step">on hold →</div>
+                <h4>Byte-level input (Thread 01)</h4>
+                <p>Raw-byte processing without a subword tokenizer remains a real, motivated direction — BLT (Meta, 2024) and MambaByte both show it works at scale — but it is deliberately not bundled with the matrix-representation question. Revisiting it means testing tokenization as its own axis, on its own evidence, after the current capability-separation campaigns reach a verdict.</p>
+                <div class="budget">not scheduled</div>
             </div>
         </div>
     </div>
@@ -837,6 +836,18 @@ footer a { color: var(--accent); }
             <div class="dead">
                 <h4>Learned byte segmentation at small scale</h4>
                 <p>Learned segmentation boundaries consistently underperform fixed-stride segmentation at the scales I tested. The learning signal isn't strong enough below ~100M parameters. BLT works at 8B, so this may reverse at scale — but not within this compute regime.</p>
+            </div>
+            <div class="dead">
+                <h4>Frozen-bias fixes for the write-geometry attractor</h4>
+                <p>Key-write geometry collapses more with scale, not less (span_frac 0.248 at 14M → 0.455 at 1.31B). A pre-registered fix-at-scale wave tested frozen-bias constructions at 98M and 392M — the one that stabilized the attractor at 14M decays to near-zero and sign-flips by 392M; the deployed variant stays destabilizing at every scale tested. No tested fix survives scale-up. Val-loss stays neutral throughout, which is the only half of the story that transfers.</p>
+            </div>
+            <div class="dead">
+                <h4>Key-anchoring above K/d = 0.5</h4>
+                <p>An explicit entity-anchor table matches learned behavior at low load, but a frozen, never-trained random anchor table performs identically — the effect is arithmetic constancy in the key blend, not learned entity alignment. It does not transplant to higher load: recovery falls off a cliff from ≈1.00 to ≈0.02 between K/d = 0.5 and K/d = 0.75.</p>
+            </div>
+            <div class="dead">
+                <h4>Learned depth selection for exact composition</h4>
+                <p>Killed analytically before any GPU time, not empirically: a soft (differentiable) mixture over composition depths is a matrix polynomial, not the exact matrix power the whole exact-composition claim depends on, and a hard/discrete selector reproduces this project's own documented PonderNet-halting collapse. Every composition finding on this site supplies depth as an explicit input signal for this reason.</p>
             </div>
         </div>
     </div>
@@ -917,7 +928,7 @@ footer a { color: var(--accent); }
         </g>
     </svg>
     <div class="container">
-        <div>© 2026 pebble &nbsp;·&nbsp; sam larson &nbsp;·&nbsp; last updated 2026-04-28</div>
+        <div>© 2026 pebble &nbsp;·&nbsp; sam larson &nbsp;·&nbsp; last updated 2026-07-11</div>
         <div>
             <a href="https://github.com/saml212/learned-representations">github</a> &nbsp;·&nbsp;
             <a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a>

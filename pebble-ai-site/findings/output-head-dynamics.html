@@ -9,7 +9,7 @@
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://pebbleml.com/findings/output-head-dynamics.html">
 <meta property="article:author" content="Sam Larson">
-<meta property="article:published_time" content="2026-04-05">
+<meta property="article:published_time" content="2026-03-31">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://pebbleml.com/findings/output-head-dynamics.html">
 <link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
@@ -25,7 +25,7 @@
     "email": "sam@pebbleml.com",
     "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
   },
-  "datePublished": "2026-04-05",
+  "datePublished": "2026-03-31",
   "url": "https://pebbleml.com/findings/output-head-dynamics.html",
   "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
   "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
@@ -432,7 +432,7 @@ footer a { color: var(--accent); }
         <p style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 18px;">single-seed observation</p>
         <p class="authors"><span class="author">Sam Larson</span></p>
         <p class="affil">pebble, San Francisco</p>
-        <p class="date">April 5, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+        <p class="date">March 31, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
     </div>
 </section>
 
@@ -472,7 +472,7 @@ footer a { color: var(--accent); }
 
         <h3>Training</h3>
 
-        <p>The MultiProbeHead run (Run 12) and the 3D matrix-product run (Run 21) share the Round 2 training pipeline: OpenR1-Math reasoning corpus, sequence length 512, batch 96 per GPU on 8×H100 (effective batch 768), AdamW with β = (0.9, 0.98), weight decay 0.01, cosine learning rate schedule with peak 3×10⁻⁴ and 500 warmup steps, bfloat16 autocast for forward and backward, float32 optimizer state. Run 12 ran for 3000 steps on 2.19B tokens; Run 21 ran for 1000 steps on the same corpus. The vector-collapse run (Run 10) is the older Round 1 Matrix Thinker configuration on 118M WikiText-103 tokens with different optimizer settings; the rank direction is recorded but per-iteration numbers were not logged for that run.</p>
+        <p>The MultiProbeHead run (Run 12) and the 3D matrix-product run (Run 21) share the Round 2 training pipeline: OpenR1-Math reasoning corpus, sequence length 512, batch 96 per GPU on 8×H100 (effective batch 768), AdamW with β = (0.9, 0.98), weight decay 0.01, cosine learning rate schedule with peak 3×10⁻⁴ and 500 warmup steps, bfloat16 autocast for forward and backward, float32 optimizer state. Run 12 ran for 3000 steps on 2.19B tokens; Run 21 ran for 1000 steps on the same corpus. The vector-collapse run (Run 10) is the older Round 1 Matrix Thinker configuration on 118M WikiText-103 tokens with different optimizer settings; its per-iteration rank trajectory is logged in <span class="mono">round1_matrix_results.json</span>, not in the vector-collapse-only log file this note originally cited (which genuinely has nothing — <span class="mono">round1_vector_train.log</span> records rank as untracked at every step). The correct source is the matrix-backbone script's own eval, since the vector-collapse operation happens downstream of a rank-tracked matrix backbone.</p>
 
         <h3>Rank measurement</h3>
 
@@ -491,7 +491,7 @@ effective_rank = exp(-Σ p_i · log p_i)</code></pre>
 
         <figure>
             <img src="../assets/plots/output_head_dynamics.svg" alt="effective rank vs refinement iteration under three output mechanisms" style="width: 100%; max-width: 640px; display: block; margin: 0 auto;">
-            <figcaption><span class="fig-label">fig 1</span>Effective rank across 8 refinement iterations under three output mechanisms. The MultiProbeHead trajectory (red, with per-iteration markers) is the measured val-time per-iteration rank from the final <span class="mono">*BEST*</span> eval checkpoint of Run 12 at step 3000 (<span class="mono">round2_full_train.log</span> line 125, <span class="mono">n = 1</span>, 5.16M parameters, 2.19B tokens). The 3D matrix-product series (dotted) and vector-collapse series (dashed) are drawn as two-point lines with markers only at the endpoints, because neither run has logged per-iteration values: 3D matrix-product shows the Run 21 endpoints <span class="mono">2.75 → 2.66</span>, and vector-collapse shows direction-only (the run recorded a falling trajectory but did not log per-iteration rank). The shared axis makes the direction-reversal legible; the absolute heights of the three series are not directly comparable because of the differing configurations.</figcaption>
+            <figcaption><span class="fig-label">fig 1</span>Effective rank across 8 refinement iterations under three output mechanisms, all three series measured per-iteration from their own raw archives. MultiProbeHead (vermillion) is the val-time rank from the final <span class="mono">*BEST*</span> eval checkpoint of Run 12 at step 3000 (<span class="mono">round2_full_train.log</span> line 125, <span class="mono">n = 1</span>, 5.16M parameters, 2.19B tokens): <span class="mono">5.05 → 6.13</span>. 3D matrix-product (blue) is Run 21's final <span class="mono">*BEST*</span> eval at step 1000 (<span class="mono">exp_3d_attn_full_train.log</span>): <span class="mono">2.75 → 2.66</span>. Vector-collapse (orange) is Run 10's final <span class="mono">*BEST*</span> eval at step 3000 (<span class="mono">round1_matrix_results.json</span>, WikiText-103): <span class="mono">3.66 → 3.38</span>. The shared axis makes the direction-reversal legible; the absolute heights of the three series are not directly comparable because of the differing configurations (dimension, corpus, step count).</figcaption>
         </figure>
 
         <figure>
@@ -544,7 +544,7 @@ effective_rank = exp(-Σ p_i · log p_i)</code></pre>
                 </tr>
                 <tr>
                     <td>Frobenius attention + vector-collapse head (Run 10, Round 1, WikiText-103)</td>
-                    <td>falls (direction only; no per-iteration values logged)</td>
+                    <td><span class="num">3.66 → 3.38</span> (solidification)</td>
                     <td>—</td>
                 </tr>
                 <tr>

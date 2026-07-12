@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Extending Native Composition Reads (finding no. 14) from one relation to a bank of R=3: the shared-trunk bank architecture is proven by a fully-trained baseline (fwm-bank in-dist recovered@0.9 = 0.87-0.89, relation-swap ablation gap 0.621 -- genuine relation-selective capability isolation). The exact O(log h) contender itself would not converge at R=3 on the proven single-relation recipe or at 3x budget -- diagnosed and RECOVERED with an annealed inter-hop LayerNorm (earlyln): in-distribution recovered@0.9 goes 0.0 to 1.0/1.0/1.0, but far-depth recovery at h*=61 is still only 0.004-0.049 (n=1). A separate write-capacity extension confirms exact composition at K=14 (a new datapoint beyond finding 14's K=8/K=12) before hitting the same trainability cliff at K=15/16. Verdict: convergence-recovered, far-depth still open.">
+<meta property="og:title" content="The operator bank: architecture proven, exact contender convergence-recovered, far depth still open — pebble">
+<meta property="og:description" content="Research note: extending Native Composition Reads to R=3 relations. Bank architecture PROVEN on a trained baseline; the exact contender would not train at R=3 until an annealed LayerNorm intervention recovered it (n=1, in-dist perfect, far-depth open). A related write-capacity probe confirms exact composition at K=14, then hits a trainability cliff at K=15/16.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pebbleml.com/findings/ncr-operator-bank.html">
+<meta property="article:author" content="Sam Larson">
+<meta property="article:published_time" content="2026-07-11">
+<meta property="article:modified_time" content="2026-07-11">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://pebbleml.com/findings/ncr-operator-bank.html">
+<link rel="icon" type="image/svg+xml" href="../assets/pebble.svg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "The operator bank: architecture proven, exact contender convergence-recovered, far depth still open",
+  "name": "The operator bank: architecture proven, exact contender convergence-recovered, far depth still open",
+  "author": {
+    "@type": "Person",
+    "name": "Sam Larson",
+    "email": "sam@pebbleml.com",
+    "affiliation": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"}
+  },
+  "datePublished": "2026-07-11",
+  "dateModified": "2026-07-11",
+  "url": "https://pebbleml.com/findings/ncr-operator-bank.html",
+  "isPartOf": {"@type": "Periodical", "name": "pebble research notes", "url": "https://pebbleml.com"},
+  "publisher": {"@type": "Organization", "name": "pebble", "url": "https://pebbleml.com"},
+  "abstract": "Native Composition Reads (finding no. 14) demonstrated exact O(log h) composition for ONE in-context-written relation. This note extends the design to a BANK of R=3 independent relation operators sharing one K=8 pool, read by relation-conditioned selection. Phase-0 (single-seed-per-arm, 20K steps): the exact contender read flat chance in-distribution (train loss 0.982) -- diagnosed decisively as a step-budget miscalibration, not a bug (the known-good single-relation model needs ~600 steps to leave loss 1.0; this cell used 21x fewer examples than the proven recipe). The BANK ARCHITECTURE ITSELF is proven regardless: a fully-trained fast-weight-memory baseline (fwm-bank) reads in-distribution recovered@0.9 = 0.87/0.89/0.88 at h=1/2/3 (min over all 3 relations), and a relation-ID-swap ablation shows the capability-isolation teeth firing cleanly -- right-relation cosine 0.725 vs wrong-relation 0.105 (gap 0.621) -- while a LoopedVec-bank control is correctly relation-insensitive (0.304 vs 0.311) and the untrained exact contender is vacuous (0.011 vs 0.002, gap 0.008). Re-running the exact contender at the PROVEN single-relation budget (256 batch / 80K steps, 3x more data) REFUTED the 'just needed more budget' hypothesis: still 0.0 in-distribution recovery, high phase residual, a near-zero swap gap. A targeted diagnosis then RECOVERED convergence: annealing a parameter-free inter-hop LayerNorm from weight 1 to 0 over the first half of training (removed by the end -- eval always uses the pure exact matmul read) unsticks training where three other interventions (a plain baseline re-run, an LR/loss warmup, and a curriculum over R) all reproduce the flat-chance failure. The recovered arm (earlyln, n=1 seed): train loss 0.0052, in-distribution recovered@0.9 = 1.0/1.0/1.0 (min over 3 relations), restricted effective rank 7.98-7.99 of 8, relation-swap gap 0.553 (right 0.666 vs wrong 0.113) -- genuine, relation-selective, non-degenerate operators. Far-depth is NOT yet established: at h*=61 (this design's own pre-registered far-depth point for the single-relation case) earlyln recovers only 0.004-0.049 at the strict 0.9 threshold, though mean cosine similarity (0.63-0.74) sits well above chance -- composing largely correctly but not clearing the bar. A separate write-capacity extension of the single-relation (R=1) architecture confirms exact composition at K=14 (recovered@0.9 = 1.000, phase residual 0.0072, matching K=12's cleanliness exactly) before a sharp single-seed trainability cliff at K=15 and K=16 that a 4x parameter increase does not rescue -- the same convergence-collapse class earlyln fixes elsewhere, untested on this axis. Every number is n=1 per cell; a seed-replication confirm of earlyln is the pre-registered next step before any capability claim is made. Verdict of record: CONVERGENCE-RECOVERED, FAR-DEPTH OPEN -- the architecture works, the trainability blocker that stopped the exact contender from training at all is solved, and whether the recovered contender ultimately beats its baselines at far compositional depth is a separate, still-open question. Unpublished.",
+  "keywords": "fast-weight models, relation banks, in-context learning, exact composition, trainability, LayerNorm annealing, convergence diagnosis, DeltaNet, capacity, binary exponentiation",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "inLanguage": "en"
+}
+</script>
+<title>The operator bank: architecture proven, exact contender convergence-recovered, far depth still open — pebble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #FAF5E7;
+    --text: #1a1a1a;
+    --muted: #5a5a5a;
+    --accent: #8B2E1F;
+    --line: #1a1a1a;
+    --code-bg: #f0e9d3;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.68;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.sans {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ────── header ────── */
+header.paper {
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+header.paper .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 860px;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+header.paper nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-left: 22px;
+    font-weight: 500;
+}
+header.paper nav a:hover { color: var(--accent); }
+
+/* ────── title block ────── */
+.title-block {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--line);
+}
+.paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+h1.paper-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    margin-bottom: 24px;
+}
+.authors {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.authors .author {
+    font-weight: 600;
+}
+.affil {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+.date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ────── body ────── */
+article { padding: 50px 0 40px; }
+
+.abstract {
+    border: 1px solid var(--line);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    background: var(--bg);
+    position: relative;
+}
+.abstract::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: var(--accent);
+}
+.abstract .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: block;
+}
+.abstract p { margin: 0; font-size: 1rem; line-height: 1.65; }
+
+article h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 56px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+article h2 .num {
+    color: var(--accent);
+    margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+}
+article h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px;
+}
+article p {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+article ul, article ol {
+    margin: 0 0 20px 24px;
+    padding: 0;
+}
+article li {
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+article ul { list-style: none; }
+article ul li { padding-left: 18px; position: relative; }
+article ul li::before {
+    content: '▪';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* ────── code blocks ────── */
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 18px 22px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    font-size: 0.85em;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ────── figures and tables ────── */
+figure {
+    margin: 32px 0;
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--bg);
+}
+figcaption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.55;
+}
+figcaption .fig-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.94rem;
+}
+th, td {
+    border: 1px solid var(--line);
+    padding: 12px 16px;
+    text-align: left;
+}
+th {
+    background: var(--code-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+td .num { font-family: 'JetBrains Mono', monospace; font-size: 0.94em; }
+
+/* ────── callouts ────── */
+.takeaway {
+    border-left: 4px solid var(--accent);
+    padding: 14px 0 14px 24px;
+    margin: 28px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.takeaway .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ────── references ────── */
+.references {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+}
+.references h2 {
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.references ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ref;
+}
+.references li {
+    counter-increment: ref;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding-left: 44px;
+    position: relative;
+}
+.references li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ────── footer ────── */
+footer {
+    padding: 60px 0 64px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 80px;
+}
+footer .container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 860px;
+}
+footer a { color: var(--accent); }
+
+/* ────── responsive ────── */
+@media (max-width: 720px) {
+    body { font-size: 17px; }
+    .container { padding: 0 24px; }
+    .title-block { padding: 56px 0 44px; }
+    h1.paper-title { font-size: 1.8rem; }
+    article h2 { font-size: 1.35rem; }
+    .abstract { padding: 24px; }
+    header.paper nav a { margin-left: 12px; font-size: 0.78rem; }
+    header.paper .container { flex-wrap: wrap; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="paper">
+    <div class="container">
+        <a href="../index.html" class="logo">
+            <svg width="19" height="24" viewBox="0 0 189.19 244.18" aria-hidden="true">
+                <path fill="#8B2E1F" d="M154.14,12.56C111.33-20.28,21.86,11.88,3.07,101.86c-17.52,83.86,42.97,164.41,108.14,136.78,68.89-29.2,112.08-173.04,42.94-226.08ZM103.14,218.13C49.43,240.91-.41,174.53,14.03,105.43,29.52,31.28,103.24,4.78,138.52,31.84c56.99,43.71,21.39,162.22-35.38,186.29Z"/>
+            </svg>
+            pebble
+        </a>
+        <nav>
+            <a href="../index.html">← home</a>
+            <a href="../index.html#findings">findings</a>
+            <a href="../index.html#roadmap">roadmap</a>
+            <a href="mailto:sam@pebbleml.com">contact</a>
+        </nav>
+    </div>
+</header>
+
+
+<section class="title-block">
+    <div class="container">
+        <div class="paper-meta">research note &nbsp;·&nbsp; finding 16 &nbsp;·&nbsp; convergence-recovered, far-depth open</div>
+        <h1 class="paper-title">The operator bank: architecture proven, exact contender convergence-recovered, far depth still open</h1>
+        <p class="authors"><span class="author">Sam Larson</span></p>
+        <p class="affil">pebble, San Francisco</p>
+        <p class="date">July 11, 2026 &nbsp;·&nbsp; sam@pebbleml.com</p>
+    </div>
+</section>
+
+<article>
+    <div class="container">
+
+        <div class="abstract">
+            <span class="label">abstract</span>
+            <p><a href="native-composition-reads.html">Finding no. 14</a> showed exact O(log <em>h</em>) composition for a single in-context-written relation. This note asks the natural next question: does it extend to a <strong>bank</strong> of relations — R=3 independent operators sharing one K=8 pool, selected by a query-supplied relation id? The exact contender itself would not train at R=3: Phase-0 (single seed, 20K steps) read flat chance in-distribution, train loss stuck at 0.982. Diagnosis: a step-budget miscalibration, not a bug — the proven single-relation recipe needs ~600 steps just to leave loss 1.0, and this cell used 21× fewer examples. <strong>The bank architecture is proven regardless</strong>, by a fully-trained fast-weight-memory baseline (fwm-bank): in-distribution recovered@0.9 = <strong>0.87 / 0.89 / 0.88</strong> at h=1/2/3 (minimum over all 3 relations), and a relation-ID-swap ablation fires the intended capability-isolation teeth cleanly — right-relation cosine <strong>0.725</strong> vs wrong-relation <strong>0.105</strong> (gap 0.621) — while a LoopedVec-bank control stays correctly relation-insensitive (0.304 vs 0.311) and the untrained exact contender is vacuous (gap 0.008). Re-running the exact contender at the proven single-relation budget (256/80K, 3× more data) <strong>refuted</strong> "it just needed more budget": still 0.0 in-distribution recovery. A targeted diagnosis then found the fix: annealing a parameter-free inter-hop LayerNorm from weight 1 to 0 over the first half of training (gone by the end — eval always uses the pure exact-matmul read) <strong>recovers convergence</strong>, where three other interventions (plain re-run, LR/loss warmup, curriculum over R) all reproduce the flat-chance failure. The recovered arm (<span class="mono">earlyln</span>, n=1 seed): train loss <strong>0.0052</strong>, in-distribution recovered@0.9 = <strong>1.0/1.0/1.0</strong>, restricted effective rank <strong>7.98–7.99</strong> of 8, swap gap <strong>0.553</strong> — genuine, relation-selective, non-degenerate operators. <strong>Far depth is not yet established</strong>: at h*=61 (this design's own pre-registered far-depth point), earlyln recovers only <strong>0.004–0.049</strong> at the strict 0.9 threshold, though mean cosine (0.63–0.74) sits well above chance — composing largely correctly, not clearing the bar. A separate write-capacity extension of the R=1 architecture confirms exact composition at <strong>K=14</strong> (recovered@0.9 = 1.000, phase residual 0.0072, matching K=12's cleanliness) before hitting the same trainability cliff at K=15 and K=16, which a 4× parameter increase does not rescue. Every number here is <strong>n=1 per cell</strong> — a seed-replication confirm of <span class="mono">earlyln</span> is the pre-registered next step. <strong>Verdict of record: CONVERGENCE-RECOVERED, FAR-DEPTH OPEN.</strong> The bank architecture works (on a trained baseline); the exact contender's trainability blocker is solved; whether the recovered contender beats its baselines at far compositional depth is a separate, still-open question. Unpublished.</p>
+        </div>
+
+        <h2><span class="num">01</span>What a "bank" adds, and why it's harder</h2>
+
+        <p>Finding no. 14 wrote one relation operator per episode. A bank writes <em>R</em> = 3 independent relation operators from a single K=8 pool in one context, and a query specifies which relation to compose <em>h</em> times before reading. This is the natural generalization toward "a model that holds several distinct learned rules simultaneously and applies the right one on demand" — closer to how a real reasoning system would use in-context operators. It is also strictly harder on two axes at once: the shared encoder must write three non-interfering operators from one trunk instead of one, and the read must select the correct operator before composing it, not just compose whatever was written.</p>
+
+        <p>The design (<span class="mono">BankBindingEncoder</span>: a shared trunk plus <em>R</em> row-query sets) went through the project's full gauntlet before any GPU time: a fresh-opus attack round found and closed a gameable bank-scoring metric (a 3-seed counterexample could read every relation-median as 1.0 with zero genuine banks) and a dropped-metric bug on deviating arms; an independent build audit then caught a real strawman-baseline bug — the LoopedVec-bank control never received the query's relation id, making its comparison score structurally uninterpretable — fixed by tagging the query with the existing relation embedding (zero new parameters) and closed with its own causal mutation proof (zeroing the embedding collapses the arm to relation-blind, as it should).</p>
+
+        <h2><span class="num">02</span>Phase-0: the exact contender doesn't train, but the architecture does</h2>
+
+        <p>Phase-0 ran one seed per arm at 20K steps (batch 48 — a calibration-budget cell, not the proven single-relation recipe of batch 256 / 80K steps). The exact (NCR-bank) contender read flat chance: mean cosine ≈0 at every <em>h</em>, train loss 0.982. This is not a plumbing bug — the same contender overfits a single fixed batch to loss 0.0018 when asked to (forward and gradient are correct) — it is a <strong>slow-to-transition</strong> optimization dynamic, the same class finding no. 14 documented for the single-relation model at low step budgets, now compounded by 3× the write load on a shared channel.</p>
+
+        <p>Critically, the bank <em>architecture</em> is separable from the exact contender's convergence problem, and a fully-trained baseline proves it works: the fast-weight-memory bank (<span class="mono">fwm-bank</span>) reads in-distribution recovered@0.9 = <strong>0.87 / 0.89 / 0.88</strong> at h=1/2/3 (minimum over all 3 relations, mean cosine ≥0.95) — the shared-trunk encoder writing three operators from one context, and the read correctly selecting the one the query asks for, demonstrably works. The relation-ID-swap ablation is the capability-isolation teeth this design exists to demand: feed the model the right query but the wrong relation id, and recovery should collapse if the model is actually relation-selective rather than blurring all three together.</p>
+
+        <table>
+            <thead>
+                <tr><th>arm</th><th>right-relation cosine</th><th>wrong-relation cosine</th><th>gap</th><th>reading</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>fwm-bank (trained baseline)</td><td class="num">0.725</td><td class="num">0.105</td><td class="num">0.621</td><td>genuine relation-selective capability isolation</td></tr>
+                <tr><td>loopedvec-bank (control)</td><td class="num">0.304</td><td class="num">0.311</td><td class="num">−0.009</td><td>correctly relation-insensitive — a vector map with no relation signal should NOT show a gap, and doesn't</td></tr>
+                <tr><td>ncr-bank (untrained, Phase-0)</td><td class="num">0.011</td><td class="num">0.002</td><td class="num">0.008</td><td>vacuous — no trained model to probe yet</td></tr>
+            </tbody>
+        </table>
+
+        <p>The trained baseline's 0.621 gap and the control's −0.009 non-gap are exactly the dissociation the ablation is designed to produce; the exact contender's near-zero gap simply reflects that Phase-0 never trained it. Standing fact after Phase-0: <strong>the bank mechanism works; whether the O(log h) exact contender can learn it is still open.</strong></p>
+
+        <h2><span class="num">03</span>Recalibration: "just needed more budget" is refuted</h2>
+
+        <p>The obvious next hypothesis — Phase-0 simply under-budgeted the exact contender relative to the proven single-relation recipe — was tested directly: one seed, re-run at the identical 256-batch / 80K-step recipe finding no. 14 used for R=1 (≈3× more data than Phase-0). It did not converge: train loss 1.0011 → 0.8776 (barely moved; single-relation NCR reaches ≈0.0018 at this budget), in-distribution recovered@0.9 = 0.0 at every <em>h</em> (mean cosine 0.09–0.12), restricted effective rank collapsed to 2.4–3.5 (a converged operator needs ≈8), and the relation-swap gap read 0.0009 — no signal, a relation-agnostic blur rather than the fwm-bank's clean 0.621 separation. <strong>Refuted:</strong> sizing a wave off a non-converged contender would have been the project's own documented calibration-first mistake; the R=3 contender needs something other than more data.</p>
+
+        <h2><span class="num">04</span>Diagnosis: an annealed LayerNorm recovers convergence</h2>
+
+        <p>Four single-seed arms tested candidate fixes at the proven 256/80K budget: a plain re-run (control, reproducing §03), an LR/loss warmup schedule, a curriculum that ramps the number of active relations, and <span class="mono">earlyln</span> — a parameter-free LayerNorm blended into the training-time read with weight α annealed linearly from 1.0 to 0.0 over the first half of training, then fully removed. At α=0 the forward pass is bit-identical to the plain exact-matmul contender (closed-form verified); evaluation always uses the inherited pure-matmul exact read (binary exponentiation vs an fp64 power reference), never the LayerNorm.</p>
+
+        <table>
+            <thead>
+                <tr><th>arm</th><th>train loss</th><th>in-dist rec@0.9 (min over r, h=1/2/3)</th><th>restricted eff. rank</th><th>swap gap</th><th>verdict</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>earlyln</strong></td><td class="num"><strong>0.0052</strong></td><td class="num"><strong>1.0 / 1.0 / 1.0</strong></td><td class="num"><strong>7.98–7.99</strong></td><td class="num"><strong>+0.553</strong></td><td><strong>RECOVERED</strong></td></tr>
+                <tr><td>baseline (control)</td><td class="num">0.884</td><td class="num">0.0 / 0.0 / 0.0</td><td class="num">2.44–3.50</td><td class="num">+0.0009</td><td>FAIL (reproduces §03)</td></tr>
+                <tr><td>warmup</td><td class="num">0.982</td><td class="num">0.0 / 0.0 / 0.0</td><td class="num">1.70–2.42</td><td class="num">+0.0011</td><td>FAIL</td></tr>
+                <tr><td>curriculum</td><td class="num">0.986</td><td class="num">0.0 / 0.0 / 0.0</td><td class="num">1.67–2.48</td><td class="num">−0.0020</td><td>FAIL</td></tr>
+            </tbody>
+        </table>
+
+        <figure>
+            <img src="../assets/plots/ncr_opbank_recovery.svg" alt="line chart: train loss vs optimizer step, log scale, for the four convergence-diagnosis arms (earlyln, baseline, warmup, curriculum) at the proven 256-batch/80K-step budget" style="width: 100%; max-width: 780px; display: block; margin: 0 auto;">
+            <figcaption><span class="fig-label">fig 1</span>Per-step train loss (log scale) for all four single-seed convergence-diagnosis arms, at the proven 256-batch / 80K-step budget. <span class="mono">earlyln</span> (vermillion) undergoes a sharp phase transition at step 8,000–8,500 (loss 0.62 → 0.06) and keeps descending to a final loss of <strong>0.0052</strong> — the only arm that ever leaves the neighborhood of 1.0. <span class="mono">baseline</span> (control, final loss 0.884), <span class="mono">warmup</span> (0.982), and <span class="mono">curriculum</span> (0.986) all stay flat in the [0.88, 1.02] band for the full 80K steps, reproducing §03's non-convergence. These endpoints line up with the table above: in-distribution recovered@0.9 = 1.0/1.0/1.0 (earlyln) vs 0.0/0.0/0.0 (all three failures), restricted effective rank 7.98–7.99 of 8 (earlyln) vs 1.67–3.50 (failures), and relation-swap gap +0.5526 (earlyln) vs ±0.002 (failures). Every point is the run's own logged loss (every 500 steps) — not smoothed or resampled; the mid-training spike near step 40,000 (earlyln briefly rising to ≈0.11 before resuming its descent) is real training noise, shown unedited. Data: <span class="mono">experiment-runs/2026-07-11_ncr_opbank_recover/ncropbank_recover_{earlyln,baseline,warmup,curriculum}.json</span> (each cell's <span class="mono">train.loss_history</span>), md5-verified against the committed manifest before use and cross-checked bit-for-bit against <span class="mono">recover_verdict.json</span>. Script: <span class="mono">assets/plots/generate_ncr_opbank_recovery.py</span>.</figcaption>
+        </figure>
+
+        <p>All three of <span class="mono">earlyln</span>'s pre-registered recovery legs are cleanly met: in-distribution min-over-relations recovered@0.9 = 1.0 ≥ the 0.9 bar; restricted effective rank climbs to ≈7.99 of a possible 8 (operators formed to near-full rank, phase residual collapsing from 0.93–1.47 down to 0.016–0.020 — near-roots-of-unity permutation operators, the geometry a converged operator should have); and the swap gap (0.553, right-relation 0.666 vs wrong-relation 0.113, control −0.009) clears the pre-registered 0.3 bar — genuine relation-selective reading, not a blur. The other three arms all reproduce the flat-chance failure, which is what makes the recovery specifically attributable to the LayerNorm intervention rather than a schedule effect or a spontaneous transition.</p>
+
+        <div class="takeaway">
+            <span class="label">what "recovered" means, precisely</span>
+            <span class="mono">earlyln</span> is a train-time crutch, removed before the model is ever evaluated. It does not change what the model computes at inference; it changes whether gradient descent can find the exact-matmul solution at all. The recovery is genuine convergence of the exact contender, not a different (LayerNorm-assisted) contender being evaluated.
+        </div>
+
+        <h2><span class="num">05</span>What's still open: far depth</h2>
+
+        <p><span class="mono">earlyln</span> converges in-distribution (h=1, 2, 3 — perfect) and forms genuine, relation-selective operators. It has not yet been shown to compose correctly at the depths where this whole architecture class is supposed to earn its keep. At h*=61 — this design's own pre-registered far-depth comparison point, inherited from the single-relation design in finding no. 14 — <span class="mono">earlyln</span> recovers only <strong>0.004–0.049</strong> at the strict recovered@0.9 threshold across the three relations. Mean cosine similarity at that depth (0.63–0.74) sits well above chance, meaning the composed operator is <em>largely</em> correct, not random — but the strict threshold this project uses everywhere else is not cleared. The converged operators' phase residual (≈0.018) is roughly 3× the single-relation model's (≈0.0055), and phase error compounds multiplicatively over 61 hops of repeated squaring — a plausible mechanism for why in-distribution perfection does not yet translate to far-depth exactness, though this note does not claim to have isolated the cause.</p>
+
+        <p><strong>RECOVERED</strong> means the trainability blocker — the exact contender would not learn the bank task at all — is solved. It does not mean the bank contender is shown to beat its baselines at far compositional depth; that head-to-head is a separate, still-open gate this diagnosis did not close.</p>
+
+        <h2><span class="num">06</span>A related result: exact composition extends to K=14, then hits a wall</h2>
+
+        <p>A separate, single-relation (R=1) write-capacity probe asked a narrower question: how far past finding no. 14's tested K=8 and K=12 does exact composition extend on the plain (non-<span class="mono">earlyln</span>) recipe? Four single-seed cells at K∈{14, 15, 16} (two K=16 variants, one with 4× the hidden width):</p>
+
+        <table>
+            <thead>
+                <tr><th>cell</th><th>params</th><th>train loss (step 1 → 80K)</th><th>restricted eff. rank</th><th>in-dist rec@0.9</th><th>outcome</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>K=14</strong> (d=16, h=64)</td><td class="num">170,896</td><td class="num">0.9997 → <strong>0.0012</strong></td><td class="num"><strong>≈14.0</strong></td><td class="num"><strong>1.000</strong></td><td><strong>CONVERGED</strong></td></tr>
+                <tr><td>K=15 (d=16, h=64)</td><td class="num">170,896</td><td class="num">1.0049 → 0.9915</td><td class="num">1.4–2.9</td><td class="num">0.000</td><td>DEAD (did not train)</td></tr>
+                <tr><td>K=16, cond. A (d=32, h=64)</td><td class="num">175,008</td><td class="num">1.0052 → 0.9988</td><td class="num">≈1.0</td><td class="num">0.000</td><td>DEAD</td></tr>
+                <tr><td>K=16, cond. B (d=32, h=128)</td><td class="num">677,664</td><td class="num">0.9973 → 0.9964</td><td class="num">≈1.0</td><td class="num">0.000</td><td>DEAD (4× params, no help)</td></tr>
+            </tbody>
+        </table>
+
+        <p>K=14 is a real, clean positive result — a new converged datapoint beyond finding no. 14's K=8 and K=12, independently shadow-certified (every fp64 shadow delta ≈5×10⁻⁸, binary-exponentiation and loop-read agree, zero flags): exact composition holds to a failure front at h=53 (h=11 and h=25 both read 1.000), and its phase residual (0.0072) is identical to K=12's archived value — the write is exactly as clean as it was two relation-sizes ago, wherever the model actually trains. K=15 and both K=16 conditions, by contrast, never left a train loss near 1.0 across all 80K steps — a discrete trainability collapse, the same failure class §04 diagnosed and fixed for the R=3 bank, not a gradual write-quality degradation. Because none of the K=16 cells trained, the original question this probe was built to answer (does extra capacity rescue a converged-but-degraded write, or does the write itself break at higher K) is <strong>MIXED / unresolved</strong> — both K=16 conditions collapsed to the identical degenerate rank-1 solution, which is not evidence about write quality, just evidence that neither cell trained. The pre-registered next step is a re-run of K=15/16 with <span class="mono">earlyln</span> and ≥4 seeds — only a cell that actually trains can measure whether the write breaks or capacity rescues it.</p>
+
+        <div class="takeaway">
+            <span class="label">key observation</span>
+            Two independent probes this session hit the same wall from different directions — an R=3 relation bank at K=8, and an R=1 single relation pushed to K=15/16 — and one fix (<span class="mono">earlyln</span>) recovered the first. Whether the same fix rescues the second is untested, not claimed, and is the natural next step. The pattern worth naming: this architecture family's failure mode at its capacity edges looks less like "can't represent it" and more like "can't find it by gradient descent without help" — a trainability story, not a capacity story, in both places it has been diagnosed so far.
+        </div>
+
+        <h2><span class="num">07</span>Caveats — read before citing</h2>
+
+        <ul>
+            <li><strong>Every number in this note is n=1 per cell.</strong> Phase-0, the recalibration, the four-arm convergence diagnosis, and the K=14/15/16 write-capacity probe are all single-seed cells. This project's own standing evidence (finding no. 14's K=12: 2/10 dead seeds; K=16 precedent: 2/5 stuck) is that trainability outcomes on this architecture family vary meaningfully across seeds. A seed-replication confirm of <span class="mono">earlyln</span> (≥3-4 seeds) is the pre-registered next step before "recovered" is called robust, not just observed once.</li>
+            <li><strong>Far-depth capability is not established.</strong> <span class="mono">earlyln</span> converges in-distribution and forms genuine relation-selective operators, but at h*=61 it clears only 0.004-0.049 recovered@0.9 (well above chance on cosine, not above the strict bar). Nothing on this page claims the bank contender beats its baselines at far compositional depth — that is a separate gate, still open.</li>
+            <li><strong>The write-capacity K=15/16 result is MIXED, not a negative result about capacity.</strong> Neither K=16 condition trained at all, so the "does 4× capacity rescue a degraded write" question this probe was built to answer could not be asked — both conditions collapsed to the same degenerate solution regardless of width. Read this as "trainability-confounded, unresolved," not as "more capacity doesn't help."</li>
+            <li><strong>Bank-architecture proof rests on a baseline, not the exact contender.</strong> The 0.87-0.89 in-distribution recovery and the 0.621 relation-swap gap that demonstrate the bank mechanism works were measured on <span class="mono">fwm-bank</span> — a fully-trained fast-weight-memory baseline — because it was the only fully-converged arm available at Phase-0. The exact (O(log h)) contender's own bank capability is demonstrated only in-distribution, only by <span class="mono">earlyln</span>, only at n=1.</li>
+            <li><strong>≈4.26 GPU-h total across four sub-experiments</strong> (Phase-0 ≈0.22, recalibration ≈0.46, convergence-recovery diagnosis ≈1.85, write-capacity probe ≈1.73) — cheap relative to finding no. 14's 42.3 GPU-h single-relation program, reflecting the single-seed, diagnosis-first design of this note. No wave-scale sweep has been launched from any of these results; each stopped for coordinator routing.</li>
+        </ul>
+
+        <h2><span class="num">08</span>Reproducibility</h2>
+
+        <p>Every number above is read from archived, md5-verified raw JSONs, not from any intermediate summary. Phase-0: <span class="mono">experiment-runs/2026-07-11_ncr_opbank_phase0/</span> (gate table, rate probe, 3 cell JSONs, 6 per-relation swap-ablation locks, md5 manifest). Recalibration: <span class="mono">experiment-runs/2026-07-11_ncr_opbank_recal/</span>. Convergence-recovery diagnosis: <span class="mono">experiment-runs/2026-07-11_ncr_opbank_recover/</span> (4 cell JSONs, 12 per-relation locks, verdict JSON, md5 manifest). Write-capacity probe: <span class="mono">experiment-runs/2026-07-11_ncr_wcap_diag/</span> (4 cell JSONs, 4 locks, harvest stdout, verdict JSON, md5 manifest). Design and gauntlet record: <span class="mono">matrix-thinking/NOVEL_ARCH_WATERFALL.md</span> §8.1-§8.9, §9.1-§9.10.</p>
+
+        <p>This note extends <a href="native-composition-reads.html">finding no. 14, "O(log h) reads: 20.9× faster at depth 1,021 — and it composes exactly"</a> from one relation to a bank of three, and its K=14 result extends the same finding's exactness frontier past K=12. Read finding no. 14 first for the base architecture, the exact-composition mechanism, and the O(h)-baseline comparisons this note inherits without re-deriving.</p>
+
+        <div class="references">
+            <h2>References</h2>
+            <ol>
+                <li>Schlag, I., Munkhdalai, T., &amp; Schmidhuber, J. (2021). <em>Learning Associative Inference Using Fast Weight Memory.</em> ICLR 2021, arXiv:2011.07831 — source of the <span class="mono">fwm-bank</span> baseline architecture that proves the bank mechanism works.</li>
+                <li>Ba, J. L., Kiros, J. R., &amp; Hinton, G. E. (2016). <em>Layer Normalization.</em> arXiv:1607.06450 — the normalization primitive annealed during training in the <span class="mono">earlyln</span> convergence fix.</li>
+                <li>See also <a href="native-composition-reads.html">finding no. 14, "O(log h) reads: 20.9× faster at depth 1,021 — and it composes exactly"</a> — the single-relation base result this note extends.</li>
+            </ol>
+        </div>
+
+    </div>
+</article>
+
+<footer>
+    <div class="container">
+        <div>© 2026 pebble &nbsp;·&nbsp; <a href="../index.html">home</a> &nbsp;·&nbsp; <a href="../index.html#findings">all findings</a></div>
+        <div><a href="mailto:sam@pebbleml.com">sam@pebbleml.com</a></div>
+    </div>
+    <div class="container" style="margin-top: 18px; font-size: 0.74rem; line-height: 1.5; opacity: 0.78;">
+        <div style="max-width: 720px;">research log maintained by an autonomous agent under sam larson's supervision. all claims verified against experiments run on real hardware. major findings held for peer review before publication.</div>
+    </div>
+</footer>
+
+</body>
+</html>

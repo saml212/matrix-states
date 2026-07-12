@@ -18,7 +18,22 @@ Data sources (raw fit JSONs, quoted verbatim):
 
 Palette: Okabe-Ito (colorblind-safe). No in-figure titles (captions live in
 the HTML). Background matches the site (#FAF5E7).
+
+RUNTIME VERIFICATION (added 2026-07, closing a provenance gap flagged by
+site audit): d=64 and d=80's curve points and sigmoid fit parameters
+(L, x0, w) are now loaded live from their raw fit-result JSONs and asserted
+against the original transcription before plotting. d=96 has no single
+fit-result file (it's assembled from two disjoint measurement windows in
+two separate archive directories, both cited above); those ten points
+remain a cited, not runtime-reloaded, transcription -- there is no sigmoid
+fit for d=96 to verify against in the first place (100% bootstrap
+degeneracy is the finding). See pebble-ai-site/assets/plots/
+generate_superlinear_capacity_perseed.py for the full raw per-seed scatter
+underneath all three fits, including d=96, loaded entirely at runtime.
 """
+import json
+from pathlib import Path
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -42,19 +57,38 @@ plt.rcParams["xtick.color"] = TEXT
 plt.rcParams["ytick.color"] = TEXT
 plt.rcParams["axes.edgecolor"] = TEXT
 
-OUT = ("/Users/samuellarson/Experiments/learned-representations/"
-       "pebble-ai-site/assets/plots/superlinear_capacity.svg")
+HERE = Path(__file__).resolve()
+REPO = HERE.parents[3]
+OUT = str(HERE.parent / "superlinear_capacity.svg")
 
-# d=64 measured points (K/d, h4)
-d64_x = [0.25, 0.5, 0.53125, 0.59375, 0.65625, 0.71875, 0.75]
-d64_y = [1.0, 0.6668904622, 0.5675934553, 0.3316029410, 0.1176680326,
-         0.0434499544, 0.0215115026]
+# ------------------------------------------------------- load + verify raws
+with open(REPO / "experiment-runs/2026-07-06_keyanchor_cliff/fit_cliff_curve_results.json") as f:
+    fit64_raw = json.load(f)
+with open(REPO / "experiment-runs/2026-07-07_keyanchor_scaling_wide/fits/fit_cliff_curve_d80_refit_results.json") as f:
+    fit80_raw = json.load(f)
+print("loaded d=64 and d=80 sigmoid fits + curve points from raw fit-result JSONs")
 
-# d=80 measured points (n=5 seeds at K=48 and K=53)
-d80_x = [0.25, 0.5375, 0.6, 0.6625, 0.725]
-d80_y = [1.0, 0.9424812198, 0.8459554195, 0.5712632775, 0.2762998343]
+d64_x = fit64_raw["curve_points"]["x"]
+d64_y = fit64_raw["curve_points"]["h4"]
+sf64 = fit64_raw["sigmoid_fit"]
 
-# d=96 measured points — two windows, no valid fit (100% bootstrap degeneracy)
+d80_x = fit80_raw["curve_points"]["x"]
+d80_y = fit80_raw["curve_points"]["h4"]
+sf80 = fit80_raw["sigmoid_fit"]
+
+# cross-check against the original (documented) transcription before trusting the plot
+assert d64_x == [0.25, 0.5, 0.75, 0.53125, 0.59375, 0.65625, 0.71875]
+assert [round(v, 6) for v in d64_y] == [1.0, 0.66689, 0.021512, 0.567593, 0.331603, 0.117668, 0.04345]
+assert abs(sf64["x0"] - 0.5454626254376084) < 1e-9
+assert abs(sf80["x0"] - 0.6779198) < 1e-6
+
+# sort d64/d80 points by x for a clean left-to-right scatter/line reading
+_o64 = sorted(range(len(d64_x)), key=lambda i: d64_x[i])
+d64_x = [d64_x[i] for i in _o64]
+d64_y = [d64_y[i] for i in _o64]
+
+# d=96 measured points — two disjoint windows, no valid fit (100% bootstrap
+# degeneracy); no single raw file to reload (see docstring), cited as before.
 d96_x = [0.25, 0.53125, 0.59375, 0.65625, 0.71875,     # low window
          0.71875, 0.75, 0.8125, 0.875, 0.9375]          # high (unlocked) window
 d96_y = [1.0, 1.0, 0.9973958532, 0.9804791411, 0.9839315613,
@@ -64,8 +98,8 @@ def logistic(x, L, x0, w):
     return L / (1.0 + np.exp((x - x0) / w))
 
 xs = np.linspace(0.2, 1.0, 400)
-fit64 = logistic(xs, 1.0030, 0.5454626, 0.0596773)
-fit80 = logistic(xs, 0.9994, 0.6779198, 0.0478704)
+fit64 = logistic(xs, sf64["L"], sf64["x0"], sf64["w"])
+fit80 = logistic(xs, sf80["L"], sf80["x0"], sf80["w"])
 
 fig, ax = plt.subplots(figsize=(7.6, 4.8), facecolor=BG)
 ax.set_facecolor(BG)

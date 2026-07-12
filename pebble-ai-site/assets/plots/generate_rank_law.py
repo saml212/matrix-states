@@ -23,7 +23,23 @@ by the D-AMB target-padding fix).
 
 Palette: Okabe-Ito (colorblind-safe). No in-figure titles (captions live
 in the HTML). Background matches the site (#FAF5E7).
+
+RUNTIME VERIFICATION (added 2026-07, closing a provenance gap flagged by
+site audit): figure 2's per-seed points, group means, and Spearman rho were
+originally hand-transcribed from the cited raw archives. This block now
+loads the actual per-seed cell JSONs and harvest_summary.json at generation
+time and asserts every plotted number matches, before anything is drawn.
+Figure 1's five-group razor points remain a cited (not runtime-reloaded)
+transcription -- they come from 19 separate small per-cell JSONs across two
+archive directories (one per group x rank-offset x seed) with no single
+summary file; reproducing that fan-in here was judged not worth the added
+script complexity given the numbers were independently re-verified against
+the raw cells by two separate audit passes. See the file list in the
+docstring above for exact provenance.
 """
+import json
+from pathlib import Path
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -104,15 +120,45 @@ plt.close(fig)
 print("wrote rank_law_razor.svg")
 
 # ---------------------------------------------------------------- figure 2
-rank_per_seed = {
+HERE = Path(__file__).resolve()
+REPO = HERE.parents[3]
+HARVEST_DIR = REPO / "experiment-runs/2026-07-09_capability_sweep_harvest"
+
+with open(HARVEST_DIR / "harvest_summary.json") as f:
+    harvest = json.load(f)
+print(f"loaded {HARVEST_DIR.relative_to(REPO)}/harvest_summary.json "
+      f"(rho={harvest['m1']['rho']:.4f}, confirm={harvest['m1']['confirm']})")
+
+rank_per_seed = {}
+for g in groups:
+    files = sorted((HARVEST_DIR / "results").glob(f"{g}__unconstrained__seed*.json"))
+    assert files, f"no unconstrained-arm cell files found for group {g}"
+    vals = []
+    for fp in files:
+        with open(fp) as f:
+            vals.append(round(json.load(f)["restricted_effective_rank"], 3))
+    rank_per_seed[g] = vals
+print("loaded per-seed restricted_effective_rank from "
+      f"{sum(len(v) for v in rank_per_seed.values())} raw cell JSONs across 5 groups")
+
+# cross-check against the (documented) original transcription before trusting the plot
+_expected_per_seed = {
     "S3": [1.808, 1.905, 1.919],
     "S4": [2.924, 2.848, 2.884, 2.809, 2.793],
     "A5": [2.882, 2.915, 2.776, 2.785, 2.804],
     "S5": [3.605, 3.652, 3.517],
     "A6": [4.709, 4.748, 4.750],
 }
-rank_mean = [1.8771, 2.8517, 2.8323, 3.5913, 4.7357]
-rank_sd = [0.0601, 0.0536, 0.0623, 0.0688, 0.0231]
+assert rank_per_seed == _expected_per_seed, rank_per_seed
+
+rank_mean = [round(harvest["m1"]["per_group_mean"][g], 4) for g in groups]
+# ddof=1 (sample std) to match the page's own prose convention ("Seed-level
+# means: S3 1.877 +/- 0.060 (n=3)..." -- verified these are sample-std, not
+# population-std, values); a prior version of this script used ddof=0,
+# which silently understated the error bars relative to the adjacent text.
+rank_sd = [round(float(np.std(rank_per_seed[g], ddof=1)), 4) for g in groups]
+assert rank_mean == [1.8771, 2.8517, 2.8323, 3.5913, 4.7357], rank_mean
+assert abs(harvest["m1"]["rho"] - 0.9746794344808963) < 1e-9
 # small x-offsets so the tied S4/A5 pair at d_min=3 stays legible
 x_offsets = {"S3": 0.0, "S4": -0.07, "A5": +0.07, "S5": 0.0, "A6": 0.0}
 colors = {"S3": OI_BLUE, "S4": OI_BLUE, "A5": OI_VERMILLION,
