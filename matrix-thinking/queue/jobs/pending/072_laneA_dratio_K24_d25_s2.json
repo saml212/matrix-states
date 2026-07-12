@@ -1,0 +1,10 @@
+{
+ "id": "072_laneA_dratio_K24_d25_s2",
+ "lane": "A",
+ "hypothesis": "Q2 Probe A (K=24@d=25, the tight-spare d=K+1 convention K=15 already demonstrated working): does K=24 also converge/compose at this convention, discriminating three pinned, mutually-inconsistent stories about the K15->K16 wall -- S1 (registry S9.2's Mechanism-1 + dead-rate floor: tight spare is WORSE, predicts FAIL), S2 (the S0 convention-confound reading: predicts CONFIRM), and the registry's own absolute-K-cliff reading (predicts FAIL regardless of spare convention)? A single binary readout kills at least one story (NCR_NEXT_LEVER_DESIGN.md S2.1).",
+ "cmd": "cd /home/nvidia/ncr && /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell --K 24 --seed 2 --steps 80000 --outdir /home/nvidia/ncr/results_earlyln_dratio --d-override 25 --ceiling-gpuh 1.0 --stop-file /home/nvidia/ncr/results_earlyln_dratio/STOP",
+ "gpu_h_estimate": 0.5038,
+ "output_dir": "/home/nvidia/ncr/results_earlyln_dratio",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr/results_earlyln_dratio/earlyln_K24_s2.json')); assert d.get('status')=='COMPLETED'; assert d.get('train',{}).get('step')==80000; assert 'eval' in d and d.get('blank_out',{}).get('passed') is True; assert d.get('d')==25\"",
+ "notes": "MEASURED cost basis at the SAME-K larger-d rate (S11.2's own K=24 80K 4-seed total / 4 -- conservative, since d enters the param count only via the 4dh term and d SHRINKS at the override, NCR_NEXT_LEVER_DESIGN.md S2.1). Ceiling 1.0 GPU-h/cell (S2.1's own pinned breaker). Separate outdir (/home/nvidia/ncr/results_earlyln_dratio) is REQUIRED: the existing d=48 record already occupies the identical earlyln_K24_s{seed} filename in results_earlyln_scale/ -- same skip-if-COMPLETED collision reasoning as every prior separate-outdir probe this program has deployed. Validity check additionally asserts the record's own 'd' field equals the override, per S5's own pinned validity-check addendum."
+}

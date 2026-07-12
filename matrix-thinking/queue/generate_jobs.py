@@ -649,19 +649,19 @@ def regate_20260712_jobs() -> list[dict]:
 # ---------------------------------------------------------------------------
 # NCR NEXT-LEVER WAVE, 2026-07-12b -- Q1 only (K=16 4x-budget cell). See
 # matrix-thinking/NCR_NEXT_LEVER_DESIGN.md (commit a8e848d) S1.3/S1.5/S1.7
-# for the full pre-registration; matrix-thinking/queue/wave_2026-07-12b.md
-# for this build round's own record.
+# for the full pre-registration; matrix-thinking/queue/regate_2026-07-12.md
+# S6 for this build round's own record.
 #
-# Q2 Probe A (--d-override) and Probe B (--anneal-frac) are DELIBERATELY NOT
-# built here: both require a new CLI flag that does not exist in
-# ncr_earlyln_scale.py, verified byte-identical between this repo mirror and
-# the live box script (2026-07-12). The design's own S5 already labels these
-# "Build prerequisites... for the eventual builder -- not built here" -- this
-# is the design's disclosed scope boundary firing as intended, not a defect.
-# Adding those flags is out of scope for this generator per the dispatching
-# coordinator's own stop condition ("if any flag is missing, STOP that probe
-# and report, never modify model/training logic"); they require their own
-# scoped fresh-agent opus audit (S5) before any Probe A/B job can be built.
+# Q2 Probe A (--d-override) and Probe B (--anneal-frac) were DELIBERATELY NOT
+# built in THIS round: both required a new CLI flag that did not exist in
+# ncr_earlyln_scale.py at the time, verified byte-identical between this repo
+# mirror and the live box script (2026-07-12). The design's own S5 already
+# labelled these "Build prerequisites... for the eventual builder -- not
+# built here" -- this was the design's disclosed scope boundary firing as
+# intended, not a defect. Both flags landed in a follow-on build round
+# (additive-only, independent opus audit CLEARED) -- see
+# ncr_next_lever_probe_ab_jobs() below for the jobs those flags unblocked,
+# and regate_2026-07-12.md S7 for that build+audit record.
 # ---------------------------------------------------------------------------
 BUDGET4X_OUTDIR = f"{NCR_DIR}/results_earlyln_budget4x"   # separate outdir,
         # load-bearing not cosmetic -- identical reasoning to
@@ -735,6 +735,212 @@ def ncr_next_lever_q1_jobs() -> list[dict]:
     return jobs
 
 
+# ---------------------------------------------------------------------------
+# NCR NEXT-LEVER WAVE, 2026-07-12c -- Q2 Probe A (--d-override) + Probe B
+# (--anneal-frac). Both flags landed in ncr_earlyln_scale.py this build
+# round (additive-only; independent opus audit CLEARED -- see
+# matrix-thinking/queue/regate_2026-07-12.md S7 for the full build+audit
+# record). NCR_NEXT_LEVER_DESIGN.md S2.1/S2.2/S5 is the pre-registration;
+# job IDs follow S5's own proposed numbering band exactly: 066-073 Probe A
+# (8 jobs), 074-077 Probe B-16 (4 jobs), 078-081 Probe B-24 (4 jobs). IDs
+# 064-065 (the conditional Q1 8x recon) are DELIBERATELY skipped here --
+# gated on Q1's own harvest + stopping rule (S1.7/S4), unrelated to this
+# build.
+# ---------------------------------------------------------------------------
+DRATIO_OUTDIR = f"{NCR_DIR}/results_earlyln_dratio"            # Probe A --
+        # NEW, separate from results_earlyln_scale/: the existing d=2K
+        # record already occupies the identical earlyln_K{K}_s{seed}
+        # filename there (same skip-if-COMPLETED collision hazard as every
+        # separate-outdir probe this program has deployed).
+ANNEALSHAPE_OUTDIR = f"{NCR_DIR}/results_earlyln_annealshape"  # Probe B --
+        # NEW, separate outdir: same (K,seed,steps) as the frac=0.5
+        # baseline cells in results_earlyln_scale/, identical hazard.
+
+
+def ncr_next_lever_probe_a_jobs() -> list[dict]:
+    """Q2 Probe A -- tight-spare d=K+1 at K=16 (d=17) and K=24 (d=25), n=4
+    each, 80K steps (1x -- isolates d alone, never bundled with the budget
+    axis). NCR_NEXT_LEVER_DESIGN.md S2.1/S5. A three-story-DISCRIMINATING
+    binary existence test, not a confirmation run: does the K=15 tight-spare
+    convention (SCALES 4/4, d-K=1), unchanged, also work at K=16/24? S1
+    (registry S9.2's Mechanism-1 + dead-rate floor) predicts tight spare is
+    WORSE (FAIL); S2 (the S0 convention-confound reading) predicts CONFIRM;
+    the registry's own absolute-K-cliff reading predicts K=16 fails like
+    K=16@d=32 did. Cost basis MEASURED at the SAME-K larger-d rate
+    (conservative -- d enters the param count only via the 4dh term and d
+    SHRINKS at the override, so true cost is <= this estimate): K16 0.4263
+    GPU-h/cell (S11.2's own 1.705/4), K24 0.5038 GPU-h/cell (S11.2's own
+    2.015/4). Per-cell breaker 1.0 GPU-h (S2.1's own pinned figure)."""
+    jobs = []
+    seq = 66
+    ceiling = 1.0   # S2.1's own pinned per-cell breaker
+    specs = [(16, 17, 1.705 / 4), (24, 25, 2.015 / 4)]  # (K, d_override, per_cell_nominal)
+    for K, d_ov, per_cell in specs:
+        for seed in (0, 1, 2, 3):
+            jid = f"{seq:03d}_laneA_dratio_K{K}_d{d_ov}_s{seed}"
+            cmd = (
+                f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K {K} --seed {seed} "
+                f"--steps {STEPS_MAIN} --outdir {DRATIO_OUTDIR} --d-override {d_ov} "
+                f"--ceiling-gpuh {ceiling} --stop-file {DRATIO_OUTDIR}/STOP"
+            )
+            vcheck = (
+                f"{PY} -c \""
+                f"import json; d=json.load(open('{DRATIO_OUTDIR}/earlyln_K{K}_s{seed}.json')); "
+                f"assert d.get('status')=='COMPLETED'; "
+                f"assert d.get('train',{{}}).get('step')=={STEPS_MAIN}; "
+                f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True; "
+                f"assert d.get('d')=={d_ov}\""
+            )
+            jobs.append(dict(
+                id=jid, lane="A",
+                hypothesis=(
+                    f"Q2 Probe A (K={K}@d={d_ov}, the tight-spare d=K+1 convention K=15 "
+                    f"already demonstrated working): does K={K} also converge/compose at "
+                    f"this convention, discriminating three pinned, mutually-inconsistent "
+                    f"stories about the K15->K16 wall -- S1 (registry S9.2's Mechanism-1 + "
+                    f"dead-rate floor: tight spare is WORSE, predicts FAIL), S2 (the S0 "
+                    f"convention-confound reading: predicts CONFIRM), and the registry's "
+                    f"own absolute-K-cliff reading (predicts FAIL regardless of spare "
+                    f"convention)? A single binary readout kills at least one story "
+                    f"(NCR_NEXT_LEVER_DESIGN.md S2.1)."
+                ),
+                cmd=cmd, gpu_h_estimate=round(per_cell, 4),
+                output_dir=DRATIO_OUTDIR, validity_check=vcheck,
+                notes=(
+                    f"MEASURED cost basis at the SAME-K larger-d rate (S11.2's own K={K} "
+                    f"80K 4-seed total / 4 -- conservative, since d enters the param count "
+                    f"only via the 4dh term and d SHRINKS at the override, "
+                    "NCR_NEXT_LEVER_DESIGN.md S2.1). Ceiling 1.0 GPU-h/cell (S2.1's own "
+                    f"pinned breaker). Separate outdir ({DRATIO_OUTDIR}) is REQUIRED: the "
+                    f"existing d={2 * K} record already occupies the identical "
+                    f"earlyln_K{K}_s{{seed}} filename in results_earlyln_scale/ -- same "
+                    "skip-if-COMPLETED collision reasoning as every prior separate-outdir "
+                    "probe this program has deployed. Validity check additionally asserts "
+                    "the record's own 'd' field equals the override, per S5's own pinned "
+                    "validity-check addendum."
+                ),
+            ))
+            seq += 1
+    return jobs
+
+
+def ncr_next_lever_probe_b16_jobs() -> list[dict]:
+    """Q2 Probe B-16 -- K=16, d=32 (mapping default, no override), 80K
+    steps, anneal_frac=0.75 (vs the implicit 0.5 baseline), n=4. THE
+    disentangling cell for Q1's budget/anneal confound (S1.2): does longer
+    anneal alone reproduce a material part of the 1x->2x delta drop?
+    NCR_NEXT_LEVER_DESIGN.md S2.2/S5."""
+    jobs = []
+    seq = 74
+    ceiling = 1.0   # S2.2's own pinned per-cell breaker
+    per_cell = 1.705 / 4   # S11.2's own K=16 80K 4-seed rate (same K/d/steps as the baseline)
+    for seed in (0, 1, 2, 3):
+        jid = f"{seq:03d}_laneA_annealshape_K16_s{seed}"
+        cmd = (
+            f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K 16 --seed {seed} "
+            f"--steps {STEPS_MAIN} --outdir {ANNEALSHAPE_OUTDIR} --anneal-frac 0.75 "
+            f"--ceiling-gpuh {ceiling} --stop-file {ANNEALSHAPE_OUTDIR}/STOP"
+        )
+        vcheck = (
+            f"{PY} -c \""
+            f"import json; d=json.load(open('{ANNEALSHAPE_OUTDIR}/earlyln_K16_s{seed}.json')); "
+            f"assert d.get('status')=='COMPLETED'; "
+            f"assert d.get('train',{{}}).get('step')=={STEPS_MAIN}; "
+            f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True; "
+            f"assert d.get('anneal_frac')==0.75\""
+        )
+        jobs.append(dict(
+            id=jid, lane="A",
+            hypothesis=(
+                "Q2 Probe B-16 (K=16, anneal_frac=0.75 vs the implicit 0.5 baseline, "
+                "fixed 80K-step budget): does more supported-formation steps (60K vs "
+                "40K before alpha->0) improve K=16's write quality (baseline mean "
+                "delta=0.1040), and is Q1's 1x->2x delta improvement substantially an "
+                "anneal-length effect rather than a budget effect? Both directions are "
+                "mechanistically live (more crutch-support vs fewer post-crutch "
+                "consolidation steps, 20K vs 40K) -- either outcome is informative "
+                "(NCR_NEXT_LEVER_DESIGN.md S1.2/S2.2, Q2(e))."
+            ),
+            cmd=cmd, gpu_h_estimate=round(per_cell, 4),
+            output_dir=ANNEALSHAPE_OUTDIR, validity_check=vcheck,
+            notes=(
+                "MEASURED cost basis (S11.2's own K=16 80K 4-seed rate -- anneal_frac "
+                "changes ONLY when the LN blend reaches 0, not the per-step LN-blend op "
+                "count, so the SAME rate applies, NCR_NEXT_LEVER_DESIGN.md S2.2 -- an "
+                "analytic prediction, not a measurement, hence the launch-order "
+                "mitigation: the first Probe-B job released gets a T+10min live health "
+                "check before the rest deploy. Ceiling 1.0 GPU-h/cell. Separate outdir "
+                f"({ANNEALSHAPE_OUTDIR}) is REQUIRED: same (K,seed,steps) as the "
+                "frac=0.5 baseline in results_earlyln_scale/ -- identical "
+                "skip-if-COMPLETED collision hazard as every other probe this program "
+                "has deployed. Validity check additionally asserts the record carries "
+                "anneal_frac==0.75, per S5's own pinned validity-check addendum."
+            ),
+        ))
+        seq += 1
+    return jobs
+
+
+def ncr_next_lever_probe_b24_jobs() -> list[dict]:
+    """Q2 Probe B-24 -- K=24, d=48 (mapping default, no override), 80K
+    steps, anneal_frac=0.75, n=4. The Q2 formation-failure schedule-axis
+    arm. NCR_NEXT_LEVER_DESIGN.md S2.2/S5."""
+    jobs = []
+    seq = 78
+    ceiling = 1.0
+    per_cell = 2.015 / 4   # S11.2's own K=24 80K 4-seed rate
+    for seed in (0, 1, 2, 3):
+        jid = f"{seq:03d}_laneA_annealshape_K24_s{seed}"
+        cmd = (
+            f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K 24 --seed {seed} "
+            f"--steps {STEPS_MAIN} --outdir {ANNEALSHAPE_OUTDIR} --anneal-frac 0.75 "
+            f"--ceiling-gpuh {ceiling} --stop-file {ANNEALSHAPE_OUTDIR}/STOP"
+        )
+        vcheck = (
+            f"{PY} -c \""
+            f"import json; d=json.load(open('{ANNEALSHAPE_OUTDIR}/earlyln_K24_s{seed}.json')); "
+            f"assert d.get('status')=='COMPLETED'; "
+            f"assert d.get('train',{{}}).get('step')=={STEPS_MAIN}; "
+            f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True; "
+            f"assert d.get('anneal_frac')==0.75\""
+        )
+        jobs.append(dict(
+            id=jid, lane="A",
+            hypothesis=(
+                "Q2 Probe B-24 (K=24, anneal_frac=0.75 vs the implicit 0.5 baseline, "
+                "fixed 80K-step budget): is K=24's 0/4 TRAINABILITY-DEAD formation "
+                "failure bottlenecked by the LN-crutch withdrawal SCHEDULE rather than "
+                "total compute (S11.2: budget alone is flat-to-WORSE at K=24, S0 finding "
+                "2)? Both directions are mechanistically live -- more supported-formation "
+                "steps could help formation OR the shorter post-crutch consolidation "
+                "window could make a withdrawal-cliff failure worse "
+                "(NCR_NEXT_LEVER_DESIGN.md S2.2, Q2(e))."
+            ),
+            cmd=cmd, gpu_h_estimate=round(per_cell, 4),
+            output_dir=ANNEALSHAPE_OUTDIR, validity_check=vcheck,
+            notes=(
+                "MEASURED cost basis (S11.2's own K=24 80K 4-seed rate; same "
+                "anneal_frac-is-cost-neutral analytic argument as Probe B-16). Ceiling "
+                f"1.0 GPU-h/cell. Separate outdir ({ANNEALSHAPE_OUTDIR}) is REQUIRED "
+                "(same collision hazard as Probe B-16). Validity check additionally "
+                "asserts anneal_frac==0.75."
+            ),
+        ))
+        seq += 1
+    return jobs
+
+
+def ncr_next_lever_probe_ab_jobs() -> list[dict]:
+    """Q2 Probe A + Probe B-16 + Probe B-24, generated together as this
+    build round's single additive entry point (job IDs 066-081, directly
+    behind Q1's 060-063, per NCR_NEXT_LEVER_DESIGN.md S5's own proposed
+    numbering band). 064-065 (the conditional Q1 8x recon) are
+    DELIBERATELY skipped -- gated on Q1's own harvest + stopping rule
+    (S1.7/S4), unrelated to this build."""
+    return (ncr_next_lever_probe_a_jobs() + ncr_next_lever_probe_b16_jobs()
+            + ncr_next_lever_probe_b24_jobs())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outdir", default=os.path.join(HERE, "jobs", "pending"))
@@ -742,7 +948,8 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
 
     all_jobs = (lane_a_jobs() + lane_b_jobs() + lane_c_jobs()
-                + regate_20260712_jobs() + ncr_next_lever_q1_jobs())
+                + regate_20260712_jobs() + ncr_next_lever_q1_jobs()
+                + ncr_next_lever_probe_ab_jobs())
 
     total_by_lane = {}
     for j in all_jobs:

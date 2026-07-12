@@ -144,10 +144,15 @@ class NCREarlyLNModel(nm.NCRModel):
 # to an arbitrary step budget -- identical formula, no drift)
 # ---------------------------------------------------------------------------
 
-def ln_alpha_at(step: int, total: int) -> float:
-    """1.0 -> 0.0 linearly over the first half of training, 0.0 thereafter
-    (S8.7/S8.9's pinned earlyln schedule, verbatim)."""
-    half = total // 2
+def ln_alpha_at(step: int, total: int, frac: float = 0.5) -> float:
+    """1.0 -> 0.0 linearly over the first `frac` fraction of training, 0.0
+    thereafter (S8.7/S8.9's pinned earlyln schedule, generalized by
+    NCR_NEXT_LEVER_DESIGN.md S2.2/S5 Probe B's `--anneal-frac` flag).
+    `frac` defaults to 0.5: `int(total * 0.5) == total // 2` for every even
+    `total` (every step budget this program uses is a round even number),
+    so the absent-flag default reproduces the original hardcoded `total //
+    2` schedule bit-for-bit (t3/t11 kill-proofs)."""
+    half = int(total * frac)
     if half <= 0 or step >= half:
         return 0.0
     return 1.0 - step / half
@@ -162,14 +167,14 @@ def ln_alpha_at(step: int, total: int) -> float:
 
 def train_earlyln_cell(model, cfg, device: str, steps: int, seed: int,
                        stop_file: str, ceiling_s: float,
-                       log_every: int = 500) -> dict:
+                       log_every: int = 500, anneal_frac: float = 0.5) -> dict:
     gen = torch.Generator(device=device).manual_seed(seed)
     opt = torch.optim.Adam(model.parameters(), lr=BASE_LR)
     model.train()
     n_skipped, loss_hist = 0, []
     t0 = time.time()
     for step in range(1, steps + 1):
-        model._ln_alpha = ln_alpha_at(step, steps)
+        model._ln_alpha = ln_alpha_at(step, steps, frac=anneal_frac)
         b = te.sample_batch(cfg, TRAIN_BATCH, gen, hop_set=cfg.H_train,
                             device=device, assert_injective=(step == 1))
         pred, _ = model(b)
@@ -203,14 +208,32 @@ def cell_id(K: int, seed: int) -> str:
 
 
 def run_earlyln_cell(K: int, seed: int, steps: int, device: str, outdir: str,
-                     stop_file: str = "", ceiling_gpuh: float = 2.0) -> dict:
+                     stop_file: str = "", ceiling_gpuh: float = 2.0,
+                     d_override: int | None = None, anneal_frac: float = 0.5) -> dict:
     """Full pipeline for one (K, seed) cell: train (earlyln schedule) then
     the IDENTICAL post-train instrument sequence run_ncr.run_cell uses for
     its 'ncr' arm branch (z_dump -> deep probe -> Axis-C lock -> trust
     screen -> blank_out_check -> eval_cell), called against this module's
-    NCREarlyLNModel instance with _ln_alpha forced to 0 first."""
+    NCREarlyLNModel instance with _ln_alpha forced to 0 first.
+
+    `d_override` (NCR_NEXT_LEVER_DESIGN.md S2.1/S5 Probe A): lets a job set
+    d independently of the GRID_SHAPES[K] default mapping. None (absent
+    flag) reproduces prior behavior bit-identically -- d_eff falls back to
+    the mapping default. When set, d_eff threads through model
+    construction (NCREarlyLNModel(d=d_eff, ...)) and every eval instrument
+    that takes d (nt.claim_config, nt.eval_points) exactly as it already
+    did for the mapping-default d. Both the effective d ('d') and the
+    mapping default ('d_default') are recorded in the result JSON so the
+    S11.4 harvest can never confuse an overridden-d cell with a
+    default-d one.
+
+    `anneal_frac` (NCR_NEXT_LEVER_DESIGN.md S2.2/S5 Probe B): fraction of
+    training the LN alpha anneal spans, threaded to train_earlyln_cell /
+    ln_alpha_at. Default 0.5 reproduces the original hardcoded
+    `total // 2` schedule bit-for-bit. Recorded in the result JSON."""
     shape = GRID_SHAPES[K]
-    d_eff, h_eff = shape["d"], shape["h"]
+    d_default, h_eff = shape["d"], shape["h"]
+    d_eff = d_override if d_override is not None else d_default
     os.makedirs(outdir, exist_ok=True)
     cid = cell_id(K, seed)
     out_path = os.path.join(outdir, f"{cid}.json")
@@ -224,7 +247,8 @@ def run_earlyln_cell(K: int, seed: int, steps: int, device: str, outdir: str,
     cfg = nt.claim_config(K, d=d_eff)
     torch.manual_seed(seed)
     model = NCREarlyLNModel(d=d_eff, h=h_eff).to(device)
-    rec = dict(cell_id=cid, K=K, d=d_eff, h=h_eff, seed=seed, runner_tag=RUNNER_TAG,
+    rec = dict(cell_id=cid, K=K, d=d_eff, d_default=d_default, d_override=d_override,
+              h=h_eff, seed=seed, anneal_frac=anneal_frac, runner_tag=RUNNER_TAG,
               git_commit=rn.git_commit(), params=nm.n_params(model),
               train_batch=TRAIN_BATCH, host=socket.gethostname(), device=device,
               torch_version=torch.__version__,
@@ -232,7 +256,8 @@ def run_earlyln_cell(K: int, seed: int, steps: int, device: str, outdir: str,
     ceiling_s = ceiling_gpuh * 3600.0 if device == "cuda" else float("inf")
     t0 = time.time()
 
-    tr = train_earlyln_cell(model, cfg, device, steps, seed, stop_file, ceiling_s)
+    tr = train_earlyln_cell(model, cfg, device, steps, seed, stop_file, ceiling_s,
+                            anneal_frac=anneal_frac)
     rec["train"] = tr
     if tr["status"] != "COMPLETED":
         rec["status"] = tr["status"]
@@ -696,7 +721,132 @@ def _self_test():
           "K=15 stays n=4) from the JSONs on disk -- a stale uniform seed assumption can "
           "no longer silently mis-score a trimmed rung as gate-eligible")
 
-    print("\nncr_earlyln_scale self-test: ALL 9/9 PASSED")
+    # t10 D-OVERRIDE kill-proof (NCR_NEXT_LEVER_DESIGN.md S2.1/S5 Probe A
+    # build prerequisite): --d-override must thread through model
+    # construction, eval instruments, AND the result JSON. Verified two
+    # ways: (a) a closed-form param count computed at the OVERRIDDEN d=17
+    # (Probe A's own K=16 shape), not the GRID_SHAPES mapping default d=32
+    # -- a formula that used the wrong d would silently pass a shape check
+    # while measuring the wrong architecture; (b) t2's eval-purity pattern
+    # re-executed at d=17 (t5's own per-shape convention) -- exactness must
+    # hold regardless of _ln_alpha at an OVERRIDDEN shape too, not just the
+    # mapping-default ones t2 already covers.
+    _t10_dir = "/tmp/ncr_earlyln_scale_doverride_selftest"
+    shutil.rmtree(_t10_dir, ignore_errors=True)
+    try:
+        nt.eval_points = tiny_points
+        rn.EVAL_BATCHES, rn.EVAL_BATCH_SIZE = 2, 16
+        rec10 = run_earlyln_cell(16, seed=0, steps=4, device="cpu",
+                                 outdir=_t10_dir, d_override=17)
+    finally:
+        nt.eval_points = real_pts
+        rn.EVAL_BATCHES, rn.EVAL_BATCH_SIZE = real_batches, real_bs
+    assert rec10["status"] == "COMPLETED", rec10.get("status")
+    assert rec10["d"] == 17, (
+        "t10 FAILED: effective d must equal the override (17), "
+        f"got {rec10['d']}")
+    assert rec10["d_default"] == GRID_SHAPES[16]["d"] == 32, (
+        "t10 FAILED: d_default must record the untouched GRID_SHAPES[16] "
+        f"mapping default (32), got {rec10['d_default']}")
+    assert rec10["d_override"] == 17, rec10["d_override"]
+    h_shape = GRID_SHAPES[16]["h"]
+    expected_params_override = 40 * h_shape**2 + 4 * 17 * h_shape + 46 * h_shape + 17
+    expected_params_default = 40 * h_shape**2 + 4 * 32 * h_shape + 46 * h_shape + 32
+    assert expected_params_override != expected_params_default, (
+        "t10 setup FAILED: d=17 and d=32 must yield different param counts")
+    assert rec10["params"] == expected_params_override, (
+        "t10 kill-proof FAILED: param count must reflect the OVERRIDDEN d=17, "
+        f"not the mapping default d=32 (would give {expected_params_default}); "
+        f"expected {expected_params_override}, got {rec10['params']}")
+    shutil.rmtree(_t10_dir, ignore_errors=True)
+
+    torch.manual_seed(2)
+    m10 = NCREarlyLNModel(d=17, h=64); m10.eval()
+    Zb10 = torch.randn(3, 17, 17, dtype=torch.float64) * 0.4
+    q10 = torch.randn(3, 5, 17, dtype=torch.float64)
+    ref10 = q10
+    for _ in range(21):
+        ref10 = torch.einsum("bij,bqj->bqi", Zb10, ref10)
+    ref10 = ref10 / ref10.norm(dim=-1, keepdim=True).clamp(min=1e-30)
+    for alpha_probe in (0.0, 1.0, 0.7):
+        m10._ln_alpha = alpha_probe
+        o10 = NCREarlyLNModel.eval_read(Zb10, q10, 21, "binexp")["o"]
+        assert torch.all((o10 * ref10).sum(-1) > 1 - 1e-9), (
+            alpha_probe, "t10 FAILED: eval read not exact at overridden d=17")
+    print("t10 PASS: --d-override threads through model construction, eval instruments, "
+          "and the result JSON -- params closed-form matches the OVERRIDDEN d=17 "
+          f"({expected_params_override}), not the mapping default d=32's "
+          f"({expected_params_default}); rec['d']==17, rec['d_default']==32, "
+          "rec['d_override']==17; t2's eval-purity pattern re-verified exact at the "
+          "overridden d=17 shape regardless of _ln_alpha")
+
+    # t11 ANNEAL-FRAC kill-proof (NCR_NEXT_LEVER_DESIGN.md S2.2/S5 Probe B
+    # build prerequisite). Negative-test-first pattern (CLAUDE.md: a
+    # structural-correctness check needs an EXECUTED negative test, not
+    # just a written one) -- the deliberately-wrong frac=0.5 boundary
+    # expectation is run FIRST and is itself asserted to raise, proving
+    # this test has teeth, before the correct frac=0.75 boundary is
+    # trusted.
+    T11 = 80_000
+    frac11 = 0.75
+    wrong_half = T11 // 2                 # the OLD (frac=0.5) boundary
+    right_half = int(T11 * frac11)        # the NEW (frac=0.75) boundary
+    assert wrong_half != right_half, "t11 setup FAILED: chosen frac must move the boundary"
+    _wrong_expectation_failed = False
+    try:
+        assert ln_alpha_at(wrong_half, T11, frac=frac11) == 0.0, "deliberately wrong"
+    except AssertionError:
+        _wrong_expectation_failed = True
+    assert _wrong_expectation_failed, (
+        "t11 kill-proof FAILED: the deliberately-wrong frac=0.5 boundary expectation "
+        "did NOT fail at frac=0.75 -- this test has no teeth (anneal_frac may not be "
+        "threaded through ln_alpha_at at all)")
+    # the REAL boundary: still annealing just before frac*total, exactly 0 from there on
+    assert ln_alpha_at(right_half - 1, T11, frac=frac11) > 0.0, (
+        "t11 FAILED: anneal ended before reaching frac*total")
+    assert ln_alpha_at(right_half, T11, frac=frac11) == 0.0, (
+        "t11 FAILED: anneal did not end exactly at frac*total")
+    assert ln_alpha_at(T11, T11, frac=frac11) == 0.0
+    # DEFAULT-UNCHANGED kill-proof: frac omitted still reproduces the original
+    # hardcoded total//2 boundary bit-for-bit (t3's own assertions re-run at the
+    # now-parameterized signature, proving the default path is untouched)
+    assert ln_alpha_at(0, T11) == 1.0
+    assert ln_alpha_at(T11 // 2, T11) == 0.0
+    assert ln_alpha_at(T11 // 2 - 1, T11) > 0.0
+    assert ln_alpha_at(0, T11) == ln_alpha_at(0, T11, frac=0.5)
+    assert ln_alpha_at(T11 // 4, T11) == ln_alpha_at(T11 // 4, T11, frac=0.5)
+    assert ln_alpha_at(T11 // 2 - 1, T11) == ln_alpha_at(T11 // 2 - 1, T11, frac=0.5)
+
+    # end-to-end: --anneal-frac flows through run_earlyln_cell into BOTH the
+    # training loop (via train_earlyln_cell) and the result JSON (Probe B's
+    # job-validity check reads d['anneal_frac'] off this exact field).
+    _t11_dir = "/tmp/ncr_earlyln_scale_annealfrac_selftest"
+    shutil.rmtree(_t11_dir, ignore_errors=True)
+    try:
+        nt.eval_points = tiny_points
+        rn.EVAL_BATCHES, rn.EVAL_BATCH_SIZE = 2, 16
+        rec11 = run_earlyln_cell(16, seed=0, steps=4, device="cpu",
+                                 outdir=_t11_dir, anneal_frac=0.75)
+    finally:
+        nt.eval_points = real_pts
+        rn.EVAL_BATCHES, rn.EVAL_BATCH_SIZE = real_batches, real_bs
+    assert rec11["status"] == "COMPLETED", rec11.get("status")
+    assert rec11["anneal_frac"] == 0.75, (
+        "t11 FAILED: run_earlyln_cell must record the requested anneal_frac in the "
+        f"result JSON, got {rec11.get('anneal_frac')}")
+    assert rec11["d"] == GRID_SHAPES[16]["d"] and rec11["d_default"] == GRID_SHAPES[16]["d"], (
+        "t11 FAILED: d/d_default must stay at the mapping default when --d-override "
+        "is not passed")
+    assert rec11["d_override"] is None, rec11["d_override"]
+    shutil.rmtree(_t11_dir, ignore_errors=True)
+    print("t11 PASS: --anneal-frac's ln_alpha_at(..., frac) ends the anneal at "
+          f"frac*total ({right_half}), NOT the old hardcoded total//2 boundary "
+          f"({wrong_half}) -- the wrong-expectation assertion was watched to FAIL "
+          "before the correct one was trusted; the frac-omitted default path "
+          "reproduces total//2 bit-for-bit; end-to-end run_earlyln_cell(anneal_frac=0.75) "
+          "records rec['anneal_frac']==0.75 while leaving d/d_override at their defaults")
+
+    print("\nncr_earlyln_scale self-test: ALL 11/11 PASSED")
 
 
 def main():
@@ -710,6 +860,20 @@ def main():
     ap.add_argument("--ceiling-gpuh", type=float, default=2.0)
     ap.add_argument("--outdir", type=str, default=os.path.join(_HERE, "results_earlyln_scale"))
     ap.add_argument("--stop-file", type=str, default="")
+    ap.add_argument("--d-override", type=int, default=None,
+                    help="override d independently of the GRID_SHAPES[K] default mapping "
+                         "(NCR_NEXT_LEVER_DESIGN.md S2.1/S5 Probe A) -- threads through "
+                         "model construction, eval instruments (nt.claim_config/"
+                         "nt.eval_points), and the result JSON, which records BOTH the "
+                         "effective d used ('d') and the mapping default ('d_default') so "
+                         "the harvest can't confuse cells. Absent (None, default): d_eff "
+                         "falls back to GRID_SHAPES[K]['d'], bit-identical to pre-flag "
+                         "behavior.")
+    ap.add_argument("--anneal-frac", type=float, default=0.5,
+                    help="fraction of --steps the LN alpha anneal spans (1.0->0.0 linearly "
+                         "over the first anneal_frac of training, 0.0 thereafter; "
+                         "NCR_NEXT_LEVER_DESIGN.md S2.2/S5 Probe B). Default 0.5 reproduces "
+                         "the original hardcoded total//2 schedule bit-for-bit.")
     ap.add_argument("--seeds", type=str, default=None,
                     help="override the auto-discovered seed list for EVERY K (rarely needed -- "
                          "--harvest auto-discovers each K's actual completed seeds from the JSONs "
@@ -741,7 +905,8 @@ def main():
     if args.cell:
         assert args.K is not None, "--cell requires --K"
         rec = run_earlyln_cell(args.K, args.seed, args.steps, args.device, args.outdir,
-                               args.stop_file, args.ceiling_gpuh)
+                               args.stop_file, args.ceiling_gpuh,
+                               d_override=args.d_override, anneal_frac=args.anneal_frac)
         print(f"EARLYLN CELL K={args.K} seed={args.seed} status={rec.get('status')}")
         return
     ap.print_help()
