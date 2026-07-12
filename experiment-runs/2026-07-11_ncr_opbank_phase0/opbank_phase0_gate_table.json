@@ -1,0 +1,119 @@
+{
+ "param_report": {
+  "ncr-bank": 173136,
+  "fwm-bank": 173168,
+  "fwm-bank_ratio_vs_ncr": 1.0001848258016819,
+  "fwm-bank_in_band": true,
+  "loopedvec-bank": 171073,
+  "loopedvec-bank_ratio_vs_ncr": 0.9880845115978191,
+  "loopedvec-bank_in_band": true,
+  "cmlp-bank": 311456,
+  "cmlp-bank_ratio_vs_ncr": 1.7989095277700766,
+  "cmlp-bank_in_band": false
+ },
+ "cells": {
+  "ncr-bank": {
+   "status": "COMPLETED",
+   "rate_gpuh_80k_equiv": 0.28755615949630736,
+   "cell_total_gpu_h": 0.07211119247807397,
+   "train_final_loss": 0.9824738502502441,
+   "n_skipped_steps": 0,
+   "bank_score_single_seed": {
+    "per_seed_min": {
+     "0": 0.0
+    },
+    "median": 0.0,
+    "band": "FAIL",
+    "n_seeds_all3_hold": 0,
+    "quorum": 1,
+    "hold_gated": false
+   },
+   "blank_out_pass": true,
+   "swap_ablation": {
+    "applicable": true,
+    "r_true": 0,
+    "r_wrong": 1,
+    "h": 61,
+    "median_cos_right": 0.010733693838119507,
+    "median_cos_wrong": 0.002297349274158478,
+    "right_minus_wrong_gap": 0.008436344563961029,
+    "median_cos_control": -0.009329907596111298,
+    "bar": 0.3,
+    "passed_pinned_bar": true,
+    "passed_empirical_control": true
+   },
+   "read_vector_std_pass": null,
+   "gate_pass": true
+  },
+  "loopedvec-bank": {
+   "status": "COMPLETED",
+   "rate_gpuh_80k_equiv": 0.29035632133483885,
+   "cell_total_gpu_h": 0.07281052072842915,
+   "train_final_loss": 0.6333487629890442,
+   "n_skipped_steps": 0,
+   "bank_score_single_seed": {
+    "per_seed_min": {
+     "0": 0.0
+    },
+    "median": 0.0,
+    "band": "FAIL",
+    "n_seeds_all3_hold": 0,
+    "quorum": 1,
+    "hold_gated": false
+   },
+   "blank_out_pass": true,
+   "swap_ablation": {
+    "applicable": true,
+    "r_true": 0,
+    "r_wrong": 1,
+    "h": 61,
+    "median_cos_right": 0.3038557171821594,
+    "median_cos_wrong": 0.31070417165756226,
+    "right_minus_wrong_gap": -0.006848454475402832,
+    "median_cos_control": -0.009329907596111298,
+    "bar": 0.3,
+    "passed_pinned_bar": false,
+    "passed_empirical_control": false
+   },
+   "read_vector_std_pass": true,
+   "gate_pass": false
+  },
+  "fwm-bank": {
+   "status": "COMPLETED",
+   "rate_gpuh_80k_equiv": 0.3165525147649977,
+   "cell_total_gpu_h": 0.07936675661140018,
+   "train_final_loss": 0.04557335376739502,
+   "n_skipped_steps": 0,
+   "bank_score_single_seed": {
+    "per_seed_min": {
+     "0": 0.015625
+    },
+    "median": 0.015625,
+    "band": "FAIL",
+    "n_seeds_all3_hold": 0,
+    "quorum": 1,
+    "hold_gated": false
+   },
+   "blank_out_pass": true,
+   "swap_ablation": {
+    "applicable": true,
+    "r_true": 0,
+    "r_wrong": 1,
+    "h": 61,
+    "median_cos_right": 0.7253713011741638,
+    "median_cos_wrong": 0.10480320453643799,
+    "right_minus_wrong_gap": 0.6205680966377258,
+    "median_cos_control": -0.009329907596111298,
+    "bar": 0.3,
+    "passed_pinned_bar": true,
+    "passed_empirical_control": true
+   },
+   "read_vector_std_pass": true,
+   "gate_pass": true
+  }
+ },
+ "steps": 20000,
+ "anchor_gpuh_80k": 3.36,
+ "rate_gpuh_80k_mean": 0.29815499853204797,
+ "phase0_verdict": "FAIL"
+}

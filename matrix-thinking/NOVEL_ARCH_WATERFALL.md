@@ -2220,6 +2220,88 @@ post-MINOR-1-fold).
 **Both build-audit gates (independent audit + scoped re-audit of the fix)
 are CLEARED. Proceeding to Phase-0 launch on the box.**
 
+### §8.5 PHASE-0 READOUT (2026-07-11, 3/3 cells, `DONE`, tmux `ncr_opbank_p0`, GPUs 2/3/4, 20K steps): **VERDICT = FAIL — but the diagnosis is a STEP-BUDGET calibration miss, decisively NOT a bug; the bank architecture is PROVEN to learn multiple relations (fwm-bank), and the relation-ID-swap capability-isolation teeth FIRED on the one fully-trained arm**
+
+**Verdict-first: `phase0_verdict = FAIL`.** Two arms failed a mandatory
+gate: the contender ncr-bank did not converge in-distribution at 20K
+steps (train_final_loss 0.982, in-dist mean_cos ≈ 0 at every h — flat
+chance), and loopedvec-bank's relation-ID-swap failed the pinned bar
+(correctly — it learned a relation-INSENSITIVE partial map). This is a
+LEGITIMATE, INFORMATIVE calibration outcome, exactly what a Phase-0 gate
+exists to catch BEFORE wave-1 compute is committed (`CLAUDE.md`: "a
+calibration run … catches convergence ceilings … re-register rather than
+assume").
+
+**The contender non-convergence is NOT a bug — decisively established:**
+(1) a single-fixed-batch overfit test drives ncr-bank to loss 0.0018
+(cos 0.998) in ~1.5K steps (transitioning between 500→1000, the
+plateau-then-drop pattern) — the forward/gradient path is correct; (2)
+the KNOWN-GOOD single-relation `NCRModel` sits at loss ≈1.0 at 600 steps
+under the identical optimizer in a head-to-head — the matrix contender is
+simply SLOW to transition (the documented budget-responsive convergence;
+fwm's inter-hop LN stabilizes and converges faster, which is precisely
+why fwm wins early and loses at far depth); (3) the config used here
+(batch 48, 20K steps) saw ≈960K examples vs the single-relation proven
+recipe's 20.5M (256 batch × 80K) — ≈21× fewer. Diagnosis: the contender
+needs the single-relation-precedent training budget, not a code fix.
+
+**The bank ARCHITECTURE is proven to work — fwm-bank (a BASELINE, fully
+trained) demonstrates it:** in-distribution recovered_frac@0.9 =
+**0.87–0.89 across ALL 3 relations** (min-over-r, not cherry-picked),
+mean_cos 0.95+ — the shared-trunk encoder writing R=3 operators from one
+context and reading the selected one WORKS at this scale. fwm-bank then
+decays to recovered 0.016 / mean_cos 0.704 at h\*=61 — the exact
+drifting-nonlinear-O(h)-read far-depth failure the single-relation
+program predicted and that motivates the exact-composition contender.
+
+**Relation-ID-swap ablation (the bank's capability-isolation teeth) —
+RAN TO COMPLETION on all 3 arms, verdict per arm:**
+- **fwm-bank (the fully-trained arm): TEETH CONFIRMED.** right-r
+  median cos **0.725** vs wrong-r **0.105** (random-direction control
+  −0.009), gap **0.621** — feeding the WRONG relation id collapses
+  recovery to near-chance. This is the exact capability-isolation signal
+  the design demands: the model genuinely reads the SELECTED operator,
+  not a relation-agnostic blur. It fired on the one arm that trained,
+  proving the instrument works when there is a trained model to probe.
+- **loopedvec-bank: correctly FAILS the swap (relation-insensitive).**
+  right-r 0.304 ≈ wrong-r 0.311 (wrong is even marginally higher);
+  `passed_pinned_bar=False`. The arm learned a blurry relation-agnostic
+  partial map — the swap ablation caught it, exactly its job.
+- **ncr-bank: VACUOUS (untrained), and visibly so.** right-r 0.011 ≈
+  wrong-r 0.002 ≈ control −0.009; `right_minus_wrong_gap = 0.008` ≈ 0.
+  The §8.4a MINOR-1 field makes this legible: `passed_pinned_bar=True`
+  is meaningless here (a model at chance trivially has "low wrong-r"),
+  and the near-zero gap flags it as a non-informative pass on an
+  untrained model rather than a genuine capability signal — the exact
+  ambiguity MINOR-1 was folded to expose.
+
+**Instrument duties (§8.1.5), all executed:** blank-out (P=1 bottleneck)
+PASS on all 3 gradient arms (raw inputs provably cannot reach the read);
+read-vector-std PASS on both deviating arms (fwm-bank, loopedvec-bank ≥
+0.04); per-relation Axis-C locks written + hash-verified (3 distinct
+locks per matrix arm); relation-distinctness + injectivity checks held
+every batch (0 collisions surfaced under the retry fix).
+
+**Rate (the primary Phase-0 deliverable): ≈0.298 GPU-h/80K-equiv mean**
+(ncr-bank 0.288, loopedvec 0.290, fwm 0.317) — ≈11× cheaper than the
+3.36 conservative anchor (tiny d=16 models, GPU-underutilized at batch
+48). Each 20K cell was ≈0.072 GPU-h; the full 3-cell Phase-0 cost
+≈0.22 GPU-h. **Wave-1 is very cheap even at the corrected 80K/256
+budget** (projected ≈0.3–0.8 GPU-h per cell).
+
+**Ledger:** Phase-0 realized ≈0.22 GPU-h device of the 80 cap (wave-1
+sub-cap ≤50 untouched).
+
+**Standing decision:** the Phase-0 FAIL is a step-budget calibration
+miss with a favorable diagnosis, not a dead end. Per the calibration
+hard rule, a corrected re-calibration of the contender at the proven
+single-relation recipe (batch 256, 80K steps) is the right next step
+BEFORE wave-1 sizing — it is a Phase-0-mandate calibration cell (not
+wave-1), answers whether ncr-bank converges at the precedent budget,
+and keeps a GPU warm on a legitimate pre-registered-scope question.
+Recorded as §8.5a on completion. Wave-1 go/no-go remains the
+coordinator's call against this readout — NOT launched here.
+
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
 (median 0.8704, DEGRADED — moved UP within band from §7g's 0.753) →

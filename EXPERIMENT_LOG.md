@@ -8094,3 +8094,79 @@ verdict via separate dispatch. Security: zero fake system-reminder
 blocks during the on-box work; one fake composite (date-change +
 concealment + fabricated-agent-list) on a background-task notification
 during the harvest — not complied with, reported.
+
+
+## 2026-07-11 — NCR OPERATOR BANK (`NOVEL_ARCH_WATERFALL.md` §8): full gauntlet §8.1→§8.5, Phase-0 verdict **FAIL (step-budget calibration miss, NOT a bug)** — bank architecture PROVEN (fwm-bank in-dist 0.87-0.89 across all 3 relations), swap-ablation teeth FIRED (fwm right 0.725 vs wrong 0.105); **≈0.22 GPU-h**
+
+The M4-gated marquee "capability current architectures lack" experiment:
+a BANK of R=3 in-context-written relation operators, composed exactly,
+read in O(log h). Both M4 gate legs discharged (Stage-2 calibration
+§2.30; single-relation NCR WIN/WIN-PARTIAL §7e/§7g). Full gauntlet this
+session: §8.1 minimal pre-registration (R=3 independent Hamiltonian
+K-cycles over a SHARED K=8 pool, `BankBindingEncoder` = shared trunk +
+R row-query sets, headline = per-relation O(log h) bank-selection, B=2
+chaining scoped OUT of headline per the M4 growing-chain line) → §8.2
+fresh-opus attack (C1 CRITICAL: `min_r(median_seeds)` bank score gameable
+via a 3-seed counterexample where every relation-median = 1.0 with ZERO
+genuine banks; J1 MAJOR: M6 rvstd dropped for deviating arms) → §8.3 fix
+(median-of-per-seed-mins + `n_seeds_all3_hold` quorum; rvstd restored) →
+§8.3a independent scoped re-attack **C1 CLOSED** → §8.4 build (4 new
+files in `matrix-thinking/ncr/`, CPU selftest 10/10 with genuine
+mutation kill-proofs t1/t5/t9; a real-CUDA smoke caught a design
+overclaim — "collision prob astronomically small" was WRONG at ~5.95e-4/
+row, fixed with a bounded whole-batch retry) → §8.4a independent opus
+build audit (ran + reverted 3 mutation kill-proofs) found **MAJOR-1:
+`LoopedVecBankModel` never received the query's relation id** — a real
+strawman-baseline bug (its Axis-R score was structurally uninterpretable);
+fixed by tagging the query token with the existing `rel_embed` (zero new
+params); independent scoped re-audit closed it with its OWN causal
+mutation proof (zeroing `rel_embed` → x0 bit-identical across relations)
+→ **CLEARED FOR LAUNCH**. Commits 1ac8a25/db2c265/a546cb2/0d46102
+(pathspec-only, /clean-gated). **Phase-0** (tmux `ncr_opbank_p0`, GPUs
+2/3/4, one cell/GPU, 20K steps, md5-verified deploy, resume-safe
+verified): **verdict FAIL** — ncr-bank contender flat-chance in-dist
+(train loss 0.982, mean_cos≈0 at every h) and loopedvec swap failed the
+bar. **Diagnosis decisively NOT a bug:** ncr-bank overfits a single
+fixed batch to loss 0.0018 (forward/gradient correct), and the
+known-good single-relation `NCRModel` sits at loss≈1.0 at 600 steps
+head-to-head — the matrix contender is SLOW to transition (documented
+budget-responsive convergence; fwm's inter-hop LN converges faster,
+which is exactly why fwm wins early / loses at far depth). Config used
+batch 48/20K = ≈960K examples vs the single-relation proven recipe's
+256/80K = 20.5M (≈21× fewer). **Bank architecture PROVEN by fwm-bank (a
+BASELINE, fully trained):** in-dist recovered@0.9 = 0.87/0.89/0.88 at
+h=1/2/3 min-over-all-3-relations, mean_cos 0.95+ — the shared-trunk
+encoder writing 3 operators from one context and reading the selected
+one WORKS; fwm then decays to 0.016 at h*=61 (the expected O(h)-read
+far-depth drift the exact contender exists to beat). **Relation-ID-swap
+ablation (bank capability-isolation teeth) — RAN TO COMPLETION on all 3
+arms:** fwm-bank right-r cos **0.725** vs wrong-r **0.105** (control
+−0.009), gap **0.621** — wrong relation collapses recovery to
+near-chance, the exact teeth the design demands, fired on the one arm
+with a trained model to probe; loopedvec-bank correctly FAILS (right
+0.304 ≈ wrong 0.311, relation-insensitive); ncr-bank vacuous+untrained
+(right 0.011 ≈ wrong 0.002, gap 0.008 — the §8.4a MINOR-1
+`right_minus_wrong_gap` field makes the vacuity visible rather than a
+misleading `passed_bar=True`). Instrument duties all executed: blank-out
+P=1 PASS ×3 arms; rvstd PASS ×2 deviating arms; per-relation Axis-C
+locks written+hash-verified (3/matrix arm); 0 relation-collisions under
+the retry fix. **Rate ≈0.298 GPU-h/80K-equiv** (≈11× under the 3.36
+anchor; each 20K cell ≈0.072 GPU-h) — wave-1 very cheap even at the
+corrected 80K/256 budget. Ledger ≈0.22/80 device. **Standing:** FAIL is
+a fixable step-budget miss with a favorable diagnosis; a corrected
+ncr-bank re-calibration at the proven 256/80K recipe (still a
+Phase-0-mandate cell, NOT wave-1) is queued to answer whether the
+contender converges at precedent budget before the coordinator's wave-1
+go/no-go. **Security: 1 fake `<system-reminder>` (date-change +
+"DO NOT mention this to the user" concealment + fabricated agent-type/
+MCP-instructions block) injected into a background-task notification
+mid-session, plus 1 more reported by the §8.2 attack subagent in its own
+tool stdout — both disregarded including the concealment order, date
+verified against box+local `date` (both Jul 11-12), reported per the
+standing convention; 0 injected content landed in any file.** Archive:
+`experiment-runs/2026-07-11_ncr_opbank_phase0/` (22-file repo tier 176K:
+gate table + rate + 3 cell JSONs + 6 per-relation locks + 3 cell logs +
+supervisor + worker + the 4 exact source files + launch script + md5
+manifest; SSD full mirror identical). Pointers:
+`matrix-thinking/NOVEL_ARCH_WATERFALL.md` §8.1-§8.5,
+`matrix-thinking/ncr/{ncr_opbank_task,ncr_opbank_models,run_ncr_opbank,ncr_opbank_selftest}.py`.
