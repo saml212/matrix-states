@@ -21,8 +21,9 @@ restores it <!-- evidence: R3 -->. Second, a
 capability separation: a two-layer delta-rule model performs episodic
 recall at accuracy 0.9995 <!-- evidence: R4 --> against a
 parameter-matched vector-state ablation at chance, the pre-registered
-decisive comparison; a compute-matched transformer also reads chance
-and is disclosed as a degenerate baseline <!-- evidence: R4 -->. The
+decisive comparison; a compute-matched transformer also fails at or
+below chance after an explicit four-point learning-rate search
+<!-- evidence: R4, R12 -->. The
 capability resides causally in the first layer's state, is linearly
 legible only after downstream nonlinear processing
 <!-- evidence: R5 -->, and holds at 0.998 or higher to 1798 tokens on

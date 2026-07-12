@@ -24,9 +24,9 @@ learning-rate grid was run on the language-modeling control task, and
 no architecture-specific learning-rate search was performed for the
 transformer on the recall task. Its recall-task
 training loss is near flat across the run (7.81 to 7.84 at step 500,
-7.45 to 7.51 at step 20,000, across the three seeds), a signature consistent with an under-optimized
-arm; Sections 6 and 7 state the resulting interpretive limit and the
-measurement that would resolve it. All arms train 20,000 steps at
+7.45 to 7.51 at step 20,000, across the three seeds), a signature that raised the possibility of an
+under-optimized arm; Section 6 states the resulting interpretive limit
+and Section 7 reports the learning-rate search that resolves it. All arms train 20,000 steps at
 matched tokens with seeds identical across arms per cell.
 Verdict tiers, margins, and the primary task were frozen and checksummed
 before the confirmatory sweep launched (a WIN requires the paired
@@ -67,8 +67,9 @@ episode-restricted top-1 retrieval under argmax decoding, under which a
 rank-one state can support on the order of $d$ associations, so nothing
 here is a rank or continuous-capacity claim. So is the matched-budget
 caveat: the transformer read holds only at this matched parameter
-count, token budget, and training compute. Because the transformer sits below its own demonstration bar,
-it is recorded as a degenerate-baseline datum, and the separation
+count, token budget, and training compute. Because the transformer sits below its own demonstration bar
+at every point of the Section 7 learning-rate grid, it is recorded as
+a second failing baseline, and the separation
 verdict is carried by the ablation comparison with the transformer's
 non-competitiveness disclosed alongside.
 
@@ -146,7 +147,7 @@ beyond single-hop recall is claimed here.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig3_recall_separation.pdf}
-\caption{Left: episodic recall $\mathrm{acc}_A$ per seed and arm at matched parameters, tokens, and compute ($K{=}32$ bindings; chance 0.03125, dashed; demonstration bar 0.09375, dotted). The contender reads 0.99902 to 1.00000; both baselines sit at chance in every seed; paired intervals exclude the frozen 0.30 margin. Right: recall versus context horizon on a fixed 32,768-byte contender state (454 to 1798 tokens, all seeds at or above 0.998) against the KV-capped transformer grid ($M \in \{1..32\}$ times the contender's state bytes, all reads 0.020 to 0.033). Recall means episode-restricted argmax retrieval (Nichani caveat, Section 2.3); the transformer is a degenerate-baseline datum at this matched budget.}
+\caption{Left: episodic recall $\mathrm{acc}_A$ per seed and arm at matched parameters, tokens, and compute ($K{=}32$ bindings; chance 0.03125, dashed; demonstration bar 0.09375, dotted). The contender reads 0.99902 to 1.00000; both baselines sit at chance in every seed; paired intervals exclude the frozen 0.30 margin. Right: recall versus context horizon on a fixed 32,768-byte contender state (454 to 1798 tokens, all seeds at or above 0.998) against the KV-capped transformer grid ($M \in \{1..32\}$ times the contender's state bytes, all reads 0.020 to 0.033). Recall means episode-restricted argmax retrieval (Nichani caveat, Section 2.3); the left-panel transformer is a second failing baseline after an explicit learning-rate search (Section 7), and the right-panel KV-capped transformer is a degenerate-baseline datum at this matched budget (Section 4.4).}
 \label{fig:recall}
 \end{figure}
 

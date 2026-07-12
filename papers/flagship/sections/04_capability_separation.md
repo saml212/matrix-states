@@ -26,9 +26,9 @@ no architecture-specific learning-rate search was performed for the
 transformer on the recall task <!-- evidence: R0 -->. Its recall-task
 training loss is near flat across the run (7.81 to 7.84 at step 500,
 7.45 to 7.51 at step 20,000, across the three seeds)
-<!-- evidence: R4a -->, a signature consistent with an under-optimized
-arm; Sections 6 and 7 state the resulting interpretive limit and the
-measurement that would resolve it. All arms train 20,000 steps at
+<!-- evidence: R4a -->, a signature that raised the possibility of an
+under-optimized arm; Section 6 states the resulting interpretive limit
+and Section 7 reports the learning-rate search that resolves it. All arms train 20,000 steps at
 matched tokens with seeds identical across arms per cell
 <!-- evidence: R0 -->.
 Verdict tiers, margins, and the primary task were frozen and checksummed
@@ -66,10 +66,11 @@ episode-restricted top-1 retrieval under argmax decoding, under which a
 rank-one state can support on the order of $d$ associations, so nothing
 here is a rank or continuous-capacity claim. So is the matched-budget
 caveat: the transformer read holds only at this matched parameter
-count, token budget, and training compute. Because the transformer sits below its own demonstration bar,
-it is recorded as a degenerate-baseline datum, and the separation
+count, token budget, and training compute. Because the transformer sits below its own demonstration bar
+at every point of the Section 7 learning-rate grid, it is recorded as
+a second failing baseline, and the separation
 verdict is carried by the ablation comparison with the transformer's
-non-competitiveness disclosed alongside <!-- evidence: R4 -->.
+non-competitiveness disclosed alongside <!-- evidence: R4, R12 -->.
 
 ## 4.3 The Capability Is Fast-Weight-Resident and Nonlinearly Stored
 
@@ -157,8 +158,11 @@ recall versus context horizon on a fixed 32,768-byte contender state
 (454 to 1798 tokens, all seeds at or above 0.998) against the
 KV-capped transformer grid ($M \in \{1..32\}$ times the contender's
 state bytes, all reads 0.020 to 0.033). Recall means episode-restricted
-argmax retrieval (Nichani caveat, Section 2.3); the transformer is a
-degenerate-baseline datum at this matched budget.
+argmax retrieval (Nichani caveat, Section 2.3); the left-panel
+transformer is a second failing baseline after an explicit
+learning-rate search (Section 7), and the right-panel KV-capped
+transformer is a degenerate-baseline datum at this matched budget
+(Section 4.4).
 
 **Figure 4 caption.** Storage localization and legibility for the
 contender and its vector-state ablation. Left: $\mathrm{acc}_A$ with

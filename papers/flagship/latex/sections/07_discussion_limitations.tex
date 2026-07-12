@@ -10,20 +10,39 @@ frozen margins); its limit is external validity. Nothing here shows the
 recall separation surviving at language-model scale or on natural
 data, and the matched-budget caveat bounds every transformer
 comparison: a differently scaled or differently trained transformer
-requires its own matched re-run before any extrapolation. The specific
-unresolved measurement is a learning-rate search for the transformer
-arm on the recall task itself: the frozen protocol's three-point grid
-was run on the language-modeling control task only, so the chance-level
-recall reading has not been separated from an optimization failure. The
-resolving experiment is a re-run of the transformer arm under the
-identical frozen protocol at a grid of at least four learning rates
-spanning $10^{-4}$ to $3 \times 10^{-3}$, three seeds, 20,000 matched
-steps, with training curves reported. A tuned transformer that still
-reads below the demonstration bar would strengthen the separation to a
-two-baseline result; a tuned transformer that clears it would confine
-the separation to the vector-state comparison, which is the comparison
-the frozen registration designates as decisive in either
-case.
+requires its own matched re-run before any extrapolation. The
+learning-rate search for the transformer arm on the recall task itself
+has since run. Under the identical frozen protocol, a grid of four
+learning rates spanning $10^{-4}$ to $3 \times 10^{-3}$ (three seeds
+each, 20,000 matched steps) reads at or below chance at every point:
+mean $\mathrm{acc}_A$ is 0.0142 at $\mathrm{lr}=10^{-4}$, 0.0283 at
+$3\times10^{-4}$ (the shared default used elsewhere in this paper),
+0.0320 at $10^{-3}$ (the best of the grid, $1.02\times$ chance), and
+0.0283 at $3\times10^{-3}$; 0 of 12 individual (learning rate, seed)
+cells and 0 of 4 grid means clear the frozen 0.09375 demonstration bar
+($3\times$ chance at $K=32$). Per the
+pre-registered decision rule, the transformer now joins the
+parameter-matched vector-state ablation as a second baseline that
+fails to demonstrate recall after an explicit learning-rate search;
+the ablation comparison remains the registered verdict carrier
+(Section 4.2), and this measurement changes no registered tier.
+
+The grid also closes the leading unexcluded explanation named in
+Section 6 for the chance-level reading: the best-optimizing learning
+rate ($10^{-4}$; final training loss 6.55 to 6.60, well below the
+shared default's approximately 7.5) reads $\mathrm{acc}_A = 0.0142$,
+6.3 standard deviations below chance, while the two worse-optimizing
+learning rates ($10^{-3}$ and $3\times10^{-3}$; final loss
+approximately 7.7 to 7.8) read closer to chance. Optimization quality and recall dissociate on
+this arm: giving the transformer the learning rate that best optimizes
+the language-modeling objective does not surface recall, so the
+chance-level reading is not attributable to an under-optimized
+transformer. This closes the specific unexcluded explanation named
+above; it does not establish an architectural impossibility. The
+matched-budget caveat still bounds the reading: this is a two-layer,
+approximately 15M-parameter, 20,000-step, from-scratch regime, and the
+MQAR and induction-head literature's positive transformer results
+(Section 6) live at other scales, architectures, and budgets.
 
 \textbf{One stress point is a locate-only null.} At the disclosed
 above-capacity stress load ($K/d = 0.75$), the completed three-arm

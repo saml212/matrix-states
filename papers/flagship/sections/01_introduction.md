@@ -26,8 +26,8 @@ and forcing one rank fewer destroys the task while restoring that rank
 restores it. In a two-layer delta-rule model, the first layer's matrix
 state causally carries an episodic-recall capability that a
 parameter-matched vector-state ablation lacks at equal training budget
-(a compute-matched transformer also fails, disclosed as a degenerate
-baseline), and the stored content is linearly legible only after
+(a compute-matched transformer also fails, after an explicit
+learning-rate search), and the stored content is linearly legible only after
 downstream nonlinear processing. The same write mechanism, run at language-model scale, drives a
 population-geometry pathology that worsens monotonically across a
 two-decade parameter ladder and survives the community's stock
@@ -55,10 +55,14 @@ Concretely, we contribute:
    excludes the pre-registered 0.30 margin, its floor sitting at more
    than three times the margin <!-- evidence: R4 -->, and this ablation
    comparison carries the verdict. A compute-matched transformer also reads chance
-   (0.02832) <!-- evidence: R4 -->; because its learning rate was never
-   searched on this task and its training loss is near flat, it is
-   recorded as a degenerate-baseline datum, not a second verdict
-   (Sections 4.1 and 6). Zeroing the first layer's state collapses
+   (0.02832 at the shared default) <!-- evidence: R4 -->; a subsequent
+   four-point learning-rate search on the recall task itself
+   ($10^{-4}$ to $3\times10^{-3}$, three seeds, 20,000 matched steps)
+   finds no rate that clears the bar, and the best-optimizing rate
+   reads recall furthest below chance, dissociating optimization
+   quality from recall <!-- evidence: R12 -->. The transformer is
+   accordingly a second failing baseline, not a second verdict
+   (Sections 4.1, 6, and 7). Zeroing the first layer's state collapses
    recall to chance while zeroing the second layer's changes nothing
    <!-- evidence: R5 -->, and no state-level linear probe reads the
    content that the model's own forward pass decodes

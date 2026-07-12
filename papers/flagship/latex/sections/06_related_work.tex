@@ -18,13 +18,18 @@ from-scratch transformers reliably develop induction circuitry
 \citep{olsson2022incontextlearninginductionheads}. Our transformer baseline's chance-level reading
 therefore runs against the expectation this literature sets, and we do
 not interpret it as an architectural inability. The leading candidate
-explanation is optimization: the arm trained at the shared default
+explanation was optimization: the arm trained at the shared default
 learning rate with no architecture-specific search on the recall task,
-and its training loss is near flat across the run (Section 4.1). The
+and its training loss is near flat across the run (Section 4.1). A
+subsequent four-point learning-rate search on the recall task itself
+rules this out: the best-optimizing rate reads recall furthest below
+chance, so a better-optimized language-modeling objective does not
+surface recall on this arm (Section 7 reports the full grid). The
 separation verdict accordingly rests on the vector-state ablation
-comparison alone, with the transformer reading disclosed as a
-degenerate-baseline datum; Section 7 states the measurement that would
-resolve the question.
+comparison alone, with the transformer now disclosed as a second
+failing baseline whose chance-level reading survives an explicit
+learning-rate search; Section 7 reports the completed measurement and
+its optimization-recall dissociation.
 
 \textbf{Rank measurement in linear attention.} Two contemporaneous studies
 \citep{nazari2026keystatereductionlinear,sun2026staterankdynamicslinear} measure the rank of
