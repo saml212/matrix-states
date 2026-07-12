@@ -241,14 +241,31 @@ def lane_b_jobs() -> list[dict]:
 
     # --- B1: fresh 1.31B arm_per_token training, rung-3 config, token-matched
     # to the USER-SIGNED-OFF Rev-2.2 budget (SCALE_TRANSFER_DESIGN.md S5.6:
-    # 1.5B tokens/run @ batch=16/seq=512 = 183,105 steps, measured rung-3 rate
-    # per_step_s=0.7135 -> 183105*0.7135/3600 = 36.29 GPU-h/run for the plain
-    # architecture; the frozen-bias blend itself measured <=1.2% overhead in
-    # the S13 timing pilots, folded into the estimate below as a flat +2%
-    # -> 37.0 GPU-h. --internal-timeout is set well above the 36.29h runtime
-    # (audit MAJOR M1: the prior 36000s=10h default guaranteed a timeout).
+    # 1.5B tokens/run @ batch=16/seq=512 = 183,105 steps).
+    #
+    # PRICING FIX (rescue op 2026-07-12, RESCUE_1P31B_TIMEOUT incident): the
+    # prior per_step_s=0.7135 was measured on a 5/20-step SHORT two-point
+    # calibration cell and was already disclosed as wrong once before
+    # (SCALE_TRANSFER_DESIGN.md S5.11, harvest 2026-07-07: sustained rate
+    # 1.416 s/step, a 1.985x miss, self-terminated the original rung-3 ladder
+    # cells at 155k/183,105 steps) -- that lesson was never propagated into
+    # this generator, so job 200 (generated 2026-07-12 05:27 UTC) repeated the
+    # exact same failure with --internal-timeout=160000. Re-measured directly
+    # off job 200's own checkpoint-file mtimes (three independent 10,000-step
+    # segments: 1.3998 / 1.3969 / 1.4004 s/step), stable across both
+    # near-idle and fully-8-GPU-loaded periods -- confirms this is an
+    # INTRINSIC throughput characteristic of the 1.31B/batch-16 config, not
+    # contention, not thermal/power throttling (nvidia-smi telemetry clean).
+    # Priced at per_step_s=1.40 (rounds up from the max observed segment) ->
+    # 183105*1.40/3600 = 71.21 GPU-h/run for the plain architecture; +2% for
+    # the frozen-bias blend (S13's own <=1.2% measured overhead, rounded up,
+    # unchanged methodology) -> 72.6 GPU-h. --internal-timeout carries a
+    # >=30% margin over that 72.6h estimate (CLAUDE.md-mandated floor after a
+    # pricing miss), not the old formula's ad hoc 1.6x-on-a-wrong-base.
     dm, ds, L = 2560, 128, 22
     steps_1p31b = 183_105
+    per_step_s_1p31b = 1.40  # measured, see PRICING FIX note above
+    timeout_1p31b = round(steps_1p31b * per_step_s_1p31b * 1.02 * 1.30)  # >=30% margin
     name = f"queue_1p31b_arm_per_token_openr1-mix-ext_s0"
     ckpt_dir = f"{TRACKC_CKPT_ROOT}/{name}"
     out = f"{TRACKC_RESULTS_ROOT}/{name}.json"
@@ -258,7 +275,7 @@ def lane_b_jobs() -> list[dict]:
         f"--corpus openr1-mix-ext --data-dir {DATA_DIR} "
         f"--d-model {dm} --d-state {ds} --n-layers {L} --seq-len 512 "
         f"--batch-size 16 --steps {steps_1p31b} --ckpt-every 10000 "
-        f"--seed 0 --internal-timeout 160000 "
+        f"--seed 0 --internal-timeout {timeout_1p31b} "
         f"--frozen-bias-arm per_token --frozen-bias-lambda {LAMBDA} "
         f"--ckpt-dir {ckpt_dir} --out {out}"
     )
@@ -277,14 +294,23 @@ def lane_b_jobs() -> list[dict]:
                     "Track-C scale ladder (SCALE_TRANSFER_DESIGN.md S5.6, USER-SIGNED-OFF "
                     "1.5B-token budget)? Long single-job runtime by design -- keeps a GPU "
                     "busy through the whole overnight window."),
-        cmd=cmd, gpu_h_estimate=37.0,
+        cmd=cmd, gpu_h_estimate=round(steps_1p31b * per_step_s_1p31b * 1.02 / 3600, 1),
         output_dir=TRACKC_RESULTS_ROOT, validity_check=vcheck,
-        notes=("cost basis: measured rung-3 per_step_s=0.7135 (SCALE_TRANSFER_DESIGN.md "
-               "S5.6, batch=16) x 183,105 steps / 3600 = 36.29 GPU-h, +2% for the "
-               "frozen-bias blend (S13's own <=1.2% measured overhead, rounded up) = "
-               "37.0h. --internal-timeout 160000s (44.4h) leaves headroom above the "
-               "36.29h estimate (audit fix: the original 36000s=10h default guaranteed "
-               "a timeout). HIGH confidence (measured rate, not formula-extrapolated). "
+        notes=(f"cost basis: MEASURED (not short-calibration-extrapolated) per_step_s="
+               f"{per_step_s_1p31b} -- see PRICING FIX comment above the code that builds "
+               f"this cell; supersedes the stale 0.7135 s/step constant that caused this "
+               f"exact cell to self-terminate at ~62% budget on 2026-07-12 (job "
+               f"200_laneB_1p31b_arm_per_token_openr1_s0) and caused the original rung-3 "
+               f"ladder cells to self-terminate at 155k/183,105 (~84.7%) on 2026-07-07 "
+               f"(SCALE_TRANSFER_DESIGN.md S5.11). "
+               f"{steps_1p31b} steps x {per_step_s_1p31b}s / 3600 = "
+               f"{steps_1p31b * per_step_s_1p31b / 3600:.2f} GPU-h, +2% for the frozen-bias "
+               f"blend (S13's own <=1.2% measured overhead, rounded up) = "
+               f"{steps_1p31b * per_step_s_1p31b * 1.02 / 3600:.1f}h. --internal-timeout="
+               f"{timeout_1p31b}s ({timeout_1p31b/3600:.1f}h) is a >=30% margin over that "
+               f"estimate (CLAUDE.md-mandated floor after a pricing miss). HIGH confidence "
+               f"(measured rate, reproduced twice 5 days apart under different concurrent-"
+               f"load conditions -- ruling out contention/throttling as the driver). "
                "Comparator: reuses "
                "the ALREADY-EXISTING Track-C 1.31B checkpoint (SCALE_TRANSFER_DESIGN.md "
                "S5.11, harvest run 2026-07-07) as the arm_off baseline -- no comparator "
