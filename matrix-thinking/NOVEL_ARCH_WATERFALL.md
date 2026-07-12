@@ -2132,9 +2132,93 @@ not apply.
 `/home/nvidia/ncr/` on the box confirmed byte-identical via `md5sum`
 before every real-CUDA smoke run.
 
-**Independent opus build audit dispatched next (§8.4a), per "the
-implementer does not review their own work" — mutation kill-proofs must
-run to completion before Phase-0 launches on all 8 GPUs.**
+### §8.4a INDEPENDENT BUILD AUDIT (2026-07-11/12, fresh opus) + FIX + SCOPED RE-AUDIT: NEEDS-FIXES → MAJOR-1 fixed → **CLEARED FOR LAUNCH**
+
+**Audit method (genuine mutation kill-proofs, not narration):** the
+auditor reproduced all self-tests independently, then MUTATED the code to
+reintroduce the exact bug each negative test claims to catch and confirmed
+the test then FAILS, reverting after (`git diff` empty). t5 (B-CHAIN
+exclusion): forcing the filter to keep nothing → FAIL, correctly caught.
+t9 (swap-ablation oracle): forcing all-relations-identical → FAIL
+("no sensitivity detected"), correctly caught. t1 (distinctness):
+short-circuiting the assert to a vacuous return → FAIL, correctly caught.
+All three genuine kill-proofs, all reverted.
+
+**No FATAL.** Verified-correct on independent re-derivation: the
+`bank_score` C1 fix (line-by-line — median-of-per-seed-mins, even-n
+averaging, `hold_gated` quorum, all match §8.3/§8.3a); param match by hand
+(fwm-bank ratio 1.00018 — the +32 params are exactly FWM's `read_ln`
+LayerNorm affine; loopedvec-bank 0.98808); blank-out's gradient-based
+construction; the per-relation trust-rule re-verification (distinct
+`c_star`/`A_eff_rank`/lock-SHAs per relation, hash-verified, not a
+superficial loop); the collision-retry fix (fresh randomness per attempt,
+correctly unreachable final raise); J1 rvstd restored for both deviating
+arms; `phase0_bank` executed end-to-end on CPU at production batch sizes
+with no device/shape bug found.
+
+**MAJOR-1 (launch-blocking as filed): `LoopedVecBankModel` never received
+the query's relation id.** The query token carried no relation tag, so a
+shared-pool entity mapping to R different per-relation targets had NO
+input signal distinguishing which target was asked for — Axis R-BANK is
+structurally unsolvable for this arm regardless of whether an iterated
+vector map could otherwise compose, contradicting §8.1.4's own text ("x0
+… per (r, query) pair"). The `relation_id_swap_ablation`'s
+`applicable=False`/N/A disclosure for this arm was technically true but
+masked the deeper gap. Does not inflate a WIN (§8.1.6 requires the best
+baseline to FAIL; a crippled loopedvec only lowers its own already-lowest
+score) but makes its FAIL uninterpretable — the exact strawman-baseline
+risk the M3/J1 lineage exists to catch, and would have wasted wave-1 GPU
+on an uninterpretable comparison-of-record.
+
+**Fix, applied same-session:** `LoopedVecBankModel.encode` gained a
+`query_rel_ids` parameter; the query token is now tagged with
+`self.rel_embed[query_rel_ids]` — REUSING the existing embedding table
+(zero new parameters, param-match ratio unchanged at 0.98808). All 5 call
+sites in `run_ncr_opbank.py` (train `forward`, `blank_out_check_bank`,
+`relation_id_swap_ablation`, `read_vector_std_bank`,
+`eval_cell_bank_small`) updated to pass the correct relation id; the swap
+ablation is now genuinely `applicable=True` for loopedvec-bank (two real
+encode calls, right vs wrong r) instead of the N/A cop-out. Disclosed,
+unchanged structural limit: the weight-tied step map stays relation-
+agnostic per-step (mi6 pin), so a 2-block B-CHAIN mid-loop relation switch
+still cannot be represented by this baseline family — a limitation of the
+non-headline exploratory axis only, not a bug.
+
+**Scoped re-audit (fresh opus, independent) of the MAJOR-1 fix:**
+reproduced both self-test suites (10/10 + models suite), then ran an
+independent causal proof (not requested verbatim by the fix's own
+description — the re-auditor's own design): built one fixed episode,
+varied ONLY `query_rel_ids`, confirmed `x0(r=0)`, `x0(r=1)`, `x0(r=2)` are
+pairwise DIFFERENT (mean abs diff 0.023–0.032, max 0.108–0.140,
+`bit_identical=False` every pair) — AND, as a mutation-style causal
+control, confirmed that zeroing `rel_embed` collapses all three to
+bit-identical, proving the r-dependence is caused BY the relation tag
+alone, not an incidental path. All 5 call sites independently re-verified
+correct (right id passed at each). Blank-out and the `phase0_bank`
+gate-table's swap-gating logic both independently checked for
+regressions — none found. **Verdict: "MAJOR-1 CLOSED, CLEARS FOR
+LAUNCH."**
+
+**MINOR-1 (swap-ablation gate can pass vacuously on an undertrained
+model) folded:** `relation_id_swap_ablation` now also reports
+`right_minus_wrong_gap` explicitly, so a vacuous pass (right≈wrong≈0, both
+under the 0.3 bar) is visible in the gate table distinct from a genuine
+relation-sensitive pass (large gap) — not itself gated (Phase-0 doesn't
+require convergence, per the calibration-lesson hard rule), but no longer
+silently ambiguous. NIT-1 (collision-retry whole-batch cost at wave-1
+batch sizes) and NIT-2/3 (trust-rule N1/N2 not re-invoked per relation;
+one dead `_select_Z` branch) are non-blocking, carried to wave-1 sizing,
+not fixed this round.
+
+**Re-deployed (md5-verified) after the fix; 3/3 additional clean real-CUDA
+smoke runs (GPU 1) on top of the original 5/5 (GPU 0, pre-fix code path
+for the other 3 files, unaffected by this fix).**
+`ncr_opbank_models.py` md5 `2064d85c9b4d32ec5e1f7e949f892de4`,
+`run_ncr_opbank.py` md5 `fc0849a28cbf8c6e2d0611d653a69f87` (final,
+post-MINOR-1-fold).
+
+**Both build-audit gates (independent audit + scoped re-audit of the fix)
+are CLEARED. Proceeding to Phase-0 launch on the box.**
 
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL

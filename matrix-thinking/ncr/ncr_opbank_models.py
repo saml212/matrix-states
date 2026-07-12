@@ -213,11 +213,26 @@ class LoopedVecBankModel(nn.Module):
         self.act = nn.GELU()
         self.decode = nn.Linear(d, d)
 
-    def encode(self, keys, values, rel_ids, query_keys):
+    def encode(self, keys, values, rel_ids, query_keys, query_rel_ids):
+        """AUDIT FIX (§8.4a MAJOR-1): the query token now carries the SAME
+        learned relation embedding as the binding tokens, tagged with
+        `query_rel_ids` (the relation the model must iterate under). Without
+        this, entity `a` maps to R different targets depending on r with NO
+        signal in the input distinguishing which one is asked for --
+        structurally unable to solve Axis R-BANK regardless of whether an
+        iterated vector map could otherwise compose (the exact strawman-
+        baseline concern the M3/J1 lineage exists to catch). `query_rel_ids`
+        is r1 in the mi6-pinned family's convention: x0 encodes "entity a
+        under relation r1" -- the step map itself stays weight-tied/relation-
+        agnostic per mi6 (h consumed ONLY as the loop count), so a 2-block
+        (r1,h1,r2,h2) chain still cannot represent a mid-loop relation
+        switch -- a disclosed structural limit of this baseline family for
+        the non-headline Axis B-CHAIN only, not a bug."""
         B, RK, d = keys.shape
         Q = query_keys.shape[1]
         bind_tok = self.in_proj(torch.cat([keys, values], dim=-1)) + self.rel_embed[rel_ids]
-        q_tok = self.in_proj(torch.cat([query_keys, torch.zeros_like(query_keys)], dim=-1))
+        q_tok = self.in_proj(torch.cat([query_keys, torch.zeros_like(query_keys)], dim=-1)) \
+            + self.rel_embed[query_rel_ids]
         mem = self.encoder(torch.cat([bind_tok, q_tok], dim=1))
         return self.state_head(mem[:, RK:, :])
 
@@ -225,7 +240,8 @@ class LoopedVecBankModel(nn.Module):
         return x + self.step_w2(self.act(self.step_w1(self.step_ln(x))))
 
     def forward(self, batch: dict):
-        x0 = self.encode(batch["keys"], batch["values"], batch["rel_ids"], batch["query_keys"])
+        x0 = self.encode(batch["keys"], batch["values"], batch["rel_ids"],
+                         batch["query_keys"], batch["r1"])
         max_h1 = int(batch["h1"].max().item())
         cur = x0
         for t in range(1, max_h1 + 1):

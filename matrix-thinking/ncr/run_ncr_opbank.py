@@ -190,7 +190,8 @@ def blank_out_check_bank(model, cfg: ot.BankConfig, device: str, seed: int) -> d
         read = (lambda s: om.NCRBankModel.eval_read(s, q, 0, 2)["o"]) if model.arm == "ncr-bank" \
             else (lambda s: model.read_fixed_h(s, q, 0, 2))
     elif model.arm == "loopedvec-bank":
-        state = model.encode(keys, values, rel_ids, q)
+        q_rel = torch.zeros(q.shape[0], q.shape[1], dtype=torch.long, device=device)
+        state = model.encode(keys, values, rel_ids, q, q_rel)
         read = lambda s: model.decode(model.iterate_fixed_h(s, 2))  # noqa: E731
     else:
         raise ValueError(model.arm)
@@ -220,7 +221,11 @@ def relation_id_swap_ablation(model, cfg: ot.BankConfig, device: str, seed: int,
     for a query whose true relation is r=0; recovery must collapse. Reports
     BOTH the pinned a-priori bar (<0.3) and an empirical per-episode
     random-direction control (m3's fix: report both, control authoritative
-    per S8.3a's recommendation)."""
+    per S8.3a's recommendation).
+
+    AUDIT FIX (§8.4a MAJOR-1): loopedvec-bank now genuinely receives a
+    query-relation tag at encode() time (see LoopedVecBankModel.encode's
+    docstring) -- the swap ablation is applicable for it too, not N/A."""
     gen = torch.Generator(device=device).manual_seed(seed + 40_000)
     r_true, r_wrong = 0, 1
     eb = ot.sample_eval_batch_axis_r(cfg, 64, gen, r=r_true, h=h, device=device)
@@ -233,16 +238,15 @@ def relation_id_swap_ablation(model, cfg: ot.BankConfig, device: str, seed: int,
             pred_right = read(r_true)
             pred_wrong = read(r_wrong)
         elif model.arm == "loopedvec-bank":
-            rel_ids_right = torch.full_like(eb["rel_ids"][:, :1], r_true).expand(-1, cfg.K)
-            rel_ids_wrong = torch.full_like(eb["rel_ids"][:, :1], r_wrong).expand(-1, cfg.K)
-            # loopedvec's x0 is per-query from the SHARED context; relation
-            # selection lives in which encoder output slot is queried --
-            # reuse the same encode() (rel_ids fixed by construction of the
-            # episode, r is implicit in q slot for this arm) -- see note.
-            x0 = model.encode(eb["keys"], eb["values"], eb["rel_ids"], eb["query_keys"])
-            pred_right = model.decode(model.iterate_fixed_h(x0, h))
-            pred_wrong = pred_right  # loopedvec has no explicit r selector at read time;
-            # disclosed: N/A for this arm's read mechanism, reported not skipped.
+            q_shape = eb["query_keys"].shape[:2]
+            q_rel_right = torch.full(q_shape, r_true, dtype=torch.long, device=device)
+            q_rel_wrong = torch.full(q_shape, r_wrong, dtype=torch.long, device=device)
+            x0_right = model.encode(eb["keys"], eb["values"], eb["rel_ids"],
+                                    eb["query_keys"], q_rel_right)
+            x0_wrong = model.encode(eb["keys"], eb["values"], eb["rel_ids"],
+                                    eb["query_keys"], q_rel_wrong)
+            pred_right = model.decode(model.iterate_fixed_h(x0_right, h))
+            pred_wrong = model.decode(model.iterate_fixed_h(x0_wrong, h))
         else:
             raise ValueError(model.arm)
         random_dir = torch.randn_like(eb["targets"])
@@ -250,14 +254,21 @@ def relation_id_swap_ablation(model, cfg: ot.BankConfig, device: str, seed: int,
         cos_right = torch.cosine_similarity(pred_right, eb["targets"], dim=-1)
         cos_wrong = torch.cosine_similarity(pred_wrong, eb["targets"], dim=-1)
         cos_control = torch.cosine_similarity(random_dir, eb["targets"], dim=-1)
-    applicable = model.arm != "loopedvec-bank"
+    applicable = True   # AUDIT FIX (§8.4a MAJOR-1): all 3 gradient arms now applicable
+    right, wrong = float(cos_right.median()), float(cos_wrong.median())
     return dict(applicable=applicable, r_true=r_true, r_wrong=r_wrong, h=h,
-               median_cos_right=float(cos_right.median()),
-               median_cos_wrong=float(cos_wrong.median()),
+               median_cos_right=right, median_cos_wrong=wrong,
+               right_minus_wrong_gap=right - wrong,   # §8.4a MINOR-1: makes a
+               # vacuous pass (an undertrained model where right~=wrong~=0,
+               # both < 0.3) visible in the gate table -- distinct from a
+               # genuine relation-sensitive pass (right high, wrong low, gap
+               # large). Not gated itself (Phase-0 doesn't require training
+               # to converge, per the calibration-lesson hard rule), but
+               # reported so the coordinator's readout isn't misled.
                median_cos_control=float(cos_control.median()),
                bar=SWAP_BAR,
-               passed_pinned_bar=bool((not applicable) or cos_wrong.median() < SWAP_BAR),
-               passed_empirical_control=bool((not applicable) or
+               passed_pinned_bar=bool(cos_wrong.median() < SWAP_BAR),
+               passed_empirical_control=bool(
                    abs(cos_wrong.median() - cos_control.median()) < 0.15))
 
 
@@ -273,7 +284,8 @@ def read_vector_std_bank(model, cfg: ot.BankConfig, device: str, seed: int,
             Z = model.encode(eb["keys"], eb["values"], eb["rel_ids"])
             read = model.read_fixed_h(Z, eb["query_keys"], 0, h)
         elif model.arm == "loopedvec-bank":
-            x0 = model.encode(eb["keys"], eb["values"], eb["rel_ids"], eb["query_keys"])
+            q_rel = torch.zeros(eb["query_keys"].shape[:2], dtype=torch.long, device=device)
+            x0 = model.encode(eb["keys"], eb["values"], eb["rel_ids"], eb["query_keys"], q_rel)
             read = model.iterate_fixed_h(x0, h)
         else:
             raise ValueError(f"read_vector_std_bank only applies to deviating arms, got {model.arm}")
@@ -304,7 +316,9 @@ def eval_cell_bank_small(model, cfg: ot.BankConfig, device: str, seed: int,
                     Z = model.encode(eb["keys"], eb["values"], eb["rel_ids"])
                     pred = model.read_fixed_h(Z, eb["query_keys"], r, h)
                 elif model.arm == "loopedvec-bank":
-                    x0 = model.encode(eb["keys"], eb["values"], eb["rel_ids"], eb["query_keys"])
+                    q_rel = torch.full(eb["query_keys"].shape[:2], r, dtype=torch.long, device=device)
+                    x0 = model.encode(eb["keys"], eb["values"], eb["rel_ids"],
+                                      eb["query_keys"], q_rel)
                     pred = model.decode(model.iterate_fixed_h(x0, h))
                 elif model.arm == "cmlp-bank":
                     b2 = dict(eb, hops=torch.full_like(eb["targets"][..., 0], h, dtype=torch.int64))
