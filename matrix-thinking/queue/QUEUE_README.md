@@ -139,26 +139,79 @@ without ever being executed.
    job** — nothing in `~/queue/pending/` or the worker script writes to any
    `matrix-thinking/*_DESIGN.md` registry. Raw JSONs + logs only.
 
+## DANGER / how to sync safely — READ BEFORE TOUCHING DEPLOYMENT
+
+`matrix-thinking/queue/deploy.sh` was a **live landmine** until it was
+hardened on 2026-07-12 (three independent audit rounds, six real bugs
+found and closed — see the script's own header comment and git history).
+The root cause, and why it matters every time you touch this queue:
+
+**The local `jobs/pending/*.json` tree is a FROZEN snapshot** taken at
+generation time. The box's *real* queue moves specs
+`pending/` → `claimed/` → `completed/` (or `failed/`, or a `parked_*/`
+re-gate dir) continuously as workers run them. The two views diverge
+the instant the first worker claims a job. A naive full-tree `scp` of
+`jobs/pending/*.json` onto the box's `~/queue/pending/` — which is
+exactly what the pre-2026-07-12 `deploy.sh` did — silently **resurrects**
+every already-completed/claimed/failed/parked job: workers re-claim and
+re-run them from scratch, wasting GPU-hours and potentially overwriting
+good `completed/` results (`queue_worker.sh` overwrites-on-name at
+completion). This is not hypothetical: on 2026-07-12 the live box had
+113 of 181 local "pending" specs already resolved elsewhere on disk,
+including the box's mid-flight 1.31B-parameter training job.
+
+**As of 2026-07-12, `deploy.sh` is fixed and safe to run directly against
+a live queue** — it enumerates the box's real state (all four
+directories, suffix-normalized so a currently-claimed `.g<gpu>.json` job
+is correctly recognized) and ships *only* genuinely-new specs, staging
++ md5-verifying + atomically placing them, never touching anything
+already claimed/completed/failed/parked. It is idempotent (safe to
+re-run) and fails loudly (copies nothing) if it can't reach the box or
+enumerate its state. **You no longer need the old surgical
+scp-only-the-delta workaround as a safety measure** — `deploy.sh` itself
+now does the equivalent check automatically. That workaround
+(`matrix-thinking/queue/regate_2026-07-12.md` has several worked
+examples) remains a fine pattern for a *targeted* deploy of just a few
+new IDs, but is no longer required to avoid resurrecting live jobs.
+
+Before running `deploy.sh` for real, it is still good practice to:
+1. `DRY_RUN=1 bash deploy.sh` first — shows the exact ship/skip plan,
+   copies nothing.
+2. Skim the plan: everything already claimed/completed/failed/parked
+   should show up under "already present — SKIPPING", never under
+   "specs to ship".
+3. If anything looks wrong, STOP and investigate before removing
+   `DRY_RUN=1` — do not "just try it and see."
+
+To test changes to `deploy.sh` itself, use `REMOTE_QROOT=<bare-relative-
+name>` (a scratch remote dir under the box's own `$HOME`, never a live
+path) and `SKIP_STATIC=1` (skips the runner/launcher/docs/`ncr_*.py`
+redeploy, which is not parameterized by `REMOTE_QROOT` and would
+otherwise still touch live `~/ncr/`) — see the script's own header
+comment for the full usage and the tilde-quoting footgun to avoid.
+**Never** experiment against the real `~/queue/{pending,claimed,
+completed,failed}`.
+
 ## Extending the queue
 
 Regenerate specs from the repo (the generator is the source of truth, not
 hand-edited JSON): edit `matrix-thinking/queue/generate_jobs.py`, run
-`python3 generate_jobs.py`, then `scp` the new files in `jobs/pending/`
-into `~/queue/pending/` on the box (workers pick them up automatically —
-no restart needed, they poll `pending/` every 15s when a GPU is free).
+`python3 generate_jobs.py`, then either run `bash deploy.sh` (now safe
+against a live queue, see DANGER section above) or `scp` the new files in
+`jobs/pending/` into `~/queue/pending/` on the box directly (workers pick
+them up automatically — no restart needed, they poll `pending/` every
+15s when a GPU is free).
 
 **Against a LIVE queue** (some jobs already claimed/completed/parked),
 add new job-generating functions to `generate_jobs.py` rather than
 editing existing ones (keeps IDs 000-N byte-identical on re-generation —
-verify with a diff/md5 check before deploying), then `scp` ONLY the new
-files by name — do not run `deploy.sh` or blanket-`scp` all of
-`jobs/pending/*.json`, since `deploy.sh`'s own count/md5 guard assumes a
-fully-static `pending/` and will correctly refuse once the box's real
-`pending/` has diverged from the repo's full generated set (some already
-claimed, completed, or parked). See
-`matrix-thinking/queue/regate_2026-07-12.md` for a worked example
-(re-gate + refill against a live queue, park reversibly instead of
-deleting, surgical delta-scp).
+verify with a diff/md5 check before deploying). Either `deploy.sh` (which
+will correctly ship only the new IDs) or a targeted `scp` of just the new
+files by name both work now. See
+`matrix-thinking/queue/regate_2026-07-12.md` for worked examples (re-gate
++ refill against a live queue, park reversibly instead of deleting,
+surgical delta-scp — predates the `deploy.sh` fix, so those rounds used
+the manual delta-scp pattern; either pattern is safe going forward).
 
 ## What NOT to do
 
@@ -168,3 +221,6 @@ deleting, surgical delta-scp).
 - Never assume a GPU is idle from a Claude-side `nvidia-smi` snapshot —
   the free-GPU gate above is what governs claims, and it re-checks live,
   every 60s, forever.
+- Never blank-`scp` `jobs/pending/*.json` onto the box by hand, bypassing
+  `deploy.sh` — you'd lose the resurrection guard described above and
+  reintroduce the exact bug `deploy.sh` was hardened to prevent.
