@@ -3281,3 +3281,137 @@ DESIGN-CLEARED-FOR-PI-GO-DECISION.** Per this task's charter, the
 coordinator surfaces this section to the PI for the launch go — no GPU
 has been touched, no code written, in preparing or revising this
 pre-registration.
+
+### 9.7 WRITE-CAPACITY CHEAP DIAGNOSTIC — SCOPE CORRECTION + BUILD PRE-REGISTRATION (2026-07-11, ≤10 GPU-h dispatch, distinct from §9.4's 150 GPU-h ladder cap)
+
+**Charter of this sub-run.** A separate dispatch (NOT the PI-gated 150
+GPU-h Wave-1/Wave-2/reserve program above) tasked a cheap, ≤10-GPU-h-hard
+leg: does growing encoder capacity proportionally with K (Condition B)
+rescue the write, at the minimal cell set that discriminates the
+break-vs-rescue question — spare-probe K∈{14,15} (d=16 fixed) + Condition
+A K=16 (d=32,h=64) + Condition B K=16 (d=32,h=128). §8.5a (operator-bank
+re-calibration) verified COMMITTED on `origin/main` (386453c) and its tmux
+session already exited (DONE file present, `results_opbank_recal/`
+populated) before any shared file below was touched. **Concurrency
+note:** two further §8.x commits (632d85c §8.5a NO-GO, 16028a7 §8.6
+routing) landed on `origin/main` WHILE this section was being drafted —
+re-verified they touch only §8.x, not §9; §8.6 explicitly QUEUES the
+operator-bank's own next diagnosis "ON HOLD BEHIND §9" — the collision
+precondition is satisfied and the other thread is deliberately yielding
+priority.
+
+**Scope-down from §9.4's Wave-1 core, disclosed with arithmetic.** §9.4's
+own Wave-1-core table prices this exact 4-cell set (spare K=14 n=1,
+spare K=15 n=1, Condition A K=16 n=3+cmlp, Condition B K=16 n=4) at
+≈73.5 GPU-h (25.9+35.8+5.7+6.1, excluding the K=32 calibration row) —
+**7x over this dispatch's ≤10 GPU-h hard cap.** Re-deriving the minimal
+single-seed, NCR-arm-only version of the same 4 cells at the
+Phase-0-calibration step convention (`PHASE0_STEPS_DEFAULT=40,000` —
+`run_ncr.py:75`, "K=8 converges by 40K") against the toy-anchor rate
+range disclosed in §9.4 (1.1185–1.678 GPU-h/80K-step cell, ~171K
+params) via the §9.3-corrected `F(K,d,h)=76Kh²+4dh²+12K²h+4Kdh+4d²h`
+ratios:
+
+```
+F(K,16,64)  = 768K² + 315,392K + 327,680     (spare-probe, d=16 fixed)
+F_A(16)/F_A(8) = 2.1017   (Condition A K=16, matches §9.3's 2.10)
+F_B(16)/F_B(8) = 8.0000   (Condition B K=16, matches §9.3's 8x exactly)
+ratio(K=14 spare) = 1.6875   ratio(K=15 spare) = 1.8039
+```
+
+At the 40K-step / 1-seed / NCR-only floor, total cost brackets
+**9.52–11.4 GPU-h** across the anchor's own disclosed 1.1185–1.678
+range — i.e. **the paper math straddles the ≤10 GPU-h hard cap**, and
+the conservative (upper-anchor) estimate exceeds it. Per this task's
+explicit "if your paper math exceeds it, record + stop" instruction,
+that is recorded here plainly. Rather than silently picking the
+optimistic anchor (would risk a mid-run abort with no real number to
+show) or shrinking the cell set below what answers break-or-rescue
+(would defeat the charter), **the resolution is the design's own
+prescribed instrument: Phase-0a.**
+
+**Two-stage plan (mirrors §9.4's own Phase-0a discipline, scaled to this
+dispatch's budget).**
+1. **Rate-probe stage** — all 4 target cells at 2,000 steps
+   (`--steps 2000`), NCR arm only, 1 seed, run concurrently on 4 idle
+   GPUs. Projected cost (toy-anchor-scaled, the ONLY use of the untrusted
+   projection): ≈0.48 GPU-h total (9.52 GPU-h's 40K-step estimate × 2000/
+   40000 = 0.476). This measures the REAL per-cell GPU-h/step rate before
+   any budget is committed to a longer run — exactly §9.4's "no rung
+   proceeds past 0a without its own measured rate."
+2. **Main diagnostic stage** — using the MEASURED (not projected) rate
+   from stage 1, the step count for all 4 cells is set (same S for all 4,
+   single seed, NCR-only) so that stage-1 + stage-2 total ≤9.5 GPU-h
+   (0.5 GPU-h reserved headroom under the 10 GPU-h hard cap, covering the
+   per-cell 1.5× abort breaker and selftest/deploy overhead). The exact S
+   is computed and recorded as §9.8 immediately after stage 1's real rate
+   lands, BEFORE stage 2 launches — never assumed. **Disclosed caveat:**
+   if S lands materially below 40,000 (plausible under the conservative
+   anchor), the resulting δ / recovered_frac readout is a
+   PARTIALLY-CONVERGED signal, not the full Phase-0 calibration-quality
+   read documented in §9.4 for K=8/12; this is reported as an explicit
+   confidence downgrade on the verdict, not hidden.
+
+**GRIDS[14]/[15]/[16] construction rule (derived, not invented) —
+verified to reproduce GRIDS[8] and GRIDS[12] EXACTLY from a single
+closed form, giving confidence it is the actual pinned convention, not a
+guess:** `ladder_residue = K − 3` (reproduces 5 for K=8, 9 for K=12
+exactly); ladder points `h_m = m·K − 3` for `m ∈ {1,2,4,8,16,32,64,128}`
+(reproduces K=12's ladder `[9,21,45,93,189,381,765,1533]` exactly, and
+K=8's ladder collapses to the same formula once past its 4 initial
+linear points); `h_star = 8K − 3` (the m=8 rung, ON-ladder — matches
+K=8's own convention of an on-ladder h*; **disclosed departure**: K=12's
+h*=57 is OFF-ladder, m=4.75, a genuinely calibration-fitted value this
+diagnostic cannot reproduce a-priori for K=14/15/16 — the new h\* values
+below are PROVISIONAL placeholders for grid self-consistency, not
+claimed-calibrated crossover points); `sweep = range(h_star−K+4,
+h_star+4)` (K consecutive residues ending at the identity point
+`h_star+3`; reproduces `range(57,65)` for K=8 and `range(49,61)` for
+K=12 exactly). Resulting new entries, `K ≤ D_PIN` verified respected at
+construction (spare-probe K=14/15 use default d=16; Condition A/B K=16
+require the explicit `d=32` override, §9.5 prereq #2):
+
+| K | ladder_residue | ladder | h_star | sweep |
+|---|---|---|---|---|
+| 14 | 11 | 11,25,53,109,221,445,893,1789 | 109 | 99..112 |
+| 15 | 12 | 12,27,57,117,237,477,957,1917 | 117 | 106..120 |
+| 16 | 13 | 13,29,61,125,253,509,1021,2045 | 125 | 113..128 |
+
+`cost_probe=()` for all three (mirrors K=12's deferral; not needed for
+the δ/recovered_frac verdict this dispatch answers).
+
+**Build-file map (additive; GRIDS[8]/GRIDS[12] byte-identity is a
+negative-tested regression, §9.5 prereq #1).** `ncr_task.py`: GRIDS
+extended with the 3 rows above (module-level residue asserts already
+generic, run automatically); `claim_config`/`eval_points` gain an
+optional `d` param, default `D_PIN` unchanged. `ncr_models.py`:
+`NCRModel` gains an optional `h` param, default `ENC_H=64` unchanged
+(the one architectural delta Condition B needs — `BindingEncoder`
+already accepts arbitrary `h`, §9.5 prereq #3); a `build_arm(arm, d, h)`
+dispatcher added. `run_ncr.py`: `--K` choices extended to
+`(8,12,14,15,16)`; new `--d`/`--h` CLI flags (default `None` → resolved
+to `nt.D_PIN`/`nm.ENC_H`); `cell_id`/`run_cell`/`eval_cell` thread `d,h`
+through, `cell_id` preserving the EXACT legacy string when `d,h` equal
+defaults (regression-safe for any K=8/12 result file consumer);
+`closed_form_checks` generalized to take `(device, d=16, K=8)` with the
+old call-sites unchanged and a new `(d=32, K=16)` call added to the
+selftest. New file `ncr_wcap_selftest.py` (mirrors the
+`ncr_opbank_selftest.py` precedent): GRIDS[8]/[12] byte-identity
+regression check, per-arm micro end-to-end test (mirrors
+`ncr_selftest.t13`) at all 4 target `(K,d,h)` cells for every arm in
+`ALL_ARMS`, generalized closed-form check at `(d=32,K=16)`.
+
+**Verdict classification (pinned before any number is seen).**
+`δ_A(16)` = `phase_resid_max_mean` from the Condition-A K=16 cell's
+`deep_probe`; `δ_B(16)` likewise for Condition B. **RESCUE-CONFIRMED:**
+`δ_A(16)/δ_B(16) ≥ 1.5×` (§9.2's pre-registered gap bar) AND
+Condition-B's in-distribution convergence (`recovered_frac@0.9` on
+`train_support` points) is itself ≥0.9 (a capacity increase that doesn't
+even converge isn't a rescue). **BREAK-CONFIRMED:** the gap is <1.5× AND
+both δ(14)/δ(15) spare-probe deltas continue the K=8→K=12 degrading
+trend (monotonically increasing δ, consistent with Mechanism 1
+dominating the spare-probe per §9.2's disclosed non-orthogonality).
+**MIXED:** any other combination (e.g. gap clears 1.5× but Condition B
+fails to converge; or spare-probe reverses trend unexpectedly) — reported
+verdict-first with the specific disagreeing readout named, never
+smoothed into one of the two clean labels.
