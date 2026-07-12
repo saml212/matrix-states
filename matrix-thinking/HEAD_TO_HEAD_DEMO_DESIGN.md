@@ -5264,3 +5264,97 @@ fix — A1's residual is transformer-specific). It does not edit
 `papers/flagship/` (a separate, PI-gated dispatch applies whichever
 outcome lands to §7's disclosure language once this round's §1.45
 verdict is recorded).
+
+### 1.45 FIX-5 LR-GRID — VERDICT OF RECORD (2026-07-11): **OUTCOME A — TUNED_TRANSFORMER_STILL_BELOW_BAR at every LR in the grid** — the separation strengthens to a two-baseline result; best LR reads 1.02× chance (vs the 3× bar), and the BEST-OPTIMIZING LR (1e-4, train loss 6.55 « the default's 7.5) reads BELOW chance — optimization quality and recall dissociate on this arm; realized 2.53/6.0 GPU-h
+
+**Verdict, per the §1.44 pre-registered decision rule (outcome A fired,
+verbatim):** no LR's 3-seed `mean_acc_A` clears the frozen §1.31.1
+demonstration bar (0.09375 = 3× chance at K=32) — 0 of 12 individual
+`(lr, seed)` cells clear it either. Per FIX-5's own pre-stated
+consequence: **the capability separation strengthens to a TWO-baseline
+result** — the transformer joins the parameter-matched vector-state
+ablation as a second baseline that fails to demonstrate episodic recall
+even after an explicit 4-point learning-rate search spanning
+10⁻⁴–3×10⁻³ on the recall task itself, 3 seeds per point, 20,000
+matched steps under the identical frozen protocol. The §1.40 axis-1 WIN
+verdict of record is UNCHANGED (this round was diagnostic/disclosure-
+grade by pre-registration; the ablation comparison remains the
+registered verdict carrier).
+
+**The 12-cell table (acc_A via the audited `run_cell_round4` route,
+identical instrument to every prior h2h read; chance=0.03125,
+bar=0.09375; ★ = reused verbatim from the §1.40 round-4 sweep, cited in
+§1.44):**
+
+| lr | s0 | s1 | s2 | mean | n clearing bar | mean vs chance |
+|---|---|---|---|---|---|---|
+| 1e-4 | 0.0110 | 0.0186 | 0.0132 | **0.0142** | 0/3 | 0.46× (6.3σ BELOW) |
+| 3e-4 ★ | 0.0271 | 0.0293 | 0.0286 | **0.0283** | 0/3 | 0.91× |
+| 1e-3 | 0.0352 | 0.0298 | 0.0310 | **0.0320** | 0/3 | 1.02× (the best) |
+| 3e-3 | 0.0291 | 0.0264 | 0.0295 | **0.0283** | 0/3 | 0.91× |
+
+**Training-curve summary (loss @step500 → @step20000, mean-of-final-5;
+fresh cells; full 40-point curves in every raw JSON):**
+
+| lr | s0 | s1 | s2 |
+|---|---|---|---|
+| 1e-4 | 7.87→6.60 (6.595) | 7.85→6.55 (6.547) | 7.88→6.54 (6.574) |
+| 1e-3 | 7.85→7.75 (7.735) | 7.83→7.70 (7.663) | 7.83→7.67 (7.700) |
+| 3e-3 | 7.84→7.80 (7.797) | 7.83→7.82 (7.805) | 7.83→7.73 (7.752) |
+
+(The reused 3e-4 column's curves — 7.84→7.51-ish, the FIX-1-disclosed
+near-flat shape — are in its cited §1.40 raw JSONs.)
+
+**The informative finding beyond the binary outcome — optimization and
+recall DISSOCIATE:** lr=1e-4 is the only grid point that visibly
+optimizes the LM objective (final loss 6.54-6.60, far below the 3e-4
+default's ~7.5 and the higher LRs' ~7.7-7.8), directly answering FIX-1's
+"under-optimized arm" hypothesis: giving the transformer a
+better-optimizing learning rate does NOT surface recall — that same LR
+reads acc_A 0.0142, **6.3σ BELOW chance** at n=4096 (binomial σ=0.0027).
+A below-chance K-restricted argmax reading indicates a systematically
+anti-correlated prediction pattern (probability mass concentrated on a
+few globally-frequent entities rather than the episode's bound answer),
+i.e. a degenerate LM-objective solution that actively avoids the correct
+slot — not noise. Interpretation is bounded honestly: this is a
+two-layer, ~15M-param, 20K-step, from-scratch regime; the Olsson-et-al
+induction-head expectation and the MQAR literature's positive
+transformer results live at different scales/architectures/budgets, and
+the §1.31.6 matched-budget caveat travels with this datum as with every
+other. What the grid closes is the specific unexcluded explanation the
+flagship's A1 residual named: "the learning rate was never searched on
+this task." It has now been searched — 4 points × 3 seeds × full
+budget — and the reading stands.
+
+**Instrument integrity:** all 9 fresh cells' `instrument_health`
+(planted-signal positive controls + noise nulls) and
+`leg_b_ridge_harness_sanity_control` PASS; every re-metric load was
+provenance-md5-pinned (fresh=False, loader-side check); the seed lanes
+are byte-identical episode streams to the reused 3e-4 cells
+(`rd_episode_seed("task1_sweep", ·)` — seeds 1,000,000/1,010,000/
+1,020,000). The chance-level table is instrument-verified, not a broken
+probe.
+
+**Ledger (realized, replacing §1.44's projection per its own
+instruction):** 9 training cells 8,914.8 s (2.476 GPU-h; 941-1,163
+s/cell, the two outliers co-tenant contention) + re-metric 186.2 s
+(0.052) + smoke 1.4 s → **2.53 GPU-h realized vs the 6.0 ceiling**
+(§1.44 projected ≈2.44, on the nose). GPUs 0-1 only, as assigned; tmux
+`h2h_fix5_grid` supervisor ran the round end-to-end with zero failcount
+strikes; FIX5_STOP written 2026-07-11.
+
+**Artifacts:** archive `experiment-runs/2026-07-11_h2h_fix5_lrgrid/`
+(repo + SSD mirror; 19/19 md5 local==box verified): 9 raw training
+JSONs (full curves), 9 re-metric JSONs, `FIX5_LRGRID_VERDICT.json`
+(md5 `c71eacc8185bcec1ea27e86b20afd559`), all logs, the smoke record.
+Checkpoints (57.8 MB each, box/SSD-only per the size cap):
+`/data/h2h_rung1_ckpts/h2h_fix5_transformer_task1_lr{1e-04,1e-03,3e-03}_s{0,1,2}_r4.pt`.
+
+**Routing (per §1.44's closing):** the flagship paper's §7 disclosure
+update — replacing the "the measurement that would resolve it" stanza
+with this outcome-A result — routes via a separate dispatch; this
+record is the verdict it routes on. Claim-language input: the flagship
+may now say "a compute-matched transformer reads at or below chance at
+every point of a 4-point learning-rate grid spanning 10⁻⁴–3×10⁻³ (3
+seeds × 20,000 matched steps, identical frozen protocol)" — strictly
+stronger than the FIX-2/FIX-3 "never searched" hedge it replaces.

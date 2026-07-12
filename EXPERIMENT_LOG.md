@@ -8001,3 +8001,40 @@ session/processes ended independently mid-dispatch — observed, not acted
 on). Security: ONE fake-injection sighting (date-change + concealment +
 fabricated-agent-list composite on a background-task notification) — not
 complied with, reported; tally ≥27.
+
+## 2026-07-11 — H2H FIX-5 TRANSFORMER-TASK1 LR-GRID (§1.44/§1.45): the flagship rebuttal's pre-specified A1 measurement — **OUTCOME A, TUNED_TRANSFORMER_STILL_BELOW_BAR at every LR** → the capability separation STRENGTHENS to a two-baseline result; 2.53 GPU-h
+
+Charter: flagship rebuttal FIX-5
+(`papers/flagship/gauntlet/round-1/04_rebuttal_report.md`) — resolve A1's
+SERIOUS residual (the round-3/4 sweep's transformer arm on task1/episodic
+recall trained at the untuned shared default lr=3e-4, never LR-searched on
+the recall task). Pre-registration §1.44 committed `11bc5aa` BEFORE
+launch: grid {1e-4, 3e-4, 1e-3, 3e-3} × 3 seeds × 20,000 matched steps
+under the identical frozen protocol; the 3e-4 column REUSED verbatim from
+the round-4 sweep (byte-identical protocol, cited paths+md5), only 9 fresh
+cells trained; decision rule (per-LR mean-of-3-seeds acc_A vs the frozen
+§1.31.1 demonstration bar) pinned before any cell ran. **VERDICT (§1.45):
+no LR clears the bar** — the 12-cell mean-acc_A table (chance 0.03125,
+bar 0.09375): lr=1e-4 → 0.0142, lr=3e-4 → 0.0283, lr=1e-3 → 0.0320
+(the best, 1.02× chance), lr=3e-3 → 0.0283; 0/12 individual cells clear.
+Per FIX-5's pre-stated branch: the transformer joins the parameter-matched
+vector-state ablation as a SECOND baseline that fails recall even after an
+explicit LR search — the §1.40 axis-1 WIN verdict is UNCHANGED (the
+ablation stays the registered carrier; this round was disclosure-grade by
+pre-registration). **Key finding beyond the binary: optimization and
+recall DISSOCIATE** — lr=1e-4 optimizes the LM objective BEST (final loss
+6.54-6.60 « the default's ~7.5) yet reads acc_A 6.3σ BELOW chance (n=4096),
+directly falsifying FIX-1's "under-optimized arm" as the explanation for
+the chance-level recall (a better-optimizing LR does not surface recall;
+it surfaces a degenerate slot-avoiding solution). Instrument health +
+ridge sanity PASS on all 9 fresh cells; re-metrics provenance-md5-pinned;
+seed lanes byte-identical to the reused cells. Ledger: 9 training cells
+8,914.8s (2.476 GPU-h) + re-metric 186.2s (0.052) + smoke 1.4s = **≈2.53
+GPU-h vs the 6.0 ceiling** (§1.44 projected ≈2.44). GPUs 0-1 only (2-7 =
+NCR Phase-2, hard-refused by the stage script + confirmed idle before
+launch); tmux `h2h_fix5_grid` supervisor, zero failcount strikes. Archive:
+`experiment-runs/2026-07-11_h2h_fix5_lrgrid/` (19-file results, repo + SSD;
+md5 manifest 19/19 local==box). Checkpoints box/SSD-only (57.8MB each).
+Does NOT edit `papers/flagship/` — the §7 disclosure upgrade (A1 residual
+now closed EMPIRICALLY, not just disclosed) routes on this verdict via a
+separate dispatch. Security: zero fake system-reminder blocks this round.

@@ -1,0 +1,41 @@
+{
+  "arch": "transformer",
+  "task": "task1_sweep",
+  "K": 32,
+  "seed_idx": 0,
+  "seed": 1000000,
+  "name": "h2h_fix5_transformer_task1_lr1e-04_s0",
+  "budget_frac": 1.0,
+  "role": "sweep",
+  "lr": 0.0001,
+  "step_count": 3,
+  "wall_s": 1.3787145614624023,
+  "s_per_step": 0.45957152048746747,
+  "n_params": 14440448,
+  "vocab_size_total": 50259,
+  "n_query_train": 8,
+  "aux_weight": 2.0,
+  "ce_answer_weight": 1.0,
+  "tf32": {
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true
+  },
+  "loss_first": 23.764734268188477,
+  "loss_final_mean5": 23.70572344462077,
+  "grad_ratio_at_tap_step500": null,
+  "curve": [
+    {
+      "step": 3,
+      "train_loss": 23.681922912597656,
+      "recovered_frac_train_hops": 0.0,
+      "probe_cos_mean_train_hops": 0.0035471373066684464,
+      "recovered_frac_capped_M2": 0.0,
+      "probe_cos_mean_capped_M2": 0.0030874012022650277
+    }
+  ],
+  "rung2_identity_classifier": null,
+  "final_recovered_frac_train_hops": 0.0,
+  "final_probe_cos_mean_train_hops": 0.0035471373066684464,
+  "final_metric": 0.0,
+  "ckpt_path": "/data/h2h_rung1_ckpts/h2h_fix5_transformer_task1_lr1e-04_s0_r4.pt"
+}
