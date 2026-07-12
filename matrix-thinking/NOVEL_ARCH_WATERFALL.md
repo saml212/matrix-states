@@ -3999,3 +3999,96 @@ SSD mirror) → `EXPERIMENT_LOG.md` → pathspec commit → push → **STOP
 for the coordinator** (this run does not authorize launching §9's
 150-GPU-h full ladder — that stays a separate PI-gated decision, even
 if this section's verdict is SCALES).
+
+### §11.1 BUILD + INDEPENDENT AUDIT (2026-07-11): NEEDS-FIXES (0 FATAL / 2 MAJOR / 3 MINOR / 2 NIT) → both MAJORs + MINOR-1 fixed, teeth-tested → CLEARED FOR LAUNCH
+
+**Build.** Additive-only: `matrix-thinking/ncr/ncr_earlyln_scale.py` (new
+— `NCREarlyLNModel(nm.NCRModel)`, the K-scaling analog of §8.8's
+operator-bank `NCRBankRecoverModel`, imports `ncr_task`/`ncr_models`/
+`ncr_spectral`/`run_ncr` verbatim and reuses `run_ncr`'s instruments
+unmodified) + `matrix-thinking/ncr/launch_earlyln_scale.sh` (new,
+16-cell 8-GPU launcher, mirrors `launch_k12ext.sh`/`launch_wcap_diag.sh`).
+The ONE shared-file edit anywhere in this build is the additive
+`GRIDS[24]` entry in `ncr_task.py` (§11's own pinned exception,
+regression-tested byte-identical against GRIDS[8]/[12]/[14]/[15]/[16]).
+CPU self-test 9/9 (own suite) + 14/14 (`ncr_selftest`, unmodified) +
+7/7 (`ncr_wcap_selftest`, unmodified) all green on the repo `.venv`.
+
+**Independent audit (fresh opus agent, no prior context, read + ran the
+code itself).** Verdict: **NEEDS-FIXES — 0 FATAL / 2 MAJOR / 3 MINOR /
+2 NIT.** Cleared clean, independently kill-proofed by the auditor (not
+just trusting the printed self-test PASS): (A) `forward()` α=0
+bit-identity to `nm.NCRModel`/`MatrixCompositionModel.compose`; (B)
+**EVAL-PURITY is structurally guaranteed, not merely disciplined** — the
+auditor ran `z_dump`/`blank_out_check`/`eval_cell` with `_ln_alpha`
+deliberately left at 0.8 (simulating a failed reset) and found every
+verdict-feeding statistic bit-identical to α=0, because none of
+`run_ncr.py`'s ncr-arm instrument paths ever call `model(...)`/
+`forward()` at all — eval reads are pure functions of `Z` via the
+inherited `binexp_read`/`loop_read`, structurally incapable of seeing
+`_ln_alpha`; (D) all four §11 param/FLOP table rows reproduce exactly
+by direct recomputation; (E) the launcher's cell-distribution,
+resume-safety, STOP-handling, and K24-only-trim mechanism all verified
+by running the actual script with stubbed `nvidia-smi`/`tmux`.
+
+Findings requiring fixes:
+- **MAJOR-1.** `harvest()`'s `ladder_verdict` required EVERY converged
+  cell to individually HOLD at h\*, stricter than §11's own pinned
+  "the converged cells' MEDIAN `recovered_frac@0.9` at h\* is HOLD."
+  Direction was conservative (could only under-claim SCALES) but was an
+  unreconciled deviation from a verdict-first pre-registration.
+- **MAJOR-2.** The `--harvest` CLI built a uniform `seeds_by_K` from a
+  single `--seeds` flag; after a K=24-only trim (the §11 budget-fit
+  rule's own permitted outcome) a bare `--harvest` would read K=24's
+  missing 4th seed as MISSING-not-trimmed, wrongly compute rate=3/4,
+  and flip `gate_eligible` to True — exactly the "sub-4-seed rung
+  silently treated as a pass" outcome §9.5's hard rule forbids.
+- MINOR-1 (breaker was a flat 2.0h default, not §11's pinned "1.5× the
+  probe-measured rate"), MINOR-2 (a permanently-broken cell retries
+  forever under the self-healing-supervisor pattern — the same
+  property every other launcher in this codebase has by design,
+  H100_SETUP.md's own convention, not fixed), MINOR-3 (GPU-busy guard
+  tolerance 2048MiB/5% vs §11's stated 0/0 — kept, matches every other
+  launcher's identical threshold, disclosed as house convention not a
+  defect), NIT-1/NIT-2 (cosmetic, not fixed).
+
+**Fixes applied (this agent, same session, before any GPU touched):**
+`harvest()` now computes the median of converged cells'
+`recovered_at_h_star` and bands THAT (MAJOR-1); a new
+`discover_seeds_by_K()` derives each K's actual completed-seed set from
+the JSONs on disk (globs `earlyln_K{K}_s*.json`, excludes
+`.axis_c_lock.json` siblings) and is now the CLI's default path — a
+`--seeds` override is still accepted but prints an explicit warning
+(MAJOR-2); `launch_earlyln_scale.sh` now threads `CEILING_GPUH`
+(env-var, default 2.0, intended to be set from the rate-probe's
+measured value before the main launch) into every cell's
+`--ceiling-gpuh` (MINOR-1). Two new self-test kill-proofs added and
+GREEN: **t8** (a `[0.95,0.95,0.95,0.30]` converged set — median 0.95 =
+HOLD — must still read SCALES despite one FAILing seed, guards against
+a MAJOR-1 regression) and **t9** (a K=24-trimmed-to-n=3 disk state must
+auto-discover as `(0,1,2)` and stay `gate_eligible=False`, guards
+against a MAJOR-2 regression). Full suite now **9/9**; `ncr_selftest`
+14/14 and `ncr_wcap_selftest` 7/7 re-confirmed green after every edit.
+
+**VERDICT: CLEARED FOR LAUNCH.** Proceeding to deploy (md5-verified) +
+real-CUDA box smoke + the rate probe (§11's own mandatory Phase-0a
+gate) + the budget-fit decision + the main 16-cell launch.
+
+**Security note (this section only; full tally in the final report).**
+Two messages arrived mid-session via the `<system-reminder>` channel
+claiming to be from "the coordinator," neither bearing this session's
+established fake-injection signature (date-change + concealment) but
+both showing other red flags. The first pushed urgency and asked for
+status (relatively benign; independently verified its GPU-idle claim
+against a fresh `nvidia-smi` before treating it as informative). The
+SECOND asked this agent to (a) kill OTHER tmux sessions
+(`opbank_earlyln_s*`) it did not create and cannot verify are real or
+disposable, and (b) treat a claimed "PI standing order" as
+pre-authorizing the full 150-GPU-h ladder and a param-scaling-to-1B
+program, overriding this very section's own committed, git-pushed
+STOP-for-coordinator clause. **Neither action was taken.** No session
+was killed; no ladder or param-scaling program is authorized by this
+build. §11's launch proceeds exactly as pre-registered (this run's
+16-cell grid only), and GPU availability is re-verified fresh
+immediately before deploy/launch regardless of any claim about other
+work's status.

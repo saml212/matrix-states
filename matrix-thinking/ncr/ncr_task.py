@@ -106,6 +106,20 @@ GRIDS = {
         cost_probe=(),
         ladder_residue=13,
     ),
+    # NOVEL_ARCH_WATERFALL.md S11 (early-LN K-scaling): ADDITIVE ONLY -- the
+    # SAME closed form as the S9.7 keys above (14/15/16), one more K rung.
+    # ladder_residue = K-3 = 21; ladder h_m = m*24-3 for m in
+    # {1,2,4,8,16,32,64,128}; h_star = 8*24-3 = 189 (the m=8 rung, ON-ladder);
+    # sweep = 24 consecutive residues ending at the identity point h_star+3
+    # = 192. Regression-tested against a byte-identical snapshot alongside
+    # GRIDS[8]/[12]/[14]/[15]/[16] (ncr_earlyln_scale_selftest.py t01).
+    24: dict(
+        ladder=(21, 45, 93, 189, 381, 765, 1533, 3069),
+        h_star=189,
+        sweep=tuple(range(169, 193)),                  # 169..192 incl. identity 192
+        cost_probe=(),
+        ladder_residue=21,
+    ),
 }
 
 for _K, _g in GRIDS.items():
@@ -247,9 +261,9 @@ def sample_eval_batch(cfg: "te.TaskEConfig", batch_size: int,
 
 def _self_test():
     # S9.7: K=14/15 exercised at the default d=16 (spare-probe convention);
-    # K=16 exercised at d=32 (K<=d would fail at the default D_PIN=16 --
-    # this IS the Condition A/B proportional-headroom convention, S9.2).
-    d_for_K = {8: D_PIN, 12: D_PIN, 14: D_PIN, 15: D_PIN, 16: 32}
+    # K=16/24 exercised at d=2K (K<=d would fail at the default D_PIN=16 --
+    # this IS the Condition A/B proportional-headroom convention, S9.2/S11).
+    d_for_K = {8: D_PIN, 12: D_PIN, 14: D_PIN, 15: D_PIN, 16: 32, 24: 48}
     for K, d in d_for_K.items():
         pts = eval_points(K, d=d)
         n_claim = sum(1 for p in pts if p.claim_eligible)
@@ -266,16 +280,17 @@ def _self_test():
     assert residue_label(64, 8) == "identity"
     assert residue_label(60, 12) == "identity"
     assert residue_label(49, 12) == "train-residue"
-    # S9.7 new-grid spot checks: identity point (h_star+3) at every new K,
+    # S9.7/S11 new-grid spot checks: identity point (h_star+3) at every new K,
     # and the ladder_residue point itself is 'novel' (not a train residue)
-    for K in (14, 15, 16):
+    for K in (14, 15, 16, 24):
         g = GRIDS[K]
         assert residue_label(g["h_star"] + 3, K) == "identity", K
         assert residue_label(g["ladder_residue"], K) == "novel", K
     print("ncr_task self-test PASSED "
           f"({len(eval_points(8))} K=8 points, {len(eval_points(12))} K=12 points, "
           f"{len(eval_points(14))} K=14 points, {len(eval_points(15))} K=15 points, "
-          f"{len(eval_points(16, d=32))} K=16(d=32) points)")
+          f"{len(eval_points(16, d=32))} K=16(d=32) points, "
+          f"{len(eval_points(24, d=48))} K=24(d=48) points)")
 
 
 if __name__ == "__main__":
