@@ -1,0 +1,4 @@
+[supervisor] launch GPUs=(2 3 4 5) steps=80000 subdir=results_wcap_diag cells=spareK14:14:16:64:2.832 spareK15:15:16:64:3.027 condA_K16:16:32:64:3.527 condB_K16:16:32:128:13.424 2026-07-12T02:59:59Z
+[supervisor] pass complete: 4/4 cells COMPLETED 2026-07-12T03:26:52Z
+[supervisor] WCAP_DIAG_DONE written 2026-07-12T03:26:52Z
+[supervisor] supervisor exiting 2026-07-12T03:26:52Z

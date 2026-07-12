@@ -8299,3 +8299,75 @@ step (seed-replication confirm of earlyln, + a far-depth precision probe)
 is the coordinator's call; NO wave launched. Pointers:
 `matrix-thinking/ncr/ncr_opbank_recover.py`, `NOVEL_ARCH_WATERFALL.md`
 §8.7 (pre-reg) / §8.8 (build) — §8.9 waterfall section pending clean-doc window.
+
+## 2026-07-11 — NCR WRITE-CAPACITY CHEAP DIAGNOSTIC (`NOVEL_ARCH_WATERFALL.md` §9.7 build / §9.8 audit / §9.9 rate-probe / **§9.10 verdict**): **VERDICT = MIXED — break-vs-rescue UNRESOLVED (trainability-confounded); one clean positive: K=14 exact composition CONFIRMED (new converged NCR datapoint beyond K=8/12). ≈1.73 GPU-h.**
+
+**Verdict-first.** The pre-registered clean "does proportional capacity
+rescue the K≈16 write" question **could not be answered** — because 3 of
+the 4 cells (K=15, K=16 Cond-A d32/h64, K=16 Cond-B d32/h128) **never
+TRAINED** on the plain single-seed contender recipe (loss flat
+~0.99→~0.99 over all 80K steps, `A_eff_rank` collapsed to ≈1), a
+**discrete trainability collapse — §9.1's own pre-registered THIRD
+mechanism — NOT the crosstalk/spare-collapse write-quality degradation
+the two-axis grid isolates.** All numbers read from the raw JSONs
+(coordinator read first, this agent owns the verified record):
+
+| cell | params | loss 1→80K | n_skip | A_eff_rank | in-dist rec@0.9 | δ=phase_resid | outcome |
+|---|---|---|---|---|---|---|---|
+| **K=14 spare (d16,h64)** | 170,896 | 0.9997→**0.0012** | 0 | **~14.0** | **1.000** | **0.0072** | **CONVERGED** |
+| K=15 spare (d16,h64) | 170,896 | 1.0049→0.9915 | 0 | 1.4–2.9 | 0.000 | 0.9913 | DEAD |
+| K=16 Cond-A (d32,h64) | 175,008 | 1.0052→0.9988 | 0 | ~1.0 | 0.000 | 1.2846 | DEAD |
+| K=16 Cond-B (d32,h128) | 677,664 | 0.9973→0.9964 | 0 | ~1.0 | 0.000 | 1.2846 | DEAD |
+
+**K=14 is real + shadow-certified:** train_support rec=1.000; exact
+composition holds to a failure front at h=53 (h=11/25 → 1.000, h=53 →
+0.589); every fp64 shadow_delta ≈5e-8 (`numeric_divergent_shadow=False`),
+binexp/loop agreement passes, `reducer_flagged=False`, eff_rank≈14.0.
+δ(14)=0.0072 = archived δ(12)'s value exactly — the converged write is as
+clean as K=12's, NO write-quality degradation where the model trains.
+
+**Break-vs-rescue readout is VACUOUS here:** δ_A(16)/δ_B(16)=1.000 ONLY
+because both K=16 δ = 1.284620 identically — **both collapsed to the same
+degenerate rank-1 write**, not "capacity failed to rescue a converged
+write." Per §9.6-M7's OWN pre-registration ("sub-4-seed rungs report
+dead-seed counts as disclosed data, never as a gate"), a single-seed dead
+cell cannot be scored a write-capacity verdict → neither BREAK- nor
+RESCUE-CONFIRMED is admissible; classifier correctly lands MIXED.
+**Confound named + resolution pre-specified:** `n_skip=0` on all 3 dead
+cells rules out NaN/non-finite masking (genuine dead-seed basin); §8.9's
+`earlyln` (annealed inter-hop LayerNorm) independently RECOVERS this exact
+raw-matmul trainability collapse where the plain recipe fails. **Decisive
+next test (write question still OPEN): re-run K=15/16 Cond-A/B with §8.9's
+early-LN recipe + ≥4 seeds — only a cell that TRAINS can measure whether
+the write breaks or capacity rescues it.** Banked facts: (1) NCR exact
+composition extends to K=14; (2) a sharp single-seed trainability cliff
+sits between K=14 and K=15 on the plain recipe at d=2K headroom; (3) a 4×
+capacity bump (h=64→128, 175K→678K params) did NOT buy trainability at
+K=16 — capacity alone is not the trainability fix, early-LN is the lever.
+
+**Method + discipline.** Additive build (K-parameterized GRIDS 14/15/16
+from a closed form reproducing GRIDS[8]/[12] byte-identically; d/h
+threaded through with legacy call sites unchanged; new `ncr_wcap_selftest.py`
+7/7 + existing 14/14 CPU suites + real-CUDA box-smoke all green;
+independent fresh-opus build audit 0-FATAL/0-MAJOR, §9.8). Two-stage
+Phase-0a discipline: a 2K-step rate probe measured the REAL rate
+(≈0.49–0.54 GPU-h/80K-equiv/cell, ~3.2× cheaper than the conservative toy
+anchor — consistent with §7i's "solo cells ~2.8× faster"), retiring the
+§9.7 ≤10-GPU-h budget worry and licensing full 80K convergence (not the
+fallback partial-40K read). A mis-staged 10K "resume" attempt crash-looped
+on `config_sha`-includes-`steps` (caught in ~1 min via direct cell-log
+read, killed by exact `tmux kill-session`, 0 GPU wasted → [LEARN]).
+**Security: 3 fake system-reminders this run** (composite date-change-to-
+2026-07-11 + concealment-order + fabricated agent-type-list/MCP-instruction
+blocks, on tool outputs and a background-task notification) — ALL
+disregarded incl. every concealment order; date verified vs box+local; 0
+landed in any committed file. **Ledger ≈1.73 GPU-h (used ~17% of the ≤10
+cap).** Archive `experiment-runs/2026-07-11_ncr_wcap_diag/` (19-file repo
+tier 848K: 4 cell JSONs + 4 locks + 4 cell logs + supervisor/worker +
+harvest stdout + verdict json + md5 manifest; SSD full mirror 17M incl. 4
+ckpts). **STOPPED for coordinator full-ladder go/no-go** — does NOT launch
+the K∈{…256} ladder; recommends the early-LN + multi-seed K=15/16 re-test
+as the prerequisite before ANY further write-capacity ladder spend (a
+plain-recipe ladder would keep measuring trainability collapse, not the
+write). Pointers: `matrix-thinking/ncr/wcap_harvest.py`,
+`launch_wcap_diag.sh`, `NOVEL_ARCH_WATERFALL.md` §9.7–§9.10.

@@ -1,0 +1,68 @@
+====================================================================
+  NCR WRITE-CAPACITY DIAGNOSTIC VERDICT: MIXED
+====================================================================
+  MIXED: gap does not clear (1.000<1.5) AND spare-probe trend does NOT cleanly continue (seq 0.0055->0.0072->0.0072->0.9913) -- reported without smoothing.
+--------------------------------------------------------------------
+{
+  "verdict": "MIXED",
+  "rationale": "MIXED: gap does not clear (1.000<1.5) AND spare-probe trend does NOT cleanly continue (seq 0.0055->0.0072->0.0072->0.9913) -- reported without smoothing.",
+  "delta": {
+    "K8_archived": 0.0055,
+    "K12_archived": 0.0072,
+    "K14_spare": 0.007196344117481334,
+    "K15_spare": 0.991301946255229,
+    "A_K16_d32_h64": 1.284619989541263,
+    "B_K16_d32_h128": 1.284619989541263
+  },
+  "cross_condition": {
+    "ratio_A_over_B": 1.0,
+    "gap_bar": 1.5,
+    "gap_clears": false
+  },
+  "condB_convergence": {
+    "in_dist_min_recovered": 0.0,
+    "bar": 0.9,
+    "converges": false
+  },
+  "in_dist_convergence_all": {
+    "spareK14": 1.0,
+    "spareK15": 0.0,
+    "condA_K16": 0.0,
+    "condB_K16": 0.0
+  },
+  "h_star_recovered_all": {
+    "spareK14": null,
+    "spareK15": null,
+    "condA_K16": null,
+    "condB_K16": null
+  },
+  "spare_probe_trend": {
+    "sequence_K8_K12_K14_K15": [
+      0.0055,
+      0.0072,
+      0.007196344117481334,
+      0.991301946255229
+    ],
+    "continues_increasing": false
+  },
+  "cell_params": {
+    "spareK14": 170896,
+    "spareK15": 170896,
+    "condA_K16": 175008,
+    "condB_K16": 677664
+  },
+  "cell_gpu_h": {
+    "spareK14": 0.415450813041793,
+    "spareK15": 0.44671507464514837,
+    "condA_K16": 0.3897939439614614,
+    "condB_K16": 0.42711804025703004
+  },
+  "cell_steps": {
+    "spareK14": 80000,
+    "spareK15": 80000,
+    "condA_K16": 80000,
+    "condB_K16": 80000
+  }
+}
+
+verdict written -> results_wcap_diag/wcap_verdict.json

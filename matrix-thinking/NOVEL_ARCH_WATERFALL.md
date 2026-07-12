@@ -3562,3 +3562,156 @@ not introduced here); comparison arms (fwm/loopedvec/cmlp) don't scale
 
 **VERDICT: CLEARED FOR LAUNCH.** Proceeding to deploy (md5-verified) +
 launch the Phase-0a rate-probe stage.
+
+### 9.9 PHASE-0a RATE PROBE — MEASURED (retires the budget worry) + corrected staging
+
+**Deploy + box smokes (before any real cell).** All 6 files scp'd to
+`youthful-indigo-turkey:/home/nvidia/ncr/`, md5 byte-identical local vs
+box (6/6). On-box `ncr_wcap_selftest.py` 7/7 PASSED; `run_ncr.py
+--box-smoke` (real H100 CUDA: device teeth, closed forms at BOTH d=16/K=8
+and d=32/K=16, forward/backward/grad every arm, checkpoint/resume
+bit-identical, binexp-vs-loop-vs-fp64 read agreement, blank-out) ALL
+PASSED; a real `--cell ncr --K 16 --d 32 --h 128 --steps 5` CUDA cell
+COMPLETED. GPUs 0-7 idle, no `wcap` tmux, before launch.
+
+**Phase-0a measured rates (all 4 cells, 2,000 steps, GPUs 2/3/4/5,
+solo/1-cell-per-GPU).** Per-cell GPU-h at 80K-step-equivalent
+(`elapsed_s/3600 × 80000/steps`):
+
+| cell | steps | elapsed_s | rate (GPU-h/80K-equiv) |
+|---|---|---|---|
+| spare-probe K=14 (d16,h64) | 2000 | 48.0 | 0.533 |
+| spare-probe K=15 (d16,h64) | 2000 | 43.9 | 0.488 |
+| Condition A K=16 (d32,h64) | 2000 | 46.1 | 0.512 |
+| Condition B K=16 (d32,h128) | 2000 | 48.5 | 0.539 |
+| **sum (all 4)** | | | **2.072** |
+
+**This retires the §9.7 budget worry entirely.** The measured
+0.49–0.54 GPU-h/80K-equiv rate is ≈3.1–3.4× CHEAPER than the conservative
+toy anchor (1.678) the §9.7 paper math used — exactly consistent with
+§7i's already-recorded standing fact ("solo cells ~2.8× faster than
+§7g's co-located rate"). Consequence: running all 4 cells to the FULL
+**80,000 steps** (the K=12 wave-1/§7g convergence budget the archived
+δ(8)=0.0055 / δ(12)=0.0072 trend is measured at — so the spare-probe
+δ(14)/δ(15) "continues the K=8→K=12 trend" comparison is like-for-like,
+and the δ_A(16)/δ_B(16) ratio reads at full convergence, not the fallback
+partial-40K read §9.7 hedged) costs only **≈2.07 GPU-h total** — well
+under the ≤10 GPU-h hard cap even with the 2K probe (~0.05 GPU-h,
+already spent) added. The §9.7 conditional "if S lands materially below
+40K → partial-convergence confidence downgrade" is therefore NOT
+triggered: S is set to 80K (above the 40K convergence mark), full
+calibration quality.
+
+**Corrected staging (a real bug, caught immediately, zero wasted
+compute).** The two-stage plan's first attempt at a cheap "second
+calibration point" (relaunch the probe dir at 10K steps, meaning to
+RESUME the 2K checkpoints) crash-looped: `run_cell`'s `config_sha`
+(`run_ncr.py`) folds `steps` into the hashed `cfg_desc`, so a checkpoint
+saved at `steps=2000` has a DIFFERENT sha than a `steps=10000`
+invocation, and `try_resume`'s `assert state["config_sha"] == csha`
+correctly REFUSES the mismatched resume (the resume-safety-is-validity
+guard doing its job) — every cell raised `AssertionError` at load, the
+supervisor retried every ~15s, GPUs sat at 0%. Caught within ~1 min by
+reading the cell logs directly (not trusting the supervisor's bland
+"0/4 COMPLETED"), killed via exact `tmux kill-session` (never `pkill`),
+GPUs confirmed idle. **Lesson (also emitted as a [LEARN]):
+resume-across-different-`--steps` is impossible by construction in this
+harness — each stage must run from scratch at its FINAL step count, or
+reuse a checkpoint only at the IDENTICAL `--steps`. The main stage is
+therefore a single clean 80K-from-scratch run in a fresh
+`results_wcap_diag/`, no cross-steps resume.** The 2K probe checkpoints
+are discarded (their only purpose — the rate table above — is banked).
+
+### 9.10 VERDICT: **MIXED — break-vs-rescue UNRESOLVED (trainability-confounded); one clean positive (K=14 exact composition confirmed)**
+
+**Verdict first, no spin.** The pre-registered clean break-vs-rescue
+question **cannot be answered by this run** — but not because of noise:
+because **three of the four cells (K=15, K=16 Condition A, K=16 Condition
+B) never TRAINED at all** on the plain single-seed contender recipe (loss
+flat ~0.99→~0.99 across all 80K steps, `A_eff_rank` collapsed to ≈1),
+which is a **discrete trainability collapse — §9.1's own pre-registered
+THIRD mechanism — NOT the crosstalk / spare-dimension write-quality
+degradation the two-axis grid was built to isolate.** The one cell that
+DID train, **K=14, is a clean NEW converged NCR datapoint** extending the
+proven K=8/K=12 exact-composition result. Full per-cell table, every
+number read from the raw JSONs (`experiment-runs/2026-07-11_ncr_wcap_diag/`,
+md5-manifested; `wcap_verdict.json` is the machine record):
+
+| cell | params | train loss (1→80K) | n_skip | A_eff_rank (4 ex) | in-dist rec@0.9 | δ=phase_resid | ladder failure-front h | outcome |
+|---|---|---|---|---|---|---|---|---|
+| **K=14 spare (d16,h64)** | 170,896 | 0.9997 → **0.0012** | 0 | **13.99–14.0** | **1.000** | **0.0072** | 53 | **CONVERGED** |
+| K=15 spare (d16,h64) | 170,896 | 1.0049 → 0.9915 | 0 | 1.43–2.89 | 0.000 | 0.9913 | 12 | DEAD (never trained) |
+| K=16 Cond A (d32,h64) | 175,008 | 1.0052 → 0.9988 | 0 | 1.01–1.04 | 0.000 | 1.2846 | 13 | DEAD (never trained) |
+| K=16 Cond B (d32,h128) | 677,664 | 0.9973 → 0.9964 | 0 | 1.00–1.01 | 0.000 | 1.2846 | 13 | DEAD (never trained) |
+
+**The K=14 positive is real and shadow-certified.** train_support
+recovery = 1.000 (perfect in-distribution); the binexp read holds exact
+composition out to a failure front at h=53 (rec@0.9: h=11 → 1.000, h=25 →
+1.000, h=53 → 0.589, decaying to 0 by h=109); **every fp64 shadow_delta
+along the ladder is ≈5×10⁻⁸ (`numeric_divergent_shadow=False`
+everywhere) and binexp-vs-loop agreement passes** — so the composition is
+certified real arithmetic, not an fp32 artifact; `reducer_flagged=False`
+(not a trivial reducer); `A_eff_rank≈14.0` (the full K-cycle operator was
+learned). δ(14)=0.0072 sits right at the archived δ(12)=0.0072 — the
+converged K=14 write is exactly as clean as K=12's, no write-quality
+degradation at all where the model trains. (The observed front at h=53
+falls SHORT of K=14's provisional on-ladder h*=109 — expected and
+disclosed in §9.7: the new-K h* values are uncalibrated placeholders, and
+δ(14)=0.0072 predicts a conservative hold-horizon ≈0.451/0.0072≈63,
+consistent with the front at 53.)
+
+**Why the break-vs-rescue readout is VACUOUS here (the honest reason the
+verdict is MIXED, not BREAK-CONFIRMED).** The pinned §9.7 verdict reads
+`δ_A(16)/δ_B(16)`; the measured ratio is exactly **1.000** — but ONLY
+because δ_A(16)=δ_B(16)=1.284620 to six figures, i.e. **both K=16 cells
+collapsed to the identical degenerate rank-1 write** (`A_eff_rank≈1.0`
+both). That ratio is not "proportional capacity failed to rescue a
+converged write" — it is "two dead seeds hit the same rank-1 attractor."
+Neither K=16 cell ever left the loss plateau, so there is **no converged
+write to measure the capacity effect on.** Per §9.6-M7's OWN
+pre-registration — "sub-4-seed rungs report dead-seed counts as disclosed
+data, never as a gate" — a single-seed dead cell **cannot** be scored as
+a write-capacity verdict. So neither BREAK-CONFIRMED nor RESCUE-CONFIRMED
+is admissible on this data; the mechanical classifier correctly lands
+MIXED (gap doesn't clear AND the spare-probe δ sequence
+0.0055→0.0072→**0.0072**→**0.9913** does not smoothly continue — it is
+flat-then-cliff, the trainability-collapse signature, not the smooth
+√(K/h) crosstalk curve).
+
+**The confound is named and its resolution is pre-specified (not a
+post-hoc excuse).** `n_skip=0` on all three dead cells rules out a
+non-finite-gradient / NaN artifact — the optimizer ran clean and the
+model simply never descended, the genuine dead-seed basin (the archived
+K=16-task_e 2/5-stuck class, §9.1's THIRD mechanism). The parallel §8.8
+operator-bank convergence diagnosis independently found that
+**early-LayerNorm-during-training RECOVERS convergence of the raw-matmul
+contender where the plain recipe fails** (§8.8: loss 0.005, swap gap
+0.55). The K=15/16 cells here are on the PLAIN recipe at n=1 — squarely
+inside the regime §8.8 shows is trainability-limited. **Therefore the
+decisive re-test (the actual write-capacity question, still OPEN) is:
+re-run K=15/16 Condition-A/B with §8.8's early-LN recipe AND ≥4 seeds
+(the §9.6-M7 minimum for any dead-seed-gated call) — only a cell that
+TRAINS can measure whether the write breaks or capacity rescues it.**
+Until a trained K≥15 cell exists, the write-wall vs capacity-rescue
+question is not answered — the diagnostic's plain-recipe cells collapsed
+at the trainability stage, upstream of the write mechanism.
+
+**What this run DID establish (banked facts).** (1) NCR exact composition
+extends cleanly to **K=14** (new converged datapoint: in-dist 1.0,
+shadow-certified composition, eff_rank=14, δ=0.0072 = K=12's own value).
+(2) The plain raw-matmul recipe has a **single-seed trainability cliff
+between K=14 and K=15** at d=2K headroom — sharp, not gradual (δ
+flat-then-saturates, eff_rank 14→~2→~1), consistent with §9.1's
+discrete-trainability-collapse mechanism dominating before any
+write-quality mechanism can be read. (3) Growing capacity 4× (h=64→128,
+175K→678K params) did NOT by itself buy trainability at K=16 on the plain
+recipe — capacity alone is not the trainability fix; §8.8's early-LN is
+the indicated lever. **Ledger: 4 main cells 0.39–0.45 GPU-h each (sum
+≈1.68) + the 2K probe (≈0.05) + the crash-looped 10K mis-stage (≈0,
+killed at load before any GPU work) ≈ 1.73 GPU-h total — well under the
+≤10 GPU-h hard cap (used ~17%).** Per the dispatch charter this run
+STOPS here for the coordinator's full-ladder go/no-go; it does NOT launch
+the K∈{…256} ladder, and it explicitly recommends the early-LN + multi-
+seed K=15/16 re-test as the prerequisite before ANY further write-capacity
+ladder spend (a plain-recipe ladder would keep measuring trainability
+collapse, not the write).
