@@ -646,13 +646,103 @@ def regate_20260712_jobs() -> list[dict]:
             + lane_c_k20_increment_jobs())
 
 
+# ---------------------------------------------------------------------------
+# NCR NEXT-LEVER WAVE, 2026-07-12b -- Q1 only (K=16 4x-budget cell). See
+# matrix-thinking/NCR_NEXT_LEVER_DESIGN.md (commit a8e848d) S1.3/S1.5/S1.7
+# for the full pre-registration; matrix-thinking/queue/wave_2026-07-12b.md
+# for this build round's own record.
+#
+# Q2 Probe A (--d-override) and Probe B (--anneal-frac) are DELIBERATELY NOT
+# built here: both require a new CLI flag that does not exist in
+# ncr_earlyln_scale.py, verified byte-identical between this repo mirror and
+# the live box script (2026-07-12). The design's own S5 already labels these
+# "Build prerequisites... for the eventual builder -- not built here" -- this
+# is the design's disclosed scope boundary firing as intended, not a defect.
+# Adding those flags is out of scope for this generator per the dispatching
+# coordinator's own stop condition ("if any flag is missing, STOP that probe
+# and report, never modify model/training logic"); they require their own
+# scoped fresh-agent opus audit (S5) before any Probe A/B job can be built.
+# ---------------------------------------------------------------------------
+BUDGET4X_OUTDIR = f"{NCR_DIR}/results_earlyln_budget4x"   # separate outdir,
+        # load-bearing not cosmetic -- identical reasoning to
+        # lane_a_budget2x_probe_jobs() above: the script's own whole-cell
+        # skip-if-COMPLETED check keys on (K, seed) only, not --steps, so
+        # reusing results_earlyln_scale/ or results_earlyln_budget2x/ would
+        # silently return the wrong-step-count COMPLETED record unrun.
+STEPS_BUDGET4X = 320_000   # 4x STEPS_MAIN=80_000; NCR_NEXT_LEVER_DESIGN.md S1.3
+
+
+def ncr_next_lever_q1_jobs() -> list[dict]:
+    """Q1 -- K=16 4x-budget cell, n=4 seeds. NCR_NEXT_LEVER_DESIGN.md
+    S1.3/S1.5/S1.7. Cost basis MEASURED (not extrapolated): S1.4's own two
+    real rate points at this exact K=16/d=32 shape (1x 0.4263/80,000 =
+    5.33e-6 GPU-h/step; 2x 0.8248/160,000 = 5.16e-6 GPU-h/step -- 3.4%
+    agreement, i.e. cost is measured linear-in-steps here). Linear-in-steps
+    extrapolation from the 2x rate: 0.8248*2 = 1.6496 GPU-h/cell, matching
+    S1.5's own pinned "4 x 1.6496 ~= 6.60 GPU-h" for the 4-seed cohort.
+    """
+    jobs = []
+    seq = 60
+    per_cell_nominal = 1.6496   # S1.5, 2x measured rate x2 (linear-in-steps)
+    ceiling = 3.5                # S1.5's own pinned per-cell breaker (~=2.1x nominal)
+    for seed in (0, 1, 2, 3):
+        jid = f"{seq:03d}_laneA_budget4x_K16_s{seed}"
+        cmd = (
+            f"cd {NCR_DIR} && {PY} ncr_earlyln_scale.py --cell --K 16 --seed {seed} "
+            f"--steps {STEPS_BUDGET4X} --outdir {BUDGET4X_OUTDIR} "
+            f"--ceiling-gpuh {ceiling} --stop-file {BUDGET4X_OUTDIR}/STOP"
+        )
+        vcheck = (
+            f"{PY} -c \""
+            f"import json; d=json.load(open('{BUDGET4X_OUTDIR}/earlyln_K16_s{seed}.json')); "
+            f"assert d.get('status')=='COMPLETED'; "
+            f"assert d.get('train',{{}}).get('step')=={STEPS_BUDGET4X}; "
+            f"assert 'eval' in d and d.get('blank_out',{{}}).get('passed') is True\""
+        )
+        jobs.append(dict(
+            id=jid, lane="A",
+            hypothesis=(
+                "Does operator residual delta at K=16 continue the ~2.95x/doubling "
+                "budget power law measured 1x->2x at 4x (320,000 steps)? PRIMARY "
+                "readout is the 3-point log-log power-law fit (delta vs budget) and "
+                "the failure-front consistency check (predicted to hold at front=29, "
+                "not reach 61, per the arccos delta*(h)=0.451/h bound) -- NOT "
+                "rec@h*=125, which the design's own depth-corrected crossing target "
+                "(delta*=0.0036, not the h*=61-specific 0.0086) predicts as a "
+                "foreordained 0.0 at this budget (NCR_NEXT_LEVER_DESIGN.md S1.1/S1.7)."
+            ),
+            cmd=cmd, gpu_h_estimate=per_cell_nominal,
+            output_dir=BUDGET4X_OUTDIR, validity_check=vcheck,
+            notes=(
+                "MEASURED cost basis (NOT formula-extrapolated): S1.4's two real "
+                "per-step rates at this exact K=16/d=32 shape (1x 0.4263/80,000 = "
+                "5.33e-6 GPU-h/step; 2x 0.8248/160,000 = 5.16e-6 GPU-h/step, 3.4% "
+                "agreement -- mildly sub-linear if anything). Linear-in-steps "
+                "extrapolation from the 2x rate: 0.8248*2 = 1.6496 GPU-h/cell "
+                "(matches S1.5's pinned '4 x 1.6496 ~= 6.60 GPU-h' for the 4-seed "
+                "cohort). Ceiling 3.5 GPU-h/cell (~=2.1x nominal, S1.5's own pinned "
+                "breaker, well above the >=25% margin floor). Separate outdir "
+                f"({BUDGET4X_OUTDIR}) is REQUIRED: the script's whole-cell "
+                "skip-if-COMPLETED check keys on (K,seed) only, not --steps -- reusing "
+                "results_earlyln_scale/ or results_earlyln_budget2x/ would return the "
+                "wrong-step-count COMPLETED record unrun (identical hazard to the "
+                "2026-07-12 budget2x deploy, regate_2026-07-12.md). No new CLI knob "
+                "needed (--steps/--outdir/--ceiling-gpuh/--stop-file all pre-existing, "
+                "verified against the live argparse table on box 2026-07-12)."
+            ),
+        ))
+        seq += 1
+    return jobs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outdir", default=os.path.join(HERE, "jobs", "pending"))
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)
 
-    all_jobs = lane_a_jobs() + lane_b_jobs() + lane_c_jobs() + regate_20260712_jobs()
+    all_jobs = (lane_a_jobs() + lane_b_jobs() + lane_c_jobs()
+                + regate_20260712_jobs() + ncr_next_lever_q1_jobs())
 
     total_by_lane = {}
     for j in all_jobs:
