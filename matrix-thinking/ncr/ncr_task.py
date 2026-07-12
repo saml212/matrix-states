@@ -76,6 +76,36 @@ GRIDS = {
         cost_probe=(),                                 # cost probe pinned ==5 mod 8, K=8 only
         ladder_residue=9,
     ),
+    # S9.7 NCR write-capacity diagnostic (matrix-thinking/NOVEL_ARCH_WATERFALL.md
+    # S9.7): ADDITIVE ONLY -- K=8/K=12 above are byte-identical to their
+    # pre-S9.7 values (regression-tested in ncr_wcap_selftest.py). Construction
+    # rule, verified to reproduce the K=8/K=12 rows above from one closed form:
+    # ladder_residue = K-3; ladder h_m = m*K-3 for m in {1,2,4,8,16,32,64,128};
+    # h_star = 8*K-3 (the m=8 rung, ON-ladder -- a PROVISIONAL placeholder,
+    # disclosed as uncalibrated per S9.7, not a claimed crossover); sweep = K
+    # consecutive residues ending at the identity point h_star+3. cost_probe
+    # deferred (), mirroring K=12's own convention.
+    14: dict(
+        ladder=(11, 25, 53, 109, 221, 445, 893, 1789),
+        h_star=109,
+        sweep=tuple(range(99, 113)),                   # 99..112 incl. identity 112
+        cost_probe=(),
+        ladder_residue=11,
+    ),
+    15: dict(
+        ladder=(12, 27, 57, 117, 237, 477, 957, 1917),
+        h_star=117,
+        sweep=tuple(range(106, 121)),                  # 106..120 incl. identity 120
+        cost_probe=(),
+        ladder_residue=12,
+    ),
+    16: dict(
+        ladder=(13, 29, 61, 125, 253, 509, 1021, 2045),
+        h_star=125,
+        sweep=tuple(range(113, 129)),                  # 113..128 incl. identity 128
+        cost_probe=(),
+        ladder_residue=13,
+    ),
 }
 
 for _K, _g in GRIDS.items():
@@ -110,18 +140,24 @@ class EvalPoint:
     timed: bool           # wall-clock measured (Axis B)
 
 
-def claim_config(K: int) -> "te.TaskEConfig":
+def claim_config(K: int, d: int = D_PIN) -> "te.TaskEConfig":
     """The claim-mode TaskEConfig: EVERY claim point lives in a declared hop
     set, so the inherited periodicity assert fires verbatim at construction.
     5 (K=8 ladder start) already sits in H_test; h*(K=12)=57 is added to
     H_extra explicitly (it is NOT on the K=12 ladder -- S3.2: h* computed on
-    the claim path, never via the sweep)."""
+    the claim path, never via the sweep).
+
+    `d` (S9.7 write-capacity diagnostic): optional ambient dimension,
+    defaults to D_PIN=16 so every existing K=8/K=12 call site is
+    byte-identical. Condition A/B K=16 cells pass d=32 explicitly (the
+    proportional-headroom convention, S9.2); te.TaskEConfig's own
+    __post_init__ hard-asserts K<=d, unchanged."""
     g = GRIDS[K]
     extra = [H_LEGACY_EXTRA]
     for h in sorted(set(g["ladder"]) | {g["h_star"]} | set(g["cost_probe"])):
         if h not in H_TRAIN and h not in H_TEST_LEGACY and h not in extra:
             extra.append(h)
-    return te.TaskEConfig(d=D_PIN, K=K, variant="permutation",
+    return te.TaskEConfig(d=d, K=K, variant="permutation",
                           H_train=H_TRAIN, H_test=H_TEST_LEGACY,
                           H_extra=tuple(extra), orthogonal=True)
 
@@ -141,12 +177,15 @@ def assert_claim_point(h: int, K: int) -> None:
         f"secretly in-distribution (task_e.py periodicity guard)")
 
 
-def eval_points(K: int) -> list:
+def eval_points(K: int, d: int = D_PIN) -> list:
     """The full pinned eval grid for one K, every point labeled. Claim-mode
     points are additionally validated against the verbatim-inherited config
-    assert (claim_config construction) AND the per-point mirror."""
+    assert (claim_config construction) AND the per-point mirror.
+
+    `d` (S9.7): threaded to claim_config; defaults to D_PIN, byte-identical
+    for every existing K=8/K=12 call site."""
     g = GRIDS[K]
-    claim_config(K)  # inherited assert runs verbatim over all claim points
+    claim_config(K, d=d)  # inherited assert runs verbatim over all claim points
     pts = []
 
     def add(h, component, mode, claim_eligible, in_window, timed=False):
@@ -207,8 +246,12 @@ def sample_eval_batch(cfg: "te.TaskEConfig", batch_size: int,
 
 
 def _self_test():
-    for K in (8, 12):
-        pts = eval_points(K)
+    # S9.7: K=14/15 exercised at the default d=16 (spare-probe convention);
+    # K=16 exercised at d=32 (K<=d would fail at the default D_PIN=16 --
+    # this IS the Condition A/B proportional-headroom convention, S9.2).
+    d_for_K = {8: D_PIN, 12: D_PIN, 14: D_PIN, 15: D_PIN, 16: 32}
+    for K, d in d_for_K.items():
+        pts = eval_points(K, d=d)
         n_claim = sum(1 for p in pts if p.claim_eligible)
         assert n_claim == len(GRIDS[K]["ladder"]) + (0 if GRIDS[K]["h_star"] in GRIDS[K]["ladder"] else 1)
         # labels sane
@@ -223,8 +266,16 @@ def _self_test():
     assert residue_label(64, 8) == "identity"
     assert residue_label(60, 12) == "identity"
     assert residue_label(49, 12) == "train-residue"
+    # S9.7 new-grid spot checks: identity point (h_star+3) at every new K,
+    # and the ladder_residue point itself is 'novel' (not a train residue)
+    for K in (14, 15, 16):
+        g = GRIDS[K]
+        assert residue_label(g["h_star"] + 3, K) == "identity", K
+        assert residue_label(g["ladder_residue"], K) == "novel", K
     print("ncr_task self-test PASSED "
-          f"({len(eval_points(8))} K=8 points, {len(eval_points(12))} K=12 points)")
+          f"({len(eval_points(8))} K=8 points, {len(eval_points(12))} K=12 points, "
+          f"{len(eval_points(14))} K=14 points, {len(eval_points(15))} K=15 points, "
+          f"{len(eval_points(16, d=32))} K=16(d=32) points)")
 
 
 if __name__ == "__main__":

@@ -3415,3 +3415,69 @@ dominating the spare-probe per §9.2's disclosed non-orthogonality).
 fails to converge; or spare-probe reverses trend unexpectedly) — reported
 verdict-first with the specific disagreeing readout named, never
 smoothed into one of the two clean labels.
+
+### 9.8 BUILD + INDEPENDENT OPUS AUDIT — CLEARED FOR LAUNCH (0 FATAL / 0 MAJOR / 4 informational MINOR)
+
+**Build (additive, per §9.7's file map).** `ncr_task.py`: GRIDS extended
+with K=14/15/16 (the derived closed form); `claim_config`/`eval_points`
+gained an optional `d` param, default `D_PIN` unchanged. `ncr_models.py`:
+`NCRModel` gained an optional `h` param (default `ENC_H=64` unchanged);
+added `build_arm(arm, d, h)` dispatcher. `run_ncr.py`: `--K` extended to
+`(8,12,14,15,16)`; new `--d`/`--h` CLI flags; `cell_id`/`run_cell`/
+`eval_cell` thread `d,h` through (legacy string preserved at defaults);
+`closed_form_checks` generalized to `(device, d=16, K=8)`, old call sites
+unchanged, new `(d=32, K=16)` call added to both the CPU selftest and
+`box_smoke`. `ncr_selftest.py`: one-line fix to `t13`'s `tiny_points`
+monkeypatch to accept the new `d` kwarg (a real regression `run_cell`'s
+new always-passed `d=` surfaced; caught by running the existing 14/14
+suite fresh, not assumed). New files: `ncr_wcap_selftest.py` (7 sections:
+GRIDS byte-identity regression with an executed kill-proof, the existing
+suite re-run, new-grid invariants, closed-form d=32 generalization,
+per-arm micro end-to-end at all 4 diagnostic cells, blank-out at
+Condition B, param-formula cross-check) and `launch_wcap_diag.sh`
+(tmux+supervisor+STOP+DONE, GPU 0/1 hard-refuse, busy-GPU refuse,
+session-collision refuse, exact-4-GPU-count refuse; reused for both the
+probe and main stages via its STEPS/RESULTS_SUBDIR args). Local
+verification before audit: `ncr_task.py`/`ncr_models.py` module
+self-tests, the full existing 14/14 `run_ncr.py --smoke` suite, the new
+7/7 `ncr_wcap_selftest.py` suite, and `run_ncr_opbank.py --smoke` (the
+shared-dependency consumer) all PASSED; `build_arm`-derived param counts
+matched §9.3's table bit-for-bit (170,896 / 175,008 / 677,664); 4
+launch-script kill-proofs (GPU 0/1, busy GPU, tmux collision, wrong GPU
+count) executed via faked `nvidia-smi`/`tmux` in a scratch HOME, all
+refused correctly; the rendered worker/supervisor heredoc output was
+inspected directly (not just the source) to confirm per-cell GPU/K/d/h/
+rate values bake in literally while `$!`/loop variables stay deferred.
+
+**Independent opus audit (fresh agent, no prior context, executed
+evidence only — re-ran everything itself rather than trusting the build
+agent's report):** reproduced all of the above independently, PLUS: (a)
+diffed `GRIDS[8]`/`GRIDS[12]` against `git show HEAD:...ncr_task.py`
+(not against the module comparing itself) — byte-identical, only new
+keys added; (b) proved `ncr_wcap_selftest.t01` has real teeth by
+mutating `GRIDS[8]["h_star"]` in memory and confirming the regression
+check raises; (c) confirmed `ncr_opbank_task`/`ncr_opbank_selftest`
+(10/10)/`run_ncr_opbank --smoke` all pass UNMODIFIED, and that
+`run_ncr_opbank.py` defines its own separate `cell_id(arm)` so it cannot
+be affected by `run_ncr.cell_id`'s new signature; (d) ran a REAL CLI cell
+(`--cell ncr --K 16 --d 32 --h 128 --steps 2`) and inspected the emitted
+JSON directly — `Z` shape `(4,32,32)`, `row_queries` `(32,128)`,
+`in_proj.weight` `(128,64)`, persisted config `{K:16,d:32,h:128}`,
+params `677,664`, `deep_probe.phase_resid_max_mean` present (the exact δ
+the §9.7 verdict reads) — confirming no default (`d=16`/`h=64`) silently
+leaks back in anywhere in the thread-through; (e) independently
+recomputed the F-ratios and the launch script's 4 hardcoded breaker
+rates from the §9.3 formula — matched to <0.001; (f) verified the
+launcher's `EXPECT` completion-check array against `cell_id()`'s actual
+output for all 4 launch tuples, not the script author's claim. **4
+informational MINORs, none blocking:** `--K 16` without an explicit
+`--d 32` would silently build a degenerate zero-spare config (the
+launch script always passes `--d 32` for K=16, so the real dispatch is
+unaffected); no GPU-list dedup (operator discipline, matches the
+`launch_k12ext.sh` precedent); unbounded supervisor retry cadence
+(bounded per-attempt by the existing 1.5× breaker, pre-existing pattern,
+not introduced here); comparison arms (fwm/loopedvec/cmlp) don't scale
+`h` in the micro-test (matches the disclosed NCR-only charter, §9.5).
+
+**VERDICT: CLEARED FOR LAUNCH.** Proceeding to deploy (md5-verified) +
+launch the Phase-0a rate-probe stage.

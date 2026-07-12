@@ -109,8 +109,13 @@ def atomic_write_json(path: str, obj) -> None:
     os.replace(tmp, path)
 
 
-def cell_id(arm: str, K: int, seed: int) -> str:
-    return f"ncr_{arm}_K{K}_s{seed}"
+def cell_id(arm: str, K: int, seed: int, d: int | None = None, h: int | None = None) -> str:
+    """S9.7: `d`/`h` are optional; the legacy string is preserved EXACTLY
+    when they equal the module defaults (D_PIN/ENC_H) or are omitted --
+    regression-safe for any existing K=8/K=12 result-file consumer."""
+    if (d is None or d == nt.D_PIN) and (h is None or h == nm.ENC_H):
+        return f"ncr_{arm}_K{K}_s{seed}"
+    return f"ncr_{arm}_K{K}_d{d}_h{h}_s{seed}"
 
 
 def stop_requested(stop_file: str) -> bool:
@@ -432,16 +437,20 @@ def timed_probe(model, cfg, device: str, gen, h: int) -> dict:
 
 @torch.no_grad()
 def eval_cell(model, cfg, device: str, seed: int, K: int,
-              lock_content: dict | None, trust_per_h: dict | None) -> dict:
+              lock_content: dict | None, trust_per_h: dict | None,
+              d: int | None = None) -> dict:
     """Full pinned grid for one cell. Matrix-state arms REFUSE far-h points
     (h > 7) unless a verified Axis-C lock is supplied (S3.2 lock-before-eval;
-    negative-tested)."""
+    negative-tested).
+
+    `d` (S9.7): defaults to nt.D_PIN when omitted -- byte-identical for
+    every existing K=8/K=12 call site."""
     model.eval()
     gen = torch.Generator(device=device).manual_seed(seed + 10_000)
     tgen = torch.Generator(device=device).manual_seed(seed + 11_000)
     points_out = []
     agreement = []
-    for p in nt.eval_points(K):
+    for p in nt.eval_points(K, d=(d if d is not None else nt.D_PIN)):
         if model.arm in ("ncr", "fwm") and p.h > FAR_H_LOCK_THRESHOLD:
             assert lock_content is not None, (
                 f"far-h point h={p.h} requested before the Axis-C lock exists "
@@ -524,9 +533,16 @@ def eval_cell(model, cfg, device: str, seed: int, K: int,
 
 def run_cell(arm: str, K: int, seed: int, steps: int, device: str,
              outdir: str, stop_file: str = "", rate_gpuh_80k: float | None = None,
-             eval_only_ckpt: str | None = None) -> dict:
+             eval_only_ckpt: str | None = None,
+             d: int | None = None, h: int | None = None) -> dict:
+    """`d`/`h` (S9.7 write-capacity diagnostic): optional ambient dimension
+    / encoder hidden width, default to nt.D_PIN / nm.ENC_H -- every existing
+    K=8/K=12 caller is byte-identical (same cid, same cfg, same model
+    shape) when they are omitted."""
+    d_eff = d if d is not None else nt.D_PIN
+    h_eff = h if h is not None else nm.ENC_H
     os.makedirs(outdir, exist_ok=True)
-    cid = cell_id(arm, K, seed)
+    cid = cell_id(arm, K, seed, d, h)
     out_path = os.path.join(outdir, f"{cid}.json")
     if os.path.exists(out_path):
         with open(out_path) as f:
@@ -534,14 +550,14 @@ def run_cell(arm: str, K: int, seed: int, steps: int, device: str,
         if prev.get("status") == "COMPLETED":
             print(f"  [{cid}] already COMPLETED -- skipping (resume-safe)")
             return prev
-    cfg = nt.claim_config(K)
-    cfg_desc = dict(arm=arm, K=K, seed=seed, steps=steps, d=nt.D_PIN,
+    cfg = nt.claim_config(K, d=d_eff)
+    cfg_desc = dict(arm=arm, K=K, seed=seed, steps=steps, d=d_eff, h=h_eff,
                     H_train=list(cfg.H_train), H_test=list(cfg.H_test),
                     H_extra=list(cfg.H_extra), runner_tag=RUNNER_TAG,
                     train_batch=TRAIN_BATCH, lr=TRAIN_LR)
     csha = config_sha(cfg_desc)
     torch.manual_seed(seed)
-    model = nm.ARM_BUILDERS[arm]().to(device)
+    model = nm.build_arm(arm, d=d_eff, h=h_eff).to(device)
 
     rate = (rate_gpuh_80k if rate_gpuh_80k is not None else ANCHOR_GPUH_80K)
     # S3.6 per-cell breaker at 1.5x the (anchor- or Phase-0-)calibrated rate,
@@ -578,7 +594,7 @@ def run_cell(arm: str, K: int, seed: int, steps: int, device: str,
     if arm in ("ncr", "fwm"):
         zd = z_dump(model, cfg, device, seed)
         rec["z_dump"] = zd
-        all_h = [p.h for p in nt.eval_points(K)]
+        all_h = [p.h for p in nt.eval_points(K, d=d_eff)]
         probe = ns.analyze_zdump_arrays(zd["Z"], zd["z_ideal"], all_h)
         rec["deep_probe"] = dict(
             phase_resid_max_per_example=[ex["phase_resid_max"] for ex in probe["per_example"]],
@@ -623,7 +639,7 @@ def run_cell(arm: str, K: int, seed: int, steps: int, device: str,
     if arm in ("fwm", "loopedvec"):
         rec["read_vector_std"] = read_vector_std(model, cfg, device, seed)
 
-    rec["eval"] = eval_cell(model, cfg, device, seed, K, lock_content, trust_per_h)
+    rec["eval"] = eval_cell(model, cfg, device, seed, K, lock_content, trust_per_h, d=d_eff)
     rec["elapsed_s"] = time.time() - t_start
     rec["gpu_h"] = rec["elapsed_s"] / 3600.0 if device == "cuda" else 0.0
     rec["status"] = "COMPLETED"
@@ -713,14 +729,19 @@ def phase0(device: str, outdir: str, steps: int, stop_file: str) -> dict:
 # Smokes
 # ---------------------------------------------------------------------------
 
-def closed_form_checks(device: str):
+def closed_form_checks(device: str, d: int = 16, K: int = 8):
     """S2.26 lesson: hand-computed closed forms at zero-accumulation configs,
     independent of any reference implementation.
-    (1) standard-basis 8-cycle: bin-exp read of the literal shift matrix must
-        land exactly on e_{(i+h) mod 8}. (2) single-binding Z = v k^T maps
+    (1) standard-basis K-cycle: bin-exp read of the literal shift matrix must
+        land exactly on e_{(i+h) mod K}. (2) single-binding Z = v k^T maps
         k -> v at h=1. (3) transpose tooth: the [K,V]-transposed layout
-        (k v^T / the inverse shift) must be DETECTED as wrong."""
-    d, K = 16, 8
+        (k v^T / the inverse shift) must be DETECTED as wrong.
+
+    `d`/`K` (S9.7 write-capacity diagnostic): default to the original
+    16/8 anchor (byte-identical call sites unchanged); the selftest adds a
+    (d=32, K=16) call to catch any ambient-dimension-generalization bug
+    (the standing "closed-form layout smoke, generalized to arbitrary d"
+    build task, S9.5)."""
     Z = torch.zeros(1, d, d, device=device)
     for i in range(K):
         Z[0, (i + 1) % K, i] = 1.0                     # shift: e_i -> e_{i+1}
@@ -791,6 +812,7 @@ def box_smoke():
 
     print("\n[2] closed-form analytic checks ON CUDA (S2.26 discipline)")
     closed_form_checks(device)
+    closed_form_checks(device, d=32, K=16)   # S9.7: ambient-dim generalization, ON CUDA
 
     print("\n[3] forward/backward/grad for every trainable param, every arm")
     for arm in nm.TRAINED_ARMS + ("cmlp",):
@@ -862,7 +884,7 @@ def main():
     ap.add_argument("--phase0", action="store_true",
                     help="the 3-cell S3.6 calibration gate (K=8, seed 0)")
     ap.add_argument("--cell", choices=list(nm.ALL_ARMS), default=None)
-    ap.add_argument("--K", type=int, default=8, choices=(8, 12))
+    ap.add_argument("--K", type=int, default=8, choices=(8, 12, 14, 15, 16))
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--steps", type=int, default=PHASE0_STEPS_DEFAULT)
     ap.add_argument("--outdir", type=str,
@@ -872,6 +894,11 @@ def main():
     ap.add_argument("--rate-gpuh-80k", type=float, default=None,
                     help="calibrated rate (phase0_rate.json) superseding the 2.4 anchor")
     ap.add_argument("--eval-only-ckpt", type=str, default=None)
+    ap.add_argument("--d", type=int, default=None,
+                    help="S9.7: ambient dimension override, default nt.D_PIN (16)")
+    ap.add_argument("--h", type=int, default=None,
+                    help="S9.7: NCR encoder hidden-width override (Condition B, "
+                         "e.g. 8*K), default nm.ENC_H (64); ncr arm only")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -886,7 +913,8 @@ def main():
         return
     if args.cell:
         run_cell(args.cell, args.K, args.seed, args.steps, device, args.outdir,
-                 args.stop_file, args.rate_gpuh_80k, args.eval_only_ckpt)
+                 args.stop_file, args.rate_gpuh_80k, args.eval_only_ckpt,
+                 d=args.d, h=args.h)
         return
     ap.error("one of --smoke / --box-smoke / --phase0 / --cell is required")
 

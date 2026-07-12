@@ -365,9 +365,12 @@ def t13_micro_end_to_end(device):
         real_pts = nt.eval_points
         real_batches, real_bs = rn.EVAL_BATCHES, rn.EVAL_BATCH_SIZE
 
-        def tiny_points(K):
+        def tiny_points(K, d=nt.D_PIN):
+            # S9.7: accepts the optional `d` kwarg run_cell now always passes
+            # (byte-identical default) so this monkeypatch stays a drop-in
+            # replacement for nt.eval_points at any call site.
             keep = {1, 2, 3, 5, 13, 21, 57, 58, 59, 60, 61, 62, 63, 64}
-            return [p for p in real_pts(K) if p.h in keep and p.component != "cost_probe"]
+            return [p for p in real_pts(K, d=d) if p.h in keep and p.component != "cost_probe"]
         try:
             nt.eval_points = tiny_points
             rn.EVAL_BATCHES, rn.EVAL_BATCH_SIZE = 2, 32

@@ -153,10 +153,16 @@ class NCRModel(nn.Module):
     arm = "ncr"
     deviating_read = False   # direct matvec read -- S3.1 M6 pin
 
-    def __init__(self, d: int = D_PIN):
+    def __init__(self, d: int = D_PIN, h: int = ENC_H):
+        """`h` (S9.7 write-capacity diagnostic): encoder hidden width,
+        defaults to ENC_H=64 so every existing call site (Condition A /
+        the K=8/K=12 anchor) is unchanged. Condition B (S9.2) passes
+        h=8K explicitly -- BindingEncoder already accepts arbitrary h via
+        its own constructor signature (S9.5 prereq #3), no change needed
+        there."""
         super().__init__()
         self.d = d
-        self.encoder = BindingEncoder(d, ENC_H, ENC_LAYERS, ENC_HEADS, ENC_REFINE)
+        self.encoder = BindingEncoder(d, h, ENC_LAYERS, ENC_HEADS, ENC_REFINE)
 
     def encode(self, keys, values):
         return self.encoder(keys, values)
@@ -306,6 +312,25 @@ ARM_BUILDERS = {
 }
 TRAINED_ARMS = ("ncr", "loopedvec", "fwm")     # comparisons of record + contender
 ALL_ARMS = ("ncr", "loopedvec", "fwm", "cmlp")
+
+
+def build_arm(arm: str, d: int = D_PIN, h: int | None = None):
+    """S9.7 write-capacity diagnostic dispatcher: constructs any arm at an
+    arbitrary ambient dimension `d`; `h` (encoder hidden width) applies to
+    the `ncr` arm only -- the model-scale axis (Condition A/B) is an
+    NCR-write-specific question (S9.1), comparison arms stay at their own
+    default ENC_H=64 (unmatched-by-design for this diagnostic's NCR-only
+    real-training cells; still constructible for the per-arm micro-test
+    gate, S9.5 hard-rule bakein)."""
+    if arm == "ncr":
+        return NCRModel(d=d, h=(h if h is not None else ENC_H))
+    if arm == "fwm":
+        return FWMReadModel(d=d)
+    if arm == "loopedvec":
+        return LoopedVecModel(d=d)
+    if arm == "cmlp":
+        return make_cmlp(d=d)
+    raise ValueError(arm)
 
 
 # ---------------------------------------------------------------------------
