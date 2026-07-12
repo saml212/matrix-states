@@ -1,8 +1,7 @@
 # Abstract
 
-<!-- Title: [WORKING TITLE — PI] "The Matrix State Is Real: Minimal-Rank
-Recruitment, a Recall Capability Baselines Lack, and a Scale-Worsening
-Write-Geometry Pathology in Matrix-State Sequence Models" -->
+<!-- Title: "Fast-Weight Matrix States Are a Representational Medium, Not
+an Efficiency Trick" (chosen by PI 2026-07-11) -->
 <!-- Authors: [AUTHORS — PI decision pending]; corresponding
 samlarson@pebbleml.com (named build only) -->
 

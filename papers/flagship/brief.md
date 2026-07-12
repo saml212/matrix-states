@@ -1,7 +1,6 @@
-# Paper brief — Flagship: The Matrix State Is Real (rank law + capability separation + the scale-worsening write-geometry attractor)
+# Paper brief — Flagship: Fast-Weight Matrix States Are a Representational Medium, Not an Efficiency Trick (rank law + capability separation + the scale-worsening write-geometry attractor)
 
-**[WORKING TITLE — PI]** — the title above is a drafting placeholder; the
-final title is a PI decision. Drafting proceeds under thesis **T1** (the
+**Title chosen by PI 2026-07-11.** Drafting proceeds under thesis **T1** (the
 PI-recommended candidate, the drafting thesis of record; final thesis
 selection also remains with the PI).
 

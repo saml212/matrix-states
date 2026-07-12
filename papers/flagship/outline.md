@@ -1,4 +1,4 @@
-# Paper outline — Flagship [WORKING TITLE — PI] (drafting thesis T1)
+# Paper outline — Flagship "Fast-Weight Matrix States Are a Representational Medium, Not an Efficiency Trick" (drafting thesis T1)
 
 One row per section, with its page budget from the brief, the claims it
 carries (by id from the brief's evidence map), and the figures it shows.
