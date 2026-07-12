@@ -8440,3 +8440,47 @@ verdict's evidence its rungs ≥24 will measure TRAINABILITY-DEAD under
 the current 80K/flat-anneal recipe. Pointers:
 `matrix-thinking/ncr/ncr_earlyln_scale.py`, `launch_earlyln_scale.sh`,
 `NOVEL_ARCH_WATERFALL.md` §11/§11.1/§11.2.
+
+## 2026-07-12 — NCR K=16/K=24 2× BUDGET+ANNEAL PROBES (`NOVEL_ARCH_WATERFALL.md` §11.3, queue jobs 050-057): **numbers-only record — K=16's Gate-1 rate moves 1/4→3/4 CONVERGED at 2× budget but far-depth (rec@h\*) stays 0.0 in every seed; K=24 shows no change at either gate. ≈7.05 GPU-h.**
+
+The two probes §11.2 priced but did not launch, run as queue jobs
+`050`-`057` (`lane_a_budget2x_probe_jobs()`,
+`matrix-thinking/queue/regate_2026-07-12.md` §2(a)): `--steps 160000`
+(2× `STEPS_MAIN=80_000`, which is simultaneously a 2× anneal-length
+probe since `ln_alpha_at` anneals over `total // 2`) on the same §11.1-
+audited build, no model/training code touched, separate outdir
+(`~/ncr/results_earlyln_budget2x/`) to avoid the resume-skip collision
+with the already-COMPLETED 80K records. **K=16 (d=32):**
+phase_resid_max_mean s0=0.0419/s1=0.0149/s2=0.0217/s3=0.0378 (all below
+the 1× reference's one converged seed at δ=0.0441);
+`failure_front_h` 13/29/29/29 (1× was 13 in all 4 seeds); Gate-1
+(mechanical §11 rule) 3/4 CONVERGED + 1/4 PARTIAL, up from 1/4
+CONVERGED at 1×. No seed at either budget reaches the §8.10-observed
+far-depth band (max phase_resid ≤~0.0086); `recovered_at_h*`(h=125)
+reads 0.0 in all 4 2× seeds, including the 3 Gate-1-CONVERGED ones.
+**K=24 (d=48):** phase_resid_max_mean
+s0=0.9321/s1=0.5689/s2=0.5109/s3=1.2379 — the 2× set's own max (1.2379)
+exceeds the 1× reference range's max (0.8957), no directional
+improvement; `failure_front_h` pinned at 21 (=K−3, trivial) in all 4
+seeds at both budgets; Gate-1 stays 0/4 CONVERGED (4/4 DEAD) at both
+budgets — the K=24 partial-operator-formation profile §11.2 first
+observed is unchanged by doubling the step budget and anneal length.
+Context rows pulled and independently verified for comparison: K=20
+(d=40) 4/4 DEAD at the 1× recipe (residual range 0.2363-0.3491,
+front=17 in all 4 seeds); K=32 (d=64) 4/4 DEAD at the 1× recipe
+(residual range 0.4670-1.4857, front=29 in all 4 seeds; seed 3 shows a
+collapsed A_eff_rank=2.38/32, matching §9.10's original rank-1 DEAD
+basin rather than K=24's partial-formation profile). All 8 probe cells
+independently re-verified against the raw JSONs on
+`youthful-indigo-turkey` by this agent (two independent extraction
+passes); zero discrepancies. **Ledger: K16 3.2995 + K24 3.7465 ≈ 7.046
+GPU-h** (against the §11.2-priced ≈3.5+≈4.0 ≈7.5 GPU-h estimate); the
+K=20/K=32 context rows (≈3.95 GPU-h) are pre-existing Lane-A cells, not
+part of this wave's cost. Archive:
+`experiment-runs/2026-07-12_ncr_earlyln_budget2x/` (repo tier 3.3M: 8
+cell JSONs + 8 Axis-C locks + SUMMARY.md + md5 manifest; SSD mirror
+verified identical). **Next step (in progress, not described here):**
+`matrix-thinking/NCR_NEXT_LEVER_DESIGN.md`. Pointers:
+`matrix-thinking/ncr/ncr_earlyln_scale.py`,
+`matrix-thinking/queue/regate_2026-07-12.md`, `NOVEL_ARCH_WATERFALL.md`
+§11.3.
