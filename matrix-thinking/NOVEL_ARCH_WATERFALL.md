@@ -2050,6 +2050,92 @@ result that actually decides the WIN/LOSE verdict, not only at Phase-0
 
 **§8.1/§8.3 pre-registration is CLEAR. Proceeding to §8.4 BUILD.**
 
+### §8.4 BUILD (2026-07-11/12): CPU self-test 10/10, real-CUDA smoke 5/5 after one fix — awaiting independent audit (§8.4a)
+
+**New files (`matrix-thinking/ncr/`, extend the substrate, do not touch the
+WON single-relation code):** `ncr_opbank_task.py` (BankConfig, per-relation
+Hamiltonian K-cycle generation + distinctness check, Axis R-BANK/Axis
+B-CHAIN batch samplers, `bank_score` — the C1-fixed median-of-per-seed-mins
+aggregation with the `n_seeds_all3_hold`/quorum gate), `ncr_opbank_models.py`
+(`BankBindingEncoder` — R independent row-query sets, shared trunk/reader/
+row_out, per-relation embedding; `NCRBankModel`/`FWMBankModel`/
+`LoopedVecBankModel`/`CMLPBankModel`, `assert_param_match`),
+`ncr_opbank_selftest.py` (CPU suite, 10 tests, all negative tests executed
+to completion with kill-proofs, not just written), `run_ncr_opbank.py`
+(Phase-0-only driver: `train_cell_bank`, `z_dump_bank`/`deep_probe_bank`
+[`ncr_spectral`'s discharged S3.4 machinery reused verbatim, called once
+PER RELATION], `blank_out_check_bank`, `relation_id_swap_ablation`,
+`read_vector_std_bank`, `eval_cell_bank_small`, `run_cell_bank`,
+`phase0_bank`). Wave-1's full eval grid (ladder/sweep/cost_probe/B-CHAIN
+crossed grid) is OUT OF SCOPE for this build — sized after Phase-0's real
+rate, per §8.1.7's own pin.
+
+**CPU self-test suite, `ncr_opbank_selftest.py`, 10/10 PASSED, every
+negative test a genuine kill-proof (constructed to fail first, confirmed to
+catch it, not a vacuous pass):** t1 relation-distinctness (duplicate-
+relation kill-proof + positive); t2 mod-K guard reused per relation
+(train-residue held-out point correctly rejected); t3 the C1 counterexample
+literally re-run — OLD min-of-medians formula reproduces the false HOLD
+(1.0), FIXED median-of-mins correctly gives FAIL (0.0); t4 the S8.3a
+even-n quorum-gate fold (2/2 HOLD+gated vs 1/2 correctly DEGRADED+not-
+gated); t5 B-CHAIN fixed-point exclusion (WITHOUT exclusion: 20/240 fixed
+points occurred on a fixed generator stream — the confound is real, not
+hypothetical; WITH exclusion, same stream: 0/240); t6 param match (all
+trained arms ±15%, `fwm-bank` ratio 1.0002, `loopedvec-bank` 0.9881); t7
+closed-form binexp/loop-vs-literal-fp64-power agreement on EVERY bank
+relation (not just r=0); t8 blank-out (P=1 bottleneck) PASSING for all 3
+gradient-capable arms, untrained (mechanism-level); t9 relation-ID-swap
+ablation kill-proof — an oracle model (`Z_bank` = the true per-relation
+`z_ideal`, C7's classical operator) shows right-r recovery 1.000 vs
+wrong-r 0.000 (gap 1.000, clears the 0.3 bar by a wide margin), proving the
+diagnostic detects a genuine difference when one exists, complementing the
+untrained near-null result (no false positive) with a true positive; t10
+end-to-end micro cell COMPLETES for ALL 4 arms (the §7e "all arms, not one
+representative" lesson).
+
+**Real-device smoke caught a genuine bug the CPU suite did not (exactly the
+CLAUDE.md "CPU-stub suites test logic only" hard rule doing its job):**
+first real-CUDA `--smoke` run on the box crashed with a relation-
+distinctness assertion — the original §8.1.1 text's "collision probability
+... astronomically small" claim was WRONG. Corrected math: for K=8 there
+are (K−1)!=5040 distinct Hamiltonian-cycle functions, so P(≥1 collision
+among R=3 iid draws) ≈ 5.95e-4 **per episode row** — small per draw, but a
+single Phase-0 cell's full pipeline (train steps + z_dump + blank_out +
+swap ablation + rvstd + eval grid) draws thousands of independent rows
+across dozens of batches, so the expected collision count per full cell
+run is ≈0.5–1 — likely, not astronomical. **Fix:** `_relation_graphs`
+retries the whole-batch draw (cheap; P(any collision in a B=64 batch)
+≈3.7%, so ≥2 retries needed only ≈0.1% of the time) up to 20 times before
+raising via the unchanged `assert_relation_distinct` — the checked
+invariant survives (a PERSISTENT duplicate, e.g. a genuine generator bug,
+still raises), only the treatment of an expected, non-adversarial
+collision changes from a hard crash to a transparent resample. Re-deployed
+(md5-verified) and re-run: **5/5 clean real-CUDA smoke passes** (GPU 0,
+`~/tdenv/bin/python`, all 4 arms each run). `ncr_opbank_task.py`'s S8.1.1
+collision-probability claim is corrected in the build record here rather
+than reopening §8.1 (an implementation-robustness fix, not a design-surface
+change — no re-attack triggered).
+
+**fla-transpose lesson (§17/§2.26), executed as a closed-form check per
+S8.1.5's disclosed N/A:** no fla consumer exists in this build (bespoke
+torch fp32 throughout); the applicable closed-form check —
+`binexp_read`/`loop_read` vs the literal fp64 matrix power — is executed
+per relation (t7), not just once, satisfying the discipline's intent
+(every new consumer of a shared read mechanism gets its own executed
+closed-form check) even though the specific fla-state-layout check does
+not apply.
+
+**Deploy record:** `ncr_opbank_task.py` md5 `cee5eae9ca725e31f4896f35f58ae4c1`,
+`ncr_opbank_models.py` md5 `2ee5ea2d31af3a8f5525ab8d30680971`,
+`ncr_opbank_selftest.py` md5 `294bffb978167b6b9c9507a9c8ec0f2a`,
+`run_ncr_opbank.py` md5 `b973c8d4323b43f45da58682315ecbc6` — local and
+`/home/nvidia/ncr/` on the box confirmed byte-identical via `md5sum`
+before every real-CUDA smoke run.
+
+**Independent opus build audit dispatched next (§8.4a), per "the
+implementer does not review their own work" — mutation kill-proofs must
+run to completion before Phase-0 launches on all 8 GPUs.**
+
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
 (median 0.8704, DEGRADED — moved UP within band from §7g's 0.753) →
