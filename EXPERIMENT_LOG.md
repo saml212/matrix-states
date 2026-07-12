@@ -8038,3 +8038,59 @@ md5 manifest 19/19 local==box). Checkpoints box/SSD-only (57.8MB each).
 Does NOT edit `papers/flagship/` — the §7 disclosure upgrade (A1 residual
 now closed EMPIRICALLY, not just disclosed) routes on this verdict via a
 separate dispatch. Security: zero fake system-reminder blocks this round.
+
+## 2026-07-11 — NCR K=12 SEED-EXTENSION (`NOVEL_ARCH_WATERFALL.md` §7h/§7i): pooled 10-seed K=12 Axis-A = **SEP-PARTIAL (median 0.8704, DEGRADED — up within band from §7g's 0.753)** → CROSS-K stays **WIN-PARTIAL**, now on n=10; §7h's pre-registered modal branch realized; **≈2.07 GPU-h**
+
+Charter: §7g's cross-K verdict (WIN-PARTIAL) named the path — "a future
+K=12 seed-extension moves the K=12 band." §7h pre-registered it exactly
+(commit `02df3ac`, BEFORE any GPU) per the h2h §1.8 seed-extension
+template: N=5 fresh ncr-arm-only seeds (5-9) at K=12, 80K steps,
+IDENTICAL frozen config, baselines NOT re-run (settled per §7g); MA3
+locked-prediction leg-scoring reused verbatim; pooled 10-seed outcome
+map derived from the frozen §3.2a bands (HOLD≥0.9 / DEGRADED∈(0.5,0.9)
+/ FAIL≤0.5) via order statistics — guaranteed-pooled-HOLD (→ full WIN)
+requires ≥4/5 fresh holds; every other reachable outcome leaves cross-K
+at WIN-PARTIAL; NO K=8 number changes. Harvest-code change
+(`wave1_harvest.py --expect-seeds-ncr` per-arm admission gate +
+`--selftest` with 3 executed kill-proofs) + `launch_k12ext.sh`
+independently opus-audited **CLEARED** (0 FATAL/MAJOR/MINOR, 1 NIT;
+auditor reproduced the selftest 5/5 + byte-identical regression replay
+vs both archived verdicts + adversarially stress-tested the GPU-0/1
+hard-refuse) — commit `1f2f11f`. **VERDICT (§7i):** per-arm micro test
+PASS; tmux `ncr_k12ext` 22:42:11Z → `K12EXT_DONE` 23:09:14Z (≈27 min,
+1 cell/GPU on 2-6, GPUs 0-1 verified untouched pre+post). Per-seed
+locked (before far-h eval) → outcome: s5 HOLD(1.000, δ0.0034), s6
+HOLD(0.978, δ0.0058), s7 **no**(0.825, δ0.0072 — PREDICTED-HOLD miss),
+s8 HOLD(0.916, δ0.0072), s9 dead(0.000, δ1.53 PREDICTED-FAIL). Leg
+scoring (§7h): extension-5 leg-i 3/4 FAIL (s7), leg-ii 1/1 PASS, leg-iii
+vacuous (0 STRADDLE drawn — all 4 converged seeds locked PREDICTED-HOLD,
+against MA3's "~2/3 STRADDLE" expectation). **Pooled-10 ascending:
+0.000/0.000/0.149/0.753/0.825/0.916/0.978/1.000/1.000/1.000 → median
+0.8704 = DEGRADED**; best baseline FAIL (fwm 0.2705, loopedvec 0.0,
+unrerun) → **K=12 SEP-PARTIAL; cross-K WIN(K=8)+SEP-PARTIAL =
+WIN-PARTIAL, UNCHANGED, on n=10** (§7h modal branch verbatim, the
+firmed-not-moved outcome). Instrument refinement (not re-argued into any
+leg): §7g's conservative-horizon predictor is now 9/10 — s7 (horizon
+62.8, ~10% over h*=57) missed while s8 (horizon 62.5, identical) held →
+reliable-with-margin, coin-flip within ~10% of the boundary. New
+standing facts: K=12 dead-seed rate 2/10 (s3+s9, both locked-classified,
+eff_rank(A) collapsed 1.1-2.8 vs converged 12.00 — K16 2/5-stuck class);
+17 agreement-divergent points sit EXCLUSIVELY on the 2 dead seeds (both
+fp64-shadow-clean; MA5 operator-degeneracy, not instrument defect).
+Secondaries unchanged: Axis C TIE (8/10 ≤0.05 through h≤125, 1/10 to
+509); P2 re-confirms (fwm 0.4125<0.5 @h=45); zero reducers/revivals;
+0 shadow-divergent; 0 flags on any converged seed (15+ cells). NOTE the
+harvest's mechanical `p1.pass_=True` (5/10) is DISCLOSED as NOT the
+scoring of record (it applies the n=5 ≥3 bar to n=10; §7h leg-scoring
+governs). Ledger: extension serial-sum **2.07** (per-cell 0.396-0.449)
+/ device ≈2.25 — under BOTH the §7h 8.4 ceiling and the 5.76 informed
+projection (the projection carried the §7g co-located rate; solo cells
+run ≈2.8× faster). Program totals ≈42.3 serial / ≈21.2 device of 120.
+Archive: `experiment-runs/2026-07-11_ncr_k12ext/` (20-file repo tier
+696K, no ckpts + `md5_manifest.txt`; SSD full mirror 11MB incl. 5 ckpts
++ K12EXT_DONE, 20 shared files md5-identical). Does NOT touch the
+finding-14 site page or any `papers/` tree — updates route on this
+verdict via separate dispatch. Security: zero fake system-reminder
+blocks during the on-box work; one fake composite (date-change +
+concealment + fabricated-agent-list) on a background-task notification
+during the harvest — not complied with, reported.

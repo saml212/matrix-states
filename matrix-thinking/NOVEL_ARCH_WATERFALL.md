@@ -1737,3 +1737,116 @@ pool without forcing artificial contention); resume-safe by construction
 FIX-5 grid + reasoning-link validation) are never touched. On
 completion: harvest (per the audited extension above) → §7i (RECORD
 FIRST) → archive → EXPERIMENT_LOG → commits.
+
+### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
+`K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
+(median 0.8704, DEGRADED — moved UP within band from §7g's 0.753) →
+CROSS-K OVERALL STAYS WIN-PARTIAL, now on n=10 — the §7h pre-registered
+modal branch realized; NO K=8 number changed**
+
+**Run record.** Harvest-code change + launcher audited CLEARED by an
+independent opus agent BEFORE deploy (0 FATAL/MAJOR/MINOR, 1 NIT
+no-fix; the auditor independently reproduced the selftest 5/5 and the
+byte-identical regression replay against both archived verdicts, and
+adversarially stress-tested the GPU-0/1 hard-refuse — commit 1f2f11f).
+Box deploy md5-verified; per-arm micro test (ncr, K=12, seed 5, 30
+steps) PASSED all §7f-pattern gates (a 4-arm test is not applicable —
+ncr is the only arm run, per §7h). Launch tmux `ncr_k12ext` 22:42:11Z →
+sentinel 23:09:14Z (wall ≈27 min); 5 cells, one per GPU on 2-6, GPU 7
+idle reserve, GPUs 0-1 verified untouched before and after (nvidia-smi
+recorded). All 24 result files scp'd + md5-verified against the box,
+zero mismatches.
+
+**Per-seed locked predictions vs outcomes (MA3 discipline: every lock
+written by the pipeline BEFORE its cell's far-h eval; classes read from
+the locks before any outcome was examined):**
+
+| seed | locked δ | class (locked) | conservative horizon 0.451/δ | rec@0.9 @h\*=57 | held? | front |
+|---|---|---|---|---|---|---|
+| s5 | 0.0034 | PREDICTED-HOLD | 133.0 | 1.0000 | YES | 189 |
+| s6 | 0.0058 | PREDICTED-HOLD | 77.3 | 0.9779 | YES | 93 |
+| s7 | 0.0072 | PREDICTED-HOLD | 62.8 | 0.8253 | **no** | 57 |
+| s8 | 0.0072 | PREDICTED-HOLD | 62.5 | 0.9155 | YES | 93 |
+| s9 | 1.5283 | PREDICTED-FAIL | 0.3 | 0.0000 | no (dead) | 9 |
+
+**Leg scoring (§7h's fixed procedure).** Extension-5: leg (i) every
+PREDICTED-HOLD seed holds — **3/4, FAIL** (s7 the miss); leg (ii) no
+PREDICTED-FAIL seed holds — **1/1, PASS** (s9 did not hold); leg (iii)
+STRADDLE — **vacuous** (0 STRADDLE seeds drawn; MA3's own "≈2/3
+STRADDLE" seed-mix expectation did NOT materialize — all four converged
+fresh seeds locked δ ≤ 0.0079, i.e. PREDICTED-HOLD). Pooled-10: leg (i)
+**5/6 FAIL** (s7 the only PREDICTED-HOLD miss across both waves); leg
+(ii) **2/2 PASS** (s3+s9, both dead, neither held); leg (iii) **0/2
+FAIL** (unchanged from §7g's straddle refutation).
+
+**Instrument refinement (the honest sharpening of §7g's finding, not
+re-argued into any leg).** §7g crowned the conservative all-modes bound
+after it called 5/5 archived seeds exactly. The pooled record is now
+**9/10**: s7 (conservative horizon 62.8 — hold predicted with only
+~10% margin over h\*=57) measured 0.8253, front exactly AT 57. s8's
+horizon (62.5) is statistically identical yet it held at 0.9155 — the
+two straddle the bar from indistinguishable locked residuals. Refined
+statement, replacing §7g's unconditional one: **the conservative
+horizon reliably predicts hold-at-h\* when it clears h\* with margin**
+(≥ ~35%: s1 103, s4 161, s5 133, s6 77 all called correctly, and the
+0.3-36 dead/early seeds too) **and is a coin-flip within ~10% of the
+boundary** (s7/s8, horizons 62.5-62.8, split). Recorded as
+fine-structure.
+
+**THE POOLED VERDICT (verdict of record — produced by the audited
+committed `wave1_harvest.py --k 12 --expect-seeds 5 --expect-seeds-ncr
+10` against the pooled directory = the 18 archived §7g cells + the 5
+extension cells).** Pooled NCR values ascending: 0.000 (s3), 0.000
+(s9), 0.149 (s0), 0.753 (s2), 0.825 (s7), 0.916 (s8), 0.978 (s6), 1.000
+(s1), 1.000 (s4), 1.000 (s5); median = mean(5th, 6th) = **0.8704 →
+DEGRADED** per the frozen §3.2a bands ("HOLD ≥ 0.9; DEGRADED ∈ (0.5,
+0.9); FAIL ≤ 0.5"). Best baseline FAIL (fwm 0.2705, loopedvec 0.0 —
+unrerun, as pre-registered). Novel-residue strata guard: no band drop
+(pooled strata medians 52-55 HOLD 0.9025-0.9408, 56-59 DEGRADED
+0.8324-0.8887; worst novel stratum = DEGRADED = the h\* band). **K=12
+label: SEP-PARTIAL. Cross-K per the pinned §3.2a table: WIN (K=8, §7e,
+untouched) + SEP-PARTIAL = WIN-PARTIAL — UNCHANGED, now resting on
+n=10.** This is §7h's pre-registered modal branch verbatim ("pooled
+median stays in (0.5, 0.9) → ... reported as a firmed-up, not moved,
+verdict"); the guaranteed-pooled-HOLD branch needed ≥4/5 fresh holds
+and got 3/5. Dead-seed rate now **2/10 at K=12** (s3, s9 — both
+locked-classified PREDICTED-FAIL before far-h eval, both the archived
+trainability-variance profile: in-dist 0.000, eff_rank(A) collapsed to
+1.1-2.8 vs the converged seeds' exact 12.00, c\* sign-flipping/
+incoherent), consistent with the K=16 2/5-stuck precedent class.
+
+**Secondary readouts (labels unchanged, disclosed):** Axis C pooled:
+8/10 seeds ≤0.05 through h≤125 (only s3 0.0955 and s9 0.0541 over —
+both dead), 1/10 through 509 (s5, max dev 0.0128 — the best locked-curve
+seed on record at K=12) → **TIE unchanged** under both the literal
+≥3-seeds and ≥3/5-fraction readings. P2 re-confirms mechanically on the
+pooled set (fwm 0.4125 < 0.5 at the pinned h=45; loopedvec 0.0). Pooled
+fronts median 93, inside the pre-registered [87, 442]; zero post-front
+revivals; zero reducer signatures anywhere. **The harvest's mechanical
+`p1.pass_=True` field (5/10 holding) is DISCLOSED as NOT the scoring of
+record here** — it applies the n=5-era ≥3-seeds bar to n=10; the §7h
+leg-scoring above is the pre-registered procedure for this extension.
+**Hygiene:** 0 shadow-divergent points; 17 agreement-divergent points
+sit EXCLUSIVELY on the two dead seeds (s3 16 — §7g's finding, unchanged;
+s9 1, at ladder h=93, with BOTH reads matching their own fp64 shadows —
+MA5's pinned arbitration resolves it identically: an operator-degeneracy
+property of a rank-collapsed state, not an instrument defect). Zero
+flags on any converged seed at either K, now over 15 converged cells.
+
+**GPU-h ledger.** Extension serial-sum **2.07** (per-cell 0.3955-0.4494)
+/ device ≈ **2.25** (≈0.45 h wall × 5 GPUs) — under BOTH the §7h 8.4
+ceiling and the 5.76 informed projection, because the projection
+carried the §7g rate measured under 3-way co-location; solo cells run
+≈2.8× faster. Program totals: ≈ **42.3 serial-sum / ≈21.2 device** of
+the 120 cap (this extension is a new Phase-2-extension line item, not
+charged to either closed 50-GPU-h wave sub-cap).
+
+**STATUS: the NCR program verdict of record after the §7h/§7i
+seed-extension is CROSS-K WIN-PARTIAL (Axis A: K=8 WIN n=5 + K=12
+SEP-PARTIAL n=10), WIN (Axis B, K=8 bar), TIE (Axis C) — the §7g
+verdict FIRMED, not moved. Two new standing facts: the K=12
+trainability-variance rate (2/10 dead, both locked-classified) and the
+boundary-regime conservative-horizon caveat (reliable with margin,
+coin-flip inside ~10% of h\*). The wave-2/operator-bank go/no-go
+remains with the coordinator; the operator bank stays separately
+ledgered and double-gated (M4).**
