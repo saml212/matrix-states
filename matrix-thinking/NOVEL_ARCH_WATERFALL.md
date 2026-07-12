@@ -2596,6 +2596,37 @@ decisive next test and that this runner's §11 pre-registration opens.
 **Ledger:** 4 cells × ≈0.46 GPU-h ≈ 1.85 GPU-h. Pointer:
 `matrix-thinking/ncr/ncr_opbank_recover.py`.
 
+### §8.10 EARLY-LN SEED REPLICATION (2026-07-12 UTC, 8/8 cells, seeds 1-8, one per GPU 0-7, preemptible filler): factual seed-replication record — n=9 total with §8.9's seed 0
+
+Same script byte-identical to §8.9's audited version (md5
+`6007b092fb7e860757b45a20f233b6d5`, verified box + archive manifest),
+same earlyln config (80K steps, batch 256, ceiling 2.0 GPU-h), seeds
+1-8, per-seed outdirs. All 8 COMPLETED (0 ABORTED-BUDGET, 0 missing);
+no preemption occurred (§11's session started after all cells
+finished). Full raws + per-seed table:
+`experiment-runs/2026-07-11_ncr_opbank_seedrep/` (SUMMARY.md +
+seedrep_harvest_summary.json + all 8 cell JSONs/locks/logs).
+
+**Convergence (in-dist min-over-9-cells rec@0.9): 9/9 seeds ≥ 0.9 —
+every seed 1.000.** Dead-seed rate 0/9 (K=12 single-relation
+precedent: 2/10). Final loss range 0.0002-0.0104; A_eff_rank
+7.954-8.000 all seeds; swap gap 0.447-0.959 (all > 0.3); blank-out
+P=1 passed 8/8.
+
+**Far-depth h\*=61 (min-over-r rec@0.9), all 9 seeds sorted:** 0.000,
+0.000, 0.000, 0.004 (s0), 0.012, 0.615, 0.811, 0.918, 0.984 — i.e.
+≥0.9: 2/9 (s1 0.918, s8 0.984); in (0.5, 0.9): 2/9 (s5 0.811, s6
+0.615); <0.5: 5/9 (s0, s2, s3, s4, s7). Observed pairing (numbers
+only): the four seeds with max phase_resid ≤ 0.0086 (s1/s5/s6/s8) are
+the four with far-61 min-over-r ≥ 0.615; the five with max
+phase_resid ≥ 0.019 (s0/s2/s3/s4/s7) all sit ≤ 0.049 at far-61.
+
+**Ledger:** 3.88 GPU-h (8 × ≈0.49) + ≈0.06 discarded (first launch
+04:44Z shared one outdir — the output filename is seed-agnostic, 8
+parallel seeds would have overwritten each other; killed at ~2 min,
+relaunched with per-seed outdirs) ≈ 3.94 GPU-h. Box raws:
+`/home/nvidia/ncr/results_opbank_seedrep/seed{1..8}/`.
+
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
 (median 0.8704, DEGRADED — moved UP within band from §7g's 0.753) →

@@ -1,0 +1,261 @@
+{
+ "campaign": "ncr_opbank_earlyln_seed_replication_s8_10",
+ "registry": "NOVEL_ARCH_WATERFALL.md s8.10",
+ "config": "earlyln arm, ncr_opbank_recover.py (md5 6007b092fb7e860757b45a20f233b6d5, byte-identical to s8.9), steps=80000, train_batch=256, ceiling_gpuh=2.0, one seed per GPU 0-7",
+ "seeds": {
+  "1": {
+   "final_loss": 0.0003272891044616699,
+   "indist_min_recovered_at_0_9": 1.0,
+   "far61_rec_at_0_9_per_r": [
+    0.91796875,
+    0.9375,
+    0.9296875
+   ],
+   "far61_min_over_r": 0.91796875,
+   "far61_mean_cos_min_over_r": 0.9430810213088989,
+   "phase_resid_range": [
+    0.0051518246112616265,
+    0.006208978925695019
+   ],
+   "A_eff_rank_range": [
+    7.999285707311455,
+    7.999834749986256
+   ],
+   "swap_gap": 0.940705195069313,
+   "status": "COMPLETED",
+   "steps": 80000,
+   "elapsed_s": 1599.245359659195,
+   "gpu_h": 0.44423482212755416,
+   "started_utc": "2026-07-12T04:47:06Z",
+   "finished_utc": "2026-07-12T05:13:46Z",
+   "blank_out_passed": true,
+   "seed": 1,
+   "git_commit": "UNKNOWN",
+   "params": 173136
+  },
+  "2": {
+   "final_loss": 0.010367393493652344,
+   "indist_min_recovered_at_0_9": 1.0,
+   "far61_rec_at_0_9_per_r": [
+    0.0,
+    0.00390625,
+    0.0
+   ],
+   "far61_min_over_r": 0.0,
+   "far61_mean_cos_min_over_r": 0.4702960252761841,
+   "phase_resid_range": [
+    0.022042276071283513,
+    0.027829703578790718
+   ],
+   "A_eff_rank_range": [
+    7.953624834080203,
+    7.986424300827439
+   ],
+   "swap_gap": 0.4469567686319351,
+   "status": "COMPLETED",
+   "steps": 80000,
+   "elapsed_s": 1879.061333656311,
+   "gpu_h": 0.5219614815711975,
+   "started_utc": "2026-07-12T04:47:06Z",
+   "finished_utc": "2026-07-12T05:18:25Z",
+   "blank_out_passed": true,
+   "seed": 2,
+   "git_commit": "UNKNOWN",
+   "params": 173136
+  },
+  "3": {
+   "final_loss": 0.007990121841430664,
+   "indist_min_recovered_at_0_9": 1.0,
+   "far61_rec_at_0_9_per_r": [
+    0.2421875,
+    0.0,
+    0.01171875
+   ],
+   "far61_min_over_r": 0.0,
+   "far61_mean_cos_min_over_r": 0.4196223318576813,
+   "phase_resid_range": [
+    0.0100353971380216,
+    0.031106763852626118
+   ],
+   "A_eff_rank_range": [
+    7.9625832201679705,
+    7.996277601234603
+   ],
+   "swap_gap": 0.627569392323494,
+   "status": "COMPLETED",
+   "steps": 80000,
+   "elapsed_s": 1623.9441785812378,
+   "gpu_h": 0.4510956051614549,
+   "started_utc": "2026-07-12T04:47:06Z",
+   "finished_utc": "2026-07-12T05:14:10Z",
+   "blank_out_passed": true,
+   "seed": 3,
+   "git_commit": "UNKNOWN",
+   "params": 173136
+  },
+  "4": {
+   "final_loss": 0.004913389682769775,
+   "indist_min_recovered_at_0_9": 1.0,
+   "far61_rec_at_0_9_per_r": [
+    0.041015625,
+    0.0,
+    0.11328125
+   ],
+   "far61_min_over_r": 0.0,
+   "far61_mean_cos_min_over_r": 0.5788989067077637,
+   "phase_resid_range": [
+    0.010318661804282186,
+    0.041942332910776245
+   ],
+   "A_eff_rank_range": [
+    7.9823887503558835,
+    7.9975577601642565
+   ],
+   "swap_gap": 0.6536573171615601,
+   "status": "COMPLETED",
+   "steps": 80000,
+   "elapsed_s": 1884.249140739441,
+   "gpu_h": 0.5234025390942891,
+   "started_utc": "2026-07-12T04:47:06Z",
+   "finished_utc": "2026-07-12T05:18:30Z",
+   "blank_out_passed": true,
+   "seed": 4,
+   "git_commit": "UNKNOWN",
+   "params": 173136
+  },
+  "5": {
+   "final_loss": 0.0004900693893432617,
+   "indist_min_recovered_at_0_9": 1.0,
+   "far61_rec_at_0_9_per_r": [
+    0.810546875,
+    0.86328125,
+    0.984375
+   ],
+   "far61_min_over_r": 0.810546875,
+   "far61_mean_cos_min_over_r": 0.9206768274307251,
+   "phase_resid_range": [
+    0.00424696266375776,
+    0.0073292677517166884
+   ],
+   "A_eff_rank_range": [
+    7.999216434287864,
+    7.999726418628756
+   ],
+   "swap_gap": 0.8979470022022724,
+   "status": "COMPLETED",
+   "steps": 80000,
+   "elapsed_s": 1680.2471776008606,
+   "gpu_h": 0.4667353271113502,
+   "started_utc": "2026-07-12T04:47:06Z",
+   "finished_utc": "2026-07-12T05:15:07Z",
+   "blank_out_passed": true,
+   "seed": 5,
+   "git_commit": "UNKNOWN",
+   "params": 173136
+  },
+  "6": {
+   "final_loss": 0.0003369450569152832,
+   "indist_min_recovered_at_0_9": 1.0,
+   "far61_rec_at_0_9_per_r": [
+    0.8671875,
+    0.615234375,
+    0.853515625
+   ],
+   "far61_min_over_r": 0.615234375,
+   "far61_mean_cos_min_over_r": 0.9092977046966553,
+   "phase_resid_range": [
+    0.006897426710909272,
+    0.008580598503937867
+   ],
+   "A_eff_rank_range": [
+    7.999141845450112,
+    7.999777496179262
+   ],
+   "swap_gap": 0.9000761471688747,
+   "status": "COMPLETED",
+   "steps": 80000,
+   "elapsed_s": 1790.012527704239,
+   "gpu_h": 0.49722570214006634,
+   "started_utc": "2026-07-12T04:47:06Z",
+   "finished_utc": "2026-07-12T05:16:56Z",
+   "blank_out_passed": true,
+   "seed": 6,
+   "git_commit": "UNKNOWN",
+   "params": 173136
+  },
+  "7": {
+   "final_loss": 0.005308747291564941,
+   "indist_min_recovered_at_0_9": 1.0,
+   "far61_rec_at_0_9_per_r": [
+    0.01171875,
+    0.05078125,
+    0.05859375
+   ],
+   "far61_min_over_r": 0.01171875,
+   "far61_mean_cos_min_over_r": 0.6714361310005188,
+   "phase_resid_range": [
+    0.014207647910687045,
+    0.018823463094213823
+   ],
+   "A_eff_rank_range": [
+    7.9854951238976914,
+    7.996634268010085
+   ],
+   "swap_gap": 0.6163746565580368,
+   "status": "COMPLETED",
+   "steps": 80000,
+   "elapsed_s": 1731.5205068588257,
+   "gpu_h": 0.48097791857189603,
+   "started_utc": "2026-07-12T04:47:06Z",
+   "finished_utc": "2026-07-12T05:15:58Z",
+   "blank_out_passed": true,
+   "seed": 7,
+   "git_commit": "UNKNOWN",
+   "params": 173136
+  },
+  "8": {
+   "final_loss": 0.00020515918731689453,
+   "indist_min_recovered_at_0_9": 1.0,
+   "far61_rec_at_0_9_per_r": [
+    1.0,
+    0.984375,
+    1.0
+   ],
+   "far61_min_over_r": 0.984375,
+   "far61_mean_cos_min_over_r": 0.9681851863861084,
+   "phase_resid_range": [
+    0.0031957096584343514,
+    0.004613673162983879
+   ],
+   "A_eff_rank_range": [
+    7.999623222262533,
+    7.999867739477435
+   ],
+   "swap_gap": 0.9585455358028412,
+   "status": "COMPLETED",
+   "steps": 80000,
+   "elapsed_s": 1779.8803861141205,
+   "gpu_h": 0.4944112183650335,
+   "started_utc": "2026-07-12T04:47:06Z",
+   "finished_utc": "2026-07-12T05:16:46Z",
+   "blank_out_passed": true,
+   "seed": 8,
+   "git_commit": "UNKNOWN",
+   "params": 173136
+  }
+ },
+ "n_seeds": 8,
+ "n_completed": 8,
+ "n_converged_indist": 8,
+ "original_s0_reference": {
+  "indist": 1.0,
+  "far61_range": [
+   0.004,
+   0.049
+  ],
+  "note": "s8.9 record"
+ },
+ "total_gpu_h": 3.88,
+ "box_paths": "youthful-indigo-turkey:/home/nvidia/ncr/results_opbank_seedrep/seed{1..8}/",
+ "note_first_launch_aborted": "first launch 04:44Z used a shared outdir (filename collision risk); killed at ~2min, relaunched 04:46:59Z with per-seed outdirs; ~0.06 gpu_h total discarded"
+}
