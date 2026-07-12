@@ -30,17 +30,23 @@ Geometry and In-Context Composition}
 
 \begin{abstract}
 Fixed-state sequence models bind in-context associations in a matrix-valued
-fast-weight state, and geometric observables of that state, such as the span
-occupied by key writes, have been proposed as lenses on composition. We test
-whether one such observable predicts, or causally improves,
-in-context multi-hop composition in DeltaNet-family language models spanning
-14M to 1.31B parameters, and we find a null bounded three ways. First, a
-state-space composition readout returns a recovered fraction of exactly zero
-at 366 of 366 readings % evidence: C1-phase1
-across three structurally different instruments (zero-shot marker prompts,
-natural language, and task-familiarized checkpoints); the readout's
-pre-registered validity gates fail at every cell, so the zeros are an
-instrument verdict, not a refutation. Second, a
+fast-weight state; geometric observables have been proposed as lenses on
+composition. We test whether this observable predicts, or causally
+improves, in-context multi-hop composition in DeltaNet-family language
+models spanning 14M to 1.31B parameters, and find a null bounded three
+ways. First, a state-space composition readout, deployed three
+structurally different ways, returned a recovered fraction of exactly zero
+at 366 of 366 readings, % evidence: C1-phase1
+gates failing at every cell. % evidence: C1-phase1
+A pre-submission positive control caught a state-layout defect in the
+readout; % evidence: C10-instrumentfix
+after the fix, the 320-reading marker-template sub-grid no longer reads
+zero, % evidence: C11-remetric
+but two pre-registered correspondence nulls reproduce the signal at every
+one of those readings: recovery there is indistinguishable from a broken
+correspondence; the other two deployments keep their pre-fix zero
+unconfirmed. % evidence: C12-nullvalidation
+Second, a
 vocabulary-space behavioral contrast bounds any causal effect of a
 write-geometry intervention below its pre-registered three-seed detection
 floor of 1.5 to 1.7 loss units; % evidence: C5-power
@@ -50,8 +56,8 @@ deviation. Third, a twelve-seed replication of the transient was
 stopped by its pre-registered batch-effect gate (cohort variance ratio
 4.47 against a heuristic cutoff of 4.0), % evidence: C7-replication
 and the new cohort's interval spans zero. Each bound names the observation
-that would overturn it. The result is a null with its assumptions visible
-and its escape routes closed.
+that would overturn it. The result is a null with visible assumptions and
+closed escape routes.
 \end{abstract}
 
 \section{Introduction}
@@ -59,23 +65,29 @@ and its escape routes closed.
 Linear-attention and delta-rule language models compress an entire context
 into a fixed-size matrix state
 \citep{schlag2021linear,yang2024parallelizing}. A companion research program
-measured \emph{geometric} observables of the written state (the span
-fraction occupied by key writes, the effective rank of the key population)
-across scales and under targeted interventions, carrying an unexamined
-promise: that write geometry matters for something a user would recognize,
-such as composing multi-hop relations presented in context. We test that
-promise and find a null. A reader of a null has two standing worries, that
-the instrument never worked and that the analysis could declare a null
-after seeing the data. Three pre-registered bounds address both:
+measured \emph{geometric} observables of the written state (e.g.\ span
+fraction, effective key rank) across scales and under targeted
+interventions, carrying an unexamined promise that write geometry matters
+for in-context multi-hop composition. We test that promise and find a
+null. A reader of a null has two standing worries, that the instrument
+never worked and that the analysis could declare a null after seeing the
+data. Three pre-registered bounds address both:
 
 \begin{enumerate}[leftmargin=1.5em,itemsep=1pt,topsep=2pt]
 \item \textbf{An instrument bound.} A state-space composition readout,
-deployed three structurally different ways, returns a recovered fraction of
-exactly zero at 366 of 366 readings % evidence: C1-phase1
-on checkpoints from 14M to 1.31B parameters, and its pre-registered
-validity gates fail at every cell, routing the outcome to probe-invalid,
-not refutation. One nonzero reading or one gate pass would have voided
-this bound.
+deployed three structurally different ways, returned a recovered fraction of
+exactly zero at 366 of 366 readings under the pre-fix instrument,
+% evidence: C1-phase1
+its validity gates failing at every cell. A pre-submission positive
+control on the readout's production path failed outright, exposing a
+state-layout defect; % evidence: C10-instrumentfix
+after the fix, the marker-template sub-grid (320 of the 366 readings) no
+longer reads zero, % evidence: C11-remetric
+but two pre-registered correspondence nulls reproduce the apparent signal
+at every one of those readings; % evidence: C12-nullvalidation
+the other two deployments were not independently re-verified
+(Section~\ref{sec:geometric}). One reading clearing a null, or one premise
+gate passing, would have voided this bound; none did.
 \item \textbf{A power bound.} A vocabulary-space behavioral contrast, with
 a three-seed detection floor of 1.5 to 1.7 loss units registered before
 unblinding, % evidence: C5-power
@@ -123,7 +135,9 @@ Registered validity gates accompany the readout: an $h{=}1$ sanity floor
 and two alignment premises, (iii) query--key and (iv) key--value, each
 requiring a same-entity median cosine above a shuffled-entity null's 95th
 percentile (Appendix~\ref{app:gates}); gate failure routes to
-probe-invalid, never to refutation.
+probe-invalid, never to refutation. A correspondence-null battery
+(Section~\ref{sec:geometric}) screens any nonzero reading against a
+deliberately wrong target.
 
 \textbf{Instrument 2: a behavioral contrast.} A familiarization phase
 trains checkpoints for 5{,}000 steps on the bind/query task mixed into the
@@ -141,73 +155,81 @@ verdicts routed mechanically (Appendix~\ref{app:gates}).
 \begin{table}[t]
 \centering
 \footnotesize
-\setlength{\tabcolsep}{3.5pt}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}llll@{}}
 \toprule
 Wave (instrument) & Grid & Readings & Registered outcome \\
 \midrule
-1 zero-shot, marker & 78 cells, 14M--392M & 312/312 $= 0.0$ & probe-invalid \\ % evidence: C1-phase1
-2 zero-shot, 1.31B rung & 2 cells & 8/8 $= 0.0$ & probe-invalid \\ % evidence: C2-rung3
-3 zero-shot, natural lang. & 4 gate cells & 16/16 $= 0.0$ & probe-invalid, refused \\ % evidence: C3-phase1b
-4 familiarized gate & 6 cells $\times$ 5 ckpts & 30/30 $= 0.0$; $L_q$ falls & dissociation \\ % evidence: C4-dissoc
+1 zero-shot, marker$^{\ddagger}$ & 78 cells, 14M--392M & 312/312 $= 0.0$ & probe-invalid \\ % evidence: C1-phase1
+2 zero-shot, 1.31B rung$^{\ddagger}$ & 2 cells & 8/8 $= 0.0$ & probe-invalid \\ % evidence: C2-rung3
+1+2 fixed-lens re-metric & same 80 cells & 78/320 nonzero, $h{=}1{\leq}0.87$ & unadjudicated \\ % evidence: C11-remetric
+1+2 correspondence nulls & same 80 cells & 0/320 clear either of 2 nulls & null-indistinguishable \\ % evidence: C12-nullvalidation
+3 zero-shot, natural lang.$^{\S}$ & 4 gate cells & 16/16 $= 0.0$ & probe-invalid, refused \\ % evidence: C3-phase1b
+4 familiarized gate$^{\S}$ & 6 cells $\times$ 5 ckpts & 30/30 $= 0.0$; $L_q$ falls & dissociation \\ % evidence: C4-dissoc
 5 behavioral contrast & 18 cells, 4 contrasts$^{\dagger}$ & 3 unresolved, 1 transient & power-bounded \\ % evidence: C5-power
 6 seed extension, $n{=}12$ & 18 pretrain cells & variance ratio 4.47 & batch-effect-flagged \\ % evidence: C7-replication
 \bottomrule
 \end{tabular}
 \caption{The program at a glance. Waves 1--4 deploy the geometric readout
-(recovered fraction at cosine $\geq 0.9$); its validity gates fail at every
-cell of every wave, so all zero readings route to probe-invalid rather than
-refutation. Waves 5--6 deploy the vocabulary-space contrast; the one
-determinate transient is in the harm direction and its $n{=}12$ replication
-was stopped by the pre-registered batch-effect gate.
-$^{\dagger}$Per-arm re-derivation; the registered corpus-level pipeline
-returned both corpora unresolved (Appendix~\ref{app:gates}).}
+(recovered fraction at cosine $\geq 0.9$). Waves 5--6 deploy the
+vocabulary-space contrast; the one determinate transient is in the harm
+direction and its $n{=}12$ replication was stopped by the pre-registered
+batch-effect gate.
+$^{\dagger}$Per-arm re-derivation; corpus-level returned both unresolved.
+$^{\ddagger}$Raw reading superseded below; independent premise failure
+still routes to probe-invalid. $^{\S}$Identical pre-fix function, not
+independently re-run (Appendix~\ref{app:gates}).}
 \label{tab:program}
 \end{table}
 
-\textbf{Zero-shot, marker template (wave 1).} The full pre-registered
-grid, 60 intervention cells and 18 ladder cells
-(Table~\ref{tab:program}), returns a recovered fraction of exactly 0.0 at
-all 312 (cell, hop) readings. % evidence: C1-phase1
-The validity gates fail everywhere: the $h{=}1$ floor fails both
-conditions, and premises (iii) and (iv) pass at 0 of 78 cells each.
-% evidence: C1-phase1
-Premise medians track their shuffled nulls but never cross them (premise
-(iii) spans $[-0.33, 0.76]$), % evidence: C1-phase1
-and prediction--target cosines center near zero, ten-plus standard
-deviations from the 0.9 threshold (Figure~\ref{fig:gates},
-Appendix~\ref{app:figs}).
+\textbf{The readout was defective, and the fix did not save it.} A
+pre-submission positive control on the readout's production
+state-extraction function failed outright (0 of 256 recovered at every
+hop), exposing a $[K,V]$-vs-$[V,K]$ state-layout transpose; after a
+one-line fix and an independent review, the same control recovers 1.0000
+at every hop (Appendix~\ref{app:gates}). % evidence: C10-instrumentfix
+Re-running the wave-1/wave-2 grid (80 cells, 320 readings) through the
+corrected readout no longer returns zero: 78 readings are nonzero, one
+$h{=}1$ cell reaching 0.87. % evidence: C11-remetric
+Two pre-registered correspondence nulls -- a label-shuffle null, later
+found vacuous at $h{=}1$ by construction, and a positional derangement
+null with teeth at every hop -- both reproduce this apparent signal at
+every one of the 320 readings (0/320 clear either bar), tracing it to
+collapsed prediction directions scored against a near-collinear value
+population (Appendix~\ref{app:gates}). % evidence: C12-nullvalidation
+Bound 1's claim is that recovery is statistically indistinguishable from a
+broken correspondence, not that it reads zero; the alignment-premise gates
+(Figure~\ref{fig:gates}) fail at all 320 readings regardless, before and
+after the fix. % evidence: C1-phase1, C2-rung3, C11-remetric
 
-\textbf{Scale (wave 2).} The 1.31B rung reproduces the failure in kind:
-8 of 8 readings at 0.0, both premise gates failing at both corpora, for a
-ladder series of 80 of 80 zeros across 14M to 1.31B:
-% evidence: C2-rung3
-not a small-model artifact.
-
-\textbf{Zero-shot, natural language (wave 3).} Two template families, a
-gift-verb family with the out-of-distribution query marker dropped and a
-corpus-native succession-verb family, fail identically: 16 of 16 readings
-at 0.0, the $h{=}1$ gate false at all 4 cells. % evidence: C3-phase1b
-The failure is not attributable to prompt surface form.
+\textbf{Zero-shot, natural language (wave 3).} Two template families -- a
+gift-verb family with the query marker dropped, and a corpus-native
+succession-verb family -- fail identically: 16 of 16 readings at 0.0, the
+$h{=}1$ gate false at all 4 cells, not a surface-form artifact.
+% evidence: C3-phase1b
 
 \textbf{Task-familiarized (wave 4).} The strongest-case test trains
 control checkpoints on the task itself for 5{,}000 steps and applies the
 gate at five checkpoints per cell. It fails at 30 of 30 readings, 0 of 512
 queries recovered each time, % evidence: C4-dissoc
 while the vocabulary-space query loss falls 21.8 to 46.4 percent (mean
-35.9 percent) in 6 of 6 cells, measured from checkpoint 250, the first
-post-warmup reading, to checkpoint 5{,}000 % evidence: C4-dissoc
+35.9 percent) in 6 of 6 cells, from checkpoint 250 (first post-warmup) to
+checkpoint 5{,}000 % evidence: C4-dissoc
 (Figure~\ref{fig:dissoc}, Appendix~\ref{app:figs}): the models measurably
-learn the task through one readout while the other stays at floor. Since
-the two share no machinery by construction, the dissociation indicts the
-readout construct, not the models (the fall stops short of a registered
-50-percent pin, so the adjudication claims partial task learning only).
+learn the task through one readout while the premise gates fail
+throughout and the recovered-fraction floor -- a pre-fix reading,
+Appendix~\ref{app:gates} -- stays at 0.0. The dissociation, on the
+premise gates rather than the pre-fix floor, indicts the readout
+construct, not the models (partial task learning, short of the registered
+50-percent pin). Waves 3--4 share the pre-fix function and were not
+independently re-run; their probe-invalid routing rests on the unaffected
+premise gates alone, not the raw zero reading.
+% evidence: C3-phase1b, C4-dissoc
 
-\textbf{Gates with enforcing code paths.} Wave 1's launch chain computed
-its abort gate but had no code path acting on it; the grid ran past a gate
-that had already declared the probe invalid. % evidence: C8-teeth
-Every later chain enforced its gates at the process boundary; waves 3 and
-4 each refused a full-grid launch on a real failing gate.
+\textbf{Gates with enforcing code paths.} Wave 1's chain computed its
+abort gate but never acted on it, running the full grid past an
+already-invalid probe; every later chain enforced its gate at the process
+boundary, and waves 3 and 4 each refused launch on a real failing gate.
 % evidence: C8-teeth
 
 \section{The Behavioral Contrast Is Power-Bounded}
@@ -312,35 +334,22 @@ negative-results tradition \citep{forde2020icbinb}.
 \section{Scope of the Bounds}
 \label{sec:scope}
 
-\textbf{Bounded.} The readout construct, one layer's terminal state
-applied $h$ times to a query under exact continuous recovery, carries no
-signal in this checkpoint family at any tested scale, surface form, or
-training regime. % evidence: C4-dissoc
-Intervention effects beyond 1.5 to 1.7 loss units either way are excluded
-at the registered confidence; % evidence: C5-power
-the transient is bounded in duration, direction, and weight.
+\textbf{Bounded.} The single-layer self-iteration readout carries no
+signal distinguishable from a broken correspondence at every scale and
+corpus tested against two correspondence nulls
+(Section~\ref{sec:geometric}); % evidence: C12-nullvalidation
+intervention effects beyond 1.5 to 1.7 loss units are excluded,
+% evidence: C5-power
+and the transient is bounded in duration, direction, and weight.
 % evidence: C7-replication
 
 \textbf{Not bounded.} The hypothesis survives below the power floor and
-through mechanisms the readout cannot see, most plausibly cross-layer
-hand-off (one layer resolves the first hop, a later layer the next); the
-readout tests only single-layer self-iteration. A competing account is
-expressivity: \citet{grazzi2024unlocking} prove positive-eigenvalue
-DeltaNet cannot compose certain permutation groups, so the null may
-partly reflect this variant's ceiling rather than a wrong observable;
-wave 4's dissociation points toward the observable; and nothing here
-transfers beyond the DeltaNet family or the bind/query grammar. Finally,
-the readout's recovery math is validated only at unit level, never
-end-to-end on a real forward pass with a known target, so a systematic
-extraction or state-convention error is not fully excluded
-(Appendix~\ref{app:gates}); a real-kernel positive control is the next
-wave's priority.
-
-\textbf{Lessons for small-scale practice.} A registered gate without an
-enforcing code path is a sentence, not a safeguard (refusal worked twice
-on real failures); % evidence: C8-teeth
-routing fixed before unblinding kept zeros from becoming a refutation and
-a transient from becoming a headline.
+through cross-layer hand-off; an expressivity ceiling
+\citep{grazzi2024unlocking} may also contribute, though wave 4 points
+toward the observable. % evidence: C4-dissoc
+Nothing transfers beyond the DeltaNet family or bind/query grammar. A gate
+without an enforcing code path is only a sentence; unblinded routing kept
+zeros and transients from becoming headlines. % evidence: C8-teeth
 
 
 \bibliography{refs}
@@ -367,13 +376,147 @@ projections of the same token must exceed the same null percentile.
 \emph{Routing:} failure of any gate routes the cell to probe-invalid; the
 registered rule states that gate failure never routes to refutation.
 The readout's recovery math (state-power application and the
-cosine-recovery scorer) is unit-tested against hand-built matrices; it has
-no positive control run end-to-end through a real forward pass with a
-known target on the production multi-layer kernel path. The failure's
-uniformity across four structurally different instruments and four scales
-is consistent with a genuine construct-validity gap but does not, on its
-own, rule out a systematic extraction or state-convention error producing
-the same uniform pattern.
+cosine-recovery scorer) is unit-tested against hand-built matrices.
+
+\textbf{The positive control (2026-07-11): failed, root-caused, fixed,
+independently reviewed.} A pre-submission positive control was run
+end-to-end through a real forward pass on the production multi-layer
+kernel path, closing the gap the previous paragraph flagged as open. A
+synthetic $K{=}32$ mutually-orthonormal-key single cycle was injected at
+the readout layer of a real trained checkpoint (mutually orthonormal keys
+make the correct $h$-hop answer exactly the $(a{+}h) \bmod K$ key, so
+recovery is analytically known), scored through the identical
+production \texttt{squeeze\_state\_head} $\to$ \texttt{apply\_state\_power}
+$\to$ cosine-recovery code path every grid cell uses.
+% evidence: C10-instrumentfix
+\emph{Result.} The production path recovered 0 of 256 at every $h$
+(cosine indistinguishable from noise), while a manually-transposed variant
+of the identical state recovered 1.0000 at every $h$ through the same
+scoring code; diagnostics ruled out a script artifact (key orthonormality
+to $3.6{\times}10^{-7}$, zero hook-injection deviation, no near-zero
+$\beta$ items, and the real kernel's raw state matches an independently
+implemented reference recurrence to 0.17\% relative Frobenius error).
+% evidence: C10-instrumentfix
+\emph{Root cause.} A single-write closed-form adjudication (one basis-vector
+key/value pair, all other positions state-neutral, computed independently
+of any probe code) confirmed \texttt{squeeze\_state\_head} returned the
+underlying kernel's raw $[K,V]$ (key-major) state layout unchanged, while
+\texttt{apply\_state\_power} contracts its query vector against what it
+assumes is the last (key) axis of a $[V,K]$ (value-major) layout: the
+readout output matched the $[K,V]$ closed form at 0.0 relative Frobenius
+error and the $[V,K]$ closed form at exactly $\sqrt{2}$ (the pure-transpose
+signature), and the two closed forms were themselves exact transposes of
+each other. This is the same defect class as a previously corrected
+defect elsewhere in this program's codebase, never inherited here because
+this readout implements an independently written state-extraction function.
+% evidence: C10-instrumentfix
+\emph{Fix and review.} The fix is a one-line transpose,
+\texttt{final\_state[:,\,0,\,:,\,:].transpose(-1,-2)} in place of the
+untransposed slice, mirroring the already-corrected reference function's
+own transpose exactly. A hand-computed regression test asserts both the
+post-fix recovery and, as a kill-proof, that the pre-fix layout inlined
+still fails the identical assertion. An independent review (a fresh
+reviewer with no access to the fixing session's own reasoning) confirmed
+the diff is minimal and correctly scoped: \texttt{squeeze\_state\_head} has
+exactly one production call site feeding \texttt{apply\_state\_power} (the
+intended target) and the state condition-number covariate, which is
+provably transpose-invariant ($\mathrm{svdvals}(S) = \mathrm{svdvals}(S^\top)$),
+so no other production code path changes behavior. Re-running the positive
+control under the fixed function recovers 1.0000 at every $h$
+(cosine $\approx 0.99999$), and the manually-transposed arm, now playing
+the pre-fix-equivalent wrong-layout role, recovers 0.0000: the exact
+role-swap the closed-form adjudication predicts.
+% evidence: C10-instrumentfix
+
+\textbf{The re-metric (78/320 nonzero) and why it does not reopen the
+lane.} Re-running the full wave-1/wave-2 grid -- 80 cells, 320 (cell,$h$)
+readings, identical archived checkpoints and deterministic episode seeds,
+one forward pass per cell -- under the fixed function does not reproduce
+the pre-fix zero: 78 readings are nonzero (30 of 60 intervention-grid
+cells, 8 of 20 scale-ladder cells -- the re-metric's own Leg-A/Leg-B
+partition, a different axis from Table~\ref{tab:program}'s wave-1 (78
+cells) / wave-2 (2 cells) split of the same 80 cells -- carry $\geq 1$
+nonzero hop), $h{=}1$ recovered fraction
+reaching 0.8691 at its strongest cell (a per-token-arm wikitext cell,
+seed 1, $K{=}32$) and $h{\geq}2$ reaching 0.6375 in one cell. The
+alignment-premise gates read key/query/value hook values, never the
+state-extraction output the defect touched, and continue to fail at all
+320 readings (0/320 both premises) before and after the fix, so under the
+registered routing rule this reading alone licenses no confirm regardless
+of what follows. % evidence: C11-remetric
+
+Two correspondence nulls, pre-registered before either ran, were used to
+test whether the fixed-lens signal reflects genuine state--target
+correspondence or is trivially satisfiable by any (state, wrong-target)
+pairing. The first, a label-shuffle null (the readout's existing
+null-relative machinery, extended from one previously-exercised
+calibration cell to all 80 grid cells), grades the identical forward
+pass's prediction against an independently drawn Hamiltonian $K$-cycle
+rather than the true one. This null reproduces the real reading at every
+one of the 320 readings (0/320 clear the pre-registered bar: null $<$ half
+the real value, AND real exceeds the null's bootstrap upper edge by the
+null's own width, AND real $\geq 0.10$); at $h{=}1$ specifically, real and
+null read identically at every strong cell (e.g.\ 0.8691/0.8691), traced to
+a construction property rather than a grading bug: the $h{=}1$ target is
+computed with zero permutation iterations, so it never consults the
+shuffled cycle at all, making the label-shuffle null vacuous at $h{=}1$ by
+construction in every cell, including the readout's own original
+calibration cell (a healthy-draw check separately confirmed the null cycle
+itself agrees with the true one on only 4.1\% of entries, ruling out a
+degenerate shuffle). A second, positional derangement null was therefore
+pre-registered as the anticipated fallback: it grades the same prediction
+against a fixed-point-free random permutation of the candidate value
+slots, breaking correspondence at every hop including $h{=}1$. This null
+also reproduces the fixed-lens signal at every one of the 320 readings
+(0/320 clear; the strongest cell, 0.8691 real, reads 0.8125 against the
+deranged target, 94\% reproduction against the pre-registered 50\% bar),
+and was itself kill-proofed with a perfect-correspondence fixture
+(real 1.0, deranged 0.0) and a collapsed-geometry fixture
+(real $\approx$ deranged) before being trusted.
+% evidence: C12-nullvalidation
+
+The mechanism both nulls point to is geometric, not compositional: at the
+readout's strongest cells the cross-checkpoint prediction direction
+converges (mean pairwise cosine 0.9996 across queries, under state
+condition numbers of $1.8{\times}10^4$ to $2.1{\times}10^6$) while the
+candidate value population is itself near-collinear (mean pairwise cosine
+0.9648); a near-constant prediction direction scores cosine above 0.9
+against nearly any member of a near-collinear population, real or
+deranged target alike. \textbf{Provenance flag: these two covariates
+(0.9996, 0.9648), and the 4.1-percent healthy-draw check above, are a
+design-registry record of an on-box diagnostic on the single strongest
+cell, not backed by a separately archived raw artifact.} No raw state
+tensors were saved by the original harvest to recompute them from, so the
+empirical verdict above (0/320 clear either null) does not depend on them,
+but this specific mechanistic interpretation of \emph{why} does, and is
+reported with that provenance disclosed rather than independently
+re-derived.
+% evidence: C12-nullvalidation
+An independent episode-resampling check (a fresh deterministic episode
+draw on the identical checkpoints) confirms the underlying bimodality --
+which cells carry any signal at all -- is a stable property of the trained
+state (20 of 21 floor-clearing cells stay on under a resampled episode),
+not an artifact of one lucky draw; within this family, the deployed
+per-token intervention arm concentrates the effect (20 of 72 $h{\geq}2$
+readings clear a 0.10 floor, versus 1 of 36 for the off arm and 0 of 72
+for the global arm): concentration of the artifact, not of composition,
+per the same two nulls. % evidence: C12-nullvalidation
+
+\textbf{The corrected claim, binding throughout this paper.} Geometric
+recovery is statistically indistinguishable from a broken correspondence at
+every scale, corpus, and hop the corrected instrument was run on. It is
+not that recovery reads exactly zero, which was true only of the pre-fix
+instrument on this sub-grid, and it is not a confirmed correspondence,
+which both correspondence nulls exclude. Waves 3 and 4 (natural-language
+and task-familiarized deployments, Section~\ref{sec:geometric}) call the
+identical pre-fix state-extraction function and were not independently
+re-run under the fix or tested against either correspondence null; their
+probe-invalid routing rests entirely on the alignment-premise gates, which
+the defect never touched and are therefore unaffected, but their own raw
+zero readings carry the same unconfirmed status the wave-1/wave-2 zero
+readings carried before this re-verification. That status is reported
+here as disclosed, not assumed corrected by extension.
+% evidence: C11-remetric, C12-nullvalidation
 
 \textbf{Behavioral-contrast classification (wave 5).} The per-checkpoint
 arm effect is $\Delta(c) = L_q(\text{control}, c) - L_q(\text{arm}, c)$,
@@ -461,8 +604,13 @@ between checkpoint 250 (the first post-warmup reading) and checkpoint
 5{,}000. Right: the geometric gate's recovered
 fraction at the same five checkpoints of the same cells is exactly 0.0 at
 all 30 readings, never approaching its 0.10 validity floor (dashed). The
-model learns the task through one readout while the other stays at floor.}
-% evidence: C4-dissoc
+model learns the task through one readout while the other stays at floor.
+The right panel was computed through the pre-fix state-extraction function
+(Section~\ref{sec:geometric}, Appendix~\ref{app:gates}) and has not been
+independently re-run under the corrected instrument or checked against a
+correspondence null; the dissociation's behavioral half (left panel) does
+not depend on this and is unaffected.}
+% evidence: C4-dissoc, C10-instrumentfix
 \label{fig:dissoc}
 \end{figure}
 
@@ -499,6 +647,12 @@ fails the build rather than silently altering a panel. As a compute
 disclosure for this venue's small-scale remit: all experiments ran on one
 or two GPUs at a time, and the six waves consumed approximately 9.5
 GPU-hours in total. % evidence: C9-compute
+The instrument re-verification (Section~\ref{sec:geometric},
+Appendix~\ref{app:gates}) -- the positive control, the closed-form
+adjudication, the 80-cell re-metric, and both correspondence-null sweeps
+-- consumed a further $\approx$0.52 GPU-hours on one GPU, disclosed
+separately since it postdates the original six-wave harvest.
+% evidence: C10-instrumentfix, C11-remetric, C12-nullvalidation
 The archived raw files, the figure script with its checksum manifest, the
 experiment chains, and the full pre-registration text will be released
 with the camera-ready version.

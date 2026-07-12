@@ -3,8 +3,9 @@
 Anonymized double-blind submission build. `reasoning-null-moss-submission.tex`
 is the flattened single-file source (sections inlined at bundle time from
 `../sections/*.tex`, the single source of truth);
-`reasoning-null-moss-submission.pdf` is the compiled artifact (8 pages: 4 main
-content + references + appendices A--C).
+`reasoning-null-moss-submission.pdf` is the compiled artifact (10 pages: 4 main
+content + references + appendices A--C, the appendices expanded by the
+2026-07-11 instrument-re-verification revision).
 
 ## Build
 
@@ -48,6 +49,22 @@ against the raw archives, style (PASS, zero violations), format audit
 raw artifacts), and three render-inspection passes ending in PASS with zero
 findings.
 
+After the round-1 sign-off, the pre-submission real-kernel positive control
+(the round-1 FIX-6 requirement) FAILED, exposing a state-layout transpose
+defect in the geometric readout; the full instrument re-verification
+(`REASONING_LINK_DESIGN.md` §17.1--§17.7) fixed it, re-metricked the
+wave-1/wave-2 grid under the corrected instrument, and killed the resulting
+apparent signal with two pre-registered correspondence nulls
+(TRIVIAL-ARTIFACT, lane re-closes doubly instrument-validated). Bound 1 and
+all dependent passages were rewritten to the corrected claim shape
+("recovery is null-indistinguishable," not "recovery reads zero") and passed
+a targeted round-2 re-gauntlet on the changed material
+(`../gauntlet/round-2/`): attack (0 CRITICAL / 4 SERIOUS / 3 MINOR), a
+verify-vs-raws defense that closed all seven findings with every cited md5
+re-confirmed, style (all violations fixed), format audit (0 critical / 0
+serious), and a render-inspection pass ending in PASS (body confirmed within
+the 4pp limit).
+
 ## Reproducibility
 
 Figure source md5s are asserted in `../figures/figure-gen.py` (MANIFEST
@@ -66,6 +83,17 @@ dict). Key artifacts (repo-relative under `experiment-runs/`):
 - `2026-07-08_phase2_familiarization/` gate + trajectory sets
   (manifest-md5s 85d381404dd89769eda382beacbee673 /
   091c33c4786048cd3f94bb75496465ec)
+
+Bound-1 instrument re-verification (2026-07-11, text-only, no figure):
+
+- `2026-07-11_reasoning_null_poscontrol/results/reasoning_link_poscontrol_result.json`
+  md5:71e53be7953812a60004a5ee08d77e10 (pre-fix positive control, 0/256)
+- `2026-07-11_reasoning_link_remetric/04_remetric/results/AGGREGATE_SUMMARY.txt`
+  md5:34186cbc6771bd4c8c631816ba1d90a5 (78/320 fixed-lens re-metric)
+- `2026-07-11_reasoning_link_validation/01_item12_shuffle_resample/results/ANALYSIS_SUMMARY.txt`
+  md5:922bfc8b34d622ccdfe88236ac69731d (label-shuffle null, 0/320)
+- `2026-07-11_reasoning_link_validation/02_derange_control/results/DERANGE_SUMMARY.txt`
+  md5:2edc16daa9c604ae978e6e2d3e853da1 (derangement null, 0/320)
 
 The full map from every claim in the paper to its verdict record and raw
 artifact is `../brief.md` § "Claims-to-evidence-to-figure map".

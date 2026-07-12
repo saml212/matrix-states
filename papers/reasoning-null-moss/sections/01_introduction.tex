@@ -3,23 +3,29 @@
 Linear-attention and delta-rule language models compress an entire context
 into a fixed-size matrix state
 \citep{schlag2021linear,yang2024parallelizing}. A companion research program
-measured \emph{geometric} observables of the written state (the span
-fraction occupied by key writes, the effective rank of the key population)
-across scales and under targeted interventions, carrying an unexamined
-promise: that write geometry matters for something a user would recognize,
-such as composing multi-hop relations presented in context. We test that
-promise and find a null. A reader of a null has two standing worries, that
-the instrument never worked and that the analysis could declare a null
-after seeing the data. Three pre-registered bounds address both:
+measured \emph{geometric} observables of the written state (e.g.\ span
+fraction, effective key rank) across scales and under targeted
+interventions, carrying an unexamined promise that write geometry matters
+for in-context multi-hop composition. We test that promise and find a
+null. A reader of a null has two standing worries, that the instrument
+never worked and that the analysis could declare a null after seeing the
+data. Three pre-registered bounds address both:
 
 \begin{enumerate}[leftmargin=1.5em,itemsep=1pt,topsep=2pt]
 \item \textbf{An instrument bound.} A state-space composition readout,
-deployed three structurally different ways, returns a recovered fraction of
-exactly zero at 366 of 366 readings % evidence: C1-phase1
-on checkpoints from 14M to 1.31B parameters, and its pre-registered
-validity gates fail at every cell, routing the outcome to probe-invalid,
-not refutation. One nonzero reading or one gate pass would have voided
-this bound.
+deployed three structurally different ways, returned a recovered fraction of
+exactly zero at 366 of 366 readings under the pre-fix instrument,
+% evidence: C1-phase1
+its validity gates failing at every cell. A pre-submission positive
+control on the readout's production path failed outright, exposing a
+state-layout defect; % evidence: C10-instrumentfix
+after the fix, the marker-template sub-grid (320 of the 366 readings) no
+longer reads zero, % evidence: C11-remetric
+but two pre-registered correspondence nulls reproduce the apparent signal
+at every one of those readings; % evidence: C12-nullvalidation
+the other two deployments were not independently re-verified
+(Section~\ref{sec:geometric}). One reading clearing a null, or one premise
+gate passing, would have voided this bound; none did.
 \item \textbf{A power bound.} A vocabulary-space behavioral contrast, with
 a three-seed detection floor of 1.5 to 1.7 loss units registered before
 unblinding, % evidence: C5-power

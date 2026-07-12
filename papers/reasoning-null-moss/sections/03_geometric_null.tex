@@ -4,71 +4,79 @@
 \begin{table}[t]
 \centering
 \footnotesize
-\setlength{\tabcolsep}{3.5pt}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}llll@{}}
 \toprule
 Wave (instrument) & Grid & Readings & Registered outcome \\
 \midrule
-1 zero-shot, marker & 78 cells, 14M--392M & 312/312 $= 0.0$ & probe-invalid \\ % evidence: C1-phase1
-2 zero-shot, 1.31B rung & 2 cells & 8/8 $= 0.0$ & probe-invalid \\ % evidence: C2-rung3
-3 zero-shot, natural lang. & 4 gate cells & 16/16 $= 0.0$ & probe-invalid, refused \\ % evidence: C3-phase1b
-4 familiarized gate & 6 cells $\times$ 5 ckpts & 30/30 $= 0.0$; $L_q$ falls & dissociation \\ % evidence: C4-dissoc
+1 zero-shot, marker$^{\ddagger}$ & 78 cells, 14M--392M & 312/312 $= 0.0$ & probe-invalid \\ % evidence: C1-phase1
+2 zero-shot, 1.31B rung$^{\ddagger}$ & 2 cells & 8/8 $= 0.0$ & probe-invalid \\ % evidence: C2-rung3
+1+2 fixed-lens re-metric & same 80 cells & 78/320 nonzero, $h{=}1{\leq}0.87$ & unadjudicated \\ % evidence: C11-remetric
+1+2 correspondence nulls & same 80 cells & 0/320 clear either of 2 nulls & null-indistinguishable \\ % evidence: C12-nullvalidation
+3 zero-shot, natural lang.$^{\S}$ & 4 gate cells & 16/16 $= 0.0$ & probe-invalid, refused \\ % evidence: C3-phase1b
+4 familiarized gate$^{\S}$ & 6 cells $\times$ 5 ckpts & 30/30 $= 0.0$; $L_q$ falls & dissociation \\ % evidence: C4-dissoc
 5 behavioral contrast & 18 cells, 4 contrasts$^{\dagger}$ & 3 unresolved, 1 transient & power-bounded \\ % evidence: C5-power
 6 seed extension, $n{=}12$ & 18 pretrain cells & variance ratio 4.47 & batch-effect-flagged \\ % evidence: C7-replication
 \bottomrule
 \end{tabular}
 \caption{The program at a glance. Waves 1--4 deploy the geometric readout
-(recovered fraction at cosine $\geq 0.9$); its validity gates fail at every
-cell of every wave, so all zero readings route to probe-invalid rather than
-refutation. Waves 5--6 deploy the vocabulary-space contrast; the one
-determinate transient is in the harm direction and its $n{=}12$ replication
-was stopped by the pre-registered batch-effect gate.
-$^{\dagger}$Per-arm re-derivation; the registered corpus-level pipeline
-returned both corpora unresolved (Appendix~\ref{app:gates}).}
+(recovered fraction at cosine $\geq 0.9$). Waves 5--6 deploy the
+vocabulary-space contrast; the one determinate transient is in the harm
+direction and its $n{=}12$ replication was stopped by the pre-registered
+batch-effect gate.
+$^{\dagger}$Per-arm re-derivation; corpus-level returned both unresolved.
+$^{\ddagger}$Raw reading superseded below; independent premise failure
+still routes to probe-invalid. $^{\S}$Identical pre-fix function, not
+independently re-run (Appendix~\ref{app:gates}).}
 \label{tab:program}
 \end{table}
 
-\textbf{Zero-shot, marker template (wave 1).} The full pre-registered
-grid, 60 intervention cells and 18 ladder cells
-(Table~\ref{tab:program}), returns a recovered fraction of exactly 0.0 at
-all 312 (cell, hop) readings. % evidence: C1-phase1
-The validity gates fail everywhere: the $h{=}1$ floor fails both
-conditions, and premises (iii) and (iv) pass at 0 of 78 cells each.
-% evidence: C1-phase1
-Premise medians track their shuffled nulls but never cross them (premise
-(iii) spans $[-0.33, 0.76]$), % evidence: C1-phase1
-and prediction--target cosines center near zero, ten-plus standard
-deviations from the 0.9 threshold (Figure~\ref{fig:gates},
-Appendix~\ref{app:figs}).
+\textbf{The readout was defective, and the fix did not save it.} A
+pre-submission positive control on the readout's production
+state-extraction function failed outright (0 of 256 recovered at every
+hop), exposing a $[K,V]$-vs-$[V,K]$ state-layout transpose; after a
+one-line fix and an independent review, the same control recovers 1.0000
+at every hop (Appendix~\ref{app:gates}). % evidence: C10-instrumentfix
+Re-running the wave-1/wave-2 grid (80 cells, 320 readings) through the
+corrected readout no longer returns zero: 78 readings are nonzero, one
+$h{=}1$ cell reaching 0.87. % evidence: C11-remetric
+Two pre-registered correspondence nulls -- a label-shuffle null, later
+found vacuous at $h{=}1$ by construction, and a positional derangement
+null with teeth at every hop -- both reproduce this apparent signal at
+every one of the 320 readings (0/320 clear either bar), tracing it to
+collapsed prediction directions scored against a near-collinear value
+population (Appendix~\ref{app:gates}). % evidence: C12-nullvalidation
+Bound 1's claim is that recovery is statistically indistinguishable from a
+broken correspondence, not that it reads zero; the alignment-premise gates
+(Figure~\ref{fig:gates}) fail at all 320 readings regardless, before and
+after the fix. % evidence: C1-phase1, C2-rung3, C11-remetric
 
-\textbf{Scale (wave 2).} The 1.31B rung reproduces the failure in kind:
-8 of 8 readings at 0.0, both premise gates failing at both corpora, for a
-ladder series of 80 of 80 zeros across 14M to 1.31B:
-% evidence: C2-rung3
-not a small-model artifact.
-
-\textbf{Zero-shot, natural language (wave 3).} Two template families, a
-gift-verb family with the out-of-distribution query marker dropped and a
-corpus-native succession-verb family, fail identically: 16 of 16 readings
-at 0.0, the $h{=}1$ gate false at all 4 cells. % evidence: C3-phase1b
-The failure is not attributable to prompt surface form.
+\textbf{Zero-shot, natural language (wave 3).} Two template families -- a
+gift-verb family with the query marker dropped, and a corpus-native
+succession-verb family -- fail identically: 16 of 16 readings at 0.0, the
+$h{=}1$ gate false at all 4 cells, not a surface-form artifact.
+% evidence: C3-phase1b
 
 \textbf{Task-familiarized (wave 4).} The strongest-case test trains
 control checkpoints on the task itself for 5{,}000 steps and applies the
 gate at five checkpoints per cell. It fails at 30 of 30 readings, 0 of 512
 queries recovered each time, % evidence: C4-dissoc
 while the vocabulary-space query loss falls 21.8 to 46.4 percent (mean
-35.9 percent) in 6 of 6 cells, measured from checkpoint 250, the first
-post-warmup reading, to checkpoint 5{,}000 % evidence: C4-dissoc
+35.9 percent) in 6 of 6 cells, from checkpoint 250 (first post-warmup) to
+checkpoint 5{,}000 % evidence: C4-dissoc
 (Figure~\ref{fig:dissoc}, Appendix~\ref{app:figs}): the models measurably
-learn the task through one readout while the other stays at floor. Since
-the two share no machinery by construction, the dissociation indicts the
-readout construct, not the models (the fall stops short of a registered
-50-percent pin, so the adjudication claims partial task learning only).
+learn the task through one readout while the premise gates fail
+throughout and the recovered-fraction floor -- a pre-fix reading,
+Appendix~\ref{app:gates} -- stays at 0.0. The dissociation, on the
+premise gates rather than the pre-fix floor, indicts the readout
+construct, not the models (partial task learning, short of the registered
+50-percent pin). Waves 3--4 share the pre-fix function and were not
+independently re-run; their probe-invalid routing rests on the unaffected
+premise gates alone, not the raw zero reading.
+% evidence: C3-phase1b, C4-dissoc
 
-\textbf{Gates with enforcing code paths.} Wave 1's launch chain computed
-its abort gate but had no code path acting on it; the grid ran past a gate
-that had already declared the probe invalid. % evidence: C8-teeth
-Every later chain enforced its gates at the process boundary; waves 3 and
-4 each refused a full-grid launch on a real failing gate.
+\textbf{Gates with enforcing code paths.} Wave 1's chain computed its
+abort gate but never acted on it, running the full grid past an
+already-invalid probe; every later chain enforced its gate at the process
+boundary, and waves 3 and 4 each refused launch on a real failing gate.
 % evidence: C8-teeth
