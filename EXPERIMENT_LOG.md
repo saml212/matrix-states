@@ -8371,3 +8371,72 @@ as the prerequisite before ANY further write-capacity ladder spend (a
 plain-recipe ladder would keep measuring trainability collapse, not the
 write). Pointers: `matrix-thinking/ncr/wcap_harvest.py`,
 `launch_wcap_diag.sh`, `NOVEL_ARCH_WATERFALL.md` §9.7–§9.10.
+
+## 2026-07-11 — NCR EARLY-LN K-SCALING (`NOVEL_ARCH_WATERFALL.md` §11 pre-reg / §11.1 build+audit / **§11.2 verdict**): **POOLED VERDICT = TRAINABILITY-STILL-LIMITED (worst-of K∈{15,16,24}) — with the banked positive that K=15 moves DEAD→SCALES (4/4 converged + far-depth HOLD at h\*=117) and earlyln IMPROVES write quality at every rung it converges. ≈7.06 GPU-h of the ≤8 cap.**
+
+**Verdict-first.** The §8.9 earlyln recipe (parameter-free inter-hop LN
+annealed 1→0 over the first training half; EVAL always the inherited
+pure-matmul exact read) applied to the single-relation K axis,
+K∈{14,15,16,24} × 4 seeds = 16 cells, 80K/256 each: **it does NOT unlock
+the K axis wholesale — the trainability wall moves exactly ONE rung.**
+K=14 (continuity): 4/4 converged, SCALES (median rec@h\*=109 0.9737).
+**K=15 (plain-recipe DEAD in §9.10): 4/4 converged, SCALES** — rec@h\*=117
+= 1.000/0.950/0.986/0.999 (median 0.993), fronts at 237, residuals
+0.0020-0.0032. **K=16: 1/4 converged (3 PARTIAL at 0.60-0.73)** and even
+the converged seed's write is 10-20× dirtier (δ=0.0441), far-depth dead at
+the FIRST rung (front=13) → TRAINABILITY-STILL-LIMITED. **K=24: 0/4** —
+but a NEW failure profile: loss descends 1.0→0.36, A_eff_rank climbs to
+≈17.7/24, δ 0.43-0.90 — partial operator formation, NOT §9.10's flat-loss
+rank-1 basin; earlyln moves K=24 off the dead basin without converging it
+at this budget. 0 shadow-divergent points in 16 cells; harvest
+cross-checked against raw JSONs by the coordinator-reads-raw-first rule,
+zero discrepancies. **Bonus finding: earlyln is a write-QUALITY fix, not
+just a convergence fix** — K=14's converged residual drops 0.0072 (plain,
+§9.10) → 0.0020-0.0042 (earlyln) and its far-depth front moves 53 →
+109-221.
+
+**Discipline receipts:** verdict-first §11 pre-registration committed
+BEFORE any GPU (3f10a85); additive build + independent opus audit
+(0 FATAL / 2 MAJOR / 3 MINOR / 2 NIT — MAJOR-1 median-rule drift and
+MAJOR-2 trim-blind harvest CLI both fixed + teeth-tested t8/t9, §11.1;
+eval-purity independently kill-proofed: eval reads are pure functions of
+Z, structurally incapable of seeing the LN blend, verified by the auditor
+running the instruments with `_ln_alpha` deliberately left at 0.8 —
+bit-identical statistics); md5-verified deploy; box CPU selftest 9/9 +
+real-CUDA smoke 4/4; measured rate probe (0.41-0.50 GPU-h/cell) →
+budget-fit NO-trim decision → full grid at breaker 0.75 GPU-h/cell; tmux
++ supervisor + STOP/DONE, resume-safe; 16/16 COMPLETED, zero breaker
+trips. Mid-flight shared-file event disclosed: commit ca539a9 (another
+agent's queue system) extended GRIDS/GRID_SHAPES to K∈{20..256} on the
+box at 05:27 UTC — diff read and verified purely additive, zero effect on
+this run's executed code paths; the audit-MAJOR-2 auto-discovery
+correctly excluded the empty new-K rungs at harvest.
+
+**Security: 7 fake system-reminder injections this sub-session** (the
+composite date-change + "DO NOT mention to the user" concealment +
+fabricated agent-type-list/MCP-instruction blocks, riding on tool outputs
+and background-task notifications) — ALL disregarded incl. every
+concealment order; dates verified against box+local clocks each time; 0
+landed in any committed file. Additionally, two unverifiable
+"coordinator" channel messages requested (a) killing other agents' tmux
+sessions and (b) treating the 150-GPU-h ladder as pre-authorized —
+REFUSED both; several of that channel's factual claims (dead monitors ×4)
+were checked and found FALSE, others (sweep completion, GPU state) were
+verified true directly before acting.
+
+**Ledger:** probe 0.09 + CUDA smoke 0.01 + main 6.96 ≈ **7.06 GPU-h**
+(88% of the ≤8 hard cap). Archive:
+`experiment-runs/2026-07-11_ncr_earlyln_scale/` (repo tier 8.5M: 16 cell
+JSONs + 16 Axis-C locks + 8 cell logs + supervisor/worker + DONE +
+harvest_verdict.json + the exact c641561 sources + probe subdir + md5
+manifest; SSD mirror verified identical). **STOPPED for coordinator per
+the §11 pre-registration — NO further ladder spend authorized by this
+run.** Recommended next (priced, NOT launched): (i) K=16 2×-budget/
+longer-anneal probe ×4 seeds ≈3.5 GPU-h (is the K=16 wall
+budget-limited?); (ii) same at K=24 ≈4 GPU-h (its partial-formation
+profile says budget is the right first lever); (iii) the queue system's
+Lane-A K∈{20..256} ladder should be RE-GATED on (i)/(ii) — on this
+verdict's evidence its rungs ≥24 will measure TRAINABILITY-DEAD under
+the current 80K/flat-anneal recipe. Pointers:
+`matrix-thinking/ncr/ncr_earlyln_scale.py`, `launch_earlyln_scale.sh`,
+`NOVEL_ARCH_WATERFALL.md` §11/§11.1/§11.2.

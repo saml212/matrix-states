@@ -4123,3 +4123,121 @@ build. §11's launch proceeds exactly as pre-registered (this run's
 16-cell grid only), and GPU availability is re-verified fresh
 immediately before deploy/launch regardless of any claim about other
 work's status.
+
+### §11.2 RUN + HARVEST (2026-07-11/12 UTC, 16/16 cells, `EARLYLN_SCALE_DONE` 06:21:43Z): **POOLED VERDICT (K>14, worst-of, per the §11 pinned map) = TRAINABILITY-STILL-LIMITED — with a real, banked positive: K=15 moves from plain-recipe DEAD to SCALES (4/4 converged + far-depth HOLD), and earlyln IMPROVES write quality at every rung it converges**
+
+**Run record.** Deploy md5-verified (all three files byte-identical to
+commit c641561); box CPU self-test 9/9 under torch 2.12.1; real-CUDA
+smoke 4/4 K shapes on GPU 0. Rate probe (500 steps × 16 cells, ≈0.09
+GPU-h) measured 0.41-0.50 GPU-h/cell projected → budget-fit rule:
+projected_total 7.03 ≤ 8.0 → **full 16-cell grid, NO trim**; per-cell
+breaker CEILING_GPUH=0.75 (1.5× the worst measured rate, K=24's 0.49 —
+single global ceiling, ~1.8× for the cheaper Ks, disclosed). Main
+launch 05:21 UTC, tmux `ncr_earlyln_scale_results_earlyln_scale`, 2
+cells/GPU sequential × 8 GPUs, all verified hot (56-70%) at step 1
+with `ln_a 1.00` (correct anneal start); T+20min health check clean
+(no errors, all 8 GPUs busy); 16/16 COMPLETED, zero resume/restart
+events, zero breaker trips. **Main-run GPU-h: 6.96 serial-sum**
+(K14 1.665 / K15 1.576 / K16 1.705 / K24 2.015); with probe + smoke
+≈ **7.06 total of the ≤8 hard cap.**
+
+**Mid-flight shared-file event, disclosed (no effect on this run's
+semantics — verified, not assumed).** At 05:27 UTC (after wave-1 cells
+loaded, before wave-2 processes started) another agent's queue-system
+commit `ca539a9` updated `ncr_earlyln_scale.py`/`ncr_task.py` on the
+box, extending `GRID_SHAPES`/`GRIDS` to K∈{20..256}. The md5
+tamper-check caught the mismatch at harvest time; the full diff
+(c641561→ca539a9) was read and verified **purely additive** — new K
+keys only, `_gen_grid` regression-asserted to reproduce the four
+existing hand-typed entries byte-identically, zero changes to any
+model/training/eval/harvest code path this run executes at
+K∈{14,15,16,24}. Wave-1 cells ran the audited build verbatim; wave-2
+cells ran ca539a9 whose executed paths for these K are identical; the
+harvest (run under ca539a9) auto-discovered the empty new-K rungs and
+correctly excluded them (`SUB4-DISCLOSED-ONLY(n=0)`, verdict None) —
+the audit-MAJOR-2 fix working exactly as teeth-tested.
+
+**THE TABLE (all numbers read from the raw cell JSONs by this agent
+before any verdict was written; harvest cross-checked against them,
+zero discrepancies; 0 shadow-divergent points in 16 cells):**
+
+| K | d | seed | loss@80K | in-dist rec@0.9 (min h=1..3) | A_eff_rank | δ=phase_resid | rec@h\* | front | Gate-1 |
+|---|---|---|---|---|---|---|---|---|---|
+| 14 | 16 | 0 | 0.0001 | 1.000 | 14.00 | 0.0024 | 0.9949 (h\*=109) | 221 | CONVERGED |
+| 14 | 16 | 1 | 0.0000 | 1.000 | 14.00 | 0.0020 | 0.9997 | 221 | CONVERGED |
+| 14 | 16 | 2 | 0.0002 | 1.000 | 14.00 | 0.0042 | 0.8544 | 109 | CONVERGED |
+| 14 | 16 | 3 | 0.0000 | 1.000 | 14.00 | 0.0038 | 0.9525 | 221 | CONVERGED |
+| 15 | 16 | 0 | 0.0000 | 1.000 | 15.00 | 0.0020 | 1.0000 (h\*=117) | 237 | CONVERGED |
+| 15 | 16 | 1 | 0.0001 | 1.000 | 15.00 | 0.0028 | 0.9503 | 237 | CONVERGED |
+| 15 | 16 | 2 | 0.0001 | 1.000 | 15.00 | 0.0032 | 0.9864 | 237 | CONVERGED |
+| 15 | 16 | 3 | 0.0000 | 1.000 | 15.00 | 0.0022 | 0.9993 | 237 | CONVERGED |
+| 16 | 32 | 0 | 0.0908 | 0.600 | 15.14 | 0.1099 | 0.0000 (h\*=125) | 13 | PARTIAL |
+| 16 | 32 | 1 | 0.0752 | 0.732 | 15.29 | 0.1383 | 0.0000 | 13 | PARTIAL |
+| 16 | 32 | 2 | 0.0274 | 0.971 | 15.72 | 0.0441 | 0.0000 | 13 | CONVERGED |
+| 16 | 32 | 3 | 0.0754 | 0.710 | 15.32 | 0.1237 | 0.0000 | 13 | PARTIAL |
+| 24 | 48 | 0 | 0.3680 | 0.000 | 17.61 | 0.6207 | 0.0000 (h\*=189) | 21 | DEAD |
+| 24 | 48 | 1 | 0.3614 | 0.000 | 17.71 | 0.6856 | 0.0000 | 21 | DEAD |
+| 24 | 48 | 2 | 0.3720 | 0.000 | 17.66 | 0.8957 | 0.0000 | 21 | DEAD |
+| 24 | 48 | 3 | 0.3555 | 0.000 | 17.91 | 0.4337 | 0.0000 | 21 | DEAD |
+
+**Per-K verdicts (the §11 pinned gates, applied mechanically):**
+
+| K | conv. rate | Gate-1 label | Gate-2 median rec@h\* | ladder verdict |
+|---|---|---|---|---|
+| 14 (continuity, not pooled) | 4/4 | CONVERGED-ROBUST | 0.9737 → HOLD | **SCALES** |
+| 15 | 4/4 | CONVERGED-ROBUST | 0.9929 → HOLD | **SCALES** |
+| 16 | 1/4 | CONVERGED-PARTIAL | (0.0, the 1 converged seed) | **TRAINABILITY-STILL-LIMITED** |
+| 24 | 0/4 | TRAINABILITY-DEAD | — | **TRAINABILITY-STILL-LIMITED** |
+
+**Pooled verdict of record (worst-of over scored K∈{15,16,24}):
+TRAINABILITY-STILL-LIMITED.** Said plainly, no spin: the earlyln
+recipe does NOT unlock the K axis wholesale. It moves the trainability
+wall exactly ONE rung — K=15, plain-recipe DEAD at n=1 (§9.10), is now
+4/4 converged AND holds exact composition at far depth h\*=117 — and
+then the wall re-forms at K=16 (1/4 converged, and even that seed's
+write is 10-20× dirtier than K=15's, δ=0.0441 vs 0.002-0.003, killing
+far-depth at the FIRST ladder rung, front=13).
+
+**Banked positives (real, each verified against raws):** (1) **K=15
+SCALES under earlyln** — the first NEW converged-and-far-depth-holding
+K rung bought by a training-recipe fix alone; the §9.10 "sharp
+single-seed trainability cliff between K=14 and K=15" is now placed
+between K=15 and K=16, and it is a RECIPE artifact at K=15, not a
+write-capacity wall. (2) **earlyln improves write QUALITY, not just
+convergence**: at K=14 the converged residual dropped from the plain
+recipe's δ=0.0072 (§9.10) to 0.0020-0.0042, and the far-depth front
+moved from 53 to 109-221 — the annealed-LN training path lands the
+same exact-composition model in a cleaner basin. (3) **K=24 fails
+DIFFERENTLY than the plain-recipe collapse**: loss descends ~1.0→0.36
+with A_eff_rank climbing to ≈17.7/24 and δ 0.43-0.90 — partial
+operator formation, NOT §9.10's flat-loss rank-1 basin. earlyln moves
+K=24 off the dead basin without converging it at this budget — an
+optimization-progress profile that suggests budget/schedule scaling
+(longer anneal, more steps) as the next lever, distinct from the K=16
+profile (converges in loss, 0.027-0.091, but recovery stuck at
+0.60-0.97 with dirty writes).
+
+**Observed per-seed far-depth structure (observation only, not a
+gate):** at the converged rungs, hold-at-h\* tracks the locked residual
+exactly as the §3.2 conservative bound predicts — every seed with
+δ ≤ 0.0032 holds ≥ 0.95; K=14 s2 (δ=0.0042, horizon 0.451/0.0042 ≈
+107 ≈ h\*=109) sits AT the boundary and lands 0.8544 — one more
+boundary-regime datapoint for §7i's "coin-flip within ~10% of h\*"
+caveat, consistent, adds n.
+
+**GPU-h ledger:** probe 0.09 + smoke 0.01 + main 6.96 ≈ **7.06 of the
+≤8 hard cap** (88%). Zero breaker trips, zero dead-GPU quarantines,
+zero restarts.
+
+**STOPPED for coordinator per the §11 pre-registration.** This run
+authorizes NO further ladder spend. Recommended next steps, priced but
+NOT launched: (i) **K=16 budget/anneal probe** — the K=16 profile
+(loss converges, recovery stuck, 3/4 PARTIAL at 0.60-0.73) is the
+cheapest open question; a 2×-steps / longer-anneal variant at K=16 ×
+4 seeds ≈ 3.5 GPU-h tests whether the wall is budget-limited before
+any architecture change; (ii) K=24's partial-formation profile makes
+the same test there ≈ 4 GPU-h at 2× budget; (iii) the queue system's
+Lane-A K∈{20..256} earlyln ladder AS CURRENTLY SPECIFIED will —
+on this verdict's evidence — measure TRAINABILITY-DEAD cells at every
+rung ≥ 24 under the 80K/flat-anneal recipe and should be re-gated on
+(i)/(ii) first (its K=20 cells may converge; ≥32 near-certainly not).
