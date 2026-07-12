@@ -2454,6 +2454,87 @@ NOTHING further and does not touch the `ncr/` tree while §9 builds there;
 the coordinator routes option (b) back when §9 reports and the tree is
 clear.
 
+### §8.7 CONVERGENCE-RECOVERY DIAGNOSIS — PRE-REGISTRATION (2026-07-11/12, before any GPU touched; coordinator routed option (b) back — §9 build committed 4681d2a, only RUNNING, `ncr/` tree stable for additive build)
+
+**Question (verdict-first framing).** WHY does the raw-matmul
+exact-composition contender fail to converge at R=3 (§8.5/§8.5a: flat
+chance even at the proven 256/80K single-relation budget) when
+(i) single-relation NCR converges under that budget and (ii) `fwm-bank`
+converges under the IDENTICAL R=3 24-binding write load (§8.5)? The
+§8.5a diagnosis localized the failure to the WRITE/encode stage
+(A_eff_rank collapsed 2.5–3.5, phase_resid high) as an
+**optimization-landscape × write-load interaction**, NOT pure
+write-saturation (the fwm counterexample falsifies that). This section
+tests whether a cheap training-recipe intervention unsticks it.
+
+**Arms (4 cells, one per GPU on 0/1/6/7; GPUs 2/3/4/5 are the §9
+diagnostic's — NOT touched). All are the SAME `NCRBankModel` contender
+(pure-matmul exact read at EVAL — the exactness axis is never
+compromised); arms differ ONLY in the TRAINING recipe:**
+- **`baseline` (control):** plain contender, flat Adam 3e-4,
+  `axis_b_frac=0.5`, no LN — the §8.5a recipe re-run in-session at the
+  identical seed/code so a recovery arm is measured against a
+  concurrently-non-converging control, not just the archived §8.5a. MUST
+  reproduce non-convergence or the comparison is confounded.
+- **`warmup` (b-i):** linear-warmup (first 4K steps) + cosine-decay LR,
+  else identical to baseline. Tests: does the plateau-then-transition
+  dynamic need a schedule to escape the flat-loss basin?
+- **`earlyln` (b-ii):** an inter-hop LayerNorm (parameter-free) blended
+  into the TRAIN read step with weight α annealed 1.0→0.0 over the first
+  half of training, 0.0 thereafter — at α=0 the forward is
+  BIT-IDENTICAL to the plain contender (closed-form-tested), and EVAL
+  always uses the parent's pure-matmul exact read, so the final model is
+  the exact contender and the exactness axis is preserved. Tests: does
+  fwm-style read-stabilization EARLY (then removed) get the raw-matmul
+  contender into the convergence basin it can't reach cold?
+- **`curriculum` (b-iii):** `axis_b_frac` ramped 0.0→0.5 over the first
+  half of training (single-block first, 2-block chains added
+  gradually), else identical to baseline. Tests: is the 2-block
+  composite objective the barrier — does mastering single-block first
+  bootstrap it?
+
+**Budget.** 4 cells × 80,000 steps × batch 256 (matching §8.5a exactly
+for a clean same-budget comparison) at the §8.5a-measured ≈0.456
+GPU-h/cell ⇒ ≈1.8 GPU-h projected, hard cap **≤8 GPU-h** (per-cell
+breaker 2.0 GPU-h). NOT charged against a wave — this is the
+Phase-0-mandate §8.6 diagnosis. One arm per GPU (0/1/6/7), 80K, resume-safe.
+
+**Primary metric + verdict map (pinned BEFORE the readout).** In-dist
+(h=1,2,3) `recovered_frac@0.9`, **min over the 3 relations**, at end of
+training (the §8.5a baseline reads **0.0** here — flat chance — so any
+clear rise is attributable to the intervention). Corroborating signals
+(reported, not the primary gate): in-dist `mean_cos`, per-relation
+`A_eff_rank` (climb toward 8 = operators forming), the relation-swap gap
+(opens up = capability teeth returning), far-depth h\*=61 recovery.
+- **RECOVERED (strong):** at least one arm reaches in-dist
+  min-over-r `recovered_frac@0.9` **≥ 0.9** AND its `A_eff_rank` climbs
+  toward ≈8 AND its swap gap opens (> 0.3) → **the contender IS trainable
+  at R=3; the operator-bank capability is UNBLOCKED for a wave** (which
+  the coordinator, not this agent, would then route).
+- **PARTIAL:** best arm in **[0.5, 0.9)** → the intervention demonstrably
+  helps but is not yet wave-ready; report which arm + the tuning direction.
+- **NONE-RECOVER (honest negative):** all arms **< 0.5** in-dist → the
+  raw-matmul × R=3 optimization landscape needs a deeper rethink (not a
+  recipe tweak); recorded as a genuine negative, no spin.
+- **Control check (must hold for any positive claim):** `baseline`
+  reproduces non-convergence (< 0.5). If `baseline` itself converges,
+  the whole §8.5a premise is re-opened and the readout is re-adjudicated
+  before any arm is credited.
+
+**Discipline (charter, all pinned):** additive build ONLY — a NEW file
+`matrix-thinking/ncr/ncr_opbank_recover.py`, importing the existing
+`ncr_opbank_{task,models}.py` VERBATIM, modifying NONE of them (the §9
+agent's shared-tree single-writer safety); CPU self-test with executed
+mutation kill-proofs incl. the α=0-bit-identity closed-form smoke;
+per-arm end-to-end micro test (ALL 4 arms — the §7e lesson); independent
+opus build-audit with executed kill-proofs BEFORE launch; md5-verified
+deploy; tmux `ncr_opbank_recover` + supervisor + STOP/DONE, resume-safe;
+pathspec commits, never sweep the §9 agent's staged files; `nvidia-smi`
+idle-check on 0/1/6/7 before launch. On completion: harvest → §8.8
+verdict-first → archive (repo ≤25MB + SSD) → EXPERIMENT_LOG → pathspec
+commit → push → **STOP for coordinator routing (do NOT launch an
+operator-bank wave off this)**.
+
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
 (median 0.8704, DEGRADED — moved UP within band from §7g's 0.753) →
