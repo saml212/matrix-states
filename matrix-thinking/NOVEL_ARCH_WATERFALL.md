@@ -1738,6 +1738,213 @@ FIX-5 grid + reasoning-link validation) are never touched. On
 completion: harvest (per the audited extension above) → §7i (RECORD
 FIRST) → archive → EXPERIMENT_LOG → commits.
 
+## §8 OPERATOR BANK (opened 2026-07-11/12, GPU refill campaign)
+
+**Gate discharge, both legs of M4.** (1) Stage 2's calibration readout
+is discharged (`CAPABILITY_SEPARATION_DESIGN.md` §2.30, SWEEP-READY on
+disk) — the fla-vs-torch and readout-diagnostic lessons it exists to
+transfer are already absorbed into the single-relation NCR build
+(§7 throughout: torch-bespoke fp32, no fla consumer, the closed-form
+checks at §7's build item 11). (2) The single-relation wave-1+2 program
+is COMPLETE and WON: K=8 WIN (§7e), cross-K WIN-PARTIAL (§7g), a K=12
+seed-extension pre-registered (§7h) and executed on the box
+(`K12EXT_DONE` sentinel present, `/home/nvidia/ncr/results_k12ext/`,
+5 fresh seeds) — that extension's harvest/record is a DIFFERENT thread's
+work-in-progress and is explicitly NOT touched by this section. Both M4
+legs are open; the operator bank proceeds.
+
+**Scope discipline (this round, under an explicit no-idle-GPU push):**
+this pre-registration is deliberately MINIMAL, not the full wave design
+— Phase-0 informs wave-1 sizing, exactly as the single-relation
+program's own §3.6 did. Cut relative to a maximal design: no K=12 cell
+this round (backlog, §8.1.6); the bounded-chain axis gets a small
+disclosed probe, not a full grid (§8.1.3).
+
+### §8.1 Design + pre-registration
+
+**8.1.1 Task.** One shared entity pool, `d=16`, `K=8`, `N=K=8`
+(orthonormal, permutation variant — identical convention to
+`task_e.TaskEConfig`). **R=3 independent relations** π₀,π₁,π₂, each its
+OWN single Hamiltonian K-cycle over the SAME 8 entities (task_e's
+`_permutation_graph` generator called R times per episode, independent
+draws). Distinctness is checked, not assumed: at generation time assert
+the R cycle-permutation matrices are pairwise distinct (`assert not
+torch.equal(...)` for every pair) — with 5040 directed Hamiltonian
+K=8-cycles the collision probability of 3 iid draws is astronomically
+small, but the assert makes it a checked invariant, not a hoped-for one,
+per the injectivity-check precedent in `task_e.py`'s own `_assert_injective`.
+One episode presents all `R*K = 24` bindings together (key_i → π_r(key_i)
+for every r, every i), each binding token tagged with a learned
+relation embedding (added post-projection, not concatenated — keeps
+`in_proj` unchanged from `BindingEncoder`, only `rel_embed: (R,h)` is
+new). This is the load-bearing design choice: R operators are written
+FROM ONE SHARED CONTEXT, by a SHARED transformer trunk, competing for
+the same attention/parameter budget — the thing that makes "bank"
+(interference risk) a genuine empirical question rather than R
+independent copies of the already-won single-relation result.
+
+**8.1.2 Architecture — `BankBindingEncoder`.** Extends
+`model_v4.BindingEncoder` (chapter2, verbatim trunk) with: (a)
+`rel_embed: nn.Parameter(R, h)` added to each binding token post-`in_proj`
+(query tokens for extraction, see below, get no relation tag — they are
+relation-agnostic reads); (b) `row_queries: (R, d, h)` replacing the
+single-relation `(d, h)` — R independent sets of d row-readers, one set
+per relation; (c) the `reader`/`row_norm`/`row_out` weights are SHARED
+across all R extractions (this is deliberate: forcing R different
+learned query vectors to pull DIFFERENT information out of the SAME
+shared `mem` via the SAME attention/projection weights is a strictly
+harder interference test than giving each relation its own private
+reader would be). `forward(keys, values, rel_ids) -> Z_bank: (B,R,d,d)`,
+batched over `B*R` for the reader call. Params: shared trunk unchanged
+(≈ the single-relation encoder's trunk cost); the only new parameters
+are `rel_embed` (R·h = 192 for R=3,h=64) and `row_queries` growing R×
+(3·16·64=3072 vs 1024) — a small, cheap extension, computed exactly at
+build time via the same `param_report`/`assert_param_match` pattern
+(§3.3 of the single-relation design), not eyeballed.
+
+**8.1.3 Axes.**
+- **Axis R-BANK (headline, primary claim).** Single-block queries
+  `(r, h)`: `pred = π_r^h(query_entity)`, read via `Z_bank[:, r]` through
+  the EXISTING `binexp_read`/`loop_read` (relation-agnostic once `Z_r`
+  is extracted — zero new read code). Held-out depth per relation reuses
+  the PINNED `ncr_task.GRIDS[8]` verbatim (train {1,2,3}, ladder, h*=61,
+  sweep, cost_probe) — `r` is an orthogonal selection axis, not a
+  depth-periodicity axis, so no new mod-K reasoning is needed; the
+  EXISTING `task_e.TaskEConfig.__post_init__` guard is reused per
+  relation, unmodified. Capability claim: exact composition + O(log h)
+  read SURVIVES when R operators share one write context (vs. the
+  single-relation claim: exact composition + O(log h) read for ONE
+  operator). Novelty axis (M1, unchanged): the delta vs. TensorLog/
+  Neural-LP/DRUM (arXiv:1605.06523/1702.08367/1911.00055) stays
+  "in-context-written, not static-weight" — now literally demonstrated
+  with R>1 operators coexisting in one context, closer to their
+  multi-relation KG setting than the single-relation wave ever was.
+- **Axis LOG-DEPTH (headline, cost, inherited).** Identical bar to the
+  single-relation Axis B (§3.2/§7e): bin-exp ≥10× faster than the best
+  O(h) arm at large h. Measured on relation r=0 only — binexp/loop_read
+  cost is a pure function of `h` and the extracted `Z_r`'s shape, not of
+  which relation was selected, so measuring on 3 relations would be
+  redundant compute, not a stronger test; disclosed as such.
+- **Axis B-CHAIN (exploratory, secondary, non-blocking, disclosed
+  scope-limited).** Two-block programs `(r1,h1,r2,h2)`, r1≠r2 required
+  (r1=r2 degenerates to Axis R-BANK and is run ONLY as an internal
+  consistency check, never scored as a claim): `pred =
+  π_{r2}^{h2}(π_{r1}^{h1}(query_entity))`, read as `binexp_read(Z_{r2},
+  binexp_read(Z_{r1}, q, h1)['o'], h2)`. Cost = O(log h1) + O(log h2) =
+  O(log h) since **B is FIXED at 2, never query-controlled** — this is
+  exactly the boundary M4 drew: a heterogeneous chain whose LENGTH grows
+  with the query loses log-depth and sits in Neural-LP/DRUM/FWM
+  territory (M4, quoted: "the relation chain Z_rn···Z_r1 has NO squaring
+  shortcut... loses log-depth"); a chain whose length is a fixed O(1)
+  constant does not — B=2 is disclosed as a scope limit, NOT claimed to
+  generalize to variable B. Eval grid deliberately small (Phase-0
+  informs sizing; ballpark: h1=h2=h*=61 crossed over the 6 ordered
+  (r1,r2) pairs, ≈0 GPU-h, eval-only). Reported as HOLD/DEGRADED/FAIL,
+  no WIN/TIE/LOSE label required for this wave — a LOSE here does not
+  sink the Axis R-BANK or LOG-DEPTH verdicts.
+
+**8.1.4 Baselines (M3, mi6 pinned families, ±15% param match).**
+- `loopedvec-bank`: SAME pinned step-map family (weight-tied 2-layer
+  GELU MLP residual step) as the single-relation `LoopedVecModel`; the
+  only change is the encoder producing `x0` per `(r, query)` pair from
+  the R*K-token shared context (same relation-embedding tagging as
+  `BankBindingEncoder`). `h` and `r` both consumed only via masking /
+  initial-state selection — no new episode conditioning beyond the
+  state, per mi6.
+- `fwm-bank`: SAME write (`BankBindingEncoder`, own weights), read =
+  h-fold recursive LN read on the SELECTED `Z_{r}` (or `Z_{r2}` after a
+  prior `Z_{r1}` block for Axis B), O(h) sequential, LN affine weight-
+  tied across hops — verbatim extension of the single-relation
+  `FWMReadModel.read`.
+- `cmlp-bank`: disclosed weak control, one-hot(h)⊗one-hot(r) extension
+  of the inherited `MLPShortcutModel`; never the comparison of record,
+  never param-matched by design (same convention as the single-relation
+  `CMLPModel`).
+- Param match computed exactly at build time (`assert_param_match`
+  extended, ±15% vs `ncr-bank`), not eyeballed.
+
+**8.1.5 Hard-rule bakein (all apply fresh to this forward pass, per
+`CLAUDE.md` — none inherited from the single-relation build without
+re-verification).**
+- **Single full K-cycle, not general permutation:** each of the R
+  relations independently a full Hamiltonian K-cycle (task_e generator,
+  reused verbatim); mod-K periodicity guard reused per relation via the
+  existing `TaskEConfig.__post_init__` assert, unmodified.
+- **Exact continuous readout:** cosine recovery against continuous
+  targets throughout, no argmax/codebook anywhere (unchanged from the
+  single-relation design).
+- **P=1 hard bottleneck / blank-out:** extended and re-verified for THIS
+  forward pass (not inherited): corrupt the raw `R*K` binding tokens
+  post-write, confirm `Z_bank` (hence every read) is bit-identical and
+  `∂o/∂(raw inputs post-write)` is exactly zero — gradient-based, not a
+  shape check.
+- **NEW gate specific to the bank (this section's own P=1 analog):
+  relation-ID-swap ablation.** At eval, feed the WRONG relation id
+  `r'≠r` for a query whose true relation is `r`, same entity/depth.
+  Since π_r are independent random cycles, `π_r(a) ≠ π_{r'}(a)` almost
+  surely for K=8 — a model that ignores relation-id and just memorizes
+  "the" operator would show NO degradation under this swap. MANDATORY,
+  executed to completion, numeric threshold (not a shape check): median
+  cos(pred_wrong_r, true_target_r) at h* must be indistinguishable from
+  a random-direction control (bar: < 0.3, pinned before any cell runs).
+  This is a validity GATE (must-pass precondition), not a scored claim
+  axis — same status as blank-out.
+- **Geometric trust rule (M2/§3.4), re-verified per relation:** the
+  corrected scale-normalized `‖C‖/σ_min(A)` rule with its N1/N2 negative
+  tests (amplifying near-normal + non-normal nilpotent, both already
+  executed once for the single-relation build) is re-run at Phase-0
+  against EACH of the R extracted `Z_r`, not assumed to transfer as a
+  single global check — each `Z_r` is an independently-trained
+  sub-operator and could in principle have different leakage geometry.
+- **fla-transpose lesson (§17/§2.26): explicitly N/A, disclosed.**
+  `BankBindingEncoder` is bespoke fp32 torch (verbatim `BindingEncoder`
+  trunk extension) — no `chunk_delta_rule` or any fla consumer anywhere
+  in this build, identical to the single-relation arm's own M5 finding
+  ("no fla kernel computes powers"). No closed-form fla-state-layout
+  check applies; the closed-form checks that DO apply are the same
+  `binexp_read`/`loop_read`-vs-literal-fp64-power agreement checks
+  already in `ncr_models.py`'s self-test, extended to run against a
+  `Z_r` slice of `Z_bank` instead of a bare `Z` (shape-only delta).
+- **Negative tests run to completion, not just written (hard rule):**
+  relation-distinctness assert (8.1.1), blank-out, relation-ID-swap
+  ablation, N1/N2 geometric-rule negative tests ×R, param-match assert —
+  ALL must execute with archived output before the build is trusted, at
+  Phase-0, mirroring the single-relation §3.8(c) gate.
+
+**8.1.6 WIN/TIE/LOSE and scope cuts.**
+Bank-level score for Axis R-BANK = **min over r∈{0,1,2}** of each
+relation's median recovered_frac@0.9 at h* (the conservative,
+worst-relation aggregation — a bank claim requires ALL three relations
+to work, not the easiest one). HOLD/DEGRADED/FAIL bands unchanged from
+§3.2a (≥0.9 / (0.5,0.9] / ≤0.5). WIN = ncr-bank band HOLD AND
+best-baseline bank band FAIL (baseline's own bank score computed the
+same min-over-r way). Axis LOG-DEPTH: unchanged ≥10× bar. Axis B-CHAIN:
+reported, non-blocking (8.1.3). **Explicit cuts, disclosed, backlog for
+a later wave, not silently dropped:** no K=12 cell this round (K=8
+only); Axis B-CHAIN eval grid is a small disclosed probe, not the full
+crossed ladder; R is fixed at 3 for this wave (not swept).
+
+**8.1.7 GPU-h ledger — OWN cap, separate from the single-relation
+program's 120 (per M4/§3.6: "NOT authorized by this cap, own design
+round required").** Coordinator-set: **80 GPU-h total cap, wave-1
+(Phase-0+Phase-1) sub-cap ≤50.** Rate: UNKNOWN a priori (R*K=24 tokens
+vs the single-relation arm's K=8 — token count 3×, but transformer
+self-attention cost is not necessarily linear in token count at this
+tiny scale, d_model=64 dominates) — Phase-0's job is to MEASURE the real
+rate, exactly as §3.6/§7c did for the single-relation build; no wave-1
+cell count is committed until that number exists.
+
+| Phase | Cells | Plan | Gate |
+|---|---|---|---|
+| **0 — calibration (mandatory first)** | 3 (one per trained arm: ncr-bank, loopedvec-bank, fwm-bank) | reduced calibration steps (mirrors §7c precedent, ≈0.73 GPU-h realized there); all 8.1.5 instrument duties executed here | Real rate measurement; sizes wave-1 seed count; per-cell abort breaker set generously (2 GPU-h ceiling) until the real rate is known |
+| **1 — wave-1 core (K=8)** | Target 3 seeds × 3 trained arms (9) + cmlp-bank × 2 seeds (2) = 11, ADAPTIVE on the Phase-0 rate (cut to 2 seeds/arm, then 1, before dropping an arm, if the measured rate would blow the sub-cap) | sized from Phase-0's measured rate, never from this sketch | Sub-cap ≤50 (shared with Phase-0); fires only after Phase-0 passes + §8.2 attack clears |
+| **Reserve** | K=12 replication (backlog) + budget-artifact retests | — | Draws logged individually against the remaining ~30 |
+| **TOTAL CAP** | | | **80 GPU-h**, own ledger |
+
+### §8.2 ATTACK (fresh opus, dispatched against this §8.1 text)
+
+*(recorded below once returned)*
+
 ### §7i K=12 SEED-EXTENSION READOUT (2026-07-11, 5/5 cells,
 `K12EXT_DONE` 23:09:14Z): **pooled 10-seed K=12 AXIS A = SEP-PARTIAL
 (median 0.8704, DEGRADED — moved UP within band from §7g's 0.753) →
