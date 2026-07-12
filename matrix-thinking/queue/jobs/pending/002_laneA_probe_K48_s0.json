@@ -1,0 +1,10 @@
+{
+ "id": "002_laneA_probe_K48_s0",
+ "lane": "A",
+ "hypothesis": "Rate probe only: measures real per-step wall time for the earlyln K=48 shape (d=2K=96, h=64) BEFORE the 80,000-step main manifest commits its budget, mirroring S9.9's own Phase-0a discipline. Not itself a trainability readout.",
+ "cmd": "cd /home/nvidia/ncr && /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell --K 48 --seed 0 --steps 500 --outdir /home/nvidia/ncr/results_earlyln_scale_probe --ceiling-gpuh 0.5",
+ "gpu_h_estimate": 0.007,
+ "output_dir": "/home/nvidia/ncr/results_earlyln_scale_probe",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr/results_earlyln_scale_probe/earlyln_K48_s0.json')); assert d.get('status')=='COMPLETED'; assert d.get('train',{}).get('step')==500; assert 'eval' in d and 'deep_probe' in d\"",
+ "notes": "formula-extrapolated estimate (F(K)/F(24) scaling from the measured K=24 rate ~0.507 GPU-h/80k-step-cell); --ceiling-gpuh 0.5 hard-bounds worst case regardless of extrapolation error."
+}

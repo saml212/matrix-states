@@ -89,6 +89,43 @@ from, is archived at `archive/chapter2-gauntlet/DEPLOY.md` as of 2026-07-04
 — its box-specific details, e.g. the `ubuntu` user, are stale; this section
 is the current source of truth.)
 
+## Standing programmatic queue (built 2026-07-11, PI GPU-saturation directive)
+
+A persistent, Claude-independent job queue lives at `~/queue/` on the box,
+distinct from (and coexisting with) the per-campaign perpetual-sweep
+pattern above. Full spec + operational runbook:
+`matrix-thinking/queue/QUEUE_README.md` (repo copy = source of truth; a
+synced copy is deployed to `~/queue/QUEUE_README.md`). Generator + runner
+live in `matrix-thinking/queue/` (`generate_jobs.py`, `queue_worker.sh`).
+
+**One-line summary:** 8 per-GPU worker daemons (`queue_worker_g0..g7`, each
+its own tmux session, each wrapped in the house supervisor loop
+`while [ ! -f STOP ]; do bash queue_worker.sh <N>; sleep 15; done`) claim
+job specs from `~/queue/pending/` (atomic `mv`, priority-ordered by
+filename) and run them as their own child process, ONLY when their assigned
+GPU shows zero `nvidia-smi --query-compute-apps` entries AND <2 GiB
+`memory.used` — this auto-yields to ANY other job on the box (a filler
+session, a priority sweep claiming the whole node) with zero coordination,
+polling every 60s while busy. `~/queue/PAUSE` stops new claims box-wide;
+`~/queue/STOP` is the global kill switch (every worker finishes its current
+job, then exits — never `pkill`, exact tmux session names only, per the
+standing hard rule). A job's own `validity_check` command (not its raw
+exit code) decides `completed/` vs `failed/`; one bad job never wedges its
+worker (the claim loop always continues). Coexists with (does not manage,
+does not depend on) any other tmux session on the box — including this
+section's own perpetual-sweep pattern above and any priority campaign
+sweep — by construction of the free-GPU gate.
+
+**Relationship to the pattern above:** the perpetual-sweep pattern (a
+single orchestrator script looping over ITS OWN manifest, e.g.
+`run_task_e_sweep.py --forever`) is what a CAMPAIGN uses to keep its own
+GPUs busy across a sweep. The standing queue is the box-level backstop
+underneath that — it fills whatever GPUs a campaign sweep is NOT currently
+using, and hands GPUs back the instant a campaign sweep claims them. A
+campaign's own perpetual-sweep orchestrator needs no awareness of the
+queue at all; the queue notices the campaign's `nvidia-smi` footprint and
+backs off on its own.
+
 ## Access (prior single-H100 pod, superseded — kept for reference)
 ```
 ssh root@154.57.34.103 -p 44178 -i ~/.ssh/id_ed25519

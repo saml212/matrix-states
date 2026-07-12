@@ -122,6 +122,45 @@ GRIDS = {
     ),
 }
 
+
+def _gen_grid(K: int) -> dict:
+    """The S9.7/S11 closed form, applied MECHANICALLY (not hand-tuned) to a
+    new K: ladder_residue=K-3; ladder h_m = m*K-3 for m in
+    {1,2,4,8,16,32,64,128}; h_star = 8*K-3 (the m=8 rung, ON-ladder, a
+    provisional placeholder per S9.7 -- NOT a claimed crossover);
+    sweep = K consecutive residues ending at the identity point h_star+3.
+    cost_probe deferred (), matching every K>8 grid's own convention.
+    Reproduces GRIDS[14]/[15]/[16]/[24] EXACTLY when called with those K's
+    (regression-asserted below) -- this function is the formula those four
+    entries were already generated from, made callable for new K's rather
+    than re-hand-typed (queue-system build, matrix-thinking/queue/, 2026-07-11:
+    extends the K-ladder to K in {20,32,48,64,96,128,192,256} for the NCR
+    early-LN K-scaling program, additive only, GRIDS[8]/[12]/[14]/[15]/[16]/
+    [24] untouched)."""
+    residue = K - 3
+    ladder = tuple(m * K - 3 for m in (1, 2, 4, 8, 16, 32, 64, 128))
+    h_star = 8 * K - 3
+    sweep = tuple(range(h_star - K + 4, h_star + 4))
+    return dict(ladder=ladder, h_star=h_star, sweep=sweep, cost_probe=(),
+                ladder_residue=residue)
+
+
+# Regression proof the formula is faithful to the four existing hand-typed
+# entries it describes (byte-identical) BEFORE it is trusted for new K's.
+for _K_check in (14, 15, 16, 24):
+    assert _gen_grid(_K_check) == GRIDS[_K_check], (
+        f"_gen_grid formula diverges from the hand-typed GRIDS[{_K_check}] entry")
+
+# New K-ladder rungs (queue-system build, 2026-07-11): additive only, every
+# key above is untouched. K in {20,32,48,64,96,128,192,256}, Condition-A
+# proportional-headroom convention (d=2K, h=64) -- see GRID_SHAPES in
+# ncr_earlyln_scale.py. h_star values are UNCALIBRATED placeholders exactly
+# as disclosed for K=14/15/16/24 (S9.7) -- not a claimed crossover, a
+# consistent evaluation-grid scaffold for the trainability question the
+# K-scaling program actually asks.
+for _K_new in (20, 32, 48, 64, 96, 128, 192, 256):
+    GRIDS[_K_new] = _gen_grid(_K_new)
+
 for _K, _g in GRIDS.items():
     for _h in _g["ladder"]:
         assert _h % _K == _g["ladder_residue"], (_K, _h)

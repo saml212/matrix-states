@@ -77,6 +77,19 @@ GRID_SHAPES = {
     15: dict(d=16, h=64),
     16: dict(d=32, h=64),
     24: dict(d=48, h=64),
+    # Queue-system K-ladder extension (2026-07-11, matrix-thinking/queue/):
+    # additive only, K=14/15/16/24 above byte-identical. Condition-A
+    # proportional-headroom convention (d=2K, h=64) applied verbatim, the
+    # SAME convention already pinned for K=16/24 -- see ncr_task._gen_grid
+    # for the matching GRIDS[K] extension (same K set).
+    20: dict(d=40, h=64),
+    32: dict(d=64, h=64),
+    48: dict(d=96, h=64),
+    64: dict(d=128, h=64),
+    96: dict(d=192, h=64),
+    128: dict(d=256, h=64),
+    192: dict(d=384, h=64),
+    256: dict(d=512, h=64),
 }
 DEFAULT_SEEDS = (0, 1, 2, 3)
 CONVERGED_INDIST_BAR = 0.9
@@ -503,6 +516,30 @@ def _self_test():
     assert nt.residue_label(g24["ladder_residue"], 24) == "novel"
     print("t4 PASS: GRIDS[8]/[12]/[14]/[15]/[16] byte-identical (GRIDS[24] add is additive-only); "
           "GRIDS[24] residue/identity/sweep invariants hold")
+
+    # t4b QUEUE-SYSTEM K-LADDER EXTENSION (2026-07-11): same additive-only
+    # discipline, one more block of K's (20/32/48/64/96/128/192/256). GRIDS[8]
+    # through [24] re-checked byte-identical (t4's own dicts, no drift from
+    # this module's own edit); every new K's ladder/h_star/sweep/residue
+    # invariants hold via the SAME formula nt._gen_grid implements (verified
+    # against nt.GRIDS directly here, not against _gen_grid itself, so this
+    # catches a divergence in EITHER the formula or its call site); GRID_SHAPES
+    # d=2K/h=64 convention verified for every new key.
+    assert nt.GRIDS[8] == _G8 and nt.GRIDS[12] == _G12 and nt.GRIDS[14] == _G14 \
+        and nt.GRIDS[15] == _G15 and nt.GRIDS[16] == _G16 and nt.GRIDS[24] == g24, \
+        "t4b FAILED: an existing GRIDS key changed by the K-ladder extension"
+    for _K in (20, 32, 48, 64, 96, 128, 192, 256):
+        _g = nt.GRIDS[_K]
+        assert _g["ladder_residue"] == _K - 3, (_K, _g)
+        assert _g["h_star"] == 8 * _K - 3, (_K, _g)
+        assert all(h % _K == _g["ladder_residue"] for h in _g["ladder"]), (_K, _g)
+        assert len(_g["sweep"]) == _K and sorted(h % _K for h in _g["sweep"]) == list(range(_K)), (_K, _g)
+        assert nt.residue_label(_g["h_star"] + 3, _K) == "identity", _K
+        assert nt.residue_label(_g["ladder_residue"], _K) == "novel", _K
+        assert GRID_SHAPES[_K] == dict(d=2 * _K, h=64), (_K, "GRID_SHAPES must be d=2K,h=64")
+    print("t4b PASS: GRIDS[8..24] byte-identical after the K-ladder extension; "
+          "K in {20,32,48,64,96,128,192,256} residue/identity/sweep invariants hold; "
+          "GRID_SHAPES d=2K/h=64 convention verified for every new key")
 
     # t5 END-TO-END all 4 K shapes, tiny eval grid (mirrors ncr_wcap_selftest
     # t05's tiny-grid pattern so CPU cost stays trivial)

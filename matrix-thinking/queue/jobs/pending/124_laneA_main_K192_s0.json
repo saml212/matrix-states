@@ -1,0 +1,10 @@
+{
+ "id": "124_laneA_main_K192_s0",
+ "lane": "A",
+ "hypothesis": "Same K-ladder question as the n=4 cells above, at K=192 (d=384, h=64) -- SUB-4-SEED, DISCLOSED-ONLY by design (cost/risk tail, the harness's own harvest() already scores a sub-4-seed rung as disclosed-only, never gate-eligible, never entering the pooled worst-of-K label).",
+ "cmd": "cd /home/nvidia/ncr && /home/nvidia/tdenv/bin/python3 ncr_earlyln_scale.py --cell --K 192 --seed 0 --steps 80000 --outdir /home/nvidia/ncr/results_earlyln_scale --ceiling-gpuh 16.0 --stop-file /home/nvidia/ncr/results_earlyln_scale/STOP",
+ "gpu_h_estimate": 7.987,
+ "output_dir": "/home/nvidia/ncr/results_earlyln_scale",
+ "validity_check": "/home/nvidia/tdenv/bin/python3 -c \"import json; d=json.load(open('/home/nvidia/ncr/results_earlyln_scale/earlyln_K192_s0.json')); assert d.get('status')=='COMPLETED'; assert d.get('train',{}).get('step')==80000; assert 'eval' in d and d.get('blank_out',{}).get('passed') is True\"",
+ "notes": "n=2 not n=4: cost/risk tail of a formula-extrapolated estimate; Lane C deepens these to n=4 (seeds 2,3) once Lane A budget is spent, matching the '>=4 seeds' ask without front-loading risk."
+}
