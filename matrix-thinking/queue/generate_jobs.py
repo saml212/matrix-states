@@ -1427,6 +1427,108 @@ def ncr_mapping_law_q4_k32_budget_jobs() -> list[dict]:
     return jobs
 
 
+def param_axis_14m_fulltoken_jobs() -> list[dict]:
+    """PARAM_AXIS_SCALING_DESIGN.md S22 -- the 14M full-token extension.
+
+    S21 (commit b6b0b18) confirmed H-1: the param-axis primary fit has only
+    |A| = 2 admissible rungs (14M, 98M) and can ask NO trend verdict at all.
+    Root cause: S9.6 item 2 admits a rung only at >= 1.0 token/param at the
+    COMMON token slice, and that slice is T = min_r tokens_max(r) = 0.32768B
+    -- set by the 14M rung, which was capped at 20,000 steps and never
+    extended. At that slice 392M reads 0.836 tok/param and 1.31B reads 0.250;
+    both are excluded, and |A| = 2 < 3.
+
+    Extending 14M to the SAME 67,547-step budget 98M and 392M (cells 029/030)
+    already run raises T to 1.10669B, which puts 14M / 98M / 392M at exactly
+    step 67,547 -- IDENTICAL token counts, tok/param 78.8 / 11.3 / 2.82. All
+    three clear the >= 1.0 floor, |A| = 3, the trend verdict becomes askable,
+    and S7-F2's token-mismatch confound is discharged by EXACT MATCH rather
+    than by argument. At 1.71 GPU-h total this is the cheapest unblock in the
+    campaign; without it the 31.4 GPU-h already sunk into 029/030 buys nothing.
+
+    FROM SCRATCH, not resumed from the existing 20,000-step checkpoint. This
+    is deliberate. lm_pretrain_rd.py has NO resume path: its only warm-start is
+    --init-checkpoint, which its own help text (lm_pretrain_rd.py:3103) states
+    begins "a fresh LR warmup/decay cycle, by design". The LR schedule is a
+    function of the TOTAL step count (get_lr(step, lr, warmup, total_steps=
+    args.steps), linear warmup + cosine decay). Warm-starting the 20K
+    checkpoint would therefore produce a model that saw 20,000 + 67,547 =
+    87,547 steps (1.43B tokens) under two stitched cosine cycles -- neither
+    token-matched to the other rungs nor trained under the single-cosine
+    schedule they got. That defeats the entire purpose of the extension. A
+    from-scratch 67,547-step run costs 0.86 GPU-h/cell; the warm start would
+    have saved ~0.25 GPU-h and destroyed the comparison.
+
+    Arm/config/seed match cells 029/030 (the 392M full-token pair) exactly:
+    per_token, lambda 0.58, seed 3. Seed 3 also exists at 98M's own 67,547-step
+    cells (fixscale_seedext_arm_per_token_98m_{corpus}_s3), so seed 3 is common
+    to all three rungs at the full-token budget.
+
+    Priority: filenames 031/032 sort above the entire pending backlog (which
+    begins at 400), so these claim the first GPU freed. They cannot preempt
+    029/030/000 -- those are already claimed and running, and a worker only
+    claims when its OWN GPU is free.
+    """
+    jobs = []
+    steps_full = 67_547           # the 98M/392M full-token budget
+    # Measured 14M rate: 0.04564 s/step -- from a REAL 14M run JSON
+    # (wall_s = 912.87 over 20,000 steps; PARAM_AXIS_SCALING_DESIGN.md S21.0
+    # V-8), same script, same dm256/ds64/L2 config, same batch 32 / seq 512.
+    rate_s_per_step = 0.04564
+    est_gpu_h = steps_full * rate_s_per_step / 3600.0     # = 0.856 GPU-h
+    # TIMEOUT PRICING. The mispriced-timeout bug has bitten this project TWICE
+    # (job 200's 160000s against a true 71.2h need; the _fixscale_cell 36000s
+    # default against 392M's 15.69h need). It does not get a third. 36000s =
+    # 10.0h against a 0.86h estimate is 11.7x headroom: the run still completes
+    # even if the true rate is 10x worse than measured.
+    timeout_s = 36000
+    for seq, corpus in ((31, "openr1-mix-ext"), (32, "wikitext-mix-ext")):
+        name = f"fixscale_fulltoken_arm_per_token_14m_{corpus}_s3"
+        cmd, vcheck, ckpt_dir, out = _fixscale_cell(
+            name, corpus, 256, 64, 2, steps_full, 3, "per_token",
+            timeout=timeout_s)
+        jid = f"{seq:03d}_laneB_14m_fulltoken_per_token_{corpus}_s3"
+        jobs.append(dict(
+            id=jid, lane="B",
+            hypothesis=(
+                "PARAM_AXIS_SCALING_DESIGN.md S22 / S21's H-1: the param-axis "
+                "primary fit currently has |A| = 2 admissible rungs and can ask "
+                "no trend verdict, because the common token slice T = "
+                "min_r tokens_max(r) is pinned at 0.32768B by the 14M rung's "
+                "un-extended 20,000-step cap, which excludes 392M (0.836 "
+                "tok/param) and 1.31B (0.250). Extending 14M to the same "
+                "67,547-step budget 98M and 392M already run raises T to "
+                "1.10669B and puts 14M/98M/392M at EXACTLY step 67,547 -- "
+                "identical token counts, tok/param 78.8/11.3/2.82, |A| = 3. "
+                "This does not pre-judge the verdict; it makes one askable."),
+            cmd=cmd, gpu_h_estimate=round(est_gpu_h, 2),
+            output_dir=FIXSCALE_RESULTS_ROOT, validity_check=vcheck,
+            notes=(
+                f"cost basis: MEASURED 0.04564 s/step (S21.0 V-8: a real 14M run "
+                f"JSON, wall_s=912.87 / 20,000 steps, same script and config) x "
+                f"{steps_full:,} steps = {est_gpu_h:.2f} GPU-h. HIGH confidence "
+                f"(measured on this exact config, not extrapolated). "
+                f"--internal-timeout {timeout_s}s (10.0h) = 11.7x the estimate: "
+                f"deliberately generous because a mispriced timeout has already "
+                f"cost this project two runs (job 200's 160000s vs a true 71.2h "
+                f"need; the _fixscale_cell 36000s default vs 392M's 15.69h need). "
+                f"FROM SCRATCH, not warm-started: lm_pretrain_rd.py has no resume "
+                f"path, and --init-checkpoint explicitly restarts the LR "
+                f"warmup/decay cycle (lm_pretrain_rd.py:3103), so warm-starting "
+                f"the existing 20,000-step checkpoint would yield 87,547 total "
+                f"steps / 1.43B tokens under two stitched cosine cycles -- NOT "
+                f"token-matched to 98M/392M and not on their single-cosine "
+                f"schedule. Arm/config/seed match cells 029/030 exactly "
+                f"(per_token, lambda 0.58, seed 3); seed 3 also exists at 98M's "
+                f"own 67,547-step cells, so it is common to all three rungs. "
+                f"Filename prefix {seq:03d} sorts above the pending backlog "
+                f"(which starts at 400) so this claims the first freed GPU; it "
+                f"cannot preempt 029/030/000, which are already claimed and "
+                f"running."),
+        ))
+    return jobs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outdir", default=os.path.join(HERE, "jobs", "pending"))
@@ -1436,7 +1538,8 @@ def main():
     all_jobs = (lane_a_jobs() + lane_b_jobs() + lane_c_jobs()
                 + regate_20260712_jobs() + ncr_next_lever_q1_jobs()
                 + ncr_next_lever_probe_ab_jobs() + ncr_mapping_law_wave1_jobs()
-                + ncr_mapping_law_q4_k32_budget_jobs())
+                + ncr_mapping_law_q4_k32_budget_jobs()
+                + param_axis_14m_fulltoken_jobs())
 
     total_by_lane = {}
     for j in all_jobs:
