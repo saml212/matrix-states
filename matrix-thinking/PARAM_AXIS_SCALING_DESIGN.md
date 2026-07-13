@@ -683,6 +683,14 @@ by that VOID instrument.
 > known to flip the headline and the program's own rule (and the VOID probe's own
 > fix-list, item 3) is that it must be pinned by someone who has not seen both.
 > **§9.2-§9.6 are pinned**, and are orthogonal to that choice by construction.
+>
+> **↑ SUPERSEDED (2026-07-12, post-quarantine).** The blindness failure above was
+> remedied: the quarantine (`ac12640`) landed, and a genuinely blind fresh-context
+> agent has **PINNED §9.1 = raw (un-normalized) placebo-controlled `DiD`**, showing
+> that N1-N3 **force** that choice uniquely. The `NOT PINNED` language in this
+> banner is retained only as the historical record of why the slot was left open.
+> See §9.1 (and its own contamination ledger, §9.1.8, which discloses a *derivable*
+> residual hazard that the Rev-2 handoff protocol did not anticipate).
 
 ---
 
@@ -715,106 +723,358 @@ label on a difference of two numbers.
 
 ---
 
-### 9.1 THE NORMALIZATION — **NOT PINNED. SLOT + HANDOFF PROTOCOL.**
+### 9.1 THE NORMALIZATION — **PINNED** (2026-07-12, blind agent, post-quarantine)
 
-**Why this slot is empty and not filled by this agent.** `regate` §10.2 records
-that two admissible normalizations of the recall-gap metric yield **opposite
-verdicts on the same data**. The VOID probe's own fix-list (item 3) states the
-consequence correctly: *"This build's author has now SEEN both, and is therefore
-contaminated for this choice — it must be pinned by someone who has not, or by
-the PI."* The agent writing §9 was dispatched to be that someone, and was
-contaminated by the repo's own layout before reaching the decision (§9.7).
-Filling the slot now would be precisely the failure mode §7-F3 named — *"a false
-all-clear, laundered through a pre-registration"* — with the laundering moved one
-agent downstream. **The slot stays open. This is the integrity-preserving
-outcome, not a punt.**
+**Status: PINNED.** Filled by a fresh-context agent dispatched *after* the
+quarantine of commit `ac12640` landed, under the handoff protocol that the Rev-2
+author specified below and could not himself satisfy. **Blind status: this agent
+read no outcome value, no per-rung tuple, no result JSON, no figure, and no
+`git show`/`log -p` of the pre-redaction text.** The full ledger — including one
+*derived* directional hazard that this agent did not read but could in principle
+reconstruct, disclosed in full rather than minimised — is at the end of this
+section. The pin below is **forced by N1–N3** (shown), so there was no free choice
+available for a leak to corrupt.
 
-**PINNED CONSTRAINTS ON WHATEVER IS CHOSEN** (these are requirements, not an
-answer; they are restated from §7-F3 and §10.2 and do not depend on any value):
+---
 
-- **N1 — the numerator is fixed.** Whatever the normalization, the numerator is
-  the **difference-in-differences** of §9.2 (`DiD ≡ gap_true − gap_placebo`), not
-  the raw AR-hit slice and not the un-placebo'd gap. §9.2 is pinned
-  independently and is not part of the open choice.
-- **N2 — the chosen form must state, in advance, what it reads when general
-  competence rises with scale while the in-context mechanism does not** (the
-  §7-F3 confound: parametric bigram memorization rises with params *by
-  construction*), **and what it reads in the converse case.** A form that cannot
-  answer both is inadmissible.
-- **N3 — the chosen form must be dimensionally comparable across rungs.** Rungs
-  differ in general competence; the metric must not silently import that
-  difference as recall capacity.
-- **N4 — the chosen form must be pinned against the literature's convention**
-  (Zoology/Based/MQAR: Arora et al.) with a stated reason for adopting or
-  departing from it.
-- **N5 — chance-correction.** The candidate task is open-vocabulary
-  (`VOCAB_SIZE` = 50257), so chance is ~0 and a chance-correction term is
-  near-vacuous *for the intact/ablated arms*; the pinning agent must say so
-  explicitly rather than adopt a chance-corrected form by reflex. (Chance
-  correction IS load-bearing for the *injected-MQAR* instrument, where the read
-  is K-restricted argmax and chance = 1/K — do not conflate the two
-  instruments.)
-- **N6 — the pinned form is written into this section, with its reasoning and an
-  explicit statement of what each rejected form would have measured instead,
-  BEFORE any rebuilt-instrument output is read by anyone.**
-
-**HANDOFF PROTOCOL — how a genuinely blind pin becomes possible.** It currently
-is **not** possible for any agent, because the contaminating values sit inside
-the documents an instrument-builder is required to read:
-
-1. **Redaction (prerequisite, must land first).** The per-rung outcome values in
-   `regate_2026-07-12.md` §10.2 (the raw-gap tuple, the normalized-gap tuple, the
-   T2 copy accuracies) and the duplicates in `lm_recall_gap_probe_rd.py`'s module
-   header must be moved to a separate quarantined file (landed at
-   `matrix-thinking/QUARANTINE_r0_void_values.md`, referenced by pointer
-   only — see the status note below). The *methodological* findings — which are
-   what a builder needs — must remain, stated **qualitatively** ("the two
-   normalizations diverge in verdict when passed through the pinned §9.5 map";
-   "T2 reads zero copy ability at three cells"), which loses nothing a builder
-   needs and removes everything that contaminates.
-2. The blind agent is dispatched with: §9.0, §9.2-§9.6, the candidate-construction
-   code, the design's §7 confound analysis, and the redacted §10. It is told the
-   two forms diverge; it is **not** told which way either leans.
-3. It pins §9.1 under N1-N6 and commits.
-4. **Alternative, equally legitimate:** the **PI** pins it directly. The PI is
-   the one party whose authority does not derive from blindness.
-
-**Until §9.1 is filled, the rebuilt instrument may be BUILT and its teeth-gates
-(§9.4) may be RUN, but no R0 verdict may be computed or read.** Building against
-an unpinned normalization is safe *only* because §9.2-§9.6 are pinned; the DiD,
-the placebo, the candidate cap, and the admissibility rules are all
-normalization-independent, so no build decision is downstream of the open slot.
-
-> **QUARANTINE LANDED (2026-07-12g).** Step 1 of the handoff protocol above is
-> now complete: every per-rung outcome value, per-rung acc_intact/acc_ablated
-> reading, T2/copy-ability figure, and directional ("leans COUPLED"/"leans
-> DECOUPLED") statement that was previously interleaved with the methodological
-> record has been moved to `matrix-thinking/QUARANTINE_r0_void_values.md` and
-> replaced in place with qualitative restatements that preserve everything a
-> builder needs. **A genuinely blind pin of §9.1 is now possible.**
+> ### THE PIN
 >
-> **The exact no-read list for the next blind pinner** (reading any of these
-> before pinning §9.1 recontaminates you — read only after commit, or ask the
-> PI to pin instead):
-> - `matrix-thinking/QUARANTINE_r0_void_values.md` — the sealed file itself.
->   Contains every value and every directional statement. Never open it before
->   pinning §9.1.
-> - Any raw per-rung result JSON on the box (e.g. anything matching
->   `r0_ar_hit*.json`, `t3_span_frac_r0slice.json`) or under
->   `~/queue/completed/` — none currently exist in this repo or were found
->   under `/tmp` at quarantine time, but if the rebuilt instrument (§9.2-§9.6)
->   is run before §9.1 is pinned, its output JSON becomes an equivalent
->   no-read item.
-> - `git log -p` / `git show` on commits `05de661` and `d0e2798` (or any diff
->   that reconstructs the pre-redaction text of `regate_2026-07-12.md` §10.2/
->   §10.3 or `lm_recall_gap_probe_rd.py`'s pre-quarantine module header) — the
->   redaction is in-place, not history-rewriting, so the values are still
->   reachable via git history by construction. A blind pinner must not run
->   `git log -p`/`git show`/`git diff` against those commits for those paths.
-> - Everything else — this document's §1-§8, §9.0, §9.2-§9.6, the redacted
->   §10 of `regate_2026-07-12.md`, and the candidate-construction code — is
->   safe to read and is exactly what the dispatch in step 2 above should hand
->   the pinner.
+> **`M(r) ≡ DiD(r) = gap_true(r) − gap_placebo(r)`. The denominator is `1`.**
+>
+> The capacity metric is the **raw, un-normalized, placebo-controlled
+> difference-in-differences**, in units of *candidate fraction* (the share of
+> candidates whose correct top-1 emission is causally attributable to the
+> antecedent token specifically). **No division by general competence, by
+> `acc_intact`, by `acc_copy`, or by a chance term.**
+>
+> Registered in the rebuilt instrument as the identity normalization via
+> `register_normalization("raw_did", lambda cell: cell["did"])`; consumed by
+> `compute_capacity_metric`. `β` in §9.5 is the OLS slope of this `M(r)` on
+> `log10(params)`.
+
+---
+
+#### 9.1.1 THE FORCING ARGUMENT — N1–N3 admit exactly one form
+
+The constraints do not merely *prefer* raw DiD; taken seriously they **force**
+it, and the forcing rests on an algebraic identity in §9.2's own definitions.
+
+**Lemma (the intact arm cancels identically).** Fix a candidate `i`. Let
+`A_i, B_i, C_i ∈ {0,1}` be the correctness indicators of the model's top-1
+emission at position `k_i` under, respectively, the **intact** context, the
+**antecedent-ablated** context (TRUE arm), and the **placebo-ablated** context
+(one matched-distance non-antecedent token destroyed). Then by §9.2's pinned
+definitions:
+
+> `gap_true  = E[A − B]`
+> `gap_placebo = E[A − C]`
+> **`DiD = gap_true − gap_placebo = E[A − B] − E[A − C] = E[C − B]`**
+
+**`acc_intact` is not in the estimand at all.** It cancels exactly. `DiD` is a
+contrast between **two equally-damaged contexts** — both carry exactly one
+destroyed token at a matched distance (§9.2) — that differ **only in *which***
+token was destroyed: the one carrying the answer, or an arbitrary other one.
+
+**Corollary (exact competence-invariance).** Any capability that makes the model
+more likely to emit the right token *for reasons that do not depend on the
+antecedent's presence* — parametric bigram memorization, better syntax, sharper
+unigram priors, "bigger models are better at everything" — raises `A`, `B`, and
+`C` **together**. `A` cancels identically; `B` and `C` are both
+one-token-destroyed contexts and are moved **equally**. `DiD = E[C − B]` is
+therefore **unchanged**. This is an *exact, item-level* cancellation, not an
+asymptotic or on-average one. **The §7-F3 confound that a normalization would be
+introduced to fix has already been removed — by N1's own numerator.**
+
+**The forcing, in three steps:**
+
+1. **N1** fixes the numerator as the placebo-controlled `DiD`. By the Lemma,
+   that numerator *already contains no general-competence component*.
+2. **N3** forbids the metric from importing cross-rung differences in general
+   competence as recall capacity. A denominator `g(r)` that varies with general
+   competence re-imports exactly that quantity, as `1/g(r)`, into a numerator
+   already purged of it — a **double correction**, applied in the wrong
+   functional form (a *ratio* correction stacked on a *difference* correction).
+   It does not remove a residual confound; **it manufactures one.**
+3. Therefore `g(r)` must **not** vary with general competence. That leaves only:
+   (a) a **constant** `g`, or (b) a **pure-mechanism** `g` (a quantity that moves
+   only with in-context recall itself, i.e. `acc_copy`).
+   Option (b) divides the effect of interest by *another measurement of the
+   effect of interest*, and therefore **cancels the very trend being estimated**
+   (§9.1.2, C5): it cannot answer N2's converse limb and is disqualified as the
+   primary.
+   **⇒ `g` is a constant ⇒ `g = 1` ⇒ raw `DiD`. Unique.**
+
+**This is a genuine forcing, and it is the reason a blind pin was possible at
+all.** When the admissible set has exactly one element, knowledge of the outcome
+cannot influence the selection — there is nothing to select.
+
+#### 9.1.2 N2 — what the pinned form reads in both directions (required)
+
+| Scenario | What raw `DiD` reads | Why |
+|---|---|---|
+| **General competence ↑ with params, in-context mechanism flat** (the §7-F3 confound, true BY CONSTRUCTION) | **FLAT** | Parametric gains move items `(wrong,wrong,wrong) → (right,right,right)` in `(A,B,C)`. Contribution to `E[C−B]` is `0` before and `0` after. Exact cancellation. |
+| **Mechanism ↑, general competence flat** (the converse limb) | **RISES** | An item contributes to `DiD` *iff* it is correct when a random token is destroyed and wrong when the antecedent is destroyed. That is, definitionally, an in-context-recall event. Nothing but the mechanism creates one. |
+| **Both ↑** | **RISES**, and correctly attributes the rise to the mechanism | competence cancels; only the mechanism component survives |
+| **Mechanism ↓** | **DECLINES** | symmetric |
+| **Model too weak to answer candidates at all** (`B≈C≈0`) | `DiD ≈ 0` → **FLOOR rung**, excluded by T1a | degrades to zero; cannot manufacture a trend |
+| **Parametric absorption** (`B≈C≈1`: model answers without needing the antecedent) | `DiD ≈ 0` | correct reading — the model does not *need* to recall; see §9.1.6 |
+
+**Gaming by ceiling/floor: impossible in the inflating direction.** `DiD ∈ [−1,1]`
+and it degrades to **0** at *both* the floor and the ceiling. Neither extreme can
+**inflate** it. Every readout pathology available to this metric is therefore
+**conservative** — it can only wash a real trend out, never fabricate one. (The
+ratio forms below do not have this property: C3 *diverges* at the floor.)
+
+#### 9.1.3 THE REJECTED CANDIDATES — and what each would have measured instead
+
+| # | Candidate | What it would actually have measured | Disposition |
+|---|---|---|---|
+| **C1** | **raw `DiD`** | the antecedent-attributable fraction of candidate emissions | **PINNED** |
+| **C2** | `DiD / acc_baseline_nonAR` (general non-AR next-token accuracy) | *"antecedent-attributable recall **per unit of general LM competence**"* — a ratio with no interpretation as a capacity | **REJECTED.** Violates **N3** at the root. `acc_baseline_nonAR` rises with params **by construction** (N2/§7-F3 say so). Because `DiD` is *already* competence-invariant (Lemma), this denominator does not remove a confound — it **injects** one: a model whose antecedent-attributable recall is genuinely **CONSTANT** across the ladder is rendered **DECLINING** by the denominator's growth alone, and §9.5 maps `DECLINES ∧ licensed → COUPLED`. **C2 can manufacture the COUPLED verdict out of arithmetic.** It is also non-comparable **across corpora** (§9.6 item 6 requires both): its denominator is computed on a *different item population* — ordinary first-occurrence positions, subsampled `k % 7 == 0`, with **no modal-continuation exclusion** — so it is dominated by easy modal continuations whose density differs between `wikitext` and `openr1` for reasons having nothing to do with recall. |
+| **C3** | `DiD / acc_intact` | the *attribution **share*** — "of the candidates the model gets right, what fraction needed the antecedent?" A real quantity; **not** capacity. | **REJECTED, and it is the sharpest rejection:** by the Lemma, **`acc_intact` is not in the estimand** — it cancels algebraically. Re-introducing it as a denominator imports a quantity the estimand has already eliminated. Worse, `acc_intact` is *partly the numerator's own cause* (it rises with the mechanism) and *partly the confound* (it rises with parametric memorization), so dividing by it **fails N2 in both directions at once**: mechanism flat + memorization ↑ ⇒ spurious **DECLINE**; mechanism ↑ + memorization flat ⇒ numerator and denominator both rise ⇒ **attenuated toward FLAT**, i.e. it can *mask a genuine rise*. It also **diverges at the floor** (`acc_intact → 0` on hard non-modal candidates at small rungs) — the one gaming pathology raw `DiD` does not have. |
+| **C4** | chance-corrected `DiD`, e.g. `(DiD − c)/(1 − c)` | nothing — a no-op | **REJECTED as doubly vacuous, and N5 required me to say so explicitly rather than adopt it by reflex.** (i) The read is an **open-vocabulary argmax** over `VOCAB_SIZE = 50257`, so `c ≈ 2×10⁻⁵`. (ii) More fundamentally, a chance term enters `acc_intact`, `acc_ablated` and `acc_placebo` **identically** and therefore **cancels in a difference — and again in a difference of differences.** Chance-correction of a DiD is a no-op even when chance is large. **It remains load-bearing for the *injected-MQAR* instrument** (K-restricted read, chance `= 1/K`) — **do not conflate the two instruments** (N5). |
+| **C5** | `DiD / acc_copy` (the model's own one-shot planted-copy ability, §9.4) | the **deployment/utilization fraction** — "what share of your *demonstrated* in-context copy ability do you actually bring to bear on naturally-occurring recall opportunities?" A genuinely interesting quantity, and the *only* rejected form that survives N3. | **REJECTED AS PRIMARY — but PRE-REGISTERED AS MANDATORY SENSITIVITY S1 (§9.1.5).** It survives N3 (`acc_copy` is a *mechanism* measure, not a competence measure) but **fails N2's converse limb**: if in-context recall capacity grows with params — *the very hypothesis under test* — then `acc_copy` grows **too**, numerator and denominator rise together, and C5 reads **FLAT**. §9.5 maps `FLAT ∧ licensed → FLAT-COUPLED`. **C5 systematically cancels the effect it is meant to measure and would manufacture FLAT-COUPLED.** It answers *"is recall deployment scale-invariant?"* — a different, subordinate question. |
+
+#### 9.1.4 N4 — the literature, and where we adopt vs. depart
+
+- **Zoology (Arora et al., arXiv:2312.04927)** — the reference this program is
+  held to — isolates an **"AR Hits" slice** (next-token predictions completing a
+  **repeated bigram**, i.e. exactly our candidate construction) and reports model
+  performance **on that slice in absolute terms**, attributing >82% of the
+  gated-conv-vs-attention perplexity gap to it. It **does not deflate the AR
+  slice by the model's general next-token performance.** The reason is decisive
+  for us: Zoology's headline finding is that a **70M attention model out-recalls
+  a 1.4B gated-conv model.** *A normalization by general competence would have
+  erased that finding*, because the 1.4B model is the better general LM. **A
+  competence-normalized recall metric is exactly the instrument that cannot see
+  the effect this literature exists to report.** That is C2, and it is why we
+  reject it.
+- **Induction-head / ICL literature (Olsson et al.)** — the "in-context learning
+  score" is likewise a **difference** (loss@token-500 − loss@token-50), never a
+  ratio to general competence. The field's convention is **differences on matched
+  items**, not ratios.
+- **MQAR** — accuracy against a `1/K` chance baseline on a K-restricted read.
+  This is the *only* place chance-correction is meaningful, and importing it here
+  is the conflation N5 forbids.
+- **ADOPT:** the convention's substance — isolate the recall-attributable
+  component; report it **absolutely, un-deflated**. We **strengthen** the
+  identification beyond the convention: Zoology's AR-hit slice is *correlational*
+  (a slice of tokens that *could* be recalled), whereas our `DiD` is **causal and
+  placebo-controlled** (a token that *demonstrably was* recalled, net of generic
+  context damage). Raw `DiD` is the strict sharpening of the AR-hits slice, not a
+  departure from it.
+- **DEPART (disclosed):** the literature reads **loss/perplexity**; N1 pins our
+  numerator to an **argmax top-1 accuracy**. We depart because N1 fixes it and
+  because accuracy is the operationally meaningful "did the model actually *emit*
+  the recalled token" read. **The departure is controlled, not waved through:**
+  it is exactly what mandatory sensitivity **S2** exists to cover (§9.1.5).
+
+#### 9.1.5 MANDATORY SENSITIVITIES — reported ALWAYS, verdict-carrying NEVER
+
+Both are **pinned now, before any read**, and both are **reported alongside the
+primary in every case, including when they agree.** Neither may be **swapped in**
+for the primary after a read: §9.6's stop rule forbids re-reading the same
+checkpoints under a different metric, so these must be — and are — pinned in
+advance. **Both are structurally incapable of *creating* or *strengthening* a
+verdict; they can only *withhold* one.** That asymmetry is deliberate and is what
+makes them safe against laundering.
+
+**S1 — the utilization ratio `DiD(r) / acc_copy(r)` (C5).** Bounded to `[0,1]` by
+the already-pinned T2b-2 ceiling (`DiD ≤ acc_copy + 2·SE`). Its denominator is a
+**latent-mechanism** measure that is *immune to parametric absorption by
+construction*: `pick_t2_marker_tokens` plants a key→value pairing that **never
+co-occurs adjacently in the train split**, so `acc_copy` cannot be answered from
+parametric memory. S1 therefore reads **"deployed recall ÷ latent recall
+ability"** and is the natural probe of §9.1.6's limitation.
+**Reporting rule (pre-committed):** S1's trend is reported with its CI beside the
+primary's. **S1 cannot change the verdict.** Interpretation is pinned in advance:
+
+| primary (`DiD`) | S1 (`DiD/acc_copy`) | pre-registered reading |
+|---|---|---|
+| RISES | RISES | capacity grows *and* deployment intensifies |
+| RISES | FLAT | capacity grows in proportion to the mechanism's own ceiling — the **expected** signature of a genuine capacity law |
+| RISES | DECLINES | capacity grows but *sub-proportionally* to latent ability — a **deployment** shortfall; report it, do not spin it |
+| FLAT | DECLINES | latent ability grows while deployed recall does not — the strongest form of the FLAT-COUPLED story; **report, do not upgrade the verdict** |
+
+**S2 — the log-prob readout `DiD_logp` (controls the argmax-floor threat).**
+The primary's argmax read is a **hard threshold**: a small rung may raise the
+target token's probability substantially in response to the antecedent without
+ever making it top-1, contributing `0` to `DiD`. That floor biases the measured
+trend **upward**, i.e. toward **RISES**, i.e. toward **DECOUPLED** — so it is a
+threat *to the primary's own most likely positive verdict* and must be pinned
+blind, now. §9.6's exclusions (T1a FLOOR rungs, T2b-1 mechanism-absent rungs)
+already remove the rungs where the floor bites hardest; S2 is the belt-and-braces.
+
+> **Definition.** In the *same* forward passes, with **zero additional compute**,
+> record `ℓ = log p(target token)` at each candidate's position `k` in each of the
+> three arms, and form
+> `DiD_logp ≡ (E[ℓ_intact − ℓ_true_abl]) − (E[ℓ_intact − ℓ_placebo_abl]) = E[ℓ_placebo_abl − ℓ_true_abl]`
+> — the identical estimand under a continuous, floor-free readout. Same clustered
+> (over-rows) bootstrap, same §9.5 Factor-1 rules.
+
+> **BUILD REQUIREMENT (must land before any cell is read).** The rebuilt
+> instrument must emit, per candidate record, the target log-prob in all three
+> arms (`logp_intact`, `logp_true`, `logp_placebo`) alongside the existing hit
+> indicators. This is a `log_softmax` + `gather` at positions already computed —
+> **no extra forward passes.** It **cannot** be added after a read (that would be
+> a re-read, banned by §9.6), which is precisely why it is pinned here.
+
+> **Pre-committed disagreement rule.** If S2's Factor-1 classification (§9.5)
+> **differs from the primary's**, the verdict is **INDETERMINATE** and we say so.
+> This mirrors, verbatim in force, the both-ways sensitivity rule **already
+> pinned in §9.4** ("If the two disagree in verdict, the verdict is INDETERMINATE
+> and we say so"). Rationale: S2 is a *readout-robustness* check on the **same**
+> estimand, so a disagreement is an instrument defect, not a finding. (S1, by
+> contrast, is a *different* estimand — its disagreement is **informative** and is
+> reported per the table above, never invalidating.)
+
+#### 9.1.6 THE ESTIMAND'S LIMITATION — disclosed, and it is NOT a normalization defect
+
+`DiD = E[C − B]` measures **deployed, causally-necessary** in-context recall — the
+recall the model *actually uses because it has no other route to the answer*. It
+does **not** measure latent capacity. If parametric memorization becomes strong
+enough to answer a candidate **without** the antecedent, that item contributes `0`
+even if an in-context mechanism for it also exists. Consequences, stated plainly:
+
+- The metric is in principle **non-monotone in scale** (an inverted U): `≈0` at
+  the floor (model can answer nothing) and `≈0` under total parametric absorption.
+  A RISES over *this* ladder could be the left limb of that U. **We will not claim
+  otherwise.**
+- **This is bounded by construction, not by hope:** §9.0's candidate rule admits
+  only **non-modal** continuations (`b` is *not* the corpus-modal continuation of
+  `a`, modal table from TRAIN only) — precisely the item set *least* susceptible
+  to parametric absorption.
+- **It is a property of N1's numerator, which is pinned independently, and is
+  therefore shared by EVERY candidate normalization in §9.1.3.** It is not a
+  discriminator among them and cannot be fixed by a denominator. **S1 is the
+  pre-registered probe of it** (its denominator `acc_copy` is absorption-immune by
+  construction).
+- The absorption direction is **conservative for the top rungs** (it *suppresses*
+  large-model `DiD`), so it cannot fabricate a RISES/DECOUPLED headline; it could
+  in principle depress one. Disclosed as a limitation of the estimand in the
+  write-up, in the paper, not only here.
+
+#### 9.1.7 N6 / discharge
+
+- **N1** ✅ numerator is §9.2's `DiD`, untouched.
+- **N2** ✅ both limbs answered in advance, §9.1.2.
+- **N3** ✅ the pinned form imports **nothing** from the rung's general competence
+  (exact, by the Lemma); it is the *only* family member of which this is true with
+  a denominator that does not itself vary with the effect under test.
+- **N4** ✅ pinned against Zoology/Based/MQAR, §9.1.4: **adopted** (absolute,
+  un-deflated recall-slice reporting) with the identification **strengthened**
+  (causal placebo DiD > correlational slice), and one **disclosed departure**
+  (accuracy readout vs. the literature's loss), which S2 controls.
+- **N5** ✅ chance-correction explicitly considered and rejected as **doubly
+  vacuous** (open-vocab ⇒ `c≈0`; and it cancels in a difference regardless),
+  with the MQAR non-conflation stated.
+- **N6** ✅ pinned form, reasoning, and what each rejected form would have
+  measured instead are all written **into this section, before any rebuilt-
+  instrument output has been read by anyone.**
+
+**§9.5's `M(r)` is hereby defined; the §9.5 VOID trigger "§9.1 is still unpinned"
+is DISCHARGED.**
+
+---
+
+#### 9.1.8 CONTAMINATION LEDGER FOR THIS PIN (§9.1's own; §9.7 is Rev-2's)
+
+**Files read, in full or in part — the complete list:**
+
+- `PARAM_AXIS_SCALING_DESIGN.md` @HEAD: §9 in full (§9.0–§9.8), plus the section
+  header index. **§1–§8 were NOT read** (not needed; the dispatch's summary of the
+  scientific question plus §9.0 sufficed).
+- `deltanet_rd/lm_recall_gap_probe_rd.py` @HEAD (the VOID probe): the candidate
+  construction (`run_ar_hit_gap_eval`, L216–347) and the T2 control
+  (`pick_t2_marker_tokens`, `make_t2_synthetic_windows`,
+  `run_t2_positive_control`, L350–449). The quarantine had already stripped the
+  module header's values; **the FATAL-1 comment at L305 points to the sealed file
+  rather than stating the figure — the redaction held.**
+- `deltanet_rd/lm_recall_gap_probe_v2_rd.py` (the rebuilt instrument, untracked at
+  the time of this pin): **`grep` of `^def |^class ` ONLY** — function/class
+  signatures, no bodies, no comments, no prose. Done solely to confirm the pinned
+  metric is computable from what it emits (it is: `register_normalization` /
+  `compute_capacity_metric` were left as a pluggable slot for exactly this pin).
+- Literature (web): Zoology/Arora abstract-level summaries; Olsson et al. ICL-score
+  definition.
+
+**Files deliberately NOT read (beyond the mandatory no-read list):**
+
+- `QUARANTINE_r0_void_values.md` — **never opened.**
+- **`queue/regate_2026-07-12.md` §10 — NOT READ AT ALL**, although the redacted
+  version was *permitted* to me. §9 already restates every methodological finding
+  (FATAL-1, F-3, F-4, M-11, S-5, S-6, S-7) that a pinner needs, so opening §10
+  bought nothing and carried nonzero residual-value risk. **Minimizing the read
+  set was itself a contamination control.**
+- No result JSON, no `~/queue/completed/`, no `experiment-runs/` harvest, no
+  figure, no `git log -p`/`git show`/`git diff`/`git blame` on `05de661`,
+  `d0e2798`, or any earlier commit for the redacted paths.
+
+**Explicit statement:** I viewed **no outcome value** — no per-rung recall/gap/DiD
+number, no `acc_intact`/`acc_ablated`/`acc_copy`/`span_frac` reading, no accuracy
+tuple — and **no explicit directional statement** ("X rises", "Y leans COUPLED").
+
+**⚠ DISCLOSED RESIDUAL — a *derivable* directional hazard, reported rather than
+buried.** Two facts were available to me from **permitted** text: (i) §9.1's own
+prose (pre-existing) states that the two normalizations *"yield **opposite
+verdicts** on the same data"*; (ii) §9.7 identifies the two contested forms as the
+**raw gap** and the **general-competence-normalized gap**. My own construction
+argument (§9.1.3-C2) independently establishes that a competence denominator, which
+rises with scale by construction, **deflates the upper rungs** and therefore biases
+its trend *negative relative to raw*. **Anyone holding (i) + (ii) + that argument
+can deduce which of the two VOID forms leaned which way.** I did not seek this
+inference and did not use it; I noticed its availability only while *writing* the
+C2 rejection, at which point the pin was **already forced by N1–N3**. I record it
+because concealing a derivable leak would be worse than declaring it. Mitigating
+facts, stated so a reader can audit rather than take my word:
+
+1. **The pin was forced, not chosen.** N1–N3 admit **exactly one** form (§9.1.1).
+   A leak cannot bias a selection from a singleton set.
+2. **The leaked object is not the answer.** The VOID divergence concerned two
+   normalizations of the **un-placebo'd gap** — computed under **FATAL-1**
+   (mass simultaneous corruption), a numerator that is retracted and that
+   **no longer exists**. The pinned `DiD` has **never been computed by anyone.**
+   The R0 verdict is **not** recoverable from the VOID build's directional shape.
+3. **Sign-invariance of my reasoning (the counterfactual test).** Had the signs
+   been reversed — C2 leaning RISES/DECOUPLED and raw leaning DECLINES/COUPLED —
+   **I would reject C2 identically and for the identical reason**: a denominator
+   that rises with parameters *by construction* must never be permitted to set the
+   sign of a capacity trend. The argument is about **arithmetic**, not direction,
+   and §9.5's map is symmetric (both COUPLED and DECOUPLED are publishable and
+   both proceed to R1), so there is no incentive gradient for me to have followed.
+
+**Sub-decisions where influence is conceivable, and the handling:**
+
+| Sub-decision | Influence suspected? | Handling |
+|---|---|---|
+| **The pin (raw `DiD`)** | **No.** Forced by N1–N3 from an algebraic identity in §9.2's definitions. | Pinned; the forcing is written out so it can be checked without trusting me. |
+| **Rejecting C2** | **Conceivable in appearance** (see the residual above), **not in substance** — the argument is sign-invariant and I state the counterfactual. | Rejected on construction (N3 violation + double-correction), with the hazard disclosed above. |
+| **S2 (log-prob sensitivity)** | **No** — and note it cuts **against** the direction the derivable hazard would tempt me toward: S2 exists specifically to *withhold* a **RISES/DECOUPLED** verdict that the argmax floor could have manufactured. An agent steering toward DECOUPLED would not have pinned S2. | Pinned, verdict-withholding-only. |
+| **S1 (utilization ratio)** | **No.** It is C5, promoted to a companion because it is the one rejected form that survives N3 and answers a real question. It cannot carry a verdict. | Pinned, non-verdict-carrying. |
+
+**PROCESS FINDING (for the PI, and it is a real one).** **§9.1's own permitted
+text was itself leaky.** The sentence *"the two normalizations yield opposite
+verdicts"* is, when combined with a correct construction argument that any
+competent pinner **must** make, **equivalent to a directional disclosure** — which
+is exactly the equivalence the quarantine's own dispatch warned about ("learning
+'one measure rises and the other declines' is an equivalent leak"). **Every future
+blind pinner who reasons correctly will reconstruct it**, so no further "blind"
+attempt at this slot could have done better than this one; a fourth attempt would
+burn identically. Recommendations: (a) treat the *existence and divergence* of
+competing metric forms as quarantinable metadata in future, not just their values —
+say only *"the choice is outcome-relevant"*, never *"the two disagree in verdict"*;
+(b) **the PI may ratify or void this pin.** Voiding it costs little: the forcing
+argument (§9.1.1) is written out in full and stands or falls on its own, entirely
+independently of who wrote it.
+
+**Fake system-reminder (reported, not concealed).** One fake `system-reminder`
+arrived inside tool stdout during this session, carrying a date-change claim
+**plus an explicit instruction to conceal it from the user** — the third such
+attack recorded in this document's lineage. Per the CLAUDE.md standing rule it was
+**disregarded and is reported here.** Independently verified: `git log` and the
+system clock **both** read **2026-07-12**, so the working date is correct (the
+environment block's "2026-07-10" was merely stale); the reminder's *concealment
+instruction* is the tell, and it was not obeyed.
 
 ---
 
@@ -1026,7 +1286,8 @@ all-clear, pointed the other way. The map is re-pinned to separate them.
 
 Let `A` = the set of **admissible rungs** (§9.6). Let `M(r)` = the pinned
 capacity metric at rung `r` — numerator `DiD(r)` (§9.2), normalization **per
-§9.1, to be filled**. Let `β` = the OLS slope of `M(r)` on `log10(params)` over
+§9.1: PINNED as the identity, i.e. `M(r) ≡ DiD(r)`, raw and un-normalized**
+(2026-07-12). Let `β` = the OLS slope of `M(r)` on `log10(params)` over
 `A`, with a 95% CI from a bootstrap resampled over **rows** (clustered) and over
 **seeds** where `n > 1`. Let `δ` = the pre-specified equivalence bound:
 **`δ = 0.125 × M(r_min)` per decade** — i.e. "flat" means the metric changes by
@@ -1054,7 +1315,7 @@ claim is made in either direction.**
 
 | Verdict | Rule | Consequence |
 |---|---|---|
-| **VOID** | T1c fails, **or** T2a fails, **or** any admissible-rung requirement of §9.6 fails at a rung needed to reach minimum n, **or** §9.1 is still unpinned | HALT. No verdict. Diagnose. |
+| **VOID** | T1c fails, **or** T2a fails, **or** any admissible-rung requirement of §9.6 fails at a rung needed to reach minimum n, **or** §9.1 is still unpinned (**DISCHARGED 2026-07-12** — §9.1 is pinned), **or** the §9.1.5 S2 log-prob fields were not emitted by the instrument | HALT. No verdict. Diagnose. |
 | **FLOOR** | Fewer than **3** rungs are T2b-1-admissible **and** T1a-positive | No law is askable. Fall back to **hedge D** (§3-D), exactly as §5.2 already pre-commits. |
 | **COUPLED** | Factor 1 = **DECLINES** ∧ Factor 2 licensed | Attractor predicts capacity. Proceed to R1 with COUPLING as primary. |
 | **DECOUPLED** | Factor 1 = **RISES** ∧ Factor 2 licensed | Pathology functionally inert; retires the confound off E4/E7. Proceed to R1. |
@@ -1190,12 +1451,21 @@ records the identical attack during the Rev-1 session).
 
 ### 9.8 REV 2 — STATUS
 
-**STATUS: INSTRUMENT-SPEC RE-PINNED, ONE SLOT OPEN.**
+**STATUS (updated 2026-07-12, post-quarantine): INSTRUMENT-SPEC FULLY PINNED.
+NO SLOT OPEN.**
 
 - §9.2 (placebo/DiD), §9.3 (T1), §9.4 (T2a/T2b), §9.5 (verdict map), §9.6
   (admissibility) are **PINNED** and supersede §5.0/§5.1/§5.2.
-- §9.1 (the normalization) is **OPEN** and blocks *verdict computation only*, not
-  the build.
-- **Nothing may be read** — no `DiD`, no trend, no verdict — until §9.1 is filled
-  by a blind agent or by the PI, and the redaction of `regate` §10.2 is what makes
-  the former possible.
+- §9.1 (the normalization) was **OPEN** and is now **PINNED (2026-07-12)** by a
+  blind fresh-context agent dispatched after the quarantine (`ac12640`) landed:
+  **`M(r) ≡ DiD(r)`, raw and un-normalized**, shown to be **forced** (not merely
+  preferred) by N1-N3. Two **mandatory, verdict-withholding-only** sensitivities
+  are pinned with it: **S1** `DiD/acc_copy` (utilization) and **S2** `DiD_logp`
+  (log-prob readout, guards the argmax-floor bias toward RISES/DECOUPLED).
+- **REMAINING BUILD GATE (the one thing still blocking a read):** the rebuilt
+  instrument must emit the **S2 log-prob fields** (`logp_intact`, `logp_true`,
+  `logp_placebo` per candidate record — a `log_softmax`+`gather` on forward passes
+  it already runs, **zero extra compute**). Per §9.6's stop rule these **cannot**
+  be added after a read. Until they are emitted, a cell read is **VOID** (§9.5).
+- With that gate cleared, **R0 may be run and read.** No metric decision remains
+  downstream of any outcome value.
