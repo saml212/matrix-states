@@ -526,6 +526,9 @@ from lm_recall_gap_probe_v2_rd import (  # noqa: E402
     build_bigram_mode_table, build_key_value_pools, run_t2_repaired_probe,
     run_did_eval, finalize_cell, check_t2b1_mechanism_exists, check_t2b1b_key_conditioned,
     check_t2a1_ceiling, check_t2a2_untrained_control, check_t2a3_ssm_calibration,
+    # sec 26 / T2a-4 THE POSITIVE CONTROL: the oracle that has the mechanism BY FIAT, and the
+    # leg that requires the probe to RECOVER what was planted in it on EVERY row.
+    PerfectCopyOracle, check_t2a4_positive_control,
     check_t1c_reference_did, resolve_n_rows_pre_pass, N_ROWS_DEFAULT, EVAL_MICRO_BATCH_DEFAULT,
     CANDIDATE_FLOOR_RESOLVED, ROW_FLOOR_CONTRIBUTING, VerdictGradeError, PlantContestedError,
     # sec 20 R-4: the T2a-2 control ran a full run_did_eval and threw the DiD away. These are
@@ -1588,6 +1591,87 @@ def run_t2a2_untrained_control(corpus_name: str, data_dir: str, device: str,
     return result
 
 
+def run_t2a4_positive_control(corpus_name: str, data_dir: str, device: str,
+                               seq_len: int = SEQ_LEN_DEFAULT, n_windows: int = N_ROWS_DEFAULT,
+                               n_plants: int = N_PLANTS_DEFAULT) -> dict:
+    """T2a-4 THE POSITIVE CONTROL (sec 26, GATING, NEW). **THE ONLY CONTROL IN
+    THIS DESIGN THAT ASKS WHETHER THE INSTRUMENT CAN SUCCEED WHEN IT SHOULD.**
+
+    Every other control is a NEGATIVE one -- T2a-2's untrained model, sec 20's
+    liveness witness, sec 24's leg (vi) -- and each asks "can this FAIL when it
+    should?". sec 25's A-1 walked through the gap that leaves: a readout
+    correctly aimed on 12 of 2048 rows (0.6%) and MIS-AIMED on the other 2036 is
+    alive, input-dependent and plant-independent, and it CLEARS ALL FOUR GATING
+    LEGS (acc_copy=0.0059, PRIOR=0.0000, KS 95% CI [0.0029, 0.0093] excludes 0,
+    aiming=0.0059 > 0) => T2a-1 PASS, T2a-3 PASS, INSTRUMENT_VALID. Leg (vi) --
+    the leg built to catch exactly a mis-aimed probe -- reads `0.0059 > 0` and
+    PASSES it. **It certifies "aimed SOMEWHERE," not "aimed."**
+
+    THIS LEG RUNS THE REAL SIX-ARM PROBE OVER `PerfectCopyOracle` -- a model that
+    has the copy mechanism BY FIAT -- and REQUIRES THE PROBE TO RECOVER WHAT WAS
+    PLANTED IN IT, ON EVERY ROW. The null (n_miss_recovery == 0 AND
+    n_aim_unchanged == 0) is fixed BY A CONSTRUCTION WE CONTROL, not by any
+    model's behaviour: both identities are THEOREMS of `plant_and_verify_t2_
+    window`'s own hard assertion (derivation in `PerfectCopyOracle`'s docstring).
+    An instrument aimed on 0.6% of rows reads `n_miss_recovery = 2036` and HALTS.
+
+    IT USES OUR OWN GPT-2-TOKENIZED CORPUS DIRECTLY -- no HF model, no bridge, no
+    tokenizer mismatch possible -- exactly as `run_t2a2_untrained_control` does,
+    and with the SAME `RUNG_MATCHING_SEED_OFFSET`, `seq_len`, `n_windows` and
+    `n_plants`, so it certifies the instrument on the very plant population the
+    witness cells are read on. `run_did_eval` supplies the Delta pool from the
+    PRIMARY's own candidate detection (which is MODEL-FREE -- candidates are
+    detected from the TOKENS -- so this pool is the same one T2a-2 harvests).
+
+    COST: 0 GPU-h in the sense sec 25.5 item 2 requires -- the oracle is
+    CONSTRUCTED, not trained. It has no parameters and no matmul; it is a
+    scatter, a gather and an argmax. Minutes.
+
+    **IT GATES THE INSTRUMENT, NOT THE WITNESSES, AND IT READS NO WITNESS
+    QUANTITY.** sec 25.5's own candidate direction was a per-stratum aiming leg on
+    the witnesses; sec 25 named the hazard in it, and the hazard is real -- W1 and
+    W2 are legitimately DISTANCE-LIMITED (W1/openr1's Delta-deciles run 0.907 ->
+    0.376), so a healthy witness can read `aiming = 0` in its largest decile and a
+    per-decile `> 0` leg would FALSE-HALT it. That is sec 23.4 item 2's error,
+    which sec 24 correctly refused. This function CANNOT commit it: it constructs
+    the oracle itself and hands `check_t2a4_positive_control` the ORACLE's records
+    and nothing else. The witnesses' aiming profiles stay REPORTED and gate
+    nothing per-stratum."""
+    train_tokens, val_tokens, meta, _, _ = load_corpus(data_dir, corpus_name, device)
+    model = PerfectCopyOracle(VOCAB_SIZE_GPT2).to(device).eval()
+    mode_next = build_bigram_mode_table(train_tokens, VOCAB_SIZE_GPT2, device)
+    counts_by_token = torch.bincount(train_tokens, minlength=VOCAB_SIZE_GPT2).tolist()
+    seed = corpus_fixed_seed(corpus_name) + RUNG_MATCHING_SEED_OFFSET
+
+    did_result = run_did_eval(model, val_tokens, 32, seq_len, n_windows, device, mode_next, seed,
+                               vocab_size=VOCAB_SIZE_GPT2)
+    delta_pool = [r["delta"] for r in did_result["records"]]
+    pools = build_key_value_pools(train_tokens, VOCAB_SIZE_GPT2, device)
+    result = {"corpus": corpus_name, "oracle": "PerfectCopyOracle",
+              "delta_pool_n": len(delta_pool)}
+    if not delta_pool or not (pools["floor_pool_key"] and pools["floor_pool_val"]
+                               and pools["floor_licensed_b"]):
+        result["t2_void"] = True
+        result["t2_void_reason"] = ("empty Delta pool or sec 11.2 pool floor(s) missed on our own "
+                                     "corpus -- the POSITIVE CONTROL cannot certify the instrument "
+                                     "off a population it could not build. FAIL-CLOSED.")
+        return result
+
+    t2_result = run_t2_repaired_probe(model, val_tokens, seq_len, device, corpus_name, delta_pool,
+                                       pools, counts_by_token, n_plants, vocab_size=VOCAB_SIZE_GPT2)
+    if t2_result.get("void"):
+        result["t2_void"] = True
+        result["t2_void_reason"] = t2_result.get("void_reason")
+        return result
+    result["t2_void"] = False
+    result["n_plants"] = t2_result.get("n_plants")
+    result["n_dropped"] = t2_result.get("n_dropped")
+    result["drop_reasons"] = t2_result.get("drop_reasons")
+    result["logit_liveness"] = t2_result.get("logit_liveness")
+    result["t2a4_positive_control"] = check_t2a4_positive_control(t2_result["records"])
+    return result
+
+
 # =============================================================================
 # sec 11.7's model-free N_rows pre-pass -- RUN FOR REAL by this build session
 # (model-free, CPU-safe, disturbs nothing).
@@ -1842,6 +1926,22 @@ def mode_gate(args) -> int:
                 "t2_void": True, "t2_void_reason": f"{type(e).__name__}: {e}"}
         _persist()
 
+    # sec 26 / T2a-4 THE POSITIVE CONTROL. GATING. Runs the real six-arm probe over a model that
+    # copies BY FIAT and requires the probe to RECOVER the plant ON EVERY ROW. This is the leg that
+    # closes sec 25's A-1: an instrument aimed on 0.6% of the candidate population clears all four
+    # of T2a-1's legs and certifies INSTRUMENT_VALID, and NOTHING before this could see it. The
+    # exception handler is fail-closed, like every other leg's: a positive control that did not run
+    # is not a null result, it is no result (sec 19.3d).
+    for corpus in corpora:
+        try:
+            results.setdefault("t2a4", {})[corpus] = run_t2a4_positive_control(
+                corpus, args.data_dir, args.device, seq_len=args.seq_len, n_windows=args.n_windows,
+                n_plants=args.n_plants)
+        except Exception as e:   # noqa: BLE001
+            results.setdefault("t2a4", {})[corpus] = {
+                "t2_void": True, "t2_void_reason": f"{type(e).__name__}: {e}"}
+        _persist()
+
     if "W1_rwkv7" in witnesses and "W2_gpt2large" in witnesses:
         for corpus in corpora:
             c1 = results["cells"].get(f"W1_rwkv7/{corpus}", {})
@@ -1927,6 +2027,9 @@ def mode_gate(args) -> int:
                           .get("t2a2_untrained_control", {}).get("passes")) for c in REQUIRED_CORPORA),
         "t2a3": all(bool(results["cells"].get(f"C1_falconmamba/{c}", {})
                           .get("t2a3_ssm_calibration", {}).get("passes")) for c in REQUIRED_CORPORA),
+        # sec 26 / T2a-4 THE POSITIVE CONTROL. GATING, on BOTH corpora, like every other leg.
+        "t2a4": all(bool(results.get("t2a4", {}).get(c, {})
+                          .get("t2a4_positive_control", {}).get("passes")) for c in REQUIRED_CORPORA),
         "t1c": all(bool(results.get("t1c", {}).get(c, {}).get("passes")) for c in REQUIRED_CORPORA),
     }
     # D5 round-4 M-6: enumerate the legs EXPLICITLY rather than `all(gate.values())`, which was
@@ -1934,11 +2037,13 @@ def mode_gate(args) -> int:
     # later. Order-dependence in a HALT gate's own conjunction is not a property to leave to
     # line ordering.
     gate["INSTRUMENT_VALID"] = all(gate[k] for k in
-                                    ("coverage_complete", "t2a1", "t2a2", "t2a3", "t1c"))
-    gate["note"] = ("sec 11.4.2/11.4.5: T2a-1 (W1 AND W2, each corpus) AND T2a-2 (untrained "
-                    "negative control) AND T2a-3 (SSM causal legs) AND T1c (reference DiD) are "
-                    "ALL gating. Any False => INSTRUMENT-INVALID, HALT for every rung. This "
-                    "roll-up is mechanical; do not hand-assemble it from the per-cell dicts.")
+                                    ("coverage_complete", "t2a1", "t2a2", "t2a3", "t2a4", "t1c"))
+    gate["note"] = ("sec 11.4.2/11.4.5 + sec 26: T2a-1 (W1 AND W2, each corpus) AND T2a-2 "
+                    "(untrained NEGATIVE control) AND T2a-3 (SSM causal legs) AND T2a-4 (the "
+                    "POSITIVE control -- the probe must RECOVER, on EVERY row, a plant a model "
+                    "emits BY FIAT) AND T1c (reference DiD) are ALL gating. Any False => "
+                    "INSTRUMENT-INVALID, HALT for every rung. This roll-up is mechanical; do not "
+                    "hand-assemble it from the per-cell dicts.")
     results["instrument_gate"] = gate
 
     print(json.dumps({k: v for k, v in results.items() if k != "cells"}, indent=2, default=str))
@@ -2627,7 +2732,9 @@ def smoke(device: str = "cpu") -> int:
         with _mock.patch.object(sys.modules[__name__], "load_witness_model",
                                  side_effect=RuntimeError("SMOKE: witness load refused")), \
              _mock.patch.object(sys.modules[__name__], "run_t2a2_untrained_control",
-                                 side_effect=RuntimeError("SMOKE: t2a2 refused")):
+                                 side_effect=RuntimeError("SMOKE: t2a2 refused")), \
+             _mock.patch.object(sys.modules[__name__], "run_t2a4_positive_control",
+                                 side_effect=RuntimeError("SMOKE: t2a4 refused")):
             rc = mode_gate(_fake_gate_args(out_path))
         with open(out_path) as f:
             gate_json = json.load(f)
@@ -2635,9 +2742,11 @@ def smoke(device: str = "cpu") -> int:
         report("[6h] mode_gate's BODY runs end-to-end and FAILS CLOSED (INSTRUMENT_VALID=False) "
                "when every witness refuses to load -- model-free (loader MOCKED, D5 round-5 "
                "SERIOUS-3: the round-4 version would have loaded 19GB of real weights inside "
-               "--smoke on the training box)",
-               rc == 0 and g.get("INSTRUMENT_VALID") is False
-               and set(g) >= {"coverage_complete", "t2a1", "t2a2", "t2a3", "t1c", "INSTRUMENT_VALID"},
+               "--smoke on the training box). sec 26: the T2a-4 POSITIVE-CONTROL leg is in the "
+               "gate dict and is FAIL-CLOSED when its own orchestration raises.",
+               rc == 0 and g.get("INSTRUMENT_VALID") is False and g.get("t2a4") is False
+               and set(g) >= {"coverage_complete", "t2a1", "t2a2", "t2a3", "t2a4", "t1c",
+                               "INSTRUMENT_VALID"},
                f"rc={rc}, gate={ {k: v for k, v in g.items() if k != 'note'} }")
         os.unlink(out_path)
     except Exception as e:  # noqa: BLE001
@@ -2686,9 +2795,14 @@ def smoke(device: str = "cpu") -> int:
             return {"corpus": corpus, "t2_void": False,
                     "t2a2_untrained_control": {"passes": True}}
 
+        def _fake_t2a4(corpus, data_dir, device, **kw):
+            return {"corpus": corpus, "oracle": "PerfectCopyOracle", "t2_void": False,
+                    "t2a4_positive_control": {"passes": True, "n_miss_recovery": 0,
+                                               "n_aim_unchanged": 0}}
+
         def _run_happy(break_leg=None, break_witness=None, break_corpus=None):
-            """`break_leg` in {None,'t2a1','t2a3','t2a2','t1c'} -- fails EXACTLY ONE leg, so a
-            per-leg negative control can assert the OTHER legs stay True (D5 round-6 SERIOUS-2:
+            """`break_leg` in {None,'t2a1','t2a3','t2a2','t2a4','t1c'} -- fails EXACTLY ONE leg, so
+            a per-leg negative control can assert the OTHER legs stay True (D5 round-6 SERIOUS-2:
             round 5 flipped t2a1 uniformly across all six cells, which cannot distinguish `all`
             from `any`, nor notice a leg silently dropped from the conjunction)."""
             def _cell(model, wk, corpus, *a, **kw):
@@ -2708,12 +2822,21 @@ def smoke(device: str = "cpu") -> int:
                     r["t2a2_untrained_control"] = {"passes": False}
                 return r
 
+            def _t2a4(corpus, data_dir, device, **kw):
+                r = _fake_t2a4(corpus, data_dir, device, **kw)
+                if break_leg == "t2a4":
+                    # sec 25's A-1 instrument: aimed on 12 of 2048 rows, mis-aimed on 2036.
+                    r["t2a4_positive_control"] = {"passes": False, "n_miss_recovery": 2036,
+                                                   "n_aim_unchanged": 2036}
+                return r
+
             op = os.path.join(tempfile.gettempdir(), f"t2a_smoke_gate_hp_{os.getpid()}.json")
             m = sys.modules[__name__]
             with _mock.patch.object(m, "load_witness_model", side_effect=_fake_load_model), \
                  _mock.patch.object(m, "load_witness_corpus", side_effect=_fake_load_corpus), \
                  _mock.patch.object(m, "run_witness_cell", side_effect=_cell), \
                  _mock.patch.object(m, "run_t2a2_untrained_control", side_effect=_t2a2), \
+                 _mock.patch.object(m, "run_t2a4_positive_control", side_effect=_t2a4), \
                  _mock.patch.object(m, "_get_gpt2_tokenizer", side_effect=lambda: None):
                 mode_gate(_fake_gate_args(op))
             with open(op) as f:
@@ -2729,10 +2852,11 @@ def smoke(device: str = "cpu") -> int:
         exp_lo_adj = 0.10 - (0.10 - 0.02) * exp_s
 
         report("[6j] mode_gate HAPPY PATH: healthy cells roll up to INSTRUMENT_VALID=True, with "
-               "ALL FIVE legs true (the assertion [6h] structurally CANNOT make, since a bug also "
-               "yields False -- D5 round-5 SERIOUS-1)",
+               "ALL SIX legs true -- INCLUDING sec 26's T2a-4 POSITIVE CONTROL (the assertion [6h] "
+               "structurally CANNOT make, since a bug also yields False -- D5 round-5 SERIOUS-1)",
                g["INSTRUMENT_VALID"] is True and all(g[k] for k in
-                                                      ("coverage_complete", "t2a1", "t2a2", "t2a3", "t1c")),
+                                                      ("coverage_complete", "t2a1", "t2a2", "t2a3",
+                                                       "t2a4", "t1c")),
                f"gate={ {k: v for k, v in g.items() if k != 'note'} }")
         report("[6j-b] coverage_summary is HOISTED, NON-EMPTY, and carries the exact expected "
                "val_coverage_ratio (D5 round-4 SERIOUS-3: the report that replaced a FATAL gate "
@@ -2759,9 +2883,10 @@ def smoke(device: str = "cpu") -> int:
         #     conjunction, and could not catch a leg reading the WRONG witness's cell. The auditor
         #     landed seven false-pass mutations that the old control missed; these catch them. ---
         leg_results = {}
-        for leg in ("t2a1", "t2a2", "t2a3", "t1c"):
+        LEGS = ("t2a1", "t2a2", "t2a3", "t2a4", "t1c")
+        for leg in LEGS:
             gg = _run_happy(break_leg=leg)["instrument_gate"]
-            others = [k for k in ("t2a1", "t2a2", "t2a3", "t1c") if k != leg]
+            others = [k for k in LEGS if k != leg]
             leg_results[leg] = {
                 "leg_false": gg[leg] is False,
                 "invalid": gg["INSTRUMENT_VALID"] is False,
@@ -2770,10 +2895,14 @@ def smoke(device: str = "cpu") -> int:
             }
         all_legs_ok = all(r["leg_false"] and r["invalid"] and r["others_still_true"]
                           for r in leg_results.values())
-        report("[6j-e] PER-LEG NEGATIVE CONTROLS: failing EXACTLY ONE of {t2a1, t2a2, t2a3, t1c} "
-               "sets THAT leg False, forces INSTRUMENT_VALID False, and leaves the OTHER THREE "
-               "True -- proves every pinned leg is (a) in the conjunction, (b) read off the right "
-               "cell, and (c) combined with AND not OR (D5 round-6 SERIOUS-2)",
+        report("[6j-e] PER-LEG NEGATIVE CONTROLS: failing EXACTLY ONE of {t2a1, t2a2, t2a3, "
+               "**t2a4**, t1c} sets THAT leg False, forces INSTRUMENT_VALID False, and leaves the "
+               "OTHER FOUR True -- proves every pinned leg is (a) in the conjunction, (b) read off "
+               "the right cell, and (c) combined with AND not OR (D5 round-6 SERIOUS-2). The t2a4 "
+               "row is sec 26's: an instrument aimed on 12 of 2048 rows HALTS the gate, and NOTHING "
+               "ELSE MOVES -- the four legs sec 25 showed it clears STAY GREEN, which is precisely "
+               "why the positive control had to be a SEPARATE leg and not a tightening of an "
+               "existing one.",
                all_legs_ok,
                "; ".join(f"{k}: leg={v['leg_false']} invalid={v['invalid']} "
                           f"others_ok={v['others_still_true']}" for k, v in leg_results.items()))
@@ -2870,8 +2999,13 @@ def smoke(device: str = "cpu") -> int:
         # check MISSED ALL FOUR. A dangling name in run_witness_cell would NameError -> be caught
         # by mode_gate's per-cell `except Exception` -> void EVERY cell -> INSTRUMENT_VALID=False
         # -> HALT-BY-DEFECT: R4's exact shape, one function over.
+        # sec 26: `run_t2a4_positive_control` is a GATE-PATH function -- it is MOCKED by [6h]/[6j],
+        # so like the four functions D5 round-6 SERIOUS-1 caught, it would otherwise carry ZERO
+        # static AND dynamic coverage, and an R4-class dangling name in it would void the positive
+        # control on every corpus => t2a4=False => HALT-BY-DEFECT on a healthy instrument.
         _GATE_PATH_FNS = ("mode_gate", "run_witness_cell", "load_witness_model",
                            "load_witness_corpus", "run_t2a2_untrained_control",
+                           "run_t2a4_positive_control",
                            "build_bridged_corpus", "run_delta_sweep", "run_n_demos_diagnostic",
                            "corpus_coverage_provenance", "stratified_acc_copy_report",
                            "_retokenize_documents", "decode_corpus_to_documents")

@@ -1943,6 +1943,83 @@ def argmax_changed_frac_keyswap(records: list) -> float:
     return _mean([int(a != b) for a, b in pairs]) if pairs else float("nan")
 
 
+class PerfectCopyOracle(torch.nn.Module):
+    """THE POSITIVE CONTROL'S MODEL (sec 26 / T2a-4). **A MODEL THAT HAS THE
+    MECHANISM BY FIAT.**
+
+    Every control this instrument has ever carried is a NEGATIVE one: it asks
+    "can this FAIL when it should?" (T2a-2's untrained model; sec 20's liveness
+    witness; sec 24's leg (vi)). **Nothing asked "can this SUCCEED when it
+    should?"** -- and that is the hole sec 25 walked through: a readout aimed on
+    12 of 2048 rows (0.6%) and MIS-AIMED on the other 2036 is alive, input-
+    dependent, plant-independent, and it CLEARS ALL FOUR GATING LEGS
+    (acc_copy = 0.0059, PRIOR = 0.0000, KS 95% CI [0.0029, 0.0093] excludes 0,
+    aiming = 0.0059 > 0) => T2a-1 PASS, T2a-3 PASS, INSTRUMENT_VALID.
+
+    THE ORACLE. At position `t` it emits logits peaked -- uniquely, on an exact
+    integer scatter, so there is no tie to break -- on the token that FOLLOWED
+    THE FIRST EARLIER OCCURRENCE of `x[t]`; where `x[t]` has no earlier
+    occurrence, it emits `x[t]` itself. That is a perfect, noiseless induction
+    head: THE EXACT MECHANISM `run_t2_repaired_probe` EXISTS TO DETECT. It has
+    no parameters, consumes no RNG, and is deterministic.
+
+    ===== WHAT A CORRECTLY-AIMED PROBE **MUST** READ ON IT, AND WHY THAT IS A
+          THEOREM ABOUT THE PLANT AND NOT A MEASUREMENT OF ANY MODEL =====
+
+    `plant_and_verify_t2_window` HARD-ASSERTS, on every admitted record, that
+    the planted window `w` satisfies `count(a in w) == 2` at EXACTLY `{j0, k0}`
+    and `count(b in w) == 1` at EXACTLY `{p = j0+1}`; `rejection_sample_delta`
+    admits only `2 <= Delta <= T-6` (so `j0 < p < k0`, strictly); and
+    `draw_t2_triple` returns `a`, `a'`, `b` PAIRWISE DISTINCT and with natural
+    occurrence count 0 in the pre-plant window. From those three facts alone:
+
+      ARM 1 (INTACT). `x[k0] = a`; a's unique earlier occurrence is `j0`;
+        `x[j0+1] = b` => the oracle emits `b` at `k0`.
+        => `argmax_intact_at_k == b` ON EVERY RECORD => `acc_copy == 1`, EXACTLY.
+      ARM 4 (KEY-SWAP, `w[j0] := a'`). `a` now occurs ONLY at `k0` => NO earlier
+        occurrence => the oracle falls back to `x[k0] = a`, and `a != b`.
+        => `argmax_keyswap_at_k == a != b == argmax_intact_at_k` ON EVERY RECORD
+        => `argmax_changed_frac_keyswap == 1`, EXACTLY, and `KS == 1`, EXACTLY.
+      ARM 5 (NO-PLANT, `w_orig[k0] := a`). `a` does not occur naturally in the
+        pre-plant window => it occurs only at `k0` => fallback `a != b`
+        => `PRIOR == 0`, EXACTLY.
+      ARM 2 (TRUE-ABLATE, `w[p] := repl != b`). The earlier `a` at `j0` still
+        stands; the token after it is now `repl != b` => `hit_true_ablated == 0`
+        on every record.
+
+    **NOTHING ABOVE IS A MEASUREMENT.** Each line is entailed by the plant's own
+    hard assertion. That is what makes the positive control's null CONSTRUCTION-
+    FIXED in the sense RULE T (sec 20.1) requires -- and it is the ONLY null in
+    this design that is fixed by a construction WE CONTROL rather than by a
+    property we hope some model has. `check_t2a4_positive_control` gates on
+    VIOLATION COUNTS of exactly these identities, at the exact null `0`, with no
+    tolerance and no numeric literal in the predicate at all.
+
+    COST: no parameters, no matmul, O(B*T + B*V) memory. Zero GPU-h in the sense
+    that matters -- it trains nothing. (sec 25.5 item 2: "It must be 0 GPU-h --
+    a constructed oracle, not a trained model.")"""
+
+    def __init__(self, vocab_size: int):
+        super().__init__()
+        self.vocab_size = int(vocab_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B, T = x.shape
+        idx = torch.arange(T, device=x.device).unsqueeze(0).expand(B, T)
+        # first_pos[b, v] = the FIRST index at which token v occurs in row b (or T if never).
+        # A token's GLOBAL-first occurrence is its FIRST EARLIER occurrence exactly when that
+        # index is < t -- which is the `has_earlier` test below. O(B*V), never O(B*T*T).
+        first_pos = torch.full((B, self.vocab_size), T, dtype=torch.long, device=x.device)
+        first_pos.scatter_reduce_(1, x, idx, reduce="amin", include_self=True)
+        fp = first_pos.gather(1, x)                       # (B,T) first occurrence of x[t]
+        has_earlier = fp < idx                            # STRICTLY earlier
+        nxt = x.gather(1, (fp + 1).clamp(max=T - 1))      # the token that FOLLOWED it
+        pred = torch.where(has_earlier, nxt, x)           # fallback: x[t] itself
+        logits = torch.full((B, T, self.vocab_size), -3.0, device=x.device, dtype=torch.float32)
+        logits.scatter_(2, pred.unsqueeze(-1), 7.0)       # a UNIQUE peak: no tie to break
+        return logits
+
+
 def run_t2_repaired_probe(model, val_tokens: torch.Tensor, seq_len: int, device: str,
                            corpus_name: str, delta_pool: list, pools: dict,
                            counts_by_token: list, n_plants: int,
@@ -2619,6 +2696,168 @@ def check_t2a3_ssm_calibration(records: list, t2b1_result: dict, t2b1b_result: d
             "aiming_keyswap_argmax_changed": aiming_ok,
             "aiming_argmax_changed_frac_keyswap": aiming_frac,
             "t2b1_passes": t2b1_result.get("passes"), "t2b1b_passes": t2b1b_result.get("passes")}
+
+
+def check_t2a4_positive_control(records: list) -> dict:
+    """T2a-4 POSITIVE CONTROL (sec 26, GATING, NEW). **THE FIRST CONTROL IN THIS
+    DESIGN THAT ASKS WHETHER THE INSTRUMENT CAN SUCCEED WHEN IT SHOULD.**
+
+    `records` MUST come from `run_t2_repaired_probe(PerfectCopyOracle(V), ...)`
+    -- a model that has the copy mechanism BY FIAT. The driver's
+    `run_t2a4_positive_control` constructs the oracle itself, so the records
+    cannot be a witness's by accident. On a CORRECTLY-AIMED instrument the
+    oracle's records satisfy, ON EVERY ROW, two identities that are THEOREMS of
+    the plant's own hard assertion (derived line by line in `PerfectCopyOracle`'s
+    docstring, from `plant_and_verify_t2_window` + `rejection_sample_delta`'s
+    `Delta >= 2` + `draw_t2_triple`'s pairwise-distinct, naturally-absent triple):
+
+        PC-1 RECOVERY:  argmax_intact_at_k == b
+        PC-2 AIMING:    argmax_intact_at_k != argmax_keyswap_at_k
+
+    ===== THE NULL, IN THE NULL'S OWN UNITS =====
+
+    NULL (fixed BY CONSTRUCTION, not by measurement): under a correctly-aimed
+    instrument, **the number of records violating PC-1 is EXACTLY 0, and the
+    number violating PC-2 is EXACTLY 0.** These are not tolerances and not
+    magnitudes: they are VIOLATION COUNTS of an identity we hold by fiat, and
+    their sampling distribution under the null is a POINT MASS AT ZERO (zero
+    variance -- the oracle is deterministic and consumes no RNG). The gate fires
+    on ANY violation. There is no slack to tighten and no scale to borrow.
+
+    **RULE T (sec 20.1), leg by leg.** RULE T's three shapes are (a) DEPARTURE
+    from a null in the null's own SAMPLING units -- admissible; (b) PROXIMITY to
+    a null as a TOLERANCE -- admissible conditionally, the slack being a
+    disclosed weakening; (c) DEPARTURE from a null as a RAW EFFECT-SIZE
+    MAGNITUDE -- INADMISSIBLE. PC-1/PC-2 are shape (b) **with the tolerance set
+    to zero**: the strictest member of an already-admitted shape, and strictly
+    cleaner than `PRIOR <= 0.05` or T2a-2's `acc_copy <= 0.02`, both of which
+    carry un-derived (if blind-pre-registered) slack. **ZERO NEW NUMERIC GATING
+    THRESHOLDS.** The gating predicate contains NO numeric literal at all: it
+    compares the probe's recovered token against THE RECORD'S OWN PLANTED `b`,
+    and the intact argmax against the key-swap argmax. The only numbers here are
+    counts, and the null they are compared to is `0` -- an exact degeneracy
+    boundary, the same family already admitted for `ks_lo > 0` (leg iv) and
+    `argmax_changed_frac > 0` (leg vi).
+
+    ===== WHY THIS CLOSES sec 25's A-1, AND WHAT IT DOES NOT DO =====
+
+    sec 25's blocker: leg (vi) tests `argmax_changed_frac_keyswap > 0`, which
+    fires ONLY IF the readout is mis-aimed on LITERALLY EVERY ROW; and because
+    leg (vi) is ENTAILED by leg (iv) it inherits leg (iv)'s floor and can never
+    bind above it. It certifies "aimed SOMEWHERE," not "aimed." sec 24 tested
+    `f = 0` and `f = 1` and never the interior. On a model whose recovery is
+    known to be TOTAL, "aimed somewhere" and "aimed" are the SAME predicate --
+    the interior collapses, because any coverage `f < 1` leaves `(1-f)*n` rows
+    that FAIL an identity that must hold on all `n`. An instrument aimed on 0.6%
+    of rows reads `n_miss_recovery = 2036` here and HALTS.
+
+    **WHAT IT DOES NOT DO, STATED SO NOBODY OVER-READS IT.** It certifies the
+    INSTRUMENT, not the witness. It cannot tell you whether `falcon-mamba-7b` has
+    a copy mechanism -- nothing can, and that is the measurement. What it buys is
+    that a LOW WITNESS `acc_copy` is now attributable: with T2a-4 green, the
+    readout provably recovers a plant it is supposed to recover, on every row, on
+    THIS corpus at THIS `seq_len` through THIS code path -- so a witness that
+    reads 0.006 is a fact about the MODEL (sec 11.4.3 step 3's pinned "report it
+    as a finding about the models"), not a possible fact about the probe. That
+    disambiguation is exactly what sec 24.3 wanted and could not have.
+
+    **AND THE HAZARD sec 25.5 NAMED IN ITS OWN CANDIDATE, WHICH THIS AVOIDS BY
+    CONSTRUCTION.** sec 25.5's candidate direction was a PER-STRATUM aiming leg
+    on the WITNESSES. sec 25 flagged its own hazard: RWKV7/gpt2-large are
+    legitimately DISTANCE-LIMITED (W1/openr1's Delta-deciles run 0.907 -> 0.376),
+    and a healthy witness can legitimately read `aiming = 0` in its largest
+    Delta-decile => **a per-decile `> 0` leg would FALSE-HALT a healthy witness**
+    -- the identical error sec 23.4 item 2 made and sec 24 correctly refused.
+    **T2a-4 READS NO WITNESS QUANTITY AT ALL.** Its records come from the oracle
+    and only the oracle. It is STRUCTURALLY INCAPABLE of false-halting a witness,
+    at any Delta, at any decile, at any coverage. The witnesses' aiming profiles
+    remain REPORTED and GATE NOTHING per-stratum.
+
+    The REFERENCE PROFILE sec 25.2 asked for ("what `aiming` and its per-stratum
+    profile LOOK LIKE ON A CORRECTLY-AIMED PROBE") is emitted here -- `1.0` in
+    every Delta-decile, by construction -- as REPORTED, NEVER-GATING context
+    against which a witness's profile can be READ. Reading is not gating."""
+    n_records = len(records)
+    required = ("b", "argmax_intact_at_k", "argmax_keyswap_at_k")
+    complete = [r for r in records if all(r.get(k) is not None for k in required)]
+    n_incomplete = n_records - len(complete)
+
+    miss_recovery = [r for r in complete if r["argmax_intact_at_k"] != r["b"]]
+    aim_unchanged = [r for r in complete if r["argmax_intact_at_k"] == r["argmax_keyswap_at_k"]]
+    n_miss = len(miss_recovery)
+    n_unchanged = len(aim_unchanged)
+
+    # ---- THE GATING CONJUNCTION. Exact violation counts against a construction null of 0.
+    #      FAIL-CLOSED on an empty or field-incomplete record set: a positive control that
+    #      certifies the instrument while omitting the rows it was supposed to check is the
+    #      T2a-2 "no measurement is not a null result" defect (sec 19.3d), re-committed.
+    pc0_records_complete = (n_records > 0) and (n_incomplete == 0)
+    pc1_recovery = pc0_records_complete and (n_miss == 0)
+    pc2_aiming = pc0_records_complete and (n_unchanged == 0)
+    passes = pc0_records_complete and pc1_recovery and pc2_aiming
+
+    reasons = []
+    if not pc0_records_complete:
+        reasons.append(
+            f"PC-0 RECORDS: n_records={n_records}, n_incomplete={n_incomplete}. The positive "
+            f"control cannot certify the instrument off rows it never read (FAIL-CLOSED).")
+    if pc0_records_complete and n_miss:
+        reasons.append(
+            f"PC-1 RECOVERY VIOLATED: the probe FAILED TO RECOVER the planted value `b` at the "
+            f"readout on {n_miss} of {len(complete)} rows ({n_miss / len(complete):.4f}) -- from a "
+            f"model that emits `b` there BY CONSTRUCTION (PerfectCopyOracle). The construction "
+            f"null is EXACTLY 0 violations. **THIS IS A MIS-AIMED INSTRUMENT** (wrong position / "
+            f"wrong tensor / transposed state / stale row index), and it is mis-aimed on "
+            f"{n_miss / len(complete):.2%} of the candidate population. It is NOT a weak model: "
+            f"the model is perfect by fiat. sec 25's A-1: a readout aimed on 0.6% of rows clears "
+            f"every OTHER gating leg and certifies INSTRUMENT_VALID; this leg is the one that "
+            f"HALTs it. HALT -- INSTRUMENT-INVALID.")
+    if pc0_records_complete and n_unchanged:
+        reasons.append(
+            f"PC-2 AIMING VIOLATED: swapping the planted key at j0 left the readout argmax at k0 "
+            f"BIT-IDENTICAL on {n_unchanged} of {len(complete)} rows "
+            f"({n_unchanged / len(complete):.4f}) -- on a model whose readout at k0 is a function "
+            f"of the key at j0 BY CONSTRUCTION. The construction null is EXACTLY 0. The readout is "
+            f"PLANT-INDEPENDENT on those rows. HALT -- INSTRUMENT-INVALID.")
+
+    deciles = _decile_bucket(complete, key_fn=lambda r: r["delta"]) if complete else []
+
+    def _frac(bucket, fn):
+        return _mean([int(fn(r)) for r in bucket]) if bucket else float("nan")
+
+    return {
+        "passes": bool(passes),
+        "gating_legs": ["pc0_records_present_and_complete", "pc1_recovery_no_miss",
+                        "pc2_aiming_no_unchanged"],
+        "pc0_records_present_and_complete": bool(pc0_records_complete),
+        "pc1_recovery_no_miss": bool(pc1_recovery),
+        "pc2_aiming_no_unchanged": bool(pc2_aiming),
+        # ---- THE VIOLATION COUNTS. The null is 0 for both, by construction.
+        "n_records": n_records, "n_records_incomplete": n_incomplete,
+        "n_miss_recovery": n_miss, "n_aim_unchanged": n_unchanged,
+        "construction_null_n_miss_recovery": 0, "construction_null_n_aim_unchanged": 0,
+        "failure_reasons": reasons,
+        # ---- THE REFERENCE PROFILE (sec 25.2). REPORTED, NEVER GATING ON ANY WITNESS.
+        #      On a correctly-aimed instrument every one of these is its construction value:
+        #      acc_copy 1.0, aiming 1.0, KS 1.0, PRIOR 0.0, acc_true_ablated 0.0 -- and each
+        #      Delta-decile reads 1.0. A witness's own profile is READ against this. Reading
+        #      is not gating: sec 25.5's own hazard (a per-decile aiming leg FALSE-HALTS a
+        #      healthy distance-limited witness) is why no witness stratum is gated anywhere.
+        "reference_acc_copy": _acc(complete, "hit_intact") if complete else float("nan"),
+        "reference_acc_keyswap": _acc(complete, "hit_keyswap") if complete else float("nan"),
+        "reference_acc_true_ablated": _acc(complete, "hit_true_ablated") if complete else float("nan"),
+        "reference_prior": _acc(complete, "hit_noplant") if complete else float("nan"),
+        "reference_ks": ((_acc(complete, "hit_intact") - _acc(complete, "hit_keyswap"))
+                         if complete else float("nan")),
+        "reference_aiming_argmax_changed_frac_keyswap": argmax_changed_frac_keyswap(complete),
+        "reference_decile_recovered": [_frac(b, lambda r: r["argmax_intact_at_k"] == r["b"])
+                                       for b in deciles],
+        "reference_decile_aiming": [
+            _frac(b, lambda r: r["argmax_intact_at_k"] != r["argmax_keyswap_at_k"])
+            for b in deciles],
+        "reference_decile_delta_median": [
+            (sorted(r["delta"] for r in b)[len(b) // 2] if b else None) for b in deciles],
+    }
 
 
 def check_t1c_reference_did(cell_w1: dict, cell_w2: dict) -> dict:
@@ -4914,6 +5153,369 @@ def smoke(device: str) -> int:
     except Exception as e:  # noqa: BLE001
         report("  [10h] sec 24 B-2 influence-ladder forced-fail tests", False,
                f"EXCEPTION after {n_ladder_assertions} assertions: {type(e).__name__}: {e}")
+
+    # --- [10i] sec 26 -- THE POSITIVE CONTROL (T2a-4): FORCED-FAIL NEGATIVE TESTS, RUN TO
+    #     COMPLETION, **INCLUDING THE INTERIOR OF THE AIMING-COVERAGE AXIS** -- the test sec 24
+    #     did not write and which would have caught A-1 before it shipped (sec 25.5 item 3).
+    #
+    #     THE DEFECT UNDER TEST (sec 25.1, A-1, BLOCKER). Leg (vi) fires iff the readout is
+    #     mis-aimed on LITERALLY EVERY row, and -- being ENTAILED by leg (iv) -- it inherits leg
+    #     (iv)'s floor and can never bind above it. sec 25 BUILT the interior case on the deployed
+    #     code: a readout correctly aimed on 12 of 2048 rows (0.6%) and mis-aimed on the other
+    #     2036 reads acc_copy=0.0059, PRIOR=0.0000, KS 95% CI [0.0029, 0.0093] (excludes 0),
+    #     aiming=0.0059 > 0 => ALL FOUR GATING LEGS PASS => T2a-1 PASS, T2a-3 PASS,
+    #     INSTRUMENT_VALID. The RETIRED bars would have HALTed it.
+    #
+    #     THREE THINGS ARE ON TRIAL, AND ALL THREE MUST HOLD OR THE FIX IS WORTHLESS:
+    #       (A) sec 25's 0.6%-aimed instrument MUST FAIL the positive control. Reconstructed at
+    #           the PINNED n = 2048, on the REAL DEPLOYED check functions -- both as sec 25 did it
+    #           (records-level, the check functions' own interface) and END-TO-END through
+    #           `run_t2_repaired_probe` itself with the defect in the READOUT PATH.
+    #       (B) A CORRECTLY-AIMED oracle MUST PASS. A positive control that halts healthy
+    #           instruments is worse than none.
+    #       (C) A HEALTHY BUT DISTANCE-LIMITED WITNESS MUST NOT FALSE-HALT. This is the hazard
+    #           sec 25.5 named IN ITS OWN preferred direction, and the identical error sec 23.4
+    #           item 2 made: W1/openr1's Delta-deciles run 0.907 -> 0.376, so a healthy witness
+    #           can legitimately read aiming = 0 in its largest Delta-decile. T2a-4 reads NO
+    #           witness quantity, and this test proves the witness path is untouched.
+    print("\n  [10i] sec 26: THE POSITIVE CONTROL (T2a-4) -- FORCED-FAIL, INTERIOR OF THE AXIS")
+    n_pc_assertions = 0
+    if t2_fixture is None:
+        report("  [10i] FIXTURE UNAVAILABLE -- [10b] did not complete, so the forced-fail "
+               "negative tests DID NOT RUN. HARD FAIL, not a skip: an unrun teeth test is "
+               "indistinguishable from a toothless one.", False)
+    else:
+        try:
+            # ============ (A) sec 25's A-1 INSTRUMENT, RECONSTRUCTED AT THE PINNED n = 2048 ======
+            # sec 25 ran its construction through the REAL check functions at N_rows = 2048, which
+            # is the interface those functions take (`records`). Rebuilt here to the letter: `k` of
+            # `n` rows CORRECTLY AIMED (the readout recovers the plant: argmax_intact == b) and the
+            # other `n - k` MIS-AIMED -- input-dependent (a distinct junk argmax per row, so sec
+            # 20's LIVENESS witness passes) and PLANT-INDEPENDENT (argmax_intact == argmax_keyswap
+            # BIT-IDENTICALLY, so the key-swap cannot move it and no arm ever equals `b`).
+            N25, PLANT_B = 2048, 4242
+
+            def _sliver_records(n_aimed: int, n: int = N25) -> list:
+                """On an AIMED row the readout recovers `b` in every arm that does NOT break the
+                key->value binding: arm 3 (placebo) and arm 3b (POOL-placebo) corrupt a PLACEBO
+                position -- neither the key at j0 nor the value at p -- so the copy still lands
+                (hit = 1); arm 2 (TRUE-ablate) destroys the value at p and arm 4 (KEY-SWAP)
+                destroys the key at j0, so both read 0. On a MIS-AIMED row the readout is
+                plant-independent junk in EVERY arm, so all six read 0.
+                **THIS IS PINNED BY sec 25's OWN p-VALUES, NOT BY GUESSWORK:** its table reads
+                T2b-1b p = 9.3e-10 at 31 aimed and 1.9e-06 at 20 aimed, and
+                `2 * 0.5**31 = 9.313e-10`, `2 * 0.5**20 = 1.907e-06` -- an EXACT binomial with
+                n_plus = n_aimed and n_minus = 0, which is this arm assignment and no other."""
+                recs = []
+                for i in range(n):
+                    aimed = i < n_aimed
+                    junk = 9000 + i            # input-dependent, never `b`, distinct per row
+                    recs.append({
+                        "row_idx": i, "delta": 2 + (i % 120), "b": PLANT_B,
+                        "argmax_intact_at_k": PLANT_B if aimed else junk,
+                        # PLANT-INDEPENDENT on the mis-aimed rows: swapping the key at j0 changes
+                        # NOTHING. On the aimed rows the readout is key-conditioned, so it moves.
+                        "argmax_keyswap_at_k": (PLANT_B + 1) if aimed else junk,
+                        "argmax_noplant_at_k": junk,
+                        "hit_intact": int(aimed), "hit_keyswap": 0, "hit_noplant": 0,
+                        "hit_true_ablated": 0, "hit_placebo_ablated": int(aimed),
+                        "hit_pool_placebo": int(aimed),
+                    })
+                return recs
+
+            sliver = _sliver_records(12)                       # 12/2048 = 0.586% -- sec 25's row
+            b1_s = check_t2b1_mechanism_exists(sliver)
+            b1b_s = check_t2b1b_key_conditioned(sliver)
+            a1_s = check_t2a1_ceiling(sliver, b1_s, b1b_s)     # n_boot default 2000, as deployed
+            a3_s = check_t2a3_ssm_calibration(sliver, b1_s, b1b_s)
+            a4_s = check_t2a4_positive_control(sliver)
+
+            n_pc_assertions += 1
+            report("  [A-1 REPRODUCED] sec 25's BLOCKER, on the DEPLOYED check functions: a readout "
+                   "correctly aimed on 12 of 2048 rows (0.6%) and MIS-AIMED on the other 2036 "
+                   "CLEARS ALL FOUR OPERATIVE GATING LEGS -- PRIOR=0, KS CI EXCLUDES 0, T2b-1 and "
+                   "T2b-1b p<0.001, aiming>0 -- and certifies T2a-1 PASS **and** T2a-3 PASS. The "
+                   "leg built to catch a mis-aimed probe (vi) reads 0.0059 > 0 => TRUE. This is the "
+                   "instrument the retired bars would have HALTed and the operative gate CERTIFIES.",
+                   a1_s["leg_iii_prior_le_005"] is True
+                   and a1_s["leg_iv_ks_ci_excludes_zero_and_t2b1b"] is True
+                   and a1_s["leg_v_t2b1_passes"] is True
+                   and a1_s["leg_vi_aiming_keyswap_argmax_changed"] is True
+                   and a1_s["passes"] is True and a3_s["passes"] is True,
+                   f"acc_copy={a1_s['acc_copy']:.4f} PRIOR={a1_s['prior']:.4f} "
+                   f"ks_ci={[round(v, 4) for v in a1_s['leg_iv_ks_ci']]} "
+                   f"aiming={a1_s['aiming_argmax_changed_frac_keyswap']:.4f} "
+                   f"T2a1={a1_s['passes']} T2a3={a3_s['passes']}")
+
+            # THE RECONSTRUCTION IS FAITHFUL TO sec 25 TO THE DIGIT, AND THIS ASSERTS IT RATHER THAN
+            # CLAIMING IT. sec 25's table gives T2b-1b p = 9.3e-10 at 31 aimed and 1.9e-06 at 20
+            # aimed; the exact binomial with n_plus = n_aimed, n_minus = 0 gives 2*0.5**31 =
+            # 9.3132e-10 and 2*0.5**20 = 1.9073e-06. If a future edit perturbs the arm assignment,
+            # the reconstruction stops being sec 25's instrument and THIS goes red -- which is
+            # exactly how the first draft of this very block was caught (its `hit_pool_placebo` was
+            # 0, so T2b-1b had ZERO discordant pairs, p = 1.0, and the A-1 instrument did NOT in
+            # fact pass -- a forced-fail test catching a defect in a forced-fail test, cf. sec 24.5).
+            p31 = check_t2b1b_key_conditioned(_sliver_records(31))["p_value"]
+            p20 = check_t2b1b_key_conditioned(_sliver_records(20))["p_value"]
+            n_pc_assertions += 1
+            report("  [A-1 FAITHFUL] The reconstruction reproduces sec 25's OWN NUMBERS to the "
+                   "digit -- acc_copy 0.0059, PRIOR 0.0000, KS CI [0.0029, 0.0093], aiming 0.0059, "
+                   "and T2b-1b p = 9.3e-10 @ 31 aimed / 1.9e-06 @ 20 aimed (= 2*0.5^31, 2*0.5^20 "
+                   "EXACTLY). It is sec 25's instrument, not a lookalike.",
+                   abs(p31 - 2 * 0.5 ** 31) < 1e-18 and abs(p20 - 2 * 0.5 ** 20) < 1e-12
+                   and round(a1_s["acc_copy"], 4) == 0.0059
+                   and a1_s["prior"] == 0.0
+                   and [round(v, 4) for v in a1_s["leg_iv_ks_ci"]] == [0.0029, 0.0093]
+                   and round(a1_s["aiming_argmax_changed_frac_keyswap"], 4) == 0.0059,
+                   f"p(31)={p31:.4g} (sec 25: 9.3e-10) p(20)={p20:.4g} (sec 25: 1.9e-06) "
+                   f"acc_copy={a1_s['acc_copy']:.4f} PRIOR={a1_s['prior']:.4f} "
+                   f"ks_ci={[round(v, 4) for v in a1_s['leg_iv_ks_ci']]}")
+
+            n_pc_assertions += 1
+            report("  [A-1 CLOSED] **THE DECISIVE FORCED FAIL**: THAT SAME 0.6%-aimed instrument "
+                   "FAILS THE POSITIVE CONTROL. n_miss_recovery = 2036 against a construction null "
+                   "of EXACTLY 0 -- the probe failed to recover a plant emitted BY FIAT on 99.4% of "
+                   "rows -- and n_aim_unchanged = 2036. T2a-4 passes=False, and it NAMES the reason "
+                   "a MIS-AIMED INSTRUMENT. The gate can now distinguish 0.6%-aimed from 100%-aimed; "
+                   "it could not, at ANY leg, before this.",
+                   a4_s["passes"] is False
+                   and a4_s["n_miss_recovery"] == N25 - 12
+                   and a4_s["n_aim_unchanged"] == N25 - 12
+                   and a4_s["pc1_recovery_no_miss"] is False
+                   and a4_s["pc2_aiming_no_unchanged"] is False
+                   and any("MIS-AIMED INSTRUMENT" in s for s in a4_s["failure_reasons"]),
+                   f"passes={a4_s['passes']} n_miss_recovery={a4_s['n_miss_recovery']}/"
+                   f"{a4_s['n_records']} n_aim_unchanged={a4_s['n_aim_unchanged']} "
+                   f"null={a4_s['construction_null_n_miss_recovery']}")
+
+            # ---- THE INTERIOR OF THE AIMING-COVERAGE AXIS (sec 25.5 item 3). sec 24 tested f=0 and
+            #      f=1 and NEVER BETWEEN, and its blindness is MONOTONE IN THE WRONG DIRECTION. The
+            #      positive control must be a STEP FUNCTION at f = 1: FAIL at every f < 1, PASS only
+            #      at f = 1. One row short of perfect must HALT.
+            axis = {}
+            for k_aimed in (0, 12, 31, 61, 1024, 2047, 2048):
+                recs = _sliver_records(k_aimed)
+                a4 = check_t2a4_positive_control(recs)
+                axis[k_aimed] = (a4["passes"], a4["n_miss_recovery"])
+            n_pc_assertions += 1
+            report("  [INTERIOR OF THE AXIS] T2a-4 is a STEP FUNCTION at f=1: it FAILS at f = 0, "
+                   "0.6%, 1.5%, 3.0%, 50%, AND at 2047/2048 (ONE row short of perfect), and PASSES "
+                   "ONLY at f = 1. sec 24 measured f=0 and f=1 and nothing between; THAT is the "
+                   "test that would have caught A-1 before it shipped (sec 25.5 item 3).",
+                   all(axis[k][0] is False and axis[k][1] == N25 - k
+                       for k in (0, 12, 31, 61, 1024, 2047))
+                   and axis[2048][0] is True and axis[2048][1] == 0,
+                   "; ".join(f"f={k}/{N25}: passes={v[0]} n_miss={v[1]}" for k, v in axis.items()))
+
+            # ============ (B) THE SAME DEFECT IN THE READOUT PATH, END-TO-END THROUGH THE PROBE ===
+            # The records-level reconstruction above is sec 25's own interface. This one puts the
+            # aiming defect where a REAL one would live -- in the readout path -- and drives it
+            # through `run_t2_repaired_probe` itself: no synthetic records, the real six arms, the
+            # real plant construction, the real argmax. `PerfectCopyOracle` is the model; the
+            # wrapper mis-aims the readout on a deterministic subset of rows.
+            class _SliverAimedReadout(torch.nn.Module):
+                """sec 25's A-1 instrument, realized IN THE READOUT PATH. On rows whose readout
+                token clears a deterministic predicate it returns the inner (perfect) model's
+                logits; on the rest it returns logits peaked on `x[t]` ITSELF -- sec 23.3's own
+                "reading at k0-1" defect, which is fully input-dependent (LIVENESS PASSES) and
+                PLANT-INDEPENDENT (arms 1-5 never corrupt `x[k0]`, so the key-swap cannot move it).
+                The predicate reads the token AT the readout position, which no arm corrupts, so a
+                row's aimed/mis-aimed status is IDENTICAL across all six arms -- the defect is a
+                property of the INSTRUMENT, not an artifact of the ablation."""
+
+                def __init__(self, inner, modulus: int):
+                    super().__init__()
+                    self.inner, self.modulus = inner, int(modulus)
+
+                def forward(self, x: torch.Tensor) -> torch.Tensor:
+                    good = self.inner(x)
+                    B, T = x.shape
+                    bad = torch.full_like(good, -3.0)
+                    bad.scatter_(2, x.unsqueeze(-1), 7.0)          # peak on x[t] itself: MIS-AIMED
+                    aimed = ((x % self.modulus) == 0).unsqueeze(-1)  # per-POSITION, arm-invariant
+                    return torch.where(aimed, good, bad)
+
+            def _probe(model):
+                r = run_t2_repaired_probe(model, t2_fixture["val"], seq_len=256, device=device,
+                                           corpus_name="smoke-synth-corpus",
+                                           delta_pool=t2_fixture["delta_pool"],
+                                           pools=t2_fixture["pools"],
+                                           counts_by_token=t2_fixture["counts"],
+                                           n_plants=t2_fixture["n_plants"],
+                                           vocab_size=t2_fixture["V"], eval_micro_batch=32)
+                b1 = check_t2b1_mechanism_exists(r["records"])
+                b1b = check_t2b1b_key_conditioned(r["records"])
+                return (r, check_t2a1_ceiling(r["records"], b1, b1b, n_boot=200),
+                        check_t2a3_ssm_calibration(r["records"], b1, b1b, n_boot=200),
+                        check_t2a4_positive_control(r["records"]))
+
+            perfect = PerfectCopyOracle(t2_fixture["V"]).to(device).eval()
+            r_p, a1_p, a3_p, a4_p = _probe(perfect)
+
+            n_pc_assertions += 1
+            report("  [POSITIVE CONTROL PASSES] A CORRECTLY-AIMED instrument on a model that copies "
+                   "BY FIAT reads its CONSTRUCTION VALUES EXACTLY, through the real six-arm probe: "
+                   "n_miss_recovery=0, n_aim_unchanged=0, acc_copy=1.0, aiming=1.0, KS=1.0, "
+                   "PRIOR=0.0, acc_true_ablated=0.0. Each is a THEOREM of the plant's own hard "
+                   "assertion, not a measurement. A positive control that halted here would be "
+                   "worse than none.",
+                   a4_p["passes"] is True
+                   and a4_p["n_miss_recovery"] == 0 and a4_p["n_aim_unchanged"] == 0
+                   and a4_p["n_records"] > 0 and a4_p["n_records_incomplete"] == 0
+                   and a4_p["reference_acc_copy"] == 1.0
+                   and a4_p["reference_aiming_argmax_changed_frac_keyswap"] == 1.0
+                   and a4_p["reference_ks"] == 1.0
+                   and a4_p["reference_prior"] == 0.0
+                   and a4_p["reference_acc_true_ablated"] == 0.0,
+                   f"passes={a4_p['passes']} n={a4_p['n_records']} "
+                   f"n_miss={a4_p['n_miss_recovery']} n_aim_unchanged={a4_p['n_aim_unchanged']} "
+                   f"acc_copy={a4_p['reference_acc_copy']} "
+                   f"aiming={a4_p['reference_aiming_argmax_changed_frac_keyswap']} "
+                   f"KS={a4_p['reference_ks']} PRIOR={a4_p['reference_prior']} "
+                   f"decile_recovered={a4_p['reference_decile_recovered']}")
+
+            r_sl, a1_sl, a3_sl, a4_sl = _probe(_SliverAimedReadout(perfect, 8).to(device).eval())
+            n_pc_assertions += 1
+            report("  [READOUT-PATH DEFECT] THE SAME CLOSURE, END-TO-END: a MIS-AIMED READOUT driven "
+                   "through `run_t2_repaired_probe` itself (real plants, real six arms, real argmax) "
+                   "keeps sec 20's LIVENESS witness GREEN and keeps leg (vi) > 0 -- and the POSITIVE "
+                   "CONTROL HALTS IT. The defect is caught where a real one lives: in the readout "
+                   "path, not in a synthetic record dict.",
+                   r_sl["logit_liveness"]["ok"] is True
+                   and a1_sl["aiming_argmax_changed_frac_keyswap"] > 0.0
+                   and a1_sl["leg_vi_aiming_keyswap_argmax_changed"] is True
+                   and a4_sl["passes"] is False
+                   and a4_sl["n_miss_recovery"] > 0
+                   and a4_sl["n_miss_recovery"] == a4_sl["n_aim_unchanged"],
+                   f"liveness.ok={r_sl['logit_liveness']['ok']} "
+                   f"leg_vi={a1_sl['leg_vi_aiming_keyswap_argmax_changed']} "
+                   f"aiming={a1_sl['aiming_argmax_changed_frac_keyswap']:.4f} "
+                   f"T2a4_passes={a4_sl['passes']} "
+                   f"n_miss={a4_sl['n_miss_recovery']}/{a4_sl['n_records']}")
+
+            # ============ (C) NO FALSE HALT ON A HEALTHY, DISTANCE-LIMITED WITNESS ===============
+            # sec 25.5 named this hazard IN ITS OWN candidate direction, and sec 23.4 item 2 already
+            # committed the error once: gating aiming per-stratum on the WITNESSES would HALT a
+            # healthy model whose key-conditioning legitimately dies in the Delta tail. The archived
+            # attempt-2 raws (md5 87ae97087bca56894a5035a348d17f48) record W1/openr1's Delta-decile
+            # curve as 0.907 / 0.839 / 0.888 / 0.746 / 0.781 / 0.637 / 0.634 / 0.620 / 0.517 / 0.376
+            # -- a REAL, HEALTHY, CORRECTLY-AIMED witness that is DISTANCE-LIMITED. This oracle is
+            # that witness: a correctly-aimed induction head whose copy fails as Delta grows.
+            class _DistanceLimitedOracle(torch.nn.Module):
+                """A HEALTHY, CORRECTLY-AIMED induction head that is DISTANCE-LIMITED: it copies
+                only when the demonstration is within `max_delta` of the readout, and emits `x[t]`
+                otherwise. This is exactly what the four real witnesses look like (sec 18.2b's
+                decile grid), and NOTHING IN THE GATE MAY HALT IT."""
+
+                def __init__(self, vocab_size: int, max_delta: int):
+                    super().__init__()
+                    self.vocab_size, self.max_delta = int(vocab_size), int(max_delta)
+
+                def forward(self, x: torch.Tensor) -> torch.Tensor:
+                    B, T = x.shape
+                    idx = torch.arange(T, device=x.device).unsqueeze(0).expand(B, T)
+                    first_pos = torch.full((B, self.vocab_size), T, dtype=torch.long, device=x.device)
+                    first_pos.scatter_reduce_(1, x, idx, reduce="amin", include_self=True)
+                    fp = first_pos.gather(1, x)
+                    near = (fp < idx) & ((idx - fp) <= self.max_delta)   # THE DISTANCE LIMIT
+                    nxt = x.gather(1, (fp + 1).clamp(max=T - 1))
+                    pred = torch.where(near, nxt, x)
+                    logits = torch.full((B, T, self.vocab_size), -3.0, device=x.device,
+                                         dtype=torch.float32)
+                    logits.scatter_(2, pred.unsqueeze(-1), 7.0)
+                    return logits
+
+            # delta_pool11 spans 10..120; a 50-token limit gives a declining decile profile with a
+            # DEAD tail -- the regime in which a per-decile aiming leg would false-HALT.
+            r_dl, a1_dl, a3_dl, a4_dl = _probe(_DistanceLimitedOracle(t2_fixture["V"], 50).to(device).eval())
+            dl_dec = a1_dl["decile_accs"]
+            n_pc_assertions += 1
+            report("  [NO FALSE HALT / THE sec 25.5 HAZARD] A HEALTHY, CORRECTLY-AIMED, "
+                   "DISTANCE-LIMITED witness -- the shape of all four real witnesses (W1/openr1: "
+                   "0.907 -> 0.376) -- PASSES T2a-1 and T2a-3 with its LARGEST Delta-decile DEAD "
+                   "(acc = 0.0, and aiming = 0.0 in that stratum). A per-decile aiming leg -- the "
+                   "candidate sec 25.5 flagged the hazard in, and sec 23.4 item 2's identical error "
+                   "-- WOULD HAVE HALTED IT. T2a-4 gates NO witness quantity, so it CANNOT.",
+                   a1_dl["passes"] is True and a3_dl["passes"] is True
+                   and dl_dec[0] > dl_dec[-1] and dl_dec[-1] == 0.0
+                   and 0.0 < a1_dl["aiming_argmax_changed_frac_keyswap"] < 1.0,
+                   f"T2a1={a1_dl['passes']} T2a3={a3_dl['passes']} "
+                   f"acc_copy={a1_dl['acc_copy']:.4f} "
+                   f"deciles={[round(v, 3) for v in dl_dec]} "
+                   f"aiming={a1_dl['aiming_argmax_changed_frac_keyswap']:.4f}")
+
+            n_pc_assertions += 1
+            report("  [T2a-4 IS WITNESS-INDEPENDENT BY CONSTRUCTION] The positive control's verdict "
+                   "is BIT-IDENTICAL whether the witness is perfect, distance-limited, or 0.6%-"
+                   "aimed: it is a function of the ORACLE's records and NOTHING ELSE. That is the "
+                   "structural reason it cannot false-HALT a witness at any Delta, decile or "
+                   "coverage -- and it is why the sec 25.5 hazard does not attach to it.",
+                   check_t2a4_positive_control(r_p["records"])["passes"] is True
+                   and check_t2a4_positive_control(r_p["records"])["n_miss_recovery"] == 0
+                   and a4_dl["passes"] is False and a4_p["passes"] is True,
+                   f"oracle_verdict={a4_p['passes']} (n_miss=0); the DISTANCE-LIMITED model's OWN "
+                   f"records would read passes={a4_dl['passes']} "
+                   f"(n_miss={a4_dl['n_miss_recovery']}) -- WHICH IS WHY THE DRIVER NEVER FEEDS "
+                   f"THEM TO IT: `run_t2a4_positive_control` builds the oracle itself.")
+
+            # The COVERAGE check does NOT increment the counter it audits. Hardcoded expected count,
+            # never derived from the counter -- a tally compared against itself goes green on a
+            # skipped body. It has now caught two consecutive builders (sec 20.4e, sec 24.5).
+            report(f"  [COVERAGE] all {n_pc_assertions}/8 T2a-4 forced-fail assertions EXECUTED "
+                   f"(expected count HARDCODED)", n_pc_assertions == 8, f"n={n_pc_assertions}")
+        except Exception as e:  # noqa: BLE001
+            report("  [10i] sec 26 POSITIVE CONTROL forced-fail negative tests", False,
+                   f"EXCEPTION after {n_pc_assertions} assertions: {type(e).__name__}: {e}")
+
+    # --- [10j] sec 26 -- THE DETERMINISM RECEIPT, REGENERABLE BY A THIRD PARTY.
+    #     sec 25.3 MINOR-3: sec 24.6's determinism md5 `533cf851...` hashed a PRIVATE /tmp fixture
+    #     that was never archived, so no auditor can ever recompute it. "An md5 nobody can recompute
+    #     is not a receipt -- it is a number." This replaces it with a receipt whose input is the
+    #     COMMITTED FILE ITSELF: an md5 over the exact source text of every function and class that
+    #     PRODUCES OR ESTIMATES A RECORD. If that digest is unchanged, the record stream is
+    #     bit-identical BY CONSTRUCTION -- no fixture, no RNG, no GPU, no torch version, no device.
+    #     ANYONE can regenerate it, against ANY commit, with the six-line recipe in sec 26.
+    print("\n  [10j] sec 26: DETERMINISM RECEIPT (source-level, third-party regenerable)")
+    try:
+        import ast as _ast_d
+        RECORD_PATH_SYMBOLS = [
+            # window sampling -> plant construction -> the six arms -> the record dicts
+            "_combine_seed", "_make_window", "rejection_sample_delta", "draw_t2_triple",
+            "plant_and_verify_t2_window", "assign_t2_plant", "draw_pool_replacement",
+            "draw_exclusive_replacement", "assign_placebo_positions",
+            "build_replicated_ablation_batch", "run_ablation_arm", "run_t2_repaired_probe",
+            "build_key_value_pools", "_LiveLogitAccumulator", "argmax_changed_frac_keyswap",
+            # the estimators every leg reads through
+            "clustered_bootstrap_ci", "_mean", "_acc", "_decile_bucket", "binomial_se",
+            "_paired_sign_test", "_exact_binomial_two_sided_p", "_log_binomial_pmf",
+        ]
+        _src_d = open(os.path.abspath(__file__)).read()
+        _tree_d = _ast_d.parse(_src_d)
+        _found = {n.name: _ast_d.get_source_segment(_src_d, n)
+                  for n in _ast_d.walk(_tree_d)
+                  if isinstance(n, (_ast_d.FunctionDef, _ast_d.ClassDef))
+                  and n.name in RECORD_PATH_SYMBOLS}
+        missing = [s for s in RECORD_PATH_SYMBOLS if s not in _found]
+        digest = hashlib.md5("\n".join(_found[s] for s in RECORD_PATH_SYMBOLS
+                                       if s in _found).encode()).hexdigest()
+        # PINNED at the sec 26 build. This digest is IDENTICAL at HEAD `20c40c4` (sec 25's audited
+        # bytes) -- verify with `git show 20c40c4:matrix-thinking/deltanet_rd/
+        # lm_recall_gap_probe_v2_rd.py` and the same six lines. sec 26's edits are PURELY ADDITIVE
+        # (a new oracle class, a new check function, new smoke blocks); NOT ONE record-producing or
+        # estimator function was touched, so `run_t2_repaired_probe` reproduces attempt-2's records
+        # bit-for-bit. If a future edit perturbs the record path, THIS TEST TURNS RED and the
+        # determinism claim must be re-earned rather than re-asserted.
+        RECORD_PATH_MD5 = "24bd8ae9783c0c8da35765d8181710c3"
+        report("  [10j] DETERMINISM RECEIPT: the md5 of the RECORD-PRODUCING + ESTIMATOR source "
+               "path is UNCHANGED from HEAD 20c40c4 => `run_t2_repaired_probe`'s record stream is "
+               "bit-identical BY CONSTRUCTION. Regenerable by any third party against any commit "
+               "(recipe in sec 26); the sec 24.6 md5 it replaces hashed an unarchived /tmp fixture "
+               "and was un-recomputable by anyone (sec 25.3 MINOR-3).",
+               digest == RECORD_PATH_MD5 and not missing,
+               f"n_symbols={len(_found)}/{len(RECORD_PATH_SYMBOLS)} missing={missing} "
+               f"md5={digest} (pinned {RECORD_PATH_MD5})")
+    except Exception as e:  # noqa: BLE001
+        report("  [10j] sec 26 determinism receipt", False, f"EXCEPTION: {type(e).__name__}: {e}")
 
     # --- [10d] sec 11.7 N_ROWS PRE-PASS: model-free, both corpora, real DeltaNetLM class NOT
     #     touched (the pre-pass never loads a checkpoint) -- confirm it terminates, VOIDs with a
