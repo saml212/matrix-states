@@ -3607,6 +3607,32 @@ available reference model, at any bar, and it is therefore RETIRED — not lower
 witness gate is REPLACED by the design's own causal/differential legs plus T1c. Δ and
 n_demos are NOT MOVED. Two of the three knobs I was handed, I decline to turn.**
 
+> ### ⚠ READER: §15 IS **NOT** THE OPERATIVE GATE. **THE OPERATIVE PIN IS §18.4.**
+>
+> §15 was audited by **§16** (verdict: *honest but UNSOUND — do not adopt*; its empirical
+> antecedent is refuted by the §11.4.3 step-2 diagnostics §15 was quarantined from) and by
+> **§17** (verdict: *the conclusion survives, the evidentiary pillar does not*; §15's keystone
+> citation reports a metric that is **zero by construction**). **§18 adjudicated both.**
+>
+> **What survives of §15, and it is a great deal:** the **retirement of the `acc_copy` bar**
+> (§18 upholds it — but on a **type** argument, Rule T, not on §15's literature argument, which
+> is struck); the **leg-(iv) hidden-bar catch** (`KS ≥ 0.50 ⟹ acc_copy ≥ 0.50` — **§15's best
+> work**, booked as §18.8 W-1); the **promotion of T1c**; the **instrument sensitivity floor**;
+> and the **negative controls at full strength**.
+>
+> **What does NOT survive:** §15's **literature argument** (§15.2C, §15.5, §15.7, §15.8 — §17.5),
+> its **prior-deficit mechanism** (rival-strength strata are **FLAT** — §16.3a), its **knob-2(c)**
+> distance claim (§16.3b), its **knob-3(c)** *"structurally forbidden"* claim (**FALSE** — the
+> generalized hard assertion exists at `t2a_reference_driver_v2_rd.py` **L1246**, is smoke-tested,
+> and **RAN** at `n_demos ∈ {1,2,4}` — §18.5), and its **median-`KS`** replacement for §9.4's
+> split (relative; can never return *"no rung is strong"* — §16.5, re-pinned at §18.4.1).
+>
+> **The corrections §17.5 mandated are applied below, in-line, marked `[§17.5-EDIT-n]` — plus
+> `[§18-EDIT]` where §18 overrules §17.** **§15's PIN table (§15.4) is left numerically
+> unchanged**, per §17.6 row 4; §18.4 supersedes it where they differ. *A correct pin recorded
+> for a refuted reason is a landmine for the next agent — this document's entire anti-laundering
+> defence rests on its reasons being checkable.*
+
 ### 15.0 BLINDNESS ATTESTATION
 
 I was dispatched under §11.4.3 step 4 — *"the response to (3) is a NEW blind
@@ -3708,14 +3734,31 @@ pretrained ~1.5B model performing one-shot, argmax, in-context copy of a **prior
 token in **natural text**.* **It does not exist.** Here is the whole relevant body, and the
 pattern in it is uniform rather than cherry-picked.
 
+> **[§17.5-EDIT-2] — STRUCK. THE CLAIM "uniform rather than cherry-picked" IS FALSE.** The
+> literature is **not** uniform. §17's adversarial re-search found the disconfirming paper §15
+> asserted did not exist: **Yu, Merullo & Pavlick, *"Characterizing Mechanisms for Factual
+> Recall in Language Models"*, EMNLP 2023 ([arXiv:2310.15910](https://arxiv.org/abs/2310.15910))**
+> — **GPT-2 and Pythia-70m…2.8b** (*bracketing* W1 at 1.5B, *containing* W2 at 0.77B) emit the
+> **in-context, prior-contradicting** token **20–80%** of the time, **one-shot**, at **open-vocab
+> greedy decode**, against a **memorized fact** whose prior advantage **exceeds** our 30–38×.
+> **And the scale trend is the REVERSE of Wei et al.'s:** for in-context *token* override,
+> override is **strongest in the SMALLEST models** and **decays** with scale (their §5.2).
+> **§15 imported a scaling law from the wrong operation, and it points the wrong way.**
+>
+> *(Yu et al. does **not** restore the 0.90 bar and §18 does not restore it: their prompt has a
+> **coherent QA frame and an explicit retrieval cue**; ours splices into **incoherent prose with
+> no cue**. It calibrates nothing about this construction. **What it destroys is not §15's
+> conclusion — it is §15's premise that no such capability is documented at this scale.**
+> §17.4-A, §18.2.)*
+
 **(A) Every literature measurement reporting ≥0.90 is on a task where the correct answer has
 NO competing prior.**
 
 | source | task | reported | but the prior… |
 |---|---|---|---|
 | **Zoology / MQAR**, Arora et al. — [arXiv:2312.04927](https://arxiv.org/abs/2312.04927) | MQAR: **synthetic vocab 8192**, key/value tokens drawn from a **random dictionary** | attention **>0.9 at model dim 64**, all seq lens; gated-conv needs `d ≥ N` | **does not exist.** Random tokens carry no bigram statistics. |
-| **Olsson et al. 2022**, *In-context Learning and Induction Heads* — [arXiv:2209.11895](https://arxiv.org/abs/2209.11895) | prefix-matching / copying scores on **25 random tokens repeated 4×** | induction heads defined by these scores | **does not exist** (random tokens) — and note this is **3 prior repetitions, not one-shot.** Their headline ICL metric is a **loss delta** (500th − 50th token), *not argmax accuracy at all.* |
-| **Bietti et al. 2023**, *Birth of a Transformer* — [arXiv:2306.00802](https://arxiv.org/abs/2306.00802) | **`[… a, b, … a] → b`; trigger appears twice ⇒ n_demos = 1.** *Structurally identical to our probe.* | 2-layer: **>99%** (fixed triggers) / **95%** (random triggers); 1-layer ~55% | **is uniform.** Their own text: *"with fixed (resp. random) triggers and **uniform outputs**"*. And the model is **purpose-trained on the very distribution in which the override is the correct behaviour.** |
+| **Olsson et al. 2022**, *In-context Learning and Induction Heads* — [arXiv:2209.11895](https://arxiv.org/abs/2209.11895) | prefix-matching / copying scores on **~~25~~ [§17.5-EDIT-4] 50 random tokens repeated 4×** | induction heads defined by these scores | **does not exist** (random tokens) — and note this is **3 prior repetitions, not one-shot.** Their headline ICL metric is a **loss delta** (500th − 50th token), *not argmax accuracy at all.* |
+| **Bietti et al. 2023**, *Birth of a Transformer* — [arXiv:2306.00802](https://arxiv.org/abs/2306.00802) | **`[… a, b, … a] → b`; trigger appears twice ⇒ n_demos = 1.** *Structurally identical to our probe.* | 2-layer: **>99%** (fixed triggers) / **95%** (random triggers); 1-layer ~55% | **is uniform.** Their own text: *"with fixed (resp. random) triggers and **uniform outputs**"*. And the model is **purpose-trained on the very distribution in which the override is the correct behaviour.** **[§17.5-EDIT-5] DISCLOSURE:** the same sentence continues *"…but also experiment with **π_o = π_b** in Section 5"* — Bietti **does** run the **non-uniform / bigram-prior-distributed** output case, which §15's "uniform outputs" caveat implies they did not. |
 | **RWKV-7 "Goose"** — [arXiv:2503.14456](https://arxiv.org/abs/2503.14456) | passkey / NIAH: a **unique random needle** ("the magic number is X") **plus an explicit retrieval cue** | `RWKV7-World3-1.5B` perfect passkey to ~19,600 tokens; 72.9% @ 256 KV pairs *(as quoted in §11.4.2; I could not fetch the full text to verify first-hand — flagged)* | **does not exist.** A unique random needle has no rival. |
 
 **This is the finding.** The 0.90 bar was imported from a literature in which **the correct
@@ -3727,18 +3770,76 @@ all — and its perplexity forbids 0.90.**
 
 Zoology's **"AR hits"** on the Pile is the closest existing analogue to this probe: *"the
 last token of an n-gram repeated in context"*, restricted to bigrams appearing **≤1250×
-during training** (they threshold precisely to exclude memorised bigrams). Reported: a **70M
-attention model gets perplexity 11.01** on the AR slice (AR hits = 6.4% of tokens, and
-account for **82% of the perplexity gap** to attention).
+during training** (they threshold precisely to exclude memorised bigrams). Reported: a
+**~~70M~~ [§17.5-EDIT-3] 125M attention model gets perplexity 11.01** on the AR slice (AR hits
+= 6.4% of tokens, and account for **82% of the perplexity gap** to attention).
 
 **Perplexity 11.01 ⇒ mean NLL ≈ 2.40 nats ⇒ geometric-mean `p(correct)` ≈ 0.09.** A model
-whose correct-token probability averages ~9% is not at 0.90 top-1. And note: **in Zoology's
-AR hits the prior *agrees* with the in-context evidence** (the repeated continuation is the
-natural one). Our probe makes the prior **oppose** it. The closest thing to our task that
-anyone has measured on real text sits at ppl ≈ 11 in the **easy** direction.
+whose correct-token probability averages ~9% is not at 0.90 top-1. ~~And note: in Zoology's
+AR hits the prior *agrees* with the in-context evidence (the repeated continuation is the
+natural one). Our probe makes the prior **oppose** it.~~ The closest thing to our task that
+anyone has measured on real text sits at ppl ≈ 11.
 
-**(C) The literature directly contradicts the premise that a ~1.5B model can override a
-contradicting prior from a handful of demonstrations — it reports 0%.**
+> **[§17.5-EDIT-3] — TWO CORRECTIONS, BOTH VERIFIED AGAINST THE SOURCE.** (a) The model is
+> **`Attention 125M`, not 70M** — §15's arithmetic (ppl 11.01 ⇒ NLL 2.40 ⇒ p̄ ≈ 0.09) is
+> **correct**, but the parameter count is wrong. (b) **The *"the prior AGREES with the context"*
+> claim is STRUCK — Zoology says no such thing anywhere; it is §15's own unsourced inference,
+> and it is *in tension with Zoology's own `≤1250×` threshold*, which deliberately selects
+> bigrams the model has **weak** parametric support for.** With (b) struck, this pillar **no
+> longer supports** §15's "our probe is harder because the prior *opposes*" framing, and the
+> row's remaining content is only: *nobody reports argmax accuracy on this slice.* **That is
+> still true, and it is still enough for the uncalibratability finding — which is the only leg
+> §18 stands on** (Rule T, §18.1).
+
+**(C) ~~The literature directly contradicts the premise that a ~1.5B model can override a
+contradicting prior from a handful of demonstrations — it reports 0%.~~**
+
+> ### ⛔ **[§17.5-EDIT-1] — SECTION (C) IS STRUCK IN ITS ENTIRETY AS AN EVIDENTIARY PILLAR.**
+>
+> **THIS IS THE HEADING §17 ORDERED DELETED, AND IT IS THE ONE §15's WHOLE CASE RESTED ON.**
+> The literature does **not** report 0% on this operation. It reports **nothing** on this
+> operation.
+>
+> **1. THE KEYSTONE NUMBER IS ZERO BY CONSTRUCTION, NOT BY MEASUREMENT.** arXiv:2511.21038
+> defines its *"semantic override rate"* as
+> `P[ f_icl(x) = y*(x) ∧ f_icl(x) = y_prompt(x) ]` where, under inverted demonstrations,
+> `y_prompt = φ(y*)` and **`φ` is a FIXED-POINT-FREE permutation.** The event therefore
+> requires **`y* = φ(y*)`** — **impossible for every x, every model, every scale, every k.**
+> §17 **verified this in the authors' own released code** (`hate_pipeline.py` ll. 387-404):
+> the counter's guard is `y_icl == y_true and y_icl == 1 - y_true`. **It is unreachable dead
+> code. It would report 0% for GPT-4, for PaLM-540B, and for a perfect oracle.** **It carries
+> ZERO information about 1.5B and MUST NOT be cited as a measurement.**
+>
+> **2. WHAT THE PAPER DOES LEGITIMATELY MEASURE** is an accuracy **collapse to chance** under
+> inverted demonstrations (SST-2 90.4 → 47.4; IMDB 92.4 → 48.4 — §15 quotes these correctly).
+> *"Degrades to chance"* is a **categorically weaker** claim than *"0% override,"* and §15
+> leans on the latter throughout.
+>
+> **3. BOTH PAPERS MEASURE THE WRONG OPERATION.** Wei et al. and 2511.21038 measure
+> **label-semantics remapping** over a **2–3 token label set** in a **classification** frame —
+> forcing a model to *redefine what a label means*. This probe measures **open-vocabulary
+> in-context copy** (argmax over **50257**) driven by an **induction/copy circuit**. **Nothing
+> licenses the transfer, and 2511.21038's own Conclusion explicitly disclaims it:** *"Future
+> work should test whether this constraint is specific to semantically loaded labels or extends
+> to arbitrary symbol-concept mappings."* **Scale band, too:** of its eight models exactly
+> **one** (Gemma-3-1B) is near 1.5B; **`gpt2-large` (0.77B) is below the studied band
+> entirely.**
+>
+> **4. AND THE DATA SETTLES IT.** Override on **this** probe runs at **`acc_copy` = 0.56–0.69**
+> against `PRIOR` = 0.003–0.007 — a **>100× lift**, not 0% (§16.1, re-verified at §18.0).
+>
+> **⇒ (C) IS WITHDRAWN. §15's affirmative *"the literature says they cannot"* argument is
+> DEAD.** *(Wei et al. is quoted accurately and survives **as a statement about label
+> remapping**. It says nothing about in-context token copy — and on **that** operation
+> **Yu, Merullo & Pavlick (arXiv:2310.15910) report the OPPOSITE scale trend**: override is
+> strongest in the **smallest** models. See [§17.5-EDIT-2] above.)*
+>
+> **WHAT SURVIVES — AND IT IS ENOUGH.** §15's **other** leg, the **uncalibratability** argument
+> (§15.3 knob 1), is **untouched by all of this** and is what §18 upholds: *no published
+> measurement exists of one-shot, argmax, open-vocabulary copy of a prior-disfavoured token
+> spliced into incoherent prose at Δ≈89.* **§18 goes further and shows the bar is uncalibratable
+> as a matter of TYPE (Rule T, §18.1) — it has no construction-derived null, so it would remain
+> uncalibratable even if the literature existed and even if our witnesses had scored 0.99.**
 
 - **Wei et al. 2023** — [arXiv:2303.03846](https://arxiv.org/abs/2303.03846), verbatim
   abstract: *"**overriding semantic priors is an emergent ability of model scale.** While
@@ -3803,13 +3904,55 @@ except the appearance of a fix. **Δ stays.**
 (a) **One-shot is not the limiting factor in the literature:** MQAR gives each key-value pair
 **exactly one** presentation before the query and attention still exceeds 0.9; Bietti's
 trigger appears **twice** (⇒ n_demos = 1) and reaches 95–99%. The mechanism does not need
-more shots. (b) **More shots do not buy what this probe actually needs:** arXiv:2511.21038
+more shots. ~~(b) **More shots do not buy what this probe actually needs:** arXiv:2511.21038
 measures **k ∈ {1,2,4,8}** in the 1–12B band and finds prior-override at **0% at every k** —
-adding demonstrations does not move prior-override at this scale. (c) **It is not a free
+adding demonstrations does not move prior-override at this scale.~~ ~~(c) **It is not a free
 knob anyway:** `n_demos > 1` is *structurally forbidden* by the hard assertion
 `count(a in w) == 2`, which §11.2.3 calls *"the single line that makes F-I structurally
 impossible."* Turning this knob means breaking the probe's core invariant to chase an effect
-the literature says is not there. **n_demos stays at 1.**
+the literature says is not there.~~ **n_demos stays at 1.**
+
+> ### ⛔ **[§17.5-EDIT-7] + [§18-EDIT] — KNOB 3's DERIVATION IS GUTTED. THE CONCLUSION SURVIVES ON A REASON §15 NEVER GAVE.**
+>
+> **Clause (b) — STRUCK [§17.5-EDIT-7].** It is built **entirely** on arXiv:2511.21038's
+> *"0% at every k"* — the metric that is **zero by construction** ([§17.5-EDIT-1]). It carries
+> **no weight whatsoever**. And the data refutes its prediction outright: the `n_demos` read
+> that §11.4.3 calls *"the ONLY diagnostic that separates 'one-shot is too hard' from 'the model
+> cannot copy'"* **RAN**, and `acc_copy` rises **monotonically** — W2/openr1 **0.688 → 0.770 →
+> 0.824**, W2/wikitext **0.547 → 0.711 → 0.883** (paired, n=256/level). **`n_demos` IS a lever.
+> §15 pre-empted the diagnostic with literature and got it backwards** (§16.3c).
+>
+> **Clause (c) — STRUCK, AND §17.5-EDIT-7's OWN ADVICE TO KEEP IT IS *OVERRULED*. [§18-EDIT]**
+> §17.5 edit 7 instructs: *"Keep n_demos = 1 on clause (c) — the **structural** `count(a in w)
+> == 2` assertion — **which is sound and sufficient on its own**."* **IT IS NEITHER. IT IS
+> FACTUALLY FALSE ABOUT THE CODE, AND §18 VERIFIED THE SOURCE RATHER THAN THE PROSE.**
+>
+> - The assertion **exists**, exactly where §15 says (`plant_and_verify_t2_window`,
+>   `lm_recall_gap_probe_v2_rd.py` **L1669**). **But it does not forbid `n_demos > 1`.**
+> - **`t2a_reference_driver_v2_rd.py` L1246 already contains
+>   `plant_and_verify_t2_window_ndemos`** — which **generalises the identical hard assertion** to
+>   arbitrary `n_demos` (`expected_a = sorted(set(positions))`, `expected_b = {p+1 for p in
+>   demo_positions}`, `PlantContestedError` on any mismatch, **never a tolerance**). It preserves
+>   the F-I invariant **exactly**; it carries its **own forced-fail negative test** (smoke `[7c]`);
+>   and **it RAN, on real data, at `n_demos ∈ {1,2,4}`, with 0 drops.**
+> - **⇒ `n_demos` is a fully-implemented, already-exercised, TURNABLE knob. The invariant it was
+>   said to break is the invariant it enforces.** *(§17 audited the citations, not the source;
+>   the prose has now misdescribed this code **twice** — in §15, and again in §17's endorsement
+>   of it.)*
+>
+> **THE TRUE — AND ONLY — REASON `n_demos` STAYS AT 1 (§18.5), verified in code:** **the
+> PRIMARY's estimand is the causal contribution of ONE antecedent occurrence.** `true_arm_specs`
+> (probe **L642-650**) sets `p = j + 1`, where `detect_candidates_and_baseline` (**L570-617**)
+> **always** takes `j` to be the **FIRST** occurrence of the `(a,b)` bigram. **Arm B ablates `p`
+> — the antecedent VALUE token; arm D ablates `j` — its KEY token.** A probe at `n_demos = 4`
+> measures a **redundantly-demonstrated** copy whose causal structure **the primary's DiD does
+> not estimate**. **The operating point is pinned by the PRIMARY, not by the witnesses' comfort
+> — and that is the same argument that holds Δ, and the only one that survives for either.**
+>
+> *(Also unrecorded until §18: the `n_demos` ladder is measured at a **FIXED Δ = 40**
+> (`query_pos = 504`, `gap = 40`, driver L1277-1404) — **not** at the gate's Δ-median of ≈88 —
+> and **only on W2**. It is a clean **paired** read of the `n_demos` **effect**; it is **not** a
+> calibration of the gate's operating point. §18.5, §18.8 W-6.)*
 
 *(§11.4.3 step 2 pre-registers the `n_demos ∈ {1,2,4}` read as "the only diagnostic that
 separates 'one-shot is too hard' from 'the model cannot copy.'" **The literature has now
@@ -3925,10 +4068,40 @@ it deadlocked:** witnesses show **`KS > 0` significantly, `DiD > 0` significantl
 `acc_copy`.** Under §11.4.1 this was **INSTRUMENT-INVALID / HALT**. **Under §15 it is a
 PASS**, and it is the *correct* pass — it says *"the mechanism is present and the instrument
 reads it; these models simply cannot win an argmax against a 30–40×-favoured rival from one
-shot,"* **which is exactly what arXiv:2511.21038 and Wei et al. predict they cannot do, and
-is a fact about models and priors, not about our instrument.** The old gate would have
+shot,"* ~~**which is exactly what arXiv:2511.21038 and Wei et al. predict they cannot do, and
+is a fact about models and priors, not about our instrument.**~~ ~~The old gate would have
 halted a valid study over a literature-predicted null on an operation the study never needed
-to measure.
+to measure.~~
+
+> ### ⛔ **[§17.5-EDIT-6] — THE THIRD-OUTCOME PASS LOSES ITS LITERATURE WARRANT. IT IS RE-BASED, NOT REVERSED.**
+>
+> **STRUCK:** *"which is exactly what arXiv:2511.21038 and Wei et al. predict they cannot do."*
+> **They predict no such thing** — they measure **label remapping**, and the stronger of the two
+> reports a number that is **zero by arithmetic necessity** ([§17.5-EDIT-1]). The one paper that
+> *does* measure something like this operation (**Yu et al., arXiv:2310.15910**) predicts the
+> **opposite** ([§17.5-EDIT-2]). **⇒ A low `acc_copy` on the witnesses is an UNEXPLAINED
+> observation, NOT a PREDICTED one, and the design must stop treating it as pre-vindicated.**
+>
+> **AND §15.8 ROW 6 HAS FIRED ITS OWN PRE-COMMITTED CONDITIONAL.** §15 wrote, verbatim: *"**If
+> the literature had shown a ~1.5B model doing one-shot argmax copy against a 30× prior deficit,
+> §15 would have KEPT the 0.90 bar.**"* **The literature does show a ≤1.5B model doing one-shot
+> open-vocabulary override against a prior deficit exceeding 30×** (Yu et al., on **GPT-2 and
+> Pythia** — §15's own witness family). **The trigger fired. It is recorded here rather than
+> allowed to pass unnoticed.**
+>
+> **AND THE BAR IS *STILL* NOT RESTORED — for a reason that is now stated properly (§17.4, §18):**
+> Yu et al.'s task has a **coherent QA frame and an explicit retrieval cue**; ours splices into
+> **incoherent prose with no cue**. **Restoring 0.90 would import a SECOND mis-matched bar to
+> replace the first.**
+>
+> **⇒ THE THIRD-OUTCOME PASS IS RE-BASED — AND §18 RE-BASES IT FURTHER THAN §17 ASKED.** §17.5
+> directed that it rest on §11.6's construction (K4/V4 hostility) argument alone. **§18 declines
+> even that.** The construction argument explains *why* `acc_copy` is low; **it does not license
+> a PASS.** **What licenses the PASS is that `acc_copy` was NEVER AN ADMISSIBLE GATE** — a
+> competence level with **no construction-derived null** cannot gate anything, at 0.90 or at any
+> other value (**Rule T, §18.1**). **The PASS is therefore not "predicted," not "assumed," and
+> not "excused" — it is what remains when a mis-typed leg is removed and the correctly-typed legs
+> (which read ~40σ) are allowed to speak.**
 
 **Does the pinned point distinguish "probe broken" from "models lack the mechanism"? YES —
 and the old point demonstrably could not.**
@@ -3977,12 +4150,36 @@ would have halted.
 
 **The argument that this is correct rather than convenient:**
 
-1. **The magnitude has no consumer left in the design.** `acc_copy`'s only structural
+1. ~~**The magnitude has no consumer left in the design.**~~ `acc_copy`'s only structural
    consumer was **T2b-2** (`DiD ≤ acc_copy + 2·SE`) — and **§11.6 already RETIRED T2b-2**,
-   proving `acc_copy ≥ DiD` *"not merely unproven — **false in general**."* **A gate on a
-   quantity that nothing consumes protects nothing.** It can only halt the study for a
+   proving `acc_copy ≥ DiD` *"not merely unproven — **false in general**."* ~~**A gate on a
+   quantity that nothing consumes protects nothing.**~~ ~~It can only halt the study for a
    reason the document has already conceded is uninterpretable. Retiring the ceiling
-   therefore costs **nothing that §11.6 had not already written off.**
+   therefore costs **nothing that §11.6 had not already written off.**~~
+
+   > **[§17.5-EDIT-6, cont.] — THIS CLAIM IS FALSE, AND §15 REFUTES IT ITSELF 150 LINES
+   > EARLIER (§16.5).** **`acc_copy` has a SECOND structural consumer: §9.4**, which requires
+   > the trend fit be reported twice — over all T2b-admissible rungs, and over *"the subset
+   > that also clears `acc_copy ≥ 0.90`"* — with **disagreement ⇒ the verdict is
+   > INDETERMINATE.** **That is verdict-carrying.** And **§15 KNOWS it: §15.4 item 1 re-pins
+   > exactly that split.** **§15 patched a consumer it then claimed did not exist, and told
+   > the reader the retirement costs "nothing." That is not true, and the overstatement is
+   > corrected here.**
+   >
+   > **AND §15's REPLACEMENT FOR IT IS WEAKER IN A WAY §15 DID NOT DISCLOSE (§16.5):**
+   > `acc_copy ≥ 0.90` was an **ABSOLUTE** criterion — it **can** return *"no rung is
+   > strong."* A split at the **median `KS`** is **RELATIVE** — **it always labels half the
+   > rungs "strong," even if every rung is garbage, so it can NEVER detect the very condition
+   > the old split existed to surface.** **§15.4 item 1's median-`KS` split is therefore
+   > SUPERSEDED**, and §9.4 is re-pinned at **§18.4.1** as a **threshold-free influence
+   > ladder** (fit reported at every `KS`-ordered prefix-drop; INDETERMINATE fires iff the
+   > exponent's **sign or significance flips** anywhere along it — a construction-derived
+   > criterion, and one that **can** return "the trend is not robust").
+   >
+   > **What survives of item 1, and it is the load-bearing half:** retiring the ceiling costs
+   > nothing **that the design was legitimately using**, because the ceiling was **never an
+   > admissible gate in the first place** (**Rule T, §18.1**) — and its one real consumer is
+   > replaced, not orphaned.
 2. **The risk it was insuring against is covered elsewhere, by the design's own reckoning.**
    §11.6.1 enumerates the three guards that replaced T2b-2 — the runtime one-token-per-row
    assertion, T2b-1/T2b-1b exclusion, and **T2a-2** (*"an instrument that reports recall
@@ -4009,7 +4206,7 @@ why §15 promotes it.
 | 3 | Did the disclosed `0.11` leak (§15.0) influence the pin? | **It cannot have.** A bar-fitter would have pinned a bar *below* 0.11. §15 pins **no bar at all** and instead *removes* the bar family. The pin is strictly *less* steerable by any known score than any numeric alternative. |
 | 4 | Were Δ or n_demos moved? | **No.** Both explicitly declined, on derivation (§15.3). Two of the three knobs I was handed, I refused to turn. |
 | 5 | Is the gate weaker overall? | **In one disclosed respect (§15.7): yes.** In three respects it is **tighter** — leg (iv)'s hidden 0.50 competence bar is **closed**; the negative control is now the **exact complement** of the positive gate; and T1c, the only difficulty-matched gate, is **promoted from co-equal to primary**. |
-| 6 | Could a hostile reviewer call this M-11 again? | The M-11 charge is *"a bar was cut after it failed."* **§15 cuts no bar to a passing value — it removes an uncalibratable bar family and keeps every causal gate and both negative controls at full strength.** The removal is derived from **§11.6's own attacker-endorsed necessity argument** plus a literature that reports **0% prior-override in the 1–12B band** — not from any outcome. **If the literature had shown a ~1.5B model doing one-shot argmax copy against a 30× prior deficit, §15 would have KEPT the 0.90 bar.** It does not, so §15 removes it. |
+| 6 | Could a hostile reviewer call this M-11 again? | The M-11 charge is *"a bar was cut after it failed."* **§15 cuts no bar to a passing value — it removes an uncalibratable bar family and keeps every causal gate and both negative controls at full strength.** The removal is derived from **§11.6's own attacker-endorsed necessity argument** plus ~~a literature that reports **0% prior-override in the 1–12B band**~~ — not from any outcome. **If the literature had shown a ~1.5B model doing one-shot argmax copy against a 30× prior deficit, §15 would have KEPT the 0.90 bar.** ~~It does not, so §15 removes it.~~ **⛔ [§17.5-EDIT-6] — THIS CONDITIONAL HAS FIRED.** The literature **does** show it: **Yu, Merullo & Pavlick (arXiv:2310.15910)**, on **GPT-2 and Pythia-70m…2.8b** — one-shot, open-vocab, against a prior deficit **exceeding** 30× ([§17.5-EDIT-2]). And the *"0%"* premise is **zero by construction** ([§17.5-EDIT-1]). **By §15's OWN stated rule this obligates reconsideration — and the bar is STILL NOT RESTORED**, because Yu et al.'s **coherent QA frame + explicit retrieval cue** calibrate **nothing** about a cue-less splice into hostile prose; restoring 0.90 would import a **second mis-matched bar** (§17.4). **§18 settles it on firmer ground than either: the bar is inadmissible AS A TYPE (Rule T, §18.1) — no construction-derived null — so it would be uncalibratable even if the literature existed AND even if our witnesses had scored 0.99. That claim, unlike §15's, cannot be moved by any citation.** |
 
 **STATUS: §15 is PINNED, BLIND. It supersedes §11.4.1 legs (i), (ii) and the magnitude of
 leg (iv), and §9.4's `acc_copy ≥ 0.90` sensitivity split. Everything else in §9 and §11 —
@@ -4558,3 +4755,600 @@ its reasons being checkable.
 
 ---
 
+
+## 18. ADJUDICATION — §16 vs §17 RECONCILED, AND **THE OPERATIVE PIN** FOR T2a ATTEMPT 3. (2026-07-13, full-sight adjudicator)
+
+**VERDICT OF THIS SECTION, STATED FIRST SO NOTHING BELOW CAN SOFTEN IT:**
+
+> **1. §16 and §17 DO NOT COLLIDE.** §16 says *the DATA can calibrate a bar*; §17 says *the
+> LITERATURE cannot*. Both are true as stated. But the reconciliation is **not** a split of
+> the difference — **§16's positive inference ("the bar was mis-sited, not uncalibratable")
+> is REFUTED BY §16's OWN RAW DATA**, which §16 quoted only one cell of. **There is no
+> `(Δ, n_demos)` operating point at which the four required witness cells clear 0.90** — and
+> the one decile that does clear it is **1 of 40**. §17's disposition therefore stands, and
+> it now stands on data as well as on literature.
+>
+> **2. THE `acc_copy` ABSOLUTE BAR IS RETIRED — PERMANENTLY, AND AS A TYPE, NOT AS A VALUE.**
+> Not because our witnesses missed it. Because a bar of the form *"performance must reach
+> level `c`"* has **no construction-derived null**, and §17 verified that no published
+> measurement supplies one for this construction. **The same type rule kills `KS ≥ 0.50` — a
+> leg that PASSED on 3 of 4 cells.** *A rule that retires a passing leg is not a fit.*
+>
+> **3. Δ AND n_demos DO NOT MOVE** — but **§15's stated reasons for both are FALSE and are
+> corrected here.** `n_demos > 1` is **NOT** structurally forbidden (§15.3 knob 3c): the
+> driver already contains a generalized hard assertion, already smoke-tested, that **ran at
+> `n_demos ∈ {1,2,4}` on real data**. §17.5 edit 7 endorses that false reason and is
+> **OVERRULED**. The knobs stay fixed for the **only** reason that survives: the operating
+> point is **pinned by the PRIMARY's estimand**, not by the witnesses' comfort.
+>
+> **4. THE GATE IS NOT RETUNED — IT IS RE-TYPED.** Every gating leg now has a null that is
+> **entailed by the construction** (0, or chance). Nothing is gated on a magnitude that
+> requires an external reference. **The probe's teeth are already established at ~40σ with
+> no absolute bar at all**, and this section proves that is not rhetoric but the strongest
+> statement available: **the negative control's `KS` is a degenerate point mass at exactly
+> `[0, 0]`**, so detection *is* maximal separation.
+>
+> **5. A RE-RUN IS FORCED, MECHANICALLY, INDEPENDENT OF EVERY JUDGMENT ABOVE. T2a-3 HAS
+> NEVER BEEN MEASURED.** I re-verified on the box: the inline run **died in the C1 phase**,
+> its tmux session is gone, and its final `t2a_gate_result.json` carries **zero C1 cells and
+> no `instrument_gate`/`t2a2`/`t1c` roll-up at all**. A required gating leg has no data ⇒
+> the gate is **not evaluable** on attempt-2 under §15, under §16, or under the original §11.
+
+---
+
+### 18.0 WHAT I VERIFIED MYSELF (no prose trusted — including §14's, §15's, §16's, §17's, and the dispatch's)
+
+| # | claim under test | source read | result |
+|---|---|---|---|
+| 1 | attempt-2 raws | `experiment-runs/2026-07-13_param_axis_t2a_attempt2/t2a_gate_result_partial.json` | md5 `87ae97087bca56894a5035a348d17f48` — **byte-identical to the box's** `~/chapter2/deltanet_rd/results/param_axis_t2a_attempt2/t2a_gate_result.json`. The archive is faithful. |
+| 2 | **T2a-3 / C1 has no data** | both JSONs, `cells` key | **CONFIRMED. `cells` = exactly the 4 W1/W2 cells. ZERO C1 entries.** `witnesses` declares `C1_falconmamba`. |
+| 3 | **the inline C1 run (§14.5 path a) is DEAD** | box: `tmux ls`, `t2a_gate_run.log`, result JSON | **CONFIRMED, NEW.** Session `t2a_gate_attempt2` **no longer exists**. The log's last line is falcon-mamba's openr1 re-tokenization (1466.9s) — then nothing. The final JSON has **no `instrument_gate`, no `t2a2`, no `t1c`** roll-up. **§14.5's promised "free cross-check" of the out-of-band T2a-2/T1c reads NEVER HAPPENED.** |
+| 4 | T2a-3 queue path (§14.5 path b) | box: `~/queue/pending/` | `990_t2a3_falconmamba_ssm_calibration.json` — **still PENDING, never claimed.** |
+| 5 | leg (iv) is a hidden `acc_copy` bar | probe L2108-2113 | **CONFIRMED.** `ks = acc_copy_all - acc_keyswap`; `acc_keyswap = _acc(records,"hit_keyswap") ≥ 0` ⟹ `KS ≥ 0.50` ⟹ `acc_copy ≥ 0.50`. **§15's catch is correct.** |
+| 6 | leg (iv) gates a **bare point estimate** | probe L2113 | **CONFIRMED.** `leg_iv = (not isnan(ks)) and ks >= 0.50 and t2b1b.passes`. **No CI anywhere.** §16's catch is correct. Conservative SE(KS) ≈ 0.0126 ⇒ W2/openr1's `0.49951` has a 95% CI of **[0.475, 0.524]**, which **covers 0.50**. |
+| 7 | K4 / V4 admission | probe L1398, L1404-05, L1491, L1522 | **CONFIRMED.** `K4_MAX_RIVAL_MASS = 0.5`; `V4_MAX_P_B_GIVEN_A = 0.05`, `V4_RANK_LO,HI = 2,50`. §15.1's construction table is **accurate**. |
+| 8 | `hit_intact` is exact argmax over 50257 | probe `run_t2_repaired_probe` | **CONFIRMED.** `logits.argmax(dim=-1)`; no top-k, no rank. Chance = **1.99e-5**. |
+| 9 | **the `count(a in w) == 2` assertion forbids `n_demos > 1`** | probe L1669 **AND driver L1246** | **REFUTED — SEE §18.5. THE ASSERTION EXISTS; THE PROHIBITION DOES NOT.** |
+| 10 | **Δ is the primary's own empirical distribution** | driver docstring L455-468; `rejection_sample_delta` | **CONFIRMED, AND IT IS LOAD-BEARING.** The Δ pool is harvested **fresh from that same witness's own T1c `run_did_eval` candidate population** — every candidate record carries a `delta` field. Δ **is** the primary's empirical Δ distribution. |
+| 11 | the primary's estimand is a **single** antecedent | probe L642-650 (`true_arm_specs`), L570-617 (`detect_candidates_and_baseline`), arm-D comment | **CONFIRMED.** `p = j + 1`, `delta = k - p`, where **`j` is always the FIRST occurrence**. Arm B ablates `p` (the antecedent VALUE token); arm D ablates `j` (its KEY token). **DiD estimates the causal contribution of ONE antecedent occurrence.** |
+| 12 | the four cells' numbers | raw JSON, recomputed | **CONFIRMED to the digit**, §14.1 and §16.1 both accurate. |
+
+---
+
+### 18.1 THE DECISION RULE — **PRE-COMMITTED, STATED BEFORE IT IS EVALUATED**
+
+**Blindness is not available to me and I do not claim it.** §16.7-(5) already amended §11.4.3
+step 3→4 for the reason that makes blindness incoherent here: *step 4 demands "the response to
+**(3)**" — the diagnostic localisation — and the diagnostics **contain** the outcome*
+(`acc_copy` at the Δ-median **is** the 6th Δ-decile). A re-pinner who obeys step 4 cannot be
+outcome-blind. **My protection is therefore not blindness. It is a decision rule that is a
+statement about the TYPE of a quantity, not about any value of it — and that consequently
+lands identically on every counterfactual dataset.**
+
+> #### RULE T (the type rule). **A threshold may gate iff its NULL is fixed by CONSTRUCTION rather than by MEASUREMENT.**
+>
+> Concretely, a gating threshold must be a **tolerance around a construction-derived null**,
+> and the gate must fire when **the null is VIOLATED**. A threshold that instead asserts a
+> **competence level** — one that fires when *performance is not high enough*, and whose
+> value can only be justified by pointing at how well *some model* performs — is **not a
+> gate**. It is an unanchored preference, and pinning it "correctly" requires a calibration
+> that either exists in the literature or does not exist at all.
+>
+> | quantity | null under "no mechanism" | fixed by? | admissible as a gate? |
+> |---|---|---|---|
+> | `KS > 0`, CI excludes 0 | **0** | construction (`KS = acc_copy − acc_keyswap`; no key-conditioning ⇒ 0) | ✅ |
+> | T2b-1 / T2b-1b `p < 0.001` | **0.5** (sign test) | construction | ✅ |
+> | T1c `DiD > 0`, CI excludes 0 | **0** | construction | ✅ |
+> | `PRIOR ≤ 0.05` | **chance-under-no-plant** | construction; 0.05 is a *tolerance* over it, and the gate fires when it is **exceeded** | ✅ |
+> | T2a-2 untrained `acc_copy ≤ 0.02` | **chance = 1.99e-5** | construction; 0.02 is a *tolerance* (1000× chance), gate fires when **exceeded** | ✅ |
+> | **`acc_copy ≥ 0.90`** | 1.99e-5 | **nothing.** 0.90 is 45,000× the null and answers *"how well must a model copy?"* — a question construction cannot answer | ❌ |
+> | **`KS ≥ 0.50`** | 0 | **nothing.** Same defect, wearing a causal costume (it entails `acc_copy ≥ 0.50`) | ❌ |
+>
+> **RULE T ⇒ the operating point.** Because no absolute `acc_copy` bar is admissible **at any
+> operating point**, the operating point cannot be chosen to make one passable. It is
+> therefore pinned by the **only** thing that has a claim on it: **the PRIMARY's estimand.**
+> Δ and `n_demos` take the values the primary's own candidate population exhibits, and the
+> witnesses' scores are **irrelevant to the choice** — in both directions.
+
+**THE COUNTERFACTUALS — what Rule T does on data I did not get.** *(A rule that only makes
+sense given the numbers I saw is not a rule; it is a fit. So:)*
+
+| counterfactual attempt-2 data | what RULE T does | is it the same rule? |
+|---|---|---|
+| **Witnesses clear 0.90 easily** (`acc_copy` = 0.95, `KS` = 0.92) | **Identical pin.** No absolute `acc_copy` bar; gate on `KS > 0` CI-excludes-0 + T2b-1/1b + T1c + controls. The gate **PASSES**. The 0.90 is *satisfied* but was never *gating*, and `acc_copy = 0.95` is **reported**. **Nothing in the pin changes.** | ✅ — and note it does **not** become stricter to punish good data, nor looser to rescue bad data. |
+| **Witnesses score ~0** (`acc_copy` ≈ 0.001, `KS` CI includes 0) | **HALT. INSTRUMENT-INVALID.** `gpt2-large` has a documented induction-head circuit (Elhage 2021; Olsson 2022; ablation on GPT-2, arXiv:2407.07011). A probe that cannot detect a mechanism **known by independent evidence to be present** is broken. This is §15.5's falsifier and it is **correct**. | ✅ — **the rule had teeth in the failing direction on this very run, and was genuinely at risk.** |
+| **Witnesses at 0.60, `KS` ≈ 40σ** (what we got) | **PASS on detection.** `acc_copy` reported. Δ-decile / rival / `n_demos` diagnostics reported. The distance limit is **a finding about the models**, exactly as §11.4.3 step 3 pre-registered. | ✅ |
+| **`PRIOR` = 0.30** | **HALT.** Plant leakage. Unchanged. | ✅ |
+| **Untrained model reads `acc_copy` = 0.4** | **CATASTROPHIC. HALT.** Unchanged. | ✅ |
+
+**AND THE TELL THAT THIS IS A TYPE RULE AND NOT A FIT — the one an adversary should check
+first:** *Rule T retires a leg that **PASSED**.* Leg (iv)'s `KS ≥ 0.50` was **cleared on 3 of
+the 4 cells** (0.617, 0.660, 0.524; only W2/openr1's 0.49951 missed). **A launderer retires
+the leg that failed and keeps the leg that passed. Rule T does the opposite** — it kills
+`KS ≥ 0.50` *because it is a hidden competence bar*, and it would have killed it identically
+had all four cells read `KS = 0.99`. **That is the whole difference between a rule and a fit,
+and it is checkable in one line of this document.**
+
+---
+
+### 18.2 THE TIEBREAK — **§16 vs §17. THEY DO NOT COLLIDE; AND BOTH OVER-READ.**
+
+**The coordinator's hypothesis is CORRECT as far as it goes, and I confirm it:**
+
+- **§16's claim is about the DATA:** *"four witness cells with a working instrument, `PRIOR` ≈
+  0, `KS` ≈ 40σ, and a measured achievable range of 0.56–0.69, are precisely the reference
+  calibration §15 declared does not exist."* (§16.4)
+- **§17's claim is about the LITERATURE:** *"No published measurement exists of one-shot,
+  argmax, open-vocabulary copy of a **prior-disfavoured** token spliced into **incoherent**
+  prose at Δ≈89."* (§17.4-A)
+
+**Both propositions are true. They are not contradictories.** §16 never claimed a *published*
+calibration exists; §17 never claimed the witnesses cannot copy. **The apparent collision is
+an artifact of both sections answering "is the bar calibratable?" while meaning different
+things by "calibratable."** So far, so reconciled.
+
+**BUT THE RECONCILIATION IS NOT THE END OF IT, AND HERE IS WHERE I OVERTURN §16.**
+
+§16's *proposition* ("the data contains structure") is true. §16's **inference** from it —
+**"The 0.90-at-Δ-median bar was MIS-SITED, and the ladder says so in its own pre-registered
+words"** (§16.7 ruling 4) — **is false, and it is falsified by §16's own raw data and by the
+pre-registered ladder's own text.** Two independent refutations:
+
+#### (a) THE PRE-REGISTERED LADDER DOES NOT SAY WHAT §16 SAYS IT SAYS. Read it verbatim.
+
+§11.4.3 step 3, pinned **blind, before the failure**:
+
+> *"**Localise:** deciles fail only at large Δ ⇒ a **distance** limit, **reported as a finding
+> about the models**."*
+
+**The branch's pinned consequence is `REPORT IT`. It is not `RE-SITE THE PROBE`.** §16 invoked
+this exact branch — *"the pre-registered ladder names it"* — and then drew a conclusion the
+branch explicitly forecloses. **A distance limit is a fact about the MODELS. A fact about the
+models is not a licence to move the instrument.** The ladder was written by an agent who could
+not see the outcome, precisely so that the outcome could not choose the response. **It chose
+"report," and "report" is what it gets.**
+
+*(And the branch's antecedent — "deciles fail **only** at large Δ" — is itself **false in 2 of
+4 cells**: both W2 cells fail the 0.75 decile bar at the **smallest** Δ decile. For those cells
+the branch that actually fires is step 3's **fifth**: "uniform failure with `PRIOR ≈ 0` and `KS`
+large ⇒ **the mechanism is real but weak in every available model**." That is also a finding
+about the models. **Every branch that fires is a model-finding; the three PROBE-DEFECT branches
+all read NEGATIVE in all four cells.** The pre-registration's own verdict is: **the probe is
+sound.**)*
+
+#### (b) §16 QUOTED ONE CELL OF FOUR. THE FULL DECILE GRID KILLS THE RE-SITING MOVE OUTRIGHT.
+
+§16.3(b) reports **W1/openr1's** decile curve (`0.907 … 0.376`) and observes *"W1's first
+Δ-decile reads 0.907 — it **CLEARS** the 0.90 bar."* True. **Here is the full 4 × 10 grid,
+read from the raw — which no section of this document has yet printed:**
+
+| cell | d1 | d2 | d3 | d4 | d5 | d6 | d7 | d8 | d9 | d10 | **span** |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| W1 / openr1 | **0.907** | 0.839 | 0.888 | 0.746 | 0.781 | 0.637 | 0.634 | 0.620 | 0.517 | 0.376 | **0.531** |
+| W1 / wikitext | **0.765** | 0.751 | 0.776 | 0.702 | 0.737 | 0.642 | 0.673 | 0.610 | 0.605 | 0.610 | **0.155** |
+| W2 / openr1 | **0.735** | 0.732 | 0.629 | 0.634 | 0.722 | 0.574 | 0.483 | 0.546 | 0.483 | 0.337 | **0.399** |
+| W2 / wikitext | **0.608** | 0.649 | 0.590 | 0.610 | 0.537 | 0.603 | 0.546 | 0.483 | 0.449 | 0.527 | **0.081** |
+
+**Three facts §16 did not have in front of it:**
+
+1. **`0.907` is 1 decile out of 40.** In the other three cells the **best** (shortest-Δ) decile
+   reads **0.765 / 0.735 / 0.608**. **There is no Δ at which all four required cells clear
+   0.90 — and W2/wikitext never exceeds 0.649 at ANY Δ.** ⇒ **The bar is not "mis-sited." No
+   site exists.** The re-siting move is not merely illegitimate (§18.5); it is **useless**.
+2. **"Distance IS the constraint" is corpus- and witness-specific.** Decile span: **0.531**
+   (W1/openr1) vs **0.081** (W2/wikitext). **W2/wikitext is essentially FLAT in Δ.** §16
+   generalised a monotone collapse from the one cell that has one.
+3. ⇒ **§16 committed the identical error it convicted §15 of** — reaching past what its
+   measurement supports, from the sample that flattered its thesis. §15 over-read the
+   literature; **§16 over-read the diagnostics.** Naming the symmetry is not point-scoring: it
+   is the reason the *third* agent (this one) had to read the raw grid rather than either
+   section's prose, and it is the fourth consecutive time in this program that **reading the
+   artifact overturned the adjacent round's prose.**
+
+#### THE RULING
+
+| # | ruling | disposition |
+|---|---|---|
+| **T-1** | §16 and §17 **do not contradict each other**. §16 speaks to the data; §17 to the literature. Both stand as recorded. | **RECONCILED, not ruled.** |
+| **T-2** | §16's **diagnostic findings are ADOPTED IN FULL**: rival strata FLAT (§15's prior-deficit mechanism is dead); Δ-deciles decline; `n_demos` 1→4 lifts `acc_copy`; the probe's TEETH are established with no bar; the leg-(iv) hidden bar; the leg-(iv) missing CI. **§15's empirical antecedent is FALSIFIED.** | **ADOPTED.** |
+| **T-3** | §16's **INFERENCE** — *"the bar was mis-sited, not uncalibratable"* — is **REJECTED**, on (a) §11.4.3 step 3's own pinned text and (b) §16's own raw data (no site exists; 1 clearing decile of 40). | **OVERTURNED.** |
+| **T-4** | §17's **disposition** — the `acc_copy` bar stays retired, on uncalibratability — is **the operative one**, and it is now supported by **data as well as literature**. | **ADOPTED, and STRENGTHENED.** |
+| **T-5** | The bar is retired **as a TYPE** (Rule T, §18.1), not as a value, and not because our witnesses missed it. **Had they cleared it, it would still be retired.** | **PINNED.** |
+
+---
+
+### 18.3 CAN A BAR SITED FROM THE WITNESS'S OWN DIAGNOSTIC CURVE EVER BE NON-CIRCULAR? — **ANSWERED**
+
+The dispatch asks the hard question directly. **The answer is NO for an absolute `acc_copy`
+bar, YES for the legs we actually gate on, and the difference is not a matter of degree — it
+is Rule T.**
+
+**Why the circle cannot be broken for `acc_copy`.** To site `acc_copy ≥ c` non-circularly you
+need a reference measurement of *this construction* on a model *independently known to have
+the mechanism*. There are exactly three candidate sources, and all three fail:
+
+1. **The literature.** §17 fetched every source and verified: **none matches the construction**
+   (one-shot, argmax over 50257, prior-**disfavoured** token, spliced into **incoherent** prose
+   at Δ≈89). Yu, Merullo & Pavlick (arXiv:2310.15910) is the closest and it has a **coherent QA
+   frame and an explicit retrieval cue** — §17's own honest counter-consideration, and it is
+   right. **The literature cannot site `c`.**
+2. **This run's witnesses.** Siting `c` where they scored is **textbook M-11** — the sin this
+   apparatus carries a conviction for. §16 saw this and correctly **refused to propose a
+   number**.
+3. **A FRESH run's witnesses.** *This is the escape the dispatch is probing, and it is worth
+   killing carefully, because it looks like it should work.* **It does not.** The probe is
+   **deterministic and rung-independent by construction** (§11.4.6: `run_t2_repaired_probe`
+   takes **no seed argument**; windows are seeded from `corpus_fixed_seed(corpus)` alone and
+   each plant from `(corpus, window index)` **only**) — so a re-run of W1/W2 reproduces
+   attempt-2 **bit-for-bit**. Change the seed and you draw a fresh sample whose `acc_copy` has
+   **SE ≈ 0.011** — it moves the number by ~±0.02 and **cannot** move it from 0.60 to 0.90.
+   **Fresh data does not break the circle. It re-runs it.** Any `c` I set is still a `c` I set
+   knowing the answer is ≈0.6.
+
+> **⇒ THE CIRCULARITY IS NOT A PROPERTY OF OUR DATA. IT IS A PROPERTY OF THE QUANTITY.**
+> `acc_copy` is a competence level with no construction-derived null, so **every** route to
+> siting a bar on it passes through someone's measurement of how well some model performs —
+> and there is no privileged measurement to be had. **The bar is uncalibratable in principle,
+> and would remain so if our witnesses had scored 0.99.**
+
+**And why the circle never existed for the legs we DO gate on.** `KS = 0`, `DiD = 0`, the sign
+tests' `p = 0.5`, `PRIOR ≈ chance`, untrained `≈ chance` — **every one of these reference
+points is ENTAILED by the construction and measured by nobody.** They need no calibration
+because they are not levels; they are **nulls**. This is why §16's ruling 4 is not a
+consolation prize but the actual result:
+
+> **THE PROBE'S TEETH ARE ESTABLISHED WITH NO ABSOLUTE BAR — AND HERE IS THE PROOF, WHICH IS
+> STRONGER THAN §16 STATED IT.** The T2a-2 untrained control reads `acc_copy = 0.0000` **and**
+> `acc_keyswap = 0.0000`, so `KS ≡ 0` in **every bootstrap resample** ⇒ its `KS` CI is a
+> **degenerate point mass at exactly `[0, 0]`**. The witnesses read `KS = 0.500 – 0.660` with
+> SE ≈ 0.012 (**≈ 40σ**), `PRIOR = 0.0034 – 0.0068` (a **>100× lift** of `acc_copy` over
+> `PRIOR`), and T2b-1 / T2b-1b at `p ≈ 0` in all four cells. **The separation between the
+> positive and the negative control is therefore not a matter of degree — it is the maximum an
+> instrument of this design can attain.** On this instrument, *detection* and *maximal
+> separation* are the **same statement**, and no absolute bar can add anything to it.
+
+---
+
+### 18.4 **THE OPERATIVE PIN** — the gate T2a **attempt 3** is judged against
+
+**This supersedes §11.4.1 legs (i), (ii), and the magnitude of leg (iv); it supersedes §15.4's
+PIN table where they differ; and it is the gate of record.** Every number below traces to
+**construction**, to **Rule T**, or is **carried over unchanged** from §11.4.1/§11.4.2.
+**§18 introduces exactly ZERO new numeric thresholds** — the same anti-laundering property
+§15.8 row 2 claimed, and it is checkable in one diff.
+
+| leg | §11.4.1 / §15.4 status | **§18 OPERATIVE PIN** | derivation |
+|---|---|---|---|
+| **(i)** `acc_copy ≥ 0.90` @ Δ-median | GATING / retired | **RETIRED AS A GATE — PERMANENTLY.** `acc_copy` is **REPORTED ALWAYS** (all four cells, all Δ-deciles, all three stratifications) and **VERDICT-CARRYING NEVER.** **No absolute bar replaces it, at any value, at any operating point.** | **Rule T** (§18.1): no construction-derived null. §17.4-A: no literature calibration. §18.2(b): **no site exists** in the data either. |
+| **(ii)** `acc_copy ≥ 0.75` every Δ-decile | GATING / retired | **RETIRED AS A GATE**; reported per-decile, all 4 cells. | Leg (i) evaluated per-decile; inherits its defect exactly. |
+| **(iii)** `PRIOR ≤ 0.05` | GATING | **UNCHANGED. GATING.** HALT if exceeded. | **Rule T ✅** — tolerance over a construction null (chance-under-no-plant); fires on **violation**. Measured 0.0034–0.0068. |
+| **(iv)** `KS ≥ 0.50` **and** T2b-1b `p<0.001` | GATING / re-pinned by §15 | **MAGNITUDE RETIRED.** **RE-PINNED: `KS > 0` with a clustered-bootstrap 95% CI EXCLUDING 0, conjoined with T2b-1b `p < 0.001`. GATING.** | **Rule T ❌ on `≥0.50`** (a hidden `acc_copy ≥ 0.50`; §18.0 item 5). The replacement is **not invented**: it is **verbatim the form this document already pinned for T2a-3** (§11.4.2), and it is **already implemented** — `check_t2a3_ssm_calibration` computes exactly this via `clustered_bootstrap_ci`. **It also FIXES the missing-CI defect** (§18.0 item 6). |
+| **(v)** T2b-1 `p < 0.001` | GATING | **UNCHANGED. GATING.** | **Rule T ✅** — sign test, null = 0.5. |
+| **T1c** (§11.4.5) | GATING | **UNCHANGED IN FORM. PROMOTED to the PRIMARY instrument-teeth gate.** `DiD > 0`, clustered-bootstrap 95% CI excluding 0, on **W1 AND W2**, **both corpora**. | **Rule T ✅** (null = 0). §11.4.5: *"the only gate in the design that is difficulty-matched to the primary."* Reads the **actual estimand on the actual candidate population**; needs **no bar**. §15's promotion was right. |
+| **T2a-2** (untrained control) | GATING | **UNCHANGED. GATING.** `acc_copy ≤ 0.02` **AND** `KS` bootstrap CI **including 0**. **Both conjuncts retained at full strength.** | **Rule T ✅** — tolerance over chance (1.99e-5); fires on **violation**. **§18.6.** |
+| **T2a-3** (C1 SSM calibration) | GATING | **UNCHANGED. GATING. AND IT MUST ACTUALLY BE RUN — IT NEVER HAS BEEN.** Causal legs only: T2b-1 ∧ T2b-1b `p<0.001` ∧ `KS > 0` CI excluding 0. | **Rule T ✅.** **NOT WAIVED.** Waiving a gating leg *after* the gate failed is the M-11 shape in its purest form. §18.9. |
+| **Δ** | metric's empirical pool | **NOT MOVED.** | **§18.5** — pinned by the PRIMARY, not by the witnesses. |
+| **`n_demos`** | 1 | **NOT MOVED. Remains 1** in the gating probe. | **§18.5** — and **§15's stated reason is FALSE; the true reason is given there.** |
+
+#### 18.4.1 THE ONE CONSEQUENTIAL RE-PIN — **§9.4's "strong-mechanism" split**
+
+§9.4 requires the trend fit be reported twice — over all T2b-admissible rungs, and over *"the
+subset that also clears `acc_copy ≥ 0.90`"* — with **disagreement ⇒ INDETERMINATE**. That
+subset is now undefined, and it must be re-pinned rather than left dangling. **§16.5 correctly
+killed §15's replacement** (a **median-`KS`** split is *relative* — it always labels half the
+rungs "strong," even if every rung is garbage, so it **can never return "no rung is strong,"**
+which is the very condition the old split existed to surface). **But §16 proposed nothing in
+its place, and Rule T forbids me from inventing a new absolute bar to plug the hole.** So:
+
+> **PINNED. §9.4's binary strong/weak SPLIT is RETIRED — the predicate "strong mechanism" is
+> an absolute-magnitude claim with no construction-derived null, and Rule T kills it wherever
+> it appears. It is REPLACED by a threshold-free INFLUENCE LADDER:**
+>
+> - Order the admissible rungs by `KS` (ascending). Report the trend fit at **every prefix-drop
+>   of that ordering** with ≥3 rungs remaining: all rungs → drop-lowest-1 → drop-lowest-2 → …
+>   **Report the ENTIRE ladder, never a selected rung of it.**
+> - **§9.4's INDETERMINATE rule is re-pinned to fire iff the fitted exponent's SIGN, or its
+>   CI's exclusion of the no-trend null, FLIPS anywhere along that ladder.** *(Null = "no
+>   trend." **Rule T ✅** — sign and significance are construction-derived; "how much change is
+>   too much" is not, and is not asked.)*
+> - **This is strictly MORE informative than the retired split** (it exposes the whole
+>   robustness curve rather than one binary), and it **can** return "the trend is not robust,"
+>   which is what §16.5 correctly demanded and §15's median split could not deliver.
+
+**§15's INSTRUMENT SENSITIVITY FLOOR is RETAINED, reporting-only, unchanged** (it was §15's
+other good idea and §16 did not dispute it): the witnesses' `KS` and CIs are the instrument's
+**stated reference dynamic range**, and **any rung whose `KS` CI overlaps that range is reported
+as "below reference dynamic range," never as "mechanism absent."** *Underpowered and invalid are
+different findings.* It carries **no gate**, so it is not a bar and Rule T is not engaged.
+
+---
+
+### 18.5 **Δ AND `n_demos` — RULED.** §16's tension is real; the resolution is that **BOTH knobs stay, and §15's reasons for it were wrong.**
+
+§16 is right that *"both cannot stand"* as §15 argued them. **They can both stand — on
+different reasons. §15 reached for three arguments per knob and got the load-bearing one right
+only by accident.**
+
+#### **Δ — DOES NOT MOVE.**
+
+- **§15 knob-2(a) — SURVIVES, AND IT IS DISPOSITIVE ON ITS OWN. VERIFIED IN CODE.** The Δ pool
+  is not a free parameter: the driver **harvests it fresh from that same witness's own T1c
+  `run_did_eval` candidate population** (driver docstring L455-468; every candidate record
+  carries a `delta` field), and `assign_t2_plant` rejection-samples from it. **Δ *is* the
+  primary's empirical Δ distribution.** §11.2.3 calls it *"the one axis on which the probe **is**
+  difficulty-matched to the real task."* **Moving Δ destroys the only difficulty-match the probe
+  has, and sites the gate in a regime the primary's candidate population does not occupy. A gate
+  that passes at Δ=10 certifies nothing about an instrument that must read at Δ≈89.**
+- **§15 knob-2(b) — SURVIVES.** Moving Δ *after* it failed is **literally the original M-11 sin**
+  (§9.4: T2 was moved 350 → 20 *after it failed*). Procedural, and it holds.
+- **§15 knob-2(c) — REFUTED. STRICKEN.** *"The literature says distance is not the binding
+  constraint"* (RWKV-7 perfect passkey at ~19,600 tokens) **does not transfer**: passkey has a
+  **unique random needle and an explicit retrieval cue** — no rival, and a pointer. §16's
+  Δ-deciles and the W2 Δ-sweep (Δ=5 → 0.711; Δ=400 → 0.340) show distance **is** a constraint
+  here. **§16 is right and §15 is wrong on this clause.** *Striking it does not move the ruling:
+  (a) is sufficient alone.*
+- **AND THE KNOB IS USELESS EVEN IF IT WERE LEGITIMATE (new, §18.2b):** at the **shortest** Δ
+  decile, three of four cells read **0.765 / 0.735 / 0.608**. **No Δ rescues a 0.90 bar.**
+
+#### **`n_demos` — DOES NOT MOVE (stays 1 in the gating probe). BUT §15's REASON IS FALSE, AND SO IS §17.5 EDIT 7's ENDORSEMENT OF IT.**
+
+**THE DISPATCH ASKED ME TO VERIFY THE ASSERTION AND NOT TAKE ANYONE'S WORD. I DID. HERE IS
+WHAT IS ACTUALLY IN THE CODE.**
+
+- **The assertion EXISTS**, exactly where §15 says: `plant_and_verify_t2_window` (probe L1669)
+  hard-raises `PlantContestedError` unless `count(a in w) == 2` at exactly `{j0,k0}` and
+  `count(b in w) == 1` at exactly `{j0+1}`.
+- **BUT IT DOES NOT FORBID `n_demos > 1`. §15.3 knob-3(c) — *"`n_demos > 1` is structurally
+  forbidden… turning this knob means breaking the probe's core invariant"* — is FALSE.** The
+  driver **already contains** `plant_and_verify_t2_window_ndemos`
+  (`t2a_reference_driver_v2_rd.py` **L1246**), which **generalises the identical hard assertion**
+  to arbitrary `n_demos` — `expected_a = sorted(set(positions))`, `expected_b = {p+1 for p in
+  demo_positions}`, `PlantContestedError` on any mismatch, **never a tolerance**. It preserves the
+  F-I invariant **exactly**; it carries its **own forced-fail negative test** in the smoke suite
+  (`[7c]`); and **it RAN, on real data, at `n_demos ∈ {1,2,4}`, with 0 drops at n=256/level.**
+  **`n_demos` is a fully-implemented, already-exercised, turnable knob. The invariant it was
+  said to break is the invariant it enforces.**
+- **⇒ §17.5 EDIT 7 IS OVERRULED IN PART.** §17 correctly demolishes knob-3's clause (b) (built
+  on arXiv:2511.21038's tautological metric) — **adopted**. But §17.5-7 then instructs: *"Keep
+  `n_demos` = 1 on clause (c) — the **structural** `count(a in w) == 2` assertion — **which is
+  sound and sufficient on its own**."* **It is neither. It is factually false about the code.**
+  §17 audited the *citations* and did not re-audit the *source*; the dispatch warned that this
+  document's prose has misdescribed this code before, and **it has, twice — in §15 and again in
+  §17.** **Recording a correct pin for a reason a reader can falsify in one `grep` is exactly the
+  landmine §17 itself warned against.**
+
+**THE TRUE — AND ONLY — REASON `n_demos` STAYS AT 1. It is the same reason as Δ, and it is
+verified in code:**
+
+> **The PRIMARY's estimand is the causal contribution of ONE antecedent occurrence.**
+> `true_arm_specs` (probe L642-650) sets `p = j + 1` and `delta = k - p`, where
+> `detect_candidates_and_baseline` (L570-617) **always** takes `j` to be the **FIRST**
+> occurrence of the `(a,b)` bigram (*"`j` is always the FIRST occurrence"* — the function's own
+> audit-correction docstring). **Arm B ablates `p` — the antecedent VALUE token. Arm D ablates
+> `j` — its KEY token.** DiD is therefore a **single-antecedent** causal quantity.
+> **A probe run at `n_demos = 4` measures a redundantly-demonstrated copy whose causal structure
+> the primary's DiD does not estimate.** The gating probe's job is to certify the instrument
+> *at the primary's operating point*, and the primary's operating point is one demonstration.
+> **The witnesses' comfort has no vote.**
+
+**AND — A CONFOUND IN §16's STRONGEST SINGLE NUMBER THAT NOBODY HAS RECORDED. I read
+`run_n_demos_diagnostic` (driver L1277-1404) rather than its summary:**
+
+> It fixes `query_pos = seq_len - 8 = **504**` and `gap = **40**`, so
+> `positions = [504 - 40·(n_demos - i)]`. **The NEAREST demonstration therefore sits at Δ = 40
+> for EVERY level** (n=1: demo@464; n=2: 424,464; n=4: 344,384,424,464 — query always @504).
+>
+> ⇒ **The `n_demos` ladder is measured at a FIXED Δ = 40 — NOT at the gate's Δ-median of ≈88,
+> and NOT from the rejection-sampled Δ pool at all.** Within the ladder this is *good*: the
+> levels are **paired** (one seed ⇒ same windows and same `(a,b)` at every level — the D5
+> round-2 fix), and nearest-Δ is held constant, so **the `n_demos` effect is real and
+> unconfounded with distance.** *§16's "`n_demos` IS the lever" is CORRECT.*
+>
+> **But its ABSOLUTE LEVEL is not comparable to the gate's `acc_copy`, and §16 compared them.**
+> §16.3(c): *"At `n_demos`=4, `gpt2-large` is at 0.883 — **effectively at the 0.90 bar**."*
+> Three things are wrong with that sentence: **(1)** 0.883 is at **Δ=40**, not the gate's Δ≈88;
+> **(2)** at n=256 its **95% CI is [0.843, 0.922]** — it *straddles* 0.90 and establishes
+> neither clearing nor missing it (its openr1 twin, 0.824, has CI **[0.778, 0.871]** and
+> **excludes** 0.90); **(3)** the diagnostic is **W2-only** (`w2_n_demos`) — **W1 was never
+> measured at `n_demos` > 1 at all.**
+>
+> ⇒ **"More demos would let the witnesses reach 0.90" rests on ONE witness, at ONE distance
+> SHORTER than the gate's, with a CI that straddles the bar. That is not a calibration.**
+> **§16 over-read its diagnostic exactly as §15 over-read its literature.**
+
+**RULING (both knobs):** **NOT MOVED.** §16's two empirical claims — *distance is a constraint*,
+*`n_demos` is a lever* — are **ADOPTED AS FINDINGS ABOUT THE MODELS**, which is precisely and
+only what §11.4.3 step 3 pre-registered them to be. **Neither is a reason to retune the
+instrument, and §11.4.3 says so in the words it chose before it knew the answer.** The
+`n_demos ∈ {1,2,4}` read remains a **licensed, mandatory, NON-GATING diagnostic**, reported in
+full — and it is now the evidence for the honest headline: **the witnesses CAN copy; one-shot at
+Δ≈89 against a prior-disfavoured token is simply hard.**
+
+---
+
+### 18.6 NEGATIVE CONTROLS — **PRESERVED AT FULL STRENGTH. The catastrophic mode is CLOSED, and I checked it rather than asserting it.**
+
+*A probe an untrained model can pass is a catastrophe, not a fix.* Both controls are retained
+**verbatim**, and I verify the new pin against them **leg by leg**:
+
+**(1) `PRIOR ≤ 0.05` — UNCHANGED, GATING, HALT ON VIOLATION.** Rule T ✅ (tolerance over a
+construction null; fires on violation). Measured **0.0034 – 0.0068** — 7–15× clear. **§18 removes
+no anti-absorption guard.** With the ceiling gone, `PRIOR` and the `KS` **sign** become *the*
+load-bearing anti-absorption and anti-salience guards, and **both are retained at full strength.**
+
+**(2) T2a-2 (untrained init) — UNCHANGED, GATING, BOTH CONJUNCTS.** `acc_copy ≤ 0.02` **AND**
+`KS` bootstrap CI **including 0**. Measured: **`acc_copy = 0.0000` exactly; `KS` CI = `[0, 0]`.**
+
+> **CAN AN UNTRAINED MODEL PASS THE §18 GATE? Checked against every gating leg:**
+>
+> | §18 gating leg | untrained model's value | passes? |
+> |---|---|---|
+> | `KS > 0`, CI **excludes** 0 | `KS ≡ 0`; CI = **[0, 0]** (degenerate — *includes* 0) | **✗ FAILS** |
+> | T2b-1 `p < 0.001` (sign test) | no key-conditioned effect ⇒ `n_informative ≈ 0` | **✗ FAILS** |
+> | T2b-1b `p < 0.001` | idem | **✗ FAILS** |
+> | T1c `DiD > 0`, CI excludes 0 | `DiD ≈ 0` with no learned mechanism | **✗ FAILS** |
+> | `PRIOR ≤ 0.05` | ≈ chance (1.99e-5) | ✓ passes — *and correctly so: this leg gates a **probe defect**, not competence. An untrained model **should** clear it.* |
+>
+> **The untrained model fails FOUR of the five gating legs. THE §18 GATE IS STRICTLY NOT
+> PASSABLE WITH NO LEARNED MECHANISM — by construction (every gating leg is a causal,
+> key-conditioned quantity that is identically zero in expectation without a mechanism) AND by
+> measurement (it read exactly zero).**
+
+**AND THE STRUCTURAL IMPROVEMENT, claimed as a strengthening and not a concession** (§15 saw
+this and was right): under §11.4.1 the **positive** leg gated a **magnitude** (`KS ≥ 0.50`) while
+the **negative control** gated a **CI** — so the control was never a tight complement of the
+thing it controlled. **Under §18 they are the same statistic read in two directions**
+(positive: CI **excludes** 0; negative: CI **includes** 0). **The negative control is now the
+exact complement of the positive gate**, and §18 additionally supplies the **CI the positive leg
+never had** (§18.0 item 6).
+
+---
+
+### 18.7 §17.5's SEVEN CORRECTIVE EDITS — **APPLIED to §15's recorded REASONS. One OVERRULED.**
+
+§17 authorised these and did not make them; the dispatch orders them made. **They change no
+pin.** They are applied **surgically and marked in-line** in §15 as `[§17.5-EDIT-n]` (and
+`[§18-EDIT]` where I overrule), because **this document's entire anti-laundering defence rests
+on its reasons being checkable, and a correct pin recorded for a refuted reason is a landmine
+for the next agent.**
+
+| # | §17.5 edit | disposition |
+|---|---|---|
+| 1 | §15.2(C): strike the *"reports 0%"* framing; arXiv:2511.21038's headline metric is **zero by construction** (verified unreachable dead code in the authors' repo) and must not be cited as a measurement | **APPLIED** |
+| 2 | §15.2: delete *"uniform rather than cherry-picked"*; add **Yu, Merullo & Pavlick (EMNLP 2023, arXiv:2310.15910)** and its **reversed scale trend** | **APPLIED** |
+| 3 | §15.2(A) Zoology row: `70M` → **`125M`**; delete the unsourced *"the prior AGREES with the context"* | **APPLIED** |
+| 4 | §15.2(A) Olsson row: *"25 random tokens"* → **50** | **APPLIED** |
+| 5 | §15.2(A) Bietti row: disclose that Bietti **also** runs the non-uniform output case (`π_o = π_b`, their §5) | **APPLIED** |
+| 6 | §15.5/§15.7/§15.8: **re-base the third-outcome PASS** on §11.6's construction argument alone; **withdraw** *"exactly what [the literature] predict[s]"*; record that **§15.8 row 6's own conditional has FIRED**, that the bar was nevertheless not restored, and why | **APPLIED** — and **§18 goes further than §17**: the third-outcome PASS is re-based on **Rule T**, not on §11.6's hostility argument either. The construction argument explains *why* `acc_copy` is low; it does **not** license a PASS. **What licenses the PASS is that `acc_copy` was never an admissible gate.** |
+| 7 | §15.3 knob 3: weaken clause (b) (built on the tautological metric); **keep `n_demos`=1 on clause (c), "which is sound and sufficient on its own"** | **SPLIT: (b) APPLIED — struck. (c) OVERRULED — IT IS FACTUALLY FALSE (§18.5).** `n_demos > 1` is **not** structurally forbidden; the generalized hard assertion exists (driver L1246), is smoke-tested, and **ran**. `n_demos` stays at 1 **on the PRIMARY-estimand argument** (§18.5), which is the only sound one. |
+
+---
+
+### 18.8 **WINS BOOKED** — real findings this program has not yet credited
+
+| # | finding | owner | status |
+|---|---|---|---|
+| **W-1** | **`KS ≥ 0.50` ⟹ `acc_copy ≥ 0.50`** — leg (iv) of §11.4.1 is **an absolute competence bar wearing a causal costume**. A genuine, previously-unnoticed defect. **It would have been laundering-by-inattention to retire the 0.90 bar and leave a 0.50 bar standing inside a "causal" leg.** | **§15** — **and it is §15's best work.** | **ADOPTED. FIXED in the §18.4 pin.** |
+| **W-2** | **`check_t2a1_ceiling` gates leg (iv) on a BARE POINT ESTIMATE with no CI** (probe L2113). A defect **even under §11.4.1's own bar**: W2/openr1's `KS = 0.49951` has a 95% CI of **[0.475, 0.524]**, which **covers 0.50**. §15 could not see it (it had no number); §16 could. | **§16** | **ADOPTED. FIXED in the §18.4 pin** (the replacement leg is a CI, and the code for it **already exists** in `check_t2a3_ssm_calibration`). |
+| **W-3** | **The probe's TEETH are demonstrable with NO ABSOLUTE BAR** — and the proof is stronger than stated: the untrained control's `KS` CI is a **degenerate point mass at exactly [0,0]**, so **detection *is* maximal separation** on this instrument. `PRIOR` 0.0034–0.0068; `KS` 0.500–0.660 at **≈40σ**; `acc_copy` a **>100× lift** over `PRIOR`; T2b-1/1b `p ≈ 0` in all four cells. | **§16** (claimed), **§18** (proved) | **BOOKED. It is the real, publishable result of attempt 2.** |
+| **W-4** | **§15's "no bar is calibratable" premise was right FOR THE WRONG REASON, and the right reason is a TYPE argument** (Rule T), not a literature argument. §17 killed the literature leg; §18.2(b) kills the data leg. **The bar is uncalibratable in principle — it would be uncalibratable if the witnesses had scored 0.99.** | **§18** | **PINNED.** |
+| **W-5** | **NEW: the Δ-decile "distance limit" is corpus- and witness-SPECIFIC.** Decile-1 across the four cells: **0.907 / 0.765 / 0.735 / 0.608**; decile span **0.531 / 0.155 / 0.399 / 0.081**. **W2/wikitext is essentially FLAT in Δ.** ⇒ **`0.907` is 1 decile of 40, and NO Δ exists at which all four cells clear 0.90.** §16 generalised from the single cell that flattered its thesis. | **§18** | **RECORDED. It is what overturns §16's re-siting inference.** |
+| **W-6** | **NEW: the `n_demos` ladder is measured at a FIXED Δ = 40** (`query_pos = 504`, `gap = 40`), **not at the gate's Δ ≈ 88**, and **only on W2**. Its top cell, 0.8828 at n=256, has a 95% CI of **[0.843, 0.922]** — it **straddles** 0.90. ⇒ §16's *"effectively at the 0.90 bar"* is an over-read; the ladder is a valid **paired** read of the `n_demos` **effect** and **not** a calibration of the gate's operating point. | **§18** | **RECORDED.** |
+| **W-7** | **NEW: §14.5's promised cross-check NEVER RAN.** The inline run **died in the C1 phase**; its tmux session is gone; its final JSON has **no `instrument_gate`, no `t2a2`, no `t1c`**. ⇒ **§14's T2a-2 and T1c figures rest ENTIRELY on the out-of-band read** (§14.4 item 1). §14 disclosed the out-of-band read honestly and it used the driver's own unmodified pinned functions — **but the independent reproduction it promised is still owed, and attempt 3 must deliver it.** | **§18** | **RECORDED. Closed by §18.9.** |
+| **W-8** | **§11.4.3 step 3→4 is INCOHERENT as written** (step 4 demands "the response to (3)"; a fully outcome-quarantined agent **cannot see (3)**; and (3) contains the outcome, since `acc_copy` at the Δ-median **is** the 6th Δ-decile). **§15 did not fail — it was disabled.** | **§16.7-(5)** | **ADOPTED. §18 is written under the amended charter** (sighted, but pre-committed to Rule T **before** evaluation — §18.1). |
+
+---
+
+### 18.9 **WHAT ATTEMPT 3 RUNS** — and the build it needs first
+
+**THE RE-RUN IS FORCED MECHANICALLY, AND NOT BY ANY JUDGMENT IN THIS SECTION.** **T2a-3 has no
+data**, on **either** path (§18.0 items 2–4). **A required gating leg with no data means the gate
+is not evaluable — under §15, under §16, under §17, or under the original §11. The question does
+not arise.**
+
+**T2a-3 IS NOT WAIVED.** It would be cheap and it would be **M-11 in its purest form**: dropping
+a gating leg *after* the gate failed, because measuring it is expensive. The C1 witness
+(`falcon-mamba-7b`) is a **pure SSM** — a genuinely load-bearing **architecture-class** control
+for a design whose rungs are recurrent fast-weight models, and the one class the probe has never
+been shown to read. **It stays GATING and it gets run.**
+
+**BUILD FIRST (a code change; NOT this adjudicator's to make, and NOT an execution agent's to
+improvise):**
+
+1. **Implement the §18.4 pin in `check_t2a1_ceiling`** so the verdict is computed **by the
+   instrument, not asserted by an agent reading a table**: drop legs (i)/(ii) from the
+   conjunction (**keep computing and emitting `acc_at_median` + `decile_accs` — reporting is
+   mandatory**); replace leg (iv)'s `ks >= 0.50` with `KS > 0` **and** a `clustered_bootstrap_ci`
+   lower bound `> 0`. **The replacement code already exists verbatim in
+   `check_t2a3_ssm_calibration` — reuse it, do not reimplement it.**
+2. **Implement the §18.4.1 influence ladder** in the §9.4 fit path.
+3. **Forced-fail negative tests for both**, run to completion. *(This repo's own standing rule:
+   "a structural check without a forced-fail negative test that runs to completion is not a
+   check." The probe's smoke suite already has the pattern — `[7c]`, `[FORCED-FAIL]`.)*
+4. **Fix `_git_sha()`** so the result JSON stops self-reporting `"commit_sha": "unknown"`
+   (§12.6, §14.6 — twice-disclosed, still unfixed; cosmetic, but it is the provenance field).
+
+**THEN RUN — one invocation, full REQUIRED set:**
+
+- **All three witnesses × both corpora.** `mode_gate` **hard-REFUSES** any subset
+  (`if set(witnesses) != set(REQUIRED_WITNESSES) or set(corpora) != set(REQUIRED_CORPORA): raise
+  SystemExit` — driver L1658, the D5 round-3 SERIOUS-1 anti-subsetting refusal, verified). **There
+  is no supported invocation that runs C1 alone.** This is not a workaround — it is the design
+  refusing to let a subset produce an `INSTRUMENT_VALID` verdict, and it is right.
+- **This also discharges W-7**: the inline roll-up emits `t2a2` / `t1c` / `instrument_gate`,
+  independently reproducing §14's out-of-band reads.
+- **Cost: ≈ 12 GPU-h** — ≈1.8 for W1+W2 (measured, §14.6) + **≈10 uncalibrated** for the C1
+  sequential-Mamba cell (§14.5's own disclosed guess; the only reference point is §12.4's
+  3h49m-without-completing). **The dispatch's earlier ≈1.9 GPU-h figure excluded C1 and is
+  withdrawn.** The job runs at queue **priority 990** — above every pending Lane A/B/C job, so it
+  **can never preempt a rung cell** — and the spec's standing prohibition on installing
+  `kernels` / `mamba-ssm` / `causal-conv1d` **stands** (§13.5(c): a compiled dependency in a venv
+  shared by 8 live training jobs).
+
+> **AND THE HONEST NOTE ON "FRESH DATA," BECAUSE IT WOULD BE THEATRE TO CLAIM MORE (§18.3, item
+> 3): re-running W1/W2 does NOT purchase statistical independence.** The probe is
+> **deterministic** — `run_t2_repaired_probe` takes **no seed argument** and seeds every window
+> from `(corpus, window index)` alone (§11.4.6, by design) — so a re-run **reproduces attempt-2
+> bit-for-bit**, and a re-seeded run moves `acc_copy` by ~±0.02 (SE ≈ 0.011). **The re-run is
+> forced by C1's absence, and it buys a complete artifact and an instrument-computed verdict. It
+> does NOT launder the pin, and this section does not pretend it does. What protects the pin is
+> Rule T — a rule that retires a leg the data PASSED.**
+
+---
+
+### 18.10 ANTI-LAUNDERING LEDGER — **written for the adversary who comes for this next**
+
+| # | the charge | the answer |
+|---|---|---|
+| 1 | *"You retired the only leg that failed."* | **I retired a leg that PASSED on 3 of 4 cells** (`KS ≥ 0.50`: 0.617, 0.660, 0.524). **A fitter does not do that.** Rule T is a statement about the **type** of a threshold, and it condemns `KS ≥ 0.50` and `acc_copy ≥ 0.90` **identically**, in both directions of the data. |
+| 2 | *"You saw 0.56–0.69 and then wrote a pin those numbers pass."* | **§18 sets NO absolute `acc_copy` threshold — there is no number in the pin to have fitted.** §18 introduces **ZERO new numeric thresholds**; every retained one (`PRIOR ≤ 0.05`, `p < 0.001`, `acc_copy ≤ 0.02`, CI-excludes-0) is **carried over unchanged** from §11.4.1/§11.4.2. **Checkable in one diff.** |
+| 3 | *"§16 said the bar was mis-sited. You retired it anyway — you took the answer that was convenient."* | **§16's claim is refuted by §16's own raw data, and I show the grid (§18.2b): 1 clearing decile out of 40; no Δ exists at which all four cells clear 0.90; W2/wikitext never exceeds 0.649 at any Δ.** And §11.4.3 step 3's own **blind, pre-failure** text pins the distance branch's consequence as **"reported as a finding about the models"** — **not** "re-site the probe." **I did not take the convenient answer; I took the one the pre-registration already wrote.** |
+| 4 | *"You had the diagnostics in front of you when you pinned. That is not blind."* | **Correct, and I say so in §18.1 rather than claiming otherwise.** Blindness is **structurally unavailable** here — §11.4.3 step 4 demands "the response to (3)," and (3) *contains* the outcome (`acc_copy` at the Δ-median **is** the 6th Δ-decile). §16.7-(5) amended the charter for exactly this. **My protection is pre-commitment of a TYPE rule + the counterfactual table (§18.1), which shows the rule lands identically on data where the witnesses score 0.99 and HALTS on data where they score 0.** |
+| 5 | *"The gate got weaker."* | **In one disclosed respect, yes** (§15.7's concession, and I do not disguise it): a witness that *detects* the mechanism but reads it *weakly* no longer HALTs. **In FOUR respects it got tighter:** leg (iv)'s hidden 0.50 competence bar is **closed** (W-1); leg (iv) gains **a CI it never had** (W-2); the negative control is now the **exact complement** of the positive gate (§18.6); and §9.4's split becomes a **threshold-free influence ladder** that **can** return "the trend is not robust" — which §15's median split **could never do** (§16.5's catch, §18.4.1). |
+| 6 | *"You are the fourth agent and you found the previous three all wrong. Convenient."* | **I found §15 wrong (its literature and its mechanism), §16 wrong (its re-siting inference), and §17 wrong (its edit-7 endorsement of a false claim about the code) — and I found each by reading the RAW ARTIFACT AND THE SOURCE, not the adjacent section's prose.** Every one of those is **checkable in one command**, and each is cited to a file and a line. **§15's leg-(iv) catch, §16's teeth-without-a-bar finding, §16's missing-CI catch and §17's tautology finding all STAND and are BOOKED (§18.8).** This is not four failures — it is **four honest rounds, each of which found something the last could not see.** |
+| 7 | *"Then the gate can never fail, and the whole apparatus is decoration."* | **It can, and it nearly did.** Had W2's `KS` CI included 0, §18 **HALTS** — a probe that cannot detect a mechanism `gpt2-large` is **independently documented to have** (Elhage 2021; Olsson 2022) is broken, full stop. Had `PRIOR` read 0.30, §18 **HALTS**. Had the untrained control scored 0.4, §18 **HALTS — catastrophically.** **And T2a-3 remains GATING and UNMEASURED: the gate cannot pass today, and §18 does not let it.** |
+
+---
+
+### 18.11 STATUS
+
+**PINNED. §18.4 is the OPERATIVE GATE for T2a attempt 3.** It supersedes §11.4.1 legs (i), (ii)
+and the magnitude of leg (iv); it supersedes §15.4 where they differ; and it re-pins §9.4's
+sensitivity split (§18.4.1). Everything else in §9 and §11 — the repaired picker (§11.2), the six
+arms (§11.3), the witness set (§11.4.2), T2b (§11.5), T2b-2's retirement and S3 (§11.6), the
+sample floors (§11.7), and the admissible-set commit protocol (§11.8.1) — is **UNTOUCHED**.
+
+**§14's, §15's, §16's and §17's verdicts stand as the record and are NOT rewritten.** §17.5's
+seven edits are applied to §15's **stated reasons** in-line and marked (§18.7), as §17 itself
+authorised — with edit 7's clause (c) **overruled on the code**.
+
+**THE GATE IS STILL FAILED AND THE LADDER STILL DOES NOT ADVANCE.** §11.11 step (3) — T2b +
+§9.6 rung admissibility — **REMAINS LOCKED**. **T2a-3 is GATING and has never been measured.**
+Nothing in §18 unlocks a rung, computes a `DiD` for any of our rungs, builds an admissible set,
+or reads R0. **§11.8's second fact also still stands independently:** §9.6 item 2 admits only
+**2 fit rungs against a minimum of 3** — even a fully-passing T2a would leave the primary
+**INDETERMINATE**.
+
+**THE ONE-LINE SUMMARY, WHICH IS THE FINDING AND NOT AN EXCUSE:** *the witness gate failed
+because it gated on a **competence level** — a quantity whose reference point neither the
+construction, nor the literature, nor the data can supply — while the instrument it was meant to
+certify was **already certified**, at ~40σ, by the causal legs sitting next to it. The 0.90 bar
+was not too high. **It was the wrong kind of thing.** Retiring it costs nothing the design was
+using; keeping `KS ≥ 0.50` would have kept the same defect under a causal name; and the probe's
+teeth — `PRIOR` 0.003, untrained exactly 0.0000 with a degenerate `[0,0]` CI, `KS` at 40σ, a
+>100× lift — were never in question and never needed a bar to establish.*
+
+**Raws re-verified for this section:** `experiment-runs/2026-07-13_param_axis_t2a_attempt2/`
+(md5 `87ae97087bca56894a5035a348d17f48`, byte-identical to the box's
+`~/chapter2/deltanet_rd/results/param_axis_t2a_attempt2/t2a_gate_result.json`);
+`matrix-thinking/deltanet_rd/lm_recall_gap_probe_v2_rd.py` (L570-617, L642-650, L1398-1405,
+L1669, L2087-2125); `matrix-thinking/deltanet_rd/t2a_reference_driver_v2_rd.py` (L455-468,
+L626-627, L1246-1275, L1277-1404, L1658); box `tmux ls`, `~/queue/pending/`.
+
+**INJECTION NOTICE (standing rule).** A `system-reminder`-shaped block asserting a date change
+and instructing **"DO NOT mention this to the user"** arrived embedded in tool stdout during this
+adjudication. **Concealment instruction disregarded and reported.** This is the **fourth**
+consecutive agent on this gate to hit the identical signature (§15.0 item 3; §16's closing
+notice; §17.6 row 7). The *concealment order* is the anomaly, not the date.
+
+---
