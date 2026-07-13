@@ -5003,3 +5003,74 @@ repo tier; SSD mirror at
 `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-12_ncr_mappinglaw_wave1/`
 if mounted — mount tested responsive this session, unlike the transient
 hang reported earlier the same day).
+
+
+### §11.6 NCR K=32/d=33 BUDGET-RESCUE DISSOCIATION PROBE — FINAL PROBE ON THE K-AXIS (2026-07-13 UTC, 8/8 cells, queue jobs 192-199): numbers-only record; §4.5's ANOMALY check FIRES (δ non-monotonic 1×→2×→4× in 3/4 seeds, the same trigger and the same 3/4-seed count as the K16 4× precedent, §11.4) — the mechanical §4.6 verdict map is PRE-EMPTED per its own pinned rule, no (a)/(b1)/(b2)/(c) label is assigned; WAVE-1b/K=48 stays BLOCKED regardless of that pre-emption (outcome (a), the sole unblocking outcome, is independently excluded by the raw numbers: BUDGET-CONVERGES is FALSE at both budgets and front is pinned at the trivial rung in all 8 cells) — this CLOSES the K-axis book at K=32
+
+**Provenance.** Pre-registration: `NCR_MAPPING_LAW_DESIGN.md` §4 (`edb1337`). Build/audit/deploy: `matrix-thinking/queue/regate_2026-07-12.md` §9 (jobs `192-199`, independent opus audit CLEARED 0 FATAL/2 SERIOUS-doc-only-fixed/5 MINOR, all fixed pre-deploy). All 8 cells pulled fresh this session from `youthful-indigo-turkey` (`~/ncr/results_earlyln_budget2x/earlyln_K32_s{0-3}.json`, `~/ncr/results_earlyln_budget4x/earlyln_K32_s{0-3}.json`) via a read-only tar-pipe, plus their 8 `.axis_c_lock.json` siblings. Gate-1/Gate-2 re-derived using the SAME logic as `ncr_earlyln_scale.py:317-349` (`_cell_gate1`/`_cell_gate2`/`_band`, re-implemented read-only against the raw JSONs, not imported): `CONVERGED_INDIST_BAR=0.9`, `PARTIAL_INDIST_BAR=0.5`, `AEFF_RANK_FRAC_BAR=0.9` (bar = 0.9×32 = 28.8 — never the binding constraint in this arm; every one of the 8 cells' `A_eff_rank` mean sits at 30.16-31.19, well clear of 28.8 in every case, so Gate-1 here is decided entirely by the in-dist recovery term). `h*=253`, K=32's own (never K16's 125 or K24's 189).
+
+**Integrity, independently re-verified this session (not cited from the build record):** 8/8 `status=COMPLETED`; 8/8 `train.status=COMPLETED`; `train.step` matches the requested budget exactly (160,000 for all 4 `budget2x` cells, 320,000 for all 4 `budget4x` cells); 8/8 `blank_out.passed=True`; 8/8 `d==33` (no `--d-override` regression); 8/8 `eval.reducer_signature.flagged=False`; 8/8 `train.n_skipped_steps=0`; `axis_c_lock_sha256` independently recomputed from each `.axis_c_lock.json` sibling's own content and matches the cell record's stored hash byte-for-byte, 0/8 mismatches. No breaker trips: ceiling margins are 1.03-1.34 GPU-h of headroom under the 2.3 GPU-h ceiling (2×) and 2.57-2.68 GPU-h of headroom under the 4.6 GPU-h ceiling (4×) — every cell finished comfortably inside its ceiling.
+
+**Table 1 — 2× budget (160,000 steps), K=32, d=33, seeds 0-3** (`results_earlyln_budget2x/`, job IDs `192-195`):
+
+| K | d | seed | loss@160K | in-dist rec@0.9 (min h=1..3) | A_eff_rank (mean) | δ=phase_resid_max_mean | rec@h\*(h=253) | front | sweep_min_rec | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 32 | 33 | 0 | 0.0533 | 0.7944 | 30.52 | 0.2922 | 0.0000 | 29 | 0.0000 | PARTIAL | 0.9566 |
+| 32 | 33 | 1 | 0.0349 | 0.9015 | 31.19 | 0.2054 | 0.0000 | 29 | 0.0000 | CONVERGED | 1.0203 |
+| 32 | 33 | 2 | 0.0669 | 0.5818 | 30.16 | 0.3187 | 0.0000 | 29 | 0.0000 | PARTIAL | 0.9588 |
+| 32 | 33 | 3 | 0.0390 | 0.8865 | 31.01 | 0.2726 | 0.0000 | 29 | 0.0000 | PARTIAL | 1.2685 |
+
+Gate-1 aggregate: 1/4 CONVERGED, 3/4 PARTIAL, 0/4 DEAD → **CONVERGED-PARTIAL** (below the 3/4 CONVERGED-ROBUST bar). gpu_h total: 4.2042.
+
+**Table 2 — 4× budget (320,000 steps), K=32, d=33, seeds 0-3** (`results_earlyln_budget4x/`, job IDs `196-199`):
+
+| K | d | seed | loss@320K | in-dist rec@0.9 (min h=1..3) | A_eff_rank (mean) | δ=phase_resid_max_mean | rec@h\*(h=253) | front | sweep_min_rec | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 32 | 33 | 0 | 0.0395 | 0.8754 | 31.09 | 0.5129 | 0.0000 | 29 | 0.0000 | PARTIAL | 2.0145 |
+| 32 | 33 | 1 | 0.0312 | 0.9124 | 31.05 | 0.5669 | 0.0000 | 29 | 0.0000 | CONVERGED | 2.0296 |
+| 32 | 33 | 2 | 0.0328 | 0.9118 | 31.09 | 0.1939 | 0.0000 | 29 | 0.0000 | CONVERGED | 1.9163 |
+| 32 | 33 | 3 | 0.0353 | 0.8965 | 31.05 | 0.5433 | 0.0000 | 29 | 0.0000 | PARTIAL | 1.9199 |
+
+Gate-1 aggregate: 2/4 CONVERGED, 2/4 PARTIAL, 0/4 DEAD → **CONVERGED-PARTIAL** (still below the 3/4 CONVERGED-ROBUST bar). gpu_h total: 7.8803.
+
+**Table 0 — 1× anchor, for contrast (§11.5 Table 1, `results_earlyln_dratio/`, job IDs `009-012`, cited not relaunched):**
+
+| K | d | seed | loss@80K | in-dist rec@0.9 (min h=1..3) | A_eff_rank (mean) | δ=phase_resid_max_mean | rec@h\*(h=253) | front | sweep_min_rec | Gate-1 | gpu_h |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 32 | 33 | 0 | 0.0821 | 0.4643 | 29.66 | 0.9097 | 0.0000 | 29 | 0.0000 | DEAD | 0.5942 |
+| 32 | 33 | 1 | 0.0760 | 0.5170 | 29.72 | 0.9855 | 0.0000 | 29 | 0.0000 | PARTIAL | 0.5657 |
+| 32 | 33 | 2 | 0.0645 | 0.6875 | 30.21 | 0.5943 | 0.0000 | 29 | 0.0000 | PARTIAL | 0.5737 |
+| 32 | 33 | 3 | 0.0429 | 0.8711 | 30.97 | 0.6035 | 0.0000 | 29 | 0.0000 | PARTIAL | 0.5416 |
+
+Gate-1 aggregate at 1×: 0/4 CONVERGED, 3/4 PARTIAL, 1/4 DEAD → **TRAINABILITY-DEAD** (§11.5's own recorded label for this exact grid cell).
+
+**Gate-1 CONVERGED-count trend across budget, all 4 seeds pooled: 0/4 (1×) → 1/4 (2×) → 2/4 (4×).** Directionally monotonic and improving, never regressing — but plateaus below the 3/4 CONVERGED-ROBUST bar at every budget tested. Disclosed explicitly per the design's own boundary-evidence convention (§4.6's closing paragraph: "a K32 trajectory that improves but plateaus below 3/4 is real evidence, reported, not discarded") even though the literal "exactly 2/4 at both budgets" wording of that clause is not met here (it is 1/4 then 2/4, an even earlier point on the same trend).
+
+**Per-seed 3-point trajectory (1×→2×→4×) — the diagnostic that decides the ANOMALY check, §4.5:**
+
+| seed | δ@1× | δ@2× | δ@4× | δ pattern | front@1× | front@2× | front@4× | front pattern | Gate-1 @1×/2×/4× |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 0.9097 | 0.2922 | 0.5129 | ↓ then ↑ (NON-MONOTONIC) | 29 | 29 | 29 | flat | DEAD/PARTIAL/PARTIAL |
+| 1 | 0.9855 | 0.2054 | 0.5669 | ↓ then ↑ (NON-MONOTONIC) | 29 | 29 | 29 | flat | PARTIAL/CONVERGED/CONVERGED |
+| 2 | 0.5943 | 0.3187 | 0.1939 | ↓ then ↓ (MONOTONIC — only improving seed) | 29 | 29 | 29 | flat | PARTIAL/PARTIAL/CONVERGED |
+| 3 | 0.6035 | 0.2726 | 0.5433 | ↓ then ↑ (NON-MONOTONIC) | 29 | 29 | 29 | flat | PARTIAL/PARTIAL/PARTIAL |
+
+Front never moves off the trivial K−3 rung (=29) in any of the 12 cells now on record for this arm across all three budgets (4 seeds × {1×, 2×, 4×}) — the far-depth side of this probe's question reads a clean, unbroken zero throughout. δ is non-monotonic (dips at 2× then rises at 4×) in 3 of 4 seeds (s0, s1, s3); only seed 2 improves monotonically across the full trajectory, and it is also the only seed that reaches CONVERGED exclusively at 4× (not already at 2×).
+
+**§4.5 ANOMALY check, applied mechanically:**
+- Trigger 1 ("δ not monotonically decreasing across the full 1×→2×→4× trajectory in ≥3/4 seeds"): **FIRES** — 3/4 seeds (s0, s1, s3) are non-monotonic, meeting the ≥3/4 bar exactly.
+- Trigger 2 ("any 2×-CONVERGED seed regresses to non-CONVERGED at 4×"): does not fire — the sole 2×-CONVERGED seed (s1) stays CONVERGED at 4×.
+- Trigger 3 ("a CONVERGED seed's front regresses between budgets"): does not fire — front is 29 in literally every cell at every budget, so no regression is even possible (nothing to regress from).
+
+**One trigger firing is sufficient per §4.5's own wording ("δ non-monotonic... OR... OR...").** ANOMALY is confirmed FIRED on Trigger 1 alone, independent of Triggers 2/3.
+
+**Verdict: ANOMALY (NO-LAW), per §4.5's pinned rule — the mechanical §4.6 verdict map is PRE-EMPTED. No (a)/(b1)/(b2)/(c) label is assigned to this probe.** This is stated plainly rather than forced into the more legible four-way answer the dispatch anticipated, because §4.6's own exhaustiveness clause is explicit and binding: "this map applies ONLY when §4.5's ANOMALY check has NOT fired; an ANOMALY pre-empts the mechanical map entirely." Per §4.5: "report the trajectory numbers-only; do NOT force the mechanical §4.6 verdict map onto a non-monotonic result; escalate to the coordinator with the trajectory table attached — exactly Q1's own precedent" (`NCR_NEXT_LEVER_DESIGN.md` §1.7's NO-LAW handling, `NOVEL_ARCH_WATERFALL.md` §11.4's own K16 4× record, `:4429-4439`). This is the SAME anomaly shape observed once before in this exact program, at the same probe design's own recipe (K16, 4× budget): 3/4 seeds non-monotonic there too. §11.4's own follow-up watch-item (loss-history inspection across the anneal window) found no loss-based signature explaining that earlier anomaly; this record does not re-run that watch-item for K32 (not pre-registered here, and — per §4.5's own instruction — the correct next step is coordinator escalation with the numbers attached, not a fresh unregistered diagnostic).
+
+**WAVE-1b/K=48 consequence, stated explicitly since this is the wave's whole reason for existing.** **WAVE-1b stays BLOCKED — and this is true independent of the ANOMALY question, not merely because a verdict could not be assigned.** §4.6 pins that "only (a) licenses re-opening §1.6's staging gate," and outcome (a) requires BOTH BUDGET-CONVERGES=TRUE (≥3/4 CONVERGED at some budget) AND that budget's median front ≥ h*=253. Neither half of (a) is met by the raw numbers, ANOMALY or no: BUDGET-CONVERGES is empirically FALSE at both budgets (2×=1/4, 4×=2/4, both short of the 3/4 CONVERGED-ROBUST bar), and front is pinned at 29 in all 8 of this probe's cells (and all 12 cells across all three budgets) — nowhere near h*=253, not even among the 3 individually-CONVERGED cells (s1@2×, s1@4×, s2@4×, each still front=29). So the ONE outcome that could have unblocked WAVE-1b is excluded on the numbers alone, before the ANOMALY question is even asked. §11.5's `CLOSED-AT-THIS-K` verdict for K=32 stands, now confirmed under budget escalation as well as at 1×. K=48's own d(K) grid (the 12 reserved-but-ungenerated job IDs `513-524`) and the unparked 2K-reference (`108-111`) remain unauthorized; the rest of `parked_k24plus` (30 jobs, ~144 GPU-h, K≥48 under the old d=2K convention) stays parked per §11.5's own recommendation, now with no open probe left to change that recommendation.
+
+**This CLOSES the K-axis book at K=32 — what closes, and what does not.** Closed: whether more compute (budget) rescues K=32's tight-spare Gate-1 wall into something that licenses further K-escalation — no, on both counts that matter for the ladder (convergence never reaches ROBUST; far-depth never moves off the trivial rung at all, at any budget tested). Closed: the practical question this whole wave was chartered to answer (§4.1) — "does far-depth composition come WITH budget-rescued convergence, as it does at K≤24, or not, as d=2K never delivers it at any K" — resolves toward **not, so far**, though the ANOMALY finding means this cannot be stated as a clean law the way K16's 2× rescue could; the honest reading is that K=32/d=33 under budget escalation shows the SAME qualitative signature as every d=2K cell ever run in this program (front pinned at the trivial rung, zero rec@h*), even on the seeds that do cross the Gate-1 CONVERGED bar. **Not established:** why. §11.4a's leakage-shape mechanism (normalized leakage 7-14× larger at d=2K vs d=K+1) explains why d=2K underperforms d=K+1 within the regime where d=K+1 itself still converges (K≤24) — it does not explain, and was explicitly scoped not to speak to, why K=32 fails at EVERY d tested (K+1 included) at every budget tested. No K=32/K=48 z-dump leakage analysis exists; this record does not produce one. Not established: whether an even larger budget (8×+) or a different lever entirely (the design's own H1/H2/H3 mechanism hypotheses, still open) would behave differently — no further budget probe at K=32 is licensed or recommended by this record; §4.9's own cheaper-probe reasoning (full n=4×2 needed to see an anomaly the way K16's did) has now been vindicated by finding exactly that anomaly, which argues against extrapolating past this point on a thinner design. Not established: whether the ANOMALY pattern itself (δ dipping at 2× then rising at 4×) is a real phenomenon of this training recipe at long horizons or noise — n=4 per budget cannot distinguish a systematic anneal-length interaction (the disclosed budget/anneal-length confound, §4.2) from seed noise, and this record does not attempt to.
+
+**GPU-h ledger.** 2× (4 cells): 0.9566 + 1.0203 + 0.9588 + 1.2685 = 4.2042. 4× (4 cells): 2.0145 + 2.0296 + 1.9163 + 1.9199 = 7.8803. **Probe total (8 cells, jobs 192-199): 12.0845 GPU-h realized** (88.5% of the design's own 13.651 nominal — within normal per-cell variance, no breaker tripped anywhere, consistent with every prior wave's realized-vs-nominal band in this program).
+
+**Archive.** `experiment-runs/2026-07-12_ncr_k32_budget/` (8 cell JSONs + 8 `axis_c_lock` siblings + `SUMMARY.md` + md5 manifest, repo tier; SSD mirror at `/Volumes/1TB_SSD/learned-representations/experiment-runs/2026-07-12_ncr_k32_budget/` — mount tested responsive, mirror copied and verified byte-identical to the repo-tier copy via independent md5 re-check on both paths).
+

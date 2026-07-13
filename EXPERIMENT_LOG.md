@@ -8841,3 +8841,65 @@ is a **new pre-registration and a new section.**
 **Raws:** `experiment-runs/2026-07-12_param_axis_r0/` (+ SSD mirror). Registry:
 `matrix-thinking/PARAM_AXIS_SCALING_DESIGN.md` §10 (supersedes the VOID R0 of
 `05de661`; quarantined values NOT resurrected).
+
+## 2026-07-13 — NCR K=32/d=33 BUDGET-RESCUE DISSOCIATION PROBE, THE FINAL K-AXIS PROBE (`NOVEL_ARCH_WATERFALL.md` §11.6, queue jobs 192-199): **§4.5's ANOMALY check FIRES (δ non-monotonic 1×→2×→4× in 3/4 seeds, same trigger/count as the K16 4× precedent) — the mechanical 4-way §4.6 verdict map is PRE-EMPTED, no (a)/(b1)/(b2)/(c) label assigned. WAVE-1b/K=48 stays BLOCKED regardless: outcome (a), the sole unblocking case, is independently excluded by the raw numbers (BUDGET-CONVERGES false at both budgets — 2×=1/4, 4×=2/4, both <3/4 ROBUST; front pinned at the trivial K−3=29 rung in all 8 cells and all 12 cells on record for this arm across every budget tested). This CLOSES the K-axis book at K=32. ≈12.08 GPU-h.**
+
+Pre-registered design `matrix-thinking/NCR_MAPPING_LAW_DESIGN.md` §4
+(`edb1337`), built/audited/deployed per `matrix-thinking/queue/
+regate_2026-07-12.md` §9 (jobs `192-195`=2×, `196-199`=4×, independent
+opus audit CLEARED — 0 FATAL / 2 SERIOUS doc-only / 5 MINOR, all fixed
+pre-deploy). All 8 cells pulled fresh this session from `youthful-
+indigo-turkey` and independently re-derived (not cited): 0/8
+`axis_c_lock_sha256` mismatches (recomputed from each lock file's own
+content), 0/8 status/blank_out/flagged/n_skipped_steps anomalies, 8/8
+`d==33`, 8/8 `train.step` matches the requested budget exactly.
+
+**Gate-1 trend (all 4 seeds pooled): 0/4 CONVERGED (1×) → 1/4 (2×) →
+2/4 (4×)** — directionally improving, never regressing, but plateaus
+below the 3/4 CONVERGED-ROBUST bar at every budget tested. **Far-depth:
+front is pinned at the trivial K−3=29 rung in literally all 12 cells
+now on record for this arm across all three budgets (4 seeds ×
+{1×,2×,4×})** — zero movement, `rec@h*(h=253)=0.0000` everywhere, even
+among the 3 individually-CONVERGED cells.
+
+**The decisive finding is the per-seed 3-point δ trajectory, not the
+Gate-1 count.** 3 of 4 seeds (s0, s1, s3) show δ dip at 2× then rise
+at 4× — non-monotonic — meeting §4.5's own pre-registered ≥3/4-seeds
+ANOMALY trigger exactly. Only seed 2 improves monotonically across the
+full trajectory (and is also the only seed reaching CONVERGED
+exclusively at 4×, not already at 2×). Per §4.5/§4.6's own binding
+rule ("an ANOMALY pre-empts the mechanical map entirely"), no
+(a)/(b1)/(b2)/(c) verdict is assigned — this is reported numbers-only
+and escalated, exactly the K16-4× NO-LAW precedent (`NOVEL_ARCH_
+WATERFALL.md` §11.4).
+
+**WAVE-1b/K=48 stays blocked on independent grounds regardless of the
+ANOMALY question.** Outcome (a) — BUDGET-CONVERGES=TRUE AND median
+front ≥ h*=253 — is the only outcome that could have re-opened §1.6's
+staging gate. Both halves fail on the raw numbers alone: Gate-1 never
+reaches the 3/4 ROBUST bar at either budget, and front never leaves
+the trivial rung at any budget. §11.5's `CLOSED-AT-THIS-K` verdict for
+K=32 stands, now confirmed under budget escalation as well as at 1×.
+K=48's reserved job band (`513-524`), the unparked 2K-reference
+(`108-111`), and the rest of `parked_k24plus` (30 jobs, ~144 GPU-h)
+stay parked; no further K-axis probe is recommended or licensed.
+
+**Scope, stated plainly.** Closed: whether budget alone rescues K=32's
+tight-spare wall into anything licensing further K-escalation — no.
+Not established: why K=32 fails at K+1 (not just at 2K) at every
+budget tested — §11.4a's leakage-shape mechanism explains K≤24's
+d=K+1-vs-d=2K gap, not K=32's own ceiling at every d; no K≥32 z-dump
+leakage analysis exists. Not established: whether the ANOMALY's δ
+non-monotonicity is a real training-recipe effect at long horizons or
+seed noise — n=4 per budget cannot distinguish this from the disclosed
+budget/anneal-length confound.
+
+**GPU-h.** 2× (4 cells): 4.2042. 4× (4 cells): 7.8803. **Total: 12.0845
+GPU-h** (88.5% of the 13.651 nominal plan, no breaker trips).
+
+**Raws:** `experiment-runs/2026-07-12_ncr_k32_budget/` (8 cell JSONs +
+8 axis_c_lock siblings + SUMMARY.md + md5 manifest, repo tier; SSD
+mirror at `/Volumes/1TB_SSD/learned-representations/experiment-runs/
+2026-07-12_ncr_k32_budget/`, copied and md5-verified byte-identical to
+the repo-tier copy). Registry: `matrix-thinking/NOVEL_ARCH_WATERFALL.md`
+§11.6.
