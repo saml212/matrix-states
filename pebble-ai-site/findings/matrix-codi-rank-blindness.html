@@ -882,14 +882,14 @@ footer a { color: var(--accent); }
 
         <p>The paper as published at the ICML 2026 Mechanistic Interpretability Workshop: <a href="../assets/papers/the-gradient-does-not-see-rank.pdf">the-gradient-does-not-see-rank.pdf</a> (213 KB).</p>
 
-        <p>All training, evaluation, and probe code is released at <a href="https://github.com/saml212/learned-representations"><span class="mono">github.com/saml212/learned-representations</span></a>. The release includes:</p>
+        <p>All training, evaluation, and probe code is released at <a href="https://github.com/saml212/matrix-states"><span class="mono">github.com/saml212/matrix-states</span></a>. The release includes:</p>
 
         <ul>
             <li><span class="mono">run_matrix_codi.py</span>: the matrix-CODI training script. The <span class="mono">MatrixBottleneck</span> class implements the <span class="mono">w_up → reshape → thinker → flatten → w_down</span> pipeline. All five readouts in §06 are selectable via the <span class="mono">--readout</span> flag.</li>
             <li><span class="mono">probe_z.py</span>: the linear probe pipeline that produces the AUC numbers in Figure 5.</li>
             <li><span class="mono">rank_eval.py</span>: the rank-<span class="mono">k</span> projection evaluator. Given a checkpoint, it computes the accuracy-vs-<span class="mono">k</span> curve and the Spearman correlation between per-sample effective rank and correctness.</li>
-            <li>Raw rank-<span class="mono">k</span> evaluation JSONs (Figure 2 and Table 2): <a href="https://github.com/saml212/learned-representations/tree/main/experiment-runs/2026-04-17_round_pc/rank_evals"><span class="mono">experiment-runs/2026-04-17_round_pc/rank_evals/</span></a>.</li>
-            <li>Experiment log with per-run hyperparameters, rank trajectories, and wall-clock times: <a href="https://github.com/saml212/learned-representations/blob/main/EXPERIMENT_LOG.md"><span class="mono">EXPERIMENT_LOG.md</span></a>.</li>
+            <li>Raw rank-<span class="mono">k</span> evaluation JSONs (Figure 2 and Table 2): <a href="https://github.com/saml212/matrix-states/tree/main/experiment-runs/2026-04-17_round_pc/rank_evals"><span class="mono">experiment-runs/2026-04-17_round_pc/rank_evals/</span></a>.</li>
+            <li>Experiment log with per-run hyperparameters, rank trajectories, and wall-clock times: <a href="https://github.com/saml212/matrix-states/blob/main/EXPERIMENT_LOG.md"><span class="mono">EXPERIMENT_LOG.md</span></a>.</li>
             <li>ProsQA from the <a href="https://github.com/facebookresearch/coconut">facebookresearch/coconut</a> release. GSM8K-Aug from the CODI release (<a href="https://huggingface.co/datasets/whynlp/gsm8k-aug">whynlp/gsm8k-aug</a>). Backbones: <a href="https://huggingface.co/gpt2">gpt2</a>, <a href="https://huggingface.co/gpt2-medium">gpt2-medium</a>, <a href="https://huggingface.co/gpt2-large">gpt2-large</a>.</li>
         </ul>
 

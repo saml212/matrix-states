@@ -27,5 +27,5 @@
 ## About
 
 - [Pebble homepage](https://pebbleml.com): Research thesis, current experiments, roadmap, and dead ends.
-- Source repository: https://github.com/saml212/learned-representations
+- Source repository: https://github.com/saml212/matrix-states
 - Contact: sam@pebbleml.com
