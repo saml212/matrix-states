@@ -26,6 +26,13 @@ database, no cleverness.
                 (filename suffixed .g<N> — which GPU/worker claimed it)
   completed/    validity-checked successes
   failed/       validity-check failures (log preserved, NOT auto-retried)
+  cancelled/    specs deliberately killed and never to be auto-retried
+                (unlike parked_*/, not reversible by convention — e.g.
+                `200_laneB_1p31b_arm_per_token_openr1_s0.json.cancelled`,
+                the job-200 timeout-drift incident, see Reconciliation
+                below). Naming keeps the original ".json" substring so
+                anything that greps for it (deploy.sh's dedup, this
+                file's own tooling) still recognizes it as a spec.
   parked_*/     job specs pulled OUT of pending/ by a re-gate (never
                 claimed by a worker, never deleted — a park is reversible:
                 mv back into pending/ to re-activate). Each parked_*/ dir
@@ -141,47 +148,72 @@ without ever being executed.
 
 ## DANGER / how to sync safely — READ BEFORE TOUCHING DEPLOYMENT
 
-`matrix-thinking/queue/deploy.sh` was a **live landmine** until it was
-hardened on 2026-07-12 (three independent audit rounds, six real bugs
-found and closed — see the script's own header comment and git history).
-The root cause, and why it matters every time you touch this queue:
+`matrix-thinking/queue/deploy.sh` was a **live landmine** TWICE. It was
+first hardened on 2026-07-12 (three independent audit rounds, six real
+bugs found and closed — see the script's own header comment and git
+history), and hardened a SECOND time on 2026-07-13 (a different failure
+mode of the same root cause — see below). The root cause, and why it
+matters every time you touch this queue:
 
 **The local `jobs/pending/*.json` tree is a FROZEN snapshot** taken at
 generation time. The box's *real* queue moves specs
-`pending/` → `claimed/` → `completed/` (or `failed/`, or a `parked_*/`
-re-gate dir) continuously as workers run them. The two views diverge
-the instant the first worker claims a job. A naive full-tree `scp` of
-`jobs/pending/*.json` onto the box's `~/queue/pending/` — which is
-exactly what the pre-2026-07-12 `deploy.sh` did — silently **resurrects**
-every already-completed/claimed/failed/parked job: workers re-claim and
-re-run them from scratch, wasting GPU-hours and potentially overwriting
-good `completed/` results (`queue_worker.sh` overwrites-on-name at
-completion). This is not hypothetical: on 2026-07-12 the live box had
-113 of 181 local "pending" specs already resolved elsewhere on disk,
-including the box's mid-flight 1.31B-parameter training job.
+`pending/` → `claimed/` → `completed/` (or `failed/`, `cancelled/`, or a
+`parked_*/` re-gate dir) continuously as workers run them. The two views
+diverge the instant the first worker claims a job.
 
-**As of 2026-07-12, `deploy.sh` is fixed and safe to run directly against
-a live queue** — it enumerates the box's real state (all four
-directories, suffix-normalized so a currently-claimed `.g<gpu>.json` job
-is correctly recognized) and ships *only* genuinely-new specs, staging
-+ md5-verifying + atomically placing them, never touching anything
-already claimed/completed/failed/parked. It is idempotent (safe to
-re-run) and fails loudly (copies nothing) if it can't reach the box or
-enumerate its state. **You no longer need the old surgical
-scp-only-the-delta workaround as a safety measure** — `deploy.sh` itself
-now does the equivalent check automatically. That workaround
-(`matrix-thinking/queue/regate_2026-07-12.md` has several worked
-examples) remains a fine pattern for a *targeted* deploy of just a few
-new IDs, but is no longer required to avoid resurrecting live jobs.
+**Incarnation 1 (fixed 2026-07-12): BLIND OVERWRITE.** A naive full-tree
+`scp` of `jobs/pending/*.json` onto the box's `~/queue/pending/` — which
+is exactly what the pre-2026-07-12 `deploy.sh` did — silently
+**resurrects** every already-completed/claimed/failed/parked job: workers
+re-claim and re-run them from scratch, wasting GPU-hours and potentially
+overwriting good `completed/` results. Not hypothetical: on 2026-07-12
+the live box had 113 of 181 local "pending" specs already resolved
+elsewhere on disk, including the box's mid-flight 1.31B-parameter
+training job.
 
-Before running `deploy.sh` for real, it is still good practice to:
-1. `DRY_RUN=1 bash deploy.sh` first — shows the exact ship/skip plan,
-   copies nothing.
-2. Skim the plan: everything already claimed/completed/failed/parked
-   should show up under "already present — SKIPPING", never under
-   "specs to ship".
-3. If anything looks wrong, STOP and investigate before removing
-   `DRY_RUN=1` — do not "just try it and see."
+**Incarnation 2 (fixed 2026-07-13): FILENAME-KEYED DEDUP.** The 2026-07-12
+fix enumerated the box's real state and skipped anything already there —
+but it matched by **basename** (normalizing only the claim-time `.g<N>`
+suffix). A 2026-07-12 re-prioritization round renamed two already-pending
+specs on the box for priority ordering (`235_..._s3.json` →
+`029_..._s3.json`, `236_..._s3.json` → `030_..._s3.json`) *without*
+changing their JSON `"id"` field. By the time this was fixed, both were
+claimed, LIVE 392M training jobs. The local repo still has files literally
+named `235_....json`/`236_....json` (the generator's `out_path` is always
+`f"{id}.json"` — it has no knowledge of an on-box rename). Filename-keyed
+dedup saw `029_...`/`030_...` on the box and `235_...`/`236_...` locally
+as **disjoint names** — i.e. "not found anywhere" — and would have shipped
+a *second*, duplicate spec for two already-running jobs. Confirmed live
+against the actual box the day this was found and fixed.
+
+**As of 2026-07-13, `deploy.sh` dedups on each spec's own JSON `"id"`
+field, read from file CONTENT on both sides — never on filename.** A
+rename on the box no longer matters; the same id anywhere in
+`pending/claimed/completed/failed/cancelled/parked_*/` is recognized as
+already-resolved regardless of what either copy is named. It is
+idempotent (safe to re-run), fails loudly (copies nothing) on any parse
+error, missing `"id"` field, or duplicate id (local or remote), and
+treats a to-be-placed id that collides with `claimed/` at the final
+placement step — which should be structurally impossible given the
+plan-time check, but is checked again anyway — as a `*** LIVE-COLLISION
+***`-marked, script-**failing** event, never a routine race-skip. See the
+script's own header comment for the full incident writeup.
+
+**`DRY_RUN` now DEFAULTS TO 1** (both landmines' root cause was a real run
+happening without anyone having looked at the plan first). Pass
+`DRY_RUN=0` to actually ship. Before running for real, it is still good
+practice to:
+1. `bash deploy.sh` (dry run by default) — shows the exact id-keyed
+   ship/skip plan, copies nothing. Check the "LIVE JOBS ON THE BOX RIGHT
+   NOW" section: every currently-claimed id should appear there, marked
+   `*** RENAMED ON BOX ***` if its box filename differs from the local
+   one — that line is exactly what would have caught both incarnations
+   of this landmine.
+2. Skim the rest of the plan: everything already
+   claimed/completed/failed/cancelled/parked should show up under
+   "already present — SKIPPING", never under "ids safe to ship".
+3. If anything looks wrong, STOP and investigate before setting
+   `DRY_RUN=0` — do not "just try it and see."
 
 To test changes to `deploy.sh` itself, use `REMOTE_QROOT=<bare-relative-
 name>` (a scratch remote dir under the box's own `$HOME`, never a live
@@ -190,7 +222,64 @@ redeploy, which is not parameterized by `REMOTE_QROOT` and would
 otherwise still touch live `~/ncr/`) — see the script's own header
 comment for the full usage and the tilde-quoting footgun to avoid.
 **Never** experiment against the real `~/queue/{pending,claimed,
-completed,failed}`.
+completed,failed,cancelled}`.
+
+## Reconciliation — catching a fix that never reached a deployed spec
+
+`generate_jobs.py` being fixed does not mean a spec **already deployed**
+under that same id picks up the fix — `deploy.sh`'s whole job (see DANGER
+above) is to *never* re-ship an id that already has a fate on the box,
+which is exactly what stands between a source fix and an already-deployed
+snapshot. This bit on 2026-07-13: job 200
+(`200_laneB_1p31b_arm_per_token_openr1_s0`) ran with a known-wrong
+`--internal-timeout 160000` (44.4h), priced off a stale 0.7135 s/step
+rate, when the real measured rate is ~1.3998 s/step (~71h true need).
+`generate_jobs.py` had *already* been corrected to price this class of
+job at the right rate while job 200's own already-deployed snapshot still
+carried the stale one. It self-terminated at ~62% of budget, burning
+~44 GPU-hours for nothing (now `cancelled/200_..._s0.json.cancelled`).
+
+`matrix-thinking/queue/reconcile_specs.py` closes this gap. It diffs
+every spec currently deployed in the box's `pending/` and `claimed/`
+against what `generate_jobs.py` would produce for that same job id if run
+right now, and reports drift loudly (`--internal-timeout`/`--steps` at
+minimum, plus any other `--flag` that differs). Run it with:
+
+```
+DRY_RUN_BYPASS=1 python3 reconcile_specs.py
+```
+
+(`DRY_RUN_BYPASS=1` works around this repo's pre-train-gate hook, which
+pattern-matches `python3 *.py` as a training launch — a false positive
+here, since this script trains nothing.) It is **read-only**: it never
+writes to the box and never touches `claimed/`.
+
+**Advisory vs blocking (deliberate, see the script's own docstring for
+the full reasoning):** `pending/` drift (or an id the generator no longer
+produces at all) is **blocking** (nonzero exit) — the job hasn't started,
+so it can and should be fixed (regenerate + `DRY_RUN=0 bash deploy.sh`)
+before any worker claims it. `claimed/` drift is **advisory only** — the
+job is already running, `queue_worker.sh` already forked its `cmd` before
+the check ever runs, rewriting the spec file on disk would not change the
+already-running process, and this project's standing rule forbids
+killing a live job to "fix" it. Making claimed/ drift block the exit code
+would fail this check every time any long-running job is in flight for a
+condition nobody can act on — alarm fatigue, not safety. It is still
+printed exactly as loudly, in its own section, so a human knows
+GPU-hours are being spent on a possibly-stale config.
+
+A narrower, potentially **preventive** version of this check — one that
+can actually refuse to launch a job rather than just report on it — is
+possible at exactly one moment: right after `queue_worker.sh` claims a
+spec (`mv pending/→claimed/`) but *before* it runs `cmd`. At that instant
+the file is claimed but nothing has run yet, so blocking costs zero
+GPU-hours. This is sketched (`reconcile_specs.py --check-one`) and
+documented as a design note in `queue_worker.sh`'s own header, but
+**deliberately not wired into the live claim loop** — `generate_jobs.py`
+is local-only (not deployed to the box; see `deploy.sh`'s static-file
+list), so a real worker-side check needs its own small design (a
+deployed drift-manifest, most likely) and audit, not a same-session edit
+to a script actively supervising 8 live GPUs.
 
 ## Extending the queue
 
@@ -205,9 +294,24 @@ them up automatically — no restart needed, they poll `pending/` every
 **Against a LIVE queue** (some jobs already claimed/completed/parked),
 add new job-generating functions to `generate_jobs.py` rather than
 editing existing ones (keeps IDs 000-N byte-identical on re-generation —
-verify with a diff/md5 check before deploying). Either `deploy.sh` (which
-will correctly ship only the new IDs) or a targeted `scp` of just the new
-files by name both work now. See
+verify with a diff/md5 check before deploying). This is not just style:
+an existing function's output silently changing under a live id is
+exactly how the Reconciliation section's job-200 finding happened — a
+shared pricing constant used by an *old* id's job-builder was updated
+alongside a *new* one, so a fresh `python3 generate_jobs.py` now produces
+different content for `200_laneB_1p31b_arm_per_token_openr1_s0` than what
+was ever deployed under that id (confirmed 2026-07-13: `diff` against a
+scratch regeneration shows a different `--internal-timeout` and
+`gpu_h_estimate`). Harmless in that specific case (the id is cancelled,
+dead, and `deploy.sh`'s id-keyed dedup will never resurrect it under its
+old name), but it is real drift a `git diff` on `jobs/pending/` after
+regenerating would have caught immediately, and `reconcile_specs.py`
+would catch it too if the id were ever redeployed. Run
+`DRY_RUN_BYPASS=1 python3 reconcile_specs.py` after any `generate_jobs.py`
+edit and before `deploy.sh`, in addition to the diff/md5 check, so drift
+in an id you *didn't* mean to touch is caught before it ships. Either
+`deploy.sh` (which will correctly ship only the new IDs, id-keyed) or a
+targeted `scp` of just the new files by name both work now. See
 `matrix-thinking/queue/regate_2026-07-12.md` for worked examples (re-gate
 + refill against a live queue, park reversibly instead of deleting,
 surgical delta-scp — predates the `deploy.sh` fix, so those rounds used
@@ -224,3 +328,11 @@ the manual delta-scp pattern; either pattern is safe going forward).
 - Never blank-`scp` `jobs/pending/*.json` onto the box by hand, bypassing
   `deploy.sh` — you'd lose the resurrection guard described above and
   reintroduce the exact bug `deploy.sh` was hardened to prevent.
+- Never rename a spec file already deployed on the box (e.g. for priority
+  reordering) as a substitute for actually re-registering it — `mv` it by
+  all means (that's how the box's own priority convention works, and
+  `deploy.sh`'s dedup is id-keyed specifically so this is safe), but never
+  assume the rename is invisible to anything: it changes the filename,
+  never the JSON `"id"` field, and any tool that still keys off filename
+  (there should be none left in this directory after 2026-07-13, but
+  check before trusting a new one) will not see it as the same job.

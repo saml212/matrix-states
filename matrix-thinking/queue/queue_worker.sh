@@ -35,6 +35,29 @@
 #     backgrounding) so killing this worker's EXACT tmux session name kills
 #     its in-flight job too (the intended preemption contract, PART 1(c)).
 #
+# NOT YET WIRED IN (2026-07-13, landmine 2 follow-up, deliberately deferred):
+# a pre-claim reconciliation gate. `reconcile_specs.py --check-one <path>`
+# (matrix-thinking/queue/reconcile_specs.py) can tell whether a claimed
+# spec's `--internal-timeout`/`--steps` (or any other flag) still matches
+# what `generate_jobs.py` would produce for that id TODAY -- job 200 burned
+# ~44 GPU-hours running with a timeout the generator had already been fixed
+# to no longer produce (see QUEUE_README.md's Reconciliation section). The
+# narrow window between the atomic claim (mv pending/->claimed/, above) and
+# `cmd` actually starting (below) is the ONE place a drift check could
+# safely BLOCK (not just report): the file is claimed but `cmd` has not run
+# yet, so refusing to launch costs zero GPU-hours, unlike a drift found
+# once a job is already mid-flight (which can only ever be advisory --
+# see reconcile_specs.py's own ADVISORY-VS-BLOCKING note). This was
+# deliberately NOT wired into the live loop below in the same session that
+# discovered it: `generate_jobs.py` is a LOCAL-only script (not deployed to
+# this box -- see deploy.sh's own static-file list, which does not include
+# it), so a real worker-side check would need either a small drift-manifest
+# generated locally and deployed as a new static file, or `generate_jobs.py`
+# itself deployed here and importable -- either is a genuine design/audit
+# task of its own, not a same-session addition to a script actively
+# supervising 8 live GPUs. Do this properly (its own design note + audit)
+# before wiring it in, not as a rushed edit to this file.
+#
 # Usage: queue_worker.sh <gpu_id>
 # Deployed inside the house supervisor pattern:
 #   tmux new-session -d -s queue_worker_g<N> \
