@@ -735,6 +735,37 @@ reconstruct, disclosed in full rather than minimised — is at the end of this
 section. The pin below is **forced by N1–N3** (shown), so there was no free choice
 available for a leak to corrupt.
 
+> **NO-READ LIST — updated 2026-07-12 (SECOND contamination quarantine,
+> post-R0-VOID-read `855f548`).** R0 subsequently ran and returned VOID
+> (§10) because a *separate* teeth-check, T2, is broken — the `DiD`
+> machinery this section pins is unaffected and validated. But R0's own
+> record contains a per-rung `DiD`/`gap_true`/`gap_placebo`/S1/S2/`acc_copy`
+> table that becomes verdict-grade the instant a repaired T2 passes,
+> without any recomputation — so it is now an equivalent hazard to this
+> section's own normalization choice, one level downstream (a T2 repair,
+> not a metric pin). Anyone dispatched to repair or re-pre-register T2 —
+> or any future blind pinner of anything in §9 — must NOT read:
+> - `QUARANTINE_r0_void_values.md` (the first VOID build's values, unchanged rule).
+> - **`QUARANTINE_r0_did_values.md` (NEW).** The second build's per-rung
+>   `DiD` table and every DiD-trend-shape statement, extracted from §10.
+> - `queue/regate_2026-07-12.md` §10 (unchanged rule).
+> - **`experiment-runs/2026-07-12_param_axis_r0/`** — every raw JSON
+>   (`r0_v2_result.json`, `t2a_falcon_mamba_7b.json`, `t2a_rwkv7_1p5b.json`,
+>   `t2a_void_diagnosis.json`) **and** the human-readable run log
+>   (`r0_v2_run.log`, which prints the identical per-cell `did=`/`acc_copy=`
+>   values in plain text).
+> - **Git history of the redacted paths, for commit `855f548` and any
+>   later commit that still carries the pre-redaction text** —
+>   `git show`, `git log -p`, `git diff`, `git blame` against `855f548` on
+>   `PARAM_AXIS_SCALING_DESIGN.md` or `EXPERIMENT_LOG.md`. **Redaction is
+>   in-place only; it does not rewrite history, so these commands still
+>   leak the pre-redaction text — this bit the program before
+>   (`QUARANTINE_r0_void_values.md`'s own lineage).** ⚠ Sharper than that
+>   precedent: `855f548`'s **commit message body itself** restates the S1
+>   values and the "largest DiD" finding verbatim, so **plain `git log`
+>   (no `-p`, no diff at all) already leaks it** — the hazard is not
+>   confined to diffing.
+
 ---
 
 > ### THE PIN
@@ -1498,10 +1529,15 @@ resurrected here; nothing below is compared against them.
 > HALT for every rung."*
 >
 > **No COUPLED / DECOUPLED / FLAT-COUPLED / RECALL-TREND-ONLY verdict is
-> licensed, and none is claimed.** The per-rung `DiD` values below are recorded
-> as raw provenance under this VOID banner. **They are not verdict-grade and
-> they must not be read as a trend** — §9.5's precedence is
-> `VOID → FLOOR → the table`, and the read never reaches the table.
+> licensed, and none is claimed.** The per-rung `DiD` values were recorded
+> as raw provenance under this VOID banner and are now **quarantined**
+> (`QUARANTINE_r0_did_values.md` — SECOND CONTAMINATION QUARANTINE,
+> 2026-07-12: repairing T2 does not change these values, so displaying
+> them under a VOID banner would pre-determine a future T2-repair
+> designer's expectations, which is the same laundering failure §9's own
+> blind-pin protocol exists to prevent). **They are not verdict-grade and
+> must not be read as a trend** — §9.5's precedence is `VOID → FLOOR → the
+> table`, and the read never reaches the table.
 
 ---
 
@@ -1608,15 +1644,24 @@ read **0.11 and 0.23** on it. It is **not** an upper bound on anything.
 Three independent confirmations, all in the recorded data:
 
 1. **T2a itself** — 0.11 / 0.23 on models known to have the mechanism.
-2. **S1 (§9.1.5's mandatory utilization ratio, `DiD/acc_copy`) exceeds 1 in
-   *every* openr1 cell** — 6.562 (14M), 1.255 (98M), 1.117 (392M). §9.1.5
-   expected S1 to sit near `[0,1]`, *"bounded by the already-pinned T2b-2
-   ceiling."* A ratio of **6.56** is not a model property; it is a broken
-   denominator.
-3. **The T2b-2 failures track `acc_copy`'s brokenness, not `DiD`'s magnitude** —
-   the *only* cell that PASSES T2b-2 (392M/openr1, margin −0.0140) is the cell
-   with the *largest* `DiD` (0.1680). A ceiling that the largest effect clears
-   and the smallest effect violates is not a ceiling.
+2. **S1 (§9.1.5's mandatory utilization ratio, `DiD/acc_copy`) exceeds its
+   expected range in *every* openr1 cell.** §9.1.5 expected S1 to sit near
+   `[0,1]`, *"bounded by the already-pinned T2b-2 ceiling."* **A ratio that
+   runs well above 1 is not a model property; it is a broken denominator.**
+   *(Per-cell S1 values and their rung tags are QUARANTINED —
+   `QUARANTINE_r0_did_values.md` §2 — because `S1 = DiD/acc_copy`, and this
+   table's `acc_copy` column is itself quarantined with the rest of §10.4,
+   so reporting S1 alongside a rung would let a reader back out `DiD`'s
+   own cross-rung pattern.)*
+3. **The T2b-2 pass/fail pattern is itself evidence that `acc_copy` is
+   broken, not that `DiD` is well-behaved** — the pattern of which cell(s)
+   pass T2b-2 does not track the ceiling's own stated logic (a ceiling
+   whose pass/fail split has no consistent relationship to the size of the
+   effect it is meant to bound is not a ceiling). *(The identity of the
+   passing cell, its margin, and its `DiD` value are QUARANTINED —
+   `QUARANTINE_r0_did_values.md` §2 — because naming the passing cell's
+   `DiD` relative to the others is equivalent to disclosing the cross-rung
+   `DiD` trend shape, which §9.5 maps deterministically onto the verdict.)*
 
 **Therefore: the T2b-2 rung-VOIDs at 14M and 98M are artifacts of the broken
 ceiling, and the T2b-1 failures on wikitext (`acc_copy = 0.0000`) are the
@@ -1626,7 +1671,7 @@ those rungs' in-context recall. This is *why* the correct verdict is **VOID
 **we did not measure an absence of mechanism. We measured an instrument that
 cannot see the mechanism.**
 
-### 10.4 The recorded per-rung read (RAW PROVENANCE UNDER THE VOID BANNER — NOT VERDICT-GRADE)
+### 10.4 The recorded per-rung read — QUARANTINED (RAW PROVENANCE UNDER THE VOID BANNER, NOT VERDICT-GRADE)
 
 `N_rows = 2048` (see §10.6-D1), `C_max = 8`, 16,384 resolved candidates per cell,
 both corpora, all cells carrying complete §9.1.5 S2 log-prob fields, all
@@ -1634,14 +1679,23 @@ checkpoints quiesced + md5-pinned, all six from the **same arm**
 (`frozen_bias per_token, λ=0.58`) at the **same forced 0.328B common token
 slice** (step 20,000; `miss_tokens = 0` at every cell).
 
-| rung | corpus | `DiD` | `DiD` 95% CI | `gap_true` | `gap_placebo` | `acc_copy` | **T1a** | **T2b-1** | **T2b-2** | S1 (`DiD/acc_copy`) | S2 (`DiD_logp`) | tok/param | **in primary fit?** |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 14M | openr1 | 0.1025 | [0.0973, 0.1075] | 0.1046 | 0.0020 | 0.0156 | PASS | **FAIL** | **FAIL** | **6.562** | +0.4650 | 23.32 | **NO** |
-| 14M | wikitext | 0.0192 | [0.0167, 0.0219] | 0.0208 | 0.0016 | **0.0000** | PASS | **FAIL** | **FAIL** | undef. | +0.1948 | 23.32 | **NO** |
-| 98M | openr1 | 0.1495 | [0.1432, 0.1555] | 0.1547 | 0.0052 | 0.1191 | PASS | PASS | **FAIL** | 1.255 | +0.7359 | 3.357 | **NO** |
-| 98M | wikitext | 0.1360 | [0.1301, 0.1419] | 0.1379 | 0.0018 | **0.0000** | PASS | **FAIL** | **FAIL** | undef. | +1.0980 | 3.357 | **NO** |
-| 392M | openr1 | 0.1680 | [0.1615, 0.1744] | 0.1749 | 0.0069 | 0.1504 | PASS | PASS | PASS | 1.117 | +0.8477 | **0.836** | **NO** (below floor) |
-| 392M | wikitext | 0.1557 | [0.1494, 0.1618] | 0.1578 | 0.0021 | **0.0000** | PASS | **FAIL** | **FAIL** | undef. | +1.2375 | **0.836** | **NO** |
+**The full per-rung table — every `DiD`, CI, `gap_true`, `gap_placebo`,
+`acc_copy`, S1, S2, and T1a/T2b-1/T2b-2 pass/fail cell, for all 3 rungs × 2
+corpora — is QUARANTINED, not printed here.** See
+`QUARANTINE_r0_did_values.md` §1 for the complete table (pointer back to
+this section, commit `855f548`).
+
+**⚠ Why the values are not shown even under a VOID banner (unlike a build
+with a load-bearing bug in the metric itself).** T2 (the gate that VOIDs
+this read) is independent of the `DiD` machinery that produced this table
+— repairing `pick_t2_marker_tokens` (§10.2) changes not one number here.
+If a repaired T2 later passes, these exact numbers become the verdict-grade
+read with zero recomputation. Printing them now — caveats or no caveats —
+pre-determines what a future, nominally-blind T2-repair designer will
+expect the verdict to be. That is the same laundering failure §9's own
+blind-pin protocol (§9.1, `QUARANTINE_r0_void_values.md`) exists to
+prevent, recurring one level downstream. Full argument in the quarantine
+file's banner.
 
 **Admissible set `A` = ∅ (n = 0).** Not one rung is admissible on **both**
 corpora (§9.6 item 6). **`|A| = 0 < 3`, so even had T2a passed, the read would
@@ -1655,24 +1709,30 @@ computed at all** (`A = ∅` ⇒ no OLS fit, no TOST, no classification —
 classification there is nothing for S2's pre-committed disagreement rule to
 disagree *with*. **S1 and S2 therefore did not downgrade the verdict — the
 verdict is VOID upstream of Factor 1 entirely**, which is strictly stronger than
-the INDETERMINATE they could have produced. Both are reported in full above, as
-§9.1.5 mandates ("reported ALWAYS, including when they agree"). **S1's >1 values
-are themselves evidence, and they are counted as such in §10.3.**
+the INDETERMINATE they could have produced. Both are reported in full in the
+quarantine file, as §9.1.5 mandates ("reported ALWAYS, including when they
+agree"). **S1's out-of-range values are themselves evidence, and they are
+counted as such in §10.3.**
 
-**T1b (§9.3) — reported as pinned.** `gap_placebo` is **small but non-zero and
-scale-monotone on openr1** (0.0020 → 0.0052 → 0.0069, 14M → 98M → 392M): the
-"bigger models are more brittle to upstream context damage" effect §9.2 predicted
-is **real and does grow with scale**, but it is an order of magnitude smaller than
-`gap_true`. The placebo is load-bearing in *direction* and modest in *magnitude*.
+**T1b (§9.3) — reported as pinned.** `gap_placebo` is reported per rung with
+its CI, exactly as §9.3 requires; it is non-zero at every rung and is
+materially smaller in magnitude than `gap_true` at every rung, confirming the
+"bigger models are more brittle to upstream context damage" effect §9.2
+predicted is real, while remaining modest relative to the antecedent-specific
+signal. The placebo is load-bearing in *direction* and modest in *magnitude*.
+*(The per-rung values and their cross-rung pattern are QUARANTINED —
+`QUARANTINE_r0_did_values.md` §3 — a stated trend shape for any component of
+the `DiD` decomposition is equivalent to a trend-shape statement for `DiD`
+itself.)*
 
 **Disclosed residual, exactly as `summarize_delta_match` predicted it.** The
-placebo's realized Δ profile runs **systematically shorter** than the true arm's
-(14M/openr1: mean Δ 86.5 vs 121.6; 392M/wikitext: 109.5 vs 151.9 — a −35 to −42
-token shift). §9.2's rejection-resampling makes this **inherent to the pinned
-procedure**, not a deviation from it. It is a **report, not a gate** (the
-instrument's own docstring says so), and its direction is **conservative** (a
-nearer corrupted token should damage *more*, inflating `gap_placebo` and
-*shrinking* `DiD`).
+placebo's realized Δ profile runs **systematically shorter** than the true
+arm's, at every cell inspected. §9.2's rejection-resampling makes this
+**inherent to the pinned procedure**, not a deviation from it — the
+instrument's own docstring predicts exactly this. It is a **report, not a
+gate**, and its direction is **conservative** (a nearer corrupted token should
+damage *more*, inflating `gap_placebo` and *shrinking* `DiD`). *(Exact
+per-cell Δ means are QUARANTINED — `QUARANTINE_r0_did_values.md` §4.)*
 
 ### 10.5 The 1.31B rung: **EXCLUDED.** Not deferred, not fudged.
 

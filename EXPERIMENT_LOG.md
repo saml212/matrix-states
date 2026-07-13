@@ -8771,31 +8771,37 @@ near-impossible `"The" → " have"`. 0/512, three times. **Same defect, extreme 
 **CONSEQUENCE — T2b-2's premise is FALSE.** §9.4 built the ceiling check
 (`DiD ≤ acc_copy + 2·SE`) on "acc_copy is an UPPER BOUND." It is not: models with
 demonstrated AR read 0.11/0.23 on it. Three confirmations in-record: (1) T2a itself;
-(2) **S1 (`DiD/acc_copy`) > 1 in every openr1 cell — 6.562 / 1.255 / 1.117** (§9.1.5
-expected ~[0,1]); (3) the *only* T2b-2-passing cell is the one with the *largest*
-DiD. **So the T2b-2 rung-VOIDs (14M, 98M) and the wikitext T2b-1 failures are the
-PROBE's failure, not the checkpoints'** — which is exactly why the verdict is VOID
+(2) **S1 (`DiD/acc_copy`) exceeds its expected `~[0,1]` range in every openr1 cell**
+(§9.1.5); (3) the T2b-2 pass/fail pattern across cells has no consistent
+relationship to `acc_copy`'s own stated purpose as an upper bound. **So the
+T2b-2 rung-VOIDs (14M, 98M) and the wikitext T2b-1 failures are the PROBE's
+failure, not the checkpoints'** — which is exactly why the verdict is VOID
 (instrument-invalid) and **not** FLOOR (a measured absence of mechanism). *We did not
-measure an absence. We measured an instrument that cannot see.*
+measure an absence. We measured an instrument that cannot see.* **(Exact S1 values,
+the identity of the passing T2b-2 cell, and its `DiD` margin are QUARANTINED —
+`matrix-thinking/QUARANTINE_r0_did_values.md` §2/§5 — naming which cell has the
+largest `DiD` is equivalent to disclosing the cross-rung `DiD` trend shape §9.5
+maps deterministically onto the verdict.)**
 
-**Per-rung read — RAW PROVENANCE UNDER THE VOID BANNER, NOT VERDICT-GRADE:**
-
-| rung | corpus | DiD [95% CI] | gap_true | gap_plac | acc_copy | T1a | T2b-1 | T2b-2 | S1 | S2 (DiD_logp) | tok/param | in fit |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 14M | openr1 | 0.1025 [.0973,.1075] | 0.1046 | 0.0020 | 0.0156 | P | **F** | **F** | 6.562 | +0.465 | 23.32 | no |
-| 14M | wikitext | 0.0192 [.0167,.0219] | 0.0208 | 0.0016 | **0.0000** | P | **F** | **F** | — | +0.195 | 23.32 | no |
-| 98M | openr1 | 0.1495 [.1432,.1555] | 0.1547 | 0.0052 | 0.1191 | P | P | **F** | 1.255 | +0.736 | 3.357 | no |
-| 98M | wikitext | 0.1360 [.1301,.1419] | 0.1379 | 0.0018 | **0.0000** | P | **F** | **F** | — | +1.098 | 3.357 | no |
-| 392M | openr1 | 0.1680 [.1615,.1744] | 0.1749 | 0.0069 | 0.1504 | P | P | P | 1.117 | +0.848 | **0.836** | no (floor) |
-| 392M | wikitext | 0.1557 [.1494,.1618] | 0.1578 | 0.0021 | **0.0000** | P | **F** | **F** | — | +1.238 | **0.836** | no |
+**Per-rung read — QUARANTINED (RAW PROVENANCE UNDER THE VOID BANNER, NOT
+VERDICT-GRADE).** The full 6-cell table (`DiD`/CI/`gap_true`/`gap_placebo`/
+`acc_copy`/T1a/T2b-1/T2b-2/S1/S2/tok-per-param, all 3 rungs × 2 corpora) is
+**QUARANTINED**, not printed here — see
+`matrix-thinking/QUARANTINE_r0_did_values.md` §5 for the complete table
+(pointer back to this entry, commit `855f548`). **Why:** T2 (the gate that
+VOIDs this read) is independent of the `DiD` machinery, so repairing it does
+not change these numbers; if a repaired T2 later passes, this table becomes
+the verdict-grade read with zero recomputation, so printing it now would
+pre-determine a future T2-repair designer's expectations — the same
+laundering failure the §9 blind-pin protocol exists to prevent.
 
 **Admissible set A = ∅.** Even had T2a passed, `|A| = 0 < 3` ⇒ the read returns
 **FLOOR**, recorded in the raw as `verdict_before_t2a_gate = "FLOOR"`. **VOID takes
 precedence** (§9.5: VOID → FLOOR → table). **S1/S2 did NOT force a downgrade** — and
 the honest reason is that **Factor-1 was never computed at all** (A=∅ ⇒ no OLS, no
 TOST; `factor1_primary = factor1_s2 = None`), so S2's disagreement rule had nothing to
-disagree with. VOID sits upstream of Factor 1 and is strictly stronger. **S1's >1
-values are themselves evidence and are counted as such.**
+disagree with. VOID sits upstream of Factor 1 and is strictly stronger. **S1's
+out-of-range values are themselves evidence and are counted as such.**
 
 **1.31B rung EXCLUDED** (not deferred, not fudged): the correct-arm checkpoints are
 inside **LIVE** training jobs (pids 1860400, 1036283, `--ckpt-every 10000`) → §9.6
