@@ -3320,3 +3320,280 @@ locked until T2a-3 resolves and passes, independent of what T2a-1/T2a-2/T1c read
 Bug-2 scan raws: `experiment-runs/2026-07-13_t2a_bugfix_separator_scan/` (read in full for this
 record, §13.2). This §13 record itself is written by a separate agent from the fix session, per the
 CLAUDE.md gauntlet-bookkeeping house rule, and touches no code, no queue file, and no GPU.
+
+---
+
+## 14. T2a ATTEMPT 2 — THE INSTRUMENT RAN. **VERDICT: FAIL (T2a-1 CEILING NOT MET, HALT).** The crash bugs are gone; the bar is not met; and the failure is now DIAGNOSED, not mysterious.
+
+**Executed 2026-07-13 by a dedicated T2a execution agent (attempt 2)**, on the §13-repaired
+instrument (`95ffba8`), per §11.11's pinned EXECUTION ORDER step (2). **This is the first read in
+this program's history in which the T2a-1 legs were actually EVALUATED rather than crashed
+through.** §12's verdict was FAIL-by-crash (INSTRUMENT-INVALID, zero legs computable). **This
+verdict is FAIL-at-the-bar** — a different, and far more informative, thing.
+
+**THE HEADLINE, STATED BEFORE ANY DETAIL SO IT CANNOT BE SOFTENED BY IT: T2a-1 FAILS on ALL FOUR
+required (witness, corpus) cells. Per §11.4.2 — *"T2a-1 requires W1 AND W2 to clear all five legs,
+on each corpus… Fail ⇒ INSTRUMENT-INVALID, HALT for every rung"* — T2a FAILS. NO BAR WAS MOVED,
+LOOSENED, OR REINTERPRETED. §11.11 step (3) remains LOCKED.**
+
+### 14.0 Pre-flight (independently re-verified, not cited)
+
+| check | result |
+|---|---|
+| `lm_recall_gap_probe_v2_rd.py` | `95ffba8`, md5 `2db9655119dbe0f245d84e4e49459d4b` — repo working tree **and** box byte-identical (`git diff 95ffba8` empty) |
+| `t2a_reference_driver_v2_rd.py` | `95ffba8`, md5 `16dd7e92dd0dcfdacb032cbfca01317d` — repo **and** box byte-identical |
+| probe smoke, real CUDA | **123 OK / 0 FAIL**, re-run fresh on the box this session (not cited from §13) |
+| driver smoke | **41 PASS / 0 FAIL**, re-run fresh this session |
+| `val_coverage_ratio` (smoke) | `4.247536881087047` — reproduced to the digit; the §13 caveat's own figure |
+| training jobs | 8 `lm_pretrain_rd.py` processes alive **before and after**; queue 103 completed / **0 failed**; 8 workers up. **Nothing disturbed, no `pkill`, `~/queue/` written only to ADD the deferred T2a-3 job.** |
+
+**Both §12 crash defects are CONFIRMED DEAD on the real corpora — not merely "fixed in a diff":**
+the W1 bridge that aborted in under 2 minutes in §12 now re-tokenizes **cleanly** (openr1:
+230,074 docs → 326,866,526 tokens, 558.6s; wikitext: 317,474 docs → 418,726,423 tokens, 877.3s),
+and the exact binomial that overflowed at `n≈1030` now returns finite p-values at discordant-pair
+counts far above it (`t2b1_p = 0.0`, `t2b1b_p` down to `4e-323` — i.e. the log-space rewrite is
+being exercised **exactly** in the regime that killed §12, and the signal is strong, which is the
+regime the old bug was *selectively lethal to*).
+
+### 14.1 THE VERDICT — the per-witness, per-leg table
+
+Bars, verbatim from §11.4.1 and NOT MOVED: (i) `acc_copy ≥ 0.90` at Δ-median; (ii) `acc_copy ≥
+0.75` in **every** Δ-decile; (iii) `PRIOR ≤ 0.05`; (iv) `KS ≥ 0.50` **and** T2b-1b `p<0.001`;
+(v) T2b-1 `p<0.001`.
+
+| witness | corpus | acc@Δ-median | worst decile | PRIOR | KS | T2b-1b p | T2b-1 p | (i) | (ii) | (iii) | (iv) | (v) | **T2a-1** |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **W1 RWKV7-Goose-1.5B** *(REQUIRED)* | openr1 | **0.6373** | **0.376** | 0.0034 | 0.6172 | 0.0 | 0.0 | ✗ | ✗ | ✓ | ✓ | ✓ | **FAIL** |
+| **W1 RWKV7-Goose-1.5B** *(REQUIRED)* | wikitext | **0.6422** | **0.605** | 0.0054 | 0.6602 | 0.0 | 0.0 | ✗ | ✗ | ✓ | ✓ | ✓ | **FAIL** |
+| **W2 gpt2-large** *(REQUIRED)* | openr1 | **0.5735** | **0.337** | 0.0034 | **0.4995** | 2.9e-300 | 0.0 | ✗ | ✗ | ✓ | **✗** | ✓ | **FAIL** |
+| **W2 gpt2-large** *(REQUIRED)* | wikitext | **0.6029** | **0.449** | 0.0068 | 0.5239 | 4e-323 | 0.0 | ✗ | ✗ | ✓ | ✓ | ✓ | **FAIL** |
+| C1 falcon-mamba-7b — *demoted, cannot save or sink* | both | **T2a-3 OPEN** (§14.5) | — | — | — | — | — | — | — | — | — | — | **n/a** |
+
+**Both required conjuncts fail, on both corpora, on the two absolute-magnitude legs. ⇒ T2a FAILS.**
+
+> **⚠ THE ONE RAZOR-THIN NUMBER, FLAGGED LOUDLY RATHER THAN QUIETLY ROUNDED: W2/openr1's
+> `KS = 0.49951171875` misses the `≥ 0.50` bar by 0.00049.** It would be trivial — and utterly
+> illegitimate — to call that "0.50." **It is not 0.50, the bar is not moved, and leg (iv) reads
+> FAIL on that cell.** It is recorded here in full precision precisely so no future reader can
+> "clean it up." *(It is also immaterial to the verdict: that cell already fails legs (i) and (ii)
+> outright, and the other three cells fail (i)+(ii) too. Nothing whatsoever turns on this 0.0005 —
+> which is exactly why conceding it costs nothing and shading it would cost everything.)*
+
+**T2a-2 — the untrained-init NEGATIVE CONTROL: PASSES (the control HOLDS).** An untrained,
+randomly-initialised 14M model of the rungs' own architecture (`init_seed=314159`) reads
+**`acc_copy = 0.0` — exactly zero — on BOTH corpora**, with `KS` bootstrap CI `[0.0, 0.0]`
+(includes 0). **The probe is NOT passable with no learned mechanism.** *(Semantics, because they
+invert easily: `check_t2a2_untrained_control` returns `passes=True` when the untrained model
+FAILS the probe, which is the desired outcome. An untrained model that PASSED the probe would be
+INSTRUMENT-INVALID. It did not. This leg is clean.)*
+
+**T1c — the difficulty-matched reference-DiD gate: PASSES, and NOT MARGINALLY.**
+
+| corpus | W1 DiD [95% CI] | W2 DiD [95% CI] | CI-narrowing bound | overlap-adjusted lower bounds |
+|---|---|---|---|---|
+| openr1 | 0.2668 [0.2590, 0.2748] | 0.2864 [0.2783, 0.2948] | **1.00×** (`val_coverage_ratio = 0.50`) | 0.2590 / 0.2783 |
+| wikitext | 0.2201 [0.2127, 0.2269] | 0.2545 [0.2471, 0.2617] | **2.05× / 2.06×** (`ratio = 4.18/4.25`) | **0.2050 / 0.2394** |
+
+**THE MANDATED CI CAVEAT, APPLIED RATHER THAN MERELY RECITED — and it does not bite.** The brief's
+instruction was to *discount a MARGINAL T1c pass*. **This pass is not marginal.** Inflating the CI
+half-width by the full disclosed narrowing factor still leaves every lower bound an order of
+magnitude clear of zero. **A REFINEMENT OF THE CAVEAT ITSELF, measured this session:
+`val_coverage_ratio` is `~0.50` on openr1 (BELOW 1 — the val windows do not overlap at all, so the
+narrowing factor is exactly 1.00 and there is no CI hazard on that corpus whatsoever) and only
+`~4.18–4.25` on wikitext.** The blanket "4.25 everywhere" framing carried in the §13-era brief is
+**corpus-specific in fact**: it applies to wikitext only. Recorded as a correction to the caveat's
+scope, not as a weakening of it.
+
+### 14.2 THE DIAGNOSIS — and it is NOT "the models cannot copy"
+
+§11.4.3 step 3 pre-registered the localisation rules. Applied mechanically to what was measured:
+
+1. **`PRIOR` high ⇒ probe defect.** `PRIOR` is **0.0034–0.0068** — 7–15× *below* the 0.05 bar.
+   **Not a probe defect by this route.** The plant is not leaking.
+2. **`KS ≈ 0` ⇒ we are reading salience, probe defect.** `KS` is **0.50–0.66**, and the KEY-SWAP
+   arm **collapses** `acc_copy` to **0.027–0.088**. **The mechanism being measured is real and
+   strongly KEY-CONDITIONED.** T2b-1 and T2b-1b are significant at `p ≈ 0` in every cell. **Not a
+   probe defect by this route either** — this is the single strongest evidence in the whole record
+   that §11's repaired picker (`build_key_value_pools`, the joint `(a,a′,b)` draw, the hard plant
+   assertion) is doing exactly what it was built to do.
+3. **Failure concentrated in the high-rival-mass stratum ⇒ probe defect.** **It is NOT concentrated
+   there.** The pre-registered stratification (free, mandatory, §11.4.3 step 2) reads **FLAT**:
+   by rival strength `[0,0.1)/[0.1,0.25)/[0.25,0.5]` → **0.722 / 0.667 / 0.708**; by `rank(b|a)`
+   `2-5/6-20/21-50` → **0.672 / 0.700 / 0.693**; by `count(a,b)` `5-9/10-24/25-99/100+` → **0.667 /
+   0.694 / 0.700 / 0.687** (W1/openr1; W2 is flat likewise). **A-S3's feared "30–38× prior deficit"
+   confound is empirically ABSENT — the failure does not track rival mass at all.**
+4. **Deciles fail at large Δ ⇒ a DISTANCE limit, reported as a finding about the models.** **This
+   fires.** Deciles decay monotonically with Δ (W1/openr1: `0.907, 0.839, 0.888, 0.746, 0.780,
+   0.637, 0.634, 0.620, 0.517, 0.376`), and the W2 Δ-sweep confirms it independently
+   (Δ=5: 0.711 → Δ=88 (median): 0.637 → Δ=200: 0.500 → Δ=400: 0.340).
+5. **Uniform failure with `PRIOR ≈ 0` and `KS` large ⇒ "the mechanism is real but weak in every
+   available model."** **This is the pre-registered conclusion the evidence lands on.**
+
+**AND THE DIAGNOSTIC §11.4.3 CALLS *"the only diagnostic that separates 'one-shot is too hard' from
+'the model cannot copy'"* — the `n_demos ∈ {1,2,4}` read — RAN, for the first time ever
+(§12.3 recorded that it could not):**
+
+| `n_demos` | W2 acc_copy, openr1 | W2 acc_copy, wikitext |
+|---|---|---|
+| **1** (the probe's own regime) | 0.6875 | 0.5469 |
+| **2** | 0.7695 | 0.7109 |
+| **4** | **0.8242** | **0.8828** |
+
+**`acc_copy` rises monotonically with demonstrations, and at 4 demonstrations W2/wikitext reaches
+0.883 — within 0.017 of the 0.90 CEILING BAR ITSELF.** The models can copy. **The binding
+constraint is the ONE-SHOT, hostile-splice regime at Δ≈88, not the copy capability.** This is the
+pre-registered disambiguation, and it comes down unambiguously on the *"one-shot is too hard"*
+side.
+
+**THE HONEST SYNTHESIS.** The 0.90 bar was inherited **UNCHANGED from §9.4** onto a probe §11
+rebuilt from scratch — and **A-S3 warned, in writing, at pre-registration time, that the bar was
+"un-derived for the new probe" and that "a failure would be uninterpretable."** The bar was
+(correctly, anti-M-11) **not moved** in response; instead the stratification, Δ-sweep and n-demos
+diagnostics were pinned **in advance** precisely so that a failure *would* be interpretable.
+**That decision is now vindicated: the failure IS interpretable, and A-S3's concern was
+substantively right.** No available reference model — **including `gpt2-large`, the documented
+induction-head architecture the literature places AT the ceiling of this operation** — clears 0.90
+one-shot at Δ≈88 against a hostile splice. That is a fact about the **bar/probe difficulty**, not a
+capability finding about either witness, and §11.4.3 step 3 says so in its own words.
+
+### 14.3 WHAT THIS DOES **NOT** LICENSE — the M-11 trap, named
+
+**T1c passed. It is the ONLY difficulty-matched gate; it reads the ACTUAL estimand (`DiD`) on the
+ACTUAL candidate population; §11.4.5 calls it *"the only gate in the design that is
+difficulty-matched to the primary"*; and it passed DECISIVELY on both witnesses and both corpora.**
+
+**IT IS THEREFORE MAXIMALLY TEMPTING — AND CATEGORICALLY FORBIDDEN — TO CONCLUDE "the instrument
+works, proceed."** §11.4.2 makes **T2a-1 gating**, full stop, and §11.11's execution order gates
+step (3) on *"if and only if ALL pass."* **T2a-1 did not pass. The gate is FAILED. The ladder does
+not advance.** Using a passing T1c to wave through a failing T2a-1 would be **exactly** the M-11
+move this document already carries one conviction for (a bar cut *after* it fired) — in a more
+sophisticated costume. **It is not done here, and this paragraph exists so that it cannot be done
+quietly later.**
+
+**The pre-registered response to a T2a-1 failure is §11.4.3 step 4, and it is the ONLY response:
+"a NEW blind pre-registration of the probe, and nothing else."** Not a bar edit. Not a witness
+swap. Not a "T1c is enough" argument. **A new blind pin, written by a fresh agent, against this
+section's measured diagnostic ladder.** *(§11.4.3 step 4 also pins that T1c — not the probe — is
+the only gate licensed to speak about the primary. What T1c's pass DOES establish is narrow and
+real: the DiD machinery can read in-context recall in a recurrent model AND an attention model.
+That is a genuine asset for whoever writes the new probe pin. It is not a verdict, and it does not
+unlock a rung.)*
+
+**§11.8's second fact ALSO still stands, independently:** §9.6 item 2 admits only **2 fit rungs
+against a minimum of 3**. Even a fully-passing T2a would leave the primary INDETERMINATE. **Nobody
+may read anything in §14 as "the verdict is unlocked."**
+
+### 14.4 JUDGMENT CALLS — flagged, not buried
+
+1. **T2a-2 and T1c were read OUT-OF-BAND rather than from the inline `--gate` roll-up.** The pinned
+   driver computes both only **after** its full witness loop — which includes C1
+   (falcon-mamba-7b), whose sequential non-fused Mamba eval ran **3h49m without completing one
+   corpus** in §12 and is projected at ~8h for both. **Serializing two REQUIRED controls behind a
+   DEMOTED witness's multi-hour cell is an artifact of the driver's loop ORDER, not a
+   pre-registration requirement.** Both were therefore read early, using the driver's **own pinned
+   functions, UNMODIFIED**: `run_t2a2_untrained_control` (same 14M config, same fixed
+   `init_seed=314159`, same `N_rows=2048` — a **deterministic** computation, so this is an early
+   read of precisely the value the inline run will itself emit, not a substitute quantity), and
+   `check_t1c_reference_did` (a **pure function** of the two already-persisted witness cells — it
+   *reads* `did_ci`, it does not recompute DiD; §11.4.5's own docstring says so). **No instrument
+   code was changed. No threshold was touched. The runner script is archived
+   (`run_t2a2_out_of_band.py`) so the call is auditable.** Flagged because "the agent ran the
+   control itself instead of waiting for the harness to" is exactly the shape of thing that should
+   never be discovered later rather than declared now.
+2. **`DRY_RUN_BYPASS=1`** on the remote launch, for the identical reason recorded at §12.5 item 1
+   (the local `pre-train-gate` hook cannot resolve a script across SSH). The substantive practice
+   the hook enforces was independently satisfied first: **both smoke suites re-run fresh on the box
+   (123/123, 41/41) BEFORE any GPU work**, and the driver's own stronger, purpose-built refusal
+   gate (`--i-am-the-t2a-execution-agent`, plus its equality checks on witness/corpus/`--out`/
+   `n_plants==n_windows`/no-truncation) is what actually governed this execution.
+3. **The full REQUIRED witness set was run inline, including C1** — not because C1 can affect the
+   verdict (it cannot; §11.4.2, §13.5), but because **`mode_gate` hard-REFUSES any witness/corpus
+   set that is not exactly `REQUIRED_WITNESSES × REQUIRED_CORPORA`** (D5 round-3 SERIOUS-1's
+   anti-subsetting refusal, hardened across six adversarial rounds). **There is no supported
+   invocation that runs W1+W2 alone.** This is a real, disclosed gap between §13.5's stated intent
+   ("W1+W2 inline, C1 deferred") and what the pinned CLI actually supports; closing it would need a
+   **driver code change**, which is a build step outside this execution agent's charter. Rather
+   than improvise one, the full set was run and C1 left to grind. **Stated plainly per the brief's
+   own instruction to say so rather than improvise.**
+4. **The `N_rows` pre-pass was not re-run standalone** (`N_ROWS_DEFAULT=2048`, verified by reading
+   the constant) — model-free and rung-independent by construction (§11.4.6); same call as §12.5
+   item 3, same disclosure.
+5. **§13's own disclosed provenance gap is carried forward unchanged:** the crash-fix audit's
+   `scipy`/`Fraction` cross-validation figures exist **only as prose in commit `95ffba8`'s
+   message**, with no standalone artifact. This session did **not** close that gap (it was not
+   asked to and did not re-run those checks). **It is disclosed here rather than allowed to fade**
+   — the §13.1 log-space derivation and the `n≈1030` threshold WERE independently reproduced by
+   §13's recording round, which is the load-bearing math; the outstanding un-artifacted claims are
+   the scipy agreement and the 4,000+2,000-string sweep.
+
+### 14.5 T2a-3 — STILL OPEN. **The ladder does NOT advance.**
+
+**T2a-3 (the SSM causal-calibration leg, witness C1) has NOT resolved and is NOT waived.** Per
+§13.5's own explicitly-recorded scope limit — *"deferring C1 does NOT, by itself, let the ladder
+advance to step (3)… T2a-3 remains open, and §11.11's own 'if and only if all' text has not been
+amended"* — **the exclusion of C1 from a run is a SCHEDULING decision and never a gate decision.**
+Two independent paths now exist to close it, and **whichever lands first closes it; the other
+should be dequeued:**
+
+- **(a) The inline run is still grinding C1** in tmux `t2a_gate_attempt2` on GPU 7 (co-resident
+  with training, no interference; 1h34m at last check, C1 phase). If it survives to completion it
+  emits C1's `t2a3_ssm_calibration` legs **plus** the inline `t2a2`/`t1c`/`instrument_gate` roll-up
+  (which will independently reproduce §14.1's out-of-band T2a-2/T1c values — a free cross-check).
+- **(b) Queue job `990_t2a3_falconmamba_ssm_calibration`** — deployed to `~/queue/pending/` this
+  session, **priority 990** (above every currently-pending Lane A/B/C job, 000–431), so a worker
+  claims it **only** after the sweep's backlog drains and **it can never preempt a rung cell**. It
+  runs the same full `--gate` invocation (for the refusal reason in §14.4 item 3), and its
+  `validity_check` asserts both C1 cells and the `instrument_gate` roll-up are present.
+  `gpu_h_estimate = 10.0` is a **disclosed, uncalibrated guess** (§12.4's 3h49m-without-completing
+  is the only reference point). **The job spec explicitly forbids installing
+  `kernels`/`mamba-ssm`/`causal-conv1d`** to speed it up — §13.5(c)'s reasoning (a compiled
+  dependency in a venv shared by 8 live training jobs) is carried into the spec's own `notes`
+  field so a future operator cannot "helpfully" undo it.
+
+**Anyone reading a future C1 PASS must still not advance:** T2a-**1** is FAILED, and step (3) needs
+**all** of T2a-1/T2a-2/T2a-3/T1c. **T2a-3 closing does not resurrect T2a-1.**
+
+### 14.6 STATUS, GPU-h, PROVENANCE, AND THE ANTI-M-11 STATEMENT
+
+**STATUS: T2a FAILED (T2a-1 ceiling not met on all four required cells). §11.11 step (3) —
+T2b + §9.6 rung admissibility — REMAINS LOCKED. No `DiD` for any of our rungs was computed, no
+admissible set `A` was built or committed, no rung checkpoint was touched, no R0 read was
+performed, and no quarantined file was opened (the §9.1 no-read list was honoured in full;
+`experiment-runs/2026-07-12_param_axis_r0/`, both `QUARANTINE_*` files, `queue/regate_2026-07-12.md`
+§10, and the git history of `855f548`/`c106881` were never accessed).**
+
+**The next action is pre-registered and is NOT this agent's to take: §11.4.3 step 4 — a NEW BLIND
+PRE-REGISTRATION OF THE PROBE, by a fresh agent, and nothing else.** §14.2's diagnostic ladder
+(stratification, Δ-sweep, n-demos, the KEY-SWAP collapse, the untrained-zero) is the evidence that
+pin should be written against. **This section deliberately does NOT propose the new bar, the new
+Δ, or the new `n_demos`** — proposing it here, in the same breath as reporting the failure it would
+excuse, is precisely the conflict of interest §11.4.3 step 4's "fresh blind agent" requirement
+exists to prevent.
+
+**GPU-h.** ≈**1.8 GPU-h** for the four required cells + both diagnostics + the two smoke suites,
+plus ≈**0.1 GPU-h** for the out-of-band T2a-2 — **≈1.9 GPU-h** for everything this verdict rests
+on. All on a **shared** GPU 7, co-resident throughout with a live 98M training job at **no
+observed cost to it** (all 8 training jobs verified alive before and after; queue 103 completed /
+0 failed). The C1 cell continues to accumulate GPU-h in the background past this snapshot (§14.5).
+
+**Commit hashes (verified independently, not cited):** both instrument files at `95ffba8`
+(md5 `2db9655119dbe0f245d84e4e49459d4b`, `16dd7e92dd0dcfdacb032cbfca01317d`), repo working tree and
+box byte-identical. *(The gate JSON self-reports `"commit_sha": "unknown"` — the box's `_git_sha()`
+helper does not resolve in that working tree. Cosmetic, and immaterial: the hashes were verified
+out-of-band before launch. Same gap §12.6 recorded; still unfixed.)*
+
+**ANTI-M-11, STATED EXPLICITLY.** **No bar was moved. Not the 0.90. Not the 0.75 deciles. Not
+`PRIOR ≤ 0.05`. Not `KS ≥ 0.50` — most pointedly NOT for the cell that missed it by 0.00049 (§14.1).
+Not the witness set. Not T1c's gating status. Not §11.11's execution order.** The one number that
+could have been shaded to soften this verdict was recorded to full precision and conceded. **This
+is the THIRD honest failure of this gate in a row (§10 VOID → §12 FAIL-by-crash → §14
+FAIL-at-the-bar), and it is the first one that actually TELLS US SOMETHING** — the instrument is
+sound (negative controls pristine, mechanism real and key-conditioned, T1c reading the true
+estimand cleanly), and the probe's one-shot ceiling task is simply harder than any available
+reference model can do at 0.90. **A third honest FAIL is worth vastly more than a massaged PASS,
+and this is that FAIL.**
+
+**Raws:** `experiment-runs/2026-07-13_param_axis_t2a_attempt2/` (956K, repo tier; SSD mirrored) —
+the gate result JSON (four complete cells + both diagnostics; named `*_partial*` because C1/the
+inline roll-up were still running at archive time), the T2a-2 out-of-band JSON + log + its runner
+script, the run log, and both instrument scripts exactly as executed.

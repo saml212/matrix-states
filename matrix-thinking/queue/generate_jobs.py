@@ -37,6 +37,11 @@ Priority convention (filename prefix, ascending = claimed first):
   200-299  Lane B (long single-job runtimes; good for unattended overnight
            throughput)
   300-399  Lane C (evergreen tail, deepens Lane A's own cells)
+  900-999  One-off deferred/low-priority diagnostic cells -- deliberately
+           numbered above every currently-pending Lane A/B/C job so a
+           worker only ever claims one after the sweep's own backlog is
+           exhausted (PARAM_AXIS_SCALING_DESIGN.md sec 13.5's T2a-3
+           deferral is the first tenant).
 
 Usage: python3 generate_jobs.py [--outdir DIR]
 """
@@ -1082,6 +1087,102 @@ def ncr_mapping_law_k48_probe_citation_job() -> list[dict]:
                "COMPLETED at zero incremental GPU-h. Re-derivation trigger FIRES "
                "(naive x160 scale 2.3267 GPU-h vs 0.55 planning value, ratio 4.23 > "
                "1.25) -- flagged for the WAVE-1b gate, not resolved by WAVE-1."),
+    )]
+
+
+def t2a3_falconmamba_calibration_job() -> list[dict]:
+    """PARAM_AXIS_SCALING_DESIGN.md sec 13.5's deferred T2a-3 (SSM causal
+    calibration, witness C1=falcon-mamba-7b) -- queued by the T2a attempt-2
+    execution agent (2026-07-13) rather than run inline, per that section's
+    own instruction ("leave C1/T2a-3 as a separately scheduled cell") and
+    this task's explicit brief.
+
+    NOT a C1-only invocation: t2a_reference_driver_v2_rd.py's `mode_gate`
+    hard-REFUSES any --witness/--corpus set that is not EXACTLY
+    REQUIRED_WITNESSES=(W1_rwkv7, W2_gpt2large, C1_falconmamba) x
+    REQUIRED_CORPORA=(openr1-mix-ext, wikitext-mix-ext) (D5 round-3
+    SERIOUS-1's anti-subsetting refusal, hardened over 6 adversarial
+    rounds -- "a subset run simply cannot produce a verdict, so it is
+    refused rather than silently narrowed"). This is a genuine, disclosed
+    gap between sec 13.5's stated intent (W1+W2 inline, C1 deferred) and
+    what the pinned CLI actually supports: there is no flag that runs C1
+    alone. Decoupling T2a-2/T1c's computation from the full witness loop,
+    or relaxing the refusal to admit the specific {W1,W2} subset sec 13.5
+    pre-authorizes, would require a driver code change -- a build step
+    this execution agent's charter does not cover (CLAUDE.md: the
+    implementer does not review/run their own work; a fresh audit would be
+    needed). So this job runs the SAME full, unmodified, required-witness
+    `--gate` invocation the live read used -- it REDUNDANTLY re-computes
+    W1/W2/T2a-2/T1c (cheap, harmless, no laundering) in addition to finally
+    reaching C1's T2a-3 legs. This is the only way to close T2a-3 without
+    a code change.
+
+    Cost: unknown with real precision. The design's own sec 11.3 estimate
+    ("well under a minute of H100 time" per witness/corpus) assumed a
+    fused Mamba kernel path; falcon-mamba-7b falls back to the SEQUENTIAL,
+    non-fused implementation on this box (no `kernels`/`mamba-ssm`/
+    `causal-conv1d` installed -- sec 13.5(c) explicitly declines to install
+    them: a compiled dependency in a venv shared by 7 other live training
+    jobs is too risky for a witness that cannot change the T2a-1 verdict
+    either way). The attempt-1 read's C1/openr1-mix-ext cell alone ran
+    3h49m of continuous GPU time WITHOUT completing before that session
+    stopped watching (sec 12.4) -- so the per-corpus cost floor is already
+    known to exceed the brief's own "~4 GPU-h" figure for a single cell,
+    and wikitext-mix-ext's larger split (317,474 vs 230,074 train docs)
+    is expected to cost at least as much. gpu_h_estimate below is a
+    disclosed, generous guess (W1+W2 fast + 2x C1-corpus cost at
+    >=4h/corpus), not a measurement -- flagged rather than presented as
+    calibrated.
+
+    Numbered 990 (see the priority-convention addendum above): claimed
+    only after every currently-pending Lane A/B/C job (000-431) is
+    exhausted, so it never preempts the 392M/1.31B rung cells this
+    program's compute depends on."""
+    out_dir = f"{DELTANET_RD_DIR}/results/param_axis_t2a3_queued"
+    out = f"{out_dir}/t2a_gate_result.json"
+    cmd = (
+        f"mkdir -p {out_dir} && cd {DELTANET_RD_DIR} && "
+        f"{PY} t2a_reference_driver_v2_rd.py --gate --i-am-the-t2a-execution-agent "
+        f"--data-dir {DATA_DIR} --out {out} "
+        f"2>&1 | tee {out_dir}/t2a_gate_run.log"
+    )
+    vcheck = (
+        f"{PY} -c \""
+        f"import json; d=json.load(open('{out}')); "
+        f"g=d.get('instrument_gate'); "
+        f"assert isinstance(g, dict), 'instrument_gate missing -- run did not reach the end'; "
+        f"assert 't2a3' in g and 'INSTRUMENT_VALID' in g; "
+        f"assert 'C1_falconmamba/openr1-mix-ext' in d.get('cells', {{}}); "
+        f"assert 'C1_falconmamba/wikitext-mix-ext' in d.get('cells', {{}})\""
+    )
+    return [dict(
+        id="990_t2a3_falconmamba_ssm_calibration",
+        lane="B",
+        hypothesis=("PARAM_AXIS_SCALING_DESIGN.md sec 11.4.2's T2a-3: does "
+                     "falcon-mamba-7b (pure Mamba-1 SSM, demoted from the 0.90 "
+                     "ceiling, causal-only) show T2b-1 + T2b-1b passing "
+                     "(p<0.001) and KS>0 with a bootstrap 95% CI excluding 0, "
+                     "on both corpora? Closes the last open leg of sec 11.11's "
+                     "EXECUTION ORDER step (2); a precondition for step (3) "
+                     "(T2b + rung admissibility) regardless of what the "
+                     "inline T2a-1/T2a-2/T1c read found (sec 13.5)."),
+        cmd=cmd, gpu_h_estimate=10.0,
+        output_dir=out_dir, validity_check=vcheck,
+        notes=("DEFERRED cell, not a fresh design decision -- sec 13.5 pre-"
+               "authorized excluding C1 from the T2a attempt-2 INLINE run; "
+               "this job is how that deferral actually gets a result instead "
+               "of being silently forgotten. gpu_h_estimate=10.0 is a "
+               "disclosed, UNCALIBRATED guess (see docstring) -- the real "
+               "number could plausibly run higher given the sequential-"
+               "Mamba fallback and zero completed reference point. This job "
+               "REDUNDANTLY re-runs W1/W2/T2a-2/T1c (harmless, cheap "
+               "relative to C1) because the pinned CLI refuses any witness "
+               "subset that omits a REQUIRED_WITNESSES member -- see "
+               "docstring for why a C1-only invocation does not exist. Do "
+               "NOT install kernels/mamba-ssm/causal-conv1d to speed this "
+               "up (sec 13.5(c); shared venv, 7 co-resident live training "
+               "jobs, compiled-dependency risk not worth it for a witness "
+               "that cannot change T2a-1's verdict)."),
     )]
 
 

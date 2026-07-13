@@ -1,0 +1,56 @@
+{
+ "provenance": {
+  "why_out_of_band": "inline --gate serializes T2a-2 behind C1/falcon-mamba's ~8h sequential-Mamba cell; T2a-2 is a REQUIRED control and is deterministic, so it is read early here via the driver's own pinned function, unmodified.",
+  "init_seed": 314159,
+  "n_windows": 2048,
+  "n_plants": 2048,
+  "seq_len": 512,
+  "bar": "sec 11.4.2: acc_copy <= 0.02 AND KS bootstrap CI includes 0. A PASS of the probe by an untrained model => INSTRUMENT-INVALID, HALT."
+ },
+ "cells": {
+  "openr1-mix-ext": {
+   "corpus": "openr1-mix-ext",
+   "init_seed": 314159,
+   "rung_config": {
+    "d_model": 256,
+    "d_state": 64,
+    "n_layers": 2,
+    "conv_size": 4
+   },
+   "delta_pool_n": 16384,
+   "t2_void": false,
+   "n_plants": 2048,
+   "t2a2_untrained_control": {
+    "passes": true,
+    "acc_copy": 0.0,
+    "ks_point": 0.0,
+    "ks_ci": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "wikitext-mix-ext": {
+   "corpus": "wikitext-mix-ext",
+   "init_seed": 314159,
+   "rung_config": {
+    "d_model": 256,
+    "d_state": 64,
+    "n_layers": 2,
+    "conv_size": 4
+   },
+   "delta_pool_n": 16384,
+   "t2_void": false,
+   "n_plants": 2048,
+   "t2a2_untrained_control": {
+    "passes": true,
+    "acc_copy": 0.0,
+    "ks_point": 0.0,
+    "ks_ci": [
+     0.0,
+     0.0
+    ]
+   }
+  }
+ }
+}
