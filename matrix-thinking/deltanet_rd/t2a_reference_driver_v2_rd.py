@@ -505,6 +505,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib   # sec 24 / B-3: source_provenance()'s combined md5
 import json
 import os
 import random
@@ -1727,7 +1728,10 @@ def mode_gate(args) -> int:
                     "val_size_gate": None,
                     "val_coverage_reported_per_cell": True,
                     "seed_offset": RUNG_MATCHING_SEED_OFFSET},
-        "commit_sha": _git_sha(),
+        # sec 24 / B-3: the PROVENANCE OF RECORD. `commit_sha` reads "unknown" in the rsync'd
+        # deployment dir (four times disclosed, sec 23.1 blocker #4); the source md5s cannot.
+        "provenance": source_provenance(),
+        "commit_sha": _git_sha(),   # RETAINED at its original key for back-compatible readers
         "cells": {},
     }
 
@@ -1943,7 +1947,17 @@ def mode_gate(args) -> int:
 
 
 def _git_sha() -> str:
-    """Best-effort commit sha for the output JSON's provenance (D5 round-2 M-10)."""
+    """Best-effort commit sha for the output JSON's provenance (D5 round-2 M-10).
+
+    IT DOES NOT WORK ON THE BOX AND IT CANNOT (sec 12.6, sec 14.6, sec 19.6, sec 23.1
+    build-blocker #4 -- disclosed FOUR times, unfixed each time). The box's
+    `~/chapter2/deltanet_rd/` is an **rsync'd directory, not a git repo**, so
+    `git rev-parse HEAD` fails there and EVERY result JSON this driver has ever
+    written self-reports `"commit_sha": "unknown"` -- i.e. the provenance field
+    is blank on every artifact the nine-round gauntlet has been arguing about.
+
+    RETAINED (it is correct when the code IS in a checkout) but it is NO LONGER
+    THE PROVENANCE OF RECORD. `source_provenance()` is (sec 24 / B-3)."""
     import subprocess
     try:
         return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
@@ -1951,6 +1965,49 @@ def _git_sha() -> str:
                                timeout=10).stdout.strip() or "unknown"
     except Exception:  # noqa: BLE001
         return "unknown"
+
+
+def source_provenance() -> dict:
+    """sec 24 / B-3 -- THE PROVENANCE OF RECORD: an md5 of the SOURCE THAT RAN.
+
+    sec 23.1's build-blocker #4. A commit sha is the wrong instrument here: it
+    identifies a REPO STATE, and the code that actually runs lives in an rsync'd
+    directory with no repo attached (see `_git_sha`). Worse, a sha would be a
+    LIE in the one case that matters -- an edited-but-uncommitted, or a
+    committed-but-not-deployed, file would still print a clean sha while the
+    bytes on disk differ. **An md5 of the bytes that were imported cannot lie
+    about that**, and it is verifiable in one command on either side:
+
+        md5sum ~/chapter2/deltanet_rd/lm_recall_gap_probe_v2_rd.py
+
+    THIS IS NOT COSMETIC, AND THE PROOF IS ON THE BOX RIGHT NOW: at the time
+    this was written, the deployed PROBE carried the sec 20 R-4 liveness witness
+    while the deployed DRIVER was the PRE-R-4 build that does not thread
+    `logit_liveness` through -- a mismatched pair that silently fails T2a-2
+    CLOSED (`liveness.ok = False => passes = False => INSTRUMENT_VALID = False`)
+    and would have HALTed a healthy control for a DEPLOYMENT reason. Both files
+    self-reported `commit_sha: "unknown"`, so nothing in any artifact could have
+    revealed it. Two md5s would have.
+
+    Hashes the module files by `__file__`, so it hashes THE BYTES PYTHON
+    IMPORTED, not a path guessed from a repo layout. Never raises (a provenance
+    field must not be able to kill a 12-GPU-h gate); an unreadable file reports
+    the exception in place of its hash, which is itself the disclosure."""
+    files = {}
+    for mod in (sys.modules[__name__], probe):
+        path = getattr(mod, "__file__", None)
+        name = os.path.basename(path) if path else f"<no __file__: {mod!r}>"
+        try:
+            files[name] = probe.md5_file(os.path.abspath(path))
+        except Exception as e:   # noqa: BLE001 -- provenance must never kill the gate
+            files[name] = f"UNREADABLE: {type(e).__name__}: {e}"
+    combined = hashlib.md5("".join(f"{k}:{files[k]}\n" for k in sorted(files)).encode()).hexdigest()
+    return {"source_md5": files, "source_md5_combined": combined,
+            "commit_sha": _git_sha(),
+            "note": "sec 24/B-3: `source_md5` is the PROVENANCE OF RECORD -- md5 of the exact "
+                    "bytes Python imported (`__file__`), verifiable with `md5sum` on any box. "
+                    "`commit_sha` is best-effort and reads 'unknown' in the rsync'd deployment "
+                    "directory, which is where every real read has been taken."}
 
 
 def _get_gpt2_tokenizer():
@@ -2867,6 +2924,48 @@ def smoke(device: str = "cpu") -> int:
            and cov["approx_bootstrap_ci_narrowing_factor"] > 1.0,
            f"val_coverage_ratio={cov['val_coverage_ratio']:.2f}, "
            f"ci_narrowing~{cov['approx_bootstrap_ci_narrowing_factor']:.2f}x")
+
+    # --- [6k] sec 24 / B-3 -- THE PROVENANCE OF RECORD. sec 23.1 build-blocker #4: `_git_sha()`
+    #     shells `git rev-parse` inside an RSYNC'D DIRECTORY WITH NO REPO, so every result JSON
+    #     ever written by this driver self-reports `"commit_sha": "unknown"`. FOUR sections
+    #     disclosed it; none fixed it. `source_provenance()` hashes the BYTES PYTHON IMPORTED.
+    try:
+        prov = source_provenance()
+        md5s = prov["source_md5"]
+        probe_name = os.path.basename(probe.__file__)
+        driver_name = os.path.basename(os.path.abspath(__file__))
+        hex32 = [v for v in md5s.values()
+                 if isinstance(v, str) and len(v) == 32 and all(c in "0123456789abcdef" for c in v)]
+        report("[6k] source_provenance() emits a REAL 32-hex md5 for BOTH the probe and the driver "
+               "-- a provenance field that cannot read 'unknown' in the rsync'd deployment dir, and "
+               "that a reader can verify with `md5sum` on either side (sec 23.1 blocker #4)",
+               probe_name in md5s and driver_name in md5s and len(hex32) == 2
+               and len(prov["source_md5_combined"]) == 32,
+               f"{probe_name}={md5s.get(probe_name)} {driver_name}={md5s.get(driver_name)} "
+               f"combined={prov['source_md5_combined']}")
+
+        # FORCED FAIL / TEETH: the hash must track the BYTES, or it is decoration. Hash a mutated
+        # copy of the probe source and demand a DIFFERENT digest. (A field that never changes when
+        # the source changes is exactly the failure mode `commit_sha: "unknown"` already is.)
+        import tempfile as _tf
+        with open(probe.__file__, "rb") as f:
+            original = f.read()
+        with _tf.NamedTemporaryFile(suffix=".py", delete=False) as tf:
+            tf.write(original + b"\n# one byte of drift\n")
+            mutated_path = tf.name
+        try:
+            same = probe.md5_file(probe.__file__)
+            drifted = probe.md5_file(mutated_path)
+            report("[6k] TEETH: the md5 TRACKS THE BYTES -- a one-line edit to the probe source "
+                   "yields a DIFFERENT digest. This is the property `commit_sha` does not have "
+                   "(an edited-but-uncommitted file still prints a clean sha) and the property "
+                   "that would have caught the deployed probe/driver MISMATCH found on the box.",
+                   same != drifted and same == md5s[probe_name],
+                   f"deployed={same} mutated={drifted}")
+        finally:
+            os.unlink(mutated_path)
+    except Exception as e:  # noqa: BLE001
+        report("[6k] sec 24 B-3 source_provenance()", False, f"EXCEPTION: {type(e).__name__}: {e}")
 
     print("\n" + "=" * 70)
     print(f"  T2A_REFERENCE_DRIVER_V2_RD SMOKE: {n_pass} PASSED, {n_fail} FAILED")

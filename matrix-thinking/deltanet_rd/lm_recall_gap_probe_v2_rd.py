@@ -1905,6 +1905,44 @@ def _finite_std(xs: list):
     return math.sqrt(sum((v - m) ** 2 for v in vals) / (len(vals) - 1))
 
 
+def argmax_changed_frac_keyswap(records: list) -> float:
+    """THE AIMING WITNESS (sec 23.3 item 4; PROMOTED TO GATING in sec 24 / B-4).
+
+    The fraction of plants whose readout ARGMAX at k0 CHANGES when the PLANTED
+    KEY at j0 is swapped (arm 1 vs arm 4). It asks whether the readout depends
+    on THE PLANT SPECIFICALLY, not merely on *some* input -- which is strictly
+    stronger than sec 20's LIVENESS witness (L1/L2), and it is the only
+    quantity in the artifact that can separate a MIS-AIMED probe (reading k0+-1,
+    the wrong tensor, or a transposed state -- fully input-dependent, so
+    liveness PASSES) from a correctly-aimed one.
+
+    NULL, FIXED BY CONSTRUCTION: `0` -- a readout that does not respond to the
+    key at j0 produces a BIT-IDENTICAL argmax under the key-swap, exactly. The
+    gate is `> 0`, the EXACT degeneracy boundary; it is not a tolerance, not a
+    magnitude, and it did not come from measuring any model (RULE T, sec 20.1).
+
+    SINGLE SOURCE OF TRUTH: this is the SAME expression `run_t2_repaired_probe`
+    reports into `logit_liveness["argmax_changed_frac_keyswap"]` -- factored out
+    here so the GATING read and the REPORTED read cannot drift apart. Zero extra
+    forward passes: both argmaxes are already in `records`. NaN on empty input
+    (=> `> 0` is False => FAIL-CLOSED).
+
+    WHERE IT MAY GATE, AND WHERE IT MAY NOT -- see sec 24:
+      * T2a-1 (W1/W2) and T2a-3 (C1): GATING. These witnesses are required BY
+        THE DESIGN to exhibit the mechanism, so a `0` here is instrument-fatal.
+      * T2a-2 (the UNTRAINED control): **NOT GATING, and it must never become
+        gating.** A live, healthy, mechanism-free model legitimately reads
+        EXACTLY 0.0 -- MEASURED (sec 20.4b: 0.0000 on the live untrained
+        DeltaNetLM). Gating it there would FALSELY HALT a healthy control, and
+        its null on a mechanism-free model is fixed by MEASUREMENT, not by
+        construction => RULE T forbids it. sec 23.4 item 2's literal
+        recommendation ("promote it to GATING on the T2a-2 control") is
+        therefore REJECTED, with reasons, in sec 24."""
+    pairs = [(r["argmax_intact_at_k"], r["argmax_keyswap_at_k"]) for r in records
+             if r.get("argmax_keyswap_at_k") is not None and r.get("argmax_intact_at_k") is not None]
+    return _mean([int(a != b) for a, b in pairs]) if pairs else float("nan")
+
+
 def run_t2_repaired_probe(model, val_tokens: torch.Tensor, seq_len: int, device: str,
                            corpus_name: str, delta_pool: list, pools: dict,
                            counts_by_token: list, n_plants: int,
@@ -2122,18 +2160,17 @@ def run_t2_repaired_probe(model, val_tokens: torch.Tensor, seq_len: int, device:
     rejected_pool = [r["delta_rejected"] for r in records if r.get("delta_rejected") is not None]
     delta_excluded_mass_pooled = (sum(rejected_pool) / sum(tries_pool)) if tries_pool and sum(tries_pool) else 0.0
 
-    # sec 20 R-4, REPORTED / NON-GATING: does corrupting the KEY at j0 change the model's
-    # readout at k0 AT ALL? A constant-logit model reads EXACTLY 0.0 here. A live one does
-    # not. This witnesses the ABLATION machinery (arms 2-5), not just arm 1 -- but it is not
-    # gated, because a live model that happens to ignore position j0 could legitimately read
-    # 0.0, and gating on it would be an un-derived condition of exactly the kind RULE T
-    # forbids. Zero extra forward passes: both argmaxes are already in `records`.
-    ks_pairs = [(r["argmax_intact_at_k"], r["argmax_keyswap_at_k"]) for r in records
-                if r.get("argmax_keyswap_at_k") is not None]
-    argmax_changed_frac_keyswap = (_mean([int(a != b_) for a, b_ in ks_pairs])
-                                    if ks_pairs else float("nan"))
+    # sec 20 R-4 / sec 24 B-4: THE AIMING WITNESS. Does corrupting the KEY at j0 change the
+    # model's readout argmax at k0 AT ALL? Computed by the single shared estimator above, so
+    # the REPORTED value here and the GATING value read by check_t2a1_ceiling /
+    # check_t2a3_ssm_calibration are the SAME NUMBER by construction, not by convention.
+    #
+    # ON THIS ARM (whatever model is passed) IT IS ONLY REPORTED. It becomes GATING inside
+    # T2a-1/T2a-3 -- the cells whose witnesses the design REQUIRES to have the mechanism --
+    # and it stays NON-GATING inside T2a-2, where a healthy mechanism-free model legitimately
+    # reads 0.0 (MEASURED, sec 20.4b). See `argmax_changed_frac_keyswap`'s docstring and sec 24.
     liveness = live.report()
-    liveness["argmax_changed_frac_keyswap"] = argmax_changed_frac_keyswap
+    liveness["argmax_changed_frac_keyswap"] = argmax_changed_frac_keyswap(records)
 
     return {
         "void": False, "records": records, "n_plants": len(records),
@@ -2272,22 +2309,106 @@ def _decile_bucket(records: list, key_fn, n_bins: int = 10) -> list:
     return [ordered[(i * n) // n_bins:((i + 1) * n) // n_bins] for i in range(n_bins)]
 
 
-def check_t2a1_ceiling(records: list, t2b1_result: dict, t2b1b_result: dict) -> dict:
-    """T2a-1 CEILING (sec 11.4.1, GATING). The 0.90/0.75 bar is UNCHANGED
-    from sec 9.4; THREE legs are NEW. All FIVE must hold simultaneously, on
-    ONE (witness, corpus)'s `records` (a `run_t2_repaired_probe` output).
-      (i)   acc_copy >= 0.90 at the Delta-median
-      (ii)  acc_copy >= 0.75 in EVERY Delta-decile
-      (iii) PRIOR = acc_copy_noplant <= 0.05
-      (iv)  KS = acc_copy - acc_copy_keyswap >= 0.50 AND T2b-1b passes (p<0.001)
-      (v)   T2b-1 passes (p<0.001)
+def check_t2a1_ceiling(records: list, t2b1_result: dict, t2b1b_result: dict,
+                        n_boot: int = 2000, seed: int = 0) -> dict:
+    """T2a-1 CEILING (GATING). **THE sec 18.4 OPERATIVE PIN, IMPLEMENTED.**
+
+    ===== WHAT THIS FUNCTION USED TO DO, AND WHY IT NO LONGER DOES =====
+
+    Until this change (sec 23's build audit: "THE sec 18.4 PIN WAS NEVER
+    IMPLEMENTED IN CODE; THE RETIRED BARS STILL GATE `INSTRUMENT_VALID`") the
+    conjunction was
+
+        passes = leg_i and leg_ii and leg_iii and leg_iv and leg_v
+        leg_i  = acc_at_median >= 0.90                       # sec 9.4/11.4.1
+        leg_ii = all(decile acc >= 0.75)                     # sec 9.4/11.4.1
+        leg_iv = ks >= 0.50 and t2b1b.passes                 # a BARE point estimate, NO CI
+
+    A NINE-ROUND GAUNTLET (sec 14-sec 23) retired those bars under **RULE T**
+    (sec 18.1, re-stated correctly at sec 20.1):
+
+        A departure-from-null threshold may gate ONLY in the null's own SAMPLING
+        units (a significance level, or a CI exclusion) and NEVER in the raw
+        units of the quantity itself. A threshold that instead asserts a
+        COMPETENCE LEVEL -- one whose value can only be justified by pointing at
+        how well *some model* performs -- is not a gate.
+
+    `acc_copy >= 0.90` and `KS >= 0.50` are raw-magnitude competence bars: the
+    null's sampling distribution supplies no scale on which `0.90` or `0.50` is
+    a quantile. **They are RETIRED AS GATES -- permanently, and as a TYPE, not
+    as a value. No absolute bar replaces them, at any value, at any operating
+    point.** (`KS >= 0.50` PASSED on 3 of the 4 attempt-2 cells: 0.617 / 0.660 /
+    0.524. A rule that retires a leg the data PASSED is not a fit -- sec 18.10
+    charge 1.) `KS >= 0.50` was additionally a HIDDEN `acc_copy >= 0.50` bar
+    wearing a causal costume (sec 15's W-1: `KS = acc_copy - acc_keyswap` and
+    `acc_keyswap >= 0`), and it gated a BARE POINT ESTIMATE with no CI at all
+    (sec 16's W-2: W2/openr1's `KS = 0.49951` has a 95% CI of [0.475, 0.524],
+    which COVERS 0.50 -- the gate was decided on a knife-edge by 0.00049).
+
+    ===== THE OPERATIVE GATE (sec 18.4). FIVE ROWS; FOUR GATING LEGS. =====
+
+      (i)   `acc_copy >= 0.90` at the Delta-median
+              -> **RETIRED AS A GATE. REPORTED ALWAYS, VERDICT-CARRYING NEVER.**
+      (ii)  `acc_copy >= 0.75` in EVERY Delta-decile
+              -> **RETIRED AS A GATE.** Reported per-decile (intact AND key-swap).
+      (iii) `PRIOR = acc_copy_noplant <= 0.05`      -> **UNCHANGED. GATING.**
+      (iv)  `KS > 0` with a clustered-bootstrap 95% CI EXCLUDING 0, conjoined
+            with T2b-1b (`p < 0.001`)               -> **RE-PINNED. GATING.**
+      (v)   T2b-1 (`p < 0.001`)                     -> **UNCHANGED. GATING.**
+      (vi)  AIMING: `argmax_changed_frac_keyswap > 0`  -> **NEW. GATING.** (B-4)
+
+    Leg (iv)'s replacement form is **NOT INVENTED HERE**: it is adopted VERBATIM
+    from the form this document already pinned for T2a-3 (sec 11.4.2), and it
+    REUSES that function's construction -- `clustered_bootstrap_ci(records,
+    stat_ks)` then `ks_lo > 0` -- rather than reimplementing it (sec 19's
+    BUILD-FIRST item 1: "The replacement code already exists verbatim in
+    `check_t2a3_ssm_calibration` -- reuse it, do not reimplement it"). It fixes
+    the missing-CI defect at the same time.
+
+    **ZERO NEW NUMERIC GATING THRESHOLDS ARE INTRODUCED.** Every gating numeric
+    is either carried over unchanged from the blind sec 11.4.1/11.4.2
+    pre-registration (`0.05`; `p < 0.001`) or is an EXACT null/degeneracy
+    boundary fixed by construction (`ks_lo > 0`; `argmax_changed_frac > 0`).
+    `0.90`, `0.75` and `0.50` no longer appear anywhere in the gating path. This
+    is checkable in one diff, and it is RULE T's core anti-laundering property.
+
+    ===== LEG (vi), THE AIMING WITNESS -- WHAT IT IS AND WHAT IT IS NOT =====
+
+    sec 20's LIVENESS witness proves the readout is FINITE and INPUT-DEPENDENT.
+    It does NOT prove the readout is AIMED: a probe reading logits at k0+-1, the
+    wrong tensor, or a transposed state is fully input-dependent (liveness
+    PASSES) yet uncorrelated with the plant (sec 23.3 item 4). Leg (vi) asks
+    whether the readout responds to THE PLANTED KEY specifically. Its null is
+    fixed by construction (`0` = a bit-identical argmax under key-swap) and it
+    fires on violation. RULE T: admissible.
+
+    **DISCLOSED, BECAUSE AN AUDITOR WILL FIND IT ANYWAY: LEG (vi) IS ENTAILED BY
+    LEG (iv) AND THEREFORE CANNOT INDEPENDENTLY FIRE.** If every record carries
+    the key-swap arm (asserted by smoke [10b]), then
+        argmax_changed_frac == 0  =>  hit_intact == hit_keyswap on every record
+                                  =>  stat_ks(S) == 0 for EVERY subset S
+                                  =>  every bootstrap draw is 0  =>  ks_lo == 0,
+    so leg (vi) can only fire on a cell where leg (iv) has ALREADY failed. **It
+    is a TRIPWIRE and a NAMED FAILURE REASON, not new gate power, and sec 24
+    says so in those words.** Its value is DISAMBIGUATION: when a witness cell
+    fails, `KS CI includes 0` alone cannot distinguish "this model has no
+    mechanism" from "this probe is mis-aimed"; leg (vi) reading EXACTLY 0
+    identifies the latter, which is precisely the reading sec 23.3 demanded be
+    made ("a run in which W1/W2 both collapse to PRIOR must be read as 'possibly
+    mis-aimed instrument,' never as 'no mechanism'") and which was, until now,
+    left to an operator to remember.
+
     `t2b1_result`/`t2b1b_result`: check_t2b1_mechanism_exists(records) /
-    check_t2b1b_key_conditioned(records) outputs, computed by the caller on
-    the SAME records (kept as explicit inputs rather than recomputed here,
-    so a caller can share one T2b-1/T2b-1b computation across T2a-1 and
-    T2b's own rung-admissibility use)."""
+    check_t2b1b_key_conditioned(records) outputs, computed by the caller on the
+    SAME records. `n_boot`/`seed` feed `clustered_bootstrap_ci` and default to
+    the same values `check_t2a3_ssm_calibration` uses.
+
+    DETERMINISM (sec 11.4.6, sec 19.4c): `clustered_bootstrap_ci` seeds a LOCAL
+    `random.Random(seed)` and consumes NO global RNG stream, and this function
+    issues no forward pass. The unchanged legs reproduce attempt-2 bit-for-bit."""
     deciles = _decile_bucket(records, key_fn=lambda r: r["delta"])
     decile_accs = [_acc(b, "hit_intact") for b in deciles]
+    decile_accs_keyswap = [_acc(b, "hit_keyswap") for b in deciles]
     median_decile = deciles[len(deciles) // 2]
     acc_at_median = _acc(median_decile, "hit_intact")
     prior = _acc(records, "hit_noplant")
@@ -2295,19 +2416,66 @@ def check_t2a1_ceiling(records: list, t2b1_result: dict, t2b1b_result: dict) -> 
     acc_keyswap = _acc(records, "hit_keyswap")
     ks = acc_copy_all - acc_keyswap if not (math.isnan(acc_copy_all) or math.isnan(acc_keyswap)) else float("nan")
 
-    leg_i = (not math.isnan(acc_at_median)) and acc_at_median >= 0.90
-    leg_ii = bool(decile_accs) and all((not math.isnan(a)) and a >= 0.75 for a in decile_accs)
+    # ---- LEG (iv), RE-PINNED. The SAME construction as check_t2a3_ssm_calibration (sec 11.4.2),
+    #      reused rather than reimplemented, per sec 19's BUILD-FIRST item 1.
+    def stat_ks(recs):
+        return _acc(recs, "hit_intact") - _acc(recs, "hit_keyswap")
+    ks_pt, ks_lo, ks_hi = clustered_bootstrap_ci(records, stat_ks, n_boot=n_boot, seed=seed)
+    ks_positive_excludes_zero = (ks_lo is not None and ks_lo > 0)
+
+    # ---- LEG (vi), THE AIMING WITNESS (B-4). Exact degeneracy boundary; NaN => False (fail-closed).
+    aiming_frac = argmax_changed_frac_keyswap(records)
+    leg_vi = (not math.isnan(aiming_frac)) and aiming_frac > 0.0
+
+    # ---- RETIRED (sec 18.4). COMPUTED AND REPORTED -- reporting is MANDATORY -- BUT NOT GATING.
+    #      The `_RETIRED_NONGATING` suffix is deliberate: a reader (or a future roll-up) that
+    #      greps for a leg flag cannot pick one of these up and mistake it for a gate.
+    leg_i_RETIRED = (not math.isnan(acc_at_median)) and acc_at_median >= 0.90
+    leg_ii_RETIRED = bool(decile_accs) and all((not math.isnan(a)) and a >= 0.75 for a in decile_accs)
+
+    # ---- THE GATING CONJUNCTION.
     leg_iii = (not math.isnan(prior)) and prior <= 0.05
-    leg_iv = (not math.isnan(ks)) and ks >= 0.50 and bool(t2b1b_result.get("passes"))
+    leg_iv = ks_positive_excludes_zero and bool(t2b1b_result.get("passes"))
     leg_v = bool(t2b1_result.get("passes"))
+    passes = leg_iii and leg_iv and leg_v and leg_vi
+
+    reasons = []
+    if not leg_iii:
+        reasons.append(f"leg (iii) PRIOR: {prior!r} exceeds the 0.05 tolerance over the "
+                        f"construction null (b is never the bigram-argmax given a; V4 rank 2-50)")
+    if not leg_iv:
+        reasons.append(f"leg (iv) KEY-CONDITIONING: KS 95% clustered-bootstrap CI "
+                        f"[{ks_lo!r}, {ks_hi!r}] does not EXCLUDE 0 (point {ks_pt!r}), and/or "
+                        f"T2b-1b p={t2b1b_result.get('p_value')!r} is not < 0.001")
+    if not leg_v:
+        reasons.append(f"leg (v) T2b-1: p={t2b1_result.get('p_value')!r} is not < 0.001")
+    if not leg_vi:
+        reasons.append(f"leg (vi) AIMING: argmax_changed_frac_keyswap = {aiming_frac!r}. EXACTLY 0 "
+                        f"=> swapping the PLANTED KEY at j0 changed the readout argmax at k0 in "
+                        f"ZERO windows => the readout does not depend on the plant at all. This is "
+                        f"a MIS-AIMED PROBE (wrong position / wrong tensor / transposed state), NOT "
+                        f"a null model -- liveness cannot see it (sec 23.3 item 4). Read a failure "
+                        f"here as 'possibly mis-aimed instrument', NEVER as 'no mechanism'.")
 
     return {
-        "passes": leg_i and leg_ii and leg_iii and leg_iv and leg_v,
+        "passes": passes,
+        "gating_legs": ["iii_prior", "iv_ks_ci_excludes_zero_and_t2b1b", "v_t2b1", "vi_aiming"],
+        "retired_legs_REPORTED_NEVER_GATING": ["i_acc_at_median_ge_090", "ii_all_deciles_ge_075"],
+        "failure_reasons": reasons,
+        # ---- REPORTED ALWAYS (sec 18.4 leg (i): "REPORTED ALWAYS, VERDICT-CARRYING NEVER") ----
         "acc_at_median": acc_at_median, "decile_accs": decile_accs,
+        "decile_accs_keyswap": decile_accs_keyswap,
         "prior": prior, "ks": ks, "acc_copy": acc_copy_all, "acc_copy_keyswap": acc_keyswap,
-        "leg_i_median_ge_090": leg_i, "leg_ii_all_deciles_ge_075": leg_ii,
-        "leg_iii_prior_le_005": leg_iii, "leg_iv_ks_ge_050_and_t2b1b": leg_iv,
+        "leg_i_median_ge_090_RETIRED_NONGATING": leg_i_RETIRED,
+        "leg_ii_all_deciles_ge_075_RETIRED_NONGATING": leg_ii_RETIRED,
+        # ---- THE GATING LEGS ----
+        "leg_iii_prior_le_005": leg_iii,
+        "leg_iv_ks_ci_excludes_zero_and_t2b1b": leg_iv,
+        "leg_iv_ks_point": ks_pt, "leg_iv_ks_ci": [ks_lo, ks_hi],
+        "leg_iv_ks_ci_excludes_zero": ks_positive_excludes_zero,
         "leg_v_t2b1_passes": leg_v,
+        "leg_vi_aiming_keyswap_argmax_changed": leg_vi,
+        "aiming_argmax_changed_frac_keyswap": aiming_frac,
         "t2b1_p_value": t2b1_result.get("p_value"), "t2b1b_p_value": t2b1b_result.get("p_value"),
     }
 
@@ -2422,15 +2590,34 @@ def check_t2a3_ssm_calibration(records: list, t2b1_result: dict, t2b1b_result: d
     KS is a genuine SINGLE-token contrast, replacing the draft's two-token
     `acc_copy - acc_copy_noplant`). `acc_copy` is reported, NOT held to
     0.90 -- this witness is demoted from the 0.90 ceiling gate (sec 11.4.2)
-    and 'can no longer save the gate' (T2a-1 still requires W1+W2)."""
+    and 'can no longer save the gate' (T2a-1 still requires W1+W2).
+
+    **NOT WAIVED, NOT WEAKENED, AND STILL NEVER MEASURED** (sec 18.9, sec 23.4
+    item 5). The pinned causal legs below are BYTE-FOR-BYTE what sec 11.4.2
+    pre-registered.
+
+    sec 24 (B-4): the AIMING witness (leg (vi) of T2a-1) is added as a further
+    CONJUNCT. This is a MONOTONE TIGHTENING -- a conjunction can only turn a
+    PASS into a HALT, never a FAIL into a PASS -- so it cannot waive or weaken
+    anything in any direction. Like leg (vi) of T2a-1 it is ENTAILED by the
+    `KS > 0` CI leg it sits beside (see `check_t2a1_ceiling`'s docstring) and is
+    therefore a TRIPWIRE and a named failure reason, not new gate power. C1 is a
+    pure-SSM architecture class the probe has NEVER been shown to read, which is
+    precisely the cell on which "no mechanism" and "mis-aimed probe" are easiest
+    to confuse -- so the reason is worth naming here."""
     def stat_ks(recs):
         return _acc(recs, "hit_intact") - _acc(recs, "hit_keyswap")
     ks_pt, ks_lo, ks_hi = clustered_bootstrap_ci(records, stat_ks, n_boot=n_boot, seed=seed)
     ks_positive_excludes_zero = (ks_lo is not None and ks_lo > 0)
+    aiming_frac = argmax_changed_frac_keyswap(records)
+    aiming_ok = (not math.isnan(aiming_frac)) and aiming_frac > 0.0
     causal_pass = (bool(t2b1_result.get("passes")) and bool(t2b1b_result.get("passes"))
-                   and ks_positive_excludes_zero)
+                   and ks_positive_excludes_zero and aiming_ok)
     return {"passes": causal_pass, "acc_copy": _acc(records, "hit_intact"),
             "ks_point": ks_pt, "ks_ci": [ks_lo, ks_hi],
+            "ks_positive_excludes_zero": ks_positive_excludes_zero,
+            "aiming_keyswap_argmax_changed": aiming_ok,
+            "aiming_argmax_changed_frac_keyswap": aiming_frac,
             "t2b1_passes": t2b1_result.get("passes"), "t2b1b_passes": t2b1b_result.get("passes")}
 
 
@@ -2866,6 +3053,155 @@ def classify_recall_trend(ci95: list, tost: dict) -> str:
     if hi < 0:
         return "DECLINES"
     return "FLAT" if tost["tost_pass"] else "INDETERMINATE"
+
+
+# =============================================================================
+# sec 18.4.1 -- THE THRESHOLD-FREE INFLUENCE LADDER. Replaces sec 9.4's
+#     "strong-mechanism" SPLIT, which is RETIRED. (sec 19 BUILD-FIRST item 2;
+#     built in sec 24 / B-2.)
+# =============================================================================
+def influence_ladder(per_rung_row_values: dict, log10_params: dict, ks_by_rung: dict,
+                      n_boot: int = 2000, seed: int = 0, min_rungs: int = 3) -> dict:
+    """sec 18.4.1, IMPLEMENTED VERBATIM.
+
+    ===== WHAT IT REPLACES =====
+
+    sec 9.4 required the trend fit be reported TWICE -- over all T2b-admissible
+    rungs, and over "the subset that also clears `acc_copy >= 0.90`" -- with
+    disagreement => INDETERMINATE. RULE T retired the `0.90` bar, so that subset
+    is now undefined. sec 15's proposed replacement (a MEDIAN-`KS` split) was
+    correctly killed by sec 16.5: a median split is RELATIVE, so it always
+    labels half the rungs "strong" even if every rung is garbage, and it can
+    therefore NEVER return "no rung is strong" -- the very condition the old
+    split existed to surface. RULE T forbids inventing a new absolute bar to
+    plug the hole. So sec 18.4.1 pinned this instead:
+
+      * Order the admissible rungs by `KS` (ASCENDING).
+      * Report the trend fit at EVERY PREFIX-DROP of that ordering with >= 3
+        rungs remaining: all rungs -> drop-lowest-1 -> drop-lowest-2 -> ...
+        **Report the ENTIRE ladder, never a selected rung of it.**
+      * INDETERMINATE fires IFF the fitted exponent's SIGN, or its CI's
+        EXCLUSION of the no-trend null, FLIPS anywhere along that ladder.
+
+    RULE T (sec 20.1): sign and CI-exclusion are construction-derived (the null
+    is "no trend", i.e. beta = 0); "how much change is too much" is never asked,
+    so no magnitude threshold exists to launder. **ZERO NUMERIC GATING
+    THRESHOLDS.** `min_rungs = 3` is not one: it is sec 9.5's OWN pre-existing
+    FLOOR (`n_admissible_rungs < 3 => FLOOR`), restated in sec 18.4.1's text as
+    ">= 3 rungs remaining", and an OLS slope over fewer than 3 points is
+    degenerate rather than merely weak. It does not appear as a bar on any
+    measured quantity.
+
+    ===== TWO RESIDUAL CONCERNS, FLAGGED NOT SILENTLY FIXED (sec 24) =====
+
+    sec 19.3(b) argues the ordering is STILL RELATIVE -- the ladder drops the
+    LOWEST-KS rung regardless of whether ANY rung reads strongly, so like the
+    median split it can never return "no rung is strong". **THAT CRITICISM
+    STANDS against what is built here, and it is not silently repaired**: the
+    pin is implemented as written, and sec 24 records the concern. (sec 18.4.1's
+    own defence is narrower and is true as far as it goes: the ladder CAN return
+    "the trend is not robust", which the median split could not. It cannot
+    return "the instrument is too weak to fit a law on." **Nothing in the design
+    currently can** -- sec 19.3(c)/sec 20.3 record that function as EMPTY and
+    OPEN, and this function does not fill it.)
+
+    SECOND, AND NOT PREVIOUSLY STATED ANYWHERE: at exactly 3 admissible rungs
+    the ladder has exactly ONE step, so NOTHING CAN FLIP and it reports
+    "robust" VACUOUSLY. Three is the design's own admissible-rung MINIMUM (sec
+    9.5's FLOOR) and sec 11.8 records only 2 fit rungs available today, so the
+    vacuous regime is the LIKELY one, not a corner case. `n_steps` and
+    `ladder_is_vacuous` are returned so no caller can miss it.
+
+    ARGUMENTS
+      per_rung_row_values: {rung: {row_idx: M(r) value}} -- exactly what
+        `bootstrap_trend_ci` consumes; this function DELEGATES to it per step
+        rather than reimplementing the fit (each step gets its own `seed +
+        step_index` so the steps are independent draws but the whole ladder is
+        reproducible from one `seed`).
+      log10_params: {rung: log10(param count)}.
+      ks_by_rung: {rung: KS} -- the ORDERING key. Each rung's `KS` from its own
+        T2 probe (`check_t2a1_ceiling(...)["ks"]`). A rung missing from this map,
+        or carrying a NaN `KS`, cannot be ordered => the ladder is NOT EVALUABLE
+        and returns INDETERMINATE (fail-closed; it never silently drops a rung).
+
+    RETURNS a dict with the FULL ladder, plus `indeterminate` (the sec 18.4.1
+    rule) and `evaluable`."""
+    rungs = sorted(per_rung_row_values)
+    missing = [r for r in rungs if r not in ks_by_rung or r not in log10_params]
+    nan_ks = [r for r in rungs if r in ks_by_rung
+              and (ks_by_rung[r] is None or math.isnan(float(ks_by_rung[r])))]
+    if missing or nan_ks:
+        return {
+            "evaluable": False, "indeterminate": True, "ladder_is_vacuous": None,
+            "n_steps": 0, "steps": [],
+            "reasons": [f"the ladder cannot be ORDERED: rungs missing a KS or a log10_params "
+                        f"entry: {missing}; rungs with a NaN KS: {nan_ks}. FAIL-CLOSED -- a rung "
+                        f"that cannot be ordered is never silently dropped from the fit."],
+        }
+    # sec 18.4.1: order ASCENDING by KS. Ties broken by rung name so the ladder is deterministic.
+    ordered = sorted(rungs, key=lambda r: (float(ks_by_rung[r]), r))
+    if len(ordered) < min_rungs:
+        return {
+            "evaluable": False, "indeterminate": True, "ladder_is_vacuous": None,
+            "n_steps": 0, "steps": [], "rungs_ordered_by_ks_ascending": ordered,
+            "ks_by_rung": {r: float(ks_by_rung[r]) for r in ordered},
+            "reasons": [f"only {len(ordered)} rung(s) -- fewer than the {min_rungs} an OLS trend "
+                        f"needs. NO robustness claim is available. (sec 9.5's FLOOR already "
+                        f"withholds a verdict here; this cannot CREATE one.)"],
+        }
+
+    steps = []
+    for k in range(0, len(ordered) - min_rungs + 1):
+        kept = ordered[k:]
+        sub_vals = {r: per_rung_row_values[r] for r in kept}
+        fit = bootstrap_trend_ci(sub_vals, log10_params, n_boot=n_boot, seed=seed + k)
+        beta, (lo, hi) = fit["beta_point"], fit["ci95"]
+        # SIGN: construction-derived, no magnitude. 0.0 is its own sign class (an exactly-flat
+        # OLS slope), so a move OFF zero is itself a flip -- the conservative reading.
+        sign = 0 if beta == 0.0 else (1 if beta > 0.0 else -1)
+        excludes_zero = bool(lo > 0.0 or hi < 0.0)
+        steps.append({
+            "n_dropped_lowest_ks": k,
+            "rungs": kept,
+            "dropped": ordered[:k],
+            "beta_point": beta,
+            "ci95": [lo, hi],
+            "beta_sign": sign,
+            "ci_excludes_no_trend_null": excludes_zero,
+        })
+
+    signs = {s["beta_sign"] for s in steps}
+    exclusions = {s["ci_excludes_no_trend_null"] for s in steps}
+    sign_flips = len(signs) > 1
+    exclusion_flips = len(exclusions) > 1
+    indeterminate = bool(sign_flips or exclusion_flips)
+
+    reasons = []
+    if sign_flips:
+        reasons.append(f"INDETERMINATE (sec 18.4.1): the fitted exponent's SIGN FLIPS along the "
+                        f"ladder -- observed signs {sorted(signs)} across {len(steps)} steps.")
+    if exclusion_flips:
+        reasons.append(f"INDETERMINATE (sec 18.4.1): the CI's EXCLUSION of the no-trend null "
+                        f"FLIPS along the ladder -- observed {sorted(exclusions)} across "
+                        f"{len(steps)} steps.")
+    if len(steps) == 1:
+        reasons.append("LADDER IS VACUOUS: exactly one step (the admissible set is at the "
+                        "3-rung minimum), so NOTHING CAN FLIP and 'robust' here means only 'not "
+                        "checked'. This is the LIKELY regime, not a corner case (sec 11.8: 2 fit "
+                        "rungs available against a minimum of 3). Do not read it as robustness.")
+
+    return {
+        "evaluable": True,
+        "indeterminate": indeterminate,
+        "ladder_is_vacuous": len(steps) == 1,
+        "n_steps": len(steps),
+        "sign_flips": sign_flips,
+        "exclusion_flips": exclusion_flips,
+        "rungs_ordered_by_ks_ascending": ordered,
+        "ks_by_rung": {r: float(ks_by_rung[r]) for r in ordered},
+        "steps": steps,
+        "reasons": reasons,
+    }
 
 
 def compute_verdict(factor1_trend: str, span_frac_monotone_over_A: bool,
@@ -3993,9 +4329,21 @@ def smoke(device: str) -> int:
                f"top1_share={lv11['top1_argmax_share']:.4f} "
                f"H={lv11['mean_softmax_entropy_nats']:.4f}+-{lv11['std_softmax_entropy_nats']:.4f} "
                f"keyswap_changed_argmax={lv11['argmax_changed_frac_keyswap']:.4f}")
-        report("  T2a-1 (the 0.90/0.75 ceiling) correctly FAILS on an untrained model "
-               "(sec 11.4.2's positive-control logic: no mechanism -> no pass)",
-               not t2a1_11["passes"], f"acc_copy={t2a1_11['acc_copy']}")
+        # sec 24 B-1: the RE-PINNED T2a-1 must STILL halt on an untrained model -- and now it must
+        # do so on the CAUSAL legs (iv)/(vi), NOT on the retired 0.90/0.75 competence bars. This is
+        # sec 18.10 charge 7 ("then the gate can never fail") answered on the code path: retiring
+        # the competence bars did NOT make the gate unfailable. If a future edit ever let an
+        # untrained model through, this turns RED.
+        report("  T2a-1 (RE-PINNED, sec 18.4) STILL correctly FAILS on an untrained model -- and "
+               "it fails on the CAUSAL legs (iv: KS CI includes 0) and (vi: aiming), NOT on the "
+               "RETIRED 0.90/0.75 competence bars. Retiring the bars did not make the gate "
+               "unfailable (sec 18.10 charge 7).",
+               (not t2a1_11["passes"])
+               and t2a1_11["leg_iv_ks_ci_excludes_zero_and_t2b1b"] is False,
+               f"acc_copy={t2a1_11['acc_copy']} ks_ci={t2a1_11['leg_iv_ks_ci']} "
+               f"leg_iv={t2a1_11['leg_iv_ks_ci_excludes_zero_and_t2b1b']} "
+               f"leg_vi={t2a1_11['leg_vi_aiming_keyswap_argmax_changed']} "
+               f"RETIRED(i)={t2a1_11['leg_i_median_ge_090_RETIRED_NONGATING']}")
         t2a3_11 = check_t2a3_ssm_calibration(recs11, t2b1_11, t2b1b_11, n_boot=200)
         report("  T2a-3 (SSM causal-only calibration) runs without error on REAL-pipeline output",
                True, str(t2a3_11))
@@ -4187,6 +4535,385 @@ def smoke(device: str) -> int:
             report("  [10f] sec 20 R-4 forced-fail negative tests", False,
                    f"EXCEPTION after {n_forced_fail_assertions} assertions: "
                    f"{type(e).__name__}: {e}")
+
+    # --- [10g] sec 24 (B-1 + B-4) -- THE sec 18.4 PIN AND THE AIMING WITNESS: FORCED-FAIL
+    #     NEGATIVE TESTS, RUN TO COMPLETION.
+    #
+    #     TWO CHECKS ARE ON TRIAL HERE, AND EACH NEEDS A DIFFERENT MODEL.
+    #
+    #     (A) THE AIMING WITNESS (leg (vi), B-4). sec 20's liveness witness proves the readout is
+    #         FINITE and INPUT-DEPENDENT. It does NOT prove the readout is AIMED. `_MisAimedReadout
+    #         Oracle` is the exact realization of sec 23.3's "reading logits at k0 +- 1": for a
+    #         next-token model, reading at k0-1 returns the prediction for position k0, i.e. the
+    #         token AT k0 -- which is `a`. This model emits, at every position t, logits peaked on
+    #         x[t] itself. It is FULLY input-dependent (LIVENESS PASSES) and it is reading the
+    #         wrong thing. The old gate could not see it. Leg (vi) must.
+    #
+    #     (B) THE sec 18.4 PIN ITSELF (B-1). `_WeakAimedInductionOracle` is a REAL, correctly-aimed
+    #         induction head that copies on only ~half the plants (a fixed parity predicate on the
+    #         key -- deterministic, and invariant across arms 1-4, which corrupt j0/p/p_placebo but
+    #         never k0). It lands `acc_copy ~ 0.5`, i.e. squarely in the band the four REAL
+    #         witnesses read (0.56-0.69). On IDENTICAL records the RETIRED bars HALT and the
+    #         OPERATIVE sec 18.4 gate PASSES. That is sec 23.2's "the two gates give OPPOSITE
+    #         verdicts on the SAME data", reproduced in the suite -- and it is the demonstration
+    #         that the pin is now COMPUTED BY THE INSTRUMENT rather than asserted by an agent
+    #         reading a table.
+    #
+    #     (C) And the leg the CI replaced: a KNIFE-EDGE `KS` whose bootstrap CI COVERS 0 must FAIL
+    #         leg (iv) even though its POINT estimate is > 0 (sec 16's W-2 -- W2/openr1's
+    #         KS = 0.49951 was gated on a bare point estimate with no CI at all).
+    print("\n  [10g] sec 24 B-1/B-4: THE sec 18.4 PIN + THE AIMING WITNESS -- FORCED-FAIL")
+    n_aim_assertions = 0
+    if t2_fixture is None:
+        report("  [10g] FIXTURE UNAVAILABLE -- [10b] did not complete, so the forced-fail "
+               "negative tests DID NOT RUN. HARD FAIL, not a skip: an unrun teeth test is "
+               "indistinguishable from a toothless one.", False)
+    else:
+        try:
+            WRONG_TOK = t2_fixture["V"] - 1   # background id; never a licensed value `b`
+
+            class _MisAimedReadoutOracle(torch.nn.Module):
+                """(A) THE MIS-AIMED READ, realized model-side. Emits at position t logits peaked
+                on x[t] -- the token AT t, not the token AFTER it. For a next-token model this is
+                observationally IDENTICAL to reading the logits at k0-1 instead of k0 (sec 23.3's
+                own example). Fully input-dependent => sec 20's liveness witness PASSES. Its argmax
+                at k0 is `a` in every arm that does not corrupt k0, so swapping the key at j0
+                changes NOTHING: argmax_changed_frac_keyswap == EXACTLY 0.0."""
+
+                def __init__(self, vocab_size: int):
+                    super().__init__()
+                    self.vocab_size = vocab_size
+
+                def forward(self, x: torch.Tensor) -> torch.Tensor:
+                    B, T = x.shape
+                    logits = torch.full((B, T, self.vocab_size), -3.0, device=x.device)
+                    logits.scatter_(2, x.unsqueeze(-1), 7.0)      # peak on x[t] ITSELF
+                    return logits
+
+            class _WeakAimedInductionOracle(torch.nn.Module):
+                """(B) A REAL, CORRECTLY-AIMED induction head that is DELIBERATELY WEAK. At
+                position t it predicts the token that FOLLOWED the FIRST EARLIER occurrence of
+                x[t] -- the copy mechanism the probe exists to detect -- but only when the key
+                clears a fixed parity predicate (x[t] % 2 == 0); otherwise it emits `wrong_token`.
+                The predicate reads the token AT the readout position, which arms 1-4 never
+                corrupt, so a plant's copy/no-copy status is IDENTICAL across the intact, true-
+                ablated, placebo, pool-placebo and key-swap arms -- the weakness is a property of
+                the MODEL, not an artifact of the ablation. Lands acc_copy ~ 0.5."""
+
+                def __init__(self, vocab_size: int, wrong_token: int):
+                    super().__init__()
+                    self.vocab_size, self.wrong_token = vocab_size, wrong_token
+
+                def forward(self, x: torch.Tensor) -> torch.Tensor:
+                    B, T = x.shape
+                    idx = torch.arange(T, device=x.device)
+                    eq = x.unsqueeze(2) == x.unsqueeze(1)                 # (B,T,T) x[t]==x[i]
+                    earlier = idx.view(1, 1, T) < idx.view(1, T, 1)       # i < t
+                    cand = eq & earlier
+                    # FIRST earlier occurrence, computed by MIN over indices -- never argmax, whose
+                    # tie-breaking among equal maxima torch does not guarantee.
+                    pos = torch.where(cand, idx.view(1, 1, T).expand(B, T, T),
+                                       torch.full((B, T, T), T, device=x.device, dtype=torch.long))
+                    first_i = pos.min(dim=-1).values                      # (B,T); == T if none
+                    has_earlier = first_i < T
+                    nxt = torch.gather(x, 1, (first_i + 1).clamp(max=T - 1))
+                    do_copy = has_earlier & (x % 2 == 0)                  # the weakness predicate
+                    pred = torch.where(do_copy, nxt,
+                                        torch.full_like(x, self.wrong_token))
+                    logits = torch.full((B, T, self.vocab_size), -3.0, device=x.device)
+                    logits.scatter_(2, pred.unsqueeze(-1), 7.0)
+                    return logits
+
+            def _run_oracle(model):
+                r = run_t2_repaired_probe(model, t2_fixture["val"], seq_len=256, device=device,
+                                           corpus_name="smoke-synth-corpus",
+                                           delta_pool=t2_fixture["delta_pool"],
+                                           pools=t2_fixture["pools"],
+                                           counts_by_token=t2_fixture["counts"],
+                                           n_plants=t2_fixture["n_plants"],
+                                           vocab_size=t2_fixture["V"], eval_micro_batch=32)
+                b1 = check_t2b1_mechanism_exists(r["records"])
+                b1b = check_t2b1b_key_conditioned(r["records"])
+                return (r, b1, b1b,
+                        check_t2a1_ceiling(r["records"], b1, b1b, n_boot=200),
+                        check_t2a3_ssm_calibration(r["records"], b1, b1b, n_boot=200),
+                        check_t2a2_untrained_control(r["records"],
+                                                      logit_liveness=r["logit_liveness"], n_boot=200))
+
+            # ================= (A) THE MIS-AIMED READOUT =================
+            mis = _MisAimedReadoutOracle(t2_fixture["V"]).to(device).eval()
+            r_mis, b1_mis, b1b_mis, a1_mis, a3_mis, a2_mis = _run_oracle(mis)
+            lv_mis = r_mis["logit_liveness"]
+
+            n_aim_assertions += 1
+            report("  [MIS-AIMED] THE GAP sec 23.3 NAMED, DEMONSTRATED: sec 20's LIVENESS WITNESS "
+                   "PASSES on a probe that is reading the WRONG POSITION. finite_frac==1.0 and "
+                   "max|L[i]-L[0]|>0 -- the readout is alive, input-dependent, and measuring "
+                   "NOTHING. Liveness upgraded the control from 'cannot tell DEAD from NULL' to "
+                   "'cannot tell MIS-AIMED from NULL', and no further.",
+                   lv_mis["ok"] is True
+                   and lv_mis["readout_logits_finite_frac"] == 1.0
+                   and lv_mis["readout_logit_max_abs_dev_from_row0"] > 0.0,
+                   f"liveness.ok={lv_mis['ok']} finite_frac={lv_mis['readout_logits_finite_frac']} "
+                   f"max_abs_dev={lv_mis['readout_logit_max_abs_dev_from_row0']:.6g} "
+                   f"acc_copy={a1_mis['acc_copy']}")
+
+            n_aim_assertions += 1
+            report("  [MIS-AIMED] FORCED FAIL: LEG (vi) FIRES. argmax_changed_frac_keyswap is "
+                   "EXACTLY 0.0 -- swapping the PLANTED KEY changed the readout argmax in ZERO of "
+                   "the windows -- so T2a-1 reads passes=FALSE and NAMES the reason as a MIS-AIMED "
+                   "PROBE rather than a null model.",
+                   a1_mis["aiming_argmax_changed_frac_keyswap"] == 0.0
+                   and a1_mis["leg_vi_aiming_keyswap_argmax_changed"] is False
+                   and a1_mis["passes"] is False
+                   and any("MIS-AIMED PROBE" in s for s in a1_mis["failure_reasons"]),
+                   f"aiming_frac={a1_mis['aiming_argmax_changed_frac_keyswap']} "
+                   f"leg_vi={a1_mis['leg_vi_aiming_keyswap_argmax_changed']} "
+                   f"passes={a1_mis['passes']}")
+
+            n_aim_assertions += 1
+            report("  [MIS-AIMED] THE ENTAILMENT, DISCLOSED NOT HIDDEN: leg (iv) FAILS TOO "
+                   "(KS CI == [0,0]) -- because argmax_changed_frac==0 forces KS==0 on every "
+                   "bootstrap draw. LEG (vi) IS A TRIPWIRE AND A NAMED REASON, NOT NEW GATE "
+                   "POWER: it can only fire where leg (iv) has already failed. sec 24 says so.",
+                   a1_mis["leg_iv_ks_ci_excludes_zero"] is False
+                   and a1_mis["leg_iv_ks_ci"] == [0.0, 0.0]
+                   and a1_mis["leg_iv_ks_ci_excludes_zero_and_t2b1b"] is False,
+                   f"ks_point={a1_mis['leg_iv_ks_point']} ks_ci={a1_mis['leg_iv_ks_ci']}")
+
+            n_aim_assertions += 1
+            report("  [MIS-AIMED] T2a-3 (the C1 / falcon-mamba causal gate) ALSO fires on the "
+                   "aiming conjunct -- the pure-SSM cell is exactly where 'no mechanism' and "
+                   "'mis-aimed probe' are easiest to confuse. The pinned causal legs are "
+                   "UNTOUCHED; this is a MONOTONE TIGHTENING (PASS->HALT only).",
+                   a3_mis["passes"] is False
+                   and a3_mis["aiming_keyswap_argmax_changed"] is False
+                   and a3_mis["ks_positive_excludes_zero"] is False,
+                   f"t2a3_passes={a3_mis['passes']} "
+                   f"aiming={a3_mis['aiming_keyswap_argmax_changed']} "
+                   f"acc_copy={a3_mis['acc_copy']}")
+
+            n_aim_assertions += 1
+            report("  [MIS-AIMED / NO FALSE HALT] T2a-2 does NOT gate on aiming, and here is the "
+                   "run that proves why it must not: on these very records argmax_changed_frac is "
+                   "EXACTLY 0.0 and the untrained control STILL reads passes=TRUE. sec 23.4 item "
+                   "2 asked for this leg to gate T2a-2; a live HEALTHY untrained model measured "
+                   "0.0000 (sec 20.4b), so that gate would HALT a healthy control. REJECTED, and "
+                   "the rejection is enforced by this test.",
+                   a2_mis["passes"] is True and a2_mis["pinned_bar_passes"] is True
+                   and a2_mis["liveness"]["argmax_changed_frac_keyswap"] == 0.0,
+                   f"t2a2_passes={a2_mis['passes']} pinned_bar={a2_mis['pinned_bar_passes']} "
+                   f"aiming_frac={a2_mis['liveness']['argmax_changed_frac_keyswap']} "
+                   f"acc_copy={a2_mis['acc_copy']}")
+
+            # ================= (B) THE sec 18.4 PIN, ON A WEAK BUT REAL MECHANISM =================
+            weak = _WeakAimedInductionOracle(t2_fixture["V"], WRONG_TOK).to(device).eval()
+            r_wk, b1_wk, b1b_wk, a1_wk, a3_wk, _a2_wk = _run_oracle(weak)
+
+            n_aim_assertions += 1
+            report("  [WEAK ORACLE] THE sec 18.4 PIN, DEMONSTRATED ON THE CODE PATH: on IDENTICAL "
+                   "records the RETIRED bars HALT (acc_at_median < 0.90 AND some decile < 0.75) "
+                   "while the OPERATIVE gate PASSES (legs iii/iv/v/vi all True). This is sec 23.2's "
+                   "'the two gates give OPPOSITE verdicts on the SAME data' -- and the instrument, "
+                   "not an agent reading a table, now computes the verdict.",
+                   a1_wk["leg_i_median_ge_090_RETIRED_NONGATING"] is False
+                   and a1_wk["leg_ii_all_deciles_ge_075_RETIRED_NONGATING"] is False
+                   and a1_wk["leg_iii_prior_le_005"] is True
+                   and a1_wk["leg_iv_ks_ci_excludes_zero_and_t2b1b"] is True
+                   and a1_wk["leg_v_t2b1_passes"] is True
+                   and a1_wk["leg_vi_aiming_keyswap_argmax_changed"] is True
+                   and a1_wk["passes"] is True,
+                   f"acc_copy={a1_wk['acc_copy']:.4f} acc_at_median={a1_wk['acc_at_median']:.4f} "
+                   f"PRIOR={a1_wk['prior']:.4f} ks={a1_wk['ks']:.4f} "
+                   f"ks_ci={[round(v, 4) for v in a1_wk['leg_iv_ks_ci']]} "
+                   f"aiming={a1_wk['aiming_argmax_changed_frac_keyswap']:.4f} "
+                   f"RETIRED(i)={a1_wk['leg_i_median_ge_090_RETIRED_NONGATING']} "
+                   f"RETIRED(ii)={a1_wk['leg_ii_all_deciles_ge_075_RETIRED_NONGATING']} "
+                   f"passes={a1_wk['passes']}")
+
+            n_aim_assertions += 1
+            report("  [WEAK ORACLE / NO FALSE HALT] LEG (vi) does NOT halt a healthy, correctly-"
+                   "aimed model that reads WEAKLY: argmax_changed_frac_keyswap > 0. A gate that "
+                   "halted here would be an absolute competence bar wearing an aiming costume -- "
+                   "exactly the shape RULE T retires.",
+                   a1_wk["aiming_argmax_changed_frac_keyswap"] > 0.0
+                   and a1_wk["leg_vi_aiming_keyswap_argmax_changed"] is True
+                   and a3_wk["passes"] is True,
+                   f"aiming_frac={a1_wk['aiming_argmax_changed_frac_keyswap']:.4f} "
+                   f"t2a3_passes={a3_wk['passes']}")
+
+            n_aim_assertions += 1
+            report("  [CONJUNCTION] `passes` is EXACTLY legs (iii) AND (iv) AND (v) AND (vi) -- the "
+                   "RETIRED legs (i)/(ii) are computed, REPORTED, and enter the verdict NOWHERE. "
+                   "Re-derived from the returned flags on both oracles, so a future edit that "
+                   "quietly re-admits a retired bar turns this suite RED.",
+                   all(chk["passes"] == (chk["leg_iii_prior_le_005"]
+                                          and chk["leg_iv_ks_ci_excludes_zero_and_t2b1b"]
+                                          and chk["leg_v_t2b1_passes"]
+                                          and chk["leg_vi_aiming_keyswap_argmax_changed"])
+                       for chk in (a1_mis, a1_wk, t2a1_11))
+                   and a1_wk["gating_legs"] == ["iii_prior", "iv_ks_ci_excludes_zero_and_t2b1b",
+                                                 "v_t2b1", "vi_aiming"],
+                   f"gating_legs={a1_wk['gating_legs']} "
+                   f"retired={a1_wk['retired_legs_REPORTED_NEVER_GATING']}")
+
+            # ================= (C) LEG (iv)'s CI HAS TEETH THE POINT ESTIMATE DID NOT ===========
+            # sec 16's W-2: the OLD leg (iv) gated `ks >= 0.50` on a BARE POINT ESTIMATE with no CI
+            # anywhere. W2/openr1 read KS = 0.49951 and was HALTed by 0.00049 -- while its true 95%
+            # CI [0.475, 0.524] COVERS 0.50. The re-pinned leg gates the CI. These records carry a
+            # KS whose POINT estimate is > 0 but whose CI COVERS 0; the leg must FAIL.
+            knife = []
+            for i in range(400):
+                hit_i = 1 if i < 3 else 0            # 3 intact hits
+                hit_k = 1 if 3 <= i < 5 else 0       # 2 keyswap hits  => KS point = +0.0025 > 0
+                knife.append({
+                    "row_idx": i, "delta": 10 + (i % 100), "hit_intact": hit_i,
+                    "hit_keyswap": hit_k, "hit_noplant": 0,
+                    "argmax_intact_at_k": 1 if hit_i else 900 + i,
+                    "argmax_keyswap_at_k": 1 if hit_k else 7000 + i,   # aiming > 0: argmaxes differ
+                })
+            passing = {"passes": True, "p_value": 1e-9}
+            a1_knife = check_t2a1_ceiling(knife, passing, passing, n_boot=400)
+            n_aim_assertions += 1
+            report("  [KNIFE-EDGE KS] FORCED FAIL: a KS whose POINT estimate is > 0 but whose "
+                   "clustered-bootstrap 95% CI COVERS 0 FAILS leg (iv) -- the sec 16 W-2 defect "
+                   "(the old leg gated a BARE POINT ESTIMATE, no CI anywhere) is CLOSED. Legs "
+                   "(iii)/(v)/(vi) all pass on these records, so leg (iv) is the ONLY thing "
+                   "standing between them and an INSTRUMENT_VALID.",
+                   a1_knife["leg_iv_ks_point"] > 0.0
+                   and a1_knife["leg_iv_ks_ci"][0] <= 0.0
+                   and a1_knife["leg_iv_ks_ci_excludes_zero"] is False
+                   and a1_knife["leg_iii_prior_le_005"] is True
+                   and a1_knife["leg_v_t2b1_passes"] is True
+                   and a1_knife["leg_vi_aiming_keyswap_argmax_changed"] is True
+                   and a1_knife["passes"] is False,
+                   f"ks_point={a1_knife['leg_iv_ks_point']:.6f} "
+                   f"ks_ci={[round(v, 6) for v in a1_knife['leg_iv_ks_ci']]} "
+                   f"passes={a1_knife['passes']}")
+
+            # The COVERAGE check does NOT increment the counter it audits (that is the whole point:
+            # a tally compared against itself goes green on a skipped body). It earned its keep
+            # immediately -- on the first run it caught THIS BUILDER counting its own coverage
+            # report as an assertion (n=10 against a hardcoded 9) and turned the suite RED. That is
+            # now the SECOND consecutive builder it has caught, cf. sec 20.4(e).
+            report(f"  [COVERAGE] all {n_aim_assertions}/9 forced-fail assertions EXECUTED (the "
+                   f"expected count is HARDCODED, never derived from the counter -- a tally "
+                   f"compared against itself goes green on a skipped body)",
+                   n_aim_assertions == 9, f"n={n_aim_assertions}")
+        except Exception as e:  # noqa: BLE001
+            report("  [10g] sec 24 B-1/B-4 forced-fail negative tests", False,
+                   f"EXCEPTION after {n_aim_assertions} assertions: {type(e).__name__}: {e}")
+
+    # --- [10h] sec 24 (B-2) -- THE sec 18.4.1 INFLUENCE LADDER: FORCED-FAIL NEGATIVE TESTS.
+    #     Model-free (pure CPU over synthetic per-rung values). sec 9.4's binary strong/weak SPLIT
+    #     is RETIRED (its predicate `acc_copy >= 0.90` no longer exists); the ladder replaces it.
+    #     INDETERMINATE must fire IFF the fitted exponent's SIGN or its CI's EXCLUSION of the
+    #     no-trend null FLIPS anywhere along the prefix-drop ordering.
+    print("\n  [10h] sec 24 B-2: THE sec 18.4.1 INFLUENCE LADDER -- FORCED-FAIL")
+    n_ladder_assertions = 0
+    try:
+        log10p = {"r1": 1.0, "r2": 2.0, "r3": 3.0, "r4": 4.0}
+        ks_asc = {"r1": 0.10, "r2": 0.20, "r3": 0.30, "r4": 0.40}   # r1 is the LOWEST-KS rung
+
+        def _rows(v, n=40):
+            return {i: v for i in range(n)}   # zero within-rung variance => an exact, seedless CI
+
+        def _rows_noisy(v, n=40):
+            """Non-degenerate within-rung spread (sd ~ 0.11), so the bootstrap CI has WIDTH. A
+            zero-variance rung yields ci95 == [beta, beta], which can NEVER include 0 unless beta
+            is exactly 0 -- so the exclusion-flip condition below is untestable without this. (The
+            first draft of this block used `_rows` throughout and the exclusion test could not
+            fail; the forced-fail run caught it, which is the entire reason for running them.)"""
+            jitter = (-0.15, -0.05, 0.05, 0.15)
+            return {i: v + jitter[i % len(jitter)] for i in range(n)}
+
+        # FLIP: over all four rungs the slope is POSITIVE (+0.23); drop the lowest-KS rung (r1)
+        # and it turns NEGATIVE (-0.10). The SIGN flips along the ladder => INDETERMINATE.
+        flip_vals = {"r1": _rows(0.0), "r2": _rows(1.0), "r3": _rows(0.9), "r4": _rows(0.8)}
+        lad_flip = influence_ladder(flip_vals, log10p, ks_asc, n_boot=200)
+        n_ladder_assertions += 1
+        report("  [LADDER] FORCED FAIL: the fitted exponent's SIGN FLIPS when the lowest-KS rung "
+               "is dropped (+ -> -) and the ladder returns INDETERMINATE. This is the condition "
+               "sec 16.5 proved sec 15's median-KS split could NEVER detect.",
+               lad_flip["evaluable"] is True and lad_flip["indeterminate"] is True
+               and lad_flip["sign_flips"] is True and lad_flip["n_steps"] == 2
+               and lad_flip["steps"][0]["beta_sign"] == 1
+               and lad_flip["steps"][1]["beta_sign"] == -1,
+               f"n_steps={lad_flip['n_steps']} "
+               f"betas={[round(s['beta_point'], 4) for s in lad_flip['steps']]} "
+               f"signs={[s['beta_sign'] for s in lad_flip['steps']]} "
+               f"indeterminate={lad_flip['indeterminate']}")
+
+        # NO FLIP: a clean monotone trend. Sign and CI-exclusion are stable => NOT indeterminate.
+        # (The ladder must not cry INDETERMINATE at every dataset, or it is not a check either.)
+        stable_vals = {"r1": _rows(0.1), "r2": _rows(0.2), "r3": _rows(0.3), "r4": _rows(0.4)}
+        lad_ok = influence_ladder(stable_vals, log10p, ks_asc, n_boot=200)
+        n_ladder_assertions += 1
+        report("  [LADDER] and it does NOT fire on a robust trend: sign and CI-exclusion are "
+               "stable across every prefix-drop => indeterminate=False. A check that always "
+               "fires is not a check.",
+               lad_ok["evaluable"] is True and lad_ok["indeterminate"] is False
+               and lad_ok["sign_flips"] is False and lad_ok["exclusion_flips"] is False
+               and lad_ok["n_steps"] == 2,
+               f"betas={[round(s['beta_point'], 4) for s in lad_ok['steps']]} "
+               f"excl={[s['ci_excludes_no_trend_null'] for s in lad_ok['steps']]}")
+
+        # EXCLUSION FLIP with a STABLE sign: beta stays positive throughout, but dropping the
+        # lowest-KS rung collapses the CI's exclusion of the no-trend null. sec 18.4.1 fires on
+        # EITHER condition, not only on the sign.
+        # The lowest-KS rung (r1) is the one carrying the trend: over all four the slope is a solid
+        # +0.094 whose CI excludes 0; drop r1 and the remaining three are flat-within-noise
+        # (+0.010, CI straddling 0). The sign is POSITIVE at BOTH steps.
+        excl_vals = {"r1": _rows_noisy(0.0), "r2": _rows_noisy(0.30),
+                     "r3": _rows_noisy(0.28), "r4": _rows_noisy(0.32)}
+        lad_excl = influence_ladder(excl_vals, log10p, ks_asc, n_boot=2000)
+        n_ladder_assertions += 1
+        report("  [LADDER] FORCED FAIL, SECOND CONDITION: the SIGN never flips (positive at every "
+               "step), but the CI's EXCLUSION of the no-trend null DOES -- and sec 18.4.1 fires on "
+               "EITHER. A build that implemented only the sign clause would pass every other test "
+               "in this block and fail here.",
+               lad_excl["evaluable"] is True and lad_excl["indeterminate"] is True
+               and lad_excl["sign_flips"] is False and lad_excl["exclusion_flips"] is True
+               and lad_excl["steps"][0]["ci_excludes_no_trend_null"] is True
+               and lad_excl["steps"][1]["ci_excludes_no_trend_null"] is False,
+               f"betas={[round(s['beta_point'], 4) for s in lad_excl['steps']]} "
+               f"signs={[s['beta_sign'] for s in lad_excl['steps']]} "
+               f"cis={[[round(v, 4) for v in s['ci95']] for s in lad_excl['steps']]} "
+               f"excl={[s['ci_excludes_no_trend_null'] for s in lad_excl['steps']]}")
+
+        # THE VACUOUS REGIME -- flagged, not hidden. At exactly 3 rungs the ladder has ONE step,
+        # so NOTHING CAN FLIP and "robust" means only "not checked". sec 11.8 records 2 fit rungs
+        # available against a minimum of 3, so this is the LIKELY regime.
+        lad_vac = influence_ladder({k: stable_vals[k] for k in ("r1", "r2", "r3")},
+                                    log10p, ks_asc, n_boot=200)
+        n_ladder_assertions += 1
+        report("  [LADDER] THE VACUOUS REGIME IS DECLARED, NOT HIDDEN: at exactly 3 rungs there "
+               "is ONE step, nothing can flip, and `ladder_is_vacuous=True` says so in the "
+               "artifact. sec 24 records this as a RESIDUAL CONCERN rather than repairing it "
+               "silently -- the pin is implemented as written.",
+               lad_vac["evaluable"] is True and lad_vac["n_steps"] == 1
+               and lad_vac["ladder_is_vacuous"] is True
+               and lad_vac["indeterminate"] is False
+               and any("VACUOUS" in s for s in lad_vac["reasons"]),
+               f"n_steps={lad_vac['n_steps']} vacuous={lad_vac['ladder_is_vacuous']}")
+
+        # FAIL-CLOSED: a rung whose KS is NaN cannot be ORDERED. It must never be silently
+        # dropped from the fit -- the ladder refuses to evaluate.
+        lad_nan = influence_ladder(stable_vals, log10p, dict(ks_asc, r3=float("nan")), n_boot=200)
+        n_ladder_assertions += 1
+        report("  [LADDER] FAIL-CLOSED: a rung carrying a NaN KS cannot be ordered, so the ladder "
+               "refuses to evaluate and returns INDETERMINATE -- it never silently drops a rung "
+               "from the fit (which would be a selection effect wearing a missing-data costume)",
+               lad_nan["evaluable"] is False and lad_nan["indeterminate"] is True
+               and lad_nan["n_steps"] == 0,
+               f"evaluable={lad_nan['evaluable']} reasons={lad_nan['reasons']}")
+
+        n_ladder_assertions += 1
+        report(f"  [COVERAGE] all {n_ladder_assertions}/6 ladder assertions EXECUTED (expected "
+               f"count HARDCODED)", n_ladder_assertions == 6, f"n={n_ladder_assertions}")
+    except Exception as e:  # noqa: BLE001
+        report("  [10h] sec 24 B-2 influence-ladder forced-fail tests", False,
+               f"EXCEPTION after {n_ladder_assertions} assertions: {type(e).__name__}: {e}")
 
     # --- [10d] sec 11.7 N_ROWS PRE-PASS: model-free, both corpora, real DeltaNetLM class NOT
     #     touched (the pre-pass never loads a checkpoint) -- confirm it terminates, VOIDs with a
