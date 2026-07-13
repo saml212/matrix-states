@@ -511,6 +511,7 @@ import os
 import random
 import sys
 import time
+import types   # sec 28: SimpleNamespace for the oracle's HF-convention .logits return
 
 os.environ.setdefault("HF_HOME", "/data/hf_cache")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
@@ -830,6 +831,45 @@ class HFLogitsWrapper(torch.nn.Module):
                 f"score. D5 round-1 SERIOUS-8."
             )
         return out
+
+
+# =============================================================================
+# sec 28 (A-2 FIX): the ORACLE, presented in the transformers PreTrainedModel
+# calling convention so it can be wrapped by the REAL HFLogitsWrapper -- the
+# SAME adapter every witness's model traverses.
+# =============================================================================
+class _HFConventionPerfectCopyModel(torch.nn.Module):
+    """sec 28. `PerfectCopyOracle` (the audited probe-module oracle, reused
+    verbatim -- NOT reimplemented) wrapped in the `transformers` causal-LM
+    calling convention: `__call__(input_ids=..., use_cache=...)` returns an
+    object carrying a `.logits` attribute of shape `(B, T, vocab_size)`. That
+    is the EXACT shape `HFLogitsWrapper` reads (`self.hf_model(input_ids=x,
+    use_cache=False).logits`, driver L801), so wrapping THIS in the deployed
+    `HFLogitsWrapper` drives the positive control's oracle through the identical
+    read -- `.logits` extraction, the fp32 `.float()` upcast, the finite check
+    -- that every real witness's forward pass travels (sec 27's A-2: the raw
+    oracle path bypassed all of it).
+
+    **VOCAB-NATIVE BY CONSTRUCTION (sec 27.5's hazard, avoided).** `vocab_size`
+    is THIS witness's own vocab_size (from `load_witness_model`), so `.logits`
+    is `(B, T, witness_vocab)` and the oracle recovers a plant drawn in that
+    witness's vocab -- NOT a GPT-2-vocab oracle relying on the bridge to
+    "translate", which sec 27.5 warns would pass VACUOUSLY (both sides sharing
+    GPT-2 vocab, proving nothing about RWKV7's or falcon-mamba's real adapter).
+    The oracle is parameter-free (a scatter/gather/argmax), so a per-witness
+    vocab-native oracle costs NO model load and NO extra GPU-h (sec 26's cost
+    contract): `run_t2a4_positive_control_witness` REUSES the witness's own
+    already-loaded `vocab_size`/`eos_id` and already-built `corpus_data`."""
+
+    def __init__(self, vocab_size: int):
+        super().__init__()
+        self.oracle = PerfectCopyOracle(vocab_size)
+        # a real HF causal LM exposes config.vocab_size; mirror it so any adapter
+        # code that reads it (and a reader of the returned object) sees the truth.
+        self.config = types.SimpleNamespace(vocab_size=int(vocab_size))
+
+    def forward(self, input_ids, use_cache=False, **kwargs):
+        return types.SimpleNamespace(logits=self.oracle(input_ids))
 
 
 # =============================================================================
@@ -1591,74 +1631,103 @@ def run_t2a2_untrained_control(corpus_name: str, data_dir: str, device: str,
     return result
 
 
-def run_t2a4_positive_control(corpus_name: str, data_dir: str, device: str,
-                               seq_len: int = SEQ_LEN_DEFAULT, n_windows: int = N_ROWS_DEFAULT,
-                               n_plants: int = N_PLANTS_DEFAULT) -> dict:
-    """T2a-4 THE POSITIVE CONTROL (sec 26, GATING, NEW). **THE ONLY CONTROL IN
-    THIS DESIGN THAT ASKS WHETHER THE INSTRUMENT CAN SUCCEED WHEN IT SHOULD.**
+def run_t2a4_positive_control_witness(witness_key: str, corpus_name: str,
+                                       train_tokens: torch.Tensor, val_tokens: torch.Tensor,
+                                       eos_id: int, vocab_size: int, device: str,
+                                       seq_len: int = SEQ_LEN_DEFAULT,
+                                       n_windows: int = N_ROWS_DEFAULT,
+                                       n_plants: int = N_PLANTS_DEFAULT,
+                                       eval_micro_batch: int = EVAL_MICRO_BATCH_DEFAULT) -> dict:
+    """T2a-4 THE POSITIVE CONTROL, ROUTED THROUGH **THIS WITNESS'S OWN ADAPTER**
+    (sec 28 / A-2 FIX, GATING). **THE ONLY CONTROL THAT ASKS WHETHER THE
+    INSTRUMENT CAN SUCCEED WHEN IT SHOULD -- ON THE PATH THAT CARRIES THE
+    VERDICT.**
 
-    Every other control is a NEGATIVE one -- T2a-2's untrained model, sec 20's
-    liveness witness, sec 24's leg (vi) -- and each asks "can this FAIL when it
-    should?". sec 25's A-1 walked through the gap that leaves: a readout
-    correctly aimed on 12 of 2048 rows (0.6%) and MIS-AIMED on the other 2036 is
-    alive, input-dependent and plant-independent, and it CLEARS ALL FOUR GATING
-    LEGS (acc_copy=0.0059, PRIOR=0.0000, KS 95% CI [0.0029, 0.0093] excludes 0,
-    aiming=0.0059 > 0) => T2a-1 PASS, T2a-3 PASS, INSTRUMENT_VALID. Leg (vi) --
-    the leg built to catch exactly a mis-aimed probe -- reads `0.0059 > 0` and
-    PASSES it. **It certifies "aimed SOMEWHERE," not "aimed."**
+    ===== WHY THE sec-26 VERSION WAS ON THE WRONG PATH (sec 27, A-2) =====
 
-    THIS LEG RUNS THE REAL SIX-ARM PROBE OVER `PerfectCopyOracle` -- a model that
-    has the copy mechanism BY FIAT -- and REQUIRES THE PROBE TO RECOVER WHAT WAS
-    PLANTED IN IT, ON EVERY ROW. The null (n_miss_recovery == 0 AND
-    n_aim_unchanged == 0) is fixed BY A CONSTRUCTION WE CONTROL, not by any
-    model's behaviour: both identities are THEOREMS of `plant_and_verify_t2_
-    window`'s own hard assertion (derivation in `PerfectCopyOracle`'s docstring).
-    An instrument aimed on 0.6% of rows reads `n_miss_recovery = 2036` and HALTS.
+    sec 26's `run_t2a4_positive_control` built `PerfectCopyOracle(VOCAB_SIZE_GPT2)`
+    RAW on our own GPT-2 corpus -- "no HF model, no bridge, no tokenizer mismatch
+    possible." But EVERY real witness (W1 RWKV7, W2 gpt2-large, and the GATING,
+    never-measured C1 falcon-mamba) is read through `HFLogitsWrapper` + (for the
+    bridged witnesses) `build_bridged_corpus` + `eot_override` + its OWN vocab.
+    The oracle path and the witness path were DISJOINT upstream of
+    `run_t2_repaired_probe`, so a mis-aim living in the witness-only adapter --
+    the wrapper's logit read, the re-tokenization bridge, the EOT override, the
+    per-witness vocab/dtype -- was STRUCTURALLY INVISIBLE to the positive control.
+    sec 27 demonstrated it: a PERFECT copy model behind a `HFLogitsWrapper`
+    mis-aimed on 98.78% of rows reads `acc_copy=0.0122` and certifies
+    `INSTRUMENT_VALID=True`, sec 26's T2a-4 included.
 
-    IT USES OUR OWN GPT-2-TOKENIZED CORPUS DIRECTLY -- no HF model, no bridge, no
-    tokenizer mismatch possible -- exactly as `run_t2a2_untrained_control` does,
-    and with the SAME `RUNG_MATCHING_SEED_OFFSET`, `seq_len`, `n_windows` and
-    `n_plants`, so it certifies the instrument on the very plant population the
-    witness cells are read on. `run_did_eval` supplies the Delta pool from the
-    PRIMARY's own candidate detection (which is MODEL-FREE -- candidates are
-    detected from the TOKENS -- so this pool is the same one T2a-2 harvests).
+    ===== THE FIX: THE ORACLE EXERCISES THIS WITNESS'S EXACT ADAPTER =====
 
-    COST: 0 GPU-h in the sense sec 25.5 item 2 requires -- the oracle is
-    CONSTRUCTED, not trained. It has no parameters and no matmul; it is a
-    scatter, a gather and an argmax. Minutes.
+    The oracle is now `_HFConventionPerfectCopyModel(vocab_size)` -- vocab-native
+    to **this witness's** vocab (sec 27.5's vacuity hazard avoided: NOT a
+    GPT-2-vocab oracle relying on the bridge to "translate") -- wrapped in the
+    **deployed `HFLogitsWrapper`** and driven over **this witness's own
+    `corpus_data`** (`val_tokens`/`train_tokens`: the BRIDGED corpus for W1/C1,
+    our GPT-2 corpus for W2 -- exactly what `load_witness_corpus` produced), under
+    **`eot_override(eos_id)`** with pools built via `eot_token_id=eos_id`, at
+    **this witness's `vocab_size`** -- byte-for-byte the adapter usage of
+    `run_witness_cell`. A mis-aim in the wrapper's read (sec 27's exploit -- the
+    ONE witness-only stage with no ground-truth check, because a mis-aimed wrapper
+    on a real witness is indistinguishable from a weak witness) or in the vocab
+    index-space now makes the oracle FAIL TO RECOVER: `n_miss_recovery > 0`,
+    `passes=False`. A vocab_size/tokenizer mismatch in the bridged corpus (an
+    out-of-range id) makes the oracle's own scatter RAISE -> fail-closed. (See
+    sec 28 for the residual it does NOT catch: a content-preserving bridge
+    mis-tokenization is invisible to a vocab-agnostic copier and is handed to a
+    fresh agent.)
 
-    **IT GATES THE INSTRUMENT, NOT THE WITNESSES, AND IT READS NO WITNESS
-    QUANTITY.** sec 25.5's own candidate direction was a per-stratum aiming leg on
-    the witnesses; sec 25 named the hazard in it, and the hazard is real -- W1 and
-    W2 are legitimately DISTANCE-LIMITED (W1/openr1's Delta-deciles run 0.907 ->
-    0.376), so a healthy witness can read `aiming = 0` in its largest decile and a
-    per-decile `> 0` leg would FALSE-HALT it. That is sec 23.4 item 2's error,
-    which sec 24 correctly refused. This function CANNOT commit it: it constructs
-    the oracle itself and hands `check_t2a4_positive_control` the ORACLE's records
-    and nothing else. The witnesses' aiming profiles stay REPORTED and gate
-    nothing per-stratum."""
-    train_tokens, val_tokens, meta, _, _ = load_corpus(data_dir, corpus_name, device)
-    model = PerfectCopyOracle(VOCAB_SIZE_GPT2).to(device).eval()
-    mode_next = build_bigram_mode_table(train_tokens, VOCAB_SIZE_GPT2, device)
-    counts_by_token = torch.bincount(train_tokens, minlength=VOCAB_SIZE_GPT2).tolist()
+    ===== THE NULL IS STILL A THEOREM (RULE T), NO NEW BAR =====
+
+    The predicate is UNCHANGED: `check_t2a4_positive_control` fires on any
+    violation of `argmax_intact_at_k == b` or `argmax_intact != argmax_keyswap`,
+    against a construction null of EXACTLY 0. The oracle emits `b` at the readout
+    BY FIAT, so under a correctly-aimed adapter both violation counts are 0 -- a
+    POINT MASS AT ZERO, no tolerance, no measured threshold, no new numeric gating
+    literal. sec 26.2's RULE T analysis carries over verbatim; the only thing that
+    changed is the PATH the oracle travels, from the raw one to the witness's.
+
+    **IT STILL READS NO WITNESS QUANTITY.** It depends on this witness's ADAPTER
+    (corpus/eos/vocab) but runs the ORACLE, never the witness MODEL, so a
+    DISTANCE-LIMITED witness (W1/openr1: 0.907 -> 0.376) cannot false-HALT it --
+    the oracle's recovery is distance-independent. sec 25.5's per-decile-aiming
+    hazard, which sec 23.4 item 2 committed and sec 24 refused, still does not
+    attach.
+
+    COST: `_HFConventionPerfectCopyModel` is parameter-free (a scatter/gather/
+    argmax); this REUSES the witness's already-loaded `vocab_size`/`eos_id` and
+    already-built `corpus_data`, so it adds NO model load and NO bridge build --
+    0 extra GPU-h (sec 25.5 item 2 / sec 26's cost contract). Minutes."""
+    model = HFLogitsWrapper(_HFConventionPerfectCopyModel(vocab_size)).to(device).eval()
+    mode_next = build_bigram_mode_table(train_tokens, vocab_size, device)
+    counts_by_token = torch.bincount(train_tokens, minlength=vocab_size).tolist()
     seed = corpus_fixed_seed(corpus_name) + RUNG_MATCHING_SEED_OFFSET
+    result = {"corpus": corpus_name, "witness": witness_key, "oracle": "PerfectCopyOracle",
+              "vocab_size": int(vocab_size), "eos_id": int(eos_id), "adapter": "witness"}
 
-    did_result = run_did_eval(model, val_tokens, 32, seq_len, n_windows, device, mode_next, seed,
-                               vocab_size=VOCAB_SIZE_GPT2)
+    # Delta pool harvested from the ORACLE through the SAME eot_override the witness uses -- the
+    # deltas are token-derived (candidate distances), so this matches the witness cell's own pool.
+    with eot_override(eos_id):
+        did_result = run_did_eval(model, val_tokens, 32, seq_len, n_windows, device, mode_next, seed,
+                                   vocab_size=vocab_size)
     delta_pool = [r["delta"] for r in did_result["records"]]
-    pools = build_key_value_pools(train_tokens, VOCAB_SIZE_GPT2, device)
-    result = {"corpus": corpus_name, "oracle": "PerfectCopyOracle",
-              "delta_pool_n": len(delta_pool)}
+    with eot_override(eos_id):
+        pools = build_key_value_pools(train_tokens, vocab_size, device, eot_token_id=eos_id)
+    result["delta_pool_n"] = len(delta_pool)
     if not delta_pool or not (pools["floor_pool_key"] and pools["floor_pool_val"]
                                and pools["floor_licensed_b"]):
         result["t2_void"] = True
-        result["t2_void_reason"] = ("empty Delta pool or sec 11.2 pool floor(s) missed on our own "
-                                     "corpus -- the POSITIVE CONTROL cannot certify the instrument "
-                                     "off a population it could not build. FAIL-CLOSED.")
+        result["t2_void_reason"] = ("empty Delta pool or sec 11.2 pool floor(s) missed on THIS "
+                                     "witness's bridged corpus -- the POSITIVE CONTROL cannot certify "
+                                     "an adapter it could not build a plant population through. "
+                                     "FAIL-CLOSED.")
         return result
 
-    t2_result = run_t2_repaired_probe(model, val_tokens, seq_len, device, corpus_name, delta_pool,
-                                       pools, counts_by_token, n_plants, vocab_size=VOCAB_SIZE_GPT2)
+    with eot_override(eos_id):
+        t2_result = run_t2_repaired_probe(model, val_tokens, seq_len, device, corpus_name, delta_pool,
+                                           pools, counts_by_token, n_plants, vocab_size=vocab_size,
+                                           eval_micro_batch=eval_micro_batch)
     if t2_result.get("void"):
         result["t2_void"] = True
         result["t2_void_reason"] = t2_result.get("void_reason")
@@ -1893,6 +1962,29 @@ def mode_gate(args) -> int:
             results["cells"][f"{w}/{corpus}"] = cell
             _persist()
 
+            # sec 28 / T2a-4 THE POSITIVE CONTROL, ON **THIS WITNESS'S OWN ADAPTER** (A-2 FIX).
+            # sec 27's A-2: sec 26's positive control ran the RAW oracle on our GPT-2 corpus, DISJOINT
+            # from the wrapper+bridge+eot+vocab stack every witness verdict travels -- so a mis-aim in
+            # that witness-only adapter (the wrapper's read; the vocab index-space) was invisible to
+            # it. It now runs the vocab-native oracle THROUGH THE DEPLOYED HFLogitsWrapper, over THIS
+            # witness's already-built corpus_data (the bridged corpus for W1/C1, our GPT-2 corpus for
+            # W2), under eot_override(eos_id), at THIS witness's vocab_size -- the SAME adapter
+            # run_witness_cell just drove the real model through, reusing its outputs so it costs NO
+            # extra model load and NO bridge build (the oracle is parameter-free). GATING, per
+            # (witness, corpus), fail-closed like every other leg: a positive control that did not run
+            # is not a null result, it is no result (sec 19.3d).
+            try:
+                results.setdefault("t2a4", {}).setdefault(corpus, {})[w] = \
+                    run_t2a4_positive_control_witness(
+                        w, corpus, corpus_data["train"], corpus_data["val"], eos_id, vocab_size,
+                        args.device, seq_len=args.seq_len, n_windows=args.n_windows,
+                        n_plants=args.n_plants, eval_micro_batch=args.eval_micro_batch)
+            except Exception as e:   # noqa: BLE001 -- a leg that raised is not a pass (fail-closed)
+                results.setdefault("t2a4", {}).setdefault(corpus, {})[w] = {
+                    "witness": w, "corpus": corpus, "t2_void": True,
+                    "t2_void_reason": f"{type(e).__name__}: {e}"}
+            _persist()
+
             # sec 11.4.3's W2 Delta-sweep + n_demos diagnostic -- computed for W2 (the design's
             # own naming: "the W2 Delta-sweep") when it clears T2 at all. natural_delta_pool is
             # THAT SAME cell's own harvested Delta pool (run_witness_cell's "delta_pool" -- the
@@ -1926,21 +2018,10 @@ def mode_gate(args) -> int:
                 "t2_void": True, "t2_void_reason": f"{type(e).__name__}: {e}"}
         _persist()
 
-    # sec 26 / T2a-4 THE POSITIVE CONTROL. GATING. Runs the real six-arm probe over a model that
-    # copies BY FIAT and requires the probe to RECOVER the plant ON EVERY ROW. This is the leg that
-    # closes sec 25's A-1: an instrument aimed on 0.6% of the candidate population clears all four
-    # of T2a-1's legs and certifies INSTRUMENT_VALID, and NOTHING before this could see it. The
-    # exception handler is fail-closed, like every other leg's: a positive control that did not run
-    # is not a null result, it is no result (sec 19.3d).
-    for corpus in corpora:
-        try:
-            results.setdefault("t2a4", {})[corpus] = run_t2a4_positive_control(
-                corpus, args.data_dir, args.device, seq_len=args.seq_len, n_windows=args.n_windows,
-                n_plants=args.n_plants)
-        except Exception as e:   # noqa: BLE001
-            results.setdefault("t2a4", {})[corpus] = {
-                "t2_void": True, "t2_void_reason": f"{type(e).__name__}: {e}"}
-        _persist()
+    # sec 28 / T2a-4 THE POSITIVE CONTROL is now run PER-WITNESS, INSIDE the witness loop above
+    # (A-2 FIX) -- it must exercise EACH witness's own adapter (HFLogitsWrapper + bridged corpus +
+    # eot_override + vocab), not one shared raw oracle on the wrong path (sec 27). Nothing is done
+    # here; `results["t2a4"]` is populated as `{corpus: {witness: {...}}}` by the loop.
 
     if "W1_rwkv7" in witnesses and "W2_gpt2large" in witnesses:
         for corpus in corpora:
@@ -2027,9 +2108,13 @@ def mode_gate(args) -> int:
                           .get("t2a2_untrained_control", {}).get("passes")) for c in REQUIRED_CORPORA),
         "t2a3": all(bool(results["cells"].get(f"C1_falconmamba/{c}", {})
                           .get("t2a3_ssm_calibration", {}).get("passes")) for c in REQUIRED_CORPORA),
-        # sec 26 / T2a-4 THE POSITIVE CONTROL. GATING, on BOTH corpora, like every other leg.
-        "t2a4": all(bool(results.get("t2a4", {}).get(c, {})
-                          .get("t2a4_positive_control", {}).get("passes")) for c in REQUIRED_CORPORA),
+        # sec 28 / T2a-4 THE POSITIVE CONTROL. GATING, PER-WITNESS x PER-CORPUS (A-2 FIX): each
+        # witness's OWN adapter must certify (the oracle recovers the plant THROUGH that witness's
+        # HFLogitsWrapper+bridge+eot+vocab), so the conjunction runs over REQUIRED_WITNESSES too --
+        # a mis-aim in C1/falcon-mamba's adapter can no longer hide behind W2's or the raw path.
+        "t2a4": all(bool(results.get("t2a4", {}).get(c, {}).get(w, {})
+                          .get("t2a4_positive_control", {}).get("passes"))
+                    for c in REQUIRED_CORPORA for w in REQUIRED_WITNESSES),
         "t1c": all(bool(results.get("t1c", {}).get(c, {}).get("passes")) for c in REQUIRED_CORPORA),
     }
     # D5 round-4 M-6: enumerate the legs EXPLICITLY rather than `all(gate.values())`, which was
@@ -2038,12 +2123,13 @@ def mode_gate(args) -> int:
     # line ordering.
     gate["INSTRUMENT_VALID"] = all(gate[k] for k in
                                     ("coverage_complete", "t2a1", "t2a2", "t2a3", "t2a4", "t1c"))
-    gate["note"] = ("sec 11.4.2/11.4.5 + sec 26: T2a-1 (W1 AND W2, each corpus) AND T2a-2 "
+    gate["note"] = ("sec 11.4.2/11.4.5 + sec 26 + sec 28: T2a-1 (W1 AND W2, each corpus) AND T2a-2 "
                     "(untrained NEGATIVE control) AND T2a-3 (SSM causal legs) AND T2a-4 (the "
-                    "POSITIVE control -- the probe must RECOVER, on EVERY row, a plant a model "
-                    "emits BY FIAT) AND T1c (reference DiD) are ALL gating. Any False => "
-                    "INSTRUMENT-INVALID, HALT for every rung. This roll-up is mechanical; do not "
-                    "hand-assemble it from the per-cell dicts.")
+                    "POSITIVE control -- the probe must RECOVER, on EVERY row, a plant a model emits "
+                    "BY FIAT, through EACH witness's OWN adapter: HFLogitsWrapper + bridged corpus + "
+                    "eot_override + vocab, per (witness, corpus)) AND T1c (reference DiD) are ALL "
+                    "gating. Any False => INSTRUMENT-INVALID, HALT for every rung. This roll-up is "
+                    "mechanical; do not hand-assemble it from the per-cell dicts.")
     results["instrument_gate"] = gate
 
     print(json.dumps({k: v for k, v in results.items() if k != "cells"}, indent=2, default=str))
@@ -2733,7 +2819,7 @@ def smoke(device: str = "cpu") -> int:
                                  side_effect=RuntimeError("SMOKE: witness load refused")), \
              _mock.patch.object(sys.modules[__name__], "run_t2a2_untrained_control",
                                  side_effect=RuntimeError("SMOKE: t2a2 refused")), \
-             _mock.patch.object(sys.modules[__name__], "run_t2a4_positive_control",
+             _mock.patch.object(sys.modules[__name__], "run_t2a4_positive_control_witness",
                                  side_effect=RuntimeError("SMOKE: t2a4 refused")):
             rc = mode_gate(_fake_gate_args(out_path))
         with open(out_path) as f:
@@ -2742,8 +2828,9 @@ def smoke(device: str = "cpu") -> int:
         report("[6h] mode_gate's BODY runs end-to-end and FAILS CLOSED (INSTRUMENT_VALID=False) "
                "when every witness refuses to load -- model-free (loader MOCKED, D5 round-5 "
                "SERIOUS-3: the round-4 version would have loaded 19GB of real weights inside "
-               "--smoke on the training box). sec 26: the T2a-4 POSITIVE-CONTROL leg is in the "
-               "gate dict and is FAIL-CLOSED when its own orchestration raises.",
+               "--smoke on the training box). sec 28: the T2a-4 POSITIVE-CONTROL leg (now "
+               "PER-WITNESS) is in the gate dict and is FAIL-CLOSED (empty {corpus:{witness}} "
+               "roll-up over the CONSTANT required sets => all-False, not vacuous-True).",
                rc == 0 and g.get("INSTRUMENT_VALID") is False and g.get("t2a4") is False
                and set(g) >= {"coverage_complete", "t2a1", "t2a2", "t2a3", "t2a4", "t1c",
                                "INSTRUMENT_VALID"},
@@ -2795,8 +2882,10 @@ def smoke(device: str = "cpu") -> int:
             return {"corpus": corpus, "t2_void": False,
                     "t2a2_untrained_control": {"passes": True}}
 
-        def _fake_t2a4(corpus, data_dir, device, **kw):
-            return {"corpus": corpus, "oracle": "PerfectCopyOracle", "t2_void": False,
+        # sec 28: run_t2a4_positive_control_witness(witness_key, corpus, train, val, eos_id,
+        # vocab_size, device, ...) -- PER (witness, corpus), returns a healthy positive control.
+        def _fake_t2a4(wk, corpus, train, val, eos_id, vocab, device, **kw):
+            return {"witness": wk, "corpus": corpus, "oracle": "PerfectCopyOracle", "t2_void": False,
                     "t2a4_positive_control": {"passes": True, "n_miss_recovery": 0,
                                                "n_aim_unchanged": 0}}
 
@@ -2822,10 +2911,12 @@ def smoke(device: str = "cpu") -> int:
                     r["t2a2_untrained_control"] = {"passes": False}
                 return r
 
-            def _t2a4(corpus, data_dir, device, **kw):
-                r = _fake_t2a4(corpus, data_dir, device, **kw)
-                if break_leg == "t2a4":
-                    # sec 25's A-1 instrument: aimed on 12 of 2048 rows, mis-aimed on 2036.
+            def _t2a4(wk, corpus, train, val, eos_id, vocab, device, **kw):
+                r = _fake_t2a4(wk, corpus, train, val, eos_id, vocab, device, **kw)
+                if break_leg == "t2a4" and (break_witness in (None, wk)) \
+                        and (break_corpus in (None, corpus)):
+                    # sec 27's A-2 instrument: a PERFECT copy model behind a mis-aimed witness
+                    # ADAPTER -- the oracle fails to recover the plant THROUGH that witness's wrapper.
                     r["t2a4_positive_control"] = {"passes": False, "n_miss_recovery": 2036,
                                                    "n_aim_unchanged": 2036}
                 return r
@@ -2836,7 +2927,7 @@ def smoke(device: str = "cpu") -> int:
                  _mock.patch.object(m, "load_witness_corpus", side_effect=_fake_load_corpus), \
                  _mock.patch.object(m, "run_witness_cell", side_effect=_cell), \
                  _mock.patch.object(m, "run_t2a2_untrained_control", side_effect=_t2a2), \
-                 _mock.patch.object(m, "run_t2a4_positive_control", side_effect=_t2a4), \
+                 _mock.patch.object(m, "run_t2a4_positive_control_witness", side_effect=_t2a4), \
                  _mock.patch.object(m, "_get_gpt2_tokenizer", side_effect=lambda: None):
                 mode_gate(_fake_gate_args(op))
             with open(op) as f:
@@ -2899,10 +2990,10 @@ def smoke(device: str = "cpu") -> int:
                "**t2a4**, t1c} sets THAT leg False, forces INSTRUMENT_VALID False, and leaves the "
                "OTHER FOUR True -- proves every pinned leg is (a) in the conjunction, (b) read off "
                "the right cell, and (c) combined with AND not OR (D5 round-6 SERIOUS-2). The t2a4 "
-               "row is sec 26's: an instrument aimed on 12 of 2048 rows HALTS the gate, and NOTHING "
-               "ELSE MOVES -- the four legs sec 25 showed it clears STAY GREEN, which is precisely "
-               "why the positive control had to be a SEPARATE leg and not a tightening of an "
-               "existing one.",
+               "row is sec 28's A-2: a PERFECT model behind a mis-aimed witness ADAPTER HALTS the "
+               "gate, and NOTHING ELSE MOVES -- the four legs sec 25 showed it clears STAY GREEN, "
+               "which is precisely why the positive control had to be a SEPARATE leg and not a "
+               "tightening of an existing one.",
                all_legs_ok,
                "; ".join(f"{k}: leg={v['leg_false']} invalid={v['invalid']} "
                           f"others_ok={v['others_still_true']}" for k, v in leg_results.items()))
@@ -2916,6 +3007,23 @@ def smoke(device: str = "cpu") -> int:
                "instead-of-`all` bug on either axis would pass this cell and be invisible)",
                g_w2["t2a1"] is False and g_w2["INSTRUMENT_VALID"] is False,
                f"gate={ {k: v for k, v in g_w2.items() if k != 'note'} }")
+
+        # --- [6j-g] sec 28 / A-2: T2a-4 IS NOW CONJUNCTIVE ACROSS WITNESSES x CORPORA. Failing the
+        #     POSITIVE CONTROL on ONLY C1/falcon-mamba (the GATING, never-measured SSM whose adapter
+        #     -- bridge/vocab/EOT -- sec 27 named the blind spot) on ONLY ONE corpus must STILL HALT.
+        #     Before sec 28 the positive control was ONE shared raw oracle, so C1's adapter had NO
+        #     per-witness positive control at all; this cell is what proves it now does. ---
+        g_c1 = _run_happy(break_leg="t2a4", break_witness="C1_falconmamba",
+                           break_corpus="openr1-mix-ext")["instrument_gate"]
+        report("[6j-g] T2a-4 is conjunctive across witnesses AND corpora (sec 28 / A-2): failing the "
+               "POSITIVE CONTROL on ONLY C1_falconmamba / ONLY openr1 -- the exact adapter sec 27 "
+               "said carried no positive control -- drives t2a4=False and INSTRUMENT_VALID=False, "
+               "while every OTHER leg stays True. A shared raw oracle (sec 26) could not have failed "
+               "on a single witness's adapter; this is the A-2 fix, in one line of gate output.",
+               g_c1["t2a4"] is False and g_c1["INSTRUMENT_VALID"] is False
+               and g_c1["t2a1"] is True and g_c1["t2a2"] is True and g_c1["t2a3"] is True
+               and g_c1["t1c"] is True,
+               f"gate={ {k: v for k, v in g_c1.items() if k != 'note'} }")
     except Exception as e:  # noqa: BLE001
         report("[6j] mode_gate HAPPY PATH (roll-up / coverage / advisory / non-gating)", False,
                f"EXCEPTION: {type(e).__name__}: {e}")
@@ -2999,13 +3107,14 @@ def smoke(device: str = "cpu") -> int:
         # check MISSED ALL FOUR. A dangling name in run_witness_cell would NameError -> be caught
         # by mode_gate's per-cell `except Exception` -> void EVERY cell -> INSTRUMENT_VALID=False
         # -> HALT-BY-DEFECT: R4's exact shape, one function over.
-        # sec 26: `run_t2a4_positive_control` is a GATE-PATH function -- it is MOCKED by [6h]/[6j],
-        # so like the four functions D5 round-6 SERIOUS-1 caught, it would otherwise carry ZERO
-        # static AND dynamic coverage, and an R4-class dangling name in it would void the positive
-        # control on every corpus => t2a4=False => HALT-BY-DEFECT on a healthy instrument.
+        # sec 28: `run_t2a4_positive_control_witness` is a GATE-PATH function -- it is MOCKED by
+        # [6h]/[6j], so like the four functions D5 round-6 SERIOUS-1 caught, it would otherwise carry
+        # ZERO static AND dynamic coverage, and an R4-class dangling name in it would void the
+        # positive control on every (witness, corpus) => t2a4=False => HALT-BY-DEFECT on a healthy
+        # instrument.
         _GATE_PATH_FNS = ("mode_gate", "run_witness_cell", "load_witness_model",
                            "load_witness_corpus", "run_t2a2_untrained_control",
-                           "run_t2a4_positive_control",
+                           "run_t2a4_positive_control_witness",
                            "build_bridged_corpus", "run_delta_sweep", "run_n_demos_diagnostic",
                            "corpus_coverage_provenance", "stratified_acc_copy_report",
                            "_retokenize_documents", "decode_corpus_to_documents")
@@ -3100,6 +3209,208 @@ def smoke(device: str = "cpu") -> int:
             os.unlink(mutated_path)
     except Exception as e:  # noqa: BLE001
         report("[6k] sec 24 B-3 source_provenance()", False, f"EXCEPTION: {type(e).__name__}: {e}")
+
+    # --- [7] sec 28 (A-2 FIX): THE POSITIVE CONTROL, ROUTED THROUGH THE WITNESS ADAPTER --
+    #     FORCED-FAIL NEGATIVE TESTS, RUN TO COMPLETION.
+    #
+    #     THE DEFECT UNDER TEST (sec 27, A-2, BLOCKER). sec 26's positive control ran the RAW
+    #     PerfectCopyOracle on our GPT-2 corpus -- DISJOINT from the HFLogitsWrapper + bridge +
+    #     eot_override + per-witness-vocab stack every witness verdict travels. A PERFECT copy model
+    #     behind a `HFLogitsWrapper` mis-aimed on 98.78% of rows reads acc_copy=0.0122 and certifies
+    #     INSTRUMENT_VALID=True, sec 26's T2a-4 included -- because T2a-4 saw only the raw oracle on a
+    #     path no witness travels. The fix routes the vocab-native oracle THROUGH the deployed
+    #     HFLogitsWrapper on the witness's own corpus, so a wrapper/vocab mis-aim now FAILS it.
+    #
+    #     FIVE THINGS ARE ON TRIAL (the whole point of sec 28):
+    #       (a) CORRECT adapter PASSES (n_miss=0) -- a positive control that halts a healthy adapter
+    #           is worse than none.
+    #       (b) sec 27's ATTACK -- a PERFECT model behind a mis-aimed HFLogitsWrapper -- now FAILS,
+    #           while the OTHER gating legs (T2a-1/T2a-3) still PASS on the same sliver-aimed records
+    #           (reproducing "the old full gate certifies") AND the RAW-oracle path still PASSES
+    #           (the exact blindness A-2 named).
+    #       (c) a VOCAB (model<->tokenizer index-space) mis-aim FAILS.
+    #       (d) a BRIDGE mis-aim (out-of-range ids / wrong vocab_size) FAILS closed.
+    #       (e) an EOT mis-aim at the document-boundary splice (a colliding eos) FAILS closed at the
+    #           bridge's own collider assertion.
+    #     Plus: NO FALSE HALT (T2a-4 reads NO witness quantity), and a hardcoded coverage count.
+    print("\n  [7] sec 28 (A-2): THE POSITIVE CONTROL THROUGH THE WITNESS ADAPTER -- FORCED-FAIL")
+    n_s28 = 0
+    try:
+        from lm_recall_gap_probe_v2_rd import build_synthetic_t2_train_corpus as _bstc28
+        V28 = 20_220                       # [4]'s proven calibration (n_p_key=161 clears sec 11.2)
+        EOS28 = 12_345                     # a stand-in witness eos, in-range
+        _train28 = _bstc28(15_000_000, vocab_size=V28, seed=21)
+        _val28 = _bstc28(2_000_000, vocab_size=V28, seed=22)
+        _counts28 = torch.bincount(_train28, minlength=V28).tolist()
+        _rng28 = random.Random(0)
+        _dp28 = [_rng28.randint(4, 120) for _ in range(64)]
+        SEQ28 = 128
+
+        # ---- TEST-ONLY mis-aim variants (NOT deployed). Each embeds the DEPLOYED HFLogitsWrapper's
+        #      own read (.logits / .float() / finite check) so the mis-aim is the ONLY difference.
+        class _MisAimedHFLogitsWrapper(torch.nn.Module):
+            """sec 27's exploit: a PERFECT copy model behind a mis-aimed readout. On all but a
+            sliver of POSITIONS (arm-invariant: the predicate reads x[t], which no arm corrupts at
+            the readout) it peaks on x[t] ITSELF -- sec 23.3's canonical 'read at k0-1' defect."""
+            def __init__(self, hf_model, aim_modulus):
+                super().__init__(); self.hf_model = hf_model; self.aim_modulus = int(aim_modulus)
+            def forward(self, x):
+                try:
+                    out = self.hf_model(input_ids=x, use_cache=False).logits
+                except TypeError:
+                    out = self.hf_model(input_ids=x).logits
+                out = out.float()
+                if not torch.isfinite(out).all():
+                    raise RuntimeError("non-finite")   # the deployed wrapper's own guard
+                bad = torch.full_like(out, -3.0)
+                bad.scatter_(2, x.unsqueeze(-1), 7.0)
+                aimed = ((x % self.aim_modulus) == 0).unsqueeze(-1)
+                return torch.where(aimed, out, bad)
+
+        class _VocabMisalignedHFLogitsWrapper(torch.nn.Module):
+            """A model<->tokenizer vocab misalignment (sec 27's 'wrong vocab_size' as an index-space
+            defect): the logit vocab axis is rolled by 1, so the argmax lands on b+1, never b."""
+            def __init__(self, hf_model):
+                super().__init__(); self.hf_model = hf_model
+            def forward(self, x):
+                return torch.roll(self.hf_model(input_ids=x, use_cache=False).logits.float(),
+                                   shifts=1, dims=2)
+
+        def _pc(model, val, train, eos_id, vocab_size, n_plants=48):
+            """Mirror of run_t2a4_positive_control_witness's probe segment (same adapter usage:
+            HFLogitsWrapper + eot_override(eos) + build_key_value_pools(eot_token_id=eos) + vocab)."""
+            cnt = torch.bincount(train, minlength=vocab_size).tolist()
+            with eot_override(eos_id):
+                pools = build_key_value_pools(train, vocab_size, device, eot_token_id=eos_id)
+            if not (pools["floor_pool_key"] and pools["floor_pool_val"] and pools["floor_licensed_b"]):
+                return {"void": True, "reason": "pool floor missed"}
+            with eot_override(eos_id):
+                r = run_t2_repaired_probe(model, val, SEQ28, device, "sec28-smoke", delta_pool=_dp28,
+                                           pools=pools, counts_by_token=cnt, n_plants=n_plants,
+                                           vocab_size=vocab_size, eval_micro_batch=16)
+            if r.get("void"):
+                return {"void": True, "reason": str(r.get("void_reason"))[:120]}
+            recs = r["records"]
+            b1 = check_t2b1_mechanism_exists(recs); b1b = check_t2b1b_key_conditioned(recs)
+            return {"void": False, "n": len(recs),
+                    "a4": check_t2a4_positive_control(recs),
+                    "a1": check_t2a1_ceiling(recs, b1, b1b, n_boot=200),
+                    "a3": check_t2a3_ssm_calibration(recs, b1, b1b, n_boot=200)}
+
+        _correct = HFLogitsWrapper(_HFConventionPerfectCopyModel(V28))
+
+        # ===== (a) CORRECT adapter PASSES =====
+        res_a = _pc(_correct, _val28, _train28, EOS28, V28)
+        n_s28 += 1
+        report("  [7a CORRECT PASSES] the vocab-native oracle through the DEPLOYED HFLogitsWrapper "
+               "+ eot_override(eos) + build_key_value_pools(eot_token_id=eos) + witness vocab "
+               "recovers the plant on EVERY row: n_miss_recovery=0, n_aim_unchanged=0, passes=True. "
+               "The null is a THEOREM (the oracle emits b BY FIAT), not a measured bar.",
+               (not res_a["void"]) and res_a["a4"]["passes"] is True
+               and res_a["a4"]["n_miss_recovery"] == 0 and res_a["a4"]["n_aim_unchanged"] == 0,
+               f"void={res_a.get('void')} passes={res_a.get('a4', {}).get('passes')} "
+               f"n_miss={res_a.get('a4', {}).get('n_miss_recovery')} n={res_a.get('n')}")
+
+        # ===== (b) sec 27's ATTACK now FAILS -- the decisive forced fail =====
+        res_b = _pc(_MisAimedHFLogitsWrapper(_HFConventionPerfectCopyModel(V28), 16),
+                    _val28, _train28, EOS28, V28, n_plants=256)
+        res_raw = _pc(_correct, _val28, _train28, EOS28, V28, n_plants=256)   # the sec-26 raw path
+        a4b, a1b, a3b = res_b["a4"], res_b["a1"], res_b["a3"]
+        n_s28 += 1
+        report("  [7b sec27 ATTACK -> FAILS] **THE DECISIVE FORCED FAIL.** A PERFECT copy model "
+               "behind a mis-aimed HFLogitsWrapper (aimed on a sliver) reproduces sec 27: the OTHER "
+               "gating legs STILL PASS (T2a-1=True, T2a-3=True -- 'the old full gate certifies') and "
+               "the RAW-oracle path (sec 26, oracle NOT through the wrapper) STILL PASSES -- yet "
+               "T2a-4 THROUGH THE WITNESS ADAPTER now HALTS it (n_miss_recovery high, passes=False). "
+               "That is A-2, closed.",
+               a1b["passes"] is True and a3b["passes"] is True
+               and a4b["passes"] is False and a4b["n_miss_recovery"] > 0
+               and res_raw["a4"]["passes"] is True and res_raw["a4"]["n_miss_recovery"] == 0,
+               f"adapter: T2a1={a1b['passes']} T2a3={a3b['passes']} T2a4={a4b['passes']} "
+               f"n_miss={a4b['n_miss_recovery']}/{res_b['n']} acc_copy={a4b['reference_acc_copy']:.4f} "
+               f"| raw-path: passes={res_raw['a4']['passes']} n_miss={res_raw['a4']['n_miss_recovery']}")
+
+        # ===== (c) VOCAB mis-aim FAILS =====
+        res_c = _pc(_VocabMisalignedHFLogitsWrapper(_HFConventionPerfectCopyModel(V28)),
+                    _val28, _train28, EOS28, V28)
+        n_s28 += 1
+        report("  [7c VOCAB mis-aim -> FAILS] a model<->tokenizer index-space misalignment (the "
+               "logit vocab axis rolled by 1 -- sec 27's 'wrong vocab_size') makes the argmax land "
+               "on b+1, never b: n_miss_recovery > 0, passes=False.",
+               (not res_c["void"]) and res_c["a4"]["passes"] is False
+               and res_c["a4"]["n_miss_recovery"] > 0,
+               f"void={res_c.get('void')} passes={res_c.get('a4', {}).get('passes')} "
+               f"n_miss={res_c.get('a4', {}).get('n_miss_recovery')}")
+
+        # ===== (d) BRIDGE mis-aim (out-of-range ids / wrong vocab_size) FAILS closed =====
+        _val_bad = _val28.clone(); _val_bad[::97] = V28 + 3   # ~1% of ids >= vocab_size
+        bridge_failed = False; bridge_detail = ""
+        try:
+            res_d = _pc(_correct, _val_bad, _train28, EOS28, V28)
+            bridge_failed = res_d["void"] or (res_d["a4"]["passes"] is False)
+            bridge_detail = f"void={res_d.get('void')} passes={res_d.get('a4', {}).get('passes')}"
+        except Exception as ex_d:  # noqa: BLE001 -- an out-of-range scatter RAISES => fail-closed
+            bridge_failed = True
+            bridge_detail = f"fail-closed via exception: {type(ex_d).__name__}: {str(ex_d)[:70]}"
+        n_s28 += 1
+        report("  [7d BRIDGE mis-aim -> FAILS closed] a bridged corpus carrying an id >= vocab_size "
+               "(a tokenizer/config vocab-size mismatch -- sec 27's 'wrong vocab_size'; the same "
+               "defect class build_bridged_corpus's own `< vocab_size` assert guards) makes the "
+               "oracle's own scatter RAISE => the positive control fails closed, never a silent pass.",
+               bridge_failed, bridge_detail)
+
+        # ===== (e) EOT mis-aim at the SPLICE (colliding eos) FAILS closed =====
+        class _CollideTok:
+            def __call__(self, text, return_tensors=None, add_special_tokens=False):
+                return {"input_ids": [3, 7, 5]}       # token 7 appears IN-document
+        class _CleanTok:
+            def __call__(self, text, return_tensors=None, add_special_tokens=False):
+                return {"input_ids": [3, 4, 5]}
+        eot_collider_raised = False
+        try:
+            _retokenize_documents(["d1", "d2"], _CollideTok(), eos_id=7)   # eos=7 collides
+        except RuntimeError:
+            eot_collider_raised = True
+        eot_clean_ok = (_retokenize_documents(["d1", "d2"], _CleanTok(), eos_id=7)
+                        == [3, 4, 5, 7, 3, 4, 5, 7])
+        n_s28 += 1
+        report("  [7e EOT mis-aim at splice -> FAILS closed] a document-boundary eos that COLLIDES "
+               "with an in-document token (the D6 collider class) makes _retokenize_documents RAISE "
+               "=> build_bridged_corpus fails => the witness cell AND the positive control fail "
+               "closed; a NON-colliding eos splices cleanly. (The eos's load-bearing adapter role is "
+               "the splice; sec 28 discloses the probe-time eot_override does NOT alter recovery.)",
+               eot_collider_raised and eot_clean_ok,
+               f"collider_raised={eot_collider_raised} noncollider_splices_ok={eot_clean_ok}")
+
+        # ===== NO FALSE HALT: the positive control reads NO witness quantity =====
+        # It runs the ORACLE (a perfect copier) on the witness's ADAPTER; the witness MODEL never
+        # enters it, so a DISTANCE-LIMITED witness (W1/openr1: 0.907 -> 0.376) cannot false-halt it.
+        # Structural proof: run_t2a4_positive_control_witness references PerfectCopyOracle, NOT
+        # results["cells"], and the oracle's recovery is distance-independent (7a passed).
+        import ast as _ast28
+        import inspect as _inspect28
+        _src28 = _inspect28.getsource(run_t2a4_positive_control_witness)
+        _names28 = {n.id for n in _ast28.walk(_ast28.parse(_src28)) if isinstance(n, _ast28.Name)}
+        no_witness_read = ("results" not in _names28 and "cells" not in _names28
+                            and "_HFConventionPerfectCopyModel" in _names28)
+        n_s28 += 1
+        report("  [7f NO FALSE HALT] the positive control reads NO witness quantity: "
+               "run_t2a4_positive_control_witness references _HFConventionPerfectCopyModel and NEVER "
+               "results/cells, and the oracle's recovery is distance-independent (7a passed) -- so a "
+               "healthy DISTANCE-LIMITED witness (W1/openr1 0.907->0.376, archived raw md5 "
+               "87ae97087bca56894a5035a348d17f48) CANNOT be false-HALTed. sec 25.5's per-decile "
+               "hazard does not attach.",
+               no_witness_read and res_a["a4"]["passes"] is True,
+               f"reads_no_witness_cell={no_witness_read} correct_adapter_passes={res_a['a4']['passes']}")
+
+        # COVERAGE: hardcoded expected count, NOT derived from the counter -- a tally compared
+        # against itself goes green on a skipped body (this repo has shipped a NameError behind a
+        # green '30/30 PASS'; sec 20.4e/24.5/26.3 caught the same in the probe).
+        report(f"  [7 COVERAGE] all {n_s28}/6 sec-28 forced-fail assertions EXECUTED (expected "
+               f"count HARDCODED)", n_s28 == 6, f"n={n_s28}")
+    except Exception as e:  # noqa: BLE001
+        report("  [7] sec 28 witness-adapter positive-control forced-fail tests", False,
+               f"EXCEPTION after {n_s28} assertions: {type(e).__name__}: {e}")
 
     print("\n" + "=" * 70)
     print(f"  T2A_REFERENCE_DRIVER_V2_RD SMOKE: {n_pass} PASSED, {n_fail} FAILED")
