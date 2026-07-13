@@ -1,0 +1,83 @@
+{
+  "model": "RWKV/RWKV7-Goose-World3-1.5B-HF",
+  "vocab_size": 65536,
+  "n_retokenized_tokens": 616123,
+  "n_plants": 512,
+  "tok_a": 22590,
+  "tok_b": 327,
+  "acc_copy_overall": 0.11328125,
+  "acc_copy_se": 0.014006737245989812,
+  "median_delta": 89,
+  "acc_at_median_delta": 0.2,
+  "decile_report": [
+    {
+      "lo": 2,
+      "hi": 14,
+      "frac_mass": 0.1015625,
+      "acc": 0.17307692307692307
+    },
+    {
+      "lo": 14,
+      "hi": 26,
+      "frac_mass": 0.11328125,
+      "acc": 0.10344827586206896
+    },
+    {
+      "lo": 26,
+      "hi": 41,
+      "frac_mass": 0.109375,
+      "acc": 0.125
+    },
+    {
+      "lo": 41,
+      "hi": 59,
+      "frac_mass": 0.103515625,
+      "acc": 0.22641509433962265
+    },
+    {
+      "lo": 59,
+      "hi": 87,
+      "frac_mass": 0.1015625,
+      "acc": 0.11538461538461539
+    },
+    {
+      "lo": 87,
+      "hi": 126,
+      "frac_mass": 0.1015625,
+      "acc": 0.038461538461538464
+    },
+    {
+      "lo": 126,
+      "hi": 177,
+      "frac_mass": 0.107421875,
+      "acc": 0.10909090909090909
+    },
+    {
+      "lo": 177,
+      "hi": 227,
+      "frac_mass": 0.10546875,
+      "acc": 0.09259259259259259
+    },
+    {
+      "lo": 227,
+      "hi": 306,
+      "frac_mass": 0.1015625,
+      "acc": 0.07692307692307693
+    },
+    {
+      "lo": 306,
+      "hi": 469,
+      "frac_mass": 0.103515625,
+      "acc": 0.07547169811320754
+    }
+  ],
+  "decile_pass": false,
+  "t2b1_mechanism_exists": {
+    "n_plus": 57,
+    "n_minus": 0,
+    "n_informative": 57,
+    "p_value": 1.3877787807814457e-17,
+    "passes": true
+  },
+  "t2a_pass": false
+}

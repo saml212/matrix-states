@@ -1,0 +1,62 @@
+{
+  "hypothesis": "H-KEYFREQ",
+  "seq_len": 512,
+  "cases": [
+    {
+      "n_windows": 512,
+      "mean_count_tok_a_per_window": 23.740234375,
+      "median": 24,
+      "p10": 11,
+      "p90": 36,
+      "max": 49,
+      "frac_windows_with_ge_5_occurrences": 0.96875,
+      "model": "RWKV/RWKV7-Goose-World3-1.5B-HF",
+      "tok_a": 22590,
+      "tok_b": 327,
+      "tok_a_decoded": " the",
+      "tok_b_decoded": " \\"
+    },
+    {
+      "n_windows": 512,
+      "mean_count_tok_a_per_window": 20.3828125,
+      "median": 21,
+      "p10": 8,
+      "p90": 31,
+      "max": 48,
+      "frac_windows_with_ge_5_occurrences": 0.95703125,
+      "model": "tiiuae/falcon-mamba-7b",
+      "tok_a": 248,
+      "tok_b": 71,
+      "tok_a_decoded": " the",
+      "tok_b_decoded": "\\"
+    },
+    {
+      "n_windows": 512,
+      "mean_count_tok_a_per_window": 11.74609375,
+      "median": 10,
+      "p10": 3,
+      "p90": 23,
+      "max": 41,
+      "frac_windows_with_ge_5_occurrences": 0.826171875,
+      "model": "OUR RUNGS (GPT-2 tokenizer) / openr1-mix-ext",
+      "tok_a": 262,
+      "tok_b": 23330,
+      "tok_a_decoded": " the",
+      "tok_b_decoded": "_{"
+    },
+    {
+      "n_windows": 512,
+      "mean_count_tok_a_per_window": 0.0,
+      "median": 0,
+      "p10": 0,
+      "p90": 0,
+      "max": 0,
+      "frac_windows_with_ge_5_occurrences": 0.0,
+      "model": "OUR RUNGS (GPT-2 tokenizer) / wikitext-mix-ext",
+      "tok_a": 464,
+      "tok_b": 423,
+      "tok_a_decoded": "The",
+      "tok_b_decoded": " have"
+    }
+  ]
+}

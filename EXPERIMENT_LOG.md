@@ -8712,3 +8712,125 @@ is the full numbers-first record and source of truth. Pointers:
 `matrix-thinking/NCR_MAPPING_LAW_DESIGN.md` §1.6/§2.1,
 `matrix-thinking/queue/regate_2026-07-12.md` §8,
 `NOVEL_ARCH_WATERFALL.md` §11.5.
+
+---
+
+## 2026-07-12 — PARAM-AXIS R0 READ (`PARAM_AXIS_SCALING_DESIGN.md` §10): **VERDICT = VOID (INSTRUMENT-INVALID, HALT)** — T2a, the never-before-executed instrument-teeth gate, FAILED on both reference models; the defect is localized to `pick_t2_marker_tokens`. ≈0.4 GPU-h.
+
+**Hypothesis.** Does in-context recall capacity (placebo-controlled DiD) grow with
+parameters across a 14M → 1.31B ladder, and does it track the write-geometry
+attractor (span_frac)?
+
+**Answer: unmeasured. The instrument is invalid at this task's difficulty, and the
+pre-registration's own gate caught it.**
+
+**What ran.** The §9-pinned instrument (`lm_recall_gap_probe_v2_rd.py`, `9ea3ce6`,
+63/63 smoke, two opus audit rounds) + three new drivers: the multi-rung driver
+§9.1's pin unblocked, the **T2a reference-model gate (wired by the builder, never
+executed until now)**, and the §9.5-mandated VOID diagnosis. 6 cells (3 rungs × 2
+corpora), 16,384 resolved candidates each, all quiesced + md5-pinned, all same arm
+(`per_token`, λ=0.58), same forced 0.328B slice (`miss_tokens=0`).
+
+**T2a — THE VERDICT TRIGGER. Bar: `acc_copy ≥ 0.90` at the Δ-median (Δ=89, drawn
+from our own candidates' empirical distribution) + `≥0.75` in every ≥10%-mass decile.**
+
+| reference model | acc_copy overall | @ Δ-median | deciles ≥0.75 | **T2a** |
+|---|---|---|---|---|
+| RWKV7-Goose-1.5B | 0.1133 | **0.200** | **0 / 10** | **FAIL** |
+| falcon-mamba-7b | 0.2344 | **0.100** | **0 / 10** | **FAIL** |
+
+Neither model — both *known* to have associative recall — reaches a quarter of the
+bar. §9.4's pre-registered consequence: **"Fail ⇒ INSTRUMENT-INVALID, HALT for every
+rung."** Applied without discretion. T1c fails with it (it is a conjunction).
+
+**But the plumbing WORKS** — T2b-1 (mechanism-exists, paired exact binomial) fires
+decisively on both: RWKV7 n₊=57/n₋=**0** (p=1.4e-17), falcon-mamba n₊=121/n₋=**0**
+(p=7.5e-37). Destroying the planted value token specifically destroys the answer;
+destroying a matched-distance other token never does. The models *have* the
+mechanism and the instrument *can* see it causally. It just cannot make `acc_copy`
+large.
+
+**DIAGNOSIS (§9.5's VOID row mandates it; zero model forwards, pure token stats).**
+`pick_t2_marker_tokens` — reused verbatim and **explicitly blessed by §9.4** — picks
+the key token from `topk(counts, 400)`, i.e. **the 400 most FREQUENT tokens**, then
+ranks by next-token entropy. **It picks `" the"`. Every time.** Measured occurrences
+of the key *per 512-token window*: **24** (RWKV), **21** (falcon), **10** (our
+openr1 rungs). The probe plants ONE `(the → \)` pair and queries a later `" the"` —
+but ~20 *other* `" the"`s sit in the same window, each with its own natural
+continuation. **The planted association is one of ~21 competitors and the argmax
+follows the natural prior.** A one-shot copy probe needs a *rare-in-window* key; this
+one selects the commonest token in the language. The entropy filter (meant to prevent
+exactly "a crushing prior mistaken for a copy failure") guards the wrong quantity:
+`" the"` has high next-token *entropy* yet ~zero mass on `" \"`.
+
+**This also explains the `acc_copy = 0.0000` wikitext column** (a perfect zero at all
+3 rungs, which looked like a bug): there the picker chose `"The"`, which occurs
+**0 times** in the val windows (median 0, max 0), planting the syntactically
+near-impossible `"The" → " have"`. 0/512, three times. **Same defect, extreme form.**
+
+**CONSEQUENCE — T2b-2's premise is FALSE.** §9.4 built the ceiling check
+(`DiD ≤ acc_copy + 2·SE`) on "acc_copy is an UPPER BOUND." It is not: models with
+demonstrated AR read 0.11/0.23 on it. Three confirmations in-record: (1) T2a itself;
+(2) **S1 (`DiD/acc_copy`) > 1 in every openr1 cell — 6.562 / 1.255 / 1.117** (§9.1.5
+expected ~[0,1]); (3) the *only* T2b-2-passing cell is the one with the *largest*
+DiD. **So the T2b-2 rung-VOIDs (14M, 98M) and the wikitext T2b-1 failures are the
+PROBE's failure, not the checkpoints'** — which is exactly why the verdict is VOID
+(instrument-invalid) and **not** FLOOR (a measured absence of mechanism). *We did not
+measure an absence. We measured an instrument that cannot see.*
+
+**Per-rung read — RAW PROVENANCE UNDER THE VOID BANNER, NOT VERDICT-GRADE:**
+
+| rung | corpus | DiD [95% CI] | gap_true | gap_plac | acc_copy | T1a | T2b-1 | T2b-2 | S1 | S2 (DiD_logp) | tok/param | in fit |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 14M | openr1 | 0.1025 [.0973,.1075] | 0.1046 | 0.0020 | 0.0156 | P | **F** | **F** | 6.562 | +0.465 | 23.32 | no |
+| 14M | wikitext | 0.0192 [.0167,.0219] | 0.0208 | 0.0016 | **0.0000** | P | **F** | **F** | — | +0.195 | 23.32 | no |
+| 98M | openr1 | 0.1495 [.1432,.1555] | 0.1547 | 0.0052 | 0.1191 | P | P | **F** | 1.255 | +0.736 | 3.357 | no |
+| 98M | wikitext | 0.1360 [.1301,.1419] | 0.1379 | 0.0018 | **0.0000** | P | **F** | **F** | — | +1.098 | 3.357 | no |
+| 392M | openr1 | 0.1680 [.1615,.1744] | 0.1749 | 0.0069 | 0.1504 | P | P | P | 1.117 | +0.848 | **0.836** | no (floor) |
+| 392M | wikitext | 0.1557 [.1494,.1618] | 0.1578 | 0.0021 | **0.0000** | P | **F** | **F** | — | +1.238 | **0.836** | no |
+
+**Admissible set A = ∅.** Even had T2a passed, `|A| = 0 < 3` ⇒ the read returns
+**FLOOR**, recorded in the raw as `verdict_before_t2a_gate = "FLOOR"`. **VOID takes
+precedence** (§9.5: VOID → FLOOR → table). **S1/S2 did NOT force a downgrade** — and
+the honest reason is that **Factor-1 was never computed at all** (A=∅ ⇒ no OLS, no
+TOST; `factor1_primary = factor1_s2 = None`), so S2's disagreement rule had nothing to
+disagree with. VOID sits upstream of Factor 1 and is strictly stronger. **S1's >1
+values are themselves evidence and are counted as such.**
+
+**1.31B rung EXCLUDED** (not deferred, not fudged): the correct-arm checkpoints are
+inside **LIVE** training jobs (pids 1860400, 1036283, `--ckpt-every 10000`) → §9.6
+item 3 forbids the read; the only **quiesced** 1.31B ckpt (Track-C wave3 @155k,
+`SCALE_TRANSFER_DESIGN.md` §5.11) is the **WRONG ARM** (`frozen_bias_arm=None` vs
+`per_token/0.58` at every other rung) → reading it bundles a second unproven axis
+(CLAUDE.md hard rule). It would have been disclosed-only regardless (0.25 tok/param).
+**The ladder actually read is 14M→392M = 1.45 decades, and we do not call it 2.**
+Only 14M and 98M clear the ≥1.0 tok/param floor — **the primary fit would have had 2
+points, one short of the pre-registered minimum of 3.** Pre-registered outcome, stated.
+
+**Flagged judgment calls (§10.6):** **D1 — a real deviation:** §9.2 pins `N_rows=512`
+but §9.6 item 7 pins ≥4,096 candidates, and **these cannot both hold** (512×8=4096 is
+the unreachable *maximum*). I used `N_rows=2048`, **identical at every rung** (the
+instrument's own code prescribes this remedy verbatim). Rung-independent ⇒ cannot bias
+a cross-rung comparison; not load-bearing for a VOID triggered on reference models.
+**§9.2/§9.6 must be reconciled.** D2/D3 — §9 never pins how the two corpora combine
+into one trend point, nor which corpus's `M(r_min)` sets δ (neither became
+load-bearing; A=∅). D4 — T3/span_frac not run (Factor 2 unreachable). D5 — the T2a
+HF bridge is new, unaudited code of mine; its defence is the p=7.5e-37 causal signal,
+not my say-so; **a fresh audit of it is item 1 of any re-read.** D6 — GPT-2's EOT id
+used under foreign tokenizers (conservative, disclosed).
+
+**What R0 bought.** The T2a gate — pinned **blind**, written *stricter than anything
+the prior instrument was held to*, and **never executed by the builder** — **fired,
+and caught a broken instrument before a headline was published off it.** The DiD
+machinery (row-replicated single-token ablation, placebo/DiD, clustered bootstrap, S2
+log-probs) is sound and validated. The T2 planted-copy probe that gates it is not, and
+the defect is now localized to a single function with a measured mechanism.
+
+**Stop rule honored:** §9.6 forbids a re-read of the same checkpoints under a
+different metric. **The repair is NOT made here** — repairing the probe in the same
+breath as reading the outcome is the M-11 sin §9.4 exists to forbid. A fixed T2 probe
+is a **new pre-registration and a new section.**
+
+**Raws:** `experiment-runs/2026-07-12_param_axis_r0/` (+ SSD mirror). Registry:
+`matrix-thinking/PARAM_AXIS_SCALING_DESIGN.md` §10 (supersedes the VOID R0 of
+`05de661`; quarantined values NOT resurrected).
