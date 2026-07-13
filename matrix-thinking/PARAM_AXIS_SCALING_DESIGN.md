@@ -3597,3 +3597,433 @@ and this is that FAIL.**
 the gate result JSON (four complete cells + both diagnostics; named `*_partial*` because C1/the
 inline roll-up were still running at archive time), the T2a-2 out-of-band JSON + log + its runner
 script, the run log, and both instrument scripts exactly as executed.
+
+---
+
+## 15. REV 4 — THE T2 WITNESS-GATE RE-PIN. **BLIND.** (2026-07-13, fresh agent, outcome-quarantined)
+
+**VERDICT OF THIS SECTION: the `acc_copy` absolute ceiling cannot be calibrated against any
+available reference model, at any bar, and it is therefore RETIRED — not lowered. The
+witness gate is REPLACED by the design's own causal/differential legs plus T1c. Δ and
+n_demos are NOT MOVED. Two of the three knobs I was handed, I decline to turn.**
+
+### 15.0 BLINDNESS ATTESTATION
+
+I was dispatched under §11.4.3 step 4 — *"the response to (3) is a NEW blind
+pre-registration of the probe, and nothing else"* — precisely because every agent who has
+seen the attempt-2 outcome data is disqualified from re-pinning a bar that data would
+steer. I affirm the following, and I invite a hostile audit of it.
+
+**WHAT I DID NOT READ.** I did not read §10, §12, or §14 of this document. I did not read
+any file under `matrix-thinking/deltanet_rd/results/` (in particular neither
+`param_axis_t2a_attempt2/` nor `param_axis_t2a_repaired/`). I did not read
+`QUARANTINE_r0_void_values.md` or `QUARANTINE_r0_did_values.md`. I did not read any `.log`
+or `.json` artifact from any T2a run, any `git log` message body, any commit diff, or
+`EXPERIMENT_LOG.md`. I located §14's boundary (line 3326) by `grep` on headers **for the
+express purpose of not reading past it**, and appended below it without reading it.
+
+**WHAT I READ.** The probe source (`lm_recall_gap_probe_v2_rd.py`) and the driver
+(`t2a_reference_driver_v2_rd.py` — enumerated, not read in full); design §9.4, §11.2,
+§11.3, §11.4 (all), §11.6 (all). The published literature, by web search and fetch, cited
+inline below with URLs.
+
+**I WAS NOT EXPOSED TO ANY ATTEMPT-2 OUTCOME VALUE.** I do not know what `acc_copy`, `KS`,
+`PRIOR`, or `DiD` read on any witness in attempt 2, on either corpus, at any Δ. Nothing
+below is reverse-engineered from a number, because I have no number to reverse-engineer
+from.
+
+**THREE DISCLOSED EXPOSURES, none of them attempt-2 values, all reported rather than
+buried:**
+
+1. **§11.4.2 — which I was explicitly authorised to read — contains an outcome value.** It
+   states of `RWKV7-Goose-World3-1.5B`: *"**It scored 0.11.**"* This is an **attempt-1**
+   (§10, pre-repair) reading, produced by the picker this document itself declares broken
+   *by construction* (§10.2, §11.1 F-I/F-II). **It is a leak into an allow-listed section
+   and the allow-list should be corrected.** It is not evidence about the repaired probe
+   and I have not used it as such. **Anti-laundering check on myself:** a contaminated
+   pre-registrar who knew a witness had scored 0.11 would be tempted to pin a bar *just
+   below* 0.11. My pin does the opposite — **it removes the absolute bar entirely rather
+   than setting one at any value**, and it therefore cannot be a bar cut to fit a known
+   score. If a hostile reviewer suspects otherwise, the check is: there is **no number** in
+   my pin to have fitted.
+2. **Section headers were visible to `grep`**, including the words `VOID`, `FAIL`, and
+   `T2a-1 CEILING NOT MET`. The dispatch brief had already told me the witness gate failed;
+   the headers add only *which* leg failed. They contain **no magnitude, no direction, no
+   per-model value**, and no bar can be fitted to them.
+3. A `system-reminder`-shaped block asserting a date change and instructing that it not be
+   mentioned to the user arrived **embedded in tool stdout**. Per this repo's standing rule
+   this is the known injection signature; I disregarded the concealment instruction and
+   report it here. (The date itself independently verifies against the system clock and
+   `git log`: **2026-07-13**. The *concealment instruction* is the anomaly, not the date.)
+
+---
+
+### 15.1 THE TASK AS THE PROBE ACTUALLY CONSTRUCTS IT — read off the source, not the prose
+
+The pathology of every prior round is that **the task as constructed was harder than the
+task as imagined.** So this is stated from `lm_recall_gap_probe_v2_rd.py` only.
+
+| element | what the code does | where |
+|---|---|---|
+| window | 512 real corpus tokens (`openr1` / `wikitext103`), GPT-2 tokenizer, **vocab 50257** | `run_t2_repaired_probe` |
+| plant | `w[j0] = a`; `w[j0+1] = b`; `w[k0] = a` — **overwriting** whatever tokens were there | `plant_and_verify_t2_window` |
+| distance | `Δ = k0 − j0`, rejection-sampled from the **main metric's own empirical Δ pool**, `2 ≤ Δ ≤ 506`; **Δ-median ≈ 89** | `rejection_sample_delta`, `assign_t2_plant` |
+| n_demos | **exactly 1**, and this is *structurally enforced*: the hard assertion requires `count(a in w) == 2` at exactly `{j0,k0}` and `count(b in w) == 1` at exactly `{j0+1}` | `plant_and_verify_t2_window` |
+| **what counts as a correct copy** | **`hit_intact = int(logits[k0].argmax() == b)` — EXACT ARGMAX OVER ALL 50257 TOKENS.** No top-k, no rank, no probability mass. | `run_t2_repaired_probe` |
+
+And now the two selection rules that decide the difficulty, which are the whole story:
+
+- **K4** — the key `a` is admitted with `max_b p_train(b|a) ≤ 0.5`: **the modal rival may
+  hold up to half the conditional mass.**
+- **V4** — the value `b` is required to be **`p_train(b|a) ≤ 0.05` AND `rank(b|a) ∈ [2,50]`**:
+  **the planted answer is, by construction, a token the model's own training distribution
+  ranks 2nd-to-50th and gives ≤5% mass.**
+
+§11.4.3 records the attacker's own measurement of what this yields: **median rival mass
+0.203 / 0.152 against a median plant mass of ~0.005 — a 30–38× prior deficit.**
+
+> **THE TASK, STATED HONESTLY:** *override a 30–40× bigram-prior deficit — in **argmax**, over
+> **50257** tokens — from **one** demonstration ~89 tokens back, on a token spliced into
+> incoherent prose, in a model that was **never trained to expect such an override**.*
+
+Two further hardness sources the bigram-table arithmetic **understates**:
+
+1. The plant is written into **hostile natural prose**. At `k0` the model conditions on ~89
+   tokens of *unmodified, coherent* text, so the true competitor is not `argmax_b p(b|a)`
+   from a bigram table — it is `argmax p(· | full natural prefix, a)`, which is dominated by
+   whatever function word continues the sentence. The 30–38× figure is a **lower bound** on
+   the opposition.
+2. §11.6 already says this, in the design's own attacker-endorsed words: *"the key is
+   **spliced into hostile prose**; nothing local supports `b`"*, and — decisively —
+   **"The unfavourability is not a defect to engineer away; it *is* the teeth."**
+
+**§11.6 is correct, and it is the hinge of everything below.** Hold that sentence.
+
+---
+
+### 15.2 THE LITERATURE — what is actually measured, and at what
+
+I went looking for the number the 0.90 bar is supposed to be calibrated against: *a
+pretrained ~1.5B model performing one-shot, argmax, in-context copy of a **prior-disfavoured**
+token in **natural text**.* **It does not exist.** Here is the whole relevant body, and the
+pattern in it is uniform rather than cherry-picked.
+
+**(A) Every literature measurement reporting ≥0.90 is on a task where the correct answer has
+NO competing prior.**
+
+| source | task | reported | but the prior… |
+|---|---|---|---|
+| **Zoology / MQAR**, Arora et al. — [arXiv:2312.04927](https://arxiv.org/abs/2312.04927) | MQAR: **synthetic vocab 8192**, key/value tokens drawn from a **random dictionary** | attention **>0.9 at model dim 64**, all seq lens; gated-conv needs `d ≥ N` | **does not exist.** Random tokens carry no bigram statistics. |
+| **Olsson et al. 2022**, *In-context Learning and Induction Heads* — [arXiv:2209.11895](https://arxiv.org/abs/2209.11895) | prefix-matching / copying scores on **25 random tokens repeated 4×** | induction heads defined by these scores | **does not exist** (random tokens) — and note this is **3 prior repetitions, not one-shot.** Their headline ICL metric is a **loss delta** (500th − 50th token), *not argmax accuracy at all.* |
+| **Bietti et al. 2023**, *Birth of a Transformer* — [arXiv:2306.00802](https://arxiv.org/abs/2306.00802) | **`[… a, b, … a] → b`; trigger appears twice ⇒ n_demos = 1.** *Structurally identical to our probe.* | 2-layer: **>99%** (fixed triggers) / **95%** (random triggers); 1-layer ~55% | **is uniform.** Their own text: *"with fixed (resp. random) triggers and **uniform outputs**"*. And the model is **purpose-trained on the very distribution in which the override is the correct behaviour.** |
+| **RWKV-7 "Goose"** — [arXiv:2503.14456](https://arxiv.org/abs/2503.14456) | passkey / NIAH: a **unique random needle** ("the magic number is X") **plus an explicit retrieval cue** | `RWKV7-World3-1.5B` perfect passkey to ~19,600 tokens; 72.9% @ 256 KV pairs *(as quoted in §11.4.2; I could not fetch the full text to verify first-hand — flagged)* | **does not exist.** A unique random needle has no rival. |
+
+**This is the finding.** The 0.90 bar was imported from a literature in which **the correct
+answer never has to beat anything.** Our probe requires it to beat a 30–40× favoured rival.
+**The bar and the task were never measuring the same operation.**
+
+**(B) The one measurement on natural text where a prior is in play does NOT report argmax at
+all — and its perplexity forbids 0.90.**
+
+Zoology's **"AR hits"** on the Pile is the closest existing analogue to this probe: *"the
+last token of an n-gram repeated in context"*, restricted to bigrams appearing **≤1250×
+during training** (they threshold precisely to exclude memorised bigrams). Reported: a **70M
+attention model gets perplexity 11.01** on the AR slice (AR hits = 6.4% of tokens, and
+account for **82% of the perplexity gap** to attention).
+
+**Perplexity 11.01 ⇒ mean NLL ≈ 2.40 nats ⇒ geometric-mean `p(correct)` ≈ 0.09.** A model
+whose correct-token probability averages ~9% is not at 0.90 top-1. And note: **in Zoology's
+AR hits the prior *agrees* with the in-context evidence** (the repeated continuation is the
+natural one). Our probe makes the prior **oppose** it. The closest thing to our task that
+anyone has measured on real text sits at ppl ≈ 11 in the **easy** direction.
+
+**(C) The literature directly contradicts the premise that a ~1.5B model can override a
+contradicting prior from a handful of demonstrations — it reports 0%.**
+
+- **Wei et al. 2023** — [arXiv:2303.03846](https://arxiv.org/abs/2303.03846), verbatim
+  abstract: *"**overriding semantic priors is an emergent ability of model scale.** While
+  **small language models ignore flipped labels** presented in-context and thus **rely
+  primarily on semantic priors from pretraining**, large models can override semantic priors
+  when presented with in-context exemplars that contradict priors."* The override appears at
+  GPT-3/PaLM-540B scale, not at 1.5B.
+- **"Semantic Anchors in In-Context Learning: Why Small LLMs Cannot Flip Their Labels"** —
+  [arXiv:2511.21038](https://arxiv.org/abs/2511.21038). **Eight models spanning 1–12B** —
+  *the band that contains W1 (1.5B) and W2 (0.77B)* — at **k ∈ {1, 2, 4, 8}** demonstrations
+  — *the range that contains n_demos = 1*. Result: **"The semantic override rate remains
+  exactly 0%."** Accuracy under prior-contradicting demonstrations collapses to chance
+  (SST-2 90.4% → 47.4%; IMDB 92.4% → 48.4%). Their mechanism: *"ICL adjusts how inputs
+  project onto a pre-trained semantic space, but **cannot redefine what labels mean**."*
+
+**Synthesis.** The mechanism (induction/copy) is real and is documented in exactly our
+witnesses — GPT-2-class induction-head circuits are the canonical case (Elhage et al. 2021,
+[transformer-circuits.pub/2021/framework](https://transformer-circuits.pub/2021/framework/index.html);
+ablation studies on GPT-2 and Llama-3, [arXiv:2407.07011](https://arxiv.org/abs/2407.07011)),
+and RWKV-7 is a documented strong recaller. **But "has the mechanism" and "can drive that
+mechanism to argmax victory over a 30–40×-favoured rival, one-shot, at 1.5B" are different
+propositions, and the literature affirms the first while reporting 0% on the second.**
+
+---
+
+### 15.3 THE DERIVATION — why NO `(bar, Δ, n_demos)` rescues this probe
+
+I was handed three knobs. **The probe's difficulty is not principally controlled by any of
+them.** It is controlled by a fourth quantity the knobs cannot reach: **the prior-opposition
+built into K4/V4.** Taking them in turn, as derivations rather than preferences:
+
+**Knob 1 — the bar. It cannot be set at ANY value, and that is the finding.**
+To calibrate an absolute bar you need a reference measurement of *this task* on a model
+*known to have the mechanism*. §15.2 establishes there is **none — at any bar.** A bar of
+0.30 is therefore exactly as unmotivated as 0.90; a bar of 0.05 exactly as unmotivated as
+0.30. **An absolute bar on an uncalibratable quantity is not a gate — it is a coin flip that
+we would then be tempted to launder.** Lowering it would be M-11 for the third time; keeping
+it at 0.90 keeps a gate that no evidence supports. **The only honest disposition of an
+uncalibratable bar is to remove it.**
+
+**And §11.6 already proved this bar cannot exist — the design simply did not propagate the
+proof one section to the left.** §11.6 retired T2b-2 by showing the probe is *hostile on the
+value-support axis by necessity*, because **a low `PRIOR` is what buys teeth against
+parametric absorption.** That hostility is exactly what makes a high `acc_copy`
+unattainable. **The 0.90 ceiling and the low-`PRIOR` teeth are in direct structural tension,
+and §11.6 already established the tension is irreducible.** T2b-2 (the ceiling as a bound on
+`DiD`) was retired for it. **Leg (i) (the ceiling as an absolute competence bar) rests on the
+identical false premise — that `acc_copy` on this construction is a quantity with a knowable
+ceiling — and it does not survive its own document's argument.**
+
+**Knob 2 — Δ. NOT MOVED, and I decline on derivation.**
+(a) Δ is rejection-sampled from **the main metric's own empirical Δ distribution** — §11.2.3
+calls it *"the one axis on which the probe **is** difficulty-matched to the real task."*
+Moving it **destroys the only difficulty-match the probe has.** (b) Moving Δ after a failure
+is **literally the original M-11 sin** (§9.4: T2 was moved 350 → 20 *after it failed*).
+(c) The literature says distance **is not the binding constraint**: RWKV7-1.5B does *perfect*
+passkey retrieval at ~19,600 tokens — **~220× our Δ-median of 89.** There is no
+distance-limit story available to rescue this probe, so moving Δ would purchase nothing
+except the appearance of a fix. **Δ stays.**
+
+**Knob 3 — n_demos. NOT MOVED, stays at 1, and I decline on derivation.**
+(a) **One-shot is not the limiting factor in the literature:** MQAR gives each key-value pair
+**exactly one** presentation before the query and attention still exceeds 0.9; Bietti's
+trigger appears **twice** (⇒ n_demos = 1) and reaches 95–99%. The mechanism does not need
+more shots. (b) **More shots do not buy what this probe actually needs:** arXiv:2511.21038
+measures **k ∈ {1,2,4,8}** in the 1–12B band and finds prior-override at **0% at every k** —
+adding demonstrations does not move prior-override at this scale. (c) **It is not a free
+knob anyway:** `n_demos > 1` is *structurally forbidden* by the hard assertion
+`count(a in w) == 2`, which §11.2.3 calls *"the single line that makes F-I structurally
+impossible."* Turning this knob means breaking the probe's core invariant to chase an effect
+the literature says is not there. **n_demos stays at 1.**
+
+*(§11.4.3 step 2 pre-registers the `n_demos ∈ {1,2,4}` read as "the only diagnostic that
+separates 'one-shot is too hard' from 'the model cannot copy.'" **The literature has now
+answered that question in advance:** one-shot is sufficient for the mechanism (MQAR, Bietti)
+and extra shots do not defeat prior-opposition (2511.21038). The read remains a **licensed
+diagnostic** and should still be reported if cheap — but it **cannot be a gate**, and its
+predicted outcome is "little movement," which would refute neither horn.)*
+
+**CONCLUSION OF THE DERIVATION.** *No operating point in `(bar, Δ, n_demos)` makes the
+`acc_copy` ceiling a valid teeth-test.* The dispatch explicitly licensed this outcome and the
+evidence compels it. **But the witness-gate strategy does not need retuning — it needs the
+absolute-competence leg REMOVED and the causal legs, which are already built and already
+valid, PROMOTED.**
+
+---
+
+### 15.4 THE PIN
+
+The principle applied here is **not new to this document** — it is the one §11.6.1 already
+ratified when it retired T2b-2: ***replace a bar with a false premise by a causal test with a
+true premise.*** §15 applies that same ruling to the two bars that survived it.
+
+| leg | §11.4.1 status | **§15 PIN** | derivation |
+|---|---|---|---|
+| **(i)** `acc_copy ≥ 0.90` @ Δ-median | GATING | **RETIRED as a gate.** `acc_copy` is **REPORTED ALWAYS** (with Δ-decile and rival-strength stratification, §11.4.3 step 2) and is **VERDICT-CARRYING NEVER.** **No absolute bar replaces it.** | §15.2 (no reference value exists at any bar) + §15.3 (the ceiling contradicts §11.6's own necessity argument) |
+| **(ii)** `acc_copy ≥ 0.75` every Δ-decile | GATING | **RETIRED as a gate**; reported. | It is leg (i) evaluated per-decile and inherits leg (i)'s defect exactly. |
+| **(iii)** `PRIOR ≤ 0.05` | GATING | **UNCHANGED. GATING.** | The measured anti-absorption guard. **Not weakened.** |
+| **(iv)** `KS ≥ 0.50` **and** T2b-1b `p<0.001` | GATING | **MAGNITUDE RETIRED. RE-PINNED: `KS > 0` with a clustered-bootstrap 95% CI EXCLUDING 0, conjoined with T2b-1b `p < 0.001`. GATING.** | **See the box below — this leg is a hidden absolute bar and cannot be left standing.** The replacement form is **not invented here**: it is adopted **verbatim from this document's own T2a-3 pin** (§11.4.2), which already reads *"show `KS > 0` with a bootstrap 95% CI excluding 0."* |
+| **(v)** T2b-1 `p < 0.001` | GATING | **UNCHANGED. GATING.** | The causal mechanism-exists test. **Not weakened.** |
+| **T1c** (§11.4.5) | GATING | **UNCHANGED IN FORM, PROMOTED to the PRIMARY instrument-teeth gate.** `DiD > 0`, clustered-bootstrap 95% CI excluding 0, on **W1 and W2**, **both corpora**. | §11.4.5 already calls it *"the only gate in the design that is difficulty-matched to the primary."* It reads the **actual estimand on the actual candidate population**, needs **no bar**, and is **immune to every prior-override objection** because it is not a copy bar. |
+| **T2a-2** (untrained control) | GATING | **UNCHANGED. GATING.** `acc_copy ≤ 0.02`, `KS` bootstrap CI **including 0**. | **Not weakened. See §15.6.** |
+| **T2a-3** (SSM calibration) | GATING (causal legs) | **UNCHANGED.** | Already causal-only; already the model my leg-(iv) re-pin follows. |
+| **Δ** | pinned to metric's empirical pool | **NOT MOVED.** | §15.3 knob 2. |
+| **n_demos** | 1 (asserted) | **NOT MOVED. Remains 1.** | §15.3 knob 3. |
+
+> #### THE HIDDEN BAR IN LEG (iv), AND WHY IT MUST FALL WITH LEG (i)
+>
+> From the source: `ks = acc_copy_all - acc_keyswap` (`check_t2a1_ceiling`). Since
+> `acc_keyswap ≥ 0` always,
+>
+> **`KS ≥ 0.50` ⟹ `acc_copy ≥ 0.50`.**
+>
+> **Leg (iv) is an absolute competence bar wearing a causal costume.** It inherits leg (i)'s
+> calibration defect *exactly* — it demands a magnitude of prior-override that no reference
+> measurement licenses — and had I retired leg (i) while leaving `KS ≥ 0.50` standing, I
+> would have retired a 0.90 bar and kept a 0.50 bar **and called it a causal test.** That
+> would be laundering by inattention. It is caught and closed here.
+>
+> **What leg (iv) exists to do is stated in §11.4.1: *"the pass must be key-conditioned, not
+> salience, not rarity."* That is a claim about CONDITIONING, not MAGNITUDE — and it is
+> fully carried by `KS > 0` (CI excluding 0) conjoined with T2b-1b at `p < 0.001`.** The
+> magnitude adds nothing to the identification and everything to the uncalibratability.
+
+**Two consequential re-pins that fall out, recorded rather than left dangling:**
+
+1. **§9.4's mandatory sensitivity split is RE-PINNED.** §9.4 requires the trend fit be
+   reported twice — over all T2b-admissible rungs, and over *"the subset that also clears
+   `acc_copy ≥ 0.90` (**strong-mechanism rungs**)"*. With leg (i) retired that subset is
+   undefined. **PINNED, blind:** the second fit is taken over the rungs **above the median
+   `KS`** across the admissible set — a within-study, pre-registered, **non-verdict-carrying**
+   split on the *causal* quantity rather than an absolute one. **§9.4's rule that
+   disagreement between the two fits ⇒ the verdict is INDETERMINATE is UNCHANGED.**
+2. **INSTRUMENT SENSITIVITY FLOOR (NEW, reporting-only).** The magnitude information leg (i)
+   was groping for is real and should not simply vanish; it is just not a *gate*. **PINNED:**
+   the witnesses' `KS` and its CI are **reported as the instrument's stated sensitivity
+   floor**, and **any rung whose `KS` CI overlaps that floor is reported as "below
+   instrument sensitivity," NOT as "mechanism absent."** This preserves the honest content
+   of the old bar (*"is the instrument reading strongly enough to discriminate rungs?"*)
+   while refusing to pretend we can calibrate an absolute threshold we cannot.
+   **Underpowered and invalid are different findings, and conflating them is what produced
+   this deadlock.**
+
+---
+
+### 15.5 THE FALSIFIER
+
+The old gate's fatal property — the reason it deadlocked — is that **a low `acc_copy` on W1
+was ambiguous between *"the probe is broken"* and *"the model cannot override the prior,"*
+and the design had no literature anchor to separate them.** My pin's discriminator is
+**detection (sign + significance), not magnitude**, and that is precisely what makes it
+calibratable where the old one was not.
+
+**The literature underwrites a *detection* prediction and underwrites *no* magnitude
+prediction.** `gpt2-large` (W2) has a **documented induction-head circuit** (Elhage 2021;
+Olsson 2022; ablation studies on GPT-2, arXiv:2407.07011). **Therefore `KS > 0` on
+`gpt2-large` is a prediction the literature genuinely backs.** `acc_copy ≥ 0.90` on
+`gpt2-large` is a prediction the literature backs **nowhere**. That asymmetry is the whole
+difference between a teeth-test and a coin flip.
+
+**⇒ THE PROBE IS STILL BROKEN if any of:**
+
+- **W2 (`gpt2-large`) reads `KS` with a CI *including* 0, or T2b-1 / T2b-1b non-significant.**
+  A model with a documented induction-head circuit **must** show a key-conditioned effect on
+  a key-conditioned probe. A null here is **dispositive of an instrument defect** — it means
+  the probe cannot detect a mechanism that is *known by independent evidence to be present.*
+  **HALT.**
+- **T1c reads `DiD` CI including 0 on W1 or W2.** The instrument cannot read the actual
+  estimand on the actual population in models that have the mechanism. **HALT.**
+- **`PRIOR > 0.05`.** `b` is emittable with no plant ⇒ plant leakage / parametric
+  absorption. **Probe defect. HALT.**
+- **T2a-2 (untrained init) reads `acc_copy > 0.02` or `KS` CI *excluding* 0.**
+  **CATASTROPHIC. HALT.** (See §15.6.)
+
+**⇒ THE MODELS GENUINELY LACK THE MECHANISM (a finding about models, not the probe) if:**
+witness detection legs all **pass** (so the instrument demonstrably has teeth), and then a
+**rung** reads `KS` CI including 0 / T2b-1 non-significant. That rung has **no demonstrable
+key-conditioned in-context copy** and is **excluded from the law** — which is *already*
+§11.5's pinned consequence, unchanged. If **most** rungs fail this way, the honest headline
+is **FLOOR**, exactly as §9.4/§9.5 already pre-commit.
+
+**⇒ AND THE THIRD OUTCOME, which the old gate could not express and which is the real reason
+it deadlocked:** witnesses show **`KS > 0` significantly, `DiD > 0` significantly, but low
+`acc_copy`.** Under §11.4.1 this was **INSTRUMENT-INVALID / HALT**. **Under §15 it is a
+PASS**, and it is the *correct* pass — it says *"the mechanism is present and the instrument
+reads it; these models simply cannot win an argmax against a 30–40×-favoured rival from one
+shot,"* **which is exactly what arXiv:2511.21038 and Wei et al. predict they cannot do, and
+is a fact about models and priors, not about our instrument.** The old gate would have
+halted a valid study over a literature-predicted null on an operation the study never needed
+to measure.
+
+**Does the pinned point distinguish "probe broken" from "models lack the mechanism"? YES —
+and the old point demonstrably could not.**
+
+---
+
+### 15.6 NEGATIVE-CONTROL CHECK — the catastrophic failure mode is CLOSED
+
+*A probe that becomes passable by an untrained model is a catastrophic failure, not a fix.*
+Both pinned negative controls are checked, and **neither is weakened by a single word of
+§15.**
+
+**(1) T2a-2 — untrained init must score at chance. UNCHANGED AND GATING.**
+An untrained model's argmax over 50257 tokens is at chance ⇒ `acc_copy ≈ 2×10⁻⁵ ≪ 0.02` ✓,
+and with no key-conditioned mechanism `KS ≈ 0` with CI **including** 0 ✓.
+
+**Could an untrained model pass the NEW gate?** It must clear, *simultaneously*: `KS > 0`
+with CI **excluding** 0; T2b-1 `p < 0.001`; T2b-1b `p < 0.001`; T1c `DiD > 0` with CI
+excluding 0; and `PRIOR ≤ 0.05`. **Every one of these is a *causal, key-conditioned*
+quantity that is identically zero in expectation for a model with no learned mechanism.**
+**The new gate is strictly NOT passable by an untrained model.**
+
+**And note the structural improvement, which I claim as a strengthening rather than a
+concession:** T2a-2 already gates on **the `KS` bootstrap CI including 0**. My pin promotes
+**the `KS` bootstrap CI excluding 0** to the positive gating role. **The negative control and
+the positive gate are now the same statistic read in two directions.** Under §11.4.1 they
+were *mismatched* — the positive leg gated on a magnitude (`KS ≥ 0.50`) while the negative
+control gated on a CI — so the negative control was never a tight complement of the thing it
+was controlling. **It is now exactly that.**
+
+**(2) `PRIOR` (no-plant, arm 5) must stay ≤ 0.05. UNCHANGED AND GATING.**
+Leg (iii) is retained verbatim and remains a HALT condition. §15 removes **no** anti-prior
+guard. Indeed, with the absolute ceiling gone, `PRIOR` and `KS`-sign become **the** load-
+bearing anti-absorption and anti-salience guards, and both are retained at full strength.
+
+**Neither control is weakened. The catastrophic mode is closed by construction.**
+
+---
+
+### 15.7 WHAT THIS PIN COSTS — stated plainly, not buried
+
+**It is weaker in exactly one respect, and I will not disguise it:** §15 **removes the
+ability to HALT on an instrument that *detects* the mechanism but reads it *weakly***. A
+witness reading `acc_copy = 0.03` with `KS` significantly > 0 now **passes** where §11.4.1
+would have halted.
+
+**The argument that this is correct rather than convenient:**
+
+1. **The magnitude has no consumer left in the design.** `acc_copy`'s only structural
+   consumer was **T2b-2** (`DiD ≤ acc_copy + 2·SE`) — and **§11.6 already RETIRED T2b-2**,
+   proving `acc_copy ≥ DiD` *"not merely unproven — **false in general**."* **A gate on a
+   quantity that nothing consumes protects nothing.** It can only halt the study for a
+   reason the document has already conceded is uninterpretable. Retiring the ceiling
+   therefore costs **nothing that §11.6 had not already written off.**
+2. **The risk it was insuring against is covered elsewhere, by the design's own reckoning.**
+   §11.6.1 enumerates the three guards that replaced T2b-2 — the runtime one-token-per-row
+   assertion, T2b-1/T2b-1b exclusion, and **T2a-2** (*"an instrument that reports recall
+   where no mechanism can exist is caught before any rung is read"*). **All three are
+   retained here at full strength.**
+3. **The lost information is preserved as reporting, not discarded** — the §15.4
+   instrument-sensitivity floor.
+
+**What §15 does NOT do, and what no version of this probe can do:** it does not resurrect a
+ceiling on `DiD`, it does not license comparing `acc_copy` to `DiD`, and it does **not**
+claim the rungs can copy. §11.6 Reason 2 stands untouched: **the probe remains strictly
+harder than the metric, and a failure on it still carries no implication for the metric.**
+**T1c — not the probe — remains the only gate licensed to speak about the primary,** which is
+why §15 promotes it.
+
+---
+
+### 15.8 CONTAMINATION LEDGER FOR THIS PIN
+
+| # | question | answer |
+|---|---|---|
+| 1 | Was any attempt-2 outcome value read? | **No.** §15.0. |
+| 2 | Was any number in §15.4 chosen to make a known score pass? | **No — §15.4 contains no absolute bar to have chosen.** Every retained threshold (`PRIOR ≤ 0.05`, `p < 0.001`, `acc_copy ≤ 0.02`, CI-excludes-0) is **carried over unchanged** from §11.4.1/§11.4.2. **§15 introduces exactly ZERO new numeric thresholds.** This is the single strongest anti-laundering property of this pin and it is checkable in one diff. |
+| 3 | Did the disclosed `0.11` leak (§15.0) influence the pin? | **It cannot have.** A bar-fitter would have pinned a bar *below* 0.11. §15 pins **no bar at all** and instead *removes* the bar family. The pin is strictly *less* steerable by any known score than any numeric alternative. |
+| 4 | Were Δ or n_demos moved? | **No.** Both explicitly declined, on derivation (§15.3). Two of the three knobs I was handed, I refused to turn. |
+| 5 | Is the gate weaker overall? | **In one disclosed respect (§15.7): yes.** In three respects it is **tighter** — leg (iv)'s hidden 0.50 competence bar is **closed**; the negative control is now the **exact complement** of the positive gate; and T1c, the only difficulty-matched gate, is **promoted from co-equal to primary**. |
+| 6 | Could a hostile reviewer call this M-11 again? | The M-11 charge is *"a bar was cut after it failed."* **§15 cuts no bar to a passing value — it removes an uncalibratable bar family and keeps every causal gate and both negative controls at full strength.** The removal is derived from **§11.6's own attacker-endorsed necessity argument** plus a literature that reports **0% prior-override in the 1–12B band** — not from any outcome. **If the literature had shown a ~1.5B model doing one-shot argmax copy against a 30× prior deficit, §15 would have KEPT the 0.90 bar.** It does not, so §15 removes it. |
+
+**STATUS: §15 is PINNED, BLIND. It supersedes §11.4.1 legs (i), (ii) and the magnitude of
+leg (iv), and §9.4's `acc_copy ≥ 0.90` sensitivity split. Everything else in §9 and §11 —
+the repaired picker (§11.2), the six arms (§11.3), the witness set (§11.4.2), T2b (§11.5),
+T2b-2's retirement and S3 (§11.6), the sample floors (§11.7), and the admissible-set commit
+protocol (§11.8.1) — is UNTOUCHED.**
+
+**The honest one-line summary, which is the finding and not an excuse:** *the witness gate
+failed not because the models lack in-context copy, and not (this time) because the picker
+was broken, but because the gate demanded an operation — one-shot argmax override of a
+30–40×-favoured bigram prior — that **no published measurement shows any ~1.5B model
+performing, and that the most directly relevant measurements report at 0%.** The probe was
+asking its reference models to do something the literature says they cannot do. **That is a
+defect in the bar, not in the models, and not in the instrument's ability to detect the
+mechanism** — which is why the causal legs survive and the ceiling does not.*
+
+---
