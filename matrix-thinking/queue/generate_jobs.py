@@ -1529,6 +1529,173 @@ def param_axis_14m_fulltoken_jobs() -> list[dict]:
     return jobs
 
 
+def param_axis_rung_y_dstate64_jobs() -> list[dict]:
+    """DSTATE_CONFOUND_PREREG.md (commit 1a4add5) Option 1 -- RUNG Y.
+
+    THE ATTRIBUTION CELL. The param ladder runs d_state = 64 / 64 / 128 at
+    14M / 98M / 392M, so the DeltaNet state (d_state x d_state per layer)
+    QUADRUPLES at the single interval a 3-point fit must span. The pre-reg's
+    S3 algebra shows the resulting 3-point/3-parameter fit is SATURATED (zero
+    residual df) and that, in closed form,
+
+        beta_hat = (M_98 - M_14) / (x_98 - x_14)     EXACTLY
+
+    -- the 392M rung contributes NOTHING to the parameter slope, while the
+    d_state step term is PERFECTLY ALIASED with curvature. So a RISES verdict
+    (the only headline this design can still produce) cannot be attributed to
+    parameter count, and NO re-analysis fixes it. Only a new cell does.
+
+    Rung Y is that cell: 392M-scale params at d_state = 64.
+      - It completes a clean 3-rung d_state=64 ladder {14M, 98M, Y}, which is
+        S9.6's >=3-rung minimum met with the SECOND AXIS HELD FIXED -- i.e.
+        CLAUDE.md's own hard rule ("hold any second architectural axis FIXED
+        when testing a primary hypothesis") finally obeyed. GATE-A (pre-reg
+        S5) flips from FAIL to PASS.
+      - It costs 0.46% power: S_xx = 1.0446 on the clean ladder vs 1.0542 on
+        the confounded one (both recomputed here against the MEASURED param
+        counts; they reproduce the pre-reg's S4 figures exactly).
+      - It turns the EXISTING 392M (d_state=128) rung into a MATCHED-PARAMS
+        measurement of the state-width effect: gamma = M(392M,128) - M(Y,64)
+        at a 1.609% param mismatch. That is a designed experiment on
+        fast-weight state capacity -- a first-class result on this program's
+        own thesis, not a nuisance adjustment.
+
+    MEASURED PARAM COUNT (not arithmetic -- the pre-reg's own S1/S4 hand
+    arithmetic is WRONG here and this correction is the reason the cell was
+    priced from a real instantiation). Instantiating the REAL DeltaNetLM on
+    the box at vocab 50257:
+        dm=1536 ds=128 L=16 -> 391,869,440   (reproduces S21 V-1 EXACTLY,
+                                              which validates the method)
+        dm=1536 ds= 64 L=16 -> 385,564,672   (RUNG Y, measured)
+    The pre-reg predicted 385,577,984 for rung Y -- over by 13,312 params
+    (= 16 layers x 832). The missing terms are both d_state-scaled and both
+    omitted from its hand arithmetic: the short causal conv over q/k/v
+    (3 * d_state * conv_size = 768/layer) and a d_state-wide norm (64/layer).
+    Nothing material moves: the param delta vs the 392M rung is -1.609% (the
+    pre-reg said -1.61%) and S_xx/power are unchanged to 4 decimals. Recorded
+    because the design doc's stated figure is off and a later agent will
+    otherwise "correct" the right number back to the wrong one.
+
+    Arm/config/seed/budget match cells 029/030 (the live 392M full-token
+    per_token pair, verified by reading their deployed specs on the box):
+    per_token, lambda 0.58, seed 3, 67,547 steps, batch 32, seq 512. The ONLY
+    difference from 029/030 is d_state 128 -> 64. Same step count => the same
+    token count => the common-slice token match (T = 1.10669B) holds BY
+    CONSTRUCTION and rung Y does not move T.
+
+    TIMEOUT PRICING -- MEASURED, and deliberately NOT assuming a speedup.
+    The 392M d_state=128 rate was re-measured on THIS box from the two live
+    jobs (elapsed wall / steps completed, i.e. including startup and real
+    8-way GPU contention):
+        029: 39,454 s / 47,000 steps = 0.839 s/step
+        030: 38,302 s / 45,600 steps = 0.840 s/step
+    (both slight OVER-estimates: elapsed includes data load, and the step
+    read precedes the ps snapshot). Rung Y differs ONLY by d_state 128 -> 64
+    with d_model/n_layers/conv_size/batch/seq/steps identical, and EVERY
+    d_state-dependent cost term is monotone non-decreasing in d_state (q/k/v/o
+    projections 4*d_model*d_state; the short conv 3*d_state*conv_size; the
+    chunked recurrent kernel's T*d_state^2 term), while the terms that
+    dominate -- the FFN's 8*d_model^2 and the 50,257-way logits head -- are
+    UNCHANGED. Therefore
+        rate(d_state=64) <= rate(d_state=128) = 0.840 s/step
+    is a rigorous UPPER BOUND, not an assumed speedup. The cell is priced as
+    if d_state=64 costs exactly the same as d_state=128 -- strictly
+    conservative -- giving 67,547 * 0.840 / 3600 = 15.76 GPU-h/cell (31.5 for
+    the pair; the pre-reg budgeted ~30, and 31.4 at its own pessimistic rate).
+
+    --internal-timeout 86400s (24.0h) = 1.52x that already-conservative upper
+    bound, and ~1.8x the likely true d_state=64 need. This is deliberately
+    MORE headroom than 029/030's 72000s (which is only 1.27x). The
+    mispriced-timeout bug has bitten this project TWICE (job 200's 160000s
+    against a true ~71h need, ~44 GPU-h burned for nothing; and the
+    _fixscale_cell 36000s default against 392M's 15.69h need). It does not get
+    a third. The asymmetry is the whole argument: a too-SMALL timeout
+    guarantees a wasted run, while a too-LARGE one only costs extra burn on a
+    job that is already pathological -- the timeout is a rail, not a budget,
+    and a healthy cell exits on step count long before it fires.
+
+    Priority: ids 033/034 sort above the entire pending backlog (400-431, and
+    990) so they claim the first GPUs freed -- 031/032 (14M) finish within the
+    hour and 029/030 (392M) land ~23:00 UTC. They CANNOT preempt anything:
+    queue_worker.sh only claims when its OWN GPU is free (it never evicts), so
+    029/030/031/032/000 and the live 231/233/234 are untouchable by this.
+    """
+    jobs = []
+    steps_full = 67_547           # IDENTICAL to 029/030/031/032 -- token-matched by construction
+    rate_s_per_step = 0.840       # MEASURED ds=128 upper bound (see docstring); NO speedup assumed
+    est_gpu_h = steps_full * rate_s_per_step / 3600.0     # = 15.76 GPU-h
+    timeout_s = 86400             # 24.0h = 1.52x the conservative upper bound
+    for seq, corpus in ((33, "openr1-mix-ext"), (34, "wikitext-mix-ext")):
+        name = f"fixscale_fulltoken_arm_per_token_392mY_ds64_{corpus}_s3"
+        cmd, vcheck, ckpt_dir, out = _fixscale_cell(
+            name, corpus, 1536, 64, 16, steps_full, 3, "per_token",
+            timeout=timeout_s)
+        jid = f"{seq:03d}_laneB_392mY_ds64_per_token_{corpus}_s3"
+        jobs.append(dict(
+            id=jid, lane="B",
+            hypothesis=(
+                "DSTATE_CONFOUND_PREREG.md (H-3) Option 1 -- THE ATTRIBUTION "
+                "CELL. The param ladder bundles a second architectural axis: "
+                "d_state = 64/64/128 at 14M/98M/392M, so the DeltaNet state "
+                "quadruples at the one interval the 3-point fit must span. The "
+                "fit is SATURATED (3 points, 3 params, zero residual df) and in "
+                "closed form beta_hat = (M_98 - M_14)/(x_98 - x_14) EXACTLY -- "
+                "the 392M rung contributes ZERO information to the parameter "
+                "slope, and the d_state step is perfectly aliased with "
+                "curvature. A RISES verdict therefore CANNOT be attributed to "
+                "parameter count, and no re-analysis fixes it. Rung Y (392M-"
+                "scale params at d_state=64) completes a clean 3-rung "
+                "d_state=64 ladder {14M, 98M, Y} -- second axis held fixed, "
+                "GATE-A flips FAIL -> PASS -- at a 0.46% power cost, AND turns "
+                "the existing 392M (d_state=128) rung into a matched-params "
+                "(1.609% mismatch) measurement of the state-width effect, "
+                "which is a first-class result on this program's own "
+                "fast-weight-capacity thesis. Does not pre-judge the verdict; "
+                "it makes an ATTRIBUTABLE one possible."),
+            cmd=cmd, gpu_h_estimate=round(est_gpu_h, 2),
+            output_dir=FIXSCALE_RESULTS_ROOT, validity_check=vcheck,
+            notes=(
+                f"PARAMS: 385,564,672 -- MEASURED by instantiating the real "
+                f"DeltaNetLM (dm=1536, ds=64, L=16, vocab 50257) on the box, NOT "
+                f"by arithmetic. Method validated: the same instantiation "
+                f"reproduces the existing 392M rung at 391,869,440 EXACTLY "
+                f"(S21 V-1). NOTE the pre-reg's own hand arithmetic says "
+                f"385,577,984 and is WRONG by 13,312 (= 16 layers x 832): it "
+                f"omits the d_state-scaled short conv (3*d_state*conv_size = "
+                f"768/layer) and a d_state-wide norm (64/layer). Immaterial "
+                f"(delta vs 392M = -1.609%, S_xx = 1.0446 clean vs 1.0542 "
+                f"confounded, power loss 0.46% -- all reproduce the pre-reg's "
+                f"S4) but recorded so it is not 'corrected' back. "
+                f"COST: MEASURED 0.840 s/step at d_state=128 from the two LIVE "
+                f"392M jobs on this box (029: 39,454s/47,000 steps; 030: "
+                f"38,302s/45,600 steps, both including startup and real 8-way "
+                f"contention). d_state=64 is priced at the SAME rate -- NOT a "
+                f"speedup assumption: every d_state-dependent cost term is "
+                f"monotone non-decreasing in d_state while the dominant FFN "
+                f"(8*d_model^2) and 50,257-way head are unchanged, so 0.840 "
+                f"s/step is a rigorous UPPER BOUND. x {steps_full:,} steps = "
+                f"{est_gpu_h:.2f} GPU-h/cell, {2*est_gpu_h:.1f} for the pair. "
+                f"--internal-timeout {timeout_s}s (24.0h) = 1.52x that "
+                f"conservative bound and ~1.8x the likely true need -- MORE "
+                f"headroom than 029/030's 72000s (1.27x), on purpose: the "
+                f"mispriced-timeout bug has already cost this project two runs "
+                f"(job 200's 160000s vs a true ~71h need, ~44 GPU-h burned; the "
+                f"_fixscale_cell 36000s default vs 392M's 15.69h need). A "
+                f"too-small timeout guarantees a wasted run; a too-large one "
+                f"only burns extra on an already-pathological job. "
+                f"ARM/CONFIG/SEED/BUDGET match cells 029/030 exactly (per_token, "
+                f"lambda 0.58, seed 3, 67,547 steps, batch 32, seq 512, verified "
+                f"by reading their deployed specs on the box); the ONLY "
+                f"difference is d_state 128 -> 64, so the common-slice token "
+                f"match (T = 1.10669B) holds BY CONSTRUCTION and T does not "
+                f"move. Ids {seq:03d} sort above the whole pending backlog "
+                f"(400-431, 990) so they claim the first freed GPUs; they cannot "
+                f"preempt anything, since queue_worker.sh only claims when its "
+                f"OWN gpu is free and never evicts."),
+        ))
+    return jobs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outdir", default=os.path.join(HERE, "jobs", "pending"))
@@ -1539,7 +1706,8 @@ def main():
                 + regate_20260712_jobs() + ncr_next_lever_q1_jobs()
                 + ncr_next_lever_probe_ab_jobs() + ncr_mapping_law_wave1_jobs()
                 + ncr_mapping_law_q4_k32_budget_jobs()
-                + param_axis_14m_fulltoken_jobs())
+                + param_axis_14m_fulltoken_jobs()
+                + param_axis_rung_y_dstate64_jobs())
 
     total_by_lane = {}
     for j in all_jobs:
