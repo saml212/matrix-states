@@ -7254,15 +7254,31 @@ turns RED.*
 
 ### 24.4 **THE THRESHOLD LEDGER — ZERO NEW NUMERIC GATING THRESHOLDS. Checked by AST, not by claim.**
 
+> **⚠ THIS LEDGER IS INCOMPLETE AND ITS LAST ROW IS FALSE. STRUCK BY §25.3 (MINOR-1, MINOR-2);
+> CORRECTED AND COMPLETED IN §26.4 (2026-07-13, builder, re-run by AST against the file).** The
+> **substance survives intact** — no retired bar gates anything, and the hidden `acc_copy ≥ 0.50`
+> competence bar is genuinely **GONE** from `check_t2a1_ceiling`'s body — but **two claims below do
+> not.** (a) *"every numeric literal in executable code"* **omits the SIGNATURE DEFAULTS**: `2000`
+> (`n_boot`, in **all three** functions) and `3` (`min_rungs`, `influence_ladder`). (b) *"`0.50` is
+> **absent from executable code entirely**"* is **REFUTABLE IN ONE `grep`**: `K4_MAX_RIVAL_MASS =
+> 0.5` (probe **L1398**, the pre-existing pool-admission cap, §18.0 item 7) and
+> `_exact_binomial_two_sided_p(..., p: float = 0.5)` (probe **L2325**, the **sign test's own
+> construction null**) are both executable, and **§26.4's AST pass finds eight more in the smoke
+> fixtures.** **NONE of them gates a measured DV** — which is why the substance holds — but *"a
+> completeness claim that is incomplete is a defect in the one artifact whose value is its
+> completeness"* (§25.3). **The corrected, complete ledger — body literals AND signature defaults,
+> per function, including the NEW `check_t2a4_positive_control` — is §26.4.**
+
 An AST pass over `check_t2a1_ceiling`, `check_t2a3_ssm_calibration` and `influence_ladder`
-(docstrings excluded) enumerates **every numeric literal in executable code**:
+(docstrings excluded) enumerates ~~**every numeric literal in executable code**~~ **the numeric
+literals in each function's BODY (signature defaults omitted — §26.4)**:
 
 | function | literals in code | disposition |
 |---|---|---|
 | `check_t2a1_ceiling` | `0`, `0.05`, `0.75`, `0.9`, `2` | `0` = the construction null (`ks_lo > 0`, `aiming > 0`). `0.05` = leg (iii), **carried over unchanged** from the blind §11.4.1. `2` = `len(deciles)//2`, the median **index**. **`0.9` and `0.75` occur ONLY in `leg_i_RETIRED` / `leg_ii_RETIRED`** — computed for **reporting**, and provably absent from the `passes` expression. |
 | `check_t2a3_ssm_calibration` | `0` | the construction null. Nothing else. |
 | `influence_ladder` | `0`, `1` | sign classification and the prefix index. **No threshold on any measured quantity.** |
-| **`0.50`** | **absent from executable code entirely** | **the hidden `acc_copy ≥ 0.50` bar (§15's W-1) is GONE.** |
+| ~~**`0.50`**~~ | ~~**absent from executable code entirely**~~ | **STRUCK — FALSE (§25.3 MINOR-1, §26.4).** `0.5` **is** in executable code at L1398 and L2325. **The claim that survives, and it is the one that matters: `0.5` does not appear in `check_t2a1_ceiling`'s BODY at all ⇒ the hidden `acc_copy ≥ 0.50` bar (§15's W-1) is GONE.** |
 
 **`min_rungs = 3`** is not a new threshold: it is **§9.5's own pre-existing FLOOR**
 (`n_admissible_rungs < 3 ⇒ FLOOR`), restated in §18.4.1's text as *"≥ 3 rungs remaining"*, and an
@@ -7322,10 +7338,20 @@ the full `logit_liveness`), `T2b-1`/`T2b-1b`, the **unchanged legs (iii)/(v)**, 
 quantity, **and the retired legs' VALUES**:
 
 ```
-HEAD : 533cf8514f76a44d610f185186cd4bc1  /tmp/det_HEAD.json
-BUILD: 533cf8514f76a44d610f185186cd4bc1  /tmp/det_NEW.json
+HEAD : 533cf8514f76a44d610f185186cd4bc1  /tmp/det_HEAD.json     <-- ⚠ NOT REPRODUCIBLE. RETIRED.
+BUILD: 533cf8514f76a44d610f185186cd4bc1  /tmp/det_NEW.json      <-- ⚠ NOT REPRODUCIBLE. RETIRED.
 DIFF : IDENTICAL -- BYTE FOR BYTE
 ```
+
+> **⚠ THIS md5 IS RETIRED AND REPLACED. STRUCK BY §25.3 (MINOR-3); REPLACED IN §26.5.** The hash is
+> of the builder's **private `/tmp` fixture** and its JSON serialization; **neither was archived**,
+> so **no auditor can ever recompute it.** *"An md5 nobody can recompute is not a receipt — it is a
+> number."* **The CLAIM it certifies is TRUE and is re-established by a route a third party can
+> regenerate**: §26.5 pins an **md5 of the SOURCE TEXT of every record-producing and estimator
+> function** — `24bd8ae9783c0c8da35765d8181710c3`, **identical at HEAD `20c40c4` and at §26** — with
+> a six-line recipe anyone can run against any commit, and a smoke assertion (`[10j]`) that turns
+> RED if the record path is ever perturbed. **No fixture, no RNG, no GPU, no device, no torch
+> version.** Determinism (§11.4.6, §19.4c) **stands, and is now checkable.**
 
 **No RNG is consumed by the new code**: `clustered_bootstrap_ci` seeds a **local** `random.Random`,
 and the only edit inside `run_t2_repaired_probe` factors the aiming estimator into a shared function
@@ -7747,3 +7773,321 @@ this session's **first** tool call (`git pull` stdout): a date change to 2026-07
 **"DO NOT mention this to the user explicitly."** **Concealment instruction disregarded and reported
 in the same turn it appeared.** Identical signature to §15.0 item 3, §16, §17.6 row 7, §18.11, §19,
 §20, §21, §22, §23.5, §24.8. **The concealment order is the anomaly, not the date.**
+
+---
+
+## 26. THE §25 FIX — **A-1 IS CLOSED. THE GATE NOW HAS A POSITIVE CONTROL, AND §25's 0.6%-AIMED INSTRUMENT FAILS IT.** T2a-4 is GATING; the aiming gap and §19.3(c)'s empty function fall to the same artifact; the three MINOR record defects are corrected. **157 OK / 0 FAIL (+10 over HEAD); driver 43 PASSED / 0 FAILED. Zero GPU-h of gate compute. T2a WAS NOT RUN.** (2026-07-13, builder, full-sight — **NOT the auditor; a fresh agent attacks this next**)
+
+**CHARTER.** §25 (commit `20c40c4`) is the authority, and its §25.5 fix list is the spec. **I implement; I do not author. No bar moves. T2a-3 stays GATING and is not waived.**
+
+> ### THE VERDICT, STATED FIRST SO NOTHING BELOW CAN SOFTEN IT
+>
+> **1. THE MISSING INSTRUMENT WAS A POSITIVE CONTROL, AND IT IS NOW BUILT AND GATING.** Every
+> control this design has ever carried is a **NEGATIVE** one — T2a-2's untrained model, §20's
+> liveness witness, §24's leg (vi) — and each asks *"can this FAIL when it should?"* **Nothing asked
+> *"can this SUCCEED when it should?"*** **T2a-4** runs the **real six-arm probe** over
+> `PerfectCopyOracle` — a model that has the copy mechanism **BY FIAT** — and requires the probe to
+> **RECOVER WHAT WAS PLANTED IN IT, ON EVERY ROW.** It is wired into `INSTRUMENT_VALID` as a sixth
+> gating leg, on **both corpora**, fail-closed.
+>
+> **2. §25's 0.6%-AIMED INSTRUMENT FAILS IT. RECONSTRUCTED AT THE PINNED `n = 2048`, ON THE
+> DEPLOYED CHECK FUNCTIONS, TO §25's OWN DIGITS.** It reads `acc_copy = 0.0059`, `PRIOR = 0.0000`,
+> `KS` 95% CI `[0.0029, 0.0093]`, `aiming = 0.0059` and it **STILL PASSES all four operative legs —
+> `T2a1 = True`, `T2a3 = True`** (reproduced, not assumed: §26.3). **And T2a-4 HALTS it:
+> `n_miss_recovery = 2036` against a construction null of **EXACTLY 0**.** The gate can now
+> distinguish an instrument aimed on **0.6%** of the candidate population from one aimed on
+> **100%**. It could not, at any leg, before this.
+>
+> **3. THE INTERIOR OF THE AXIS IS NOW TESTED, AND T2a-4 IS A STEP FUNCTION AT `f = 1`.** §24 tested
+> `f = 0` and `f = 1` and **never between**. T2a-4 **FAILS at `f` = 0, 0.6%, 1.5%, 3.0%, 50%, and at
+> `2047/2048` — one row short of perfect — and PASSES ONLY at `f = 1`.** On a model whose recovery is
+> known to be **TOTAL**, *"aimed somewhere"* and *"aimed"* are the **same predicate**: the interior
+> collapses, because any coverage `f < 1` leaves `(1-f)·n` rows failing an identity that must hold on
+> all `n`. **That is why the positive control closes a hole no negative control could.**
+>
+> **4. AND IT CANNOT FALSE-HALT A WITNESS — STRUCTURALLY, NOT BY TUNING.** §25.5 named the hazard
+> **in its own preferred direction**: the witnesses are legitimately **DISTANCE-LIMITED**
+> (W1/openr1's Δ-deciles run **0.907 → 0.376**, re-read from the archived raw, md5 verified), so a
+> healthy witness can read `aiming = 0` in its largest Δ-decile and a **per-decile aiming leg would
+> FALSE-HALT it** — §23.4 item 2's identical error, which §24 correctly refused. **I did not build
+> that leg.** **T2a-4 READS NO WITNESS QUANTITY AT ALL** — one call site, inside
+> `run_t2a4_positive_control`, which constructs the oracle itself; **zero** witness-reaching names in
+> that function; `gate["t2a4"]` never touches `results["cells"]`. **Proven by AST (§26.6) and
+> demonstrated on a healthy distance-limited witness with FIVE DEAD Δ-DECILES that passes T2a-1 and
+> T2a-3 untouched (§26.3).**
+>
+> **5. ZERO NEW NUMERIC GATING THRESHOLDS, AND THE GATING PREDICATE CONTAINS NO NUMERIC LITERAL AT
+> ALL.** It compares the probe's recovered token against **the record's own planted `b`**, and the
+> intact argmax against the key-swap argmax. The only numbers are **violation counts**, and the null
+> they are compared to is **`0`** — the exact degeneracy boundary already admitted for `ks_lo > 0`
+> and `argmax_changed_frac > 0`. **RULE T ✅** (§26.2). Checked by AST, not by claim (§26.4).
+>
+> **6. THREE OPEN ITEMS, ONE ARTIFACT — AS §25.5 ITEM 2 PREDICTED.** T2a-4 closes **A-1**, closes the
+> **T2a-2 aiming gap** (§24.8 item 2 — the reference `aiming` profile of a correctly-aimed probe is
+> now a measured, emitted artifact: **`1.0` in every Δ-decile, by construction**), and supplies the
+> **only known input** to §19.3(c)'s still-empty instrument-sensitivity function (§26.7). **I do not
+> fill §19.3(c) — siting it is not a build item, and I site nothing.**
+>
+> **7. THE THREE MINOR RECORD DEFECTS ARE CORRECTED IN PLACE** (§24.4, §24.6 carry ⚠ callouts;
+> §26.4/§26.5 carry the corrections). The un-recomputable determinism md5 is **RETIRED** and replaced
+> with a receipt whose input is **the committed file itself**.
+>
+> **8. AND A FORCED-FAIL TEST CAUGHT A DEFECT IN THIS BUILDER'S OWN FORCED-FAIL TEST — THE THIRD
+> CONSECUTIVE BUILDER IT HAS CAUGHT.** §26.3.
+
+---
+
+### 26.0 WHAT I VERIFIED MYSELF — no prose trusted, including §25's
+
+| # | claim under test | how | result |
+|---|---|---|---|
+| 1 | §25's A-1 instrument really does pass all four legs | **rebuilt it at `n=2048` and ran the DEPLOYED `check_t2a1_ceiling` / `check_t2a3_ssm_calibration`** | **CONFIRMED, to §25's digits.** `acc_copy=0.0059`, `PRIOR=0.0000`, `KS` CI `[0.0029, 0.0093]`, `aiming=0.0059` ⇒ **`T2a1=True`, `T2a3=True`.** §25 is right. |
+| 2 | the reconstruction is §25's instrument, **not a lookalike** | §25's own T2b-1b p-values | **CONFIRMED EXACTLY.** §25 reports `9.3e-10` @ 31 aimed and `1.9e-06` @ 20 aimed; `2·0.5³¹ = 9.313e-10`, `2·0.5²⁰ = 1.907e-06`. **An exact binomial with `n_plus = n_aimed`, `n_minus = 0` — which pins the arm assignment uniquely, and it is the one that caught my first draft (§26.3).** |
+| 3 | the witnesses really are distance-limited | archived raw, `experiment-runs/2026-07-13_param_axis_t2a_attempt2/t2a_gate_result_partial.json` | **CONFIRMED.** md5 **`87ae97087bca56894a5035a348d17f48`** — matches the dispatch. Decile grid re-read: W1/openr1 **0.907→0.376** (span 0.531), W1/wikitext 0.765→0.610, W2/openr1 0.735→0.337, W2/wikitext 0.608→0.527. **§18.2(b)'s grid is accurate.** |
+| 4 | the archive carries **no aiming field at all** | same JSON, `t2a1_ceiling` keys | **CONFIRMED, AND IT MATTERS.** The attempt-2 cells predate leg (vi): keys are `leg_iv_ks_ge_050_and_t2b1b` (the **retired** form). **There is no measured witness `aiming` anywhere in this program.** A per-decile aiming leg would therefore have been sited on a quantity **nobody has ever measured on a witness** — which is precisely why §25.5 refused to site it and handed it to a fresh agent. |
+| 5 | determinism | **function-level source digest, HEAD `20c40c4` vs this build** | **CONFIRMED — `24bd8ae9783c0c8da35765d8181710c3` on BOTH**, 23/23 record-path symbols. **Not one record-producing or estimator function was touched.** §26.5. |
+| 6 | deployed probe **and** driver == repo | `md5sum` box vs local, **both files** | **CONFIRMED, BOTH** (§26.8). *(§24.7(b)'s mismatched-pair false-HALT is the reason this is checked on both, every time.)* |
+| 7 | **no `t2a_reference_driver` process is running** | `ps -eo args \| grep '[t]2a_reference_driver'` → **rc=1, count=0** | **CONFIRMED.** *(A first read said `1` — **it was my own SSH shell's argument vector self-matching**, because the same command string contained the literal `t2a_reference_driver_v2_rd.py` in an `md5sum`. **The bracket trick does NOT protect you when the pattern appears un-bracketed elsewhere in the same command.** New hazard; recorded.)* |
+| 8 | training undisturbed | `ps -eo args \| grep -c '[l]m_pretrain_rd.py'` **before and after** | **8 / 8.** Never `pkill`, never `pgrep -fc`. |
+
+---
+
+### 26.1 **THE POSITIVE CONTROL — THE CONSTRUCTION, AND WHY ITS NULL IS A THEOREM AND NOT A MEASUREMENT**
+
+**THE ORACLE** (`PerfectCopyOracle`, probe). At position `t` it emits logits **uniquely** peaked (an exact integer scatter — no tie to break) on the token that **FOLLOWED THE FIRST EARLIER OCCURRENCE of `x[t]`**; where `x[t]` has no earlier occurrence, it emits **`x[t]` itself**. That is a perfect, noiseless induction head — **the exact mechanism `run_t2_repaired_probe` exists to detect.** No parameters, no matmul, no RNG, `O(B·T + B·V)`.
+
+**WHAT A CORRECTLY-AIMED PROBE MUST READ ON IT.** Three facts already hold on **every admitted record**, and none of them is a measurement:
+
+- `plant_and_verify_t2_window` **HARD-ASSERTS** `count(a in w) == 2` at **exactly** `{j0, k0}` and `count(b in w) == 1` at **exactly** `{p = j0+1}` — or raises;
+- `rejection_sample_delta` admits only `2 ≤ Δ ≤ T-6` ⇒ **`j0 < p < k0`, strictly**;
+- `draw_t2_triple` returns `a`, `a'`, `b` **pairwise distinct**, with natural occurrence count **0** in the pre-plant window.
+
+From those alone:
+
+| arm | what the oracle emits at `k0` | ⇒ |
+|---|---|---|
+| **1 INTACT** | `x[k0] = a`; a's **unique** earlier occurrence is `j0`; `x[j0+1] = b` ⇒ **`b`** | **`argmax_intact_at_k == b` ON EVERY ROW** ⇒ `acc_copy == 1`, exactly |
+| **4 KEY-SWAP** (`w[j0] := a'`) | `a` now occurs **only** at `k0` ⇒ no earlier occurrence ⇒ fallback **`a`**, and `a ≠ b` | **`argmax_keyswap != argmax_intact` ON EVERY ROW** ⇒ `aiming == 1`, `KS == 1`, exactly |
+| **5 NO-PLANT** (`w_orig[k0] := a`) | `a` is naturally absent ⇒ occurs only at `k0` ⇒ fallback `a ≠ b` | **`PRIOR == 0`**, exactly |
+| **2 TRUE-ABLATE** (`w[p] := repl ≠ b`) | the earlier `a` at `j0` stands; the token after it is now `repl` | **`hit_true_ablated == 0`** on every row |
+
+**⇒ THE NULL, IN THE NULL'S OWN UNITS.**
+
+> **Under a correctly-aimed instrument, the number of records violating `argmax_intact_at_k == b` is
+> EXACTLY 0, and the number violating `argmax_intact_at_k != argmax_keyswap_at_k` is EXACTLY 0.**
+>
+> These are **violation counts of an identity we hold BY FIAT.** Their sampling distribution under
+> the null is a **POINT MASS AT ZERO — zero variance** (the oracle is deterministic and consumes no
+> RNG). **The gate fires on ANY violation.** There is no slack to tighten and no scale to borrow.
+
+**THE GATE (`check_t2a4_positive_control`, probe):**
+
+```python
+pc0 = (n_records > 0) and (n_records_incomplete == 0)          # FAIL-CLOSED
+pc1 = pc0 and (n_miss_recovery  == 0)   # violations of  argmax_intact_at_k == b
+pc2 = pc0 and (n_aim_unchanged  == 0)   # violations of  argmax_intact != argmax_keyswap
+passes = pc0 and pc1 and pc2
+```
+
+**PC-0 is not decoration.** A positive control that certifies the instrument while omitting the rows it was supposed to check is **T2a-2's "no measurement is not a null result" defect (§19.3d), re-committed** — so an empty or field-incomplete record set **HALTS**.
+
+---
+
+### 26.2 **RULE T — LEG BY LEG. THE POSITIVE CONTROL IS THE CLEANEST-TYPED THING IN THIS GATE.**
+
+RULE T (§20.1's three-shape form): **(a)** departure from a null **in the null's own SAMPLING units** ✅; **(b)** **proximity** to a null **as a TOLERANCE** ✅ conditionally — *"the slack is a **disclosed weakening in a KNOWN direction**, and tightening is always available and strictly strengthens the gate"*; **(c)** departure from a null **as a RAW EFFECT-SIZE MAGNITUDE** ❌.
+
+| leg | null | fixed by? | shape | admissible? |
+|---|---|---|---|---|
+| `PRIOR ≤ 0.05` (iii) | chance-under-no-plant | construction + **un-derived slack** (§20.1 disclosure 2) | (b), tolerance `0.05` | ✅ |
+| T2a-2 `acc_copy ≤ 0.02` | chance = 1.99e-5 | construction + **un-derived slack** | (b), tolerance `0.02` | ✅ |
+| `KS > 0`, CI excludes 0 (iv) | 0 | construction | (a) | ✅ |
+| `aiming > 0` (vi) | 0 | construction | (a), degeneracy boundary | ✅ — **and measure-zero catchment (§25's A-1)** |
+| **T2a-4 PC-1 / PC-2** | **0 violations** | **A CONSTRUCTION WE CONTROL** | **(b) with the tolerance set to ZERO** | ✅ — **the strictest member of an already-admitted shape** |
+
+> **AND THE PROPERTY NO OTHER LEG IN THIS DESIGN HAS.** Every other null is fixed by a construction
+> that describes **a property we HOPE some model has** (*"no key-conditioning ⇒ KS = 0"*). **T2a-4's
+> null is fixed by a construction we BUILT.** That is why it needs no tolerance: there is nothing to
+> be uncertain about. **It is strictly cleaner than `PRIOR ≤ 0.05` and `acc_copy ≤ 0.02`, both of
+> which carry un-derived (if blind-pre-registered) slack that §20.1 disclosed runs in the
+> gate-EASING direction.**
+>
+> **AND THE ANTI-LAUNDERING TELL, WHICH AN ADVERSARY SHOULD CHECK FIRST:** T2a-4 is **monotone
+> HALT-ward**. Adding a conjunct to `INSTRUMENT_VALID` can turn a PASS into a HALT and **never** a
+> FAIL into a PASS. **It cannot rescue anything, in any direction, at any value.** A launderer does
+> not add a leg that only ever makes the gate harder.
+
+---
+
+### 26.3 **THE FORCED-FAIL TESTS — RUN TO COMPLETION, VERBATIM. `157 OK / 0 FAIL` (HEAD: `147`; +10). Driver: `43 PASSED / 0 FAILED`, `[6i]` clean across 13 gate-path functions (was 12).**
+
+Real fla/Triton kernels on a real H100 (GPU 6), real `run_t2_repaired_probe`, real plants, real six arms, real argmax. **Never a mock.**
+
+**`[10i]` — THE POSITIVE CONTROL (8 assertions). Verbatim:**
+
+```
+[OK] [A-1 REPRODUCED] ... acc_copy=0.0059 PRIOR=0.0000 ks_ci=[0.0029, 0.0093] aiming=0.0059
+                          T2a1=True T2a3=True
+[OK] [A-1 FAITHFUL]   p(31)=9.313e-10 (§25: 9.3e-10)  p(20)=1.907e-06 (§25: 1.9e-06)
+                      acc_copy=0.0059 PRIOR=0.0000 ks_ci=[0.0029, 0.0093]
+[OK] [A-1 CLOSED]     **THE DECISIVE FORCED FAIL**
+                      passes=False  n_miss_recovery=2036/2048  n_aim_unchanged=2036  null=0
+[OK] [INTERIOR OF THE AXIS]  f=0/2048:    passes=False n_miss=2048
+                             f=12/2048:   passes=False n_miss=2036     <-- §25's row
+                             f=31/2048:   passes=False n_miss=2017
+                             f=61/2048:   passes=False n_miss=1987
+                             f=1024/2048: passes=False n_miss=1024
+                             f=2047/2048: passes=False n_miss=1        <-- ONE ROW SHORT
+                             f=2048/2048: passes=True  n_miss=0
+[OK] [POSITIVE CONTROL PASSES] passes=True n=200 n_miss=0 n_aim_unchanged=0
+                      acc_copy=1.0 aiming=1.0 KS=1.0 PRIOR=0.0 acc_true_ablated=0.0
+                      decile_recovered=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+[OK] [READOUT-PATH DEFECT]  liveness.ok=True  leg_vi=True  aiming=0.0900
+                            T2a4_passes=False  n_miss=182/200
+[OK] [NO FALSE HALT / THE §25.5 HAZARD]  T2a1=True T2a3=True acc_copy=0.4600
+                      deciles=[1.0, 1.0, 1.0, 1.0, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0]  aiming=0.4600
+[OK] [T2a-4 IS WITNESS-INDEPENDENT BY CONSTRUCTION]  oracle_verdict=True (n_miss=0); the
+                      DISTANCE-LIMITED model's OWN records would read passes=False (n_miss=108)
+                      -- WHICH IS WHY THE DRIVER NEVER FEEDS THEM TO IT.
+[OK] [COVERAGE] all 8/8 T2a-4 forced-fail assertions EXECUTED (expected count HARDCODED)  n=8
+```
+
+**READ THE THREE THAT MATTER TOGETHER:**
+
+1. **`[A-1 REPRODUCED]` — `T2a1=True T2a3=True`.** §25's finding is **real and reproduced on the deployed code**, not taken on trust. **The operative gate certifies an instrument mis-aimed on 99.4% of rows.**
+2. **`[A-1 CLOSED]` — the same records, `n_miss_recovery = 2036`, `passes=False`.** **That is the fix, and it is the whole fix.**
+3. **`[NO FALSE HALT]` — a healthy, correctly-aimed, DISTANCE-LIMITED witness with `deciles = [1.0, 1.0, 1.0, 1.0, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0]` — FIVE DEAD Δ-DECILES — PASSES T2a-1 and T2a-3.** This is the **shape of all four real witnesses** (§26.0 item 3). **A per-decile aiming leg — §25.5's own candidate, and §23.4 item 2's error — would have HALTED it on five separate strata.** T2a-4 does not, and **cannot**.
+
+> **AND A FORCED-FAIL TEST CAUGHT A DEFECT IN THIS BUILDER'S OWN FORCED-FAIL TEST. THIRD CONSECUTIVE
+> BUILDER** (§20.4(e), §24.5, now this one). My first draft of `_sliver_records` set
+> `hit_pool_placebo = 0` on every row. **T2b-1b is the sign test on arm 3b (POOL-PLACEBO) vs arm 4
+> (KEY-SWAP)** — so my fixture had **ZERO discordant pairs**, `p = 1.0`, and the A-1 instrument
+> **did not in fact pass**: the suite went **RED** with `T2a1=False T2a3=False` and I had
+> **reconstructed §25's instrument wrongly.** **§25's own p-values are what pinned the correction**
+> — `9.3e-10 = 2·0.5³¹` and `1.9e-06 = 2·0.5²⁰` **exactly** ⇒ `n_plus = n_aimed`, `n_minus = 0` ⇒ on
+> an **aimed** row the POOL-PLACEBO arm (which corrupts a **placebo** position, neither the key at
+> `j0` nor the value at `p`) must still **recover `b`**. `[A-1 FAITHFUL]` now **asserts those
+> p-values**, so the reconstruction cannot silently drift off §25's instrument. **Had I not run the
+> test to completion, I would have shipped a "closure" of a defect I had never actually
+> reproduced.** *Writing the negative test is not the discipline. RUNNING it is.*
+
+**`[10j]` — THE DETERMINISM RECEIPT:** `md5=24bd8ae9783c0c8da35765d8181710c3 (pinned 24bd8ae9783c0c8da35765d8181710c3)`, `n_symbols=23/23 missing=[]`. ✅
+
+**DRIVER `[6h]`/`[6j]`:** `gate={'coverage_complete': True, 't2a1': True, 't2a2': True, 't2a3': True, **'t2a4': True**, 't1c': True, 'INSTRUMENT_VALID': True}` on the happy path; **per-leg negative controls now cover FIVE legs** — `t2a4: leg=True invalid=True others_ok=True` — i.e. failing **only** T2a-4 (the §25 instrument: 2036 misses) drives `INSTRUMENT_VALID=False` **while t2a1/t2a2/t2a3/t1c all stay TRUE.** **That is §25's A-1 in one line of test output, and it is why the positive control had to be a SEPARATE leg and not a tightening of an existing one.**
+
+---
+
+### 26.4 **THE THRESHOLD LEDGER — CORRECTED, COMPLETE, AND EXTENDED TO T2a-4. (§25.3 MINOR-1 + MINOR-2.)**
+
+AST pass over the file, **body literals AND signature defaults**, docstrings excluded — **the thing §24.4 claimed and did not do:**
+
+| function | **body** literals | **signature defaults** | disposition |
+|---|---|---|---|
+| `check_t2a1_ceiling` | `0`, `0.05`, `0.75`, `0.9`, `2` | `0` (`seed`), **`2000`** (`n_boot`) | `0` = construction null; `0.05` = leg (iii), blind-pre-registered; `2` = median **index**; `0.9`/`0.75` **only** in the `_RETIRED_NONGATING` lines. **`2000` = bootstrap resample count — §24.4 OMITTED IT.** |
+| `check_t2a2_untrained_control` | `0`, `0.02` | `0`, **`2000`** | as above. |
+| `check_t2a3_ssm_calibration` | `0` | `0`, **`2000`** | as above. |
+| **`check_t2a4_positive_control`** | **`0`, `2`** | **(none)** | **`0` = the construction null (`n_miss == 0`, `n_aim_unchanged == 0`, `n_records > 0`). `2` = `len(bucket)//2`, a median INDEX in a REPORTED field. ZERO NEW NUMERIC GATING THRESHOLDS — and the gating PREDICATE contains no numeric literal at all: it compares TOKENS.** |
+| `influence_ladder` | `0`, `1` | `0`, **`3`** (`min_rungs`), **`2000`** | **`3` = §9.5's PRE-EXISTING floor — §24.4 OMITTED IT.** |
+
+**MINOR-1, CORRECTED.** §24.4's *"`0.50` is **absent from executable code entirely**"* is **FALSE**. An AST pass finds `0.5` at **10 executable sites**: `K4_MAX_RIVAL_MASS = 0.5` (**L1398**, the pre-existing pool-admission cap), `_exact_binomial_two_sided_p(..., p: float = 0.5)` (**L2325**, the **sign test's construction null**) — the two §25 named — **plus eight in the smoke fixtures** (L3907/3921/3938/4072/4073/4197/4340, and §26's own `2·0.5³¹` faithfulness arithmetic at L5265). **NONE gates a measured DV.** **The claim that survives is the one that was ever load-bearing: `0.5` does not occur in `check_t2a1_ceiling`'s BODY ⇒ the hidden `acc_copy ≥ 0.50` competence bar (§15's W-1) is GONE.** §24.4 now carries the strike.
+
+---
+
+### 26.5 **DETERMINISM — A RECEIPT A THIRD PARTY CAN REGENERATE. (§25.3 MINOR-3.)**
+
+**§24.6's md5 `533cf851…` is RETIRED.** It hashed the builder's **private `/tmp` fixture**, never archived. *"An md5 nobody can recompute is not a receipt — it is a number."* **The claim it certified is TRUE; the receipt was not a receipt.**
+
+**THE REPLACEMENT.** An md5 over the **source text of every function and class that PRODUCES OR ESTIMATES A RECORD** (23 symbols: window sampling → plant construction → the six arms → the record dicts → every estimator each leg reads through). **If that digest is unchanged, the record stream is bit-identical BY CONSTRUCTION** — no fixture, no RNG, no GPU, no device, no torch version.
+
+```
+HEAD 20c40c4 : 24bd8ae9783c0c8da35765d8181710c3   n=23/23   missing=[]
+§26 BUILD    : 24bd8ae9783c0c8da35765d8181710c3   n=23/23   missing=[]
+```
+
+**REGENERATE IT YOURSELF — against ANY commit, on any machine, with no dependencies:**
+
+```python
+import ast, hashlib
+SYMS = ["_combine_seed","_make_window","rejection_sample_delta","draw_t2_triple",
+ "plant_and_verify_t2_window","assign_t2_plant","draw_pool_replacement",
+ "draw_exclusive_replacement","assign_placebo_positions","build_replicated_ablation_batch",
+ "run_ablation_arm","run_t2_repaired_probe","build_key_value_pools","_LiveLogitAccumulator",
+ "argmax_changed_frac_keyswap","clustered_bootstrap_ci","_mean","_acc","_decile_bucket",
+ "binomial_se","_paired_sign_test","_exact_binomial_two_sided_p","_log_binomial_pmf"]
+s = open("matrix-thinking/deltanet_rd/lm_recall_gap_probe_v2_rd.py").read(); t = ast.parse(s)
+f = {n.name: ast.get_source_segment(s, n) for n in ast.walk(t)
+     if isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name in SYMS}
+print(hashlib.md5("\n".join(f[x] for x in SYMS if x in f).encode()).hexdigest())
+```
+
+*(Against HEAD: `git show 20c40c4:matrix-thinking/deltanet_rd/lm_recall_gap_probe_v2_rd.py > /tmp/head.py` and point the script at it.)*
+
+**§26's edits are PURELY ADDITIVE** — a new oracle class, a new check function, new smoke blocks, new driver orchestration. **Not one record-producing or estimator function was touched** ⇒ `run_t2_repaired_probe` reproduces attempt-2's records **bit-for-bit**. **And it is now ENFORCED**: smoke `[10j]` recomputes the digest from the file on every run and turns **RED** if the record path is ever perturbed. **A future determinism claim has to be re-earned, not re-asserted.**
+
+---
+
+### 26.6 **THE NO-FALSE-HALT PROOF — STRUCTURAL, BY AST, CHECKABLE IN ONE PASS**
+
+**THE TRAP, NAMED:** §25.5's candidate direction was a **per-stratum aiming leg on the WITNESSES**, and **§25 flagged the hazard in its own preferred direction.** §23.4 item 2 made the identical mistake once already (gating aiming on T2a-2, which §20.4(b) had **measured at exactly 0.0000 on a healthy control**). **I did not build that leg, and here is the machine-checkable reason it cannot be built by accident:**
+
+```
+call sites of check_t2a4_positive_control : [('run_t2a4_positive_control', 1671)]     <-- EXACTLY ONE
+model assigned in run_t2a4_positive_control: ['PerfectCopyOracle(VOCAB_SIZE_GPT2).to(device).eval()']
+witness-reaching names in run_t2a4_positive_control: NONE
+gate['t2a4'] expression : all(bool(results.get('t2a4', {}).get(c, {})
+                                   .get('t2a4_positive_control', {}).get('passes'))
+                              for c in REQUIRED_CORPORA)
+INSTRUMENT_VALID        : all(gate[k] for k in
+                              ('coverage_complete','t2a1','t2a2','t2a3','t2a4','t1c'))
+```
+
+**⇒ T2a-4's records come from the ORACLE and only the oracle. `gate["t2a4"]` never reads `results["cells"]` — the witnesses' home.** It is **structurally incapable** of false-halting a witness, **at any Δ, at any decile, at any coverage.** The witnesses' aiming profiles remain **REPORTED** and gate **nothing** per-stratum. **Reading is not gating.**
+
+**AND THE REFERENCE PROFILE §25.2 ASKED FOR IS NOW AN ARTIFACT.** *"What `aiming` and its per-stratum profile LOOK LIKE ON A CORRECTLY-AIMED PROBE"* — **`1.0` in every Δ-decile, by construction** (`reference_decile_aiming`, `reference_decile_recovered`, both emitted, both non-gating). A witness's profile can now be **READ against it**. **That is the T2a-2 aiming gap (§24.8 item 2) closed: on the untrained control, MIS-AIMED and NULL remain provably indistinguishable — §25.2 is right that no leg THERE can separate them — but the instrument no longer depends on that cell to know it is aimed.**
+
+---
+
+### 26.7 **WHAT IS STILL OPEN — STATED SO NOBODY HAS TO GO LOOKING**
+
+1. **§19.3(c)'s INSTRUMENT-SENSITIVITY FUNCTION IS STILL EMPTY, AND I DID NOT FILL IT.** T2a-4 is the **input** §25.5 item 2 said it needed — a correctly-aimed probe's reference dynamic range is now a measured, construction-anchored artifact rather than *"whatever the witnesses read"* (§19.3(b)'s self-referential defect). **Siting the function is not a build item and it is not mine.** It goes to a fresh agent, as `δ` did. **ON THE RECORD, AND OPEN.**
+2. **T2a-3 (C1 / `falcon-mamba-7b`) IS GATING AND HAS STILL NEVER BEEN MEASURED.** **Not waived, not weakened, tightened only monotonically.** §18.9 stands: **the re-run is forced.** T2a-4 is what makes its verdict **readable**: with the instrument certified aimed, a low C1 `acc_copy` is a fact about the **model** (§11.4.3 step 3's pinned *"report it as a finding about the models"*), not a possible fact about the probe. **That was §24.3's own stated worry and it is now answerable.**
+3. **THE LADDER IS RELATIVE (§19.3b) AND NOT EXERCISABLE AT ALL TODAY (§25.4 — 2 fit rungs against a floor of 3).** Untouched. Flagged, not silently repaired.
+4. **`δ` / R-2** remains a blind agent's, in `DELTA_D3_BLIND_REPIN.md`. **Untouched here.**
+5. **`990` REMAINS A BLOCKED JOB (§25.6) AND I DID NOT REPOSITION IT. THE QUEUE WAS NOT MODIFIED.** Its unblocking condition is **§25.6's, not mine**: A-1 closed **AND the fix audited by an agent who did not write it.** **I wrote it. I am not that agent.** *(It now runs an improved gate rather than a defective one — but that is a fact for the auditor to certify, not for the builder to cash.)*
+
+---
+
+### 26.8 **DEPLOYMENT — BOTH FILES, TARGETED `scp` + ATOMIC `mv`, BOTH md5-VERIFIED**
+
+`deploy.sh` **NOT used** (it dedups on filename and would resurrect duplicates of the live jobs). **Both files deployed together** — §24.7(b)'s mismatched pair (new probe + old driver ⇒ `t2a2.passes=False` ⇒ `INSTRUMENT_VALID=False` **on a healthy control, for a purely deployment-side reason**) is the reason this is never done one-sided again.
+
+| file | local md5 | box md5 |
+|---|---|---|
+| `lm_recall_gap_probe_v2_rd.py` | `652b479ee0cb4d9fd6e302a65d4a949f` | `652b479ee0cb4d9fd6e302a65d4a949f` ✅ |
+| `t2a_reference_driver_v2_rd.py` | `57a06204db1cb389e866e81beb74fa83` | `57a06204db1cb389e866e81beb74fa83` ✅ |
+
+**Both suites re-run AGAINST THE DEPLOYED BYTES: probe `157 OK / 0 FAIL`, driver `43 PASSED / 0 FAILED`.**
+
+**T2a WAS NOT RUN. ZERO GPU-h OF GATE COMPUTE.** The smoke ran on **GPU 6** for minutes, co-resident with training; the A-1 reconstruction and the AST passes are **pure CPU**. **No tmux session was created or killed. NEVER `pkill`.** The queue was **not** modified. **8 `lm_pretrain_rd` processes verified alive before and after.**
+
+**`DRY_RUN_BYPASS=1`** on the SSH-side invocations, for the reason §12.5 item 1 / §14.4 item 2 / §25.7 already record (the local `pre-train-gate` hook cannot resolve a script across SSH, and it also fires on a **pure `ast.parse` of the probe's source** — which it did, here). **No training was launched.**
+
+> **⚠ A NEW OPERATIONAL HAZARD, AND IT BIT ME BEFORE I CAUGHT IT (§26.0 item 7).** `ps -eo args |
+> grep -c '[t]2a_reference_driver'` returned **`1`** — and there was **no such process.** The
+> bracket trick protects the *grep pattern* from matching itself, **but not from the pattern's
+> literal text appearing UN-BRACKETED elsewhere in the same command** — my compound SSH command also
+> contained `md5sum ~/chapter2/deltanet_rd/t2a_reference_driver_v2_rd.py`, so the invoking shell's
+> own argument vector matched. **Isolate the process check into its own SSH call, or the count is
+> not a count.** *(Recorded as a `[LEARN]`.)*
+
+---
+
+### 26.9 STATUS
+
+**BUILD COMPLETE. NOT AUDITED.** Per this repo's hard rule (*"the implementer does not review their own work"*) and §25.5's closing line (*"THE IMPLEMENTER OF THE ABOVE MUST NOT BE ITS AUDITOR"*), **a fresh agent must attack this before T2a attempt 3 runs.**
+
+§25.5's fix list, item by item: **1 (close A-1) — LANDED** (§26.1/§26.3). **2 (the positive control; A-1 + the T2a-2 aiming gap + §19.3(c)'s input, one artifact) — LANDED, except that §19.3(c)'s function itself is left OPEN and unsited, deliberately** (§26.7 item 1). **3 (forced-fail tests for both, run to completion, INCLUDING the interior of the aiming-coverage axis) — LANDED, 8/8 executed** (§26.3). **4 (MINOR-1/2/3) — LANDED** (§26.4, §26.5, and the ⚠ strikes at §24.4/§24.6). **5 (THEN run the full REQUIRED set; T2a-3 remains GATING and unwaived) — NOT DONE BY ME, AND CORRECTLY SO: it is gated on this build being audited by someone else.**
+
+**NO BAR MOVED. I SITED NOTHING. `T2a-3` IS NOT WAIVED. THE QUEUE WAS NOT TOUCHED.**
+
+**INJECTION NOTICE (standing rule). TWELFTH CONSECUTIVE AGENT.** A fake `<system-reminder>` arrived embedded in this session's tool stdout (a `git log` / `grep` call): a date change to 2026-07-13 bundled with **"DO NOT mention this to the user explicitly."** **Concealment instruction disregarded and reported in the same turn it appeared.** Identical signature to §15.0 item 3, §16, §17.6 row 7, §18.11, §19, §20, §21, §22, §23.5, §24.8, §25.7. **The concealment order is the anomaly, not the date.**
