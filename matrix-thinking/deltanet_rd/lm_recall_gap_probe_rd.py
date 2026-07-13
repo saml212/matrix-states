@@ -7,24 +7,31 @@
 # record for the build+audit chain, NOT as a working instrument. An
 # independent opus audit found 4 FATALs; the coordinator independently
 # re-verified the load-bearing one against this code and the raw data.
-# Full record: matrix-thinking/queue/regate_2026-07-12.md S10.
+# Full record: matrix-thinking/queue/regate_2026-07-12.md S10. Outcome
+# VALUES from this (retracted) run are quarantined in
+# matrix-thinking/QUARANTINE_r0_void_values.md -- do not go looking for
+# them unless explicitly authorized and you are NOT the agent pinning
+# PARAM_AXIS_SCALING_DESIGN.md S9.1.
 #
 # THE DEFECT (FATAL-1): `run_ar_hit_gap_eval` clones ONE `window_ablated`
 # tensor per batch and corrupts EVERY candidate's antecedent position in
 # it, then runs ONE forward pass (see the loop below, and the comment at
-# its head). So a candidate's "ablated" read is taken from a context in
-# which ~12.6% of tokens (openr1; 6.0% wikitext -- MEASURED) have been
-# replaced with random garbage, not one in which its own single antecedent
-# was removed. `acc_ablated` therefore measures GENERIC CONTEXT DAMAGE, and
-# the reported "gap" collapses back toward the RAW AR-hit slice -- which is
-# precisely the parametric-memorization confound FIX-B exists to remove
+# its head). So a candidate's "ablated" read is taken from a context where
+# a large, double-digit percentage of tokens (measured, corpus-dependent --
+# exact figures quarantined) have been replaced with random garbage, not
+# one in which its own single antecedent was removed. `acc_ablated`
+# therefore measures GENERIC CONTEXT DAMAGE, and the reported "gap"
+# collapses back toward the RAW AR-hit slice -- which is precisely the
+# parametric-memorization confound FIX-B exists to remove
 # (PARAM_AXIS_SCALING_DESIGN.md S7 F3, "the attacker's kill shot"). The
 # metric's FORMULA is right; this IMPLEMENTATION reintroduces the confound.
 #
 # The false-DECOUPLED is not hypothetical -- it is REALIZED in this
 # instrument's own output (/tmp/r0_ar_hit_full.json, RETRACTED): wikitext
-# reads a "recall gap" of 0.19 rising with scale at rungs where T2 says the
-# model has EXACTLY ZERO in-context copy ability (acc_intact = 0.0000).
+# reports a nonzero, non-trivial "recall gap" at rungs where T2 says the
+# model has EXACTLY ZERO in-context copy ability. A model with no copy
+# ability cannot have a genuine in-context recall gap -- the gap is
+# reading context damage, not recall.
 #
 # BEFORE ANY RE-USE, all of:
 #   1. ONE corrupted antecedent per forward pass (batch so each row carries
@@ -35,13 +42,15 @@
 #      (`_shuffle_rows`/T1 is NOT a substitute: it preserves the token
 #      multiset and manufactures fresh random adjacencies that genuinely
 #      repeat, so its "null" contains real in-context repeats by
-#      construction -- its shuffled gap reads 13-sigma-nonzero.)
+#      construction -- its shuffled gap reads many-sigma-nonzero.)
 #   3. PRE-REGISTER the normalization (raw gap vs gap/acc_baseline_nonAR)
 #      BEFORE reading. The two admissible choices give OPPOSITE verdicts on
-#      the same JSON (raw -> DECOUPLED-leaning; normalized -> COUPLED-
-#      leaning). This build's author has now SEEN both, and is therefore
+#      the same JSON. WHICH one leans which way is quarantined
+#      (matrix-thinking/QUARANTINE_r0_void_values.md), precisely because
+#      this build's author has now SEEN both, and is therefore
 #      contaminated for this choice -- it must be pinned by someone who
-#      has not, or by the PI.
+#      has not, or by the PI, per the handoff protocol in
+#      PARAM_AXIS_SCALING_DESIGN.md S9.1.
 #   4. Decouple the EVAL batch size from the token-arithmetic batch size
 #      (their conflation in param_axis_r0_driver.py made the 1.31B rung the
 #      only UNCAPPED cell -- it was compared against three CAPPED ones).
@@ -296,7 +305,9 @@ def run_ar_hit_gap_eval(model, val_tokens: torch.Tensor, batch_size: int, seq_le
             # !!!!!! FATAL-1 LIVES HERE (see the module header) !!!!!!
             # ONE cloned tensor + ONE forward pass for ALL candidates in the
             # batch => every candidate's antecedent is corrupted SIMULTANEOUSLY
-            # (~12.6% of context tokens on openr1, measured). Each candidate's
+            # (a large double-digit percentage of context tokens on openr1,
+            # measured -- exact figure quarantined,
+            # matrix-thinking/QUARANTINE_r0_void_values.md). Each candidate's
             # "ablated" read is therefore taken from a mass-corrupted context,
             # not from a context missing only its OWN antecedent. This is what
             # makes the metric VOID. Fix = one ablation per forward pass, plus
@@ -487,8 +498,9 @@ def mode_run(args) -> int:
         # fast-weight family's one-shot copy accuracy is genuinely low in absolute
         # terms (a real, literature-consistent finding, Arora et al./Zoology), NOT an
         # instrument bug -- confirmed by (a) acc_ablated reading exactly at floor
-        # every time (the ablation mechanism has teeth), and (b) acc_intact rising
-        # with model scale (14M 0.03 -> 1.31B 0.375 at the same distance) rather than
+        # every time (the ablation mechanism has teeth), and (b) acc_intact changing
+        # markedly with model scale at the same distance (exact per-rung values
+        # quarantined, matrix-thinking/QUARANTINE_r0_void_values.md) rather than
         # being flatly zero everywhere. "Reads high" is therefore: >=100x chance AND
         # the ablated arm is not (i.e. ablation genuinely destroys the signal).
         "t2_pass": (t2["acc_intact"] > 100.0 / VOCAB_SIZE) and (t2["acc_ablated"] < t2["acc_intact"]),

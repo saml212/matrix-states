@@ -765,12 +765,13 @@ the documents an instrument-builder is required to read:
 1. **Redaction (prerequisite, must land first).** The per-rung outcome values in
    `regate_2026-07-12.md` §10.2 (the raw-gap tuple, the normalized-gap tuple, the
    T2 copy accuracies) and the duplicates in `lm_recall_gap_probe_rd.py`'s module
-   header must be moved to a separate quarantined file (suggested:
-   `matrix-thinking/queue/QUARANTINE_r0_void_values.md`, referenced by pointer
-   only). The *methodological* findings — which are what a builder needs — must
-   remain, stated **qualitatively** ("the two normalizations diverge in sign of
-   trend"; "T2 reads zero copy ability at three cells"), which loses nothing a
-   builder needs and removes everything that contaminates.
+   header must be moved to a separate quarantined file (landed at
+   `matrix-thinking/QUARANTINE_r0_void_values.md`, referenced by pointer
+   only — see the status note below). The *methodological* findings — which are
+   what a builder needs — must remain, stated **qualitatively** ("the two
+   normalizations diverge in verdict when passed through the pinned §9.5 map";
+   "T2 reads zero copy ability at three cells"), which loses nothing a builder
+   needs and removes everything that contaminates.
 2. The blind agent is dispatched with: §9.0, §9.2-§9.6, the candidate-construction
    code, the design's §7 confound analysis, and the redacted §10. It is told the
    two forms diverge; it is **not** told which way either leans.
@@ -784,15 +785,48 @@ an unpinned normalization is safe *only* because §9.2-§9.6 are pinned; the DiD
 the placebo, the candidate cap, and the admissibility rules are all
 normalization-independent, so no build decision is downstream of the open slot.
 
+> **QUARANTINE LANDED (2026-07-12g).** Step 1 of the handoff protocol above is
+> now complete: every per-rung outcome value, per-rung acc_intact/acc_ablated
+> reading, T2/copy-ability figure, and directional ("leans COUPLED"/"leans
+> DECOUPLED") statement that was previously interleaved with the methodological
+> record has been moved to `matrix-thinking/QUARANTINE_r0_void_values.md` and
+> replaced in place with qualitative restatements that preserve everything a
+> builder needs. **A genuinely blind pin of §9.1 is now possible.**
+>
+> **The exact no-read list for the next blind pinner** (reading any of these
+> before pinning §9.1 recontaminates you — read only after commit, or ask the
+> PI to pin instead):
+> - `matrix-thinking/QUARANTINE_r0_void_values.md` — the sealed file itself.
+>   Contains every value and every directional statement. Never open it before
+>   pinning §9.1.
+> - Any raw per-rung result JSON on the box (e.g. anything matching
+>   `r0_ar_hit*.json`, `t3_span_frac_r0slice.json`) or under
+>   `~/queue/completed/` — none currently exist in this repo or were found
+>   under `/tmp` at quarantine time, but if the rebuilt instrument (§9.2-§9.6)
+>   is run before §9.1 is pinned, its output JSON becomes an equivalent
+>   no-read item.
+> - `git log -p` / `git show` on commits `05de661` and `d0e2798` (or any diff
+>   that reconstructs the pre-redaction text of `regate_2026-07-12.md` §10.2/
+>   §10.3 or `lm_recall_gap_probe_rd.py`'s pre-quarantine module header) — the
+>   redaction is in-place, not history-rewriting, so the values are still
+>   reachable via git history by construction. A blind pinner must not run
+>   `git log -p`/`git show`/`git diff` against those commits for those paths.
+> - Everything else — this document's §1-§8, §9.0, §9.2-§9.6, the redacted
+>   §10 of `regate_2026-07-12.md`, and the candidate-construction code — is
+>   safe to read and is exactly what the dispatch in step 2 above should hand
+>   the pinner.
+
 ---
 
 ### 9.2 THE PLACEBO-ABLATION ARM — **PINNED** (this is the identification)
 
 Without it, the gap is **not identified**: `acc_intact − acc_ablated` confounds
 *"this specific antecedent was removed"* with *"a token somewhere upstream was
-replaced with garbage."* FATAL-1 is the extreme case of that confound (12.6% of
-the context corrupted at once), but the confound exists **even at one corrupted
-token** — a fast-weight model's state is polluted by *any* out-of-distribution
+replaced with garbage."* FATAL-1 is the extreme case of that confound (a large,
+double-digit percentage of the context corrupted at once — exact figure
+quarantined, `QUARANTINE_r0_void_values.md` §5), but the confound exists
+**even at one corrupted token** — a fast-weight model's state is polluted by
+*any* out-of-distribution
 token, and that pollution grows with model scale for reasons that have nothing to
 do with recall. The placebo is what subtracts it.
 
@@ -870,7 +904,8 @@ argument for the shared-tensor shortcut.
 **This also kills F-4.** The candidate cap is now **per-row (`C_max = 8`), fixed,
 and rung-invariant** — never a per-*batch* cap, which is what silently made the
 batch-16 1.31B rung the only uncapped cell while the three batch-32 rungs dropped
-18.4% of their candidates. The eval batch size is **decoupled** from the
+a large fraction of their candidates (exact figure quarantined,
+`QUARANTINE_r0_void_values.md` §5). The eval batch size is **decoupled** from the
 token-arithmetic batch size and from candidate selection entirely.
 
 ---
