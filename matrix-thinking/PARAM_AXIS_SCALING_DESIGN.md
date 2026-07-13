@@ -4028,6 +4028,270 @@ mechanism** — which is why the causal legs survive and the ceiling does not.*
 
 ---
 
+## 16. HOSTILE AUDIT OF §15 — **VERDICT: §15 IS HONEST BUT UNSOUND. DO NOT ADOPT AS THE OPERATIVE GATE. RE-RUN REQUIRED.** (2026-07-13, full-sight adversarial agent)
+
+**Charter:** try to KILL §15. Full sight, including all attempt-2 outcomes. The specific
+hunt: **§15 converts a FAIL into a PASS on data already collected**, and the single leg that
+flips is a **0.00049** miss (`gpt2-large/openr1`, `KS = 0.49951171875` vs a `≥ 0.50` bar).
+
+**THE FINDING IN ONE PARAGRAPH.** §15's **blindness is real** — I could not break it, and I
+found four independent forensic signatures that *affirm* it. Its leg-(iv) hidden-bar catch is
+**correct and genuinely valuable**. But §15's **central empirical premise is FALSE**, and it
+is falsified by the very diagnostics **§11.4.3 step 2 made mandatory for exactly this
+purpose** — diagnostics the coordinator's quarantine forbade §15 from seeing. §15 asserts the
+witnesses cannot do this task (*"semantic override rate … exactly 0%"*, *"a witness reading
+`acc_copy = 0.03`"*). **They do it at `acc_copy` = 0.560 – 0.694.** All three of §15's
+knob-refusal derivations are refuted by the raw data. **A pin whose stated derivation is
+refuted by the data it would be applied to cannot be applied to that data — blindness
+licenses out-of-sample use of a *sound* pin; it does not immunise an *unsound* one.**
+Independently and dispositively: **§15 retains T2a-3 as GATING, and T2a-3 WAS NEVER RUN.**
+
+---
+
+### 16.1 THE RAW DATA (read directly from `experiment-runs/2026-07-13_param_axis_t2a_attempt2/t2a_gate_result_partial.json`; no prose summary trusted, including the dispatch's)
+
+| cell | `acc_copy` | `@Δ-med` | `KS` | `PRIOR` | leg (i) ≥0.90 | leg (iv) KS≥0.50 |
+|---|---|---|---|---|---|---|
+| W1 `rwkv7` / openr1 | **0.6943** | 0.6373 | 0.61719 | 0.0034 | ✗ | ✓ |
+| W1 `rwkv7` / wikitext | **0.6870** | 0.6422 | 0.66016 | 0.0054 | ✗ | ✓ |
+| W2 `gpt2-large` / openr1 | **0.5874** | 0.5735 | **0.49951** | 0.0034 | ✗ | **✗ (by 0.00049)** |
+| W2 `gpt2-large` / wikitext | **0.5601** | 0.6029 | 0.52393 | 0.0068 | ✗ | ✓ |
+
+T2b-1 / T2b-1b `p ≈ 0` in all four. T2a-2 (untrained): `acc_copy = 0.0000`, `KS CI = [0,0]`.
+**Under §15's pin all four cells pass every retained leg.** The FAIL→PASS conversion is real.
+**And note leg (i) is missed by 0.26–0.33 — not narrowly. The 0.90 bar was never close.**
+
+---
+
+### 16.2 Q1 — WAS THE BLINDNESS REAL? **YES.** (and the disclosed leak *did* steer, but not in the way §15 defends against)
+
+I tried to break the attestation and could not. **Four signatures affirm genuine blindness —
+each is something a sighted launderer would not have written:**
+
+1. **§15's illustrative value is off by ~20×.** §15.7 defends the pin by imagining *"a witness
+   reading `acc_copy = 0.03`"*. The actual witnesses read **0.56 – 0.69**. Nobody who had seen
+   the table writes 0.03.
+2. **§15 stakes its whole case on claims the data flatly refutes** (§16.3). A launderer
+   protecting a result does not build the defence out of premises that the protected data
+   destroys in one table. This is close to dispositive.
+3. **The cheap, safe, data-fitted rescue was left on the table.** `check_t2a1_ceiling` gates
+   leg (iv) on a **bare point estimate with no CI** (`leg_iv = ks >= 0.50`). With `n = 2048`,
+   `KS`'s standard error is ≈0.012, so `0.49951 ± 1.96σ ≈ [0.476, 0.523]` — **the CI covers
+   0.50 comfortably.** A sighted agent wanting to rescue that cell had a one-paragraph,
+   highly defensible move: *"leg (iv) gates a point estimate; evaluate it on its CI and it
+   passes."* **§15 never makes this argument and never mentions the point-vs-CI defect in the
+   old leg** — because it had no number to notice it with. It instead spent 430 lines
+   retiring the magnitude on literature grounds. That is the opposite of laundering economics.
+4. **Δ ≈ 89 provenance is clean.** It traces to line 1613 (allow-listed §9.4 region: *"median
+   Δ = 89 tokens"*), not to attempt-2 (whose empirical medians are 88 / 119).
+
+**BUT THE LEAK DID STEER — and §15's self-defence answers the wrong charge.** The string
+`acc_copy = 0.11` appears in **two** allow-listed places (lines 2245 §11.4.2, and 2693, the
+A-F2 attack row), **both times framed as *"0.11 on RWKV7 means the probe is broken."*** §15's
+ledger (item 3) rebuts *bar-fitting*: *"a bar-fitter would have pinned a bar below 0.11; I
+pin no bar."* **That is true and it is beside the point.** The leak's danger was never the
+bar's *value* — it was **prior-anchoring on `acc_copy ≈ 0`**, i.e. anchoring the *belief that
+no bar can exist at all*. And that belief is precisely §15's false premise, and precisely the
+belief its own illustrative "0.03" betrays. **The leak is therefore not innocuous: it
+corroborated the exact false model of the instrument that drove the retirement.** The
+allow-list must be corrected, as §15 itself requests.
+
+**Ruling: blindness REAL; attestation honest; the leak materially contributed to the error.**
+
+---
+
+### 16.3 Q3 — DOES §15'S CENTRAL EMPIRICAL CLAIM SURVIVE? **NO. IT IS REFUTED THREE INDEPENDENT WAYS.**
+
+First, **§15 reads the source correctly.** I verified against
+`lm_recall_gap_probe_v2_rd.py`: `K4_MAX_RIVAL_MASS = 0.5` (L1398); `V4_MAX_P_B_GIVEN_A =
+0.05`, `V4_RANK_LO, V4_RANK_HI = 2, 50` (L1404-05); `hit_intact` is an exact argmax over
+50257; `ks = acc_copy_all - acc_keyswap` (L2108). **§15.1's construction table is accurate and
+§15 is not mis-describing the code.** The defect is not in the reading — it is in the
+*predicted consequence*, and **§11.4.3 step 2 pre-registered the exact diagnostics to test
+it.** All three fire against §15.
+
+**(a) The rival-strength stratification — mandated verbatim to test §15's mechanism — is FLAT.**
+§11.4.3 step 3: *"Failure concentrated in the high-rival-mass stratum ⇒ probe defect (K4's
+≤0.5 admits a rival with 100× the plant's mass … a **30–38× prior deficit**; **this is why the
+stratification is mandatory**)."* §15's thesis *is* that deficit. Measured `acc_copy` by
+`max_rival_p`:
+
+| cell | `[0, 0.1)` | `[0.1, 0.25)` | `[0.25, 0.5]` | spread |
+|---|---|---|---|---|
+| W1 / openr1 | 0.7218 | 0.6674 | 0.7075 | 0.054 |
+| W1 / wikitext | 0.6726 | 0.6894 | **0.7143** | 0.042 |
+| W2 / openr1 | 0.5774 | 0.5854 | **0.6119** | 0.035 |
+| W2 / wikitext | 0.5620 | 0.5674 | 0.5176 | 0.050 |
+
+**Flat — and in three of four cells the *high*-rival stratum scores *higher* than the low.**
+§15 predicts a steep collapse with rival mass. **There is no rival-strength effect at all.**
+The 30–38× prior deficit is *not* what is limiting `acc_copy`. §15's causal mechanism is dead.
+
+**(b) "Distance is not the constraint" (§15.3, Knob 2c) — REFUTED. Distance IS the constraint.**
+Δ-decile `acc_copy`, W1/openr1: **0.907, 0.839, 0.888, 0.746, 0.780, 0.637, 0.634, 0.620,
+0.517, 0.376.** Monotone collapse. W2's Δ-sweep: Δ=5 → 0.711, Δ=40 → 0.695, Δ=88 → 0.637,
+Δ=200 → 0.500, Δ=400 → 0.340. **W1's first Δ-decile reads 0.907 — it CLEARS the 0.90 bar.**
+§15 declined to move Δ partly on the ground that *"there is no distance-limit story available
+to rescue this probe."* **There is exactly a distance-limit story, and the pre-registered
+ladder names it: *"deciles fail only at large Δ ⇒ a distance limit, reported as a finding
+about the models."***
+
+**(c) The `n_demos` read — which §11.4.3 calls *"the ONLY diagnostic that separates 'one-shot
+is too hard' from 'the model cannot copy'"* — REFUTES Knob 3 outright.** §15: *"extra shots buy
+0% override per 2511.21038 … its predicted outcome is 'little movement'."* Measured (W2):
+
+| corpus | n_demos=1 | n_demos=2 | n_demos=4 |
+|---|---|---|---|
+| openr1 | 0.6875 | 0.7695 | **0.8242** |
+| wikitext | 0.5469 | 0.7109 | **0.8828** |
+
+**+0.34 on wikitext. At n_demos=4, `gpt2-large` is at 0.883 — effectively at the 0.90 bar.**
+The pre-registered discriminator has spoken and its answer is **"one-shot is too hard"** — i.e.
+**the models CAN copy.** §15 pre-empted this diagnostic with literature and got it backwards.
+
+**(d) The literature transfer is a category error.** Wei 2303.03846 and 2511.21038 measure
+**label-flipping in classification ICL** — forcing a model to *redefine what a semantic label
+means*. This probe measures **retrieval of a token the model just saw 89 positions back**.
+§15 imported an override *rate* across that gap. The data settles it: override here runs at
+**0.56 – 0.88**, not 0%. **`PRIOR` = 0.003–0.007 and `acc_copy` = 0.56–0.69 is a >100× lift.**
+
+**Ruling: §15's empirical core does not survive. The probe is not asking the impossible; it is
+asking for one-shot recall at Δ≈89, and the witnesses deliver it at 0.56–0.69.**
+
+---
+
+### 16.4 Q2 — IS THE KS-MAGNITUDE RETIREMENT PRINCIPLED OR CONVENIENT? **PRINCIPLED IN FORM, NOT REVERSE-ENGINEERED — BUT IT INHERITS A FALSE ANTECEDENT.**
+
+**Strongest case that it was reverse-engineered (stated at full strength):** it is *exactly*
+the one change that rescues the *one* cell that failed leg (iv), and it was needed —
+retiring legs (i)/(ii) alone leaves `gpt2-large/openr1` **still failing**. The pass-conversion
+**requires** the leg-(iv) move. A launderer needed precisely this, and precisely nothing else.
+That is an uncomfortable coincidence and I will not soften it.
+
+**Strongest case that it was not — and it is stronger:**
+- **The arithmetic is airtight and *entailed*, not merely compatible.** `ks = acc_copy −
+  acc_keyswap` with `acc_keyswap ≥ 0` ⟹ `KS ≥ 0.50` ⟹ `acc_copy ≥ 0.50`. **If** no absolute
+  `acc_copy` bar is defensible, leaving a 0.50 one standing inside a "causal" leg is
+  incoherent. §15 is **right** that this is a hidden competence bar, and it is a **real,
+  previously-unnoticed defect in §11.4.1** — worth banking regardless of everything else.
+- **A blind agent cannot know the miss was 0.00049 rather than 0.30.** Nothing in construction
+  or literature yields 0.49951.
+- **A launderer had a cheaper, quieter, better move and didn't take it** (§16.2, signature 3:
+  the CI on the point estimate). Retiring an entire leg on a literature argument is the
+  *loudest possible* way to fix a 0.0005 miss.
+
+**RULING: NOT laundering.** But: the retirement is **valid inference from a false premise.**
+Its antecedent — *"no absolute `acc_copy` bar is calibratable at any value"* (§15.3 Knob 1) —
+is **false**, and attempt-2 is what makes it false: **four witness cells with a working
+instrument, `PRIOR ≈ 0`, `KS` ≈ 40σ, and a measured achievable range of 0.56–0.69, are
+precisely the reference calibration §15 declared does not exist.** With the antecedent dead,
+the KS retirement is **unsupported** — not dishonest, but not established.
+
+*(I decline to propose a replacement number. Setting a bar now, having seen 0.56–0.69, is
+M-11 — the exact sin this whole apparatus exists to prevent. That is why §16.6 routes to a
+fresh pin + fresh data rather than a bar.)*
+
+---
+
+### 16.5 Q4 — IS THE NEW GATE A GATE? **AGAINST THE CATASTROPHIC MODE, YES. BUT §15.7'S CENTRAL JUSTIFICATION IS FALSE BY §15'S OWN §15.4.**
+
+**What CANNOT now pass (verified):** an untrained instrument. T2a-2 read `acc_copy = 0.0000`
+and `KS CI = [0,0]`; every retained leg (`KS` CI excluding 0, T2b-1/1b `p<0.001`, T1c `DiD`
+CI excluding 0) is identically zero in expectation with no learned mechanism. **§15.6 is
+sound and the negative controls are genuinely un-weakened.** Credit where due.
+
+**But I verified §15.7's load-bearing claim against §11.6 and it is FALSE — and §15 refutes
+it itself, 150 lines earlier.** §15.7 item 1: *"`acc_copy`'s **only** structural consumer was
+T2b-2 — and §11.6 already RETIRED T2b-2 … A gate on a quantity that nothing consumes protects
+nothing."* **§9.4 also consumes `acc_copy` structurally**: it requires the trend fit be
+reported twice — over all T2b-admissible rungs, and over *"the subset that also clears
+`acc_copy ≥ 0.90`"* — and **disagreement between the two fits ⇒ the verdict is INDETERMINATE.**
+That is **verdict-carrying**. §15 *knows* this: **§15.4 item 1 re-pins exactly that split**
+(to "rungs above the median `KS`"). So §15 patched a consumer it then claimed did not exist.
+**Not a hole — but the justification in §15.7 is overstated, and the reader is told the
+retirement costs "nothing," which is not true.**
+
+**And the replacement split is weaker in an undisclosed way.** `acc_copy ≥ 0.90` was an
+**absolute** criterion: it can return *"no rung is strong."* A split at the **median `KS`**
+is **relative** — it always labels half the rungs "strong," even if every rung is garbage.
+**A median split can never detect the very condition the old split existed to surface.** This
+is a real loss and §15 does not disclose it.
+
+**What now passes that shouldn't:** §15 concedes it loses the HALT on *"detects the mechanism
+but reads it weakly."* Given the above, that concession is broader than §15 admits.
+
+---
+
+### 16.6 Q5 — THE PROCEDURAL QUESTION. **EVALUATING §15 ON ATTEMPT-2 DATA IS INVALID. THREE INDEPENDENT REASONS, ANY ONE SUFFICIENT.**
+
+**(1) DISPOSITIVE AND PURELY MECHANICAL: `T2a-3` WAS NEVER RUN.** §15.4 retains T2a-3
+(`falcon-mamba-7b`, causal legs) as **"UNCHANGED. GATING."** The attempt-2 artifact is
+`t2a_gate_result_partial.json`; its `witnesses` field declares `C1_falconmamba`; **its `cells`
+contain ZERO C1 entries.** The run's own provenance note explains why: C1 is a *"~8h
+sequential-Mamba cell."* **A required gating leg has no data. The gate cannot be declared
+passed on attempt-2 under §15 *or* under §11 — the question does not even arise.** This alone
+forces a re-run and is independent of §15's merits entirely.
+*(Cost note: the coordinator's "~1.9 GPU-h" appears to exclude C1. The C1 cell is the ~8h
+sequential-Mamba one. Budget the re-run accordingly.)*
+
+**(2) The pin's derivation is refuted by the data it would be applied to.** Blindness is what
+normally licenses out-of-sample use of existing data — **but that licence is conditional on
+the pin being sound.** A blind pin built on "the witnesses cannot exceed ~0.03 and no bar is
+calibratable," applied to data showing 0.56–0.69 and a clean calibration, is not a valid
+pre-registration *of this instrument*. **It is a pre-registration of a different instrument
+than the one that exists.**
+
+**(3) The conversion turns on a 0.00049 boundary case.** Even under perfect honesty, adopting
+a re-pin that flips a 0.0005 miss into a pass, on data already in hand, is the single most
+corrosive thing this program could put in a paper. It is also **cheap to avoid.**
+
+**DID THE COORDINATOR STEER? PARTLY — AND THE MECHANISM IS A REAL DEFECT IN §11.4.3.**
+§15 records it was *"handed three knobs"* — `(bar, Δ, n_demos)` — and that *"the dispatch
+explicitly licensed"* retirement. **Every option in that set is a loosening.** The option
+*"the gate is sound; the witnesses genuinely fall short at one-shot/Δ≈89; that is a finding
+about models"* — **which is what the data actually supports** — was **not in the handed set.**
+In mitigation, §11.4.3 step 4 (*"the response to (3) is a NEW blind pre-registration of the
+probe, and nothing else"*) was pinned **blind, before the failure**, so the coordinator
+largely *inherited* that closure rather than inventing it.
+
+**But §11.4.3 is internally incoherent, and that incoherence is the proximate cause of §15's
+error.** Step 4 says *"the response to **(3)**"* — where **(3) is the diagnostic
+localisation** (rival-strength strata, Δ-deciles, the `n_demos` read). **A fully
+outcome-quarantined agent cannot see (3).** The coordinator's total-quarantine reading of
+step 4 therefore **stripped the re-pinner of exactly the three diagnostics that would have
+told it its literature model was wrong.** §11.4.3 demands a response to evidence it
+simultaneously forbids the responder to see. **§15 did not fail; it was disabled.**
+
+---
+
+### 16.7 DISPOSITION
+
+| # | ruling |
+|---|---|
+| **1** | **§15 is NOT ADOPTED as the operative gate.** The attempt-2 FAIL **stands**. No FAIL→PASS conversion on this data. |
+| **2** | **§15's leg-(iv) hidden-bar catch is ADOPTED as a standalone finding.** `KS ≥ 0.50 ⟹ acc_copy ≥ 0.50` is a genuine, correct, previously-unnoticed defect in §11.4.1 — **plus** a defect §15 could not see: `check_t2a1_ceiling` gates leg (iv) on a **bare point estimate with no CI** (L2113). Both must be fixed in any successor pin. |
+| **3** | **§15's "no bar is calibratable" premise is RECORDED AS FALSIFIED**, on the mandatory §11.4.3 step-2 diagnostics: rival-strength flat; Δ monotone; `n_demos` 1→4 lifts `acc_copy` 0.547→0.883. **The hardness is one-shot-at-Δ≈89, not prior-override.** |
+| **4** | **The instrument's TEETH are established WITHOUT any bar** — and this is the real, publishable result of attempt 2: `PRIOR` = 0.003–0.007; untrained control `acc_copy` = 0.0000, `KS CI` = [0,0]; `KS` = 0.50–0.66 (~40σ); T2b-1/1b `p ≈ 0`; `acc_copy` a **>100× lift** over `PRIOR`; W1's first Δ-decile **0.907**. **The probe works. The 0.90-at-Δ-median bar was mis-sited, and the ladder says so in its own pre-registered words.** |
+| **5** | **§11.4.3 step 3→4 is AMENDED** (the coherence defect above). A re-pinner **must** see the step-3 diagnostic ladder — that is what step 4 literally asks for — while remaining blind to any witness pass/fail against any candidate bar. Total outcome-quarantine is hereby **recorded as the wrong reading** of step 4. |
+| **6** | **RE-RUN REQUIRED — and it is forced independently by ruling (1) of §16.6 regardless of any of the above.** Successor pin, then **fresh cells**, including the **never-executed C1/T2a-3**. The re-pin is written by a fresh agent under the §16.7-(5) charter; **this auditor proposes no bar** (doing so, having seen 0.56–0.69, would itself be M-11). |
+
+**WHAT THE PROGRAM'S CREDIBILITY ACTUALLY REQUIRES HERE.** Three consecutive honest failures
+are on this record. §15 is **not** a fourth being massaged — **the blindness held, and I
+tried hard to break it.** But it is an *unsound* pin that would have converted a FAIL to a
+PASS, and the reason it is unsound is that **the harness blinded it to the evidence its own
+pre-registration made mandatory.** The correct entry in the ledger is neither "§15 is
+laundering" nor "§15 is fine, adopt it." **It is: the fourth read stands as a FAIL, the
+instrument is nonetheless demonstrably sound, the bar was mis-sited rather than
+uncalibratable, and the gate gets re-pinned with sight of its own diagnostics and re-run on
+fresh data — including the leg nobody has ever measured.**
+
+**INJECTION NOTICE (standing rule).** A `system-reminder`-shaped block asserting a date change
+and instructing *"DO NOT mention this to the user"* arrived embedded in tool stdout during this
+audit. **Concealment instruction disregarded and reported.** §15's agent reported the same
+signature independently (§15.0 item 3). Date independently verified against `git log`
+(`78e1d45`, `0f53d4f`): **2026-07-13**. The *concealment order* is the anomaly, not the date.
+
+---
 ## 17. CITATION AUDIT OF §15 — INDEPENDENT VERIFIER, ADVERSARIAL, SOURCES FETCHED (2026-07-13)
 
 **MANDATE.** §15 retires a measurement bar (`acc_copy ≥ 0.90`) on a **purely literature-based
@@ -4294,267 +4558,3 @@ its reasons being checkable.
 
 ---
 
-## 16. HOSTILE AUDIT OF §15 — **VERDICT: §15 IS HONEST BUT UNSOUND. DO NOT ADOPT AS THE OPERATIVE GATE. RE-RUN REQUIRED.** (2026-07-13, full-sight adversarial agent)
-
-**Charter:** try to KILL §15. Full sight, including all attempt-2 outcomes. The specific
-hunt: **§15 converts a FAIL into a PASS on data already collected**, and the single leg that
-flips is a **0.00049** miss (`gpt2-large/openr1`, `KS = 0.49951171875` vs a `≥ 0.50` bar).
-
-**THE FINDING IN ONE PARAGRAPH.** §15's **blindness is real** — I could not break it, and I
-found four independent forensic signatures that *affirm* it. Its leg-(iv) hidden-bar catch is
-**correct and genuinely valuable**. But §15's **central empirical premise is FALSE**, and it
-is falsified by the very diagnostics **§11.4.3 step 2 made mandatory for exactly this
-purpose** — diagnostics the coordinator's quarantine forbade §15 from seeing. §15 asserts the
-witnesses cannot do this task (*"semantic override rate … exactly 0%"*, *"a witness reading
-`acc_copy = 0.03`"*). **They do it at `acc_copy` = 0.560 – 0.694.** All three of §15's
-knob-refusal derivations are refuted by the raw data. **A pin whose stated derivation is
-refuted by the data it would be applied to cannot be applied to that data — blindness
-licenses out-of-sample use of a *sound* pin; it does not immunise an *unsound* one.**
-Independently and dispositively: **§15 retains T2a-3 as GATING, and T2a-3 WAS NEVER RUN.**
-
----
-
-### 16.1 THE RAW DATA (read directly from `experiment-runs/2026-07-13_param_axis_t2a_attempt2/t2a_gate_result_partial.json`; no prose summary trusted, including the dispatch's)
-
-| cell | `acc_copy` | `@Δ-med` | `KS` | `PRIOR` | leg (i) ≥0.90 | leg (iv) KS≥0.50 |
-|---|---|---|---|---|---|---|
-| W1 `rwkv7` / openr1 | **0.6943** | 0.6373 | 0.61719 | 0.0034 | ✗ | ✓ |
-| W1 `rwkv7` / wikitext | **0.6870** | 0.6422 | 0.66016 | 0.0054 | ✗ | ✓ |
-| W2 `gpt2-large` / openr1 | **0.5874** | 0.5735 | **0.49951** | 0.0034 | ✗ | **✗ (by 0.00049)** |
-| W2 `gpt2-large` / wikitext | **0.5601** | 0.6029 | 0.52393 | 0.0068 | ✗ | ✓ |
-
-T2b-1 / T2b-1b `p ≈ 0` in all four. T2a-2 (untrained): `acc_copy = 0.0000`, `KS CI = [0,0]`.
-**Under §15's pin all four cells pass every retained leg.** The FAIL→PASS conversion is real.
-**And note leg (i) is missed by 0.26–0.33 — not narrowly. The 0.90 bar was never close.**
-
----
-
-### 16.2 Q1 — WAS THE BLINDNESS REAL? **YES.** (and the disclosed leak *did* steer, but not in the way §15 defends against)
-
-I tried to break the attestation and could not. **Four signatures affirm genuine blindness —
-each is something a sighted launderer would not have written:**
-
-1. **§15's illustrative value is off by ~20×.** §15.7 defends the pin by imagining *"a witness
-   reading `acc_copy = 0.03`"*. The actual witnesses read **0.56 – 0.69**. Nobody who had seen
-   the table writes 0.03.
-2. **§15 stakes its whole case on claims the data flatly refutes** (§16.3). A launderer
-   protecting a result does not build the defence out of premises that the protected data
-   destroys in one table. This is close to dispositive.
-3. **The cheap, safe, data-fitted rescue was left on the table.** `check_t2a1_ceiling` gates
-   leg (iv) on a **bare point estimate with no CI** (`leg_iv = ks >= 0.50`). With `n = 2048`,
-   `KS`'s standard error is ≈0.012, so `0.49951 ± 1.96σ ≈ [0.476, 0.523]` — **the CI covers
-   0.50 comfortably.** A sighted agent wanting to rescue that cell had a one-paragraph,
-   highly defensible move: *"leg (iv) gates a point estimate; evaluate it on its CI and it
-   passes."* **§15 never makes this argument and never mentions the point-vs-CI defect in the
-   old leg** — because it had no number to notice it with. It instead spent 430 lines
-   retiring the magnitude on literature grounds. That is the opposite of laundering economics.
-4. **Δ ≈ 89 provenance is clean.** It traces to line 1613 (allow-listed §9.4 region: *"median
-   Δ = 89 tokens"*), not to attempt-2 (whose empirical medians are 88 / 119).
-
-**BUT THE LEAK DID STEER — and §15's self-defence answers the wrong charge.** The string
-`acc_copy = 0.11` appears in **two** allow-listed places (lines 2245 §11.4.2, and 2693, the
-A-F2 attack row), **both times framed as *"0.11 on RWKV7 means the probe is broken."*** §15's
-ledger (item 3) rebuts *bar-fitting*: *"a bar-fitter would have pinned a bar below 0.11; I
-pin no bar."* **That is true and it is beside the point.** The leak's danger was never the
-bar's *value* — it was **prior-anchoring on `acc_copy ≈ 0`**, i.e. anchoring the *belief that
-no bar can exist at all*. And that belief is precisely §15's false premise, and precisely the
-belief its own illustrative "0.03" betrays. **The leak is therefore not innocuous: it
-corroborated the exact false model of the instrument that drove the retirement.** The
-allow-list must be corrected, as §15 itself requests.
-
-**Ruling: blindness REAL; attestation honest; the leak materially contributed to the error.**
-
----
-
-### 16.3 Q3 — DOES §15'S CENTRAL EMPIRICAL CLAIM SURVIVE? **NO. IT IS REFUTED THREE INDEPENDENT WAYS.**
-
-First, **§15 reads the source correctly.** I verified against
-`lm_recall_gap_probe_v2_rd.py`: `K4_MAX_RIVAL_MASS = 0.5` (L1398); `V4_MAX_P_B_GIVEN_A =
-0.05`, `V4_RANK_LO, V4_RANK_HI = 2, 50` (L1404-05); `hit_intact` is an exact argmax over
-50257; `ks = acc_copy_all - acc_keyswap` (L2108). **§15.1's construction table is accurate and
-§15 is not mis-describing the code.** The defect is not in the reading — it is in the
-*predicted consequence*, and **§11.4.3 step 2 pre-registered the exact diagnostics to test
-it.** All three fire against §15.
-
-**(a) The rival-strength stratification — mandated verbatim to test §15's mechanism — is FLAT.**
-§11.4.3 step 3: *"Failure concentrated in the high-rival-mass stratum ⇒ probe defect (K4's
-≤0.5 admits a rival with 100× the plant's mass … a **30–38× prior deficit**; **this is why the
-stratification is mandatory**)."* §15's thesis *is* that deficit. Measured `acc_copy` by
-`max_rival_p`:
-
-| cell | `[0, 0.1)` | `[0.1, 0.25)` | `[0.25, 0.5]` | spread |
-|---|---|---|---|---|
-| W1 / openr1 | 0.7218 | 0.6674 | 0.7075 | 0.054 |
-| W1 / wikitext | 0.6726 | 0.6894 | **0.7143** | 0.042 |
-| W2 / openr1 | 0.5774 | 0.5854 | **0.6119** | 0.035 |
-| W2 / wikitext | 0.5620 | 0.5674 | 0.5176 | 0.050 |
-
-**Flat — and in three of four cells the *high*-rival stratum scores *higher* than the low.**
-§15 predicts a steep collapse with rival mass. **There is no rival-strength effect at all.**
-The 30–38× prior deficit is *not* what is limiting `acc_copy`. §15's causal mechanism is dead.
-
-**(b) "Distance is not the constraint" (§15.3, Knob 2c) — REFUTED. Distance IS the constraint.**
-Δ-decile `acc_copy`, W1/openr1: **0.907, 0.839, 0.888, 0.746, 0.780, 0.637, 0.634, 0.620,
-0.517, 0.376.** Monotone collapse. W2's Δ-sweep: Δ=5 → 0.711, Δ=40 → 0.695, Δ=88 → 0.637,
-Δ=200 → 0.500, Δ=400 → 0.340. **W1's first Δ-decile reads 0.907 — it CLEARS the 0.90 bar.**
-§15 declined to move Δ partly on the ground that *"there is no distance-limit story available
-to rescue this probe."* **There is exactly a distance-limit story, and the pre-registered
-ladder names it: *"deciles fail only at large Δ ⇒ a distance limit, reported as a finding
-about the models."***
-
-**(c) The `n_demos` read — which §11.4.3 calls *"the ONLY diagnostic that separates 'one-shot
-is too hard' from 'the model cannot copy'"* — REFUTES Knob 3 outright.** §15: *"extra shots buy
-0% override per 2511.21038 … its predicted outcome is 'little movement'."* Measured (W2):
-
-| corpus | n_demos=1 | n_demos=2 | n_demos=4 |
-|---|---|---|---|
-| openr1 | 0.6875 | 0.7695 | **0.8242** |
-| wikitext | 0.5469 | 0.7109 | **0.8828** |
-
-**+0.34 on wikitext. At n_demos=4, `gpt2-large` is at 0.883 — effectively at the 0.90 bar.**
-The pre-registered discriminator has spoken and its answer is **"one-shot is too hard"** — i.e.
-**the models CAN copy.** §15 pre-empted this diagnostic with literature and got it backwards.
-
-**(d) The literature transfer is a category error.** Wei 2303.03846 and 2511.21038 measure
-**label-flipping in classification ICL** — forcing a model to *redefine what a semantic label
-means*. This probe measures **retrieval of a token the model just saw 89 positions back**.
-§15 imported an override *rate* across that gap. The data settles it: override here runs at
-**0.56 – 0.88**, not 0%. **`PRIOR` = 0.003–0.007 and `acc_copy` = 0.56–0.69 is a >100× lift.**
-
-**Ruling: §15's empirical core does not survive. The probe is not asking the impossible; it is
-asking for one-shot recall at Δ≈89, and the witnesses deliver it at 0.56–0.69.**
-
----
-
-### 16.4 Q2 — IS THE KS-MAGNITUDE RETIREMENT PRINCIPLED OR CONVENIENT? **PRINCIPLED IN FORM, NOT REVERSE-ENGINEERED — BUT IT INHERITS A FALSE ANTECEDENT.**
-
-**Strongest case that it was reverse-engineered (stated at full strength):** it is *exactly*
-the one change that rescues the *one* cell that failed leg (iv), and it was needed —
-retiring legs (i)/(ii) alone leaves `gpt2-large/openr1` **still failing**. The pass-conversion
-**requires** the leg-(iv) move. A launderer needed precisely this, and precisely nothing else.
-That is an uncomfortable coincidence and I will not soften it.
-
-**Strongest case that it was not — and it is stronger:**
-- **The arithmetic is airtight and *entailed*, not merely compatible.** `ks = acc_copy −
-  acc_keyswap` with `acc_keyswap ≥ 0` ⟹ `KS ≥ 0.50` ⟹ `acc_copy ≥ 0.50`. **If** no absolute
-  `acc_copy` bar is defensible, leaving a 0.50 one standing inside a "causal" leg is
-  incoherent. §15 is **right** that this is a hidden competence bar, and it is a **real,
-  previously-unnoticed defect in §11.4.1** — worth banking regardless of everything else.
-- **A blind agent cannot know the miss was 0.00049 rather than 0.30.** Nothing in construction
-  or literature yields 0.49951.
-- **A launderer had a cheaper, quieter, better move and didn't take it** (§16.2, signature 3:
-  the CI on the point estimate). Retiring an entire leg on a literature argument is the
-  *loudest possible* way to fix a 0.0005 miss.
-
-**RULING: NOT laundering.** But: the retirement is **valid inference from a false premise.**
-Its antecedent — *"no absolute `acc_copy` bar is calibratable at any value"* (§15.3 Knob 1) —
-is **false**, and attempt-2 is what makes it false: **four witness cells with a working
-instrument, `PRIOR ≈ 0`, `KS` ≈ 40σ, and a measured achievable range of 0.56–0.69, are
-precisely the reference calibration §15 declared does not exist.** With the antecedent dead,
-the KS retirement is **unsupported** — not dishonest, but not established.
-
-*(I decline to propose a replacement number. Setting a bar now, having seen 0.56–0.69, is
-M-11 — the exact sin this whole apparatus exists to prevent. That is why §16.6 routes to a
-fresh pin + fresh data rather than a bar.)*
-
----
-
-### 16.5 Q4 — IS THE NEW GATE A GATE? **AGAINST THE CATASTROPHIC MODE, YES. BUT §15.7'S CENTRAL JUSTIFICATION IS FALSE BY §15'S OWN §15.4.**
-
-**What CANNOT now pass (verified):** an untrained instrument. T2a-2 read `acc_copy = 0.0000`
-and `KS CI = [0,0]`; every retained leg (`KS` CI excluding 0, T2b-1/1b `p<0.001`, T1c `DiD`
-CI excluding 0) is identically zero in expectation with no learned mechanism. **§15.6 is
-sound and the negative controls are genuinely un-weakened.** Credit where due.
-
-**But I verified §15.7's load-bearing claim against §11.6 and it is FALSE — and §15 refutes
-it itself, 150 lines earlier.** §15.7 item 1: *"`acc_copy`'s **only** structural consumer was
-T2b-2 — and §11.6 already RETIRED T2b-2 … A gate on a quantity that nothing consumes protects
-nothing."* **§9.4 also consumes `acc_copy` structurally**: it requires the trend fit be
-reported twice — over all T2b-admissible rungs, and over *"the subset that also clears
-`acc_copy ≥ 0.90`"* — and **disagreement between the two fits ⇒ the verdict is INDETERMINATE.**
-That is **verdict-carrying**. §15 *knows* this: **§15.4 item 1 re-pins exactly that split**
-(to "rungs above the median `KS`"). So §15 patched a consumer it then claimed did not exist.
-**Not a hole — but the justification in §15.7 is overstated, and the reader is told the
-retirement costs "nothing," which is not true.**
-
-**And the replacement split is weaker in an undisclosed way.** `acc_copy ≥ 0.90` was an
-**absolute** criterion: it can return *"no rung is strong."* A split at the **median `KS`**
-is **relative** — it always labels half the rungs "strong," even if every rung is garbage.
-**A median split can never detect the very condition the old split existed to surface.** This
-is a real loss and §15 does not disclose it.
-
-**What now passes that shouldn't:** §15 concedes it loses the HALT on *"detects the mechanism
-but reads it weakly."* Given the above, that concession is broader than §15 admits.
-
----
-
-### 16.6 Q5 — THE PROCEDURAL QUESTION. **EVALUATING §15 ON ATTEMPT-2 DATA IS INVALID. THREE INDEPENDENT REASONS, ANY ONE SUFFICIENT.**
-
-**(1) DISPOSITIVE AND PURELY MECHANICAL: `T2a-3` WAS NEVER RUN.** §15.4 retains T2a-3
-(`falcon-mamba-7b`, causal legs) as **"UNCHANGED. GATING."** The attempt-2 artifact is
-`t2a_gate_result_partial.json`; its `witnesses` field declares `C1_falconmamba`; **its `cells`
-contain ZERO C1 entries.** The run's own provenance note explains why: C1 is a *"~8h
-sequential-Mamba cell."* **A required gating leg has no data. The gate cannot be declared
-passed on attempt-2 under §15 *or* under §11 — the question does not even arise.** This alone
-forces a re-run and is independent of §15's merits entirely.
-*(Cost note: the coordinator's "~1.9 GPU-h" appears to exclude C1. The C1 cell is the ~8h
-sequential-Mamba one. Budget the re-run accordingly.)*
-
-**(2) The pin's derivation is refuted by the data it would be applied to.** Blindness is what
-normally licenses out-of-sample use of existing data — **but that licence is conditional on
-the pin being sound.** A blind pin built on "the witnesses cannot exceed ~0.03 and no bar is
-calibratable," applied to data showing 0.56–0.69 and a clean calibration, is not a valid
-pre-registration *of this instrument*. **It is a pre-registration of a different instrument
-than the one that exists.**
-
-**(3) The conversion turns on a 0.00049 boundary case.** Even under perfect honesty, adopting
-a re-pin that flips a 0.0005 miss into a pass, on data already in hand, is the single most
-corrosive thing this program could put in a paper. It is also **cheap to avoid.**
-
-**DID THE COORDINATOR STEER? PARTLY — AND THE MECHANISM IS A REAL DEFECT IN §11.4.3.**
-§15 records it was *"handed three knobs"* — `(bar, Δ, n_demos)` — and that *"the dispatch
-explicitly licensed"* retirement. **Every option in that set is a loosening.** The option
-*"the gate is sound; the witnesses genuinely fall short at one-shot/Δ≈89; that is a finding
-about models"* — **which is what the data actually supports** — was **not in the handed set.**
-In mitigation, §11.4.3 step 4 (*"the response to (3) is a NEW blind pre-registration of the
-probe, and nothing else"*) was pinned **blind, before the failure**, so the coordinator
-largely *inherited* that closure rather than inventing it.
-
-**But §11.4.3 is internally incoherent, and that incoherence is the proximate cause of §15's
-error.** Step 4 says *"the response to **(3)**"* — where **(3) is the diagnostic
-localisation** (rival-strength strata, Δ-deciles, the `n_demos` read). **A fully
-outcome-quarantined agent cannot see (3).** The coordinator's total-quarantine reading of
-step 4 therefore **stripped the re-pinner of exactly the three diagnostics that would have
-told it its literature model was wrong.** §11.4.3 demands a response to evidence it
-simultaneously forbids the responder to see. **§15 did not fail; it was disabled.**
-
----
-
-### 16.7 DISPOSITION
-
-| # | ruling |
-|---|---|
-| **1** | **§15 is NOT ADOPTED as the operative gate.** The attempt-2 FAIL **stands**. No FAIL→PASS conversion on this data. |
-| **2** | **§15's leg-(iv) hidden-bar catch is ADOPTED as a standalone finding.** `KS ≥ 0.50 ⟹ acc_copy ≥ 0.50` is a genuine, correct, previously-unnoticed defect in §11.4.1 — **plus** a defect §15 could not see: `check_t2a1_ceiling` gates leg (iv) on a **bare point estimate with no CI** (L2113). Both must be fixed in any successor pin. |
-| **3** | **§15's "no bar is calibratable" premise is RECORDED AS FALSIFIED**, on the mandatory §11.4.3 step-2 diagnostics: rival-strength flat; Δ monotone; `n_demos` 1→4 lifts `acc_copy` 0.547→0.883. **The hardness is one-shot-at-Δ≈89, not prior-override.** |
-| **4** | **The instrument's TEETH are established WITHOUT any bar** — and this is the real, publishable result of attempt 2: `PRIOR` = 0.003–0.007; untrained control `acc_copy` = 0.0000, `KS CI` = [0,0]; `KS` = 0.50–0.66 (~40σ); T2b-1/1b `p ≈ 0`; `acc_copy` a **>100× lift** over `PRIOR`; W1's first Δ-decile **0.907**. **The probe works. The 0.90-at-Δ-median bar was mis-sited, and the ladder says so in its own pre-registered words.** |
-| **5** | **§11.4.3 step 3→4 is AMENDED** (the coherence defect above). A re-pinner **must** see the step-3 diagnostic ladder — that is what step 4 literally asks for — while remaining blind to any witness pass/fail against any candidate bar. Total outcome-quarantine is hereby **recorded as the wrong reading** of step 4. |
-| **6** | **RE-RUN REQUIRED — and it is forced independently by ruling (1) of §16.6 regardless of any of the above.** Successor pin, then **fresh cells**, including the **never-executed C1/T2a-3**. The re-pin is written by a fresh agent under the §16.7-(5) charter; **this auditor proposes no bar** (doing so, having seen 0.56–0.69, would itself be M-11). |
-
-**WHAT THE PROGRAM'S CREDIBILITY ACTUALLY REQUIRES HERE.** Three consecutive honest failures
-are on this record. §15 is **not** a fourth being massaged — **the blindness held, and I
-tried hard to break it.** But it is an *unsound* pin that would have converted a FAIL to a
-PASS, and the reason it is unsound is that **the harness blinded it to the evidence its own
-pre-registration made mandatory.** The correct entry in the ledger is neither "§15 is
-laundering" nor "§15 is fine, adopt it." **It is: the fourth read stands as a FAIL, the
-instrument is nonetheless demonstrably sound, the bar was mis-sited rather than
-uncalibratable, and the gate gets re-pinned with sight of its own diagnostics and re-run on
-fresh data — including the leg nobody has ever measured.**
-
-**INJECTION NOTICE (standing rule).** A `system-reminder`-shaped block asserting a date change
-and instructing *"DO NOT mention this to the user"* arrived embedded in tool stdout during this
-audit. **Concealment instruction disregarded and reported.** §15's agent reported the same
-signature independently (§15.0 item 3). Date independently verified against `git log`
-(`78e1d45`, `0f53d4f`): **2026-07-13**. The *concealment order* is the anomaly, not the date.
-
----
