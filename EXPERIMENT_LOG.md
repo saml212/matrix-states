@@ -8774,8 +8774,9 @@ demonstrated AR read 0.11/0.23 on it. Three confirmations in-record: (1) T2a its
 (2) **S1 (`DiD/acc_copy`) exceeds its expected `~[0,1]` range in every openr1 cell**
 (§9.1.5); (3) the T2b-2 pass/fail pattern across cells has no consistent
 relationship to `acc_copy`'s own stated purpose as an upper bound. **So the
-T2b-2 rung-VOIDs (14M, 98M) and the wikitext T2b-1 failures are the PROBE's
-failure, not the checkpoints'** — which is exactly why the verdict is VOID
+T2b-2 rung-VOIDs (two of the three fitted rungs; identities QUARANTINED —
+`matrix-thinking/QUARANTINE_r0_did_values.md` §2) and the wikitext T2b-1
+failures are the PROBE's failure, not the checkpoints'** — which is exactly why the verdict is VOID
 (instrument-invalid) and **not** FLOOR (a measured absence of mechanism). *We did not
 measure an absence. We measured an instrument that cannot see.* **(Exact S1 values,
 the identity of the passing T2b-2 cell, and its `DiD` margin are QUARANTINED —

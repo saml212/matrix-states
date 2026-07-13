@@ -1282,7 +1282,10 @@ def check_t2b2_ceiling(did_value: float, acc_copy: float, acc_copy_se: float) ->
     internally contradictory -- its gap measures something else.
     `passes=False` => the rung is VOID (a defect, not merely FLOOR). This is
     the single line regate 10.2 says would have caught the VOID build's
-    wikitext self-contradiction (DiD=0.19 at rungs with acc_copy=0.0)."""
+    wikitext self-contradiction -- a non-trivial recall gap reported at a
+    rung with zero demonstrated copy ability. Exact figures QUARANTINED,
+    see matrix-thinking/QUARANTINE_r0_did_values.md (this file is on the
+    permitted-read list for T2-repair work; the value is not)."""
     bound = acc_copy + 2.0 * acc_copy_se
     return {"did": did_value, "acc_copy": acc_copy, "acc_copy_se": acc_copy_se,
             "bound": bound, "margin": did_value - bound, "passes": did_value <= bound}
@@ -1889,12 +1892,15 @@ def smoke(device: str) -> int:
            f"ci90={tf['ci90']} (an 80% CI would read [0.100, 0.899] and would declare "
            f"FLAT more often than the pre-registration permits)")
 
-    # --- [6] T2b-2 CEILING CHECK: fires on a violating case (the VOID build's own
-    #     wikitext numbers), does NOT fire on a compliant case. ---
+    # --- [6] T2b-2 CEILING CHECK: fires on a violating case shaped like the VOID
+    #     build's own wikitext defect (nonzero DiD reported at acc_copy=0), does
+    #     NOT fire on a compliant case. Synthetic values -- the VOID build's real
+    #     figures are QUARANTINED, see QUARANTINE_r0_did_values.md. ---
     print("\n  [6] T2b-2 CEILING CHECK teeth: DiD <= acc_copy + 2*SE")
-    violating = check_t2b2_ceiling(did_value=0.1882, acc_copy=0.0000, acc_copy_se=0.01)
-    report("  FIRES (passes=False) on the VOID build's actual wikitext 392M numbers "
-           "(DiD=0.1882, acc_copy=0.0, regate 10.2)", violating["passes"] is False, str(violating))
+    violating = check_t2b2_ceiling(did_value=0.15, acc_copy=0.0000, acc_copy_se=0.01)
+    report("  FIRES (passes=False) on a VOID-build-shaped case "
+           "(nonzero DiD at acc_copy=0, regate 10.2 -- see QUARANTINE_r0_did_values.md "
+           "for the retired build's real figures)", violating["passes"] is False, str(violating))
     compliant = check_t2b2_ceiling(did_value=0.02, acc_copy=0.30, acc_copy_se=0.02)
     report("  does NOT fire on a compliant case (DiD well under the copy-ability ceiling)",
            compliant["passes"] is True, str(compliant))

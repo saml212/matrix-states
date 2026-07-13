@@ -739,36 +739,79 @@ reconstruct, disclosed in full rather than minimised — is at the end of this
 section. The pin below is **forced by N1–N3** (shown), so there was no free choice
 available for a leak to corrupt.
 
-> **NO-READ LIST — updated 2026-07-12 (SECOND contamination quarantine,
-> post-R0-VOID-read `855f548`).** R0 subsequently ran and returned VOID
+> **NO-READ LIST — updated 2026-07-12 (THIRD contamination quarantine,
+> post-T2-repair-pin `c106881`).** R0 subsequently ran and returned VOID
 > (§10) because a *separate* teeth-check, T2, is broken — the `DiD`
 > machinery this section pins is unaffected and validated. But R0's own
 > record contains a per-rung `DiD`/`gap_true`/`gap_placebo`/S1/S2/`acc_copy`
 > table that becomes verdict-grade the instant a repaired T2 passes,
 > without any recomputation — so it is now an equivalent hazard to this
 > section's own normalization choice, one level downstream (a T2 repair,
-> not a metric pin). Anyone dispatched to repair or re-pre-register T2 —
-> or any future blind pinner of anything in §9 — must NOT read:
+> not a metric pin). A T2 repair (`c106881`, §11) has since been PINNED, and
+> its own attack round found the admissible set `A` is the live laundering
+> lever (§11.8) plus two leak vectors that survived two prior quarantine
+> rounds (§11.10's disclosures 1 and 2, closed by `QUARANTINE_r0_did_values.md`
+> §6-§7). Anyone dispatched to build against §11, fit `β` once `A` is
+> committed (§11.8.1), or blind-pin anything else in §9/§11 — must NOT
+> read:
 > - `QUARANTINE_r0_void_values.md` (the first VOID build's values, unchanged rule).
-> - **`QUARANTINE_r0_did_values.md` (NEW).** The second build's per-rung
->   `DiD` table and every DiD-trend-shape statement, extracted from §10.
+> - `QUARANTINE_r0_did_values.md` — the second build's per-rung `DiD` table,
+>   every DiD-trend-shape statement extracted from §10 (§1-§5), **and the
+>   two code/elimination leak records added in the THIRD round (§6-§7) —
+>   reading §6-§7 for "what got redacted" is exactly as contaminating as
+>   reading §1-§5, since §6-§7 restate the same underlying values verbatim
+>   for provenance.**
 > - `queue/regate_2026-07-12.md` §10 (unchanged rule).
-> - **`experiment-runs/2026-07-12_param_axis_r0/`** — every raw JSON
+> - **`experiment-runs/2026-07-12_param_axis_r0/` — the ENTIRE directory,
+>   every file in it, not only the ones named below.** Named for clarity,
+>   not as an exhaustive whitelist-by-omission (that framing is itself the
+>   LEAK 1 failure mode — see the source-code bullet below): every raw JSON
 >   (`r0_v2_result.json`, `t2a_falcon_mamba_7b.json`, `t2a_rwkv7_1p5b.json`,
->   `t2a_void_diagnosis.json`) **and** the human-readable run log
->   (`r0_v2_run.log`, which prints the identical per-cell `did=`/`acc_copy=`
->   values in plain text).
-> - **Git history of the redacted paths, for commit `855f548` and any
->   later commit that still carries the pre-redaction text** —
->   `git show`, `git log -p`, `git diff`, `git blame` against `855f548` on
->   `PARAM_AXIS_SCALING_DESIGN.md` or `EXPERIMENT_LOG.md`. **Redaction is
->   in-place only; it does not rewrite history, so these commands still
->   leak the pre-redaction text — this bit the program before
->   (`QUARANTINE_r0_void_values.md`'s own lineage).** ⚠ Sharper than that
->   precedent: `855f548`'s **commit message body itself** restates the S1
->   values and the "largest DiD" finding verbatim, so **plain `git log`
->   (no `-p`, no diff at all) already leaks it** — the hazard is not
->   confined to diffing.
+>   `t2a_void_diagnosis.json`), the human-readable run log (`r0_v2_run.log`,
+>   which prints the identical per-cell `did=`/`acc_copy=` values in plain
+>   text), **and the three archived driver scripts it also contains**
+>   (`param_axis_r0_driver_v2.py`, `t2a_reference_driver.py`,
+>   `t2a_void_diagnosis.py` — swept 2026-07-12, currently carry no
+>   quarantined value, but they are frozen run-time snapshots per this
+>   repo's "save the exact script" convention, not the live/maintained
+>   source, and are banned at the directory level regardless of content).
+> - **Git history of the redacted paths, for commits `855f548` AND
+>   `c106881`, and any later commit that still carries pre-redaction
+>   text** — `git show`, `git log -p`, `git diff`, `git blame` against
+>   either commit on `PARAM_AXIS_SCALING_DESIGN.md`,
+>   `EXPERIMENT_LOG.md`, or `deltanet_rd/lm_recall_gap_probe_v2_rd.py`.
+>   **Redaction is in-place only; it does not rewrite history, so these
+>   commands still leak the pre-redaction text** — this bit the program
+>   twice before (`QUARANTINE_r0_void_values.md`'s own lineage, then
+>   `855f548`'s). ⚠ `855f548`'s **commit message body itself** restates the
+>   S1 values and the "largest DiD" finding verbatim, so **plain `git log`
+>   (no `-p`, no diff at all) already leaks it for that commit** — the
+>   hazard is not confined to diffing. (`c106881`'s own commit message body
+>   was checked in this round and does **not** restate the elimination-leak
+>   phrase or any per-rung value in plain `git log` — but treat this as a
+>   property that could change with any future amended/rebased history,
+>   not a standing exemption: verify before relying on plain `git log`
+>   against ANY commit touching these paths, rather than assuming it.)
+> - **SOURCE CODE IS A LEAK SURFACE — general rule, not a one-time fix.**
+>   The no-read list above guards *documents*; nothing previously said
+>   *code* was equally in scope, and two real values sat in
+>   `deltanet_rd/lm_recall_gap_probe_v2_rd.py`'s docstrings/self-test for
+>   two full contamination rounds before this one caught them
+>   (`QUARANTINE_r0_did_values.md` §6). **Docstrings, inline comments, and
+>   test/example fixture values are their own leak class, indistinguishable
+>   from ordinary code at a glance, and grep sweeps for known-quarantined
+>   numeric fingerprints must include every `.py` file, not only
+>   `.md`/log/JSON.** `deltanet_rd/lm_recall_gap_probe_v2_rd.py` and
+>   `deltanet_rd/param_axis_r0_driver.py` (the two LIVE, maintained
+>   instrument files T2-repair work requires) are **SAFE TO READ AS OF
+>   THIS COMMIT** — both were swept and the two hits in the former were
+>   redacted to qualitative statements plus a pointer to
+>   `QUARANTINE_r0_did_values.md`. This clearance is a point-in-time fact:
+>   **any future edit to either file must be re-swept for the same pattern
+>   before the "safe to read" status is trusted again** — nothing in git
+>   or CI currently enforces that mechanically, so treat it as a manual
+>   pre-condition of dispatching a blind agent, not a permanent property
+>   of the files.
 
 ---
 
@@ -1667,7 +1710,8 @@ Three independent confirmations, all in the recorded data:
    `DiD` relative to the others is equivalent to disclosing the cross-rung
    `DiD` trend shape, which §9.5 maps deterministically onto the verdict.)*
 
-**Therefore: the T2b-2 rung-VOIDs at 14M and 98M are artifacts of the broken
+**Therefore: the T2b-2 rung-VOIDs, at two of the three fitted rungs (identities
+QUARANTINED — see `QUARANTINE_r0_did_values.md` §2), are artifacts of the broken
 ceiling, and the T2b-1 failures on wikitext (`acc_copy = 0.0000`) are the
 *probe's* failure, not the *checkpoints'*.** Neither licenses any statement about
 those rungs' in-context recall. This is *why* the correct verdict is **VOID
@@ -2553,6 +2597,72 @@ verdict exists. *This is derived from the training budget (§10.5, S-6), not fro
 recall value, and it is stated here so that nobody reads "T2a passed" as "the verdict is
 unlocked."*
 
+#### 11.8.1 THE ADMISSIBLE-SET COMMIT PROTOCOL — MECHANICAL (operationalizing control 1)
+
+Control 1 above states an intent ("`A` is committed to git before any `DiD` is
+un-quarantined"). Intent is not a control — it cannot be checked. This subsection
+makes it a procedure a future agent can be held to mechanically: a named artifact,
+a named commit discipline, and an explicit, `git log`-checkable list of what is
+forbidden once that commit lands. **Landed by the coordinator (2026-07-12), not by
+the T2-repair designer** — same non-self-authorship discipline as the §10.3
+elimination-leak fix (`QUARANTINE_r0_did_values.md` §7).
+
+1. **THE ARTIFACT.** The admissible set `A` is recorded in one JSON file,
+   `experiment-runs/<date>_param_axis_r0_repair/admissible_set_A.json` (the
+   equivalent dated path for whichever re-read this gates), containing EXACTLY:
+   - One row per (rung, corpus) cell R0 covers: the pass/fail boolean for T1a,
+     T2b-1, T2b-1b, and each of §9.6 items 1–6, plus the combined boolean
+     (`admissible`).
+   - The `commit_sha` of the code (`lm_recall_gap_probe_v2_rd.py` +
+     `param_axis_r0_driver.py`, or their successors) that PRODUCED the gate
+     verdicts, and the exact CLI/config used to run them.
+   - A `schema_version` and `generated_at` timestamp.
+   - **NO `DiD`, `gap_true`, `gap_placebo`, `acc_copy`, S1, or S2 field, and no
+     quantity derived from any of them.** The file is a table of booleans and
+     metadata only — a reviewer must be able to open it without being
+     contaminated for the `β`-fit.
+2. **WHERE IT IS COMMITTED.** `admissible_set_A.json` is committed to git as its
+   OWN, standalone commit — never folded into a commit that also changes code,
+   gate thresholds, or carries any DiD-bearing artifact. The commit message MUST
+   begin with the literal tag `ADMISSIBLE-SET-COMMIT:` so the commit is
+   `git log --oneline | grep`-able without inspecting any diff.
+3. **WHAT THE COMMIT MUST CONTAIN.** Only `admissible_set_A.json`, plus (if
+   needed) the gate-verdict raw JSON it was derived from — itself also DiD-free
+   (the T1a/T2b-1/T2b-1b/§9.6 pass-fail computation's own output, never the
+   metric computation's output). The commit message body must name the SHA of
+   the last gate-design change in §11 (so a reader can confirm no gate moved
+   between design-freeze and this commit) and must contain **no** DiD/gap/S1/S2/
+   acc_copy value — the general "commit messages leak too" lesson this file's own
+   no-read list already learned from `855f548`.
+4. **WHAT IS FORBIDDEN AFTER `A` LANDS — enforced, not aspirational:**
+   - **No gate-file commit after `ADMISSIBLE-SET-COMMIT:`.** Any commit that
+     touches T1a/T2b-1/T2b-1b/§9.6-item logic or thresholds after the tagged
+     commit — checkable via `git log --oneline
+     <admissible-set-commit-sha>..HEAD -- <gate files>` returning non-empty — is
+     an M-11 violation **by definition**, full stop, no justification accepted.
+     Record it as one per §11's own precedent; do not rebase it away.
+   - **No `DiD` un-quarantine/recompute before `A`.** Checkable: the commit that
+     un-quarantines or recomputes any `DiD` value must have the
+     `ADMISSIBLE-SET-COMMIT:`-tagged commit as an ancestor
+     (`git merge-base --is-ancestor <admissible-set-sha> <recompute-sha>`).
+   - **The agent that reads `admissible_set_A.json` and fits `β` is dispatched
+     with NEITHER `QUARANTINE_r0_did_values.md`'s content (any section) NOR
+     §11's authorship trail (§11.1, §11.9, §11.10)** — only §11.2–§11.7's
+     PINNED gate definitions (needed to sanity-check `A`'s shape against the
+     spec) and `admissible_set_A.json` itself.
+5. **AUDIT HOOK.** Before any `β` fit is trusted, a SEPARATE agent (not the one
+   that fit `β`) confirms, from `git log` alone: (a) the
+   `ADMISSIBLE-SET-COMMIT:`-tagged commit exists and is an ancestor of the fit
+   commit; (b) no gate-file commit sits between them; (c)
+   `admissible_set_A.json` contains no DiD-shaped field. Three mechanical,
+   binary checks — not a judgment call — recorded in the read's own writeup
+   before any verdict is published.
+
+This is what makes control 1 falsifiable rather than a promise: *"was `A`
+committed before any `DiD` was un-quarantined, and did any gate change after"*
+both reduce to `git log`/`git merge-base` queries a fresh auditor can run without
+trusting the fitting agent's word.
+
 ---
 
 ### 11.9 THE INDEPENDENT ATTACK ROUND (fresh-context opus agent, 2026-07-12)
@@ -2631,7 +2741,7 @@ explicitly outside the quarantine, and are independent of our rung ladder.
    **RECOMMENDATION TO THE PI: seal that docstring.** The instrument source is on the permitted
    list for every future blind agent and it currently carries values.
 2. **A LEAK-BY-ELIMINATION IN §10.3, AND IT IS THE ONE THAT COULD HAVE BITTEN ME.** §10.3's closing
-   sentence names *"the T2b-2 rung-VOIDs **at 14M and 98M**"* — while §10.3's own item 3
+   sentence named the T2b-2 rung-VOIDs **by specific rung** — while §10.3's own item 3
    quarantines *"the identity of the passing cell."* Given the fitted rung set, **naming the failing
    rungs discloses the passing one by elimination**, and `T2b-2: DiD ≤ acc_copy + 2·SE` is a
    *relation* between `DiD` and `acc_copy`. **I therefore hold a derivable, partial, cross-rung
@@ -2670,9 +2780,11 @@ explicitly outside the quarantine, and are independent of our rung ladder.
 
 **PROCESS FINDINGS FOR THE PI (both are real):**
 1. **The §10.3 elimination leak (disclosure 2) will burn the next blind agent too.** Recommend
-   sealing *"at 14M and 98M"* → *"at two of the fitted rungs (identities QUARANTINED)."* **I did not
-   edit §10 myself**: an agent contaminated *by* a sentence should not be the one to rewrite it, and
-   the §9.1 precedent is that the coordinator lands the quarantine as a separate commit.
+   sealing the rung-naming clause → *"at two of the fitted rungs (identities QUARANTINED)."* **I did
+   not edit §10 myself**: an agent contaminated *by* a sentence should not be the one to rewrite it,
+   and the §9.1 precedent is that the coordinator lands the quarantine as a separate commit.
+   **[COORDINATOR NOTE, landed 2026-07-12: done — see §10.3 and the matching EXPERIMENT_LOG.md
+   mirror, both now read "two of the three fitted rungs (identities QUARANTINED)."]**
 2. **The permitted instrument source carries values** (disclosure 1). The no-read list guards the
    *documents* and leaves the *code* open. Close it.
 

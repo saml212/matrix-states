@@ -177,7 +177,8 @@ column headers, PASS/FAIL abbreviated to P/F):
 
 ---
 
-**End of quarantined values.** No COUPLED/DECOUPLED/FLAT-COUPLED/
+**End of quarantined values (second contamination round, `855f548`/`c106881`).**
+No COUPLED/DECOUPLED/FLAT-COUPLED/
 RECALL-TREND-ONLY verdict was ever computed for R0 — the admissible set is
 empty and T2a's failure VOIDs the read upstream of any trend
 classification (§9.5: VOID → FLOOR → the table; here the precedence never
@@ -190,3 +191,117 @@ designer needs, and has, everything in `PARAM_AXIS_SCALING_DESIGN.md`
 §10.1-§10.2 (the T2a failure and the `pick_t2_marker_tokens` diagnosis in
 full, with exact mechanism and numbers) and §10.6-D1 (the §9.2/§9.6
 spec inconsistency) without opening this file.
+
+---
+
+## THIRD CONTAMINATION QUARANTINE (2026-07-12) — code leak surface + elimination-leak sweep
+
+Landed by the non-designing coordinator agent dispatched to close two vectors the
+blind T2-repair designer (`c106881`) itself disclosed in §11.10's contamination
+ledger, independently confirmed by its adversarial attack round. **Neither vector
+exposes a NEW value beyond what `QUARANTINE_r0_void_values.md` or §1-§5 above
+already quarantine — both are the SAME values escaping through a second door.**
+Consolidated here rather than in a third file, per dispatch.
+
+### 6. LEAK 1 — real values in a PERMITTED-to-read code file
+
+The no-read list (§9.1 of `PARAM_AXIS_SCALING_DESIGN.md`, both quarantine rounds)
+walls off *documents*. It never walled off *source code* — and a T2-repair
+designer is explicitly required to read
+`matrix-thinking/deltanet_rd/lm_recall_gap_probe_v2_rd.py` to do the job. Two
+value-bearing spots were found, both belonging to the **FIRST, retracted VOID
+build** (`05de661`), already quarantined in `QUARANTINE_r0_void_values.md` §1
+("0.0454 → 0.1719 → 0.1882, rising monotonically with params" — the wikitext
+recall-gap sequence at rungs with `acc_intact = 0.0000`, i.e. zero demonstrated
+copy ability):
+
+| # | Location (pre-redaction) | Commit introduced | Value leaked | Cross-ref |
+|---|---|---|---|---|
+| 6.1 | `lm_recall_gap_probe_v2_rd.py`, `check_t2b2_ceiling` docstring, ≈L1285 | `9ea3ce6` (carried forward unchanged since) | `"DiD=0.19 at rungs with acc_copy=0.0"` — a rounded restatement of the 392M wikitext figure (0.1882) | `QUARANTINE_r0_void_values.md` §1, the "0.19… rising with scale" sentence |
+| 6.2 | `lm_recall_gap_probe_v2_rd.py`, in-module self-test, L1895 and L1897 | `9ea3ce6` (carried forward unchanged since) | `did_value=0.1882, acc_copy=0.0000` passed as literal call args, and restated in the assertion's failure-message string as `"(DiD=0.1882, acc_copy=0.0, regate 10.2)"` — the EXACT wikitext-392M figure, unrounded | `QUARANTINE_r0_void_values.md` §1, same sentence |
+
+**Disclosure history:** 6.1 was hit unprompted by both the blind T2-repair designer
+and its independent adversarial auditor (`c106881` §11.10, disclosure 1 — "a
+residual redaction miss in a PERMITTED file… the independent attacker hit the
+identical line"). 6.2 was found by this coordinator's own sweep (dispatch item 1,
+"sweep all code, not just that line") and was not previously flagged by name in
+`c106881`.
+
+**Why this is inert, not a new hazard.** Both values belong to the first,
+FATALLY-buggy build's shared-tensor mass-ablation numerator — a number that, per
+`QUARANTINE_r0_void_values.md`'s own banner, "no longer exists" as a measurement of
+anything (§9.1.8). Neither is a `855f548` R0 value and neither is per-rung
+resolved at the granularity the live R0 table quarantines (6.1 says "rungs,"
+plural). **Nonetheless both are redacted**, because (a) they are literal
+duplicates of an already-quarantined value sitting in a file blind agents are
+told to read, and (b) 6.2 in particular is MORE precise than 6.1 (exact `0.1882`
+vs. rounded `0.19`) and was not the line either prior round flagged.
+
+**REDACTED IN PLACE** (2026-07-12, this commit): both docstring/comment/test
+sites in `lm_recall_gap_probe_v2_rd.py` now state the qualitative shape only
+("a non-trivial recall gap reported at a rung with zero demonstrated copy
+ability" / "a VOID-build-shaped case") with a pointer to this file, and the
+self-test's literal call arguments were changed to a synthetic value
+(`did_value=0.15`) that preserves the exact test assertion (`passes=False`
+fires when `DiD` exceeds the `acc_copy + 2·SE` bound at `acc_copy=0`) without
+carrying the real figure. **The test's pass/fail behavior is unchanged** —
+`0.15 > 0.0 + 2×0.01 = 0.02` still trips `passes=False`, exactly as
+`0.1882` did.
+
+### 7. LEAK 2 — leak by elimination in §10.3 and its EXPERIMENT_LOG.md mirror
+
+§10.3 of `PARAM_AXIS_SCALING_DESIGN.md` (as committed at `855f548`) quarantines
+"the identity of the passing [T2b-2] cell" (its own item 3) in the same breath as
+its closing sentence **names the two FAILING rungs explicitly** ("the T2b-2
+rung-VOIDs at 14M and 98M"). Given the fitted rung set is public
+(14M/98M/392M — the ladder itself, not a DiD outcome), **naming 2 of 3 rungs as
+failing discloses the 3rd's status (passing) by elimination** — equivalent to
+printing "the identity of the passing cell" that the very same paragraph claims
+to withhold. Flagged by the blind T2-repair designer itself (`c106881` §11.10,
+disclosure 2 — "the one that could have bitten me") and independently confirmed
+by its adversarial attacker.
+
+**Four sites carried the identical elimination-shaped phrase, all fixed this
+commit:**
+
+| # | Location | Commit | Pre-redaction text |
+|---|---|---|---|
+| 7.1 | `PARAM_AXIS_SCALING_DESIGN.md` §10.3, closing sentence | `855f548` | "the T2b-2 rung-VOIDs at 14M and 98M are artifacts of the broken ceiling" |
+| 7.2 | `EXPERIMENT_LOG.md`, the `2026-07-12 — PARAM-AXIS R0 READ` entry (mirrors §10.3) | `855f548` | "the T2b-2 rung-VOIDs (14M, 98M) and the wikitext T2b-1 failures are the PROBE's failure" |
+| 7.3 | `PARAM_AXIS_SCALING_DESIGN.md` §11.10, contamination-ledger disclosure 2 | `c106881` | quoted the same clause verbatim while describing the hazard: `*"the T2b-2 rung-VOIDs **at 14M and 98M**"*` |
+| 7.4 | `PARAM_AXIS_SCALING_DESIGN.md` §11.10, "PROCESS FINDINGS FOR THE PI" item 1 | `c106881` | quoted it again in the designer's own recommended fix: `sealing *"at 14M and 98M"* → *"at two of the fitted rungs…"*` |
+
+**7.3 and 7.4 matter as much as 7.1** — even a perfect fix to §10.3 leaves the
+same disclosure sitting in the ledger that explains the fix, readable by anyone
+who reads §11 (the PINNED, buildable T2-repair spec, not walled off the way the
+quarantine files are). A future agent could learn nothing from §10.3 and
+everything from §11.10.
+
+**NOT touched:** `PARAM_AXIS_SCALING_DESIGN.md` §10.5, §11.8's second paragraph
+("§9.6 item 2… admits only the 14M and 98M rungs"), and the mirrored sentence
+in `EXPERIMENT_LOG.md`'s R0 entry ("Only 14M and 98M clear the ≥1.0 tok/param
+floor"). **These are a DIFFERENT, non-quarantined gate** (§9.6 item 2's sample
+floor, `tokens_seen / params ≥ 1.0` at the forced 0.328B common slice) — a fact
+of the training *schedule* (total tokens run × param count), computable from
+public, pre-registered numbers with no dependence on any measured `DiD` or
+`acc_copy` value. It says nothing about T2b-2 (the ceiling check) and, alone,
+discloses no rung's T2b-2 status. It only became load-bearing for the
+elimination leak in combination with 7.1-7.4, which is why closing 7.1-7.4 is
+sufficient without touching this gate's own disclosure.
+
+**REDACTED IN PLACE** (2026-07-12, this commit): all four sites now read a
+form that discloses only "two of the three fitted rungs (identities
+QUARANTINED)" without naming which two — 7.3 was rewritten to describe the
+leak's *shape* ("named the T2b-2 rung-VOIDs by specific rung") rather than
+repeat the disclosing clause, and 7.4 was rewritten to describe the
+*recommended fix* without repeating the clause it recommends replacing. A
+`[COORDINATOR NOTE, landed 2026-07-12]` was added inline at 7.4 recording
+that the designer's own recommendation was carried out.
+
+---
+
+**End of quarantined values (third contamination round).** No new numeric
+value is disclosed anywhere in this section — every value named above was
+already quarantined in this file or in `QUARANTINE_r0_void_values.md` before
+this round began. This section exists to record WHERE duplicates were found
+and closed, per the same provenance discipline as §1-§5.
