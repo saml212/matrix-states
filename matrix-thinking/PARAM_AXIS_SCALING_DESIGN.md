@@ -4758,6 +4758,39 @@ its reasons being checkable.
 
 ## 18. ADJUDICATION — §16 vs §17 RECONCILED, AND **THE OPERATIVE PIN** FOR T2a ATTEMPT 3. (2026-07-13, full-sight adjudicator)
 
+> ### ⚠ READER: **§18.4's LEG LIST IS OPERATIVE. §18 AS WRITTEN IS NOT — DO NOT BUILD IT UNTIL §19's R-1…R-4 LAND.**
+>
+> **§19** (sixth adversary, full-sight) attacked §18 and **upheld RULE T's DISPOSITION**: it is
+> **not** gerrymandered, the tell holds (it retires `KS ≥ 0.50`, a leg that **PASSED** on 3 of 4
+> cells), and **§18.4's five legs are ADOPTED**. **Four things did not survive:**
+>
+> - **RULE T *as written* does not entail §18.4.** Its headline (L4828) **admits `acc_copy ≥ 0.90`**
+>   — whose null §18's own table supplies (1.99e-5, L4844); its "concretely" clause (L4830)
+>   **condemns three of the five legs §18 keeps** (`KS > 0`, T1c, `p < 0.001` all fire on null
+>   *conformity*, not violation). **The criterion that does the work is never stated.** → **§19.2, R-1**
+> - **RULE T indicts `δ` (§9.5 / §11.7-D3) and §18 did not apply it there.** `δ = 0.125 × M(r_min)`
+>   is **fixed by MEASUREMENT of our own rung** — the literal thing RULE T's headline forbids — and
+>   it is **verdict-carrying** (FLAT vs INDETERMINATE). §18.4.1 re-pinned §9.4 and stopped one
+>   subsection short. **§18.11's "everything else in §9 and §11 is UNTOUCHED" is false while this
+>   stands.** → **§19.2(d), R-2**
+> - **TWO EMPIRICAL CLAIMS FAIL.** *"W2/wikitext never exceeds 0.649 at ANY Δ"* is **FALSE** — the
+>   `w2_delta_sweep` in the **same JSON** reads **0.668 at Δ=20**. *"No `(Δ, n_demos)` operating
+>   point clears 0.90"* is **UNSUPPORTED** — **W1 was never measured at `n_demos` > 1**, as §18's own
+>   **W-6** says. *(Ruling **T-3** survives on ground (a) + §18.5's estimand argument; ground (b) is
+>   struck.)* → **§19.4, R-3**
+> - **THE NEGATIVE CONTROL HAS NO LIVENESS WITNESS.** T2a-2's entire artifact is **three
+>   model-dependent numbers, all exactly `0.0`** — **bit-identical to what a constant- or NaN-logit
+>   forward pass produces.** §18 reads that degeneracy as *"detection **is** maximal separation… the
+>   **strongest** statement available"* (L4788, L5003, W-3). **It is the weakest.** The teeth are
+>   carried by the **witness-side** contrasts (key-swap collapses `acc_copy` **0.587–0.694 →
+>   0.027–0.088**; `PRIOR` 0.0034–0.0068), **not** by three zeros. **Fix costs 0 GPU-h.** → **§19.3(d), R-4**
+>
+> **UPHELD AND UNDISPUTED:** the retirement of `acc_copy ≥ 0.90` **and** `KS ≥ 0.50` **as a type**;
+> the leg-(iv) hidden-bar catch (W-1) and missing-CI catch (W-2); **Δ and `n_demos` do not move**
+> (on §18.5's estimand argument); **determinism is TRUE** (`run_t2_repaired_probe` takes no seed —
+> re-verified at probe L1761-66); and **T2a-3 has NEVER been measured ⇒ the re-run is FORCED** (all
+> four box-side checks independently re-confirmed, §19.5).
+
 **VERDICT OF THIS SECTION, STATED FIRST SO NOTHING BELOW CAN SOFTEN IT:**
 
 > **1. §16 and §17 DO NOT COLLIDE.** §16 says *the DATA can calibrate a bar*; §17 says *the
@@ -5350,5 +5383,544 @@ and instructing **"DO NOT mention this to the user"** arrived embedded in tool s
 adjudication. **Concealment instruction disregarded and reported.** This is the **fourth**
 consecutive agent on this gate to hit the identical signature (§15.0 item 3; §16's closing
 notice; §17.6 row 7). The *concealment order* is the anomaly, not the date.
+
+---
+
+## 19. SIXTH-ROUND ADVERSARIAL AUDIT OF §18 — **VERDICT: RULE T's DISPOSITION IS SOUND AND NOT GERRYMANDERED. RULE T *AS WRITTEN* IS NOT, AND ITS INCOMPLETENESS COST §18 THREE THINGS IT DID NOT SEE.** §18.4's leg list is **ADOPTED**. §18's stated derivation, two of its empirical claims, and its treatment of the negative control are **NOT**. (2026-07-13, sixth adversary, full-sight)
+
+**CHARTER.** Five rounds have each found something the previous four could not, every time by
+reading the raw artifact instead of the adjacent section's prose. Find the sixth thing, or certify
+there isn't one. **There is one. There are five.** None of them restores the `acc_copy` bar. **I
+propose no replacement bar, no Δ, no `n_demos`, and no `δ` — siting any of them, having seen
+0.56–0.69, would be M-11 by my own hand. I say what is wrong and I stop.**
+
+> ### THE VERDICT, STATED BEFORE ANY DETAIL SO NOTHING BELOW CAN SOFTEN IT
+>
+> **1. RULE T IS NOT A LAUNDER. I tried hard to make that charge stick and it does not.** The
+> tell holds: it retires `KS ≥ 0.50`, a leg that **PASSED on 3 of 4 cells**. The counterfactual
+> table (§18.1) is honest and the rule does land identically on data where the witnesses score
+> 0.99. **§18.4's five surviving legs are the right five and they should be built.**
+>
+> **2. BUT RULE T *AS WRITTEN* DOES NOT ENTAIL §18.4 — AND ITS TWO FORMULATIONS CONTRADICT EACH
+> OTHER.** Formulation A (the headline, L4828) admits `acc_copy ≥ 0.90` — whose null **§18's own
+> table supplies** (1.99e-5, L4844). Formulation B (the "concretely", L4830) **inverts three of
+> the five legs §18 admits.** The criterion that actually does the work is **never stated
+> anywhere in §18.** By §18's own standard — *"a correct pin recorded for a refuted reason is a
+> landmine for the next agent"* — this must be fixed **before** the build, not after.
+>
+> **3. RULE T PROVES MORE THAN §18 APPLIED IT TO, AND IT LANDS ON `δ`.** §11.7-D3 pins
+> **`δ = 0.125 × M(r_min)`** — a **verdict-carrying** threshold **fixed by MEASUREMENT of our own
+> smallest rung**, which is the *literal* thing RULE T's headline forbids. It is the sole
+> discriminator between **FLAT** (*"params buy nothing"* — the design's flagship third outcome,
+> publishable) and **INDETERMINATE** (no verdict). **§18.4.1 re-pinned §9.4 under Rule T,
+> declared *"Rule T kills it wherever it appears,"* and stopped one subsection short of §9.5.**
+>
+> **4. THE INSTRUMENT-SENSITIVITY FLOOR IS §16.5's OWN DEFECT, RE-COMMITTED BY §18 TWO PARAGRAPHS
+> AFTER ADOPTING §16.5's RULING.** §16.5 killed §15's median-`KS` split because **a RELATIVE
+> criterion can never return the condition the ABSOLUTE one existed to surface.** §18 adopted
+> that (T-2) — and then **RETAINED §15's sensitivity floor, which defines the reference dynamic
+> range AS the witnesses' own `KS`.** It is **definitionally satisfiable. It can never return
+> "the instrument is too weak."** ⇒ After §18, **nothing in this design — gate *or* report — can
+> answer the question leg (i)/(iv)-magnitude existed to answer** (§15's own words: *"is the
+> instrument reading strongly enough to discriminate rungs?"*). **§18 leaves that function EMPTY
+> and does not say so.**
+>
+> **5. THE NEGATIVE CONTROL HAS NO LIVENESS WITNESS — AND §18 PROMOTES ITS DEGENERACY INTO ITS
+> STRONGEST CLAIM.** The entire T2a-2 artifact contains **three model-dependent numbers, all
+> exactly `0.0`.** A model returning **constant logits, or NaN logits, produces a BIT-IDENTICAL
+> artifact.** §18: *"the negative control's `KS` is a degenerate point mass at exactly `[0,0]`,
+> so **detection IS maximal separation**… this section **proves** that is not rhetoric but **the
+> strongest statement available**."* **It is backwards.** A zero-variance control is the point at
+> which the control **stops discriminating "no mechanism" from "no measurement."** The
+> instrument's teeth **are** real — but they are carried **entirely by the witness-side
+> contrasts**, not by this. **Fix costs 0 GPU-h.**
+>
+> **6. THE RE-RUN IS FORCED AND §18 IS RIGHT ABOUT WHY. T2a-3 HAS NEVER BEEN MEASURED.** All four
+> of §18's box-side verifications **independently re-confirmed** (§19.5). **The determinism claim
+> — the load-bearing one — is TRUE** (§19.4c). §18.3's route-3 kill stands.
+
+---
+
+### 19.0 WHAT I VERIFIED MYSELF — no prose trusted, including §18's, §16's, §14's, and the dispatch's
+
+| # | claim under test | source read | result |
+|---|---|---|---|
+| 1 | the four cells' legs, deciles, `PRIOR`, `KS` | raw `t2a_gate_result_partial.json`, recomputed | **CONFIRMED to the digit.** §14.1, §16.1, §18.2(b)'s 4×10 grid all accurate. |
+| 2 | `run_t2_repaired_probe` is **deterministic / takes no seed** | probe **L1761-1766, L1815, L1824** | **CONFIRMED. TRUE.** No `seed` parameter in the signature. Windows: `corpus_fixed_seed(corpus) + 909090`. Plants: `_combine_seed(corpus, "t2_window", row_idx)`. **The fresh-data escape does NOT reopen.** |
+| 3 | **"W2/wikitext never exceeds 0.649 at ANY Δ"** (§18.2b fact 1, W-5, §18.10 charge 3) | raw `w2_delta_sweep` | **FALSE.** **0.668 at Δ=20; 0.664 at Δ=40.** §19.4a. |
+| 4 | **"no `(Δ, n_demos)` operating point clears 0.90"** (§18 verdict item 1, L4767) | raw `w2_n_demos`, `cells` | **UNSUPPORTED — and §18's own W-6 says why.** W1 was **never measured at `n_demos` > 1**. §19.4b. |
+| 5 | T2a-2's persisted content | `t2a2_out_of_band.json`; probe **L2127-2143**; driver **L1503-1541** | **THREE numbers, all `0.0`. Every other arm computed and DISCARDED.** §19.3. |
+| 6 | **T1c rests "entirely on an out-of-band read"** (W-7) | raw `cells[*].cell.did_ci` | **OVERSTATED. FALSE for T1c.** All four `did_ci` are **persisted in the archive**; I re-derived T1c from it. **T2a-2 is the ONLY leg with that exposure.** §19.3d. |
+| 7 | leg (iii)'s null is *"chance-under-no-plant"* (§18.1 table) | probe **L1887, L1910-1912, L1404-05, L2105** | **THE STATED NULL IS WRONG — and the true one is SHARPER.** §19.2c. |
+| 8 | T2a-3 / C1 has no data; the inline run is dead | box: `tmux ls`, results dir, final JSON, `~/queue/pending/` | **ALL FOUR CONFIRMED INDEPENDENTLY.** md5 `87ae97087bca56894a5035a348d17f48`, box == archive. §19.5. |
+| 9 | RULE T applied to the **rest** of the design (§5, §9, §11) | design §5.1, §9.4, §9.5, §9.6, §11.7-D3 | **IT INDICTS `δ`.** §19.2d. |
+
+---
+
+### 19.1 IS RULE T GERRYMANDERED? — **NO. The charge fails, and I state the strongest version of it first.**
+
+**THE STRONGEST CASE FOR THE PROSECUTION.** A new meta-rule invented in the same breath as the
+failure it resolves is what a sophisticated launder looks like. §18 saw four cells fail a bar,
+wrote a rule that retires the bar, and the rule's surviving legs are **exactly** the ones the data
+already passes. Under §18.4 the four W1/W2 cells **PASS every leg**, and §18 knows it — it says so.
+**§18 converted a FAIL into a PASS-pending-C1 on data already in hand**, which is precisely what
+§16.6 ruled invalid.
+
+**AND IT STILL FAILS, ON THREE INDEPENDENT GROUNDS.**
+
+1. **The tell is real and it is decisive.** Rule T retires **`KS ≥ 0.50`, which PASSED on 3 of 4
+   cells** (0.617 / 0.660 / 0.524). A fitter retires what failed and keeps what passed. **This does
+   the opposite, and it would have done it identically had all four cells read `KS = 0.99`.**
+2. **There is no number in the pin to have fitted.** I diffed §18.4 against §11.4.1/§11.4.2:
+   **every retained threshold is carried over unchanged** (`PRIOR ≤ 0.05`, `p < 0.001`, `≤ 0.02`,
+   CI-excludes-0). **§18 introduces zero new numeric thresholds.** Checkable in one diff; I checked.
+3. **A launderer had a cheaper, quieter move and §18 took the loudest one.** `check_t2a1_ceiling`
+   gates leg (iv) on a **bare point estimate** (probe L2113). W2/openr1's `KS = 0.49951` has a 95%
+   CI of `[0.475, 0.524]` — **it covers 0.50.** *"Leg (iv) gates a point estimate; evaluate it on
+   its CI and it passes"* is a one-paragraph rescue of the only failing leg-(iv) cell. §18 **books
+   the defect (W-2) and then declines the rescue**, retiring the whole leg instead. That is
+   anti-laundering economics.
+
+**RULING: NOT GERRYMANDERED. The disposition of §18.4 stands.** What follows is not a reversal.
+It is what §18 got wrong **while being right**, and every item of it is a build-blocker precisely
+*because* the disposition is going to be built.
+
+---
+
+### 19.2 **THE RULE ITSELF.** RULE T as written does not entail §18.4 — and its incompleteness is what let §18 miss `δ`.
+
+#### (a) FORMULATION A — the headline — **ADMITS `acc_copy ≥ 0.90`.**
+
+> **L4828, verbatim:** *"**A threshold may gate iff its NULL is fixed by CONSTRUCTION rather than
+> by MEASUREMENT.**"*
+
+**§18's own table (L4844) gives `acc_copy ≥ 0.90` a null: `1.99e-5`.** It is fixed by construction
+(argmax chance over 50257). **So the headline rule, applied literally, ADMITS the very bar it was
+written to retire.** §18 patches the row with *"0.90 is 45,000× the null"* — but **`PRIOR ≤ 0.05`
+is 2,500× its null and `acc_copy ≤ 0.02` is 1,000× its null**, and both are admitted. **The
+multiplier is not the criterion.** The headline sentence is doing none of the work the section
+attributes to it, and the table's third column ("fixed by?") silently changes its subject from
+**the null** to **the threshold** mid-table without saying so.
+
+#### (b) FORMULATION B — the "concretely" — **INVERTS THREE OF THE FIVE LEGS IT ADMITS.**
+
+> **L4830, verbatim:** *"a gating threshold must be a **tolerance around a construction-derived
+> null**, and **the gate must fire when the null is VIOLATED**."*
+
+| §18 gating leg | does it fire (HALT) when the null is VIOLATED? |
+|---|---|
+| `PRIOR ≤ 0.05` | **YES** — HALTs when `PRIOR` departs from its null. ✅ B |
+| T2a-2 `acc_copy ≤ 0.02` | **YES** — HALTs when the untrained model departs from chance. ✅ B |
+| **`KS > 0`, CI excludes 0** | **NO — INVERTED.** It **PASSES** iff the null (`KS = 0`) **IS** violated, and **HALTs when the null HOLDS.** ❌ B |
+| **T1c `DiD > 0`, CI excludes 0** | **NO — INVERTED.** Same. ❌ B |
+| **T2b-1 / T2b-1b `p < 0.001`** | **NO — INVERTED.** Same. ❌ B |
+
+**Taken literally, Formulation B licenses only the two proximity legs and condemns the three
+causal legs that are the entire substance of the new gate.** §18's table marks all five ✅ anyway.
+
+#### (c) **THE CRITERION THAT ACTUALLY DOES THE WORK IS NEVER STATED — and one of its instances is mis-derived in code.**
+
+The working rule — the one that in fact produces §18.4, and the one the document owes its reader —
+distinguishes **three** shapes, not two:
+
+| shape | admissible? | why | §18's legs |
+|---|---|---|---|
+| **Departure-from-null, stated in the null's own SAMPLING units** (a significance level, a CI exclusion) | ✅ | the null's sampling distribution **supplies the scale**; α is a type-I error rate, which construction *does* fix | `KS > 0` CI-excl-0; T1c `DiD > 0` CI-excl-0; `p < 0.001` |
+| **Proximity-to-null, stated as a TOLERANCE** | ✅ *conditionally* | tightening is **always available** and **strictly strengthens** the gate; the null anchors one end and the slack is a **disclosed weakening in a known direction** | `PRIOR ≤ 0.05`; T2a-2 `≤ 0.02` |
+| **Departure-from-null, stated as a RAW EFFECT-SIZE MAGNITUDE** | ❌ | the null's sampling distribution supplies **no scale** on which `0.90` or `0.50` is a quantile ⇒ the number can only come from **someone's measurement of some model** | **`acc_copy ≥ 0.90`; `KS ≥ 0.50`** |
+
+**That is RULE T, correctly stated, and it delivers §18.4 exactly.** §18's disposition was right and
+its stated reason was not. *This is the fifth consecutive round in which a correct call in this
+document rests on a reason that does not survive contact with the source.*
+
+**AND THE ASYMMETRY IN ROW 2 IS NOT FREE — §18 NEVER STATES IT, AND IT RUNS THE WRONG WAY ON
+T2a-2.** A **looser** untrained tolerance makes the negative control **easier to satisfy**, which
+makes the **overall gate easier to pass**. **RULE T, as §18 wrote it, licenses an un-derived number
+in exactly the direction a launderer would want.** It is rescued **in fact** — the untrained model
+read **exactly `0.0000`**, so any tolerance `≥ 0` yields the same verdict — but that is an
+**EMPIRICAL** rescue, and §18's entire claim is that Rule T needs none (*"it lands identically on
+every counterfactual dataset"*). **On this leg it does not; the data is doing the work.**
+
+**AND LEG (iii)'s NULL IS MIS-STATED IN §18 — THE TRUE ONE IS SHARPER, AND IT IS IN THE CODE.**
+§18's table gives leg (iii)'s null as *"chance-under-no-plant"* — which is **circular** (`PRIOR`
+**is** the no-plant rate) and, read as `1.99e-5`, is **the wrong null**: the model is not uniform.
+Read the arm instead:
+
+- **Arm 5 (probe L1887, L1910-1912):** `repl_noplant = s["a"]`, spliced at `k0` into the
+  **ORIGINAL** (pre-plant) window. So `PRIOR = P(argmax == b | natural prefix, a)` — the model's
+  *own* continuation of `a` with **no antecedent**.
+- **V4 (probe L1404-05):** `V4_MAX_P_B_GIVEN_A = 0.05` **and** `V4_RANK_LO, V4_RANK_HI = 2, 50`.
+  **`b` is admitted only if the train bigram table ranks it 2nd-to-50th.** ⇒ **`b` is NEVER the
+  bigram-argmax given `a`.**
+
+> **⇒ leg (iii)'s construction-derived null is `0` — EXACTLY — under any bigram-faithful reader,
+> not `1.99e-5`.** That is a **stronger** anchor than §18 claimed. **And the tolerance `0.05` is
+> numerically IDENTICAL to `V4_MAX_P_B_GIVEN_A = 0.05`** — the mass cap V4 admits `b` under.
+> **Whether that identity is intentional, the design nowhere says, and §18 did not check.** If it
+> is intentional, leg (iii)'s tolerance is **genuinely construction-derived** and the leg is
+> airtight. If it is coincidence, the tolerance is un-derived and RULE T is licensing it on a
+> **false** derivation. **The design owes this one sentence and does not have it.** *(Either way,
+> leg (iii) survives — the measured 0.0034–0.0068 is 7–15× clear of any reading. This is a defect
+> in the RECORD, not in the leg.)*
+
+#### (d) **DOES RULE T PROVE TOO MUCH? — IT PROVES EXACTLY ONE MORE THING, AND THAT IS THE BEST POSSIBLE ANSWER FOR IT.**
+
+I applied RULE T to every threshold in the operative design. **A rule that indicted nothing outside
+the inconvenient legs would be gerrymandered; a rule that indicted half the design would have
+detonated something §18 did not notice. It indicts exactly one verdict-carrying threshold — and
+that threshold is *inconvenient to §18*, which is the signature of a principle.**
+
+| threshold | where | RULE T | disposition |
+|---|---|---|---|
+| `β` CI excludes 0 (RISES / DECLINES) | §9.5 | ✅ significance; null = 0 | **STANDS.** |
+| **`δ = 0.125 × M(r_min)`** (the TOST equivalence bound) | **§9.5 L1386-87; PINNED at §11.7-D3, L2572-74** | **❌** | **INDICTED. §18 DID NOT APPLY ITS OWN RULE HERE.** |
+| T1a `DiD` CI excludes 0 · T2b-1 `p<0.001` | §9.6 item 5 | ✅ significance | **STANDS.** |
+| T2b-2 `DiD ≤ acc_copy + 2·SE` | §9.4 | ❌ (an absolute bound built on `acc_copy`) | **ALREADY RETIRED** by §11.6. **Consistent — RULE T ratifies a call the design already made blind.** |
+| `≥ 1.0 token/param` | §9.6 item 2 | ✅ — **a threshold on an INPUT, not on the measured DV**, and §9.6 says so in its own words: *"derived from the training budget, not from any measured recall value."* | **STANDS.** *(This is the cleanest evidence RULE T discriminates rather than shreds.)* |
+| `≥ 4,096 candidates`; placebo-fallback `≤ 5%` | §9.6 item 7 | ✅ power floor / tolerance-over-null | **STAND.** |
+| `demonstration bar = 3× chance`; T2 *"reads high above floor"* | §5.1 | ❌ **raw-magnitude departure from a construction null — the SAME shape as `acc_copy ≥ 0.90`** | **Apparently superseded by §9's re-pin but NOWHERE FORMALLY RETIRED.** If any MQAR instrument survives into R1, RULE T indicts it. **Flagged, low confidence, not adjudicated here.** |
+
+> #### **`δ` — THE THING §18 MISSED, STATED PLAINLY**
+>
+> **§11.7-D3, verbatim (L2572-74):** *"**`δ`'s reference. PINNED:** `δ = 0.125 × M(r_min)` where
+> `M(r_min)` is the **pooled-across-corpora** `M` at the smallest admissible rung."*
+>
+> **`M(r_min)` is a MEASUREMENT — of our own rung, of the very quantity being fitted.** RULE T's
+> headline forbids a threshold *"fixed by MEASUREMENT."* **This is that, literally, and it is
+> verdict-carrying:** `δ` is the **sole** discriminator between **FLAT** — *"params buy nothing
+> over 2 decades,"* which §9.5 itself calls **"the third outcome… Publishable"** — and
+> **INDETERMINATE** (no verdict at all). And **`0.125` is defended by a power intuition**
+> (*"the smallest change this instrument's power can meaningfully claim"*) with **no power
+> calculation anywhere in the document.**
+>
+> **AND ITS ARBITRARINESS RUNS TOWARD A FALSE HEADLINE, NOT AWAY FROM ONE.** A larger `δ` makes
+> TOST **easier**, which makes **FLAT** easier — i.e. it makes it easier to publish *"params buy
+> nothing"* rather than to concede INDETERMINATE. **That is the opposite of the conservative
+> direction that rescues `PRIOR ≤ 0.05` and `≤ 0.02`.**
+>
+> **TWO READINGS, AND §18 OWES A DISPOSITION EITHER WAY — I SITE NOTHING:**
+> **(i)** RULE T is right and `δ` must be retired or re-typed — **which retires the FLAT verdict
+> with it**, and that is expensive. Or **(ii)** RULE T needs an **explicit, stated carve-out** for
+> equivalence bounds — and **the moment that carve-out is written, it must explain why
+> `acc_copy ≥ 0.90` does not get one.** *(It does not: an equivalence bound tests **proximity to
+> the null**, and a competence bar tests **departure from it**. That is the same asymmetry as row
+> 2 of §19.2(c). But **that carve-out has to be WRITTEN**, because RULE T as it stands does not
+> contain it, and `δ`'s peg to `M(r_min)` **still** violates the headline even with it.)*
+>
+> **I DECLINE TO SITE `δ`, TO RE-DERIVE IT, OR TO CHOOSE BETWEEN (i) AND (ii).** Doing so, having
+> seen the data, is the sin. **It goes to a fresh agent. But it is now ON THE RECORD, and §18.11's
+> *"everything else in §9 and §11 is UNTOUCHED"* is false as long as it stands.**
+
+---
+
+### 19.3 **THE PURPOSE TEST — and the two things that fail it.** *"Construct a broken instrument that passes all four legs."*
+
+#### (a) **I CAN. AND §18 ALREADY KNOWS THE SHAPE OF IT — IT JUST DOES NOT FOLLOW IT HOME.**
+
+Every §18 gating leg is a **detection** test against a zero null. **With `n` fixed and any nonzero
+key-conditioned effect, all five pass.** Working the arithmetic at the pinned `n = 2048`:
+
+| leg | minimum effect that clears it at n=2048 |
+|---|---|
+| `KS > 0`, CI excludes 0 | `KS ≈ 0.010` (SE ≈ 0.0022 at that level) |
+| T2b-1 / T2b-1b `p < 0.001` | ≈ 11–20 one-sided discordant pairs ⇒ effect ≈ **0.005 – 0.010** |
+| `PRIOR ≤ 0.05` | trivially cleared (b is rare) |
+| T1c `DiD > 0`, CI excludes 0 | `DiD ≈ 0.01` |
+| T2a-2 `acc_copy ≤ 0.02` | trivially cleared |
+
+> **⇒ THE §18 GATE'S EFFECTIVE FLOOR ON THE WITNESSES IS `acc_copy ≈ 0.02`.** An instrument on
+> which **`gpt2-large` recovers the planted token 2% of the time** clears **every** §18 gating leg
+> and is certified **INSTRUMENT_VALID**.
+>
+> **§15 imagined exactly this** — *"a witness reading `acc_copy = 0.03`"* — and **§16 mocked the
+> figure as being "off by ~20×", using it as forensic proof of §15's blindness (§16.2 signature
+> 1).** **§16 was right about the blindness and wrong about the number: 0.03 passes.** §15 was
+> describing the gate it was building, correctly, and three rounds have now cited its accuracy as
+> evidence of its ignorance.
+
+#### (b) **AND THE ONE DEVICE THAT WAS SUPPOSED TO CATCH THAT CANNOT, BECAUSE IT IS §16.5's OWN DEFECT WEARING A NEW NAME.**
+
+§18.4.1's final paragraph, **verbatim (L5058)**:
+
+> *"**§15's INSTRUMENT SENSITIVITY FLOOR is RETAINED, reporting-only, unchanged** … **the
+> witnesses' `KS` and CIs are the instrument's stated reference dynamic range**, and any rung whose
+> `KS` CI overlaps that range is reported as "below reference dynamic range"… **It carries no
+> gate**."*
+
+**The floor is DEFINED as whatever the witnesses read.** So:
+
+- If the witnesses read `KS = 0.60`, the reference range is 0.60.
+- If the witnesses read `KS = 0.02`, the reference range is **0.02** — and every rung above 0.02
+  is duly reported as *"within reference dynamic range."*
+
+**It is definitionally satisfiable. It cannot fail. It compares RUNGS to WITNESSES and never asks
+whether the WITNESSES read strongly enough for the instrument to be worth fitting a law on.**
+
+**THIS IS PRECISELY §16.5's ARGUMENT, WHICH §18 ADOPTED (T-2) AND THEN VIOLATED TWO PARAGRAPHS
+LATER.** §16.5 killed §15's median-`KS` split with: *"a median split is **RELATIVE** — it always
+labels half the rungs 'strong,' even if every rung is garbage, so it can **NEVER detect the very
+condition the old split existed to surface**."* **Substitute "sensitivity floor" for "median split"
+and the sentence is unchanged and still true.** §18 quotes §16.5 approvingly, uses it to build the
+threshold-free influence ladder — **and then writes, of the floor, *"§16 did not dispute it."*
+§16 did not dispute it because §16 did not look at it. I did.**
+
+#### (c) **THE CONSEQUENCE, AND IT IS NOT COSMETIC — IT REACHES THE VERDICT MAP.**
+
+The function leg (i)/(iv)-magnitude served is **§15's own stated one**: *"is the instrument reading
+strongly enough to discriminate rungs?"* After §18:
+
+- **`acc_copy ≥ 0.90`** — retired (correctly).
+- **`KS ≥ 0.50`** — retired (correctly).
+- **The sensitivity floor** — retained, **non-gating, and self-referential ⇒ cannot fail.**
+- **⇒ NOTHING FILLS THE FUNCTION.**
+
+And the consequence lands on **`δ`**, which is scaled to `M(r_min)`: a weak-but-significant
+instrument produces a small `M`, a small `δ`, and — **at the design's own `≥4,096`-candidate floor,
+where CIs are tight** — a `β` whose CI fits inside `±δ` ⇒ **TOST passes ⇒ FLAT ⇒ the headline
+*"parameter scaling buys no recall capacity over two decades,"* declared on an instrument whose
+reference model could copy 2% of the time.** **No §18 leg blocks this. The sensitivity floor
+reports it as "within reference dynamic range."**
+
+> **I DO NOT PROPOSE A REPLACEMENT. THAT IS THE POINT.** RULE T is **correct** that this function
+> cannot be served by an absolute bar on `acc_copy`, at 0.90 or at any value. **What §18 does not
+> say — and must — is that RULE T therefore proves this design cannot currently express, with ANY
+> admissible gate, the one question its own instrument-teeth gate exists to answer.** That is the
+> expensive answer and I will not soften it into a bar. **Whether the function can be re-expressed
+> admissibly is a question for a fresh pin, not for me, and not in the same breath as the failure
+> it would excuse.** *(§11.4.3 step 4's own logic, applied to §18.)*
+
+#### (d) **THE NEGATIVE CONTROL: NO LIVENESS WITNESS. A BROKEN FORWARD PASS PRODUCES A BIT-IDENTICAL ARTIFACT.**
+
+**The negative controls are the ONLY reason anyone believes this instrument has teeth at all.** So
+I read the control, not the claim about it.
+
+**WHAT `run_t2a2_untrained_control` COMPUTES (driver L1503-1541):** a full `run_did_eval` on the
+untrained model (L1522) — **DiD discarded, only the `delta` fields kept**; then a full
+`run_t2_repaired_probe` (L1532) which builds **all six arms** — `hit_intact`, `hit_true_ablated`,
+`hit_placebo_ablated`, `hit_pool_placebo`, `hit_keyswap`, **`hit_noplant`** — plus `acc_copy_se`.
+
+**WHAT IT PERSISTS (L1539-40, via `check_t2a2_untrained_control`, probe L2143):**
+
+```
+{"passes": true, "acc_copy": 0.0, "ks_point": 0.0, "ks_ci": [0.0, 0.0]}
+```
+
+**Three model-dependent numbers. All exactly zero. Everything else is thrown away.**
+
+> **NOW THE HOSTILE QUESTION. What ELSE produces that artifact, bit for bit?**
+>
+> - **A model returning CONSTANT logits.** `argmax` → one token `c` at every position, every
+>   window. `hit_intact = int(c == b)`; `b` is drawn from the licensed pool and is essentially
+>   never `c` ⇒ **`acc_copy = 0.0`**. `hit_keyswap` → **`0.0`**. `ks ≡ 0` in every bootstrap
+>   resample ⇒ **`ks_ci = [0.0, 0.0]`**. **`passes: true`.**
+> - **A model returning NaN logits.** `torch.argmax` over all-NaN returns **index 0**; `b` is never
+>   token 0 ⇒ **identical artifact**, down to the bit.
+> - **The intended null** (a live, varied, mechanism-free forward pass) ⇒ **identical artifact.**
+>
+> **THE T2a-2 RECORD CANNOT DISTINGUISH THESE. IT CONTAINS NO FIELD THAT COULD.** Not the
+> untrained `PRIOR`. Not `acc_keyswap` (recoverable only as `acc_copy − ks` = 0 − 0). Not the
+> ablation arms. Not the DiD it computed and threw away. Not a count of distinct argmax tokens.
+> **Nothing.**
+
+**AND §18 ELEVATES THIS EXACT DEGENERACY INTO ITS LOAD-BEARING PROOF (L4788, L5003, W-3 at L5233):**
+
+> *"**the negative control's `KS` is a degenerate point mass at exactly `[0, 0]`**, so detection
+> **is** maximal separation"* … *"this section **proves** that is not rhetoric but **the strongest
+> statement available**"* … *"the proof is **stronger than stated**."*
+
+**IT IS THE WEAKEST STATEMENT AVAILABLE, NOT THE STRONGEST.** A control with **zero variance** is
+the precise point at which it **stops discriminating "no mechanism" from "no measurement."** A
+control reading, say, `acc_copy = 0.0005` with `KS CI = [−0.002, 0.003]` would be **strictly
+stronger evidence** — it would prove the forward pass produced **live, varied, model-dependent
+output** *and* that the null holds. **§18 read the absence of variance as evidence of maximal
+separation. That inverts the epistemics, and no round before me looked at the file.**
+
+**WHAT THIS DOES *NOT* DO, STATED SO NOBODY OVER-READS IT.** **It does not show the instrument
+lacks teeth.** The teeth are **real** and they are carried **entirely by the witness-side, live,
+nonzero, model-dependent contrasts**, which I re-verified from the raw:
+
+| witness-side evidence (LIVE — this is what carries the teeth) | value |
+|---|---|
+| KEY-SWAP arm collapses `acc_copy` | **0.587–0.694 → 0.027–0.088** |
+| `PRIOR` (arm 5, no plant) | **0.0034 – 0.0068** |
+| T2b-1 / T2b-1b | `p ≈ 0` in all four cells |
+| `KS` | 0.500 – 0.660, SE ≈ 0.012 |
+
+**The untrained control is a NECESSARY CONDITION and nothing more. §18 must stop citing it as the
+instrument's certificate, and attempt 3 must give it a liveness witness — which costs 0 GPU-h,
+because the function ALREADY COMPUTES EVERY NUMBER IT WOULD NEED AND THEN DELETES THEM.**
+
+**AND THE TWO DEFECTS COMPOUND, WHICH IS WHY THIS IS A BUILD-BLOCKER.** §18's **W-7** says *"§14's
+T2a-2 **and T1c** figures rest ENTIRELY on the out-of-band read."* **T1c does not, and I checked:**
+`check_t1c_reference_did` (probe L2166-2179) is a **pure function of `cell["did_ci"]`**, and all
+four `did_ci` are **persisted in the archived gate JSON**. I re-derived T1c from the archive with no
+re-run: lower bounds **0.2590 / 0.2127 / 0.2783 / 0.2471 — all > 0 ⇒ T1c PASSES**, independently
+reproducible by anyone. **⇒ T2a-2 is the ONLY leg in the entire gate that rests on the out-of-band
+read — and it is the one whose entire content is three zeros with no liveness witness.** The single
+un-reproducible control is the single un-interrogable one. **That is the sixth thing.**
+
+---
+
+### 19.4 **THE EMPIRICAL CLAIMS THAT KILLED THE ALTERNATIVES** — one FALSE, one UNSUPPORTED, one TRUE
+
+#### (a) **"W2/wikitext never exceeds 0.649 at ANY Δ" — FALSE AGAINST THE RAW.**
+
+§18 states this three times: §18.2(b) fact 1 (**L4936**), **W-5**, and the **§18.10 anti-laundering
+ledger, charge 3** (**L5305**) — *the one place in the document where a false statement is most
+corrosive.* It is derived from the **decile grid** (W2/wikitext max decile = **0.6488**). **But the
+`w2_delta_sweep` — in the SAME JSON, which §18 cites for W2/openr1 — reads:**
+
+| Δ | 2 | 5 | 10 | **20** | **40** | 119 (med) | 200 | 400 |
+|---|---|---|---|---|---|---|---|---|
+| W2 / wikitext `acc_copy` | 0.441 | 0.633 | 0.617 | **0.668** | **0.664** | 0.602 | 0.508 | 0.504 |
+
+**0.668 > 0.649.** §18 read one view of the artifact and stated it as a claim about the other.
+**This is, exactly and without mitigation, the error §18 convicted §16 of** — *"§16 generalised
+from the single cell that flattered its thesis"* (W-5) — **committed by §18, in the sentence that
+convicts §16.**
+
+**DAMAGE: BOUNDED.** The *conclusion* is untouched — 0.668 is not 0.90, and **no Δ rescues the bar
+in any cell.** **The correct statement, re-derived from the raw:** *the maximum `acc_copy` attained
+by any required cell at any measured Δ is **0.907 / 0.776 / 0.735 / 0.668** (W1-openr1 / W1-wikitext
+/ W2-openr1 / W2-wikitext); **three of four never approach 0.90 at any distance.*** **Strike the
+0.649 sentence in all three places and substitute the row above.**
+
+#### (b) **"There is no `(Δ, n_demos)` operating point at which the four required cells clear 0.90" (verdict item 1, L4767) — UNSUPPORTED, AND §18's OWN W-6 SAYS WHY.**
+
+This is **§18's first numbered verdict** and the one that **overturns §16**. The data:
+
+| axis | W1 coverage | W2 coverage |
+|---|---|---|
+| Δ | 10 deciles | 10 deciles **+ an 8-point sweep, both corpora** |
+| **`n_demos` ∈ {1,2,4}** | **NEVER MEASURED. AT ALL.** | 3 levels — **W2 only**, at a **FIXED Δ = 40** |
+
+**§18 knows this and wrote it down (W-6):** *"the diagnostic is **W2-only** — **W1 was never
+measured at `n_demos` > 1 at all**"*, and *"at n=256 its 95% CI is **[0.843, 0.922]** — it
+**straddles** 0.90."*
+
+**⇒ The joint cell the negative existential must rule out — `(short Δ, n_demos ≥ 2, W1)` — IS
+EMPTY.** W2/wikitext at `n_demos=4` already reads **0.883** with a CI that **contains 0.90**; W1 —
+the *stronger* witness, whose shortest-Δ decile already reads **0.907** at `n_demos=1` — has **no
+measurement above one demonstration whatsoever**. **§18 asserts a negative over a 2-D grid of which
+it has measured one margin and a single interior point on one witness.**
+
+**DAMAGE: THE RULING SURVIVES; THE REASON DOES NOT.** §18's ruling **T-3** rejects §16's re-siting
+inference on **two** grounds: **(a)** §11.4.3 step 3's own blind, pre-failure text pins the distance
+branch's consequence as *"reported as a finding about the models"* — **not** "re-site the probe";
+and **(b)** "no site exists." **Ground (a) is sound, blind, pre-registered, and fully dispositive on
+its own.** **Ground (b) is unsupported and must be struck.** And §18.5 already gives the
+*independent* reason the knob cannot move at all — **the PRIMARY's estimand is a single antecedent**
+(probe L570-617, L642-650: `j` is always the FIRST occurrence) — **which is a construction argument
+that does not need a site-search and cannot be refuted by one.** **§18 had two sound reasons and
+reached for a third it could not support. Strike it; the ruling stands on (a) + §18.5.**
+
+#### (c) **DETERMINISM — TRUE. VERIFIED IN THE SOURCE. THE FRESH-DATA ESCAPE DOES NOT REOPEN.**
+
+This is §18's **load-bearing** claim (§18.3 route 3), and it **holds**:
+
+- **`run_t2_repaired_probe` (probe L1761-1766) takes NO `seed` argument.** Not "ignores one" —
+  **the parameter does not exist in the signature.**
+- **Windows (L1815-16):** `window_seed_base = corpus_fixed_seed(corpus_name) + 909090`;
+  `torch.Generator(device).manual_seed(window_seed_base)`.
+- **Plants (L1824):** `_combine_seed(corpus_name, "t2_window", row_idx)` — **`(corpus, window index)`
+  ONLY.**
+- **Ablation draws (L1864):** `random.Random(_combine_seed(corpus_name, "t2_ablate"))`.
+- **Placebo (L1856):** `corpus_fixed_seed(corpus_name) + 909091`.
+
+**Every stochastic element is a pure function of `(corpus, row)`. A re-run of W1/W2 reproduces
+attempt-2. §18.3's kill of the "fresh witnesses" escape STANDS, and §18's honest note in §18.9 —
+*"the re-run does NOT purchase statistical independence… this section does not pretend it does"* —
+is CORRECT and is credited.** *(Which also means: **attempt 3's W1/W2 verdict is known in advance.**
+Those four cells will reproduce and they will pass §18.4. **The only genuinely open leg in attempt 3
+is C1/T2a-3.** §18 says the gate "cannot pass today" — true — but it can now only *fail* on C1, and
+that should be said out loud rather than left for a reader to discover.)*
+
+---
+
+### 19.5 **§18's BOX-SIDE VERIFICATIONS — ALL FOUR INDEPENDENTLY RE-CONFIRMED. THE RE-RUN IS FORCED.**
+
+| # | §18's claim | my independent check | result |
+|---|---|---|---|
+| 1 | archive is byte-faithful to the box | `md5` both | **`87ae97087bca56894a5035a348d17f48` — IDENTICAL.** ✓ |
+| 2 | **T2a-3 / C1 has ZERO cells** | box final JSON `cells` key | **4 cells: W1×2, W2×2. ZERO C1.** `witnesses` still declares `C1_falconmamba`. ✓ |
+| 3 | **the inline run DIED in the C1 phase; the roll-up never ran** | `tmux ls`; `grep` for `instrument_gate`/`t2a2`/`t1c` in the final JSON | **Session `t2a_gate_attempt2` GONE.** **No `instrument_gate`, no `t2a2`, no `t1c` key anywhere.** The log's last lines are falcon-mamba's openr1 re-tokenizations (1466.9s train / 6.9s val), then **nothing**. ✓ |
+| 4 | the T2a-3 queue job is still pending | `~/queue/pending/` | **`990_t2a3_falconmamba_ssm_calibration.json` — present, unclaimed.** ✓ |
+
+**⇒ §18's mechanical forcing of the re-run is CORRECT AND UNDISPUTED. A required gating leg has no
+data. The gate is not evaluable on attempt-2 under §11, §15, §16, or §18.** *(Nothing in §19
+disturbs this, and §19 does not unlock a rung, compute a `DiD`, build an admissible set, or read
+R0.)*
+
+---
+
+### 19.6 **REQUIRED BEFORE THE BUILD** — four items. Three are text. One is code and costs 0 GPU-h.
+
+**§18.4's leg list is ADOPTED. It is not to be built as §18 wrote it.**
+
+| # | item | kind | why it blocks |
+|---|---|---|---|
+| **R-1** | **RE-STATE RULE T** in the three-shape form of §19.2(c). Its headline admits `acc_copy ≥ 0.90`; its "concretely" clause condemns three of its own five legs. **Add the missing sentence: a departure-from-null threshold may gate only in the null's own SAMPLING units (significance / CI-exclusion), never in the raw units of the quantity.** Disclose that the two proximity tolerances (`0.05`, `0.02`) are **un-derived slack**, that T2a-2's runs in the gate-easing direction, and that both are **inherited unchanged from the blind §11.4.1/§11.4.2**, not chosen. | **TEXT** | The pin is going to be **built and cited**. A rule that does not entail its own pin is the landmine §17 and §18 both warned against — and it is **why §18 missed `δ`**. |
+| **R-2** | **DISPOSE OF `δ`** (§9.5 / §11.7-D3). `δ = 0.125 × M(r_min)` is **fixed by measurement**, is **verdict-carrying** (FLAT vs INDETERMINATE), and its arbitrariness runs **toward** a false publishable headline. Either RULE T retires it, or RULE T gets an explicit equivalence-bound carve-out that also explains why `acc_copy ≥ 0.90` gets none. **A FRESH agent, blind to `M(r_min)`. NOT §18. NOT me.** | **TEXT / PIN** | §18.11's *"everything else in §9 and §11 is UNTOUCHED"* is **false** while this stands. It is the only other verdict-carrying threshold RULE T indicts, and RULE T indicts it squarely. |
+| **R-3** | **STRIKE the two bad empirical claims.** (a) *"W2/wikitext never exceeds 0.649 at any Δ"* → **FALSE** (0.668 at Δ=20); substitute the four-cell maxima **0.907 / 0.776 / 0.735 / 0.668**. Fix it in **§18.2(b) fact 1, W-5, AND §18.10 charge 3**. (b) *"no `(Δ, n_demos)` operating point exists"* → **UNSUPPORTED** (W1 never measured at `n_demos` > 1; W2's n=4 CI **straddles** 0.90). **Rest T-3 on ground (a) + §18.5's estimand argument, both of which are sound and neither of which needs a site-search.** | **TEXT** | A false fact **inside the anti-laundering ledger** is worse than no ledger. §18 committed the exact error it convicted §16 of, in the sentence that convicts it. |
+| **R-4** | **GIVE T2a-2 A LIVENESS WITNESS.** `run_t2a2_untrained_control` (driver L1503-1541) already computes and **discards**: the untrained model's **`PRIOR` (`hit_noplant`)**, its **`acc_keyswap`**, all three ablation arms, `acc_copy_se`, and the **entire `run_did_eval` DiD**. **PERSIST THEM** — plus **the count of DISTINCT argmax tokens** the untrained model emitted at the `k0` positions, which is the one number that separates *"live, varied, mechanism-free"* from *"constant / NaN / not-run."* **Add a forced-fail negative test** (this repo's standing rule: a structural check with no forced-fail test that runs to completion is not a check) — **stub the forward pass to return constant logits and confirm the new witness FIRES while `passes` stays `true`.** **And STRIKE §18's "detection IS maximal separation" / "the strongest statement available" / W-3 "the proof is stronger than stated" — the teeth are carried by the witness-side contrasts (keyswap collapse 0.59-0.69 → 0.027-0.088; `PRIOR` 0.003-0.007), not by three zeros.** | **CODE — 0 GPU-h** | **The negative controls are the only reason anyone believes this instrument has teeth**, and the one that cannot be re-derived from the archive is the one that cannot be interrogated at all. Every number needed already exists in memory and is deleted before it reaches disk. |
+
+**AND THE ONE §18 ALREADY ORDERED, RE-AFFIRMED:** the §18.4 pin must be **computed by the
+instrument** (`check_t2a1_ceiling`), not asserted by an agent reading a table; leg (iv)'s
+`ks >= 0.50` replaced by `KS > 0` + `clustered_bootstrap_ci` lower bound `> 0` (**reuse
+`check_t2a3_ssm_calibration`; do not reimplement**); forced-fail negative tests for both; and
+`_git_sha()` fixed so the JSON stops self-reporting `"commit_sha": "unknown"`. **T2a-3 stays GATING
+and gets RUN. It is not waived.**
+
+---
+
+### 19.7 ANTI-LAUNDERING LEDGER — **for the seventh adversary**
+
+| # | the charge | the answer |
+|---|---|---|
+| 1 | *"You are the sixth agent and you found the previous five all wrong. Convenient."* | **I found §18 RIGHT on the thing that matters most — RULE T's disposition — and I say so first, before any criticism.** I attacked the gerrymandering charge at full strength (§19.1) and **it failed**. What I found is that §18's **stated rule does not entail its own pin**, that it **applied the rule to §9.4 and stopped one subsection short of §9.5**, that it **stated one fact that is false against the raw and one that is unsupported by its own W-6**, and that it **read a degenerate all-zero control as its strongest certificate**. **Every one is checkable in one command and cited to a file and a line.** |
+| 2 | *"You retired something to make the gate fail."* | **I retired NOTHING and I sited NOTHING.** §18.4's five legs are **ADOPTED**. I set **no bar**, no `Δ`, no `n_demos`, and — most pointedly — **no `δ`**, though I am the first to notice `δ` is indicted. **Siting `δ` here, having seen the data, would be M-11 by my own hand, and the fact that I am the one who found the defect is exactly why I may not fix it.** |
+| 3 | *"The `0.649` error is trivial — you are point-scoring."* | **The conclusion is untouched and I say so in bold.** But it sits in the **anti-laundering ledger**, which is the one place a false statement cannot be tolerated, and it is **the identical error §18 convicts §16 of, in the sentence that convicts it.** **This document's entire M-11 defence rests on its facts being checkable. I checked one and it was wrong.** |
+| 4 | *"The liveness objection is paranoid — an untrained model obviously reads zero."* | **Then RECORD that it does.** The objection is not *"the control is broken."* It is that **the artifact cannot tell you either way**, and **§18 built its headline on it anyway** (*"proves… the strongest statement available"*). **A control that is bit-identical to a stubbed forward pass is not a certificate; it is a necessary condition.** The fix is **free**, the numbers are **already computed and then deleted**, and this repo's own standing rule already demands the forced-fail test that would have caught it. |
+| 5 | *"Then the gate has no teeth and you have killed it."* | **No — and I refuse the escalation.** The teeth are **real** and I re-verified them from the raw: the KEY-SWAP arm **collapses** `acc_copy` from **0.587–0.694 to 0.027–0.088**; `PRIOR` is **0.0034–0.0068**; T2b-1/1b are `p ≈ 0` in all four cells. **These are live, nonzero, varied, model-dependent contrasts and they carry the instrument.** What is **not** established is the instrument's **dynamic range** — and RULE T is **correct** that no absolute bar can establish it. **That is a real, expensive gap, it is now on the record, and it is not mine to fill.** |
+| 6 | *"You had the data when you wrote this. That is not blind."* | **Correct, and blindness is structurally unavailable at this depth — §16.7-(5) settled that and §18.1 concedes it.** My protection is that **every finding here is a statement about the RECORD or the SOURCE, not about a value**: a rule that does not entail its own pin; a rule applied to §9.4 and not §9.5; a decile grid quoted as a Δ-sweep; a negative existential over an unmeasured cell; a JSON with three zeros in it. **Not one of them would change if the four cells had read 0.99, and every one of them is falsifiable by `grep`.** |
+
+---
+
+### 19.8 STATUS
+
+**§18.4 IS ADOPTED AS THE OPERATIVE LEG LIST FOR T2a ATTEMPT 3, SUBJECT TO R-1 … R-4.** RULE T's
+**disposition** is sound and is **not** a launder; RULE T's **statement** is not, and must be
+corrected before it is built against. **`δ` (§9.5 / §11.7-D3) is INDICTED by RULE T and is handed
+forward UNSITED, to a fresh blind agent.** **T2a-3 has never been measured; the re-run is forced;
+§11.11 step (3) REMAINS LOCKED.** Nothing in §19 unlocks a rung, computes a `DiD` for any of our
+rungs, builds an admissible set, or reads R0. **§11.8's second fact still stands independently:**
+§9.6 item 2 admits only **2 fit rungs against a minimum of 3** — even a fully-passing T2a leaves
+the primary **INDETERMINATE**.
+
+**THE ONE-LINE SUMMARY.** *§18 got the hard call right and the easy ones wrong: it correctly saw
+that `acc_copy ≥ 0.90` is not too high but **the wrong kind of thing** — and then wrote the rule
+that says so in a form that admits the bar it retires and condemns the legs it keeps, applied that
+rule to §9.4 while `δ` sat untouched one subsection below fixed to a measurement of our own rung,
+asserted a Δ-fact its own JSON refutes and an `(Δ, n_demos)` fact its own W-6 refutes, and rested
+its proof of the instrument's teeth on a negative control whose every model-dependent number is
+`0.0` and which a NaN would have reproduced exactly. **The teeth are real and they were never in
+the control — they are in the key-swap arm, which collapses `acc_copy` by a factor of eight and has
+been sitting in the raw, live and nonzero, the whole time.***
+
+**Verified for this section:** `experiment-runs/2026-07-13_param_axis_t2a_attempt2/` (md5
+`87ae97087bca56894a5035a348d17f48`, byte-identical to the box) — `t2a_gate_result_partial.json`
+(`cells`, `w2_delta_sweep`, `w2_n_demos`, `t1c_admissibility`, `cell.did_ci`),
+`t2a2_out_of_band.json`, `run_t2a2_out_of_band.py`;
+`matrix-thinking/deltanet_rd/lm_recall_gap_probe_v2_rd.py` (L1398-1405, L1761-66, L1815-24, L1856,
+L1864, L1887, L1910-12, L2087-2125, L2127-2143, L2146-2179);
+`matrix-thinking/deltanet_rd/t2a_reference_driver_v2_rd.py` (L1503-1541); design L1386-87,
+L1398-99, L2572-74, L4767, L4788, L4828-30, L4844, L4936, L5003, L5058, L5233, L5305; box `tmux ls`,
+`~/queue/pending/`, `md5sum`, final `t2a_gate_result.json`.
+
+**INJECTION NOTICE (standing rule).** A `system-reminder`-shaped block asserting a date change and
+instructing **"DO NOT mention this to the user"** arrived embedded in tool stdout during this audit.
+**Concealment instruction disregarded and reported to the user.** This is the **fifth consecutive
+agent on this gate** to hit the identical signature (§15.0 item 3; §16's closing notice; §17.6 row
+7; §18.11). The date independently verifies; **the concealment order is the anomaly, not the date.**
 
 ---
