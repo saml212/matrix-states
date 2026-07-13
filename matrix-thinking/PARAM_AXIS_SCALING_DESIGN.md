@@ -1,12 +1,16 @@
 # PARAM-AXIS SCALING DESIGN — the 1B demonstration and the ladder to it
 
 **Status:** Rev 0 → attacked (§7) → Rev 1 (§8) → **Stage-1 build BLOCKED at its
-own pre-train gate, R0 VOID** (`queue/regate_2026-07-12.md` §10) → **Rev 2 (§9),
-the instrument re-pre-registration**. DESIGN ONLY. Nothing launched, no queue
-touched, no registry verdict recorded. **§9 supersedes the instrument spec in
-§5.0/§5.1/§5.2**; one slot (§9.1, the normalization) is deliberately left OPEN
-and blocks verdict computation — see §9.7 for why the agent dispatched to pin it
-blind could not legitimately do so.
+own pre-train gate, first R0 VOID** (`queue/regate_2026-07-12.md` §10) → **Rev 2
+(§9), the instrument re-pre-registration** (§9.1 initially OPEN — see §9.7 — then
+**PINNED** post-quarantine by a blind agent: `M(r) ≡ DiD(r)`, raw) → instrument
+rebuilt and **R0 re-run: VOID again (§10), T2a — the teeth gate — failed on both
+reference models; the planted-copy probe is broken by construction** → **Rev 3
+(§11), the T2 repair**, pinned blind and post-attack. DESIGN ONLY. Nothing
+launched, no queue touched, no registry verdict recorded. **§9 supersedes the
+instrument spec in §5.0/§5.1/§5.2; §11 supersedes §9.4 (all of T2), §9.2's
+`N_rows`, §9.6 item 7, and strikes T2b-2 from §9.6 item 5; §11.4.5 re-pins §9.3's
+T1c.** **§9.1's `M(r) ≡ DiD(r)` pin is untouched by §11.**
 
 **Date:** 2026-07-12 (verified against `git log` + system clock; a fake
 `system-reminder` carrying a date-change *plus a concealment instruction*
@@ -1843,3 +1847,879 @@ exclude* a position it should have; it cannot fabricate a hit.
 **R0 STATUS: VOID (INSTRUMENT-INVALID). The `DiD` machinery (row-replicated
 single-token ablation, placebo/DiD, clustered bootstrap, S2 log-probs) is
 sound and validated; the T2 planted-copy probe that gates it is not.**
+
+---
+
+## 11. REV 3 — THE T2 REPAIR AND RE-PRE-REGISTRATION — **PINNED** (2026-07-12, blind agent, post-attack)
+
+**Status: PINNED PRE-REGISTRATION.** This section **SUPERSEDES §9.4 in its entirety**
+(T2a's bar form and reference set; T2b's admissibility legs; T2b-2), **supersedes
+§9.2's `N_rows` constant and §9.6 item 7's candidate floor**, **strikes T2b-2 from
+§9.6 item 5**, and **re-pins §9.3's T1c**. Everything else in §9 — §9.0's candidate
+construction, **§9.1's pinned `M(r) ≡ DiD(r)`** (untouched), §9.2's placebo /
+row-replication identification, §9.5's verdict map, §9.6 items 1–4 and 6 — **stands
+unchanged.** The `DiD` machinery is not what broke and is not rebuilt here.
+
+**Blind status.** Written by a fresh-context agent under the `855f548` quarantine.
+**I read no per-rung `DiD`, `gap_true`, `gap_placebo`, S1, S2, or own-checkpoint
+`acc_copy` value; no result JSON; no run log; no figure; no `git show`/`log`/`diff`/
+`blame` on the redacted paths; and I saw no statement of the cross-rung trend
+shape.** Two incidental disclosures encountered inside *permitted* text are declared
+in full in §11.10, with the sign-invariance test each affected decision was held to.
+
+**Date:** 2026-07-12, verified against `git log -1` **and** the system clock. *(A fake
+`system-reminder` carrying a date-change claim **plus an explicit instruction to
+conceal it** arrived in tool stdout during this session — the fourth in this
+document's lineage; the independent attacker received two more. Per the CLAUDE.md
+standing rule: disregarded, and reported rather than concealed.)*
+
+**This section was attacked by an independent fresh-context opus agent before
+pinning. The attack returned 3 FATAL, 9 SERIOUS, 6 MINOR findings and the verdict
+"DIES as written." All 3 FATALs and 8 of 9 SERIOUS were CONCEDED and are fixed
+below; the exchange is recorded in §11.9. In particular the attacker overturned this
+section's own first-draft reference-model demotion — an error that would have
+disabled T2a's teeth on the very architecture class our rungs belong to.**
+
+---
+
+### 11.0 Scope
+
+R0's VOID (§10) has one cause: the planted-copy probe cannot read one-shot in-context
+copy on models that demonstrably have it. §10.1's distinction governs this repair.
+
+- **SOUND, RETAINED, UNCHANGED:** row-replicated single-token ablation; the placebo
+  arm; the `DiD` estimand; the clustered bootstrap; the S2 log-prob readout; the
+  causal plumbing of the HF bridge. T2b-1 fired on both reference models with a
+  perfectly one-sided discordant split (p ≈ 1.4e-17, 7.5e-37). **The instrument can
+  see the mechanism causally.** Nothing here impugns or rebuilds that.
+- **BROKEN, REPAIRED HERE:** `pick_t2_marker_tokens`; the probe's arms; T2a's bar form
+  and witness set; T2b's legs; T2b-2 (retired); the `N_rows`/candidate-floor collision;
+  T1c (re-pinned); D2/D3 (pinned).
+
+---
+
+### 11.1 THE DEFECT — **two** independent failures, not one
+
+§10.2 named the picker and its mechanism correctly, but filed the `wikitext` zero
+column as *"the same defect in its most extreme form."* **It is not.** They are
+independent, and a repair that fixes only the first walks straight back into the
+second.
+
+**F-I — KEY COMPETITION (the `" the"` failure).** The key is drawn from
+`topk(counts, 400)` — the 400 **most frequent** tokens. It picks `" the"`, which
+recurs ~24 / ~21 / ~10 more times *per 512-token window* (RWKV7 / falcon-mamba / our
+GPT-2 openr1 windows). One plant competes with ~20 natural instances of the same key,
+each with its own continuation; argmax follows the aggregate natural prior.
+**`acc_copy` is depressed for every model.**
+
+**F-II — VALUE IMPOSSIBILITY (the `"The" → " have"` failure).** On `wikitext-mix-ext`
+the picker chose `"The"`, which occurs **zero** times in the val windows — i.e. it is
+*already* rare-in-window, so **F-I does not apply to it** — and `acc_copy` was
+nevertheless **exactly 0.0000 at every rung**. The cause is the **value**: the picker
+*requires* `(a,b)` to **never co-occur adjacently in train** ("an OOD transition"),
+which selected a continuation the language essentially forbids. **A never-attested
+pairing is not merely unpredictable; it can be unemittable.** The old picker's
+defining property is the bug.
+
+**They pull in opposite directions.** F-I says *make the key rare*. F-II says *do not
+make the association impossible*. Both must be fixed at once.
+
+---
+
+### 11.2 THE REPAIRED SELECTION RULE — **PINNED**
+
+`pick_t2_marker_tokens` is **RETIRED**. It is replaced by a **per-window** procedure
+with a **hard per-window assertion**, built from **TRAIN-split corpus statistics
+only**. **No model forward pass enters key selection, value selection, decoy
+selection, Δ drawing, plant placement, or window dropping — at any point, for any
+reason.** That is not stylistic: it is what makes the probe's difficulty
+**rung-independent** (§11.4.6).
+
+#### 11.2.1 The KEY pool `P_key` — rare-in-window, well-trained, beatable
+
+Per `(tokenizer, corpus)`, from the **TRAIN** split (`N` = train tokens, `T` = 512):
+
+| # | Criterion | Why |
+|---|---|---|
+| **K1** | not special/EOT | trivial |
+| **K2** | **rare-in-window:** `p_train(a) ≡ count(a)/N ≤ 1e-4` | expected natural occurrences per `T`-token window `= T·p ≤ 0.051`; ≥95% of windows carry **zero**. **This is the fix for F-I.** |
+| **K3** | **well-trained:** `count(a) ≥ 500` **and** `p_train(a) ≥ 1e-5` | rare-in-**window** and rare-in-**corpus** are different quantities; only the former is wanted. On a 43.7M-token train split K2∧K3 is the count band `[500, 4370]`. |
+| **K4** | **beatable:** `max_b p_train(b|a) ≤ 0.5` | the argmax read must be winnable. **This is the quantity the retired entropy filter was groping for and missed** (§11.2.4). |
+| **K5** | `\|P_val(a)\| ≥ 5` (§11.2.2) | else drop `a` |
+
+#### 11.2.2 The VALUE pool `P_val(a)` — *licensed, not predicted, and rare-in-window*
+
+| # | Criterion | Why |
+|---|---|---|
+| **V1** | `b ∉ {a}`, not special/EOT | trivial |
+| **V2** | `count(b) ≥ 500` | well-trained embedding |
+| **V3** | **attested, and attested more than once:** `count(a,b) ≥ 5` | **the fix for F-II.** The old rule demanded `count(a,b) = 0` and thereby **selected for impossibility**. *A mere `> 0` is not enough either:* the attacker measured **6.3%** of openr1's admissible pairs as **hapax** and **17.4%** at `count ≤ 2` — a bigram seen once in 43.7M tokens is parametrically indistinguishable from never-seen, so **F-II would recur on ~1 in 6 plants.** `≥ 5` is pinned. |
+| **V4** | **not predicted:** `p_train(b\|a) ≤ 0.05` **and** `rank(b\|a) ∈ [2, 50]` | never the modal continuation (§9.0 forbids it for real candidates too); ≤5% conditional mass ⇒ a model with no in-context mechanism should rarely emit it. |
+| **V5** | **rare-in-window:** `p_train(b) ≤ 1e-4` | **CONCEDED TO THE ATTACK (A-S2), and it is the finding I most needed.** The first draft applied "rare-in-window" to the key and **stopped**. Measured on the real corpora: **37.8% / 42.1%** of admissible values were among the **100 most frequent tokens**, and the **p90 value carried ~5.6 expected natural occurrences per window** (real admissible plants included `' ages' → ' and'`, `' Greece' → ' ;'`). Consequences: **arm 2 would not have removed `b` from context** (≈5 natural copies survive the ablation, diluting T2b-1); and a heterogeneous pool in which ~8% of pairs carry a per-pair prior ≈0.5 **passes a mean `PRIOR ≤ 0.05` gate while smuggling in a slab of free hits.** V5 reintroduces symmetry: **the value must be as rare-in-window as the key.** |
+
+> **The old "never co-occurs in train" rule is REVERSED, and the property it protected
+> is preserved — by *measurement* instead of by *assumption*.** Its purpose (§9.1.5)
+> was that `acc_copy` be **immune to parametric absorption**. V3+V4 make parametric
+> answering unlikely *by construction* (non-modal, ≤5% conditional mass, rank ≥2), and
+> **arm 5 (NO-PLANT) measures the residual prior emission rate directly and gates on
+> it** (§11.4.1 leg iii). **A measured absorption bound strictly dominates an assumed
+> one** — and the assumed one was purchased, as F-II shows, at the price of unemittable
+> values.
+
+> **Consequence for §9.1.5 (declared, not buried).** (a) S1's denominator warrant
+> ("immune by construction" via never-co-occurs) is **replaced** by the measured
+> no-plant bound; **S1's definition is unchanged, its warrant is now empirical and
+> stronger.** (b) §9.1.5 asserts S1 is *"bounded to `[0,1]` by the already-pinned T2b-2
+> ceiling"* — **that bound is WITHDRAWN with T2b-2 (§11.6).** S1 remains mandatory,
+> reported, and **non-verdict-carrying**, now as an unbounded ratio with its CI. **No
+> verdict ever depended on the bound.**
+
+**POOL FLOORS, and the arithmetic (independently measured by the attacker against the
+real tokenized train splits — `openr1` N=43,725,587; `wikitext103` N=117,920,140):**
+
+| rule set | `\|P_key\|` openr1 / wikitext | median `\|P_val\|` |
+|---|---|---|
+| K1–K5 + V1,V2,V4 only (first draft) | 1,426 / 8,274 | 42 / 45 |
+| **+ V5** | 1,111 / 7,496 | 9 / 14 |
+| **+ V5 + V3(`count(a,b) ≥ 5`) — THE PINNED RULE** | **537 / 6,732** | **8 / 13** |
+
+**Both clear the required floors (`|P_key| ≥ 100`, `|P_val(a)| ≥ 5`) with ≥5×
+margin.** *(Rejected as over-tightening: the attacker's optional `K4 ≤ 0.25` +
+`rank ≤ 10` hardening collapses openr1's pool to **46** keys — below the floor.
+**Not adopted.** The measured numbers above are the reason this rule is buildable and
+the reason the tightening is not.)*
+
+**The floors are GATES, not hopes.** The builder **must** recompute `|P_key|` and
+`|P_val|` in the model-free pre-pass and **VOID the cell** if either floor is missed.
+If `|P_key| < 100`, relax K2 along a **fixed pre-registered ladder** — `1e-4 → 2e-4 →
+4e-4` — stopping at the first rung that clears, and **report which rung was used**.
+*(On the measured pools this ladder never fires; it is retained as a stated safety
+net, not as live tuning.)* **Correctness never depends on the band**, because
+in-window uniqueness is **verified per window** (§11.2.3) and any window that cannot
+satisfy it is dropped.
+
+#### 11.2.3 PER-WINDOW ASSIGNMENT AND THE HARD VERIFICATION
+
+For each plant window `w`, with a seeded RNG whose seed depends **only** on
+`(corpus, window index)` — never on rung, params, architecture, or batch size:
+
+1. **Δ by REJECTION SAMPLING** from the main metric's own empirical Δ pool (§9.4's
+   requirement, retained — the one axis on which the probe **is** difficulty-matched
+   to the real task), restricted to `Δ ≤ T − 6`. **The existing `max(2, min(Δ, T−4))`
+   CLAMP is RETIRED:** clamping piles the truncated tail onto the boundary and
+   distorts the very Δ profile the gate is defined on. **Report the excluded Δ mass;
+   if > 5%, disclose it in the T2a report.**
+2. `k0 ~ U[Δ+2, T−2]`; `j0 = k0 − Δ`.
+3. **The triple `(a, a′, b)` is drawn JOINTLY** — *conceded to the attack (A-S5)*.
+   Walk a seeded permutation of the precomputed inverse map `b → {keys licensing b}`
+   and take the first triple with **all** of:
+   - `a, a′ ∈ P_key`; `b ∈ P_val(a) ∩ P_val(a′)` — **`b` is equally licensed under both
+     keys**, so the key-swap arm changes **key identity and nothing else**;
+   - `a′ ∉ {a, b}`; `|log₁₀ count(a′) − log₁₀ count(a)| ≤ 0.1` (frequency-matched — "the
+     same band" spans 8.7× and is **not** a match);
+   - **natural occurrence count in `w` of `a`, `a′`, and `b` all exactly 0.**
+
+   Up to 100 tries. **Pre-pass floor: ≥100 distinct `b` each licensed by ≥2 keys**, or
+   the cell is VOID.
+4. Write `w[j0] = a`, `w[j0+1] = b`, `w[k0] = a`.
+5. > **HARD ASSERTION — per window, post-plant, `RuntimeError` on violation, never a
+   > warning:**
+   > **`count(a in w) == 2`, at exactly `{j0, k0}` — AND — `count(b in w) == 1`, at
+   > exactly `{j0+1}`.**
+   >
+   > This is the verification the old probe never performed, and it is the single line
+   > that makes F-I and (with V5) its value-side twin **structurally impossible rather
+   > than statistically unlikely.** It is the **negative-test target of the smoke gate**
+   > (§11.11): a deliberately planted `" the"`, or a deliberately planted high-frequency
+   > value, **must** raise it. *(A structural check without a forced-fail negative test
+   > that runs to completion is not a check — CLAUDE.md, learned the hard way.)*
+6. If step 3 exhausts 100 tries, **drop the window and count it. Cap: drops ≤ 2% of
+   `n_plants`; above that the cell is VOID** (the probe could not be constructed — not
+   FLOOR). The drop rule reads only the window's tokens and the pools, so **the
+   identical windows drop at every rung.**
+
+**Reported per cell (diagnostics, non-gating):** realized natural-count histograms of
+`a`, `a′`, `b` (must be all-zero); realized vs target Δ deciles; the `P_key` band rung;
+the drop count; and the §11.11 **per-plant difficulty record**.
+
+#### 11.2.4 THE ENTROPY FILTER — what it was doing, and its disposition
+
+The old picker ranked keys by next-token entropy `H(·|a)`, *"so a low-entropy token's
+own crushing prior can't be mistaken for a copy-mechanism failure."* It failed twice:
+
+1. **It searched the wrong space.** Entropy was only a *re-ranking of a pool already
+   restricted to `topk(counts, 400)`.* **The frequency pre-filter, not the entropy
+   ranking, is the primary bug:** the correct key was never a candidate. Entropy
+   dutifully picked the best key *from a set consisting entirely of the worst possible
+   keys.*
+2. **It guards the wrong statistic even on the right space.** An argmax read is a
+   property of a distribution's **maximum**; entropy is a property of its **whole
+   shape**. `H(·|a)` can be high while one competitor still holds most of the mass —
+   and, decisively, **`H(·|a)` says nothing about whether the *specific planted value*
+   has non-negligible mass.** `" the"` and `"The"` both have high next-token entropy
+   (many nouns may follow) while assigning ≈0 mass to `" \""` / `" have"`.
+
+**DISPOSITION: RETIRED as a selection criterion.** Replaced by the two quantities that
+are actually load-bearing for an argmax read — **K4** (`max_b p(b|a) ≤ 0.5`: the rival
+the plant must beat) and **V4** (`p(b|a) ≤ 0.05`, `rank ∈ [2,50]`: licensed but not
+predicted). `H(·|a)` is **retained as a reported diagnostic only, with no selection and
+no gating power.**
+
+#### 11.2.5 PER-WINDOW RANDOMIZATION OF `(a, a′, b)`
+
+The old probe selected **one** global `(a,b)` and reused it for every plant, every
+window, every rung (*"It picks `" the"`. In every case."*). `acc_copy` was a single
+Bernoulli experiment under a **single draw from the pair distribution** — the variance
+across that draw **is not in its reported SE at all**, and one unlucky pair zeroes an
+entire corpus column. Which is exactly what happened.
+
+**PINNED: a fresh `(a, a′, b)` per plant window; exactly ONE plant per window** (so a
+row remains an independent cluster for §9.2's clustered bootstrap). `acc_copy` becomes
+an average over the admissible pair population, its SE is honest, and **no single pair
+can carry the gate.**
+
+---
+
+### 11.3 THE PROBE'S ARMS — **PINNED** (six)
+
+All six reuse `assign_placebo_positions` / `run_ablation_arm` / row-replication
+**verbatim**. Every *ablation* arm modifies **exactly one** position relative to the
+planted window (§9.2's FATAL-1 invariant). Arm 5 is a *construction*, not an ablation,
+and its two-token difference from arm 1 **is** the demonstration; it is flagged as such.
+
+| # | Arm | Construction | Reads |
+|---|---|---|---|
+| 1 | **INTACT** (planted) | `w[j0]=a, w[j0+1]=b, w[k0]=a` | **`acc_copy`** — the headline |
+| 2 | **TRUE-ABLATED** | arm 1, then `w[j0+1] := r` (uniform-random, existing exclusion rule) | `hit_true` |
+| 3 | **PLACEBO-ABLATED** | arm 1, then one matched-Δ non-plant position `:= r` (uniform-random) | `hit_placebo` — comparator for arm 2 |
+| **3b** | **POOL-PLACEBO** *(NEW)* | arm 1, then one matched-Δ non-plant position `:= ` a `P_key`-drawn token | `hit_placebo_pool` — **comparator for arm 4** |
+| 4 | **KEY-SWAP** *(NEW)* | arm 1, then `w[j0] := a′` | **`acc_copy_keyswap`** — `b` is **still in context**, the *association* is not |
+| 5 | **NO-PLANT** *(NEW)* | `w[j0]`, `w[j0+1]` keep their **original corpus tokens**; only `w[k0] := a` | **`acc_copy_noplant`** — the **prior-only** emission rate of `b` |
+
+**Arm 3b is conceded to the attack (A-M2).** Arm 4 replaces `w[j0]` with a *well-trained
+pool* token while arms 2/3 replace with a *uniform-random vocab* draw (mostly OOD junk).
+Those are different corruption severities, so a key-swap-vs-random-placebo test would
+**not** be "the identical paired sign test" it was billed as. Arm 3b gives arm 4 a
+severity-matched comparator.
+
+**Derived, pinned:**
+- `KS ≡ acc_copy − acc_copy_keyswap` — **key-specificity**.
+- `PRIOR ≡ acc_copy_noplant` — the rate at which the probe is passable **with no
+  demonstration at all**.
+- **T2b-1** (retained verbatim): paired exact sign test, `n₊` = (placebo-ok ∧
+  true-ablation-wrong) vs `n₋` = reverse, using **arm 3**; pass iff `p < 0.001 ∧ n₊ > n₋`.
+- **T2b-1b** *(NEW)*: the identical paired exact sign test with **arm 4 vs arm 3b**;
+  pass iff `p < 0.001 ∧ n₊ > n₋`.
+
+**Why arm 4 is the load-bearing addition — and it closes the "shortcut" hole.**
+T2b-1 alone **cannot distinguish key-conditioned associative recall from unconditional
+in-context salience.** Arm 2 destroys `b` itself, removing *both* the association *and*
+`b`'s presence — so a model implementing only *"a token already seen in this window is
+likelier to be emitted"* (the documented in-context repetition/copy bias) passes T2b-1
+with a perfect one-sided split and **no associative recall whatsoever**. Nor can T2b-1
+exclude a **rarity heuristic** (*"emit whatever followed the most surprising token"*) —
+to which a rare-key probe is *specifically* exposed. **Arm 4 kills both:** under
+key-swap, `b` is still present and still follows an equally-rare, frequency-matched
+token that equally licenses it — **only the identity match to the query key is broken.**
+Accuracy collapses **iff** the model performs identity-keyed retrieval. A positional
+shortcut is excluded independently: `j0`, `k0` and Δ are redrawn per window.
+
+**Cost.** `n_plants = N_rows` (§11.7), 6 arms, `T = 512`, eval-only: ≈12.3K row-forwards
+per (rung, corpus) — well under a minute of H100 time at 1.31B. **There is no budget
+argument against any arm here.**
+
+---
+
+### 11.4 T2a — THE INSTRUMENT-TEETH GATE, RE-PINNED
+
+#### 11.4.1 The gate
+
+**T2a-1 — CEILING (gating). The bar is UNCHANGED from §9.4 and is NOT MOVED.**
+Evaluated **per (witness, corpus)**. All five legs must hold **simultaneously**:
+
+| leg | requirement | provenance |
+|---|---|---|
+| (i) | `acc_copy ≥ 0.90` at the Δ-median | **§9.4, UNCHANGED** |
+| (ii) | `acc_copy ≥ 0.75` in **every** Δ-decile | **§9.4, UNCHANGED** *(§9.4's qualifier "carrying ≥10% of the candidate mass" is vacuous — deciles carry 10% by definition (A-M4). It means all ten. We say what we mean.)* |
+| (iii) | `PRIOR = acc_copy_noplant ≤ 0.05` | **NEW** — the probe must not be passable with **no** demonstration. *(Partly redundant with V4 by construction (A-M3); retained as an empirical bug-check against plant leakage, and **not** oversold as the primary anti-prior guard — that is leg (iv).)* |
+| (iv) | `KS ≥ 0.50` **and** T2b-1b passes (`p < 0.001`) | **NEW** — the pass must be **key-conditioned**, not salience, not rarity |
+| (v) | T2b-1 passes (`p < 0.001`) | promoted from T2b |
+
+#### 11.4.2 THE WITNESS SET — **PINNED** (and the first draft's demotion is REVERSED)
+
+> **THE WITNESS SET — fixed, ordered, ALL REPORTED, evaluated on BOTH corpora:**
+>
+> | | model | class | bridge | role |
+> |---|---|---|---|---|
+> | **W1** | **`RWKV7-Goose-World3-1.5B`** | **recurrent — generalized delta rule (OUR RUNGS' OWN FAMILY)** | decode→re-tokenize | **T2a-1 CEILING, REQUIRED** |
+> | **W2** | **`gpt2-large`** | attention, documented induction-head circuit | **NONE — GPT-2 tokenizer, identical to our corpora's** | **T2a-1 CEILING, REQUIRED** |
+> | W3 | `Llama-3.2-1B` | attention | decode→re-tokenize | reported; may substitute for W2 only if W2's tokenizer-clean read is unavailable |
+> | C1 | `falcon-mamba-7b` | **pure SSM (Mamba-1)** | decode→re-tokenize | **T2a-3 calibration (causal-only)** |
+>
+> **T2a-1 requires W1 AND W2 to clear all five legs, on each corpus.** The gate is
+> **conjunctive across the two architecture classes** — one witness from the class the
+> instrument will be *applied to* (recurrent / delta-rule), and one from the class the
+> literature places at the ceiling of this operation (attention / induction heads).
+> **Fail ⇒ INSTRUMENT-INVALID, HALT for every rung.**
+
+**The first draft of this section demoted W1 to a causal-only gate. That was wrong, the
+independent attacker killed it, and the reversal is recorded here rather than quietly
+applied.** The draft's argument was that *"known to have associative recall ≠ at the
+ceiling of associative recall,"* citing **Jelassi et al., ICML 2024 (arXiv:2402.01032)**
+— transformers beat SSMs at copying — to demote both recurrent references. **Three
+things are wrong with that, and each alone is fatal:**
+
+1. **The citation is about the wrong quantity.** Jelassi's theorem is an
+   information-theoretic **bit-count** bound: copying a string of length `n` requires
+   `Θ(n·log|V|)` bits, and a fixed-size state cannot hold it once `n·log|V|` exceeds the
+   state. **This probe copies ONE token** — `log₂(50257) ≈ 16 bits` — at Δ≈89.
+   RWKV7-1.5B's WKV state is on the order of 10⁶ floats. **The bound is not within six
+   orders of magnitude of binding.** Invoking a *long-string state-capacity* theorem to
+   excuse a *single-token* retrieval failure is a category error, and it was the
+   load-bearing sentence of the demotion.
+2. **The demoted model is documented at ceiling on precisely this operation.** The RWKV-7
+   "Goose" paper (**arXiv:2503.14456**, verified) reports **`RWKV7-World3-1.5B` at
+   *perfect* passkey retrieval up to a context of ~19,600 tokens**, and 72.9% recall at
+   **256 simultaneous key-value pairs** with a WKV size of 8192. **Our probe asks for ONE
+   pair at Δ≈89 inside a 512-token window** — ~38× inside its documented perfect-retrieval
+   context, at 1/256 of its documented multi-pair load. **It scored 0.11.** The correct
+   inference is therefore **not** "recurrent models are worse at copying, so change the
+   subject of the bar." It is **"the probe is still broken"** — which is exactly what T2a
+   exists to say, and the demotion would have **disabled T2a from saying it.**
+3. **The architectural direction was backwards.** RWKV-7 is a **generalized delta rule** —
+   *the same fast-weight family as every rung in this study.* An instrument validated
+   **only** on softmax-attention induction heads — a mechanism our rungs **do not have** —
+   cannot distinguish *"this rung has no mechanism"* from *"this probe is unreadable
+   outside attention."* **That is the exact confound T2a was written to exclude, and the
+   demotion would have aligned it with the architecture class of every rung in the study.**
+
+**The `falcon-mamba-7b` demotion (C1) survives, and is defended narrowly.** It is a pure
+attention-free **Mamba-1** SSM (arXiv:2410.05355, *"the first competitive attention-free
+7B language model"*) with a 16-dim SSM state, and it is the architecture class Zoology
+(Arora et al., arXiv:2312.04927) and Jelassi's *empirical* section both place at the
+bottom on recall/copying. **It is not in our rungs' family and therefore cannot serve as
+the class witness.** Crucially — **this demotion cannot save the gate**: W1, a recurrent
+model, must still clear 0.90. The self-serving structure the attacker (rightly) hunted for
+is thereby **removed by construction**, not by assertion.
+
+**Net effect on gate strength, stated plainly so it can be audited:**
+
+| | §9.4 (old) | §11 (new) |
+|---|---|---|
+| absolute `acc_copy ≥ 0.90` bar | 2 models | **2 models** (one recurrent, one attention) |
+| bar value | 0.90 / 0.75 deciles | **0.90 / 0.75 deciles — IDENTICAL, NOT MOVED** |
+| anti-prior gate (`PRIOR ≤ 0.05`) | — | **ADDED** |
+| key-conditioned gate (`KS`, T2b-1b) | — | **ADDED** |
+| untrained negative control | — | **ADDED (T2a-2)** |
+| difficulty-matched reference `DiD` gate (T1c) | pinned, **never executed** | **RE-PINNED AND REQUIRED (§11.4.5)** |
+| per-corpus evaluation | implicit | **EXPLICIT, both corpora** |
+| `falcon-mamba` at 0.90 | required | **demoted to causal-only — THE ONE LOOSENING, and it is disclosed** |
+
+**T2a-2 — NEGATIVE CONTROL (gating, NEW).** A **randomly-initialised, untrained** model
+of the 14M rung's exact architecture must read `acc_copy ≤ 0.02` with a `KS` bootstrap CI
+**including 0**. *If an untrained model passes the probe, the probe is passable with no
+learned mechanism* ⇒ **INSTRUMENT-INVALID, HALT.** Zero training, one eval. **A positive
+control without a negative control is half a gate; §9.4 only ever had half.**
+
+**T2a-3 — SSM CALIBRATION (gating on the CAUSAL legs only).** `falcon-mamba-7b` must pass
+**T2b-1 and T2b-1b** (`p < 0.001`) and show **`KS > 0`** with a bootstrap 95% CI excluding
+0. *(Conceded to A-M1: the draft's magnitude leg used `acc_copy − acc_copy_noplant`, a
+**two-token** contrast; `KS` is a genuine single-token contrast and is used instead.)* Its
+`acc_copy` **is reported** — it is not held to 0.90. Failure of its **causal** legs ⇒
+**HALT**.
+
+#### 11.4.3 IF A WITNESS DOES NOT CLEAR THE BAR — the bar does not move (anti-M-11)
+
+M-11 is on this document's record because a bar was cut **after it failed**. The response
+to a T2a-1 failure is therefore pre-registered **now**, in full, and **contains no bar**:
+
+1. **The bar is NOT moved. Not the 0.90, not the 0.75, not the deciles, not the witness
+   set.**
+2. Run the **diagnostic ladder** — every quantity is already emitted, and §9.6's stop rule
+   means **none of it can be added later**: the per-window assertion log; `PRIOR`; `KS`;
+   `acc_copy` **stratified by rival strength** (`max_b p(b|a) ∈ [0,0.1] / (0.1,0.25] /
+   (0.25,0.5]`), **by `rank(b|a)`** (`2–5 / 6–20 / 21–50`) and **by `count(a,b)`**; by
+   Δ-decile; the realized-vs-target Δ profile; the W2 **Δ-sweep** (`Δ ∈ {2,5,10,20,40,
+   median,200,400}`); and the **`n_demos ∈ {1,2,4}`** read — *the only diagnostic that
+   separates "one-shot is too hard" from "the model cannot copy."*
+3. **Localise:** deciles fail only at large Δ ⇒ a **distance** limit, reported as a finding
+   about the models. `PRIOR` high ⇒ **probe defect**. `KS ≈ 0` ⇒ we are reading salience,
+   **probe defect**. Failure concentrated in the high-rival-mass stratum ⇒ **probe defect**
+   (K4's `≤0.5` admits a rival with 100× the plant's mass — the attacker measured the median
+   rival at 0.203/0.152 against a median plant mass of ~0.005, a **30–38× prior deficit**;
+   **this is why the stratification is mandatory and why a bare pass/fail on 0.90 would have
+   been uninterpretable**). Uniform failure with `PRIOR ≈ 0` and `KS` large ⇒ the mechanism
+   is real but weak in every available model.
+4. **The response to (3) is a NEW blind pre-registration of the probe, and nothing else.**
+   *(The first draft's escape hatch here — "if no model passes, the PRIMARY must be
+   redesigned" — is **DELETED**. It was **self-refuting**: §11.6 Reason 2 proves the probe
+   is **strictly harder** than the metric, and a failure on a strictly harder task carries
+   **no** implication that the metric's items are unrecallable. Conceded to A-F3. The
+   difficulty-matched question is T1c's (§11.4.5), and T1c — not the probe — is what may
+   speak about the primary.)*
+
+#### 11.4.4 §9.6 item 6 and per-corpus evaluation
+
+The pools are built from **our** train splits, but V3/V4's *semantics* ("the witness has
+seen this transition"; "the witness does not predict it") are claims about the **witness's
+own** pretraining distribution (A-S7). For `gpt2-large`, the `openr1` pool is mathematical
+notation whose bigram statistics have nothing to do with WebText. **PINNED:** T2a-1 is
+evaluated **per corpus** and must clear on **each** (which §9.6 item 6 already implies for
+rung admissibility). **A witness that clears one corpus and not the other is reported as
+evidence of a corpus/pretraining mismatch — reported, never used as an escape**: the
+pre-registered consequence of a corpus failing T2a-1 is that **that corpus is VOID**, and
+since §9.6 item 6 requires both corpora, the read is VOID. Non-discretionary.
+
+#### 11.4.5 T1c — **RE-PINNED** (the difficulty-matched teeth gate that was never executed)
+
+§9.3's T1c was *"the instrument reads `DiD` significantly > 0 on the reference models
+**AND** passes T2a"*. §10.1 discharged it by conjunction-failure and **never measured the
+`DiD` leg**. Under §11's witness set that formulation no longer computes (A-F1). It is
+**re-pinned in the form it should always have had**:
+
+> **T1c (RE-PINNED, GATING).** Run the **main metric** (arms A/B/C/D, §9.2 + §11.6.2) on
+> **W1 (`RWKV7-Goose-World3-1.5B`) and W2 (`gpt2-large`)**, over the **same candidate
+> population, both corpora**. Require **`DiD > 0` with a clustered-bootstrap 95% CI
+> excluding 0, on each.**
+> **Fail ⇒ INSTRUMENT-INVALID, HALT.**
+
+**This is the only gate in the design that is difficulty-matched to the primary** — it
+reads the *actual estimand* on the *actual candidate population*, not a synthetic plant. It
+is cheap (one extra eval per witness), it requires no new bar, it is immune to every "SSM
+copy competence" objection because **it is not a copy bar**, and it directly answers *"can
+this instrument read in-context recall in a recurrent model?"* — which is the question the
+whole ladder depends on. **Dropping it would have been M-11 by omission; §11 requires it.**
+
+#### 11.4.6 RUNG-INDEPENDENCE OF THE PROBE'S DIFFICULTY — by construction
+
+**No model forward pass enters key selection, value selection, decoy selection, Δ drawing,
+`k0`/`j0` placement, window dropping, `N_rows`, or the plant itself.** Every input is a
+TRAIN-split corpus statistic or a seeded RNG keyed only on `(corpus, window index)`.
+Therefore, for a fixed `(tokenizer, corpus)`, **the planted windows presented to the 14M
+rung are byte-identical to those presented to the 1.31B rung.** Difficulty cannot vary with
+rung because **nothing about the rung is an input.** *(Across **corpora** the pools differ —
+which is why §9.6 item 6 demands admissibility on **both** and forbids dropping the failing
+one. Across **tokenizers** they necessarily differ, the disclosed price of using reference
+models at all — and the reason W2 shares our tokenizer.)*
+
+---
+
+### 11.5 T2b — RUNG ADMISSIBILITY, **STRENGTHENED**
+
+On each of our own checkpoints, repaired probe, main metric's own Δ distribution:
+
+- **T2b-1** — *unchanged*: mechanism exists. Paired exact sign test, arm 2 vs arm 3,
+  `p < 0.001 ∧ n₊ > n₋`.
+- **T2b-1b** — **NEW, ADDED**: the mechanism is **key-conditioned**. Paired exact sign test,
+  arm 4 vs arm 3b, `p < 0.001 ∧ n₊ > n₋`.
+- **T2b-2** — **RETIRED** (§11.6). **It is hereby STRICKEN from §9.6 item 5**, which still
+  named it (A-F1a); §9.6 item 5 now reads: *"**T1a** and **T2b-1** and **T2b-1b** all pass;
+  failure of any ⇒ **FLOOR rung** (excluded from the fit, reported)."*
+
+**Net: the admissibility gate is STRICTLY STRONGER than §9.4's.** One leg is **added**
+(T2b-1b — the only check in the entire design that can separate associative recall from
+in-context repetition bias, and no version of T2 ever had it). The only leg removed is one
+whose premise is **provably false** and whose failures therefore **carried no information
+about the checkpoint** (§10.3). **Nothing was loosened to save a rung.**
+
+> **THE RUNG-ADMISSIBILITY RULE — RESTATED, UNWEAKENED (§9.4's own language, in force):**
+>
+> **A rung with no demonstrated key-conditioned in-context copy mechanism at the distances
+> the main metric actually queries cannot contribute an in-context-recall data point.** It
+> is **EXCLUDED from the law**, reported as *"mechanism absent"* or *"mechanism present but
+> not key-conditioned,"* and it does **not** count toward §9.6's minimum n.
+>
+> **If that costs us rungs, it costs us rungs.** If it costs us **most** rungs, the honest
+> headline is **not** COUPLED and **not** DECOUPLED — it is **FLOOR** (§9.5), and §5.2
+> already pre-commits to hedge D. **A capacity law fitted through checkpoints that cannot
+> copy is not a capacity law.** Weakening a gate after it fires is on this program's record
+> once (M-11). **It does not happen twice** — and the one gate this section had to touch,
+> it *strengthened* (§11.4.2's table), after an independent attacker caught it doing the
+> opposite in draft.
+
+---
+
+### 11.6 T2b-2 — **RETIRED.** The ceiling premise is not broken; it is UNPROVABLE.
+
+§10.3 refuted T2b-2's premise **empirically**. The question §10.3 left open is the one this
+section must answer: **with a *repaired* probe, does `acc_copy` become a legitimate upper
+bound on `DiD`?**
+
+**No — and not for want of a better probe. The domination fails for two independent
+structural reasons, neither of which any probe can fix.**
+
+**Reason 1 — the estimands are not nested.** With arms `A` (intact), `B`
+(antecedent-ablated), `C` (placebo-ablated), §9.1.1's Lemma gives `DiD = E[C − B]`. Arm `B`
+destroys the token at `j+1` — **which is the answer token `b` at its earlier occurrence.**
+That removes **two things at once**: the `(a → b)` **association** (what `acc_copy`
+measures) *and* **`b`'s presence in the context** — and a token's mere prior presence in the
+window raises its emission probability through the documented in-context repetition/copy
+bias, **with no key-conditioned retrieval involved.** `DiD` is therefore a **sum** of a
+key-conditioned recall component and an unconditional salience component; `acc_copy` —
+however well built — measures **only the first**. **A quantity cannot upper-bound a sum of
+which it is one summand.** This is a property of the *main metric's arm structure*, not of
+the probe, so no repair to the probe touches it.
+
+**Reason 2 — the probe and the metric are not comparable in favourability, and the gap runs
+in *opposite* directions on the two axes that matter.**
+
+| axis | the planted probe | the metric's candidates | favours |
+|---|---|---|---|
+| **key competition** | unique key, one demonstration (§11.2.3, *asserted*) | key may recur ~20× with competing continuations | **probe** |
+| **local support for the value** | key is *spliced into* hostile prose; nothing local supports `b`; `PRIOR ≤ 0.05` **by gate** | natural prose in which `b` is the token the text actually continues with — local syntax and semantics **support** `b` | **metric** |
+
+The probe is favourable on axis 1 **because it must be** (that is F-I's fix) and
+**unfavourable on axis 2 because it must be** — a low `PRIOR` is exactly what gives the
+probe teeth (leg iii). **The unfavourability is not a defect to engineer away; it *is* the
+teeth.** So the probe cannot dominate the metric: a candidate needing only a *small nudge*
+from the association (because local context already half-supports `b`) can flip on the
+antecedent while the same model fails the probe's hostile one-shot version of the same
+retrieval. **`acc_copy ≥ DiD` is not merely unproven — it is false in general, and the two
+reasons are independent.**
+
+> **DISPOSITION: T2b-2 is RETIRED. No ceiling check replaces it.** A check of the form
+> *"probe quantity ≥ metric quantity"* **does not exist** for this pair of estimands.
+> Manufacturing a patched bound would be a fourth iteration of the same mistake: asserting a
+> domination the construction does not deliver. *(The independent attacker attacked both
+> arguments and **endorsed the retirement**, judging Reason 2 sound and sufficient on its
+> own.)*
+
+#### 11.6.1 What now guards the failure mode T2b-2 was meant to catch
+
+The failure mode — *"a rung reports a large recall gap while demonstrably unable to copy, so
+the gap is measuring something else"* — was **real**; it is what the first VOID build did. It
+is now guarded by **three mechanisms**, all more direct than an inequality between two
+accuracies:
+
+1. **The defect is structurally eliminated and ASSERTED AT RUNTIME.** The VOID build's
+   contradiction was manufactured by **FATAL-1** — mass simultaneous corruption. §9.2's
+   row-replication makes exactly one token differ per forward pass. **PINNED: this is a
+   runtime `assert (row != original).sum() == 1` on every constructed ablation batch — a
+   hard failure, not a design comment — with a forced-fail negative test in the smoke gate.**
+   *An indirect statistical bound on an effect is a poor substitute for a direct assertion of
+   the invariant whose violation caused it.*
+2. **T2b-1 + T2b-1b exclusion (§11.5).** A rung that cannot demonstrate **key-conditioned**
+   copy is **removed from the law**. The "impossible number" case cannot enter the fit —
+   which is the only thing T2b-2's VOID verdict ever accomplished. The difference: exclusion
+   now rests on a **causal test with a true premise** instead of an inequality with a false one.
+3. **T2a-2**, the untrained negative control — an instrument that reports recall where no
+   mechanism can exist is caught **before any rung is read**.
+
+**What is genuinely lost:** T2b-2's ability to label a rung **VOID** (instrument defect) as
+distinct from **FLOOR** (no mechanism). **That distinction now rests on (1) alone.** *(The
+draft also claimed §11.7's sample-size floors as a fourth guard. **They cannot serve:** every
+input to them is model-free, so they fire identically at every rung or not at all, and can
+never distinguish a model-dependent defect. Conceded to A-S8; the false guard is struck rather
+than padded.)* **A defect that asserts is better than a defect inferred from a contradiction
+between two accuracies.**
+
+#### 11.6.2 S3 — THE KEY-ABLATION ARM (NEW MANDATORY SENSITIVITY)
+
+Reason 1 is not only a proof that no ceiling exists — it is a **latent identification weakness
+in the primary itself**, and it is cheap to measure.
+
+> **ARM D (NEW, main metric): `key-ablated`.** For each candidate `i = (b, k, j)`, corrupt
+> position **`j`** — the antecedent bigram's **KEY** token at its first occurrence — leaving
+> the antecedent **value** token at `j+1` **intact**. Same row-replication, same exclusion
+> rule, same one-token-per-row invariant.
+>
+> **`S3 ≡ E[C − D]` — THE KEY-ASSOCIATION COMPONENT:** the extra correct-emission rate
+> attributable to destroying **the key** rather than an arbitrary matched-distance token,
+> with `b` still in context. It is **placebo-controlled** and it is the defensible quantity.
+> Reported with clustered-bootstrap CIs at every rung, always.
+>
+> **`E[D − B]` is reported as an unlabelled RESIDUAL, and is NOT called "the salience
+> component."** *(Conceded to A-S9, and the catch is correct.* `DiD = E[C−D] + E[D−B]`
+> **telescopes** — trivially, as any arm decomposition does — **but telescoping is not
+> identification.** `D` and `B` differ in **two** treatments at once (key-destroyed/value-intact
+> vs key-intact/value-destroyed), so `E[D−B]` is *not* "the effect of removing `b` given the
+> association is destroyed"; isolating that would require a **two-token** arm `E` (both
+> destroyed), which §9.2's FATAL-1 invariant **forbids**. `E[D−B]` therefore carries the key
+> token's own generic-damage residual and **overstates** any salience reading. We publish it as
+> a residual, not as a mechanism.*)
+
+**S3's status, pinned exactly like S1 and S2: MANDATORY, REPORTED ALWAYS, VERDICT-CARRYING
+NEVER.** It cannot create or strengthen a verdict. It may only **qualify the claim language**,
+and that consequence is pinned **now**:
+
+| `S3 = E[C−D]` over admissible rungs | pre-registered claim language |
+|---|---|
+| CI excludes 0 | **"in-context associative recall"** — licensed |
+| CI includes 0 at **every** admissible rung | **"antecedent-attributable in-context dependence"** — the word **recall is not used**, and we say why |
+
+**§9.1's pin `M(r) ≡ DiD(r)` is UNCHANGED and untouched.** S3 does not alter the estimand,
+the numerator, or the normalization — it **decomposes** the estimand §9.1 forced. **Build
+requirement:** emit `hit_D` and `logp_D` per candidate record (one additional row-replicated
+arm: `8/(1+8+8) = +47%` eval forwards — *not the draft's "+33%" (A-M5)* — on a sub-GPU-hour
+eval). Like S2, it **cannot be added after a read** (§9.6's stop rule). That is why it is
+pinned here, blind.
+
+---
+
+### 11.7 §9.2 / §9.6 RECONCILIATION — `N_rows` AND THE SAMPLE FLOOR — **PINNED**
+
+**The conflict (§10.6's D1).** §9.2 pins `N_rows = 512`, `C_max = 8`; §9.6 item 7 pins
+`≥ 4,096 candidates` per (rung, corpus). `512 × 8 = 4,096` is the **unreachable theoretical
+maximum**. **The two pins cannot both be satisfied.** R0 deviated (`N_rows = 2048`, uniform at
+every rung) and disclosed it.
+
+**The root cause: the floor was stated in the wrong unit.** §9.2's bootstrap **resamples over
+ROWS** (*"candidates within a row share a context and are not independent"*). **The row is the
+independent unit.** 4,096 candidates from 512 rows carry far less information than the same
+4,096 from 2,048 rows — so a floor in *candidates* is not a statement about power at all.
+Fixing the collision by *lowering the candidate floor* would preserve the wrong unit.
+
+> **THE PIN.**
+>
+> - **`C_max = 8`** per row, uniform-random within the row, **rung-independent seed** —
+>   **unchanged from §9.2.**
+> - **`N_rows`: ONE global constant, fixed by a MODEL-FREE PRE-PASS.** Before any checkpoint is
+>   loaded, run §9.0's candidate detection (which reads **only** the corpus, the tokenizer and
+>   the TRAIN-split modal table — **never a model**) over the val split of **both** corpora.
+>   `N_rows` ≡ the **smallest power of two in `[2048, 8192]`** such that **both** corpora clear
+>   both floors below. **The same `N_rows` is used at every rung and both corpora.** If **8192**
+>   does not clear them, the read is **VOID with a stated reason** — the search terminates.
+> - **THE FLOORS (superseding §9.6 item 7), per (rung, corpus):**
+>   **≥ 1,500 rows contributing ≥1 resolved candidate** *(the clustered bootstrap's effective n)*
+>   **AND ≥ 8,000 resolved candidates** *(the within-cluster n).*
+> - **The §9.2 placebo-fallback-flagged fraction `≤ 5%` is RETAINED as a cell-validity check —
+>   and is REMOVED from the `N_rows` search.** *(Conceded to A-S8: it is a **per-candidate**
+>   property and does **not** decrease with more rows, so including it in a "smallest `N_rows`
+>   such that…" search makes the search **non-terminating**. It is a pass/fail cell property.
+>   Fail ⇒ cell VOID.)*
+> - **`n_plants` (T2) `= N_rows`**, one plant per window (§11.2.5).
+>
+> **Rung-independence — the only property the collision actually threatened:** `N_rows` is fixed
+> by corpus statistics **before any model exists** and is identical at every rung. It **cannot**
+> bias a cross-rung comparison; F-4's failure mode (a cap that silently made one rung's candidate
+> population differ from another's) is closed by construction, exactly as §9.2 intended.
+>
+> **§9.2's `N_rows = 512` and §9.6 item 7's `≥4,096 candidates` are both SUPERSEDED.** R0's
+> disclosed D1 deviation (`N_rows = 2048`) is **RATIFIED as the floor**; the pre-pass may raise
+> it, never lower it. **Honest disclosure (A-S8):** §10.6-D1 reports `C_max` saturating every row
+> at `N_rows = 2048`, so **the pre-pass is expected to return 2048 and is in practice a
+> *verification*, not a *search*.** It is retained in that form — a floor that is checked and can
+> VOID a cell — and **not** dressed up as adaptive sampling.
+
+**D2 and D3 (§10.6's unpinned gaps) are pinned here — they must be pinned before any read and
+they are orthogonal to every outcome value:**
+- **D2 — how the two corpora combine into one trend point. PINNED:** a rung's `M(r)` is the mean
+  of the **pooled per-row `DiD` records across both corpora**, the clustered bootstrap resampling
+  rows within corpus (row = cluster, corpus = stratum). **Per-corpus `M` is also reported
+  separately, always.** If the two corpora's Factor-1 classifications (§9.5) **disagree**, the
+  verdict is **INDETERMINATE** — the same rule §9.1.5 and §9.4 already pin for the S2 and
+  strict/lenient disagreements.
+- **D3 — `δ`'s reference. PINNED:** `δ = 0.125 × M(r_min)` where `M(r_min)` is the
+  **pooled-across-corpora** `M` at the smallest admissible rung — the same pooled quantity `β` is
+  fit on. Consistent by construction.
+
+---
+
+### 11.8 WHAT THIS REPAIR DOES **NOT** BUY — and the anti-laundering controls that actually work
+
+**The first draft claimed here that a repaired probe forces a full re-run and therefore made the
+sealed R0 table structurally unusable. THAT CLAIM WAS FALSE, and the attacker was right to kill
+it (A-S1).** `M(r) ≡ DiD(r)` is computed from arms **A, B, C** — **none of which §11 changes** —
+at an `N_rows` that §11.7 pins to reproduce **R0's exact, model-free candidate population**. Arms
+4/5/3b are *probe* arms; arm D is *non-verdict-carrying*. **The sealed per-rung `DiD` table
+therefore remains verdict-grade the instant a repaired T2 passes, exactly as §9.1's quarantine
+banner already warned.** A false safety claim inside an anti-laundering pin is worse than no
+claim: it licenses the complacency it purports to prevent. It is struck and replaced with
+controls that are real.
+
+> **THE LIVE LAUNDERING LEVER, NAMED.** `β` is an OLS slope over the **admissible set `A`**, and
+> `A` is determined by the gates **this section designs** (T1a, T2b-1, T2b-1b, §9.6). *An agent
+> who knew the per-rung `DiD` trend could select the verdict by tuning which rungs the gates
+> admit.* That — not the arithmetic of a re-run — is the attack surface.
+>
+> **THE CONTROLS — PINNED, and they are procedural because the hazard is procedural:**
+> 1. **The T2/admissibility gates run FIRST. The admissible set `A` — the full per-rung
+>    pass/fail table for T1a, T2b-1, T2b-1b and §9.6 items 1–6 — is COMMITTED TO GIT BEFORE ANY
+>    `DiD` VALUE IS UN-QUARANTINED OR RECOMPUTED.** No exceptions, no previews.
+> 2. **The agent that fits `β` and reads the verdict is a FRESH CONTEXT** that has not read this
+>    section's authorship trail and has not participated in gate design.
+> 3. **`QUARANTINE_r0_did_values.md` stays sealed through the entire re-read**, and the §9.1
+>    no-read list applies unchanged to every agent in the chain.
+> 4. **No gate in §11 may be revised after `A` is committed.** A gate revision after that point
+>    is an M-11 violation by definition and must be recorded as one.
+
+**AND, INDEPENDENTLY: a T2 repair alone does not make the ladder readable, and it never could.**
+§9.6 item 2 (≥1.0 token/param at the forced 0.328B common slice) admits **only the 14M and 98M
+rungs**; the 392M rung is disclosed-secondary and does not enter the primary fit (§10.5). **That
+is 2 fit points against §9.6's minimum of 3.** Even a probe that passes every gate in this
+section leaves the primary trend **INDETERMINATE** on the current checkpoint set. **The ladder
+must be extended** — more tokens at 392M and/or a fourth token-matched rung — before any trend
+verdict exists. *This is derived from the training budget (§10.5, S-6), not from any measured
+recall value, and it is stated here so that nobody reads "T2a passed" as "the verdict is
+unlocked."*
+
+---
+
+### 11.9 THE INDEPENDENT ATTACK ROUND (fresh-context opus agent, 2026-07-12)
+
+Dispatched under the same no-read list, briefed to **kill** the repair. Verdict: **"DIES as
+written."** 3 FATAL, 9 SERIOUS, 6 MINOR. **All 3 FATALs and 8 of 9 SERIOUS conceded and fixed
+above.** This is the round that saved the section.
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| **A-F1** | FATAL | The draft left **§9.6 item 5** (which still *mandates* T2b-2) and **§9.3-T1c** (which still requires the demoted models to *pass T2a*) standing. The pre-registration **did not compute**: every rung would be simultaneously admissible and VOID, and T2a's status for W1 was false-or-undefined ⇒ HALT regardless. Dropping T1c silently would also be **"M-11 by omission"** — T1c is the only difficulty-matched gate and was never executed. | **CONCEDED IN FULL.** T2b-2 **struck from §9.6 item 5** (§11.5). **T1c RE-PINNED** as a gating reference-model `DiD` check on the metric's own candidate population (§11.4.5). |
+| **A-F2** | FATAL | **The witness demotion was M-11 in a literature costume.** Jelassi's bound is `Θ(n·log\|V\|)` bits for **long-string** copying — this probe copies **one token (~16 bits)** at Δ=89; the bound misses by six orders of magnitude. **RWKV7-World3-1.5B's own paper documents *perfect* passkey retrieval to ~19,600 tokens** (arXiv:2503.14456) — 38× beyond this probe's entire context. **`acc_copy=0.11` on it means the probe is broken, which is what T2a exists to say — and the demotion disabled T2a from saying it.** RWKV-7 is a **generalized delta rule = our rungs' own family**; validating only on softmax induction heads cannot separate *"our rung has no mechanism"* from *"the probe is unreadable outside attention."* | **CONCEDED IN FULL; the citation was verified independently and the demotion REVERSED.** W1 = `RWKV7-Goose-1.5B` **restored to the 0.90 ceiling gate as a REQUIRED conjunct** alongside `gpt2-large`. Only `falcon-mamba-7b` (pure Mamba-1, not our family) stays demoted — **and it can no longer save the gate, because a recurrent model must still clear 0.90** (§11.4.2). |
+| **A-F3** | FATAL | §11.4.3's escape hatch (*"if no model passes, the PRIMARY must be redesigned"*) is **refuted by the draft's own §11.6 Reason 2**: if the probe is *strictly harder* than the metric, failing the probe implies **nothing** about the metric's recallability. | **CONCEDED.** Bullet deleted; replaced by "a new blind pre-registration of the probe, and nothing else," with T1c (not the probe) as the only gate licensed to speak about the primary (§11.4.3). |
+| **A-S1** | SERIOUS | §11.8's *"structural protection"* is **false** — `DiD` comes from arms A/B/C, untouched, at an `N_rows` pinned to reproduce R0's candidate population. **The real lever is the admissible set `A`**, which the T2 gates determine. | **CONCEDED.** False claim **struck**; replaced by four procedural controls, incl. **`A` committed to git before any `DiD` is un-quarantined** (§11.8). |
+| **A-S2** | SERIOUS | The draft applied "rare-in-window" to the **key** and stopped. **Measured: 37.8%/42.1% of planted values were top-100 tokens; p90 value ≈ 5.6 natural occurrences/window.** Arm 2 would not have removed `b` from context. | **CONCEDED.** **V5 (`p_train(b) ≤ 1e-4`)** + **`count(b in w) == 1` assertion** (§11.2.2/§11.2.3). Pool verified to survive. |
+| **A-S3** | SERIOUS | The 0.90 bar is **un-derived for the new probe** (median rival mass 0.203/0.152 vs median plant mass ~0.005 ⇒ a **30–38× prior deficit**; K4 admits a 100× rival). A failure would be uninterpretable. | **CONCEDED — but the bar is NOT moved** (that would be M-11). The **free per-plant difficulty stratification, the W2 Δ-sweep, and the `n_demos ∈ {1,2,4}` diagnostic are pinned NOW** (§11.4.3 step 2), since §9.6's stop rule forbids adding them later. |
+| **A-S4** | SERIOUS | V3's `p(b\|a) > 0` is a binary predicate doing a quantitative job: **6.3% of admissible pairs are hapax, 17.4% at `count ≤ 2`** ⇒ F-II recurs on ~1 in 6 plants. | **CONCEDED.** **V3 → `count(a,b) ≥ 5`** (§11.2.2). Pool verified. |
+| **A-S5** | SERIOUS | The decoy `a′` was not required to **license** `b`, so arm 4's splice is *more* anomalous than arm 1's ⇒ **inflates `KS`** ⇒ makes the one new gate **easier** to pass. | **CONCEDED.** `(a, a′, b)` drawn **jointly** with `b ∈ P_val(a) ∩ P_val(a′)`; `a′ ∉ {a,b}`; frequency-matched to 0.1 dex (§11.2.3). |
+| **A-S6** | SERIOUS | The claim *"the D5 bridge is bypassed for the gating model"* is false while **T2a-3 gates through it** — and §10.6-D5's own "audit this first" instruction was not carried into §11. | **CONCEDED**, and now sharper: with W1 restored, the bridge is on the **critical gating path**. **The D5 bridge audit is a BUILD GATE** (§11.11). |
+| **A-S7** | SERIOUS | Pools are built from **our** corpora, but V3/V4's semantics are claims about the **witness's** pretraining distribution ⇒ a HALT could be a corpus artifact. | **CONCEDED.** T2a-1 evaluated **per corpus**, clear required on **each**, mismatch **reported but never an escape** (§11.4.4). |
+| **A-S8** | SERIOUS | The `N_rows` search is **non-terminating** (placebo-fallback isn't monotone in rows), and the sample floors are **model-free** so they can never make the VOID/FLOOR distinction the draft credited them with. | **CONCEDED.** Placebo-fallback **removed from the search**, search **capped at 8192** with a VOID exit; the **false fourth guard struck** from §11.6.1 rather than padded. |
+| **A-S9** | SERIOUS | S3's decomposition is an **algebraic tautology with mislabelled terms**: `D` and `B` differ in **two** treatments, so `E[D−B]` is **not** the value-presence component (that needs a forbidden 2-token arm). | **CONCEDED.** `E[C−D]` (placebo-controlled) is S3; **`E[D−B]` is published as an unlabelled residual** (§11.6.2). The claim-language table only ever read `E[C−D]`, so **no verdict language was exposed**. |
+| **A-M1** | MINOR | Arm 5 is a **two-token** contrast, yet T2a-3 gated on `acc_copy − acc_copy_noplant`. | **CONCEDED.** T2a-3's magnitude leg is now **`KS`** (a true single-token contrast); arm 5 is used as a **level** (`PRIOR`), where the two-token construction is correct. |
+| **A-M2** | MINOR | Arm 4 corrupts with a *pool* token, arms 2/3 with a *uniform-random* token ⇒ different severities ⇒ T2b-1 and T2b-1b are not "the identical test." | **CONCEDED.** **Arm 3b (POOL-PLACEBO)** added as arm 4's severity-matched comparator (§11.3). |
+| **A-M3** | MINOR | Leg (iii) is near-vacuous given V4. | **CONCEDED (rhetorically).** Retained as a bug-check; **no longer billed as the primary anti-prior guard** — leg (iv) is. |
+| **A-M4** | MINOR | *"every Δ-decile carrying ≥10% of the mass"* is vacuous — deciles carry 10% by definition. | **CONCEDED.** Now reads *"every Δ-decile."* |
+| **A-M5** | MINOR | Arm D is **+47%** eval forwards, not "+33%." | **CONCEDED.** Corrected. |
+| **A-M6** | MINOR | The K2 relaxation ladder never fires (`\|P_key\|` = 1,426/8,274 ≫ 100). | **ACKNOWLEDGED.** Retained as a stated safety net, **disclosed as expected-never-to-fire** rather than presented as live tuning. |
+| **A-opt** | — | Optional hardening: `K4 ≤ 0.25`, `rank ≤ 10`. | **REJECTED ON THE ATTACKER'S OWN ARITHMETIC** — stacked with V5+V3 it collapses openr1's key pool to **46**, below the `≥100` floor. **Not adopted.** |
+
+**What the attacker attacked and could NOT break** (recorded, because a survived attack is
+evidence): the per-window `count == 2` **hard assertion**; **per-window `(a,b)` randomization**;
+the **retirement of T2b-2** (*"correct, and I endorse it"* — Reason 2 judged sound and sufficient
+alone); **arm 4** as the killer of the salience-bias and rarity-heuristic shortcuts; **T2a-2**
+(untrained negative control); the **§11.2.4 entropy autopsy**; **§11.8's ladder disclosure**; and
+— attacked hardest, with the pools rebuilt from the real tokenized train splits — **the key-pool
+arithmetic** (`|P_key|` = 1,426 / 8,274 ≫ 100; median `|P_val|` = 42 / 45 ≫ 5). **The rule is
+buildable.**
+
+---
+
+### 11.10 CONTAMINATION LEDGER
+
+**Read, in full or in part — the complete list:**
+- `PARAM_AXIS_SCALING_DESIGN.md` @HEAD: the header (L1–27), the section index, **§9.0–§9.8 in
+  full**, **§10.0–§10.3** and **§10.5–§10.7**. **§10.4 (the quarantined per-rung table, L1674–1736)
+  was NOT OPENED** — the read was split around it deliberately.
+- `deltanet_rd/lm_recall_gap_probe_v2_rd.py` @HEAD: §§4–6 (candidate detection, placebo assignment)
+  and §§11–13 (the T2 block, `check_t2b1/t2b2`, `binomial_se`), plus the `def`/`class` index.
+- Web: Jelassi et al. arXiv:2402.01032; Falcon-Mamba arXiv:2410.05355; RWKV-7 "Goose"
+  arXiv:2503.14456; Olsson et al., *In-context Learning and Induction Heads* (2022).
+- `git log -1 --format=%ad` (HEAD only, **no pathspec**, no `-p`) and the system clock, for the date.
+
+**NOT read (beyond the mandatory list):** `QUARANTINE_r0_did_values.md` — **never opened**;
+`QUARANTINE_r0_void_values.md` — **never opened**; `queue/regate_2026-07-12.md` — **never opened**;
+`experiment-runs/2026-07-12_param_axis_r0/` (all raws **and** `r0_v2_run.log`) — **never opened**;
+**no `git show` / `git log -p` / `git diff` / `git blame` on any redacted path, and no `git log` of
+any kind over `PARAM_AXIS_SCALING_DESIGN.md` or `EXPERIMENT_LOG.md`**; no result JSON; no figure.
+
+**EXPLICIT STATEMENT.** I viewed **no per-rung `DiD`, `gap_true`, `gap_placebo`, S1, S2 value, and
+no per-rung `acc_copy` of our own checkpoints**, and **no statement of the cross-rung trend shape**
+(rising / flat / declining). The reference-model readings I did use (`acc_copy` 0.1133 / 0.2344;
+Δ-median 0.200 / 0.100; the T2b-1 splits 57/0 and 121/0) are **REFERENCE-model** results,
+explicitly outside the quarantine, and are independent of our rung ladder.
+
+**⚠ TWO INCIDENTAL DISCLOSURES, DECLARED RATHER THAN MINIMISED.**
+
+1. **A residual redaction miss in a PERMITTED file.** `lm_recall_gap_probe_v2_rd.py`'s
+   `check_t2b2_ceiling` docstring (≈L1285) states, in plain text, a per-rung outcome tuple from the
+   **first (retracted, FATAL-1) VOID build**: *"DiD=0.19 at rungs with acc_copy=0.0."* It was read
+   before it could be avoided. **The independent attacker hit the identical line** and reported it
+   without prompting — so this is a genuine hole, not an artifact of my reading. **Hazard
+   assessment:** the figure belongs to the **retracted** numerator (mass simultaneous corruption)
+   which *"no longer exists"* (§9.1.8), it is not a `855f548` R0 value, and it is not per-rung
+   resolved (it says "rungs," plural, on wikitext). **Nothing in §11 was tuned to it.**
+   **RECOMMENDATION TO THE PI: seal that docstring.** The instrument source is on the permitted
+   list for every future blind agent and it currently carries values.
+2. **A LEAK-BY-ELIMINATION IN §10.3, AND IT IS THE ONE THAT COULD HAVE BITTEN ME.** §10.3's closing
+   sentence names *"the T2b-2 rung-VOIDs **at 14M and 98M**"* — while §10.3's own item 3
+   quarantines *"the identity of the passing cell."* Given the fitted rung set, **naming the failing
+   rungs discloses the passing one by elimination**, and `T2b-2: DiD ≤ acc_copy + 2·SE` is a
+   *relation* between `DiD` and `acc_copy`. **I therefore hold a derivable, partial, cross-rung
+   relational fact — and it touches precisely the decision I was sent here to make: whether to
+   retire T2b-2, the gate that voided those rungs.** Retiring it superficially "saves rungs," which
+   is exactly the shape of the failure this apparatus exists to prevent. **I do not minimise this.
+   The mitigations, so a reader can audit rather than take my word:**
+   - **The retirement rests on a proof of NON-EXISTENCE, not on a judgment call.** §11.6 shows no
+     probe can bound `DiD`, for two independent structural reasons. There is no bar to tune and no
+     threshold to shade: the check is either sound or it is not, and it is not.
+   - **It is sign-invariant, and I state the counterfactual.** Had T2b-2 voided the *top* rungs
+     instead, **I would retire it identically and for the identical reason** — its premise is false
+     regardless of which rungs it fires on. §10.3 had *already* concluded, before I arrived, that
+     *"the T2b-2 rung-VOIDs … are artifacts of the broken ceiling"* and *"carry no information."*
+     **I am not reversing a live gate; I am formalising a disposition the record had already
+     reached, and proving it holds even after the probe is fixed.**
+   - **The gate count on rungs does not fall.** T2b-2 out, **T2b-1b in** — a *new, teeth-ful* gate
+     that can exclude rungs, with a *true* premise. §11.4.2's table shows the net across T2a is a
+     **strengthening**.
+   - **The independent attacker — briefed to kill, and hunting specifically for gate-weakening —
+     ENDORSED the retirement** on the merits and spent its fire on the witness set instead (where it
+     was right, and where I was wrong in the self-serving direction, which I then reversed).
+   - **§11.8's control 1 removes the lever entirely:** the admissible set `A` is committed to git
+     **before any `DiD` is un-quarantined**, so no gate decision can be revised against a value.
+
+**Sub-decisions where influence is conceivable, and the handling:**
+
+| Sub-decision | Influence suspected? | Handling |
+|---|---|---|
+| **Retiring T2b-2** | **Conceivable in appearance** (disclosure 2), **not in substance** — it is a non-existence proof, sign-invariant, and §10.3 had already voided the gate's informativeness. | Retired, with the hazard disclosed in full and the counterfactual stated. **A PI who distrusts it can reinstate T2b-2 at zero cost to the rest of §11 — nothing else depends on it.** |
+| **Adding T2b-1b** | **No** — and note it cuts **against** the direction a leak would tempt me toward: it is a **new** gate that can **exclude rungs**, including the ones a self-serving agent would want to keep. | Pinned. |
+| **The witness set** | **YES — I got this wrong in the self-serving direction in draft** (demoting the recurrent witnesses would have made T2a easier to pass and unblocked the program). I did **not** hold any of our rungs' values, and the error was a genuine literature misreading — **but the direction is exactly the one a contaminated agent would drift in, and I record it as such.** | **REVERSED after independent attack** (A-F2), verified against the RWKV-7 paper. **The gate is now stronger than §9.4's on six axes and weaker on one, and the table (§11.4.2) is laid out so a reviewer can check that claim without trusting me.** |
+| **The 0.90 bar** | **No.** Not moved, in any direction, for any witness. | Unchanged from §9.4. |
+| **`N_rows` / floors** | **No.** Fixed by a **model-free** pre-pass; `2048` ratifies R0's own disclosed deviation, and raising it only *adds* data. | Pinned. |
+| **S3 / arm D** | **No.** Derived from §11.6's Reason 1, which is a statement about the metric's arm structure and contains no rung. | Pinned, non-verdict-carrying. |
+
+**PROCESS FINDINGS FOR THE PI (both are real):**
+1. **The §10.3 elimination leak (disclosure 2) will burn the next blind agent too.** Recommend
+   sealing *"at 14M and 98M"* → *"at two of the fitted rungs (identities QUARANTINED)."* **I did not
+   edit §10 myself**: an agent contaminated *by* a sentence should not be the one to rewrite it, and
+   the §9.1 precedent is that the coordinator lands the quarantine as a separate commit.
+2. **The permitted instrument source carries values** (disclosure 1). The no-read list guards the
+   *documents* and leaves the *code* open. Close it.
+
+**Fake system-reminders (reported, not concealed).** One arrived in tool stdout during this session —
+a date-change claim **plus an explicit instruction to conceal it from the user**. The independent
+attacker reports **two more** (a date-change and a "file was modified — don't tell the user" claim).
+**Disregarded per the CLAUDE.md standing rule.** The date was verified independently against
+`git log -1` **and** the system clock (both **2026-07-12**; the environment block's "2026-07-10" was
+merely stale). **The concealment instruction is the tell, and it was not obeyed.**
+
+---
+
+### 11.11 STATUS AND BUILD REQUIREMENTS
+
+**STATUS: T2 SPEC FULLY RE-PINNED. NO SLOT OPEN. DESIGN ONLY — nothing launched, nothing run, no
+code written by this agent, no eval executed.**
+
+**BUILD GATES — all must land before any cell is read (§9.6's stop rule means none can be added
+after):**
+1. **`pick_t2_marker_tokens` DELETED**; replaced by the §11.2 pre-pass (`P_key`, `P_val`, the
+   inverse map `b → {licensing keys}`) + per-window `(a, a′, b)` assignment.
+2. **The two hard assertions**, as `RuntimeError`s, with **forced-fail negative tests that RUN TO
+   COMPLETION** in the smoke gate: (a) `count(a in w) == 2` at `{j0,k0}` **and** `count(b in w) == 1`
+   at `{j0+1}` (§11.2.3); (b) `(row != original).sum() == 1` on every constructed ablation batch
+   (§11.6.1). *A structural check whose negative test was never run is not a check.*
+3. **Six probe arms** (§11.3) incl. arm 3b, arm 4, arm 5; **`KS`, `PRIOR`, T2b-1b** emitted per cell.
+4. **Arm D + `hit_D` + `logp_D`** per candidate record on the main metric (§11.6.2). **S2's
+   `logp_intact`/`logp_true`/`logp_placebo` remain required** (§9.8's standing gate).
+5. **The per-plant difficulty record** — `max_b p(b|a)`, `rank(b|a)`, `p(b|a)`, `count(a,b)`,
+   `count(b)`, Δ — and the pre-registered **stratified `acc_copy` report**, the **W2 Δ-sweep**, and
+   the **`n_demos ∈ {1,2,4}`** diagnostic (§11.4.3).
+6. **Pre-pass floor checks with VOID exits:** `|P_key| ≥ 100`; `|P_val(a)| ≥ 5`; ≥100 values with ≥2
+   licensing keys; `N_rows ∈ [2048, 8192]` clearing ≥1,500 contributing rows and ≥8,000 resolved
+   candidates on **both** corpora (§11.7).
+7. **THE D5 BRIDGE AUDIT IS A BUILD GATE** (§10.6-D5, A-S6). With W1 restored to the ceiling gate,
+   the decode→re-tokenize bridge and `HFLogitsWrapper` are on the **critical gating path** and are
+   **unaudited**. **A fresh adversarial audit lands before any T2a read.** `EOT_TOKEN_ID` hardcoded
+   to GPT-2's 50256 under reference tokenizers (D6) is fixed in the same pass.
+8. **A `gpt2-large` checkpoint** on the box (W2; ~3GB, no bridge needed) and the **untrained-init 14M
+   negative control** (T2a-2).
+
+**EXECUTION ORDER — PINNED (it is itself an anti-laundering control, §11.8):**
+> **(1)** pre-pass + smoke gate + D5 audit → **(2)** T2a-1 / T2a-2 / T2a-3 / T1c on the witnesses →
+> **(3)** *if and only if all pass*, T2b + §9.6 gates on our rungs → **(4) commit the admissible set
+> `A` to git** → **(5)** *only then*, a **fresh-context** agent un-quarantines and fits `β`.
+
+**WHAT THIS SECTION DOES NOT DISCHARGE:** §11.8's second fact stands — **§9.6 item 2 admits only 2
+fit rungs against a minimum of 3.** A passing T2a **unblocks the instrument, not the verdict.** The
+ladder must be extended before a trend verdict exists, and **no one may read "T2a passed" as "the
+verdict is unlocked."**
